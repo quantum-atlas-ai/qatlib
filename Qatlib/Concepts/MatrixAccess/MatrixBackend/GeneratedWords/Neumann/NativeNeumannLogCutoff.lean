@@ -15,8 +15,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 Logarithmic cutoffs for an actual native Neumann program.
 
-Adapted from TiMidlY's NativeNeumannLogCutoff in OQ #91 at
-`4c76e75a5a94e48c8d3c2705569f6e0499784fc7`. The proofs and resource boundaries
+ The proofs and resource boundaries
 are retained; the results do not establish the entire original problem or
 additional gate and bit complexity claims.
 -/

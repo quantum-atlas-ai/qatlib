@@ -210,7 +210,7 @@ marginal padded by identities on the complementary systems). -/
 abbrev McmiNorm (Λ : Type) := Finset Λ → Finset Λ → Finset Λ → ℝ
 
 /-- A strong local effective Hamiltonian in the sense of Appendix A.4.3 /
-[BCPH24, Definition 3.1], specialised to the data needed by Lemma D.1: region
+[BluhmCapelPerezHernandez2024, Definition 3.1], specialised to the data needed by Lemma D.1: region
 dependent local terms with operator norms `hterm A X` satisfying
 
 * locality: `hterm A X` only depends on `A ∩ X`;

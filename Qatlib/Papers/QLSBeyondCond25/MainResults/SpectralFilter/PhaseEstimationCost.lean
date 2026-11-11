@@ -149,7 +149,7 @@ def theorem39_statement
 /-! ## c010 — Theorem 3.11: cost of implementing `U_AB` -/
 
 /-- Iteration cost of preparing one `s`-sparse star state, `Õ(s)` written as `s·(log₂ s + 1)`
-(paper page 20, using [GR02, RLR24, LL24]). -/
+(paper page 20, using [GroverRudolph2002], [RamacciottiLefteroviciRotundo2024], and [LuoLi2024]). -/
 def starPrepCost (s : ℕ) : ℝ := (s : ℝ) * ((Nat.log 2 s : ℝ) + 1)
 
 /-- Cost of one application of `U_AB = (2Π_A - I)(2Π_B - I)`: two star-state preparations

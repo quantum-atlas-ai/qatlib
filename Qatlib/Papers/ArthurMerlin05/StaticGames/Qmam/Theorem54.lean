@@ -17,7 +17,7 @@ three-message quantum Arthur--Merlin game for `L` with completeness error `0`,
 soundness error at most `1/2 + 2^{−r}`, in which Arthur's message consists of a
 single coin flip.
 
-The proof starts from the [KW00] normal form (perfect completeness, soundness
+The proof starts from the [KitaevWatrous2000] normal form (perfect completeness, soundness
 `2^{−2r}`) and "compresses" the verifier's message.  The analytic heart is the
 following consequence of Lemma 5.3: if the prover's reference state is at least
 `1/2`-faithful (`Froot ρ σ² ≥ 1/2`), then the fidelity of the compressed game's

@@ -45,16 +45,16 @@ jobs:
           CDN_BASE="https://lake-cache.quantum-atlas.ai/revisions/$SCOPE"
           CANDIDATE="$RUNNER_TEMP/qatlib-cached-inputs.jsonl"
           echo "mapping=$CANDIDATE" >> "$GITHUB_OUTPUT"
-          if curl -fsSL -H "User-Agent: LakeCache/4.35.0" "$CDN_BASE/${{ github.sha }}.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then
+          if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$CDN_BASE/${{ github.sha }}.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if curl -fsSL -H "User-Agent: LakeCache/4.35.0" "$CDN_BASE/inputs/$INPUT_TREE.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then
+          if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$CDN_BASE/inputs/$INPUT_TREE.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           for ANC in $(git rev-list --max-count=20 HEAD~1 2>/dev/null || true); do
-            if curl -fsSL -H "User-Agent: LakeCache/4.35.0" "$CDN_BASE/$ANC.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then
+            if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$CDN_BASE/$ANC.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then
               echo "found=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi

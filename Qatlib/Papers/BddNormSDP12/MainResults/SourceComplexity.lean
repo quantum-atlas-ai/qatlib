@@ -30,7 +30,7 @@ The paper's formalizable content in §4 is:
   program is `R = 2 ‖J(Φ)‖∞ dim(X) dim(Y)` (p.14);
 * the resulting δ-near-optimal dual witness with explicit polynomial size.
 
-The final sentence — that the cited [GLS93]/[Lov03] ellipsoid framework turns
+The final sentence — that the cited [GroetschelLovaszSchrijver1993]/[Lovasz2003] ellipsoid framework turns
 these bounds into a polynomial-time algorithm in the input size and `log(1/δ)` —
 is an *external* citation: Frozen has no model of a numerical SDP solver or of
 runtime. That sentence is *not* formalized here; see the module docstring of the
@@ -93,7 +93,7 @@ there is an actual dual feasible `δ`-near-optimal witness for the Choi program
 with explicit polynomial size bound `‖z‖ ≤ (dim X + 1) (dim Y ‖J(Φ)‖ + δ)`; the
 primal optimum is `α`, the witness score lies in `[α, α + δ)`, and the dual stays
 feasible. This is the mathematical content from which the paper's cited
-[GLS93]/[Lov03] runtime conclusion follows. Reuses
+[GroetschelLovaszSchrijver1993]/[Lovasz2003] runtime conclusion follows. Reuses
 `diamondProgram_near_optimal_ball` and `diamondRoundingRadius_pos`. -/
 theorem delta_near_optimal_witness {D E : ℕ} (hD : 0 < D)
     (T : Operator D →ₗ[ℂ] Operator E) {δ : ℝ} (hδ : 0 < δ) :

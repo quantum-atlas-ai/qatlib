@@ -14,9 +14,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 Finite defect polynomials and the reciprocal approximation identity.
 
-Adapted from TiMidlY's NeumannResolvent in OQ #91 at
-`4c76e75a5a94e48c8d3c2705569f6e0499784fc7`, including empty sums and the
-original proofs. No numerical-range or resolvent access premise is introduced.
+The reciprocal approximation identity includes empty sums. No numerical-range or resolvent access premise is introduced.
 -/
 set_option autoImplicit false
 noncomputable section

@@ -11,8 +11,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # Signed collision statistics
 
-Adapted from TiMidlY's BornCurrentRecords in OQ #117 at
-`10c852ef09801ec0ccfea4b579a88152345dd8bc`. This module retains the independent,
+ This module retains the independent,
 reusable definitions and proofs with their original premises. Its consumer
 results are verified separately; it does not assert acceptance of the full
 original research problem.

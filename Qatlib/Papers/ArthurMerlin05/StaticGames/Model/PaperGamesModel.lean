@@ -147,7 +147,7 @@ def InQmamPoly (a b : ℕ → ℝ) (L : List Bool → Prop) : Prop :=
 /-! ## QIP (three-message normal form used by the paper) -/
 
 /-- A three-message quantum interactive proof verifier in the normal form the
-paper uses in the proof of Theorem 5.4: by [KW00] one may assume perfect
+paper uses in the proof of Theorem 5.4: by [KitaevWatrous2000] one may assume perfect
 completeness and soundness error `2^{-2r}`.  `maxAccept n` is
 `max_{|ψ⟩,U} Pr[V accepts]` from §2. -/
 structure QipVerifier (r : ℕ → ℕ) where
@@ -155,13 +155,13 @@ structure QipVerifier (r : ℕ → ℕ) where
   maxAccept_nonneg : ∀ n, 0 ≤ maxAccept n
 
 /-- `InQipWith r L`: `L` has a three-message QIP with completeness `1` and
-soundness `2^{-2r}` (the [KW00] normal form used in the proof of Thm 5.4). -/
+soundness `2^{-2r}` (the [KitaevWatrous2000] normal form used in the proof of Thm 5.4). -/
 def InQipWith (r : ℕ → ℕ) (L : List Bool → Prop) : Prop :=
   ∃ V : QipVerifier r,
     (∀ x : List Bool, L x → 1 - (2 : ℝ) ^ (-(2 * r x.length) : ℤ) ≤ V.maxAccept x.length) ∧
     (∀ x : List Bool, ¬ L x → V.maxAccept x.length ≤ (2 : ℝ) ^ (-(2 * r x.length) : ℤ))
 
-/-- `QIP = ⋃_r QIP(r)` in the [KW00] normal form. -/
+/-- `QIP = ⋃_r QIP(r)` in the [KitaevWatrous2000] normal form. -/
 def InQip (L : List Bool → Prop) : Prop :=
   ∃ r : ℕ → ℕ, InQipWith r L
 

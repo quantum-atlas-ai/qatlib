@@ -23,8 +23,7 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 /-!
 # One original oracle for a multinode Neumann word
 
-Adapted from TiMidlY's OriginalUniformNeumann, NativeMultiNodeBody, and
-NativeMultiNodePolynomial in OQ #91 at `4c76e75a5a94e48c8d3c2705569f6e0499784fc7`.
+
 The known three-macro family is generalized to actual matrix inputs on a finite
 space. The construction preserves the same original oracle and proves legality,
 nodewise finite polynomial identities, and literal word costs.

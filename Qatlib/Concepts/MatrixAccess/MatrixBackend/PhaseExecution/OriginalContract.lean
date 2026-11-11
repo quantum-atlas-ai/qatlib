@@ -17,7 +17,7 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 open Qatlib.Foundations.PureStateMath.Reflection
 
 /-! Exact original output and actual quantum-word contracts at the traced return value.
-The source is pinned Frozen c1e805dd1c0613aab235c19072353acc0208318e; no source
+No source
 premise, phase convention, parity branch, failure behavior or original query/gate
 ledger is replaced by a cost assumption. Arithmetic trace prices remain separate
 from the independently preserved physical-word semantics. -/

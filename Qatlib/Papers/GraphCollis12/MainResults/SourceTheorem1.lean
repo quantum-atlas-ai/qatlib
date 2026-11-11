@@ -18,7 +18,7 @@ Fixed source: arXiv:1204.1527v1, §1.1 p.2 (statement) and §4 pp.5–6 (proof):
 
 The §4 algorithm has three steps (p.5):
 1. compute `α*(G)` (no queries to `x`), set `s = max{α*(G), n}`;
-2. preprocessing: approximate counting (Corollary 6, [BHT98]) with `P = ⌈7π√n⌉`
+2. preprocessing: approximate counting (Corollary 6, [BrassardHoyerTapp1998Counting]) with `P = ⌈7π√n⌉`
    costs `O(P) = O(√n)` queries;
 3. main case: Lemma 7(ii) with `k = 2s` costs `O(√n + √(2s))` queries.
 
@@ -27,7 +27,7 @@ because `s = max{α*(G), n}`.
 
 This file formalises the *query-count accounting* — the §4 step that is purely
 arithmetic once the two per-step bounds are supplied.  The per-step bounds come
-from the cited results: `hCount` is [BHT98] Corollary 6 (`O(P) = O(√n)` with
+from the cited results: `hCount` is [BrassardHoyerTapp1998Counting] Corollary 6 (`O(P) = O(√n)` with
 `P = ⌈7π√n⌉`), and `hMain` is Lemma 7(ii) (`O(√n + √k)` with `k = 2s`), whose
 span-program witness-size core is `...MainResults.SourceLemma7`.
 

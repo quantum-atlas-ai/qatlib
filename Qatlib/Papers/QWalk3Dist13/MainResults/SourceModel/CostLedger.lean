@@ -21,7 +21,7 @@ This file records the cost expressions of the paper and proves the arithmetic
 that the paper performs on them:
 
 * `walkSearchCost S U C δ ε = S + ε^{-1/2}(δ^{-1/2} U + C)` --- Theorem 3.1,
-  p.7 (and Theorem 2.1 of [MNRS11]);
+  p.7 (and Theorem 2.1 of [MagniezNayakRolandSantha2011]);
 * `innerWalkCost U' C' ε' δ' = ε'^{-1/2}(δ'^{-1/2} U' + C')` --- the inner
   update-walk cost, proof of Theorem 3.3, p.9;
 * `nestedUpdateCost` --- the nested-update expression displayed in the

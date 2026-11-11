@@ -15,7 +15,7 @@ set_option backward.isDefEq.respectTransparency false
 # Search core of Jeffery--Kothari--Magniez (arXiv:1112.5855v2, Section 2.2)
 
 Corollary 2.2 and Corollary 2.3 of the fixed arXiv v2 source are variations of
-Grover search that the paper cites from [BBHT98] and re-derives at the level of
+Grover search that the paper cites from [BoyerEtAl1998] and re-derives at the level of
 query accounting.  This module formalizes the accounting that the paper itself
 performs:
 
@@ -30,7 +30,7 @@ performs:
   cost at most `√N`), and the resulting `Õ(√(N(s+1)))` cost bound.
 
 The Grover success-probability theorem that supplies the per-attempt guarantee
-is the cited [BBHT98] result; it is consumed as the paper's input, not
+is the cited [BoyerEtAl1998] result; it is consumed as the paper's input, not
 re-derived here.
 -/
 

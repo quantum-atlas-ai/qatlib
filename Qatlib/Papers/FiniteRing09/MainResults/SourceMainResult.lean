@@ -38,7 +38,7 @@ The Lean development separates the two mathematical assertions:
 
 The quantum cost of producing this representation (`poly(log|R|)` calls to arithmetic black boxes
 plus Abelian-HSP subroutines) is recorded in the sibling file `SourceIterationCost` (the
-combinatorial iteration/query bound) and relies on the granted primitives of [CM01, Wat01];
+combinatorial iteration/query bound) and relies on the granted primitives of [CheungMosca2001] and [Watrous2001];
 no Dev/Frozen statement of those subroutines exists, so no further bridging is claimed here.
 -/
 
@@ -121,7 +121,7 @@ representation (first conjunct) and, with respect to any additive generating fam
 multiplication is described by an integer multiplication tensor (second conjunct). The
 `poly(log |R|)` quantum cost of computing the representation is formalized in
 `SourceIterationCost` (iteration and query counts) and rests on the granted Abelian-HSP
-subroutines of [CM01, Wat01]. -/
+subroutines of [CheungMosca2001] and [Watrous2001]. -/
 theorem source_main_result
     {R : Type*} [Ring R] [Fintype R] (I : Ideal R) :
     (∃ (ι : Type) (_ : Fintype ι) (s : ι → ℕ) (_ : ∀ i, 1 < s i),

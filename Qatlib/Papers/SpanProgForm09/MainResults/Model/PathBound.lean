@@ -35,7 +35,7 @@ specialisation of Eq. (3.8) to the constant `(2+√2)β²` at `r = (1+1/β²)^{-
 
 Boundary: the pointwise adversary ratio (Eq. (3.7)) is taken as a hypothesis
 (`Lemma32Hyp`); its derivation from the weighted-adversary minimax formulation
-([HLS07], Eq. (3.9)) is not mechanised here. The bound on the full witness size
+([HoyerLeeSpalek2007], Eq. (3.9)) is not mechanised here. The bound on the full witness size
 (``Lemma 3.3``) and the operator-norm estimates (Lemmas 3.1, 3.4) are separate and
 also not mechanised. Nothing here assumes or restates the conclusion `σ₋ ≤ 1/(1-r)`:
 `geometric_path_bound` produces it from the ratio hypothesis alone.

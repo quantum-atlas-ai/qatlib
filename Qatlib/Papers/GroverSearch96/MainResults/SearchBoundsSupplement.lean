@@ -22,7 +22,7 @@ Source: `quant-ph/9605043v3`, §3 (p. 3), Summary (p. 1) and §6 (p. 7).
   `1/2`. All three steps have Lean counterparts in the phase-query model.
 * The Summary claims `O(√N)` steps and that the algorithm is "within a small
   constant factor of the fastest possible quantum mechanical algorithm".
-* §6 quotes [BBBV96] for an `Ω(√N)` query lower bound. The paper gives neither
+* §6 quotes [BennettEtAl1997] for an `Ω(√N)` query lower bound. The paper gives neither
   a proof nor an explicit constant.
 
 The frozen layer proves a single-target query certificate with `(π/4)√N`

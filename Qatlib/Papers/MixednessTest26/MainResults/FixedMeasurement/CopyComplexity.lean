@@ -24,16 +24,16 @@ infimum of copy counts over correct deterministic protocols.
 ## Proof status (scaffolds removed; statements in branch history c93d182c6)
 
 * Fixed source: arXiv:2608.18839v3, Theorem 1.5, §4.1 (fixed-basis protocol)
-  and §5.3 (fixed-measurement lower bound [LA24b]).
+  and §5.3 (fixed-measurement lower bound [LiuAcharya2024b]).
 * Key proof route: the upper bound uses the fixed basis `X^{⊗N}` (or the
   variance-optimal choice among the three uniform bases) and the second moment
   of the collision statistic, whose covariance term is controlled by
   Lemma 4.1 (`FixedMeasurement/CovarianceCount.lean`); the variance scales like
   `√(30^N)/ε²`.  The lower bound instantiates the fixed-measurement framework
-  of [LA24b] with `√(27^N)` scaling.
+  of [LiuAcharya2024b] with `√(27^N)` scaling.
 * Lean gap: neither the explicit `√(30^N)` variance computation (which needs
   the covariance count of Lemma 4.1 and the binomial sum
-  `Σ_w 3^w C(N,w) = 4^N`, `Σ_w 10^w C(N,w) = 11^N`) nor the [LA24b] fixed
+  `Σ_w 3^w C(N,w) = 4^N`, `Σ_w 10^w C(N,w) = 11^N`) nor the [LiuAcharya2024b] fixed
   lower-bound framework is formalized.  `deterministicPauliComplexity` is an
   `sInf`, so even exhibiting feasible protocols needs the arithmetic bounds.
 * Reusable dependencies: `SourceModel.PauliBasisProtocol N n 1`,

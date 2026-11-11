@@ -33,8 +33,7 @@ import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Sturm
 set_option backward.isDefEq.respectTransparency false
 
 /-! Exact polynomial-array algorithms: Projection.
-Ported from OQ #132 at c0d79a391c008771dd64bd305ec2133c1b32c2d6,
-retaining program bodies, guards, hypotheses and finite-fuel semantics. -/
+These algorithms retain program bodies, guards, hypotheses and finite-fuel semantics. -/
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays

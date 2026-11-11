@@ -16,7 +16,7 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 /-! Exact shared-denominator Gaussian integer primitives used by polynomial Horner.
 These declaration bodies retain the actual binary loops and declared scans from
-OQ c0d79a391c008771dd64bd305ec2133c1b32c2d6. No host-runtime interpretation is added. -/
+the shared-denominator arithmetic model. No host-runtime interpretation is added. -/
 set_option autoImplicit false
 namespace Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Gaussian
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis

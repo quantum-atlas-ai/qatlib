@@ -136,7 +136,7 @@ structure C0Regions (n : ℕ) where
   defects. -/
   few_defects : Prop
 
-/-- The Lindbladian Gibbs sampler of [CKG23], as a structured package: `J`
+/-- The Lindbladian Gibbs sampler of [ChenKastoryanoGilyen2023], as a structured package: `J`
 constant-local jump operators on an `r`-dimensional lattice at inverse
 temperature `β`. The analytic construction of (189) is kept abstract. -/
 structure CKGSampler (n : ℕ) where
@@ -155,7 +155,7 @@ structure CKGSampler (n : ℕ) where
   /-- The underlying Hamiltonian is constant-local. -/
   constant_local : Prop
 
-/-- A truncation of a [CKG23] sampler: `Gt` is obtained from `G` by replacing
+/-- A truncation of a [ChenKastoryanoGilyen2023] sampler: `Gt` is obtained from `G` by replacing
 the operators `B_a, L_a` by their truncations `B̃_a, L̃_a` of Eq. (191) at time
 `R β`. -/
 structure CKGTruncation {n : ℕ} (S : CKGSampler n) where

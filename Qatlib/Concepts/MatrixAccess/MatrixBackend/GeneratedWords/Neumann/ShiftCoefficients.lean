@@ -24,8 +24,7 @@ open Qatlib.Concepts.BlockEncoding.EncodingCore
 /-!
 # Eight-slot coefficients for shifted blocks from a raw data oracle
 
-Adapted from TiMidlY's ShiftedEncodingModel, ShiftedCoefficientLaws, and
-RawShiftedEncoding in OQ #91 at `4c76e75a5a94e48c8d3c2705569f6e0499784fc7`.
+
 The actual coefficient table and corner-block proofs are retained without
 problem-specific contour or numerical-range assumptions. Padding cancels in
 the value sum while its mass remains. The real and complex coefficients are

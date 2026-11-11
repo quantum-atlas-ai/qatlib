@@ -36,7 +36,7 @@ Residual Lean gap: the library has the Boolean-formula syntax and leaf count
 (`BoolFormula`, `BoolFormula.eval`, `BoolFormula.size`) but no
 Karchmer–Wigderson relation/communication-complexity layer, no
 protocol-to-rectangle-decomposition construction (paper's Theorem 6 with
-[KW88]), and no Laplante–Lee–Szegedy rectangle subadditivity of the spectral
+[KarchmerWigderson1988]), and no Laplante–Lee–Szegedy rectangle subadditivity of the spectral
 norm (paper's Lemma 8).  Candidate dependencies: `BoolFormula.size`,
 `advPmValue`, `genAdvFilter`, and the spectral-norm comparison `‖A‖ ≤ ‖B‖` for
 submatrices from `QuantumInfo.ForMathlib.MatrixNorm.TraceNorm`.  Suggested

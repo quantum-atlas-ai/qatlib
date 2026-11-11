@@ -12,8 +12,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # Off-diagonal sample-pair identities under grouping and shifts
 
-Extracted from BornCurrentRecords, lines 229–412, in OQ #117 at
-`10c852ef09801ec0ccfea4b579a88152345dd8bc`. These algebraic identities apply to
+These algebraic identities apply to
 arbitrary finite samples and group labels without importing the SCWF model.
 Distinct sample indices are retained even when labels or observations coincide.
 Shifts need not be injective; only the square-one simplifications require that

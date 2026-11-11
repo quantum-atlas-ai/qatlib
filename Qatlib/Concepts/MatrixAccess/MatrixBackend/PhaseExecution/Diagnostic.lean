@@ -9,7 +9,7 @@ import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridgesDe
 
 set_option backward.isDefEq.respectTransparency false
 
-/-! Original OQ #132 fixed-degree sign-family counter diagnostic.
+/-! Original the finite producer construction fixed-degree sign-family counter diagnostic.
 It compares the actual producer to the separately declared numeric formula;
 no grid is executed and no hardware/bit-time or other-backend lower bound is claimed. -/
 set_option autoImplicit false

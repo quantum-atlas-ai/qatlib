@@ -16,7 +16,7 @@ Paper: arXiv:2608.18839v3, Corollary 1.4 (page 3 of the PDF):
 > The total number of copies needed for Adaptive `k`-outcome mixedness testing
 > is `n = Ω( √(4^N) / (ε² min{k, 2^N}) )`.
 
-The corollary is derived from Theorem 1.3 together with [LA24a, Lemma 2.3] and
+The corollary is derived from Theorem 1.3 together with [LiuAcharya2024a, Lemma 2.3] and
 `‖L_M‖_op ≤ 1`.  The PDF extraction of the displayed formula is ambiguous about
 the exponent of `4^N` and the placement of `min{k,2^N}` (the metadata records
 this OCR ambiguity); the statement below follows the literal
@@ -30,10 +30,10 @@ The measurement model is `MeasurementModel N` restricted to `k`-outcome POVMs
 
 * Fixed source: arXiv:2608.18839v3, Corollary 1.4 and §5.1.
 * Key proof route: Theorem 1.3 + `‖L_M‖_op ≤ 1` (spectral norm of a
-  measurement information channel) and [LA24a, Lemma 2.3], which bounds
+  measurement information channel) and [LiuAcharya2024a, Lemma 2.3], which bounds
   `‖L_M‖_HS = √(‖L_M‖_op ‖L_M‖₁)` by `√(min{k,2^N})` for `k`-outcome POVMs.
   This yields the displayed `Ω(√(4^N)/(ε² min{k,2^N}))` after simplification.
-* Lean gap: [LA24a, Lemma 2.3] (the Hilbert–Schmidt norm bound for `k`-outcome
+* Lean gap: [LiuAcharya2024a, Lemma 2.3] (the Hilbert–Schmidt norm bound for `k`-outcome
   MICs) is not available in Frozen/Dev; it would have to be proved from the
   eigenvalue computation of Theorem 5.7, which is also missing.  The statement
   records the faithful lower-bound shape conditional on that input.

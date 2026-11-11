@@ -153,7 +153,7 @@ def entryAbs {m n' : Type} (M : Matrix m n' ℂ) : Matrix m n' ℂ := fun r c =>
 /-- `‖abs(A_{G_P})‖`, the quantity bounded in Lemma 3.1. -/
 def absGraphNorm (P : SpanProgram n V I) : ℝ := ‖entryAbs (adjacency P)‖
 
-/-- The canonical span program of [Rei09a, Definition 5.1], as used in the proof of
+/-- The canonical span program of [Reichardt2009SpanPrograms, Definition 5.1], as used in the proof of
 arXiv:0907.1622v1 Lemma 3.1: for `f : {0,1}^k → {0,1}` and a family of vectors
 `v : {0,1}^k → Fin k → Fin m → ℂ`, the target is `|t⟩ = ∑_{x : f(x)=0} |x⟩` and the
 input vector labelled `(j, b, k')` is `∑_{x : f(x)=0, b = ¬x_j} ⟨v_{x,j,k'}|x⟩`, i.e.

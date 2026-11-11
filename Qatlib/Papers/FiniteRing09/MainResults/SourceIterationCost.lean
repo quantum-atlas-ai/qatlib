@@ -32,7 +32,7 @@ If some `r ∈ R̃`, `b ∈ B̃_k` has `r * b ∉ B_k`, set `B̃_{k+1} = B̃_k �
 The Lean development below isolates the group-theoretic doubling, the chain-length bound, the
 pair count, and an explicit polynomial bound on the total number of tested pairs. The quantum
 Hadamard-test subroutine that decides `r * b ∈ B_k` and the cost of preparing `|B_k⟩` are the
-granted primitives of [CM01, Wat01] and are not re-proved here (no Dev/Frozen statement of that
+granted primitives of [CheungMosca2001] and [Watrous2001] and are not re-proved here (no Dev/Frozen statement of that
 subroutine was found; the bridging Block is `HspRecovery.AbelianSampling`).
 -/
 

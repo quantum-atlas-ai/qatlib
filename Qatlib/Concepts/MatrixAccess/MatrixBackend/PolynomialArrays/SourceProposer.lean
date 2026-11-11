@@ -59,7 +59,7 @@ open Qatlib.Foundations.PureStateMath.Reflection
 
 /-! Numerical root production, checked factor records and complete QSP packet generation.
 Canonical PolynomialArrays algorithms and verifier are imported once; only the
-remaining producer namespaces from OQ #132 are defined here.
+remaining producer namespaces from the finite producer construction are defined here.
 All original bounds, finite searches, guards and same-word contracts are retained. -/
 set_option autoImplicit false
 noncomputable section

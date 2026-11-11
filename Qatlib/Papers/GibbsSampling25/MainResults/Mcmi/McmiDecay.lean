@@ -53,7 +53,7 @@ def uniform_mcmi_decay {Λ : Type} [Fintype Λ] [DecidableEq Λ]
   -- Source: arXiv:2412.01732v1, Theorem 2.3 (p.4, eq. (3)); proof via
   -- Lemma D.1 (Appendix D.1) combined with the construction of a strong
   -- effective Hamiltonian for `(κ,r)`-local `J`-bounded systems with growth
-  -- constant `g` (Appendix A.4.3 / [BCPH24]).
+  -- constant `g` (Appendix A.4.3 / [BluhmCapelPerezHernandez2024]).
   -- Proof route: the strong local effective Hamiltonian provides effective
   -- terms `h̃^A_X` with decay `μ > 0` and interaction-norm bound `Δ`; Lemma D.1
   -- then gives `H_σ(A:C|D) ≤ 4 min{|A|,|C|} Δ e^{-μ dist(A,C)}`, and
@@ -62,7 +62,7 @@ def uniform_mcmi_decay {Λ : Type} [Fintype Λ] [DecidableEq Λ]
   -- Lean gap: only the interface predicate `IsStrongLocalEffectiveHamiltonian`
   -- is available; the derivation of its existence from `(κ,r)`-locality,
   -- `J`-boundedness and growth constant `g` (cluster expansion of
-  -- [BCPH24]) is far outside the imported API, and the matrix-level MCMI is
+  -- [BluhmCapelPerezHernandez2024]) is far outside the imported API, and the matrix-level MCMI is
   -- an interface datum.
   -- Candidate reusable dependencies: `mcmi_decay_from_effective_hamiltonian`
   -- (Lemma D.1 below), `Finset.card_le_univ`, `Real.exp_pos`.
@@ -103,7 +103,7 @@ def mcmi_decay_from_effective_hamiltonian {Λ : Type} [Fintype Λ] [DecidableEq 
 
 /-- **Theorem D.2 (MCMI decay for marginal commuting systems at high
 temperature)**, arXiv:2412.01732v1 p.47. Let `H_Λ` be marginal commuting
-([BCPH24, Definition 3.5]). For
+([BluhmCapelPerezHernandez2024, Definition 3.5]). For
 `β < 1/(gκ(1+κg)e^{1/2} gJ)` and every partition `Λ = A ⊔ B ⊔ C ⊔ D`,
 
 `‖H_σ(A:C|D)‖∞ ≤ 4 min{|A|,|C|} e^{-μ dist(A,C)}`
@@ -123,14 +123,14 @@ def mcmi_decay_marginal_commuting {Λ : Type} [Fintype Λ] [DecidableEq Λ]
   -- Source: arXiv:2412.01732v1, Theorem D.2 (p.47), proof on pp.47–48.
   -- Proof route: the temperature condition `β < 1/(gκ(1+κg)e^{1/2}gJ)` gives
   -- `|||H_Λ|||_{μ_ε} < 1/(gκ(1+κg)e^2 β)`; combined with marginal
-  -- commutativity ([BCPH24, Theorem 3.8]) this yields a strong effective
+  -- commutativity ([BluhmCapelPerezHernandez2024, Theorem 3.8]) this yields a strong effective
   -- Hamiltonian with `H̃^{A}_{μ_ε} ≤ 1` for every `A`, i.e. `Δ = 1`; Lemma D.1
   -- then gives the bound with decay `μ = (1/r) log(1/(gκ(1+κg)e^{1/2}gJβ))`.
-  -- Lean gap: marginal commutativity of the Hamiltonian, the [BCPH24]
+  -- Lean gap: marginal commutativity of the Hamiltonian, the [BluhmCapelPerezHernandez2024]
   -- cluster-expansion theorem producing the strong effective Hamiltonian, and
   -- the matrix-level MCMI are all outside the formalised API; we record the
   -- existence of the strong effective Hamiltonian with `Δ = 1` as hypothesis
-  -- `hEff`, which is exactly the conclusion of the [BCPH24, Theorem 3.8]
+  -- `hEff`, which is exactly the conclusion of the [BluhmCapelPerezHernandez2024, Theorem 3.8]
   -- step.
   -- Candidate reusable dependencies: `mcmi_decay_from_effective_hamiltonian`;
   -- `Real.log_pos`, `Real.exp_pos`, `div_pos`, `one_div`.

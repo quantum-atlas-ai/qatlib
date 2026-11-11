@@ -10,7 +10,7 @@ import Mathlib.Tactic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-Proposed Dev implementation from OQ #131@75271517ea1eaf515612786fa9c17ab35e35021b.
+Finite LIFO allocation with explicit stack invariants.
 Preserves the original proof bodies and contributor history in the source PR.
 The event/bill definitions come from the same source NativeCostedInstrument.
 This scoped implementation is proposed in Dev intake PR #1134; maintainer acceptance is pending.

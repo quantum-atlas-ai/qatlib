@@ -110,6 +110,9 @@ def runStaticChecks : IO UInt32 := do
 
   let rootLines ← IO.FS.lines "Qatlib.lean"
   let rootImports := (← extractHeaderImports rootLines).map (fun (_, m) => s!"import {m}")
+  -- Aggregate generation sorts module names, not directory-entry names. A file
+  -- `Foo.lean` and a directory `Foo/` must follow that same module-name order.
+  expectedRootImports := expectedRootImports.qsort (· < ·)
   if rootImports != expectedRootImports then
     errors := errors.push "Qatlib.lean:1: ERR_ROOT: Qatlib.lean imports do not match sorted Qatlib/ module list"
 

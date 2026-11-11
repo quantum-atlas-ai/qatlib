@@ -435,7 +435,7 @@ theorem theorem6_tradeoff_exists : Nonempty (QramTradeoff tauQramEnvelope6) := b
   · intro M _; rfl
   · intro M _; exact ⟨le_rfl, by linarith⟩
 
-/-- **Theorem 3 at `M' = 0`**: the classical `[BDGL16]` exponent `0.2925` with
+/-- **Theorem 3 at `M' = 0`**: the classical `[BeckerDucasGamaLaarhoven2016]` exponent `0.2925` with
 no quantum resources (p.2).  The quantum-memory band at `M' = 0` is
 `[0, 9·10⁻⁴]`. -/
 theorem theorem3_at_zero (T : QramTradeoff tauQramEnvelope3) :

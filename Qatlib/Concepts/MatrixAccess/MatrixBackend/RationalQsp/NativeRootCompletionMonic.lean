@@ -178,7 +178,7 @@ theorem rootCompletionLinearList_polynomial (rho : ℚ×ℚ) (a : List (ℚ×ℚ
     rootCompletionLinearLoop_polynomial]
   rfl
 
-/-- The same emitted instruction list satisfies `rootCompletionLinearList_length` with the displayed gate and query accounting. -/
+/-- Multiplication by one monic linear factor appends one coefficient: the output list has length `a.length + 1`. -/
 theorem rootCompletionLinearList_length (rho : ℚ×ℚ) (a : List (ℚ×ℚ)) :
     (rootCompletionLinearList rho a).length=a.length+1 := by
   simp [rootCompletionLinearList]

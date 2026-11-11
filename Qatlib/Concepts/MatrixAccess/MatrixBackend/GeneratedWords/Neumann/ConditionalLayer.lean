@@ -25,7 +25,7 @@ open Qatlib.Concepts.BlockEncoding.EncodingCore
 /-!
 Conditional layers for the Neumann word.
 
-Adapted from TiMidlY's OQ #91 at `4c76e75a5a94e48c8d3c2705569f6e0499784fc7`.
+
 The original definitions, proofs, and accounting for the same word are retained.
 Known matrix macros do not establish elementary gate synthesis; input preparation,
 retries, and bit costs require separate analysis.

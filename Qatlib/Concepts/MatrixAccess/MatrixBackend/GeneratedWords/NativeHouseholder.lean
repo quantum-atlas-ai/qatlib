@@ -41,7 +41,7 @@ open Qatlib.Concepts.OperatorAccess.EncodedAccess
 open Qatlib.Concepts.CopyEvolution.Discriminate
 
 /-! Native rational Householder/phase inner program for the fixed eight-slot backend.
-This OQ layer proves the actual six-wire Boolean/QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.rotation table on its clean frame;
+This module proves the actual six-wire Boolean/QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.rotation table on its clean frame;
 finite parameter generation and outer shared-word refinement remain separate. -/
 
 set_option autoImplicit false

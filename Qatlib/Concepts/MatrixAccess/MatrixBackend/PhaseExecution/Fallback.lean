@@ -10,8 +10,8 @@ set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
 
-/-! Exact original OQ #132@c0d79a391c008771dd64bd305ec2133c1b32c2d6 generic finite-producer cost slice.
-The amplifier-only suffix and its private dependencies remain in OQ history.
+/-! Exact original finite polynomial-array algorithms generic finite-producer cost slice.
+The amplifier-only suffix and its private dependencies are outside this module.
 These are actual producer counters, not host bit time or other-algorithm bounds. -/
 set_option autoImplicit false
 noncomputable section

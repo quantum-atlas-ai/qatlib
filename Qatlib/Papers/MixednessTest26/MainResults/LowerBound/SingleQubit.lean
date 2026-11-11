@@ -29,7 +29,7 @@ sufficiently large `N` and all `ε > 0`.
 ## Proof status (scaffolds removed; statements in branch history c93d182c6)
 
 * Fixed source: arXiv:2608.18839v3, Theorem 1.2, §5 (proof of the lower bound),
-  using [LA24a] and the measurement information channel.
+  using [LiuAcharya2024a] and the measurement information channel.
 * Key proof route: (i) build the hard-instance ensemble of Definition 5.2 with
   `ℓ = Θ(N)`-bit perturbations along single-qubit Pauli directions; (ii) the MIC
   of product single-qubit measurements has

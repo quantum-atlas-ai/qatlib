@@ -180,13 +180,13 @@ def ancillaZeroBlock {N n : ℕ} (h : n ≤ N) (U : Matrix (Fin (2 ^ N)) (Fin (2
 
 /-- Spectral (operator `ℓ²`) norm of a square complex matrix, defined as the
 supremum of `‖M x‖ / ‖x‖` over non-zero vectors.  This is the norm in which
-the block-encoding error of [GSLW19, Definition 43] and Theorem 3.6 is
+the block-encoding error of [GilyenSuLowWiebe2019, Definition 43] and Theorem 3.6 is
 measured. -/
 def spectralNorm {n : ℕ} (M : Matrix (Fin n) (Fin n) ℂ) : ℝ :=
   sSup { r : ℝ | ∃ x : Fin n → ℂ, x ≠ 0 ∧ r = ‖M.mulVec x‖ / ‖x‖ }
 
 /-- Block-encoding error `‖(⟨0|⊗I) U (|0⟩⊗I) − T‖` in the spectral (operator)
-norm (the quantity bounded by `δ` in Theorem 3.6 / Definition 43 of [GSLW19]). -/
+norm (the quantity bounded by `δ` in Theorem 3.6 / Definition 43 of [GilyenSuLowWiebe2019]). -/
 def blockError {N n : ℕ} (h : n ≤ N) (U : Matrix (Fin (2 ^ N)) (Fin (2 ^ N)) ℂ)
     (T : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ) : ℝ :=
   spectralNorm (ancillaZeroBlock h U - T)
