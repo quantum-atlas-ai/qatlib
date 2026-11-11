@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySearchDriver
+
+/-!
+# Ambiguity-band certificates across water-filling breakpoints
+
+This module certifies interval fidelity-search costs using gap-separation rates on finite sets
+of search depths. `BandShard` packages local rate certificates, while explicit cuts and shard
+budgets combine them into ambiguity and operation-error bounds. A three-coordinate rational
+example illustrates certificates near saturation breakpoints in water-filling search for quantum
+rejection sampling [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `ambiguityCount_le_of_shards`: bound ambiguous search steps from a cover by shards and cuts.
+* `intervalSearch_budget_of_shards`: derive operation-error bounds from a shard-based precision
+  budget.
+* `frontier1`: collect the rate, breakpoint, ambiguity, and precision certificates for the
+  example.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,30 +53,39 @@ set_option autoImplicit false
 set_option maxRecDepth 4096
 set_option maxHeartbeats 4000000
 
+/-- The three-coordinate rational source profile with amplitudes `1 / 4`, `1 / 2`, and `3 / 4`. -/
 def crossBreakSource : Fin 3 → ℚ := fun i =>
   if i.val = 0 then 1 / 4 else if i.val = 1 then 1 / 2 else 3 / 4
 
+/-- The constant target profile with amplitude one on each of three coordinates. -/
 def crossBreakTarget : Fin 3 → ℚ := fun _ => 1
 
+/-- The rational fidelity threshold `25 / 9` for the unnormalized three-coordinate example. -/
 def crossBreakFidelity : ℚ := 25 / 9
 
+/-- The rational gap-separation rate `1 / 4` for the breakpoint example. -/
 def crossBreakRate : ℚ := 1 / 4
 
+/-- Every coordinate of `crossBreakSource` is nonnegative. -/
 theorem crossBreakSource_nonneg : ∀ j, 0 ≤ crossBreakSource j := by
   intro j
   fin_cases j <;> norm_num [crossBreakSource]
 
+/-- Every coordinate of `crossBreakTarget` is nonnegative. -/
 theorem crossBreakTarget_nonneg : ∀ j, 0 ≤ crossBreakTarget j := by
   intro j
   simp [crossBreakTarget]
 
+/-- The example threshold `crossBreakFidelity` is positive. -/
 theorem crossBreakFidelity_pos : 0 < crossBreakFidelity := by
   norm_num [crossBreakFidelity]
 
+/-- A rational sum over `Fin 3` equals the sum of the values at indices zero, one, and two. -/
 theorem crossBreak_fin3_sum (f : Fin 3 → ℚ) : (∑ j : Fin 3, f j) = f 0 + f 1 + f 2 := by
   simp only [Fin.sum_univ_succ, Fin.sum_univ_zero, Fin.succ_zero_eq_one, Fin.succ_one_eq_two]
   ring
 
+/-- For the saturated set `{0}`, the example's saturated source-target dot product is `1 / 4`. -/
 theorem crossBreak_satDot_low :
     satDot crossBreakSource crossBreakTarget ({0} : Finset (Fin 3)) = 1 / 4 := by
   unfold satDot
@@ -62,6 +94,7 @@ theorem crossBreak_satDot_low :
   simp
   norm_num [crossBreakSource, crossBreakTarget]
 
+/-- For the saturated set `{0}`, the example's free target squared mass is two. -/
 theorem crossBreak_freeSq_low :
     freeSq crossBreakSource crossBreakTarget ({0} : Finset (Fin 3)) = 2 := by
   unfold freeSq
@@ -70,6 +103,8 @@ theorem crossBreak_freeSq_low :
   simp
   norm_num [crossBreakSource, crossBreakTarget]
 
+/-- For the saturated set `{0, 1}`, the example's saturated source-target dot product is `3 /
+4`. -/
 theorem crossBreak_satDot_high :
     satDot crossBreakSource crossBreakTarget ({0, 1} : Finset (Fin 3)) = 3 / 4 := by
   unfold satDot
@@ -78,6 +113,7 @@ theorem crossBreak_satDot_high :
   simp
   norm_num [crossBreakSource, crossBreakTarget]
 
+/-- For the saturated set `{0, 1}`, the example's free target squared mass is one. -/
 theorem crossBreak_freeSq_high :
     freeSq crossBreakSource crossBreakTarget ({0, 1} : Finset (Fin 3)) = 1 := by
   unfold freeSq
@@ -86,6 +122,7 @@ theorem crossBreak_freeSq_high :
   simp
   norm_num [crossBreakSource, crossBreakTarget]
 
+/-- For `2045 / 4096 ≤ γ < 1 / 2`, the example's saturated-coordinate set is `{0}`. -/
 theorem crossBreak_sat_of_below {γ : ℚ} (hlo : 2045 / 4096 ≤ γ) (hhi : γ < 1 / 2) :
     satSet crossBreakSource crossBreakTarget γ = ({0} : Finset (Fin 3)) := by
   ext j
@@ -93,6 +130,7 @@ theorem crossBreak_sat_of_below {γ : ℚ} (hlo : 2045 / 4096 ≤ γ) (hhi : γ 
     simp [satSet, crossBreakSource, crossBreakTarget] <;>
     norm_num at hlo hhi ⊢ <;> linarith
 
+/-- For `1 / 2 < γ ≤ 515 / 1024`, the example's saturated-coordinate set is `{0, 1}`. -/
 theorem crossBreak_sat_of_above {γ : ℚ} (hlo : 1 / 2 < γ) (hhi : γ ≤ 515 / 1024) :
     satSet crossBreakSource crossBreakTarget γ = ({0, 1} : Finset (Fin 3)) := by
   ext j
@@ -100,18 +138,23 @@ theorem crossBreak_sat_of_above {γ : ℚ} (hlo : 1 / 2 < γ) (hhi : γ ≤ 515 
     simp [satSet, crossBreakSource, crossBreakTarget] <;>
     norm_num at hlo hhi ⊢ <;> linarith
 
+/-- On the piece with saturated set `{0}`, the segment slope is `-(14 / 9) * (γ₁ + γ₂) + 1`. -/
 theorem crossBreak_slope_low (γ₁ γ₂ : ℚ) :
     pieceSegmentSlope crossBreakSource crossBreakTarget crossBreakFidelity
       ({0} : Finset (Fin 3)) γ₁ γ₂ = -(14 / 9) * (γ₁ + γ₂) + 1 := by
   rw [pieceSegmentSlope, crossBreak_satDot_low, crossBreak_freeSq_low]
   norm_num [crossBreakFidelity]
 
+/-- On the piece with saturated set `{0, 1}`, the segment slope is `-(16 / 9) * (γ₁ + γ₂) + 3 /
+2`. -/
 theorem crossBreak_slope_high (γ₁ γ₂ : ℚ) :
     pieceSegmentSlope crossBreakSource crossBreakTarget crossBreakFidelity
       ({0, 1} : Finset (Fin 3)) γ₁ γ₂ = -(16 / 9) * (γ₁ + γ₂) + 3 / 2 := by
   rw [pieceSegmentSlope, crossBreak_satDot_high, crossBreak_freeSq_high]
   norm_num [crossBreakFidelity]
 
+/-- The saturated sets `{0}` and `{0, 1}` satisfy the example's piece-transition conditions at
+level `1 / 2`. -/
 theorem crossBreak_piece_break :
     pieceBreak crossBreakSource crossBreakTarget (1 / 2) ({0} : Finset (Fin 3))
       ({0, 1} : Finset (Fin 3)) := by
@@ -130,6 +173,8 @@ theorem crossBreak_piece_break :
   · subst h
     exact ⟨by norm_num [crossBreakSource], by norm_num [crossBreakSource, crossBreakTarget]⟩
 
+/-- Two increasing levels in `[2045 / 4096, 1 / 2)` satisfy the example's chain-piece rate
+condition with rate `crossBreakRate`. -/
 theorem crossBreak_chainRate_low {γ₁ γ₂ : ℚ}
     (hlo₁ : 2045 / 4096 ≤ γ₁) (hhi₁ : γ₁ < 1 / 2)
     (hlo₂ : 2045 / 4096 ≤ γ₂) (hhi₂ : γ₂ < 1 / 2) (hlt : γ₁ < γ₂) :
@@ -146,6 +191,8 @@ theorem crossBreak_chainRate_low {γ₁ γ₂ : ℚ}
     · simpa [segs, chainFirstSeg] using! crossBreak_sat_of_below hlo₁ hhi₁
     · simpa [segs, chainLastSeg] using! crossBreak_sat_of_below hlo₂ hhi₂
 
+/-- Two increasing levels in `(1 / 2, 515 / 1024]` satisfy the example's chain-piece rate
+condition with rate `crossBreakRate`. -/
 theorem crossBreak_chainRate_high {γ₁ γ₂ : ℚ}
     (hlo₁ : 1 / 2 < γ₁) (hhi₁ : γ₁ ≤ 515 / 1024)
     (hlo₂ : 1 / 2 < γ₂) (hhi₂ : γ₂ ≤ 515 / 1024) (hlt : γ₁ < γ₂) :
@@ -162,6 +209,8 @@ theorem crossBreak_chainRate_high {γ₁ γ₂ : ℚ}
     · simpa [segs, chainFirstSeg] using! crossBreak_sat_of_above hlo₁ hhi₁
     · simpa [segs, chainLastSeg] using! crossBreak_sat_of_above hlo₂ hhi₂
 
+/-- Levels on opposite sides of `1 / 2` within the specified example interval satisfy the
+chain-piece rate condition with rate `crossBreakRate`. -/
 theorem crossBreak_chainRate_cross {γ₁ γ₂ : ℚ}
     (hlo₁ : 2045 / 4096 ≤ γ₁) (hhi₁ : γ₁ < 1 / 2)
     (hlo₂ : 1 / 2 < γ₂) (hhi₂ : γ₂ ≤ 515 / 1024) :
@@ -179,6 +228,8 @@ theorem crossBreak_chainRate_cross {γ₁ γ₂ : ℚ}
     · simpa [segs, chainFirstSeg] using! crossBreak_sat_of_below hlo₁ hhi₁
     · simpa [segs, chainLastSeg] using! crossBreak_sat_of_above hlo₂ hhi₂
 
+/-- Two increasing levels in the example interval, neither equal to `1 / 2`, satisfy the
+chain-piece rate condition with rate `crossBreakRate`. -/
 theorem crossBreak_chainRate_ordered {γ₁ γ₂ : ℚ}
     (hlo₁ : 2045 / 4096 ≤ γ₁) (hhi₁ : γ₁ ≤ 515 / 1024)
     (hlo₂ : 2045 / 4096 ≤ γ₂) (hhi₂ : γ₂ ≤ 515 / 1024)
@@ -192,6 +243,7 @@ theorem crossBreak_chainRate_ordered {γ₁ γ₂ : ℚ}
     · linarith
     · exact crossBreak_chainRate_high h₁ hhi₁ h₂ hhi₂ hlt
 
+/-- The chain-piece rate condition is unchanged when its two levels are exchanged. -/
 theorem chainPieceRate_symm {m : ℕ} (π σ : Fin m → ℚ) (p c γ₁ γ₂ : ℚ)
     (h : chainPieceRate π σ p γ₁ γ₂ c) : chainPieceRate π σ p γ₂ γ₁ c := by
   obtain ⟨segs, hne, hv, hrate, hends⟩ := h
@@ -200,6 +252,8 @@ theorem chainPieceRate_symm {m : ℕ} (π σ : Fin m → ℚ) (p c γ₁ γ₂ :
   · exact Or.inr hends
   · exact Or.inl hends
 
+/-- Any two distinct levels in the specified example interval, excluding `1 / 2`, satisfy the
+chain-piece rate condition with rate `crossBreakRate`. -/
 theorem crossBreak_chainRate {γ₁ γ₂ : ℚ}
     (hlo₁ : 2045 / 4096 ≤ γ₁) (hhi₁ : γ₁ ≤ 515 / 1024)
     (hlo₂ : 2045 / 4096 ≤ γ₂) (hhi₂ : γ₂ ≤ 515 / 1024)
@@ -210,6 +264,8 @@ theorem crossBreak_chainRate {γ₁ γ₂ : ℚ}
   · exact chainPieceRate_symm crossBreakSource crossBreakTarget crossBreakFidelity crossBreakRate
       _ _ (crossBreak_chainRate_ordered hlo₂ hhi₂ hlo₁ hhi₁ hne₂ hne₁ hlt)
 
+/-- Compute the exact rational bracket midpoints at search depths zero through twelve for the
+breakpoint example. -/
 theorem crossBreak_levels :
     bracketMidpoint crossBreakSource crossBreakTarget crossBreakFidelity 0 = 5 / 4 ∧
     bracketMidpoint crossBreakSource crossBreakTarget crossBreakFidelity 1 = 5 / 8 ∧
@@ -229,6 +285,8 @@ theorem crossBreak_levels :
     computedWaterEnergy, waterFill, computedWaterHigh, crossBreakSource, crossBreakTarget,
     crossBreakFidelity, Fin.sum_univ_succ]
 
+/-- Compute the exact rational fidelity gaps at search depths zero through twelve for the
+breakpoint example. -/
 theorem crossBreak_gaps :
     fidelityGap crossBreakSource crossBreakTarget crossBreakFidelity
         (bracketMidpoint crossBreakSource crossBreakTarget crossBreakFidelity 0) = -(13 / 72) ∧
@@ -261,6 +319,7 @@ theorem crossBreak_gaps :
     computedWaterEnergy, waterFill, computedWaterHigh, crossBreakSource, crossBreakTarget,
     crossBreakFidelity, Fin.sum_univ_succ]
 
+/-- At bit parameter fifteen, the example's ambiguity-band bound is `1703963 / 1610612736`. -/
 theorem crossBreak_band_bound :
     ambiguityBandBound crossBreakSource crossBreakTarget 15 crossBreakFidelity
       = 1703963 / 1610612736 := by
@@ -268,6 +327,8 @@ theorem crossBreak_band_bound :
     computedWaterHigh, crossBreakSource, crossBreakTarget, crossBreakFidelity, gridStep,
     Fin.sum_univ_succ]
 
+/-- Among depths below thirteen, a midpoint fidelity gap inside the example's ambiguity band can
+occur only at depths eight through twelve. -/
 theorem crossBreak_band_depth :
     ∀ j, j < 13 →
       (|fidelityGap crossBreakSource crossBreakTarget crossBreakFidelity
@@ -284,6 +345,8 @@ theorem crossBreak_band_depth :
     | exact hband.elim
     | decide
 
+/-- The example satisfies `bandRate` with bit parameter fifteen, threshold `crossBreakFidelity`,
+rate `crossBreakRate`, and depth thirteen. -/
 theorem crossBreak_bandRate :
     bandRate crossBreakSource crossBreakTarget 15 crossBreakFidelity crossBreakRate 13 := by
   apply bandRate_of_chain_lower crossBreakSource crossBreakTarget 15 crossBreakFidelity
@@ -300,6 +363,8 @@ theorem crossBreak_bandRate :
     | (simp only [m8, m9, m10, m11, m12]
        apply crossBreak_chainRate <;> norm_num)
 
+/-- The example's thirteen-step interval search has at most the stated floor bound on ambiguous
+steps, using its certified band width and rate. -/
 theorem crossBreak_ambiguityCount_le :
     (intervalFidelitySearch 15 crossBreakSource crossBreakTarget crossBreakFidelity 13).2.ambiguities
       ≤ Nat.floor (2 * ambiguityBandBound crossBreakSource crossBreakTarget 15 crossBreakFidelity
@@ -308,6 +373,8 @@ theorem crossBreak_ambiguityCount_le :
     crossBreakSource_nonneg crossBreakTarget_nonneg crossBreakFidelity_pos.le
     crossBreakRate (by norm_num [crossBreakRate]) crossBreak_bandRate
 
+/-- For positive `ε` and `πi`, the example's width-based precision budget implies both stated
+operation-error inequalities for the thirteen-step interval search. -/
 theorem crossBreak_intervalSearch_budget_of_width (ε πi : ℚ)
     (hε : 0 < ε) (hπi : 0 < πi)
     (hb : gridStep 15 ≤ intervalWidthOpBitBudget
@@ -324,6 +391,8 @@ theorem crossBreak_intervalSearch_budget_of_width (ε πi : ℚ)
     ε πi 15 13 hε crossBreakFidelity_pos hπi crossBreakSource_nonneg crossBreakTarget_nonneg
     crossBreakRate (by norm_num [crossBreakRate]) crossBreak_bandRate hb
 
+/-- A gap-separation lower bound for distinct search depths in `D` below `k` whose midpoint
+fidelity gaps lie within the ambiguity band. -/
 def bandRateOn {m : ℕ} (D : Finset ℕ) (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ) : Prop :=
   ∀ j ∈ D, ∀ j' ∈ D, j < k → j' < k → j ≠ j' →
     |fidelityGap π σ p (bracketMidpoint π σ p j)| ≤ ambiguityBandBound π σ b p →
@@ -332,18 +401,23 @@ def bandRateOn {m : ℕ} (D : Finset ℕ) (π σ : Fin m → ℚ) (b : ℕ) (p c
       ≤ |fidelityGap π σ p (bracketMidpoint π σ p j)
           - fidelityGap π σ p (bracketMidpoint π σ p j')|
 
+/-- A finite set of search depths equipped with a positive rational rate and a `bandRateOn`
+certificate. -/
 structure BandShard {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) (k : ℕ) where
   depths : Finset ℕ
   rate : ℚ
   rate_pos : 0 < rate
   rate_certificate : bandRateOn depths π σ b p rate k
 
+/-- A global band-rate certificate restricts to a band-rate certificate on any finite set of
+depths. -/
 theorem bandRateOn_of_bandRate {m : ℕ} (D : Finset ℕ) (π σ : Fin m → ℚ)
     (b : ℕ) (p c : ℚ) (k : ℕ) (h : bandRate π σ b p c k) :
     bandRateOn D π σ b p c k := by
   intro j _ j' _
   exact h j j'
 
+/-- A band-rate certificate remains valid when its rate is decreased. -/
 theorem bandRateOn_mono {m : ℕ} (D : Finset ℕ) (π σ : Fin m → ℚ)
     (b : ℕ) (p c c' : ℚ) (k : ℕ) (hle : c' ≤ c) (h : bandRateOn D π σ b p c k) :
     bandRateOn D π σ b p c' k := by
@@ -351,23 +425,30 @@ theorem bandRateOn_mono {m : ℕ} (D : Finset ℕ) (π σ : Fin m → ℚ)
   exact le_trans (mul_le_mul_of_nonneg_right hle (abs_nonneg _))
     (h j hj j' hj' hjk hjk' hne hband hband')
 
+/-- The ambiguous search depths that belong to the specified finite set `D`. -/
 def shardAmbiguousDepths {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (D : Finset ℕ) : Finset ℕ :=
   (ambiguousDepths b π σ p k).filter (fun j => j ∈ D)
 
+/-- The bracket midpoints corresponding to the ambiguous search depths in `D`. -/
 def shardAmbiguousLevels {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (D : Finset ℕ) : Finset ℚ :=
   (shardAmbiguousDepths b π σ p k D).image (bracketMidpoint π σ p)
 
+/-- The natural floor bound for a shard's ambiguous depths, obtained from its positive rate, the
+ambiguity-band width, and the dyadic search scale. -/
 def shardAmbiguityBound {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) (k : ℕ)
     (s : BandShard π σ b p k) : ℕ :=
   Nat.floor (2 * ambiguityBandBound π σ b p / s.rate * (2 : ℚ) ^ k
     / computedWaterHigh π σ) + 1
 
+/-- The number of explicit cuts plus the sum of the ambiguity bounds for the listed shards. -/
 def shardAmbiguityBudget {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ) (k : ℕ)
     (shards : List (BandShard π σ b p k)) (cuts : Finset ℕ) : ℕ :=
   cuts.card + (shards.map (shardAmbiguityBound π σ b p k)).sum
 
+/-- For nonnegative profiles, the number of ambiguous levels in a shard equals the number of its
+ambiguous depths. -/
 theorem shardAmbiguousLevels_card {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (D : Finset ℕ) :
     (shardAmbiguousLevels b π σ p k D).card = (shardAmbiguousDepths b π σ p k D).card := by
@@ -377,12 +458,14 @@ theorem shardAmbiguousLevels_card {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p
   by_contra hne
   exact absurd hij (bracketMidpoint_ne π σ p hπ hσ hne)
 
+/-- Every ambiguous level of a shard belongs to the full set of ambiguous levels. -/
 theorem shardLevel_mem_ambiguousLevels {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ)
     (p : ℚ) (k : ℕ) (D : Finset ℕ) {x : ℚ} (hx : x ∈ shardAmbiguousLevels b π σ p k D) :
     x ∈ ambiguousLevels b π σ p k := by
   obtain ⟨j, hj, rfl⟩ := Finset.mem_image.mp hx
   exact Finset.mem_image.mpr ⟨j, (Finset.mem_filter.mp hj).1, rfl⟩
 
+/-- For nonnegative source, target, and threshold, the ambiguity-band bound is nonnegative. -/
 theorem ambiguityBandBound_nonneg {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p) :
     0 ≤ ambiguityBandBound π σ b p := by
@@ -394,6 +477,8 @@ theorem ambiguityBandBound_nonneg {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p
   have h2 : 0 ≤ 2 * (∑ j, π j * σ j) + (m : ℚ) * gridStep b + p := by linarith
   exact mul_nonneg h1 h2
 
+/-- For nonnegative profiles and threshold, two ambiguous levels in a certified shard differ by
+at most twice the ambiguity-band bound divided by the shard rate. -/
 theorem shardAmbiguousLevels_diam {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (s : BandShard π σ b p k) {x y : ℚ}
@@ -446,6 +531,8 @@ theorem shardAmbiguousLevels_diam {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p
   rw [le_div_iff₀ s.rate_pos]
   nlinarith
 
+/-- For nonnegative profiles and threshold, the number of ambiguous depths in a certified shard
+is at most `shardAmbiguityBound`. -/
 theorem shardAmbiguityCount_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (s : BandShard π σ b p k) :
@@ -478,6 +565,8 @@ theorem shardAmbiguityCount_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : 
   rw [hconv] at hbound
   exact hbound
 
+/-- An element of a finite set in a list belongs to the union obtained by folding over that
+list. -/
 theorem mem_foldr_union {j : ℕ} {D : Finset ℕ} (hj : j ∈ D) :
     ∀ (l : List (Finset ℕ)), D ∈ l → j ∈ l.foldr (· ∪ ·) ∅ := by
   intro l
@@ -489,6 +578,7 @@ theorem mem_foldr_union {j : ℕ} {D : Finset ℕ} (hj : j ∈ D) :
       · simp [hj]
       · exact Finset.mem_union.mpr (Or.inr (ih h))
 
+/-- The cardinality of a folded union of finite sets is at most the sum of their cardinalities. -/
 theorem card_foldr_union_le :
     ∀ (l : List (Finset ℕ)), (l.foldr (· ∪ ·) ∅).card ≤ (l.map Finset.card).sum := by
   intro l
@@ -498,6 +588,8 @@ theorem card_foldr_union_le :
       simp only [List.foldr_cons, List.map_cons, List.sum_cons]
       exact le_trans (Finset.card_union_le _ _) (Nat.add_le_add_left ih _)
 
+/-- Pointwise inequalities on the elements of a list imply an inequality between the
+corresponding sums of natural numbers. -/
 theorem list_sum_le {α : Type} (l : List α) (f g : α → ℕ)
     (h : ∀ x ∈ l, f x ≤ g x) : (l.map f).sum ≤ (l.map g).sum := by
   induction l with
@@ -506,10 +598,13 @@ theorem list_sum_le {α : Type} (l : List α) (f g : α → ℕ)
       simp only [List.map_cons, List.sum_cons]
       exact Nat.add_le_add (h a (by simp)) (ih (fun x hx => h x (by simp [hx])))
 
+/-- The union of the explicit cuts and the subsets of `A` selected by each shard's depth set. -/
 def coveredDepths {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (A cuts : Finset ℕ) (shards : List (BandShard π σ b p k)) : Finset ℕ :=
   cuts ∪ (shards.map (fun s => A.filter (fun j => j ∈ s.depths))).foldr (· ∪ ·) ∅
 
+/-- An element of `A` belongs to `coveredDepths` if it lies in an explicit cut or in the depth
+set of a listed shard. -/
 theorem mem_coveredDepths {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (A cuts : Finset ℕ) (shards : List (BandShard π σ b p k)) {j : ℕ} (hj : j ∈ A)
     (hcover : j ∈ cuts ∨ ∃ s ∈ shards, j ∈ s.depths) : j ∈ coveredDepths b π σ p k A cuts shards := by
@@ -520,6 +615,8 @@ theorem mem_coveredDepths {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) 
     have hmem : j ∈ A.filter (fun j => j ∈ s.depths) := Finset.mem_filter.mpr ⟨hj, hjs⟩
     exact mem_foldr_union hmem _ (List.mem_map.mpr ⟨s, hs, rfl⟩)
 
+/-- The number of covered depths is at most the number of cuts plus the sum of the cardinalities
+of `A` restricted to each shard. -/
 theorem coveredDepths_card_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (A cuts : Finset ℕ) (shards : List (BandShard π σ b p k)) :
     (coveredDepths b π σ p k A cuts shards).card ≤
@@ -529,6 +626,8 @@ theorem coveredDepths_card_le {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : �
   simpa only [List.map_map, Function.comp_def] using!
     (card_foldr_union_le (shards.map (fun s => A.filter (fun j => j ∈ s.depths))))
 
+/-- For nonnegative profiles and threshold, a cover of all ambiguous depths by cuts and
+certified shards bounds the interval-search ambiguity count by `shardAmbiguityBudget`. -/
 theorem ambiguityCount_le_of_shards {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 ≤ p)
     (shards : List (BandShard π σ b p k)) (cuts : Finset ℕ)
@@ -546,10 +645,14 @@ theorem ambiguityCount_le_of_shards {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) 
       exact list_sum_le shards _ _ (fun s _ => shardAmbiguityCount_le b π σ p k hπ hσ hp s)
     _ = shardAmbiguityBudget π σ b p k shards cuts := rfl
 
+/-- The interval-search operation precision budget obtained by using the combined ambiguity
+allowance from shards and cuts. -/
 def intervalShardOpBitBudget {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p ε πi : ℚ) (k : ℕ)
     (shards : List (BandShard π σ b p k)) (cuts : Finset ℕ) : ℚ :=
   intervalSearchOpBitBudget ε p πi m k (shardAmbiguityBudget π σ b p k shards cuts)
 
+/-- For positive tolerance, threshold, and `πi`, a shard cover and its precision budget imply
+both stated operation-error inequalities for interval fidelity search. -/
 theorem intervalSearch_budget_of_shards {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k : ℕ)
     (hε : 0 < ε) (hp : 0 < p) (hπi : 0 < πi)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
@@ -579,22 +682,27 @@ theorem intervalSearch_budget_of_shards {m : ℕ} (π σ : Fin m → ℚ) (p ε 
         exact hbud
   exact intervalSearchOpBitBudget_sufficient hε hp hπi b hb'
 
+/-- For the empty saturated set, the example's saturated source-target dot product is zero. -/
 theorem crossBreak_satDot_zero :
     satDot crossBreakSource crossBreakTarget (∅ : Finset (Fin 3)) = 0 := by
   simp [satDot]
 
+/-- For the empty saturated set, the example's free target squared mass is three. -/
 theorem crossBreak_freeSq_zero :
     freeSq crossBreakSource crossBreakTarget (∅ : Finset (Fin 3)) = 3 := by
   unfold freeSq
   rw [crossBreak_fin3_sum]
   norm_num [crossBreakSource, crossBreakTarget]
 
+/-- For the empty saturated set, the example's segment slope is `(2 / 3) * (γ₁ + γ₂)`. -/
 theorem crossBreak_slope_zero (γ₁ γ₂ : ℚ) :
     pieceSegmentSlope crossBreakSource crossBreakTarget crossBreakFidelity
       (∅ : Finset (Fin 3)) γ₁ γ₂ = (2 / 3) * (γ₁ + γ₂) := by
   rw [pieceSegmentSlope, crossBreak_satDot_zero, crossBreak_freeSq_zero]
   norm_num [crossBreakFidelity]
 
+/-- The empty saturated set and `{0}` satisfy the example's piece-transition conditions at level
+`1 / 4`. -/
 theorem crossBreak_pieceBreak_zero :
     pieceBreak crossBreakSource crossBreakTarget (1 / 4) (∅ : Finset (Fin 3))
       ({0} : Finset (Fin 3)) := by
@@ -603,6 +711,8 @@ theorem crossBreak_pieceBreak_zero :
   subst j
   exact ⟨by norm_num [crossBreakSource], by norm_num [crossBreakSource, crossBreakTarget]⟩
 
+/-- The example satisfies the breakpoint-cut rate condition across level `1 / 4` between the
+specified outer levels `1 / 8` and `15 / 32`. -/
 theorem crossBreak_breakpointCutsRate :
     breakpointCutsRate crossBreakSource crossBreakTarget crossBreakFidelity
       (∅ : Finset (Fin 3)) ({0} : Finset (Fin 3)) (1 / 8) (1 / 4) (15 / 32) := by
@@ -610,6 +720,8 @@ theorem crossBreak_breakpointCutsRate :
   rw [crossBreak_slope_zero, crossBreak_slope_low]
   norm_num
 
+/-- No positive rational rate is bounded above by either specified cross-piece rate lower
+expression at the example's breakpoint `1 / 4`. -/
 theorem crossBreak_no_common_rate :
     ¬ (∃ c : ℚ, 0 < c ∧
       (c ≤ crossPieceRateLower crossBreakSource crossBreakTarget crossBreakFidelity
@@ -620,6 +732,7 @@ theorem crossBreak_no_common_rate :
     (∅ : Finset (Fin 3)) ({0} : Finset (Fin 3)) (1 / 8) (1 / 4) (15 / 32)
     crossBreak_breakpointCutsRate
 
+/-- The example shard with depths `{10, 11}` and certified positive rate `crossBreakRate`. -/
 def crossBreakLowShard : BandShard crossBreakSource crossBreakTarget 15 crossBreakFidelity 13 where
   depths := {10, 11}
   rate := crossBreakRate
@@ -628,6 +741,7 @@ def crossBreakLowShard : BandShard crossBreakSource crossBreakTarget 15 crossBre
     bandRateOn_of_bandRate {10, 11} crossBreakSource crossBreakTarget 15 crossBreakFidelity
       crossBreakRate 13 crossBreak_bandRate
 
+/-- The example shard with depths `{8, 9, 12}` and certified positive rate `1 / 5`. -/
 def crossBreakHighShard : BandShard crossBreakSource crossBreakTarget 15 crossBreakFidelity 13 where
   depths := {8, 9, 12}
   rate := 1 / 5
@@ -638,11 +752,15 @@ def crossBreakHighShard : BandShard crossBreakSource crossBreakTarget 15 crossBr
     exact bandRateOn_of_bandRate {8, 9, 12} crossBreakSource crossBreakTarget 15
       crossBreakFidelity crossBreakRate 13 crossBreak_bandRate
 
+/-- The list consisting of `crossBreakLowShard` and `crossBreakHighShard`. -/
 def crossBreakShards : List (BandShard crossBreakSource crossBreakTarget 15 crossBreakFidelity 13) :=
   [crossBreakLowShard, crossBreakHighShard]
 
+/-- The singleton cut-depth set `{3}` for the breakpoint example. -/
 def crossBreakCuts : Finset ℕ := {3}
 
+/-- Depth three is an explicit cut with midpoint `15 / 32`, and the specified breakpoint-cut
+rate condition holds across level `1 / 4`. -/
 theorem crossBreak_cut_depth_three :
     3 ∈ crossBreakCuts ∧
     bracketMidpoint crossBreakSource crossBreakTarget crossBreakFidelity 3 = 15 / 32 ∧
@@ -650,6 +768,8 @@ theorem crossBreak_cut_depth_three :
       (∅ : Finset (Fin 3)) ({0} : Finset (Fin 3)) (1 / 8) (1 / 4) (15 / 32) := by
   exact ⟨by simp [crossBreakCuts], crossBreak_levels.2.2.2.1, crossBreak_breakpointCutsRate⟩
 
+/-- Every ambiguous depth of the example's thirteen-step interval search lies in an explicit cut
+or in one of the two listed shards. -/
 theorem crossBreak_shard_cover :
     ∀ j ∈ ambiguousDepths 15 crossBreakSource crossBreakTarget crossBreakFidelity 13,
       j ∈ crossBreakCuts ∨ ∃ s ∈ crossBreakShards, j ∈ s.depths := by
@@ -666,6 +786,8 @@ theorem crossBreak_shard_cover :
   rcases crossBreak_band_depth j hjk hband with rfl | rfl | rfl | rfl | rfl <;>
     simp [crossBreakCuts, crossBreakShards, crossBreakLowShard, crossBreakHighShard]
 
+/-- The ambiguity count of the example's thirteen-step interval search is bounded by its
+combined shard-and-cut budget. -/
 theorem crossBreak_shardedAmbiguityCount_le :
     (intervalFidelitySearch 15 crossBreakSource crossBreakTarget crossBreakFidelity 13).2.ambiguities
       ≤ shardAmbiguityBudget crossBreakSource crossBreakTarget 15 crossBreakFidelity 13
@@ -674,6 +796,8 @@ theorem crossBreak_shardedAmbiguityCount_le :
     crossBreakSource_nonneg crossBreakTarget_nonneg crossBreakFidelity_pos.le
     crossBreakShards crossBreakCuts crossBreak_shard_cover
 
+/-- For positive `ε` and `πi`, the example's shard-based precision budget implies both stated
+operation-error inequalities for the thirteen-step interval search. -/
 theorem crossBreak_intervalSearch_budget_of_shards (ε πi : ℚ)
     (hε : 0 < ε) (hπi : 0 < πi)
     (hb : gridStep 15 ≤ intervalShardOpBitBudget crossBreakSource crossBreakTarget 15
@@ -688,6 +812,8 @@ theorem crossBreak_intervalSearch_budget_of_shards (ε πi : ℚ)
     ε πi 15 13 hε crossBreakFidelity_pos hπi crossBreakSource_nonneg crossBreakTarget_nonneg
     crossBreakShards crossBreakCuts crossBreak_shard_cover hb
 
+/-- Collect the example's global band-rate certificate, width-based ambiguity and precision
+bounds, breakpoint-cut condition, and shard-based ambiguity and precision bounds. -/
 theorem frontier1 :
     bandRate crossBreakSource crossBreakTarget 15 crossBreakFidelity crossBreakRate 13 ∧
     (intervalFidelitySearch 15 crossBreakSource crossBreakTarget crossBreakFidelity 13).2.ambiguities

@@ -16,6 +16,24 @@ import Mathlib.Analysis.Normed.Lp.PiLp
 import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupAuxiliary
+
+/-!
+# Specification of the quadratic amplification bound
+
+`expected` records the Grover success lower bound for a prepared state with positive success
+probability. The iteration count is the natural floor of `Real.pi / (4 * θ)` for a success angle
+satisfying `sin θ^2 = a`. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `expected`: The proposition that `floor (π / (4 * θ))` Grover steps achieve success
+  probability at least `max (1 - a) a` for positive `a = sin θ^2`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +42,8 @@ namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 end Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2SpeedupSpec
+/-- The proposition that `floor (π / (4 * θ))` Grover steps achieve success probability at least
+`max (1 - a) a` for positive `a = sin θ^2`. -/
 def expected : Prop :=
   (∀ (E : Type*) [NormedAddCommGroup E] [InnerProductSpace ℂ E] [CompleteSpace E]
     (S : Set ℤ) (hzero : (0 : ℤ) ∈ S)

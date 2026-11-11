@@ -7,18 +7,47 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Tactic
 
+/-!
+# Finite moments and inclusion-weighted score bounds
+
+This module defines finite weighted means, second moments, and variances, with normalization
+hypotheses stated in the identities that need them. The square-root-weighted vector `lawVector`
+turns second moments into Euclidean norm squares.
+
+Triangle inequalities give second-moment and variance bounds for scores assembled from
+components with known second moments. These estimates support the inverse-inclusion estimators
+in [XuEtAl2026].
+
+## Main statements
+
+* `variance_eq`: If the weights sum to one, the variance equals the second moment minus the
+  squared mean.
+* `second_score_le`: For nonnegative weights and components with positive second moments `r i`,
+  the score second moment is at most the square of the sum of `|c i|/√(r i)`.
+* `variance_score_le`: For normalized nonnegative weights and positive component second moments,
+  the score variance is bounded by the square of the sum of `|c i|/√(r i)`.
+
+## References
+
+* [Xu et al., 2026][XuEtAl2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.FiniteStats.BornEstimator
 open scoped Classical BigOperators
 variable {Ω V : Type*} [Fintype Ω] [Fintype V]
 
+/-- The finite weighted mean of the real function `f` with weights `p`. -/
 def mean (p : Ω → ℝ) (f : Ω → ℝ) : ℝ := ∑ ω,p ω*f ω
 
+/-- The finite weighted second moment of `f`. -/
 def second (p : Ω → ℝ) (f : Ω → ℝ) : ℝ := mean p (fun ω => f ω^2)
 
+/-- The finite weighted mean of the squared deviation of `f` from its weighted mean. -/
 def variance (p : Ω → ℝ) (f : Ω → ℝ) : ℝ := mean p (fun ω => (f ω-mean p f)^2)
 
+/-- If the weights sum to one, the variance equals the second moment minus the squared mean. -/
 theorem variance_eq (p : Ω → ℝ) (hp : ∑ ω,p ω=1) (f : Ω → ℝ) :
     variance p f=second p f-(mean p f)^2 := by
   have he (M : ℝ) : (∑ ω,p ω*(f ω-M)^2)=second p f-2*M*mean p f+M^2 := by
@@ -34,8 +63,10 @@ theorem variance_eq (p : Ω → ℝ) (hp : ∑ ω,p ω=1) (f : Ω → ℝ) :
   rw [he]
   ring
 
+/-- The Euclidean vector with coordinates `√(p ω) * f ω`. -/
 def lawVector (p f : Ω → ℝ) : EuclideanSpace ℝ Ω := WithLp.toLp 2 (fun ω => Real.sqrt (p ω)*f ω)
 
+/-- For nonnegative weights, the squared norm of `lawVector p f` is the weighted second moment. -/
 theorem lawVector_norm_sq (p f : Ω → ℝ) (hp : ∀ ω,0 ≤ p ω) :
     ‖lawVector p f‖^2=second p f := by
   rw [EuclideanSpace.real_norm_sq_eq]
@@ -44,11 +75,14 @@ theorem lawVector_norm_sq (p f : Ω → ℝ) (hp : ∀ ω,0 ≤ p ω) :
 
 omit [Fintype Ω] in
 
+/-- The square-root-weighted vector construction preserves finite sums of functions. -/
 theorem lawVector_sum (p : Ω → ℝ) (f : V → Ω → ℝ) :
     lawVector p (fun ω => ∑ i,f i ω)=∑ i,lawVector p (f i) := by
   ext ω
   simp [lawVector,Finset.mul_sum]
 
+/-- If nonnegative weights give `z` the positive second moment `r`, the norm of the weighted
+vector for `c*z/r` is `|c|/√r`. -/
 theorem component_norm (p : Ω → ℝ) (hp : ∀ ω,0 ≤ p ω) (z : Ω → ℝ)
     (r : ℝ) (hr : 0<r) (hz : second p z=r) (c : ℝ) :
     ‖lawVector p (fun ω => c*z ω/r)‖=|c|/Real.sqrt r := by
@@ -67,6 +101,8 @@ theorem component_norm (p : Ω → ℝ) (hp : ∀ ω,0 ≤ p ω) (z : Ω → ℝ
   apply (sq_eq_sq₀ (norm_nonneg _) (div_nonneg (abs_nonneg _) hrn)).mp
   rw [hn,div_pow,sq_abs,hsq]
 
+/-- For nonnegative weights and components with positive second moments `r i`, the score second
+moment is at most the square of the sum of `|c i|/√(r i)`. -/
 theorem second_score_le (p : Ω → ℝ) (hp : ∀ ω,0 ≤ p ω)
     (z : V → Ω → ℝ) (r c : V → ℝ) (hr : ∀ i,0<r i)
     (hz : ∀ i,second p (z i)=r i) :
@@ -82,6 +118,8 @@ theorem second_score_le (p : Ω → ℝ) (hp : ∀ ω,0 ≤ p ω)
   rw [← lawVector_norm_sq _ _ hp]
   exact pow_le_pow_left₀ (norm_nonneg _) hnorm 2
 
+/-- If each component mean is `r i * μ i` and every `r i` is nonzero, the mean of the
+inverse-weighted score is the sum of `c i * μ i`. -/
 theorem mean_score (p : Ω → ℝ) (z : V → Ω → ℝ) (r c μ : V → ℝ)
     (hr : ∀ i,r i≠0) (hz : ∀ i,mean p (z i)=r i*μ i) :
     mean p (fun ω => ∑ i,c i*z i ω/r i)=∑ i,c i*μ i := by
@@ -98,6 +136,8 @@ theorem mean_score (p : Ω → ℝ) (z : V → Ω → ℝ) (r c μ : V → ℝ)
              ring
        _ = c i*μ i := by rw [hz i];field_simp [hr i]
 
+/-- For normalized nonnegative weights and positive component second moments, the score variance
+is bounded by the square of the sum of `|c i|/√(r i)`. -/
 theorem variance_score_le (p : Ω → ℝ) (hp : ∀ ω,0 ≤ p ω) (hn : ∑ ω,p ω=1)
     (z : V → Ω → ℝ) (r c : V → ℝ) (hr : ∀ i,0<r i)
     (hz : ∀ i,second p (z i)=r i) :

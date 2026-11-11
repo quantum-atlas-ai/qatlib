@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle
+
+/-!
+# Probability oracles and realized phase definitions
+
+This module defines `ProbabilityOracle` as a grid function with values in `[0, 1]`, its accuracy
+predicate, and its associated phase rotation. `composedGoodWindow` and the refined specification
+connect these interfaces to Fourier gradient estimation [Jordan2005Gradient].
+
+The remaining definitions compress an operator to `probabilityProgramFrame`, extract its
+diagonal phase coefficients, measure their deviations and moduli, and form both raw and
+normalized diagonal operators. Their approximation and unitarity properties are proved in the
+companion module.
+
+## Main statements
+
+* `ProbabilityReadAccurate`: uniform error against a specified real function.
+* `probabilityProgramFrameOperator`: compression to the input frame.
+* `probabilityNormalizedRealizedPhaseOperator`: the diagonal operator formed by modulus
+  normalization.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -28,29 +53,39 @@ open Qatlib
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator ComplexConjugate
 
+/-- A probability function on the gradient grid with a pointwise proof that its values lie in
+`[0, 1]`. -/
 structure ProbabilityOracle (d M : ℕ) where
 
   prob : GradientGrid d M → ℝ
 
   prob_valid : ∀ x, 0 ≤ prob x ∧ prob x ≤ 1
 
+/-- States that a probability oracle approximates the supplied real function uniformly within
+`ε`. -/
 def ProbabilityReadAccurate {d M : ℕ} (o : ProbabilityOracle d M)
     (truth : GradientGrid d M → ℝ) (ε : ℝ) : Prop :=
   ∀ x, |o.prob x - truth x| ≤ ε
 
+/-- The diagonal probability phase rotation associated with a probability oracle. -/
 noncomputable def probabilityOracleRotation {d M : ℕ} (o : ProbabilityOracle d M) :
     Matrix (GradientGrid d M) (GradientGrid d M) ℂ :=
   Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityPhaseOperator o.prob
 
+/-- The probability oracle's phase function in the gradient readout convention. -/
 noncomputable def probabilityOraclePhase {d M : ℕ} (o : ProbabilityOracle d M) :
     GradientGrid d M → ℝ :=
   Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityReadoutPhase o.prob
 
+/-- The finite set of readout labels within modular distance `w` of every target gradient
+coordinate. -/
 noncomputable def composedGoodWindow (d M : ℕ) (g : Fin d → ℝ) (w : ℝ) :
     Finset (GradientGrid d M) :=
   Finset.univ.filter (fun z => ∀ j : Fin d,
     phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w)
 
+/-- The refined specification for probability phase errors, readout transport, composed success
+probability, and explicit query and gate counts. -/
 def stageB_gradient_oracle_clause2_next_spec : Prop :=
   (∀ {X : Type} [Fintype X] [DecidableEq X] (p q : X → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
       (herror : ∀ x, |p x - q x| ≤ ε),
@@ -88,41 +123,49 @@ def stageB_gradient_oracle_clause2_next_spec : Prop :=
         QueryCount (gradientWord d M) = 1 ∧
         GateCount (gradientWord d M) = 2 * d)
 
+/-- The frame embedding formed by the clean input frame, Hamiltonian frame, and three auxiliary
+Boolean registers. -/
 noncomputable def probabilityProgramFrame {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A) :
     Matrix (Bool × (Bool × (Bool × (X × A)))) X ℂ :=
   scaleEightFrame (hamiltonianFrame (cleanFrame (X := X) a₀))
 
+/-- Compresses an operator to the probability program frame as `Fᴴ * Aop * F`. -/
 noncomputable def probabilityProgramFrameOperator {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A)
     (Aop : Matrix (Bool × (Bool × (Bool × (X × A)))) (Bool × (Bool × (Bool × (X × A)))) ℂ) :
     Matrix X X ℂ :=
   (probabilityProgramFrame (X := X) a₀)ᴴ * Aop * probabilityProgramFrame (X := X) a₀
 
+/-- The diagonal coefficient at `x` of the operator compressed to the probability program frame. -/
 noncomputable def probabilityRealizedPhase {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A)
     (Aop : Matrix (Bool × (Bool × (Bool × (X × A)))) (Bool × (Bool × (Bool × (X × A)))) ℂ)
     (x : X) : ℂ :=
   (probabilityProgramFrameOperator (X := X) a₀ Aop) x x
 
+/-- The norm of the difference between a realized phase coefficient and `exp (i * p x)`. -/
 noncomputable def probabilityPhaseDeviation {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A)
     (Aop : Matrix (Bool × (Bool × (Bool × (X × A)))) (Bool × (Bool × (Bool × (X × A)))) ℂ)
     (p : X → ℝ) (x : X) : ℝ :=
   ‖probabilityRealizedPhase (X := X) a₀ Aop x - Complex.exp (Complex.I * (p x : ℂ))‖
 
+/-- The diagonal matrix formed from the realized phase coefficients. -/
 noncomputable def probabilityRealizedPhaseOperator {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A)
     (Aop : Matrix (Bool × (Bool × (Bool × (X × A)))) (Bool × (Bool × (Bool × (X × A)))) ℂ) :
     Matrix X X ℂ :=
   Matrix.diagonal (fun x => probabilityRealizedPhase (X := X) a₀ Aop x)
 
+/-- The norm of a realized phase coefficient. -/
 noncomputable def probabilityRealizedPhaseModulus {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A)
     (Aop : Matrix (Bool × (Bool × (Bool × (X × A)))) (Bool × (Bool × (Bool × (X × A)))) ℂ)
     (x : X) : ℝ :=
   ‖probabilityRealizedPhase (X := X) a₀ Aop x‖
 
+/-- The realized phase coefficient divided by its modulus. -/
 noncomputable def probabilityNormalizedRealizedPhase {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A)
     (Aop : Matrix (Bool × (Bool × (Bool × (X × A)))) (Bool × (Bool × (Bool × (X × A)))) ℂ)
@@ -130,6 +173,7 @@ noncomputable def probabilityNormalizedRealizedPhase {X A : Type} [Fintype X] [F
   probabilityRealizedPhase (X := X) a₀ Aop x
     / (probabilityRealizedPhaseModulus (X := X) a₀ Aop x : ℂ)
 
+/-- The diagonal matrix formed from the normalized realized phase coefficients. -/
 noncomputable def probabilityNormalizedRealizedPhaseOperator {X A : Type} [Fintype X]
     [Fintype A] [DecidableEq X] [DecidableEq A] (a₀ : A)
     (Aop : Matrix (Bool × (Bool × (Bool × (X × A)))) (Bool × (Bool × (Bool × (X × A)))) ℂ) :

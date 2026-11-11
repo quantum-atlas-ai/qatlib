@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ModularFunct00.MainResults.Setup
+
+/-!
+# Word length and product approximation budgets
+
+This module develops finite word-length and norm-error estimates used in the approximation
+arguments of [FreedmanLarsenWang2000]. Bounded braid words concatenate with additive budgets,
+and products of contractions have error bounded by the sum of the individual errors.
+
+Uniform per-factor tolerances yield a total error of at most one tenth. The module also proves
+closure of `PolyLogOverhead` under multiplication.
+
+## Main statements
+
+* `braidWord_list_prod`: Bound the word length of a product with uniformly bounded factors.
+* `norm_list_prod_sub_prod_le`: Bound product error by the sum of factor errors.
+* `polyLogOverhead_mul`: Multiply two polylogarithmic overhead bounds.
+
+## References
+
+* [Freedman et al., 2000][FreedmanLarsenWang2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,15 +37,18 @@ namespace Qatlib.Papers.ModularFunct00.MainResults.Approximation
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The identity has a braid-word representation of length zero. -/
 lemma braidWord_one {G : Type*} [Group G] {m : ℕ} (σ : Fin m → G) :
     BraidWord σ 0 1 := by
   refine ⟨[], by simp, by simp⟩
 
+/-- A braid-word length bound remains valid when its budget increases. -/
 lemma braidWord_mono {G : Type*} [Group G] {m : ℕ} {σ : Fin m → G} {l l' : ℕ}
     {b : G} (h : BraidWord σ l b) (hll : l ≤ l') : BraidWord σ l' b := by
   rcases h with ⟨w, hw, hprod⟩
   exact ⟨w, le_trans hw hll, hprod⟩
 
+/-- Multiplying two bounded braid words adds their length budgets. -/
 lemma braidWord_mul {G : Type*} [Group G] {m : ℕ} {σ : Fin m → G} {l l' : ℕ}
     {a b : G} (ha : BraidWord σ l a) (hb : BraidWord σ l' b) :
     BraidWord σ (l + l') (a * b) := by
@@ -32,14 +57,18 @@ lemma braidWord_mul {G : Type*} [Group G] {m : ℕ} {σ : Fin m → G} {l l' : �
   refine ⟨u ++ v, by simp only [List.length_append]; omega, ?_⟩
   rw [List.map_append, List.prod_append]
 
+/-- Each chosen generator has a braid-word representation of length at most one. -/
 lemma braidWord_gen {G : Type*} [Group G] {m : ℕ} (σ : Fin m → G) (i : Fin m) :
     BraidWord σ 1 (σ i) := by
   refine ⟨[⟨i, true⟩], by simp, by simp⟩
 
+/-- The inverse of each chosen generator has a braid-word representation of length at most one. -/
 lemma braidWord_inv_gen {G : Type*} [Group G] {m : ℕ} (σ : Fin m → G) (i : Fin m) :
     BraidWord σ 1 (σ i)⁻¹ := by
   refine ⟨[⟨i, false⟩], by simp, by simp⟩
 
+/-- If every factor has braid-word length at most `l`, their list product has length at most
+`bs.length * l`. -/
 lemma braidWord_list_prod {G : Type*} [Group G] {m : ℕ} {σ : Fin m → G} {l : ℕ}
     {bs : List G} (hbs : ∀ b ∈ bs, BraidWord σ l b) :
     BraidWord σ (bs.length * l) bs.prod := by
@@ -51,6 +80,7 @@ lemma braidWord_list_prod {G : Type*} [Group G] {m : ℕ} {σ : Fin m → G} {l 
       (hbs b List.mem_cons_self) (ih (fun x hx => hbs x (List.mem_cons_of_mem _ hx)))
     simpa [Nat.add_comm] using h
 
+/-- A finite product of elements of norm at most one has norm at most one. -/
 lemma norm_list_prod_le_one {R : Type*} [NormedRing R] [NormOneClass R] :
     ∀ (l : List R), (∀ x ∈ l, ‖x‖ ≤ 1) → ‖l.prod‖ ≤ 1
   | [], _ => by simp [norm_one]
@@ -63,6 +93,8 @@ lemma norm_list_prod_le_one {R : Type*} [NormedRing R] [NormOneClass R] :
             · exact norm_list_prod_le_one t (fun x hx => h x (List.mem_cons_of_mem _ hx))
       _ = 1 := by norm_num
 
+/-- For equal-length lists of contractions, the norm of the difference of their products is at
+most the sum of the paired factor errors. -/
 lemma norm_list_prod_sub_prod_le {R : Type*} [NormedRing R] [NormOneClass R] :
     ∀ (u v : List R), u.length = v.length →
       (∀ x ∈ u, ‖x‖ ≤ 1) → (∀ x ∈ v, ‖x‖ ≤ 1) →
@@ -94,6 +126,7 @@ lemma norm_list_prod_sub_prod_le {R : Type*} [NormedRing R] [NormOneClass R] :
             linarith
       _ = ‖a - b‖ + (t.zipWith (fun a b => ‖a - b‖) s).sum := by ring
 
+/-- For positive `n`, the sum of `n` copies of `1 / (10 * n)` is at most one tenth. -/
 lemma sum_uniform_inv_ten_le_tenth (n : ℕ) (hn : 1 ≤ n) :
     (Finset.range n).sum (fun _ => 1 / (10 * (n : ℝ))) ≤ 1 / 10 := by
   rw [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
@@ -102,6 +135,8 @@ lemma sum_uniform_inv_ten_le_tenth (n : ℕ) (hn : 1 ≤ n) :
     field_simp
   exact le_of_eq h
 
+/-- Rewrite `n` times the quadratic inverse-tolerance cost at tolerance `1 / (10 * n)` as `C *
+(10 * n)^2 * n`. -/
 lemma total_length_quadratic (n : ℕ) (C : ℝ) :
     (n : ℝ) * (C * (1 / (1 / (10 * (n : ℝ)))) ^ 2) =
       C * (10 * (n : ℝ)) ^ 2 * (n : ℝ) := by
@@ -110,6 +145,7 @@ lemma total_length_quadratic (n : ℕ) (C : ℝ) :
   rw [h]
   ring
 
+/-- A real list whose entries are at most `c` has sum at most its length times `c`. -/
 lemma list_sum_le_length_mul {l : List ℝ} {c : ℝ} (h : ∀ x ∈ l, x ≤ c) :
     l.sum ≤ l.length * c := by
   induction l with
@@ -120,15 +156,19 @@ lemma list_sum_le_length_mul {l : List ℝ} {c : ℝ} (h : ∀ x ∈ l, x ≤ c)
     have ht := ih (fun x hx => h x (List.mem_cons_of_mem _ hx))
     linarith
 
+/-- For positive `n`, multiplying `1 / (10 * n)` by `n` gives one tenth. -/
 lemma nat_mul_inv_ten (n : ℕ) (hn : 1 ≤ n) :
     (n : ℝ) * (1 / (10 * (n : ℝ))) = 1 / 10 := by
   have hn0 : (0 : ℝ) < n := by exact_mod_cast hn
   field_simp
 
+/-- An error bound of at most one tenth implies that `1 - err` is at least three quarters. -/
 lemma success_ge_three_quarters {err : ℝ} (h : err ≤ 1 / 10) :
     3 / 4 ≤ 1 - err := by
   linarith
 
+/-- The pointwise product of two functions satisfying `PolyLogOverhead` also satisfies
+`PolyLogOverhead`; see [FreedmanLarsenWang2000]. -/
 lemma polyLogOverhead_mul {f g : ℕ → ℕ}
     (hf : PolyLogOverhead f) (hg : PolyLogOverhead g) :
     PolyLogOverhead (fun L => f L * g L) := by
@@ -140,6 +180,7 @@ lemma polyLogOverhead_mul {f g : ℕ → ℕ}
         Nat.mul_le_mul (ha L) (hb L)
     _ = (Nat.log 2 (L + 1) + 1) ^ (a + b) := (pow_add _ _ _).symm
 
+/-- The constant-one function satisfies `PolyLogOverhead`. -/
 lemma polyLogOverhead_const_one : PolyLogOverhead (fun _ => 1) := by
   refine ⟨0, fun L => ?_⟩
   simp

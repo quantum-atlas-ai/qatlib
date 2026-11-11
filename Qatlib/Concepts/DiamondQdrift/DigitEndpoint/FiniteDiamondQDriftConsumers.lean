@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQDrift
+
+/-!
+# A weighted Pauli qDRIFT example
+
+This module specializes finite coin qDRIFT to the noncommuting Hamiltonian `pauliX + 2 •
+pauliZ`. It computes one sampling probability and bounds the actual map in finite diamond
+distance for `|t| ≤ 1`, illustrating the randomized simulation setting of [Campbell2019].
+
+## Main statements
+
+* `fair_qdrift_xz_actual_finite_diamond_consumer`: the explicit sampling law and simulation
+  error.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +40,9 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 set_option autoImplicit false
 
+/-- For weights one and two on Pauli X and Z, the second outcome probability is `(2 / 3) * (1 -
+(1 / 4) ^ R)` and the actual finite diamond error is at most `2⁻ˢ / 2` when `|t| ≤ 1`
+[Campbell2019]. -/
 theorem fair_qdrift_xz_actual_finite_diamond_consumer : ∀ (s : ℕ) (t : ℝ), |t| ≤ 1 →
   let w := (![1,2] : Fin 2 → ℕ)
   let K := fun j : Fin 2 => if j=0 then pauliX else pauliZ

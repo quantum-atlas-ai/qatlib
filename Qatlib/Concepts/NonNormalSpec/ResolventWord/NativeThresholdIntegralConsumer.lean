@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCutoff
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralConsumer
+
+/-!
+# Native threshold amplifier circuits
+
+`nativeAmplifier_query_consumer` combines rational coefficient semantics, a computable cutoff,
+and finite phase synthesis to construct an approximate block encoding of a scaled matrix. It
+records query and gate counts together with explicit synthesis search counters in the singular
+value transformation setting of [GilyenSuLowWiebe2019]
+
+## Main statements
+
+* `nativeAmplifier_query_consumer`: certifies successful phase synthesis, an error `ε` block
+  encoding, and resource bounds.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -41,6 +60,10 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord Matrix Polynomial
 open scoped Matrix.Norms.L2Operator
 
+/-- For the stated rational parameter bounds and a projected unitary encoding with `‖A‖ ≤ (1 -
+δ) / γ`, native synthesis returns phases whose circuit block encodes `γ • A` with error `ε`,
+using `D` adjoint queries and `D + 1` adjoint gates. It also bounds `D` and the phase
+search, response, coefficient, and table counters. -/
 theorem nativeAmplifier_query_consumer
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

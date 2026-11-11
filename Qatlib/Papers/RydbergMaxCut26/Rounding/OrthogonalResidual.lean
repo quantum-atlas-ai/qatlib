@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
 import Mathlib.Tactic
+
+/-!
+# Orthogonal residuals of unit input vectors
+
+The direction `residualDirection u v` normalizes the component of `v` orthogonal to `u`. When
+both inputs are unit and their inner product has absolute value less than one, this gives an
+orthonormal pair and reconstructs the second Gaussian projection through `correlated`. See
+[CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `residual_geometry`: gives unit norm, orthogonality, and the decomposition of `v`.
+* `project_reconstruction`: expresses the second projection as a correlated combination.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,15 +37,21 @@ open Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
 
 namespace Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianJoint
 
+/-- The vector `(v - ⟪u, v⟫ • u) / √(1 - ⟪u, v⟫²)`, written using scalar multiplication. -/
 def residualDirection {I : Type} [Fintype I] (u v : Row I) : Row I :=
   (Real.sqrt (1-(inner ℝ u v)^2))⁻¹ • (v-(inner ℝ u v) • u)
 
+/-- The residual scale `√(1 - ⟪u, v⟫²)` is positive when the input inner product has absolute
+value less than one. -/
 theorem residual_scale_pos {I : Type} [Fintype I] (u v : Row I) (ht : |inner ℝ u v|<1) :
     0<Real.sqrt (1-(inner ℝ u v)^2) := by
   apply Real.sqrt_pos.mpr
   have h := abs_lt.mp ht
   nlinarith
 
+/-- For unit inputs with inner product of absolute value less than one, the residual direction
+is unit and orthogonal to `u`, and reconstructs `v` with coefficients `⟪u, v⟫` and `√(1 -
+⟪u, v⟫²)`. -/
 theorem residual_geometry {I : Type} [Fintype I] (u v : Row I)
     (hu : ‖u‖=1) (hv : ‖v‖=1) (ht : |inner ℝ u v|<1) :
     ‖residualDirection u v‖=1 ∧ inner ℝ u (residualDirection u v)=0 ∧
@@ -60,6 +85,8 @@ theorem residual_geometry {I : Type} [Fintype I] (u v : Row I)
     rw [smul_smul,mul_inv_cancel₀ hs.ne',one_smul]
     module
 
+/-- For unit inputs with inner product of absolute value less than one, projecting `v` equals
+the correlated combination of the projections of `u` and its residual direction. -/
 theorem project_reconstruction {I : Type} [Fintype I] (u v : Row I)
     (hu : ‖u‖=1) (hv : ‖v‖=1) (ht : |inner ℝ u v|<1) (R : Rows I) :
     project v R=correlated (inner ℝ u v) (project u R,project (residualDirection u v) R) := by

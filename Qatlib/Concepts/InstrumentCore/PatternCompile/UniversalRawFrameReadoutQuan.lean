@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawFrameReadoutStat
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawGraphAux
+
+/-!
+# Raw graph branches and Pauli-frame readout
+
+This module proves the branch and readout laws for legal graph measurement patterns without
+applying the final Pauli correction physically. Each raw branch is the logical unitary followed
+by its final Pauli frame, scaled by the common history weight, and the branches form an
+instrument with uniform history probabilities.
+
+Classically decoding the final basis label removes the frame from event probabilities, yielding
+`universalRawFrameReadout_answer`. These laws express the classical feed-forward aspect of
+measurement-based computation [RaussendorfBriegel2000].
+
+## Main statements
+
+* `mbqcRawBranch_formula`: the raw branch as scaled conjugation by the framed logical unitary.
+* `mbqcRaw_instrument`: raw branches form an instrument with uniform history weights.
+* `universalRawFrameReadout_answer`: the complete raw-branch and decoded-readout contract.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -27,6 +51,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- For a legal graph word, each raw branch is conjugation by the logical network matrix
+followed by its final Pauli frame, scaled by `(1/2)^graphWireCount G`. -/
 theorem mbqcRawBranch_formula {n L : ℕ} (G : GraphWord n L)
     (hlegal : networkLegal (List.ofFn G)) (h : GraphHistory G) (ρ : Operator (2^n)) :
     mbqcRawBranch G h ρ=(1/2 : ℂ)^(graphWireCount G) •
@@ -38,11 +64,14 @@ theorem mbqcRawBranch_formula {n L : ℕ} (G : GraphWord n L)
     Matrix.smul_apply]
   simp only [TensorGate,Matrix.kronecker_apply,Matrix.one_apply_eq,mul_one]
 
+/-- Decoding a basis label twice with the same Pauli frame returns the original label. -/
 theorem mbqcFrameDecode_involutive {n : ℕ} (F : PauliFrame n) :
     Function.Involutive (mbqcFrameDecode F) := by
   intro r
   simp [mbqcFrameDecode]
 
+/-- A Pauli-frame matrix entry is the frame sign when the row bit string is the frame shift of
+the column bit string, and is zero otherwise. -/
 private theorem frame_entry (n : ℕ) (F : PauliFrame n) (r c : Fin (2^n)) :
     pauliFrameGate n F r c =
       if (bitVecEquiv n).symm r=frameShift F ((bitVecEquiv n).symm c)
@@ -52,6 +81,7 @@ private theorem frame_entry (n : ℕ) (F : PauliFrame n) (r c : Fin (2^n)) :
   simpa [relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,pauliFrameGateB_entry] using!
       he.symm
 
+/-- A nonzero Pauli-frame matrix entry has column label equal to the decoded row label. -/
 theorem mbqcFrameDecode_support {n : ℕ} (F : PauliFrame n) (r c : Fin (2^n))
     (h : pauliFrameGate n F r c ≠ 0) : mbqcFrameDecode F r=c := by
   rw [frame_entry] at h
@@ -64,6 +94,8 @@ theorem mbqcFrameDecode_support {n : ℕ} (F : PauliFrame n) (r c : Fin (2^n))
   rw [congrFun hs i]
   simp [frameShift]
 
+/-- The projector onto a decoded event intertwines the Pauli-frame gate with the projector onto
+the original event. -/
 theorem mbqcFrame_projector {n : ℕ} (F : PauliFrame n) (E : Finset (Fin (2^n))) :
     Projector (mbqcDecodedEvent F E)*pauliFrameGate n F=pauliFrameGate n F*Projector E := by
   ext r c
@@ -73,6 +105,8 @@ theorem mbqcFrame_projector {n : ℕ} (F : PauliFrame n) (E : Finset (Fin (2^n))
   · have he := mbqcFrameDecode_support F r c hrc
     simp [mbqcDecodedEvent,he,mul_comm]
 
+/-- Conjugating an operator by a Pauli frame and decoding the event leaves its
+computational-basis event mass unchanged. -/
 theorem mbqcFrame_densityEvent {n : ℕ} (F : PauliFrame n)
     (A : Operator (2^n)) (E : Finset (Fin (2^n))) :
     mbqcDensityEvent (pauliFrameGate n F*A*(pauliFrameGate n F)ᴴ)
@@ -92,10 +126,13 @@ theorem mbqcFrame_densityEvent {n : ℕ} (F : PauliFrame n)
       rw [Matrix.mul_assoc,← Matrix.mul_assoc (Projector (mbqcDecodedEvent F E)),
         mbqcFrame_projector,← Matrix.mul_assoc,← Matrix.mul_assoc,hu,Matrix.one_mul]
 
+/-- Multiplying an operator by a real scalar multiplies its event mass by the same scalar. -/
 theorem mbqcDensityEvent_smul {D : ℕ} (a : ℝ) (ρ : Operator D) (E : Finset (Fin D)) :
     mbqcDensityEvent ((a : ℂ) • ρ) E=a*mbqcDensityEvent ρ E := by
   simp [mbqcDensityEvent,Matrix.trace_smul]
 
+/-- For a legal graph word, the raw branch maps form an instrument whose history probabilities
+on any density operator are all `(1/2)^graphWireCount G`. -/
 theorem mbqcRaw_instrument {n L : ℕ} (G : GraphWord n L)
     (hlegal : networkLegal (List.ofFn G)) :
     ∃ I : Instrument (GraphHistory G) (2^n) (2^n),
@@ -134,6 +171,9 @@ theorem mbqcRaw_instrument {n L : ℕ} (G : GraphWord n L)
     have hh : (1/2 : ℂ)=((1/2 : ℝ) : ℂ) := by norm_num
     rw [hh,← Complex.ofReal_pow,Complex.ofReal_re]
 
+/-- Legal graph words satisfy `UniversalRawFrameReadout`, including exact raw resources, uniform
+history probabilities, reference-system branch formulas, and correctness of classically
+decoded event masses [RaussendorfBriegel2000]. -/
 theorem universalRawFrameReadout_answer : UniversalRawFrameReadout := by
   intro n L G hlegal
   refine ⟨mbqcRawProgram_leafCount G,mbqcRawLeaf_resources G,

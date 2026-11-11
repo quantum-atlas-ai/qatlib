@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.StandardModel.WindowSim.OneRoundWindowSimulationStat
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# One round of window simulation
+
+This module proves `oneRoundWindowSimulation`: a sweep of three-cell gates followed by a marker
+swap implements one transition of a local quantum Turing machine on an encoded configuration
+with an interior head. The proof tracks the transition superposition through each sweep prefix
+using local projections and agreement outside the active window.
+
+The mathematical background is discussed in [Yao1993].
+
+## Main statements
+
+* `sweep_run_prefix`: describes the state after a prefix of the local gate sweep.
+* `iSwap_sweepState`: identifies the marker-swapped superposition with the embedded machine
+  step.
+* `oneRoundWindowSimulation`: establishes the one-round simulation contract.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -21,6 +44,7 @@ namespace Qatlib.Foundations.StandardDefs.WindowSim
 
 open Matrix
 
+/-- A sum over head directions is the sum of its left, stationary, and right contributions. -/
 private theorem sum_qtmMove {β : Type} [AddCommMonoid β] (f : QtmMove → β) :
     ∑ d : QtmMove, f d = f QtmMove.left + f QtmMove.stay + f QtmMove.right := by
   classical
@@ -30,6 +54,8 @@ private theorem sum_qtmMove {β : Type} [AddCommMonoid β] (f : QtmMove → β) 
   rw [Finset.sum_insert (by simp), Finset.sum_insert (by simp), Finset.sum_singleton,
     add_assoc]
 
+/-- A condition independent of the summation index can be moved outside a finite sum whose false
+branch is zero. -/
 private theorem sum_ite_const {ι β : Type} [AddCommMonoid β] (b : Prop) [Decidable b]
     (s : Finset ι) (f : ι → β) :
     ∑ i ∈ s, (if b then f i else 0) = if b then ∑ i ∈ s, f i else 0 := by
@@ -37,6 +63,7 @@ private theorem sum_ite_const {ι β : Type} [AddCommMonoid β] (b : Prop) [Deci
   · simp [hb]
   · simp [hb]
 
+/-- Matrix action distributes over a finite sum of states. -/
 private theorem mulVec_sum {I ι : Type} [Fintype I] [DecidableEq I] (s : Finset ι)
     (U : Matrix I I ℂ) (f : ι → QState I) :
     U *ᵥ (∑ i ∈ s, f i) = ∑ i ∈ s, (U *ᵥ f i) := by
@@ -45,6 +72,7 @@ private theorem mulVec_sum {I ι : Type} [Fintype I] [DecidableEq I] (s : Finset
   rw [Finset.sum_congr rfl (fun j _ => Finset.mul_sum ..),
     Finset.sum_comm]
 
+/-- Appending a gate to a circuit applies its matrix to the circuit's output state. -/
 private theorem run_snoc {I : Type} [Fintype I] [DecidableEq I] (oracle U : Matrix I I ℂ)
     (C : Circuit I) (ψ : QState I) :
     Run oracle (C ++ [Step.gate U]) ψ = U *ᵥ (Run oracle C ψ) := by
@@ -55,28 +83,36 @@ section Window
 
 variable {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
 
+/-- Restrict a full window register to the three cells selected by `gUnitCells`. -/
 private abbrev winProj (t : ℕ) (k : Fin (2 * t - 1)) (x : WReg t Q A) : GWindow Q A :=
   fun q => x (gUnitCells t k q)
 
+/-- Agreement of two registers at every cell outside the selected three-cell window. -/
 private abbrev offEq (t : ℕ) (k : Fin (2 * t - 1)) (x y : WReg t Q A) : Prop :=
   ∀ j : Fin (2 * t + 1), (∀ q : Fin 3, gUnitCells t k q ≠ j) → x j = y j
 
+/-- Replace the selected three-cell window of a register by `w`, retaining all other cells. -/
 private def winGlue (t : ℕ) (k : Fin (2 * t - 1)) (x : WReg t Q A) (w : GWindow Q A) :
     WReg t Q A := Function.extend (gUnitCells t k) w x
 
+/-- Every register agrees with itself outside the selected window. -/
 private theorem offEq_refl (t : ℕ) (k : Fin (2 * t - 1)) (x : WReg t Q A) :
     offEq t k x x := fun _ _ => rfl
 
+/-- Agreement outside the selected window is symmetric. -/
 private theorem offEq_symm {t : ℕ} {k : Fin (2 * t - 1)} {x y : WReg t Q A}
     (h : offEq t k x y) : offEq t k y x := fun j hj => (h j hj).symm
 
+/-- Agreement outside the selected window is transitive. -/
 private theorem offEq_trans {t : ℕ} {k : Fin (2 * t - 1)} {x y z : WReg t Q A}
     (h : offEq t k x y) (h' : offEq t k y z) : offEq t k x z := fun j hj => (h j hj).trans (h' j hj)
 
+/-- The global index of local cell `q` is the window's starting index plus `q.val`. -/
 private theorem gUnitCells_val (t : ℕ) (k : Fin (2 * t - 1)) (q : Fin 3) :
     (gUnitCells t k q).val = k.val + q.val := by
   fin_cases q <;> simp [gUnitCells]
 
+/-- The three local cell positions map to distinct global cell positions. -/
 private theorem gUnitCells_injective (t : ℕ) (k : Fin (2 * t - 1)) :
     Function.Injective (gUnitCells t k) := by
   intro q₁ q₂ h
@@ -84,16 +120,21 @@ private theorem gUnitCells_injective (t : ℕ) (k : Fin (2 * t - 1)) :
   rw [gUnitCells_val, gUnitCells_val] at h'
   exact Fin.ext (by omega)
 
+/-- Projecting a register after replacing its active window recovers the replacement window. -/
 private theorem winGlue_proj (t : ℕ) (k : Fin (2 * t - 1)) (x : WReg t Q A) (w : GWindow Q A) :
     winProj t k (winGlue t k x w) = w :=
   funext fun q => Function.Injective.extend_apply (gUnitCells_injective t k) w x q
 
+/-- Replacing an active window preserves agreement with the original register outside that
+window. -/
 private theorem offEq_glue_self (t : ℕ) (k : Fin (2 * t - 1)) (x : WReg t Q A)
     (w : GWindow Q A) : offEq t k (winGlue t k x w) x := by
   intro j hj
   simp only [winGlue]
   exact Function.extend_apply' _ _ _ (fun h => by obtain ⟨q, hq⟩ := h; exact hj q hq)
 
+/-- A register agreeing with `x` outside the active window is recovered by inserting its
+projection into `x`. -/
 private theorem winGlue_proj' (t : ℕ) (k : Fin (2 * t - 1)) (x y : WReg t Q A)
     (h : offEq t k x y) : winGlue t k x (winProj t k y) = y := by
   funext j
@@ -105,6 +146,7 @@ private theorem winGlue_proj' (t : ℕ) (k : Fin (2 * t - 1)) (x y : WReg t Q A)
     rw [Function.extend_apply' _ _ _ hj]
     exact h j (fun q hq => hj ⟨q, hq⟩)
 
+/-- Registers with equal window projections and agreement outside the window are equal. -/
 private theorem eq_of_offEq_winProj {t : ℕ} {k : Fin (2 * t - 1)} {x y : WReg t Q A}
     (h : offEq t k x y) (hp : winProj t k x = winProj t k y) : x = y := by
   funext j
@@ -115,10 +157,13 @@ private theorem eq_of_offEq_winProj {t : ℕ} {k : Fin (2 * t - 1)} {x y : WReg 
     rw [hp]
   · exact h j (fun q hq => hj ⟨q, hq⟩)
 
+/-- The lifted gate has the local matrix entry when its two registers agree outside the active
+window, and zero otherwise. -/
 private theorem gUnitFull_apply (t : ℕ) (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
     (k : Fin (2 * t - 1)) (x y : WReg t Q A) :
     gUnitFull G k x y = if offEq t k x y then G (winProj t k x) (winProj t k y) else 0 := rfl
 
+/-- Lifted local gates at window indices with equal values coincide. -/
 private theorem gUnitFull_congr {t : ℕ} {G : Matrix (GWindow Q A) (GWindow Q A) ℂ}
     {k k' : Fin (2 * t - 1)} (h : k.val = k'.val) : gUnitFull G k = gUnitFull G k' := by
   have hcells : gUnitCells t k = gUnitCells t k' := by
@@ -127,6 +172,8 @@ private theorem gUnitFull_congr {t : ℕ} {G : Matrix (GWindow Q A) (GWindow Q A
   unfold gUnitFull
   rw [hcells]
 
+/-- The amplitude after a lifted gate is a sum over replacement windows, weighted by the
+corresponding local gate entries. -/
 private theorem gUnitFull_mulVec_apply (t : ℕ) (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
     (k : Fin (2 * t - 1)) (ψ : QState (WReg t Q A)) (x : WReg t Q A) :
     (gUnitFull G k *ᵥ ψ) x
@@ -152,9 +199,12 @@ private theorem gUnitFull_mulVec_apply (t : ℕ) (G : Matrix (GWindow Q A) (GWin
   · intro w₁ _ w₂ _ heq
     rw [← winGlue_proj t k x w₁, ← winGlue_proj t k x w₂, heq]
 
+/-- Embed a local state into full registers that agree with `y` outside the active window,
+assigning zero elsewhere. -/
 private def liftWin (t : ℕ) (k : Fin (2 * t - 1)) (y : WReg t Q A) (φ : QState (GWindow Q A)) :
     QState (WReg t Q A) := fun x => if offEq t k x y then φ (winProj t k x) else 0
 
+/-- Acting by a lifted local gate commutes with embedding a local state using `liftWin`. -/
 private theorem gUnitFull_mulVec_liftWin (t : ℕ) (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
     (k : Fin (2 * t - 1)) (y : WReg t Q A) (φ : QState (GWindow Q A)) :
     gUnitFull G k *ᵥ (liftWin t k y φ) = liftWin t k y (G *ᵥ φ) := by
@@ -173,6 +223,8 @@ private theorem gUnitFull_mulVec_liftWin (t : ℕ) (G : Matrix (GWindow Q A) (GW
     rw [Finset.sum_congr rfl (fun w _ => by rw [hzero w, mul_zero])]
     simp only [Finset.sum_const_zero, liftWin, if_neg hx]
 
+/-- A register basis state is the lift of its window basis state relative to any register
+agreeing outside the window. -/
 private theorem ket_eq_liftWin' (t : ℕ) (k : Fin (2 * t - 1)) (y y' : WReg t Q A)
     (w : GWindow Q A) (hproj : winProj t k y = w) (hoff : offEq t k y y') :
     Qatlib.Foundations.PureStateMath.Ket y = liftWin t k y' (Qatlib.Foundations.PureStateMath.Ket w) := by
@@ -191,6 +243,8 @@ private theorem ket_eq_liftWin' (t : ℕ) (k : Fin (2 * t - 1)) (y y' : WReg t Q
     subst hxy
     exact hx hoff
 
+/-- A gate satisfying `GUnitFixesH` fixes any full register basis state whose active window is
+of type I. -/
 private theorem gUnitFull_mulVec_ket_fix (t : ℕ) {M : LocalQTM Q A}
     {G : Matrix (GWindow Q A) (GWindow Q A) ℂ} (hfix : GUnitFixesH M G)
     (k : Fin (2 * t - 1)) (y : WReg t Q A) (hz : IsTypeI (winProj t k y)) :
@@ -199,6 +253,7 @@ private theorem gUnitFull_mulVec_ket_fix (t : ℕ) {M : LocalQTM Q A}
     ket_eq_liftWin' t k y y (winProj t k y) rfl (offEq_refl t k y)
   rw [h1, gUnitFull_mulVec_liftWin, hfix.1 _ hz]
 
+/-- Two three-cell windows are equal exactly when their entries at all three positions agree. -/
 private theorem gw_eq_iff (z w : GWindow Q A) :
     z = w ↔ z 0 = w 0 ∧ z 1 = w 1 ∧ z 2 = w 2 := by
   constructor
@@ -207,6 +262,8 @@ private theorem gw_eq_iff (z w : GWindow Q A) :
     funext q
     fin_cases q <;> simp [h0, h1, h2]
 
+/-- The basis state of a specified three-cell pattern evaluates to one exactly on that pattern
+and to zero elsewhere. -/
 private theorem ket_pat_apply (P0 P1 P2 : CellState Q A) (w : GWindow Q A) :
     Qatlib.Foundations.PureStateMath.Ket ![P0, P1, P2] w = if w 0 = P0 ∧ w 1 = P1 ∧ w 2 = P2 then (1 : ℂ) else 0 := by
   rw [ket_apply]
@@ -218,6 +275,8 @@ private theorem ket_pat_apply (P0 P1 P2 : CellState Q A) (w : GWindow Q A) :
     intro he
     exact h ⟨by rw [he]; simp, by rw [he]; simp, by rw [he]; simp⟩
 
+/-- The head basis state is the ket of the three-cell pattern with marker one at the central
+head. -/
 private theorem headBasis_eq_ket (q : Q) (a b c : A) :
     headBasis q a b c = Qatlib.Foundations.PureStateMath.Ket ![(0, none, b), (1, some q, a), (0, none, c)] := by
   funext z
@@ -231,6 +290,8 @@ private theorem headBasis_eq_ket (q : Q) (a b c : A) :
     intro he
     exact h ⟨by rw [he]; simp, by rw [he]; simp, by rw [he]; simp⟩
 
+/-- Expand a local transition superposition into the basis-state contributions for left,
+stationary, and right moves. -/
 private theorem stepSuperposition_apply (M : LocalQTM Q A) (q : Q) (a b c : A)
     (z : GWindow Q A) :
     stepSuperposition M q a b c z =
@@ -243,6 +304,7 @@ private theorem stepSuperposition_apply (M : LocalQTM Q A) (q : Q) (a b c : A)
           * Qatlib.Foundations.PureStateMath.Ket ![(0, none, b), (0, none, a'), (2, some q', c)] z) := by
   simp only [stepSuperposition, ← ket_pat_apply]
 
+/-- Expand `vFamily` at a window into its stationary and right-moving basis-state contributions. -/
 private theorem vFamily_apply (M : LocalQTM Q A) (q₀ : Q) (a₀ b c : A) (z : GWindow Q A) :
     vFamily M q₀ a₀ b c z =
       (∑ q' : Q, ∑ a' : A,
@@ -252,6 +314,8 @@ private theorem vFamily_apply (M : LocalQTM Q A) (q₀ : Q) (a₀ b c : A) (z : 
           * Qatlib.Foundations.PureStateMath.Ket ![(0, none, a'), (2, some q', b), (0, none, c)] z) := by
   simp only [vFamily, ← ket_pat_apply]
 
+/-- Expand `uFamily` at a window as a sum over new internal states for a fixed right-moving
+write symbol. -/
 private theorem uFamily_apply (M : LocalQTM Q A) (q₀ : Q) (a₀ a'' b c d : A)
     (z : GWindow Q A) :
     uFamily M q₀ a₀ a'' b c d z =
@@ -266,11 +330,13 @@ section Encoding
 
 variable {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
 
+/-- An encoded configuration has marker zero at every cell distinct from its head. -/
 private theorem windowEncode_marker_zero (t : ℕ) (c : WindowCfg t Q A)
     {j : Fin (2 * t + 1)} (h : j ≠ c.head) :
     (windowEncode c j).1 = 0 := by
   simp [windowEncode, h]
 
+/-- Encoding window configurations as cell registers is injective. -/
 private theorem windowEncode_injective {t : ℕ} {Q A : Type} [DecidableEq Q] [DecidableEq A] :
     Function.Injective (windowEncode (t := t) (Q := Q) (A := A)) := by
   intro c₁ c₂ h
@@ -316,12 +382,15 @@ private theorem windowEncode_injective {t : ℕ} {Q A : Type} [DecidableEq Q] [D
   simp only [WindowCfg.mk.injEq]
   exact ⟨hhead, hstate, htape⟩
 
+/-- An embedded state evaluated at an encoded configuration has the original configuration
+amplitude. -/
 private theorem windowEmbed_apply {t : ℕ} (φ : QState (WindowCfg t Q A))
     (c : WindowCfg t Q A) :
     windowEmbed φ (windowEncode c) = φ c := by
   simp only [windowEmbed]
   exact windowEncode_injective.extend_apply φ 0 c
 
+/-- An embedded state vanishes on registers outside the image of configuration encoding. -/
 private theorem windowEmbed_eq_zero {t : ℕ} (φ : QState (WindowCfg t Q A))
     (r : WReg t Q A) (h : ∀ c₀, windowEncode c₀ ≠ r) :
     windowEmbed φ r = 0 := by
@@ -334,18 +403,23 @@ section Sweep
 
 variable {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
 
+/-- The cell immediately to the left of a head with positive index. -/
 private def winL {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 0 < c.head.val) :
     Fin (2 * t + 1) := ⟨c.head.val - 1, by have := c.head.isLt; omega⟩
 
+/-- The cell immediately to the right of a head below the right boundary. -/
 private def winR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h2 : c.head.val < 2 * t) :
     Fin (2 * t + 1) := ⟨c.head.val + 1, by have := c.head.isLt; omega⟩
 
+/-- The left neighbor's index is the head index minus one. -/
 private theorem winL_val {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 0 < c.head.val) :
     (winL c h1).val = c.head.val - 1 := rfl
 
+/-- The right neighbor's index is the head index plus one. -/
 private theorem winR_val {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h2 : c.head.val < 2 * t) :
     (winR c h2).val = c.head.val + 1 := rfl
 
+/-- The left neighbor is distinct from the head cell. -/
 private theorem winL_ne_head {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 0 < c.head.val) :
     winL c h1 ≠ c.head := by
   intro he
@@ -353,6 +427,7 @@ private theorem winL_ne_head {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 
   rw [winL_val] at this
   omega
 
+/-- The left neighbor is distinct from the right neighbor. -/
 private theorem winL_ne_winR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) : winL c h1 ≠ winR c h2 := by
   intro he
@@ -360,10 +435,12 @@ private theorem winL_ne_winR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 
   rw [winL_val, winR_val] at this
   omega
 
+/-- The right neighbor is distinct from the left neighbor. -/
 private theorem winR_ne_winL {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) : winR c h2 ≠ winL c h1 :=
   (winL_ne_winR c h1 h2).symm
 
+/-- The right neighbor is distinct from the head cell. -/
 private theorem winR_ne_head {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h2 : c.head.val < 2 * t) : winR c h2 ≠ c.head := by
   intro he
@@ -371,12 +448,16 @@ private theorem winR_ne_head {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
   rw [winR_val] at this
   omega
 
+/-- The starting index `c.head.val - 1` of the window that triggers an interior head transition. -/
 private def trigK {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h2 : c.head.val < 2 * t) :
     Fin (2 * t - 1) := ⟨c.head.val - 1, by have := c.head.isLt; omega⟩
 
+/-- The triggering window starts at the head index minus one. -/
 private theorem trigK_val {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h2 : c.head.val < 2 * t) : (trigK c h2).val = c.head.val - 1 := rfl
 
+/-- The triggering window consists of the left neighbor, head, and right neighbor, in that
+order. -/
 private theorem gUnitCells_trigK (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) :
     gUnitCells t (trigK c h2) = ![winL c h1, c.head, winR c h2] := by
@@ -388,6 +469,8 @@ private theorem gUnitCells_trigK (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.hea
   funext q
   exact Fin.ext (hv q)
 
+/-- The register after a prescribed transition, with the written symbol at the old head and
+marker two at the new head. -/
 private def afterReg (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) : QtmMove → Q → A → WReg t Q A :=
   fun d q' a' j =>
@@ -403,6 +486,8 @@ private def afterReg (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
       else if j = winR c h2 then (2, some q', c.tape j)
       else windowEncode c j
 
+/-- For a left move, the left neighbor receives the new head state and the old head receives the
+written symbol. -/
 private theorem afterReg_left (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (q' : Q) (a' : A) (j : Fin (2 * t + 1)) :
     afterReg t c h1 h2 QtmMove.left q' a' j =
@@ -410,11 +495,15 @@ private theorem afterReg_left (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.v
       else if j = c.head then ((0 : Fin 3), none, a')
       else windowEncode c j) := rfl
 
+/-- For a stationary move, only the head cell changes, receiving marker two, the new state, and
+the written symbol. -/
 private theorem afterReg_stay (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (q' : Q) (a' : A) (j : Fin (2 * t + 1)) :
     afterReg t c h1 h2 QtmMove.stay q' a' j =
       (if j = c.head then (2, some q', a') else windowEncode c j) := rfl
 
+/-- For a right move, the old head receives the written symbol and the right neighbor receives
+the new head state. -/
 private theorem afterReg_right (t : ℕ) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (q' : Q) (a' : A)
     (j : Fin (2 * t + 1)) :
@@ -423,6 +512,7 @@ private theorem afterReg_right (t : ℕ) (c : WindowCfg t Q A)
       else if j = winR c h2 then (2, some q', c.tape j)
       else windowEncode c j) := rfl
 
+/-- A transition leaves cells outside the old head and its two neighbors unchanged. -/
 private theorem afterReg_of_ne (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (d : QtmMove) (q' : Q) (a' : A) (j : Fin (2 * t + 1))
     (hL : j ≠ winL c h1) (hH : j ≠ c.head) (hR : j ≠ winR c h2) :
@@ -432,12 +522,14 @@ private theorem afterReg_of_ne (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.
   · rw [afterReg_stay, if_neg hH]
   · rw [afterReg_right, if_neg hH, if_neg hR]
 
+/-- After a transition, cells outside the old head and its two neighbors have marker zero. -/
 private theorem afterReg_marker_zero (t : ℕ) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (d : QtmMove) (q' : Q) (a' : A)
     (j : Fin (2 * t + 1)) (hL : j ≠ winL c h1) (hH : j ≠ c.head) (hR : j ≠ winR c h2) :
     (afterReg t c h1 h2 d q' a' j).1 = 0 := by
   rw [afterReg_of_ne t c h1 h2 d q' a' j hL hH hR, windowEncode_marker_zero t c hH]
 
+/-- A transition register agrees with the original encoding outside the triggering window. -/
 private theorem offEq_after_trig (t : ℕ) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (d : QtmMove) (q' : Q) (a' : A) :
     offEq t (trigK c h2) (afterReg t c h1 h2 d q' a') (windowEncode c) := by
@@ -450,6 +542,8 @@ private theorem offEq_after_trig (t : ℕ) (c : WindowCfg t Q A)
     hj 2 (by rw [gUnitCells_trigK t c h1 h2]; simp [he])
   rw [afterReg_of_ne t c h1 h2 d q' a' j hL hH hR]
 
+/-- The triggering projection of an encoded configuration has its head in the central cell and
+unmarked neighbors. -/
 private theorem winProj_trig_enc (t : ℕ) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) :
     winProj t (trigK c h2) (windowEncode c)
@@ -459,6 +553,7 @@ private theorem winProj_trig_enc (t : ℕ) (c : WindowCfg t Q A)
   simp only [winProj, gUnitCells_trigK t c h1 h2]
   fin_cases q <;> simp [windowEncode, winL_ne_head c h1, winR_ne_head c h2]
 
+/-- Compute the triggering window after a left move, with marker two in its leftmost cell. -/
 private theorem winProj_trig_afterL (t : ℕ) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (q' : Q) (a' : A) :
     winProj t (trigK c h2) (afterReg t c h1 h2 QtmMove.left q' a')
@@ -470,6 +565,7 @@ private theorem winProj_trig_afterL (t : ℕ) (c : WindowCfg t Q A)
     simp [afterReg_left, windowEncode, (winL_ne_head c h1).symm, winR_ne_winL c h1 h2,
       winR_ne_head c h2]
 
+/-- Compute the triggering window after a stationary move, with marker two in its central cell. -/
 private theorem winProj_trig_afterS (t : ℕ) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (q' : Q) (a' : A) :
     winProj t (trigK c h2) (afterReg t c h1 h2 QtmMove.stay q' a')
@@ -480,6 +576,7 @@ private theorem winProj_trig_afterS (t : ℕ) (c : WindowCfg t Q A)
   fin_cases q <;>
     simp [afterReg_stay, windowEncode, winL_ne_head c h1, winR_ne_head c h2]
 
+/-- Compute the triggering window after a right move, with marker two in its rightmost cell. -/
 private theorem winProj_trig_afterR (t : ℕ) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (q' : Q) (a' : A) :
     winProj t (trigK c h2) (afterReg t c h1 h2 QtmMove.right q' a')
@@ -491,6 +588,8 @@ private theorem winProj_trig_afterR (t : ℕ) (c : WindowCfg t Q A)
     simp [afterReg_right, windowEncode, winL_ne_head c h1, winR_ne_head c h2,
       winL_ne_winR c h1 h2]
 
+/-- On registers agreeing with the original encoding outside the triggering window, a transition
+ket evaluates through its local projection. -/
 private theorem ket_after_trig (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (d : QtmMove) (q' : Q) (a' : A) (x : WReg t Q A)
     (hx : offEq t (trigK c h2) x (windowEncode c)) :
@@ -505,18 +604,24 @@ private theorem ket_after_trig (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.
     intro hp
     exact hxa (eq_of_offEq_winProj (offEq_trans hx (offEq_symm hoff)) hp)
 
+/-- The transition amplitude from the configuration's current state and scanned symbol to a
+prescribed direction, state, and write symbol. -/
 private def sweepAmp {t : ℕ} (M : LocalQTM Q A) (c : WindowCfg t Q A) (d : QtmMove) (q' : Q)
     (a' : A) : ℂ := M.step c.state (c.tape c.head) d q' a'
 
+/-- The superposition of transition registers weighted by the machine's transition amplitudes,
+before the final marker swap. -/
 private def sweepState (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) : QState (WReg t Q A) :=
   ∑ d : QtmMove, ∑ q' : Q, ∑ a' : A,
     sweepAmp M c d q' a' • Qatlib.Foundations.PureStateMath.Ket (afterReg t c h1 h2 d q' a')
 
+/-- The contribution to `sweepState` from transitions in a fixed head direction. -/
 private def dirState (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (d : QtmMove) : QState (WReg t Q A) :=
   ∑ q' : Q, ∑ a' : A, sweepAmp M c d q' a' • Qatlib.Foundations.PureStateMath.Ket (afterReg t c h1 h2 d q' a')
 
+/-- The sweep state is the sum of its left, stationary, and right directional contributions. -/
 private theorem sweepState_eq_dirs (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) :
     sweepState t M c h1 h2
@@ -525,6 +630,8 @@ private theorem sweepState_eq_dirs (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t
   simp only [sweepState, sum_qtmMove, dirState]
   exact add_assoc _ _ _
 
+/-- Evaluate a directional sweep state as the sum of transition amplitudes times the
+corresponding register kets. -/
 private theorem dirState_apply (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (d : QtmMove) (x : WReg t Q A) :
     dirState t M c h1 h2 d x
@@ -532,12 +639,16 @@ private theorem dirState_apply (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A
           M.step c.state (c.tape c.head) d q' a' * Qatlib.Foundations.PureStateMath.Ket (afterReg t c h1 h2 d q' a') x := by
   simp [dirState, Finset.sum_apply, sweepAmp]
 
+/-- Evaluate the sweep state by summing register ket amplitudes over directions, new states, and
+write symbols. -/
 private theorem sweepState_apply (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (x : WReg t Q A) :
     sweepState t M c h1 h2 x = ∑ d : QtmMove, ∑ q' : Q, ∑ a' : A,
       M.step c.state (c.tape c.head) d q' a' * Qatlib.Foundations.PureStateMath.Ket (afterReg t c h1 h2 d q' a') x := by
   simp [sweepState, Finset.sum_apply, sweepAmp]
 
+/-- A gate satisfying `GUnitSteps` transforms the encoded configuration ket into its transition
+sweep state at the triggering window. -/
 private theorem gUnitFull_trig (t : ℕ) (M : LocalQTM Q A) (G : Matrix (GWindow Q A)
     (GWindow Q A) ℂ) (hstep : GUnitSteps M G) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) :
@@ -572,18 +683,23 @@ private theorem gUnitFull_trig (t : ℕ) (M : LocalQTM Q A) (G : Matrix (GWindow
       rw [ket_apply, if_neg hxa, mul_zero]
     simp only [liftWin, if_neg hx, sweepState_apply, hzero, Finset.sum_const_zero]
 
+/-- The cell two positions to the right of the head, under the stated boundary bound. -/
 private def winRR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h3 : c.head.val < 2 * t - 1) :
     Fin (2 * t + 1) := ⟨c.head.val + 2, by have := h3; omega⟩
 
+/-- The second right neighbor has index `c.head.val + 2`. -/
 private theorem winRR_val {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h3 : c.head.val < 2 * t - 1) : (winRR c h3).val = c.head.val + 2 := rfl
 
+/-- The cell three positions to the right of the head, under the stated boundary bound. -/
 private def winRRR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h4 : c.head.val < 2 * t - 2) :
     Fin (2 * t + 1) := ⟨c.head.val + 3, by have := h4; omega⟩
 
+/-- The third right neighbor has index `c.head.val + 3`. -/
 private theorem winRRR_val {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h4 : c.head.val < 2 * t - 2) : (winRRR c h4).val = c.head.val + 3 := rfl
 
+/-- The second right neighbor is distinct from the head. -/
 private theorem winRR_ne_head {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h3 : c.head.val < 2 * t - 1) : winRR c h3 ≠ c.head := by
   intro he
@@ -591,6 +707,7 @@ private theorem winRR_ne_head {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
   rw [winRR_val] at hv
   omega
 
+/-- The second right neighbor is distinct from the first right neighbor. -/
 private theorem winRR_ne_winR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) : winRR c h3 ≠ winR c h2 := by
   intro he
@@ -598,6 +715,7 @@ private theorem winRR_ne_winR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
   rw [winRR_val, winR_val] at hv
   omega
 
+/-- The second right neighbor is distinct from the left neighbor. -/
 private theorem winRR_ne_winL {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h3 : c.head.val < 2 * t - 1) : winRR c h3 ≠ winL c h1 := by
   intro he
@@ -605,6 +723,7 @@ private theorem winRR_ne_winL {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
   rw [winRR_val, winL_val] at hv
   omega
 
+/-- The third right neighbor is distinct from the head. -/
 private theorem winRRR_ne_head {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h4 : c.head.val < 2 * t - 2) : winRRR c h4 ≠ c.head := by
   intro he
@@ -612,6 +731,7 @@ private theorem winRRR_ne_head {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
   rw [winRRR_val] at hv
   omega
 
+/-- The third right neighbor is distinct from the first right neighbor. -/
 private theorem winRRR_ne_winR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h2 : c.head.val < 2 * t) (h4 : c.head.val < 2 * t - 2) : winRRR c h4 ≠ winR c h2 := by
   intro he
@@ -619,6 +739,7 @@ private theorem winRRR_ne_winR {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
   rw [winRRR_val, winR_val] at hv
   omega
 
+/-- The third right neighbor is distinct from the left neighbor. -/
 private theorem winRRR_ne_winL {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h4 : c.head.val < 2 * t - 2) : winRRR c h4 ≠ winL c h1 := by
   intro he
@@ -626,6 +747,7 @@ private theorem winRRR_ne_winL {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
   rw [winRRR_val, winL_val] at hv
   omega
 
+/-- A window starting at the head consists of the head and its first two right neighbors. -/
 private theorem gUnitCells_head (t : ℕ) (c : WindowCfg t Q A) (h2 : c.head.val < 2 * t)
     (h3 : c.head.val < 2 * t - 1) {k : Fin (2 * t - 1)} (hk : k.val = c.head.val) :
     gUnitCells t k = ![c.head, winR c h2, winRR c h3] := by
@@ -636,6 +758,7 @@ private theorem gUnitCells_head (t : ℕ) (c : WindowCfg t Q A) (h2 : c.head.val
   funext q
   exact Fin.ext (hv q)
 
+/-- A window starting one cell right of the head consists of its first three right neighbors. -/
 private theorem gUnitCells_headR (t : ℕ) (c : WindowCfg t Q A) (h2 : c.head.val < 2 * t)
     (h3 : c.head.val < 2 * t - 1) (h4 : c.head.val < 2 * t - 2)
     {k : Fin (2 * t - 1)} (hk : k.val = c.head.val + 1) :
@@ -648,6 +771,8 @@ private theorem gUnitCells_headR (t : ℕ) (c : WindowCfg t Q A) (h2 : c.head.va
   funext q
   exact Fin.ext (hv q)
 
+/-- After a left move, the window starting at the old head contains the written symbol followed
+by two unmarked tape cells. -/
 private theorem winProj_head_afterL (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (q' : Q) (a' : A)
     {k : Fin (2 * t - 1)} (hk : k.val = c.head.val) :
@@ -660,6 +785,8 @@ private theorem winProj_head_afterL (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.
     simp [afterReg_left, windowEncode, (winL_ne_head c h1).symm, winR_ne_head c h2,
       winR_ne_winL c h1 h2, winRR_ne_head c h3, winRR_ne_winL c h1 h3]
 
+/-- After a stationary move, the window starting at the old head has the new marked head
+followed by two unmarked tape cells. -/
 private theorem winProj_head_afterS (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (q' : Q) (a' : A)
     {k : Fin (2 * t - 1)} (hk : k.val = c.head.val) :
@@ -671,6 +798,8 @@ private theorem winProj_head_afterS (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.
   fin_cases q <;>
     simp [afterReg_stay, windowEncode, winR_ne_head c h2, winRR_ne_head c h3]
 
+/-- After a right move, the window starting at the old head contains the written symbol, the new
+marked head, and an unmarked cell. -/
 private theorem winProj_head_afterR (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (q' : Q) (a' : A)
     {k : Fin (2 * t - 1)} (hk : k.val = c.head.val) :
@@ -683,6 +812,8 @@ private theorem winProj_head_afterR (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.
     simp [afterReg_right, windowEncode, winR_ne_head c h2, winRR_ne_head c h3,
       winRR_ne_winR c h2 h3]
 
+/-- After a left move, the window starting right of the old head consists of three unchanged
+unmarked tape cells. -/
 private theorem winProj_headR_afterL (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (h4 : c.head.val < 2 * t - 2)
     (q' : Q) (a' : A) {k : Fin (2 * t - 1)} (hk : k.val = c.head.val + 1) :
@@ -695,6 +826,8 @@ private theorem winProj_headR_afterL (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c
     simp [afterReg_left, windowEncode, winR_ne_head c h2, winR_ne_winL c h1 h2,
       winRR_ne_head c h3, winRR_ne_winL c h1 h3, winRRR_ne_head c h4, winRRR_ne_winL c h1 h4]
 
+/-- After a stationary move, the window starting right of the old head consists of three
+unchanged unmarked tape cells. -/
 private theorem winProj_headR_afterS (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (h4 : c.head.val < 2 * t - 2)
     (q' : Q) (a' : A) {k : Fin (2 * t - 1)} (hk : k.val = c.head.val + 1) :
@@ -707,6 +840,8 @@ private theorem winProj_headR_afterS (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c
     simp [afterReg_stay, windowEncode, winR_ne_head c h2, winRR_ne_head c h3,
       winRRR_ne_head c h4]
 
+/-- After a right move, the window starting right of the old head has the new marked head in its
+first cell. -/
 private theorem winProj_headR_afterR (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (h4 : c.head.val < 2 * t - 2)
     (q' : Q) (a' : A) {k : Fin (2 * t - 1)} (hk : k.val = c.head.val + 1) :
@@ -719,6 +854,7 @@ private theorem winProj_headR_afterR (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c
     simp [afterReg_right, windowEncode, winR_ne_head c h2, winRR_ne_head c h3,
       winRRR_ne_head c h4, winRR_ne_winR c h2 h3, winRRR_ne_winR c h2 h4]
 
+/-- After a left move, the window starting at the old head is of type I. -/
 private theorem isTypeI_head_afterL (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (q' : Q) (a' : A)
     {k : Fin (2 * t - 1)} (hk : k.val = c.head.val) :
@@ -726,6 +862,7 @@ private theorem isTypeI_head_afterL (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.
   rw [winProj_head_afterL t c h1 h2 h3 q' a' hk]
   exact ⟨by simp, by intro j; fin_cases j <;> simp⟩
 
+/-- After a left move, the window starting right of the old head is of type I. -/
 private theorem isTypeI_headR_afterL (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (h4 : c.head.val < 2 * t - 2)
     (q' : Q) (a' : A) {k : Fin (2 * t - 1)} (hk : k.val = c.head.val + 1) :
@@ -733,6 +870,7 @@ private theorem isTypeI_headR_afterL (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c
   rw [winProj_headR_afterL t c h1 h2 h3 h4 q' a' hk]
   exact ⟨by simp, by intro j; fin_cases j <;> simp⟩
 
+/-- After a stationary move, the window starting right of the old head is of type I. -/
 private theorem isTypeI_headR_afterS (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (h4 : c.head.val < 2 * t - 2)
     (q' : Q) (a' : A) {k : Fin (2 * t - 1)} (hk : k.val = c.head.val + 1) :
@@ -740,6 +878,8 @@ private theorem isTypeI_headR_afterS (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c
   rw [winProj_headR_afterS t c h1 h2 h3 h4 q' a' hk]
   exact ⟨by simp, by intro j; fin_cases j <;> simp⟩
 
+/-- If a transition register and a test register agree with a common register outside a window,
+the transition ket evaluates through that window's projections. -/
 private theorem ket_after_win (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (d : QtmMove) (q' : Q) (a' : A)
     {k : Fin (2 * t - 1)} {y : WReg t Q A} (x : WReg t Q A)
@@ -753,6 +893,8 @@ private theorem ket_after_win (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.v
     intro hp
     exact hxa (eq_of_offEq_winProj (offEq_trans hx (offEq_symm hoff)) hp)
 
+/-- A stationary transition register agrees with the original encoding outside the window
+starting at the old head. -/
 private theorem offEq_head_afterS (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (q' : Q) (a' : A)
     {k : Fin (2 * t - 1)} (hk : k.val = c.head.val) :
@@ -762,6 +904,8 @@ private theorem offEq_head_afterS (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.he
   have hH : j ≠ c.head := fun he => hj 0 (by simp [he])
   rw [afterReg_stay t c h1 h2 q' a' j, if_neg hH]
 
+/-- A right-moving transition register agrees with the original encoding outside the window
+starting at the old head. -/
 private theorem offEq_head_afterR (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (q' : Q) (a' : A)
     {k : Fin (2 * t - 1)} (hk : k.val = c.head.val) :
@@ -772,9 +916,13 @@ private theorem offEq_head_afterR (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.he
   have hR : j ≠ winR c h2 := fun he => hj 1 (by simp [he])
   rw [afterReg_right t c h1 h2 q' a' j, if_neg hH, if_neg hR]
 
+/-- The original encoded register with its old head cell replaced by an unmarked cell carrying
+`a''`. -/
 private def offTplR (t : ℕ) (c : WindowCfg t Q A) (a'' : A) : WReg t Q A :=
   fun j => if j = c.head then ((0 : Fin 3), none, a'') else windowEncode c j
 
+/-- A right-moving transition register agrees with `offTplR` outside the window starting right
+of the old head. -/
 private theorem offEq_headR_afterR (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1) (h4 : c.head.val < 2 * t - 2)
     (q' : Q) (a'' : A) {k : Fin (2 * t - 1)} (hk : k.val = c.head.val + 1) :
@@ -788,6 +936,8 @@ private theorem offEq_headR_afterR (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.h
   · rw [afterReg_right t c h1 h2 q' a'' j, if_neg hH, if_neg hR]
     simp [offTplR, hH]
 
+/-- The stationary and right-moving contributions combine into a lift of `vFamily` at the window
+starting at the head. -/
 private theorem vMerge (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1)
     {k : Fin (2 * t - 1)} (hk : k.val = c.head.val) :
@@ -840,6 +990,8 @@ private theorem vMerge (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A)
     simp only [Pi.add_apply, dirState_apply, liftWin, if_neg hx, hzeroS, hzeroR,
       Finset.sum_const_zero, add_zero]
 
+/-- The right-moving contribution is a sum over write symbols of lifted `uFamily` states at the
+window starting right of the head. -/
 private theorem uMerge (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) (h3 : c.head.val < 2 * t - 1)
     (h4 : c.head.val < 2 * t - 2) {k : Fin (2 * t - 1)} (hk : k.val = c.head.val + 1) :
@@ -877,6 +1029,7 @@ private theorem uMerge (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A)
   rw [Finset.sum_comm, Finset.sum_apply]
   exact Finset.sum_congr rfl fun a'' _ => key a''
 
+/-- Every cell at least two positions right of the old head is unchanged by a transition. -/
 private theorem afterReg_of_gt (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (d : QtmMove) (q' : Q) (a' : A) {j : Fin (2 * t + 1)}
     (hj : c.head.val + 2 ≤ j.val) : afterReg t c h1 h2 d q' a' j = windowEncode c j := by
@@ -893,6 +1046,8 @@ private theorem afterReg_of_gt (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.
     rw [winR_val] at hv
     omega
 
+/-- After a transition, every window starting at least two positions right of the old head is of
+type I. -/
 private theorem isTypeI_after_ge (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) (d : QtmMove) (q' : Q) (a' : A)
     {k : Fin (2 * t - 1)} (hk : c.head.val + 2 ≤ k.val) :
@@ -917,6 +1072,8 @@ private theorem isTypeI_after_ge (t : ℕ) (c : WindowCfg t Q A) (h1 : 0 < c.hea
     rw [h0, windowEncode_marker_zero t c (hne q)]
     decide
 
+/-- A matrix fixing each ket in a family also fixes every finite weighted sum of those kets
+indexed by states and symbols. -/
 private theorem mulVec_ketSum2_fix {t : ℕ} {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] {U : Matrix (WReg t Q A) (WReg t Q A) ℂ}
     (f : Q → A → ℂ) (v : Q → A → WReg t Q A)
@@ -928,6 +1085,8 @@ private theorem mulVec_ketSum2_fix {t : ℕ} {Q A : Type} [Fintype Q] [Decidable
   rw [mulVec_sum]
   exact Finset.sum_congr rfl fun a' _ => by rw [Matrix.mulVec_smul, h q' a']
 
+/-- A gate satisfying `GUnitFixesH` fixes the sweep state at every window starting at or right
+of the old head. -/
 private theorem gUnitFull_fix_sweepState (t : ℕ) (M : LocalQTM Q A)
     (G : Matrix (GWindow Q A) (GWindow Q A) ℂ) (hfix : GUnitFixesH M G)
     (c : WindowCfg t Q A) (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t)
@@ -988,6 +1147,7 @@ private theorem gUnitFull_fix_sweepState (t : ℕ) (M : LocalQTM Q A)
           (isTypeI_after_ge t c h1 h2 QtmMove.right q' a' hk2)
     rw [Matrix.mulVec_add, eL, Matrix.mulVec_add, eS, eR]
 
+/-- An encoded configuration has a type I window whenever the head is not its central cell. -/
 private theorem isTypeI_enc (t : ℕ) (c : WindowCfg t Q A) {k : Fin (2 * t - 1)}
     (hk : k.val + 1 ≠ c.head.val) : IsTypeI (winProj t k (windowEncode c)) := by
   refine ⟨?_, ?_⟩
@@ -1008,10 +1168,13 @@ private theorem isTypeI_enc (t : ℕ) (c : WindowCfg t Q A) {k : Fin (2 * t - 1)
       rw [h0]
       decide
 
+/-- The circuit consisting of the first `m` lifted three-cell gates in the sweep. -/
 private def unitList {t : ℕ} (G : Matrix (GWindow Q A) (GWindow Q A) ℂ)
     {m : ℕ} (hm : m ≤ 2 * t - 1) : Circuit (WReg t Q A) :=
   (List.finRange m).map fun i => Step.gate (gUnitFull G (Fin.castLE hm i))
 
+/-- A sweep prefix produces the transition superposition once it has passed the triggering
+window and otherwise leaves the encoded configuration ket unchanged. -/
 private theorem sweep_run_prefix {t : ℕ} (M : LocalQTM Q A)
     (G : Matrix (GWindow Q A) (GWindow Q A) ℂ) (hfix : GUnitFixesH M G)
     (hstep : GUnitSteps M G) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
@@ -1046,12 +1209,15 @@ private theorem sweep_run_prefix {t : ℕ} (M : LocalQTM Q A)
             omega
           rw [hk, gUnitFull_trig t M G hstep c h1 h2]
 
+/-- Swapping markers one and two twice restores the original cell state. -/
 private theorem markSwap_involutive {Q A : Type} [DecidableEq Q] [DecidableEq A] :
     Function.Involutive (markSwap (Q := Q) (A := A)) := by
   intro r
   obtain ⟨m, s⟩ := r
   fin_cases m <;> simp [markSwap]
 
+/-- The full marker-swap matrix sends a register ket to the ket obtained by swapping markers in
+every cell. -/
 private theorem iSwapFull_ket {t : ℕ} {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (y : WReg t Q A) :
     iSwapFull t *ᵥ Qatlib.Foundations.PureStateMath.Ket y = Qatlib.Foundations.PureStateMath.Ket (fun j => markSwap (y j)) := by
@@ -1062,6 +1228,8 @@ private theorem iSwapFull_ket {t : ℕ} {Q A : Type} [Fintype Q] [DecidableEq Q]
     exact markSwap_involutive (r j)
   exact applyGate_permMatrix_ket hi y
 
+/-- The configuration obtained by moving the head in the specified direction, changing its
+internal state, and writing at the old head. -/
 private def cfgAfter {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
     (h2 : c.head.val < 2 * t) : QtmMove → Q → A → WindowCfg t Q A :=
   fun d q' a' =>
@@ -1070,21 +1238,26 @@ private def cfgAfter {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) (h1 : 0 < c.he
     | QtmMove.stay => ⟨c.head, q', fun j => if j = c.head then a' else c.tape j⟩
     | QtmMove.right => ⟨winR c h2, q', fun j => if j = c.head then a' else c.tape j⟩
 
+/-- A left move from a positive head index returns the left neighbor. -/
 private theorem moveCell_left {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) : moveCell QtmMove.left c.head = some (winL c h1) := by
   simp only [moveCell]
   rw [dif_neg (by omega)]
   rfl
 
+/-- A stationary move returns the original head cell. -/
 private theorem moveCell_stay {t : ℕ} {Q A : Type} (c : WindowCfg t Q A) :
     moveCell QtmMove.stay c.head = some c.head := rfl
 
+/-- A right move below the right boundary returns the right neighbor. -/
 private theorem moveCell_right {t : ℕ} {Q A : Type} (c : WindowCfg t Q A)
     (h2 : c.head.val < 2 * t) : moveCell QtmMove.right c.head = some (winR c h2) := by
   simp only [moveCell]
   rw [dif_neg (by omega)]
   rfl
 
+/-- Swapping all markers in a transition register yields the encoding of the corresponding
+updated configuration. -/
 private theorem markSwap_after_eq_enc {t : ℕ} {Q A : Type} [DecidableEq Q] [DecidableEq A]
     (c : WindowCfg t Q A) (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t)
     (d : QtmMove) (q' : Q) (a' : A) :
@@ -1111,6 +1284,8 @@ private theorem markSwap_after_eq_enc {t : ℕ} {Q A : Type} [DecidableEq Q] [De
         simp [afterReg_right, markSwap, windowEncode, cfgAfter, winR_ne_head c h2]
       · simp [afterReg_right, markSwap, windowEncode, cfgAfter, hjH, hjR]
 
+/-- A ket of an encoded configuration evaluates to one on the same configuration's encoding and
+to zero on other encoded configurations. -/
 private theorem ket_enc_eq {t : ℕ} {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (c₀ cfg : WindowCfg t Q A) :
     Qatlib.Foundations.PureStateMath.Ket (windowEncode cfg) (windowEncode c₀) = if cfg = c₀ then (1 : ℂ) else 0 := by
@@ -1121,6 +1296,8 @@ private theorem ket_enc_eq {t : ℕ} {Q A : Type} [Fintype Q] [DecidableEq Q] [F
     intro he
     exact h (windowEncode_injective he).symm
 
+/-- An updated configuration equals `c₀` exactly when its head move, internal state, and
+single-cell tape update match `c₀`. -/
 private theorem cfgAfter_eq_iff {t : ℕ} {Q A : Type} [DecidableEq Q] [DecidableEq A]
     (c : WindowCfg t Q A) (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t)
     (d : QtmMove) (q' : Q) (a' : A) (c₀ : WindowCfg t Q A) :
@@ -1154,11 +1331,14 @@ private theorem cfgAfter_eq_iff {t : ℕ} {Q A : Type} [DecidableEq Q] [Decidabl
     · rintro ⟨hmove, hstate, htape⟩
       exact ⟨hmove, hstate.symm, fun j => (htape j).symm⟩
 
+/-- Evaluation commutes with three nested finite sums of complex-valued functions. -/
 private theorem sum_apply3 {I J K : Type} [Fintype I] [Fintype J] [Fintype K]
     {X : Type} (F : I → J → K → X → ℂ) (x : X) :
     (∑ i : I, ∑ j : J, ∑ k : K, F i j k) x = ∑ i : I, ∑ j : J, ∑ k : K, F i j k x := by
   simp only [Finset.sum_apply]
 
+/-- Swapping markers in the sweep state gives the embedding of the machine's one-step transition
+state. -/
 private theorem iSwap_sweepState (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q A)
     (h1 : 0 < c.head.val) (h2 : c.head.val < 2 * t) :
     iSwapFull t *ᵥ sweepState t M c h1 h2 = windowEmbed (windowStep M *ᵥ Qatlib.Foundations.PureStateMath.Ket c) := by
@@ -1225,6 +1405,8 @@ private theorem iSwap_sweepState (t : ℕ) (M : LocalQTM Q A) (c : WindowCfg t Q
       rw [ket_apply, if_neg (fun he => hex ⟨_, he.symm⟩), mul_zero]
     simp only [hterm, Finset.sum_const_zero]
 
+/-- The complete left-to-right sweep followed by a marker swap implements one window transition
+on an interior configuration ket. -/
 private theorem sweep_run_leftToRight {t : ℕ} (M : LocalQTM Q A)
     (G : Matrix (GWindow Q A) (GWindow Q A) ℂ) (hfix : GUnitFixesH M G)
     (hstep : GUnitSteps M G) (c : WindowCfg t Q A) (h1 : 0 < c.head.val)
@@ -1244,6 +1426,8 @@ private theorem sweep_run_leftToRight {t : ℕ} (M : LocalQTM Q A)
 
 end Sweep
 
+/-- Every local machine and gate satisfying `GUnitFixesH` and `GUnitSteps` satisfy the one-round
+window simulation contract. See [Yao1993]. -/
 theorem oneRoundWindowSimulation : OneRoundWindowSimulation := by
   unfold OneRoundWindowSimulation
   intro Q _ _ A _ _ M t _ht G hfix hstep c h1 h2

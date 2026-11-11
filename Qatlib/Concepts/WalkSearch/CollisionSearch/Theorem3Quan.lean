@@ -8,6 +8,26 @@ import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Stat
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
+
+/-!
+# Graph collision from corrected solver contracts
+
+The module proves soundness and cost identities for the graph-collision reduction `gcAlg`. It
+constructs degenerate solver examples, uses a zero-charge solver to refute `theorem3`, and
+establishes the corrected proposition `Theorem3` with its positive cost-constant assumption. See
+[Ambainis2005] for the mathematical background.
+
+## Main statements
+
+* `gcAlg_sound`: validity of every returned graph collision.
+* `theorem3_zero_constant_obstruction`: failure of `theorem3`.
+* `theorem3_answer`: the corrected graph-collision proposition.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
@@ -17,6 +37,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.CollisionSearch
 open scoped Classical
 
+/-- A collision-solver contract instance with one seed, failure exponent zero, cost constant
+`K`, an always-empty result, and cost `K * s`. -/
 def nullKCollisionSolver (K : ℕ) : KCollisionSolver where
   seed := Unit
   seedFin := inferInstance
@@ -38,6 +60,8 @@ def nullKCollisionSolver (K : ℕ) : KCollisionSolver where
         _ ≤ _ := Nat.mul_le_mul_left _ (Nat.le_add_right _ _)
     exact (Nat.mul_le_mul_left K hs).trans_eq (Nat.mul_assoc _ _ _).symm
 
+/-- A collision-solver contract instance that chooses a satisfying tuple when one exists and
+assigns zero cost, zero cost constant, and failure exponent zero. -/
 def zeroChargeCollisionSolver : KCollisionSolver where
   seed := Unit
   seedFin := inferInstance
@@ -66,6 +90,8 @@ def zeroChargeCollisionSolver : KCollisionSolver where
     simp [hR]
   charges := by intros; simp
 
+/-- Every pair returned by `gcAlg` consists of distinct vertices joined by an edge and both
+marked by `f`. -/
 theorem gcAlg_sound {n : ℕ} (G : OGraph n) (f : Fin n → Bool)
     (kcs : KCollisionSolver) (r : ℕ) (ρ : kcs.seed) :
     (match gcAlg G f kcs r ρ with
@@ -83,6 +109,8 @@ theorem gcAlg_sound {n : ℕ} (G : OGraph n) (f : Fin n → Bool)
     have hadj : adjB G (t 0) (t 1) = true := by simpa [adjB] using hvals.2.2
     simp [gcAlg, hr, hvals.1, hvals.2.1, hadj, hvals.2.2, hne]
 
+/-- The graph-collision reduction returns no pair exactly when its underlying collision-solver
+invocation returns no tuple. -/
 theorem gcAlg_none_iff {n : ℕ} (G : OGraph n) (f : Fin n → Bool)
     (kcs : KCollisionSolver) (r : ℕ) (ρ : kcs.seed) :
     (gcAlg G f kcs r ρ).1 = none ↔ kcs.run r (gcRel G f) r 1 0 ρ = none := by
@@ -94,6 +122,8 @@ theorem gcAlg_none_iff {n : ℕ} (G : OGraph n) (f : Fin n → Bool)
       simpa only [gcRel, Bool.and_eq_true] using hv
     simp [gcAlg, hr, hvals.1.1, hvals.1.2, hvals.2]
 
+/-- When the underlying solver returns a tuple, the graph-collision reduction's cost is the
+solver cost plus 2. -/
 theorem gcAlg_some_cost {n : ℕ} (G : OGraph n) (f : Fin n → Bool)
     (kcs : KCollisionSolver) (r : ℕ) (ρ : kcs.seed) (t : Fin 2 → Fin n)
     (hr : kcs.run r (gcRel G f) r 1 0 ρ = some t) :
@@ -101,6 +131,8 @@ theorem gcAlg_some_cost {n : ℕ} (G : OGraph n) (f : Fin n → Bool)
   simp only [gcAlg, hr]
   split_ifs <;> rfl
 
+/-- The loopless symmetric graph on two vertices whose edges are all ordered pairs of distinct
+vertices. -/
 def twoVertexEdgeGraph : OGraph 2 where
   edges := Finset.univ.filter (fun p : Fin 2 × Fin 2 => p.1 ≠ p.2)
   symm := by
@@ -109,6 +141,7 @@ def twoVertexEdgeGraph : OGraph 2 where
       (show b ≠ a from (Finset.mem_filter.mp h).2.symm)
   loopless := by intro a; simp
 
+/-- Refutes `theorem3` using a zero-charge solver and the graph on two vertices. -/
 theorem theorem3_zero_constant_obstruction : ¬ theorem3 := by
   intro h
   obtain ⟨r, _, _, _, _, _, hc⟩ := h 2 (by norm_num) twoVertexEdgeGraph
@@ -122,6 +155,8 @@ theorem theorem3_zero_constant_obstruction : ¬ theorem3 := by
   rw [gcAlg_some_cost _ _ _ _ _ _ hr] at hb
   norm_num [zeroChargeCollisionSolver] at hb
 
+/-- Establishes the corrected graph-collision contract `Theorem3`, using the positive
+cost-constant assumption and a suitable subset size. See [Ambainis2005]. -/
 theorem theorem3_answer : Theorem3 := by
   intro n hn G f kcs hκ
   obtain ⟨r, hr, hl, hu⟩ := correctedSubsetWindow (n^2) 3 (pow_pos hn _) (by decide)

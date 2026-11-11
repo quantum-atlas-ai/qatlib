@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+/-!
+# Gray-path two-level gate synthesis
+
+This module synthesizes two-level unitaries on a nonempty qubit register using legal local
+reflection-gate words. `grayCanonicalPair_table` handles an all-true control pattern,
+`grayAdjacentPair_table` changes the control polarities, and `grayPair_table` connects arbitrary
+distinct basis addresses by a Gray path.
+
+The exact word-length bounds count the path blocks and polarity changes explicitly, following
+the controlled-gate synthesis framework of [BarencoEtAl1995].
+
+## Main statements
+
+* `grayCanonicalPair_table`: constructs a canonical pair table of length at most `256 * (k +
+  1)^2`.
+* `grayAdjacentPair_table`: adds at most `2 * k` gates for a general adjacent pair.
+* `grayPair_table`: gives a bound with `2 * d - 1` blocks, where `d` is the Hamming distance.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,12 +48,16 @@ namespace Qatlib.Concepts.GateTables.GrayUniversal
 open Matrix
 open scoped Classical BigOperators
 
+/-- Enumerates the wires other than target `t` at indices below `k`, returning `t` at larger
+indices. -/
 def grayControlWires {k : ℕ} (t : Fin (k+1)) : ℕ → Fin (k+1) :=
   fun i => if h : i < k then t.succAbove ⟨i,h⟩ else t
 
+/-- The register address with bit `b` at target `t` and true at every other wire. -/
 def grayControlAddress {k : ℕ} (t : Fin (k+1)) (b : Bool) : Reg (k+1) :=
   fun w => if w = t then b else true
 
+/-- The control-wire enumeration is injective on indices less than `k`. -/
 private theorem grayControlWires_inj {k : ℕ} (t : Fin (k+1)) :
     Set.InjOn (grayControlWires t) (Set.Iio k) := by
   intro i hi j hj he
@@ -38,11 +66,14 @@ private theorem grayControlWires_inj {k : ℕ} (t : Fin (k+1)) :
   simp only [grayControlWires, dif_pos hi, dif_pos hj] at he
   exact congrArg Fin.val (Fin.succAbove_right_injective he)
 
+/-- Every enumerated control wire with index below `k` differs from the target. -/
 private theorem grayControlWires_ne {k : ℕ} (t : Fin (k+1)) (i : ℕ) (hi : i < k) :
     grayControlWires t i ≠ t := by
   simp only [grayControlWires, dif_pos hi]
   exact Fin.succAbove_ne t _
 
+/-- The prefix conjunction of the enumerated controls is true exactly when every non-target wire
+is true. -/
 private theorem grayControls_true_iff {k : ℕ} (t : Fin (k+1)) (x : Reg (k+1)) :
     noWorkPrefixAnd (fun i => x (grayControlWires t i)) k = true ↔
       ∀ w, w ≠ t → x w = true := by
@@ -56,12 +87,15 @@ private theorem grayControls_true_iff {k : ℕ} (t : Fin (k+1)) (x : Reg (k+1)) 
     simp only [grayControlWires, dif_pos hi]
     exact h _ (Fin.succAbove_ne t _)
 
+/-- The canonical addresses with false and true target bits are distinct. -/
 private theorem grayControlAddress_ne {k : ℕ} (t : Fin (k+1)) :
     grayControlAddress t false ≠ grayControlAddress t true := by
   intro h
   have hh := congrFun h t
   simp [grayControlAddress] at hh
 
+/-- Updating the target bit of a canonical address gives the canonical address with that new
+target bit. -/
 private theorem grayControlAddress_update {k : ℕ} (t : Fin (k+1)) (b c : Bool) :
     Function.update (grayControlAddress t b) t c = grayControlAddress t c := by
   funext w
@@ -70,6 +104,8 @@ private theorem grayControlAddress_update {k : ℕ} (t : Fin (k+1)) (b c : Bool)
     simp [grayControlAddress]
   · simp [hw, grayControlAddress]
 
+/-- A unitary on the canonical address pair has a legal reflection-word implementation of length
+at most `256 * (k + 1)^2`, acting correctly on every state. -/
 theorem grayCanonicalPair_table {k : ℕ} (t : Fin (k+1))
     (U : Matrix Bool Bool ℂ) (hU : U ∈ unitaryGroup Bool ℂ) :
     ∃ gs : List (ReflectionGate (k+1)), reflectionLegal gs ∧
@@ -127,11 +163,14 @@ theorem grayCanonicalPair_table {k : ℕ} (t : Fin (k+1))
   conv_rhs => arg 2; rw [state_ket_expansion ψ]
   simp only [Matrix.mulVec_sum, Matrix.mulVec_smul]
 
+/-- Conjugation by Pauli X reverses both Boolean indices of a two-by-two matrix. -/
 private theorem grayReverseBlock (B : Matrix Bool Bool ℂ) :
     PauliX * B * PauliX = fun a b => B (!a) (!b) := by
   ext a b
   cases a <;> cases b <;> simp [PauliX, permMatrix, Matrix.mul_apply]
 
+/-- Reversing the ordered address pair and conjugating its block by Pauli X preserves the
+two-level matrix. -/
 private theorem grayPair_reverse {k : ℕ} (x y : Reg (k+1)) (hxy : x ≠ y)
     (B : Matrix Bool Bool ℂ) :
     twoLevelMatrix (.pair y x (PauliX*B*PauliX)) = twoLevelMatrix (.pair x y B) := by
@@ -141,6 +180,8 @@ private theorem grayPair_reverse {k : ℕ} (x y : Reg (k+1)) (hxy : x ≠ y)
     by_cases hvx : v = x <;> by_cases hvy : v = y <;>
     by_cases huv : u = v <;> simp_all [twoLevelMatrix]
 
+/-- A unitary on two addresses differing at exactly the specified wire has a legal
+reflection-word implementation of length at most `256 * (k + 1)^2 + 2 * k`. -/
 theorem grayAdjacentPair_table {k : ℕ} (x y : Reg (k+1)) (t : Fin (k+1))
     (ht : x t ≠ y t) (hother : ∀ w, w ≠ t → x w = y w)
     (B : Matrix Bool Bool ℂ) (hB : B ∈ unitaryGroup Bool ℂ) :
@@ -220,9 +261,11 @@ theorem grayAdjacentPair_table {k : ℕ} (x y : Reg (k+1)) (t : Fin (k+1))
       (by simpa only [hb] using! hx) (PauliX*B*PauliX) ψ
     rw [he, grayPair_reverse x y hxy B]
 
+/-- The finite set of wire positions at which two register addresses differ. -/
 def grayDifference {n : ℕ} (x y : Reg n) : Finset (Fin n) :=
   Finset.univ.filter (fun w => x w ≠ y w)
 
+/-- The difference set is empty exactly when the two register addresses are equal. -/
 private theorem grayDifference_empty {n : ℕ} (x y : Reg n) :
     grayDifference x y = ∅ ↔ x = y := by
   constructor
@@ -235,6 +278,8 @@ private theorem grayDifference_empty {n : ℕ} (x y : Reg n) :
   · rintro rfl
     simp [grayDifference]
 
+/-- Updating one coordinate of `x` to its value in `y` removes that coordinate from the
+difference set. -/
 theorem grayDifference_update {n : ℕ} (x y : Reg n) (t : Fin n) :
     grayDifference (Function.update x t (y t)) y = (grayDifference x y).erase t := by
   ext w
@@ -243,17 +288,23 @@ theorem grayDifference_update {n : ℕ} (x y : Reg n) (t : Fin n) :
     simp [grayDifference]
   · simp [grayDifference, hw]
 
+/-- The two-level Pauli X block on distinct addresses `x` and `z` sends the ket at `x` to the
+ket at `z`. -/
 private theorem graySwap_ket {n : ℕ} (x z : Reg n) (hxz : x ≠ z) :
     twoLevelMatrix (.pair x z PauliX) *ᵥ Qatlib.Foundations.PureStateMath.Ket x = Qatlib.Foundations.PureStateMath.Ket z := by
   rw [known_two_level_pair_update x z PauliX hxz]
   simp [Qatlib.Foundations.PureStateMath.Ket, hxz.symm, PauliX, permMatrix]
 
+/-- The two-level Pauli X block fixes every basis ket outside its two distinct addresses. -/
 private theorem graySwap_other_ket {n : ℕ} (x z q : Reg n)
     (hxz : x ≠ z) (hqx : q ≠ x) (hqz : q ≠ z) :
     twoLevelMatrix (.pair x z PauliX) *ᵥ Qatlib.Foundations.PureStateMath.Ket q = Qatlib.Foundations.PureStateMath.Ket q := by
   rw [known_two_level_pair_update x z PauliX hxz]
   simp [Qatlib.Foundations.PureStateMath.Ket, hqx.symm, hqz.symm]
 
+/-- A unitary on distinct addresses `x` and `y` has a legal reflection-word implementation of
+length at most `(2 * d - 1) * (256 * (k + 1)^2 + 2 * k)`, where `d` is their Hamming
+distance. The compiled word acts as the two-level matrix on every state. -/
 theorem grayPair_table {k : ℕ} (x y : Reg (k+1)) (hxy : x ≠ y)
     (B : Matrix Bool Bool ℂ) (hB : B ∈ unitaryGroup Bool ℂ) :
     ∃ gs : List (ReflectionGate (k+1)), reflectionLegal gs ∧

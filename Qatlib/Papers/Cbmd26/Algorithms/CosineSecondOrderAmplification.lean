@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderComputationalFrame
 import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleWorstCase
+
+/-!
+# Amplified cosine-based second-order algorithms
+
+Combines the cosine sample construction with computational postselection and randomized
+amplitude amplification for the second-order propagator families. The predicate
+`ThreeOracleOutputCertificate` separates the two matrix-oracle costs from state preparation and
+records successful normalized output accuracy up to phase. These results support the
+contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `ThreeOracleOutputCertificate`: records three-oracle cost and output guarantees.
+* `cosine_secondOrder_amplified`: produces an amplified second-order output certificate.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -49,12 +69,16 @@ namespace CBMD
 open Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- At truncation accuracy `ε * η / 8`, the cosine sample upper scale equals the selected
+uniform scale bound. -/
 theorem cosineSampleUpperScale_at_budget (βL βH γ τ ε η : ℝ) :
     cosineSampleUpperScale βL βH γ τ (ε * η / 8) =
       cosineSelectedBmax βL βH γ τ ε η := by
   unfold cosineSampleUpperScale cosineSelectedBmax cosineRelativeEnvelope
   ring
 
+/-- For a positive semidefinite matrix and nonnegative time, every supported second-order
+propagator has operator norm at most one. -/
 theorem secondOrder_posSemidef_norm_le_one {I : Type} [Fintype I] [DecidableEq I]
     (kind : SecondOrderFamily) (A : Matrix I I ℂ) (hA : A.PosSemidef) (t : ℝ) (ht : 0 ≤ t) :
     ‖secondOrderPropagator kind A t‖ ≤ 1 := by
@@ -63,6 +87,8 @@ theorem secondOrder_posSemidef_norm_le_one {I : Type} [Fintype I] [DecidableEq I
   · exact _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.besselPropagator_posSemidef_norm_le_one A hA t
   · exact _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator_posSemidef_norm_le_one A hA t ht
 
+/-- A positive lower bound `η` on the second-order output norm is at most twice the chosen
+cosine coefficient mass under the stated matrix and accuracy assumptions. -/
 theorem cosine_mass_ge_half_from_output {I : Type} [Fintype I] [DecidableEq I]
     (kind : SecondOrderFamily) (L H : Matrix I I ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t ε η : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hε : 0 < ε) (hε1 : ε ≤ 1)
@@ -100,6 +126,9 @@ theorem cosine_mass_ge_half_from_output {I : Type} [Fintype I] [DecidableEq I]
 instance cosineAAOrder_neZero (γ τ ε η : ℝ) : NeZero (cosineAAOrder γ τ ε η) :=
   ⟨(cosineAAOrder_pos γ τ ε η).ne'⟩
 
+/-- Records valid three-oracle amplification with success probability at least `1/8`, expected
+and per-choice matrix and state query budgets, circuit semantics, and successful normalized
+output accuracy up to phase. -/
 def ThreeOracleOutputCertificate {W I : Type} [Fintype W] [DecidableEq W]
     [Fintype I] [DecidableEq I] (target : Matrix I I ℂ)
     (O1 O2 B : Matrix W W ℂ) (cs : List (PreparedStep W)) (F : Matrix W I ℂ)
@@ -132,6 +161,9 @@ def ThreeOracleOutputCertificate {W I : Type} [Fintype W] [DecidableEq W]
           (preparedAACircuit A zero (aaRounds choice)) (Ket zero)) = some y ∧
         ‖z‖ = 1 ∧ Normalized y ∧ IsNormalizedApplication target ψ ((star z) • y) ε)
 
+/-- Constructs uniform phase data yielding a three-oracle output certificate for the
+second-order propagator, with the displayed matrix and state query budgets under the stated
+exact encoding and output-norm assumptions [WangEtAl2026]. -/
 theorem cosine_secondOrder_amplified
     {Anc I : Type} [Fintype Anc] [DecidableEq Anc] [Fintype I] [DecidableEq I]
     (kind : SecondOrderFamily) (a₀ : Anc) (t βL βH μL μH γ ε η : ℝ)

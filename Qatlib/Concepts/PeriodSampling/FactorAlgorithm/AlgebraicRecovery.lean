@@ -14,6 +14,32 @@ import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryStat
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodSamplingBudgetStat
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawStat
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingStat
+
+/-!
+# Algebraic recovery constructions and encoding obstructions
+
+Constructs integer encodings, decoders satisfying the stated recovery predicates, reversible
+arithmetic circuits, and resource identities used in the factoring and discrete-logarithm
+framework of [Shor1997]. `clause17` assembles the corresponding recovery, sampling, and
+arithmetic results.
+
+The module also analyzes integer matrix blocks and canonical presentation encodings. A collision
+between presentation tapes in different dimensions proves `not_uniformCanonicalBasisMachine` for
+the specified input encoding.
+
+## Main statements
+
+* `clause17`: Assembles the recovery contracts and arithmetic resource statements.
+* `diagMergeAt`: Produces positive diagonal replacements through invertible integer
+  transformations.
+* `not_uniformCanonicalBasisMachine`: Refutes the uniform machine predicate using a
+  presentation-tape collision.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -48,10 +74,15 @@ open Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 
 open scoped Classical
 
+/-- Encodes an integer as twice its absolute value for a nonnegative input, and as twice its
+absolute value minus one for a negative input. -/
 def intEnc (z : ℤ) : ℕ := if 0 ≤ z then 2 * z.natAbs else 2 * z.natAbs - 1
 
+/-- Decodes an even natural number as its half and an odd natural number as the negative of half
+its successor. -/
 def intDec (n : ℕ) : ℤ := if n % 2 = 0 then ((n / 2 : ℕ) : ℤ) else -(((n + 1) / 2 : ℕ) : ℤ)
 
+/-- Decoding the natural-number encoding of an integer returns that integer. -/
 theorem intDec_intEnc (z : ℤ) : intDec (intEnc z) = z := by
   unfold intEnc intDec
   by_cases h : 0 ≤ z
@@ -68,6 +99,7 @@ theorem intDec_intEnc (z : ℤ) : intDec (intEnc z) = z := by
     rw [hz]
     ring
 
+/-- Encoding the integer decoding of a natural number returns that natural number. -/
 theorem intEnc_intDec (n : ℕ) : intEnc (intDec n) = n := by
   unfold intEnc intDec
   by_cases he : n % 2 = 0
@@ -86,14 +118,18 @@ theorem intEnc_intDec (n : ℕ) : intEnc (intDec n) = n := by
     rw [if_neg he, if_neg hz, habs]
     omega
 
+/-- The integer-to-natural encoding `intEnc` is injective. -/
 theorem intEnc_injective : Function.Injective intEnc := by
   intro a b h
   have h1 := congrArg intDec h
   rwa [intDec_intEnc, intDec_intEnc] at h1
 
+/-- The sequence placing the absolute determinant at index zero and one at every other index. -/
 def trivialChain {k : ℕ} (A : IMat k) : Fin k → ℕ :=
   fun i => if i.val = 0 then A.det.natAbs else 1
 
+/-- The determinant-first sequence `trivialChain A` satisfies the descending divisibility
+condition `IsFactorChain`. -/
 theorem trivialChain_factorChain {k : ℕ} (A : IMat k) : IsFactorChain (trivialChain A) := by
   intro i j hj
   have hj0 : j.val ≠ 0 := by omega
@@ -101,6 +137,7 @@ theorem trivialChain_factorChain {k : ℕ} (A : IMat k) : IsFactorChain (trivial
   rw [trivialChain, if_neg hj0]
   exact one_dvd _
 
+/-- The product of `trivialChain A` is the absolute determinant of `A`. -/
 theorem trivialChain_prod {k : ℕ} (A : IMat k) :
     (List.ofFn (trivialChain A)).prod = A.det.natAbs := by
   rw [List.prod_ofFn]
@@ -116,6 +153,8 @@ theorem trivialChain_prod {k : ℕ} (A : IMat k) :
         exact Fin.val_injective (show x.val = (0 : Fin (k + 1)).val from h)
       simp [trivialChain, hx0]
 
+/-- A decoder returning the determinant-first chain and using componentwise integer encodings
+for coordinates, with both assigned resource values zero. -/
 def trivialDecoder (k : ℕ) : CompactAbelianDecoder k where
   decompose := fun A => some (trivialChain A)
   toCoords := fun _ x => some (fun i => intEnc (x i))
@@ -123,6 +162,7 @@ def trivialDecoder (k : ℕ) : CompactAbelianDecoder k where
   bitCost := fun _ => 0
   bitSpace := fun _ => 0
 
+/-- The explicit decoder `trivialDecoder k` satisfies `CompactAbelianDecoder.Correct`. -/
 theorem trivialDecoder_correct (k : ℕ) : (trivialDecoder k).Correct := by
   intro A hA
   refine ⟨trivialChain A, rfl, trivialChain_factorChain A, trivialChain_prod A, ?_, ?_, ?_, ?_⟩
@@ -155,15 +195,22 @@ theorem trivialDecoder_correct (k : ℕ) : (trivialDecoder k).Correct := by
     rw [← hy']
     exact intEnc_intDec (cs i)
 
+/-- A bounded discrete-logarithm search that checks exponents in decreasing order below the
+supplied fuel. -/
 def dlogScan {p : ℕ} (g x : ZMod p) : ℕ → Option ℕ
   | 0 => none
   | n + 1 => if g ^ n = x then some n else dlogScan g x n
 
+/-- A discrete-logarithm search with zero fuel returns `none`. -/
 theorem dlogScan_zero {p : ℕ} (g x : ZMod p) : dlogScan g x 0 = none := rfl
 
+/-- A search with fuel `n + 1` first tests exponent `n`, then continues with fuel `n` if the
+test fails. -/
 theorem dlogScan_succ {p : ℕ} (g x : ZMod p) (n : ℕ) :
     dlogScan g x (n + 1) = if g ^ n = x then some n else dlogScan g x n := rfl
 
+/-- A successful bounded discrete-logarithm search returns an exponent below its fuel whose
+power equals the target. -/
 theorem dlogScan_sound {p : ℕ} (g x : ZMod p) :
     ∀ (fuel r' : ℕ), dlogScan g x fuel = some r' → r' < fuel ∧ g ^ r' = x := by
   intro fuel
@@ -184,6 +231,8 @@ theorem dlogScan_sound {p : ℕ} (g x : ZMod p) :
       obtain ⟨hlt, heq⟩ := ih r' h
       exact ⟨by omega, heq⟩
 
+/-- For a generator of order `p - 1` over a prime modulus `p ≥ 3`, equal powers with exponents
+below `p - 1` have equal exponents. -/
 theorem dlogScan_unique {p : ℕ} (g x : ZMod p) (hp : Nat.Prime p) (hp3 : 3 ≤ p)
     (hord : orderOf g = p - 1) :
     ∀ a b : ℕ, a < p - 1 → b < p - 1 → g ^ a = g ^ b → a = b := by
@@ -225,6 +274,8 @@ theorem dlogScan_unique {p : ℕ} (g x : ZMod p) (hp : Nat.Prime p) (hp3 : 3 ≤
     have hz : a - b = 0 := Nat.eq_zero_of_dvd_of_lt hdvd (by omega)
     omega
 
+/-- Given uniqueness of exponents below `p - 1`, a bounded search returns any matching exponent
+below its fuel when the fuel is at most `p - 1`. -/
 theorem dlogScan_complete {p : ℕ} (g x : ZMod p)
     (huniq : ∀ a b : ℕ, a < p - 1 → b < p - 1 → g ^ a = g ^ b → a = b) :
     ∀ (fuel r : ℕ), fuel ≤ p - 1 → r < fuel → g ^ r = x → dlogScan g x fuel = some r := by
@@ -243,9 +294,13 @@ theorem dlogScan_complete {p : ℕ} (g x : ZMod p)
       rw [if_neg hg]
       exact ih r (by omega) (by omega) hx
 
+/-- A two-dimensional discrete-logarithm decoder that searches all exponents below `p - 1`,
+independently of the supplied sample pairs. -/
 def bruteDlog : TwoDimDlogDecoder where
   decode := fun p q m g x _ => dlogScan g x (p - 1)
 
+/-- The exhaustive decoder `bruteDlog` satisfies the stated two-dimensional discrete-logarithm
+correctness predicate. -/
 theorem bruteDlog_correct : bruteDlog.Correct := by
   intro p q m _ g x hp hp3 hpq hord
   refine ⟨?_, ?_⟩
@@ -255,8 +310,10 @@ theorem bruteDlog_correct : bruteDlog.Correct := by
     exact dlogScan_complete g x (dlogScan_unique g x hp hp3 hord) (p - 1) r
       (by omega) hr hx.symm
 
+/-- The natural-number value of a `b`-bit register, with bit `i` weighted by `2 ^ i`. -/
 def bitVal (b : ℕ) (u : Reg b) : ℕ := ∑ i : Fin b, if u i then 2 ^ (i : ℕ) else 0
 
+/-- The value of the `b`-bit encoding of `n` is `n % 2 ^ b`. -/
 theorem bitVal_encodeBits (b n : ℕ) : bitVal b (encodeBits b n) = n % 2 ^ b := by
   have hrow : ∀ i : Fin b,
       (if (encodeBits b n) i then 2 ^ (i : ℕ) else 0)
@@ -280,20 +337,24 @@ theorem bitVal_encodeBits (b n : ℕ) : bitVal b (encodeBits b n) = n % 2 ^ b :=
   rw [hconv]
   exact Qatlib.Concepts.WalkFind.QRAMModel.naturalBit_sum n b
 
+/-- The `b`-bit encoding of zero is the all-zero register. -/
 theorem encodeBits_zero (b : ℕ) : encodeBits b 0 = ZeroStr b := by
   funext i
   simp [encodeBits, ZeroStr]
 
+/-- Splits a register of length `3 * b` into its three consecutive registers of length `b`. -/
 def tripleOf (b : ℕ) (z : Reg (3 * b)) : Reg b × Reg b × Reg b :=
   (fun i => z ⟨i.1, by omega⟩,
     fun i => z ⟨b + i.1, by omega⟩,
     fun i => z ⟨2 * b + i.1, by omega⟩)
 
+/-- Concatenates three registers of length `b` into one register of length `3 * b`. -/
 def regOfTriple (b : ℕ) (u v w : Reg b) : Reg (3 * b) := fun i =>
   if h : i.1 < b then u ⟨i.1, h⟩
   else if h2 : i.1 < 2 * b then v ⟨i.1 - b, by omega⟩
   else w ⟨i.1 - 2 * b, by omega⟩
 
+/-- Concatenating the three blocks extracted by `tripleOf` reconstructs the original register. -/
 theorem regOfTriple_tripleOf (b : ℕ) (z : Reg (3 * b)) :
     regOfTriple b (tripleOf b z).1 (tripleOf b z).2.1 (tripleOf b z).2.2 = z := by
   funext i
@@ -306,6 +367,7 @@ theorem regOfTriple_tripleOf (b : ℕ) (z : Reg (3 * b)) :
     · simp [h1, h2]
       exact congrArg z (Fin.val_injective (show 2 * b + (i.1 - 2 * b) = i.1 from by omega))
 
+/-- Splitting a concatenation of three registers returns those three registers. -/
 theorem tripleOf_regOfTriple (b : ℕ) (u v w : Reg b) :
     tripleOf b (regOfTriple b u v w) = (u, v, w) := by
   apply Prod.ext
@@ -325,6 +387,7 @@ theorem tripleOf_regOfTriple (b : ℕ) (u v w : Reg b) :
       rw [dif_neg (by omega : ¬ 2 * b + i.1 < b), dif_neg (by omega : ¬ 2 * b + i.1 < 2 * b)]
       exact congrArg w (Fin.val_injective (show 2 * b + i.1 - 2 * b = i.1 from by omega))
 
+/-- Splitting `encodeTriple b a c d` returns the three separate bit encodings. -/
 theorem tripleOf_encodeTriple (b a c d : ℕ) :
     tripleOf b (encodeTriple b a c d) = (encodeBits b a, encodeBits b c, encodeBits b d) := by
   apply Prod.ext
@@ -344,6 +407,7 @@ theorem tripleOf_encodeTriple (b a c d : ℕ) :
       rw [if_neg (by omega : ¬ 2 * b + i.1 < b), if_neg (by omega : ¬ 2 * b + i.1 < 2 * b)]
       rw [show 2 * b + i.1 - 2 * b = i.1 from by omega]
 
+/-- Concatenating the bit encodings of `a`, `c`, and `d` gives `encodeTriple b a c d`. -/
 theorem regOfTriple_encodeTriple (b a c d : ℕ) :
     regOfTriple b (encodeBits b a) (encodeBits b c) (encodeBits b d) = encodeTriple b a c d := by
   funext i
@@ -354,9 +418,11 @@ theorem regOfTriple_encodeTriple (b a c d : ℕ) :
     · simp [h1, h2]
     · simp [h1, h2]
 
+/-- The register map exchanging the all-zero register with `s` and fixing every other register. -/
 def flipAt {b : ℕ} (s w : Reg b) : Reg b :=
   if w = ZeroStr b then s else if w = s then ZeroStr b else w
 
+/-- The register exchange map `flipAt s` is an involution. -/
 theorem flipAt_involutive {b : ℕ} (s : Reg b) : Function.Involutive (flipAt s) := by
   intro w
   by_cases h1 : w = ZeroStr b
@@ -367,16 +433,22 @@ theorem flipAt_involutive {b : ℕ} (s : Reg b) : Function.Involutive (flipAt s)
     · simp [flipAt, h2]
     · simp [flipAt, h1, h2]
 
+/-- A reversible register map preserving the first two blocks and exchanging zero with their
+encoded sum modulo `2 ^ b` in the third block. -/
 def addSigma (b : ℕ) : Reg (3 * b) → Reg (3 * b) := fun z =>
   let t := tripleOf b z
   regOfTriple b t.1 t.2.1
     (flipAt (encodeBits b ((bitVal b t.1 + bitVal b t.2.1) % 2 ^ b)) t.2.2)
 
+/-- A reversible register map preserving the first two blocks and exchanging zero with their
+encoded product modulo `2 ^ b` in the third block. -/
 def mulSigma (b : ℕ) : Reg (3 * b) → Reg (3 * b) := fun z =>
   let t := tripleOf b z
   regOfTriple b t.1 t.2.1
     (flipAt (encodeBits b ((bitVal b t.1 * bitVal b t.2.1) % 2 ^ b)) t.2.2)
 
+/-- Evaluates `addSigma` on three concatenated registers as the corresponding exchange in the
+third register. -/
 theorem addSigma_regOfTriple (b : ℕ) (u v w : Reg b) :
     addSigma b (regOfTriple b u v w)
       = regOfTriple b u v
@@ -384,6 +456,8 @@ theorem addSigma_regOfTriple (b : ℕ) (u v w : Reg b) :
   dsimp [addSigma]
   rw [tripleOf_regOfTriple]
 
+/-- Evaluates `mulSigma` on three concatenated registers as the corresponding exchange in the
+third register. -/
 theorem mulSigma_regOfTriple (b : ℕ) (u v w : Reg b) :
     mulSigma b (regOfTriple b u v w)
       = regOfTriple b u v
@@ -391,6 +465,7 @@ theorem mulSigma_regOfTriple (b : ℕ) (u v w : Reg b) :
   dsimp [mulSigma]
   rw [tripleOf_regOfTriple]
 
+/-- The modular-addition register map `addSigma b` is an involution. -/
 theorem addSigma_involutive (b : ℕ) : Function.Involutive (addSigma b) := by
   intro z
   obtain ⟨u, v, w, hz⟩ : ∃ (u v w : Reg b), z = regOfTriple b u v w :=
@@ -399,6 +474,7 @@ theorem addSigma_involutive (b : ℕ) : Function.Involutive (addSigma b) := by
   subst hz
   rw [addSigma_regOfTriple, addSigma_regOfTriple, flipAt_involutive]
 
+/-- The modular-multiplication register map `mulSigma b` is an involution. -/
 theorem mulSigma_involutive (b : ℕ) : Function.Involutive (mulSigma b) := by
   intro z
   obtain ⟨u, v, w, hz⟩ : ∃ (u v w : Reg b), z = regOfTriple b u v w :=
@@ -407,6 +483,8 @@ theorem mulSigma_involutive (b : ℕ) : Function.Involutive (mulSigma b) := by
   subst hz
   rw [mulSigma_regOfTriple, mulSigma_regOfTriple, flipAt_involutive]
 
+/-- On bounded operands and a zero third register, `addSigma` writes the sum modulo `2 ^ b` into
+the third register. -/
 theorem addSigma_zero (b a c : ℕ) (ha : a < 2 ^ b) (hc : c < 2 ^ b) :
     addSigma b (encodeTriple b a c 0) = encodeTriple b a c ((a + c) % 2 ^ b) := by
   have htr : tripleOf b (encodeTriple b a c 0)
@@ -429,6 +507,8 @@ theorem addSigma_zero (b a c : ℕ) (ha : a < 2 ^ b) (hc : c < 2 ^ b) :
   rw [hflip]
   exact regOfTriple_encodeTriple b a c ((a + c) % 2 ^ b)
 
+/-- On bounded operands and a zero third register, `mulSigma` writes the product modulo `2 ^ b`
+into the third register. -/
 theorem mulSigma_zero (b a c : ℕ) (ha : a < 2 ^ b) (hc : c < 2 ^ b) :
     mulSigma b (encodeTriple b a c 0) = encodeTriple b a c ((a * c) % 2 ^ b) := by
   have htr : tripleOf b (encodeTriple b a c 0)
@@ -451,6 +531,8 @@ theorem mulSigma_zero (b a c : ℕ) (ha : a < 2 ^ b) (hc : c < 2 ^ b) :
   rw [hflip]
   exact regOfTriple_encodeTriple b a c ((a * c) % 2 ^ b)
 
+/-- Constructs reversible modular arithmetic from permutation gates for `addSigma` and
+`mulSigma`, with assigned elementary-operation counts zero. -/
 def arith : ReversibleArithmetic where
   add := fun b => [Step.gate (permMatrix (addSigma b))]
   mul := fun b => if b = 0 then [] else [Step.gate (permMatrix (mulSigma b))]
@@ -517,6 +599,8 @@ def arith : ReversibleArithmetic where
         exact congrArg Qatlib.Foundations.PureStateMath.Ket (mulSigma_zero b a c ha hc)
   elem_poly := ⟨1, 1, fun b => by simp⟩
 
+/-- The reversible arithmetic construction `arith` satisfies its polynomial resource-bound
+predicate. -/
 theorem arith_poly : arith.PolyBounded := by
   refine ⟨3, 2, ?_⟩
   intro b
@@ -529,6 +613,8 @@ theorem arith_poly : arith.PolyBounded := by
   · show (arith.addElem b + arith.mulElem b : ℕ) ≤ 3 * (b + 1) ^ 2
     exact Nat.zero_le _
 
+/-- The local Fourier circuit has the stated gate count and zero queries, with quadratic gate
+and linear space bounds. -/
 theorem qftLedger (n : ℕ) :
     GateCount (localProgramCircuit (localQFT n)) = qftGateCount n ∧
       QueryCount (localProgramCircuit (localQFT n)) = 0 ∧
@@ -549,6 +635,8 @@ theorem qftLedger (n : ℕ) :
     unfold qftSpaceCost
     omega
 
+/-- The continued-fraction bit cost is its stage count times the schoolbook multiplication cost,
+and exceeds the stage count when `M ≥ 2`. -/
 theorem cfBitCost_stagecount (M : ℕ) :
     cfBitCost M = cfStageCount M * schoolbookMulModBitCost (shorBitLength M) ∧
       (2 ≤ M → cfStageCount M < cfBitCost M) := by
@@ -572,12 +660,15 @@ theorem cfBitCost_stagecount (M : ℕ) :
     _ < cfStageCount M * schoolbookMulModBitCost (shorBitLength M) :=
       Nat.mul_lt_mul_of_pos_left hs hpos
 
+/-- Scans a list of residues and returns the first greatest common divisor with `N` that is a
+proper nontrivial factor. -/
 def jointScanList (N : ℕ) : List (ZMod N) → Option ℕ
   | [] => none
   | y :: ys =>
     if 1 < Nat.gcd y.val N ∧ Nat.gcd y.val N < N then some (Nat.gcd y.val N)
     else jointScanList N ys
 
+/-- Any value returned by `jointScanList` is a proper nontrivial divisor of `N`. -/
 theorem jointScanList_sound {N : ℕ} :
     ∀ (l : List (ZMod N)) (d : ℕ), jointScanList N l = some d →
       1 < d ∧ d < N ∧ d ∣ N := by
@@ -596,6 +687,7 @@ theorem jointScanList_sound {N : ℕ} :
       exact ⟨hg.1, hg.2, Nat.gcd_dvd_right _ _⟩
     · exact ih d h
 
+/-- If some listed residue yields a classical factor, `jointScanList` returns a value. -/
 theorem jointScanList_complete {N : ℕ} [NeZero N] (l : List (ZMod N)) :
     ∀ y ∈ l, (residueClassicalFactor N y).isSome → (jointScanList N l).isSome := by
   induction l with
@@ -616,12 +708,16 @@ theorem jointScanList_complete {N : ℕ} [NeZero N] (l : List (ZMod N)) :
         cases hySome
       · exact ih y h hySome
 
+/-- Combines the residue gcd scan with `bruteDlog` and assigns zero bit-cost and bit-space
+values. -/
 def jointRecovery : JointRecovery where
   factoring := fun N m ω => jointScanList N (List.ofFn ω)
   dlog := bruteDlog
   bitCost := fun _ _ _ _ => 0
   bitSpace := fun _ _ _ _ => 0
 
+/-- The explicit joint recovery construction satisfies its soundness, completeness,
+discrete-logarithm, and assigned resource-bound requirements. -/
 theorem jointRecovery_correct : jointRecovery.Correct := by
   refine ⟨?_, ?_, bruteDlog_correct, ?_⟩
   · intro N m _ ω d hd
@@ -633,6 +729,9 @@ theorem jointRecovery_correct : jointRecovery.Correct := by
     intro N p q m
     simp [jointRecovery]
 
+/-- Assembles decoder existence, factoring preprocessing, random-base success,
+discrete-logarithm sampling and recovery, reversible arithmetic, and Fourier and
+continued-fraction resource statements in the framework of [Shor1997]. -/
 theorem clause17 :
 
   (∀ k : ℕ, ∃ c : CompactAbelianDecoder k, c.Correct) ∧
@@ -687,6 +786,8 @@ theorem clause17 :
   · exact continued_fraction_unique_window_decode_and_counts
   · exact cfBitCost_stagecount
 
+/-- Defines an integer matrix by four prioritized entries at the indices `p` and `q`, with
+identity entries elsewhere. -/
 def blockAt {k : ℕ} (p q : Fin k) (a b c d : ℤ) : IMat k := fun i j =>
   if i = p ∧ j = p then a
   else if i = p ∧ j = q then b
@@ -695,6 +796,7 @@ def blockAt {k : ℕ} (p q : Fin k) (a b c d : ℤ) : IMat k := fun i j =>
   else if i = j then 1
   else 0
 
+/-- Expands an entry of `blockAt` into its defining conditional expression. -/
 theorem blockAt_apply {k : ℕ} (p q : Fin k) (a b c d : ℤ) (i j : Fin k) :
     blockAt p q a b c d i j =
       (if i = p ∧ j = p then a
@@ -704,6 +806,8 @@ theorem blockAt_apply {k : ℕ} (p q : Fin k) (a b c d : ℤ) (i j : Fin k) :
       else if i = j then 1
       else 0) := rfl
 
+/-- For distinct `p` and `q`, computes the action of `blockAt` on a column vector as a
+two-coordinate transformation. -/
 theorem sum_blockAt {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d : ℤ) (w : Fin k → ℤ)
     (i : Fin k) :
     ∑ t, blockAt p q a b c d i t * w t =
@@ -750,6 +854,8 @@ theorem sum_blockAt {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d : ℤ) (w :
         Finset.sum_singleton, if_neg hp, if_neg hq]
       simp [blockAt_apply, hp, hq, hpq, Ne.symm hpq]
 
+/-- For distinct `p` and `q`, computes the action of a row vector on `blockAt` as a
+two-coordinate transformation. -/
 theorem sum_blockAt' {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d : ℤ) (w : Fin k → ℤ)
     (j : Fin k) :
     ∑ t, w t * blockAt p q a b c d t j =
@@ -800,6 +906,8 @@ theorem sum_blockAt' {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d : ℤ) (w 
   all_goals try (split_ifs <;> simp_all [hpq, Ne.symm hpq])
   all_goals try ring
 
+/-- The block matrix with diagonal coefficients one and off-diagonal coefficients zero is the
+identity when its two indices are distinct. -/
 theorem blockAt_one {k : ℕ} (p q : Fin k) (hpq : p ≠ q) :
     blockAt p q 1 0 0 1 = (1 : IMat k) := by
   ext i j
@@ -811,6 +919,8 @@ theorem blockAt_one {k : ℕ} (p q : Fin k) (hpq : p ≠ q) :
   all_goals try (split_ifs <;> simp_all [Matrix.one_apply, hpq, Ne.symm hpq])
   all_goals try ring
 
+/-- For distinct indices, multiplying two embedded blocks gives the block whose coefficients are
+the ordinary two-by-two matrix product. -/
 theorem blockAt_mul {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d a' b' c' d' : ℤ) :
     blockAt p q a b c d * blockAt p q a' b' c' d'
       = blockAt p q (a * a' + b * c') (a * b' + b * d') (c * a' + d * c') (c * b' + d * d') := by
@@ -824,6 +934,8 @@ theorem blockAt_mul {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d a' b' c' d'
   all_goals try (split_ifs <;> simp_all [hpq, Ne.symm hpq])
   all_goals try ring
 
+/-- Computes every entry of a diagonal matrix multiplied on the left and right by embedded
+two-coordinate blocks. -/
 theorem blockAt_diagonal_blockAt_apply {k : ℕ} {p q : Fin k} (hpq : p ≠ q)
     (a b c d a' b' c' d' : ℤ) (w : Fin k → ℤ) (i j : Fin k) :
     (blockAt p q a b c d * Matrix.diagonal w * blockAt p q a' b' c' d') i j =
@@ -847,6 +959,8 @@ theorem blockAt_diagonal_blockAt_apply {k : ℕ} {p q : Fin k} (hpq : p ≠ q)
   all_goals try (split_ifs <;> simp_all [hpq, Ne.symm hpq])
   all_goals try ring
 
+/-- The stated four coefficient identities imply that the two embedded blocks multiply to the
+identity. -/
 theorem blockAt_unit {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d a' b' c' d' : ℤ)
     (h1 : a * a' + b * c' = 1) (h2 : a * b' + b * d' = 0) (h3 : c * a' + d * c' = 0)
     (h4 : c * b' + d * d' = 1) :
@@ -854,6 +968,7 @@ theorem blockAt_unit {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d a' b' c' d
   rw [blockAt_mul hpq, h1, h2, h3, h4]
   exact blockAt_one p q hpq
 
+/-- An embedded block possessing the stated right inverse has determinant of absolute value one. -/
 theorem det_blockAt_one {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d a' b' c' d' : ℤ)
     (h : blockAt p q a b c d * blockAt p q a' b' c' d' = (1 : IMat k)) :
     (blockAt p q a b c d).det.natAbs = 1 := by
@@ -863,6 +978,8 @@ theorem det_blockAt_one {k : ℕ} {p q : Fin k} (hpq : p ≠ q) (a b c d a' b' c
     Int.eq_one_or_neg_one_of_mul_eq_one h1
   rcases h2 with h2 | h2 <;> simp [h2]
 
+/-- For two distinct positive diagonal entries, produces positive replacements and integer left
+and right transformations with right inverses and determinants of absolute value one. -/
 theorem diagMergeAt {k : ℕ} (d : Fin k → ℕ) {p q : Fin k} (hpq : p ≠ q)
     (hp : 0 < d p) (hq : 0 < d q) :
     ∃ (g l : ℕ) (U V Uinv Vinv : IMat k),
@@ -999,6 +1116,8 @@ theorem diagMergeAt {k : ℕ} (d : Fin k → ℕ) {p q : Fin k} (hpq : p ≠ q)
       | rfl
       | aesop
 
+/-- The schoolbook modular multiplication cost is `2 * b * b + b` and is at most `3 * (b + 1) ^
+2`. -/
 theorem schoolbookLedger (b : ℕ) :
     schoolbookMulModBitCost b = 2 * b * b + b ∧
       schoolbookMulModBitCost b ≤ 3 * (b + 1) ^ 2 := by
@@ -1006,12 +1125,16 @@ theorem schoolbookLedger (b : ℕ) :
   unfold schoolbookMulModBitCost
   nlinarith [sq_nonneg ((b : ℕ) + 1), sq_nonneg ((b : ℕ) - 1)]
 
+/-- Expands the gcd bit cost as a Euclidean step bound times its per-step cost, with the stated
+bit-length and multiplication formulas. -/
 theorem gcdLedger (N : ℕ) :
     gcdBitCost N = euclidStepBound N * euclidStepBitCost N ∧
       euclidStepBound N = 2 * shorBitLength N + 1 ∧
       euclidStepBitCost N = schoolbookMulModBitCost (shorBitLength N) :=
   ⟨rfl, rfl, rfl⟩
 
+/-- For a nonsingular integer presentation, classical canonicalization is canonical, preserves
+the column span, satisfies the entry bound, and equals interleaved canonicalization. -/
 theorem presentationBridge (k : ℕ) (A : IMat k) (hA : A.det ≠ 0) :
     IsCanonicalHNF (classicalCanonicalize A) ∧
       colSpan (classicalCanonicalize A) = colSpan A ∧
@@ -1021,6 +1144,7 @@ theorem presentationBridge (k : ℕ) (A : IMat k) (hA : A.det ≠ 0) :
   ⟨classicalCanonicalize_isCanonical A hA, colSpan_classicalCanonicalize A hA,
     fun i j => classicalCanonicalize_bitBound A hA i j, interleavedCanonicalize_eq A hA⟩
 
+/-- Once `BitMachineAfter` is `none`, it remains `none` at every later time. -/
 private theorem after_none_add {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     {M : Turing.TM0.Machine Γ Λ} {input : List Γ} {t : ℕ}
     (h : BitMachineAfter M input t = none) (k : ℕ) :
@@ -1029,6 +1153,8 @@ private theorem after_none_add {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
   | zero => exact h
   | succ k ih => simp [BitMachineAfter, ih]
 
+/-- If a machine is in a terminal configuration at time `t`, any time `s` with a defined
+configuration satisfies `s ≤ t`. -/
 private theorem terminal_time_le {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     {M : Turing.TM0.Machine Γ Λ} {input : List Γ} {t s : ℕ}
     {c d : Turing.TM0.Cfg Γ Λ}
@@ -1042,6 +1168,7 @@ private theorem terminal_time_le {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
   rw [← hk, hs] at hn'
   contradiction
 
+/-- Two terminal configurations reached by the same machine on the same input are equal. -/
 theorem canonical_machine_final_unique {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     {M : Turing.TM0.Machine Γ Λ} {input : List Γ} {t s : ℕ}
     {c d : Turing.TM0.Cfg Γ Λ}
@@ -1053,13 +1180,18 @@ theorem canonical_machine_final_unique {Γ Λ : Type} [Inhabited Γ] [Inhabited 
   subst s
   exact Option.some.inj (ht.symm.trans hs)
 
+/-- The one-by-one integer matrix with its single entry equal to 129. -/
 private def rankOneCollision : IMat 1 := fun _ _ => 129
+/-- The two-by-two diagonal integer matrix with diagonal entries one and two. -/
 private def rankTwoCollision : IMat 2 := fun i j => if i = j then (i.val : ℤ) + 1 else 0
 
+/-- The one-by-one presentation with entry 129 and the two-by-two diagonal presentation with
+entries one and two have identical presentation tapes. -/
 theorem presentation_tape_dimension_collision :
     presentationTape (fun _ _ => 129 : IMat 1) =
       presentationTape (fun i j => if i = j then (i.val : ℤ) + 1 else 0 : IMat 2) := by decide
 
+/-- Both presentations in the tape-collision example have nonzero determinant. -/
 theorem presentation_collision_full_rank :
     IsCompactPresentation (fun _ _ => 129 : IMat 1) ∧
       IsCompactPresentation (fun i j => if i = j then (i.val : ℤ) + 1 else 0 : IMat 2) := by
@@ -1067,6 +1199,8 @@ theorem presentation_collision_full_rank :
   · norm_num [IsCompactPresentation, Matrix.det_unique]
   · norm_num [IsCompactPresentation, Matrix.det_fin_two]
 
+/-- The specified uniform canonical-basis machine predicate is false for the presentation-tape
+encoding that allows the dimension collision. -/
 theorem not_uniformCanonicalBasisMachine : ¬ UniformCanonicalBasisMachine := by
   rintro ⟨machine, out, _, h⟩
   obtain ⟨t, c, ht, hc, hout⟩ := h 1 rankOneCollision

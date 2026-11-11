@@ -73,6 +73,32 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Deterministic samples by successive filtering
+
+This module formalizes the finite-set sampling argument used in [RameshVinay2000]. `StageKeep`
+selects candidates with a specified value at a chosen column, and `runK` iterates these filters.
+Nonempty filters that halve the candidate count isolate a candidate once the number of stages is
+sufficient.
+
+The separation hypothesis in `deterministic_sample_exists_auto` supplies the stages
+existentially. `stageCount` and `stageCost` provide a scalar bound for the product of the number
+of stages and the cost assigned to each stage.
+
+## Main statements
+
+* `deterministic_sample_exists`: prescribed nonempty halving stages determine a unique candidate
+  using at most `n` columns.
+* `deterministic_sample_exists_auto`: pairwise distinguishable candidates in a nonempty set of
+  size at most `2 ^ n` possess such a sample.
+* `deterministic_sample_cost`: the stage-count product satisfies an explicit square-root and
+  logarithmic bound.
+
+## References
+
+* [Ramesh and Vinay, 2000][RameshVinay2000]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -80,13 +106,18 @@ namespace Qatlib.Papers.QStringMatch00.MainResults.DeterministicSample
 
 variable {ι : Type*}
 
+/-- The candidates in `S` whose value at column `c` equals the selected character `χ`. -/
 def StageKeep (val : ι → ℕ → ℕ) (c χ : ℕ) (S : Finset ι) : Finset ι :=
   S.filter (fun i => val i c = χ)
 
+/-- The candidate set obtained by applying the first `k` column-character filters specified by
+`stage` to the initial set. -/
 def runK (val : ι → ℕ → ℕ) (stage : ℕ → ℕ × ℕ) : ℕ → Finset ι → Finset ι
   | 0, S => S
   | k + 1, S => StageKeep val (stage k).1 (stage k).2 (runK val stage k S)
 
+/-- Every candidate surviving any number of filtering stages belongs to the initial candidate
+set `S0`. -/
 lemma runK_subset (val : ι → ℕ → ℕ) (stage : ℕ → ℕ × ℕ) (S0 : Finset ι) :
     ∀ n : ℕ, runK val stage n S0 ⊆ S0 := by
   intro n
@@ -101,6 +132,8 @@ lemma runK_subset (val : ι → ℕ → ℕ) (stage : ℕ → ℕ × ℕ) (S0 : 
           (fun j => val j (stage n).1 = (stage n).2) from rfl] at hi
     exact ih (Finset.mem_filter.mp hi').1
 
+/-- If each of the first `n` stages retains at most half the candidates, the final cardinality
+multiplied by `2 ^ n` is at most the initial cardinality. -/
 lemma runK_card (val : ι → ℕ → ℕ) (stage : ℕ → ℕ × ℕ) (S0 : Finset ι) :
     ∀ n : ℕ,
       (∀ k < n, 2 * (runK val stage (k + 1) S0).card ≤
@@ -123,6 +156,8 @@ lemma runK_card (val : ι → ℕ → ℕ) (stage : ℕ → ℕ × ℕ) (S0 : Fi
           omega
       _ ≤ S0.card := hprev
 
+/-- A candidate in `S0` that agrees with a surviving candidate on all columns used in the first
+`n` stages also survives those stages. -/
 lemma mem_runK_of_agree (val : ι → ℕ → ℕ) (stage : ℕ → ℕ × ℕ) (S0 : Finset ι)
     (f g : ι) :
     ∀ n : ℕ, f ∈ runK val stage n S0 →
@@ -149,6 +184,8 @@ lemma mem_runK_of_agree (val : ι → ℕ → ℕ) (stage : ℕ → ℕ × ℕ) 
     rw [hdef]
     exact Finset.mem_filter.mpr ⟨hgn, hchary⟩
 
+/-- Nonempty halving stages on a nonempty candidate set of size at most `2 ^ n` isolate a
+candidate determined uniquely within that set by at most `n` sampled columns. -/
 theorem deterministic_sample_exists
     (val : ι → ℕ → ℕ) (stage : ℕ → ℕ × ℕ) (S0 : Finset ι) (n : ℕ)
     (hne : S0.Nonempty)
@@ -192,10 +229,14 @@ theorem deterministic_sample_exists
           (List.toFinset_card_le _)
       _ = n := by simp
 
+/-- The ceiling base-two logarithm `Nat.clog 2 m` used as the sampling stage count. -/
 def stageCount (m : ℕ) : ℕ := Nat.clog 2 m
 
+/-- The scalar cost `C * Real.sqrt m * (Real.log m + 1)` assigned to a sampling stage. -/
 def stageCost (m : ℕ) (C : ℝ) : ℝ := C * Real.sqrt m * (Real.log m + 1)
 
+/-- For `m ≥ 2`, the sampling stage count is at most `2 * Real.log (m + 2) + 2` after coercion
+to the reals. -/
 lemma stageCount_le_log (m : ℕ) (hm : 2 ≤ m) :
     (stageCount m : ℝ) ≤ 2 * Real.log (m + 2) + 2 := by
 
@@ -227,6 +268,9 @@ lemma stageCount_le_log (m : ℕ) (hm : 2 ≤ m) :
   unfold stageCount
   linarith
 
+/-- For `m ≥ 2` and nonnegative `C`, the stage-count product is at most `C * (2 * Real.log (m +
+2) + 2) * Real.sqrt m * (Real.log m + 1)`. This is the scalar sampling-cost estimate
+associated with Section 5 of [RameshVinay2000]. -/
 theorem deterministic_sample_cost
     (m : ℕ) (hm : 2 ≤ m) (C : ℝ) (hC : 0 ≤ C) :
     (stageCount m : ℝ) * stageCost m C ≤
@@ -245,6 +289,8 @@ theorem deterministic_sample_cost
     _ = C * (2 * Real.log (m + 2) + 2) * Real.sqrt m * (Real.log m + 1) := by
         ring
 
+/-- If two candidates in `S` differ at column `c`, some character at that column selects a
+nonempty subset containing at most half of `S`. -/
 lemma exists_nonmajority_char (val : ι → ℕ → ℕ) (S : Finset ι) (c : ℕ)
     (i j : ι) (hi : i ∈ S) (hj : j ∈ S) (hij : val i c ≠ val j c) :
     ∃ χ, 2 * (StageKeep val c χ S).card ≤ S.card ∧
@@ -281,6 +327,8 @@ lemma exists_nonmajority_char (val : ι → ℕ → ℕ) (S : Finset ι) (c : �
     · show j ∈ S.filter (fun x => val x c = val j c)
       exact Finset.mem_filter.mpr ⟨hj, rfl⟩
 
+/-- A pairwise distinguishable candidate set with at least two elements possesses a
+column-character filter selecting a nonempty subset of at most half its cardinality. -/
 lemma exists_split_column (val : ι → ℕ → ℕ) (S : Finset ι)
     (hsep : ∀ i ∈ S, ∀ j ∈ S, i ≠ j → ∃ c, val i c ≠ val j c)
     (h2 : 2 ≤ S.card) :
@@ -291,6 +339,10 @@ lemma exists_split_column (val : ι → ℕ → ℕ) (S : Finset ι)
   obtain ⟨c, hc⟩ := hsep i hi j hj hij
   exact ⟨c, exists_nonmajority_char val S c i j hi hj hc⟩
 
+/-- A nonempty pairwise distinguishable candidate set of size at most `2 ^ n` possesses a
+sequence of stages and a candidate uniquely determined within the set by at most `n` sampled
+columns. This formalizes the sample-existence argument associated with Section 5 of
+[RameshVinay2000]. -/
 theorem deterministic_sample_exists_auto
     (val : ι → ℕ → ℕ) (n : ℕ) (S0 : Finset ι)
     (hne : S0.Nonempty)

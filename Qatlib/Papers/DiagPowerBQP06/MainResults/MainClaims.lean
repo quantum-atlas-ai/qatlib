@@ -13,6 +13,28 @@ import Qatlib.Papers.DiagPowerBQP06.MainResults.ReadoutBound
 import Qatlib.Papers.DiagPowerBQP06.MainResults.Sampling
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
+
+/-!
+# Sampling counts and estimation composition
+
+This module gives an explicit sample-count bound for the exponential concentration estimate and
+combines two error contributions into a threshold decision guarantee. It also states the
+quadratic-form identity recovering an off-diagonal entry of a symmetric matrix power.
+
+These constructions accompany the results of [JanzingWocjan2006a].
+
+## Main statements
+
+* `hoeffding_sample_count`: chooses a positive sample count with failure bound at most one
+  third.
+* `estimation_pipeline`: combines estimation errors and separates the two threshold cases.
+* `offdiag_entry_estimable`: expresses an off-diagonal entry through two quadratic forms.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006a]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +45,8 @@ namespace Qatlib.Papers.DiagPowerBQP06.MainResults.MainClaims
 
 open Qatlib.Papers.DiagPowerBQP06.MainResults.OffDiagonal
 
+/-- For positive `ε`, there is a positive sample count with exponential failure bound at most
+one third and count at most `18 * log 6 / ε ^ 2 + 1`. See [JanzingWocjan2006a]. -/
 theorem hoeffding_sample_count (ε : ℝ) (hε : 0 < ε) :
     ∃ k : ℕ, 0 < k ∧ 2 * Real.exp (-(ε ^ 2 * (k : ℝ)) / 18) ≤ 1 / 3 ∧
       (k : ℝ) ≤ 18 * Real.log 6 / ε ^ 2 + 1 := by
@@ -53,6 +77,9 @@ theorem hoeffding_sample_count (ε : ℝ) (hε : 0 < ε) :
     rw [hx] at hlt
     linarith
 
+/-- Two errors bounded by `ε / 3` give total error at most `2 * ε / 3`, and the estimate lies
+above `g` or at most `g` in the respective separated threshold cases. See
+[JanzingWocjan2006a]. -/
 theorem estimation_pipeline (entry moment est g ε : ℝ) (hε : 0 < ε)
     (hme : |moment - entry| ≤ ε / 3) (hsm : |est - moment| ≤ ε / 3) :
     |est - entry| ≤ 2 * ε / 3 ∧
@@ -72,6 +99,9 @@ theorem estimation_pipeline (entry moment est g ε : ℝ) (hε : 0 < ε)
       have := (abs_le.mp htri).2; linarith
     linarith
 
+/-- For distinct indices, the difference of the plus-state and minus-state quadratic forms of a
+real symmetric matrix power equals twice its corresponding off-diagonal entry. See
+[JanzingWocjan2006a]. -/
 theorem offdiag_entry_estimable (N : ℕ) (A : Matrix (Fin N) (Fin N) ℝ)
     (hA : A.IsHermitian) (m : ℕ) (i j : Fin N) (hij : i ≠ j) :
     quad (A ^ m) (plusState i j) - quad (A ^ m) (minusState i j)

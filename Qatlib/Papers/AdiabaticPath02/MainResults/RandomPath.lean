@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdiabaticPath02.MainResults.SymmetricDefs
 import Mathlib.Topology.Order.Basic
+
+/-!
+# Polynomial schedules and random-path components
+
+Derives polynomial bounds for runtime expressions of the form `C * n ^ a / (c / n ^ q) ^ 2` and
+constructs natural-valued schedules using `scheduleCeil`. These estimates support the
+adiabatic-path discussion in [FarhiGoldstoneGutmann2002a].
+
+The theorem `source_random_path_components` collects legality of the explicit sample, cost and
+energy minima, polynomial schedule existence, and unitarity of the scheduled evolution.
+
+## Main statements
+
+* `polynomial_schedule_nat`: Constructs a natural-valued polynomially bounded runtime dominating
+  the scalar expression.
+* `source_random_path_components`: Assembles the verified sample, energy, schedule, and
+  evolution properties.
+
+## References
+
+* [Farhi et al., 2002][FarhiGoldstoneGutmann2002a]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +41,8 @@ open Qatlib.Papers.AdiabaticPath02.MainResults.PathDefs
 open Qatlib.Papers.AdiabaticPath02.MainResults.SymmetricDefs
 open scoped BigOperators
 
+/-- For positive `C` and `c` and natural `n ≥ 1`, rewrites the runtime expression as `(C / c ^
+2) * n ^ (a + 2 * q)`. -/
 theorem polynomial_schedule_bound {C c : ℝ} {a q : ℕ}
     (hC : 0 < C) (hc : 0 < c) (n : ℕ) (hn : 1 ≤ n) :
     C * (n : ℝ) ^ a / (c / (n : ℝ) ^ q) ^ 2 =
@@ -31,6 +56,8 @@ theorem polynomial_schedule_bound {C c : ℝ} {a q : ℕ}
   field_simp
   rw [pow_add, pow_mul, ← pow_mul, ← pow_mul, Nat.mul_comm q 2]
 
+/-- For positive `C` and `c`, the runtime expression is bounded for `n ≥ 1` by a positive
+constant times `(n + 1) ^ (a + 2 * q)`. -/
 theorem polynomial_schedule_exists (C c : ℝ) (a q : ℕ) (hC : 0 < C) (hc : 0 < c) :
     ∃ C' : ℝ, 0 < C' ∧ ∀ n : ℕ, 1 ≤ n →
       C * (n : ℝ) ^ a / (c / (n : ℝ) ^ q) ^ 2 ≤
@@ -47,9 +74,11 @@ theorem polynomial_schedule_exists (C c : ℝ) (a q : ℕ) (hC : 0 < C) (hc : 0 
     pow_le_pow_left₀ hn0 hbase _
   exact mul_le_mul hcoef hpow (pow_nonneg hn0 _) hC'.le
 
+/-- The natural-valued schedule obtained by taking the ceiling of `C' * (n + 1) ^ d`. -/
 noncomputable def scheduleCeil (C' : ℝ) (d : ℕ) : ℕ → ℕ :=
   fun n => Nat.ceil (C' * ((n : ℝ) + 1) ^ d)
 
+/-- For positive `C'`, the ceiling schedule `scheduleCeil C' d` is polynomially bounded. -/
 theorem scheduleCeil_isPolynomialBound (C' : ℝ) (hC' : 0 < C') (d : ℕ) :
     IsPolynomialBound (scheduleCeil C' d) := by
   refine ⟨Nat.ceil (C' + 1) + 1, d, Nat.succ_pos _, fun n => ?_⟩
@@ -75,6 +104,8 @@ theorem scheduleCeil_isPolynomialBound (C' : ℝ) (hC' : 0 < C') (d : ℕ) :
           exact mul_le_mul_of_nonneg_right hC'' hpow0
   exact_mod_cast hmain
 
+/-- For positive `C` and `c`, constructs a natural-valued polynomially bounded schedule
+dominating `C * n ^ a / (c / n ^ q) ^ 2` for `n ≥ 1`. See [FarhiGoldstoneGutmann2002a]. -/
 theorem polynomial_schedule_nat (C c : ℝ) (a q : ℕ) (hC : 0 < C) (hc : 0 < c) :
     ∃ T : ℕ → ℕ, IsPolynomialBound T ∧
       ∀ n : ℕ, 1 ≤ n →
@@ -85,14 +116,19 @@ theorem polynomial_schedule_nat (C c : ℝ) (a q : ℕ) (hC : 0 < C) (hc : 0 < c
   refine (hC'b n hn).trans ?_
   exact Nat.le_ceil _
 
+/-- The real cast of the explicit source matrix satisfies the symmetric zero-diagonal sample
+conditions. -/
 theorem source_A28_is_legal_sample :
     IsP2Sample (sourceA28.map (fun z : ℤ => (z : ℝ))) :=
   sourceA28_isP2Sample
 
+/-- The all-false string has zero cost and minimizes the total clause cost. -/
 theorem source_ground_state_minimises_cost (n : ℕ) :
     cost n (fun _ => false) = 0 ∧ ∀ z : Fin n → Bool, 0 ≤ cost n z :=
   cost_all_zero_is_global_min n
 
+/-- The problem energy vanishes at weight zero and is nonnegative at all natural weights up to
+`n`. -/
 theorem source_hp_ground_energy_zero (n : ℕ) :
     hpEnergy (n : ℝ) 0 = 0 ∧
       ∀ k : Fin (n + 1), 0 ≤ hpEnergy (n : ℝ) (k.val : ℝ) := by
@@ -101,9 +137,14 @@ theorem source_hp_ground_energy_zero (n : ℕ) :
   · intro k
     exact hpEnergy_nonneg_nat (Nat.le_of_lt_succ k.isLt)
 
+/-- The condition that, for every positive real `ε`, the scheduled straight-path fidelity is
+eventually less than `1 - ε` as `n` tends to infinity. -/
 def StraightPathFails (T : ℕ → ℕ) : Prop :=
   ∀ ε : ℝ, 0 < ε → ∀ᶠ n : ℕ in Filter.atTop, straightFidelity n (T n) < 1 - ε
 
+/-- Collects legality of the explicit sample, nonnegative cost and energy with zero minima,
+existence of polynomially bounded dominating schedules, and unitarity of the modified-path
+evolution. See [FarhiGoldstoneGutmann2002a]. -/
 theorem source_random_path_components :
     IsP2Sample (sourceA28.map (fun z : ℤ => (z : ℝ))) ∧
       (∀ n : ℕ, cost n (fun _ => false) = 0 ∧ ∀ z : Fin n → Bool, 0 ≤ cost n z) ∧

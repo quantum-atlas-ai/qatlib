@@ -6,12 +6,31 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.Real.Pi.Bounds
 
+/-!
+# Selecting a simulation step parameter
+
+The theorem `step_count_suffices` verifies a real-valued sufficient lower bound on the step
+parameter for the error expression in equation (26) of [Childs2010]. It combines the accuracy
+threshold with the normalization constraint.
+
+## Main statements
+
+* `step_count_suffices`: the prescribed lower bounds on `τ` imply error at most `δ`.
+
+## References
+
+* [Childs, 2010][Childs2010]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
 
 namespace Qatlib.Papers.ContDiscWalk08.CompressedSim
 
+/-- Under the stated positivity and normalization assumptions, the accuracy and normalization
+lower bounds on `τ` make the simulation error expression at most `δ`. This verifies the
+real-parameter inequality associated with equation (26) of [Childs2010]. -/
 theorem step_count_suffices {Hnorm absH t δ τ : ℝ}
     (hH0 : 0 ≤ Hnorm) (hH : Hnorm ≤ absH) (habs : 0 < absH)
     (hδ : 0 < δ) (ht : 0 ≤ t)

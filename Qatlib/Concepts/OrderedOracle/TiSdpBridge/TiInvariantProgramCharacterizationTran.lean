@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiInvariantProgramCharacterizationStat
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiInvariantExtraction
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.Theorem9SDPCharacterizationTran
+
+/-!
+# Polynomial extraction for successful invariant programs
+
+This module proves `tiInvariantProgramCharacterization` by extracting coefficients from
+invariant program prefixes. Unitarity gives normalization, translation symmetry gives the
+matching equations, and the assumed readout success bounds the final coefficient; the SDP
+characterization then supplies matrix feasibility. This connects invariant ordered search
+programs with the semidefinite perspective of [ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `tiInvariantProgramCharacterization`: proves the packaged characterization, including resource
+  counts and translated prefix states.
+
+## References
+
+* [Childs, Landahl and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +36,9 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped Classical BigOperators
 
+/-- A successful program with translation-commuting unitary gates yields the normalized
+polynomial representation, resource counts, and polynomial and SDP feasibility asserted by
+`TiInvariantProgramCharacterization`; see [ChildsLandahlParrilo2007]. -/
 theorem tiInvariantProgramCharacterization : TiInvariantProgramCharacterization := by
   intro n k _ ε U hU hsuccess
   have hu : ∀ t ∈ Finset.Icc 1 k,U t ∈ Matrix.unitaryGroup (Fin (2*n)) ℂ := fun t ht => (hU t ht).1

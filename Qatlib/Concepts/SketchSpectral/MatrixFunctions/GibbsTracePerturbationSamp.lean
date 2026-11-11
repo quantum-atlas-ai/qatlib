@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTracePerturbationStat
 import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTraceLowerBoundSamp
+
+/-!
+# Perturbation bounds for Gibbs traces
+
+`hermitian_exp_trace_bounds` compares the exponential traces of two Hermitian matrices by
+multiplicative factors determined by their operator-norm distance. `gibbsTracePerturbation`
+converts this comparison into an absolute trace-difference bound scaled by the reference
+partition function, as in [ChiaEtAl2022].
+
+## Main statements
+
+* `hermitian_exp_trace_bounds`: The real exponential traces of Hermitian `H` and `Ht` differ
+  multiplicatively by at most the factors `exp (-‖Ht - H‖)` and `exp ‖Ht - H‖`.
+* `gibbsTracePerturbation`: The absolute difference of two Hermitian exponential traces is at
+  most `(exp ‖Ht - H‖ - 1) * Re (trace (exp H))`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
@@ -14,6 +35,8 @@ namespace Qatlib.Concepts.SketchSpectral.MatrixFunctions
 open Matrix NormedSpace
 open scoped Matrix.Norms.L2Operator
 
+/-- The real exponential traces of Hermitian `H` and `Ht` differ multiplicatively by at most the
+factors `exp (-‖Ht - H‖)` and `exp ‖Ht - H‖`. -/
 theorem hermitian_exp_trace_bounds {I : Type} [Fintype I] [DecidableEq I]
     (H Ht : Matrix I I ℂ) (hH : H.IsHermitian) (hHt : Ht.IsHermitian) :
     Real.exp (-‖Ht-H‖) * (Matrix.trace (exp H)).re ≤ (Matrix.trace (exp Ht)).re ∧
@@ -36,6 +59,8 @@ theorem hermitian_exp_trace_bounds {I : Type} [Fintype I] [DecidableEq I]
     have := (abs_le.mp (hw i)).2
     linarith
 
+/-- The absolute difference of two Hermitian exponential traces is at most `(exp ‖Ht - H‖ - 1) *
+Re (trace (exp H))`. See [ChiaEtAl2022]. -/
 theorem gibbsTracePerturbation : GibbsTracePerturbation := by
   intro I _ _ H Ht hH hHt
   have hb : 0 ≤ (Matrix.trace (exp H)).re := by

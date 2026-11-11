@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwEigenBranches
 import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
+
+/-!
+# Spectral mixtures of alternating measurement branches
+
+Branch evolution is linear, and orthogonal clean eigenvectors remain orthogonal along each
+common record. These facts yield `clean_record_mixture`, which expresses a clean state's branch
+mass as a weighted sum of eigenvector record weights in a given spectral frame.
+
+The mathematical background is developed in [MarriottWatrous2005].
+
+## Main statements
+
+* `record_cross_inner`: computes inner products after a common branch record.
+* `record_mass_spectral_sum`: gives the branch-mass formula for an orthonormal eigenvector
+  expansion.
+* `clean_record_mixture`: expresses clean-state record mass through spectral coordinates.
+* `clean_spectral_weights_sum_one`: shows that a normalized clean state's spectral weights form
+  a probability distribution.
+
+## References
+
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -31,6 +55,8 @@ set_option linter.unusedSectionVars false
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
+/-- If `ψ` is fixed by `R` and `φ` has compressed eigenvalue `p`, applying `S` to both vectors
+multiplies their inner product by `p`. -/
 theorem same_cross_inner (R S : Matrix H H ℂ)
     (hR : IsOrthogonalProjector R) (hS : IsOrthogonalProjector S)
     (ψ φ : QState H) (p : ℝ) (hfix : R *ᵥ ψ = ψ)
@@ -46,6 +72,8 @@ theorem same_cross_inner (R S : Matrix H H ℂ)
     _ = Inner ψ (R *ᵥ (S *ᵥ φ)) := by rw [inner_mulVec_left_rect, hRs]
     _ = _ := by rw [heig, inner_smul_right]
 
+/-- If `ψ` is fixed by `R` and `φ` has compressed eigenvalue `p`, applying `1 - S` to both
+vectors multiplies their inner product by `1 - p`. -/
 theorem different_cross_inner (R S : Matrix H H ℂ)
     (hR : IsOrthogonalProjector R) (hS : IsOrthogonalProjector S)
     (ψ φ : QState H) (p : ℝ) (hfix : R *ᵥ ψ = ψ)
@@ -67,6 +95,8 @@ theorem different_cross_inner (R S : Matrix H H ℂ)
   rw [hs]
   ring
 
+/-- For clean eigenvectors with compressed eigenvalues `p` and `q`, a common branch record
+scales their inner product by `recordWeight q record`. -/
 theorem record_cross_inner (R S : Matrix H H ℂ)
     (hR : IsOrthogonalProjector R) (hS : IsOrthogonalProjector S)
     (ψ φ : QState H) (p q : ℝ) (hψ : R *ᵥ ψ = ψ) (hφ : R *ᵥ φ = φ)
@@ -99,6 +129,7 @@ theorem record_cross_inner (R S : Matrix H H ℂ)
             Complex.ofReal_sub, Complex.ofReal_one]
           ring
 
+/-- Branch evolution distributes over any finite linear combination of input state vectors. -/
 theorem branchState_sum {J : Type*} [Fintype J] (R S : Matrix H H ℂ)
     (v : J → QState H) (c : J → ℂ) (record : List Bool) :
     branchState R S record (∑ j, c j • v j) =
@@ -110,6 +141,8 @@ theorem branchState_sum {J : Type*} [Fintype J] (R S : Matrix H H ℂ)
         simp only [branchState, Matrix.mulVec_sum, Matrix.mulVec_smul] <;>
         apply ih
 
+/-- For a family with diagonal Gram matrix of real entries `w`, the total mass of a linear
+combination is the sum of squared coefficient norms times `w`. -/
 theorem sum_norm_sq_diagonal_gram {J : Type*} [Fintype J]
     (v : J → QState H) (c : J → ℂ) (w : J → ℝ)
     (hv : ∀ j k, Inner (v j) (v k) = if j = k then (w j : ℂ) else 0) :
@@ -125,6 +158,8 @@ theorem sum_norm_sq_diagonal_gram {J : Type*} [Fintype J]
   simp [mul_ite, ← mul_assoc, Complex.mul_conj, Complex.normSq_eq_norm_sq,
     RCLike.star_def]
 
+/-- For an orthonormal family of clean compressed eigenvectors, each branch mass is the sum of
+squared coefficient norms times the corresponding eigenvalue's record weight. -/
 theorem record_mass_spectral_sum {J : Type*} [Fintype J]
     (R S : Matrix H H ℂ) (hR : IsOrthogonalProjector R) (hS : IsOrthogonalProjector S)
     (v : J → QState H) (c : J → ℂ) (t : J → ℝ)
@@ -143,6 +178,9 @@ theorem record_mass_spectral_sum {J : Type*} [Fintype J]
     simp
   · simp [hij]
 
+/-- An isometric frame satisfying `A * Aᴴ = Q` and diagonalizing `Aᴴ * P * A` has orthonormal
+columns fixed by `Q`, each satisfying the compressed eigenvector relation with its parameter
+`t j`. -/
 theorem spectral_frame_columns {J : Type*} [Fintype J] [DecidableEq J]
     (Q P : Matrix H H ℂ) (A : Matrix H J ℂ) (t : J → ℝ)
     (hA : IsIsometry A) (hAQ : A * Aᴴ = Q)
@@ -172,6 +210,8 @@ theorem spectral_frame_columns {J : Type*} [Fintype J] [DecidableEq J]
     simp only [Matrix.mul_diagonal, Pi.smul_apply, smul_eq_mul]
     ring
 
+/-- If `A * Aᴴ = Q`, every vector fixed by `Q` expands in the columns of `A` with coefficients
+`Aᴴ *ᵥ ψ`. -/
 theorem clean_frame_expansion {J : Type*} [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (A : Matrix H J ℂ) (hAQ : A * Aᴴ = Q)
     (ψ : QState H) (hψ : Q *ᵥ ψ = ψ) :
@@ -186,6 +226,8 @@ theorem clean_frame_expansion {J : Type*} [Fintype J] [DecidableEq J]
       intro j _
       ring
 
+/-- In the stated spectral frame, a clean state's record mass is the sum of its squared spectral
+coordinate norms times the component record weights. -/
 theorem clean_record_mixture {J : Type*} [Fintype J] [DecidableEq J]
     (Q P : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q) (hP : IsOrthogonalProjector P)
     (A : Matrix H J ℂ) (t : J → ℝ) (hA : IsIsometry A) (hAQ : A * Aᴴ = Q)
@@ -200,6 +242,8 @@ theorem clean_record_mixture {J : Type*} [Fintype J] [DecidableEq J]
     (Aᴴ *ᵥ ψ) t (fun i j => by by_cases h : i = j <;> simpa [h] using! hv i j)
     hfix heig record
 
+/-- The squared frame-coordinate norms of a normalized clean state are nonnegative and sum to
+one. -/
 theorem clean_spectral_weights_sum_one {J : Type*} [Fintype J] [DecidableEq J]
     (Q : Matrix H H ℂ) (A : Matrix H J ℂ) (hA : IsIsometry A) (hAQ : A * Aᴴ = Q)
     (ψ : QState H) (hψ : Q *ᵥ ψ = ψ) (hnψ : Normalized ψ) :

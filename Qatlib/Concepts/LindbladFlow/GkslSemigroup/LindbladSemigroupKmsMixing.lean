@@ -22,6 +22,34 @@ import QuantumInfo.ForMathlib.HermitianMat.Inner
 import QuantumInfo.Entropy.DPI
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
+
+/-!
+# KMS adjoints and spectral-gap mixing
+
+This module constructs `hsAdjoint` and `kmsAdjointMap` and proves their pairing identities and
+uniqueness properties. It expresses the KMS geometry through matrix sandwiches and introduces
+`kmsDensityRatio` to compare the Schrödinger and Heisenberg evolutions in the finite-dimensional
+open-system setting of [BreuerPetruccione2007].
+
+A KMS gap controls decay along mean-zero trajectories. Together with trace-norm estimates, this
+yields exponential trace-distance bounds and a finite mixing-time estimate for KMS self-adjoint
+Lindblad generators.
+
+## Main statements
+
+* `kmsAdjointMap_unique`: uniqueness of the weighted adjoint for a positive definite source
+  weight.
+* `kmsNorm_decay_of_gap`: exponential KMS-norm decay from a gap bound.
+* `lindblad_traceDistance_le_of_heisenberg_kmsGap`: trace-distance decay controlled by a density
+  ratio.
+* `mixingTime_le_inverse_sqrt`: mixing-time bound using the inverse square root of the reference
+  density.
+
+## References
+
+* [Breuer and Petruccione, 2007][BreuerPetruccione2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
@@ -40,6 +68,7 @@ namespace Qatlib.Concepts.LindbladFlow.GkslSemigroup
 open Filter
 open scoped Topology
 
+/-- The Hilbert-Schmidt adjoint of a complex linear map between finite matrix spaces. -/
 noncomputable def hsAdjoint {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     Operator E →ₗ[ℂ] Operator D := by
   letI : NormedAddCommGroup (Operator D) := Matrix.toMatrixNormedAddCommGroup 1 Matrix.PosDef.one
@@ -52,6 +81,8 @@ noncomputable def hsAdjoint {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) 
   letI : InnerProductSpace ℂ (Operator E) := Matrix.toMatrixInnerProductSpace (1 : Operator E) Matrix.PosSemidef.one
   exact LinearMap.adjoint T
 
+/-- The Hilbert-Schmidt adjoint satisfies the trace pairing identity between a map and its
+adjoint. -/
 theorem hsAdjoint_trace {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (X : Operator D) (Y : Operator E) :
     Matrix.trace (Xᴴ * hsAdjoint T Y) = Matrix.trace ((T X)ᴴ * Y) := by
@@ -71,6 +102,8 @@ theorem hsAdjoint_trace {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     _ = Matrix.trace (Y * (T X)ᴴ) := h
     _ = _ := Matrix.trace_mul_comm _ _
 
+/-- The weighted adjoint obtained by conjugating the Hilbert-Schmidt adjoint with the square
+root of the target weight and the inverse square root of the source weight. -/
 noncomputable def kmsAdjointMap {D E : ℕ} (ρ : Operator D) (σ : Operator E)
     (T : Operator D →ₗ[ℂ] Operator E) : Operator E →ₗ[ℂ] Operator D :=
   (LinearMap.mulRight ℂ (CFC.sqrt ρ)⁻¹).comp
@@ -78,11 +111,15 @@ noncomputable def kmsAdjointMap {D E : ℕ} (ρ : Operator D) (σ : Operator E)
       ((hsAdjoint T).comp ((LinearMap.mulRight ℂ (CFC.sqrt σ)).comp
         (LinearMap.mulLeft ℂ (CFC.sqrt σ)))))
 
+/-- Evaluating the weighted adjoint gives the Hilbert-Schmidt adjoint of the target-weight
+sandwich, sandwiched by the inverse source square root. -/
 theorem kmsAdjointMap_apply {D E : ℕ} (ρ : Operator D) (σ : Operator E)
     (T : Operator D →ₗ[ℂ] Operator E) (Y : Operator E) :
     kmsAdjointMap ρ σ T Y = (CFC.sqrt ρ)⁻¹ *
       hsAdjoint T (CFC.sqrt σ * Y * CFC.sqrt σ) * (CFC.sqrt ρ)⁻¹ := rfl
 
+/-- For a positive definite source weight, the weighted adjoint satisfies the adjoint identity
+for the source and target KMS pairings. -/
 theorem kmsAdjointMap_inner {D E : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
     (σ : Operator E) (T : Operator D →ₗ[ℂ] Operator E) (X : Operator D) (Y : Operator E) :
     kmsInner ρ X (kmsAdjointMap ρ σ T Y) = kmsInner σ (T X) Y := by
@@ -104,6 +141,8 @@ theorem kmsAdjointMap_inner {D E : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
   rw [hcancel, hsAdjoint_trace]
   simp only [Matrix.mul_assoc]
 
+/-- For a positive definite source weight, a linear map satisfying the KMS adjoint identity
+equals `kmsAdjointMap`. -/
 theorem kmsAdjointMap_unique {D E : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
     (σ : Operator E) (T : Operator D →ₗ[ℂ] Operator E) (A : Operator E →ₗ[ℂ] Operator D)
     (hA : ∀ X Y, kmsInner ρ X (A Y) = kmsInner σ (T X) Y) : A = kmsAdjointMap ρ σ T := by
@@ -117,6 +156,8 @@ theorem kmsAdjointMap_unique {D E : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
   have heq : A Y = kmsAdjointMap ρ σ T Y := sub_eq_zero.mp hz
   exact congrFun (congrFun heq a) b
 
+/-- For a positive definite weight, KMS self-adjointness is equivalent to equality with the
+weighted adjoint. -/
 theorem kmsSelfAdjoint_iff_kmsAdjointMap_eq {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
     (T : Operator D →ₗ[ℂ] Operator D) :
     KmsSelfAdjoint ρ T ↔ kmsAdjointMap ρ ρ T = T := by
@@ -126,6 +167,8 @@ theorem kmsSelfAdjoint_iff_kmsAdjointMap_eq {D : ℕ} {ρ : Operator D} (hρ : �
   · intro h X Y
     simpa only [h] using! kmsAdjointMap_inner hρ ρ T X Y
 
+/-- The derivative of a Lindblad trajectory at time `t` is the generator applied to its state at
+time `t`. -/
 theorem hasDerivAt_lindbladSemigroup {D : ℕ} (G : GKSL D) (σ : Operator D) (t : ℝ) :
     HasDerivAt (fun u : ℝ => lindbladSemigroup G u σ)
       (lindbladApply G (lindbladSemigroup G t σ)) t := by
@@ -167,6 +210,8 @@ theorem hasDerivAt_lindbladSemigroup {D : ℕ} (G : GKSL D) (σ : Operator D) (t
   simp only [hr, ← heq] at hv
   exact hv
 
+/-- The KMS pairing is the Hilbert-Schmidt pairing after sandwiching both arguments by the
+iterated square root of the weight. -/
 private theorem kmsInner_eq_hs {D : ℕ} (ρ X Y : Operator D) :
     kmsInner ρ X Y = Matrix.trace
       ((CFC.sqrt (CFC.sqrt ρ) * X * CFC.sqrt (CFC.sqrt ρ))ᴴ *
@@ -185,6 +230,7 @@ private theorem kmsInner_eq_hs {D : ℕ} (ρ X Y : Operator D) :
     simp only [Matrix.mul_assoc, ← hPP]]
   rfl
 
+/-- The norm of the KMS pairing is bounded by the product of the KMS norms of its arguments. -/
 theorem kmsInner_norm_le {D : ℕ} (ρ X Y : Operator D) :
     ‖kmsInner ρ X Y‖ ≤ kmsNorm ρ X * kmsNorm ρ Y := by
   let v (A : Operator D) := toEuclidean_fromVec (fun p : Fin D × Fin D => A p.1 p.2)
@@ -208,6 +254,8 @@ theorem kmsInner_norm_le {D : ℕ} (ρ X Y : Operator D) :
   rw [hi, ← kmsInner_eq_hs, hn, hn] at h
   exact h
 
+/-- For a density operator `ρ`, the trace norm of `sqrt ρ * X * sqrt ρ` is at most the KMS norm
+of `X`. -/
 theorem traceNorm_kms_sandwich_le {D : ℕ} {ρ : Operator D}
     (hρ : IsDensityOperator ρ) (X : Operator D) :
     Matrix.traceNorm (CFC.sqrt ρ * X * CFC.sqrt ρ) ≤ kmsNorm ρ X := by
@@ -240,9 +288,12 @@ theorem traceNorm_kms_sandwich_le {D : ℕ} {ρ : Operator D}
       have hx : 0 ≤ kmsNorm ρ X := Real.sqrt_nonneg _
       nlinarith
 
+/-- The density ratio formed by sandwiching an operator with the inverse square root of a
+reference operator. -/
 noncomputable def kmsDensityRatio {D : ℕ} (ρ X : Operator D) : Operator D :=
   (CFC.sqrt ρ)⁻¹ * X * (CFC.sqrt ρ)⁻¹
 
+/-- The square root of a positive definite operator has a two-sided matrix inverse. -/
 private theorem sqrt_inverse_pair {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef) :
     (CFC.sqrt ρ)⁻¹ * CFC.sqrt ρ = 1 ∧ CFC.sqrt ρ * (CFC.sqrt ρ)⁻¹ = 1 := by
   have hSS := CFC.sqrt_mul_sqrt_self ρ hρ.posSemidef.nonneg
@@ -253,12 +304,16 @@ private theorem sqrt_inverse_pair {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef) 
   have hunit := IsUnit.mk0 _ hdet
   exact ⟨Matrix.nonsing_inv_mul _ hunit, Matrix.mul_nonsing_inv _ hunit⟩
 
+/-- Sandwiching a density ratio by the square root of a positive definite reference recovers the
+original operator. -/
 theorem kmsDensityRatio_sandwich {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
     (X : Operator D) : CFC.sqrt ρ * kmsDensityRatio ρ X * CFC.sqrt ρ = X := by
   obtain ⟨hl,hr⟩ := sqrt_inverse_pair hρ
   simp only [kmsDensityRatio, Matrix.mul_assoc, hl, Matrix.mul_one]
   rw [← Matrix.mul_assoc (CFC.sqrt ρ) (CFC.sqrt ρ)⁻¹ X, hr, Matrix.one_mul]
 
+/-- The density ratio of a positive definite reference operator with respect to itself is the
+identity. -/
 theorem kmsDensityRatio_reference {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef) :
     kmsDensityRatio ρ ρ = 1 := by
   obtain ⟨hl,hr⟩ := sqrt_inverse_pair hρ
@@ -268,6 +323,8 @@ theorem kmsDensityRatio_reference {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef) 
     _ = (CFC.sqrt ρ)⁻¹ * (CFC.sqrt ρ * CFC.sqrt ρ) * (CFC.sqrt ρ)⁻¹ := by rw [hSS]
     _ = 1 := by simp only [← Matrix.mul_assoc, hl, Matrix.one_mul, hr]
 
+/-- For a density operator `σ` and positive definite reference `ρ`, centering the density ratio
+gives the ratio of `σ - ρ`. -/
 theorem kmsDensityRatio_center {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
     {σ : Operator D} (hσ : IsDensityOperator σ) :
     kmsCenter ρ (kmsDensityRatio ρ σ) = kmsDensityRatio ρ (σ - ρ) := by
@@ -281,6 +338,8 @@ theorem kmsDensityRatio_center {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
   conv_lhs => rw [← kmsDensityRatio_reference hρ]
   simp only [kmsDensityRatio, Matrix.mul_sub, Matrix.sub_mul]
 
+/-- Trace distance to a positive definite reference density is at most half the KMS norm of the
+density ratio of the difference. -/
 theorem traceDistance_le_kmsDensityRatio {D : ℕ} {ρ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) (σ : Operator D) :
     traceDistance σ ρ ≤ kmsNorm ρ (kmsDensityRatio ρ (σ - ρ)) / 2 := by
@@ -288,6 +347,8 @@ theorem traceDistance_le_kmsDensityRatio {D : ℕ} {ρ : Operator D}
   rw [kmsDensityRatio_sandwich hfull] at h
   exact div_le_div_of_nonneg_right h (by norm_num)
 
+/-- The derivative of the real KMS quadratic form along a differentiable curve is twice the real
+pairing of its value with its derivative. -/
 theorem hasDerivAt_kmsEnergy {D : ℕ} (ρ : Operator D) {f : ℝ → Operator D}
     {v : Operator D} {t : ℝ} (hf : HasDerivAt f v t) :
     HasDerivAt (fun u => (kmsInner ρ (f u) (f u)).re)
@@ -318,6 +379,8 @@ theorem hasDerivAt_kmsEnergy {D : ℕ} (ρ : Operator D) {f : ℝ → Operator D
   rw [he] at ht
   exact ht
 
+/-- A mean-zero trajectory generated by a linear map with KMS gap at least `γ` has KMS norm
+bounded by `exp (-γ * t)` times its initial norm at nonnegative times. -/
 theorem kmsNorm_decay_of_gap {D : ℕ} (ρ : Operator D) (N : Operator D →ₗ[ℂ] Operator D)
     (γ : ℝ) (hgap : KmsGapAtLeast ρ N γ) (f : ℝ → Operator D)
     (hflow : ∀ u, HasDerivAt f (N (f u)) u)
@@ -349,6 +412,7 @@ theorem kmsNorm_decay_of_gap {D : ℕ} (ρ : Operator D) (N : Operator D →ₗ[
     mul_nonneg (Real.exp_nonneg _) (Real.sqrt_nonneg _)
   nlinarith [Real.sqrt_nonneg (kmsInner ρ (f t) (f t)).re]
 
+/-- The GKSL Heisenberg generator commutes with conjugate transpose. -/
 theorem gkslHeisenbergMap_conjTranspose {D : ℕ} (G : GKSL D) (X : Operator D) :
     gkslHeisenbergMap G Xᴴ = (gkslHeisenbergMap G X)ᴴ := by
   simp only [gkslHeisenbergMap_apply, Matrix.conjTranspose_add, Matrix.conjTranspose_sum,
@@ -364,6 +428,8 @@ theorem gkslHeisenbergMap_conjTranspose {D : ℕ} (G : GKSL D) (X : Operator D) 
     congr 1
     rw [add_comm]
 
+/-- KMS self-adjointness of the Heisenberg generator intertwines its action with the Lindblad
+generator through the square-root sandwich. -/
 theorem lindbladApply_kms_sandwich {D : ℕ} (G : GKSL D) (ρ : Operator D)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (X : Operator D) :
     lindbladApply G (CFC.sqrt ρ * X * CFC.sqrt ρ) =
@@ -377,18 +443,24 @@ theorem lindbladApply_kms_sandwich {D : ℕ} (G : GKSL D) (ρ : Operator D)
     Matrix.trace_mul_comm (CFC.sqrt ρ * X * CFC.sqrt ρ)]
   simpa only [Matrix.mul_assoc] using! h.symm
 
+/-- The density-ratio operation bundled as a complex linear map. -/
 noncomputable def kmsDensityRatioMap {D : ℕ} (ρ : Operator D) : Operator D →ₗ[ℂ] Operator D :=
   (LinearMap.mulRight ℂ (CFC.sqrt ρ)⁻¹).comp (LinearMap.mulLeft ℂ (CFC.sqrt ρ)⁻¹)
 
+/-- The bundled density-ratio map evaluates to `kmsDensityRatio`. -/
 theorem kmsDensityRatioMap_apply {D : ℕ} (ρ X : Operator D) :
     kmsDensityRatioMap ρ X = kmsDensityRatio ρ X := rfl
 
+/-- The density ratio with respect to a positive definite reference inverts its square-root
+sandwich. -/
 theorem kmsDensityRatio_of_sandwich {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef)
     (X : Operator D) : kmsDensityRatio ρ (CFC.sqrt ρ * X * CFC.sqrt ρ) = X := by
   obtain ⟨hl,hr⟩ := sqrt_inverse_pair hρ
   simp only [kmsDensityRatio, ← Matrix.mul_assoc, hl, Matrix.one_mul]
   rw [Matrix.mul_assoc X, hr, Matrix.mul_one]
 
+/-- For a positive definite reference, the reference-weighted trace of a density ratio is the
+ordinary trace of the input. -/
 theorem trace_kmsDensityRatio {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef) (X : Operator D) :
     Matrix.trace (ρ * kmsDensityRatio ρ X) = Matrix.trace X := by
   calc
@@ -396,6 +468,8 @@ theorem trace_kmsDensityRatio {D : ℕ} {ρ : Operator D} (hρ : ρ.PosDef) (X :
       rw [Matrix.trace_mul_cycle, CFC.sqrt_mul_sqrt_self ρ hρ.posSemidef.nonneg]
     _ = Matrix.trace X := congrArg Matrix.trace (kmsDensityRatio_sandwich hρ X)
 
+/-- For a positive definite reference and KMS self-adjoint Heisenberg generator, taking density
+ratios intertwines the Lindblad and Heisenberg generators. -/
 theorem kmsDensityRatio_lindbladApply {D : ℕ} (G : GKSL D) {ρ : Operator D}
     (hρ : ρ.PosDef) (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (X : Operator D) :
     kmsDensityRatio ρ (lindbladApply G X) = gkslHeisenbergMap G (kmsDensityRatio ρ X) := by
@@ -406,6 +480,8 @@ theorem kmsDensityRatio_lindbladApply {D : ℕ} (G : GKSL D) {ρ : Operator D}
       rw [lindbladApply_kms_sandwich G ρ hself]
     _ = _ := kmsDensityRatio_of_sandwich hρ _
 
+/-- A KMS self-adjoint Heisenberg generator with gap at least `γ` gives exponential
+trace-distance decay controlled by the initial centered density-ratio norm. -/
 theorem lindblad_traceDistance_le_of_heisenberg_kmsGap {D : ℕ} (G : GKSL D) {ρ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ)
@@ -439,6 +515,8 @@ theorem lindblad_traceDistance_le_of_heisenberg_kmsGap {D : ℕ} (G : GKSL D) {�
   exact (traceDistance_le_kmsDensityRatio hρ hfull (lindbladSemigroup G t σ)).trans
     (div_le_div_of_nonneg_right hn (by norm_num))
 
+/-- The KMS norm of a density ratio of a density operator is at most the norm of the inverse
+square root of its positive definite reference. -/
 theorem kmsNorm_densityRatio_le_inverse_sqrt {D : ℕ} {ρ σ : Operator D}
     (hρ : ρ.PosDef) (hσ : IsDensityOperator σ) :
     kmsNorm ρ (kmsDensityRatio ρ σ) ≤ ‖(CFC.sqrt ρ)⁻¹‖ := by
@@ -493,6 +571,8 @@ theorem kmsNorm_densityRatio_le_inverse_sqrt {D : ℕ} {ρ σ : Operator D}
   change kmsNorm ρ (kmsDensityRatio ρ σ) ≤ ‖B‖
   nlinarith [norm_nonneg B]
 
+/-- For density operators with positive definite reference, the squared KMS norm of the centered
+density ratio is the uncentered squared norm minus one. -/
 theorem kmsNorm_densityRatio_error_sq {D : ℕ} {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) (hσ : IsDensityOperator σ) :
     (kmsNorm ρ (kmsDensityRatio ρ (σ - ρ))) ^ 2 + 1 =
@@ -515,6 +595,8 @@ theorem kmsNorm_densityRatio_error_sq {D : ℕ} {ρ σ : Operator D}
   simp only [Complex.sub_re, Complex.one_re]
   ring
 
+/-- The centered density-ratio norm is bounded by the inverse-square-root norm of a positive
+definite reference density. -/
 theorem kmsNorm_densityRatio_error_le_inverse_sqrt {D : ℕ} {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef) (hσ : IsDensityOperator σ) :
     kmsNorm ρ (kmsDensityRatio ρ (σ - ρ)) ≤ ‖(CFC.sqrt ρ)⁻¹‖ := by
@@ -524,6 +606,8 @@ theorem kmsNorm_densityRatio_error_le_inverse_sqrt {D : ℕ} {ρ σ : Operator D
   have h1 : 0 ≤ kmsNorm ρ (kmsDensityRatio ρ (σ - ρ)) := Real.sqrt_nonneg _
   nlinarith [norm_nonneg ((CFC.sqrt ρ)⁻¹)]
 
+/-- Under KMS self-adjointness and a gap bound, trace distance decays exponentially with
+prefactor half the inverse-square-root norm of the reference density. -/
 theorem lindblad_traceDistance_le_inverse_sqrt {D : ℕ} (G : GKSL D) {ρ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ)
@@ -535,6 +619,8 @@ theorem lindblad_traceDistance_le_inverse_sqrt {D : ℕ} (G : GKSL D) {ρ : Oper
     (mul_le_mul_of_nonneg_left (kmsNorm_densityRatio_error_le_inverse_sqrt hρ hfull hσ)
       (Real.exp_nonneg _)) (by norm_num))
 
+/-- A positive KMS gap gives finite mixing time bounded by `log ((‖(CFC.sqrt ρ)⁻¹‖ + 1) / η) /
+γ` for `0 < η ≤ 1`. -/
 theorem mixingTime_le_inverse_sqrt {D : ℕ} (G : GKSL D) {ρ : Operator D}
     (hρ : IsDensityOperator ρ) (hfull : ρ.PosDef)
     (hself : KmsSelfAdjoint ρ (gkslHeisenbergMap G)) (γ : ℝ) (hγ : 0 < γ)

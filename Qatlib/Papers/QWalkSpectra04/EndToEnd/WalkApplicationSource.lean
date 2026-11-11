@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QWalkSpectra04.EndToEnd.WalkApplicationSourceDefs
 import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecution
+
+/-!
+# Exact decoding and marked-mass output laws
+
+A finite set of witnesses at each vertex determines a decoder and a success functional. This
+module proves decoder soundness, identifies the success mass after the general detection
+execution, and packages these facts in `WalkApplicationAccount` for the application setting of
+[Szegedy2004].
+
+The list `walkApplicationResidual` records additional application constructions beyond these
+decoding and output-law results.
+
+## Main statements
+
+* `generalApplicationExecution_exact`: identifies execution success with the marked
+  transition-row mass.
+* `clause38_complete`: constructs the decoder and output-law account.
+* `clause39_complete`: pairs decoder soundness with the exact execution law.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -22,6 +46,8 @@ open Qatlib.Papers.QWalkSpectra04.EndToEnd.WalkApplicationSourceDefs
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 
+/-- If the collision decoder returns `some e` at a vertex, then `e` belongs to that vertex's
+witness set. -/
 theorem generalCollisionDecoder_some {V : Type} [Fintype V] {E : Type} [LinearOrder E]
     (marked : V → Finset E) (v : V) (e : E)
     (h : generalCollisionDecoder marked v = some e) : e ∈ marked v := by
@@ -33,6 +59,7 @@ theorem generalCollisionDecoder_some {V : Type} [Fintype V] {E : Type} [LinearOr
   · rw [generalCollisionDecoder, dif_neg hne] at h
     exact absurd h (by simp)
 
+/-- The collision decoder returns `none` exactly when the vertex's witness set is not nonempty. -/
 theorem generalCollisionDecoder_none_iff {V : Type} [Fintype V] {E : Type} [LinearOrder E]
     (marked : V → Finset E) (v : V) :
     generalCollisionDecoder marked v = none ↔ ¬ (marked v).Nonempty := by
@@ -43,11 +70,15 @@ theorem generalCollisionDecoder_none_iff {V : Type} [Fintype V] {E : Type} [Line
   · rw [generalCollisionDecoder, dif_neg hne]
     exact ⟨fun _ => hne, fun _ => rfl⟩
 
+/-- The collision success functional is the sum of squared state-coordinate norms over vertices
+with a nonempty witness set. -/
 theorem generalCollisionSuccess_eq {V : Type} [Fintype V] {E : Type} [LinearOrder E]
     (marked : V → Finset E) (ψ : QState V) :
     generalCollisionSuccess marked ψ
       = ∑ v, if (marked v).Nonempty then ‖ψ v‖ ^ 2 else 0 := rfl
 
+/-- For a general kernel row state, collision success is the sum of transition weights at
+vertices with nonempty witness sets. -/
 theorem generalCollisionSuccess_rowState {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
     {E : Type} [LinearOrder E] (marked : GeneralVertex V → Finset E) :
     generalCollisionSuccess marked (generalRowState K p)
@@ -64,6 +95,8 @@ theorem generalCollisionSuccess_rowState {V : ℕ} (K : GeneralKernel V) (p : Ge
     exact Real.sq_sqrt h'
   · simp only [if_neg hne]
 
+/-- A matrix action that negates the marked coordinates and fixes the others preserves collision
+success when the marked set is exactly the set of vertices with witnesses. -/
 theorem generalCollisionSuccess_check {V : Type} [Fintype V] {E : Type} [LinearOrder E]
     (marked : V → Finset E) (S : Finset V) (ψ : QState V)
     (hS : ∀ v, v ∈ S ↔ (marked v).Nonempty)
@@ -82,6 +115,8 @@ theorem generalCollisionSuccess_check {V : Type} [Fintype V] {E : Type} [LinearO
   · have hout : v ∉ S := fun hv' => hne ((hS v).mp hv')
     rw [hR' v hout]
 
+/-- When `S` consists exactly of vertices with nonempty witness sets, the general detection
+execution has collision success equal to the transition-row mass on those vertices. -/
 theorem generalApplicationExecution_exact {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
     {E : Type} [LinearOrder E] (S : Finset (GeneralVertex V))
     (marked : GeneralVertex V → Finset E)
@@ -109,12 +144,16 @@ theorem generalApplicationExecution_exact {V : ℕ} (K : GeneralKernel V) (p : G
     _ = ∑ v, if (marked v).Nonempty then (K.weight p v : ℝ) else 0 :=
         generalCollisionSuccess_rowState K p marked
 
+/-- The list of remaining application constructions concerning data loading, scheduling,
+resource accounting, and the printed positive-identity program candidate. -/
 def walkApplicationResidual : List String :=
   [ "the Johnson-data data-loading word and its relation to the general compiler are not built here",
     "the unknown-marked-mass schedule is not built here",
     "the fair-bit and elementary-gate ledgers of the application execution are not built here",
     "the printed +I per-K program candidate of Foundations-A03/G39 is not built here" ]
 
+/-- The proposition packaging decoder soundness, exact failure characterization, and the
+marked-mass output law of the general detection execution. -/
 structure WalkApplicationAccount (V : ℕ) (K : GeneralKernel V) (p : GeneralVertex V)
     {E : Type} [LinearOrder E] (marked : GeneralVertex V → Finset E) : Prop where
 
@@ -128,6 +167,7 @@ structure WalkApplicationAccount (V : ℕ) (K : GeneralKernel V) (p : GeneralVer
         (generalDetectionExecution K p (generalMarkedVertices (V := GeneralVertex V) (E := E) marked))
       = ∑ v, if (marked v).Nonempty then (K.weight p v : ℝ) else 0
 
+/-- Every general kernel row and finite witness assignment satisfy `WalkApplicationAccount`. -/
 theorem clause38_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
     {E : Type} [LinearOrder E] (marked : GeneralVertex V → Finset E) :
     WalkApplicationAccount V K p marked := by
@@ -141,6 +181,8 @@ theorem clause38_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
         intro v
         simp [generalMarkedVertices])
 
+/-- The collision decoder is sound, and the general detection execution for the induced marked
+set has success equal to its transition-row mass on vertices with witnesses. -/
 theorem clause39_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
     {E : Type} [LinearOrder E] (marked : GeneralVertex V → Finset E) :
     (∀ v e, generalCollisionDecoder marked v = some e → e ∈ marked v) ∧

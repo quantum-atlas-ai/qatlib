@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BitWordCompiler.WordComposition.NativeModels
+
+/-!
+# Native-program semantics specification
+
+The proposition `Clause36NativeProgramSemantics` collects the semantic guarantees for a legal
+native program with two unitary oracle matrices. These guarantees cover unitarity, padding,
+resource counts, normalized execution, and conditional density matrices. Related mathematical
+background is given in [Watrous2018].
+
+## Main statements
+
+* `Clause36NativeProgramSemantics`: The combined native-program semantic contract.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +47,10 @@ open Qatlib.Concepts.BitWordCompiler.WordComposition Qatlib.Concepts.QlsReadoutS
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The assertion that a legal native program with two unitary oracles has unitary matrix
+semantics, exact instruction counts, isometric padding, normalized execution, success mass
+at most one, and a positive semidefinite trace-one conditional density whenever its success
+mass is positive. -/
 def Clause36NativeProgramSemantics : Prop :=
   ∀ (h : ℕ) (p : NativeProgram h) (UA UB : Matrix (Reg h) (Reg h) ℂ),
     nativeLegal p → UA ∈ Matrix.unitaryGroup (Reg h) ℂ →

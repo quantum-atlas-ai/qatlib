@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueGradient
+
+/-!
+# Full-range character kickback specification
+
+`FullRangeCharacterKickback` states that the character state on `ZMod (2 ^ (K + k))` is
+normalized and prepared by an inverse QFT. It also requires a unitary value oracle and the exact
+tensor-state phase-kickback identity for every finite input type. See [Jordan2005Gradient] for
+background.
+
+## Main statements
+
+* `FullRangeCharacterKickback`: The proposition combining normalization and inverse-QFT
+  preparation of the full-range character state with value-oracle unitarity and its exact
+  phase-kickback identity.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,8 @@ namespace Qatlib.Concepts.GradientOracle.FullRange
 open Matrix
 open scoped Classical
 
+/-- The proposition combining normalization and inverse-QFT preparation of the full-range
+character state with value-oracle unitarity and its exact phase-kickback identity. -/
 def FullRangeCharacterKickback : Prop :=
   ∀ (K k : ℕ), Normalized (fullRangeKickState K k) ∧
     ApplyGate ((zmodQFTGate (N := 2^(K+k)))ᴴ) (Ket (fullRangeCharacterIndex K k)) =

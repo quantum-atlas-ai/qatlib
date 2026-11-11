@@ -8,12 +8,34 @@ import Mathlib.Analysis.InnerProductSpace.JointEigenspace
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.Matrix.Hermitian
 
+/-!
+# Simultaneous diagonalization of commuting Hermitian matrices
+
+This module constructs a common orthonormal eigenbasis for commuting symmetric endomorphisms and
+converts it into a simultaneous unitary diagonalization of Hermitian matrices. Both arbitrary
+finite matrix indices and indices of the form `Fin n` are supported. See [Bhatia1997] for the
+spectral-theoretic background.
+
+## Main statements
+
+* `exists_common_orthonormal_eigenbasis`: constructs a common eigenbasis with real eigenvalues.
+* `exists_simultaneous_unitary_diagonalization`: diagonalizes a finite commuting Hermitian
+  family.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 2400000
 noncomputable section
 namespace Qatlib.Concepts.MixedFidelity.FidelityMetric
 open scoped Classical BigOperators Matrix
 
+/-- A pairwise commuting family of symmetric endomorphisms of a finite-dimensional complex inner
+product space has a common orthonormal eigenbasis with real eigenvalues, indexed by `Fin n`
+when the dimension is `n`. -/
 theorem exists_common_orthonormal_eigenbasis {E ι : Type*}
     [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
     (T : ι → Module.End ℂ E) (hT : ∀ a,(T a).IsSymmetric)
@@ -62,6 +84,9 @@ theorem exists_common_orthonormal_eigenbasis {E ι : Type*}
   rw [hreal a j] at h
   exact h
 
+/-- A pairwise commuting family of Hermitian matrices on a finite index type has a common
+unitary diagonalization with real diagonal entries, using `Fin (Fintype.card J)` for the
+eigenbasis. -/
 theorem exists_simultaneous_unitary_diagonalization_index {J ι : Type*} [Fintype J] [DecidableEq J]
     (C : ι → Matrix J J ℂ) (hHerm : ∀ a,(C a).IsHermitian)
     (hComm : ∀ a b,C a*C b=C b*C a) :
@@ -102,6 +127,8 @@ theorem exists_simultaneous_unitary_diagonalization_index {J ι : Type*} [Fintyp
     _ = (C a*U)*U.conjTranspose := (Matrix.mul_assoc _ _ _).symm
     _ = _ := by rw [hCU]
 
+/-- A finite pairwise commuting family of Hermitian `n × n` matrices has a common unitary
+diagonalization with real diagonal entries. -/
 theorem exists_simultaneous_unitary_diagonalization {n : ℕ} {ι : Type*} [Fintype ι]
     (C : ι → Matrix (Fin n) (Fin n) ℂ) (hHerm : ∀ a,(C a).IsHermitian)
     (hComm : ∀ a b,C a*C b=C b*C a) :

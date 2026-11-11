@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
+
+/-!
+# Statement of ordered search circuit realization
+
+This module defines `TiPolynomialActualAlgorithm`, which states that normalized polynomial data
+satisfying the root matching equations realizes an explicit unitary ordered search circuit. It
+includes preparation from a basis state, resource counts, translation symmetry, and readout
+probabilities equal to the squared norm of the final constant coefficient. The construction
+belongs to the invariant ordered search framework of [FarhiEtAl1999].
+
+## Main statements
+
+* `TiPolynomialActualAlgorithm`: packages circuit realization and readout guarantees from
+  polynomial data.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +37,9 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped BigOperators Classical
 
+/-- The proposition that normalized polynomial data with the prescribed initial vector and root
+matching realizes unitary query and prepared circuits with explicit resource counts and
+correct-output probability `Complex.normSq (p k 0)`. -/
 def TiPolynomialActualAlgorithm : Prop :=
   ∀ (n k : ℕ) [NeZero n] (p : ℕ → Fin n → ℂ),
     p 0 = tiDirichletVec n →

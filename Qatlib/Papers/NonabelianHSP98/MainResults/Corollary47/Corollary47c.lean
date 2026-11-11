@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.Corollary47.Basic
+
+/-!
+# Swap-invariant subspaces and wreath-product subgroups
+
+`subspaceSubgroup` pulls a subspace of `Vec n` closed under `swapV` back along `phi` to a
+wreath-product subgroup. The constructions `phiSub` and `subspaceSubgroup` are inverse on
+subgroups fixed by `conjSub` and subspaces closed under swapping. This development accompanies
+[RoettelerBeth1998].
+
+## Main statements
+
+* `phiSub_subspaceSubgroup`: recovering the original subspace.
+* `subspaceSubgroup_phiSub`: recovering a swap-invariant subgroup.
+* `corollary_4_7_c_bijection`: stability, injectivity, and surjectivity of the correspondence.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +40,7 @@ open Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
 
 variable {n : ℕ}
 
+/-- The wreath-product subgroup whose `phi` coordinates lie in a subspace closed under `swapV`. -/
 def subspaceSubgroup (V : Submodule (ZMod 2) (Vec n))
     (hV : ∀ v ∈ V, swapV v ∈ V) : Subgroup (Wreath n) where
   carrier := {g | phi g ∈ V}
@@ -43,10 +64,13 @@ def subspaceSubgroup (V : Submodule (ZMod 2) (Vec n))
     · rw [inv_eq g ha, phi_swapFun]
       exact hV (phi g) hg
 
+/-- Membership in `subspaceSubgroup V hV` is equivalent to membership of the `phi` image in `V`. -/
 @[simp] lemma mem_subspaceSubgroup {V : Submodule (ZMod 2) (Vec n)}
     {hV : ∀ v ∈ V, swapV v ∈ V} {g : Wreath n} :
     g ∈ subspaceSubgroup V hV ↔ phi g ∈ V := Iff.rfl
 
+/-- Applying `phiSub` to the subgroup associated with a swap-invariant subspace recovers that
+subspace. -/
 theorem phiSub_subspaceSubgroup (V : Submodule (ZMod 2) (Vec n))
     (hV : ∀ v ∈ V, swapV v ∈ V) :
     phiSub (subspaceSubgroup V hV) = V := by
@@ -57,6 +81,7 @@ theorem phiSub_subspaceSubgroup (V : Submodule (ZMod 2) (Vec n))
   · intro hv
     exact ⟨phiInv v, by simpa [phiInv_phi] using hv, phiInv_phi v⟩
 
+/-- The subgroup associated with a swap-invariant subspace is fixed by `conjSub`. -/
 theorem subspaceSubgroup_balanced (V : Submodule (ZMod 2) (Vec n))
     (hV : ∀ v ∈ V, swapV v ∈ V) :
     conjSub (subspaceSubgroup V hV) = subspaceSubgroup V hV := by
@@ -66,15 +91,21 @@ theorem subspaceSubgroup_balanced (V : Submodule (ZMod 2) (Vec n))
   rw [phi_swapFun]
   exact hV (phi g) hg
 
+/-- The vector subspace associated with a subgroup fixed by `conjSub` is closed under `swapV`. -/
 theorem phiSub_balanced_of_conjSub (U : Subgroup (Wreath n)) (hU : conjSub U = U) :
     ∀ v ∈ phiSub U, swapV v ∈ phiSub U :=
   (phiSub_balanced_iff U).mp (balanced_of_conjSub_eq U hU)
 
+/-- Pulling back the vector subspace of a subgroup fixed by `conjSub` recovers the original
+subgroup. -/
 theorem subspaceSubgroup_phiSub (U : Subgroup (Wreath n)) (hU : conjSub U = U) :
     subspaceSubgroup (phiSub U) (phiSub_balanced_of_conjSub U hU) = U := by
   ext g
   simp only [mem_subspaceSubgroup, mem_phiSub]
 
+/-- The map `phiSub` sends subgroups fixed by `conjSub` to swap-invariant subspaces, is
+injective on these subgroups, and reaches every swap-invariant subspace. See Corollary
+4.7(c) of [RoettelerBeth1998]. -/
 theorem corollary_4_7_c_bijection :
     (∀ U : Subgroup (Wreath n), conjSub U = U →
         ∀ v ∈ phiSub U, swapV v ∈ phiSub U) ∧

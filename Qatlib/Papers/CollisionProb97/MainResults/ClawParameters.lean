@@ -8,6 +8,33 @@ import Qatlib.Papers.CollisionProb97.MainResults.SampledClaw
 import Qatlib.Papers.CollisionProb97.MainResults.BijectiveClaw
 import Qatlib.Papers.CollisionProb97.MainResults.IntegerParameters
 import Qatlib.Papers.CollisionProb97.MainResults.InputSelection
+
+/-!
+# Cube-root parameters for claw finding
+
+This module chooses integer cube-root table sizes for the bijective and regular sampled claw
+algorithms of [BrassardHoyerTapp1998Collision]. The results `bijective_cube_root` and
+`sampled_cube_root` bound the expected numbers of evaluations of the two functions separately.
+
+The singleton codomain case is handled by `singletonRun`, which compares one value from each
+function without constructing a table.
+
+## Main statements
+
+* `bijective_cube_root`: For injective `F` and bijective `G` on equally sized domains, choose a
+  table of integer cube-root size with the stated separate cube-root bounds on expected `F` and
+  `G` evaluations, as in Theorem 4 of [BrassardHoyerTapp1998Collision].
+* `sampled_cube_root`: For regular surjections to a codomain of size at least two, choose an
+  admissible integer cube-root table size with the stated separate bounds on expected `F` and
+  `G` evaluations, supporting Theorem 5 of [BrassardHoyerTapp1998Collision].
+* `singletonRun_correct`: For a singleton codomain, the chosen inputs form a claw and
+  `singletonRun` returns it with cost pair `(1, 1)`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +52,9 @@ variable {S X R : Type} [Fintype S] [DecidableEq S] [Nonempty S]
 
 omit [Nonempty S] in
 
+/-- For injective `F` and bijective `G` on equally sized domains, choose a table of integer
+cube-root size with the stated separate cube-root bounds on expected `F` and `G`
+evaluations, as in Theorem 4 of [BrassardHoyerTapp1998Collision]. -/
 theorem bijective_cube_root (F : S → R) (hF : Function.Injective F)
     (G : X → R) (hG : Function.Bijective G) (hSX : Fintype.card S = Fintype.card X)
     (l : ℝ) (hl : 1 < l) (hl4 : l < 4/3) :
@@ -62,6 +92,9 @@ theorem bijective_cube_root (F : S → R) (hF : Function.Injective F)
     have h2 := mul_le_mul_of_nonneg_left hroot (mul_nonneg (by norm_num : (0:ℝ) ≤ 3) hg)
     nlinarith
 
+/-- For regular surjections to a codomain of size at least two, choose an admissible integer
+cube-root table size with the stated separate bounds on expected `F` and `G` evaluations,
+supporting Theorem 5 of [BrassardHoyerTapp1998Collision]. -/
 theorem sampled_cube_root (F : S → R) (rF : ℕ) (hrF : 0 < rF) (hF : RToOne F rF)
     (hontoF : Finset.univ.image F = Finset.univ)
     (G : X → R) (rG : ℕ) (hrG : 0 < rG) (hG : RToOne G rG)
@@ -112,14 +145,20 @@ theorem sampled_cube_root (F : S → R) (rF : ℕ) (hrF : 0 < rF) (hF : RToOne F
 
 omit [AddCommGroup R] [DecidableEq R] in
 
+/-- A codomain of cardinality one cannot satisfy the half-image table constraint for a positive
+table size. -/
 theorem singleton_no_table (hm : Fintype.card R = 1) (k : ℕ) (hk : 0 < k) :
     ¬ 2*k ≤ Fintype.card R := by omega
 
+/-- The deterministic law comparing `F s` and `G x`, returning the pair exactly when the values
+agree and recording one evaluation of each function. -/
 def singletonRun (F : S → R) (G : X → R) (s : S) (x : X) : PMF (Option (S × X) × (ℕ × ℕ)) :=
   PMF.pure ((if F s = G x then some (s,x) else none),(1,1))
 
 omit [Nonempty S] [Nonempty X] in
 
+/-- With empty table memory, the single-query circuits for `F` and `G` each use one query and
+produce the corresponding evaluated basis states [BrassardHoyerTapp1998Collision]. -/
 theorem singleton_fetch_words (F : S → R) (G : X → R) (s : S) (x : X) :
     QueryCount ([Step.query] : Circuit ((S × R) × ReadOnlyTable.Memory (X := S) (R := R) 0)) = 1 ∧
     QueryCount ([Step.query] : Circuit ((X × R) × ReadOnlyTable.Memory (X := X) (R := R) 0)) = 1 ∧
@@ -131,6 +170,8 @@ theorem singleton_fetch_words (F : S → R) (G : X → R) (s : S) (x : X) :
 
 omit [Fintype S] [DecidableEq S] [Nonempty S] [Fintype X] [DecidableEq X] [Nonempty X] [AddCommGroup R] in
 
+/-- For a singleton codomain, the chosen inputs form a claw and `singletonRun` returns it with
+cost pair `(1, 1)`. -/
 theorem singletonRun_correct (F : S → R) (G : X → R) (s : S) (x : X)
     (hm : Fintype.card R = 1) :
     singletonRun F G s x = PMF.pure (some (s,x),(1,1)) ∧ F s = G x := by

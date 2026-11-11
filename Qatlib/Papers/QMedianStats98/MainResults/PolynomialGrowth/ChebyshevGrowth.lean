@@ -8,12 +8,35 @@ import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Extremal
 
+/-!
+# Chebyshev control of polynomial growth
+
+This module proves the exterior polynomial-growth estimate recorded as Corollary A.4 in
+[NayakWu1998]. A real polynomial of degree at most `d` bounded by `c` on `[-a, a]` is bounded
+outside that interval by `c * |T_d(x/a)|`.
+
+The normalized estimate on `[1, ∞)` follows from Chebyshev extremality. Scaling and reflection
+extend it to arbitrary positive interval radius and both exterior rays, including the case `c =
+0`.
+
+## Main statements
+
+- `abs_eval_le_eval_T_of_one_le`: gives the normalized exterior estimate.
+- `corollary_A_4`: gives the scaled two-sided Chebyshev growth bound.
+
+## References
+
+[Nayak and Wu, 1998][NayakWu1998]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.QMedianStats98.MainResults.PolynomialGrowth
 
 open Polynomial
 
+/-- If a real polynomial has degree at most `d` and absolute value at most one on `[-1, 1]`,
+then its absolute value at any `y ≥ 1` is at most `T_d(y)`. -/
 theorem abs_eval_le_eval_T_of_one_le {d : ℕ} {P : Polynomial ℝ}
     (hdeg : P.natDegree ≤ d)
     (hb : ∀ y ∈ Set.Icc (-1 : ℝ) 1, |P.eval y| ≤ 1)
@@ -35,6 +58,9 @@ theorem abs_eval_le_eval_T_of_one_le {d : ℕ} {P : Polynomial ℝ}
     linarith
   · exact h1
 
+/-- For `a > 0` and `c ≥ 0`, a real polynomial of degree at most `d` bounded by `c` on `[-a, a]`
+satisfies `|p(x)| ≤ c * |T_d(x/a)|` whenever `|x| ≥ a`. This is Corollary A.4 of
+[NayakWu1998]. -/
 theorem corollary_A_4 {d : ℕ} {p : Polynomial ℝ} {a c x : ℝ}
     (ha : 0 < a) (hc : 0 ≤ c) (hdeg : p.natDegree ≤ d)
     (hb : ∀ y : ℝ, |y| ≤ a → |p.eval y| ≤ c)

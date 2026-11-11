@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.DegreeConcentration
+
+/-!
+# Rounding estimates for classification budgets
+
+The ceiling and floor inequalities in this module control the rounded parameters used in the
+combinatorial algorithm. `source_iteration_real_bound` bounds the integer count of high degree
+iterations by a real power of the graph size, assuming the rounded low degree threshold is
+positive. For background on quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `ceil_le_twice_of_one_le`: For `1 ≤ x`, the real value of `Nat.ceil x` is at most `2 * x`.
+* `source_iteration_real_bound`: For nonnegative `δ` and `ε'` and a positive rounded low degree
+  threshold, the prescribed integer iteration bound is at most `21 * n^(δ + ε')`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -13,15 +33,19 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical
 
+/-- For `1 ≤ x`, the real value of `Nat.ceil x` is at most `2 * x`. -/
 theorem ceil_le_twice_of_one_le (x : ℝ) (hx : 1≤ x) : (Nat.ceil x:ℝ)≤2*x := by
   have hh:=Nat.ceil_lt_add_one (by linarith : 0≤ x)
   linarith
 
+/-- If `1 ≤ Nat.floor x`, then the real value of `Nat.floor x` is at least `x / 2`. -/
 theorem positive_floor_ge_half (x : ℝ) (hx : 1≤ Nat.floor x) : x/2≤(Nat.floor x:ℝ) := by
   have h1 : (1:ℝ)≤ Nat.floor x := by exact_mod_cast hx
   have hh:=Nat.lt_floor_add_one x
   linarith
 
+/-- For nonnegative `δ` and `ε'` and a positive rounded low degree threshold, the prescribed
+integer iteration bound is at most `21 * n^(δ + ε')`. -/
 theorem source_iteration_real_bound (n : ℕ) (δ ε' : ℝ) (hn : 1≤ n) (hδ : 0≤δ) (hε : 0≤ε')
     (hdLo : 1≤ Nat.floor ((n:ℝ)^(1-δ)/10)) :
     ((n*n/(Nat.floor ((n:ℝ)^(1-δ)/10)*Nat.ceil ((n:ℝ)^(1-ε')))+1:ℕ):ℝ)≤21*(n:ℝ)^(δ+ε') := by

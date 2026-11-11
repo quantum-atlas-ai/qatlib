@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HittingTimes08.MainResults.Comparison
+
+/-!
+# Coordinate identities for the Tulsi construction
+
+The structure `TulsiData` packages positive spectral parameters and weighted coordinate
+relations for the original and modified vectors. This module solves those relations explicitly,
+following the coordinate formulas of [MagniezEtAl2008].
+
+## Main statements
+
+* `lemma_4_1`: solves the original weighted coordinate relations.
+* `corollary_4_5`: solves the modified relations with the additional `cos theta` factor.
+
+## References
+
+* [Magniez et al., 2008][MagniezEtAl2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,8 +33,11 @@ namespace Qatlib.Papers.HittingTimes08.MainResults
 
 open scoped BigOperators
 
+/-- The real cotangent, defined as `cos x / sin x`. -/
 def cot (x : ℝ) : ℝ := Real.cos x / Real.sin x
 
+/-- Positive spectral weights and phases, a nonzero scalar `a0`, and original and modified
+complex coordinates satisfying the specified weighted coordinate identities. -/
 structure TulsiData (A : Type*) [Fintype A] [DecidableEq A] where
 
   W : A → ℝ
@@ -58,6 +79,9 @@ namespace TulsiData
 
 variable {A : Type*} [Fintype A] [DecidableEq A]
 
+/-- The original coordinates satisfy `mu a = 1 / W a` and `phi a = I * a0 * cot (alpha a / 2) /
+W a`. These are the coordinate formulas associated with [Magniez et al., Lemma
+4.1][MagniezEtAl2008]. -/
 theorem lemma_4_1 (D : TulsiData A) :
     (∀ a, D.mu a = (1 : ℂ) / (D.W a : ℂ)) ∧
       (∀ a, D.phi a =
@@ -80,6 +104,8 @@ theorem lemma_4_1 (D : TulsiData A) :
     rw [eq_div_iff hW]
     simpa using h
 
+/-- The modified coordinates satisfy `target a = 1 / Wt a` and `phiTheta a = I * a0 * cos theta
+* cot (alphaT a / 2) / Wt a`, as in Corollary 4.5 of [MagniezEtAl2008]. -/
 theorem corollary_4_5 (D : TulsiData A) :
     (∀ a, D.target a = (1 : ℂ) / (D.Wt a : ℂ)) ∧
       (∀ a, D.phiTheta a =

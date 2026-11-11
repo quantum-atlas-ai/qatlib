@@ -11,12 +11,35 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 
+/-!
+# A three-dimensional Schur block estimate
+
+This module defines the parameterized matrix `q1SchurBlock` and expands its real quadratic form
+as a weighted sum of squared complex norms. Under nonnegative `t₁` and `t₂` with positive sum
+and `s₁, s₂ ≥ 3`, the expansion gives the lower bound in `q1_schur_lower`; see [Bhatia2007] for
+the surrounding matrix positivity methods.
+
+## Main statements
+
+* `q1_schur_quadratic_sos`: When `t₁ + t₂` is nonzero, the real quadratic form of `q1SchurBlock`
+  expands into the stated weighted sum of six squared complex norms.
+
+* `q1_schur_lower`: For nonnegative `t₁` and `t₂` with positive sum and `s₁, s₂ ≥ 3`, the real
+  quadratic form of `q1SchurBlock` is at least three times the total squared coordinate norm.
+
+## References
+
+* [Bhatia, 2007][Bhatia2007]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.GramQueryCore.GramRealization.SchurTensorBlock
 
 open Matrix
 
+/-- The real-entry complex matrix of size three defined by the six parameters and the Schur
+correction with denominator `t₁ + t₂`. -/
 noncomputable def q1SchurBlock (t₁ t₂ r₁ r₂ s₁ s₂ : ℝ) :
     Matrix (Fin 3) (Fin 3) ℂ :=
   let T := t₁ + t₂
@@ -28,6 +51,8 @@ noncomputable def q1SchurBlock (t₁ t₂ r₁ r₂ s₁ s₂ : ℝ) :
      ((-b₁*b₂/T : ℝ) : ℂ), ((d₁+t₂-b₁^2/T : ℝ) : ℂ), (b₂ : ℂ);
      (b₁ : ℂ), (b₂ : ℂ), ((d₁+d₂ : ℝ) : ℂ)]
 
+/-- When `t₁ + t₂` is nonzero, the real quadratic form of `q1SchurBlock` expands into the stated
+weighted sum of six squared complex norms. -/
 theorem q1_schur_quadratic_sos (t₁ t₂ r₁ r₂ s₁ s₂ : ℝ)
     (hT : t₁ + t₂ ≠ 0) (z : Fin 3 → ℂ) :
     (dotProduct (star z) (q1SchurBlock t₁ t₂ r₁ r₂ s₁ s₂ *ᵥ z)).re =
@@ -45,6 +70,8 @@ theorem q1_schur_quadratic_sos (t₁ t₂ r₁ r₂ s₁ s₂ : ℝ)
   field_simp [hT]
   ring
 
+/-- For nonnegative `t₁` and `t₂` with positive sum and `s₁, s₂ ≥ 3`, the real quadratic form of
+`q1SchurBlock` is at least three times the total squared coordinate norm. -/
 theorem q1_schur_lower (t₁ t₂ r₁ r₂ s₁ s₂ : ℝ)
     (ht₁ : 0 ≤ t₁) (ht₂ : 0 ≤ t₂) (hT : 0 < t₁+t₂)
     (hs₁ : 3 ≤ s₁) (hs₂ : 3 ≤ s₂) (z : Fin 3 → ℂ) :

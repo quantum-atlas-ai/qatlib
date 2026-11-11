@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceAnalyticSeries
 import Qatlib.Concepts.GradientOracle.GradientAlgo.AnalyticCentralDifferenceGridErrorStat
 import Mathlib.Analysis.Analytic.Linear
+
+/-!
+# Coordinate tensors and analytic ray expansions
+
+This module expands multilinear forms in the standard Euclidean basis and bounds diagonal
+evaluation by coordinate coefficients. It then obtains a Taylor expansion along each ray under
+the derivative growth condition used in [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `centralDiff_tensor_growth`: coordinate bounds control diagonal evaluation by a power of the
+  coordinate absolute sum.
+* `centralDiff_ray_hasSum`: the ray Taylor series sums to `f (t • y)`.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +34,8 @@ noncomputable section
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators Topology NNReal ENNReal
 
+/-- Expands diagonal evaluation of a continuous multilinear form as a sum of standard-basis
+coefficients times coordinate monomials. -/
 theorem centralDiff_tensor_coordinates (d k : ℕ)
     (F : ContinuousMultilinearMap ℝ (fun _ : Fin k => EuclideanSpace ℝ (Fin d)) ℝ)
     (y : EuclideanSpace ℝ (Fin d)) :
@@ -29,6 +50,8 @@ theorem centralDiff_tensor_coordinates (d k : ℕ)
   intro α _
   rw [F.map_smul_univ,smul_eq_mul,mul_comm]
 
+/-- If every standard-basis coefficient of a degree-`k` multilinear form has absolute value at
+most `D`, its diagonal evaluation at `y` has absolute value at most `D*(∑ j, |y j|)^k`. -/
 theorem centralDiff_tensor_growth (d k : ℕ)
     (F : ContinuousMultilinearMap ℝ (fun _ : Fin k => EuclideanSpace ℝ (Fin d)) ℝ)
     (D : ℝ)
@@ -47,6 +70,8 @@ theorem centralDiff_tensor_growth (d k : ℕ)
       rw [← Finset.mul_sum,← Fintype.prod_sum (fun (_ : Fin k) (j : Fin d) => |y j|)]
       simp
 
+/-- For an analytic function with the stated coordinate-derivative growth, the Taylor series of
+its restriction to the ray through `y` sums to `f (t • y)` for every real `t`. -/
 theorem centralDiff_ray_hasSum (d : ℕ) (f : EuclideanSpace ℝ (Fin d) → ℝ)
     (hf : AnalyticOnNhd ℝ f Set.univ) (c : ℝ) (hc : 0≤c)
     (hb : ∀ (k : ℕ) (α : Fin k → Fin d),

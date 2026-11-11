@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
 import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+
+/-!
+# Counted Bell teleportation circuits
+
+This module implements Bell teleportation as the observed circuit `teleportProgram` and
+identifies its actual reduced branches with the corrected instrument branches. Matrix unit
+calculations establish recovery of arbitrary operators and preservation of an arbitrary finite
+reference.
+
+The circuit is well formed with four accepted leaves, six gates and one measurement per leaf,
+and no queries. `teleportMessage` gives an injective two bit encoding of Alice's outcome, as in
+the qubit protocol of [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `bell_actual_program_legality_and_counts`: circuit validity and exact leaf counts.
+* `bell_actual_program_branch_bridge`: equality of actual and instrument branches.
+* `bell_actual_program_reference_recovery`: recovery with a reference register.
+* `bell_classical_message_cost`: two bits distinguish the four outcomes.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,12 +50,14 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- Relabeling matrix indices preserves addition. -/
 theorem relabelGate_add' {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (A B : Matrix I I ℂ) :
     relabelGate e (A + B) = relabelGate e A + relabelGate e B := by
   ext x y
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.add_apply]
 
+/-- Relabeling matrix indices preserves complex scalar multiplication. -/
 theorem relabelGate_smul' {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (c : ℂ) (A : Matrix I I ℂ) :
     relabelGate e (c • A) = c • relabelGate e A := by
@@ -38,21 +65,26 @@ theorem relabelGate_smul' {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] 
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.smul_apply,
     smul_eq_mul]
 
+/-- Tracing out Alice's Boolean register pair preserves addition. -/
 theorem traceLeft_add' (A B : Matrix ((Bool × Bool) × Bool) ((Bool × Bool) × Bool) ℂ) :
     Matrix.traceLeft (A + B) = Matrix.traceLeft A + Matrix.traceLeft B := by
   ext c c'
   simp only [Matrix.traceLeft, Matrix.of_apply, Matrix.add_apply, Finset.sum_add_distrib]
 
+/-- Tracing out Alice's Boolean register pair preserves complex scalar multiplication. -/
 theorem traceLeft_smul' (c : ℂ)
     (A : Matrix ((Bool × Bool) × Bool) ((Bool × Bool) × Bool) ℂ) :
     Matrix.traceLeft (c • A) = c • Matrix.traceLeft A := by
   ext c' c''
   simp only [Matrix.traceLeft, Matrix.of_apply, Matrix.smul_apply, Finset.mul_sum, smul_eq_mul]
 
+/-- The rank one matrix with entries `u r * conj (w r')`. -/
 noncomputable def matOuter {I : Type*} [Fintype I] [DecidableEq I]
     (u w : QState I) : Matrix I I ℂ :=
   Matrix.of fun r r' => u r * (starRingEnd ℂ) (w r')
 
+/-- Scaling the two vectors in `matOuter` scales the matrix by the first scalar times the
+conjugate of the second. -/
 theorem matOuter_smul_smul {I : Type*} [Fintype I] [DecidableEq I] (c d : ℂ) (u w : QState I) :
     matOuter (c • u) (d • w) = (c * (starRingEnd ℂ) d) • matOuter u w := by
   ext r r'
@@ -60,6 +92,7 @@ theorem matOuter_smul_smul {I : Type*} [Fintype I] [DecidableEq I] (c d : ℂ) (
     map_mul]
   ring
 
+/-- Conjugation of `matOuter u w` by `L` applies `L` to both of its defining vectors. -/
 theorem matOuter_sandwich {I : Type*} [Fintype I] [DecidableEq I] (L : Matrix I I ℂ)
     (u w : QState I) :
     L * matOuter u w * Lᴴ = matOuter (ApplyGate L u) (ApplyGate L w) := by
@@ -81,6 +114,8 @@ theorem matOuter_sandwich {I : Type*} [Fintype I] [DecidableEq I] (L : Matrix I 
         = (starRingEnd ℂ) (L r' q * w q) from by rw [map_mul]; ring),
     ← map_sum (starRingEnd ℂ) (fun q => L r' q * w q)]
 
+/-- Relabeling both vectors of `matOuter` and then relabeling the matrix back recovers the
+original matrix. -/
 theorem relabelGate_matOuter {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (u w : QState I) :
     relabelGate e.symm (matOuter (relabelState e u) (relabelState e w)) = matOuter u w := by
@@ -89,18 +124,27 @@ theorem relabelGate_matOuter {I J : Type*} [Fintype I] [DecidableEq I] [Fintype 
     Matrix.of_apply, relabelState, Function.comp_apply, Equiv.symm_symm,
     Equiv.symm_apply_apply]
 
+/-- The Pauli X correction on Bob's register selected by the second bit of the encoded outcome
+`k`. -/
 noncomputable def teleportBobXGate (k : Fin 4) : Operator 8 :=
   relabelGate teleportRegisterEquiv (teleportXcB (teleportOutcomeEquiv.symm k).2)
 
+/-- The Pauli Z correction on Bob's register selected by the first bit of the encoded outcome
+`k`. -/
 noncomputable def teleportBobZGate (k : Fin 4) : Operator 8 :=
   relabelGate teleportRegisterEquiv (teleportZcB (teleportOutcomeEquiv.symm k).1)
 
+/-- The encoded pair of Alice's Boolean register values extracted from a flattened three qubit
+index. -/
 def teleportAliceLabel (r : Fin 8) : Fin 4 :=
   teleportOutcomeEquiv (teleportRegisterEquiv.symm r).1
 
+/-- The projector onto the register subspace whose Alice label is `k`. -/
 noncomputable def teleportAliceProjectorGate (k : Fin 4) : Operator 8 :=
   Projector (Finset.univ.filter (fun i => teleportAliceLabel i = k))
 
+/-- The observed Bell teleportation circuit with resource preparation, Bell decoding, Alice's
+four outcome measurement, and Bob's two conditional Pauli gates. -/
 noncomputable def teleportProgram : ObservedCircuit (Fin 8) :=
   .step (.gate teleportHbGate) (.step (.gate teleportCnotBcGate)
     (.step (.gate teleportCnotAbGate) (.step (.gate teleportHaGate)
@@ -108,12 +152,16 @@ noncomputable def teleportProgram : ObservedCircuit (Fin 8) :=
         (fun k => .step (.gate (teleportBobXGate k))
           (.step (.gate (teleportBobZGate k)) (.halt true)))))))
 
+/-- The leaf index corresponding to Alice's Boolean outcome pair. -/
 noncomputable def teleportProgramLeaf (o : Bool × Bool) :
     Fin (observedLeafCount teleportProgram) :=
   Fin.cast (by rfl) (teleportOutcomeEquiv o)
 
+/-- The two bit message listing Alice's first and second measurement outcomes. -/
 def teleportMessage (o : Bool × Bool) : List Bool := [o.1, o.2]
 
+/-- Expands the selected program leaf operator as the ordered product of preparation gates,
+decoding gates, Alice's projector, and Bob's corrections. -/
 theorem teleportLeafOperator_eq (o : Bool × Bool) :
     (observedLeaf (1 : Operator 8) teleportProgram (teleportProgramLeaf o)).operator
       = ((((((((1 : Operator 8) * teleportBobZGate (teleportOutcomeEquiv o))
@@ -126,6 +174,8 @@ theorem teleportLeafOperator_eq (o : Bool × Bool) :
   rcases o with ⟨a, b⟩
   cases a <;> cases b <;> rfl
 
+/-- Bob's output operator for a selected actual circuit leaf, obtained by embedding the input,
+applying the leaf operator, and tracing out Alice. -/
 noncomputable def teleportActualBranchCore (o : Bool × Bool) (ρ : Operator 2) : Operator 2 :=
   relabelGate boolEquivFin2 (Matrix.traceLeft
     (relabelGate teleportRegisterEquiv.symm
@@ -133,6 +183,7 @@ noncomputable def teleportActualBranchCore (o : Bool × Bool) (ρ : Operator 2) 
         * (teleportInitialFrame * ρ * teleportInitialFrame.conjTranspose)
         * (observedLeaf (1 : Operator 8) teleportProgram (teleportProgramLeaf o)).operator.conjTranspose)))
 
+/-- The complex linear map on input operators induced by a selected actual Bell circuit branch. -/
 noncomputable def teleportActualBranchMap (o : Bool × Bool) : Operator 2 →ₗ[ℂ] Operator 2 where
   toFun := teleportActualBranchCore o
   map_add' := by
@@ -145,6 +196,7 @@ noncomputable def teleportActualBranchMap (o : Bool × Bool) : Operator 2 →ₗ
     simp only [Matrix.mul_smul, Matrix.smul_mul, relabelGate_smul', traceLeft_smul',
       RingHom.id_apply]
 
+/-- The conditional Pauli X gate on Bob's Boolean register is unitary. -/
 theorem teleportXcB_unitary (β : Bool) :
     teleportXcB β ∈ Matrix.unitaryGroup ((Bool × Bool) × Bool) ℂ := by
   cases β
@@ -153,6 +205,7 @@ theorem teleportXcB_unitary (β : Bool) :
   · simp only [teleportXcB, if_true]
     exact tensorGate_unitary (Submonoid.one_mem _) pauliX_unitary
 
+/-- The conditional Pauli Z gate on Bob's Boolean register is unitary. -/
 theorem teleportZcB_unitary (α : Bool) :
     teleportZcB α ∈ Matrix.unitaryGroup ((Bool × Bool) × Bool) ℂ := by
   cases α
@@ -161,42 +214,53 @@ theorem teleportZcB_unitary (α : Bool) :
   · simp only [teleportZcB, if_true]
     exact tensorGate_unitary (Submonoid.one_mem _) pauliZ_unitary
 
+/-- The flattened Bob X correction selected by an encoded outcome is unitary. -/
 theorem teleportBobXGate_unitary (k : Fin 4) :
     teleportBobXGate k ∈ Matrix.unitaryGroup (Fin 8) ℂ :=
   teleportRelabelGate_mem_unitaryGroup (teleportXcB_unitary _) _
 
+/-- The flattened Bob Z correction selected by an encoded outcome is unitary. -/
 theorem teleportBobZGate_unitary (k : Fin 4) :
     teleportBobZGate k ∈ Matrix.unitaryGroup (Fin 8) ℂ :=
   teleportRelabelGate_mem_unitaryGroup (teleportZcB_unitary _) _
 
+/-- The flattened Hadamard gate on register `b` is unitary. -/
 theorem teleportHbGate_unitary : teleportHbGate ∈ Matrix.unitaryGroup (Fin 8) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary
       (tensorGate_unitary (Submonoid.one_mem _) hadamard_unitary) (Submonoid.one_mem _)) _
 
+/-- The flattened CNOT gate from `b` to `c` is unitary. -/
 theorem teleportCnotBcGate_unitary : teleportCnotBcGate ∈ Matrix.unitaryGroup (Fin 8) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (teleportRelabelGate_mem_unitaryGroup
       (tensorGate_unitary (Submonoid.one_mem _) cnot_unitary) _) _
 
+/-- The flattened CNOT gate from `a` to `b` is unitary. -/
 theorem teleportCnotAbGate_unitary : teleportCnotAbGate ∈ Matrix.unitaryGroup (Fin 8) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary cnot_unitary (Submonoid.one_mem _)) _
 
+/-- The flattened Hadamard gate on register `a` is unitary. -/
 theorem teleportHaGate_unitary : teleportHaGate ∈ Matrix.unitaryGroup (Fin 8) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary
       (tensorGate_unitary hadamard_unitary (Submonoid.one_mem _)) (Submonoid.one_mem _)) _
 
+/-- Alice's outcome projector expressed in the three Boolean register coordinates. -/
 noncomputable def teleportProjectorB (o : Bool × Bool) :
     Matrix ((Bool × Bool) × Bool) ((Bool × Bool) × Bool) ℂ :=
   relabelGate teleportRegisterEquiv.symm
     (teleportAliceProjectorGate (teleportOutcomeEquiv o))
 
+/-- Extracting Alice's label after flattening a Boolean register triple gives the encoding of
+its first two bits. -/
 theorem teleportAliceLabel_congr (q : ((Bool × Bool) × Bool)) :
     teleportAliceLabel (teleportRegisterEquiv q) = teleportOutcomeEquiv q.1 := by
   simp only [teleportAliceLabel, Equiv.symm_apply_apply]
 
+/-- Alice's projector retains precisely the amplitudes whose encoded Alice outcome equals the
+selected outcome. -/
 theorem teleportProjectorB_apply (o : Bool × Bool) (ψ : QState ((Bool × Bool) × Bool)) :
     ApplyGate (teleportProjectorB o) ψ
       = fun p => if teleportOutcomeEquiv p.1 = teleportOutcomeEquiv (o.1, o.2)
@@ -237,12 +301,16 @@ theorem teleportProjectorB_apply (o : Bool × Bool) (ψ : QState ((Bool × Bool)
   · rw [if_pos hl, if_pos hl, if_pos rfl, one_mul]
   · rw [if_neg hl, if_neg hl, zero_mul]
 
+/-- The conditional X correction acts on amplitudes by replacing Bob's bit with its exclusive or
+with `β`. -/
 theorem teleportXcB_apply' (β : Bool) (ψ : QState ((Bool × Bool) × Bool)) :
     ApplyGate (teleportXcB β) ψ = fun p => ψ (p.1, p.2 ^^ β) := by
   rw [teleportXcB_apply]
   funext p
   cases β <;> simp
 
+/-- A selected circuit leaf sends an initialized input basis vector to one half of the basis
+vector carrying Alice's selected outcome and the same input on Bob. -/
 theorem teleportLeafColumn (o : Bool × Bool) (i : Fin 2) :
     ApplyGate ((observedLeaf (1 : Operator 8) teleportProgram (teleportProgramLeaf o)).operator)
         (relabelState teleportRegisterEquiv (Qatlib.Foundations.PureStateMath.Ket ((boolEquivFin2.symm i, false), false)))
@@ -298,9 +366,11 @@ theorem teleportLeafColumn (o : Bool × Bool) (i : Fin 2) :
         rw [Prod.mk.injEq] at hp
         exact hα (congrArg Prod.fst hp.1)), mul_zero]
 
+/-- The qubit matrix unit with its single nonzero entry in row `i` and column `j`. -/
 noncomputable def teleportMatUnit (i j : Fin 2) : Operator 2 :=
   Matrix.of fun c c' => if c = i ∧ c' = j then (1 : ℂ) else 0
 
+/-- Expands any qubit operator as the sum of its entries times the corresponding matrix units. -/
 theorem teleportMatUnit_decomp (ρ : Operator 2) :
     ρ = ∑ p : Fin 2 × Fin 2, ρ p.1 p.2 • teleportMatUnit p.1 p.2 := by
   ext c c'
@@ -321,6 +391,8 @@ theorem teleportMatUnit_decomp (ρ : Operator 2) :
       exact ⟨hc.1.symm, hc.2.symm⟩
     rw [if_neg hnc]
 
+/-- Embedding a matrix unit by the initial frame gives the outer matrix of the corresponding two
+frame columns. -/
 theorem teleportFrame_matUnit (i j : Fin 2) :
     teleportInitialFrame * teleportMatUnit i j * teleportInitialFrame.conjTranspose
       = matOuter (fun r => teleportInitialFrame r i)
@@ -349,6 +421,8 @@ theorem teleportFrame_matUnit (i j : Fin 2) :
   · intro a ha
     rw [if_neg ha, zero_mul]
 
+/-- Tracing out a fixed Alice basis label from a basis ket bra matrix leaves the ket bra matrix
+on Bob's register. -/
 theorem traceLeft_matOuter_ket (o : Bool × Bool) (x y : Bool) :
     Matrix.traceLeft (matOuter (Qatlib.Foundations.PureStateMath.Ket ((o.1, o.2), x)) (Qatlib.Foundations.PureStateMath.Ket ((o.1, o.2), y)))
       = matOuter (Qatlib.Foundations.PureStateMath.Ket x) (Qatlib.Foundations.PureStateMath.Ket y) := by
@@ -356,6 +430,8 @@ theorem traceLeft_matOuter_ket (o : Bool × Bool) (x y : Bool) :
   simp only [Matrix.traceLeft, Matrix.of_apply, matOuter, ket_apply, Prod.mk.injEq]
   cases o.1 <;> cases o.2 <;> cases x <;> cases y <;> cases c <;> cases c' <;> simp
 
+/-- Relabeling Boolean basis ket bra matrices to `Fin 2` gives the corresponding qubit matrix
+units. -/
 theorem relabelGate_matOuter_ket (i j : Fin 2) :
     relabelGate boolEquivFin2
         (matOuter (Qatlib.Foundations.PureStateMath.Ket (boolEquivFin2.symm i)) (Qatlib.Foundations.PureStateMath.Ket (boolEquivFin2.symm j)))
@@ -376,6 +452,7 @@ theorem relabelGate_matOuter_ket (i j : Fin 2) :
       fun hc => h1 (boolEquivFin2.symm.injective hc)
     simp [hne, h1]
 
+/-- Every actual Bell circuit branch sends a matrix unit to one quarter of itself. -/
 theorem teleportActualBranchMap_matUnit (o : Bool × Bool) (i j : Fin 2) :
     teleportActualBranchMap o (teleportMatUnit i j) = (1/4:ℂ) • teleportMatUnit i j := by
   have hcolI : (fun r : Fin 8 => teleportInitialFrame r i)
@@ -401,6 +478,7 @@ theorem teleportActualBranchMap_matUnit (o : Bool × Bool) (i j : Fin 2) :
   rw [h3, Complex.conj_ofReal]
   norm_num
 
+/-- Every actual Bell circuit branch sends any qubit operator to one quarter of itself. -/
 theorem teleportActualBranchMap_apply (o : Bool × Bool) (ρ : Operator 2) :
     teleportActualBranchMap o ρ = (1/4:ℂ) • ρ := by
   have hsmul : ∀ p : Fin 2 × Fin 2,
@@ -424,6 +502,9 @@ theorem teleportActualBranchMap_apply (o : Bool × Bool) (ρ : Operator 2) :
   refine Finset.sum_congr rfl fun p _ => ?_
   rw [smul_smul]
 
+/-- The Bell teleportation program is well formed with four leaves, bijectively indexed by
+Alice's outcomes. Each leaf is accepted and records zero queries, six gates, one
+measurement, and the selected outcome. -/
 theorem bell_actual_program_legality_and_counts :
     observedWellFormed teleportProgram ∧ observedLeafCount teleportProgram = 4 ∧
       (∀ o, (observedLeaf 1 teleportProgram (teleportProgramLeaf o)).accepted = true ∧
@@ -452,6 +533,8 @@ theorem bell_actual_program_legality_and_counts :
         simp only [teleportProgramLeaf, Fin.val_cast, Equiv.apply_symm_apply]
       exact Fin.eq_of_val_eq hval
 
+/-- Each actual Bell circuit branch map equals the corresponding corrected instrument branch
+[BennettEtAl1993Teleportation]. -/
 theorem bell_actual_program_branch_bridge :
     ∀ o : Bool × Bool, teleportActualBranchMap o = teleportCorrectedInstrument.branch o := by
   intro o
@@ -459,6 +542,8 @@ theorem bell_actual_program_branch_bridge :
   intro ρ
   rw [teleportActualBranchMap_apply o ρ, teleportCorrectedInstrument_branch_apply ρ o]
 
+/-- With any finite reference register, each actual Bell circuit branch gives one quarter of the
+joint operator and summing all branches recovers it [BennettEtAl1993Teleportation]. -/
 theorem bell_actual_program_reference_recovery :
     ∀ (R : ℕ) (ρ : Matrix (Fin 2 × Fin R) (Fin 2 × Fin R) ℂ) (o : Bool × Bool),
       tensorLeft (teleportActualBranchMap o) ρ = (1/4:ℂ) • ρ ∧
@@ -468,6 +553,8 @@ theorem bell_actual_program_reference_recovery :
     Finset.sum_congr rfl (fun o' _ => by rw [bell_actual_program_branch_bridge o'])]
   exact bell_reference_channel_identity R ρ o
 
+/-- Alice's outcome message has exactly two bits, distinguishes all outcomes, and has a four
+element outcome domain [BennettEtAl1993Teleportation]. -/
 theorem bell_classical_message_cost :
     (∀ o : Bool × Bool, (teleportMessage o).length = 2) ∧
       Function.Injective teleportMessage ∧ Fintype.card (Bool × Bool) = 4 := by
@@ -478,6 +565,9 @@ theorem bell_classical_message_cost :
   rcases b with ⟨b1, b2⟩
   simp_all
 
+/-- The maximally mixed qubit state is a density operator that is not pure and is recovered by
+the sum of actual Bell branches. The branches also recover every pure outer product on the
+input and a qubit reference. -/
 theorem bell_mixed_entangled_consumer :
     IsDensityOperator ((1/2:ℂ) • (1:Operator 2)) ∧
       ¬ IsPureDensityOperator ((1/2:ℂ) • (1:Operator 2)) ∧

@@ -10,6 +10,28 @@ import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
 import Mathlib.Logic.Equiv.Fin.Basic
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.Matrix.PosDef
+
+/-!
+# Pure-state measurement updates and instrument statistics
+
+Outer-product identities relate pure-state collapse and normalization to projected density
+matrices, including zero-mass events. A two-dimensional reset channel supplies
+`instrument_pair_same_stats`, exhibiting instruments with identical outcome probabilities and
+different state updates.
+
+The mathematical background is described in [Kraus1983].
+
+## Main statements
+
+* `postMeasure_outerProduct`: the density matrix of a positive-mass conditional pure state.
+* `postMeasure_zero_mass`: vanishing state and density branch for zero mass.
+* `instrument_pair_same_stats`: equal statistics can accompany different branch maps.
+
+## References
+
+* [Kraus, 1983][Kraus1983]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -28,6 +50,7 @@ variable {D E : ℕ}
 
 namespace Qatlib.Concepts.ChannelTheory.Naimark
 
+/-- Scaling a state by `c` scales its outer product by `c * star c`. -/
 theorem outerProduct_smul {D : ℕ} (c : ℂ) (ψ : QState (Fin D)) :
     outerProduct (c • ψ) = (c * starRingEnd ℂ c) • outerProduct ψ := by
   ext i j
@@ -36,6 +59,7 @@ theorem outerProduct_smul {D : ℕ} (c : ℂ) (ψ : QState (Fin D)) :
   simp only [Pi.smul_apply, smul_eq_mul, map_mul]
   ring
 
+/-- The outer product of `Pψ` is `P * outerProduct ψ * Pᴴ`. -/
 theorem outerProduct_mulVec {D E : ℕ} (P : Matrix (Fin D) (Fin E) ℂ) (ψ : QState (Fin E)) :
     outerProduct (P *ᵥ ψ) = P * outerProduct ψ * P.conjTranspose := by
   have hmv : ∀ i : Fin D, (P *ᵥ ψ) i = ∑ x : Fin E, P i x * ψ x := by
@@ -51,6 +75,8 @@ theorem outerProduct_mulVec {D E : ℕ} (P : Matrix (Fin D) (Fin E) ℂ) (ψ : Q
   intro y _
   ring
 
+/-- Projecting both sides of a pure-state outer product gives the outer product of the collapsed
+vector. -/
 theorem projector_outerProduct_projector {D : ℕ} (S : Finset (Fin D)) (ψ : QState (Fin D)) :
     Projector S * outerProduct ψ * Projector S = outerProduct (Collapse ψ S) := by
   have hP : (Projector S).conjTranspose = Projector S := projector_conjTranspose S
@@ -61,6 +87,8 @@ theorem projector_outerProduct_projector {D : ℕ} (S : Finset (Fin D)) (ψ : QS
   rw [hP] at h
   exact h.symm
 
+/-- For a positive-mass event, the outer product of the postmeasurement state is the projected
+outer product divided by the event mass. -/
 theorem postMeasure_outerProduct {D : ℕ} (S : Finset (Fin D)) (ψ : QState (Fin D))
     (h : 0 < MeasureProb ψ S) :
     outerProduct (PostMeasure ψ S)
@@ -84,6 +112,8 @@ theorem postMeasure_outerProduct {D : ℕ} (S : Finset (Fin D)) (ψ : QState (Fi
     rw [hi, ← mul_inv, hsq]
   rw [hinv]
 
+/-- For a zero-mass event, both the postmeasurement state and the projected outer product
+vanish. -/
 theorem postMeasure_zero_mass {D : ℕ} (S : Finset (Fin D)) (ψ : QState (Fin D))
     (h : MeasureProb ψ S = 0) :
     PostMeasure ψ S = 0 ∧ Projector S * outerProduct ψ * Projector S = 0 := by
@@ -110,9 +140,12 @@ theorem postMeasure_zero_mass {D : ℕ} (S : Finset (Fin D)) (ψ : QState (Fin D
   ext i j
   simp [outerProduct]
 
+/-- The two Kraus matrices mapping each computational basis state of a qubit to basis state
+zero. -/
 noncomputable def kDrop : Fin 2 → Matrix (Fin 2) (Fin 2) ℂ :=
   ![matrixUnit 0 0, matrixUnit 0 1]
 
+/-- The two reset Kraus matrices satisfy the Kraus completeness relation. -/
 theorem krausDrop_complete : KrausComplete (n := 2) kDrop := by
   show ∑ k : Fin 2, (kDrop k).conjTranspose * kDrop k = 1
   rw [Fin.sum_univ_two]
@@ -121,6 +154,8 @@ theorem krausDrop_complete : KrausComplete (n := 2) kDrop := by
     simp [kDrop, matrixUnit, Matrix.single, Matrix.mul_apply, Matrix.conjTranspose_apply,
       Fin.sum_univ_two, ite_and, mul_ite]
 
+/-- The reset Kraus sum sends an operator `A` to its trace times the projector onto basis state
+zero. -/
 theorem krausDrop_apply (A : Operator 2) :
     (∑ k : Fin 2, kDrop k * A * (kDrop k).conjTranspose)
       = Matrix.trace A • matrixUnit 0 0 := by
@@ -131,6 +166,8 @@ theorem krausDrop_apply (A : Operator 2) :
     simp [matrixUnit, Matrix.single, Matrix.mul_apply, Matrix.trace, Fin.sum_univ_two,
       ite_and, mul_ite]
 
+/-- There exist two one-outcome qubit instruments with equal probabilities on every operator but
+different branch outputs on some operator. -/
 theorem instrument_pair_same_stats :
     ∃ (I₁ I₂ : Instrument (Fin 1) 2 2) (ρ : Operator 2) (o : Fin 1),
       (∀ (ρ' : Operator 2) (o' : Fin 1),

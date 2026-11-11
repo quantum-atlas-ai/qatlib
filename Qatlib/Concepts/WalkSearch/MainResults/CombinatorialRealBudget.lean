@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialAllocatedCost
 import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialTargets
 import Qatlib.Concepts.WalkSearch.MainResults.IntegerBounds
+
+/-!
+# Real bounds for combinatorial query budgets
+
+This module converts integer search reservations into explicit real power bounds, controlling
+logarithms, square roots, and rounding. `sourceCombinatorialBudget_real_bound` combines the
+component estimates into a capability factor and a logarithmic factor multiplying
+`sourceFourTermBudget`. For background on quantum search and amplitude amplification, see
+[BrassardEtAl2002].
+
+## Main statements
+
+* `source_log_polynomial_bound`: For `1 ≤ n`, if `x ≤ 2^a * n^p` and `2 ≤ a + p`, then `Nat.log
+  2 x + 2` is at most `(a + p) * (Nat.log 2 n + 2)`.
+* `sourceCombinatorialBudget_real_bound`: Under the stated exponent assumptions and with `1 ≤
+  dLo`, the total integer budget at the prescribed rounded parameters is at most `2^24 *
+  sourceCapabilityFeeFactor family ets * (Nat.log 2 n + 2)^4` times `sourceFourTermBudget n ε δ
+  ε'`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +42,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical
 
+/-- For `1 ≤ n`, if `x ≤ 2^a * n^p` and `2 ≤ a + p`, then `Nat.log 2 x + 2` is at most `(a + p)
+* (Nat.log 2 n + 2)`. -/
 theorem source_log_polynomial_bound (n x a p : ℕ) (_hn : 1 ≤ n)
     (hap : 2 ≤ a+p) (hx : x ≤ 2^a*n^p) :
     Nat.log 2 x+2 ≤ (a+p)*(Nat.log 2 n+2) := by
@@ -30,6 +56,8 @@ theorem source_log_polynomial_bound (n x a p : ℕ) (_hn : 1 ≤ n)
   rw [Nat.log_pow (by norm_num : 1 < 2)] at hl
   nlinarith [Nat.zero_le (a*Nat.log 2 n)]
 
+/-- For positive `n` and nonnegative `C`, the bound `(x : ℝ) ≤ C^2 * n^e` implies `(Nat.sqrt x :
+ℝ) ≤ C * n^(e / 2)`. -/
 theorem source_sqrt_rpow_bound (n x : ℕ) (e C : ℝ) (hn : 0 < n) (hC : 0 ≤ C)
     (hx : (x : ℝ) ≤ C^2*(n : ℝ)^e) :
     (Nat.sqrt x : ℝ) ≤ C*(n : ℝ)^(e/2) := by
@@ -44,6 +72,8 @@ theorem source_sqrt_rpow_bound (n x : ℕ) (e C : ℝ) (hn : 0 < n) (hC : 0 ≤ 
   rw [← hp] at hx
   exact (sq_le_sq₀ (by positivity) hc).mp (hs.trans hx)
 
+/-- For `1 ≤ n` and `1 ≤ κ` bounding the search fee factor, `n + neighborhoodFee n sgs` is at
+most `20 * κ * (Nat.log 2 n + 2) * n`. -/
 theorem source_neighborhood_real_bound (n : ℕ) (sgs : SGSExecution) (κ : ℕ)
     (hn : 1 ≤ n) (hκ : 1 ≤ κ) (hsgs : sgs.κ ≤ κ) :
     (n+neighborhoodFee n sgs : ℕ) ≤
@@ -64,6 +94,8 @@ theorem source_neighborhood_real_bound (n : ℕ) (sgs : SGSExecution) (κ : ℕ)
   push_cast at hf hkn ⊢
   nlinarith [hf]
 
+/-- Under the stated nonnegativity and fee assumptions, the prescribed preparation budget is at
+most `160 * κ * (Nat.log 2 n + 2)^2 * n^(1 + ε)`. -/
 theorem source_preparation_budget_real_bound (n : ℕ) (ε : ℝ) (sgs : SGSExecution) (κ : ℕ)
     (hn : 1≤n) (hε : 0≤ε) (hκ : 1≤κ) (hsgs : sgs.κ≤κ) :
     ((Nat.ceil (4*(n:ℝ)^ε*(Nat.log 2 n+1)))*(n+neighborhoodFee n sgs):ℕ) ≤
@@ -84,6 +116,8 @@ theorem source_preparation_budget_real_bound (n : ℕ) (ε : ℝ) (sgs : SGSExec
     ring
   simpa only [Nat.cast_mul,he] using! hh
 
+/-- With positive rounded low degree threshold and the stated fee bounds, the corrected
+classification budget is at most `548 * κ * (Nat.log 2 n + 2)^2 * n^(1 + δ + ε')`. -/
 theorem source_classification_budget_real_bound (n : ℕ) (δ ε' : ℝ) (sgs : SGSExecution) (κ : ℕ)
     (hn : 1≤n) (hδ : 0≤δ) (hε' : 0≤ε') (hκ : 1≤κ) (hsgs : sgs.κ≤κ)
     (hdLo : 1≤Nat.floor ((n:ℝ)^(1-δ)/10)) :
@@ -128,6 +162,8 @@ theorem source_classification_budget_real_bound (n : ℕ) (δ ε' : ℝ) (sgs : 
   push_cast at hb1' hb2'
   nlinarith
 
+/-- For `0 ≤ ε' < 1` and the stated fee bounds, the triangle reservation is at most `60 * κ *
+(Nat.log 2 n + 2) * n^((3 - ε') / 2)`. -/
 theorem source_triangle_budget_real_bound (n : ℕ) (ε' : ℝ) (sgs : SGSExecution) (κ : ℕ)
     (hn : 1≤n) (hε' : 0≤ε') (hε'1 : ε'<1) (_hκ : 1≤κ) (hsgs : sgs.κ≤κ) :
     (sourceTriangleReservation sgs n (Nat.ceil ((n:ℝ)^(1-ε'))) : ℝ) ≤
@@ -183,6 +219,8 @@ theorem source_triangle_budget_real_bound (n : ℕ) (ε' : ℝ) (sgs : SGSExecut
   dsimp only [x,τ] at hh
   nlinarith only [hh]
 
+/-- Under the stated parameter and rounding assumptions, the moved edge mass bound is at most
+`124 * n^(2 - min δ (ε - δ - ε'))`. -/
 theorem source_edge_mass_real_bound (n : ℕ) (ε δ ε' : ℝ) (hn : 1≤n)
     (hε : ε≤1) (hδ : 0≤δ) (hδ1 : δ≤1) (hε' : 0≤ε') (_hparam : δ+ε'≤ε)
     (hdLo : 1≤Nat.floor ((n:ℝ)^(1-δ)/10)) :
@@ -224,6 +262,8 @@ theorem source_edge_mass_real_bound (n : ℕ) (ε δ ε' : ℝ) (hn : 1≤n)
   push_cast at hb1 hb2 ⊢
   nlinarith only [hb1,hb2,hp1,hp2]
 
+/-- Under the stated parameter and fee assumptions, the promised edge reservation is at most
+`140 * κ * (Nat.log 2 n + 2) * n^((3 - min δ (ε - δ - ε')) / 2)`. -/
 theorem source_edge_budget_real_bound (n : ℕ) (ε δ ε' : ℝ) (ets : PromisedEdgeSearchFamily) (κ : ℕ)
     (hn : 1≤n) (hε : ε≤1) (hδ : 0≤δ) (hδ1 : δ<1) (hε' : 0≤ε') (hparam : δ+ε'≤ε)
     (_hκ : 1≤κ) (hets : ets.κ≤κ) (hdLo : 1≤Nat.floor ((n:ℝ)^(1-δ)/10)) :
@@ -274,6 +314,9 @@ theorem source_edge_budget_real_bound (n : ℕ) (ε δ ε' : ℝ) (ets : Promise
   dsimp only [M,m] at hh
   nlinarith only [hh]
 
+/-- Under the stated exponent assumptions and with `1 ≤ dLo`, the total integer budget at the
+prescribed rounded parameters is at most `2^24 * sourceCapabilityFeeFactor family ets *
+(Nat.log 2 n + 2)^4` times `sourceFourTermBudget n ε δ ε'`. -/
 theorem sourceCombinatorialBudget_real_bound (n : ℕ) (ε δ ε' : ℝ)
     (family : ScopedGroverFamily) (ets : PromisedEdgeSearchFamily)
     (hn : 0<n) (hε : 0<ε) (hε1 : ε<1) (hδ : 0<δ) (hε' : 0<ε') (hparam : δ+ε'≤ε)

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
 import Qatlib.Papers.MonteCarloInt20.MainResults.NestedWord
 import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversal
+
+/-!
+# Circuit implementation of the inner term preparation
+
+`computeCircuit` loads the PRN index, executes the native jump, and queries the finite term
+code. `bodyCircuit` adds uniform coordinate preparation, a flag rotation, and reversed
+computation for the inner Monte Carlo preparation of [KanekoEtAl2020].
+
+The evaluation theorems identify these circuits with their matrix definitions. The count and
+Born-probability theorems give two term queries and a true-flag probability equal to `termMean`.
+
+## Main statements
+
+* `bodyCircuit_eval`: identifies circuit evaluation with `innerBody`.
+* `bodyCircuit_counts`: counts the term queries and native gates.
+* `bodyCircuit_flag_born`: identifies the flag probability with the decoded term mean.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -33,12 +55,16 @@ namespace Qatlib.Papers.MonteCarloInt20.MainResults.InnerCircuit
 noncomputable local instance bodyDecision (n s d p : ℕ) : DecidableEq (BodyReg n s d p) :=
     instDecidableEqProd
 
+/-- The matrix of a concatenation of circuits is the matrix of the second circuit multiplied by
+that of the first. -/
 theorem runMatrix_append {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (C D : Circuit I) : runMatrix O (C++D)=runMatrix O D*runMatrix O C := by
   induction C with
   | nil => simp [runMatrix]
   | cons s C ih => cases s <;> simp only [List.cons_append,runMatrix,ih,Matrix.mul_assoc]
 
+/-- When the oracle is self-adjoint, reversing a circuit gives the conjugate transpose of its
+evaluation matrix. -/
 theorem runMatrix_reverse {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (hO : O.conjTranspose=O) (C : Circuit I) :
     runMatrix O (ReverseCircuit C)=(runMatrix O C).conjTranspose := by
@@ -48,10 +74,14 @@ theorem runMatrix_reverse {I : Type} [Fintype I] [DecidableEq I]
     rw [reverseCircuit_cons,runMatrix_append,ih]
     cases s <;> simp [reverseStep,runMatrix,Matrix.conjTranspose_mul,hO]
 
+/-- Replace every circuit step by a known gate obtained by evaluating the step against `O` and
+applying the matrix monoid homomorphism. -/
 def knownLift {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (f : Matrix I I ℂ →* Matrix J J ℂ) (O : Matrix I I ℂ) (C : Circuit I) : Circuit J :=
   C.map (fun s => .gate (f (stepMatrix O s)))
 
+/-- Evaluation of the known-gate lift equals the homomorphic image of the original circuit
+evaluation, independently of the lifted circuit's oracle argument. -/
 theorem knownLift_eval {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (f : Matrix I I ℂ →* Matrix J J ℂ) (O : Matrix I I ℂ) (Q : Matrix J J ℂ) (C : Circuit I) :
     runMatrix Q (knownLift f O C)=f (runMatrix O C) := by
@@ -62,6 +92,8 @@ theorem knownLift_eval {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [Dec
     rw [ih]
     cases s <;> exact (f.map_mul _ _).symm
 
+/-- A known-gate lift uses zero query tokens and one known gate for each step of the original
+circuit. -/
 theorem knownLift_counts {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (f : Matrix I I ℂ →* Matrix J J ℂ) (O : Matrix I I ℂ) (C : Circuit I) :
     QueryCount (knownLift f O C)=0 ∧ GateCount (knownLift f O C)=C.length := by
@@ -71,46 +103,65 @@ theorem knownLift_counts {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [D
     change QueryCount (knownLift f O C)=0 ∧ GateCount (knownLift f O C)+1=C.length+1
     exact ⟨ih.1,congrArg (fun x : ℕ => x+1) ih.2⟩
 
+/-- The matrix monoid homomorphism extending native PRN operations by identities on the
+coordinate, code, and flag registers. -/
 def nativeLiftHom (n s d p : ℕ) :
     Matrix (Reg (width n (s+d+1))) (Reg (width n (s+d+1))) ℂ →*
       Matrix (BodyReg n s d p) (BodyReg n s d p) ℂ :=
   rightSpectatorHom.comp (leftSpectatorHom.comp rightSpectatorHom)
 
+/-- The compiled native jump over all `s + d + 1` exponent bits, lifted as known gates to the
+inner body registers. -/
 def nativeStage {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n)) : Circuit (BodyReg n s d p) :=
   knownLift (nativeLiftHom n s d p) 1
     (reflectionCompile (nativeWord a c (List.ofFn (fun q : Fin (s+d+1) => q))))
 
+/-- The finite term-query matrix extended by the identity on the output flag. -/
 def bodyOracle {n s d p : ℕ}
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :
     Matrix (BodyReg n s d p) (BodyReg n s d p) ℂ :=
   TensorGate (queryOracle (k:=s+d+1) termCode j) 1
 
+/-- The body term-query oracle equals its conjugate transpose. -/
 theorem bodyOracle_selfadjoint {n s d p : ℕ}
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :
     (bodyOracle termCode j).conjTranspose=bodyOracle termCode j := by
   rw [bodyOracle,tensorGate_conjTranspose,queryOracle_selfadjoint,Matrix.conjTranspose_one]
 
+/-- The coordinate-selected XOR loader extended by identities on the term-code and output-flag
+registers. -/
 def loaderGate {n s d p : ℕ} (seed : ZMod (2^n)) (j : Reg s) :
     Matrix (BodyReg n s d p) (BodyReg n s d p) ℂ :=
   TensorGate (select (fun i : Reg d => TensorGate (xorMatrix (loaderMask seed j i)) 1)) 1
 
+/-- The Hadamard operator on the coordinate register, with identities on the data and flag
+registers. -/
 def termHadamard (n s d p : ℕ) : Matrix (BodyReg n s d p) (BodyReg n s d p) ℂ :=
   TensorGate (TensorGate (HadamardN d) 1) 1
 
+/-- The payoff rotation controlled by the decoded term-code register. -/
 def codeRotation (n s d p : ℕ) : Matrix (BodyReg n s d p) (BodyReg n s d p) ℂ :=
   payoffRotation (fun v : Reg d × Data n (s+d+1) p => decodeCode p v.2.2)
 
+/-- The circuit that loads the PRN frame, executes the native jump stage, and performs one term
+query. -/
 def computeCircuit {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) : Circuit (BodyReg n s d p) :=
   [.gate (loaderGate (d:=d) (p:=p) seed j)]++nativeStage (s:=s) (d:=d) (p:=p) a c++[.query]
 
+/-- The circuit that prepares uniform coordinates, computes the term code, rotates the flag, and
+reverses the computation. -/
 def bodyCircuit {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) : Circuit (BodyReg n s d p) :=
   [.gate (termHadamard n s d p)]++computeCircuit (d:=d) (p:=p) a c seed j++
     [.gate (codeRotation n s d p)]++ReverseCircuit (computeCircuit (d:=d) (p:=p) a c seed j)
 
+/-- Tensoring a matrix with a left identity equals selecting the same matrix at every left
+index. -/
 theorem tensor_one_select {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (U : Matrix I I ℂ) : TensorGate (1 : Matrix J J ℂ) U=select (fun _ : J => U) := by
   simpa only [parallelOracle,TensorGate] using! (parallelOracle_eq_kronecker (J:=J) U).symm
 
+/-- Evaluating the term-computation circuit gives the selected `dataCompute` matrix tensored
+with the flag identity. -/
 theorem computeCircuit_eval {n s d p : ℕ}
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :
@@ -135,6 +186,7 @@ theorem computeCircuit_eval {n s d p : ℕ}
   funext i
   rw [dataCompute,strideCompute,tensorGate_mul,Matrix.one_mul]
 
+/-- Evaluating the inner body circuit against its term oracle gives `innerBody`. -/
 theorem bodyCircuit_eval {n s d p : ℕ}
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :
@@ -150,6 +202,8 @@ theorem bodyCircuit_eval {n s d p : ℕ}
   rw [innerBody,Qatlib.Papers.MonteCarloInt20.MainResults.FlagRotation.cleanFlagPreparation,payoffPreparation,
     Qatlib.Papers.MonteCarloInt20.MainResults.FlagRotation.computePreparation,tensorGate_mul,Matrix.one_mul]
 
+/-- The inner body circuit uses two term queries and twice the full native-word length plus four
+known gates. -/
 theorem bodyCircuit_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n)) (j : Reg s) :
     QueryCount (bodyCircuit (d:=d) (p:=p) a c seed j)=2 ∧
     GateCount (bodyCircuit (d:=d) (p:=p) a c seed j)=
@@ -166,6 +220,8 @@ theorem bodyCircuit_counts {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (
   · trivial
   · omega
 
+/-- For positive coordinate width, running the inner body circuit from its seed gives true-flag
+probability equal to the finite decoded term mean [KanekoEtAl2020]. -/
 theorem bodyCircuit_flag_born {n s d p : ℕ} (hd : 0 < d)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (j : Reg s) :

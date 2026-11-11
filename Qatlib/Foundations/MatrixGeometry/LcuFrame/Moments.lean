@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixGeometry.LcuFrame.Defs
 
+/-!
+# Observable moments in LCU frames
+
+Defines the weighted Hamiltonian `ham`, the lifted states `phi0`, `phi1`, `phiP`, and `phiM`,
+and the system action `applySys`. Fiberwise inner-product identities reduce lifted matrix
+elements to weighted system matrix elements.
+
+The theorem `expectation_eq8` transports the expectation of a Hermitian involution to both phase
+states under the stated eigenvector and conjugation hypotheses. See [PoulinEtAl2018] for related
+background.
+
+## Main statements
+
+* `phi0_normalized`: The lift `phi0 β φ` is normalized when `φ` is normalized and the squared
+  weights sum to one.
+* `expectation_eq8`: For a normalized Hamiltonian eigenstate with `E² < 1` and the stated
+  Hermitian involutions and conjugation signs, both phase-state expectations equal `½ * (1 +
+  (Gamma β ε - E²) / (1 - E²))` times the system expectation [PoulinEtAl2018].
+
+## References
+
+* [Poulin et al., 2018][PoulinEtAl2018]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,71 +40,92 @@ namespace Qatlib.Foundations.MatrixGeometry.LcuFrame
 
 variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- The complex scalar `1 / √2` used in the phase-state combinations. -/
 def invSqrt2 : ℂ := ((Real.sqrt 2 : ℝ) : ℂ)⁻¹
 
+/-- The finite matrix sum `∑ j, (β j)² • P j`, with real weights cast to complex scalars. -/
 def ham (β : J → ℝ) (P : J → Matrix I I ℂ) : Matrix I I ℂ :=
   ∑ j, (((β j : ℂ)) ^ 2) • P j
 
+/-- The lifted amplitude function with value `β j * φ i` at `(j, i)`. -/
 def phi0 (β : J → ℝ) (φ : State I) : State (J × I) := fun ji => (β ji.1 : ℂ) * φ ji.2
 
+/-- Applies `σ` to the system coordinate of each ancilla fiber of `ψ`. -/
 def applySys (σ : Matrix I I ℂ) (ψ : State (J × I)) : State (J × I) :=
   fun ji => ∑ i', σ ji.2 i' * ψ (ji.1, i')
 
+/-- The lifted state whose fiber at `j` is `β j • (P j *ᵥ φ)`. -/
 def Vphi0 (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) : State (J × I) :=
   fun ji => (β ji.1 : ℂ) * (P ji.1 *ᵥ φ) ji.2
 
+/-- The residual `Vphi0 β P φ - E • phi0 β φ`, scaled by the inverse of `√(1 - E²)`. -/
 def phi1 (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ) : State (J × I) :=
   fun ji =>
     (((Real.sqrt (1 - E ^ 2) : ℝ)) : ℂ)⁻¹ * (Vphi0 β P φ ji - (E : ℂ) * phi0 β φ ji)
 
+/-- The phase-state combination `(phi0 + i • phi1) / √2`. -/
 def phiP (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ) : State (J × I) :=
   fun ji => invSqrt2 * (phi0 β φ ji + Complex.I * phi1 β P φ E ji)
 
+/-- The phase-state combination `(phi0 - i • phi1) / √2`. -/
 def phiM (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ) : State (J × I) :=
   fun ji => invSqrt2 * (phi0 β φ ji - Complex.I * phi1 β P φ E ji)
 
+/-- The real weighted sum `∑ j, (β j)² * ε j`. -/
 def Gamma (β : J → ℝ) (ε : J → ℝ) : ℝ := ∑ j, (β j) ^ 2 * ε j
 
+/-- Views a state on `J × I` as a family of states on `I` indexed by `J`. -/
 abbrev curry {J I : Type*} (ψ : State (J × I)) : J → State I := fun j i => ψ (j, i)
 
+/-- Views a family of system states as a state on the product index type. -/
 abbrev uncurry {J I : Type*} (u : J → State I) : State (J × I) := fun ji => u ji.1 ji.2
 
+/-- Uncurrying the fiber representation of a state recovers the original state. -/
 theorem uncurry_curry {J I : Type*} (ψ : State (J × I)) : uncurry (curry ψ) = ψ := by
   funext ji
   rfl
 
+/-- The inner product of product-indexed states is the sum of the inner products of their
+fibers. -/
 theorem inner_prod_fiber {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (u v : J → State I) :
     Inner (uncurry u) (uncurry v) = ∑ j, Inner (u j) (v j) := by
   rw [inner_apply, Fintype.sum_prod_type]
   simp only [inner_apply, uncurry]
 
+/-- The system action applies matrix multiplication by `σ` independently to every fiber. -/
 theorem applySys_fiber {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (σ : Matrix I I ℂ) (u : J → State I) :
     applySys σ (uncurry u) = uncurry (fun j => σ *ᵥ u j) := by
   funext ji
   simp [applySys, uncurry, Matrix.mulVec, dotProduct]
 
+/-- The finite complex inner product distributes over addition in its first argument. -/
 theorem inner_add_left' {I : Type*} [Fintype I] [DecidableEq I] (u v w : State I) :
     Inner (u + v) w = Inner u w + Inner v w := by
   rw [inner_apply, inner_apply, inner_apply]
   simp only [Pi.add_apply, map_add, add_mul, Finset.sum_add_distrib]
 
+/-- The finite complex inner product distributes over addition in its second argument. -/
 theorem inner_add_right' {I : Type*} [Fintype I] [DecidableEq I] (u v w : State I) :
     Inner u (v + w) = Inner u v + Inner u w := by
   rw [inner_apply, inner_apply, inner_apply]
   simp only [Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+/-- The finite complex inner product distributes over subtraction in its first argument. -/
 theorem inner_sub_left' {I : Type*} [Fintype I] [DecidableEq I] (u v w : State I) :
     Inner (u - v) w = Inner u w - Inner v w := by
   rw [inner_apply, inner_apply, inner_apply]
   simp only [Pi.sub_apply, map_sub, sub_mul, Finset.sum_sub_distrib]
 
+/-- The finite complex inner product distributes over subtraction in its second argument. -/
 theorem inner_sub_right' {I : Type*} [Fintype I] [DecidableEq I] (u v w : State I) :
     Inner u (v - w) = Inner u v - Inner u w := by
   rw [inner_apply, inner_apply, inner_apply]
   simp only [Pi.sub_apply, mul_sub, Finset.sum_sub_distrib]
 
+/-- Scaling the first argument of the inner product multiplies its value by the conjugate
+scalar. -/
 theorem inner_smul_left' {I : Type*} [Fintype I] [DecidableEq I] (c : ℂ) (ψ φ : State I) :
     Inner (c • ψ) φ = (starRingEnd ℂ) c * Inner ψ φ := by
   rw [inner_apply, inner_apply]
@@ -88,6 +133,7 @@ theorem inner_smul_left' {I : Type*} [Fintype I] [DecidableEq I] (c : ℂ) (ψ �
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- Scaling the second argument of the inner product multiplies its value by the scalar. -/
 theorem inner_smul_right' {I : Type*} [Fintype I] [DecidableEq I] (c : ℂ) (ψ φ : State I) :
     Inner ψ (c • φ) = c * Inner ψ φ := by
   rw [inner_apply, inner_apply]
@@ -95,12 +141,14 @@ theorem inner_smul_right' {I : Type*} [Fintype I] [DecidableEq I] (c : ℂ) (ψ 
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- The inner product distributes over a finite sum in its second argument. -/
 theorem inner_sum_right' {ι I : Type*} [Fintype ι] [DecidableEq ι] [Fintype I] [DecidableEq I]
     (ψ : State I) (s : ι → State I) :
     Inner ψ (∑ i, s i) = ∑ i, Inner ψ (s i) := by
   simp only [inner_apply, Finset.sum_apply, Finset.mul_sum]
   rw [Finset.sum_comm]
 
+/-- Complex conjugation of the inner product exchanges its two arguments. -/
 theorem inner_conj_symm' {I : Type*} [Fintype I] [DecidableEq I] (ψ φ : State I) :
     (starRingEnd ℂ) (Inner ψ φ) = Inner φ ψ := by
   rw [inner_apply, map_sum]
@@ -110,15 +158,18 @@ theorem inner_conj_symm' {I : Type*} [Fintype I] [DecidableEq I] (ψ φ : State 
   rw [h2]
   exact mul_comm _ _
 
+/-- Complex conjugation fixes the complex cast of a real number. -/
 theorem star_ofReal' (r : ℝ) : (starRingEnd ℂ) ((r : ℂ)) = ((r : ℂ)) := by
   simp
 
+/-- The system action preserves addition of lifted states. -/
 theorem applySys_add' {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (σ : Matrix I I ℂ) (ψ χ : State (J × I)) :
     applySys σ (ψ + χ) = applySys σ ψ + applySys σ χ := by
   funext ji
   simp only [applySys, Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+/-- The system action commutes with complex scalar multiplication. -/
 theorem applySys_smul' {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (σ : Matrix I I ℂ) (c : ℂ) (ψ : State (J × I)) :
     applySys σ (c • ψ) = c • applySys σ ψ := by
@@ -126,12 +177,14 @@ theorem applySys_smul' {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [De
   simp only [applySys, Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => by ring
 
+/-- The system action preserves subtraction of lifted states. -/
 theorem applySys_sub' {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (σ : Matrix I I ℂ) (ψ χ : State (J × I)) :
     applySys σ (ψ - χ) = applySys σ ψ - applySys σ χ := by
   funext ji
   simp only [applySys, Pi.sub_apply, mul_sub, Finset.sum_sub_distrib]
 
+/-- For Hermitian `σ`, its system action can be moved between the two inner-product arguments. -/
 theorem inner_applySys_adjoint {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (σ : Matrix I I ℂ) (hσ : σᴴ = σ) (ψ χ : State (J × I)) :
     Inner ψ (applySys σ χ) = Inner (applySys σ ψ) χ := by
@@ -140,6 +193,7 @@ theorem inner_applySys_adjoint {J I : Type*} [Fintype J] [DecidableEq J] [Fintyp
   refine Finset.sum_congr rfl fun j _ => ?_
   rw [inner_mulVec_left_rect, hσ]
 
+/-- The expectation of a Hermitian matrix is fixed by complex conjugation. -/
 theorem inner_hermitian_self_real {I : Type*} [Fintype I] [DecidableEq I]
     (σ : Matrix I I ℂ) (hσ : σᴴ = σ) (φ : State I) :
     (starRingEnd ℂ) (Inner φ (σ *ᵥ φ)) = Inner φ (σ *ᵥ φ) := by
@@ -156,6 +210,8 @@ theorem inner_hermitian_self_real {I : Type*} [Fintype I] [DecidableEq I]
   refine Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun i' _ => ?_
   ring
 
+/-- The matrix element between two `phi0` lifts equals the system matrix element times `∑ j, (β
+j)²`. -/
 theorem inner_phi0_applySys_phi0 {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (β : J → ℝ) (φ ψ : State I) (σ : Matrix I I ℂ) :
     Inner (phi0 β φ) (applySys σ (phi0 β ψ))
@@ -174,6 +230,8 @@ theorem inner_phi0_applySys_phi0 {J I : Type*} [Fintype J] [DecidableEq J] [Fint
   simp_rw [hterm]
   rw [← Finset.sum_mul, ← Complex.ofReal_sum]
 
+/-- The matrix element from `phi0` to the system action on `Vphi0` is the weighted sum of `Inner
+φ (σ *ᵥ (P j *ᵥ ψ))`. -/
 theorem inner_phi0_applySys_Vphi0 {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (β : J → ℝ) (P : J → Matrix I I ℂ) (φ ψ : State I) (σ : Matrix I I ℂ) :
     Inner (phi0 β φ) (applySys σ (Vphi0 β P ψ))
@@ -190,6 +248,8 @@ theorem inner_phi0_applySys_Vphi0 {J I : Type*} [Fintype J] [DecidableEq J] [Fin
   push_cast
   ring
 
+/-- The matrix element from `Vphi0` to the system action on `phi0` is the weighted sum of `Inner
+(P j *ᵥ φ) (σ *ᵥ ψ)`. -/
 theorem inner_Vphi0_applySys_phi0 {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (β : J → ℝ) (P : J → Matrix I I ℂ) (φ ψ : State I) (σ : Matrix I I ℂ) :
     Inner (Vphi0 β P φ) (applySys σ (phi0 β ψ))
@@ -205,6 +265,8 @@ theorem inner_Vphi0_applySys_phi0 {J I : Type*} [Fintype J] [DecidableEq J] [Fin
   push_cast
   ring
 
+/-- The matrix element between two selected lifts is the sum of the corresponding system matrix
+elements weighted by `(β j)²`. -/
 theorem inner_Vphi0_applySys_Vphi0 {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (β : J → ℝ) (P : J → Matrix I I ℂ) (φ ψ : State I) (σ : Matrix I I ℂ) :
     Inner (Vphi0 β P φ) (applySys σ (Vphi0 β P ψ))
@@ -225,6 +287,7 @@ theorem inner_Vphi0_applySys_Vphi0 {J I : Type*} [Fintype J] [DecidableEq J] [Fi
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- The lift `phi0 β φ` is normalized when `φ` is normalized and the squared weights sum to one. -/
 theorem phi0_normalized (β : J → ℝ) (φ : State I)
     (hβ : ∑ j, (β j) ^ 2 = 1) (hφ : Normalized φ) : Normalized (phi0 β φ) := by
   unfold Normalized phi0
@@ -237,6 +300,9 @@ theorem phi0_normalized (β : J → ℝ) (φ : State I)
   simp_rw [hterm]
   rw [← Finset.sum_mul, hβ, hφ, one_mul]
 
+/-- For a normalized Hamiltonian eigenstate with `E² < 1` and the stated Hermitian involutions
+and conjugation signs, both phase-state expectations equal `½ * (1 + (Gamma β ε - E²) / (1 -
+E²))` times the system expectation [PoulinEtAl2018]. -/
 theorem expectation_eq8 (β : J → ℝ) (P : J → Matrix I I ℂ) (σ : Matrix I I ℂ)
     (ε : J → ℝ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, (β j) ^ 2 = 1)

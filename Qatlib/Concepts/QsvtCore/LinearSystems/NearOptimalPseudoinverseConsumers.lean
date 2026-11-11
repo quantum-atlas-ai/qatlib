@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
 import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitReciprocalCutoff
 import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+
+/-!
+# Consumers of the near optimal inverse polynomial
+
+This module compares the degree bound of the Chebyshev reciprocal construction with the explicit
+conservative cutoff. It also proves that an inverse word of the prescribed length has zero
+success probability and no postselection output on normalized inputs with zero least squares
+overlap. The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `nearOptimalReciprocal_vs_conservative_cutoff`: a quantitative comparison for integer `κ ≥
+  64`.
+* `nearOptimalReciprocal_zero_overlap_output`: zero output at zero least squares overlap.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +44,8 @@ noncomputable section
 namespace Qatlib.Concepts.QsvtCore.LinearSystems
 open Matrix
 
+/-- For integer `κ ≥ 64` and `0 < ε ≤ 1 / 2`, the near optimal degree bound is at most half the
+conservative cutoff at precision index `ceil (log (1 / ε) / log 2) + 2`. -/
 theorem nearOptimalReciprocal_vs_conservative_cutoff (κ : ℕ) (ε : ℝ)
     (hκ : 64 ≤ κ) (hε : 0 < ε) (hε1 : ε ≤ 1/2) :
     let k : ℕ := Nat.ceil (Real.log (1/ε)/Real.log 2)
@@ -69,6 +91,9 @@ theorem nearOptimalReciprocal_vs_conservative_cutoff (κ : ℕ) (ε : ℝ)
   push_cast
   nlinarith
 
+/-- Under the inverse gap and parameter hypotheses, a phase word of length `2 *
+nearOptimalReciprocalJ κ ε + 1` has zero postselection probability and no output for every
+normalized zero overlap input; see [GilyenSuLowWiebe2019]. -/
 theorem nearOptimalReciprocal_zero_overlap_output
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

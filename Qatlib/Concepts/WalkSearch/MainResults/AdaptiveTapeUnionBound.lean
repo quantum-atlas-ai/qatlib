@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.AdaptiveFiniteTape
+
+/-!
+# A union bound for adaptive finite tapes
+
+`adaptiveTape_bad_card_bound` bounds the number of tapes on which a stateful computation fails.
+A uniform error bound at each coordinate accumulates linearly along a list without repeated
+coordinates, even though subsequent states depend on earlier tape values. For background on
+quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `adaptiveTape_bad_card_bound`: For a list of distinct coordinates and a uniform local bound
+  `bad * R ≤ C * Fintype.card X`, the number of failing tapes times `R` is at most the list
+  length times `C` times the total tape count.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -13,6 +33,9 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 
+/-- For a list of distinct coordinates and a uniform local bound `bad * R ≤ C * Fintype.card X`,
+the number of failing tapes times `R` is at most the list length times `C` times the total
+tape count. -/
 theorem adaptiveTape_bad_card_bound {A X State : Type} [Fintype A] [DecidableEq A]
     [Fintype X] [Nonempty X] (next : A→State→X→State) (correct : A→State→X→Prop)
     (R C : ℕ) (herr : ∀ a s,(Finset.univ.filter (fun x : X=>¬correct a s x)).card*R≤C*Fintype.card X)

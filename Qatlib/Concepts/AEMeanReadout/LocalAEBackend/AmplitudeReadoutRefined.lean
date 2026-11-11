@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefinedDefs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountRelDefs
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.CountingCertainty
+
+/-!
+# Refined search and counting readout endpoints
+
+This module combines search stopping and resource guarantees, certainty amplification, heuristic
+search, and relative and exact counting endpoints in the framework of [BrassardEtAl2002]. It
+also packages pilot-based unknown-variance bounds, native readout specifications, and the
+perturbation guarantee for signed-mean estimation associated with [Montanaro2015].
+
+## Main statements
+
+* `clause5_endpoint`: combines finite and unbounded search guarantees.
+* `clause91_endpoint`: collects relative and exact approximate-counting branches and their cost
+  bounds.
+* `clause97_endpoint`: gives an explicit signed-mean access count and perturbation-dependent
+  failure bound.
+* `clause23_endpoint`: assembles the native output, layer, record, access, and resource
+  specifications.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -57,6 +82,10 @@ namespace AmplitudeReadoutRefined
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Combines the source search depth schedule, finite-horizon and unbounded expected ledger
+bounds, and correctness of successful halts. Positive marked probability gives vanishing
+survival, while zero marked probability gives survival one, in the setting of [Brassard et
+al., Theorem 3][BrassardEtAl2002]. -/
 theorem clause5_endpoint :
 
     (∀ (M : ℕ) (i : Fin M), sourceDepth M i = i.val + 1) ∧
@@ -148,6 +177,10 @@ theorem clause5_endpoint :
   · intro A hA j₀ S ha
     exact s1_unbounded_stop_cost_retains_sqrt_a_budget A hA j₀ S ha
 
+/-- Combines the bounded-payoff unknown-variance confidence and expected-access bounds with
+pilot moment conditions and explicit record resource identities. It also supplies
+two-dimensional examples showing that the pilot moment condition need not hold for
+unrestricted payoffs [Montanaro2015]. -/
 theorem clause21_endpoint
     (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (f : I → ℚ) (nu eps : ℚ)
@@ -243,6 +276,10 @@ theorem clause21_endpoint
     have h := unknownSigma_component_budget A j hA f nu eps N h K r hk ωp ωt
     exact ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.2.2.2⟩
 
+/-- Collects certainty amplification at an integral half-step and existence of unit-modulus
+slowdown phases in the nonintegral case, together with projector conjugation and generalized
+iterate identities. It also bounds preparation accesses and records the specified
+two-dimensional matrix counterexample [BrassardEtAl2002]. -/
 theorem clause22_endpoint :
 
     (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
@@ -332,6 +369,9 @@ theorem clause22_endpoint :
   · intro n A g hA θ hθ0 hθπ br
     exact CountingCertainty.nextCertainty_prepare_accesses_le θ hθ0 hθπ br
 
+/-- Combines single-record and counting-path oracle cost transport for prepared marking, with
+source-round conservation and the characterization of the zero-grid obstruction
+[BrassardEtAl2002]. -/
 theorem clause89_endpoint
     (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -420,6 +460,10 @@ theorem clause89_endpoint
   exact Qatlib.Concepts.AEMeanReadout.LocalAEBackend.clause89_endpoint
     A j S hA N hN Sc ε hε hM0 hM
 
+/-- Given a positive lower bound `a₀` on the marked probability and `0 < ε ≤ 1`, the relative
+grid gives error at most `ε*a` with mass at least `8/π² > 2/3`. It also provides grid-size
+and exact access counts and shows that every fixed grid fails to meet this error-window
+bound for some positive probability [BrassardEtAl2002]. -/
 theorem clause92_endpoint
     (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -483,6 +527,10 @@ theorem clause92_endpoint
   · intro M hM
     exact nextRelativeGrid_forced ha0 ha0a hε hε1 hM
 
+/-- Under the positive-density and mature-window hypotheses, the heuristic search consumer
+returns only valid outputs and has failure mass at most `(25/32)^(T-j)`. It also satisfies
+the trace resource identities and density-dependent expected-cost bounds associated with
+[Brassard et al., Theorem 6][BrassardEtAl2002]. -/
 theorem clause87_endpoint
     {n : ℕ} (hn : 0 < n)
     (F : Fin n → Bool) (G : (Fin n → Bool) → Fin n → Fin n)
@@ -570,6 +618,9 @@ theorem clause87_endpoint
   · exact nextHeuristic_qft_rate_bound hn F G M T w hcard hdensity hMature
   · exact nextHeuristic_qft_spec_shape_bound hn F G M T w hT hcard hdensity hMature
 
+/-- For marked cardinality between one and `N/2`, the two-rough-readout counting construction
+has success mass at least `3/4` and its stated total expected cost is at most `650*√(t*N)`.
+It also supplies output budgets and tail and ladder-cost bounds [BrassardEtAl2002]. -/
 theorem clause94_endpoint
     {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2)
@@ -642,6 +693,10 @@ theorem clause94_endpoint
   · exact cor4_expected_cost_le hN S hcard hcardN
   · exact cor4_total_ledger_le hN S hcard hcardN
 
+/-- Under the positive-cardinality, final-grid, and stopping-scale hypotheses, relative counting
+achieves error strictly less than `t/c` with overall success mass at least `3/4`. Its
+expected cost lies between `(119*π/2)*c*√(N/t)` and `34000*c*√(N/t)`, with the stated window
+and prefix guarantees [BrassardEtAl2002]. -/
 theorem clause93_endpoint
     {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 0 < (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2)
@@ -730,6 +785,10 @@ theorem clause93_endpoint
     intro ω hz
     exact countRel_exit_scale hN S hSpos θ hθ0 hangle n hn ω hz hcross
 
+/-- Under the stated cardinality, grid, and crossing hypotheses, the relative and exact counting
+branches have success masses at least `2/3` and `3/4` and the corresponding explicit
+expected-cost bounds. It also collects precision selection, space budgets, and final-grid
+error bounds in the setting of [Brassard et al., Theorem 18][BrassardEtAl2002]. -/
 theorem clause91_endpoint
     {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hcard : 1 ≤ (S.card : ℝ)) (hcardN : (S.card : ℝ) ≤ (N : ℝ) / 2)
@@ -857,6 +916,10 @@ theorem clause91_endpoint
       have hv0 : (0 : ℝ) ≤ (N : ℝ) - (S.card : ℝ) := by linarith [hcardN, hN]
       exact nextApproxCountL2_lower_relative hε hN hv0 h1 h2
 
+/-- Under the variance and payoff-law distance hypotheses, signed-mean estimation has the stated
+exact access count and failure bound `3/10 + (π²/√6)*nextMontanaroUAccessCount k r*√γ`. It
+also gives success at least `2/3` when `γ=0` and a dyadic precision choice for positive
+target error [Montanaro2015]. -/
 theorem clause97_endpoint
     {I : Type} [Fintype I] [DecidableEq I]
     (A₁ A₂ : Matrix I I ℂ) (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ) (γ : ℝ)
@@ -893,6 +956,8 @@ theorem clause97_endpoint
   · intro C hC
     exact nextMontanaro_resource_rate_nat k r C hC
 
+/-- The native amplitude readout satisfies its output, layer, record, access, and resource
+specifications for a positive domain and grid `M ≥ 2` [BrassardEtAl2002]. -/
 theorem clause23_endpoint {N : ℕ} (hN : 0 < N) (M k : ℕ) (hM : 2 ≤ M) (z : Fin M)
     (S : Finset (Fin N)) :
 

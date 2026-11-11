@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.VectorSQConfidence
+
+/-!
+# Classical PCA output access budgets
+
+Establishes rejection-sampling caps and norm-estimation cost bounds for classical PCA output
+access in [Tang2021]. The module converts a relative energy estimate into a relative norm
+estimate and bounds the confidence amplification and total charged work.
+
+## Main statements
+
+* `pca_access_confidence_source`: For `k ≥ 1` and `0 < delta ≤ 1 / 2`, the number of
+  norm-estimation blocks at confidence `delta / k` is at most `5 * log (k / delta) / log 2`.
+* `pca_norm_access_source_budget`: Under the stated parameter and rejection-factor bounds, the
+  charged PCA norm-estimation work is at most `(20000000 * pcaSampleFactor ^ 2 / log 2) * T * (K
+  ^ 9 / e ^ 4) * log (4 * k / delta) ^ 3` [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,8 +35,11 @@ open scoped Classical BigOperators
 namespace Qatlib.Papers.QPCAAssume18.ClassicalPca
 open Qatlib.Concepts.SqEstimation.RejectionSample
 
+/-- The rejection-sampling cap `ceil (4 * q * K * log (1 / delta)) + 1` in natural numbers. -/
 def pcaRejectSamples (q : ℕ) (K delta : ℝ) : ℕ := ⌈4*(q:ℝ)*K*Real.log (1/delta)⌉₊+1
 
+/-- If `1 ≤ phi ≤ 4 * q * K` and `0 < delta ≤ 1`, the probability expression for exhausting the
+rejection cap is at most `delta`. -/
 theorem pca_rejection_cap_failure (q : ℕ) (K phi delta : ℝ) (hphi1 : 1≤phi)
     (hphiK : phi≤4*(q:ℝ)*K) (hdelta : 0<delta) (hdelta1 : delta≤1) :
     (1-1/phi)^pcaRejectSamples q K delta≤delta := by
@@ -43,6 +67,8 @@ theorem pca_rejection_cap_failure (q : ℕ) (K phi delta : ℝ) (hphi1 : 1≤phi
     field_simp
   exact hp.trans (he.trans_eq hidentity)
 
+/-- A one-percent relative estimate of a positive squared norm yields a one-percent relative
+estimate of the norm after taking the real square root. -/
 theorem pca_norm_run_relative {I : Type} (norm energy : ℝ) (q r B : ℕ)
     (omega : Fin (2*r+1)→Fin B→I×Bool) (hnorm : 0<norm)
     (henergy : energy=norm^2)
@@ -53,6 +79,8 @@ theorem pca_norm_run_relative {I : Type} (norm energy : ℝ) (q r B : ℕ)
   rw [henergy,Real.sqrt_sq hnorm.le] at h
   simpa only [henergy] using! h
 
+/-- For `k ≥ 1` and `0 < delta ≤ 1 / 2`, the number of norm-estimation blocks at confidence
+`delta / k` is at most `5 * log (k / delta) / log 2`. -/
 theorem pca_access_confidence_source (k : ℕ) (hk : 1≤k) (delta : ℝ)
     (hdelta : 0<delta) (hhalf : delta≤1/2) :
     2*(pcaNormRounds (delta/k):ℝ)+1≤5*Real.log ((k:ℝ)/delta)/Real.log 2 := by
@@ -64,6 +92,9 @@ theorem pca_access_confidence_source (k : ℕ) (hk : 1≤k) (delta : ℝ)
   have hid : 1/(delta/(k:ℝ))=(k:ℝ)/delta := by field_simp
   rwa [hid] at h
 
+/-- Under the stated parameter and rejection-factor bounds, the charged PCA norm-estimation work
+is at most `(20000000 * pcaSampleFactor ^ 2 / log 2) * T * (K ^ 9 / e ^ 4) * log (4 * k /
+delta) ^ 3` [Tang2021]. -/
 theorem pca_norm_access_source_budget {I : Type} (energy T K e delta phi : ℝ) (k : ℕ)
     (hk : 1≤k) (hK : 1≤K) (he : 0<e) (he1 : e≤1)
     (hdelta : 0<delta) (hhalf : delta≤1/2) (hphi : 0≤phi)

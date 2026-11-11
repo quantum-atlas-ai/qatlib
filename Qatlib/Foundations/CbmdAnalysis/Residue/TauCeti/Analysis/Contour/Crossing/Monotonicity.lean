@@ -13,6 +13,24 @@ import Mathlib.Analysis.Calculus.Deriv.Add
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.Calculus.Deriv.Shift
 import Mathlib.Analysis.InnerProductSpace.Calculus
+
+/-!
+# Monotonicity of distance near crossings
+
+This module uses nonzero one-sided derivative limits to control the inner product between a
+crossing chord and its derivative. It deduces local strict monotonicity of distance on either
+side, supporting the truncation windows used in the contour analysis for [WangEtAl2026].
+
+## Main statements
+
+* `exists_strictMonoOn_norm_sub_right`: strict distance increase to the right.
+* `exists_strictAntiOn_norm_sub_left`: strict distance decrease to the left.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -28,6 +46,8 @@ open Filter Set Topology
 
 variable {F : Type*} [NormedAddCommGroup F] [InnerProductSpace ℝ F]
 
+/-- Near a crossing with nonzero limiting tangent, the chord-derivative inner product differs
+from `(t - t₀) * ‖L‖²` by at most half its absolute leading scale. -/
 private theorem abs_inner_chord_deriv_sub_le {γ : ℝ → F} {t₀ : ℝ} {s : F} (h_at : γ t₀ = s)
     {L : F} (hL : L ≠ 0) {u : Set ℝ} (h_deriv : HasDerivWithinAt γ L u t₀)
     (hL_tendsto : Tendsto (deriv γ) (𝓝[u] t₀) (𝓝 L)) :
@@ -74,6 +94,8 @@ private theorem abs_inner_chord_deriv_sub_le {γ : ℝ → F} {t₀ : ℝ} {s : 
     _ ≤ |t - t₀| * ‖L‖ ^ 2 / 2 := by
         nlinarith [mul_le_mul_of_nonneg_left h_eta_bound (abs_nonneg (t - t₀))]
 
+/-- A nonzero right-hand derivative limit at a continuous crossing makes distance from the
+crossing point strictly increasing on a sufficiently small right interval. -/
 theorem exists_strictMonoOn_norm_sub_right {γ : ℝ → F} {t₀ : ℝ} {s : F} (h_at : γ t₀ = s)
     {L : F} (hL : L ≠ 0) (hL_right : Tendsto (deriv γ) (𝓝[>] t₀) (𝓝 L))
     (hγ_cont : ContinuousWithinAt γ (Ici t₀) t₀) :
@@ -107,6 +129,8 @@ theorem exists_strictMonoOn_norm_sub_right {γ : ℝ → F} {t₀ : ℝ} {s : F}
   exact fun a ha b hb hab =>
     lt_of_pow_lt_pow_left₀ 2 (norm_nonneg _) (h_f_strictMono ha hb hab)
 
+/-- A nonzero left-hand derivative limit at a continuous crossing makes distance from the
+crossing point strictly decreasing on a sufficiently small left interval. -/
 theorem exists_strictAntiOn_norm_sub_left {γ : ℝ → F} {t₀ : ℝ} {s : F} (h_at : γ t₀ = s)
     {L : F} (hL : L ≠ 0) (hL_left : Tendsto (deriv γ) (𝓝[<] t₀) (𝓝 L))
     (hγ_cont : ContinuousWithinAt γ (Iic t₀) t₀) :

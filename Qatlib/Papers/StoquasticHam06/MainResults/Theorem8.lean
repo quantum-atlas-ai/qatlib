@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
+
+/-!
+# Bit-flip strings and stoquastic sign conditions
+
+`flipSet` and `xString` describe simultaneous Boolean bit flips and their rational permutation
+matrices. Nonnegative multiples of `negXString` have nonpositive off-diagonal entries, so adding
+any finite sum of these terms to a diagonal matrix preserves the stoquastic sign condition. See
+[BravyiEtAl2008Stoquastic].
+
+## Main statements
+
+* `flipSet_flipSet`: flipping the same set twice is the identity.
+* `negXString_offdiag_nonpos`: nonnegative multiples of negative flip strings have nonpositive
+  off-diagonal entries.
+* `tripleX_form_stoquastic`: a diagonal matrix plus such terms has nonpositive off-diagonal
+  entries.
+
+## References
+
+* [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,16 +39,20 @@ open Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
 
 namespace Qatlib.Papers.StoquasticHam06.MainResults.Theorem8
 
+/-- The Boolean string obtained by negating coordinate `i` of `y`. -/
 def flipBit {n : ℕ} (i : Fin n) (y : Sigma n) : Sigma n :=
   Function.update y i (!(y i))
 
+/-- The Boolean string obtained by negating exactly the coordinates in `S`. -/
 def flipSet {n : ℕ} (S : Finset (Fin n)) (y : Sigma n) : Sigma n :=
   fun i => if i ∈ S then !(y i) else y i
 
+/-- Flipping the empty set leaves a Boolean string unchanged. -/
 @[simp] theorem flipSet_empty {n : ℕ} (y : Sigma n) :
     flipSet ∅ y = y := by
   funext i; simp [flipSet]
 
+/-- Flipping a nonempty set changes every Boolean string. -/
 theorem flipSet_ne_self {n : ℕ} {S : Finset (Fin n)} (hS : S.Nonempty)
     (y : Sigma n) : flipSet S y ≠ y := by
   obtain ⟨i, hi⟩ := hS
@@ -34,14 +60,20 @@ theorem flipSet_ne_self {n : ℕ} {S : Finset (Fin n)} (hS : S.Nonempty)
   have := congrFun h i
   simp [flipSet, hi] at this
 
+/-- The rational matrix with entry one exactly when `x = flipSet S y`, representing the
+simultaneous bit flip on `S`. -/
 def xString {n : ℕ} (S : Finset (Fin n)) : QMatrix n :=
   fun x y => if x = flipSet S y then 1 else 0
 
+/-- The negative rational bit-flip matrix, with entry minus one exactly when `x = flipSet S y`. -/
 def negXString {n : ℕ} (S : Finset (Fin n)) : QMatrix n :=
   fun x y => if x = flipSet S y then (-1) else 0
 
+/-- Entrywise multiplication of a rational matrix by a rational scalar. -/
 def qsmul {n : ℕ} (h : ℚ) (A : QMatrix n) : QMatrix n := fun x y => h * A x y
 
+/-- A nonnegative rational multiple of a negative bit-flip matrix has nonpositive off-diagonal
+real entries. See [BravyiEtAl2008Stoquastic]. -/
 theorem negXString_offdiag_nonpos {n : ℕ} (S : Finset (Fin n)) (h : ℚ) (hh : 0 ≤ h)
     (x y : Sigma n) (_hxy : x ≠ y) :
     QMatrix.toReal (qsmul h (negXString S)) x y ≤ 0 := by
@@ -52,12 +84,16 @@ theorem negXString_offdiag_nonpos {n : ℕ} (S : Finset (Fin n)) (h : ℚ) (hh :
     exact_mod_cast this
   · simp
 
+/-- A rational matrix with zero off-diagonal entries retains zero off-diagonal entries after
+casting to the reals. -/
 theorem diag_offdiag_zero {n : ℕ} (E : QMatrix n)
     (hE : ∀ x y : Sigma n, x ≠ y → E x y = 0) (x y : Sigma n) (hxy : x ≠ y) :
     QMatrix.toReal E x y = 0 := by
   unfold QMatrix.toReal
   rw [hE x y hxy]; simp
 
+/-- A diagonal rational matrix plus a finite sum of nonnegative multiples of negative bit-flip
+matrices has nonpositive off-diagonal real entries. See [BravyiEtAl2008Stoquastic]. -/
 theorem tripleX_form_stoquastic {n m : ℕ} (E : QMatrix n)
     (hE : ∀ x y : Sigma n, x ≠ y → E x y = 0)
     (S : Fin m → Finset (Fin n)) (h : Fin m → ℚ) (hh : ∀ a, 0 ≤ h a) :
@@ -78,11 +114,14 @@ theorem tripleX_form_stoquastic {n m : ℕ} (E : QMatrix n)
     exact Finset.sum_nonpos (fun a _ => hterm a)
   simpa using hsum
 
+/-- Flipping the same set of Boolean coordinates twice restores the original string. See
+[BravyiEtAl2008Stoquastic]. -/
 theorem flipSet_flipSet {n : ℕ} (S : Finset (Fin n)) (y : Sigma n) :
     flipSet S (flipSet S y) = y := by
   funext i
   by_cases hi : i ∈ S <;> simp [flipSet, hi]
 
+/-- Every entry of a bit-flip matrix is either zero or one. See [BravyiEtAl2008Stoquastic]. -/
 theorem xString_entry {n : ℕ} (S : Finset (Fin n)) (x y : Sigma n) :
     xString S x y = 0 ∨ xString S x y = 1 := by
   unfold xString

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+
+/-!
+# Completion mass for clocked rank processes
+
+This module defines `completion` as the mass of finite rank-process runs whose clock fits a real
+budget. It proves a first-call recurrence, a probability upper bound, and a
+uniform-initialization formula.
+
+These formulas support the clocked analysis of minimum finding [DurrHoyer1996].
+
+## Main statements
+
+* `completion_step`: At a positive starting rank, completion mass splits over first-call
+  outcomes fitting the budget and continuation with the residual budget.
+* `initial_completion`: The uniformly initialized completion mass equals the uniform average of
+  completion masses from the initial ranks.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AmplitudeSearch.Amplification
@@ -16,6 +38,7 @@ noncomputable section
 namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open scoped Classical BigOperators ENNReal
 
+/-- An equivalence separating the empty list from lists with a head and tail. -/
 private def listCases (Ω : Type) : List Ω ≃ Unit ⊕ (Ω × List Ω) where
   toFun | [] => .inl () | x::xs => .inr (x,xs)
   invFun | .inl _ => [] | .inr (x,xs) => x::xs
@@ -25,6 +48,8 @@ private def listCases (Ω : Type) : List Ω ≃ Unit ⊕ (Ω × List Ω) where
     · cases u; rfl
     · rfl
 
+/-- Splits a nonnegative sum over lists into the empty-list term and the sum over heads and
+tails. -/
 theorem list_tsum {Ω : Type} (f : List Ω → ℝ≥0∞) :
     (∑' xs, f xs) = f [] + ∑' x, ∑' xs, f (x::xs) := by
   let e := listCases Ω
@@ -37,9 +62,12 @@ theorem list_tsum {Ω : Type} (f : List Ω → ℝ≥0∞) :
 
 variable {N : ℕ} {Ω : Type}
 
+/-- The total mass of rank-process runs whose accumulated clock is at most the budget. -/
 def completion (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ) (budget : ℝ) : ℝ≥0∞ :=
   ∑' xs : List Ω, if law.runClock xs ≤ budget then ENNReal.ofReal (law.runMass skip t xs) else 0
 
+/-- At rank zero, completion mass is one for a nonnegative budget and zero for a negative
+budget. -/
 theorem completion_zero (law : RankedCallLaw N Ω) (skip : RankSkip N) (budget : ℝ) :
     completion law skip 0 budget = if 0 ≤ budget then 1 else 0 := by
   unfold completion
@@ -49,6 +77,7 @@ theorem completion_zero (law : RankedCallLaw N Ω) (skip : RankSkip N) (budget :
   simp_rw [he]
   simp
 
+/-- A negative budget gives zero completion mass. -/
 theorem completion_neg (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ)
     (budget : ℝ) (hb : budget < 0) : completion law skip t budget = 0 := by
   apply ENNReal.tsum_eq_zero.mpr
@@ -56,6 +85,7 @@ theorem completion_neg (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ)
   have hc : ¬law.runClock xs ≤ budget := by have hn := law.runClock_nonneg xs; linarith
   rw [if_neg hc]
 
+/-- For a starting rank below `N`, completion mass is at most one. -/
 theorem completion_le_one (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ)
     (ht : t < N) (budget : ℝ) : completion law skip t budget ≤ 1 := by
   calc
@@ -70,6 +100,8 @@ theorem completion_le_one (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : �
         (law.runMass_normalized skip t ht).summable).symm
     _ = 1 := by rw [(law.runMass_normalized skip t ht).tsum_eq,ENNReal.ofReal_one]
 
+/-- At a positive starting rank, completion mass splits over first-call outcomes fitting the
+budget and continuation with the residual budget. -/
 theorem completion_step (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ)
     (ht : 0 < t) (htN : t < N) (budget : ℝ) :
     completion law skip t budget =
@@ -105,6 +137,8 @@ theorem completion_step (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ)
       linarith
     rw [if_neg hclock]
 
+/-- The uniformly initialized completion mass equals the uniform average of completion masses
+from the initial ranks. -/
 theorem initial_completion (law : RankedCallLaw N Ω) (skip : RankSkip N) (hN : 0 < N) (budget : ℝ) :
     ENNReal.ofReal (∑' x : Fin N × List Ω,
       if law.runClock x.2 ≤ budget then law.initialMass skip x else 0) =

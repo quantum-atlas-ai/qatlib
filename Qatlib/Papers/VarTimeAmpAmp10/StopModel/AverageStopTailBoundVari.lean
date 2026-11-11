@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundStat
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundAux
+
+/-!
+# Average stopping-time tail estimate
+
+This module proves `AverageStopTailBound` by telescoping stopping increments and estimating a
+dyadically weighted sum of square roots of running masses. The result supplies a tail estimate
+used in variable-time amplification.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `averageStopTailBound_answer`: proof of the stopping-tail contract.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +36,9 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.StopModel
 open Matrix
 open scoped Classical BigOperators
 
+/-- Complete, supported growing-history runs satisfy the tail identity and the weighted
+running-mass bound in `AverageStopTailBound`, supporting the estimates associated with
+[Ambainis2012]. -/
 theorem averageStopTailBound_answer : AverageStopTailBound := by
   intro C _ _ stages history hl j₀ _hj hs hstop
   have hm : reachedStoppedMass stages history (Ket j₀) stages.length = 1 := by

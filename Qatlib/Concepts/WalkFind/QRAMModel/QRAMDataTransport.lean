@@ -8,6 +8,29 @@ import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
 import Qatlib.Concepts.WalkFind.QRAMModel.TruncationHybridQuan
 import Qatlib.Concepts.BlockEncoding.LinearCombination
 import Mathlib.Data.Nat.Bitwise
+
+/-!
+# Transport of data-structure states to QRAM registers
+
+This module relates encoded collision records and Johnson-walk states to physical bit registers.
+It proves address and record recovery, norm preservation of `dataLift`, and the semantics of a
+three-gate phase flip on the collision flag. One-step comparison estimates bound simulation
+error by the norm of the slow-operation component.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `physicalDataRecord_marked`: identifies the encoded collision test with marked walk states.
+* `dataLift_norm`: shows that an injective encoding preserves the Euclidean norm.
+* `dataLift_oneStep_approx_error`: combines error on the fast component with a bad-state norm
+  bound.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -29,24 +52,30 @@ namespace Qatlib.Concepts.WalkFind.QRAMModel
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 open scoped Classical BigOperators
 
+/-- Conjugating Pauli X by Hadamard gives Pauli Z. -/
 private theorem dataFlip_hxh : Hadamard * PauliX * Hadamard = PauliZ := by
   ext i j
   cases i <;> cases j <;>
     simp [Hadamard, PauliX, PauliZ, permMatrix, Matrix.mul_apply] <;>
     ring_nf <;> norm_num [sqrt2_sq]
 
+/-- The three-gate source word applying Hadamard, Pauli X, and Hadamard to the flag wire. -/
 def dataFlagFlip (flag : ℕ) : List SourceCode :=
   [.local (.h flag), .local (.x flag), .local (.h flag)]
 
+/-- The flag-flip word is legal when the flag wire lies within the register. -/
 theorem dataFlagFlip_legal (b flag : ℕ) (hflag : flag < b) :
     sourceWordLegal b (dataFlagFlip flag) := by
   simp [sourceWordLegal, dataFlagFlip, sourceCodeLegal, finiteCodeLegal, hflag]
 
+/-- The flag-flip circuit makes no oracle queries. -/
 theorem dataFlagFlip_queries (b flag : ℕ) :
     QueryCount (sourceCircuit b (dataFlagFlip flag)) = 0 := rfl
 
+/-- The flag-flip source word has length three. -/
 theorem dataFlagFlip_length (flag : ℕ) : (dataFlagFlip flag).length = 3 := rfl
 
+/-- The flag-flip word defines a unitary circuit when its wire is in range. -/
 theorem dataFlagFlip_unitary (b flag : ℕ) (hflag : flag < b) :
     IsUnitaryCircuit (sourceCircuit b (dataFlagFlip flag)) := by
   intro U hU
@@ -59,6 +88,7 @@ theorem dataFlagFlip_unitary (b flag : ℕ) (hflag : flag < b) :
   · exact finiteCodeMatrix_unitary b (.x flag) (by simp [finiteCodeLegal, hflag])
   · exact finiteCodeMatrix_unitary b (.h flag) (by simp [finiteCodeLegal, hflag])
 
+/-- Pauli Z on the flag wire is diagonal, with sign determined by the flag bit. -/
 private theorem dataFlagFlip_wireZ (b : ℕ) (flag : Fin b) :
     wireGate b flag PauliZ = Matrix.diagonal (fun q : Reg b => if q flag then -1 else 1) := by
   ext q p
@@ -82,6 +112,8 @@ private theorem dataFlagFlip_wireZ (b : ℕ) (flag : Fin b) :
       simpa [PauliZ, hp, hu, Qatlib.Foundations.PureStateMath.Ket, Matrix.diagonal_apply,
           hqp] using! h
 
+/-- The flag-flip circuit negates precisely the amplitudes whose flag bit is true, for any
+oracle. -/
 theorem dataFlagFlip_semantics (b flag : ℕ) (hflag : flag < b)
     (O : Matrix (Reg b) (Reg b) ℂ) (ψ : QState (Reg b)) :
     Run O (sourceCircuit b (dataFlagFlip flag)) ψ =
@@ -93,6 +125,7 @@ theorem dataFlagFlip_semantics (b flag : ℕ) (hflag : flag < b)
   ext q
   simp [ApplyGate, Matrix.mulVec_diagonal]
 
+/-- Two natural numbers below `2^width` are equal if all their bits below `width` agree. -/
 theorem naturalBit_injective_below {a b width : ℕ} (ha : a < 2^width)
     (hb : b < 2^width) (hbits : ∀ i < width, naturalBit a i = naturalBit b i) : a = b := by
   apply Nat.eq_of_testBit_eq
@@ -102,6 +135,7 @@ theorem naturalBit_injective_below {a b width : ℕ} (ha : a < 2^width)
   · have hp : 2^width ≤ 2^i := Nat.pow_le_pow_right (by omega) (by omega)
     rw [Nat.testBit_eq_false_of_lt (ha.trans_le hp), Nat.testBit_eq_false_of_lt (hb.trans_le hp)]
 
+/-- Summing the first `width` weighted binary digits of `n` gives `n % 2^width`. -/
 theorem sum_naturalBit (n width : ℕ) :
     (∑ i ∈ Finset.range width, if naturalBit n i then 2^i else 0) = n % 2^width := by
   induction width with
@@ -114,6 +148,8 @@ theorem sum_naturalBit (n width : ℕ) :
     · have hz : n / 2^width % 2 = 0 := by omega
       simp [naturalBit, hz]
 
+/-- The record region of `dataBasis` contains the corresponding encoded data bit, defaulting to
+false beyond the record. -/
 theorem dataBasis_record_bit {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k w : ℕ) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)) (p : JRState N r)
     (j : Fin w) :
@@ -125,6 +161,7 @@ theorem dataBasis_record_bit {N M r : ℕ} (D : CollisionDataStructure N M r)
   split_ifs <;> try omega
   simp only [Nat.add_sub_cancel_left]
 
+/-- The address region of `dataBasis` contains the binary digits of the walk state's address. -/
 theorem dataBasis_address_bit {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k w : ℕ) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)) (p : JRState N r)
     (j : Fin (Nat.clog 2 (N+1))) :
@@ -132,6 +169,7 @@ theorem dataBasis_address_bit {N M r : ℕ} (D : CollisionDataStructure N M r)
       naturalBit p.val.2.val j.val := by
   simp [dataBasis, j.isLt]
 
+/-- Reading the address region of `dataBasis` recovers the walk state's address value. -/
 theorem dataBasis_address {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k w : ℕ) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)) (p : JRState N r) :
     addressValue (dataBasis D k w x h p) 0 (Nat.clog 2 (N+1)) = p.val.2.val := by
@@ -148,6 +186,7 @@ theorem dataBasis_address {N M r : ℕ} (D : CollisionDataStructure N M r)
   rw [hbits, sum_naturalBit, Nat.mod_eq_of_lt]
   exact p.val.2.isLt.trans_le ((Nat.le_succ N).trans (Nat.le_pow_clog (by omega) _))
 
+/-- The answer region of `dataBasis` initially represents zero. -/
 theorem dataBasis_answer_zero {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k w : ℕ) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)) (p : JRState N r) :
     addressValue (dataBasis D k w x h p) (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1)) = 0 := by
@@ -160,6 +199,8 @@ theorem dataBasis_answer_zero {N M r : ℕ} (D : CollisionDataStructure N M r)
   split_ifs
   all_goals first | omega | simp_all
 
+/-- For positive `M`, the value-oracle action on `dataBasis` writes the queried value into the
+answer region and preserves all other bits. -/
 theorem sourceValueAction_dataBasis {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k w : ℕ) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)) (p : JRState N r)
     (hM : 0 < M) :
@@ -173,6 +214,8 @@ theorem sourceValueAction_dataBasis {N M r : ℕ} (D : CollisionDataStructure N 
   rw [dataBasis_address, dataBasis_answer_zero]
   simp [p.val.2.isLt, hM, Nat.mod_eq_of_lt (x p.val.2).val_lt]
 
+/-- If every encoded record has length `w`, the physical encoding of a walk state and seed is
+injective. -/
 theorem dataBasis_injective_fixedWidth {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k w : ℕ) (x : Fin N → ZMod M)
     (hlen : ∀ (p : JRState N r) (h : Fin (2^D.seedBits)), (D.encode p.val.1 x h).length = w) :
@@ -205,11 +248,15 @@ theorem dataBasis_injective_fixedWidth {N M r : ℕ} (D : CollisionDataStructure
     exact Prod.ext hsubset had
   · exact hseed
 
+/-- The predicate that a record encodes some set, input, and seed whose represented set contains
+a `k`-collision. -/
 def recordContainsCollision {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k : ℕ) (record : List Bool) : Prop :=
   ∃ (S : Finset (Fin N)) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)),
     D.encode S x h = record ∧ ∃ J ⊆ S, IsCollision k x J
 
+/-- An encoded record satisfies the collision predicate exactly when its represented set
+contains a `k`-collision. -/
 theorem recordContainsCollision_encode {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k : ℕ) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)) (S : Finset (Fin N)) :
     recordContainsCollision D k (D.encode S x h) ↔ ∃ J ⊆ S, IsCollision k x J := by
@@ -223,11 +270,14 @@ theorem recordContainsCollision_encode {N M r : ℕ} (D : CollisionDataStructure
   · intro hcollision
     exact ⟨S, x, h, rfl, hcollision⟩
 
+/-- The list of `w` bits read from the data-record region of a physical register. -/
 def physicalDataRecord {N M r : ℕ} (_D : CollisionDataStructure N M r) (k w : ℕ)
     (q : Reg (nativeWidth N M k w)) : List Bool :=
   List.ofFn (fun i : Fin w => q
     ⟨Nat.clog 2 (N+1)+Nat.clog 2 (M+1)+i.val, by unfold nativeWidth; omega⟩)
 
+/-- Reading the record region of a basis encoding recovers its data-structure record when that
+record has length `w`. -/
 theorem physicalDataRecord_basis {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k w : ℕ) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)) (p : JRState N r)
     (hlen : (D.encode p.val.1 x h).length = w) :
@@ -238,6 +288,8 @@ theorem physicalDataRecord_basis {N M r : ℕ} (D : CollisionDataStructure N M r
   simp only [physicalDataRecord, List.getElem_ofFn, dataBasis_record_bit,
     List.getElem?_eq_getElem hj, Option.getD_some]
 
+/-- The physical record of a correctly sized basis encoding contains a collision exactly when
+the walk state is marked. -/
 theorem physicalDataRecord_marked {N M r : ℕ} (D : CollisionDataStructure N M r)
     (k w : ℕ) (x : Fin N → ZMod M) (h : Fin (2^D.seedBits)) (p : JRState N r)
     (hlen : (D.encode p.val.1 x h).length = w) :
@@ -246,6 +298,8 @@ theorem physicalDataRecord_marked {N M r : ℕ} (D : CollisionDataStructure N M 
   rw [physicalDataRecord_basis D k w x h p hlen, recordContainsCollision_encode]
   rfl
 
+/-- For an injective basis encoding, evaluating the lifted state at an encoded basis point
+recovers the original amplitude. -/
 theorem dataLift_at_basis {N M r : ℕ} [NeZero M]
     (D : CollisionDataStructure N M r) (k w : ℕ) (x : Fin N → ZMod M)
     (hinj : Function.Injective (fun p : JRState N r × Fin (2^D.seedBits) =>
@@ -255,6 +309,7 @@ theorem dataLift_at_basis {N M r : ℕ} [NeZero M]
     dataLift D k w x ψ (dataBasis D k w x p.2 p.1) = ψ p := by
   simp [dataLift, hinj.eq_iff]
 
+/-- For an injective encoding, the basis embedding matrix satisfies `Eᴴ * E = 1`. -/
 theorem dataLift_isometry {N M r : ℕ} [NeZero M]
     (D : CollisionDataStructure N M r) (k w : ℕ) (x : Fin N → ZMod M)
     (hinj : Function.Injective (fun p : JRState N r × Fin (2^D.seedBits) =>
@@ -271,6 +326,7 @@ theorem dataLift_isometry {N M r : ℕ} [NeZero M]
     simp [hq]
   · simp
 
+/-- An injective physical basis encoding makes `dataLift` preserve the Euclidean norm. -/
 theorem dataLift_norm {N M r : ℕ} [NeZero M]
     (D : CollisionDataStructure N M r) (k w : ℕ) (x : Fin N → ZMod M)
     (hinj : Function.Injective (fun p : JRState N r × Fin (2^D.seedBits) =>
@@ -290,6 +346,7 @@ theorem dataLift_norm {N M r : ℕ} [NeZero M]
     rw [hs, norm_toEuclidean_sq_eq_re_inner, norm_toEuclidean_sq_eq_re_inner, hi]
   nlinarith [norm_nonneg (toEuclidean_fromVec (dataLift D k w x ψ)), norm_nonneg (toEuclidean_fromVec ψ)]
 
+/-- The physical state lift commutes with subtraction. -/
 theorem dataLift_sub {N M r : ℕ} [NeZero M]
     (D : CollisionDataStructure N M r) (k w : ℕ) (x : Fin N → ZMod M)
     (ψ φ : QState (JRState N r × Fin (2^D.seedBits))) :
@@ -301,6 +358,8 @@ theorem dataLift_sub {N M r : ℕ} [NeZero M]
   intro p _
   split_ifs <;> simp
 
+/-- If the physical and ideal unitary steps agree on fast-operation states, their lifted
+one-step discrepancy is at most twice the bad-state norm. -/
 theorem dataLift_oneStep_error {N M r : ℕ} [NeZero M]
     (D : CollisionDataStructure N M r) (k w : ℕ) (x : Fin N → ZMod M)
     (hinj : Function.Injective (fun p : JRState N r × Fin (2^D.seedBits) =>
@@ -341,6 +400,8 @@ theorem dataLift_oneStep_error {N M r : ℕ} [NeZero M]
   rw [hnv] at hnorm
   simpa only [two_mul] using! hnorm
 
+/-- When the first record bit indicates markedness, the physical flag flip implements the
+marked-state phase reflection on lifted states. -/
 theorem dataFlagFlip_lift_semantics {N M r : ℕ} [NeZero M]
     (D : CollisionDataStructure N M r) (k w : ℕ) (hw : 0 < w)
     (x : Fin N → ZMod M)
@@ -369,6 +430,8 @@ theorem dataFlagFlip_lift_semantics {N M r : ℕ} [NeZero M]
       fun p heq => hq ⟨p,heq⟩
     simp [dataLift, hn]
 
+/-- A discrepancy at most `δ` on the fast component gives total lifted one-step error at most
+`δ` plus twice the bad-state norm. -/
 theorem dataLift_oneStep_approx_error {N M r : ℕ} [NeZero M]
     (D : CollisionDataStructure N M r) (k w : ℕ) (x : Fin N → ZMod M)
     (hinj : Function.Injective (fun p : JRState N r × Fin (2^D.seedBits) =>

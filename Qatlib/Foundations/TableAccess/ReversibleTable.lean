@@ -38,6 +38,26 @@ import Mathlib.Logic.Equiv.Defs
 import Mathlib.Logic.Function.Basic
 import Mathlib.Tactic
 
+/-!
+# Involutive permutation matrices for reversible tables
+
+This module represents a finite table map by `permMatrix` and describes its action on amplitude
+functions and basis kets. For an involutive map, the matrix is self-adjoint, squares to the
+identity, and is unitary.
+
+The mathematical background is discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `permMatrix_unitary`: an involutive table map gives a unitary matrix.
+* `applyGate_permMatrix`: the matrix acts by precomposition with the involution.
+* `applyGate_permMatrix_ket`: a basis ket is sent to the ket of its image.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Matrix
@@ -45,10 +65,14 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.TableAccess.ReversibleTable
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The computational basis amplitude function equal to one at `j` and zero elsewhere. -/
 def Ket (j : I) : I→ℂ := fun i=>if i=j then 1 else 0
 
+/-- The matrix with entry one when the row index is `σ` applied to the column index and zero
+otherwise. -/
 def permMatrix (σ : I → I) : Matrix I I ℂ := Matrix.of fun i j => if i = σ j then (1 : ℂ) else 0
 
+/-- The matrix associated with an involution squares to the identity. -/
 theorem permMatrix_mul_self {σ : I → I} (hσ : Function.Involutive σ) :
     permMatrix σ * permMatrix σ = 1 := by
   ext i j
@@ -59,6 +83,7 @@ theorem permMatrix_mul_self {σ : I → I} (hσ : Function.Involutive σ) :
 
 omit [Fintype I] in
 
+/-- The matrix associated with an involution equals its conjugate transpose. -/
 theorem permMatrix_conjTranspose {σ : I → I} (hσ : Function.Involutive σ) :
     (permMatrix σ)ᴴ = permMatrix σ := by
   ext i j
@@ -69,11 +94,13 @@ theorem permMatrix_conjTranspose {σ : I → I} (hσ : Function.Involutive σ) :
   · have hij : i ≠ σ j := fun e => hji (by rw [← hσ j, ← e])
     rw [if_neg hji, if_neg hij, map_zero]
 
+/-- The matrix associated with an involution is unitary. -/
 theorem permMatrix_unitary {σ : I → I} (hσ : Function.Involutive σ) :
     permMatrix σ ∈ Matrix.unitaryGroup I ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, permMatrix_conjTranspose hσ]
   exact permMatrix_mul_self hσ
 
+/-- The matrix of an involution acts on amplitudes by precomposition with that involution. -/
 theorem applyGate_permMatrix {σ : I → I} (hσ : Function.Involutive σ) (ψ : I→ℂ) (i : I) :
     (permMatrix σ *ᵥ ψ) i = ψ (σ i) := by
   simp only [permMatrix, Matrix.mulVec, dotProduct, Matrix.of_apply]
@@ -85,6 +112,7 @@ theorem applyGate_permMatrix {σ : I → I} (hσ : Function.Involutive σ) (ψ :
     simp [hne]
   · simp
 
+/-- The matrix of an involution sends the ket of `j` to the ket of `σ j`. -/
 theorem applyGate_permMatrix_ket {σ : I → I} (hσ : Function.Involutive σ) (j : I) :
     (permMatrix σ) *ᵥ (Ket j) = Ket (σ j) := by
   funext i

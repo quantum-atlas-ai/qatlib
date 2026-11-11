@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.RecordExtract.SummandExtractionDihe
+
+/-!
+# Regular summand extraction endpoint
+
+The declaration `prop91_regular_summand_extraction` exports `SourceSummandExtraction` from the
+regular difference-gate construction. This packages unitary transport of diagonal subgroup
+invariance to invariance on the right factor. See [Kuperberg2005] for the mathematical
+background.
+
+## Main statements
+
+* `prop91_regular_summand_extraction`: the regular summand extraction statement.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +31,8 @@ namespace Qatlib.Concepts.HspRecovery.RecordExtract.Prop91
 
 open Qatlib.Concepts.HspRecovery.RecordExtract
 
+/-- The regular difference gate satisfies `SourceSummandExtraction`, including unitarity and
+transport of subgroup-invariant density matrices [Kuperberg2005]. -/
 theorem prop91_regular_summand_extraction : SourceSummandExtraction :=
   sourceSummandExtraction
 

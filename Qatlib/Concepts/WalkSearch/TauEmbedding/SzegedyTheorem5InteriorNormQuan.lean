@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormStat
 import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTauScaledIsometryQuan
+
+/-!
+# Norm of normalized τ-source images
+
+This module proves `SzegedyTheorem5InteriorNorm`: a normalized discriminant source at `0 ≤ lam <
+1` has signed τ image with self-inner-product `1 - lam^2`. The range includes the zero endpoint
+as well as the positive interior.
+
+The identity supplies the normalization factor for the source images in the bipartite walk
+spectral construction [Szegedy2004].
+
+## Main statements
+
+* `szegedyTheorem5InteriorNorm`: the exact τ-image norm identity.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -22,14 +42,18 @@ namespace Qatlib.Concepts.WalkSearch.TauEmbedding
 open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 
+/-- The state inner product preserves addition in its first argument. -/
 private theorem inner_add_left {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner (u + v) w = Qatlib.Foundations.PureStateMath.Inner u w + Qatlib.Foundations.PureStateMath.Inner v w := by
   simp [Qatlib.Foundations.PureStateMath.Inner, star_add, add_dotProduct]
 
+/-- The state inner product preserves addition in its second argument. -/
 private theorem inner_add_right {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner u (v + w) = Qatlib.Foundations.PureStateMath.Inner u v + Qatlib.Foundations.PureStateMath.Inner u w := by
   simp [Qatlib.Foundations.PureStateMath.Inner, dotProduct_add]
 
+/-- Establish that either signed τ image of a normalized discriminant eigenvector with `0 ≤ lam
+< 1` has squared norm `1 - lam^2`, including the zero endpoint [Szegedy2004]. -/
 theorem szegedyTheorem5InteriorNorm : SzegedyTheorem5InteriorNorm := by
   intro H I J _ _ _ _ _ _ A B lam hA hB hl hh u hn hu s
   have hnorm : Qatlib.Foundations.PureStateMath.Inner u u = 1 :=

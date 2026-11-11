@@ -11,6 +11,29 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 import Qatlib.Papers.WeighMatrix00.MainResults.SLSLegendre
 import Qatlib.Papers.WeighMatrix00.MainResults.Lemma3SLSLowerBound
+
+/-!
+# A classical protocol for shifted Legendre sequences
+
+This module partitions candidate shifts by quadratic-character responses and finds queries that
+shrink every response class below three quarters of the candidate set. The fuel-based trees
+`bruteFuel` and `buildFuel` give the deterministic logarithmic query bound in
+`source_lemma4_slsProtocol`.
+
+This development forms part of the formalization of [VanDam2002].
+
+## Main statements
+
+* `exists_shrinking_index`: For at least four candidate shifts, some query makes each of the
+  three response classes strictly smaller than three quarters of the candidate set.
+* `source_lemma4_slsProtocol`: In characteristic different from two, there exists a tree
+  recovering every shift with depth at most `log (card F) / log (4 / 3) + 3`.
+
+## References
+
+* [van Dam, 2002][VanDam2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,18 +46,23 @@ open Finset
 
 variable {F : Type*} [Field F] [Fintype F] [DecidableEq F]
 
+/-- The candidate shifts in `S` producing quadratic-character response one at index `i`. -/
 def sPlus (S : Finset F) (i : F) : Finset F :=
   S.filter (fun j => quadraticChar F (i + j) = 1)
 
+/-- The candidate shifts in `S` producing quadratic-character response minus one at index `i`. -/
 def sMinus (S : Finset F) (i : F) : Finset F :=
   S.filter (fun j => quadraticChar F (i + j) = -1)
 
+/-- The candidate shifts in `S` producing quadratic-character response zero at index `i`. -/
 def sZero (S : Finset F) (i : F) : Finset F :=
   S.filter (fun j => quadraticChar F (i + j) = 0)
 
+/-- The sum of the shifted quadratic-character values over the candidate set `S`. -/
 def wVec (S : Finset F) (i : F) : ℤ :=
   S.sum (fun j => quadraticChar F (i + j))
 
+/-- The character sum is the cardinality of the plus class minus that of the minus class. -/
 theorem wVec_eq_card_diff (S : Finset F) (i : F) :
     wVec S i = ((sPlus S i).card : ℤ) - ((sMinus S i).card : ℤ) := by
   have hterm : ∀ j : F, quadraticChar F (i + j) =
@@ -67,6 +95,7 @@ theorem wVec_eq_card_diff (S : Finset F) (i : F) :
         rw [Finset.sum_sub_distrib]
     _ = ((sPlus S i).card : ℤ) - ((sMinus S i).card : ℤ) := by rw [h1, h2]
 
+/-- The plus, minus, and zero response classes partition the candidate set in cardinality. -/
 theorem card_partition (S : Finset F) (i : F) :
     (sPlus S i).card + (sMinus S i).card + (sZero S i).card = S.card := by
   have hterm : ∀ j ∈ S,
@@ -88,6 +117,8 @@ theorem card_partition (S : Finset F) (i : F) :
   simp only [Finset.sum_const, nsmul_eq_mul, mul_one] at hsum
   simpa [sPlus, sMinus, sZero] using hsum
 
+/-- In characteristic different from two, the sum of squared character sums is `card F * card S
+- (card S) ^ 2`. -/
 theorem sum_wVec_sq (hF : ringChar F ≠ 2) (S : Finset F) :
     ∑ i : F, (wVec S i) ^ 2 =
       (Fintype.card F : ℤ) * (S.card : ℤ) - (S.card : ℤ) ^ 2 := by
@@ -128,6 +159,8 @@ theorem sum_wVec_sq (hF : ringChar F ≠ 2) (S : Finset F) :
   rw [hmain, Finset.sum_const, nsmul_eq_mul]
   ring
 
+/-- For at least four candidate shifts, some query makes each of the three response classes
+strictly smaller than three quarters of the candidate set. See [VanDam2002]. -/
 theorem exists_shrinking_index (hF : ringChar F ≠ 2) (S : Finset F) (hS : 4 ≤ S.card) :
     ∃ i : F, 4 * (sPlus S i).card < 3 * S.card ∧
       4 * (sMinus S i).card < 3 * S.card ∧
@@ -214,13 +247,19 @@ theorem exists_shrinking_index (hF : ringChar F ≠ 2) (S : Finset F) (hS : 4 �
       simpa [hZ, hN] using hZbound
     exact_mod_cast h
 
+/-- The tree recovers every shift in the field. -/
 def SLSTree.Solves (t : SLSTree F) : Prop := ∀ s : F, t.eval s = s
 
+/-- The tree recovers every shift in the candidate set `S`. -/
 def SLSTree.SolvesOn (t : SLSTree F) (S : Finset F) : Prop := ∀ s ∈ S, t.eval s = s
 
+/-- Choose a shrinking query index when `S` has at least four elements, and choose zero
+otherwise. -/
 noncomputable def shrinkIndex' (hF : ringChar F ≠ 2) (S : Finset F) : F :=
   if h : 4 ≤ S.card then (exists_shrinking_index hF S h).choose else 0
 
+/-- For at least four candidates, the chosen index makes every response class strictly smaller
+than three quarters of `S`. -/
 theorem shrinkIndex'_spec (hF : ringChar F ≠ 2) (S : Finset F) (h : 4 ≤ S.card) :
     4 * (sPlus S (shrinkIndex' hF S)).card < 3 * S.card ∧
       4 * (sMinus S (shrinkIndex' hF S)).card < 3 * S.card ∧
@@ -229,6 +268,8 @@ theorem shrinkIndex'_spec (hF : ringChar F ≠ 2) (S : Finset F) (h : 4 ≤ S.ca
   rw [dif_pos h]
   exact (exists_shrinking_index hF S h).choose_spec
 
+/-- A strict three-quarter shrink preserves the stated power bound with the fuel exponent
+reduced by one. -/
 theorem shrink_card_bound {m n k : ℕ} (hm : 4 * m < 3 * n)
     (hn : n * 3 ^ (k + 1) ≤ 4 ^ (k + 2)) : m * 3 ^ k ≤ 4 ^ (k + 1) := by
   have h3 : 0 < 3 ^ k := pow_pos (by norm_num) k
@@ -243,6 +284,8 @@ theorem shrink_card_bound {m n k : ℕ} (hm : 4 * m < 3 * n)
       _ = 4 * 4 ^ (k + 1) := h3'
   nlinarith [step]
 
+/-- A query tree that tests a chosen candidate at each step until its fuel is exhausted or its
+candidate set is empty. -/
 def bruteFuel : ℕ → Finset F → SLSTree F
   | 0, _ => SLSTree.leaf 0
   | k + 1, S =>
@@ -251,6 +294,8 @@ def bruteFuel : ℕ → Finset F → SLSTree F
           (bruteFuel k (sPlus S (-h.choose)))
       else SLSTree.leaf 0
 
+/-- Brute-force search recovers every candidate when its fuel is at least the candidate-set
+cardinality. See [VanDam2002]. -/
 theorem bruteFuel_solves :
     ∀ (k : ℕ) (S : Finset F), S.card ≤ k → (bruteFuel k S).SolvesOn S := by
   intro k
@@ -318,6 +363,7 @@ theorem bruteFuel_solves :
       rw [hempty] at hs
       exact absurd hs (Finset.notMem_empty s)
 
+/-- The depth of a brute-force tree is at most its fuel. -/
 theorem bruteFuel_depth : ∀ (k : ℕ) (S : Finset F), (bruteFuel k S).depth ≤ k := by
   intro k
   induction k with
@@ -338,6 +384,7 @@ theorem bruteFuel_depth : ∀ (k : ℕ) (S : Finset F), (bruteFuel k S).depth �
       rw [hdef, SLSTree.depth]
       omega
 
+/-- Build a tree using shrinking queries and a four-query brute-force fallback. -/
 def buildFuel (hF : ringChar F ≠ 2) : ℕ → Finset F → SLSTree F
   | 0, S => bruteFuel 4 S
   | k + 1, S =>
@@ -346,6 +393,7 @@ def buildFuel (hF : ringChar F ≠ 2) : ℕ → Finset F → SLSTree F
         SLSTree.node (shrinkIndex' hF S) (buildFuel hF k (sMinus S (shrinkIndex' hF S)))
           (buildFuel hF k (sPlus S (shrinkIndex' hF S)))
 
+/-- The shrinking tree solves `S` whenever `S.card * 3 ^ k ≤ 4 ^ (k + 1)`. -/
 theorem buildFuel_solves (hF : ringChar F ≠ 2) :
     ∀ (k : ℕ) (S : Finset F), S.card * 3 ^ k ≤ 4 ^ (k + 1) →
       (buildFuel hF k S).SolvesOn S := by
@@ -385,6 +433,7 @@ theorem buildFuel_solves (hF : ringChar F ≠ 2) :
           exact ih (sMinus S (shrinkIndex' hF S)) (shrink_card_bound hspec.2.1 hcard) s
             (Finset.mem_filter.mpr ⟨hs, hneg⟩)
 
+/-- Under the candidate-size power bound, the shrinking tree has depth at most `k + 4`. -/
 theorem buildFuel_depth (hF : ringChar F ≠ 2) :
     ∀ (k : ℕ) (S : Finset F), S.card * 3 ^ k ≤ 4 ^ (k + 1) →
       (buildFuel hF k S).depth ≤ k + 4 := by
@@ -412,6 +461,8 @@ theorem buildFuel_depth (hF : ringChar F ≠ 2) :
       have h2 := ih (sPlus S (shrinkIndex' hF S)) (shrink_card_bound hspec.1 hcard)
       omega
 
+/-- In characteristic different from two, there exists a tree recovering every shift with depth
+at most `log (card F) / log (4 / 3) + 3`. See [VanDam2002]. -/
 theorem source_lemma4_slsProtocol (hF : ringChar F ≠ 2) :
     ∃ t : SLSTree F, t.Solves ∧
       (t.depth : ℝ) ≤ Real.log (Fintype.card F : ℝ) / Real.log (4 / 3) + 3 := by

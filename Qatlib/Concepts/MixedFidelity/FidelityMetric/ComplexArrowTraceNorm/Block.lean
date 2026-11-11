@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.BlockDefs
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Tactic
+
+/-!
+# Trace norms of complex arrow blocks
+
+The Hermitian two-dimensional matrix `arrow` has an explicit trace norm determined by its real
+diagonal parameters and complex off-diagonal entry. Block-diagonal additivity extends the
+formula to `fullBlock`, including positive normalization and the balanced-tail specialization
+expressed by `errorNumerator`. See [Bhatia1997].
+
+## Main statements
+
+* `arrow_traceNorm`: an exact trace norm for the two-dimensional block.
+* `normalized_fullBlock_half_traceNorm`: the formula with a scalar identity tail.
+* `balanced_fullBlock_half_traceNorm`: simplification under the trace-balance relation.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,15 +37,20 @@ open Matrix
 open scoped BigOperators
 namespace Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm
 
+/-- The complex arrow matrix with real diagonal parameters is Hermitian. -/
 lemma arrow_hermitian (ell mass : ℝ) (z : ℂ) : (Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.arrow ell mass z).IsHermitian := by
   apply Matrix.ext
   intro i j
   fin_cases i <;> fin_cases j <;> simp [Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.arrow, Matrix.conjTranspose_apply]
 
+/-- For real `x` and `y`, the sum of their absolute values equals the maximum of the absolute
+sum and absolute difference. -/
 private lemma abs_pair_max (x y : ℝ) : |x| + |y| = max |x + y| |x - y| := by
   simp only [abs_eq_max_neg, max_def]
   split_ifs <;> linarith
 
+/-- The arrow matrix has trace norm equal to the maximum of `|mass|` and `Real.sqrt ((2 * ell +
+mass) ^ 2 + 4 * ‖z‖ ^ 2)`. -/
 theorem arrow_traceNorm (ell mass : ℝ) (z : ℂ) :
     Matrix.traceNorm (Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.arrow ell mass z) =
       max |mass| (Real.sqrt ((2 * ell + mass) ^ 2 + 4 * ‖z‖ ^ 2)) := by
@@ -51,6 +76,8 @@ theorem arrow_traceNorm (ell mass : ℝ) (z : ℂ) :
   change |x| + |y| = _
   rw [abs_pair_max, hsum, abs_neg, ← hdelta, Real.sqrt_sq_eq_abs]
 
+/-- The trace norm of a block-diagonal matrix is the sum of the trace norms of its two diagonal
+blocks. -/
 private lemma traceNorm_fromBlocks_diagonal {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix I I ℂ) (D : Matrix J J ℂ) :
     Matrix.traceNorm (Matrix.fromBlocks A 0 0 D) = A.traceNorm + D.traceNorm := by
@@ -103,11 +130,14 @@ private lemma traceNorm_fromBlocks_diagonal {I J : Type*} [Fintype I] [Decidable
       (Matrix.traceNorm_isometry_left hW))
   exact le_antisymm hupper hlower
 
+/-- The trace norm of a real scalar times the `n`-dimensional identity is `n * |tail|`. -/
 private lemma traceNorm_scalar_one (n : ℕ) (tail : ℝ) :
     Matrix.traceNorm ((tail : ℂ) • (1 : Matrix (Fin n) (Fin n) ℂ)) = (n : ℝ) * |tail| := by
   rw [Matrix.traceNorm_smul]
   simp [Matrix.traceNorm, Complex.norm_real, Real.norm_eq_abs, mul_comm]
 
+/-- For positive `q`, half the trace norm of `fullBlock / q` is the arrow trace norm plus `n *
+|tail|`, divided by `2 * q`. -/
 theorem normalized_fullBlock_half_traceNorm (n : ℕ) (ell mass tail q : ℝ)
     (z : ℂ) (hq : 0 < q) :
     Matrix.traceNorm (((q⁻¹ : ℝ) : ℂ) • Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.fullBlock n ell mass tail z) / 2 =
@@ -119,6 +149,8 @@ theorem normalized_fullBlock_half_traceNorm (n : ℕ) (ell mass tail q : ℝ)
       traceNorm_fromBlocks_diagonal, Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.arrow_traceNorm, traceNorm_scalar_one]
   ring
 
+/-- If `mass` is nonnegative and `n * tail = mass`, the normalized half trace norm equals
+`errorNumerator ell mass (‖z‖ ^ 2) / q`. -/
 theorem balanced_fullBlock_half_traceNorm (n : ℕ) (ell mass tail q : ℝ)
     (z : ℂ) (hq : 0 < q) (hmass : 0 ≤ mass) (hbalance : (n : ℝ) * tail = mass) :
     Matrix.traceNorm (((q⁻¹ : ℝ) : ℂ) • Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.fullBlock n ell mass tail z) / 2 =

@@ -17,6 +17,24 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.Ring.GeomSum
 import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
 
+/-!
+# Ramanujan sums by Möbius inversion
+
+This module proves the Ramanujan-sum formula in Lemma 1 of [Ivanyos2008]. It expands the
+coprimality indicator using the Möbius function, evaluates geometric sums, and simplifies the
+resulting divisor sum using the prime radical and Euler's totient.
+
+## Main statements
+
+* `ramanujan_divisor_sum`: Expresses the root sum as a restricted Möbius divisor sum.
+* `source_lemma1_ramanujan_sum`: Gives the closed formula in terms of the root order and the
+  prime radical.
+
+## References
+
+* [Ivanyos, 2008][Ivanyos2008]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -29,6 +47,8 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.LinearDiseq07.MainResults
 
+/-- The sum of the Möbius function over the divisors of `n` is one when `n = 1` and zero
+otherwise. -/
 lemma sum_moebius_divisors (n : ℕ) :
     (∑ d ∈ n.divisors, ArithmeticFunction.moebius d) = if n = 1 then 1 else 0 := by
   have h := ArithmeticFunction.coe_mul_zeta_apply (R := ℤ)
@@ -37,11 +57,15 @@ lemma sum_moebius_divisors (n : ℕ) :
   rw [← h]
   simp [ArithmeticFunction.one_apply]
 
+/-- Casting the integer indicator of `n = 1` into the complex numbers gives the corresponding
+complex indicator. -/
 lemma int_ite_cast_one (n : ℕ) :
     (Int.castRingHom ℂ) (if n = 1 then (1:ℤ) else 0)
       = (if n = 1 then (1:ℂ) else 0) := by
   by_cases hn : n = 1 <;> simp [hn]
 
+/-- The complex-valued sum of the Möbius function over the divisors of `n` is the indicator of
+`n = 1`. -/
 lemma sum_moebius_divisors_complex (n : ℕ) :
     (∑ d ∈ n.divisors, (ArithmeticFunction.moebius d : ℂ)) = if n = 1 then 1 else 0 := by
   have h := sum_moebius_divisors n
@@ -51,11 +75,15 @@ lemma sum_moebius_divisors_complex (n : ℕ) :
     _ = (Int.castRingHom ℂ) (if n = 1 then (1:ℤ) else 0) := by rw [h]
     _ = if n = 1 then (1:ℂ) else 0 := int_ite_cast_one n
 
+/-- The complex coprimality indicator is the sum of the Möbius function over divisors of `gcd j
+m`. -/
 lemma coprime_indicator (j m : ℕ) :
     (if Nat.Coprime j m then (1:ℂ) else 0)
       = ∑ d ∈ (Nat.gcd j m).divisors, (ArithmeticFunction.moebius d : ℂ) := by
   rw [sum_moebius_divisors_complex]
 
+/-- When positive `d` divides `m`, its multiples below `m` are precisely the image of the range
+below `m / d` under multiplication by `d`. -/
 lemma filter_dvd_range_image (d m : ℕ) (hdm : d ∣ m) (hd : 0 < d) :
     (Finset.range m).filter (fun j => d ∣ j)
       = (Finset.range (m / d)).image (fun i => d * i) := by
@@ -70,6 +98,8 @@ lemma filter_dvd_range_image (d m : ℕ) (hdm : d ∣ m) (hd : 0 < d) :
                 _ = m := Nat.mul_div_cancel' hdm,
       dvd_mul_right d i⟩
 
+/-- A sum over multiples of a positive divisor `d` below `m` can be reindexed as a sum over
+integers below `m / d`. -/
 lemma sum_filter_dvd_eq (d m : ℕ) (hdm : d ∣ m) (hd : 0 < d) (f : ℕ → ℂ) :
     (∑ j ∈ (Finset.range m).filter (fun j => d ∣ j), f j)
       = ∑ i ∈ Finset.range (m / d), f (d * i) := by
@@ -77,6 +107,8 @@ lemma sum_filter_dvd_eq (d m : ℕ) (hdm : d ∣ m) (hd : 0 < d) (f : ℕ → �
   intro i _ j _ hij
   exact Nat.mul_left_cancel hd hij
 
+/-- For a primitive root whose order divides `m`, the geometric sum along multiples of `d` is `m
+/ d` if `w^d = 1`, and zero otherwise. -/
 lemma geom_inner {w : ℂ} {m0 d m : ℕ} (hw : IsPrimitiveRoot w m0)
     (hdm : d ∣ m) (hm : m0 ∣ m) :
     (∑ i ∈ Finset.range (m / d), w ^ (d * i))
@@ -95,6 +127,8 @@ lemma geom_inner {w : ℂ} {m0 d m : ℕ} (hw : IsPrimitiveRoot w m0)
     · exact h
     · exact absurd h (sub_ne_zero.mpr hx)
 
+/-- The Ramanujan sum of a primitive root with order dividing positive `m` equals the
+Möbius-weighted sum of `m / d` over divisors divisible by the root order [Ivanyos2008]. -/
 theorem ramanujan_divisor_sum {w : ℂ} {m0 : ℕ} (hw : IsPrimitiveRoot w m0)
     {m : ℕ} (hm : m0 ∣ m) (_hm0 : 0 < m0) (hmpos : 0 < m) :
     (∑ j ∈ (Finset.range m).filter (fun j => Nat.Coprime j m), w ^ j)
@@ -145,6 +179,8 @@ theorem ramanujan_divisor_sum {w : ℂ} {m0 : ℕ} (hw : IsPrimitiveRoot w m0)
     · rw [if_neg (fun h => hmd (hiff.mp h)), if_neg hmd]
       simp
 
+/-- For positive `n`, the divisor sum of `moebius d * (n / d)` equals Euler's totient, viewed as
+an integer. -/
 lemma sum_moebius_mul_div_eq_totient {n : ℕ} (hn : 0 < n) :
     (∑ d ∈ n.divisors, (ArithmeticFunction.moebius d : ℤ) * ((n / d : ℕ) : ℤ))
       = (Nat.totient n : ℤ) := by
@@ -164,14 +200,17 @@ lemma sum_moebius_mul_div_eq_totient {n : ℕ} (hn : 0 < n) :
       exact_mod_cast Nat.sum_totient n
     exact hcast
 
+/-- The product of the distinct prime factors of a nonzero natural number is nonzero. -/
 lemma rad_ne_zero {m : ℕ} (_hm : m ≠ 0) : (∏ p ∈ m.primeFactors, p) ≠ 0 := by
   apply Finset.prod_ne_zero_iff.mpr
   intro p hp
   exact (Nat.prime_of_mem_primeFactors hp).ne_zero
 
+/-- The product of the distinct prime factors of `m` divides `m`. -/
 lemma rad_dvd (m : ℕ) : (∏ p ∈ m.primeFactors, p) ∣ m :=
   Nat.prod_primeFactors_dvd m
 
+/-- The product of the distinct prime factors of `m` is squarefree. -/
 lemma rad_squarefree (m : ℕ) : Squarefree (∏ p ∈ m.primeFactors, p) := by
   apply Finset.squarefree_prod_of_pairwise_isCoprime
   · intro a ha b hb hab
@@ -181,12 +220,14 @@ lemma rad_squarefree (m : ℕ) : Squarefree (∏ p ∈ m.primeFactors, p) := by
   · intro p hp
     exact (Nat.prime_of_mem_primeFactors hp).squarefree
 
+/-- A squarefree divisor of nonzero `m` divides the product of its distinct prime factors. -/
 lemma squarefree_dvd_rad {d m : ℕ} (hd : Squarefree d) (hdm : d ∣ m) (hm : m ≠ 0) :
     d ∣ ∏ p ∈ m.primeFactors, p := by
   rw [← Nat.prod_primeFactors_of_squarefree hd]
   exact Finset.prod_dvd_prod_of_subset d.primeFactors m.primeFactors (fun p => p)
     (Nat.primeFactors_mono hdm hm)
 
+/-- The complex-valued Möbius function is multiplicative on coprime arguments. -/
 lemma moebius_mul_of_coprime {a b : ℕ} (h : a.Coprime b) :
     (ArithmeticFunction.moebius (a * b) : ℂ)
       = (ArithmeticFunction.moebius a : ℂ) * (ArithmeticFunction.moebius b : ℂ) := by
@@ -195,6 +236,8 @@ lemma moebius_mul_of_coprime {a b : ℕ} (h : a.Coprime b) :
     ArithmeticFunction.isMultiplicative_moebius.map_mul_of_coprime (R := ℤ) h.gcd_eq_one
   exact_mod_cast hz
 
+/-- For positive `n`, the complex-valued Möbius divisor sum weighted by `n / d` equals the
+totient of `n`, as used in Lemma 1 of [Ivanyos2008]. -/
 lemma sum_moebius_mul_div_eq_totient_complex {n : ℕ} (hn : 0 < n) :
     (∑ d ∈ n.divisors, (ArithmeticFunction.moebius d : ℂ) * ((n / d : ℕ) : ℂ))
       = (Nat.totient n : ℂ) := by
@@ -214,6 +257,8 @@ lemma sum_moebius_mul_div_eq_totient_complex {n : ℕ} (hn : 0 < n) :
       exact_mod_cast Nat.sum_totient n
     exact hcast
 
+/-- Under the stated divisibility and positivity hypotheses, `m / (m0 * e)` factors as `(m / m1)
+* ((m1 / m0) / e)`. -/
 lemma div_mul_div_eq {m m0 m1 e : ℕ} (hmpos : 0 < m) (hm0 : 0 < m0)
     (hm1dvd : m1 ∣ m) (hm0dvd : m0 ∣ m1) (he : e ∣ m1 / m0) :
     m / (m0 * e) = (m / m1) * ((m1 / m0) / e) := by
@@ -233,6 +278,9 @@ lemma div_mul_div_eq {m m0 m1 e : ℕ} (hmpos : 0 < m) (hm0 : 0 < m0)
     _ = (m / m1) * ((m1 / m0) / e * e * m0) := by rw [hr]
     _ = (m / m1) * ((m1 / m0) / e) * (m0 * e) := by ring
 
+/-- Lemma 1 of [Ivanyos2008]: the Ramanujan sum is zero unless the root order divides the prime
+radical of `m`; otherwise it equals the Möbius value of that order times `m` divided by its
+radical times the totient of the complementary radical factor. -/
 theorem source_lemma1_ramanujan_sum {w : ℂ} {m0 : ℕ} (hw : IsPrimitiveRoot w m0)
     {m : ℕ} (hm : m0 ∣ m) (hm0 : 0 < m0) (hmpos : 0 < m) :
     (∑ j ∈ (Finset.range m).filter (fun j => Nat.Coprime j m), w ^ j)

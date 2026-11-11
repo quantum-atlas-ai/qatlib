@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointExtDefs
+
+/-!
+# Length-three response and access-word realization
+
+This module proves the degree-three Chebyshev response directly from the one-iterate failure
+amplitude in the construction of [YoderLowChuang2014]. It establishes the width identity,
+endpoint probabilities, and the success guarantee on the corresponding good-mass interval.
+
+The access-word interpretation is shown to realize the public word with exact preparation,
+query, phase, and phase-bit counts. Additional results bound dyadic angle rounding and identify
+the success probability and target direction of the lifted LCU consumer.
+
+## Main statements
+
+* `l3_success_prob`: the exact length-three Chebyshev response.
+* `l3_guarantee`: the length-three uniform success bound.
+* `accessWord_realizes_publicWord`: exact matrix realization of the access word.
+* `phaseBitCount_word`: the total phase-bit count.
+* `lcu_success_prob_eq_word`: agreement of lifted and two-level success probabilities.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.FixedPtSearch14.FixedPoint
@@ -16,6 +41,7 @@ namespace Qatlib.Papers.FixedPtSearch14.FixedPoint
 open Qatlib
 open Matrix
 
+/-- The length-three phase factor `l3Unit delta` has complex norm one. -/
 theorem l3_unit_abs (delta : ℝ) : ‖l3Unit delta‖ = 1 := by
   have hre : (-(Complex.I * (l3Phase delta : ℝ))).re = 0 := by
     rw [Complex.neg_re, Complex.mul_re, Complex.I_re, Complex.I_im,
@@ -23,6 +49,7 @@ theorem l3_unit_abs (delta : ℝ) : ‖l3Unit delta‖ = 1 := by
     ring
   rw [l3Unit, l3PhaseUnit, Complex.norm_exp, hre, Real.exp_zero]
 
+/-- The sum of `l3Unit delta` and its conjugate is twice the cosine of `l3Phase delta`. -/
 theorem l3_unit_conj (delta : ℝ) :
     starRingEnd ℂ (l3Unit delta) + l3Unit delta = 2 * (Real.cos (l3Phase delta) : ℂ) := by
   have hre : (l3Unit delta).re = Real.cos (l3Phase delta) := by
@@ -42,6 +69,8 @@ theorem l3_unit_conj (delta : ℝ) :
     _ = ((2 * (l3Unit delta).re : ℝ) : ℂ) := Complex.add_conj _
     _ = 2 * (Real.cos (l3Phase delta) : ℂ) := by rw [hre]; push_cast; ring
 
+/-- For `lam ∈ [0, 1]`, the one-iterate failure amplitude factors as the negative product of
+`√(1 - lam)`, `l3Unit delta`, and the real factor `l3FailureFactor delta lam`. -/
 theorem l3_failure_amplitude_factor (delta lam : ℝ) (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     publicFailureAmplitude 1 delta lam =
       -(((Real.sqrt (1 - lam) : ℝ) : ℂ) * l3Unit delta *
@@ -110,6 +139,8 @@ theorem l3_failure_amplitude_factor (delta lam : ℝ) (hl : 0 ≤ lam) (hl' : la
   push_cast
   ring
 
+/-- For `0 < delta < 1`, the cubed width `l3WidthValue delta` equals `delta * (4 - 3 * (ylcGamma
+3 delta) ^ 2)`. -/
 theorem l3_width_identity (delta : ℝ) (hd : 0 < delta) (hd' : delta < 1) :
     l3WidthValue delta = delta * (4 - 3 * (ylcGamma 3 delta) ^ 2) := by
   have hw := widthIdentity 3 delta (by omega) ⟨hd, hd'⟩
@@ -140,10 +171,14 @@ theorem l3_width_identity (delta : ℝ) (hd : 0 < delta) (hd' : delta < 1) :
   field_simp [hnonzero]
   nlinarith [hkey]
 
+/-- For `0 < delta < 1`, the width parameter at length three satisfies the displayed cubic
+identity. -/
 theorem l3_width_cubed (delta : ℝ) (hd : 0 < delta) (hd' : delta < 1) :
     (ylcGamma 3 delta) ^ 3 = delta * (4 - 3 * (ylcGamma 3 delta) ^ 2) :=
   l3_width_identity delta hd hd'
 
+/-- For `0 < delta < 1` and `lam ∈ [0, 1]`, the one-iterate failure probability is the square of
+the scaled degree-three Chebyshev value [YoderLowChuang2014]. -/
 theorem l3_failure_prob (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
     (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     publicFailureProb 1 delta lam =
@@ -225,6 +260,8 @@ theorem l3_failure_prob (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
             (4 * (1 - lam) - 3 * (ylcGamma 3 delta) ^ 2))) ^ 2 := by
         rw [hratio']
 
+/-- For `0 < delta < 1` and `lam ∈ [0, 1]`, the one-iterate success probability equals
+`responseProb 3 delta lam` [YoderLowChuang2014]. -/
 theorem l3_success_prob (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
     (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     publicSuccessProb 1 delta lam = responseProb 3 delta lam := by
@@ -250,6 +287,8 @@ theorem l3_success_prob (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
     linarith [h1]
   rw [h2, hfail, hresp]
 
+/-- For `0 < delta < 1`, the one-iterate success probability is zero at good mass zero and one
+at good mass one. -/
 theorem l3_endpoints (delta : ℝ) (hd : 0 < delta) (hd' : delta < 1) :
     publicSuccessProb 1 delta 0 = 0 ∧ publicSuccessProb 1 delta 1 = 1 := by
   have h0 := l3_success_prob delta 0 hd hd' (by norm_num) (by norm_num)
@@ -270,6 +309,8 @@ theorem l3_endpoints (delta : ℝ) (hd : 0 < delta) (hd' : delta < 1) :
   rw [h1, hresp1]
   exact ⟨rfl, rfl⟩
 
+/-- For `0 < delta < 1` and `1 - (ylcGamma 3 delta) ^ 2 ≤ lam ≤ 1`, the one-iterate success
+probability is at least `1 - delta ^ 2`. -/
 theorem l3_guarantee (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
     (hl : 1 - (ylcGamma 3 delta) ^ 2 ≤ lam) (hl' : lam ≤ 1) :
     1 - delta ^ 2 ≤ publicSuccessProb 1 delta lam := by
@@ -320,30 +361,36 @@ theorem l3_guarantee (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
     nlinarith [h2]
   nlinarith [hsq]
 
+/-- Preparation-access counts add under concatenation of access lists. -/
 private theorem prepAccessCount_append (x y : List FixedPointAccess) :
     prepAccessCount (x ++ y) = prepAccessCount x + prepAccessCount y := by
   induction x with
   | nil => simp [prepAccessCount]
   | cons a t ih => cases a <;> simp [prepAccessCount, ih] <;> ring
 
+/-- Query-access counts add under concatenation of access lists. -/
 private theorem queryAccessCount_append (x y : List FixedPointAccess) :
     queryAccessCount (x ++ y) = queryAccessCount x + queryAccessCount y := by
   induction x with
   | nil => simp [queryAccessCount]
   | cons a t ih => cases a <;> simp [queryAccessCount, ih] <;> ring
 
+/-- Phase-access counts add under concatenation of access lists. -/
 private theorem phaseAccessCount_append (x y : List FixedPointAccess) :
     phaseAccessCount (x ++ y) = phaseAccessCount x + phaseAccessCount y := by
   induction x with
   | nil => simp [phaseAccessCount]
   | cons a t ih => cases a <;> simp [phaseAccessCount, ih] <;> ring
 
+/-- Phase-bit counts add under concatenation of access lists. -/
 private theorem phaseBitCount_append (x y : List FixedPointAccess) :
     phaseBitCount (x ++ y) = phaseBitCount x + phaseBitCount y := by
   induction x with
   | nil => simp [phaseBitCount]
   | cons a t ih => cases a <;> simp [phaseBitCount, ih] <;> ring
 
+/-- A list count that vanishes on the empty list and adds under concatenation assigns count `c *
+l` to `l` blocks each of count `c`. -/
 private theorem count_range {α : Type} (count : List α → ℕ) (hc0 : count [] = 0)
     (hadd : ∀ x y, count (x ++ y) = count x + count y)
     (f : ℕ → List α) (l c : ℕ) (h : ∀ i, count (f i) = c) :
@@ -355,6 +402,7 @@ private theorem count_range {α : Type} (count : List α → ℕ) (hc0 : count [
       simp [h]
       ring
 
+/-- The fixed-point access word for `l` iterates contains `2 * l` preparation accesses. -/
 theorem prepAccessCount_word (l : ℕ) (delta : ℝ) (bits : ℕ) :
     prepAccessCount (fixedPointAccessWord l delta bits) = 2 * l := by
   rw [fixedPointAccessWord]
@@ -363,6 +411,7 @@ theorem prepAccessCount_word (l : ℕ) (delta : ℝ) (bits : ℕ) :
       intro i
       simp [iterateAccesses, prepAccessCount])
 
+/-- The fixed-point access word for `l` iterates contains `2 * l` query accesses. -/
 theorem queryAccessCount_word (l : ℕ) (delta : ℝ) (bits : ℕ) :
     queryAccessCount (fixedPointAccessWord l delta bits) = 2 * l := by
   rw [fixedPointAccessWord]
@@ -371,6 +420,7 @@ theorem queryAccessCount_word (l : ℕ) (delta : ℝ) (bits : ℕ) :
       intro i
       simp [iterateAccesses, queryAccessCount])
 
+/-- The fixed-point access word for `l` iterates contains `2 * l` phase accesses. -/
 theorem phaseAccessCount_word (l : ℕ) (delta : ℝ) (bits : ℕ) :
     phaseAccessCount (fixedPointAccessWord l delta bits) = 2 * l := by
   rw [fixedPointAccessWord]
@@ -379,6 +429,8 @@ theorem phaseAccessCount_word (l : ℕ) (delta : ℝ) (bits : ℕ) :
       intro i
       simp [iterateAccesses, phaseAccessCount])
 
+/-- The fixed-point access word for `l` iterates with phase-bit parameter `bits` has phase-bit
+count `2 * l * bits`. -/
 theorem phaseBitCount_word (l : ℕ) (delta : ℝ) (bits : ℕ) :
     phaseBitCount (fixedPointAccessWord l delta bits) = 2 * l * bits := by
   rw [fixedPointAccessWord]
@@ -391,6 +443,8 @@ theorem phaseBitCount_word (l : ℕ) (delta : ℝ) (bits : ℕ) :
       ring)
   rwa [show (2 * bits) * l = 2 * l * bits by ring] at h
 
+/-- The matrix of a concatenated access list is the matrix of the second list multiplied by the
+matrix of the first. -/
 private theorem accessWordMatrix_append (lam : ℝ) (x y : List FixedPointAccess) :
     accessWordMatrix lam (x ++ y) = accessWordMatrix lam y * accessWordMatrix lam x := by
   induction x with
@@ -399,6 +453,8 @@ private theorem accessWordMatrix_append (lam : ℝ) (x y : List FixedPointAccess
       rw [List.cons_append, accessWordMatrix, ih]
       ac_rfl
 
+/-- The matrix of concatenated access blocks is the reverse-ordered product of the individual
+block matrices. -/
 private theorem accessWordMatrix_flatMap (lam : ℝ) (f : ℕ → List FixedPointAccess) (l : ℕ) :
     accessWordMatrix lam (List.flatMap f (List.range l)) =
       ((List.range l).map (fun i => accessWordMatrix lam (f i))).reverse.prod := by
@@ -413,12 +469,16 @@ private theorem accessWordMatrix_flatMap (lam : ℝ) (f : ℕ → List FixedPoin
       simp only [List.nil_append, List.reverse_cons, List.reverse_nil, List.prod_cons,
         List.prod_nil, mul_one]
 
+/-- The matrix represented by the access list for a single iterate equals the corresponding
+public iterate. -/
 theorem iterateAccessMatrix (lam : ℝ) (l : ℕ) (delta : ℝ) (bits : ℕ) (i : ℕ) :
     accessWordMatrix lam (iterateAccesses l delta bits i) = publicIterate l delta lam i := by
   simp only [iterateAccesses, accessWordMatrix, FixedPointAccess.matrix]
   rw [publicIterate, groverIterate]
   simp
 
+/-- For every good-mass parameter, the fixed-point access word represents the public fixed-point
+matrix exactly. -/
 theorem accessWord_realizes_publicWord (l : ℕ) (delta lam : ℝ) (bits : ℕ) :
     accessWordMatrix lam (fixedPointAccessWord l delta bits) = publicWord l delta lam := by
   rw [fixedPointAccessWord, accessWordMatrix_flatMap]
@@ -430,6 +490,7 @@ theorem accessWord_realizes_publicWord (l : ℕ) (delta lam : ℝ) (bits : ℕ) 
   rw [hmap]
   rfl
 
+/-- Rounding an angle with `dyadicAngle bits` gives absolute error at most `π / 2 ^ bits`. -/
 theorem dyadicAngle_error (bits : ℕ) (angle : ℝ) :
     |angle - dyadicAngle bits angle| ≤ Real.pi / (2:ℝ) ^ bits := by
   set c : ℝ := angle * (2:ℝ) ^ bits / (2 * Real.pi) + 1 / 2 with hc
@@ -463,6 +524,8 @@ theorem dyadicAngle_error (bits : ℕ) (angle : ℝ) :
     mul_le_mul_of_nonneg_left habs (by linarith [hpi])
   linarith
 
+/-- A product of two-by-two matrices whose entries at `(1, 0)` vanish also has a zero entry at
+`(1, 0)`. -/
 private theorem prod_offdiag_zero :
     ∀ (xs : List (Matrix (Fin 2) (Fin 2) ℂ)),
       (∀ X ∈ xs, X 1 0 = 0) → (xs.prod) 1 0 = 0 := by
@@ -477,12 +540,14 @@ private theorem prod_offdiag_zero :
       rw [hX, ht]
       simp
 
+/-- At zero good mass, a generalized Grover iterate has zero entry at `(1, 0)`. -/
 theorem groverIterate_zero_offdiag (alpha beta : ℝ) :
     groverIterate 0 alpha beta 1 0 = 0 := by
   have hss := stateReflection_entry 0 alpha (by norm_num) (by norm_num)
   rw [groverIterate, hss, Matrix.neg_apply, Matrix.mul_apply, Fin.sum_univ_two]
   simp [targetReflection, Real.sqrt_zero, Real.sqrt_one]
 
+/-- At zero good mass, the analytic word matrix has zero entry at `(1, 0)`. -/
 theorem ylcWordMatrix_zero_offdiag (l : ℕ) (delta : ℝ) :
     (ylcWordMatrix l delta 0) 1 0 = 0 := by
   have hgrover : ∀ (alpha beta : ℝ), groverIterate 0 alpha beta 1 0 = 0 :=
@@ -494,12 +559,14 @@ theorem ylcWordMatrix_zero_offdiag (l : ℕ) (delta : ℝ) :
   obtain ⟨i, _, rfl⟩ := List.mem_map.mp hX
   exact hgrover _ _
 
+/-- The LCU consumer success probability equals the public two-level word's success probability. -/
 theorem lcu_success_prob_eq_word {J : Type} [Fintype J] [DecidableEq J]
     (j₀ : J) (l : ℕ) (delta lam : ℝ) :
     lcuSuccessProb j₀ l delta lam = publicSuccessProb l delta lam := by
   unfold lcuSuccessProb lcuSelectOperator lcuPrepareState
   exact clause3_fiber_success_probability j₀ l delta lam
 
+/-- The LCU conditional output is a complex scalar multiple of the fiber target. -/
 theorem lcu_conditional_output_on_target_ray {J : Type} [Fintype J] [DecidableEq J]
     (j₀ : J) (l : ℕ) (delta lam : ℝ) :
     ∃ c : ℂ, lcuConditionalOutput j₀ l delta lam = c • fiberTarget j₀ := by
@@ -509,6 +576,7 @@ theorem lcu_conditional_output_on_target_ray {J : Type} [Fintype J] [DecidableEq
           (lcuSelectOperator j₀ l delta lam *ᵥ lcuPrepareState j₀ lam)‖ : ℂ)), ?_⟩
   rfl
 
+/-- The LCU consumer has zero success probability when the initial good mass is zero. -/
 theorem lcu_zero_good_mass_fails {J : Type} [Fintype J] [DecidableEq J]
     (j₀ : J) (l : ℕ) (delta : ℝ) :
     lcuSuccessProb j₀ l delta 0 = 0 := by

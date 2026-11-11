@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueGradient
+
+/-!
+# Full-range value labels and decoding
+
+This module proves that a guarded floor encoding has no modular wraparound and decodes with a
+one-sided fixed-point error bound. It also identifies the value oracle with modular addition and
+computes its action on basis inputs, supporting the construction of [Jordan2005Gradient].
+
+## Main statements
+
+* `full_range_integer_bounds`: range and canonical-label identities.
+* `full_range_decoding_precision`: decoding error is nonnegative and less than `1 / (s * 2^k)`.
+* `full_range_basis_value_query`: a zero target register receives the stored label.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,12 +39,15 @@ namespace Qatlib.Concepts.GradientOracle.FullRange
 open Matrix
 open scoped Classical
 
+/-- The gradient value oracle is the modular addition oracle for the same value table. -/
 theorem full_range_value_oracle_eq_addOracle {X : Type} [Fintype X] [DecidableEq X]
     (N : ℕ) [NeZero N] (v : X → ZMod N) : gradientValueOracle N v = AddOracle v := by
   rw [addOracle_eq_permMatrix]
   ext x y
   simp [gradientValueOracle,permMatrix,addOracleEquiv,Prod.ext_iff]
 
+/-- Under the strict scaled-range guard, the floored value lies in `[0, 2^(K+k))` and equals the
+canonical integer representative of its modular label. -/
 theorem full_range_integer_bounds {X : Type} (K k : ℕ) (f : X → ℝ) (lo s R : ℝ)
     (hs : 0<s) (_hR : 0≤R) (hguard : s*R<(2:ℝ)^K)
     (hf : ∀ x,lo≤f x ∧ f x≤lo+R) (x : X) :
@@ -49,6 +71,8 @@ theorem full_range_integer_bounds {X : Type} (K k : ℕ) (f : X → ℝ) (lo s R
   unfold fullRangeValueTable
   rw [ZMod.val_intCast,Int.emod_eq_of_lt hi0 hiL]
 
+/-- Under the range and scaling assumptions, decoding a stored label underestimates the value by
+a nonnegative amount strictly less than `1/(s*2^k)`. -/
 theorem full_range_decoding_precision {X : Type} (K k : ℕ) (f : X → ℝ) (lo s R : ℝ)
     (hs : 0<s) (hR : 0≤R) (hguard : s*R<(2:ℝ)^K)
     (hf : ∀ x,lo≤f x ∧ f x≤lo+R) (x : X) :
@@ -71,6 +95,8 @@ theorem full_range_decoding_precision {X : Type} (K k : ℕ) (f : X → ℝ) (lo
   · exact div_nonneg (by exact sub_nonneg.mpr hl) hden.le
   · exact (div_lt_div_iff_of_pos_right hden).mpr (by linarith)
 
+/-- A full-range value query maps the basis state with input `x` and zero target to the basis
+state containing `fullRangeValueTable K k f lo s x`. -/
 theorem full_range_basis_value_query {X : Type} [Fintype X] [DecidableEq X]
     (K k : ℕ) (f : X → ℝ) (lo s : ℝ) (x : X) :
     ApplyGate (gradientValueOracle (2^(K+k)) (fullRangeValueTable K k f lo s)) (Ket (x,0)) =

@@ -17,6 +17,35 @@ import Mathlib.LinearAlgebra.Matrix.Trace
 import Mathlib.Algebra.Group.AddChar
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
+
+/-!
+# Hamming-distance concepts and learning matrices
+
+This module develops the binary-word model for the Hamming-distance concepts studied in
+[MeyerPommersheim2009]. It defines `wt`, `dist`, `concept`, and the parity-dependent
+transformation `hatX`, then proves the phase identities and character sums used to compute the
+learning algorithm's amplitudes.
+
+The later results count `conceptClass`, relate the Gram matrices of `learningMatrix` to Hamming
+distance, and constrain distance-dependent Hadamard matrices. The module also defines the
+elementary measurement predicates and average success expression used by the measurement
+analysis.
+
+## Main statements
+
+* `lemma_3_1_card_ne_one`: counts concepts when the length is not one modulo four.
+* `lemma_3_1_card_mod_one`: counts concepts when the length is one modulo four.
+* `theorem_3_2`: computes the normalized amplitudes for even word length.
+* `theorem_4_2`: rules out distance-dependent Hadamard learning matrices in odd length greater
+  than one.
+* `corollary_4_3`: represents the remaining Hadamard distance functions by shifted second binary
+  digits.
+
+## References
+
+* [Meyer and Pommersheim, 2009][MeyerPommersheim2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,32 +56,46 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.HammingDist09.MainResults
 
+/-- Binary words of length `n`, represented as functions from `Fin n` to `ZMod 2`. -/
 abbrev Word (n : ℕ) := Fin n → ZMod 2
 
+/-- The Hamming weight of a binary word, counting its nonzero coordinates. -/
 def wt {n : ℕ} (x : Word n) : ℕ := ∑ i, if x i = 0 then 0 else 1
 
+/-- The Hamming distance between two binary words, counting coordinates at which they differ. -/
 def dist {n : ℕ} (a x : Word n) : ℕ := ∑ i, if a i = x i then 0 else 1
 
+/-- The number of coordinates at which both binary words equal one. -/
 def dotCount {n : ℕ} (a x : Word n) : ℕ := ∑ i, if a i = 1 ∧ x i = 1 then 1 else 0
 
+/-- The standard bilinear dot product of binary words with values in `ZMod 2`. -/
 def dot {n : ℕ} (a x : Word n) : ZMod 2 := ∑ i, a i * x i
 
+/-- The second least significant binary digit of `d`, given by `(d / 2) % 2`. -/
 def b1 (d : ℕ) : ℕ := (d / 2) % 2
 
+/-- The bitwise complement of a binary word, obtained by adding one in each coordinate. -/
 def compl {n : ℕ} (a : Word n) : Word n := fun i => a i + 1
 
+/-- The word `x` when its Hamming weight is even, and its bitwise complement otherwise. -/
 def hatX {n : ℕ} (x : Word n) : Word n := if wt x % 2 = 0 then x else compl x
 
+/-- The integer sign `(-1) ^ (d / 2)` associated with the second binary digit of `d`. -/
 def sign (d : ℕ) : ℤ := (-1) ^ (d / 2)
 
+/-- The Boolean function returning the second binary digit of the Hamming distance from `a`. -/
 def concept {n : ℕ} (a : Word n) : Word n → ZMod 2 := fun x => (b1 (dist a x) : ZMod 2)
 
+/-- The set of Boolean functions obtained as `concept a` for binary words `a` of length `n`. -/
 def conceptClass (n : ℕ) : Set (Word n → ZMod 2) := Set.range (concept (n := n))
 
+/-- The binary word with every coordinate equal to one. -/
 def oneWord {n : ℕ} : Word n := fun _ => 1
 
+/-- The binary word whose only nonzero coordinate is `i`. -/
 def unit {n : ℕ} (i : Fin n) : Word n := Pi.single i 1
 
+/-- Every element of `ZMod 2` equals either zero or one. -/
 lemma zmod2_eq_zero_or_one (u : ZMod 2) : u = 0 ∨ u = 1 := by
   have hlt : u.val < 2 := ZMod.val_lt u
   have hcast : ((u.val : ℕ) : ZMod 2) = u := ZMod.natCast_zmod_val u
@@ -60,24 +103,31 @@ lemma zmod2_eq_zero_or_one (u : ZMod 2) : u = 0 ∨ u = 1 := by
   · left; rw [← hcast]; norm_num
   · right; rw [← hcast]; norm_num
 
+/-- Adding an element of `ZMod 2` to itself gives zero. -/
 lemma zmod2_add_self (u : ZMod 2) : u + u = 0 := by
   rcases zmod2_eq_zero_or_one u with rfl | rfl <;> decide
 
+/-- The sum of the indicator of a predicate on a finite type equals the cardinality of its
+satisfying elements, cast into the target monoid. -/
 lemma sum_ite_one_eq_card {ι R : Type*} [Fintype ι] [AddCommMonoidWithOne R]
     (p : ι → Prop) [DecidablePred p] :
     (∑ i, if p i then (1 : R) else 0) = ((Finset.univ.filter p).card : R) := by
   rw [← Finset.natCast_card_filter (s := Finset.univ) (p := p)]
 
+/-- The overlap count equals the cardinality of the coordinates at which both words equal one. -/
 lemma dotCount_eq_card {n : ℕ} (a x : Word n) :
     dotCount a x = (Finset.univ.filter (fun i => a i = 1 ∧ x i = 1)).card := by
   simp only [dotCount]
   exact sum_ite_one_eq_card _
 
+/-- The product of two binary elements is one exactly when both factors are one, and zero
+otherwise. -/
 lemma mul_eq_indicator (u v : ZMod 2) :
     u * v = if u = 1 ∧ v = 1 then (1 : ZMod 2) else 0 := by
   rcases zmod2_eq_zero_or_one u with rfl | rfl <;>
     rcases zmod2_eq_zero_or_one v with rfl | rfl <;> norm_num
 
+/-- The binary dot product is the overlap count reduced modulo two. -/
 lemma dot_eq_dotCount {n : ℕ} (a x : Word n) : dot a x = (dotCount a x : ZMod 2) := by
   have h : dot a x =
       ((Finset.univ.filter (fun i => a i = 1 ∧ x i = 1)).card : ZMod 2) := by
@@ -88,6 +138,7 @@ lemma dot_eq_dotCount {n : ℕ} (a x : Word n) : dot a x = (dotCount a x : ZMod 
     exact sum_ite_one_eq_card _
   rw [h, dotCount_eq_card]
 
+/-- The sum of the coordinates of a binary word equals its Hamming weight reduced modulo two. -/
 lemma sum_eq_wt {n : ℕ} (a : Word n) : (∑ i, a i) = (wt a : ZMod 2) := by
   have hsum : (∑ i, a i) = ∑ i, (if a i = 1 then (1 : ZMod 2) else 0) := by
     apply Finset.sum_congr rfl
@@ -103,17 +154,21 @@ lemma sum_eq_wt {n : ℕ} (a : Word n) : (∑ i, a i) = (wt a : ZMod 2) := by
     exact sum_ite_one_eq_card _
   rw [hsum, sum_ite_one_eq_card, hwtNat]
 
+/-- Bitwise complementation equals addition of the all-ones word. -/
 lemma compl_eq_add_one {n : ℕ} (x : Word n) : compl x = x + oneWord := by
   funext i
   simp [compl, oneWord, Pi.add_apply]
 
+/-- The binary dot product is additive in its second argument. -/
 lemma dot_add_right {n : ℕ} (a x y : Word n) : dot a (x + y) = dot a x + dot a y := by
   simp only [dot, Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+/-- The dot product with the all-ones word equals the Hamming weight modulo two. -/
 lemma dot_oneWord {n : ℕ} (a : Word n) : dot a oneWord = (wt a : ZMod 2) := by
   simp only [dot, oneWord, mul_one]
   exact sum_eq_wt a
 
+/-- The Hamming weight of a word is at most its length. -/
 lemma wt_le {n : ℕ} (x : Word n) : wt x ≤ n := by
   rw [wt]
   calc ∑ i : Fin n, (if x i = 0 then 0 else 1) ≤ ∑ _i : Fin n, 1 := by
@@ -122,6 +177,7 @@ lemma wt_le {n : ℕ} (x : Word n) : wt x ≤ n := by
         split <;> norm_num
     _ = n := by simp
 
+/-- The Hamming distance between words is at most their common length. -/
 lemma dist_le {n : ℕ} (a x : Word n) : dist a x ≤ n := by
   rw [dist]
   calc ∑ i : Fin n, (if a i = x i then 0 else 1) ≤ ∑ _i : Fin n, 1 := by
@@ -130,33 +186,41 @@ lemma dist_le {n : ℕ} (a x : Word n) : dist a x ≤ n := by
         split <;> norm_num
     _ = n := by simp
 
+/-- Two binary elements differ exactly when their sum is nonzero, expressed as equality of their
+distance indicators. -/
 lemma dist_indicator (u v : ZMod 2) :
     (if u = v then 0 else 1) = (if u + v = 0 then 0 else 1) := by
   rcases zmod2_eq_zero_or_one u with rfl | rfl <;>
     rcases zmod2_eq_zero_or_one v with rfl | rfl <;> decide
 
+/-- The Hamming distance between binary words equals the weight of their sum. -/
 lemma dist_eq_wt_add {n : ℕ} (a b : Word n) : dist a b = wt (a + b) := by
   simp only [dist, wt]
   apply Finset.sum_congr rfl
   intro i _
   simpa only [Pi.add_apply] using dist_indicator (a i) (b i)
 
+/-- A natural number with remainder zero modulo two casts to zero in `ZMod 2`. -/
 lemma natCast_eq_zero_of_mod_two_eq_zero {d : ℕ} (h : d % 2 = 0) :
     (d : ZMod 2) = 0 := by
   have hd : d = 2 * (d / 2) + d % 2 := (Nat.div_add_mod d 2).symm
   rw [hd, h, Nat.add_zero, Nat.cast_mul, ZMod.natCast_self, zero_mul]
 
+/-- A natural number with remainder one modulo two casts to one in `ZMod 2`. -/
 lemma natCast_eq_one_of_mod_two_eq_one {d : ℕ} (h : d % 2 = 1) :
     (d : ZMod 2) = 1 := by
   have hd : d = 2 * (d / 2) + d % 2 := (Nat.div_add_mod d 2).symm
   rw [hd, h, Nat.cast_add, Nat.cast_mul, ZMod.natCast_self, zero_mul, zero_add]
   norm_num
 
+/-- Reducing a natural number modulo two does not change its cast into `ZMod 2`. -/
 lemma natCast_mod_two (d : ℕ) : ((d % 2 : ℕ) : ZMod 2) = (d : ZMod 2) := by
   have hd : d = 2 * (d / 2) + d % 2 := (Nat.div_add_mod d 2).symm
   conv_rhs => rw [hd]
   rw [Nat.cast_add, Nat.cast_mul, ZMod.natCast_self, zero_mul, zero_add]
 
+/-- The sum of the two Hamming weights equals their Hamming distance plus twice their overlap
+count. -/
 lemma wt_add_wt_eq_dist_add {n : ℕ} (a x : Word n) :
     wt a + wt x = dist a x + 2 * dotCount a x := by
   simp only [wt, dist, dotCount]
@@ -169,11 +233,14 @@ lemma wt_add_wt_eq_dist_add {n : ℕ} (a x : Word n) :
     rcases zmod2_eq_zero_or_one (x i) with hx | hx <;>
       rw [ha, hx] <;> norm_num
 
+/-- For two binary elements, the distance indicators before and after complementing the first
+element sum to one. -/
 lemma compl_indicator (u v : ZMod 2) :
     (if u + 1 = v then 0 else 1) + (if u = v then 0 else 1) = 1 := by
   rcases zmod2_eq_zero_or_one u with rfl | rfl <;>
     rcases zmod2_eq_zero_or_one v with rfl | rfl <;> decide
 
+/-- The distances from a word and its complement to a fixed word sum to the word length. -/
 lemma dist_compl_add {n : ℕ} (a x : Word n) : dist (compl a) x + dist a x = n := by
   have h : ∀ i : Fin n,
       (if compl a i = x i then 0 else 1) + (if a i = x i then 0 else 1) = 1 := by
@@ -186,10 +253,14 @@ lemma dist_compl_add {n : ℕ} (a x : Word n) : dist (compl a) x + dist a x = n 
     _ = ∑ _i : Fin n, 1 := Finset.sum_congr rfl (fun i _ => h i)
     _ = n := by simp
 
+/-- Complementing the second argument adds the weight of the first argument modulo two to the
+binary dot product. -/
 lemma dot_compl {n : ℕ} (a x : Word n) :
     dot a (compl x) = dot a x + (wt a : ZMod 2) := by
   rw [compl_eq_add_one, dot_add_right, dot_oneWord]
 
+/-- The dot product with `hatX x` equals the original dot product plus the product of the two
+weight parities. [MeyerPommersheim2009]. -/
 theorem lemma_3_3 {n : ℕ} (a x : Word n) :
     dot a x + (wt a : ZMod 2) * (wt x : ZMod 2) = dot a (hatX x) := by
   unfold hatX
@@ -202,6 +273,8 @@ theorem lemma_3_3 {n : ℕ} (a x : Word n) :
       · exact natCast_eq_one_of_mod_two_eq_one h
     rw [hx1, mul_one, dot_compl]
 
+/-- The integer half of a sum equals the sum of the integer halves plus the product of the two
+remainders modulo two. -/
 lemma half_add (A X : ℕ) :
     (A + X) / 2 = A / 2 + X / 2 + (A % 2) * (X % 2) := by
   have hA : A = 2 * (A / 2) + A % 2 := (Nat.div_add_mod A 2).symm
@@ -211,10 +284,14 @@ lemma half_add (A X : ℕ) :
   rcases hbA with h1 | h1 <;> rcases hbX with h2 | h2 <;>
     simp only [h1, h2, mul_zero, mul_one] <;> omega
 
+/-- If `A + X = D + 2 * C`, then the integer half of `A + X` equals the integer half of `D` plus
+`C`. -/
 lemma half_of_add_two_mul {A X D C : ℕ} (h : A + X = D + 2 * C) :
     (A + X) / 2 = D / 2 + C := by
   omega
 
+/-- Modulo two, half the Hamming distance equals the sum of the half-weights and the dot product
+with `hatX x`. -/
 theorem half_dist_eq {n : ℕ} (a x : Word n) :
     ((dist a x / 2 : ℕ) : ZMod 2)
       = ((wt a / 2 : ℕ) : ZMod 2) + ((wt x / 2 : ℕ) : ZMod 2) + dot a (hatX x) := by
@@ -252,6 +329,7 @@ theorem half_dist_eq {n : ℕ} (a x : Word n) :
     _ = ((wt a / 2 : ℕ) : ZMod 2) + ((wt x / 2 : ℕ) : ZMod 2) + dot a (hatX x) := by
         rw [lemma_3_3]
 
+/-- Natural exponents with equal casts into `ZMod 2` give equal integer powers of minus one. -/
 lemma neg_one_pow_eq_of_cast_eq {m k : ℕ} (h : (m : ZMod 2) = (k : ZMod 2)) :
     (-1 : ℤ) ^ m = (-1 : ℤ) ^ k := by
   have hm : m = 2 * (m / 2) + m % 2 := (Nat.div_add_mod m 2).symm
@@ -269,6 +347,8 @@ lemma neg_one_pow_eq_of_cast_eq {m k : ℕ} (h : (m : ZMod 2) = (k : ZMod 2)) :
     rwa [Nat.mod_eq_of_lt hm2, Nat.mod_eq_of_lt hk2] at h2
   rw [hmod]
 
+/-- The sign of a Hamming distance factors into the signs of the two weights and the binary
+character determined by `dot a (hatX x)`. [MeyerPommersheim2009]. -/
 theorem lemma_3_4 {n : ℕ} (a x : Word n) :
     sign (dist a x) =
       sign (wt a) * sign (wt x) * (-1 : ℤ) ^ (dot a (hatX x)).val := by
@@ -280,15 +360,19 @@ theorem lemma_3_4 {n : ℕ} (a x : Word n) :
   simp only [sign]
   rw [← hsign, pow_add, pow_add]
 
+/-- The weight of the all-ones word is its length. -/
 lemma wt_oneWord {n : ℕ} : wt (oneWord (n := n)) = n := by
   simp [wt, oneWord]
 
+/-- The Hamming distance from a word to itself is zero. -/
 lemma dist_self {n : ℕ} (a : Word n) : dist a a = 0 := by
   simp [dist]
 
+/-- Hamming distance is symmetric. -/
 lemma dist_comm {n : ℕ} (a b : Word n) : dist a b = dist b a := by
   simp [dist, eq_comm]
 
+/-- The Hamming distance from a word to its complement is its length. -/
 lemma dist_compl_self {n : ℕ} (a : Word n) : dist a (compl a) = n := by
   rw [dist_eq_wt_add]
   have h : a + compl a = oneWord := by
@@ -298,20 +382,24 @@ lemma dist_compl_self {n : ℕ} (a : Word n) : dist a (compl a) = n := by
     rcases zmod2_eq_zero_or_one (a i) with hi | hi <;> rw [hi] <;> decide
   rw [h, wt_oneWord]
 
+/-- The dot product with the coordinate word `unit i` extracts the `i`th coordinate. -/
 lemma dot_unit {n : ℕ} (b : Word n) (i : Fin n) : dot b (unit i) = b i := by
   rw [dot, Fintype.sum_eq_single i]
   · simp [unit]
   · intro j hj
     simp [unit, Pi.single_eq_of_ne hj]
 
+/-- The sum of two elements of `ZMod 2` is zero exactly when they are equal. -/
 lemma zmod2_add_eq_zero_iff (u v : ZMod 2) : u + v = 0 ↔ u = v := by
   rcases zmod2_eq_zero_or_one u with rfl | rfl <;>
     rcases zmod2_eq_zero_or_one v with rfl | rfl <;> decide
 
+/-- Two distinct elements of `ZMod 2` sum to one. -/
 lemma zmod2_add_eq_one_of_ne {u v : ZMod 2} (h : u ≠ v) : u + v = 1 := by
   rcases zmod2_eq_zero_or_one u with rfl | rfl <;>
     rcases zmod2_eq_zero_or_one v with rfl | rfl <;> simp_all
 
+/-- A coordinate word has Hamming weight one. -/
 lemma wt_unit {n : ℕ} (i : Fin n) : wt (unit i) = 1 := by
   unfold wt
   rw [Fintype.sum_eq_single i]
@@ -319,6 +407,7 @@ lemma wt_unit {n : ℕ} (i : Fin n) : wt (unit i) = 1 := by
   · intro j hj
     simp [unit, Pi.single_eq_of_ne hj]
 
+/-- Flipping a zero coordinate increases the Hamming weight by one. -/
 lemma wt_add_unit_zero {n : ℕ} (v : Word n) (i : Fin n) (h : v i = 0) :
     wt (v + unit i) = wt v + 1 := by
   have hsum : (∑ k ∈ Finset.univ.erase i, (if (v + unit i) k = 0 then 0 else 1))
@@ -342,6 +431,7 @@ lemma wt_add_unit_zero {n : ℕ} (v : Word n) (i : Fin n) (h : v i = 0) :
   rw [hsum, hi, hi0]
   omega
 
+/-- Flipping a coordinate equal to one decreases the Hamming weight by one. -/
 lemma wt_add_unit_one {n : ℕ} (v : Word n) (i : Fin n) (h : v i = 1) :
     wt (v + unit i) + 1 = wt v := by
   have hsum : (∑ k ∈ Finset.univ.erase i, (if (v + unit i) k = 0 then 0 else 1))
@@ -366,6 +456,7 @@ lemma wt_add_unit_one {n : ℕ} (v : Word n) (i : Fin n) (h : v i = 1) :
   rw [hsum, hi, hi0]
   omega
 
+/-- Flipping a coordinate where two words agree increases their Hamming distance by one. -/
 lemma dist_add_unit_eq_succ {n : ℕ} (a b : Word n) (i : Fin n) (h : a i = b i) :
     dist b (a + unit i) = dist a b + 1 := by
   rw [dist_eq_wt_add, dist_eq_wt_add]
@@ -376,6 +467,7 @@ lemma dist_add_unit_eq_succ {n : ℕ} (a b : Word n) (i : Fin n) (h : a i = b i)
     exact zmod2_add_self (b i)
   exact wt_add_unit_zero (a + b) i hv
 
+/-- Flipping a coordinate where two words differ decreases their Hamming distance by one. -/
 lemma dist_add_unit_eq_pred {n : ℕ} (a b : Word n) (i : Fin n) (h : a i ≠ b i) :
     dist b (a + unit i) + 1 = dist a b := by
   rw [dist_eq_wt_add, dist_eq_wt_add]
@@ -386,20 +478,25 @@ lemma dist_add_unit_eq_pred {n : ℕ} (a b : Word n) (i : Fin n) (h : a i ≠ b 
     exact zmod2_add_eq_one_of_ne (by simpa [eq_comm] using h)
   exact wt_add_unit_one (a + b) i hv
 
+/-- The second binary digit of a natural number is its remainder modulo four divided by two. -/
 lemma b1_eq_mod_four (d : ℕ) : b1 d = (d % 4) / 2 := by
   unfold b1
   omega
 
+/-- The second binary digit is zero exactly for remainders zero or one modulo four. -/
 lemma b1_eq_zero_iff (d : ℕ) : b1 d = 0 ↔ d % 4 = 0 ∨ d % 4 = 1 := by
   rw [b1_eq_mod_four]
   have hlt : d % 4 < 4 := Nat.mod_lt d (by norm_num)
   omega
 
+/-- The second binary digit is one exactly for remainders two or three modulo four. -/
 lemma b1_eq_one_iff (d : ℕ) : b1 d = 1 ↔ d % 4 = 2 ∨ d % 4 = 3 := by
   rw [b1_eq_mod_four]
   have hlt : d % 4 < 4 := Nat.mod_lt d (by norm_num)
   omega
 
+/-- When `n % 4 = 1` and `d ≤ n`, subtracting `d` from `n` preserves the second binary digit of
+`d`. -/
 lemma b1_sub_of_mod_four_one {n d : ℕ} (hn : n % 4 = 1) (hd : d ≤ n) :
     b1 (n - d) = b1 d := by
   rw [b1_eq_mod_four, b1_eq_mod_four]
@@ -408,17 +505,20 @@ lemma b1_sub_of_mod_four_one {n d : ℕ} (hn : n % 4 = 1) (hd : d ≤ n) :
   rw [hsub]
   omega
 
+/-- The predecessor of a positive multiple of four has second binary digit one. -/
 lemma b1_pred_of_mod_four_zero {d : ℕ} (hd : 0 < d) (h : d % 4 = 0) :
     b1 (d - 1) = 1 := by
   rw [b1_eq_mod_four]
   have h4 : (d - 1) % 4 = 3 := by omega
   rw [h4]
 
+/-- Distinct binary words differ at some coordinate. -/
 lemma exists_ne_of_ne {n : ℕ} {a b : Word n} (h : a ≠ b) : ∃ i, a i ≠ b i := by
   by_contra hc
   simp only [not_exists, not_not] at hc
   exact h (funext hc)
 
+/-- Distinct binary words have positive Hamming distance. -/
 lemma dist_pos_of_ne {n : ℕ} {a b : Word n} (h : a ≠ b) : 0 < dist a b := by
   obtain ⟨i, hi⟩ := exists_ne_of_ne h
   have hle : (if a i = b i then 0 else 1) ≤ dist a b := by
@@ -430,13 +530,17 @@ lemma dist_pos_of_ne {n : ℕ} {a b : Word n} (h : a ≠ b) : 0 < dist a b := by
   simp [hi] at hle
   exact hle
 
+/-- Natural numbers less than two are equal if their casts into `ZMod 2` are equal. -/
 lemma b1_eq_of_cast_eq {m k : ℕ} (h : (m : ZMod 2) = (k : ZMod 2))
     (hm : m < 2) (hk : k < 2) : m = k := by
   have h2 := (ZMod.natCast_eq_natCast_iff' m k 2).mp h
   rwa [Nat.mod_eq_of_lt hm, Nat.mod_eq_of_lt hk] at h2
 
+/-- The second binary digit is strictly less than two. -/
 lemma b1_lt_two (d : ℕ) : b1 d < 2 := Nat.mod_lt _ (by norm_num)
 
+/-- Distinct words defining the same concept must be complements, and their length is congruent
+to one modulo four. -/
 theorem concept_eq_of_ne {n : ℕ} {a a' : Word n}
     (hf : concept a = concept a') (hne : a ≠ a') :
     n % 4 = 1 ∧ a' = compl a := by
@@ -511,12 +615,16 @@ theorem concept_eq_of_ne {n : ℕ} {a a' : Word n}
   rw [← hdn]
   exact hd4
 
+/-- The map from words to concepts is injective when the word length is not congruent to one
+modulo four. -/
 theorem concept_injective_of_mod_four_ne_one {n : ℕ} (h4 : n % 4 ≠ 1) :
     Function.Injective (concept (n := n)) := by
   intro a a' hf
   by_contra hne
   exact h4 (concept_eq_of_ne hf hne).1
 
+/-- When the word length is congruent to one modulo four, complementary words define the same
+concept. [MeyerPommersheim2009]. -/
 theorem concept_compl {n : ℕ} (h4 : n % 4 = 1) (a : Word n) :
     concept (compl a) = concept a := by
   funext x
@@ -528,10 +636,13 @@ theorem concept_compl {n : ℕ} (h4 : n % 4 = 1) (a : Word n) :
   rw [hsub]
   exact b1_sub_of_mod_four_one h4 hle
 
+/-- There are `2 ^ n` binary words of length `n`. -/
 lemma natCard_word (n : ℕ) : Nat.card (Word n) = 2 ^ n := by
   rw [Nat.card_eq_fintype_card, Fintype.card_fun]
   simp [ZMod.card, Fintype.card_fin]
 
+/-- The equivalence between words of length `m + 1` whose first bit is zero and words of length
+`m`, obtained by deleting or prepending that bit. -/
 def zeroBitEquiv (m : ℕ) : {a : Word (m + 1) // a 0 = 0} ≃ Word m where
   toFun a := Fin.tail a.1
   invFun v := ⟨Fin.cons 0 v, by simp⟩
@@ -542,15 +653,20 @@ def zeroBitEquiv (m : ℕ) : {a : Word (m + 1) // a 0 = 0} ≃ Word m where
     funext j
     simp [Fin.tail_cons]
 
+/-- There are `2 ^ m` words of length `m + 1` whose first bit is zero. -/
 lemma natCard_subtype_zero_bit (m : ℕ) :
     Nat.card {a : Word (m + 1) // a 0 = 0} = 2 ^ m := by
   rw [Nat.card_congr (zeroBitEquiv m), natCard_word]
 
+/-- The concept class has cardinality `2 ^ n` when `n` is not congruent to one modulo four.
+[MeyerPommersheim2009]. -/
 theorem lemma_3_1_card_ne_one {n : ℕ} (h4 : n % 4 ≠ 1) :
     (conceptClass n).ncard = 2 ^ n := by
   rw [conceptClass, Set.ncard_range_of_injective (concept_injective_of_mod_four_ne_one h4)]
   exact natCard_word n
 
+/-- The concept class has cardinality `2 ^ (n - 1)` when `n` is congruent to one modulo four.
+[MeyerPommersheim2009]. -/
 theorem lemma_3_1_card_mod_one {n : ℕ} (h4 : n % 4 = 1) :
     (conceptClass n).ncard = 2 ^ (n - 1) := by
   have hn : 0 < n := by
@@ -594,12 +710,17 @@ theorem lemma_3_1_card_mod_one {n : ℕ} (h4 : n % 4 = 1) :
   rw [hrange, Set.ncard_range_of_injective hinj, natCard_subtype_zero_bit]
   simp
 
+/-- The complex sign `(-1) ^ (d / 2)` associated with the second binary digit of `d`. -/
 def csign (d : ℕ) : ℂ := (-1 : ℂ) ^ (d / 2)
 
+/-- The natural representative of one in `ZMod 2` is one. -/
 lemma zmod2_val_one : (1 : ZMod 2).val = 1 := rfl
 
+/-- The natural representative of zero in `ZMod 2` is zero. -/
 lemma zmod2_val_zero : (0 : ZMod 2).val = 0 := rfl
 
+/-- Reducing a natural exponent modulo two leaves the corresponding power of minus one unchanged
+in any ring. -/
 lemma neg_one_pow_mod_two {R : Type*} [Ring R] (k : ℕ) :
     (-1 : R) ^ (k % 2) = (-1 : R) ^ k := by
   have hk : k = 2 * (k / 2) + k % 2 := by omega
@@ -607,15 +728,19 @@ lemma neg_one_pow_mod_two {R : Type*} [Ring R] (k : ℕ) :
   rw [pow_add, pow_mul, show (-1 : R) ^ 2 = 1 by rw [pow_two, neg_mul_neg, one_mul],
     one_pow, one_mul]
 
+/-- Raising complex minus one to the second binary digit of `d` gives `csign d`. -/
 lemma neg_one_pow_b1 (d : ℕ) : (-1 : ℂ) ^ (b1 d) = csign d := by
   unfold b1 csign
   exact neg_one_pow_mod_two (d / 2)
 
+/-- The square of `csign d` is one. -/
 lemma csign_sq (d : ℕ) : csign d * csign d = 1 := by
   unfold csign
   rw [← pow_add, show d / 2 + d / 2 = 2 * (d / 2) by ring, pow_mul,
     show (-1 : ℂ) ^ 2 = 1 by norm_num, one_pow]
 
+/-- The product of the weight sign of `z` and the distance sign from `a` to `z` equals the
+weight sign of `a` times the character at `hatX z`. -/
 lemma csign_mul_dist {n : ℕ} (a z : Word n) :
     csign (wt z) * csign (dist a z)
       = csign (wt a) * (-1 : ℂ) ^ (dot a (hatX z)).val := by
@@ -635,6 +760,7 @@ lemma csign_mul_dist {n : ℕ} (a z : Word n) :
     _ = (-1 : ℂ) ^ (wt a / 2) * (-1 : ℂ) ^ (dot a (hatX z)).val := by
         rw [hsq]; ring
 
+/-- The weight of a complemented word equals its length minus its original weight. -/
 lemma wt_compl {n : ℕ} (x : Word n) : wt (compl x) = n - wt x := by
   have h1 : wt (compl x) = dist oneWord x := by
     rw [compl_eq_add_one, add_comm x oneWord, ← dist_eq_wt_add]
@@ -645,11 +771,13 @@ lemma wt_compl {n : ℕ} (x : Word n) : wt (compl x) = n - wt x := by
     rw [dist_eq_wt_add]; simp
   omega
 
+/-- Complementing a binary word twice returns the original word. -/
 lemma compl_compl {n : ℕ} (x : Word n) : compl (compl x) = x := by
   funext i
   show x i + 1 + 1 = x i
   rw [add_assoc, zmod2_add_self, add_zero]
 
+/-- For words of even length, `hatX` is an involution. -/
 lemma hatX_hatX_of_even {n : ℕ} (hn : Even n) (x : Word n) : hatX (hatX x) = x := by
   unfold hatX
   by_cases hx : wt x % 2 = 0
@@ -663,9 +791,12 @@ lemma hatX_hatX_of_even {n : ℕ} (hn : Even n) (x : Word n) : hatX (hatX x) = x
     rw [if_neg (by omega : ¬ wt (compl x) % 2 = 0)]
     exact compl_compl x
 
+/-- The binary dot product is additive in its first argument. -/
 lemma dot_add_left {n : ℕ} (a b x : Word n) : dot (a + b) x = dot a x + dot b x := by
   simp only [dot, Pi.add_apply, add_mul, Finset.sum_add_distrib]
 
+/-- The product of the binary characters indexed by `a` and `b` is the character indexed by `a +
+b`. -/
 lemma neg_one_pow_dot_add {n : ℕ} (a b x : Word n) :
     (-1 : ℂ) ^ (dot a x).val * (-1 : ℂ) ^ (dot b x).val
       = (-1 : ℂ) ^ (dot (a + b) x).val := by
@@ -681,6 +812,7 @@ lemma neg_one_pow_dot_add {n : ℕ} (a b x : Word n) :
     rw [h, zmod2_val_one]
     norm_num
 
+/-- The self-equivalence of binary words that flips coordinate `i`. -/
 def addUnitEquiv {n : ℕ} (i : Fin n) : Word n ≃ Word n where
   toFun x := x + unit i
   invFun x := x + unit i
@@ -693,6 +825,8 @@ def addUnitEquiv {n : ℕ} (i : Fin n) : Word n ≃ Word n where
     show (x k + unit i k) + unit i k = x k
     rw [add_assoc, zmod2_add_self, add_zero]
 
+/-- The sum of a binary character over all words is the number of words for the zero character
+and zero otherwise. -/
 lemma sum_neg_one_pow_dot {n : ℕ} (b : Word n) :
     (∑ x : Word n, (-1 : ℂ) ^ (dot b x).val)
       = if b = 0 then (Fintype.card (Word n) : ℂ) else 0 := by
@@ -741,13 +875,18 @@ lemma sum_neg_one_pow_dot {n : ℕ} (b : Word n) :
       exact neg_add_cancel _
     exact add_self_eq_zero.mp hSS
 
+/-- The unnormalized algorithm amplitude obtained by summing the weight and distance phases
+after `hatX`, multiplied by the binary Fourier character indexed by `y`. -/
 def algAmp {n : ℕ} (a y : Word n) : ℂ :=
   ∑ x : Word n,
     (-1 : ℂ) ^ (b1 (wt (hatX x)) + b1 (dist a (hatX x)))
       * (-1 : ℂ) ^ (dot y x).val
 
+/-- The algorithm amplitude `algAmp a y` scaled by the inverse of `2 ^ n`. -/
 def algNormAmp {n : ℕ} (a y : Word n) : ℂ := ((2 : ℂ) ^ n)⁻¹ * algAmp a y
 
+/-- For even word length, the unnormalized algorithm amplitude vanishes unless `y = a`, where it
+equals `2 ^ n` times the weight phase of `a`. [MeyerPommersheim2009]. -/
 theorem theorem_3_2_amplitude {n : ℕ} (hn : Even n) (a y : Word n) :
     algAmp a y =
       if y = a then (-1 : ℂ) ^ (b1 (wt a)) * (2 : ℂ) ^ n else 0 := by
@@ -792,11 +931,14 @@ theorem theorem_3_2_amplitude {n : ℕ} (hn : Even n) (a y : Word n) :
       exact add_left_cancel h1
     rw [sum_neg_one_pow_dot (a + y), if_neg hne, mul_zero]
 
+/-- Every natural power of complex minus one has squared norm one. -/
 lemma normSq_neg_one_pow (k : ℕ) : Complex.normSq ((-1 : ℂ) ^ k) = 1 := by
   rcases Nat.even_or_odd k with h | h
   · rw [h.neg_one_pow, Complex.normSq_one]
   · rw [h.neg_one_pow, Complex.normSq_neg, Complex.normSq_one]
 
+/-- For even word length, the normalized amplitude is supported at `a` with its weight phase,
+giving squared norm one at `a` and zero at every other word. [MeyerPommersheim2009]. -/
 theorem theorem_3_2 {n : ℕ} (hn : Even n) (a : Word n) :
     (∀ y : Word n, algNormAmp a y = if y = a then (-1 : ℂ) ^ (b1 (wt a)) else 0) ∧
     Complex.normSq (algNormAmp a a) = 1 ∧
@@ -828,23 +970,30 @@ theorem theorem_3_2 {n : ℕ} (hn : Even n) (a : Word n) :
     rw [hamp y, if_neg hy]
     simp only [mul_zero, Complex.normSq_zero]
 
+/-- The number of inputs on which two Boolean concepts in the family `f` differ. -/
 def hammingDist {X C : Type*} [Fintype X] (f : C → X → ZMod 2) (c c' : C) : ℕ :=
   (Finset.univ.filter (fun x => f c x ≠ f c' x)).card
 
+/-- The integer sign matrix of a Boolean concept family, with entry `(-1) ^ (f c x).val`. -/
 def learningMatrix {X C : Type*} [Fintype X] (f : C → X → ZMod 2) : Matrix X C ℤ :=
   fun x c => (-1 : ℤ) ^ (f c x).val
 
+/-- The condition that a matrix has entries in `{1, -1}` and pairwise orthogonal columns whose
+squared lengths equal the number of rows. -/
 def IsHadamardColumns {X C : Type*} [Fintype X] [Fintype C] [DecidableEq C]
     (M : Matrix X C ℤ) : Prop :=
   (∀ x c, M x c = 1 ∨ M x c = -1) ∧
     M.transpose * M = (Fintype.card X : ℤ) • (1 : Matrix C C ℤ)
 
+/-- Multiplying the signs of two binary elements gives the sign of their sum. -/
 lemma neg_one_pow_val_add (a b : ZMod 2) :
     (-1 : ℤ) ^ a.val * (-1 : ℤ) ^ b.val = (-1 : ℤ) ^ (a + b).val := by
   rw [← pow_add]
   apply neg_one_pow_eq_of_cast_eq
   rw [Nat.cast_add, ZMod.natCast_zmod_val, ZMod.natCast_zmod_val, ZMod.natCast_zmod_val]
 
+/-- The sum of binary signs equals the size of the domain minus twice the number of nonzero
+function values. -/
 lemma sum_neg_one_pow_eq {X : Type*} [Fintype X] (g : X → ZMod 2) :
     (∑ x : X, (-1 : ℤ) ^ (g x).val)
       = (Fintype.card X : ℤ) - 2 * ((Finset.univ.filter (fun x => g x ≠ 0)).card : ℤ) := by
@@ -868,6 +1017,8 @@ lemma sum_neg_one_pow_eq {X : Type*} [Fintype X] (g : X → ZMod 2) :
           by_cases h : g x = 0 <;> simp [h]
         rw [hsum]
 
+/-- The inner product of two columns of the learning matrix equals the number of inputs minus
+twice their Hamming distance. -/
 lemma learningMatrix_col_inner {X C : Type*} [Fintype X] (f : C → X → ZMod 2) (c c' : C) :
     (∑ x : X, (-1 : ℤ) ^ (f c x).val * (-1 : ℤ) ^ (f c' x).val)
       = (Fintype.card X : ℤ) - 2 * (hammingDist f c c' : ℤ) := by
@@ -883,6 +1034,9 @@ lemma learningMatrix_col_inner {X C : Type*} [Fintype X] (f : C → X → ZMod 2
   intro x _
   exact not_congr (zmod2_add_eq_zero_iff (f c x) (f c' x))
 
+/-- Under the specified vanishing Gram relations with `-1 ≤ lam ≤ 1` and at least two concepts,
+all distinct concepts have a common Hamming distance at least half the domain size.
+[MeyerPommersheim2009]. -/
 theorem lemma_4_1_distance {X C : Type*} [Fintype X]
     (f : C → X → ZMod 2) (lam : ℝ)
     (hN : 0 < Fintype.card X) (hlam : -1 ≤ lam) (hlam1 : lam ≤ 1)
@@ -910,6 +1064,9 @@ theorem lemma_4_1_distance {X C : Type*} [Fintype X]
       nlinarith [h, h0, hpos]
     exact_mod_cast hreal
 
+/-- For equally many inputs and concepts, with an even domain size greater than two, constant
+pairwise distance equal to half the domain size makes the learning matrix have Hadamard
+columns. [MeyerPommersheim2009]. -/
 theorem lemma_4_1_hadamard {X C : Type*} [Fintype X] [Fintype C] [DecidableEq C]
     (f : C → X → ZMod 2) (d : ℕ)
     (hN2 : 2 < Fintype.card X) (hcard : Fintype.card C = Fintype.card X)
@@ -940,15 +1097,19 @@ theorem lemma_4_1_hadamard {X C : Type*} [Fintype X] [Fintype C] [DecidableEq C]
       simp [hcc]
       omega
 
+/-- Adding one changes every element of `ZMod 2`. -/
 lemma zmod2_add_one_ne (u : ZMod 2) : u + 1 ≠ u := by
   rcases zmod2_eq_zero_or_one u with rfl | rfl <;> decide
 
+/-- If two binary elements are distinct, adding one to the first gives the second. -/
 lemma zmod2_add_one_eq_of_ne {u v : ZMod 2} (h : u ≠ v) : u + 1 = v := by
   have huv : u + v = 1 := zmod2_add_eq_one_of_ne h
   calc u + 1 = u + (u + v) := by rw [huv]
     _ = (u + u) + v := by abel
     _ = v := by rw [zmod2_add_self, zero_add]
 
+/-- The inner product of two learning-matrix rows is the sum of the signs of the corresponding
+pairwise output sums. -/
 lemma learningMatrix_row_inner {X C : Type*} [Fintype X] [Fintype C]
     (f : C → X → ZMod 2) (x y : X) :
     (∑ c : C, learningMatrix f x c * learningMatrix f y c)
@@ -958,6 +1119,7 @@ lemma learningMatrix_row_inner {X C : Type*} [Fintype X] [Fintype C]
   simp only [learningMatrix]
   exact neg_one_pow_val_add (f c x) (f c y)
 
+/-- The product of two binary signs equals minus one exactly when the binary elements differ. -/
 lemma neg_one_pow_mul_eq_neg_one_iff (u v : ZMod 2) :
     (-1 : ℤ) ^ u.val * (-1 : ℤ) ^ v.val = -1 ↔ u ≠ v := by
   rw [neg_one_pow_val_add]
@@ -969,17 +1131,21 @@ lemma neg_one_pow_mul_eq_neg_one_iff (u v : ZMod 2) :
     rw [zmod2_add_eq_one_of_ne h, zmod2_val_one]
     norm_num
 
+/-- The sign of the sum of two binary elements equals minus one exactly when they differ. -/
 lemma neg_one_pow_sum_eq_neg_one_iff (u v : ZMod 2) :
     (-1 : ℤ) ^ (u + v).val = -1 ↔ u ≠ v := by
   rw [← neg_one_pow_val_add]
   exact neg_one_pow_mul_eq_neg_one_iff u v
 
+/-- If two binary elements sum to one, the second equals the first plus one. -/
 lemma eq_add_one_of_add_eq_one {u v : ZMod 2} (h : u + v = 1) : v = u + 1 := by
   calc v = v + (u + u) := by rw [zmod2_add_self, add_zero]
     _ = (u + v) + u := by abel
     _ = 1 + u := by rw [h]
     _ = u + 1 := by abel
 
+/-- For a square matrix on a nonempty finite type, the Hadamard column condition also gives the
+corresponding row Gram identity. -/
 lemma hadamard_rows {m : Type*} [Fintype m] [DecidableEq m] [Nonempty m]
     {M : Matrix m m ℤ} (hM : IsHadamardColumns M) :
     M * M.transpose = (Fintype.card m : ℤ) • (1 : Matrix m m ℤ) := by
@@ -1018,6 +1184,8 @@ lemma hadamard_rows {m : Type*} [Fintype m] [DecidableEq m] [Nonempty m]
       Mq] using h
   exact Int.cast_injective (α := ℚ) h'
 
+/-- Distinct rows of a square matrix satisfying the Hadamard column condition have inner product
+zero. -/
 lemma hadamard_row_dot {m : Type*} [Fintype m] [DecidableEq m] [Nonempty m]
     {M : Matrix m m ℤ} (hM : IsHadamardColumns M) {x y : m} (hxy : x ≠ y) :
     (∑ c : m, M x c * M y c) = 0 := by
@@ -1025,6 +1193,7 @@ lemma hadamard_row_dot {m : Type*} [Fintype m] [DecidableEq m] [Nonempty m]
   simpa [Matrix.mul_apply, Matrix.transpose_apply, Matrix.smul_apply, Matrix.one_apply,
     hxy] using h
 
+/-- Flipping two distinct coordinates with different bit values preserves the Hamming weight. -/
 lemma wt_add_units_of_ne {n : ℕ} (v : Word n) {i j : Fin n} (hij : i ≠ j)
     (h : v i ≠ v j) : wt (v + (unit i + unit j)) = wt v := by
   have hcomm : v + (unit i + unit j) = (v + unit i) + unit j := by abel
@@ -1048,11 +1217,15 @@ lemma wt_add_units_of_ne {n : ℕ} (v : Word n) {i j : Fin n} (hij : i ≠ j)
     omega
   · exact absurd (hi.trans hj.symm) h
 
+/-- If two distinct coordinates of `a` differ, its distances to zero and to the sum of the two
+coordinate words are equal. -/
 lemma dist_zero_eq_dist_units_of_ne {n : ℕ} (a : Word n) {i j : Fin n} (hij : i ≠ j)
     (h : a i ≠ a j) : dist a 0 = dist a (unit i + unit j) := by
   rw [dist_eq_wt_add, dist_eq_wt_add, add_zero]
   exact (wt_add_units_of_ne a hij h).symm
 
+/-- For distinct coordinates `i` and `j` and `d + 2 ≤ n`, there is a weight-`d` word vanishing
+there whose distances to zero and to `unit i + unit j` are `d` and `d + 2`. -/
 lemma exists_word_pair {n : ℕ} {i j : Fin n} (hij : i ≠ j) (d : ℕ) (hd : d + 2 ≤ n) :
     ∃ a : Word n, a i = 0 ∧ a j = 0 ∧ wt a = d ∧ dist a 0 = d ∧
       dist a (unit i + unit j) = d + 2 := by
@@ -1105,6 +1278,8 @@ lemma exists_word_pair {n : ℕ} {i j : Fin n} (hij : i ≠ j) (d : ℕ) (hd : d
       hstep3, hstep1, hwt]
   exact ⟨a, hai, haj, hwt, hdist0, hdistz⟩
 
+/-- For word length at least two, the Hadamard condition for a distance-dependent learning
+matrix forces `h (d + 2) = h d + 1` whenever `d + 2 ≤ n`. -/
 lemma alternation_of_hadamard {n : ℕ} (hn : 2 ≤ n) (h : ℕ → ZMod 2)
     (hHad : IsHadamardColumns (learningMatrix (fun a x : Word n => h (dist a x)))) :
     ∀ d, d + 2 ≤ n → h (d + 2) = h d + 1 := by
@@ -1218,6 +1393,7 @@ lemma alternation_of_hadamard {n : ℕ} (hn : 2 ≤ n) (h : ℕ → ZMod 2)
   have hne := (neg_one_pow_sum_eq_neg_one_iff (h d) (h (d + 2))).mp hterm
   exact eq_add_one_of_add_eq_one (zmod2_add_eq_one_of_ne hne)
 
+/-- Adding two to the input toggles the second binary digit modulo two. -/
 lemma b1_add_two_zmod (d : ℕ) :
     (b1 (d + 2) : ZMod 2) = (b1 d : ZMod 2) + 1 := by
   have hdiv : (d + 2) / 2 = d / 2 + 1 := by omega
@@ -1227,11 +1403,14 @@ lemma b1_add_two_zmod (d : ℕ) :
   push_cast
   ring
 
+/-- Adding two before any fixed natural offset toggles the second binary digit modulo two. -/
 lemma b1_add_two_add (s d : ℕ) :
     (b1 (d + 2 + s) : ZMod 2) = (b1 (d + s) : ZMod 2) + 1 := by
   rw [show d + 2 + s = d + s + 2 by omega]
   exact b1_add_two_zmod (d + s)
 
+/-- A function satisfying the two-step alternation relation has value `h 0 + k` modulo two at
+each even input `2 * k ≤ n`. -/
 lemma even_values_of_alternation {n : ℕ} {h : ℕ → ZMod 2}
     (halt : ∀ d, d + 2 ≤ n → h (d + 2) = h d + 1) :
     ∀ k, 2 * k ≤ n → h (2 * k) = h 0 + (k : ZMod 2) := by
@@ -1246,6 +1425,8 @@ lemma even_values_of_alternation {n : ℕ} {h : ℕ → ZMod 2}
       push_cast
       ring
 
+/-- A function satisfying the two-step alternation relation has value `h 1 + k` modulo two at
+each odd input `2 * k + 1 ≤ n`. -/
 lemma odd_values_of_alternation {n : ℕ} {h : ℕ → ZMod 2}
     (halt : ∀ d, d + 2 ≤ n → h (d + 2) = h d + 1) :
     ∀ k, 2 * k + 1 ≤ n → h (2 * k + 1) = h 1 + (k : ZMod 2) := by
@@ -1260,6 +1441,8 @@ lemma odd_values_of_alternation {n : ℕ} {h : ℕ → ZMod 2}
       push_cast
       ring
 
+/-- The two-step alternation relation determines every value up to `n` from its parity and the
+integer half of its input. -/
 lemma value_formula {n : ℕ} {h : ℕ → ZMod 2}
     (halt : ∀ d, d + 2 ≤ n → h (d + 2) = h d + 1) :
     ∀ d, d ≤ n → h d = h (d % 2) + ((d / 2 : ℕ) : ZMod 2) := by
@@ -1274,6 +1457,8 @@ lemma value_formula {n : ℕ} {h : ℕ → ZMod 2}
     rw [← hd2] at ho
     rw [ho, hpar]
 
+/-- For odd `n`, a function satisfying the two-step alternation relation has constant sum `h d +
+h (n - d)` for all `d ≤ n`, with the stated parity correction. -/
 lemma compl_value_sum {n : ℕ} (hodd : n % 2 = 1) {h : ℕ → ZMod 2}
     (halt : ∀ d, d + 2 ≤ n → h (d + 2) = h d + 1) :
     ∀ d, d ≤ n →
@@ -1294,6 +1479,8 @@ lemma compl_value_sum {n : ℕ} (hodd : n % 2 = 1) {h : ℕ → ZMod 2}
     rw [hpar, hpar2, ← hcast]
     ring
 
+/-- For odd word length greater than one, no Boolean function of Hamming distance yields a
+learning matrix with Hadamard columns. [MeyerPommersheim2009]. -/
 theorem theorem_4_2 {n : ℕ} (hn : 1 < n) (hodd : n % 2 = 1) (h : ℕ → ZMod 2) :
     ¬ IsHadamardColumns (learningMatrix (fun a x : Word n => h (dist a x))) := by
   intro hHad
@@ -1337,6 +1524,9 @@ theorem theorem_4_2 {n : ℕ} (hn : 1 < n) (hodd : n % 2 = 1) (h : ℕ → ZMod 
     pow_ne_zero _ (by norm_num)
   exact (mul_ne_zero h2n hsign) hzero'
 
+/-- Every distance-dependent learning matrix satisfying the Hadamard column condition is
+represented by the second binary digit of distance plus some shift less than four.
+[MeyerPommersheim2009]. -/
 theorem corollary_4_3 {n : ℕ} (h : ℕ → ZMod 2)
     (hHad : IsHadamardColumns (learningMatrix (fun a x : Word n => h (dist a x)))) :
     ∃ s : ℕ, s < 4 ∧ ∀ a x : Word n, h (dist a x) = (b1 (dist a x + s) : ZMod 2) := by
@@ -1375,17 +1565,22 @@ theorem corollary_4_3 {n : ℕ} (h : ℕ → ZMod 2)
       rw [Nat.add_comm 1 s]
       rw [← hs1]
 
+/-- The average real quadratic-form success value of the effects `X i` on the columns of `B`,
+with equal prior weight `1 / M`. -/
 def measurementSuccess {N M : ℕ} (B : Matrix (Fin N) (Fin M) ℂ)
     (X : Fin M → Matrix (Fin N) (Fin N) ℂ) : ℝ :=
   (1 / (M : ℝ)) * ∑ i : Fin M,
     (∑ p : Fin N, ∑ q : Fin N,
       (star (B p i)) * X i p q * B q i).re
 
+/-- The condition that a complex matrix is Hermitian and every vector has a nonnegative real
+quadratic form. -/
 def IsPSD {N : ℕ} (M : Matrix (Fin N) (Fin N) ℂ) : Prop :=
   M.conjTranspose = M ∧
     ∀ v : Fin N → ℂ,
       0 ≤ (∑ p : Fin N, ∑ q : Fin N, (star (v p)) * M p q * v q).re
 
+/-- The condition that all effects satisfy `IsPSD` and their sum is the identity matrix. -/
 def IsMeasurement {N M : ℕ} (X : Fin M → Matrix (Fin N) (Fin N) ℂ) : Prop :=
   (∀ i, IsPSD (X i)) ∧ (∑ i, X i) = 1
 

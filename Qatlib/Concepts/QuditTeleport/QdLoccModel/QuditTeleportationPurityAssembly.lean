@@ -20,6 +20,37 @@ import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
 import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationPurity
+
+/-!
+# Purity of perfect teleportation resources
+
+The branch marginal is linear in the resource operator, so a square-root column decomposition
+expands a mixed resource into pure-resource contributions. Perfect recovery makes every
+resulting row Kraus operator proportional to its unitary correction's adjoint.
+
+The theorem `g8p_mixed_purity` uses these constraints to show that a positive semidefinite
+resource for a perfect protocol is the outer product of a normalized vector. These results
+develop resource and communication properties of teleportation [BennettEtAl1993Teleportation].
+Matrix positivity and finite-dimensional operator methods are treated in [Watrous2018].
+
+## Main statements
+
+* `g8p_row_scalar_all`: For a positive semidefinite resource in a perfect protocol with unitary
+  corrections, every row Kraus operator of every square-root column is a scalar multiple of the
+  corresponding correction's adjoint.
+* `g8p_row_scalar_ne`: For a positive semidefinite resource enabling perfect recovery in nonzero
+  dimension, any scalar representation of all square-root-column row Kraus operators has a
+  nonzero coefficient.
+* `g8p_mixed_purity`: A positive semidefinite resource enabling perfect teleportation with
+  unitary corrections in nonzero dimension equals the outer product of a normalized vector
+  [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -55,6 +86,7 @@ open Qatlib.Concepts.QuditTeleport.MessagingBounds
 open Qatlib.Concepts.QuditTeleport.QdLoccModel
 open Qatlib.Concepts.QuditTeleport.ResourceIff
 
+/-- The branch marginal is additive in its resource operator. -/
 theorem g8p_branch_add_res {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω₁ ω₂ : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (ρ : Operator n) :
     qdBranchMarginal K (ω₁ + ω₂) ρ
@@ -63,6 +95,8 @@ theorem g8p_branch_add_res {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin 
     Matrix.reindex_apply, Matrix.submatrix_add, Pi.add_apply,
     Matrix.mul_add, Matrix.add_mul, partialTrace_add]
 
+/-- Scaling the resource operator by a complex scalar scales the branch marginal by the same
+scalar. -/
 theorem g8p_branch_smul_res {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (c : ℂ) (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (ρ : Operator n) :
     qdBranchMarginal K (c • ω) ρ = c • qdBranchMarginal K ω ρ := by
@@ -70,6 +104,8 @@ theorem g8p_branch_smul_res {n : ℕ} (K : Matrix (Fin n × Fin n) (Fin n × Fin
     Matrix.reindex_apply, Matrix.submatrix_smul, Pi.smul_apply,
     Matrix.mul_smul, Matrix.smul_mul, partialTrace_smul]
 
+/-- The branch marginal of a finite sum of resource operators equals the sum of their branch
+marginals. -/
 theorem g8p_branch_sum_res {n : ℕ} {ι : Type} [Fintype ι]
     (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (t : ι → Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (ρ : Operator n) :
@@ -83,10 +119,12 @@ theorem g8p_branch_sum_res {n : ℕ} {ι : Type} [Fintype ι]
       map_add' := fun a b => g8p_branch_add_res K a b ρ }
   exact map_sum F t Finset.univ
 
+/-- Conjugation by `U * B` is conjugation by `B` followed by conjugation by `U`. -/
 theorem g8p_conjBranch_mul {n : ℕ} (U B : Operator n) (ρ : Operator n) :
     conjBranch (U * B) ρ = U * conjBranch B ρ * U.conjTranspose := by
   simp only [conjBranch_apply, Matrix.conjTranspose_mul, Matrix.mul_assoc]
 
+/-- Fixed left and right matrix factors can be moved outside a finite sum. -/
 theorem g8p_sum_sandwich {n : ℕ} {ι : Type} [Fintype ι] (A B : Operator n)
     (T : ι → Operator n) :
     (∑ i, A * T i * B) = A * (∑ i, T i) * B := by
@@ -94,6 +132,7 @@ theorem g8p_sum_sandwich {n : ℕ} {ι : Type} [Fintype ι] (A B : Operator n)
   have h2 : (∑ i, A * T i) = A * (∑ i, T i) := by rw [Finset.mul_sum]
   rw [h1, h2]
 
+/-- Fixed left and right matrix factors can be moved outside a double finite sum. -/
 theorem g8p_sum2_sandwich {n : ℕ} {ι σ : Type} [Fintype ι] [Fintype σ] (A B : Operator n)
     (T : ι → σ → Operator n) :
     (∑ i, ∑ j, A * T i j * B) = A * (∑ i, ∑ j, T i j) * B := by
@@ -101,6 +140,9 @@ theorem g8p_sum2_sandwich {n : ℕ} {ι σ : Type} [Fintype ι] [Fintype σ] (A 
         Finset.sum_congr rfl (fun i _ => g8p_sum_sandwich A B (T i))
     _ = A * (∑ i, ∑ j, T i j) * B := g8p_sum_sandwich A B (fun i => ∑ j, T i j)
 
+/-- For a positive semidefinite resource in a perfect protocol with unitary corrections, every
+row Kraus operator of every square-root column is a scalar multiple of the corresponding
+correction's adjoint. -/
 theorem g8p_row_scalar_all {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -159,6 +201,9 @@ theorem g8p_row_scalar_all {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
   have hkey : U k * qdRowKraus (P.kraus k) (g8pCol ω s) u = z • (1 : Operator n) := hz
   exact ⟨z, qdRowKraus_eq P U hU (g8pCol ω s) k u z hkey⟩
 
+/-- For a positive semidefinite resource enabling perfect recovery in nonzero dimension, any
+scalar representation of all square-root-column row Kraus operators has a nonzero
+coefficient. -/
 theorem g8p_row_scalar_ne {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (_hU : QdLoccUnitaryCorr P U)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -201,6 +246,9 @@ theorem g8p_row_scalar_ne {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
   rw [hout] at hone
   exact zero_ne_one hone
 
+/-- A positive semidefinite resource enabling perfect teleportation with unitary corrections in
+nonzero dimension equals the outer product of a normalized vector
+[BennettEtAl1993Teleportation]. -/
 theorem g8p_mixed_purity {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)

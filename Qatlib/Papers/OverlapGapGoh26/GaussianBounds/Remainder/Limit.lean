@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.GridReduction
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.EntropyLimit
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.Comparison
+
+/-!
+# Subextensive repeated index energies
+
+`remainderProbability` measures whether the repeated index energy reaches an extensive threshold
+anywhere on the Hilbert cube. A polynomial grid and Gaussian tail estimates show that this
+probability tends to zero, and the same conclusion follows for the difference between binary and
+cube minimum energies. These limits supply the remainder control used in the analysis associated
+with [GohMuller2026].
+
+## Main statements
+
+* `actual_remainder_subextensive`: For fixed `r` and `η > 0`, the probability that the repeated
+  index energy reaches `ηN` in absolute value somewhere on the cube tends to zero.
+* `actual_optimum_gap_subextensive`: For fixed `r` and `η > 0`, the probability that the binary
+  ground energy exceeds the cube minimum by more than `ηN` tends to zero.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -20,9 +42,12 @@ open Qatlib.Papers.OverlapGapGoh26.OgpBridge.Gaussian
 open Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder
 
+/-- The Gaussian probability that some Hilbert cube vector has repeated index energy of absolute
+value at least `ηN`. -/
 def remainderProbability (r:ℕ) (η:ℝ) (N:ℕ) : ℝ :=
   (gaussianTensorLaw r N).real {A|∃u∈hilbertCube N,η*(N:ℝ)≤|tensorEnergy (repeated A) u|}
 
+/-- For `N > 0`, the error expression for the mesh `N^(r+4)` simplifies to `2(r+1)/N²`. -/
 theorem polynomial_mesh_error {r N:ℕ} (hN:0<N) :
     (N:ℝ)^(r+1)*(N:ℝ)*(r+1)*(2/((N:ℝ)^(r+4)))=2*(r+1)/(N:ℝ)^2 := by
   have hn:(N:ℝ)≠0 := by exact_mod_cast hN.ne'
@@ -30,6 +55,7 @@ theorem polynomial_mesh_error {r N:ℕ} (hN:0<N) :
   field_simp
   ring
 
+/-- For fixed `r`, the polynomial mesh error `2(r+1)/N²` tends to zero as `N` tends to infinity. -/
 theorem polynomial_mesh_zero (r:ℕ) :
     Tendsto (fun N:ℕ=>2*(r+1:ℝ)/(N:ℝ)^2) atTop (𝓝 0) := by
   have h:=(tendsto_const_div_atTop_nhds_zero_nat (2*(r+1:ℝ))).mul
@@ -40,6 +66,8 @@ theorem polynomial_mesh_zero (r:ℕ) :
     ring
   · simp
 
+/-- For fixed `r` and `η > 0`, the probability that the repeated index energy reaches `ηN` in
+absolute value somewhere on the cube tends to zero. -/
 theorem actual_remainder_subextensive (r:ℕ) (η:ℝ) (hη:0<η) :
     Tendsto (remainderProbability r η) atTop (𝓝 0) := by
   let c:ℝ:=η^2/(8*(r+1:ℝ)^2)
@@ -66,6 +94,8 @@ theorem actual_remainder_subextensive (r:ℕ) (η:ℝ) (hη:0<η) :
   apply squeeze_zero' (Filter.Eventually.of_forall (fun N=>measureReal_nonneg)) hb
   simpa only [mul_zero,add_zero] using! hlim
 
+/-- For fixed `r` and `η > 0`, the probability that the binary ground energy exceeds the cube
+minimum by more than `ηN` tends to zero. -/
 theorem actual_optimum_gap_subextensive (r:ℕ) (η:ℝ) (hη:0<η) :
     Tendsto (fun N:ℕ=>(gaussianTensorLaw r N).real
       {A|η*(N:ℝ)<binaryGround A-cubeOpt A}) atTop (𝓝 0) := by

@@ -183,6 +183,32 @@ import Mathlib.Topology.Order.Basic
 import Mathlib.Topology.Order.OrderClosed
 import Mathlib.Topology.UniformSpace.Defs
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+
+/-!
+# Symmetric costs, spike barriers, and bush Hamiltonians
+
+This module defines symmetric, spike, and bush cost functions and their reduced Hamiltonians,
+together with spectral-gap functions, Boltzmann weights, and effective potentials. It proves
+elementary gap nonnegativity, polynomially weighted decay of suppressed transition
+probabilities, and free-energy derivative and monotonicity estimates, including
+`source_spike_annealing_hung_up`, `source_bush_annealing_fails`, and
+`freeEnergySym_critical_strictAnti`. The mathematical context is [FarhiGoldstoneGutmann2002].
+
+## Main statements
+
+* `source_spike_annealing_hung_up`: At inverse temperature `Real.log 3`, the spike-crossing
+  acceptance tends to zero after multiplication by any fixed natural power of `m`.
+* `source_bush_annealing_fails`: At temperature strictly between zero and one, the polynomially
+  weighted distinguished-bit flip acceptance tends to zero, and the normalized false-bit weight
+  at full Hamming weight equals `1 / 2 ^ n`.
+* `freeEnergySym_critical_strictAnti`: For `q ≥ 3` and `4 * q - 2 < a1 < a2`, critical points
+  `u1` and `u2` of the corresponding free energies in `(1 / 2, 1)` satisfy `u2 < u1`.
+
+## References
+
+* [Farhi et al., 2002][FarhiGoldstoneGutmann2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -194,62 +220,89 @@ open scoped BigOperators Topology
 
 namespace Qatlib.Papers.AdiabVsAnn02.MainResults
 
+/-- The natural-number value of a Boolean bit, equal to one for `true` and zero for `false`. -/
 def bitToNat (b : Bool) : ℕ := if b then 1 else 0
 
+/-- The number of true bits in a Boolean string indexed by `Fin n`. -/
 def hammingWeight {n : ℕ} (z : Fin n → Bool) : ℕ := ∑ i, bitToNat (z i)
 
+/-- The three-bit cost equal to zero at weight zero, `q` at weight one, and one at weights two
+and three. -/
 def h3 (q : ℕ) (z z' z'' : Bool) : ℝ :=
   let s := bitToNat z + bitToNat z' + bitToNat z''
   if s = 0 then 0 else if s = 1 then (q : ℝ) else 1
 
+/-- The symmetric three-bit cost polynomial as a function of the parameter `q`, string length
+`n`, and Hamming weight `w`. -/
 def cost13 (q n w : ℕ) : ℝ :=
   ((q : ℝ) / 2) * (w : ℝ) * ((n : ℝ) - (w : ℝ)) * ((n : ℝ) - (w : ℝ) - 1)
     + (1 / 2 : ℝ) * (w : ℝ) * ((w : ℝ) - 1) * ((n : ℝ) - (w : ℝ))
     + (1 / 6 : ℝ) * (w : ℝ) * ((w : ℝ) - 1) * ((w : ℝ) - 2)
 
+/-- The cubic scaled symmetric cost `4 * q * u * (1 - u) ^ 2 + 4 * u ^ 2 * (1 - u) + (4 / 3) * u
+^ 3`. -/
 def gSym (q : ℝ) (u : ℝ) : ℝ :=
   4 * q * u * (1 - u) ^ 2 + 4 * u ^ 2 * (1 - u) + (4 / 3) * u ^ 3
 
+/-- The interpolation of the transverse-field potential `2 * (1 - Real.sin θ)` with the scaled
+symmetric cost at `(1 - Real.cos θ) / 2`. -/
 def effectivePotential (q : ℝ) (θ s : ℝ) : ℝ :=
   2 * (1 - s) * (1 - Real.sin θ)
     + s * gSym q ((1 / 2) * (1 - Real.cos θ))
 
+/-- The rescaled cost `(n / 2) ^ 3 * g (w / n)` associated with a real function `g`. -/
 def scaledCost (g : ℝ → ℝ) (n w : ℕ) : ℝ :=
   ((n : ℝ) / 2) ^ 3 * g ((w : ℝ) / (n : ℝ))
 
+/-- The inverse hyperbolic cosine of the normalized effective-potential barrier above its value
+at `θ1`. -/
 def instantonPhase (q sStar θ1 θ : ℝ) : ℝ :=
   Real.arcosh
     (1 + (effectivePotential q θ sStar - effectivePotential q θ1 sStar)
       / (2 * (1 - sStar) * Real.sin θ))
 
+/-- Half the interval integral of `instantonPhase q sStar θ1 θ * Real.sin θ` from `θ1` to `θ2`. -/
 def instantonAction (q sStar θ1 θ2 : ℝ) : ℝ :=
   (1 / 2) * ∫ θ in θ1..θ2, instantonPhase q sStar θ1 θ * Real.sin θ
 
+/-- The unnormalized Boltzmann weight of Hamming weight `w`, including the binomial multiplicity
+`Nat.choose n w`. -/
 def boltzmannWeight (n : ℕ) (h : ℕ → ℝ) (τ : ℝ) (w : ℕ) : ℝ :=
   (Nat.choose n w : ℝ) * Real.exp (-(h w) / τ)
 
+/-- The scaled symmetric cost plus `a` times the logarithmic binary entropy term `(1 - u) *
+Real.log (1 - u) + u * Real.log u`. -/
 def freeEnergySym (q a u : ℝ) : ℝ :=
   a * ((1 - u) * Real.log (1 - u) + u * Real.log u) + gSym q u
 
+/-- The thermal Metropolis acceptance from energy zero to energy `Δ` at inverse temperature `β`. -/
 def twoLevelAcceptance (Δ β : ℝ) : ℝ :=
   Qatlib.Concepts.GibbsMetropolis.RationalBath.thermalAcceptance
     (fun k : Fin 2 => if k = 0 then 0 else Δ) β 0 1
 
+/-- The two-level Metropolis acceptance equals `min 1 (Real.exp (-β * Δ))`
+[FarhiGoldstoneGutmann2002]. -/
 theorem twoLevelAcceptance_eq (Δ β : ℝ) :
     twoLevelAcceptance Δ β = min 1 (Real.exp (-β * Δ)) := by
   unfold twoLevelAcceptance
   rw [Qatlib.Concepts.GibbsMetropolis.RationalBath.thermalAcceptance]
   norm_num
 
+/-- For nonnegative energy increment and inverse temperature, two-level acceptance is at most
+`Real.exp (-β * Δ)`. -/
 theorem twoLevelAcceptance_le_exp (Δ β : ℝ) (_hΔ : 0 ≤ Δ) (_hβ : 0 ≤ β) :
     twoLevelAcceptance Δ β ≤ Real.exp (-β * Δ) := by
   rw [twoLevelAcceptance_eq]
   exact min_le_right _ _
 
+/-- The two-level acceptance is nonnegative for every real energy increment and inverse
+temperature. -/
 theorem twoLevelAcceptance_nonneg (Δ β : ℝ) : 0 ≤ twoLevelAcceptance Δ β := by
   rw [twoLevelAcceptance_eq]
   exact le_min zero_le_one (Real.exp_pos _).le
 
+/-- The real tridiagonal matrix of the spin-`n / 2` transverse component in the Hamming-weight
+basis. -/
 def spinSx (n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
   fun i j =>
     if ((i : ℕ) + 1 = (j : ℕ)) then
@@ -258,6 +311,7 @@ def spinSx (n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
       ((1 / 2 : ℝ) * Real.sqrt ((i : ℝ) * ((n : ℝ) - (i : ℝ) + 1)))
     else 0
 
+/-- The transverse spin matrix `spinSx n` is Hermitian. -/
 theorem spinSx_isHermitian (n : ℕ) : (spinSx n).IsHermitian := by
   apply Matrix.IsHermitian.ext
   intro i j
@@ -277,68 +331,93 @@ theorem spinSx_isHermitian (n : ℕ) : (spinSx n).IsHermitian := by
       ring_nf
     · simp only [h1, h2, if_false]
 
+/-- The scaled transverse-field matrix `((n - 1) / 2) • ((n / 2) • 1 - spinSx n)`. -/
 def spinH0 (n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
   (((n : ℝ) - 1) / 2) • (((n : ℝ) / 2) • (1 : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ)
     - spinSx n)
 
+/-- The scaled transverse-field matrix `spinH0 n` is Hermitian. -/
 theorem spinH0_isHermitian (n : ℕ) : (spinH0 n).IsHermitian := by
   unfold spinH0
   have h1 : (((n : ℝ) / 2) • (1 : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ)).IsHermitian :=
     Matrix.isHermitian_one.smul (by simp [IsSelfAdjoint])
   exact (h1.sub (spinSx_isHermitian n)).smul (by simp [IsSelfAdjoint])
 
+/-- The diagonal Hamiltonian with entries given by the symmetric cost `cost13 q n`. -/
 def symHP (q n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
   Matrix.diagonal (fun w : Fin (n + 1) => cost13 q n (w : ℕ))
 
+/-- The diagonal symmetric-cost Hamiltonian is Hermitian. -/
 theorem symHP_isHermitian (q n : ℕ) : (symHP q n).IsHermitian :=
   Matrix.isHermitian_diagonal _
 
+/-- The linear interpolation between `spinH0 n` and the symmetric problem Hamiltonian `symHP q
+n`. -/
 def symH (q n : ℕ) (s : ℝ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
   (1 - s) • spinH0 n + s • symHP q n
 
+/-- The interpolated symmetric Hamiltonian is Hermitian for every real interpolation parameter. -/
 theorem symH_isHermitian (q n : ℕ) (s : ℝ) : (symH q n s).IsHermitian := by
   unfold symH
   exact ((spinH0_isHermitian n).smul (by simp [IsSelfAdjoint])).add
     ((symHP_isHermitian q n).smul (by simp [IsSelfAdjoint]))
 
+/-- The cost equal to `n` at weight `n / 4`, using natural-number division, and equal to `w` at
+every other weight. -/
 def spikeCost (n w : ℕ) : ℝ := if w = n / 4 then (n : ℝ) else (w : ℝ)
 
+/-- The diagonal problem Hamiltonian with entries given by `spikeCost n`. -/
 def spikeHP (n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
   Matrix.diagonal (fun w : Fin (n + 1) => spikeCost n (w : ℕ))
 
+/-- The diagonal spike-cost Hamiltonian is Hermitian. -/
 theorem spikeHP_isHermitian (n : ℕ) : (spikeHP n).IsHermitian :=
   Matrix.isHermitian_diagonal _
 
+/-- The linear interpolation between the scaled transverse-field matrix and the spike problem
+Hamiltonian. -/
 def spikeH (n : ℕ) (s : ℝ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
   (1 - s) • spinH0 n + s • spikeHP n
 
+/-- The interpolated spike Hamiltonian is Hermitian for every real interpolation parameter. -/
 theorem spikeH_isHermitian (n : ℕ) (s : ℝ) : (spikeH n s).IsHermitian := by
   unfold spikeH
   exact ((spinH0_isHermitian n).smul (by simp [IsSelfAdjoint])).add
     ((spikeHP_isHermitian n).smul (by simp [IsSelfAdjoint]))
 
+/-- The binomially weighted Boltzmann factor for the spike cost at Hamming weight `w`. -/
 def spikeBoltzmannWeight (n : ℕ) (τ : ℝ) (w : ℕ) : ℝ :=
   boltzmannWeight n (spikeCost n) τ w
 
+/-- The bush cost equal to `n - w` when `z0` is true and one when `z0` is false. -/
 def bushCost (n : ℕ) (z0 : Bool) (w : ℕ) : ℝ :=
   if z0 then (n : ℝ) - (w : ℝ) else 1
 
+/-- The entropy contribution `τ * ((1 - u) * Real.log (1 - u) + u * Real.log u)` for the bush
+model. -/
 def bushFreeEnergy0 (τ u : ℝ) : ℝ :=
   τ * ((1 - u) * Real.log (1 - u) + u * Real.log u)
 
+/-- The bush entropy contribution `bushFreeEnergy0 τ u` plus the scaled cost `1 - u`. -/
 def bushFreeEnergy1 (τ u : ℝ) : ℝ :=
   bushFreeEnergy0 τ u + (1 - u)
 
+/-- The binomially weighted Boltzmann factor for the bush cost with distinguished bit `z0`. -/
 def bushBoltzmann (n : ℕ) (z0 : Bool) (τ : ℝ) (w : ℕ) : ℝ :=
   (Nat.choose n w : ℝ) * Real.exp (-(bushCost n z0 w) / τ)
 
+/-- The two-angle bush potential combining transverse-field terms with `2 * s * Real.cos (α / 2)
+^ 2 * Real.cos (θ / 2) ^ 2`. -/
 def bushPotential (α θ s : ℝ) : ℝ :=
   (1 - s) * (2 - Real.sin α - Real.sin θ)
     + 2 * s * (Real.cos (α / 2)) ^ 2 * (Real.cos (θ / 2)) ^ 2
 
+/-- The real two-dimensional transverse-field matrix with diagonal entries `1 / 2` and
+off-diagonal entries `-1 / 2`. -/
 def bushBitA : Matrix (Fin 2) (Fin 2) ℝ :=
   fun i j => if i = j then (1 / 2 : ℝ) else (-1 / 2 : ℝ)
 
+/-- The distinguished-bit matrix `bushBitA` is Hermitian. -/
 theorem bushBitA_isHermitian : bushBitA.IsHermitian := by
   apply Matrix.IsHermitian.ext
   intro i j
@@ -348,18 +427,23 @@ theorem bushBitA_isHermitian : bushBitA.IsHermitian := by
   · have h' : ¬ j = i := fun hji => h hji.symm
     simp [h, h']
 
+/-- The transverse-field matrix `(n / 2) • 1 - spinSx n` on the symmetric spin sector. -/
 def bushB (n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
   ((n : ℝ) / 2) • (1 : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ) - spinSx n
 
+/-- The symmetric-sector bush driver `bushB n` is Hermitian. -/
 theorem bushB_isHermitian (n : ℕ) : (bushB n).IsHermitian := by
   unfold bushB
   exact (Matrix.isHermitian_one.smul (by simp [IsSelfAdjoint])).sub (spinSx_isHermitian n)
 
+/-- The bush driver on the product basis, combining `(n + 1)` times the distinguished-bit driver
+with the symmetric-sector driver. -/
 def bushH0 (n : ℕ) : Matrix (Fin 2 × Fin (n + 1)) (Fin 2 × Fin (n + 1)) ℝ :=
   fun p q =>
     ((n : ℝ) + 1) * bushBitA p.1 q.1 * (if p.2 = q.2 then 1 else 0)
       + (if p.1 = q.1 then 1 else 0) * bushB n p.2 q.2
 
+/-- The bush driver Hamiltonian is Hermitian. -/
 theorem bushH0_isHermitian (n : ℕ) : (bushH0 n).IsHermitian := by
   apply Matrix.IsHermitian.ext
   intro p q
@@ -371,27 +455,34 @@ theorem bushH0_isHermitian (n : ℕ) : (bushH0 n).IsHermitian := by
   rw [hA, hB]
   simp only [eq_comm]
 
+/-- The diagonal bush-cost Hamiltonian on the product of the distinguished-bit and
+Hamming-weight bases. -/
 def bushHP (n : ℕ) : Matrix (Fin 2 × Fin (n + 1)) (Fin 2 × Fin (n + 1)) ℝ :=
   Matrix.diagonal (fun p : Fin 2 × Fin (n + 1) =>
     bushCost n (decide (p.1 = 0)) (p.2 : ℕ))
 
+/-- The diagonal bush problem Hamiltonian is Hermitian. -/
 theorem bushHP_isHermitian (n : ℕ) : (bushHP n).IsHermitian :=
   Matrix.isHermitian_diagonal _
 
+/-- The linear interpolation between the bush driver and bush problem Hamiltonians. -/
 def bushH (n : ℕ) (s : ℝ) : Matrix (Fin 2 × Fin (n + 1)) (Fin 2 × Fin (n + 1)) ℝ :=
   (1 - s) • bushH0 n + s • bushHP n
 
+/-- The interpolated bush Hamiltonian is Hermitian for every real interpolation parameter. -/
 theorem bushH_isHermitian (n : ℕ) (s : ℝ) : (bushH n s).IsHermitian := by
   unfold bushH
   exact ((bushH0_isHermitian n).smul (by simp [IsSelfAdjoint])).add
     ((bushHP_isHermitian n).smul (by simp [IsSelfAdjoint]))
 
+/-- The bush driver with its distinguished-bit term multiplied by `lam`. -/
 def bushH0Lam (n : ℕ) (lam : ℝ) :
     Matrix (Fin 2 × Fin (n + 1)) (Fin 2 × Fin (n + 1)) ℝ :=
   fun p q =>
     lam * ((n : ℝ) + 1) * bushBitA p.1 q.1 * (if p.2 = q.2 then 1 else 0)
       + (if p.1 = q.1 then 1 else 0) * bushB n p.2 q.2
 
+/-- The modified bush driver is Hermitian for every real value of `lam`. -/
 theorem bushH0Lam_isHermitian (n : ℕ) (lam : ℝ) : (bushH0Lam n lam).IsHermitian := by
   apply Matrix.IsHermitian.ext
   intro p q
@@ -403,53 +494,77 @@ theorem bushH0Lam_isHermitian (n : ℕ) (lam : ℝ) : (bushH0Lam n lam).IsHermit
   rw [hA, hB]
   simp only [eq_comm]
 
+/-- The interpolation between the modified bush driver `bushH0Lam n lam` and the bush problem
+Hamiltonian. -/
 def bushHLam (n : ℕ) (lam s : ℝ) :
     Matrix (Fin 2 × Fin (n + 1)) (Fin 2 × Fin (n + 1)) ℝ :=
   (1 - s) • bushH0Lam n lam + s • bushHP n
 
+/-- The modified interpolated bush Hamiltonian is Hermitian for every real driver and
+interpolation parameter. -/
 theorem bushHLam_isHermitian (n : ℕ) (lam s : ℝ) : (bushHLam n lam s).IsHermitian := by
   unfold bushHLam
   exact ((bushH0Lam_isHermitian n lam).smul (by simp [IsSelfAdjoint])).add
     ((bushHP_isHermitian n).smul (by simp [IsSelfAdjoint]))
 
+/-- Setting the driver multiplier to one recovers the original bush driver. -/
 theorem bushH0Lam_one (n : ℕ) : bushH0Lam n 1 = bushH0 n := by
   ext p q
   simp only [bushH0Lam, bushH0, one_mul]
 
+/-- The difference between the second-smallest and smallest eigenvalues of a real Hermitian
+matrix with at least two indices. -/
 def lowTwoGap {ι : Type*} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (hA : A.IsHermitian) (h2 : 2 ≤ Fintype.card ι) : ℝ :=
   hA.eigenvalues₀ ⟨Fintype.card ι - 2, by omega⟩
     - hA.eigenvalues₀ ⟨Fintype.card ι - 1, by omega⟩
 
+/-- The gap between the two lowest eigenvalues of a real Hermitian matrix, defined as zero when
+the dimension is less than two. -/
 def lowTwoGapD {ι : Type*} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (hA : A.IsHermitian) : ℝ :=
   if h2 : 2 ≤ Fintype.card ι then lowTwoGap A hA h2 else 0
 
+/-- The gap between the two lowest eigenvalues of the symmetric Hamiltonian at interpolation
+parameter `s`, defined as zero when the dimension is less than two. -/
 def symGapAt (q n : ℕ) (s : ℝ) : ℝ :=
   lowTwoGapD (symH q n s) (symH_isHermitian q n s)
 
+/-- The infimum of the symmetric Hamiltonian gap over interpolation parameters in `[0, 1]`. -/
 def symGap (q n : ℕ) : ℝ := sInf (symGapAt q n '' Set.Icc (0 : ℝ) 1)
 
+/-- The gap between the two lowest eigenvalues of the spike Hamiltonian at interpolation
+parameter `s`, using `lowTwoGapD`. -/
 def spikeGapAt (n : ℕ) (s : ℝ) : ℝ :=
   lowTwoGapD (spikeH n s) (spikeH_isHermitian n s)
 
+/-- The infimum of the spike Hamiltonian gap over interpolation parameters in `[0, 1]`. -/
 def spikeGap (n : ℕ) : ℝ := sInf (spikeGapAt n '' Set.Icc (0 : ℝ) 1)
 
+/-- The gap between the two lowest eigenvalues of the bush Hamiltonian at interpolation
+parameter `s`, using `lowTwoGapD`. -/
 def bushGapAt (n : ℕ) (s : ℝ) : ℝ :=
   lowTwoGapD (bushH n s) (bushH_isHermitian n s)
 
+/-- The infimum of the bush Hamiltonian gap over interpolation parameters in `[0, 1]`. -/
 def bushGap (n : ℕ) : ℝ := sInf (bushGapAt n '' Set.Icc (0 : ℝ) 1)
 
+/-- The gap between the two lowest eigenvalues of the modified bush Hamiltonian for driver
+multiplier `lam` and interpolation parameter `s`. -/
 def bushLamGapAt (n : ℕ) (lam s : ℝ) : ℝ :=
   lowTwoGapD (bushHLam n lam s) (bushHLam_isHermitian n lam s)
 
+/-- The infimum over `[0, 1]` of the modified bush gap at fixed driver multiplier `lam`. -/
 def bushLamGap (n : ℕ) (lam : ℝ) : ℝ :=
   sInf (bushLamGapAt n lam '' Set.Icc (0 : ℝ) 1)
 
+/-- The symmetric cost is zero at Hamming weight zero. -/
 theorem cost13_zero (q n : ℕ) : cost13 q n 0 = 0 := by
   unfold cost13
   norm_num
 
+/-- At full Hamming weight, the symmetric cost equals `n * (n - 1) * (n - 2) / 6`, with real
+arithmetic. -/
 theorem cost13_full (q n : ℕ) :
     cost13 q n n = (1 / 6 : ℝ) * (n : ℝ) * ((n : ℝ) - 1) * ((n : ℝ) - 2) := by
   unfold cost13
@@ -457,19 +572,25 @@ theorem cost13_full (q n : ℕ) :
   rw [this]
   ring
 
+/-- When `n` is divisible by four, the spike cost at weight `n / 4` equals `n`
+[FarhiGoldstoneGutmann2002]. -/
 theorem spikeCost_spike (n : ℕ) (_hn : 4 ∣ n) : spikeCost n (n / 4) = (n : ℝ) := by
   unfold spikeCost
   rw [if_pos rfl]
 
+/-- Away from weight `n / 4`, the spike cost equals the Hamming weight
+[FarhiGoldstoneGutmann2002]. -/
 theorem spikeCost_off (n w : ℕ) (h : w ≠ n / 4) : spikeCost n w = (w : ℝ) := by
   unfold spikeCost
   rw [if_neg h]
 
+/-- For length `4 * m`, the spike cost at weight `m` equals `4 * m` [FarhiGoldstoneGutmann2002]. -/
 theorem spikeCost_four_mul (m : ℕ) : spikeCost (4 * m) m = ((4 * m : ℕ) : ℝ) := by
   unfold spikeCost
   rw [if_pos]
   exact (Nat.mul_div_cancel_left m (by norm_num : 0 < 4)).symm
 
+/-- For length `4 * m`, the spike cost at weight `m + 1` equals `m + 1`. -/
 theorem spikeCost_four_mul_succ (m : ℕ) :
     spikeCost (4 * m) (m + 1) = ((m + 1 : ℕ) : ℝ) := by
   unfold spikeCost
@@ -477,56 +598,73 @@ theorem spikeCost_four_mul_succ (m : ℕ) :
   rw [Nat.mul_div_cancel_left m (by norm_num : 0 < 4)]
   omega
 
+/-- The cost difference between weights `m` and `m + 1` in the length-`4 * m` spike model is `3
+* m - 1`. -/
 theorem spikeCost_four_mul_gap (m : ℕ) :
     spikeCost (4 * m) m - spikeCost (4 * m) (m + 1) = 3 * (m : ℝ) - 1 := by
   rw [spikeCost_four_mul, spikeCost_four_mul_succ]
   push_cast
   ring
 
+/-- The bush cost at a true distinguished bit and full Hamming weight is zero. -/
 theorem bushCost_true_full (n : ℕ) : bushCost n true n = 0 := by
   unfold bushCost
   simp
 
+/-- The bush cost is one whenever the distinguished bit is false [FarhiGoldstoneGutmann2002]. -/
 theorem bushCost_false (n w : ℕ) : bushCost n false w = 1 := by
   unfold bushCost
   simp
 
+/-- For a true distinguished bit, the bush cost equals the real difference `n - w`. -/
 theorem bushCost_true (n w : ℕ) : bushCost n true w = (n : ℝ) - (w : ℝ) := by
   unfold bushCost
   simp
 
+/-- At weight `n / 2`, flipping the distinguished bit from false to true changes the bush cost
+by `n - (n / 2) - 1`, with natural-number division inside the cast. -/
 theorem bushCost_flip_gap (n : ℕ) :
     bushCost n true (n / 2) - bushCost n false (n / 2)
       = (n : ℝ) - ((n / 2 : ℕ) : ℝ) - 1 := by
   rw [bushCost_true, bushCost_false]
 
+/-- At interpolation parameter zero, the symmetric effective potential equals `2 * (1 - Real.sin
+θ)` [FarhiGoldstoneGutmann2002]. -/
 theorem effectivePotential_zero (q θ : ℝ) :
     effectivePotential q θ 0 = 2 * (1 - Real.sin θ) := by
   unfold effectivePotential
   norm_num
 
+/-- The scaled symmetric cost vanishes at `u = 0`. -/
 theorem gSym_zero (q : ℝ) : gSym q 0 = 0 := by
   unfold gSym
   norm_num
 
+/-- At entropy coefficient zero, the symmetric free energy equals the scaled cost `gSym q u`
+[FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergySym_zero (q u : ℝ) : freeEnergySym q 0 u = gSym q u := by
   unfold freeEnergySym
   ring
 
+/-- The bush potential is symmetric in its two angular variables. -/
 theorem bushPotential_comm (α θ s : ℝ) : bushPotential α θ s = bushPotential θ α s := by
   unfold bushPotential
   ring
 
+/-- The bush potential is zero at both angles `Real.pi / 2` and interpolation parameter zero
+[FarhiGoldstoneGutmann2002]. -/
 theorem bushPotential_pi_half_zero :
     bushPotential (Real.pi / 2) (Real.pi / 2) 0 = 0 := by
   unfold bushPotential
   rw [Real.sin_pi_div_two]
   ring
 
+/-- The bush entropy contribution vanishes at `u = 1`. -/
 theorem bushFreeEnergy0_one (τ : ℝ) : bushFreeEnergy0 τ 1 = 0 := by
   unfold bushFreeEnergy0
   simp
 
+/-- At `u = 1 / 2`, the bush entropy contribution equals `-τ * Real.log 2`. -/
 theorem bushFreeEnergy0_half (τ : ℝ) : bushFreeEnergy0 τ (1 / 2) = -τ * Real.log 2 := by
   unfold bushFreeEnergy0
   have hlog : Real.log (1 / 2 : ℝ) = -Real.log 2 := by
@@ -535,12 +673,16 @@ theorem bushFreeEnergy0_half (τ : ℝ) : bushFreeEnergy0 τ (1 / 2) = -τ * Rea
   rw [show (1 : ℝ) - 1 / 2 = 1 / 2 by ring, hlog]
   ring
 
+/-- At positive temperature, the bush entropy contribution at one is strictly greater than its
+value at one half [FarhiGoldstoneGutmann2002]. -/
 theorem bushFreeEnergy0_barrier (τ : ℝ) (hτ : 0 < τ) :
     0 < bushFreeEnergy0 τ 1 - bushFreeEnergy0 τ (1 / 2) := by
   rw [bushFreeEnergy0_one, bushFreeEnergy0_half]
   have : Real.log 2 > 0 := Real.log_pos (by norm_num)
   nlinarith
 
+/-- For a false distinguished bit and positive temperature, the normalized bush weight at full
+Hamming weight equals `1 / 2 ^ n` [FarhiGoldstoneGutmann2002]. -/
 theorem bushBoltzmann_false_uniform (n : ℕ) (τ : ℝ) (_hτ : 0 < τ) :
     bushBoltzmann n false τ n
         / (∑ w ∈ Finset.range (n + 1), bushBoltzmann n false τ w)
@@ -566,6 +708,8 @@ theorem bushBoltzmann_false_uniform (n : ℕ) (τ : ℝ) (_hτ : 0 < τ) :
   have hE : Real.exp (-(1 / τ)) ≠ 0 := (Real.exp_pos _).ne'
   field_simp
 
+/-- For any positive exponential rate and natural exponent, `n ^ k * Real.exp (-c * n)` tends to
+zero as the natural number `n` tends to infinity. -/
 theorem tendsto_pow_mul_exp_neg_mul (k : ℕ) {c : ℝ} (hc : 0 < c) :
     Tendsto (fun n : ℕ => (n : ℝ) ^ k * Real.exp (-c * (n : ℝ))) atTop (𝓝 0) := by
   have hbase : Tendsto (fun x : ℝ => x ^ k * Real.exp (-x)) atTop (𝓝 0) :=
@@ -587,6 +731,8 @@ theorem tendsto_pow_mul_exp_neg_mul (k : ℕ) {c : ℝ} (hc : 0 < c) :
     field_simp
   simpa only [hcongr] using hmul
 
+/-- The gap function `lowTwoGapD` of a real Hermitian matrix is nonnegative, including its
+fallback value in dimensions less than two [FarhiGoldstoneGutmann2002]. -/
 theorem lowTwoGapD_nonneg {ι : Type*} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (hA : A.IsHermitian) : 0 ≤ lowTwoGapD A hA := by
   unfold lowTwoGapD
@@ -600,6 +746,8 @@ theorem lowTwoGapD_nonneg {ι : Type*} [Fintype ι] [DecidableEq ι]
     linarith
   · exact le_refl 0
 
+/-- Consecutive binomial Boltzmann weights satisfy the multiplicative recurrence determined by
+`n - w`, `w + 1`, and the cost difference `h (w + 1) - h w`. -/
 theorem boltzmannWeight_succ_mul (n : ℕ) (h : ℕ → ℝ) (τ : ℝ) (w : ℕ) :
     boltzmannWeight n h τ (w + 1) * ((w + 1 : ℕ) : ℝ)
       = boltzmannWeight n h τ w *
@@ -619,6 +767,8 @@ theorem boltzmannWeight_succ_mul (n : ℕ) (h : ℕ → ℝ) (τ : ℝ) (w : ℕ
           Real.exp_add]
         ring
 
+/-- For `m ≥ 1` and positive temperature, the spike Boltzmann weight at `m` is strictly smaller
+than the weight at `m + 1` for length `4 * m`. -/
 theorem spikeWeight_spike_lt_succ (m : ℕ) (τ : ℝ) (hτ : 0 < τ) (hm : 1 ≤ m) :
     spikeBoltzmannWeight (4 * m) τ m < spikeBoltzmannWeight (4 * m) τ (m + 1) := by
   have hpos : 0 < spikeBoltzmannWeight (4 * m) τ m := by
@@ -655,6 +805,9 @@ theorem spikeWeight_spike_lt_succ (m : ℕ) (τ : ℝ) (hτ : 0 < τ) (hm : 1 �
     exact mul_lt_mul_of_pos_left hnw hpos
   exact lt_of_mul_lt_mul_right h1 (by positivity)
 
+/-- The instanton action is nonnegative when the integration endpoints are ordered, the sine is
+positive on the interval, `sStar < 1`, and the effective potential is no smaller than its
+left-endpoint value [FarhiGoldstoneGutmann2002]. -/
 theorem instantonAction_nonneg (q sStar θ1 θ2 : ℝ) (hs : sStar < 1) (h12 : θ1 ≤ θ2)
     (hθ : ∀ θ ∈ Set.Icc θ1 θ2, 0 < Real.sin θ)
     (hV : ∀ θ ∈ Set.Icc θ1 θ2,
@@ -675,20 +828,28 @@ theorem instantonAction_nonneg (q sStar θ1 θ2 : ℝ) (hs : sStar < 1) (h12 : �
   have hx2 := div_nonneg h1 hden.le
   linarith
 
+/-- For a positive barrier parameter `Δ`, the factor `Real.exp (-Δ * n)` tends to zero even
+after multiplication by any fixed natural power of `n` [FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergy_barrier_poly_decay (Δ : ℝ) (hΔ : 0 < Δ) (k : ℕ) :
     Tendsto (fun n : ℕ => (n : ℝ) ^ k * Real.exp (-(Δ * (n : ℝ)))) atTop (𝓝 0) := by
   simpa only [neg_mul] using tendsto_pow_mul_exp_neg_mul k hΔ
 
+/-- Setting the modified bush driver multiplier to one recovers the original interpolated bush
+Hamiltonian [FarhiGoldstoneGutmann2002]. -/
 theorem bushHLam_one (n : ℕ) (s : ℝ) : bushHLam n 1 s = bushH n s := by
   unfold bushHLam bushH
   rw [bushH0Lam_one]
 
+/-- The entrywise difference of two modified bush drivers is the difference of their multipliers
+times the distinguished-bit driver term [FarhiGoldstoneGutmann2002]. -/
 theorem bushH0Lam_sub (n : ℕ) (lam lam' : ℝ) (p q : Fin 2 × Fin (n + 1)) :
     bushH0Lam n lam p q - bushH0Lam n lam' p q
       = (lam - lam') * (((n : ℝ) + 1) * bushBitA p.1 q.1 * (if p.2 = q.2 then 1 else 0)) := by
   simp only [bushH0Lam]
   ring
 
+/-- A strictly positive effective-potential barrier gives a strictly positive instanton phase
+when `sStar < 1` and `Real.sin θ > 0` [FarhiGoldstoneGutmann2002]. -/
 theorem instantonPhase_pos (q sStar θ1 θ : ℝ) (hs : sStar < 1) (hsin : 0 < Real.sin θ)
     (hbarrier : 0 < effectivePotential q θ sStar - effectivePotential q θ1 sStar) :
     0 < instantonPhase q sStar θ1 θ := by
@@ -701,6 +862,9 @@ theorem instantonPhase_pos (q sStar θ1 θ : ℝ) (hs : sStar < 1) (hsin : 0 < R
       / (2 * (1 - sStar) * Real.sin θ) := div_pos hbarrier hden
   linarith
 
+/-- Under the stated potential and positivity hypotheses, the instanton action is nonnegative
+and its exponential decay factor tends to zero after multiplication by any fixed natural
+power of `n` [FarhiGoldstoneGutmann2002]. -/
 theorem source_gap_exponential (q : ℕ) (sStar θ1 θ2 : ℝ) (hs : sStar < 1) (h12 : θ1 ≤ θ2)
     (hθ : ∀ θ ∈ Set.Icc θ1 θ2, 0 < Real.sin θ)
     (hV : ∀ θ ∈ Set.Icc θ1 θ2,
@@ -714,6 +878,8 @@ theorem source_gap_exponential (q : ℕ) (sStar θ1 θ2 : ℝ) (hs : sStar < 1) 
   ⟨instantonAction_nonneg (q : ℝ) sStar θ1 θ2 hs h12 hθ hV,
     fun k => tendsto_pow_mul_exp_neg_mul k hS⟩
 
+/-- Under the stated symmetric free-energy hypotheses and `Δ > 0`, every sequence `n ^ k *
+Real.exp (-Δ * n)` tends to zero [FarhiGoldstoneGutmann2002]. -/
 theorem source_annealing_symmetric_exponential (q : ℕ) (aStar uL uR Δ : ℝ)
     (_huL : uL < 1 / 2) (_huR : 1 / 2 < uR) (hΔ : 0 < Δ)
     (_heq : freeEnergySym (q : ℝ) aStar uL = freeEnergySym (q : ℝ) aStar uR)
@@ -723,16 +889,22 @@ theorem source_annealing_symmetric_exponential (q : ℕ) (aStar uL uR Δ : ℝ)
       (fun n : ℕ => (n : ℝ) ^ k * Real.exp (-(Δ * (n : ℝ)))) atTop (𝓝 0) :=
   fun k => freeEnergy_barrier_poly_decay Δ hΔ k
 
+/-- For length divisible by four, the spike gap at `s` is nonnegative and the spike cost at
+weight `n / 4` equals `n` [FarhiGoldstoneGutmann2002]. -/
 theorem source_spike_gap_asymptotic (n : ℕ) (s : ℝ) (h4 : 4 ∣ n) :
     0 ≤ spikeGapAt n s ∧ spikeCost n (n / 4) = (n : ℝ) :=
   ⟨lowTwoGapD_nonneg _ _, spikeCost_spike n h4⟩
 
+/-- The acceptance for moving from weight `m + 1` to the spike at weight `m` is at most
+`Real.exp (-β * (3 * m - 1))` [FarhiGoldstoneGutmann2002]. -/
 theorem spike_acceptance_bound (m : ℕ) (β : ℝ) :
     twoLevelAcceptance (spikeCost (4 * m) m - spikeCost (4 * m) (m + 1)) β
       ≤ Real.exp (-β * (3 * (m : ℝ) - 1)) := by
   rw [twoLevelAcceptance_eq, spikeCost_four_mul_gap]
   exact min_le_right _ _
 
+/-- At inverse temperature `Real.log 3`, the spike-crossing acceptance tends to zero after
+multiplication by any fixed natural power of `m` [FarhiGoldstoneGutmann2002]. -/
 theorem source_spike_annealing_hung_up (k : ℕ) :
     Tendsto (fun m : ℕ => (m : ℝ) ^ k *
         twoLevelAcceptance (spikeCost (4 * m) m - spikeCost (4 * m) (m + 1))
@@ -766,15 +938,21 @@ theorem source_spike_annealing_hung_up (k : ℕ) :
             ((m : ℝ) ^ k * Real.exp (-(3 * Real.log 3) * (m : ℝ))) := by
           ring
 
+/-- For `m ≥ 1` and positive temperature, the length-`4 * m` spike weight at `m` is strictly
+smaller than its neighboring weight at `m + 1` [FarhiGoldstoneGutmann2002]. -/
 theorem spike_boltzmann_concentration (m : ℕ) (τ : ℝ) (hτ : 0 < τ) (hm : 1 ≤ m) :
     spikeBoltzmannWeight (4 * m) τ m < spikeBoltzmannWeight (4 * m) τ (m + 1) :=
   spikeWeight_spike_lt_succ m τ hτ hm
 
+/-- The bush gap at `s` is nonnegative, and the bush potential is symmetric in its two angular
+variables for all interpolation parameters [FarhiGoldstoneGutmann2002]. -/
 theorem source_bush_gap_asymptotic (n : ℕ) (s : ℝ) :
     0 ≤ bushGapAt n s ∧
       (∀ α θ s' : ℝ, bushPotential α θ s' = bushPotential θ α s') :=
   ⟨lowTwoGapD_nonneg _ _, bushPotential_comm⟩
 
+/-- At positive inverse temperature `β`, the distinguished-bit flip acceptance at weight `n / 2`
+is at most `Real.exp β * Real.exp (-(β / 2) * n)` [FarhiGoldstoneGutmann2002]. -/
 theorem bush_z0_acceptance_bound (n : ℕ) (β : ℝ) (hβ : 0 < β) :
     twoLevelAcceptance (bushCost n true (n / 2) - bushCost n false (n / 2)) β
       ≤ Real.exp β * Real.exp (-(β / 2) * (n : ℝ)) := by
@@ -791,6 +969,9 @@ theorem bush_z0_acceptance_bound (n : ℕ) (β : ℝ) (hβ : 0 < β) :
         congr 1
         ring
 
+/-- For temperature strictly between zero and one, multiplying the bush distinguished-bit flip
+acceptance by any fixed natural power of `n` still gives a sequence tending to zero
+[FarhiGoldstoneGutmann2002]. -/
 theorem bush_z0_flip_poly_steps (k : ℕ) (τ : ℝ) (hτ0 : 0 < τ) (_hτ1 : τ < 1) :
     Tendsto (fun n : ℕ => (n : ℝ) ^ k *
         twoLevelAcceptance (bushCost n true (n / 2) - bushCost n false (n / 2)) (1 / τ))
@@ -819,6 +1000,9 @@ theorem bush_z0_flip_poly_steps (k : ℕ) (τ : ℝ) (hτ0 : 0 < τ) (_hτ1 : τ
             ((n : ℝ) ^ k * Real.exp (-((1 / τ) / 2) * (n : ℝ))) := by
           ring
 
+/-- At temperature strictly between zero and one, the polynomially weighted distinguished-bit
+flip acceptance tends to zero, and the normalized false-bit weight at full Hamming weight
+equals `1 / 2 ^ n` [FarhiGoldstoneGutmann2002]. -/
 theorem source_bush_annealing_fails (k : ℕ) (τ : ℝ) (hτ0 : 0 < τ) (hτ1 : τ < 1) :
     (Tendsto (fun n : ℕ => (n : ℝ) ^ k *
         twoLevelAcceptance (bushCost n true (n / 2) - bushCost n false (n / 2)) (1 / τ))
@@ -829,6 +1013,8 @@ theorem source_bush_annealing_fails (k : ℕ) (τ : ℝ) (hτ0 : 0 < τ) (hτ1 :
         = 1 / (2 : ℝ) ^ n) :=
   ⟨bush_z0_flip_poly_steps k τ hτ0 hτ1, fun n => bushBoltzmann_false_uniform n τ hτ0⟩
 
+/-- The modified bush path at multiplier one equals the original path, its driver entries depend
+linearly on the multiplier, and its gap at `s` is nonnegative [FarhiGoldstoneGutmann2002]. -/
 theorem source_path_dependence (n : ℕ) (s lam lam' : ℝ)
     (p q : Fin 2 × Fin (n + 1)) :
     bushHLam n 1 s = bushH n s ∧
@@ -838,13 +1024,19 @@ theorem source_path_dependence (n : ℕ) (s lam lam' : ℝ)
     0 ≤ bushLamGapAt n lam s :=
   ⟨bushHLam_one n s, bushH0Lam_sub n lam lam' p q, lowTwoGapD_nonneg _ _⟩
 
+/-- The unmodified linear cost equal to the Hamming weight `w`, viewed as a real number. -/
 def plainCost (w : ℕ) : ℝ := (w : ℝ)
 
+/-- The binomially weighted Boltzmann factor for the linear Hamming-weight cost. -/
 def plainWeight (n : ℕ) (τ : ℝ) (w : ℕ) : ℝ := boltzmannWeight n plainCost τ w
 
+/-- The consecutive-weight ratio factor `((n - w) / (w + 1)) * Real.exp (-(1 / τ))`, with
+natural-number subtraction in `n - w`. -/
 def plainRatio (n w : ℕ) (τ : ℝ) : ℝ :=
   ((n - w : ℕ) : ℝ) / ((w + 1 : ℕ) : ℝ) * Real.exp (-(1 / τ))
 
+/-- The linear-cost Boltzmann weights satisfy the consecutive-weight recurrence with energy
+increment one. -/
 theorem plainWeight_succ_mul (n w : ℕ) (τ : ℝ) :
     plainWeight n τ (w + 1) * ((w + 1 : ℕ) : ℝ)
       = plainWeight n τ w * (((n - w : ℕ) : ℝ) * Real.exp (-(1 / τ))) := by
@@ -857,6 +1049,8 @@ theorem plainWeight_succ_mul (n w : ℕ) (τ : ℝ) :
     ring
   simpa [plainWeight, harg] using boltzmannWeight_succ_mul n plainCost τ w
 
+/-- For `w ≤ n` and positive temperature, the next linear-cost Boltzmann weight is smaller
+exactly when `plainRatio n w τ < 1` [FarhiGoldstoneGutmann2002]. -/
 theorem plainWeight_succ_lt_iff (n w : ℕ) (τ : ℝ) (hw : w ≤ n) (_hτ : 0 < τ) :
     plainWeight n τ (w + 1) < plainWeight n τ w ↔ plainRatio n w τ < 1 := by
   have hp : 0 < plainWeight n τ w := by
@@ -886,6 +1080,8 @@ theorem plainWeight_succ_lt_iff (n w : ℕ) (τ : ℝ) (hw : w ≤ n) (_hτ : 0 
     rw [← h] at h1
     exact lt_of_mul_lt_mul_right h1 hw1.le
 
+/-- For `w ≤ n` and positive temperature, the next linear-cost Boltzmann weight is larger
+exactly when `1 < plainRatio n w τ`. -/
 theorem plainWeight_succ_gt_iff (n w : ℕ) (τ : ℝ) (hw : w ≤ n) (_hτ : 0 < τ) :
     plainWeight n τ w < plainWeight n τ (w + 1) ↔ 1 < plainRatio n w τ := by
   have hp : 0 < plainWeight n τ w := by
@@ -915,11 +1111,15 @@ theorem plainWeight_succ_gt_iff (n w : ℕ) (τ : ℝ) (hw : w ≤ n) (_hτ : 0 
     rw [← h] at h1
     exact lt_of_mul_lt_mul_right h1 hw1.le
 
+/-- Away from the spike weight, the spike Boltzmann weight equals the linear-cost Boltzmann
+weight [FarhiGoldstoneGutmann2002]. -/
 theorem spikeWeight_eq_plain (n w : ℕ) (τ : ℝ) (h : w ≠ n / 4) :
     spikeBoltzmannWeight n τ w = plainWeight n τ w := by
   unfold spikeBoltzmannWeight plainWeight boltzmannWeight plainCost spikeCost
   rw [if_neg h]
 
+/-- At length `4 * m` and weight `m`, the consecutive-weight ratio is `(3 * m / (m + 1)) *
+Real.exp (-(1 / τ))`. -/
 theorem plainRatio_four_mul (m : ℕ) (τ : ℝ) :
     plainRatio (4 * m) m τ
       = (3 * (m : ℝ) / ((m : ℝ) + 1)) * Real.exp (-(1 / τ)) := by
@@ -931,8 +1131,10 @@ theorem plainRatio_four_mul (m : ℕ) (τ : ℝ) :
   have hden : ((m + 1 : ℕ) : ℝ) = (m : ℝ) + 1 := by push_cast; ring
   rw [hsub, hden]
 
+/-- The finite-size threshold temperature `1 / Real.log (3 * m / (m + 1))`. -/
 def spikeTemp (m : ℕ) : ℝ := 1 / Real.log (3 * (m : ℝ) / ((m : ℝ) + 1))
 
+/-- The threshold temperature `spikeTemp m` is positive for `m ≥ 1`. -/
 theorem spikeTemp_pos (m : ℕ) (hm : 1 ≤ m) : 0 < spikeTemp m := by
   unfold spikeTemp
   apply div_pos one_pos
@@ -941,6 +1143,8 @@ theorem spikeTemp_pos (m : ℕ) (hm : 1 ≤ m) : 0 < spikeTemp m := by
   have hm' : (1 : ℝ) ≤ (m : ℝ) := by exact_mod_cast hm
   linarith
 
+/-- For `m ≥ 1` and positive temperature, the ratio at weight `m` in length `4 * m` is below one
+exactly when the temperature is below `spikeTemp m` [FarhiGoldstoneGutmann2002]. -/
 theorem plainRatio_four_mul_lt_one_iff (m : ℕ) (τ : ℝ) (hτ : 0 < τ) (hm : 1 ≤ m) :
     plainRatio (4 * m) m τ < 1 ↔ τ < spikeTemp m := by
   rw [plainRatio_four_mul]
@@ -963,6 +1167,8 @@ theorem plainRatio_four_mul_lt_one_iff (m : ℕ) (τ : ℝ) (hτ : 0 < τ) (hm :
   rw [lt_div_iff₀ hτ, mul_comm (Real.log (3 * (m : ℝ) / ((m : ℝ) + 1))) τ,
     ← lt_div_iff₀ hlogpos]
 
+/-- The finite-size threshold temperature converges to `1 / Real.log 3` as `m` tends to infinity
+[FarhiGoldstoneGutmann2002]. -/
 theorem spikeTemp_tendsto : Tendsto spikeTemp atTop (𝓝 (1 / Real.log 3)) := by
   have hlog3 : Real.log 3 ≠ 0 := (Real.log_pos (by norm_num)).ne'
   have hinv : Tendsto (fun m : ℕ => (1 : ℝ) / ((m : ℝ) + 1)) atTop (𝓝 0) := by
@@ -986,17 +1192,23 @@ theorem spikeTemp_tendsto : Tendsto spikeTemp atTop (𝓝 (1 / Real.log 3)) := b
   · simp [spikeTemp, one_div]
   · simp [one_div]
 
+/-- The fraction `1 / (1 + Real.exp (1 / τ))` associated with the linear-cost thermal mode. -/
 def spikeMode (τ : ℝ) : ℝ := 1 / (1 + Real.exp (1 / τ))
 
+/-- The mode fraction `spikeMode τ` is strictly positive for every real temperature parameter. -/
 theorem spikeMode_pos (τ : ℝ) : 0 < spikeMode τ := by
   unfold spikeMode
   positivity
 
+/-- The mode fraction `spikeMode τ` is strictly less than one for every real temperature
+parameter. -/
 theorem spikeMode_lt_one (τ : ℝ) : spikeMode τ < 1 := by
   unfold spikeMode
   rw [div_lt_one (by positivity)]
   linarith [Real.exp_pos (1 / τ)]
 
+/-- At positive temperature, the mode fraction is above one quarter exactly when `τ > 1 /
+Real.log 3` [FarhiGoldstoneGutmann2002]. -/
 theorem spikeMode_gt_quarter_iff (τ : ℝ) (hτ : 0 < τ) :
     1 / 4 < spikeMode τ ↔ 1 / Real.log 3 < τ := by
   unfold spikeMode
@@ -1010,6 +1222,8 @@ theorem spikeMode_gt_quarter_iff (τ : ℝ) (hτ : 0 < τ) :
   rw [div_lt_iff₀ hτ]
   rw [mul_comm (Real.log 3) τ, ← div_lt_iff₀ hlog3]
 
+/-- At positive temperature, the mode fraction is below one quarter exactly when `τ < 1 /
+Real.log 3` [FarhiGoldstoneGutmann2002]. -/
 theorem spikeMode_lt_quarter_iff (τ : ℝ) (hτ : 0 < τ) :
     spikeMode τ < 1 / 4 ↔ τ < 1 / Real.log 3 := by
   unfold spikeMode
@@ -1023,8 +1237,12 @@ theorem spikeMode_lt_quarter_iff (τ : ℝ) (hτ : 0 < τ) :
   rw [lt_div_iff₀ hτ]
   rw [mul_comm (Real.log 3) τ, ← lt_div_iff₀ hlog3]
 
+/-- The scaled bush cost equal to `1 - u` for a true distinguished bit and zero for a false
+distinguished bit. -/
 def bushScaledCost (z0 : Bool) (u : ℝ) : ℝ := if z0 then 1 - u else 0
 
+/-- For positive `n`, the bush cost equals `n` times its scaled cost at `w / n`, plus one
+precisely when the distinguished bit is false [FarhiGoldstoneGutmann2002]. -/
 theorem bushCost_eq_scaled (n : ℕ) (z0 : Bool) (w : ℕ) (hn : 0 < n) :
     bushCost n z0 w
       = (n : ℝ) * bushScaledCost z0 ((w : ℝ) / (n : ℝ)) + (if z0 then 0 else 1) := by
@@ -1036,12 +1254,15 @@ theorem bushCost_eq_scaled (n : ℕ) (z0 : Bool) (w : ℕ) (hn : 0 < n) :
       ring
     rw [h]
 
+/-- The bush entropy contribution equals `-τ * Real.binEntropy u` [FarhiGoldstoneGutmann2002]. -/
 theorem bushFreeEnergy0_eq (τ u : ℝ) :
     bushFreeEnergy0 τ u = -τ * Real.binEntropy u := by
   unfold bushFreeEnergy0 Real.binEntropy
   rw [Real.log_inv, Real.log_inv]
   ring
 
+/-- At positive temperature, the bush entropy contribution attains a global minimum at `u = 1 /
+2` [FarhiGoldstoneGutmann2002]. -/
 theorem bushFreeEnergy0_le_half (τ : ℝ) (hτ : 0 < τ) (u : ℝ) :
     bushFreeEnergy0 τ (1 / 2) ≤ bushFreeEnergy0 τ u := by
   rw [bushFreeEnergy0_eq, bushFreeEnergy0_eq,
@@ -1051,6 +1272,8 @@ theorem bushFreeEnergy0_le_half (τ : ℝ) (hτ : 0 < τ) (u : ℝ) :
     mul_le_mul_of_nonneg_left h hτ.le
   nlinarith
 
+/-- At positive temperature, the bush entropy contribution at every `u ≠ 1 / 2` is strictly
+greater than its value at one half [FarhiGoldstoneGutmann2002]. -/
 theorem bushFreeEnergy0_lt_half (τ : ℝ) (hτ : 0 < τ) (u : ℝ) (hu : u ≠ 1 / 2) :
     bushFreeEnergy0 τ (1 / 2) < bushFreeEnergy0 τ u := by
   rw [bushFreeEnergy0_eq, bushFreeEnergy0_eq,
@@ -1062,6 +1285,8 @@ theorem bushFreeEnergy0_lt_half (τ : ℝ) (hτ : 0 < τ) (u : ℝ) (hu : u ≠ 
   have hmul := mul_lt_mul_of_pos_left h hτ
   nlinarith
 
+/-- At positive temperature and `u < 1`, the bush free energy `bushFreeEnergy1 τ u` is strictly
+greater than `bushFreeEnergy0 τ (1 / 2)` [FarhiGoldstoneGutmann2002]. -/
 theorem bushFreeEnergy1_gt_mode (τ : ℝ) (hτ : 0 < τ) (u : ℝ) (hu : u < 1) :
     bushFreeEnergy0 τ (1 / 2) < bushFreeEnergy1 τ u := by
   rw [bushFreeEnergy1, bushFreeEnergy0_eq, bushFreeEnergy0_eq,
@@ -1071,6 +1296,9 @@ theorem bushFreeEnergy1_gt_mode (τ : ℝ) (hτ : 0 < τ) (u : ℝ) (hu : u < 1)
     mul_le_mul_of_nonneg_left h hτ.le
   nlinarith
 
+/-- For `w ≤ n` and nonzero temperature, the bush Boltzmann weight is the exponential of the
+negative cost corrected by the logarithm of its binomial multiplicity, divided by
+temperature [FarhiGoldstoneGutmann2002]. -/
 theorem bushBoltzmann_eq_exp_neg (n : ℕ) (z0 : Bool) (τ : ℝ) (w : ℕ)
     (hw : w ≤ n) (hτ : τ ≠ 0) :
     bushBoltzmann n z0 τ w
@@ -1084,6 +1312,7 @@ theorem bushBoltzmann_eq_exp_neg (n : ℕ) (z0 : Bool) (τ : ℝ) (w : ℕ)
     Real.exp_add, Real.exp_log hC]
   ring
 
+/-- The derivative of `gSym q` at `u` is `4 * q * (1 - u) * (1 - 3 * u) + 8 * u * (1 - u)`. -/
 theorem hasDerivAt_gSym (q u : ℝ) :
     HasDerivAt (gSym q) (4 * q * (1 - u) * (1 - 3 * u) + 8 * u * (1 - u)) u := by
   unfold gSym
@@ -1115,16 +1344,22 @@ theorem hasDerivAt_gSym (q u : ℝ) :
     ring
   · ring
 
+/-- The derivative of the scaled symmetric cost at one half equals `2 - q`
+[FarhiGoldstoneGutmann2002]. -/
 theorem hasDerivAt_gSym_half (q : ℝ) : HasDerivAt (gSym q) (2 - q) (1 / 2) := by
   have h := hasDerivAt_gSym q (1 / 2)
   have harg : 4 * q * (1 - 1 / 2) * (1 - 3 * (1 / 2)) + 8 * (1 / 2) * (1 - 1 / 2) = 2 - q := by
     ring
   rwa [harg] at h
 
+/-- For a natural parameter `q ≥ 3`, the expression `2 - q` for the derivative at one half is
+negative [FarhiGoldstoneGutmann2002]. -/
 theorem gSym_deriv_half_neg (q : ℕ) (hq : 3 ≤ q) : 2 - (q : ℝ) < 0 := by
   have : (3 : ℝ) ≤ (q : ℝ) := by exact_mod_cast hq
   linarith
 
+/-- For nonnegative `q`, the scaled symmetric cost is strictly positive on the open interval
+`(0, 1)` [FarhiGoldstoneGutmann2002]. -/
 theorem gSym_pos (q : ℝ) (hq : 0 ≤ q) (u : ℝ) (hu0 : 0 < u) (hu1 : u < 1) :
     0 < gSym q u := by
   have h1 : 0 ≤ u * (1 - u) ^ 2 := by positivity
@@ -1133,17 +1368,22 @@ theorem gSym_pos (q : ℝ) (hq : 0 ≤ q) (u : ℝ) (hu0 : 0 < u) (hu1 : u < 1) 
   unfold gSym
   nlinarith [mul_nonneg hq h1, h2, h3]
 
+/-- The symmetric free energy equals `gSym q u - a * Real.binEntropy u`
+[FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergySym_eq (q a u : ℝ) :
     freeEnergySym q a u = gSym q u - a * Real.binEntropy u := by
   unfold freeEnergySym Real.binEntropy
   rw [Real.log_inv, Real.log_inv]
   ring
 
+/-- The scaled symmetric cost at one half equals `q / 2 + 2 / 3`. -/
 theorem gSym_half (q : ℝ) : gSym q (1 / 2) = q / 2 + 2 / 3 := by
   unfold gSym
   norm_num
   ring
 
+/-- For nonnegative `q`, the scaled symmetric cost is nonnegative on `[0, 1]`
+[FarhiGoldstoneGutmann2002]. -/
 theorem gSym_nonneg (q : ℝ) (hq : 0 ≤ q) (u : ℝ) (hu0 : 0 ≤ u) (hu1 : u ≤ 1) :
     0 ≤ gSym q u := by
   have h1 : 0 ≤ u * (1 - u) ^ 2 := by positivity
@@ -1152,6 +1392,8 @@ theorem gSym_nonneg (q : ℝ) (hq : 0 ≤ q) (u : ℝ) (hu0 : 0 ≤ u) (hu1 : u 
   unfold gSym
   nlinarith [mul_nonneg hq h1, h2, h3]
 
+/-- For nonnegative `q` and `s ∈ [0, 1]`, the symmetric effective potential is nonnegative under
+the stated sine and cosine bounds [FarhiGoldstoneGutmann2002]. -/
 theorem effectivePotential_nonneg (q θ s : ℝ) (hq : 0 ≤ q)
     (hs0 : 0 ≤ s) (hs1 : s ≤ 1) (hsin : Real.sin θ ≤ 1)
     (hcosp : -1 ≤ Real.cos θ) (hcos1 : Real.cos θ ≤ 1) :
@@ -1167,16 +1409,21 @@ theorem effectivePotential_nonneg (q θ s : ℝ) (hq : 0 ≤ q)
   have hB : 0 ≤ s * gSym q ((1 / 2) * (1 - Real.cos θ)) := mul_nonneg hs0 hg
   linarith
 
+/-- At angle `Real.pi`, the effective potential equals `2 * (1 - s) + s * (4 / 3)`
+[FarhiGoldstoneGutmann2002]. -/
 theorem effectivePotential_pi (q s : ℝ) :
     effectivePotential q Real.pi s = 2 * (1 - s) + s * (4 / 3) := by
   unfold effectivePotential gSym
   rw [Real.sin_pi, Real.cos_pi]
   norm_num
 
+/-- The symmetric free energy at one half equals `gSym q (1 / 2) - a * Real.log 2`. -/
 theorem freeEnergySym_half (q a : ℝ) :
     freeEnergySym q a (1 / 2) = gSym q (1 / 2) - a * Real.log 2 := by
   rw [freeEnergySym_eq, show (1 / 2 : ℝ) = 2⁻¹ by norm_num, Real.binEntropy_two_inv]
 
+/-- The symmetric free energy at one half is negative when `a > (q / 2 + 2 / 3) / Real.log 2`
+[FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergySym_half_neg (q a : ℝ)
     (ha : (q / 2 + 2 / 3) / Real.log 2 < a) :
     freeEnergySym q a (1 / 2) < 0 := by
@@ -1185,6 +1432,8 @@ theorem freeEnergySym_half_neg (q a : ℝ)
   have hprod : q / 2 + 2 / 3 < a * Real.log 2 := (div_lt_iff₀ hl).mp ha
   linarith
 
+/-- The derivative of the symmetric free energy at one half is `2 - q`, independently of its
+entropy coefficient [FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergySym_hasDerivAt_half (q a : ℝ) :
     HasDerivAt (freeEnergySym q a) (2 - q) (1 / 2) := by
   have hg := hasDerivAt_gSym_half q
@@ -1201,17 +1450,22 @@ theorem freeEnergySym_hasDerivAt_half (q a : ℝ) :
   rw [hfun]
   simpa using hF
 
+/-- At interpolation parameter one, the effective potential equals `gSym q ((1 - Real.cos θ) /
+2)` [FarhiGoldstoneGutmann2002]. -/
 theorem effectivePotential_one (q θ : ℝ) :
     effectivePotential q θ 1 = gSym q ((1 / 2) * (1 - Real.cos θ)) := by
   unfold effectivePotential
   ring
 
+/-- At angle `Real.pi / 2`, the effective potential equals `s * gSym q (1 / 2)`
+[FarhiGoldstoneGutmann2002]. -/
 theorem effectivePotential_pi_div_two (q s : ℝ) :
     effectivePotential q (Real.pi / 2) s = s * gSym q (1 / 2) := by
   unfold effectivePotential
   rw [Real.sin_pi_div_two, Real.cos_pi_div_two]
   ring
 
+/-- At angle zero, the effective potential equals `2 * (1 - s)` [FarhiGoldstoneGutmann2002]. -/
 theorem effectivePotential_theta_zero (q s : ℝ) :
     effectivePotential q 0 s = 2 * (1 - s) := by
   unfold effectivePotential
@@ -1220,11 +1474,15 @@ theorem effectivePotential_theta_zero (q s : ℝ) :
   rw [h0, gSym_zero]
   ring
 
+/-- For positive `s`, the effective potential at angle zero is strictly smaller than at angle
+`Real.pi` [FarhiGoldstoneGutmann2002]. -/
 theorem effectivePotential_left_lt_right (q s : ℝ) (hs : 0 < s) :
     effectivePotential q 0 s < effectivePotential q Real.pi s := by
   rw [effectivePotential_theta_zero, effectivePotential_pi]
   nlinarith
 
+/-- For nonnegative `q` and `0 < θ ≤ Real.pi`, the effective potential at interpolation
+parameter one is strictly positive [FarhiGoldstoneGutmann2002]. -/
 theorem effectivePotential_one_pos (q : ℝ) (hq : 0 ≤ q) (θ : ℝ)
     (h0 : 0 < θ) (hπ : θ ≤ Real.pi) :
     0 < effectivePotential q θ 1 := by
@@ -1244,23 +1502,31 @@ theorem effectivePotential_one_pos (q : ℝ) (hq : 0 ≤ q) (θ : ℝ)
     unfold gSym
     norm_num
 
+/-- At interpolation parameter zero, the bush potential equals `2 - Real.sin α - Real.sin θ`
+[FarhiGoldstoneGutmann2002]. -/
 theorem bushPotential_zero_s (α θ : ℝ) :
     bushPotential α θ 0 = 2 - Real.sin α - Real.sin θ := by
   unfold bushPotential
   ring
 
+/-- At interpolation parameter one, the bush potential equals `2 * Real.cos (α / 2) ^ 2 *
+Real.cos (θ / 2) ^ 2` [FarhiGoldstoneGutmann2002]. -/
 theorem bushPotential_one_s (α θ : ℝ) :
     bushPotential α θ 1 =
       2 * (Real.cos (α / 2)) ^ 2 * (Real.cos (θ / 2)) ^ 2 := by
   unfold bushPotential
   ring
 
+/-- The bush potential is nonnegative at interpolation parameter zero
+[FarhiGoldstoneGutmann2002]. -/
 theorem bushPotential_zero_nonneg (α θ : ℝ) : 0 ≤ bushPotential α θ 0 := by
   rw [bushPotential_zero_s]
   have h1 : Real.sin α ≤ 1 := Real.sin_le_one α
   have h2 : Real.sin θ ≤ 1 := Real.sin_le_one θ
   linarith
 
+/-- At interpolation parameter zero, the bush potential vanishes exactly when both angular sines
+equal one [FarhiGoldstoneGutmann2002]. -/
 theorem bushPotential_zero_eq_zero_iff (α θ : ℝ) :
     bushPotential α θ 0 = 0 ↔ Real.sin α = 1 ∧ Real.sin θ = 1 := by
   rw [bushPotential_zero_s]
@@ -1272,24 +1538,33 @@ theorem bushPotential_zero_eq_zero_iff (α θ : ℝ) :
   · rintro ⟨ha, hb⟩
     linarith
 
+/-- The bush potential is nonnegative at interpolation parameter one
+[FarhiGoldstoneGutmann2002]. -/
 theorem bushPotential_one_nonneg (α θ : ℝ) : 0 ≤ bushPotential α θ 1 := by
   rw [bushPotential_one_s]
   positivity
 
+/-- The bush potential with the transverse-field contribution of angle `α` multiplied by `lam`. -/
 def bushPotentialLam (lam α θ s : ℝ) : ℝ :=
   (1 - s) * (lam * (1 - Real.sin α) + (1 - Real.sin θ))
     + 2 * s * (Real.cos (α / 2)) ^ 2 * (Real.cos (θ / 2)) ^ 2
 
+/-- Setting the modified potential multiplier to one recovers the symmetric bush potential
+[FarhiGoldstoneGutmann2002]. -/
 theorem bushPotentialLam_one (α θ s : ℝ) :
     bushPotentialLam 1 α θ s = bushPotential α θ s := by
   unfold bushPotentialLam bushPotential
   ring
 
+/-- At interpolation parameter zero, the modified bush potential equals `lam * (1 - Real.sin α)
++ (1 - Real.sin θ)` [FarhiGoldstoneGutmann2002]. -/
 theorem bushPotentialLam_zero (lam α θ : ℝ) :
     bushPotentialLam lam α θ 0 = lam * (1 - Real.sin α) + (1 - Real.sin θ) := by
   unfold bushPotentialLam
   ring
 
+/-- A nonnegative driver multiplier gives a nonnegative modified bush potential at interpolation
+parameter zero [FarhiGoldstoneGutmann2002]. -/
 theorem bushPotentialLam_zero_nonneg (lam : ℝ) (hlam : 0 ≤ lam) (α θ : ℝ) :
     0 ≤ bushPotentialLam lam α θ 0 := by
   rw [bushPotentialLam_zero]
@@ -1297,6 +1572,8 @@ theorem bushPotentialLam_zero_nonneg (lam : ℝ) (hlam : 0 ≤ lam) (α θ : ℝ
   have h2 : Real.sin θ ≤ 1 := Real.sin_le_one θ
   nlinarith
 
+/-- For `s < 1`, the modified bush potential is symmetric in its angular variables for all
+angles exactly when `lam = 1` [FarhiGoldstoneGutmann2002]. -/
 theorem bushPotentialLam_swap_iff (lam s : ℝ) (hs : s < 1) :
     (∀ α θ : ℝ, bushPotentialLam lam α θ s = bushPotentialLam lam θ α s) ↔ lam = 1 := by
   constructor
@@ -1320,18 +1597,25 @@ theorem bushPotentialLam_swap_iff (lam s : ℝ) (hs : s < 1) :
     intro α θ
     rw [bushPotentialLam_one, bushPotentialLam_one, bushPotential_comm]
 
+/-- The logarithmic entropy expression `(1 - u) * Real.log (1 - u) + u * Real.log u`. -/
 def entropyTerm (u : ℝ) : ℝ := (1 - u) * Real.log (1 - u) + u * Real.log u
 
+/-- The logarithmic entropy term is the negative of `Real.binEntropy u`
+[FarhiGoldstoneGutmann2002]. -/
 theorem entropyTerm_eq_neg_binEntropy (u : ℝ) : entropyTerm u = - Real.binEntropy u := by
   unfold entropyTerm Real.binEntropy
   rw [Real.log_inv, Real.log_inv]
   ring
 
+/-- The symmetric free energy splits as `gSym q u + a * entropyTerm u`
+[FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergySym_eq_add (q a u : ℝ) :
     freeEnergySym q a u = gSym q u + a * entropyTerm u := by
   unfold freeEnergySym entropyTerm
   ring
 
+/-- Away from zero and one, the derivative of `entropyTerm` is `Real.log u - Real.log (1 - u)`
+[FarhiGoldstoneGutmann2002]. -/
 theorem hasDerivAt_entropyTerm (u : ℝ) (hu0 : u ≠ 0) (hu1 : u ≠ 1) :
     HasDerivAt entropyTerm (Real.log u - Real.log (1 - u)) u := by
   have h := (Real.hasDerivAt_binEntropy hu0 hu1).neg
@@ -1342,6 +1626,8 @@ theorem hasDerivAt_entropyTerm (u : ℝ) (hu0 : u ≠ 0) (hu1 : u ≠ 1) :
   convert! h using 1
   ring
 
+/-- Away from zero and one, the derivative of the symmetric free energy is the derivative of
+`gSym q` plus `a * (Real.log u - Real.log (1 - u))` [FarhiGoldstoneGutmann2002]. -/
 theorem hasDerivAt_freeEnergySym (q a u : ℝ) (hu0 : u ≠ 0) (hu1 : u ≠ 1) :
     HasDerivAt (freeEnergySym q a)
       (4 * q * (1 - u) * (1 - 3 * u) + 8 * u * (1 - u)
@@ -1355,6 +1641,8 @@ theorem hasDerivAt_freeEnergySym (q a u : ℝ) (hu0 : u ≠ 0) (hu1 : u ≠ 1) :
   rw [hfun]
   convert! h using 1
 
+/-- The derivative of the displayed first-derivative expression for `gSym q` is `24 * q * u - 16
+* q + 8 - 16 * u` [FarhiGoldstoneGutmann2002]. -/
 theorem hasDerivAt_gSym_deriv (q u : ℝ) :
     HasDerivAt (fun x : ℝ => 4 * q * (1 - x) * (1 - 3 * x) + 8 * x * (1 - x))
       (24 * q * u - 16 * q + 8 - 16 * u) u := by
@@ -1380,6 +1668,8 @@ theorem hasDerivAt_gSym_deriv (q u : ℝ) :
     ring
   · ring
 
+/-- Away from zero and one, the derivative of `Real.log u - Real.log (1 - u)` is `1 / u + 1 / (1
+- u)` [FarhiGoldstoneGutmann2002]. -/
 theorem hasDerivAt_entropyTerm_deriv (u : ℝ) (hu0 : u ≠ 0) (hu1 : u ≠ 1) :
     HasDerivAt (fun x : ℝ => Real.log x - Real.log (1 - x))
       (1 / u + 1 / (1 - u)) u := by
@@ -1398,6 +1688,8 @@ theorem hasDerivAt_entropyTerm_deriv (u : ℝ) (hu0 : u ≠ 0) (hu1 : u ≠ 1) :
   convert! h using 1
   ring
 
+/-- Away from zero and one, the derivative of the displayed free-energy derivative is `24 * q *
+u - 16 * q + 8 - 16 * u + a * (1 / u + 1 / (1 - u))` [FarhiGoldstoneGutmann2002]. -/
 theorem hasDerivAt_freeEnergySym_deriv (q a u : ℝ) (hu0 : u ≠ 0) (hu1 : u ≠ 1) :
     HasDerivAt (fun x : ℝ => 4 * q * (1 - x) * (1 - 3 * x) + 8 * x * (1 - x)
         + a * (Real.log x - Real.log (1 - x)))
@@ -1407,6 +1699,7 @@ theorem hasDerivAt_freeEnergySym_deriv (q a u : ℝ) (hu0 : u ≠ 0) (hu1 : u �
   have h := hg.add (he.const_mul a)
   convert! h using 1
 
+/-- For `0 < u < 1`, the sum `1 / u + 1 / (1 - u)` is at least four [FarhiGoldstoneGutmann2002]. -/
 theorem one_div_add_one_div_one_sub_ge_four (u : ℝ) (hu0 : 0 < u) (hu1 : u < 1) :
     4 ≤ 1 / u + 1 / (1 - u) := by
   have h1 : 0 < u := hu0
@@ -1419,6 +1712,8 @@ theorem one_div_add_one_div_one_sub_ge_four (u : ℝ) (hu0 : 0 < u) (hu1 : u < 1
   rw [this]
   exact hkey
 
+/-- The displayed second-derivative expression for symmetric free energy is positive when `q ≥
+3`, `a > 4 * q - 2`, and `0 < u < 1` [FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergySym_second_deriv_pos (q a u : ℝ) (hq : 3 ≤ q) (ha : 4 * q - 2 < a)
     (hu0 : 0 < u) (hu1 : u < 1) :
     0 < (24 * q * u - 16 * q + 8 - 16 * u) + a * (1 / u + 1 / (1 - u)) := by
@@ -1431,6 +1726,8 @@ theorem freeEnergySym_second_deriv_pos (q a u : ℝ) (hq : 3 ≤ q) (ha : 4 * q 
     nlinarith [hu0, hq]
   linarith
 
+/-- For `q ≥ 3` and `a > 4 * q - 2`, the displayed derivative of symmetric free energy is
+strictly increasing on `(1 / 2, 1)` [FarhiGoldstoneGutmann2002]. -/
 theorem strictMonoOn_freeEnergySym_deriv (q a : ℝ) (hq : 3 ≤ q) (ha : 4 * q - 2 < a) :
     StrictMonoOn
       (fun u : ℝ => 4 * q * (1 - u) * (1 - 3 * u) + 8 * u * (1 - u)
@@ -1461,6 +1758,8 @@ theorem strictMonoOn_freeEnergySym_deriv (q a : ℝ) (hq : 3 ≤ q) (ha : 4 * q 
     rw [hderiv]
     exact freeEnergySym_second_deriv_pos q a u hq ha (by linarith [hu.1]) (by linarith [hu.2])
 
+/-- For `q ≥ 3` and `4 * q - 2 < a1 < a2`, critical points `u1` and `u2` of the corresponding
+free energies in `(1 / 2, 1)` satisfy `u2 < u1` [FarhiGoldstoneGutmann2002]. -/
 theorem freeEnergySym_critical_strictAnti (q : ℝ) (hq : 3 ≤ q) {a1 a2 u1 u2 : ℝ}
     (ha1 : 4 * q - 2 < a1) (ha12 : a1 < a2)
     (hu1 : u1 ∈ Set.Ioo (1 / 2) 1) (hu2 : u2 ∈ Set.Ioo (1 / 2) 1)

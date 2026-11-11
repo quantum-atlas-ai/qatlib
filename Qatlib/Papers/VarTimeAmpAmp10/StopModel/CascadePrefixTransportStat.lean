@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.LiveVtProgram
+
+/-!
+# Cascade prefix transport contract
+
+`CascadePrefixTransport` specifies legality, normalization, and live-component transport for
+every scheduled cascade prefix. It also records the exact recursive stage time and
+proportionality of the final good component to that of the original run.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `CascadePrefixTransport`: prefix invariants and final good-component transport.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +33,9 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 set_option autoImplicit false
 namespace Qatlib.Papers.VarTimeAmpAmp10.StopModel
 
+/-- The proposition that every scheduled cascade of a legal, supported growing-history run has
+legal normalized prefixes, a live/bad decomposition, the stated time recurrence, and
+proportional final good components. -/
 def CascadePrefixTransport : Prop :=
   ∀ (C : Type) [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C),

@@ -25,6 +25,33 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
 import Mathlib.Analysis.Calculus.Deriv.Polynomial
 import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Topology.Algebra.Polynomial
+
+/-!
+# Polynomial derivative bounds from integer nodes
+
+This module proves a degree constraint for real polynomials bounded between `b1` and `b2` at the
+integer nodes from `0` to `N`. If the absolute derivative is at least a positive `c` somewhere
+in `[0, N]`, then `discrete_node_derivative_bound` gives `c * N ≤ p.natDegree ^ 2 * (c + b2 -
+b1)`, the squared form of the estimate in [BealsEtAl2001].
+
+The proof uses `discrete_node_nearest` to compare interval extrema with nearby integer nodes.
+The intermediate theorem `discrete_node_derivative_of_sharp` isolates the dependence on the
+sharp Markov inequality on `[-1, 1]`; the final theorem supplies the established sharp
+derivative bound.
+
+## Main statements
+
+* `discrete_node_nearest`: every point of `[0, N]` lies within `1 / 2` of an integer node in
+  that interval.
+* `discrete_node_derivative_of_sharp`: derive the discrete-node estimate from the sharp Markov
+  inequality.
+* `discrete_node_derivative_bound`: the unconditional discrete-node degree constraint.
+
+## References
+
+* [Beals et al., 2001, Theorem 4.12][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -34,6 +61,7 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Polynomial
 open scoped BigOperators
 
+/-- Every real point in `[0, N]` lies within distance `1 / 2` of a natural-number node `k ≤ N`. -/
 theorem discrete_node_nearest (N : ℕ) (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) N) :
     ∃ k : ℕ, k ≤ N ∧ |x-(k:ℝ)| ≤ 1/2 := by
   have hdist := abs_sub_round x
@@ -56,6 +84,9 @@ theorem discrete_node_nearest (N : ℕ) (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 
   · have hkr : (k:ℝ) = (round x:ℝ) := by exact_mod_cast hk
     rwa [hkr]
 
+/-- Assuming the sharp Markov derivative inequality, a polynomial bounded between `b1` and `b2`
+at all integer nodes from `0` to `N` satisfies `c * N ≤ p.natDegree ^ 2 * (c + b2 - b1)`
+whenever `c > 0` and its absolute derivative is at least `c` at some point of `[0, N]`. -/
 theorem discrete_node_derivative_of_sharp
     (hsharp : ∀ (d : ℕ) (p : Polynomial ℝ) (C : ℝ), p.natDegree ≤ d → 0 ≤ C →
       (∀ x ∈ Set.Icc (-1 : ℝ) 1, |p.eval x| ≤ C) →
@@ -139,6 +170,10 @@ theorem discrete_node_derivative_of_sharp
     have hrange' := mul_le_mul_of_nonneg_left hrange (sq_nonneg (p.natDegree:ℝ))
     nlinarith
 
+/-- A real polynomial bounded between `b1` and `b2` at the integer nodes from `0` to `N`, with
+absolute derivative at least `c > 0` somewhere in `[0, N]`, satisfies `c * N ≤ p.natDegree ^
+2 * (c + b2 - b1)`. This is the squared degree constraint of [Beals et al., Theorem
+4.12][BealsEtAl2001]. -/
 theorem discrete_node_derivative_bound :
     ∀ (N : ℕ) (p : Polynomial ℝ) (b1 b2 c x : ℝ), 0 < c →
       (∀ i : ℕ, i ≤ N → b1 ≤ p.eval (i : ℝ) ∧ p.eval (i : ℝ) ≤ b2) →

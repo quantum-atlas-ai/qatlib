@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordCuts
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHEulerian
 import Mathlib.Data.List.Sort
+
+/-!
+# Cut counts and Eulerian logarithm coefficients
+
+`reducedWord` removes the constant term from an ordered product of letter exponential series.
+For words without repeated letters drawn from an increasing source list, `cutPolynomial` records
+the coefficients of powers of this reduced series by counting cuts into increasing blocks.
+
+The closed form in terms of `descents` and `ascents` yields the signed descent formula
+`word_log_eulerian` for logarithm coefficients, supporting the BCH expansions used in
+[AftabAnTrivisa2026].
+
+## Main statements
+
+* `wordCoefficient_reduced_pow`: identifies reduced series power coefficients with cut
+  polynomial coefficients.
+* `cutPolynomial_closed`: expresses a cut polynomial using its ascent and descent counts.
+* `word_log_eulerian`: computes the logarithm coefficient from word length and descent count.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,18 +42,23 @@ open scoped BigOperators MonoidAlgebra
 open BCHDynkin BCHWordLie BCHWordCuts
 variable {α : Type}
 
+/-- The ordered product of formal letter exponentials with its constant series subtracted. -/
 def reducedWord (xs : List α) : PowerSeries (WordAlg α) := wordSeries (xs.map letter) - 1
 
+/-- The reduced word series is graded by word length. -/
 theorem reducedWord_graded (xs : List α) : IsGraded (reducedWord xs) := by
   apply IsGraded.sub _ graded_one
   simpa only [letterWord, List.map_map, Function.comp_def, one_smul] using
     letterWord_graded (xs.map (fun a => ((1 : ℚ), a)))
 
+/-- The reduced word series has zero constant coefficient. -/
 theorem reducedWord_constant (xs : List α) : (reducedWord xs).constantCoeff = 0 := by
   simp only [reducedWord, map_sub, wordSeries_constant, map_one, sub_self]
 
 variable [LinearOrder α]
 
+/-- A list whose entries lie in a strictly increasing list is a sublist exactly when it is
+strictly increasing. -/
 theorem sublist_iff_pairwise (xs w : List α) (hxs : xs.Pairwise (· < ·)) (hsub : w ⊆ xs) :
     w.Sublist xs ↔ w.Pairwise (· < ·) := by
   constructor
@@ -38,6 +67,8 @@ theorem sublist_iff_pairwise (xs w : List α) (hxs : xs.Pairwise (· < ·)) (hsu
   · intro h
     exact List.sublist_of_subperm_of_pairwise (List.subperm_of_subset h.nodup hsub) h hxs
 
+/-- For a nonempty word without repeated letters drawn from a strictly increasing list, the
+reduced word coefficient is one if the word is increasing and zero otherwise. -/
 theorem wordCoefficient_reduced (xs w : List α) (hxs : xs.Pairwise (· < ·))
     (hw : w.Nodup) (hsub : w ⊆ xs) (hne : w ≠ []) :
     wordCoefficient (reducedWord xs) w = if w.Pairwise (· < ·) then 1 else 0 := by
@@ -45,11 +76,16 @@ theorem wordCoefficient_reduced (xs w : List α) (hxs : xs.Pairwise (· < ·))
     wordCoefficient_one, if_neg hne, sub_zero]
   simp only [sublist_iff_pairwise xs w hxs hsub]
 
+/-- A prefix containing the first two letters is strictly increasing exactly when the first
+letter is smaller than the second and the remaining prefix is strictly increasing. -/
 theorem prefix_increasing_iff (a b : α) (w : List α) (i : ℕ) :
     ((a :: b :: w).take (i + 2)).Pairwise (· < ·) ↔
       a < b ∧ ((b :: w).take (i + 1)).Pairwise (· < ·) := by
   simp only [List.take_succ_cons, List.pairwise_cons_cons_iff_of_trans]
 
+/-- For distinct letters drawn from an increasing list, the coefficient in a positive power of
+the reduced series splits into a cut after the first letter and an uncut contribution when
+the first two letters increase. -/
 theorem wordCoefficient_pow_gap (xs : List α) (hxs : xs.Pairwise (· < ·))
     (a b : α) (w : List α) (hw : (a :: b :: w).Nodup) (hsub : (a :: b :: w) ⊆ xs) (k : ℕ) :
     wordCoefficient (reducedWord xs ^ (k + 1)) (a :: b :: w) =
@@ -94,11 +130,14 @@ theorem wordCoefficient_pow_gap (xs : List α) (hxs : xs.Pairwise (· < ·))
     rw [hl]
     simp only [List.pairwise_cons_cons_iff_of_trans, hab, false_and, ↓reduceIte, zero_mul]
 
+/-- The polynomial counting cuts into increasing blocks, defined recursively by a factor `X + 1`
+at an ascent and `X` otherwise. -/
 def cutPolynomial : List α → Polynomial ℚ
   | [] => 1
   | [_] => Polynomial.X
   | a :: b :: w => (Polynomial.X + if a < b then 1 else 0) * cutPolynomial (b :: w)
 
+/-- The cut polynomial of a nonempty word has zero constant coefficient. -/
 theorem cutPolynomial_zero (a : α) (w : List α) : (cutPolynomial (a :: w)).coeff 0 = 0 := by
   induction w generalizing a with
   | nil => simp only [cutPolynomial, Polynomial.coeff_X_zero]
@@ -106,6 +145,8 @@ theorem cutPolynomial_zero (a : α) (w : List α) : (cutPolynomial (a :: w)).coe
 
 omit [LinearOrder α] in
 
+/-- The empty word coefficient of a power of the reduced series is one precisely for the zeroth
+power. -/
 theorem wordCoefficient_pow_empty (xs : List α) (k : ℕ) :
     wordCoefficient (reducedWord xs ^ k) [] = if k = 0 then 1 else 0 := by
   cases k with
@@ -116,6 +157,8 @@ theorem wordCoefficient_pow_empty (xs : List α) (k : ℕ) :
       Nat.add_eq_zero_iff, Nat.one_ne_zero, and_false, ↓reduceIte]
     rfl
 
+/-- For a word without repeated letters drawn from an increasing list, its coefficient in the
+kth power of the reduced series equals the kth coefficient of its cut polynomial. -/
 theorem wordCoefficient_reduced_pow (xs : List α) (hxs : xs.Pairwise (· < ·))
     (w : List α) (hw : w.Nodup) (hsub : w ⊆ xs) (k : ℕ) :
     wordCoefficient (reducedWord xs ^ k) w = (cutPolynomial w).coeff k := by
@@ -146,6 +189,7 @@ theorem wordCoefficient_reduced_pow (xs : List α) (hxs : xs.Pairwise (· < ·))
         by_cases hab : a < b <;>
           simp only [hab, ↓reduceIte, one_mul, zero_mul, Polynomial.coeff_zero, add_zero]
 
+/-- The degree of a cut polynomial is at most the word length. -/
 theorem cutPolynomial_degree (w : List α) : (cutPolynomial w).natDegree ≤ w.length := by
   cases w with
   | nil => simp only [cutPolynomial, Polynomial.natDegree_one, List.length_nil, le_refl]
@@ -163,16 +207,20 @@ theorem cutPolynomial_degree (w : List α) : (cutPolynomial w).natDegree ≤ w.l
       exact Polynomial.natDegree_mul_le.trans
           (by have h := ih b; simp only [List.length_cons] at *; omega)
 
+/-- The number of adjacent strict decreases in a word. -/
 def descents : List α → ℕ
   | [] => 0
   | [_] => 0
   | a :: b :: w => (if b < a then 1 else 0) + descents (b :: w)
 
+/-- The number of adjacent strict increases in a word. -/
 def ascents : List α → ℕ
   | [] => 0
   | [_] => 0
   | a :: b :: w => (if a < b then 1 else 0) + ascents (b :: w)
 
+/-- For a nonempty word without repeated letters, the numbers of descents and ascents sum to one
+less than its length. -/
 theorem gap_count (a : α) (w : List α) (hw : (a :: w).Nodup) :
     descents (a :: w) + ascents (a :: w) + 1 = (a :: w).length := by
   induction w generalizing a with
@@ -190,6 +238,8 @@ theorem gap_count (a : α) (w : List α) (hw : (a :: w).Nodup) :
       simp only [descents, ascents, hab, hba, ↓reduceIte, zero_add, List.length_cons] at *
       omega
 
+/-- For a nonempty word without repeated letters, the cut polynomial is `X` to the number of
+descents plus one times `1 + X` to the number of ascents. -/
 theorem cutPolynomial_closed (a : α) (w : List α) (hw : (a :: w).Nodup) :
     cutPolynomial (a :: w) = Polynomial.X ^ (descents (a :: w) + 1) *
       (1 + Polynomial.X) ^ ascents (a :: w) := by
@@ -208,6 +258,10 @@ theorem cutPolynomial_closed (a : α) (w : List α) (hw : (a :: w).Nodup) :
       simp only [descents, ascents, hab, hba, ↓reduceIte, zero_add, add_zero, pow_add, pow_one]
       ring
 
+/-- The coefficient of a nonempty word without repeated letters in the logarithm of an
+increasing exponential product is its signed descent weight, with denominator the length
+times the corresponding binomial coefficient. This supplies the word coefficients used in
+[AftabAnTrivisa2026]. -/
 theorem word_log_eulerian (xs : List α) (hxs : xs.Pairwise (· < ·))
     (a : α) (w : List α) (hw : (a :: w).Nodup) (hsub : (a :: w) ⊆ xs) :
     (BCHWordLog.logCoefficient (wordSeries (xs.map letter)) (a :: w).length).coeff

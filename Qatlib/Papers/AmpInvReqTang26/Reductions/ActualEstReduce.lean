@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AmpInvReqTang26.Reductions.ActualMarking
 import Qatlib.Papers.AmpInvReqTang26.TraceConcent.ActualMixture
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.GoodEvent
+
+/-!
+# Reducing trace discrimination to amplitude estimation
+
+The threshold rule `traceDecision` turns estimates obtained from `tracePreparation` into Boolean
+outputs. Accuracy of an amplitude estimator gives high success on separated normalized-trace
+branches and, after averaging the actual ensembles, proves the reduction in Proposition 2.8.
+This development supports the treatment in [TangWright2025].
+
+## Main statements
+
+* `traceEstimator_accuracy`: transfer of estimation accuracy to normalized trace magnitude.
+* `traceEstimator_branch0` and `traceEstimator_branch1`: branch success at least `0.99`.
+* `actual_proposition28`: average distinguishing success at least `0.9` in the stated parameter
+  regime.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,13 +42,18 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds.GoodEvent
 open Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Papers.AmpInvReqTang26.TraceConcent
 
+/-- The Boolean threshold test that returns true when the absolute estimate is at least `0.15 *
+eps`. -/
 def traceDecision (eps v : ℝ) : Bool := decide (0.15*eps ≤ |v|)
 
+/-- The Born mass of preparation-algorithm outputs whose reported values yield Boolean decision
+`b` under `traceDecision`. -/
 def traceEstimatorOutProb {d anc : ℕ} {S : Type} (eps : ℝ) (hd : 0<d) (phi : S → ℂ)
     (Alg : PreparationAlgorithm (Fin d×Bool) (Fin anc)) (n : ℕ) (U : Fin d → S) (b : Bool) : ℝ :=
   ∑x,if traceDecision eps (Alg.value x)=b then
     ‖preparationRun Alg (tracePreparation d hd (fun i => phi (U i))) n x‖^2 else 0
 
+/-- Every thresholded trace-estimator output mass is nonnegative. -/
 theorem traceEstimatorOutProb_nonneg {d anc : ℕ} {S : Type} (eps : ℝ) (hd : 0<d) (phi : S → ℂ)
     (Alg : PreparationAlgorithm (Fin d×Bool) (Fin anc)) (n : ℕ) (U : Fin d → S) (b : Bool) :
     0 ≤ traceEstimatorOutProb eps hd phi Alg n U b := by
@@ -35,6 +61,9 @@ theorem traceEstimatorOutProb_nonneg {d anc : ℕ} {S : Type} (eps : ℝ) (hd : 
   intro x _
   split_ifs <;> positivity
 
+/-- An estimator solving the stated amplitude-estimation task is within `0.05 * eps` of the
+normalized trace magnitude with output mass at least `0.99`, for unit-modulus phases and the
+specified start and marking. -/
 theorem traceEstimator_accuracy {d anc : ℕ} {S : Type} (eps : ℝ) (hd : 0<d) (phi : S → ℂ)
     (hphi : ∀s,‖phi s‖=1) (Alg : PreparationAlgorithm (Fin d×Bool) (Fin anc)) (n : ℕ)
     (hstart : Alg.start=((⟨0,hd⟩:Fin d),false)) (hgood : Alg.goodData=(fun x => !x.2))
@@ -48,18 +77,23 @@ theorem traceEstimator_accuracy {d anc : ℕ} {S : Type} (eps : ℝ) (hd : 0<d) 
   rw [hstart,hgood,tracePreparation_amplitude] at h
   exact h
 
+/-- An estimate within `0.05 * eps` of a nonnegative value below `0.1 * eps` yields decision
+false when `eps > 0`. -/
 private theorem decision_zero (eps v m : ℝ) (he : 0<eps) (hm : 0 ≤ m)
     (ht : m<0.1*eps) (ha : |v-m|<0.05*eps) : traceDecision eps v=false := by
   have ha' := abs_lt.mp ha
   have hv : |v|<0.15*eps := abs_lt.mpr ⟨by nlinarith,by nlinarith⟩
   simp [traceDecision,not_le.mpr hv]
 
+/-- An estimate within `0.05 * eps` of a value at least `0.2 * eps` yields decision true. -/
 private theorem decision_one (eps v m : ℝ) (ht : 0.2*eps ≤ m)
     (ha : |v-m|<0.05*eps) : traceDecision eps v=true := by
   have ha' := abs_lt.mp ha
   have hv : 0.15*eps ≤ |v| := (show 0.15*eps ≤ v by nlinarith).trans (le_abs_self v)
   simp [traceDecision,hv]
 
+/-- With the specified estimator, start, and marking, normalized trace magnitude below `0.1 *
+eps` yields decision false with probability at least `0.99`. -/
 theorem traceEstimator_branch0 {d anc : ℕ} {S : Type} (eps : ℝ) (he : 0<eps) (hd : 0<d)
     (phi : S → ℂ) (hphi : ∀s,‖phi s‖=1) (Alg : PreparationAlgorithm (Fin d×Bool) (Fin anc))
     (n : ℕ) (hstart : Alg.start=((⟨0,hd⟩:Fin d),false)) (hgood : Alg.goodData=(fun x => !x.2))
@@ -73,6 +107,8 @@ theorem traceEstimator_branch0 {d anc : ℕ} {S : Type} (eps : ℝ) (he : 0<eps)
   · rw [if_neg ha]
     split_ifs <;> positivity
 
+/-- With the specified estimator, start, and marking, normalized trace magnitude at least `0.2 *
+eps` yields decision true with probability at least `0.99`. -/
 theorem traceEstimator_branch1 {d anc : ℕ} {S : Type} (eps : ℝ) (hd : 0<d)
     (phi : S → ℂ) (hphi : ∀s,‖phi s‖=1) (Alg : PreparationAlgorithm (Fin d×Bool) (Fin anc))
     (n : ℕ) (hstart : Alg.start=((⟨0,hd⟩:Fin d),false)) (hgood : Alg.goodData=(fun x => !x.2))
@@ -86,6 +122,10 @@ theorem traceEstimator_branch1 {d anc : ℕ} {S : Type} (eps : ℝ) (hd : 0<d)
   · rw [if_neg ha]
     split_ifs <;> positivity
 
+/-- There is an absolute cutoff such that, in the stated root-order and dimension regime, any
+estimator with error `0.05 * eps` and the specified start and marking induces average
+ensemble-distinguishing success at least `0.9` [Tang and Wright, Proposition
+2.8][TangWright2025]. -/
 theorem actual_proposition28 :
     ∃ C : ℕ, ∀ (q : ℕ) (_hq : max C 4800 ≤ q) (d : ℕ) (hd : 0<d)
       (eps : ℝ) (he0 : 0<eps) (he1 : eps ≤ 1),

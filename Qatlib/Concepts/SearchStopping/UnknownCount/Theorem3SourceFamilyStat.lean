@@ -8,6 +8,26 @@ import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSourceSchedule
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchBudget
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+
+/-!
+# Statement of the unknown-count search family
+
+Defines `Theorem3SourceFamily`, the search guarantee for every growth factor `1 < l < 4 / 3`. It
+gives uniform marked output, separate expected iteration and paid costs, finite-budget
+correctness, and a timeout estimate using the coefficient `l / (l - 1)`. For the quantum-search
+analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `Theorem3SourceFamily`: The proposition collecting termination, uniform marked output,
+  explicit expected iteration, Boolean-query, and lookup bounds, finite-budget correctness, and
+  uniform geometric timeout guarantees for every schedule factor `1 < l < 4 / 3`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +39,9 @@ namespace Qatlib.Concepts.SearchStopping.UnknownCount
 open scoped BigOperators
 universe u
 
+/-- The proposition collecting termination, uniform marked output, explicit expected iteration,
+Boolean-query, and lookup bounds, finite-budget correctness, and uniform geometric timeout
+guarantees for every schedule factor `1 < l < 4 / 3`. -/
 def Theorem3SourceFamily : Prop :=
   ∀ {I : Type u} [Fintype I] [DecidableEq I], 0 < Fintype.card I →
     ∀ l : ℝ, 1 < l → l < 4 / 3 →

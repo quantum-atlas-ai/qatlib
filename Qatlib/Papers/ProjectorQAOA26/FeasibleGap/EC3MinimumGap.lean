@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingUpper
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.EC3ModelBridge
+
+/-!
+# Minimum-gap bounds for the uniform EC3 interpolation
+
+The theorem `ec3_uniform_minimumGap_bounds` specializes the bounded-cost minimum-gap estimates
+to exact-cover-by-three instances with m disjoint feasible triples, f free bits, and r remaining
+clauses. Under unique satisfiability and the stated size condition, the feasible dimension L =
+3^m 2^f gives explicit lower and upper bounds on the minimum gap [ZhouAnLiu2026].
+
+## Main statements
+
+* `ec3_uniform_minimumGap_bounds`: The actual feasible interpolation has minimum gap between 1 /
+  (8(4r + 1)√L) and 4 / √L.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +34,9 @@ namespace Qatlib.Papers.ProjectorQAOA26.FeasibleGap
 open scoped Classical
 open Qatlib.Papers.ProjectorQAOA26.StageStability
 
+/-- For the stated uniquely satisfiable EC3 instance with `r ≥ 1`, feasible dimension `L = 3^m *
+2^f ≥ 2`, and `L ≥ 1 + 16 * (4r)²`, the feasible interpolation's minimum gap lies between `1
+/ (8 * (4r + 1) * sqrt L)` and `4 / sqrt L` [ZhouAnLiu2026]. -/
 theorem ec3_uniform_minimumGap_bounds (m f r : ℕ)
     (clauses : Fin r → Fin 3 → ((Fin m × Fin 3) ⊕ Fin f))
     (zero : EC3Feasible m f)

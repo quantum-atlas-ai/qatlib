@@ -8,6 +8,29 @@ import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
 import Qatlib.Concepts.SearchStopping.GroverSuccess.Lemma1RestrictedTigh
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Randomized Grover search probabilities and costs
+
+This module averages Grover search over a uniform iteration count from zero to `m - 1`. It
+defines `RandomizedSuccess` and `MeanQueries`, derives their closed forms, and gives a success
+lower bound of one quarter once `m` reaches the reciprocal double angle sine threshold.
+
+For nonempty proper marked sets, `search_randomized_search_contract` packages these statements
+with a principal angle. The randomized iteration method follows [BoyerEtAl1998].
+
+## Main statements
+
+* `search_randomized_angle`: closed formulas for average success and query cost, with the
+  threshold bound.
+* `search_randomized_search_contract`: the same conclusions using an existential principal angle
+  for the marked fraction.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -19,13 +42,20 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open scoped BigOperators
 open Qatlib
 
+/-- The search success probability averaged uniformly over iteration counts from zero to `m -
+1`. -/
 noncomputable def RandomizedSuccess {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (m : ℕ) : ℝ :=
   (∑ j ∈ Finset.range m, MeasureProb (SearchState A j) A) / (m : ℝ)
 
+/-- The query count averaged uniformly over search iteration counts from zero to `m - 1`. -/
 noncomputable def MeanQueries (I : Type*) [Fintype I] [DecidableEq I] (m : ℕ) : ℝ :=
   (∑ j ∈ Finset.range m, (QueryCount (SearchCircuit I j) : ℝ)) / (m : ℝ)
 
+/-- For positive `m` and an angle whose squared sine is the marked fraction and whose double
+angle sine is positive, randomized success equals `1 / 2 - sin(4mθ) / (4m sin(2θ))` and mean
+cost is `(m - 1) / 2`. Success is at least one quarter when `m ≥ 1 / sin(2θ)`, as in
+[BoyerEtAl1998]. -/
 theorem search_randomized_angle {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (θ : ℝ)
     (hθ : (Real.sin θ)^2 = (A.card : ℝ) / (Fintype.card I : ℝ))
@@ -84,6 +114,9 @@ theorem search_randomized_angle {I : Type*} [Fintype I] [DecidableEq I]
     nlinarith [Real.sin_le_one (4 * m * θ)]
   linarith
 
+/-- For a nonempty proper marked set and positive `m`, a principal angle gives the closed
+randomized success formula, mean cost `(m - 1) / 2`, and success at least one quarter when
+`m ≥ 1 / sin(2θ)`. See [BoyerEtAl1998] for randomized Grover iteration counts. -/
 theorem search_randomized_search_contract {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I)
     (m : ℕ) (hm : 0 < m) :

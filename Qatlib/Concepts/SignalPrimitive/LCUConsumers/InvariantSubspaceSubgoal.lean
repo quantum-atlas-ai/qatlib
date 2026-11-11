@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+/-!
+# LCU Qubitization Invariant Plane
+
+`InvariantSubspaceSubgoal` specifies the two-dimensional invariant-plane property of a
+qubitization walk built from an LCU encoding. For a normalized eigenvector of a prepared
+nonnegative combination of Hermitian unitaries with eigenvalue `x` satisfying `|x| < 1`, it asks
+for an orthonormal pair and a positive `y` with `x ^ 2 + y ^ 2 = 1`, in the qubitization setting
+of [LowChuang2019].
+
+On this pair, `QubitizationWalk (LCUWorkspace U P) j₀` has diagonal coefficient `2 * x ^ 2 - 1`
+and opposite off-diagonal coefficients `2 * x * y`.
+
+## Main statements
+
+- `InvariantSubspaceSubgoal` defines the normalized invariant-plane contract for the LCU walk.
+
+## References
+
+- [Low and Chuang, 2019][LowChuang2019].
+-/
+
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -18,6 +40,9 @@ open Matrix
 
 namespace Qatlib.Concepts.SignalPrimitive.LCUConsumers
 
+/-- The LCU qubitization contract asserting an orthonormal invariant pair for each normalized
+encoded eigenvector with `|x| < 1`. The walk acts on this pair with coefficients `2 * x ^ 2
+- 1` and `2 * x * y`, where `y > 0` and `x ^ 2 + y ^ 2 = 1`. -/
 def InvariantSubspaceSubgoal : Prop :=
   ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (U : J → Matrix I I ℂ), (∀ j, U j ∈ Matrix.unitaryGroup I ℂ) →

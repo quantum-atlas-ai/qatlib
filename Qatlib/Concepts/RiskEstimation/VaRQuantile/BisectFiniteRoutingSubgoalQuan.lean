@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalStat
+
+/-!
+# Failure bounds for finite quantile bisection
+
+This module proves the finite routing specification `BisectFiniteRoutingSubgoal` for
+`riskBisect`. Conditional failure estimates accumulate over the bisection depth, while every
+supported output records at most the supplied fuel in its call counter. This supports the
+quantile search used in [WoernerEgger2019].
+
+## Main statements
+
+* `risk_bind_failure`: bound a composed failure probability using a bad intermediate event.
+* `risk_route_failure`: propagate per-call error bounds through a finite search interval.
+* `riskBisectFiniteRouting`: establish the quantile bracketing and call-count guarantees.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -22,11 +42,15 @@ set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 
+/-- The probability of an event under a bound PMF equals the expectation of its conditional
+probability. -/
 theorem risk_event_bind {X Y : Type} (p : PMF X) (f : X → PMF Y) (E : Y → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (p.bind f) E = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p (fun x => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (f x) E) := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind]
 
+/-- If the conditional probability of `E` is at most `a` outside `B`, its probability after
+binding is at most the probability of `B` plus `a`. -/
 theorem risk_bind_failure {X Y : Type} (p : PMF X) (f : X → PMF Y) (B : X → Prop)
     (E : Y → Prop) (a : ℝ≥0∞) (hgood : ∀ x, ¬B x → Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (f x) E ≤ a) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (p.bind f) E ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p B + a := by
@@ -43,6 +67,7 @@ theorem risk_bind_failure {X Y : Type} (p : PMF X) (f : X → PMF Y) (B : X → 
       · rw [if_neg hx, zero_add]; exact hgood x hx
     _ = _ := by rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_add, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]; rfl
 
+/-- An event that fails at every point in the support of a PMF has probability zero. -/
 theorem risk_event_zero_support {X : Type} (p : PMF X) (E : X → Prop)
     (h : ∀ x ∈ p.support, ¬E x) : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E = 0 := by
   classical
@@ -53,6 +78,7 @@ theorem risk_event_zero_support {X : Type} (p : PMF X) (E : X → Prop)
   · simp [hx]
   · simp only [if_neg (h x ((PMF.mem_support_iff p x).mpr hx)), mul_zero]
 
+/-- Every supported output of `riskBisect` has a call counter at most the supplied fuel. -/
 theorem riskBisect_support_calls (sample : ℚ → PMF ℝ) (xs : List ℚ) (q : ℝ)
     (fuel lo hi : ℕ) : ∀ z ∈ (riskBisect sample xs q fuel lo hi).support, z.2 ≤ fuel := by
   induction fuel generalizing lo hi with
@@ -69,9 +95,13 @@ theorem riskBisect_support_calls (sample : ℚ → PMF ℝ) (xs : List ℚ) (q :
       · have hh := ih lo ((lo+hi)/2) w hw; (try dsimp only); omega
       · have hh := ih ((lo+hi)/2+1) hi w hw; (try dsimp only); omega
 
+/-- The event that the output index is out of range or violates either approximate
+quantile-bracketing inequality for `F`. -/
 private def riskBadIndex (xs : List ℚ) (q eps : ℝ) (F : ℚ → ℝ) (z : ℕ × ℕ) : Prop :=
   z.1 ≥ xs.length ∨ F (xs.getD z.1 0) < q-eps ∨ (z.1 ≠ 0 ∧ q+eps < F (xs.getD (z.1-1) 0))
 
+/-- A collapsed interval satisfying the endpoint bracket conditions returns an index outside
+`riskBadIndex`. -/
 private theorem riskBadIndex_pure (xs : List ℚ) (q eps : ℝ) (F : ℚ → ℝ) (lo hi : ℕ)
     (hhi : hi < xs.length) (hu : q-eps ≤ F (xs.getD hi 0))
     (hl : lo ≠ 0 → F (xs.getD (lo-1) 0) ≤ q+eps) (heq : lo = hi) : ¬riskBadIndex xs q eps F (lo,0) := by
@@ -82,6 +112,8 @@ private theorem riskBadIndex_pure (xs : List ℚ) (q eps : ℝ) (F : ℚ → ℝ
   · rw [← heq] at hu; linarith
   · have hh := hl hlo; linarith
 
+/-- For an in-range interval of width less than `2^fuel` satisfying the endpoint bracket
+conditions, the bad-index probability is at most `fuel` times the per-sample failure bound. -/
 private theorem risk_route_failure (sample : ℚ → PMF ℝ) (xs : List ℚ) (q eps delta : ℝ)
     (F : ℚ → ℝ) (_heps : 0 ≤ eps) (_hdelta : 0 ≤ delta)
     (hsample : ∀ t, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (sample t) (fun z => eps < |z-F t|) ≤ ENNReal.ofReal delta)
@@ -136,6 +168,8 @@ private theorem risk_route_failure (sample : ℚ → PMF ℝ) (xs : List ℚ) (q
         _ ≤ ENNReal.ofReal delta+(fuel : ℝ≥0∞)*ENNReal.ofReal delta := add_le_add (hsample _) le_rfl
         _ = _ := by rw [Nat.cast_succ, add_mul, one_mul, add_comm]
 
+/-- Finite bisection satisfies the approximate quantile-bracketing failure bound and the depth
+bound on its call counter. -/
 theorem riskBisectFiniteRouting : BisectFiniteRoutingSubgoal := by
   intro sample xs q eps delta F hxs _hqsorted hq0 hq1 heps hdelta _hF hlast hsample
   (try dsimp only)

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+
+/-!
+# Walk access construction interface
+
+This module imports `WalkAccessConstructionDefs`, exposing the lazy matching kernel, finite
+setup, update, and check words, and `HasPaidWalkAccess`. It provides a common import point for
+the finite gate access construction supporting the walk framework of [Szegedy2004].
+
+## Main definitions
+
+* `lazyMatchingKernel`: The kernel determined by agreement below the top register bit.
+* `HasPaidWalkAccess`: Finite gate access semantics and resource bounds.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing

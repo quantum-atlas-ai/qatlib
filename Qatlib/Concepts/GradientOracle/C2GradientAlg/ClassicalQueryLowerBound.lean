@@ -8,6 +8,31 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Data.Real.Basic
 import Mathlib.LinearAlgebra.Dimension.Constructions
 import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+
+/-!
+# Exact classical gradient query lower bounds
+
+`AffineModel` represents an unknown affine function with both offset and gradient.
+Linear-algebra arguments construct distinct gradients with identical values on at most `d`
+prescribed query points in positive dimension.
+
+`adaptive_no_exact_gradient` extends this obstruction to the specified deterministic adaptive
+point-query model with unique transcripts. Thus these exact-recovery statements concern affine
+functions and the formal query models defined here. See [Jordan2005Gradient] for background.
+
+## Main statements
+
+* `no_exact_gradient_from_le_d_queries`: Any gradient output rule using at most `d` prescribed
+  point values fails on some affine model in positive dimension.
+* `adaptive_no_exact_gradient`: In positive dimension, an adaptive algorithm with at most `d`
+  queries and unique consistent transcripts fails to recover the exact gradient of some affine
+  model.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,18 +43,25 @@ namespace Qatlib.Concepts.GradientOracle.C2GradientAlg
 
 open scoped BigOperators
 
+/-- An affine real-valued model on `d` coordinates, specified by its offset and gradient vector. -/
 structure AffineModel (d : ℕ) where
 
   offset : ℝ
 
   grad : Fin d → ℝ
 
+/-- Evaluate an affine model as its offset plus the coordinatewise inner product of its gradient
+with the input. -/
 def AffineModel.eval {d : ℕ} (p : AffineModel d) (x : Fin d → ℝ) : ℝ :=
   p.offset + ∑ j, p.grad j * x j
 
+/-- Interpret a vector of length `d + 1` as an affine model, using its first entry as offset and
+the remaining entries as gradient. -/
 def AffineModel.ofVec {d : ℕ} (v : Fin (d + 1) → ℝ) : AffineModel d :=
   ⟨v 0, fun j => v j.succ⟩
 
+/-- The real-linear map taking affine coefficients to their evaluations at the prescribed query
+points. -/
 def evalLinearMap (d m : ℕ) (q : Fin m → (Fin d → ℝ)) :
     (Fin (d + 1) → ℝ) →ₗ[ℝ] (Fin m → ℝ) where
   toFun v t := v 0 + ∑ j : Fin d, v j.succ * q t j
@@ -43,6 +75,8 @@ def evalLinearMap (d m : ℕ) (q : Fin m → (Fin d → ℝ)) :
     rw [mul_add, Finset.mul_sum]
     simp only [RingHom.id_apply, mul_assoc]
 
+/-- Fewer than `d + 1` affine evaluations leave a nonzero coefficient vector in the evaluation
+map's kernel. -/
 theorem exists_nontrivial_kernel_vector
     (d m : ℕ) (hm : m < d + 1) (q : Fin m → (Fin d → ℝ)) :
     ∃ v : Fin (d + 1) → ℝ, v ≠ 0 ∧ evalLinearMap d m q v = 0 := by
@@ -58,6 +92,8 @@ theorem exists_nontrivial_kernel_vector
   obtain ⟨v, hvmem, hvne⟩ := (Submodule.ne_bot_iff _).mp hker
   exact ⟨v, hvne, (LinearMap.mem_ker).mp hvmem⟩
 
+/-- In positive dimension, at most `d` prescribed queries leave an affine model with nonzero
+gradient that vanishes at every query point. -/
 theorem exists_nonzero_gradient_model_vanishing_on_queries
     (d m : ℕ) (hd : 1 ≤ d) (hm : m ≤ d) (q : Fin m → (Fin d → ℝ)) :
     ∃ p : AffineModel d, p.grad ≠ 0 ∧ ∀ t, p.eval (q t) = 0 := by
@@ -92,6 +128,8 @@ theorem exists_nonzero_gradient_model_vanishing_on_queries
       have ht := congrFun hv0 t
       simpa [AffineModel.eval, AffineModel.ofVec] using! ht
 
+/-- At most `d` prescribed point queries in positive dimension cannot distinguish some pair of
+affine models with distinct gradients. -/
 theorem affine_models_agree_with_distinct_gradients
     (d m : ℕ) (hd : 1 ≤ d) (hm : m ≤ d) (q : Fin m → (Fin d → ℝ)) :
     ∃ p p' : AffineModel d, p.grad ≠ p'.grad ∧
@@ -105,6 +143,8 @@ theorem affine_models_agree_with_distinct_gradients
     rw [hzero t]
     simp [AffineModel.eval, AffineModel.ofVec]
 
+/-- Any gradient output rule using at most `d` prescribed point values fails on some affine
+model in positive dimension. -/
 theorem no_exact_gradient_from_le_d_queries
     (d m : ℕ) (hd : 1 ≤ d) (hm : m ≤ d)
     (q : Fin m → (Fin d → ℝ)) (out : (Fin m → ℝ) → (Fin d → ℝ)) :
@@ -120,19 +160,26 @@ theorem no_exact_gradient_from_le_d_queries
     rw [← h p, hfun, h p']
   exact hgrad this
 
+/-- A deterministic adaptive point-query algorithm whose next query depends on earlier real
+answers and whose output depends on the full transcript. -/
 structure AdaptivePointAlgorithm (d m : ℕ) where
 
   query : (t : Fin m) → (Fin t → ℝ) → (Fin d → ℝ)
 
   out : (Fin m → ℝ) → (Fin d → ℝ)
 
+/-- Restrict a fixed-length real transcript to the answers before the given query index. -/
 def transcriptPrefix {m : ℕ} (tr : Fin m → ℝ) (t : Fin m) : Fin t → ℝ :=
   fun i => tr ⟨i.val, lt_trans i.isLt t.isLt⟩
 
+/-- A transcript is consistent with evaluating the affine model at each adaptively chosen query
+point. -/
 def AdaptivePointAlgorithm.IsRun {d m : ℕ} (A : AdaptivePointAlgorithm d m)
     (p : AffineModel d) (tr : Fin m → ℝ) : Prop :=
   ∀ t : Fin m, tr t = p.eval (A.query t (transcriptPrefix tr t))
 
+/-- In positive dimension, an adaptive algorithm with at most `d` queries and unique consistent
+transcripts fails to recover the exact gradient of some affine model. -/
 theorem adaptive_no_exact_gradient
     (d m : ℕ) (hd : 1 ≤ d) (hm : m ≤ d)
     (A : AdaptivePointAlgorithm d m)

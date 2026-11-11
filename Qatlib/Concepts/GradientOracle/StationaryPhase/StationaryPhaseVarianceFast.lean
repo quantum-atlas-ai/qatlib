@@ -22,6 +22,24 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.SimpRw
 import Mathlib.Tactic.SplitIfs
+
+/-!
+# Cube moments for the stationary-phase model
+
+This module computes first and second moments of centered cube coordinates and their linear
+combinations. It proves the variance and physical-unit scaling formulas for the quadratic model
+in [Jordan2005Gradient].
+
+## Main statements
+
+* `stationaryPhaseVariance`: coordinate covariance, row-wise quadratic moments, rescaled
+  standard deviations, and an entrywise matrix bound.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -31,30 +49,37 @@ namespace Qatlib.Concepts.GradientOracle.StationaryPhase
 open MeasureTheory Set
 open scoped BigOperators
 
+/-- Lebesgue measure restricted to the centered unit interval `[-1/2, 1/2]`. -/
 private abbrev coordinateMeasure : Measure ℝ := volume.restrict (Icc (-1/2) (1/2 : ℝ))
 
 private instance coordinate_probability : IsProbabilityMeasure coordinateMeasure := by
   constructor
   norm_num [coordinateMeasure, Real.volume_Icc]
 
+/-- The integral of the coordinate over the centered unit interval is zero. -/
 private theorem coordinate_first : ∫ x, x ∂coordinateMeasure = 0 := by
   change (∫ x in Icc (-1/2) (1/2 : ℝ), x) = 0
   rw [integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le (by norm_num), integral_id]
   norm_num
 
+/-- The integral of the squared coordinate over the centered unit interval is `1/12`. -/
 private theorem coordinate_second : ∫ x, x*x ∂coordinateMeasure = 1/12 := by
   change (∫ x in Icc (-1/2) (1/2 : ℝ), x*x) = 1/12
   simp_rw [← pow_two]
   rw [integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le (by norm_num), integral_pow]
   norm_num
 
+/-- Each coordinate has integral zero under the centered unit-cube measure. -/
 private theorem cube_first (d : ℕ) (i : Fin d) : ∫ u, u i ∂stationaryPhaseCube d = 0 := by
   rw [stationaryPhaseCube, integral_eval]
   exact coordinate_first
 
+/-- The one-coordinate factor contributing one copy of `x` for each occurrence of the coordinate
+index among `i` and `j`. -/
 private def pairFactor {d : ℕ} (i j k : Fin d) (x : ℝ) : ℝ :=
   (if k=i then x else 1) * (if k=j then x else 1)
 
+/-- The product of the coordinate factors `pairFactor i j k (u k)` equals `u i * u j`. -/
 private theorem pair_product {d : ℕ} (i j : Fin d) (u : Fin d → ℝ) :
     (∏ k, pairFactor i j k (u k)) = u i * u j := by
   classical
@@ -62,6 +87,7 @@ private theorem pair_product {d : ℕ} (i j : Fin d) (u : Fin d → ℝ) :
   rw [Finset.prod_mul_distrib]
   simp
 
+/-- The product of any two coordinates is integrable under the centered unit-cube measure. -/
 private theorem pair_integrable {d : ℕ} (i j : Fin d) :
     Integrable (fun u => u i * u j) (stationaryPhaseCube d) := by
   classical
@@ -72,6 +98,8 @@ private theorem pair_integrable {d : ℕ} (i j : Fin d) :
   simpa only [pair_product] using
     Integrable.fintype_prod (fun k => (hc k).continuousOn.integrableOn_Icc)
 
+/-- The integral of a product of cube coordinates is `1/12` when their indices agree and zero
+otherwise. -/
 private theorem cube_second (d : ℕ) (i j : Fin d) :
     ∫ u, u i * u j ∂stationaryPhaseCube d = if i=j then 1/12 else 0 := by
   classical
@@ -93,6 +121,8 @@ private theorem cube_second (d : ℕ) (i j : Fin d) :
     rw [if_neg hij]
     exact Finset.prod_eq_zero (Finset.mem_univ i) hz
 
+/-- A row-linear combination of centered cube coordinates has mean zero and second moment equal
+to `1/12` times the squared Euclidean norm of the row. -/
 private theorem cube_linear (d : ℕ) (A : Matrix (Fin d) (Fin d) ℝ) (i : Fin d) :
     (∫ u, ∑ j, A i j * u j ∂stationaryPhaseCube d) = 0 ∧
     (∫ u, (∑ j, A i j * u j)^2 ∂stationaryPhaseCube d) = (1/12)*∑ j, (A i j)^2 := by
@@ -122,6 +152,8 @@ private theorem cube_linear (d : ℕ) (A : Matrix (Fin d) (Fin d) ℝ) (i : Fin 
     intro j _
     ring
 
+/-- For positive `l` and `m` and nonnegative `S`, converting the scaled square-root variance
+back by `m/2^n` gives `l*sqrt S/(2*sqrt 3)`. -/
 private theorem variance_units (n : ℕ) (l m S : ℝ) (hl : 0 < l) (hm : 0 < m)
     (hS : 0 ≤ S) :
     (m/(2^n : ℝ))*Real.sqrt ((2^n : ℝ)^2*l^2/(12*m^2)*S) =
@@ -138,6 +170,9 @@ private theorem variance_units (n : ℕ) (l m S : ℝ) (hl : 0 < l) (hm : 0 < m)
   rw [hr]
   field_simp
 
+/-- Proves the centered-cube coordinate moments, matrix-row variance and rescaling identities,
+and the entrywise matrix-bound estimate in the quadratic stationary-phase model. See
+[Jordan2005Gradient]. -/
 theorem stationaryPhaseVariance : StationaryPhaseVariance := by
   classical
   refine ⟨cube_first, cube_second, cube_linear, ?_, ?_⟩

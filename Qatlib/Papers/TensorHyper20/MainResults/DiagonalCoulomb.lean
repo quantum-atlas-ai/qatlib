@@ -8,6 +8,26 @@ import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Algebra.Algebra.Basic
 import Mathlib.Tactic
 
+/-!
+# Expansion of the diagonal Coulomb expression
+
+Proves finite-sum and scalar-multiplication identities for expanding the diagonal Coulomb
+expression in the tensor hypercontraction formulation of [LeeEtAl2021]. The algebraic setting
+permits noncommuting operator factors, and every expansion preserves their order.
+
+The theorem `eq12_diagonal_coulomb` expands the spin and auxiliary-index sum into the
+corresponding four-orbital-index expression with coefficients built from `χ` and `ζ`.
+
+## Main statements
+
+* `nOp_expand`: expands a product of two weighted creation-annihilation expressions.
+* `eq12_diagonal_coulomb`: establishes the complete finite-sum expansion.
+
+## References
+
+* [Lee et al., 2021][LeeEtAl2021]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorHyper20.MainResults.DiagonalCoulomb
@@ -16,16 +36,21 @@ open scoped BigOperators
 
 variable {A : Type*} [Ring A] [Algebra ℝ A]
 
+/-- Multiplication of two real scalar multiples equals the product of their scalars acting on
+the ordered product. -/
 theorem smul_mul_smul (x y : ℝ) (a b : A) :
     (x • a) * (y • b) = (x * y) • (a * b) := by
   rw [Algebra.smul_mul_assoc, Algebra.mul_smul_comm, smul_smul]
 
+/-- Extracts the four real scalar factors from a product of four scalar-multiplied algebra
+elements. -/
 theorem smul_mul_smul_four (x y z w : ℝ) (a b c d : A) :
     (x • a) * (y • b) * (z • c) * (w • d) = (x * y * z * w) • (a * b * c * d) := by
   rw [smul_mul_smul, smul_mul_smul, smul_mul_smul]
 
 omit [Algebra ℝ A] in
 
+/-- Expands the product of four finite sums into an iterated sum of ordered products. -/
 theorem sum_prod_expand {ι κ ρ μ : Type*} [Fintype ι] [Fintype κ] [Fintype ρ] [Fintype μ]
     (f : ι → A) (g : κ → A) (h : ρ → A) (l : μ → A) :
     ((∑ i, f i) * (∑ j, g j)) * ((∑ k, h k) * (∑ m, l m)) =
@@ -53,6 +78,8 @@ theorem sum_prod_expand {ι κ ρ μ : Type*} [Fintype ι] [Fintype κ] [Fintype
     intro m _
     noncomm_ring
 
+/-- Expands the product of two weighted creation-annihilation pairs into a fourfold sum with
+coefficient `χ μ p * χ μ q * χ ν r * χ ν s`. -/
 theorem nOp_expand {N2 M : ℕ} (χ : Fin M → Fin N2 → ℝ)
     (aCre aAnn : Fin N2 → Fin 2 → A) (μ ν : Fin M) (σ τ : Fin 2) :
     ((∑ p, χ μ p • aCre p σ) * (∑ q, χ μ q • aAnn q σ)) *
@@ -72,6 +99,8 @@ theorem nOp_expand {N2 M : ℕ} (χ : Fin M → Fin N2 → ℝ)
   exact smul_mul_smul_four (χ μ p) (χ μ q) (χ ν r) (χ ν s)
     (aCre p σ) (aAnn q σ) (aCre r τ) (aAnn s τ)
 
+/-- Expands a single `ζ`-weighted product of two weighted creation-annihilation pairs,
+incorporating `ζ μ ν` into each scalar coefficient. -/
 theorem eq12_term {N2 M : ℕ} (χ : Fin M → Fin N2 → ℝ) (ζ : Fin M → Fin M → ℝ)
     (aCre aAnn : Fin N2 → Fin 2 → A) (μ ν : Fin M) (σ τ : Fin 2) :
     ζ μ ν • (((∑ p, χ μ p • aCre p σ) * (∑ q, χ μ q • aAnn q σ)) *
@@ -92,6 +121,8 @@ theorem eq12_term {N2 M : ℕ} (χ : Fin M → Fin N2 → ℝ) (ζ : Fin M → F
   congr 1
   ring
 
+/-- The half-weighted spin and auxiliary-index sum of diagonal Coulomb terms equals its
+four-orbital-index expansion, with operator order preserved. -/
 theorem eq12_diagonal_coulomb (N2 M : ℕ) (χ : Fin M → Fin N2 → ℝ)
     (ζ : Fin M → Fin M → ℝ) (aCre aAnn : Fin N2 → Fin 2 → A) :
     (1 / 2 : ℝ) • (∑ σ : Fin 2, ∑ τ : Fin 2, ∑ μ : Fin M, ∑ ν : Fin M,

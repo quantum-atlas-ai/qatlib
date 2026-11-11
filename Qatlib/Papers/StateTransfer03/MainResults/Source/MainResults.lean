@@ -9,6 +9,25 @@ import Qatlib.Papers.StateTransfer03.MainResults.Source.HypercubeDistance
 import Qatlib.Papers.StateTransfer03.MainResults.Source.EngineeredChain
 import Qatlib.Papers.StateTransfer03.MainResults.Source.ColumnGraph
 import Qatlib.Papers.StateTransfer03.MainResults.Source.HittingTimeSeparation
+
+/-!
+# Collected state transfer results
+
+`main_results` collects spectral perfect transfer for one- and two-link Cartesian powers and for
+their two base paths. It also records the two-link distance formula, positivity of interior
+engineered couplings, and unbounded domination of the one-link quantum time by the stated
+classical scale. See [ChristandlEtAl2004].
+
+## Main statements
+
+* `main_results`: the conjunction of transfer, distance, coupling-positivity, and one-link
+  scale-comparison results.
+
+## References
+
+* [Christandl et al., 2004][ChristandlEtAl2004]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
@@ -20,6 +39,9 @@ set_option linter.unusedVariables false
 
 noncomputable section
 
+/-- Collects perfect transfer for both hypercube spectral families and their base paths, the
+two-link logarithmic distance formula, positive interior engineered couplings, and unbounded
+one-link classical-to-quantum scale comparison. See [ChristandlEtAl2004]. -/
 theorem main_results :
     (∀ d : ℕ, SpectralPerfectTransfer (powerEigenvalue (pathEigenvalue 2) d)
         (powerWeight (fun k => (pathWeight 2 k : ℂ)) d)) ∧

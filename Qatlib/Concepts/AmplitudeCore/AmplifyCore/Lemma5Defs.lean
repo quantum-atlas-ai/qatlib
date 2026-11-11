@@ -13,12 +13,34 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.Normed.Lp.PiLp
 import Mathlib.Analysis.InnerProductSpace.l2Space
 
+/-!
+# Good subspaces and generalized phase iterates
+
+`amplitudeEstimationGoodSubspace` forms the closed span of marked basis vectors.
+`amplitudeEstimationPhaseIterate` combines a phase on this subspace with a conjugated phase
+about the initial vector and an overall minus sign. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `amplitudeEstimationGoodSubspace`: The closed subspace spanned by basis vectors whose indices
+  are marked by `χ`.
+* `amplitudeEstimationPhaseIterate`: The generalized amplitude amplification iterate with phase
+  `ϕ` on `G`, phase `φ` about the initial vector transported by `A`, and an overall minus sign.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 namespace Qatlib.Concepts.AmplitudeCore.AmplifyCore
 
+/-- The closed subspace spanned by basis vectors whose indices are marked by `χ`. -/
 noncomputable def amplitudeEstimationGoodSubspace
     {ι H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (basis : HilbertBasis ι ℂ H) (χ : ι → Bool) : ClosedSubmodule ℂ H :=
   (Submodule.span ℂ (basis '' {i | χ i = true})).closure
+/-- The generalized amplitude amplification iterate with phase `ϕ` on `G`, phase `φ` about the
+initial vector transported by `A`, and an overall minus sign. -/
 noncomputable def amplitudeEstimationPhaseIterate
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (A : H ≃ₗᵢ[ℂ] H) (e₀ : H) (G : ClosedSubmodule ℂ H)

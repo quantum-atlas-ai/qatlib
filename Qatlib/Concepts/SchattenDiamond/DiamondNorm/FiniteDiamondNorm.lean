@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
 import Mathlib.Data.ENNReal.Basic
+
+/-!
+# Diamond norm from finite reference systems
+
+This module defines the extended nonnegative quantity `finiteDiamondNorm` as the supremum of
+amplified output trace norms over all finite reference dimensions and trace-norm unit balls. It
+defines `finiteDiamondDistance` as one half of the norm of a difference and characterizes norm
+bounds by uniform trace-norm estimates. These are the diamond-norm estimates used in the error
+analysis of [Campbell2019].
+
+The module establishes triangle and composition inequalities, detection of the zero map,
+invariance under relabeling, and equivalence of the two reference-factor conventions.
+
+## Main statements
+
+* `finiteDiamondNorm_apply`: bounds every amplified input using its trace norm.
+* `finiteDiamondNorm_le_iff_uniform`: characterizes an upper bound by a uniform amplification
+  inequality.
+* `finiteDiamondNorm_algebra`: proves triangle, composition, and zero-detection properties.
+* `finiteDiamondNorm_left_reference`: places the reference factor first.
+* `finiteDiamondDistance_le_of_uniform`: turns a uniform difference bound into a distance bound.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,13 +47,18 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- The extended nonnegative supremum of `traceNorm (tensorLeft T X)` over all finite reference
+dimensions and all matrices `X` of trace norm at most one. -/
 noncomputable def finiteDiamondNorm {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) : ℝ≥0∞ :=
   ⨆ r : ℕ, ⨆ X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ,
     if Matrix.traceNorm X ≤ 1 then ENNReal.ofReal (Matrix.traceNorm (tensorLeft T X)) else 0
 
+/-- One half of `finiteDiamondNorm (T - S)`, valued in the extended nonnegative reals. -/
 noncomputable def finiteDiamondDistance {D E : ℕ}
     (T S : Operator D →ₗ[ℂ] Operator E) : ℝ≥0∞ := (1/2 : ℝ≥0∞)*finiteDiamondNorm (T-S)
 
+/-- Amplification by `tensorLeft T` commutes with complex scalar multiplication of the input
+matrix. -/
 theorem diamond_tensorLeft_input_smul {D E r : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (c : ℂ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     tensorLeft T (c • X) = c • tensorLeft T X := by
@@ -34,6 +66,8 @@ theorem diamond_tensorLeft_input_smul {D E r : ℕ} (T : Operator D →ₗ[ℂ] 
   change T (c • (fun i j => X (i,a.2) (j,b.2) : Operator D)) a.1 b.1 = _
   exact congrFun (congrFun (T.map_smul c (fun i j => X (i,a.2) (j,b.2))) a.1) b.1
 
+/-- For every reference dimension and input matrix, the extended nonnegative output trace norm
+is at most `finiteDiamondNorm T` times the extended nonnegative input trace norm. -/
 theorem finiteDiamondNorm_apply {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (r : ℕ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     ENNReal.ofReal (Matrix.traceNorm (tensorLeft T X)) ≤
@@ -71,6 +105,9 @@ theorem finiteDiamondNorm_apply {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator
       _ ≤ ENNReal.ofReal q * finiteDiamondNorm T := mul_le_mul_right hbound _
       _ = _ := mul_comm _ _
 
+/-- For nonnegative real `delta`, the bound `finiteDiamondNorm T <= ofReal delta` is equivalent
+to `traceNorm (tensorLeft T X) <= delta * traceNorm X` for every finite reference and input
+matrix. This provides the uniform form of the diamond-norm estimates used in [Campbell2019]. -/
 theorem finiteDiamondNorm_le_iff_uniform : ∀ (D E : ℕ)
     (T : Operator D →ₗ[ℂ] Operator E) (delta : ℝ), 0 ≤ delta →
     (finiteDiamondNorm T ≤ ENNReal.ofReal delta ↔
@@ -94,16 +131,21 @@ theorem finiteDiamondNorm_le_iff_uniform : ∀ (D E : ℕ)
         ((mul_le_mul_of_nonneg_left hx hd).trans_eq (mul_one delta)))
     · exact bot_le
 
+/-- Amplification distributes over addition of the two complex-linear maps. -/
 theorem diamond_tensorLeft_add {D E r : ℕ} (T S : Operator D →ₗ[ℂ] Operator E)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     tensorLeft (T+S) X = tensorLeft T X + tensorLeft S X := by rfl
 
+/-- The finite diamond norm of the zero complex-linear map is zero. -/
 @[simp] theorem finiteDiamondNorm_zero (D E : ℕ) :
     finiteDiamondNorm (0 : Operator D →ₗ[ℂ] Operator E) = 0 := by
   have ht (r : ℕ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
       tensorLeft (0 : Operator D →ₗ[ℂ] Operator E) X = 0 := rfl
   simp [finiteDiamondNorm, ht, Matrix.traceNorm_zero]
 
+/-- The finite diamond norm satisfies the triangle inequality and is submultiplicative under
+composition, and it vanishes exactly on the zero map. These are the algebraic diamond-norm
+bounds used in [Campbell2019]. -/
 theorem finiteDiamondNorm_algebra : ∀ (D E F : ℕ)
     (T S : Operator D →ₗ[ℂ] Operator E) (R : Operator E →ₗ[ℂ] Operator F),
     finiteDiamondNorm (T+S) ≤ finiteDiamondNorm T + finiteDiamondNorm S ∧
@@ -154,6 +196,7 @@ theorem finiteDiamondNorm_algebra : ∀ (D E F : ℕ)
       simpa [tensorLeft, X] using he
     · intro h; subst T; exact finiteDiamondNorm_zero D E
 
+/-- Simultaneously relabeling the rows and columns by an equivalence preserves the trace norm. -/
 theorem diamond_traceNorm_reindex {A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] (e : A ≃ B) (X : Matrix A A ℂ) :
     Matrix.traceNorm (Matrix.reindex e e X) = Matrix.traceNorm X := by
@@ -174,11 +217,16 @@ theorem diamond_traceNorm_reindex {A B : Type} [Fintype A] [DecidableEq A]
     ext a b
     by_cases hab : a=b <;> simpa [Matrix.one_apply, hab] using hp a b)]
 
+/-- Swapping the system and reference factors converts `tensorLeft T` into `ChannelAmplification
+T r`, with the same swap on its output. -/
 theorem diamond_amplification_swap {D E r : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     ChannelAmplification T r (Matrix.reindex (Equiv.prodComm _ _) (Equiv.prodComm _ _) X) =
     Matrix.reindex (Equiv.prodComm _ _) (Equiv.prodComm _ _) (tensorLeft T X) := by rfl
 
+/-- The finite diamond norm equals the supremum formed with the reference factor first and
+`ChannelAmplification T r` in place of `tensorLeft T`. This gives the alternative
+tensor-order convention for the norm used in [Campbell2019]. -/
 theorem finiteDiamondNorm_left_reference : ∀ (D E : ℕ) (T : Operator D →ₗ[ℂ] Operator E),
     finiteDiamondNorm T =
       ⨆ r : ℕ, ⨆ X : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ,
@@ -226,10 +274,15 @@ set_option autoImplicit false
 set_option maxHeartbeats 2000000
 namespace Qatlib.Concepts.SchattenDiamond.DiamondNorm
 
+/-- Amplifying the difference `T - S` equals the difference of their amplified outputs on the
+same matrix. -/
 theorem diamond_tensorLeft_map_sub {D E r : ℕ} (T S : Operator D →ₗ[ℂ] Operator E)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     tensorLeft (T-S) X = tensorLeft T X-tensorLeft S X := by rfl
 
+/-- If the amplified output difference is at most nonnegative `delta` times the input trace norm
+for every finite reference and matrix, then `finiteDiamondDistance T S <= ofReal (delta /
+2)`. -/
 theorem finiteDiamondDistance_le_of_uniform {D E : ℕ}
     (T S : Operator D →ₗ[ℂ] Operator E) (delta : ℝ) (hd : 0 ≤ delta)
     (h : ∀ r : ℕ, ∀ X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ,

@@ -13,11 +13,33 @@ import Mathlib.Data.Finset.Card
 import Mathlib.Data.Fintype.Card
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 
+/-!
+# Unit orders and prime extraction from prime powers
+
+This module counts order-divisibility events in finite cyclic groups and applies them to units
+modulo odd prime powers. It shows that sufficiently large p-power divisibility of an exact order
+makes the gcd postprocessing recover `p`, and bounds both the order event and successful
+extraction below by 2/3, as in [ChauLo1995].
+
+## Main statements
+
+* `filter_card_orderOf_dvd`: The order-divisibility count in a finite cyclic group is a gcd.
+* `prime_power_gcd`: A suitable exact order recovers the prime base by gcd postprocessing.
+* `prime_power_extraction_probability`: At least two thirds of the units yield the prime base
+  for odd p and n ≥ 2.
+
+## References
+
+* [Chau and Lo, 1995][ChauLo1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Foundations.PrimalityCerts.PrimePowerOrder
 
+/-- If `r ∣ p ^ (n - 1) * (p - 1)` for prime `p` and `n ≥ 2`, but `p ^ (n - 1)` does not divide
+`r`, then `r ∣ p ^ (n - 2) * (p - 1)`. -/
 lemma dvd_of_not_dvd_prime_pow_mul {p n r : ℕ} (hp : p.Prime) (hn : 2 ≤ n)
     (hr : r ∣ p ^ (n - 1) * (p - 1)) (hnot : ¬ p ^ (n - 1) ∣ r) :
     r ∣ p ^ (n - 2) * (p - 1) := by
@@ -59,6 +81,8 @@ lemma dvd_of_not_dvd_prime_pow_mul {p n r : ℕ} (hp : p.Prime) (hn : 2 ≤ n)
     rw [hpfac, zero_add] at hle
     exact hle
 
+/-- For a unit modulo `p ^ n` with `p` prime and `n ≥ 1`, divisibility of its order by `p ^ (n -
+1)` implies that `p ^ n / Nat.gcd (p ^ n) (orderOf m) = p`. See [ChauLo1995]. -/
 theorem prime_power_gcd
     (p n : ℕ) (hp : p.Prime) (hn : 1 ≤ n)
     (m : (ZMod (p ^ n))ˣ) (hr : p ^ (n - 1) ∣ orderOf m) :
@@ -91,6 +115,8 @@ theorem prime_power_gcd
   rw [hgcd, hpn]
   exact Nat.mul_div_cancel_left p (pow_pos hp.pos (n - 1))
 
+/-- In a finite cyclic commutative group, the number of elements whose order divides `D` equals
+the gcd of the group cardinality and `D`. -/
 lemma filter_card_orderOf_dvd (G : Type*) [CommGroup G] [Fintype G] [IsCyclic G]
     (D : ℕ) :
     (Finset.univ.filter (fun m : G => orderOf m ∣ D)).card =
@@ -109,6 +135,8 @@ lemma filter_card_orderOf_dvd (G : Type*) [CommGroup G] [Fintype G] [IsCyclic G]
       orderOf_dvd_iff_pow_eq_one]
   rw [h2, IsCyclic.card_powMonoidHom_ker, Nat.card_eq_fintype_card]
 
+/-- For odd prime `p` and `n ≥ 2`, at least two thirds of the units modulo `p ^ n` have order
+divisible by `p ^ (n - 1)`. -/
 theorem prime_power_probability
     (p n : ℕ) (hp : p.Prime) (hp2 : p ≠ 2) (hn : 2 ≤ n) :
     (2 : ℚ) / 3 ≤
@@ -190,6 +218,8 @@ theorem prime_power_probability
   rw [hgoodq]
   nlinarith [h3Dq]
 
+/-- For odd prime `p` and `n ≥ 2`, at least two thirds of the units modulo `p ^ n` recover `p`
+by dividing `p ^ n` by its gcd with the unit's order. -/
 theorem prime_power_extraction_probability
     (p n : ℕ) (hp : p.Prime) (hp2 : p ≠ 2) (hn : 2 ≤ n) :
     (2 : ℚ) / 3 ≤

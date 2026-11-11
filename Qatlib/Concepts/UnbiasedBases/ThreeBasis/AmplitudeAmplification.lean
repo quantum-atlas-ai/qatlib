@@ -8,6 +8,37 @@ import Qatlib.Concepts.UnbiasedBases.ThreeBasis.Register
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 
+/-!
+# Amplitude Amplification and Phase Geometry
+
+The marked projection `goodProj` and weight `goodProb` describe a finite coordinate event, while
+`ampStep` composes its sign oracle with reflection about a reference state. The two-component
+family `ampState` exposes the rotation underlying amplitude amplification: for a unit input with
+marked probability `a` strictly between zero and one, `amplitude_amplification` gives the exact
+success probability after any natural number of iterations, following [BrassardEtAl2002].
+
+The phase vectors `eigenPlus` and `eigenMinus` diagonalize this rotation under the stated
+orthonormality and support conditions. The analytic bounds also convert angle error into
+amplitude error and control the average success over a finite range of iteration counts, as used
+in randomized search [BoyerEtAl1998].
+
+## Main statements
+
+- `ampStep_iterate`: the angle after `j` steps is `(2j + 1)θ`.
+* `amplitude_amplification_succeeds` and `amplification_query_bound`: the selected integer count
+  achieves success at least `1 - a` and is at most `π / (4 sqrt a)`.
+- `ampStep_eigenPlus` and `ampStep_eigenMinus`: the eigenvalues are `exp (±2θ * I)`.
+* `amplitude_estimation_error`: an angular error of at most `ε` gives amplitude error at most `2
+  sqrt (a(1 - a)) ε + ε²`.
+* `qsearch_average`: a sufficiently long range of iteration counts has total success probability
+  at least one quarter of its length.
+
+## References
+
+- [Brassard et al., 2002][BrassardEtAl2002]
+- [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 section
 
 open scoped ComplexConjugate
@@ -16,48 +47,67 @@ namespace Qatlib.Concepts.UnbiasedBases.ThreeBasis.QuantumInfo
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- Restrict the amplitudes of `ψ` to the marked index set `G`, replacing all coordinates
+outside `G` by zero. -/
 noncomputable def goodProj (G : Finset ι) (ψ : EuclideanSpace ℂ ι) : EuclideanSpace ℂ ι :=
   (WithLp.equiv 2 (ι → ℂ)).symm (fun i => if i ∈ G then ψ i else 0)
 
 omit [Fintype ι] in
 
+/-- The marked projection retains coordinate `i` when `i ∈ G` and returns zero otherwise. -/
 @[simp] lemma goodProj_apply (G : Finset ι) (ψ : EuclideanSpace ℂ ι) (i : ι) :
     goodProj G ψ i = if i ∈ G then ψ i else 0 := rfl
 
+/-- Define the total squared amplitude on the marked set `G` as the sum of `‖ψ i‖^2` over its
+indices. For a unit vector this is the probability of observing a marked outcome. -/
 noncomputable def goodProb (G : Finset ι) (ψ : EuclideanSpace ℂ ι) : ℝ := ∑ i ∈ G, ‖ψ i‖ ^ 2
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- The total squared amplitude on any marked set is nonnegative. -/
 lemma goodProb_nonneg (G : Finset ι) (ψ : EuclideanSpace ℂ ι) : 0 ≤ goodProb G ψ :=
   Finset.sum_nonneg fun _ _ => sq_nonneg _
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Express the marked weight as the sum of the individual coordinate weights `prob ψ i` over
+`G`. -/
 lemma goodProb_eq_sum_prob (G : Finset ι) (ψ : EuclideanSpace ℂ ι) :
     goodProb G ψ = ∑ i ∈ G, prob ψ i := rfl
 
+/-- Apply the marked sign flip `ψ - 2 • goodProj G ψ`, negating marked coordinates and retaining
+the others. -/
 noncomputable def oracleFlip (G : Finset ι) (ψ : EuclideanSpace ℂ ι) : EuclideanSpace ℂ ι :=
   ψ - (2 : ℂ) • goodProj G ψ
 
 omit [Fintype ι] in
 
+/-- Compute each coordinate of the marked sign flip as `ψ i` minus twice its marked projection. -/
 lemma oracleFlip_apply (G : Finset ι) (ψ : EuclideanSpace ℂ ι) (i : ι) :
     oracleFlip G ψ i = ψ i - 2 * (if i ∈ G then ψ i else 0) := by
   rw [oracleFlip, WithLp.ofLp_sub, Pi.sub_apply, WithLp.ofLp_smul, Pi.smul_apply,
     goodProj_apply, smul_eq_mul]
 
+/-- Define the map sending `ψ` to `2 * inner ℂ φ ψ • φ - ψ`. When `φ` has unit norm, this is
+reflection about its complex span. -/
 noncomputable def reflect (φ ψ : EuclideanSpace ℂ ι) : EuclideanSpace ℂ ι :=
   (2 * inner ℂ φ ψ) • φ - ψ
 
+/-- Compose the marked sign flip with the reflection map about `φ` to form one
+amplitude-amplification step. -/
 noncomputable def ampStep (φ : EuclideanSpace ℂ ι) (G : Finset ι)
     (ψ : EuclideanSpace ℂ ι) : EuclideanSpace ℂ ι :=
   reflect φ (oracleFlip G ψ)
 
+/-- Form the two-component state `sin γ • g + cos γ • b`. The definition imposes no
+normalization or support conditions on `g` and `b`. -/
 noncomputable def ampState (g b : EuclideanSpace ℂ ι) (γ : ℝ) : EuclideanSpace ℂ ι :=
   (Real.sin γ : ℂ) • g + (Real.cos γ : ℂ) • b
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Evaluate the sine-weighted good component and cosine-weighted bad component at a single
+coordinate. -/
 lemma ampState_apply (g b : EuclideanSpace ℂ ι) (γ : ℝ) (i : ι) :
     ampState g b γ i = (Real.sin γ : ℂ) * g i + (Real.cos γ : ℂ) * b i := by
   rw [ampState, WithLp.ofLp_add, Pi.add_apply, WithLp.ofLp_smul, WithLp.ofLp_smul,
@@ -65,6 +115,8 @@ lemma ampState_apply (g b : EuclideanSpace ℂ ι) (γ : ℝ) (i : ι) :
 
 omit [Fintype ι] in
 
+/-- If `g` is supported on `G` and `b` vanishes on `G`, the marked projection of `ampState g b
+γ` is exactly `sin γ • g`. -/
 lemma goodProj_ampState {G : Finset ι} {g b : EuclideanSpace ℂ ι}
     (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0) (γ : ℝ) :
     goodProj G (ampState g b γ) = (Real.sin γ : ℂ) • g := by
@@ -76,6 +128,8 @@ lemma goodProj_ampState {G : Finset ι} {g b : EuclideanSpace ℂ ι}
 
 omit [Fintype ι] in
 
+/-- For components supported respectively on and off `G`, the marked sign flip sends the angle
+parameter `γ` to `-γ`. -/
 lemma oracleFlip_ampState {G : Finset ι} {g b : EuclideanSpace ℂ ι}
     (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0) (γ : ℝ) :
     oracleFlip G (ampState g b γ) = ampState g b (-γ) := by
@@ -86,6 +140,8 @@ lemma oracleFlip_ampState {G : Finset ι} {g b : EuclideanSpace ℂ ι}
 
 omit [DecidableEq ι] in
 
+/-- For orthonormal components `g` and `b`, the inner product of the states at angles `θ` and
+`δ` is the complex cast of `cos (θ - δ)`. -/
 lemma inner_ampState {g b : EuclideanSpace ℂ ι}
     (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1) (hgb : inner ℂ g b = 0) (θ δ : ℝ) :
     inner ℂ (ampState g b θ) (ampState g b δ) = (Real.cos (θ - δ) : ℂ) := by
@@ -97,11 +153,15 @@ lemma inner_ampState {g b : EuclideanSpace ℂ ι}
   push_cast [Real.cos_sub]
   ring
 
+/-- Rewrite the sine coefficient produced by reflection, `2 cos(θ - δ) sin θ - sin δ`, as
+`sin(2θ - δ)`. -/
 lemma two_cos_sub_mul_sin (θ δ : ℝ) :
     2 * Real.cos (θ - δ) * Real.sin θ - Real.sin δ = Real.sin (2 * θ - δ) := by
   rw [show 2 * θ - δ = θ + (θ - δ) from by ring, Real.sin_add, Real.sin_sub, Real.cos_sub]
   linear_combination Real.sin δ * Real.sin_sq_add_cos_sq θ
 
+/-- Rewrite the cosine coefficient produced by reflection, `2 cos(θ - δ) cos θ - cos δ`, as
+`cos(2θ - δ)`. -/
 lemma two_cos_sub_mul_cos (θ δ : ℝ) :
     2 * Real.cos (θ - δ) * Real.cos θ - Real.cos δ = Real.cos (2 * θ - δ) := by
   rw [show 2 * θ - δ = θ + (θ - δ) from by ring, Real.cos_add, Real.sin_sub, Real.cos_sub]
@@ -109,6 +169,8 @@ lemma two_cos_sub_mul_cos (θ δ : ℝ) :
 
 omit [DecidableEq ι] in
 
+/-- For orthonormal `g` and `b`, reflecting the state at angle `δ` about the state at angle `θ`
+produces the state at angle `2θ - δ`. -/
 lemma reflect_ampState {g b : EuclideanSpace ℂ ι}
     (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1) (hgb : inner ℂ g b = 0) (θ δ : ℝ) :
     reflect (ampState g b θ) (ampState g b δ) = ampState g b (2 * θ - δ) := by
@@ -117,6 +179,8 @@ lemma reflect_ampState {g b : EuclideanSpace ℂ ι}
   push_cast
   module
 
+/-- For orthonormal components supported on and off `G`, one amplification step about the state
+at angle `θ` increases the input angle `γ` by `2θ`, as in [BrassardEtAl2002]. -/
 theorem ampStep_ampState {G : Finset ι} {g b : EuclideanSpace ℂ ι}
     (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1) (hgb : inner ℂ g b = 0)
     (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0) (θ γ : ℝ) :
@@ -124,6 +188,8 @@ theorem ampStep_ampState {G : Finset ι} {g b : EuclideanSpace ℂ ι}
   rw [ampStep, oracleFlip_ampState hgsupp hbsupp, reflect_ampState hgg hbb hgb θ (-γ),
     show 2 * θ - -γ = γ + 2 * θ from by ring]
 
+/-- For orthonormal marked and unmarked components, `j` amplification steps starting at angle
+`θ` produce angle `(2j + 1)θ`, the rotation formula of [BrassardEtAl2002]. -/
 theorem ampStep_iterate {G : Finset ι} {g b : EuclideanSpace ℂ ι}
     (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1) (hgb : inner ℂ g b = 0)
     (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0) (θ : ℝ) (j : ℕ) :
@@ -141,6 +207,8 @@ theorem ampStep_iterate {G : Finset ι} {g b : EuclideanSpace ℂ ι}
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- If `b` vanishes on `G` and the squared amplitudes of `g` sum to one on `G`, the marked
+weight of the state at angle `γ` is `sin γ ^ 2`. -/
 lemma goodProb_ampState {G : Finset ι} {g b : EuclideanSpace ℂ ι}
     (hbsupp : ∀ i ∈ G, b i = 0) (hgood : ∑ i ∈ G, ‖g i‖ ^ 2 = 1) (γ : ℝ) :
     goodProb G (ampState g b γ) = Real.sin γ ^ 2 := by
@@ -151,20 +219,29 @@ lemma goodProb_ampState {G : Finset ι} {g b : EuclideanSpace ℂ ι}
       Complex.norm_real, Real.norm_eq_abs, sq_abs]
   rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum, hgood, mul_one]
 
+/-- Scale the marked projection of `ψ` by the reciprocal of the complex cast of `sqrt (goodProb
+G ψ)`. Positive marked weight makes this component a unit vector. -/
 noncomputable def goodUnit (G : Finset ι) (ψ : EuclideanSpace ℂ ι) : EuclideanSpace ℂ ι :=
   (Real.sqrt (goodProb G ψ) : ℂ)⁻¹ • goodProj G ψ
 
+/-- Scale the complementary component `ψ - goodProj G ψ` by the reciprocal of the complex cast
+of `sqrt (1 - goodProb G ψ)`. For a unit input with marked weight below one, this is the
+normalized unmarked component. -/
 noncomputable def badUnit (G : Finset ι) (ψ : EuclideanSpace ℂ ι) : EuclideanSpace ℂ ι :=
   (Real.sqrt (1 - goodProb G ψ) : ℂ)⁻¹ • (ψ - goodProj G ψ)
 
 omit [Fintype ι] in
 
+/-- Compute a coordinate of the scaled marked component by multiplying the marked amplitude by
+the reciprocal square root of the marked weight. -/
 lemma goodUnit_apply (G : Finset ι) (ψ : EuclideanSpace ℂ ι) (i : ι) :
     goodUnit G ψ i = (Real.sqrt (goodProb G ψ) : ℂ)⁻¹ * (if i ∈ G then ψ i else 0) := by
   rw [goodUnit, WithLp.ofLp_smul, Pi.smul_apply, smul_eq_mul, goodProj_apply]
 
 omit [Fintype ι] in
 
+/-- Compute a coordinate of the scaled unmarked component by multiplying the complementary
+amplitude by the reciprocal square root of `1 - goodProb G ψ`. -/
 lemma badUnit_apply (G : Finset ι) (ψ : EuclideanSpace ℂ ι) (i : ι) :
     badUnit G ψ i = (Real.sqrt (1 - goodProb G ψ) : ℂ)⁻¹
       * (ψ i - (if i ∈ G then ψ i else 0)) := by
@@ -173,6 +250,7 @@ lemma badUnit_apply (G : Finset ι) (ψ : EuclideanSpace ℂ ι) (i : ι) :
 
 omit [Fintype ι] in
 
+/-- The scaled marked component vanishes at every index outside `G`. -/
 lemma goodUnit_supp (G : Finset ι) (ψ : EuclideanSpace ℂ ι) :
     ∀ i ∉ G, goodUnit G ψ i = 0 := by
   intro i hi
@@ -180,6 +258,7 @@ lemma goodUnit_supp (G : Finset ι) (ψ : EuclideanSpace ℂ ι) :
 
 omit [Fintype ι] in
 
+/-- The scaled unmarked component vanishes at every index in `G`. -/
 lemma badUnit_supp (G : Finset ι) (ψ : EuclideanSpace ℂ ι) :
     ∀ i ∈ G, badUnit G ψ i = 0 := by
   intro i hi
@@ -191,6 +270,7 @@ variable {G : Finset ι} {ψ : EuclideanSpace ℂ ι}
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Positive marked weight gives a nonzero complex cast of its real square root. -/
 private lemma sqrt_goodProb_ne (ha0 : 0 < goodProb G ψ) :
     ((Real.sqrt (goodProb G ψ) : ℝ) : ℂ) ≠ 0 := by
   rw [ne_eq, Complex.ofReal_eq_zero]
@@ -198,6 +278,8 @@ private lemma sqrt_goodProb_ne (ha0 : 0 < goodProb G ψ) :
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Marked weight strictly below one gives a nonzero complex cast of the square root of its
+complement. -/
 private lemma sqrt_badProb_ne (ha1 : goodProb G ψ < 1) :
     ((Real.sqrt (1 - goodProb G ψ) : ℝ) : ℂ) ≠ 0 := by
   rw [ne_eq, Complex.ofReal_eq_zero]
@@ -205,6 +287,8 @@ private lemma sqrt_badProb_ne (ha1 : goodProb G ψ < 1) :
 
 omit [Fintype ι] in
 
+/-- When the marked weight is positive, the squared amplitudes of `goodUnit G ψ` sum to one over
+`G`. -/
 lemma goodUnit_weight (ha0 : 0 < goodProb G ψ) :
     ∑ i ∈ G, ‖goodUnit G ψ i‖ ^ 2 = 1 := by
   have hterm : ∀ i ∈ G, ‖goodUnit G ψ i‖ ^ 2 = (goodProb G ψ)⁻¹ * ‖ψ i‖ ^ 2 := by
@@ -215,6 +299,8 @@ lemma goodUnit_weight (ha0 : 0 < goodProb G ψ) :
   rw [Finset.sum_congr rfl hterm, ← Finset.mul_sum]
   exact inv_mul_cancel₀ ha0.ne'
 
+/-- Positive marked weight makes the self-inner-product of the scaled marked component equal to
+one. -/
 lemma inner_goodUnit_self (ha0 : 0 < goodProb G ψ) :
     inner ℂ (goodUnit G ψ) (goodUnit G ψ) = 1 := by
   rw [PiLp.inner_apply]
@@ -226,6 +312,8 @@ lemma inner_goodUnit_self (ha0 : 0 < goodProb G ψ) :
   rw [hfull, goodUnit_weight ha0]
   norm_num
 
+/-- For a unit input whose marked weight is below one, the scaled unmarked component has
+self-inner-product one. -/
 lemma inner_badUnit_self (hψ : ‖ψ‖ = 1) (ha1 : goodProb G ψ < 1) :
     inner ℂ (badUnit G ψ) (badUnit G ψ) = 1 := by
   have hane : (1 : ℝ) - goodProb G ψ ≠ 0 := by linarith
@@ -258,6 +346,8 @@ lemma inner_badUnit_self (hψ : ‖ψ‖ = 1) (ha1 : goodProb G ψ < 1) :
   rw [hfull, hsum2, hoff, inv_mul_cancel₀ hane]
   norm_num
 
+/-- The scaled marked and unmarked components are orthogonal because their supports are
+disjoint. -/
 lemma inner_goodUnit_badUnit :
     inner ℂ (goodUnit G ψ) (badUnit G ψ) = 0 := by
   rw [PiLp.inner_apply]
@@ -268,6 +358,8 @@ lemma inner_goodUnit_badUnit :
 
 omit [Fintype ι] in
 
+/-- If the marked weight lies strictly between zero and one, reconstruct `ψ` from its scaled
+marked and unmarked components at angle `arcsin (sqrt (goodProb G ψ))`. -/
 lemma ampState_decomposition (ha0 : 0 < goodProb G ψ) (ha1 : goodProb G ψ < 1) :
     ψ = ampState (goodUnit G ψ) (badUnit G ψ)
         (Real.arcsin (Real.sqrt (goodProb G ψ))) := by
@@ -284,6 +376,9 @@ lemma ampState_decomposition (ha0 : 0 < goodProb G ψ) (ha1 : goodProb G ψ < 1)
     mul_inv_cancel₀ (sqrt_goodProb_ne ha0), mul_inv_cancel₀ (sqrt_badProb_ne ha1),
     one_smul, one_smul, add_sub_cancel]
 
+/-- For a unit input with initial marked probability `a` strictly between zero and one, `j`
+amplification steps give marked probability `sin ((2j + 1) * arcsin (sqrt a)) ^ 2`
+[BrassardEtAl2002]. -/
 theorem amplitude_amplification (G : Finset ι) (ψ : EuclideanSpace ℂ ι) (hψ : ‖ψ‖ = 1)
     (ha0 : 0 < goodProb G ψ) (ha1 : goodProb G ψ < 1) (j : ℕ) :
     goodProb G ((ampStep ψ G)^[j] ψ)
@@ -311,6 +406,9 @@ section OptimalCount
 
 variable {G : Finset ι} {ψ : EuclideanSpace ℂ ι}
 
+/-- For a unit input with marked probability `a` in `(0, 1)`, using `floor (π / (4 * arcsin
+(sqrt a)))` amplification steps achieves marked probability at least `1 - a`
+[BrassardEtAl2002]. -/
 theorem amplitude_amplification_succeeds (hψ : ‖ψ‖ = 1)
     (ha0 : 0 < goodProb G ψ) (ha1 : goodProb G ψ < 1) :
     1 - goodProb G ψ ≤ goodProb G
@@ -364,6 +462,9 @@ theorem amplitude_amplification_succeeds (hψ : ‖ψ‖ = 1)
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- For marked weight `a` in `(0, 1)`, the selected iteration count `floor (π / (4 * arcsin
+(sqrt a)))` is at most `π / (4 * sqrt a)`, giving the inverse-square-root count bound of
+[BrassardEtAl2002]. -/
 theorem amplification_query_bound (ha0 : 0 < goodProb G ψ) (ha1 : goodProb G ψ < 1) :
     (⌊Real.pi / (4 * Real.arcsin (Real.sqrt (goodProb G ψ)))⌋₊ : ℝ)
       ≤ Real.pi / (4 * Real.sqrt (goodProb G ψ)) := by
@@ -383,6 +484,8 @@ theorem amplification_query_bound (ha0 : 0 < goodProb G ψ) (ha1 : goodProb G ψ
         apply div_le_div_of_nonneg_left (le_of_lt Real.pi_pos) (by positivity)
         nlinarith [hle]
 
+/-- A unit state with marked probability exactly `1/4` reaches marked probability one after a
+single amplification step [BrassardEtAl2002]. -/
 theorem amplification_quarter (hψ : ‖ψ‖ = 1) (ha : goodProb G ψ = 1 / 4) :
     goodProb G (ampStep ψ G ψ) = 1 := by
   have h := amplitude_amplification G ψ hψ (by rw [ha]; norm_num) (by rw [ha]; norm_num) 1
@@ -403,6 +506,7 @@ section EigenStructure
 
 omit [Fintype ι] in
 
+/-- The marked projection preserves addition of state vectors. -/
 lemma goodProj_add (G : Finset ι) (ψ χ : EuclideanSpace ℂ ι) :
     goodProj G (ψ + χ) = goodProj G ψ + goodProj G χ := by
   ext i
@@ -413,6 +517,7 @@ lemma goodProj_add (G : Finset ι) (ψ χ : EuclideanSpace ℂ ι) :
 
 omit [Fintype ι] in
 
+/-- The marked projection commutes with multiplication by any complex scalar. -/
 lemma goodProj_smul (G : Finset ι) (c : ℂ) (ψ : EuclideanSpace ℂ ι) :
     goodProj G (c • ψ) = c • goodProj G ψ := by
   ext i
@@ -423,6 +528,7 @@ lemma goodProj_smul (G : Finset ι) (c : ℂ) (ψ : EuclideanSpace ℂ ι) :
 
 omit [Fintype ι] in
 
+/-- The marked sign flip preserves addition of state vectors. -/
 lemma oracleFlip_add (G : Finset ι) (ψ χ : EuclideanSpace ℂ ι) :
     oracleFlip G (ψ + χ) = oracleFlip G ψ + oracleFlip G χ := by
   rw [oracleFlip, oracleFlip, oracleFlip, goodProj_add]
@@ -430,6 +536,7 @@ lemma oracleFlip_add (G : Finset ι) (ψ χ : EuclideanSpace ℂ ι) :
 
 omit [Fintype ι] in
 
+/-- The marked sign flip commutes with multiplication by any complex scalar. -/
 lemma oracleFlip_smul (G : Finset ι) (c : ℂ) (ψ : EuclideanSpace ℂ ι) :
     oracleFlip G (c • ψ) = c • oracleFlip G ψ := by
   rw [oracleFlip, oracleFlip, goodProj_smul]
@@ -437,6 +544,7 @@ lemma oracleFlip_smul (G : Finset ι) (c : ℂ) (ψ : EuclideanSpace ℂ ι) :
 
 omit [DecidableEq ι] in
 
+/-- For a fixed reference vector `φ`, the reflection map is additive in its input. -/
 lemma reflect_add (φ ψ χ : EuclideanSpace ℂ ι) :
     reflect φ (ψ + χ) = reflect φ ψ + reflect φ χ := by
   rw [reflect, reflect, reflect, inner_add_right]
@@ -444,15 +552,20 @@ lemma reflect_add (φ ψ χ : EuclideanSpace ℂ ι) :
 
 omit [DecidableEq ι] in
 
+/-- For a fixed reference vector `φ`, the reflection map commutes with complex scalar
+multiplication in its input. -/
 lemma reflect_smul (φ : EuclideanSpace ℂ ι) (c : ℂ) (ψ : EuclideanSpace ℂ ι) :
     reflect φ (c • ψ) = c • reflect φ ψ := by
   rw [reflect, reflect, inner_smul_right]
   module
 
+/-- For fixed reference vector and marked set, one amplification step preserves addition. -/
 lemma ampStep_add (φ : EuclideanSpace ℂ ι) (G : Finset ι) (ψ χ : EuclideanSpace ℂ ι) :
     ampStep φ G (ψ + χ) = ampStep φ G ψ + ampStep φ G χ := by
   rw [ampStep, ampStep, ampStep, oracleFlip_add, reflect_add]
 
+/-- For fixed reference vector and marked set, one amplification step commutes with complex
+scalar multiplication. -/
 lemma ampStep_smul (φ : EuclideanSpace ℂ ι) (G : Finset ι) (c : ℂ)
     (ψ : EuclideanSpace ℂ ι) :
     ampStep φ G (c • ψ) = c • ampStep φ G ψ := by
@@ -460,6 +573,7 @@ lemma ampStep_smul (φ : EuclideanSpace ℂ ι) (G : Finset ι) (c : ℂ)
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- The state at angle zero is exactly the component `b`. -/
 lemma ampState_zero (g b : EuclideanSpace ℂ ι) : ampState g b 0 = b := by
   rw [ampState, Real.sin_zero, Real.cos_zero]
   push_cast
@@ -467,25 +581,32 @@ lemma ampState_zero (g b : EuclideanSpace ℂ ι) : ampState g b 0 = b := by
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- The state at angle `π/2` is exactly the component `g`. -/
 lemma ampState_pi_div_two (g b : EuclideanSpace ℂ ι) :
     ampState g b (Real.pi / 2) = g := by
   rw [ampState, Real.sin_pi_div_two, Real.cos_pi_div_two]
   push_cast
   module
 
+/-- Express the complex exponential of `x * I` as `cos x + sin x * I` for real `x`. -/
 lemma exp_ofReal_mul_I (x : ℝ) :
     Complex.exp ((x : ℝ) * Complex.I)
       = (Real.cos x : ℂ) + (Real.sin x : ℂ) * Complex.I := by
   rw [Complex.exp_mul_I, ← Complex.ofReal_cos, ← Complex.ofReal_sin]
 
+/-- Define the unnormalized vector `g + I • b`, used for the positive-phase eigenvalue of the
+amplification step. -/
 noncomputable def eigenPlus (g b : EuclideanSpace ℂ ι) : EuclideanSpace ℂ ι :=
   g + Complex.I • b
 
+/-- Define the unnormalized vector `g - I • b`, used for the negative-phase eigenvalue of the
+amplification step. -/
 noncomputable def eigenMinus (g b : EuclideanSpace ℂ ι) : EuclideanSpace ℂ ι :=
   g - Complex.I • b
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- The sum of the two phase vectors is twice `g`. -/
 lemma eigenPlus_add_eigenMinus (g b : EuclideanSpace ℂ ι) :
     eigenPlus g b + eigenMinus g b = (2 : ℂ) • g := by
   rw [eigenPlus, eigenMinus]
@@ -493,6 +614,7 @@ lemma eigenPlus_add_eigenMinus (g b : EuclideanSpace ℂ ι) :
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- The difference of the two phase vectors is `2 * I • b`. -/
 lemma eigenPlus_sub_eigenMinus (g b : EuclideanSpace ℂ ι) :
     eigenPlus g b - eigenMinus g b = (2 * Complex.I) • b := by
   rw [eigenPlus, eigenMinus]
@@ -500,6 +622,8 @@ lemma eigenPlus_sub_eigenMinus (g b : EuclideanSpace ℂ ι) :
 
 variable {G : Finset ι} {g b : EuclideanSpace ℂ ι}
 
+/-- For orthonormal marked and unmarked components, amplification about the state at angle `θ`
+sends `g` to the state at angle `π/2 + 2θ`. -/
 private lemma ampStep_g (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0)
     (θ : ℝ) :
@@ -507,6 +631,8 @@ private lemma ampStep_g (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
   have h := ampStep_ampState hgg hbb hgb hgsupp hbsupp θ (Real.pi / 2)
   rwa [ampState_pi_div_two] at h
 
+/-- For orthonormal marked and unmarked components, amplification about the state at angle `θ`
+sends `b` to the state at angle `2θ`. -/
 private lemma ampStep_b (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0)
     (θ : ℝ) :
@@ -515,6 +641,9 @@ private lemma ampStep_b (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
   rw [ampState_zero] at h
   rwa [zero_add] at h
 
+/-- For orthonormal marked and unmarked components, `g + I • b` is an eigenvector of
+amplification about the state at angle `θ`, with eigenvalue `exp (2θ * I)`
+[BrassardEtAl2002]. -/
 theorem ampStep_eigenPlus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0)
     (θ : ℝ) :
@@ -533,6 +662,9 @@ theorem ampStep_eigenPlus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     ampState_apply, hsin, hcos, exp_ofReal_mul_I, Complex.ofReal_neg]
   linear_combination (-(Real.sin (2 * θ) : ℂ) * b i) * Complex.I_mul_I
 
+/-- For orthonormal marked and unmarked components, `g - I • b` is an eigenvector of
+amplification about the state at angle `θ`, with eigenvalue `exp (-2θ * I)`
+[BrassardEtAl2002]. -/
 theorem ampStep_eigenMinus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0)
     (θ : ℝ) :
@@ -554,6 +686,8 @@ theorem ampStep_eigenMinus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     ampState_apply, hsin, hcos, Complex.ofReal_neg]
   linear_combination (-(Real.sin (2 * θ) : ℂ) * b i) * Complex.I_mul_I
 
+/-- Under the orthonormality and support assumptions, `j` amplification steps multiply
+`eigenPlus g b` by `exp (2jθ * I)`. -/
 theorem ampStep_iterate_eigenPlus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0)
     (θ : ℝ) (j : ℕ) :
@@ -571,6 +705,8 @@ theorem ampStep_iterate_eigenPlus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b
     push_cast
     ring
 
+/-- Under the orthonormality and support assumptions, `j` amplification steps multiply
+`eigenMinus g b` by `exp (-2jθ * I)`. -/
 theorem ampStep_iterate_eigenMinus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) (hgsupp : ∀ i ∉ G, g i = 0) (hbsupp : ∀ i ∈ G, b i = 0)
     (θ : ℝ) (j : ℕ) :
@@ -588,6 +724,7 @@ theorem ampStep_iterate_eigenMinus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b 
     push_cast
     ring
 
+/-- Every natural iterate of an amplification step preserves addition. -/
 lemma ampStep_iterate_add (φ : EuclideanSpace ℂ ι) (G : Finset ι) (j : ℕ)
     (ψ χ : EuclideanSpace ℂ ι) :
     (ampStep φ G)^[j] (ψ + χ) = (ampStep φ G)^[j] ψ + (ampStep φ G)^[j] χ := by
@@ -597,6 +734,7 @@ lemma ampStep_iterate_add (φ : EuclideanSpace ℂ ι) (G : Finset ι) (j : ℕ)
   | succ k ih => rw [Function.iterate_succ_apply', Function.iterate_succ_apply',
       Function.iterate_succ_apply', ih, ampStep_add]
 
+/-- Every natural iterate of an amplification step commutes with complex scalar multiplication. -/
 lemma ampStep_iterate_smul (φ : EuclideanSpace ℂ ι) (G : Finset ι) (j : ℕ) (k : ℂ)
     (ψ : EuclideanSpace ℂ ι) :
     (ampStep φ G)^[j] (k • ψ) = k • (ampStep φ G)^[j] ψ := by
@@ -607,6 +745,8 @@ lemma ampStep_iterate_smul (φ : EuclideanSpace ℂ ι) (G : Finset ι) (j : ℕ
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Expand the state at angle `γ` in the phase vectors `g ± I • b`, with respective coefficients
+`(-I/2) exp (γ * I)` and `(I/2) exp (-γ * I)`. -/
 lemma ampState_eq_eigen (g b : EuclideanSpace ℂ ι) (γ : ℝ) :
     ampState g b γ
       = (-Complex.I / 2 * Complex.exp ((γ : ℝ) * Complex.I)) • eigenPlus g b
@@ -622,6 +762,8 @@ lemma ampState_eq_eigen (g b : EuclideanSpace ℂ ι) (γ : ℝ) :
 
 omit [DecidableEq ι] in
 
+/-- If `g` and `b` are orthonormal, the phase vectors `g + I • b` and `g - I • b` are
+orthogonal. -/
 lemma inner_eigenPlus_eigenMinus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) :
     inner ℂ (eigenPlus g b) (eigenMinus g b) = 0 := by
@@ -632,6 +774,7 @@ lemma inner_eigenPlus_eigenMinus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b 
 
 omit [DecidableEq ι] in
 
+/-- For orthonormal `g` and `b`, the self-inner-product of `eigenPlus g b` is two. -/
 lemma inner_eigenPlus_self (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) :
     inner ℂ (eigenPlus g b) (eigenPlus g b) = 2 := by
@@ -642,6 +785,7 @@ lemma inner_eigenPlus_self (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
 
 omit [DecidableEq ι] in
 
+/-- For orthonormal `g` and `b`, the self-inner-product of `eigenMinus g b` is two. -/
 lemma inner_eigenMinus_self (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) :
     inner ℂ (eigenMinus g b) (eigenMinus g b) = 2 := by
@@ -652,6 +796,7 @@ lemma inner_eigenMinus_self (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
 
 omit [DecidableEq ι] in
 
+/-- For orthonormal `g` and `b`, the squared coordinate norms of `eigenPlus g b` sum to two. -/
 lemma sum_sq_eigenPlus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) :
     ∑ y, ‖eigenPlus g b y‖ ^ 2 = 2 := by
@@ -665,6 +810,7 @@ lemma sum_sq_eigenPlus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
 
 omit [DecidableEq ι] in
 
+/-- For orthonormal `g` and `b`, the squared coordinate norms of `eigenMinus g b` sum to two. -/
 lemma sum_sq_eigenMinus (hgg : inner ℂ g g = 1) (hbb : inner ℂ b b = 1)
     (hgb : inner ℂ g b = 0) :
     ∑ y, ‖eigenMinus g b y‖ ^ 2 = 2 := by
@@ -680,6 +826,7 @@ end EigenStructure
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Factor the difference `sin x ^ 2 - sin y ^ 2` as `sin (x + y) * sin (x - y)`. -/
 lemma sin_sq_sub_sin_sq (x y : ℝ) :
     Real.sin x ^ 2 - Real.sin y ^ 2 = Real.sin (x + y) * Real.sin (x - y) := by
   rw [Real.sin_add, Real.sin_sub]
@@ -688,6 +835,8 @@ lemma sin_sq_sub_sin_sq (x y : ℝ) :
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Bound the change in squared sine by `|sin (2y)| * |x - y| + |x - y|^2`, retaining its
+dependence on the reference angle. -/
 theorem abs_sin_sq_sub_sin_sq_le (x y : ℝ) :
     |Real.sin x ^ 2 - Real.sin y ^ 2| ≤ |Real.sin (2 * y)| * |x - y| + |x - y| ^ 2 := by
   rw [sin_sq_sub_sin_sq, abs_mul]
@@ -702,6 +851,9 @@ theorem abs_sin_sq_sub_sin_sq_le (x y : ℝ) :
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- If `sin θ = sqrt a`, `cos θ = sqrt (1 - a)`, and the angular error is at most `ε`, the
+squared-sine estimate has error at most `2 * sqrt (a * (1 - a)) * ε + ε^2`
+[BrassardEtAl2002]. -/
 theorem amplitude_estimation_error {a : ℝ} (ha0 : 0 ≤ a)
     {θ θ' : ℝ} (hθ : Real.sin θ = Real.sqrt a) (hθc : Real.cos θ = Real.sqrt (1 - a))
     {ε : ℝ} (hδ : |θ' - θ| ≤ ε) :
@@ -721,6 +873,7 @@ theorem amplitude_estimation_error {a : ℝ} (ha0 : 0 ≤ a)
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Express `cos (2t)` as `1 - 2 * sin t ^ 2`. -/
 lemma cos_two_mul_odd (t : ℝ) :
     Real.cos (2 * t) = 1 - 2 * Real.sin t ^ 2 := by
   rw [Real.cos_two_mul]
@@ -728,6 +881,8 @@ lemma cos_two_mul_odd (t : ℝ) :
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- Evaluate the sum of the first `M` odd-angle squared sines after multiplication by `4 sin
+(2θ)`, obtaining `2M sin (2θ) - sin (4Mθ)`. -/
 lemma sum_sin_sq_odd_mul (θ : ℝ) (M : ℕ) :
     4 * Real.sin (2 * θ) * ∑ m ∈ Finset.range M, Real.sin ((2 * m + 1) * θ) ^ 2
       = 2 * M * Real.sin (2 * θ) - Real.sin (4 * M * θ) := by
@@ -746,6 +901,8 @@ lemma sum_sin_sq_odd_mul (θ : ℝ) (M : ℕ) :
 
 omit [Fintype ι] [DecidableEq ι] in
 
+/-- If `sin (2θ)` is positive and `M sin (2θ) ≥ 1`, the sum of `sin ((2m + 1)θ)^2` for `m < M`
+is at least `M/4`. -/
 lemma sum_sin_sq_odd_ge (θ : ℝ) (M : ℕ) (hpos : 0 < Real.sin (2 * θ))
     (hM : 1 ≤ M * Real.sin (2 * θ)) :
     (M : ℝ) / 4 ≤ ∑ m ∈ Finset.range M, Real.sin ((2 * m + 1) * θ) ^ 2 := by
@@ -753,6 +910,9 @@ lemma sum_sin_sq_odd_ge (θ : ℝ) (M : ℕ) (hpos : 0 < Real.sin (2 * θ))
   have hb : Real.sin (4 * M * θ) ≤ 1 := Real.sin_le_one _
   nlinarith [h, hb, hM, hpos]
 
+/-- For a unit input with marked probability `a` in `(0, 1)`, if `2M sqrt (a(1 - a)) ≥ 1`, the
+first `M` amplification success probabilities sum to at least `M/4`. This gives the
+constant-average-success estimate used in randomized quantum search [BoyerEtAl1998]. -/
 theorem qsearch_average (G : Finset ι) (ψ : EuclideanSpace ℂ ι) (hψ : ‖ψ‖ = 1)
     (ha0 : 0 < goodProb G ψ) (ha1 : goodProb G ψ < 1) (M : ℕ)
     (hM : 1 ≤ M * (2 * Real.sqrt (goodProb G ψ * (1 - goodProb G ψ)))) :

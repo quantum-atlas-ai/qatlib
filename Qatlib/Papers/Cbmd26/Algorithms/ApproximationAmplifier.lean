@@ -13,6 +13,27 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 
+/-!
+# Bernstein majority polynomials for error amplification
+
+`majorityPolynomial` sums the Bernstein terms of degree `2 * m` with indices at least `m`. It
+preserves `[0, 1]`, has degree at most `2 * m`, and satisfies the geometric error estimates
+`majorityPolynomial_low` and `majorityPolynomial_high` on `[0, 1 / 8]` and `[7 / 8, 1]`.
+
+These estimates provide the polynomial amplification used in the CBMD approximation construction
+associated with [WangEtAl2026].
+
+## Main statements
+
+* `majorityPolynomial_degree` bounds the degree by `2 * m`.
+* `majorityPolynomial_unit_interval` proves preservation of `[0, 1]`.
+* `majorityPolynomial_low` and `majorityPolynomial_high` give geometric error bounds.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Papers.Cbmd26.Algorithms
 
 set_option autoImplicit false
@@ -23,10 +44,13 @@ namespace CBMD
 open Polynomial
 open scoped BigOperators Classical
 
+/-- The sum of Bernstein basis polynomials of degree `2 * m` with indices from `m` through `2 *
+m`, representing the binomial probability of at least `m` successes in `2 * m` trials. -/
 noncomputable def majorityPolynomial (m : ℕ) : Polynomial ℝ :=
   ∑ j ∈ Finset.range (2 * m + 1),
     if m ≤ j then bernsteinPolynomial ℝ (2 * m) j else 0
 
+/-- Every real Bernstein basis polynomial evaluates to a nonnegative number on `[0, 1]`. -/
 theorem bernstein_eval_nonneg (n j : ℕ) (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
     0 ≤ (bernsteinPolynomial ℝ n j).eval x := by
   simp only [bernsteinPolynomial, eval_mul, eval_natCast, eval_pow, eval_X,
@@ -34,6 +58,7 @@ theorem bernstein_eval_nonneg (n j : ℕ) (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ
   exact mul_nonneg (mul_nonneg (Nat.cast_nonneg _) (pow_nonneg hx.1 _))
     (pow_nonneg (sub_nonneg.mpr hx.2) _)
 
+/-- The majority polynomial with parameter `m` has natural degree at most `2 * m`. -/
 theorem majorityPolynomial_degree (m : ℕ) : (majorityPolynomial m).natDegree ≤ 2 * m := by
   unfold majorityPolynomial
   apply natDegree_sum_le_of_forall_le
@@ -54,6 +79,7 @@ theorem majorityPolynomial_degree (m : ℕ) : (majorityPolynomial m).natDegree �
       _ = 2 * m := by omega
   · simp
 
+/-- The majority polynomial maps `[0, 1]` into `[0, 1]`. -/
 theorem majorityPolynomial_unit_interval (m : ℕ) (x : ℝ)
     (hx : x ∈ Set.Icc (0 : ℝ) 1) :
     (majorityPolynomial m).eval x ∈ Set.Icc (0 : ℝ) 1 := by
@@ -75,6 +101,7 @@ theorem majorityPolynomial_unit_interval (m : ℕ) (x : ℝ)
     · exact le_rfl
     · simpa using bernstein_eval_nonneg (2 * m) j x hx
 
+/-- On `[0, 1]`, the majority polynomial is bounded above by `(4 * x) ^ m`. -/
 private theorem binomial_tail_bound (m : ℕ) (x : ℝ)
     (hx : x ∈ Set.Icc (0 : ℝ) 1) :
     (majorityPolynomial m).eval x ≤ (4 * x) ^ m := by
@@ -103,6 +130,8 @@ private theorem binomial_tail_bound (m : ℕ) (x : ℝ)
       rw [hc, pow_mul, mul_pow]
       norm_num
 
+/-- On `[0, 1]`, the complement of the majority polynomial is bounded above by `(4 * (1 - x)) ^
+m`. -/
 private theorem binomial_complement_bound (m : ℕ) (x : ℝ)
     (hx : x ∈ Set.Icc (0 : ℝ) 1) :
     1 - (majorityPolynomial m).eval x ≤ (4 * (1 - x)) ^ m := by
@@ -135,12 +164,14 @@ private theorem binomial_complement_bound (m : ℕ) (x : ℝ)
       rw [hc, pow_mul, mul_pow]
       norm_num
 
+/-- On `[0, 1 / 8]`, the majority polynomial is at most `(1 / 2) ^ m`. -/
 theorem majorityPolynomial_low (m : ℕ) (x : ℝ)
     (hx : x ∈ Set.Icc (0 : ℝ) (1 / 8)) :
     (majorityPolynomial m).eval x ≤ (1 / 2 : ℝ) ^ m := by
   exact (binomial_tail_bound m x ⟨hx.1, by linarith [hx.2]⟩).trans
     (pow_le_pow_left₀ (by linarith [hx.1]) (by linarith [hx.2]) m)
 
+/-- On `[7 / 8, 1]`, the majority polynomial differs from `1` by at most `(1 / 2) ^ m`. -/
 theorem majorityPolynomial_high (m : ℕ) (x : ℝ)
     (hx : x ∈ Set.Icc (7 / 8 : ℝ) 1) :
     1 - (majorityPolynomial m).eval x ≤ (1 / 2 : ℝ) ^ m := by

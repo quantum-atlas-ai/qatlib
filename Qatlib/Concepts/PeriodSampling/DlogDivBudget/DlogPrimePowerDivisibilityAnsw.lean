@@ -23,6 +23,31 @@ import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogPrimePowerDivisibilityStat
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
 import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryAnsw
+
+/-!
+# Corrected discrete-logarithm divisibility bounds
+
+This module proves range and injectivity properties of `dlogCprime` and the corrected counting
+contract `DlogPrimePowerDivisibility`. For prime `p ≥ 3` with `p < q < 2 * p`, small-residue
+coordinates map injectively into the integer interval from zero to `p - 1`, giving at most `(p -
+1) / w + 1` coordinates whose values are divisible by a divisor `w ≥ 2`.
+
+The module also refutes the legacy contract at `p = 3`, `q = 24` and exhibits a counting
+obstruction there. These formal statements concern the coefficient-divisibility step in the
+recovery analysis of [Shor1997], with the additional sampling-range condition made explicit.
+
+## Main statements
+
+* `dlogPrimePowerDivisibility_false`: failure of the legacy contract.
+* `dlog_cprime_range`: bounds on every scaled coefficient when `1 < p < q`.
+* `dlog_cprime_injective_good`: injectivity on small-residue coordinates in the corrected range.
+* `dlogPrimePowerDivisibility`: the corrected range, injectivity, and counting contract.
+
+## References
+
+* [Shor, 1997, Section 6][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +59,7 @@ namespace Qatlib.Concepts.PeriodSampling.DlogDivBudget
 open scoped Classical
 set_option autoImplicit false
 
+/-- The legacy discrete-logarithm divisibility statement fails at `p = 3` and `q = 24`. -/
 theorem dlogPrimePowerDivisibility_false : ¬ DlogPrimePowerDivisibilityLegacy := by
   intro h
   have hh := (h 3 24 (by norm_num) (by norm_num) (by norm_num)).1
@@ -44,6 +70,7 @@ theorem dlogPrimePowerDivisibility_false : ¬ DlogPrimePowerDivisibilityLegacy :
   have hv := congrArg Fin.val hh
   norm_num at hv
 
+/-- For `1 < p < q`, every value of `dlogCprime p q` lies between zero and `p - 1`, inclusive. -/
 theorem dlog_cprime_range (p q : ℕ) (hp : 1 < p) (hpq : p < q) (c : Fin q) :
     0 ≤ dlogCprime p q c ∧ dlogCprime p q c ≤ (p-1 : ℕ) := by
   let m : ℤ := (p : ℤ)-1
@@ -80,6 +107,8 @@ theorem dlog_cprime_range (p q : ℕ) (hp : 1 < p) (hpq : p < q) (c : Fin q) :
   rw [hs, hmc]
   split_ifs <;> omega
 
+/-- At `p = 3` and `q = 24`, the number of small-residue coordinates with even `dlogCprime`
+exceeds the proposed bound `(3 - 1) / 2 + 1`. -/
 theorem dlog_divisibility_budget_obstruction :
     (3-1)/2+1 < (Finset.univ.filter fun c : Fin 24 =>
       dlogSmallResidue 3 24 c ∧ (2 : ℤ) ∣ dlogCprime 3 24 c).card := by
@@ -97,6 +126,8 @@ theorem dlog_divisibility_budget_obstruction :
   norm_num at hh ⊢
   omega
 
+/-- For `p ≥ 3` and `p < q < 2 * p`, equal `dlogCprime` values at small-residue coordinates
+force equality of those coordinates. -/
 theorem dlog_cprime_injective_good (p q : ℕ) (hp : 3 ≤ p) (_hpq : p < q) (hqbound : q < 2*p)
     (c₁ c₂ : Fin q) (hs₁ : dlogSmallResidue p q c₁) (hs₂ : dlogSmallResidue p q c₂)
     (heq : dlogCprime p q c₁ = dlogCprime p q c₂) : c₁ = c₂ := by
@@ -135,6 +166,9 @@ theorem dlog_cprime_injective_good (p q : ℕ) (hp : 3 ≤ p) (_hpq : p < q) (hq
   have hz : (c₁.val : ℤ) = (c₂.val : ℤ) := by omega
   exact_mod_cast hz
 
+/-- For prime `p ≥ 3` and `p < q < 2 * p`, the corrected contract gives injectivity on
+small-residue coordinates, the range `[0, p - 1]`, and the divisibility count bound `(p - 1)
+/ w + 1` for divisors `w ≥ 2`. -/
 theorem dlogPrimePowerDivisibility : DlogPrimePowerDivisibility := by
   intro p q _ _hprime hp hpq hqbound
   refine ⟨dlog_cprime_injective_good p q hp hpq hqbound, ?_, ?_⟩

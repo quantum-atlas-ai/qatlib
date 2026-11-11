@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveBlockSensitivityQueryBoundStat
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
+
+/-!
+# Block sensitivity bounds for adaptive quantum queries
+
+This module proves `AdaptiveBlockSensitivityQueryBound` by representing adaptive acceptance
+probabilities as Boolean multilinear polynomials and applying polynomial block sensitivity
+bounds. A circuit of query depth `T` computing with error at most one third has block
+sensitivity at most `16T²`; exact computation gives `8T²`.
+
+The argument transfers the polynomial method of [BealsEtAl2001] to well formed observed
+circuits.
+
+## Main statements
+
+* `adaptiveBlockSensitivityQueryBound_of_polynomial`: deduces adaptive query bounds from
+  polynomial block sensitivity bounds.
+* `adaptiveBlockSensitivityQueryBound`: establishes the bounded error and exact adaptive bounds.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +43,8 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Matrix
 open scoped Classical BigOperators
 
+/-- Polynomial block sensitivity bounds imply bounds `16T²` for error at most one third and
+`8T²` for exact computation by well formed observed circuits of query depth `T`. -/
 theorem adaptiveBlockSensitivityQueryBound_of_polynomial
     (hpoly : ApproximatePolynomialBlockSensitivity) : AdaptiveBlockSensitivityQueryBound := by
   intro n W _ _ _ P ψ f hP hψ
@@ -53,6 +78,10 @@ theorem adaptiveBlockSensitivityQueryBound_of_polynomial
       nlinarith
     exact_mod_cast hreal
 
+/-- Well formed adaptive observed circuits computing a Boolean function have block sensitivity
+at most `16T²` with error at most one third and at most `8T²` for exact computation, where
+`T` is query depth. This is the adaptive form of the polynomial method in [Beals et al.,
+Theorem 4.13][BealsEtAl2001]. -/
 theorem adaptiveBlockSensitivityQueryBound : AdaptiveBlockSensitivityQueryBound :=
   adaptiveBlockSensitivityQueryBound_of_polynomial approximatePolynomialBlockSensitivity
 

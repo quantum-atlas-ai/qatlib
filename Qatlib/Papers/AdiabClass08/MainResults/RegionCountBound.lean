@@ -10,6 +10,25 @@ import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Exp
 
+/-!
+# Exponential bound for region counts
+
+This module bounds a partial binomial sum by `(exp(1) * S / N) ^ N` when `1 ≤ N ≤ S`. The
+weighted binomial estimate and the exponential bound in `one_add_div_pow_le_exp` provide the
+region-count estimate used in [NevenEtAl2008].
+
+## Main statements
+
+* `sum_choose_mul_pow_le`: a nonnegative weighted partial binomial sum is bounded by the full
+  expansion.
+* `one_add_div_pow_le_exp`: the estimate `(1 + N/S) ^ S ≤ exp(N)`.
+* `region_sum_le_exp`: the resulting upper bound on the unweighted partial sum.
+
+## References
+
+* [Neven et al., 2008][NevenEtAl2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,6 +36,8 @@ open Finset
 
 namespace Qatlib.Papers.AdiabClass08.MainResults
 
+/-- For `N ≤ S` and nonnegative `x`, the sum of `choose S k * x ^ k` over `k ≤ N` is at most `(1
++ x) ^ S`. See [NevenEtAl2008]. -/
 theorem sum_choose_mul_pow_le {S N : ℕ} (hSN : N ≤ S) {x : ℝ} (hx : 0 ≤ x) :
     (∑ k ∈ Finset.range (N + 1), (S.choose k : ℝ) * x ^ k) ≤ (1 + x) ^ S := by
   have hfull : (1 + x) ^ S = ∑ k ∈ Finset.range (S + 1), (S.choose k : ℝ) * x ^ k := by
@@ -29,6 +50,7 @@ theorem sum_choose_mul_pow_le {S N : ℕ} (hSN : N ≤ S) {x : ℝ} (hx : 0 ≤ 
   intro k _hkS _hkN
   exact mul_nonneg (Nat.cast_nonneg _) (pow_nonneg hx k)
 
+/-- If `0 < N ≤ S`, then `(1 + N/S) ^ S ≤ exp(N)`. See [NevenEtAl2008]. -/
 theorem one_add_div_pow_le_exp {S N : ℕ} (hN : 0 < N) (hSN : N ≤ S) :
     (1 + (N : ℝ) / (S : ℝ)) ^ S ≤ Real.exp (N : ℝ) := by
   have hSpos : (0 : ℝ) < (S : ℝ) := by
@@ -47,6 +69,8 @@ theorem one_add_div_pow_le_exp {S N : ℕ} (hN : 0 < N) (hSN : N ≤ S) :
           exact mul_le_mul_of_nonneg_left hlog hSpos.le
     _ = (N : ℝ) := mul_div_cancel₀ (N : ℝ) hSpos.ne'
 
+/-- If `1 ≤ N ≤ S`, the sum of `choose S k` over `k ≤ N` is at most `(exp(1) * S/N) ^ N`. See
+[NevenEtAl2008]. -/
 theorem region_sum_le_exp {S N : ℕ} (hN : 1 ≤ N) (hSN : N ≤ S) :
     (∑ k ∈ Finset.range (N + 1), (S.choose k : ℝ))
       ≤ (Real.exp 1 * (S : ℝ) / (N : ℝ)) ^ N := by

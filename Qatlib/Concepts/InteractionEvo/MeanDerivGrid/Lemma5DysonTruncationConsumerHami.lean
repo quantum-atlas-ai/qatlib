@@ -7,6 +7,23 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonTruncationConsumerStat
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonSourceParametersHami
 
+/-!
+# A two-level Dyson grid approximation
+
+`lemma5DysonTruncationConsumer` instantiates the source-parameter estimate for
+`interactionPictureField`. It certifies an operator-norm error of at most 1/8 at time 2/5 using
+38 grid points and truncation order 3. These estimates support the interaction-picture
+simulation analysis of [LowWiebe2018].
+
+## Main statements
+
+* `lemma5DysonTruncationConsumer`: the concrete two-level error certificate.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option autoImplicit false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -18,6 +35,8 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- Bounds the error of the order-3, 38-point Dyson grid sum for `interactionPictureField` at
+time 2/5 by 1/8, as an instance of [Low and Wiebe, Lemma 5][LowWiebe2018]. -/
 theorem lemma5DysonTruncationConsumer : Lemma5DysonTruncationConsumer := by
   let Z : Matrix (Fin 2) (Fin 2) ℂ := Matrix.diagonal ![1,-1]
   let X : Matrix (Fin 2) (Fin 2) ℂ := Matrix.of ![![0,1], ![1,0]]

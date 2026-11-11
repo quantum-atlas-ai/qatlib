@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HspRecovery.AbelianSampling.WideGenerationSubgoalStat
 import Qatlib.Concepts.StabilizerAlg.NearUniformGen.NearUniformGenerationSubgoalQuan
 import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerGenerationSubgoalQuan
+
+/-!
+# Stabilizer generation with the wider error bound
+
+This module proves subgroup generation from samples whose subset probabilities differ from
+uniform by at most `1 / (6 * (n + 4))`. The numerical estimate
+`asp_generation_numeric_bound_wide` controls the union bound for `n + 4` independent samples and
+yields `abelianStabilizerWideGenerationSubgoal`. [Kitaev1995]
+
+## Main statements
+
+* `asp_generation_numeric_bound_wide`: bounds the explicit numerical failure expression by `1 /
+  3`.
+* `abelianStabilizerWideGenerationSubgoal`: proves the near uniform subgroup generation
+  guarantee.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +38,8 @@ namespace Qatlib.Concepts.HspRecovery.AbelianSampling
 open scoped Classical BigOperators
 open Qatlib
 
+/-- If `m ≤ 2 ^ n`, then `(n + 4) / (6 * (n + 4)) + m * (1 / 2 + 1 / (6 * (n + 4))) ^ (n + 4) ≤
+1 / 3` over the reals. -/
 theorem asp_generation_numeric_bound_wide (n m : ℕ) (hm : m ≤ 2 ^ n) :
     ((n + 4 : ℕ) : ℝ) * (1 / ((6 : ℝ) * ((n + 4 : ℕ) : ℝ))) +
       (m : ℝ) * (1 / 2 + 1 / ((6 : ℝ) * ((n + 4 : ℕ) : ℝ))) ^ (n + 4) ≤ 1 / 3 := by
@@ -54,6 +77,9 @@ theorem asp_generation_numeric_bound_wide (n m : ℕ) (hm : m ≤ 2 ^ n) :
   rw [hfirst]
   linarith
 
+/-- For `n > 0` and a subgroup of size at most `2 ^ n`, a distribution whose subgroup subset
+probabilities differ from uniform by at most `1 / (6 * (n + 4))` fails to generate that
+subgroup from `n + 4` independent samples with probability at most `1 / 3` [Kitaev1995]. -/
 theorem abelianStabilizerWideGenerationSubgoal :
     AbelianStabilizerWideGenerationSubgoal := by
   intro n _hn G _ _ _ H hcard μ hnear

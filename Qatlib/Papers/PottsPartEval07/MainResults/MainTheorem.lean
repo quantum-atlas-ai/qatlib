@@ -65,20 +65,41 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Numerical parameters for exact Potts evaluation
+
+The module defines Boltzmann weights and the finite Potts partition sum with edge-dependent real
+couplings, and proves their positivity. It also records the numerical predicate `IsIccc`, the
+precision parameter `delta`, and the output specification `PottsScheme`, together with a bound
+on the parameter counting weight classes [GeraciLidar2008].
+
+## Main statements
+
+* `pottsPartition_pos`: A positive number of spin values gives a positive partition sum.
+* `weight_count_bound`: The assumed length formula bounds the quotient parameter N.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.MainResults.MainTheorem
 
 open scoped BigOperators
 
+/-- The product of `exp (J e)` over monochromatic edges, with factor one on every other edge. -/
 noncomputable def pottsBoltzmann {V E : Type*} [Fintype E]
     (q : ℕ) (ends : E → V × V) (J : E → ℝ) (σ : V → Fin q) : ℝ :=
   ∏ e : E, if σ (ends e).1 = σ (ends e).2 then Real.exp (J e) else 1
 
+/-- The Potts partition sum over all assignments of `q` spin values to vertices. -/
 noncomputable def pottsPartition {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E]
     (q : ℕ) (ends : E → V × V) (J : E → ℝ) : ℝ :=
   ∑ σ : V → Fin q, pottsBoltzmann q ends J σ
 
+/-- Every Potts Boltzmann weight is strictly positive. -/
 theorem pottsBoltzmann_pos {V E : Type*} [Fintype E]
     (q : ℕ) (ends : E → V × V) (J : E → ℝ) (σ : V → Fin q) :
     0 < pottsBoltzmann q ends J σ := by
@@ -89,6 +110,8 @@ theorem pottsBoltzmann_pos {V E : Type*} [Fintype E]
   · exact Real.exp_pos _
   · exact one_pos
 
+/-- The Potts partition sum is strictly positive when there is at least one spin value
+[GeraciLidar2008]. -/
 theorem pottsPartition_pos {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E]
     (q : ℕ) (hq : 0 < q) (ends : E → V × V) (J : E → ℝ) :
     0 < pottsPartition q ends J := by
@@ -99,9 +122,11 @@ theorem pottsPartition_pos {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E]
   · intro σ _; exact pottsBoltzmann_pos q ends J σ
   · exact Finset.univ_nonempty
 
+/-- The precision parameter `ε ^ 2 / (2 * (q ^ k - 1) ^ 2)`. -/
 noncomputable def delta (q k : ℕ) (ε : ℝ) : ℝ :=
   ε ^ 2 / (2 * ((q : ℝ) ^ k - 1) ^ 2)
 
+/-- For `q ≥ 2` and `k ≥ 1`, the real number `q ^ k` is strictly greater than one. -/
 private lemma one_lt_q_pow {q k : ℕ} (hq : 2 ≤ q) (hk : 1 ≤ k) : (1 : ℝ) < (q : ℝ) ^ k := by
   have hq2 : (2 : ℝ) ≤ (q : ℝ) := by exact_mod_cast hq
   have hq1 : (1 : ℝ) ≤ (q : ℝ) := by linarith
@@ -109,6 +134,7 @@ private lemma one_lt_q_pow {q k : ℕ} (hq : 2 ≤ q) (hk : 1 ≤ k) : (1 : ℝ)
     _ = (q : ℝ) ^ 1 := (pow_one _).symm
     _ ≤ (q : ℝ) ^ k := pow_le_pow_right₀ hq1 hk
 
+/-- The precision parameter `delta q k ε` is positive for `q ≥ 2`, `k ≥ 1`, and positive `ε`. -/
 theorem delta_pos {q k : ℕ} {ε : ℝ} (hq : 2 ≤ q) (hk : 1 ≤ k) (hε : 0 < ε) :
     0 < delta q k ε := by
   unfold delta
@@ -117,6 +143,8 @@ theorem delta_pos {q k : ℕ} {ε : ℝ} (hq : 2 ≤ q) (hk : 1 ≤ k) (hε : 0 
   have hden : 0 < 2 * ((q : ℝ) ^ k - 1) ^ 2 := by nlinarith [sq_pos_of_pos hx]
   exact div_pos (pow_pos hε 2) hden
 
+/-- The precision parameter is less than one half when `q ≥ 2`, `k ≥ 1`, and `0 < ε < 1`
+[GeraciLidar2008]. -/
 theorem delta_lt_half {q k : ℕ} {ε : ℝ} (hq : 2 ≤ q) (hk : 1 ≤ k)
     (hε0 : 0 < ε) (hε1 : ε < 1) : delta q k ε < 1 / 2 := by
   unfold delta
@@ -134,11 +162,15 @@ theorem delta_lt_half {q k : ℕ} {ε : ℝ} (hq : 2 ≤ q) (hk : 1 ≤ k)
   have hsq : ε ^ 2 < ((q : ℝ) ^ k - 1) ^ 2 := by nlinarith [hε0, hQ]
   nlinarith
 
+/-- The numerical ICCC condition asserting a length formula with positive coefficient and the
+stated precision inequality for some exponent function and real parameter `θ`. -/
 def IsIccc (q n k : ℕ) (ε : ℝ) : Prop :=
   ∃ (α : ℝ) (s : ℕ → ℕ) (θ : ℝ), 0 < α ∧
     (n : ℝ) = ((q : ℝ) ^ k - 1) / (α * (k : ℝ) ^ (s k)) ∧
     ε ≤ (q : ℝ) ^ (θ - 1) / (4 * Real.sqrt ((q : ℝ) ^ k))
 
+/-- A record of cost, success-probability value, and an output equal to the specified Potts
+partition sum. -/
 structure PottsScheme {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E]
     (q : ℕ) (ends : E → V × V) (J : E → ℝ) where
 
@@ -150,6 +182,8 @@ structure PottsScheme {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E]
 
   exactOutput : output = pottsPartition q ends J
 
+/-- The assumed formula for `n` and the quotient relation for `N` imply `N ≤ α * k ^ s k` over
+the reals [GeraciLidar2008]. -/
 theorem weight_count_bound {q k n N : ℕ} {α : ℝ} {s : ℕ → ℕ}
     (hq : 2 ≤ q) (hk : 1 ≤ k) (hα : 0 < α)
     (hn : (n : ℝ) = ((q : ℝ) ^ k - 1) / (α * (k : ℝ) ^ s k))

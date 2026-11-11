@@ -84,6 +84,27 @@ import Mathlib.Topology.Instances.Matrix
 import Mathlib.Topology.MetricSpace.Algebra
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Ambient derivatives of matrix conjugation and gradients
+
+Defines the conjugation map `stateMap ψ U = U * ψ * Uᴴ` and the commutator expression
+`gradientExtension`. Explicit real continuous linear maps `stateDerivative` and
+`gradientDerivative` are proved to be their Fréchet derivatives at every complex matrix. See
+[HunzikerEtAl2003] for related background.
+
+## Main statements
+
+* `stateMap_hasFDerivAt`: The conjugation map has real Fréchet derivative `stateDerivative ψ U`
+  at `U`.
+* `gradientExtension_hasFDerivAt`: The ambient gradient expression has real Fréchet derivative
+  `gradientDerivative O ψ U` at `U`.
+
+## References
+
+* [Hunziker et al., 2003][HunzikerEtAl2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -96,34 +117,43 @@ namespace Qatlib.Foundations.MatrixGeometry.TangentProject
 variable {n : Type*} [Fintype n] [DecidableEq n]
 local instance : NormedAlgebra ℝ (Matrix n n ℂ) := NormedAlgebra.restrictScalars ℝ ℂ _
 
+/-- The matrix conjugation expression `U * ψ * Uᴴ`. -/
 def stateMap (ψ U : Matrix n n ℂ) : Matrix n n ℂ := U * ψ * Uᴴ
 
+/-- The ambient matrix expression `(O * stateMap ψ U - stateMap ψ U * O) * U`. -/
 def gradientExtension (O ψ U : Matrix n n ℂ) : Matrix n n ℂ :=
   (O * stateMap ψ U - stateMap ψ U * O) * U
 
+/-- The real continuous linear map sending a variation `V` to `V * ψ * Uᴴ + U * ψ * Vᴴ`. -/
 def stateDerivative (ψ U : Matrix n n ℂ) : Matrix n n ℂ →L[ℝ] Matrix n n ℂ :=
   ((ContinuousLinearMap.mul ℝ (Matrix n n ℂ) (U * ψ)).comp
     (starL' ℝ).toContinuousLinearMap) +
   ((ContinuousLinearMap.mul ℝ (Matrix n n ℂ)).flip Uᴴ).comp
     ((ContinuousLinearMap.mul ℝ (Matrix n n ℂ)).flip ψ)
 
+/-- Evaluating `stateDerivative ψ U` on `V` gives `V * ψ * Uᴴ + U * ψ * Vᴴ`. -/
 theorem stateDerivative_apply (ψ U V : Matrix n n ℂ) :
     stateDerivative ψ U V = V * ψ * Uᴴ + U * ψ * Vᴴ := by
   change U * ψ * Vᴴ + V * ψ * Uᴴ = V * ψ * Uᴴ + U * ψ * Vᴴ
   exact add_comm _ _
 
+/-- The conjugation map has real Fréchet derivative `stateDerivative ψ U` at `U`. -/
 theorem stateMap_hasFDerivAt (ψ U : Matrix n n ℂ) :
     HasFDerivAt (stateMap ψ) (stateDerivative ψ U) U := by
   have hi := hasFDerivAt_id (𝕜 := ℝ) U
   have h := (hi.mul_const' ψ).fun_mul' hi.star
   convert! h using 1
 
+/-- The real continuous linear map sending `V` to `[O, stateDerivative ψ U V] * U + [O, stateMap
+ψ U] * V`, where brackets denote matrix commutators. -/
 def gradientDerivative (O ψ U : Matrix n n ℂ) : Matrix n n ℂ →L[ℝ] Matrix n n ℂ :=
   ((ContinuousLinearMap.mul ℝ (Matrix n n ℂ)).flip U).comp
     (((ContinuousLinearMap.mul ℝ (Matrix n n ℂ) O) -
       (ContinuousLinearMap.mul ℝ (Matrix n n ℂ)).flip O).comp (stateDerivative ψ U)) +
   ContinuousLinearMap.mul ℝ (Matrix n n ℂ) (O * stateMap ψ U - stateMap ψ U * O)
 
+/-- The derivative expression for the ambient gradient is the sum of the commutator with the
+state variation, multiplied by `U`, and the state commutator multiplied by `V`. -/
 theorem gradientDerivative_apply (O ψ U V : Matrix n n ℂ) :
     gradientDerivative O ψ U V =
       (O * (V * ψ * Uᴴ + U * ψ * Vᴴ) - (V * ψ * Uᴴ + U * ψ * Vᴴ) * O) * U +
@@ -131,6 +161,8 @@ theorem gradientDerivative_apply (O ψ U V : Matrix n n ℂ) :
   simp [gradientDerivative, stateDerivative_apply, stateMap]
   noncomm_ring
 
+/-- The ambient gradient expression has real Fréchet derivative `gradientDerivative O ψ U` at
+`U`. -/
 theorem gradientExtension_hasFDerivAt (O ψ U : Matrix n n ℂ) :
     HasFDerivAt (gradientExtension O ψ) (gradientDerivative O ψ U) U := by
   have hs := stateMap_hasFDerivAt ψ U
@@ -146,6 +178,8 @@ theorem gradientExtension_hasFDerivAt (O ψ U : Matrix n n ℂ) :
   rw [stateDerivative_apply]
   exact add_comm _ _
 
+/-- The real Fréchet derivative of `gradientExtension O ψ` applied to `V` equals `[O, V * ψ * Uᴴ
++ U * ψ * Vᴴ] * U + [O, U * ψ * Uᴴ] * V`, where brackets denote commutators. -/
 theorem gradientExtension_fderiv_apply (O ψ U V : Matrix n n ℂ) :
     fderiv ℝ (gradientExtension O ψ) U V =
       (O * (V * ψ * Uᴴ + U * ψ * Vᴴ) - (V * ψ * Uᴴ + U * ψ * Vᴴ) * O) * U +

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+/-!
+# Statement of the zero error OR lower bound
+
+This module defines `OrZeroErrorQueryLowerBound`, the query lower bound for a conclusive zero
+outcome of OR. The event must have positive probability on the all false input and vanish on
+every input containing a true bit; for a nonempty input type, the required conclusion is N ≤ Q,
+in the setting of [BealsEtAl2001].
+
+## Main statements
+
+* `OrZeroErrorQueryLowerBound`: the proposition expressing the conclusive zero event lower
+  bound.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
@@ -13,6 +32,9 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 
 namespace Qatlib.Concepts.QueryComplexity.AdversarySearch
 
+/-- The statement that, on a nonempty index type, a circuit requires at least one query per
+input position if some event has positive probability on the all false input and zero
+probability on every input containing a true bit. -/
 def OrZeroErrorQueryLowerBound : Prop :=
   ∀ (I W : Type) [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit (Qatlib.Concepts.QueryWordCore.QueryMachinery.PolynomialWorkspace I W))

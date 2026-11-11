@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
 import Qatlib.Concepts.WalkSearch.MainResults.AdaptiveTapeUnionBound
 import Qatlib.Concepts.WalkSearch.MainResults.DegreeFailureEvent
+
+/-!
+# Adaptive tape bounds for classification
+
+`scanTapeNext` and `scanTapeCorrect` express the classification scan as an adaptive computation,
+with `none` representing a halted scan. The equivalence `scanTapeGood_iff` transfers the finite
+tape union bound to the degree tests actually reached by the scan. For background on quantum
+search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `scanTapeNext`: Update the optional symmetric pair set for one classification step, returning
+  `none` after a successful neighborhood search and preserving a previously halted state.
+* `classifyScan_bad_tests_card`: For `64 ≤ n` and `0 < δ < 1`, the prescribed positive sample
+  size gives `bad * n^3 ≤ 2 * n * total` for classification degree test tapes.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +40,8 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- Update the optional symmetric pair set for one classification step, returning `none` after a
+successful neighborhood search and preserving a previously halted state. -/
 def scanTapeNext (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ) (stape : Fin n→sgs.seed)
     (v : Fin n) (state : Option (SymmetricPairSet n)) (row : Fin K→Fin c→Fin n) : Option (SymmetricPairSet n) :=
   match state with
@@ -31,6 +54,8 @@ def scanTapeNext (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ) (stape : Fin
       | some _=>none
       | none=>some (highRemaining G Sd v)
 
+/-- Require the degree test at a classification step to be correct when the drained state has
+incident pairs; halted or empty steps satisfy the predicate automatically. -/
 def scanTapeCorrect (G : UGraph n) (τ dHi dLo K c : ℕ)
     (v : Fin n) (state : Option (SymmetricPairSet n)) (row : Fin K→Fin c→Fin n) : Prop :=
   match state with
@@ -40,6 +65,8 @@ def scanTapeCorrect (G : UGraph n) (τ dHi dLo K c : ℕ)
     if pairsAt Sd.edges v=∅ then True
     else testCorrectCorrected (presentGraph G Sd.edges Sd.symm) v dHi dLo K c row
 
+/-- An adaptive classification computation starting in the halted state satisfies its
+correctness predicate for every remaining vertex list and tape. -/
 theorem scanTapeGood_halted (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c : ℕ)
     (stape : Fin n→sgs.seed) (vs : List (Fin n)) (t : Fin n→Fin K→Fin c→Fin n) :
     adaptiveTapeGood (scanTapeNext G sgs τ K c stape) (scanTapeCorrect G τ dHi dLo K c) vs none t := by
@@ -47,6 +74,8 @@ theorem scanTapeGood_halted (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c 
   | nil => trivial
   | cons v vs ih => exact ⟨trivial,ih⟩
 
+/-- Adaptive tape correctness from `some S` is equivalent to correctness of the degree tests
+reached by `classifyScan` from `S`. -/
 theorem scanTapeGood_iff (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c : ℕ)
     (stape : Fin n→sgs.seed) (vs : List (Fin n)) (S : SymmetricPairSet n)
     (t : Fin n→Fin K→Fin c→Fin n) :
@@ -68,6 +97,8 @@ theorem scanTapeGood_iff (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c : �
         (try dsimp only)
         exact and_congr_right (fun _=>ih (highRemaining G (drainedPairSet S τ) v))
 
+/-- For positive `n` and `0 < δ < 1`, the prescribed positive sample size and repetition count
+give `bad * n^3 ≤ 2 * n * total` for classification degree test tapes. -/
 theorem classifyScan_bad_tests_card_positive (n : ℕ) (δ : ℝ) (hn : 0<n) (hδ : 0<δ) (hδ1 : δ<1) :
     let K : ℕ :=64*(Nat.log 2 n+2)
     let c : ℕ :=Nat.ceil ((n:ℝ)^δ)
@@ -94,6 +125,8 @@ theorem classifyScan_bad_tests_card_positive (n : ℕ) (δ : ℝ) (hn : 0<n) (h�
     (n^3) 2 herr Finset.univ.toList Finset.univ.nodup_toList (some S)
   simpa only [scanTapeGood_iff,Finset.length_toList,Finset.card_univ,Fintype.card_fin,Nat.mul_comm] using hh
 
+/-- For `64 ≤ n` and `0 < δ < 1`, the prescribed positive sample size gives `bad * n^3 ≤ 2 * n *
+total` for classification degree test tapes. -/
 theorem classifyScan_bad_tests_card (n : ℕ) (δ : ℝ) (hn : 64≤n) (hδ : 0<δ) (hδ1 : δ<1) :
     let K : ℕ :=64*(Nat.log 2 n+2)
     let c : ℕ :=Nat.ceil ((n:ℝ)^δ)

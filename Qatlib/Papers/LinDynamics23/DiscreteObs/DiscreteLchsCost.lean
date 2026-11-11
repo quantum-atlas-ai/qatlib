@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+
+/-!
+# Discrete LCHS vector and preparation stability
+
+`general_discrete_lchs_vector_stability` bounds the norm and normalized-vector error of a
+discrete linear combination approximating a target vector. The prepared-output theorem transfers
+these bounds to the actual compiled branch, including circuit and query identities, while
+`lchs_two_term_combination_vector_bound` combines homogeneous and inhomogeneous approximation
+errors. See [AnChildsLin2026] for the paper context.
+
+## Main statements
+
+* `general_discrete_lchs_vector_stability`: Under the stated unitary and coefficient-mass
+  hypotheses, if the discrete vector is within `η < τ` of a target of norm `τ` and has positive
+  norm, its norm is at least `τ - η` and the normalized vectors differ by at most `2 * η / τ`.
+* `general_discrete_lchs_actual_prepared_output`: With positive coefficient mass `α`, unitary
+  preparation and summands, and vector error at most `η < τ`, the zero-amplification compilation
+  is unitary with zero queries and word length four; its selected branch has squared norm at
+  least `((τ - η) / α) ^ 2` and normalized error at most `2 * η / τ`.
+* `lchs_two_term_combination_vector_bound`: Combining a homogeneous approximation with error
+  `η₁` on the normalized input and an inhomogeneous approximation with error `η₂` gives total
+  vector error at most `‖x₀‖ * η₁ + η₂` and the corresponding lower bound on the reconstructed
+  norm.
+
+## References
+
+* [An et al., 2026][AnChildsLin2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -25,6 +54,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Under the stated unitary and coefficient-mass hypotheses, if the discrete vector is within
+`η < τ` of a target of norm `τ` and has positive norm, its norm is at least `τ - η` and the
+normalized vectors differ by at most `2 * η / τ`. -/
 theorem general_discrete_lchs_vector_stability :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (E : Matrix I I ℂ) (x₀ : QState I) (η : ℝ),
@@ -54,6 +86,10 @@ theorem general_discrete_lchs_vector_stability :
   · simpa only [NormedSpace.normalize, toEuclidean_fromVec, WithLp.toLp_sub,
       WithLp.toLp_smul, Complex.coe_smul] using! (normalize_error_of_gap hclose hgap).2
 
+/-- With positive coefficient mass `α`, unitary preparation and summands, and vector error at
+most `η < τ`, the zero-amplification compilation is unitary with zero queries and word
+length four; its selected branch has squared norm at least `((τ - η) / α) ^ 2` and
+normalized error at most `2 * η / τ`. -/
 theorem general_discrete_lchs_actual_prepared_output :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (N : ℕ) (c : Fin N → ℂ)
     (V : Fin N → Matrix I I ℂ) (B : Matrix I I ℂ) (i₀ : I) (j₀ : Fin N)
@@ -112,6 +148,9 @@ theorem general_discrete_lchs_actual_prepared_output :
     simpa only [NormedSpace.normalize, toEuclidean_fromVec, WithLp.toLp_sub,
       WithLp.toLp_smul, Complex.coe_smul] using! herr
 
+/-- Combining a homogeneous approximation with error `η₁` on the normalized input and an
+inhomogeneous approximation with error `η₂` gives total vector error at most `‖x₀‖ * η₁ +
+η₂` and the corresponding lower bound on the reconstructed norm. -/
 theorem lchs_two_term_combination_vector_bound :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (N₁ N₂ : ℕ) (c : Fin N₁ → ℂ)
     (V : Fin N₁ → Matrix I I ℂ) (c' : Fin N₂ → ℂ) (b : Fin N₂ → QState I)

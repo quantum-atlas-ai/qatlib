@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceDecode
+
+/-!
+# Teleportation with maximally entangled qudit resources
+
+This module proves `quditMaxEntResourceTeleportation` using the decoded branch Gram identity.
+For a resource built from two orthonormal families, scaling each branch adjoint by the dimension
+gives a unitary correction and a corrected branch equal to `1 / n²` times the input.
+
+The result formalizes the resource dependent correction mechanism of
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `quditMaxEntResourceTeleportation`: unitary branch corrections and exact scaled recovery.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,9 @@ namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators
 
+/-- For a maximally entangled resource in orthonormal family form, each decoded branch Kraus
+operator `K` has unitary correction `n • Kᴴ`, and the corrected branch sends every operator
+to `1 / n²` times itself [BennettEtAl1993Teleportation]. -/
 theorem quditMaxEntResourceTeleportation : QuditMaxEntResourceTeleportation := by
   intro n _ u v hu hv o
   let K := quditResourceBranchKraus n (quditMaxEntResource n u v) o

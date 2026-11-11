@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+
+/-!
+# Progress bounds for classification
+
+Proves cardinality monotonicity for draining and low-degree removal, and quantifies the pairs
+removed by a correct high-degree step. The accumulated inequality `classifyScan_high_account`
+controls the number of high branches using the initial pair count; see [Ambainis2005] for
+quantum graph-search background.
+
+## Main statements
+
+* `highStep_progress`: A correct degree test reporting high degree after draining ensures that
+  the high-step edge bucket receives at least `dLo * τ` pairs.
+* `classifyScan_high_account`: With correct tests, the high-branch count times `dLo * τ` plus
+  the final remaining pair count is at most the initial pair count plus `dLo * τ`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,16 +37,22 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- Draining a symmetric pair set does not increase its edge cardinality. -/
 theorem drainedPairSet_card_le (S : SymmetricPairSet n) (τ : ℕ) :
     (drainedPairSet S τ).edges.card≤S.edges.card := Finset.card_le_card (drainPaired_partition S.edges τ S.edges.card).1
 
+/-- Removing the pairs incident to a low-degree vertex does not increase the edge cardinality. -/
 theorem lowRemaining_card_le (S : SymmetricPairSet n) (v : Fin n) :
     (lowRemaining S v).edges.card≤S.edges.card := Finset.card_le_card Finset.sdiff_subset
 
+/-- The remaining high-step pairs and the pairs added to the edge bucket have cardinalities
+summing to the original pair cardinality. -/
 theorem highRemaining_card_balance (G : UGraph n) (S : SymmetricPairSet n) (v : Fin n) :
     (highRemaining G S v).edges.card+(highEadd G S.edges v).card=S.edges.card :=
   Finset.card_sdiff_add_card_eq_card (Finset.filter_subset _ _)
 
+/-- A correct degree test reporting high degree after draining ensures that the high-step edge
+bucket receives at least `dLo * τ` pairs. -/
 theorem highStep_progress (G : UGraph n) (S : SymmetricPairSet n) (τ dHi dLo K c : ℕ)
     (v : Fin n) (tape : Fin K→Fin c→Fin n)
     (hc : testCorrectCorrected (presentGraph G (drainedPairSet S τ).edges (drainedPairSet S τ).symm) v dHi dLo K c tape)
@@ -39,6 +66,8 @@ theorem highStep_progress (G : UGraph n) (S : SymmetricPairSet n) (τ dHi dLo K 
   exact (Nat.mul_le_mul_right τ hd).trans
     (highEadd_progress G _ (drainedPairSet S τ).symm v τ (drainPaired_fixpoint S.edges τ S.edges.card le_rfl))
 
+/-- With correct tests, the high-branch count times `dLo * τ` plus the final remaining pair
+count is at most the initial pair count plus `dLo * τ`. -/
 theorem classifyScan_high_account (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n)

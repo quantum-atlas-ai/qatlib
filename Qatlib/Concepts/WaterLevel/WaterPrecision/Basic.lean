@@ -5,6 +5,19 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WaterLevel.WaterPrecision.Defs
+
+/-!
+# Perturbation bounds for water-level fidelity
+
+Theorems `g1` and `g2` propagate coordinatewise table errors through clipped fills, mass,
+overlap, and normalized fidelity, with a positive mass lower bound controlling the quotient.
+Theorem `g3` certifies the signs returned by a rational residual test and bounds the uncertainty
+when it returns no answer.
+
+These estimates support the water-level viewpoint of quantum rejection sampling
+[OzolsRoettelerRoland2013], developed by [Ozols et al., 2013][OzolsRoettelerRoland2013].
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +27,8 @@ namespace Qatlib.Concepts.WaterLevel.WaterPrecision
 open Qatlib.Concepts.WaterLevel.WaterPrecision Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- Taking the minimum of two real inputs preserves a common absolute perturbation bound on the
+two arguments. -/
 private theorem min_error (a b c d e : ℝ) (hac : |a-c| ≤ e) (hbd : |b-d| ≤ e) :
     |min a b - min c d| ≤ e := by
   obtain ⟨hac₁,hac₂⟩ := abs_le.mp hac
@@ -24,12 +39,16 @@ private theorem min_error (a b c d e : ℝ) (hac : |a-c| ≤ e) (hbd : |b-d| ≤
     le_min (by linarith [min_le_left c d]) (by linarith [min_le_right c d])
   exact abs_le.mpr ⟨by linarith, by linarith⟩
 
+/-- For bounded nonnegative tables and a nonnegative level, each clipped fill lies between zero
+and the table bound `B`. -/
 private theorem fill_bounds {m : ℕ} {p s : Fin m → ℝ} {B γ : ℝ}
     (h : TableBound p s B) (hγ : 0 ≤ γ) (i : Fin m) :
     0 ≤ realFill p s γ i ∧ realFill p s γ i ≤ B := by
   exact ⟨le_min (h i).1 (mul_nonneg hγ (h i).2.2.1),
     (min_le_left _ _).trans (h i).2.1⟩
 
+/-- If two values lie in `[0, B]` and differ by at most a nonnegative `e`, their squares differ
+by at most `2 * B * e`. -/
 private theorem square_error (a b B e : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b)
     (haB : a ≤ B) (hbB : b ≤ B) (he : 0 ≤ e) (hab : |a-b| ≤ e) :
     |a^2-b^2| ≤ 2*B*e := by
@@ -39,6 +58,8 @@ private theorem square_error (a b B e : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b)
     _ ≤ e*(2*B) := mul_le_mul_of_nonneg_left (by linarith) he
     _ = _ := by ring
 
+/-- For nonnegative tables bounded by `B` and a nonnegative level, the fill overlap lies between
+zero and `m * B^2`. -/
 private theorem dot_bounds {m : ℕ} {p s : Fin m → ℝ} {B γ : ℝ}
     (hB : 0 ≤ B) (hγ : 0 ≤ γ) (h : TableBound p s B) :
     0 ≤ realDot p s γ ∧ realDot p s γ ≤ (m:ℝ)*B^2 := by
@@ -53,6 +74,9 @@ private theorem dot_bounds {m : ℕ} {p s : Fin m → ℝ} {B γ : ℝ}
           mul_le_mul (h i).2.2.2 (fill_bounds h hγ i).2 (fill_bounds h hγ i).1 hB]
       _ = _ := by simp
 
+/-- Propagates coordinatewise input error through clipped fills, squared mass, and target
+overlap using `fillError`, `massError`, and `dotError`. Both tables must satisfy the same
+nonnegative bound, and the level must lie in `[0, L]`. -/
 theorem g1 :
   ∀ (m : ℕ) (p s p' s' : Fin m→ℝ) (B L δ γ : ℝ),
     0≤B → 0≤L → 0≤δ → 0≤γ → γ≤L → TableBound p s B → TableBound p' s' B → inputError p s p' s' δ →
@@ -100,6 +124,9 @@ theorem g1 :
           _ = _ := by ring
       _ = dotError m B L δ := by simp [dotError]; ring
 
+/-- Bounds the perturbation of `a^2 / u` when nonnegative numerators are bounded by `K` and both
+denominators are at least a positive `r`. The estimate separates numerator error and
+denominator error with factors `1 / r` and `1 / r^2`. -/
 private theorem quotient_error (a b u v K ed em r : ℝ)
     (ha : 0≤a) (hb : 0≤b) (haK : a≤K) (hbK : b≤K)
     (hed : 0≤ed) (hem : 0≤em) (hr : 0<r) (hu : r≤u) (hv : r≤v)
@@ -121,6 +148,9 @@ private theorem quotient_error (a b u v K ed em r : ℝ)
     _ ≤ (2*K*ed)/u+(K^2*em)/(u*v) := by gcongr
     _ ≤ (2*K*ed)/r+(K^2*em)/r^2 := by gcongr
 
+/-- Bounds the change in normalized water-level fidelity under bounded coordinatewise table
+perturbations. A common positive lower bound `ρ` on both masses controls the overlap and
+mass contributions to the quotient error. -/
 theorem g2 :
   ∀ (m : ℕ) (p s p' s' : Fin m→ℝ) (B L δ γ ρ : ℝ),
     0≤B → 0≤L → 0≤δ → 0≤γ → γ≤L → 0<ρ →
@@ -140,6 +170,8 @@ theorem g2 :
     (by dsimp [dotError,fillError]; positivity) (by dsimp [massError,fillError]; positivity)
     hρ hm hm' heD heM
 
+/-- Bounds the perturbation of the fidelity residual by the squared-overlap error plus `|a|`
+times the mass error, under the bounded-table and level hypotheses. -/
 private theorem residual_error {m : ℕ} (p s p' s' : Fin m→ℝ) (B L δ γ a : ℝ)
     (hB : 0≤B) (hL : 0≤L) (hδ : 0≤δ) (hγ : 0≤γ) (hγL : γ≤L)
     (hp : TableBound p s B) (hp' : TableBound p' s' B) (hi : inputError p s p' s' δ) :
@@ -156,12 +188,17 @@ private theorem residual_error {m : ℕ} (p s p' s' : Fin m→ℝ) (B L δ γ a 
   exact (abs_sub _ _).trans
       (by rw [abs_mul]; exact add_le_add hs (mul_le_mul_of_nonneg_left heM (abs_nonneg a)))
 
+/-- Casting a rational residual to the reals gives the real residual of the cast tables at the
+same level and threshold. -/
 private theorem residualRat_cast {m : ℕ} (q r : Fin m→ℚ) (γ a : ℚ) :
     (residualRat q r γ a : ℝ) = residual (fun i => (q i:ℝ)) (fun i => (r i:ℝ)) γ a := by
   unfold residualRat residual realDot realMass realFill
   push_cast
   all_goals rfl
 
+/-- Certifies positive and negative answers from a rational residual approximation with error at
+most `e`. An undecided answer forces the true residual to have magnitude at most `2 * e`,
+and a larger gap forces a decision. -/
 private theorem classify (x : ℝ) (q e : ℚ) (_he : 0≤e) (hx : |x-(q:ℝ)|≤(e:ℝ)) :
     (decideResidual q e=some true → 0<x) ∧
     (decideResidual q e=some false → x<0) ∧
@@ -180,6 +217,9 @@ private theorem classify (x : ℝ) (q e : ℚ) (_he : 0≤e) (hx : |x-(q:ℝ)|�
     exact ⟨by simp,by simp,fun _ => hbound,
       fun hgap => False.elim ((not_lt_of_ge hbound) hgap)⟩
 
+/-- Certifies the three outcomes of the rational residual test for a bounded approximation to
+real input tables, including a `2 * residualError` uncertainty bound. A positive answer also
+puts the real fidelity strictly above the threshold whenever the real mass is positive. -/
 theorem g3 :
   ∀ (m : ℕ) (p s : Fin m→ℝ) (q r : Fin m→ℚ) (B L δ γ a : ℚ),
     0≤B → 0≤L → 0≤δ → 0≤γ → γ≤L →

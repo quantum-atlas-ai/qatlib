@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
 import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+
+/-!
+# Statement of Euclidean sketch spectral stability
+
+This module defines `SketchSingularValueL2Stability`, the conditional two-stage sampling
+statement for Euclidean errors in squared singular values. It requires domination of row and
+column energy distributions and an explicit combined concentration-scale budget. The resulting
+joint law assigns each sample pair its row probability times its conditional column probability
+and bounds the failure probability by `δ` [ChiaEtAl2022].
+
+## Main statements
+
+* `SketchSingularValueL2Stability`: the probabilistic squared-singular-value stability
+  statement.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -19,6 +39,9 @@ namespace Qatlib.Concepts.SketchSpectral.SketchAnalysis
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The two-stage sampling statement giving a joint conditional sampling law whose Euclidean
+error in squared singular values exceeds ε times the source squared energy with probability
+at most `δ`, under the stated domination and sample-scale assumptions. -/
 def SketchSingularValueL2Stability : Prop :=
   ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (A : Matrix K C ℂ) (r c : ℕ) (ε δ φ₁ φ₂ : ℝ)

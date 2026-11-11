@@ -106,6 +106,28 @@ import Mathlib.Topology.Separation.GDelta
 import Mathlib.Topology.Separation.Regular
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Finite spectral exponential damping
+
+This module defines `imaginaryTimeState` as a finite exponentially weighted vector sum and
+`gaugeFixedState` by subtracting a reference energy. It computes the derivative and factors out
+the common reference-energy exponential.
+
+A strict minimum-energy hypothesis yields convergence of the gauge-fixed curve to its
+lowest-energy term. Nonzero coefficient and vector hypotheses then give normalized convergence,
+providing finite damping estimates for the imaginary-time framework of [McArdleTew2020].
+
+## Main statements
+
+* `gaugeFixedState_tendsto`: convergence under a strict minimum-energy hypothesis.
+* `imaginaryTimeState_normalizedLimit`: normalized convergence when the retained term is
+  nonzero.
+
+## References
+
+* [McArdle and Tew, 2020][McArdleTew2020]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -116,14 +138,18 @@ open scoped RealInnerProductSpace Topology
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- The finite sum of vectors weighted by `exp(-eig i * τ) * c i`. -/
 def imaginaryTimeState {ι : Type*} [Fintype ι] (eig : ι → ℝ) (c : ι → ℝ) (v : ι → E)
     (τ : ℝ) : E :=
   ∑ i, (Real.exp (-(eig i) * τ) * c i) • v i
 
+/-- The finite damping sum with every assigned energy shifted by `eig i0`. -/
 def gaugeFixedState {ι : Type*} [Fintype ι] (eig : ι → ℝ) (c : ι → ℝ) (v : ι → E)
     (i0 : ι) (τ : ℝ) : E :=
   ∑ i, (Real.exp (-(eig i - eig i0) * τ) * c i) • v i
 
+/-- The derivative of the finite imaginary-time sum is the negative sum of its terms multiplied
+by their assigned energies. -/
 lemma imaginaryTimeState_hasDerivAt {ι : Type*} [Fintype ι]
     (eig : ι → ℝ) (c : ι → ℝ) (v : ι → E) (τ : ℝ) :
     HasDerivAt (imaginaryTimeState eig c v)
@@ -158,6 +184,8 @@ lemma imaginaryTimeState_hasDerivAt {ι : Type*} [Fintype ι]
   rw [← hderiv]
   exact hsum
 
+/-- If `i0` has strictly lower energy than every other index, the gauge-fixed damping curve
+converges to `c i0 • v i0`. -/
 theorem gaugeFixedState_tendsto {ι : Type*} [Fintype ι]
     (eig : ι → ℝ) (c : ι → ℝ) (v : ι → E) (i0 : ι)
     (hgap : ∀ i, i ≠ i0 → eig i0 < eig i) :
@@ -188,6 +216,7 @@ theorem gaugeFixedState_tendsto {ι : Type*} [Fintype ι]
     simp [ite_smul]
   simpa only [hlim] using hsum
 
+/-- The imaginary-time sum equals the gauge-fixed sum multiplied by `exp(-eig i0 * τ)`. -/
 lemma imaginaryTimeState_eq_exp_smul_gaugeFixed {ι : Type*} [Fintype ι]
     (eig : ι → ℝ) (c : ι → ℝ) (v : ι → E) (i0 : ι) (τ : ℝ) :
     imaginaryTimeState eig c v τ =
@@ -206,12 +235,15 @@ lemma imaginaryTimeState_eq_exp_smul_gaugeFixed {ι : Type*} [Fintype ι]
   rw [hexp]
   ring
 
+/-- Normalization by inverse norm is unchanged by multiplication by a positive real scalar. -/
 lemma inv_norm_smul_eq {r : ℝ} (hr : 0 < r) (u : E) :
     (‖r • u‖)⁻¹ • (r • u) = (‖u‖)⁻¹ • u := by
   rw [norm_smul, Real.norm_eq_abs, abs_of_pos hr, mul_inv, smul_smul]
   congr 1
   rw [mul_assoc, mul_comm ‖u‖⁻¹ r, ← mul_assoc, inv_mul_cancel₀ hr.ne', one_mul]
 
+/-- If `i0` has strictly lower energy than all other indices and its coefficient and vector are
+nonzero, the normalized damping curve converges to the normalized `i0` term. -/
 theorem imaginaryTimeState_normalizedLimit {ι : Type*} [Fintype ι]
     (eig : ι → ℝ) (c : ι → ℝ) (v : ι → E) (i0 : ι)
     (hgap : ∀ i, i ≠ i0 → eig i0 < eig i) (hv0 : v i0 ≠ 0) (hc0 : c i0 ≠ 0) :

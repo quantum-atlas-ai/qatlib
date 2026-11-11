@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
 import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+
+/-!
+# Statement of the truncated second-sketch isometry
+
+`TruncatedSketchSecondIsometry` specifies a near-isometry bound after discarding singular values
+below a positive threshold and scaling the retained directions by their reciprocals. It relates
+the Frobenius error between the source and sketch outer Gram matrices to an operator-norm bound
+against the retained-coordinate projector in [ChiaEtAl2022].
+
+## Main statements
+
+* `TruncatedSketchSecondIsometry`: The proposition that a Gram error at most `η₂ ≤ τ² * α`, with
+  `τ > 0`, bounds the threshold-whitened Gram matrix's operator-norm distance from the
+  retained-coordinate projector by `α`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
@@ -17,6 +37,9 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSVT
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The proposition that a Gram error at most `η₂ ≤ τ² * α`, with `τ > 0`, bounds the
+threshold-whitened Gram matrix's operator-norm distance from the retained-coordinate
+projector by `α`. -/
 def TruncatedSketchSecondIsometry : Prop :=
   ∀ (C RS CT : Type) [Fintype C] [DecidableEq C] [Fintype RS] [DecidableEq RS]
     [Fintype CT] [DecidableEq CT]

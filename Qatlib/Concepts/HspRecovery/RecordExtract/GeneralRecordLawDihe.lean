@@ -10,6 +10,26 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Push
 import Mathlib.Tactic.SimpRw
+
+/-!
+# The general dihedral record law
+
+This module proves `SourceGeneralRecordLaw` for every nonzero modulus. A reflection-hiding
+oracle gives a Fourier-label branch that factors into `dihedralQubitState` and an output
+amplitude with squared norm sum `1 / N`, supplying the record-generation step used in
+[Kuperberg2005].
+
+## Main statements
+
+* `source_record_joint_apply`: explicit Fourier-sum amplitudes.
+* `source_record_factor`: phase-qubit factorization under the hiding promise.
+* `sourceGeneralRecordLaw`: the factorization together with one-query, one-gate circuit counts.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.CyclicRecovery
@@ -22,11 +42,15 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.HspRecovery.RecordExtract
 open Matrix
 
+/-- Applying a tensor product of a matrix with the identity acts on each fixed-second-coordinate
+slice by that matrix. -/
 private theorem source_tensor_one_slice {I : Type*} {J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (U : Matrix I I ℂ) (ψ : QState (I×J)) (x : I) (y : J) :
     ApplyGate (TensorGate U 1) ψ (x,y)=ApplyGate U (fun a => ψ (a,y)) x := by
   simp [ApplyGate,TensorGate,Matrix.mulVec,dotProduct,Fintype.sum_prod_type,Matrix.one_apply]
 
+/-- A dihedral record amplitude is the normalized Fourier sum over inputs with the specified tag
+and oracle output. -/
 private theorem source_record_joint_apply (N : ℕ) [NeZero N] {S : Type*} [Fintype S] [DecidableEq S] [AddCommGroup S]
     (f : DihedralReg N → S) (k : ZMod N) (t : Bool) (z : S) :
     dihedralRecordJoint N f ((k,t),z) =
@@ -46,6 +70,8 @@ private theorem source_record_joint_apply (N : ℕ) [NeZero N] {S : Type*} [Fint
   · have hsub : z-f (a,t) ≠ 0 := sub_ne_zero.2 (Ne.symm hz)
     simp [TensorState,Ket,hz,hsub]
 
+/-- For a reflection-hiding oracle, each Fourier-label branch is the phase qubit times an output
+amplitude whose squared norms sum to `1 / N`. -/
 private theorem source_record_factor (N : ℕ) [NeZero N] {S : Type*} [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg N → S) (s : ZMod N) (hf : DihedralReflectionHides N f s)
     (k : ZMod N) : ∃ γ : S → ℂ, (∑ z, ‖γ z‖^2)=1/(N : ℝ) ∧
@@ -129,6 +155,8 @@ private theorem source_record_factor (N : ℕ) [NeZero N] {S : Type*} [Fintype S
       dsimp [A]
       field_simp
 
+/-- The general dihedral record law holds for every nonzero modulus, with one query, one gate,
+and the stated qubit factorization [Kuperberg2005]. -/
 theorem sourceGeneralRecordLaw : SourceGeneralRecordLaw := by
   intro N _ S _ _ _ f s hf
   refine ⟨by simp [dihedralRecordCircuit, QueryCount],

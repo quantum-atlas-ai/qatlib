@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+/-!
+# Hermitian dilation of rectangular systems
+
+The block matrix `hermitianDilation` embeds a rectangular matrix and its adjoint into a
+Hermitian operator. Its pseudoinverse recovers the original least-squares vector from
+`dilationInput`, with uniqueness at the minimum solution norm and a residual norm decomposition.
+Related mathematical background is given in [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `hermitianDilation_pseudoinverse`: Block formula for the dilation pseudoinverse.
+* `rectangular_dilation_reduction`: Existence of a dilation reduction.
+* `rectangular_dilation_solution`: Least-squares and norm identities for the embedded solution.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +39,8 @@ namespace Qatlib.Concepts.QlsReadoutSpec.RectDilation
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The Hermitian block dilation with zero diagonal blocks and off-diagonal blocks `A` and its
+conjugate transpose. -/
 noncomputable def hermitianDilation {O I : Type} [Fintype O] [Fintype I]
     (A : Matrix O I ℂ) : Matrix (O ⊕ I) (O ⊕ I) ℂ :=
   Matrix.of fun p q =>
@@ -28,6 +50,8 @@ noncomputable def hermitianDilation {O I : Type} [Fintype O] [Fintype I]
     | Sum.inr i, Sum.inl o => star (A o i)
     | Sum.inr i, Sum.inr i' => 0
 
+/-- The embedding of a right-hand side into the output summand, with zero coordinates in the
+input summand. -/
 noncomputable def dilationInput {O I : Type} [Fintype O] [Fintype I]
     (b : QState O) : QState (O ⊕ I) :=
   fun p =>
@@ -35,18 +59,23 @@ noncomputable def dilationInput {O I : Type} [Fintype O] [Fintype I]
     | Sum.inl o => b o
     | Sum.inr _ => 0
 
+/-- A rectangular matrix and right-hand side forming the data of a Hermitian dilation reduction. -/
 structure DilationReduction (O I : Type) where
 
   A : Matrix O I ℂ
 
   b : QState O
 
+/-- The condition that the dilation is Hermitian and its pseudoinverse solution restricts on the
+input summand to the original least-squares vector. -/
 noncomputable def DilationReduction.ReducesAt {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (R : DilationReduction O I) : Prop :=
   (hermitianDilation R.A).IsHermitian ∧
     leastSquaresVector R.A R.b = fun i =>
       (matrixPseudoinverse (hermitianDilation R.A) *ᵥ dilationInput R.b) (Sum.inr i)
 
+/-- The Hermitian dilation equals the block matrix with off-diagonal blocks `A` and `Aᴴ` and
+zero diagonal blocks. -/
 theorem hermitianDilation_eq_fromBlocks {O I : Type} [Fintype O] [Fintype I]
     (A : Matrix O I ℂ) :
     hermitianDilation A =
@@ -58,12 +87,15 @@ theorem hermitianDilation_eq_fromBlocks {O I : Type} [Fintype O] [Fintype I]
   · simp [hermitianDilation, Matrix.fromBlocks]
   · simp [hermitianDilation, Matrix.fromBlocks]
 
+/-- The dilation of every rectangular complex matrix is Hermitian. -/
 theorem hermitianDilation_isHermitian {O I : Type} [Fintype O] [Fintype I]
     (A : Matrix O I ℂ) : (hermitianDilation A).IsHermitian := by
   show (hermitianDilation A)ᴴ = hermitianDilation A
   rw [hermitianDilation_eq_fromBlocks, Matrix.fromBlocks_conjTranspose]
   simp
 
+/-- The pseudoinverse of the Hermitian dilation has zero diagonal blocks and off-diagonal blocks
+given by the pseudoinverse and its conjugate transpose. -/
 theorem hermitianDilation_pseudoinverse {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) :
     matrixPseudoinverse (hermitianDilation A) =
@@ -134,6 +166,9 @@ theorem hermitianDilation_pseudoinverse {O I : Type} [Fintype O] [DecidableEq O]
     matrixPseudoinverse_unique (hermitianDilation A) B hDBD hBDB hDBadj hBDadj
   exact hBuniq.symm
 
+/-- Every rectangular system possesses dilation-reduction data with the same matrix and
+right-hand side satisfying `DilationReduction.ReducesAt`. See [Harrow et al., non-Hermitian
+reduction][HarrowHassidimLloyd2009]. -/
 theorem rectangular_dilation_reduction :
     ∀ (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
       (A : Matrix O I ℂ) (b : QState O),
@@ -147,6 +182,10 @@ theorem rectangular_dilation_reduction :
   funext i
   simp [Function.comp_def,dilationInput,Matrix.fromBlocks_mulVec,leastSquaresVector]
 
+/-- The dilation pseudoinverse applied to the embedded right-hand side equals zero on the output
+summand and the least-squares vector on the input summand. The latter is unique among
+least-squares vectors with its norm and satisfies the stated zero-overlap and residual norm
+identities. -/
 theorem rectangular_dilation_solution {O I : Type} [Fintype O] [DecidableEq O]
     [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O) :
     (hermitianDilation A).IsHermitian ∧

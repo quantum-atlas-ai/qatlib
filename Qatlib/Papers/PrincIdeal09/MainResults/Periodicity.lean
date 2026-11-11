@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.PrincIdeal09.MainResults.Framework
+
+/-!
+# Integer windows in the regulator period model
+
+Ceilings define the first integer index `windowStart` and the final offset `windowRun` of a
+form's regulator window. The main statements locate entries near translates of the approximate
+distance and bound constant-output runs, their successor transition, and their variation across
+regulator shifts [Schmidt2009].
+
+## Main statements
+
+* `lemma1_period_entry`: Each regulator translate has an entry index with bounded displacement
+  and the stated predecessor transition.
+* `lemma2_run`: Window runs obey length, constant-output, successor, and variation bounds.
+
+## References
+
+* [Schmidt, 2009][Schmidt2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,12 +33,17 @@ noncomputable section
 
 namespace Qatlib.Papers.PrincIdeal09.MainResults
 
+/-- The ceiling of four times the lower endpoint of a regulator window. -/
 def windowStart (M : RegPeriodModel) (g : M.Form) (k : ℤ) : ℤ :=
   ⌈4 * (M.d g + (k : ℝ) * M.R)⌉
 
+/-- The ceiling-based final offset from `windowStart` lying strictly below the window's upper
+endpoint. -/
 def windowRun (M : RegPeriodModel) (g : M.Form) (k : ℤ) : ℤ :=
   ⌈4 * (M.d (M.succ g) + (k : ℝ) * M.R) - ((windowStart M g k : ℤ) : ℝ)⌉ - 1
 
+/-- The first window index divided by four lies between the lower endpoint and that endpoint
+plus one quarter. -/
 theorem windowStart_spec (M : RegPeriodModel) (g : M.Form) (k : ℤ) :
     M.d g + (k : ℝ) * M.R ≤ ((windowStart M g k : ℤ) : ℝ) / 4 ∧
       ((windowStart M g k : ℤ) : ℝ) / 4 < M.d g + (k : ℝ) * M.R + 1 / 4 := by
@@ -27,6 +52,8 @@ theorem windowStart_spec (M : RegPeriodModel) (g : M.Form) (k : ℤ) :
   dsimp only [windowStart]
   constructor <;> linarith
 
+/-- Real numbers at distance less than one have integer ceilings differing by at most one
+[Schmidt2009]. -/
 theorem abs_ceil_sub_ceil_le_one {p q : ℝ} (h : |p - q| < 1) : |⌈p⌉ - ⌈q⌉| ≤ 1 := by
   rw [abs_lt] at h
   have hq : p < q + 1 := by linarith [h.2]
@@ -44,6 +71,9 @@ theorem abs_ceil_sub_ceil_le_one {p q : ℝ} (h : |p - q| < 1) : |⌈p⌉ - ⌈q
   rw [abs_le]
   omega
 
+/-- With `y = 4 * delta g + 1 / 2`, each regulator translate has an integer index within one of
+`y + 4 * k * R` where the output is `g` and the previous output is its predecessor
+[Schmidt2009]. -/
 theorem lemma1_period_entry (M : RegPeriodModel) (g : M.Form) :
     ∃ y : ℝ, y = 4 * M.delta g + 1 / 2 ∧
       ∀ k : ℤ, ∃ ε : ℝ, |ε| ≤ 1 ∧ ∃ x : ℤ,
@@ -77,6 +107,9 @@ theorem lemma1_period_entry (M : RegPeriodModel) (g : M.Form) :
       rw [hcast, M.succ_pred]
       nlinarith [(windowStart_spec M g k).2]
 
+/-- Under the stated window-width and regulator bounds, the run is at least one and less than
+`log Δ + 3`, stays at `g` through its final offset, then reaches the successor, and varies
+by at most four across shifts [Schmidt2009]. -/
 theorem lemma2_run (M : RegPeriodModel) (Δ : ℝ)
     (hΔ : 0 < Δ) (hR : 5 * Real.log Δ < M.R) (g : M.Form) (k : ℤ)
     (hwin : (1 / 2 : ℝ) < M.d (M.succ g) - M.d g)

@@ -11,6 +11,28 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Data.Fin.Basic
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Tactic
+
+/-!
+# Threshold weights for independent repetition
+
+This module defines product weights for success patterns and sums them above a success-count
+threshold. It proves normalization, binomial formulas, threshold monotonicity, and
+coordinatewise monotonicity for probabilities in the unit interval.
+
+The finite-set variants `patternWeightOn` and `acceptWeightOn` support splitting off one trial
+and updating individual success probabilities. See [MarriottWatrous2005].
+
+## Main statements
+
+* `sum_patternWeight`: the pattern weights sum to one.
+* `acceptWeight_const_eq`: the constant-probability tail is a binomial sum.
+* `acceptWeight_mono_coord`: increasing success probabilities increases the tail weight.
+
+## References
+
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,12 +46,17 @@ noncomputable section
 
 variable {N : ℕ}
 
+/-- The product weight of the success pattern `S`, multiplying `p i` on `S` and `1 - p i`
+outside `S`. -/
 def patternWeight (p : Fin N → ℝ) (S : Finset (Fin N)) : ℝ :=
   (∏ i ∈ S, p i) * ∏ i ∈ univ \ S, (1 - p i)
 
+/-- The sum of product-pattern weights for patterns with at least `T` successes. -/
 def acceptWeight (p : Fin N → ℝ) (T : ℕ) : ℝ :=
   ∑ S ∈ univ.powerset.filter (fun S => T ≤ S.card), patternWeight p S
 
+/-- The weights of all success patterns sum to one. See [Marriott and Watrous, Theorem
+4.2][MarriottWatrous2005]. -/
 theorem sum_patternWeight (p : Fin N → ℝ) :
     (∑ S ∈ univ.powerset, patternWeight p S) = 1 := by
   have h := (Finset.prod_add p (fun i => 1 - p i) (univ : Finset (Fin N))).symm
@@ -38,6 +65,7 @@ theorem sum_patternWeight (p : Fin N → ℝ) :
   rw [h]
   simp
 
+/-- Pattern weights are nonnegative when every coordinate probability lies in the unit interval. -/
 theorem patternWeight_nonneg (p : Fin N → ℝ) (hp : ∀ i, 0 ≤ p i)
     (hp1 : ∀ i, p i ≤ 1) (S : Finset (Fin N)) : 0 ≤ patternWeight p S := by
   unfold patternWeight
@@ -45,11 +73,15 @@ theorem patternWeight_nonneg (p : Fin N → ℝ) (hp : ∀ i, 0 ≤ p i)
   · exact Finset.prod_nonneg (fun i _ => hp i)
   · exact Finset.prod_nonneg (fun i _ => by linarith [hp1 i])
 
+/-- Threshold acceptance weights are nonnegative for coordinate probabilities in the unit
+interval. -/
 theorem acceptWeight_nonneg (p : Fin N → ℝ) (hp : ∀ i, 0 ≤ p i)
     (hp1 : ∀ i, p i ≤ 1) (T : ℕ) : 0 ≤ acceptWeight p T := by
   unfold acceptWeight
   exact Finset.sum_nonneg (fun S _ => patternWeight_nonneg p hp hp1 S)
 
+/-- Threshold acceptance weights are at most one for coordinate probabilities in the unit
+interval. -/
 theorem acceptWeight_le_one (p : Fin N → ℝ) (hp : ∀ i, 0 ≤ p i)
     (hp1 : ∀ i, p i ≤ 1) (T : ℕ) : acceptWeight p T ≤ 1 := by
   unfold acceptWeight
@@ -60,6 +92,8 @@ theorem acceptWeight_le_one (p : Fin N → ℝ) (hp : ∀ i, 0 ≤ p i)
         exact patternWeight_nonneg p hp hp1 S
     _ = 1 := sum_patternWeight p
 
+/-- Increasing the success threshold decreases the acceptance weight for probabilities in the
+unit interval. See [Marriott and Watrous, Theorem 4.2][MarriottWatrous2005]. -/
 theorem acceptWeight_mono_threshold (p : Fin N → ℝ) (hp : ∀ i, 0 ≤ p i)
     (hp1 : ∀ i, p i ≤ 1) {T T' : ℕ} (hTT' : T' ≤ T) :
     acceptWeight p T ≤ acceptWeight p T' := by
@@ -71,6 +105,8 @@ theorem acceptWeight_mono_threshold (p : Fin N → ℝ) (hp : ∀ i, 0 ≤ p i)
   · intro S _ _
     exact patternWeight_nonneg p hp hp1 S
 
+/-- When every trial succeeds with weight one, acceptance weight is one exactly when the
+threshold is at most `N`, and zero otherwise. -/
 theorem acceptWeight_one (T : ℕ) :
     acceptWeight (fun _ : Fin N => (1 : ℝ)) T = if T ≤ N then 1 else 0 := by
   classical
@@ -110,6 +146,7 @@ theorem acceptWeight_one (T : ℕ) :
     have hTle : T ≤ S.card := (Finset.mem_filter.mp hS).2
     exact absurd (le_trans hTle hcard) hT
 
+/-- For constant success weight `p`, a pattern has weight `p ^ S.card * (1 - p) ^ (N - S.card)`. -/
 theorem patternWeight_const (p : ℝ) (S : Finset (Fin N)) :
     patternWeight (fun _ => p) S = p ^ S.card * (1 - p) ^ (N - S.card) := by
   unfold patternWeight
@@ -120,6 +157,8 @@ theorem patternWeight_const (p : ℝ) (S : Finset (Fin N)) :
     simp
   rw [h]
 
+/-- For constant success weight, the threshold acceptance weight equals the corresponding
+binomial tail sum. See [Marriott and Watrous, Theorem 4.2][MarriottWatrous2005]. -/
 theorem acceptWeight_const_eq (p : ℝ) (T : ℕ) :
     acceptWeight (fun _ : Fin N => p) T =
       ∑ j ∈ (Finset.range (N + 1)).filter (fun j => T ≤ j),
@@ -160,18 +199,25 @@ section General
 
 variable {ι : Type*} [DecidableEq ι]
 
+/-- The product weight of a pattern `S` relative to trial set `C`, with failure factors on `C`
+outside `S`. -/
 def patternWeightOn (C : Finset ι) (p : ι → ℝ) (S : Finset ι) : ℝ :=
   (∏ j ∈ S, p j) * ∏ j ∈ C \ S, (1 - p j)
 
+/-- The total weight of subsets of `C` containing at least `T` successes. -/
 def acceptWeightOn (C : Finset ι) (p : ι → ℝ) (T : ℕ) : ℝ :=
   ∑ S ∈ C.powerset.filter (fun S => T ≤ S.card), patternWeightOn C p S
 
+/-- Finite-set pattern weights are nonnegative for coordinate probabilities in the unit
+interval. -/
 theorem patternWeightOn_nonneg {C : Finset ι} {p : ι → ℝ} (hp : ∀ j, 0 ≤ p j)
     (hp1 : ∀ j, p j ≤ 1) (S : Finset ι) : 0 ≤ patternWeightOn C p S := by
   unfold patternWeightOn
   exact mul_nonneg (Finset.prod_nonneg (fun i _ => hp i))
     (Finset.prod_nonneg (fun i _ => by linarith [hp1 i]))
 
+/-- If `i` belongs to `C` and not to `S`, split off its failure factor `1 - p i` from the
+pattern weight. -/
 theorem patternWeightOn_insert {C : Finset ι} {p : ι → ℝ} {i : ι} (S : Finset ι)
     (hiC : i ∈ C) (hiS : i ∉ S) :
     patternWeightOn C p S = (1 - p i) * patternWeightOn (C.erase i) p S := by
@@ -192,6 +238,8 @@ theorem patternWeightOn_insert {C : Finset ι} {p : ι → ℝ} {i : ι} (S : Fi
   rw [hdiff, Finset.prod_insert hni]
   ring
 
+/-- If `i` belongs to `C` and not to `S`, the weight of `insert i S` splits off the success
+factor `p i`. -/
 theorem patternWeightOn_insert_insert {C : Finset ι} {p : ι → ℝ} {i : ι} (S : Finset ι)
     (hiC : i ∈ C) (hiS : i ∉ S) :
     patternWeightOn C p (insert i S) = p i * patternWeightOn (C.erase i) p S := by
@@ -207,6 +255,8 @@ theorem patternWeightOn_insert_insert {C : Finset ι} {p : ι → ℝ} {i : ι} 
   rw [hdiff, Finset.prod_insert hiS]
   ring
 
+/-- Split the acceptance weight after inserting a new trial into its failure and success
+contributions. -/
 theorem acceptWeightOn_insert {C : Finset ι} {p : ι → ℝ} {i : ι} (hi : i ∉ C) (T : ℕ) :
     acceptWeightOn (insert i C) p T = (1 - p i) *
         (∑ t ∈ C.powerset, if T ≤ t.card then patternWeightOn C p t else 0)
@@ -233,6 +283,8 @@ theorem acceptWeightOn_insert {C : Finset ι} {p : ι → ℝ} {i : ι} (hi : i 
     split_ifs <;> ring
   rw [Finset.sum_congr rfl h1, Finset.sum_congr rfl h2, Finset.mul_sum, Finset.mul_sum]
 
+/-- Split acceptance weight at an existing trial using patterns on the set with that trial
+erased. -/
 theorem acceptWeightOn_eq_split {C : Finset ι} {p : ι → ℝ} {i : ι} (hiC : i ∈ C) (T : ℕ) :
     acceptWeightOn C p T = (1 - p i) *
         (∑ t ∈ (C.erase i).powerset, if T ≤ t.card then patternWeightOn (C.erase i) p t else 0)
@@ -242,6 +294,8 @@ theorem acceptWeightOn_eq_split {C : Finset ι} {p : ι → ℝ} {i : ι} (hiC :
     (Finset.notMem_erase i C) T
   rwa [Finset.insert_erase hiC] at h
 
+/-- Pattern weights agree when the coordinate functions agree on `C` and `S` is contained in
+`C`. -/
 theorem patternWeightOn_congr {C : Finset ι} {p q : ι → ℝ} (h : ∀ j ∈ C, p j = q j)
     {S : Finset ι} (hS : S ⊆ C) : patternWeightOn C p S = patternWeightOn C q S := by
   unfold patternWeightOn
@@ -249,6 +303,8 @@ theorem patternWeightOn_congr {C : Finset ι} {p q : ι → ℝ} (h : ∀ j ∈ 
   · exact Finset.prod_congr rfl (fun j hj => h j (hS hj))
   · exact Finset.prod_congr rfl (fun j hj => by rw [h j (Finset.mem_sdiff.mp hj).1])
 
+/-- Increasing the threshold decreases the finite-set acceptance weight for probabilities in the
+unit interval. -/
 theorem acceptWeightOn_mono_threshold {C : Finset ι} {p : ι → ℝ} (hp : ∀ j, 0 ≤ p j)
     (hp1 : ∀ j, p j ≤ 1) {T T' : ℕ} (h : T' ≤ T) :
     acceptWeightOn C p T ≤ acceptWeightOn C p T' := by
@@ -259,14 +315,19 @@ theorem acceptWeightOn_mono_threshold {C : Finset ι} {p : ι → ℝ} (hp : ∀
     exact ⟨hS.1, le_trans h hS.2⟩
   · intro S _ _; exact patternWeightOn_nonneg hp hp1 S
 
+/-- The sum of pattern weights on `C` for which one additional success would reach threshold
+`T`. -/
 def lowWeightOn (C : Finset ι) (p : ι → ℝ) (T : ℕ) : ℝ :=
   ∑ t ∈ C.powerset, if T ≤ t.card + 1 then patternWeightOn C p t else 0
 
+/-- Express finite-set acceptance weight as a sum over all subsets with a threshold indicator. -/
 theorem acceptWeightOn_eq_sum_if (C : Finset ι) (p : ι → ℝ) (T : ℕ) :
     acceptWeightOn C p T = ∑ t ∈ C.powerset, if T ≤ t.card then patternWeightOn C p t else 0 := by
   unfold acceptWeightOn
   rw [Finset.sum_filter]
 
+/-- The weight requiring one additional success equals acceptance weight at the truncated
+threshold `T - 1`. -/
 theorem lowWeightOn_eq (C : Finset ι) (p : ι → ℝ) (T : ℕ) :
     lowWeightOn C p T = acceptWeightOn C p (T - 1) := by
   unfold lowWeightOn
@@ -278,6 +339,8 @@ theorem lowWeightOn_eq (C : Finset ι) (p : ι → ℝ) (T : ℕ) :
   · rw [if_pos hT, if_pos (h.mp hT)]
   · rw [if_neg hT, if_neg (fun hc => hT (h.mpr hc))]
 
+/-- Adding a fresh trial expresses acceptance as `(1 - p i)` times the old tail plus `p i` times
+the tail at threshold `T - 1`. -/
 theorem acceptWeightOn_insert_low {C : Finset ι} {p : ι → ℝ} {i : ι} (hi : i ∉ C) (T : ℕ) :
     acceptWeightOn (insert i C) p T = (1 - p i) * acceptWeightOn C p T + p i * acceptWeightOn C p (T - 1) := by
   rw [acceptWeightOn_insert hi T, acceptWeightOn_eq_sum_if]
@@ -285,6 +348,8 @@ theorem acceptWeightOn_insert_low {C : Finset ι} {p : ι → ℝ} {i : ι} (hi 
       = acceptWeightOn C p (T - 1) := lowWeightOn_eq C p T
   rw [h2]
 
+/-- Increasing the success weight of a newly inserted trial cannot decrease acceptance when the
+original coordinate probabilities lie in the unit interval. -/
 theorem acceptWeightOn_update_le {C : Finset ι} {p : ι → ℝ} {i : ι} (hi : i ∉ C)
     (hp : ∀ j, 0 ≤ p j) (hp1 : ∀ j, p j ≤ 1) (x : ℝ) (hx : p i ≤ x)
     (T : ℕ) :
@@ -313,6 +378,8 @@ theorem acceptWeightOn_update_le {C : Finset ι} {p : ι → ℝ} {i : ι} (hi :
       acceptWeightOn_mono_threshold hp hp1 (Nat.sub_le T 1)
   nlinarith [hmono]
 
+/-- Finite-set acceptance weight increases when unit-interval probabilities increase on `C` and
+agree outside `C`. -/
 theorem acceptWeightOn_le_of_le_on (C : Finset ι) (p q : ι → ℝ)
     (hp : ∀ j, 0 ≤ p j) (hp1 : ∀ j, p j ≤ 1)
     (hq : ∀ j, 0 ≤ q j) (hq1 : ∀ j, q j ≤ 1)
@@ -382,9 +449,12 @@ theorem acceptWeightOn_le_of_le_on (C : Finset ι) (p q : ι → ℝ)
 
 end General
 
+/-- Acceptance weight on the universal finite set agrees with `acceptWeight`. -/
 theorem acceptWeightOn_univ (p : Fin N → ℝ) (T : ℕ) :
     acceptWeightOn (univ : Finset (Fin N)) p T = acceptWeight p T := rfl
 
+/-- Coordinatewise increases of unit-interval success probabilities increase the threshold
+acceptance weight. See [Marriott and Watrous, Theorem 4.2][MarriottWatrous2005]. -/
 theorem acceptWeight_mono_coord (p q : Fin N → ℝ)
     (hp : ∀ j, 0 ≤ p j) (hp1 : ∀ j, p j ≤ 1)
     (hq : ∀ j, 0 ≤ q j) (hq1 : ∀ j, q j ≤ 1)
@@ -394,6 +464,8 @@ theorem acceptWeight_mono_coord (p q : Fin N → ℝ)
   exact acceptWeightOn_le_of_le_on (univ : Finset (Fin N)) p q hp hp1 hq hq1
     (fun j _ => h j) (fun j hj => absurd hj (by simp)) T
 
+/-- An upper bound on each coordinate probability gives an upper bound on the threshold
+acceptance weight. -/
 theorem acceptWeight_le_top (p top : Fin N → ℝ)
     (hp : ∀ j, 0 ≤ p j) (hp1 : ∀ j, p j ≤ 1)
     (ht : ∀ j, 0 ≤ top j) (ht1 : ∀ j, top j ≤ 1)

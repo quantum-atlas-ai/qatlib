@@ -11,6 +11,29 @@ import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
 import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitNoisyQSVTSolver
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Finite rational phase programs for inversion
+
+This module builds rational reciprocal coefficients and a rational inverse scale from a square
+root bracket. It passes these data to finite phase synthesis, inserts label Hadamard gates, and
+proves that `finiteInverseWord` gives a counted scaled pseudoinverse encoding in coordinate
+frames. The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `native_reciprocal_coefficients_and_scale`: coefficient semantics, scale bounds, parity,
+  degree, and boundedness.
+* `computed_full_inverse_actual_encoding_and_cost`: successful finite synthesis and the
+  resulting encoding and counts.
+* `finiteInverseWord_actual_odd_corner`: the exact compressed odd response of a synthesized
+  packet.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
@@ -48,21 +71,34 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix Polynomia
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A recursive rational coefficient list for the sum of `(1 - X ^ 2) ^ i` over indices below
+`n`. -/
 def nativeReciprocalFactor : ℕ → List ℚ
   | 0 => []
   | n+1 => ratAddList [1] (ratMulList [1,0,-1] (nativeReciprocalFactor n))
+/-- The reciprocal polynomial coefficient list obtained by prepending a zero to
+`nativeReciprocalFactor n`. -/
 def nativeReciprocalCoefficients (n : ℕ) : List ℚ := 0::nativeReciprocalFactor n
+/-- The ceiling base two logarithm of `8 * max 1 n`, used as the square root bracket precision. -/
 def nativeScaleBits (n : ℕ) := Nat.clog 2 (8*max 1 n)
+/-- Half the lower rational square root bracket endpoint for `1 / n` at precision
+`nativeScaleBits n`. -/
 def nativeInverseScale (n : ℕ) : ℚ := (rationalSqrtBracket ((1:ℚ)/(n:ℚ)) (nativeScaleBits n)).1/2
+/-- The rational reciprocal polynomial coefficients multiplied by `nativeInverseScale n`. -/
 def nativeInverseCoefficients (n : ℕ) : List ℚ :=
   (nativeReciprocalCoefficients n).map (fun x=>nativeInverseScale n*x)
+/-- The rational phase synthesis tolerance `nativeInverseScale n * (1 / 2) ^ (k + 2)`. -/
 def nativeInverseTolerance (n k : ℕ) : ℚ := nativeInverseScale n*(1/2:ℚ)^(k+2)
+/-- The frame embedding `F` into the false label coordinate of the doubled workspace. -/
 noncomputable def coordinatePhaseFrame {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (F : Matrix H I ℂ) := encodingFiber (I := H) false*F
+/-- The computed phase word preceded and followed by a Hadamard gate on the label register. -/
 noncomputable def fullComputedPhaseWord {H : Type} [Fintype H] [DecidableEq H]
     (P Q : Matrix H H ℂ) (data : PhaseData) : List (AdjointStep (Bool × H)) :=
   [.gate (TensorGate Hadamard (1 : Matrix H H ℂ))] ++ computedPhaseWord P Q data ++
     [.gate (TensorGate Hadamard (1 : Matrix H H ℂ))]
+/-- The adjoint phase word synthesized from rational inverse coefficients at the explicit
+cutoff, using the empty word if synthesis returns no packet. -/
 noncomputable def finiteInverseWord {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (kappa k : ℕ) : List (AdjointStep (Bool × H)) :=
@@ -73,6 +109,8 @@ noncomputable def finiteInverseWord {H I O : Type} [Fintype H] [DecidableEq H]
     | none => []
     | some data => adjointCircuit (fullComputedPhaseWord (rangeProjector R) (rangeProjector L) data)
 
+/-- The real polynomial represented by the native reciprocal factor is the geometric sum of
+powers of `1 - X ^ 2` below `n`. -/
 theorem nativeReciprocalFactor_semantics (n : ℕ) :
     realTarget (nativeReciprocalFactor n) = ∑ i ∈ Finset.range n,(1-X^2:Polynomial ℝ)^i := by
   induction n with
@@ -89,15 +127,20 @@ theorem nativeReciprocalFactor_semantics (n : ℕ) :
     intro i hi
     ring
 
+/-- The native reciprocal coefficient list represents `reciprocalPolynomial n` over the reals. -/
 theorem nativeReciprocalCoefficients_semantics (n : ℕ) :
     realTarget (nativeReciprocalCoefficients n) = reciprocalPolynomial n := by
   rw [nativeReciprocalCoefficients,realTarget_cons,nativeReciprocalFactor_semantics,reciprocalPolynomial_eq_sum]
   simp
 
+/-- The native inverse coefficient list represents the reciprocal polynomial multiplied by the
+rational inverse scale. -/
 theorem nativeInverseCoefficients_semantics (n : ℕ) :
     realTarget (nativeInverseCoefficients n) = C (nativeInverseScale n:ℝ)*reciprocalPolynomial n := by
   rw [nativeInverseCoefficients,realTarget_scale,nativeReciprocalCoefficients_semantics]
 
+/-- For positive `n`, the rational inverse scale is positive and lies between `1 / (4 * √n)` and
+`1 / (2 * √n)`, and the bracket reports the requested precision. -/
 theorem nativeInverseScale_bounds (n : ℕ) (hn : 0 < n) :
     0 < nativeInverseScale n ∧ 1/(4*Real.sqrt (n:ℝ)) ≤ (nativeInverseScale n:ℝ) ∧
     (nativeInverseScale n:ℝ) ≤ 1/(2*Real.sqrt (n:ℝ)) ∧
@@ -150,6 +193,8 @@ theorem nativeInverseScale_bounds (n : ℕ) (hn : 0 < n) :
   have hcPos : (0:ℝ) < nativeInverseScale n := lt_of_lt_of_le (by positivity) hcL
   exact ⟨by exact_mod_cast hcPos,hcL,hcU,hcount⟩
 
+/-- For positive `n`, the native coefficients have the reciprocal semantics, scale bounds,
+degree and parity `2 * n - 1`, and absolute value at most one on `[-1, 1]`. -/
 theorem native_reciprocal_coefficients_and_scale : ∀ n : ℕ, 0 < n →
   realTarget (nativeReciprocalCoefficients n)=reciprocalPolynomial n ∧
   0 < nativeInverseScale n ∧
@@ -183,11 +228,14 @@ theorem native_reciprocal_coefficients_and_scale : ∀ n : ℕ, 0 < n →
     rw [hproduct] at hc
     linarith
 
+/-- The Hadamard gate on the label register tensored with the identity on the workspace. -/
 noncomputable def inverseLabelH {H : Type} [Fintype H] [DecidableEq H] : Matrix (Bool×H) (Bool×H) ℂ :=
   TensorGate Hadamard (1:Matrix H H ℂ)
 
+/-- The complex unit phase `(1 + I) / √2` used to relate coordinate and average frames. -/
 noncomputable def inverseLabelPhase : ℂ := (1+Complex.I)/(Real.sqrt 2:ℂ)
 
+/-- The conjugate of `inverseLabelPhase` times itself is one. -/
 theorem inverseLabelPhase_unit : star inverseLabelPhase*inverseLabelPhase = 1 := by
   have hs : (Real.sqrt 2:ℂ)^2 = 2 := by exact_mod_cast (Real.sq_sqrt (by norm_num : (0:ℝ) ≤ 2))
   have hn : (Real.sqrt 2:ℂ) ≠ 0 := by
@@ -198,11 +246,14 @@ theorem inverseLabelPhase_unit : star inverseLabelPhase*inverseLabelPhase = 1 :=
   field_simp
   linear_combination -Complex.I_sq - hs
 
+/-- The coordinate phase frame equals `F` on the false label and zero on the true label. -/
 theorem coordinatePhaseFrame_apply {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (F : Matrix H I ℂ) (b : Bool) (h : H) (i : I) :
     coordinatePhaseFrame F (b,h) i = if b = false then F h i else 0 := by
   simp [coordinatePhaseFrame,encodingFiber,Matrix.mul_apply,ite_and]
 
+/-- The average frame equals the label Hadamard applied to the coordinate frame, multiplied by
+`inverseLabelPhase`. -/
 theorem averageFrame_labelH {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (F : Matrix H I ℂ) : averageFrame F = inverseLabelPhase • (inverseLabelH*coordinatePhaseFrame F) := by
   have hs : (Real.sqrt 2:ℂ)^2 = 2 := by exact_mod_cast (Real.sq_sqrt (by norm_num : (0:ℝ) ≤ 2))
@@ -217,6 +268,8 @@ theorem averageFrame_labelH {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
   all_goals ring_nf
   all_goals simp only [hs]
 
+/-- Compressing the full phase word in coordinate frames equals compressing the original
+computed word in average frames. -/
 theorem fullComputedPhaseWord_compress {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (L : Matrix H O ℂ) (R : Matrix H I ℂ) (U P Q : Matrix H H ℂ) (data : PhaseData) :
     compress (coordinatePhaseFrame L) (evaluate (parallelOracle U) (fullComputedPhaseWord P Q data)) (coordinatePhaseFrame R) =
@@ -235,6 +288,7 @@ theorem fullComputedPhaseWord_compress {H I O : Type} [Fintype H] [DecidableEq H
   rw [hu,one_smul,he]
   simp only [Matrix.mul_assoc]
 
+/-- The coordinate phase frame of an isometry is an isometry. -/
 theorem coordinatePhaseFrame_isometry {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     {F : Matrix H I ℂ} (hF : IsIsometry F) : IsIsometry (coordinatePhaseFrame F) := by
   have hE := encodingFiber_isIsometry (I:=H) (J:=Bool) false
@@ -244,6 +298,8 @@ theorem coordinatePhaseFrame_isometry {H I : Type} [Fintype H] [DecidableEq H] [
     hE,Matrix.one_mul]
   exact hF
 
+/-- Compressing a parallel oracle in coordinate frames recovers compression of the original
+oracle in the original frames. -/
 theorem coordinatePhaseFrame_parallel_compress {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (L : Matrix H O ℂ) (R : Matrix H I ℂ) (U : Matrix H H ℂ) :
     compress (coordinatePhaseFrame L) (parallelOracle U) (coordinatePhaseFrame R) = compress L U R := by
@@ -251,6 +307,7 @@ theorem coordinatePhaseFrame_parallel_compress {H I O : Type} [Fintype H] [Decid
   simp [compress,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_prod_type,
     coordinatePhaseFrame_apply,parallelOracle,select]
 
+/-- A projected unitary encoding lifts to the parallel oracle with coordinate phase frames. -/
 theorem coordinatePhaseFrame_encoding {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) :
@@ -258,6 +315,8 @@ theorem coordinatePhaseFrame_encoding {H I O : Type} [Fintype H] [DecidableEq H]
   ⟨parallelOracle_unitary h.unitary,coordinatePhaseFrame_isometry h.left_isometry,
     coordinatePhaseFrame_isometry h.right_isometry,(coordinatePhaseFrame_parallel_compress L R U).trans h.encoded⟩
 
+/-- Adding the two label Hadamards preserves well formedness and gives query count equal to the
+phase list length and gate count three greater than that length. -/
 theorem fullComputedPhaseWord_wellFormed_counts {H : Type} [Fintype H] [DecidableEq H]
     (P Q : Matrix H H ℂ) (data : PhaseData) (hword : WellFormedAdjointCircuit (computedPhaseWord P Q data)) :
     WellFormedAdjointCircuit (fullComputedPhaseWord P Q data) ∧
@@ -276,9 +335,13 @@ theorem fullComputedPhaseWord_wellFormed_counts {H : Type} [Fintype H] [Decidabl
   · simp [fullComputedPhaseWord,adjointQueryCount_append,adjointQueryCount,computedPhaseWord,hc.1]
   · simp [fullComputedPhaseWord,adjointGateCount_append,adjointGateCount,computedPhaseWord,hc.2]
 
+/-- Casting the native inverse tolerance to the reals gives the real scale times `(1 / 2) ^ (k +
+2)`. -/
 theorem nativeInverseTolerance_real (n k : ℕ) : (nativeInverseTolerance n k:ℝ) = (nativeInverseScale n:ℝ)*(1/2:ℝ)^(k+2) := by
   simp [nativeInverseTolerance]
 
+/-- A block encoding by a computed phase word in average frames transfers to its full word in
+coordinate frames under the stated isometry, unitary, and well formedness hypotheses. -/
 theorem fullComputedPhaseWord_block {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (L : Matrix H O ℂ) (R : Matrix H I ℂ) (U P Q : Matrix H H ℂ)
     (data : PhaseData) (B : Matrix O I ℂ) (E : ℝ) (hL : IsIsometry L) (hR : IsIsometry R)
@@ -291,6 +354,8 @@ theorem fullComputedPhaseWord_block {H I O : Type} [Fintype H] [DecidableEq H] [
   rw [one_smul,fullComputedPhaseWord_compress]
   simpa only [one_smul] using hraw.error_le
 
+/-- The adjoint odd singular transform of the native inverse polynomial equals the reciprocal
+matrix approximation multiplied by the native inverse scale. -/
 theorem native_inverse_singular_adjoint {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (n : ℕ) :
     (oddSingularTransform A (fun x => (((realTarget (nativeInverseCoefficients n)).eval x:ℝ):ℂ)))ᴴ =
@@ -303,6 +368,9 @@ theorem native_inverse_singular_adjoint {I O : Type} [Fintype I] [DecidableEq I]
   rw [hf,oddSingularTransform_smul,Matrix.conjTranspose_smul,← reciprocalMatrixApprox_eq_oddSingularTransform]
   simp
 
+/-- Under the inverse singular value gap, finite phase synthesis succeeds and its well formed
+inverse word block encodes the scaled pseudoinverse with error `(c / 2) * 2⁻ᵏ`, `2 * n - 1`
+queries, and `2 * n + 2` gates; see [GilyenSuLowWiebe2019]. -/
 theorem computed_full_inverse_actual_encoding_and_cost : ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (kappa k : ℕ),
@@ -378,6 +446,8 @@ theorem computed_full_inverse_actual_encoding_and_cost : ∀ (H I O : Type) [Fin
   · rw [heword,adjointGateCount_adjointCircuit,hfull.2.2,hlen]
     omega
 
+/-- For positive `n`, a successful native inverse synthesis packet has `2 * n - 1` phases, and
+its base and all listed complex phases are unit phases. -/
 theorem native_inverse_packet_valid (n k : ℕ) (hn : 0 < n) (data : PhaseData)
     (hout : (finitePhaseSynthesis (nativeInverseCoefficients n) (2*n-1) (nativeInverseTolerance n k)).value = some data) :
     data.phases.length = 2*n-1 ∧ IsPhase (gaussianRatComplex data.base) ∧
@@ -392,6 +462,8 @@ theorem native_inverse_packet_valid (n k : ℕ) (hn : 0 < n) (data : PhaseData)
   subst actual
   exact ⟨hlen,(data_phase_valid data hbase hphases).1,(data_phase_valid data hbase hphases).2⟩
 
+/-- A successful synthesis packet identifies the finite inverse word with the adjoint of the
+corresponding full computed phase word. -/
 theorem finiteInverseWord_of_some {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (L : Matrix H O ℂ) (R : Matrix H I ℂ) (kappa k : ℕ) (data : PhaseData)
     (hout : (finitePhaseSynthesis (nativeInverseCoefficients (explicitInverseCutoff kappa (k+2)))
@@ -401,6 +473,8 @@ theorem finiteInverseWord_of_some {H I O : Type} [Fintype H] [DecidableEq H] [Fi
   (try dsimp only)
   rw [hout]
 
+/-- For a successful inverse synthesis packet, the compressed finite inverse circuit is the
+adjoint odd singular transform of the real part of its response. -/
 theorem finiteInverseWord_actual_odd_corner {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (henc : ProjectedUnitaryEncoding A U L R) (kappa k : ℕ) (hkappa : 0 < kappa) (data : PhaseData)

@@ -55,6 +55,25 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 
+/-!
+# Binary Pauli pair-vectors and their signed multiplication law
+
+`PV` represents Pauli labels by binary coordinate pairs, and `sMat` assigns a complex matrix
+using the X shift, Z character, and Y-weight sign. The sign identities and bilinear form `bform`
+give an explicit multiplication law for these matrices. See [KnillLaflamme1999] for the source
+development.
+
+## Main statements
+
+* `sgn_mul`: converts binary addition into multiplication of complex signs.
+* `sgn_ybit`: relates the binary Y parity to the integer Y weight.
+* `sMat_mul`: multiplies Pauli matrices with sign `sgn (bform b c)`.
+
+## References
+
+* [Knill and Laflamme, 1999][KnillLaflamme1999]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -63,10 +82,13 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.SignedWtEnum99.MainResults.Pauli
 
+/-- The complex sign of a binary scalar, equal to one at zero and negative one otherwise. -/
 def sgn (z : ZMod 2) : ℂ := if z = 0 then 1 else -1
 
+/-- The sign of the zero binary scalar is one. -/
 @[simp] lemma sgn_zero : sgn 0 = 1 := by simp [sgn]
 
+/-- Every element of `ZMod 2` is either zero or one. -/
 lemma ZMod2_cases (z : ZMod 2) : z = 0 ∨ z = 1 := by
   have h : z.val = 0 ∨ z.val = 1 := by
     have := ZMod.val_lt (n := 2) z
@@ -77,9 +99,11 @@ lemma ZMod2_cases (z : ZMod 2) : z = 0 ∨ z = 1 := by
     refine ZMod.val_injective (n := 2) ?_
     rw [h, ZMod.val_one]
 
+/-- The complex sign of a binary scalar is either one or negative one. -/
 lemma sgn_eq_one_or (z : ZMod 2) : sgn z = 1 ∨ sgn z = -1 := by
   rcases ZMod2_cases z with h | h <;> simp [sgn, h]
 
+/-- Twice any binary scalar is zero. -/
 @[simp] lemma two_smul_zmod2 (z : ZMod 2) : 2 • z = 0 := by
   rw [two_nsmul]
   rcases ZMod2_cases z with rfl | rfl
@@ -88,12 +112,15 @@ lemma sgn_eq_one_or (z : ZMod 2) : sgn z = 1 ∨ sgn z = -1 := by
       rw [← Nat.cast_one, ← Nat.cast_add]; exact ZMod.natCast_self 2
     rw [h]
 
+/-- Adding a binary scalar to itself gives zero. -/
 lemma self_add_zmod2 (z : ZMod 2) : z + z = 0 := by
   rw [← two_nsmul, two_smul_zmod2]
 
+/-- The square of the complex sign of a binary scalar is one. -/
 lemma sgn_mul_self (z : ZMod 2) : sgn z * sgn z = 1 := by
   rcases sgn_eq_one_or z with h | h <;> simp [h]
 
+/-- The sign of a sum of binary scalars is the product of their signs. -/
 lemma sgn_mul (a b : ZMod 2) : sgn (a + b) = sgn a * sgn b := by
   rcases ZMod2_cases a with rfl | rfl <;> rcases ZMod2_cases b with rfl | rfl
   · simp [sgn]
@@ -103,24 +130,33 @@ lemma sgn_mul (a b : ZMod 2) : sgn (a + b) = sgn a * sgn b := by
       rw [← Nat.cast_one, ← Nat.cast_add]; exact ZMod.natCast_self 2
     simp [sgn, h]
 
+/-- The type of length-`n` Pauli labels represented by pairs of binary coordinates. -/
 abbrev PV (n : ℕ) := Fin n × Fin 2 → ZMod 2
 
+/-- The Z component of a Pauli pair-vector, taken from coordinate zero of each pair. -/
 def zpart {n : ℕ} (b : PV n) : Fin n → ZMod 2 := fun i => b (i, 0)
 
+/-- The X component of a Pauli pair-vector, taken from coordinate one of each pair. -/
 def xpart {n : ℕ} (b : PV n) : Fin n → ZMod 2 := fun i => b (i, 1)
 
+/-- The binary bilinear pairing of the Z component of the first Pauli label with the X component
+of the second. -/
 def bform {n : ℕ} (b c : PV n) : ZMod 2 := ∑ i : Fin n, b (i, 0) * c (i, 1)
 
+/-- The number of coordinate pairs in which both binary components equal one. -/
 def yWeight {n : ℕ} (b : PV n) : ℕ :=
   (Finset.univ.filter (fun i : Fin n => b (i, 0) = 1 ∧ b (i, 1) = 1)).card
 
+/-- The predicate that the X component of a Pauli pair-vector vanishes at every coordinate. -/
 def isZ {n : ℕ} (b : PV n) : Prop := ∀ i, b (i, 1) = 0
 
+/-- A Pauli label satisfies `isZ` exactly when its X component is zero. -/
 lemma isZ_iff_xpart {n : ℕ} (b : PV n) : isZ b ↔ xpart b = 0 := by
   constructor
   · intro h; funext i; simpa [xpart] using h i
   · intro h i; simpa [xpart] using congrFun h i
 
+/-- A Pauli label with vanishing X component has zero Y weight. -/
 lemma yWeight_eq_zero_of_isZ {n : ℕ} {b : PV n} (h : isZ b) : yWeight b = 0 := by
   unfold yWeight
   have : (Finset.univ.filter (fun i : Fin n => b (i, 0) = 1 ∧ b (i, 1) = 1)) = ∅ := by
@@ -130,8 +166,10 @@ lemma yWeight_eq_zero_of_isZ {n : ℕ} {b : PV n} (h : isZ b) : yWeight b = 0 :=
     simp [this]
   simp [this]
 
+/-- The binary sum of the products of the two components at each Pauli coordinate. -/
 def ybit {n : ℕ} (b : PV n) : ZMod 2 := ∑ i : Fin n, b (i, 0) * b (i, 1)
 
+/-- The sign of a finite binary sum is the product of the individual signs. -/
 lemma sgn_sum {ι : Type} (s : Finset ι) (f : ι → ZMod 2) :
     sgn (∑ i ∈ s, f i) = ∏ i ∈ s, sgn (f i) := by
   classical
@@ -140,11 +178,15 @@ lemma sgn_sum {ι : Type} (s : Finset ι) (f : ι → ZMod 2) :
   | insert a s ha ih =>
       rw [Finset.sum_insert ha, Finset.prod_insert ha, sgn_mul, ih]
 
+/-- The sign of the product of two binary scalars is negative one exactly when both scalars
+equal one. -/
 lemma sgn_mul_bits (a c : ZMod 2) :
     sgn (a * c) = if a = 1 ∧ c = 1 then (-1 : ℂ) else 1 := by
   rcases ZMod2_cases a with rfl | rfl <;> rcases ZMod2_cases c with rfl | rfl <;>
     simp [sgn]
 
+/-- A finite product of signs selected by a predicate equals negative one raised to the number
+of satisfying indices. -/
 lemma prod_ite_neg_one {ι : Type} (s : Finset ι) (p : ι → Prop) [DecidablePred p] :
     (∏ i ∈ s, (if p i then (-1 : ℂ) else 1)) = (-1 : ℂ) ^ (s.filter p).card := by
   classical
@@ -159,6 +201,7 @@ lemma prod_ite_neg_one {ι : Type} (s : Finset ι) (p : ι → Prop) [DecidableP
       · rw [if_neg hp, if_neg hp]
         simp
 
+/-- The sign of the binary Y parity equals negative one raised to `yWeight b`. -/
 lemma sgn_ybit {n : ℕ} (b : PV n) : sgn (ybit b) = (-1 : ℂ) ^ yWeight b := by
   unfold ybit yWeight
   rw [sgn_sum]
@@ -168,24 +211,32 @@ lemma sgn_ybit {n : ℕ} (b : PV n) : sgn (ybit b) = (-1 : ℂ) ^ yWeight b := b
   simp only [h]
   exact prod_ite_neg_one _ _
 
+/-- The translation of a binary basis label by the X component of a Pauli pair-vector. -/
 def xshift {n : ℕ} (b : PV n) (x : Fin n → ZMod 2) : Fin n → ZMod 2 :=
   fun i => x i + b (i, 1)
 
+/-- The binary dot product of the Z component of a Pauli pair-vector with a basis label. -/
 def dotz {n : ℕ} (b : PV n) (x : Fin n → ZMod 2) : ZMod 2 :=
   ∑ i : Fin n, b (i, 0) * x i
 
+/-- The complex matrix supported at `y = xshift b x`, with entry `(-1) ^ yWeight b * sgn (dotz b
+x)` there. -/
 def sMat {n : ℕ} (b : PV n) : Matrix (Fin n → ZMod 2) (Fin n → ZMod 2) ℂ :=
   Matrix.of (fun x y => if y = xshift b x then
     ((-1 : ℂ) ^ yWeight b) * sgn (dotz b x) else 0)
 
+/-- At the column selected by `xshift`, the Pauli matrix entry is the Y-weight sign times the
+Z-character sign. -/
 @[simp] lemma sMat_apply_same {n : ℕ} (b : PV n) (x : Fin n → ZMod 2) :
     sMat b x (xshift b x) = ((-1 : ℂ) ^ yWeight b) * sgn (dotz b x) := by
   simp [sMat]
 
+/-- A Pauli matrix entry vanishes away from the column selected by `xshift`. -/
 lemma sMat_apply_ne {n : ℕ} (b : PV n) (x y : Fin n → ZMod 2) (h : y ≠ xshift b x) :
     sMat b x y = 0 := by
   simp [sMat, h]
 
+/-- The matrix of the zero Pauli pair-vector is the identity matrix. -/
 lemma sMat_zero {n : ℕ} : sMat (0 : PV n) = 1 := by
   ext x y
   rw [sMat, Matrix.of_apply, Matrix.one_apply]
@@ -203,16 +254,20 @@ lemma sMat_zero {n : ℕ} : sMat (0 : PV n) = 1 := by
       simpa [xshift] using h2
     rw [if_neg hx, if_neg (fun hxy => h hxy.symm)]
 
+/-- The Z pairing is additive in the Pauli pair-vector. -/
 lemma dotz_add {n : ℕ} (b c : PV n) (x : Fin n → ZMod 2) :
     dotz (b + c) x = dotz b x + dotz c x := by
   unfold dotz
   simp only [Pi.add_apply, add_mul, Finset.sum_add_distrib]
 
+/-- Translating a basis label by `xshift b` adds `bform c b` to its Z pairing with `c`. -/
 lemma dotz_trans {n : ℕ} (b c : PV n) (x : Fin n → ZMod 2) :
     dotz c (xshift b x) = dotz c x + bform c b := by
   unfold dotz xshift bform
   simp only [mul_add, Finset.sum_add_distrib]
 
+/-- The Y parity of a sum equals the two individual Y parities plus the two cross bilinear
+pairings. -/
 lemma ybit_add {n : ℕ} (b c : PV n) :
     ybit (b + c) = ybit b + ybit c + bform b c + bform c b := by
   unfold ybit bform
@@ -224,14 +279,18 @@ lemma ybit_add {n : ℕ} (b c : PV n) :
   simp only [h, Finset.sum_add_distrib]
   abel
 
+/-- Negating a binary scalar does not change its complex sign. -/
 lemma sgn_neg' (z : ZMod 2) : sgn (-z) = sgn z := by
   rcases ZMod2_cases z with rfl | rfl <;> simp [sgn]
 
+/-- The X shift for the sum of two Pauli labels is the composition of their X shifts. -/
 lemma xshift_add {n : ℕ} (b c : PV n) (x : Fin n → ZMod 2) :
     xshift (b + c) x = xshift c (xshift b x) := by
   funext i
   simp [xshift, add_assoc]
 
+/-- The product `sMat b * sMat c` equals `sMat (b + c)` multiplied by the sign `sgn (bform b
+c)`. -/
 lemma sMat_mul {n : ℕ} (b c : PV n) :
     sMat b * sMat c = (sgn (bform b c) : ℂ) • sMat (b + c) := by
   ext x y

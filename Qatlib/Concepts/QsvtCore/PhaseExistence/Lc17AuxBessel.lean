@@ -11,6 +11,29 @@ import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
 import Mathlib.Topology.MetricSpace.CauSeqFilter
+
+/-!
+# Bessel integral bounds and Jacobi–Anger expansion
+
+This module proves an integral representation and factorial bounds for `lcBesselJ`, then derives
+the Jacobi–Anger expansion of `exp (-i * τ * sin θ)` for nonnegative `τ`. These estimates
+support the polynomial approximation methods of [LowChuang2017].
+
+The harmonic decomposition counts the zero mode once and pairs the remaining positive and
+negative frequencies. A final estimate bounds the norm error after truncation.
+
+## Main statements
+
+* `lcBesselJ_repr`: a sine-weighted integral representation.
+* `abs_lcBesselJ_le`: the factorial coefficient bound.
+* `lcBesselJacobiAnger`: the paired harmonic series identity.
+* `lcBesselJacobiAnger_tail`: the truncation error bound.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,18 +48,23 @@ open NormedSpace
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
+/-- The integral of `sin x` to the power `2k` over `[0, π]`. -/
 private noncomputable def lcW (k : ℕ) : ℝ :=
   ∫ x in 0..Real.pi, Real.sin x ^ (2 * k)
 
+/-- The even sine-power integral `lcW k` is strictly positive. -/
 private lemma lcW_pos (k : ℕ) : 0 < lcW k :=
   integral_sin_pow_pos (2 * k)
 
+/-- The integral of `sin x` to the power `2k` times `cos x` to the power `2m` over `[0, π]`. -/
 private noncomputable def lcWMix (k m : ℕ) : ℝ :=
   ∫ x in 0..Real.pi, Real.sin x ^ (2 * k) * Real.cos x ^ (2 * m)
 
+/-- A natural power of a real quotient is the quotient of the corresponding powers. -/
 private theorem div_pow_real (a b : ℝ) (n : ℕ) : (a / b) ^ n = a ^ n / b ^ n := by
   rw [div_eq_mul_inv, mul_pow, inv_pow, div_eq_mul_inv]
 
+/-- The mixed trigonometric moment satisfies the stated recurrence in `m`. -/
 private theorem lcWMix_rec (k m : ℕ) :
     lcWMix k (m + 1) = (2 * m + 1) / (2 * (m + k + 1)) * lcWMix k m := by
   classical
@@ -154,6 +182,7 @@ private theorem lcWMix_rec (k m : ℕ) :
   push_cast at hibp ⊢
   linarith
 
+/-- Expresses the mixed trigonometric moment in terms of `lcW k` and factorials. -/
 private theorem lcWMix_eq (k m : ℕ) :
     lcWMix k m = lcW k * (2 * m).factorial * k.factorial
       / (4 ^ m * m.factorial * (k + m).factorial) := by
@@ -194,9 +223,12 @@ private theorem lcWMix_eq (k m : ℕ) :
       field_simp
       ring
 
+/-- The alternating factorial series term used after extracting `(τ / 2)^k` from the Bessel
+series. -/
 private noncomputable def lcSseries (k : ℕ) (τ : ℝ) : ℕ → ℝ :=
   fun j => (-1 : ℝ) ^ j * (τ ^ 2 / 4) ^ j / (((j.factorial : ℕ) : ℝ) * ((k + j).factorial : ℕ))
 
+/-- The extracted Bessel series terms are summable. -/
 private theorem lcSseries_summable (k : ℕ) (τ : ℝ) : Summable (lcSseries k τ) := by
   have hle : ∀ j, |lcSseries k τ j| ≤ (τ ^ 2 / 4) ^ j / ((j.factorial : ℕ) : ℝ) := by
     intro j
@@ -233,6 +265,7 @@ private theorem lcSseries_summable (k : ℕ) (τ : ℝ) : Summable (lcSseries k 
     (g := fun j => (τ ^ 2 / 4) ^ j / ((j.factorial : ℕ) : ℝ))
     (Real.summable_pow_div_factorial (τ ^ 2 / 4)) hle
 
+/-- Expresses `lcBesselJ k τ` as `(τ / 2)^k` times the extracted factorial series. -/
 private theorem lcBesselJ_eq_tsum (k : ℕ) (τ : ℝ) :
     lcBesselJ k τ = (τ / 2) ^ k * ∑' j, lcSseries k τ j := by
   have hs : HasSum (lcSseries k τ) (∑' j, lcSseries k τ j) :=
@@ -252,6 +285,8 @@ private theorem lcBesselJ_eq_tsum (k : ℕ) (τ : ℝ) :
   have h2 := hs.mul_left ((τ / 2) ^ k)
   rw [lcBesselJ, ← h2.tsum_eq, ← hfun]
 
+/-- The sine-weighted cosine integral equals the corresponding extracted Bessel series times
+`lcW k * k!`. -/
 private theorem lcSinPowCosEq (k : ℕ) (τ : ℝ) :
     ∫ x in 0..Real.pi, Real.sin x ^ (2 * k) * Real.cos (τ * Real.cos x)
       = lcW k * ((k.factorial : ℕ) : ℝ) * ∑' m, lcSseries k τ m := by
@@ -453,6 +488,8 @@ private theorem lcSinPowCosEq (k : ℕ) (τ : ℝ) :
       ((lcSseries_summable k τ).hasSum.tendsto_sum_nat)
   exact tendsto_nhds_unique hL hR
 
+/-- Gives the weighted integral representation of `lcBesselJ k τ` in terms of `sin x` to the
+power `2k` and `cos (τ * cos x)`. -/
 theorem lcBesselJ_repr (k : ℕ) (τ : ℝ) :
     lcBesselJ k τ * ((k.factorial : ℕ) : ℝ) * lcW k
       = (τ / 2) ^ k * ∫ x in 0..Real.pi,
@@ -460,6 +497,8 @@ theorem lcBesselJ_repr (k : ℕ) (τ : ℝ) :
   rw [lcBesselJ_eq_tsum, lcSinPowCosEq]
   ring
 
+/-- For nonnegative `τ`, the order-`k` Bessel coefficient is bounded in absolute value by `(τ /
+2)^k / k!`. -/
 theorem abs_lcBesselJ_le (k : ℕ) (τ : ℝ) (hτ : 0 ≤ τ) :
     |lcBesselJ k τ| ≤ (τ / 2) ^ k / ((k.factorial : ℕ) : ℝ) := by
   have hW := lcW_pos k
@@ -510,6 +549,7 @@ theorem abs_lcBesselJ_le (k : ℕ) (τ : ℝ) (hτ : 0 ≤ τ) :
   rw [le_div_iff₀ hk]
   exact hdiv
 
+/-- If `z` has zero imaginary part, `exp (i * z)` has norm one. -/
 private theorem lcNormExpIm {z : ℂ} (hz : z.im = 0) :
     ‖Complex.exp (Complex.I * z)‖ = 1 := by
   have hre : (Complex.I * z).re = 0 := by
@@ -542,23 +582,31 @@ private theorem lcNormExpIm {z : ℂ} (hz : z.im = 0) :
     · exact h.le
   exact le_antisymm hle hge
 
+/-- If `z` has zero imaginary part, `exp (-i * z)` has norm one. -/
 private theorem lcNormExpImNeg {z : ℂ} (hz : z.im = 0) :
     ‖Complex.exp (-(Complex.I * z))‖ = 1 := by
   rw [Complex.exp_neg, norm_inv, lcNormExpIm hz, inv_one]
 
+/-- The Bessel coefficient `lcBesselJ k τ` multiplied by the negative Fourier exponential of
+order `k`. -/
 noncomputable def lcJAp (τ : ℝ) (θ : ℝ) (k : ℕ) : ℂ :=
   ((lcBesselJ k τ : ℝ) : ℂ) * Complex.exp (-(Complex.I * (((k : ℕ) : ℂ) * ((θ : ℝ) : ℂ))))
 
+/-- The signed Bessel coefficient `(-1)^k * lcBesselJ k τ` multiplied by the positive Fourier
+exponential of order `k`. -/
 noncomputable def lcJAn (τ : ℝ) (θ : ℝ) (k : ℕ) : ℂ :=
   (-1 : ℂ) ^ k * ((lcBesselJ k τ : ℝ) : ℂ)
     * Complex.exp (Complex.I * (((k : ℕ) : ℂ) * ((θ : ℝ) : ℂ)))
 
+/-- The complex amplitude `(τ / 2) * exp (-iθ)` used to expand the Jacobi–Anger exponential. -/
 private noncomputable def lcJAc (τ : ℝ) (θ : ℝ) : ℂ :=
   (((τ / 2 : ℝ) : ℂ)) * Complex.exp (-(Complex.I * ((θ : ℝ) : ℂ)))
 
+/-- The complex amplitude `-(τ / 2) * exp (iθ)` used to expand the Jacobi–Anger exponential. -/
 private noncomputable def lcJAd (τ : ℝ) (θ : ℝ) : ℂ :=
   (-(((τ / 2 : ℝ) : ℂ))) * Complex.exp (Complex.I * ((θ : ℝ) : ℂ))
 
+/-- For nonnegative `τ`, the sequence of negative-frequency Bessel harmonics is summable. -/
 private theorem lcJApSummable (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) : Summable (lcJAp τ θ) := by
   have hle : ∀ k : ℕ, ‖lcJAp τ θ k‖ ≤ (τ / 2) ^ k / ((k.factorial : ℕ) : ℝ) := by
     intro k
@@ -569,6 +617,7 @@ private theorem lcJApSummable (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) : Summable 
     (Real.summable_pow_div_factorial (τ / 2))
   exact hn.of_norm
 
+/-- For nonnegative `τ`, the sequence of signed positive-frequency Bessel harmonics is summable. -/
 private theorem lcJAnSummable (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) : Summable (lcJAn τ θ) := by
   have hle : ∀ k : ℕ, ‖lcJAn τ θ k‖ ≤ (τ / 2) ^ k / ((k.factorial : ℕ) : ℝ) := by
     intro k
@@ -582,6 +631,7 @@ private theorem lcJAnSummable (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) : Summable 
     (Real.summable_pow_div_factorial (τ / 2))
   exact hn.of_norm
 
+/-- A summable complex sequence has sum `m` when its finite partial sums converge to `m`. -/
 private theorem lcHasSumOfTendstoNat {f : ℕ → ℂ} {m : ℂ} (hsum : Summable f)
     (h : Filter.Tendsto (fun n => ∑ i ∈ Finset.range n, f i) Filter.atTop (nhds m)) :
     HasSum f m := by
@@ -590,6 +640,7 @@ private theorem lcHasSumOfTendstoNat {f : ℕ → ℂ} {m : ℂ} (hsum : Summabl
   rw [h2]
   exact hsum.hasSum
 
+/-- The complex exponential is the sum of its factorial power series. -/
 private theorem lcCexpHasSum (z : ℂ) :
     HasSum (fun n => z ^ n / (((n.factorial : ℕ) : ℂ))) (Complex.exp z) := by
   have hsum : Summable (fun n => z ^ n / (((n.factorial : ℕ) : ℂ))) :=
@@ -600,6 +651,8 @@ private theorem lcCexpHasSum (z : ℂ) :
   rw [Complex.exp_def]
   exact lcHasSumOfTendstoNat hsum h1
 
+/-- For nonnegative `τ`, the paired Bessel harmonics sum to `exp (-i * τ * sin θ)`, with the
+zero mode counted once. -/
 theorem lcBesselJacobiAnger (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) :
     HasSum (fun k => lcJAp τ θ k + (if k = 0 then 0 else lcJAn τ θ k))
       (Complex.exp (Complex.I * (-(τ : ℂ) * ((Real.sin θ : ℝ) : ℂ)))) := by
@@ -914,6 +967,7 @@ theorem lcBesselJacobiAnger (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) :
   rw [← hval]
   exact HasSum.add hP hW₂
 
+/-- For nonnegative `τ`, the paired Bessel harmonic sequence is summable. -/
 theorem lcBesselJacobiAngerSummable (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) :
     Summable (fun k => lcJAp τ θ k + (if k = 0 then 0 else lcJAn τ θ k)) := by
   have hle : ∀ k : ℕ, ‖(if k = 0 then 0 else lcJAn τ θ k)‖
@@ -932,6 +986,7 @@ theorem lcBesselJacobiAngerSummable (τ : ℝ) (θ : ℝ) (hτ : 0 ≤ τ) :
     (Real.summable_pow_div_factorial (τ / 2))
   exact Summable.add (lcJApSummable τ θ hτ) hn.of_norm
 
+/-- The factorial `(q + n)!` is at least `q! * (q + 1)^n`. -/
 private theorem lcFactorialGePow (q n : ℕ) :
     q.factorial * (q + 1) ^ n ≤ (q + n).factorial := by
   induction n with
@@ -943,6 +998,8 @@ private theorem lcFactorialGePow (q n : ℕ) :
       _ ≤ (q + 1) * (q + n).factorial := Nat.mul_le_mul_left _ ih
       _ ≤ ((q + n) + 1) * (q + n).factorial := Nat.mul_le_mul_right _ (by omega)
 
+/-- For nonnegative `τ` at most the natural predecessor of `q`, truncating the paired
+Jacobi–Anger series before index `q` gives norm error at most `4 * τ^q / (2^q * q!)`. -/
 theorem lcBesselJacobiAnger_tail (q : ℕ) (τ : ℝ) (θ : ℝ) (hτ0 : 0 ≤ τ)
     (hτle : τ ≤ ((q - 1 : ℕ) : ℝ)) :
     ‖Complex.exp (Complex.I * (-(τ : ℂ) * ((Real.sin θ : ℝ) : ℂ)))

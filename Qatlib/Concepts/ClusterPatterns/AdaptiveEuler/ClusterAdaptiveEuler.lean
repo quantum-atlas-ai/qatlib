@@ -6,6 +6,36 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.ChainFeedback.ClusterWireParityFeedback
 import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.CountedClusterSequence
+
+/-!
+# Adaptive Euler patterns on cluster chains
+
+This module defines adaptive phase selection and Pauli frame tracking for cluster-chain
+measurement patterns, following the setting of [RaussendorfBriegel2000]. The functions
+`adaptiveRealizedWord` and `adaptiveFinalFrame` describe the realized phase word and its final
+correction, while `clusterAdaptiveProgram` gives an observed circuit with explicit Kraus leaves.
+
+The transport identities relate each realized sequence to its nominal sequence through a scalar
+Pauli frame. The instrument results remove this frame and identify the resulting channel,
+including its action on a finite reference system. The four-step word `clusterAdaptiveEulerWord`
+specializes these results to three real phase parameters.
+
+## Main statements
+
+* `cluster_adaptive_word_transport`: the final scalar Pauli frame relates realized and nominal
+  sequence operators.
+* `cluster_adaptive_euler_corrected_channel`: corrected Euler branches sum to nominal unitary
+  conjugation on a system with a reference.
+* `cluster_adaptive_program_leaves_and_cost`: exact leaf enumeration and gate, measurement, and
+  query counts.
+* `cluster_adaptive_euler_pattern`: four measurements, sixteen gates, and the explicit
+  corrected-frame amplitude formula.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -33,34 +63,49 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- Choose a phase or its complex conjugate according to the current X-frame bit. -/
 noncomputable def adaptivePhase (x : Bool) (z : ℂ) : ℂ := if x then star z else z
 
+/-- Update the two Pauli feedback bits and accumulated scalar phase after one nominal phase and
+measurement outcome. -/
 noncomputable def adaptiveFrameStep (F : Bool × Bool × ℂ) (ζ : ℂ) (s : Bool) : Bool × Bool × ℂ :=
   let p := wireFeedbackStep (F.1, F.2.1) s
   (p.1, (p.2, F.2.2 * (if F.1 then (if F.2.1 then (-1 : ℂ) else 1) * star ζ else 1)))
 
+/-- Process paired nominal phases and outcomes, returning the final feedback frame and the
+realized phase word. -/
 noncomputable def adaptiveRunFold : Bool × Bool × ℂ → List (ℂ × Bool) → (Bool × Bool × ℂ) × List ℂ
   | F, [] => (F, [])
   | F, p :: ps =>
       let out := adaptiveRunFold (adaptiveFrameStep F p.1 p.2) ps
       (out.1, (if p.2 then (-1 : ℂ) else 1) * adaptivePhase F.1 p.1 :: out.2)
 
+/-- Run adaptive feedback from the trivial frame on the zipped phase and outcome lists. -/
 noncomputable def adaptiveRun (zs : List ℂ) (msg : List Bool) : (Bool × Bool × ℂ) × List ℂ :=
   adaptiveRunFold (false, false, 1) (zs.zip msg)
 
+/-- The phase word realized by adaptive feedback on the given nominal word and measurement
+record. -/
 noncomputable def adaptiveRealizedWord (zs : List ℂ) (msg : List Bool) : List ℂ :=
     (adaptiveRun zs msg).2
 
+/-- The final Pauli feedback bits and accumulated scalar phase produced by an adaptive run. -/
 noncomputable def adaptiveFinalFrame (zs : List ℂ) (msg : List Bool) : Bool × Bool × ℂ :=
   (adaptiveRun zs msg).1
 
+/-- The product of the Boolean-selected Pauli X and Pauli Z operators determined by a feedback
+frame. -/
 noncomputable def adaptiveFrameGate (F : Bool × Bool × ℂ) : Operator 2 :=
   pauliXChoice F.1 * pauliZChoice F.2.1
 
+/-- The four-phase word consisting of one followed by the complex exponentials of the three real
+Euler parameters. -/
 noncomputable def clusterAdaptiveEulerWord (ξ η ζ : ℝ) : List ℂ :=
   [1, Complex.exp ((ξ : ℂ) * Complex.I), Complex.exp ((η : ℂ) * Complex.I),
     Complex.exp ((ζ : ℂ) * Complex.I)]
 
+/-- The observed circuit that adaptively applies a phase gate, a Hadamard gate, and a
+measurement at each site of a cluster chain. -/
 noncomputable def clusterAdaptiveLoopFin :
     (zs : List ℂ) → (Bool × Bool × ℂ) → ObservedCircuit (Fin (2 ^ (zs.length + 1)))
   | [], _ => .halt true
@@ -75,6 +120,8 @@ noncomputable def clusterAdaptiveLoopFin :
             (clusterAdaptiveLoopFin (w :: ws)
               (adaptiveFrameStep F z (boolEquivFin2.symm k))))))
 
+/-- The Kraus leaf, acceptance flag, resource counts, and outcome record of the adaptive
+measurement loop for a specified Boolean history. -/
 noncomputable def clusterAdaptiveLoopLeafGen :
     (zs : List ℂ) → (Bool × Bool × ℂ) → (ω : Reg zs.length) →
       ObservedKrausLeaf (2 ^ (zs.length + 1))
@@ -98,11 +145,14 @@ noncomputable def clusterAdaptiveLoopLeafGen :
         (2, (boolEquivFin2 (ω 0)).val) ::
           (clusterAdaptiveLoopLeafGen (w :: ws) (adaptiveFrameStep F z (ω 0)) (Fin.tail ω)).outcomes⟩
 
+/-- Prepare the cluster resource and execute the adaptive loop from the trivial feedback frame. -/
 noncomputable def clusterAdaptiveProgram (zs : List ℂ) :
     ObservedCircuit (Fin (2 ^ (zs.length + 1))) :=
   clusterSeqPrependSteps 1 (clusterSequenceResourceCircuit zs.length)
     (clusterAdaptiveLoopFin zs (false, false, 1))
 
+/-- The explicit Kraus leaf of the resource preparation followed by the adaptive loop for a
+specified outcome history. -/
 noncomputable def clusterAdaptiveProgramLeafGen (zs : List ℂ) (ω : Reg zs.length) :
     ObservedKrausLeaf (2 ^ (zs.length + 1)) :=
   ObservedKrausLeaf.prepend (clusterSequenceResourceGate zs.length) 0 (2 * zs.length) 0 []
@@ -112,11 +162,14 @@ set_option autoImplicit false
 noncomputable section AdaptiveProofs
 open scoped Classical BigOperators
 
+/-- A complex number of unit norm multiplied by its conjugate equals one. -/
 private theorem adaptive_unit_phase (z : ℂ) (hz : ‖z‖=1) : z*star z=1 := by
   have h := Complex.normSq_eq_conj_mul_self (z := z)
   rw [Complex.normSq_eq_norm_sq,hz,one_pow] at h
   simpa only [mul_comm,Complex.star_def] using! h.symm
 
+/-- Unit-modulus phases satisfy the stated Pauli transport identities for `clusterJ`. Complex
+conjugation and negation preserve their unit norm. -/
 theorem cluster_adaptive_pauli_j_laws :
     (∀ z : ℂ, ‖z‖ = 1 →
       pauliXChoice true * clusterJ z = clusterJ (-(1 : ℂ) * z) ∧
@@ -161,6 +214,8 @@ theorem cluster_adaptive_pauli_j_laws :
   · intro z hz
     simp [hz]
 
+/-- One adaptive measurement step transports the current scalar Pauli frame through `clusterJ z`
+to the updated frame. -/
 private theorem adaptive_step_transport (F : Bool × Bool × ℂ) (z : ℂ) (hz : ‖z‖=1)
     (s : Bool) :
     clusterJ ((if s then (-1 : ℂ) else 1)*adaptivePhase F.1 z)*
@@ -179,15 +234,21 @@ private theorem adaptive_step_transport (F : Bool × Bool × ℂ) (z : ℂ) (hz 
     solve | ring | linear_combination (((Real.sqrt 2 : ℂ)⁻¹)*c)*hs |
       linear_combination -(((Real.sqrt 2 : ℂ)⁻¹)*c)*hs
 
+/-- An adaptive frame step preserves unit norm of the accumulated scalar phase when the nominal
+phase has unit norm. -/
 private theorem adaptive_step_norm (F : Bool × Bool × ℂ) (hF : ‖F.2.2‖=1)
     (z : ℂ) (hz : ‖z‖=1) (s : Bool) : ‖(adaptiveFrameStep F z s).2.2‖=1 := by
   obtain ⟨x,b,c⟩ := F
   cases x <;> cases b <;> simp [adaptiveFrameStep,hF,hz]
 
+/-- The realized phase of one adaptive step has unit norm when the nominal phase does. -/
 private theorem adaptive_realized_norm (F : Bool × Bool × ℂ) (z : ℂ) (hz : ‖z‖=1)
     (s : Bool) : ‖(if s then (-1 : ℂ) else 1)*adaptivePhase F.1 z‖=1 := by
   cases F.1 <;> cases s <;> simp [adaptivePhase,hz]
 
+/-- Folding adaptive feedback preserves word length and unit-modulus phases and agrees with
+Boolean wire feedback. The realized sequence transports the initial scalar Pauli frame to
+the final frame times the nominal sequence. -/
 private theorem adaptive_fold_transport (ps : List (ℂ × Bool))
     (hps : ∀ p ∈ ps, ‖p.1‖=1) (F : Bool × Bool × ℂ) (hF : ‖F.2.2‖=1) :
     (adaptiveRunFold F ps).2.length=ps.length ∧
@@ -216,6 +277,9 @@ private theorem adaptive_fold_transport (ps : List (ℂ × Bool))
       rw [Matrix.mul_assoc,adaptive_step_transport F p.1 hz p.2,
         ← Matrix.smul_mul,← Matrix.mul_assoc,hmat,Matrix.smul_mul,Matrix.mul_assoc]
 
+/-- For a unit-modulus word and an equally long outcome record, adaptive execution preserves
+length, produces the wire feedback bits and a unit-modulus scalar, and realizes the nominal
+sequence up to its final scalar Pauli frame. -/
 theorem cluster_adaptive_word_transport :
     ∀ (zs : List ℂ) (_hzs : ∀ z ∈ zs, ‖z‖ = 1) (msg : List Bool)
       (_hmsg : msg.length = zs.length),
@@ -240,17 +304,23 @@ theorem cluster_adaptive_word_transport :
   refine ⟨hl.trans hlen,congrArg Prod.fst hbits,congrArg Prod.snd hbits,hn,hw,?_⟩
   simpa [adaptiveFrameGate,pauliXChoice,pauliZChoice] using! hmat
 
+/-- Multiplying an operator by a unit-modulus scalar leaves its conjugation action unchanged. -/
 private theorem adaptive_conj_phase (c : ℂ) (hc : ‖c‖=1) (U ρ : Operator 2) :
     (c • U)*ρ*(c • U)ᴴ=U*ρ*Uᴴ := by
   have hs : star c*c=1 := by simpa only [mul_comm] using! adaptive_unit_phase c hc
   simp only [Matrix.conjTranspose_smul,Matrix.smul_mul,Matrix.mul_smul,smul_smul,hs,one_smul]
 
+/-- The sum of the constant weight `(1 / 2 : ℂ)^L` over all `L`-bit registers equals one. -/
 private theorem adaptive_uniform_sum (L : ℕ) : (∑ _ω : Reg L, (1/2 : ℂ)^L)=1 := by
   simp only [Finset.sum_const,Finset.card_univ,Fintype.card_fun,Fintype.card_bool,
     Fintype.card_fin,nsmul_eq_mul,Nat.cast_pow,Nat.cast_ofNat]
   rw [← mul_pow]
   norm_num
 
+/-- A unit-modulus word possesses an instrument with uniform outcome probabilities and branches
+given by the nominal sequence followed by the outcome-dependent Pauli frame. A corrected
+instrument has every branch equal to one half to the word length times nominal unitary
+conjugation, and forgetting outcomes gives that conjugation. -/
 theorem cluster_adaptive_instrument_branches :
     ∀ (zs : List ℂ) (_hzs : ∀ z ∈ zs, ‖z‖ = 1),
       ∃ I : Instrument (Reg zs.length) 2 2,
@@ -306,12 +376,17 @@ theorem cluster_adaptive_instrument_branches :
   · intro ρ
     exact (cluster_sequence_instrument_probability_conditioning zs hzs ρ (ZeroStr _)).2.2.1
 
+/-- Every phase in the four-step adaptive Euler word has unit norm. -/
 private theorem adaptive_euler_norm (ξ η ζ : ℝ) :
     ∀ z ∈ clusterAdaptiveEulerWord ξ η ζ, ‖z‖=1 := by
   intro z hz
   simp only [clusterAdaptiveEulerWord,List.mem_cons,List.not_mem_nil,or_false] at hz
   rcases hz with rfl | rfl | rfl | rfl <;> simp [Complex.norm_exp]
 
+/-- The four-step Euler word possesses a corrected instrument whose branches are one sixteenth
+of nominal unitary conjugation. Summing the branches tensored with the identity on any
+finite reference system gives conjugation by the nominal unitary tensored with that identity
+[RaussendorfBriegel2000]. -/
 theorem cluster_adaptive_euler_corrected_channel :
     ∀ (ξ η ζ : ℝ) (r : ℕ) (X : Matrix (Fin 2 × Fin r) (Fin 2 × Fin r) ℂ),
       ∃ J : Instrument (Reg (clusterAdaptiveEulerWord ξ η ζ).length) 2 2,
@@ -334,6 +409,8 @@ theorem cluster_adaptive_euler_corrected_channel :
   simpa only [Matrix.sum_apply,tensorLeft] using!
     congrArg (fun M => M x.1 y.1) (hs (fun i j => X (i,x.2) (j,y.2)))
 
+/-- Every explicit adaptive loop leaf is accepted, makes no queries, uses two gates and one
+measurement per phase, and records one outcome per phase. -/
 private theorem adaptive_loop_fields (zs : List ℂ) (F : Bool × Bool × ℂ) (ω : Reg zs.length) :
     (clusterAdaptiveLoopLeafGen zs F ω).accepted=true ∧
     (clusterAdaptiveLoopLeafGen zs F ω).queries=0 ∧
@@ -350,6 +427,7 @@ private theorem adaptive_loop_fields (zs : List ℂ) (F : Bool × Bool × ℂ) (
       simp only [clusterAdaptiveLoopLeafGen,List.length_cons,hg,hm,ho]
       exact ⟨trivial,trivial,by omega,trivial,trivial⟩
 
+/-- The adaptive loop for a word of length `n` has exactly `2^n` observed leaves. -/
 private theorem adaptive_loop_count (zs : List ℂ) (F : Bool × Bool × ℂ) :
     observedLeafCount (clusterAdaptiveLoopFin zs F)=2^zs.length := by
   induction zs generalizing F with
@@ -361,6 +439,8 @@ private theorem adaptive_loop_count (zs : List ℂ) (F : Bool × Bool × ℂ) :
       simp only [clusterAdaptiveLoopFin,observedLeafCount,observedLeafCount_shiftObservedFin,ih]
       simp [pow_succ,Nat.mul_comm]
 
+/-- Prepending the first phase gate, Hadamard, and measurement projector to a shifted
+continuation leaf gives the explicit loop leaf for the extended outcome history. -/
 private theorem adaptive_loop_elem (z w : ℂ) (ws : List ℂ) (F : Bool × Bool × ℂ)
     (b : Bool) (j : Fin (2^(w::ws).length)) :
     ObservedKrausLeaf.prepend (clusterSeqPhaseFin (z::w::ws).length (adaptivePhase F.1 z)) 0 1 0 []
@@ -383,6 +463,8 @@ private theorem adaptive_loop_elem (z w : ℂ) (ws : List ℂ) (F : Bool × Bool
 
 set_option maxHeartbeats 1000000 in
 
+/-- The observed Kraus leaves of the adaptive loop are exactly its explicit leaves enumerated by
+Boolean histories. -/
 private theorem adaptive_loop_leaves (zs : List ℂ) (F : Bool × Bool × ℂ) :
     observedKrausLeaves 1 (clusterAdaptiveLoopFin zs F)=
       List.ofFn (fun i : Fin (2^zs.length) =>
@@ -440,6 +522,9 @@ private theorem adaptive_loop_leaves (zs : List ℂ) (F : Bool × Bool × ℂ) :
         exact congrArg (clusterAdaptiveLoopLeafGen (z::w::ws) F)
           (clusterSeqBitVec_symm_high (w::ws).length v hv' (by omega)).symm
 
+/-- The adaptive program has one accepted leaf per Boolean history, with no queries, one
+measurement per phase, four gates per phase, and one recorded outcome per phase
+[RaussendorfBriegel2000]. -/
 theorem cluster_adaptive_program_leaves_and_cost :
     ∀ (zs : List ℂ), observedLeafCount (clusterAdaptiveProgram zs)=2^zs.length ∧
       observedKrausLeaves 1 (clusterAdaptiveProgram zs)=
@@ -472,9 +557,12 @@ theorem cluster_adaptive_program_leaves_and_cost :
       List.nil_append,Nat.add_zero]
     exact ⟨trivial,trivial,trivial,by omega,trivial⟩
 
+/-- The realized adaptive phase word from a specified initial frame and Boolean outcome history. -/
 private def adaptiveHistoryWord (zs : List ℂ) (F : Bool × Bool × ℂ) (ω : Reg zs.length) : List ℂ :=
   (adaptiveRunFold F (zs.zip (List.ofFn ω))).2
 
+/-- The realized history word splits into the first outcome-adjusted phase and the tail word
+computed from the updated frame. -/
 private theorem adaptive_history_cons (z : ℂ) (zs : List ℂ) (F : Bool × Bool × ℂ)
     (ω : Reg (z::zs).length) : adaptiveHistoryWord (z::zs) F ω=
       ((if ω 0 then (-1 : ℂ) else 1)*adaptivePhase F.1 z)::
@@ -482,6 +570,8 @@ private theorem adaptive_history_cons (z : ℂ) (zs : List ℂ) (F : Bool × Boo
   simp only [adaptiveHistoryWord,List.ofFn_succ,List.zip_cons_cons,adaptiveRunFold]
   rfl
 
+/-- The adaptive loop branch operator on Boolean registers, formed recursively from phase gates,
+Hadamards, measurement projectors, and shifted continuation operators. -/
 private def adaptiveLoopB : (zs : List ℂ) → (Bool × Bool × ℂ) → Reg zs.length →
     Matrix (Reg (zs.length+1)) (Reg (zs.length+1)) ℂ
   | [], _, _ => 1
@@ -491,6 +581,8 @@ private def adaptiveLoopB : (zs : List ℂ) → (Bool × Bool × ℂ) → Reg zs
         clusterSeqOneBitB (z::zs).length 0 Hadamard*
         clusterSeqOneBitB (z::zs).length 0 (clusterSeqPhaseB (adaptivePhase F.1 z))
 
+/-- Relabeling the Boolean-register adaptive branch operator gives the operator of the explicit
+finite-index loop leaf. -/
 private theorem adaptive_loop_operator (zs : List ℂ) (F : Bool × Bool × ℂ) (ω : Reg zs.length) :
     (clusterAdaptiveLoopLeafGen zs F ω).operator=
       relabelGate (bitVecEquiv (zs.length+1)) (adaptiveLoopB zs F ω) := by
@@ -516,6 +608,8 @@ private theorem adaptive_loop_operator (zs : List ℂ) (F : Bool × Bool × ℂ)
       rw [← CircuitRelabel.relabelGate_mul,← CircuitRelabel.relabelGate_mul,
         ← CircuitRelabel.relabelGate_mul]
 
+/-- The explicit adaptive program leaf operator is the relabeling of the Boolean-register loop
+operator composed with resource preparation. -/
 private theorem adaptive_program_operator (zs : List ℂ) (ω : Reg zs.length) :
     (clusterAdaptiveProgramLeafGen zs ω).operator=
       relabelGate (bitVecEquiv (zs.length+1)) (adaptiveLoopB zs (false,false,1) ω*
@@ -525,6 +619,8 @@ private theorem adaptive_program_operator (zs : List ℂ) (ω : Reg zs.length) :
   rw [adaptive_loop_operator,clusterSequenceResourceGate_eq_relabel,
     ← CircuitRelabel.relabelGate_mul]
 
+/-- Left multiplication of `clusterJ z` by the Boolean-selected Pauli X changes the sign of its
+phase when the bit is true. -/
 private theorem adaptive_XJ (z : ℂ) (b : Bool) :
     relabelGate boolEquivFin2 (if b then PauliX else 1)*clusterJ z=
       clusterJ ((if b then (-1 : ℂ) else 1)*z) := by
@@ -535,6 +631,8 @@ private theorem adaptive_XJ (z : ℂ) (b : Bool) :
       norm_num [relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,Matrix.mul_apply,
         Fin.sum_univ_two,PauliX,permMatrix,boolEquivFin2,clusterJ_entry]
 
+/-- The first adaptive raw step factors off the measured basis state and continues on the
+remaining chain with the updated frame and a `1 / √2`-scaled `clusterJ` output. -/
 private theorem adaptive_raw_step (zs : List ℂ) (z : ℂ) (F : Bool × Bool × ℂ)
     (a : Bool) (ω : Reg zs.length) (φ : QState (Fin 2)) :
     (adaptiveLoopB (z::zs) F (Fin.cons a ω)*clusterSeqResourceGateB (zs.length+1))*ᵥ
@@ -554,6 +652,8 @@ private theorem adaptive_raw_step (zs : List ℂ) (z : ℂ) (F : Bool × Bool ×
       (clusterJ (adaptivePhase F.1 z)),adaptive_XJ]
   simp only [clusterSeqMulVecAssoc]
 
+/-- A register prefix equals a Boolean cons exactly when its first bit and remaining prefix
+equal the specified head and tail. -/
 private theorem adaptive_front_cons {m : ℕ} (x : Reg (m+2)) (a : Bool) (ω : Reg m) :
     (fun j => x (Fin.castSucc j))=Fin.cons a ω ↔
       x 0=a ∧ (fun j => Fin.tail x (Fin.castSucc j))=ω := by
@@ -569,6 +669,9 @@ private theorem adaptive_front_cons {m : ℕ} (x : Reg (m+2)) (a : Bool) (ω : R
     | zero => simpa using! h0
     | succ j => simpa using! congrFun ht j
 
+/-- An adaptive Boolean-register leaf is supported on its specified measurement history. On that
+history its output amplitude is `1 / √2` to the word length times the realized sequence
+applied to the input state. -/
 private theorem adaptive_leaf_physics (zs : List ℂ) (F : Bool × Bool × ℂ)
     (ω : Reg zs.length) (φ : QState (Fin 2)) :
     (adaptiveLoopB zs F ω*clusterSeqResourceGateB zs.length)*ᵥ
@@ -607,6 +710,9 @@ private theorem adaptive_leaf_physics (zs : List ℂ) (F : Bool × Bool × ℂ)
           one_mul,zero_mul]
     ring
 
+/-- For unit-modulus nominal phases, a raw adaptive leaf has zero amplitude on other outcome
+histories and amplitude `1 / √2` to the word length times the realized sequence on its own
+history [RaussendorfBriegel2000]. -/
 theorem cluster_adaptive_raw_leaf_amplitude :
     ∀ (zs : List ℂ) (_hzs : ∀ z ∈ zs, ‖z‖ = 1) (ω v : Reg zs.length) (c i : Fin 2),
       ((clusterAdaptiveProgramLeafGen zs ω).operator*clusterSequenceInitialFrame zs.length)
@@ -637,6 +743,10 @@ theorem cluster_adaptive_raw_leaf_amplitude :
   rw [hf,clusterSeqRegSucc_symm_last,Equiv.apply_symm_apply]
   rfl
 
+/-- Every leaf of the four-step adaptive Euler program uses four measurements, sixteen gates,
+and no queries. Its realized sequence equals the nominal sequence with the final scalar
+Pauli frame, and its amplitudes satisfy the stated history-supported branch formula
+[RaussendorfBriegel2000]. -/
 theorem cluster_adaptive_euler_pattern :
     ∀ (ξ η ζ : ℝ) (ω : Reg (clusterAdaptiveEulerWord ξ η ζ).length),
       (clusterAdaptiveProgramLeafGen (clusterAdaptiveEulerWord ξ η ζ) ω).measurements=4 ∧

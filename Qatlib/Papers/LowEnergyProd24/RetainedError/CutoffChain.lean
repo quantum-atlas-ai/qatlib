@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.NestedLeakage
 import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.NestedCutoffs
+
+/-!
+# A cutoff step for nested commutators
+
+This module proves the adjoint parity of grouped nested commutators and equality of their
+opposite off-diagonal block norms. With positive semidefinite local terms,
+`actual_nested_cutoff_step` combines compression at a larger cutoff with exponential leakage
+control, as required in [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_nested_star`: Identifies the adjoint sign from the nesting depth.
+* `actual_nested_cutoff_step`: Bounds one commutator step using a larger energy cutoff.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +38,8 @@ open Qatlib.Papers.LowEnergyProd24.ImaginaryLeak
 open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- The adjoint of a grouped nested commutator equals the commutator multiplied by `(-1 : ℂ) ^
+xs.length`. -/
 theorem actual_nested_star (h : Hamiltonian N R M k d J) (seed : Fin M) (xs : List (Fin M)) :
     star (nested h seed xs) = (-1 : ℂ)^xs.length • nested h seed xs := by
   induction xs with
@@ -31,6 +52,8 @@ theorem actual_nested_star (h : Hamiltonian N R M k d J) (seed : Fin M) (xs : Li
       List.length_cons, pow_succ, mul_neg_one, neg_smul, smul_sub]
     module
 
+/-- The two opposite off-diagonal blocks of a grouped nested commutator have equal operator
+norms. -/
 theorem actual_excursion_reverse (h : Hamiltonian N R M k d J) (seed : Fin M)
     (xs : List (Fin M)) (Δ Λ : ℝ) :
     ‖low h.total h.total_hermitian Δ*nested h seed xs*high h.total h.total_hermitian Λ‖ =
@@ -46,6 +69,8 @@ theorem actual_excursion_reverse (h : Hamiltonian N R M k d J) (seed : Fin M)
       simp only [star_mul, hp, hq, actual_nested_star, mul_smul_comm, smul_mul_assoc, mul_assoc]
     _ = _ := by rw [norm_smul, norm_pow, norm_neg, norm_one, one_pow, one_mul]
 
+/-- For positive semidefinite local terms and `Δ ≤ Λ`, one extra commutator is bounded by `2 *
+Λ` times the inner commutator compressed at `Λ`, plus the explicit exponential leakage term. -/
 theorem actual_nested_cutoff_step (h : Hamiltonian N R M k d J)
     (hp : ∀ i, (h.term i).PosSemidef) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (L : ℕ) (hL : ∀ m, (h.labels m).card ≤ L) (a seed : Fin M) (xs : List (Fin M))

@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QCatalysis20.MainResults.Definitions
 import Qatlib.Papers.QCatalysis20.MainResults.RoundedProbabilities
 import Qatlib.Papers.QCatalysis20.MainResults.PrepSelect
+
+/-!
+# Approximate LCU block encodings
+
+This module combines rounded coefficient probabilities with unitary PREP and signed SELECT
+matrices. It constructs block encodings of the coefficient-mass-normalized LCU, allowing
+normalized garbage states and bounding the compression error by `2⁻μ`. See [VonBurgEtAl2021].
+
+## Main statements
+
+* `weighted_error`: For unitary summands, the norm of the difference of two weighted sums is
+  bounded by the ℓ¹ distance between their weights.
+* `actual_rounded_block_encoding`: For nonzero real coefficients and unitary summands, there
+  exists a unitary PREP with the prescribed rounded-probability garbage column whose signed
+  SELECT compression block-encodes the normalized LCU with scale one and error at most `2⁻μ`.
+* `actual_clean_block_encoding`: The normalized LCU of nonzero real coefficients and unitary
+  summands has a PREP–SELECT block encoding with scale one and error at most `2⁻μ`, using a
+  singleton garbage register.
+
+## References
+
+* [von Burg et al., 2021][VonBurgEtAl2021]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,23 +47,30 @@ namespace Qatlib.Papers.QCatalysis20.MainResults.ApproxPrep
 variable {J I G : Type} [Fintype J] [Fintype I] [Fintype G]
   [DecidableEq J] [DecidableEq I] [DecidableEq G]
 
+/-- The sum of the absolute values of the real coefficients. -/
 def mass (a : J→ℝ) : ℝ := ∑j,|a j|
 
+/-- The absolute coefficient values divided by their total mass. -/
 def weights (a : J→ℝ) : J→ℝ := fun j=>|a j|/mass a
 
+/-- The selected matrix with its sign reversed exactly when its real coefficient is negative. -/
 def signedSelect (a : J→ℝ) (U : J→Matrix I I ℂ) : J→Matrix I I ℂ :=
   fun j=>if a j < 0 then -(U j) else U j
 
+/-- The real-weighted sum of a finite family of complex matrices. -/
 def weighted (p : J→ℝ) (U : J→Matrix I I ℂ) : Matrix I I ℂ := ∑j,(p j:ℂ)•U j
 
 omit [DecidableEq J] in
 
+/-- The coefficient mass is positive if at least one coefficient is nonzero. -/
 theorem mass_positive (a : J→ℝ) (ha : ∃j,a j≠0) : 0 < mass a := by
   obtain ⟨j,hj⟩:=ha
   exact Finset.sum_pos' (fun i _=>abs_nonneg (a i)) ⟨j,Finset.mem_univ j,abs_pos.mpr hj⟩
 
 omit [DecidableEq J] in
 
+/-- Positive coefficient mass makes the normalized absolute coefficients nonnegative with sum
+one. -/
 theorem weights_probability (a : J→ℝ) (ha : 0 < mass a) :
     (∀j,0 ≤ weights a j) ∧ ∑j,weights a j=1 := by
   refine ⟨fun j=>div_nonneg (abs_nonneg _) ha.le,?_⟩
@@ -48,6 +79,7 @@ theorem weights_probability (a : J→ℝ) (ha : 0 < mass a) :
 
 omit [Fintype J] [DecidableEq J] in
 
+/-- Changing the signs of unitary matrices according to real coefficients preserves unitarity. -/
 theorem signedSelect_unitary (a : J→ℝ) (U : J→Matrix I I ℂ)
     (hU : ∀j,U j∈unitaryGroup I ℂ) : ∀j,signedSelect a U j∈unitaryGroup I ℂ := by
   intro j
@@ -60,6 +92,8 @@ theorem signedSelect_unitary (a : J→ℝ) (U : J→Matrix I I ℂ)
 
 omit [Fintype I] [DecidableEq J] [DecidableEq I] in
 
+/-- The probability-weighted signed matrices sum to the LCU with coefficients divided by their
+absolute mass. See [VonBurgEtAl2021]. -/
 theorem weighted_exact (a : J→ℝ) (U : J→Matrix I I ℂ) :
     weighted (weights a) (signedSelect a U)=lcuOperator (fun j=>(a j/mass a:ℝ)) U := by
   apply Finset.sum_congr rfl
@@ -72,6 +106,8 @@ theorem weighted_exact (a : J→ℝ) (U : J→Matrix I I ℂ) :
 
 omit [DecidableEq J] in
 
+/-- For unitary summands, the norm of the difference of two weighted sums is bounded by the ℓ¹
+distance between their weights. -/
 theorem weighted_error (p w : J→ℝ) (U : J→Matrix I I ℂ)
     (hU : ∀j,U j∈unitaryGroup I ℂ) :
     ‖weighted p U-weighted w U‖ ≤ ∑j,|p j-w j| := by
@@ -84,6 +120,9 @@ theorem weighted_error (p w : J→ℝ) (U : J→Matrix I I ℂ)
   rw [norm_smul,Complex.norm_real,Real.norm_eq_abs]
   exact (mul_le_mul_of_nonneg_left (unitary_norm_le_one (hU j)) (abs_nonneg _)).trans_eq (mul_one _)
 
+/-- For nonzero real coefficients and unitary summands, there exists a unitary PREP with the
+prescribed rounded-probability garbage column whose signed SELECT compression block-encodes
+the normalized LCU with scale one and error at most `2⁻μ`. See [VonBurgEtAl2021]. -/
 theorem actual_rounded_block_encoding {n : ℕ} (μ : ℕ) (a : Fin (n+1)→ℝ)
     (ha : ∃j,a j≠0) (U : Fin (n+1)→Matrix I I ℂ) (hU : ∀j,U j∈unitaryGroup I ℂ)
     (g : Fin (n+1)→G→ℂ) (hg : ∀j,∑k,star (g j k)*g j k=1)
@@ -107,6 +146,9 @@ theorem actual_rounded_block_encoding {n : ℕ} (μ : ℕ) (a : Fin (n+1)→ℝ)
   exact (weighted_error p (weights a) (signedSelect a U) (signedSelect_unitary a U hU)).trans
     (Rounding.actual_precision μ (weights a) hw hs)
 
+/-- The normalized LCU of nonzero real coefficients and unitary summands has a PREP–SELECT block
+encoding with scale one and error at most `2⁻μ`, using a singleton garbage register. See
+[VonBurgEtAl2021]. -/
 theorem actual_clean_block_encoding {n : ℕ} (μ : ℕ) (a : Fin (n+1)→ℝ)
     (ha : ∃j,a j≠0) (U : Fin (n+1)→Matrix I I ℂ) (hU : ∀j,U j∈unitaryGroup I ℂ) :
     ∃P : Matrix (Fin (n+1)×Fin 1) (Fin (n+1)×Fin 1) ℂ,

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.StochasticCalc.LognormalPay.Defs
 import Mathlib.Probability.Distributions.Gaussian.Real
+
+/-!
+# Mean of a lognormal terminal level
+
+`terminalLevel_expectation` computes the mean of the exponential terminal model from the
+Gaussian moment-generating function. A centered Gaussian input of variance `T ≥ 0` cancels the
+volatility drift correction, leaving `S0 * exp (α * T)`.
+
+The mathematical background is discussed in [RebentrostGuptBromley2018].
+
+## Main statements
+
+* `terminalLevel_expectation`: the terminal mean equals the initial level times the drift
+  exponential.
+
+## References
+
+* [Rebentrost et al., 2018][RebentrostGuptBromley2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +40,8 @@ open scoped ProbabilityTheory
 
 variable {Ω : Type*} [MeasurableSpace Ω] {Q : Measure Ω}
 
+/-- For an almost-everywhere measurable input with centered Gaussian law of variance `T ≥ 0`,
+the expected terminal level is `S0 * exp (α * T)`. -/
 theorem terminalLevel_expectation
     [IsProbabilityMeasure Q] {W : Ω → ℝ} {S0 α σ T : ℝ} (hT : 0 ≤ T)
     (hW : Q.map W = gaussianReal 0 ⟨T, hT⟩)

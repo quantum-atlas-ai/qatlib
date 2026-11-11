@@ -12,6 +12,36 @@ import Lean.Elab.Tactic.Omega
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStoppingDefs
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CountingOracleTransport
+
+/-!
+# Amplitude estimation, counting, and search stopping bounds
+
+This module relates amplitude estimation access words to circuit query counts and proves
+numerical readout and counting guarantees following [BrassardEtAl2002]. It also establishes the
+unique minimum of the scaled restart profile and the limits of optimal integer restart depths.
+
+The search consumers include counting cost and space ledgers, finite rejection sampling, and
+marked-subspace readout. Minimum-finding cutoff and independent repetition results make the
+timing and initial-candidate assumptions explicit; these constructions are related to
+[BoyerEtAl1998] and [DurrHoyer1996].
+
+## Main statements
+
+* `clause7_endpoint`: amplitude estimation window probabilities and endpoint behavior.
+* `clause8_counting_endpoint`: counting windows and rounded output guarantees.
+* `clause36_integer_optimum_tendsto`: convergence of scaled optimal integer restart depths.
+* `thresholdGoal_endpoint`: exact marked readout and its resource ledger under the stated design
+  hypotheses.
+* `clause41_independent_success_exact`: success probability for independent minimum-finding
+  runs, including the initial candidate.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Boyer et al., 1998][BoyerEtAl1998]
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -54,6 +84,7 @@ open Qatlib
 open Qatlib.Concepts.SearchStopping.RestartLaw
 open scoped ENNReal BigOperators Classical Topology
 
+/-- The number of marking accesses is additive under concatenation of access words. -/
 private theorem ae_mark_append {R : Type} (l₁ l₂ : List (AEAccessStep R)) :
     aeMarkAccesses (l₁ ++ l₂) = aeMarkAccesses l₁ + aeMarkAccesses l₂ := by
   induction l₁ with
@@ -63,6 +94,7 @@ private theorem ae_mark_append {R : Type} (l₁ l₂ : List (AEAccessStep R)) :
     | mark => simp only [aeMarkAccesses, List.cons_append, ih]; all_goals omega
     | _ => simp only [aeMarkAccesses, List.cons_append, ih]
 
+/-- The number of source oracle accesses is additive under concatenation of access words. -/
 private theorem ae_source_append {R : Type} (l₁ l₂ : List (AEAccessStep R)) :
     aeSourceOracleAccesses (l₁ ++ l₂) =
       aeSourceOracleAccesses l₁ + aeSourceOracleAccesses l₂ := by
@@ -73,6 +105,8 @@ private theorem ae_source_append {R : Type} (l₁ l₂ : List (AEAccessStep R)) 
     | mark => simp only [aeSourceOracleAccesses, List.cons_append, ih]; all_goals omega
     | _ => simp only [aeSourceOracleAccesses, List.cons_append, ih]; all_goals omega
 
+/-- Expanding a circuit into amplitude estimation accesses produces one marking access per
+circuit query. -/
 private theorem ae_expanded_mark_count {R : Type} (C : Circuit R) :
     aeMarkAccesses (C.flatMap expandAEAccess) = QueryCount C := by
   induction C with
@@ -93,6 +127,8 @@ private theorem ae_expanded_mark_count {R : Type} (C : Circuit R) :
       simp only [aeMarkAccesses, QueryCount]
       omega
 
+/-- Expanding a circuit into amplitude estimation accesses produces one source oracle access per
+circuit query. -/
 private theorem ae_expanded_source_count {R : Type} (C : Circuit R) :
     aeSourceOracleAccesses (C.flatMap expandAEAccess) = QueryCount C := by
   induction C with
@@ -113,6 +149,8 @@ private theorem ae_expanded_source_count {R : Type} (C : Circuit R) :
       simp only [aeSourceOracleAccesses, QueryCount]
       omega
 
+/-- Compiling an access word preserves its marking count as the query count of the resulting
+circuit. -/
 private theorem ae_mark_equals_query_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ)
     (A : Matrix I I ℂ) (j : I) (w : List (AEAccessStep (Fin M × (Bool × I)))) :
     aeMarkAccesses w = QueryCount (w.map (aeAccessInstruction M A j)) := by
@@ -123,6 +161,8 @@ private theorem ae_mark_equals_query_count {I : Type} [Fintype I] [DecidableEq I
     | mark => simp [aeMarkAccesses, aeAccessInstruction, ih]
     | _ => simp [aeMarkAccesses, aeAccessInstruction, ih]
 
+/-- The amplitude estimation access word with positive grid size `M` contains exactly `M - 1`
+marking accesses. -/
 theorem ae_mark_access_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) :
     aeMarkAccesses (aeAccessWord (I := I) M) = M - 1 := by
@@ -135,6 +175,7 @@ theorem ae_mark_access_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (h
       = countedAECircuit (I := I) M A j := rfl
   rw [h2, h3, hq]
 
+/-- The counted phase circuit with positive grid size `M` uses exactly `M - 1` queries. -/
 private theorem ae_phase_query_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) :
     QueryCount (countedPhaseCircuit (I := I) M) = M - 1 := by
@@ -146,6 +187,8 @@ private theorem ae_phase_query_count {I : Type} [Fintype I] [DecidableEq I] (M :
   rw [ae_expanded_mark_count] at h
   exact h
 
+/-- The amplitude estimation access word with positive grid size `M` uses exactly `M` source
+oracle accesses. -/
 theorem ae_source_evaluation_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) :
     aeSourceOracleAccesses (aeAccessWord (I := I) M) = M := by
@@ -157,6 +200,8 @@ theorem ae_source_evaluation_count {I : Type} [Fintype I] [DecidableEq I] (M : �
   rw [ae_expanded_source_count]
   omega
 
+/-- The source oracle count of the amplitude estimation access word equals one plus the query
+count of its counted circuit. -/
 theorem ae_source_evaluation_transport {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) :
     aeSourceOracleAccesses (aeAccessWord (I := I) M)
@@ -166,6 +211,8 @@ theorem ae_source_evaluation_transport {I : Type} [Fintype I] [DecidableEq I] (M
   rw [ae_source_evaluation_count M hM A j]
   omega
 
+/-- The amplitude estimation source cost is `M`, consisting of one initialization and `M - 1`
+marking queries. -/
 theorem clause7_source_cost_convention {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) :
     aeSourceOracleAccesses (aeAccessWord (I := I) M) = M ∧
@@ -178,10 +225,13 @@ theorem clause7_source_cost_convention {I : Type} [Fintype I] [DecidableEq I] (M
   rw [ae_source_evaluation_count M hM A j]
   omega
 
+/-- At amplitude one, the unit-width amplitude estimation window is exactly the error bound `π²
+/ M²`. -/
 private theorem aeWindow_one_at_one {M : ℕ} (z : Fin M) :
     aeWindow M 1 1 z ↔ |aeEstimate M z - 1| ≤ Real.pi ^ 2 / (M : ℝ) ^ 2 := by
   simp [aeWindow]
 
+/-- A natural number not divisible by two has remainder one modulo two. -/
 private theorem odd_mod_two {M : ℕ} (hodd : ¬ 2 ∣ M) : M % 2 = 1 := by
   have hne : M % 2 ≠ 0 := by
     intro hz
@@ -190,6 +240,8 @@ private theorem odd_mod_two {M : ℕ} (hodd : ¬ 2 ∣ M) : M % 2 = 1 := by
   · exact absurd h hne
   · exact h
 
+/-- For odd `M`, twice the adjacent half-grid indices equals `M - 1` and `M + 1`, and the
+indices sum to `M`. -/
 private theorem odd_neighbour_arith {M : ℕ} (hodd : ¬ 2 ∣ M) :
     ((M - 1) / 2 : ℕ) * 2 = M - 1 ∧ ((M + 1) / 2 : ℕ) * 2 = M + 1 ∧
       ((M - 1) / 2 : ℕ) + ((M + 1) / 2 : ℕ) = M := by
@@ -200,6 +252,8 @@ private theorem odd_neighbour_arith {M : ℕ} (hodd : ¬ 2 ∣ M) :
   have h4 : (M + 1) % 2 = 0 := by omega
   omega
 
+/-- The adjacent half-grid identities for odd `M` hold after casting the indices to real
+numbers. -/
 private theorem odd_neighbour_casts {M : ℕ} (hodd : ¬ 2 ∣ M) :
     ((((M - 1) / 2 : ℕ) : ℝ) * 2 = (M : ℝ) - 1) ∧
     ((((M + 1) / 2 : ℕ) : ℝ) * 2 = (M : ℝ) + 1) := by
@@ -219,6 +273,7 @@ private theorem odd_neighbour_casts {M : ℕ} (hodd : ¬ 2 ∣ M) :
     push_cast
     ring
 
+/-- The lower half-grid angle for odd `M > 1` equals `π / 2 - π / (2 * M)`. -/
 private theorem odd_neighbour_angle {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) :
     Real.pi * (((M - 1) / 2 : ℕ) : ℝ) / (M : ℝ)
       = Real.pi / 2 - Real.pi / (2 * (M : ℝ)) := by
@@ -230,6 +285,7 @@ private theorem odd_neighbour_angle {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) :
   rw [hdiv]
   field_simp
 
+/-- The upper half-grid angle for odd `M > 1` equals `π / 2 + π / (2 * M)`. -/
 private theorem odd_neighbour_angle2 {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) :
     Real.pi * (((M + 1) / 2 : ℕ) : ℝ) / (M : ℝ)
       = Real.pi / 2 + Real.pi / (2 * (M : ℝ)) := by
@@ -241,10 +297,12 @@ private theorem odd_neighbour_angle2 {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) 
   rw [hdiv]
   field_simp
 
+/-- For odd `M > 1`, the lower neighboring half-grid label has estimate `cos (π / (2 * M))²`. -/
 theorem odd_neighbour_estimate_value {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) :
     aeEstimate M ⟨(M - 1) / 2, by omega⟩ = Real.cos (Real.pi / (2 * (M : ℝ))) ^ 2 := by
   rw [aeEstimate, odd_neighbour_angle hM hodd, Real.sin_pi_div_two_sub]
 
+/-- For odd `M > 1`, the upper neighboring half-grid label has estimate `cos (π / (2 * M))²`. -/
 theorem odd_neighbour_estimate_value2 {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) :
     aeEstimate M ⟨(M + 1) / 2, by omega⟩ = Real.cos (Real.pi / (2 * (M : ℝ))) ^ 2 := by
   rw [aeEstimate, odd_neighbour_angle2 hM hodd]
@@ -252,10 +310,13 @@ theorem odd_neighbour_estimate_value2 {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M)
       = Real.pi - (Real.pi / 2 - Real.pi / (2 * (M : ℝ))) by ring,
     Real.sin_pi_sub, Real.sin_pi_div_two_sub]
 
+/-- The two neighboring half-grid labels have equal amplitude estimates when `M > 1` is odd. -/
 theorem odd_neighbour_estimates {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) :
     aeEstimate M ⟨(M - 1) / 2, by omega⟩ = aeEstimate M ⟨(M + 1) / 2, by omega⟩ := by
   rw [odd_neighbour_estimate_value hM hodd, odd_neighbour_estimate_value2 hM hodd]
 
+/-- Both neighboring half-grid labels lie in the unit-width window at amplitude one for odd `M >
+1`. -/
 theorem odd_neighbour_window {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) :
     aeWindow M 1 1 ⟨(M - 1) / 2, by omega⟩ ∧
     aeWindow M 1 1 ⟨(M + 1) / 2, by omega⟩ := by
@@ -283,6 +344,8 @@ theorem odd_neighbour_window {M : ℕ} (hM : 1 < M) (hodd : ¬ 2 ∣ M) :
   · rw [odd_neighbour_estimate_value2 hM hodd, abs_of_nonpos hnonpos]
     nlinarith [hx, hx2, hp, hid2]
 
+/-- Amplitude estimation satisfies the general and unit-width window probability bounds,
+together with its zero- and unit-amplitude endpoint properties [BrassardEtAl2002]. -/
 theorem clause7_endpoint {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (∀ k : ℕ, 2 ≤ k →
@@ -332,6 +395,7 @@ theorem clause7_endpoint {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 
     exact ⟨odd_neighbour_estimates (by omega) hodd, (odd_neighbour_window (by omega) hodd).1,
       (odd_neighbour_window (by omega) hodd).2⟩
 
+/-- The counting grid size is at least two when `N ≥ 2`. -/
 theorem countGridSize_two_le (N : ℕ) (hN : 2 ≤ N) : 2 ≤ countGridSize N := by
   have hsqrt : (1 : ℝ) < Real.sqrt N := by
     have h1 : Real.sqrt 1 < Real.sqrt N := Real.sqrt_lt_sqrt (by norm_num) (by
@@ -343,6 +407,7 @@ theorem countGridSize_two_le (N : ℕ) (hN : 2 ≤ N) : 2 ≤ countGridSize N :=
     simpa using! hsqrt
   omega
 
+/-- The counting grid size is at least one for positive `N`. -/
 theorem countGridSize_one_le (N : ℕ) (hN : 0 < N) : 1 ≤ countGridSize N := by
   have h1 : (0 : ℝ) < Real.sqrt N := Real.sqrt_pos.mpr (by exact_mod_cast hN)
   have h2 : 0 < countGridSize N := by
@@ -350,12 +415,14 @@ theorem countGridSize_one_le (N : ℕ) (hN : 0 < N) : 1 ≤ countGridSize N := b
     simpa using! h1
   omega
 
+/-- The counting grid size is at least the real square root of positive `N`. -/
 theorem countGridSize_sqrt_le (N : ℕ) (hN : 0 < N) :
     Real.sqrt N ≤ (countGridSize N : ℝ) := by
   have _ := hN
   rw [countGridSize]
   exact Nat.le_ceil _
 
+/-- For positive `N`, one less than the counting grid size is strictly below `√N`. -/
 theorem countGridSize_lt_succ (N : ℕ) (hN : 0 < N) :
     (countGridSize N : ℝ) - 1 < Real.sqrt N := by
   have h1 : countGridSize N - 1 < countGridSize N := by
@@ -371,12 +438,14 @@ theorem countGridSize_lt_succ (N : ℕ) (hN : 0 < N) :
   simp only [Nat.cast_add, Nat.cast_one] at hh
   linarith
 
+/-- The square of the counting grid size is at least positive `N`. -/
 theorem countGridSize_sq (N : ℕ) (hN : 0 < N) : (N : ℝ) ≤ (countGridSize N : ℝ) ^ 2 := by
   have h1 : Real.sqrt N ≤ (countGridSize N : ℝ) := countGridSize_sqrt_le N hN
   have h2 : 0 ≤ Real.sqrt N := Real.sqrt_nonneg N
   have h3 := mul_self_le_mul_self h2 h1
   nlinarith [h3, Real.sq_sqrt (x := (N : ℝ)) (by positivity)]
 
+/-- Rounding a nonnegative real number with `countRounded` incurs error at most one half. -/
 theorem countRounded_abs (x : ℝ) (hx : 0 ≤ x) : |countRounded x - x| ≤ 1 / 2 := by
   have h1 : (countRounded x : ℝ) ≤ x + 1 / 2 := by
     simpa [countRounded] using!
@@ -388,11 +457,14 @@ theorem countRounded_abs (x : ℝ) (hx : 0 ≤ x) : |countRounded x - x| ≤ 1 /
   · linarith
   · linarith
 
+/-- The numerical bound `π² + 1 / 2 < 11` holds. -/
 theorem pi_sq_add_half_lt_eleven : Real.pi ^ 2 + 1 / 2 < 11 := by
   have h1 : Real.pi ^ 2 < (3.1416 : ℝ) ^ 2 := by
     nlinarith [Real.pi_pos, Real.pi_lt_d4]
   nlinarith
 
+/-- A unit-width counting-window label on a grid of size at least `√N` has unrounded error at
+most `2π√(t(N - t)/N) + π²`. -/
 theorem count_window_at_scale {N : ℕ} (hN : 0 < N) {M : ℕ}
     (hgrid : Real.sqrt N ≤ (M : ℝ)) (hM2 : (N : ℝ) ≤ (M : ℝ) ^ 2)
     (t : ℕ) (ht0 : 0 ≤ t) (htN : t ≤ N) (z : Fin M) (hz : countWindow N M 1 t z) :
@@ -447,6 +519,8 @@ theorem count_window_at_scale {N : ℕ} (hN : 0 < N) {M : ℕ}
     _ ≤ 2 * Real.pi * Real.sqrt ((t : ℝ) * ((N : ℝ) - (t : ℝ)) / (N : ℝ)) + Real.pi ^ 2 :=
       add_le_add hmain hpi
 
+/-- A unit-width counting-window label on a grid of size at least `√N` satisfies the rounded
+counting output window. -/
 theorem count_output_window_at_grid {N : ℕ} (hN : 0 < N) {M : ℕ}
     (hgrid : Real.sqrt N ≤ (M : ℝ)) (hM2 : (N : ℝ) ≤ (M : ℝ) ^ 2)
     (t : ℕ) (ht0 : 0 ≤ t) (htN : t ≤ N) (z : Fin M) (hz : countWindow N M 1 t z) :
@@ -464,11 +538,15 @@ theorem count_output_window_at_grid {N : ℕ} (hN : 0 < N) {M : ℕ}
   rw [countOutputWindow]
   nlinarith [htri, hround, hscale, pi_sq_add_half_lt_eleven]
 
+/-- The amplitude estimation label distribution for uniform preparation on `Fin N`, using grid
+size `countGridSize N` and marked set `S`. -/
 noncomputable def countingLaw (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N)
     (S : Finset (Fin N)) : FinDist (Fin (countGridSize N)) :=
   aeLaw (countGridSize N) (QFTMatrix N) (⟨0, hN⟩ : Fin N) S (qftMatrix_unitary hN)
     (countGridSize_two_le N hN2)
 
+/-- The counting window of width `k ≥ 2` has probability at least `1 - 1 / (2 * (k - 1))`
+[BrassardEtAl2002]. -/
 theorem clause8_counting_k2_window (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N)
     (S : Finset (Fin N)) (k : ℕ) (hk : 2 ≤ k) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin (countGridSize N) =>
@@ -477,6 +555,7 @@ theorem clause8_counting_k2_window (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N)
   have h := bhmt_counting_k2_window N (countGridSize N) S hN (countGridSize_two_le N hN2) k hk
   simpa [countWindow, countingLaw] using! h
 
+/-- The unit-width counting window has probability at least `8 / π²` [BrassardEtAl2002]. -/
 theorem clause8_counting_k1_window (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N) (S : Finset (Fin N)) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin (countGridSize N) =>
         countWindow N (countGridSize N) 1 S.card z),
@@ -485,6 +564,7 @@ theorem clause8_counting_k1_window (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N) (S : F
     (countGridSize_two_le N hN2) S
   simpa [countWindow, countingLaw] using! h
 
+/-- The rounded counting output window has probability at least `8 / π²` [BrassardEtAl2002]. -/
 theorem clause8_counting_rounded_output (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N)
     (S : Finset (Fin N)) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin (countGridSize N) =>
@@ -524,6 +604,8 @@ theorem clause8_counting_rounded_output (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N)
     simpa [countWindow] using! clause8_counting_k1_window N hN hN2 S
   linarith
 
+/-- The counting law satisfies the general window, unit-width window, and rounded output
+probability guarantees [BrassardEtAl2002]. -/
 theorem clause8_counting_endpoint (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N) (S : Finset (Fin N)) :
     (∀ k : ℕ, 2 ≤ k →
       ∑ z ∈ Finset.univ.filter (fun z : Fin (countGridSize N) =>
@@ -538,6 +620,7 @@ theorem clause8_counting_endpoint (N : ℕ) (hN : 0 < N) (hN2 : 2 ≤ N) (S : Fi
   refine ⟨clause8_counting_k2_window N hN hN2 S, clause8_counting_k1_window N hN hN2 S,
     clause8_counting_rounded_output N hN hN2 S⟩
 
+/-- Where the cosine is nonzero, `1 + tan x²` equals `1 / cos x²`. -/
 private theorem tan_sq_add_one (x : ℝ) (hc : Real.cos x ≠ 0) :
     (1 : ℝ) + Real.tan x ^ 2 = 1 / Real.cos x ^ 2 := by
   rw [Real.tan_eq_sin_div_cos]
@@ -545,11 +628,15 @@ private theorem tan_sq_add_one (x : ℝ) (hc : Real.cos x ≠ 0) :
   have := Real.sin_sq_add_cos_sq x
   nlinarith
 
+/-- Multiplying the restart stationarity residual by `cos x` gives `sin x - 2 * x * cos x` when
+`cos x ≠ 0`. -/
 private theorem stationarity_cos_mul (x : ℝ) (hc : Real.cos x ≠ 0) :
     Real.sin x - 2 * x * Real.cos x = Real.cos x * restartStationarityResidual x := by
   rw [restartStationarityResidual, Real.tan_eq_sin_div_cos]
   field_simp [hc]
 
+/-- Where the cosine is nonzero, the restart stationarity residual has derivative `1 / cos x² -
+2`. -/
 private theorem hasDerivAt_stationarity (x : ℝ) (hc : Real.cos x ≠ 0) :
     HasDerivAt restartStationarityResidual (1 / Real.cos x ^ 2 - 2) x := by
   have ht := Real.hasDerivAt_tan hc
@@ -558,11 +645,14 @@ private theorem hasDerivAt_stationarity (x : ℝ) (hc : Real.cos x ≠ 0) :
   have h := ht.sub hmul
   convert! h using 1
 
+/-- Where the cosine is nonzero, the derivative of the restart stationarity residual equals `tan
+x² - 1`. -/
 private theorem deriv_stationarity (x : ℝ) (hc : Real.cos x ≠ 0) :
     deriv restartStationarityResidual x = Real.tan x ^ 2 - 1 := by
   rw [(hasDerivAt_stationarity x hc).deriv, ← tan_sq_add_one x hc]
   ring
 
+/-- The function `2 * x - tan x` is strictly increasing on `[0, π / 4]`. -/
 private theorem stationarity_neg_strictMonoOn_lo :
     StrictMonoOn (fun x : ℝ => 2 * x - Real.tan x) (Set.Icc 0 (Real.pi / 4)) := by
   refine strictMonoOn_of_deriv_pos (convex_Icc _ _) ?_ ?_
@@ -611,6 +701,7 @@ private theorem stationarity_neg_strictMonoOn_lo :
     rw [hder, ← tan_sq_add_one x hcos]
     nlinarith [sq_nonneg (Real.tan x)]
 
+/-- The function `tan x - 2 * x` is strictly increasing on `(π / 4, π / 2)`. -/
 private theorem stationarity_strictMonoOn_hi :
     StrictMonoOn (fun x : ℝ => Real.tan x - 2 * x) (Set.Ioo (Real.pi / 4) (Real.pi / 2)) := by
   refine strictMonoOn_of_deriv_pos (convex_Ioo _ _) ?_ ?_
@@ -652,6 +743,7 @@ private theorem stationarity_strictMonoOn_hi :
     rw [hder, ← tan_sq_add_one x hcos]
     nlinarith [sq_nonneg (Real.tan x)]
 
+/-- The selected optimal restart angle lies strictly between `π / 2` and `π`. -/
 theorem restartOptimalAngle_bounds :
     Real.pi / 2 < restartOptimalAngle ∧ restartOptimalAngle < Real.pi := by
   obtain ⟨htan, hlo, hhi⟩ := restartOptimalAngle_spec
@@ -665,6 +757,7 @@ theorem restartOptimalAngle_bounds :
       linarith
     linarith
 
+/-- Half the optimal restart angle lies in `(π / 4, π / 2)`. -/
 theorem restartOptimalAngle_half_mem :
     restartOptimalAngle / 2 ∈ Set.Ioo (Real.pi / 4) (Real.pi / 2) := by
   obtain ⟨hlo, hhi⟩ := restartOptimalAngle_bounds
@@ -674,6 +767,7 @@ theorem restartOptimalAngle_half_mem :
   · have hz : restartOptimalAngle < (2 : ℝ) * (Real.pi / 2) := by linarith
     linarith
 
+/-- The scaled restart optimum lies in `(0, π / 4)`. -/
 theorem restartScaledOptimum_mem :
     restartScaledOptimum ∈ Set.Ioo 0 (Real.pi / 4) := by
   constructor
@@ -686,6 +780,8 @@ theorem restartScaledOptimum_mem :
     rw [restartScaledOptimum]
     linarith
 
+/-- The restart stationarity residual is negative between zero and half the optimal restart
+angle. -/
 theorem stationarity_neg_of_lt_half (x : ℝ) (hx : 0 < x)
     (hx2 : x < restartOptimalAngle / 2) :
     restartStationarityResidual x < 0 := by
@@ -715,6 +811,8 @@ theorem stationarity_neg_of_lt_half (x : ℝ) (hx : 0 < x)
     rw [restartStationarityResidual]
     linarith [hztan]
 
+/-- The restart stationarity residual is positive between half the optimal restart angle and `π
+/ 2`. -/
 theorem stationarity_pos_of_gt_half (x : ℝ) (hx : restartOptimalAngle / 2 < x)
     (hx2 : x < Real.pi / 2) :
     restartStationarityResidual x > 0 := by
@@ -734,6 +832,8 @@ theorem stationarity_pos_of_gt_half (x : ℝ) (hx : restartOptimalAngle / 2 < x)
   rw [restartStationarityResidual]
   linarith [hztan]
 
+/-- The function `u / sin (2 * u)²` has the displayed quotient-rule derivative wherever `sin (2
+* u) ≠ 0`. -/
 private theorem hasDerivAt_scaledProfile (u : ℝ) (hs : Real.sin (2 * u) ≠ 0) :
     HasDerivAt (fun t : ℝ => t / Real.sin (2 * t) ^ 2)
       ((Real.sin (2 * u) ^ 2 - u * (4 * Real.sin (2 * u) * Real.cos (2 * u))) /
@@ -774,12 +874,15 @@ private theorem hasDerivAt_scaledProfile (u : ℝ) (hs : Real.sin (2 * u) ≠ 0)
     have hpow : (Real.sin (2 * u) ^ 2) ^ 2 = Real.sin (2 * u) ^ 4 := by ring
     rw [hpow]
 
+/-- The derivative of `u / sin (2 * u)²` equals the displayed rational trigonometric expression
+wherever its sine denominator is nonzero. -/
 private theorem deriv_scaledProfile (u : ℝ) (hs : Real.sin (2 * u) ≠ 0) :
     deriv (fun t : ℝ => t / Real.sin (2 * t) ^ 2) u =
       (Real.sin (2 * u) ^ 2 - u * (4 * Real.sin (2 * u) * Real.cos (2 * u))) /
         Real.sin (2 * u) ^ 4 :=
   (hasDerivAt_scaledProfile u hs).deriv
 
+/-- The scaled restart profile has negative derivative between zero and `restartScaledOptimum`. -/
 private theorem scaledProfile_deriv_neg (u : ℝ) (hu : 0 < u)
     (hu2 : u < restartScaledOptimum) :
     deriv (fun t : ℝ => t / Real.sin (2 * t) ^ 2) u < 0 := by
@@ -824,6 +927,8 @@ private theorem scaledProfile_deriv_neg (u : ℝ) (hu : 0 < u)
     mul_neg_of_pos_of_neg hsinpos hres
   exact div_neg_of_neg_of_pos hnum (pow_pos hsinpos 4)
 
+/-- The scaled restart profile has positive derivative between `restartScaledOptimum` and `π /
+4`. -/
 private theorem scaledProfile_deriv_pos (u : ℝ) (hu : restartScaledOptimum < u)
     (hu2 : u < Real.pi / 4) :
     deriv (fun t : ℝ => t / Real.sin (2 * t) ^ 2) u > 0 := by
@@ -868,6 +973,7 @@ private theorem scaledProfile_deriv_pos (u : ℝ) (hu : restartScaledOptimum < u
     mul_pos hsinpos hres
   exact div_pos hnum (pow_pos hsinpos 4)
 
+/-- The scaled restart profile is continuous on any set contained in `(0, π / 4]`. -/
 private theorem scaledProfile_continuousOn {D : Set ℝ}
     (hD : ∀ u ∈ D, 0 < u ∧ u ≤ Real.pi / 4) :
     ContinuousOn (fun u : ℝ => restartScaledProfile u) D := by
@@ -884,6 +990,8 @@ private theorem scaledProfile_continuousOn {D : Set ℝ}
   intro hz
   exact absurd ((sq_eq_zero_iff).mp hz) (ne_of_gt hsinpos)
 
+/-- The negative scaled restart profile is strictly increasing from `1 / 16` to
+`restartScaledOptimum`. -/
 private theorem scaledProfile_strictMonoOn_dec :
     StrictMonoOn (fun u : ℝ => -restartScaledProfile u)
       (Set.Icc (1 / 16) restartScaledOptimum) := by
@@ -918,6 +1026,7 @@ private theorem scaledProfile_strictMonoOn_dec :
     rw [hnegderiv]
     linarith
 
+/-- The scaled restart profile is strictly increasing from `restartScaledOptimum` to `π / 4`. -/
 private theorem scaledProfile_strictMonoOn_inc :
     StrictMonoOn (fun u : ℝ => restartScaledProfile u)
       (Set.Icc restartScaledOptimum (Real.pi / 4)) := by
@@ -940,6 +1049,7 @@ private theorem scaledProfile_strictMonoOn_inc :
       simpa only [restartScaledProfile] using! hder
     exact hder'
 
+/-- The scaled restart profile is at least four on `(0, 1 / 16]`. -/
 private theorem scaledProfile_ge_four_of_small (u : ℝ) (hu : 0 < u) (hu2 : u ≤ 1 / 16) :
     restartScaledProfile u ≥ 4 := by
   have h1 : |Real.sin (2 * u)| ≤ |2 * u| := Real.abs_sin_le_abs
@@ -964,6 +1074,7 @@ private theorem scaledProfile_ge_four_of_small (u : ℝ) (hu : 0 < u) (hu2 : u �
   have h3 : 4 * Real.sin (2 * u) ^ 2 ≤ 4 * (2 * u) ^ 2 := by nlinarith [h2]
   nlinarith [hu, hu2]
 
+/-- The scaled restart profile at its selected optimum equals `restartScaledExpectation`. -/
 theorem scaledProfile_optimum_value :
     restartScaledProfile restartScaledOptimum = restartScaledExpectation := by
   rw [restartScaledProfile, restartScaledOptimum, restartScaledExpectation]
@@ -980,6 +1091,8 @@ theorem scaledProfile_optimum_value :
   field_simp
   ring
 
+/-- The scaled optimum lies between `0.58278` and `0.58279`, and its expected-iteration constant
+lies between `0.69002` and `0.69003` [BoyerEtAl1998]. -/
 theorem clause36_source_constants :
     58278 / 100000 < restartScaledOptimum ∧ restartScaledOptimum < 58279 / 100000 ∧
       69002 / 100000 < restartScaledExpectation ∧ restartScaledExpectation < 69003 / 100000 := by
@@ -996,6 +1109,8 @@ theorem clause36_source_constants :
   · rw [restartScaledExpectation]
     exact h6
 
+/-- On `(0, π / 4)`, the scaled restart profile attains its unique minimum at
+`restartScaledOptimum`. -/
 theorem scaledProfile_min_unique (u : ℝ) (hu : 0 < u) (hu2 : u < Real.pi / 4) :
     restartScaledProfile u ≥ restartScaledProfile restartScaledOptimum ∧
       (u ≠ restartScaledOptimum → restartScaledProfile u > restartScaledProfile restartScaledOptimum) := by
@@ -1038,6 +1153,8 @@ theorem scaledProfile_min_unique (u : ℝ) (hu : 0 < u) (hu2 : u < Real.pi / 4) 
             < restartScaledProfile u := by simpa using! hmono
         exact ⟨by linarith, fun _ => hpos⟩
 
+/-- For positive `θ`, rounding the optimal restart depth incurs error at most one half from
+`restartOptimalAngle / (4 * θ)`. -/
 theorem restartRoundedDepth_nearest (θ : ℝ) (hθ : 0 < θ) :
     |(restartRoundedDepth θ restartOptimalAngle : ℝ) - restartOptimalAngle / (4 * θ)| ≤ 1 / 2 := by
   have hx : 0 ≤ restartOptimalAngle / (4 * θ) := by
@@ -1048,6 +1165,8 @@ theorem restartRoundedDepth_nearest (θ : ℝ) (hθ : 0 < θ) :
   have h := countRounded_abs (restartOptimalAngle / (4 * θ)) hx
   simpa [restartRoundedDepth, countRounded] using! h
 
+/-- For `0 < θ ≤ π / 4`, the restart window depth is positive and its product with `θ` lies in
+`(π / 4 - θ, π / 4]`. -/
 theorem restartWindowDepth_spec (θ : ℝ) (hθ : 0 < θ) (hθ2 : θ ≤ Real.pi / 4) :
     1 ≤ restartWindowDepth θ ∧
       (restartWindowDepth θ : ℝ) * θ ≤ Real.pi / 4 ∧
@@ -1079,6 +1198,8 @@ theorem restartWindowDepth_spec (θ : ℝ) (hθ : 0 < θ) (hθ2 : θ ≤ Real.pi
     linarith
   exact ⟨hfloor, hmul, hmul2⟩
 
+/-- On a nonempty restart window, the selected integer optimum lies between one and `M` and
+attains `restartOptimalValue θ M`. -/
 theorem restartIntegerOptimum_spec (θ : ℝ) (M : ℕ) (hM : 0 < M) :
     1 ≤ restartIntegerOptimum θ M ∧ restartIntegerOptimum θ M ≤ M ∧
       restartProfile θ (restartIntegerOptimum θ M) = restartOptimalValue θ M := by
@@ -1089,6 +1210,8 @@ theorem restartIntegerOptimum_spec (θ : ℝ) (M : ℕ) (hM : 0 < M) :
   obtain ⟨h1, h2, h3⟩ := Nat.find_spec (restartIntegerOptimum_exists θ M hM)
   exact ⟨h1, h2, h3⟩
 
+/-- Every integer depth in the restart window has profile value at least `restartOptimalValue θ
+M`. -/
 theorem restartProfile_ge_min (θ : ℝ) (M : ℕ) (hM : 0 < M) (j : ℕ) (hj : 1 ≤ j)
     (hjM : j ≤ M) :
     restartProfile θ (j : ℝ) ≥ restartOptimalValue θ M := by
@@ -1106,6 +1229,8 @@ theorem restartProfile_ge_min (θ : ℝ) (M : ℕ) (hM : 0 < M) (j : ℕ) (hj : 
   rw [hcongr] at hle
   exact hle
 
+/-- Evaluating the shifted scaled profile at `j * θ` gives `θ` times the restart profile at
+integer depth `j`. -/
 theorem scaledProfileθ_eq_profile (j : ℕ) (θ : ℝ) :
     restartScaledProfileθ ((j : ℝ) * θ) θ = θ * restartProfile θ (j : ℝ) := by
   rw [restartScaledProfileθ, restartProfile, restartExpectedIterations, mul_div_assoc]
@@ -1113,12 +1238,15 @@ theorem scaledProfileθ_eq_profile (j : ℕ) (θ : ℝ) :
   rw [h]
   ring
 
+/-- The difference `sin a² - sin b²` equals `sin (a + b) * sin (a - b)`. -/
 private theorem sin_sq_sub_sin_sq (a b : ℝ) :
     Real.sin a ^ 2 - Real.sin b ^ 2 = Real.sin (a + b) * Real.sin (a - b) := by
   rw [Real.sin_add, Real.sin_sub]
   ring_nf
   nlinarith [Real.sin_sq_add_cos_sq a, Real.sin_sq_add_cos_sq b]
 
+/-- On the stated positive parameter window, the shifted and limiting scaled restart profiles
+differ by at most `restartScaledSlack * θ`. -/
 theorem scaledProfile_close_wide (θ u : ℝ) (hθ : 0 < θ) (hθ2 : θ ≤ Real.pi / 4)
     (hu : restartScaledFloor ≤ u) (hu2 : u ≤ Real.pi / 4) :
     |restartScaledProfileθ u θ - restartScaledProfile u| ≤ restartScaledSlack * θ := by
@@ -1291,12 +1419,15 @@ theorem scaledProfile_close_wide (θ u : ℝ) (hθ : 0 < θ) (hθ2 : θ ≤ Real
       _ = restartScaledSlack * θ := by rw [restartScaledSlack]; ring
   exact hmain.trans hfinal
 
+/-- Under the stated parameter and phase bounds, the shifted scaled restart profile is within
+`restartScaledSlack * θ` of its limiting profile. -/
 theorem scaledProfile_close (θ u : ℝ) (hθ : 0 < θ) (hθ2 : θ ≤ Real.pi / 4)
     (hu : restartScaledFloor ≤ u) (hu2 : u ≤ Real.pi / 4)
     (hphase : 2 * u + θ ≤ Real.pi / 2) :
     |restartScaledProfileθ u θ - restartScaledProfile u| ≤ restartScaledSlack * θ :=
   scaledProfile_close_wide θ u hθ hθ2 hu hu2
 
+/-- The scaled restart profile is continuous at every point of `(0, π / 4)`. -/
 theorem scaledProfile_continuousAt (u : ℝ) (hu : 0 < u) (hu2 : u < Real.pi / 4) :
     ContinuousAt (fun t : ℝ => restartScaledProfile t) u := by
   have hsin : Real.sin (2 * u) ≠ 0 := by
@@ -1311,6 +1442,8 @@ theorem scaledProfile_continuousAt (u : ℝ) (hu : 0 < u) (hu2 : u < Real.pi / 4
     exact hsin ((sq_eq_zero_iff).mp hz)
   simpa [restartScaledProfile] using! h1.div h2 hsin2
 
+/-- Continuity at `x` gives a positive radius on which the function differs from its value at
+`x` by less than any prescribed positive error. -/
 private theorem abs_sub_lt_of_continuousAt {f : ℝ → ℝ} {x : ℝ} (hf : ContinuousAt f x)
     {ε : ℝ} (hε : 0 < ε) :
     ∃ δ > 0, ∀ y : ℝ, |y - x| < δ → |f y - f x| < ε := by
@@ -1332,6 +1465,8 @@ private theorem abs_sub_lt_of_continuousAt {f : ℝ → ℝ} {x : ℝ} (hf : Con
   have hdist := hsub ⟨y, hmem, rfl⟩
   simpa [Real.dist_eq] using! hdist
 
+/-- Explicit rational bounds locate `π`, the scaled restart optimum, and the scaled
+expected-iteration constant. -/
 theorem clause36_numeric_windows :
     (233113 : ℝ) / 100000 < Real.pi ∧ Real.pi < 31416 / 10000 ∧
       Real.pi / 4 > 58279 / 100000 ∧
@@ -1347,6 +1482,7 @@ theorem clause36_numeric_windows :
   · linarith
   · linarith
 
+/-- The stated small-angle bound on `θ` implies `θ ≤ restartOptimalAngle / 2`. -/
 private theorem clause36_z_le_pi_of_three (θ : ℝ) (hθ : θ ≤ (Real.pi - restartOptimalAngle) / 4) :
     θ ≤ restartOptimalAngle / 2 := by
   have hz := restartOptimalAngle_spec
@@ -1358,6 +1494,7 @@ private theorem clause36_z_le_pi_of_three (θ : ℝ) (hθ : θ ≤ (Real.pi - re
     linarith
   linarith
 
+/-- For the stated positive small angles, the rounded optimal depth lies in the restart window. -/
 private theorem restartRoundedDepth_window (θ : ℝ) (hθ : 0 < θ)
     (hθ2 : θ ≤ (Real.pi - restartOptimalAngle) / 4) :
     1 ≤ restartRoundedDepth θ restartOptimalAngle ∧
@@ -1408,6 +1545,7 @@ private theorem restartRoundedDepth_window (θ : ℝ) (hθ : 0 < θ)
     have h5 : Nat.floor q < Nat.floor (Real.pi / (4 * θ)) + 1 := by exact_mod_cast h4
     omega
 
+/-- The squared sine of half the optimal restart angle exceeds `(restartOptimalAngle + π) / 8`. -/
 private theorem clause36_phase_sine_lower :
     (restartOptimalAngle + Real.pi) / 8 < Real.sin (restartOptimalAngle / 2) ^ 2 := by
   obtain ⟨hpi1, hpi2, hpi4, hz4a, hz4b, hEa, hEb⟩ := clause36_numeric_windows
@@ -1452,6 +1590,8 @@ private theorem clause36_phase_sine_lower :
   have hnum2 : ((233113 : ℝ) / 100000 + 31416 / 10000) / 8 < 7 / 10 := by norm_num
   linarith
 
+/-- At the rounded optimal depth, the restart profile is at most `1 / θ` under the stated
+small-angle bound. -/
 private theorem restartProfile_rounded_le (θ : ℝ) (hθ : 0 < θ)
     (hθ2 : θ ≤ (Real.pi - restartOptimalAngle) / 4) :
     restartProfile θ (restartRoundedDepth θ restartOptimalAngle : ℝ) ≤ 1 / θ := by
@@ -1534,6 +1674,8 @@ private theorem restartProfile_rounded_le (θ : ℝ) (hθ : 0 < θ)
   rw [hkey2, div_le_one hden]
   exact hmain
 
+/-- Under the stated positive small-angle bound, the optimal integer restart depth multiplied by
+`θ` is at least `1 / 9`. -/
 private theorem restartIntegerOptimum_scaled_floor (θ : ℝ) (hθ : 0 < θ)
     (hθ2 : θ ≤ (Real.pi - restartOptimalAngle) / 4) :
     1 / 9 ≤ (restartIntegerOptimum θ (restartWindowDepth θ) : ℝ) * θ := by
@@ -1613,6 +1755,7 @@ private theorem restartIntegerOptimum_scaled_floor (θ : ℝ) (hθ : 0 < θ)
   rw [hjs]
   linarith
 
+/-- The scaled restart profile at `π / 4` is strictly greater than its value at the optimum. -/
 private theorem scaledProfile_edge_above :
     restartScaledProfile (Real.pi / 4) > restartScaledProfile restartScaledOptimum := by
   have h := clause36_source_constants
@@ -1626,6 +1769,8 @@ private theorem scaledProfile_edge_above :
   have hp := Real.pi_gt_d4
   linarith
 
+/-- On `(0, π / 4]`, the scaled restart profile is bounded below by its value at
+`restartScaledOptimum`. -/
 private theorem scaledProfile_ge_optimum_closed (u : ℝ) (hu : 0 < u)
     (hu2 : u ≤ Real.pi / 4) :
     restartScaledProfile u ≥ restartScaledProfile restartScaledOptimum := by
@@ -1635,6 +1780,7 @@ private theorem scaledProfile_ge_optimum_closed (u : ℝ) (hu : 0 < u)
     rw [heq]
     linarith [scaledProfile_edge_above]
 
+/-- A real number bounded above by each of six values is bounded above by their nested minimum. -/
 private theorem min6_le {a b c d e f g : ℝ} (h1 : a ≤ b) (h2 : a ≤ c) (h3 : a ≤ d)
     (h4 : a ≤ e) (h5 : a ≤ f) (h6 : a ≤ g) :
     a ≤ min b (min c (min d (min e (min f g)))) := by
@@ -1644,6 +1790,8 @@ private theorem min6_le {a b c d e f g : ℝ} (h1 : a ≤ b) (h2 : a ≤ c) (h3 
   refine le_min h4 ?_
   exact le_min h5 h6
 
+/-- The stated small-angle conditions place both the optimal integer depth and rounded depth in
+the controlled scaled window, with rounded error at most `θ / 2`. -/
 private theorem clause36_scaled_setup (θ : ℝ) (hθ : 0 < θ)
     (hθ4 : θ ≤ Real.pi / 4) (hθz : θ ≤ (Real.pi - restartOptimalAngle) / 4)
     (hθA : θ ≤ 2 * restartScaledOptimum - 1 / 8)
@@ -1700,6 +1848,8 @@ private theorem clause36_scaled_setup (θ : ℝ) (hθ : 0 < θ)
   · linarith
   · linarith
 
+/-- For every positive tolerance, sufficiently small positive `θ` makes the scaled optimal
+integer depth less than `restartScaledOptimum` plus that tolerance. -/
 private theorem clause36_integer_optimum_upper (ε : ℝ) (hε : 0 < ε) :
     ∃ δ > 0, ∀ θ : ℝ, 0 < θ → θ < δ →
       (restartIntegerOptimum θ (restartWindowDepth θ) : ℝ) * θ
@@ -1876,6 +2026,8 @@ private theorem clause36_integer_optimum_upper (ε : ℝ) (hε : 0 < ε) :
       linarith
     linarith
 
+/-- For every positive tolerance, sufficiently small positive `θ` makes the scaled optimal
+integer depth greater than `restartScaledOptimum` minus that tolerance. -/
 private theorem clause36_integer_optimum_lower (ε : ℝ) (hε : 0 < ε) :
     ∃ δ > 0, ∀ θ : ℝ, 0 < θ → θ < δ →
       restartScaledOptimum - ε
@@ -2032,6 +2184,8 @@ private theorem clause36_integer_optimum_lower (ε : ℝ) (hε : 0 < ε) :
     have hfloor := restartIntegerOptimum_scaled_floor θ hθ hθz
     linarith
 
+/-- As `θ` tends to zero from above, the optimal integer restart depth multiplied by `θ` tends
+to `restartScaledOptimum` [BoyerEtAl1998]. -/
 theorem clause36_integer_optimum_tendsto :
     Filter.Tendsto (fun θ : ℝ => (restartIntegerOptimum θ (restartWindowDepth θ) : ℝ) * θ)
       (𝓝[>] 0) (𝓝 restartScaledOptimum) := by
@@ -2053,6 +2207,8 @@ theorem clause36_integer_optimum_tendsto :
   rw [Real.dist_eq, abs_lt]
   constructor <;> linarith
 
+/-- As `θ` tends to zero from above, the optimal integer restart profile multiplied by `θ` tends
+to `restartScaledExpectation` [BoyerEtAl1998]. -/
 theorem clause36_expected_iterations_tendsto :
     Filter.Tendsto (fun θ : ℝ => θ * restartProfile θ (restartIntegerOptimum θ (restartWindowDepth θ) : ℝ))
       (𝓝[>] 0) (𝓝 restartScaledExpectation) := by
@@ -2227,6 +2383,7 @@ theorem clause36_expected_iterations_tendsto :
     rw [Real.dist_eq, abs_lt]
     constructor <;> linarith [hopt]
 
+/-- The ratio `arcsin s / s` tends to one as `s` tends to zero from above. -/
 private theorem clause36_arcsin_ratio_tendsto :
     Filter.Tendsto (fun s : ℝ => Real.arcsin s / s) (𝓝[>] 0) (𝓝 1) := by
   have hderiv : HasDerivAt Real.arcsin 1 0 := by
@@ -2237,6 +2394,7 @@ private theorem clause36_arcsin_ratio_tendsto :
     hderiv.tendsto_slope_zero_right
   simpa [Real.arcsin_zero, smul_eq_mul, inv_mul_eq_div] using! hslope
 
+/-- The inverse sine sends convergence to zero from above to convergence to zero from above. -/
 private theorem clause36_arcsin_tendsto_zero :
     Filter.Tendsto Real.arcsin (𝓝[>] 0) (𝓝[>] 0) := by
   have h1 : Filter.Tendsto Real.arcsin (𝓝[>] 0) (𝓝 0) := by
@@ -2249,15 +2407,19 @@ private theorem clause36_arcsin_tendsto_zero :
     exact (Real.arcsin_pos).2 hx
   exact tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _ h1 h2
 
+/-- For positive natural `N` and `t`, the source scale equals `1 / √(t / N)`. -/
 theorem clause36_source_scale (N t : ℕ) (hN : 0 < N) (ht : 0 < t) :
     restartSourceScale N t = 1 / Real.sqrt ((t : ℝ) / (N : ℝ)) := by
   rw [restartSourceScale, Real.sqrt_div (by positivity : (0 : ℝ) ≤ (t : ℝ))]
   rw [Real.sqrt_div (by positivity : (0 : ℝ) ≤ (N : ℝ))]
   field_simp
 
+/-- The source evaluation cost of restart depth `j` is `j + 2`. -/
 theorem clause36_source_evaluation_ledger (j : ℕ) :
     restartSourceEvaluations j = j + 2 := rfl
 
+/-- As `s` tends to zero from above, the optimal integer restart depth at angle `arcsin s`,
+multiplied by `s`, tends to `restartScaledOptimum`. -/
 theorem clause36_source_depth_asymptotic :
     Filter.Tendsto (fun s : ℝ => (restartIntegerOptimum (Real.arcsin s)
         (restartWindowDepth (Real.arcsin s)) : ℝ) * s)
@@ -2287,6 +2449,8 @@ theorem clause36_source_depth_asymptotic :
     field_simp
   simpa using! hmul.congr' heq
 
+/-- As `s` tends to zero from above, `s` times the optimal restart expected-iteration profile at
+angle `arcsin s` tends to `restartScaledExpectation`. -/
 theorem clause36_source_expectation_asymptotic :
     Filter.Tendsto (fun s : ℝ => s * restartProfile (Real.arcsin s)
         (restartIntegerOptimum (Real.arcsin s) (restartWindowDepth (Real.arcsin s)) : ℝ))
@@ -2319,6 +2483,8 @@ theorem clause36_source_expectation_asymptotic :
     field_simp
   simpa using! hmul.congr' heq
 
+/-- As `s` tends to zero from above, the optimal restart source evaluation count at angle
+`arcsin s`, multiplied by `s`, tends to `restartScaledOptimum`. -/
 theorem clause36_source_evaluation_asymptotic :
     Filter.Tendsto (fun s : ℝ => (restartSourceEvaluations
         (restartIntegerOptimum (Real.arcsin s) (restartWindowDepth (Real.arcsin s))) : ℝ) * s)
@@ -2344,6 +2510,7 @@ theorem clause36_source_evaluation_asymptotic :
     ring
   simpa using! hmul.congr' heq
 
+/-- Query counts add when two circuit instruction lists are concatenated. -/
 private theorem queryCount_append {I : Type} (C D : Circuit I) :
     QueryCount (C ++ D) = QueryCount C + QueryCount D := by
   induction C with
@@ -2351,6 +2518,7 @@ private theorem queryCount_append {I : Type} (C D : Circuit I) :
   | cons s C ih =>
       cases s <;> simp [ih] <;> omega
 
+/-- Gate counts add when two circuit instruction lists are concatenated. -/
 private theorem gateCount_append {I : Type} (C D : Circuit I) :
     GateCount (C ++ D) = GateCount C + GateCount D := by
   induction C with
@@ -2358,6 +2526,7 @@ private theorem gateCount_append {I : Type} (C D : Circuit I) :
   | cons s C ih =>
       cases s <;> simp [ih] <;> omega
 
+/-- The padded amplitude estimation circuit uses exactly `M` queries for positive grid size `M`. -/
 theorem ae_padded_query_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) :
     QueryCount (aePaddedAECircuit (I := I) M A j) = M := by
@@ -2367,6 +2536,8 @@ theorem ae_padded_query_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (
   simp
   omega
 
+/-- The padded amplitude estimation circuit has gate count `5 * (M - 1) + 3` for positive grid
+size `M`. -/
 theorem ae_padded_gate_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (A : Matrix I I ℂ) (j : I) :
     GateCount (aePaddedAECircuit (I := I) M A j) = 5 * (M - 1) + 3 := by
@@ -2376,6 +2547,7 @@ theorem ae_padded_gate_count {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (h
   simp
   omega
 
+/-- The padded native ledger records `M` queries, `5 * (M - 1) + 3` gates, and zero fair bits. -/
 theorem clause46_native_ledger_source_padding (M : ℕ) (hM : 0 < M)
     (A : Matrix (Fin M × (Bool × Fin M)) (Fin M × (Bool × Fin M)) ℂ)
     (j : Fin M × (Bool × Fin M)) :
@@ -2384,6 +2556,8 @@ theorem clause46_native_ledger_source_padding (M : ℕ) (hM : 0 < M)
       (aePaddedNativeLedger (I := Fin M × (Bool × Fin M)) M A j).fairBits = 0 := by
   refine ⟨ae_padded_query_count M hM A j, ae_padded_gate_count M hM A j, rfl⟩
 
+/-- The unpadded native ledger has `M - 1` queries, while padding matches the `M` source
+accesses and preserves the fair-bit count. -/
 theorem clause46_native_ledger_access_transport (M : ℕ) (hM : 0 < M)
     (A : Matrix (Fin M × (Bool × Fin M)) (Fin M × (Bool × Fin M)) ℂ)
     (j : Fin M × (Bool × Fin M)) :
@@ -2407,6 +2581,8 @@ theorem clause46_native_ledger_access_transport (M : ℕ) (hM : 0 < M)
     exact hpad.trans hsrc.symm
   · rfl
 
+/-- Rounding a real number to an integer by flooring after adding one half incurs error at most
+one half. -/
 private theorem int_floor_add_half_sub (x : ℝ) :
     |((Int.floor (x + 1 / 2) : ℝ)) - x| ≤ 1 / 2 := by
   have h1 : (Int.floor (x + 1 / 2) : ℝ) ≤ x + 1 / 2 := Int.floor_le (x + 1 / 2)
@@ -2416,6 +2592,8 @@ private theorem int_floor_add_half_sub (x : ℝ) :
   rw [abs_le]
   constructor <;> linarith
 
+/-- The Basic Approx Count integer output differs from its unrounded final amplitude estimate
+scaled by `N` by at most one half. -/
 theorem clause9_count_output_rounding {N : ℕ} (ε : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (y : Fin (basicApproxCountFinalM ε (basicApproxCountStop N ω))) :
@@ -2425,6 +2603,8 @@ theorem clause9_count_output_rounding {N : ℕ} (ε : ℝ)
   rw [basicApproxCountOutput]
   exact int_floor_add_half_sub _
 
+/-- An amplitude estimation record of positive size `M` uses `M` source accesses and `M - 1`
+marking and circuit queries. -/
 theorem clause9_count_record_source_cost {I : Type} [Fintype I] [DecidableEq I] (M : ℕ)
     (hM : 0 < M) (A : Matrix I I ℂ) (j : I) :
     aeSourceOracleAccesses (aeAccessWord (I := I) M) = M ∧
@@ -2433,6 +2613,8 @@ theorem clause9_count_record_source_cost {I : Type} [Fintype I] [DecidableEq I] 
   exact ⟨ae_source_evaluation_count (I := I) M hM A j, ae_mark_access_count M hM A j,
     (prepared_ae_access_ledger (I := I) M hM A j).1⟩
 
+/-- For an empty marked set, Basic Approx Count outputs zero with probability one and has the
+stated deterministic loop-plus-final-record expected cost [BrassardEtAl2002]. -/
 theorem clause9_count_zero_branch {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (hS : S.card = 0)
     (ε : ℝ) (hω : ∀ ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val),
       2 ≤ basicApproxCountFinalM ε (basicApproxCountStop N ω)) :
@@ -2444,6 +2626,8 @@ theorem clause9_count_zero_branch {N : ℕ} (hN : 0 < N) (S : Finset (Fin N)) (h
           (basicApproxCountFinalM ε (basicApproxCountLoopCap N) : ℝ) := by
   exact ⟨bhmt_basic_approx_count_zero hN S hS ε hω, bhmt_basic_approx_count_zero_cost hN S hS ε⟩
 
+/-- The one-label counting hypothesis implies reconstructed angular error strictly less than `π
+/ P` for positive `P`. -/
 private theorem bbht_hypothesis_to_angle {P : ℕ} (hP : 0 < P) (θ : ℝ) (fObs : ℕ)
     (hag : bbhtCountHypothesis P θ fObs) :
     |θ - bbhtCountAngle P fObs| < Real.pi / (P : ℝ) := by
@@ -2470,12 +2654,16 @@ private theorem bbht_hypothesis_to_angle {P : ℕ} (hP : 0 < P) (θ : ℝ) (fObs
   have := (lt_div_iff₀ hPpos).mpr hmul
   simpa using! this
 
+/-- An angular error strictly below `π / P` gives the same strict bound on the difference of the
+corresponding sine values. -/
 private theorem bbht_angle_to_sin {P : ℕ} (θ : ℝ) (fObs : ℕ)
     (h : |θ - bbhtCountAngle P fObs| < Real.pi / (P : ℝ)) :
     |Real.sin θ - Real.sin (bbhtCountAngle P fObs)| < Real.pi / (P : ℝ) := by
   have h1 := Real.abs_sin_sub_sin_le θ (bbhtCountAngle P fObs)
   exact lt_of_le_of_lt h1 h
 
+/-- Under the phase-to-count relation and one-label hypothesis, the count estimate has error
+strictly below `bbhtCountWindow` [BoyerEtAl1998]. -/
 theorem bbht_eq4_window {N P t : ℕ} (hN : 0 < N) (hP : 0 < P) (θ : ℝ) (fObs : ℕ)
     (hsin : Real.sin θ = Real.sqrt ((t : ℝ) / (N : ℝ)))
     (hag : bbhtCountHypothesis P θ fObs) :
@@ -2576,6 +2764,8 @@ theorem bbht_eq4_window {N P t : ℕ} (hN : 0 < N) (hP : 0 < P) (θ : ℝ) (fObs
         unfold bbhtCountWindow
         ring
 
+/-- At grid scale `c * √N`, the counting radius simplifies to `2π√t/c + π²/c²` under the stated
+positivity conditions. -/
 theorem bbht_bullet_single_grid (N t c : ℝ) (hN : 0 < N) (ht : 0 ≤ t) (hc : 0 < c) :
     bbhtCountWindow N (c * Real.sqrt N) t = 2 * Real.pi / c * Real.sqrt t + Real.pi ^ 2 / c ^ 2 := by
   unfold bbhtCountWindow
@@ -2587,6 +2777,8 @@ theorem bbht_bullet_single_grid (N t c : ℝ) (hN : 0 < N) (ht : 0 ≤ t) (hc : 
   rw [Real.sq_sqrt hN.le]
   ring
 
+/-- At grid scale `c * √(N / t)`, the counting radius simplifies to `(2π/c + π²/c²) * t` for
+positive parameters. -/
 theorem bbht_bullet_relative_grid (N t c : ℝ) (hN : 0 < N) (ht : 0 < t) (hc : 0 < c) :
     bbhtCountWindow N (c * Real.sqrt (N / t)) t =
       2 * Real.pi / c * t + Real.pi ^ 2 / c ^ 2 * t := by
@@ -2602,6 +2794,8 @@ theorem bbht_bullet_relative_grid (N t c : ℝ) (hN : 0 < N) (ht : 0 < t) (hc : 
   rw [Real.sq_sqrt hN.le, Real.sq_sqrt ht.le]
   ring
 
+/-- At the relative-error grid scale, one plus the counting radius divided by `t` equals `(1 + π
+/ c)²`. -/
 theorem bbht_bullet_relative_factor (N t c : ℝ) (hN : 0 < N) (ht : 0 < t) (hc : 0 < c) :
     1 + (bbhtCountWindow N (c * Real.sqrt (N / t)) t) / (t : ℝ) = (1 + Real.pi / c) ^ 2 := by
   have h := bbht_bullet_relative_grid N t c hN ht hc
@@ -2610,6 +2804,8 @@ theorem bbht_bullet_relative_factor (N t c : ℝ) (hN : 0 < N) (ht : 0 < t) (hc 
   field_simp
   ring
 
+/-- At grid scale `c * √(tN)`, the counting radius equals `2π/c + π²/(c²t)` for positive
+parameters. -/
 theorem bbht_bullet_two_stage_grid (N t c : ℝ) (hN : 0 < N) (ht : 0 < t) (hc : 0 < c) :
     bbhtCountWindow N (c * Real.sqrt (t * N)) t = 2 * Real.pi / c + Real.pi ^ 2 / (c ^ 2 * t) := by
   unfold bbhtCountWindow
@@ -2622,6 +2818,8 @@ theorem bbht_bullet_two_stage_grid (N t c : ℝ) (hN : 0 < N) (ht : 0 < t) (hc :
   rw [Real.sq_sqrt htn.le]
   ring
 
+/-- If `t ≥ 1` and `c ≥ 14`, the second-stage counting radius expression is strictly less than
+one half. -/
 theorem bbht_bullet_two_stage_exact (t : ℝ) (ht : 1 ≤ t) (c : ℝ)
     (hc : 14 ≤ c) :
     2 * Real.pi / c + Real.pi ^ 2 / (c ^ 2 * t) < 1 / 2 := by
@@ -2644,6 +2842,8 @@ theorem bbht_bullet_two_stage_exact (t : ℝ) (ht : 1 ≤ t) (c : ℝ)
       (by norm_num : (0:ℝ) < 14 ^ 2 * 1) hsq
   linarith
 
+/-- For positive parameters, the second-stage counting radius equals `2π/c + π²/(c²t)` with a
+strictly positive second term. -/
 theorem bbht_two_stage_window_lower_bound (N t c : ℝ) (hN : 0 < N) (ht : 0 < t)
     (hc : 0 < c) :
     0 < Real.pi ^ 2 / (c ^ 2 * t) ∧
@@ -2653,6 +2853,7 @@ theorem bbht_two_stage_window_lower_bound (N t c : ℝ) (hN : 0 < N) (ht : 0 < t
   have h2 := bbht_bullet_two_stage_grid N t c hN ht hc
   exact ⟨h1, h2⟩
 
+/-- For positive `N` and `c` and `t ≥ 1`, the scale `c * √N` is at most `c * √(tN)`. -/
 theorem bbht_perfect_square_two_stage_time (N t c : ℝ) (hN : 0 < N) (ht : 1 ≤ t)
     (hc : 0 < c) :
     c * Real.sqrt N ≤ c * Real.sqrt (t * N) := by
@@ -2665,6 +2866,7 @@ theorem bbht_perfect_square_two_stage_time (N t c : ℝ) (hN : 0 < N) (ht : 1 �
     exact Real.sqrt_le_sqrt hle
   exact mul_le_mul_of_nonneg_left h1 (by linarith)
 
+/-- For positive natural `m`, the square root of `m²N` equals `m * √N`. -/
 theorem bbht_sqrt_mul_square (N m : ℕ) (hm : 0 < m) :
     Real.sqrt (((m * m : ℕ) : ℝ) * (N : ℝ)) = (m : ℝ) * Real.sqrt (N : ℝ) := by
   have hsq : ((m * m : ℕ) : ℝ) = (m : ℝ) ^ 2 := by push_cast; ring
@@ -2672,6 +2874,7 @@ theorem bbht_sqrt_mul_square (N m : ℕ) (hm : 0 < m) :
   rw [Real.sqrt_mul (by positivity) (N : ℝ)]
   rw [Real.sqrt_sq (by positivity)]
 
+/-- At count `m²` with positive natural `m`, the two-stage time is `c * (1 + m) * √N`. -/
 theorem bbht_two_stage_time_perfect_square (N : ℕ) (m : ℕ) (c : ℝ) (hm : 0 < m) :
     bbhtTwoStageTime (N : ℝ) ((m * m : ℕ) : ℝ) c =
       c * (1 + (m : ℝ)) * Real.sqrt (N : ℝ) := by
@@ -2680,6 +2883,8 @@ theorem bbht_two_stage_time_perfect_square (N : ℕ) (m : ℕ) (c : ℝ) (hm : 0
   rw [hsqrt]
   ring
 
+/-- For fixed positive `N`, `c`, and `K`, some positive square count has two-stage time greater
+than `K * √N`. -/
 theorem bbht_perfect_square_time_refuted (N : ℕ) (c K : ℝ) (hc : 0 < c) (hK : 0 < K)
     (hN : 0 < N) :
     ∃ t : ℕ, 0 < t ∧ (∃ m : ℕ, m * m = t) ∧
@@ -2708,6 +2913,8 @@ theorem bbht_perfect_square_time_refuted (N : ℕ) (c K : ℝ) (hc : 0 < c) (hK 
     nlinarith [mul_le_mul_of_nonneg_left (by linarith) hc0]
   nlinarith [hmul]
 
+/-- No positive constant uniformly bounds the defined two-stage time by `K * √N` for all
+positive square counts. -/
 theorem bbht_overstrong_perfect_square_refuted :
     ¬ ∃ K : ℝ, 0 < K ∧ bbhtOverStrongPerfectSquare K := by
   rintro ⟨K, hK, hclaim⟩
@@ -2736,6 +2943,8 @@ theorem bbht_overstrong_perfect_square_refuted :
     simpa using! hform
   linarith [hclaim', hform', hlt']
 
+/-- The counting estimate at a finite phase label equals `N` times the amplitude estimation
+readout at that label. -/
 theorem bbht_source_readout_transport {N P : ℕ} (z : Fin P) :
     bbhtCountEstimate N P z.val = (N : ℝ) * aeEstimate P z := by
   have hsin : Real.sin (bbhtCountAngle P z.val) = Real.sin (Real.pi * (z.val : ℝ) / (P : ℝ)) := by
@@ -2745,14 +2954,19 @@ theorem bbht_source_readout_transport {N P : ℕ} (z : Fin P) :
   unfold bbhtCountEstimate aeEstimate
   rw [hsin]
 
+/-- The source counting output at label `z` agrees with the scaled amplitude estimation readout
+`N * aeEstimate P z`. -/
 theorem bbht_source_output_at_label {N P : ℕ} (z : Fin P) :
     bbhtCountEstimate N P z.val = (N : ℝ) * aeEstimate P z :=
   bbht_source_readout_transport z
 
+/-- The counting window definition unfolds to `2π√(tN)/P + π²N/P²`. -/
 theorem bbht_eq4_window_eq_frozen {N P t : ℝ} :
     bbhtCountWindow N P t =
       2 * Real.pi / P * Real.sqrt (t * N) + Real.pi ^ 2 / P ^ 2 * N := rfl
 
+/-- For at most half the labels marked and `P ≥ 4`, the strict counting window has probability
+at least `8 / π²` under the actual amplitude estimation law [BoyerEtAl1998]. -/
 theorem clause7_actual_success_probability (N P : ℕ) (S : Finset (Fin N))
     (hN : 0 < N) (hS : S.card ≤ N / 2) (hP : 4 ≤ P) :
     8 / Real.pi ^ 2 ≤
@@ -2766,6 +2980,8 @@ theorem clause7_actual_success_probability (N P : ℕ) (S : Finset (Fin N))
 
   simpa only [bbhtCountWindow] using! h
 
+/-- A label in the strict scaled-amplitude counting window satisfies the equivalent error bound
+for `bbhtCountEstimate`. -/
 theorem clause7_actual_eq4_holds (N P : ℕ) (S : Finset (Fin N)) (z : Fin P)
     (hz : |(N : ℝ) * aeEstimate P z - (S.card : ℝ)| <
         bbhtCountWindow (N : ℝ) (P : ℝ) (S.card : ℝ)) :
@@ -2775,10 +2991,14 @@ theorem clause7_actual_eq4_holds (N P : ℕ) (S : Finset (Fin N)) (z : Fin P)
   rw [abs_sub_comm]
   exact hz
 
+/-- The source counting output equals the actual amplitude estimate multiplied by `N` at every
+finite label. -/
 theorem clause7_source_output_is_actual_readout (N P : ℕ) (z : Fin P) :
     bbhtCountEstimate N P z.val = (N : ℝ) * aeEstimate P z :=
   bbht_source_readout_transport z
 
+/-- With positive `N` and `P`, uniform-preparation amplitude estimation uses `P` source accesses
+and `P - 1` counted circuit queries. -/
 theorem clause7_actual_amplification_cost (N P : ℕ) (hN : 0 < N) (hP : 0 < P) :
     aeSourceOracleAccesses (aeAccessWord (I := Fin N) P) = P ∧
       QueryCount (countedAECircuit (I := Fin N) P (QFTMatrix N) ⟨0, hN⟩) = P - 1 := by
@@ -2787,6 +3007,7 @@ theorem clause7_actual_amplification_cost (N P : ℕ) (hN : 0 < N) (hP : 0 < P) 
     (prepared_ae_access_ledger (I := Fin N) P hP (QFTMatrix N) ⟨0, hN⟩).1
   exact ⟨hcost.1, hq⟩
 
+/-- The rough exact-counting grid has size at least two for positive `N`. -/
 theorem clause11_rough_grid_two_le (N : ℕ) (hN : 0 < N) : 2 ≤ BHMTTh17.exactCountM₀ N := by
   have hsqrt : (1:ℝ) ≤ Real.sqrt (N : ℝ) := by
     simpa using! (Real.sqrt_le_sqrt (show (1:ℝ) ≤ (N:ℝ) from by exact_mod_cast hN))
@@ -2801,6 +3022,7 @@ theorem clause11_rough_grid_two_le (N : ℕ) (hN : 0 < N) : 2 ≤ BHMTTh17.exact
     simpa only [Nat.cast_one] using! h2
   linarith
 
+/-- Every rough exact-counting record lies between zero and `N`. -/
 theorem clause11_rough_record_range (N : ℕ) (hN : 0 < N) (z : Fin (BHMTTh17.exactCountM₀ N)) :
     (0:ℝ) ≤ (N:ℝ) * aeEstimate (BHMTTh17.exactCountM₀ N) z ∧
       (N:ℝ) * aeEstimate (BHMTTh17.exactCountM₀ N) z ≤ (N:ℝ) := by
@@ -2812,6 +3034,7 @@ theorem clause11_rough_record_range (N : ℕ) (hN : 0 < N) (z : Fin (BHMTTh17.ex
     mul_le_mul_of_nonneg_left hest.2 hNpos.le
   simpa using! h2
 
+/-- The rough quantity computed from any rough counting record is at least one. -/
 private theorem clause11_rough_quantity_ge (N : ℕ) (hN : 0 < N)
     (z : Fin (BHMTTh17.exactCountM₀ N)) :
     (1:ℝ) ≤ BHMTTh17.exactCountRough N
@@ -2826,6 +3049,7 @@ private theorem clause11_rough_quantity_ge (N : ℕ) (hN : 0 < N)
   rw [BHMTTh17.exactCountRough]
   simpa using! (Real.sqrt_le_sqrt hprod)
 
+/-- The rough quantity computed from any rough counting record is at most `N + 1`. -/
 theorem clause11_rough_quantity_le (N : ℕ) (hN : 0 < N)
     (z : Fin (BHMTTh17.exactCountM₀ N)) :
     BHMTTh17.exactCountRough N ((N:ℝ) * aeEstimate (BHMTTh17.exactCountM₀ N) z) ≤ (N:ℝ) + 1 := by
@@ -2842,6 +3066,7 @@ theorem clause11_rough_quantity_le (N : ℕ) (hN : 0 < N)
   rw [Real.sqrt_mul_self (by linarith)] at h2
   exact h2
 
+/-- The final exact-counting grid selected from any two rough records has size at least two. -/
 theorem clause11_final_grid_two_le (N : ℕ) (hN : 0 < N)
     (z₁ z₂ : Fin (BHMTTh17.exactCountM₀ N)) :
     2 ≤ BHMTTh17.exactCountGrid N
@@ -2874,6 +3099,8 @@ theorem clause11_final_grid_two_le (N : ℕ) (hN : 0 < N)
     exact_mod_cast h2
   omega
 
+/-- The source costs of two rough records of size `M₀` and one final record of size `M` sum to
+`exactCountSourceEvaluations M₀ M`. -/
 theorem clause11_source_cost_ledger (N : ℕ) (hN : 0 < N) (M₀ M : ℕ) (hM₀ : 0 < M₀) (hM : 0 < M) :
     aeSourceEvaluations (I := Fin N) M₀ + aeSourceEvaluations (I := Fin N) M₀ +
         aeSourceEvaluations (I := Fin N) M
@@ -2888,6 +3115,8 @@ theorem clause11_source_cost_ledger (N : ℕ) (hN : 0 < N) (M₀ M : ℕ) (hM₀
   simp only [exactCountSourceEvaluations, h1, h2]
   omega
 
+/-- Exact Count succeeds with probability at least `2 / 3` and has expected source cost at most
+`1000 * √((t + 1)(N - t + 1))`, where `t = S.card` [BrassardEtAl2002]. -/
 theorem clause11_frozen_bounds (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
     (2/3 ≤ BHMTTh17.exactCountSuccessMass hN S (clause11_rough_grid_two_le N hN)
         (fun z₁ z₂ => clause11_final_grid_two_le N hN z₁ z₂)) ∧
@@ -2898,6 +3127,8 @@ theorem clause11_frozen_bounds (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
     (fun z₁ z₂ => clause11_final_grid_two_le N hN z₁ z₂)
   exact ⟨h.1, h.2⟩
 
+/-- For an empty marked set, Exact Count succeeds with probability one and its expected cost
+equals the two rough-grid costs plus the final grid at two zero records. -/
 theorem clause11_zero_branch (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) (hS : S.card = 0) :
     BHMTTh17.exactCountSuccessMass hN S (clause11_rough_grid_two_le N hN)
         (fun z₁ z₂ => clause11_final_grid_two_le N hN z₁ z₂) = 1 ∧
@@ -2912,6 +3143,8 @@ theorem clause11_zero_branch (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) (hS : S
     (fun z₁ z₂ => clause11_final_grid_two_le N hN z₁ z₂)
   exact ⟨h1, h2⟩
 
+/-- For a fully marked domain, Exact Count succeeds with probability at least `2 / 3` and has
+expected cost at most `1000 * √(N + 1)`. -/
 theorem clause11_full_branch (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) (hS : S.card = N) :
     (2/3 ≤ BHMTTh17.exactCountSuccessMass hN S (clause11_rough_grid_two_le N hN)
         (fun z₁ z₂ => clause11_final_grid_two_le N hN z₁ z₂)) ∧
@@ -2929,6 +3162,8 @@ theorem clause11_full_branch (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) (hS : S
   rw [hmul] at h2
   exact h2
 
+/-- The width-two error window for a rough exact-counting record has probability at least one
+half. -/
 theorem clause11_rough_window_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
     (∑ z ∈ Finset.univ.filter (fun z : Fin (BHMTTh17.exactCountM₀ N) =>
         countWindow N (BHMTTh17.exactCountM₀ N) 2 S.card z),
@@ -2940,6 +3175,8 @@ theorem clause11_rough_window_mass (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
   rw [h'] at h
   simpa [countWindow] using! h
 
+/-- For a nonempty proper marked set, a rough record in the width-two window yields rough
+quantity at least `(5 / 8) * √(t(N - t))`. -/
 theorem clause11_window_rough_ge (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     (ht1 : 1 ≤ S.card) (htN : S.card < N)
     (z : Fin (BHMTTh17.exactCountM₀ N))
@@ -3123,6 +3360,8 @@ theorem clause11_window_rough_ge (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     rw [h1, h2]
   linarith [hsqprod]
 
+/-- For a nonempty proper marked set, the expected Exact Count cost is at least `(75 / 32) *
+√((t + 1)(N - t + 1))`. -/
 theorem clause11_cost_lower_bound (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
     (ht1 : 1 ≤ S.card) (htN : S.card < N) :
     (75/32) * Real.sqrt (((S.card:ℝ) + 1) * ((N:ℝ) - (S.card:ℝ) + 1))
@@ -3297,6 +3536,8 @@ theorem clause11_cost_lower_bound (N : ℕ) (hN : 0 < N) (S : Finset (Fin N))
   rw [hcost]
   exact hshape.trans (((hstep3.symm ▸ hstep4).trans hstep2).trans hstep1)
 
+/-- The natural counting output equals the natural-number conversion of the integer Exact Count
+output. -/
 theorem clause11_output_transport (N : ℕ) {M : ℕ} (z : Fin M) :
     countOutput N M z = (BHMTTh17.exactCountOutput N z).toNat := by
   have h : countOutput N M z = Nat.floor ((N : ℝ) * aeEstimate M z + 1 / 2) := by
@@ -3304,6 +3545,8 @@ theorem clause11_output_transport (N : ℕ) {M : ℕ} (z : Fin M) :
   rw [h, BHMTTh17.exactCountOutput]
   exact (Int.floor_toNat _).symm
 
+/-- The natural counting output equals `t` exactly when the integer Exact Count output equals
+the integer cast of `t`. -/
 theorem clause11_output_eq_iff (N : ℕ) {M : ℕ} (t : ℕ) (y : Fin M) :
     countOutput N M y = t ↔ BHMTTh17.exactCountOutput N y = (t : ℤ) := by
   have hfloor : (0:ℝ) ≤ (N : ℝ) * aeEstimate M y + 1 / 2 := by
@@ -3334,6 +3577,8 @@ theorem clause11_output_eq_iff (N : ℕ) {M : ℕ} (t : ℕ) (y : Fin M) :
       exact_mod_cast hh
     rw [h1, h, h2]
 
+/-- The natural counting output differs from its unrounded scaled amplitude estimate by at most
+one half. -/
 theorem clause11_output_rounding (N : ℕ) {M : ℕ} (z : Fin M) :
     |(countOutput N M z : ℝ) - (N : ℝ) * aeEstimate M z| ≤ 1 / 2 := by
   have hnonneg : (0:ℝ) ≤ (N : ℝ) * aeEstimate M z := by
@@ -3342,6 +3587,8 @@ theorem clause11_output_rounding (N : ℕ) {M : ℕ} (z : Fin M) :
     linarith
   simpa [countOutput] using! countRounded_abs ((N : ℝ) * aeEstimate M z) hnonneg
 
+/-- The final exact-counting grid selected from any two rough records has size at most `31 * (N
++ 1)`. -/
 theorem clause11_final_grid_le (N : ℕ) (hN : 0 < N)
     (z₁ z₂ : Fin (BHMTTh17.exactCountM₀ N)) :
     exactCountFinalGrid N ((N:ℝ) * aeEstimate (BHMTTh17.exactCountM₀ N) z₁)
@@ -3401,6 +3648,8 @@ theorem clause11_final_grid_le (N : ℕ) (hN : 0 < N)
     exact_mod_cast h5
   omega
 
+/-- The exact-counting space ledger is at most `4 * stateBits (N + 1) + 5` for every pair of
+rough records. -/
 theorem clause11_space_ledger (N : ℕ) (hN : 0 < N)
     (z₁ z₂ : Fin (BHMTTh17.exactCountM₀ N)) :
     exactCountSpaceBits N (exactCountFinalGrid N
@@ -3438,6 +3687,9 @@ theorem clause11_space_ledger (N : ℕ) (hN : 0 < N)
   simp only [exactCountSpaceBits, stateBits]
   linarith
 
+/-- Exact Count has success probability at least `2 / 3`, the stated upper and interior lower
+expected-cost bounds, and the stated register-width bound [Brassard et al., Theorem
+17][BrassardEtAl2002]. -/
 theorem clause11_endpoint (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
     (2/3 ≤ BHMTTh17.exactCountSuccessMass hN S (clause11_rough_grid_two_le N hN)
         (fun z₁ z₂ => clause11_final_grid_two_le N hN z₁ z₂)) ∧
@@ -3461,12 +3713,15 @@ theorem clause11_endpoint (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) :
   · intro z₁ z₂
     exact clause11_space_ledger N hN z₁ z₂
 
+/-- A Basic Approx Count record with positive grid size `M` has native source cost exactly `M`. -/
 theorem clause9_record_native_ledger_eq {N : ℕ} (hN : 0 < N) (M : ℕ) (hM : 0 < M) :
     basicApproxCountRecordEvaluations N M = M := by
   letI : DecidableEq (Fin N) := fun a b => Classical.propDecidable (a = b)
   unfold basicApproxCountRecordEvaluations aeSourceEvaluations
   exact ae_source_evaluation_count (I := Fin N) M hM (QFTMatrix N) ⟨0, hN⟩
 
+/-- The padded uniform-preparation counting circuit has `M` queries and `5 * (M - 1) + 3` gates
+for positive `N` and `M`. -/
 theorem clause9_record_native_circuit_queries {N : ℕ} (hN : 0 < N) (M : ℕ) (hM : 0 < M) :
     QueryCount (aePaddedAECircuit (I := Fin N) M (QFTMatrix N) ⟨0, hN⟩) = M ∧
       GateCount (aePaddedAECircuit (I := Fin N) M (QFTMatrix N) ⟨0, hN⟩)
@@ -3474,6 +3729,8 @@ theorem clause9_record_native_circuit_queries {N : ℕ} (hN : 0 < N) (M : ℕ) (
   refine ⟨ae_padded_query_count M hM (QFTMatrix N) ⟨0, hN⟩,
     ae_padded_gate_count M hM (QFTMatrix N) ⟨0, hN⟩⟩
 
+/-- The native Basic Approx Count source cost equals `basicApproxCountTotalCost` for positive
+`N` and precision. -/
 theorem clause9_native_cost_eq_frozen {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε : 0 < ε)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) :
     basicApproxCountNativeCost N ε ω = basicApproxCountTotalCost N ε ω := by
@@ -3498,6 +3755,8 @@ theorem clause9_native_cost_eq_frozen {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε : 0
   unfold basicApproxCountNativeCost basicApproxCountTotalCost
   rw [hfin, hs]
 
+/-- The expected native Basic Approx Count cost equals the loop-record weighted sum of
+`basicApproxCountTotalCost`. -/
 theorem clause9_cost_mass_eq_frozen {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (ε : ℝ) (hε : 0 < ε) :
     basicApproxCountProcedureCostMass hN S ε =
@@ -3509,6 +3768,8 @@ theorem clause9_cost_mass_eq_frozen {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   intro ω _
   rw [clause9_native_cost_eq_frozen hN ε hε ω]
 
+/-- For an empty marked set and `0 < ε ≤ 1`, the expected native cost lies between `40π²√N/ε`
+and `(9 + 80π²/ε)√N`. -/
 theorem clause9_expected_cost_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hS : S.card = 0) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     40 * Real.pi ^ 2 / ε * Real.sqrt (N : ℝ) ≤ basicApproxCountProcedureCostMass hN S ε ∧
@@ -3519,6 +3780,8 @@ theorem clause9_expected_cost_zero {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
   rw [clause9_cost_mass_eq_frozen hN S ε hε]
   exact ⟨hlo, hhi⟩
 
+/-- For a nonempty marked set and `0 < ε ≤ 1`, the expected native cost lies between `(7π /
+2)√(N / t)/ε` and `2000√(N / t)/ε`. -/
 theorem clause9_expected_cost_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (hS : 0 < S.card) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     7 * Real.pi / 2 * (1 / ε) * Real.sqrt ((N : ℝ) / (S.card : ℝ))
@@ -3530,6 +3793,8 @@ theorem clause9_expected_cost_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin N
   rw [clause9_cost_mass_eq_frozen hN S ε hε]
   exact ⟨hlo, hhi⟩
 
+/-- For positive precision, the integer final grid lies between its real-valued scale and that
+scale plus one, with a strict upper bound. -/
 theorem clause9_final_grid_ceiling (ε : ℝ) (hε : 0 < ε) (s : ℕ) :
     basicApproxCountRealFinalGrid ε s ≤ (basicApproxCountFinalM ε s : ℝ) ∧
       (basicApproxCountFinalM ε s : ℝ) < basicApproxCountRealFinalGrid ε s + 1 := by
@@ -3546,6 +3811,8 @@ theorem clause9_final_grid_ceiling (ε : ℝ) (hε : 0 < ε) (s : ℕ) :
     exact h
   exact ⟨hle, hlt⟩
 
+/-- The native cost of the final Basic Approx Count record is strictly below its real grid scale
+plus one. -/
 theorem clause9_final_grid_rounding_cost {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε : 0 < ε)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) :
     (basicApproxCountRecordEvaluations N
@@ -3557,6 +3824,7 @@ theorem clause9_final_grid_rounding_cost {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε 
     omega)]
   exact (clause9_final_grid_ceiling ε hε (basicApproxCountStop N ω)).2
 
+/-- The natural counting output is at most `N` and fits in `stateBits (N + 1)` bits. -/
 theorem clause9_output_bits {N : ℕ} (M : ℕ) (z : Fin M) :
     countOutput N M z ≤ N ∧ countOutput N M z < 2 ^ stateBits (N + 1) := by
   have hm := Qatlib.Concepts.AEMeanReadout.LocalAEBackend.aeEstimate_mem M z
@@ -3582,6 +3850,8 @@ theorem clause9_output_bits {N : ℕ} (M : ℕ) (z : Fin M) :
   · omega
   · omega
 
+/-- Casting the natural counting output to an integer gives the Basic Approx Count output at the
+same final label. -/
 theorem clause9_output_transport {N : ℕ} (ε : ℝ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val))
     (y : Fin (basicApproxCountFinalM ε (basicApproxCountStop N ω))) :
@@ -3597,6 +3867,7 @@ theorem clause9_output_transport {N : ℕ} (ε : ℝ)
   rw [Int.natCast_floor_eq_floor hpos]
   rfl
 
+/-- For every positive natural `n`, `2^n` is at least both `2 * n` and two. -/
 private theorem clause9_two_pow_bounds : ∀ n : ℕ, 1 ≤ n →
     (2 : ℝ) * n ≤ (2 : ℝ) ^ n ∧ (2 : ℝ) ≤ (2 : ℝ) ^ n := by
   intro n hn
@@ -3617,6 +3888,7 @@ private theorem clause9_two_pow_bounds : ∀ n : ℕ, 1 ≤ n →
       subst hk0
       norm_num
 
+/-- The Basic Approx Count loop cap is at most positive `N`. -/
 theorem clause9_loop_cap_le (N : ℕ) (hN : 0 < N) :
     basicApproxCountLoopCap N ≤ N := by
   have hN1 : (1 : ℝ) ≤ N := by exact_mod_cast (Nat.succ_le_of_lt hN)
@@ -3643,6 +3915,8 @@ theorem clause9_loop_cap_le (N : ℕ) (hN : 0 < N) :
   unfold basicApproxCountLoopCap
   exact hceil
 
+/-- The Basic Approx Count space ledger has the displayed three-register decomposition, a
+positive final grid, and loop-index width at most `stateBits (N + 1)`. -/
 theorem clause9_space_ledger {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε : 0 < ε)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) :
     basicApproxCountSpaceBits N (basicApproxCountFinalM ε (basicApproxCountStop N ω))
@@ -3662,6 +3936,7 @@ theorem clause9_space_ledger {N : ℕ} (hN : 0 < N) (ε : ℝ) (hε : 0 < ε)
     unfold stateBits
     omega
 
+/-- For positive natural `h` and `n`, `400 / √(h / n)` equals `400 * √(n / h)`. -/
 private theorem clause44_cost_flip {h n : ℕ} (hh : 0 < h) (hn : 0 < n) :
     (400:ℝ)/Real.sqrt (((h:ℝ))/((n:ℝ))) = 400 * Real.sqrt (((n:ℝ))/((h:ℝ))) := by
   have h0 : (0:ℝ) ≤ (h:ℝ) := Nat.cast_nonneg _
@@ -3671,6 +3946,8 @@ private theorem clause44_cost_flip {h n : ℕ} (hh : 0 < h) (hn : 0 < n) :
   have hnp : (0:ℝ) < Real.sqrt ((n:ℝ)) := Real.sqrt_pos.mpr (by exact_mod_cast hn)
   field_simp
 
+/-- On a solvable heuristic instance, the expected bounded-search amplification cost is at most
+`400 * √(n / h)`, where `h` is its good-seed count. -/
 private theorem clause44_per_instance_aa_cost {n : ℕ} (hn : 0 < n)
     (G : (Fin n → Bool) → Fin n → Fin n) (T : ℕ) (f : Fin n → Bool)
     (hf : 0 < BHMTTh6.heuristicGoodCount n G f) :
@@ -3697,6 +3974,8 @@ private theorem clause44_per_instance_aa_cost {n : ℕ} (hn : 0 < n)
   rw [hmass, hcard, clause44_cost_flip hf hn] at hE
   exact hE
 
+/-- If every supported heuristic instance has a good seed, the mean quantum amplification cost
+is at most `400` times the square root of the classical expected time. -/
 theorem clause44_quantum_aa_cost {n : ℕ} (hn : 0 < n)
     (G : (Fin n → Bool) → Fin n → Fin n) (D : PMF (Fin n → Bool)) (T : ℕ)
     (hsupp : ∀ f ∈ D.support, 0 < BHMTTh6.heuristicGoodCount n G f) :
@@ -3774,6 +4053,9 @@ theorem clause44_quantum_aa_cost {n : ℕ} (hn : 0 < n)
   rw [Finset.sum_congr rfl (fun f _ => hre f), ← Finset.mul_sum]
   exact mul_le_mul_of_nonneg_left hCS (by norm_num)
 
+/-- For nonnegative trial-cost coefficient and solvable supported instances, the full quantum
+heuristic cost is at most `400 * (heuristicTrialCost n kappa + 1)` times the square root of
+the classical expected time [BrassardEtAl2002]. -/
 theorem clause44_quantum_full_cost {n : ℕ} (hn : 0 < n)
     (G : (Fin n → Bool) → Fin n → Fin n) (D : PMF (Fin n → Bool)) (T : ℕ)
     (kappa : ℝ) (hkappa : 0 ≤ kappa)
@@ -3823,6 +4105,8 @@ theorem clause44_quantum_full_cost {n : ℕ} (hn : 0 < n)
     _ = ENNReal.ofReal (400 * (heuristicTrialCost n kappa + 1) *
           Real.sqrt (BHMTTh6.heuristicClassicalTime n G D)) := hstep3
 
+/-- Every returned seed in the support of the bounded heuristic quantum search satisfies the
+same input instance's success predicate. -/
 theorem clause44_same_instance_output {n : ℕ} (hn : 0 < n)
     (G : (Fin n → Bool) → Fin n → Fin n) (T : ℕ) (f : Fin n → Bool)
     (_hf : 0 < BHMTTh6.heuristicGoodCount n G f) :
@@ -3838,6 +4122,8 @@ theorem clause44_same_instance_output {n : ℕ} (hn : 0 < n)
   have hyS := (hG1.1 out hout y hy)
   exact (Finset.mem_filter.mp hyS).2
 
+/-- When a heuristic instance has no good seeds, every supported bounded quantum search outcome
+returns `none`. -/
 theorem clause44_unsolvable_never_outputs {n : ℕ} (hn : 0 < n)
     (G : (Fin n → Bool) → Fin n → Fin n) (T : ℕ) (f : Fin n → Bool)
     (hf : BHMTTh6.heuristicGoodCount n G f = 0) :
@@ -3860,6 +4146,8 @@ theorem clause44_unsolvable_never_outputs {n : ℕ} (hn : 0 < n)
     (Finset.univ.filter (fun r => f (G f r) = true)) T
   exact fun out hout => (hG1.2.1 ha out hout)
 
+/-- If all supported heuristic instances have a good seed, the classical expected heuristic time
+is at least one. -/
 theorem clause44_classical_time_lower {n : ℕ} (_hn : 0 < n)
     (G : (Fin n → Bool) → Fin n → Fin n) (D : PMF (Fin n → Bool))
     (hsupp : ∀ f ∈ D.support, 0 < BHMTTh6.heuristicGoodCount n G f) :
@@ -3909,6 +4197,9 @@ theorem clause44_classical_time_lower {n : ℕ} (_hn : 0 < n)
   unfold BHMTTh6.heuristicClassicalTime
   exact hsum
 
+/-- Under the stated solvability and nonnegative-cost hypotheses, the classical full cost is at
+least the real quantum full cost times the square root of the classical expected time
+divided by `800`. -/
 theorem clause44_classical_vs_quantum {n : ℕ} (hn : 0 < n)
     (G : (Fin n → Bool) → Fin n → Fin n) (D : PMF (Fin n → Bool)) (T : ℕ)
     (kappa : ℝ) (hkappa : 0 ≤ kappa)
@@ -3954,13 +4245,17 @@ theorem clause44_classical_vs_quantum {n : ℕ} (hn : 0 < n)
         exact mul_le_mul_of_nonneg_right hhalf hT0
     _ = heuristicClassicalFullCost n G D kappa := rfl
 
+/-- Squaring preserves a real inequality when its smaller side is nonnegative. -/
 private theorem sq_le_sq {a b : ℝ} (ha : 0 ≤ a) (h : a ≤ b) : a ^ 2 ≤ b ^ 2 := by
   nlinarith [sq_nonneg (b - a)]
 
+/-- Two nonnegative real numbers with equal squares are equal. -/
 private theorem sq_eq_of_sq_eq {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (h : a ^ 2 = b ^ 2) :
     a = b := by
   nlinarith [sq_nonneg (a - b)]
 
+/-- If the positive grid scale dominates the first source scale, the final counting-window
+radius is at most `ε * t / 3` under the stated count and precision assumptions. -/
 theorem walkGoal_window_le_first {N t : ℕ} (hN : 0 < N) (M : ℕ) (hM : 0 < M)
     (ε : ℝ) (hε : 0 < ε) (_het : 1 ≤ ε * (t : ℝ)) (htN : t ≤ N) (ht1 : 1 ≤ t)
     (hscale : (M:ℝ) ≥ approxCountScaleFirst N t ε) :
@@ -4146,6 +4441,8 @@ theorem walkGoal_window_le_first {N t : ℕ} (hN : 0 < N) (M : ℕ) (hM : 0 < M)
           have h2 := mul_le_mul_of_nonneg_left h1 hε.le
           linarith [h2]
 
+/-- A positive grid parameter bounds the final counting-window radius by `√(t(N - t)) / (5 * M)
++ N / (100 * M²)`. -/
 private theorem walkGoal_final_window_bound {N t : ℕ} (M : ℕ) (hM : 0 < M) :
     2 * Real.pi * Real.sqrt ((t:ℝ) * ((N:ℝ) - (t:ℝ))) / (approxCountFinalM M : ℝ) +
         Real.pi ^ 2 * (N:ℝ) / (approxCountFinalM M : ℝ) ^ 2
@@ -4189,6 +4486,8 @@ private theorem walkGoal_final_window_bound {N t : ℕ} (M : ℕ) (hM : 0 < M) :
     exact h1
   linarith
 
+/-- If the positive grid scale dominates the second source scale and `ε * t ≥ 1`, the final
+counting-window radius is at most `ε * t / 3`. -/
 private theorem walkGoal_window_le_second {N t : ℕ} (hN : 0 < N) (M : ℕ) (hM : 0 < M)
     (ε : ℝ) (_hε : 0 < ε) (het : 1 ≤ ε * (t : ℝ)) (htN : t ≤ N) (ht1 : 1 ≤ t)
     (hscale : (M:ℝ) ≥ approxCountScaleSecond N t ε) :
@@ -4238,6 +4537,8 @@ private theorem walkGoal_window_le_second {N t : ℕ} (hN : 0 < N) (M : ℕ) (hM
     _ ≤ 1 / 3 := by norm_num
     _ ≤ ε * (t:ℝ) / 3 := by linarith
 
+/-- Dominating either source scale gives final counting-window radius at most `ε * t / 3` when
+`ε * t ≥ 1` and the stated count conditions hold. -/
 theorem walkGoal_window_le {N t : ℕ} (hN : 0 < N) (M : ℕ) (hM : 0 < M)
     (ε : ℝ) (hε : 0 < ε) (het : 1 ≤ ε * (t : ℝ)) (htN : t ≤ N) (ht1 : 1 ≤ t)
     (hscale : (M:ℝ) ≥ approxCountScaleFirst N t ε ∨
@@ -4248,6 +4549,7 @@ theorem walkGoal_window_le {N t : ℕ} (hN : 0 < N) (M : ℕ) (hM : 0 < M)
   · exact walkGoal_window_le_first hN M hM ε hε het htN ht1 h
   · exact walkGoal_window_le_second hN M hM ε hε het htN ht1 h
 
+/-- For nonnegative reals, `x² ≤ 2 * y²` implies `x ≤ √2 * y`. -/
 private theorem walkGoal_sqrt_two_mul {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) (h : x ^ 2 ≤ 2 * y ^ 2) :
     x ≤ Real.sqrt 2 * y := by
   have hz : 0 ≤ Real.sqrt 2 * y := mul_nonneg (Real.sqrt_nonneg _) hy
@@ -4258,6 +4560,7 @@ private theorem walkGoal_sqrt_two_mul {x y : ℝ} (hx : 0 ≤ x) (hy : 0 ≤ y) 
     rw [mul_pow, Real.sq_sqrt (by norm_num : (0:ℝ) ≤ 2)]
   linarith
 
+/-- The effective integer counting precision is at least one. -/
 private theorem walkGoal_eff_prec_one {t : ℕ} {ε : ℝ} : (1:ℝ) ≤ (approxCountEffPrec t ε : ℝ) := by
   have h1 : (0:ℕ) ≤ Nat.floor (ε * (t : ℝ)) := Nat.zero_le _
   have h2 : (0:ℝ) ≤ (Nat.floor (ε * (t : ℝ)) : ℝ) := by exact_mod_cast h1
@@ -4265,6 +4568,7 @@ private theorem walkGoal_eff_prec_one {t : ℕ} {ε : ℝ} : (1:ℝ) ≤ (approx
   simp only [Nat.cast_add, Nat.cast_one]
   linarith
 
+/-- The effective integer counting precision is at least the real target precision `ε * t`. -/
 private theorem walkGoal_eff_prec_ge {t : ℕ} {ε : ℝ} :
     ε * (t : ℝ) ≤ (approxCountEffPrec t ε : ℝ) := by
   have h := Nat.lt_floor_add_one (ε * (t : ℝ))
@@ -4274,6 +4578,7 @@ private theorem walkGoal_eff_prec_ge {t : ℕ} {ε : ℝ} :
     exact h
   linarith
 
+/-- For positive `ε`, the effective integer counting precision is at most `ε * t + 1`. -/
 private theorem walkGoal_eff_prec_le {t : ℕ} {ε : ℝ} (hε : 0 < ε) :
     (approxCountEffPrec t ε : ℝ) ≤ ε * (t : ℝ) + 1 := by
   have het0 : (0:ℝ) ≤ ε * (t : ℝ) := by positivity
@@ -4282,6 +4587,8 @@ private theorem walkGoal_eff_prec_le {t : ℕ} {ε : ℝ} (hε : 0 < ε) :
   simp only [Nat.cast_add, Nat.cast_one]
   linarith
 
+/-- Under the stated count and precision hypotheses, the three squared factors in the first
+source scale simplify to the displayed rational expressions. -/
 private theorem walkGoal_scale_squares (N t : ℕ) (hN : 0 < N) (ht1 : 1 ≤ t) (htN : t ≤ N)
     (ε : ℝ) (hε : 0 < ε) :
     ((1 / Real.sqrt ε) * Real.sqrt ((N:ℝ) / ((t:ℝ) + 1))) ^ 2
@@ -4315,6 +4622,8 @@ private theorem walkGoal_scale_squares (N t : ℕ) (hN : 0 < N) (ht1 : 1 ≤ t) 
     rw [Real.sq_sqrt hlead0, Real.sq_sqrt htail0]
     field_simp
 
+/-- For `1 ≤ t ≤ N` and `0 < ε ≤ 1`, the source scale is at most `√2` times the first candidate
+scale. -/
 private theorem walkGoal_scale_le_sqrt_two_first {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (htN : t ≤ N)
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     approxCountSourceScale N t ε ≤ Real.sqrt 2 * approxCountScaleFirst N t ε := by
@@ -4383,6 +4692,7 @@ private theorem walkGoal_scale_le_sqrt_two_first {N t : ℕ} (hN : 0 < N) (ht1 :
   have h3 : Real.sqrt 2 * p + Real.sqrt 2 * (p * q) = Real.sqrt 2 * (p * (1 + q)) := by ring
   linarith
 
+/-- For `1 ≤ t ≤ N`, the source scale is at most `√2` times the second candidate scale. -/
 private theorem walkGoal_scale_le_sqrt_two_second {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (htN : t ≤ N)
     (ε : ℝ) :
     approxCountSourceScale N t ε ≤ Real.sqrt 2 * approxCountScaleSecond N t ε := by
@@ -4443,6 +4753,8 @@ private theorem walkGoal_scale_le_sqrt_two_second {N t : ℕ} (hN : 0 < N) (ht1 
   rw [hS, hCeq]
   exact walkGoal_sqrt_two_mul (by linarith) hC0 hsq
 
+/-- If `ε * t ≥ 1` under the stated positive count and precision conditions, the first candidate
+scale is at most twice the source scale. -/
 private theorem walkGoal_first_le_two_scale {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (htN : t ≤ N)
     (ε : ℝ) (hε : 0 < ε) (het : 1 ≤ ε * (t:ℝ)) :
     approxCountScaleFirst N t ε ≤ 2 * approxCountSourceScale N t ε := by
@@ -4530,6 +4842,8 @@ private theorem walkGoal_first_le_two_scale {N t : ℕ} (hN : 0 < N) (ht1 : 1 �
       _ = 2 * S1 := by ring
   linarith
 
+/-- If `ε * t < 1` under the stated positive count and precision conditions, the second
+candidate scale is at most twice the source scale. -/
 private theorem walkGoal_second_le_two_scale_small {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (htN : t ≤ N)
     (ε : ℝ) (hε : 0 < ε) (het : ε * (t:ℝ) < 1) :
     approxCountScaleSecond N t ε ≤ 2 * approxCountSourceScale N t ε := by
@@ -4589,6 +4903,8 @@ private theorem walkGoal_second_le_two_scale_small {N t : ℕ} (hN : 0 < N) (ht1
   rw [hCeq, hS]
   exact hfinal
 
+/-- For `1 ≤ t ≤ N` and `0 < ε ≤ 1`, the source scale is at most `√2` times the smaller
+candidate scale. -/
 theorem walkGoal_scale_le_sqrt_two_scale_prime {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (htN : t ≤ N)
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     approxCountSourceScale N t ε ≤ Real.sqrt 2 * approxCountSourceScalePrime N t ε := by
@@ -4605,6 +4921,8 @@ theorem walkGoal_scale_le_sqrt_two_scale_prime {N t : ℕ} (hN : 0 < N) (ht1 : 1
   rw [← hmin]
   exact le_min h1 h2
 
+/-- For `1 ≤ t ≤ N` and positive `ε`, the smaller candidate scale is at most twice the source
+scale. -/
 theorem walkGoal_scale_prime_le_scale {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (htN : t ≤ N)
     (ε : ℝ) (hε : 0 < ε) :
     approxCountSourceScalePrime N t ε ≤ 2 * approxCountSourceScale N t ε := by
@@ -4621,6 +4939,8 @@ theorem walkGoal_scale_prime_le_scale {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (
       exact min_le_right _ _
     linarith
 
+/-- For `1 ≤ t ≤ N` and `0 < ε ≤ 1`, the smaller candidate scale lies between the source scale
+divided by `√2` and twice the source scale. -/
 theorem walkGoal_scale_prime_theta {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (htN : t ≤ N)
     (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     approxCountSourceScale N t ε / Real.sqrt 2 ≤ approxCountSourceScalePrime N t ε ∧
@@ -4633,6 +4953,7 @@ theorem walkGoal_scale_prime_theta {N t : ℕ} (hN : 0 < N) (ht1 : 1 ≤ t) (htN
   rw [div_le_iff₀ hsqrt]
   linarith [h]
 
+/-- Natural numbers whose real casts differ by less than one are equal. -/
 private theorem walkGoal_nat_eq_of_abs_lt_one {a b : ℕ} (h : |(a:ℝ) - (b:ℝ)| < 1) : a = b := by
   by_cases hab : a ≤ b
   · have h1 : (b:ℝ) - (a:ℝ) = ((b - a : ℕ) : ℝ) := by rw [Nat.cast_sub hab]
@@ -4652,6 +4973,8 @@ private theorem walkGoal_nat_eq_of_abs_lt_one {a b : ℕ} (h : |(a:ℝ) - (b:ℝ
       exact_mod_cast this
     omega
 
+/-- An intermediate error at most `ε * t / 3` and a further error at most `2 / 3` give total
+error at most their sum. -/
 theorem walkGoal_rounding_composition {t tc tr : ℕ} {ε : ℝ}
     (h1 : |(tc : ℝ) - (t : ℝ)| ≤ ε * (t : ℝ) / 3)
     (h2 : |(tr : ℝ) - (tc : ℝ)| ≤ 2 / 3) :
@@ -4660,6 +4983,8 @@ theorem walkGoal_rounding_composition {t tc tr : ℕ} {ε : ℝ}
     abs_sub_le _ _ _
   linarith
 
+/-- If `ε * t ≥ 1`, composing errors at most `ε * t / 3` and `2 / 3` gives relative error at
+most `ε * t`. -/
 theorem walkGoal_relative_error_le {t tc tr : ℕ} {ε : ℝ} (het : 1 ≤ ε * (t:ℝ))
     (h1 : |(tc : ℝ) - (t : ℝ)| ≤ ε * (t : ℝ) / 3)
     (h2 : |(tr : ℝ) - (tc : ℝ)| ≤ 2 / 3) :
@@ -4670,6 +4995,8 @@ theorem walkGoal_relative_error_le {t tc tr : ℕ} {ε : ℝ} (het : 1 ≤ ε * 
     linarith
   linarith
 
+/-- Under the stated scale and count conditions with `ε * t ≥ 1`, a final-window estimate
+followed by error at most `2 / 3` satisfies the target relative-error bound. -/
 theorem walkGoal_relative_error_on_scale_event {N t : ℕ} (hN : 0 < N) (htN : t ≤ N) (ht1 : 1 ≤ t)
     (ε : ℝ) (hε : 0 < ε) (het : 1 ≤ ε * (t:ℝ)) (M : ℕ) (hM : 0 < M)
     (hscale : (M:ℝ) ≥ approxCountScaleFirst N t ε ∨
@@ -4682,6 +5009,8 @@ theorem walkGoal_relative_error_on_scale_event {N t : ℕ} (hN : 0 < N) (htN : t
   have h1 := walkGoal_window_le hN M hM ε hε het htN ht1 hscale
   exact walkGoal_relative_error_le het (by linarith [h1, hwin]) hround
 
+/-- If `ε * t < 1`, natural-number estimates with the stated intermediate and rounding errors
+equal the true count exactly. -/
 theorem walkGoal_relative_error_exact {t tc tr : ℕ} {ε : ℝ} (het : ε * (t:ℝ) < 1)
     (h1 : |(tc : ℝ) - (t : ℝ)| ≤ ε * (t : ℝ) / 3)
     (h2 : |(tr : ℝ) - (tc : ℝ)| ≤ 2 / 3) : tr = t := by
@@ -4689,6 +5018,8 @@ theorem walkGoal_relative_error_exact {t tc tr : ℕ} {ε : ℝ} (het : ε * (t:
   have hlt : |(tr : ℝ) - (t : ℝ)| < 1 := by linarith
   exact walkGoal_nat_eq_of_abs_lt_one hlt
 
+/-- If `t ≤ N` and `ε * N ≤ 1 / 3`, the stated intermediate and rounding error bounds force the
+final natural output to equal `t`. -/
 theorem walkGoal_small_epsilon_exact_counting {N t tc tr : ℕ} {ε : ℝ} (htN : t ≤ N)
     (hε : 0 < ε) (hsmall : ε * (N:ℝ) ≤ 1 / 3)
     (h1 : |(tc : ℝ) - (t : ℝ)| ≤ ε * (t : ℝ) / 3)
@@ -4698,11 +5029,15 @@ theorem walkGoal_small_epsilon_exact_counting {N t tc tr : ℕ} {ε : ℝ} (htN 
     linarith
   exact walkGoal_relative_error_exact het h1 h2
 
+/-- The scale-event probability constant is strictly greater than its declared lower comparison
+constant. -/
 theorem walkGoal_scale_event_prob_above_floor :
     approxCountScaleEventProb > approxCountScaleEventFloor := by
   show approxCountScaleEventFloor < approxCountScaleEventProb
   norm_num [approxCountScaleEventProb, approxCountScaleEventFloor]
 
+/-- The scale-event probability floor multiplied by the final-record success constant is
+strictly greater than `2 / 3`. -/
 theorem walkGoal_final_success_prob :
     approxCountScaleEventFloor * approxCountFinalRecordProb > 2 / 3 := by
   show (2 : ℝ) / 3 < approxCountScaleEventFloor * approxCountFinalRecordProb
@@ -4721,6 +5056,8 @@ theorem walkGoal_final_success_prob :
   rw [lt_div_iff₀ hpos]
   nlinarith
 
+/-- For a positive window, each depth has marginal acceptance mass `(1 - growthRejectProb m ^ r)
+/ m`. -/
 theorem clause12_growth_marginal_uniform (m r : ℕ) (hm : 0 < m) (j : Fin m) :
     growthMarginal m r j = (1 - growthRejectProb m ^ r) * (1 / (m : ℝ)) := by
   have h := thresholdRunLaw_accepted_matches_frozen_initial m hm r j
@@ -4729,6 +5066,7 @@ theorem clause12_growth_marginal_uniform (m r : ℕ) (hm : 0 < m) (j : Fin m) :
   rw [h, hunif]
   rfl
 
+/-- For a positive window, the total accepted-depth mass equals `1 - growthRejectProb m ^ r`. -/
 theorem clause12_growth_marginal_total (m r : ℕ) (hm : 0 < m) :
     (∑ j : Fin m, growthMarginal m r j) = 1 - growthRejectProb m ^ r := by
   have h := thresholdRunLaw_accepted_total m hm r
@@ -4736,6 +5074,8 @@ theorem clause12_growth_marginal_total (m r : ℕ) (hm : 0 < m) :
   rw [h]
   rfl
 
+/-- For a positive window, the bounded threshold sampler's failure probability is
+`growthRejectProb m ^ r`. -/
 theorem clause12_growth_timeout_mass (m r : ℕ) (hm : 0 < m) :
     ((growthSamplerLaw m r) (ThresholdOutcome.failed : ThresholdOutcome m r)).toReal
       = growthRejectProb m ^ r := by
@@ -4744,11 +5084,13 @@ theorem clause12_growth_timeout_mass (m r : ℕ) (hm : 0 < m) :
   rw [h]
   rfl
 
+/-- The natural square root of `n`, cast to a real number, is at most `√n`. -/
 private theorem clause12_nat_le_real_sqrt (n : ℕ) : (n.sqrt : ℝ) ≤ Real.sqrt n := by
   have h1 : (n.sqrt : ℝ) ^ 2 ≤ n := by exact_mod_cast Nat.sqrt_le' n
   have h2 : (Real.sqrt n) ^ 2 = n := Real.sq_sqrt (by positivity)
   nlinarith [Real.sqrt_nonneg n]
 
+/-- The real square root of `n` is strictly less than its natural square root plus one. -/
 private theorem clause12_real_sqrt_lt_sqrt_add_one (n : ℕ) : Real.sqrt n < n.sqrt + 1 := by
   have hnot : ¬ ((n.sqrt + 1) * (n.sqrt + 1) ≤ n) := by
     intro h
@@ -4762,6 +5104,7 @@ private theorem clause12_real_sqrt_lt_sqrt_add_one (n : ℕ) : Real.sqrt n < n.s
   have h3' : ((n.sqrt + 1 : ℕ) : ℝ) ^ 2 > (n : ℝ) := by exact_mod_cast h3
   simpa [Nat.cast_add] using! h3'
 
+/-- For positive `m`, the number of threshold words is strictly less than `2 * m`. -/
 theorem clause12_thresholdWords_lt_two_mul (m : ℕ) (hm : 0 < m) :
     thresholdWords m < 2 * m := by
   have hlog2 : Real.log 2 > 0 := Real.log_pos (by norm_num)
@@ -4801,6 +5144,8 @@ theorem clause12_thresholdWords_lt_two_mul (m : ℕ) (hm : 0 < m) :
       _ = 2 * m := hid3
   exact_mod_cast hfinal
 
+/-- The rejection probability of the threshold sampler is strictly less than one half for a
+positive window. -/
 theorem clause12_growth_reject_prob_lt_half (m : ℕ) (hm : 0 < m) :
     growthRejectProb m < 1 / 2 := by
   have htw := clause12_thresholdWords_lt_two_mul m hm
@@ -4814,6 +5159,8 @@ theorem clause12_growth_reject_prob_lt_half (m : ℕ) (hm : 0 < m) :
   have h2 : 0 ≤ (thresholdWords m : ℝ) := hpos.le
   linarith
 
+/-- For a positive window, the probability of `r` consecutive threshold rejections is at most
+`(1 / 2)^r`. -/
 theorem clause12_growth_tail_bound (m r : ℕ) (hm : 0 < m) :
     growthRejectProb m ^ r ≤ (1 / 2 : ℝ) ^ r := by
   have hq := clause12_growth_reject_prob_lt_half m hm
@@ -4830,12 +5177,14 @@ theorem clause12_growth_tail_bound (m r : ℕ) (hm : 0 < m) :
   have hle : growthRejectProb m ≤ (1 / 2 : ℝ) := le_of_lt hq
   exact pow_le_pow_left₀ hq0 hle r
 
+/-- For a positive window, the bounded threshold sampler's timeout mass is at most `(1 / 2)^r`. -/
 theorem clause12_growth_timeout_mass_le (m r : ℕ) (hm : 0 < m) :
     ((growthSamplerLaw m r) (ThresholdOutcome.failed : ThresholdOutcome m r)).toReal
       ≤ (1 / 2 : ℝ) ^ r := by
   rw [clause12_growth_timeout_mass m r hm]
   exact clause12_growth_tail_bound m r hm
 
+/-- Every bounded threshold-sampler outcome uses at most `r` draws. -/
 theorem clause12_growth_draws_le (m r : ℕ) (o : ThresholdOutcome m r) :
     growthDraws o ≤ r := by
   cases o with
@@ -4843,14 +5192,17 @@ theorem clause12_growth_draws_le (m r : ℕ) (o : ThresholdOutcome m r) :
     simp [growthDraws]
   | failed => simp [growthDraws]
 
+/-- Acceptance at draw index `n` uses `growthWidth m * (n.val + 1)` fair bits. -/
 theorem clause12_growth_bits_accepted (m r : ℕ) (i : Fin m) (n : Fin r) :
     growthBits (.accepted i n : ThresholdOutcome m r) = growthWidth m * (n.val + 1) := by
   simp [growthBits, growthDraws]
 
+/-- A failed bounded threshold-sampler outcome uses `growthWidth m * r` fair bits. -/
 theorem clause12_growth_bits_failed (m r : ℕ) :
     growthBits (.failed : ThresholdOutcome m r) = growthWidth m * r := by
   simp [growthBits, growthDraws]
 
+/-- Every bounded threshold-sampler outcome uses at most `growthWidth m * r` fair bits. -/
 theorem clause12_growth_bits_le (m r : ℕ) (o : ThresholdOutcome m r) :
     growthBits o ≤ growthWidth m * r := by
   cases o with
@@ -4860,8 +5212,10 @@ theorem clause12_growth_bits_le (m r : ℕ) (o : ThresholdOutcome m r) :
     exact mul_le_mul_of_nonneg_left hn (Nat.cast_nonneg (growthWidth m))
   | failed => simp only [growthBits, growthDraws]; exact le_rfl
 
+/-- The threshold sampler's working space equals its word width. -/
 theorem clause12_growth_space_eq_width (m : ℕ) : growthSpace m = growthWidth m := rfl
 
+/-- A threshold sampler for a singleton window has word width zero. -/
 theorem clause12_growth_width_one (m : ℕ) (hm : m = 1) : growthWidth m = 0 := by
   subst hm
   rw [growthWidth, thresholdWidth_eq]
@@ -4869,6 +5223,8 @@ theorem clause12_growth_width_one (m : ℕ) (hm : m = 1) : growthWidth m = 0 := 
   rw [h]
   simp
 
+/-- The native attempt success mass equals the uniform checked-search success multiplied by the
+sampler's total acceptance probability. -/
 theorem clause12_native_attempt_success {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (m r : ℕ) (hm : 0 < m) :
     growthAttemptSuccess A m r = (1 - growthRejectProb m ^ r) * CheckedSuccess A m := by
@@ -4892,6 +5248,8 @@ theorem clause12_native_attempt_success {I : Type*} [Fintype I] [DecidableEq I]
               rw [div_eq_mul_inv]
               ring
 
+/-- The native attempt rejection mass equals the uniform checked-search failure multiplied by
+the sampler's total acceptance probability. -/
 theorem clause12_native_attempt_failure {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (m r : ℕ) (hm : 0 < m) :
     growthAttemptFailure A m r = (1 - growthRejectProb m ^ r) * CheckedFailure A m := by
@@ -4915,6 +5273,8 @@ theorem clause12_native_attempt_failure {I : Type*} [Fintype I] [DecidableEq I]
               rw [div_eq_mul_inv]
               ring
 
+/-- The native attempt's accepted-depth weighted query count equals the uniform checked-search
+mean query count multiplied by sampler acceptance probability. -/
 theorem clause12_native_attempt_queries (I : Type*) [Fintype I] [DecidableEq I]
     (m r : ℕ) (hm : 0 < m) :
     growthAttemptQueries I m r = (1 - growthRejectProb m ^ r) * CheckedMeanQueries I m := by
@@ -4938,6 +5298,8 @@ theorem clause12_native_attempt_queries (I : Type*) [Fintype I] [DecidableEq I]
               rw [div_eq_mul_inv]
               ring
 
+/-- On a nonempty finite search space, replacing the uniform depth draw by the bounded sampler
+changes success mass by at most its timeout probability. -/
 theorem clause12_native_attempt_success_error {I : Type*} [Fintype I] [DecidableEq I]
     (hI : 0 < Fintype.card I) (A : Finset I) (m r : ℕ) (hm : 0 < m) :
     |growthAttemptSuccess A m r - CheckedSuccess A m| ≤ growthRejectProb m ^ r := by
@@ -4965,6 +5327,8 @@ theorem clause12_native_attempt_success_error {I : Type*} [Fintype I] [Decidable
       ≤ growthRejectProb m ^ r * 1 := mul_le_mul_of_nonneg_left hhi hq0
     _ = growthRejectProb m ^ r := mul_one _
 
+/-- The absolute query-cost error from bounded depth sampling is at most the timeout probability
+times the uniform mean query count. -/
 theorem clause12_native_attempt_queries_error (I : Type*) [Fintype I] [DecidableEq I]
     (m r : ℕ) (hm : 0 < m) :
     |growthAttemptQueries I m r - CheckedMeanQueries I m|
@@ -4993,6 +5357,8 @@ theorem clause12_native_attempt_queries_error (I : Type*) [Fintype I] [Decidable
   rw [h, hdiff, abs_neg]
   rw [abs_of_nonneg (mul_nonneg hq0 hlo)]
 
+/-- For positive `N`, the native window is at least the real growth window minus one and at most
+`ExponentialSizes N k`. -/
 theorem clause12_native_window_sandwich (N k : ℕ) (hN : 0 < N) :
     growthRealWindow N k - 1 ≤ (nativeGrowthWindow N k : ℝ) ∧
       (nativeGrowthWindow N k : ℝ) ≤ (ExponentialSizes N k : ℝ) := by
@@ -5029,6 +5395,8 @@ theorem clause12_native_window_sandwich (N k : ℕ) (hN : 0 < N) :
     linarith
   · exact_mod_cast hceille'
 
+/-- For positive `N`, the native window lies between `ExponentialSizes N k - 1` and
+`ExponentialSizes N k`. -/
 theorem clause12_native_window_gap (N k : ℕ) (hN : 0 < N) :
     ExponentialSizes N k - 1 ≤ nativeGrowthWindow N k ∧
       nativeGrowthWindow N k ≤ ExponentialSizes N k := by
@@ -5088,6 +5456,8 @@ theorem clause12_native_window_gap (N k : ℕ) (hN : 0 < N) :
       exact hceille
     omega
 
+/-- The averages of a function valued in `[0, 1]` over consecutive positive prefix lengths
+differ by at most the reciprocal of the larger length. -/
 private theorem clause12_avg_window_gap {g : ℕ → ℝ} (hg0 : ∀ j, 0 ≤ g j) (hg1 : ∀ j, g j ≤ 1)
     {m m' : ℕ} (hm : 0 < m) (hm' : 0 < m') (hgap : m' + 1 = m) :
     |(∑ j ∈ Finset.range m', g j) / (m' : ℝ) - (∑ j ∈ Finset.range m, g j) / (m : ℝ)|
@@ -5129,6 +5499,8 @@ private theorem clause12_avg_window_gap {g : ℕ → ℝ} (hg0 : ∀ j, 0 ≤ g 
     rw [hmul]
     linarith
 
+/-- The native attempt success differs from the exponential-window checked success by at most
+sampler timeout mass plus the reciprocal exponential window size. -/
 theorem clause12_native_attempt_total_error {I : Type*} [Fintype I] [DecidableEq I]
     (hI : 0 < Fintype.card I) (A : Finset I) (N k r : ℕ) (hN : 0 < N) :
     |growthAttemptSuccess A (nativeGrowthWindow N k) r
@@ -5229,6 +5601,8 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh16
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification
 set_option warningAsError false
 
+/-- If an orthogonal projection preserves a vector's squared norm, the vector belongs to the
+projected subspace. -/
 theorem thresholdGoal_mem_good_of_norm_sq_eq {H : Type} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] {K : Submodule ℂ H} [K.HasOrthogonalProjection] (v : H)
     (h : ‖K.starProjection v‖^2 = ‖v‖^2) : v ∈ K := by
@@ -5238,6 +5612,8 @@ theorem thresholdGoal_mem_good_of_norm_sq_eq {H : Type} [NormedAddCommGroup H]
     nlinarith
   exact (Submodule.mem_iff_norm_starProjection K v).mpr h1
 
+/-- If a pair of vectors and its orthogonal projections both have total squared norm one, each
+vector equals its projection. -/
 theorem thresholdGoal_general_output_from_norms {H : Type} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] {K : Submodule ℂ H} [K.HasOrthogonalProjection]
     (v : H × H)
@@ -5259,6 +5635,8 @@ theorem thresholdGoal_general_output_from_norms {H : Type} [NormedAddCommGroup H
     ((Submodule.starProjection_eq_self_iff (K := K) (v := v.2)).mpr
       (thresholdGoal_mem_good_of_norm_sq_eq v.2 heq2)).symm⟩
 
+/-- Under the stated normalization, projection, and exact phase conditions, both components of
+the exact amplification output equal their good-space projections. -/
 theorem thresholdGoal_general_output_in_good_subspace {H : Type} [NormedAddCommGroup H]
     [InnerProductSpace ℂ H] {K : Submodule ℂ H} [K.HasOrthogonalProjection]
     (A : H ≃ₗᵢ[ℂ] H) (e : H) (r : ℝ) (m : ℕ) (δ : ℝ) (a : ℝ)
@@ -5284,15 +5662,20 @@ theorem thresholdGoal_general_output_in_good_subspace {H : Type} [NormedAddCommG
   obtain ⟨h1, h2⟩ := hnorms
   exact thresholdGoal_general_output_from_norms (K := K) _ h1 h2
 
+/-- The promise good projection equals the standard-basis good projection built from
+`markLabels`. -/
 theorem thresholdGoal_good_projection_eq_frozen {N : ℕ} (S : Finset (Fin N)) :
     promiseGoodProjection S =
       Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.goodProjection (finEB N) (fun i : Fin N => (i.val : ℤ)) (markLabels N S) := by
   rfl
 
+/-- The promise good projection equals the orthogonal star projection onto `promiseMarkedSpace
+S`. -/
 theorem thresholdGoal_good_projection_eq_star {N : ℕ} (S : Finset (Fin N)) :
     promiseGoodProjection S = Submodule.starProjection (promiseMarkedSpace S) := by
   rfl
 
+/-- A standard basis vector with label outside `S` is orthogonal to the promise marked subspace. -/
 theorem thresholdGoal_unmarked_basis_orthogonal {N : ℕ} (S : Finset (Fin N)) (i : Fin N)
     (hi : i ∉ S) : finEB N i ∈ (promiseMarkedSpace S)ᗮ := by
   have hgen : finEB N i ∈ (Submodule.span ℂ ((fun j : Fin N => finEB N j) ''
@@ -5317,6 +5700,7 @@ theorem thresholdGoal_unmarked_basis_orthogonal {N : ℕ} (S : Finset (Fin N)) (
   rw [hK]
   exact hgen
 
+/-- A vector in the promise marked subspace has zero coordinate at every unmarked label. -/
 theorem thresholdGoal_marked_space_coefficients {N : ℕ} (S : Finset (Fin N))
     (x : EuclideanSpace ℂ (Fin N)) (hx : x ∈ promiseMarkedSpace S) (i : Fin N)
     (hi : i ∉ S) : x i = 0 := by
@@ -5332,6 +5716,8 @@ theorem thresholdGoal_marked_space_coefficients {N : ℕ} (S : Finset (Fin N))
   rw [EuclideanSpace.inner_single_left] at horth
   simpa using! horth
 
+/-- A normalized promise run with good mass one has both output components fixed by the promise
+good projection. -/
 theorem thresholdGoal_effective_output_of_mass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (r : ℝ) (prog : List (Fin 6))
     (hnorm : ‖(promiseRun hN S r prog).1‖^2 + ‖(promiseRun hN S r prog).2‖^2 = 1)
@@ -5347,6 +5733,8 @@ theorem thresholdGoal_effective_output_of_mass {N : ℕ} (hN : 0 < N) (S : Finse
   exact thresholdGoal_general_output_from_norms (K := promiseMarkedSpace S)
     (promiseRun hN S r prog) hnorm hgood
 
+/-- There exists a design for the zero-or-`t₀` promise whose nonempty-case output components lie
+in the marked subspace and whose empty-case good mass is zero [BrassardEtAl2002]. -/
 theorem thresholdGoal_known_a_design_effective :
     ∃ (design : ℝ → ℝ × List (Fin 6)),
       ∀ (N : ℕ) (hN : 0 < N) (S : Finset (Fin N)) (t₀ : ℕ),
@@ -5372,6 +5760,8 @@ theorem thresholdGoal_known_a_design_effective :
   · intro hcard
     exact hzero hcard
 
+/-- If both output components are fixed by the good projection, every unmarked label has zero
+readout mass. -/
 theorem thresholdGoal_readout_supported_on_marked {N : ℕ} (S : Finset (Fin N))
     (v : EuclideanSpace ℂ (Fin N) × EuclideanSpace ℂ (Fin N))
     (hgood : v.1 = promiseGoodProjection S v.1 ∧ v.2 = promiseGoodProjection S v.2)
@@ -5386,6 +5776,8 @@ theorem thresholdGoal_readout_supported_on_marked {N : ℕ} (S : Finset (Fin N))
   have hz2 : v.2 i = 0 := thresholdGoal_marked_space_coefficients S v.2 hmem2 i hi
   simp [promiseReadoutMass, hz1, hz2]
 
+/-- The total coordinate readout mass of a paired state equals the sum of the squared norms of
+its two components. -/
 theorem thresholdGoal_readout_total {N : ℕ}
     (v : EuclideanSpace ℂ (Fin N) × EuclideanSpace ℂ (Fin N)) :
     promiseReadoutTotal v = ‖v.1‖^2 + ‖v.2‖^2 := by
@@ -5397,6 +5789,8 @@ theorem thresholdGoal_readout_total {N : ℕ}
       Finset.sum_add_distrib
     _ = ‖v.1‖^2 + ‖v.2‖^2 := by rw [h1, h2]
 
+/-- A normalized paired state fixed by the good projection has total marked-label readout mass
+one [Brassard et al., Theorem 16][BrassardEtAl2002]. -/
 theorem thresholdGoal_readout_mass_on_marked {N : ℕ} (S : Finset (Fin N))
     (v : EuclideanSpace ℂ (Fin N) × EuclideanSpace ℂ (Fin N))
     (hgood : v.1 = promiseGoodProjection S v.1 ∧ v.2 = promiseGoodProjection S v.2)
@@ -5413,6 +5807,8 @@ theorem thresholdGoal_readout_mass_on_marked {N : ℕ} (S : Finset (Fin N))
   rw [hsubset]
   exact htot
 
+/-- Every positive-mass readout label of a state fixed by the good projection passes the
+marked-set decision [Brassard et al., Theorem 16][BrassardEtAl2002]. -/
 theorem thresholdGoal_decision_marked {N : ℕ} (S : Finset (Fin N))
     (v : EuclideanSpace ℂ (Fin N) × EuclideanSpace ℂ (Fin N))
     (hgood : v.1 = promiseGoodProjection S v.1 ∧ v.2 = promiseGoodProjection S v.2)
@@ -5426,6 +5822,7 @@ theorem thresholdGoal_decision_marked {N : ℕ} (S : Finset (Fin N))
   have hz := thresholdGoal_readout_supported_on_marked S v hgood i hnot
   linarith
 
+/-- If the marked set has cardinality zero, the promise decision returns `false` at every label. -/
 theorem thresholdGoal_decision_empty {N : ℕ} (S : Finset (Fin N)) (hcard : S.card = 0)
     (i : Fin N) : promiseDecision S i = false := by
   have hempty : S = ∅ := Finset.card_eq_zero.mp hcard
@@ -5434,24 +5831,31 @@ theorem thresholdGoal_decision_empty {N : ℕ} (S : Finset (Fin N)) (hcard : S.c
     simp
   simp [promiseDecision, hnot]
 
+/-- For positive `N`, the promise output width is the natural ceiling of the binary logarithm of
+`N`. -/
 theorem thresholdGoal_output_width_ceil {N : ℕ} (hN : 0 < N) :
     promiseOutputWidth N = Nat.ceil (binaryLog N) := by
   rw [promiseOutputWidth, thresholdWidth_eq]
 
+/-- For positive `N`, the threshold word space contains at least `N` words. -/
 theorem thresholdGoal_output_words_cover {N : ℕ} (hN : 0 < N) :
     N ≤ thresholdWords N := thresholdWords_ge N hN
 
+/-- Encoding a finite output label as a threshold word preserves its natural value. -/
 theorem thresholdGoal_output_word_value {N : ℕ} (hN : 0 < N) (i : Fin N) :
     (promiseOutputWord hN i).val = i.val := rfl
 
+/-- Decoding an encoded finite output label returns the original label. -/
 theorem thresholdGoal_output_decode_word {N : ℕ} (hN : 0 < N) (i : Fin N) :
     promiseOutputDecode hN (promiseOutputWord hN i) = i := by
   have hlt : i.val < N := i.isLt
   simp [promiseOutputDecode, promiseOutputWord, hlt]
 
+/-- The promise output width equals the threshold sampler word width. -/
 theorem thresholdGoal_output_bit_cost {N : ℕ} (hN : 0 < N) :
     promiseOutputWidth N = thresholdWidth N := rfl
 
+/-- For positive reals `a` and `b`, `√(a / b)` equals `1 / √(b / a)`. -/
 theorem thresholdGoal_sqrt_ratio {a b : ℝ} (ha : 0 < a) (hb : 0 < b) :
     Real.sqrt (a / b) = 1 / Real.sqrt (b / a) := by
   have hmul : Real.sqrt (a / b) * Real.sqrt (b / a) = 1 := by
@@ -5461,6 +5865,8 @@ theorem thresholdGoal_sqrt_ratio {a b : ℝ} (ha : 0 < a) (hb : 0 < b) :
   have hne : Real.sqrt (b / a) ≠ 0 := ne_of_gt (Real.sqrt_pos.2 (div_pos hb ha))
   exact (eq_div_iff hne).mpr hmul
 
+/-- The exact known-amplitude design uses at most `(π / 2 + 2) * √(N / t₀)` marking calls
+including one final checking evaluation. -/
 theorem thresholdGoal_f_evaluation_ledger {N : ℕ} (hN : 0 < N) (t₀ : ℕ) (ht₀ : 0 < t₀)
     (ht₀N : t₀ ≤ N) :
     ((BHMTTh16.marksCount (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.design
@@ -5515,6 +5921,8 @@ theorem thresholdGoal_f_evaluation_ledger {N : ℕ} (hN : 0 < N) (t₀ : ℕ) (h
         rw [thresholdGoal_sqrt_ratio hNr htNr]
         ring
 
+/-- The exact known-amplitude design uses at most `(π / 2 + 2) * √(N / t₀)` preparation calls
+for `0 < t₀ ≤ N`. -/
 theorem thresholdGoal_preparation_calls_ledger {N : ℕ} (hN : 0 < N) (t₀ : ℕ) (ht₀ : 0 < t₀)
     (ht₀N : t₀ ≤ N) :
     (Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.calls (Qatlib.Concepts.AmplitudeCore.AmplifyCore.zoo_amplitude_amplification_known_a_exact.design
@@ -5568,6 +5976,10 @@ theorem thresholdGoal_preparation_calls_ledger {N : ℕ} (hN : 0 < N) (t₀ : �
         rw [thresholdGoal_sqrt_ratio hNr htNr]
         ring
 
+/-- There exists a normalized design for the zero-or-`t₀` promise with exact marked-subspace
+output in the nonempty case and zero good mass in the empty case, together with the stated
+square-root preparation and evaluation bounds [Brassard et al., Theorem
+16][BrassardEtAl2002]. -/
 theorem thresholdGoal_endpoint :
     ∃ (design : ℝ → ℝ × List (Fin 6)) (c C C₂ : ℝ),
       0 < c ∧ 0 < C ∧ 0 < C₂ ∧
@@ -5608,16 +6020,20 @@ theorem thresholdGoal_endpoint :
   · exact hhi
   · exact hmarks
 
+/-- The printed timeout expression equals `sourceTimeout N`. -/
 theorem clause40_printed_timeout_eq (N : ℕ) : sourcePrintedTimeout N = sourceTimeout N := by
   unfold sourcePrintedTimeout sourceTimeout
   rfl
 
+/-- The printed source timeout is twice `sourceMeanBudget N`. -/
 theorem clause40_printed_timeout_eq_twice_mean (N : ℕ) :
     sourcePrintedTimeout N = 2 * sourceMeanBudget N := by
   rw [clause40_printed_timeout_eq, sourceTimeout_eq_twice]
 
 set_option maxHeartbeats 1000000 in
 
+/-- For a nonempty sorted ranked table, source-clock attainment mass at the source timeout is at
+least one half [DurrHoyer1996]. -/
 theorem clause40_source_cutoff_attainment_half_on {N : ℕ} {α : Type*} [LinearOrder α]
     (ranked : SortedRankedTable N α) (hN : 0 < N) :
     (1 / 2 : ℝ) ≤ clause40AttainmentMassOn ranked hN (sourceTimeout N) := by
@@ -5638,11 +6054,15 @@ theorem clause40_source_cutoff_attainment_half_on {N : ℕ} {α : Type*} [Linear
   rw [heq]
   exact hhalf
 
+/-- For any nonempty table, source-clock attainment mass at the source timeout is at least one
+half [DurrHoyer1996]. -/
 theorem clause40_source_cutoff_attainment_half {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) :
     (1 / 2 : ℝ) ≤ clause40AttainmentMass T hN (sourceTimeout N) :=
   clause40_source_cutoff_attainment_half_on (SortedRankedTable.ofTable T) hN
 
+/-- For a one-element table, the initial source run mass is one exactly on the empty trace list
+and zero otherwise. -/
 theorem clause40_one_element_mass {α : Type*} [LinearOrder α]
     (ranked : SortedRankedTable 1 α) (hN : 0 < 1) (x : Fin 1 × List (SearchTrace 1)) :
     (clause40SourceLaw ranked hN).initialMass (clause40SourceSkip ranked) x =
@@ -5664,6 +6084,7 @@ theorem clause40_one_element_mass {α : Type*} [LinearOrder α]
   rw [hnext x.1, hrun x.2]
   simp
 
+/-- A one-element table has source-clock attainment mass one at every nonnegative cutoff. -/
 theorem clause40_attainment_mass_one {α : Type*} [LinearOrder α]
     (ranked : SortedRankedTable 1 α) (hN : 0 < 1) (cutoff : ℝ) (hc : 0 ≤ cutoff) :
     clause40AttainmentMassOn ranked hN cutoff = 1 := by
@@ -5695,6 +6116,8 @@ theorem clause40_attainment_mass_one {α : Type*} [LinearOrder α]
   unfold clause40AttainmentMassOn
   exact hconv.tsum_eq
 
+/-- The native cutoff is at least the real source timeout and strictly less than that timeout
+plus one. -/
 theorem clause40_native_cutoff_bounds (N : ℕ) :
     sourceTimeout N ≤ (sourceNativeCutoff N : ℝ) ∧
       (sourceNativeCutoff N : ℝ) < sourceTimeout N + 1 := by
@@ -5713,6 +6136,8 @@ theorem clause40_native_cutoff_bounds (N : ℕ) :
   · exact Nat.le_ceil _
   · exact Nat.ceil_lt_add_one hnonneg
 
+/-- For positive `N`, the initialization charge lies between `binaryLog N` and `binaryLog N +
+1`, with strict upper bound. -/
 theorem clause40_init_charge_rounding (N : ℕ) (hN : 0 < N) :
     binaryLog N ≤ (initCharge N : ℝ) ∧ (initCharge N : ℝ) < binaryLog N + 1 := by
   unfold initCharge
@@ -5726,6 +6151,8 @@ theorem clause40_init_charge_rounding (N : ℕ) (hN : 0 < N) :
       unfold binaryLog
       exact div_nonneg hlog (Real.log_pos (by norm_num)).le)
 
+/-- The native clock lies between the source run clock and that clock plus the trace-list
+length. -/
 theorem clause40_native_clock_bounds {N : ℕ} {α : Type*} [LinearOrder α]
     (ranked : SortedRankedTable N α) (hN : 0 < N) (xs : List (SearchTrace N)) :
     (clause40SourceLaw ranked hN).runClock xs ≤ sourceNativeClock N xs ∧
@@ -5748,6 +6175,7 @@ theorem clause40_native_clock_bounds {N : ℕ} {α : Type*} [LinearOrder α]
     rw [hdur]
     constructor <;> linarith [hround.1, hround.2.le]
 
+/-- A source trace list with positive run mass has length at most `N`. -/
 theorem clause40_run_length_bound {N : ℕ} {α : Type*} [LinearOrder α]
     (ranked : SortedRankedTable N α) (hN : 0 < N) (i : Fin N) (xs : List (SearchTrace N))
     (hm : 0 < (clause40SourceLaw ranked hN).runMass (clause40SourceSkip ranked)
@@ -5759,6 +6187,7 @@ theorem clause40_run_length_bound {N : ℕ} {α : Type*} [LinearOrder α]
     (clause40SourceLaw ranked hN).runMass_terminates (clause40SourceSkip ranked) _ hnext xs hm
   omega
 
+/-- A positive-mass source run meeting the source timeout also meets the enlarged native budget. -/
 theorem clause40_native_budget_sufficient {N : ℕ} {α : Type*} [LinearOrder α]
     (ranked : SortedRankedTable N α) (hN : 0 < N) (i : Fin N) (xs : List (SearchTrace N))
     (hm : 0 < (clause40SourceLaw ranked hN).runMass (clause40SourceSkip ranked)
@@ -5775,17 +6204,23 @@ theorem clause40_native_budget_sufficient {N : ℕ} {α : Type*} [LinearOrder α
   rw [hnat]
   linarith
 
+/-- The source and charged ranked-call laws assign the same mass to each individual search
+trace. -/
 theorem clause40_same_one_call_mass {N : ℕ} {α : Type*} [LinearOrder α]
     (ranked : SortedRankedTable N α) (hN : 0 < N) (t : ℕ) (x : SearchTrace N) :
     (clause40SourceLaw ranked hN).mass t x =
       (chargedBBHTLaw ranked.indexOfRank hN).mass t x := rfl
 
+/-- The charged budget is the natural ceiling of four times the source timeout. -/
 theorem clause40_charged_budget_four_fold (N : ℕ) :
     chargedBudget N = Nat.ceil (4 * sourceTimeout N) := chargedBudget_eq_four_sourceTimeout N
 
+/-- The charged mean budget equals four times the source mean budget. -/
 theorem clause40_charged_mean_four_fold (N : ℕ) :
     chargedMeanBudget N = 4 * sourceMeanBudget N := rfl
 
+/-- For positive `N`, the source timeout is strictly smaller than the charged integer budget
+cast to a real number. -/
 theorem clause40_source_cutoff_below_charged_budget (N : ℕ) (hN : 0 < N) :
     sourceTimeout N < (chargedBudget N : ℝ) := by
   have hpos : 0 < sourceTimeout N := by
@@ -5796,6 +6231,8 @@ theorem clause40_source_cutoff_below_charged_budget (N : ℕ) (hN : 0 < N) :
     exact Nat.le_ceil _
   linarith
 
+/-- For positive `N`, the source timeout differs from the charged integer budget cast to a real
+number. -/
 theorem clause40_source_cutoff_not_charged_cutoff (N : ℕ) (hN : 0 < N) :
     sourceTimeout N ≠ (chargedBudget N : ℝ) := by
   intro h
@@ -5807,14 +6244,18 @@ theorem clause40_source_cutoff_not_charged_cutoff (N : ℕ) (hN : 0 < N) :
     exact mul_pos (by norm_num) (sourceMeanBudget_pos N hN)
   linarith
 
+/-- The rank-marked set below a sorted table's lower tie cut is exactly the set of indices with
+strictly smaller table value. -/
 theorem clause40_tied_marked_is_strict_value {N : ℕ} {α : Type*} [LinearOrder α]
     (T : SortedRankedTable N α) (y : Fin N) :
     rankMarked T.indexOfRank (T.lowerCut y).val =
       Finset.univ.filter (fun i => T.value i < T.value (T.indexOfRank y)) :=
   rankMarked_eq_strict_values T y
 
+/-- A three-element table with values `0`, `0`, and `1`, used to illustrate tied minimum values. -/
 def clause40TiedTable : Fin 3 → ℕ := fun i => if i.val = 2 then 1 else 0
 
+/-- Indices zero and one minimize `clause40TiedTable`, while index two does not. -/
 theorem clause40_tied_table_minima :
     (∀ j, clause40TiedTable 0 ≤ clause40TiedTable j) ∧
       (∀ j, clause40TiedTable 1 ≤ clause40TiedTable j) ∧
@@ -5828,10 +6269,13 @@ theorem clause40_tied_table_minima :
     have h2 := h ⟨0, by norm_num⟩
     simp [clause40TiedTable] at h2
 
+/-- The tied three-element example has source-timeout attainment mass at least one half. -/
 theorem clause40_tied_table_cutoff_attainment_half (hN : 0 < 3) :
     (1 / 2 : ℝ) ≤ clause40AttainmentMass clause40TiedTable hN (sourceTimeout 3) := by
   exact clause40_source_cutoff_attainment_half clause40TiedTable hN
 
+/-- The probabilities of an event and its complement under a probability mass function sum to
+one. -/
 private theorem clause41_event_total {β : Type*} (p : PMF β) (E : β → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E + Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => ¬ E x) = 1 := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
@@ -5843,12 +6287,15 @@ private theorem clause41_event_total {β : Type*} (p : PMF β) (E : β → Prop)
       by_cases hx : E x <;> simp [hx]
     _ = 1 := Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const p 1
 
+/-- Every event under a probability mass function has probability at most one. -/
 private theorem clause41_event_le_one {β : Type*} (p : PMF β) (E : β → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E ≤ 1 := by
   calc
     _ ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E + Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => ¬ E x) := le_self_add
     _ = 1 := clause41_event_total p E
 
+/-- Adding one independent minimum-finding run multiplies the current failure mass by the
+single-run failure mass. -/
 theorem clause41_independent_failure_step {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (budget : ℕ) (c : ℕ) :
     clause41IndependentFailure T hN budget (c + 1) =
@@ -5877,6 +6324,8 @@ theorem clause41_independent_failure_step {N : ℕ} {α : Type*} [LinearOrder α
   funext p
   by_cases hp : ∀ j, T p.1 ≤ T j <;> simp [hp]
 
+/-- After `c` independent runs, failure mass is the initial-candidate failure mass multiplied by
+the `c`th power of single-run failure mass. -/
 theorem clause41_independent_failure_exact {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (budget : ℕ) (c : ℕ) :
     clause41IndependentFailure T hN budget c =
@@ -5887,6 +6336,8 @@ theorem clause41_independent_failure_exact {N : ℕ} {α : Type*} [LinearOrder �
     rw [clause41_independent_failure_step, ih, pow_succ]
     ring
 
+/-- The real success probability after `c` independent runs is one minus the initial-candidate
+failure probability times the `c`th power of single-run failure probability. -/
 theorem clause41_independent_success_exact {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (budget : ℕ) (c : ℕ) :
     (clause41IndependentSuccess T hN budget c).toReal =
@@ -5926,6 +6377,8 @@ theorem clause41_independent_success_exact {N : ℕ} {α : Type*} [LinearOrder �
   rw [htoR] at hreals
   linarith
 
+/-- Below the initialization charge, a single run's success mass is the fraction of table
+indices attaining the global minimum. -/
 theorem clause41_no_progress_success {N : ℕ} {α : Type*} [LinearOrder α] (T : Fin N → α)
     (hN : 0 < N) (budget : ℕ) (hbudget : budget < initCharge N) :
     clause41SingleSuccess T hN budget =
@@ -5948,6 +6401,7 @@ theorem clause41_no_progress_success {N : ℕ} {α : Type*} [LinearOrder α] (T 
       · rw [if_neg hpaid]
   simp_rw [hstep]
 
+/-- If the initial candidate is not a global minimizer, its zero-run failure probability is one. -/
 theorem clause41_placeholder_failure {N : ℕ} {α : Type*} [LinearOrder α] (T : Fin N → α)
     (hN : 0 < N) (budget : ℕ) (hnone : ¬ ∀ j, T (clause41Placeholder hN) ≤ T j) :
     (clause41IndependentFailure T hN budget 0).toReal = 1 := by
@@ -5960,6 +6414,9 @@ theorem clause41_placeholder_failure {N : ℕ} {α : Type*} [LinearOrder α] (T 
   rw [if_pos hnone]
   simp
 
+/-- For a two-element table whose second index is minimal and whose initial candidate is not, a
+zero-budget single run succeeds with probability one half and two independent runs succeed
+with probability three quarters. -/
 theorem clause41_counterexample_two_runs {α : Type*} [LinearOrder α] (T : Fin 2 → α)
     (hN : 0 < 2) (hmin : ∀ j, T 1 ≤ T j) (hnone : ¬ ∀ j, T (clause41Placeholder hN) ≤ T j) :
     (clause41SingleSuccess T hN 0).toReal = 1 / 2 ∧
@@ -6023,6 +6480,8 @@ theorem clause41_counterexample_two_runs {α : Type*} [LinearOrder α] (T : Fin 
     norm_num
   exact ⟨hsucc, hsucc2⟩
 
+/-- Under the stated two-element-table conditions, two independent zero-budget runs have
+strictly larger success probability than one run at twice that budget. -/
 theorem clause41_source_sentence_false_at_small_budget {α : Type*} [LinearOrder α]
     (T : Fin 2 → α) (hN : 0 < 2) (hmin : ∀ j, T 1 ≤ T j)
     (hnone : ¬ ∀ j, T (clause41Placeholder hN) ≤ T j) :
@@ -6033,6 +6492,8 @@ theorem clause41_source_sentence_false_at_small_budget {α : Type*} [LinearOrder
   rw [hzero]
   linarith
 
+/-- Comparing a single run at total budget `c * budget` with `c` independent runs is equivalent
+to comparison with the explicit initial-candidate failure formula. -/
 theorem clause41_source_sentence_holds_iff {N : ℕ} {α : Type*} [LinearOrder α]
     (T : Fin N → α) (hN : 0 < N) (budget : ℕ) (c : ℕ) :
     (clause41SingleSuccess T hN (c * budget)).toReal ≥

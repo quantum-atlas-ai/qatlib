@@ -11,6 +11,26 @@ import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
+
+/-!
+# Elementary bounds for Johnson-walk phases
+
+This module expresses the complex diffusion phase using `2*arcsin (sqrt e)` and bounds that
+angle in terms of `sqrt e`. It also converts chordal distance on the unit circle into a
+controlled additive phase displacement, providing estimates for the Johnson-walk spectral
+analysis [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `jw_diffusion_phase_exp`: the diffusion phase as a complex exponential.
+* `jw_unit_circle_phase_transport`: a phase displacement bounded by chordal distance.
+* `jw_arcsin_sqrt_bounds`: explicit square-root bounds for the half-angle.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +38,8 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 
+/-- For `0 ≤ e ≤ 1`, the complex number `1-2*e + 2*i*sqrt (e-e²)` equals `exp (i*(2*arcsin (sqrt
+e)))`. -/
 theorem jw_diffusion_phase_exp (e : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1) :
     (1 - 2 * e : ℂ) + Complex.I * (2 * Real.sqrt (e - e * e) : ℝ) =
       Complex.exp (Complex.I * (2 * Real.arcsin (Real.sqrt e) : ℝ)) := by
@@ -41,6 +63,8 @@ theorem jw_diffusion_phase_exp (e : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1) :
   push_cast
   ring
 
+/-- For a unit complex number `z` and reference phase `θ`, there is a phase displacement `a`
+representing `z` with `|a|` at most `π/2` times its chordal distance from `exp (i*θ)`. -/
 theorem jw_unit_circle_phase_transport (z : ℂ) (hz : ‖z‖ = 1) (θ : ℝ) :
     ∃ a : ℝ, |a| ≤ Real.pi / 2 * ‖z - Complex.exp (Complex.I * θ)‖ ∧
       z = Complex.exp (Complex.I * (θ + a : ℝ)) := by
@@ -85,6 +109,7 @@ theorem jw_unit_circle_phase_transport (z : ℂ) (hz : ‖z‖ = 1) (θ : ℝ) :
         push_cast
         ring
 
+/-- For `0 ≤ e ≤ 1/2`, `arcsin (sqrt e)` lies between `sqrt e` and `(6/5)*sqrt e`. -/
 theorem jw_arcsin_sqrt_bounds (e : ℝ) (he : 0 ≤ e) (hehalf : e ≤ 1 / 2) :
     Real.sqrt e ≤ Real.arcsin (Real.sqrt e) ∧
       Real.arcsin (Real.sqrt e) ≤ 6 / 5 * Real.sqrt e := by

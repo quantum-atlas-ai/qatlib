@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomWindowSuccessAndBudgetStat
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionLine
+
+/-!
+# Success and word budgets for inhomogeneous LCHS
+
+`inhomogeneousWindowSuccessAndBudget` proves a success-probability and query-word bound for the
+compiled inhomogeneous LCHS window. Given a unified approximation within ε of a solution of norm
+at least τ and `ε ≤ τ/2`, it proves normalized iteration weights, average marked success at
+least 1/8, and separate input and selection word-count bounds of `2*m + 1`. This gives a
+concrete finite-grid preparation estimate related to [AnLiuLin2023].
+
+## Main statements
+
+* `inhomogeneousWindowSuccessAndBudget`: the window distribution, success, and word-count
+  guarantees.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -30,6 +50,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- Proves `InhomogeneousWindowSuccessAndBudget`: the finite window has normalized weights,
+length at most `2*α/τ + 1`, average marked success at least 1/8, and input and selection
+word counts each at most `2*m + 1`; see [AnLiuLin2023]. -/
 theorem inhomogeneousWindowSuccessAndBudget : InhomogeneousWindowSuccessAndBudget := by
   intro I _ _ L H b s t ε τ K N Mt B P i₀ hL hH hPSD hHerm hst hB hP
     _hprep hK hN _hMt _hε hτ hετ

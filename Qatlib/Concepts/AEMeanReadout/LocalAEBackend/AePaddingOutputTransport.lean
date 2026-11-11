@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchEstimation
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStopping
+
+/-!
+# Output transport for padded amplitude estimation
+
+This module proves that `aePaddedAECircuit` has the same output state and readout law as the
+counted amplitude estimation circuit on the clean input. It transfers the success windows and
+endpoint guarantees of [BrassardEtAl2002] to `aePaddedLaw`, while recording exactly `M` queries
+and the fixed gate count.
+
+## Main statements
+
+* `ae_padded_output_state_eq`: identifies the padded and counted output states.
+* `padded_k1_window_eight_pi_sq`: gives the amplitude estimation window with mass at least
+  `8/π²`.
+* `count_padded_k2_window_strict`: combines the counting window with exact padded resource
+  counts.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -35,6 +57,8 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The controlled amplitude estimation gate fixes a state whose true-flag amplitudes all
+vanish. -/
 private theorem applyGate_aeControlledGate_clean_flag (M : ℕ) (U : Matrix I I ℂ)
     {ψ : QState (Fin M × (Bool × I))} (hclean : ∀ z i, ψ (z, (true, i)) = 0) :
     ApplyGate (aeControlledGate M U) ψ = ψ := by
@@ -43,6 +67,8 @@ private theorem applyGate_aeControlledGate_clean_flag (M : ℕ) (U : Matrix I I 
   rw [aeControlledGate, phaseControlledOracle_apply]
   cases b <;> simp [ApplyGate, Matrix.mulVec, dotProduct, Matrix.one_apply, hclean]
 
+/-- On the standard clean input, the padded and counted amplitude estimation circuits produce
+the same output state. -/
 theorem ae_padded_output_state_eq (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     Run (aeControlledGate M (preparedMark S)) (aePaddedAECircuit M A j)
@@ -57,6 +83,8 @@ theorem ae_padded_output_state_eq (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fi
   simp only [run_query, run_nil]
   exact applyGate_aeControlledGate_clean_flag M (preparedMark S) hclean
 
+/-- The phase-register measurement distribution of the padded amplitude estimation circuit on
+the standard clean input. -/
 noncomputable def aePaddedLaw (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) : FinDist (Fin M) where
   prob z := MeasureProb
@@ -77,6 +105,7 @@ noncomputable def aePaddedLaw (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset
     rw [hsum]
     exact (aeLaw M A j S hA hM).sum_one
 
+/-- Every label has the same probability under `aePaddedLaw` and `aeLaw`. -/
 theorem aePaddedLaw_prob (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) (z : Fin M) :
     (aePaddedLaw M A j S hA hM).prob z = (aeLaw M A j S hA hM).prob z := by
@@ -86,6 +115,7 @@ theorem aePaddedLaw_prob (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
   rw [ae_padded_output_state_eq M A j S hM hA]
   rfl
 
+/-- The padded amplitude estimation readout law equals the counted readout law. -/
 theorem aePaddedLaw_eq_aeLaw (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) :
     aePaddedLaw M A j S hA hM = aeLaw M A j S hA hM := by
@@ -101,11 +131,14 @@ theorem aePaddedLaw_eq_aeLaw (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset 
       subst hprob
       rfl
 
+/-- For positive `M`, the padded circuit uses exactly `M` queries and `5*(M-1)+3` fixed gates. -/
 theorem padded_query_exact_M (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I) :
     QueryCount (aePaddedAECircuit M A j) = M ∧
       GateCount (aePaddedAECircuit M A j) = 5 * (M - 1) + 3 :=
   ⟨ae_padded_query_count M hM A j, ae_padded_gate_count M hM A j⟩
 
+/-- For integer `k ≥ 2`, the padded amplitude estimation error window has mass strictly greater
+than `1 - 1/(2*(k-1))` [BrassardEtAl2002]. -/
 theorem padded_k2_window_strict (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ) (k : ℕ) (hk : 2 ≤ k) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
@@ -116,6 +149,8 @@ theorem padded_k2_window_strict (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fins
       (aePaddedLaw M A j S hA hM).prob z > 1 - 1 / (2 * ((k : ℝ) - 1)) := by
   simpa only [aePaddedLaw_prob] using! (clause83_endpoint (I := I)).2.1 M A j S hM hA k hk
 
+/-- For odd `M` and integer `k ≥ 2`, the padded amplitude estimation error window has mass
+strictly greater than `1 - 1/(2*(k-1))`. -/
 theorem padded_odd_M_window_strict (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ) (k : ℕ) (hk : 2 ≤ k)
     (hodd : M % 2 = 1) :
@@ -128,6 +163,8 @@ theorem padded_odd_M_window_strict (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : F
   simpa only [aePaddedLaw_prob] using!
       (clause83_endpoint (I := I)).2.2.2.2.2 M A j S hM hA k hk hodd
 
+/-- The padded amplitude estimation window of radius `2*π*√(a*(1-a))/M + π²/M²` has mass at
+least `8/π²`, where `a` is the prepared marked probability [BrassardEtAl2002]. -/
 theorem padded_k1_window_eight_pi_sq (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
@@ -139,6 +176,8 @@ theorem padded_k1_window_eight_pi_sq (M : ℕ) (A : Matrix I I ℂ) (j : I) (S :
   simpa only [aePaddedLaw_prob] using!
     (prepared_ae_bhmt_error_and_endpoints M hM A j S hA).1
 
+/-- If the prepared marked probability is zero, the padded readout is label zero with
+probability one. -/
 theorem padded_endpoint_zero (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
@@ -146,6 +185,8 @@ theorem padded_endpoint_zero (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset 
   rw [aePaddedLaw_prob]
   exact (prepared_ae_bhmt_error_and_endpoints M hM A j S hA).2.1 ha
 
+/-- If the prepared marked probability is one and `M` is even, the padded readout estimates one
+with probability one. -/
 theorem padded_endpoint_one_even (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hM : 2 ≤ M) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hdiv : 2 ∣ M)
     (ha : MeasureProb (preparedAAState A j) S = 1) :
@@ -154,6 +195,9 @@ theorem padded_endpoint_one_even (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fin
   simpa only [aePaddedLaw_prob] using!
     (prepared_ae_bhmt_error_and_endpoints M hM A j S hA).2.2 ha hdiv
 
+/-- For `k ≥ 2`, the QFT-prepared padded counting law satisfies the cardinality error window
+with mass strictly greater than `1 - 1/(2*(k-1))`. The circuit has exactly `M` queries and
+`5*(M-1)+3` fixed gates. -/
 theorem count_padded_k2_window_strict (N M : ℕ) (S : Finset (Fin N)) (hN : 0 < N)
     (hM : 2 ≤ M) (k : ℕ) (hk : 2 ≤ k) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M =>
@@ -168,6 +212,8 @@ theorem count_padded_k2_window_strict (N M : ℕ) (S : Finset (Fin N)) (hN : 0 <
     ae_padded_gate_count M (by omega) (QFTMatrix N) ⟨0, hN⟩⟩
   simpa only [aePaddedLaw_prob] using! (clause83_endpoint (I := Fin 1)).2.2.1 N M S hN hM k hk
 
+/-- On the one-element domain, the QFT-prepared marked probability equals the cardinality of the
+marked set. -/
 private theorem count_n1_a_eq_card (S : Finset (Fin 1)) :
     MeasureProb (preparedAAState (QFTMatrix 1) (⟨0, by norm_num⟩ : Fin 1)) S = (S.card : ℝ) := by
   have hzero : ∀ x : Fin 1, x.val = 0 := fun x => by have := x.isLt; omega
@@ -193,6 +239,8 @@ private theorem count_n1_a_eq_card (S : Finset (Fin 1)) :
     rw [hmp]
     simp
 
+/-- On a one-element domain, padded counting satisfies the general strict windows, the `8/π²`
+window, and exact zero and even-grid full-set endpoint guarantees. -/
 theorem count_n1_boundary (M : ℕ) (hM : 2 ≤ M) (S : Finset (Fin 1)) :
 
     (S.card = 0 ∨ S.card = 1) ∧
@@ -288,6 +336,8 @@ theorem count_n1_boundary (M : ℕ) (hM : 2 ≤ M) (S : Finset (Fin 1)) :
 
 set_option linter.unusedVariables false in
 
+/-- Collects padded output and law transport, exact circuit counts, success windows, endpoint
+guarantees, and their counting specializations. -/
 theorem frontier1 :
 
     (∀ (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hM : 2 ≤ M)

@@ -10,6 +10,32 @@ import Mathlib.Data.List.NodupEquivFin
 import Mathlib.Logic.Equiv.Prod
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 import Qatlib.Concepts.GramQueryCore.ModelSemantics.NativeCodeSemanticsStat
+
+/-!
+# Encoding and unitary semantics of native programs
+
+Proves injectivity of the bit encodings of rational source problems and native quantum programs.
+Prefix decoders recover scalar data, public rows, and gate fields, while register arithmetic
+validates the address, answer, tag, and payload layouts.
+
+Wire splitting and lifting identify each native query with a unitary permutation on selected
+wires. Together with standard circuit semantics [NielsenChuang2010], these results prove
+legal-program unitarity, exact call and gate accounting, and isometry of the clean source frame.
+
+## Main statements
+
+* `sourceProblemBits_injective`, `sourceNativeProgramBits_injective`: establish unambiguous
+  encodings.
+* `sourceNativeSteps_unitary`: every legal native program evaluates to a unitary matrix.
+* `sourceNativeCounts_exact`: calls and gates partition the program steps.
+* `sourceNativeFrame_isometry`: a sufficiently wide register gives an isometric source frame.
+* `nativeCodeSemantics`: proves the combined encoding and semantics specification.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,25 +56,34 @@ namespace Qatlib.Concepts.GramQueryCore.ModelSemantics
 open Matrix
 open scoped Classical BigOperators
 
+/-- Counts the initial true bits of a Boolean list and returns the remainder after the next
+false delimiter, if present. -/
 def nativeReadUnary : List Bool → ℕ × List Bool
   | true::bits => let result := nativeReadUnary bits; (result.1+1,result.2)
   | false::bits => (0,bits)
   | [] => (0,[])
 
+/-- Reads a unary length prefix and splits the remaining Boolean list into the indicated bit
+block and its suffix. -/
 def nativeReadNatBlock (bits : List Bool) : List Bool × List Bool :=
   let result := nativeReadUnary bits
   (result.2.take result.1,result.2.drop result.1)
 
+/-- A unary prefix of `n` true bits followed by false decodes to `n` and leaves the appended
+suffix unchanged. -/
 theorem nativeReadUnary_prefix (n : ℕ) (bits : List Bool) :
     nativeReadUnary (List.replicate n true ++ false::bits) = (n,bits) := by
   induction n with
   | zero => rfl
   | succ n ih => simp [List.replicate_succ,nativeReadUnary,ih]
 
+/-- Reading the natural-number encoding followed by a suffix recovers `n.bits` and that suffix. -/
 theorem nativeReadNatBlock_prefix (n : ℕ) (suffix : List Bool) :
     nativeReadNatBlock (sourceNatBits n ++ suffix) = (n.bits,suffix) := by
   simp [sourceNatBits,nativeReadNatBlock,List.append_assoc,nativeReadUnary_prefix]
 
+/-- Equality of two natural-number encodings with appended suffixes forces equality of both the
+encoded numbers and the suffixes. -/
 theorem sourceNatBits_prefix_injective {n m : ℕ} {suffix tail : List Bool}
     (h : sourceNatBits n ++ suffix = sourceNatBits m ++ tail) : n = m ∧ suffix = tail := by
   have hd := congrArg nativeReadNatBlock h
@@ -59,10 +94,13 @@ theorem sourceNatBits_prefix_injective {n m : ℕ} {suffix tail : List Bool}
     rw [Nat.testBit_eq_inth,Nat.testBit_eq_inth,hbits])
   exact ⟨he,congrArg Prod.snd hd⟩
 
+/-- Every natural-number bit encoding is nonempty. -/
 theorem sourceNatBits_nonempty (n : ℕ) : sourceNatBits n ≠ [] := by
   have hh : 0 < (sourceNatBits n).length := by simp [sourceNatBits]
   exact List.ne_nil_of_length_pos hh
 
+/-- Concatenating the bit encodings of a list of natural numbers is an injective encoding of the
+list. -/
 theorem sourceNatBits_flatMap_injective : Function.Injective (List.flatMap sourceNatBits) := by
   intro ns
   induction ns with
@@ -87,6 +125,8 @@ theorem sourceNatBits_flatMap_injective : Function.Injective (List.flatMap sourc
       subst m
       exact congrArg (List.cons n) (ih ht)
 
+/-- Equality of two integer encodings with appended suffixes forces equality of both the
+integers and the suffixes. -/
 theorem sourceIntBits_prefix_injective {n m : ℤ} {suffix tail : List Bool}
     (h : sourceIntBits n ++ suffix = sourceIntBits m ++ tail) : n = m ∧ suffix = tail := by
   have hc : decide (n<0) = decide (m<0) ∧
@@ -96,6 +136,8 @@ theorem sourceIntBits_prefix_injective {n m : ℤ} {suffix tail : List Bool}
   refine ⟨?_,ht⟩
   cases n <;> cases m <;> simp_all <;> omega
 
+/-- Equality of two rational encodings with appended suffixes forces equality of both the
+rationals and the suffixes. -/
 theorem sourceRatBits_prefix_injective {a b : ℚ} {suffix tail : List Bool}
     (h : sourceRatBits a ++ suffix = sourceRatBits b ++ tail) : a = b ∧ suffix = tail := by
   have hc : sourceIntBits a.num ++ (sourceNatBits a.den ++ suffix) =
@@ -105,6 +147,8 @@ theorem sourceRatBits_prefix_injective {a b : ℚ} {suffix tail : List Bool}
   obtain ⟨hd,he⟩ := sourceNatBits_prefix_injective ht
   exact ⟨Rat.ext hn hd,he⟩
 
+/-- Concatenated fixed-length tables inherit unique prefix decoding from their entry encoding,
+recovering both the table and the appended suffix. -/
 theorem nativeEncodedTable_prefix_injective {A : Type} (encode : A → List Bool)
     (hencode : ∀ a b suffix tail, encode a ++ suffix = encode b ++ tail → a = b ∧ suffix = tail)
     (n : ℕ) (f g : Fin n → A) (suffix tail : List Bool)
@@ -121,9 +165,12 @@ theorem nativeEncodedTable_prefix_injective {A : Type} (encode : A → List Bool
     refine ⟨funext (fun i => ?_),hs⟩
     exact Fin.cases h0 (fun j => congrFun hf j) i
 
+/-- Concatenates the rational encodings of four coordinates grouped into two pairs. -/
 def nativeCoordinateBits (a : (ℚ × ℚ) × (ℚ × ℚ)) : List Bool :=
   sourceRatBits a.1.1 ++ sourceRatBits a.1.2 ++ sourceRatBits a.2.1 ++ sourceRatBits a.2.2
 
+/-- The four-coordinate encoding uniquely determines both its coordinate data and any appended
+suffix. -/
 theorem nativeCoordinateBits_prefix_injective
     (a b : (ℚ × ℚ) × (ℚ × ℚ)) (suffix tail : List Bool)
     (he : nativeCoordinateBits a ++ suffix = nativeCoordinateBits b ++ tail) :
@@ -135,11 +182,14 @@ theorem nativeCoordinateBits_prefix_injective
   obtain ⟨h4,he⟩ := sourceRatBits_prefix_injective he
   exact ⟨Prod.ext (Prod.ext h1 h2) (Prod.ext h3 h4),he⟩
 
+/-- Encodes one public problem row by concatenating its input symbol encodings and paired start
+and target rational coordinates. -/
 def nativePublicRowBits {a h q : ℕ}
     (row : (Fin a → Fin (q+1)) × ((Fin h → ℚ × ℚ) × (Fin h → ℚ × ℚ))) : List Bool :=
   (List.ofFn (fun j => sourceNatBits (row.1 j).val)).flatten ++
     (List.ofFn (fun i => nativeCoordinateBits (row.2.1 i,row.2.2 i))).flatten
 
+/-- The public row encoding uniquely determines both the row data and any appended suffix. -/
 theorem nativePublicRowBits_prefix_injective {a h q : ℕ}
     (row other : (Fin a → Fin (q+1)) × ((Fin h → ℚ × ℚ) × (Fin h → ℚ × ℚ)))
     (suffix tail : List Bool)
@@ -160,6 +210,7 @@ theorem nativePublicRowBits_prefix_injective {a h q : ℕ}
   · funext i
     exact congrArg Prod.snd (congrFun hcoord i)
 
+/-- The bit encoding of rational source problems is injective. -/
 theorem sourceProblemBits_injective : Function.Injective sourceProblemBits := by
   intro d e he
   cases d with
@@ -190,21 +241,28 @@ theorem sourceProblemBits_injective : Function.Injective sourceProblemBits := by
       subst target'
       rfl
 
+/-- Native gate and query instructions with natural-number wire indices, including Hadamard,
+controlled phase, swap, and directed query instructions. -/
 inductive NativeRawStep where
   | h : ℕ → NativeRawStep
   | cp : ℕ → ℕ → ℕ → Bool → NativeRawStep
   | swap : ℕ → ℕ → NativeRawStep
   | query : List ℕ → Bool → NativeRawStep
 
+/-- Forgets the bounded wire-index types of a local QFT gate to produce a raw instruction. -/
 def nativeRawLocal {w : ℕ} : LocalQFTGate w → NativeRawStep
   | .h a => .h a.val
   | .cp a b k neg => .cp a.val b.val k neg
   | .swap a b => .swap a.val b.val
 
+/-- Forgets the bounded wire-index types of a native step, retaining its gate or directed query
+data. -/
 def nativeRawStep {w : ℕ} : SourceNativeStep w → NativeRawStep
   | .local g => nativeRawLocal g
   | .query ws adj => .query (ws.map Fin.val) adj
 
+/-- Parses tagged natural-number fields into a raw instruction and its remaining fields,
+returning `none` when no instruction pattern matches. -/
 def nativeReadRawStep : List ℕ → Option (NativeRawStep × List ℕ)
   | 0::a::rest => some (.h a,rest)
   | 1::a::b::k::neg::rest => some (.cp a b k (decide (neg=1)),rest)
@@ -212,6 +270,8 @@ def nativeReadRawStep : List ℕ → Option (NativeRawStep × List ℕ)
   | 3::adj::len::rest => some (.query (rest.take len) (decide (adj=1)),rest.drop len)
   | _ => none
 
+/-- Parsing an encoded native step followed by a suffix returns its raw instruction and the
+unchanged suffix. -/
 theorem nativeReadRawStep_prefix {w : ℕ} (s : SourceNativeStep w) (suffix : List ℕ) :
     nativeReadRawStep (sourceNativeStepFields s ++ suffix) = some (nativeRawStep s,suffix) := by
   cases s with
@@ -223,10 +283,14 @@ theorem nativeReadRawStep_prefix {w : ℕ} (s : SourceNativeStep w) (suffix : Li
   | query ws adj =>
     cases adj <;> simp [sourceNativeStepFields,nativeRawStep,nativeReadRawStep]
 
+/-- For a fixed register width, forgetting the bounded wire-index types of a local gate is
+injective. -/
 theorem nativeRawLocal_injective {w : ℕ} : Function.Injective (nativeRawLocal (w:=w)) := by
   intro g g' he
   cases g <;> cases g' <;> simp_all [nativeRawLocal,Fin.ext_iff]
 
+/-- For a fixed register width, forgetting the bounded wire-index types of a native step is
+injective. -/
 theorem nativeRawStep_injective {w : ℕ} : Function.Injective (nativeRawStep (w:=w)) := by
   intro s t he
   cases s with
@@ -243,6 +307,8 @@ theorem nativeRawStep_injective {w : ℕ} : Function.Injective (nativeRawStep (w
       have hws : ws = ts := List.map_injective_iff.mpr (Fin.val_injective) hh.1
       exact congrArg₂ SourceNativeStep.query hws hh.2
 
+/-- For a fixed register width, native step fields uniquely determine both the step and an
+appended field suffix. -/
 theorem sourceNativeStepFields_prefix_injective {w : ℕ} (s t : SourceNativeStep w)
     (suffix tail : List ℕ)
     (he : sourceNativeStepFields s ++ suffix = sourceNativeStepFields t ++ tail) :
@@ -252,6 +318,8 @@ theorem sourceNativeStepFields_prefix_injective {w : ℕ} (s t : SourceNativeSte
   have hp := Option.some.inj hd
   exact ⟨nativeRawStep_injective (congrArg Prod.fst hp),congrArg Prod.snd hp⟩
 
+/-- For two step lists of equal length, equality of concatenated step fields with suffixes
+forces equality of the lists and suffixes. -/
 theorem sourceNativeStepsFields_prefix_injective {w : ℕ} (steps other : List (SourceNativeStep w))
     (hlen : steps.length = other.length) (suffix tail : List ℕ)
     (he : steps.flatMap sourceNativeStepFields ++ suffix = other.flatMap sourceNativeStepFields ++ tail) :
@@ -271,6 +339,7 @@ theorem sourceNativeStepsFields_prefix_injective {w : ℕ} (steps other : List (
       obtain ⟨he,hsuf⟩ := ih other htlen _ _ ht
       exact ⟨congrArg₂ List.cons hs he,hsuf⟩
 
+/-- The bit encoding of native programs is injective. -/
 theorem sourceNativeProgramBits_injective : Function.Injective sourceNativeProgramBits := by
   intro p q he
   cases p with
@@ -288,21 +357,28 @@ theorem sourceNativeProgramBits_injective : Function.Injective sourceNativeProgr
       subst other
       rfl
 
+/-- Splits a register into the ordered bits on a duplicate-free wire list and the bits on its
+complementary wires. -/
 def nativeWireSplit {w : ℕ} (ws : List (Fin w)) (hws : ws.Nodup) :
     Reg w ≃ Reg ws.length × ({i : Fin w // i ∉ ws} → Bool) :=
   (Equiv.piEquivPiSubtypeProd (fun i : Fin w => i ∈ ws) (fun _ => Bool)).trans
     (Equiv.prodCongr
       (Equiv.arrowCongr (List.Nodup.getEquiv ws hws).symm (Equiv.refl Bool)) (Equiv.refl _))
 
+/-- Extends a matrix on selected wires to the full register by tensoring with the identity on
+complementary wires and relabeling. -/
 def nativeWireLift {w : ℕ} (ws : List (Fin w)) (hws : ws.Nodup)
     (O : Matrix (Reg ws.length) (Reg ws.length) ℂ) : Matrix (Reg w) (Reg w) ℂ :=
   relabelGate (nativeWireSplit ws hws).symm (TensorGate O 1)
 
+/-- Lifting a unitary matrix to a duplicate-free list of wires preserves unitarity. -/
 theorem nativeWireLift_unitary {w : ℕ} (ws : List (Fin w)) (hws : ws.Nodup)
     (O : Matrix (Reg ws.length) (Reg ws.length) ℂ)
     (hO : O ∈ Matrix.unitaryGroup _ ℂ) : nativeWireLift ws hws O ∈ Matrix.unitaryGroup _ ℂ :=
   (relabelGate_mem_unitaryGroup _ _).mpr (tensorGate_unitary hO (Submonoid.one_mem _))
 
+/-- A lifted matrix entry equals the selected-wire matrix entry when the complementary bits
+agree, and zero otherwise. -/
 theorem nativeWireLift_apply {w : ℕ} (ws : List (Fin w)) (hws : ws.Nodup)
     (O : Matrix (Reg ws.length) (Reg ws.length) ℂ) (p t : Reg w) :
     nativeWireLift ws hws O p t =
@@ -323,6 +399,7 @@ theorem nativeWireLift_apply {w : ℕ} (ws : List (Fin w)) (hws : ws.Nodup)
   · rw [if_pos (hother.mpr he),if_pos he,mul_one]
   · rw [if_neg (fun h => he (hother.mp h)),if_neg he,mul_zero]
 
+/-- The number represented by an `n`-bit register is strictly less than `2^n`. -/
 theorem nativeRegNumber_lt {n : ℕ} (z : Reg n) : sourceRegNumber z < 2^n := by
   induction n with
   | zero => simp [sourceRegNumber]
@@ -333,6 +410,7 @@ theorem nativeRegNumber_lt {n : ℕ} (z : Reg n) : sourceRegNumber z < 2^n := by
     simp only [Fin.val_castSucc,Fin.val_last,Nat.pow_succ]
     cases he : z (Fin.last n) <;> simp at hb ⊢ <;> omega
 
+/-- Converting the low `n` bits of `v` back to a number gives `v % 2^n`. -/
 theorem nativeRegNumber_bits (n v : ℕ) : sourceRegNumber (sourceRegBits n v) = v % 2^n := by
   induction n with
   | zero => simp [sourceRegNumber,Nat.mod_one]
@@ -347,11 +425,13 @@ theorem nativeRegNumber_bits (n v : ℕ) : sourceRegNumber (sourceRegBits n v) =
     · have hz : v/2^n%2=0 := by omega
       simpa [Nat.testBit_eq_decide_div_mod_eq,hz] using! ih
 
+/-- Two natural numbers below `2^n` are equal if their `n`-bit register encodings agree. -/
 theorem nativeRegBits_injective_below {n a b : ℕ} (ha : a < 2^n) (hb : b < 2^n)
     (he : sourceRegBits n a = sourceRegBits n b) : a = b := by
   have hn := congrArg sourceRegNumber he
   simpa only [nativeRegNumber_bits,Nat.mod_eq_of_lt ha,Nat.mod_eq_of_lt hb] using! hn
 
+/-- Encoding the number represented by a register recovers that register. -/
 theorem nativeRegBits_number {n : ℕ} (z : Reg n) : sourceRegBits n (sourceRegNumber z) = z := by
   let f : Fin (2^n) → Reg n := fun v => sourceRegBits n v.val
   have hf : Function.Injective f := by
@@ -363,17 +443,21 @@ theorem nativeRegBits_number {n : ℕ} (z : Reg n) : sourceRegBits n (sourceRegN
   change sourceRegBits n (sourceRegNumber (sourceRegBits n v.val)) = sourceRegBits n v.val
   rw [nativeRegNumber_bits,Nat.mod_eq_of_lt v.isLt]
 
+/-- Converting an `n`-bit register to its represented natural number is injective. -/
 theorem nativeRegNumber_injective {n : ℕ} : Function.Injective (sourceRegNumber (n:=n)) := by
   intro z t he
   have hbits := congrArg (sourceRegBits n) he
   simpa only [nativeRegBits_number] using! hbits
 
+/-- Extracts the first `na` bits of a register split into address and answer parts. -/
 def nativeAddressPart (na nb : ℕ) (z : Reg (na+nb)) : Reg na :=
   fun i => z ⟨i.val,by omega⟩
 
+/-- Extracts the `nb` answer bits following the first `na` address bits. -/
 def nativeAnswerPart (na nb : ℕ) (z : Reg (na+nb)) : Reg nb :=
   fun i => z ⟨na+i.val,by omega⟩
 
+/-- Two packed registers are equal when their address parts and answer parts are equal. -/
 theorem nativeParts_ext (na nb : ℕ) (z t : Reg (na+nb))
     (ha : nativeAddressPart na nb z = nativeAddressPart na nb t)
     (hb : nativeAnswerPart na nb z = nativeAnswerPart na nb t) : z = t := by
@@ -384,6 +468,8 @@ theorem nativeParts_ext (na nb : ℕ) (z t : Reg (na+nb))
     have hbit := congrFun hb ⟨i.val-na,hib⟩
     simpa only [nativeAnswerPart,Nat.add_sub_of_le (by omega : na ≤ i.val)] using! hbit
 
+/-- If `j < 2^na`, the address part of the encoding of `j + 2^na*a` is the `na`-bit encoding of
+`j`. -/
 theorem nativePacked_address (na nb j a : ℕ) (hj : j < 2^na) :
     nativeAddressPart na nb (sourceRegBits (na+nb) (j+2^na*a)) = sourceRegBits na j := by
   funext i
@@ -391,6 +477,8 @@ theorem nativePacked_address (na nb j a : ℕ) (hj : j < 2^na) :
   rw [Nat.add_comm,Nat.testBit_two_pow_mul_add a hj]
   simp only [i.isLt,↓reduceIte]
 
+/-- If `j < 2^na`, the answer part of the encoding of `j + 2^na*a` is the `nb`-bit encoding of
+`a`. -/
 theorem nativePacked_answer (na nb j a : ℕ) (hj : j < 2^na) :
     nativeAnswerPart na nb (sourceRegBits (na+nb) (j+2^na*a)) = sourceRegBits nb a := by
   funext i
@@ -398,6 +486,8 @@ theorem nativePacked_answer (na nb j a : ℕ) (hj : j < 2^na) :
   rw [Nat.add_comm,Nat.testBit_two_pow_mul_add a hj]
   simp
 
+/-- A packed register is recovered by encoding its address number plus `2^na` times its answer
+number. -/
 theorem nativePacked_reconstruct (na nb : ℕ) (z : Reg (na+nb)) :
     sourceRegBits (na+nb) (sourceRegNumber (nativeAddressPart na nb z)+
       2^na*sourceRegNumber (nativeAnswerPart na nb z)) = z := by
@@ -405,9 +495,13 @@ theorem nativePacked_reconstruct (na nb : ℕ) (z : Reg (na+nb)) :
   · rw [nativePacked_address _ _ _ _ (nativeRegNumber_lt _),nativeRegBits_number]
   · rw [nativePacked_answer _ _ _ _ (nativeRegNumber_lt _),nativeRegBits_number]
 
+/-- The problem input symbol at a valid natural-number address, extended by zero outside the
+address range. -/
 def nativeSymbol (d : SourceRationalProblem) (x : Fin d.count) (j : ℕ) : Fin (d.alphabet+1) :=
   if hj : j < d.addresses then d.input x ⟨j,hj⟩ else 0
 
+/-- Adds the addressed input symbol modulo the alphabet size to valid answer codes, preserving
+the address and fixing codes outside the alphabet. -/
 def nativeValueAction (d : SourceRationalProblem) (x : Fin d.count)
     (z : Reg (sourceAddressBits d+sourceValueBits d)) : Reg (sourceAddressBits d+sourceValueBits d) :=
   let na := sourceAddressBits d
@@ -417,6 +511,8 @@ def nativeValueAction (d : SourceRationalProblem) (x : Fin d.count)
   if _ha : a < d.alphabet+1 then
     sourceRegBits (na+nb) (j+2^na*((a+(nativeSymbol d x j).val)%(d.alphabet+1))) else z
 
+/-- Subtracts the addressed input symbol modulo the alphabet size from valid answer codes and
+fixes codes outside the alphabet. -/
 def nativeValueUndo (d : SourceRationalProblem) (x : Fin d.count)
     (z : Reg (sourceAddressBits d+sourceValueBits d)) : Reg (sourceAddressBits d+sourceValueBits d) :=
   let na := sourceAddressBits d
@@ -426,6 +522,7 @@ def nativeValueUndo (d : SourceRationalProblem) (x : Fin d.count)
   if ha : a < d.alphabet+1 then
     sourceRegBits (na+nb) (j+2^na*((⟨a,ha⟩ : Fin (d.alphabet+1))-nativeSymbol d x j).val) else z
 
+/-- The native value action preserves the number represented by the address register. -/
 theorem nativeValueAction_address (d : SourceRationalProblem) (x : Fin d.count)
     (z : Reg (sourceAddressBits d+sourceValueBits d)) :
     sourceRegNumber (nativeAddressPart (sourceAddressBits d) (sourceValueBits d) (nativeValueAction d x z)) =
@@ -437,6 +534,8 @@ theorem nativeValueAction_address (d : SourceRationalProblem) (x : Fin d.count)
       Nat.mod_eq_of_lt (nativeRegNumber_lt _)]
   · rfl
 
+/-- On valid answer codes, the native value action adds the addressed input symbol modulo
+`d.alphabet+1`. -/
 theorem nativeValueAction_answer (d : SourceRationalProblem) (x : Fin d.count)
     (z : Reg (sourceAddressBits d+sourceValueBits d))
     (ha : sourceRegNumber (nativeAnswerPart (sourceAddressBits d) (sourceValueBits d) z) < d.alphabet+1) :
@@ -450,6 +549,7 @@ theorem nativeValueAction_answer (d : SourceRationalProblem) (x : Fin d.count)
   apply Nat.mod_eq_of_lt
   exact (Nat.mod_lt _ (by omega)).trans_le (Nat.le_pow_clog (by omega) _)
 
+/-- The native value undo operation is a left inverse of the native value action. -/
 theorem nativeValueUndo_leftInverse (d : SourceRationalProblem) (x : Fin d.count) :
     Function.LeftInverse (nativeValueUndo d x) (nativeValueAction d x) := by
   intro z
@@ -474,9 +574,11 @@ theorem nativeValueUndo_leftInverse (d : SourceRationalProblem) (x : Fin d.count
     rw [he]
     simp [nativeValueUndo,ha,a,na,nb]
 
+/-- The native value action is injective. -/
 theorem nativeValueAction_injective (d : SourceRationalProblem) (x : Fin d.count) :
     Function.Injective (nativeValueAction d x) := (nativeValueUndo_leftInverse d x).injective
 
+/-- The native value oracle is the permutation matrix of `nativeValueAction`. -/
 theorem sourceNativeValueOracle_eq (d : SourceRationalProblem) (x : Fin d.count) :
     sourceNativeValueOracle d x = permMatrix (nativeValueAction d x) := by
   unfold sourceNativeValueOracle
@@ -490,21 +592,27 @@ theorem sourceNativeValueOracle_eq (d : SourceRationalProblem) (x : Fin d.count)
   simp only [hs]
   rfl
 
+/-- The native value oracle is unitary. -/
 theorem sourceNativeValueOracle_unitary (d : SourceRationalProblem) (x : Fin d.count) :
     sourceNativeValueOracle d x ∈ Matrix.unitaryGroup _ ℂ := by
   rw [sourceNativeValueOracle_eq]
   exact permMatrix_unitary_of_injective (nativeValueAction_injective d x)
 
+/-- Lifts a matrix of a specified register size to a duplicate-free wire list whose length
+equals that size. -/
 def nativeWireLiftSized {w l : ℕ} (ws : List (Fin w)) (hws : ws.Nodup) (hlen : ws.length=l)
     (O : Matrix (Reg l) (Reg l) ℂ) : Matrix (Reg w) (Reg w) ℂ :=
   nativeWireLift ws hws
     (relabelGate (Equiv.arrowCongr (finCongr hlen.symm) (Equiv.refl Bool)) O)
 
+/-- Lifting a unitary matrix to a wire list of matching length preserves unitarity. -/
 theorem nativeWireLiftSized_unitary {w l : ℕ} (ws : List (Fin w)) (hws : ws.Nodup)
     (hlen : ws.length=l) (O : Matrix (Reg l) (Reg l) ℂ) (hO : O ∈ Matrix.unitaryGroup _ ℂ) :
     nativeWireLiftSized ws hws hlen O ∈ Matrix.unitaryGroup _ ℂ :=
   nativeWireLift_unitary _ _ _ ((relabelGate_mem_unitaryGroup _ _).mpr hO)
 
+/-- The sized wire lift has the selected-wire matrix entries, with indices transported through
+the length equality, when complementary bits agree, and zero otherwise. -/
 theorem nativeWireLiftSized_apply {w l : ℕ} (ws : List (Fin w)) (hws : ws.Nodup)
     (hlen : ws.length=l) (O : Matrix (Reg l) (Reg l) ℂ) (p t : Reg w) :
     nativeWireLiftSized ws hws hlen O p t =
@@ -515,6 +623,8 @@ theorem nativeWireLiftSized_apply {w l : ℕ} (ws : List (Fin w)) (hws : ws.Nodu
   rw [nativeWireLift_apply]
   split_ifs <;> rfl
 
+/-- A forward or adjoint native query on distinct wires of the required address-and-answer width
+is unitary. -/
 theorem sourceNativeQuery_unitary (d : SourceRationalProblem) (x : Fin d.count) (w : ℕ)
     (ws : List (Fin w)) (adj : Bool) (hws : ws.Nodup)
     (hlen : ws.length=sourceAddressBits d+sourceValueBits d) :
@@ -533,6 +643,8 @@ theorem sourceNativeQuery_unitary (d : SourceRationalProblem) (x : Fin d.count) 
   rw [he]
   exact nativeWireLiftSized_unitary _ _ _ _ hQ
 
+/-- Every native program legal for a rational source problem evaluates to a unitary matrix on
+every input. -/
 theorem sourceNativeSteps_unitary (d : SourceRationalProblem) (p : SourceNativeProgram)
     (hlegal : sourceNativeLegal d p) (x : Fin d.count) :
     sourceNativeMatrix d x p ∈ Matrix.unitaryGroup _ ℂ := by
@@ -556,6 +668,7 @@ theorem sourceNativeSteps_unitary (d : SourceRationalProblem) (p : SourceNativeP
   obtain ⟨s,hs,rfl⟩ := List.mem_map.mp (List.mem_reverse.mp hM)
   exact hsteps s hs
 
+/-- The oracle call count plus the gate count equals the number of native program steps. -/
 theorem sourceNativeCounts_exact (p : SourceNativeProgram) :
     sourceNativeCalls p+sourceNativeGates p=p.steps.length := by
   have hh := (List.length_eq_countP_add_countP
@@ -568,10 +681,14 @@ theorem sourceNativeCounts_exact (p : SourceNativeProgram) :
   funext s
   cases s <;> rfl
 
+/-- The register index encoding a Boolean tag and payload basis element above zero address and
+answer bits. -/
 def nativeFrameIndex (d : SourceRationalProblem) (t : Bool × Fin d.dimension) : ℕ :=
   (if t.1 then 1 else 0)*2^(sourceAddressBits d+sourceValueBits d) +
     t.2.val*2^(sourceAddressBits d+sourceValueBits d+1)
 
+/-- Factors the frame index as the tag-and-payload number times `2^(sourceAddressBits d +
+sourceValueBits d)`. -/
 theorem nativeFrameIndex_factor (d : SourceRationalProblem) (t : Bool × Fin d.dimension) :
     nativeFrameIndex d t = ((if t.1 then 1 else 0)+2*t.2.val)*
       2^(sourceAddressBits d+sourceValueBits d) := by
@@ -579,6 +696,8 @@ theorem nativeFrameIndex_factor (d : SourceRationalProblem) (t : Bool × Fin d.d
   rw [Nat.pow_succ]
   ring
 
+/-- The frame index is below `2^w` when `w` accommodates the address, answer, tag, and payload
+bits. -/
 theorem nativeFrameIndex_lt (d : SourceRationalProblem) (w : ℕ)
     (hw : sourceAddressBits d+sourceValueBits d+1+sourcePayloadBits d ≤ w)
     (t : Bool × Fin d.dimension) : nativeFrameIndex d t < 2^w := by
@@ -593,6 +712,7 @@ theorem nativeFrameIndex_lt (d : SourceRationalProblem) (w : ℕ)
   rw [← Nat.pow_add]
   exact Nat.pow_le_pow_right (by omega) (by omega)
 
+/-- The natural-number frame index is injective on tag and payload labels. -/
 theorem nativeFrameIndex_injective (d : SourceRationalProblem) : Function.Injective (nativeFrameIndex d) := by
   intro t u he
   rw [nativeFrameIndex_factor,nativeFrameIndex_factor] at he
@@ -605,6 +725,8 @@ theorem nativeFrameIndex_injective (d : SourceRationalProblem) : Function.Inject
     omega
   exact Prod.ext hb (Fin.ext hv)
 
+/-- For a sufficiently wide register, encoding frame indices as bit registers is injective on
+tag and payload labels. -/
 theorem nativeFrameBasis_injective (d : SourceRationalProblem) (w : ℕ)
     (hw : sourceAddressBits d+sourceValueBits d+1+sourcePayloadBits d ≤ w) :
     Function.Injective (fun t : Bool × Fin d.dimension => sourceRegBits w (nativeFrameIndex d t)) := by
@@ -613,6 +735,8 @@ theorem nativeFrameBasis_injective (d : SourceRationalProblem) (w : ℕ)
   exact nativeRegBits_injective_below (nativeFrameIndex_lt d w hw t)
       (nativeFrameIndex_lt d w hw u) he
 
+/-- The native source frame is an isometry when the register accommodates the address, answer,
+tag, and payload bits. -/
 theorem sourceNativeFrame_isometry (d : SourceRationalProblem) (w : ℕ)
     (hw : sourceAddressBits d+sourceValueBits d+1+sourcePayloadBits d ≤ w) :
     (sourceNativeFrame d w)ᴴ * sourceNativeFrame d w = 1 := by
@@ -627,6 +751,8 @@ theorem sourceNativeFrame_isometry (d : SourceRationalProblem) (w : ℕ)
     simp [hz]
   · simp
 
+/-- Proves native program and problem encoding injectivity, legal-program unitarity, exact step
+accounting, and source-frame isometry under the width condition. -/
 theorem nativeCodeSemantics : NativeCodeSemantics := by
   refine ⟨sourceNativeProgramBits_injective,sourceProblemBits_injective,?_⟩
   intro d p hlegal x

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
 import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
 import Qatlib.Concepts.Waterfill.LevelSearch.WaterFillingOptimization
+
+/-!
+# Certified rational fidelity search
+
+This module implements rational fidelity bisection with a ledger of divisions, coordinate reads,
+and comparisons, and produces explicit endpoint certificates. It proves bracket and mass bounds,
+a conditional fidelity-error estimate, and scaling identities for water-filling profiles used in
+quantum rejection sampling [OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `certifiedFidelitySearch_eq`: identify the returned bracket and exact search ledger.
+* `certifiedFidelity_error`: bound the upper-endpoint fidelity error under margin and depth
+  conditions.
+* `frontier1`: combine bracket, mass, error, and operation-count guarantees.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,6 +47,8 @@ open Qatlib
 open Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
 open scoped BigOperators
 
+/-- A record of division counts, mass-coordinate reads, dot-product-coordinate reads, and
+comparisons in certified fidelity search. -/
 structure CertifiedSearchLedger where
   divisions : ℕ
   massReads : ℕ
@@ -33,6 +56,7 @@ structure CertifiedSearchLedger where
   comparisons : ℕ
   deriving DecidableEq, Repr
 
+/-- Add two certified-search ledgers componentwise. -/
 def ledgerAdd (a b : CertifiedSearchLedger) : CertifiedSearchLedger :=
   ⟨a.divisions + b.divisions, a.massReads + b.massReads,
     a.dotReads + b.dotReads, a.comparisons + b.comparisons⟩
@@ -40,6 +64,7 @@ def ledgerAdd (a b : CertifiedSearchLedger) : CertifiedSearchLedger :=
 instance : Add CertifiedSearchLedger where
   add := ledgerAdd
 
+/-- The rational mass and target-overlap readings at both endpoints of a fidelity bracket. -/
 structure FidelityBracketReading where
   loMass : ℚ
   loDot : ℚ
@@ -47,6 +72,8 @@ structure FidelityBracketReading where
   hiDot : ℚ
   deriving DecidableEq, Repr
 
+/-- A record of endpoint readings, Boolean fidelity-test results, and the work ledger for
+producing them. -/
 structure FidelityBracketCertificate where
   reading : FidelityBracketReading
   loReaches : Bool
@@ -54,6 +81,8 @@ structure FidelityBracketCertificate where
   ledger : CertifiedSearchLedger
   deriving DecidableEq, Repr
 
+/-- Bisect the rational water-level interval using the squared-overlap fidelity test, returning
+the bracket together with its accumulated operation ledger. -/
 def certifiedFidelitySearch {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) :
     ℕ → (ℚ × ℚ) × CertifiedSearchLedger
   | 0 => ((0, computedWaterHigh π σ), ⟨m, 0, 0, 0⟩)
@@ -67,6 +96,8 @@ def certifiedFidelitySearch {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) :
       let br := if dot ^ 2 ≥ p * mass then (mid, b.2) else (b.1, mid)
       (br, ⟨led.divisions + 1, led.massReads + m, led.dotReads + m, led.comparisons + 1⟩)
 
+/-- Evaluate mass and target overlap at both bracket endpoints, record the Boolean fidelity
+tests, and attach their evaluation ledger. -/
 def certifiedFidelityCertificate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b : ℚ × ℚ) :
     FidelityBracketCertificate :=
   let massLo := computedMass π σ b.1
@@ -78,6 +109,8 @@ def certifiedFidelityCertificate {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b 
     hiReaches := decide (dotHi ^ 2 ≥ p * massHi)
     ledger := ⟨0, 2 * m, 2 * m, 2⟩ }
 
+/-- Combine the work ledger of certified bisection with the ledger for its final endpoint
+certificate. -/
 def certifiedFidelityWork {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) :
     CertifiedSearchLedger :=
   let s := (certifiedFidelitySearch π σ p k).2
@@ -85,6 +118,7 @@ def certifiedFidelityWork {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) 
   ⟨s.divisions + c.divisions, s.massReads + c.massReads, s.dotReads + c.dotReads,
     s.comparisons + c.comparisons⟩
 
+/-- The computed target overlap is nonnegative for nonnegative profiles and water level. -/
 theorem computedDot_nonneg {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) {γ : ℚ} (hγ : 0 ≤ γ) :
     0 ≤ computedDot π σ γ := by
@@ -92,6 +126,8 @@ theorem computedDot_nonneg {m : ℕ} (π σ : Fin m → ℚ)
   refine Finset.sum_nonneg fun j _ => ?_
   exact mul_nonneg (hσ j) (le_min (hπ j) (mul_nonneg hγ (hσ j)))
 
+/-- For a nonnegative target profile, the computed target overlap is monotone in the water
+level. -/
 theorem computedDot_mono {m : ℕ} (π σ : Fin m → ℚ)
     (hσ : ∀ j, 0 ≤ σ j) {a b : ℚ} (hab : a ≤ b) :
     computedDot π σ a ≤ computedDot π σ b := by
@@ -101,11 +137,14 @@ theorem computedDot_mono {m : ℕ} (π σ : Fin m → ℚ)
     min_le_min (le_refl _) (mul_le_mul_of_nonneg_right hab (hσ j))
   exact mul_le_mul_of_nonneg_left hle (hσ j)
 
+/-- The computed squared mass is nonnegative at every rational water level. -/
 theorem computedMass_nonneg {m : ℕ} (π σ : Fin m → ℚ) (γ : ℚ) :
     0 ≤ computedMass π σ γ := by
   unfold computedMass computedWaterEnergy
   exact Finset.sum_nonneg fun _ _ => sq_nonneg _
 
+/-- For a nonnegative source and strictly positive target, the computed upper water level
+saturates every coordinate at its source amplitude. -/
 theorem waterFill_at_high {m : ℕ} (π σ : Fin m → ℚ)
     (h : ∀ j, 0 ≤ π j ∧ 0 < σ j) (j : Fin m) :
     waterFill π σ (computedWaterHigh π σ) j = π j := by
@@ -116,6 +155,8 @@ theorem waterFill_at_high {m : ℕ} (π σ : Fin m → ℚ)
     (div_le_iff₀ (h j).2).mp (by unfold computedWaterHigh; linarith)
   rw [waterFill, min_eq_left hb]
 
+/-- For nonnegative profiles and ordered nonnegative levels, prove the cross-multiplied
+inequality expressing decrease of squared overlap relative to mass. -/
 theorem computedFidelity_anti {m : ℕ} (π σ : Fin m → ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     {a b : ℚ} (ha : 0 ≤ a) (hab : a ≤ b) :
@@ -127,6 +168,8 @@ theorem computedFidelity_anti {m : ℕ} (π σ : Fin m → ℚ)
   rw [realDot_cast, realMass_cast, realDot_cast, realMass_cast] at h
   exact_mod_cast h
 
+/-- For nonnegative profiles, passing the fidelity test at a level implies passing it at every
+smaller nonnegative level. -/
 theorem fidelityReaches_mono {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     {a b : ℚ} (ha : 0 ≤ a) (hab : a ≤ b) (hreaches : fidelityReaches π σ p b) :
@@ -149,6 +192,8 @@ theorem fidelityReaches_mono {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
         computedDot π σ a ^ 2 * computedMass π σ b := hanti
     nlinarith [hposb, hna]
 
+/-- Certified bisection returns `fidelityBracket` and the exact ledger `⟨m + k, m * k, m * k,
+k⟩`. -/
 theorem certifiedFidelitySearch_eq {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) :
     (certifiedFidelitySearch π σ p k).1 = fidelityBracket π σ p k ∧
     (certifiedFidelitySearch π σ p k).2 = ⟨m + k, m * k, m * k, k⟩ := by
@@ -165,6 +210,8 @@ theorem certifiedFidelitySearch_eq {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (
         simp only [CertifiedSearchLedger.mk.injEq]
         exact ⟨by omega, by rw [Nat.mul_succ], by rw [Nat.mul_succ], by simp⟩
 
+/-- Express the certified-search ledger using `searchWork`, with `k` additional divisions and
+separate mass and dot-product read counts. -/
 theorem certifiedFidelitySearch_refines_frozen_work {m : ℕ} (π σ : Fin m → ℚ)
     (p : ℚ) (k : ℕ) :
     (certifiedFidelitySearch π σ p k).2 =
@@ -174,6 +221,9 @@ theorem certifiedFidelitySearch_refines_frozen_work {m : ℕ} (π σ : Fin m →
   rw [h.2]
   rfl
 
+/-- For nonnegative source, positive target, and a threshold exceeding the source's
+overlap-to-mass ratio, every bracket has the stated dyadic width and passes the fidelity
+test only at its lower endpoint. -/
 theorem certifiedFidelityBracket_props {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2)) :
@@ -236,6 +286,9 @@ theorem certifiedFidelityBracket_props {m : ℕ} (π σ : Fin m → ℚ) (p : �
               rw [pow_succ, div_mul_eq_div_div]
         · exact hm
 
+/-- Under the stated profile and threshold hypotheses, bracket endpoint masses are ordered
+between zero and the source squared norm, with their difference bounded by the bracket width
+times twice the source-target dot product. -/
 theorem certifiedFidelity_energy {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2)) :
@@ -269,6 +322,8 @@ theorem certifiedFidelity_energy {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k 
       _ = 2 * (∑ j, π j * σ j) * (computedWaterHigh π σ / (2 : ℚ) ^ k) := by
         rw [hwidth]
 
+/-- Under the positivity, threshold-range, coordinate-margin, and depth hypotheses, the upper
+bracket endpoint has computed fidelity within `ε` of `p`. -/
 theorem certifiedFidelity_error {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -375,6 +430,8 @@ theorem certifiedFidelity_error {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (
     sub_nonneg.mpr hab
   nlinarith [hgap, hwin, hmass_b, hε.le]
 
+/-- Under the stated profile and threshold hypotheses, the bracket certificate records the exact
+endpoint readings, a passing lower test, and a failing upper test. -/
 theorem certifiedFidelityCertificate_agrees {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2)) :
@@ -392,6 +449,8 @@ theorem certifiedFidelityCertificate_agrees {m : ℕ} (π σ : Fin m → ℚ) (p
   · simp only [certifiedFidelityCertificate]
     exact decide_eq_false hbr.2.2.2.2.2
 
+/-- The combined search and endpoint-certificate ledger is exactly `⟨m + k, m * k + 2 * m, m * k
++ 2 * m, k + 2⟩`. -/
 theorem certifiedFidelity_work {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) :
     certifiedFidelityWork π σ p k = ⟨m + k, m * k + 2 * m, m * k + 2 * m, k + 2⟩ := by
   have h := certifiedFidelitySearch_eq π σ p k
@@ -399,6 +458,9 @@ theorem certifiedFidelity_work {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : 
   rw [h.2]
   rfl
 
+/-- Under the stated positivity, range, margin, and depth conditions, combine bracket
+invariants, endpoint mass bounds, the fidelity-error estimate, and exact search and
+certificate work counts. -/
 theorem frontier1
     (m k : ℕ) (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
@@ -439,9 +501,12 @@ theorem frontier1
   · exact (certifiedFidelitySearch_eq π σ p k).2
   · exact certifiedFidelity_work π σ p k
 
+/-- Multiply every rational source amplitude by `lam`. -/
 def scaledSource {m : ℕ} (π : Fin m → ℚ) (lam : ℚ) : Fin m → ℚ :=
   fun i => lam * π i
 
+/-- Scaling the source and water level by a nonnegative factor scales every filled amplitude by
+that factor. -/
 theorem waterFill_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ} (hlam : 0 ≤ lam) (j : Fin m) :
     waterFill (scaledSource π lam) σ (lam * γ) j = lam * waterFill π σ γ j := by
   have hmin : min (lam * π j) (lam * (γ * σ j)) = lam * min (π j) (γ * σ j) := by
@@ -452,6 +517,8 @@ theorem waterFill_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ} (hlam 
   unfold waterFill scaledSource
   rw [mul_assoc, hmin]
 
+/-- Scaling the source and water level by a nonnegative factor scales the computed mass by the
+square of that factor. -/
 theorem computedMass_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ} (hlam : 0 ≤ lam) :
     computedMass (scaledSource π lam) σ (lam * γ) = lam ^ 2 * computedMass π σ γ := by
   unfold computedMass computedWaterEnergy
@@ -466,6 +533,8 @@ theorem computedMass_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ} (hl
     _ = lam ^ 2 * ∑ i, (waterFill π σ γ i) ^ 2 := by
           rw [Finset.mul_sum]
 
+/-- Scaling the source and water level by a nonnegative factor scales the computed target
+overlap by that factor. -/
 theorem computedDot_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ} (hlam : 0 ≤ lam) :
     computedDot (scaledSource π lam) σ (lam * γ) = lam * computedDot π σ γ := by
   unfold computedDot
@@ -480,6 +549,8 @@ theorem computedDot_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ} (hla
     _ = lam * ∑ i, σ i * waterFill π σ γ i := by
           rw [Finset.mul_sum]
 
+/-- Scaling the source and water level by a positive factor preserves the fidelity-test
+predicate. -/
 theorem fidelityReaches_scaled {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {lam γ : ℚ} (hlam : 0 < lam) :
     fidelityReaches (scaledSource π lam) σ p (lam * γ) ↔ fidelityReaches π σ p γ := by
   unfold fidelityReaches
@@ -501,6 +572,8 @@ theorem fidelityReaches_scaled {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) {lam 
       _ ≤ lam ^ 2 * computedDot π σ γ ^ 2 := h1
       _ = (lam * computedDot π σ γ) ^ 2 := by ring
 
+/-- Scaling the source and water level by a positive factor leaves the computed fidelity
+unchanged. -/
 theorem computedFidelity_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ} (hlam : 0 < lam) :
     computedFidelity (scaledSource π lam) σ (lam * γ) = computedFidelity π σ γ := by
   have hmass : computedMass (scaledSource π lam) σ (lam * γ) = lam ^ 2 * computedMass π σ γ :=
@@ -519,6 +592,8 @@ theorem computedFidelity_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ}
     rw [heq]
     field_simp
 
+/-- A positive water level and a coordinate with positive source and target amplitudes imply
+positive computed mass. -/
 theorem computedMass_pos_of {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (j : Fin m)
     (hγ : 0 < γ) (hπ : 0 < π j) (hσ : 0 < σ j) :
     0 < computedMass π σ γ := by
@@ -530,6 +605,8 @@ theorem computedMass_pos_of {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (j : Fi
   exact Finset.sum_pos' (f := fun i => (waterFill π σ γ i) ^ 2)
     (fun i _ => sq_nonneg _) ⟨j, Finset.mem_univ j, sq_pos_of_pos hfill⟩
 
+/-- For nonnegative profiles, every rational fidelity bracket has a nonnegative lower endpoint
+and a strictly positive upper endpoint. -/
 theorem fidelityBracket_bounds {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) :
     0 ≤ (fidelityBracket π σ p k).1 ∧ 0 < (fidelityBracket π σ p k).2 := by
@@ -547,12 +624,16 @@ theorem fidelityBracket_bounds {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : 
       · exact ⟨by linarith, hh⟩
       · exact ⟨hl, by linarith⟩
 
+/-- For a nonnegative source with a positive coordinate and a strictly positive target, the
+upper fidelity-bracket endpoint has positive computed mass. -/
 theorem certifiedFidelity_mass_pos {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : ℕ) (i : Fin m)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hpi : 0 < π i) :
     0 < computedMass π σ (fidelityBracket π σ p k).2 := by
   have hhi := fidelityBracket_bounds π σ p k hπ (fun j => (hσ j).le)
   exact computedMass_pos_of π σ i hhi.2 hpi (hσ i)
 
+/-- Scaling the source and water level by a nonnegative factor scales the selected amplitude
+`selectedBeta` by that factor. -/
 theorem selectedBeta_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ} (hlam : 0 ≤ lam) :
     selectedBeta (scaledSource π lam) σ (lam * γ) = lam * selectedBeta π σ γ := by
   unfold selectedBeta

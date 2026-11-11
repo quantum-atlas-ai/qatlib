@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalSignedHHLConsumers
+
+/-!
+# Joint precision and noise budgets for rational HHL
+
+`numericHHLAccuracy`, `numericHHLGrid`, `numericHHLBits`, and `numericHHLNoise` select rational
+HHL parameters from a spectral gap, an overlap lower bound, and a target precision. The
+estimates combine phase-grid error, rational-rotation error, and unitary-oracle perturbation for
+the linear-systems construction of [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `rational_hhl_noisy_full_workspace_and_legality`: normalization, circuit legality, and the
+  combined workspace error bound.
+* `rational_hhl_noisy_actual_ls_gap`: success and least-squares direction bounds when the error
+  is below the overlap gap.
+* `rational_hhl_native_joint_precision_budget`: the computed parameters meet the joint error
+  budget.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,16 +57,24 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- The rational analytic-error budget `min 1 (d * theta * (1 / 2)^k / 8)`. -/
 def numericHHLAccuracy (d theta : ℚ) (k : ℕ) : ℚ := min 1 (d*theta*(1/2)^k/8)
 
+/-- The phase-grid size obtained by rounding up `4096 / (d^2 * (numericHHLAccuracy d theta
+k)^4)`, with a minimum of two. -/
 def numericHHLGrid (d theta : ℚ) (k : ℕ) : ℕ := max 2 ⌈4096/(d^2*(numericHHLAccuracy d theta k)^4)⌉₊
 
+/-- The binary precision chosen by a ceiling logarithm to control the rational rotation error. -/
 def numericHHLBits (d theta : ℚ) (k : ℕ) : ℕ :=
   Nat.clog 2 (max 1 ⌈256*(2:ℚ)^k/(d*theta)⌉₊)
 
+/-- The rational oracle-noise budget `d * theta * (1 / 2)^k / (16 * (numericHHLGrid d theta k -
+1))`. -/
 def numericHHLNoise (d theta : ℚ) (k : ℕ) : ℚ :=
   d*theta*(1/2)^k/(16*((numericHHLGrid d theta k:ℚ)-1))
 
+/-- The rational HHL run is normalized when the oracle and input preparation are unitary and `d
+> 0`. -/
 theorem rationalHHLRun_normalized {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (U B : Operator D)
     (j : Fin D) (d : ℚ) (bits : ℕ) (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d) :
@@ -56,6 +87,8 @@ theorem rationalHHLRun_normalized {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (U B : Oper
   rw [norm_applyGate_of_mem_unitaryGroup hu]
   exact norm_countedHHLBranchInput D M (by omega) j
 
+/-- Replacing one unitary oracle by another changes the rational HHL output by at most `2 * (M -
+1)` times their operator-norm distance. -/
 theorem rationalHHLRun_oracle_noise {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (U W B : Operator D)
     (j : Fin D) (d : ℚ) (bits : ℕ) (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hW : W ∈ Matrix.unitaryGroup (Fin D) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -74,6 +107,9 @@ theorem rationalHHLRun_oracle_noise {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (U W B : 
   push_cast
   exact mul_le_mul_of_nonneg_left (norm_oracleLift_sub D M (by omega) W U) (by positivity)
 
+/-- Under the signed spectral and grid assumptions, the noisy rational HHL circuit is well
+formed and its output is normalized. Its full-workspace error is at most `eta + 32 / 2^bits
++ 2 * (M - 1) * δ`. -/
 theorem rational_hhl_noisy_full_workspace_and_legality : ∀ (D M bits : ℕ) (hM : 2≤M) (eig : Fin D→ℝ) (V B W : Operator D)
   (j : Fin D) (d : ℚ) (eta δ : ℝ),
   V∈Matrix.unitaryGroup (Fin D) ℂ → B∈Matrix.unitaryGroup (Fin D) ℂ →
@@ -128,6 +164,9 @@ theorem rational_hhl_noisy_full_workspace_and_legality : ∀ (D M bits : ℕ) (h
   rw [ht]
   exact (norm_add_le _ _).trans ((add_le_add hdiff hbase).trans_eq (by ring))
 
+/-- If the combined error `E` is below `d * tau`, the noisy rational HHL success probability is
+at least `(d * tau - E)^2` and its postselected least-squares direction error is at most `2
+* E / (d * tau)`. -/
 theorem rational_hhl_noisy_actual_ls_gap : ∀ (D M bits : ℕ) (hM : 2≤M) (eig : Fin D→ℝ) (V B W : Operator D)
   (j : Fin D) (d : ℚ) (eta δ : ℝ),
   V∈Matrix.unitaryGroup (Fin D) ℂ → B∈Matrix.unitaryGroup (Fin D) ℂ →
@@ -150,6 +189,8 @@ theorem rational_hhl_noisy_actual_ls_gap : ∀ (D M bits : ℕ) (hM : 2≤M) (ei
     hV (by exact_mod_cast hd) (by positivity) heig (rationalHHLRun M hM W d bits B j) h.2.2 hgap
   exact ⟨ho.1, ho.2.2⟩
 
+/-- The computed accuracy, grid, bit precision, and positive oracle-noise budget satisfy the
+grid requirement and bound their combined output error by `d * theta * (1 / 2)^k / 2`. -/
 theorem rational_hhl_native_joint_precision_budget : ∀ (d theta : ℚ) (k : ℕ),
     0 < d → d ≤ 1/4 → 0 < theta → theta ≤ 1 →
     let eta := numericHHLAccuracy d theta k

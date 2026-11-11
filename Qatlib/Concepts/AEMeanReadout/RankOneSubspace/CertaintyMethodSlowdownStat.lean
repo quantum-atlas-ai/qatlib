@@ -9,12 +9,32 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.Complex.Basic
 import Mathlib.Data.Real.Basic
 
+/-!
+# Phase-adjustment certainty specification
+
+`CertaintyMethodSlowdown` specifies the final phase adjustment in the certainty method of
+[BrassardHoyerTapp1998Counting]. In the nonintegral stopping case it requires unit-modulus
+phases satisfying the cancellation equations and producing marked mass one after the ordinary
+iterations.
+
+## Main statements
+
+* `CertaintyMethodSlowdown`: the phase equations and exact marked-mass specification.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
 open scoped Classical BigOperators
 
+/-- Specifies unit-modulus phases satisfying the slowdown equations and producing marked mass
+one after the floored ordinary-iteration count when that count is strictly below the ideal
+stopping value. -/
 def CertaintyMethodSlowdown : Prop :=
   ∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool),
     (hA : A * A.conjTranspose = 1) →

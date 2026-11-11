@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.Lemma3
 import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.SpectralGapProof
+
+/-!
+# Connectivity bounds for projected graph walks
+
+The diagonal-to-diagonal entries of powers of `walkQ` distinguish reachable vertices from
+vertices in different components. On a regular graph of degree at least two, the explicit step
+threshold gives a positive entry and a lower bound on its square.
+
+The first bounds assume `SpectralGap`; the variants ending in `_uncond` obtain that property
+from regularity. The formalization follows [Watrous1998].
+
+## Main statements
+
+* `corollary4_disconnected`: the entry vanishes between disconnected vertices.
+* `corollary4_connected_uncond`: the entry exceeds `1 / (2 * card V)` after the stated
+  threshold.
+* `corollary4_overlap_uncond`: its square exceeds `1 / (4 * (card V) ^ 2)`.
+
+## References
+
+* [Watrous, 1998][Watrous1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkConnect98.MainResults.Connectivity
@@ -20,6 +43,8 @@ noncomputable section
 
 variable {V : Type*} [Fintype V] [DecidableEq V]
 
+/-- The absolute value of any coordinate of a finite real vector is bounded by its Euclidean
+norm. -/
 theorem abs_apply_le_l2norm {ι : Type*} [Fintype ι] (x : ι → ℝ) (i : ι) :
     |x i| ≤ l2norm x := by
   have h1 : (x i) ^ 2 ≤ ∑ j, x j ^ 2 :=
@@ -29,6 +54,8 @@ theorem abs_apply_le_l2norm {ι : Type*} [Fintype ι] (x : ι → ℝ) (i : ι) 
   rw [h2]
   exact Real.sqrt_le_sqrt h1
 
+/-- If `s` and `t` are not reachable from each other, the diagonal-to-diagonal entry of every
+power of `walkQ G d` is zero. See [Watrous1998]. -/
 theorem corollary4_disconnected (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (k : ℕ) (s t : V) (h : ¬ G.Reachable s t) :
     (walkQ G d ^ k) (t, t) (s, s) = 0 := by
@@ -37,6 +64,9 @@ theorem corollary4_disconnected (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
   intro v hv
   exact basisVec_apply_of_ne (fun hvs => hv (hvs ▸ SimpleGraph.Reachable.rfl))
 
+/-- On a regular graph of degree at least two with the assumed component spectral gap, the
+stated step threshold makes the entry from `(s, s)` to `(t, t)` greater than `1 / (2 * card
+V)` for reachable vertices. -/
 theorem corollary4_connected (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (s t : V) (hconn : G.Reachable s t)
     (hgap : SpectralGap G d s) (k : ℕ)
@@ -97,6 +127,8 @@ theorem corollary4_connected (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
   rw [hdec, huniform]
   linarith
 
+/-- Under the regularity, reachability, spectral-gap, and step-threshold hypotheses, the squared
+entry from `(s, s)` to `(t, t)` exceeds `1 / (4 * (card V) ^ 2)`. -/
 theorem corollary4_overlap (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (s t : V) (hconn : G.Reachable s t)
     (hgap : SpectralGap G d s) (k : ℕ)
@@ -122,6 +154,9 @@ theorem corollary4_overlap (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     ring
   linarith
 
+/-- On a regular graph of degree at least two, the stated step threshold makes the entry from
+`(s, s)` to `(t, t)` greater than `1 / (2 * card V)` for reachable vertices. See
+[Watrous1998]. -/
 theorem corollary4_connected_uncond (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (s t : V) (hconn : G.Reachable s t) (k : ℕ)
     (hk : (d * (d + 1) ^ 2 * (Fintype.card V : ℝ) ^ 2 / 8) *
@@ -129,6 +164,8 @@ theorem corollary4_connected_uncond (G : SimpleGraph V) [DecidableRel G.Adj] {d 
     1 / (2 * (Fintype.card V : ℝ)) < (walkQ G d ^ k) (t, t) (s, s) :=
   corollary4_connected G hreg hd s t hconn (spectralGap_of_regular G hreg hd s) k hk
 
+/-- On a regular graph of degree at least two, the stated step threshold makes the squared entry
+between reachable diagonal states greater than `1 / (4 * (card V) ^ 2)`. See [Watrous1998]. -/
 theorem corollary4_overlap_uncond (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (hd : 2 ≤ d) (s t : V) (hconn : G.Reachable s t) (k : ℕ)
     (hk : (d * (d + 1) ^ 2 * (Fintype.card V : ℝ) ^ 2 / 8) *

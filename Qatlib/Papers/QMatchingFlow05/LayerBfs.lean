@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QMatchingFlow05.SearchTools.Defs
+
+/-!
+# Layered search cost aggregation
+
+This module aggregates vertex-search budgets into the layered-search bounds associated with
+Theorem 1 of [AmbainisSpalek2006]. The adjacency result sums uniform bounds supplied for each
+vertex.
+
+The list result uses nonnegative per-vertex discovery and degree quantities, their global sum
+bounds, and the square-root summation inequality to control the total `listVertexCost`.
+
+## Main statements
+
+* `theorem1_adjacency`: the summed budget is bounded by a constant times `n ^ (3 / 2) *
+  logFactor n`.
+* `theorem1_list`: the summed list budget is bounded by a constant times `c * √(n * m) *
+  logFactor n`.
+
+## References
+
+* [Ambainis and Špalek, 2006][AmbainisSpalek2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +39,7 @@ namespace Qatlib.Papers.QMatchingFlow05.LayerBfs
 
 open Qatlib.Papers.QMatchingFlow05.SearchTools
 
+/-- For natural `n`, the product `n * √n` equals `n ^ (3 / 2)`. -/
 theorem nat_mul_sqrt_eq_rpow (n : ℕ) :
     (n : ℝ) * Real.sqrt (n : ℝ) = (n : ℝ) ^ ((3 : ℝ) / 2) := by
   rcases Nat.eq_zero_or_pos n with h | h
@@ -26,6 +50,8 @@ theorem nat_mul_sqrt_eq_rpow (n : ℕ) :
     have hsplit : ((3 : ℝ) / 2) = 1 + 1 / 2 := by norm_num
     rw [hsplit, Real.rpow_add hn, Real.rpow_one]
 
+/-- For nonnegative `c`, any family bounded pointwise by `adjacencyVertexCost c n` has total at
+most `C * n ^ (3 / 2) * logFactor n` for some positive `C`. See [AmbainisSpalek2006]. -/
 theorem theorem1_adjacency (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (n : ℕ) (perVertex : Fin n → ℝ),
       (∀ v, perVertex v ≤ adjacencyVertexCost c n) →
@@ -51,6 +77,9 @@ theorem theorem1_adjacency (c : ℝ) (hc : 0 ≤ c) :
     _ ≤ (2 * c + 1) * (n : ℝ) ^ ((3 : ℝ) / 2) * logFactor n := by
         nlinarith [hpow, hc]
 
+/-- For nonnegative `c`, the stated size and global sum bounds on nonnegative `nV` and `dV`
+imply a total list cost at most `C * c * √(n * m) * logFactor n` for some positive `C`. See
+[AmbainisSpalek2006]. -/
 theorem theorem1_list (c : ℝ) (hc : 0 ≤ c) :
     ∃ C : ℝ, 0 < C ∧ ∀ (k n m : ℕ) (nV dV : Fin k → ℝ),
       2 ≤ n → k ≤ n → n ≤ m + 1 →

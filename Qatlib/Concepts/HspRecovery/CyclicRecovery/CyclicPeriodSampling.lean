@@ -9,6 +9,30 @@ import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
 import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+
+/-!
+# Cyclic period sampling and fresh measurement laws
+
+Defines the cyclic sampling circuit consisting of a Fourier transform, an additive oracle query,
+and an inverse Fourier transform. Its measured first-register distribution is represented both
+by `cyclicSampleDist` and by a probability mass function, with fresh and counted repetitions
+linked to independent product probabilities.
+
+Under the exact congruence collision promise for a period `r` dividing `N`, the record
+distribution is uniform on multiples of `N / r`. This is the exact-period Fourier sampling
+mechanism underlying [Shor1997].
+
+## Main statements
+
+* `cyclic_actual_sampling_semantics_cost`: gives the measured semantics and circuit counts.
+* `cyclicFreshSamples_apply`: identifies fresh measurement masses with product probabilities.
+* `cyclic_period_born_uniform_multiples`: proves the exact supported uniform law.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,15 +54,19 @@ open Matrix
 
 variable {R : Type} [Fintype R] [DecidableEq R] [AddCommGroup R]
 
+/-- The circuit applying the cyclic Fourier transform to the first register, making one additive
+oracle query, and applying the inverse Fourier transform to the first register. -/
 noncomputable def cyclicSamplingCircuit (N : ℕ) : Circuit (Fin N × R) :=
   [Step.gate (TensorGate (QFTMatrix N) (1 : Matrix R R ℂ)), Step.query,
     Step.gate (TensorGate (QFTMatrix N)ᴴ (1 : Matrix R R ℂ))]
 
+/-- For positive `N`, the conjugate transpose of `QFTMatrix N` is unitary. -/
 theorem qftMatrix_conjTranspose_unitary (N : ℕ) (hN : 0 < N) :
     (QFTMatrix N)ᴴ ∈ unitaryGroup (Fin N) ℂ := by
   have h := Unitary.star_mem (qftMatrix_unitary hN)
   rwa [Matrix.star_eq_conjTranspose] at h
 
+/-- For positive `N`, every gate in the cyclic sampling circuit is unitary. -/
 theorem isUnitaryCircuit_cyclicSamplingCircuit (N : ℕ) (hN : 0 < N) :
     IsUnitaryCircuit (cyclicSamplingCircuit (R := R) N) := by
   intro U hU
@@ -50,6 +78,8 @@ theorem isUnitaryCircuit_cyclicSamplingCircuit (N : ℕ) (hN : 0 < N) :
   · obtain rfl := Step.gate.inj hU
     exact tensorGate_unitary (qftMatrix_conjTranspose_unitary N hN) (Submonoid.one_mem _)
 
+/-- For positive `N`, the cyclic Fourier transform sends the zero basis state to the uniform
+state. -/
 theorem applyGate_qftMatrix_ket_zero (N : ℕ) (hN : 0 < N) :
     ApplyGate (QFTMatrix N) (Ket (⟨0, hN⟩ : Fin N)) = Uniform (Fin N) := by
   funext x
@@ -59,6 +89,8 @@ theorem applyGate_qftMatrix_ket_zero (N : ℕ) (hN : 0 < N) :
   show (Real.sqrt (N : ℝ) : ℂ)⁻¹ * primRoot N ^ ((x.val : ℤ) * ((0 : ℕ) : ℤ)) = _
   simp
 
+/-- Applying `U` to the first register and the identity to the second acts by `U` on each fixed
+second-register slice. -/
 theorem applyGate_tensorGate_one_left_slice {N : ℕ} (U : Matrix (Fin N) (Fin N) ℂ)
     (ψ : QState (Fin N × R)) (y : Fin N) (z : R) :
     ApplyGate (TensorGate U (1 : Matrix R R ℂ)) ψ (y, z) =
@@ -67,6 +99,8 @@ theorem applyGate_tensorGate_one_left_slice {N : ℕ} (U : Matrix (Fin N) (Fin N
     Fintype.sum_prod_type, Matrix.one_apply]
   simp
 
+/-- Running cyclic sampling from zero basis states equals querying the uniform first-register
+state and then applying the inverse Fourier transform to that register. -/
 theorem run_cyclicSamplingCircuit (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
     Run (AddOracle f) (cyclicSamplingCircuit (R := R) N)
         (TensorState (Ket (⟨0, hN⟩ : Fin N)) (Ket (0 : R))) =
@@ -77,12 +111,15 @@ theorem run_cyclicSamplingCircuit (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
       (TensorState (Ket (⟨0, hN⟩ : Fin N)) (Ket (0 : R))))) = _
   rw [applyGate_tensorGate, applyGate_qftMatrix_ket_zero N hN, applyGate_one]
 
+/-- The output of cyclic sampling from zero basis states is normalized for positive `N`. -/
 theorem normalized_run_cyclicSamplingCircuit (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
     Normalized (Run (AddOracle f) (cyclicSamplingCircuit (R := R) N)
       (TensorState (Ket (⟨0, hN⟩ : Fin N)) (Ket (0 : R)))) :=
   (isUnitaryCircuit_cyclicSamplingCircuit N hN).normalized_run (addOracle_unitary f)
     (normalized_tensorState (normalized_ket _) (normalized_ket _))
 
+/-- The finite distribution of first-register measurements after running the cyclic sampling
+circuit from zero basis states. -/
 noncomputable def cyclicSampleDist (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
     FinDist (Fin N) where
   prob y := MarginalProbLeft (Run (AddOracle f) (cyclicSamplingCircuit (R := R) N)
@@ -94,6 +131,8 @@ noncomputable def cyclicSampleDist (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
     rw [← Fintype.sum_prod_type]
     exact hnorm
 
+/-- The cyclic sampling circuit uses one query and two gate macros, has unitary gates, and
+realizes the first-register marginal defining `cyclicSampleDist` [Shor1997]. -/
 theorem cyclic_actual_sampling_semantics_cost (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
     QueryCount (cyclicSamplingCircuit (R := R) N) = 1 ∧
       GateCount (cyclicSamplingCircuit (R := R) N) = 2 ∧
@@ -103,20 +142,26 @@ theorem cyclic_actual_sampling_semantics_cost (N : ℕ) (hN : 0 < N) (f : Fin N 
           (TensorState (Ket (⟨0, hN⟩ : Fin N)) (Ket (0 : R)))) {y}) :=
   ⟨rfl, rfl, isUnitaryCircuit_cyclicSamplingCircuit N hN, fun _ => rfl⟩
 
+/-- The joint Born probability mass function of both registers after cyclic sampling. -/
 noncomputable def cyclicJointLaw (N : ℕ) (hN : 0 < N) (f : Fin N → R) : PMF (Fin N × R) :=
   bornDistribution
     (Run (AddOracle f) (cyclicSamplingCircuit (R := R) N)
       (TensorState (Ket (⟨0, hN⟩ : Fin N)) (Ket (0 : R))))
     (normalized_run_cyclicSamplingCircuit N hN f)
 
+/-- The first-register marginal probability mass function of `cyclicJointLaw`. -/
 noncomputable def cyclicSampleLaw (N : ℕ) (hN : 0 < N) (f : Fin N → R) : PMF (Fin N) :=
   (cyclicJointLaw N hN f).map Prod.fst
 
+/-- The probability of a cyclic sample `y` is its singleton first-register marginal after
+running the sampling circuit. -/
 theorem cyclicSampleDist_prob_apply (N : ℕ) (hN : 0 < N) (f : Fin N → R) (y : Fin N) :
     (cyclicSampleDist N hN f).prob y =
       MarginalProbLeft (Run (AddOracle f) (cyclicSamplingCircuit (R := R) N)
         (TensorState (Ket (⟨0, hN⟩ : Fin N)) (Ket (0 : R)))) {y} := rfl
 
+/-- The probability mass of `cyclicSampleLaw` is the `ENNReal.ofReal` conversion of the
+corresponding `cyclicSampleDist` probability. -/
 theorem cyclicSampleLaw_apply (N : ℕ) (hN : 0 < N) (f : Fin N → R) (y : Fin N) :
     cyclicSampleLaw N hN f y = ENNReal.ofReal ((cyclicSampleDist N hN f).prob y) := by
   simp only [cyclicSampleLaw, cyclicJointLaw, PMF.map_apply, tsum_fintype,
@@ -128,28 +173,35 @@ theorem cyclicSampleLaw_apply (N : ℕ) (hN : 0 < N) (f : Fin N → R) (y : Fin 
   unfold MarginalProbLeft MeasureProb
   rw [Finset.sum_product, Finset.sum_singleton]
 
+/-- The probability mass function of a finite sequence of fresh cyclic sampling measurements,
+retaining the first register of each run. -/
 noncomputable def cyclicFreshSamples (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
     (m : ℕ) → PMF (Fin m → Fin N)
   | 0 => PMF.pure Fin.elim0
   | m + 1 => (cyclicJointLaw N hN f).bind fun q =>
       (cyclicFreshSamples N hN f m).map (Fin.cons q.1)
 
+/-- A fresh sequence of length `m + 1` is generated by drawing from `cyclicSampleLaw` and
+prepending it to an independent fresh sequence of length `m`. -/
 theorem cyclicFreshSamples_succ (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m : ℕ) :
     cyclicFreshSamples N hN f (m + 1) =
       (cyclicSampleLaw N hN f).bind fun y =>
         (cyclicFreshSamples N hN f m).map (Fin.cons y) := by
   simp only [cyclicFreshSamples, cyclicSampleLaw, PMF.bind_map, Function.comp_def]
 
+/-- The cyclic sample law charged one oracle query. -/
 noncomputable def cyclicCountedSample (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
     CostedLaw (Fin N) :=
   (cyclicJointLaw N hN f).map (fun q => (q.1, 1))
 
+/-- The costed law of fresh cyclic samples, accumulating one oracle query per sample. -/
 noncomputable def cyclicCountedFreshSamples (N : ℕ) (hN : 0 < N) (f : Fin N → R) :
     (m : ℕ) → CostedLaw (Fin m → Fin N)
   | 0 => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret Fin.elim0
   | m + 1 => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind (cyclicCountedSample N hN f) fun y =>
       (cyclicCountedFreshSamples N hN f m).map (fun out => (Fin.cons y out.1, out.2))
 
+/-- The counted law of `m` fresh samples equals the uncounted law paired with constant cost `m`. -/
 theorem cyclicCountedFreshSamples_eq (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m : ℕ) :
     cyclicCountedFreshSamples N hN f m =
       (cyclicFreshSamples N hN f m).map (fun ω => (ω, m)) := by
@@ -160,11 +212,14 @@ theorem cyclicCountedFreshSamples_eq (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge, ih, PMF.bind_map, PMF.map_comp, PMF.map_bind,
       Function.comp_def, Nat.add_comm]
 
+/-- Erasing costs from the counted fresh-sample law recovers `cyclicFreshSamples`. -/
 theorem cyclicCountedFreshSamples_erase (N : ℕ) (hN : 0 < N) (f : Fin N → R) (m : ℕ) :
     (cyclicCountedFreshSamples N hN f m).map Prod.fst = cyclicFreshSamples N hN f m := by
   rw [cyclicCountedFreshSamples_eq, PMF.map_comp]
   exact PMF.map_id _
 
+/-- The mass of a fresh sequence with specified head and tail factors as the head mass times the
+fresh tail mass. -/
 theorem cyclicFreshSamples_cons (N : ℕ) (hN : 0 < N) (f : Fin N → R)
     (m : ℕ) (y : Fin N) (ys : Fin m → Fin N) :
     cyclicFreshSamples N hN f (m + 1) (Fin.cons y ys) =
@@ -173,6 +228,8 @@ theorem cyclicFreshSamples_cons (N : ℕ) (hN : 0 < N) (f : Fin N → R)
   simp [PMF.bind_apply, PMF.map_apply, tsum_fintype, Fin.cons_inj, ite_and,
     Finset.sum_ite_irrel, mul_ite]
 
+/-- The mass of a fresh cyclic sample sequence equals the `ENNReal.ofReal` conversion of its
+independent product probability. -/
 theorem cyclicFreshSamples_apply (N : ℕ) (hN : 0 < N) (f : Fin N → R)
     (m : ℕ) (ys : Fin m → Fin N) :
     cyclicFreshSamples N hN f m ys =
@@ -187,6 +244,8 @@ theorem cyclicFreshSamples_apply (N : ℕ) (hN : 0 < N) (f : Fin N → R)
     simp only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probOf, Fin.prod_univ_succ]
     exact (ENNReal.ofReal_mul ((cyclicSampleDist N hN f).nonneg (ys 0))).symm
 
+/-- The probability of any decidable fresh-sample event equals the `ENNReal.ofReal` conversion
+of its `FinDist.probEvent` value. -/
 theorem cyclicFreshSamples_event (N : ℕ) (hN : 0 < N) (f : Fin N → R)
     (m : ℕ) (E : (Fin m → Fin N) → Prop) [DecidablePred E] :
     (∑ ys ∈ Finset.univ.filter E, cyclicFreshSamples N hN f m ys) =
@@ -196,6 +255,8 @@ theorem cyclicFreshSamples_event (N : ℕ) (hN : 0 < N) (f : Fin N → R)
   exact (ENNReal.ofReal_sum_of_nonneg (fun ys _ =>
     Finset.prod_nonneg (fun i _ => (cyclicSampleDist N hN f).nonneg (ys i)))).symm
 
+/-- For positive `N = d * M`, the root-of-unity sum over exponents `c * d * k` is `M` if `M`
+divides `c` and zero otherwise. -/
 theorem sum_primRoot_zpow_step (N : ℕ) (hN : 0 < N) {d M : ℕ} (hdM : d * M = N) (c : ℤ) :
     ∑ k : Fin M, primRoot N ^ (c * ((d * k.val : ℕ) : ℤ)) =
       if ((M : ℤ) ∣ c) then (M : ℂ) else 0 := by
@@ -232,6 +293,9 @@ theorem sum_primRoot_zpow_step (N : ℕ) (hN : 0 < N) {d M : ℕ} (hdM : d * M =
   · rw [if_neg (fun hMc => hw ((primRoot_zpow_eq_one_iff hN _).mpr (hdiv_iff.mpr hMc)))]
     rw [geom_sum_eq hw M, hwM, sub_self, zero_div]
 
+/-- Evaluates the root-of-unity sum over a residue fiber modulo `r`: it vanishes unless `N / r`
+divides the frequency, in which case it equals the fiber size times the phase at its
+representative. -/
 theorem sum_fiber_mod_primRoot (N : ℕ) (hN : 0 < N) {r : ℕ} (hr : 0 < r) (hrdvd : r ∣ N)
     (a : ℕ) (ha : a < r) (c : ℤ) :
     ∑ x ∈ Finset.univ.filter (fun x : Fin N => x.val % r = a),
@@ -289,6 +353,8 @@ theorem sum_fiber_mod_primRoot (N : ℕ) (hN : 0 < N) {r : ℕ} (hr : 0 < r) (hr
   · rw [if_pos hdvd, if_pos hdvd]; ring
   · rw [if_neg hdvd, if_neg hdvd, mul_zero]
 
+/-- If collisions of `f` are exactly equality of residues modulo a positive divisor `r` of `N`,
+the image of `f` has cardinality `r`. -/
 theorem card_image_of_exact_collision (N : ℕ) (hN : 0 < N) (f : Fin N → R)
     {r : ℕ} (hr : 0 < r) (hrdvd : r ∣ N)
     (hcol : ∀ x y : Fin N, f x = f y ↔ x.val % r = y.val % r) :
@@ -312,6 +378,8 @@ theorem card_image_of_exact_collision (N : ℕ) (hN : 0 < N) (f : Fin N → R)
       exact ⟨⟨a.val, lt_of_lt_of_le a.isLt hrN⟩, rfl⟩
   rw [himage, Finset.card_image_of_injective _ hginj, Finset.card_univ, Fintype.card_fin]
 
+/-- Under the exact congruence collision promise with positive `r ∣ N`, a cyclic Fourier record
+has probability `1 / r` when divisible by `N / r` and zero otherwise [Shor1997]. -/
 theorem cyclic_period_born_uniform_multiples (N r : ℕ) (hN : 0 < N) (f : Fin N → R)
     (hr : 0 < r) (hrdvd : r ∣ N)
     (hcol : ∀ x y : Fin N, f x = f y ↔ x.val % r = y.val % r) :

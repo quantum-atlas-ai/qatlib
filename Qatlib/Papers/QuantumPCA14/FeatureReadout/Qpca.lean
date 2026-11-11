@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QuantumPCA14.FeatureReadout.QpcaDefs
 import Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution
+
+/-!
+# Quantum PCA readout endpoint results
+
+This module proves that `clusterAssignment` attains the largest supplied score. It also
+assembles the endpoint specifications for shared loading, spectral and low rank exponentiation
+results, and finite copy discrimination and score based assignment. See
+[LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `clusterAssignment_maximizes`: The score of the selected cluster equals the maximal observable
+  score.
+* `clause16_endpoint`: The endpoint specification `clause16EndpointSpec` for shared loading
+  holds.
+* `clause17_endpoint`: The endpoint specification `clause17EndpointSpec`, combining shared
+  spectral results, restricted low rank exponentiation, and Gram state identities, holds.
+* `clause19_endpoint`: The endpoint specification `clause19EndpointSpec`, collecting finite copy
+  discrimination, resource and error formulas, score maximization, and copy budget properties,
+  holds.
+
+## References
+
+* [Lloyd et al., 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Foundations.PureStateMath
@@ -25,6 +51,7 @@ open Matrix Qatlib
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The score of the selected cluster equals the maximal observable score. -/
 theorem clusterAssignment_maximizes {m : ℕ} {S : Type*} [Fintype S] [DecidableEq S]
     [Nonempty (Fin m)] (score : S → Fin m → ℝ) (x : S) :
     score x (clusterAssignment score x) = maximalObservableScore score x := by
@@ -33,9 +60,12 @@ theorem clusterAssignment_maximizes {m : ℕ} {S : Type*} [Fintype S] [Decidable
   simp only [maximalScoreIndices, Finset.mem_filter] at hm
   exact hm.2
 
+/-- The endpoint specification `clause16EndpointSpec` for shared loading holds. -/
 theorem clause16_endpoint : clause16EndpointSpec := by
   exact Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution.walkGoal_endpoint
 
+/-- The endpoint specification `clause17EndpointSpec`, combining shared spectral results,
+restricted low rank exponentiation, and Gram state identities, holds. -/
 theorem clause17_endpoint : clause17EndpointSpec := by
   refine ⟨?_, ?_, ?_⟩
   · exact Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution.clause16_endpoint
@@ -43,6 +73,8 @@ theorem clause17_endpoint : clause17EndpointSpec := by
   · intro r d ψ hψ w hw hsumw
     exact gramFirstRegisterDensity r d ψ hψ w hw hsumw
 
+/-- The endpoint specification `clause19EndpointSpec`, collecting finite copy discrimination,
+resource and error formulas, score maximization, and copy budget properties, holds. -/
 theorem clause19_endpoint : clause19EndpointSpec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact finiteCopyHelstromDiscrimination

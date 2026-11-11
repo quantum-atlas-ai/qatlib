@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.CausalSearch.MinimumCode
+
+/-!
+# Risk bounds for initialized descent
+
+`initializedRisk` is the probability of an oracle failure or budget overflow in initialized
+descent. A union bound separates these events, and the weighted paid-cost estimate combines with
+Markov and per-row failure bounds to give risk at most one half.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `initialized_risk_union`: Initialized risk is at most the sum of the mean oracle-failure
+  indicator and the mean overflow indicator.
+* `initialized_risk_half`: Under the row-law and charge bounds, positive optimal mass, total
+  row-failure bound `L * ε ≤ 1/6`, and budget `B ≥ 15 * C * M * N`, initialized risk is at most
+  `1/2` when `M ≥ 1 / sqrt (popt q)` and initialization costs at most `C * N`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,10 +38,14 @@ open scoped Classical ENNReal
 open Qatlib.Foundations.ProbabilityCore.FiniteBranch
 open BiasedProcess WeightedCost BudgetPrefix
 
+/-- The probability that initialized descent has an oracle failure or that its charge plus
+initialization exceeds `B`. -/
 def initializedRisk {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) → Row r)
     (B initialFee : ℕ) : ℝ :=
   (initialized p rows).probability (fun tr => tr.oracleBad=true ∨ B < initialFee+paid tr)
 
+/-- Initialized risk is at most the sum of the mean oracle-failure indicator and the mean
+overflow indicator. -/
 theorem initialized_risk_union {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) → Row r)
     (B initialFee : ℕ) : initializedRisk p rows B initialFee≤
       (initialized p rows).mean badIndicator+
@@ -43,6 +70,9 @@ theorem initialized_risk_union {L : ℕ} (p : PMF (Fin L)) (rows : (r : ℕ) →
         exact_mod_cast ho
       simp [hb,ho,badIndicator,overflowIndicator,hor]
 
+/-- Under the row-law and charge bounds, positive optimal mass, total row-failure bound `L * ε ≤
+1/6`, and budget `B ≥ 15 * C * M * N`, initialized risk is at most `1/2` when `M ≥ 1 / sqrt
+(popt q)` and initialization costs at most `C * N`. See [ShaydulinEtAl2024]. -/
 theorem initialized_risk_half {L : ℕ} (hL : 0<L) (p : PMF (Fin L)) (q : ℕ → ℝ)
     (hq : ∀ i : Fin L,(p i).toReal=q i.val) (h0 : 0<q 0) (hnn : ∀ j,0≤q j)
     (rows : (r : ℕ) → Row r) (hlaw : RowLaw q rows)

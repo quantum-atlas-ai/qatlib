@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+
+/-!
+# Finite query budgets for unknown-count search
+
+Defines `HistoryBooleanQueries` by charging each trial's Grover iterations plus one verification
+query. `FiniteBudgetMass` recursively describes search with a remaining query budget, and the
+main laws establish normalization, absence of unmarked outputs, and certain timeout for an empty
+marked set. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `HistoryBooleanQueries`: The Boolean-query cost of a trial history, equal to its total Grover
+  iterations plus its number of trials.
+* `search_finite_budget_law`: On a nonempty search space with positive schedule sizes, the
+  finite-budget output masses are nonnegative and sum to one.
+* `search_finite_budget_no_false_positive`: With positive schedule sizes on a nonempty search
+  space, finite-budget search assigns zero output mass to every unmarked address.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,9 +36,13 @@ open Qatlib.Concepts.AmplitudeSearch.InterruptMin
 namespace Qatlib.Concepts.SearchStopping.UnknownCount
 open scoped BigOperators
 
+/-- The Boolean-query cost of a trial history, equal to its total Grover iterations plus its
+number of trials. -/
 def HistoryBooleanQueries (sizes : ℕ → ℕ) (n : ℕ) (h : TrialHistory sizes n) : ℕ :=
   HistoryIterations sizes n h + n
 
+/-- Appending a trial with iteration count `j.val` increases the Boolean-query history cost by
+`j.val + 1`. -/
 theorem search_advancing_clock (sizes : ℕ → ℕ) (n : ℕ)
     (h : TrialHistory sizes n) (j : Fin (sizes n)) :
     HistoryBooleanQueries sizes (n+1) (Fin.snoc h j) =
@@ -25,11 +52,14 @@ theorem search_advancing_clock (sizes : ℕ → ℕ) (n : ℕ)
   simp
   omega
 
+/-- A history whose Boolean-query cost is at most `budget` contains at most `budget` trials. -/
 theorem search_budget_bounds_attempts (sizes : ℕ → ℕ) (n budget : ℕ)
     (h : TrialHistory sizes n) (hc : HistoryBooleanQueries sizes n h ≤ budget) : n ≤ budget := by
   unfold HistoryBooleanQueries at hc
   omega
 
+/-- The recursive output mass for staged search with a remaining Boolean-query budget, returning
+`none` when the next sampled attempt exceeds that budget. -/
 noncomputable def FiniteBudgetMass {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (sizes : ℕ → ℕ) (stage budget : ℕ) (out : Option I) : ℝ :=
   ∑ x : Fin (sizes stage) × Option I, AttemptMass A (sizes stage) x *
@@ -40,9 +70,13 @@ noncomputable def FiniteBudgetMass {I : Type*} [Fintype I] [DecidableEq I]
     else if out = none then 1 else 0)
 termination_by budget
 
+/-- An affordable attempt of cost `j + 1` strictly decreases the remaining natural-number
+budget. -/
 theorem search_budget_progress (budget j : ℕ) (h : j+1 ≤ budget) :
     budget - (j+1) < budget := by omega
 
+/-- On a nonempty search space with positive schedule sizes, the finite-budget output masses are
+nonnegative and sum to one. -/
 theorem search_finite_budget_law {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ) :
@@ -102,6 +136,8 @@ theorem search_finite_budget_law {I : Type*} [Fintype I] [DecidableEq I]
       rw [heq]
       exact (search_joint_attempt_law hN A (sizes stage) (hsizes stage)).2.1
 
+/-- With positive schedule sizes on a nonempty search space, finite-budget search assigns zero
+output mass to every unmarked address. -/
 theorem search_finite_budget_no_false_positive {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (sizes : ℕ → ℕ)
     (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ) (i : I) (hi : i ∉ A) :
@@ -122,6 +158,8 @@ theorem search_finite_budget_no_false_positive {I : Type*} [Fintype I] [Decidabl
         · simp [hk]
     · simp [hc]
 
+/-- With positive schedule sizes on a nonempty search space, finite-budget search on the empty
+marked set returns `none` with probability one. -/
 theorem search_empty_budget_timeout {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (sizes : ℕ → ℕ) (hsizes : ∀ k, 0 < sizes k)
     (stage budget : ℕ) : FiniteBudgetMass (∅ : Finset I) sizes stage budget none = 1 := by

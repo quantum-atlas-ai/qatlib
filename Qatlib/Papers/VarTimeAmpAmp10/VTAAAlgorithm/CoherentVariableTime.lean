@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeDefs
+
+/-!
+# Coherent variable-time evolution and cost bounds
+
+This module proves the execution semantics and stopped-history invariants of
+`CoherentVtFrame.coherentProgram`. It develops fresh stopping-mass accounting, paid-word and
+macro cost identities, amplification gain windows, and second-moment estimates for fixed and
+policy-selected schedules. `sourceTheorem1_measured` combines a conditional equation (6) access
+bound with the explicit tight access-cost formula.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `CoherentVtFrame.coherentProgram_run_eq`: agreement with stage evolution.
+* `CoherentVtFrame.freshStopMass_sum`: fresh stopping-mass accounting.
+* `CoherentVtFrame.coherentVtProgram_accessTime_eq_chargedAccessTime`: measured access cost.
+* `sourceTheorem1_measured`: conditional source bound and tight-cost identity.
+* `CoherentVtFrame.amplifiedSecondMoment_le_bound`: scheduled second-moment estimate.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -49,9 +74,11 @@ variable {m : ℕ}
 
 namespace CoherentVtFrame
 
+/-- The circuit obtained by applying the frame's stage operators in increasing stage order. -/
 def coherentProgram (f : CoherentVtFrame H m) : Circuit H :=
   (List.finRange m).map fun j => Step.gate (f.stageOp j)
 
+/-- Every gate of the frame's coherent program is unitary. -/
 theorem coherentProgram_unitary (f : CoherentVtFrame H m) :
     IsUnitaryCircuit (f.coherentProgram) := by
   intro U hU
@@ -62,12 +89,17 @@ theorem coherentProgram_unitary (f : CoherentVtFrame H m) :
   rw [← hj']
   exact f.stageOp_unitary j
 
+/-- The total matrix of a gate list in execution order, with later gates multiplying on the
+left. -/
 def listTotalOp (C : List (Matrix H H ℂ)) : Matrix H H ℂ :=
   C.foldr (fun U A => A * U) 1
 
+/-- The total matrix obtained by composing all stage operators of the frame in execution order. -/
 def totalOp (f : CoherentVtFrame H m) : Matrix H H ℂ :=
   listTotalOp ((List.finRange m).map (f.stageOp))
 
+/-- Applying the total matrix of a list equals successively applying its gate matrices to the
+input state. -/
 private theorem listTotalOp_apply {C : List (Matrix H H ℂ)} (ψ : QState H) :
     ApplyGate (listTotalOp C) ψ = C.foldl (fun s U => ApplyGate U s) ψ := by
   induction C generalizing ψ with
@@ -78,6 +110,7 @@ private theorem listTotalOp_apply {C : List (Matrix H H ℂ)} (ψ : QState H) :
     rw [hform, applyGate_mul, ih]
     rfl
 
+/-- The total matrix of a list of unitary matrices is unitary. -/
 theorem listTotalOp_unitary {C : List (Matrix H H ℂ)} :
     (∀ U ∈ C, U ∈ Matrix.unitaryGroup H ℂ) → listTotalOp C ∈ Matrix.unitaryGroup H ℂ := by
   induction C with
@@ -92,6 +125,7 @@ theorem listTotalOp_unitary {C : List (Matrix H H ℂ)} :
         exact h V (List.Mem.tail U hV)
       · exact h U List.mem_cons_self
 
+/-- The total evolution matrix of a coherent variable-time frame is unitary. -/
 theorem totalOp_unitary (f : CoherentVtFrame H m) :
     f.totalOp ∈ Matrix.unitaryGroup H ℂ := by
   apply listTotalOp_unitary
@@ -101,6 +135,8 @@ theorem totalOp_unitary (f : CoherentVtFrame H m) :
   rw [← hj]
   exact f.stageOp_unitary j
 
+/-- Projecting onto the previously stopped subspace after the current stage equals the stopped
+projector itself. -/
 theorem stop_mul_stageOp (f : CoherentVtFrame H m) (j : Fin m) :
     f.stopAt j * f.stageOp j = f.stopAt j := by
   have hid : f.stopAt j * f.stopAt j = f.stopAt j :=
@@ -111,11 +147,15 @@ theorem stop_mul_stageOp (f : CoherentVtFrame H m) (j : Fin m) :
   simp only [CoherentVtFrame.stageOp, coherentStage]
   rw [Matrix.mul_add, ← Matrix.mul_assoc, hz, Matrix.zero_mul, hid, _root_.add_zero]
 
+/-- The next stopped-history projector is the sum of the previous stopped projector and the
+fresh stopping projector. -/
 theorem stopHistory_split (f : CoherentVtFrame H m) (j : Fin m) :
     f.stop ⟨j.val + 1, Nat.succ_lt_succ j.isLt⟩ = f.stopAt j + f.freshStop j := by
   simp only [freshStop]
   abel
 
+/-- The component outside the next stopped subspace evolves under the stage operator exactly as
+under the underlying round matrix. -/
 theorem runningPart_step (f : CoherentVtFrame H m) (j : Fin m) :
     (1 - f.stop ⟨j.val + 1, Nat.succ_lt_succ j.isLt⟩) * f.stageOp j
       = (1 - f.stop ⟨j.val + 1, Nat.succ_lt_succ j.isLt⟩) * f.round j := by
@@ -162,14 +202,18 @@ theorem runningPart_step (f : CoherentVtFrame H m) (j : Fin m) :
     _ = (1 - f.stop ⟨j.val + 1, Nat.succ_lt_succ j.isLt⟩) * f.round j := by
           rw [hzero1, _root_.zero_add, hzero2]
 
+/-- The zero-stage prefix state equals the input state. -/
 theorem stageState_zero (f : CoherentVtFrame H m) (ψ : QState H) (h : 0 ≤ m) :
     f.stageState ψ 0 h = ψ := rfl
 
+/-- The state at prefix `n + 1` is obtained by applying stage `n` to the state at prefix `n`. -/
 theorem stageState_succ (f : CoherentVtFrame H m) (ψ : QState H) (n : ℕ) (h : n + 1 ≤ m) :
     f.stageState ψ (n + 1) h
       = ApplyGate (f.stageOp ⟨n, Nat.lt_of_succ_le h⟩)
           (f.stageState ψ n (Nat.le_of_succ_le h)) := rfl
 
+/-- The measurement masses of the projections onto an orthogonal projector and its complement
+sum to the input state's total mass. -/
 private theorem projective_complement {P : Matrix H H ℂ}
     (hP : IsOrthogonalProjector P) (ψ : QState H) :
     MeasureProb (ApplyGate (1 - P) ψ) Finset.univ
@@ -178,14 +222,19 @@ private theorem projective_complement {P : Matrix H H ℂ}
   have h := projectiveBranchMass_add hP ψ
   simpa [ProjectiveBranchMass, ProjectiveBranch] using! h
 
+/-- The total mass of the fresh stopped projection after applying round `j` to the pre-stage
+prefix state. -/
 def freshStopMass (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) : ℝ :=
   MeasureProb
     (ApplyGate (f.freshStop j) (ApplyGate (f.round j) (f.stageState ψ j.val (by omega))))
     Finset.univ
 
+/-- Fresh stopping mass at every stage is nonnegative. -/
 theorem freshStopMass_nonneg (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     0 ≤ f.freshStopMass ψ j := measureProb_nonneg _ _
 
+/-- Stopped mass after a stage equals the previous stopped mass plus the fresh stopping mass at
+that stage. -/
 theorem stoppedMass_succ (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     f.stoppedMass ψ (j.val + 1) (by omega) = f.stoppedMass ψ j.val (by omega)
       + f.freshStopMass ψ j := by
@@ -294,6 +343,7 @@ theorem stoppedMass_succ (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
       = f.stoppedMass ψ (j.val + 1) (by omega) := rfl
   linarith
 
+/-- Stopped mass at the zero-stage prefix is zero. -/
 theorem stoppedMass_zero (f : CoherentVtFrame H m) (ψ : QState H) (h : 0 ≤ m) :
     f.stoppedMass ψ 0 h = 0 := by
   have hz : f.stop (0 : Fin (m + 1)) = 0 := f.stopZero
@@ -302,6 +352,7 @@ theorem stoppedMass_zero (f : CoherentVtFrame H m) (ψ : QState H) (h : 0 ≤ m)
   rw [hdef, hz]
   simp [ApplyGate, Matrix.mulVec, MeasureProb, BornProb]
 
+/-- Every valid stage prefix preserves the total measurement mass of the input state. -/
 theorem stageState_mass (f : CoherentVtFrame H m) (ψ : QState H) {n : ℕ} (hn : n ≤ m) :
     MeasureProb (f.stageState ψ n hn) Finset.univ = MeasureProb ψ Finset.univ := by
   induction n with
@@ -313,6 +364,7 @@ theorem stageState_mass (f : CoherentVtFrame H m) (ψ : QState H) {n : ℕ} (hn 
       rw [f.stageState_succ ψ n hn', measureProb_applyGate_univ hunit,
         ih (Nat.le_of_succ_le hn')]
 
+/-- Stopped mass at any valid prefix is bounded by the total mass of the input state. -/
 theorem stoppedMass_le_stateMass (f : CoherentVtFrame H m) (ψ : QState H) {n : ℕ}
     (hn : n ≤ m) :
     f.stoppedMass ψ n hn ≤ MeasureProb ψ Finset.univ := by
@@ -325,14 +377,19 @@ theorem stoppedMass_le_stateMass (f : CoherentVtFrame H m) (ψ : QState H) {n : 
   rw [stoppedMass, ← hmass]
   linarith
 
+/-- Extends fresh stopping mass to natural indices by assigning zero outside the stage range. -/
 def freshStopMassAt (f : CoherentVtFrame H m) (ψ : QState H) (j : ℕ) : ℝ :=
   if hj : j < m then f.freshStopMass ψ ⟨j, hj⟩ else 0
 
+/-- At a valid natural stage index, the extended fresh stopping mass equals the finite-index
+fresh stopping mass. -/
 theorem freshStopMassAt_of_lt (f : CoherentVtFrame H m) (ψ : QState H) {j : ℕ}
     (hj : j < m) :
     f.freshStopMassAt ψ j = f.freshStopMass ψ ⟨j, hj⟩ := by
   simp [freshStopMassAt, hj]
 
+/-- The sum of fresh stopping masses below a valid prefix length equals the stopped mass at that
+prefix. -/
 theorem freshStopMass_sum (f : CoherentVtFrame H m) (ψ : QState H) {n : ℕ} (hn : n ≤ m) :
     (∑ j ∈ Finset.range n, f.freshStopMassAt ψ j) = f.stoppedMass ψ n hn := by
   induction n with
@@ -347,6 +404,8 @@ theorem freshStopMass_sum (f : CoherentVtFrame H m) (ψ : QState H) {n : ℕ} (h
       have hstep := f.stoppedMass_succ (ψ := ψ) ⟨n, hlt⟩
       rw [hstep, f.freshStopMassAt_of_lt ψ hlt]
 
+/-- The sum of fresh stopping masses over `Fin m` equals the range sum of their natural-index
+extension. -/
 theorem sum_fin_eq_sum_range (f : CoherentVtFrame H m) (ψ : QState H) :
     (∑ j : Fin m, f.freshStopMass ψ j) = ∑ j ∈ Finset.range m, f.freshStopMassAt ψ j := by
   rw [← Fin.sum_univ_eq_sum_range]
@@ -355,6 +414,7 @@ theorem sum_fin_eq_sum_range (f : CoherentVtFrame H m) (ψ : QState H) :
   have hlt : j.val < m := j.isLt
   rw [f.freshStopMassAt_of_lt ψ hlt]
 
+/-- The sum of all fresh stopping masses is bounded by the input state's total measurement mass. -/
 theorem freshStopMass_total_le (f : CoherentVtFrame H m) (ψ : QState H) :
     (∑ j : Fin m, f.freshStopMass ψ j) ≤ MeasureProb ψ Finset.univ := by
   have hsum := f.freshStopMass_sum ψ (n := m) (by omega)
@@ -363,6 +423,8 @@ theorem freshStopMass_total_le (f : CoherentVtFrame H m) (ψ : QState H) :
   rw [hsum]
   exact f.stoppedMass_le_stateMass ψ (by omega)
 
+/-- For a normalized input and a final stopped projector equal to the identity, fresh stopping
+masses sum to one. -/
 theorem freshStopMass_total_eq_one (f : CoherentVtFrame H m) (ψ : QState H)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1)
     (hnorm : Normalized ψ) :
@@ -374,9 +436,11 @@ theorem freshStopMass_total_eq_one (f : CoherentVtFrame H m) (ψ : QState H)
   rw [stoppedMass, hcomplete, applyGate_one, f.stageState_mass ψ (n := m) (by omega)]
   exact measureProb_univ hnorm
 
+/-- The final success mass of the frame is nonnegative. -/
 theorem runSuccess_nonneg (f : CoherentVtFrame H m) (ψ : QState H) :
     0 ≤ f.runSuccess ψ := measureProb_nonneg _ _
 
+/-- The final success mass is bounded by the total measurement mass of the input state. -/
 theorem runSuccess_le_stateMass (f : CoherentVtFrame H m) (ψ : QState H) :
     f.runSuccess ψ ≤ MeasureProb ψ Finset.univ := by
   have h := projective_complement f.targetOrth (f.stageState ψ m (by omega))
@@ -386,6 +450,8 @@ theorem runSuccess_le_stateMass (f : CoherentVtFrame H m) (ψ : QState H) :
   rw [← f.stageState_mass ψ (n := m) (by omega)]
   linarith
 
+/-- Final running mass equals the input state's total mass minus the sum of fresh stopping
+masses. -/
 theorem runningMass_eq_one_sub_sum (f : CoherentVtFrame H m) (ψ : QState H) :
     MeasureProb (ApplyGate (1 - f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩)
         (f.stageState ψ m (by omega))) Finset.univ
@@ -403,6 +469,8 @@ theorem runningMass_eq_one_sub_sum (f : CoherentVtFrame H m) (ψ : QState H) :
   rw [← f.stageState_mass ψ (n := m) (by omega)]
   linarith
 
+/-- Fresh stopping projectors at distinct stages are orthogonal when the earlier projector is
+multiplied by the later one. -/
 theorem freshStop_disjoint (f : CoherentVtFrame H m) (j k : Fin m) (hjk : k.val < j.val) :
     f.freshStop k * f.freshStop j = 0 := by
   have hleK : (⟨k.val, Nat.lt_succ_of_lt k.isLt⟩ : Fin (m + 1))
@@ -441,31 +509,43 @@ theorem freshStop_disjoint (f : CoherentVtFrame H m) (j k : Fin m) (hjk : k.val 
   rw [h1, h2, h3, h4]
   simp
 
+/-- The input state in a stage record is the prefix state immediately before that stage. -/
 theorem stageRecord_input (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     (f.stageRecord ψ j).inputState = f.stageState ψ j.val (by omega) := rfl
 
+/-- The output state in a stage record is the prefix state immediately after that stage. -/
 theorem stageRecord_output (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     (f.stageRecord ψ j).outputState = f.stageState ψ (j.val + 1) (by omega) := rfl
 
+/-- The index stored in a stage record is the natural value of its finite stage index. -/
 theorem stageRecord_stageIndex (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     (f.stageRecord ψ j).stageIndex = j.val := rfl
 
+/-- The reached stopped projector in a stage record is the stopped-history projector immediately
+after that stage. -/
 theorem stageRecord_reachedStop (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     (f.stageRecord ψ j).reachedStop = f.stop ⟨j.val + 1, Nat.succ_lt_succ j.isLt⟩ := rfl
 
+/-- The fresh stopped projector in a stage record is the frame's fresh stopping projector at
+that stage. -/
 theorem stageRecord_freshStop (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     (f.stageRecord ψ j).freshStop = f.freshStop j := rfl
 
+/-- Applying a stage operator to its recorded input state yields its recorded output state. -/
 theorem stageRecord_transition (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     ApplyGate (f.stageOp j) (f.stageRecord ψ j).inputState
       = (f.stageRecord ψ j).outputState := by
   rw [stageRecord_input, stageRecord_output, stageState_succ]
 
+/-- A stage record's reached stopped projector splits into the previous stopped projector and
+its recorded fresh stopping projector. -/
 theorem stageRecord_reachedStop_split (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     (f.stageRecord ψ j).reachedStop = f.stopAt j + (f.stageRecord ψ j).freshStop := by
   rw [stageRecord_reachedStop, stageRecord_freshStop]
   exact f.stopHistory_split j
 
+/-- Every stage at or after index `j` preserves the stopped projector at the beginning of stage
+`j` under left projection. -/
 theorem stop_mul_stageOp_later (f : CoherentVtFrame H m) (j k : Fin m) (hjk : j.val ≤ k.val) :
     f.stopAt j * f.stageOp k = f.stopAt j := by
   have hle : (⟨j.val, Nat.lt_succ_of_lt j.isLt⟩ : Fin (m + 1))
@@ -479,10 +559,12 @@ theorem stop_mul_stageOp_later (f : CoherentVtFrame H m) (j k : Fin m) (hjk : j.
   simp only [CoherentVtFrame.stageOp, coherentStage]
   rw [Matrix.mul_add, ← Matrix.mul_assoc, hzero, Matrix.zero_mul, hnest, _root_.add_zero]
 
+/-- The total matrix of a list headed by `A` equals the tail's total matrix multiplied by `A`. -/
 theorem listTotalOp_cons (A : Matrix H H ℂ) (C : List (Matrix H H ℂ)) :
     listTotalOp (A :: C) = listTotalOp C * A := by
   simp only [listTotalOp, List.foldr_cons]
 
+/-- Appending a final gate multiplies the previous total matrix on the left by that gate. -/
 theorem listTotalOp_append_singleton {C : List (Matrix H H ℂ)} (U : Matrix H H ℂ) :
     listTotalOp (C ++ [U]) = U * listTotalOp C := by
   induction C with
@@ -492,6 +574,7 @@ theorem listTotalOp_append_singleton {C : List (Matrix H H ℂ)} (U : Matrix H H
     simp only [listTotalOp_cons]
     rw [ih, Matrix.mul_assoc]
 
+/-- Running a list of matrix gates equals applying its total matrix to the input state. -/
 theorem run_gates_eq_listTotalOp {C : List (Matrix H H ℂ)} (ψ : QState H) :
     Run 1 (C.map Step.gate) ψ = ApplyGate (listTotalOp C) ψ := by
   induction C generalizing ψ with
@@ -499,12 +582,15 @@ theorem run_gates_eq_listTotalOp {C : List (Matrix H H ℂ)} (ψ : QState H) :
   | cons U C ih =>
     rw [List.map_cons, Run, ih, ← applyGate_mul, listTotalOp_cons]
 
+/-- The ordered list of the first `n` stage operators of a frame, for `n ≤ m`. -/
 def stageOpsUpTo (f : CoherentVtFrame H m) (n : ℕ) (h : n ≤ m) : List (Matrix H H ℂ) :=
   match n with
   | 0 => []
   | n + 1 => stageOpsUpTo f n (Nat.le_of_succ_le h)
       ++ [f.stageOpAt n (Nat.lt_of_succ_le h)]
 
+/-- The first `n` stage operators equal the list obtained by mapping stage operators over
+`List.finRange n` with the index inclusion. -/
 theorem stageOpsUpTo_eq_finRange (f : CoherentVtFrame H m) :
     ∀ (n : ℕ) (h : n ≤ m),
       (List.finRange n).map (fun i => f.stageOp (Fin.castLE h i)) = stageOpsUpTo f n h := by
@@ -538,6 +624,8 @@ theorem stageOpsUpTo_eq_finRange (f : CoherentVtFrame H m) :
     rw [hlast, ih]
     rfl
 
+/-- The total matrix of the first `n` stage operators implements the frame's `n`-step evolution
+starting at stage zero. -/
 theorem stageOpsUpTo_apply (f : CoherentVtFrame H m) :
     ∀ (n : ℕ) (h : n ≤ m) (ψ : QState H),
       ApplyGate (listTotalOp (stageOpsUpTo f n h)) ψ
@@ -557,6 +645,7 @@ theorem stageOpsUpTo_apply (f : CoherentVtFrame H m) :
     rw [hstage]
     rfl
 
+/-- Applying the frame's total matrix produces its final stage-prefix state. -/
 theorem totalOp_apply_eq_stageState (f : CoherentVtFrame H m) (ψ : QState H) :
     ApplyGate (f.totalOp) ψ = f.stageState ψ m (by omega) := by
   have hfin : stageOpsUpTo f m (le_refl m)
@@ -578,6 +667,7 @@ theorem totalOp_apply_eq_stageState (f : CoherentVtFrame H m) (ψ : QState H) :
   have htraj := stageOpsUpTo_apply f m (le_refl m) ψ
   simpa only [CoherentVtFrame.stageState] using! htraj
 
+/-- Running the coherent program produces the frame's final stage-prefix state. -/
 theorem coherentProgram_run_eq (f : CoherentVtFrame H m) (ψ : QState H) :
     Run 1 (f.coherentProgram) ψ = f.stageState ψ m (by omega) := by
   have hfin : stageOpsUpTo f m (le_refl m)
@@ -598,6 +688,7 @@ theorem coherentProgram_run_eq (f : CoherentVtFrame H m) (ψ : QState H) :
   have htraj := stageOpsUpTo_apply f m (le_refl m) ψ
   simpa only [CoherentVtFrame.stageState] using! htraj
 
+/-- The frozen and running fragments of a post-stage state sum to that state. -/
 theorem stageState_frozen_running (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     f.frozenFragment (f.stageState ψ (j.val + 1) (by omega)) j
       + f.runningFragment (f.stageState ψ (j.val + 1) (by omega)) j
@@ -611,6 +702,8 @@ theorem stageState_frozen_running (f : CoherentVtFrame H m) (ψ : QState H) (j :
   have hsplit : f.stopAt j + (1 - f.stopAt j) = 1 := by abel
   rw [hsplit, applyGate_one]
 
+/-- The running fragment has zero stopped projection, and the frozen fragment has zero
+projection onto the complementary subspace. -/
 theorem frozen_running_orthogonal (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     ApplyGate (f.stopAt j) (f.runningFragment ψ j) = 0 ∧
     ApplyGate (1 - f.stopAt j) (f.frozenFragment ψ j) = 0 := by
@@ -636,6 +729,7 @@ theorem frozen_running_orthogonal (f : CoherentVtFrame H m) (ψ : QState H) (j :
     rw [← applyGate_mul, hz2]
     simp only [ApplyGate, Matrix.zero_mulVec]
 
+/-- The component stopped before stage `j` is unchanged at every later valid prefix. -/
 theorem frozenFragment_frozen (f : CoherentVtFrame H m) (ψ : QState H) (j k : Fin m)
     (hjk : j.val ≤ k.val) :
     f.frozenFragment (f.stageState ψ k.val (by omega)) j
@@ -665,6 +759,8 @@ theorem frozenFragment_frozen (f : CoherentVtFrame H m) (ψ : QState H) (j k : F
   have h := hmain k.val hjk hk
   simpa only [CoherentVtFrame.frozenFragment] using! h
 
+/-- The post-stage running fragment agrees with the corresponding fragment obtained by applying
+the underlying round to the preceding prefix state. -/
 theorem runningFragment_transported (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     f.runningFragmentAfter (f.stageState ψ (j.val + 1) (by omega)) j
       = f.runningFragmentAfter
@@ -678,23 +774,32 @@ theorem runningFragment_transported (f : CoherentVtFrame H m) (ψ : QState H) (j
   simp only [CoherentVtFrame.runningFragmentAfter]
   rw [hstep, ← applyGate_mul, hround, ← applyGate_mul]
 
+/-- The three-gate circuit consisting of a target marking, the stage's base operator, and
+another target marking. -/
 def stageWord (f : CoherentVtFrame H m) (j : Fin m) : Circuit H :=
   [Step.gate (targetMark f.target), Step.gate (f.base j), Step.gate (targetMark f.target)]
 
+/-- The three-gate circuit with target markings around the conjugate transpose of the stage's
+base operator. -/
 def stageWordInverse (f : CoherentVtFrame H m) (j : Fin m) : Circuit H :=
   [Step.gate (targetMark f.target), Step.gate (f.base j)ᴴ, Step.gate (targetMark f.target)]
 
+/-- The total matrix of the target-marked base-operator stage circuit. -/
 def stageWordMatrix (f : CoherentVtFrame H m) (j : Fin m) : Matrix H H ℂ :=
   listTotalOp [targetMark f.target, f.base j, targetMark f.target]
 
+/-- The total matrix of the target-marked conjugate-transpose base-operator circuit. -/
 def stageWordInverseMatrix (f : CoherentVtFrame H m) (j : Fin m) : Matrix H H ℂ :=
   listTotalOp [targetMark f.target, (f.base j)ᴴ, targetMark f.target]
 
+/-- The total matrix of the stage circuit equals the frame's round matrix. -/
 theorem stageWordMatrix_eq (f : CoherentVtFrame H m) (j : Fin m) :
     f.stageWordMatrix j = f.round j := by
   simp only [stageWordMatrix, listTotalOp, List.foldr_cons, List.foldr_nil, Matrix.one_mul]
   simp only [round, stageRound, targetMark]
 
+/-- The total matrix of the inverse stage circuit equals the conjugate transpose of the round
+matrix. -/
 theorem stageWordInverseMatrix_eq (f : CoherentVtFrame H m) (j : Fin m) :
     f.stageWordInverseMatrix j = (f.round j)ᴴ := by
   have hR : (ReflectionAbout f.target)ᴴ = ReflectionAbout f.target :=
@@ -714,42 +819,58 @@ theorem stageWordInverseMatrix_eq (f : CoherentVtFrame H m) (j : Fin m) :
 
 end CoherentVtFrame
 
+/-- The stage-visit count for `k` amplification rounds, given by `stageVisits k`. -/
 def stageVisitCount (k : ℕ) : ℕ := stageVisits k
 
+/-- The flag-reflection count for `k` amplification rounds, given by `stageFlagCount k`. -/
 def stageFlagReflections (k : ℕ) : ℕ := stageFlagCount k
 
+/-- The query count for `k` amplification rounds, equal to the stage-visit count. -/
 def stageQueryCount (k : ℕ) : ℕ := stageVisits k
 
+/-- The inverse-program query count for `k` amplification rounds, equal to the stage-visit
+count. -/
 def stageInverseQueryCount (k : ℕ) : ℕ := stageVisits k
 
+/-- Stage access time equals the visit count times the duration of one visit. -/
 theorem stageTime_eq (j k : ℕ) :
     stageTime j k = stageVisitCount k * stageVisitTime j := rfl
 
+/-- The access time of stage `j` with `k` amplification rounds is `(2 * k + 1) * 2^j`. -/
 theorem stageTime_eq_visits_dyadic (j k : ℕ) :
     stageTime j k = (2 * k + 1) * 2 ^ j := by
   simp only [stageTime, stageVisitTime, stageVisits]
 
+/-- The inverse stage program has the same access time as the forward stage program. -/
 theorem stageInverseTime_eq (j k : ℕ) :
     stageInverseTime j k = stageTime j k := rfl
 
+/-- The stage charge is the visit count times the visit duration plus the flag-reflection count
+times the flag price. -/
 theorem stageCharge_eq (j k : ℕ) (flagPrice : ℕ) :
     stageTime j k + stageFlagReflections k * flagPrice
       = stageVisitCount k * stageVisitTime j + stageFlagReflections k * flagPrice := rfl
 
+/-- The flag-reflection count is twice the stage-visit count. -/
 theorem stageFlagReflections_eq (k : ℕ) :
     stageFlagReflections k = 2 * stageVisitCount k := by
   simp only [stageFlagReflections, stageFlagCount, stageVisitCount, stageVisits, roundFlagCount]
   omega
 
+/-- The inverse stage program has the same query count as the forward stage program. -/
 theorem stageInverseQueryCount_eq (k : ℕ) :
     stageInverseQueryCount k = stageQueryCount k := rfl
 
+/-- The sum of stopping weights times squared dyadic stopping times over the finite stage set. -/
 def stopSecondMoment (m : ℕ) (q : Fin m → ℝ) : ℝ :=
   ∑ j : Fin m, q j * (stopTime j.val) ^ 2
 
+/-- The square root of the stopping-time second moment. -/
 def averageStopTime (m : ℕ) (q : Fin m → ℝ) : ℝ :=
   Real.sqrt (stopSecondMoment m q)
 
+/-- For nonnegative stopping weights, the second moment equals the square of the average
+stopping-time quantity. -/
 theorem stopSecondMoment_eq_averageSq {m : ℕ} (q : Fin m → ℝ)
     (hq : ∀ j, 0 ≤ q j) :
     stopSecondMoment m q = (averageStopTime m q) ^ 2 := by
@@ -758,8 +879,10 @@ theorem stopSecondMoment_eq_averageSq {m : ℕ} (q : Fin m → ℝ)
     exact mul_nonneg (hq j) (sq_nonneg _)
   rw [averageStopTime, Real.sq_sqrt hnonneg]
 
+/-- The maximum dyadic stopping-time parameter `2^m`. -/
 def maxStopTime (m : ℕ) : ℝ := (2 : ℝ) ^ m
 
+/-- The dyadic stopping time of every stage in `Fin m` is at most `maxStopTime m`. -/
 theorem stopTime_le_max (m : ℕ) (j : Fin m) :
     (stopTime j.val) ≤ maxStopTime m := by
   have hle : j.val + 1 ≤ m := by omega
@@ -769,6 +892,8 @@ theorem stopTime_le_max (m : ℕ) (j : Fin m) :
   unfold stopTime maxStopTime
   exact hpow
 
+/-- For nonnegative stopping weights with total mass at most one, the second moment is at most
+the maximum time times the average stopping time. -/
 theorem stopSecondMoment_le_max_mul_average {m : ℕ} (q : Fin m → ℝ)
     (hq : ∀ j, 0 ≤ q j) (hsum : (∑ j : Fin m, q j) ≤ 1) :
     stopSecondMoment m q ≤ maxStopTime m * averageStopTime m q := by
@@ -837,12 +962,16 @@ theorem stopSecondMoment_le_max_mul_average {m : ℕ} (q : Fin m → ℝ)
     _ ≤ maxStopTime m * averageStopTime m q :=
       mul_le_mul_of_nonneg_left hsecond hmax
 
+/-- The bound `maxStopTime m * Tav / p` for a success-rescaled stopping-time second moment. -/
 def meanSquareBound (m : ℕ) (Tav p : ℝ) : ℝ :=
   maxStopTime m * Tav / p
 
+/-- The stopping-time second moment divided by the success parameter `p`. -/
 def amplifiedSecondMoment {m : ℕ} (q : Fin m → ℝ) (p : ℝ) : ℝ :=
   stopSecondMoment m q / p
 
+/-- For a nonnegative stopping distribution of mass at most one and positive `p`, the rescaled
+second moment is bounded by `meanSquareBound`. -/
 theorem amplified_stopSecondMoment_le {m : ℕ} (q : Fin m → ℝ)
     (hq : ∀ j, 0 ≤ q j) (hsum : (∑ j : Fin m, q j) ≤ 1) (p : ℝ) (hp : 0 < p) :
     amplifiedSecondMoment q p ≤ meanSquareBound m (averageStopTime m q) p := by
@@ -859,9 +988,12 @@ theorem amplified_stopSecondMoment_le {m : ℕ} (q : Fin m → ℝ)
       unfold meanSquareBound
       ring
 
+/-- The adaptive second-moment bound `B * Tav / p` using a supplied maximum-time bound `B`. -/
 def adaptiveMeanSquareBound (B : ℝ) (Tav p : ℝ) : ℝ :=
   B * Tav / p
 
+/-- For nonnegative stopping weights of total mass at most one and positive `p`, a bound `B ≥
+maxStopTime m` yields the adaptive rescaled second-moment bound. -/
 theorem adaptive_stopSecondMoment_le {m : ℕ} (q : Fin m → ℝ)
     (hq : ∀ j, 0 ≤ q j) (hsum : (∑ j : Fin m, q j) ≤ 1) (p : ℝ) (hp : 0 < p)
     (c qhat : ℝ) (hacc : estimateAccurate c p qhat) (B : ℝ) (hB : maxStopTime m ≤ B) :
@@ -876,6 +1008,8 @@ theorem adaptive_stopSecondMoment_le {m : ℕ} (q : Fin m → ℝ)
     stopSecondMoment m q / p ≤ (B * averageStopTime m q) / p := h1
     _ = B * averageStopTime m q / p := by ring
 
+/-- Replacing the maximum stopping time by a larger bound increases the second-moment bound when
+`Tav ≥ 0` and `p > 0`. -/
 theorem meanSquareBound_le_adaptiveBound (m : ℕ) (Tav p B : ℝ)
     (hB : maxStopTime m ≤ B) (hTav : 0 ≤ Tav) (hp : 0 < p) :
     meanSquareBound m Tav p ≤ adaptiveMeanSquareBound B Tav p := by
@@ -883,6 +1017,7 @@ theorem meanSquareBound_le_adaptiveBound (m : ℕ) (Tav p B : ℝ)
   unfold meanSquareBound adaptiveMeanSquareBound
   exact div_le_div_of_nonneg_right h1 (le_of_lt hp)
 
+/-- For `0 < p ≤ 1`, the iterated logarithmic factor is at least one. -/
 theorem iteratedLogFactor_ge_one {p : ℝ} (hp : 0 < p) (hp1 : p ≤ 1) :
     1 ≤ iteratedLogFactor p := by
   have hmax : max p (1 / 2) ≤ 1 := by
@@ -900,6 +1035,8 @@ theorem iteratedLogFactor_ge_one {p : ℝ} (hp : 0 < p) (hp1 : p ≤ 1) :
   unfold iteratedLogFactor
   linarith
 
+/-- The adaptive estimation budget is nonnegative for nonnegative budget parameters and a
+success parameter in `(0, 1]`. -/
 theorem adaptiveEstimateBudget_nonneg {k p q : ℝ} (hk : 0 ≤ k) (hp : 0 < p)
     (hp1 : p ≤ 1) (hq : 0 ≤ q) : 0 ≤ adaptiveEstimateBudget k p q := by
   unfold adaptiveEstimateBudget
@@ -909,9 +1046,12 @@ theorem adaptiveEstimateBudget_nonneg {k p q : ℝ} (hk : 0 ≤ k) (hp : 0 < p)
   have h1 : 0 ≤ k * iteratedLogFactor p := mul_nonneg hk (by linarith)
   exact div_nonneg h1 (le_of_lt hsqrt)
 
+/-- The sum of the adaptive second-moment bound and the adaptive estimation budget. -/
 def adaptiveTotalBound (k B Tav p q : ℝ) : ℝ :=
   adaptiveMeanSquareBound B Tav p + adaptiveEstimateBudget k p q
 
+/-- For nonnegative estimation parameters and `0 < p ≤ 1`, the adaptive total bound is at least
+its second-moment component. -/
 theorem adaptiveTotalBound_ge {k B Tav p q : ℝ} (hk : 0 ≤ k) (hp : 0 < p)
     (hp1 : p ≤ 1) (hq : 0 ≤ q) :
     adaptiveMeanSquareBound B Tav p ≤ adaptiveTotalBound k B Tav p q := by
@@ -920,6 +1060,9 @@ theorem adaptiveTotalBound_ge {k B Tav p q : ℝ} (hk : 0 ≤ k) (hp : 0 < p)
     adaptiveEstimateBudget_nonneg hk hp hp1 hq
   linarith
 
+/-- Under the stopping-weight, success, estimate, and maximum-time assumptions, the rescaled
+second moment satisfies both bounds and the nonadaptive, adaptive, and total bounds are
+ordered. -/
 theorem nonadaptive_le_adaptive {m : ℕ} (q : Fin m → ℝ) (hq : ∀ j, 0 ≤ q j)
     (hsum : (∑ j : Fin m, q j) ≤ 1) (p : ℝ) (hp : 0 < p) (hp1 : p ≤ 1)
     (c qhat : ℝ) (hacc : estimateAccurate c p qhat) (B : ℝ) (hB : maxStopTime m ≤ B)
@@ -940,6 +1083,8 @@ theorem nonadaptive_le_adaptive {m : ℕ} (q : Fin m → ℝ) (hq : ∀ j, 0 ≤
       (Real.sqrt_nonneg _) hp
   · exact adaptiveTotalBound_ge hk hp hp1 hqmeas
 
+/-- A complete coherent frame with positive stage count and normalized input yields
+`stopTimeData` from its fresh stopping masses and dyadic stopping times. -/
 theorem vtStopTimeData (f : CoherentVtFrame H m) (ψ : QState H) (hm : 0 < m)
     (hcomplete : f.stop ⟨m, Nat.lt_succ_of_le (le_refl m)⟩ = 1)
     (hnorm : Normalized ψ) :
@@ -964,12 +1109,17 @@ theorem vtStopTimeData (f : CoherentVtFrame H m) (ψ : QState H) (hm : 0 < m)
     rw [← h]
     rfl
 
+/-- The square-root average stopping-time quantity is nonnegative for every weight function. -/
 theorem averageStopTime_nonneg {m : ℕ} (q : Fin m → ℝ) :
     0 ≤ averageStopTime m q := Real.sqrt_nonneg _
 
+/-- The source logarithmic factor at the maximum stopping time equals `1 + log (max 1
+(maxStopTime m))`. -/
 theorem sourceLogFactor (f : CoherentVtFrame H m) :
     tightLogFactor (maxStopTime m) = 1 + Real.log (max 1 (maxStopTime m)) := rfl
 
+/-- Expands `tightAccessCost` into its maximum-time and average-time terms with the logarithmic
+factors used in [Ambainis, Theorem 1][Ambainis2012]. -/
 theorem sourceAccessConstant (f : CoherentVtFrame H m) (ψ : QState H) (p : ℝ)
     (hp : 0 < p) :
     tightAccessCost (maxStopTime m) (averageStopTime m (fun j => f.freshStopMass ψ j)) p
@@ -979,10 +1129,13 @@ theorem sourceAccessConstant (f : CoherentVtFrame H m) (ψ : QState H) (p : ℝ)
           / Real.sqrt p := by
   rfl
 
+/-- The cumulative time starting at zero and recursively multiplying the previous time plus a
+dyadic stage duration by the scheduled odd amplification factor. -/
 def sourceCumulativeTime (k : ℕ → ℕ) : ℕ → ℝ
   | 0 => 0
   | i + 1 => (2 * k (i + 1) + 1 : ℝ) * (sourceCumulativeTime k i + (2 : ℝ) ^ i)
 
+/-- Every cumulative time generated by the source recurrence is nonnegative. -/
 theorem sourceCumulativeTime_nonneg (k : ℕ → ℕ) : ∀ i, 0 ≤ sourceCumulativeTime k i := by
   intro i
   induction i with
@@ -993,6 +1146,8 @@ theorem sourceCumulativeTime_nonneg (k : ℕ → ℕ) : ∀ i, 0 ≤ sourceCumul
       simp only [sourceCumulativeTime]
       exact mul_nonneg h2 (by linarith)
 
+/-- At each positive index, cumulative time satisfies the odd-multiplier recurrence with the
+previous time and the next dyadic stage duration. -/
 theorem sourceCumulativeTime_rec (k : ℕ → ℕ) {i : ℕ} (hi : 1 ≤ i) :
     sourceCumulativeTime k i
       = (2 * k i + 1 : ℝ) * (sourceCumulativeTime k (i - 1) + (2 : ℝ) ^ (i - 1)) := by
@@ -1000,12 +1155,16 @@ theorem sourceCumulativeTime_rec (k : ℕ → ℕ) {i : ℕ} (hi : 1 ≤ i) :
   rw [← h1]
   rfl
 
+/-- The odd-multiplier dyadic access charge at a valid natural stage index, extended by zero
+outside the stage range. -/
 def chargedAccessTimeAt (rounds : Fin m → ℕ) (j : ℕ) : ℝ :=
   if hj : j < m then (2 * rounds ⟨j, hj⟩ + 1 : ℝ) * (2 : ℝ) ^ j else 0
 
+/-- The sum over stages of odd amplification multipliers times dyadic stage durations. -/
 def chargedAccessTime (rounds : Fin m → ℕ) : ℝ :=
   ∑ j : Fin m, (2 * rounds j + 1 : ℝ) * (2 : ℝ) ^ j.val
 
+/-- Total charged access time equals the range sum of the natural-index stage charges. -/
 theorem chargedAccessTime_eq_sum_at (rounds : Fin m → ℕ) :
     chargedAccessTime rounds = ∑ j ∈ Finset.range m, chargedAccessTimeAt rounds j := by
   rw [← Fin.sum_univ_eq_sum_range]
@@ -1014,6 +1173,8 @@ theorem chargedAccessTime_eq_sum_at (rounds : Fin m → ℕ) :
   have hlt : j.val < m := j.isLt
   rw [chargedAccessTimeAt, dif_pos hlt]
 
+/-- When the finite schedule agrees with the source recurrence schedule, charged access time is
+bounded by the final source cumulative time. -/
 theorem chargedAccessTime_le_sourceTime (k : ℕ → ℕ) (rounds : Fin m → ℕ)
     (hk : ∀ j : Fin m, k (j.val + 1) = rounds j) :
     chargedAccessTime rounds ≤ sourceCumulativeTime k m := by
@@ -1043,6 +1204,8 @@ theorem chargedAccessTime_le_sourceTime (k : ℕ → ℕ) (rounds : Fin m → �
   rw [hsum]
   exact hprefix m (le_refl m)
 
+/-- Positive base weights, amplified-weight floors, and gain windows bound charged access time
+by the corrected gain-product expression from equation (6) of [Ambainis2012]. -/
 theorem chargedAccessTime_le_sourceEq6 (rounds : Fin m → ℕ)
     (k : ℕ → ℕ) (rs rs' : ℕ → ℝ)
     (hk : ∀ j : Fin m, k (j.val + 1) = rounds j)
@@ -1059,6 +1222,7 @@ theorem chargedAccessTime_le_sourceEq6 (rounds : Fin m → ℕ)
     (sourceCumulativeTime_nonneg k 0) (fun i hi1 hi2 => sourceCumulativeTime_rec k hi1)
   exact (chargedAccessTime_le_sourceTime k rounds hk).trans hsrc.2
 
+/-- Summing a natural-valued function over `List.finRange m` equals its finite sum over `Fin m`. -/
 theorem sum_finRange_map_nat (m : ℕ) (f : Fin m → ℕ) :
     ((List.finRange m).map f).sum = ∑ j : Fin m, f j := by
   induction m with
@@ -1073,21 +1237,26 @@ namespace CoherentVtFrame
 
 variable {m : ℕ}
 
+/-- The adjoint of a concatenated word is the adjoint of the second word followed by the adjoint
+of the first. -/
 private theorem wordAdjoint_append {H : Type} {r : ℕ} (C D : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H r) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.wordAdjoint (C ++ D) = Qatlib.Concepts.QlsReadoutSpec.Amplification.wordAdjoint D ++ Qatlib.Concepts.QlsReadoutSpec.Amplification.wordAdjoint C := by
   unfold Qatlib.Concepts.QlsReadoutSpec.Amplification.wordAdjoint
   simp [List.reverse_append, List.map_append]
 
+/-- Weighted oracle cost is additive under word concatenation. -/
 private theorem weightedCost_append {H : Type} {r : ℕ} (prices : ℕ → ℕ)
     (C D : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H r) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost prices (C ++ D)
       = Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost prices C + Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost prices D := by
   simp [Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost, List.map_append, List.sum_append]
 
+/-- The known-gate count is additive under word concatenation. -/
 private theorem gateCount_append {H : Type} {r : ℕ} (C D : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H r) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount (C ++ D) = Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount C + Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount D := by
   simp [Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount, List.countP_append]
 
+/-- The weighted cost of a flattened list of words equals the sum of their weighted costs. -/
 private theorem weightedCost_flatten {H : Type} {r : ℕ} (prices : ℕ → ℕ) :
     ∀ (C : List (Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H r)),
       Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost prices C.flatten
@@ -1099,6 +1268,8 @@ private theorem weightedCost_flatten {H : Type} {r : ℕ} (prices : ℕ → ℕ)
     show Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost prices (w :: C).flatten = _
     simp only [List.flatten_cons, weightedCost_append, ih, List.map_cons, List.sum_cons]
 
+/-- The paid stage word with multiplicity `n` makes exactly `n` calls to its stage's oracle
+slot. -/
 theorem stagePaidWord_calls (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.calls (f.stagePaidWord j n) j.val = n := by
   induction n with
@@ -1115,10 +1286,13 @@ theorem stagePaidWord_calls (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     rw [hpre, happ, hround, ih]
     ring
 
+/-- The paid stage word for `k` amplification rounds makes exactly `2 * k + 1` calls to its
+oracle slot. -/
 theorem stagePaidWord_calls_amp (f : CoherentVtFrame H m) (j : Fin m) (k : ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.calls (f.stagePaidWord j (2 * k + 1)) j.val = 2 * k + 1 :=
   f.stagePaidWord_calls j (2 * k + 1)
 
+/-- A paid stage word of multiplicity `n` contains exactly `2 * n` known gates. -/
 theorem stagePaidWord_gateCount (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount (f.stagePaidWord j n) = 2 * n := by
   induction n with
@@ -1134,6 +1308,8 @@ theorem stagePaidWord_gateCount (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) 
     rw [hpre, happ, hround, ih]
     ring
 
+/-- The weighted access time of a paid stage word of multiplicity `n` is `n` times its dyadic
+stage duration. -/
 theorem stagePaidWord_accessTime (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost stageDuration (f.stagePaidWord j n)
       = n * stageDuration j.val := by
@@ -1153,17 +1329,21 @@ theorem stagePaidWord_accessTime (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ)
     rw [hpre, happ, hround, ih]
     ring
 
+/-- The paid stage word for `k` amplification rounds has access time `(2 * k + 1) *
+stageDuration j.val`. -/
 theorem stagePaidWord_accessTime_amp (f : CoherentVtFrame H m) (j : Fin m) (k : ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost stageDuration (f.stagePaidWord j (2 * k + 1))
       = (2 * k + 1) * stageDuration j.val :=
   f.stagePaidWord_accessTime j (2 * k + 1)
 
+/-- The inverse paid stage round is the word adjoint of the forward paid stage round. -/
 theorem stagePaidRoundInverse_eq_wordAdjoint (f : CoherentVtFrame H m) (j : Fin m) :
     f.stagePaidRoundInverse j = Qatlib.Concepts.QlsReadoutSpec.Amplification.wordAdjoint (f.stagePaidRound j) := by
   unfold Qatlib.Concepts.QlsReadoutSpec.Amplification.wordAdjoint
   simp [CoherentVtFrame.stagePaidRoundInverse, CoherentVtFrame.stagePaidRound,
     f.flagReflection_conjTranspose]
 
+/-- The inverse paid stage word is the word adjoint of the forward paid stage word. -/
 theorem stagePaidWordInverse_eq_wordAdjoint (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     f.stagePaidWordInverse j n = Qatlib.Concepts.QlsReadoutSpec.Amplification.wordAdjoint (f.stagePaidWord j n) := by
   induction n with
@@ -1179,6 +1359,8 @@ theorem stagePaidWordInverse_eq_wordAdjoint (f : CoherentVtFrame H m) (j : Fin m
       wordAdjoint_append (f.stagePaidRound j) (f.stagePaidWord j n)
     rw [hpre, hpre', happ, ih, f.stagePaidRoundInverse_eq_wordAdjoint j]
 
+/-- For any oracle matrices, the inverse paid stage word has matrix equal to the conjugate
+transpose of the forward word matrix. -/
 theorem stagePaidWord_matrix_adjoint (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ)
     (oracles : ℕ → Matrix H H ℂ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.wordMatrix oracles (f.stagePaidWordInverse j n)
@@ -1186,11 +1368,13 @@ theorem stagePaidWord_matrix_adjoint (f : CoherentVtFrame H m) (j : Fin m) (n : 
   rw [f.stagePaidWordInverse_eq_wordAdjoint j n]
   exact wordMatrix_wordAdjoint oracles (f.stagePaidWord j n)
 
+/-- Inverting a paid stage word preserves the number of calls to its stage's oracle slot. -/
 theorem stagePaidWordInverse_calls (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.calls (f.stagePaidWordInverse j n) j.val
       = Qatlib.Concepts.QlsReadoutSpec.Amplification.calls (f.stagePaidWord j n) j.val := by
   rw [f.stagePaidWordInverse_eq_wordAdjoint j n, calls_wordAdjoint]
 
+/-- Inverting a paid stage word preserves its weighted dyadic access time. -/
 theorem stagePaidWordInverse_accessTime (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost stageDuration (f.stagePaidWordInverse j n)
       = Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost stageDuration (f.stagePaidWord j n) := by
@@ -1220,6 +1404,8 @@ theorem stagePaidWordInverse_accessTime (f : CoherentVtFrame H m) (j : Fin m) (n
     rw [hpre, happ, hpre', happ', hround, ih]
     ring
 
+/-- The coherent variable-time program's access time is the sum of each stage duration
+multiplied by its scheduled odd call count. -/
 theorem coherentVtProgram_accessTime (f : CoherentVtFrame H m) (rounds : Fin m → ℕ) :
     (f.coherentVtProgram rounds).accessTime stageDuration
       = ((List.finRange m).map
@@ -1247,6 +1433,8 @@ theorem coherentVtProgram_accessTime (f : CoherentVtFrame H m) (rounds : Fin m �
           exact f.stagePaidWord_accessTime_amp j (rounds j)
         exact congrArg (fun l => l.sum) hmap
 
+/-- The real-valued access time of the coherent variable-time program equals `chargedAccessTime`
+for its schedule. -/
 theorem coherentVtProgram_accessTime_eq_chargedAccessTime (f : CoherentVtFrame H m)
     (rounds : Fin m → ℕ) :
     ((f.coherentVtProgram rounds).accessTime stageDuration : ℝ) = chargedAccessTime rounds := by
@@ -1257,6 +1445,8 @@ theorem coherentVtProgram_accessTime_eq_chargedAccessTime (f : CoherentVtFrame H
   intro j _
   simp [stageDuration, Nat.cast_mul]
 
+/-- Under schedule agreement, positive base weights, amplified-weight floors, and gain windows,
+program access time satisfies the product-sum bound from equation (6) of [Ambainis2012]. -/
 theorem coherentVtProgram_accessTime_le_sourceEq6 (f : CoherentVtFrame H m)
     (rounds : Fin m → ℕ) (k : ℕ → ℕ) (rs rs' : ℕ → ℝ)
     (hk : ∀ j : Fin m, k (j.val + 1) = rounds j)
@@ -1272,6 +1462,8 @@ theorem coherentVtProgram_accessTime_le_sourceEq6 (f : CoherentVtFrame H m)
   rw [f.coherentVtProgram_accessTime_eq_chargedAccessTime rounds]
   exact chargedAccessTime_le_sourceEq6 rounds k rs rs' hk hm hpos hfloor hwin
 
+/-- The matrices of a stage's macro list equal the instruction matrices of its paid word under
+the frame's base oracles. -/
 theorem stageMacroList_eq_map (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     (f.stageMacroList j n).map VtMacro.matrix
       = (f.stagePaidWord j n).map (CoherentVtFrame.stepMatrixOf f.baseOracles) := by
@@ -1283,9 +1475,11 @@ theorem stageMacroList_eq_map (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     rw [hpre, hpre', List.map_append, List.map_append, ih]
     rfl
 
+/-- The stage round's matrix list equals the matrix interpretation of its macro round. -/
 theorem stageRoundMacros_eq_macroList (f : CoherentVtFrame H m) (j : Fin m) :
     f.stageRoundMacros j = VtMacro.matrixList (f.stageMacroRound j) := rfl
 
+/-- The stage word's matrix list equals the matrix interpretation of its macro list. -/
 theorem stageWordMacros_eq_macroList (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     f.stageWordMacros j n = VtMacro.matrixList (f.stageMacroList j n) := by
   induction n with
@@ -1295,6 +1489,8 @@ theorem stageWordMacros_eq_macroList (f : CoherentVtFrame H m) (j : Fin m) (n : 
     have hpre' : f.stageMacroList j (n + 1) = f.stageMacroRound j ++ f.stageMacroList j n := rfl
     rw [hpre, hpre', VtMacro.matrixList_append, stageRoundMacros_eq_macroList, ih]
 
+/-- Each oracle-slot access count in a stage macro list equals the corresponding call count in
+its paid word. -/
 theorem stageMacroList_accessCount (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) (i : ℕ) :
     VtMacro.accessCount i (f.stageMacroList j n) = Qatlib.Concepts.QlsReadoutSpec.Amplification.calls (f.stagePaidWord j n) i := by
   induction n with
@@ -1316,6 +1512,7 @@ theorem stageMacroList_accessCount (f : CoherentVtFrame H m) (j : Fin m) (n : �
       · simp [Qatlib.Concepts.QlsReadoutSpec.Amplification.calls, CoherentVtFrame.stagePaidRound, h]
     rw [hroundL, hroundR]
 
+/-- The flag count of a stage macro list equals the known-gate count of its paid word. -/
 theorem stageMacroList_flagCount (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     VtMacro.flagCount (f.stageMacroList j n) = Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount (f.stagePaidWord j n) := by
   induction n with
@@ -1332,6 +1529,8 @@ theorem stageMacroList_flagCount (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ)
       simp [Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount, CoherentVtFrame.stagePaidRound]
     rw [hroundL, hroundR]
 
+/-- A word's matrix equals the reverse-ordered product of its instruction matrices under the
+supplied oracles. -/
 private theorem wordMatrix_eq_map_stepMatrixOf {H : Type} [Fintype H] [DecidableEq H]
     (oracles : ℕ → Matrix H H ℂ) (C : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 1) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.wordMatrix oracles C
@@ -1345,12 +1544,16 @@ private theorem wordMatrix_eq_map_stepMatrixOf {H : Type} [Fintype H] [Decidable
   | known U => rfl
   | call i T adj => rfl
 
+/-- The reverse-ordered product of a stage macro list's matrices equals its paid word's matrix
+under the frame's base oracles. -/
 theorem stageMacroList_product (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     ((f.stageMacroList j n).map VtMacro.matrix).reverse.prod
       = Qatlib.Concepts.QlsReadoutSpec.Amplification.wordMatrix f.baseOracles (f.stagePaidWord j n) := by
   rw [f.stageMacroList_eq_map j n]
   exact (wordMatrix_eq_map_stepMatrixOf f.baseOracles (f.stagePaidWord j n)).symm
 
+/-- The matrices of an inverse stage macro list equal the instruction matrices of its inverse
+paid word under the base oracles. -/
 theorem stageMacroListInverse_eq_map (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     (f.stageMacroListInverse j n).map VtMacro.matrix
       = (f.stagePaidWordInverse j n).map (CoherentVtFrame.stepMatrixOf f.baseOracles) := by
@@ -1364,6 +1567,8 @@ theorem stageMacroListInverse_eq_map (f : CoherentVtFrame H m) (j : Fin m) (n : 
     rw [hpre, hpre', List.map_append, List.map_append, ih]
     rfl
 
+/-- Each oracle-slot access count in an inverse stage macro list equals the corresponding call
+count in its inverse paid word. -/
 theorem stageMacroListInverse_accessCount (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ)
     (i : ℕ) :
     VtMacro.accessCount i (f.stageMacroListInverse j n)
@@ -1391,6 +1596,8 @@ theorem stageMacroListInverse_accessCount (f : CoherentVtFrame H m) (j : Fin m) 
           CoherentVtFrame.stagePaidRoundInverse, h]
     rw [hroundL, hroundR]
 
+/-- The flag count of an inverse stage macro list equals the known-gate count of its inverse
+paid word. -/
 theorem stageMacroListInverse_flagCount (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     VtMacro.flagCount (f.stageMacroListInverse j n)
       = Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount (f.stagePaidWordInverse j n) := by
@@ -1411,6 +1618,8 @@ theorem stageMacroListInverse_flagCount (f : CoherentVtFrame H m) (j : Fin m) (n
           CoherentVtFrame.stagePaidRoundInverse]
     rw [hroundL, hroundR]
 
+/-- The reverse-ordered product of inverse stage macro matrices equals the inverse paid word's
+matrix under the base oracles. -/
 theorem stageMacroListInverse_product (f : CoherentVtFrame H m) (j : Fin m) (n : ℕ) :
     ((f.stageMacroListInverse j n).map VtMacro.matrix).reverse.prod
       = Qatlib.Concepts.QlsReadoutSpec.Amplification.wordMatrix f.baseOracles (f.stagePaidWordInverse j n) := by
@@ -1419,6 +1628,8 @@ theorem stageMacroListInverse_product (f : CoherentVtFrame H m) (j : Fin m) (n :
 
 end CoherentVtFrame
 
+/-- For `0 < p ≤ 1` and a round count in the tight amplification window, `tightAASuccess` is
+bounded above by the exact squared-sine amplification expression. -/
 theorem aaWindow_success {p : ℝ} (hp : 0 < p) (hp1 : p ≤ 1) {m : ℕ}
     (hwin : (m : ℝ) ≤ tightAAWindow p) :
     tightAASuccess p m
@@ -1452,6 +1663,8 @@ theorem aaWindow_success {p : ℝ} (hp : 0 < p) (hp1 : p ≤ 1) {m : ℕ}
   rw [hts]
   exact hle
 
+/-- Reaching `aaTarget` with positive base success `p` forces the squared amplification
+multiplier times `p` to be at least one, and the squared multiplier to be at least `1 / p`. -/
 theorem aaSuccess_target_sq {p : ℝ} (hp : 0 < p) {m : ℕ}
     (htarget : aaTarget ≤ tightAASuccess p m) :
     1 ≤ (aaMultiplier m : ℝ) ^ 2 * p ∧ (aaMultiplier m : ℝ) ^ 2 ≥ 1 / p := by
@@ -1490,6 +1703,8 @@ theorem aaSuccess_target_sq {p : ℝ} (hp : 0 < p) {m : ℕ}
   have hup : (aaMultiplier m : ℝ) ^ 2 ≥ 1 / p := (div_le_iff₀ hp).mpr hlow
   exact ⟨hlow, hup⟩
 
+/-- If amplification reaches `aaTarget` from positive success `p`, the squared paid stage access
+cost is at least the squared stage duration divided by `p`. -/
 theorem stagePaidWord_cost_sq (f : CoherentVtFrame H m) (j : Fin m) (m : ℕ) {p : ℝ}
     (hp : 0 < p) (htarget : aaTarget ≤ tightAASuccess p m) :
     (Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost stageDuration (f.stagePaidWord j (2 * m + 1)) : ℝ) ^ 2
@@ -1515,6 +1730,8 @@ theorem stagePaidWord_cost_sq (f : CoherentVtFrame H m) (j : Fin m) (m : ℕ) {p
       have hmul := mul_le_mul_of_nonneg_right hsq' hnonneg
       linarith
 
+/-- Reaching `aaTarget` from positive success `p` requires an amplification multiplier at least
+`1 / √p`. -/
 theorem aaMultiplier_ge_inv_sqrt {p : ℝ} (hp : 0 < p) {m : ℕ}
     (htarget : aaTarget ≤ tightAASuccess p m) :
     (1 : ℝ) / Real.sqrt p ≤ aaMultiplier m := by
@@ -1540,6 +1757,8 @@ theorem aaMultiplier_ge_inv_sqrt {p : ℝ} (hp : 0 < p) {m : ℕ}
   rw [div_le_iff₀ hsqrtpos]
   nlinarith
 
+/-- If amplification reaches `aaTarget` from positive success `p`, paid stage access cost is at
+least the stage duration divided by `√p`. -/
 theorem stagePaidWord_cost_sqrt (f : CoherentVtFrame H m) (j : Fin m) (m : ℕ) {p : ℝ}
     (hp : 0 < p) (htarget : aaTarget ≤ tightAASuccess p m) :
     (Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost stageDuration (f.stagePaidWord j (2 * m + 1)) : ℝ)
@@ -1557,6 +1776,8 @@ theorem stagePaidWord_cost_sqrt (f : CoherentVtFrame H m) (j : Fin m) (m : ℕ) 
     _ ≥ (1 / Real.sqrt p) * (stageDuration j.val : ℝ) :=
       mul_le_mul_of_nonneg_right hmult hD
 
+/-- For a positive round count `m`, reaching `aaTarget` from positive base success implies
+`tightAASuccess ≥ 1 / (9 * m)`. -/
 theorem aaSuccess_ge_source_floor {p : ℝ} (hp : 0 < p) {m : ℕ}
     (htarget : aaTarget ≤ tightAASuccess p m) (hm : 0 < m) :
     1 / (9 * (m : ℝ)) ≤ tightAASuccess p m := by
@@ -1567,6 +1788,8 @@ theorem aaSuccess_ge_source_floor {p : ℝ} (hp : 0 < p) {m : ℕ}
   have h2 : (2 / 3 : ℝ) ≤ tightAASuccess p m := by simpa [aaTarget] using! htarget
   linarith
 
+/-- Every schedule satisfies the charged access-time formula, equality with measured program
+access time, and the scheduled odd oracle-call counts. -/
 theorem schedule_uniform (f : CoherentVtFrame H m) (rounds : Fin m → ℕ) :
 
     chargedAccessTime rounds = ∑ j : Fin m, (2 * rounds j + 1 : ℝ) * (2 : ℝ) ^ j.val ∧
@@ -1580,16 +1803,22 @@ theorem schedule_uniform (f : CoherentVtFrame H m) (rounds : Fin m → ℕ) :
   intro j
   exact f.stagePaidWord_calls_amp j (rounds j)
 
+/-- For a policy-selected schedule, charged access time is the sum of policy odd multipliers
+times dyadic stage durations. -/
 theorem chargedAccessTime_policy (pol : StagePolicy) (measured : Fin m → ℝ) :
     chargedAccessTime (policySchedule pol measured)
       = ∑ j : Fin m, (2 * pol.roundsAt (measured j) + 1 : ℝ) * (2 : ℝ) ^ j.val := by
   simp [chargedAccessTime, policySchedule]
 
+/-- For positive measured stage success, the policy-selected round count lies within the
+corresponding tight amplification window. -/
 theorem policySchedule_window (pol : StagePolicy) (measured : Fin m → ℝ)
     (hpos : ∀ j, 0 < measured j) (j : Fin m) :
     (policySchedule pol measured j : ℝ) ≤ tightAAWindow (measured j) :=
   pol.roundsAt_window _ (hpos j)
 
+/-- A positive policy round count reaching `aaTarget` yields the success floor,
+squared-multiplier lower bound, and squared paid stage-cost lower bound at that stage. -/
 theorem policy_stage_data (f : CoherentVtFrame H m) (pol : StagePolicy)
     (measured : Fin m → ℝ) (j : Fin m) (hpos : 0 < measured j)
     (htarget : aaTarget ≤ tightAASuccess (measured j) (pol.roundsAt (measured j)))
@@ -1603,6 +1832,9 @@ theorem policy_stage_data (f : CoherentVtFrame H m) (pol : StagePolicy)
   refine ⟨aaSuccess_ge_source_floor hpos htarget hround, (aaSuccess_target_sq hpos htarget).1,
     stagePaidWord_cost_sq f j (pol.roundsAt (measured j)) hpos htarget⟩
 
+/-- A policy-selected schedule satisfying the weight positivity, floor, and gain-window
+assumptions obeys the corrected product-sum access-time bound of [Ambainis, equation
+(6)][Ambainis2012]. -/
 theorem chargedAccessTime_le_sourceEq6_policy (pol : StagePolicy)
     (measured : Fin m → ℝ) (k : ℕ → ℕ) (rs rs' : ℕ → ℝ)
     (hk : ∀ j : Fin m, k (j.val + 1) = pol.roundsAt (measured j))
@@ -1617,20 +1849,28 @@ theorem chargedAccessTime_le_sourceEq6_policy (pol : StagePolicy)
           + eq6ProductSum rs rs' m) := by
   exact chargedAccessTime_le_sourceEq6 (policySchedule pol measured) k rs rs' hk hm hpos hfloor hwin
 
+/-- The measured access time of the coherent program using a policy schedule equals that
+schedule's charged access time. -/
 theorem coherentVtProgram_accessTime_policy (f : CoherentVtFrame H m)
     (pol : StagePolicy) (measured : Fin m → ℝ) :
     ((f.coherentVtProgram (policySchedule pol measured)).accessTime stageDuration : ℝ)
       = chargedAccessTime (policySchedule pol measured) :=
   f.coherentVtProgram_accessTime_eq_chargedAccessTime _
 
+/-- The gain ratio of measured amplified and base stage successes is the ratio of their square
+roots. -/
 theorem gainRatio_measured (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     gainRatio (ampStageSuccess f ψ j) (baseStageSuccess f ψ j)
       = Real.sqrt (ampStageSuccess f ψ j) / Real.sqrt (baseStageSuccess f ψ j) := rfl
 
+/-- Measured base and amplified stage success masses are both nonnegative. -/
 theorem measured_stage_success_bounds (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
     0 ≤ baseStageSuccess f ψ j ∧ 0 ≤ ampStageSuccess f ψ j := by
   refine ⟨measureProb_nonneg _ _, measureProb_nonneg _ _⟩
 
+/-- When measured stage successes satisfy positivity, floor, and gain-window assumptions, the
+coherent program's access time obeys the source equation (6) product-sum bound
+[Ambainis2012]. -/
 theorem chargedAccessTime_le_sourceEq6_measured (f : CoherentVtFrame H m)
     (ψ : QState H) (rounds : Fin m → ℕ) (k : ℕ → ℕ)
     (hk : ∀ j : Fin m, k (j.val + 1) = rounds j) (hm : 1 ≤ m)
@@ -1648,6 +1888,8 @@ theorem chargedAccessTime_le_sourceEq6_measured (f : CoherentVtFrame H m)
   exact chargedAccessTime_le_sourceEq6 rounds k (measuredRs f ψ) (measuredRs' f ψ)
     hk hm hpos hfloor hwin
 
+/-- Expands the tight access-cost expression at the frame's positive final success into the
+maximum-time and average-time terms of [Ambainis, Theorem 1][Ambainis2012]. -/
 theorem sourceTheorem1_constant (f : CoherentVtFrame H m) (ψ : QState H)
     (hp : 0 < CoherentVtFrame.runSuccess f ψ) :
     tightAccessCost (maxStopTime m)
@@ -1658,6 +1900,9 @@ theorem sourceTheorem1_constant (f : CoherentVtFrame H m) (ψ : QState H)
           / Real.sqrt (CoherentVtFrame.runSuccess f ψ) :=
   sourceAccessConstant f ψ (CoherentVtFrame.runSuccess f ψ) hp
 
+/-- Combines the measured equation (6) access-time bound with the explicit tight access-cost
+identity associated with [Ambainis, Theorem 1][Ambainis2012], under the stated gain and
+success assumptions. -/
 theorem sourceTheorem1_measured (f : CoherentVtFrame H m) (ψ : QState H)
     (rounds : Fin m → ℕ) (k : ℕ → ℕ)
     (hk : ∀ j : Fin m, k (j.val + 1) = rounds j) (hm : 1 ≤ m)
@@ -1681,6 +1926,9 @@ theorem sourceTheorem1_measured (f : CoherentVtFrame H m) (ψ : QState H)
   refine ⟨chargedAccessTime_le_sourceEq6_measured f ψ rounds k hk hm hpos hfloor hwin,
     sourceTheorem1_constant f ψ hp⟩
 
+/-- Collects unitarity, stopped-history preservation, fresh-projector orthogonality,
+stage-record transitions, execution semantics, and frozen/running fragment identities for a
+coherent frame. -/
 theorem clause1_endpoint (f : CoherentVtFrame H m) (ψ : QState H) :
     IsUnitaryCircuit (f.coherentProgram) ∧
     f.totalOp ∈ Matrix.unitaryGroup H ℂ ∧
@@ -1755,6 +2003,8 @@ theorem clause1_endpoint (f : CoherentVtFrame H m) (ψ : QState H) :
   · intro j
     exact f.runningFragment_transported ψ j
 
+/-- Collects stage-circuit matrix semantics, forward and inverse access counts, reflection
+counts, access times, and agreement between paid-word and macro interpretations. -/
 theorem clause2_endpoint (f : CoherentVtFrame H m) (j : Fin m) (k : ℕ) :
     IsUnitaryCircuit (f.stageWord j) ∧
     f.stageWordMatrix j = f.round j ∧
@@ -1822,6 +2072,9 @@ theorem clause2_endpoint (f : CoherentVtFrame H m) (j : Fin m) (k : ℕ) :
   · exact ⟨f.stageMacroListInverse_product j (2 * k + 1),
       f.stageMacroListInverse_flagCount j (2 * k + 1)⟩
 
+/-- Collects stopping-time second-moment bounds, adaptive bound comparisons,
+amplification-window inequalities, and lower bounds on paid stage costs under the stated
+probability and estimate assumptions. -/
 theorem clause3_endpoint (f : CoherentVtFrame H m) (q : Fin m → ℝ) (hq : ∀ j, 0 ≤ q j)
     (hsum : (∑ j : Fin m, q j) ≤ 1) (p : ℝ) (hp : 0 < p)
     (c qhat : ℝ) (hacc : estimateAccurate c p qhat) (B : ℝ) (hB : maxStopTime m ≤ B) :
@@ -1868,6 +2121,9 @@ theorem clause3_endpoint (f : CoherentVtFrame H m) (q : Fin m → ℝ) (hq : ∀
   · intro k qmeas hk hqmeas hp1
     exact adaptiveTotalBound_ge hk hp hp1 hqmeas
 
+/-- For normalized input and a base success in `(0, 1)`, the rotation-window hypothesis bounds
+actual amplified stage success below by `tightAASuccess`, as in [Ambainis, Lemma
+1][Ambainis2012]. -/
 theorem sourceStage_lemma1 (f : CoherentVtFrame H m) {ψ : QState H} (hψ : Normalized ψ)
     (j : Fin m) (k : ℕ)
     (hδ0 : 0 < f.sourceBaseSuccess ψ j) (hδ1 : f.sourceBaseSuccess ψ j < 1)
@@ -1878,6 +2134,8 @@ theorem sourceStage_lemma1 (f : CoherentVtFrame H m) {ψ : QState H} (hψ : Norm
     (f.sourceBaseSuccess ψ j) k hδ0 hδ1 hwin rfl
   exact h
 
+/-- For normalized input, a base success in `(0, 1)`, and the source amplification and rotation
+windows, actual success is at least `1 - 1 / (3 * m)` times the ideal gain [Ambainis2012]. -/
 theorem sourceStage_lemma2_window (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ : QState H}
     (hψ : Normalized ψ) (j : Fin m) (k : ℕ)
     (hδ0 : 0 < f.sourceBaseSuccess ψ j) (hδ1 : f.sourceBaseSuccess ψ j < 1)
@@ -1889,6 +2147,8 @@ theorem sourceStage_lemma2_window (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ :
   have hbound := sourceStage_lemma1 f hψ j k hδ0 hδ1 hrot
   exact source_lemma2_window hm hwin hbound
 
+/-- For normalized input and a base success in `(0, 1)`, the rotation window and the stated
+corrected-gain floor imply amplified success at least `1 / (9 * m)`. -/
 theorem sourceStage_success_floor (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ : QState H}
     (hψ : Normalized ψ) (j : Fin m) (k : ℕ)
     (hδ0 : 0 < f.sourceBaseSuccess ψ j) (hδ1 : f.sourceBaseSuccess ψ j < 1)
@@ -1900,6 +2160,8 @@ theorem sourceStage_success_floor (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ :
   have hbound := sourceStage_lemma1 f hψ j k hδ0 hδ1 hrot
   exact source_success_floor hfloor hbound
 
+/-- For a small positive base success and normalized input, a source Algorithm 2 policy selects
+a valid window and achieves the stated corrected ideal-gain lower bound [Ambainis2012]. -/
 theorem sourceStage_alg2 (f : CoherentVtFrame H m) (hm : 1 ≤ m) (pol : SourceAlg2Policy m)
     {ψ : QState H} (hψ : Normalized ψ) (j : Fin m)
     (hδ0 : 0 < f.sourceBaseSuccess ψ j) (hδ1 : f.sourceBaseSuccess ψ j < 1)
@@ -1914,12 +2176,16 @@ theorem sourceStage_alg2 (f : CoherentVtFrame H m) (hm : 1 ≤ m) (pol : SourceA
     hδ0 hδ1 hrot
   exact ⟨hwin, source_lemma2_window hm hwin hlemma1⟩
 
+/-- For `m ≥ 1` and base success in `(0, 1 / (9 * m)]`, `alg2Rounds` satisfies the source
+Algorithm 2 window condition [Ambainis2012]. -/
 theorem sourceStage_alg2_rule (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ : QState H}
     (j : Fin m) (hδ0 : 0 < f.sourceBaseSuccess ψ j)
     (hamp : f.sourceBaseSuccess ψ j ≤ 1 / (9 * (m : ℝ))) :
     sourceAlg2Window m (alg2Rounds m (f.sourceBaseSuccess ψ j)) (f.sourceBaseSuccess ψ j) :=
   alg2Rounds_window hm hδ0 hamp
 
+/-- For `m ≥ 1` and base success in `(0, 1 / (9 * m)]`, the `alg2Rounds` choice keeps the
+amplified rotation angle at most `π / 2` [Ambainis2012]. -/
 theorem sourceStage_alg2_rule_lemma1 (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ : QState H}
     (j : Fin m) (hδ0 : 0 < f.sourceBaseSuccess ψ j)
     (hamp : f.sourceBaseSuccess ψ j ≤ 1 / (9 * (m : ℝ))) :
@@ -1927,6 +2193,8 @@ theorem sourceStage_alg2_rule_lemma1 (f : CoherentVtFrame H m) (hm : 1 ≤ m) {�
       * Real.arcsin (Real.sqrt (f.sourceBaseSuccess ψ j)) ≤ Real.pi / 2 :=
   alg2Rounds_lemma1_window hm hδ0 hamp
 
+/-- For normalized input and a base success in `(0, 1)`, the rotation and Algorithm 2 windows
+together with the ideal-gain threshold imply amplified success at least `1 / (9 * m)`. -/
 theorem sourceStage_success_floor_sharp (f : CoherentVtFrame H m) (hm : 1 ≤ m) {ψ : QState H}
     (hψ : Normalized ψ) (j : Fin m) (k : ℕ)
     (hδ0 : 0 < f.sourceBaseSuccess ψ j) (hδ1 : f.sourceBaseSuccess ψ j < 1)
@@ -1957,6 +2225,8 @@ theorem sourceStage_success_floor_sharp (f : CoherentVtFrame H m) (hm : 1 ≤ m)
   rw [hts] at hlemma1
   exact le_trans hbound hlemma1
 
+/-- For normalized input and positive base success, zero amplification rounds preserve base
+success and satisfy the corrected ideal-gain lower bound when `m ≥ 1`. -/
 theorem sourceStage_lemma2_window_unamplified (f : CoherentVtFrame H m) (hm : 1 ≤ m)
     {ψ : QState H} (hψ : Normalized ψ) (j : Fin m)
     (hδ0 : 0 < f.sourceBaseSuccess ψ j) :
@@ -1986,9 +2256,13 @@ namespace CoherentVtFrame
 
 variable {m : ℕ}
 
+/-- The ordered product of operators `f.stopAt j + (1 - f.stopAt j) * f.round j`, separating
+stopped and running evolution at each stage. -/
 def vtEvolution (f : CoherentVtFrame H m) : Matrix H H ℂ :=
   listTotalOp ((List.finRange m).map (fun j => f.stopAt j + (1 - f.stopAt j) * f.round j))
 
+/-- The product of all stage operators equals the evolution matrix expressed by stopped and
+running projectors. -/
 theorem totalOp_eq_vtEvolution (f : CoherentVtFrame H m) :
     f.totalOp = f.vtEvolution := by
   have h : (List.finRange m).map (fun j : Fin m => f.stageOp j)
@@ -2000,10 +2274,14 @@ theorem totalOp_eq_vtEvolution (f : CoherentVtFrame H m) :
 
 end CoherentVtFrame
 
+/-- Running the coherent program equals applying the evolution matrix expressed by stopped and
+running projectors. -/
 theorem coherentProgram_run_eq_vtEvolution (f : CoherentVtFrame H m) (ψ : QState H) :
     Run 1 (f.coherentProgram) ψ = ApplyGate (f.vtEvolution) ψ := by
   rw [f.coherentProgram_run_eq, ← f.totalOp_eq_vtEvolution, f.totalOp_apply_eq_stageState]
 
+/-- The final evolution retains every earlier stopped projection, equal to its value at the
+corresponding prefix. -/
 theorem totalOp_retains_stopHistory (f : CoherentVtFrame H m) (ψ : QState H)
     (j : Fin m) :
     ApplyGate (f.stopAt j) (ApplyGate (f.totalOp) ψ)
@@ -2019,6 +2297,8 @@ theorem totalOp_retains_stopHistory (f : CoherentVtFrame H m) (ψ : QState H)
     rw [hlast, ← applyGate_mul, f.stop_mul_stageOp_later j ⟨m', by omega⟩ hjle]
     exact f.frozenFragment_frozen ψ j ⟨m', by omega⟩ hjle
 
+/-- The success amplitude and success mass are nonnegative, and both success mass and total
+fresh stopping mass are bounded by the input state's total mass. -/
 theorem clause1_mass_accounting (f : CoherentVtFrame H m) (ψ : QState H) :
     0 ≤ successAmplitude f ψ ∧
     0 ≤ f.runSuccess ψ ∧
@@ -2033,6 +2313,9 @@ theorem clause1_mass_accounting (f : CoherentVtFrame H m) (ψ : QState H) :
     f.freshStopMass_total_le ψ
   exact ⟨hamp, hrun, hrun1, hstop⟩
 
+/-- Under positive success amplitude and positive policy measurements, collects the evolution
+identity, unitarity, stopped-history preservation, mass bounds, and policy window and
+access-time formulas. -/
 theorem clause1_endpoint_vtEvolution (f : CoherentVtFrame H m) (ψ : QState H)
     (a : ℝ) (ha : a = successAmplitude f ψ) (ha0 : 0 < a)
     (pol : StagePolicy) (measured : Fin m → ℝ) (hmeas : ∀ j, 0 < measured j) :
@@ -2074,6 +2357,8 @@ namespace CoherentVtFrame
 
 variable {m : ℕ}
 
+/-- The adjoint stage operator splits into the stopped projector plus the complementary
+projector multiplied by the adjoint round matrix. -/
 theorem stageOp_adjoint (f : CoherentVtFrame H m) (j : Fin m) :
     (f.stageOp j)ᴴ = f.stopAt j + (1 - f.stopAt j) * (f.round j)ᴴ := by
   have hstar : (f.stopAt j)ᴴ = f.stopAt j := by
@@ -2090,6 +2375,7 @@ theorem stageOp_adjoint (f : CoherentVtFrame H m) (j : Fin m) :
   simp only [CoherentVtFrame.stageOp, coherentStage, Matrix.conjTranspose_add,
     Matrix.conjTranspose_mul, hcompl, hkey, hstar]
 
+/-- The conjugate transpose of a stage operator multiplied by that operator equals the identity. -/
 theorem stageOp_adjoint_mul_stageOp (f : CoherentVtFrame H m) (j : Fin m) :
     (f.stageOp j)ᴴ * f.stageOp j = 1 := by
   have hstage := coherentStage_unitary (f.stopNested.1 (⟨j.val, Nat.lt_succ_of_lt j.isLt⟩))
@@ -2097,38 +2383,48 @@ theorem stageOp_adjoint_mul_stageOp (f : CoherentVtFrame H m) (j : Fin m) :
   have h := Matrix.mem_unitaryGroup_iff'.mp hstage
   simpa only [Matrix.star_eq_conjTranspose, CoherentVtFrame.stageOp] using! h
 
+/-- A stage operator multiplied by its conjugate transpose equals the identity. -/
 theorem stageOp_mul_stageOp_adjoint (f : CoherentVtFrame H m) (j : Fin m) :
     f.stageOp j * (f.stageOp j)ᴴ = 1 :=
   mul_eq_one_comm.mp (f.stageOp_adjoint_mul_stageOp j)
 
+/-- The single-gate circuit whose gate is the conjugate transpose of the stage operator. -/
 def stageInverseCircuit (f : CoherentVtFrame H m) (j : Fin m) : Circuit H :=
   [Step.gate ((f.stageOp j)ᴴ)]
 
+/-- The total matrix of the singleton adjoint-stage list equals the adjoint stage operator. -/
 theorem stageInverseCircuit_matrix (f : CoherentVtFrame H m) (j : Fin m) :
     listTotalOp [(f.stageOp j)ᴴ] = (f.stageOp j)ᴴ := by
   simp only [listTotalOp, List.foldr_cons, List.foldr_nil, Matrix.one_mul]
 
+/-- Applying the adjoint stage operator and then the stage operator restores every input state. -/
 theorem stageInverseCircuit_inverts (f : CoherentVtFrame H m) (j : Fin m)
     (ψ : QState H) :
     ApplyGate (f.stageOp j) (ApplyGate ((f.stageOp j)ᴴ) ψ) = ψ := by
   rw [← applyGate_mul, f.stageOp_mul_stageOp_adjoint, applyGate_one]
 
+/-- Applying the stage operator and then its adjoint restores every input state. -/
 theorem stageInverseCircuit_inverts' (f : CoherentVtFrame H m) (j : Fin m)
     (ψ : QState H) :
     ApplyGate ((f.stageOp j)ᴴ) (ApplyGate (f.stageOp j) ψ) = ψ := by
   rw [← applyGate_mul, f.stageOp_adjoint_mul_stageOp, applyGate_one]
 
+/-- The real-valued reflection price `flagReflectionPrice r` for the supplied parameter `r`. -/
 def flagReflectionCost (r : ℕ) : ℝ := flagReflectionPrice r
 
+/-- The sum of the scheduled stage flag-reflection counts over all stages. -/
 def flagReflectionCount (rounds : Fin m → ℕ) : ℕ :=
   ∑ j : Fin m, stageFlagCount (rounds j)
 
+/-- The total scheduled flag-reflection count multiplied by the price of one flag reflection. -/
 def chargedFlagCost (rounds : Fin m → ℕ) : ℝ :=
   (flagReflectionCount rounds : ℝ) * flagReflectionCost 1
 
+/-- The sum of charged stage-access time and charged flag-reflection cost. -/
 def chargedTotalCost (rounds : Fin m → ℕ) : ℝ :=
   chargedAccessTime rounds + chargedFlagCost rounds
 
+/-- The charged flag-reflection cost of every schedule is nonnegative. -/
 theorem chargedFlagCost_nonneg (rounds : Fin m → ℕ) :
     0 ≤ chargedFlagCost rounds := by
   unfold chargedFlagCost
@@ -2142,6 +2438,7 @@ theorem chargedFlagCost_nonneg (rounds : Fin m → ℕ) :
     simp [flagReflectionPrice]
   positivity
 
+/-- For a positive number of stages, every schedule has positive charged flag-reflection cost. -/
 theorem chargedFlagCost_pos (hm : 0 < m) (rounds : Fin m → ℕ) :
     0 < chargedFlagCost rounds := by
   have h1 : ∀ j : Fin m, 0 < (stageFlagCount (rounds j) : ℝ) := by
@@ -2163,6 +2460,8 @@ theorem chargedFlagCost_pos (hm : 0 < m) (rounds : Fin m → ℕ) :
     simp [flagReflectionPrice]
   positivity
 
+/-- Charged flag cost equals the sum of the paid stage words' known-gate counts multiplied by
+the unit flag-reflection price. -/
 theorem chargedFlagCost_eq_measured (f : CoherentVtFrame H m) (rounds : Fin m → ℕ) :
     chargedFlagCost rounds
       = ∑ j : Fin m, (Qatlib.Concepts.QlsReadoutSpec.Amplification.gateCount (f.stagePaidWord j (2 * rounds j + 1)) : ℝ)
@@ -2180,15 +2479,19 @@ theorem chargedFlagCost_eq_measured (f : CoherentVtFrame H m) (rounds : Fin m �
   simp only [Nat.cast_mul]
   ring
 
+/-- Charged total cost equals charged access time plus charged flag cost. -/
 theorem chargedTotalCost_eq (rounds : Fin m → ℕ) :
     chargedTotalCost rounds = chargedAccessTime rounds + chargedFlagCost rounds := rfl
 
+/-- Charged total cost is at least charged access time. -/
 theorem chargedTotalCost_ge_access (rounds : Fin m → ℕ) :
     chargedAccessTime rounds ≤ chargedTotalCost rounds := by
   have h := chargedFlagCost_nonneg rounds
   unfold chargedTotalCost
   linarith
 
+/-- Collects stage-adjoint formulas and inverse identities, odd forward and inverse call counts,
+and positive reflection charges with total-cost accounting for a constant schedule. -/
 theorem clause2_endpoint_adjointCharge (f : CoherentVtFrame H m) (j : Fin m)
     (hm : 0 < m) (k : ℕ) :
 
@@ -2230,15 +2533,23 @@ namespace CoherentVtFrame
 
 variable {m : ℕ}
 
+/-- The dyadic stopping time at a stage multiplied by that stage's scheduled odd amplification
+factor. -/
 def amplifiedStopTime (rounds : Fin m → ℕ) (j : Fin m) : ℝ :=
   (2 * rounds j + 1 : ℝ) * stopTime j.val
 
+/-- The sum of the frame's fresh stopping masses times the squared schedule-amplified stopping
+times. -/
 def amplifiedSecondMomentOf (f : CoherentVtFrame H m) (ψ : QState H)
     (rounds : Fin m → ℕ) : ℝ :=
   ∑ j : Fin m, f.freshStopMass ψ j * (amplifiedStopTime rounds j) ^ 2
 
+/-- The real-valued odd stage multiplier `2 * rounds j + 1` of a schedule. -/
 def oddMultiplier (rounds : Fin m → ℕ) (j : Fin m) : ℝ := 2 * rounds j + 1
 
+/-- For normalized input, positive `p`, and `m > 0`, stage windows `(2 * rounds j + 1)² * p ≤ 1
+/ m` bound the amplified second moment by `maxStopTime m * averageStopTime m (fun j =>
+f.freshStopMass ψ j) / (m * p)`. -/
 theorem amplifiedSecondMoment_le_bound (f : CoherentVtFrame H m) (ψ : QState H)
     (hnorm : Normalized ψ) (rounds : Fin m → ℕ) (p : ℝ) (hp : 0 < p) (hm : 0 < m)
     (hwin : ∀ j : Fin m, (2 * rounds j + 1 : ℝ) ^ 2 * p ≤ 1 / (m : ℝ)) :
@@ -2292,6 +2603,9 @@ theorem amplifiedSecondMoment_le_bound (f : CoherentVtFrame H m) (ψ : QState H)
     _ = maxStopTime m * averageStopTime m (fun j => f.freshStopMass ψ j) / (m * p) := by
         ring
 
+/-- For normalized input and positive `m` and `p`, windows using a relatively accurate estimate
+`qhat` bound the amplified second moment by `(1 + c)` times the corresponding
+maximum-time/average-time bound divided by `m * p`. -/
 theorem amplifiedSecondMoment_le_adaptive (f : CoherentVtFrame H m) (ψ : QState H)
     (hnorm : Normalized ψ) (rounds : Fin m → ℕ) (p : ℝ) (hp : 0 < p) (hm : 0 < m)
     (c qhat : ℝ) (hacc : estimateAccurate c p qhat)
@@ -2379,6 +2693,8 @@ theorem amplifiedSecondMoment_le_adaptive (f : CoherentVtFrame H m) (ψ : QState
     _ = (1 + c) * (maxStopTime m * averageStopTime m (fun j => f.freshStopMass ψ j))
           / (m * p) := by ring
 
+/-- For normalized input, positive `m` and `p`, and positive measurements at least `p`, policy
+stage windows yield the amplified second-moment bound with denominator `m * p`. -/
 theorem amplifiedSecondMoment_le_policy (f : CoherentVtFrame H m) (ψ : QState H)
     (hnorm : Normalized ψ) (pol : StagePolicy) (measured : Fin m → ℝ)
     (hpos : ∀ j, 0 < measured j) (p : ℝ) (hp : 0 < p) (hm : 0 < m)
@@ -2398,6 +2714,9 @@ theorem amplifiedSecondMoment_le_policy (f : CoherentVtFrame H m) (ψ : QState H
     nlinarith [mul_le_mul_of_nonneg_left this (le_of_lt h3)]
   linarith
 
+/-- For normalized input and the stated stage windows, collects the amplified stopping-time
+formula, its second-moment expansion and upper bound, and the conditional reciprocal-success
+lower bound on squared multipliers. -/
 theorem clause3_endpoint_amplified (f : CoherentVtFrame H m) (ψ : QState H)
     (hnorm : Normalized ψ) (rounds : Fin m → ℕ) (p : ℝ) (hp : 0 < p) (hm : 0 < m)
     (hwin : ∀ j : Fin m, (2 * rounds j + 1 : ℝ) ^ 2 * p ≤ 1 / (m : ℝ)) :

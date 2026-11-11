@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefinedDefs
 
+/-!
+# Refined ordered commutator expansions
+
+This module proves the correspondence between grouped and flat compositions in ordered
+conjugation expansions. It decomposes `orderedRemainder` by source level, identifies its Cauchy
+integral form, and matches the words, weights, and budgets produced by `groupedLift`, in the
+commutator-scaling setting of [ChildsEtAl2021Trotter].
+
+It also establishes family scale and seed conversions, low-degree coefficient deviations,
+support-growth estimates, and explicit first-fit parallel schedules. Further results track
+long-range truncation, inverse stability, partition and synthesis errors, recursive Suzuki stage
+counts, and gate and routing costs.
+
+## Main statements
+
+* `clause49_endpoint`: collects the ordered remainder and grouped-composition identities.
+* `clause50_endpoint`: collects scale alignment, seed conversion, and budget normalization.
+* `clause51_endpoint`: collects explicit two-generator coefficient deviations.
+* `clause52_parallel_depth_endpoint`: gives the macro stage, depth, gate, and routing
+  identities.
+* `clause61_gate_count_endpoint`: relates the ferromagnetic ledger to executed word lengths.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 900000
 set_option backward.isDefEq.respectTransparency false
@@ -36,6 +63,7 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The ordered remainder for an empty generator list vanishes at every positive order. -/
 theorem clause49_remainder_nil (B : Matrix I I ℂ) (p : ℕ) (hp : 1 ≤ p) (t : ℝ) :
     orderedRemainder [] B p t = 0 := by
   have hzero : ∀ b : Fin p, b.val ≠ 0 → pfConjCoeff [] B b.val = 0 := by
@@ -56,6 +84,8 @@ theorem clause49_remainder_nil (B : Matrix I I ℂ) (p : ℕ) (hp : 1 ≤ p) (t 
       _ = B := by simp only [pfConjCoeff, pow_zero, one_smul]
   simp only [orderedRemainder, pfConjWord, pfConjTrunc, hsum, sub_self]
 
+/-- The ordered remainder at positive order is the sum of its contributions over generator
+levels. -/
 theorem clause49_remainder_level_decomposition (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) (hp : 1 ≤ p) (t : ℝ) :
     orderedRemainder xs B p t =
@@ -125,6 +155,7 @@ theorem clause49_remainder_level_decomposition (xs : List (Matrix I I ℂ))
     rw [hLHS, hRHS, hlin X (Finset.range xs.length), ih]
     abel
 
+/-- The positive-order ordered remainder equals the Cauchy integral remainder of `pfConjWord`. -/
 theorem clause49_remainder_eq_cauchy_integral (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) (hp : 0 < p) (t : ℝ) :
     orderedRemainder xs B p t =
@@ -132,6 +163,8 @@ theorem clause49_remainder_eq_cauchy_integral (xs : List (Matrix I I ℂ))
         iteratedDeriv p (pfConjWord xs B) τ) := by
   exact pfConjWord_taylor_integral_remainder xs B p hp t
 
+/-- Appending the source generator at level `k` extends the corresponding outer prefix by one
+element. -/
 theorem clause49_outer_inner_split (xs : List (Matrix I I ℂ)) (k : ℕ)
     (hk : 1 ≤ k) (hk' : k ≤ xs.length) :
     xs.take (xs.length - k) ++ [srcGen xs k] = xs.take (xs.length - k + 1) := by
@@ -144,6 +177,8 @@ theorem clause49_outer_inner_split (xs : List (Matrix I I ℂ)) (k : ℕ)
     (by omega)
   rw [htake, hget]
 
+/-- The grouped scalar equals the time-power weight divided by the last-part factorial and the
+product of the preceding factorials. -/
 theorem clause49_grouped_scalar_weight (p : ℕ) (q' : List ℕ) (t τ : ℝ) :
     groupedScalar p q' t τ =
       (t - τ) ^ (q'.getLastD 0 - 1) * t ^ (p - q'.getLastD 0) /
@@ -151,11 +186,15 @@ theorem clause49_grouped_scalar_weight (p : ℕ) (q' : List ℕ) (t τ : ℝ) :
           ((q'.dropLast.map Nat.factorial).prod : ℝ)) := by
   simp only [groupedScalar]
 
+/-- An index belongs to the support of `groupedLift` exactly when its reversed position lies
+within `k` and the corresponding grouped part is nonzero. -/
 theorem clause49_lift_support {s k : ℕ} (q' : List ℕ) (i : Fin s) :
     i ∈ compositionSupport (groupedLift s k q') ↔
       s - i.val ≤ k ∧ q'.getD (s - i.val - 1) 0 ≠ 0 := by
   simp [compositionSupport, groupedLift]
 
+/-- A grouped lift has level `k` when `k` is positive, bounded by `s`, and its last active part
+is nonzero. -/
 theorem clause49_lift_level (s k : ℕ) (q' : List ℕ) (hk0 : 0 < k) (hks : k ≤ s)
     (hne : q'.getD (k - 1) 0 ≠ 0) :
     compositionLevel (groupedLift s k q') = k := by
@@ -185,6 +224,7 @@ theorem clause49_lift_level (s k : ℕ) (q' : List ℕ) (hk0 : 0 < k) (hks : k �
 
 omit [DecidableEq I] in
 
+/-- Prepending a generator preserves source generators at levels belonging to the original list. -/
 theorem clause49_srcGen_cons_lt (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (j : ℕ) (hj : j < xs.length) :
     srcGen (X :: xs) (j + 1) = srcGen xs (j + 1) := by
@@ -200,6 +240,7 @@ theorem clause49_srcGen_cons_lt (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)
 omit [DecidableEq I] in
 omit [DecidableEq I] in
 
+/-- The final source level of `X :: xs` selects `X`. -/
 theorem clause49_srcGen_cons_last (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) :
     srcGen (X :: xs) (xs.length + 1) = X := by
   simp only [srcGen]
@@ -208,6 +249,8 @@ theorem clause49_srcGen_cons_last (X : Matrix I I ℂ) (xs : List (Matrix I I �
 
 omit [DecidableEq I] in
 
+/-- The source block word of `X :: xs` appends `q 0` copies of `X` to the source block word of
+the tail. -/
 theorem clause49_source_block_word_cons (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ))
     (q : Fin (xs.length + 1) → ℕ) :
     sourceBlockWord (X :: xs) q =
@@ -254,6 +297,7 @@ theorem clause49_source_block_word_cons (X : Matrix I I ℂ) (xs : List (Matrix 
 
 omit [DecidableEq I] in
 
+/-- The ordered composition word agrees with the source block word. -/
 theorem clause49_source_block_word (xs : List (Matrix I I ℂ)) (q : Fin xs.length → ℕ) :
     pfOrderedCompositionWord xs q = sourceBlockWord xs q := by
   induction xs with
@@ -262,6 +306,7 @@ theorem clause49_source_block_word (xs : List (Matrix I I ℂ)) (q : Fin xs.leng
     rw [pfOrderedCompositionWord_cons, clause49_source_block_word_cons]
     rw [ih (fun j => q j.succ)]
 
+/-- A finite-range flat map may be truncated at `k` when all later blocks are empty. -/
 theorem clause49_finRange_flatMap_trunc {α : Type} {n k : ℕ} (hk : k ≤ n)
     (g : Fin n → List α) (hg : ∀ i, k ≤ i.val → g i = []) :
     (List.finRange n).flatMap g =
@@ -299,6 +344,8 @@ theorem clause49_finRange_flatMap_trunc {α : Type} {n k : ℕ} (hk : k ≤ n)
           apply Fin.ext
           rfl
 
+/-- At a reversed index, `groupedLift` returns the corresponding grouped part within the active
+range and zero otherwise. -/
 theorem clause49_lift_at (s k : ℕ) (q' : List ℕ) (i : Fin s) :
     groupedLift s k q' ⟨s - 1 - i.val, by omega⟩ =
       if i.val + 1 ≤ k then q'.getD i.val 0 else 0 := by
@@ -313,6 +360,8 @@ theorem clause49_lift_at (s k : ℕ) (q' : List ℕ) (i : Fin s) :
     congr 1
   · simp only [if_neg hc]
 
+/-- Lifting a grouped list of admissible length produces its grouped repetition as the ordered
+composition word. -/
 theorem clause49_grouped_flat_word (xs : List (Matrix I I ℂ)) (q' : List ℕ)
     (h : q'.length ≤ xs.length) :
     pfOrderedCompositionWord xs (groupedLift xs.length q'.length q') =
@@ -363,12 +412,14 @@ theorem clause49_grouped_flat_word (xs : List (Matrix I I ℂ)) (q' : List ℕ)
   have hi1 : i.val + 1 ≤ q'.length := by omega
   rw [if_pos hi1]
 
+/-- The nested commutators formed from the lifted ordered word and the grouped repetition agree. -/
 theorem clause49_grouped_flat_nested_comm (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ)
     (q' : List ℕ) (h : q'.length ≤ xs.length) :
     pfNestedCommList (B :: pfOrderedCompositionWord xs (groupedLift xs.length q'.length q')) =
       pfNestedCommList (B :: groupedRepetition xs q') := by
   rw [clause49_grouped_flat_word xs q' h]
 
+/-- Taking a prefix preserves defaulted lookup at every index below the prefix bound. -/
 theorem clause49_getD_take (l : List ℕ) (m j : ℕ) (hj : j < m) :
     (l.take m).getD j 0 = l.getD j 0 := by
   induction l generalizing m j with
@@ -382,6 +433,7 @@ theorem clause49_getD_take (l : List ℕ) (m j : ℕ) (hj : j < m) :
           rw [List.take_cons (by omega : 0 < m), List.getD_cons_succ]
           exact ih (m - 1) j (by omega)
 
+/-- The head of `groupedLift` is the last reversed part when active, and zero otherwise. -/
 theorem clause49_lift_head (s k : ℕ) (q' : List ℕ) :
     groupedLift (s + 1) k q' 0 = if s + 1 ≤ k then q'.getD s 0 else 0 := by
   simp only [groupedLift]
@@ -391,6 +443,8 @@ theorem clause49_lift_head (s k : ℕ) (q' : List ℕ) :
   have h1 : s + 1 - 0 = s + 1 := by omega
   rw [h2, h1]
 
+/-- The tail of `groupedLift` is given by the corresponding reversed defaulted lookup within the
+active range. -/
 theorem clause49_lift_tail (s k : ℕ) (q' : List ℕ) (i : Fin s) :
     groupedLift (s + 1) k q' i.succ =
       if s - i.val ≤ k then q'.getD (s - i.val - 1) 0 else 0 := by
@@ -400,6 +454,8 @@ theorem clause49_lift_tail (s k : ℕ) (q' : List ℕ) (i : Fin s) :
   have h1 : s + 1 - (i.val + 1) = s - i.val := by omega
   rw [h1]
 
+/-- The factorial product of a grouped lift equals the reversed factorial product of its grouped
+parts, padded with zeros. -/
 theorem clause49_grouped_factorial_prod {s k : ℕ} (hk : k ≤ s) (q' : List ℕ) (hql : q'.length ≤ k) :
     (∏ i : Fin s, ((groupedLift s k q' i).factorial : ℝ)) =
       (∏ j : Fin k, ((q'.getD (k - 1 - j.val) 0).factorial : ℝ)) := by
@@ -494,6 +550,8 @@ theorem clause49_grouped_factorial_prod {s k : ℕ} (hk : k ≤ s) (q' : List �
         rw [h1]
         ring
 
+/-- Reversing the finite index order preserves the factorial product of the defaulted grouped
+parts. -/
 theorem clause49_fin_prod_reverse {k : ℕ} (q' : List ℕ) :
     (∏ j : Fin k, ((q'.getD (k - 1 - j.val) 0).factorial : ℝ)) =
       (∏ j : Fin k, ((q'.getD j.val 0).factorial : ℝ)) := by
@@ -510,11 +568,14 @@ theorem clause49_fin_prod_reverse {k : ℕ} (q' : List ℕ) :
     show k - 1 - (k - 1 - b.val) = b.val
     omega
 
+/-- A finite product of real ones equals one. -/
 theorem clause49_fin_prod_ones (k : ℕ) : (∏ _j : Fin k, (1 : ℝ)) = 1 := by
   induction k with
   | zero => rfl
   | succ k ih => rw [Fin.prod_univ_succ, ih, mul_one]
 
+/-- The factorial product over a padded finite range equals the factorial product over the
+original list. -/
 theorem clause49_fin_prod_eq_list_prod {k : ℕ} (q' : List ℕ) (hql : q'.length ≤ k) :
     (∏ j : Fin k, ((q'.getD j.val 0).factorial : ℝ)) =
       (q'.map (fun j => (j.factorial : ℝ))).prod := by
@@ -562,6 +623,8 @@ theorem clause49_fin_prod_eq_list_prod {k : ℕ} (q' : List ℕ) (hql : q'.lengt
           rw [ih q'' hql'']
           simp [List.prod_cons]
 
+/-- The flat weight of a grouped lift equals the grouped weight when the grouped list has length
+`k`. -/
 theorem clause49_grouped_flat_weight {s k : ℕ} (hk : k ≤ s) (q' : List ℕ) (hql : q'.length = k) :
     flatWeight (groupedLift s k q') = groupedWeight q' := by
   unfold flatWeight groupedWeight
@@ -570,6 +633,7 @@ theorem clause49_grouped_flat_weight {s k : ℕ} (hk : k ≤ s) (q' : List ℕ) 
   have h3 := clause49_fin_prod_eq_list_prod (k := k) q' (by omega)
   rw [h1, h2, h3]
 
+/-- Every defaulted entry of a natural-number list is bounded by its sum. -/
 theorem clause49_getD_le_sum (l : List ℕ) (i : ℕ) : l.getD i 0 ≤ l.sum := by
   induction l generalizing i with
   | nil => simp [List.getD]
@@ -582,6 +646,7 @@ theorem clause49_getD_le_sum (l : List ℕ) (i : ℕ) : l.getD i 0 ≤ l.sum := 
       simp only [List.sum_cons] at this ⊢
       omega
 
+/-- Grouped compositions are precisely lists of length `k` with sum `p` and nonzero final part. -/
 theorem clause49_grouped_compositions_mem {p k : ℕ} (q' : List ℕ) :
     q' ∈ groupedCompositions p k ↔
       q'.length = k ∧ q'.sum = p ∧ q'.getLastD 0 ≠ 0 := by
@@ -612,6 +677,7 @@ theorem clause49_grouped_compositions_mem {p k : ℕ} (q' : List ℕ) :
         grind
     rw [hofn]
 
+/-- Summing defaulted lookups over the exact length of a list recovers its sum. -/
 theorem clause49_fin_getD_sum {k : ℕ} (l : List ℕ) (hl : l.length = k) :
     (∑ j : Fin k, l.getD j.val 0) = l.sum := by
   induction k generalizing l with
@@ -639,6 +705,7 @@ theorem clause49_fin_getD_sum {k : ℕ} (l : List ℕ) (hl : l.length = k) :
           rw [ih l' hl']
           exact (List.sum_cons).symm
 
+/-- The last element of a nonempty prefix is the defaulted lookup at the preceding index. -/
 theorem clause49_take_getLastD {α : Type} (l : List α) (d : α) (k : ℕ)
     (hk : 1 ≤ k) (hl : k ≤ l.length) :
     (l.take k).getLastD d = l.getD (k - 1) d := by
@@ -653,6 +720,8 @@ theorem clause49_take_getLastD {α : Type} (l : List α) (d : α) (k : ℕ)
   rw [hor, Option.getD_some]
   rw [List.getD_eq_getElem _ _ hlt]
 
+/-- Defaulted lookup in `sourceParts` retrieves the corresponding reversed coordinate of the
+composition. -/
 theorem clause49_sourceParts_getD {s : ℕ} (q : Fin s → ℕ) (j : ℕ) (hj : j < s) :
     (sourceParts s q).getD j 0 = q ⟨s - 1 - j, by omega⟩ := by
   have hlen : (sourceParts s q).length = s := by
@@ -660,27 +729,32 @@ theorem clause49_sourceParts_getD {s : ℕ} (q : Fin s → ℕ) (j : ℕ) (hj : 
   rw [List.getD_eq_getElem _ _ (by omega)]
   simp only [sourceParts, List.getElem_ofFn]
 
+/-- The last element of a nonempty list equals its defaulted lookup at the last index. -/
 theorem clause49_getLastD_eq_getD {α : Type} (l : List α) (d : α) (hl : 0 < l.length) :
     l.getLastD d = l.getD (l.length - 1) d := by
   have h := clause49_take_getLastD l d l.length (by omega) (by omega)
   rw [List.take_length] at h
   exact h
 
+/-- Defaulted lookup at the last index of a nonempty list equals its last element. -/
 theorem clause49_getD_lastD {α : Type} (l : List α) (d : α) (hl : 0 < l.length) :
     l.getD (l.length - 1) d = l.getLastD d := (clause49_getLastD_eq_getD l d hl).symm
 
+/-- A composition of level `k` with nonempty support has minimum support index `s - k`. -/
 theorem clause49_support_min_of_level {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hks : k ≤ s)
     (hne : (compositionSupport q).Nonempty) (hlevel : compositionLevel q = k) :
     ((compositionSupport q).min' hne).val = s - k := by
   rw [compositionLevel, dif_pos hne] at hlevel
   omega
 
+/-- A composition of positive level has nonempty support. -/
 theorem clause49_support_nonempty_of_level {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk : 1 ≤ k)
     (hlevel : compositionLevel q = k) : (compositionSupport q).Nonempty := by
   by_contra hne
   rw [compositionLevel, dif_neg hne] at hlevel
   omega
 
+/-- Every coordinate below the minimum support index vanishes. -/
 theorem clause49_eq_zero_below_level {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hks : k ≤ s)
     (hne : (compositionSupport q).Nonempty)
     (hmin : ((compositionSupport q).min' hne).val = s - k) (i : Fin s) (hi : i.val < s - k) :
@@ -692,6 +766,7 @@ theorem clause49_eq_zero_below_level {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk
   rw [hmin] at hle'
   omega
 
+/-- The coordinate at the minimum support index is nonzero. -/
 theorem clause49_hit_at_level {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hbound : s - k < s)
     (hne : (compositionSupport q).Nonempty)
     (hmin : ((compositionSupport q).min' hne).val = s - k) :
@@ -704,6 +779,7 @@ theorem clause49_hit_at_level {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hbound : 
     exact Finset.min'_mem (compositionSupport q) hne
   simpa [compositionSupport] using! hmem
 
+/-- The grouped representative of a composition of level `k` has length `k`. -/
 theorem clause49_group_repr_length {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hks : k ≤ s)
     (hlevel : compositionLevel q = k) :
     (compositionGroup q).length = k := by
@@ -711,6 +787,7 @@ theorem clause49_group_repr_length {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hks 
     simp only [sourceParts, List.length_ofFn]
   rw [compositionGroup, hlevel, List.length_take, hlen, Nat.min_eq_left hks]
 
+/-- The grouped representative of a composition of positive level has nonzero last part. -/
 theorem clause49_group_repr_last_ne {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk : 1 ≤ k) (hks : k ≤ s)
     (hlevel : compositionLevel q = k) :
     (compositionGroup q).getLastD 0 ≠ 0 := by
@@ -734,6 +811,7 @@ theorem clause49_group_repr_last_ne {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk 
   rw [hq]
   exact clause49_hit_at_level q k hbound hne hmin
 
+/-- Lifting the first `k` reversed source parts recovers a composition of level `k`. -/
 theorem clause49_lift_take_repr {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk : 1 ≤ k) (hks : k ≤ s)
     (hlevel : compositionLevel q = k) :
     groupedLift s k ((sourceParts s q).take k) = q := by
@@ -757,12 +835,14 @@ theorem clause49_lift_take_repr {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk : 1 
     rw [if_neg hcond]
     exact (clause49_eq_zero_below_level q k hks hne hmin i hlt).symm
 
+/-- Lifting the grouped representative recovers a composition of positive level `k`. -/
 theorem clause49_lift_group_repr {s : ℕ} (q : Fin s → ℕ) (k : ℕ) (hk : 1 ≤ k) (hks : k ≤ s)
     (hlevel : compositionLevel q = k) :
     groupedLift s k (compositionGroup q) = q := by
   rw [compositionGroup, hlevel]
   exact clause49_lift_take_repr q k hk hks hlevel
 
+/-- The sum of the coordinates of a grouped lift equals the sum of its grouped list. -/
 theorem clause49_sum_lift {s k : ℕ} (hk : 1 ≤ k) (hks : k ≤ s) (q' : List ℕ) (hql : q'.length = k) :
     (∑ i : Fin s, groupedLift s k q' i) = q'.sum := by
   classical
@@ -850,6 +930,8 @@ theorem clause49_sum_lift {s k : ℕ} (hk : 1 ≤ k) (hks : k ≤ s) (q' : List 
   rw [hrestr]
   exact clause49_fin_getD_sum q' hql
 
+/-- Two grouped lists of length `k` are equal if their lifts into `s` coordinates agree and `k ≤
+s`. -/
 theorem clause49_lift_injective {s k : ℕ} (hks : k ≤ s) (q'₁ q'₂ : List ℕ)
     (h₁ : q'₁.length = k) (h₂ : q'₂.length = k)
     (heq : groupedLift s k q'₁ = groupedLift s k q'₂) : q'₁ = q'₂ := by
@@ -892,6 +974,7 @@ theorem clause49_lift_injective {s k : ℕ} (hks : k ≤ s) (q'₁ q'₂ : List 
     rw [h1', h2']
     exact hval n hnk
 
+/-- Lifting grouped compositions of length `k` gives exactly the flat compositions of level `k`. -/
 theorem clause49_lift_image_eq {s p k : ℕ} (hk : 1 ≤ k) (hks : k ≤ s) :
     (groupedCompositions p k).image (groupedLift s k) =
       (pfCompositions s p).filter (fun q => compositionLevel q = k) := by
@@ -937,6 +1020,7 @@ theorem clause49_lift_image_eq {s p k : ℕ} (hk : 1 ≤ k) (hks : k ≤ s) :
       exact hqmem
     · exact clause49_lift_group_repr q k hk hks hlevel
 
+/-- The grouped level cardinality equals the number of flat compositions of that level. -/
 theorem clause49_level_card_eq {s p k : ℕ} (hk : 1 ≤ k) (hks : k ≤ s) :
     groupedLevelCard p k =
       ((pfCompositions s p).filter (fun q => compositionLevel q = k)).card := by
@@ -952,6 +1036,7 @@ theorem clause49_level_card_eq {s p k : ℕ} (hk : 1 ≤ k) (hks : k ≤ s) :
   unfold groupedLevelCard
   rw [← hcard, clause49_lift_image_eq hk hks]
 
+/-- The grouped and flat budgets agree at every admissible positive level. -/
 theorem clause49_level_budget_eq (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p k : ℕ)
     (hk : 1 ≤ k) (hks : k ≤ xs.length) :
     groupedLevelBudget xs B p k = flatLevelBudget xs B p k := by
@@ -997,6 +1082,7 @@ theorem clause49_level_budget_eq (xs : List (Matrix I I ℂ)) (B : Matrix I I �
         (if compositionLevel q = k then
           flatWeight q * ‖pfNestedCommList (B :: pfOrderedCompositionWord xs q)‖ else 0) := rfl
 
+/-- Summing grouped budgets over all positive source levels gives the sum of the flat budgets. -/
 theorem clause49_all_levels_budget_eq (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p : ℕ) :
     (∑ k ∈ Finset.Icc 1 xs.length, groupedLevelBudget xs B p k) =
       (∑ k ∈ Finset.Icc 1 xs.length, flatLevelBudget xs B p k) := by
@@ -1004,6 +1090,7 @@ theorem clause49_all_levels_budget_eq (xs : List (Matrix I I ℂ)) (B : Matrix I
   intro k hk
   exact clause49_level_budget_eq xs B p k (Finset.mem_Icc.mp hk).1 (Finset.mem_Icc.mp hk).2
 
+/-- The map `k ↦ s - k` sends the range below `s` onto the integers from one to `s`. -/
 theorem clause49_frozen_level_reindex (s : ℕ) :
     (Finset.range s).image (fun k => s - k) = Finset.Icc 1 s := by
   ext ℓ
@@ -1021,6 +1108,8 @@ theorem clause49_frozen_level_reindex (s : ℕ) :
     · omega
     · omega
 
+/-- The positive-order ordered remainder decomposes over source levels indexed from one to the
+list length. -/
 theorem clause49_remainder_source_level_sum (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ)
     (p : ℕ) (hp : 1 ≤ p) (t : ℝ) :
     orderedRemainder xs B p t =
@@ -1051,6 +1140,7 @@ theorem clause49_remainder_source_level_sum (xs : List (Matrix I I ℂ)) (B : Ma
 
 set_option linter.unusedSectionVars false in
 
+/-- The source generator and outer-prefix length agree with the reversed source-level indexing. -/
 theorem clause49_frozen_level_alignment (xs : List (Matrix I I ℂ)) (ℓ : ℕ)
     (hℓ : 1 ≤ ℓ) (hℓs : ℓ ≤ xs.length) :
     srcGen xs ℓ = xs.getD (xs.length - ℓ) 0 ∧
@@ -1059,11 +1149,15 @@ theorem clause49_frozen_level_alignment (xs : List (Matrix I I ℂ)) (ℓ : ℕ)
   rw [List.length_take]
   omega
 
+/-- For a singleton generator list, the ordered remainder equals conjugation minus its Taylor
+truncation. -/
 theorem clause49_ordered_singleton_expansion {J : Type} [Fintype J] [DecidableEq J]
     (X B : Matrix J J ℂ) (p : ℕ) (_hp : 0 < p) (t : ℝ) :
     orderedRemainder [X] B p t = pfConjWord [X] B t - pfConjTrunc [X] B p t := by
   rfl
 
+/-- The source-level reindexing, remainder decomposition, generator alignment, and singleton
+expansion hold together. -/
 theorem clause49_frozen_bridge_statement :
     (∀ (s : ℕ),
         (Finset.range s).image (fun k => s - k) = Finset.Icc 1 s ∧
@@ -1085,6 +1179,8 @@ theorem clause49_frozen_bridge_statement :
   · intro J _ _ X B p _hp t
     exact clause49_ordered_singleton_expansion X B p _hp t
 
+/-- The refined ordered expansion combines the level decomposition, Cauchy remainder formula,
+and grouped-composition identities. -/
 theorem clause49_endpoint : ∀ (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ)
     (p : ℕ) (t : ℝ), 1 ≤ p →
     (orderedRemainder xs B p t =
@@ -1146,6 +1242,8 @@ theorem clause49_endpoint : ∀ (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ
     exact clause49_lift_image_eq hk hks
   · exact clause49_frozen_bridge_statement
 
+/-- Scaling every matrix in a nested commutator list by `a` scales the result by `a` to the list
+length. -/
 theorem clause50_nested_comm_scaling (l : List (Matrix I I ℂ)) (a : ℝ) :
     pfNestedCommList (l.map (fun Y => a • Y)) = a ^ l.length • pfNestedCommList l := by
   have hnest : ∀ (a c : ℝ) (X : Matrix I I ℂ), a • (c • X) = (a * c) • X := by
@@ -1195,6 +1293,7 @@ theorem clause50_nested_comm_scaling (l : List (Matrix I I ℂ)) (a : ℝ) :
     congr 1
     ring
 
+/-- The nested commutator is additive in its initial matrix. -/
 theorem clause50_nested_comm_add (l : List (Matrix I I ℂ)) (X Y : Matrix I I ℂ) :
     pfNestedCommList ((X + Y) :: l) = pfNestedCommList (X :: l) + pfNestedCommList (Y :: l) := by
   have hcomm : ∀ (Z D E : Matrix I I ℂ), pfComm Z (D + E) = pfComm Z D + pfComm Z E := by
@@ -1213,11 +1312,13 @@ theorem clause50_nested_comm_add (l : List (Matrix I I ℂ)) (X Y : Matrix I I �
   simp only [pfNestedCommList]
   exact hfold l X Y
 
+/-- The corrected ordered commutator statistic equals `p!` times the ordered adjoint budget. -/
 theorem clause50_alpha_budget_factorial (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (p : ℕ) :
     pfCommAlphaOrderedV2 xs B p = (p.factorial : ℝ) * pfOrderedAdBudget xs B p LinearMap.id := by
   exact pfCommAlphaOrderedV2_eq_budget xs B p
 
+/-- Mapping the labels of repetition blocks commutes with flattening those blocks. -/
 theorem clause50_flatten_map' {α : Type} {β : Type} (L : List (α × ℕ)) (f : α → β) :
     (L.map (fun kc => (f kc.1, kc.2))).flatMap (fun kc => List.replicate kc.2 kc.1)
       = L.flatMap (fun kc => List.replicate kc.2 (f kc.1)) := by
@@ -1226,6 +1327,7 @@ theorem clause50_flatten_map' {α : Type} {β : Type} (L : List (α × ℕ)) (f 
   | cons kc L ih =>
       rw [List.map_cons, List.flatMap_cons, List.flatMap_cons, ih]
 
+/-- The reversed repetition word can be expressed using `clause50PositionGroups`. -/
 theorem clause50_positions_map {n : ℕ} {α : Type} (q : Fin n → ℕ) (f : Fin n → α) :
     (List.ofFn (fun i : Fin n => (f i, q i))).reverse.flatMap (fun kc => List.replicate kc.2 kc.1)
       = (clause50PositionGroups q).flatMap (fun kc => List.replicate kc.2 (f kc.1)) := by
@@ -1238,13 +1340,17 @@ theorem clause50_positions_map {n : ℕ} {α : Type} (q : Fin n → ℕ) (f : Fi
   rw [hofn, ← List.map_reverse, clause50_flatten_map']
   rfl
 
+/-- A nested commutator with initial matrix `B` equals the left fold of successive commutators
+over the remaining list. -/
 theorem clause50_nested_comm_eq_fold {I : Type} [Fintype I] (l : List (Matrix I I ℂ)) (B : Matrix I I ℂ) :
     pfNestedCommList (B :: l) = l.foldl (fun D Y => pfComm Y D) B := rfl
 
+/-- Successive real scalar actions on a matrix combine by multiplication. -/
 theorem clause50_smul_assoc {I : Type} [Fintype I] (a b : ℝ) (X : Matrix I I ℂ) :
     a • (b • X) = (a * b) • X := by
   rw [Algebra.smul_def, Algebra.smul_def, Algebra.smul_def, map_mul, mul_assoc]
 
+/-- A real scalar in the first commutator argument factors out. -/
 theorem clause50_comm_scaling_arg {I : Type} [Fintype I] (Y D : Matrix I I ℂ) (a : ℝ) :
     pfComm (a • Y) D = a • pfComm Y D := by
   rw [pfComm, pfComm]
@@ -1252,6 +1358,7 @@ theorem clause50_comm_scaling_arg {I : Type} [Fintype I] (Y D : Matrix I I ℂ) 
         rw [smul_mul_assoc, mul_smul_comm]
     _ = a • (Y * D - D * Y) := by rw [smul_sub]
 
+/-- A real scalar in the second commutator argument factors out. -/
 theorem clause50_comm_scaling_acc {I : Type} [Fintype I] (Y D : Matrix I I ℂ) (a : ℝ) :
     pfComm Y (a • D) = a • pfComm Y D := by
   rw [pfComm, pfComm]
@@ -1259,6 +1366,7 @@ theorem clause50_comm_scaling_acc {I : Type} [Fintype I] (Y D : Matrix I I ℂ) 
         rw [mul_smul_comm, smul_mul_assoc]
     _ = a • (Y * D - D * Y) := by rw [smul_sub]
 
+/-- A scalar power in the second commutator argument factors out. -/
 theorem clause50_comm_scaling_acc_pow {I : Type} [Fintype I] (Y : Matrix I I ℂ) (a : ℝ) :
     ∀ (n : ℕ) (D : Matrix I I ℂ), pfComm Y (a ^ n • D) = a ^ n • pfComm Y D := by
   intro n D
@@ -1269,6 +1377,7 @@ theorem clause50_comm_scaling_acc_pow {I : Type} [Fintype I] (Y : Matrix I I ℂ
       simp only [← clause50_smul_assoc]
       rw [ih (a • D), clause50_comm_scaling_acc]
 
+/-- A real scalar multiplying the initial accumulator factors out of a commutator fold. -/
 theorem clause50_fold_seed_scale {I : Type} [Fintype I] (l : List (Matrix I I ℂ)) (a : ℝ)
     (D : Matrix I I ℂ) :
     l.foldl (fun D Y => pfComm Y D) (a • D) = a • (l.foldl (fun D Y => pfComm Y D) D) := by
@@ -1277,6 +1386,7 @@ theorem clause50_fold_seed_scale {I : Type} [Fintype I] (l : List (Matrix I I �
   | cons Y l ih =>
       rw [List.foldl_cons, List.foldl_cons, clause50_comm_scaling_acc, ih]
 
+/-- Repeating a generator scaled by `a` for `n` commutators contributes the factor `a ^ n`. -/
 theorem clause50_fold_replicate_scale {I : Type} [Fintype I] (Y : Matrix I I ℂ) (a : ℝ) (n : ℕ) (D0 : Matrix I I ℂ) :
     (List.replicate n (a • Y)).foldl (fun D Y' => pfComm Y' D) D0
       = a ^ n • ((List.replicate n Y).foldl (fun D Y' => pfComm Y' D) D0) := by
@@ -1293,11 +1403,13 @@ theorem clause50_fold_replicate_scale {I : Type} [Fintype I] (Y : Matrix I I ℂ
       rw [clause50_fold_seed_scale]
       rw [clause50_smul_assoc, pow_succ]
 
+/-- A scalar multiplying the initial matrix factors out of a repeated-generator commutator fold. -/
 theorem clause50_fold_replicate_seed {I : Type} [Fintype I] (Y : Matrix I I ℂ) (n : ℕ) (a : ℝ) (D0 : Matrix I I ℂ) :
     (List.replicate n Y).foldl (fun D Y' => pfComm Y' D) (a • D0)
       = a • ((List.replicate n Y).foldl (fun D Y' => pfComm Y' D) D0) :=
   clause50_fold_seed_scale (List.replicate n Y) a D0
 
+/-- A commutator fold over flattened blocks equals a fold of the individual block folds. -/
 theorem clause50_fold_flatMap {I : Type} [Fintype I] {α : Type} (L : List (α × ℕ))
     (g : (α × ℕ) → List (Matrix I I ℂ)) (D0 : Matrix I I ℂ) :
     (L.flatMap g).foldl (fun D Y => pfComm Y D) D0
@@ -1308,6 +1420,7 @@ theorem clause50_fold_flatMap {I : Type} [Fintype I] {α : Type} (L : List (α �
       rw [List.flatMap_cons, List.foldl_cons, List.foldl_append]
       rw [ih (List.foldl (fun D Y => pfComm Y D) D0 (g a))]
 
+/-- A scalar multiplying the initial matrix factors out of a grouped commutator fold. -/
 theorem clause50_fold_groups_seed {I : Type} [Fintype I] {n : ℕ} (L : List (Fin n × ℕ))
     (m : Fin n → Matrix I I ℂ) (a : ℝ) (X : Matrix I I ℂ) :
     L.foldl (fun D kc => (List.replicate kc.2 (m kc.1)).foldl (fun D Y => pfComm Y D) D) (a • X)
@@ -1317,6 +1430,8 @@ theorem clause50_fold_groups_seed {I : Type} [Fintype I] {n : ℕ} (L : List (Fi
   | cons kc L ih =>
       rw [List.foldl_cons, List.foldl_cons, clause50_fold_seed_scale, ih]
 
+/-- Scaling each generator in a grouped commutator fold contributes the product of its scale
+raised to its repetition count. -/
 theorem clause50_fold_groups_scale {I : Type} [Fintype I] {n : ℕ} (L : List (Fin n × ℕ)) (c : Fin n → ℝ)
     (m g : Fin n → Matrix I I ℂ) (hm : ∀ i, m i = c i • g i) :
     ∀ (X : Matrix I I ℂ),
@@ -1338,6 +1453,7 @@ theorem clause50_fold_groups_scale {I : Type} [Fintype I] {n : ℕ} (L : List (F
       rw [ih ((List.replicate kc.2 (g kc.1)).foldl (fun D Y => pfComm Y D) X)]
       rw [List.map_cons, List.prod_cons, List.foldl_cons, clause50_smul_assoc]
 
+/-- The scale product over position groups equals the product over all composition coordinates. -/
 theorem clause50_positions_scale_prod {n : ℕ} (q : Fin n → ℕ) (c : Fin n → ℝ) :
     ((clause50PositionGroups q).map (fun kc => c kc.1 ^ kc.2)).prod = ∏ i, c i ^ (q i) := by
   have hgrp : clause50PositionGroups q
@@ -1350,6 +1466,8 @@ theorem clause50_positions_scale_prod {n : ℕ} (q : Fin n → ℕ) (c : Fin n �
   intro i hi
   rfl
 
+/-- For a family word, the nested commutator equals the family-labelled commutator multiplied by
+`scaleProduct`. -/
 theorem clause50_family_alignment {D m : ℕ} (H : Fin m → Operator D) (B : Operator D)
     (xs : List (Operator D)) (lab : Fin xs.length → Fin m) (c : Fin xs.length → ℝ)
     (hfam : IsFamilyWord H xs lab c) (q : Fin xs.length → ℕ) :
@@ -1371,6 +1489,8 @@ theorem clause50_family_alignment {D m : ℕ} (H : Fin m → Operator D) (B : Op
     (g := fun i => H (lab i)) (fun i => hfam i)]
   rw [clause50_positions_scale_prod q c]
 
+/-- The factorial-weighted ordered adjoint budget equals the composition sum of scaled family
+commutator norms. -/
 theorem clause50_family_ordered_budget_eq {D m : ℕ} (H : Fin m → Operator D) (B : Operator D)
     (L : Operator D →ₗ[ℝ] Operator D) (xs : List (Operator D)) (lab : Fin xs.length → Fin m)
     (c : Fin xs.length → ℝ) (hfam : IsFamilyWord H xs lab c) (p : ℕ) :
@@ -1412,6 +1532,8 @@ theorem clause50_family_ordered_budget_eq {D m : ℕ} (H : Fin m → Operator D)
           |scaleProduct c q| *
           ‖L (pfNestedCommList (B :: (familyCompositionWord lab q).map H))‖ := rfl
 
+/-- The head of flattened repetition blocks is the label of the first block with positive
+repetition count. -/
 theorem clause50_flatMap_replicate_head {α : Type} (L : List (α × ℕ)) :
     (L.flatMap (fun kc => List.replicate kc.2 kc.1)).head? =
       (clause50FirstPositive L).map Prod.fst := by
@@ -1432,6 +1554,8 @@ theorem clause50_flatMap_replicate_head {α : Type} (L : List (α × ℕ)) :
       rw [ih]
       simp [clause50FirstPositive, h]
 
+/-- The head of a family composition word is the label of the first positive block in reversed
+position order. -/
 theorem clause50_family_word_head {m n : ℕ} (lab : Fin n → Fin m) (q : Fin n → ℕ) :
     (familyCompositionWord lab q).head? =
       ((clause50FirstPositive (List.ofFn (fun i : Fin n => (lab i, q i))).reverse).map Prod.fst) := by
@@ -1439,6 +1563,7 @@ theorem clause50_family_word_head {m n : ℕ} (lab : Fin n → Fin m) (q : Fin n
       (fun kc => List.replicate kc.2 kc.1)).head? = _
   exact clause50_flatMap_replicate_head _
 
+/-- A list containing a positive repetition count has a first positive block. -/
 theorem clause50_first_positive_some {α : Type} (L : List (α × ℕ)) :
     (∃ kc ∈ L, 0 < kc.2) → ∃ kc, clause50FirstPositive L = some kc := by
   induction L with
@@ -1458,6 +1583,7 @@ theorem clause50_first_positive_some {α : Type} (L : List (α × ℕ)) :
         obtain ⟨kc, hkc⟩ := ih hrest
         exact ⟨kc, by simp [clause50FirstPositive, ha, hkc]⟩
 
+/-- A family composition with a positive coordinate has head `clause50FamilyHead`. -/
 theorem clause50_family_head_some {m n : ℕ} (lab : Fin n → Fin m) (q : Fin n → ℕ)
     (hne : ∃ i, 0 < q i) :
     (familyCompositionWord lab q).head? = some (clause50FamilyHead lab q hne) := by
@@ -1472,6 +1598,8 @@ theorem clause50_family_head_some {m n : ℕ} (lab : Fin n → Fin m) (q : Fin n
   rw [hmap]
   simp [clause50FamilyHead, hkc]
 
+/-- A nonempty family composition word mapped through `H` splits into its selected head and
+mapped tail. -/
 theorem clause50_family_map_cons {D m n : ℕ} (H : Fin m → Operator D) (lab : Fin n → Fin m)
     (q : Fin n → ℕ) (hne : ∃ i, 0 < q i) :
     (familyCompositionWord lab q).map H =
@@ -1482,6 +1610,7 @@ theorem clause50_family_map_cons {D m n : ℕ} (H : Fin m → Operator D) (lab :
   rw [hwt]
   simp
 
+/-- The first commutator step can be absorbed into the initial matrix of a nested commutator. -/
 theorem clause50_nested_comm_seed_shift {I : Type} [Fintype I] (B X : Matrix I I ℂ)
     (l : List (Matrix I I ℂ)) :
     pfNestedCommList (B :: (X :: l)) = pfNestedCommList (pfComm X B :: l) := by
@@ -1490,6 +1619,8 @@ theorem clause50_nested_comm_seed_shift {I : Type} [Fintype I] (B X : Matrix I I
       = l.foldl (fun D Y => pfComm Y D) (pfComm X B)
   rw [List.foldl_cons]
 
+/-- A seeded family commutator can start from the commutator of its first family generator with
+`B`. -/
 theorem clause50_family_seed_conversion {D m n : ℕ} (H : Fin m → Operator D) (B : Operator D)
     (lab : Fin n → Fin m) (q : Fin n → ℕ) (hne : ∃ i, 0 < q i) :
     pfNestedCommList (B :: (familyCompositionWord lab q).map H) =
@@ -1500,6 +1631,8 @@ theorem clause50_family_seed_conversion {D m n : ℕ} (H : Fin m → Operator D)
   simp only [List.tail_cons]
   exact clause50_nested_comm_seed_shift B (H (clause50FamilyHead lab q hne)) _
 
+/-- The unseeded family commutator equals the nested commutator seeded by its selected head
+generator. -/
 theorem clause50_family_unseeded_head_seeded {D m n : ℕ} (H : Fin m → Operator D)
     (lab : Fin n → Fin m) (q : Fin n → ℕ) (hne : ∃ i, 0 < q i) :
     familyNestedCommList H (familyCompositionWord lab q) =
@@ -1509,6 +1642,7 @@ theorem clause50_family_unseeded_head_seeded {D m n : ℕ} (H : Fin m → Operat
   rw [familyNestedCommList, hmap]
   simp only [List.tail_cons]
 
+/-- Absorbing the first family generator into the seed preserves the nested commutator norm. -/
 theorem clause50_family_seed_conversion_norm {D m n : ℕ} (H : Fin m → Operator D) (B : Operator D)
     (lab : Fin n → Fin m) (q : Fin n → ℕ) (hne : ∃ i, 0 < q i) :
     ‖pfNestedCommList (B :: (familyCompositionWord lab q).map H)‖
@@ -1516,6 +1650,8 @@ theorem clause50_family_seed_conversion_norm {D m n : ℕ} (H : Fin m → Operat
           ((familyCompositionWord lab q).map H).tail)‖ := by
   rw [clause50_family_seed_conversion H B lab q hne]
 
+/-- The total family-head selector agrees with the selector defined from a positive composition
+coordinate. -/
 theorem clause50_family_head_total_eq {m n : ℕ} (hn : 0 < n) (lab : Fin n → Fin m) (q : Fin n → ℕ)
     (hne : ∃ i, 0 < q i) :
     clause50FamilyHeadTotal hn lab q = clause50FamilyHead lab q hne := by
@@ -1526,6 +1662,7 @@ theorem clause50_family_head_total_eq {m n : ℕ} (hn : 0 < n) (lab : Fin n → 
   obtain ⟨kc, hkc⟩ := clause50_first_positive_some _ hmem
   simp [clause50FamilyHeadTotal, clause50FamilyHead, hkc]
 
+/-- A natural-valued composition of positive total degree has a positive coordinate. -/
 theorem clause50_composition_ne {n p : ℕ} (q : Fin n → ℕ) (hp : 0 < p)
     (hsum : (∑ i, q i) = p) : ∃ i, 0 < q i := by
   by_contra hcon
@@ -1535,6 +1672,8 @@ theorem clause50_composition_ne {n p : ℕ} (q : Fin n → ℕ) (hp : 0 < p)
     exact Nat.eq_zero_of_not_pos (fun hpos => hcon ⟨i, hpos⟩)
   omega
 
+/-- The positive-order seeded family budget expands into multinomially weighted norms with the
+first generator absorbed into the seed. -/
 theorem clause50_family_budget_conversion {D m n : ℕ} (hn : 0 < n) (H : Fin m → Operator D)
     (B : Operator D) (lab : Fin n → Fin m) (c : Fin n → ℝ) (p : ℕ) (hp : 0 < p) :
     clause50SeededFamilyBudget H B lab c p =
@@ -1551,6 +1690,8 @@ theorem clause50_family_budget_conversion {D m n : ℕ} (hn : 0 < n) (H : Fin m 
   rw [clause50_family_head_total_eq hn lab q hne]
   rw [clause50_family_seed_conversion H B lab q hne]
 
+/-- The positive-order unseeded family budget expands into multinomially weighted norms seeded
+by the first family generator. -/
 theorem clause50_family_budget_head_seeded {D m n : ℕ} (hn : 0 < n) (H : Fin m → Operator D)
     (lab : Fin n → Fin m) (c : Fin n → ℝ) (p : ℕ) (hp : 0 < p) :
     familyOrderedBudget H lab c p =
@@ -1567,6 +1708,8 @@ theorem clause50_family_budget_head_seeded {D m n : ℕ} (hn : 0 < n) (H : Fin m
   rw [clause50_family_head_total_eq hn lab q hne]
   rw [clause50_family_unseeded_head_seeded H lab q hne]
 
+/-- The ordered-budget normalization, nested-commutator linearity, family alignment, and seed
+conversion hold together. -/
 theorem clause50_endpoint : ∀ (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (p : ℕ),
     (pfCommAlphaOrderedV2 xs B p = (p.factorial : ℝ) * pfOrderedAdBudget xs B p LinearMap.id) ∧
     (∀ (l : List (Matrix I I ℂ)) (a : ℝ),
@@ -1585,6 +1728,8 @@ theorem clause50_endpoint : ∀ (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ
       ⟨clause50_family_seed_conversion Hfam Bfam labfam qfam hnefam,
         clause50_family_unseeded_head_seeded Hfam labfam qfam hnefam⟩
 
+/-- The cubic coefficient of the two-generator Suzuki series is the ordered sum of the four
+degree-three monomials with factorial weights. -/
 theorem clause51_series_cubic (X Y : Matrix I I ℂ) :
     suzukiSeries [X, Y] 3 = (1 / 6 : ℝ) • Y ^ 3 + X * ((1 / 2 : ℝ) • Y ^ 2) +
       ((1 / 2 : ℝ) • X ^ 2) * Y + (1 / 6 : ℝ) • X ^ 3 := by
@@ -1606,6 +1751,8 @@ theorem clause51_series_cubic (X Y : Matrix I I ℂ) :
     simp
   rw [suzukiSeries_cons_three, hY3, hY2, hY1]
 
+/-- The cubic Trotter deviation expands as the stated linear combination of six mixed ordered
+monomials. -/
 theorem clause51_cubic_deviation_word_form (X Y : Matrix I I ℂ) :
     trotterCubicDeviation X Y =
       (1 / 3 : ℝ) • (X ^ 2 * Y) + (1 / 3 : ℝ) • (X * Y ^ 2)
@@ -1641,6 +1788,7 @@ theorem clause51_cubic_deviation_word_form (X Y : Matrix I I ℂ) :
   norm_num
   ring
 
+/-- If `X` and `Y` commute, then `Y` commutes with `X ^ 2`. -/
 theorem clause51_commute_pow (X Y : Matrix I I ℂ) (hxy : X * Y = Y * X) :
     Y * X ^ 2 = X ^ 2 * Y := by
   calc Y * X ^ 2 = (Y * X) * X := by rw [pow_two, mul_assoc]
@@ -1649,6 +1797,7 @@ theorem clause51_commute_pow (X Y : Matrix I I ℂ) (hxy : X * Y = Y * X) :
     _ = X * (X * Y) := by rw [hxy]
     _ = X ^ 2 * Y := by rw [← mul_assoc, pow_two]
 
+/-- The cubic Trotter deviation vanishes when the commutator vanishes. -/
 theorem clause51_cubic_deviation_zero_of_commuting (X Y : Matrix I I ℂ) (h : pfComm X Y = 0) :
     trotterCubicDeviation X Y = 0 := by
   have hxy : X * Y = Y * X := by
@@ -1681,6 +1830,7 @@ theorem clause51_cubic_deviation_zero_of_commuting (X Y : Matrix I I ℂ) (h : p
   norm_num
   ring
 
+/-- The cubic coefficient for a singleton generator is one sixth of its cube. -/
 theorem clause51_cubic_coefficient_single (X : Matrix I I ℂ) :
     suzukiSeries [X] 3 = (1 / 6 : ℝ) • X ^ 3 := by
   rw [suzukiSeries_cons_three]
@@ -1689,6 +1839,7 @@ theorem clause51_cubic_coefficient_single (X : Matrix I I ℂ) :
 
 omit [DecidableEq I] in
 
+/-- A real scalar multiplying the right matrix factor can be moved outside the product. -/
 theorem clause51_mul_smul (a : ℝ) (A B : Matrix I I ℂ) :
     A * (a • B) = a • (A * B) := by
   ext i j
@@ -1701,6 +1852,7 @@ theorem clause51_mul_smul (a : ℝ) (A B : Matrix I I ℂ) :
 
 omit [DecidableEq I] in
 
+/-- A real scalar multiplying the left matrix factor can be moved outside the product. -/
 theorem clause51_smul_mul (a : ℝ) (A B : Matrix I I ℂ) :
     (a • A) * B = a • (A * B) := by
   ext i j
@@ -1713,22 +1865,29 @@ theorem clause51_smul_mul (a : ℝ) (A B : Matrix I I ℂ) :
 
 omit [DecidableEq I] in
 
+/-- The product of two real-scaled matrices equals their matrix product scaled by the product of
+the scalars. -/
 theorem clause51_smul_mul_smul (a b : ℝ) (A B : Matrix I I ℂ) :
     (a • A) * (b • B) = (a * b) • (A * B) := by
   rw [clause51_smul_mul, clause51_mul_smul, smul_smul]
 
+/-- The Suzuki coefficient for a list with head `X` is the convolution of the exponential
+coefficients of `X` with the coefficients of the tail. -/
 theorem clause51_series_convolution (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (n : ℕ) :
     suzukiSeries (X :: xs) n =
       ∑ m ∈ Finset.range (n + 1), ((m.factorial : ℝ)⁻¹ • X ^ m) * suzukiSeries xs (n - m) := by
   simp only [suzukiSeries]
   rw [Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
 
+/-- The two-generator Suzuki coefficient equals `twoGeneratorOrderedWords`. -/
 theorem clause51_series_two_generators (X Y : Matrix I I ℂ) (n : ℕ) :
     suzukiSeries [X, Y] n = twoGeneratorOrderedWords n X Y := by
   rw [clause51_series_convolution]
   simp_rw [suzukiSeries_singleton]
   rfl
 
+/-- The quartic two-generator Suzuki coefficient is the ordered sum of five degree-four
+monomials with factorial weights. -/
 theorem clause51_series_quartic (X Y : Matrix I I ℂ) :
     suzukiSeries [X, Y] 4 =
       (1 / 24 : ℝ) • Y ^ 4 + (1 / 6 : ℝ) • (X * Y ^ 3) + (1 / 4 : ℝ) • (X ^ 2 * Y ^ 2)
@@ -1754,6 +1913,8 @@ theorem clause51_series_quartic (X Y : Matrix I I ℂ) :
   have hcoef : (1 / 2 : ℝ) * (1 / 2 : ℝ) = 1 / 4 := by ring
   rw [hcoef]
 
+/-- The quartic Trotter deviation expands as the stated linear combination of mixed degree-four
+matrix words. -/
 theorem clause51_quartic_deviation_word_form (X Y : Matrix I I ℂ) :
     trotterQuarticDeviation X Y =
       (1 / 8 : ℝ) • (X ^ 3 * Y) + (1 / 8 : ℝ) • (X * Y ^ 3) + (5 / 24 : ℝ) • (X ^ 2 * Y ^ 2)
@@ -1780,6 +1941,7 @@ theorem clause51_quartic_deviation_word_form (X Y : Matrix I I ℂ) :
   norm_num
   ring
 
+/-- Right multiplication by the matrix natural-number cast equals real scalar multiplication. -/
 theorem clause51_mul_natCast (c : ℕ) (M : Matrix I I ℂ) :
     M * (c : Matrix I I ℂ) = (c : ℝ) • M := by
   induction c with
@@ -1789,6 +1951,8 @@ theorem clause51_mul_natCast (c : ℕ) (M : Matrix I I ℂ) :
       rw [h1, Nat.cast_succ, Matrix.mul_add, ih]
       simp [add_smul, one_smul]
 
+/-- A binomial coefficient divided by `n!` equals the reciprocal factorial weights for the two
+complementary degrees. -/
 theorem clause51_choose_coeff {n m : ℕ} (hm : m ≤ n) :
     ((n.factorial : ℝ)⁻¹) * (n.choose m : ℝ)
       = (m.factorial : ℝ)⁻¹ * ((n - m).factorial : ℝ)⁻¹ := by
@@ -1813,6 +1977,8 @@ theorem clause51_choose_coeff {n m : ℕ} (hm : m ≤ n) :
           rw [inv_mul_cancel₀ hneF, one_mul]
     _ = (m.factorial : ℝ)⁻¹ * ((n - m).factorial : ℝ)⁻¹ := by exact mul_inv _ _
 
+/-- For commuting generators, every two-generator Suzuki coefficient equals the corresponding
+coefficient of the exponential of their sum. -/
 theorem clause51_series_commuting (X Y : Matrix I I ℂ) (hxy : X * Y = Y * X) (n : ℕ) :
     suzukiSeries [X, Y] n = ((n.factorial : ℝ)⁻¹) • (X + Y) ^ n := by
   have hcomm : Commute X Y := hxy
@@ -1824,16 +1990,19 @@ theorem clause51_series_commuting (X Y : Matrix I I ℂ) (hxy : X * Y = Y * X) (
     omega
   rw [clause51_smul_mul_smul, clause51_mul_natCast, smul_smul, clause51_choose_coeff hm']
 
+/-- Every Trotter coefficient deviation vanishes for commuting generators. -/
 theorem clause51_deviation_zero_of_commuting (X Y : Matrix I I ℂ) (hxy : X * Y = Y * X) (n : ℕ) :
     trotterDeviation n X Y = 0 := by
   rw [trotterDeviation, clause51_series_commuting X Y hxy n]
   simp
 
+/-- The quartic Trotter deviation vanishes for commuting generators. -/
 theorem clause51_quartic_deviation_zero_of_commuting (X Y : Matrix I I ℂ) (hxy : X * Y = Y * X) :
     trotterQuarticDeviation X Y = 0 := by
   rw [trotterQuarticDeviation, clause51_series_commuting X Y hxy 4]
   simp
 
+/-- The quartic Trotter deviation vanishes when `pfComm X Y` is zero. -/
 theorem clause51_quartic_deviation_zero_of_pfComm (X Y : Matrix I I ℂ) (h : pfComm X Y = 0) :
     trotterQuarticDeviation X Y = 0 := by
   have hxy : X * Y = Y * X := by
@@ -1842,6 +2011,7 @@ theorem clause51_quartic_deviation_zero_of_pfComm (X Y : Matrix I I ℂ) (h : pf
     exact sub_eq_zero.mp hz
   exact clause51_quartic_deviation_zero_of_commuting X Y hxy
 
+/-- The quadratic Trotter deviation vanishes exactly when the commutator vanishes. -/
 theorem clause51_quadratic_deviation_zero_iff (X Y : Matrix I I ℂ) :
     trotterQuadraticDeviation X Y = 0 ↔ pfComm X Y = 0 := by
   unfold trotterQuadraticDeviation
@@ -1855,11 +2025,14 @@ theorem clause51_quadratic_deviation_zero_iff (X Y : Matrix I I ℂ) :
   · intro h
     simp [h]
 
+/-- The norm of the quadratic Trotter deviation equals half the commutator norm. -/
 theorem clause51_quadratic_deviation_norm (X Y : Matrix I I ℂ) :
     ‖trotterQuadraticDeviation X Y‖ = (1 / 2 : ℝ) * ‖pfComm X Y‖ := by
   rw [trotterQuadraticDeviation, clause51_second_order_deviates, norm_smul,
     Real.norm_eq_abs, abs_of_nonneg (by norm_num)]
 
+/-- The explicit low-degree coefficients, quadratic commutator criterion, and vanishing
+deviations for commuting generators hold together. -/
 theorem clause51_endpoint : ∀ (n : ℕ) (X Y : Matrix I I ℂ),
     (suzukiSeries [X, Y] 3 = (1 / 6 : ℝ) • Y ^ 3 + X * ((1 / 2 : ℝ) • Y ^ 2) +
       ((1 / 2 : ℝ) • X ^ 2) * Y + (1 / 6 : ℝ) • X ^ 3) ∧
@@ -1896,6 +2069,8 @@ theorem clause51_endpoint : ∀ (n : ℕ) (X Y : Matrix I I ℂ),
   · intro hxy
     exact clause51_deviation_zero_of_commuting X Y hxy n
 
+/-- One support-thickening step adds at most `S.card * occ * d` sites to a bounded finite-range
+family. -/
 theorem clause52_support_thickening_card_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
     (b d occ : ℕ) (hF : FiniteRangeBounded F b d occ) (S : Finset (Fin Λ)) :
     (supportThickening F S).card ≤ S.card + S.card * occ * d := by
@@ -1943,6 +2118,8 @@ theorem clause52_support_thickening_card_le {D Λ : ℕ} (F : Fin Λ → LocalTe
     _ ≤ S.card + (S.card * occ) * d := by gcongr
     _ = S.card + S.card * occ * d := by ring
 
+/-- After `r` thickening steps, the light-cone site count is at most `S.card * (1 + occ * d) ^
+r`. -/
 theorem clause52_light_cone_site_count_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
     (b d occ : ℕ) (hF : FiniteRangeBounded F b d occ) (S : Finset (Fin Λ))
     (r : ℕ) :
@@ -1962,6 +2139,8 @@ theorem clause52_light_cone_site_count_le {D Λ : ℕ} (F : Fin Λ → LocalTerm
         gcongr
       _ = S.card * (1 + occ * d) ^ (r + 1) := by rw [pow_succ]; ring
 
+/-- The one-step support bound and the iterated light-cone site bound hold for bounded
+finite-range families. -/
 theorem clause52_endpoint : ∀ {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
     (b d occ : ℕ) (S : Finset (Fin Λ)),
     FiniteRangeBounded F b d occ →
@@ -1971,6 +2150,7 @@ theorem clause52_endpoint : ∀ {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
   exact ⟨clause52_support_thickening_card_le F b d occ hF S, fun r =>
     clause52_light_cone_site_count_le F b d occ hF S r⟩
 
+/-- The torus distance, cast to the reals, is nonnegative. -/
 theorem clause53_torus_dist_nonneg {Λ : ℕ} (x y : Fin Λ) : 0 ≤ (torusDist Λ x y : ℝ) := by
   have habs : |((x : ℤ) - (y : ℤ))| ≤ (Λ : ℤ) := by
     have hx : (x : ℤ) = (x.val : ℤ) := by simp
@@ -1987,6 +2167,8 @@ theorem clause53_torus_dist_nonneg {Λ : ℕ} (x y : Fin Λ) : 0 ≤ (torusDist 
     exact abs_nonneg _
   · exact Int.cast_nonneg hnonneg
 
+/-- The norm of the long-range truncation gap is at most `Λ ^ 2 * C / (1 + R) ^ α` under
+`LongRangeFamily`. -/
 theorem clause53_gap_le {D Λ : ℕ} (C α : ℝ) (H : Fin Λ → Fin Λ → Operator D)
     (hfam : LongRangeFamily D Λ C α H) (R : ℕ) :
     ‖longRangeGap R H‖ ≤ (Λ : ℝ) ^ 2 * C / (1 + (R : ℝ)) ^ α := by
@@ -2036,12 +2218,14 @@ theorem clause53_gap_le {D Λ : ℕ} (C α : ℝ) (H : Fin Λ → Fin Λ → Ope
       rw [h2]
       ring
 
+/-- Multiplying the long-range gap bound by `|t|` gives the corresponding time-weighted budget. -/
 theorem clause53_corrected_budget {D Λ : ℕ} (C α : ℝ) (H : Fin Λ → Fin Λ → Operator D)
     (hfam : LongRangeFamily D Λ C α H) (R : ℕ) (t : ℝ) :
     |t| * ‖longRangeGap R H‖ ≤ |t| * ((Λ : ℝ) ^ 2 * C / (1 + (R : ℝ)) ^ α) := by
   have h := clause53_gap_le C α H hfam R
   exact mul_le_mul_of_nonneg_left h (abs_nonneg t)
 
+/-- The long-range truncation gap and its time-weighted budget satisfy the stated decay bounds. -/
 theorem clause53_endpoint : ∀ {D Λ : ℕ} (C α : ℝ) (H : Fin Λ → Fin Λ → Operator D)
     (R : ℕ) (t : ℝ), LongRangeFamily D Λ C α H →
     (‖longRangeGap R H‖ ≤ (Λ : ℝ) ^ 2 * C / (1 + (R : ℝ)) ^ α) ∧
@@ -2049,6 +2233,8 @@ theorem clause53_endpoint : ∀ {D Λ : ℕ} (C α : ℝ) (H : Fin Λ → Fin Λ
   intro D Λ C α H R t hfam
   exact ⟨clause53_gap_le C α H hfam R, clause53_corrected_budget C α H hfam R t⟩
 
+/-- The number of cone labels is at most the site occupancy bound times the light-cone site
+count. -/
 theorem clause54_cone_label_count_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
     (b d occ : ℕ) (hF : FiniteRangeBounded F b d occ) (S : Finset (Fin Λ))
     (r : ℕ) :
@@ -2082,6 +2268,8 @@ theorem clause54_cone_label_count_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ
     _ = occ * (lightConeSites F S r).card := by
       rw [Finset.sum_const, Nat.nsmul_eq_mul, mul_comm]
 
+/-- The cone-label count is controlled by occupancy times the light-cone site count for bounded
+finite-range families. -/
 theorem clause54_endpoint : ∀ {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
     (b d occ : ℕ) (S : Finset (Fin Λ)) (r : ℕ),
     FiniteRangeBounded F b d occ →
@@ -2089,6 +2277,8 @@ theorem clause54_endpoint : ∀ {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
   intro D Λ F b d occ S r hF
   exact clause54_cone_label_count_le F b d occ hF S r
 
+/-- A segment multiplicative defect bounded by `η < 1` gives the inverse norm bound
+`inverseStabilityFactor η`. -/
 theorem clause55_segment_defect_stability (xs : List (Matrix I I ℂ))
     (H : Matrix I I ℂ) (t : ℝ) (r : ℕ) (η : ℝ)
     (hdef : ‖segmentMultiplicativeDefect xs H t r‖ ≤ η) (hη : η < 1) :
@@ -2096,10 +2286,13 @@ theorem clause55_segment_defect_stability (xs : List (Matrix I I ℂ))
       inverseStabilityFactor η := by
   exact (inverse_stability_of_norm_le (segmentMultiplicativeDefect xs H t r) η hdef hη).2
 
+/-- Every real `η < 1` satisfies `inversePropagationWindow η`. -/
 theorem clause55_inverse_window (η : ℝ) (hη : η < 1) :
     inversePropagationWindow η := by
   exact hη
 
+/-- The inverse-propagation window and inverse norm bound hold when the segment defect is
+bounded by `η < 1`. -/
 theorem clause55_endpoint : ∀ (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ)
     (t : ℝ) (r : ℕ) (η : ℝ),
     (‖segmentMultiplicativeDefect xs H t r‖ ≤ η) → η < 1 →
@@ -2109,6 +2302,8 @@ theorem clause55_endpoint : ∀ (xs : List (Matrix I I ℂ)) (H : Matrix I I ℂ
   intro xs H t r η hdef hη
   exact ⟨clause55_inverse_window η hη, clause55_segment_defect_stability xs H t r η hdef hη⟩
 
+/-- A positive lower bound `P` for the ideal partition norm bounds the relative partition error
+by the additive error norm divided by `P`. -/
 theorem clause56_relative_error_le {D : ℕ} (A B : Operator D) (t : ℝ) (r : ℕ)
     (P : ℝ) (hP : 0 < P) (hIdeal : P ≤ ‖tfimIdealPartition A B t‖) :
     tfimRelativePartitionError A B t r ≤
@@ -2117,11 +2312,14 @@ theorem clause56_relative_error_le {D : ℕ} (A B : Operator D) (t : ℝ) (r : �
   have hne : 0 < ‖tfimIdealPartition A B t‖ := lt_of_lt_of_le hP hIdeal
   gcongr
 
+/-- The selected TFIM segment count is positive. -/
 theorem clause56_segment_choice_pos {D : ℕ} (A B : Operator D) (t ε : ℝ) :
     0 < tfimSegmentChoice A B t ε := by
   unfold tfimSegmentChoice nextPow2
   positivity
 
+/-- A positive lower bound on the ideal partition norm yields the stated relative partition
+error estimate. -/
 theorem clause56_endpoint : ∀ {D : ℕ} (A B : Operator D) (t : ℝ) (r : ℕ) (P : ℝ),
     0 < P → P ≤ ‖tfimIdealPartition A B t‖ →
     tfimRelativePartitionError A B t r ≤
@@ -2129,6 +2327,7 @@ theorem clause56_endpoint : ∀ {D : ℕ} (A B : Operator D) (t : ℝ) (r : ℕ)
   intro D A B t r P hP hIdeal
   exact clause56_relative_error_le A B t r P hP hIdeal
 
+/-- The Gibbs density has trace one when its partition function is nonzero. -/
 theorem clause57_density_trace_one {D : ℕ} (H : Operator D) (β : ℝ)
     (hZ : gibbsPartition H β ≠ 0) :
     Matrix.trace (gibbsDensity H β) = 1 := by
@@ -2137,16 +2336,20 @@ theorem clause57_density_trace_one {D : ℕ} (H : Operator D) (β : ℝ)
   simp only [smul_eq_mul]
   exact inv_mul_cancel₀ hZ
 
+/-- The output-norm field of the constructed Gibbs consumption ledger equals `gibbsOutputNorm H
+β`. -/
 theorem clause57_ledger_charges_output_norm {D : ℕ} (H : Operator D) (β : ℝ)
     (prepCalls amplificationRounds readoutShots : ℕ) :
     (GibbsConsumptionLedger.mk prepCalls amplificationRounds readoutShots
       (gibbsOutputNorm H β)).outputNorm = gibbsOutputNorm H β := rfl
 
+/-- The Gibbs output norm is nonnegative. -/
 theorem clause57_output_norm_nonneg {D : ℕ} (H : Operator D) (β : ℝ) :
     0 ≤ gibbsOutputNorm H β := by
   unfold gibbsOutputNorm
   exact norm_nonneg _
 
+/-- A nonzero Gibbs partition function yields a trace-one density and a nonnegative output norm. -/
 theorem clause57_endpoint : ∀ {D : ℕ} (H : Operator D) (β : ℝ),
     gibbsPartition H β ≠ 0 →
     (Matrix.trace (gibbsDensity H β) = 1) ∧
@@ -2154,6 +2357,8 @@ theorem clause57_endpoint : ∀ {D : ℕ} (H : Operator D) (β : ℝ),
   intro D H β hZ
   exact ⟨clause57_density_trace_one H β hZ, clause57_output_norm_nonneg H β⟩
 
+/-- The squared selected time-dependent segment count dominates `L ^ 2 * |t| ^ 3 / (3 * ε)` for
+positive tolerance. -/
 theorem clause58_segment_choice_dominates (L t ε : ℝ) (hε : 0 < ε) :
     (timeDependentSegments L t ε : ℝ) ^ 2 ≥ L ^ 2 * |t| ^ 3 / (3 * ε) := by
   have hX : 0 ≤ L ^ 2 * |t| ^ 3 / (3 * ε) := by positivity
@@ -2174,6 +2379,8 @@ theorem clause58_segment_choice_dominates (L t ε : ℝ) (hε : 0 < ε) :
   · nlinarith [hmax]
   · nlinarith [hr1]
 
+/-- The time-dependent error budget evaluated at the selected segment count is at most the
+positive tolerance `ε`. -/
 theorem clause58_total_error_le (L t ε : ℝ) (hε : 0 < ε) :
     L ^ 2 * |t| ^ 3 / (3 * (timeDependentSegments L t ε : ℝ) ^ 2) ≤ ε := by
   have hdom := clause58_segment_choice_dominates L t ε hε
@@ -2192,18 +2399,24 @@ theorem clause58_total_error_le (L t ε : ℝ) (hε : 0 < ε) :
   rw [div_le_iff₀ h3r]
   linarith
 
+/-- The selected time-dependent segment count satisfies both the required squared-count lower
+bound and the error budget. -/
 theorem clause58_endpoint : ∀ (L t ε : ℝ), 0 < ε →
     ((timeDependentSegments L t ε : ℝ) ^ 2 ≥ L ^ 2 * |t| ^ 3 / (3 * ε)) ∧
     (L ^ 2 * |t| ^ 3 / (3 * (timeDependentSegments L t ε : ℝ) ^ 2) ≤ ε) := by
   intro L t ε hε
   exact ⟨clause58_segment_choice_dominates L t ε hε, clause58_total_error_le L t ε hε⟩
 
+/-- If numeric and gate synthesis errors are each at most half the tolerance, their total
+synthesis error is at most the tolerance. -/
 theorem clause59_synthesis_error_le (l : SynthesisLedger) (ε : ℝ)
     (h1 : l.numericError ≤ ε / 2) (h2 : l.gateError ≤ ε / 2) :
     synthesisError l ≤ ε := by
   unfold synthesisError
   linarith
 
+/-- The supplied access-matrix error estimate is retained as the bound by floating-point and
+gate errors. -/
 theorem clause59_access_error_le {n : ℕ} (s : StrangAccessSynthesis n) (H : Operator (2 ^ n))
     (t : ℝ) (r : ℕ)
     (herror : ‖synthAccessMatrix s - HamiltonianEvolution H (t / (2 * (r : ℝ)))‖ ≤
@@ -2212,16 +2425,20 @@ theorem clause59_access_error_le {n : ℕ} (s : StrangAccessSynthesis n) (H : Op
       s.floatError + s.gateError := by
   exact herror
 
+/-- The two half-tolerance synthesis bounds imply the full synthesis-error bound. -/
 theorem clause59_endpoint : ∀ (l : SynthesisLedger) (ε : ℝ),
     l.numericError ≤ ε / 2 → l.gateError ≤ ε / 2 → synthesisError l ≤ ε := by
   intro l ε h1 h2
   exact clause59_synthesis_error_le l ε h1 h2
 
+/-- A matrix of norm at most one has real-scaled norm at most the absolute value of the scalar. -/
 theorem clause60_normalisation_bound (n : ℝ) (M : Matrix I I ℂ) (hM : ‖M‖ ≤ 1) :
     ‖n • M‖ ≤ |n| := by
   rw [norm_smul, Real.norm_eq_abs]
   exact mul_le_of_le_one_right (abs_nonneg n) hM
 
+/-- For continuous coefficient and forcing fields, the forced solution factors into homogeneous
+ordered evolution and an integral of the transported forcing. -/
 theorem clause60_forced_factor {D : ℕ} (Lfield Hfield : ℝ → Matrix (Fin D) (Fin D) ℂ)
     (b : ℝ → QState (Fin D)) (T : ℝ) (v : QState (Fin D))
     (hL : Continuous Lfield) (hH : Continuous Hfield) (hb : Continuous b) :
@@ -2231,38 +2448,47 @@ theorem clause60_forced_factor {D : ℕ} (Lfield Hfield : ℝ → Matrix (Fin D)
           orderedEvolution (lchsForcedGenerator Lfield Hfield) u 0 *ᵥ b u) := by
   exact lchs_forced_duhamel Lfield Hfield b T v hL hH hb
 
+/-- Real scaling of a matrix of norm at most one is bounded by the absolute scale. -/
 theorem clause60_endpoint : ∀ (n : ℝ) (M : Matrix I I ℂ), ‖M‖ ≤ 1 → ‖n • M‖ ≤ |n| := by
   intro n M hM
   exact clause60_normalisation_bound n M hM
 
+/-- If Trotter and synthesis errors are each at most half the tolerance, the ferromagnetic
+relative error is at most the tolerance. -/
 theorem clause61_relative_error_le (l : FerroLedger) (ε : ℝ)
     (h1 : l.trotterError ≤ ε / 2) (h2 : l.synthesisError ≤ ε / 2) :
     ferroRelativeError l ≤ ε := by
   unfold ferroRelativeError
   linarith
 
+/-- The ferromagnetic relative error equals the sum of its Trotter and synthesis contributions. -/
 theorem clause61_relative_error_eq (l : FerroLedger) :
     ferroRelativeError l = l.trotterError + l.synthesisError := rfl
 
+/-- The two half-tolerance bounds imply the ferromagnetic relative-error bound. -/
 theorem clause61_endpoint : ∀ (l : FerroLedger) (ε : ℝ),
     l.trotterError ≤ ε / 2 → l.synthesisError ≤ ε / 2 → ferroRelativeError l ≤ ε := by
   intro l ε h1 h2
   exact clause61_relative_error_le l ε h1 h2
 
+/-- Support conflict is symmetric. -/
 theorem clause52Conflict_comm {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i j : Fin Λ) :
     clause52Conflict F i j ↔ clause52Conflict F j i := by
   unfold clause52Conflict
   exact not_congr (disjoint_comm)
 
+/-- Two local terms conflict exactly when their support intersection is nonempty. -/
 theorem clause52Conflict_iff_nonempty {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i j : Fin Λ) :
     clause52Conflict F i j ↔ ((F i).support ∩ (F j).support).Nonempty := by
   classical
   unfold clause52Conflict
   rw [Finset.disjoint_iff_inter_eq_empty, Finset.nonempty_iff_ne_empty]
 
+/-- The least unused natural number does not belong to the used set. -/
 theorem clause52LeastFree_spec (used : Finset ℕ) : clause52LeastFree used ∉ used :=
   Nat.find_spec (clause52FreeExists used)
 
+/-- The least unused natural number is at most the cardinality of the used set. -/
 theorem clause52LeastFree_le_card (used : Finset ℕ) : clause52LeastFree used ≤ used.card := by
   have hsub : Finset.range (clause52LeastFree used) ⊆ used := by
     intro c hc
@@ -2270,11 +2496,13 @@ theorem clause52LeastFree_le_card (used : Finset ℕ) : clause52LeastFree used �
   have h2 := Finset.card_le_card hsub
   simpa using! h2
 
+/-- The first-fit layer is absent from the layers already used by conflicting terms. -/
 theorem clause52FirstFit_fresh {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i : Fin Λ)
     (a : Fin Λ → Option ℕ) :
     clause52FirstFit F i a ∉ clause52UsedLayers F i a := by
   exact clause52LeastFree_spec _
 
+/-- The assigned color of any distinct conflicting term belongs to the used-layer set. -/
 theorem clause52UsedLayers_mem {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i : Fin Λ)
     (a : Fin Λ → Option ℕ) (k : Fin Λ) (ck : ℕ) (hk : a k = some ck) (hne : k ≠ i)
     (hconf : clause52Conflict F i k) : ck ∈ clause52UsedLayers F i a := by
@@ -2283,6 +2511,7 @@ theorem clause52UsedLayers_mem {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i :
     simp [hk]
   · simp [hk]
 
+/-- The number of used layers is at most the number of distinct conflicting terms. -/
 theorem clause52UsedLayers_card_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i : Fin Λ)
     (a : Fin Λ → Option ℕ) :
     (clause52UsedLayers F i a).card ≤
@@ -2294,6 +2523,8 @@ theorem clause52UsedLayers_card_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) 
   rw [Finset.mem_filter]
   exact ⟨Finset.mem_univ j, ⟨hj.2.1, hj.2.2.1⟩⟩
 
+/-- Updating one term with a color different from all assigned conflicting terms preserves
+properness. -/
 theorem clause52Proper_update {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ) (hk : k < Λ)
     (a : Fin Λ → Option ℕ) (c : ℕ) (hproper : clause52Proper F a)
     (hfresh : ∀ (m : Fin Λ) (cm : ℕ), a m = some cm → m.val ≠ k →
@@ -2328,6 +2559,7 @@ theorem clause52Proper_update {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : 
     · simp only [if_neg hm'] at hm
       exact hproper j m ci cm hj hm hjm hconf
 
+/-- Coloring the first `k` terms preserves a proper partial coloring. -/
 theorem clause52ColourUpTo_proper {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
     ∀ (k : ℕ) (hk : k ≤ Λ) (a : Fin Λ → Option ℕ),
       clause52Proper F a → clause52Proper F (clause52ColourUpTo F k hk a) := by
@@ -2358,6 +2590,7 @@ theorem clause52ColourUpTo_proper {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
         (clause52FirstFit F ⟨k, by omega⟩ (clause52ColourUpTo F k (by omega) a)) hs hfresh
       simpa [clause52ColourUpTo] using! hnew
 
+/-- After coloring the first `k` terms, every term below `k` has an assigned color. -/
 theorem clause52ColourUpTo_some {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
     ∀ (k : ℕ) (hk : k ≤ Λ) (a : Fin Λ → Option ℕ) (i : Fin Λ), i.val < k →
       ∃ c, (clause52ColourUpTo F k hk a) i = some c := by
@@ -2376,11 +2609,14 @@ theorem clause52ColourUpTo_some {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
         rw [if_neg hik]
         exact ih _ _ i (by omega)
 
+/-- The complete coloring assigns a color to every term. -/
 theorem clause52Colouring_some {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i : Fin Λ) :
     ∃ c, clause52Colouring F i = some c := by
   have h := clause52ColourUpTo_some F Λ (by omega) (fun _ => none) i (by omega)
   simpa [clause52Colouring] using! h
 
+/-- The color assigned below `k` is the first-fit color computed after coloring the preceding
+terms. -/
 theorem clause52ColourUpTo_layer {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
     ∀ (k : ℕ) (hk : k ≤ Λ) (a : Fin Λ → Option ℕ) (i : Fin Λ), i.val < k →
       (clause52ColourUpTo F k hk a) i
@@ -2400,6 +2636,7 @@ theorem clause52ColourUpTo_layer {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
         rw [if_neg hik]
         exact ih _ _ i (by omega)
 
+/-- The selected layer of a term equals its first-fit color after processing earlier terms. -/
 theorem clause52Layer_eq_firstFit {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i : Fin Λ) :
     clause52Layer F i = clause52FirstFit F i (clause52ColourUpTo F i.val (by omega) (fun _ => none)) := by
   have h := clause52ColourUpTo_layer F Λ (by omega) (fun _ => none) i (by omega)
@@ -2407,6 +2644,7 @@ theorem clause52Layer_eq_firstFit {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (
   rw [h]
   simp
 
+/-- The selected layer of a term is at most its conflict degree. -/
 theorem clause52Layer_le_overlap {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i : Fin Λ) :
     clause52Layer F i ≤ clause52ConflictDegree F i := by
   rw [clause52Layer_eq_firstFit]
@@ -2416,12 +2654,14 @@ theorem clause52Layer_le_overlap {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (i
         clause52UsedLayers_card_le F i _
     _ = clause52ConflictDegree F i := rfl
 
+/-- The complete first-fit coloring is proper. -/
 theorem clause52Colouring_proper {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) :
     clause52Proper F (clause52Colouring F) := by
   have h := clause52ColourUpTo_proper F Λ (by omega) (fun _ : Fin Λ => none)
     (fun i j ci cj hj hk hjk hconf => absurd hj (by simp))
   simpa [clause52Colouring] using! h
 
+/-- If all selected layers are below `L`, the flattened schedule contains every term. -/
 theorem clause52Schedule_covers {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (L : ℕ)
     (hL : ∀ i, clause52Layer F i < L) (i : Fin Λ) :
     i ∈ (clause52Schedule F L).flatten := by
@@ -2432,6 +2672,7 @@ theorem clause52Schedule_covers {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (L 
   · simp only [List.mem_filter]
     exact ⟨List.mem_finRange i, rfl⟩
 
+/-- Distinct terms in a common scheduled layer have disjoint supports. -/
 theorem clause52Schedule_layer_disjoint {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (L : ℕ)
     (l : List (Fin Λ)) (hl : l ∈ clause52Schedule F L) (i j : Fin Λ) (hi : i ∈ l) (hj : j ∈ l)
     (hne : i ≠ j) : Disjoint (F i).support (F j).support := by
@@ -2461,6 +2702,7 @@ theorem clause52Schedule_layer_disjoint {D Λ : ℕ} (F : Fin Λ → LocalTerm D
     exact hne' hcc
   exact not_not.mp hconf
 
+/-- The selected layers define a parallel schedule whenever they are all below `L`. -/
 theorem clause52_isParallelSchedule {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (L : ℕ)
     (hL : ∀ i, clause52Layer F i < L) :
     IsParallelSchedule (fun i => (F i).support) (fun i => ⟨clause52Layer F i, hL i⟩) := by
@@ -2480,6 +2722,8 @@ theorem clause52_isParallelSchedule {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
         _ = cj := hlj)
     exact not_not.mp hconf
 
+/-- The conflict degree is at most the support size times `occ - 1` under the site occupancy
+bound. -/
 theorem clause52ConflictDegree_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (occ : ℕ)
     (hocc : ∀ s : Fin Λ, (Finset.univ.filter (fun i => s ∈ (F i).support)).card ≤ occ)
     (i : Fin Λ) :
@@ -2529,6 +2773,8 @@ theorem clause52ConflictDegree_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (
     _ = (F i).support.card * (occ - 1) := by
       rw [Finset.sum_const, Nat.nsmul_eq_mul]
 
+/-- Support size at most `d` and site occupancy at most `occ` bound every selected layer by `d *
+(occ - 1)`. -/
 theorem clause52Layer_le_occupancy {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (d occ : ℕ)
     (hsupp : ∀ i, (F i).support.card ≤ d)
     (hocc : ∀ s : Fin Λ, (Finset.univ.filter (fun i => s ∈ (F i).support)).card ≤ occ)
@@ -2540,6 +2786,7 @@ theorem clause52Layer_le_occupancy {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) 
     _ ≤ (F i).support.card * (occ - 1) := h2
     _ ≤ d * (occ - 1) := Nat.mul_le_mul_right _ (hsupp i)
 
+/-- The bounded layer assignment gives a parallel schedule for a bounded finite-range family. -/
 theorem clause52_parallel_schedule_endpoint : ∀ {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
     (b d occ : ℕ) (hlayer : ∀ i, clause52Layer F i ≤ d * (occ - 1)),
     FiniteRangeBounded F b d occ →
@@ -2552,6 +2799,7 @@ theorem clause52_parallel_schedule_endpoint : ∀ {D Λ : ℕ} (F : Fin Λ → L
     have h := hlayer' i
     omega)
 
+/-- The recursive Suzuki macro word has `2 * Λ * 5 ^ k` gates. -/
 theorem clause52MacroGates_eq {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ) :
     clause52MacroGates F k = 2 * Λ * 5^k := by
   unfold clause52MacroGates clause52MacroWord clause52FamilyWord
@@ -2560,17 +2808,20 @@ theorem clause52MacroGates_eq {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : 
         (recursive_suzuki_length_and_mass (Fin D) ((List.finRange Λ).map (fun i => (F i).op)) k).1
     _ = 2 * Λ * 5^k := by simp
 
+/-- The total macro gate count over all segments is `segments * 2 * Λ * 5 ^ k`. -/
 theorem clause52MacroTotalGates_eq {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k segments : ℕ) :
     clause52MacroTotalGates F k segments = segments * 2 * Λ * 5^k := by
   unfold clause52MacroTotalGates
   rw [clause52MacroGates_eq]
   simp [Nat.mul_assoc, Nat.mul_comm, Nat.mul_left_comm]
 
+/-- Multiplication of real scale factors agrees with successive scalar actions on an operator. -/
 private theorem clause52_smul_mul_smul_comm {D : ℕ} (a m : ℝ) (X : Operator D) :
     (m * a) • X = m • (a • X) := by
   simp only [Algebra.smul_def]
   rw [map_mul, mul_assoc]
 
+/-- Mapping each element within nested lists commutes with flattening. -/
 private theorem clause52_flatten_map_map {α β : Type} (l : List (List α)) (g : α → β) :
     (l.map (fun s => s.map g)).flatten = l.flatten.map g := by
   induction l with
@@ -2579,6 +2830,8 @@ private theorem clause52_flatten_map_map {α β : Type} (l : List (List α)) (g 
       simp only [List.map_cons, List.flatten_cons, List.map_append]
       rw [ih]
 
+/-- Mapping within each generated list and then flattening equals mapping after flattening the
+generated lists. -/
 private theorem clause52_flatten_map_map' {α β γ : Type} (l : List α) (f : α → List β)
     (g : β → γ) :
     (l.map (fun s => (f s).map g)).flatten = (l.map f).flatten.map g := by
@@ -2588,6 +2841,7 @@ private theorem clause52_flatten_map_map' {α β γ : Type} (l : List α) (f : �
       simp only [List.map_cons, List.flatten_cons, List.map_append]
       rw [ih]
 
+/-- Flattening distributes over list append. -/
 private theorem clause52_flatten_append {α : Type} (l₁ l₂ : List (List α)) :
     (l₁ ++ l₂).flatten = l₁.flatten ++ l₂.flatten := by
   induction l₁ with
@@ -2597,11 +2851,14 @@ private theorem clause52_flatten_append {α : Type} (l₁ l₂ : List (List α))
       rw [ih]
       simp only [List.append_assoc]
 
+/-- Mapping, reversing, and mapping again equals reversing and mapping the composite function. -/
 private theorem clause52_reverse_map {α β γ : Type} (l : List α) (f : α → β) (g : β → γ) :
     (l.map f).reverse.map g = l.reverse.map (fun i => g (f i)) := by
   rw [← List.map_reverse, List.map_map]
   rfl
 
+/-- The next recursive Suzuki word consists of five scaled copies of the preceding word, with
+the middle scale `1 - 4 * recursiveSuzukiScale k`. -/
 private theorem clause52_suzuki_five_copies {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) :
     recursiveSuzukiGenerators hs (k + 1) =
@@ -2613,6 +2870,7 @@ private theorem clause52_suzuki_five_copies {I : Type} [Fintype I] [DecidableEq 
       (recursiveSuzukiGenerators hs k).map (fun X => recursiveSuzukiScale k • X) := by
   simp only [recursiveSuzukiGenerators]
 
+/-- The macro stage count is `2 * 5 ^ k`. -/
 theorem clause52StageCount_eq (k : ℕ) : clause52StageCount k = 2 * 5^k := by
   induction k with
   | zero => rfl
@@ -2620,6 +2878,7 @@ theorem clause52StageCount_eq (k : ℕ) : clause52StageCount k = 2 * 5^k := by
       rw [clause52StageCount, ih, pow_succ]
       ring
 
+/-- The macro stage list has length `clause52StageCount k`. -/
 theorem clause52MacroStageList_length {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ) :
     (clause52MacroStageList F k).length = clause52StageCount k := by
   induction k with
@@ -2629,6 +2888,7 @@ theorem clause52MacroStageList_length {D Λ : ℕ} (F : Fin Λ → LocalTerm D �
         ih]
       omega
 
+/-- Every scaled macro stage has the same term list as some original stage. -/
 private theorem clause52_stage_of_map {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ)
     (m : ℝ) (st : ℝ × List (Fin Λ))
     (hst : st ∈ (clause52MacroStageList F k).map (clause52ScaleStage m)) :
@@ -2636,6 +2896,7 @@ private theorem clause52_stage_of_map {D Λ : ℕ} (F : Fin Λ → LocalTerm D �
   obtain ⟨s, hs, hfst⟩ := List.mem_map.mp hst
   exact ⟨s, hs, (congrArg Prod.snd hfst).symm⟩
 
+/-- Every stage at recursion level `k + 1` has the same term list as some stage at level `k`. -/
 private theorem clause52_stage_mem_succ {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ)
     (st : ℝ × List (Fin Λ)) (hst : st ∈ clause52MacroStageList F (k + 1)) :
     ∃ s : ℝ × List (Fin Λ), s ∈ clause52MacroStageList F k ∧ st.2 = s.2 := by
@@ -2650,6 +2911,7 @@ private theorem clause52_stage_mem_succ {D Λ : ℕ} (F : Fin Λ → LocalTerm D
     · exact clause52_stage_of_map F k _ st h2
   · exact clause52_stage_of_map F k _ st h1
 
+/-- Each macro stage lists every family term exactly once and has length `Λ`. -/
 theorem clause52MacroStageTerms {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ)
     (st : ℝ × List (Fin Λ)) (hst : st ∈ clause52MacroStageList F k) :
     st.2.length = Λ ∧ (∀ i : Fin Λ, i ∈ st.2) ∧ st.2.Nodup := by
@@ -2673,6 +2935,7 @@ theorem clause52MacroStageTerms {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k 
       exact ⟨by rw [hterm]; exact hlen, by rw [hterm]; exact hmem,
         by rw [hterm]; exact hnodup⟩
 
+/-- Scaling all macro stages scales every operator in the flattened stage words. -/
 private theorem clause52_stage_flatten_scale {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
     (k : ℕ) (m : ℝ) :
     ((List.map (clause52ScaleStage m) (clause52MacroStageList F k)).map (clause52StageWord F)).flatten
@@ -2692,6 +2955,7 @@ private theorem clause52_stage_flatten_scale {D Λ : ℕ} (F : Fin Λ → LocalT
   exact clause52_flatten_map_map' (clause52MacroStageList F k) (clause52StageWord F)
       (fun X => m • X)
 
+/-- The macro word is the flattening of the macro stage words. -/
 theorem clause52MacroWord_eq_stages {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ) :
     clause52MacroWord F k = (clause52MacroStageWords F k).flatten := by
   induction k with
@@ -2764,17 +3028,22 @@ theorem clause52MacroWord_eq_stages {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
               rw [hrec]
         _ = (clause52MacroStageWords F (k + 1)).flatten := hflat.symm
 
+/-- The macro gate count equals the number of terms times the stage count. -/
 theorem clause52MacroGates_eq_stages {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ) :
     clause52MacroGates F k = Λ * clause52StageCount k := by
   rw [clause52MacroGates_eq, clause52StageCount_eq]
   ring
 
+/-- The macro depth is the stage count times the number of parallel layers. -/
 theorem clause52MacroDepth_eq (k L : ℕ) : clause52MacroDepth k L = clause52StageCount k * L := rfl
 
+/-- Using `d * (occ - 1) + 1` layers gives depth `2 * 5 ^ k * (d * (occ - 1) + 1)`. -/
 theorem clause52MacroDepth_occupancy (k d occ : ℕ) :
     clause52MacroDepth k (d * (occ - 1) + 1) = 2 * 5^k * (d * (occ - 1) + 1) := by
   rw [clause52MacroDepth_eq, clause52StageCount_eq]
 
+/-- The routing-swap count for each term is at most `d - 1` when all supports have size at most
+`d`. -/
 theorem clause52TermRouteSwaps_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (d : ℕ)
     (hsupp : ∀ i, (F i).support.card ≤ d) (i : Fin Λ) :
     clause52TermRouteSwaps F i ≤ d - 1 := by
@@ -2782,6 +3051,8 @@ theorem clause52TermRouteSwaps_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (
   have h := hsupp i
   omega
 
+/-- The routing-swap count of a layer is at most its length times `d - 1` under the support-size
+bound. -/
 theorem clause52LayerRouteSwaps_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (d : ℕ)
     (hsupp : ∀ i, (F i).support.card ≤ d) (l : List (Fin Λ)) :
     clause52LayerRouteSwaps F l ≤ l.length * (d - 1) := by
@@ -2796,6 +3067,7 @@ theorem clause52LayerRouteSwaps_le {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) 
     _ ≤ l.length * (d - 1) := by
           exact Nat.mul_le_mul_right _ (List.toFinset_card_le l)
 
+/-- The routing-swap count of each macro stage equals the family routing-swap count. -/
 theorem clause52StageRouteSwaps_eq {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ)
     (st : ℝ × List (Fin Λ)) (hst : st ∈ clause52MacroStageList F k) :
     clause52LayerRouteSwaps F st.2 = clause52FamilyRouteSwaps F := by
@@ -2811,14 +3083,19 @@ theorem clause52StageRouteSwaps_eq {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) 
   unfold clause52LayerRouteSwaps clause52FamilyRouteSwaps
   rw [hset]
 
+/-- The macro routing-swap count equals the stage count times the family routing-swap count. -/
 theorem clause52MacroRouteSwaps_eq {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ) :
     clause52MacroRouteSwaps F k = clause52StageCount k * clause52FamilyRouteSwaps F := rfl
 
+/-- The macro routing-swap count is `2 * 5 ^ k` times the sum of support sizes minus one, with
+natural subtraction. -/
 theorem clause52MacroRouteSwaps_levels {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (k : ℕ) :
     clause52MacroRouteSwaps F k = 2 * 5^k * (∑ i : Fin Λ, ((F i).support.card - 1)) := by
   rw [clause52MacroRouteSwaps_eq, clause52StageCount_eq]
   rfl
 
+/-- The macro routing-swap formula is independent of the layer count, while macro depth scales
+linearly with that count. -/
 theorem clause52MacroRouteSwaps_schedule_independent {D Λ : ℕ}
     (F : Fin Λ → LocalTerm D Λ) (k L : ℕ) :
     clause52MacroRouteSwaps F k = clause52StageCount k * clause52FamilyRouteSwaps F ∧
@@ -2828,6 +3105,8 @@ theorem clause52MacroRouteSwaps_schedule_independent {D Λ : ℕ}
   simp only [clause52MacroDepth_eq]
   ring
 
+/-- The finite-range macro construction satisfies the stated stage, word, depth, gate-count, and
+routing-swap identities. -/
 theorem clause52_parallel_depth_endpoint : ∀ {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ)
     (b d occ : ℕ) (k : ℕ),
     FiniteRangeBounded F b d occ →
@@ -2849,25 +3128,31 @@ theorem clause52_parallel_depth_endpoint : ∀ {D Λ : ℕ} (F : Fin Λ → Loca
       = 2 * 5^k * (∑ i : Fin Λ, ((F i).support.card - 1)) := clause52MacroRouteSwaps_levels F k
   exact ⟨hstages, hterms, clause52MacroWord_eq_stages F k, hdepth, hgates, hroute⟩
 
+/-- The ferromagnetic half gate word has one entry per site and two entries per listed pair. -/
 theorem clause61_gate_half_length {n : ℕ} (F : FerroData n) (β : ℝ) (r : ℕ) :
     (ferroGateHalf F β r).length = n + 2 * (ferroPairList n).length := by
   simp [ferroGateHalf]
   ring
 
+/-- The ferromagnetic gate word has twice the length of its half word. -/
 theorem clause61_gate_word_length {n : ℕ} (F : FerroData n) (β : ℝ) (r : ℕ) :
     (ferroGateWord F β r).length = 2 * (n + 2 * (ferroPairList n).length) := by
   simp [ferroGateWord, clause61_gate_half_length]
   ring
 
+/-- The ferromagnetic step word has twice the length of the half gate word. -/
 theorem clause61_step_word_length {n : ℕ} (F : FerroData n) (β : ℝ) (r : ℕ) :
     (ferroStepWord F β r).length = 2 * (n + 2 * (ferroPairList n).length) := by
   simp [ferroStepWord, ferroStepHalf]
   ring
 
+/-- The full ferromagnetic gate word has `r` times the length of a single gate word. -/
 theorem clause61_full_gate_word_length {n : ℕ} (F : FerroData n) (β : ℝ) (r : ℕ) :
     (ferroFullGateWord F β r).length = r * (2 * (n + 2 * (ferroPairList n).length)) := by
   simp [ferroFullGateWord, clause61_gate_word_length]
 
+/-- A ledger whose layer count matches the full gate word satisfies the stated error
+decomposition and gate-word length identities. -/
 theorem clause61_gate_count_endpoint : ∀ {n : ℕ} (F : FerroData n) (β : ℝ) (r : ℕ)
     (l : FerroLedger), l.layers = r * (2 * (n + 2 * (ferroPairList n).length)) →
     l.trotterError + l.synthesisError = ferroRelativeError l ∧

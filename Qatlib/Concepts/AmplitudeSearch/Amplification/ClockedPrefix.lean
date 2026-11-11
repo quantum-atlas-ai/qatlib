@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
 import Mathlib.Topology.Algebra.InfiniteSum.Real
 
+/-!
+# Checked updates and clocked prefixes
+
+`checkedUpdate` retains the current candidate unless a strict improvement is found.
+`budgetPrefixIndex` and `completedPrefixClock` evaluate the initial calls that finish within a
+real-valued budget, while `finalCheckedIndex` evaluates the full trace.
+
+The module proves that completed traces retain their result under a sufficient budget, that
+minima survive further checked updates, and that a nonnegative clock has at least half its mass
+below twice an upper bound on its mean. These facts support the interruption argument for
+[DurrHoyer1996].
+
+## Main statements
+
+* `budgetPrefixIndex_complete`: identifies the prefix result when the entire trace fits.
+* `interrupted_output_preserves`: preserves a completed minimum under a later candidate update.
+* `nonnegative_clock_half_mass`: gives the half-mass clock estimate.
+
+## References
+
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+-/
+
 open Qatlib.Concepts.AmplitudeSearch.Amplification.DistinctRankedTable
 
 open Qatlib.Concepts.AmplitudeSearch.Amplification.Experiment
@@ -17,9 +40,11 @@ namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
 variable {I α : Type*} [LinearOrder α]
 
+/-- Replace the current index by the candidate only when its table value is strictly smaller. -/
 def checkedUpdate (T : I → α) (old candidate : I) : I :=
   if T candidate < T old then candidate else old
 
+/-- A checked update cannot increase the current table value. -/
 theorem checkedUpdate_nonincrease (T : I → α) (old candidate : I) :
     T (checkedUpdate T old candidate) ≤ T old := by
   unfold checkedUpdate
@@ -27,32 +52,40 @@ theorem checkedUpdate_nonincrease (T : I → α) (old candidate : I) :
   · exact h.le
   · exact le_rfl
 
+/-- A checked update leaves a minimum index unchanged. -/
 theorem checkedUpdate_preserves_minimum (T : I → α) (old candidate : I)
     (hmin : ∀ i, T old ≤ T i) :
     checkedUpdate T old candidate = old := by
   exact if_neg (not_lt_of_ge (hmin candidate))
 
+/-- A list of candidate indices paired with real-valued call durations. -/
 abbrev ClockedTrace (I : Type*) := List (I × ℝ)
 
+/-- The total duration of a clocked trace. -/
 noncomputable def traceClock : ClockedTrace I → ℝ
   | [] => 0
   | x :: xs => x.2 + traceClock xs
 
+/-- The final index obtained by applying all checked updates in a clocked trace. -/
 noncomputable def finalCheckedIndex (T : I → α) (initial : I) : ClockedTrace I → I
   | [] => initial
   | x :: xs => finalCheckedIndex T (checkedUpdate T initial x.1) xs
 
+/-- The index obtained from the longest initial sequence of calls that can be completed within
+the remaining budget. -/
 noncomputable def budgetPrefixIndex (T : I → α) (initial : I) (budget : ℝ) :
     ClockedTrace I → I
   | [] => initial
   | x :: xs => if x.2 ≤ budget then
       budgetPrefixIndex T (checkedUpdate T initial x.1) (budget - x.2) xs else initial
 
+/-- The total duration of the initial calls completed within the given budget. -/
 noncomputable def completedPrefixClock (budget : ℝ) : ClockedTrace I → ℝ
   | [] => 0
   | x :: xs => if x.2 ≤ budget then
       x.2 + completedPrefixClock (budget - x.2) xs else 0
 
+/-- A trace with nonnegative call durations has nonnegative total duration. -/
 theorem traceClock_nonneg (xs : ClockedTrace I) (hc : ∀ x ∈ xs, 0 ≤ x.2) :
     0 ≤ traceClock xs := by
   induction xs with
@@ -60,6 +93,8 @@ theorem traceClock_nonneg (xs : ClockedTrace I) (hc : ∀ x ∈ xs, 0 ≤ x.2) :
   | cons x xs ih =>
     exact add_nonneg (hc x (by simp)) (ih (fun y hy => hc y (by simp [hy])))
 
+/-- For a nonnegative budget and call durations, the completed prefix clock lies between zero
+and the budget. -/
 theorem completedPrefixClock_bounds (xs : ClockedTrace I) (budget : ℝ)
     (hb : 0 ≤ budget) (hc : ∀ x ∈ xs, 0 ≤ x.2) :
     0 ≤ completedPrefixClock budget xs ∧ completedPrefixClock budget xs ≤ budget := by
@@ -74,6 +109,8 @@ theorem completedPrefixClock_bounds (xs : ClockedTrace I) (budget : ℝ)
       constructor <;> linarith [ht.1, ht.2]
     · exact ⟨le_rfl, hb⟩
 
+/-- If the budget covers the entire trace and durations are nonnegative, the budgeted index
+equals the final checked index. -/
 theorem budgetPrefixIndex_complete (T : I → α) (xs : ClockedTrace I)
     (hc : ∀ x ∈ xs, 0 ≤ x.2) (initial : I) (budget : ℝ)
     (hb : traceClock xs ≤ budget) :
@@ -88,6 +125,8 @@ theorem budgetPrefixIndex_complete (T : I → α) (xs : ClockedTrace I)
     simp only [traceClock] at hb
     linarith
 
+/-- Once the completed trace yields a minimum within budget, a subsequent checked update
+preserves the minimum-value property. -/
 theorem interrupted_output_preserves (T : I → α) (xs : ClockedTrace I)
     (hc : ∀ x ∈ xs, 0 ≤ x.2) (initial candidate : I) (budget : ℝ)
     (hb : traceClock xs ≤ budget)
@@ -97,6 +136,8 @@ theorem interrupted_output_preserves (T : I → α) (xs : ClockedTrace I)
     checkedUpdate_preserves_minimum T _ candidate hmin]
   exact hmin
 
+/-- A normalized nonnegative mass function with nonnegative clock and mean at most positive `m`
+assigns mass at least `1 / 2` to clocks at most `2 * m`. -/
 theorem nonnegative_clock_half_mass {Ω : Type*} (mass clock : Ω → ℝ)
     (hmass : HasSum mass 1) (hmnn : ∀ x, 0 ≤ mass x) (hcnn : ∀ x, 0 ≤ clock x)
     (q m : ℝ) (hq : HasSum (fun x => mass x * clock x) q) (hqm : q ≤ m) (hm : 0 < m) :

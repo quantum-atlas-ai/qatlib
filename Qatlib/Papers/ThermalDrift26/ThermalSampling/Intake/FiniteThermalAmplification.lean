@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalLCU
+
+/-!
+# Finite Thermal Amplitude Amplification
+
+This module connects a native finite gate word to one step of oblivious amplitude amplification
+for the thermal source construction of [JiangEtAl2026]. `thermalAcceptedCorner` extracts the
+block with the uniform register returned to zero, while `thermalActualOAAWord` combines the
+native linear combination of unitaries, two zero-register reflections, its inverse, and a global
+minus sign.
+
+The exact accepted coefficients are used to bound the error of the full prepared state and the
+resulting joint classical and quantum readout. Legality and resource bounds retain the workspace
+condition `b <= w + 2` and the weight identity `w0 + w1 + pad + pad = 2^b`.
+
+## Main statements
+
+- `thermalAcceptedOAA_corner` gives the accepted-block polynomial `3 A - 4 A Aᴴ A`.
+- `thermalActualOAA_coefficients` identifies the two clean output amplitudes.
+- `thermalActualOAA_source_cq` combines preparation and index-distribution errors.
+* `thermalActualOAA_cost` bounds the gate count by `1536*b^2 + 134*b + 103` and proves zero
+  oracle queries.
+
+## References
+
+* [Jiang et al., 2026][JiangEtAl2026], *Thermal-Drift Sampling: Generating Thermal Ensembles for
+  Learning Many-Body Systems*.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,12 +43,17 @@ namespace Qatlib.Papers.ThermalDrift26.ThermalSampling
 open Qatlib Matrix Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermalCircuits
 open scoped BigOperators
 
+/-- The diagonal projector onto states whose `b`-qubit uniform register is zero, with the signal
+qubit unrestricted. -/
 def thermalZeroUniformProjector (b : ℕ) : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ :=
   Matrix.diagonal (fun j => if j.1=Qatlib.Foundations.PureStateMath.ZeroStr b then 1 else 0)
 
+/-- The two-by-two signal block of `A` obtained by fixing both uniform-register indices to the
+all-zero string. -/
 def thermalAcceptedCorner (b : ℕ) (A : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ) :
     Matrix (Fin 2) (Fin 2) ℂ := fun s t => A (Qatlib.Foundations.PureStateMath.ZeroStr b,s) (Qatlib.Foundations.PureStateMath.ZeroStr b,t)
 
+/-- The zero-uniform-register projector is idempotent under matrix multiplication. -/
 theorem thermalZeroUniformProjector_idempotent (b : ℕ) :
     thermalZeroUniformProjector b*thermalZeroUniformProjector b=thermalZeroUniformProjector b := by
   rw [thermalZeroUniformProjector,Matrix.diagonal_mul_diagonal]
@@ -28,12 +61,16 @@ theorem thermalZeroUniformProjector_idempotent (b : ℕ) :
   funext j
   split_ifs <;> norm_num
 
+/-- Multiplying a matrix on both sides by the zero-uniform-register projector leaves its
+accepted corner unchanged. -/
 theorem thermalAcceptedCorner_filter (b : ℕ) (A : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ) :
     thermalAcceptedCorner b (thermalZeroUniformProjector b*A*thermalZeroUniformProjector b)=
       thermalAcceptedCorner b A := by
   ext s t
   simp [thermalAcceptedCorner,thermalZeroUniformProjector,Matrix.diagonal_mul,Matrix.mul_diagonal]
 
+/-- Inserting the zero-uniform-register projector between `A` and `B` makes their accepted
+corner the product of their individual accepted corners. -/
 theorem thermalAcceptedCorner_product (b : ℕ)
     (A B : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ) :
     thermalAcceptedCorner b (A*thermalZeroUniformProjector b*B)=
@@ -42,20 +79,27 @@ theorem thermalAcceptedCorner_product (b : ℕ)
   simp [thermalAcceptedCorner,thermalZeroUniformProjector,Matrix.mul_apply,
     Matrix.diagonal,Fintype.sum_prod_type,Finset.sum_add_distrib]
 
+/-- Taking the accepted corner commutes with conjugate transpose. -/
 theorem thermalAcceptedCorner_adjoint (b : ℕ) (A : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ) :
     thermalAcceptedCorner b Aᴴ=(thermalAcceptedCorner b A)ᴴ := rfl
 
+/-- The accepted corner of a sum is the sum of the accepted corners. -/
 theorem thermalAcceptedCorner_add (b : ℕ)
     (A B : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ) :
     thermalAcceptedCorner b (A+B)=thermalAcceptedCorner b A+thermalAcceptedCorner b B := rfl
 
+/-- The accepted corner of a difference is the difference of the accepted corners. -/
 theorem thermalAcceptedCorner_sub (b : ℕ)
     (A B : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ) :
     thermalAcceptedCorner b (A-B)=thermalAcceptedCorner b A-thermalAcceptedCorner b B := rfl
 
+/-- Taking the accepted corner commutes with multiplication by a natural-number scalar. -/
 theorem thermalAcceptedCorner_nsmul (b k : ℕ) (A : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ) :
     thermalAcceptedCorner b (k • A)=k • thermalAcceptedCorner b A := rfl
 
+/-- For unitary `U` with accepted block `A`, the accepted block of the reflected amplification
+word is `3 A - 4 A Aᴴ A`. This is the accepted-block identity used in the thermal source
+implementation associated with [JiangEtAl2026]. -/
 theorem thermalAcceptedOAA_corner (b : ℕ) (U : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ)
     (hU : U∈Matrix.unitaryGroup (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ) :
     thermalAcceptedCorner b (-(U*(1-2*thermalZeroUniformProjector b)*Uᴴ*
@@ -86,6 +130,8 @@ theorem thermalAcceptedOAA_corner (b : ℕ) (U : Matrix (Qatlib.Foundations.Pure
     thermalAcceptedCorner_filter,thermalAcceptedCorner_product,thermalAcceptedCorner_adjoint] at h
   exact h
 
+/-- If `w0 + w1 + pad + pad = 2^b`, summing the uniform branch matrices gives `w0` times the
+identity plus `w1` times `thermalQuarterTurn`; the two padding contributions cancel. -/
 theorem thermalUniformBranch_sum (b w0 w1 pad : ℕ) (htotal : w0+w1+pad+pad=2^b) :
     (∑ u : Qatlib.Foundations.PureStateMath.Reg b,thermalUniformBranch b w0 (w0+w1) (w0+w1+pad) (2^b) u)=
       (w0:ℂ) • (1 : Matrix (Fin 2) (Fin 2) ℂ)+(w1:ℂ) • thermalQuarterTurn := by
@@ -118,6 +164,8 @@ theorem thermalUniformBranch_sum (b w0 w1 pad : ℕ) (htotal : w0+w1+pad+pad=2^b
   rw [he]
   ring
 
+/-- Under the total-weight identity, the uniform linear-combination unitary has accepted block
+`(w0/2^b) I + (w1/2^b) thermalQuarterTurn`. -/
 theorem thermalUniformLCU_accepted (b w0 w1 pad : ℕ) (htotal : w0+w1+pad+pad=2^b) :
     thermalAcceptedCorner b (thermalUniformLCU b w0 (w0+w1) (w0+w1+pad) (2^b))=
       ((w0:ℂ)/(2^b:ℕ)) • (1 : Matrix (Fin 2) (Fin 2) ℂ)+
@@ -145,9 +193,13 @@ theorem thermalUniformLCU_accepted (b w0 w1 pad : ℕ) (htotal : w0+w1+pad+pad=2
   rw [ht,Qatlib.Concepts.BlockEncoding.LinearCombination.mulVec_ket_apply] at h
   exact h
 
+/-- The real-coefficient signal matrix `c I + s thermalQuarterTurn`, viewed as a complex
+two-by-two matrix. -/
 def thermalScaledRotation (c s : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   (c:ℂ) • (1 : Matrix (Fin 2) (Fin 2) ℂ)+(s:ℂ) • thermalQuarterTurn
 
+/-- For `A = thermalScaledRotation c s / 2`, the polynomial `3 A - 4 A Aᴴ A` equals
+`thermalScaledRotation c s` scaled by `(3 - (c^2 + s^2))/2`. -/
 theorem thermalScaledRotation_amplify (c s : ℝ) :
     let A := (1/2:ℂ) • thermalScaledRotation c s
     (3:ℕ) • A-(4:ℕ) • (A*Aᴴ*A)=(((3-(c^2+s^2))/2:ℝ):ℂ) • thermalScaledRotation c s := by
@@ -158,9 +210,13 @@ theorem thermalScaledRotation_amplify (c s : ℝ) :
       Matrix.conjTranspose_apply,Matrix.one_apply,Matrix.ofNat_apply,Complex.ofReal_div,Complex.ofReal_sub,
       Complex.ofReal_add,Complex.ofReal_pow] <;> ring
 
+/-- The reflection `I - 2 P` about the complement of the subspace where the uniform register is
+zero, with `P = thermalZeroUniformProjector b`. -/
 def thermalUniformReflection (b : ℕ) : Matrix (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) (Qatlib.Foundations.PureStateMath.Reg b × Fin 2) ℂ :=
   1-2*thermalZeroUniformProjector b
 
+/-- On a computational basis state, the uniform reflection contributes phase `-1` exactly when
+the uniform register is zero and phase `1` otherwise. -/
 theorem thermalUniformReflection_basis (b : ℕ) (j : Qatlib.Foundations.PureStateMath.Reg b × Fin 2) :
     thermalUniformReflection b *ᵥ Qatlib.Foundations.PureStateMath.Ket j=
       (if j.1=Qatlib.Foundations.PureStateMath.ZeroStr b then (-1:ℂ) else 1) • Qatlib.Foundations.PureStateMath.Ket j := by
@@ -174,9 +230,13 @@ theorem thermalUniformReflection_basis (b : ℕ) (j : Qatlib.Foundations.PureSta
   · simp [thermalUniformReflection,thermalZeroUniformProjector,two_mul,hij,
       Qatlib.Foundations.PureStateMath.Ket,Matrix.diagonal]
 
+/-- The finite gate word implementing the zero-register reflection on the canonical uniform,
+flag, and scratch wires. -/
 def thermalCanonicalReflectionWord (b w : ℕ) : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode :=
   thermalZeroReflection (thermalUniformWires b w) (thermalFlagWire b w) (thermalScratchWires b w)
 
+/-- When `b <= w + 2`, the canonical reflection word intertwines through `thermalWorkspaceEmbed`
+with the abstract uniform-register reflection. -/
 theorem thermalCanonicalReflection_intertwine (b w : ℕ) (hcap : b≤w+2) :
     Qatlib.Concepts.UniformBqp.FiniteGateWord.finiteCodeWordMatrix ((b+1)+(w+1)) (thermalCanonicalReflectionWord b w)*
       thermalWorkspaceEmbed b w=thermalWorkspaceEmbed b w*thermalUniformReflection b := by
@@ -210,6 +270,7 @@ theorem thermalCanonicalReflection_intertwine (b w : ℕ) (hcap : b≤w+2) :
   simpa only [Qatlib.Concepts.UniformBqp.FiniteGateWord.finite_phase_word_run,Qatlib.Foundations.PureStateMath.ApplyGate,thermalCanonicalReflectionWord,
     thermalEncoded] using! hr
 
+/-- The matrix of `thermalGlobalMinusWord` on any valid signal wire is the negative identity. -/
 theorem thermalGlobalMinus_matrix {n : ℕ} (signal : Fin n) :
     Qatlib.Concepts.UniformBqp.FiniteGateWord.finiteCodeWordMatrix n (thermalGlobalMinusWord signal)= -1 := by
   ext i j
@@ -217,6 +278,9 @@ theorem thermalGlobalMinus_matrix {n : ℕ} (signal : Fin n) :
   simpa only [Qatlib.Concepts.UniformBqp.FiniteGateWord.finite_phase_word_run,Qatlib.Foundations.PureStateMath.ApplyGate,Qatlib.Concepts.BlockEncoding.LinearCombination.mulVec_ket_apply,Pi.smul_apply,smul_eq_mul,
     Matrix.neg_apply,Matrix.one_apply,Qatlib.Foundations.PureStateMath.Ket,neg_one_mul] using! h
 
+/-- The native thermal amplification word formed from a linear-combination program, a
+zero-register reflection, the expanded program's inverse, another reflection, the original
+program, and a global minus phase. -/
 def thermalActualOAAWord (b w w0 w1 pad : ℕ) : List Qatlib.Concepts.GateVocabulary.FiniteGateDescription.FiniteGateCode :=
   let u := thermalNativeLCUSteps b w w0 w1 pad
   thermalNativeProgram u ++ thermalCanonicalReflectionWord b w ++
@@ -224,6 +288,9 @@ def thermalActualOAAWord (b w w0 w1 pad : ℕ) : List Qatlib.Concepts.GateVocabu
     thermalCanonicalReflectionWord b w ++ thermalNativeProgram u ++
     thermalGlobalMinusWord (thermalSignalWire b w)
 
+/-- Under the workspace and total-weight conditions, the actual finite amplification word
+intertwines through the workspace embedding with `-(U R Uᴴ R U)`, where `U` is the uniform
+linear-combination unitary and `R` its uniform reflection. -/
 theorem thermalActualOAA_intertwine (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
     (htotal : w0+w1+pad+pad=2^b) :
     Qatlib.Concepts.UniformBqp.FiniteGateWord.finiteCodeWordMatrix ((b+1)+(w+1)) (thermalActualOAAWord b w w0 w1 pad)*
@@ -248,6 +315,8 @@ theorem thermalActualOAA_intertwine (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
   convert! h5 using 1
   simp only [Matrix.mul_assoc,neg_mul,one_mul]
 
+/-- Encoding a zero uniform register and signal value `s` gives the register corresponding under
+`rotationRegisterEquiv` to signal `s` and an entirely zero workspace. -/
 theorem thermalEncoded_target (b w : ℕ) (s : Fin 2) :
     thermalEncoded b w (Qatlib.Foundations.PureStateMath.ZeroStr b,s)=
       (rotationRegisterEquiv ((b+1)+w)).symm (s,fun _ => false) := by
@@ -269,6 +338,7 @@ theorem thermalEncoded_target (b w : ℕ) (s : Fin 2) :
       omega
     rw [he,Fin.cons_succ]
 
+/-- Encoding a zero uniform register and zero signal yields the all-zero physical register. -/
 theorem thermalEncoded_zero (b w : ℕ) :
     thermalEncoded b w (Qatlib.Foundations.PureStateMath.ZeroStr b,0)=(fun _ => false) := by
   rw [thermalEncoded_target]
@@ -277,6 +347,8 @@ theorem thermalEncoded_zero (b w : ℕ) :
   · rfl
   · rfl
 
+/-- The actual amplification word is legal on its `b + w + 2` wires whenever `b <= w + 2` and
+the branch weights satisfy the total-weight identity. -/
 theorem thermalActualOAA_legal (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
     (htotal : w0+w1+pad+pad=2^b) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal (((b+1)+w)+1) (thermalActualOAAWord b w w0 w1 pad)=true := by
@@ -292,8 +364,12 @@ theorem thermalActualOAA_legal (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
     thermalCanonicalReflectionWord,thermalGlobalMinusWord] using!
     And.intro (And.intro (And.intro (And.intro (And.intro hu' hr) hv) hr) hu') hm
 
+/-- The real dyadic coefficient `2 * weight / 2^b` used for the unamplified signal amplitudes. -/
 def thermalDyadicCoefficient (b weight : ℕ) : ℝ := 2*(weight:ℝ)/(2^b:ℕ)
 
+/-- Under the total-weight identity, the accepted block of the uniform linear-combination
+unitary is half the scaled rotation with coefficients `thermalDyadicCoefficient b w0` and
+`thermalDyadicCoefficient b w1`. -/
 theorem thermalUniformLCU_accepted_scaled (b w0 w1 pad : ℕ) (htotal : w0+w1+pad+pad=2^b) :
     thermalAcceptedCorner b (thermalUniformLCU b w0 (w0+w1) (w0+w1+pad) (2^b))=
       (1/2:ℂ) • thermalScaledRotation (thermalDyadicCoefficient b w0) (thermalDyadicCoefficient b w1) := by
@@ -302,6 +378,9 @@ theorem thermalUniformLCU_accepted_scaled (b w0 w1 pad : ℕ) (htotal : w0+w1+pa
   simp [thermalScaledRotation,thermalDyadicCoefficient,Matrix.smul_apply,smul_eq_mul,div_eq_mul_inv]
   ring
 
+/-- Under the total-weight identity, the effective amplification word has accepted block `gamma
+* thermalScaledRotation c s`, where `c` and `s` are the dyadic coefficients and `gamma = (3
+- (c^2 + s^2))/2`. -/
 theorem thermalEffectiveOAA_accepted (b w0 w1 pad : ℕ) (htotal : w0+w1+pad+pad=2^b) :
     let U := thermalUniformLCU b w0 (w0+w1) (w0+w1+pad) (2^b)
     let c := thermalDyadicCoefficient b w0
@@ -313,6 +392,9 @@ theorem thermalEffectiveOAA_accepted (b w0 w1 pad : ℕ) (htotal : w0+w1+pad+pad
     thermalUniformLCU_accepted_scaled b w0 w1 pad htotal]
   exact thermalScaledRotation_amplify _ _
 
+/-- Under the workspace and total-weight conditions, the actual word's amplitude at signal `s`
+with zero workspace equals entry `(s,0)` of the effective amplification word's accepted
+corner. -/
 theorem thermalActualOAA_split_corner (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
     (htotal : w0+w1+pad+pad=2^b) (s : Fin 2) :
     splitWordState ((b+1)+w) (thermalActualOAAWord b w w0 w1 pad) (s,fun _ => false)=
@@ -329,6 +411,8 @@ theorem thermalActualOAA_split_corner (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
   simpa only [splitWordState,Qatlib.Concepts.UniformBqp.FiniteGateWord.finite_phase_word_run,Qatlib.Foundations.PureStateMath.ApplyGate,Qatlib.Concepts.BlockEncoding.LinearCombination.mulVec_ket_apply,
     thermalAcceptedCorner] using! h
 
+/-- Under the workspace and total-weight conditions, the actual word's two clean amplitudes are
+`gamma*c` and `gamma*s`, with dyadic coefficients `c,s` and `gamma = (3 - (c^2 + s^2))/2`. -/
 theorem thermalActualOAA_coefficients (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
     (htotal : w0+w1+pad+pad=2^b) :
     let c := thermalDyadicCoefficient b w0
@@ -344,6 +428,9 @@ theorem thermalActualOAA_coefficients (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
   · simpa [thermalScaledRotation,thermalQuarterTurn,Matrix.smul_apply,smul_eq_mul] using! h0
   · simpa [thermalScaledRotation,thermalQuarterTurn,Matrix.smul_apply,smul_eq_mul] using! h1
 
+/-- If the dyadic coefficients under-approximate `directCos a` and `directSin a` by at most `e`,
+with `a >= 0` and `6*e^2 <= epsilon^2`, the legal actual amplification word has
+`cleanWordErrorSq <= epsilon^2` under the workspace and total-weight conditions. -/
 theorem thermalActualOAA_hclean (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
     (htotal : w0+w1+pad+pad=2^b) (a e epsilon : ℝ) (ha : 0≤a)
     (hc : 0≤directCos a-thermalDyadicCoefficient b w0)
@@ -355,6 +442,11 @@ theorem thermalActualOAA_hclean (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
   exact thermalWord_hclean_of_coefficients _ _ (thermalActualOAA_legal b w w0 w1 pad hcap htotal)
     a _ _ e epsilon ha hc hs hcE hsE h.1 h.2 heps
 
+/-- Under the workspace and total-weight conditions and the stated coefficient bounds, if `a >=
+0`, `epsilon >= 0`, `6*e^2 <= epsilon^2`, and the index laws have total variation at most
+`delta`, the actual word's joint readout is within `epsilon + delta` of the ideal joint
+readout in half trace norm. This gives the finite thermal source error budget associated
+with [JiangEtAl2026]. -/
 theorem thermalActualOAA_source_cq {L d : ℕ} (F : ReflectionFamily L d)
     (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin L)) (rho : Qatlib.Foundations.PureStateMath.DensityOperator d)
     (b w w0 w1 pad : ℕ) (hcap : b≤w+2) (htotal : w0+w1+pad+pad=2^b)
@@ -373,6 +465,8 @@ theorem thermalActualOAA_source_cq {L d : ℕ} (F : ReflectionFamily L d)
     a epsilon delta heps0 (thermalActualOAA_hclean b w w0 w1 pad hcap htotal a e epsilon
       ha hc hs hcE hsE heps) hindex
 
+/-- When `b <= w + 2`, the canonical zero-register reflection circuit uses at most `64*b + 6`
+gates. -/
 theorem thermalCanonicalReflection_cost (b w : ℕ) (hcap : b≤w+2) :
     Qatlib.Foundations.QueryWordCore.Circuit.GateCount (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit ((b+1)+(w+1)) (thermalCanonicalReflectionWord b w))≤64*b+6 := by
   have h := (thermalZeroReflection_cost (thermalUniformWires b w) (thermalFlagWire b w)
@@ -383,6 +477,8 @@ theorem thermalCanonicalReflection_cost (b w : ℕ) (hcap : b≤w+2) :
   rw [h]
   split_ifs <;> omega
 
+/-- Under the workspace and total-weight conditions, the actual amplification circuit uses at
+most `1536*b^2 + 134*b + 103` gates and makes zero oracle queries. -/
 theorem thermalActualOAA_cost (b w w0 w1 pad : ℕ) (hcap : b≤w+2)
     (htotal : w0+w1+pad+pad=2^b) :
     Qatlib.Foundations.QueryWordCore.Circuit.GateCount (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit (((b+1)+w)+1) (thermalActualOAAWord b w w0 w1 pad))≤

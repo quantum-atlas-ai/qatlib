@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.PairedDrain
+
+/-!
+# Bounds on paired removal traces
+
+`removalTraceBound` bounds a removed pair against the final remainder together with the suffix
+of pairs not yet removed from the trace. `drainPaired_trace_nodup` and `drainPaired_trace_bound`
+verify that paired draining produces a duplicate free trace satisfying this bound. For
+background on quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `removalTraceBound`: At each list index, the common neighbor count of the listed pair in the
+  final remainder united with the current suffix is at most `τ`.
+* `drainPaired_trace_bound`: The removal trace of paired draining satisfies `removalTraceBound`
+  relative to its final remainder and threshold `τ`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,9 +37,12 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- At each list index, the common neighbor count of the listed pair in the final remainder
+united with the current suffix is at most `τ`. -/
 def removalTraceBound (left : Finset (Fin n×Fin n)) (l : List (Fin n×Fin n)) (τ : ℕ) : Prop :=
   ∀ i,(h : i< l.length)→tOf (left∪(l.drop i).toFinset) l[i].1 l[i].2≤τ
 
+/-- The removal trace produced by `drainPaired` has no repeated pairs. -/
 theorem drainPaired_trace_nodup (S : Finset (Fin n×Fin n)) (τ fuel : ℕ) :
     (drainPaired S τ fuel).2.Nodup := by
   induction fuel generalizing S with
@@ -39,6 +63,8 @@ theorem drainPaired_trace_nodup (S : Finset (Fin n×Fin n)) (τ fuel : ℕ) :
           (by simpa only [List.mem_toFinset] using hf)
       exact (Finset.mem_sdiff.mp hF).2 hD
 
+/-- The removal trace of paired draining satisfies `removalTraceBound` relative to its final
+remainder and threshold `τ`. -/
 theorem drainPaired_trace_bound (S : Finset (Fin n×Fin n)) (τ fuel : ℕ) :
     removalTraceBound (drainPaired S τ fuel).1 (drainPaired S τ fuel).2 τ := by
   induction fuel generalizing S with

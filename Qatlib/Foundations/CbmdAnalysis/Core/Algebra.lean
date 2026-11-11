@@ -12,6 +12,26 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.IntervalCases
 
+/-!
+# Algebra for Hermitian sampling and cubic filters
+
+This module gives algebraic identities expressing Hermitian samples through a matrix `L + I • H`
+and its conjugate transpose. It also proves cubic root-of-unity filters for coefficients and
+finite polynomials, together with the coefficient weight `sqrt (1 + s ^ 2)` appearing in the
+original-oracle representation of [WangEtAl2026].
+
+## Main statements
+
+* `hermitian_sample_from_original`: reconstructs `L + s • H` from a matrix and its adjoint.
+* `cubic_root_polynomial_projection`: averaging three rotated polynomial values keeps exponents
+  divisible by three.
+* `original_oracle_coefficient_weight`: computes the sum of the two coefficient norms.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false
@@ -19,6 +39,8 @@ set_option autoImplicit false
 namespace CBMD
 open Complex Matrix
 
+/-- For Hermitian `L` and `H` and real `s`, the specified linear combination of `L + I • H` and
+its conjugate transpose equals `L + s • H`. -/
 theorem hermitian_sample_from_original {n : Type*} (L H : Matrix n n ℂ)
     (hL : L.IsHermitian) (hH : H.IsHermitian) (s : ℝ) :
     (((1 - I * (s : ℂ)) / 2) : ℂ) • (L + I • H) +
@@ -30,6 +52,8 @@ theorem hermitian_sample_from_original {n : Type*} (L H : Matrix n n ℂ)
   ring_nf
   simp [I_sq]
 
+/-- For Hermitian `L` and `H` and real `s`, the specified linear combination of `L + I • H` and
+its conjugate transpose equals `H + s • L`. -/
 theorem first_order_sample_from_original {n : Type*} (L H : Matrix n n ℂ)
     (hL : L.IsHermitian) (hH : H.IsHermitian) (s : ℝ) :
     ((((s : ℂ) - I) / 2) : ℂ) • (L + I • H) +
@@ -41,9 +65,12 @@ theorem first_order_sample_from_original {n : Type*} (L H : Matrix n n ℂ)
   ring_nf
   simp [I_sq]
 
+/-- A complex root of `ω ^ 2 + ω + 1 = 0` has cube one. -/
 theorem cubic_root_cube (ω : ℂ) (hω : ω ^ 2 + ω + 1 = 0) : ω ^ 3 = 1 := by
   linear_combination (ω - 1) * hω
 
+/-- For `ω ^ 2 + ω + 1 = 0`, the sum `1 + ω ^ n + ω ^ (2 * n)` is three when `n` is divisible by
+three and zero otherwise. -/
 theorem cubic_root_filter (ω : ℂ) (hω : ω ^ 2 + ω + 1 = 0) (n : ℕ) :
     1 + ω ^ n + ω ^ (2 * n) = if n % 3 = 0 then 3 else 0 := by
   have hcube := cubic_root_cube ω hω
@@ -62,6 +89,8 @@ theorem cubic_root_filter (ω : ℂ) (hω : ω ^ 2 + ω + 1 = 0) (n : ℕ) :
   · norm_num
     linear_combination hω
 
+/-- Averaging a coefficient multiplied by the three cubic phases keeps it exactly when its
+exponent is divisible by three. -/
 theorem cubic_root_coefficient_projection (ω c : ℂ)
     (hω : ω ^ 2 + ω + 1 = 0) (n : ℕ) :
     (c + c * ω ^ n + c * ω ^ (2 * n)) / 3 =
@@ -73,6 +102,8 @@ theorem cubic_root_coefficient_projection (ω c : ℂ)
   · simp only [h, if_false] at hf ⊢
     linear_combination c / 3 * hf
 
+/-- Averaging a finite polynomial at `z`, `ω * z`, and `ω ^ 2 * z` retains precisely the terms
+whose exponents are divisible by three. -/
 theorem cubic_root_polynomial_projection (ω z : ℂ) (a : ℕ → ℂ)
     (hω : ω ^ 2 + ω + 1 = 0) (N : ℕ) :
     ((∑ k ∈ Finset.range N, a k * z ^ k) +
@@ -86,6 +117,8 @@ theorem cubic_root_polynomial_projection (ω z : ℂ) (a : ℕ → ℂ)
   simp only [mul_pow, pow_mul]
   ring
 
+/-- For real `s`, the norms of `(1 - I * s) / 2` and `(1 + I * s) / 2` sum to `sqrt (1 + s ^
+2)`. -/
 theorem original_oracle_coefficient_weight (s : ℝ) :
     ‖((1 - I * (s : ℂ)) / 2 : ℂ)‖ +
       ‖((1 + I * (s : ℂ)) / 2 : ℂ)‖ = Real.sqrt (1 + s ^ 2) := by

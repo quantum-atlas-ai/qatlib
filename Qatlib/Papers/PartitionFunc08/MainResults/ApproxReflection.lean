@@ -55,6 +55,26 @@ import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Error accumulation for approximate reflections
+
+For contractions `R` and `Rt`, the norm error between their `k`th powers is bounded by `k` times
+the one-step error. The budget lemmas specialize this estimate to the error threshold `1 / 32`
+used in the approximate-reflection analysis. These estimates form part of the partition-function
+scheme in [WocjanEtAl2009a].
+
+## Main statements
+
+* `approx_reflection_error_accumulation`: For contractions differing in norm by at most
+  nonnegative `εR`, their `k`th powers differ by at most `k * εR`.
+* `lemma5_approx_reflection`: The approximate-reflection power error is at most `1 / 32` under
+  the contraction, one-step error, and accumulated-budget hypotheses.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -64,6 +84,7 @@ open ContinuousLinearMap
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
 
+/-- Every natural power of an operator of norm at most one also has norm at most one. -/
 private theorem norm_pow_le_one (R : E →L[ℂ] E) (hR : ‖R‖ ≤ 1) (k : ℕ) : ‖R ^ k‖ ≤ 1 := by
   rcases Nat.eq_zero_or_pos k with hk | hk
   · subst hk
@@ -72,6 +93,8 @@ private theorem norm_pow_le_one (R : E →L[ℂ] E) (hR : ‖R‖ ≤ 1) (k : �
   · calc ‖R ^ k‖ ≤ ‖R‖ ^ k := norm_pow_le' _ hk
       _ ≤ 1 := pow_le_one₀ (norm_nonneg _) hR
 
+/-- For contractions differing in norm by at most nonnegative `εR`, their `k`th powers differ by
+at most `k * εR`. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem approx_reflection_error_accumulation (R Rt : E →L[ℂ] E) {εR : ℝ} (hεR : 0 ≤ εR)
     (hRt : ‖Rt‖ ≤ 1) (hR : ‖R‖ ≤ 1) (hdiff : ‖Rt - R‖ ≤ εR) (k : ℕ) :
     ‖Rt ^ k - R ^ k‖ ≤ k * εR := by
@@ -100,12 +123,16 @@ theorem approx_reflection_error_accumulation (R Rt : E →L[ℂ] E) {εR : ℝ} 
           rw [Nat.cast_add, Nat.cast_one]
           ring
 
+/-- If the accumulated error budget `k * εR` is at most `1 / 32`, the difference of the two
+contraction powers has norm at most `1 / 32`. -/
 theorem approx_reflection_budget (R Rt : E →L[ℂ] E) {εR : ℝ} (hεR : 0 ≤ εR)
     (hRt : ‖Rt‖ ≤ 1) (hR : ‖R‖ ≤ 1) (hdiff : ‖Rt - R‖ ≤ εR) (k : ℕ)
     (hbudget : (k : ℝ) * εR ≤ 1 / 32) :
     ‖Rt ^ k - R ^ k‖ ≤ 1 / 32 :=
   (approx_reflection_error_accumulation R Rt hεR hRt hR hdiff k).trans hbudget
 
+/-- The approximate-reflection power error is at most `1 / 32` under the contraction, one-step
+error, and accumulated-budget hypotheses. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem lemma5_approx_reflection (R Rt : E →L[ℂ] E) {εR : ℝ} (hεR : 0 ≤ εR)
     (hRt : ‖Rt‖ ≤ 1) (hR : ‖R‖ ≤ 1) (hdiff : ‖Rt - R‖ ≤ εR) (k : ℕ)
     (hbudget : (k : ℝ) * εR ≤ 1 / 32) :

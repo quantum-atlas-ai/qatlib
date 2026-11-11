@@ -8,6 +8,28 @@ import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchRetry
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+
+/-!
+# Uniform output of repeated quantum search
+
+This module proves symmetry of the checked Grover-search output on a nonempty proper marked set.
+It propagates this symmetry through each retry stage and sums the exponential schedule to obtain
+the uniform final marked-output law, in the search setting of [BoyerEtAl1998].
+
+## Main statements
+
+* `search_checked_output_uniform`: marked indices have equal checked-output mass at a fixed
+  iteration count.
+* `search_stage_output_uniform`: each marked index receives an equal share of the first-success
+  mass at a retry stage.
+* `search_final_output_uniform`: summing all stages gives mass 1/|A| on each marked index and
+  zero elsewhere.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Qatlib.Concepts.SearchStopping.UnknownCount
@@ -19,6 +41,8 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open scoped BigOperators
 open Qatlib.Concepts.SearchStopping.KnownCount
 
+/-- For a nonempty proper marked set, any two marked indices have equal checked-output mass
+after the same number of Grover iterations. -/
 theorem search_checked_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I)
     (j : ℕ) (i k : I) (hi : i ∈ A) (hk : k ∈ A) :
@@ -34,6 +58,8 @@ theorem search_checked_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
   rw [search_grover_state hN A θ hdensity hs hc j]
   simp only [BornProb, MarkedVector, if_pos hi, if_pos hk]
 
+/-- At each retry stage, the output mass is the first-success mass divided equally among marked
+indices, with zero mass on unmarked indices. -/
 theorem search_stage_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I)
     (sizes : ℕ → ℕ) (s : ℕ) (i : I) :
@@ -72,6 +98,8 @@ theorem search_stage_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
   · rw [if_neg hi]
     exact hzero i hi
 
+/-- For a nonempty proper marked set, the output masses summed over the exponential retry
+schedule yield the uniform distribution on the marked set. -/
 theorem search_final_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (i : I) :
     HasSum (fun s => RetryOutputMass A (ExponentialSizes (Fintype.card I)) s i)

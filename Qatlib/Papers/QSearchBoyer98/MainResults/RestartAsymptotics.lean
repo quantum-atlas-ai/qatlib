@@ -14,6 +14,34 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Topology.Order.IntermediateValue
 import Mathlib.Tactic
+
+/-!
+# Sparse-limit asymptotics for search restarts
+
+This module constructs stationary restart roots near a specified solution of tan(z/2) = z and
+transports their limits to success probabilities and restart-cost coefficients. It also relates
+the small-angle and sparse-density scalings and proves eventual coefficient bounds between 0.87
+and 0.88 times π/4.
+
+The source paper is [BoyerEtAl1998].
+
+## Main statements
+
+* `exists_stationary_root_close`: For a root z₀ of tan(z₀/2) = z₀ in the stated rational
+  interval and 0 < θ < 1/10, there is a root of tan(z/2 + θ) = z strictly between z₀ − 4θ and
+  z₀.
+* `sparseScaledExpected_tendsto`: Under the interval and root-family convergence hypotheses, the
+  restart coefficient transported by θ = arcsin(√x) and multiplied by √x/arcsin(√x) tends to
+  z₀/(4 sin²(z₀/2)) as x decreases to zero.
+* `exists_root_family_scaled_window`: For a root z₀ in the stated rational interval, there
+  exists a family of stationary roots for 0 < θ < 1/10 converging to z₀ whose scaled
+  coefficients eventually lie between 0.87(π/4) and 0.88(π/4).
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,6 +54,7 @@ open Qatlib.Concepts.SearchStopping.RestartLaw
 
 noncomputable section
 
+/-- For 1.06 < a ≤ π, cos a < 1/2. -/
 private theorem cos_lt_half_of_ge {a : ℝ} (ha : (1.06 : ℝ) < a) (haπ : a ≤ Real.pi) :
     Real.cos a < 1 / 2 := by
   have h1 : Real.cos a < Real.cos (1.06 : ℝ) :=
@@ -37,6 +66,8 @@ private theorem cos_lt_half_of_ge {a : ℝ} (ha : (1.06 : ℝ) < a) (haπ : a �
     rwa [Real.cos_pi_div_three] at hle
   linarith
 
+/-- For a root z₀ of tan(z₀/2) = z₀ in the stated rational interval and 0 < θ < 1/10, there is a
+root of tan(z/2 + θ) = z strictly between z₀ − 4θ and z₀ [BoyerEtAl1998]. -/
 theorem exists_stationary_root_close {z₀ : ℝ}
     (hz₀ : Real.tan (z₀ / 2) = z₀)
     (hlo : 233112 / 100000 < z₀) (hhi : z₀ < 233113 / 100000) :
@@ -116,6 +147,8 @@ theorem exists_stationary_root_close {z₀ : ℝ}
         (Real.tan (z₀ / 2 + θ) - z₀) from ⟨hga, hgz0⟩)
   exact ⟨z, hz.1, hz.2, by linarith [hgz]⟩
 
+/-- Any family lying strictly between z₀ − 4θ and z₀ for sufficiently small positive θ converges
+to z₀ as θ decreases to zero [BoyerEtAl1998]. -/
 theorem stationaryRoot_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
     (hloc : ∀ θ : ℝ, 0 < θ → θ < 1 / 10 →
       z₀ - 4 * θ < z θ ∧ z θ < z₀) :
@@ -134,6 +167,7 @@ theorem stationaryRoot_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
   · filter_upwards [self_mem_nhdsWithin, hsmall] with θ hθ hθ10
     exact (hloc θ hθ hθ10).2.le
 
+/-- If z(θ) tends to z₀ as θ decreases to zero, sin²(z(θ)/2 + θ) tends to sin²(z₀/2). -/
 theorem restartSuccess_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
     (hzt : Tendsto z (𝓝[>] (0 : ℝ)) (𝓝 z₀)) :
     Tendsto (fun θ : ℝ => Real.sin (z θ / 2 + θ) ^ 2)
@@ -147,6 +181,8 @@ theorem restartSuccess_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
     simpa using! (Real.continuous_sin.continuousAt.tendsto.comp harg)
   simpa [Pi.pow_apply] using! hsin.pow 2
 
+/-- For z₀ in the stated rational interval and the stated convergence hypotheses, z(θ)/(4
+sin²(z(θ)/2 + θ)) tends to z₀/(4 sin²(z₀/2)). -/
 theorem restartCoefficient_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
     (hlo : 233112 / 100000 < z₀) (hhi : z₀ < 233113 / 100000)
     (hzt : Tendsto z (𝓝[>] (0 : ℝ)) (𝓝 z₀))
@@ -168,6 +204,9 @@ theorem restartCoefficient_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
     exact this.ne'
   exact hzt.div hden hne
 
+/-- Under the root, interval, and convergence hypotheses, the scaled restart coefficient
+eventually lies strictly between 0.87(π/4) and 0.88(π/4) as θ decreases to zero
+[BoyerEtAl1998]. -/
 theorem restart_scaled_window {z : ℝ → ℝ} {z₀ : ℝ}
     (hz₀ : Real.tan (z₀ / 2) = z₀)
     (hlo : 233112 / 100000 < z₀) (hhi : z₀ < 233113 / 100000)
@@ -192,6 +231,8 @@ theorem restart_scaled_window {z : ℝ → ℝ} {z₀ : ℝ}
   filter_upwards [e1, e2] with θ h1 h2
   exact ⟨h1, h2⟩
 
+/-- Under the interval and convergence hypotheses, (z(θ)/4 + θ)/sin²(z(θ)/2 + θ) tends to z₀/(4
+sin²(z₀/2)) as θ decreases to zero [BoyerEtAl1998]. -/
 theorem actualPaidCoefficient_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
     (hlo : 233112 / 100000 < z₀) (hhi : z₀ < 233113 / 100000)
     (hzt : Tendsto z (𝓝[>] (0 : ℝ)) (𝓝 z₀))
@@ -220,6 +261,8 @@ theorem actualPaidCoefficient_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
     field_simp
   rwa [hval] at hq
 
+/-- For nonzero θ, multiplying the restart expectation at iteration parameter z/(4θ) by θ gives
+z/(4 sin²(z/2 + θ)) [BoyerEtAl1998]. -/
 theorem theta_mul_restartExpected_scaled (θ z : ℝ) (hθ : θ ≠ 0) :
     θ * restartExpectedIterations θ (z / (4 * θ)) =
       z / (4 * Real.sin (z / 2 + θ) ^ 2) := by
@@ -230,6 +273,7 @@ theorem theta_mul_restartExpected_scaled (θ z : ℝ) (hθ : θ ≠ 0) :
   rw [harg]
   field_simp [hθ]
 
+/-- The ratio arcsin t/t tends to one as t decreases to zero through positive values. -/
 theorem tendsto_arcsin_div_self :
     Tendsto (fun t : ℝ => Real.arcsin t / t) (𝓝[>] (0 : ℝ)) (𝓝 1) := by
   have h := (Real.hasDerivAt_arcsin (x := 0) (by norm_num) (by norm_num)).tendsto_slope_zero_right
@@ -237,6 +281,8 @@ theorem tendsto_arcsin_div_self :
   rw [hlim] at h
   simpa [Real.arcsin_zero, div_eq_inv_mul] using! h
 
+/-- The function arcsin(√x) tends to zero through positive values as x decreases to zero through
+positive values. -/
 theorem tendsto_arcsin_sqrt :
     Tendsto (fun x : ℝ => Real.arcsin (Real.sqrt x)) (𝓝[>] (0 : ℝ)) (𝓝[>] (0 : ℝ)) := by
   rw [tendsto_nhdsWithin_iff]
@@ -247,6 +293,7 @@ theorem tendsto_arcsin_sqrt :
   · filter_upwards [self_mem_nhdsWithin] with x hx
     exact Real.arcsin_pos.mpr (Real.sqrt_pos.mpr hx)
 
+/-- The ratio √x/arcsin(√x) tends to one as x decreases to zero through positive values. -/
 theorem tendsto_sqrt_div_arcsin_sqrt :
     Tendsto (fun x : ℝ => Real.sqrt x / Real.arcsin (Real.sqrt x)) (𝓝[>] (0 : ℝ)) (𝓝 1) := by
   have hs : Tendsto (fun x : ℝ => Real.sqrt x) (𝓝[>] (0 : ℝ)) (𝓝[>] (0 : ℝ)) := by
@@ -259,6 +306,9 @@ theorem tendsto_sqrt_div_arcsin_sqrt :
       (𝓝[>] (0 : ℝ)) (𝓝 1) := tendsto_arcsin_div_self.comp hs
   simpa [inv_div] using! hdiv.inv₀ (by norm_num : (1 : ℝ) ≠ 0)
 
+/-- Under the interval and root-family convergence hypotheses, the restart coefficient
+transported by θ = arcsin(√x) and multiplied by √x/arcsin(√x) tends to z₀/(4 sin²(z₀/2)) as
+x decreases to zero [BoyerEtAl1998]. -/
 theorem sparseScaledExpected_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
     (hlo : 233112 / 100000 < z₀)
     (hhi : z₀ < 233113 / 100000)
@@ -280,6 +330,9 @@ theorem sparseScaledExpected_tendsto {z : ℝ → ℝ} {z₀ : ℝ}
   have h := tendsto_sqrt_div_arcsin_sqrt.mul hcoef
   simpa using! h
 
+/-- For a root z₀ in the stated rational interval, there exists a family of stationary roots for
+0 < θ < 1/10 converging to z₀ whose scaled coefficients eventually lie between 0.87(π/4) and
+0.88(π/4) [BoyerEtAl1998]. -/
 theorem exists_root_family_scaled_window {z₀ : ℝ}
     (hz₀ : Real.tan (z₀ / 2) = z₀)
     (hlo : 233112 / 100000 < z₀) (hhi : z₀ < 233113 / 100000) :

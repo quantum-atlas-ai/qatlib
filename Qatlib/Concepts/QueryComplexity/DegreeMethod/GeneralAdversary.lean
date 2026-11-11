@@ -12,6 +12,43 @@ import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryConsumers
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
 import Qatlib.Concepts.SignedWeights.Representations.GeneralAdversaryLoss
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryRefinedDefs
+
+/-!
+# General adversary bounds and execution contracts
+
+This module connects general-adversary progress estimates with projective and POVM readout,
+weighted composition, filtered Gram-matrix values, and finite-alphabet state conversion.
+`general_povm_final_progress`, `projective_final_progress_on_original_register`, and
+`gen_ratio_le_sdp` support the adversary framework of [HoyerLeeSpalek2007];
+`general_alphabet_conversion_program` connects the filtered-value interfaces to the
+state-conversion framework of [LeeEtAl2011].
+
+The execution results track halted and discarded mass under truncation, exclude
+finite-total-cost runs with a unit charge per step, and verify concrete interrogation circuits,
+adaptive countdowns, and native scanning machines. `clause16_endpoint`, `clause18_endpoint`,
+`clause20_endpoint`, and `clause21_endpoint` collect the corresponding contracts.
+
+## Main statements
+
+* `general_povm_final_progress`: bound final adversary progress after the coherent lift of a
+  successful POVM.
+* `projective_final_progress_on_original_register`: establish the final-progress bound directly
+  for projective readout.
+* `composition_upper_bound_on_source_scope`: bound the composed weighted adversary value using
+  finite block costs.
+* `gen_ratio_le_sdp`: compare a Hermitian witness's norm ratio with the general-alphabet
+  adversary value.
+* `truncated_vs_original_query_ledger`: combine ledger agreement, mass conservation, and
+  query-cost bounds.
+* `general_alphabet_conversion_program`: obtain the finite-alphabet source-program contract from
+  a finite filtered Gram-matrix budget.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -50,6 +87,8 @@ open Qatlib.Concepts.SignedWeights.Representations
 open scoped Matrix.Norms.L2Operator ComplexOrder ENNReal
 open Classical BigOperators
 
+/-- The probability of an output label in the coherent POVM lift equals the original POVM
+outcome probability. -/
 theorem povm_output_condition_transports_to_lift {H Y : Type} [Fintype H]
     [DecidableEq H] [Fintype Y] [DecidableEq Y] (out : Y → Matrix H H ℂ)
     (hout : IsPovm out) (v : QState H) (y : Y) :
@@ -58,6 +97,10 @@ theorem povm_output_condition_transports_to_lift {H Y : Type} [Fintype H]
 
 set_option maxHeartbeats 800000 in
 
+/-- For normalized weights and states read out correctly by a POVM with error at most `eps`,
+bounds the lifted final progress by `(2 * Real.sqrt (eps * (1 - eps)) + 2 * eps) * ‖Gamma‖`
+when `0 ≤ eps ≤ 1 / 2`. The Hermitian witness must vanish on pairs with equal outputs
+[HoyerLeeSpalek2007]. -/
 theorem general_povm_final_progress
     (X H Y : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     [Fintype Y] [DecidableEq Y] (Gamma : Matrix X X ℂ) (weight : QState X)
@@ -93,6 +136,8 @@ theorem general_povm_final_progress
 
 set_option maxHeartbeats 800000 in
 
+/-- Specializes the lifted POVM final-progress bound to the POVM induced by a basis-label map
+and its successful label probabilities. -/
 theorem general_povm_final_progress_of_label
     (X H Y : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     [Fintype Y] [DecidableEq Y] (Gamma : Matrix X X ℂ) (weight : QState X)
@@ -109,6 +154,8 @@ theorem general_povm_final_progress_of_label
   rw [labelPovm_povmProb]
   exact hsuccess x
 
+/-- Identifies each block cost with the weighted adversary value of that block, using its
+coordinate costs converted to extended nonnegative reals. -/
 theorem blockCosts_eq_block_value {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (gin : ∀ i, X i → Fin (n i) → Bool) (g : ∀ i, X i → Bool)
@@ -116,6 +163,9 @@ theorem blockCosts_eq_block_value {k : ℕ} {X : Fin k → Type} {n : Fin k → 
     blockCosts gin g α i
       = advAlphaENN (gin i) (g i) (fun j => ENNReal.ofReal (α ⟨i, j⟩)) := rfl
 
+/-- Bounds the weighted adversary value of a Boolean composition by the outer value with block
+adversary costs. It assumes positive coordinate costs, nonconstant outer and inner
+functions, and finite block costs. -/
 theorem composition_upper_bound_on_source_scope {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (Y i)] [∀ i, DecidableEq (Y i)]
     (gin : ∀ i, Y i → Fin (n i) → Bool) (g : ∀ i, Y i → Bool)
@@ -127,11 +177,14 @@ theorem composition_upper_bound_on_source_scope {k : ℕ} {Y : Fin k → Type} {
   (Qatlib.Concepts.AdversaryBounds.AdvDuality.stageA_general_adversary_clause18_source_complete
     gin g f alpha ha hfn hgn hfin).1
 
+/-- The reciprocal of real zero after conversion to extended nonnegative reals is infinity. -/
 theorem real_zero_reciprocal_is_top : (ENNReal.ofReal (0 : ℝ))⁻¹ = ⊤ := by
   rw [ENNReal.ofReal_zero, ENNReal.inv_zero]
 
 set_option linter.unusedVariables false in
 
+/-- The real-matrix weighted adversary value is monotone under a pointwise increase of
+nonnegative coordinate costs. -/
 theorem advAlphaR_mono_of_cost_le {X κ : Type} [Fintype X] [DecidableEq X]
     [Fintype κ] [DecidableEq κ] (input : X → κ → Bool) (g : X → Bool)
     (α α' : κ → ℝ) (hα : ∀ i, 0 ≤ α i) (hle : ∀ i, α i ≤ α' i) :
@@ -147,6 +200,8 @@ theorem advAlphaR_mono_of_cost_le {X κ : Type} [Fintype X] [DecidableEq X]
 
 set_option maxHeartbeats 800000 in
 
+/-- Applies the POVM final-progress estimate to the readout of a quantum instrument, assuming
+normalized states and success probability at least `1 - eps` with `0 ≤ eps ≤ 1 / 2`. -/
 theorem instrument_terminal_progress
     (X : Type) [Fintype X] [DecidableEq X] {Y : Type} [Fintype Y] {D E : ℕ}
     (I : Instrument Y D E) (Gamma : Matrix X X ℂ) (weight : QState X)
@@ -160,11 +215,15 @@ theorem instrument_terminal_progress
   refine general_povm_final_progress X (Fin D) Y Gamma weight (instrumentReadout I)
     (instrumentReadout_isPovm I) states f eps hG hw hs hz he0 he1 hsuccess
 
+/-- The instrument-readout probability on a pure state equals the real trace of the
+corresponding branch applied to that state's outer product. -/
 theorem instrument_branch_probability {Y : Type} [Fintype Y] {D E : ℕ}
     (I : Instrument Y D E) (y : Y) (psi : QState (Fin D)) :
     povmProb (instrumentReadout I) y psi = (Matrix.trace (I.branch y (outerProduct psi))).re :=
   instrumentReadout_prob I y psi
 
+/-- Moves a Hermitian matrix from the first argument of the pure-state inner product to the
+second argument. -/
 private theorem inner_hermitian_mulVec {H : Type} [Fintype H] [DecidableEq H]
     (M : Matrix H H ℂ) (hM : M.IsHermitian) (u v : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (M *ᵥ u) v = Qatlib.Foundations.PureStateMath.Inner u (M *ᵥ v) := by
@@ -172,6 +231,8 @@ private theorem inner_hermitian_mulVec {H : Type} [Fintype H] [DecidableEq H]
   have h := lift_inner_rect (K := H) M u v
   rwa [hM] at h
 
+/-- Combines two matrix actions inside an inner product into the product `M * N` on the second
+argument when `M` is Hermitian. -/
 private theorem inner_hermitian_two_mulVec {H : Type} [Fintype H] [DecidableEq H]
     (M N : Matrix H H ℂ) (hM : M.IsHermitian) (u v : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (M *ᵥ u) (N *ᵥ v) = Qatlib.Foundations.PureStateMath.Inner u ((M * N) *ᵥ v) := by
@@ -180,26 +241,32 @@ private theorem inner_hermitian_two_mulVec {H : Type} [Fintype H] [DecidableEq H
     _ = Qatlib.Foundations.PureStateMath.Inner u ((Mᴴ * N) *ᵥ v) := by rw [Matrix.mulVec_mulVec]
     _ = Qatlib.Foundations.PureStateMath.Inner u ((M * N) *ᵥ v) := by rw [hM]
 
+/-- Distributes the pure-state inner product over addition in its second argument. -/
 private theorem inner_add_right' {H : Type} [Fintype H] [DecidableEq H]
     (u v w : QState H) : Qatlib.Foundations.PureStateMath.Inner u (v + w) = Qatlib.Foundations.PureStateMath.Inner u v + Qatlib.Foundations.PureStateMath.Inner u w := by
   simp only [Qatlib.Foundations.PureStateMath.inner_apply, Pi.add_apply, mul_add,
       Finset.sum_add_distrib]
 
+/-- Distributes the pure-state inner product over subtraction in its second argument. -/
 private theorem inner_sub_right' {H : Type} [Fintype H] [DecidableEq H]
     (u v w : QState H) : Qatlib.Foundations.PureStateMath.Inner u (v - w) = Qatlib.Foundations.PureStateMath.Inner u v - Qatlib.Foundations.PureStateMath.Inner u w := by
   simp only [Qatlib.Foundations.PureStateMath.inner_apply, Pi.sub_apply, mul_sub,
       Finset.sum_sub_distrib]
 
+/-- Distributes the pure-state inner product over addition in its first argument. -/
 private theorem inner_add_left' {H : Type} [Fintype H] [DecidableEq H]
     (u v w : QState H) : Qatlib.Foundations.PureStateMath.Inner (u + v) w = Qatlib.Foundations.PureStateMath.Inner u w + Qatlib.Foundations.PureStateMath.Inner v w := by
   simp only [Qatlib.Foundations.PureStateMath.inner_apply, Pi.add_apply, map_add, add_mul,
       Finset.sum_add_distrib]
 
+/-- Distributes the pure-state inner product over subtraction in its first argument. -/
 private theorem inner_sub_left' {H : Type} [Fintype H] [DecidableEq H]
     (u v w : QState H) : Qatlib.Foundations.PureStateMath.Inner (u - v) w = Qatlib.Foundations.PureStateMath.Inner u w - Qatlib.Foundations.PureStateMath.Inner v w := by
   simp only [Qatlib.Foundations.PureStateMath.inner_apply, Pi.sub_apply, map_sub, sub_mul,
       Finset.sum_sub_distrib]
 
+/-- Expands the tensor-lifted inner product of two weighted state stacks as a sum over input
+pairs and their state inner products. -/
 private theorem inner_stack_expand {X H : Type} [Fintype X] [DecidableEq X] [Fintype H]
     [DecidableEq H] (Γ : Matrix X X ℂ) (weight : QState X) (u w : X → QState H) :
     Qatlib.Foundations.PureStateMath.Inner (advStack weight u) (TensorGate Γ (1 : Matrix H H ℂ) *ᵥ (advStack weight w))
@@ -213,6 +280,8 @@ private theorem inner_stack_expand {X H : Type} [Fintype X] [DecidableEq X] [Fin
   refine Finset.sum_congr rfl fun h _ => ?_
   ring
 
+/-- Expresses the squared Euclidean norm of a weighted state stack as the weighted sum of the
+component squared norms. -/
 private theorem stack_sq_eq {X H : Type} [Fintype X] [DecidableEq X] [Fintype H]
     [DecidableEq H] (weight : QState X) (u : X → QState H) :
     ‖toEuclidean_fromVec (advStack weight u)‖ ^ 2 = ∑ x, ‖weight x‖ ^ 2 * (∑ h, ‖u x h‖ ^ 2) := by
@@ -222,6 +291,8 @@ private theorem stack_sq_eq {X H : Type} [Fintype X] [DecidableEq X] [Fintype H]
   intro x _
   exact (Finset.mul_sum Finset.univ (fun h => ‖u x h‖ ^ 2) (‖weight x‖ ^ 2)).symm
 
+/-- Correct-output projections of two states are orthogonal whenever their required output
+labels differ. -/
 theorem projective_correct_components_orthogonal {X H Y : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (P : OrthogonalProjectors H Y) (f : X → Y) (states : X → QState H) (x y : X)
@@ -235,6 +306,8 @@ theorem projective_correct_components_orthogonal {X H Y : Type} [Fintype X] [Dec
     _ = Qatlib.Foundations.PureStateMath.Inner (states x) (0 *ᵥ states y) := by rw [hzero]
     _ = 0 := by simp [Qatlib.Foundations.PureStateMath.inner_apply]
 
+/-- The correct-output projection and error remainder of a state have zero inner product in both
+orders. -/
 theorem projective_correct_error_orthogonal {X H Y : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (P : OrthogonalProjectors H Y) (f : X → Y) (states : X → QState H) (x : X) :
@@ -257,6 +330,8 @@ theorem projective_correct_error_orthogonal {X H Y : Type} [Fintype X] [Decidabl
     rw [inner_sub_left', hcross.symm, hself, hcross]
     ring
 
+/-- The squared mass of the correct-output component equals its projective POVM outcome
+probability. -/
 theorem projective_correct_mass_is_born {X H Y : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (P : OrthogonalProjectors H Y) (f : X → Y) (states : X → QState H) (x : X) :
@@ -273,6 +348,8 @@ theorem projective_correct_mass_is_born {X H Y : Type} [Fintype X] [DecidableEq 
   rw [hself]
   rfl
 
+/-- For a normalized state, the squared mass of its projective error remainder is one minus the
+correct-output probability. -/
 theorem projective_error_mass {X H Y : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (P : OrthogonalProjectors H Y) (f : X → Y) (states : X → QState H) (x : X)
@@ -307,6 +384,8 @@ theorem projective_error_mass {X H Y : Type} [Fintype X] [DecidableEq X]
     linarith
   rw [hre, hnorm, projective_correct_mass_is_born P f states x]
 
+/-- The correct-component contribution to the stacked adversary quadratic form vanishes when the
+witness is zero on equal-output pairs. -/
 theorem projective_correct_component_self_term_vanishes {X H Y : Type} [Fintype X]
     [DecidableEq X] [Fintype H] [DecidableEq H] [Fintype Y] [DecidableEq Y]
     (Γ : Matrix X X ℂ) (weight : QState X) (P : OrthogonalProjectors H Y)
@@ -329,6 +408,7 @@ theorem projective_correct_component_self_term_vanishes {X H Y : Type} [Fintype 
   · rw [projective_correct_components_orthogonal P f states x y hxy]
     ring
 
+/-- Bounds the norm of a sum of four elements by the sum of their norms. -/
 private theorem norm_add_four {E : Type} [NormedAddCommGroup E] (a b c d : E) :
     ‖a + b + c + d‖ ≤ ‖a‖ + ‖b‖ + ‖c‖ + ‖d‖ := by
   have h1 : ‖a + b + c + d‖ ≤ ‖a + b + c‖ + ‖d‖ := norm_add_le _ _
@@ -342,6 +422,10 @@ private theorem norm_add_four {E : Type} [NormedAddCommGroup E] (a b c d : E) :
     _ ≤ (‖a‖ + ‖b‖ + ‖c‖) + ‖d‖ := add_le_add_left h2 _
     _ = ‖a‖ + ‖b‖ + ‖c‖ + ‖d‖ := by ring
 
+/-- Bounds final adversary progress on the original register by `(2 * Real.sqrt (eps * (1 -
+eps)) + 2 * eps) * ‖Γ‖` for projective readout with error at most `eps`. It assumes
+normalized weights and states, a Hermitian witness vanishing on equal-output pairs, and `0 ≤
+eps ≤ 1 / 2` [HoyerLeeSpalek2007]. -/
 theorem projective_final_progress_on_original_register :
     ∀ (X H Y : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
       [Fintype Y] [DecidableEq Y] (Γ : Matrix X X ℂ) (weight : QState X)
@@ -518,6 +602,7 @@ theorem projective_final_progress_on_original_register :
     _ ≤ 2 * Real.sqrt (eps * (1 - eps)) * ‖Γ‖ + eps * ‖Γ‖ := hstep2
     _ ≤ (2 * Real.sqrt (eps * (1 - eps)) + 2 * eps) * ‖Γ‖ := hstep3
 
+/-- The norm-scaled cut witness `genCutWitness x y` is Hermitian. -/
 theorem genCutWitness_hermitian {X : Type} [Fintype X] [DecidableEq X] (x y : X) :
     (genCutWitness x y).IsHermitian := by
   have hGadj : (cutWitness x y)ᴴ = cutWitness x y := cutWitness_hermitian x y
@@ -529,6 +614,8 @@ theorem genCutWitness_hermitian {X : Type} [Fintype X] [DecidableEq X] (x y : X)
   simp [genCutWitness, Matrix.conjTranspose_apply, Matrix.smul_apply, Complex.conj_ofReal,
     hGadj']
 
+/-- A scaled cut witness joining two different outputs vanishes at every pair with equal
+outputs. -/
 theorem genCutWitness_zero_on_equal {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {g : X → E} (x y : X) (hgy : g x ≠ g y) (u v : X)
     (h : g u = g v) : genCutWitness x y u v = 0 := by
@@ -536,6 +623,7 @@ theorem genCutWitness_zero_on_equal {X E : Type} [Fintype X] [DecidableEq X]
   rw [genCutWitness, Matrix.smul_apply, hz]
   simp
 
+/-- The scaled cut witness has operator norm one when its two selected inputs are distinct. -/
 theorem genCutWitness_norm {X : Type} [Fintype X] [DecidableEq X] (x y : X)
     (hxy : x ≠ y) : ‖genCutWitness x y‖ = 1 := by
   set m := ‖cutWitness x y‖ with hmdef
@@ -554,6 +642,8 @@ theorem genCutWitness_norm {X : Type} [Fintype X] [DecidableEq X] (x y : X)
   rw [hnorm, hmdef]
   exact div_self (ne_of_gt hpos)
 
+/-- Every coordinate-filtered scaled cut witness has operator norm at most one when the selected
+inputs are distinct. -/
 theorem genCutWitness_filter_le_one {X : Type} [Fintype X] [DecidableEq X]
     {n : ℕ} {A : Type} [Fintype A] [DecidableEq A] (input : X → Fin n → A)
     (x y : X) (hxy : x ≠ y) (j : Fin n) :
@@ -591,6 +681,8 @@ theorem genCutWitness_filter_le_one {X : Type} [Fintype X] [DecidableEq X]
       rw [hmdef] at hmm
       exact hmm
 
+/-- The general-alphabet adversary value is at least one if two inputs have different function
+outputs. -/
 theorem gen_adversaryValue_ge_one_of_cross_output
     {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E]
     {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
@@ -615,6 +707,9 @@ theorem gen_adversaryValue_ge_one_of_cross_output
   rw [hnorm] at hle
   simpa using! hle
 
+/-- A Hermitian witness vanishing on equal-output pairs has norm-to-maximum-filter-norm ratio at
+most the general-alphabet adversary value, provided the denominator is positive
+[HoyerLeeSpalek2007]. -/
 theorem gen_ratio_le_sdp
     {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E]
     {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
@@ -663,6 +758,8 @@ theorem gen_ratio_le_sdp
   refine le_iSup_of_le ⟨Γ', hG'herm, hz', hfilter⟩ ?_
   rw [hnorm]
 
+/-- At a coordinate separating `x` and `y`, its cost is bounded by the cut-witness norm ratio
+multiplied by that cost. -/
 theorem gen_cutWitness_certified_coordinate
     {X κ : Type} [Fintype X] [DecidableEq X] [Fintype κ] [DecidableEq κ]
     {A : Type} [DecidableEq A] (input : X → κ → A) (β : κ → ℝ≥0∞) (x y : X) (j : κ)
@@ -691,8 +788,12 @@ theorem gen_cutWitness_certified_coordinate
     (Or.inl ENNReal.ofReal_ne_top)).2
   exact mul_le_mul_of_nonneg_left hB (bot_le)
 
+/-- The proposition asserting bounded-error general-adversary query lower bounds, including the
+sharper binary-output estimate [HoyerLeeSpalek2007]. -/
 def Clause16BaseContent : Prop := Qatlib.Concepts.AdversaryBounds.AdvDuality.clause16Prop
 
+/-- Completeness and mass identities for a loss-completed Kraus family, including the
+loss-defect trace formula and the completed action on an operator. -/
 def Clause16CoreContent {m D : ℕ} (C : Qatlib.Concepts.SignedWeights.Representations.LossCompletion m D) : Prop :=
   (∑ o, (C.completed o)ᴴ * C.completed o = 1) ∧
     (∀ rho : Operator D, C.totalMass rho = (Matrix.trace rho).re) ∧
@@ -701,6 +802,8 @@ def Clause16CoreContent {m D : ℕ} (C : Qatlib.Concepts.SignedWeights.Represent
     (∀ A : Operator D,
       (∑ i, ((C.kraus i)ᴴ * (C.kraus i)) * A) + ((C.lossKraus)ᴴ * (C.lossKraus)) * A = A)
 
+/-- The Boolean-input comparison between the general adversary value and filtered gamma-two,
+including the bound for every Hermitian witness whose filter norms are at most one. -/
 def Clause20BaseContent {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E]
     {n : ℕ} (input : X → Fin n → Bool) (f : X → E) : Prop :=
   generalAdversaryValue input f ≤
@@ -709,6 +812,8 @@ def Clause20BaseContent {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [De
       (∀ j, ‖gramFilterDelta input j ⊙ Γ‖ ≤ 1) →
       ENNReal.ofReal ‖Γ‖ ≤ filteredGamma2 (gramFunctionEvaluationMatrix f) (gramFilterDelta input))
 
+/-- The general-alphabet state-conversion SDP comparison, together with vanishing
+constant-coordinate filters and infinite filtered values for nonzero zero-filter instances. -/
 def Clause20CoreContent {X : Type} [Fintype X] [DecidableEq X] {n : ℕ} {A : Type}
     [DecidableEq A] (input : X → Fin n → A) (delta : ℝ) (rho sigma : Matrix X X ℂ)
     (_hdelta : 0 ≤ delta) (_hsigma : sigma.PosSemidef) : Prop :=
@@ -717,11 +822,14 @@ def Clause20CoreContent {X : Type} [Fintype X] [DecidableEq X] {n : ℕ} {A : Ty
     (∀ diff, ZeroFilterInstance input → (∃ x y, diff x y ≠ 0) →
       crossFilteredGamma2 input diff = ⊤)
 
+/-- Validity and pairwise orthogonality of the POVM induced by a basis-label map. -/
 def Clause21BaseContent {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
     (label : H → E) : Prop :=
   IsPovm (labelPovm label) ∧
     (∀ (y y' : E), y ≠ y' → labelPovm label y * labelPovm label y' = 0)
 
+/-- Query-cap, total-mass, accepted-versus-unfinished mass, and unfinished-query-cost bounds for
+a truncated instrument circuit. -/
 def Clause21CoreContent {d : ℕ} (O : Operator d) (_hO : O ∈ Matrix.unitaryGroup (Fin d) ℂ)
     (P : Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit d)
     (_hP : Qatlib.Concepts.Execution.CircuitCompile.instrumentCircuitWellFormed P) (rho : Operator d)
@@ -736,6 +844,9 @@ def Clause21CoreContent {d : ℕ} (O : Operator d) (_hO : O ∈ Matrix.unitaryGr
       ≤ Qatlib.Concepts.Execution.CircuitCompile.instrumentCircuitExpectedQueries O (truncateInstrumentQueries P K) rho) ∧
     (neverQueryCost O P rho K ≤ (K : ℝ) * neverMass O P rho K)
 
+/-- Coordinate upper bounds and finiteness guarantees for the certified cut cost. If separating
+coordinates exist and all their costs are infinite, the extended cut cost is infinite and
+its real-valued counterpart is zero. -/
 def Clause18CoreContent {X : Type} [Fintype X] [DecidableEq X] {κ : Type} [Fintype κ]
     [DecidableEq κ] {A : Type} [DecidableEq A] (input : X → κ → A) (beta : κ → ℝ≥0∞)
     (x y : X) : Prop :=
@@ -745,6 +856,8 @@ def Clause18CoreContent {X : Type} [Fintype X] [DecidableEq X] {κ : Type} [Fint
       (∀ j ∈ separatingCoords input x y, beta j = ⊤) →
         certifiedCutCostE input beta x y = ⊤ ∧ certifiedCutCost input beta x y = 0)
 
+/-- The truncated ledger agrees with the unbounded halted output-cost mass for query counts no
+greater than the fuel. -/
 theorem truncatedQueryLedger_eq_haltJoint_of_le {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) (o : O) (k : ℕ) (hk : k ≤ fuel) :
@@ -752,6 +865,7 @@ theorem truncatedQueryLedger_eq_haltJoint_of_le {S O : Type} [Fintype S] [Decida
   simp only [truncatedQueryLedger]
   exact haltJoint_eq_runFor_of_le hk
 
+/-- The total halted mass in the truncated query ledger plus the discarded pending mass is one. -/
 theorem truncatedLedger_add_discardedMass_eq_one {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
@@ -778,6 +892,8 @@ theorem truncatedLedger_add_discardedMass_eq_one {S O : Type} [Fintype S] [Decid
   rw [hsum, discardedMass]
   exact (unbounded_finite_halt_pending_partition next cfg fuel).2.1
 
+/-- The expected query count of a fuel-truncated run is at most the unbounded sum of pending
+masses. -/
 theorem truncatedQueryCount_le_unboundedQueryCount {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
@@ -789,6 +905,7 @@ theorem truncatedQueryCount_le_unboundedQueryCount {S O : Type} [Fintype S] [Dec
   rw [htail, unboundedQueryCount]
   exact ENNReal.sum_le_tsum (Finset.range fuel)
 
+/-- Positive nontermination mass forces the unbounded expected query count to be infinite. -/
 theorem unboundedQueryCount_eq_top_of_nontermination {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (h : 0 < nonterminationMass next cfg) :
@@ -805,6 +922,7 @@ theorem unboundedQueryCount_eq_top_of_nontermination {S O : Type} [Fintype S] [D
   rw [htop] at hsum
   exact le_antisymm le_top hsum
 
+/-- The discarded mass at every finite fuel is at least the nontermination mass. -/
 theorem discardedMass_ge_nonterminationMass {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
@@ -812,6 +930,8 @@ theorem discardedMass_ge_nonterminationMass {S O : Type} [Fintype S] [DecidableE
   show nonterminationMass next cfg ≤ pendingMass next cfg fuel
   exact iInf_le (fun f => pendingMass next cfg f) fuel
 
+/-- If nontermination mass is at most `tol`, some finite fuel leaves discarded mass at most `tol
++ ε` for every positive extended nonnegative `ε`. -/
 theorem tail_truncation_charge {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (tol : ℝ≥0∞) (ε : ℝ≥0∞)
@@ -844,6 +964,8 @@ theorem tail_truncation_charge {S O : Type} [Fintype S] [DecidableEq S]
   rw [show (⨅ fuel : ℕ, pendingMass next cfg fuel) = nonterminationMass next cfg from rfl] at hle
   exact absurd (lt_of_le_of_lt (hle.trans htol) hsum_gt) (lt_irrefl _)
 
+/-- An infinite sequence whose steps each have expected cost at least one cannot satisfy the
+finite-total-cost condition of `ZenoRun`. -/
 theorem zeno_unit_charge_impossible {S : Type} (step : S → CostedLaw S) (s : ℕ → S)
     (hunit : ∀ k : ℕ, (1 : ℝ≥0∞) ≤ CostedLaw.expectedCost (step (s k))) :
     ¬ Qatlib.Concepts.ConversionCore.WitnessCompile.ZenoRun step s := by
@@ -855,12 +977,16 @@ theorem zeno_unit_charge_impossible {S : Type} (step : S → CostedLaw S) (s : �
     exact h1
   exact (not_lt_of_ge htop) hz.2
 
+/-- Every cost in the support of a fuel-truncated randomized execution is bounded by that fuel. -/
 theorem truncated_run_bounded_by_fuel {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
     CostedLaw.BoundedBy (RandomizedExecution.runFor next fuel cfg) fuel :=
   RandomizedExecution.runFor_bounded next fuel cfg
 
+/-- Collects agreement with the original halted ledger, conservation of halted and discarded
+mass, the expected-query comparison, the nontermination lower bound on discarded mass, and
+the fuel bound on costs. -/
 theorem truncated_vs_original_query_ledger {S O : Type} [Fintype S] [DecidableEq S]
     [Fintype O] [DecidableEq O] (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
@@ -878,6 +1004,8 @@ theorem truncated_vs_original_query_ledger {S O : Type} [Fintype S] [DecidableEq
   · exact discardedMass_ge_nonterminationMass next cfg fuel
   · exact truncated_run_bounded_by_fuel next cfg fuel
 
+/-- The interrogation resource record has gate and space requirements polynomially bounded in
+its encoded input length. -/
 theorem interrogationResources_polyBounded {n a : ℕ} [NeZero a] :
     Qatlib.Concepts.ConversionCore.WitnessCompile.AdversaryResources.PolyBounded
       (interrogationResources (n := n) (a := a)) := by
@@ -895,6 +1023,8 @@ theorem interrogationResources_polyBounded {n a : ℕ} [NeZero a] :
     rw [Nat.pow_one]
     omega
 
+/-- For positive input length and a nonempty alphabet, constructs a unitary interrogation
+circuit with exactly `n` queries and `3 * n` gates, matching the recorded gate resource. -/
 theorem interrogation_actual_program_resources {n a : ℕ} [NeZero a] (hn : 0 < n) :
     ∃ (C : Circuit ((Fin n × ZMod a) × (Fin n → ZMod a))),
       IsUnitaryCircuit C ∧ QueryCount C = n ∧ GateCount C = 3 * n ∧
@@ -910,16 +1040,21 @@ theorem interrogation_actual_program_resources {n a : ℕ} [NeZero a] (hn : 0 < 
   · show (3 * n : ℕ) = GateCount (alphabetInterrogationList (a := a) j is)
     rw [hg, hlen]
 
+/-- Positive input length, state dimension, and alphabet size establish the
+`AlphabetAdaptive.Correct` contract for `adaptiveAlphabetExecution`. -/
 theorem adaptiveAlphabetExecution_correct {n D a : ℕ} (hn : 0 < n) (hD : 0 < D)
     (ha : 0 < a) :
     Qatlib.Concepts.ConversionCore.WitnessCompile.AlphabetAdaptive.Correct
       (adaptiveAlphabetExecution (n := n) (D := D) (a := a) (hn := hn)) :=
   ⟨ha, hn, hD⟩
 
+/-- Every round of `adaptiveAlphabetExecution` uses `projectiveInstrument`. -/
 theorem adaptive_round_instrument_is_projective {n D a : ℕ} (hn : 0 < n) (i : Fin n) :
     ((adaptiveAlphabetExecution (n := n) (D := D) (a := a) (hn := hn)).round i).inst
       = projectiveInstrument := rfl
 
+/-- For positive input length, an interrogation circuit has `n` queries and the adaptive
+execution with dimension `n` has `n` rounds. -/
 theorem adaptive_execution_rounds_eq_interrogation_queries {n a : ℕ} [NeZero a]
     (hn : 0 < n) :
     ∃ (C : Circuit ((Fin n × ZMod a) × (Fin n → ZMod a))),
@@ -928,11 +1063,15 @@ theorem adaptive_execution_rounds_eq_interrogation_queries {n a : ℕ} [NeZero a
   obtain ⟨C, _hC, hq, _hg, _hres⟩ := interrogation_actual_program_resources (a := a) hn
   exact ⟨C, hq, rfl⟩
 
+/-- When outcome dimension equals input length, the adaptive coordinate selected from an outcome
+is that outcome itself. -/
 theorem adaptiveCoordinate_eq_self {n : ℕ} (hn : 0 < n) (o : Fin n) :
     adaptiveCoordinate (D := n) hn o = o := by
   apply Fin.ext
   simp [adaptiveCoordinate, Nat.mod_eq_of_lt o.isLt]
 
+/-- Adaptive coordinate selection is injective when outcome dimension equals the positive input
+length. -/
 theorem adaptiveCoordinate_injective {n : ℕ} (hn : 0 < n) :
     Function.Injective (adaptiveCoordinate (D := n) hn) := by
   intro a b hab
@@ -941,6 +1080,8 @@ theorem adaptiveCoordinate_injective {n : ℕ} (hn : 0 < n) :
   rw [h1, h2] at hab
   exact hab
 
+/-- On the basis state labeled `c`, the adaptive round's instrument returns `c` with probability
+one and every different label with probability zero. -/
 theorem adaptiveInstrumentRound_outcome_mass {n D : ℕ} (hn : 0 < n) (c : Fin D) :
     instrumentProb (adaptiveInstrumentRound (D := D) hn).inst
         (outerProduct (Qatlib.Foundations.PureStateMath.Ket c)) c = 1 ∧
@@ -958,6 +1099,8 @@ theorem adaptiveInstrumentRound_outcome_mass {n D : ℕ} (hn : 0 < n) (c : Fin D
     simp [Qatlib.Foundations.PureStateMath.Ket, BornProb, hc']
   exact ⟨h1, h2⟩
 
+/-- A deterministic unit-cost first tick followed by a deterministic `j`-step run of cost `m`
+yields a deterministic `(j + 1)`-step run of cost `m + 1`. -/
 private theorem runFor_succ_cost {S O : Type} (next : S → PMF (Configuration S O))
     (cfg c d : Configuration S O) (j m : ℕ)
     (htick : RandomizedExecution.tick next cfg = PMF.pure (c, 1))
@@ -979,14 +1122,19 @@ private theorem runFor_succ_cost {S O : Type} (next : S → PMF (Configuration S
       omega
   rw [h]
 
+/-- Subtracting any natural number from the value of a finite label still yields a value below
+its dimension. -/
 private theorem label_lt {D : ℕ} (c : Fin D) (j : ℕ) : c.val - j < D := by
   have h1 : c.val - j ≤ c.val := Nat.sub_le _ _
   exact lt_of_le_of_lt h1 c.isLt
 
+/-- At a nonzero label, the adaptive transition advances to its predecessor label. -/
 private theorem adaptiveAdvance_at {D : ℕ} (c : Fin D) (hc : c.val ≠ 0) :
     adaptiveAdvance c = some (adaptiveLabelStep c) := by
   simp only [adaptiveAdvance, if_neg hc]
 
+/-- A tick at a nonzero adaptive label deterministically moves to the predecessor and incurs
+cost one. -/
 private theorem adaptive_tick_eq {D : ℕ} (c : Fin D) (hc : c.val ≠ 0) :
     RandomizedExecution.tick (adaptiveUnboundedNext (D := D)) (Sum.inr c)
       = PMF.pure (Sum.inr (adaptiveLabelStep c), 1) := by
@@ -997,6 +1145,7 @@ private theorem adaptive_tick_eq {D : ℕ} (c : Fin D) (hc : c.val ≠ 0) :
       = PMF.pure (Sum.inr (adaptiveLabelStep c), 1)
   rw [hnext, PMF.pure_map]
 
+/-- A tick at label zero deterministically halts with output zero and incurs cost one. -/
 private theorem adaptive_tick_halt {D : ℕ} (hD : 0 < D) (c : Fin D) (hc : c.val = 0) :
     RandomizedExecution.tick (adaptiveUnboundedNext (D := D)) (Sum.inr c)
       = PMF.pure (Sum.inl (⟨0, hD⟩ : Fin D), 1) := by
@@ -1010,6 +1159,9 @@ private theorem adaptive_tick_halt {D : ℕ} (hD : 0 < D) (c : Fin D) (hc : c.va
       = PMF.pure (Sum.inl (⟨0, hD⟩), 1)
   rw [hnext, PMF.pure_map]
 
+/-- Evaluates the countdown run at arbitrary fuel: up to the initial label value it remains
+running with that many decrements and charges, and at larger fuel it is halted at total cost
+`c.val + 1`. -/
 private theorem adaptive_runFor_aux {D : ℕ} (hD : 0 < D) :
     ∀ j : ℕ, ∀ c : Fin D, c.val ≤ D →
       (j ≤ c.val →
@@ -1107,11 +1259,15 @@ private theorem adaptive_runFor_aux {D : ℕ} (hD : 0 < D) :
               rw [Nat.sub_add_cancel hpos]
             rw [hres, hcost]
 
+/-- With fuel `j ≤ c.val`, the adaptive countdown deterministically remains at label `c.val - j`
+with accumulated cost `j`. -/
 theorem adaptive_runFor_running {D : ℕ} (hD : 0 < D) (c : Fin D) {j : ℕ} (hj : j ≤ c.val) :
     RandomizedExecution.runFor (adaptiveUnboundedNext (D := D)) j (Sum.inr c)
       = PMF.pure (Sum.inr ⟨c.val - j, label_lt c j⟩, j) :=
   (adaptive_runFor_aux hD j c (by omega)).1 hj
 
+/-- At its designated halting cost, the adaptive countdown deterministically halts at output
+zero with exactly that accumulated cost. -/
 theorem adaptive_ledger {D : ℕ} (hD : 0 < D) (c₀ : Fin D) :
     RandomizedExecution.runFor (adaptiveUnboundedNext (D := D))
         (adaptiveHaltingCost c₀) (Sum.inr c₀)
@@ -1123,11 +1279,15 @@ theorem adaptive_ledger {D : ℕ} (hD : 0 < D) (c₀ : Fin D) :
   rw [h2] at h1
   simpa using! h1
 
+/-- The adaptive halting cost is at most `n` when the initial label value plus one is at most
+`n`. -/
 theorem adaptive_ledger_rounds_le {n D : ℕ} (c₀ : Fin D)
     (hk : c₀.val + 1 ≤ n) : adaptiveHaltingCost c₀ ≤ n := by
   simp only [adaptiveHaltingCost]
   omega
 
+/-- The adaptive countdown assigns halted joint mass one to output zero at its designated
+halting cost. -/
 theorem adaptive_haltJoint {D : ℕ} (hD : 0 < D) (c₀ : Fin D) :
     haltJoint (adaptiveUnboundedNext (D := D)) (Sum.inr c₀)
       (⟨0, hD⟩) (adaptiveHaltingCost c₀) = 1 := by
@@ -1136,6 +1296,7 @@ theorem adaptive_haltJoint {D : ℕ} (hD : 0 < D) (c₀ : Fin D) :
   rw [adaptive_ledger hD c₀, PMF.pure_apply]
   norm_num
 
+/-- No pending mass remains in the adaptive countdown at its designated halting cost. -/
 theorem adaptive_pendingMass_zero {D : ℕ} (hD : 0 < D) (c₀ : Fin D) :
     pendingMass (adaptiveUnboundedNext (D := D)) (Sum.inr c₀)
       (adaptiveHaltingCost c₀) = 0 := by
@@ -1150,6 +1311,8 @@ theorem adaptive_pendingMass_zero {D : ℕ} (hD : 0 < D) (c₀ : Fin D) :
   intro k hk
   simp
 
+/-- The adaptive countdown has zero nontermination mass from every initial label in a positive
+dimension. -/
 theorem adaptive_nonterminationMass {D : ℕ} (hD : 0 < D) (c₀ : Fin D) :
     nonterminationMass (adaptiveUnboundedNext (D := D)) (Sum.inr c₀) = 0 := by
   rw [nonterminationMass]
@@ -1158,6 +1321,9 @@ theorem adaptive_nonterminationMass {D : ℕ} (hD : 0 < D) (c₀ : Fin D) :
     (Sum.inr c₀) fuel) (adaptiveHaltingCost c₀)).trans
     (by rw [adaptive_pendingMass_zero hD c₀])
 
+/-- Collects correctness and projective-round guarantees for the adaptive alphabet execution.
+Initial labels fitting within `n` rounds halt with probability one, have zero nontermination
+mass, and incur cost at most `n`. -/
 theorem adaptive_alphabet_execution_contract {n D a : ℕ} (hn : 0 < n) (hD : 0 < D)
     (ha : 0 < a) :
     Qatlib.Concepts.ConversionCore.WitnessCompile.AlphabetAdaptive.Correct
@@ -1179,6 +1345,7 @@ theorem adaptive_alphabet_execution_contract {n D a : ℕ} (hn : 0 < n) (hD : 0 
     · exact _hk
     · exact adaptive_ledger_rounds_le c₀ _hk
 
+/-- The scanner halts after exactly the word length on an input with no internal blank symbols. -/
 theorem scan_halts_at_data {a : ℕ} {w : List (Option (Fin a))} (hw : DataWord w) :
     BitMachineHaltsAt (scanMachine (a := a)) w w.length := by
   refine ⟨⟨default, (Turing.Tape.move Turing.Dir.right)^[w.length] (Turing.Tape.mk₁ w)⟩, ?_, ?_⟩
@@ -1192,6 +1359,7 @@ theorem scan_halts_at_data {a : ℕ} {w : List (Option (Fin a))} (hw : DataWord 
     rw [hnil]
     rfl
 
+/-- Every halting time of the scanner is at most the input word length. -/
 theorem scan_halts_at_most_length {a : ℕ} {w : List (Option (Fin a))} {t : ℕ}
     (h : BitMachineHaltsAt (scanMachine (a := a)) w t) : t ≤ w.length := by
   obtain ⟨t₀, ht₀, hh₀⟩ := scan_halts_at_some w
@@ -1204,6 +1372,7 @@ theorem scan_halts_at_most_length {a : ℕ} {w : List (Option (Fin a))} {t : ℕ
   · have hle : t ≤ t₀ := by omega
     exact hle.trans ht₀
 
+/-- On a word with no internal blanks, any scanner halting time equals the word length. -/
 theorem scan_halts_only_at_data {a : ℕ} {w : List (Option (Fin a))} (hw : DataWord w)
     {t : ℕ} (h : BitMachineHaltsAt (scanMachine (a := a)) w t) : t = w.length := by
   by_contra heq
@@ -1223,6 +1392,8 @@ theorem scan_halts_only_at_data {a : ℕ} {w : List (Option (Fin a))} (hw : Data
   have hne : w.getI t ≠ none := hw t hlt
   simp [hne] at hstop
 
+/-- For a word with no internal blanks, the scanner halts at time `t` exactly when `t` is the
+word length. -/
 theorem scan_halts_at_iff_data {a : ℕ} {w : List (Option (Fin a))} (hw : DataWord w) (t : ℕ) :
     BitMachineHaltsAt (scanMachine (a := a)) w t ↔ t = w.length := by
   constructor
@@ -1231,6 +1402,7 @@ theorem scan_halts_at_iff_data {a : ℕ} {w : List (Option (Fin a))} (hw : DataW
     rw [heq]
     exact scan_halts_at_data hw
 
+/-- The native scanning-machine family satisfies `UniformPolyTime`, using a linear time bound. -/
 theorem scanFamily_uniformPolyTime {a : ℕ} :
     (scanFamily (a := a)).UniformPolyTime := by
   refine ⟨1, 1, ?_⟩
@@ -1240,6 +1412,8 @@ theorem scanFamily_uniformPolyTime {a : ℕ} :
   simp only [Nat.one_mul, Nat.pow_one]
   omega
 
+/-- For a nonempty alphabet, any uniform bound `c * len ^ k + c` on the scanner's halting times
+must dominate `len` at every input length. -/
 theorem scanFamily_uniformPolyTime_forces_linear {a : ℕ} (hA : 0 < a) {c k : ℕ}
     (h : ∀ (len : ℕ) (input : List (Option (Fin a))), input.length = len →
       ∃ t : ℕ, t ≤ c * len ^ k + c ∧
@@ -1261,12 +1435,14 @@ theorem scanFamily_uniformPolyTime_forces_linear {a : ℕ} (hA : 0 < a) {c k : �
   rw [hex] at ht
   exact ht
 
+/-- The degenerate machine halts at time zero on every input word. -/
 theorem degenerateMachine_halts_at_zero {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (w : List Γ) : BitMachineHaltsAt (degenerateMachine (Γ := Γ) (Λ := Λ)) w 0 := by
   refine ⟨Turing.TM0.init w, rfl, ?_⟩
   show Turing.TM0.step (fun _ _ => none) (Turing.TM0.init w) = none
   rfl
 
+/-- The degenerate machine halts at time `t` exactly when `t = 0`. -/
 theorem degenerateMachine_halts_only_at_zero {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (w : List Γ) (t : ℕ) :
     BitMachineHaltsAt (degenerateMachine (Γ := Γ) (Λ := Λ)) w t ↔ t = 0 := by
@@ -1283,6 +1459,7 @@ theorem degenerateMachine_halts_only_at_zero {Γ Λ : Type} [Inhabited Γ] [Inha
     rw [heq]
     exact degenerateMachine_halts_at_zero w
 
+/-- The native scanner halts on an encoded interrogation word of `n` symbols at time `n`. -/
 theorem interrogation_native_halts_at_length {a : ℕ} {n : ℕ} (symbols : Fin n → Fin a) :
     BitMachineHaltsAt ((scanFamily (a := a)).machine n) (interrogationWord n symbols) n := by
   have hw := interrogationWord_isData n symbols
@@ -1293,6 +1470,7 @@ theorem interrogation_native_halts_at_length {a : ℕ} {n : ℕ} (symbols : Fin 
   rw [hlen] at hh
   exact hh
 
+/-- Every native scanner halting time on an interrogation word of `n` symbols equals `n`. -/
 theorem interrogation_native_halts_only_at_length {a : ℕ} {n : ℕ} (symbols : Fin n → Fin a)
     {t : ℕ} (h : BitMachineHaltsAt ((scanFamily (a := a)).machine n)
       (interrogationWord n symbols) t) : t = n := by
@@ -1305,6 +1483,9 @@ theorem interrogation_native_halts_only_at_length {a : ℕ} {n : ℕ} (symbols :
   rw [hlen] at h1
   exact h1
 
+/-- Combines a unitary interrogation circuit with `n` queries and `3 * n` gates with a native
+scanner halting at time `n` on the encoded symbols. The circuit's gate count agrees with
+`interrogationResources`. -/
 theorem interrogation_native_queries_eq_program {n a : ℕ} [NeZero a] (hn : 0 < n)
     (symbols : Fin n → Fin a) :
     ∃ (C : Circuit ((Fin n × ZMod a) × (Fin n → ZMod a))),
@@ -1315,19 +1496,28 @@ theorem interrogation_native_queries_eq_program {n a : ℕ} [NeZero a] (hn : 0 <
   refine ⟨C, hC, hq, hg, hr, ?_⟩
   exact interrogation_native_halts_at_length symbols
 
+/-- The native input-bit count equals the input-length field of the interrogation resource
+record. -/
 theorem nativeInputBits_eq_interrogation_inputLen {n a : ℕ} [NeZero a] :
     nativeInputBits (n := n) (a := a) = (interrogationResources (n := n) (a := a)).inputLen := rfl
 
+/-- The native input-bit count equals the space field of the interrogation resource record. -/
 theorem nativeInputBits_eq_interrogation_space {n a : ℕ} [NeZero a] :
     nativeInputBits (n := n) (a := a) = (interrogationResources (n := n) (a := a)).space := rfl
 
+/-- Establishes the bounded-error general-adversary lower-bound proposition packaged by
+`Clause16BaseContent`. -/
 theorem clause16_base_content : Clause16BaseContent :=
   Qatlib.Concepts.AdversaryBounds.AdvDuality.stageA_general_adversary_clause16_full_endpoint_v2
 
+/-- Establishes all completeness and mass identities in `Clause16CoreContent` for a loss
+completion. -/
 theorem clause16_core_content {m D : ℕ}
     (C : Qatlib.Concepts.SignedWeights.Representations.LossCompletion m D) : Clause16CoreContent C :=
   Qatlib.Concepts.SignedWeights.Representations.LossCompletion.clause16_complete C
 
+/-- Establishes the Boolean-input adversary-to-filtered-gamma-two comparisons in
+`Clause20BaseContent`. -/
 theorem clause20_base_content {X E : Type} [Fintype X] [DecidableEq X] [Fintype E]
     [DecidableEq E] {n : ℕ} (input : X → Fin n → Bool) (f : X → E) :
     Clause20BaseContent input f := by
@@ -1336,12 +1526,16 @@ theorem clause20_base_content {X E : Type} [Fintype X] [DecidableEq X] [Fintype 
   · intro Γ hG hz hfilter
     exact Qatlib.Concepts.AdversaryBounds.AdvDuality.stageA_general_adversary_clause20.2 input f Γ hG hz hfilter
 
+/-- Establishes the SDP comparison and constant- or zero-filter consequences in
+`Clause20CoreContent` at nonnegative tolerance with a positive semidefinite target. -/
 theorem clause20_core_content {X : Type} [Fintype X] [DecidableEq X] {n : ℕ} {A : Type}
     [DecidableEq A] (input : X → Fin n → A) (delta : ℝ) (rho sigma : Matrix X X ℂ)
     (hdelta : 0 ≤ delta) (hsigma : sigma.PosSemidef) : Clause20CoreContent input delta rho sigma
     hdelta hsigma :=
   Qatlib.Concepts.SignedWeights.Representations.clause20_complete input delta rho sigma hdelta hsigma
 
+/-- Establishes validity and orthogonality of the label-induced POVM as packaged by
+`Clause21BaseContent`. -/
 theorem clause21_base_content {H E : Type} [Fintype H] [DecidableEq H] [Fintype E]
     [DecidableEq E] (label : H → E) : Clause21BaseContent label := by
   refine ⟨?_, ?_⟩
@@ -1349,22 +1543,29 @@ theorem clause21_base_content {H E : Type} [Fintype H] [DecidableEq H] [Fintype 
   · intro y y' hne
     exact Qatlib.Concepts.AdversaryBounds.AdvDuality.stageA_general_adversary_clause21.2.1 label y y' hne
 
+/-- Establishes the truncation mass and query-cost guarantees in `Clause21CoreContent` for a
+well-formed instrument circuit, unitary oracle, and positive semidefinite input. -/
 theorem clause21_core_content {d : ℕ} (O : Operator d) (hO : O ∈ Matrix.unitaryGroup (Fin d) ℂ)
     (P : Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit d)
     (hP : Qatlib.Concepts.Execution.CircuitCompile.instrumentCircuitWellFormed P) (rho : Operator d)
     (hrho : rho.PosSemidef) (K : ℕ) : Clause21CoreContent O hO P hP rho hrho K :=
   Qatlib.Concepts.SignedWeights.Representations.clause21_complete O hO P hP rho hrho K
 
+/-- Establishes the separating-coordinate bounds and infinite-cost cases packaged by
+`Clause18CoreContent`. -/
 theorem clause18_core_content {X : Type} [Fintype X] [DecidableEq X] {κ : Type} [Fintype κ]
     [DecidableEq κ] {A : Type} [DecidableEq A] (input : X → κ → A) (beta : κ → ℝ≥0∞)
     (x y : X) : Clause18CoreContent input beta x y :=
   Qatlib.Concepts.SignedWeights.Representations.clause18_complete input beta x y
 
+/-- The source model's finite-alphabet input-difference filters equal `genFilterDelta`. -/
 theorem sourceAlphabetDelta_eq_genFilterDelta {X : Type} [DecidableEq X] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) :
     Qatlib.Concepts.GramQueryCore.LowerBoundTools.sourceAlphabetDelta input
       = genFilterDelta input := rfl
 
+/-- The source rectangular value with finite-alphabet input-difference filters equals
+`crossFilteredGamma2` for the same matrix. -/
 theorem sourceRectValue_eq_crossFilteredGamma2 {X : Type} [Fintype X] [DecidableEq X]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (A : Matrix X X ℂ) :
     Qatlib.Concepts.GramQueryCore.LowerBoundTools.sourceRectValue A
@@ -1375,6 +1576,8 @@ theorem sourceRectValue_eq_crossFilteredGamma2 {X : Type} [Fintype X] [Decidable
   rw [sourceAlphabetDelta_eq_genFilterDelta input]
   rfl
 
+/-- At nonnegative tolerance with a positive semidefinite target, the general-alphabet
+state-conversion SDP is at most the source rectangular value of the matrix difference. -/
 theorem general_alphabet_sdp_le_sourceRectValue {X : Type} [Fintype X] [DecidableEq X]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (delta : ℝ) (rho sigma : Matrix X X ℂ)
     (hdelta : 0 ≤ delta) (hsigma : sigma.PosSemidef) :
@@ -1385,6 +1588,8 @@ theorem general_alphabet_sdp_le_sourceRectValue {X : Type} [Fintype X] [Decidabl
     hdelta hsigma).trans ?_
   rw [sourceRectValue_eq_crossFilteredGamma2]
 
+/-- Produces an `AlphabetConversionProgram` from normalized source and target states with a
+nonnegative finite filtered Gram-matrix budget `W` and `0 < ε ≤ 1 / 3` [LeeEtAl2011]. -/
 theorem general_alphabet_conversion_program {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (W ε : ℝ)
@@ -1404,6 +1609,8 @@ theorem general_alphabet_conversion_program {X H : Type} [Fintype X] [DecidableE
     hconv X H n q input ρ σ W ε hn hW hvalue' hε hε1
   exact ⟨c, hc, ⟨r, hr, C, hC, hcalls, hdeg, hsucc, herr⟩⟩
 
+/-- For zero input-difference filters and a nonzero matrix, the filtered gamma-two value is
+infinite and no real budget bounds its source rectangular value. -/
 theorem degenerate_no_conversion_program {X : Type} [Fintype X] [DecidableEq X]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (A : Matrix X X ℂ)
     (hz : ZeroFilterInstance input) (hne : ∃ x y, A x y ≠ 0) :
@@ -1420,6 +1627,9 @@ theorem degenerate_no_conversion_program {X : Type} [Fintype X] [DecidableEq X]
     rw [htop] at hW
     simp at hW
 
+/-- Collects the general-adversary lower-bound proposition, loss-completion identities, and
+final-progress estimates for coherent POVM lifts and projective readout on the original
+register. -/
 theorem clause16_endpoint :
     Clause16BaseContent ∧
     (∀ {m D : ℕ} (C : Qatlib.Concepts.SignedWeights.Representations.LossCompletion m D),
@@ -1449,6 +1659,9 @@ theorem clause16_endpoint :
     exact projective_final_progress_on_original_register X H Y Γ weight P states f eps hG hw hs
       hz he0 he1 hsuccess
 
+/-- Collects the weighted composition upper bound, certified cut-cost guarantees, block-cost
+identity, separating-coordinate witness estimate, and unit lower bound for different-output
+inputs. -/
 theorem clause18_endpoint :
     (∀ {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ} [∀ i, Fintype (Y i)]
       [∀ i, DecidableEq (Y i)] (gin : ∀ i, Y i → Fin (n i) → Bool) (g : ∀ i, Y i → Bool)
@@ -1485,6 +1698,9 @@ theorem clause18_endpoint :
   · intro X E _ _ _ _ n A _ _ input f x y hgy
     exact gen_adversaryValue_ge_one_of_cross_output input f x y hgy
 
+/-- Collects adversary and state-conversion SDP comparisons, monotonicity in coordinate costs,
+and the Hermitian witness ratio bound. It also supplies finite-alphabet conversion programs
+from finite budgets and excludes such budgets for nonzero zero-filter instances. -/
 theorem clause20_endpoint :
     (∀ {X E : Type} [Fintype X] [DecidableEq X] [Fintype E] [DecidableEq E] {n : ℕ}
       (input : X → Fin n → Bool) (f : X → E), Clause20BaseContent input f) ∧
@@ -1534,6 +1750,10 @@ theorem clause20_endpoint :
   · intro X _ _ n q input A hz hne
     exact degenerate_no_conversion_program input A hz hne
 
+/-- Collects label and instrument readout guarantees, truncation and nontermination accounting,
+and exclusion of unit-charge Zeno runs. It also packages interrogation-circuit resources,
+adaptive countdown termination, native scanning-time bounds, and agreement of input-bit
+resource fields. -/
 theorem clause21_endpoint :
     (∀ {H E : Type} [Fintype H] [DecidableEq H] [Fintype E] [DecidableEq E]
       (label : H → E), Clause21BaseContent label) ∧

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixGeometry.LcuFrame.Compression
+
+/-!
+# Normalization and signal probabilities of LCU states
+
+Relates `Normalized` to the finite inner product and proves normalization of `phiP` and `phiM`
+for an eigenstate with `E² < 1`. The signal amplitudes and projections are computed explicitly,
+yielding squared signal norms of one half. See [PoulinEtAl2018] for related background.
+
+## Main statements
+
+* `phiPM_normalized`: Both phase states are normalized for a normalized eigenstate, normalized
+  weights, Hermitian involutory blocks, and `E² < 1`.
+* `signal_probability`: For normalized weights and a normalized Hamiltonian eigenstate, the
+  squared Hilbert norms of both signal-projected phase states are one half.
+
+## References
+
+* [Poulin et al., 2018][PoulinEtAl2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +36,8 @@ variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
 omit [Fintype J] [DecidableEq J] [DecidableEq I] in
 
+/-- The inner product of a state with itself is the complex cast of the sum of its squared
+coordinate norms. -/
 theorem inner_self (ψ : State I) : Inner ψ ψ = ((∑ i, ‖ψ i‖^2 : ℝ) : ℂ) := by
   rw [inner_apply, Complex.ofReal_sum]
   apply Finset.sum_congr rfl
@@ -24,17 +46,21 @@ theorem inner_self (ψ : State I) : Inner ψ ψ = ((∑ i, ‖ψ i‖^2 : ℝ) :
 
 omit [Fintype J] [DecidableEq J] [DecidableEq I] in
 
+/-- A state is normalized exactly when its inner product with itself equals one. -/
 theorem normalized_iff_inner (ψ : State I) : Normalized ψ ↔ Inner ψ ψ=1 := by
   rw [inner_self]
   exact_mod_cast (Iff.rfl : (∑ i, ‖ψ i‖^2)=1 ↔ (∑ i, ‖ψ i‖^2)=1)
 
 omit [Fintype J] [DecidableEq J] in
 
+/-- Applying the identity matrix to the system coordinate leaves a lifted state unchanged. -/
 theorem applySys_one (ψ : State (J × I)) : applySys (1 : Matrix I I ℂ) ψ = ψ := by
   ext ⟨j,i⟩
   change ((1 : Matrix I I ℂ) *ᵥ (fun x => ψ (j,x))) i=ψ (j,i)
   rw [Matrix.one_mulVec]
 
+/-- Both phase states are normalized for a normalized eigenstate, normalized weights, Hermitian
+involutory blocks, and `E² < 1`. -/
 theorem phiPM_normalized (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, β j^2=1) (hφ : Normalized φ)
     (hPH : ∀ j, (P j)ᴴ=P j) (hP2 : ∀ j, P j*P j=1)
@@ -51,6 +77,8 @@ theorem phiPM_normalized (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State
   exact ⟨(normalized_iff_inner _).2 (by simpa only [hi] using hh.1),
     (normalized_iff_inner _).2 (by simpa only [hi] using hh.2)⟩
 
+/-- For normalized weights and a Hamiltonian eigenstate, the adjoint embedding sends each phase
+state to `invSqrt2 • φ`. -/
 theorem signal_amplitudes (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, β j^2=1) (heig : ham β P *ᵥ φ=(E : ℂ) • φ) :
     (embedding (I := I) β)ᴴ *ᵥ phiP β P φ E = invSqrt2 • φ ∧
@@ -60,6 +88,8 @@ theorem signal_amplitudes (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : Stat
   simp [Matrix.mulVec_smul, Matrix.mulVec_add, Matrix.mulVec_sub,
     embedding_adjoint_phi0 β hβ, embedding_adjoint_phi1 β P φ E hβ heig]
 
+/-- For normalized weights and a Hamiltonian eigenstate, the signal projector sends each phase
+state to `invSqrt2 • phi0 β φ`. -/
 theorem signal_projection (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, β j^2=1) (heig : ham β P *ᵥ φ=(E : ℂ) • φ) :
     signalProjector β *ᵥ phiP β P φ E = invSqrt2 • phi0 β φ ∧
@@ -68,12 +98,15 @@ theorem signal_projection (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : Stat
   simp only [signalProjector, ← Matrix.mulVec_mulVec, hp, hm,
     Matrix.mulVec_smul, embedding_mulVec, and_self]
 
+/-- The squared complex norm of `invSqrt2` is one half. -/
 theorem invSqrt2_norm_sq : ‖invSqrt2‖^2 = (1/2 : ℝ) := by
   simp only [invSqrt2, norm_inv, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (Real.sqrt_nonneg _), inv_pow]
   rw [Real.sq_sqrt (by norm_num : (0:ℝ)≤2)]
   norm_num
 
+/-- For normalized weights and a normalized Hamiltonian eigenstate, the squared Hilbert norms of
+both signal-projected phase states are one half. -/
 theorem signal_probability (β : J → ℝ) (P : J → Matrix I I ℂ) (φ : State I) (E : ℝ)
     (hβ : ∑ j, β j^2=1) (hφ : Normalized φ)
     (heig : ham β P *ᵥ φ=(E : ℂ) • φ) :

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ChainProduct
+
+/-!
+# Vector identities for product-chain contraction
+
+This module supplies dot-product, finite-sum, and matrix-action identities for the product-chain
+spectral argument used in [Tani2009]. It isolates the contraction estimate on functions with
+vanishing row and column sums, where the two factor contraction bounds multiply.
+
+## Main statements
+
+* `act_prod_twoStage`: product action as successive coordinate actions.
+* `act_prod_row_sum_zero` and `act_prod_col_sum_zero`: preservation of vanishing coordinate
+  sums.
+* `sqNorm_act_of_doublyZero`: the product squared-norm contraction estimate.
+
+## References
+
+* [Tani, 2009][Tani2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,29 +38,38 @@ open scoped BigOperators
 
 variable {I J : Type*} [Fintype I] [Fintype J]
 
+/-- The finite sum of squared real coordinates is nonnegative. -/
 theorem sqNorm_nonneg (v : I → ℝ) : 0 ≤ sqNorm v :=
   Finset.sum_nonneg fun i _ => sq_nonneg (v i)
 
+/-- The finite real dot product is symmetric. -/
 theorem dot_comm (u v : I → ℝ) : dot u v = dot v u := by
   simp only [dot]
   exact Finset.sum_congr rfl fun i _ => mul_comm _ _
 
+/-- The finite real dot product distributes over addition in its second argument. -/
 theorem dot_add_right (u v w : I → ℝ) : dot u (v + w) = dot u v + dot u w := by
   simp only [dot, Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+/-- A symmetric matrix whose rows sum to one also has every column sum equal to one. -/
 theorem col_sum_of_symm_row_sum {P : I → I → ℝ} (hsym : ∀ i j, P i j = P j i)
     (hrow : ∀ i, ∑ j, P i j = 1) : ∀ j, ∑ i, P i j = 1 := by
   intro j
   rw [← hrow j]
   exact Finset.sum_congr rfl fun i _ => hsym i j
 
+/-- A sum over a finite product equals the iterated sum with the second coordinate outermost. -/
 theorem sum_snd_fst (V : I × J → ℝ) : ∑ y, ∑ x, V (x, y) = ∑ p : I × J, V p := by
   rw [Fintype.sum_prod_type, Finset.sum_comm]
 
+/-- Expands product-chain action at a pair as an iterated sum of products of the two matrix
+entries and the vector coordinate. -/
 theorem act_prod_apply (P : I → I → ℝ) (Q : J → J → ℝ) (V : I × J → ℝ) (x : I) (y : J) :
     act (chainProduct P Q) V (x, y) = ∑ x', ∑ y', P x x' * Q y y' * V (x', y') := by
   simp only [act, chainProduct, Fintype.sum_prod_type]
 
+/-- Product-chain action can be computed by first applying the second matrix along rows and then
+the first matrix along columns. -/
 theorem act_prod_twoStage (P : I → I → ℝ) (Q : J → J → ℝ) (V : I × J → ℝ) (x : I) (y : J) :
     act (chainProduct P Q) V (x, y)
       = act P (fun x' => act Q (fun y' => V (x', y')) y) x := by
@@ -48,6 +77,8 @@ theorem act_prod_twoStage (P : I → I → ℝ) (Q : J → J → ℝ) (V : I × 
   simp only [act, Finset.mul_sum]
   refine Finset.sum_congr rfl fun x' _ => Finset.sum_congr rfl fun y' _ => by ring
 
+/-- If the first matrix has row sums one, product-chain action on a function of the second
+coordinate reduces to action by the second matrix. -/
 theorem act_prod_right {P : I → I → ℝ} {Q : J → J → ℝ}
     (hProw : ∀ x, ∑ x', P x x' = 1) (u : J → ℝ) :
     act (chainProduct P Q) (fun p : I × J => u p.2) = fun p => act Q u p.2 := by
@@ -63,6 +94,8 @@ theorem act_prod_right {P : I → I → ℝ} {Q : J → J → ℝ}
     _ = (∑ x', P x x') * (∑ y', Q y y' * u y') := by rw [← Finset.sum_mul]
     _ = ∑ y', Q y y' * u y' := by rw [hProw x, one_mul]
 
+/-- If the second matrix has row sums one, product-chain action on a function of the first
+coordinate reduces to action by the first matrix. -/
 theorem act_prod_left {P : I → I → ℝ} {Q : J → J → ℝ}
     (hQrow : ∀ y, ∑ y', Q y y' = 1) (v : I → ℝ) :
     act (chainProduct P Q) (fun p : I × J => v p.1) = fun p => act P v p.1 := by
@@ -79,6 +112,8 @@ theorem act_prod_left {P : I → I → ℝ} {Q : J → J → ℝ}
         rw [← Finset.mul_sum]
     _ = ∑ x', P x x' * v x' := by simp [hQrow]
 
+/-- Product-chain action preserves vanishing row sums when the second matrix has column sums
+one. -/
 theorem act_prod_row_sum_zero {P : I → I → ℝ} {Q : J → J → ℝ}
     (hQcol : ∀ y', ∑ y, Q y y' = 1)
     {W : I × J → ℝ} (hWrow : ∀ x, ∑ y, W (x, y) = 0) :
@@ -100,6 +135,8 @@ theorem act_prod_row_sum_zero {P : I → I → ℝ} {Q : J → J → ℝ}
           rw [sum_act (P := Q) hQcol (fun y' => W (x', y'))]
     _ = 0 := by simp [hWrow]
 
+/-- Product-chain action preserves vanishing column sums when the first matrix has column sums
+one. -/
 theorem act_prod_col_sum_zero {P : I → I → ℝ} {Q : J → J → ℝ}
     (hPcol : ∀ x', ∑ x, P x x' = 1)
     {W : I × J → ℝ} (hWcol : ∀ y, ∑ x, W (x, y) = 0) :
@@ -124,6 +161,8 @@ theorem act_prod_col_sum_zero {P : I → I → ℝ} {Q : J → J → ℝ}
           rw [Finset.mul_sum]
     _ = 0 := by simp [hWcol]
 
+/-- For a function with vanishing row and column sums, product-chain action satisfies the
+squared-norm bound with factor `(1-δ₁)^2*(1-δ₂)^2` supplied by the two gap bounds. -/
 theorem sqNorm_act_of_doublyZero {P : I → I → ℝ} {Q : J → J → ℝ} {δ₁ δ₂ : ℝ}
     (hP : SpectralGapAtLeast P δ₁) (hQ : SpectralGapAtLeast Q δ₂)
     {W : I × J → ℝ} (hWrow : ∀ x, ∑ y, W (x, y) = 0)

@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationDual
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationError
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationSemantics
+
+/-!
+# Stopped sampling laws for dual vectors
+
+`frontier1` relates the dual vector of a matrix family to the actual output distribution of a
+stopped rejection sampler. It combines positive normalization, exact capped success and failure
+probabilities, legality, and finite expected costs. The surrounding sampling-based
+matrix-arithmetic setting is represented by [ChiaEtAl2022].
+
+## Main statements
+
+* `frontier1`: scaled dual-vector semantics and cost guarantees for stopped and capped samplers.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.FairRandomBits.RationalReject
@@ -21,6 +39,10 @@ namespace Qatlib.Concepts.DyadicOverlap.ArithLedger
 open Qatlib
 open scoped ENNReal Classical
 
+/-- For positive `a` and nonnegative selector weights, the stopped output law represents the
+dual vector up to a positive scale. Every capped program is legal with the stated exact
+success and failure masses, and the stopped read cost and every natural-valued function of
+its leaf counts have finite expectation. -/
 theorem frontier1 {T D m : ℕ} (F : Family T D m) (j₀ : Fin m) (hT : 0 < T)
     (a : ℚ) (μ : Fin T → ℚ) (ha : 0 < a) (hμ : ∀ t, 0 ≤ μ t) :
     let w := intWeights (selectorMasses T a μ)

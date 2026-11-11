@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
+
+/-!
+# Counted Szegedy access and a periodic endpoint
+
+This module transfers a discriminant rotation-plane statement to a counted Szegedy circuit and
+constructs explicit preparation access for the deterministic two-state flip chain. The example
+specializes the quantized-walk framework of [Szegedy2004].
+
+`periodicFlipPreparation` prepares the row-isometry columns, and the associated Szegedy walk and
+counted implementation evaluate to the identity. The syntactic word still has four queries and
+four gates.
+
+## Main statements
+
+* `counted_szegedy_existing_plane_consumer`: the counted walk action on a discriminant rotation
+  plane.
+* `counted_szegedy_periodic_endpoint_actual_consumer`: preparation and identity-walk properties
+  of the periodic example.
+* `counted_szegedy_periodic_endpoint_costs`: exact costs of its counted word.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -31,6 +56,9 @@ set_option linter.unusedVariables false
 
 open scoped Classical BigOperators
 
+/-- A normalized real discriminant eigenvector with eigenvalue `cos θ` and nonzero `sin θ` gives
+orthonormal states on which the counted walk sends the first state to the rotation
+combination with angle `2*θ`. -/
 theorem counted_szegedy_existing_plane_consumer {I : Type*} [Fintype I] [DecidableEq I] :
     ∀ (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ) (v : I → ℝ) (θ : ℝ),
     IsTransitionMatrix P → U ∈ Matrix.unitaryGroup (I × I) ℂ →
@@ -44,36 +72,45 @@ theorem counted_szegedy_existing_plane_consumer {I : Type*} [Fintype I] [Decidab
   obtain ⟨w₀, w₁, hn₀, hn₁, horth, hrot, -⟩ := szegedy_spectral_map P hP v hv θ hs hvD
   exact ⟨w₀, w₁, hn₀, hn₁, horth, hrot⟩
 
+/-- The deterministic transition matrix that flips a Boolean state at every step. -/
 def periodicFlipTransition : Bool → Bool → ℝ :=
   fun a b => if b = !a then 1 else 0
 
+/-- The pair permutation sending `(a,b)` to `(a,b xor not a)`. -/
 def periodicFlipPerm : Bool × Bool → Bool × Bool :=
   fun p => (p.1, p.2 ^^ (!p.1))
 
+/-- The pair permutation `periodicFlipPerm` is an involution. -/
 theorem periodicFlipPerm_invol : Function.Involutive periodicFlipPerm := by
   intro p
   obtain ⟨a, b⟩ := p
   fin_cases a <;> fin_cases b <;> simp [periodicFlipPerm]
 
+/-- The permutation matrix implementing `periodicFlipPerm`. -/
 noncomputable def periodicFlipPreparation : Matrix (Bool × Bool) (Bool × Bool) ℂ :=
   permMatrix periodicFlipPerm
 
+/-- The periodic flip preparation matrix is unitary. -/
 theorem periodicFlipPreparation_unitary :
     periodicFlipPreparation ∈ Matrix.unitaryGroup (Bool × Bool) ℂ :=
   permMatrix_unitary periodicFlipPerm_invol
 
+/-- The periodic flip preparation sends each basis ket to the ket of its permuted index. -/
 theorem periodicFlipPreparation_mulVec_ket (q : Bool × Bool) :
     periodicFlipPreparation *ᵥ Ket q = Ket (periodicFlipPerm q) :=
   applyGate_permMatrix_ket periodicFlipPerm_invol q
 
+/-- The periodic flip preparation equals its conjugate transpose. -/
 theorem periodicFlipPreparation_conjTranspose :
     periodicFlipPreparationᴴ = periodicFlipPreparation :=
   permMatrix_conjTranspose periodicFlipPerm_invol
 
+/-- The deterministic Boolean flip matrix is a transition matrix. -/
 theorem periodicFlipTransition_isTransition : IsTransitionMatrix periodicFlipTransition := by
   refine ⟨fun x y => by by_cases h : y = !x <;> simp [periodicFlipTransition, h], fun x => ?_⟩
   fin_cases x <;> simp [periodicFlipTransition]
 
+/-- The Szegedy isometry of the flip chain sends `Ket i` to `Ket (i, not i)`. -/
 theorem szegedyIsometry_periodicFlip_col (i : Bool) :
     SzegedyIsometry periodicFlipTransition *ᵥ Ket i = Ket (i, !i) := by
   funext p
@@ -83,6 +120,8 @@ theorem szegedyIsometry_periodicFlip_col (i : Bool) :
   fin_cases i <;> fin_cases a <;> fin_cases b <;>
     simp [periodicFlipTransition, Real.sqrt_one, Real.sqrt_zero, Ket]
 
+/-- With the second register initialized to false, the periodic flip preparation produces each
+column of the Szegedy isometry. -/
 theorem periodicFlipPreparation_prepares :
     ∀ i : Bool, periodicFlipPreparation *ᵥ TensorState (Ket i) (Ket false)
       = SzegedyIsometry periodicFlipTransition *ᵥ Ket i := by
@@ -91,6 +130,7 @@ theorem periodicFlipPreparation_prepares :
     szegedyIsometry_periodicFlip_col]
   fin_cases i <;> rfl
 
+/-- The adjoint Szegedy isometry sends the supported flip-pair ket back to its input ket. -/
 theorem szegedyIsometry_periodicFlip_conjTranspose_col (i : Bool) :
     (SzegedyIsometry periodicFlipTransition)ᴴ *ᵥ Ket (i, !i) = Ket i := by
   funext k
@@ -100,6 +140,7 @@ theorem szegedyIsometry_periodicFlip_conjTranspose_col (i : Bool) :
     simp [periodicFlipTransition, Real.sqrt_one, Real.sqrt_zero, RCLike.star_def,
       starRingEnd_ofReal, Ket]
 
+/-- The adjoint Szegedy isometry annihilates each equal-pair basis ket. -/
 theorem szegedyIsometry_periodicFlip_conjTranspose_anti (i : Bool) :
     (SzegedyIsometry periodicFlipTransition)ᴴ *ᵥ Ket (i, i) = 0 := by
   funext k
@@ -109,6 +150,7 @@ theorem szegedyIsometry_periodicFlip_conjTranspose_anti (i : Bool) :
     simp [periodicFlipTransition, Real.sqrt_one, Real.sqrt_zero, RCLike.star_def,
       starRingEnd_ofReal, Ket]
 
+/-- The Szegedy reflection fixes each supported flip-pair basis ket. -/
 theorem szegedyReflection_periodicFlip_fix (i : Bool) :
     SzegedyReflection periodicFlipTransition *ᵥ Ket (i, !i) = Ket (i, !i) := by
   refine applyGate_reflectionAbout_of_fixed ?_
@@ -117,6 +159,7 @@ theorem szegedyReflection_periodicFlip_fix (i : Bool) :
   rw [← Matrix.mulVec_mulVec, szegedyIsometry_periodicFlip_conjTranspose_col,
     szegedyIsometry_periodicFlip_col]
 
+/-- The Szegedy reflection negates each equal-pair basis ket. -/
 theorem szegedyReflection_periodicFlip_neg (i : Bool) :
     SzegedyReflection periodicFlipTransition *ᵥ Ket (i, i) = -(Ket (i, i)) := by
   refine applyGate_reflectionAbout_of_zero ?_
@@ -125,6 +168,9 @@ theorem szegedyReflection_periodicFlip_neg (i : Bool) :
   rw [← Matrix.mulVec_mulVec, szegedyIsometry_periodicFlip_conjTranspose_anti,
     Matrix.mulVec_zero]
 
+/-- Collect the transition and preparation properties of the periodic flip example, prove that
+its walk and counted implementation equal the identity, and show that the adjoint row
+isometry annihilates `Ket (false,false)`. -/
 theorem counted_szegedy_periodic_endpoint_actual_consumer :
     (∀ a b : Bool, periodicFlipTransition a b = if b = !a then 1 else 0) ∧
     periodicFlipPreparation ∈ Matrix.unitaryGroup (Bool × Bool) ℂ ∧
@@ -172,6 +218,8 @@ theorem counted_szegedy_periodic_endpoint_actual_consumer :
       simp [periodicFlipTransition, Real.sqrt_one, Real.sqrt_zero, RCLike.star_def,
         starRingEnd_ofReal, Ket]
 
+/-- The periodic flip counted word evaluates to the identity while retaining four queries and
+four gates. -/
 theorem counted_szegedy_periodic_endpoint_costs :
     evaluate periodicFlipPreparation (countedSzegedyWord false) = 1 ∧
     adjointQueryCount (countedSzegedyWord false) = 4 ∧

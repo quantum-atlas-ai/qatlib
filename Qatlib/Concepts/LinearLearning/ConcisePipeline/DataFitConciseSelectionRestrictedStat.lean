@@ -9,6 +9,31 @@ import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection
+
+/-!
+# Specification of restricted concise fitting
+
+This module exports the coordinate-selection and histogram-sampling definitions used by
+`DataFitConciseSelectionRestricted`. The proposition combines actual postselected solution-state
+preparation with missed-mass probability bounds, selected-fit residual and coefficient-tail
+estimates, conditional parameter preparation for the selected design, and amplitude-estimation
+guarantees.
+
+The specification retains explicit positive condition bounds and query ledgers for both full and
+selected designs, supporting the concise data-fitting task of [WiebeBraunLloyd2012].
+
+## Main definitions
+
+* `selectedDesignMatrix` and `coordinateTail`: selected columns and omitted coefficients.
+* `histogramSampleLaw`: repeated sampling from the solution state's Born distribution.
+* `DataFitConciseSelectionRestricted`: combined preparation, selection, fitting, and resource
+  guarantees.
+
+## References
+
+* [Wiebe, Braun, and Lloyd, 2012][WiebeBraunLloyd2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -47,14 +72,20 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- Alias for the design matrix with all columns outside the selected finite set replaced by
+zero. -/
 noncomputable abbrev selectedDesignMatrix :=
     @Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection.selectedDesignMatrix
+/-- Alias for the vector of coordinates outside the selected finite set. -/
 abbrev coordinateTail :=
     @Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection.coordinateTail
+/-- Alias for the total Born weight outside the selected finite set. -/
 noncomputable abbrev missedSelectionMass :=
     @Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection.missedSelectionMass
+/-- Alias for one coordinate sample from a normalized state's Born distribution. -/
 noncomputable abbrev histogramTrial :=
     @Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection.histogramTrial
+/-- Alias for the law of a list of independent Born-distributed coordinate samples. -/
 noncomputable abbrev histogramSampleLaw :=
     @Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection.histogramSampleLaw
 
@@ -72,6 +103,11 @@ open Qatlib
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitConciseSelectionRestrictedStat
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- The restricted concise-fitting specification combining approximate parameter-state
+preparation, histogram selection probability, selected-fit residual and tail bounds,
+conditional selected-parameter preparation, residual estimation, and exact query ledgers. It
+assumes projected-unitary encodings and positive condition bounds for the full and selected
+designs. -/
 def DataFitConciseSelectionRestricted : Prop :=
 ∀ (O I : Type) [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
   (A : Matrix O I ℂ) (U B : Matrix (O⊕I) (O⊕I) ℂ) (j : O⊕I) (b : QState O)

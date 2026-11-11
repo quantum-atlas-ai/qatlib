@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QspSimulation.WordModel.RealizabilityRestrictedSubgoalStat
+
+/-!
+# A quadratic QSP realizability example
+
+This module proves the restricted realization of the response 2x² − 1 using a phase list of
+length two. The auxiliary identities reduce the zero-phase QSP word to the square of the signal
+matrix. Background and related constructions are discussed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `qspWord_zero_zero`: evaluates the two-phase zero word.
+* `realizabilityRestrictedSubgoal`: proves the quadratic response realization.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.Phase
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -15,6 +33,7 @@ namespace Qatlib.Concepts.QspSimulation.WordModel
 
 open Qatlib
 
+/-- The phase rotation at angle zero is the identity. -/
 theorem phaseRotation_zero : PhaseRotation (0 : ℝ) = 1 := by
   ext a b
   rw [phaseRotation_apply, Matrix.one_apply]
@@ -27,10 +46,13 @@ theorem phaseRotation_zero : PhaseRotation (0 : ℝ) = 1 := by
       simp
   · rw [if_neg hab, if_neg hab]
 
+/-- The QSP word with phase list `[0, 0]` equals the square of `SignalMatrix x`. -/
 theorem qspWord_zero_zero (x : ℝ) :
     QSPWord [0, 0] x = SignalMatrix x * SignalMatrix x := by
   rw [qspWord_cons, qspWord_cons, qspWord_nil, phaseRotation_zero, mul_one, mul_one]
 
+/-- There is a phase list of length two whose upper-left QSP response is 2x² − 1 throughout [−1,
+1]. -/
 theorem realizabilityRestrictedSubgoal : RealizabilityRestrictedSubgoal := by
   refine ⟨[0, 0], rfl, ?_⟩
   intro x hx1 hx2

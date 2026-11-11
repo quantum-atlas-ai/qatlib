@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.ResetDiscard.TaylorDiscardSegment
 import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
 import Qatlib.Papers.TruncTaylor14.Discard.Defs
+
+/-!
+# Specification of actual Taylor discard simulation
+
+This module states the proposition `SourceDiscardActualSimulation` for unitary decompositions of
+a finite Hermitian Hamiltonian. With a coefficient-sum bound and nonnegative time, it specifies
+the segment count, circuit resource counts and amplification identity, and trace-norm error at
+most `2⁻ᵏ` on density matrices. See [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `SourceDiscardActualSimulation`: Joint circuit and state-error specification.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,6 +58,9 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 set_option synthInstance.maxHeartbeats 2000000
 set_option maxHeartbeats 800000
 
+/-- The proposition requiring the selected Taylor discard circuit to be well formed with counts
+`3 r K` and `r (6 K + 12)`, the stated amplification semantics, and final state trace-norm
+error at most `2⁻ᵏ` under the unitary-decomposition and time hypotheses. -/
 def SourceDiscardActualSimulation : Prop :=
   ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (h : J → ℝ) (U : J → Matrix I I ℂ) (j₀ : J) (t Λ : ℝ) (k : ℕ),

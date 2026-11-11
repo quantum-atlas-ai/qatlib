@@ -40,6 +40,22 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
+
+/-!
+# Amplitude readout imports for population risk
+
+This module collects prepared amplitude-estimation, randomized-execution, finite-stopping, and
+finite-distribution imports for the `Qatlib.Concepts.RiskEstimation.PopulationGap` namespace. It
+introduces no new mathematical declarations; the imported readout tools provide background for
+the population-risk development.
+
+The amplitude-estimation background is given in [BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 

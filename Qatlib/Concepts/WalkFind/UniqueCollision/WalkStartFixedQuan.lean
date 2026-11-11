@@ -8,6 +8,30 @@ import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedStat
 import Qatlib.Concepts.WalkFind.WalkSpectrum.AlphaFromInputQuan
 import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
 import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransportQuan
+
+/-!
+# The fixed Johnson-walk starting state
+
+This module proves that the reduced starting vector is fixed by both diffusion steps under the
+physical size assumptions. It also identifies the total type population with the cardinality of
+the full Johnson basis and decomposes the uniform full starting state into its type vectors
+[Ambainis2007ElementDistinctness].
+
+The full search state is the type lift of the reduced evolution, and its marked amplitude equals
+the corresponding reduced overlap. These identities connect the full collision-search walk to
+its spectral reduction.
+
+## Main statements
+
+* `walkStartFixed`: the starting vector is fixed by the reduced walk.
+* `jwStartBig_decompose`: the type decomposition of the uniform full starting state.
+* `jwMarkedAmplitude_eq_reduced`: equality of the full and reduced marked amplitudes.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.WalkSpectrum
 open Qatlib.Concepts.WalkFind.UniqueCollision
@@ -18,6 +42,7 @@ namespace Qatlib.Concepts.WalkFind.UniqueCollision
 
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- The sum of squared norms of the reduced starting amplitudes is `jwStartNormSq`. -/
 theorem jwStart_normSq (k N r : ℕ) :
     (∑ i : Fin (2 * k + 1), ‖jwStart k N r i‖ ^ 2) = jwStartNormSq k N r := by
   unfold jwStartNormSq
@@ -26,6 +51,8 @@ theorem jwStart_normSq (k N r : ℕ) :
   simp only [jwStart, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _)]
   exact Real.sq_sqrt (Nat.cast_nonneg _)
 
+/-- If `jwStartNormSq` is positive, dividing the starting vector by its square root gives
+squared norm one. -/
 theorem jwNormalizedStart_normSq (k N r : ℕ) (h : 0 < jwStartNormSq k N r) :
     (∑ i : Fin (2 * k + 1),
       ‖jwStart k N r i / (Real.sqrt (jwStartNormSq k N r) : ℂ)‖ ^ 2) = 1 := by
@@ -33,6 +60,7 @@ theorem jwNormalizedStart_normSq (k N r : ℕ) (h : 0 < jwStartNormSq k N r) :
       abs_of_nonneg (Real.sqrt_nonneg _)]
   rw [← Finset.sum_div, jwStart_normSq, Real.sq_sqrt (le_of_lt h), div_self (ne_of_gt h)]
 
+/-- Under `k ≤ r` and `k < N-r`, the first reduced diffusion step fixes `jwStart`. -/
 theorem jwStep1_start_fixed (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r) :
     jwStep1 k N r *ᵥ jwStart k N r = jwStart k N r := by
   apply jwStep1_fixed_of_pairs
@@ -66,6 +94,7 @@ theorem jwStep1_start_fixed (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r) :
   rw [hv false, hv true, hv a, ← he]
   exact jwD2_population_fixed A B hA hB hp a
 
+/-- Under `k ≤ r` and `k < N-r`, the second reduced diffusion step fixes `jwStart`. -/
 theorem jwStep2_start_fixed (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r) :
     jwStep2 k r *ᵥ jwStart k N r = jwStart k N r := by
   apply jwStep2_fixed_of_pairs
@@ -112,11 +141,15 @@ theorem jwStep2_start_fixed (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r) :
   rw [hv false, hv true, hv a, ← he]
   exact jwD2_population_fixed A B hA hB hp a
 
+/-- The reduced Johnson walk fixes the starting vector under the hypotheses of `WalkStartFixed`
+[Ambainis2007ElementDistinctness]. -/
 theorem walkStartFixed : WalkStartFixed := by
   intro k N r _ hkr hkNr
   rw [jwWalk, ← Matrix.mulVec_mulVec, jwStep1_start_fixed k N r hkr hkNr,
     jwStep2_start_fixed k N r hkr hkNr]
 
+/-- Under the stated subset-size conditions, the total reduced population equals the number of
+full Johnson states. -/
 theorem jwStartNormSq_eq_basis_card (k N r : ℕ) (hkr : k ≤ r) (hkNr : k ≤ N-r)
     (hrN : r ≤ N) :
     jwStartNormSq k N r = (Fintype.card (JRState N r) : ℝ) := by
@@ -124,6 +157,8 @@ theorem jwStartNormSq_eq_basis_card (k N r : ℕ) (hkr : k ≤ r) (hkNr : k ≤ 
   push_cast
   rw [Nat.cast_sub hrN]
 
+/-- For a `k`-element target set, the uniform full starting vector decomposes into type vectors
+with normalized `jwStart` coefficients. -/
 theorem jwStartBig_decompose (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) :
     jwStartBig N r = ∑ i : Fin (2*k+1),
@@ -131,6 +166,8 @@ theorem jwStartBig_decompose (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
   rw [jwStartNormSq_eq_basis_card k N r hkr (le_of_lt hkNr) (by omega)]
   exact jwStartBig_decompose_card k N r hkr hkNr I hI
 
+/-- For a `k`-element target set under the physical size assumptions, the initial marked
+amplitude equals `jwAlpha`. -/
 theorem jwMarkedAmplitude_zero_eq_alpha (k N r t2 : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) :
     jwMarkedAmplitude k N r 0 t2 I = (jwAlpha k N r : ℂ) := by
@@ -139,6 +176,8 @@ theorem jwMarkedAmplitude_zero_eq_alpha (k N r t2 : ℕ) (hkr : k ≤ r) (hkNr :
     jwPsiBigAt_inner_sum k N r hkr hkNr I hI]
   simp [jwStart,jwPsiCoord,jwAlpha]
 
+/-- The full search state is the type lift of the reduced walk-and-flip evolution applied to the
+normalized reduced starting vector. -/
 theorem jwRunState_eq_typeLift (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (t1 t2 : ℕ) :
     jwRunState k N r t1 t2 I = jwTypeLift k N r I
@@ -149,6 +188,7 @@ theorem jwRunState_eq_typeLift (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
         jwStartBig_decompose k N r hkr hkNr I hI,
       jwRunMat_typeLift k N r hkr hkNr I hI]
 
+/-- The full marked amplitude equals the reduced evolved state's overlap with `jwGoodTilde`. -/
 theorem jwMarkedAmplitude_eq_reduced (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r)
     (I : Finset (Fin N)) (hI : I.card = k) (t1 t2 : ℕ) :
     jwMarkedAmplitude k N r t1 t2 I =

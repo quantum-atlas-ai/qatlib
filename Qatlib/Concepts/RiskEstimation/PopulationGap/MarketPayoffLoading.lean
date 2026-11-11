@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.MarketPayoffLoading
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+
+/-!
+# Rational market payoff loading bounds
+
+This module relates rational weight preparation to normalized classical weights and bounds the
+resulting expectation error for payoffs in the unit interval. It proves the
+`MarketPayoffLoading` contract for cumulative probability and truncated payoff readout in the
+quantum risk setting of [WoernerEgger2019].
+
+## Main statements
+
+* `rationalWeight_ideal_born`: exact Born probabilities of ideal weight preparation.
+* `rationalWeight_prepare_payoff_bias`: bounded payoff bias from numerical preparation.
+* `marketPayoffLoading`: the combined loading contract.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.LinearLearning.ConcisePipeline
@@ -30,6 +50,8 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- For nonnegative rational weights with positive total mass, ideal preparation has Born
+probabilities equal to the normalized weights. -/
 theorem rationalWeight_ideal_born {n : ℕ} (w : Option (Fin n) → ℚ)
     (hw : ∀ a, 0 ≤ w a) (hZ : 0 < rationalWeightMass w) (a : Option (Fin n)) :
     BornProb (idealWeightPrepare w *ᵥ Ket none) a =
@@ -39,6 +61,8 @@ theorem rationalWeight_ideal_born {n : ℕ} (w : Option (Fin n) → ℚ)
   rw [Real.sq_sqrt]
   exact_mod_cast div_nonneg (hw a) hZ.le
 
+/-- Numerical rational weight preparation changes the expectation of any payoff in `[0, 1]` by
+at most `64 * n / 2 ^ bits`. -/
 theorem rationalWeight_prepare_payoff_bias {n : ℕ} (w : Option (Fin n) → ℚ) (bits : ℕ)
     (hw : ∀ a, 0 ≤ w a) (hZ : 0 < rationalWeightMass w)
     (f : Option (Fin n) → ℝ) (hf : ∀ a, 0 ≤ f a ∧ f a ≤ 1) :
@@ -80,6 +104,8 @@ theorem rationalWeight_prepare_payoff_bias {n : ℕ} (w : Option (Fin n) → ℚ
     _ ≤ 2 * (32 * (n : ℝ) / 2 ^ bits) := mul_le_mul_of_nonneg_left he (by norm_num)
     _ = _ := by ring
 
+/-- Establishes the market payoff loading contract, combining numerical preparation guarantees
+with CDF and truncated payoff bias bounds. -/
 theorem marketPayoffLoading : MarketPayoffLoading := by
   intro n bits payoffBits w loss hw hZ hloss
   have hn := rational_weight_numerical_word_unitary_and_error n bits w hw

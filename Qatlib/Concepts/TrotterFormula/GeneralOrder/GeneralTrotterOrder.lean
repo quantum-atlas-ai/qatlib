@@ -10,6 +10,25 @@ import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
 import Mathlib.Analysis.Calculus.ContDiff.Deriv
 import Mathlib.Analysis.SpecialFunctions.Exponential
 import Mathlib.Analysis.Asymptotics.Lemmas
+
+/-!
+# Smooth order conditions for product formulas
+
+The predicate `trotterOrder F n` expresses a local bound proportional to `|t| ^ n` at zero. For
+smooth functions it is equivalent to vanishing lower derivatives; for matrix product formulas,
+`general_trotter_four_order_conditions` relates additive error, left and right normalized
+differential defects, and multiplicative error. For background, see [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `trotter_smooth_order_iff`: order is characterized by vanishing jets.
+* `general_trotter_four_order_conditions`: equivalence of four matrix error order conditions.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,9 +40,13 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix Asymptotics Filter
 open scoped Classical BigOperators Matrix.Norms.L2Operator ContDiff Topology
 
+/-- The property that `‖F t‖` is bounded by a positive constant times `|t| ^ n` on some
+positive-radius neighborhood of zero. -/
 def trotterOrder {E : Type*} [NormedAddCommGroup E] (F : ℝ → E) (n : ℕ) : Prop :=
   ∃ c t₀ : ℝ, 0 < c ∧ 0 < t₀ ∧ ∀ t : ℝ, |t| ≤ t₀ → ‖F t‖ ≤ c*|t|^n
 
+/-- The local norm-bound definition of `trotterOrder F n` is equivalent to `F =O[𝓝 0] (fun t =>
+t ^ n)`. -/
 theorem trotterOrder_iff_isBigO {E : Type*} [NormedAddCommGroup E] (F : ℝ → E) (n : ℕ) :
     trotterOrder F n ↔ F =O[𝓝 0] (fun t : ℝ => t^n) := by
   constructor
@@ -42,6 +65,8 @@ theorem trotterOrder_iff_isBigO {E : Type*} [NormedAddCommGroup E] (F : ℝ → 
       linarith
     simpa only [norm_pow, Real.norm_eq_abs] using! hd hmem
 
+/-- If all derivatives below degree `n` vanish at zero, the degree-`n` Taylor polynomial
+consists only of its leading monomial. -/
 theorem trotter_taylor_leading {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (F : ℝ → E) (n : ℕ) (h : ∀ j, j < n → iteratedDeriv j F 0 = 0) (t : ℝ) :
     taylorWithinEval F n Set.univ 0 t = t^n • ((n.factorial : ℝ)⁻¹ • iteratedDeriv n F 0) := by
@@ -55,6 +80,7 @@ theorem trotter_taylor_leading {E : Type*} [NormedAddCommGroup E] [NormedSpace �
   · intro hn
     exact False.elim (hn (Finset.mem_range.mpr (by omega)))
 
+/-- A monomial `t ↦ t ^ n • a` that is little-o of `t ^ n` at zero has coefficient `a = 0`. -/
 theorem trotter_monomial_littleO_zero {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (a : E) (n : ℕ) (h : (fun t : ℝ => t^n • a) =o[𝓝 0] (fun t : ℝ => t^n)) : a = 0 := by
   by_contra ha
@@ -69,6 +95,8 @@ theorem trotter_monomial_littleO_zero {E : Type*} [NormedAddCommGroup E] [Normed
   have hh : ‖a‖ ≤ ‖a‖/2 := (mul_le_mul_iff_right₀ ht0).mp (by simpa only [mul_comm] using! hb)
   linarith
 
+/-- For an infinitely differentiable function, order `p + 1` at zero is equivalent to vanishing
+derivatives of all orders at most `p`. -/
 theorem trotter_smooth_order_iff {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (F : ℝ → E) (p : ℕ) (hF : ContDiff ℝ ∞ F) :
     trotterOrder F (p+1) ↔ ∀ j : ℕ, j ≤ p → iteratedDeriv j F 0 = 0 := by
@@ -110,6 +138,8 @@ theorem trotter_smooth_order_iff {E : Type*} [NormedAddCommGroup E] [NormedSpace
     convert! hr.isBigO.add hp using 1
     funext t; abel
 
+/-- A smooth matrix function is bounded near zero by a constant times `|t| ^ (p + 1)` exactly
+when its jets through order `p` vanish [ChildsEtAl2021Trotter]. -/
 theorem smooth_matrix_order_iff_zero_jets :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (F : ℝ → Matrix I I ℂ)
       (p : ℕ), ContDiff ℝ ∞ F →
@@ -119,6 +149,8 @@ theorem smooth_matrix_order_iff_zero_jets :
   intro I _ _ F p hF
   exact trotter_smooth_order_iff F p hF
 
+/-- A smooth matrix function has order `n` exactly when all of its derivatives at zero of orders
+below `n` vanish. -/
 theorem trotter_matrix_order_jets {I : Type} [Fintype I] [DecidableEq I]
     (F : ℝ → Matrix I I ℂ) (n : ℕ) (hF : ContDiff ℝ ∞ F) :
     trotterOrder F n ↔ ∀ j : ℕ, j < n → iteratedDeriv j F 0 = 0 := by
@@ -132,6 +164,7 @@ theorem trotter_matrix_order_jets {I : Type} [Fintype I] [DecidableEq I]
   | succ n =>
     simpa only [Nat.lt_succ_iff] using! smooth_matrix_order_iff_zero_jets I F n hF
 
+/-- The matrix exponential curve `t ↦ exp (t • H)` is infinitely differentiable over `ℝ`. -/
 theorem trotter_exp_contDiff {I : Type} [Fintype I] [DecidableEq I] (H : Matrix I I ℂ) :
     ContDiff ℝ ∞ (fun t : ℝ => NormedSpace.exp (t • H)) := by
   apply contDiff_iff_contDiffAt.mpr
@@ -139,6 +172,7 @@ theorem trotter_exp_contDiff {I : Type} [Fintype I] [DecidableEq I] (H : Matrix 
   exact (NormedSpace.exp_analytic (𝕂 := ℝ) (t • H)).contDiffAt.comp t
     ((contDiff_id.smul contDiff_const).contDiffAt)
 
+/-- The `n`th derivative at zero of `t ↦ exp (t • H)` is `H ^ n`. -/
 theorem trotter_exp_jets {I : Type} [Fintype I] [DecidableEq I] (H : Matrix I I ℂ) (n : ℕ) :
     iteratedDeriv n (fun t : ℝ => NormedSpace.exp (t • H)) 0 = H^n := by
   have hd : deriv (fun t : ℝ => NormedSpace.exp (t • H)) =
@@ -152,6 +186,8 @@ theorem trotter_exp_jets {I : Type} [Fintype I] [DecidableEq I] (H : Matrix I I 
       ((trotter_exp_contDiff H).contDiffAt.of_le
         (by exact_mod_cast (le_top : (n : ℕ∞) ≤ ⊤))), ih, pow_succ']
 
+/-- Multiplying on the left by the ring inverse of a matrix curve continuous at zero with value
+one preserves and reflects local order. -/
 theorem trotter_order_inverse_left {I : Type} [Fintype I] [DecidableEq I]
     (S F : ℝ → Matrix I I ℂ) (n : ℕ) (hSc : ContinuousAt S 0) (hS0 : S 0 = 1) :
     trotterOrder F n ↔ trotterOrder (fun t => Ring.inverse (S t)*F t) n := by
@@ -173,6 +209,8 @@ theorem trotter_order_inverse_left {I : Type} [Fintype I] [DecidableEq I]
     filter_upwards [hunit] with t ht
     exact Ring.mul_inverse_cancel_left (S t) (F t) ht
 
+/-- Multiplying on the right by the ring inverse of a matrix curve continuous at zero with value
+one preserves and reflects local order. -/
 theorem trotter_order_inverse_right {I : Type} [Fintype I] [DecidableEq I]
     (S F : ℝ → Matrix I I ℂ) (n : ℕ) (hSc : ContinuousAt S 0) (hS0 : S 0 = 1) :
     trotterOrder F n ↔ trotterOrder (fun t => F t*Ring.inverse (S t)) n := by
@@ -194,6 +232,9 @@ theorem trotter_order_inverse_right {I : Type} [Fintype I] [DecidableEq I]
     filter_upwards [hunit] with t ht
     exact Ring.inverse_mul_cancel_right (S t) (F t) ht
 
+/-- For smooth `S` with `S 0 = 1`, additive error order `p + 1`, both inverse-normalized
+differential defect orders `p`, and multiplicative error order `p + 1` are equivalent
+[Childs et al., Theorem 9][ChildsEtAl2021Trotter]. -/
 theorem general_trotter_four_order_conditions :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (H : Matrix I I ℂ)
       (S : ℝ → Matrix I I ℂ) (p : ℕ), ContDiff ℝ ∞ S → S 0 = 1 →

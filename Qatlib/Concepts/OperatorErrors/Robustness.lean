@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.BlockEncoding.Basic
 import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
+
+/-!
+# Oracle perturbation bounds for phase words
+
+Alternating phase words built from unitary oracles and orthogonal projectors are Lipschitz in
+the oracle matrix, with constant equal to the phase list length. The same estimate survives
+compression by isometries, providing a robustness bound for the polynomial transformation
+setting of [GilyenSuLowWiebe2019]
+
+## Main statements
+
+* `contractive_product_error`: bounds a product difference with contractive outer factors.
+* `phasedAlternating_oracle_error`: bounds phase word error by oracle error times word length.
+* `compress_phasedAlternating_oracle_error`: gives the corresponding compressed estimate.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -33,6 +53,7 @@ open scoped Matrix.Norms.L2Operator
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
+/-- If `A` and `D` have norm at most one, then `‖A * B - C * D‖ ≤ ‖B - D‖ + ‖A - C‖`. -/
 theorem contractive_product_error (A B C D : Matrix H H ℂ)
     (hA : ‖A‖ ≤ 1) (hD : ‖D‖ ≤ 1) :
     ‖A * B - C * D‖ ≤ ‖B - D‖ + ‖A - C‖ := by
@@ -49,6 +70,8 @@ theorem contractive_product_error (A B C D : Matrix H H ℂ)
         (mul_le_mul_of_nonneg_left hD (norm_nonneg _))
     _ = ‖B - D‖ + ‖A - C‖ := by ring
 
+/-- For unitary oracles, orthogonal projectors, and unit modulus phases, replacing `U` by `V`
+changes the alternating phase word by at most `zs.length * ‖U - V‖` in operator norm. -/
 theorem phasedAlternating_oracle_error {U V P Q : Matrix H H ℂ}
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ)
     (hP : IsOrthogonalProjector P) (hQ : IsOrthogonalProjector Q)
@@ -89,6 +112,8 @@ theorem phasedAlternating_oracle_error {U V P Q : Matrix H H ℂ}
         simp only [List.length_cons, Nat.cast_add, Nat.cast_one]
         ring
 
+/-- Compressing the two alternating phase words by isometries preserves the bound `zs.length *
+‖U - V‖`. -/
 theorem compress_phasedAlternating_oracle_error
     {I O : Type*} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}

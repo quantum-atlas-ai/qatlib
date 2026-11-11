@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
 import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.Proposition1HelstromError
+
+/-!
+# Quantum Kolmogorov distance equals trace distance
+
+The module identifies the supremum of classical Kolmogorov distances over finite POVMs with
+trace distance. The theorem `proposition3_kolmogorov_eq_traceDistance` is the operator form of
+Proposition 3 in [FuchsVanDeGraaf1999].
+
+## Main statements
+
+* `proposition3_kolmogorov_le_traceDistance`: the upper bound on measurement distinguishability.
+* `proposition3_kolmogorov_eq_traceDistance`: equality with trace distance.
+
+## References
+
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +40,8 @@ open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Matrix
 open scoped BigOperators
 
+/-- The supremum of classical Kolmogorov distances over finite POVMs is at most the trace
+distance of the density operators. -/
 theorem proposition3_kolmogorov_le_traceDistance {D : ℕ} (ρ σ : Operator D)
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     quantumKolmogorov ρ σ hρ hσ ≤ traceDistance ρ σ := by
@@ -36,6 +56,8 @@ theorem proposition3_kolmogorov_le_traceDistance {D : ℕ} (ρ σ : Operator D)
     unfold classicalKolmogorov traceDistance at *
     exact h
 
+/-- The quantum Kolmogorov distance of two density operators equals their trace distance. This
+is [Fuchs and van de Graaf, Proposition 3][FuchsVanDeGraaf1999]. -/
 theorem proposition3_kolmogorov_eq_traceDistance {D : ℕ} (ρ σ : Operator D)
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     quantumKolmogorov ρ σ hρ hσ = traceDistance ρ σ := by

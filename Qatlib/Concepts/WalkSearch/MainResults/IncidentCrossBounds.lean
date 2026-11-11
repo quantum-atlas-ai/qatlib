@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationGraphSteps
+
+/-!
+# Incident pair and neighborhood crossing bounds
+
+The module bounds the number of incident pairs and the graph edges selected by high degree
+classification. `forwardGraphCross_card` uses the thin pair hypothesis to control one crossing
+orientation, leading to the two orientation estimate `highEadd_graph_card`. For background on
+quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `pairsAt_card_le_twice_degree`: The number of pairs incident to `v` in `S` is at most twice
+  `degOf S v`.
+* `highEadd_graph_card`: Under symmetry and the thin pair hypothesis, at most `2 * n * (tThin +
+  1)` graph edges lie in `highEadd G S v`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +37,7 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- The number of pairs incident to `v` in `S` is at most twice `degOf S v`. -/
 theorem pairsAt_card_le_twice_degree (S : Finset (Fin n×Fin n)) (v : Fin n) :
     (pairsAt S v).card≤2*degOf S v := by
   have hs : pairsAt S v⊆(nbrOf S v).image (fun x=>(v,x))∪(nbrOf S v).image (fun x=>(x,v)) := by
@@ -36,15 +58,21 @@ theorem pairsAt_card_le_twice_degree (S : Finset (Fin n×Fin n)) (v : Fin n) :
   dsimp [degOf]
   omega
 
+/-- Intersecting the pairs of `S` incident to `v` with the graph edges equals taking incident
+pairs after intersecting `G.edges` with `S`. -/
 theorem pairsAt_inter_graph (G : UGraph n) (S : Finset (Fin n×Fin n)) (v : Fin n) :
     pairsAt S v∩G.edges=pairsAt (G.edges∩S) v := by
   ext p
   simp only [pairsAt,Finset.mem_filter,Finset.mem_inter]
   tauto
 
+/-- The graph edges in `S` whose first endpoint is a graph neighbor of `v` and whose second
+endpoint is a neighbor of `v` in `S`. -/
 def forwardGraphCross (G : UGraph n) (S : Finset (Fin n×Fin n)) (v : Fin n) : Finset (Fin n×Fin n) :=
   (S∩G.edges).filter fun p=>p.1∈nbrOf G.edges v ∧ p.2∈nbrOf S v
 
+/-- If the symmetric candidate set is contained in `thinPairs G.edges tThin`, then
+`forwardGraphCross G S v` has at most `n * tThin` elements. -/
 theorem forwardGraphCross_card (G : UGraph n) (S : Finset (Fin n×Fin n))
     (hS : pairSetSymmetric S) (v : Fin n) (tThin : ℕ) (hthin : S⊆thinPairs G.edges tThin) :
     (forwardGraphCross G S v).card≤n*tThin := by
@@ -65,6 +93,8 @@ theorem forwardGraphCross_card (G : UGraph n) (S : Finset (Fin n×Fin n))
   exact (Finset.card_le_card hs).trans
       (hc.trans (Nat.mul_le_mul_right tThin ((Finset.card_le_univ _).trans_eq (Fintype.card_fin n))))
 
+/-- Under symmetry and the thin pair hypothesis, at most `2 * n * (tThin + 1)` graph edges lie
+in `highEadd G S v`. -/
 theorem highEadd_graph_card (G : UGraph n) (S : Finset (Fin n×Fin n))
     (hS : pairSetSymmetric S) (v : Fin n) (tThin : ℕ) (hthin : S⊆thinPairs G.edges tThin) :
     (highEadd G S v∩G.edges).card≤2*n*(tThin+1) := by

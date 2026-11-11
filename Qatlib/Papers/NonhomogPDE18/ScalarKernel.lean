@@ -9,6 +9,24 @@ import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 import Mathlib.Analysis.SpecialFunctions.Complex.Circle
 import Mathlib.Tactic
+
+/-!
+# Gaussian Fourier kernel for scalar inversion
+
+Defines diagonal multiplication and modeled inverse amplitudes, then evaluates the Gaussian
+Fourier integrals used in scalar inversion. The identity `fourier_kernel_identity` expresses the
+reciprocal of a nonzero real parameter as an iterated integral. See [ArrazolaEtAl2019].
+
+## Main statements
+
+* `modeledInverse_solves`: the reciprocal amplitudes solve a nonvanishing diagonal system.
+* `fourier_kernel_identity`: the Gaussian Fourier kernel evaluates to the reciprocal parameter.
+
+## References
+
+* [Arrazola et al., 2019][ArrazolaEtAl2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,30 +41,42 @@ section Diagonal
 
 variable {ι : Type*}
 
+/-- Pointwise multiplication of a complex vector by the diagonal coefficients `d`. -/
 def diagApply (d : ι → ℂ) (v : ι → ℂ) : ι → ℂ := fun i => d i * v i
 
+/-- The amplitudes obtained by multiplying each component of `f` by the reciprocal of the
+corresponding component of `a`. -/
 def modeledInverseAmplitudes (a f : ι → ℂ) : ι → ℂ := fun i => (a i)⁻¹ * f i
 
+/-- The modeled inverse amplitudes equal application of the diagonal operator with reciprocal
+coefficients. -/
 theorem modeledInverse_apply (a f : ι → ℂ) :
     modeledInverseAmplitudes a f = diagApply (fun i => (a i)⁻¹) f := rfl
 
+/-- If every diagonal coefficient is nonzero, applying the diagonal operator to the modeled
+inverse amplitudes recovers `f`. -/
 theorem modeledInverse_solves (a f : ι → ℂ) (ha : ∀ i, a i ≠ 0) :
     diagApply a (modeledInverseAmplitudes a f) = f := by
   funext i
   show a i * ((a i)⁻¹ * f i) = f i
   rw [← mul_assoc, mul_inv_cancel₀ (ha i), one_mul]
 
+/-- For nonzero diagonal coefficients, reciprocal diagonal multiplication is a left inverse of
+diagonal multiplication. -/
 theorem diagApply_inv_comp (a : ι → ℂ) (ha : ∀ i, a i ≠ 0) :
     diagApply (fun i => (a i)⁻¹) ∘ diagApply a = id := by
   funext v i
   show (a i)⁻¹ * (a i * v i) = v i
   rw [← mul_assoc, inv_mul_cancel₀ (ha i), one_mul]
 
+/-- The modeled inverse amplitudes are given componentwise by `(a i)⁻¹ * f i`. -/
 theorem modeledInverse_state (a f : ι → ℂ) :
     modeledInverseAmplitudes a f = fun i => (a i)⁻¹ * f i := rfl
 
 end Diagonal
 
+/-- The Fourier transform of the standard Gaussian at real frequency `u` is sqrt(2π)
+exp(-u^2/2). -/
 lemma gaussian_fourier (u : ℝ) :
     (∫ y : ℝ, Complex.exp (-(1 / 2 : ℂ) * (y : ℂ) ^ 2) *
         Complex.exp (-Complex.I * (u : ℂ) * (y : ℂ)))
@@ -74,6 +104,8 @@ lemma gaussian_fourier (u : ℝ) :
   have harg : -(-(u : ℂ)) ^ 2 / (4 * (1 / 2 : ℂ)) = -(u : ℂ) ^ 2 / 2 := by ring
   rw [harg]
 
+/-- The Fourier transform of the Gaussian multiplied by its variable is -i u sqrt(2π)
+exp(-u^2/2). -/
 lemma inner_integral (u : ℝ) :
     (∫ y : ℝ, (y : ℂ) * Complex.exp (-(1 / 2 : ℂ) * (y : ℂ) ^ 2) *
         Complex.exp (-Complex.I * (u : ℂ) * (y : ℂ)))
@@ -181,6 +213,8 @@ lemma inner_integral (u : ℝ) :
     ring
   simpa [ufun, vfun, b, c, mul_assoc] using hI
 
+/-- The Fourier integral with Gaussian exponent -y^2/2 and an additional factor `y` equals -i u
+sqrt(2π) exp(-u^2/2). -/
 lemma inner_integral' (u : ℝ) :
     (∫ y : ℝ, (y : ℂ) * Complex.exp (-(y : ℂ) ^ 2 / 2) *
         Complex.exp (-Complex.I * (u : ℂ) * (y : ℂ)))
@@ -190,6 +224,8 @@ lemma inner_integral' (u : ℝ) :
   have harg : ∀ z : ℂ, -z ^ 2 / 2 = -(1 / 2 : ℂ) * z ^ 2 := fun z => by ring
   simpa only [harg] using h
 
+/-- For nonzero real `a`, the integral of x exp(-a^2 x^2/2) over the positive half-line equals
+the reciprocal of a^2. -/
 lemma outer_integral (a : ℝ) (ha : a ≠ 0) :
     (∫ x : ℝ in Set.Ioi 0, (x : ℂ) * Complex.exp (-((a : ℂ) ^ 2 / 2) * (x : ℂ) ^ 2))
       = ((a : ℂ) ^ 2)⁻¹ := by
@@ -204,6 +240,8 @@ lemma outer_integral (a : ℝ) (ha : a ≠ 0) :
   rw [show 2 * ((a : ℂ) ^ 2 / 2) = (a : ℂ) ^ 2 by ring] at h
   exact h
 
+/-- For nonzero real `a`, the Gaussian iterated Fourier kernel with prefactor i/sqrt(2π)
+evaluates to the complex reciprocal of `a`. See [ArrazolaEtAl2019]. -/
 theorem fourier_kernel_identity {a : ℝ} (ha : a ≠ 0) :
     Complex.I / ((Real.sqrt (2 * Real.pi) : ℝ) : ℂ) *
       (∫ x : ℝ in Set.Ioi 0, ∫ y : ℝ,

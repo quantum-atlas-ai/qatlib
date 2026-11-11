@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QCircuitYao93.QuantumComm.ProtocolLowerBound
+
+/-!
+# Feature counts and iterated logarithmic bounds
+
+The module derives feature-space size constraints for normalized tensor-state families
+satisfying the stated weight-threshold acceptance gap. It rewrites the feature count in terms of
+`2 ^ (t - 1)` and obtains both a gap-versus-count dichotomy and logarithmic consequences. See
+[Yao1993].
+
+## Main statements
+
+* `feature_count_lower`: forces at least n + 1 available feature values under the gap
+  assumption.
+* `wires_dichotomy`: gives either a small-gap bound or a feature-count lower bound.
+* `t_lower_from_feature`: extracts a base-two logarithmic inequality for t.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +38,9 @@ open scoped BigOperators
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Papers.QCircuitYao93.QuantumComm.ProtocolLowerBound
 
+/-- Under the normalization, weight-threshold acceptance, and strict gap hypotheses,
+`FeatureSpace M ι` has at least `n + 1` elements. This is the feature-count consequence used
+in Theorem 4 of [Yao1993]. -/
 theorem feature_count_lower {ι : Type} [Fintype ι] [DecidableEq ι] {n k l : ℕ}
     {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
@@ -34,6 +58,8 @@ theorem feature_count_lower {ι : Type} [Fintype ι] [DecidableEq ι] {n k l : �
   exact theorem4_no_cheap_protocol hLpos hLM a b ha hb
     (Nat.lt_of_not_le h) hgap hacc hrej
 
+/-- If `Fintype.card ι = 2 ^ (t - 1)`, the stated protocol gap forces `n + 1 ≤ (2 * M + 1) ^ (2
+* (2 ^ (t - 1)) * (2 ^ (t - 1)))`. See the counting argument for Theorem 4 of [Yao1993]. -/
 theorem feature_count_lower_pow {ι : Type} [Fintype ι] [DecidableEq ι] {n k l t : ℕ}
     {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
@@ -52,6 +78,9 @@ theorem feature_count_lower_pow {ι : Type} [Fintype ι] [DecidableEq ι] {n k l
   rw [card_featureSpace] at h
   rwa [hcard] at h
 
+/-- Under the stated normalized weight-threshold protocol hypotheses, either `L ^ 3 ≤ 6 * ((2 :
+ℝ) ^ (t - 1)) ^ 2` or the displayed feature-count lower bound holds. This is the
+gap-versus-count dichotomy associated with Theorem 4 of [Yao1993]. -/
 theorem wires_dichotomy {ι : Type} [Fintype ι] [DecidableEq ι] {n k l t : ℕ}
     {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
     (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
@@ -78,6 +107,9 @@ theorem wires_dichotomy {ι : Type} [Fintype ι] [DecidableEq ι] {n k l t : ℕ
     rw [hcast] at hge
     exact hge
 
+/-- For `M ≥ 1`, the stated feature-count inequality implies `Real.log ((n : ℝ) + 1) / Real.log
+(((2 * M + 1 : ℕ) : ℝ)) ≤ 2 * ((2 : ℝ) ^ (t - 1)) ^ 2`. This is a logarithmic consequence of
+the count used in [Yao1993]. -/
 theorem log_feature_bound {n M t : ℕ} (hM : 1 ≤ M)
     (h : n + 1 ≤ (2 * M + 1) ^ (2 * (2 ^ (t - 1)) * (2 ^ (t - 1)))) :
     Real.log ((n : ℝ) + 1) / Real.log (((2 * M + 1 : ℕ) : ℝ)) ≤
@@ -102,6 +134,9 @@ theorem log_feature_bound {n M t : ℕ} (hM : 1 ≤ M)
         push_cast
         ring
 
+/-- For `M ≥ 1`, the stated protocol hypotheses imply either the displayed bound on `L ^ 3` or
+the logarithmic feature-count bound. See the lower-bound argument for Theorem 4 of
+[Yao1993]. -/
 theorem wires_dichotomy_log {ι : Type} [Fintype ι] [DecidableEq ι] {n k l t : ℕ}
     {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ)) (hM : 1 ≤ M)
     (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
@@ -121,6 +156,9 @@ theorem wires_dichotomy_log {ι : Type} [Fintype ι] [DecidableEq ι] {n k l t :
   · exact Or.inl h
   · exact Or.inr (log_feature_bound hM h)
 
+/-- For `M ≥ 1`, `n ≥ 2`, and `t ≥ 1`, the feature-count inequality gives `Real.logb 2 (Real.log
+((n : ℝ) + 1) / Real.log (((2 * M + 1 : ℕ) : ℝ))) ≤ 2 * (t : ℝ) - 1`. This extracts the
+iterated logarithmic estimate used in Theorem 4 of [Yao1993]. -/
 theorem t_lower_from_feature {n M t : ℕ} (hM : 1 ≤ M) (hn : 2 ≤ n) (ht : 1 ≤ t)
     (h : n + 1 ≤ (2 * M + 1) ^ (2 * (2 ^ (t - 1)) * (2 ^ (t - 1)))) :
     Real.logb 2 (Real.log ((n : ℝ) + 1) / Real.log (((2 * M + 1 : ℕ) : ℝ))) ≤

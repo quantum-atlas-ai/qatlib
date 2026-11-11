@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureStat
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.TrapezoidQuadrature
+
+/-!
+# Trapezoidal LCHS parameter error bounds
+
+Duhamel formulas control parameter derivatives of the unitary evolution and establish a
+Lipschitz derivative for the Cauchy-weighted integrand. Together with Banach-space trapezoidal
+estimates and Cauchy tail bounds, these prove `homogeneousKTrapezoidQuadrature`. See
+[AnLiuLin2023] for the mathematical setting.
+
+## Main statements
+
+* `k_trap_parameter_hasDerivAt`: The derivative of the parameter-dependent ordered evolution at
+  `k` is `-kTrapDuhamelIntegral L H s t k k` under the stated continuity and Hermitian
+  hypotheses.
+* `k_trap_lipschitz_grid_error`: On a positive uniform grid, a continuous Banach-space-valued
+  function with a continuous `C`-Lipschitz derivative has composite trapezoidal error at most
+  `(t - s) * (inhStep Mt s t)^2 * C / 12`.
+* `homogeneousKTrapezoidQuadrature`: The homogeneous trapezoidal LCHS approximation has
+  operator-norm error bounded by the stated Cauchy tail term and a term proportional to `(2 *
+  K)^3 / M^2`.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
@@ -28,16 +54,21 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The symmetric parameter-grid nodes agree with `inhTrapNode` on the interval from `-K` to
+`K`. -/
 theorem k_trap_node_eq (K M : ℕ) (j : Fin (M+1)) :
     kTrapNode K M j = inhTrapNode M (-(K : ℝ)) K j := by
   dsimp [kTrapNode, inhTrapNode, inhStep]
   ring
 
+/-- The symmetric parameter-grid weights agree with `inhTrapWeight` on the interval from `-K` to
+`K`. -/
 theorem k_trap_weight_eq (K M : ℕ) (j : Fin (M+1)) :
     kTrapWeight K M j = inhTrapWeight M (-(K : ℝ)) K j := by
   dsimp [kTrapWeight, inhTrapWeight, inhStep]
   split_ifs <;> ring
 
+/-- Every symmetric trapezoidal parameter weight is nonnegative. -/
 theorem k_trap_weight_nonneg (K M : ℕ) (j : Fin (M+1)) :
     0 ≤ kTrapWeight K M j := by
   rw [k_trap_weight_eq]
@@ -45,12 +76,15 @@ theorem k_trap_weight_nonneg (K M : ℕ) (j : Fin (M+1)) :
   have hK : (0 : ℝ) ≤ K := Nat.cast_nonneg K
   linarith
 
+/-- For positive `M`, the sum of the symmetric trapezoidal weights is `2 * K`. -/
 theorem k_trap_weight_sum (K M : ℕ) (hM : 0 < M) :
     (∑ j : Fin (M+1), kTrapWeight K M j) = 2*(K : ℝ) := by
   simp_rw [k_trap_weight_eq]
   rw [inh_trap_weight_sum M (-(K : ℝ)) K hM]
   ring
 
+/-- The difference between evolutions at parameters `a` and `b` equals `b - a` times the Duhamel
+integral with an insertion of `Complex.I • L u`. -/
 theorem k_trap_duhamel {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H)
     (s t a b : ℝ) :
@@ -91,6 +125,8 @@ theorem k_trap_duhamel {I : Type} [Fintype I] [DecidableEq I]
   rw [show b-a = -(a-b) by ring, neg_smul, he]
   simp [A, B]
 
+/-- For forward evolution with continuous Hermitian fields, the norm of the parameter derivative
+is at most the integral of `‖L u‖`. -/
 theorem k_trap_parameter_deriv_norm {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (s t k : ℝ)
     (hL : Continuous L) (hH : Continuous H)
@@ -105,6 +141,8 @@ theorem k_trap_parameter_deriv_norm {I : Type} [Fintype I] [DecidableEq I]
       time_dependent_lchs_same_unitary_stability I L H s t a k
         hL hH hHermL hHermH hst)
 
+/-- For forward evolution with continuous Hermitian fields, the norm of the Duhamel integral is
+at most the integral of `‖L u‖`. -/
 theorem k_trap_duhamel_integral_norm {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (s t a b : ℝ)
     (hL : Continuous L) (hH : Continuous H)
@@ -129,11 +167,15 @@ theorem k_trap_duhamel_integral_norm {I : Type} [Fintype I] [DecidableEq I]
     _ ≤ (1 * ‖Complex.I • L u‖)*1 := by gcongr
     _ = ‖L u‖ := by rw [one_mul, mul_one, norm_smul, Complex.norm_I, one_mul]
 
+/-- The time integral of the two parameter-dependent ordered propagators with the insertion
+`Complex.I • L u` between them. -/
 def kTrapDuhamelIntegral {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (s t a b : ℝ) : Matrix I I ℂ :=
   ∫ u in s..t, orderedEvolution (fun v => Complex.I • (H v+a • L v)) u t *
     (Complex.I • L u) * orderedEvolution (fun v => Complex.I • (H v+b • L v)) s u
 
+/-- The Duhamel integral varies by at most `(|a - c| + |b - d|)` times the square of the
+integral of `‖L u‖` under the stated forward-time Hermitian hypotheses. -/
 theorem k_trap_duhamel_integral_lipschitz {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (s t a b c d : ℝ)
     (hL : Continuous L) (hH : Continuous H)
@@ -202,6 +244,8 @@ theorem k_trap_duhamel_integral_lipschitz {I : Type} [Fintype I] [DecidableEq I]
   dsimp only [budget]
   ring
 
+/-- The derivative of the parameter-dependent ordered evolution at `k` is `-kTrapDuhamelIntegral
+L H s t k k` under the stated continuity and Hermitian hypotheses. -/
 theorem k_trap_parameter_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (s t k : ℝ)
     (hL : Continuous L) (hH : Continuous H)
@@ -233,6 +277,8 @@ theorem k_trap_parameter_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
       simp only [Real.norm_eq_abs, abs_pow, abs_abs]
       ring
 
+/-- A continuous Banach-space-valued function whose continuous derivative is `C`-Lipschitz on
+`[a, b]` has trapezoidal error at most `C * (b - a)^3 / 12`. -/
 theorem k_trap_lipschitz_cell_error
     {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (F F' : ℝ → E) (a b C : ℝ) (hab : a ≤ b) (hF : Continuous F)
@@ -296,6 +342,9 @@ theorem k_trap_lipschitz_cell_error
   dsimp [m]
   ring
 
+/-- On a positive uniform grid, a continuous Banach-space-valued function with a continuous
+`C`-Lipschitz derivative has composite trapezoidal error at most `(t - s) * (inhStep Mt s
+t)^2 * C / 12`. -/
 theorem k_trap_lipschitz_grid_error
     {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
     (F F' : ℝ → E) (s t C : ℝ) (Mt : ℕ) (hst : s ≤ t) (hm : 0 < Mt)
@@ -362,10 +411,14 @@ theorem k_trap_lipschitz_grid_error
       rw [← he']
       ring
 
+/-- The Cauchy density `1 / (Real.pi * (1 + k^2))` used in the parameter quadrature. -/
 private def kTrapDensity (k : ℝ) : ℝ := 1/(Real.pi*(1+k^2))
+/-- The explicit first derivative of the Cauchy parameter density. -/
 private def kTrapDensity' (k : ℝ) : ℝ := -2*k/(Real.pi*(1+k^2)^2)
+/-- The explicit second derivative of the Cauchy parameter density. -/
 private def kTrapDensity'' (k : ℝ) : ℝ := (6*k^2-2)/(Real.pi*(1+k^2)^3)
 
+/-- The function `kTrapDensity'` gives the derivative of `kTrapDensity` at each real parameter. -/
 private theorem k_trap_density_hasDerivAt (k : ℝ) :
     HasDerivAt kTrapDensity (kTrapDensity' k) k := by
   have hn : Real.pi*(1+k^2) ≠ 0 := by positivity
@@ -375,6 +428,8 @@ private theorem k_trap_density_hasDerivAt (k : ℝ) :
   field_simp
   ring
 
+/-- The function `kTrapDensity''` gives the derivative of `kTrapDensity'` at each real
+parameter. -/
 private theorem k_trap_density'_hasDerivAt (k : ℝ) :
     HasDerivAt kTrapDensity' (kTrapDensity'' k) k := by
   have hn : Real.pi*(1+k^2)^2 ≠ 0 := by positivity
@@ -384,12 +439,14 @@ private theorem k_trap_density'_hasDerivAt (k : ℝ) :
   field_simp
   ring
 
+/-- The norm of the Cauchy density is at most `1 / Real.pi`. -/
 private theorem k_trap_density_norm (k : ℝ) : ‖kTrapDensity k‖ ≤ 1/Real.pi := by
   rw [Real.norm_eq_abs, abs_of_nonneg (by dsimp [kTrapDensity]; positivity)]
   dsimp [kTrapDensity]
   apply div_le_div_of_nonneg_left (by norm_num) Real.pi_pos
   nlinarith [mul_nonneg Real.pi_pos.le (sq_nonneg k)]
 
+/-- The norm of the first derivative of the Cauchy density is at most `1 / Real.pi`. -/
 private theorem k_trap_density'_norm (k : ℝ) : ‖kTrapDensity' k‖ ≤ 1/Real.pi := by
   rw [Real.norm_eq_abs]
   dsimp [kTrapDensity']
@@ -402,6 +459,7 @@ private theorem k_trap_density'_norm (k : ℝ) : ‖kTrapDensity' k‖ ≤ 1/Rea
   have h : 2*|k| ≤ 1+k^2 := by nlinarith [sq_nonneg (|k|-1)]
   nlinarith [sq_nonneg (k^2), sq_nonneg k]
 
+/-- The norm of the second derivative of the Cauchy density is at most `2 / Real.pi`. -/
 private theorem k_trap_density''_norm (k : ℝ) : ‖kTrapDensity'' k‖ ≤ 2/Real.pi := by
   rw [Real.norm_eq_abs]
   dsimp [kTrapDensity'']
@@ -412,6 +470,7 @@ private theorem k_trap_density''_norm (k : ℝ) : ‖kTrapDensity'' k‖ ≤ 2/R
   apply abs_le.mpr
   constructor <;> nlinarith [sq_nonneg k, sq_nonneg (k^2), pow_nonneg (sq_nonneg k) 3]
 
+/-- The Cauchy density is Lipschitz with constant `1 / Real.pi`. -/
 private theorem k_trap_density_lipschitz (a b : ℝ) :
     ‖kTrapDensity a-kTrapDensity b‖ ≤ (1/Real.pi)*|a-b| := by
   simpa only [Real.norm_eq_abs] using!
@@ -420,6 +479,7 @@ private theorem k_trap_density_lipschitz (a b : ℝ) :
       (fun x _ => by rw [(k_trap_density_hasDerivAt x).deriv]; exact k_trap_density'_norm x)
       (Set.mem_univ b) (Set.mem_univ a)
 
+/-- The first derivative of the Cauchy density is Lipschitz with constant `2 / Real.pi`. -/
 private theorem k_trap_density'_lipschitz (a b : ℝ) :
     ‖kTrapDensity' a-kTrapDensity' b‖ ≤ (2/Real.pi)*|a-b| := by
   simpa only [Real.norm_eq_abs] using!
@@ -428,9 +488,11 @@ private theorem k_trap_density'_lipschitz (a b : ℝ) :
       (fun x _ => by rw [(k_trap_density'_hasDerivAt x).deriv]; exact k_trap_density''_norm x)
       (Set.mem_univ b) (Set.mem_univ a)
 
+/-- The Cauchy parameter density is nonnegative. -/
 private theorem kTrapDensity_nonneg (k : ℝ) : 0 ≤ kTrapDensity k := by
   dsimp [kTrapDensity]; positivity
 
+/-- For nonnegative `x`, `Real.arctan x` is at most `x`. -/
 private theorem kTrapTail_arctan_le (x : ℝ) (hx : 0 ≤ x) : Real.arctan x ≤ x := by
   have hb := norm_image_sub_le_of_norm_deriv_le_segment'
     (a := 0) (b := x) (f := Real.arctan) (f' := fun k : ℝ => (1+k^2)⁻¹) (C := 1)
@@ -441,16 +503,20 @@ private theorem kTrapTail_arctan_le (x : ℝ) (hx : 0 ≤ x) : Real.arctan x ≤
   have hh : |Real.arctan x| ≤ x := by simpa using! hb
   exact (le_abs_self _).trans hh
 
+/-- The Cauchy parameter density is integrable on the real line. -/
 private theorem kTrapDensity_integrable : Integrable kTrapDensity := by
   change Integrable (fun k : ℝ => 1/(Real.pi*(1+k^2)))
   simpa [kTrapDensity, div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
     integrable_inv_one_add_sq.const_mul Real.pi⁻¹
 
+/-- The Cauchy parameter density is continuous on the real line. -/
 private theorem kTrapDensity_continuous : Continuous kTrapDensity := by
   apply Continuous.div continuous_const
   · fun_prop
   · intro k; positivity
 
+/-- For positive `K`, the Cauchy density has integral at most `2 / (Real.pi * K)` outside
+`Set.Ioc (-K) K`. -/
 private theorem kTrapDensity_tail (K : ℝ) (hK : 0 < K) :
     (∫ k : ℝ in (Set.Ioc (-K) K)ᶜ, kTrapDensity k) ≤ 2/(Real.pi*K) := by
   have he : (Set.Ioc (-K) K)ᶜ = Set.Iic (-K) ∪ Set.Ioi K := by
@@ -483,12 +549,16 @@ variable {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
 
 omit [CompleteSpace E] in
 
+/-- A continuous vector-valued function with norm at most one remains integrable after
+multiplication by the Cauchy density. -/
 private theorem kTrapTail_weighted_integrable (V : ℝ → E) (hV : Continuous V)
     (hn : ∀ k, ‖V k‖ ≤ 1) : Integrable (fun k => kTrapDensity k • V k) :=
   kTrapDensity_integrable.smul_bdd 1 hV.aestronglyMeasurable (Filter.Eventually.of_forall hn)
 
 omit [CompleteSpace E] in
 
+/-- For a continuous vector-valued function with norm at most one, truncating its
+Cauchy-weighted integral to `[-K, K]` incurs norm error at most `2 / (Real.pi * K)`. -/
 private theorem kTrapTail_weighted_tail (V : ℝ → E) (hV : Continuous V)
     (hn : ∀ k, ‖V k‖ ≤ 1) (K : ℝ) (hK : 0 < K) :
     ‖(∫ k : ℝ, kTrapDensity k • V k) - (∫ k in (-K)..K, kTrapDensity k • V k)‖ ≤
@@ -503,6 +573,8 @@ private theorem kTrapTail_weighted_tail (V : ℝ → E) (hV : Continuous V)
 
 end Quadrature
 
+/-- The Cauchy-weighted ordered evolution possesses a continuous parameter derivative with
+Lipschitz constant `2 * (1 + A + A^2) / Real.pi`, where `A` is the integral of `‖L u‖`. -/
 theorem k_trap_weighted_derivative {I : Type} [Fintype I] [DecidableEq I]
     (L H : ℝ → Matrix I I ℂ) (s t : ℝ)
     (hL : Continuous L) (hH : Continuous H)
@@ -571,6 +643,8 @@ theorem k_trap_weighted_derivative {I : Type} [Fintype I] [DecidableEq I]
     simpa only [dist_eq_norm, Real.norm_eq_abs] using! hlipF a b)
   exact hLip.continuous
 
+/-- The homogeneous trapezoidal LCHS approximation has operator-norm error bounded by the stated
+Cauchy tail term and a term proportional to `(2 * K)^3 / M^2`. See [AnLiuLin2023]. -/
 theorem homogeneousKTrapezoidQuadrature : HomogeneousKTrapezoidQuadrature := by
   intro I _ _ L H s t K M hL hH hPSD hHerm hst hK hM
   let V := fun k : ℝ => orderedEvolution (fun u => Complex.I • (H u+k • L u)) s t

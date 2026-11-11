@@ -6,20 +6,46 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FinitePinsker
 
+/-!
+# Finite Assouad bounds on the Boolean cube
+
+This module defines Boolean parameter cubes, coordinate flips, and coordinate error risks for
+decoders of finite sample records. `coordinate_pair_lower` bounds the sum of neighboring risks
+using a KL divergence bound, and `average_hamming_lower` sums the estimate over the cube. The
+statistical distance and testing background is described in [Watrous2018].
+
+## Main statements
+
+* `coordinate_pair_lower`: For strictly positive masses and neighboring KL divergence at most
+  `kappa`, the sum of paired coordinate risks is at least `1 - sqrt (n * kappa / 2)`.
+* `average_hamming_lower`: For strictly positive cube indexed laws with neighboring KL
+  divergence at most `kappa`, the average sum of coordinate risks is at least `m / 2 * (1 - sqrt
+  (n * kappa / 2))`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteAssouad
 open FiniteInformationDivergence
 open scoped BigOperators Classical
 noncomputable section
 
+/-- The Boolean parameter cube with `m` coordinates. -/
 abbrev Cube (m : ℕ) := Fin m → Bool
 
+/-- The Boolean cube point obtained by negating coordinate `i` and leaving the other coordinates
+unchanged. -/
 def flipAt {m : ℕ} (i : Fin m) (theta : Cube m) : Cube m :=
   Function.update theta i (!theta i)
 
+/-- Flipping coordinate `i` negates the value at that coordinate. -/
 @[simp] theorem flipAt_self {m : ℕ} (i : Fin m) (theta : Cube m) :
     flipAt i theta i = !theta i := by simp [flipAt]
 
+/-- Flipping the same coordinate twice returns the original Boolean cube point. -/
 @[simp] theorem flipAt_twice {m : ℕ} (i : Fin m) (theta : Cube m) :
     flipAt i (flipAt i theta) = theta := by
   funext j
@@ -27,6 +53,7 @@ def flipAt {m : ℕ} (i : Fin m) (theta : Cube m) : Cube m :=
   · subst j; simp [flipAt]
   · simp [flipAt, h]
 
+/-- The self inverse equivalence on the Boolean cube that flips coordinate `i`. -/
 def flipEquiv {m : ℕ} (i : Fin m) : Cube m ≃ Cube m where
   toFun := flipAt i
   invFun := flipAt i
@@ -35,10 +62,14 @@ def flipEquiv {m : ℕ} (i : Fin m) : Cube m ≃ Cube m where
 
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The probability that a decoder of `n` independent samples misidentifies coordinate `i` of
+parameter `theta`. -/
 def coordinateRisk {m n : ℕ} (P : Cube m → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
     (decode : (Fin n → X) → Cube m) (theta : Cube m) (i : Fin m) : ℝ :=
   (P theta).probEvent (fun w => decode w i ≠ theta i)
 
+/-- The sum of coordinate risks at neighboring cube points equals the binary testing error sum
+between their sample record distributions. -/
 theorem paired_error {m n : ℕ} (P : Cube m → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
     (decode : (Fin n → X) → Cube m) (theta : Cube m) (i : Fin m) :
     coordinateRisk P decode theta i + coordinateRisk P decode (flipAt i theta) i =
@@ -52,6 +83,8 @@ theorem paired_error {m n : ℕ} (P : Cube m → Qatlib.Concepts.MonteCarloMean.
     simp [flipAt_self, ht, hd, records,
         Qatlib.Concepts.MonteCarloMean.FinDistBounds.independentSampleLaw, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probOf]
 
+/-- For strictly positive masses and neighboring KL divergence at most `kappa`, the sum of
+paired coordinate risks is at least `1 - sqrt (n * kappa / 2)`. -/
 theorem coordinate_pair_lower {m n : ℕ} (P : Cube m → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
     (hpos : ∀ theta x, 0 < (P theta).prob x) (kappa : ℝ)
     (hkl : ∀ theta (i : Fin m), kl (P theta) (P (flipAt i theta)) ≤ kappa)
@@ -68,6 +101,8 @@ theorem coordinate_pair_lower {m n : ℕ} (P : Cube m → Qatlib.Concepts.MonteC
       (mul_le_mul_of_nonneg_left (hkl theta i) (Nat.cast_nonneg _)) (by norm_num)
   linarith
 
+/-- For strictly positive cube indexed laws with neighboring KL divergence at most `kappa`, the
+average sum of coordinate risks is at least `m / 2 * (1 - sqrt (n * kappa / 2))`. -/
 theorem average_hamming_lower {m n : ℕ} (P : Cube m → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
     (hpos : ∀ theta x, 0 < (P theta).prob x) (kappa : ℝ)
     (hkl : ∀ theta (i : Fin m), kl (P theta) (P (flipAt i theta)) ≤ kappa)

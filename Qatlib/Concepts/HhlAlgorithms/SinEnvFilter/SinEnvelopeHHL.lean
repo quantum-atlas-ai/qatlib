@@ -9,6 +9,34 @@ import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Mathlib.Analysis.PSeries
 import Qatlib.Concepts.HhlErrorBridge.FilterStability
+
+/-!
+# Sine-envelope preparation and phase-estimation bounds
+
+`sinEnvelopeState`, `sinEnvelopePrep`, and `sinEnvelopeFlagRotation` implement sine-envelope
+preparation and the three-state filter used in the HHL construction [HarrowHassidimLloyd2009].
+The module proves preparation unitarity, state normalization, and the corrected relative
+filter-stability estimate.
+
+For `sinEnvelopeKernel`, it derives finite Fourier and geometric-sum identities, a
+factorization, an inverse fourth-power tail bound in circular phase distance, and an explicit
+bound on the scaled second moment.
+
+## Main statements
+
+* `sin_envelope_state_normalized_and_prep`: normalized sine-envelope preparation by a unitary
+  reflection.
+* `sin_envelope_kernel_geometric_identity`: the kernel as a difference of shifted geometric
+  sums.
+* `sin_envelope_kernel_far_label_tail`: the explicit fourth-power probability tail.
+* `sin_envelope_kernel_second_moment`: the scaled error second moment is at most `4 * π^2 + 40 *
+  π^4 / 3`.
+
+## References
+
+* [Harrow et al., 2009, Appendix A][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,38 +60,51 @@ open Matrix
 open scoped Real
 open Qatlib.Concepts.HhlErrorBridge.FilterStability
 
+/-- The sine-envelope vector with amplitudes `sqrt (2 / M) * sin (π * (τ + 1 / 2) / M)`. -/
 noncomputable def sinEnvelopeState (M : ℕ) : QState (Fin M) :=
   fun τ =>
     (Real.sqrt (2 / (M : ℝ)) : ℂ) *
       (Real.sin (Real.pi * ((τ.val : ℝ) + 1 / 2) / (M : ℝ)) : ℂ)
 
+/-- The phase-estimation amplitude obtained by applying inverse QFT to the phase-modulated
+sine-envelope vector. -/
 noncomputable def sinEnvelopeKernel (M : ℕ) (φ : ℝ) (z : Fin M) : ℂ :=
   ApplyGate (QFTMatrix M)ᴴ
       (fun τ => Complex.exp (2 * Real.pi * Complex.I * ((τ.val : ℝ) * φ)) *
         sinEnvelopeState M τ) z
 
+/-- The scaled phase discrepancy `2 * π * (M * φ - z)`. -/
 noncomputable def sinEnvelopeDelta (M : ℕ) (φ : ℝ) (z : Fin M) : ℝ :=
   2 * Real.pi * ((M : ℝ) * φ - (z.val : ℝ))
 
+/-- The geometric-sum quotient `(1 - exp (I * w)) / (1 - exp (I * w / M))`. -/
 noncomputable def sinEnvelopeGeoSum (M : ℕ) (w : ℝ) : ℂ :=
   (1 - Complex.exp (Complex.I * w)) / (1 - Complex.exp (Complex.I * w / (M : ℝ)))
 
+/-- The scaled sum of the zero basis state and the sine-envelope state used as the preparation
+reflection direction. -/
 noncomputable def sinEnvelopePrepUnit (M : ℕ) (hM : 2 ≤ M) : QState (Fin M) :=
   ((Real.sqrt (2 * (1 + (sinEnvelopeState M ⟨0, by omega⟩).re)) : ℂ))⁻¹ •
     (Ket (⟨0, by omega⟩ : Fin M) + sinEnvelopeState M)
 
+/-- The reflection about `sinEnvelopePrepUnit` used to prepare the sine-envelope state. -/
 noncomputable def sinEnvelopePrep (M : ℕ) (hM : 2 ≤ M) :
     Matrix (Fin M) (Fin M) ℂ :=
   ReflectionAbout (outerProduct (sinEnvelopePrepUnit M hM))
 
+/-- The scaled sum of filter label zero and `sinEnvelopeHVector d θ` used as the flag-rotation
+reflection direction. -/
 noncomputable def sinEnvelopeFlagRotationDir (d θ : ℝ) : QState (Fin 3) :=
   ((Real.sqrt (2 * (1 + (sinEnvelopeHVector d θ 0).re)) : ℂ))⁻¹ •
     ((fun s => if s = 0 then (1 : ℂ) else 0) + sinEnvelopeHVector d θ)
 
+/-- The three-state reflection defined by the outer product of `sinEnvelopeFlagRotationDir d θ`. -/
 noncomputable def sinEnvelopeFlagRotation (d θ : ℝ) :
     Matrix (Fin 3) (Fin 3) ℂ :=
   ReflectionAbout (outerProduct (sinEnvelopeFlagRotationDir d θ))
 
+/-- The reflection defined by the scaled sum of a basis state and a real vector equals
+`nonnegativePrepare` for that vector. -/
 private theorem sin_envelope_real_preparation_eq {J : Type} [Fintype J] [DecidableEq J]
     (r : J → ℝ) (j₀ : J) :
     ReflectionAbout (outerProduct
@@ -82,6 +123,8 @@ private theorem sin_envelope_real_preparation_eq {J : Type} [Fintype J] [Decidab
   simp [outerProduct, Qatlib.Concepts.Execution.WorkspaceCP.rangeProjector, Matrix.mul_apply]
   ring
 
+/-- For positive `d`, the flag rotation is unitary and sends filter label zero to
+`sinEnvelopeHVector d θ`; see [Harrow et al., Appendix A.1][HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_flag_rotation_unitary_and_column (d θ : ℝ) (hd : 0 < d) :
     sinEnvelopeFlagRotation d θ ∈ Matrix.unitaryGroup (Fin 3) ℂ ∧
       sinEnvelopeFlagRotation d θ *ᵥ Ket (0 : Fin 3) = sinEnvelopeHVector d θ := by
@@ -113,6 +156,7 @@ theorem sin_envelope_flag_rotation_unitary_and_column (d θ : ℝ) (hd : 0 < d) 
   exact ⟨Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare_unitary r 0 hr hn,
     (Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare_mulVec_ket r 0 hr).trans hc⟩
 
+/-- For `M ≥ 2`, the cosines of the equally spaced half-step angles sum to zero. -/
 private theorem sin_envelope_cosine_sum (M : ℕ) (hM : 2 ≤ M) :
     ∑ τ : Fin M, Real.cos (2 * (Real.pi * ((τ.val : ℝ)+1/2) / (M : ℝ))) = 0 := by
   have hM0 : 0 < M := by omega
@@ -140,6 +184,7 @@ private theorem sin_envelope_cosine_sum (M : ℕ) (hM : 2 ≤ M) :
   have hre := congrArg Complex.re he
   simpa only [Complex.re_sum, Complex.exp_ofReal_mul_I_re, Complex.zero_re] using! hre
 
+/-- For `M ≥ 2`, the squared sines at the envelope's half-step angles sum to `M / 2`. -/
 theorem sin_envelope_sine_sum_sq (M : ℕ) (hM : 2 ≤ M) :
     ∑ τ : Fin M, (Real.sin (Real.pi * ((τ.val : ℝ)+1/2) / (M : ℝ)))^2 =
       (M : ℝ)/2 := by
@@ -152,6 +197,7 @@ theorem sin_envelope_sine_sum_sq (M : ℕ) (hM : 2 ≤ M) :
   rw [← Finset.sum_div, Finset.sum_sub_distrib, sin_envelope_cosine_sum M hM]
   simp
 
+/-- For `M ≥ 2`, the squared moduli of the sine-envelope amplitudes sum to one. -/
 theorem sin_envelope_state_normalized (M : ℕ) (hM : 2 ≤ M) :
     ∑ τ, ‖sinEnvelopeState M τ‖^2 = 1 := by
   have hMr : (0:ℝ) < M := by exact_mod_cast (by omega : 0 < M)
@@ -161,6 +207,7 @@ theorem sin_envelope_state_normalized (M : ℕ) (hM : 2 ≤ M) :
   rw [← Finset.mul_sum, sin_envelope_sine_sum_sq M hM]
   field_simp
 
+/-- Every sine-envelope amplitude has nonnegative real part for `M ≥ 2`. -/
 private theorem sin_envelope_state_real_nonnegative (M : ℕ) (hM : 2 ≤ M) (τ : Fin M) :
     0 ≤ (sinEnvelopeState M τ).re := by
   have hMr : (0:ℝ) < M := by exact_mod_cast (by omega : 0 < M)
@@ -175,6 +222,9 @@ private theorem sin_envelope_state_real_nonnegative (M : ℕ) (hM : 2 ≤ M) (τ
     Complex.ofReal_im, mul_zero, sub_zero] using!
       mul_nonneg (Real.sqrt_nonneg _) (Real.sin_nonneg_of_nonneg_of_le_pi ha hb)
 
+/-- For `M ≥ 2`, the sine-envelope state is normalized and its preparation matrix is unitary and
+sends the zero basis state to it. See [Harrow et al., Appendix
+A.1][HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_state_normalized_and_prep (M : ℕ) (hM : 2 ≤ M) :
     (∑ τ, ‖sinEnvelopeState M τ‖^2 = 1) ∧
       sinEnvelopePrep M hM ∈ Matrix.unitaryGroup (Fin M) ℂ ∧
@@ -199,6 +249,8 @@ theorem sin_envelope_state_normalized_and_prep (M : ℕ) (hM : 2 ≤ M) :
   exact ⟨hn, Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare_unitary r ⟨0, by omega⟩ hr hnr,
     (Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare_mulVec_ket r ⟨0, by omega⟩ hr).trans hc⟩
 
+/-- For `M ≥ 2`, the squared moduli of the phase-estimation kernel sum to one; see [Harrow et
+al., Appendix A.3][HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_kernel_normalized (M : ℕ) (φ : ℝ) (hM : 2 ≤ M) :
     ∑ z : Fin M, ‖sinEnvelopeKernel M φ z‖^2 = 1 := by
   have hn : Normalized (fun τ : Fin M =>
@@ -208,6 +260,7 @@ theorem sin_envelope_kernel_normalized (M : ℕ) (φ : ℝ) (hM : 2 ≤ M) :
   exact normalized_applyGate
       (Qatlib.Concepts.Execution.WorkspaceCP.adjoint_unitary (qftMatrix_unitary (by omega))) hn
 
+/-- Adding an integer to the input phase leaves the sine-envelope kernel unchanged. -/
 theorem sin_envelope_kernel_int_add (M : ℕ) (φ : ℝ) (z : Fin M) (c : ℤ) :
     sinEnvelopeKernel M (φ+(c : ℝ)) z = sinEnvelopeKernel M φ z := by
   unfold sinEnvelopeKernel
@@ -217,6 +270,8 @@ theorem sin_envelope_kernel_int_add (M : ℕ) (φ : ℝ) (z : Fin M) (c : ℤ) :
   push_cast at h ⊢
   rw [h]
 
+/-- The sine-envelope kernel equals its explicit finite Fourier sum of phase factors weighted by
+half-step sine amplitudes. -/
 theorem sin_envelope_kernel_sum_formula (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M) :
     sinEnvelopeKernel M φ z = ((Real.sqrt 2 : ℂ)/(M : ℂ)) *
       ∑ τ : Fin M,
@@ -259,6 +314,7 @@ theorem sin_envelope_kernel_sum_formula (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2
   simp only [starRingEnd_apply] at ht
   rw [Finset.sum_congr rfl (fun τ _ => ht τ), ← Finset.mul_sum]
 
+/-- When `exp (I * w / M) ≠ 1`, the finite exponential sum equals `sinEnvelopeGeoSum M w`. -/
 private theorem sin_envelope_geometric_sum (M : ℕ) (hM : 2 ≤ M) (w : ℝ)
     (hne : Complex.exp (Complex.I * w / (M : ℝ)) ≠ 1) :
     (∑ τ : Fin M, Complex.exp (Complex.I * w * (τ.val : ℝ) / (M : ℝ))) =
@@ -283,6 +339,8 @@ private theorem sin_envelope_geometric_sum (M : ℕ) (hM : 2 ≤ M) (w : ℝ)
     show (1 : ℂ) - Complex.exp (Complex.I * w/(M : ℝ)) =
       -(Complex.exp (Complex.I * w/(M : ℝ))-1) by ring, neg_div_neg_eq]
 
+/-- The real sine, cast to the complex numbers, equals the difference of its two complex
+exponentials divided by `2 * I`. -/
 private theorem sin_envelope_sine_exp (t : ℝ) :
     (Real.sin t : ℂ) = (Complex.exp (Complex.I * t) - Complex.exp (-(Complex.I * t))) /
       (2 * Complex.I) := by
@@ -291,6 +349,8 @@ private theorem sin_envelope_sine_exp (t : ℝ) :
   rw [pow_two, Complex.I_mul_I]
   ring
 
+/-- Away from the two exceptional geometric ratios, the kernel equals the stated difference of
+geometric sums shifted by `π`; see [Harrow et al., Appendix A.3][HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_kernel_geometric_identity (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M)
     (hp : Complex.exp (Complex.I * (sinEnvelopeDelta M φ z + Real.pi) / (M : ℝ)) ≠ 1)
     (hm : Complex.exp (Complex.I * (sinEnvelopeDelta M φ z - Real.pi) / (M : ℝ)) ≠ 1) :
@@ -352,6 +412,9 @@ theorem sin_envelope_kernel_geometric_identity (M : ℕ) (φ : ℝ) (z : Fin M) 
   rw [hgp, hgm]
   ring
 
+/-- On the stated phase ranges, the two selected filter amplitudes satisfy the relative
+squared-error bound with coefficient `2 * π^2 * (1 / (2 * d))^2`. This is the corrected
+stability estimate for [Harrow et al., Lemma 3][HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_filter_stability (d θ θ' : ℝ) (hd : 0 < d)
     (_hθ : 0 ≤ θ) (_hθ' : θ ≤ 1/4) (_hl : -1/2 ≤ θ') (_hu : θ' ≤ 1/2) :
     (sinEnvelopeFilterF d θ-sinEnvelopeFilterF d θ')^2 +
@@ -360,6 +423,7 @@ theorem sin_envelope_filter_stability (d θ θ' : ℝ) (hd : 0 < d)
         (sinEnvelopeFilterF d θ^2+sinEnvelopeFilterG d θ^2) :=
   sin_envelope_filter_stability_global d θ θ' hd
 
+/-- For `0 ≤ t ≤ 1 / 2`, the lower bound `2 * t ≤ sin (π * t)` holds. -/
 private theorem sin_envelope_sine_lower (t : ℝ) (ht : 0 ≤ t) (hu : t ≤ 1/2) :
     2*t ≤ Real.sin (Real.pi*t) := by
   have h := Real.mul_le_sin (show 0 ≤ Real.pi*t by positivity)
@@ -367,6 +431,7 @@ private theorem sin_envelope_sine_lower (t : ℝ) (ht : 0 ≤ t) (hu : t ≤ 1/2
   have he : 2/Real.pi*(Real.pi*t) = 2*t := by field_simp
   rwa [he] at h
 
+/-- For `1 / M ≤ r ≤ 1 / 2`, the product of the two shifted sine magnitudes is at least `r^2`. -/
 theorem sin_envelope_far_sine_product (M : ℕ) (hM : 2 ≤ M) (r : ℝ)
     (hr : 1/(M : ℝ) ≤ r) (hr' : r ≤ 1/2) :
     r^2 ≤ |Real.sin (Real.pi*(r-1/(2*(M : ℝ))))| *
@@ -407,6 +472,8 @@ theorem sin_envelope_far_sine_product (M : ℕ) (hM : 2 ≤ M) (r : ℝ)
         nlinarith
     nlinarith
 
+/-- Under `a * b = 1` and the stated nonzero denominators, the difference of the two rational
+expressions factors into the displayed common-denominator expression. -/
 private theorem sin_envelope_fraction_cancellation (a b p q : ℂ) (hab : a*b = 1)
     (ha : 1-p*a^2 ≠ 0) (hb : 1-p*b^2 ≠ 0) :
     a*((1+q)/(1-p*a^2))-b*((1+q)/(1-p*b^2)) =
@@ -416,6 +483,8 @@ private theorem sin_envelope_fraction_cancellation (a b p q : ℂ) (hab : a*b = 
   field_simp [ha, hb, ha', hb']
   linear_combination (1+q)*p*(a-b)*hab
 
+/-- Away from the exceptional geometric ratios, the sine-envelope kernel has the displayed
+factorization into exponential numerator factors and two shifted denominator factors. -/
 theorem sin_envelope_kernel_factorization (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M)
     (hp : Complex.exp (Complex.I * (sinEnvelopeDelta M φ z + Real.pi) / (M : ℝ)) ≠ 1)
     (hm : Complex.exp (Complex.I * (sinEnvelopeDelta M φ z - Real.pi) / (M : ℝ)) ≠ 1) :
@@ -481,11 +550,13 @@ theorem sin_envelope_kernel_factorization (M : ℕ) (φ : ℝ) (z : Fin M) (hM :
   rw [hep, hem]
   ring
 
+/-- The norm of `1 - exp (I * t)` is `2 * |sin (t / 2)|`. -/
 private theorem exp_den_norm (t : ℝ) :
     ‖1-Complex.exp (Complex.I*(t:ℂ))‖ = 2*|Real.sin (t/2)| := by
   rw [norm_sub_rev, Complex.norm_exp_I_mul_ofReal_sub_one, Real.norm_eq_abs, abs_mul]
   norm_num
 
+/-- The norm of `exp (I * t) - exp (-I * t)` is `2 * |sin t|`. -/
 private theorem exp_diff_norm (t : ℝ) :
     ‖Complex.exp (Complex.I*(t:ℂ))-Complex.exp (-(Complex.I*(t:ℂ)))‖ =
       2*|Real.sin t| := by
@@ -502,6 +573,7 @@ private theorem exp_diff_norm (t : ℝ) :
   rw [Complex.norm_real, Real.norm_eq_abs]
   norm_num [Complex.norm_I]
 
+/-- For `1 / M ≤ |r| ≤ 1 / 2`, the product of the two shifted sine magnitudes is at least `r^2`. -/
 private theorem signed_far_sine_product (M : ℕ) (hM : 2 ≤ M) (r : ℝ)
     (hr : 1/(M : ℝ) ≤ |r|) (hr' : |r| ≤ 1/2) :
     r^2 ≤ |Real.sin (Real.pi*(r-1/(2*(M : ℝ))))| *
@@ -515,6 +587,8 @@ private theorem signed_far_sine_product (M : ℕ) (hM : 2 ≤ M) (r : ℝ)
       mul_neg, mul_neg, Real.sin_neg, Real.sin_neg, abs_neg, abs_neg, neg_sq] at h
     simpa only [mul_comm] using! h
 
+/-- When the unreduced phase discrepancy has magnitude between `1 / M` and `1 / 2`, the kernel
+probability satisfies the fourth-power tail bound with constant `9 * π^2 / 16`. -/
 private theorem reduced_tail (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M)
     (hr : 1/(M:ℝ) ≤ |φ-(z.val:ℝ)/(M:ℝ)|)
     (hu : |φ-(z.val:ℝ)/(M:ℝ)| ≤ 1/2) :
@@ -618,6 +692,8 @@ private theorem reduced_tail (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M)
     _ ≤ (3*Real.pi/(4*(M:ℝ)^2*r^2))^2 := hsq
     _ = (9*Real.pi^2/16)/((M:ℝ)^4*r^4) := by field_simp; norm_num
 
+/-- At circular phase distance at least `1 / M`, the kernel probability is at most `(9 * π^2 /
+16) / (M^4 * phaseDistance^4)`. -/
 private theorem sin_envelope_kernel_far_label_precise (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M)
     (hr : 1/(M:ℝ) ≤ phaseDistance φ ((z.val:ℝ)/(M:ℝ))) :
     ‖sinEnvelopeKernel M φ z‖^2 ≤
@@ -643,6 +719,8 @@ private theorem sin_envelope_kernel_far_label_precise (M : ℕ) (φ : ℝ) (z : 
   rw [hpow] at ht
   exact ht
 
+/-- At circular phase distance at least `1 / M`, the kernel probability is at most `10 / (M^4 *
+phaseDistance^4)`; see [Harrow et al., Appendix A.3][HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_kernel_far_label_tail (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M)
     (hr : 1/(M:ℝ) ≤ phaseDistance φ ((z.val:ℝ)/(M:ℝ))) :
     ‖sinEnvelopeKernel M φ z‖^2 ≤
@@ -652,6 +730,8 @@ theorem sin_envelope_kernel_far_label_tail (M : ℕ) (φ : ℝ) (z : Fin M) (hM 
   have hpi : Real.pi^2 ≤ 10 := by nlinarith only [Real.pi_lt_d2, Real.pi_pos]
   linarith only [hpi]
 
+/-- The sum of reciprocal squares over any finite set of positive natural numbers is at most
+two. -/
 private theorem nat_inv_sq_sum_le_two (s : Finset ℕ) (hs : ∀ n ∈ s, 1 ≤ n) :
     ∑ n ∈ s, 1/(n:ℝ)^2 ≤ 2 := by
   have hh := sum_Ioo_inv_sq_le (α := ℝ) 0 (s.sup id+1)
@@ -664,6 +744,7 @@ private theorem nat_inv_sq_sum_le_two (s : Finset ℕ) (hs : ∀ n ∈ s, 1 ≤ 
       Nat.lt_succ_of_le (Finset.le_sup (f := id) hn)⟩
   · intro n _ _; positivity
 
+/-- The sum of `1 / (x - n)^2` over a finite set of integers with `n ≤ x - 1` is at most two. -/
 private theorem integer_left_inverse_sum (s : Finset ℤ) (x : ℝ)
     (hs : ∀ n ∈ s, (n:ℝ) ≤ x-1) :
     ∑ n ∈ s, 1/(x-(n:ℝ))^2 ≤ 2 := by
@@ -697,6 +778,7 @@ private theorem integer_left_inverse_sum (s : Finset ℤ) (x : ℝ)
       have hv := hval m hm
       omega)
 
+/-- The sum of `1 / (x - n)^2` over a finite set of integers with `x + 1 ≤ n` is at most two. -/
 private theorem integer_right_inverse_sum (s : Finset ℤ) (x : ℝ)
     (hs : ∀ n ∈ s, x+1 ≤ (n:ℝ)) :
     ∑ n ∈ s, 1/(x-(n:ℝ))^2 ≤ 2 := by
@@ -710,6 +792,8 @@ private theorem integer_right_inverse_sum (s : Finset ℤ) (x : ℝ)
   have he (n : ℤ) : 1/(-x-((-n:ℤ):ℝ))^2 = 1/(x-(n:ℝ))^2 := by push_cast; ring
   simpa only [he] using! h
 
+/-- The sum of `1 / (x - n)^2` over a finite set of integers at distance at least one from `x`
+is at most four. -/
 private theorem integer_far_inverse_sum (s : Finset ℤ) (x : ℝ) :
     ∑ n ∈ s.filter (fun n : ℤ => 1 ≤ |x-(n:ℝ)|), 1/(x-(n:ℝ))^2 ≤ 4 := by
   let a := s.filter (fun n : ℤ => (n:ℝ) ≤ x-1)
@@ -737,9 +821,12 @@ private theorem integer_far_inverse_sum (s : Finset ℤ) (x : ℝ) :
   have ha := integer_left_inverse_sum a x (fun n hn => (Finset.mem_filter.mp hn).2)
   have hb := integer_right_inverse_sum b x (fun n hn => (Finset.mem_filter.mp hn).2)
   linarith only [ha,hb]
+/-- The integer lift `z + M * ⌊φ - z / M + 1 / 2⌋` of phase label `z`, chosen from its residue
+class modulo `M`. -/
 private noncomputable def circularIntegerLabel (M : ℕ) (φ : ℝ) (z : Fin M) : ℤ :=
   (z.val:ℤ)+(M:ℤ)*⌊φ-(z.val:ℝ)/(M:ℝ)+1/2⌋
 
+/-- Distinct finite phase labels have distinct lifted integer representatives. -/
 private theorem circularIntegerLabel_injective (M : ℕ) (φ : ℝ) :
     Function.Injective (circularIntegerLabel M φ) := by
   have hmod (z : Fin M) : circularIntegerLabel M φ z % (M:ℤ) = (z.val:ℤ) := by
@@ -752,6 +839,8 @@ private theorem circularIntegerLabel_injective (M : ℕ) (φ : ℝ) :
   apply Fin.ext
   exact_mod_cast hh
 
+/-- The absolute distance from `M * φ` to the lifted integer label equals `M` times the circular
+phase distance. -/
 private theorem circularIntegerLabel_distance (M : ℕ) (φ : ℝ) (z : Fin M) (hM : 2 ≤ M) :
     (M:ℝ)*phaseDistance φ ((z.val:ℝ)/(M:ℝ)) =
       |(M:ℝ)*φ-(circularIntegerLabel M φ z:ℝ)| := by
@@ -766,6 +855,8 @@ private theorem circularIntegerLabel_distance (M : ℕ) (φ : ℝ) (z : Fin M) (
       field_simp
       ring
 
+/-- The sum of reciprocal squared scaled circular distances over labels at distance at least `1
+/ M` is at most four. -/
 private theorem circular_inverse_square_sum (M : ℕ) (φ : ℝ) (hM : 2 ≤ M) :
     ∑ z ∈ Finset.univ.filter (fun z : Fin M => 1/(M:ℝ) ≤ phaseDistance φ ((z.val:ℝ)/(M:ℝ))),
       1/((M:ℝ)*phaseDistance φ ((z.val:ℝ)/(M:ℝ)))^2 ≤ 4 := by
@@ -792,6 +883,8 @@ private theorem circular_inverse_square_sum (M : ℕ) (φ : ℝ) (hM : 2 ≤ M) 
   simp_rw [he] at hh
   exact hh
 
+/-- The kernel's second moment in the scaled circular phase error is at most `4 * π^2 + 40 * π^4
+/ 3`; see [Harrow et al., Appendix A.3][HarrowHassidimLloyd2009]. -/
 theorem sin_envelope_kernel_second_moment (M : ℕ) (φ : ℝ) (hM : 2 ≤ M) :
     ∑ z : Fin M, ‖sinEnvelopeKernel M φ z‖^2 *
       (2*Real.pi*(M:ℝ)*phaseDistance φ ((z.val:ℝ)/(M:ℝ)))^2 ≤

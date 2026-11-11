@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawStat
 import Qatlib.Concepts.DiamondQdrift.SignedBridge.RealCoefficientFairBitSubgoalStat
+
+/-!
+# Effective quantizer qDRIFT specification
+
+This module defines the quantization bit count `effectiveQdriftBits` and states
+`EffectiveQuantizerFairBitSubgoal`. The specification links rational lower oracles to integer
+sampling weights and to a finite coin realization of qDRIFT with controlled finite diamond
+error, following the simulation setting of [Campbell2019].
+
+## Main statements
+
+* `effectiveQdriftBits`: the quantization precision parameter.
+* `EffectiveQuantizerFairBitSubgoal`: precision, law approximation, and circuit guarantees.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,9 +44,13 @@ namespace Qatlib.Concepts.DiamondQdrift.DigitEndpoint
 open Matrix
 open scoped BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- The quantization bit parameter `Nat.log2 (Nat.ceil (12 * n * L / ε) + 1)`. -/
 noncomputable def effectiveQdriftBits (L n : ℕ) (ε : ℝ) : ℕ :=
   Nat.log2 (Nat.ceil (12*(n : ℝ)*(L : ℝ)/ε)+1)
 
+/-- Correct sign flags and rational lower oracles yield a certified quantizer with bounded
+precision and law error, finite diamond approximation within `ε`, and the stated unitary
+branch and resource bounds [Campbell2019]. -/
 def EffectiveQuantizerFairBitSubgoal : Prop :=
   ∀ (L D : ℕ) (a : Fin L → ℝ) (K : Fin L → Operator D) (t ε : ℝ) (j0 : Fin L)
     (q : Fin L → ℕ → ℚ) (sgn : Fin L → Bool),

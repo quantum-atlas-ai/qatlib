@@ -8,6 +8,26 @@ import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningAlgorithm
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Tactic
+
+/-!
+# Coverage and error bounds for junta learning
+
+`weightedMean` supports a finite weighted Markov inequality. An expected nonnegative error below
+ε/10 gives probability at least 7/10 of error below ε/3; `stage2_error_bound` combines error
+outside a selected set with disagreement inside it. See [AticiServedio2007].
+
+## Main statements
+
+* `coverage_ge`: For positive ε and a nonnegative error with weighted mean below ε/10, the
+  weighted probability of error below ε/3 is at least 7/10.
+* `stage2_error_bound`: If the uniform mass outside S and the disagreement mass inside S are
+  each at most ε/3 for positive ε, the total disagreement is less than ε.
+
+## References
+
+* [Atici and Servedio, 2007][AticiServedio2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,8 +41,11 @@ open scoped BigOperators
 
 variable {Ω : Type} [Fintype Ω]
 
+/-- The finite weighted sum of the values of X with weights w. -/
 def weightedMean (w : Ω → ℝ) (X : Ω → ℝ) : ℝ := ∑ o, w o * X o
 
+/-- For nonnegative normalized weights and a nonnegative variable of weighted mean below a, the
+weighted mass where X ≥ positive t is at most a/t; see [AticiServedio2007]. -/
 theorem weightedMarkov (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (_hw1 : ∑ o, w o = 1)
     (X : Ω → ℝ) (hX0 : ∀ o, 0 ≤ X o) {t a : ℝ} (ht : 0 < t)
     (hmean : weightedMean w X < a) :
@@ -45,6 +68,8 @@ theorem weightedMarkov (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (_hw1 : ∑ o, 
   have h2 : weightedMean w X / t < a / t := div_lt_div_of_pos_right hmean ht
   exact le_trans hle (le_of_lt h2)
 
+/-- For positive ε and a nonnegative error with weighted mean below ε/10, the weighted
+probability of error below ε/3 is at least 7/10; see [AticiServedio2007]. -/
 theorem coverage_ge (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (hw1 : ∑ o, w o = 1)
     (err : Ω → ℝ) (herr0 : ∀ o, 0 ≤ err o) {ε : ℝ} (hε : 0 < ε)
     (hmean : weightedMean w err < ε / 10) :
@@ -71,6 +96,8 @@ theorem coverage_ge (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (hw1 : ∑ o, w o 
       _ = 3 / 10 := hratio
   linarith
 
+/-- Under the stated weighted mean-error bound, the weighted probability that the agreement
+fraction exceeds 1 − ε/3 is at least 7/10; see [AticiServedio2007]. -/
 theorem agree_fraction_ge (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (hw1 : ∑ o, w o = 1)
     (err : Ω → ℝ) (herr0 : ∀ o, 0 ≤ err o) {ε : ℝ} (hε : 0 < ε)
     (hmean : weightedMean w err < ε / 10) :
@@ -87,6 +114,8 @@ theorem agree_fraction_ge (w : Ω → ℝ) (hw0 : ∀ o, 0 ≤ w o) (hw1 : ∑ o
 
 variable {n : ℕ}
 
+/-- If the uniform mass outside S and the disagreement mass inside S are each at most ε/3 for
+positive ε, the total disagreement is less than ε; see [AticiServedio2007]. -/
 theorem stage2_error_bound (f H : (Fin n → Bool) → Bool) (S : Finset (Fin n → Bool))
     {ε : ℝ} (hε : 0 < ε)
     (hout : uniformExpect (fun x => if x ∈ S then (0 : ℝ) else 1) ≤ ε / 3)

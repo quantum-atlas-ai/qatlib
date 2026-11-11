@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DecisionTrees97.MainResults.ClassicalMass
+
+/-!
+# Endpoint transfer from a layer of targets
+
+This module extracts a target with sufficiently large classical kernel mass from a finite target
+set. It then applies the endpoint transfer estimate to obtain a bounded-time quantum measurement
+witness, with explicit dependence on the number of targets.
+
+These constructions accompany the results of [FarhiGutmann1998].
+
+## Main statements
+
+* `exists_level_mass_ge`: extracts a target with at least the average required signal.
+* `finite_multileaf_endpoint_transfer`: transfers total target mass to a quantum endpoint
+  witness.
+
+## References
+
+* [Farhi and Gutmann, 1998][FarhiGutmann1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +44,8 @@ namespace Qatlib.Papers.DecisionTrees97.MainResults
 variable {V : Type} [Fintype V] [DecidableEq V]
 variable (G : SimpleGraph V) [DecidableRel G.Adj]
 
+/-- If the total real classical-kernel mass on a nonempty finite target set is at least `p`, one
+target has mass at least `p / targets.card`. See [FarhiGutmann1998]. -/
 theorem exists_level_mass_ge (T p : ℝ) (hp : 0 < p) (targets : Finset V)
     (hne : targets.Nonempty) (start : V)
     (hsignal : p ≤ ∑ x ∈ targets, (sourceClassicalKernel G T x start).re) :
@@ -39,6 +62,9 @@ theorem exists_level_mass_ge (T p : ℝ) (hp : 0 < p) (targets : Finset V)
     exact hsignal
   exact Finset.exists_le_of_sum_le hne hle
 
+/-- A total classical signal at least `p` on a nonempty finite target set yields a target and a
+unitary evolution time at most `33 * T * targets.card / p`, with normalized state and target
+probability at least `(p / targets.card) ^ 2 / 16`. See [FarhiGutmann1998]. -/
 theorem finite_multileaf_endpoint_transfer (T p : ℝ) (hT : 0 ≤ T)
     (hp : 0 < p) (hp1 : p ≤ 1) (targets : Finset V) (hne : targets.Nonempty)
     (start : V)

@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3SourceFamilyStat
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSourceFamily
+
+/-!
+# Unknown-count quantum search for a family of schedules
+
+Proves `theorem3SourceFamily` by assembling the parameterized schedule, terminal trace, cost,
+budget, and timeout laws. The theorem covers every growth factor in `(1, 4 / 3)` through the
+proposition `Theorem3SourceFamily`. For the quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `theorem3SourceFamily`: Establishes `Theorem3SourceFamily`, the full unknown-count search
+  guarantee with explicit costs and timeout bounds for every `1 < l < 4 / 3`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,6 +31,8 @@ namespace Qatlib.Concepts.SearchStopping.UnknownCount
 
 universe u
 
+/-- Establishes `Theorem3SourceFamily`, the full unknown-count search guarantee with explicit
+costs and timeout bounds for every `1 < l < 4 / 3`. See [BoyerEtAl1998]. -/
 theorem theorem3SourceFamily : Theorem3SourceFamily.{u} := by
   intro I _ _ hN l hl hl4
   (try dsimp only)

@@ -8,6 +8,27 @@ import Qatlib.Papers.Cbmd26.Algorithms.DynamicOriginalGridConsumer
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelGridTarget
 import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBridge
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicHalfAccuracyBudget
+
+/-!
+# Dynamic CBMD from the original matrix oracle
+
+Specializes the dynamic grid construction to the kernel frequencies, simulation accuracy, and
+degree chosen by the CBMD budgets. It defines `dynamicCBMDWord` and `dynamicCBMDSource`, then
+combines the grid approximation with computational amplitude amplification in
+`dynamic_cbmd_original_oracle_algorithm`. These results support the contour-based algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `dynamicCBMDWord`: fixes the compiled original-oracle word at the chosen parameters.
+* `dynamic_cbmd_original_oracle_algorithm`: proves amplification and the displayed data-query
+  bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -59,16 +80,24 @@ open Matrix Set
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 set_option warningAsError false
 
+/-- Abbreviates the static kernel index type at the chosen analytic budget. -/
 abbrev DynamicCBMDFrequency (α T ε η : ℝ) := StaticKernelIndex α T (staticAnalyticBudget ε η)
+/-- Abbreviates the dynamic grid time-address type at the chosen kernel normalization and
+simulation accuracy. -/
 abbrev DynamicCBMDTime (α T : ℝ) (N : ℕ) (ε η : ℝ) :=
   DynamicGridTimeIndex (staticKernelNormalization α (staticAnalyticBudget ε η)) T N
     (dynamicSimulationAccuracy ε η)
+/-- Defines the dynamic grid polynomial degree at the chosen kernel normalization and simulation
+accuracy. -/
 def dynamicCBMDDegree (α T ε η : ℝ) : ℕ :=
   dynamicGridDegree (staticKernelNormalization α (staticAnalyticBudget ε η)) T
     (dynamicSimulationAccuracy ε η)
+/-- Abbreviates the final fresh-register workspace for the chosen frequency, time-address, and
+degree parameters. -/
 abbrev DynamicCBMDSpace (Anc I : Type) (α T : ℝ) (N : ℕ) (ε η : ℝ) :=
   DynamicFreshFinalSpace (DynamicCBMDFrequency α T ε η) Anc (DynamicCBMDTime α T N ε η) I
     (dynamicCBMDDegree α T ε η)
+/-- Abbreviates the auxiliary-register type for the chosen dynamic CBMD parameters. -/
 abbrev DynamicCBMDAux (Anc : Type) (α T : ℝ) (N : ℕ) (ε η : ℝ) :=
   DynamicFreshAux (DynamicCBMDFrequency α T ε η) Anc (DynamicCBMDTime α T N ε η)
     (dynamicCBMDDegree α T ε η)
@@ -88,6 +117,8 @@ local instance cbmdDynamicCBMDConsumerInstance5 (F Anc J : Type) (K : ℕ) [Deci
     [DecidableEq J] : DecidableEq (DynamicFreshAux F Anc J K) :=
   inferInstanceAs (DecidableEq (Bool × ((DynamicOriginalLabels (DynamicFreshStored Anc J K) × F) × (J × Anc))))
 
+/-- Instantiates the original-oracle dynamic grid word with the chosen kernel weights,
+frequencies, normalization, and simulation accuracy. -/
 def dynamicCBMDWord (a₀ : Anc) (α T : ℝ) (N : ℕ) (ε η : ℝ) :
     List (AdjointStep (DynamicCBMDSpace Anc I α T N ε η)) :=
   dynamicOriginalGridWord a₀ α (staticKernelNormalization α (staticAnalyticBudget ε η)) T N
@@ -95,6 +126,8 @@ def dynamicCBMDWord (a₀ : Anc) (α T : ℝ) (N : ℕ) (ε η : ℝ) :
     (staticKernelWeight α T (staticAnalyticBudget ε η))
     (staticKernelZero α T (staticAnalyticBudget ε η))
 
+/-- Defines the controlled original-oracle source selected at the fine-grid times and lifted
+across the dynamic CBMD labels. -/
 def dynamicCBMDSource (U : ℝ → Matrix (Anc × I) (Anc × I) ℂ)
     (τ : ℕ → ℝ) (α T : ℝ) (N : ℕ) (ε η : ℝ) :
     Matrix (DynamicCBMDSpace Anc I α T N ε η) (DynamicCBMDSpace Anc I α T N ε η) ℂ :=
@@ -104,20 +137,28 @@ def dynamicCBMDSource (U : ℝ → Matrix (Anc × I) (Anc × I) ℂ)
     (select (dynamicFineTimeOracle U τ (staticKernelNormalization α (staticAnalyticBudget ε η))
       T N (dynamicSimulationAccuracy ε η))))
 
+/-- Separates the dynamic CBMD workspace into its auxiliary registers and system register. -/
 def dynamicCBMDEquiv (Anc I : Type) (α T : ℝ) (N : ℕ) (ε η : ℝ) :
     DynamicCBMDSpace Anc I α T N ε η ≃ DynamicCBMDAux Anc α T N ε η × I :=
   dynamicFreshFinalEquiv _ _ _ _ _
 
+/-- Defines the clean auxiliary basis label using the kernel zero, zero time address, and
+initial ancilla. -/
 def dynamicCBMDCleanAux (a₀ : Anc) (α T : ℝ) (N : ℕ) (ε η : ℝ) :
     DynamicCBMDAux Anc α T N ε η :=
   dynamicFreshCleanAux (staticKernelZero α T (staticAnalyticBudget ε η))
     (dynamicGridZeroAddress (staticKernelNormalization α (staticAnalyticBudget ε η)) T N
       (dynamicSimulationAccuracy ε η)) a₀ (dynamicCBMDDegree α T ε η)
 
+/-- Defines the displayed dynamic query bound from `α * T`, the output estimate, and two
+logarithmic accuracy factors. -/
 def dynamicCBMDQueryBound (α T ε η : ℝ) : ℝ :=
   (18 * dynamicPaperQueryConstant) * ((1 + α * T) / η) * Real.log (2 / (ε * η)) *
     (Real.log (2 + α * T) + Real.log (2 / (ε * η)))
 
+/-- Under exact original-oracle encodings and the weighted grid-error bound, proves
+computational amplification of the dissipative evolution, the exact data-query count, and
+its displayed bound [WangEtAl2026]. -/
 theorem dynamic_cbmd_original_oracle_algorithm
     (a₀ : Anc) (α T ε η : ℝ) (hα : 0 < α) (hT : 0 < T)
     (hε : 0 < ε) (hεhalf : ε ≤ 1/2) (hη : 0 < η)

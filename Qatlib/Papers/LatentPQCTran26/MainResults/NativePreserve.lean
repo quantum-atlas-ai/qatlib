@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LatentPQCTran26.MainResults.ConcentratedMLP
 import Mathlib.MeasureTheory.Integral.Average
+
+/-!
+# Native gradient preservation for tanh decoders
+
+`tanh_pointwise` and `tanh_expected` specialize concentration estimates to the explicit tanh
+decoder and native gradients. The theorem `reference_initialization` chooses a center from a
+reference mean bound and a radius determined by its gradient norm, obtaining an expected
+squared-gradient bound for the decoder outputs. See [TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `tanh_pointwise`: For a derivative with positive Lipschitz constant `Lambda`, tanh-decoder
+  outputs with `‖v‖ ≤ 1` and `0 ≤ gamma ≤ g / (2 * Lambda)` have native gradient norm at least
+  `g / 2` when the central gradient norm is at least `g`.
+* `tanh_expected`: Under the stated continuity, derivative boundedness, and concentration
+  hypotheses with nonnegative `g`, the tanh-decoder mean squared native gradient is at least `g
+  ^ 2 / 4`.
+* `reference_initialization`: Under the stated regularity and reference-integrability
+  hypotheses, a reference mean squared gradient of at least `mu0` yields a center whose
+  tanh-decoder initialization has mean squared gradient at least `mu0 / 4`, using radius
+  `‖gradient L theta‖ / (2 * Lambda)`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -13,6 +40,9 @@ open MeasureTheory
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.NativePreserve
 open EuclideanLayer LinearMetaGrad ConcentratedMLP NoBiasBarrenPlateau
 
+/-- For a derivative with positive Lipschitz constant `Lambda`, tanh-decoder outputs with `‖v‖ ≤
+1` and `0 ≤ gamma ≤ g / (2 * Lambda)` have native gradient norm at least `g / 2` when the
+central gradient norm is at least `g`. -/
 theorem tanh_pointwise {K d : ℕ}
     (a : (Fin d → ℝ) →L[ℝ] ℝ) (c : ℝ)
     (L : EuclideanSpace ℝ (Fin K) → ℝ)
@@ -31,6 +61,8 @@ theorem tanh_pointwise {K d : ℕ}
   have hr := radius_arithmetic g Lambda gamma hLambda hgamma
   linarith
 
+/-- Under the stated continuity, derivative boundedness, and concentration hypotheses with
+nonnegative `g`, the tanh-decoder mean squared native gradient is at least `g ^ 2 / 4`. -/
 theorem tanh_expected {K d : ℕ}
     (r : Measure (Fin d → ℝ)) [IsProbabilityMeasure r]
     (a : (Fin d → ℝ) →L[ℝ] ℝ) (c : ℝ)
@@ -63,6 +95,9 @@ theorem tanh_expected {K d : ℕ}
       nlinarith))
   simpa using hb
 
+/-- Under the stated regularity and reference-integrability hypotheses, a reference mean squared
+gradient of at least `mu0` yields a center whose tanh-decoder initialization has mean
+squared gradient at least `mu0 / 4`, using radius `‖gradient L theta‖ / (2 * Lambda)`. -/
 theorem reference_initialization {K d : ℕ}
     (r : Measure (Fin d → ℝ)) [IsProbabilityMeasure r]
     [MeasurableSpace (EuclideanSpace ℝ (Fin K))]

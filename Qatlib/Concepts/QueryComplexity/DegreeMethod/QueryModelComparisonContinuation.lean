@@ -6,6 +6,37 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonContinuationDefs
 import Mathlib.Tactic.Linarith
+
+/-!
+# Query convention implications and attained minima
+
+This module compares the exact, bounded, success, and parameterized inconclusive predicates for
+finite quantum and classical program classes. Implication between conventions gives inclusion of
+feasible query counts and reverses the corresponding minimum-budget inequalities, with explicit
+witnesses for attained minima. These comparisons support the query-model framework of
+[BealsEtAl2001].
+
+The module also bounds expected classical queries by the worst-case budget and proves
+monotonicity and rounding properties of the Grover search parameters. Search-class minima are
+attained by programs meeting the prescribed success threshold, in the amplitude-amplification
+setting of [BrassardEtAl2002].
+
+## Main statements
+
+* `conventionMin_antitone`: Weakening a convention cannot increase the minimum feasible query
+  count.
+* `conventionMin_attained`: Every nonempty convention count set has a program realizing its
+  minimum.
+* `ClassicalProgram.expectedQueries_le`: Expected queries do not exceed the worst-case budget.
+* `searchMin_attained`: A search-class minimum is realized by a program meeting the success
+  threshold.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
@@ -22,12 +53,14 @@ open scoped Classical BigOperators ENNReal
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- A program satisfying `ExactFor` also satisfies `BoundedFor` for the same Boolean function. -/
 theorem exact_convention_bounded {P : DecisionProgram I W} {f : (I → Bool) → Bool}
     (h : P.ExactFor f) : P.BoundedFor f := by
   intro g
   rw [h g]
   by_cases hf : f g = true <;> simp [hf]
 
+/-- A program satisfying `ExactFor` also satisfies `SuccessFor` for the same Boolean function. -/
 theorem exact_convention_success {P : DecisionProgram I W} {f : (I → Bool) → Bool}
     (h : P.ExactFor f) : P.SuccessFor f := by
   intro g
@@ -37,6 +70,8 @@ theorem exact_convention_success {P : DecisionProgram I W} {f : (I → Bool) →
     norm_num
   · simp [hf]
 
+/-- A program satisfying `ExactFor` satisfies `ZeroErrorInconclusiveFor` at every nonnegative
+parameter `t`. -/
 theorem exact_convention_inconclusive {P : DecisionProgram I W} {f : (I → Bool) → Bool}
     {t : ℝ} (ht0 : 0 ≤ t) (h : P.ExactFor f) :
     P.ZeroErrorInconclusiveFor f t := by
@@ -48,6 +83,7 @@ theorem exact_convention_inconclusive {P : DecisionProgram I W} {f : (I → Bool
   · simp [hf]
     linarith
 
+/-- A program satisfying `BoundedFor` also satisfies `SuccessFor` for the same Boolean function. -/
 theorem bounded_convention_success {P : DecisionProgram I W} {f : (I → Bool) → Bool}
     (h : P.BoundedFor f) : P.SuccessFor f := by
   intro g
@@ -63,6 +99,8 @@ theorem bounded_convention_success {P : DecisionProgram I W} {f : (I → Bool) �
     rw [if_neg hf]
     linarith
 
+/-- A program satisfying `BoundedFor` satisfies `ZeroErrorInconclusiveFor` whenever its
+parameter is at least `1 / 3`. -/
 theorem bounded_convention_inconclusive {P : DecisionProgram I W} {f : (I → Bool) → Bool}
     {t : ℝ} (ht : 1 / 3 ≤ t) (h : P.BoundedFor f) :
     P.ZeroErrorInconclusiveFor f t := by
@@ -79,6 +117,8 @@ theorem bounded_convention_inconclusive {P : DecisionProgram I W} {f : (I → Bo
     rw [if_neg hf]
     linarith
 
+/-- A program satisfying `SuccessFor` satisfies `ZeroErrorInconclusiveFor` whenever its
+parameter is at least `1 / 3`. -/
 theorem success_convention_inconclusive {P : DecisionProgram I W} {f : (I → Bool) → Bool}
     {t : ℝ} (ht : 1 / 3 ≤ t) (h : P.SuccessFor f) :
     P.ZeroErrorInconclusiveFor f t := by
@@ -93,6 +133,8 @@ theorem success_convention_inconclusive {P : DecisionProgram I W} {f : (I → Bo
     rw [if_neg hf]
     linarith
 
+/-- The predicates `SuccessFor` and `ZeroErrorInconclusiveFor` with parameter `1 / 3` are
+equivalent. -/
 theorem success_iff_inconclusive_one_third {P : DecisionProgram I W}
     {f : (I → Bool) → Bool} :
     P.SuccessFor f ↔ P.ZeroErrorInconclusiveFor f (1 / 3) := by
@@ -111,36 +153,45 @@ theorem success_iff_inconclusive_one_third {P : DecisionProgram I W}
       rw [if_neg hf]
       linarith
 
+/-- The exact comparison convention implies the bounded comparison convention. -/
 theorem conventionStronger_exact_bounded :
     ConventionStronger (I := I) (W := W) .exact .bounded := by
   intro P f h
   simp only [ConventionHolds] at h ⊢
   exact exact_convention_bounded h
 
+/-- The exact comparison convention implies the success comparison convention. -/
 theorem conventionStronger_exact_success :
     ConventionStronger (I := I) (W := W) .exact .success := by
   intro P f h
   simp only [ConventionHolds] at h ⊢
   exact exact_convention_success h
 
+/-- The exact comparison convention implies the inconclusive comparison convention at every
+nonnegative parameter. -/
 theorem conventionStronger_exact_inconclusive {t : ℝ} (ht : 0 ≤ t) :
     ConventionStronger (I := I) (W := W) .exact (.zeroErrorInconclusive t) := by
   intro P f h
   simp only [ConventionHolds] at h ⊢
   exact exact_convention_inconclusive (t := t) ht h
 
+/-- The bounded comparison convention implies the success comparison convention. -/
 theorem conventionStronger_bounded_success :
     ConventionStronger (I := I) (W := W) .bounded .success := by
   intro P f h
   simp only [ConventionHolds] at h ⊢
   exact bounded_convention_success h
 
+/-- The success comparison convention implies the inconclusive comparison convention for
+parameters at least `1 / 3`. -/
 theorem conventionStronger_success_inconclusive {t : ℝ} (ht : 1 / 3 ≤ t) :
     ConventionStronger (I := I) (W := W) .success (.zeroErrorInconclusive t) := by
   intro P f h
   simp only [ConventionHolds] at h ⊢
   exact success_convention_inconclusive (t := t) ht h
 
+/-- A query count belongs to a convention's count set exactly when a program in the machine
+class satisfies that convention and has that query count. -/
 theorem mem_conventionCountSet {M : MachineClass I W} {c : ComparisonConvention}
     {f : (I → Bool) → Bool} {n : ℕ} :
     n ∈ ConventionCountSet M c f ↔
@@ -154,6 +205,8 @@ theorem mem_conventionCountSet {M : MachineClass I W} {c : ComparisonConvention}
   · rintro ⟨P, hPm, hPf, hn⟩
     exact ⟨P, List.mem_filter.mpr ⟨hPm, by rw [decide_eq_true_eq]; exact hPf⟩, hn⟩
 
+/-- Implication from convention `c` to convention `c'` gives inclusion of the feasible query
+counts for `c` in those for `c'`. -/
 theorem conventionCountSet_subset {M : MachineClass I W} {c c' : ComparisonConvention}
     (hstrong : ConventionStronger (I := I) (W := W) c c') {f : (I → Bool) → Bool} :
     ConventionCountSet M c f ⊆ ConventionCountSet M c' f := by
@@ -163,6 +216,8 @@ theorem conventionCountSet_subset {M : MachineClass I W} {c c' : ComparisonConve
   exact (mem_conventionCountSet (M := M) (c := c') (f := f) (n := n)).mpr
     ⟨P, hP, hstrong P f hPf, hcnt⟩
 
+/-- If convention `c` implies `c'` and both count sets are nonempty, the minimum query count for
+`c'` is at most that for `c`. -/
 theorem conventionMin_antitone {M : MachineClass I W} {c c' : ComparisonConvention}
     (hstrong : ConventionStronger (I := I) (W := W) c c') {f : (I → Bool) → Bool}
     {h : ∃ n, n ∈ ConventionCountSet M c f}
@@ -174,6 +229,8 @@ theorem conventionMin_antitone {M : MachineClass I W} {c c' : ComparisonConventi
     conventionCountSet_subset hstrong hmem
   exact finsetMinNat_le (s := ConventionCountSet M c' f) (h := h') hmem'
 
+/-- The count set for the exact comparison convention equals the machine class's exact count
+set. -/
 theorem conventionCountSet_exact_eq (M : MachineClass I W) (f : (I → Bool) → Bool) :
     ConventionCountSet M .exact f = M.exactCountSet f := by
   ext n
@@ -192,6 +249,8 @@ theorem conventionCountSet_exact_eq (M : MachineClass I W) (f : (I → Bool) →
     exact (mem_conventionCountSet (M := M) (c := .exact) (f := f) (n := n)).mpr
       ⟨P, hPm, of_decide_eq_true hdec, hcnt⟩
 
+/-- The count set for the bounded comparison convention equals the machine class's bounded count
+set. -/
 theorem conventionCountSet_bounded_eq (M : MachineClass I W) (f : (I → Bool) → Bool) :
     ConventionCountSet M .bounded f = M.boundedCountSet f := by
   ext n
@@ -210,6 +269,8 @@ theorem conventionCountSet_bounded_eq (M : MachineClass I W) (f : (I → Bool) �
     exact (mem_conventionCountSet (M := M) (c := .bounded) (f := f) (n := n)).mpr
       ⟨P, hPm, of_decide_eq_true hdec, hcnt⟩
 
+/-- The count set for the success comparison convention equals the machine class's success count
+set. -/
 theorem conventionCountSet_success_eq (M : MachineClass I W) (f : (I → Bool) → Bool) :
     ConventionCountSet M .success f = M.successCountSet f := by
   ext n
@@ -228,6 +289,8 @@ theorem conventionCountSet_success_eq (M : MachineClass I W) (f : (I → Bool) �
     exact (mem_conventionCountSet (M := M) (c := .success) (f := f) (n := n)).mpr
       ⟨P, hPm, of_decide_eq_true hdec, hcnt⟩
 
+/-- The convention minimum is at most the query count of any program in the class satisfying
+that convention. -/
 theorem conventionMin_le_of_program {M : MachineClass I W} {c : ComparisonConvention}
     {f : (I → Bool) → Bool} {h : ∃ n, n ∈ ConventionCountSet M c f}
     {P : DecisionProgram I W} (hP : P ∈ M.programs) (hPf : ConventionHolds c P f) :
@@ -237,6 +300,8 @@ theorem conventionMin_le_of_program {M : MachineClass I W} {c : ComparisonConven
       ⟨P, hP, hPf, rfl⟩
   exact finsetMinNat_le hmem
 
+/-- A nonempty convention count set has a program in the class satisfying the convention whose
+query count equals the minimum. -/
 theorem conventionMin_attained {M : MachineClass I W} {c : ComparisonConvention}
     {f : (I → Bool) → Bool} {h : ∃ n, n ∈ ConventionCountSet M c f} :
     ∃ P ∈ M.programs, ConventionHolds c P f ∧
@@ -248,6 +313,8 @@ theorem conventionMin_attained {M : MachineClass I W} {c : ComparisonConvention}
       (n := ConventionMinQueries M c f h)).mp hmem
   exact ⟨P, hP, hPf, hcnt⟩
 
+/-- When the three feasible count sets are nonempty, the success minimum is at most the bounded
+minimum, which is at most the exact minimum. -/
 theorem conventionMin_chain {M : MachineClass I W} {f : (I → Bool) → Bool}
     {hE : ∃ n, n ∈ ConventionCountSet M .exact f}
     {hB : ∃ n, n ∈ ConventionCountSet M .bounded f}
@@ -260,6 +327,8 @@ theorem conventionMin_chain {M : MachineClass I W} {f : (I → Bool) → Bool}
   · exact conventionMin_antitone (c := .exact) (c' := .bounded)
       conventionStronger_exact_bounded (f := f) (h := hE) (h' := hB)
 
+/-- The minimum for the exact comparison convention equals the machine class's minimum exact
+query count. -/
 theorem conventionMin_exact_eq (M : MachineClass I W) (f : (I → Bool) → Bool)
     (h : ∃ n, n ∈ ConventionCountSet M .exact f) :
     ConventionMinQueries M .exact f h
@@ -283,6 +352,8 @@ theorem conventionMin_exact_eq (M : MachineClass I W) (f : (I → Bool) → Bool
     finsetMinNat_le (s := ConventionCountSet M .exact f) (h := h) hmemC'
   exact le_antisymm h1 h2
 
+/-- A classical program with correct-output probability one satisfies
+`ComputesZeroErrorInconclusive` at every extended nonnegative parameter. -/
 theorem classical_zeroError_inconclusive {prog : ClassicalProgram I Bool}
     {f : (I → Bool) → Bool} {t : ℝ≥0∞} (h : prog.ComputesZeroError f) :
     prog.ComputesZeroErrorInconclusive f t := by
@@ -291,6 +362,8 @@ theorem classical_zeroError_inconclusive {prog : ClassicalProgram I Bool}
   rw [h1]
   exact tsub_le_self
 
+/-- A classical program with correct-output probability one meets every success threshold at
+most one. -/
 theorem classical_zeroError_success {prog : ClassicalProgram I Bool}
     {f : (I → Bool) → Bool} {s : ℝ≥0∞} (hs : s ≤ 1) (h : prog.ComputesZeroError f) :
     prog.ComputesWithSuccess f s := by
@@ -299,6 +372,8 @@ theorem classical_zeroError_success {prog : ClassicalProgram I Bool}
   rw [h1]
   exact hs
 
+/-- A classical program satisfying `ComputesZeroErrorInconclusive` with parameter `t` meets
+every success threshold at most `1 - t`. -/
 theorem classical_inconclusive_success {prog : ClassicalProgram I Bool}
     {f : (I → Bool) → Bool} {t s : ℝ≥0∞} (hs : s ≤ 1 - t)
     (h : prog.ComputesZeroErrorInconclusive f t) :
@@ -307,18 +382,24 @@ theorem classical_inconclusive_success {prog : ClassicalProgram I Bool}
   have h1 := h g
   exact hs.trans h1
 
+/-- The classical zero-error convention implies the parameterized inconclusive convention for
+every extended nonnegative parameter. -/
 theorem classicalConventionStronger_zeroError_inconclusive (t : ℝ≥0∞) :
     ClassicalConventionStronger (I := I) .zeroError (.zeroErrorInconclusive t) := by
   intro prog f h
   simp only [ClassicalConventionHolds] at h ⊢
   exact classical_zeroError_inconclusive (t := t) h
 
+/-- The classical zero-error convention implies the success convention at every threshold at
+most one. -/
 theorem classicalConventionStronger_zeroError_success {s : ℝ≥0∞} (hs : s ≤ 1) :
     ClassicalConventionStronger (I := I) .zeroError (.success s) := by
   intro prog f h
   simp only [ClassicalConventionHolds] at h ⊢
   exact classical_zeroError_success (s := s) hs h
 
+/-- A natural number belongs to a randomized machine class's budget set exactly when a program
+satisfying the specified predicate has that worst-case query count. -/
 theorem mem_budgetSet {M : RandomizedMachineClass I} {P : ClassicalProgram I Bool → Prop}
     {n : ℕ} :
     n ∈ M.budgetSet P ↔
@@ -332,6 +413,8 @@ theorem mem_budgetSet {M : RandomizedMachineClass I} {P : ClassicalProgram I Boo
   · rintro ⟨prog, hPm, hP, hn⟩
     exact ⟨prog, List.mem_filter.mpr ⟨hPm, by simp [hP]⟩, hn⟩
 
+/-- Implication between classical conventions makes the weaker convention's minimum worst-case
+budget no larger, provided both feasible budget sets are nonempty. -/
 theorem classicalMinBudget_antitone {M : RandomizedMachineClass I} {c c' : ClassicalConvention}
     (hstrong : ClassicalConventionStronger (I := I) c c') {f : (I → Bool) → Bool}
     {h : ∃ n, n ∈ M.budgetSet (fun prog => ClassicalConventionHolds c prog f)}
@@ -354,6 +437,8 @@ theorem classicalMinBudget_antitone {M : RandomizedMachineClass I} {c c' : Class
   exact finsetMinNat_le (s := M.budgetSet (fun prog => ClassicalConventionHolds c' prog f))
     (h := h') hmem'
 
+/-- A nonempty classical convention budget set has a program realizing its minimum worst-case
+query count. -/
 theorem classicalMinBudget_attained {M : RandomizedMachineClass I}
     {c : ClassicalConvention} {f : (I → Bool) → Bool}
     {h : ∃ n, n ∈ M.budgetSet (fun prog => ClassicalConventionHolds c prog f)} :
@@ -369,6 +454,8 @@ theorem classicalMinBudget_attained {M : RandomizedMachineClass I}
       (n := M.minBudget (fun prog => ClassicalConventionHolds c prog f) h)).mp hmem
   exact ⟨prog, hPm, hP, hcnt⟩
 
+/-- On every oracle input, the expected query count of a classical program is at most its
+worst-case query count. -/
 theorem ClassicalProgram.expectedQueries_le (prog : ClassicalProgram I Bool) (o : I → Bool) :
     BoolQueryTree.ExpectedQueries prog.law o ≤ (prog.worstQueries : ℝ≥0∞) := by
   classical
@@ -399,6 +486,8 @@ theorem ClassicalProgram.expectedQueries_le (prog : ClassicalProgram I Bool) (o 
         rw [PMF.tsum_coe]
         simp
 
+/-- The marked count of a search instance's Boolean membership oracle equals the instance's
+number of solutions. -/
 theorem markedCount_instance {N : ℕ} (inst : SearchInstance N) :
     markedCount (fun i => decide (i ∈ inst.marked)) = inst.solutions := by
   have hfilter : Finset.univ.filter (fun i => decide (i ∈ inst.marked) = true)
@@ -409,6 +498,8 @@ theorem markedCount_instance {N : ℕ} (inst : SearchInstance N) :
   rw [hfilter]
   exact inst.card_marked
 
+/-- For a fixed search-space size and positive valid marked counts, increasing the marked count
+cannot decrease the Grover angle. -/
 theorem groverAngle_mono {N M₁ M₂ : ℕ} (hM₁ : 0 < M₁) (hN₁ : M₁ ≤ N)
     (hM₂ : 0 < M₂) (hN₂ : M₂ ≤ N) (h : M₁ ≤ M₂) :
     groverAngle N M₁ hM₁ hN₁ ≤ groverAngle N M₂ hM₂ hN₂ := by
@@ -421,6 +512,8 @@ theorem groverAngle_mono {N M₁ M₂ : ℕ} (hM₁ : 0 < M₁) (hN₁ : M₁ �
   · exact_mod_cast h
   · exact hNpos.le
 
+/-- For a fixed search-space size and positive valid marked counts, increasing the marked count
+cannot increase the selected Grover iteration count. -/
 theorem groverIterations_anti_mono {N M₁ M₂ : ℕ} (hM₁ : 0 < M₁) (hN₁ : M₁ ≤ N)
     (hM₂ : 0 < M₂) (hN₂ : M₂ ≤ N) (h : M₁ ≤ M₂) :
     groverIterations N M₂ hM₂ hN₂ ≤ groverIterations N M₁ hM₁ hN₁ := by
@@ -442,17 +535,23 @@ theorem groverIterations_anti_mono {N M₁ M₂ : ℕ} (hM₁ : 0 < M₁) (hN₁
   unfold groverIterations
   exact Nat.ceil_le_ceil (by linarith [hdiv])
 
+/-- The selected Grover iteration count is the first natural number whose amplified angle
+reaches `π / 2`. -/
 theorem searchEndpoint_grover_least {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
     (∀ k : ℕ, k < groverIterations N M hM hN →
         (2 * k + 1) * groverAngle N M hM hN < Real.pi / 2) ∧
       (2 * groverIterations N M hM hN + 1) * groverAngle N M hM hN ≥ Real.pi / 2 :=
   groverIterations_least hM hN
 
+/-- The selected Grover iteration count lies between the natural floor and ceiling of `π / (4 *
+θ)`. -/
 theorem searchEndpoint_grover_floor {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
     Nat.floor (Real.pi / (4 * groverAngle N M hM hN)) ≤ groverIterations N M hM hN ∧
       groverIterations N M hM hN ≤ Nat.ceil (Real.pi / (4 * groverAngle N M hM hN)) :=
   groverIterations_floor_bounds hM hN
 
+/-- The minimum search query count is at most the query count of any program in the search class
+meeting the instance's success threshold. -/
 theorem searchMin_le_of_program {N : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     {C : SearchClass N W} {inst : SearchInstance N} {threshold : ℝ}
     {h : ∃ k, k ∈ C.realizedCountSet inst threshold}
@@ -465,6 +564,8 @@ theorem searchMin_le_of_program {N : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     exact ⟨P, List.mem_filter.mpr ⟨hP, by simp [hPf]⟩, rfl⟩
   exact finsetMinNat_le hmem
 
+/-- A nonempty realized search count set has a program meeting the success threshold whose query
+count equals the minimum. -/
 theorem searchMin_attained {N : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     {C : SearchClass N W} {inst : SearchInstance N} {threshold : ℝ}
     {h : ∃ k, k ∈ C.realizedCountSet inst threshold} :

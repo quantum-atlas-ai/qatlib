@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CurveGroups.AffineAdd.NativeXor
+
+/-!
+# A point addition cleanup counterexample
+
+This module gives an explicit counterexample to slope register cleanup for the source point
+addition permutation. On the curve with coefficients `2` and `1` over `ZMod 5`, the input points
+`(1, 2)` and `(0, 1)` are distinct and are not negatives, but the output slope register contains
+the nonzero encoding of one.
+
+The mathematical setting follows [RoettelerEtAl2017].
+
+## Main statements
+
+* `source_cleanup_counterexample`: an encoded point addition input with a nonzero output slope
+  register.
+
+## References
+
+* [Roetteler et al., 2017][RoettelerEtAl2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,10 @@ open Qatlib.Concepts.CurveGroups.AffineAdd
 
 private instance primeFive : Fact (Nat.Prime 5) := ⟨by decide⟩
 
+/-- On the short curve with coefficients `2` and `1` over `ZMod 5`, the nonsingular points `(1,
+2)` and `(0, 1)` are distinct and not negatives, yet their source permutation run leaves the
+slope register equal to the nonzero encoding of one. See [Roetteler et al., 2017, Algorithm1
+/ Fig10: reversible controlled affine point addition][RoettelerEtAl2017]. -/
 theorem source_cleanup_counterexample :
     let E := primeFieldEncoding 5 3 (by decide)
     ∃ h1 : (shortCurve (2 : ZMod 5) 1).Nonsingular 1 2,

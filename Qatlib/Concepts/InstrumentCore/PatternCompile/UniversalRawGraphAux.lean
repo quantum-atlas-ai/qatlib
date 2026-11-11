@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+
+/-!
+# Auxiliary laws for raw graph execution
+
+This module constructs the recursive leaves of raw graph measurement tails and identifies them
+with the leaves enumerated by the observed-circuit semantics. It proves exact counts and
+resources and relates each raw operator to the corresponding operator with the final correction
+applied.
+
+The transfer and reference-system formulas retain the history-dependent Pauli frame, providing
+the branch semantics needed for the measurement-based model [RaussendorfBriegel2000].
+
+## Main statements
+
+* `mbqcRawLeaf_resources`: exact gate, query, measurement, and message counts.
+* `mbqcRawLeaf_correction`: the relation between raw and corrected branch operators.
+* `mbqcRawReference_formula`: scaled framed-unitary conjugation with a reference system.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -26,6 +49,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- Construct the raw tail leaf for a fixed graph history, slot list, and initial Pauli frame by
+following its recorded measurement outcomes. -/
 def mbqcRawTailLeaf {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G) :
     List (Fin L) → PauliFrame n → ObservedKrausLeaf (2^(n+L))
   | [], _ => ⟨1,true,0,0,0,[]⟩
@@ -40,6 +65,7 @@ def mbqcRawTailLeaf {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G) :
           (if F.1 i then star ζ else ζ)) 0 1 0 []
     | .inr _ => rest
 
+/-- The raw tail has `2^graphSlotCount G ts` leaves, independently of its initial Pauli frame. -/
 theorem mbqcRawTail_leafCount {n L : ℕ} (G : GraphWord n L)
     (ts : List (Fin L)) (F : PauliFrame n) :
     observedLeafCount (mbqcRawTail G ts F) = 2^(graphSlotCount G ts) := by
@@ -53,12 +79,15 @@ theorem mbqcRawTail_leafCount {n L : ℕ} (G : GraphWord n L)
         pow_succ, pow_add, two_mul]
     | inr p => simp [mbqcRawTail, hg, ih, graphSlotCount, graphWireAt]
 
+/-- The raw graph program has exactly `2^graphWireCount G` leaves. -/
 theorem mbqcRawProgram_leafCount {n L : ℕ} (G : GraphWord n L) :
     observedLeafCount (mbqcRawProgram G) = 2^(graphWireCount G) := by
   have hc : graphSlotCount G (List.ofFn (fun t : Fin L => t)) = graphWireCount G := by
     simp [graphSlotCount, List.map_ofFn, List.sum_ofFn, graphWireCount_eq_sum]
   simp [mbqcRawProgram, graphPrepend_leafCount, mbqcRawTail_leafCount, hc]
 
+/-- The Kraus-leaf enumeration of a raw tail selects `mbqcRawTailLeaf` at the index encoded by
+the tail's history message. -/
 theorem mbqcRawTailLeaf_get {n L : ℕ} (G : GraphWord n L)
     (h : GraphHistory G) (ts : List (Fin L)) (F : PauliFrame n) :
     (observedKrausLeaves 1 (mbqcRawTail G ts F))[graphBitsIndex (graphTailMessage G h ts)]?=
@@ -91,6 +120,8 @@ theorem mbqcRawTailLeaf_get {n L : ℕ} (G : GraphWord n L)
       simpa only [mbqcRawTail, mbqcRawTailLeaf, hg, graphFrameAdvance] using!
         ih (graphCzFrame F i j)
 
+/-- A raw program leaf is its full recursive tail leaf with the fresh-qubit and graph-edge gates
+prepended. -/
 theorem mbqcRawLeaf_eq {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G) :
     mbqcRawLeaf G h = graphPrependLeaf (graphFreshGates n L)
       (graphPrependLeaf (graphEdgeGates G)
@@ -105,6 +136,8 @@ theorem mbqcRawLeaf_eq {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G) :
   rw [he]
   rfl
 
+/-- Every raw tail leaf accepts, makes no queries, and uses two gates and one measurement per
+counted graph slot. -/
 theorem mbqcRawTailLeaf_resources {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G)
     (ts : List (Fin L)) (F : PauliFrame n) :
     (mbqcRawTailLeaf G h ts F).accepted=true ∧
@@ -129,6 +162,8 @@ theorem mbqcRawTailLeaf_resources {n L : ℕ} (G : GraphWord n L) (h : GraphHist
         simp [graphSlotCount, graphWireAt, hg]
       simpa only [mbqcRawTailLeaf, hg, graphFrameAdvance, hc] using! ih (graphCzFrame F i j)
 
+/-- Every raw graph leaf accepts and makes no queries, with `2*L + 2*graphWireCount G` gates and
+`graphWireCount G` measurements and message bits. -/
 theorem mbqcRawLeaf_resources {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G) :
     (mbqcRawLeaf G h).accepted=true ∧ (mbqcRawLeaf G h).queries=0 ∧
     (mbqcRawLeaf G h).gates=2*L+2*graphWireCount G ∧
@@ -144,6 +179,8 @@ theorem mbqcRawLeaf_resources {n L : ℕ} (G : GraphWord n L) (h : GraphHistory 
     graphFreshGates,graphEdgeGates,List.length_ofFn,graphMessage_length]
   exact ⟨trivial,trivial,by omega,trivial,trivial⟩
 
+/-- The corrected tail operator is the raw tail operator preceded by the correction gates for
+the frame reached after processing the slots. -/
 theorem mbqcRawTailLeaf_correction {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G)
     (ts : List (Fin L)) (F : PauliFrame n) :
     (graphTailLeaf true G h ts F).operator =
@@ -162,12 +199,15 @@ theorem mbqcRawTailLeaf_correction {n L : ℕ} (G : GraphWord n L) (h : GraphHis
       simpa only [graphTailLeaf,mbqcRawTailLeaf,hg,if_true,graphFrameAdvance,
         List.foldl_cons] using! ih (graphCzFrame F i j)
 
+/-- The corrected graph-program operator is the raw leaf operator preceded by the correction
+gates for the final Pauli frame. -/
 theorem mbqcRawLeaf_correction {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G) :
     (graphProgramLeaf true G h).operator =
       graphGateProduct (graphCorrectionGates G (graphFinalFrame G h))*(mbqcRawLeaf G h).operator := by
   simp only [graphProgramLeaf_eq,if_true,mbqcRawLeaf_eq,graphPrependLeaf_operator,
     mbqcRawTailLeaf_correction,graphFinalFrame,Matrix.mul_assoc]
 
+/-- The ordered graph product of a list of unitary operators is unitary. -/
 private theorem graphGateProduct_unitary {D : ℕ} (Us : List (Operator D))
     (hUs : ∀ U ∈ Us, U ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     graphGateProduct Us ∈ Matrix.unitaryGroup (Fin D) ℂ := by
@@ -177,6 +217,8 @@ private theorem graphGateProduct_unitary {D : ℕ} (Us : List (Operator D))
     exact Submonoid.mul_mem _ (ih (fun V hV => hUs V (List.mem_cons_of_mem U hV)))
       (hUs U List.mem_cons_self)
 
+/-- For a legal graph word, the raw leaf applied to the input embedding is a row lift of the
+logical tail with its final Pauli frame and history-dependent envelope. -/
 theorem mbqcRawLeaf_columns {n L : ℕ} (G : GraphWord n L)
     (hlegal : networkLegal (List.ofFn G)) (h : GraphHistory G) :
     let ts := List.ofFn (fun t : Fin L => t)
@@ -220,6 +262,8 @@ theorem mbqcRawLeaf_columns {n L : ℕ} (G : GraphWord n L)
   have he' := congrArg (fun B => Cᴴ*B) he
   simpa only [← Matrix.mul_assoc,hC,Matrix.one_mul] using! he'
 
+/-- For a legal graph word and any reference system, a raw branch is scaled conjugation by the
+framed logical network matrix tensored with the reference identity. -/
 theorem mbqcRawReference_formula {n L : ℕ} (G : GraphWord n L)
     (hlegal : networkLegal (List.ofFn G)) (h : GraphHistory G) (R : ℕ)
     (X : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ) :

@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+
+/-!
+# Disjoint unions and relabelings of MBQC flows
+
+The predicate `HasFlowOn` expresses flow on a general vertex type, and agrees with `MbqcHasFlow`
+on graph indices. This module constructs flows on disjoint unions and transports them along
+equivalences, supporting the compositional setting of [DanosKashefi2006]. It also defines
+adjacency and output data for gluing along an interface, and a branch-realization predicate.
+
+## Main statements
+
+* `hasFlowOn_sum`: The disjoint union of two flow graphs has flow with the disjoint unions of
+  their input and output sets.
+* `mbqcHasFlow_tensorization`: Two MBQC graphs with flow yield a flow on their disjoint-union
+  adjacency and interfaces.
+* `hasFlowOn_relabel`: Transporting adjacency and interfaces along a vertex equivalence
+  preserves the existence of flow.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +40,8 @@ open scoped Classical BigOperators ComplexOrder
 
 namespace Qatlib.Papers.OneWayDanos05.MainResults
 
+/-- The existence of a partial successor map and strict order satisfying adjacency, input
+exclusion, and causal flow conditions for every nonoutput vertex. -/
 def HasFlowOn {V : Type*} [DecidableEq V] (Adj : V → V → Bool)
     (I O : Finset V) : Prop :=
   ∃ (f : V → Option V) (prec : V → V → Prop),
@@ -25,6 +50,8 @@ def HasFlowOn {V : Type*} [DecidableEq V] (Adj : V → V → Bool)
       f v = some w ∧ Adj v w = true ∧ w ∉ I ∧ prec v w ∧
         ∀ k : V, Adj w k = true → k ≠ v → prec v k
 
+/-- The graph-indexed MBQC flow predicate is equivalent to `HasFlowOn` for its Boolean adjacency
+function. -/
 theorem mbqcHasFlow_iff_hasFlowOn {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n)) :
     MbqcHasFlow G I O ↔ HasFlowOn (fun v w => mbqcAdj G v w) I O := by
   constructor
@@ -39,17 +66,22 @@ theorem mbqcHasFlow_iff_hasFlowOn {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin
     obtain ⟨w, hw, hadj, hwI, hprec, hF3⟩ := hF v hv
     exact ⟨w, hw, hadj, hwI, hprec, fun k hk hne => hF3 k hk hne⟩
 
+/-- The disjoint-union adjacency function, with no edges between the two vertex summands. -/
 def sumAdj {V W : Type*} (A₁ : V → V → Bool) (A₂ : W → W → Bool) :
     V ⊕ W → V ⊕ W → Bool
   | .inl a, .inl b => A₁ a b
   | .inr a, .inr b => A₂ a b
   | _, _ => false
 
+/-- The partial flow map on a disjoint union obtained by preserving each component flow within
+its own summand. -/
 def sumFlow {V W : Type*} (f₁ : V → Option V) (f₂ : W → Option W) :
     V ⊕ W → Option (V ⊕ W)
   | .inl a => (f₁ a).map (fun w => Sum.inl w)
   | .inr b => (f₂ b).map (fun w => Sum.inr w)
 
+/-- The order preserving each component relation and placing every left-summand vertex before
+every right-summand vertex. -/
 def sumPrec {V W : Type*} (p₁ : V → V → Prop) (p₂ : W → W → Prop) :
     V ⊕ W → V ⊕ W → Prop
   | .inl a, .inl b => p₁ a b
@@ -57,6 +89,7 @@ def sumPrec {V W : Type*} (p₁ : V → V → Prop) (p₂ : W → W → Prop) :
   | .inl _, .inr _ => True
   | .inr _, .inl _ => False
 
+/-- The ordered-sum relation is a strict order when both component relations are strict orders. -/
 theorem isStrictOrder_sumPrec {V W : Type*} {p₁ : V → V → Prop} {p₂ : W → W → Prop}
     (h₁ : IsStrictOrder V p₁) (h₂ : IsStrictOrder W p₂) :
     IsStrictOrder (V ⊕ W) (sumPrec p₁ p₂) := by
@@ -89,6 +122,8 @@ theorem isStrictOrder_sumPrec {V W : Type*} {p₁ : V → V → Prop} {p₂ : W 
           simpa [sumPrec] using
             h₂.trans a b c (by simpa [sumPrec] using hab) (by simpa [sumPrec] using hbc)
 
+/-- The disjoint union of two flow graphs has flow with the disjoint unions of their input and
+output sets [DanosKashefi2006]. -/
 theorem hasFlowOn_sum {V W : Type*} [Fintype V] [Fintype W]
     [DecidableEq V] [DecidableEq W]
     {A₁ : V → V → Bool} {A₂ : W → W → Bool} {I₁ O₁ : Finset V} {I₂ O₂ : Finset W}
@@ -132,6 +167,8 @@ theorem hasFlowOn_sum {V W : Type*} [Fintype V] [Fintype W]
           simpa [sumAdj, sumPrec] using
             hF3 c (by simpa [sumAdj] using hk) (by simpa using hne)
 
+/-- Two MBQC graphs with flow yield a flow on their disjoint-union adjacency and interfaces
+[DanosKashefi2006]. -/
 theorem mbqcHasFlow_tensorization {n₁ n₂ : ℕ} (G₁ : MbqcGraph n₁) (G₂ : MbqcGraph n₂)
     (I₁ O₁ : Finset (Fin n₁)) (I₂ O₂ : Finset (Fin n₂))
     (h₁ : MbqcHasFlow G₁ I₁ O₁) (h₂ : MbqcHasFlow G₂ I₂ O₂) :
@@ -140,6 +177,8 @@ theorem mbqcHasFlow_tensorization {n₁ n₂ : ℕ} (G₁ : MbqcGraph n₁) (G�
   hasFlowOn_sum ((mbqcHasFlow_iff_hasFlowOn G₁ I₁ O₁).mp h₁)
     ((mbqcHasFlow_iff_hasFlowOn G₂ I₂ O₂).mp h₂)
 
+/-- The adjacency on the first graph and the noninput vertices of the second, with cross edges
+induced by the chosen identification of second inputs. -/
 def compAdj {V W : Type*} [Fintype W] [DecidableEq W]
     (A₁ : V → V → Bool) (A₂ : W → W → Bool)
     (I₂ : Finset W) (e : {k : W // k ∈ I₂} → V) :
@@ -151,10 +190,13 @@ def compAdj {V W : Type*} [Fintype W] [DecidableEq W]
   | .inr w, .inl a =>
       decide (∃ k : {k : W // k ∈ I₂}, A₂ w.1 k.1 = true ∧ e k = a)
 
+/-- The second graph output vertices that remain after restricting to its noninput vertices. -/
 def compOutputs {W : Type*} [Fintype W] [DecidableEq W] (I₂ O₂ : Finset W) :
     Finset {w : W // w ∉ I₂} :=
   Finset.univ.filter (fun w => w.1 ∈ O₂)
 
+/-- Transporting adjacency and interfaces along a vertex equivalence preserves the existence of
+flow [DanosKashefi2006]. -/
 theorem hasFlowOn_relabel {V W : Type*} [Fintype V] [Fintype W]
     [DecidableEq V] [DecidableEq W]
     {Adj : V → V → Bool} {I O : Finset V} (h : HasFlowOn Adj I O)
@@ -195,6 +237,8 @@ theorem hasFlowOn_relabel {V W : Type*} [Fintype V] [Fintype W]
       have hne' : e.symm k ≠ e.symm w := fun hh => hne (e.symm.injective hh)
       exact hF3 (e.symm k) hk' hne'
 
+/-- The existence of an order and Pauli wire corrections making every XY-plane density branch
+equal to conjugation by the specified matrix `U`. -/
 def RealizesUnitary {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (a : Fin n → ℝ) (U : Matrix (Fin (2 ^ O.card)) (Fin (2 ^ I.card)) ℂ) : Prop :=
   ∃ (r : Fin n → Fin n) (corr : (Fin n → Bool) → Fin n → Operator 2),

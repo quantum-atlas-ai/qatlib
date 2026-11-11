@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
 import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
 import Mathlib.Algebra.Order.Chebyshev
+
+/-!
+# Explicit adversary witnesses for search and parity
+
+This module constructs the star-graph adversary matrix for the promise of zero or one marked
+item and the hypercube adjacency matrix for parity. It computes their operator norms and
+coordinate-filter norms, then obtains bounded-error circuit query lower bounds in the adversary
+framework of [HoyerLeeSpalek2007].
+
+Conjugation by a diagonal unitary preserves a witness's Hermitian property, output-zero
+condition, operator norm, and filter bound. The resulting search and parity witnesses give the
+respective square-root and linear dependence on the number of input bits.
+
+## Main statements
+
+* `negative_adversary_signed_phase_witness_transport`: preserve witness data under diagonal
+  phases.
+* `negative_adversary_star_actual_search_witness`: obtain the star witness and search lower
+  bound.
+* `negative_adversary_cube_actual_parity_witness`: obtain the cube witness and parity lower
+  bound.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,16 +51,26 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvWitness
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The Boolean input encoding `none` as the all-false string and `some i` as the string with
+its only true bit at `i`. -/
 def advStarInput {n : ℕ} (x : Option (Fin n)) (i : Fin n) : Bool := decide (x=some i)
 
+/-- The adjacency matrix of the star with center `none` and leaves `some i`, with entries one
+exactly between the center and a leaf. -/
 noncomputable def advStarGamma (n : ℕ) : Matrix (Option (Fin n)) (Option (Fin n)) ℂ :=
   fun x y => if (x=none ∧ y ≠ none) ∨ (x ≠ none ∧ y=none) then 1 else 0
 
+/-- The Boolean parity of a finite bit string, true exactly when its number of true entries is
+odd. -/
 def advParity {n : ℕ} (x : Fin n  → Bool) : Bool := decide (((List.ofFn x).count true)%2=1)
 
+/-- The adjacency matrix of the Boolean hypercube, with entry one exactly when the two strings
+differ at one coordinate. -/
 noncomputable def advCubeGamma (n : ℕ) : Matrix (Fin n  → Bool) (Fin n  → Bool) ℂ :=
   fun x y => if (Finset.univ.filter (fun i => x i ≠ y i)).card=1 then 1 else 0
 
+/-- Conjugating a Hermitian adversary witness by a diagonal matrix of unit-modulus phases
+preserves its same-output zero entries, operator norm, and coordinate-filter bound. -/
 theorem negative_adversary_signed_phase_witness_transport
     (X : Type) [Fintype X] [DecidableEq X] (n : ℕ) (input : X → Fin n → Bool)
     (Gamma : Matrix X X ℂ) (a : X → ℂ) (f : X → Bool) (hG : Gamma.IsHermitian)
@@ -63,6 +100,8 @@ theorem negative_adversary_signed_phase_witness_transport
     unfold advFilterBound
     simp_rw [hfilter, hnorm]
 
+/-- The absolute value of a real eigenvalue with a positive-norm eigenvector is bounded by the
+matrix operator norm. -/
 private theorem adv_eigenvalue_le_norm {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (v : QState I) (lam : ℝ)
     (hv : 0 < ‖toEuclidean_fromVec v‖) (he : A *ᵥ v = (lam : ℂ) • v) : |lam| ≤ ‖A‖ := by
@@ -71,6 +110,8 @@ private theorem adv_eigenvalue_le_norm {I : Type} [Fintype I] [DecidableEq I]
     norm_smul, Complex.norm_real, Real.norm_eq_abs] at h
   exact (mul_le_mul_iff_left₀ hv).mp h
 
+/-- The star adjacency matrix sends the center coordinate to the sum of leaf coordinates and
+each leaf coordinate to the original center coordinate. -/
 private theorem advStarGamma_action (n : ℕ) (v : QState (Option (Fin n))) :
     (advStarGamma n *ᵥ v) none = ∑ i, v (some i) ∧
       ∀ i, (advStarGamma n *ᵥ v) (some i) = v none := by
@@ -79,6 +120,7 @@ private theorem advStarGamma_action (n : ℕ) (v : QState (Option (Fin n))) :
   · intro i
     simp [Matrix.mulVec, dotProduct, advStarGamma]
 
+/-- For positive `n`, the star adversary matrix has operator norm `sqrt n`. -/
 private theorem advStarGamma_norm (n : ℕ) (hn : 0 < n) : ‖advStarGamma n‖ = Real.sqrt n := by
   have hn0 : (0 : ℝ) ≤ n := Nat.cast_nonneg _
   have hnpos : (0 : ℝ) < n := Nat.cast_pos.mpr hn
@@ -118,6 +160,8 @@ private theorem advStarGamma_norm (n : ℕ) (hn : 0 < n) : ‖advStarGamma n‖ 
       | some i => simp only [(advStarGamma_action n v).2, v, Pi.smul_apply, smul_eq_mul, mul_one]
     simpa only [abs_of_nonneg (Real.sqrt_nonneg _)] using adv_eigenvalue_le_norm _ _ _ hv he
 
+/-- The star witness filtered at coordinate `i` exchanges the center and leaf `some i`
+amplitudes and sets all other leaf amplitudes to zero. -/
 private theorem advStarFilter_action {n : ℕ} (i : Fin n) (v : QState (Option (Fin n))) :
     (advFilter advStarInput (advStarGamma n) i *ᵥ v) none = v (some i) ∧
       ∀ j, (advFilter advStarInput (advStarGamma n) i *ᵥ v) (some j) =
@@ -129,6 +173,7 @@ private theorem advStarFilter_action {n : ℕ} (i : Fin n) (v : QState (Option (
     simp only [Matrix.mulVec, dotProduct, Fintype.sum_option, advFilter, advStarGamma, advStarInput]
     by_cases h : j = i <;> simp [h]
 
+/-- Every coordinate-filtered star witness has operator norm one. -/
 private theorem advStarFilter_norm {n : ℕ} (i : Fin n) :
     ‖advFilter advStarInput (advStarGamma n) i‖ = 1 := by
   apply le_antisymm
@@ -155,6 +200,8 @@ private theorem advStarFilter_norm {n : ℕ} (i : Fin n) :
       (normalized_iff_norm_toEuclidean_fromVec _).mp (normalized_ket _), mul_one] at h
     exact h
 
+/-- If the input has a positive number of coordinates and every filtered matrix has norm one,
+its adversary filter bound equals one. -/
 private theorem advFilterBound_one {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (hn : 0 < n) (input : X → Fin n → Bool) (Gamma : Matrix X X ℂ)
     (h : ∀ i, ‖advFilter input Gamma i‖ = 1) : advFilterBound input Gamma = 1 := by
@@ -172,6 +219,10 @@ private theorem advFilterBound_one {X : Type} [Fintype X] [DecidableEq X] {n : �
       | succ m ih => simpa only [List.replicate_succ, List.foldl_cons, max_self] using ih
     exact helper n
 
+/-- For positive `n`, the star matrix is a Hermitian search witness with norm `sqrt n` and
+filter bound one. Any normalized unitary query circuit solving the zero-or-one-marked
+promise with error `eps` in `[0, 1/2]` satisfies `(1 - 2 * sqrt(eps * (1 - eps))) * sqrt n ≤
+2 * QueryCount C`. -/
 theorem negative_adversary_star_actual_search_witness (n : ℕ) (hn : 0 < n) :
     (advStarGamma n).IsHermitian ∧ ‖advStarGamma n‖ = Real.sqrt n ∧
     advFilterBound (advStarInput (n := n)) (advStarGamma n) = 1 ∧
@@ -196,14 +247,18 @@ theorem negative_adversary_star_actual_search_witness (n : ℕ) (hn : 0 < n) :
     negative_adversary_actual_bounded_error_circuit_lower_bound (Option (Fin n)) W n
       advStarInput (advStarGamma n) Option.isSome C psi E eps hG hz hC hpsi he0 he1 hs
 
+/-- Flip coordinate `i` of a Boolean string and leave its other coordinates unchanged. -/
 def advCubeFlip {n : ℕ} (i : Fin n) (x : Fin n → Bool) : Fin n → Bool :=
   fun j => if j = i then !x j else x j
 
+/-- Flipping the same Boolean coordinate twice gives the original string. -/
 private theorem advCubeFlip_involutive {n : ℕ} (i : Fin n) : Function.Involutive (advCubeFlip i) := by
   intro x
   ext j
   by_cases h : j = i <;> simp [advCubeFlip, h]
 
+/-- If two Boolean strings differ at exactly one coordinate and differ at `i`, the first is
+obtained by flipping coordinate `i` of the second. -/
 private theorem adv_cube_single_diff {n : ℕ} (x y : Fin n → Bool) (i : Fin n)
     (hc : (Finset.univ.filter (fun j => x j ≠ y j)).card = 1) (hi : x i ≠ y i) :
     x = advCubeFlip i y := by
@@ -224,6 +279,7 @@ private theorem adv_cube_single_diff {n : ℕ} (x y : Fin n → Bool) (i : Fin n
       exact hk (Finset.mem_singleton.mp hm)
     simp [advCubeFlip, hk, he]
 
+/-- A Boolean string and its coordinate-`i` flip differ at precisely the singleton set `{i}`. -/
 private theorem adv_cube_flip_diff {n : ℕ} (i : Fin n) (y : Fin n → Bool) :
     Finset.univ.filter (fun j => advCubeFlip i y j ≠ y j) = {i} := by
   ext j
@@ -232,6 +288,8 @@ private theorem adv_cube_flip_diff {n : ℕ} (i : Fin n) (y : Fin n → Bool) :
     cases y i <;> simp [advCubeFlip]
   · simp [advCubeFlip, h]
 
+/-- The cube adjacency matrix filtered at coordinate `i` is the permutation matrix for flipping
+that coordinate. -/
 private theorem advCubeFilter_perm {n : ℕ} (i : Fin n) :
     advFilter (fun x : Fin n → Bool => x) (advCubeGamma n) i = permMatrix (advCubeFlip i) := by
   ext x y
@@ -245,6 +303,7 @@ private theorem advCubeFilter_perm {n : ℕ} (i : Fin n) :
     simp only [advFilter, advCubeGamma, permMatrix, Matrix.of_apply, if_neg h]
     by_cases hi : x i = y i <;> simp_all
 
+/-- The cube adjacency matrix is the sum of its coordinate-filtered matrices. -/
 private theorem advCubeGamma_sum (n : ℕ) :
     advCubeGamma n = ∑ i, advFilter (fun x : Fin n → Bool => x) (advCubeGamma n) i := by
   ext x y
@@ -255,11 +314,13 @@ private theorem advCubeGamma_sum (n : ℕ) :
     simp [hc]
   · simp [hc]
 
+/-- Every coordinate-filtered cube adjacency matrix has operator norm one. -/
 private theorem advCubeFilter_norm {n : ℕ} (i : Fin n) :
     ‖advFilter (fun x : Fin n → Bool => x) (advCubeGamma n) i‖ = 1 := by
   rw [advCubeFilter_perm]
   exact l2_norm_unitary_eq_one (permMatrix_unitary (advCubeFlip_involutive i))
 
+/-- The adjacency matrix of the `n`-dimensional Boolean hypercube has operator norm `n`. -/
 private theorem advCubeGamma_norm (n : ℕ) : ‖advCubeGamma n‖ = (n : ℝ) := by
   apply le_antisymm
   · rw [advCubeGamma_sum]
@@ -284,6 +345,8 @@ private theorem advCubeGamma_norm (n : ℕ) : ‖advCubeGamma n‖ = (n : ℝ) :
     simpa only [abs_of_nonneg (show (0 : ℝ) ≤ n from Nat.cast_nonneg n)] using
         adv_eigenvalue_le_norm _ _ (n : ℝ) hv he
 
+/-- The number of true entries in `List.ofFn x` equals the sum of the Boolean true indicators
+over all coordinates. -/
 theorem adv_true_count (n : ℕ) (x : Fin n → Bool) :
     (List.ofFn x).count true = ∑ i, if x i then (1 : ℕ) else 0 := by
   induction n with
@@ -293,6 +356,7 @@ theorem adv_true_count (n : ℕ) (x : Fin n → Bool) :
     rw [ih]
     cases x 0 <;> simp [Nat.add_comm]
 
+/-- Boolean strings differing at exactly one coordinate have distinct parity values. -/
 private theorem advParity_separates_edge {n : ℕ} (x y : Fin n → Bool)
     (hc : (Finset.univ.filter (fun j => x j ≠ y j)).card = 1) : advParity x ≠ advParity y := by
   obtain ⟨i, hi⟩ := Finset.card_eq_one.mp hc
@@ -327,6 +391,9 @@ private theorem advParity_separates_edge {n : ℕ} (x y : Fin n → Bool)
     simp only [hxi, hyi, Bool.false_eq_true, if_true, if_false] at hx hy hdiff
   all_goals first | exact hdiff rfl | omega
 
+/-- For positive `n`, the cube matrix is a Hermitian parity witness with norm `n` and filter
+bound one. Any normalized unitary query circuit computing parity with error `eps` in `[0,
+1/2]` satisfies `(1 - 2 * sqrt(eps * (1 - eps))) * n ≤ 2 * QueryCount C`. -/
 theorem negative_adversary_cube_actual_parity_witness (n : ℕ) (hn : 0 < n) :
     (advCubeGamma n).IsHermitian ∧ ‖advCubeGamma n‖ = n ∧
     advFilterBound (fun x : Fin n → Bool => x) (advCubeGamma n) = 1 ∧

@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationStat
 import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutQuan
+
+/-!
+# Finite-copy Helstrom discrimination
+
+This module proves `FiniteCopyHelstromDiscrimination` by combining the positive spectral
+projector of a density-operator difference with finite two-species sign readout. The projector
+attains the equal-prior Helstrom success value, and every binary effect is bounded by this
+value, as in [Helstrom1976].
+
+Under the specified spectral gap, the finite-copy procedure achieves success at least the
+optimum minus `twoSpeciesSignErrorBudget`, with explicit QPE resource counts. This connects the
+trace-norm discrimination formula to the copy-based application of [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `sign_effect_diag`: diagonal weights of a binary effect lie between zero and one.
+* `sign_projector_probability`: positive-projector probability as spectral weight.
+* `finiteCopyHelstromDiscrimination`: optimality, finite-copy success, and resources.
+
+## References
+
+* [Helstrom, 1976][Helstrom1976]
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 
 
@@ -20,6 +46,8 @@ open Matrix MatrixOrder
 open scoped Classical BigOperators ComplexOrder MatrixOrder Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The trace norm of a real diagonal matrix, viewed over an `RCLike` field, is the sum of the
+absolute diagonal entries. -/
 private theorem sign_diagonal_traceNorm {I R : Type*} [Fintype I] [DecidableEq I]
     [RCLike R] (x : I → ℝ) :
     Matrix.traceNorm (Matrix.diagonal (fun j => (x j : R))) = ∑ j, |x j| := by
@@ -43,6 +71,7 @@ private theorem sign_diagonal_traceNorm {I R : Type*} [Fintype I] [DecidableEq I
   rw_mod_cast [Matrix.cfc_diagonal (𝕜 := R) (g := fun j => (x j)^2)]
   simp [Matrix.trace_diagonal, Function.comp_def, Real.sqrt_sq_eq_abs]
 
+/-- Unitary conjugation preserves the trace of a matrix. -/
 private theorem sign_trace_conjugation (d : ℕ) (V B : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) : Matrix.trace (V*B*Vᴴ) = Matrix.trace B := by
   rw [Matrix.trace_mul_cycle]
@@ -50,6 +79,8 @@ private theorem sign_trace_conjugation (d : ℕ) (V B : Operator d)
     simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff').mp hV
   rw [hVV, Matrix.one_mul]
 
+/-- The trace of a spectrally represented matrix times `A` is the sum of its spectral
+coefficients times the diagonal entries of `Vᴴ * A * V`. -/
 private theorem sign_trace_spectral_mul (d : ℕ) (V A : Operator d) (f : Fin d → ℂ)
     : Matrix.trace ((V*Matrix.diagonal f*Vᴴ)*A) = ∑ j, f j*(Vᴴ*A*V) j j := by
   have hshape : Matrix.trace ((V*Matrix.diagonal f*Vᴴ)*A) =
@@ -61,6 +92,8 @@ private theorem sign_trace_spectral_mul (d : ℕ) (V A : Operator d) (f : Fin d 
   rw [hshape, Matrix.trace]
   simp only [Matrix.diag_apply, Matrix.diagonal_mul]
 
+/-- Each diagonal entry of a binary effect in a unitary basis has real part between zero and
+one. -/
 private theorem sign_effect_diag (d : ℕ) (V A : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ)
     (hA : A.PosSemidef) (hAc : (1-A).PosSemidef) (j : Fin d) :
@@ -75,6 +108,8 @@ private theorem sign_effect_diag (d : ℕ) (V A : Operator d)
   simp only [Matrix.sub_apply, Complex.sub_re, Matrix.one_apply_eq, Complex.one_re] at hc
   exact ⟨ha, by linarith⟩
 
+/-- The trace against the positive-label spectral matrix equals the sum of the corresponding
+diagonal weights in the `V` coordinates. -/
 private theorem sign_projector_probability (d : ℕ) (V χ : Operator d) (x : Fin d → ℝ) :
     (Matrix.trace ((V*Matrix.diagonal (fun j => if 0 < x j then (1 : ℂ) else 0)*Vᴴ)*χ)).re =
       ∑ j ∈ Finset.univ.filter (fun j => 0 < x j), ((Vᴴ*χ*V) j j).re := by
@@ -84,6 +119,8 @@ private theorem sign_projector_probability (d : ℕ) (V χ : Operator d) (x : Fi
   intro j _
   by_cases hj : 0 < x j <;> simp [hj]
 
+/-- When `σ` has trace one, equal-prior binary discrimination success is `1 / 2` plus half the
+real trace of `A * (ρ - σ)`. -/
 private theorem sign_effect_score (d : ℕ) (A ρ σ : Operator d) (hσ : Matrix.trace σ = 1) :
     ((Matrix.trace (A*ρ)).re + (Matrix.trace ((1-A)*σ)).re)/2 =
       1/2 + (Matrix.trace (A*(ρ-σ))).re/2 := by
@@ -91,6 +128,10 @@ private theorem sign_effect_score (d : ℕ) (A ρ σ : Operator d) (hσ : Matrix
     Matrix.mul_sub, Matrix.trace_sub, Complex.sub_re, Complex.one_re]
   ring
 
+/-- The finite-copy discrimination specification holds: the positive spectral projector attains
+the Helstrom optimum, and the timed two-species procedure achieves that optimum up to its
+sign-error budget with the stated resources. See [FuchsVanDeGraaf1999] and
+[LloydMohseniRebentrost2014]. -/
 theorem finiteCopyHelstromDiscrimination : FiniteCopyHelstromDiscrimination := by
   intro d M n γ ρ σ V x hM hn hγ hγ1 hρ hσ hV hs hgap
   let P := V*Matrix.diagonal (fun j => if 0 < x j then (1 : ℂ) else 0)*Vᴴ

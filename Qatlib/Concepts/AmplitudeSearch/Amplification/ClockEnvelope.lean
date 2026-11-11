@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+
+/-!
+# Threshold envelopes for ranked clocks
+
+`thresholdEnvelope` combines an immediate call bound with expected future rank-trace cost. Its
+recurrence, monotonicity, and rank-skip inequality control continuation costs even when equal
+table values skip ranks.
+
+`sourceCallEnvelope` instantiates this potential with BBHT square-root search costs and
+initialization, giving a mean-clock bound for initial runs in the setting of [BoyerEtAl1998] and
+[DurrHoyer1996].
+
+## Main statements
+
+* `thresholdEnvelope_skip_step`: bounds a call plus its skipped continuation potential.
+* `sourceEnvelope_initial_bound`: bounds the expected initial source potential.
+* `initialClock_le_sourceMeanBudget`: transfers per-call moments to an initial clock moment.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,12 +38,16 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- The potential combining the current call envelope with the expected future rank-trace cost. -/
 noncomputable def thresholdEnvelope (D : ℕ → ℝ) (t : ℕ) : ℝ :=
   D t + expectedTraceCost (fun r => D (r - 1)) t
 
+/-- If the call envelope vanishes at zero, its threshold potential also vanishes at zero. -/
 @[simp] theorem thresholdEnvelope_zero (D : ℕ → ℝ) (hD0 : D 0 = 0) :
     thresholdEnvelope D 0 = 0 := by simp [thresholdEnvelope, hD0]
 
+/-- The threshold potential at `t + 1` equals the current call envelope plus the uniform average
+of lower threshold potentials. -/
 theorem thresholdEnvelope_step (D : ℕ → ℝ) (t : ℕ) :
     thresholdEnvelope D (t + 1) = D (t + 1) +
       (∑ k : Fin (t + 1), thresholdEnvelope D k.val) / (t + 1 : ℝ) := by
@@ -27,6 +55,7 @@ theorem thresholdEnvelope_step (D : ℕ → ℝ) (t : ℕ) :
   rw [expectedTraceCost_succ]
   simp only [Nat.add_sub_cancel]
 
+/-- A nondecreasing scaled call envelope implies monotonicity of the threshold potential. -/
 theorem thresholdEnvelope_monotone (D : ℕ → ℝ)
     (hscaled : ∀ t : ℕ, (t : ℝ) * D t ≤ (t + 1 : ℝ) * D (t + 1)) :
     Monotone (thresholdEnvelope D) := by
@@ -42,6 +71,8 @@ theorem thresholdEnvelope_monotone (D : ℕ → ℝ)
   simp only [thresholdEnvelope, expectedTraceCost_step, Nat.add_sub_cancel]
   linarith
 
+/-- For a rank skip, the call envelope plus the average skipped continuation potential is at
+most the current threshold potential. -/
 theorem thresholdEnvelope_skip_step {N : ℕ} (skip : RankSkip N) (D : ℕ → ℝ)
     (hscaled : ∀ t : ℕ, (t : ℝ) * D t ≤ (t + 1 : ℝ) * D (t + 1))
     (t : ℕ) (ht : 0 < t) (htN : t < N) :
@@ -62,12 +93,17 @@ theorem thresholdEnvelope_skip_step {N : ℕ} (skip : RankSkip N) (D : ℕ → �
   simpa only [Nat.succ_eq_add_one, Nat.cast_add, Nat.cast_one] using
     add_le_add (le_refl (D (u + 1))) hd
 
+/-- The source call envelope, zero at threshold zero and otherwise `(9 / 2) * sqrt N / sqrt t +
+binaryLog N`. -/
 noncomputable def sourceCallEnvelope (N t : ℕ) : ℝ :=
   if t = 0 then 0 else ((9 / 2 : ℝ) * Real.sqrt N) / Real.sqrt t + binaryLog N
 
+/-- The source call envelope vanishes at threshold zero. -/
 @[simp] theorem sourceCallEnvelope_zero (N : ℕ) : sourceCallEnvelope N 0 = 0 := by
   simp [sourceCallEnvelope]
 
+/-- Multiplying the source call envelope by `t` gives the stated square-root and logarithmic
+expression. -/
 theorem sourceCallEnvelope_scaled (N t : ℕ) :
     (t : ℝ) * sourceCallEnvelope N t =
       ((9 / 2 : ℝ) * Real.sqrt N) * Real.sqrt t + binaryLog N * t := by
@@ -82,6 +118,8 @@ theorem sourceCallEnvelope_scaled (N t : ℕ) :
     _ = ((9 / 2 : ℝ) * Real.sqrt N) * ((t : ℝ) / Real.sqrt t) + binaryLog N * t := by ring
     _ = _ := by rw [hdiv]
 
+/-- For positive `N`, the source call envelope multiplied by its threshold is nondecreasing
+between successive thresholds. -/
 theorem sourceCallEnvelope_scaled_mono (N : ℕ) (hN : 0 < N) :
     ∀ t : ℕ, (t : ℝ) * sourceCallEnvelope N t ≤
       (t + 1 : ℝ) * sourceCallEnvelope N (t + 1) := by
@@ -95,12 +133,14 @@ theorem sourceCallEnvelope_scaled_mono (N : ℕ) (hN : 0 < N) :
   exact add_le_add (mul_le_mul_of_nonneg_left hroot (by positivity))
     (mul_le_mul_of_nonneg_left (by exact_mod_cast Nat.le_succ t) hL)
 
+/-- The source call envelope is nonnegative for positive `N`. -/
 theorem sourceEnvelope_nonneg (N t : ℕ) (hN : 0 < N) : 0 ≤ sourceCallEnvelope N t := by
   have hL : 0 ≤ binaryLog N := div_nonneg
     (Real.log_nonneg (by exact_mod_cast hN)) (Real.log_pos (by norm_num)).le
   unfold sourceCallEnvelope
   split_ifs <;> positivity
 
+/-- The expected initial rank-trace cost of the source envelope is at most `sourceMeanBudget N`. -/
 theorem sourceEnvelope_initial_bound (N : ℕ) (hN : 0 < N) :
     expectedTraceCost (fun r => sourceCallEnvelope N (r - 1)) N ≤ sourceMeanBudget N := by
   apply expectedTraceCost_le_sourceMeanBudget N hN _ (sourceCallEnvelope_zero N)
@@ -111,6 +151,8 @@ theorem sourceEnvelope_initial_bound (N : ℕ) (hN : 0 < N) :
   ring_nf
   exact le_rfl
 
+/-- A ranked call law satisfying the source per-call moment bound has a nonnegative initial
+run-clock moment bounded by `sourceMeanBudget N`. -/
 theorem initialClock_le_sourceMeanBudget {N : ℕ} {Ω : Type}
     (law : RankedCallLaw N Ω) (skip : RankSkip N) (hN : 0 < N)
     (hcall : ∀ t, 0 < t → t < N → ∃ q,

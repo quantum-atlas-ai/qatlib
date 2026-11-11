@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder
+
+/-!
+# Observable error for fourth-order Suzuki evolution
+
+This module transfers unitary approximation bounds to conjugation of an arbitrary matrix `O`.
+The general estimate `suzuki_unitary_observable_error` bounds the difference between the two
+conjugated matrices by twice the norm of `O` times the unitary approximation error.
+
+Applying this estimate to `suzuki4Run` gives an observable error bound for the same repeated
+Suzuki word, within the product-formula simulation setting of [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `suzuki_unitary_observable_error`: stability of matrix conjugation under unitary
+  perturbations.
+* `suzuki_fourth_order_same_word_observable_consumer`: an observable error bound proportional to
+  `‖O‖ * |t|⁵ / r⁴` for Hermitian generators.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -25,6 +48,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Concepts.PhaseGeometry.Phase
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Conjugating any matrix `O` by unitaries `U` and `V` produces matrices whose difference has
+norm at most `2 * ‖O‖ * ‖V - U‖`. -/
 theorem suzuki_unitary_observable_error {I : Type} [Fintype I] [DecidableEq I]
     (U V O : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ) :
@@ -50,6 +75,9 @@ theorem suzuki_unitary_observable_error {I : Type} [Fintype I] [DecidableEq I]
           _ ≤ _ := by nlinarith [mul_nonneg (norm_nonneg O) (norm_nonneg (V - U))]
     _ = _ := by ring
 
+/-- For Hermitian generators and positive `r`, conjugation by the repeated Suzuki word differs
+from exact evolution by at most `200 * ‖O‖ * (‖A‖ + ‖B‖)^5 * |t|^5 / r^4`. This applies the
+unitary perturbation bound in the observable-simulation setting of [ChildsEtAl2021Trotter]. -/
 theorem suzuki_fourth_order_same_word_observable_consumer :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A B O : Matrix I I ℂ)
       (t : ℝ) (r : ℕ), A.IsHermitian → B.IsHermitian → 0 < r →

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.TimeEvolution.TelegraphLimit.TelegraphMode
 import Mathlib.Analysis.InnerProductSpace.PiL2
+
+/-!
+# Finite-band comparison of telegraph and heat modes
+
+This module lifts scalar telegraph-to-heat estimates to finite complex Euclidean states through
+`weightedState`. It proves positivity of the telegraph multiplier and a relative norm estimate
+for bands with rates between zero and `A`, subject to `4 * δ * A ≤ 3/4`.
+
+The mathematical background is discussed in [JinLiu2024].
+
+## Main statements
+
+* `mode_pos`: positivity of the telegraph multiplier at nonnegative times.
+* `relative_norm`: passes a coordinatewise relative bound to the Euclidean norm.
+* `finite_band_relative`: compares telegraph and heat evolution on a finite band.
+
+## References
+
+* [Jin and Liu, 2024][JinLiu2024]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
@@ -13,6 +34,8 @@ noncomputable section
 open scoped BigOperators
 namespace Qatlib.Foundations.TimeEvolution.TelegraphLimit
 
+/-- For positive `δ`, nonnegative `a` and time, and `4 * δ * a ≤ 3/4`, the telegraph mode is
+strictly positive. -/
 theorem mode_pos {δ a t : ℝ} (hδ : 0<δ) (ha : 0≤a) (hm : 4*δ*a≤3/4) (ht : 0≤t) :
     0 < mode δ a t := by
   obtain ⟨_,hgf,hc0,_,_⟩ := rate_bounds hδ ha hm
@@ -22,9 +45,12 @@ theorem mode_pos {δ a t : ℝ} (hδ : 0<δ) (ha : 0≤a) (hm : 4*δ*a≤3/4) (h
   dsimp [mode]
   nlinarith
 
+/-- Multiply each coordinate of a complex Euclidean state by the corresponding real weight. -/
 def weightedState {I : Type} (f : I→ℝ) (x : EuclideanSpace ℂ I) : EuclideanSpace ℂ I :=
   WithLp.toLp 2 (fun i=>(f i:ℂ)*x i)
 
+/-- Coordinatewise multiplication by nonzero real weights preserves a nonzero state. See
+[JinLiu2024]. -/
 theorem weightedState_ne_zero {I : Type} (f : I→ℝ) (hf : ∀i,f i≠0)
     (x : EuclideanSpace ℂ I) (hx : x≠0) : weightedState f x≠0 := by
   intro hz
@@ -34,6 +60,8 @@ theorem weightedState_ne_zero {I : Type} (f : I→ℝ) (hf : ∀i,f i≠0)
   change (f i:ℂ)*x i=0 at h
   exact (mul_eq_zero.mp h).resolve_left (Complex.ofReal_ne_zero.mpr (hf i))
 
+/-- A coordinatewise relative error bound with nonnegative constant `C` implies the same
+relative bound in the Euclidean norm. -/
 theorem relative_norm {I : Type} [Fintype I] (U H : EuclideanSpace ℂ I) {C : ℝ} (hC : 0≤C)
     (h : ∀i,‖U i-H i‖≤C*‖H i‖) : ‖U-H‖≤C*‖H‖ := by
   have hsq : ‖U-H‖^2≤(C*‖H‖)^2 := by
@@ -45,6 +73,9 @@ theorem relative_norm {I : Type} [Fintype I] (U H : EuclideanSpace ℂ I) {C : �
     nlinarith [norm_nonneg (U i-H i)]
   nlinarith [norm_nonneg (U-H),mul_nonneg hC (norm_nonneg H)]
 
+/-- For rates in `[0, A]`, positive `δ`, nonnegative time, and `4 * δ * A ≤ 3/4`, the
+telegraph-to-heat norm error is at most `(4 * δ * A + 4 * δ * A ^ 2 * t)` times the
+heat-state norm. -/
 theorem finite_band_relative {I : Type} [Fintype I] (a : I→ℝ) (x : EuclideanSpace ℂ I)
     {δ A t : ℝ} (hδ : 0<δ) (hA : 0≤A) (ha : ∀i,0≤a i ∧ a i≤A)
     (hm : 4*δ*A≤3/4) (ht : 0≤t) :

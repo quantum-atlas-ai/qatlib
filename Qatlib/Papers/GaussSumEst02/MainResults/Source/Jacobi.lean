@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+
+/-!
+# Gauss-sum identities for Jacobi phases
+
+This module defines the product character `multChar_mul` and `jacobiSum`, then proves the
+Gauss-product formula when the characters and their product are nontrivial. The resulting norm
+and phase identities are accompanied by stability bounds for products of unit complex numbers.
+See [VanDamSeroussi2002].
+
+## Main statements
+
+* `jacobiSum_eq_div`: Under nontriviality of the two characters and their product, the Jacobi
+  sum is the quotient of their individual Gauss-sum product by the product-character Gauss sum.
+* `jacobiSum_norm`: When both characters and their product are nontrivial, the Jacobi sum has
+  norm `√(card K)`.
+* `jacobiSum_phase_exp`: Given polar forms for the Jacobi sum and the three associated Gauss
+  sums, the Jacobi phase factor has angle equal to the sum of the individual Gauss angles minus
+  the product-character angle.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +40,7 @@ open Finset
 
 namespace Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- The pointwise product of two multiplicative characters. -/
 def multChar_mul {K : Type*} [Field K] (χ ψ : MultChar K) : MultChar K where
   toFun x := χ.toFun x * ψ.toFun x
   map_zero' := by simp [χ.map_zero', ψ.map_zero']
@@ -26,6 +51,8 @@ def multChar_mul {K : Type*} [Field K] (χ ψ : MultChar K) : MultChar K where
   norm_eq_one x hx := by
     rw [norm_mul, χ.norm_eq_one x hx, ψ.norm_eq_one x hx, one_mul]
 
+/-- The pointwise product of two characters sums to zero when their product character is
+nontrivial. -/
 theorem multChar_mul_sum_eq_zero {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
     (h : (multChar_mul χ ψ).IsNontrivial) :
     (∑ x : K, χ.toFun x * ψ.toFun x) = 0 := by
@@ -45,9 +72,13 @@ theorem multChar_mul_sum_eq_zero {K : Type*} [Field K] [Fintype K] (χ ψ : Mult
     rw [sub_mul, one_mul, hmul, sub_self]
   exact (mul_eq_zero.mp h2).resolve_left (sub_ne_zero.mpr ha)
 
+/-- The sum of `χ(t) * ψ(1 - t)` over the finite field. -/
 def jacobiSum {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K) : ℂ :=
   ∑ t : K, χ.toFun t * ψ.toFun (1 - t)
 
+/-- If both characters and their product are nontrivial, the Jacobi sum times the
+product-character Gauss sum equals the product of the two individual Gauss sums at frequency
+one [VanDamSeroussi2002]. -/
 theorem jacobiSum_mul_gaussSum {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
     (e : AddChar K) (hχ : χ.IsNontrivial) (hψ : ψ.IsNontrivial)
     (hχψ : (multChar_mul χ ψ).IsNontrivial) :
@@ -112,6 +143,8 @@ theorem jacobiSum_mul_gaussSum {K : Type*} [Field K] [Fintype K] (χ ψ : MultCh
     ring
   rw [← hmid, ← hR]
 
+/-- Under nontriviality of the two characters and their product, the Jacobi sum is the quotient
+of their individual Gauss-sum product by the product-character Gauss sum. -/
 theorem jacobiSum_eq_div {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
     (e : AddChar K) (hχ : χ.IsNontrivial) (hψ : ψ.IsNontrivial)
     (hχψ : (multChar_mul χ ψ).IsNontrivial) :
@@ -131,6 +164,8 @@ theorem jacobiSum_eq_div {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
   rw [eq_div_iff hne]
   exact jacobiSum_mul_gaussSum χ ψ e hχ hψ hχψ
 
+/-- When both characters and their product are nontrivial, the Jacobi sum has norm `√(card K)`
+[VanDamSeroussi2002]. -/
 theorem jacobiSum_norm {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
     (e : AddChar K) (hχ : χ.IsNontrivial) (hψ : ψ.IsNontrivial)
     (hχψ : (multChar_mul χ ψ).IsNontrivial) :
@@ -148,6 +183,8 @@ theorem jacobiSum_norm {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
     Real.sqrt_pos.mpr (by exact_mod_cast Fintype.card_pos)
   field_simp
 
+/-- When both characters and their product are nontrivial, the Jacobi sum has a real phase and
+modulus `√(card K)`. -/
 theorem jacobiSum_polar {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
     (e : AddChar K) (hχ : χ.IsNontrivial) (hψ : ψ.IsNontrivial)
     (hχψ : (multChar_mul χ ψ).IsNontrivial) :
@@ -166,6 +203,8 @@ theorem jacobiSum_polar {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
   rw [hlam]
   field_simp
 
+/-- The product of two polar expressions with common nonzero real radius divided by a third has
+that radius and angle `a + b - c`. -/
 theorem div_polar_mul {r : ℝ} (hr : ((r : ℝ) : ℂ) ≠ 0) (a b c : ℝ) :
     (((r : ℂ) * Complex.exp (a * Complex.I)) * ((r : ℂ) * Complex.exp (b * Complex.I)))
         / ((r : ℂ) * Complex.exp (c * Complex.I))
@@ -199,6 +238,8 @@ theorem div_polar_mul {r : ℝ} (hr : ((r : ℝ) : ℂ) ≠ 0) (a b c : ℝ) :
             * Complex.exp (c * Complex.I)) by ring, hec]
   rw [hL, hR]
 
+/-- Multiplying two unit complex phase factors and the inverse of a third adds the first two
+angles and subtracts the third. -/
 theorem exp_angle_prod (a b c : ℝ) :
     Complex.exp (a * Complex.I) * Complex.exp (b * Complex.I)
         * (Complex.exp (c * Complex.I))⁻¹
@@ -212,6 +253,7 @@ theorem exp_angle_prod (a b c : ℝ) :
   push_cast
   ring
 
+/-- Inversion preserves the distance between two complex numbers of norm one. -/
 theorem norm_inv_sub_inv {x y : ℂ} (hx : ‖x‖ = 1) (hy : ‖y‖ = 1) :
     ‖x⁻¹ - y⁻¹‖ = ‖x - y‖ := by
   have hx0 : x ≠ 0 := by
@@ -227,6 +269,8 @@ theorem norm_inv_sub_inv {x y : ℂ} (hx : ‖x‖ = 1) (hy : ‖y‖ = 1) :
   rw [h, norm_mul, norm_inv, norm_mul, hx, hy, norm_sub_rev]
   norm_num
 
+/-- For two triples of unit complex numbers, the distance between their products is at most the
+sum of the three component distances. -/
 theorem norm_mul3_sub_mul3_le {a b c A B C : ℂ} (ha : ‖a‖ = 1) (hb : ‖b‖ = 1)
     (hc : ‖c‖ = 1) (hA : ‖A‖ = 1) (hB : ‖B‖ = 1) (hC : ‖C‖ = 1) :
     ‖a * b * c - A * B * C‖ ≤ ‖a - A‖ + ‖b - B‖ + ‖c - C‖ := by
@@ -239,6 +283,9 @@ theorem norm_mul3_sub_mul3_le {a b c A B C : ℂ} (ha : ‖a‖ = 1) (hb : ‖b�
   simp only [norm_mul, hb, hc, hA, hB, mul_one, one_mul] at h1 h2 ⊢
   linarith
 
+/-- Given polar forms for the Jacobi sum and the three associated Gauss sums, the Jacobi phase
+factor has angle equal to the sum of the individual Gauss angles minus the product-character
+angle [VanDamSeroussi2002]. -/
 theorem jacobiSum_phase_exp {K : Type*} [Field K] [Fintype K] (χ ψ : MultChar K)
     (e : AddChar K) (hχ : χ.IsNontrivial) (hψ : ψ.IsNontrivial)
     (hχψ : (multChar_mul χ ψ).IsNontrivial)

@@ -65,6 +65,26 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.TermCongr
 import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
+
+/-!
+# Unitary matrices for complete digraph patterns
+
+This module constructs the full-support unitary matrix `completeMat` as the identity plus the
+constant shift `(-1 + I) / n`. It realizes nonempty finite complete digraphs as unitary support
+patterns and extends the construction to patterns determined by equal-sized row and column
+fibers. See [Severini2003].
+
+## Main statements
+
+* `completeMat_unitary`: Unitarity of the explicit full-support matrix for positive dimension.
+* `lemma3`: Realization of a nonempty finite complete digraph.
+* `isUnitaryDigraph_of_fiber_complete`: Realization of a balanced complete-fiber pattern.
+
+## References
+
+* [Severini, 2003][Severini2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -76,21 +96,28 @@ namespace Qatlib.Papers.UnitaryDigraph.MainResults.Complete
 open Qatlib.Papers.UnitaryDigraph.MainResults.Defs
 open Matrix
 
+/-- The square complex matrix of dimension `n` whose entries are all one. -/
 def ones (n : ℕ) : Matrix (Fin n) (Fin n) ℂ := Matrix.of fun _ _ => 1
 
+/-- The complex shift `(-1 + Complex.I) / n`. -/
 def shift (n : ℕ) : ℂ := (-1 + Complex.I) / (n : ℂ)
 
+/-- The identity matrix with `shift n` added to every entry. -/
 def completeMat (n : ℕ) : Matrix (Fin n) (Fin n) ℂ :=
   fun i j => (if i = j then (1 : ℂ) else 0) + shift n
 
+/-- Each entry of `completeMat n` is the corresponding identity entry plus `shift n`. -/
 @[simp] theorem completeMat_apply (n : ℕ) (i j : Fin n) :
     completeMat n i j = (if i = j then (1 : ℂ) else 0) + shift n := rfl
 
+/-- The complex conjugate of `shift n` is `(-1 - Complex.I) / n`. -/
 theorem star_shift (n : ℕ) : star (shift n) = (-1 - Complex.I) / (n : ℂ) := by
   simp only [shift, Complex.star_def, star_div₀, star_add, star_neg, star_one,
     Complex.conj_I, star_natCast]
   ring
 
+/-- Each entry of the adjoint of `completeMat n` is the corresponding identity entry plus the
+conjugate shift. -/
 theorem star_completeMat_apply (n : ℕ) (i j : Fin n) :
     (star (completeMat n)) i j = (if i = j then (1 : ℂ) else 0) + star (shift n) := by
   simp only [Matrix.star_apply, completeMat]
@@ -101,6 +128,7 @@ theorem star_completeMat_apply (n : ℕ) (i j : Fin n) :
   · have h' : ¬ (j = i) := fun hh => h hh.symm
     simp [h, h']
 
+/-- For positive `n`, the shift, its conjugate, and `n` times their product sum to zero. -/
 theorem shift_key (n : ℕ) (hn : 0 < n) :
     shift n + star (shift n) + (n : ℂ) * (shift n * star (shift n)) = 0 := by
   have hn' : (n : ℂ) ≠ 0 := by exact_mod_cast Nat.pos_iff_ne_zero.mp hn
@@ -109,6 +137,7 @@ theorem shift_key (n : ℕ) (hn : 0 < n) :
   rw [Complex.ext_iff]
   constructor <;> norm_num
 
+/-- For positive dimension, `completeMat n` belongs to the complex matrix unitary group. -/
 theorem completeMat_unitary (n : ℕ) (hn : 0 < n) :
     completeMat n ∈ Matrix.unitaryGroup (Fin n) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff]
@@ -151,6 +180,7 @@ theorem completeMat_unitary (n : ℕ) (hn : 0 < n) :
   rw [star_shift] at hkey
   by_cases hac : a = c <;> simp [hac] <;> linear_combination hkey
 
+/-- For positive dimension, every entry of `completeMat n` is nonzero. -/
 theorem completeMat_ne_zero (n : ℕ) (hn : 0 < n) (i j : Fin n) :
     completeMat n i j ≠ 0 := by
   have hn' : (n : ℂ) ≠ 0 := by exact_mod_cast Nat.pos_iff_ne_zero.mp hn
@@ -173,6 +203,8 @@ theorem completeMat_ne_zero (n : ℕ) (hn : 0 < n) (i j : Fin n) :
       simp at him
     simpa [completeMat, hij] using hoff
 
+/-- For positive `n`, the complete digraph on `Fin n` is the support digraph of a unitary
+matrix. See [Severini, Lemma 3][Severini2003]. -/
 theorem lemma3 (n : ℕ) (hn : 0 < n) :
     IsUnitaryDigraph (Digraph.complete (Fin n)) := by
   refine ⟨completeMat n, completeMat_unitary n hn, ?_⟩
@@ -184,6 +216,8 @@ theorem lemma3 (n : ℕ) (hn : 0 < n) :
 variable {V : Type} [Fintype V] [DecidableEq V]
 variable {o : Type} [Fintype o] [DecidableEq o]
 
+/-- A finite digraph whose adjacency is equality of row and column labels is a unitary digraph
+when the two fibers over every label have equal cardinality. -/
 theorem isUnitaryDigraph_of_fiber_complete (D : Defs.Digraph V) (r c : V → o)
     (hAdj : ∀ i j, D.Adj i j ↔ r i = c j)
     (hcard : ∀ k, Nat.card {i : V // r i = k} = Nat.card {j : V // c j = k}) :

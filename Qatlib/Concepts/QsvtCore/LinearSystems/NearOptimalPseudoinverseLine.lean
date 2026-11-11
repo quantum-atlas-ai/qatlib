@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalReciprocal
 import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
 import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+
+/-!
+# Phase words for near optimal inversion
+
+This module realizes the scaled near optimal reciprocal polynomial by a source real phase word
+with explicit compilation counts. Under a positive singular value gap, the adjoint word block
+encodes the scaled pseudoinverse; a separate construction lifts the input encoding into the
+source clean frames. The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `nearOptimalReciprocal_exact_word`: exact encoding of the scaled odd polynomial response.
+* `nearOptimalReciprocal_inverse_word`: pseudoinverse approximation with error `2 * c * ε`.
+* `nearOptimalReciprocal_clean_input_encoding`: an input encoding in the enlarged clean
+  workspace.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,6 +58,8 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- For the stated `κ` and `ε`, a phase word of length `2 * J + 1` exactly encodes the odd
+response `c * g` and has compilation counts `(2 * J + 1, 2 * J, 2 * J + 2, 2 * J + 1)`. -/
 theorem nearOptimalReciprocal_exact_word
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -83,6 +106,9 @@ theorem nearOptimalReciprocal_exact_word
     have ho : (2*J+1+1)/2=J+1 := by omega
     simpa only [he, ho, mul_add, mul_one] using! hcounts
 
+/-- With positive singular values at least `κ⁻¹`, the exact reciprocal word also gives a scaled
+pseudoinverse block encoding of error `2 * c * ε` via its adjoint; see
+[GilyenSuLowWiebe2019]. -/
 theorem nearOptimalReciprocal_inverse_word
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -140,6 +166,8 @@ theorem nearOptimalReciprocal_inverse_word
         exact herr)
   exact ⟨Φ, hlen, hexact, hcounts, by simpa only [zero_add] using! hb⟩
 
+/-- For the stated parameters, the reciprocal scale `(4 * nearOptimalReciprocalJ κ ε)⁻¹` is
+positive and at most `(4 * κ)⁻¹`. -/
 theorem nearOptimalReciprocal_scale_parameters (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε) (hε1 : ε ≤ 1/2) :
     0 < (4*(nearOptimalReciprocalJ κ ε : ℝ))⁻¹ ∧
     (4*(nearOptimalReciprocalJ κ ε : ℝ))⁻¹ ≤ (4*κ)⁻¹ := by
@@ -179,6 +207,8 @@ theorem nearOptimalReciprocal_scale_parameters (κ ε : ℝ) (hκ : 1 < κ) (hε
   exact (inv_le_inv₀ (by positivity) (by positivity)).mpr
     (mul_le_mul_of_nonneg_left hkJ (by norm_num : (0 : ℝ) ≤ 4))
 
+/-- Every projected unitary encoding has a unitary realization on the enlarged workspace with
+`sourceAverageClean` frames. -/
 theorem nearOptimalReciprocal_clean_input_encoding (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (henc : ProjectedUnitaryEncoding A U L R) :

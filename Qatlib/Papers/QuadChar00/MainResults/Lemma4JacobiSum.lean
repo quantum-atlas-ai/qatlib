@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QuadChar00.MainResults.Defs
 import Mathlib.Data.Nat.ChineseRemainder
+
+/-!
+# Vanishing of Jacobi character sums
+
+This module proves that the Jacobi character sums to zero over an odd squarefree modulus greater
+than one. Supporting results establish its value at zero and multiplicativity. See
+[VanDamHallgren2000].
+
+## Main statements
+
+* `jacobiCharZMod_mul`: The Jacobi character modulo `n` is multiplicative.
+* `lemma4_jacobiSum`: The sum of the Jacobi character over `ZMod n` is zero for odd squarefree
+  `n > 1`.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,12 +34,15 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 
 open scoped BigOperators
 
+/-- The Jacobi character modulo a nonzero modulus greater than one vanishes at zero. See
+[VanDamHallgren2000]. -/
 theorem lemma4_jacobiChar_zero (n : ℕ) [NeZero n] (h1 : 1 < n) :
     jacobiCharZMod n 0 = 0 := by
   unfold jacobiCharZMod
   rw [ZMod.val_zero]
   exact jacobiSym.zero_left h1
 
+/-- The Jacobi character modulo `n` is multiplicative. See [VanDamHallgren2000]. -/
 lemma jacobiCharZMod_mul (n : ℕ) (a b : ZMod n) :
     jacobiCharZMod n (a * b) = jacobiCharZMod n a * jacobiCharZMod n b := by
   unfold jacobiCharZMod
@@ -29,6 +51,8 @@ lemma jacobiCharZMod_mul (n : ℕ) (a b : ZMod n) :
   push_cast
   rw [jacobiSym.mul_left]
 
+/-- The sum of the Jacobi character over `ZMod n` is zero for odd squarefree `n > 1`. See
+[VanDamHallgren2000]. -/
 theorem lemma4_jacobiSum (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n)
     (h1 : 1 < n) :
     ∑ x : ZMod n, jacobiCharZMod n x = 0 := by

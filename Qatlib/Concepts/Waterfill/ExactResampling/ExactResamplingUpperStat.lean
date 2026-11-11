@@ -5,6 +5,19 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingProgram
+
+/-!
+# Specification of exact resampling performance
+
+`ExactResamplingUpper` states a water-level existence and circuit-performance contract for
+normalized rational tables with a strict tight bracket and positive target coordinates. It
+records the exact clipped-fill output, prescribed squared overlap, circuit validity, and
+separate counts for source queries, data queries, and fixed gates.
+
+The specification concerns the upper-bound construction associated with quantum rejection
+sampling [OzolsRoettelerRoland2013]; see [Ozols et al., 2013][OzolsRoettelerRoland2013].
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -24,6 +37,10 @@ open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The exact-resampling upper-bound contract for normalized rational tables with positive
+target entries and a strict tight level bracket. It requires a level realizing any fidelity
+between the endpoints, together with exact output, circuit-validity, overlap, and
+query-count guarantees for every compatible source preparation. -/
 def ExactResamplingUpper : Prop :=
   ∀ (m : ℕ) (π σ : Fin m → ℚ) (γlo γhi : ℝ),
     (∀ i, 0 ≤ π i) → (∀ i, 0 < σ i) →

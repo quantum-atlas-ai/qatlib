@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FairBitUnitSamplerStat
+
+/-!
+# Fair-bit sampling of modular units
+
+Proves `fairBitUnitSampler`, the exact counting and bit-cost properties of decoding uniform bit
+strings as modular units. This supplies the unit-sampling component of the finite factoring
+model associated with [Shor1997].
+
+## Main statements
+
+* `fairBitUnitSampler`: Establishes unique unit encodings, rejection counts, and exact bit cost.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +34,8 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open Qatlib
 open scoped Classical
 
+/-- Establishes the unique encoding of each unit, the exact number of rejected strings, and the
+exact `k`-bit cost support of the sampler in the factoring model associated with [Shor1997]. -/
 theorem fairBitUnitSampler : FairBitUnitSampler := by
   intro N k _ _ hk
   have hfib := bounded_bit_decoder_fibers k (Fintype.card (ZMod N)ˣ) hk

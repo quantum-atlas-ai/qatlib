@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+
+/-!
+# Clifford circuits and Bell state stabilizers
+
+This module extends the matrix conjugation laws for individual Clifford gates to lists of legal
+gates. The results `Uword_unitary` and `Uword_conj` relate the circuit matrix `Uword` to the
+accumulated Pauli action `actionWord`, and `stabilizer_transport` carries fixed vectors through
+unitary conjugation.
+
+As concrete applications, the module computes Bell state preparation by H followed by CNOT,
+proves normalization and the XX and ZZ stabilizers, and computes the single-qubit Hadamard state
+and its X stabilizer. These are standard circuit and stabilizer constructions described in
+[NielsenChuang2010].
+
+## Main statements
+
+* `Uword_conj`: accumulated Pauli action agrees with conjugation by a legal circuit.
+* `stabilizer_transport`: a conjugated Pauli fixes the transported state.
+* `bell_state`: the preparation circuit sends the zero register to `( |00⟩ + |11⟩ ) / √2`.
+* `bell_XX_stabilizer` and `bell_ZZ_stabilizer`: the prepared state is fixed by XX and ZZ.
+* `actual_word_and_bell_consumers`: combined circuit, Bell state, and Hadamard state results.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Dehaene and De Moor, 2003][DehaeneDeMoor2003]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
@@ -21,8 +49,11 @@ namespace Qatlib.Concepts.PauliClifford.PauliAlgebra
 open Qatlib.Concepts.PauliClifford.PauliAlgebra Qatlib.Concepts.TensorRegisters.RegisterModel
 open Matrix
 
+/-- The matrix of the empty Clifford gate list is the identity. -/
 theorem Uword_nil {n : ℕ} : Uword ([] : List (CliffordGate n)) = 1 := rfl
 
+/-- Accumulating gate matrices from an initial matrix `M` gives the circuit matrix `Uword gs`
+multiplied by `M`. -/
 theorem foldl_Uword {n : ℕ} (gs : List (CliffordGate n)) (M : Matrix (Reg n) (Reg n) ℂ) :
     gs.foldl (fun U g => cliffordGateOp n g * U) M = Uword gs * M := by
   induction gs generalizing M with
@@ -31,12 +62,15 @@ theorem foldl_Uword {n : ℕ} (gs : List (CliffordGate n)) (M : Matrix (Reg n) (
     simp only [List.foldl_cons, Uword, Matrix.mul_one]
     rw [ih, ih, Matrix.mul_assoc]
 
+/-- The matrix of `g :: gs` is the matrix of the remaining gates multiplied on the right by the
+matrix of `g`. -/
 theorem Uword_cons {n : ℕ} (g : CliffordGate n) (gs : List (CliffordGate n)) :
     Uword (g :: gs) = Uword gs * cliffordGateOp n g := by
   show (g :: gs).foldl (fun U g => cliffordGateOp n g * U) 1 = _
   rw [List.foldl_cons, Matrix.mul_one]
   exact foldl_Uword gs (cliffordGateOp n g)
 
+/-- The matrix of every legal Clifford gate is unitary. -/
 theorem gate_unitary {n : ℕ} (g : CliffordGate n) (hg : legalGate g) :
     cliffordGateOp n g ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   cases g with
@@ -44,6 +78,8 @@ theorem gate_unitary {n : ℕ} (g : CliffordGate n) (hg : legalGate g) :
   | S i => exact cliffordGateOp_S_unitary n i
   | CNOT i j => exact cliffordGateOp_CNOT_unitary i j hg
 
+/-- Conjugation by a legal Clifford gate agrees with `verifiedCliffordAction` on Pauli matrix
+interpretations. -/
 theorem gate_conj {n : ℕ} (g : CliffordGate n) (hg : legalGate g) (p : PauliElem n) :
     cliffordGateOp n g * op p * (cliffordGateOp n g)ᴴ = op (verifiedCliffordAction g p) := by
   cases g with
@@ -51,6 +87,7 @@ theorem gate_conj {n : ℕ} (g : CliffordGate n) (hg : legalGate g) (p : PauliEl
   | S i => exact cliffordGateOp_S_conj i p
   | CNOT i j => exact cliffordGateOp_CNOT_conj i j hg p
 
+/-- Reassociate two nested matrix conjugation expressions as `U * G * M * (Gᴴ * Uᴴ)`. -/
 theorem mul_push {ι : Type*} [Fintype ι] [DecidableEq ι] (U G M : Matrix ι ι ℂ) :
     U * (G * M * Gᴴ) * Uᴴ = U * G * M * (Gᴴ * Uᴴ) := by
   calc U * (G * M * Gᴴ) * Uᴴ = (U * (G * M)) * Gᴴ * Uᴴ := by
@@ -58,6 +95,7 @@ theorem mul_push {ι : Type*} [Fintype ι] [DecidableEq ι] (U G M : Matrix ι �
     _ = ((U * G) * M) * Gᴴ * Uᴴ := by rw [← Matrix.mul_assoc U G M]
     _ = ((U * G) * M) * (Gᴴ * Uᴴ) := by rw [Matrix.mul_assoc (U * G * M) Gᴴ Uᴴ]
 
+/-- A list consisting entirely of legal Clifford gates has a unitary circuit matrix. -/
 theorem Uword_unitary {n : ℕ} : ∀ gs : List (CliffordGate n),
     (∀ g ∈ gs, legalGate g) → Uword gs ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   intro gs
@@ -70,6 +108,8 @@ theorem Uword_unitary {n : ℕ} : ∀ gs : List (CliffordGate n),
       (ih fun g' hg' => hgs g' (List.mem_cons_of_mem g hg')) (gate_unitary g
         (hgs g List.mem_cons_self))
 
+/-- Conjugation by the matrix of a legal Clifford gate list agrees with its accumulated Pauli
+action `actionWord` [DehaeneDeMoor2003]. -/
 theorem Uword_conj {n : ℕ} : ∀ (gs : List (CliffordGate n)) (p : PauliElem n),
     (∀ g ∈ gs, legalGate g) →
       Uword gs * op p * (Uword gs)ᴴ = op (actionWord gs p) := by
@@ -84,6 +124,7 @@ theorem Uword_conj {n : ℕ} : ∀ (gs : List (CliffordGate n)) (p : PauliElem n
     rw [hA]
     exact ih _ fun g' hg' => hgs g' (List.mem_cons_of_mem g hg')
 
+/-- Multiplying a matrix by the computational basis ket at `z` yields the column indexed by `z`. -/
 theorem mulVec_ket {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (z : Reg n) :
     M *ᵥ (Qatlib.Foundations.PureStateMath.Ket z : QState (Reg n)) = fun b => M b z := by
   funext b
@@ -92,6 +133,8 @@ theorem mulVec_ket {n : ℕ} (M : Matrix (Reg n) (Reg n) ℂ) (z : Reg n) :
     (fun c _ hc => by rw [if_neg hc]; simp)
     (fun h => absurd (Finset.mem_univ _) h), if_pos rfl, mul_one]
 
+/-- For distinct control and target sites, CNOT acts on amplitudes by precomposition with the
+involution `cnotT i j`. -/
 theorem cnot_mulVec {n : ℕ} (i j : Fin n) (hij : i ≠ j) (v : QState (Reg n)) :
     cliffordGateOp n (.CNOT i j) *ᵥ v = fun b => v (cnotT i j b) := by
   funext b
@@ -103,6 +146,8 @@ theorem cnot_mulVec {n : ℕ} (i j : Fin n) (hij : i ≠ j) (v : QState (Reg n))
     (fun h => absurd (Finset.mem_univ _) h), if_pos ((cnotT_involutive i j b).symm),
     one_mul]
 
+/-- A phase-zero Pauli word containing only Z and identity fixes the all-zero computational
+basis state. -/
 theorem op_ZI_stabilizes_ket_zero {n : ℕ} (w : PauliWord n)
     (hw : ∀ k, w k = .Z ∨ w k = .I) :
     op ⟨w, 0⟩ *ᵥ (Qatlib.Foundations.PureStateMath.Ket (ZeroStr n) : QState (Reg n)) = Qatlib.Foundations.PureStateMath.Ket (ZeroStr n) := by
@@ -131,6 +176,8 @@ theorem op_ZI_stabilizes_ket_zero {n : ℕ} (w : PauliWord n)
       rw [hf k, hbt]
       simp)]
 
+/-- If `op q` fixes `φ` and a unitary `U` conjugates `op q` to `op p`, then `op p` fixes `U *ᵥ
+φ`. -/
 theorem stabilizer_transport {n : ℕ} {U : Matrix (Reg n) (Reg n) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Reg n) ℂ) {p q : PauliElem n}
     (hconj : U * op q * Uᴴ = op p) {φ : QState (Reg n)} (hq : op q *ᵥ φ = φ) :
@@ -142,10 +189,13 @@ theorem stabilizer_transport {n : ℕ} {U : Matrix (Reg n) (Reg n) ℂ}
     rw [← hconj, Matrix.mul_assoc, h1, Matrix.mul_one]
   rw [mulVec_mulVec, h2, ← mulVec_mulVec, hq]
 
+/-- Both gates in the Bell preparation list, H on site zero followed by CNOT from zero to one,
+are legal. -/
 theorem hbell_legal :
     ∀ g ∈ [CliffordGate.H (0 : Fin 2), CliffordGate.CNOT (0 : Fin 2) 1], legalGate g := by
   simp [legalGate]
 
+/-- Every element of `Fin 2` is either zero or one. -/
 theorem fin2_cases (k : Fin 2) : k = 0 ∨ k = 1 := by
   rcases k with ⟨kv, hklt⟩
   rcases Nat.eq_zero_or_pos kv with h0 | h0
@@ -154,12 +204,16 @@ theorem fin2_cases (k : Fin 2) : k = 0 ∨ k = 1 := by
   · right
     exact Fin.ext (by omega : kv = 1)
 
+/-- The matrix of the Bell preparation list is the CNOT matrix multiplied by the H matrix on
+site zero. -/
 theorem Uword_H_CNOT :
     Uword [CliffordGate.H (0 : Fin 2), CliffordGate.CNOT (0 : Fin 2) 1]
       = cliffordGateOp 2 (CliffordGate.CNOT (0 : Fin 2) 1)
         * cliffordGateOp 2 (CliffordGate.H (0 : Fin 2)) := by
   rw [Uword_cons, Uword_cons, Uword_nil, Matrix.one_mul]
 
+/-- The accumulated Pauli action of the Bell preparation circuit sends phase-zero ZI to
+phase-zero XX. -/
 theorem actionWord_bell_ZI :
     actionWord [CliffordGate.H (0 : Fin 2), CliffordGate.CNOT (0 : Fin 2) 1] ⟨![.Z, .I], 0⟩
       = ⟨fun _ => .X, 0⟩ := by
@@ -181,6 +235,8 @@ theorem actionWord_bell_ZI :
       (verifiedCliffordAction (CliffordGate.H (0 : Fin 2)) ⟨![.Z, .I], 0⟩)) = _
   rw [h1, h2]
 
+/-- The accumulated Pauli action of the Bell preparation circuit sends phase-zero IZ to
+phase-zero ZZ. -/
 theorem actionWord_bell_IZ :
     actionWord [CliffordGate.H (0 : Fin 2), CliffordGate.CNOT (0 : Fin 2) 1] ⟨![.I, .Z], 0⟩
       = ⟨fun _ => .Z, 0⟩ := by
@@ -202,6 +258,8 @@ theorem actionWord_bell_IZ :
       (verifiedCliffordAction (CliffordGate.H (0 : Fin 2)) ⟨![.I, .Z], 0⟩)) = _
   rw [h1, h2]
 
+/-- Applying H on site zero and then CNOT from zero to one to `|00⟩` produces `( |00⟩ + |11⟩ ) /
+√2` [NielsenChuang2010]. -/
 theorem bell_state :
     Uword [CliffordGate.H (0 : Fin 2), CliffordGate.CNOT (0 : Fin 2) 1] *ᵥ
         (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 2) : QState (Reg 2))
@@ -271,11 +329,15 @@ theorem bell_state :
       rw [hx]
       simp
 
+/-- The state obtained by applying the Bell preparation circuit to the all-zero register is
+normalized. -/
 theorem bell_normalized :
     Normalized (Uword [CliffordGate.H (0 : Fin 2), CliffordGate.CNOT (0 : Fin 2) 1] *ᵥ
       (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 2) : QState (Reg 2))) :=
   normalized_applyGate (Uword_unitary _ hbell_legal) (normalized_ket (ZeroStr 2))
 
+/-- The Bell preparation circuit applied to the all-zero register produces a state fixed by
+phase-zero XX. -/
 theorem bell_XX_stabilizer :
     op ⟨fun _ => Pauli1.X, 0⟩ *ᵥ (Uword [CliffordGate.H (0 : Fin 2),
           CliffordGate.CNOT (0 : Fin 2) 1] *ᵥ (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 2) : QState (Reg 2)))
@@ -287,6 +349,8 @@ theorem bell_XX_stabilizer :
       fin_cases k <;> simp))
   rw [Uword_conj _ _ hbell_legal, actionWord_bell_ZI]
 
+/-- The Bell preparation circuit applied to the all-zero register produces a state fixed by
+phase-zero ZZ. -/
 theorem bell_ZZ_stabilizer :
     op ⟨fun _ => Pauli1.Z, 0⟩ *ᵥ (Uword [CliffordGate.H (0 : Fin 2),
           CliffordGate.CNOT (0 : Fin 2) 1] *ᵥ (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 2) : QState (Reg 2)))
@@ -298,9 +362,11 @@ theorem bell_ZZ_stabilizer :
       fin_cases k <;> simp))
   rw [Uword_conj _ _ hbell_legal, actionWord_bell_IZ]
 
+/-- The single-gate list containing H on the unique qubit is legal. -/
 theorem hH_legal : ∀ g ∈ [CliffordGate.H (0 : Fin 1)], legalGate g := by
   simp [legalGate]
 
+/-- The accumulated Pauli action of a single H gate sends phase-zero Z to phase-zero X. -/
 theorem actionWord_H_Z :
     actionWord [CliffordGate.H (0 : Fin 1)] ⟨fun _ => .Z, 0⟩
       = ⟨fun _ => .X, 0⟩ := by
@@ -311,6 +377,7 @@ theorem actionWord_H_Z :
     fin_cases k; simp
   · simp [conjHPhase]
 
+/-- Applying the one-qubit H circuit to the zero basis state gives constant amplitude `1 / √2`. -/
 theorem h_state :
     Uword [CliffordGate.H (0 : Fin 1)] *ᵥ (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 1) : QState (Reg 1))
       = (fun _ => ((Real.sqrt 2 : ℂ)⁻¹)) := by
@@ -328,6 +395,7 @@ theorem h_state :
   rw [hz]
   cases b 0 <;> simp [Hadamard]
 
+/-- The one-qubit state obtained by applying H to the zero basis state is fixed by phase-zero X. -/
 theorem h_state_X_stabilizer :
     op ⟨fun _ => Pauli1.X, 0⟩ *ᵥ (Uword [CliffordGate.H (0 : Fin 1)] *ᵥ
         (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 1) : QState (Reg 1)))
@@ -336,6 +404,9 @@ theorem h_state_X_stabilizer :
     (op_ZI_stabilizes_ket_zero _ (fun _ => Or.inl rfl))
   rw [Uword_conj _ _ hH_legal, actionWord_H_Z]
 
+/-- Combine unitarity and Pauli conjugation for legal gate lists with Bell state preparation,
+normalization, and XX and ZZ stabilization. The result also includes the explicit one-qubit
+Hadamard state and its X stabilizer [NielsenChuang2010]. -/
 theorem actual_word_and_bell_consumers :
     (∀ (n : ℕ) (gs : List (CliffordGate n)),
       (∀ g ∈ gs, legalGate g) → ∀ (p : PauliElem n),

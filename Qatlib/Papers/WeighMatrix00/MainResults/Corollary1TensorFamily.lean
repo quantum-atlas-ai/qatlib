@@ -9,6 +9,28 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
 import Qatlib.Papers.WeighMatrix00.MainResults.Theorem1WeighingProcedure
+
+/-!
+# Tensor families of weighing matrices
+
+This module constructs tensor products and tensor powers of weighing matrices, proving that
+their orders and weights multiply. It derives the tensor-family existence and query-count bound
+and rewrites the square-root ratio as a real power of the family order.
+
+For the weighing-matrix query problem, see [VanDam2002].
+
+## Main statements
+
+* `tensorPow`: weighing matrices of order `n ^ t` and weight `k ^ t`, up to the recursive power
+  representation.
+* `source_corollary1_tensorFamily`: tensor-family procedure and oracle-call bound.
+* `queryBound_rpow`: exponent form of the square-root query scale.
+
+## References
+
+* [van Dam, 2002][VanDam2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +42,8 @@ namespace Qatlib.Papers.WeighMatrix00.MainResults
 open Matrix
 open scoped Kronecker
 
+/-- The Kronecker product of integer matrices with entries in `{-1, 0, 1}` also has entries in
+that set. -/
 theorem kronecker_entry {a b : ℕ} (A : Matrix (Fin a) (Fin a) ℤ)
     (B : Matrix (Fin b) (Fin b) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1)
@@ -29,6 +53,8 @@ theorem kronecker_entry {a b : ℕ} (A : Matrix (Fin a) (Fin a) ℤ)
   rw [Matrix.kronecker_apply]
   rcases hA i₁ j₁ with h | h | h <;> rcases hB i₂ j₂ with h' | h' | h' <;> simp [h, h']
 
+/-- If two integer matrices have scalar-identity row Gram matrices with weights `k` and `l`,
+their Kronecker product has weight `k * l`. -/
 theorem kronecker_gram {a b k l : ℕ} (A : Matrix (Fin a) (Fin a) ℤ)
     (B : Matrix (Fin b) (Fin b) ℤ)
     (hA : A * Aᵀ = (k : ℤ) • (1 : Matrix (Fin a) (Fin a) ℤ))
@@ -48,6 +74,8 @@ theorem kronecker_gram {a b k l : ℕ} (A : Matrix (Fin a) (Fin a) ℤ)
   by_cases h1 : i₁ = j₁ <;> by_cases h2 : i₂ = j₂ <;>
     simp [Matrix.smul_apply, Matrix.one_apply, h1, h2, Prod.mk.injEq, Nat.cast_mul]
 
+/-- Reindexing both coordinates of an integer matrix by an equivalence preserves its
+scalar-identity row Gram relation. -/
 theorem submatrix_gram {ι : Type*} [Fintype ι] [DecidableEq ι] {N k : ℕ}
     (A : Matrix ι ι ℤ) (hA : A * Aᵀ = (k : ℤ) • (1 : Matrix ι ι ℤ)) (e : ι ≃ Fin N) :
     (A.submatrix e.symm e.symm) * (A.submatrix e.symm e.symm)ᵀ =
@@ -58,6 +86,7 @@ theorem submatrix_gram {ι : Type*} [Fintype ι] [DecidableEq ι] {N k : ℕ}
   simp [Matrix.submatrix_apply, Matrix.smul_apply, Matrix.one_apply,
     Matrix.natCast_apply, Matrix.intCast_apply, e.symm.injective.eq_iff]
 
+/-- The one-by-one weighing matrix with sole entry one and weight one. -/
 def oneWeighingMatrix : WeighingMatrix 1 1 where
   mat := fun _ _ => 1
   entry := fun _ _ => Or.inr (Or.inr rfl)
@@ -68,6 +97,8 @@ def oneWeighingMatrix : WeighingMatrix 1 1 where
     simp [Matrix.mul_apply, Matrix.transpose_apply, Matrix.smul_apply, Matrix.one_apply,
       Fin.sum_univ_one]
 
+/-- The weighing matrix obtained by taking the Kronecker product of `A` with `M` and reindexing
+to a single finite index type. -/
 def tensorStep {n k : ℕ} (M : WeighingMatrix n k) {a b : ℕ} (A : WeighingMatrix a b) :
     WeighingMatrix (a * n) (b * k) where
   mat := (A.mat ⊗ₖ M.mat).submatrix finProdFinEquiv.symm finProdFinEquiv.symm
@@ -77,39 +108,52 @@ def tensorStep {n k : ℕ} (M : WeighingMatrix n k) {a b : ℕ} (A : WeighingMat
   gram := submatrix_gram (A.mat ⊗ₖ M.mat)
     (kronecker_gram A.mat M.mat A.gram M.gram) finProdFinEquiv
 
+/-- Natural-number exponentiation defined recursively by multiplication on the right, starting
+at one. -/
 def tPow (n : ℕ) : ℕ → ℕ
   | 0 => 1
   | t + 1 => tPow n t * n
 
+/-- The recursive power `tPow n t` equals ordinary natural-number exponentiation `n ^ t`. -/
 theorem tPow_eq_pow (n t : ℕ) : tPow n t = n ^ t := by
   induction t with
   | zero => simp [tPow]
   | succ t ih => rw [tPow, ih, Nat.pow_succ]
 
+/-- The iterated tensor power of a weighing matrix, with recursively represented order and
+weight. -/
 def tensorPow {n k : ℕ} (M : WeighingMatrix n k) : (t : ℕ) → WeighingMatrix (tPow n t) (tPow k t)
   | 0 => oneWeighingMatrix
   | t + 1 => tensorStep M (tensorPow M t)
 
+/-- Every recursive power of a positive natural number is positive. -/
 theorem tPow_pos {k : ℕ} (hk : 0 < k) (t : ℕ) : 0 < tPow k t := by
   induction t with
   | zero => simp [tPow]
   | succ t ih => rw [tPow]; exact Nat.mul_pos ih hk
 
+/-- The recursive power preserves an inequality between natural-number bases for a fixed
+exponent. -/
 theorem tPow_le {n k : ℕ} (hkn : k ≤ n) (t : ℕ) : tPow k t ≤ tPow n t := by
   induction t with
   | zero => simp [tPow]
   | succ t ih => rw [tPow, tPow]; exact Nat.mul_le_mul ih hkn
 
+/-- Transport of a weighing matrix along an equality of its order. -/
 def WeighingMatrix.castSize {N N' k : ℕ} (h : N = N') (M : WeighingMatrix N k) :
     WeighingMatrix N' k := by
   subst h
   exact M
 
+/-- Transport of a weighing matrix along an equality of its weight. -/
 def WeighingMatrix.castWeight {N k k' : ℕ} (h : k = k') (M : WeighingMatrix N k) :
     WeighingMatrix N k' := by
   subst h
   exact M
 
+/-- A weighing matrix of positive weight at most its order yields, for each `t`, a weighing
+matrix of order `n ^ t` and weight `k ^ t` with a procedure using at most `ceil (π / 4 *
+sqrt (n ^ t / k ^ t)) + 1` oracle calls. See [Corollary 1][VanDam2002]. -/
 theorem source_corollary1_tensorFamily {n k : ℕ} (M : WeighingMatrix n k)
     (hk : 0 < k) (hkn : k ≤ n) (t : ℕ) :
     ∃ MN : WeighingMatrix (n ^ t) (k ^ t), ∃ P : WeighingProcedure MN,
@@ -124,6 +168,8 @@ theorem source_corollary1_tensorFamily {n k : ℕ} (M : WeighingMatrix n k)
   obtain ⟨P, hP, -⟩ := source_theorem1_weighingProcedure MN hKpos hKN
   exact ⟨MN, P, by simpa [Nat.cast_pow] using hP⟩
 
+/-- For `n > 1` and positive `k`, the tensor-family square-root ratio equals the order `n ^ t`
+raised to `(1 - log k / log n) / 2`. See [Corollary 1][VanDam2002]. -/
 theorem queryBound_rpow {n k : ℕ} (hn : 1 < n) (hk : 0 < k) (t : ℕ) :
     Real.sqrt ((n : ℝ) ^ t / (k : ℝ) ^ t) =
       ((n : ℝ) ^ t) ^ ((1 - Real.log (k : ℝ) / Real.log (n : ℝ)) / 2) := by

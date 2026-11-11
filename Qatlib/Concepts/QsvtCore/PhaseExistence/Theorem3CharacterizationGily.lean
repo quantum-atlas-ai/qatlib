@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationStat
+
+/-!
+# Characterization of signal-processing polynomial pairs
+
+`theorem3Characterization` proves the equivalence between phase realization and the degree,
+parity, and pointwise normalization conditions for a pair of complex polynomials. The helper
+`pair_norm_eval` relates the polynomial normalization expression to squared norms at real
+arguments. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `theorem3Characterization`: characterize realizable polynomial response pairs.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.BlockEncoding
@@ -20,6 +38,8 @@ open Polynomial Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- Evaluation of `responsePairNorm P Q` at a real argument is the complex embedding of `‖P(x)‖²
++ (1 - x²) * ‖Q(x)‖²`. -/
 private theorem pair_norm_eval (P Q : Polynomial ℂ) (x : ℝ) :
     (responsePairNorm P Q).eval (x : ℂ) =
       Complex.ofReal (Complex.normSq (P.eval (x : ℂ)) +
@@ -30,6 +50,9 @@ private theorem pair_norm_eval (P Q : Polynomial ℂ) (x : ℝ) :
   rw [mul_assoc (1 - (x : ℂ) ^ 2), Complex.mul_conj, Complex.mul_conj]
   simp
 
+/-- A pair of complex polynomials is realized by a phase base and `k` phases exactly when it
+satisfies the prescribed degree bounds, alternating parities, and pointwise normalization on
+`[-1, 1]`. This proves [Gilyén et al., Theorem 3][GilyenSuLowWiebe2019]. -/
 theorem theorem3Characterization : Theorem3Characterization := by
   intro k P Q
   rw [← completedPair_iff_response]

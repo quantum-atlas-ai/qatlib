@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.Lemma1
+
+/-!
+# The minimum-finding rank-visit lemma
+
+`lemma1` establishes the shared rank-visit specification for the source BBHT ranked-call law.
+Its proof combines run normalization, inverse-rank visit formulas for distinct values, and visit
+bounds when values are tied.
+
+This formalizes the rank-process reasoning of [DurrHoyer1996], including the distinction between
+exact formulas for distinct values and bounds for ties.
+
+## Main statements
+
+* `lemma1`: establishes the shared `Lemma1` specification using ranked BBHT runs.
+
+## References
+
+* [Durr and Hoyer, 1996, Lemma 1][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +39,9 @@ namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
 universe u
 
+/-- The source BBHT ranked-call laws satisfy `Lemma1`, including inverse-rank visit formulas for
+distinct values and the stated visit bounds for ties [Durr and Hoyer, Lemma
+1][DurrHoyer1996]. -/
 theorem lemma1 : Lemma1.{u} := by
   intro N hN α _ T
   let ranked := SortedRankedTable.ofTable T

@@ -12,6 +12,38 @@ import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
 import Qatlib.Concepts.WalkFind.UniformThree.HiddenSubgroupOracle
 import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+/-!
+# Search with Fresh Phase Reflection Registers
+
+`phaseSearchState` alternates the marked-state sign flip with a phase-estimation reflection
+using a fresh register batch at each round. For a unitary with a distinguished zero-phase
+eigenstate and a separated orthonormal eigenfamily whose span is preserved by marking, the
+module bounds the distance to ideal amplitude amplification and the resulting marked probability
+[BrassardEtAl2002].
+
+The access accounting includes `phaseSearchLedger` and the expanded Szegedy reflection word,
+connecting the construction to quantized Markov-chain walks [Szegedy2004]. The uniform
+three-point example prepares its input with `phaseSearchUniformThreeSetup` and proves marked
+probability `25 / 27` with ledger `(2, 1, 1)` for phase queries, marked checks, and setup
+charges.
+
+## Main statements
+
+* `phase_search_reachable_state_error` bounds accumulated state error by `2 * t * (1 / (2 * M *
+  eta)) ^ k`.
+* `phase_search_actual_marked_success` subtracts the corresponding probability error from the
+  ideal amplification formula.
+* `szegedy_phase_reflection_expanded_update_counts` counts the expanded queries and gates.
+* `phase_search_uniform_three_prepared_consumer` gives the prepared three-point example and its
+  ledger.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -49,10 +81,13 @@ open scoped Classical Matrix.Norms.L2Operator BigOperators
 
 set_option autoImplicit false
 
+/-- The search ledger records phase-reflection query occurrences across `t` rounds, one marked
+check per round, and one setup charge. -/
 noncomputable def phaseSearchLedger (M k t : ℕ) : ℕ × ℕ × ℕ :=
   (t * adjointQueryCount (phaseReflectionWord (I := Unit) M k),
     (List.replicate t ()).length, 1)
 
+/-- For `M >= 2`, the fresh-register search ledger is exactly `(2 * k * t * (M - 1), t, 1)`. -/
 theorem phase_search_fresh_access_ledger (M k t : ℕ) (hM : 2 ≤ M) :
     phaseSearchLedger M k t = (2 * k * t * (M - 1), t, 1) := by
   rw [phaseSearchLedger, (phase_reflection_actual_queries_and_macros (I := Unit) M k hM).2.1,
@@ -60,6 +95,8 @@ theorem phase_search_fresh_access_ledger (M k t : ℕ) (hM : 2 ≤ M) :
   congr 1
   ring
 
+/-- The phase-reflection word with each oracle occurrence expanded into the controlled counted
+Szegedy walk word and lifted across the phase registers. -/
 noncomputable def szegedyPhaseReflectionWord {I : Type} [Fintype I] [DecidableEq I]
     (j : I) (M k : ℕ) : List (AdjointStep (PhaseReflectionSpace (I × I) M k)) :=
   substituteAdjointCircuit
@@ -67,6 +104,8 @@ noncomputable def szegedyPhaseReflectionWord {I : Type} [Fintype I] [DecidableEq
       (compileControlled (countedSzegedyWord j)))
     (phaseReflectionWord M k)
 
+/-- For `M >= 2`, the expanded Szegedy phase-reflection word uses exactly `8 * k * (M - 1)`
+queries and `12 * k * (M - 1) + 4 * k + 1` gates. -/
 theorem szegedy_phase_reflection_expanded_update_counts {I : Type} [Fintype I] [DecidableEq I]
     (j : I) (M k : ℕ) (hM : 2 ≤ M) :
     adjointQueryCount (szegedyPhaseReflectionWord j M k) = 8 * k * (M - 1) ∧
@@ -88,6 +127,8 @@ theorem szegedy_phase_reflection_expanded_update_counts {I : Type} [Fintype I] [
   rw [hs.2.1, hs.2.2.1, hb.1, hb.2, hc.1, hc.2]
   constructor <;> ring
 
+/-- The register equivalence separating `k * (t + 1)` phase registers into a fresh batch of `k`
+registers and the previous `k * t` registers. -/
 def phaseBatchRegisters (M k t : ℕ) :
     (Fin (k * (t + 1)) → Fin M) ≃ (Fin k → Fin M) × (Fin (k * t) → Fin M) :=
   (Equiv.arrowCongr
@@ -95,12 +136,16 @@ def phaseBatchRegisters (M k t : ℕ) :
       (finSumFinEquiv : Fin k ⊕ Fin (k * t) ≃ Fin (k + k * t)).symm)
     (Equiv.refl (Fin M))).trans (Equiv.sumArrowEquivProdArrow (Fin k) (Fin (k * t)) (Fin M))
 
+/-- The state-space equivalence that places the fresh phase-register batch before the previous
+phase-reflection state space. -/
 def phaseFreshSplit (I : Type) (M k t : ℕ) :
     PhaseReflectionSpace I M (k * (t + 1)) ≃
       (Fin k → Fin M) × PhaseReflectionSpace I M (k * t) :=
   (Equiv.prodCongr (phaseBatchRegisters M k t) (Equiv.refl (Bool × I))).trans
     (Equiv.prodAssoc _ _ _)
 
+/-- The state-space equivalence that places the old phase registers before the fresh registers,
+flag, and system on which the next reflection acts. -/
 def phaseFreshActionSplit (I : Type) (M k t : ℕ) :
     PhaseReflectionSpace I M (k * (t + 1)) ≃
       (Fin (k * t) → Fin M) × PhaseReflectionSpace I M k :=
@@ -111,6 +156,7 @@ section FreshSearch
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The marked-state sign-flip matrix `preparedMark S` is unitary. -/
 private theorem phase_mark_unitary (S : Finset I) :
     preparedMark S ∈ Matrix.unitaryGroup I ℂ := by
   have he : preparedMark S = ReflectionAbout (1 - Projector S) := by
@@ -119,21 +165,30 @@ private theorem phase_mark_unitary (S : Finset I) :
   rw [he]
   exact reflectionAbout_unitary (isOrthogonalProjector_compl (projector_isOrthogonalProjector S))
 
+/-- Appends a fresh batch of `k` zero phase registers to the current search state, using
+`phaseFreshSplit` to restore the combined register indexing. -/
 noncomputable def phaseFreshAppend (M k t : ℕ) (hM : 0 < M)
     (ψ : QState (PhaseReflectionSpace I M (k * t))) :
     QState (PhaseReflectionSpace I M (k * (t + 1))) :=
   relabelState (phaseFreshSplit I M k t).symm (TensorState (Ket (phaseZeroIndex M k hM)) ψ)
 
+/-- The phase-reflection matrix acting on the fresh phase-register batch, flag, and system while
+acting identically on all old phase registers. -/
 noncomputable def phaseFreshReflectionMatrix (W : Matrix I I ℂ) (M k t : ℕ) :
     Matrix (PhaseReflectionSpace I M (k * (t + 1))) (PhaseReflectionSpace I M (k * (t + 1))) ℂ :=
   relabelGate (phaseFreshActionSplit I M k t).symm
     (TensorGate (1 : Matrix (Fin (k * t) → Fin M) (Fin (k * t) → Fin M) ℂ)
       (evaluate (parallelOracle (controlOracle W)) (phaseReflectionWord M k)))
 
+/-- The marked-state sign flip lifted to the full phase-reflection space, acting identically on
+the phase registers and flag. -/
 noncomputable def phaseSearchCheck (S : Finset I) (M n : ℕ) :
     Matrix (PhaseReflectionSpace I M n) (PhaseReflectionSpace I M n) ℂ :=
   parallelOracle (TensorGate (1 : Matrix Bool Bool ℂ) (preparedMark S))
 
+/-- The search state obtained by repeatedly appending fresh phase registers, flipping the marked
+system states, and applying a phase reflection. For `M = 0`, every successor state is
+defined to be zero. -/
 noncomputable def phaseSearchState (W : Matrix I I ℂ) (ψ : QState I) (S : Finset I)
     (M k : ℕ) : (t : ℕ) → QState (PhaseReflectionSpace I M (k * t))
   | 0 => phaseReflectionEmbed M (k * 0) ψ
@@ -143,18 +198,22 @@ noncomputable def phaseSearchState (W : Matrix I I ℂ) (ψ : QState I) (S : Fin
           (phaseFreshAppend M k t hM (phaseSearchState W ψ S M k t)))
     else 0
 
+/-- Relabeling a finite state by an equivalence preserves its Euclidean norm. -/
 private theorem phaseRelabel_norm {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (e : H ≃ K) (ψ : QState H) :
     ‖toEuclidean_fromVec (relabelState e ψ)‖ = ‖toEuclidean_fromVec ψ‖ := by
   apply (sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)).mp
   rw [norm_toEuclidean_sq_eq_re_inner, norm_toEuclidean_sq_eq_re_inner, inner_relabelState]
 
+/-- Appending the fresh zero-register batch preserves the Euclidean norm of the search state. -/
 theorem phaseFreshAppend_norm (M k t : ℕ) (hM : 0 < M)
     (ψ : QState (PhaseReflectionSpace I M (k * t))) :
     ‖toEuclidean_fromVec (phaseFreshAppend M k t hM ψ)‖ = ‖toEuclidean_fromVec ψ‖ := by
   rw [phaseFreshAppend, phaseRelabel_norm, tensorState_l2_norm,
     (normalized_iff_norm_toEuclidean_fromVec _).mp (normalized_ket _), one_mul]
 
+/-- For a unitary walk and `M >= 2`, the reflection acting on a fresh register batch is unitary
+on the enlarged search space. -/
 theorem phaseFreshReflectionMatrix_unitary (W : Matrix I I ℂ) (M k t : ℕ)
     (hW : W ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) :
     phaseFreshReflectionMatrix W M k t ∈ Matrix.unitaryGroup (PhaseReflectionSpace I M (k * (t + 1))) ℂ :=
@@ -162,12 +221,15 @@ theorem phaseFreshReflectionMatrix_unitary (W : Matrix I I ℂ) (M k t : ℕ)
     ((phase_reflection_actual_queries_and_macros M k hM).1.evaluate_unitary
       (parallelOracle_unitary (controlOracle_unitary hW))))
 
+/-- The lifted marked-state check is unitary for every choice of phase-register parameters. -/
 theorem phaseSearchCheck_unitary (S : Finset I) (M n : ℕ) :
     phaseSearchCheck S M n ∈ Matrix.unitaryGroup (PhaseReflectionSpace I M n) ℂ :=
   parallelOracle_unitary (tensorGate_unitary (by simp) (phase_mark_unitary S))
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- A phase embedding factors into a zero-register ket and a smaller phase embedding under any
+register equivalence that sends the zero index to the corresponding pair of zero indices. -/
 private theorem phase_split_embed (M n a b : ℕ) (hM : 0 < M)
     (e : (Fin n → Fin M) ≃ (Fin a → Fin M) × (Fin b → Fin M))
     (he : e (phaseZeroIndex M n hM) = (phaseZeroIndex M a hM, phaseZeroIndex M b hM))
@@ -193,11 +255,15 @@ private theorem phase_split_embed (M n a b : ℕ) (hM : 0 < M)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Appending fresh zero registers to an embedded system state gives its embedding into the
+enlarged phase-reflection space. -/
 theorem phaseFreshAppend_embed (M k t : ℕ) (hM : 0 < M) (ψ : QState I) :
     phaseFreshAppend M k t hM (phaseReflectionEmbed M (k * t) ψ) =
       phaseReflectionEmbed M (k * (t + 1)) ψ :=
   (phase_split_embed M (k * (t + 1)) k (k * t) hM (phaseBatchRegisters M k t) (by rfl) ψ).symm
 
+/-- On an embedded system state, the lifted search check agrees with embedding the result of
+`preparedMark S`. -/
 theorem phaseSearchCheck_embed (S : Finset I) (M n : ℕ) (hM : 0 < M) (ψ : QState I) :
     ApplyGate (phaseSearchCheck S M n) (phaseReflectionEmbed M n ψ) =
       phaseReflectionEmbed M n (ApplyGate (preparedMark S) ψ) := by
@@ -208,6 +274,8 @@ theorem phaseSearchCheck_embed (S : Finset I) (M n : ℕ) (hM : 0 < M) (ψ : QSt
   rw [applyGate_tensorGate, applyGate_one, applyGate_tensorGate, applyGate_one,
     ← phaseReflectionEmbed_tensor M n hM]
 
+/-- On a fully zero-register embedding, the fresh reflection produces `phaseReflectionState` on
+the fresh batch while leaving the old register batch in its zero ket. -/
 theorem phaseFreshReflectionMatrix_embed (W : Matrix I I ℂ) (M k t : ℕ)
     (hM : 0 < M) (ψ : QState I) :
     ApplyGate (phaseFreshReflectionMatrix W M k t)
@@ -220,6 +288,8 @@ theorem phaseFreshReflectionMatrix_embed (W : Matrix I I ℂ) (M k t : ℕ)
     applyGate_tensorGate, applyGate_one]
   rfl
 
+/-- For a unitary walk and `M >= 2`, every fresh-register search state has the same Euclidean
+norm as its system input. -/
 theorem phaseSearchState_norm (W : Matrix I I ℂ) (ψ : QState I) (S : Finset I) (M k t : ℕ)
     (hW : W ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) :
     ‖toEuclidean_fromVec (phaseSearchState W ψ S M k t)‖ = ‖toEuclidean_fromVec ψ‖ := by
@@ -233,6 +303,7 @@ theorem phaseSearchState_norm (W : Matrix I I ℂ) (ψ : QState I) (S : Finset I
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Appending fresh zero registers commutes with subtraction of states. -/
 private theorem phaseFreshAppend_sub (M k t : ℕ) (hM : 0 < M)
     (x y : QState (PhaseReflectionSpace I M (k * t))) :
     phaseFreshAppend M k t hM (x - y) =
@@ -240,6 +311,8 @@ private theorem phaseFreshAppend_sub (M k t : ℕ) (hM : 0 < M)
   funext p
   simp [phaseFreshAppend, relabelState, TensorState, mul_sub]
 
+/-- For a unitary walk and `M >= 2`, a complete fresh-register search round preserves the
+Euclidean distance between two input states. -/
 private theorem phase_fresh_round_norm_sub (W : Matrix I I ℂ) (S : Finset I) (M k t : ℕ)
     (hW : W ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M)
     (x y : QState (PhaseReflectionSpace I M (k * t))) :
@@ -265,6 +338,10 @@ private theorem phase_fresh_round_norm_sub (W : Matrix I I ℂ) (S : Finset I) (
   rw [norm_applyGate_of_mem_unitaryGroup (phaseSearchCheck_unitary S M (k * (t + 1))),
     ← phaseFreshAppend_sub, phaseFreshAppend_norm]
 
+/-- On a normalized linear combination of the stated orthonormal eigenfamily, the fresh phase
+reflection differs from the embedded reflection about the distinguished zero-phase
+eigenstate by at most `2 * (1 / (2 * M * η)) ^ k`. This assumes a unitary walk, `M >= 2`,
+and phase distance at least `η > 0` for every other family member. -/
 private theorem phase_fresh_reflection_reachable_error (J : Type) [Fintype J] [DecidableEq J]
     (j0 : J) (v : J → QState I) (p : J → ℝ) (W : Matrix I I ℂ) (M k t : ℕ) (η : ℝ)
     (hM : 2 ≤ M) (hη : 0 < η) (hW : W ∈ Matrix.unitaryGroup I ℂ)
@@ -310,6 +387,8 @@ private theorem phase_fresh_reflection_reachable_error (J : Type) [Fintype J] [D
   rw [hnorm, mul_one] at h
   exact h
 
+/-- Embedding a system state with zero phase registers and flag preserves the probability of
+every event depending only on the system index. -/
 theorem phaseReflectionEmbed_measureProb (M n : ℕ) (hM : 0 < M) (ψ : QState I) (S : Finset I) :
     MeasureProb (phaseReflectionEmbed M n ψ) (Finset.univ.filter (fun q => q.2.2 ∈ S)) =
       MeasureProb ψ S := by
@@ -321,6 +400,8 @@ theorem phaseReflectionEmbed_measureProb (M n : ℕ) (hM : 0 < M) (ψ : QState I
     measureProb_tensorState_right (normalized_ket _),
     measureProb_tensorState_right (normalized_ket false)]
 
+/-- Every normalized finite state can be obtained as `preparedAAState A j` for some basis index
+`j` and unitary matrix `A`. -/
 private theorem phase_source_preparation_exists (ψ : QState I) (hψ : Normalized ψ) :
     ∃ (j : I) (A : Matrix I I ℂ), A ∈ Matrix.unitaryGroup I ℂ ∧ preparedAAState A j = ψ := by
   have hne : ∃ i : I, ψ i ≠ 0 := by
@@ -359,9 +440,14 @@ private theorem phase_source_preparation_exists (ψ : QState I) (hψ : Normalize
     simp [Ne.symm hl]
   · simp
 
+/-- The state after `t` iterations of the marked sign flip followed by reflection about the
+input state's outer product, starting from that input state. -/
 noncomputable def phaseIdealSearchState (ψ : QState I) (S : Finset I) (t : ℕ) : QState I :=
   ApplyGate ((ReflectionAbout (outerProduct ψ) * preparedMark S) ^ t) ψ
 
+/-- For a normalized input with marked probability `sin(θ)^2` and `0 < θ < Real.pi / 2`, the
+ideal iterate has marked probability `sin((2 * t + 1) * θ)^2`, the amplitude-amplification
+formula [BrassardEtAl2002]. -/
 private theorem phase_ideal_search_born (ψ : QState I) (S : Finset I) (θ : ℝ) (t : ℕ)
     (hψ : Normalized ψ) (hθ : 0 < θ) (hθ1 : θ < Real.pi / 2)
     (hp : MeasureProb ψ S = (Real.sin θ) ^ 2) :
@@ -374,6 +460,7 @@ private theorem phase_ideal_search_born (ψ : QState I) (S : Finset I) (θ : ℝ
   rw [(prepared_aa_actual_circuit A j S t hA).2.2.2, hs, hi] at hprob
   exact hprob
 
+/-- The ideal search state has Euclidean norm one whenever its input state is normalized. -/
 theorem phaseIdealSearchState_norm (ψ : QState I) (S : Finset I) (t : ℕ)
     (hψ : Normalized ψ) : ‖toEuclidean_fromVec (phaseIdealSearchState ψ S t)‖ = 1 := by
   have hB := (Matrix.unitaryGroup I ℂ).mul_mem (outerProduct_reflection_unitary hψ)
@@ -382,6 +469,8 @@ theorem phaseIdealSearchState_norm (ψ : QState I) (S : Finset I) (t : ℕ)
     ((Matrix.unitaryGroup I ℂ).pow_mem hB t)]
   exact (normalized_iff_norm_toEuclidean_fromVec ψ).mp hψ
 
+/-- One further ideal search iteration applies the marked sign flip and then the reflection
+about the input state's outer product. -/
 theorem phaseIdealSearchState_succ (ψ : QState I) (S : Finset I) (t : ℕ) :
     phaseIdealSearchState ψ S (t + 1) =
       ApplyGate (ReflectionAbout (outerProduct ψ))
@@ -389,6 +478,8 @@ theorem phaseIdealSearchState_succ (ψ : QState I) (S : Finset I) (t : ℕ) :
   rw [phaseIdealSearchState, pow_succ', applyGate_mul, applyGate_mul]
   rfl
 
+/-- If marking preserves the span of the stated orthonormal family, every ideal iterate starting
+at its distinguished member remains a linear combination of that family. -/
 private theorem phase_ideal_search_reachable (J : Type) [Fintype J] [DecidableEq J]
     (j0 : J) (v : J → QState I) (S : Finset I)
     (hv : ∀ a b, Inner (v a) (v b) = if a = b then 1 else 0)
@@ -406,6 +497,10 @@ private theorem phase_ideal_search_reachable (J : Type) [Fintype J] [DecidableEq
     rw [phaseIdealSearchState_succ, hc, hd, phase_source_reflection_sum j0 v d hv]
     simp [sub_smul, Finset.sum_sub_distrib, ite_smul]
 
+/-- With a unitary walk, `M >= 2`, a distinguished zero-phase member of an orthonormal
+eigenfamily, phase separation `η > 0`, and marking that preserves the family span, the
+actual search state is within `2 * t * (1 / (2 * M * η)) ^ k` of the embedded ideal iterate
+in Euclidean norm. -/
 theorem phase_search_reachable_state_error (J : Type) [Fintype J] [DecidableEq J]
     (j0 : J) (v : J → QState I) (p : J → ℝ) (W : Matrix I I ℂ) (S : Finset I)
     (M k t : ℕ) (η : ℝ) (hM : 2 ≤ M) (hη : 0 < η)
@@ -467,6 +562,10 @@ theorem phase_search_reachable_state_error (J : Type) [Fintype J] [DecidableEq J
       _ ≤ 2 * (t : ℝ) * C + 2 * C := add_le_add (by rw [hfirst]; exact ih) hsecond
       _ = _ := by dsimp only [C]; push_cast; ring
 
+/-- Under the reachable-eigenfamily and phase-gap hypotheses, initial marked mass `sin(θ)^2`
+with `0 < θ < Real.pi / 2` yields actual marked mass at least `sin((2 * t + 1) * θ)^2 - 4 *
+t * (1 / (2 * M * η)) ^ k`. The ideal term is the amplitude-amplification probability
+[BrassardEtAl2002]. -/
 theorem phase_search_actual_marked_success (J : Type) [Fintype J] [DecidableEq J]
     (j0 : J) (v : J → QState I) (p : J → ℝ) (W : Matrix I I ℂ) (S : Finset I)
     (M k t : ℕ) (η θ : ℝ) (hM : 2 ≤ M) (hη : 0 < η)
@@ -502,6 +601,9 @@ theorem phase_search_actual_marked_success (J : Type) [Fintype J] [DecidableEq J
   have hl := (neg_le_abs _).trans hbound
   linarith
 
+/-- For a unitary involution `W`, the phase-reflection construction with `M = 2` and `k = 1`
+acts exactly as `W` on the system and returns the auxiliary registers to their embedding
+state. -/
 theorem phase_reflection_involutive_walk_exact (W : Matrix I I ℂ) (ψ : QState I)
     (hW : W ∈ Matrix.unitaryGroup I ℂ) (hWW : W * W = 1) :
     phaseReflectionState W 2 1 ψ = phaseReflectionEmbed 2 1 (ApplyGate W ψ) := by
@@ -553,6 +655,8 @@ theorem phase_reflection_involutive_walk_exact (W : Matrix I I ℂ) (ψ : QState
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- With one fresh register and no old phase registers, relabeling the tensor product with the
+empty zero-register ket leaves the fresh phase-reflection state unchanged. -/
 private theorem phase_fresh_action_empty_old (M : ℕ) (hM : 0 < M)
     (ψ : QState (PhaseReflectionSpace I M 1)) :
     relabelState (phaseFreshActionSplit I M 1 0).symm
@@ -566,6 +670,8 @@ private theorem phase_fresh_action_empty_old (M : ℕ) (hM : 0 < M)
     ite_true, one_mul]
   congr 1
 
+/-- A single search round with one fresh phase register is exactly `phaseReflectionState`
+applied to the marked-sign-flipped input, for every positive `M`. -/
 theorem phaseSearchState_one_register_round (W : Matrix I I ℂ) (ψ : QState I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) :
     phaseSearchState W ψ S M 1 1 = phaseReflectionState W M 1 (ApplyGate (preparedMark S) ψ) := by
@@ -575,9 +681,13 @@ theorem phaseSearchState_one_register_round (W : Matrix I I ℂ) (ψ : QState I)
 
 end FreshSearch
 
+/-- The tensor product of two three-dimensional QFT matrices used to prepare the uniform state
+on pairs of three-point indices. -/
 noncomputable def phaseSearchUniformThreeSetup :
     Matrix (Fin 3 × Fin 3) (Fin 3 × Fin 3) ℂ := TensorGate (QFTMatrix 3) (QFTMatrix 3)
 
+/-- The three-point setup matrix is unitary and maps the tensor product of two zero kets to the
+state with constant amplitude `1 / 3`. -/
 theorem phaseSearchUniformThreeSetup_prepares :
     phaseSearchUniformThreeSetup ∈ Matrix.unitaryGroup (Fin 3 × Fin 3) ℂ ∧
     ApplyGate phaseSearchUniformThreeSetup (TensorState (Ket (0 : Fin 3)) (Ket (0 : Fin 3))) =
@@ -592,6 +702,8 @@ theorem phaseSearchUniformThreeSetup_prepares :
   rw [← mul_inv, ← Complex.ofReal_mul, ← pow_two, Real.sq_sqrt (by norm_num)]
   norm_num
 
+/-- For the uniform three-point transition matrix, the Szegedy isometry range projector is
+identity on the first register tensored with the uniform-state projector on the second. -/
 private theorem phase_uniform_three_projector :
     let P : Fin 3 → Fin 3 → ℝ := fun _ _ => 1 / 3
     SzegedyIsometry P * (SzegedyIsometry P)ᴴ =
@@ -615,12 +727,15 @@ private theorem phase_uniform_three_projector :
     simp only [if_neg (Ne.symm hxa), zero_mul, ite_self]
   · simp
 
+/-- Conjugating a tensor product of two gates by `SwapGate` exchanges the two tensor factors. -/
 private theorem phase_swap_tensor {I : Type} [Fintype I] [DecidableEq I]
     (U V : Matrix I I ℂ) : SwapGate * TensorGate U V * SwapGate = TensorGate V U := by
   ext ⟨a, b⟩ ⟨c, d⟩
   simp [SwapGate, permMatrix, Matrix.mul_apply, TensorGate, Fintype.sum_prod_type,
     Prod.ext_iff, ite_and, eq_comm, mul_comm]
 
+/-- The Szegedy walk for the uniform three-point transition matrix is the tensor product of the
+two three-dimensional diffusion gates. -/
 private theorem phase_uniform_three_walk :
     SzegedyWalk (fun _ _ : Fin 3 => (1 / 3 : ℝ)) =
       TensorGate (Diffusion (Fin 3)) (Diffusion (Fin 3)) := by
@@ -632,6 +747,9 @@ private theorem phase_uniform_three_walk :
     by_cases h : a = c <;> simp [h]
   rw [SzegedyWalk, hr, phase_swap_tensor, tensorGate_mul, Matrix.mul_one, Matrix.one_mul]
 
+/-- For the uniform three-point Szegedy walk and constant pair-state input, one search round
+with `M = 2` and `k = 1` gives probability `25 / 27` of a zero first system coordinate. Its
+phase-query, marked-check, and setup ledger is `(2, 1, 1)`. -/
 theorem phase_search_uniform_three_actual_consumer :
     let P : Fin 3 → Fin 3 → ℝ := fun _ _ => 1 / 3
     let ψ : QState (Fin 3 × Fin 3) := fun _ => (1 / 3 : ℂ)
@@ -672,6 +790,9 @@ theorem phase_search_uniform_three_actual_consumer :
   rw [ha]
   norm_num [MeasureProb, BornProb, S, Finset.sum_filter, Fintype.sum_prod_type, Fin.sum_univ_succ]
 
+/-- Starting from the state produced by `phaseSearchUniformThreeSetup` on two zero kets, the
+uniform three-point search attains marked probability `25 / 27` with ledger `(2, 1, 1)` for
+`M = 2`, `k = 1`, and one round. -/
 theorem phase_search_uniform_three_prepared_consumer :
     let P : Fin 3 → Fin 3 → ℝ := fun _ _ => 1 / 3
     let S := Finset.univ.filter (fun p : Fin 3 × Fin 3 => p.1 = 0)

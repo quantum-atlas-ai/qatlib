@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9Aux
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+
+/-!
+# Qubit branch marginals and no-signalling
+
+The results express `bobBranchMarginal` in Bob-first register order and prove input linearity
+and positivity for positive semidefinite resources. Summing a complete four-outcome Alice-side
+instrument yields the receiver resource marginal scaled by the input trace. The resource setting
+is the qubit teleportation protocol of [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `bobBranchMarginal_positive`: For positive semidefinite resource and input operators, each Bob
+  branch marginal is positive semidefinite.
+* `bobBranchMarginal_bobFirst`: The Bob branch marginal equals the partial trace of the joint
+  branch operator written in Bob-first register order.
+* `bobBranchMarginal_no_signalling`: For a complete four-outcome Alice-side Kraus family, the
+  sum of Bob's branch marginals is `trace ρ` times the resource's receiver marginal.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +43,8 @@ namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- Moving Bob's register first identifies Alice's local operator with the second tensor factor,
+using `finProdFinEquiv` on Alice's indices. -/
 theorem bobFirst_local_gate (A : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     relabelGate bobFirstEquiv (TensorGate A (1 : Operator 2)) =
       TensorGate (1 : Operator 2) (relabelGate finProdFinEquiv A) := by
@@ -29,6 +54,8 @@ theorem bobFirst_local_gate (A : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) :
     (1 : Operator 2) x.1 y.1 * A (finProdFinEquiv.symm x.2) (finProdFinEquiv.symm y.2)
   exact mul_comm _ _
 
+/-- For positive semidefinite resource and input operators, each Bob branch marginal is positive
+semidefinite. -/
 theorem bobBranchMarginal_positive
     (K : Fin 4 → Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ)
     (ω : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) (hω : ω.PosSemidef)
@@ -41,6 +68,7 @@ theorem bobBranchMarginal_positive
   simpa only [Matrix.conjTranspose_conjTranspose] using
     hj.conjTranspose_mul_mul_same (TensorGate (K s) (1 : Operator 2))ᴴ
 
+/-- Each Bob branch marginal is additive in the input operator. -/
 theorem bobBranchMarginal_add
     (K : Fin 4 → Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ)
     (ω : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) (s : Fin 4) (A B : Operator 2) :
@@ -49,6 +77,7 @@ theorem bobBranchMarginal_add
     Matrix.reindex_apply, Matrix.submatrix_add, Pi.add_apply,
     Matrix.mul_add, Matrix.add_mul, partialTrace_add]
 
+/-- Each Bob branch marginal commutes with complex scalar multiplication of the input operator. -/
 theorem bobBranchMarginal_smul
     (K : Fin 4 → Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ)
     (ω : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) (s : Fin 4) (c : ℂ) (A : Operator 2) :
@@ -57,6 +86,8 @@ theorem bobBranchMarginal_smul
     Matrix.reindex_apply, Matrix.submatrix_smul, Pi.smul_apply,
     Matrix.mul_smul, Matrix.smul_mul, partialTrace_smul]
 
+/-- The Bob branch marginal equals the partial trace of the joint branch operator written in
+Bob-first register order. -/
 theorem bobBranchMarginal_bobFirst
     (K : Fin 4 → Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ)
     (ω : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ) (s : Fin 4) (ρ : Operator 2) :
@@ -69,6 +100,8 @@ theorem bobBranchMarginal_bobFirst
   rw [converse_relabel_mul, converse_relabel_mul, converse_relabel_adjoint,
     bobFirst_local_gate]
 
+/-- For a complete four-outcome Alice-side Kraus family, the sum of Bob's branch marginals is
+`trace ρ` times the resource's receiver marginal. -/
 theorem bobBranchMarginal_no_signalling
     (K : Fin 4 → Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ)
     (ω : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ)

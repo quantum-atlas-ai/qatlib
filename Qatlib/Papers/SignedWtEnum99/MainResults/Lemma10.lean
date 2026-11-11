@@ -88,6 +88,28 @@ import Mathlib.RingTheory.SimpleRing.Basic
 import Mathlib.RingTheory.SimpleRing.Principal
 import Mathlib.Tactic
 import Qatlib.Papers.SignedWtEnum99.MainResults.QSEN
+
+/-!
+# Independent-column construction for Lemma 10
+
+This module constructs replacement columns for a binary matrix while preserving the required
+triangular pairings with `H1`. The recursive family `build` is chosen in reverse column order to
+maintain linear independence, and `H2mat` installs the resulting vectors into the first `n`
+columns. See [KnillLaflamme1999] for the source development.
+
+## Main statements
+
+* `step_exists`: supplies a vector satisfying the pairing constraints outside the span of the
+  existing family.
+* `build_linIndep`: proves independence of the recursively chosen family through stage `n`.
+* `lemma10`: preserves the strictly lower triangular and diagonal parts while making the first
+  `n` columns independent.
+
+## References
+
+* [Knill and Laflamme, 1999][KnillLaflamme1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -98,9 +120,11 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.SignedWtEnum99.MainResults
 
+/-- The column vector of a binary matrix at the specified column index. -/
 def col {n N : ℕ} (M : Matrix (Fin n) (Fin N) (ZMod 2)) (j : Fin N) : Fin n → ZMod 2 :=
   fun r => M r j
 
+/-- An entry of `Mᵀ * M'` is the dot product of the corresponding columns of `M` and `M'`. -/
 lemma col_dot {n N : ℕ} (M M' : Matrix (Fin n) (Fin N) (ZMod 2)) (i j : Fin N) :
     (Mᵀ * M') i j = col M i ⬝ᵥ col M' j := by
   simp [col, Matrix.mul_apply, dotProduct, Matrix.transpose_apply]
@@ -109,6 +133,8 @@ section Step
 
 variable {n N : ℕ} (hn : n ≤ N)
 
+/-- The binary linear map recording dot products against the first `i.val + 1` columns of `H1`,
+using `hn` to embed their indices. -/
 def constraintMap (H1 : Matrix (Fin n) (Fin N) (ZMod 2)) (i : Fin n) :
     (Fin n → ZMod 2) →ₗ[ZMod 2] ({j : Fin n // j ≤ i} → ZMod 2) where
   toFun v j := col H1 (Fin.castLE hn j.1) ⬝ᵥ v
@@ -119,10 +145,14 @@ def constraintMap (H1 : Matrix (Fin n) (Fin N) (ZMod 2)) (i : Fin n) :
     funext j
     simp [dotProduct_smul]
 
+/-- The kernel of `constraintMap`, consisting of vectors orthogonal to the specified initial
+columns of `H1`. -/
 def dotSub (H1 : Matrix (Fin n) (Fin N) (ZMod 2)) (i : Fin n) :
     Submodule (ZMod 2) (Fin n → ZMod 2) :=
   (constraintMap hn H1 i).ker
 
+/-- Membership in `dotSub hn H1 i` means that all dot products with columns indexed by `j ≤ i`
+vanish. -/
 lemma mem_dotSub {H1 : Matrix (Fin n) (Fin N) (ZMod 2)} {i : Fin n}
     {v : Fin n → ZMod 2} :
     v ∈ dotSub hn H1 i ↔
@@ -135,6 +165,7 @@ lemma mem_dotSub {H1 : Matrix (Fin n) (Fin N) (ZMod 2)} {i : Fin n}
     funext j
     simpa [dotSub, constraintMap] using h j
 
+/-- The dimension of `dotSub hn H1 i` is at least `n - (i.val + 1)`. -/
 lemma finrank_dotSub_ge (H1 : Matrix (Fin n) (Fin N) (ZMod 2)) (i : Fin n) :
     n - (i.val + 1) ≤ Module.finrank (ZMod 2) ↥(dotSub hn H1 i) := by
   let L := constraintMap hn H1 i
@@ -163,6 +194,8 @@ lemma finrank_dotSub_ge (H1 : Matrix (Fin n) (Fin N) (ZMod 2)) (i : Fin n) :
     simpa [hdim] using hrank
   omega
 
+/-- If `x0` lies outside `Vsub` and the dimension of `W` is at most that of `Vsub`, the coset
+`x0 + Vsub` contains a vector outside `W`. -/
 lemma exists_mem_coset_not_mem {K V : Type*} [Field K] [AddCommGroup V] [Module K V]
     [FiniteDimensional K V] {Vsub W : Submodule K V} {x0 : V}
     (hx0 : x0 ∉ Vsub) (hdim : Module.finrank K ↥W ≤ Module.finrank K ↥Vsub) :
@@ -188,6 +221,8 @@ lemma exists_mem_coset_not_mem {K V : Type*} [Field K] [AddCommGroup V] [Module 
   have hEq : Vsub = W := Submodule.eq_of_le_of_finrank_eq hsub hfin
   exact hx0 (hEq ▸ hx0W)
 
+/-- Under the unit-diagonal pairing hypothesis, a vector can match the required initial column
+pairings while lying outside the span of any family of size at most `n - 1 - i.val`. -/
 lemma step_exists (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1)
@@ -229,6 +264,8 @@ lemma step_exists (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
   rw [dotProduct_sub] at h0
   exact sub_eq_zero.mp h0
 
+/-- A chosen vector satisfying the pairing and span-avoidance conditions established by
+`step_exists`. -/
 def stepChoice (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1)
@@ -236,6 +273,8 @@ def stepChoice (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (e : Fin k → (Fin n → ZMod 2)) : Fin n → ZMod 2 :=
   Classical.choose (step_exists hn H0 H1 hdiag i hk e)
 
+/-- The chosen vector matches the initial column pairings of the corresponding column of `H0`
+and lies outside the span of the supplied family. -/
 lemma stepChoice_spec (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1)
@@ -253,18 +292,24 @@ section Build
 
 variable {n N : ℕ}
 
+/-- The reversal of a finite index, with value `n - 1 - i.val`. -/
 def revIdx {n : ℕ} (i : Fin n) : Fin n := ⟨n - 1 - i.val, by have := i.isLt; omega⟩
 
+/-- The column index `n - 1 - K` used at construction stage `K < n`. -/
 def stepIndex {n : ℕ} (K : ℕ) (hK : K < n) : Fin n := ⟨n - 1 - K, by omega⟩
 
+/-- The value of the construction index `stepIndex K hK` is `n - 1 - K`. -/
 lemma stepIndex_val {n : ℕ} (K : ℕ) (hK : K < n) :
     (stepIndex K hK).val = n - 1 - K := rfl
 
+/-- The stage `K` satisfies the size bound needed to choose the column at `stepIndex K hK`. -/
 lemma stepIndex_bound {n : ℕ} (K : ℕ) (hK : K < n) :
     K ≤ n - 1 - (stepIndex K hK).val := by
   rw [stepIndex_val]
   omega
 
+/-- The recursively chosen family of replacement columns in reverse order, using `stepChoice`
+through stage `n` and returning a zero family beyond that range. -/
 noncomputable def build (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1) :
@@ -278,12 +323,15 @@ noncomputable def build (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     else
       fun _ => 0
 
+/-- The initial stage of the replacement-column construction is the empty family. -/
 lemma build_zero (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1) :
     build hn H0 H1 hdiag 0 = Fin.elim0 := by
   conv_lhs => rw [build]
 
+/-- At a stage `K < n`, the recursive construction appends the vector selected by `stepChoice`
+to the preceding family. -/
 lemma build_succ (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1)
@@ -295,6 +343,8 @@ lemma build_succ (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
   conv_lhs => rw [build]
   simp only [dif_pos hK]
 
+/-- For every stage `K ≤ n`, the family of replacement columns constructed by `build` is
+linearly independent. -/
 lemma build_linIndep (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1)
@@ -310,6 +360,8 @@ lemma build_linIndep (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
       exact ⟨ih (by omega), (stepChoice_spec hn H0 H1 hdiag (stepIndex K hKlt)
         (stepIndex_bound K hKlt) (build hn H0 H1 hdiag K)).2⟩
 
+/-- At stage `K ≤ n`, each constructed vector has the same dot products as its corresponding
+reversed column of `H0` against all required initial columns of `H1`. -/
 lemma build_spec (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1) :
@@ -338,12 +390,15 @@ lemma build_spec (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
         simp only [Fin.snoc_castSucc]
         exact build_spec hn H0 H1 hdiag K (by omega) t' j (by simpa using hj)
 
+/-- The completed replacement-column family, reindexed from construction order to the original
+column order. -/
 def finalVec (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1) :
     Fin n → (Fin n → ZMod 2) :=
   fun i => build hn H0 H1 hdiag n (revIdx i)
 
+/-- The completed replacement-column family `finalVec` is linearly independent. -/
 lemma finalVec_linIndep (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1) :
@@ -357,10 +412,13 @@ lemma finalVec_linIndep (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     omega
   exact hbase.comp (fun i => revIdx i) hinj
 
+/-- The matrix obtained by replacing the first `n` columns of `H0` with the supplied vectors and
+retaining the later columns. -/
 def H2mat (H0 : Matrix (Fin n) (Fin N) (ZMod 2))
     (c' : Fin n → (Fin n → ZMod 2)) : Matrix (Fin n) (Fin N) (ZMod 2) :=
   fun r j => if h : j.val < n then c' ⟨j.val, h⟩ r else H0 r j
 
+/-- At an index embedded from `Fin n`, the corresponding column of `H2mat H0 c'` is `c' i`. -/
 lemma H2mat_castLE (hn : n ≤ N) (H0 : Matrix (Fin n) (Fin N) (ZMod 2))
     (c' : Fin n → (Fin n → ZMod 2)) (i : Fin n) :
     (fun r => H2mat H0 c' r (Fin.castLE hn i)) = c' i := by
@@ -370,11 +428,13 @@ lemma H2mat_castLE (hn : n ≤ N) (H0 : Matrix (Fin n) (Fin N) (ZMod 2))
   rw [dif_pos (show (Fin.castLE hn i).val < n from i.isLt)]
   congr 1
 
+/-- Reversing a finite index twice recovers its original numerical value. -/
 lemma orig_revIdx {n : ℕ} (i : Fin n) : n - 1 - (revIdx i).val = i.val := by
   simp only [revIdx, Fin.val_mk]
   have := i.isLt
   omega
 
+/-- A column of `H2mat` whose index is less than `n` is the corresponding replacement vector. -/
 lemma col_H2_lt {H0 : Matrix (Fin n) (Fin N) (ZMod 2)}
     {c' : Fin n → (Fin n → ZMod 2)} {i : Fin N} (hi : i.val < n) :
     col (H2mat H0 c') i = c' ⟨i.val, hi⟩ := by
@@ -382,6 +442,7 @@ lemma col_H2_lt {H0 : Matrix (Fin n) (Fin N) (ZMod 2)}
   show (if h : i.val < n then c' ⟨i.val, h⟩ r else H0 r i) = c' ⟨i.val, hi⟩ r
   rw [dif_pos hi]
 
+/-- A column of `H2mat` whose index is at least `n` is the original column of `H0`. -/
 lemma col_H2_ge {H0 : Matrix (Fin n) (Fin N) (ZMod 2)}
     {c' : Fin n → (Fin n → ZMod 2)} {i : Fin N} (hi : ¬ i.val < n) :
     col (H2mat H0 c') i = col H0 i := by
@@ -389,6 +450,8 @@ lemma col_H2_ge {H0 : Matrix (Fin n) (Fin N) (ZMod 2)}
   show (if h : i.val < n then c' ⟨i.val, h⟩ r else H0 r i) = H0 r i
   rw [dif_neg hi]
 
+/-- For a replaced column `i`, its dot products against columns `j ≤ i` of `H1` agree with those
+of the original column of `H0`. -/
 lemma finalVec_spec (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1)
@@ -419,6 +482,9 @@ lemma finalVec_spec (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
   dsimp only [finalVec]
   exact hspec
 
+/-- Under the first-`n` unit-diagonal pairing hypothesis, there is a matrix with independent
+first `n` columns preserving both `lwtr (H0ᵀ * H1)` and `diagMat (H0ᵀ * H1)`. See [Knill and
+Laflamme, Lemma 10][KnillLaflamme1999]. -/
 theorem lemma10 (hn : n ≤ N) (H0 H1 : Matrix (Fin n) (Fin N) (ZMod 2))
     (hdiag : ∀ i : Fin n,
       (H0ᵀ * H1) (Fin.castLE hn i) (Fin.castLE hn i) = 1) :

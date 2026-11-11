@@ -6,12 +6,34 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Extremal
 
+/-!
+# Polynomial derivative bounds on compact intervals
+
+This module proves endpoint and interval derivative estimates for bounded real polynomials using
+affine changes of variable. The bounds apply to polynomial sensitivity estimates in quantum
+polynomial transformations such as those studied in [GilyenSuLowWiebe2019].
+
+For degree at most `d` and magnitude at most `C`, `markov_brothers_deriv_le` bounds the
+derivative by `2 * d² * C` on `[-1, 1]`. Rescaling gives the bound `4 * d² * C` on `[0, 1]`.
+
+## Main statements
+
+* `markov_brothers_deriv_le`: the derivative estimate on `[-1, 1]`.
+* `markov_brothers_unit_deriv_le`: the rescaled derivative estimate on `[0, 1]`.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section
 namespace Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
 open Polynomial
 
+/-- A real polynomial of degree at most `d` bounded in absolute value by one on `[-1, 1]` has
+derivative at one bounded by `d²`. -/
 private theorem markov_endpoint_unit {d : ℕ} {g : Polynomial ℝ}
     (hd : g.natDegree ≤ d) (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |g.eval x| ≤ 1) :
     |g.derivative.eval 1| ≤ (d : ℝ)^2 := by
@@ -27,6 +49,8 @@ private theorem markov_endpoint_unit {d : ℕ} {g : Polynomial ℝ}
   push_cast at hp hn
   exact abs_le.2 ⟨by linarith, hp⟩
 
+/-- For nonnegative `C`, a real polynomial of degree at most `d` bounded by `C` on `[-1, 1]` has
+derivative at one bounded by `d² * C`. -/
 private theorem markov_endpoint {d : ℕ} {g : Polynomial ℝ} (hd : g.natDegree ≤ d)
     {C : ℝ} (hC : 0 ≤ C) (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |g.eval x| ≤ C) :
     |g.derivative.eval 1| ≤ (d : ℝ)^2*C := by
@@ -50,6 +74,7 @@ private theorem markov_endpoint {d : ℕ} {g : Polynomial ℝ} (hd : g.natDegree
     have he' := mul_le_mul_of_nonneg_left he hc.le
     simpa [← mul_assoc, hc.ne', mul_comm] using he'
 
+/-- Composing a real polynomial with `a * X + b` does not increase its natural degree. -/
 private theorem markov_affine_degree (g : Polynomial ℝ) (a b : ℝ) :
     (g.comp (Polynomial.C a*Polynomial.X+Polynomial.C b)).natDegree ≤ g.natDegree := by
   have hq : (Polynomial.C a*Polynomial.X+Polynomial.C b).natDegree ≤ 1 := by
@@ -59,11 +84,15 @@ private theorem markov_affine_degree (g : Polynomial ℝ) (a b : ℝ) :
   exact Polynomial.natDegree_comp_le.trans
       ((Nat.mul_le_mul_left g.natDegree hq).trans_eq (Nat.mul_one _))
 
+/-- The derivative of a polynomial composed with `a * X + b`, evaluated at `x`, equals `a` times
+the original derivative at `a * x + b`. -/
 private theorem markov_affine_derivative (g : Polynomial ℝ) (a b x : ℝ) :
     (g.comp (Polynomial.C a*Polynomial.X+Polynomial.C b)).derivative.eval x =
       a*g.derivative.eval (a*x+b) := by
   simp [Polynomial.derivative_comp]
 
+/-- For nonnegative `C`, a real polynomial of degree at most `d` bounded by `C` on `[-1, 1]` has
+derivative bounded by `2 * d² * C` throughout that interval. -/
 theorem markov_brothers_deriv_le {d : ℕ} {g : Polynomial ℝ} (hd : g.natDegree ≤ d)
     {C : ℝ} (hC : 0 ≤ C) (hb : ∀ x ∈ Set.Icc (-1 : ℝ) 1, |g.eval x| ≤ C) :
     ∀ x ∈ Set.Icc (-1 : ℝ) 1, |g.derivative.eval x| ≤ 2*(d : ℝ)^2*C := by
@@ -95,6 +124,8 @@ theorem markov_brothers_deriv_le {d : ℕ} {g : Polynomial ℝ} (hd : g.natDegre
   have hl := mul_le_mul_of_nonneg_right ha (abs_nonneg (g.derivative.eval x))
   nlinarith only [he, hl]
 
+/-- For nonnegative `C`, a real polynomial of degree at most `d` bounded by `C` on `[0, 1]` has
+derivative bounded by `4 * d² * C` throughout that interval. -/
 theorem markov_brothers_unit_deriv_le {d : ℕ} {g : Polynomial ℝ} (hd : g.natDegree ≤ d)
     {C : ℝ} (hC : 0 ≤ C) (hb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |g.eval x| ≤ C) :
     ∀ x ∈ Set.Icc (0 : ℝ) 1, |g.derivative.eval x| ≤ 4*(d : ℝ)^2*C := by

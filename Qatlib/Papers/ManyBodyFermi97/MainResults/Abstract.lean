@@ -12,6 +12,28 @@ import Qatlib.Papers.ManyBodyFermi97.MainResults.SecondQuantizedHubbard
 import Qatlib.Papers.ManyBodyFermi97.MainResults.Antisymmetrization
 import Qatlib.Papers.ManyBodyFermi97.MainResults.FirstQuantizedOperators
 import Qatlib.Papers.ManyBodyFermi97.MainResults.FirstQuantizedHubbard
+
+/-!
+# Summary of proposed fermionic simulation budgets
+
+This module collects arithmetic bounds for the resource models associated with
+[AbramsLloyd1997]. The theorem `proposed_budget_arithmetic` combines the first- and
+second-quantized register counts with bounds for the chain Hubbard cost, antisymmetrization
+cost, and first-quantized step costs.
+
+The statement concerns the explicitly defined budget functions for positive size and word-length
+parameters.
+
+## Main statements
+
+* `proposed_budget_arithmetic`: The combined register-capacity and simulation-budget
+  inequalities.
+
+## References
+
+* [Abrams and Lloyd, 1997][AbramsLloyd1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +42,9 @@ noncomputable section
 
 namespace Qatlib.Papers.ManyBodyFermi97.MainResults
 
+/-- For n, m, q ≥ 1, collects the register-count and capacity identities, chain Hubbard bound
+10m², antisymmetrization bound 4n²q², general step bound 2m⁴, and Hubbard step bound 14q²
+for the defined cost models [AbramsLloyd1997]. -/
 theorem proposed_budget_arithmetic {n m q : ℕ} (hm : 1 ≤ m) (hn : 1 ≤ n) (hq : 1 ≤ q) :
     (secondQuantizedBits m = m ∧
         firstQuantizedBits n m = n * quWordBits m ∧

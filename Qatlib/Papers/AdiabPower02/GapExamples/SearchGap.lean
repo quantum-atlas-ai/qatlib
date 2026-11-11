@@ -102,6 +102,27 @@ import Mathlib.Topology.Defs.Basic
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
 import Mathlib.Topology.UniformSpace.Real
+
+/-!
+# Search gap and inverse-gap integral
+
+Defines `searchGap` from the scalar two-level search expression and proves that its minimum on
+the interpolation interval is `1 / sqrt N`, attained at one half. An explicit arctangent
+antiderivative evaluates the integral of the inverse squared gap and yields a square-root upper
+bound. See [VanDamMoscaVazirani2001].
+
+## Main statements
+
+* `searchGap_half`: Evaluates the gap at the midpoint.
+* `searchGap_ge_min`: Bounds the gap below by its midpoint value.
+* `delayIntegral_eq`: Evaluates the inverse squared gap integral.
+* `delayIntegral_le`: Bounds the integral by `π * sqrt N` for `N ≥ 2`.
+
+## References
+
+* [van Dam et al., 2001][VanDamMoscaVazirani2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -113,24 +134,30 @@ open Real
 
 namespace Qatlib.Papers.AdiabPower02.GapExamples
 
+/-- The search gap `sqrt ((N + 4 * (N - 1) * (s ^ 2 - s)) / N)`. -/
 def searchGap (N s : ℝ) : ℝ :=
   Real.sqrt ((N + 4 * (N - 1) * (s ^ 2 - s)) / N)
 
+/-- The numerator of the squared search gap equals `1 + 4 * (N - 1) * (s - 1 / 2) ^ 2`. -/
 lemma searchNum_eq (N s : ℝ) :
     N + 4 * (N - 1) * (s ^ 2 - s) = 1 + 4 * (N - 1) * (s - 1 / 2) ^ 2 := by
   ring
 
+/-- For `N ≥ 1`, the numerator of the squared search gap is strictly positive for every real
+parameter. -/
 lemma searchNum_pos {N : ℝ} (hN : 1 ≤ N) (s : ℝ) :
     0 < N + 4 * (N - 1) * (s ^ 2 - s) := by
   rw [searchNum_eq]
   have h : 0 ≤ 4 * (N - 1) * (s - 1 / 2) ^ 2 := by positivity
   linarith
 
+/-- For `N ≥ 1`, squaring the search gap recovers its defining rational quadratic expression. -/
 lemma searchGap_sq {N : ℝ} (hN : 1 ≤ N) (s : ℝ) :
     searchGap N s ^ 2 = (N + 4 * (N - 1) * (s ^ 2 - s)) / N := by
   rw [searchGap, Real.sq_sqrt
     (div_nonneg (le_of_lt (searchNum_pos hN s)) (by linarith))]
 
+/-- For `N ≥ 1`, the search gap at `s = 1 / 2` equals `1 / sqrt N`. -/
 theorem searchGap_half {N : ℝ} (hN : 1 ≤ N) :
     searchGap N (1 / 2) = 1 / Real.sqrt N := by
   rw [searchGap]
@@ -139,6 +166,7 @@ theorem searchGap_half {N : ℝ} (hN : 1 ≤ N) :
   rw [hnum, Real.sqrt_div (by norm_num : (0 : ℝ) ≤ 1)]
   simp
 
+/-- For `N ≥ 1` and `0 ≤ s ≤ 1`, the search gap is at least `1 / sqrt N`. -/
 theorem searchGap_ge_min {N s : ℝ} (hN : 1 ≤ N) (hs0 : 0 ≤ s) (hs1 : s ≤ 1) :
     1 / Real.sqrt N ≤ searchGap N s := by
   have hNpos : 0 < N := by linarith
@@ -154,9 +182,12 @@ theorem searchGap_ge_min {N s : ℝ} (hN : 1 ≤ N) (hs0 : 0 ≤ s) (hs1 : s ≤
     linarith
   exact hnum1
 
+/-- The arctangent expression `N / (2 * sqrt (N - 1)) * arctan (2 * sqrt (N - 1) * (s - 1 /
+2))`. -/
 def searchAnti (N s : ℝ) : ℝ :=
   N / (2 * Real.sqrt (N - 1)) * Real.arctan (2 * Real.sqrt (N - 1) * (s - 1 / 2))
 
+/-- For `N > 1`, the inverse squared search gap equals `N` divided by its quadratic numerator. -/
 lemma one_div_searchGap_sq {N : ℝ} (hN : 1 < N) (s : ℝ) :
     1 / (searchGap N s) ^ 2 = N / (N + 4 * (N - 1) * (s ^ 2 - s)) := by
   rw [searchGap_sq (le_of_lt hN)]
@@ -164,6 +195,7 @@ lemma one_div_searchGap_sq {N : ℝ} (hN : 1 < N) (s : ℝ) :
   have hNpos : 0 < N := by linarith
   field_simp
 
+/-- For `N > 1`, the derivative of `searchAnti N` is the inverse squared search gap. -/
 lemma searchAnti_deriv {N : ℝ} (hN : 1 < N) (s : ℝ) :
     HasDerivAt (searchAnti N) (1 / (searchGap N s) ^ 2) s := by
   have hN1 : (0 : ℝ) < N - 1 := by linarith
@@ -198,6 +230,8 @@ lemma searchAnti_deriv {N : ℝ} (hN : 1 < N) (s : ℝ) :
   have ha_ne : Real.sqrt (N - 1) ≠ 0 := ne_of_gt ha_pos
   field_simp [ha_ne, ne_of_gt hnum]
 
+/-- For `N > 1`, the inverse squared search gap integrates over `[0,1]` to `N * arctan (sqrt (N
+- 1)) / sqrt (N - 1)` [VanDamMoscaVazirani2001]. -/
 theorem delayIntegral_eq {N : ℝ} (hN : 1 < N) :
     (∫ s in (0 : ℝ)..1, 1 / (searchGap N s) ^ 2)
       = N * Real.arctan (Real.sqrt (N - 1)) / Real.sqrt (N - 1) := by
@@ -225,6 +259,8 @@ theorem delayIntegral_eq {N : ℝ} (hN : 1 < N) :
   field_simp [ha_ne]
   ring
 
+/-- For `N ≥ 2`, the integral of the inverse squared search gap over `[0,1]` is at most `π *
+sqrt N`. -/
 theorem delayIntegral_le {N : ℝ} (hN : 2 ≤ N) :
     (∫ s in (0 : ℝ)..1, 1 / (searchGap N s) ^ 2) ≤ Real.pi * Real.sqrt N := by
   rw [delayIntegral_eq (by linarith)]

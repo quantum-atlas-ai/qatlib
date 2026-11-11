@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+
+/-!
+# Known-unitary graph universality contract
+
+This module defines `UniversalKnownUnitaryGraph`, the specification for compiling any unitary on
+at least one qubit into a legal graph measurement pattern. The specification records explicit
+size bounds, branch identities with an arbitrary reference system, raw-leaf resource bounds, and
+correctness of the final decoded readout.
+
+The contract packages the universality requirements of measurement-based quantum computation
+[RaussendorfBriegel2000] for use by its separate proof module.
+
+## Main definitions
+
+* `UniversalKnownUnitaryGraph`: bounded graph compilation and readout correctness for known
+  unitaries.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
@@ -22,6 +44,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- The assertion that every unitary on at least one qubit has a legal graph compilation with
+the stated size and resource bounds, corrected and raw reference-branch identities, and
+exact decoded-readout probabilities [RaussendorfBriegel2000]. -/
 def UniversalKnownUnitaryGraph : Prop :=
   ∀ (n : ℕ), 1 ≤ n → ∀ (U : Matrix (Reg n) (Reg n) ℂ),
     U ∈ Matrix.unitaryGroup (Reg n) ℂ →

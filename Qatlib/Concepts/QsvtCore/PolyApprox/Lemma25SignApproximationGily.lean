@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationStat
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+
+/-!
+# Quantitative polynomial approximation of the sign function
+
+`lemma25SignApproximation_answer` proves the sign approximation specification with an odd
+polynomial bounded on `[-2, 2]`. Supporting estimates control powers, exponential decay, and the
+natural ceiling used to choose the iteration count. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `sign158_one_sub_pow_le_exp`: bound a power by exponential decay.
+* `lemma25SignApproximation_answer`: construct a sign approximant with the stated quantitative
+  bounds.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -16,6 +35,7 @@ open Polynomial Qatlib.Concepts.SignalPrimitive.PhaseFrontend Qatlib.Concepts.Ph
 open Qatlib
 open Qatlib
 
+/-- Negative one raised to `3^k` equals negative one. -/
 theorem sign158_neg_one_pow_three_pow (k : ℕ) : (-1:ℝ)^(3^k) = -1 := by
   induction k with
   | zero => norm_num
@@ -23,10 +43,12 @@ theorem sign158_neg_one_pow_three_pow (k : ℕ) : (-1:ℝ)^(3^k) = -1 := by
     rw [pow_succ 3 k, pow_mul, ih]
     norm_num
 
+/-- Negative one raised to `3^k + 1` equals one. -/
 theorem sign158_neg_one_pow_three_pow_add_one (k : ℕ) : (-1:ℝ)^(3^k+1) = 1 := by
   rw [pow_succ, sign158_neg_one_pow_three_pow k]
   norm_num
 
+/-- For `0 ≤ u ≤ 1`, the power `(1 - u)^n` is at most `exp (-u * n)`. -/
 theorem sign158_one_sub_pow_le_exp {u : ℝ} (_hu : 0 ≤ u) (hu1 : u ≤ 1) (n : ℕ) :
     (1 - u)^n ≤ Real.exp (-(u*(n:ℝ))) := by
   have h1 : 1 - u ≤ Real.exp (-u) := by
@@ -38,6 +60,8 @@ theorem sign158_one_sub_pow_le_exp {u : ℝ} (_hu : 0 ≤ u) (hu1 : u ≤ 1) (n 
         congr 1
         ring
 
+/-- For positive `y`, the power of two chosen using the natural ceiling of `log y / log 2` lies
+between `y` and `2 * y + 2`. -/
 theorem sign158_pow_ceil_bounds {y : ℝ} (hy0 : 0 < y) :
     y ≤ (2:ℝ)^(Nat.ceil (Real.log y / Real.log 2)) ∧
       (2:ℝ)^(Nat.ceil (Real.log y / Real.log 2)) ≤ 2*y + 2 := by
@@ -76,6 +100,9 @@ theorem sign158_pow_ceil_bounds {y : ℝ} (hy0 : 0 < y) :
       linarith
   exact ⟨hlow, hhigh⟩
 
+/-- For the stated gap and error range, an odd polynomial bounded on `[-2, 2]` approximates the
+sign function outside the gap with the specified degree and iteration bounds, realizing the
+formalized version of [Gilyén et al., Lemma 25][GilyenSuLowWiebe2019]. -/
 theorem lemma25SignApproximation_answer : Lemma25SignApproximation := by
   intro δ ε hδ hδ2 hε hε2
   have hε0 : 0 < ε := hε

@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.CfOrder.PrimeOrderDlogSampling
+
+/-!
+# Verified discrete logarithm decoding at prime order
+
+Defines `primeDlogDecode`, which reads records until their first coordinate is nonzero, and
+verifies the resulting quotient by counted repeated group addition. The verified decoder records
+the number of records read and additions performed.
+
+For independent records from the cyclic discrete logarithm sampling law, recovery succeeds with
+probability `1 - (1 / p) ^ m`. This specializes the discrete logarithm postprocessing of
+[Shor1997] to prime order.
+
+## Main statements
+
+* `prime_dlog_executable_first_nonzero_decoder`: proves the first-nonzero decoding rule and read
+  bound.
+* `prime_dlog_actual_verification_and_read_ledger`: gives verification correctness and operation
+  counts.
+* `prime_dlog_fresh_actual_verified_success`: computes the exact success probability.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +44,8 @@ open scoped Classical
 
 variable {p : ℕ}
 
+/-- Scans for the first record with nonzero first coordinate, returns the quotient of its second
+coordinate by its first, and counts records read. -/
 def primeDlogDecode {p : ℕ} [Fact p.Prime] : List (ZMod p × ZMod p) → Option (ZMod p) × ℕ
   | [] => (none, 0)
   | z :: zs =>
@@ -28,6 +55,7 @@ def primeDlogDecode {p : ℕ} [Fact p.Prime] : List (ZMod p × ZMod p) → Optio
       else
         (some (z.2 / z.1), 1)
 
+/-- The number of records read by `primeDlogDecode` is at most the input list length. -/
 private theorem primeDlogDecode_reads {p : ℕ} [Fact p.Prime] :
     ∀ (xs : List (ZMod p × ZMod p)), (primeDlogDecode xs).2 ≤ xs.length
   | [] => Nat.le_refl 0
@@ -43,6 +71,8 @@ private theorem primeDlogDecode_reads {p : ℕ} [Fact p.Prime] :
       simp only [List.length_cons, h1]
       omega
 
+/-- The prime-order decoder returns no result exactly when every record has zero first
+coordinate. -/
 private theorem primeDlogDecode_eq_none_iff {p : ℕ} [Fact p.Prime] :
     ∀ (xs : List (ZMod p × ZMod p)),
       (primeDlogDecode xs).1 = none ↔ ∀ z ∈ xs, z.1 = 0
@@ -69,10 +99,13 @@ private theorem primeDlogDecode_eq_none_iff {p : ℕ} [Fact p.Prime] :
       · intro hall
         exact absurd (hall z (by simp)) hz
 
+/-- Over `ZMod p` for prime `p`, a record on `b = d * a` with `a ≠ 0` satisfies `b / a = d`. -/
 private theorem primeDlog_quotient {p : ℕ} [Fact p.Prime] (d a b : ZMod p)
     (ha : a ≠ 0) (h : b = d * a) : b / a = d := by
   rw [h, div_eq_mul_inv, mul_assoc, mul_inv_cancel₀ ha, mul_one]
 
+/-- If every record lies on `b = d * a` and some first coordinate is nonzero, the decoder
+returns `d`. -/
 private theorem primeDlogDecode_eq_some_of {p : ℕ} [Fact p.Prime] (d : ZMod p) :
     ∀ (xs : List (ZMod p × ZMod p)), (∀ z ∈ xs, z.2 = d * z.1) →
       (∃ z ∈ xs, z.1 ≠ 0) → (primeDlogDecode xs).1 = some d
@@ -99,12 +132,15 @@ private theorem primeDlogDecode_eq_some_of {p : ℕ} [Fact p.Prime] (d : ZMod p)
       have hbz : z.2 = d * z.1 := hon z (by simp)
       rw [h1, primeDlog_quotient d z.1 z.2 hz hbz]
 
+/-- Adds `g` to an accumulator a specified number of times and returns the resulting group
+element with its addition count. -/
 def primeDlogRepeatAdd {C : Type} [AddCommGroup C] (g : C) : ℕ → C → C × ℕ
   | 0, acc => (acc, 0)
   | n + 1, acc =>
       let r := primeDlogRepeatAdd g n (acc + g)
       (r.1, r.2 + 1)
 
+/-- Repeated addition of `g` for `n` steps records exactly `n` additions. -/
 private theorem primeDlogRepeatAdd_reads {C : Type} [AddCommGroup C] (g : C) :
     ∀ (n : ℕ) (acc : C), (primeDlogRepeatAdd g n acc).2 = n := by
   intro n
@@ -114,6 +150,7 @@ private theorem primeDlogRepeatAdd_reads {C : Type} [AddCommGroup C] (g : C) :
     intro acc
     simp only [primeDlogRepeatAdd, ih]
 
+/-- The value returned after `n` repeated additions is `acc + n • g`. -/
 private theorem primeDlogRepeatAdd_value {C : Type} [AddCommGroup C] (g : C) :
     ∀ (n : ℕ) (acc : C), (primeDlogRepeatAdd g n acc).1 = acc + n • g := by
   intro n
@@ -125,21 +162,27 @@ private theorem primeDlogRepeatAdd_value {C : Type} [AddCommGroup C] (g : C) :
     rw [add_assoc, succ_nsmul]
     abel
 
+/-- Checks `d.val • g = h` by repeated addition and returns the Boolean result together with the
+addition count. -/
 def primeDlogVerify {p : ℕ} [Fact p.Prime] {C : Type} [AddCommGroup C] [DecidableEq C]
     (g h : C) (d : ZMod p) : Bool × ℕ :=
   let r := primeDlogRepeatAdd g d.val 0
   (decide (r.1 = h), r.2)
 
+/-- Verifying the candidate `d` uses exactly `d.val` additions. -/
 private theorem primeDlogVerify_reads {p : ℕ} [Fact p.Prime] {C : Type} [AddCommGroup C]
     [DecidableEq C] (g h : C) (d : ZMod p) : (primeDlogVerify g h d).2 = d.val := by
   simp only [primeDlogVerify]
   rw [primeDlogRepeatAdd_reads]
 
+/-- The candidate verifier returns true exactly when `d.val • g = h`. -/
 private theorem primeDlogVerify_bool {p : ℕ} [Fact p.Prime] {C : Type} [AddCommGroup C]
     [DecidableEq C] (g h : C) (d : ZMod p) :
     (primeDlogVerify g h d).1 = true ↔ d.val • g = h := by
   simp only [primeDlogVerify, primeDlogRepeatAdd_value, decide_eq_true_eq, zero_add]
 
+/-- Decodes the first usable record, verifies its candidate, and returns an optional logarithm
+with record-read and group-addition counts. -/
 def primeDlogVerified {p : ℕ} [Fact p.Prime] {C : Type} [AddCommGroup C]
     [DecidableEq C] (g h : C) (xs : List (ZMod p × ZMod p)) :
     Option (ZMod p) × (ℕ × ℕ) :=
@@ -150,6 +193,7 @@ def primeDlogVerified {p : ℕ} [Fact p.Prime] {C : Type} [AddCommGroup C]
       let v := primeDlogVerify g h d
       (if v.1 then some d else none, (dec.2, v.2))
 
+/-- A decoded candidate that passes verification is returned by the verified decoder. -/
 private theorem primeDlogVerified_of_ok {p : ℕ} [Fact p.Prime] {C : Type}
     [AddCommGroup C] [DecidableEq C] (g h : C) (xs : List (ZMod p × ZMod p)) (d : ZMod p)
     (hd : (primeDlogDecode xs).1 = some d) (hv : (primeDlogVerify g h d).1 = true) :
@@ -158,6 +202,7 @@ private theorem primeDlogVerified_of_ok {p : ℕ} [Fact p.Prime] {C : Type}
   rw [hv]
   rfl
 
+/-- The verified decoder reads at most the input list length. -/
 private theorem primeDlogVerified_reads {p : ℕ} [Fact p.Prime] {C : Type}
     [AddCommGroup C] [DecidableEq C] (g h : C) (xs : List (ZMod p × ZMod p)) :
     (primeDlogVerified g h xs).2.1 ≤ xs.length := by
@@ -166,6 +211,7 @@ private theorem primeDlogVerified_reads {p : ℕ} [Fact p.Prime] {C : Type}
   | none => simp only [primeDlogVerified, hd]; exact h
   | some d => simp only [primeDlogVerified, hd]; exact h
 
+/-- The verified decoder performs fewer than `p` group additions. -/
 private theorem primeDlogVerified_adds_lt {p : ℕ} [Fact p.Prime] {C : Type}
     [AddCommGroup C] [DecidableEq C] (g h : C) (xs : List (ZMod p × ZMod p)) :
     (primeDlogVerified g h xs).2.2 < p := by
@@ -179,6 +225,8 @@ private theorem primeDlogVerified_adds_lt {p : ℕ} [Fact p.Prime] {C : Type}
     rw [primeDlogVerify_reads]
     exact ZMod.val_lt d
 
+/-- The product of indicators that every record is `(0, 0)` is the indicator that the entire
+record function is constantly `(0, 0)`. -/
 private theorem prod_omega0 (m : ℕ) (ω : Fin m → ZMod p × ZMod p) :
     (∏ i : Fin m, (if ω i = (0, 0) then (1 : ℝ) else 0)) =
       if ω = fun _ => (0, 0) then (1 : ℝ) else (0 : ℝ) := by
@@ -200,6 +248,8 @@ private theorem prod_omega0 (m : ℕ) (ω : Fin m → ZMod p × ZMod p) :
     rw [hz]
     simp [hne]
 
+/-- Weighting the record probabilities by the indicator of `(0, 0)` and summing gives the
+probability of `(0, 0)`. -/
 private theorem sum_zero_omega0 {p : ℕ} [Fact p.Prime] {C : Type} [AddCommGroup C]
     [Fintype C] [DecidableEq C] (g h : C) :
     (∑ x : ZMod p × ZMod p, (primeDlogRecordDist p g h).prob x * (if x = (0, 0) then 1 else 0))
@@ -218,6 +268,8 @@ private theorem sum_zero_omega0 {p : ℕ} [Fact p.Prime] {C : Type} [AddCommGrou
             by_cases hx : x = (0, 0) <;> simp [hx]
     _ = _ := h2
 
+/-- The probabilities of all length-`m` independent prime-order discrete logarithm record
+sequences sum to one. -/
 private theorem probEvent_total {p : ℕ} [Fact p.Prime] {C : Type} [AddCommGroup C]
     [Fintype C] [DecidableEq C] (g h : C) (m : ℕ) :
     (∑ ω : Fin m → ZMod p × ZMod p, (primeDlogRecordDist p g h).probOf ω) = 1 := by
@@ -250,6 +302,9 @@ open Qatlib
 open Qatlib
 open scoped Classical
 
+/-- For records on `b = d * a`, the decoder reads at most the list length, fails exactly when
+all first coordinates vanish, and returns `d` whenever a nonzero first coordinate occurs
+[Shor1997]. -/
 theorem prime_dlog_executable_first_nonzero_decoder (p : ℕ) [Fact p.Prime] (d : ZMod p)
     (xs : List (ZMod p × ZMod p)) (hon : ∀ z ∈ xs, z.2 = d * z.1) :
     (primeDlogDecode xs).2 ≤ xs.length ∧
@@ -258,6 +313,8 @@ theorem prime_dlog_executable_first_nonzero_decoder (p : ℕ) [Fact p.Prime] (d 
   ⟨primeDlogDecode_reads xs, primeDlogDecode_eq_none_iff xs,
     primeDlogDecode_eq_some_of d xs hon⟩
 
+/-- Verification tests `d.val • g = h` using exactly `d.val` additions, while verified decoding
+reads at most the input length and uses fewer than `p` additions. -/
 theorem prime_dlog_actual_verification_and_read_ledger (p : ℕ) [Fact p.Prime] (C : Type)
     [AddCommGroup C] [DecidableEq C] (g h : C) (d : ZMod p)
     (xs : List (ZMod p × ZMod p)) :
@@ -268,6 +325,8 @@ theorem prime_dlog_actual_verification_and_read_ledger (p : ℕ) [Fact p.Prime] 
   ⟨primeDlogVerify_reads g h d, primeDlogVerify_bool g h d,
     primeDlogVerified_reads g h xs, primeDlogVerified_adds_lt g h xs⟩
 
+/-- Under the cyclic oracle hypotheses, verified decoding of `m` independent records returns the
+logarithm with exact probability `1 - (1 / p) ^ m` [Shor1997]. -/
 theorem prime_dlog_fresh_actual_verified_success (p : ℕ) [Fact p.Prime] (C : Type)
     [AddCommGroup C] [Fintype C] [DecidableEq C] (g h : C) (d : ZMod p) (m : ℕ)
     (hp : (p : ℕ) • g = 0) (hinj : Function.Injective (fun a : ZMod p => a.val • g))
@@ -398,6 +457,8 @@ theorem prime_dlog_fresh_actual_verified_success (p : ℕ) [Fact p.Prime] (C : T
       by_cases hω : E ω <;> simp [hω]
     _ = 1 - (1 / (p : ℝ)) ^ m := by rw [probEvent_total g h m, hcompl]
 
+/-- For the logarithm of two to the generator one in `ZMod 3`, two records recover two with
+probability `8 / 9`; the list `[(0, 0), (1, 2)]` returns two with counts `(2, 2)`. -/
 theorem prime_dlog_mod_three_actual_consumer :
     (primeDlogRecordDist 3 (1 : ZMod 3) 2).probEvent
         (fun ω : Fin 2 → (ZMod 3 × ZMod 3) =>

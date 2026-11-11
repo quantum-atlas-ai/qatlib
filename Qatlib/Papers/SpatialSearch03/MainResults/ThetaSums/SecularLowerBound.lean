@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.SecularBound
+
+/-!
+# Secular and ground-energy lower bounds
+
+This module derives a lower bound for the negative-energy secular function in terms of `latSum1`
+and `latSum2`. At a negative root, this yields a lower bound on the energy magnitude when the
+coupling lies below the first lattice sum, supporting the analysis of [ChildsGoldstone2004].
+
+## Main statements
+
+* `inv_add_ge`: first-order lower bound for a reciprocal with a nonnegative increment.
+* `secular_lower_bound`: lattice-sum lower bound on the secular function.
+* `ground_energy_lower_bound`: corresponding lower bound on the negative root magnitude.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +36,8 @@ open Finset
 
 variable {d : ℕ}
 
+/-- For positive `x` and nonnegative `ε`, the reciprocal of `x + ε` is at least `x⁻¹ - ε * (x⁻¹)
+^ 2`. -/
 theorem inv_add_ge (x ε : ℝ) (hx : 0 < x) (hε : 0 ≤ ε) :
     x⁻¹ - ε * (x⁻¹) ^ 2 ≤ (x + ε)⁻¹ := by
   have hxe : 0 < x + ε := by linarith
@@ -27,6 +48,8 @@ theorem inv_add_ge (x ε : ℝ) (hx : 0 < x) (hε : 0 ≤ ε) :
   have hnn : 0 ≤ ε ^ 2 / (x ^ 2 * (x + ε)) := by positivity
   linarith [key]
 
+/-- For positive coupling and side length and negative energy, the secular function is at least
+`latSum1 n d / γ - |E| * latSum2 n d / γ ^ 2`. -/
 theorem secular_lower_bound {γ : ℝ} {n d : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     {E : ℝ} (hE : E < 0) :
     latSum1 n d / γ - |E| * latSum2 n d / γ ^ 2 ≤ secular γ n d E := by
@@ -107,6 +130,9 @@ theorem secular_lower_bound {γ : ℝ} {n d : ℕ} [NeZero n] (hγ : 0 < γ) (hn
     _ = secular γ n d E := by
         rw [← hsplit, secular]
 
+/-- For positive coupling, side length, and second lattice sum, with coupling below the first
+sum, a negative secular root has magnitude at least `γ * (latSum1 n d - γ) / latSum2 n d`
+[ChildsGoldstone2004]. -/
 theorem ground_energy_lower_bound {γ : ℝ} {n d : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     (hI2 : 0 < latSum2 n d) (_hL : γ < latSum1 n d) {E₀ : ℝ} (hE₀ : E₀ < 0)
     (hF : secular γ n d E₀ = 1) :

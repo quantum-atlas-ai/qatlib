@@ -8,6 +8,29 @@ import Mathlib.Data.Int.NatAbs
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound.OptimalAdversary
+
+/-!
+# Spectral norm of the even ordered-search matrix
+
+Proves that the explicit even Toeplitz matrix of [ChildsLee2008] has operator norm exactly one
+for positive `m`. The positive vector `uEven m` is fixed by the matrix, and a comparison
+argument bounds all real eigenvalues in absolute value by one.
+
+General lemmas convert positive-eigenvector comparisons into eigenvalue bounds and Hermitian
+spectral bounds into bounds for the Euclidean operator norm.
+
+## Main statements
+
+* `toeplitz_mulVec_uEven`: Shows that the explicit positive vector is fixed by the Toeplitz
+  matrix.
+* `toeplitz_eigenvalue_mem_Icc`: Places every real eigenvalue in `[-1, 1]`.
+* `toeplitz_l2_opNorm_eq_one`: Proves that the Euclidean operator norm equals one.
+
+## References
+
+* [Childs and Lee, 2008][ChildsLee2008]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +45,8 @@ namespace Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound
 open Qatlib.Papers.AdversarySrch07.MainResults
 open Qatlib.Papers.AdversarySrch07.MainResults.XiSequence
 
+/-- For an entrywise nonnegative real matrix, the absolute value of a row applied to `v` is at
+most the same row applied to the coordinatewise absolute values of `v`. -/
 theorem abs_sum_mul_le {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (v : ι → ℝ)
     (hMnn : ∀ i j, 0 ≤ M i j) (i : ι) :
     |∑ j, M i j * v j| ≤ ∑ j, M i j * |v j| := by
@@ -30,6 +55,9 @@ theorem abs_sum_mul_le {ι : Type*} [Fintype ι] (M : Matrix ι ι ℝ) (v : ι 
         refine Finset.sum_congr rfl (fun j _ => ?_)
         rw [abs_mul, abs_of_nonneg (hMnn i j)]
 
+/-- If an entrywise nonnegative matrix `M` is bounded above by `B` and `B` has a strictly
+positive eigenvector with positive eigenvalue `μ`, every real eigenvalue of `M` has absolute
+value at most `μ`. See [ChildsLee2008]. -/
 theorem abs_eigenvalue_le_of_pos_eigenvector {ι : Type*} [Fintype ι] [Nonempty ι]
     (M B : Matrix ι ι ℝ) (u : ι → ℝ) (μ : ℝ)
     (hMnn : ∀ i j, 0 ≤ M i j) (hMB : ∀ i j, M i j ≤ B i j)
@@ -95,21 +123,25 @@ theorem abs_eigenvalue_le_of_pos_eigenvector {ι : Type*} [Fintype ι] [Nonempty
       _ = μ * w k := by rw [hrow]
   exact le_of_mul_le_mul_right hbound hwk
 
+/-- The even weight `gammaEven m k` vanishes when `m < k`. -/
 theorem gammaEven_eq_zero_of_lt {m k : ℕ} (hk : m < k) : gammaEven m k = 0 := by
   unfold gammaEven
   rw [AM_eq_zero (by omega : m ≤ k - 1), AM_eq_zero hk.le]
   ring
 
+/-- The even Toeplitz matrix is entrywise nonnegative. -/
 theorem toeplitz_gammaEven_nonneg (m : ℕ) (i j : Fin (2 * m)) :
     0 ≤ toeplitz (2 * m) (gammaEven m) i j :=
   gammaEven_nonneg m _
 
+/-- Every coordinate of the reflected even vector `uEven m` is strictly positive. -/
 theorem uEven_pos (m : ℕ) (i : Fin (2 * m)) : 0 < uEven m i := by
   unfold uEven
   split_ifs with h
   · exact xi_pos _
   · exact xi_pos _
 
+/-- The even Toeplitz matrix is Hermitian. See [ChildsLee2008]. -/
 theorem toeplitz_isHermitian (m : ℕ) :
     (toeplitz (2 * m) (gammaEven m)).IsHermitian := by
   apply Matrix.IsHermitian.ext
@@ -118,6 +150,8 @@ theorem toeplitz_isHermitian (m : ℕ) :
   rw [show ((i.val : ℤ) - (j.val : ℤ)) = -(((j.val : ℤ) - (i.val : ℤ))) by ring,
     Int.natAbs_neg]
 
+/-- For a row index `p < 2 * m`, any function `G` with the specified Toeplitz-row summands sums
+to the corresponding coordinate of the reflected `xi` vector. -/
 theorem toeplitz_row_sum_aux (m p : ℕ) (_hp : p < 2 * m) (G : ℕ → ℝ)
     (hG : ∀ q, G q = gammaEven m (2 * m - Int.natAbs ((p : ℤ) - (q : ℤ))) *
       (if q < m then xi q else xi (2 * m - 1 - q))) :
@@ -197,6 +231,8 @@ theorem toeplitz_row_sum_aux (m p : ℕ) (_hp : p < 2 * m) (G : ℕ → ℝ)
     rw [← harg]
     exact h
 
+/-- For `p < 2 * m`, the Toeplitz row applied to the reflected `xi` coordinates equals the
+corresponding reflected coordinate. See [ChildsLee2008]. -/
 theorem toeplitz_row_sum (m p : ℕ) (hp : p < 2 * m) :
     ∑ q ∈ Finset.range (2 * m),
         gammaEven m (2 * m - Int.natAbs ((p : ℤ) - (q : ℤ))) *
@@ -207,6 +243,8 @@ theorem toeplitz_row_sum (m p : ℕ) (hp : p < 2 * m) :
       (if q < m then xi q else xi (2 * m - 1 - q)))
     (fun _ => rfl)
 
+/-- The even Toeplitz matrix fixes `uEven m` under matrix-vector multiplication. See
+[ChildsLee2008]. -/
 theorem toeplitz_mulVec_uEven (m : ℕ) :
     (toeplitz (2 * m) (gammaEven m)).mulVec (uEven m) = uEven m := by
   funext p
@@ -224,6 +262,8 @@ theorem toeplitz_mulVec_uEven (m : ℕ) :
         toeplitz_row_sum m p.val p.isLt
     _ = uEven m p := by simp [uEven]
 
+/-- For `m > 0`, every real eigenvalue of the even Toeplitz matrix has absolute value at most
+one. See [ChildsLee2008]. -/
 theorem toeplitz_eigenvalue_abs_le_one (m : ℕ) (hm : 0 < m) (lam : ℝ)
     (hlam : ∃ v : Fin (2 * m) → ℝ, v ≠ 0 ∧
       (toeplitz (2 * m) (gammaEven m)).mulVec v = lam • v) : |lam| ≤ 1 := by
@@ -233,6 +273,8 @@ theorem toeplitz_eigenvalue_abs_le_one (m : ℕ) (hm : 0 < m) (lam : ℝ)
     (toeplitz_gammaEven_nonneg m) (fun i j => le_rfl) (uEven_pos m) zero_lt_one
     (by rw [toeplitz_mulVec_uEven]; simp) lam hlam
 
+/-- For `m > 0`, the even Toeplitz matrix has eigenvalue one with a nonzero real eigenvector.
+See [ChildsLee2008]. -/
 theorem toeplitz_hasEigenvalue_one (m : ℕ) (hm : 0 < m) :
     ∃ v : Fin (2 * m) → ℝ, v ≠ 0 ∧
       (toeplitz (2 * m) (gammaEven m)).mulVec v = (1 : ℝ) • v := by
@@ -242,12 +284,16 @@ theorem toeplitz_hasEigenvalue_one (m : ℕ) (hm : 0 < m) :
   rw [h] at hpos
   simp at hpos
 
+/-- For `m > 0`, every real eigenvalue of the even Toeplitz matrix lies in `[-1, 1]`. See
+[ChildsLee2008]. -/
 theorem toeplitz_eigenvalue_mem_Icc (m : ℕ) (hm : 0 < m) (lam : ℝ)
     (hlam : ∃ v : Fin (2 * m) → ℝ, v ≠ 0 ∧
       (toeplitz (2 * m) (gammaEven m)).mulVec v = lam • v) : lam ∈ Set.Icc (-1 : ℝ) 1 := by
   have h := abs_le.mp (toeplitz_eigenvalue_abs_le_one m hm lam hlam)
   exact ⟨h.1, h.2⟩
 
+/-- A real Hermitian matrix whose real eigenvalues all have absolute value at most one has
+Euclidean operator norm at most one. See [ChildsLee2008]. -/
 theorem l2_opNorm_le_one_of_eigenvalue_mem {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
     (A : Matrix ι ι ℝ) (hA : A.IsHermitian)
     (h : ∀ lam : ℝ, (∃ v : ι → ℝ, v ≠ 0 ∧ A *ᵥ v = lam • v) → |lam| ≤ 1) :
@@ -298,12 +344,16 @@ theorem l2_opNorm_le_one_of_eigenvalue_mem {ι : Type*} [Fintype ι] [DecidableE
     _ = ‖hA.eigenvalues‖ := by rw [hU, hUs, hD]; ring
     _ ≤ 1 := hlam
 
+/-- For `m > 0`, the even Toeplitz matrix has Euclidean operator norm at most one. See
+[ChildsLee2008]. -/
 theorem toeplitz_l2_opNorm_le_one (m : ℕ) (hm : 0 < m) :
     ‖(toeplitz (2 * m) (gammaEven m) : Matrix (Fin (2 * m)) (Fin (2 * m)) ℝ)‖ ≤ 1 := by
   haveI : Nonempty (Fin (2 * m)) := ⟨⟨0, by omega⟩⟩
   exact l2_opNorm_le_one_of_eigenvalue_mem _
     (toeplitz_isHermitian m) (fun lam hlam => toeplitz_eigenvalue_abs_le_one m hm lam hlam)
 
+/-- A real matrix fixing a nonzero vector has Euclidean operator norm at least one. See
+[ChildsLee2008]. -/
 theorem l2_opNorm_ge_one_of_unit_eigenvector {ι : Type*} [Fintype ι] [DecidableEq ι]
     (A : Matrix ι ι ℝ) (u : ι → ℝ) (hu : u ≠ 0) (hAu : A *ᵥ u = u) :
     1 ≤ ‖A‖ := by
@@ -320,6 +370,8 @@ theorem l2_opNorm_ge_one_of_unit_eigenvector {ι : Type*} [Fintype ι] [Decidabl
   have hpos : 0 < ‖(WithLp.toLp 2 u : EuclideanSpace ℝ ι)‖ := norm_pos_iff.mpr hxne
   nlinarith [hnorm, hpos]
 
+/-- For `m > 0`, the even Toeplitz matrix has Euclidean operator norm at least one. See
+[ChildsLee2008]. -/
 theorem toeplitz_l2_opNorm_ge_one (m : ℕ) (hm : 0 < m) :
     1 ≤ ‖(toeplitz (2 * m) (gammaEven m) : Matrix (Fin (2 * m)) (Fin (2 * m)) ℝ)‖ :=
   l2_opNorm_ge_one_of_unit_eigenvector _
@@ -330,6 +382,8 @@ theorem toeplitz_l2_opNorm_ge_one (m : ℕ) (hm : 0 < m) :
       simp at hpos)
     (toeplitz_mulVec_uEven m)
 
+/-- For `m > 0`, the even Toeplitz matrix has Euclidean operator norm exactly one. See
+[ChildsLee2008]. -/
 theorem toeplitz_l2_opNorm_eq_one (m : ℕ) (hm : 0 < m) :
     ‖(toeplitz (2 * m) (gammaEven m) : Matrix (Fin (2 * m)) (Fin (2 * m)) ℝ)‖ = 1 :=
   le_antisymm (toeplitz_l2_opNorm_le_one m hm) (toeplitz_l2_opNorm_ge_one m hm)

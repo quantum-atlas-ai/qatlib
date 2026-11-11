@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
 import Mathlib.Analysis.Matrix.Order
+
+/-!
+# Born readout distributions and moments
+
+`bornLaw` and `bornPMF` describe the joint Kraus-branch and spectral-measurement outcomes for a
+density matrix. `readout` multiplies the branch weight by the measured eigenvalue, and the
+module proves exact formulas for its mean, second moment, variance, and measure integrals. The
+constructions relate to finite Kraus implementations in [CaiEtAl2026].
+
+## Main statements
+
+* `readout_mean`: the weighted branch expectation.
+* `readout_second`: the second moment using the squared observable.
+* `hermitian_readout_exists`: unitary spectral representation for any Hermitian observable.
+
+## References
+
+* [Cai et al., 2026][CaiEtAl2026]
+* [Kraus, 1983][Kraus1983]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,20 +44,28 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open scoped BigOperators ComplexOrder
 
+/-- The matrix `V * diagonal eig * Vᴴ`, with real diagonal entries embedded in the complex
+numbers. -/
 def observable {d : ℕ} (V : Matrix (Fin d) (Fin d) ℂ) (eig : Fin d → ℝ) : Operator d :=
   V * diagonal (fun j => (eig j : ℂ)) * V.conjTranspose
 
+/-- The Kraus branch `K i * ρ * (K i)ᴴ` expressed by conjugation with `Vᴴ` on the left and `V`
+on the right. -/
 def rotatedBranch {d s : ℕ} (K : Fin s → Operator d) (ρ V : Operator d)
     (i : Fin s) : Operator d := V.conjTranspose * (K i * ρ * (K i).conjTranspose) * V
 
+/-- The real part of the selected diagonal entry of a rotated Kraus branch, indexed by branch
+and readout outcome. -/
 def bornMass {d s : ℕ} (K : Fin s → Operator d) (ρ V : Operator d)
     (z : Fin s × Fin d) : ℝ := (rotatedBranch K ρ V z.1 z.2 z.2).re
 
+/-- The joint Born mass is nonnegative for a positive semidefinite input matrix. -/
 theorem bornMass_nonneg {d s : ℕ} (K : Fin s → Operator d) (ρ V : Operator d)
     (hρ : ρ.PosSemidef) (z : Fin s × Fin d) : 0 ≤ bornMass K ρ V z := by
   have h := (hρ.mul_mul_conjTranspose_same (K z.1)).conjTranspose_mul_mul_same V
   exact (Complex.nonneg_iff.mp (h.diag_nonneg (i := z.2))).1
 
+/-- A unitary change of basis preserves the trace of each Kraus branch. -/
 theorem rotatedBranch_trace {d s : ℕ} (K : Fin s → Operator d) (ρ V : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (i : Fin s) :
     (rotatedBranch K ρ V i).trace = (K i * ρ * (K i).conjTranspose).trace := by
@@ -44,6 +73,8 @@ theorem rotatedBranch_trace {d s : ℕ} (K : Fin s → Operator d) (ρ V : Opera
   unfold rotatedBranch
   rw [Matrix.trace_mul_cycle, hVV, one_mul]
 
+/-- For a complete Kraus family, trace-one input, and unitary readout basis, the joint Born
+masses sum to one. -/
 theorem bornMass_sum {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ V : Operator d) (hρ : ρ.trace = 1)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) : ∑ z, bornMass K ρ V z = 1 := by
@@ -60,6 +91,8 @@ theorem bornMass_sum {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete 
   rw [← Complex.re_sum, hsum]
   rfl
 
+/-- The finite probability distribution of the joint Kraus branch and spectral readout for a
+density matrix and unitary basis. -/
 def bornLaw {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ V : Operator d) (hρ : ρ.PosSemidef) (htρ : ρ.trace = 1)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) : FinDist (Fin s × Fin d) where
@@ -67,17 +100,21 @@ def bornLaw {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
   nonneg := bornMass_nonneg K ρ V hρ
   sum_one := bornMass_sum K hK ρ V htρ hV
 
+/-- The probability mass function corresponding to the joint finite Born distribution. -/
 def bornPMF {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ V : Operator d) (hρ : ρ.PosSemidef) (htρ : ρ.trace = 1)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) : PMF (Fin s × Fin d) :=
   toPMF (bornLaw K hK ρ V hρ htρ hV)
 
+/-- The real mass of a joint outcome under `bornPMF` equals `bornMass`. -/
 theorem bornPMF_mass {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ V : Operator d) (hρ : ρ.PosSemidef) (htρ : ρ.trace = 1)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (z : Fin s × Fin d) :
     (bornPMF K hK ρ V hρ htρ hV z).toReal = bornMass K ρ V z := by
   exact ENNReal.toReal_ofReal (bornMass_nonneg K ρ V hρ z)
 
+/-- Expands the real trace of `A * observable V eig` as the eigenvalue-weighted sum of the
+diagonal entries of `Vᴴ * A * V`. -/
 theorem trace_observable {d : ℕ} (A V : Operator d) (eig : Fin d → ℝ) :
     (A * observable V eig).trace.re = ∑ j, ((V.conjTranspose * A * V) j j).re * eig j := by
   unfold observable
@@ -85,9 +122,12 @@ theorem trace_observable {d : ℕ} (A V : Operator d) (eig : Fin d → ℝ) :
   simp only [Matrix.trace, Matrix.diag_apply, Matrix.mul_diagonal, Complex.re_sum,
     Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im, mul_zero, sub_zero]
 
+/-- The real readout equal to the branch weight times the spectral outcome value. -/
 def readout {d s : ℕ} (w : Fin s → ℝ) (eig : Fin d → ℝ) (z : Fin s × Fin d) : ℝ :=
   w z.1 * eig z.2
 
+/-- The mean weighted Born readout equals the sum of the branch weights times the real
+observable traces of the Kraus branches. -/
 theorem readout_mean {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ V : Operator d) (hρ : ρ.PosSemidef) (htρ : ρ.trace = 1)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (w : Fin s → ℝ) (eig : Fin d → ℝ) :
@@ -101,6 +141,7 @@ theorem readout_mean {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete 
   dsimp [bornMass, rotatedBranch, readout]
   ring
 
+/-- For unitary `V`, squaring `observable V eig` squares its real diagonal spectral values. -/
 theorem observable_sq {d : ℕ} (V : Operator d)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (eig : Fin d → ℝ) :
     observable V eig ^ 2 = observable V (fun j => eig j ^ 2) := by
@@ -114,6 +155,8 @@ theorem observable_sq {d : ℕ} (V : Operator d)
     _ = observable V (fun j => eig j ^ 2) := by
       simp only [D, Matrix.diagonal_mul_diagonal, observable, pow_two, Complex.ofReal_mul]
 
+/-- The second moment of the weighted Born readout equals the sum of squared branch weights
+times the real branch traces against the squared observable. -/
 theorem readout_second {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ V : Operator d) (hρ : ρ.PosSemidef) (htρ : ρ.trace = 1)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (w : Fin s → ℝ) (eig : Fin d → ℝ) :
@@ -125,6 +168,8 @@ theorem readout_second {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplet
     simp only [readout, mul_pow]
   rw [hshot, readout_mean, observable_sq V hV eig]
 
+/-- Expresses the weighted Born readout variance as its branch-trace second moment minus the
+square of its branch-trace mean. -/
 theorem readout_variance {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ V : Operator d) (hρ : ρ.PosSemidef) (htρ : ρ.trace = 1)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (w : Fin s → ℝ) (eig : Fin d → ℝ) :
@@ -133,6 +178,8 @@ theorem readout_variance {d s : ℕ} (K : Fin s → Operator d) (hK : KrausCompl
         (∑ i, w i * (K i * ρ * (K i).conjTranspose * observable V eig).trace.re) ^ 2 := by
   rw [FinDist.variance_eq_expect_sq_sub, readout_second, readout_mean]
 
+/-- Every finite Hermitian observable can be written as `observable V eig` for a unitary `V` and
+real spectral values `eig`. -/
 theorem hermitian_readout_exists {d : ℕ} (O : Operator d) (hO : O.IsHermitian) :
     ∃ V : Operator d, V ∈ Matrix.unitaryGroup (Fin d) ℂ ∧
       ∃ eig : Fin d → ℝ, O = observable V eig := by
@@ -140,6 +187,7 @@ theorem hermitian_readout_exists {d : ℕ} (O : Operator d) (hO : O.IsHermitian)
   have h := hO.spectral_theorem
   simpa only [Unitary.conjStarAlgAut_apply, observable] using! h
 
+/-- The variance of the weighted Born readout is nonnegative. -/
 theorem readout_variance_nonneg {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ V : Operator d) (hρ : ρ.PosSemidef) (htρ : ρ.trace = 1)
     (hV : V ∈ Matrix.unitaryGroup (Fin d) ℂ) (w : Fin s → ℝ) (eig : Fin d → ℝ) :
@@ -147,6 +195,8 @@ theorem readout_variance_nonneg {d s : ℕ} (K : Fin s → Operator d) (hK : Kra
   exact Finset.sum_nonneg (fun z _ =>
     mul_nonneg (bornMass_nonneg K ρ V hρ z) (sq_nonneg _))
 
+/-- Integration of a real function against the Born PMF measure equals its expectation under the
+finite Born law. -/
 theorem bornPMF_integral {d s : ℕ}
     [MeasurableSpace (Fin s × Fin d)] [MeasurableSingletonClass (Fin s × Fin d)]
     (K : Fin s → Operator d) (hK : KrausComplete K)
@@ -157,6 +207,8 @@ theorem bornPMF_integral {d s : ℕ}
   rw [PMF.integral_eq_sum]
   simp only [bornPMF_mass, smul_eq_mul, FinDist.expect, bornLaw]
 
+/-- The integral of the squared centered readout under the Born PMF measure equals its variance
+under the finite Born law. -/
 theorem bornPMF_centered_integral {d s : ℕ}
     [MeasurableSpace (Fin s × Fin d)] [MeasurableSingletonClass (Fin s × Fin d)]
     (K : Fin s → Operator d) (hK : KrausComplete K)

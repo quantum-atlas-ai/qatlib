@@ -5,6 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementStatisticsDefs
+
+/-!
+# Moments and resource bounds for measurement records
+
+This module proves unbiasedness, variance scaling, third central moment scaling, and Chebyshev
+bounds for independent records of a finite POVM. It also derives mixture moment formulas, a
+variance decomposition over measurement settings, and a bias bound for U-statistics. Finite
+quantum measurement statistics are treated in [Wilde2017], with randomized measurement
+applications in [HuangKuengPreskill2020].
+
+`coinciding_record_variance` describes fully coinciding records, whose average retains the
+single-record variance. The module also verifies comparison bounds and explicit ledger formulas
+for native measurement campaigns.
+
+## Main statements
+
+* `general_sample_mean_variance`: the variance of a nonempty independent sample average is the
+  record variance divided by sample size.
+* `general_sample_third_central_moment`: the third central moment scales by the inverse square
+  of sample size.
+* `ensemble_variance_decomposition`: mixture variance splits into within-setting and
+  between-setting terms.
+* `native_run_ledger`: records campaign operation counts, bit time, and peak space.
+
+## References
+
+* [Wilde, 2017][Wilde2017]
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
@@ -26,6 +56,8 @@ open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 
 variable {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
 
+/-- For a positive sample size, the average of independent POVM records has expectation equal to
+the single-record mean. -/
 theorem general_sample_mean_unbiased (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (hn : 0 < n) (h : O → ℝ) :
     (povmSampleLaw E ρ hρ).expect (fun ω : (Fin n → O) => FinDist.avg h ω)
@@ -35,6 +67,8 @@ theorem general_sample_mean_unbiased (E : FinitePOVM O D) (ρ : Operator D)
   rw [h1]
   rfl
 
+/-- For a positive sample size `n`, the mean squared deviation of the independent sample average
+is the record variance divided by `n`. -/
 theorem general_sample_mean_variance (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (hn : 0 < n) (h : O → ℝ) :
     (povmSampleLaw E ρ hρ).expect
@@ -48,12 +82,15 @@ theorem general_sample_mean_variance (E : FinitePOVM O D) (ρ : Operator D)
   rw [h1]
   rfl
 
+/-- The probability-weighted sum of a centered POVM record statistic is zero. -/
 theorem centred_record_mean_zero (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → ℝ) :
     (∑ x, (povmRecordLaw E ρ hρ).prob x * centredValue (povmRecordLaw E ρ hρ) h x) = 0 := by
   have h1 := centred_mean_zero (povmRecordLaw E ρ hρ) h
   simpa [FinDist.expect] using! h1
 
+/-- For a mean-zero record statistic, the expected product at three sample positions vanishes
+whenever the first two positions are distinct. -/
 theorem sample_triple_zero_of_ne (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (i j : Fin n) (hij : i ≠ j) (h : O → ℝ) (l : Fin n)
     (hmean : (∑ x, (povmRecordLaw E ρ hρ).prob x * h x) = 0) :
@@ -79,6 +116,8 @@ theorem sample_triple_zero_of_ne (E : FinitePOVM O D) (ρ : Operator D)
         hmean]
       simp
 
+/-- For a mean-zero record statistic and distinct positions, the expectation of its square at
+one position times its value at the other is zero. -/
 theorem sample_sq_triple_zero_of_ne (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (i l : Fin n) (hil : i ≠ l) (h : O → ℝ)
     (hmean : (∑ x, (povmRecordLaw E ρ hρ).prob x * h x) = 0) :
@@ -91,6 +130,8 @@ theorem sample_sq_triple_zero_of_ne (E : FinitePOVM O D) (ρ : Operator D)
   rw [hconv, sample_expect_pair_sq E ρ hρ i l hil h h, hmean]
   simp
 
+/-- The sum of all centered triple-product expectations in a nonempty independent sample equals
+the sample size times the record third central moment. -/
 theorem sample_triple_sum (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (hn : 0 < n) (h : O → ℝ) :
     (∑ i : Fin n, ∑ j : Fin n, ∑ l : Fin n,
@@ -220,6 +261,8 @@ theorem sample_triple_sum (E : FinitePOVM O D) (ρ : Operator D)
         rw [hconst, Finset.card_univ]
         norm_num
 
+/-- For a positive sample size `n`, the third central moment of the independent sample average
+is the record third central moment divided by `n ^ 2`. -/
 theorem general_sample_third_central_moment (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (hn : 0 < n) (h : O → ℝ) :
     (povmSampleLaw E ρ hρ).expect
@@ -391,6 +434,8 @@ theorem general_sample_third_central_moment (E : FinitePOVM O D) (ρ : Operator 
   rw [hsum, sample_triple_sum E ρ hρ hn h]
   field_simp [hn0]
 
+/-- For positive sample size and tolerance, the probability that the independent sample average
+deviates by more than `ε` is at most the record variance divided by `n * ε ^ 2`. -/
 theorem general_sample_confidence (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (hn : 0 < n) (h : O → ℝ) (ε : ℝ) (hε : 0 < ε) :
     FinDist.probEvent (L := n) (povmRecordLaw E ρ hρ)
@@ -400,6 +445,8 @@ theorem general_sample_confidence (E : FinitePOVM O D) (ρ : Operator D)
   have h1 := FinDist.chebyshev_avg (povmRecordLaw E ρ hρ) h hn ε hε
   exact h1
 
+/-- The second moment minus the variance of a finite-distribution statistic equals the square of
+its mean. -/
 theorem variance_second_moment_gap (p : FinDist O) (h : O → ℝ) :
     recordSecondMoment p h - recordVariance p h = (p.expect h) ^ 2 := by
   have h1 := FinDist.expect_centered_sq p h
@@ -407,12 +454,15 @@ theorem variance_second_moment_gap (p : FinDist O) (h : O → ℝ) :
   rw [h1]
   ring
 
+/-- The variance of a finite-distribution statistic is at most its second moment. -/
 theorem variance_le_second_moment (p : FinDist O) (h : O → ℝ) :
     recordVariance p h ≤ recordSecondMoment p h := by
   have h1 := variance_second_moment_gap p h
   have h2 : 0 ≤ (p.expect h) ^ 2 := sq_nonneg _
   linarith
 
+/-- For the uniform law on `Fin 2` and the statistic given by the outcome's numeric value, the
+second moment minus the variance is one quarter. -/
 theorem variance_envelope_gap_concrete :
     let p : FinDist (Fin 2) :=
       { prob := fun _ => (1 : ℝ) / 2
@@ -422,6 +472,8 @@ theorem variance_envelope_gap_concrete :
     recordSecondMoment p h - recordVariance p h = (1 : ℝ) / 4 := by
   norm_num [recordSecondMoment, recordVariance, FinDist.variance, FinDist.expect]
 
+/-- Under the coinciding-record law, the expectation of a statistic of the first coordinate
+equals its expectation under the original law. -/
 theorem coincidingRecordLaw_expect {m : ℕ} (p : FinDist O) (φ : O → ℝ) :
     (coincidingRecordLaw p).expect (fun ω : (Fin (m+1) → O) => φ (ω 0))
       = p.expect φ := by
@@ -466,6 +518,8 @@ theorem coincidingRecordLaw_expect {m : ℕ} (p : FinDist O) (φ : O → ℝ) :
   · intro a ha
     rfl
 
+/-- The average of fully coinciding records has the original statistic's variance, for any
+positive number of records. -/
 theorem coinciding_record_variance {m : ℕ} (p : FinDist O) (h : O → ℝ) :
     (coincidingRecordLaw p).expect
         (fun ω : (Fin (m+1) → O) =>
@@ -509,6 +563,7 @@ theorem coinciding_record_variance {m : ℕ} (p : FinDist O) (h : O → ℝ) :
       ring
   rw [hconv, hsq]
 
+/-- The ensemble mean is the setting-probability-weighted sum of the individual setting means. -/
 theorem ensemble_mean_mixture {m : ℕ} (E : Fin m → FinitePOVM O D) (q : FinDist (Fin m))
     (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ) :
     ensembleMean E q ρ hρ h = ∑ s : Fin m, q.prob s * settingMean E q ρ hρ h s := by
@@ -527,6 +582,8 @@ theorem ensemble_mean_mixture {m : ℕ} (E : Fin m → FinitePOVM O D) (q : FinD
           refine Finset.sum_congr rfl fun x _ => ?_
           ring
 
+/-- The ensemble second moment is the setting-probability-weighted sum of the individual setting
+second moments. -/
 theorem ensemble_second_moment_mixture {m : ℕ} (E : Fin m → FinitePOVM O D)
     (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ) :
     ensembleSecondMoment E q ρ hρ h
@@ -546,6 +603,8 @@ theorem ensemble_second_moment_mixture {m : ℕ} (E : Fin m → FinitePOVM O D)
           refine Finset.sum_congr rfl fun x _ => ?_
           ring
 
+/-- The ensemble variance equals the mean of the setting variances plus the variance of the
+setting means. -/
 theorem ensemble_variance_decomposition {m : ℕ} (E : Fin m → FinitePOVM O D)
     (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ) :
     ensembleVariance E q ρ hρ h
@@ -607,6 +666,8 @@ theorem ensemble_variance_decomposition {m : ℕ} (E : Fin m → FinitePOVM O D)
         + q.variance (fun s => settingMean E q ρ hρ h s) := by
         rw [hsumeq, hqvar]
 
+/-- For positive sample size and tolerance, independent ensemble records satisfy the Chebyshev
+bound using the ensemble variance. -/
 theorem ensemble_sample_confidence {m n : ℕ} (E : Fin m → FinitePOVM O D)
     (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (hn : 0 < n) (h : O → ℝ) (ε : ℝ) (hε : 0 < ε) :
@@ -617,6 +678,8 @@ theorem ensemble_sample_confidence {m n : ℕ} (E : Fin m → FinitePOVM O D)
   have h1 := FinDist.chebyshev_avg (ensembleOutcomeLaw E q ρ hρ) h hn ε hε
   exact h1
 
+/-- Independent ensemble records satisfy the Chebyshev bound with the ensemble second moment in
+place of the variance. -/
 theorem ensemble_sample_confidence_conservative {m n : ℕ} (E : Fin m → FinitePOVM O D)
     (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (hn : 0 < n) (h : O → ℝ) (ε : ℝ) (hε : 0 < ε) :
@@ -634,6 +697,8 @@ theorem ensemble_sample_confidence_conservative {m n : ℕ} (E : Fin m → Finit
     _ ≤ (ensembleOutcomeLaw E q ρ hρ).expect (fun x => (h x) ^ 2) / (n * ε ^ 2) := by
           exact mul_le_mul_of_nonneg_right h2 (by positivity)
 
+/-- If the number of distinct index tuples is positive and every injective tuple has deviation
+at most `Δ`, the absolute U-statistic bias is at most `Δ`. -/
 theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDist O)
     (h : (Fin k → O) → ℝ) (Δ : ℝ) (hN : 0 < distinctTupleCount n k)
     (hbound : UStatisticDeviationBound q p h Δ) :
@@ -824,15 +889,20 @@ theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDi
     _ = (1 / (N : ℝ)) * ((N : ℝ) * Δ) := by rw [hsumΔ]
     _ = Δ := by field_simp [hNpos]
 
+/-- The result-dependent native axis cost is at most the history length plus the native
+axis-table length. -/
 theorem result_dependent_table_cost (history : List (Fin 3 × Fin 2)) :
     nativeResultDependentAxisCost history
       ≤ history.length + nativeAxisTable.length := by
   exact nativeResultDependentAxisCost_le history
 
+/-- Counted rational insertion sort uses at most the square of the input length in comparisons. -/
 theorem order_statistic_cost (means : List ℚ) :
     (rationalInsertionSortCounted means).2 ≤ means.length * means.length :=
   rationalInsertionSortCounted_cost_le means
 
+/-- Establishes the native campaign's exact measurement, query, draw, read, and addition counts,
+comparison bounds, and formulas for bit time and peak space. -/
 theorem native_run_ledger {K L : ℕ} (c : NativeCampaign K L) (m : NativeMachine) :
     (nativeLedger c m).measurements = K * L ∧
     (nativeLedger c m).queries = 0 ∧
@@ -859,6 +929,8 @@ theorem native_run_ledger {K L : ℕ} (c : NativeCampaign K L) (m : NativeMachin
     h.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.1,
     h.2.2.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.2.2⟩
 
+/-- Collects sample-mean unbiasedness and variance scaling, ensemble mean and variance
+decompositions, and the U-statistic bias bound. -/
 theorem clause6_endpoint :
     (∀ (Ot : Type) [Fintype Ot] [DecidableEq Ot] (Dt : ℕ)
       (E : FinitePOVM Ot Dt) (ρ : Operator Dt) (hρ : IsDensityOperator ρ)
@@ -900,6 +972,8 @@ theorem clause6_endpoint :
   · intro Ot inst inst2 n k q p h Δ hN hbound
     exact uStatistic_bias_bound q p h Δ hN hbound
 
+/-- Collects POVM and ensemble confidence bounds, the second-moment gap identity, and the
+variance formula for fully coinciding records. -/
 theorem clause9_endpoint :
     (∀ (Ot : Type) [Fintype Ot] [DecidableEq Ot] (Dt : ℕ)
       (E : FinitePOVM Ot Dt) (ρ : Operator Dt) (hρ : IsDensityOperator ρ)
@@ -943,6 +1017,8 @@ theorem clause9_endpoint :
   · intro Ot inst inst2 m p h
     exact coinciding_record_variance p h
 
+/-- Collects the native campaign ledger formulas, result-dependent axis-table cost bound, and
+quadratic sorting-comparison bound. -/
 theorem thresholdGoal_endpoint :
     (∀ {K L : ℕ} (c : NativeCampaign K L) (m : NativeMachine),
       (nativeLedger c m).measurements = K * L ∧

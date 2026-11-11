@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
+
+/-!
+# Scalar estimates for span-program spectral analysis
+
+This module bounds changes in positive and negative witness sizes when their weights are scaled
+or perturbed by squares. It also supplies scalar inverse identities, nonvanishing denominators,
+and constrained minimization formulas for the spectral analysis in [ReichardtSpalek2008].
+
+## Main statements
+
+* `WsizeTrueAt.le_add_sq`: If old weights are at least positive `σ` and perturbations have
+  magnitude at most `τ`, adding their squares increases the exact positive witness size to at
+  most `c + (τ²/σ)*c`.
+* `WsizeFalseAt.le_add_sq`: If old weights are at least positive `σ` and perturbations have
+  magnitude at most `τ`, adding their squares increases the exact negative witness size to at
+  most `c + (τ²/σ)*c`.
+
+## References
+
+* [Reichardt and Spalek, 2008][ReichardtSpalek2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +44,8 @@ variable {n : ℕ} {J C I : Type}
 
 namespace SpanProgram
 
+/-- If each new weight is at most `k` times the old weight, the new weighted squared norm is at
+most `k` times the old one. See [ReichardtSpalek2008]. -/
 theorem wt_le_mul [Fintype J] {z z' : J → ℝ} {k : ℝ} (_hk : 0 ≤ k)
     (hz : ∀ j, z' j ≤ k * z j) (w : J → ℂ) : wt z' w ≤ k * wt z w := by
   rw [wt, wt, Finset.mul_sum]
@@ -29,6 +53,8 @@ theorem wt_le_mul [Fintype J] {z z' : J → ℝ} {k : ℝ} (_hk : 0 ≤ k)
   have h := mul_le_mul_of_nonneg_right (hz j) (sq_nonneg (‖w j‖))
   simpa [mul_assoc] using h
 
+/-- Under the pointwise weight bound `z' ≤ k*z`, exact positive witness sizes satisfy `c' ≤
+k*c`. See [ReichardtSpalek2008]. -/
 theorem WsizeTrueAt.le_mul [Fintype J] {P : SpanProgram n J C I} {z z' : J → ℝ}
     {S : Finset J} {c c' k : ℝ} (_hk : 0 ≤ k) (hz : ∀ j, z' j ≤ k * z j)
     (h : P.WsizeTrueAt z S c) (h' : P.WsizeTrueAt z' S c') : c' ≤ k * c := by
@@ -37,6 +63,8 @@ theorem WsizeTrueAt.le_mul [Fintype J] {P : SpanProgram n J C I} {z z' : J → �
     _ ≤ k * wt z w := wt_le_mul _hk hz w
     _ = k * c := by rw [hval]
 
+/-- Under the pointwise weight bound `z' ≤ k*z`, exact negative witness sizes satisfy `c' ≤
+k*c`. See [ReichardtSpalek2008]. -/
 theorem WsizeFalseAt.le_mul [Fintype J] [Fintype C] {P : SpanProgram n J C I} {z z' : J → ℝ}
     {S : Finset J} {c c' k : ℝ} (_hk : 0 ≤ k) (hz : ∀ j, z' j ≤ k * z j)
     (h : P.WsizeFalseAt z S c) (h' : P.WsizeFalseAt z' S c') : c' ≤ k * c := by
@@ -51,11 +79,16 @@ theorem WsizeFalseAt.le_mul [Fintype J] [Fintype C] {P : SpanProgram n J C I} {z
     _ ≤ k * ∑ j, z j * ‖P.pair b j‖ ^ 2 := hsum
     _ = k * c := by rw [hval]
 
+/-- Adding the squared perturbations `t j²` to the weights adds the corresponding weighted
+coordinate-norm sum to `wt`. See [ReichardtSpalek2008]. -/
 theorem wt_add_sq [Fintype J] (z t : J → ℝ) (w : J → ℂ) :
     wt (fun j => z j + t j ^ 2) w = wt z w + ∑ j, t j ^ 2 * ‖w j‖ ^ 2 := by
   rw [wt, wt, ← Finset.sum_add_distrib]
   exact sum_congr rfl fun j _ => by ring
 
+/-- If old weights are at least positive `σ` and perturbations have magnitude at most `τ`,
+adding their squares increases the exact positive witness size to at most `c + (τ²/σ)*c`.
+See [ReichardtSpalek2008]. -/
 theorem WsizeTrueAt.le_add_sq [Fintype J] {P : SpanProgram n J C I} {z z' t : J → ℝ}
     {S : Finset J} {c c' σ τ : ℝ} (hσ : 0 < σ) (hzσ : ∀ j, σ ≤ z j)
     (_hτ : 0 ≤ τ) (ht : ∀ j, |t j| ≤ τ) (hzt : ∀ j, z' j = z j + t j ^ 2)
@@ -82,6 +115,9 @@ theorem WsizeTrueAt.le_add_sq [Fintype J] {P : SpanProgram n J C I} {z z' t : J 
     _ ≤ wt z w + (τ ^ 2 / σ) * wt z w := by linarith
     _ = c + (τ ^ 2 / σ) * c := by rw [hval]
 
+/-- If old weights are at least positive `σ` and perturbations have magnitude at most `τ`,
+adding their squares increases the exact negative witness size to at most `c + (τ²/σ)*c`.
+See [ReichardtSpalek2008]. -/
 theorem WsizeFalseAt.le_add_sq [Fintype J] [Fintype C] {P : SpanProgram n J C I} {z z' t : J → ℝ}
     {S : Finset J} {c c' σ τ : ℝ} (hσ : 0 < σ) (hzσ : ∀ j, σ ≤ z j)
     (_hτ : 0 ≤ τ) (ht : ∀ j, |t j| ≤ τ) (hzt : ∀ j, z' j = z j + t j ^ 2)
@@ -114,6 +150,8 @@ theorem WsizeFalseAt.le_add_sq [Fintype J] [Fintype C] {P : SpanProgram n J C I}
 
 end SpanProgram
 
+/-- For nonzero `r` and `1 + r*b`, express `(r⁻¹ + b)⁻¹` by the scalar Woodbury identity. See
+[ReichardtSpalek2008]. -/
 theorem woodbury_scalar {r b : ℝ} (hr : r ≠ 0) (h : 1 + r * b ≠ 0) :
     (r⁻¹ + b)⁻¹ = r - r * b * (1 + r * b)⁻¹ * r := by
   have hne : r⁻¹ + b ≠ 0 := by
@@ -124,6 +162,8 @@ theorem woodbury_scalar {r b : ℝ} (hr : r ≠ 0) (h : 1 + r * b ≠ 0) :
   field_simp [hne]
   ring
 
+/-- For positive `lam` and nonnegative `r`, the scalar `1 + (1/lam)*c*r*c` is positive. See
+[ReichardtSpalek2008]. -/
 theorem one_add_sq_mul_pos {lam c r : ℝ} (hlam : 0 < lam) (hr : 0 ≤ r) :
     0 < 1 + (1 / lam) * c * r * c := by
   have hlam' : 0 < 1 / lam := by positivity
@@ -133,6 +173,8 @@ theorem one_add_sq_mul_pos {lam c r : ℝ} (hlam : 0 < lam) (hr : 0 ≤ r) :
     nlinarith [this]
   linarith
 
+/-- For positive `lam` and `s` with `c² < lam²*s`, the specified scalar inverse-update
+denominator is nonzero. See [ReichardtSpalek2008]. -/
 theorem one_add_neg_inv_ne_zero {lam s c : ℝ} (hlam : 0 < lam) (hs : 0 < s)
     (hc : c ^ 2 < lam ^ 2 * s) :
     1 + (1 / lam) * c * (-(1 / (lam * s))) * c ≠ 0 := by
@@ -144,6 +186,8 @@ theorem one_add_neg_inv_ne_zero {lam s c : ℝ} (hlam : 0 < lam) (hs : 0 < s)
     linarith
   linarith
 
+/-- For positive `lam` and `s`, the expression `a² / (-(1/(lam*s))) - lam` is nonzero. See
+[ReichardtSpalek2008]. -/
 theorem tilde_inv_ne_zero {lam s a : ℝ} (hlam : 0 < lam) (hs : 0 < s) :
     a ^ 2 / (-(1 / (lam * s))) - lam ≠ 0 := by
   have hprod : lam * s ≠ 0 := ne_of_gt (mul_pos hlam hs)
@@ -156,6 +200,8 @@ theorem tilde_inv_ne_zero {lam s a : ℝ} (hlam : 0 < lam) (hs : 0 < s) :
     nlinarith
   exact ne_of_lt (neg_neg_of_pos hpos)
 
+/-- For nonzero `a`, the feasible value `w = t/a` minimizes `w²` subject to `a*w = t`. See
+[ReichardtSpalek2008]. -/
 theorem scalar_primal_min (a t : ℝ) (ha : a ≠ 0) :
     (∀ w : ℝ, a * w = t → (t / a) ^ 2 ≤ w ^ 2) ∧ a * (t / a) = t := by
   constructor
@@ -166,6 +212,8 @@ theorem scalar_primal_min (a t : ℝ) (ha : a ≠ 0) :
     rw [hw']
   · field_simp
 
+/-- For nonzero `t`, the feasible value `w = 1/t` attains the lower bound `(a/t)²` for `(a*w)²`
+subject to `t*w = 1`. See [ReichardtSpalek2008]. -/
 theorem scalar_dual_min (a t : ℝ) (ht : t ≠ 0) :
     (∀ w : ℝ, t * w = 1 → (a / t) ^ 2 ≤ (a * w) ^ 2) ∧ t * (1 / t) = 1 := by
   constructor

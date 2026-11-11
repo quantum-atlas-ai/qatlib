@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingRightStat
+
+/-!
+# Right posterior ratio crossing bounds
+
+The right ratio crossing statement is proved for `j < k < i`, strictly positive initial entries
+of total mass at most one, and `1 / 2 < p < 1`. The absorbing kernel has a finite run crossing
+probability bounded by the initial ratio divided by `R`, with bound `1 / R` for a uniform prior,
+corresponding to the ratio analysis associated with Lemma 2.5 of [BenOrHassidim2007]
+
+## Main statements
+
+* `zoo_bayes_truth_ratio_crossing_right`: proves the general prior crossing statement.
+* `zoo_bayes_truth_ratio_crossing_right_uniform`: specializes the bound to the uniform prior.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
@@ -14,6 +33,9 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- For `j < k < i`, `1 / 2 < p < 1`, positive `R`, and a positive prior of mass at most one,
+proves the finite run absorbing crossing bound `ENNReal.ofReal ((a₀ i / a₀ k) / R)`; see
+[Ben-Or and Hassidim, Lemma 2.5][BenOrHassidim2007]. -/
 theorem zoo_bayes_truth_ratio_crossing_right : BayesTruthRatioCrossingRight := by
   intro n hn j k i p ε R a₀ hjk hki hp hp1 hR hpos hsum fuel
   refine le_trans (ville_event_bound (crossingAbsorbNext hn j p ε R i k)
@@ -32,6 +54,8 @@ theorem zoo_bayes_truth_ratio_crossing_right : BayesTruthRatioCrossingRight := b
       = ENNReal.ofReal ((a₀ i / a₀ k) / R) from by
       rw [ratioPotential, configPosterior, Sum.elim_inr, id_eq, ENNReal.ofReal_div_of_pos hR]]
 
+/-- For `j < k < i`, `1 / 2 < p < 1`, and positive `R`, the absorbing run from the uniform prior
+has probability at most `ENNReal.ofReal (1 / R)` of `R * a k ≤ a i` at every fuel. -/
 theorem zoo_bayes_truth_ratio_crossing_right_uniform :
     ∀ (n : ℕ) (hn : 0 < n) (j k i : Fin n) (p ε R : ℝ),
       (j : ℕ) < (k : ℕ) → (k : ℕ) < (i : ℕ) → 1 / 2 < p → p < 1 → 0 < R →

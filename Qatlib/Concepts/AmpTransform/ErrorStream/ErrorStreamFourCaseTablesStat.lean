@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+
+/-!
+# Statement of the error-stream probability tables
+
+`ErrorStreamFourCaseTables` states the exact output probabilities for three transforms applied
+to a planted progression with disjoint noise: the amplified transform, phase baseline, and
+quantum hidden-subgroup baseline. It records the zero-mode formulas and the nonzero-label
+formulas in terms of the full marked Fourier sum.
+
+The same statement evaluates that sum in the resonant, off-resonant geometric, and
+vanishing-progression cases, under explicit progression, cardinality, oracle, and sparsity
+assumptions.
+
+The error-stream setting is developed in [Cornwell2014].
+
+## Main statements
+
+* `ErrorStreamFourCaseTables`: the probability-table interface.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +42,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- The proposition specifying exact amplified, phase-baseline, and quantum hidden-subgroup
+probabilities at zero and nonzero labels, together with the three progression Fourier
+branches for disjoint fixed noise. -/
 def ErrorStreamFourCaseTables : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (s M L P : ℕ) (G : Finset (Fin N)) (h : Fin N → Bool),
     2 ≤ M → 0 < P → s + (M - 1) * P < N → 2 * (M + L) ≤ N →

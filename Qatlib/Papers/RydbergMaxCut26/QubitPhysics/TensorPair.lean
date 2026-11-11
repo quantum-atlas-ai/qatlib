@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.PartialTrace
+
+/-!
+# Tensor pair operators as lifted observables
+
+`localPair` tensors a Pauli matrix with itself, and `pair_eq_lift` identifies its lift to
+distinct sites with the register operator `pairPauli`. The explicit X, Y, and Z identifications
+transfer the two-qubit positivity inequality directly to tensor pair correlations.
+
+These results support the development of [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `pair_eq_lift`: connects tensor pair operators to the partial-trace construction.
+* `tensor_zz_bound`: bounds the register ZZ correlation by the XX/YY mean.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -20,9 +40,12 @@ namespace Qatlib.Papers.RydbergMaxCut26.QubitPhysics.TensorPair
 open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Graph
 open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Reduction
 
+/-- The two-qubit tensor product of Pauli axis `a` with itself. -/
 noncomputable def localPair (a : Fin 3) : Matrix (Fin 2×Fin 2) (Fin 2×Fin 2) ℂ :=
   fun u v => pauliMatrix a u.1 v.1 * pauliMatrix a u.2 v.2
 
+/-- At distinct sites, the tensor register operator `pairPauli i j a` equals the lift of
+`localPair a`. -/
 theorem pair_eq_lift {n : ℕ} (i j : Fin n) (hij : i≠j) (a : Fin 3) :
     pairPauli i j a = lift i j hij (localPair a) := by
   ext x y
@@ -60,12 +83,17 @@ theorem pair_eq_lift {n : ℕ} (i j : Fin n) (hij : i≠j) (a : Fin 3) :
         fun he => hh (boolEquivFin2.injective he)
     simp [h.property.1,h.property.2,hxy]
 
+/-- The axis-zero local pair matrix equals the explicit two-qubit operator `opXX`. -/
 theorem local_xx : localPair 0 = Qatlib.Papers.RydbergMaxCut26.QubitPhysics.TwoQubit.opXX := rfl
 
+/-- The axis-one local pair matrix equals the explicit two-qubit operator `opYY`. -/
 theorem local_yy : localPair 1 = Qatlib.Papers.RydbergMaxCut26.QubitPhysics.TwoQubit.opYY := rfl
 
+/-- The axis-two local pair matrix equals the explicit two-qubit operator `opZZ`. -/
 theorem local_zz : localPair 2 = Qatlib.Papers.RydbergMaxCut26.QubitPhysics.TwoQubit.opZZ := rfl
 
+/-- For a physical density matrix and distinct sites, the ZZ pair expectation is at most one
+minus twice the absolute average of the XX and YY pair expectations. -/
 theorem tensor_zz_bound {n : ℕ} (i j : Fin n) (hij : i≠j) (ρ : Matrix (Reg n) (Reg n) ℂ)
     (hρ : ρ.PosSemidef) (htr : ρ.trace=1) :
     ((pairPauli i j 2*ρ).trace).re ≤

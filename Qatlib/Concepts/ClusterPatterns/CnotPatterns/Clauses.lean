@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+
+/-!
+# Measurement-pattern clauses and a combined counterexample
+
+This module collects resource, loading, flow, and complexity statements for finite measurement
+patterns. It proves lattice-entangler factorization, the three-CNOT swap identity, a
+vertex-projection formula, and bounds involving peak space, communication, and bit time.
+
+It also defines the combined proposition `Clause18Frozen` and refutes it using the
+corrected-loading clause under the present definitions. Measurement-pattern semantics are placed
+in the broader setting of [DanosKashefiPanangaden2007].
+
+## Main statements
+
+* `clause7_clause4b`: Three alternating CNOT gates implement the wire swap.
+* `clause7_clause6a`: Euler-pattern dependencies satisfy the flow condition.
+* `clause7_counter_clause5b`: The proposed universal corrected-loading identity fails.
+* `clause7_counter`: The combined proposition `Clause18Frozen` is false.
+
+## References
+
+* [Danos et al., 2007][DanosKashefiPanangaden2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
@@ -28,16 +52,20 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Concepts.ClusterPatterns.CnotPatterns
 
+/-- The peak-space quantity of a pattern with `w` measured wires and `m` outputs equals `w + m`. -/
 theorem clause7_clause6b : ∀ (n w m : ℕ) (P : MpPattern n w m), mpPeakSpace P = w + m := by
   intro n w m P
   rfl
 
+/-- For a deterministic pattern, the total number of measured and output wires is at most its
+bit-time quantity. -/
 theorem clause7_clause6d : ∀ (n w m : ℕ) (P : MpPattern n w m) (resource : QState (Reg (w + m - n))),
     MpDeterministic P resource → w + m ≤ mpBitTime P := by
   intro n w m P resource _hdet
   have h : mpBitTime P = 2 * w + m + (MpDependency P).card := rfl
   omega
 
+/-- The lattice entangler factors into its frame matrix followed by its controlled-Z matrix. -/
 theorem clause7_clause4a : ∀ a b : ℕ,
     mpLatticeEntangler a b
       = Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix (mpLatticeEdges a b)
@@ -45,6 +73,7 @@ theorem clause7_clause4a : ∀ a b : ℕ,
   intro a b
   exact Qatlib.Concepts.MbqcFlow.FlowDecision.sourcePulse_eq_frame_cz (mpLatticeEdges a b)
 
+/-- Every loading Pauli matrix multiplied by its conjugate transpose equals the identity. -/
 theorem clause7_clause5a : ∀ (f1 f2 : Bool),
     mpLoadPauli f1 f2 * (mpLoadPauli f1 f2).conjTranspose = 1 := by
   intro f1 f2
@@ -53,6 +82,8 @@ theorem clause7_clause5a : ∀ (f1 f2 : Bool),
       Matrix.one_apply, Fin.sum_univ_two, star_mul]
   all_goals norm_num
 
+/-- The proposed uniform quarter-weight identity for all corrected loading branches is false for
+the present loading matrices. -/
 theorem clause7_counter_clause5b :
     ¬ (∀ (f1 f2 : Bool) (ρ : Operator 2),
         mpLoadPauli f1 f2
@@ -71,6 +102,8 @@ theorem clause7_counter_clause5b :
   simp only [Matrix.zero_apply, Matrix.smul_apply, Matrix.one_apply, smul_eq_mul] at hentry
   norm_num at hentry
 
+/-- The frame matrix of the single edge from zero to one has diagonal sign determined by wire
+one. -/
 private theorem frame_entry_edge01 (x : Reg 2) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix mpEdge01 x x = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1) := by
   rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x),
@@ -80,18 +113,23 @@ private theorem frame_entry_edge01 (x : Reg 2) :
   rw [h0, h1]
   simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- The controlled-Z matrix of the single edge from zero to one has diagonal sign determined by
+the product of its two bits. -/
 private theorem cz_entry_edge01 (x : Reg 2) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix mpEdge01 x x = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 1) := by
   rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x)]
   simp only [mpEdge01, Finset.prod_singleton]
   rfl
 
+/-- The uniform state on a two-bit register has amplitude one half at every register. -/
 private theorem uniform_reg2 (x : Reg 2) : Uniform (Reg 2) x = (1 / 2 : ℂ) := by
   show ((Real.sqrt (Fintype.card (Reg 2)) : ℝ) : ℂ)⁻¹ = 1 / 2
   have h4 : Real.sqrt 4 = 2 := by rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)]
   rw [card_reg]
   norm_num [h4]
 
+/-- Projecting vertex zero of the two-vertex source resource onto outcome `b` produces
+`mpDeletionState b`. -/
 theorem clause7_clause4c : ∀ b : Bool,
     Matrix.mulVec (mpVertexProjector 2 ⟨0, by omega⟩ b)
         (Qatlib.Concepts.MbqcFlow.FlowDecision.sourceResource mpEdge01) = mpDeletionState b := by
@@ -116,6 +154,7 @@ theorem clause7_clause4c : ∀ b : Bool,
   · have hxB : ¬ x 0 = b := hx
     rw [if_neg hx, if_neg hxB, zero_mul]
 
+/-- Simultaneous row and column reindexing by an equivalence preserves matrix multiplication. -/
 private theorem reindex_square_mul {m n : Type*} [Fintype m] [DecidableEq m]
     [Fintype n] [DecidableEq n] (e : m ≃ n) (A B : Matrix m m ℂ) :
     Matrix.reindex e e A * Matrix.reindex e e B = Matrix.reindex e e (A * B) := by
@@ -124,6 +163,7 @@ private theorem reindex_square_mul {m n : Type*} [Fintype m] [DecidableEq m]
   exact Fintype.sum_equiv e.symm (fun k => A (e.symm i) (e.symm k) * B (e.symm k) (e.symm j))
     (fun k => A (e.symm i) k * B k (e.symm j)) (fun _ => rfl)
 
+/-- The product of two function matrices is the matrix of their composition in the same order. -/
 private theorem permMatrix_mul' {I : Type*} [Fintype I] [DecidableEq I] (σ τ : I → I) :
     Qatlib.Foundations.PureStateMath.permMatrix σ * Qatlib.Foundations.PureStateMath.permMatrix τ
       = Qatlib.Foundations.PureStateMath.permMatrix (σ ∘ τ) := by
@@ -135,6 +175,8 @@ private theorem permMatrix_mul' {I : Type*} [Fintype I] [DecidableEq I] (σ τ :
     rw [if_neg hk, mul_zero]
   · simp
 
+/-- The integer-indexed CNOT matrix is the register CNOT matrix reindexed by `bitVecEquiv` when
+its wire indices are distinct. -/
 private theorem mpFinCnot_eq_reindex (c t : Fin 2) (hct : (c : ℕ) ≠ (t : ℕ)) :
     mpFinCnot c t = Matrix.reindex (bitVecEquiv 2) (bitVecEquiv 2)
       (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.cnotGate 2 c t) := by
@@ -142,6 +184,7 @@ private theorem mpFinCnot_eq_reindex (c t : Fin 2) (hct : (c : ℕ) ≠ (t : ℕ
   have h : (c : ℕ) < 2 ∧ (t : ℕ) < 2 ∧ (c : ℕ) ≠ (t : ℕ) := ⟨c.isLt, t.isLt, hct⟩
   rw [dif_pos h]
 
+/-- Three CNOT gates with alternating control and target implement the wire-swap matrix. -/
 theorem clause7_clause4b : mpFinCnot ⟨0, by omega⟩ ⟨1, by omega⟩
       * (mpFinCnot ⟨1, by omega⟩ ⟨0, by omega⟩
         * mpFinCnot ⟨0, by omega⟩ ⟨1, by omega⟩)
@@ -160,6 +203,7 @@ theorem clause7_clause4b : mpFinCnot ⟨0, by omega⟩ ⟨1, by omega⟩
   fin_cases k <;> simp [Function.comp_apply, Function.update, Bool.xor_comm,
     Bool.xor_left_comm, Bool.xor_self, Bool.xor_false]
 
+/-- A deterministic pattern has at most twice as many measured wires as communication bits. -/
 theorem clause7_clause6c : ∀ (n w m : ℕ) (P : MpPattern n w m) (resource : QState (Reg (w + m - n))),
     MpDeterministic P resource → w ≤ 2 * mpCommBits P := by
   intro n w m P resource hdet
@@ -195,6 +239,7 @@ theorem clause7_clause6c : ∀ (n w m : ℕ) (P : MpPattern n w m) (resource : Q
   rw [hcomm]
   omega
 
+/-- Every Euler pattern satisfies `MpFlowCondition`. -/
 theorem clause7_clause6a : ∀ θ : Fin 5 → ℝ, MpFlowCondition (mpEulerPattern θ) := by
   intro θ
   have hsub : MpDependency (mpEulerPattern θ)
@@ -236,6 +281,8 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns Qatlib.Concepts.ClusterPattern
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 
+/-- The conjunction of the specified wire, CNOT, Euler, loading, resource, flow, complexity,
+gate-realization, and angle-rounding claims. -/
 def Clause18Frozen : Prop :=
 
   (∀ (s : Fin 2 → Bool) (ρ : Operator 2),
@@ -338,6 +385,7 @@ def Clause18Frozen : Prop :=
               - (mpPatternKraus (mpEulerPattern θ) (Uniform (Reg 5)) s z) i j‖
               ≤ 2 ^ 11 * (2 : ℝ) ^ (-(b : ℤ)))
 
+/-- The combined specification `Clause18Frozen` is false under the present definitions. -/
 theorem clause7_counter : ¬ Clause18Frozen := by
   intro h
   exact clause7_counter_clause5b h.2.2.2.2.2.2.2.2.2.1

@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+
+/-!
+# Conditional circuit achievability and thresholds
+
+This module derives scalar circuit resource estimates from assumed simulation and block-size
+guarantees, following [BhartiHaugTanggara2026]. It also proves a sufficient positive-noise
+threshold criterion from a supplied logical-error bound and subexponential growth of the system
+size relative to distance.
+
+## Main statements
+
+* `conditional_circuit_achievability`: Given the block availability and simulation hypotheses,
+  every `0 < ε ≤ 1` has an available block size with error at most `ε`, depth at most `ct * T`,
+  and the stated upper bound proportional to `T * (K + 1 + log (A * T / ε))`.
+* `positive_threshold_sufficient`: Under the supplied logical-error estimate, diverging
+  distance, and the stated size-growth and noise-continuity conditions, there is a positive
+  physical-noise threshold below which logical error tends to zero.
+
+## References
+
+* [Bharti et al., 2026][BhartiHaugTanggara2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +37,9 @@ open Filter
 
 namespace Qatlib.Papers.SpacetimeLB26.ScalarSupport.CircuitLevel
 
+/-- Given the block availability and simulation hypotheses, every `0 < ε ≤ 1` has an available
+block size with error at most `ε`, depth at most `ct * T`, and the stated upper bound
+proportional to `T * (K + 1 + log (A * T / ε))`. See [BhartiHaugTanggara2026]. -/
 theorem conditional_circuit_achievability
     (K T : ℝ) (ct cq β A Rgad N0 cN : ℝ) (Ngad : Set ℕ)
     (hK : 1 ≤ K) (hT : 1 ≤ T) (hct : 0 < ct) (hcq : 0 < cq)
@@ -123,6 +149,9 @@ theorem conditional_circuit_achievability
       _ ≤ (cq * ct * cN * (max (max N0 (1 / Rgad)) (1 / β) + 1)) * T * (K + 1 + L) :=
           hkey
 
+/-- Under the supplied logical-error estimate, diverging distance, and the stated size-growth
+and noise-continuity conditions, there is a positive physical-noise threshold below which
+logical error tends to zero. See [BhartiHaugTanggara2026]. -/
 theorem positive_threshold_sufficient
     (dst Nst t : ℕ → ℕ) (pst : ℝ → ℝ) (PL : ℕ → ℝ → ℝ) (C μ : ℝ)
     (hC : 0 < C) (hμ : 0 < μ)

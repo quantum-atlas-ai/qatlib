@@ -9,6 +9,33 @@ import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Counted phase reflections
+
+This module constructs `phaseReflectionWord` from repeated phase detection, reflection about the
+all-zero readout event, and inverse detection. It formalizes the phase-estimation reflection
+method of [MagniezNayakRolandSantha2011] with explicit forward and inverse query counts.
+
+The execution lemmas express eigenstate readout as `phaseKernelPacket` and bound reflection
+errors using the zero-label QPE kernel. An orthonormal eigenfamily with a separated zero-phase
+target gives a uniform error estimate for every linear combination in its span.
+
+## Main statements
+
+* `phase_reflection_actual_queries_and_macros`: exact query and gate counts for the reflection
+  word.
+* `phase_reflection_actual_eigenstate_error`: exact zero-phase action and a kernel bound on the
+  residual.
+* `phase_reflection_reachable_source_error`: error relative to reflection about a distinguished
+  zero-phase eigenvector.
+
+## References
+
+* [Magniez et al., 2011, Theorem 6][MagniezNayakRolandSantha2011]
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -45,6 +72,8 @@ open scoped Classical Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 
+/-- Four times the circular distance of a phase from zero is bounded by the chord length from
+its unit complex exponential to one. -/
 theorem phase_chord_lower_bound (φ : ℝ) :
     4 * phaseDistance φ 0 ≤ ‖Complex.exp (2 * Real.pi * Complex.I * φ) - 1‖ := by
   let n : ℤ := ⌊φ + 1 / 2⌋
@@ -77,6 +106,8 @@ theorem phase_chord_lower_bound (φ : ℝ) :
   norm_num only [abs_of_nonneg (show (0 : ℝ) ≤ 2 by norm_num)]
   linarith
 
+/-- A phase at circular distance at least `η > 0` from zero has zero-label QPE amplitude at most
+`1 / (2*M*η)`. -/
 theorem phase_detection_zero_label_gap_bound (M : ℕ) (hM : 0 < M) (φ η : ℝ)
     (hη : 0 < η) (hgap : η ≤ phaseDistance φ 0) :
     ‖qpeKernel M φ (⟨0, hM⟩ : Fin M)‖ ≤ 1 / (2 * (M : ℝ) * η) := by
@@ -97,8 +128,11 @@ theorem phase_detection_zero_label_gap_bound (M : ℕ) (hM : 0 < M) (φ η : ℝ
     (mul_nonneg hMr.le (norm_nonneg (qpeKernel M φ (⟨0, hM⟩ : Fin M))))
   nlinarith [hn, hnum]
 
+/-- The basis index type for `k` phase registers, one control bit, and the data register. -/
 abbrev PhaseReflectionSpace (I : Type) (M k : ℕ) := (Fin k → Fin M) × (Bool × I)
 
+/-- Split off the first phase register, leaving the remaining phase registers together with the
+control and data registers. -/
 def phaseTailSplit (I : Type) (M k : ℕ) :
     PhaseReflectionSpace I M (k + 1) ≃ Fin M × PhaseReflectionSpace I M k where
   toFun p := (p.1 0, (fun j => p.1 j.succ, p.2))
@@ -116,6 +150,8 @@ def phaseTailSplit (I : Type) (M k : ℕ) :
     funext i
     simp
 
+/-- Rearrange the registers so that the first phase register is grouped with the control and
+data registers. -/
 def phaseHeadSplit (I : Type) (M k : ℕ) :
     PhaseReflectionSpace I M (k + 1) ≃
       (Fin k → Fin M) × (Fin M × (Bool × I)) :=
@@ -125,16 +161,20 @@ def phaseHeadSplit (I : Type) (M k : ℕ) :
       left_inv := fun _ => rfl
       right_inv := fun _ => rfl }
 
+/-- Lift the matrix gate in an adjoint instruction through `F`, retaining forward and backward
+oracle instructions. -/
 noncomputable def phaseLiftStep {H K : Type}
     (F : Matrix H H ℂ → Matrix K K ℂ) : AdjointStep H → AdjointStep K
   | .gate U => .gate (F U)
   | .forward => .forward
   | .backward => .backward
 
+/-- Lift all matrix gates of an adjoint circuit word through `F`. -/
 noncomputable def phaseLiftWord {H K : Type}
     (F : Matrix H H ℂ → Matrix K K ℂ) (cs : List (AdjointStep H)) :
     List (AdjointStep K) := cs.map (phaseLiftStep F)
 
+/-- Lifting an adjoint word preserves its query and gate counts. -/
 theorem phaseLiftWord_counts {H K : Type}
     (F : Matrix H H ℂ → Matrix K K ℂ) (cs : List (AdjointStep H)) :
     adjointQueryCount (phaseLiftWord F cs) = adjointQueryCount cs ∧
@@ -144,6 +184,8 @@ theorem phaseLiftWord_counts {H K : Type}
   | cons c cs ih => cases c <;> simp [phaseLiftWord, phaseLiftStep, adjointQueryCount,
       adjointGateCount, ← ih.1, ← ih.2]
 
+/-- A gate lift that preserves unitary matrices preserves well-formedness of adjoint circuit
+words. -/
 theorem phaseLiftWord_wellFormed {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (F : Matrix H H ℂ → Matrix K K ℂ)
     (hF : ∀ U, U ∈ Matrix.unitaryGroup H ℂ → F U ∈ Matrix.unitaryGroup K ℂ)
@@ -159,13 +201,18 @@ theorem phaseLiftWord_wellFormed {H K : Type} [Fintype H] [DecidableEq H]
   | forward => cases he
   | backward => cases he
 
+/-- Translate a circuit step into an adjoint instruction, sending a query to a forward oracle
+call. -/
 noncomputable def phaseForwardStep {H : Type} : Step H → AdjointStep H
   | .gate U => .gate U
   | .query => .forward
 
+/-- Compile a circuit into an adjoint word by reversing its step list and translating queries to
+forward calls. -/
 noncomputable def phaseCompileCircuit {H : Type} (cs : Circuit H) : List (AdjointStep H) :=
   cs.reverse.map phaseForwardStep
 
+/-- Compilation preserves the query and gate counts of a circuit. -/
 theorem phaseCompileCircuit_counts {H : Type} (cs : Circuit H) :
     adjointQueryCount (phaseCompileCircuit cs) = QueryCount cs ∧
       adjointGateCount (phaseCompileCircuit cs) = GateCount cs := by
@@ -176,6 +223,7 @@ theorem phaseCompileCircuit_counts {H : Type} (cs : Circuit H) :
       adjointGateCount_append, phaseForwardStep, adjointQueryCount, adjointGateCount,
       QueryCount, GateCount, ← ih.1, ← ih.2]
 
+/-- Compiling a unitary circuit yields a well-formed adjoint circuit word. -/
 theorem phaseCompileCircuit_wellFormed {H : Type} [Fintype H] [DecidableEq H]
     {cs : Circuit H} (hcs : IsUnitaryCircuit cs) :
     WellFormedAdjointCircuit (phaseCompileCircuit cs) := by
@@ -193,17 +241,23 @@ section PhaseWords
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Extend a gate on the tail phase registers, control, and data by the identity on the first
+phase register. -/
 noncomputable def phaseTailGate (M k : ℕ)
     (U : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
     Matrix (PhaseReflectionSpace I M (k + 1)) (PhaseReflectionSpace I M (k + 1)) ℂ :=
   relabelGate (phaseTailSplit I M k).symm (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ) U)
 
+/-- Extend a gate on the first phase register, control, and data by the identity on the
+remaining phase registers. -/
 noncomputable def phaseHeadGate (M k : ℕ)
     (U : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
     Matrix (PhaseReflectionSpace I M (k + 1)) (PhaseReflectionSpace I M (k + 1)) ℂ :=
   relabelGate (phaseHeadSplit I M k).symm
     (TensorGate (1 : Matrix (Fin k → Fin M) (Fin k → Fin M) ℂ) U)
 
+/-- The recursive adjoint word performing one counted phase-estimation circuit for each phase
+register. -/
 noncomputable def phaseDetectionWord (M : ℕ) : (k : ℕ) →
     List (AdjointStep (PhaseReflectionSpace I M k))
   | 0 => []
@@ -211,18 +265,24 @@ noncomputable def phaseDetectionWord (M : ℕ) : (k : ℕ) →
       phaseLiftWord (phaseTailGate M k) (phaseDetectionWord M k) ++
       phaseLiftWord (phaseHeadGate M k) (phaseCompileCircuit (countedPhaseCircuit M))
 
+/-- The basis event in which every phase register has label zero. -/
 def phaseZeroEvent (M k : ℕ) : Finset (PhaseReflectionSpace I M k) :=
   Finset.univ.filter (fun p => ∀ j, (p.1 j).val = 0)
 
+/-- Reflection about the subspace whose phase registers all have label zero. -/
 noncomputable def phaseZeroReflection (M k : ℕ) :
     Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ :=
   ReflectionAbout (Projector (phaseZeroEvent M k))
 
+/-- The adjoint word combining inverse detection, zero-event reflection, and detection to
+implement a phase reflection. -/
 noncomputable def phaseReflectionWord (M k : ℕ) :
     List (AdjointStep (PhaseReflectionSpace I M k)) :=
   adjointCircuit (phaseDetectionWord M k) ++ [.gate (phaseZeroReflection M k)] ++
     phaseDetectionWord M k
 
+/-- For positive `M`, repeated phase detection is well formed and uses `k*(M-1)` queries and
+`k*(2*(M-1)+2)` gates. -/
 theorem phaseDetectionWord_resources (M k : ℕ) (hM : 0 < M) :
     WellFormedAdjointCircuit (phaseDetectionWord (I := I) M k) ∧
       adjointQueryCount (phaseDetectionWord (I := I) M k) = k * (M - 1) ∧
@@ -250,6 +310,9 @@ theorem phaseDetectionWord_resources (M k : ℕ) (hM : 0 < M) :
         (phaseLiftWord_counts _ _).2, ih.2.2, hsingle.2, hr.2.1]
       ring
 
+/-- For `M ≥ 2`, the phase-reflection word is well formed and uses `2*k*(M-1)` queries and
+`4*k*(M-1)+4*k+1` gates. This gives explicit resources for the reflection construction in
+[MagniezNayakRolandSantha2011]. -/
 theorem phase_reflection_actual_queries_and_macros (M k : ℕ) (hM : 2 ≤ M) :
     WellFormedAdjointCircuit (phaseReflectionWord (I := I) M k) ∧
       adjointQueryCount (phaseReflectionWord (I := I) M k) = 2 * k * (M - 1) ∧
@@ -269,16 +332,21 @@ theorem phase_reflection_actual_queries_and_macros (M k : ℕ) (hM : 2 ≤ M) :
 
 end PhaseWords
 
+/-- Embed a data state with the control bit false and all phase registers initialized to zero. -/
 noncomputable def phaseReflectionEmbed {I : Type} (M k : ℕ) (ψ : QState I) :
     QState (PhaseReflectionSpace I M k) :=
   fun p => if p.2.1 = false ∧ ∀ j, (p.1 j).val = 0 then ψ p.2.2 else 0
 
+/-- The state obtained by applying the evaluated phase-reflection word to the zero-ancilla
+embedding of the input. -/
 noncomputable def phaseReflectionState {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (M k : ℕ) (ψ : QState I) :
     QState (PhaseReflectionSpace I M k) :=
   ApplyGate (evaluate (parallelOracle (controlOracle W)) (phaseReflectionWord M k))
     (phaseReflectionEmbed M k ψ)
 
+/-- Evaluating the compiled adjoint word and applying it to a state agrees with the original
+circuit execution. -/
 theorem phaseCompileCircuit_evaluate {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (cs : Circuit H) (ψ : QState H) :
     ApplyGate (evaluate U (phaseCompileCircuit cs)) ψ = Run U cs ψ := by
@@ -291,6 +359,8 @@ theorem phaseCompileCircuit_evaluate {H : Type} [Fintype H] [DecidableEq H]
       evaluate_append, applyGate_mul, ih]
     cases c <;> simp [phaseForwardStep, evaluate, instructionMatrix, Run]
 
+/-- A lift preserving the identity, multiplication, and adjoints commutes with adjoint-word
+evaluation. -/
 theorem phaseLiftWord_evaluate {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (F : Matrix H H ℂ → Matrix K K ℂ)
     (h1 : F 1 = 1) (hm : ∀ U V, F (U * V) = F U * F V)
@@ -302,6 +372,7 @@ theorem phaseLiftWord_evaluate {H K : Type} [Fintype H] [DecidableEq H]
     simp only [phaseLiftWord] at ih
     cases c <;> simp [phaseLiftWord, phaseLiftStep, evaluate, instructionMatrix, ih, hm, ha]
 
+/-- Taking a conjugate transpose commutes with relabeling a matrix gate. -/
 private theorem phase_relabel_adjoint {H K : Type} (e : H ≃ K) (U : Matrix H H ℂ) :
     (relabelGate e U)ᴴ = relabelGate e Uᴴ := by
   ext i j
@@ -311,36 +382,44 @@ section Evaluation
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Lifting the identity gate to the tail registers yields the identity. -/
 private theorem phaseTailGate_one (M k : ℕ) : phaseTailGate (I := I) M k 1 = 1 := by
   rw [phaseTailGate, tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- Lifting to the tail registers preserves matrix multiplication. -/
 private theorem phaseTailGate_mul (M k : ℕ)
     (U V : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
     phaseTailGate M k (U * V) = phaseTailGate M k U * phaseTailGate M k V := by
   unfold phaseTailGate
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+/-- Lifting to the tail registers commutes with conjugate transpose. -/
 private theorem phaseTailGate_adjoint (M k : ℕ)
     (U : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
     phaseTailGate M k Uᴴ = (phaseTailGate M k U)ᴴ := by
   rw [phaseTailGate, phaseTailGate, phase_relabel_adjoint, tensorGate_conjTranspose,
     Matrix.conjTranspose_one]
 
+/-- Lifting the identity gate to the head registers yields the identity. -/
 private theorem phaseHeadGate_one (M k : ℕ) : phaseHeadGate (I := I) M k 1 = 1 := by
   rw [phaseHeadGate, tensorGate_one, CircuitRelabel.relabelGate_one]
 
+/-- Lifting to the head registers preserves matrix multiplication. -/
 private theorem phaseHeadGate_mul (M k : ℕ)
     (U V : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
     phaseHeadGate M k (U * V) = phaseHeadGate M k U * phaseHeadGate M k V := by
   unfold phaseHeadGate
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+/-- Lifting to the head registers commutes with conjugate transpose. -/
 private theorem phaseHeadGate_adjoint (M k : ℕ)
     (U : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
     phaseHeadGate M k Uᴴ = (phaseHeadGate M k U)ᴴ := by
   rw [phaseHeadGate, phaseHeadGate, phase_relabel_adjoint, tensorGate_conjTranspose,
     Matrix.conjTranspose_one]
 
+/-- Two phase-label tuples of length `k+1` agree exactly when their first labels and their tails
+agree. -/
 private theorem phase_function_eq_iff (M k : ℕ) (x y : Fin (k + 1) → Fin M) :
     x = y ↔ x 0 = y 0 ∧ (fun j : Fin k => x j.succ) = (fun j : Fin k => y j.succ) := by
   constructor
@@ -352,6 +431,8 @@ private theorem phase_function_eq_iff (M k : ℕ) (x y : Fin (k + 1) → Fin M) 
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Lifting a parallel oracle on the tail registers gives the parallel oracle on all phase
+registers. -/
 private theorem phaseTailGate_oracle (M k : ℕ) (A : Matrix (Bool × I) (Bool × I) ℂ) :
     phaseTailGate M k (parallelOracle (J := Fin k → Fin M) A) =
       parallelOracle (J := Fin (k + 1) → Fin M) A := by
@@ -371,6 +452,8 @@ private theorem phaseTailGate_oracle (M k : ℕ) (A : Matrix (Bool × I) (Bool �
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Lifting a parallel oracle on the head registers gives the parallel oracle on all phase
+registers. -/
 private theorem phaseHeadGate_oracle (M k : ℕ) (A : Matrix (Bool × I) (Bool × I) ℂ) :
     phaseHeadGate M k (parallelOracle (J := Fin M) A) =
       parallelOracle (J := Fin (k + 1) → Fin M) A := by
@@ -388,6 +471,8 @@ private theorem phaseHeadGate_oracle (M k : ℕ) (A : Matrix (Bool × I) (Bool �
   · have hxy : x ≠ y := fun h => hh ((phase_function_eq_iff M k x y).mp h).1
     simp [hh, ht, hxy]
 
+/-- Evaluation of the successor detection word factors into the lifted tail detection and lifted
+head phase-estimation matrices. -/
 theorem phaseDetectionWord_evaluate_succ (W : Matrix I I ℂ) (M k : ℕ) :
     evaluate (parallelOracle (controlOracle W)) (phaseDetectionWord M (k + 1)) =
       phaseTailGate M k
@@ -406,8 +491,11 @@ theorem phaseDetectionWord_evaluate_succ (W : Matrix I I ℂ) (M k : ℕ) :
 
 end Evaluation
 
+/-- The phase-label tuple that is identically zero. -/
 def phaseZeroIndex (M k : ℕ) (hM : 0 < M) : Fin k → Fin M := fun _ => ⟨0, hM⟩
 
+/-- For positive `M`, every phase label has value zero exactly when the label tuple equals
+`phaseZeroIndex`. -/
 private theorem phase_zero_predicate (M k : ℕ) (hM : 0 < M) (x : Fin k → Fin M) :
     (∀ j, (x j).val = 0) ↔ x = phaseZeroIndex M k hM := by
   constructor
@@ -423,6 +511,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- For positive `M`, the embedding is the tensor product of the all-zero phase ket, the false
+control ket, and the data state. -/
 theorem phaseReflectionEmbed_tensor (M k : ℕ) (hM : 0 < M) (v : QState I) :
     phaseReflectionEmbed M k v =
       TensorState (Qatlib.Foundations.PureStateMath.Ket (phaseZeroIndex M k hM)) (TensorState (Qatlib.Foundations.PureStateMath.Ket false) v) := by
@@ -431,6 +521,7 @@ theorem phaseReflectionEmbed_tensor (M k : ℕ) (hM : 0 < M) (v : QState I) :
   cases b <;> by_cases hx : x = phaseZeroIndex M k hM <;> simp [TensorState,
       Qatlib.Foundations.PureStateMath.Ket, hx]
 
+/-- For positive `M`, embedding with zero ancillas preserves the Euclidean norm of a state. -/
 theorem phaseReflectionEmbed_norm (M k : ℕ) (hM : 0 < M) (v : QState I) :
     ‖toEuclidean_fromVec (phaseReflectionEmbed M k v)‖ = ‖toEuclidean_fromVec v‖ := by
   rw [phaseReflectionEmbed_tensor M k hM, tensorState_l2_norm, tensorState_l2_norm,
@@ -439,6 +530,8 @@ theorem phaseReflectionEmbed_norm (M k : ℕ) (hM : 0 < M) (v : QState I) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Express the zero-ancilla embedding using the head-register splitting and the all-zero tail
+ket. -/
 private theorem phase_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I) :
     phaseReflectionEmbed M (k + 1) v =
       relabelState (phaseHeadSplit I M k).symm
@@ -456,12 +549,15 @@ private theorem phase_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I) :
     | rw [if_pos (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
     | (intro _ he; exact (ht he).elim)
 
+/-- The product QPE-kernel state on the phase registers, tensored with a false control bit and
+the input data state. -/
 noncomputable def phaseKernelPacket (M k : ℕ) (φ : ℝ) (v : QState I) :
     QState (PhaseReflectionSpace I M k) :=
   fun p => (∏ j : Fin k, qpeKernel M φ (p.1 j)) * (if p.2.1 then 0 else v p.2.2)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Splitting off one QPE-kernel factor yields the packet with one additional phase register. -/
 private theorem phaseKernelPacket_succ (M k : ℕ) (φ : ℝ) (v : QState I) :
     relabelState (phaseTailSplit I M k).symm
       (TensorState (qpeKernel M φ) (phaseKernelPacket M k φ v)) =
@@ -471,6 +567,8 @@ private theorem phaseKernelPacket_succ (M k : ℕ) (φ : ℝ) (v : QState I) :
   rw [Fin.prod_univ_succ]
   ring
 
+/-- For an eigenstate, head phase estimation creates the corresponding QPE-kernel factor and
+leaves the tail zero-ancilla embedding. -/
 private theorem phase_head_qpe_eigen (M k : ℕ) (hM : 0 < M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ)
     (hv : ApplyGate W v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -492,6 +590,8 @@ private theorem phase_head_qpe_eigen (M k : ℕ) (hM : 0 < M) (W : Matrix I I �
   cases b <;> simp [relabelState, phaseHeadSplit, phaseTailSplit, TensorState,
       Qatlib.Foundations.PureStateMath.Ket]
 
+/-- On an eigenstate, evaluated repeated phase detection produces the product packet
+`phaseKernelPacket`. -/
 theorem phaseDetectionWord_eigenstate (M k : ℕ) (hM : 0 < M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ)
     (hv : ApplyGate W v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -507,6 +607,8 @@ theorem phaseDetectionWord_eigenstate (M k : ℕ) (hM : 0 < M) (W : Matrix I I �
       phase_head_qpe_eigen M k hM W v φ hv, phaseTailGate, applyGate_relabelGate,
       applyGate_tensorGate, applyGate_one, ih, phaseKernelPacket_succ]
 
+/-- Projection of a kernel packet onto the all-zero phase event equals the embedded data state
+scaled by the kth power of its zero-label kernel amplitude. -/
 private theorem phaseKernelPacket_project_zero (M k : ℕ) (hM : 0 < M) (φ : ℝ) (v : QState I) :
     ApplyGate (Projector (phaseZeroEvent M k)) (phaseKernelPacket M k φ v) =
       (qpeKernel M φ (⟨0, hM⟩ : Fin M)) ^ k • phaseReflectionEmbed M k v := by
@@ -519,6 +621,8 @@ private theorem phaseKernelPacket_project_zero (M k : ℕ) (hM : 0 < M) (φ : �
       phaseReflectionEmbed, phaseZeroIndex]
   · cases b <;> simp [collapse_apply, phaseZeroEvent, phaseReflectionEmbed, hx]
 
+/-- A phase at circular distance zero from zero has QPE kernel equal to the zero-label basis
+ket. -/
 theorem qpeKernel_zero_distance (M : ℕ) (hM : 0 < M) (φ : ℝ)
     (hφ : phaseDistance φ 0 = 0) : qpeKernel M φ = Qatlib.Foundations.PureStateMath.Ket (⟨0, hM⟩ : Fin M) := by
   have hd : φ - (⌊φ + 1 / 2⌋ : ℤ) = 0 := by
@@ -531,6 +635,7 @@ theorem qpeKernel_zero_distance (M : ℕ) (hM : 0 < M) (φ : ℝ)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- A kernel packet at zero circular phase distance equals the zero-ancilla embedding. -/
 private theorem phaseKernelPacket_zero_distance (M k : ℕ) (hM : 0 < M) (φ : ℝ)
     (hφ : phaseDistance φ 0 = 0) (v : QState I) :
     phaseKernelPacket M k φ v = phaseReflectionEmbed M k v := by
@@ -550,6 +655,8 @@ private theorem phaseKernelPacket_zero_distance (M k : ℕ) (hM : 0 < M) (φ : �
         Finset.prod_eq_zero (Finset.mem_univ j) (by rw [hz]; simp [Qatlib.Foundations.PureStateMath.Ket, hne])
       simp [phaseKernelPacket, phaseReflectionEmbed, hx, hp]
 
+/-- For a unitary eigenstate, express the reflection residual as inverse detection applied to
+twice the zero-label kernel power times the embedded state. -/
 theorem phase_reflection_eigenstate_residual (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
     (hv : ApplyGate W v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -583,6 +690,9 @@ theorem phase_reflection_eigenstate_residual (M k : ℕ) (hM : 2 ≤ M) (W : Mat
   simp only [ApplyGate, Matrix.mulVec_smul]
   module
 
+/-- The counted reflection fixes zero-phase eigenstates exactly and bounds the residual from
+negation on other eigenstates by twice the kth zero-label kernel norm times the input norm.
+See [MagniezNayakRolandSantha2011]. -/
 theorem phase_reflection_actual_eigenstate_error (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ)
     (v : QState I) (φ : ℝ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
     (hv : ApplyGate W v = Complex.exp (2 * Real.pi * Complex.I * φ) • v) :
@@ -625,6 +735,7 @@ theorem phase_reflection_actual_eigenstate_error (M k : ℕ) (hM : 2 ≤ M) (W :
     rw [norm_smul, norm_smul, norm_pow, phaseReflectionEmbed_norm M k (by omega)]
     norm_num [mul_assoc]
 
+/-- The zero-ancilla embedding regarded as a complex linear map. -/
 private noncomputable def phaseEmbedLinear (M k : ℕ) :
     QState I →ₗ[ℂ] QState (PhaseReflectionSpace I M k) where
   toFun := phaseReflectionEmbed M k
@@ -637,12 +748,15 @@ private noncomputable def phaseEmbedLinear (M k : ℕ) :
     by_cases h : p.2.1 = false ∧ ∀ j, (p.1 j).val = 0 <;>
       simp [phaseReflectionEmbed, h]
 
+/-- Matrix application regarded as a complex linear map on states. -/
 private noncomputable def phaseApplyLinear {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) : QState H →ₗ[ℂ] QState H where
   toFun := ApplyGate U
   map_add' x y := Matrix.mulVec_add U x y
   map_smul' c x := Matrix.mulVec_smul U c x
 
+/-- A uniform coefficient bound in an orthonormal family gives the corresponding Euclidean norm
+bound between linear combinations. -/
 private theorem phase_orthonormal_combo_bound {J : Type} [Fintype J] [DecidableEq J]
     (v : J → QState I) (c d : J → ℂ)
     (hv : ∀ a b, Qatlib.Foundations.PureStateMath.Inner (v a) (v b) = if a = b then 1 else 0)
@@ -661,6 +775,8 @@ private theorem phase_orthonormal_combo_bound {J : Type} [Fintype J] [DecidableE
   have hm := norm_nonneg (toEuclidean_fromVec (∑ a, c a • v a))
   nlinarith [mul_nonneg hC hm]
 
+/-- Reflection about one vector of an orthonormal family keeps its component and negates all
+other components of a finite linear combination. -/
 theorem phase_source_reflection_sum {J : Type} [Fintype J] [DecidableEq J]
     (j0 : J) (v : J → QState I) (c : J → ℂ)
     (hv : ∀ a b, Qatlib.Foundations.PureStateMath.Inner (v a) (v b) = if a = b then 1 else 0) :
@@ -675,6 +791,8 @@ theorem phase_source_reflection_sum {J : Type} [Fintype J] [DecidableEq J]
   change (2 : ℂ) • (outerProduct (v j0) *ᵥ (∑ a, c a • v a)) - _ = _
   rw [outerProduct_mulVec, hi, smul_smul]
 
+/-- For an orthonormal eigenfamily with a distinguished zero-phase vector and phase gap `η`,
+bound the counted reflection error on its span by `2*(1/(2*M*η))^k` times the input norm. -/
 theorem phase_reflection_reachable_source_error (J : Type) [Fintype J] [DecidableEq J]
     (j0 : J) (v : J → QState I) (p : J → ℝ) (W : Matrix I I ℂ) (M k : ℕ) (η : ℝ)
     (hM : 2 ≤ M) (hη : 0 < η) (hW : W ∈ Matrix.unitaryGroup I ℂ)
@@ -769,22 +887,26 @@ theorem phase_reflection_reachable_source_error (J : Type) [Fintype J] [Decidabl
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Zero-ancilla embedding preserves addition of states. -/
 theorem phaseReflectionEmbed_add (M k : ℕ) (x y : QState I) :
     phaseReflectionEmbed M k (x + y) = phaseReflectionEmbed M k x + phaseReflectionEmbed M k y :=
   (phaseEmbedLinear M k).map_add x y
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Zero-ancilla embedding preserves complex scalar multiplication. -/
 theorem phaseReflectionEmbed_smul (M k : ℕ) (c : ℂ) (x : QState I) :
     phaseReflectionEmbed M k (c • x) = c • phaseReflectionEmbed M k x :=
   (phaseEmbedLinear M k).map_smul c x
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Zero-ancilla embedding preserves subtraction of states. -/
 theorem phaseReflectionEmbed_sub (M k : ℕ) (x y : QState I) :
     phaseReflectionEmbed M k (x - y) = phaseReflectionEmbed M k x - phaseReflectionEmbed M k y :=
   (phaseEmbedLinear M k).map_sub x y
 
+/-- Applying the phase-reflection word to embedded states preserves addition. -/
 theorem phaseReflectionState_add (W : Matrix I I ℂ) (M k : ℕ) (x y : QState I) :
     phaseReflectionState W M k (x + y) = phaseReflectionState W M k x + phaseReflectionState W M k y := by
   simp only [phaseReflectionState, phaseReflectionEmbed_add, ApplyGate, Matrix.mulVec_add]

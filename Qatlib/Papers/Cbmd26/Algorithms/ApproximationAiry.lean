@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximationSharpQSVT
 import Qatlib.Foundations.CbmdAnalysis.Core.AiryMixture
+
+/-!
+# Polynomial and QSVT approximation of the Airy propagator
+
+`airy_bounded_polynomial_exists` approximates the scaled Airy propagator on `[g, 1]` while
+controlling the polynomial on `[-1, 1]`. `airy_spectral_qsvt_exists` supplies uniform QSVT
+phases, and `airy_hermitian_function_eq_series` identifies the spectral functional calculus with
+the matrix series, yielding `airy_qsvt_exists` with explicit degree and query bounds.
+
+This approximation supports the Airy dynamics studied in [WangEtAl2026].
+
+## Main statements
+
+* `airy_bounded_polynomial_exists` gives bounded polynomial approximation of the scalar
+  propagator.
+* `airy_hermitian_function_eq_series` identifies spectral and matrix-series propagators.
+* `airy_qsvt_exists` supplies the corresponding uniform QSVT implementation.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,6 +65,7 @@ namespace CBMD
 open Complex Polynomial Metric Set Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The scalar Airy propagator is real when both its spectral parameter and time are real. -/
 theorem airy_scalar_real (x t : ℝ) :
     ((_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator (x : ℂ) (t : ℂ)).re : ℂ) =
       _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator (x : ℂ) (t : ℂ) := by
@@ -49,6 +73,8 @@ theorem airy_scalar_real (x t : ℝ) :
   simp only [_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator, smul_eq_mul, Complex.conj_tsum,
     map_mul, map_pow, map_neg, Complex.conj_ofReal]
 
+/-- For nonnegative `b` and `t`, the scaled scalar Airy propagator on the radius-two circle has
+norm at most `exp (airyTimeScale t * sqrt (2 * b))`. -/
 theorem airy_scalar_circle_bound (b t : ℝ) (hb : 0 ≤ b) (ht : 0 ≤ t)
     (z : ℂ) (hz : z ∈ sphere (0 : ℂ) 2) :
     ‖_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator ((b : ℂ) * z) (t : ℂ)‖ ≤
@@ -57,6 +83,8 @@ theorem airy_scalar_circle_bound (b t : ℝ) (hb : 0 ≤ b) (ht : 0 ≤ t)
   simpa only [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hb,
     hn, mul_comm b 2] using! _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator_norm_le_exp ((b : ℂ) * z) t ht
 
+/-- For real `b` and `t`, the scalar Airy propagator composed with multiplication by `b` is
+complex differentiable on the radius-two closed disk. -/
 private theorem airy_scaled_analytic (b t : ℝ) :
     DifferentiableOn ℂ
       (fun z : ℂ => _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator ((b : ℂ) * z) (t : ℂ))
@@ -67,6 +95,9 @@ private theorem airy_scaled_analytic (b t : ℝ) :
   simpa only [zero_add, smul_eq_mul, mul_comm, _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator]
     using! h.differentiableWithinAt
 
+/-- For nonnegative `b` and `t` and positive `g` and `ε`, there is a complex polynomial
+approximating the scaled Airy propagator within `ε` on `[g, 1]` and bounded by `1 + ε` on
+`[-1, 1]`. Its degree satisfies the stated dyadic budget using the circle-growth bound. -/
 theorem airy_bounded_polynomial_exists (b t g ε : ℝ)
     (hb : 0 ≤ b) (ht : 0 ≤ t) (hg : 0 < g) (hε : 0 < ε) :
     ∃ P : Polynomial ℂ,
@@ -90,6 +121,10 @@ theorem airy_bounded_polynomial_exists (b t g ε : ℝ)
   · intro x _
     simpa only [← Complex.ofReal_mul] using! airy_scalar_real (b * x) t
 
+/-- For nonnegative `b` and `t` and positive `g` and `ε`, there are a polynomial and four
+uniform QSVT phase lists with the stated explicit degree and per-branch query bounds. For
+every projected unitary encoding of a Hermitian matrix with spectrum in `[g, 1]`, their LCU
+block-encodes the spectral Airy propagator with normalization `4` and error `ε`. -/
 theorem airy_spectral_qsvt_exists (b t g ε : ℝ)
     (hb : 0 ≤ b) (ht : 0 ≤ t) (hg : 0 < g) (hε : 0 < ε) :
     ∃ (P : Polynomial ℂ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ),
@@ -130,6 +165,8 @@ theorem airy_spectral_qsvt_exists (b t g ε : ℝ)
   · intro x _
     simpa only [← Complex.ofReal_mul] using! airy_scalar_real (b * x) t
 
+/-- Each term of the Airy matrix series for a Hermitian matrix equals the spectral diagonal
+matrix obtained by applying the corresponding scalar term to its eigenvalues. -/
 private theorem airy_term_spectral (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (b t : ℂ) (n : ℕ) :
     (_root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airySeriesCoefficient n : ℂ) • (-(t ^ 3) • (b • A)) ^ n =
@@ -143,6 +180,8 @@ private theorem airy_term_spectral (I : Type) [Fintype I] [DecidableEq I]
     eval_X, Algebra.algebraMap_eq_smul_one, smul_mul_assoc, one_mul,
     smul_smul, mul_assoc] using! h
 
+/-- For a finite Hermitian matrix and arbitrary complex scale and time, the spectral Airy
+functional calculus equals the Airy propagator defined by the matrix series. -/
 theorem airy_hermitian_function_eq_series (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (b t : ℂ) :
     hermitianFunction A hA (fun x => _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.airyPropagator (b * (x : ℂ)) t) =
@@ -183,6 +222,10 @@ theorem airy_hermitian_function_eq_series (I : Type) [Fintype I] [DecidableEq I]
   intro n
   exact (airy_term_spectral I A hA b t n).symm
 
+/-- For nonnegative `b` and `t` and positive `g` and `ε`, there are a polynomial and four
+uniform QSVT phase lists with the stated degree and per-branch query bounds. For every
+projected unitary encoding of a Hermitian matrix with spectrum in `[g, 1]`, their LCU
+block-encodes `airyPropagator ((b : ℂ) • A) (t : ℂ)` with normalization `4` and error `ε`. -/
 theorem airy_qsvt_exists (b t g ε : ℝ)
     (hb : 0 ≤ b) (ht : 0 ≤ t) (hg : 0 < g) (hε : 0 < ε) :
     ∃ (P : Polynomial ℂ) (base : Fin 4 → ℂ) (zs : Fin 4 → List ℂ),

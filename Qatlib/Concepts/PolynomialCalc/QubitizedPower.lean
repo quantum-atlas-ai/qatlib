@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.MatrixGeometry.StochasticFrame.Reflection
 import Mathlib.RingTheory.Polynomial.Chebyshev
 import Mathlib.Algebra.Polynomial.AlgebraMap
+
+/-!
+# Chebyshev compression of qubitized walk powers
+
+For a column isometry `C`, `walk C U` is the product of the reflection in its column space and
+`U`, while `signal C U` is the compression of `U` to that frame. If `U` is an involution, the
+compressed walk powers satisfy the Chebyshev recurrence. This gives the polynomial identity
+underlying qubitization [LowChuang2019].
+
+When `U` is also Hermitian, the walk satisfies the unitary matrix identity. These statements
+supply the compression identities used for nonreversible Markov-chain walks in
+[ClaudonPiquemalMonmarche2025].
+
+## Main statements
+
+* `walk_unitary`: a Hermitian involution and an isometric frame give a unitary walk.
+* `compressed_recurrence`: compressed powers satisfy a second-order recurrence.
+* `compressed_chebyshev`: the `n`th compression is the `n`th Chebyshev polynomial of the signal.
+
+## References
+
+* [Low and Chuang, 2019][LowChuang2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,16 +41,22 @@ namespace Qatlib.Concepts.PolynomialCalc.QubitizedPower
 open Qatlib.Foundations.MatrixGeometry.StochasticFrame
 variable {M N : Type*} [Fintype M] [Fintype N] [DecidableEq M] [DecidableEq N]
 
+/-- The matrix `rangeReflection C * U`, used as the qubitized walk associated with the frame
+`C`. -/
 def walk (C : Matrix M N ℂ) (U : Matrix M M ℂ) := rangeReflection C*U
 
+/-- The compression `Cᴴ * U * C` of the matrix `U` to the frame `C`. -/
 def signal (C : Matrix M N ℂ) (U : Matrix M M ℂ) := Cᴴ*U*C
 
+/-- The range reflection associated with a column isometry fixes that frame. -/
 theorem reflection_frame (C : Matrix M N ℂ) (hC : Cᴴ*C=1) : rangeReflection C*C=C := by
   unfold rangeReflection
   rw [Matrix.sub_mul,Matrix.smul_mul,Matrix.mul_assoc,hC,Matrix.mul_one,Matrix.one_mul]
   simp only [two_smul]
   abel
 
+/-- For a column isometry `C` and a Hermitian involution `U`, the walk satisfies `(walk C U)ᴴ *
+walk C U = 1` [ClaudonPiquemalMonmarche2025]. -/
 theorem walk_unitary (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : Cᴴ*C=1)
     (hU : Uᴴ=U) (hU2 : U*U=1) : (walk C U)ᴴ*walk C U=1 := by
   unfold walk
@@ -36,17 +66,22 @@ theorem walk_unitary (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : Cᴴ*C=1)
     _ = _ := by rw [rangeReflection_unitary C hC,Matrix.mul_one,hU,hU2]
 omit [DecidableEq N] in
 
+/-- The sum of the walk action and `U` action on the frame equals twice the frame multiplied by
+the compressed signal. -/
 theorem walk_frame_sum (C : Matrix M N ℂ) (U : Matrix M M ℂ) :
     walk C U*C+U*C=(2 : ℂ)•(C*signal C U) := by
   unfold walk rangeReflection signal
   simp only [Matrix.sub_mul,Matrix.smul_mul,Matrix.one_mul,Matrix.mul_assoc]
   abel
 
+/-- For a column isometry and involutive `U`, the walk maps `U * C` back to `C`. -/
 theorem walk_backward (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : Cᴴ*C=1)
     (hU2 : U*U=1) : walk C U*(U*C)=C := by
   unfold walk
   rw [Matrix.mul_assoc,← Matrix.mul_assoc U U C,hU2,Matrix.one_mul,reflection_frame C hC]
 
+/-- For a column isometry and involutive `U`, the squared walk on the frame equals twice `walk C
+U * C * signal C U` minus `C`. -/
 theorem walk_square_frame (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : Cᴴ*C=1)
     (hU2 : U*U=1) : walk C U^2*C=(2 : ℂ)•(walk C U*C*signal C U)-C := by
   have hs := congrArg (fun X : Matrix M N ℂ => walk C U*X) (walk_frame_sum C U)
@@ -55,6 +90,8 @@ theorem walk_square_frame (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : Cᴴ*C
   simp only [← Matrix.mul_assoc,pow_two] at hs ⊢
   exact eq_sub_of_add_eq hs
 
+/-- For a column isometry and involutive `U`, compressed walk powers satisfy the Chebyshev
+recurrence with signal `Cᴴ * U * C`. -/
 theorem compressed_recurrence (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : Cᴴ*C=1)
     (hU2 : U*U=1) (n : ℕ) :
     Cᴴ*walk C U^(n+2)*C=(2 : ℂ)•((Cᴴ*walk C U^(n+1)*C)*signal C U)-Cᴴ*walk C U^n*C := by
@@ -65,6 +102,8 @@ theorem compressed_recurrence (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : C�
     _ = _ := by
       simp only [Matrix.mul_sub,Matrix.mul_smul,pow_succ,Matrix.mul_assoc]
 
+/-- For a column isometry and involutive `U`, the compression of the `n`th walk power equals the
+`n`th Chebyshev polynomial evaluated at the signal [ClaudonPiquemalMonmarche2025]. -/
 theorem compressed_chebyshev (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : Cᴴ*C=1)
     (hU2 : U*U=1) (n : ℕ) :
     Cᴴ*walk C U^n*C=Polynomial.aeval (signal C U) (Polynomial.Chebyshev.T ℂ (n : ℤ)) := by

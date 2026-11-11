@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+/-!
+# Residual-unitary specification for multi-controlled synthesis
+
+`Lemma7_8Legacy` records a residual-unitary formulation of approximate multi-controlled
+single-qubit synthesis associated with [BarencoEtAl1995]. It requires a legal query-free program
+whose controlled action is `U * V`, where the single-qubit residual `V` is within `π / 2^k` of
+identity.
+
+## Main definitions
+
+* `Lemma7_8Legacy`: the residual-unitary specification with gate bound `(240 * (m + 1) + 20) *
+  k`.
+
+## References
+
+* [Barenco et al., 1995, Section 7][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,9 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Concepts.CircuitImpl.SqrtApprox
 open scoped Matrix.Norms.L2Operator
+/-- The residual-unitary specification for approximate multi-controlled synthesis: a legal
+query-free program applies `U * V` on the controlled branch, with `‖V - 1‖ ≤ π / 2^k` and
+the stated linear-in-`k` gate bound. -/
 def Lemma7_8Legacy : Prop :=
   ∀ (N m k : ℕ) (c : ℕ → Fin N) (t : Fin N),
     Set.InjOn c (Set.Iio m) → (∀ i < m, c i ≠ t) →

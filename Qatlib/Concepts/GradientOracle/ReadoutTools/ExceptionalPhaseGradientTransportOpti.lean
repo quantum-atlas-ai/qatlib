@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportStat
 import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzOpti
+
+/-!
+# Transport of phase errors with exceptional points
+
+This module constructs the uniform grid state and controls phase perturbations before the
+inverse Fourier circuit. It proves a norm bound and transports it to measurement events for
+phases that are close outside an exceptional set, supporting [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `exceptionalPhaseGradientTransport`: a phase discrepancy at most `B` outside a fraction `η`
+  gives squared state distance at most `(2*π*B)^2+4*η` and the corresponding event bound.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean
@@ -36,21 +54,28 @@ open scoped Classical
 
 namespace ExceptionalPhaseGradientTransportAux
 
+/-- The reversed Fourier preparation word with each gate replaced by its conjugate transpose,
+retaining query steps in the translation. -/
 private noncomputable def gradientAdjWord (d M : ℕ) : Circuit (GradientGrid d M) :=
   (gradientQFTWord d M).reverse.map fun s => match s with
     | .gate U => .gate Uᴴ
     | .query => .query
 
+/-- The product of coordinate states obtained by applying each Fourier matrix to the
+corresponding zero basis state. -/
 private noncomputable def gradientUniformState (d M : ℕ) (hM : 0 < M) :
     QState (GradientGrid d M) :=
   gridProductState fun j => ApplyGate (QFTMatrix M) (Qatlib.Foundations.PureStateMath.Ket (gradientZero d M hM j))
 
+/-- Applying a unitary gate preserves the Euclidean norm of a finite state vector. -/
 private theorem norm_toEuclidean_applyGate {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (χ : QState I) :
     ‖toEuclidean_fromVec (ApplyGate U χ)‖ = ‖toEuclidean_fromVec χ‖ := by
   rw [← toEuclideanCLM_applyGate U χ]
   exact norm_toEuclideanCLM_of_mem_unitaryGroup hU _
 
+/-- Running a circuit with a unitary oracle and unitary fixed gates does not increase the
+Euclidean norm of its input state. -/
 private theorem norm_toEuclidean_run_le {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ) (C : Circuit I)
     (hgates : ∀ U : Matrix I I ℂ, Step.gate U ∈ C → U ∈ Matrix.unitaryGroup I ℂ)
@@ -74,6 +99,7 @@ private theorem norm_toEuclidean_run_le {I : Type} [Fintype I] [DecidableEq I]
             ih (fun V hV => hgates V (List.mem_cons_of_mem _ hV)) _
         _ = ‖toEuclidean_fromVec χ‖ := norm_toEuclidean_applyGate O hO χ
 
+/-- Application of a matrix gate preserves subtraction of state vectors. -/
 private theorem applyGate_sub {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (χ₁ χ₂ : QState I) :
     ApplyGate U (χ₁ - χ₂) = ApplyGate U χ₁ - ApplyGate U χ₂ := by
@@ -82,6 +108,7 @@ private theorem applyGate_sub {I : Type} [Fintype I] [DecidableEq I]
   rw [← Finset.sum_sub_distrib]
   exact Finset.sum_congr rfl fun j _ => mul_sub _ _ _
 
+/-- Circuit execution preserves subtraction of input state vectors. -/
 private theorem run_sub {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (C : Circuit I) (χ₁ χ₂ : QState I) :
     Run O C (χ₁ - χ₂) = Run O C χ₁ - Run O C χ₂ := by
@@ -92,6 +119,7 @@ private theorem run_sub {I : Type} [Fintype I] [DecidableEq I]
     | gate U => simp only [run_gate, applyGate_sub, ih]
     | query => simp only [run_query, applyGate_sub, ih]
 
+/-- Every step of the gradient Fourier preparation word is a fixed gate. -/
 private theorem gradientQFTWord_gates (d M : ℕ) :
     ∀ s ∈ gradientQFTWord d M, ∃ U : Matrix (GradientGrid d M) (GradientGrid d M) ℂ,
       s = Step.gate U := by
@@ -100,6 +128,7 @@ private theorem gradientQFTWord_gates (d M : ℕ) :
   obtain ⟨j, hj⟩ := List.mem_ofFn.mp hs
   exact ⟨coordinateQFT d M j, hj.symm⟩
 
+/-- Every step of the adjoint gradient Fourier word is a fixed gate. -/
 private theorem gradientAdjWord_gates (d M : ℕ) :
     ∀ s ∈ gradientAdjWord d M, ∃ U : Matrix (GradientGrid d M) (GradientGrid d M) ℂ,
       s = Step.gate U := by
@@ -110,6 +139,7 @@ private theorem gradientAdjWord_gates (d M : ℕ) :
   cases hW
   exact ⟨Wᴴ, hte.symm⟩
 
+/-- A circuit consisting entirely of fixed-gate steps has zero oracle queries. -/
 private theorem queryCount_of_all_gates {I : Type} (L : Circuit I)
     (hmem : ∀ s ∈ L, ∃ U : Matrix I I ℂ, s = Step.gate U) : QueryCount L = 0 := by
   induction L with
@@ -119,6 +149,7 @@ private theorem queryCount_of_all_gates {I : Type} (L : Circuit I)
     subst hU
     exact ih fun s' hs' => hmem s' (by simp [hs'])
 
+/-- For a positive grid size, every fixed gate in the adjoint gradient Fourier word is unitary. -/
 private theorem gradientAdjWord_unitary_gates (d M : ℕ) (hM : 0 < M) :
     ∀ U : Matrix (GradientGrid d M) (GradientGrid d M) ℂ,
       Step.gate U ∈ gradientAdjWord d M → U ∈ Matrix.unitaryGroup (GradientGrid d M) ℂ := by
@@ -133,6 +164,7 @@ private theorem gradientAdjWord_unitary_gates (d M : ℕ) (hM : 0 < M) :
   rw [← hUW]
   exact adjoint_unitary (coordinateQFT_unitary d M j hM)
 
+/-- Each amplitude of a Fourier-transformed basis state has squared norm `1/M` for positive `M`. -/
 private theorem qft_ket_factor_sq (M : ℕ) (_hM : 0 < M) (q y : Fin M) :
     ‖ApplyGate (QFTMatrix M) (Qatlib.Foundations.PureStateMath.Ket q) y‖^2 = 1/(M : ℝ) := by
   have h : ApplyGate (QFTMatrix M) (Qatlib.Foundations.PureStateMath.Ket q) y
@@ -154,6 +186,8 @@ private theorem qft_ket_factor_sq (M : ℕ) (_hM : 0 < M) (q y : Fin M) :
   rw [h, norm_mul, h1, mul_one, norm_inv, inv_pow, ← Complex.normSq_eq_norm_sq,
     Complex.normSq_ofReal, hsm, inv_eq_one_div]
 
+/-- Running the gradient Fourier preparation word from the zero basis state gives
+`gradientUniformState`, for any supplied oracle. -/
 private theorem gradient_uniform_run (d M : ℕ) (hM : 0 < M)
     (O : Matrix (GradientGrid d M) (GradientGrid d M) ℂ) :
     Run O (gradientQFTWord d M) (Qatlib.Foundations.PureStateMath.Ket (gradientZero d M hM))
@@ -161,6 +195,7 @@ private theorem gradient_uniform_run (d M : ℕ) (hM : 0 < M)
   rw [← gridProductState_ket (gradientZero d M hM), run_gradientQFTWord_product]
   rfl
 
+/-- Every amplitude of the uniform gradient grid state has squared norm `1/M^d`. -/
 private theorem uniform_state_sq (d M : ℕ) (hM : 0 < M) (x : GradientGrid d M) :
     ‖gradientUniformState d M hM x‖^2 = 1/(M : ℝ)^d := by
   have hprod : ∀ j : Fin d,
@@ -177,6 +212,9 @@ end ExceptionalPhaseGradientTransportAux
 open Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportAux
 set_option warningAsError false
 
+/-- Proves normalization and bounds the squared readout-state distance by `(2*π*B)^2+4*η` when
+phases differ by at most `B` outside a fraction `η` of the grid. Every event-probability
+difference is at most the square root of that bound; see [GilyenArunachalamWiebe2019]. -/
 theorem exceptionalPhaseGradientTransport : ExceptionalPhaseGradientTransport := by
   intro d M hM φ ψ S B η hB hη hcard hgood
   obtain ⟨hC, _, _⟩ := gradient_coordinate_qft_word_unitarity d M hM

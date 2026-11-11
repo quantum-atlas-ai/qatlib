@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositiveComplementSqrtDefs
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.HermitianSylvester
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+
+/-!
+# Bounds for positive complement square roots
+
+For a positive semidefinite matrix `E` bounded above by `q` times the identity with `0 ≤ q < 1`,
+this module proves order and operator-norm bounds for `positiveComplementSqrt E`. In particular,
+its square is the complement of `E`, and its distance from the identity is at most `q`.
+
+The module also proves a Lipschitz estimate for two such complement square roots, with constant
+at most one when `q ≤ 3/4`. The functional-calculus and positive-matrix background is treated in
+[Bhatia1997].
+
+## Main statements
+
+* `positive_complement_sqrt_bounds`: Positivity, the square identity, order bounds, and distance
+  to the identity.
+* `positive_complement_sqrt_stability`: The perturbation bound has denominator twice the square
+  root of `1 - q`.
+* `positive_complement_sqrt_stability_small`: The complement square root is nonexpansive on the
+  stated smaller interval.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,18 +44,25 @@ variable {N : Type*} [Fintype N] [DecidableEq N]
 
 noncomputable local instance complementMatrixCStar : CStarAlgebra (Matrix N N ℂ) where
 
+/-- Real scalar multiplication of the identity preserves scalar order in the positive
+semidefinite matrix order. -/
 private theorem complement_scalar_mono {a b : ℝ} (hab : a ≤ b) :
     a • (1 : Matrix N N ℂ) ≤ b • (1 : Matrix N N ℂ) := by
   change (b • (1 : Matrix N N ℂ)-a • (1 : Matrix N N ℂ)).PosSemidef
   rw [← sub_smul]
   exact Matrix.PosSemidef.one.smul (sub_nonneg.mpr hab)
 
+/-- The continuous-functional-calculus square root of a nonnegative scalar identity matrix is
+the square root of the scalar times the identity. -/
 private theorem complement_sqrt_scalar (a : ℝ) (ha : 0 ≤ a) :
     CFC.sqrt (a • (1 : Matrix N N ℂ)) = Real.sqrt a • (1 : Matrix N N ℂ) := by
   apply CFC.sqrt_unique
   · rw [smul_mul_assoc, mul_smul_comm, smul_smul, Matrix.one_mul, Real.mul_self_sqrt ha]
   · exact (Matrix.PosSemidef.one.smul (Real.sqrt_nonneg a)).nonneg
 
+/-- If `0 ≤ E ≤ q • 1` and `0 ≤ q < 1`, its positive complement square root is positive
+semidefinite, squares to `1 - E`, lies between `Real.sqrt (1 - q) • 1` and the identity, and
+has distance at most `q` from the identity. -/
 theorem positive_complement_sqrt_bounds (E : Matrix N N ℂ) (q : ℝ)
     (hq : 0 ≤ q) (hq1 : q < 1) (hE : E.PosSemidef)
     (hcap : (q • (1 : Matrix N N ℂ)-E).PosSemidef) :
@@ -74,6 +107,9 @@ theorem positive_complement_sqrt_bounds (E : Matrix N N ℂ) (q : ℝ)
     simpa only [Algebra.algebraMap_eq_smul_one] using hdiff
   exact ⟨hS0.posSemidef, hsquare, hSlow, hS1, by rwa [norm_sub_rev]⟩
 
+/-- For positive matrices `E` and `D` bounded above by `q • 1` with `0 ≤ q < 1`, their
+complement square roots differ in operator norm by at most `‖E - D‖ / (2 * Real.sqrt (1 -
+q))`. -/
 theorem positive_complement_sqrt_stability (E D : Matrix N N ℂ) (q : ℝ)
     (hq : 0 ≤ q) (hq1 : q < 1) (hE : E.PosSemidef)
     (hEc : (q • (1 : Matrix N N ℂ)-E).PosSemidef) (hD : D.PosSemidef)
@@ -89,6 +125,8 @@ theorem positive_complement_sqrt_stability (E D : Matrix N N ℂ) (q : ℝ)
   rw [hs.2.1, ht.2.1, show (1-E)-(1-D)=D-E by abel, norm_sub_rev D E] at hh
   exact hh
 
+/-- For positive matrices bounded above by `q • 1` with `0 ≤ q ≤ 3/4`, taking the positive
+complement square root does not increase their operator-norm distance. -/
 theorem positive_complement_sqrt_stability_small (E D : Matrix N N ℂ) (q : ℝ)
     (hq : 0 ≤ q) (hq1 : q ≤ 3/4) (hE : E.PosSemidef)
     (hEc : (q • (1 : Matrix N N ℂ)-E).PosSemidef) (hD : D.PosSemidef)

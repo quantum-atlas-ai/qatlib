@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonlinBool08.MainResults.BentCore.Basic
+
+/-!
+# Affine transformations of bent functions
+
+Proves that precomposition by an invertible affine map preserves bentness. The Walsh transform
+changes by the inverse-transpose frequency map `atrans` and the sign determined by the
+translation vector. See [Roetteler2008].
+
+## Main statements
+
+* `affine_bijective`: a nonsingular affine map on binary vectors is bijective.
+* `lemma2_affine`: bentness and the Walsh transformation formula hold under affine substitution.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,19 +35,25 @@ namespace Qatlib.Papers.NonlinBool08.MainResults.AffineTransform
 
 open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 
+/-- The frequency map obtained by applying the nonsingular inverse of the transpose of `A` to
+`w`. -/
 abbrev atrans {n : ℕ} (A : Matrix (Fin n) (Fin n) (ZMod 2)) (w : BVec n) : BVec n :=
   (Aᵀ)⁻¹.mulVec w
 
+/-- Moving a matrix across the binary dot product replaces it by its transpose. -/
 lemma dot_mulVec {n : ℕ} (A : Matrix (Fin n) (Fin n) (ZMod 2)) (x y : BVec n) :
     dot (A.mulVec x) y = dot x (Aᵀ.mulVec y) := by
   calc dot (A.mulVec x) y = dot y (A.mulVec x) := dotProduct_comm _ _
     _ = dot x (Aᵀ.mulVec y) := (Matrix.dotProduct_transpose_mulVec A x y).symm
 
+/-- When the determinant of `A` is a unit, multiplication by its inverse recovers a vector from
+its image under `A`. -/
 lemma nonsing_inv_mulVec {n : ℕ} (A : Matrix (Fin n) (Fin n) (ZMod 2))
     (hA : IsUnit A.det) (x : BVec n) :
     (A⁻¹).mulVec (A.mulVec x) = x := by
   rw [Matrix.mulVec_mulVec, Matrix.nonsing_inv_mul A hA, Matrix.one_mulVec]
 
+/-- An affine map on binary vectors with unit determinant in its linear part is injective. -/
 lemma affine_injective {n : ℕ} (A : Matrix (Fin n) (Fin n) (ZMod 2))
     (b : BVec n) (hA : IsUnit A.det) :
     Function.Injective (fun x : BVec n => A.mulVec x + b) := by
@@ -39,11 +63,14 @@ lemma affine_injective {n : ℕ} (A : Matrix (Fin n) (Fin n) (ZMod 2))
     _ = (A⁻¹).mulVec (A.mulVec x2) := by rw [h']
     _ = x2 := nonsing_inv_mulVec A hA x2
 
+/-- An affine map on binary vectors with unit determinant in its linear part is bijective. -/
 lemma affine_bijective {n : ℕ} (A : Matrix (Fin n) (Fin n) (ZMod 2))
     (b : BVec n) (hA : IsUnit A.det) :
     Function.Bijective (fun x : BVec n => A.mulVec x + b) :=
   (affine_injective A b hA).bijective_of_finite
 
+/-- Invertible affine substitution preserves bentness and transforms the Walsh spectrum by the
+inverse transpose, with a translation sign factor. See [Roetteler, Lemma 2][Roetteler2008]. -/
 theorem lemma2_affine {n : ℕ} (f : BVec n → ZMod 2)
     (A : Matrix (Fin n) (Fin n) (ZMod 2)) (hA : IsUnit A.det) (b : BVec n)
     (hf : Bent f) :

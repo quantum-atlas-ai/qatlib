@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.Basic
+
+/-!
+# Analytic estimates for graph query costs
+
+This module supplies finite-sum, square-root, and geometric estimates for the cost and error
+expressions in `Model.Basic`. In particular, it bounds Borůvka phase errors, directed-tree
+errors, and tier failure terms by explicit constants.
+
+The source paper is [DurrEtAl2006].
+
+## Main statements
+
+* `sum_sqrt_mul_le`: The sum of products √(a u)√(b u) over a finite set is at most the product
+  of the square roots of the two corresponding sums.
+* `boruvkaError_le`: The accumulated Borůvka error is at most 1/4.
+* `tierFailure_le_third`: Every tier failure expression is at most 1/3.
+
+## References
+
+* [Dürr et al., 2006][DurrEtAl2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +35,8 @@ namespace Qatlib.Papers.QQueryGraph04.MainResults.Model
 
 open Finset
 
+/-- The sum of products √(a u)√(b u) over a finite set is at most the product of the square
+roots of the two corresponding sums [DurrEtAl2006]. -/
 theorem sum_sqrt_mul_le {ι : Type*} (s : Finset ι) (a b : ι → ℕ) :
     (∑ u ∈ s, Real.sqrt (a u) * Real.sqrt (b u)) ≤
       Real.sqrt (∑ u ∈ s, (a u : ℝ)) * Real.sqrt (∑ u ∈ s, (b u : ℝ)) := by
@@ -34,6 +58,7 @@ theorem sum_sqrt_mul_le {ι : Type*} (s : Finset ι) (a b : ι → ℕ) :
     _ = Real.sqrt (∑ u ∈ s, (a u : ℝ)) * Real.sqrt (∑ u ∈ s, (b u : ℝ)) :=
         Real.sqrt_mul (Finset.sum_nonneg fun _ _ => Nat.cast_nonneg _) _
 
+/-- The sum of 1/√(j + 1) over j < n is at most 2√n. -/
 theorem sum_inv_sqrt_range (n : ℕ) :
     (∑ j ∈ Finset.range n, (1 : ℝ) / Real.sqrt ((j : ℝ) + 1)) ≤
       2 * Real.sqrt (n : ℝ) := by
@@ -64,6 +89,7 @@ theorem sum_inv_sqrt_range (n : ℕ) :
     rw [hcast]
     nlinarith [ih, hstep]
 
+/-- The sum of √(N/(j + 1)) over j < n is at most 2√(Nn) [DurrEtAl2006]. -/
 theorem sum_sqrt_div_range (N n : ℕ) :
     (∑ j ∈ Finset.range n, Real.sqrt ((N : ℝ) / ((j : ℝ) + 1))) ≤
       2 * Real.sqrt ((N : ℝ) * (n : ℝ)) := by
@@ -86,6 +112,7 @@ theorem sum_sqrt_div_range (N n : ℕ) :
         have hn : 0 ≤ Real.sqrt (n : ℝ) := Real.sqrt_nonneg _
         nlinarith
 
+/-- The accumulated Borůvka error is exactly 1/4 − 1/2^(M + 2). -/
 theorem boruvkaError_eq (M : ℕ) :
     boruvkaError M = 1 / 4 - 1 / (2 : ℝ) ^ (M + 2) := by
   induction M with
@@ -102,11 +129,13 @@ theorem boruvkaError_eq (M : ℕ) :
     field_simp
     ring
 
+/-- The accumulated Borůvka error is at most 1/4. -/
 theorem boruvkaError_le (M : ℕ) : boruvkaError M ≤ 1 / 4 := by
   rw [boruvkaError_eq]
   have : (0 : ℝ) < 1 / (2 : ℝ) ^ (M + 2) := by positivity
   linarith
 
+/-- The square root of (1/2)^ℓ equals (1/√2)^ℓ. -/
 theorem sqrt_half_pow (ℓ : ℕ) :
     Real.sqrt ((1 / 2 : ℝ) ^ ℓ) = (1 / Real.sqrt 2) ^ ℓ := by
   induction ℓ with
@@ -116,11 +145,13 @@ theorem sqrt_half_pow (ℓ : ℕ) :
     congr 1
     rw [Real.sqrt_div (by norm_num : (0 : ℝ) ≤ 1), Real.sqrt_one, one_div]
 
+/-- The reciprocal of √2 is at most 3/4. -/
 theorem inv_sqrt_two_le_three_quarters : (1 / Real.sqrt 2 : ℝ) ≤ 3 / 4 := by
   have h2 : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.mpr (by norm_num)
   rw [div_le_iff₀ h2]
   nlinarith [Real.sq_sqrt (show (0 : ℝ) ≤ 2 by norm_num), Real.sqrt_nonneg 2]
 
+/-- The finite sum of (ℓ + 3)(3/4)^ℓ over ℓ < M equals 24 − (24 + 4M)(3/4)^M. -/
 theorem boruvkaGeomSum_eq (M : ℕ) :
     (∑ ℓ ∈ Finset.range M, ((ℓ : ℝ) + 3) * (3 / 4 : ℝ) ^ ℓ) =
       24 - (24 + 4 * (M : ℝ)) * (3 / 4 : ℝ) ^ M := by
@@ -131,18 +162,21 @@ theorem boruvkaGeomSum_eq (M : ℕ) :
     push_cast
     ring
 
+/-- The finite sum of (ℓ + 3)(3/4)^ℓ is at most 24. -/
 theorem boruvkaGeomSum_le (M : ℕ) :
     (∑ ℓ ∈ Finset.range M, ((ℓ : ℝ) + 3) * (3 / 4 : ℝ) ^ ℓ) ≤ 24 := by
   rw [boruvkaGeomSum_eq]
   have hpos : (0 : ℝ) ≤ (24 + 4 * (M : ℝ)) * (3 / 4 : ℝ) ^ M := by positivity
   linarith
 
+/-- For nonnegative A, √(A/2^ℓ) equals √A times (1/√2)^ℓ. -/
 theorem sqrt_div_pow_two (A : ℝ) (hA : 0 ≤ A) (ℓ : ℕ) :
     Real.sqrt (A / (2 : ℝ) ^ ℓ) = Real.sqrt A * (1 / Real.sqrt 2) ^ ℓ := by
   have hsplit : A / (2 : ℝ) ^ ℓ = A * (1 / 2 : ℝ) ^ ℓ := by
     rw [one_div_pow, div_eq_mul_one_div]
   rw [hsplit, Real.sqrt_mul hA, sqrt_half_pow]
 
+/-- For every natural number i, 2i ≤ 2ⁱ. -/
 theorem two_mul_le_two_pow (i : ℕ) : 2 * i ≤ 2 ^ i := by
   induction i with
   | zero => simp
@@ -156,6 +190,7 @@ theorem two_mul_le_two_pow (i : ℕ) : 2 * i ≤ 2 ^ i := by
         _ ≤ 2 ^ k + 2 ^ k := by omega
         _ = 2 ^ (k + 1) := by rw [pow_succ]; ring
 
+/-- For every natural number i, (1/2)^(2ⁱ)·2ⁱ is at most (1/2)ⁱ. -/
 theorem half_pow_two_pow_mul_pow_two_le (i : ℕ) :
     (1 / 2 : ℝ) ^ (2 ^ i) * (2 : ℝ) ^ i ≤ (1 / 2 : ℝ) ^ i := by
   have h2i : 2 * i ≤ 2 ^ i := two_mul_le_two_pow i
@@ -170,6 +205,7 @@ theorem half_pow_two_pow_mul_pow_two_le (i : ℕ) :
   rw [hsq] at hkey
   linarith
 
+/-- Every finite initial sum of powers of 1/2 is at most 2. -/
 theorem geom_half_sum_le (m : ℕ) :
     (∑ i ∈ Finset.range m, (1 / 2 : ℝ) ^ i) ≤ 2 := by
   have hgeom : (∑ i ∈ Finset.range m, (1 / 2 : ℝ) ^ i) =
@@ -181,6 +217,7 @@ theorem geom_half_sum_le (m : ℕ) :
   have hpos : (0 : ℝ) ≤ 2 * (1 / 2 : ℝ) ^ m := by positivity
   linarith
 
+/-- For every natural number i, 2^(3i/4) is at most 2ⁱ. -/
 theorem rpow_two_three_quarters_le (i : ℕ) :
     Real.rpow 2 ((3 : ℝ) * i / 4) ≤ (2 : ℝ) ^ i := by
   rcases Nat.eq_zero_or_pos i with hi | hi
@@ -194,12 +231,14 @@ theorem rpow_two_three_quarters_le (i : ℕ) :
     calc Real.rpow 2 ((3 : ℝ) * i / 4) ≤ Real.rpow 2 ((i : ℕ) : ℝ) := h
       _ = (2 : ℝ) ^ i := hnat
 
+/-- For n ≥ 1, the directed-tree error expression is at most 1/10. -/
 theorem directedTreeError_le (n : ℕ) (hn : 1 ≤ n) : directedTreeError n ≤ 1 / 10 := by
   unfold directedTreeError
   have hn' : (0 : ℝ) < n := by exact_mod_cast hn
   rw [div_le_iff₀ (by positivity : (0 : ℝ) < 20 * n)]
   nlinarith
 
+/-- Every tier failure expression is at most 1/3 [DurrEtAl2006]. -/
 theorem tierFailure_le_third (i : ℕ) : tierFailure i ≤ 1 / 3 := by
   unfold tierFailure
   have hpos : (0 : ℝ) < (2 : ℝ) ^ (2 ^ (i + 2)) := by positivity

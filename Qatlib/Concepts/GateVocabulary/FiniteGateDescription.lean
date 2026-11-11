@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+/-!
+# Finite gate descriptions and adjoints
+
+`FiniteGateCode` describes addressed H, X, T, inverse-T, and CNOT instructions. The module
+defines address legality, matrix and circuit interpretations, and an optional interpreter that
+rejects illegal words.
+
+Legal words compile to unitary circuits with one gate per entry and no queries. Reversing a word
+and replacing each instruction by its adjoint gives an inverse execution with the gate cost
+recorded explicitly, using the gate conventions of [NielsenChuang2010].
+
+## Main statements
+
+* `finite_gate_description_rejection_unitarity_and_counts`: proves rejection of illegal words
+  and the legality-dependent circuit guarantees.
+* `finiteCodeAdjoint_spec`: identifies each legal instruction's adjoint matrix.
+* `finite_gate_word_paid_adjoint_semantics`: proves cancellation with an exact doubled gate
+  count.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.BornMetrics.EventProbability
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -19,6 +44,7 @@ namespace Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 open Matrix
 set_option maxHeartbeats 1000000
 
+/-- Addressed codes for Hadamard, Pauli X, T, inverse T, and controlled-NOT gates. -/
 inductive FiniteGateCode where
   | h : ℕ → FiniteGateCode
   | x : ℕ → FiniteGateCode
@@ -27,18 +53,25 @@ inductive FiniteGateCode where
   | cx : ℕ → ℕ → FiniteGateCode
   deriving DecidableEq, Repr
 
+/-- Checks that all gate addresses lie below `n` and that a CNOT's control and target are
+distinct. -/
 def finiteCodeLegal (n : ℕ) : FiniteGateCode → Bool
   | .h w | .x w | .t w | .tdg w => decide (w < n)
   | .cx c t => decide (c < n ∧ t < n ∧ c ≠ t)
 
+/-- The adjoint instruction code, exchanging T with inverse T and fixing the other gate codes. -/
 def finiteCodeAdjoint : FiniteGateCode → FiniteGateCode
   | .t w => .tdg w
   | .tdg w => .t w
   | g => g
 
+/-- The adjoint word obtained by reversing the instruction list and taking each instruction's
+adjoint. -/
 def finiteWordAdjoint (gs : List FiniteGateCode) : List FiniteGateCode :=
   gs.reverse.map finiteCodeAdjoint
 
+/-- Interprets an instruction as a matrix on `n` qubits, using the identity matrix for an
+illegal instruction. -/
 noncomputable def finiteCodeMatrix (n : ℕ) : FiniteGateCode → Matrix (Reg n) (Reg n) ℂ
   | .h w => if h : w < n then wireGate n ⟨w, h⟩ Hadamard else 1
   | .x w => if h : w < n then wireGate n ⟨w, h⟩ PauliX else 1
@@ -46,16 +79,21 @@ noncomputable def finiteCodeMatrix (n : ℕ) : FiniteGateCode → Matrix (Reg n)
   | .tdg w => if h : w < n then wireGate n ⟨w, h⟩ tGateAdj else 1
   | .cx c t => if h : c < n ∧ t < n ∧ c ≠ t then cnotGate n ⟨c, h.1⟩ ⟨t, h.2.1⟩ else 1
 
+/-- Compiles a finite gate word into a circuit containing one interpreted gate per instruction. -/
 noncomputable def finiteCodeCircuit (n : ℕ) (gs : List FiniteGateCode) : Circuit (Reg n) :=
   gs.map (fun g => Step.gate (finiteCodeMatrix n g))
 
+/-- Checks that every instruction in a finite gate word is legal on `n` wires. -/
 def finiteWordLegal (n : ℕ) (gs : List FiniteGateCode) : Bool := gs.all (finiteCodeLegal n)
 
+/-- Runs a legal finite gate word and returns its output state, or returns `none` when the word
+is illegal. -/
 noncomputable def finiteWordRun (n : ℕ) (gs : List FiniteGateCode) (ψ : QState (Reg n)) :
     Option (QState (Reg n)) :=
   if finiteWordLegal n gs then some (Run (1 : Matrix (Reg n) (Reg n) ℂ) (finiteCodeCircuit n gs) ψ)
   else none
 
+/-- The matrix interpretation of a legal instruction is unitary. -/
 theorem finiteCodeMatrix_unitary (n : ℕ) (g : FiniteGateCode) (hg : finiteCodeLegal n g = true) :
     finiteCodeMatrix n g ∈ Matrix.unitaryGroup (Reg n) ℂ := by
   cases g with
@@ -76,12 +114,15 @@ theorem finiteCodeMatrix_unitary (n : ℕ) (g : FiniteGateCode) (hg : finiteCode
     have hct : (⟨c, hw.1⟩ : Fin n) ≠ ⟨t, hw.2.1⟩ := fun hh => hw.2.2 (congrArg Fin.val hh)
     simpa [finiteCodeMatrix, hw] using cnotGate_unitary n ⟨c, hw.1⟩ ⟨t, hw.2.1⟩ hct
 
+/-- A compiled finite gate word has no queries and exactly as many gates as word entries. -/
 theorem finiteCodeCircuit_counts (n : ℕ) (gs : List FiniteGateCode) :
     QueryCount (finiteCodeCircuit n gs) = 0 ∧ GateCount (finiteCodeCircuit n gs) = gs.length := by
   induction gs with
   | nil => simp [finiteCodeCircuit]
   | cons g gs ih => simpa [finiteCodeCircuit, List.length_cons] using ih
 
+/-- Illegal words are rejected by `finiteWordRun`; legal words compile to unitary circuits with
+zero queries and gate count equal to word length. -/
 theorem finite_gate_description_rejection_unitarity_and_counts (n : ℕ) (gs : List FiniteGateCode) :
     (∀ ψ : QState (Reg n), finiteWordLegal n gs = false → finiteWordRun n gs ψ = none) ∧
     (finiteWordLegal n gs = true → IsUnitaryCircuit (finiteCodeCircuit n gs) ∧
@@ -93,6 +134,7 @@ theorem finite_gate_description_rejection_unitarity_and_counts (n : ℕ) (gs : L
   subst U
   exact finiteCodeMatrix_unitary n g ((List.all_eq_true.mp hh) g hg)
 
+/-- The conjugate transpose of `Rz θ` is `Rz (-θ)`. -/
 private theorem rz_conjTranspose_neg (θ : ℝ) : (Rz θ)ᴴ = Rz (-θ) := by
   rw [Rz, Matrix.diagonal_conjTranspose, Rz]
   congr 1
@@ -103,6 +145,8 @@ private theorem rz_conjTranspose_neg (θ : ℝ) : (Rz θ)ᴴ = Rz (-θ) := by
     rw [RCLike.star_def, ← Complex.exp_conj]
     simp
 
+/-- The adjoint code of a legal instruction is legal and represents the conjugate transpose of
+the original instruction matrix. -/
 theorem finiteCodeAdjoint_spec (n : ℕ) (g : FiniteGateCode) (hg : finiteCodeLegal n g = true) :
     finiteCodeLegal n (finiteCodeAdjoint g) = true ∧
     finiteCodeMatrix n (finiteCodeAdjoint g) = (finiteCodeMatrix n g)ᴴ := by
@@ -130,6 +174,7 @@ theorem finiteCodeAdjoint_spec (n : ℕ) (g : FiniteGateCode) (hg : finiteCodeLe
     simp [finiteCodeAdjoint, finiteCodeLegal, finiteCodeMatrix, hw, cnotGate,
       permMatrix_conjTranspose (cnotUpdate_involutive n ⟨c, hw.1⟩ ⟨t, hw.2.1⟩ hct)]
 
+/-- Executing a legal word followed by its adjoint word returns the initial state. -/
 private theorem finite_inverse_run (n : ℕ) (gs : List FiniteGateCode)
     (hg : finiteWordLegal n gs = true) (ψ : QState (Reg n)) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (finiteCodeCircuit n (finiteWordAdjoint gs))
@@ -153,6 +198,8 @@ private theorem finite_inverse_run (n : ℕ) (gs : List FiniteGateCode)
       simpa only [Matrix.star_eq_conjTranspose] using hu
     rw [hu', applyGate_one]
 
+/-- The adjoint of a legal word is legal and has the same length. Executing the word followed by
+its adjoint is the identity and costs exactly twice the word length in gates. -/
 theorem finite_gate_word_paid_adjoint_semantics (n : ℕ) (gs : List FiniteGateCode)
     (ψ : QState (Reg n)) (hg : finiteWordLegal n gs = true) :
     finiteWordLegal n (finiteWordAdjoint gs) = true ∧

@@ -6,6 +6,39 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.Phi3Universal.QtmUniformDefs
 import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+
+/-!
+# Concrete quantum-machine simulation and bounds
+
+This module develops bounded-arity address circuits, finite-window quantum-machine dynamics, and
+concrete machines implementing one-wire gate sequences and tours over input cells. It proves
+local well-formedness conditions, configuration evolution formulas, acceptance-mass identities,
+and repetition bounds in the quantum-machine and circuit frameworks of [BernsteinVazirani1997]
+and [Yao1993].
+
+The module also records limits of specific simulation specifications and encodings: head-motion
+light cones constrain input access, and a collision in `dLambdaOpsEnc` prevents a deterministic
+size emitter for that encoding. `clause8_complete` collects these obstructions together with the
+stated communication, formula, and concrete-machine results.
+
+## Main statements
+
+* `addrWordBounded_run`: correctness of bounded-arity compilation on address wires with clean
+  ancillary wires.
+* `layerLocalQTM_five`: the layered one-cell machine satisfies the five local conditions.
+* `allCellTour_acceptProb`: identifies acceptance mass with the designated output amplitude
+  after the tour.
+* `dLambdaEmitterClause_impossible`: the colliding encoding cannot support the specified size
+  emitter.
+* `amplificationFailure_le`: a logarithmically chosen exponent bounds the geometric failure
+  factor.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+* [Yao, 1993][Yao1993]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -26,6 +59,8 @@ namespace QtmUniform
 
 open Matrix
 
+/-- With false ancillary bits, the multi-controlled-X program acts on address wires exactly as
+the specified address gate. -/
 theorem mcxProgram_addrGate {n : ℕ} (g : Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate n)
     (x : Reg (n + (n - 1))) (hanc : ∀ a : Fin (n - 1), x (ancWire n a) = false) :
     ∀ w : Fin n,
@@ -35,6 +70,7 @@ theorem mcxProgram_addrGate {n : ℕ} (g : Qatlib.Concepts.UniformBqp.Phi3Compil
   rw [mcxProgram_run g.target g.pattern x hanc]
   exact mcxPerm_addrGate g.target g.pattern x w
 
+/-- The multi-controlled-X program restores all initially false ancillary bits. -/
 theorem mcxProgram_addrGate_ancillas {n : ℕ} (g : Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate n)
     (x : Reg (n + (n - 1))) (hanc : ∀ a : Fin (n - 1), x (ancWire n a) = false) :
     ∀ a : Fin (n - 1),
@@ -44,6 +80,8 @@ theorem mcxProgram_addrGate_ancillas {n : ℕ} (g : Qatlib.Concepts.UniformBqp.P
   exact mcxPerm_target_only g.target g.pattern x (ancWire n a)
     ((addrWire_ne_ancWire n (n - 1) g.target a).symm)
 
+/-- With false ancillary bits, bounded-gate compilation of an address word agrees with its
+evaluation on every address wire. -/
 theorem addrWordBounded_run {n : ℕ} :
     ∀ (w : Qatlib.Concepts.UniformBqp.Phi3Compile.AddrWord n) (x : Reg (n + (n - 1))),
       (∀ a : Fin (n - 1), x (ancWire n a) = false) →
@@ -76,6 +114,7 @@ theorem addrWordBounded_run {n : ℕ} :
       rw [hfun]
       rfl
 
+/-- Bounded-gate compilation of an address word restores its initially false ancillary bits. -/
 theorem addrWordBounded_ancillas {n : ℕ} :
     ∀ (w : Qatlib.Concepts.UniformBqp.Phi3Compile.AddrWord n) (x : Reg (n + (n - 1))),
       (∀ a : Fin (n - 1), x (ancWire n a) = false) →
@@ -102,6 +141,7 @@ theorem addrWordBounded_ancillas {n : ℕ} :
       rw [hmain]
       rw [mcxProgram_addrGate_ancillas g x hanc a]
 
+/-- The bounded-gate compilation has length at most the address-word length times `4*(n-1)+1`. -/
 theorem addrWordBounded_gate_count {n : ℕ} (w : Qatlib.Concepts.UniformBqp.Phi3Compile.AddrWord n) :
     (addrWordBounded w).length ≤ w.length * (4 * (n - 1) + 1) := by
   induction w with
@@ -116,6 +156,7 @@ theorem addrWordBounded_gate_count {n : ℕ} (w : Qatlib.Concepts.UniformBqp.Phi
           rw [Nat.add_mul, Nat.one_mul]
           exact Nat.add_comm _ _
 
+/-- Every gate in the bounded compilation of an address word has arity at most three. -/
 theorem addrWordBounded_arity {n : ℕ} (w : Qatlib.Concepts.UniformBqp.Phi3Compile.AddrWord n) :
     ∀ g ∈ addrWordBounded w, g.arity ≤ 3 := by
   induction w with
@@ -129,6 +170,8 @@ theorem addrWordBounded_arity {n : ℕ} (w : Qatlib.Concepts.UniformBqp.Phi3Comp
       · exact mcxProgram_arity h.target h.pattern g hg'
       · exact ih g hg'
 
+/-- With false ancillary bits, the bounded compilation of a routing word agrees with that word
+on every head-address wire. -/
 theorem routeGateWord_bounded {B : ℕ} (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.WindowCenter B) :
     ∀ (x : Reg (Qatlib.Concepts.QueryComplexity.DegreeMethod.headQubits B
         + (Qatlib.Concepts.QueryComplexity.DegreeMethod.headQubits B - 1))),
@@ -142,12 +185,16 @@ theorem routeGateWord_bounded {B : ℕ} (i : Qatlib.Concepts.QueryComplexity.Deg
   intro x hanc wi
   exact addrWordBounded_run _ x hanc wi
 
+/-- The bounded routing compilation has length at most the routing-word length times
+`4*(headQubits B-1)+1`. -/
 theorem routeGateWord_bounded_gate_count {B : ℕ} (i : Qatlib.Concepts.QueryComplexity.DegreeMethod.WindowCenter B) :
     (addrWordBounded (Qatlib.Concepts.UniformBqp.Phi3Compile.routeGateWord B i)).length
       ≤ (Qatlib.Concepts.UniformBqp.Phi3Compile.routeGateWord B i).length
         * (4 * (Qatlib.Concepts.QueryComplexity.DegreeMethod.headQubits B - 1) + 1) :=
   addrWordBounded_gate_count _
 
+/-- A globally well-formed rule gives the five local conditions when stay-free, and its mixed
+right-stay and stay-left overlap sum vanishes. -/
 theorem stay_boundary {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
     (R : Rule Q A) (q0 : Q) (hw : R.GloballyWellformed) :
     (∀ (hs : stayFree R),
@@ -159,6 +206,7 @@ theorem stay_boundary {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [Deci
   ⟨fun hs => toLocalQTM_fiveConditions R q0 hs hw,
    fun q₁ q₂ a₁ a₂ c d => qtm_adjacent_combined_of_global R hw q₁ q₂ a₁ a₂ c d⟩
 
+/-- A successful head move changes its cell index by at most one in either direction. -/
 theorem moveCell_dist {w : ℕ} (d : QtmMove) (h h' : Fin (2 * w + 1))
     (hm : moveCell d h = some h') : h'.val ≤ h.val + 1 ∧ h.val ≤ h'.val + 1 := by
   cases d with
@@ -183,6 +231,8 @@ theorem moveCell_dist {w : ℕ} (d : QtmMove) (h h' : Fin (2 * w + 1))
         show h.val + 1 ≤ h.val + 1 ∧ h.val ≤ h.val + 1 + 1
         omega
 
+/-- A one-step window transition has zero amplitude when the head positions differ by at least
+two cells. -/
 theorem windowStep_zero_of_far {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     (M : LocalQTM Q Bool) (c d : WindowCfg w Q Bool)
     (hfar : d.head.val + 2 ≤ c.head.val ∨ c.head.val + 2 ≤ d.head.val) :
@@ -200,6 +250,8 @@ theorem windowStep_zero_of_far {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
   obtain ⟨h1, h2⟩ := moveCell_dist dd d.head c.head hmove
   omega
 
+/-- Evolution from a configuration with centered head has zero amplitude outside the head cone
+of radius equal to the number of steps. -/
 theorem evolve_headCone {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
     (M : LocalQTM Q Bool) (i : WindowCfg w Q Bool) (hi : i.head.val = w) :
     ∀ (t : ℕ) (c : WindowCfg w Q Bool),
@@ -234,6 +286,7 @@ theorem evolve_headCone {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
         rw [hzero, zero_mul]
       · rw [ih d hcone, mul_zero]
 
+/-- Input bit `i` appears at window position `w+1+i` whenever that position exists. -/
 theorem initWindowCfg_tape_at {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] {w n : ℕ} (M : LocalQTM Q A) (x : Fin n → A) (i : Fin n) :
     ∀ (j : Fin (2 * w + 1)), j.val = w + 1 + i.val →
@@ -249,12 +302,15 @@ theorem initWindowCfg_tape_at {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype 
   show j.val - w - 1 = i.val
   omega
 
+/-- Evolution of an initialized window configuration has zero amplitude outside the head cone
+centered at `w`. -/
 theorem initWindowCfg_headCone {Q : Type} [Fintype Q] [DecidableEq Q] {w n : ℕ}
     (M : LocalQTM Q Bool) (x : Fin n → Bool) (t : ℕ) (c : WindowCfg w Q Bool) :
     ¬(w ≤ c.head.val + t ∧ c.head.val ≤ w + t) →
     ((windowStep (t := w) M) ^ t *ᵥ Ket (initWindowCfg (t := w) M n x)) c = 0 := by
   exact evolve_headCone M (initWindowCfg (t := w) M n x) rfl t c
 
+/-- Every circuit has a step budget at least its input width and at most `(n + Size C + 2)^6`. -/
 theorem headStayLightcone_budget_fits :
     ∀ (n : ℕ) (C : Circuit (Reg n)),
       ∃ t : ℕ, n ≤ t ∧ t ≤ (n + Size C + 2) ^ 6 := by
@@ -263,14 +319,19 @@ theorem headStayLightcone_budget_fits :
   have hpow : n + Size C + 2 ≤ (n + Size C + 2) ^ 6 := Nat.le_pow (b := 6) (by omega)
   omega
 
+/-- The width-independent value `(1+2)^6` is `729`, below `730`, whereas the width-dependent
+bound at `730` exceeds that width. -/
 theorem frozen_step_budget_can_be_too_small :
     (1 + 2) ^ 6 = 729 ∧ 729 < 730 ∧ 730 ≤ (730 + 1 + 2) ^ 6 := by
   norm_num
 
+/-- An input cell with index at least `t` lies strictly to the right of the radius-`t` head
+cone. -/
 theorem input_line_beyond_lightcone {w n : ℕ} (t : ℕ) (i : Fin n) (hi : t ≤ i.val) :
     w + 1 + i.val > w + t := by
   omega
 
+/-- A shift rule with a non-stay move is stay-free. -/
 theorem shiftRule_stayFree {Q A : Type} [Fintype Q] [Fintype A] (blank : A) (move : Move)
     (hm : move ≠ Move.stay) : stayFree (shiftRule Q A blank move) := by
   intro q a q' b
@@ -280,18 +341,22 @@ theorem shiftRule_stayFree {Q A : Type} [Fintype Q] [Fintype A] (blank : A) (mov
     exact hm h1.symm
   simp [shiftRule, hne]
 
+/-- Complex conjugation applied twice returns the original number. -/
 theorem complex_star_star (z : ℂ) : star (star z) = z := by
   simp
 
+/-- The squared norm of a complex number is the real part of its product with its conjugate. -/
 theorem complex_normSq_eq_re_mul_star (z : ℂ) :
     Complex.normSq z = (z * star z).re := by
   rw [Complex.normSq_apply, Complex.mul_re]
   simp [Complex.conj_im]
 
+/-- An entry of the conjugate transpose is the conjugate of the corresponding transposed entry. -/
 theorem star_matrix_apply (U : Matrix Bool Bool ℂ) (a b : Bool) :
     star U b a = star (U a b) := by
   rw [show star U = Uᴴ from rfl, Matrix.conjTranspose_apply]
 
+/-- A sum over head moves equals its stay term when the left and right terms vanish. -/
 theorem sum_qtmMove_eq_stay {M : Type} [AddCommMonoid M] (f : QtmMove → M)
     (hl : f QtmMove.left = 0) (hr : f QtmMove.right = 0) :
     (∑ d : QtmMove, f d) = f QtmMove.stay := by
@@ -304,6 +369,7 @@ theorem sum_qtmMove_eq_stay {M : Type} [AddCommMonoid M] (f : QtmMove → M)
   · intro hn
     exact absurd (Finset.mem_univ QtmMove.stay) hn
 
+/-- A sum indexed by `Unit` is its unique summand. -/
 theorem sum_unit_eq {M : Type} [AddCommMonoid M] (f : Unit → M) :
     (∑ q : Unit, f q) = f () := by
   refine Finset.sum_eq_single () ?_ ?_
@@ -312,14 +378,18 @@ theorem sum_unit_eq {M : Type} [AddCommMonoid M] (f : Unit → M) :
   · intro hn
     exact (hn (Finset.mem_univ ())).elim
 
+/-- The stay amplitude for a one-qubit gate step is the corresponding matrix entry. -/
 theorem gateStep_stay (U : Matrix Bool Bool ℂ) (a b : Bool) :
     gateStep U a QtmMove.stay b = U b a := by
   simp [gateStep]
 
+/-- Complex conjugation commutes with a sum over Boolean indices. -/
 theorem complex_star_sum (f : Bool → ℂ) :
     star (∑ b : Bool, f b) = ∑ b : Bool, star (f b) := by
   exact star_sum (Finset.univ : Finset Bool) f
 
+/-- The one-state local quantum machine applying a given one-qubit unitary without moving its
+head. -/
 def gateLocalQTM (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
     LocalQTM Unit Bool where
   blank := false
@@ -406,6 +476,7 @@ def gateLocalQTM (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup Bool
     intro q₁ a₁ q₂ a₂ c d
     simp [gateStepFn, gateStep]
 
+/-- The one-qubit gate machine satisfies the five local quantum-machine conditions. -/
 theorem gateLocalQTM_five (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
     LocalQTMFiveConditions (gateLocalQTM U hU) := by
@@ -413,6 +484,8 @@ theorem gateLocalQTM_five (U : Matrix Bool Bool ℂ)
     (gateLocalQTM U hU).wf_rightStay, (gateLocalQTM U hU).wf_stayLeft,
     (gateLocalQTM U hU).wf_rightLeft⟩
 
+/-- A target configuration is obtained by writing at the source head exactly when its head and
+state agree and its tape has the specified single-cell update. -/
 theorem writeHead_eq_iff {w : ℕ} {Q A : Type} (src tgt : WindowCfg w Q A) :
     tgt = writeHead src (tgt.tape src.head) ↔
       tgt.head = src.head ∧ tgt.state = src.state ∧
@@ -438,6 +511,8 @@ theorem writeHead_eq_iff {w : ℕ} {Q A : Type} (src tgt : WindowCfg w Q A) :
       funext j
       exact h3 j
 
+/-- The gate machine has amplitude `U` between configurations differing only at the head cell,
+and zero otherwise. -/
 theorem gateLocalQTM_windowStep (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt : WindowCfg w Unit Bool) :
@@ -487,6 +562,8 @@ theorem gateLocalQTM_windowStep (U : Matrix Bool Bool ℂ)
     · rw [if_pos hcon, if_neg hd]
     · rw [if_neg hcon]
 
+/-- The gate machine transition amplitude is the corresponding entry of `U` exactly for a
+`writeHead` target, and zero otherwise. -/
 theorem gateLocalQTM_windowStep_writeHead (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt : WindowCfg w Unit Bool) :
@@ -506,6 +583,8 @@ theorem gateLocalQTM_windowStep_writeHead (U : Matrix Bool Bool ℂ)
       exact (h ⟨hparts.1.symm, hparts.2.2⟩).elim
     · rw [if_neg hh]
 
+/-- One step from a basis configuration applies `U` to the head-cell symbol and has zero
+amplitude on configurations with any other change. -/
 theorem gateLocalQTM_windowStep_ket (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt : WindowCfg w Unit Bool) :
@@ -521,14 +600,17 @@ theorem gateLocalQTM_windowStep_ket (U : Matrix Bool Bool ℂ)
   · intro d _ hd
     simp [Qatlib.Foundations.PureStateMath.Ket, hd]
 
+/-- The first measurement-state amplitude flips the Boolean tape symbol deterministically. -/
 theorem meas_amp_row {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ) (a b : Bool) :
     layerAmp Us (measState k) a b = if b = !a then 1 else 0 := by
   simp [layerAmp, measState]
 
+/-- The second measurement-state amplitude preserves the Boolean tape symbol deterministically. -/
 theorem meas2_amp_row {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ) (a b : Bool) :
     layerAmp Us (.meas2 : LayerState k) a b = if b = a then 1 else 0 := by
   simp [layerAmp]
 
+/-- Each column of a unitary in the gate sequence has squared norm one. -/
 theorem gateCol_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (i : Fin k) (a : Bool) :
     ∑ b : Bool, ‖Us i b a‖ ^ 2 = 1 := by
@@ -554,6 +636,7 @@ theorem gateCol_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
   rw [hA, hB, hC, hD]
   simp [hmat]
 
+/-- Distinct columns of each unitary in the gate sequence are orthogonal. -/
 theorem gateCol_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (i : Fin k) (a₁ a₂ : Bool) (hne : a₁ ≠ a₂) :
     ∑ b : Bool, star (Us i b a₁) * Us i b a₂ = 0 := by
@@ -566,6 +649,7 @@ theorem gateCol_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
   rw [hC]
   simp [hmat, hne]
 
+/-- For unitary gate data, each layered transition-amplitude row has squared norm one. -/
 theorem layerAmp_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (q : LayerState k) (a : Bool) :
     ∑ b : Bool, ‖layerAmp Us q a b‖ ^ 2 = 1 := by
@@ -582,6 +666,8 @@ theorem layerAmp_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
   | rej => cases a <;> simp [layerAmp]
   | meas2 => cases a <;> simp [layerAmp]
 
+/-- Summing the squared norm of an amplitude supported on one head move gives the squared norm
+of that amplitude. -/
 theorem sum_norm_move (x : ℂ) (d₀ : QtmMove) :
     ∑ d : QtmMove, ‖(if d = d₀ then x else 0)‖ ^ 2 = ‖x‖ ^ 2 := by
   rw [Finset.sum_eq_single_of_mem d₀ (Finset.mem_univ _)]
@@ -589,6 +675,8 @@ theorem sum_norm_move (x : ℂ) (d₀ : QtmMove) :
   · intro d _ hd
     simp [hd]
 
+/-- The sum of two single-move-supported factors is their product when their supports coincide,
+and zero otherwise. -/
 theorem sum_move_mul (x y : ℂ) (d₁ d₂ : QtmMove) :
     ∑ d : QtmMove, (if d = d₁ then x else 0) * (if d = d₂ then y else 0) =
       if d₁ = d₂ then x * y else 0 := by
@@ -611,6 +699,8 @@ theorem sum_move_mul (x y : ℂ) (d₁ d₂ : QtmMove) :
     · rw [if_neg hd1, if_neg hd2]
       simp
 
+/-- The conjugate-product sum of two single-move-supported amplitudes is their conjugate product
+when the moves coincide, and zero otherwise. -/
 theorem sum_move_mul_star (x y : ℂ) (d₁ d₂ : QtmMove) :
     ∑ d : QtmMove, star (if d = d₁ then x else 0) * (if d = d₂ then y else 0) =
       if d₁ = d₂ then star x * y else 0 := by
@@ -633,6 +723,7 @@ theorem sum_move_mul_star (x y : ℂ) (d₁ d₂ : QtmMove) :
     · rw [if_neg hd1, if_neg hd2]
       simp
 
+/-- Distinct deterministic symbol-preserving amplitude rows are orthogonal. -/
 theorem layerAmp_det_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ) (q : LayerState k)
     (a₁ a₂ : Bool) (hne : a₁ ≠ a₂)
     (hrow : ∀ b, layerAmp Us q a₁ b = if b = a₁ then 1 else 0)
@@ -649,6 +740,8 @@ theorem layerAmp_det_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ) (q : L
     | exact (hne rfl).elim
     | simp
 
+/-- For equal input symbols, the first and second measurement-state amplitude rows have zero
+overlap in both orders. -/
 theorem layerAmp_meas_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (a₁ a₂ : Bool) (heq : a₁ = a₂) :
     (∑ b : Bool, star (layerAmp Us (measState k) a₁ b)
@@ -679,6 +772,8 @@ theorem layerAmp_meas_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
       | exact Bool.noConfusion heq
       | simp
 
+/-- Distinct state-symbol inputs with the same next state have orthogonal layered amplitude rows
+when the gate data are unitary. -/
 theorem layerAmp_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     (q₁ q₂ : LayerState k) (a₁ a₂ : Bool)
@@ -864,6 +959,7 @@ theorem layerAmp_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
             | exact absurd rfl hne
             | simp [layerNext] at hnxt
 
+/-- Every layered-machine state other than `toInput` has a stay move. -/
 theorem layerMove_eq_stay_of_ne {k : ℕ} (q : LayerState k) (hq : q ≠ .toInput) :
     layerMove q = QtmMove.stay := by
   cases q with
@@ -873,9 +969,11 @@ theorem layerMove_eq_stay_of_ne {k : ℕ} (q : LayerState k) (hq : q ≠ .toInpu
   | rej => rfl
   | meas2 => rfl
 
+/-- No layered-machine state moves the head left. -/
 theorem layerMove_ne_left {k : ℕ} (q : LayerState k) : layerMove q ≠ QtmMove.left := by
   cases q <;> simp [layerMove]
 
+/-- No state other than `toInput` transitions to layer zero. -/
 theorem layerNext_ne_layer0 {k : ℕ} (q : LayerState k) (a : Bool) (hq : q ≠ .toInput) :
     layerNext q a ≠ .layer 0 := by
   cases q with
@@ -888,6 +986,8 @@ theorem layerNext_ne_layer0 {k : ℕ} (q : LayerState k) (a : Bool) (hq : q ≠ 
   | rej => simp [layerNext]
   | meas2 => cases a <;> simp [layerNext]
 
+/-- The local quantum machine that moves to the input, applies the given unitary sequence, and
+records its Boolean outcome. -/
 def layerLocalQTM {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) : LocalQTM (LayerState k) Bool where
   blank := false
@@ -1002,6 +1102,7 @@ def layerLocalQTM {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     rw [hz]
     simp
 
+/-- The layered machine built from unitary gates satisfies the five local conditions. -/
 theorem layerLocalQTM_five {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) :
     LocalQTMFiveConditions (layerLocalQTM Us hU) := by
@@ -1009,6 +1110,8 @@ theorem layerLocalQTM_five {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (layerLocalQTM Us hU).wf_rightStay, (layerLocalQTM Us hU).wf_stayLeft,
     (layerLocalQTM Us hU).wf_rightLeft⟩
 
+/-- A layered-machine transition has its prescribed local amplitude precisely when the head
+move, next state, and tape update agree with the rule. -/
 theorem layerLocalQTM_windowStep {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt : WindowCfg w (LayerState k) Bool) :
@@ -1058,6 +1161,8 @@ theorem layerLocalQTM_windowStep {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
       rw [if_neg (fun hh => hd hh.1)]
     · rw [if_neg hcon]
 
+/-- One step from a layered basis configuration has the prescribed local amplitude on valid
+successor configurations and zero elsewhere. -/
 theorem layerLocalQTM_windowStep_ket {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt : WindowCfg w (LayerState k) Bool) :
@@ -1074,28 +1179,35 @@ theorem layerLocalQTM_windowStep_ket {k : ℕ} (Us : Fin k → Matrix Bool Bool 
   · intro d _ hd
     simp [Qatlib.Foundations.PureStateMath.Ket, hd]
 
+/-- The state field of a layered configuration is its supplied state. -/
 theorem layerCfg_state {k w : ℕ} (base : WindowCfg w (LayerState k) Bool)
     (q : LayerState k) (b : Bool) :
     (layerCfg base q b).state = q := rfl
 
+/-- Constructing a layered configuration preserves the base head position. -/
 theorem layerCfg_head {k w : ℕ} (base : WindowCfg w (LayerState k) Bool)
     (q : LayerState k) (b : Bool) :
     (layerCfg base q b).head = base.head := rfl
 
+/-- The layered configuration tape is the base tape with the head cell replaced by the supplied
+bit. -/
 theorem layerCfg_tape {k w : ℕ} (base : WindowCfg w (LayerState k) Bool)
     (q : LayerState k) (b : Bool) (j : Fin (2 * w + 1)) :
     (layerCfg base q b).tape j = if j = base.head then b else base.tape j := rfl
 
+/-- The tape symbol at the base head in a layered configuration is its supplied bit. -/
 theorem layerCfg_tape_at {k w : ℕ} (base : WindowCfg w (LayerState k) Bool)
     (q : LayerState k) (b : Bool) :
     (layerCfg base q b).tape base.head = b := by
   simp [layerCfg]
 
+/-- A layered configuration agrees with the base tape away from the head cell. -/
 theorem layerCfg_tape_of_ne {k w : ℕ} (base : WindowCfg w (LayerState k) Bool)
     (q : LayerState k) (b : Bool) {j : Fin (2 * w + 1)} (hj : j ≠ base.head) :
     (layerCfg base q b).tape j = base.tape j := by
   simp [layerCfg, hj]
 
+/-- Window configurations with equal heads, states, and tape symbols are equal. -/
 theorem WindowCfg_eq_of_fields {w : ℕ} {Q A : Type} (c₁ c₂ : WindowCfg w Q A)
     (hh : c₁.head = c₂.head) (hs : c₁.state = c₂.state)
     (ht : ∀ j, c₁.tape j = c₂.tape j) : c₁ = c₂ := by
@@ -1106,6 +1218,7 @@ theorem WindowCfg_eq_of_fields {w : ℕ} {Q A : Type} (c₁ c₂ : WindowCfg w Q
   funext j
   simpa using! ht j
 
+/-- Layered configurations with different supplied bits are distinct. -/
 theorem layerCfg_ne {k w : ℕ} (base : WindowCfg w (LayerState k) Bool)
     (q : LayerState k) {b0 b1 : Bool} (h : b0 ≠ b1) :
     layerCfg base q b0 ≠ layerCfg base q b1 := by
@@ -1114,6 +1227,8 @@ theorem layerCfg_ne {k w : ℕ} (base : WindowCfg w (LayerState k) Bool)
   simp [layerCfg] at h'
   exact (h h').elim
 
+/-- A layered transition is characterized by its head move, next state, and agreement of the
+tapes away from the source head. -/
 theorem layerLocalQTM_windowStep_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt : WindowCfg w (LayerState k) Bool) :
@@ -1150,6 +1265,8 @@ theorem layerLocalQTM_windowStep_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool
   · simp only [if_neg h]
     rw [if_neg (fun hh => h (hiff.mp hh))]
 
+/-- The amplitude after a layered step from a basis ket is the local amplitude exactly when the
+head move, next state, and off-head tape agreement hold. -/
 theorem layerLocalQTM_windowStep_ket_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt : WindowCfg w (LayerState k) Bool) :
@@ -1166,6 +1283,8 @@ theorem layerLocalQTM_windowStep_ket_norm {k : ℕ} (Us : Fin k → Matrix Bool 
   · intro d _ hd
     simp [Qatlib.Foundations.PureStateMath.Ket, hd]
 
+/-- One layered-machine step advances a two-basis-state superposition and multiplies its two
+amplitudes by the unitary for that layer. -/
 theorem layerLocalQTM_layerEvolution {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (LayerState k) Bool) (j : ℕ) (hj : j < k)
@@ -1269,6 +1388,8 @@ theorem layerLocalQTM_layerEvolution {k : ℕ} (Us : Fin k → Matrix Bool Bool 
         exact h hcond'
       · simp [Qatlib.Foundations.PureStateMath.Ket, h0, h2]
 
+/-- One layered step advances `layerCfgSuper` and applies the corresponding unitary to its
+Boolean amplitude vector. -/
 theorem layerLocalQTM_gateStep_super {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (LayerState k) Bool) (j : ℕ) (hj : j < k) (v : Bool → ℂ) :
@@ -1281,6 +1402,8 @@ theorem layerLocalQTM_gateStep_super {k : ℕ} (Us : Fin k → Matrix Bool Bool 
   simp only [Pi.add_apply, Pi.smul_apply]
   ring
 
+/-- After `j ≤ k` steps, the layered superposition is at layer `j` with amplitude vector
+multiplied by the first `j` gates. -/
 theorem layerLocalQTM_gateSeq {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (LayerState k) Bool) (v : Bool → ℂ) :
@@ -1304,6 +1427,8 @@ theorem layerLocalQTM_gateSeq {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
           = Us ⟨j, by omega⟩ * gateSeqProd Us j (by omega) := rfl
       rw [hprod]
 
+/-- The terminal layer maps a basis bit to its accepting or rejecting configuration while
+flipping that tape bit. -/
 theorem layerLocalQTM_measure_ket {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (LayerState k) Bool) (a : Bool)
@@ -1360,6 +1485,8 @@ theorem layerLocalQTM_measure_ket {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ
       simp [hj]
       exact hh
 
+/-- A step from the terminal-layer superposition separates its false and true amplitudes into
+rejecting and accepting basis configurations. -/
 theorem layerLocalQTM_measure {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (LayerState k) Bool) (v : Bool → ℂ) :
@@ -1374,6 +1501,8 @@ theorem layerLocalQTM_measure {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
   rw [h1, h2]
   simp [Qatlib.Foundations.PureStateMath.Ket]
 
+/-- After the gate sequence and measurement step, total accepting Born mass is the squared norm
+of the true component of the resulting amplitude vector. -/
 theorem layerLocalQTM_acceptMass {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (LayerState k) Bool) (v : Bool → ℂ) :
@@ -1414,6 +1543,7 @@ theorem layerLocalQTM_acceptMass {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     exact (h (Finset.mem_filter.mpr
       ⟨Finset.mem_univ _, layerCfg_state base (.acc : LayerState k) false⟩)).elim
 
+/-- Applying a one-qubit-register matrix to a basis ket gives the corresponding matrix column. -/
 theorem applyGate_reg1_ket (U : Matrix (Reg 1) (Reg 1) ℂ) (x y : Reg 1) :
     ApplyGate U (Ket x) y = U y x := by
   rw [ApplyGate, Matrix.mulVec, dotProduct]
@@ -1424,12 +1554,15 @@ theorem applyGate_reg1_ket (U : Matrix (Reg 1) (Reg 1) ℂ) (x y : Reg 1) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The identity Boolean matrix is unitary. -/
 theorem one_unitary : (1 : Matrix Bool Bool ℂ) ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff']
   simp [star_one]
 
+/-- The Boolean matrix that flips the basis bit. -/
 def bitFlip : Matrix Bool Bool ℂ := fun b a => if b = !a then 1 else 0
 
+/-- The Boolean bit-flip matrix is unitary. -/
 theorem bitFlip_unitary : bitFlip ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff']
   ext b a
@@ -1440,12 +1573,15 @@ theorem bitFlip_unitary : bitFlip ∈ Matrix.unitaryGroup Bool ℂ := by
   · have h2 : b ≠ a := fun hh => h hh.symm
     simp [h, h2]
 
+/-- One-qubit registers are equal when their unique bits agree. -/
 theorem reg1_ext {x y : Reg 1} (h : x ⟨0, by omega⟩ = y ⟨0, by omega⟩) : x = y := by
   funext j
   have hj : j = ⟨0, by omega⟩ := Subsingleton.elim _ _
   rw [hj]
   exact h
 
+/-- The action of a one-qubit-register matrix corresponds to `reg1Gate` multiplication on
+Boolean amplitude vectors. -/
 theorem applyGate_reg1 (U : Matrix (Reg 1) (Reg 1) ℂ) (v : Bool → ℂ) (y : Reg 1) :
     ApplyGate U (fun z => v (reg1Bool z)) y = (reg1Gate U *ᵥ v) (reg1Bool y) := by
   classical
@@ -1464,6 +1600,8 @@ theorem applyGate_reg1 (U : Matrix (Reg 1) (Reg 1) ℂ) (v : Bool → ℂ) (y : 
         symm
         simp only [Matrix.mulVec, dotProduct, reg1Gate, Equiv.symm_apply_apply]
 
+/-- Running a list of one-qubit-register gates corresponds to multiplying by the product of
+their Boolean matrices. -/
 theorem run_reg1 (gs : List (Matrix (Reg 1) (Reg 1) ℂ)) (v : Bool → ℂ) (y : Reg 1) :
     (Run (1 : Matrix (Reg 1) (Reg 1) ℂ) (gs.map Step.gate) (fun z => v (reg1Bool z))) y
       = (boolGateProd (gs.map reg1Gate) *ᵥ v) (reg1Bool y) := by
@@ -1478,6 +1616,7 @@ theorem run_reg1 (gs : List (Matrix (Reg 1) (Reg 1) ℂ)) (v : Bool → ℂ) (y 
       rw [Matrix.mulVec_mulVec]
       simp [boolGateProd]
 
+/-- A one-wire state's acceptance probability is the squared norm of its true-basis amplitude. -/
 theorem acceptProb_oneWire (ψ : QState (Reg 1)) (h : 0 < 1) :
     AcceptProb ψ h = ‖ψ (reg1Bool.symm true)‖ ^ 2 := by
   classical
@@ -1507,6 +1646,8 @@ theorem acceptProb_oneWire (ψ : QState (Reg 1)) (h : 0 < 1) :
   · intro hmem
     exact absurd (Finset.mem_singleton.mpr rfl) hmem
 
+/-- A one-qubit basis ket is the Boolean amplitude function `wireAmp` transported through
+`reg1Bool`. -/
 theorem ket_eq_wireAmp (x : Reg 1) : Ket x = fun z => wireAmp x (reg1Bool z) := by
   funext z
   simp only [Qatlib.Foundations.PureStateMath.Ket, wireAmp]
@@ -1521,6 +1662,8 @@ theorem ket_eq_wireAmp (x : Reg 1) : Ket x = fun z => wireAmp x (reg1Bool z) := 
       rw [show x ⟨0, by omega⟩ = reg1Bool x from rfl] at hh'
       exact hh')]
 
+/-- When the right neighbor exists, the input-routing step sends its basis configuration to the
+corresponding `layerWalk` configuration. -/
 theorem layerLocalQTM_walk {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (LayerState k) Bool) (b : Bool)
@@ -1610,6 +1753,8 @@ theorem layerLocalQTM_walk {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
         exact hj''
     simp [Qatlib.Foundations.PureStateMath.Ket, hEq]
 
+/-- A layer-zero basis configuration equals the layered superposition concentrated on its
+head-cell bit. -/
 theorem ket_eq_layerCfgSuper {k w : ℕ} (base : WindowCfg w (LayerState k) Bool) (b : Bool)
     (hb : base.tape base.head = b) (hst : base.state = .layer 0) :
     Ket base = layerCfgSuper base 0 (by omega) (fun c => if c = b then (1 : ℂ) else 0) := by
@@ -1647,6 +1792,8 @@ theorem ket_eq_layerCfgSuper {k w : ℕ} (base : WindowCfg w (LayerState k) Bool
     rw [hcfgT.symm]
     exact (zero_add (Ket base y : ℂ)).symm
 
+/-- After `k+1` steps, a layer-zero superposition has rejecting and accepting amplitudes equal
+to the false and true components of the full gate product. -/
 theorem layerLocalQTM_gateSeq_measure {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (LayerState k) Bool) (v : Bool → ℂ) :
@@ -1658,6 +1805,8 @@ theorem layerLocalQTM_gateSeq_measure {k : ℕ} (Us : Fin k → Matrix Bool Bool
   rw [layerLocalQTM_gateSeq Us hU base v k (by omega)]
   rw [layerLocalQTM_measure Us hU base (gateSeqProd Us k (by omega) *ᵥ v)]
 
+/-- Multiplying a prefix product of the tail sequence by the first gate gives the corresponding
+longer prefix product of the full sequence. -/
 theorem gateSeqProd_cons {k : ℕ} (Us : Fin (k+1) → Matrix Bool Bool ℂ) :
     ∀ (j : ℕ) (hj : j ≤ k),
       gateSeqProd (fun i => Us i.succ) j (by omega) * Us 0
@@ -1677,6 +1826,7 @@ theorem gateSeqProd_cons {k : ℕ} (Us : Fin (k+1) → Matrix Bool Bool ℂ) :
       rw [Matrix.mul_assoc]
       rw [ih (by omega)]
 
+/-- The product of a finite gate sequence listed by `List.ofFn` equals its full `gateSeqProd`. -/
 theorem boolGateProd_ofFn : ∀ (k : ℕ) (Us : Fin k → Matrix Bool Bool ℂ),
     boolGateProd (List.ofFn Us) = gateSeqProd Us k (by omega) := by
   intro k
@@ -1690,16 +1840,20 @@ theorem boolGateProd_ofFn : ∀ (k : ℕ) (Us : Fin k → Matrix Bool Bool ℂ),
       rw [ih (fun i => Us i.succ)]
       rw [gateSeqProd_cons Us (k) (by omega)]
 
+/-- Converting a Boolean gate to a one-qubit-register matrix and back returns the original gate. -/
 theorem reg1Gate_reg1Gate' (U : Matrix Bool Bool ℂ) : reg1Gate (reg1Gate' U) = U := by
   funext b a
   rfl
 
+/-- The initialized layered machine has the false blank symbol at its head. -/
 theorem init_tape_head {k w n : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (x : Reg n) :
     (initWindowCfg (t := w) (layerLocalQTM Us hU) n x).tape
         (initWindowCfg (t := w) (layerLocalQTM Us hU) n x).head = false := by
   simp [initWindowCfg, layerLocalQTM]
 
+/-- For positive input and window widths, the cell immediately right of the initialized head
+contains the first input bit. -/
 theorem init_tape_succ {k w n : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (hw : 0 < w) (hn : 0 < n) (x : Reg n)
     (j : Fin (2 * w + 1)) (hj : j.val = w + 1) :
@@ -1710,6 +1864,8 @@ theorem init_tape_succ {k w n : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
   have h1n : 1 ≤ n := by omega
   simp [initWindowCfg, layerLocalQTM, h1n]
 
+/-- Replacing a configuration's state and head-cell bit by their existing values leaves the
+configuration unchanged. -/
 theorem layerCfg_eq_self {k w : ℕ} (base : WindowCfg w (LayerState k) Bool) (q : LayerState k)
     (b : Bool) (hq : base.state = q) (hb : base.tape base.head = b) :
     layerCfg base q b = base := by
@@ -1721,6 +1877,8 @@ theorem layerCfg_eq_self {k w : ℕ} (base : WindowCfg w (LayerState k) Bool) (q
       simp [layerCfg, hb]
     · simp [layerCfg, hj]
 
+/-- For a positive window width, the layered machine's accepting Born mass after `k+2` steps
+equals the acceptance probability of the corresponding one-wire circuit. -/
 theorem headStay_acceptProb_oneWire
     (k : ℕ) (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ)
@@ -1816,6 +1974,9 @@ theorem headStay_acceptProb_oneWire
     exact boolGateProd_ofFn k Us
   rw [hprod]
 
+/-- For nonempty input and positive window width, the layered machine's accepting mass after
+`k+2` steps is the true-component squared norm of the gate product applied to the first
+input bit. -/
 theorem headStay_acceptMass_multi
     {k w n : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (hw : 0 < w) (hn : 0 < n) (x : Reg n) :
@@ -1874,27 +2035,34 @@ theorem headStay_acceptMass_multi
   rw [hsuper]
   rw [hmass]
 
+/-- An element of `Fin n` with value zero equals the zero index formed from any proof that `n`
+is positive. -/
 theorem fin_val_zero {n : ℕ} (hn : 0 < n) {j : Fin n} (hj : j.val = 0) :
     j = ⟨0, hn⟩ := by
   apply Fin.ext
   simp [hj]
 
+/-- Setting bit zero gives the assigned value at the zero index. -/
 theorem setBit0_bit0 {n : ℕ} (hn : 0 < n) (x : Reg n) (b : Bool) :
     setBit0 x b ⟨0, hn⟩ = b := by
   simp [setBit0]
 
+/-- Setting bit zero leaves every nonzero-index bit unchanged. -/
 theorem setBit0_of_ne {n : ℕ} (x : Reg n) (b : Bool) {j : Fin n} (hj : j.val ≠ 0) :
     setBit0 x b j = x j := by
   simp [setBit0, hj]
 
+/-- Flipping bit zero negates its Boolean value. -/
 theorem flip0_bit0 {n : ℕ} (hn : 0 < n) (x : Reg n) :
     flip0 hn x ⟨0, hn⟩ = !x ⟨0, hn⟩ := by
   simp [flip0, setBit0]
 
+/-- Flipping bit zero preserves every nonzero-index bit. -/
 theorem flip0_of_ne {n : ℕ} (hn : 0 < n) (x : Reg n) {j : Fin n} (hj : j.val ≠ 0) :
     flip0 hn x j = x j := by
   simp [flip0, setBit0, hj]
 
+/-- Agreement outside bit zero is symmetric. -/
 theorem AgreesOutside_comm {n : ℕ} (x y : Reg n) :
     AgreesOutside x y ↔ AgreesOutside y x := by
   constructor
@@ -1903,6 +2071,8 @@ theorem AgreesOutside_comm {n : ℕ} (x y : Reg n) :
   · intro h j hj
     exact (h j hj).symm
 
+/-- On a nonempty register, agreement outside bit zero means the registers are equal or differ
+by flipping bit zero. -/
 theorem agreesOutside_iff {n : ℕ} (hn : 0 < n) (x y : Reg n) :
     AgreesOutside x y ↔ (y = x ∨ y = flip0 hn x) := by
   constructor
@@ -1931,6 +2101,7 @@ theorem agreesOutside_iff {n : ℕ} (hn : 0 < n) (x y : Reg n) :
     · intro j hj
       exact flip0_of_ne hn x hj
 
+/-- Flipping bit zero of a nonempty register changes the register. -/
 theorem flip0_ne {n : ℕ} (hn : 0 < n) (x : Reg n) : flip0 hn x ≠ x := by
   intro h
   have h1 := congrFun h ⟨0, hn⟩
@@ -1939,6 +2110,7 @@ theorem flip0_ne {n : ℕ} (hn : 0 < n) (x : Reg n) : flip0 hn x ≠ x := by
     cases hx : x ⟨0, hn⟩ <;> simp_all
   exact h2 h1.symm
 
+/-- A Boolean sum equals the term at any bit plus the term at its negation. -/
 theorem sum_bool_pair (f : Bool → ℂ) (b : Bool) :
     f b + f (!b) = ∑ z : Bool, f z := by
   cases b with
@@ -1950,10 +2122,13 @@ theorem sum_bool_pair (f : Bool → ℂ) (b : Bool) :
       have h : (!true) = false := Bool.not_true
       rw [h, Fintype.sum_bool]
 
+/-- Boolean matrix-vector multiplication is the sum of the two entry-amplitude products. -/
 theorem mulVec_bool (U : Matrix Bool Bool ℂ) (c : Bool → ℂ) (b : Bool) :
     (U *ᵥ c) b = ∑ z : Bool, U b z * c z := by
   simp [Matrix.mulVec, dotProduct]
 
+/-- Applying a gate embedded on the first wire of a `FirstWireState` multiplies its Boolean
+amplitude vector by the gate and preserves the outside-agreement factor. -/
 theorem embedReg1_applyGate {n : ℕ} (hn : 0 < n) (U : Matrix Bool Bool ℂ) (x : Reg n)
     (c : Bool → ℂ) (ψ : Reg n → ℂ) (hψ : FirstWireState hn x c ψ) :
     ∀ y : Reg n,
@@ -2013,11 +2188,15 @@ theorem embedReg1_applyGate {n : ℕ} (hn : 0 < n) (U : Matrix Bool Bool ℂ) (x
     rw [if_neg hA, if_neg hA', if_neg hagxy]
     simp
 
+/-- Applying a gate-list product with first gate `U` equals first applying `U`, then applying
+the tail product. -/
 theorem mulVec_boolGateProd_cons (gs : List (Matrix Bool Bool ℂ)) (U : Matrix Bool Bool ℂ)
     (c : Bool → ℂ) (b : Bool) :
     (boolGateProd (U :: gs) *ᵥ c) b = (boolGateProd gs *ᵥ (U *ᵥ c)) b := by
   rw [boolGateProd, Matrix.mulVec_mulVec]
 
+/-- Running first-wire embedded gates on a `FirstWireState` applies their Boolean matrix product
+to its amplitude vector and preserves the remaining bits. -/
 theorem run_embed_firstWire {n : ℕ} (hn : 0 < n) (gs : List (Matrix Bool Bool ℂ)) (x : Reg n)
     (c : Bool → ℂ) (ψ : Reg n → ℂ) (hψ : FirstWireState hn x c ψ) :
     ∀ y : Reg n,
@@ -2039,6 +2218,8 @@ theorem run_embed_firstWire {n : ℕ} (hn : 0 < n) (gs : List (Matrix Bool Bool 
       have hih := ih (U *ᵥ c) (ApplyGate (embedReg1 hn U) ψ) hψ' y
       rw [hih, mulVec_boolGateProd_cons]
 
+/-- Equality of registers is equivalent to equality of bit zero together with agreement outside
+bit zero. -/
 theorem ket_eq_x_iff {n : ℕ} (hn : 0 < n) (x y : Reg n) :
     y = x ↔ (y ⟨0, hn⟩ = x ⟨0, hn⟩ ∧ AgreesOutside x y) := by
   constructor
@@ -2055,6 +2236,7 @@ theorem ket_eq_x_iff {n : ℕ} (hn : 0 < n) (x y : Reg n) :
         cases hx : x ⟨0, hn⟩ <;> simp_all
       exact h2 (h.1.symm.trans h1)
 
+/-- Every basis ket is a `FirstWireState` with Boolean amplitudes concentrated on its first bit. -/
 theorem ket_firstWire {n : ℕ} (hn : 0 < n) (x : Reg n) :
     FirstWireState hn x (fun c => if c = x ⟨0, hn⟩ then (1 : ℂ) else 0) (Ket x) := by
   have hagx : AgreesOutside x x := by intro j hj; rfl
@@ -2078,10 +2260,13 @@ theorem ket_firstWire {n : ℕ} (hn : 0 < n) (x : Reg n) :
         simp [hbit]
       simp [Qatlib.Foundations.PureStateMath.Ket, hc0, hyn]
 
+/-- Setting bit zero to true makes its zero-index value true. -/
 theorem setBit0_true_bit0 {n : ℕ} (hn : 0 < n) (x : Reg n) :
     setBit0 x true ⟨0, hn⟩ = true := by
   simp [setBit0]
 
+/-- A register agreeing with `x` outside bit zero and having true first bit is uniquely `setBit0
+x true`. -/
 theorem agreesOutside_accepting_unique {n : ℕ} (hn : 0 < n) (x y : Reg n)
     (hy : y ⟨0, hn⟩ = true) (hag : AgreesOutside x y) :
     y = setBit0 x true := by
@@ -2103,6 +2288,8 @@ theorem agreesOutside_accepting_unique {n : ℕ} (hn : 0 < n) (x y : Reg n)
     rw [hfl]
     exact congrArg (setBit0 x) hnot
 
+/-- The acceptance probability after first-wire embedded gates is the squared norm of the true
+component of their Boolean product applied to the initial first bit. -/
 theorem acceptProb_embed {n : ℕ} (hn : 0 < n) (gs : List (Matrix Bool Bool ℂ)) (x : Reg n) :
     AcceptProb (Run (1 : Matrix (Reg n) (Reg n) ℂ)
         ((gs.map (fun U => embedReg1 hn U)).map Step.gate) (Ket x)) hn
@@ -2154,11 +2341,15 @@ theorem acceptProb_embed {n : ℕ} (hn : 0 < n) (gs : List (Matrix Bool Bool ℂ
     simp [hA]
   rw [BornProb, h2]
 
+/-- Mapping first-wire embedding over a finite gate list equals listing the individually
+embedded gates. -/
 theorem map_embed_ofFn {n k : ℕ} (hn : 0 < n) (Us : Fin k → Matrix Bool Bool ℂ) :
     (List.ofFn Us).map (fun U => embedReg1 hn U) = List.ofFn (fun i => embedReg1 hn (Us i)) := by
   rw [List.map_ofFn]
   rfl
 
+/-- For nonempty input and positive window width, the layered machine's accepting mass after
+`k+2` steps equals the acceptance probability of the circuit acting on the first wire. -/
 theorem headStay_acceptProb_multi {k w n : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (hw : 0 < w) (hn : 0 < n) (x : Reg n) :
     (∑ c ∈ Finset.univ.filter (fun c => c.state = (.acc : LayerState k)),
@@ -2182,6 +2373,8 @@ theorem headStay_acceptProb_multi {k w n : ℕ} (Us : Fin k → Matrix Bool Bool
         rw [map_embed_ofFn hn Us] at h
         exact h
 
+/-- A communication decision list computing register equality must query every Alice input
+position. -/
 theorem alicePositions_eq_univ {m : ℕ} (P : CommDecisionList m)
     (h : ∀ a b : Reg m, commListOutput P a b = decide (a = b)) :
     alicePositions P = Finset.univ := by
@@ -2220,6 +2413,8 @@ theorem alicePositions_eq_univ {m : ℕ} (P : CommDecisionList m)
   have h5 : decide (eReg = zeroReg) = true := h3.trans (decide_eq_true_eq.mpr rfl)
   exact hne (of_decide_eq_true h5)
 
+/-- A communication decision list computing register equality must query every Bob input
+position. -/
 theorem bobPositions_eq_univ {m : ℕ} (P : CommDecisionList m)
     (h : ∀ a b : Reg m, commListOutput P a b = decide (a = b)) :
     bobPositions P = Finset.univ := by
@@ -2258,6 +2453,8 @@ theorem bobPositions_eq_univ {m : ℕ} (P : CommDecisionList m)
   have h5 : decide (zeroReg = eReg) = true := h3.trans (decide_eq_true_eq.mpr rfl)
   exact hne (of_decide_eq_true h5).symm
 
+/-- A communication decision list computing equality of `m`-bit registers has cost at least
+`2*m`. -/
 theorem commListCost_eq_ge_two_mul {m : ℕ} (P : CommDecisionList m)
     (h : ∀ a b : Reg m, commListOutput P a b = decide (a = b)) :
     2 * m ≤ commListCost P := by
@@ -2300,6 +2497,8 @@ theorem commListCost_eq_ge_two_mul {m : ℕ} (P : CommDecisionList m)
     _ ≤ (P.queries.toFinset).card := hsum
     _ ≤ commListCost P := htoFinset
 
+/-- Equality-computing communication decision lists satisfy the iterated-logarithm lower bound
+in `CommunicationOmegaLogLogSpec`. -/
 theorem communication_omega_log_log : CommunicationOmegaLogLogSpec := by
   refine ⟨1, by norm_num, ?_⟩
   intro m hm P hP
@@ -2313,6 +2512,7 @@ theorem communication_omega_log_log : CommunicationOmegaLogLogSpec := by
     _ ≤ 2 * m := hle
     _ ≤ commListCost P := hcost
 
+/-- The number of distinct variables in a Boolean formula is at most its size. -/
 theorem formulaVars_card_le_size {n : ℕ} (F : BoolFormula (Fin n)) :
     (formulaVars F).card ≤ F.size := by
   induction F with
@@ -2325,6 +2525,8 @@ theorem formulaVars_card_le_size {n : ℕ} (F : BoolFormula (Fin n)) :
       simp only [formulaVars, BoolFormula.size]
       exact (Finset.card_union_le _ _).trans (Nat.add_le_add ihf ihg)
 
+/-- A Boolean formula has equal evaluations on inputs agreeing on every variable occurring in
+it. -/
 theorem eval_congr_of_subset {n : ℕ} (F : BoolFormula (Fin n)) {x x' : Reg n}
     (h : ∀ v, v ∈ formulaVars F → x v = x' v) : F.eval x = F.eval x' := by
   induction F with
@@ -2337,6 +2539,7 @@ theorem eval_congr_of_subset {n : ℕ} (F : BoolFormula (Fin n)) {x x' : Reg n}
       simp [BoolFormula.eval, ihf (fun v hv => h v (Finset.mem_union_left _ hv)),
         ihg (fun v hv => h v (Finset.mem_union_right _ hv))]
 
+/-- The Hamming weight of a Boolean register equals the cardinality of its support. -/
 theorem regWeight_eq_support_card {n : ℕ} (x : Reg n) :
     regWeight n x = (regSupport x).card := by
   have hsum : regWeight n x = ∑ i : Fin n, (if x i = true then 1 else 0) := by
@@ -2348,15 +2551,19 @@ theorem regWeight_eq_support_card {n : ℕ} (x : Reg n) :
   unfold regSupport
   rw [Finset.card_filter]
 
+/-- The support of the register associated with a finite set is that set. -/
 theorem regSupport_regOfSet {n : ℕ} (S : Finset (Fin n)) :
     regSupport (regOfSet S) = S := by
   ext j
   simp [regSupport, regOfSet]
 
+/-- The Hamming weight of a register associated with a finite set equals the set's cardinality. -/
 theorem regWeight_regOfSet {n : ℕ} (S : Finset (Fin n)) :
     regWeight n (regOfSet S) = S.card := by
   rw [regWeight_eq_support_card, regSupport_regOfSet]
 
+/-- Membership in the first `k` indices is equivalent to having value less than `k`, assuming `k
+≤ n`. -/
 theorem mem_firstIndices {n k : ℕ} (hk : k ≤ n) (j : Fin n) :
     j ∈ firstIndices k hk ↔ j.val < k := by
   rw [firstIndices, Finset.mem_image]
@@ -2367,24 +2574,29 @@ theorem mem_firstIndices {n k : ℕ} (hk : k ≤ n) (j : Fin n) :
     refine ⟨⟨j.val, by omega⟩, Finset.mem_univ _, ?_⟩
     exact Fin.ext rfl
 
+/-- The set of the first `k` indices in `Fin n` has cardinality `k` when `k ≤ n`. -/
 theorem card_firstIndices {n k : ℕ} (hk : k ≤ n) : (firstIndices k hk).card = k := by
   unfold firstIndices
   rw [Finset.card_image_of_injective (Finset.univ : Finset (Fin k))
     (Fin.castLE_injective hk)]
   rw [Finset.card_univ, Fintype.card_fin]
 
+/-- Strict majority is true exactly when the register weight is at least `n/2+1`. -/
 theorem regMajority_eq_true_iff {n : ℕ} (x : Reg n) :
     regMajority n x = true ↔ n / 2 + 1 ≤ regWeight n x := by
   unfold regMajority
   rw [decide_eq_true_eq]
   omega
 
+/-- Strict majority is false exactly when the register weight is less than `n/2+1`. -/
 theorem regMajority_eq_false_iff {n : ℕ} (x : Reg n) :
     regMajority n x = false ↔ regWeight n x < n / 2 + 1 := by
   unfold regMajority
   rw [decide_eq_false_iff_not]
   omega
 
+/-- Each bit of a nonempty register can change strict majority from false to true while all
+other bits remain fixed. -/
 theorem majority_sensitive {n : ℕ} (hn : 0 < n) (i : Fin n) :
     ∃ x x' : Reg n, (∀ j : Fin n, j ≠ i → x j = x' j) ∧
       regMajority n x = false ∧ regMajority n x' = true := by
@@ -2459,6 +2671,8 @@ theorem majority_sensitive {n : ℕ} (hn : 0 < n) (i : Fin n) :
       calc n / 2 + 1 ≤ f + 1 := by omega
         _ = regWeight n (regOfSet S') := by rw [hwHigh]
 
+/-- A Boolean formula computing strict majority has size at least the number of input variables,
+as specified by `MajorityFormulaLowerBoundSpec`. -/
 theorem majority_formula_lower_bound : MajorityFormulaLowerBoundSpec := by
   intro n F hF
   by_cases hn : n = 0
@@ -2483,34 +2697,44 @@ theorem majority_formula_lower_bound : MajorityFormulaLowerBoundSpec := by
             rw [Finset.eq_univ_of_forall hmem, Finset.card_univ, Fintype.card_fin]
       _ ≤ F.size := formulaVars_card_le_size F
 
+/-- Each column of every unitary in the cell-indexed gate family has squared norm one. -/
 theorem cellGateCol_norm {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) (i : Fin n) (j : Fin k) (a : Bool) :
     ∑ b : Bool, ‖V i j b a‖ ^ 2 = 1 := by
   exact gateCol_norm (fun j => V i j) (fun j => hV i j) j a
 
+/-- Distinct columns of each cell-indexed unitary gate are orthogonal. -/
 theorem cellGateCol_orth {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) (i : Fin n) (j : Fin k)
     (a₁ a₂ : Bool) (hne : a₁ ≠ a₂) :
     ∑ b : Bool, star (V i j b a₁) * V i j b a₂ = 0 := by
   exact gateCol_orth (fun j => V i j) (fun j => hV i j) j a₁ a₂ hne
 
+/-- The cell-machine walk advances its counter until the target offset, where it enters gate
+stage zero. -/
 theorem cellNext_walk {n k tgt : ℕ} (d : Fin (tgt + 1)) (a : Bool) :
     cellNext (.walk d : CellState n k tgt) a =
       if h : d.val = tgt then .gate ⟨0, by omega⟩ else .walk ⟨d.val + 1, by omega⟩ := rfl
 
+/-- A cell-machine gate state advances its stage below `k` and otherwise selects acceptance or
+rejection from the current bit. -/
 theorem cellNext_gate {n k tgt : ℕ} (j : Fin (k + 1)) (a : Bool) :
     cellNext (.gate j : CellState n k tgt) a =
       if h : j.val < k then .gate ⟨j.val + 1, by omega⟩ else (if a then .acc else .rej) := rfl
 
+/-- The accepting cell-machine state transitions to the second measurement state. -/
 theorem cellNext_acc {n k tgt : ℕ} (a : Bool) : cellNext (.acc : CellState n k tgt) a = .meas2 :=
     rfl
 
+/-- The rejecting cell-machine state transitions to walk stage zero. -/
 theorem cellNext_rej {n k tgt : ℕ} (a : Bool) : cellNext (.rej : CellState n k tgt) a = .walk ⟨0,
     by omega⟩ := rfl
 
+/-- The second measurement state selects acceptance or rejection from the current bit. -/
 theorem cellNext_meas2 {n k tgt : ℕ} (a : Bool) :
     cellNext (.meas2 : CellState n k tgt) a = if a then .acc else .rej := rfl
 
+/-- Distinct cell-machine walk stages have distinct next states. -/
 theorem cellNext_walk_ne_walk {n k tgt : ℕ} (d₁ d₂ : Fin (tgt + 1)) (a₁ a₂ : Bool)
     (h : d₁ ≠ d₂) :
     cellNext (.walk d₁ : CellState n k tgt) a₁ ≠ cellNext (.walk d₂ : CellState n k tgt) a₂ := by
@@ -2531,6 +2755,8 @@ theorem cellNext_walk_ne_walk {n k tgt : ℕ} (d₁ d₂ : Fin (tgt + 1)) (a₁ 
       have hd' : d₁ = d₂ := Fin.ext (by omega)
       exact (h hd').elim
 
+/-- The next state of a walk stage differs from the next state of every state outside the walk
+family. -/
 theorem cellNext_walk_ne {n k tgt : ℕ} (d : Fin (tgt + 1)) (a₁ : Bool)
     (q₂ : CellState n k tgt) (hq₂ : ∀ d₂, q₂ ≠ .walk d₂) (a₂ : Bool) :
     cellNext (.walk d : CellState n k tgt) a₁ ≠ cellNext q₂ a₂ := by
@@ -2577,6 +2803,7 @@ theorem cellNext_walk_ne {n k tgt : ℕ} (d : Fin (tgt + 1)) (a₁ : Bool)
       · rw [cellNext_walk d a₁, cellNext_meas2 a₂, dif_neg h1] at hcon
         cases a₂ <;> injection hcon
 
+/-- Distinct cell-machine gate stages have distinct next states. -/
 theorem cellNext_gate_ne {n k tgt : ℕ} (j₁ j₂ : Fin (k + 1)) (a₁ a₂ : Bool)
     (h : j₁ ≠ j₂) :
     cellNext (.gate j₁ : CellState n k tgt) a₁ ≠ cellNext (.gate j₂ : CellState n k tgt) a₂ := by
@@ -2597,21 +2824,27 @@ theorem cellNext_gate_ne {n k tgt : ℕ} (j₁ j₂ : Fin (k + 1)) (a₁ a₂ : 
     · have hj : j₁ = j₂ := Fin.ext (by omega)
       exact (h hj).elim
 
+/-- Each cell-machine walk stage preserves the tape symbol with amplitude one. -/
 theorem cellAmp_walk_row {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (d : Fin (tgt + 1)) (a b : Bool) :
     cellAmp V htgt (.walk d : CellState n k tgt) a b = (if b = a then 1 else 0) := by
   simp [cellAmp]
 
+/-- Below the final gate stage, the cell-machine amplitudes are the entries of the corresponding
+gate at the target cell. -/
 theorem cellAmp_gate_row {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (j : Fin (k + 1)) (h : j.val < k) (a b : Bool) :
     cellAmp V htgt (.gate j : CellState n k tgt) a b = V ⟨tgt, htgt⟩ ⟨j.val, h⟩ b a := by
   simp [cellAmp, h]
 
+/-- At the final gate stage, the cell-machine amplitudes flip the tape symbol deterministically. -/
 theorem cellAmp_measure_row {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (j : Fin (k + 1)) (h : ¬ (j.val < k)) (a b : Bool) :
     cellAmp V htgt (.gate j : CellState n k tgt) a b = (if b = !a then 1 else 0) := by
   simp [cellAmp, h]
 
+/-- The accepting, rejecting, and second measurement states preserve the tape symbol
+deterministically. -/
 theorem cellAmp_det_row {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (a b : Bool) :
     (cellAmp V htgt (.acc : CellState n k tgt) a b = (if b = a then 1 else 0)) ∧
@@ -2619,6 +2852,7 @@ theorem cellAmp_det_row {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Boo
       (cellAmp V htgt (.meas2 : CellState n k tgt) a b = (if b = a then 1 else 0)) := by
   simp [cellAmp]
 
+/-- For unitary gate data, each cell-machine amplitude row has squared norm one. -/
 theorem cellAmp_norm {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     (q : CellState n k tgt) (a : Bool) :
@@ -2636,6 +2870,7 @@ theorem cellAmp_norm {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
   | rej => cases a <;> simp [cellAmp]
   | meas2 => cases a <;> simp [cellAmp]
 
+/-- Distinct deterministic symbol-preserving cell-machine amplitude rows are orthogonal. -/
 theorem cellAmp_det_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (q : CellState n k tgt) (a₁ a₂ : Bool) (hne : a₁ ≠ a₂)
     (hrow : ∀ b, cellAmp V htgt q a₁ b = if b = a₁ then 1 else 0)
@@ -2652,6 +2887,7 @@ theorem cellAmp_det_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bo
     | exact (hne rfl).elim
     | simp
 
+/-- The final gate-stage amplitude rows for distinct input symbols are orthogonal. -/
 theorem cellAmp_measure_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (j : Fin (k + 1)) (h : ¬ (j.val < k)) (a₁ a₂ : Bool) (hne : a₁ ≠ a₂) :
     ∑ b : Bool, star (cellAmp V htgt (.gate j : CellState n k tgt) a₁ b)
@@ -2668,6 +2904,8 @@ theorem cellAmp_measure_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Boo
     | exact (hne rfl).elim
     | simp
 
+/-- For equal input symbols, final gate-stage and second measurement-state amplitude rows have
+zero overlap in both orders. -/
 theorem cellAmp_meas_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (j : Fin (k + 1)) (h : ¬ (j.val < k)) (a₁ a₂ : Bool) (heq : a₁ = a₂) :
     (∑ b : Bool, star (cellAmp V htgt (.gate j : CellState n k tgt) a₁ b)
@@ -2702,6 +2940,8 @@ theorem cellAmp_meas_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool B
       | exact Bool.noConfusion heq
       | simp
 
+/-- With unitary gate data, distinct state-symbol inputs with a common next state have
+orthogonal cell-machine amplitude rows. -/
 theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     (q₁ q₂ : CellState n k tgt) (a₁ a₂ : Bool)
@@ -2928,10 +3168,13 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
             (fun b => (cellAmp_det_row V htgt a₁ b).2.2)
             (fun b => (cellAmp_det_row V htgt a₂ b).2.2)
 
+/-- No cell-machine state moves the head left. -/
 theorem cellMove_ne_left {n k tgt : ℕ} (q : CellState n k tgt) :
     cellMove q ≠ QtmMove.left := by
   cases q <;> simp [cellMove]
 
+/-- The local quantum machine that walks to a specified input cell, applies its unitary gate
+sequence, and records the Boolean result. -/
 def cellLocalQTM {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) :
     LocalQTM (CellState n k tgt) Bool where
@@ -3064,6 +3307,7 @@ def cellLocalQTM {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     rw [hz]
     simp
 
+/-- The target-cell machine built from unitary gate data satisfies the five local conditions. -/
 theorem cellLocalQTM_five {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) :
     LocalQTMFiveConditions (cellLocalQTM V htgt hV) := by
@@ -3071,6 +3315,8 @@ theorem cellLocalQTM_five {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool B
     (cellLocalQTM V htgt hV).wf_rightStay, (cellLocalQTM V htgt hV).wf_stayLeft,
     (cellLocalQTM V htgt hV).wf_rightLeft⟩
 
+/-- A target-cell transition has its local amplitude precisely when the head move, next state,
+and single-cell tape update are valid. -/
 theorem cellLocalQTM_windowStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt' : WindowCfg w (CellState n k tgt) Bool) :
@@ -3120,6 +3366,8 @@ theorem cellLocalQTM_windowStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix 
       rw [if_neg (fun hh => hd hh.1)]
     · rw [if_neg hcon]
 
+/-- A step from a target-cell basis configuration has its local amplitude on valid successor
+configurations and zero elsewhere. -/
 theorem cellLocalQTM_windowStep_ket {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt' : WindowCfg w (CellState n k tgt) Bool) :
@@ -3136,23 +3384,33 @@ theorem cellLocalQTM_windowStep_ket {n k tgt : ℕ} (V : Fin n → Fin k → Mat
   · intro d _ hd
     simp [Qatlib.Foundations.PureStateMath.Ket, hd]
 
+/-- Replaces a target-cell configuration's state and head-cell bit while preserving its head and
+the rest of its tape. -/
 def cellCfg {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (q : CellState n k tgt) (b : Bool) : WindowCfg w (CellState n k tgt) Bool :=
   { base with state := q, tape := fun j => if j = base.head then b else base.tape j }
 
+/-- The two-basis-state superposition at a fixed cell-machine state with a supplied Boolean
+amplitude vector. -/
 def cellCfgSuper {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (q : CellState n k tgt) (v : Bool → ℂ) : QState (WindowCfg w (CellState n k tgt) Bool) :=
   v false • Ket (cellCfg base q false) + v true • Ket (cellCfg base q true)
 
+/-- The walk-stage configuration with unchanged tape and head shifted by the walk-stage index
+from the base head. -/
 def cellWalkCfg {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (d : Fin (tgt + 1)) (h : Fin (2 * w + 1)) (hh : h.val = base.head.val + d.val) :
     WindowCfg w (CellState n k tgt) Bool :=
   { base with head := h, state := .walk d }
 
+/-- The configuration obtained by assigning the supplied next head position and the next walk
+state, leaving the tape unchanged. -/
 def cellWalkStepCfg {n k tgt w : ℕ} (src : WindowCfg w (CellState n k tgt) Bool)
     (d : Fin (tgt + 1)) (h' : Fin (2 * w + 1)) : WindowCfg w (CellState n k tgt) Bool :=
   { src with head := h', state := cellNext (.walk d) (src.tape src.head) }
 
+/-- A target-cell transition is characterized by its head move, next state, and equality of tape
+symbols away from the source head. -/
 theorem cellLocalQTM_windowStep_norm {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt' : WindowCfg w (CellState n k tgt) Bool) :
@@ -3189,6 +3447,8 @@ theorem cellLocalQTM_windowStep_norm {n k tgt : ℕ} (V : Fin n → Fin k → Ma
   · simp only [if_neg h]
     rw [if_neg (fun hh => h (hiff.mp hh))]
 
+/-- The amplitude after a target-cell basis step is its local amplitude exactly when the move,
+next state, and off-head tape agreement hold. -/
 theorem cellLocalQTM_windowStep_ket_norm {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (src tgt' : WindowCfg w (CellState n k tgt) Bool) :
@@ -3205,6 +3465,8 @@ theorem cellLocalQTM_windowStep_ket_norm {n k tgt : ℕ} (V : Fin n → Fin k �
   · intro d _ hd
     simp [Qatlib.Foundations.PureStateMath.Ket, hd]
 
+/-- Under the stated head-position and window bounds, one walk step maps a basis configuration
+to the prescribed next walk configuration. -/
 theorem cellLocalQTM_walkStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
@@ -3282,6 +3544,8 @@ theorem cellLocalQTM_walkStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
         simpa using! ht
     simp [Qatlib.Foundations.PureStateMath.Ket, hEqrec]
 
+/-- Starting at walk stage zero with sufficient window space, `e ≤ tgt` steps shift the head
+right by `e` and advance the walk stage to `e`. -/
 theorem cellLocalQTM_walkIter {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
@@ -3344,6 +3608,8 @@ theorem cellLocalQTM_walkIter {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
             · intro j
               rfl
 
+/-- With `n ≤ w`, the initialized target-cell machine places each input bit at its designated
+window position `w+1+i`. -/
 theorem cellInit_tape_input {n k tgt w : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     (x : Reg n) (hw : n ≤ w) (i : Fin n) (j : Fin (2 * w + 1))
@@ -3361,11 +3627,15 @@ theorem cellInit_tape_input {n k tgt w : ℕ} (V : Fin n → Fin k → Matrix Bo
     exact hval
   rw [hfin]
 
+/-- The configuration at gate stage zero with unchanged tape and head shifted right by `tgt+1`,
+assuming sufficient window space. -/
 def cellArriveCfg {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (hed : base.head.val + tgt + 1 ≤ 2 * w) :
     WindowCfg w (CellState n k tgt) Bool :=
   { base with head := ⟨base.head.val + tgt + 1, by omega⟩, state := .gate ⟨0, by omega⟩ }
 
+/-- From walk stage zero with sufficient window space, `tgt+1` steps reach `cellArriveCfg`
+exactly. -/
 theorem cellLocalQTM_walkArrive {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
@@ -3412,25 +3682,30 @@ theorem cellLocalQTM_walkArrive {n k tgt : ℕ} (V : Fin n → Fin k → Matrix 
         · intro j
           rfl
 
+/-- The state field of `cellCfg` is its supplied state. -/
 theorem cellCfg_state {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (q : CellState n k tgt) (b : Bool) :
     (cellCfg base q b).state = q := rfl
 
+/-- Constructing `cellCfg` preserves the base head position. -/
 theorem cellCfg_head {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (q : CellState n k tgt) (b : Bool) :
     (cellCfg base q b).head = base.head := rfl
 
+/-- The tape of `cellCfg` is the base tape with its head cell assigned the supplied bit. -/
 theorem cellCfg_tape {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (q : CellState n k tgt) (b : Bool) :
     ∀ j, (cellCfg base q b).tape j = if j = base.head then b else base.tape j := by
   intro j
   simp [cellCfg]
 
+/-- The head-cell symbol of `cellCfg` is its supplied bit. -/
 theorem cellCfg_tape_at {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (q : CellState n k tgt) (b : Bool) :
     (cellCfg base q b).tape base.head = b := by
   simp [cellCfg]
 
+/-- The false-bit and true-bit configurations constructed by `cellCfg` are distinct. -/
 theorem cellCfg_ne {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (q : CellState n k tgt) :
     cellCfg base q false ≠ cellCfg base q true := by
@@ -3438,11 +3713,15 @@ theorem cellCfg_ne {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Boo
   have h1 := congrArg (fun c => c.tape base.head) h
   simp [cellCfg] at h1
 
+/-- The superposition at gate stage `j ≤ k` with the supplied Boolean amplitude vector at the
+head cell. -/
 def cellGateSuper {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (j : ℕ) (hj : j ≤ k) (v : Bool → ℂ) : QState (WindowCfg w (CellState n k tgt) Bool) :=
   v false • Ket (cellCfg base (.gate ⟨j, by omega⟩) false) +
     v true • Ket (cellCfg base (.gate ⟨j, by omega⟩) true)
 
+/-- One target-cell gate step advances the stage and multiplies the two basis amplitudes by the
+corresponding target-cell unitary. -/
 theorem cellLocalQTM_gateStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool) (j : ℕ) (hj : j < k)
@@ -3545,6 +3824,8 @@ theorem cellLocalQTM_gateStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
         exact h hcond'
       · simp [Qatlib.Foundations.PureStateMath.Ket, h0, h2]
 
+/-- A target-cell gate step advances `cellGateSuper` and applies the corresponding unitary to
+its Boolean amplitude vector. -/
 theorem cellLocalQTM_gateStep_super {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool) (j : ℕ) (hj : j < k)
@@ -3558,6 +3839,8 @@ theorem cellLocalQTM_gateStep_super {n k tgt : ℕ} (V : Fin n → Fin k → Mat
   simp only [Pi.add_apply, Pi.smul_apply]
   ring
 
+/-- After `j ≤ k` gate steps, the target-cell superposition has amplitude vector given by the
+first `j` target-cell gates. -/
 theorem cellLocalQTM_gateSeq {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool) (v : Bool → ℂ) :
@@ -3581,6 +3864,8 @@ theorem cellLocalQTM_gateSeq {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Boo
           = V ⟨tgt, htgt⟩ ⟨j, by omega⟩ * gateSeqProd (V ⟨tgt, htgt⟩) j (by omega) := rfl
       rw [hprod]
 
+/-- The terminal target-cell gate stage sends a basis bit to its accepting or rejecting
+configuration and flips the tape bit. -/
 theorem cellLocalQTM_measure_ket {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool) (a : Bool)
@@ -3636,6 +3921,8 @@ theorem cellLocalQTM_measure_ket {n k tgt : ℕ} (V : Fin n → Fin k → Matrix
         simpa [cellCfg, hj] using! h3
     simp [hne]
 
+/-- A step from the terminal target-cell superposition separates the false and true amplitudes
+into rejecting and accepting configurations. -/
 theorem cellLocalQTM_measure {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool) (v : Bool → ℂ) :
@@ -3651,6 +3938,8 @@ theorem cellLocalQTM_measure {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Boo
   rw [h1, h2]
   simp [Qatlib.Foundations.PureStateMath.Ket]
 
+/-- After `k+1` steps from gate stage zero, accepting Born mass is the true-component squared
+norm of the target-cell gate product applied to the initial amplitude vector. -/
 theorem cellLocalQTM_acceptMass {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (htgt : tgt < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     {w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool) (v : Bool → ℂ) :
@@ -3692,6 +3981,8 @@ theorem cellLocalQTM_acceptMass {n k tgt : ℕ} (V : Fin n → Fin k → Matrix 
     exact (h (Finset.mem_filter.mpr
       ⟨Finset.mem_univ _, cellCfg_state base (.acc : CellState n k tgt) false⟩)).elim
 
+/-- A basis configuration at gate stage zero equals the target-cell superposition concentrated
+on its head-cell bit. -/
 theorem ket_eq_cellGateSuper {n k tgt w : ℕ} (base : WindowCfg w (CellState n k tgt) Bool)
     (b : Bool) (hb : base.tape base.head = b) (hq : base.state = .gate 0) :
     Ket base = cellGateSuper base 0 (by omega) (fun c => if c = b then (1 : ℂ) else 0) := by
@@ -3729,6 +4020,8 @@ theorem ket_eq_cellGateSuper {n k tgt w : ℕ} (base : WindowCfg w (CellState n 
     rw [hcfgT.symm]
     exact (zero_add (Ket base y : ℂ)).symm
 
+/-- For `n ≤ w`, the initialized target-cell machine's accepting mass after `tgt+k+2` steps is
+the true-component squared norm of the target-cell gate product applied to its input bit. -/
 theorem headStay_cell_acceptMass_multi {n k tgt w : ℕ}
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (htgt : tgt < n)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) (hw : n ≤ w) (x : Reg n) :
@@ -3768,21 +4061,26 @@ theorem headStay_cell_acceptMass_multi {n k tgt w : ℕ}
   rw [← hpow, pow_add, ← Matrix.mulVec_mulVec, harrive, hsuper]
   exact cellLocalQTM_acceptMass V htgt hV (cellArriveCfg base hbound) _
 
+/-- Setting wire `i` gives the assigned bit on that wire. -/
 theorem setBitI_bit {n : ℕ} (i : Fin n) (x : Reg n) (b : Bool) :
     setBitI i x b i = b := by
   simp [setBitI]
 
+/-- Setting wire `i` leaves every other wire unchanged. -/
 theorem setBitI_of_ne {n : ℕ} (i : Fin n) (x : Reg n) (b : Bool) {j : Fin n} (hj : j ≠ i) :
     setBitI i x b j = x j := by
   simp [setBitI, hj]
 
+/-- Flipping wire `i` negates its Boolean value. -/
 theorem flipI_bit {n : ℕ} (i : Fin n) (x : Reg n) : flipI i x i = !x i := by
   simp [flipI, setBitI]
 
+/-- Flipping wire `i` preserves every other wire. -/
 theorem flipI_of_ne {n : ℕ} (i : Fin n) (x : Reg n) {j : Fin n} (hj : j ≠ i) :
     flipI i x j = x j := by
   simp [flipI, setBitI, hj]
 
+/-- Flipping a selected wire changes the register. -/
 theorem flipI_ne {n : ℕ} (i : Fin n) (x : Reg n) : flipI i x ≠ x := by
   intro h
   have h1 := congrFun h i
@@ -3791,6 +4089,7 @@ theorem flipI_ne {n : ℕ} (i : Fin n) (x : Reg n) : flipI i x ≠ x := by
     cases hx : x i <;> simp_all
   exact h2 h1.symm
 
+/-- Agreement outside a selected wire is symmetric. -/
 theorem AgreesOutsideI_comm {n : ℕ} (i : Fin n) (x y : Reg n) :
     AgreesOutsideI i x y ↔ AgreesOutsideI i y x := by
   constructor
@@ -3799,6 +4098,7 @@ theorem AgreesOutsideI_comm {n : ℕ} (i : Fin n) (x y : Reg n) :
   · intro h j hj
     exact (h j hj).symm
 
+/-- Registers agreeing outside wire `i` are either equal or differ by flipping wire `i`. -/
 theorem agreesOutsideI_iff {n : ℕ} (i : Fin n) (x y : Reg n) :
     AgreesOutsideI i x y ↔ (y = x ∨ y = flipI i x) := by
   constructor
@@ -3825,6 +4125,8 @@ theorem agreesOutsideI_iff {n : ℕ} (i : Fin n) (x y : Reg n) :
     · intro j hj
       exact flipI_of_ne i x hj
 
+/-- Every basis ket is a `WireState` with Boolean amplitudes concentrated on its bit at the
+selected wire. -/
 theorem ket_wireI {n : ℕ} (i : Fin n) (x : Reg n) :
     WireState i x (fun c => if c = x i then (1 : ℂ) else 0) (Ket x) := by
   intro y
@@ -3853,6 +4155,8 @@ theorem ket_wireI {n : ℕ} (i : Fin n) (x : Reg n) :
       simp [hbit]
     simp [Qatlib.Foundations.PureStateMath.Ket, hc0, hyn]
 
+/-- Applying a gate embedded on wire `i` of a `WireState` multiplies its Boolean amplitude
+vector and preserves the outside-agreement factor. -/
 theorem embedRegI_applyGate {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ) (x : Reg n)
     (c : Bool → ℂ) (ψ : Reg n → ℂ) (hψ : WireState i x c ψ) :
     ∀ y : Reg n,
@@ -3912,6 +4216,8 @@ theorem embedRegI_applyGate {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ) (x 
     rw [if_neg hA, if_neg hA', if_neg hagxy]
     simp
 
+/-- Running gates embedded on wire `i` applies their Boolean product to its amplitude vector and
+preserves the remaining bits of a `WireState`. -/
 theorem run_embed_wireI {n : ℕ} (i : Fin n) (gs : List (Matrix Bool Bool ℂ)) (x : Reg n)
     (c : Bool → ℂ) (ψ : Reg n → ℂ) (hψ : WireState i x c ψ) :
     ∀ y : Reg n,
@@ -3933,6 +4239,8 @@ theorem run_embed_wireI {n : ℕ} (i : Fin n) (gs : List (Matrix Bool Bool ℂ))
       have hih := ih (U *ᵥ c) (ApplyGate (embedRegI i U) ψ) hψ' y
       rw [hih, mulVec_boolGateProd_cons]
 
+/-- A register agreeing with `x` outside wire `i` and having true bit at `i` is uniquely
+`setBitI i x true`. -/
 theorem agreesOutsideI_accepting_unique {n : ℕ} (i : Fin n) (x y : Reg n)
     (hy : y i = true) (hag : AgreesOutsideI i x y) : y = setBitI i x true := by
   funext j
@@ -3942,6 +4250,8 @@ theorem agreesOutsideI_accepting_unique {n : ℕ} (i : Fin n) (x y : Reg n)
   · rw [setBitI, if_neg hj]
     exact hag j hj
 
+/-- The probability of true at wire `i` after gates embedded there equals the true-component
+squared norm of their Boolean product applied to the initial bit. -/
 theorem acceptProb_embedI {n : ℕ} (i : Fin n) (gs : List (Matrix Bool Bool ℂ)) (x : Reg n) :
     AcceptProbAt i (Run (1 : Matrix (Reg n) (Reg n) ℂ)
         ((gs.map (fun U => embedRegI i U)).map Step.gate) (Ket x))
@@ -3993,6 +4303,8 @@ theorem acceptProb_embedI {n : ℕ} (i : Fin n) (gs : List (Matrix Bool Bool ℂ
     simp [hA]
   rw [BornProb, h2]
 
+/-- For `n ≤ w`, the target-cell machine's accepting mass after `tgt+k+2` steps equals the
+corresponding embedded circuit's true probability at the target wire. -/
 theorem headStay_cell_acceptProb_multi {n k tgt w : ℕ}
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (htgt : tgt < n)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) (hw : n ≤ w) (x : Reg n) :
@@ -4022,36 +4334,48 @@ theorem headStay_cell_acceptProb_multi {n k tgt w : ℕ}
         have h := (acceptProb_embedI ⟨tgt, htgt⟩ (List.ofFn (V ⟨tgt, htgt⟩)) x).symm
         exact h
 
+/-- The true probability at wire zero is the standard acceptance probability. -/
 theorem acceptProbAt_zero {n : ℕ} (hn : 0 < n) (ψ : QState (Reg n)) :
     AcceptProbAt ⟨0, hn⟩ ψ = AcceptProb ψ hn := rfl
 
+/-- The all-cell machine starts serving cell zero at gate stage zero. -/
 theorem allCellNext_start {n k : ℕ} (hn : 0 < n) (a : Bool) :
     allCellNext hn (.start : AllCellState n k) a = .serve ⟨0, hn⟩ ⟨0, by omega⟩ := rfl
 
+/-- A serve state advances its gate stage, moves to the next cell after its last gate, or
+selects acceptance or rejection at the final cell. -/
 theorem allCellNext_serve {n k : ℕ} (hn : 0 < n) (i : Fin n) (j : Fin (k + 1)) (a : Bool) :
     allCellNext hn (.serve i j) a =
       if h : j.val < k then .serve i ⟨j.val + 1, by omega⟩
       else if hi : i.val + 1 < n then .serve ⟨i.val + 1, by omega⟩ ⟨0, by omega⟩
       else (if a then .acc else .rej) := rfl
 
+/-- The all-cell accepting state transitions to the second measurement state. -/
 theorem allCellNext_acc {n k : ℕ} (hn : 0 < n) (a : Bool) :
     allCellNext hn (.acc : AllCellState n k) a = .meas2 := rfl
 
+/-- The all-cell rejecting state transitions to restart. -/
 theorem allCellNext_rej {n k : ℕ} (hn : 0 < n) (a : Bool) :
     allCellNext hn (.rej : AllCellState n k) a = .restart := rfl
 
+/-- The all-cell second measurement state selects acceptance or rejection from the current bit. -/
 theorem allCellNext_meas2 {n k : ℕ} (hn : 0 < n) (a : Bool) :
     allCellNext hn (.meas2 : AllCellState n k) a = if a then .acc else .rej := rfl
 
+/-- The all-cell restart state transitions to the start state. -/
 theorem allCellNext_restart {n k : ℕ} (hn : 0 < n) (a : Bool) :
     allCellNext hn (.restart : AllCellState n k) a = .start := rfl
 
+/-- The all-cell start state moves the head right. -/
 theorem allCellMove_start {n k : ℕ} : allCellMove (.start : AllCellState n k) = .right := rfl
 
+/-- A serve state stays during its gate sequence, moves right between cells, and stays after the
+final cell. -/
 theorem allCellMove_serve {n k : ℕ} (i : Fin n) (j : Fin (k + 1)) :
     allCellMove (.serve i j) =
       if j.val < k then .stay else if i.val + 1 < n then .right else .stay := rfl
 
+/-- No all-cell machine state moves the head left. -/
 theorem allCellMove_ne_left {n k : ℕ} (q : AllCellState n k) :
     allCellMove q ≠ QtmMove.left := by
   cases q with
@@ -4067,36 +4391,46 @@ theorem allCellMove_ne_left {n k : ℕ} (q : AllCellState n k) :
   | meas2 => simp [allCellMove]
   | restart => simp [allCellMove]
 
+/-- Every left-moving transition amplitude of the all-cell machine is zero. -/
 theorem allCellStep_left_zero {n k : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (q : AllCellState n k) (a : Bool)
     (q' : AllCellState n k) (b : Bool) :
     allCellStep hn V q a QtmMove.left q' b = 0 := by
   simp [allCellStep, allCellMove_ne_left q, Ne.symm (allCellMove_ne_left q)]
 
+/-- The all-cell start state preserves the tape symbol deterministically. -/
 theorem allCellAmp_start_row {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (a b : Bool) : allCellAmp V (.start : AllCellState n k) a b = (if b = a then 1 else 0) := rfl
 
+/-- Below the final stage, a serve state's amplitudes are the entries of its cell's designated
+unitary gate. -/
 theorem allCellAmp_serve_gate_row {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (i : Fin n) (j : Fin (k + 1)) (hj : j.val < k) (a b : Bool) :
     allCellAmp V (.serve i j) a b = V i ⟨j.val, hj⟩ b a := by
   simp [allCellAmp, hj]
 
+/-- At the final stage of a nonfinal cell, a serve state preserves the tape symbol
+deterministically. -/
 theorem allCellAmp_serve_move_row {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (i : Fin n) (j : Fin (k + 1)) (hj : j.val = k) (hi : i.val + 1 < n) (a b : Bool) :
     allCellAmp V (.serve i j) a b = (if b = a then 1 else 0) := by
   simp [allCellAmp, hj, hi]
 
+/-- At the final stage of the final cell, a serve state flips the tape symbol deterministically. -/
 theorem allCellAmp_serve_measure_row {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (i : Fin n) (j : Fin (k + 1)) (hj : j.val = k) (hi : i.val + 1 = n) (a b : Bool) :
     allCellAmp V (.serve i j) a b = (if b = !a then 1 else 0) := by
   simp [allCellAmp, hj, hi]
 
+/-- The accepting, rejecting, second measurement, and restart states preserve the tape symbol
+deterministically. -/
 theorem allCellAmp_det_row {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (q : AllCellState n k) (a b : Bool)
     (hq : q = .acc ∨ q = .rej ∨ q = .meas2 ∨ q = .restart) :
     allCellAmp V q a b = (if b = a then 1 else 0) := by
   rcases hq with hq | hq | hq | hq <;> subst hq <;> rfl
 
+/-- With unitary gate data, each all-cell amplitude row has squared norm one. -/
 theorem allCellAmp_norm {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     (q : AllCellState n k) (a : Bool) :
@@ -4117,18 +4451,23 @@ theorem allCellAmp_norm {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
   | meas2 => cases a <;> simp [allCellAmp]
   | restart => cases a <;> simp [allCellAmp]
 
+/-- Deterministic identity rows for distinct input bits are orthogonal. -/
 theorem allCellAmp_id_orth (a₁ a₂ : Bool) (hne : a₁ ≠ a₂) :
     ∑ b : Bool, star ((if b = a₁ then (1 : ℂ) else 0)) * ((if b = a₂ then (1 : ℂ) else 0)) = 0 := by
   cases a₁ <;> cases a₂ <;> simp_all
 
+/-- For the same input bit, the deterministic flip row is orthogonal to the identity row. -/
 theorem allCellAmp_flip_id_orth (a : Bool) :
     ∑ b : Bool, star ((if b = !a then (1 : ℂ) else 0)) * ((if b = a then (1 : ℂ) else 0)) = 0 := by
   cases a <;> simp
 
+/-- Deterministic flip rows for distinct input bits are orthogonal. -/
 theorem allCellAmp_flip_orth (a₁ a₂ : Bool) (hne : a₁ ≠ a₂) :
     ∑ b : Bool, star ((if b = !a₁ then (1 : ℂ) else 0)) * ((if b = !a₂ then (1 : ℂ) else 0)) = 0 := by
   cases a₁ <;> cases a₂ <;> simp_all
 
+/-- With unitary gate data, distinct input symbols in the same all-cell state have orthogonal
+amplitude rows. -/
 theorem allCellAmp_same_orth {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     (q : AllCellState n k) (a₁ a₂ : Bool) (hne : a₁ ≠ a₂) :
@@ -4159,6 +4498,8 @@ theorem allCellAmp_same_orth {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bo
     simp only [allCellAmp_det_row V (.restart : AllCellState n k) a₁ _ (Or.inr (Or.inr (Or.inr rfl)))]
     exact allCellAmp_id_orth a₁ a₂ hne
 
+/-- Equal all-cell next states require equal source states, except for the two orders of a final
+measurement serve state paired with `meas2` on equal input bits. -/
 theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k) (a₁ a₂ : Bool)
     (h : allCellNext hn q₁ a₁ = allCellNext hn q₂ a₂) :
     (q₁ = q₂) ∨
@@ -4447,29 +4788,38 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
       cases a₂ <;> cases h
     | restart => exact Or.inl rfl
 
+/-- For the same input bit, the deterministic identity row is orthogonal to the flip row. -/
 theorem allCellAmp_id_flip_orth (a : Bool) :
     ∑ b : Bool, star ((if b = a then (1 : ℂ) else 0)) * ((if b = !a then (1 : ℂ) else 0)) = 0 := by
   cases a <;> simp
 
+/-- A serve state at the final gate stage of the final input cell. -/
 def IsMeasure {n k : ℕ} (q : AllCellState n k) : Prop :=
   ∃ (i : Fin n) (j : Fin (k + 1)), j.val = k ∧ i.val + 1 = n ∧ q = .serve i j
 
+/-- An all-cell measurement serve state flips the tape symbol deterministically. -/
 theorem allCellAmp_measure_row {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (q : AllCellState n k) (a b : Bool) (hq : IsMeasure q) :
     allCellAmp V q a b = (if b = !a then 1 else 0) := by
   obtain ⟨i, j, hj, hi, rfl⟩ := hq
   simp [allCellAmp, hj, hi]
 
+/-- The final measurement serve state's amplitude row is orthogonal to the `meas2` row on the
+same input bit. -/
 theorem allCellAmp_measure_meas2_orth {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hn : 0 < n) (i : Fin n) (j : Fin (k + 1)) (hj : j.val = k) (hi : i.val + 1 = n) (a : Bool) :
     ∑ b : Bool, star (allCellAmp V (.serve i j) a b) * allCellAmp V (.meas2) a b = 0 := by
   simp [allCellAmp, hj, hi]
 
+/-- The `meas2` amplitude row is orthogonal to the final measurement serve-state row on the same
+input bit. -/
 theorem allCellAmp_meas2_measure_orth {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hn : 0 < n) (i : Fin n) (j : Fin (k + 1)) (hj : j.val = k) (hi : i.val + 1 = n) (a : Bool) :
     ∑ b : Bool, star (allCellAmp V (.meas2) a b) * allCellAmp V (.serve i j) a b = 0 := by
   simp [allCellAmp, hj, hi]
 
+/-- With nonempty input and unitary gate data, distinct state-symbol inputs with the same next
+state have orthogonal all-cell amplitude rows. -/
 theorem allCellAmp_orth {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hn : 0 < n) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     (q₁ q₂ : AllCellState n k) (a₁ a₂ : Bool)
@@ -4500,16 +4850,21 @@ theorem allCellAmp_orth {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
     rw [h3]
     exact allCellAmp_id_flip_orth a₂
 
+/-- The accepting, rejecting, second measurement, and restart states all leave the head
+stationary. -/
 theorem allCellMove_det_stay {n k : ℕ} (q : AllCellState n k)
     (hq : q = .acc ∨ q = .rej ∨ q = .meas2 ∨ q = .restart) :
     allCellMove q = QtmMove.stay := by
   rcases hq with hq | hq | hq | hq <;> subst hq <;> rfl
 
+/-- The final gate stage of the final cell leaves the head stationary. -/
 theorem allCellMove_measure_stay {n k : ℕ} (hn : 0 < n) (i : Fin n) (j : Fin (k + 1))
     (hj : j.val = k) (hi : i.val + 1 = n) :
     allCellMove (.serve i j) = QtmMove.stay := by
   simp [allCellMove, hj, hi]
 
+/-- A right-moving source state and a stationary source state have different all-cell next
+states. -/
 theorem allCellNext_right_ne_stay {n k : ℕ} (hn : 0 < n)
     (q₁ : AllCellState n k) (a₁ : Bool) (q₂ : AllCellState n k) (a₂ : Bool)
     (hr : allCellMove q₁ = QtmMove.right) (hs : allCellMove q₂ = QtmMove.stay) :
@@ -4533,6 +4888,8 @@ theorem allCellNext_right_ne_stay {n k : ℕ} (hn : 0 < n)
     rw [hstay] at hr
     cases hr
 
+/-- The local quantum machine that serves every input cell in order with its given unitary
+sequence and then records the last cell's Boolean result. -/
 def allCellLocalQTM {n k : ℕ} (hn : 0 < n) (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) :
     LocalQTM (AllCellState n k) Bool where
@@ -4629,6 +4986,8 @@ def allCellLocalQTM {n k : ℕ} (hn : 0 < n) (V : Fin n → Fin k → Matrix Boo
     rw [allCellStep_left_zero hn V q₂ a₂ q' d]
     simp
 
+/-- For nonempty input and unitary gate data, the all-cell machine satisfies the five local
+conditions. -/
 theorem allCellLocalQTM_five {n k : ℕ} (hn : 0 < n) (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) :
     LocalQTMFiveConditions (allCellLocalQTM hn V hV) := by
@@ -4636,6 +4995,8 @@ theorem allCellLocalQTM_five {n k : ℕ} (hn : 0 < n) (V : Fin n → Fin k → M
     (allCellLocalQTM hn V hV).wf_rightStay, (allCellLocalQTM hn V hV).wf_stayLeft,
     (allCellLocalQTM hn V hV).wf_rightLeft⟩
 
+/-- An all-cell transition has its prescribed local amplitude exactly when the head move, next
+state, and single-cell tape update are valid. -/
 theorem allCellLocalQTM_windowStep {n k : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -4686,6 +5047,8 @@ theorem allCellLocalQTM_windowStep {n k : ℕ} (hn : 0 < n)
       rw [if_neg (fun hh => hd hh.1)]
     · rw [if_neg hcon]
 
+/-- An all-cell transition is characterized by its head move, next state, and equality of tape
+symbols away from the source head. -/
 theorem allCellLocalQTM_windowStep_norm {n k : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -4723,6 +5086,8 @@ theorem allCellLocalQTM_windowStep_norm {n k : ℕ} (hn : 0 < n)
   · simp only [if_neg h]
     rw [if_neg (fun hh => h (hiff.mp hh))]
 
+/-- One step from an all-cell basis configuration has the prescribed local amplitude on valid
+successors and zero elsewhere. -/
 theorem allCellLocalQTM_windowStep_ket {n k : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -4740,6 +5105,8 @@ theorem allCellLocalQTM_windowStep_ket {n k : ℕ} (hn : 0 < n)
   · intro d _ hd
     simp [Qatlib.Foundations.PureStateMath.Ket, hd]
 
+/-- The amplitude after an all-cell basis step is its local amplitude exactly when its move,
+next state, and off-head tape agreement hold. -/
 theorem allCellLocalQTM_windowStep_ket_norm {n k : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -4757,6 +5124,8 @@ theorem allCellLocalQTM_windowStep_ket_norm {n k : ℕ} (hn : 0 < n)
   · intro d _ hd
     simp [Qatlib.Foundations.PureStateMath.Ket, hd]
 
+/-- Given a valid head move and the source head symbol, one all-cell step is the sum of the two
+successor kets weighted by their local amplitudes. -/
 theorem allCellLocalQTM_step_ket {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -4864,6 +5233,8 @@ theorem allCellLocalQTM_step_ket {n k w : ℕ} (hn : 0 < n)
           exact ht
     simp [Qatlib.Foundations.PureStateMath.Ket, hneF, hneT]
 
+/-- The symbol-preserving successor of a start configuration is the prescribed start-step
+configuration at the supplied head position. -/
 theorem allCellSuccCfg_start {n k w : ℕ} (hn : 0 < n)
     (base : WindowCfg w (AllCellState n k) Bool) (h' : Fin (2 * w + 1)) :
     allCellSuccCfg hn (allCellStartCfg base) (base.tape base.head) (base.tape base.head) h'
@@ -4876,6 +5247,8 @@ theorem allCellSuccCfg_start {n k w : ℕ} (hn : 0 < n)
     rw [allCellSuccCfg_start_tape hn base h' j]
     rw [allCellStartStepCfg_tape hn base h' j]
 
+/-- When the right neighbor exists, one step from the start configuration reaches the first
+serve configuration without changing the tape. -/
 theorem allCellLocalQTM_startStep_ket {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -4918,6 +5291,8 @@ theorem allCellLocalQTM_startStep_ket {n k w : ℕ} (hn : 0 < n)
     rw [hEq]
     simp [allCellStartCfg_state, allCellAmp_start_row]
 
+/-- During a gate stage, the successor construction increments the serve stage and replaces the
+head-cell bit by the output symbol. -/
 theorem allCellSuccCfg_serve {n k w : ℕ} (hn : 0 < n)
     (base : WindowCfg w (AllCellState n k) Bool) (h : Fin (2 * w + 1))
     (i : Fin n) (j : Fin (k + 1)) (hj : j.val < k) (a b : Bool) :
@@ -4930,6 +5305,8 @@ theorem allCellSuccCfg_serve {n k w : ℕ} (hn : 0 < n)
     rw [allCellSuccCfg_serve_tape hn base h i j a b m]
     rw [allCellServeCfg_tape base h i ⟨j.val + 1, by omega⟩ b m]
 
+/-- One all-cell gate step advances the serve stage and applies the designated cell unitary to
+the local amplitude vector. -/
 theorem allCellLocalQTM_gateStep_super {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -4958,6 +5335,8 @@ theorem allCellLocalQTM_gateStep_super {n k w : ℕ} (hn : 0 < n)
   simp only [dotProduct, Fintype.sum_bool]
   ring
 
+/-- After `j ≤ k` serve steps at one cell, its superposition is at stage `j` with amplitudes
+given by that cell's first `j` gates. -/
 theorem allCellLocalQTM_gateSeq {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -4985,6 +5364,8 @@ theorem allCellLocalQTM_gateSeq {n k w : ℕ} (hn : 0 < n)
           = V i ⟨j, by omega⟩ * gateSeqProd (fun l : Fin k => V i ⟨l.val, by omega⟩) j (by omega) := rfl
       rw [hprod]
 
+/-- At the final stage of a nonfinal cell, the symbol-preserving successor is the next-cell
+advance configuration. -/
 theorem allCellSuccCfg_advance {n k w : ℕ} (hn : 0 < n)
     (base : WindowCfg w (AllCellState n k) Bool) (h : Fin (2 * w + 1))
     (i : Fin n) (j : Fin (k + 1)) (hj : j.val = k) (hi : i.val + 1 < n)
@@ -4999,6 +5380,8 @@ theorem allCellSuccCfg_advance {n k w : ℕ} (hn : 0 < n)
     rw [allCellSuccCfg_advance_tape hn base h i j h' m]
     rw [allCellAdvanceCfg_tape base i hi h' m]
 
+/-- After the last gate of a nonfinal cell, one step moves right to the next cell's advance
+configuration and preserves the tape. -/
 theorem allCellLocalQTM_advanceStep_ket {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -5040,6 +5423,8 @@ theorem allCellLocalQTM_advanceStep_ket {n k w : ℕ} (hn : 0 < n)
     rw [hEq]
     simp [allCellServeCfg_state, allCellAmp_serve_move_row V i j hj hi]
 
+/-- At the final stage of the final cell, a superposition separates into the true and false
+successor branches with their original amplitudes and flipped output symbols. -/
 theorem allCellLocalQTM_measure_super {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -5081,6 +5466,8 @@ theorem allCellLocalQTM_measure_super {n k w : ℕ} (hn : 0 < n)
   · rw [if_neg hcf]
     simp
 
+/-- From gate stage zero of the final cell, accepting mass after `k+1` steps is the
+true-component squared norm of its gate product applied to the supplied amplitudes. -/
 theorem allCellLocalQTM_acceptMass {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -5142,6 +5529,8 @@ theorem allCellLocalQTM_acceptMass {n k w : ℕ} (hn : 0 < n)
     exact (h (Finset.mem_filter.mpr
       ⟨Finset.mem_univ _, hacc⟩)).elim
 
+/-- Serving the final cell from its input-bit basis amplitudes gives accepting mass equal to the
+corresponding embedded circuit's true probability at that cell. -/
 theorem allCell_acceptProb_cell {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -5159,6 +5548,8 @@ theorem allCell_acceptProb_cell {n k w : ℕ} (hn : 0 < n)
   rw [acceptProb_embedI i (List.ofFn (fun l : Fin k => V i ⟨l.val, by omega⟩)) x]
   rw [boolGateProd_ofFn k (fun l : Fin k => V i ⟨l.val, by omega⟩)]
 
+/-- A finite product factors into its selected factor and the product over all remaining
+indices. -/
 theorem fin_prod_split {n : ℕ} {M : Type*} [CommSemiring M] (i : Fin n) (f : Fin n → M) :
     (∏ j : Fin n, f j) = f i * ∏ j ∈ (Finset.univ : Finset (Fin n)).erase i, f j := by
   classical
@@ -5170,6 +5561,8 @@ theorem fin_prod_split {n : ℕ} {M : Type*} [CommSemiring M] (i : Fin n) (f : F
     _ = f i * ∏ j ∈ (Finset.univ : Finset (Fin n)).erase i, f j := by
       exact Finset.prod_insert (f := f) (by simp)
 
+/-- Summing a product of independent Boolean-coordinate factors over all Boolean registers
+equals the product of their Boolean sums. -/
 theorem fin_sum_prod {n : ℕ} {M : Type*} [CommSemiring M]
     (g : Fin n → Bool → M) :
     (∑ y : Fin n → Bool, ∏ j : Fin n, g j (y j)) = ∏ j : Fin n, (∑ b : Bool, g j b) := by
@@ -5207,6 +5600,8 @@ theorem fin_sum_prod {n : ℕ} {M : Type*} [CommSemiring M]
         _ = ∏ j : Fin (n + 1), (∑ b : Bool, g j b) := by
             rw [Fin.prod_univ_succ]
 
+/-- The product of coordinatewise equality indicators is the indicator of equality of the full
+registers. -/
 theorem prod_indicator {n : ℕ} (y x : Reg n) :
     (∏ j : Fin n, (if y j = x j then (1 : ℂ) else 0)) = if y = x then 1 else 0 := by
   classical
@@ -5226,6 +5621,7 @@ theorem prod_indicator {n : ℕ} (y x : Reg n) :
     rw [hsplit]
     simp
 
+/-- The norm of a finite complex product equals the product of the factor norms. -/
 theorem norm_prod {n : ℕ} (f : Fin n → ℂ) :
     ‖∏ j : Fin n, f j‖ = ∏ j : Fin n, ‖f j‖ := by
   induction n with
@@ -5234,10 +5630,13 @@ theorem norm_prod {n : ℕ} (f : Fin n → ℂ) :
     rw [Fin.prod_univ_succ, Complex.norm_mul, ih (fun i => f (Fin.succ i))]
     rw [Fin.prod_univ_succ]
 
+/-- The squared norm of a finite complex product equals the product of the squared factor norms. -/
 theorem norm_prod_sq {n : ℕ} (f : Fin n → ℂ) :
     ‖∏ j : Fin n, f j‖ ^ 2 = ∏ j : Fin n, ‖f j‖ ^ 2 := by
   rw [norm_prod, ← Finset.prod_pow]
 
+/-- The two terms indexed by a bit and its negation sum to the corresponding component of
+Boolean matrix-vector multiplication. -/
 theorem embedRegI_pair {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ)
     (amps : Fin n → Bool → ℂ) (y : Reg n) :
     U (y i) (y i) * amps i (y i) + U (y i) (! (y i)) * amps i (! (y i))
@@ -5245,12 +5644,15 @@ theorem embedRegI_pair {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ)
   have hb := sum_bool_pair (f := fun z => U (y i) z * amps i z) (y i)
   rw [mulVec_bool, ← hb]
 
+/-- Every register basis ket is a tensor state of its coordinate basis amplitudes. -/
 theorem ket_tensor {n : ℕ} (x : Reg n) :
     TensorState (fun j => fun c => if c = x j then (1 : ℂ) else 0) (Ket x) := by
   intro y
   rw [prod_indicator]
   simp [Qatlib.Foundations.PureStateMath.Ket]
 
+/-- A gate embedded on one wire of a tensor state transforms that wire's amplitude vector and
+leaves the other amplitude factors unchanged. -/
 theorem embedRegI_applyGate_tensor {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ)
     (amps : Fin n → Bool → ℂ) (ψ : QState (Reg n)) (hψ : TensorState amps ψ) :
     ∀ y : Reg n,
@@ -5303,6 +5705,8 @@ theorem embedRegI_applyGate_tensor {n : ℕ} (i : Fin n) (U : Matrix Bool Bool �
   rw [hsum, hpair, hmat1, hmat2, hps1, hps2]
   rw [← mul_assoc, ← mul_assoc, ← add_mul, embedRegI_pair i U amps y]
 
+/-- Applying an embedded one-wire gate preserves the tensor-state form and updates only that
+wire's amplitude vector. -/
 theorem embedRegI_applyGate_tensorState {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ)
     (amps : Fin n → Bool → ℂ) (ψ : QState (Reg n)) (hψ : TensorState amps ψ) :
     TensorState (ampsUpd i (U *ᵥ amps i) amps) (ApplyGate (embedRegI i U) ψ) := by
@@ -5316,6 +5720,8 @@ theorem embedRegI_applyGate_tensorState {n : ℕ} (i : Fin n) (U : Matrix Bool B
   have hjne : j ≠ i := (Finset.mem_erase.mp hj).1
   simp [ampsUpd, hjne]
 
+/-- A tensor state's true probability at wire `i` equals its local true squared amplitude times
+the product of the other wires' total squared masses. -/
 theorem acceptProbAt_tensor {n : ℕ} (i : Fin n) (amps : Fin n → Bool → ℂ)
     (ψ : QState (Reg n)) (hψ : TensorState amps ψ) :
     AcceptProbAt i ψ
@@ -5370,6 +5776,7 @@ theorem acceptProbAt_tensor {n : ℕ} (i : Fin n) (amps : Fin n → Bool → ℂ
         have hjne : j ≠ i := (Finset.mem_erase.mp hj).1
         simp [hg, hjne]
 
+/-- Running a concatenated circuit first runs its first part and then runs its second part. -/
 theorem run_append {I : Type*} [Fintype I] [DecidableEq I] (oracle : Matrix I I ℂ)
     (C D : Circuit I) (ψ : QState I) :
     Run oracle (C ++ D) ψ = Run oracle D (Run oracle C ψ) := by
@@ -5380,9 +5787,13 @@ theorem run_append {I : Type*} [Fintype I] [DecidableEq I] (oracle : Matrix I I 
       | gate U => simp [Run, ih]
       | query => simp [Run, ih]
 
+/-- Updating an amplitude family at `i` returns the new vector there and the original vector at
+every other index. -/
 theorem ampsUpd_eq {n : ℕ} (i : Fin n) (v : Bool → ℂ) (A : Fin n → Bool → ℂ)
     (j : Fin n) : ampsUpd i v A j = if j = i then v else A j := rfl
 
+/-- Running a gate list on one wire preserves tensor-state form and updates that wire's
+amplitudes by the Boolean gate product. -/
 theorem run_wireGates_tensor {n : ℕ} (i : Fin n) (gs : List (Matrix Bool Bool ℂ))
     (amps : Fin n → Bool → ℂ) (ψ : QState (Reg n)) (hψ : TensorState amps ψ) :
     TensorState (ampsUpd i (boolGateProd gs *ᵥ amps i) amps)
@@ -5424,6 +5835,8 @@ theorem run_wireGates_tensor {n : ℕ} (i : Fin n) (gs : List (Matrix Bool Bool 
         have hjne : j ≠ i := (Finset.mem_erase.mp hj).1
         simp [ampsUpd, hjne]
 
+/-- Updating an unprocessed cell to its tour amplitudes extends the set of processed cells by
+that cell. -/
 theorem ampsUpd_tour {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n)
     (S : Finset (Fin n)) (i : Fin n) (hi : i ∉ S) :
     ampsUpd i (tourAmps V x i)
@@ -5439,6 +5852,8 @@ theorem ampsUpd_tour {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ) 
     · simp [ampsUpd, hj, hjS]
     · simp [ampsUpd, hj, hjS]
 
+/-- Running a list of distinct, previously unprocessed cells extends a partial tensor amplitude
+assignment to the union with those cells. -/
 theorem run_cells_tensor {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n) :
     ∀ (S : Finset (Fin n)) (l : List (Fin n)), l.Nodup → (∀ i ∈ l, i ∉ S) →
     ∀ (ψ : QState (Reg n)),
@@ -5491,6 +5906,8 @@ theorem run_cells_tensor {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
         simp
       rw [hfin]
 
+/-- The composite cell circuit sends an input basis ket to the tensor state described by
+`tourAmps`. -/
 theorem run_compositeCellCircuit_tensor {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (x : Reg n) :
     TensorState (tourAmps V x)
@@ -5515,6 +5932,8 @@ theorem run_compositeCellCircuit_tensor {n k : ℕ} (V : Fin n → Fin k → Mat
   rw [heq] at h
   exact h
 
+/-- The composite circuit's true probability at the last wire is its local true squared
+amplitude times the total squared masses of the other tour amplitude vectors. -/
 theorem compositeCellCircuit_acceptProbAt {n k : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n) :
     AcceptProbAt ⟨n - 1, by omega⟩
@@ -5526,6 +5945,8 @@ theorem compositeCellCircuit_acceptProbAt {n k : ℕ} (hn : 0 < n)
     (Run (1 : Matrix (Reg n) (Reg n) ℂ) (compositeCellCircuit V) (Ket x))
     (run_compositeCellCircuit_tensor V x)]
 
+/-- The composite circuit's last-wire true probability factors into the last cell's gate-product
+true squared amplitude and the other cells' gate-product total masses. -/
 theorem compositeCellCircuit_acceptProbAt_cell {n k : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n) :
     AcceptProbAt ⟨n - 1, by omega⟩
@@ -5552,25 +5973,32 @@ theorem compositeCellCircuit_acceptProbAt_cell {n k : ℕ} (hn : 0 < n)
   rw [hprod]
   rw [hamp]
 
+/-- The Boolean amplitude vector obtained by applying a cell's full gate sequence to its input
+basis bit. -/
 noncomputable def cellFinalAmp {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (x : Reg n) (j : Fin n) : Bool → ℂ :=
   gateSeqProd (fun l : Fin k => V j l) k (by omega) *ᵥ
     (fun c => if c = x j then (1 : ℂ) else 0)
 
+/-- The final cell amplitude vector agrees with the tour amplitude vector. -/
 theorem cellFinalAmp_eq_tourAmps {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (x : Reg n) (j : Fin n) : cellFinalAmp V x j = tourAmps V x j := by
   simp [cellFinalAmp, tourAmps, cellGates, boolGateProd_ofFn]
 
+/-- The total product mass over all assignments to a prefix equals the product of the individual
+cells' total masses. -/
 theorem cellPrefixMass {n k i : ℕ} (hi : i ≤ n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n) :
     (∑ f : Fin i → Bool, ∏ j : Fin i, ‖(cellFinalAmp V x (Fin.castLE hi j)) (f j)‖ ^ 2)
       = ∏ j : Fin i, (∑ b : Bool, ‖(cellFinalAmp V x (Fin.castLE hi j)) b‖ ^ 2) := by
   exact fin_sum_prod (fun j b => ‖(cellFinalAmp V x (Fin.castLE hi j)) b‖ ^ 2)
 
+/-- The squared norm of a complex number is the real part of its product with its conjugate. -/
 theorem complex_normSq_eq_re (z : ℂ) : Complex.normSq z = (z * star z).re := by
   rw [Complex.normSq_apply, Complex.star_def, Complex.mul_re]
   simp [Complex.conj_re, Complex.conj_im]
 
+/-- The sum of each unitary gate column's entry-conjugate products is the complex number one. -/
 theorem gateCol_norm_complex {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (i : Fin k) (a : Bool) :
     (∑ b : Bool, (Us i b a) * star (Us i b a)) = 1 := by
@@ -5584,6 +6012,7 @@ theorem gateCol_norm_complex {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
   rw [hD]
   simp [hmat]
 
+/-- Unitary Boolean matrix-vector multiplication preserves the sum of entry-conjugate products. -/
 theorem mulVec_norm_preserved_complex {U : Matrix Bool Bool ℂ}
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) (v : Bool → ℂ) :
     (∑ b : Bool, ((U *ᵥ v) b) * star ((U *ᵥ v) b))
@@ -5648,6 +6077,7 @@ theorem mulVec_norm_preserved_complex {U : Matrix Bool Bool ℂ}
           ring
       rw [hone]
 
+/-- Unitary Boolean matrix-vector multiplication preserves the sum of squared amplitude norms. -/
 theorem mulVec_norm_preserved {U : Matrix Bool Bool ℂ}
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) (v : Bool → ℂ) :
     ∑ b : Bool, ‖(U *ᵥ v) b‖ ^ 2 = ∑ a : Bool, ‖v a‖ ^ 2 := by
@@ -5676,6 +6106,7 @@ theorem mulVec_norm_preserved {U : Matrix Bool Bool ℂ}
         intro a _
         exact (Complex.sq_norm _).symm
 
+/-- Every prefix of a unitary gate sequence preserves the total squared amplitude norm. -/
 theorem gateSeqProd_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     (hU : ∀ i, Us i ∈ Matrix.unitaryGroup Bool ℂ) (v : Bool → ℂ) :
     ∀ (j : ℕ) (hj : j ≤ k),
@@ -5695,6 +6126,7 @@ theorem gateSeqProd_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
       rw [mulVec_norm_preserved (hU ⟨j, hjk⟩) (gateSeqProd Us j (by omega) *ᵥ v)]
       exact ih (by omega)
 
+/-- For unitary gate data, each final cell amplitude vector has total squared mass one. -/
 theorem cellFinalAmp_mass {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) (x : Reg n) (j : Fin n) :
     ∑ b : Bool, ‖(cellFinalAmp V x j) b‖ ^ 2 = 1 := by
@@ -5710,6 +6142,8 @@ theorem cellFinalAmp_mass {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool 
     _ = ∑ a : Bool, ‖(fun c => if c = x j then (1 : ℂ) else 0) a‖ ^ 2 := h
     _ = 1 := hone
 
+/-- For unitary gate data, the total product mass over every Boolean assignment to a cell prefix
+is one. -/
 theorem cellPrefixMass_one {n k i : ℕ} (hi : i ≤ n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
     (x : Reg n) :
@@ -5723,6 +6157,8 @@ theorem cellPrefixMass_one {n k i : ℕ} (hi : i ≤ n)
         exact cellFinalAmp_mass V hV x (Fin.castLE hi j)
     _ = 1 := by simp
 
+/-- When the input fits in the window, the initialized tape at a tour position contains its
+corresponding input bit. -/
 theorem allCellTourPos_tape_init {n k w : ℕ} (M : LocalQTM (AllCellState n k) Bool)
     (nn : ℕ) (x : Reg nn) (i : ℕ) (hi : i < nn) (hw : nn ≤ w) :
     (initWindowCfg (t := w) M nn x).tape (allCellTourPos i hi hw) = x ⟨i, hi⟩ := by
@@ -5731,6 +6167,8 @@ theorem allCellTourPos_tape_init {n k w : ℕ} (M : LocalQTM (AllCellState n k) 
   have h3 : w + 1 + i - w - 1 = i := by omega
   simp [initWindowCfg, allCellTourPos, h1, h2, h3]
 
+/-- A gate step from a tour basis configuration is the two-symbol successor superposition at the
+next gate stage, with the processed prefix fixed. -/
 theorem allCellTour_step_gate {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -5775,6 +6213,8 @@ theorem allCellTour_step_gate {n k w : ℕ} (hn : 0 < n)
   rw [hsucc false, hsucc true]
   rw [allCellTourCfg_state]
 
+/-- With the input encoded in the base tape, a nonfinal cell's advance step extends the
+processed prefix and starts the next cell on its input bit. -/
 theorem allCellTour_step_advance {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -5852,6 +6292,8 @@ theorem allCellTour_step_advance {n k w : ℕ} (hn : 0 < n)
   rw [hsucc false, hsucc true]
   rw [allCellTourCfg_state]
 
+/-- At the final cell, one step from the last gate stage gives the two final configuration
+branches weighted by their local amplitudes. -/
 theorem allCellTour_step_measure {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -5899,6 +6341,8 @@ theorem allCellTour_step_measure {n k w : ℕ} (hn : 0 < n)
   rw [hsucc false, hsucc true]
   rw [allCellTourCfg_state]
 
+/-- Complex matrix-vector multiplication commutes with a sum over a finite subset of its column
+index type. -/
 theorem mulVec_sum {ι β : Type*} [Fintype ι] (s : Finset ι) (M : Matrix β ι ℂ)
     (f : ι → (ι → ℂ)) :
     M *ᵥ (s.sum f) = s.sum (fun i => M *ᵥ (f i)) := by
@@ -5908,11 +6352,14 @@ theorem mulVec_sum {ι β : Type*} [Fintype ι] (s : Finset ι) (M : Matrix β �
   | @insert a s ha ih =>
       simp only [Finset.sum_insert ha, Matrix.mulVec_add, ih]
 
+/-- The Boolean amplitude vector after the first `j.val` gates at a cell, starting from its
+input basis bit. -/
 noncomputable def cellPartialAmp {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (x : Reg n) (i : Fin n) (j : Fin (k + 1)) : Bool → ℂ :=
   gateSeqProd (fun l : Fin k => V i l) j.val (by omega) *ᵥ
     (fun c => if c = x i then (1 : ℂ) else 0)
 
+/-- Advancing a cell's partial amplitude vector by one stage applies its next unitary matrix. -/
 theorem cellPartialAmp_step {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (x : Reg n) (i : Fin n) (j : Fin (k + 1)) (hj : j.val < k) :
     cellPartialAmp V x i ⟨j.val + 1, by omega⟩ = V i ⟨j.val, hj⟩ *ᵥ cellPartialAmp V x i j := by
@@ -5922,12 +6369,16 @@ theorem cellPartialAmp_step {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Boo
   rw [hprod]
   rw [← Matrix.mulVec_mulVec]
 
+/-- The product of completed-cell amplitudes along a prefix and the current cell's partial
+amplitude. -/
 noncomputable def allCellTourAmp {n k i : ℕ} (hi : i < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n)
     (j : Fin (k + 1)) (f : Fin i → Bool) (b : Bool) : ℂ :=
   (∏ j' : Fin i, (cellFinalAmp V x (Fin.castLE (by omega) j')) (f j')) *
     (cellPartialAmp V x ⟨i, hi⟩ j b)
 
+/-- The tour superposition over processed-prefix assignments and the current cell bit, weighted
+by `allCellTourAmp`. -/
 noncomputable def allCellTourState {n k w : ℕ} (base : WindowCfg w (AllCellState n k) Bool)
     (i : ℕ) (hi : i < n) (hw : n ≤ w) (j : Fin (k + 1))
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n) :
@@ -5935,6 +6386,7 @@ noncomputable def allCellTourState {n k w : ℕ} (base : WindowCfg w (AllCellSta
   ∑ f : Fin i → Bool, ∑ b : Bool,
     (allCellTourAmp hi V x j f b) • Ket (allCellTourCfg base i hi hw j f b)
 
+/-- Complex matrix-vector multiplication commutes with a finite sum of state vectors. -/
 theorem mulVec_sum_state {m n ι : Type*} [Fintype n] [Fintype ι] (M : Matrix m n ℂ)
     (f : ι → (n → ℂ)) :
     M *ᵥ (Finset.univ.sum f) = Finset.univ.sum (fun i => M *ᵥ (f i)) := by
@@ -5949,22 +6401,30 @@ theorem mulVec_sum_state {m n ι : Type*} [Fintype n] [Fintype ι] (M : Matrix m
         simp only [Finset.sum_insert ha, Matrix.mulVec_add, ih]
   simpa using! h (Finset.univ : Finset ι)
 
+/-- Summing Boolean-indexed scalar multiples of a fixed state equals multiplication by the sum
+of their scalars. -/
 theorem sum_smul_state {β : Type*} (c : Bool → ℂ) (w : β → ℂ) :
     (∑ b : Bool, c b • w) = (∑ b : Bool, c b) • w := by
   funext i
   simp only [Fintype.sum_bool, Pi.add_apply, Pi.smul_apply]
   ring
 
+/-- A Boolean sum of two-branch superpositions groups into the two successor states with summed
+coefficients. -/
 theorem tour_successor_sum {β : Type*} (c c' : Bool → ℂ) (w0 w1 : β → ℂ) :
     (∑ b : Bool, ((c b) • w0 + (c' b) • w1))
       = (∑ b : Bool, c b) • w0 + (∑ b : Bool, c' b) • w1 := by
   simp only [Finset.sum_add_distrib, sum_smul_state]
 
+/-- During a proper gate stage, the all-cell serve amplitude is the corresponding entry of the
+designated cell gate. -/
 theorem allCellAmp_serve_gate {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (i : Fin n) (j : Fin (k + 1)) (hj : j.val < k) (a b : Bool) :
     allCellAmp V (.serve i j) a b = V i ⟨j.val, hj⟩ b a := by
   simp [allCellAmp, hj]
 
+/-- Summing tour amplitudes against the current gate transition yields the tour amplitude at the
+next gate stage. -/
 theorem allCellTourAmp_gate_step {n k i : ℕ} (hi : i < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n)
     (j : Fin (k + 1)) (hj : j.val < k) (f : Fin i → Bool) (b' : Bool) :
@@ -5994,6 +6454,7 @@ theorem allCellTourAmp_gate_step {n k i : ℕ} (hi : i < n)
         * (cellPartialAmp V x ⟨i, hi⟩ ⟨j.val + 1, by omega⟩ b') := by
           rw [hstep]
 
+/-- One all-cell machine step advances a tour state by one gate stage below `k`. -/
 theorem allCellTourState_step_gate {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6060,6 +6521,8 @@ theorem allCellTourState_step_gate {n k w : ℕ} (hn : 0 < n)
   simp_rw [hbranch]
   simp_rw [hinner]
 
+/-- With the input encoded in the base tape, a step after a nonfinal cell's full gate sequence
+gives the next cell's stage-zero tour state. -/
 theorem allCellTourState_step_advance {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6236,6 +6699,8 @@ theorem allCellTourState_step_advance {n k w : ℕ} (hn : 0 < n)
   simp_rw [hampid]
   simp_rw [hcoll]
 
+/-- For a centered base head and correctly encoded input, the start step reaches the first
+cell's stage-zero basis configuration. -/
 theorem allCellTour_start_ket {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6265,6 +6730,9 @@ theorem allCellTour_start_ket {n k w : ℕ} (hn : 0 < n)
       · rfl
   rw [heq]
 
+/-- Collects the five local conditions for general native machines, their query-free window
+simulation with the stated quadratic gate bound and Born-probability agreement, bounded
+address-word correctness, and well-formedness of the gate and layered machines. -/
 theorem clause7_complete :
     (∀ (Q A : Type) [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
       (M : GeneralNativeMachine Q A), LocalQTMFiveConditions M.localQTM) ∧
@@ -6306,6 +6774,8 @@ theorem clause7_complete :
   · intro U hU
     exact gateLocalQTM_five U hU
 
+/-- When the input fits in the window, the machine targeting cell zero has accepting mass after
+`k+2` steps equal to the standard acceptance probability of the first-wire circuit. -/
 theorem headStay_cell_acceptProb_zero {n k w : ℕ}
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (hn : 0 < n)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ) (hw : n ≤ w) (x : Reg n) :
@@ -6326,11 +6796,14 @@ theorem headStay_cell_acceptProb_zero {n k w : ℕ}
         (Ket x))
   exact hz
 
+/-- Multiplication by a product of two powers of a matrix equals successive multiplication by
+those powers. -/
 theorem mulVec_pow_mul {m : Type} [Fintype m] [DecidableEq m] (M : Matrix m m ℂ) (x y : ℕ)
     (v : m → ℂ) :
     ((M ^ x) * (M ^ y)) *ᵥ v = (M ^ x) *ᵥ ((M ^ y) *ᵥ v) :=
   (Matrix.mulVec_mulVec v (M ^ x) (M ^ y)).symm
 
+/-- Applying the `b`th and then the `a`th matrix power equals applying the `(a+b)`th power. -/
 theorem mulVec_pow_add {m : Type} [Fintype m] [DecidableEq m] (M : Matrix m m ℂ) (a b : ℕ)
     (v : m → ℂ) :
     (M ^ a) *ᵥ ((M ^ b) *ᵥ v) = (M ^ (a + b)) *ᵥ v := by
@@ -6338,6 +6811,7 @@ theorem mulVec_pow_add {m : Type} [Fintype m] [DecidableEq m] (M : Matrix m m �
         Matrix.mulVec_mulVec v (M ^ a) (M ^ b)
     _ = (M ^ (a + b)) *ᵥ v := by rw [pow_add]
 
+/-- A sum over Boolean functions on `Fin 0` equals its value at the unique empty function. -/
 theorem sum_fin0_bool {M : Type*} [AddCommMonoid M] (f : (Fin 0 → Bool) → M) :
     (∑ g : Fin 0 → Bool, f g) = f (fun _ => false) := by
   rw [Fintype.sum_eq_single (fun _ => false)]
@@ -6347,6 +6821,8 @@ theorem sum_fin0_bool {M : Type*} [AddCommMonoid M] (f : (Fin 0 → Bool) → M)
   funext j
   exact Fin.elim0 j
 
+/-- At the first cell's stage zero, the tour amplitude is just the first cell's partial
+amplitude because the processed prefix is empty. -/
 theorem allCellTourAmp_zero {n k : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n)
     (f : Fin 0 → Bool) (b : Bool) :
@@ -6357,6 +6833,8 @@ theorem allCellTourAmp_zero {n k : ℕ} (hn : 0 < n)
     simp
   rw [hprod, one_mul]
 
+/-- The first cell's stage-zero tour state reduces to a Boolean sum with coefficients given by
+its partial amplitude vector. -/
 theorem allCellTourState_zero {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (base : WindowCfg w (AllCellState n k) Bool) (x : Reg n) (hw : n ≤ w) :
@@ -6369,6 +6847,8 @@ theorem allCellTourState_zero {n k w : ℕ} (hn : 0 < n)
   intro b _
   rw [allCellTourAmp_zero hn V x (fun _ => false) b]
 
+/-- The first cell's stage-zero tour state is the basis ket with the first input bit and empty
+processed prefix. -/
 theorem allCellTourState_zero_collapse {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (base : WindowCfg w (AllCellState n k) Bool) (x : Reg n) (hw : n ≤ w) :
@@ -6384,6 +6864,8 @@ theorem allCellTourState_zero_collapse {n k w : ℕ} (hn : 0 < n)
   cases hx : x ⟨0, hn⟩ <;>
     simp [mul_zero, mul_one, zero_smul, add_zero, zero_add]
 
+/-- For a centered base head and correctly encoded input, one start step gives the first cell's
+stage-zero tour state. -/
 theorem allCellTour_start_state {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6395,6 +6877,7 @@ theorem allCellTour_start_state {n k w : ℕ} (hn : 0 < n)
   rw [allCellTour_start_ket hn V hV base x hw hhead hx]
   exact (allCellTourState_zero_collapse hn V base x hw).symm
 
+/-- Evolving a cell's stage-zero tour state for `j ≤ k` steps gives its stage-`j` tour state. -/
 theorem allCellTourState_layers {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6430,6 +6913,8 @@ theorem allCellTourState_layers {n k w : ℕ} (hn : 0 < n)
             allCellTourState base i hi hw ⟨j, hjlt⟩ V x := by rw [ih']
         _ = allCellTourState base i hi hw ⟨j + 1, by omega⟩ V x := hstep
 
+/-- For a centered base head and correctly encoded input fitting in the window, the tour reaches
+cell `i` at stage zero after `1+i*(k+1)` steps. -/
 theorem allCellTour_reach {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6473,16 +6958,20 @@ theorem allCellTour_reach {n k w : ℕ} (hn : 0 < n)
         exact hadv
       exact hB
 
+/-- A zero-weighted second basis ket contributes nothing to a two-ket sum. -/
 theorem ket_add_zero {β : Type} [DecidableEq β] (c₁ c₂ : β) (a : ℂ) :
     (a • Ket c₁ + 0 • Ket c₂) = a • Ket c₁ := by
   funext tgtC
   simp [Pi.add_apply, Pi.smul_apply, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- A zero-weighted first basis ket contributes nothing to a two-ket sum. -/
 theorem ket_zero_add {β : Type} [DecidableEq β] (c₁ c₂ : β) (a : ℂ) :
     (0 • Ket c₁ + a • Ket c₂) = a • Ket c₂ := by
   funext tgtC
   simp [Pi.add_apply, Pi.smul_apply, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- Evaluating a finite sum of complex-valued functions equals summing their values at that
+argument. -/
 theorem sum_apply {ι β : Type*} [Fintype ι] (g : ι → (β → ℂ)) (c : β) :
     (∑ i, g i) c = ∑ i, (g i) c := by
   classical
@@ -6494,22 +6983,30 @@ theorem sum_apply {ι β : Type*} [Fintype ι] (g : ι → (β → ℂ)) (c : β
         simp only [Finset.sum_insert ha, Pi.add_apply, ih]
   simpa using! h (Finset.univ : Finset ι)
 
+/-- A final tour configuration is accepting exactly for a true premeasurement bit and rejecting
+for a false one. -/
 theorem allCellTourFinalCfg_state {n k w : ℕ} (base : WindowCfg w (AllCellState n k) Bool)
     (i : ℕ) (hi : i < n) (hw : n ≤ w) (f : Fin i → Bool) (a b : Bool) :
     (allCellTourFinalCfg base i hi hw f a b).state
       = (if a then (.acc : AllCellState n k) else .rej) := rfl
 
+/-- A final tour configuration has the processed-prefix tape with the current tour cell replaced
+by the supplied output symbol. -/
 theorem allCellTourFinalCfg_tape {n k w : ℕ} (base : WindowCfg w (AllCellState n k) Bool)
     (i : ℕ) (hi : i < n) (hw : n ≤ w) (f : Fin i → Bool) (a b : Bool)
     (m : Fin (2 * w + 1)) :
     (allCellTourFinalCfg base i hi hw f a b).tape m
       = if m = allCellTourPos i hi hw then b else allCellTourTape base i f m := rfl
 
+/-- The tape at the current tour position in a final configuration is its supplied output
+symbol. -/
 theorem allCellTourFinalCfg_tape_at {n k w : ℕ} (base : WindowCfg w (AllCellState n k) Bool)
     (i : ℕ) (hi : i < n) (hw : n ≤ w) (f : Fin i → Bool) (a b : Bool) :
     (allCellTourFinalCfg base i hi hw f a b).tape (allCellTourPos i hi hw) = b := by
   simp [allCellTourFinalCfg_tape]
 
+/-- The processed tour tape stores each prefix assignment bit at its corresponding input-cell
+position. -/
 theorem allCellTourTape_at {n k w : ℕ} (base : WindowCfg w (AllCellState n k) Bool)
     (i : ℕ) (hi : i ≤ n) (hw : n ≤ w) (f : Fin i → Bool) (j : Fin i) :
     allCellTourTape base i f (⟨w + 1 + j.val, by omega⟩ : Fin (2 * w + 1)) = f j := by
@@ -6524,6 +7021,8 @@ theorem allCellTourTape_at {n k w : ℕ} (base : WindowCfg w (AllCellState n k) 
   simp
   omega
 
+/-- Equality of final tour configurations determines the premeasurement bit, output symbol, and
+entire processed-prefix assignment. -/
 theorem allCellTourFinalCfg_inj {n k w : ℕ} (base : WindowCfg w (AllCellState n k) Bool)
     (i : ℕ) (hi : i < n) (hw : n ≤ w) (f f' : Fin i → Bool) (a a' b b' : Bool)
     (h : allCellTourFinalCfg base i hi hw f a b = allCellTourFinalCfg base i hi hw f' a' b') :
@@ -6573,6 +7072,8 @@ theorem allCellTourFinalCfg_inj {n k w : ℕ} (base : WindowCfg w (AllCellState 
     exact hj (hv1.symm.trans (hteq.trans hv2))
   exact ⟨hstate, hbsymm, hf⟩
 
+/-- The superposition of final tour configurations with amplitudes from the completed gate stage
+and the current bit flipped on the tape. -/
 noncomputable def allCellTourFinalState {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n)
     (base : WindowCfg w (AllCellState n k) Bool) (hw : n ≤ w)
@@ -6582,6 +7083,8 @@ noncomputable def allCellTourFinalState {n k w : ℕ} (hn : 0 < n)
     (allCellTourAmp hi V x (allCellTourLayerK k) f b) •
       Ket (allCellTourFinalCfg base i hi hw f b (!b))
 
+/-- Evaluating the final tour state gives a sum of tour amplitudes times indicators of the
+corresponding final configurations. -/
 theorem allCellTourFinalState_apply {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ) (x : Reg n)
     (base : WindowCfg w (AllCellState n k) Bool) (hw : n ≤ w)
@@ -6596,6 +7099,8 @@ theorem allCellTourFinalState_apply {n k w : ℕ} (hn : 0 < n)
     Bool.not_false, Bool.not_true]
   rfl
 
+/-- At the final cell's last gate stage, one step sends the tour state to the
+final-configuration sum with each current bit flipped. -/
 theorem allCellTourState_step_measure {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6691,6 +7196,8 @@ theorem allCellTourState_step_measure {n k w : ℕ} (hn : 0 < n)
   simp_rw [hbranch]
   simp_rw [hcollapse]
 
+/-- For a centered base head and correctly encoded input fitting in the window, `n*(k+1)+1`
+steps give the final tour state at the last cell. -/
 theorem allCellTour_final {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6724,10 +7231,13 @@ theorem allCellTour_final {n k w : ℕ} (hn : 0 < n)
   rw [hpow]
   exact hB
 
+/-- The squared norm of a complex product is the product of the squared norms. -/
 theorem norm_sq_mul (a b : ℂ) : ‖a * b‖ ^ 2 = ‖a‖ ^ 2 * ‖b‖ ^ 2 := by
   rw [Complex.norm_mul]
   ring
 
+/-- For unitary gate data, summing the true-branch tour squared amplitudes over all prefix
+assignments gives the current cell's final true squared amplitude. -/
 theorem allCellTour_acceptAmp_mass {n k i : ℕ} (hi : i < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ j l, V j l ∈ Matrix.unitaryGroup Bool ℂ) (x : Reg n) :
@@ -6765,6 +7275,9 @@ theorem allCellTour_acceptAmp_mass {n k i : ℕ} (hi : i < n)
     rfl
   rw [hfin]
 
+/-- Under the centered-head, input-encoding, and window-fit assumptions, accepting mass after
+the full tour is the sum of true-branch squared amplitudes over processed-prefix
+assignments. -/
 theorem allCellTour_acceptMass {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6876,6 +7389,8 @@ theorem allCellTour_acceptMass {n k w : ℕ} (hn : 0 < n)
     rw [hamp f]
   rw [hsum]
 
+/-- Under the centered-head, input-encoding, and window-fit assumptions, accepting mass after
+`n*(k+1)+1` steps equals the composite cell circuit's true probability at the last wire. -/
 theorem allCellTour_acceptProb {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -6929,10 +7444,14 @@ theorem allCellTour_acceptProb {n k w : ℕ} (hn : 0 < n)
     _ = AcceptProbAt ⟨i, hi⟩
         (Run (1 : Matrix (Reg n) (Reg n) ℂ) (compositeCellCircuit V) (Ket x)) := hstd.symm
 
+/-- The two-operation ten-wire word consisting of controlled-NOT from wire `2` to `1` followed
+by Hadamard on `1` has the same encoding as controlled-NOT from `2` to `9` alone. -/
 theorem dLambdaOpsEnc_collision :
     dLambdaOpsEnc [.cnot (2 : Fin 10) 1, .hGate 1] = dLambdaOpsEnc [.cnot (2 : Fin 10) 9] := by
   decide
 
+/-- If one deterministic emitter outputs circuit-size descriptions from encoded operation lists,
+equal encodings at the same width force equal size descriptions. -/
 theorem emitterClause_determined_size
     {enc : (n : ℕ) → List (DLambdaOp n) → List Bool}
     {q c d : ℕ} {emitter : Turing.TM0.Machine (Option Bool) (Fin (q + 1))}
@@ -6950,6 +7469,8 @@ theorem emitterClause_determined_size
     exact h1
   exact TM0EmitsPoly_output_unique emitter h1' h2
 
+/-- No deterministic machine with the specified polynomial emission bound can output all
+circuit-size descriptions from `dLambdaOpsEnc` inputs. -/
 theorem dLambdaEmitterClause_impossible :
     ¬ ∃ (q c d : ℕ) (emitter : Turing.TM0.Machine (Option Bool) (Fin (q + 1))),
       ∀ (n : ℕ) (ops : List (DLambdaOp n)),
@@ -6968,11 +7489,13 @@ theorem dLambdaEmitterClause_impossible :
   rw [hsizeA, hsizeB] at hdet
   exact absurd hdet (by decide)
 
+/-- The length of the initial run of true bits in a Boolean list. -/
 def trueRun : List Bool → ℕ
   | [] => 0
   | true :: rest => 1 + trueRun rest
   | false :: _ => 0
 
+/-- A list of `m` true bits followed by false and any suffix has initial true-run length `m`. -/
 theorem trueRun_replicate_succ (m : ℕ) (rest : List Bool) :
     trueRun (List.replicate m true ++ false :: rest) = m := by
   induction m with
@@ -6982,6 +7505,8 @@ theorem trueRun_replicate_succ (m : ℕ) (rest : List Bool) :
       simp only [trueRun]
       omega
 
+/-- The initial true-run length of the modified operation encoding is exactly the operation-list
+length. -/
 theorem dLambdaOpsEnc'_count {n : ℕ} (ops : List (DLambdaOp n)) :
     trueRun (dLambdaOpsEnc' ops) = ops.length := by
   have happ : (List.replicate ops.length true ++ [false]) ++ dLambdaOpsEnc ops
@@ -6990,6 +7515,8 @@ theorem dLambdaOpsEnc'_count {n : ℕ} (ops : List (DLambdaOp n)) :
   rw [dLambdaOpsEnc', happ]
   exact trueRun_replicate_succ ops.length (dLambdaOpsEnc ops)
 
+/-- Equal modified operation encodings at a fixed register width yield equal compiled
+circuit-size descriptions. -/
 theorem dLambdaOpsEnc'_size_desc {n : ℕ} (ops₁ ops₂ : List (DLambdaOp n))
     (h : dLambdaOpsEnc' ops₁ = dLambdaOpsEnc' ops₂) :
     (Size (dLambdaCircuit ops₁)).bits ++ [false]
@@ -7001,6 +7528,7 @@ theorem dLambdaOpsEnc'_size_desc {n : ℕ} (ops₁ ops₂ : List (DLambdaOp n))
     rw [dLambdaCircuit_size, dLambdaCircuit_size, hcount]
   rw [hsize]
 
+/-- For every positive `ε`, the geometric factor `(8/9)^ceil(log(1/ε)/log(9/8))` is at most `ε`. -/
 theorem amplificationFailure_le (ε : ℝ) (hε : 0 < ε) :
     (8 / 9 : ℝ) ^ Nat.ceil (Real.log (1 / ε) / Real.log (9 / 8)) ≤ ε := by
   have hd : 0 < Real.log (9 / 8 : ℝ) := Real.log_pos (by norm_num)
@@ -7015,6 +7543,7 @@ theorem amplificationFailure_le (ε : ℝ) (hε : 0 < ε) :
   rw [hεlog] at hmul ⊢
   nlinarith
 
+/-- For `0 < ε ≤ 1`, the amplification copy count is at most `2*(log(1/ε)/log(9/8)+2)+1`. -/
 theorem amplificationCopies_le (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     amplificationCopies ε ≤ 2 * (Real.log (1 / ε) / Real.log (9 / 8) + 2) + 1 := by
   have hpos : 0 ≤ Real.log (1 / ε) / Real.log (9 / 8) := by
@@ -7032,6 +7561,9 @@ theorem amplificationCopies_le (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
       ≤ 2 * (Real.log (1 / ε) / Real.log (9 / 8) + 2) + 1 := by linarith
   exact_mod_cast h2
 
+/-- For correctly encoded input with centered head and sufficient window space, a normalized
+final tour state with circuit success probability at least `2/3` has majority-failure
+probability at most any positive `ε` using `amplificationCopies ε` tensor copies. -/
 theorem allCellTour_amplified_failMass {n k w : ℕ} (hn : 0 < n)
     (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     (hV : ∀ i j, V i j ∈ Matrix.unitaryGroup Bool ℂ)
@@ -7087,6 +7619,9 @@ theorem allCellTour_amplified_failMass {n k w : ℕ} (hn : 0 < n)
     simpa [amplificationCopies, hSdef] using! h2
   exact hle.trans htail
 
+/-- Collects the failure of `HeadStaySimulationSpec`, the stated communication and
+majority-formula lower bounds, and the concrete machines' local conditions, evolution,
+acceptance, tour, encoding, and amplification results. -/
 theorem clause8_complete :
     ¬ HeadStaySimulationSpec ∧
       CommunicationOmegaLogLogSpec ∧

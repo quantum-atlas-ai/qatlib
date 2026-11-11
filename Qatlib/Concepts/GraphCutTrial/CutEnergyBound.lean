@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.DirichletForm.EnergyIdentity
+
+/-!
+# Cut indicators and graph energy
+
+This module computes the mean, variance, and energy of `centeredIndicator` for the lazy graph
+kernel. The energy is the cut flow, yielding a Rayleigh quotient bound when the cut has positive
+stationary mass at most one half. These are classical Markov-chain ingredients for the
+quantum-walk setting of [Szegedy2004].
+
+## Main statements
+
+* `variance_mass`: the centered cut indicator has variance `mass * (1 - mass)`.
+* `energy_flow`: its energy equals cut flow.
+* `g1`: the combined cut-indicator identities and Rayleigh bound.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.DirichletForm.EnergyIdentity
 
@@ -20,6 +40,7 @@ open scoped BigOperators
 variable {V : Type} [Fintype V] [DecidableEq V] [Nonempty V]
 variable (G : SimpleGraph V) [DecidableRel G.Adj]
 
+/-- The stationary mass of the complement of `S` is one minus the mass of `S`. -/
 lemma mass_compl (S : Finset V) :
     ∑ x ∈ Sᶜ, stationary G x = 1 - mass G S := by
   have hsplit := Finset.sum_add_sum_compl (s := S) (f := stationary G)
@@ -29,10 +50,12 @@ lemma mass_compl (S : Finset V) :
 
 omit [Nonempty V] in
 
+/-- The centered indicator is the membership indicator minus the stationary mass of the set. -/
 lemma membership_indicator (S : Finset V) (x : V) :
     centeredIndicator G S x = (if x ∈ S then (1 : ℝ) else 0) - mass G S := by
   rfl
 
+/-- The stationary mean of a centered cut indicator is zero. -/
 lemma mean_centered (S : Finset V) : mean G (centeredIndicator G S) = 0 := by
   unfold mean
   simp_rw [membership_indicator, mul_sub, Finset.sum_sub_distrib]
@@ -50,12 +73,14 @@ lemma mean_centered (S : Finset V) : mean G (centeredIndicator G S) = 0 := by
     rw [← Finset.mul_sum, stationary_sum, mul_one]
   linarith
 
+/-- The variance of a centered cut indicator equals its stationary second moment. -/
 lemma variance_sq (S : Finset V) :
     variance G (centeredIndicator G S) =
       ∑ x, stationary G x * (centeredIndicator G S x)^2 := by
   unfold variance
   simp [mean_centered]
 
+/-- The variance of a centered cut indicator is `mass G S * (1 - mass G S)`. -/
 lemma variance_mass (S : Finset V) :
     variance G (centeredIndicator G S) = mass G S * (1 - mass G S) := by
   rw [variance_sq]
@@ -88,6 +113,8 @@ lemma variance_mass (S : Finset V) :
 
 omit [Nonempty V] in
 
+/-- The squared difference of centered indicator values is zero for equal membership in `S` and
+one otherwise. -/
 lemma diff_sq (S : Finset V) (x y : V) :
     (centeredIndicator G S x - centeredIndicator G S y)^2 =
       if (x ∈ S) = (y ∈ S) then (0 : ℝ) else 1 := by
@@ -101,6 +128,8 @@ lemma diff_sq (S : Finset V) (x y : V) :
     ring
   · simp [membership_indicator, hx, hy]
 
+/-- The total stationary transition weight crossing the cut in either direction equals twice its
+outward flow. -/
 lemma cut_both (S : Finset V) :
     ∑ x, ∑ y, stationary G x * kernel G x y *
       (if (x ∈ S) = (y ∈ S) then (0 : ℝ) else 1) =
@@ -146,6 +175,7 @@ lemma cut_both (S : Finset V) :
   unfold flow
   linarith
 
+/-- The energy of a centered cut indicator equals the outward stationary flow of the cut. -/
 lemma energy_flow (S : Finset V) :
     energy G (centeredIndicator G S) = flow G S := by
   have hE := Qatlib.Concepts.DirichletForm.EnergyIdentity.g1 (V := V) G (centeredIndicator G S)
@@ -153,17 +183,22 @@ lemma energy_flow (S : Finset V) :
   simp_rw [diff_sq]
   linarith [cut_both G S]
 
+/-- The outward stationary flow of any cut is nonnegative. -/
 lemma flow_nonneg (S : Finset V) : 0 ≤ flow G S := by
   unfold flow
   refine Finset.sum_nonneg fun x _ => Finset.sum_nonneg fun y _ => ?_
   exact mul_nonneg (stationary_nonneg G x) (kernel_nonneg G x y)
 
+/-- A cut of positive stationary mass at most one half has a centered indicator of positive
+variance. -/
 lemma variance_pos (S : Finset V) (hm : 0 < mass G S) (hhalf : mass G S ≤ 1/2) :
     0 < variance G (centeredIndicator G S) := by
   rw [variance_mass]
   have hrest : 0 < 1 - mass G S := by linarith
   exact mul_pos hm hrest
 
+/-- For a cut of positive mass at most one half, the centered indicator has energy-to-variance
+ratio at most twice the flow divided by the mass. -/
 lemma rayleigh (S : Finset V) (hm : 0 < mass G S) (hhalf : mass G S ≤ 1/2) :
     energy G (centeredIndicator G S) / variance G (centeredIndicator G S) ≤
       2 * flow G S / mass G S := by
@@ -183,6 +218,9 @@ lemma rayleigh (S : Finset V) (hm : 0 < mass G S) (hhalf : mass G S ≤ 1/2) :
   have hreorder : flow G S / mass G S * 2 = 2 * flow G S / mass G S := by ring
   linarith
 
+/-- For a cut of positive stationary mass at most one half, the centered indicator has zero
+mean, variance `mass * (1 - mass)`, energy equal to flow, and the stated Rayleigh quotient
+bound. -/
 theorem g1 :
     ∀ (V : Type) [Fintype V] [DecidableEq V] [Nonempty V]
       (G : SimpleGraph V) [DecidableRel G.Adj] (S : Finset V),

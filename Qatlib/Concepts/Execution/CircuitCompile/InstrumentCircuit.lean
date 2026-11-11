@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.Execution.KrausRefinement
 import Qatlib.Concepts.Execution.CircuitCompile.VariableKrausDefs
+
+/-!
+# Circuits with finite quantum instruments
+
+`InstrumentCircuit` describes finite adaptive circuits with known gates, oracle queries, and
+finite quantum instruments. Its mixed branch semantics records terminal operators, acceptance
+flags, outcomes, and resource counts, using the instrument formalism of [Watrous2018].
+
+`compileInstrumentCircuit` replaces instrument outcomes by individual Kraus outcomes, and
+`restoreInstrumentRecord` recovers the original outcome record. `instrumentCircuitFold`
+expresses linear terminal statistics recursively.
+
+## Main statements
+
+* `compileInstrumentCircuit_wellFormed`: Kraus refinement preserves circuit well-formedness.
+* `instrumentCircuit_statistic_fold`: the recursive fold equals the sum of terminal trace
+  statistics.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -19,18 +42,25 @@ namespace Qatlib.Concepts.Execution.CircuitCompile
 
 open Matrix
 
+/-- A finite adaptive circuit with Boolean halting outcomes, gate or query steps, and nodes
+carrying finite quantum instruments. -/
 inductive InstrumentCircuit (d : ℕ) where
   | halt (accepted : Bool)
   | step (action : Step (Fin d)) (next : InstrumentCircuit d)
   | instrument (s : ℕ) (I : Instrument (Fin s) d d)
       (next : Fin s → InstrumentCircuit d)
 
+/-- Requires every known gate to be unitary and every continuation of an instrument node to be
+well-formed. -/
 def instrumentCircuitWellFormed {d : ℕ} : InstrumentCircuit d → Prop
   | .halt _ => True
   | .step (.gate G) P => G ∈ Matrix.unitaryGroup (Fin d) ℂ ∧ instrumentCircuitWellFormed P
   | .step .query P => instrumentCircuitWellFormed P
   | .instrument _ _ next => ∀ o, instrumentCircuitWellFormed (next o)
 
+/-- Enumerates terminal mixed branch traces, including unnormalized operators, outcomes, and
+resource counts. Each instrument node contributes two gates and one measurement to each
+descendant trace. -/
 noncomputable def instrumentCircuitMixedTraces {d : ℕ} (O : Operator d) :
     InstrumentCircuit d → Operator d → List (MixedBranchTrace d)
   | .halt b, rho => [⟨rho, b, 0, 0, 0, []⟩]
@@ -45,21 +75,27 @@ noncomputable def instrumentCircuitMixedTraces {d : ℕ} (O : Operator d) :
         (instrumentCircuitMixedTraces O (next o) (I.branch o rho)).map fun t =>
           {t with gates := t.gates + 2, measurements := t.measurements + 1, outcomes := (s, o.val) :: t.outcomes}).flatten
 
+/-- The sum of mixed branch masses whose acceptance flags and outcome records satisfy `event`. -/
 noncomputable def instrumentCircuitEventMass {d : ℕ} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d)
     (event : Bool → List (ℕ × ℕ) → Bool) : ℝ :=
   ((instrumentCircuitMixedTraces O P rho).map fun t =>
     if event t.accepted t.outcomes then mixedMass t else 0).sum
 
+/-- The sum of terminal query counts weighted by their mixed branch masses. -/
 noncomputable def instrumentCircuitExpectedQueries {d : ℕ} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d) : ℝ :=
   ((instrumentCircuitMixedTraces O P rho).map fun t => mixedMass t * t.queries).sum
 
+/-- Identifies a flat Kraus outcome index with an original instrument outcome and a pair of
+matrix indices. -/
 def instrumentFineEquiv (d s : ℕ) :
     Fin (s * (d * d)) ≃ Fin s × (Fin d × Fin d) :=
   finProdFinEquiv.symm.trans
     (Equiv.prodCongr (Equiv.refl (Fin s)) finProdFinEquiv.symm)
 
+/-- Replaces each instrument node by its chosen Kraus refinement, retaining the continuation
+selected by the original outcome. -/
 noncomputable def compileInstrumentCircuit {d : ℕ} :
     InstrumentCircuit d → VariableKrausCircuit d
   | .halt b => .halt b
@@ -69,6 +105,8 @@ noncomputable def compileInstrumentCircuit {d : ℕ} :
         (fun a => (Qatlib.Concepts.Execution.KrausRefinement.Instrument.krausFamily I) (instrumentFineEquiv d s a))
         (fun a => compileInstrumentCircuit (next (instrumentFineEquiv d s a).1))
 
+/-- Recovers the original instrument outcome record from the fine Kraus indices along a compiled
+execution. -/
 def restoreInstrumentRecord {d : ℕ} :
     InstrumentCircuit d → List (ℕ × ℕ) → List (ℕ × ℕ)
   | .halt _, record => record
@@ -80,6 +118,8 @@ def restoreInstrumentRecord {d : ℕ} :
         (s, o.val) :: restoreInstrumentRecord (next o) rest
       else []
 
+/-- Compiling a well-formed instrument circuit produces a well-formed variable-outcome Kraus
+circuit. -/
 theorem compileInstrumentCircuit_wellFormed {d : ℕ} (P : InstrumentCircuit d)
     (hP : instrumentCircuitWellFormed P) :
     variableKrausWellFormed (compileInstrumentCircuit P) := by
@@ -97,9 +137,13 @@ theorem compileInstrumentCircuit_wellFormed {d : ℕ} (P : InstrumentCircuit d)
       · intro a
         exact ih (instrumentFineEquiv d s a).1 (hP _)
 
+/-- A complex linear functional of the terminal operator, indexed by acceptance, query, gate and
+measurement counts, and the outcome record. -/
 abbrev InstrumentPayoff (d : ℕ) :=
   Bool → ℕ → ℕ → ℕ → List (ℕ × ℕ) → (Operator d →ₗ[ℂ] ℂ)
 
+/-- Recursively evaluates a terminal linear payoff by composing with branch maps and summing
+over instrument outcomes. -/
 noncomputable def instrumentCircuitFold {d : ℕ} (O : Operator d) :
     InstrumentCircuit d → InstrumentPayoff d → (Operator d →ₗ[ℂ] ℂ)
   | .halt b, F => F b 0 0 0 []
@@ -114,6 +158,8 @@ noncomputable def instrumentCircuitFold {d : ℕ} (O : Operator d) :
         (instrumentCircuitFold O (next o)
           (fun b q g m rec => F b q (g+2) (m+1) ((s,o.val)::rec))).comp (I.branch o)
 
+/-- The sum of a linear payoff over terminal mixed branch traces equals its recursively
+evaluated circuit fold. -/
 theorem instrumentCircuit_statistic_fold {d : ℕ} (O : Operator d)
     (P : InstrumentCircuit d) (rho : Operator d) (F : InstrumentPayoff d) :
     ((instrumentCircuitMixedTraces O P rho).map fun t =>

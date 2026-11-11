@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLinearODE17.EndToEnd.LinearDifferentialEquationsDefs
+
+/-!
+# Resource and finite-digit endpoint checks
+
+This module verifies the source-access, amplification, and finite-digit ledgers used in the
+end-to-end ODE construction associated with [BerryEtAl2017ODE]. It proves the explicit count
+formulas and their monotonicity, then shows that dyadic truncation has signed error strictly
+below `finiteDigitErrorBudget`.
+
+The final endpoint checks package elementary factorial inequalities supporting the
+order-dependent estimates. Each endpoint bundles the stated arithmetic and representation
+properties.
+
+## Main statements
+
+* `clause18_endpoint`: Source-access count formulas and monotonicity.
+* `clause19_endpoint`: Amplified query monotonicity and inclusion of the inverse query term.
+* `clause20_endpoint`: Finite-digit counts, magnitude properties, and signed error bound.
+* `clause21_endpoint`: The auxiliary factorial inequalities.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -15,6 +40,8 @@ namespace Qatlib.Papers.QLinearODE17.EndToEnd
 open Qatlib.Papers.QLinearODE17.EndToEnd
 set_option warningAsError false
 
+/-- The source-access ledger records (m + 1)ρ controlled preparations, m + 1 oracle calls, and
+the supplied classical-bit and workspace counts. -/
 theorem clause18_source_access_ledger (m ρ bits workspace : ℕ) :
     (sourceAccessLedger m ρ bits workspace).controlledPreparations = (m + 1) * ρ ∧
       (sourceAccessLedger m ρ bits workspace).oracleCalls = m + 1 ∧
@@ -22,12 +49,16 @@ theorem clause18_source_access_ledger (m ρ bits workspace : ℕ) :
       (sourceAccessLedger m ρ bits workspace).peakWorkspace = workspace := by
   exact ⟨rfl, rfl, rfl, rfl⟩
 
+/-- The controlled-preparation count is monotone in both the number of steps and the repetition
+parameter. -/
 theorem clause18_source_access_ledger_mono (m m' ρ ρ' : ℕ) (hm : m ≤ m') (hρ : ρ ≤ ρ') :
     (sourceAccessLedger m ρ 0 0).controlledPreparations ≤
       (sourceAccessLedger m' ρ' 0 0).controlledPreparations := by
   simp only [sourceAccessLedger, SourceAccessLedger.controlledPreparations]
   exact Nat.mul_le_mul (Nat.succ_le_succ hm) hρ
 
+/-- The source-access endpoint combines the controlled-preparation and oracle-count identities
+with monotonicity of the controlled-preparation count. -/
 theorem clause18_endpoint :
     (∀ m ρ bits workspace : ℕ,
       (sourceAccessLedger m ρ bits workspace).controlledPreparations = (m + 1) * ρ ∧
@@ -38,17 +69,22 @@ theorem clause18_endpoint :
   refine ⟨fun m ρ bits workspace => ⟨rfl, rfl⟩, fun m m' ρ ρ' hm hρ => ?_⟩
   exact clause18_source_access_ledger_mono m m' ρ ρ' hm hρ
 
+/-- For fixed construction parameters, increasing the repetition count cannot decrease the
+amplified query ledger. -/
 theorem clause19_amplified_query_count (pars : Section7Parameters) (s nq r r' : ℕ) (hr : r ≤ r') :
     amplifiedQueryCount r (eq112QueryCount pars s nq) ≤
       amplifiedQueryCount r' (eq112QueryCount pars s nq) := by
   simp only [amplifiedQueryCount]
   exact Nat.mul_le_mul_right _ hr
 
+/-- The query ledger `eq112QueryCount` is at least its inverse-query term 2nq - 1. -/
 theorem clause19_query_count_charges_inverse (pars : Section7Parameters) (s nq : ℕ) :
     2 * nq - 1 ≤ eq112QueryCount pars s nq := by
   simp only [eq112QueryCount]
   exact Nat.le_add_right _ _
 
+/-- The amplification endpoint combines monotonicity in the repetition count with inclusion of
+the inverse-query term in the query ledger. -/
 theorem clause19_endpoint :
     (∀ pars : Section7Parameters, ∀ s nq r r' : ℕ, r ≤ r' →
       amplifiedQueryCount r (eq112QueryCount pars s nq) ≤
@@ -58,16 +94,20 @@ theorem clause19_endpoint :
   refine ⟨fun pars s nq r r' hr => clause19_amplified_query_count pars s nq r r' hr,
     fun pars s nq => clause19_query_count_charges_inverse pars s nq⟩
 
+/-- The rounded finite-digit backend has defined bit count `bits + 1` and defined gate count
+`bits`. -/
 theorem clause20_finite_digit_backend_counts (x : ℝ) (bits : ℕ) :
     finiteDigitBitCount (roundFiniteDigit x bits) = bits + 1 ∧
       finiteDigitGateCount (roundFiniteDigit x bits) = bits := by
   exact ⟨rfl, rfl⟩
 
+/-- The dyadic truncation of a real magnitude is nonnegative. -/
 theorem clause20_dyadic_magnitude_nonneg (x : ℝ) (bits : ℕ) :
     0 ≤ dyadicMagnitude x bits := by
   simp only [dyadicMagnitude]
   exact div_nonneg (Nat.cast_nonneg (Nat.floor (|x| * 2 ^ bits))) (by positivity)
 
+/-- The dyadic truncation magnitude is at most the original absolute value. -/
 theorem clause20_dyadic_magnitude_le (x : ℝ) (bits : ℕ) :
     dyadicMagnitude x bits ≤ |x| := by
   have hle : (Nat.floor (|x| * 2 ^ bits) : ℝ) ≤ |x| * 2 ^ bits :=
@@ -76,6 +116,7 @@ theorem clause20_dyadic_magnitude_le (x : ℝ) (bits : ℕ) :
   rw [div_le_iff₀ (by positivity : (0:ℝ) < 2 ^ bits)]
   exact hle
 
+/-- The magnitude lost by dyadic truncation is strictly less than `finiteDigitErrorBudget bits`. -/
 theorem clause20_dyadic_error_bound (x : ℝ) (bits : ℕ) :
     |x| - dyadicMagnitude x bits < finiteDigitErrorBudget bits := by
   have hs : (0:ℝ) < 2 ^ bits := by positivity
@@ -86,9 +127,12 @@ theorem clause20_dyadic_error_bound (x : ℝ) (bits : ℕ) :
     div_mul_cancel₀ 1 (by simpa using! hs.ne')]
   linarith
 
+/-- The sign field of the rounded finite digit is the decision value of `x < 0`. -/
 theorem clause20_finite_digit_sign (x : ℝ) (bits : ℕ) :
     (roundFiniteDigit x bits).sign = decide (x < 0) := rfl
 
+/-- The rounded finite-digit value is its dyadic magnitude multiplied by -1 for negative `x` and
+by 1 otherwise. -/
 theorem clause20_finite_digit_value_eq (x : ℝ) (bits : ℕ) :
     (roundFiniteDigit x bits).value =
       (if x < 0 then -1 else 1) * dyadicMagnitude x bits := by
@@ -114,6 +158,7 @@ theorem clause20_finite_digit_value_eq (x : ℝ) (bits : ℕ) :
       simp only [roundFiniteDigit]
     refine hval.trans (by rw [dyadicMagnitude, if_neg hge, mul_div_assoc])
 
+/-- The absolute value of a rounded finite digit equals its dyadic magnitude. -/
 theorem clause20_finite_digit_value_abs (x : ℝ) (bits : ℕ) :
     |(roundFiniteDigit x bits).value| = dyadicMagnitude x bits := by
   have hvm := clause20_finite_digit_value_eq x bits
@@ -125,6 +170,8 @@ theorem clause20_finite_digit_value_abs (x : ℝ) (bits : ℕ) :
       abs_of_nonneg (clause20_dyadic_magnitude_nonneg x bits)]
     ring
 
+/-- The absolute signed error of the rounded finite digit is strictly less than
+`finiteDigitErrorBudget bits`. -/
 theorem clause20_finite_digit_signed_error (x : ℝ) (bits : ℕ) :
     |x - (roundFiniteDigit x bits).value| < finiteDigitErrorBudget bits := by
   have herr := clause20_dyadic_error_bound x bits
@@ -152,6 +199,8 @@ theorem clause20_finite_digit_signed_error (x : ℝ) (bits : ℕ) :
     rw [h1] at herr
     linarith
 
+/-- The finite-digit endpoint packages the count identities, the nonnegative magnitude bounded
+by |x|, and the magnitude and signed truncation errors below the error budget. -/
 theorem clause20_endpoint :
     (∀ x : ℝ, ∀ bits : ℕ,
       finiteDigitBitCount (roundFiniteDigit x bits) = bits + 1 ∧
@@ -175,6 +224,7 @@ theorem clause20_endpoint :
   · intro x bits
     exact clause20_finite_digit_signed_error x bits
 
+/-- For natural k and b, the real quotient b!/(k + 1)! is at most b!. -/
 theorem clause21_small_order_uniform (k b : ℕ) :
     (Nat.factorial b : ℝ) / (Nat.factorial (k + 1) : ℝ) ≤ (Nat.factorial b : ℝ) := by
   rw [div_le_iff₀ (by positivity)]
@@ -183,6 +233,7 @@ theorem clause21_small_order_uniform (k b : ℕ) :
   have hfacb : (0:ℝ) ≤ (Nat.factorial b : ℝ) := Nat.cast_nonneg _
   nlinarith [mul_le_mul_of_nonneg_left hF1' hfacb]
 
+/-- For natural k and b, the real product b!(k + 1)! is at most b!(k + 2)!. -/
 theorem clause21_small_order_mono (k b : ℕ) :
     (Nat.factorial b : ℝ) * (Nat.factorial (k + 1) : ℝ)
       ≤ (Nat.factorial b : ℝ) * (Nat.factorial (k + 2) : ℝ) := by
@@ -201,6 +252,8 @@ theorem clause21_small_order_mono (k b : ℕ) :
     mul_le_mul_of_nonneg_left hinner (Nat.cast_nonneg (Nat.factorial b))
   nlinarith [hmul]
 
+/-- The small-order endpoint combines the factorial quotient bound with monotonicity of the
+stated factorial product. -/
 theorem clause21_endpoint :
     (∀ k b : ℕ,
       (Nat.factorial b : ℝ) / (Nat.factorial (k + 1) : ℝ) ≤ (Nat.factorial b : ℝ)) ∧

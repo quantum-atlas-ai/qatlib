@@ -9,6 +9,31 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Chord.TangentBound
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.RegularityConditions
 import Mathlib.Analysis.Calculus.Deriv.Basic
+
+/-!
+# Flatness forces tangent alignment
+
+Shows that a flatness direction is collinear with an existing nonzero one-sided derivative. The
+resulting `FlatOfOrder.tangentDeviation_isLittleO_right` and left-hand counterpart control
+transverse displacement relative to the actual tangent.
+
+These geometric estimates support the treatment of contour crossings in the analysis associated
+with [WangEtAl2026].
+
+## Main statements
+
+* `FlatOfOrder.tangentDeviation_isLittleO_right`: Order-`n` flatness with `n ≥ 1` controls the
+  right-hand tangent deviation by little-o of the `n`th power of the chord length, for a nonzero
+  right derivative.
+* `FlatOfOrder.tangentDeviation_isLittleO_left`: Order-`n` flatness with `n ≥ 1` controls the
+  left-hand tangent deviation by little-o of the `n`th power of the chord length, for a nonzero
+  left derivative.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -21,6 +46,8 @@ namespace TauCeti.Contour
 
 open Asymptotics Filter Set Topology
 
+/-- For a curve with a right derivative and `n ≥ 1`, the `n`th power of its chord length is
+eventually bounded by a positive constant times the parameter displacement. -/
 private theorem eventually_norm_sub_pow_le_of_hasDerivWithinAt {γ : ℝ → ℂ} {t₀ : ℝ} {L : ℂ} {n : ℕ}
     (hn : 1 ≤ n) (h_deriv : HasDerivWithinAt γ L (Ioi t₀) t₀) :
     ∃ C : ℝ, 0 < C ∧ ∀ᶠ t in 𝓝[>] t₀, ‖γ t - γ t₀‖ ^ n ≤ C * (t - t₀) := by
@@ -39,6 +66,8 @@ private theorem eventually_norm_sub_pow_le_of_hasDerivWithinAt {γ : ℝ → ℂ
         gcongr
         exact pow_le_of_le_one ht'.le hs (by omega : n ≠ 0)
 
+/-- Bounds the transverse component of a candidate tangent times the positive parameter
+displacement by the curve's transverse displacement and linearization error. -/
 private theorem abs_im_mul_conj_div_mul_le_of_sub_smul {γ : ℝ → ℂ} {t₀ : ℝ} {v L : ℂ} {t : ℝ}
     (hv : v ≠ 0) (ht' : 0 < t - t₀) :
     |(L * starRingEnd ℂ v).im| / ‖v‖ * (t - t₀) ≤
@@ -56,6 +85,8 @@ private theorem abs_im_mul_conj_div_mul_le_of_sub_smul {γ : ℝ → ℂ} {t₀ 
   gcongr
   exact norm_tangentDeviation_le _ _
 
+/-- A right-hand flatness estimate of positive order bounds the normalized transverse component
+of the derivative by every positive `ε`. -/
 private theorem abs_im_mul_conj_div_le_of_isLittleO {γ : ℝ → ℂ} {t₀ : ℝ} {v L : ℂ} {n : ℕ}
     (hv : v ≠ 0) (hn : 1 ≤ n) (h_dev : (fun t => |((γ t - γ t₀) * star v).im| / ‖v‖) =o[𝓝[>] t₀]
       fun t => ‖γ t - γ t₀‖ ^ n)
@@ -90,6 +121,8 @@ private theorem abs_im_mul_conj_div_le_of_isLittleO {γ : ℝ → ℂ} {t₀ : �
   obtain ⟨t, hct, ht⟩ := (h_all.and self_mem_nhdsWithin).exists
   exact le_of_mul_le_mul_right hct (sub_pos.mpr ht)
 
+/-- A right derivative is collinear with any nonzero direction satisfying the stated right-hand
+flatness estimate of positive order. -/
 private theorem im_mul_conj_eq_zero_of_flat_right {γ : ℝ → ℂ} {t₀ : ℝ} {v L : ℂ} {n : ℕ}
     (hv : v ≠ 0) (hn : 1 ≤ n) (h_dev : (fun t => |((γ t - γ t₀) * star v).im| / ‖v‖) =o[𝓝[>] t₀]
       fun t => ‖γ t - γ t₀‖ ^ n)
@@ -105,6 +138,8 @@ private theorem im_mul_conj_eq_zero_of_flat_right {γ : ℝ → ℂ} {t₀ : ℝ
     exact abs_eq_zero.mp ((div_eq_zero_iff.mp h').resolve_right hv_pos.ne')
   · exact absurd (hc_le (c / 2) (by linarith)) (by linarith)
 
+/-- A left derivative is collinear with any nonzero direction satisfying the stated left-hand
+flatness estimate of positive order. -/
 private theorem im_mul_conj_eq_zero_of_flat_left {γ : ℝ → ℂ} {t₀ : ℝ} {v L : ℂ} {n : ℕ}
     (hv : v ≠ 0) (hn : 1 ≤ n) (h_dev : (fun t => |((γ t - γ t₀) * star v).im| / ‖v‖) =o[𝓝[<] t₀]
       fun t => ‖γ t - γ t₀‖ ^ n)
@@ -139,6 +174,8 @@ private theorem im_mul_conj_eq_zero_of_flat_left {γ : ℝ → ℂ} {t₀ : ℝ}
   rw [neg_mul, Complex.neg_im, neg_eq_zero] at h_im
   exact h_im
 
+/-- Transfers a transverse little-o estimate from a nonzero direction to a collinear nonzero
+tangent direction. -/
 private theorem tangentDeviation_isLittleO_of_im_mul_conj_eq_zero {γ : ℝ → ℂ} {t₀ : ℝ}
     {v L : ℂ} {n : ℕ} {l : Filter ℝ} (hv : v ≠ 0) (hL : L ≠ 0) (h_im : (L * starRingEnd ℂ v).im = 0)
     (h_dev : (fun t => |((γ t - γ t₀) * star v).im| / ‖v‖) =o[l]
@@ -153,6 +190,8 @@ private theorem tangentDeviation_isLittleO_of_im_mul_conj_eq_zero {γ : ℝ → 
       Complex.star_def]
   exact h_dev.congr' (Filter.Eventually.of_forall fun t => (hkey t).symm) Filter.EventuallyEq.rfl
 
+/-- Order-`n` flatness with `n ≥ 1` controls the right-hand tangent deviation by little-o of the
+`n`th power of the chord length, for a nonzero right derivative. -/
 theorem FlatOfOrder.tangentDeviation_isLittleO_right {γ : ℝ → ℂ} {t₀ : ℝ} {L : ℂ} {n : ℕ}
     (hflat : FlatOfOrder γ t₀ n) (hn : 1 ≤ n) (hL : L ≠ 0)
     (h_deriv : HasDerivWithinAt γ L (Ioi t₀) t₀) :
@@ -162,6 +201,8 @@ theorem FlatOfOrder.tangentDeviation_isLittleO_right {γ : ℝ → ℂ} {t₀ : 
   exact tangentDeviation_isLittleO_of_im_mul_conj_eq_zero hvp hL
     (im_mul_conj_eq_zero_of_flat_right hvp hn hr h_deriv) hr
 
+/-- Order-`n` flatness with `n ≥ 1` controls the left-hand tangent deviation by little-o of the
+`n`th power of the chord length, for a nonzero left derivative. -/
 theorem FlatOfOrder.tangentDeviation_isLittleO_left {γ : ℝ → ℂ} {t₀ : ℝ} {L : ℂ} {n : ℕ}
     (hflat : FlatOfOrder γ t₀ n) (hn : 1 ≤ n) (hL : L ≠ 0)
     (h_deriv : HasDerivWithinAt γ L (Iio t₀) t₀) :

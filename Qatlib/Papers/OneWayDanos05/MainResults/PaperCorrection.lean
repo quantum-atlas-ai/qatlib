@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OneWayDanos05.MainResults.FlowRewrite
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+
+/-!
+# Outcome-dependent corrections in the paper convention
+
+The operator `paperCorrection` applies X when an active predecessor flows to the wire and Z
+according to the parity of `zContributors`. The module proves its Pauli form and causal
+dependence, then obtains both properties from output-masked graph flow witnesses. These
+definitions express the correction pattern of [DanosKashefi2006].
+
+## Main statements
+
+* `paperCorrection_pauliWire`: Every paper-convention correction is a Pauli wire operator.
+* `paperCorrection_causal`: If flow successors and their other neighbors are later in `prec`,
+  the paper-convention corrections depend causally on outcomes.
+* `paperFlowCorrection_pauli_causal`: An MBQC flow possesses strict-order witnesses for which
+  the output-masked paper corrections are Pauli wire operators and are causal.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,16 +43,21 @@ namespace Qatlib.Papers.OneWayDanos05.MainResults
 
 variable {n : ℕ}
 
+/-- The true-outcome vertices whose flow successor is adjacent to `u`, excluding `u` itself as a
+contributor. -/
 def zContributors (G : MbqcGraph n) (f : Fin n → Option (Fin n)) (s : Fin n → Bool)
     (u : Fin n) : Finset (Fin n) :=
   Finset.univ.filter (fun v => s v = true ∧
     ∃ w : Fin n, f v = some w ∧ u ≠ v ∧ mbqcAdj G w u)
 
+/-- The product of an X correction triggered by an active flow predecessor and a Z correction
+triggered by odd contributor parity. -/
 noncomputable def paperCorrection (G : MbqcGraph n) (f : Fin n → Option (Fin n))
     (s : Fin n → Bool) (u : Fin n) : Operator 2 :=
   (if ∃ v : Fin n, s v = true ∧ f v = some u then pauliX else (1 : Operator 2)) *
   (if Odd (zContributors G f s u).card then pauliZ else (1 : Operator 2))
 
+/-- Every paper-convention correction is a Pauli wire operator [DanosKashefi2006]. -/
 theorem paperCorrection_pauliWire (G : MbqcGraph n) (f : Fin n → Option (Fin n))
     (s : Fin n → Bool) (u : Fin n) :
     MbqcPauliWire (paperCorrection G f s u) := by
@@ -49,6 +76,8 @@ theorem paperCorrection_pauliWire (G : MbqcGraph n) (f : Fin n → Option (Fin n
     · rw [if_neg hz]
       exact Or.inl rfl
 
+/-- If flow successors and their other neighbors are later in `prec`, the paper-convention
+corrections depend causally on outcomes [DanosKashefi2006]. -/
 theorem paperCorrection_causal (G : MbqcGraph n) (f : Fin n → Option (Fin n))
     (prec : Fin n → Fin n → Prop)
     (hF2 : ∀ v u : Fin n, f v = some u → prec v u)
@@ -75,6 +104,8 @@ theorem paperCorrection_causal (G : MbqcGraph n) (f : Fin n → Option (Fin n))
       exact ⟨by rw [hagree v hprec]; exact hv, w, hfw, hne, hadj⟩
   rw [if_congr hx rfl rfl, hset]
 
+/-- An MBQC flow possesses strict-order witnesses for which the output-masked paper corrections
+are Pauli wire operators and are causal [DanosKashefi2006]. -/
 theorem paperFlowCorrection_pauli_causal {n : ℕ} (G : MbqcGraph n)
     (I O : Finset (Fin n)) (h : MbqcHasFlow G I O) :
     ∃ (f : Fin n → Option (Fin n)) (prec : Fin n → Fin n → Prop),

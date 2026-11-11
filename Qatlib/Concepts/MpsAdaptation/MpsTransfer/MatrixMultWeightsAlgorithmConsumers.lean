@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixWeights.StoppingRule
 
+/-!
+# Two-level matrix multiplicative weights examples
+
+This module evaluates matrix multiplicative weights for the two constraints given by Pauli Z and
+the identity. A constant choice of the identity constraint gives scalar exponential weights and
+the maximally mixed state at every round. The examples exercise stopping branches in the quantum
+semidefinite programming setting of [BrandaoSvore2017].
+
+`mmwSdpTwoLevelLargerInstance` uses thresholds 0 and 1/2 to exhibit persistent violation and
+infeasibility. `mmwSdpTwoLevelCompletionInstance` uses unit thresholds to obtain a
+density-operator average satisfying the stated approximate constraint bounds.
+
+## Main statements
+
+* `mmwSdpTwoLevelLargerInstance`: an explicit two-level instance of the infeasibility branch.
+* `mmwSdpTwoLevelCompletionInstance`: an explicit two-level instance of the completion branch.
+
+## References
+
+* [Brandao and Svore, 2017, Algorithm 3][BrandaoSvore2017]
+-/
+
 set_option autoImplicit false
 set_option maxRecDepth 4096
 set_option backward.isDefEq.respectTransparency false
@@ -24,9 +46,13 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The pair of two-level constraint matrices consisting of Pauli Z at index 0 and the identity
+at index 1. -/
 private def mmwTwoConstraints : Fin 2 → Operator 2 := fun i => if i=0 then !![1,0;0,-1] else 1
+/-- The maximally mixed two-level density matrix, equal to one half of the identity. -/
 private def mmwTwoDensity : Operator 2 := (2 : ℝ)⁻¹ • 1
 
+/-- Each of the two constraint matrices is Hermitian and has operator norm at most 1. -/
 private theorem mmw_two_constraints_bound (i : Fin 2) :
     (mmwTwoConstraints i).IsHermitian ∧ ‖mmwTwoConstraints i‖ ≤ 1 := by
   have hZ : (!![1,0;0,-1] : Operator 2).IsHermitian := by
@@ -43,6 +69,8 @@ private theorem mmw_two_constraints_bound (i : Fin 2) :
   · exact ⟨hZ, hn⟩
   · exact ⟨Matrix.isHermitian_one, l2_norm_one_le⟩
 
+/-- For the constant identity loss sequence, the multiplicative weight matrix at time `t` is
+`Real.exp (-η * t)` times the identity. -/
 private theorem mmw_two_weight (η : ℝ) (t : ℕ) :
     mmwWeight 2 (fun _ => (1 : Operator 2)) η t = Real.exp (-η*(t : ℝ)) • 1 := by
   have hs : (∑ _s ∈ Finset.range t, (1 : Operator 2)) = (t : ℝ) • (1 : Operator 2) := by
@@ -51,6 +79,8 @@ private theorem mmw_two_weight (η : ℝ) (t : ℕ) :
   simpa only [zero_add, NormedSpace.exp_zero] using!
     mmw_exp_scalar_shift 2 0 (-η*(t : ℝ))
 
+/-- For the constant identity loss sequence, every normalized multiplicative weights state is
+`mmwTwoDensity`. -/
 private theorem mmw_two_state (η : ℝ) (t : ℕ) :
     mmwState 2 (fun _ => (1 : Operator 2)) η t = mmwTwoDensity := by
   rw [mmwState, mmw_two_weight]
@@ -65,17 +95,25 @@ private theorem mmw_two_state (η : ℝ) (t : ℕ) :
   have he : Real.exp (-η*(t : ℝ)) ≠ 0 := (Real.exp_pos _).ne'
   field_simp
 
+/-- For a positive number of rounds and the constant identity loss sequence, the average state
+is `mmwTwoDensity`. -/
 private theorem mmw_two_average (η : ℝ) (T : ℕ) (hT : 0 < T) :
     mmwAverage 2 T (fun _ => (1 : Operator 2)) η = mmwTwoDensity := by
   have hTc : (T : ℂ) ≠ 0 := by exact_mod_cast hT.ne'
   simp only [mmwAverage, mmw_two_state, Finset.sum_const, Finset.card_range]
   rw [← Nat.cast_smul_eq_nsmul ℂ T, smul_smul, inv_mul_cancel₀ hTc, one_smul]
 
+/-- Against the maximally mixed two-level state, the real constraint trace is 0 for Pauli Z and
+1 for the identity. -/
 private theorem mmw_two_traces (i : Fin 2) :
     (Matrix.trace (mmwTwoConstraints i*mmwTwoDensity)).re = if i=0 then 0 else 1 := by
   fin_cases i <;> norm_num [mmwTwoConstraints, mmwTwoDensity, Matrix.mul_smul, Matrix.trace_smul,
     Matrix.trace, Fin.sum_univ_two, Complex.smul_re, smul_eq_mul]
 
+/-- For `0 < η ≤ 1` and `η < 1/2`, the specified two-constraint instance has the explicit
+exponential weights, constant maximally mixed states, exact selection, and persistent
+violation through the stopping horizon. Every density operator violates a constraint; this
+is a concrete consumer of the SDP stopping framework associated with [BrandaoSvore2017]. -/
 theorem mmwSdpTwoLevelLargerInstance :
 (∀ (η : ℝ), 0 < η → η ≤ 1 → η < 1/2 →
     let C : Fin 2 → Operator 2 := fun i => if i = 0 then !![1, 0; 0, -1] else 1
@@ -119,6 +157,9 @@ theorem mmwSdpTwoLevelLargerInstance :
       mmw_two_constraints_bound hsel hviol σ hσ
     exact hb.2
 
+/-- For `0 < η ≤ 1` and `η < ε`, the specified two-constraint instance with unit thresholds
+produces a density-operator average whose real constraint traces are at most `1 + ε`. This
+is a concrete completion-branch consumer in the SDP setting of [BrandaoSvore2017]. -/
 theorem mmwSdpTwoLevelCompletionInstance :
 (∀ (η ε : ℝ), 0 < η → η ≤ 1 → η < ε →
     let C : Fin 2 → Operator 2 := fun i => if i = 0 then !![1, 0; 0, -1] else 1

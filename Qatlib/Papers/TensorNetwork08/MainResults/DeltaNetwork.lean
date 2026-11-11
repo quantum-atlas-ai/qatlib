@@ -10,6 +10,30 @@ import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Tactic
+
+/-!
+# Consistent difference labels and delta-network sums
+
+Encodes tree-edge labels and cycle constraints over `ZMod q` for the difference-model network in
+[AradLandau2010]. The map `extend` determines each non-tree label from the tree labels, and
+`consistentEquiv` identifies consistent full labelings with arbitrary tree labelings.
+
+The constrained sum `deltaNetworkValue` reduces to a sum over tree labels and hence to a sum
+over all consistent labels. A final scalar identity records the normalization by a nonzero
+color-count factor.
+
+## Main statements
+
+* `consistentEquiv`: identifies consistent full labelings with tree labelings.
+* `deltaNetworkValue_eq_treeSum`: eliminates the constrained cycle-label sum.
+* `lemma5_8_network_value_eq_consistent_sum`: expresses the network value as a consistent-label
+  sum.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,21 +48,28 @@ namespace Qatlib.Papers.TensorNetwork08.MainResults.DeltaNetwork
 
 variable {Edge : Type*} [Fintype Edge]
 
+/-- The subtype of edges marked true by `isTree`. -/
 abbrev TreeEdge (isTree : Edge → Bool) : Type _ := {e : Edge // isTree e = true}
 
+/-- The subtype of edges not marked true by `isTree`. -/
 abbrev CycleEdge (isTree : Edge → Bool) : Type _ := {e : Edge // ¬ isTree e = true}
 
+/-- The condition that each non-tree label plus the prescribed integer linear combination of
+tree labels vanishes in `ZMod q`. -/
 def IsConsistent (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge → Edge → ℤ)
     (δ : Edge → ZMod q) : Prop :=
   ∀ e, ¬ isTree e = true →
     δ e + ∑ f : TreeEdge isTree, (cycleCoeff e f.val : ZMod q) * δ f.val = 0
 
+/-- Extends tree-edge labels by assigning each non-tree edge the negative prescribed linear
+combination of tree labels. -/
 def extend (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge → Edge → ℤ)
     (δtr : TreeEdge isTree → ZMod q) : Edge → ZMod q :=
   fun e =>
     if h : isTree e = true then δtr ⟨e, h⟩
     else -∑ f : TreeEdge isTree, (cycleCoeff e f.val : ZMod q) * δtr f
 
+/-- Every labeling constructed by `extend` satisfies the specified cycle consistency equations. -/
 theorem extend_consistent (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge → Edge → ℤ)
     (δtr : TreeEdge isTree → ZMod q) :
     IsConsistent q isTree cycleCoeff (extend q isTree cycleCoeff δtr) := by
@@ -56,6 +87,7 @@ theorem extend_consistent (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge 
   rw [hval, hsum]
   exact neg_add_cancel _
 
+/-- The extension map from tree-edge labelings to all-edge labelings is injective. -/
 theorem extend_injective (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge → Edge → ℤ) :
     Function.Injective (extend q isTree cycleCoeff) := by
   intro a b hab
@@ -64,6 +96,8 @@ theorem extend_injective (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge �
   simp only [extend, dif_pos f.property] at h
   simpa using h
 
+/-- Restricting a consistent labeling to tree edges and extending it recovers the original
+labeling. -/
 theorem eq_extend_restrict (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge → Edge → ℤ)
     (δ : Edge → ZMod q) (hδ : IsConsistent q isTree cycleCoeff δ) :
     extend q isTree cycleCoeff (fun f => δ f.val) = δ := by
@@ -79,6 +113,8 @@ theorem eq_extend_restrict (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge
     unfold extend
     rw [dif_neg he, hsum, neg_neg]
 
+/-- The equivalence between all-edge labelings satisfying the cycle equations and arbitrary
+tree-edge labelings. See [AradLandau2010]. -/
 def consistentEquiv (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge → Edge → ℤ) :
     {δ : Edge → ZMod q // IsConsistent q isTree cycleCoeff δ} ≃
       (TreeEdge isTree → ZMod q) where
@@ -93,6 +129,8 @@ def consistentEquiv (q : ℕ) (isTree : Edge → Bool) (cycleCoeff : Edge → Ed
     unfold extend
     rw [dif_pos f.property]
 
+/-- Reindexes the weighted sum over consistent full labelings as the weighted sum over their
+tree-label extensions. -/
 theorem sum_consistent_eq_sum_tree (q : ℕ) [NeZero q] (isTree : Edge → Bool)
     (cycleCoeff : Edge → Edge → ℤ) (w : Edge → ZMod q → ℂ) :
     (∑ δ : {δ : Edge → ZMod q // IsConsistent q isTree cycleCoeff δ},
@@ -110,6 +148,8 @@ theorem sum_consistent_eq_sum_tree (q : ℕ) [NeZero q] (isTree : Edge → Bool)
   intro δtr _
   rfl
 
+/-- The product of edge weights over tree and non-tree subtypes equals the product over all
+edges. -/
 theorem prod_tree_mul_cycle (q : ℕ) (isTree : Edge → Bool)
     (g : Edge → ZMod q) (w : Edge → ZMod q → ℂ) :
     (∏ f : TreeEdge isTree, w f.val (g f.val)) *
@@ -128,6 +168,8 @@ theorem prod_tree_mul_cycle (q : ℕ) (isTree : Edge → Bool)
   simpa using Finset.prod_filter_mul_prod_filter_not (univ : Finset Edge)
     (fun e => isTree e = true) (fun e => w e (g e))
 
+/-- The sum over tree and non-tree labelings of their edge-weight products, constrained to the
+non-tree labels prescribed by `extend`. -/
 def deltaNetworkValue (q : ℕ) [NeZero q] (isTree : Edge → Bool)
     (cycleCoeff : Edge → Edge → ℤ) (w : Edge → ZMod q → ℂ) : ℂ :=
   ∑ δtr : (TreeEdge isTree → ZMod q),
@@ -137,6 +179,8 @@ def deltaNetworkValue (q : ℕ) [NeZero q] (isTree : Edge → Bool)
         * ((∏ f : TreeEdge isTree, w f.val (δtr f)) *
             ∏ e : CycleEdge isTree, w e.val (δcyc e))
 
+/-- The constrained delta-network value equals the sum over tree labelings of the full
+edge-weight product of their extensions. See [AradLandau2010]. -/
 theorem deltaNetworkValue_eq_treeSum (q : ℕ) [NeZero q] (isTree : Edge → Bool)
     (cycleCoeff : Edge → Edge → ℤ) (w : Edge → ZMod q → ℂ) :
     deltaNetworkValue q isTree cycleCoeff w
@@ -166,6 +210,8 @@ theorem deltaNetworkValue_eq_treeSum (q : ℕ) [NeZero q] (isTree : Edge → Boo
     exact absurd (Finset.mem_univ (fun e : CycleEdge isTree =>
       extend q isTree cycleCoeff δtr e.val)) hg
 
+/-- The delta-network value equals the sum of edge-weight products over all labelings satisfying
+the specified cycle constraints. See [AradLandau2010]. -/
 theorem lemma5_8_network_value_eq_consistent_sum (q : ℕ) [NeZero q]
     (isTree : Edge → Bool) (cycleCoeff : Edge → Edge → ℤ) (w : Edge → ZMod q → ℂ) :
     deltaNetworkValue q isTree cycleCoeff w
@@ -174,6 +220,7 @@ theorem lemma5_8_network_value_eq_consistent_sum (q : ℕ) [NeZero q]
   rw [deltaNetworkValue_eq_treeSum]
   exact (sum_consistent_eq_sum_tree q isTree cycleCoeff w).symm
 
+/-- The sum over tree-label extensions equals the sum over all consistent edge labelings. -/
 theorem networkValue_eq_consistentSum (q : ℕ) [NeZero q] (isTree : Edge → Bool)
     (cycleCoeff : Edge → Edge → ℤ) (w : Edge → ZMod q → ℂ) :
     (∑ δtr : (TreeEdge isTree → ZMod q),
@@ -182,6 +229,7 @@ theorem networkValue_eq_consistentSum (q : ℕ) [NeZero q] (isTree : Edge → Bo
           ∏ e, w e (δ.val e) :=
   (sum_consistent_eq_sum_tree q isTree cycleCoeff w).symm
 
+/-- If `Z = qC * S` with nonzero `qC`, then `S = qC⁻¹ * Z`. -/
 theorem normalized_partition (Z S qC : ℂ) (hq : qC ≠ 0)
     (hZ : Z = qC * S) : S = qC⁻¹ * Z := by
   rw [hZ]

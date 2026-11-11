@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationGraphSteps
+
+/-!
+# Symmetric draining of candidate pairs
+
+`drainPaired` repeatedly removes a pair with common neighbor count below `τ`, together with its
+reverse when present, and records the removed pairs. The module proves a disjoint partition into
+removed and remaining pairs, preservation of symmetry, and the threshold condition once the fuel
+covers the initial pair count. For background on quantum search and amplitude amplification, see
+[BrassardEtAl2002].
+
+## Main statements
+
+* `edgePairBlock`: The elements of `S` equal to `p` or its coordinate swap.
+* `drainPaired_fixpoint`: If the fuel is at least `S.card`, each remaining pair has common
+  neighbor count at least `τ` within the remaining set.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,9 +37,12 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- The elements of `S` equal to `p` or its coordinate swap. -/
 def edgePairBlock (S : Finset (Fin n×Fin n)) (p : Fin n×Fin n) : Finset (Fin n×Fin n) :=
   S.filter fun e=>e=p ∨ e=p.swap
 
+/-- Use the given fuel to remove pairs with common neighbor count below `τ` together with their
+reverses, returning the remaining set and the list of removed pairs. -/
 def drainPaired (S : Finset (Fin n×Fin n)) (τ : ℕ) : ℕ→Finset (Fin n×Fin n)×List (Fin n×Fin n)
   | 0=>(S,[])
   | fuel+1=>
@@ -29,9 +53,11 @@ def drainPaired (S : Finset (Fin n×Fin n)) (τ : ℕ) : ℕ→Finset (Fin n×Fi
       let result:=drainPaired (S\D) τ fuel
       (result.1,D.toList++result.2)
 
+/-- Every pair in `edgePairBlock S p` belongs to `S`. -/
 theorem edgePairBlock_subset (S : Finset (Fin n×Fin n)) (p : Fin n×Fin n) : edgePairBlock S p⊆S :=
     Finset.filter_subset _ _
 
+/-- The block containing `p` and its reverse is symmetric when `S` is symmetric. -/
 theorem edgePairBlock_symmetric (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetric S) (p : Fin n×Fin n) :
     pairSetSymmetric (edgePairBlock S p) := by
   intro a b h
@@ -41,6 +67,8 @@ theorem edgePairBlock_symmetric (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetr
   · exact Or.inr (congrArg Prod.swap he)
   · exact Or.inl (by simpa only [Prod.swap_swap] using! congrArg Prod.swap he)
 
+/-- The remaining set and the finite set of removed pairs are disjoint subsets of `S` whose
+union equals `S`. -/
 theorem drainPaired_partition (S : Finset (Fin n×Fin n)) (τ fuel : ℕ) :
     (drainPaired S τ fuel).1⊆S ∧ (drainPaired S τ fuel).2.toFinset⊆S ∧
     (drainPaired S τ fuel).1∪(drainPaired S τ fuel).2.toFinset=S ∧
@@ -78,6 +106,7 @@ theorem drainPaired_partition (S : Finset (Fin n×Fin n)) (τ fuel : ℕ) :
         · exact (Finset.mem_sdiff.mp (hleft he)).2 hd
         · exact Finset.disjoint_left.mp hdis he ht
 
+/-- Paired draining preserves symmetry of the remaining pair set for every fuel value. -/
 theorem drainPaired_symmetric (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetric S) (τ fuel : ℕ) :
     pairSetSymmetric (drainPaired S τ fuel).1 := by
   induction fuel generalizing S with
@@ -88,6 +117,8 @@ theorem drainPaired_symmetric (S : Finset (Fin n×Fin n)) (hS : pairSetSymmetric
     | none => exact hS
     | some p => exact ih _ (symmetric_sdiff hS (edgePairBlock_symmetric S hS p))
 
+/-- If the fuel is at least `S.card`, each remaining pair has common neighbor count at least `τ`
+within the remaining set. -/
 theorem drainPaired_fixpoint (S : Finset (Fin n×Fin n)) (τ fuel : ℕ) (hFuel : S.card≤fuel) :
     ∀ a b,(a,b)∈(drainPaired S τ fuel).1→τ≤tOf (drainPaired S τ fuel).1 a b := by
   induction fuel generalizing S with

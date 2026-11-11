@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.CommonNormalizationBridge
 import Qatlib.Papers.Cbmd26.Algorithms.QSVTBridge
+
+/-!
+# Indexed QSVT words and outer coefficient sums
+
+This module compiles index-dependent QSVT phases against a selected oracle.
+`indexedRealPartWord` and `indexedHermitianResponseWord` represent real-part and
+parity-dependent Hermitian responses, while `expandedIndexedResponseWord` substitutes an
+explicit implementation of the selected oracle.
+
+`outerCoefficientWord` wraps a selected circuit with LCU coefficient preparation.
+`counted_outer_lcu_encoding` combines the branch encodings with weighted normalization and error
+bounds and exact circuit costs, providing an interface for the constructions of [WangEtAl2026].
+
+## Main statements
+
+* `evaluate_indexedParallelQSVT`: identifies parallel QSVT evaluation branch by branch.
+* `expandedIndexedResponseWord_cost`: counts queries and fixed gates after oracle substitution.
+* `counted_outer_lcu_encoding`: encodes a weighted sum of blocks using an explicit selected
+  circuit.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -45,6 +70,8 @@ open Matrix
 variable {J H I : Type} [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
   [Fintype I] [DecidableEq I]
 
+/-- Evaluating the parallel QSVT compilation against `select U` gives the selected family of
+phased alternating products with the phases at each index. -/
 theorem evaluate_indexedParallelQSVT (U : J → Matrix H H ℂ)
     (P Q : Matrix H H ℂ) (base : J → ℂ) (zs : List (J → ℂ)) :
     evaluate (select U) (compileParallelQSVT P Q base zs) =
@@ -59,6 +86,8 @@ theorem evaluate_indexedParallelQSVT (U : J → Matrix H H ℂ)
     funext j
     simp [phasedAlternating, Matrix.mul_assoc]
 
+/-- The indexed real-part QSVT word, obtained by adjoining a conjugate-phase bit and reindexing
+the parallel compilation. -/
 def indexedRealPartWord (P : Matrix H H ℂ) (base : J → ℂ) (zs : List (J → ℂ)) :
     List (AdjointStep (J × (Bool × H))) :=
   reindexAdjointWord (Equiv.prodAssoc J Bool H).symm
@@ -66,6 +95,8 @@ def indexedRealPartWord (P : Matrix H H ℂ) (base : J → ℂ) (zs : List (J �
       (fun jb : J × Bool => conjugateParallelPhase (base jb.1) jb.2)
       (zs.map (fun z jb => conjugateParallelPhase (z jb.1) jb.2)))
 
+/-- The indexed real-part word evaluates to selection among the real-part QSVT matrices for the
+individual oracles and phase lists. -/
 theorem indexedRealPartWord_evaluate (U : J → Matrix H H ℂ)
     (P : Matrix H H ℂ) (base : J → ℂ) (zs : List (J → ℂ)) :
     evaluate (select (fun j => parallelOracle (J := Bool) (U j)))
@@ -90,6 +121,8 @@ theorem indexedRealPartWord_evaluate (U : J → Matrix H H ℂ)
 
 omit [Fintype J] [Fintype H] [Fintype I] [DecidableEq I] in
 
+/-- The indexed real-part word uses one query per listed phase and one more fixed gate than the
+number of listed phases. -/
 theorem indexedRealPartWord_cost (P : Matrix H H ℂ)
     (base : J → ℂ) (zs : List (J → ℂ)) :
     adjointQueryCount (indexedRealPartWord P base zs) = zs.length ∧
@@ -98,6 +131,7 @@ theorem indexedRealPartWord_cost (P : Matrix H H ℂ)
     (reindexAdjointWord_cost _ _).2, queryCount_compileParallelQSVT,
     gateCount_compileParallelQSVT]
 
+/-- An orthogonal projector and unit-modulus phases make the indexed real-part word well formed. -/
 theorem indexedRealPartWord_wellFormed {P : Matrix H H ℂ}
     (hP : IsOrthogonalProjector P) (base : J → ℂ) (hb : ∀ j, IsPhase (base j))
     (zs : List (J → ℂ)) (hzs : ∀ z ∈ zs, ∀ j, IsPhase (z j)) :
@@ -110,6 +144,8 @@ theorem indexedRealPartWord_wellFormed {P : Matrix H H ℂ}
     obtain ⟨w, hw, rfl⟩ := List.mem_map.mp hz
     cases b <;> simpa [conjugateParallelPhase, IsPhase, mul_comm] using hzs w hw j
 
+/-- The indexed Hermitian-response word using the real-part compilation for odd `d` and swapping
+forward and adjoint queries for even `d`. -/
 def indexedHermitianResponseWord (F : Matrix H I ℂ) (d : ℕ)
     (base : J → ℂ) (zs : List (J → ℂ)) :
     List (AdjointStep (J × (Bool × H))) :=
@@ -118,6 +154,8 @@ def indexedHermitianResponseWord (F : Matrix H I ℂ) (d : ℕ)
 
 omit [DecidableEq I] in
 
+/-- The indexed Hermitian-response word evaluates to selection among the corresponding
+individual Hermitian-response circuit evaluations. -/
 theorem indexedHermitianResponseWord_evaluate (U : J → Matrix H H ℂ)
     (F : Matrix H I ℂ) (d : ℕ) (base : J → ℂ) (zs : List (J → ℂ)) :
     evaluate (select (fun j => parallelOracle (J := Bool) (U j)))
@@ -132,6 +170,8 @@ theorem indexedHermitianResponseWord_evaluate (U : J → Matrix H H ℂ)
 
 omit [Fintype J] [Fintype H] [DecidableEq I] in
 
+/-- The indexed Hermitian-response word uses `zs.length` queries and `zs.length + 1` fixed
+gates. -/
 theorem indexedHermitianResponseWord_cost (F : Matrix H I ℂ) (d : ℕ)
     (base : J → ℂ) (zs : List (J → ℂ)) :
     adjointQueryCount (indexedHermitianResponseWord F d base zs) = zs.length ∧
@@ -139,6 +179,8 @@ theorem indexedHermitianResponseWord_cost (F : Matrix H I ℂ) (d : ℕ)
   unfold indexedHermitianResponseWord
   split_ifs <;> simpa using indexedRealPartWord_cost (rangeProjector F) base zs
 
+/-- An isometric frame and unit-modulus phases make the indexed Hermitian-response word well
+formed. -/
 theorem indexedHermitianResponseWord_wellFormed (F : Matrix H I ℂ) (hF : IsIsometry F)
     (d : ℕ) (base : J → ℂ) (hb : ∀ j, IsPhase (base j))
     (zs : List (J → ℂ)) (hzs : ∀ z ∈ zs, ∀ j, IsPhase (z j)) :
@@ -150,6 +192,8 @@ theorem indexedHermitianResponseWord_wellFormed (F : Matrix H I ℂ) (hF : IsIso
   · exact hw
   · exact hw.swapQueries
 
+/-- The indexed Hermitian-response word with every oracle query replaced by the padded
+implementation `body`. -/
 def expandedIndexedResponseWord (body : List (AdjointStep (J × H)))
     (F : Matrix H I ℂ) (d : ℕ) (base : J → ℂ) (zs : List (J → ℂ)) :
     List (AdjointStep (J × (Bool × H))) :=
@@ -158,6 +202,8 @@ def expandedIndexedResponseWord (body : List (AdjointStep (J × H)))
 
 omit [DecidableEq I] in
 
+/-- If `body` implements the selected family `U`, the expanded response word evaluates to
+selection among the individual Hermitian responses to `U`. -/
 theorem expandedIndexedResponseWord_evaluate (O : Matrix H H ℂ)
     (body : List (AdjointStep (J × H))) (U : J → Matrix H H ℂ)
     (he : evaluate (parallelOracle O) body = select U)
@@ -172,6 +218,8 @@ theorem expandedIndexedResponseWord_evaluate (O : Matrix H H ℂ)
 
 omit [DecidableEq I] in
 
+/-- The expanded response uses `zs.length` times the query count of `body`, and `zs.length + 1`
+plus `zs.length` times its fixed-gate count. -/
 theorem expandedIndexedResponseWord_cost (body : List (AdjointStep (J × H)))
     (F : Matrix H I ℂ) (d : ℕ) (base : J → ℂ) (zs : List (J → ℂ)) :
     adjointQueryCount (expandedIndexedResponseWord body F d base zs) =
@@ -186,6 +234,8 @@ theorem expandedIndexedResponseWord_cost (body : List (AdjointStep (J × H)))
     (indexedHermitianResponseWord_cost F d base zs).2, (insertPaddingWord_cost body).2] at hg
   exact ⟨hq, hg⟩
 
+/-- A well-formed implementation, an isometric frame, and unit-modulus phases make the expanded
+indexed-response word well formed. -/
 theorem expandedIndexedResponseWord_wellFormed (body : List (AdjointStep (J × H)))
     (hbody : WellFormedAdjointCircuit body) (F : Matrix H I ℂ) (hF : IsIsometry F)
     (d : ℕ) (base : J → ℂ) (hb : ∀ j, IsPhase (base j))
@@ -196,12 +246,16 @@ theorem expandedIndexedResponseWord_wellFormed (body : List (AdjointStep (J × H
     (insertPaddingWord_wellFormed hbody)
     (indexedHermitianResponseWord_wellFormed F hF d base hb zs hzs)
 
+/-- The circuit word wrapping `cs` with coefficient preparation, coefficient phases, and inverse
+preparation for an outer LCU. -/
 def outerCoefficientWord (c : J → ℂ) (j₀ : J)
     (cs : List (AdjointStep (J × H))) : List (AdjointStep (J × H)) :=
   [.gate (prepareRegister (I := H) (coefficientPrepare c j₀))ᴴ,
    .gate (select (phaseAbsorbed c (fun _ => (1 : Matrix H H ℂ))))] ++ cs ++
   [.gate (prepareRegister (I := H) (coefficientPrepare c j₀))]
 
+/-- If `cs` evaluates to `select U`, its coefficient wrapper evaluates to `coefficientLCUUnitary
+c U j₀`. -/
 theorem outerCoefficientWord_evaluate (c : J → ℂ) (j₀ : J)
     (O : Matrix (J × H) (J × H) ℂ) (cs : List (AdjointStep (J × H)))
     (U : J → Matrix H H ℂ) (he : evaluate O cs = select U) :
@@ -219,12 +273,15 @@ theorem outerCoefficientWord_evaluate (c : J → ℂ) (j₀ : J)
 
 omit [Fintype H] [Fintype I] [DecidableEq I] in
 
+/-- The outer coefficient wrapper preserves the query count and adds three fixed gates. -/
 theorem outerCoefficientWord_cost (c : J → ℂ) (j₀ : J)
     (cs : List (AdjointStep (J × H))) :
     adjointQueryCount (outerCoefficientWord c j₀ cs) = adjointQueryCount cs ∧
     adjointGateCount (outerCoefficientWord c j₀ cs) = adjointGateCount cs + 3 := by
   simp [outerCoefficientWord, adjointQueryCount, adjointGateCount]
 
+/-- Positive coefficient mass and a well-formed inner word make the outer coefficient word well
+formed. -/
 theorem outerCoefficientWord_wellFormed (c : J → ℂ) (j₀ : J)
     (hc : 0 < coefficientMass c) {cs : List (AdjointStep (J × H))}
     (hcs : WellFormedAdjointCircuit cs) :
@@ -239,6 +296,9 @@ theorem outerCoefficientWord_wellFormed (c : J → ℂ) (j₀ : J)
     · exact hcs
   · simpa using hp
 
+/-- The scaled coefficient wrapper encodes the sum `∑ j, c j • A j` with normalization `∑ j, ‖c
+j‖ * α j` and error `∑ j, ‖c j‖ * ε j`, assuming positive scaled coefficient mass. It is
+well formed, preserves the inner query count, and adds three fixed gates. -/
 theorem counted_outer_lcu_encoding (c : J → ℂ) (j₀ : J)
     (O : Matrix (J × H) (J × H) ℂ) (cs : List (AdjointStep (J × H)))
     (U : J → Matrix H H ℂ) (he : evaluate O cs = select U)

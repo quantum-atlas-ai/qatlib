@@ -9,6 +9,32 @@ import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled
 import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraph
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraphDefs
+
+/-!
+# Sequential entanglement and MBQC pattern execution
+
+`interleavedCzGate` inserts controlled-Z gates during measurement-pattern execution and is
+proved equal to the execution operator preceded by the full graph entangler. Framed Kraus
+operators and branch maps therefore agree with the pre-entangled pattern semantics, giving an
+algebraic standardization identity in the setting of [BrowneEtAl2007].
+
+`FlowRunLedger` records entangling, measurement, feedback, and communication counts. The
+two-vertex teleportation example constructs `wireInstrument`, identifies its unitary conditional
+output, and verifies its flow and strong determinism.
+
+## Main statements
+
+* `interleavedCzGate_eq`: equivalence of sequential insertion and full pre-entanglement.
+* `seqPatternBranch_eq`: agreement of sequential and pattern branch outputs.
+* `wireInstrument_run`: exact wire probabilities, branches, and resource counts.
+* `wireInstrument_conditional`: the conditional wire output is unitary conjugation.
+
+## References
+
+* [Browne et al., 2007][BrowneEtAl2007]
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
@@ -27,21 +53,27 @@ set_option warningAsError false
 
 set_option autoImplicit false
 
+/-- The flow decision procedure returns a result exactly when the flow search procedure returns
+a result. -/
 theorem flowDecide_isSome_iff_search_isSome {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n)) :
     (mbqcFlowDecide G I O).isSome = true ↔ (mbqcFlowSearch G I O).isSome = true := by
   rw [clause6_clause3a n G I O, mbqcHasFlow_iff_search G I O]
 
+/-- A successful generalized-flow search yields `MbqcHasGFlow` for the given graph, boundaries,
+and measurement planes. -/
 theorem gflowSearch_sound_transfer {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (lam : Fin n → MbqcPlane) (h : (mbqcGFlowSearch G I O lam).isSome) :
     MbqcHasGFlow G I O lam :=
   mbqcHasGFlow_of_search G I O lam h
 
+/-- Relabeling the identity register gate by `bitVecEquiv` gives the identity matrix. -/
 theorem relabelGate_one_fin {n : ℕ} :
     relabelGate (bitVecEquiv n) (1 : Matrix (Reg n) (Reg n) ℂ) = 1 := by
   ext i j
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.one_apply]
   by_cases h : i = j <;> simp [h]
 
+/-- Any two register-indexed controlled-Z gates commute. -/
 theorem czB_comm_czB {n : ℕ} (i j i' j' : Fin n) :
     networkCzGateB i j * networkCzGateB i' j'
       = networkCzGateB i' j' * networkCzGateB i j := by
@@ -51,6 +83,8 @@ theorem czB_comm_czB {n : ℕ} (i j i' j' : Fin n) :
   funext x
   simp only [mul_comm]
 
+/-- A register-indexed controlled-Z gate commutes with a single-wire gate acting away from both
+endpoints. -/
 theorem czB_comm_regWireGate {n : ℕ} (i j v : Fin n) (U : Operator 2)
     (hvi : v ≠ i) (hvj : v ≠ j) :
     networkCzGateB i j * mbqcRegWireGate v U
@@ -86,15 +120,18 @@ theorem czB_comm_regWireGate {n : ℕ} (i j v : Fin n) (U : Operator 2)
   rw [Matrix.diagonal_mul, Matrix.mul_diagonal]
   exact key x y
 
+/-- The ordered product of controlled-Z gates along a list of graph edges. -/
 noncomputable def czProd {n : ℕ} (es : List (Fin n × Fin n)) : Operator (2 ^ n) :=
   (es.map fun e => networkCzGate e.1 e.2).prod
 
+/-- Any two controlled-Z gates on the finite-indexed register commute. -/
 theorem cz_comm_cz {n : ℕ} (e f : Fin n × Fin n) :
     networkCzGate e.1 e.2 * networkCzGate f.1 f.2
       = networkCzGate f.1 f.2 * networkCzGate e.1 e.2 := by
   unfold networkCzGate
   rw [clause6Aux_relabelGate_mul, clause6Aux_relabelGate_mul, czB_comm_czB]
 
+/-- A controlled-Z gate commutes with a wire gate whose wire is distinct from both endpoints. -/
 theorem cz_comm_wire {n : ℕ} (e : Fin n × Fin n) (v : Fin n) (U : Operator 2)
     (hv1 : v ≠ e.1) (hv2 : v ≠ e.2) :
     networkCzGate e.1 e.2 * mbqcWireGate v U
@@ -103,10 +140,13 @@ theorem cz_comm_wire {n : ℕ} (e : Fin n × Fin n) (v : Fin n) (U : Operator 2)
   rw [clause6Aux_relabelGate_mul, clause6Aux_relabelGate_mul,
       czB_comm_regWireGate e.1 e.2 v U hv1 hv2]
 
+/-- The controlled-Z product of a nonempty edge list is its first gate times the product of the
+remaining edges. -/
 theorem czProd_cons {n : ℕ} (e : Fin n × Fin n) (es : List (Fin n × Fin n)) :
     czProd (e :: es) = networkCzGate e.1 e.2 * czProd es := by
   simp [czProd]
 
+/-- A controlled-Z gate commutes with the controlled-Z product of any edge list. -/
 theorem cz_comm_czProd {n : ℕ} (e : Fin n × Fin n) (es : List (Fin n × Fin n)) :
     networkCzGate e.1 e.2 * czProd es = czProd es * networkCzGate e.1 e.2 := by
   induction es with
@@ -114,6 +154,7 @@ theorem cz_comm_czProd {n : ℕ} (e : Fin n × Fin n) (es : List (Fin n × Fin n
   | cons f rest ih =>
       rw [czProd_cons, ← mul_assoc, cz_comm_cz, mul_assoc, ih, ← mul_assoc]
 
+/-- Permuting an edge list preserves its controlled-Z product. -/
 theorem czProd_perm {n : ℕ} {l₁ l₂ : List (Fin n × Fin n)} (hp : l₁.Perm l₂) :
     czProd l₁ = czProd l₂ := by
   induction hp with
@@ -124,6 +165,8 @@ theorem czProd_perm {n : ℕ} {l₁ l₂ : List (Fin n × Fin n)} (hp : l₁.Per
         cz_comm_cz]
   | trans _ _ ih₁ ih₂ => rw [ih₁, ih₂]
 
+/-- The controlled-Z product factors into the product over edges selected by a Boolean predicate
+and the product over its complement. -/
 theorem czProd_filter_partition {n : ℕ} (p : Fin n × Fin n → Bool)
     (es : List (Fin n × Fin n)) :
     czProd es = czProd (es.filter p) * czProd (es.filter fun e => !p e) := by
@@ -141,6 +184,8 @@ theorem czProd_filter_partition {n : ℕ} (p : Fin n × Fin n → Bool)
         rw [hf1, hf2, czProd_cons, czProd_cons, ih, ← mul_assoc, cz_comm_czProd, mul_assoc,
           cz_comm_czProd]
 
+/-- Inserting a new edge into an edge set multiplies its register entangler by the corresponding
+controlled-Z gate. -/
 theorem czMatrix_cons {n : ℕ} (e : Fin n × Fin n) (S : Finset (Fin n × Fin n))
     (he : e ∉ S) :
     czMatrix (Finset.cons e S he) = networkCzGateB e.1 e.2 * czMatrix S := by
@@ -154,6 +199,8 @@ theorem czMatrix_cons {n : ℕ} (e : Fin n × Fin n) (S : Finset (Fin n × Fin n
   funext x
   simpa only [Matrix.diagonal_apply] using! hphase x
 
+/-- The controlled-Z product over an edge set's list equals the relabeled register entangler for
+that set. -/
 theorem czProd_eq_entangler {n : ℕ} (S : Finset (Fin n × Fin n)) :
     czProd S.toList = relabelGate (bitVecEquiv n) (czMatrix S) := by
   classical
@@ -170,6 +217,8 @@ theorem czProd_eq_entangler {n : ℕ} (S : Finset (Fin n × Fin n)) :
         = relabelGate (bitVecEquiv n) (czMatrix (Finset.cons e S he))
       rw [clause6Aux_relabelGate_mul, czMatrix_cons e S he]
 
+/-- A register wire gate commutes with a product operator whose factor on that wire is the
+identity. -/
 theorem regWireGate_comm_pauliProd {n : ℕ} (v : Fin n) (U : Operator 2)
     (f : Fin n → Operator 2) (hv : f v = 1) :
     mbqcRegWireGate v U * pauliProductDensity f
@@ -182,6 +231,8 @@ theorem regWireGate_comm_pauliProd {n : ℕ} (v : Fin n) (U : Operator 2)
     simp [hv]
   · simp [hiv]
 
+/-- An output-supported product correction commutes with a controlled-Z gate whose endpoints are
+both outside the output set. -/
 theorem interleavedInit_comm_cz {n : ℕ} (O : Finset (Fin n))
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool) (e : Fin n × Fin n)
     (h1 : e.1 ∉ O) (h2 : e.2 ∉ O) :
@@ -229,6 +280,7 @@ theorem interleavedInit_comm_cz {n : ℕ} (O : Finset (Fin n))
     = relabelGate (bitVecEquiv n) (networkCzGateB e.1 e.2) * _
   rw [clause6Aux_relabelGate_mul, clause6Aux_relabelGate_mul, hbool]
 
+/-- A controlled-Z gate commutes with a list product when it commutes with each factor. -/
 theorem cz_comm_prodList {n : ℕ} (e : Fin n × Fin n) (ls : List (Operator (2 ^ n)))
     (h : ∀ X ∈ ls, networkCzGate e.1 e.2 * X = X * networkCzGate e.1 e.2) :
     networkCzGate e.1 e.2 * ls.prod = ls.prod * networkCzGate e.1 e.2 := by
@@ -238,6 +290,8 @@ theorem cz_comm_prodList {n : ℕ} (e : Fin n × Fin n) (ls : List (Operator (2 
       rw [List.prod_cons, ← mul_assoc, h X List.mem_cons_self, mul_assoc,
         ih fun X' hX' => h X' (List.mem_cons_of_mem X hX'), mul_assoc]
 
+/-- An edge-list controlled-Z product commutes with a wire gate when every listed edge avoids
+that wire. -/
 theorem czProd_comm_wire {n : ℕ} (es : List (Fin n × Fin n)) (v : Fin n) (U : Operator 2)
     (hv : ∀ e ∈ es, v ≠ e.1 ∧ v ≠ e.2) :
     czProd es * mbqcWireGate v U = mbqcWireGate v U * czProd es := by
@@ -248,6 +302,7 @@ theorem czProd_comm_wire {n : ℕ} (es : List (Fin n × Fin n)) (v : Fin n) (U :
       rw [czProd_cons, mul_assoc, ih fun e' he' => hv e' (List.mem_cons_of_mem e he'),
         ← mul_assoc, cz_comm_wire e v U hn1 hn2, mul_assoc]
 
+/-- Controlled-Z products for any two edge lists commute. -/
 theorem czProd_comm_czProd {n : ℕ} (l₁ l₂ : List (Fin n × Fin n)) :
     czProd l₁ * czProd l₂ = czProd l₂ * czProd l₁ := by
   induction l₁ with
@@ -255,6 +310,7 @@ theorem czProd_comm_czProd {n : ℕ} (l₁ l₂ : List (Fin n × Fin n)) :
   | cons e rest ih =>
       rw [czProd_cons, mul_assoc, ih, ← mul_assoc, cz_comm_czProd, mul_assoc]
 
+/-- A controlled-Z product commutes with an operator when each of its edge gates does. -/
 theorem czProd_comm_of {n : ℕ} (es : List (Fin n × Fin n)) (acc : Operator (2 ^ n))
     (h : ∀ e ∈ es, networkCzGate e.1 e.2 * acc = acc * networkCzGate e.1 e.2) :
     czProd es * acc = acc * czProd es := by
@@ -264,6 +320,7 @@ theorem czProd_comm_of {n : ℕ} (es : List (Fin n × Fin n)) (acc : Operator (2
       rw [czProd_cons, mul_assoc, ih fun e' he' => h e' (List.mem_cons_of_mem e he'),
         ← mul_assoc, h e List.mem_cons_self, mul_assoc]
 
+/-- A controlled-Z product commutes with a list product when it commutes with every factor. -/
 theorem czProd_comm_prodList {n : ℕ} (es : List (Fin n × Fin n))
     (ls : List (Operator (2 ^ n)))
     (h : ∀ X ∈ ls, czProd es * X = X * czProd es) :
@@ -274,6 +331,8 @@ theorem czProd_comm_prodList {n : ℕ} (es : List (Fin n × Fin n))
       rw [List.prod_cons, ← mul_assoc, h X List.mem_cons_self, mul_assoc,
         ih fun X' hX' => h X' (List.mem_cons_of_mem X hX'), mul_assoc]
 
+/-- The recursive execution operator that inserts remaining incident controlled-Z gates before
+each wire's correction and measurement operator. -/
 noncomputable def interleavedGateGo {n : ℕ} (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool) :
     List (Fin n) → List (Fin n × Fin n) → Operator (2 ^ n) → Operator (2 ^ n)
@@ -285,6 +344,9 @@ noncomputable def interleavedGateGo {n : ℕ} (lam : Fin n → MbqcPlane) (a : F
           * czProd (es.filter fun e => decide (e.1 = v ∨ e.2 = v))
           * acc)
 
+/-- If remaining edges lie within the execution list and their gates commute with the
+accumulator, sequential insertion equals applying their controlled-Z product before the
+measurement-and-correction fold. -/
 theorem interleavedGateGo_eq {n : ℕ} (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool)
     (L : List (Fin n)) (es : List (Fin n × Fin n)) (acc : Operator (2 ^ n))
@@ -373,6 +435,8 @@ theorem interleavedGateGo_eq {n : ℕ} (lam : Fin n → MbqcPlane) (a : Fin n �
       simp only [mul_assoc]
       rw [czProd_comm_of esR acc haccR]
 
+/-- The controlled-Z product of edges avoiding the output set commutes with the output-supported
+initial correction. -/
 theorem interleavedInit_comm_of {n : ℕ} (O : Finset (Fin n))
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool)
     (es : List (Fin n × Fin n)) (hout : ∀ e ∈ es, e.1 ∉ O ∧ e.2 ∉ O) :
@@ -387,6 +451,8 @@ theorem interleavedInit_comm_of {n : ℕ} (O : Finset (Fin n))
       rw [czProd_cons, mul_assoc, ih fun e' he' => hout e' (List.mem_cons_of_mem e he'),
         ← mul_assoc, ← interleavedInit_comm_cz O corr s e h1 h2, mul_assoc]
 
+/-- A left fold that multiplies each new factor on the left equals the reversed list product
+times the initial accumulator. -/
 theorem foldl_mul_acc {α : Type} {M : Type} [Monoid M] (f : α → M) (init : M) (l : List α) :
     l.foldl (fun acc x => f x * acc) init = (l.map f).reverse.prod * init := by
   induction l generalizing init with
@@ -395,6 +461,8 @@ theorem foldl_mul_acc {α : Type} {M : Type} [Monoid M] (f : α → M) (init : M
       rw [List.foldl_cons, ih, List.map_cons, List.reverse_cons, List.prod_append,
         List.prod_singleton, mul_assoc]
 
+/-- The measurement-and-correction fold with initial operator `X` equals the same fold starting
+at the identity, followed by multiplication by `X`. -/
 theorem foldl_acc_mul {n : ℕ} (L : List (Fin n)) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool)
     (X : Operator (2 ^ n)) :
@@ -413,10 +481,13 @@ theorem foldl_acc_mul {n : ℕ} (L : List (Fin n)) (lam : Fin n → MbqcPlane) (
       mbqcWireGate v (MbqcPlaneBasis (lam v) (a v) (s v)) * mbqcWireGate v (corr s v)) 1 L,
     mul_one]
 
+/-- Commuting the middle factors `B` and `I` exchanges their order in the four-factor product. -/
 theorem exchange_fin {M : Type} [Monoid M] {A B I C : M} (h : B * I = I * B) :
     A * (B * (I * C)) = (A * I) * (B * C) := by
   rw [← mul_assoc B I C, h, mul_assoc I B C, ← mul_assoc A I (B * C)]
 
+/-- The execution operator combining early controlled-Z gates, output corrections, and
+sequential insertion of the remaining entangling gates. -/
 noncomputable def interleavedCzGate {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool) :
@@ -429,6 +500,8 @@ noncomputable def interleavedCzGate {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin
       * czProd (G.edges.toList.filter fun e =>
         !(e.1 ∈ mbqcExecOrder O r ∧ e.2 ∈ mbqcExecOrder O r)))
 
+/-- Sequential controlled-Z insertion equals `mbqcInterleavedGate` composed with the full graph
+entangler; compare [Browne et al., Proposition 1][BrowneEtAl2007]. -/
 theorem interleavedCzGate_eq {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool) :
@@ -481,6 +554,8 @@ theorem interleavedCzGate_eq {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     ← czProd_eq_entangler G.edges, hpart, foldl_acc_mul L lam a corr s I₀]
   exact exchange_fin hcommI
 
+/-- Adding the input and output frames to the sequential controlled-Z execution gives the
+corresponding pattern Kraus operator. -/
 theorem patternKraus_exchange {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s z : Fin n → Bool) :
@@ -493,6 +568,8 @@ theorem patternKraus_exchange {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
   rw [interleavedCzGate_eq G O r lam a corr s, hE]
   simp only [Matrix.mul_assoc]
 
+/-- The linear branch map formed by summing framed sequential-execution Kraus conjugations over
+output-frame records. -/
 noncomputable def seqPatternBranchMap {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool) :
@@ -500,12 +577,15 @@ noncomputable def seqPatternBranchMap {n : ℕ} (G : MbqcGraph n) (I O : Finset 
   ∑ z : Fin n → Bool,
     conjBranch (mbqcOutputFrame O z * interleavedCzGate G O r lam a corr s * mbqcInputFrame I)
 
+/-- The output operator obtained by applying the sequential pattern branch map to an input
+operator. -/
 noncomputable def seqPatternBranch {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool)
     (ρ : Operator (2 ^ I.card)) : Operator (2 ^ O.card) :=
   seqPatternBranchMap G I O r lam a corr s ρ
 
+/-- Sequential execution and the pre-entangled pattern give the same branch output operator. -/
 theorem seqPatternBranch_eq {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s : Fin n → Bool)
@@ -515,6 +595,8 @@ theorem seqPatternBranch_eq {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
   simp only [seqPatternBranch, seqPatternBranchMap, LinearMap.sum_apply, mbqcPatternBranch,
     mbqcPatternBranchMap, patternKraus_exchange G I O r lam a corr s]
 
+/-- For a positive semidefinite input and a trace-preserving pattern instrument, a record of
+zero probability has zero sequential branch output. -/
 theorem seqPatternBranch_zero_of_prob_zero {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2)
@@ -527,6 +609,8 @@ theorem seqPatternBranch_zero_of_prob_zero {n : ℕ} (G : MbqcGraph n) (I O : Fi
   rw [seqPatternBranch_eq G I O r lam a corr s ρ]
   exact (instrumentProb_eq_zero_iff (mbqcPatternInstrument G I O r lam a corr hTP) hρ s).mp hprob
 
+/-- The two stated rank-order conditions on a flow map make its corrections causal for the
+execution order. -/
 theorem flowCorrection_execCausal {n : ℕ} (G : MbqcGraph n) (f : Fin n → Option (Fin n))
     (r : Fin n → Fin n)
     (hF2 : ∀ v u : Fin n, f v = some u → mbqcRankPrec r v u)
@@ -536,6 +620,8 @@ theorem flowCorrection_execCausal {n : ℕ} (G : MbqcGraph n) (f : Fin n → Opt
   exact flowCorrection_causal G f (mbqcRankPrec r) hF2 hF3 s s' u fun w hw =>
     hagree w (Or.inl hw)
 
+/-- Flow corrections agree whenever the records agree on every vertex where the flow map is
+defined. -/
 theorem flowCorrection_congrOnDomain {n : ℕ} (G : MbqcGraph n) (f : Fin n → Option (Fin n))
     (s s' : Fin n → Bool)
     (hagree : ∀ v : Fin n, (f v).isSome = true → s v = s' v) :
@@ -558,6 +644,8 @@ theorem flowCorrection_congrOnDomain {n : ℕ} (G : MbqcGraph n) (f : Fin n → 
       exact ⟨v, w, by rw [hagree v (by simp [hf])]; exact hv, hf, hne, hadj⟩
   rw [if_congr hX (by rfl) (by rfl), if_congr hZ (by rfl) (by rfl)]
 
+/-- Sequential execution is unchanged when two records agree on the full dependency list and all
+corrections depend only on that list. -/
 theorem interleavedGateGo_pastDependence {n : ℕ}
     (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s s' : Fin n → Bool)
@@ -576,6 +664,8 @@ theorem interleavedGateGo_pastDependence {n : ℕ}
       rw [interleavedGateGo, interleavedGateGo, hv, hc]
       exact ih _ _ fun w hw => hsub w (List.mem_cons_of_mem v hw)
 
+/-- Resource counts for graph entangling gates, measured vertices, feedback bits, and
+communicated bits. -/
 structure FlowRunLedger where
 
   preEntangleCz : ℕ
@@ -586,6 +676,8 @@ structure FlowRunLedger where
 
   commBits : ℕ
 
+/-- The resource ledger counting graph edges, nonoutput vertices, and nonoutput vertices with a
+defined flow successor. -/
 def flowRunLedger {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     (f : Fin n → Option (Fin n)) : FlowRunLedger where
   preEntangleCz := G.edges.card
@@ -593,20 +685,25 @@ def flowRunLedger {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
   feedbackBits := ((Finset.univ \ O).filter fun v => (f v).isSome = true).card
   commBits := ((Finset.univ \ O).filter fun v => (f v).isSome = true).card
 
+/-- The ledger's pre-entanglement controlled-Z count equals the number of graph edges. -/
 theorem flowRunLedger_preEntangleCz_eq {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     (f : Fin n → Option (Fin n)) :
     (flowRunLedger G O f).preEntangleCz = G.edges.card := rfl
 
+/-- The ledger's measurement count equals the length of the execution order. -/
 theorem flowRunLedger_measureCount_eq {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     (r : Fin n → Fin n) (f : Fin n → Option (Fin n)) :
     (flowRunLedger G O f).measureCount = (mbqcExecOrder O r).length := by
   show (Finset.univ \ O).card = ((Finset.univ \ O).sort (mbqcExecLe r)).length
   rw [Finset.length_sort]
 
+/-- The ledger assigns equal counts to feedback bits and communication bits. -/
 theorem flowRunLedger_feedbackBits_eq_commBits {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     (f : Fin n → Option (Fin n)) :
     (flowRunLedger G O f).feedbackBits = (flowRunLedger G O f).commBits := rfl
 
+/-- The edge counts inside and outside the execution-order partition sum to the ledger's total
+controlled-Z count. -/
 theorem flowRunLedger_dueEarly_split {n : ℕ} (G : MbqcGraph n) (O : Finset (Fin n))
     (r : Fin n → Fin n) (f : Fin n → Option (Fin n)) :
     (G.edges.toList.filter fun e => e.1 ∈ mbqcExecOrder O r ∧ e.2 ∈ mbqcExecOrder O r).length
@@ -619,6 +716,7 @@ theorem flowRunLedger_dueEarly_split {n : ℕ} (G : MbqcGraph n) (O : Finset (Fi
   rw [← h, Finset.length_toList]
   rfl
 
+/-- If the nonoutput set consists of a single vertex, its execution order is the singleton list. -/
 theorem mbqcExecOrder_singleton {n : ℕ} (O : Finset (Fin n)) (v : Fin n)
     (r : Fin n → Fin n) (h : Finset.univ \ O = {v}) :
     mbqcExecOrder O r = [v] := by
@@ -626,28 +724,38 @@ theorem mbqcExecOrder_singleton {n : ℕ} (O : Finset (Fin n)) (v : Fin n)
   rw [h]
   exact Finset.sort_singleton (mbqcExecLe r) v
 
+/-- The singleton input set containing vertex zero of the two-vertex teleportation wire. -/
 def teleWireInput : Finset (Fin 2) := ({0} : Finset (Fin 2))
 
+/-- The constant zero rank function for the two-vertex teleportation wire. -/
 def teleWireR : Fin 2 → Fin 2 := fun _ => 0
 
+/-- The teleportation-wire correction applying X on vertex one exactly when the record at vertex
+zero is true. -/
 def teleWireCorr : (Fin 2 → Bool) → Fin 2 → Operator 2 :=
   fun σ v => if v = 1 then (if σ 0 then pauliX else 1) else 1
 
+/-- The teleportation-wire correction on vertex zero is always the identity. -/
 theorem teleWireCorr_zero (s : Fin 2 → Bool) : teleWireCorr s 0 = 1 := by
   simp [teleWireCorr]
 
+/-- The teleportation-wire correction on vertex one is X or the identity according to the record
+at vertex zero. -/
 theorem teleWireCorr_one (s : Fin 2 → Bool) :
     teleWireCorr s 1 = if s 0 then pauliX else 1 := by
   simp [teleWireCorr]
 
+/-- The single input-register bit agrees with the Boolean representation of its `Fin 2` index. -/
 theorem teleWire_regBitInput (y : Fin 2) (i : Fin teleWireInput.card) :
     (bitVecEquiv teleWireInput.card).symm y i = boolEquivFin2.symm y := by
   fin_cases y <;> fin_cases i <;> rfl
 
+/-- The single output-register bit agrees with the Boolean representation of its `Fin 2` index. -/
 theorem teleWire_regBitOutput (y : Fin 2) (i : Fin clause1OutputA.card) :
     (bitVecEquiv clause1OutputA.card).symm y i = boolEquivFin2.symm y := by
   fin_cases y <;> fin_cases i <;> rfl
 
+/-- Embedding the identity gate on any wire gives the full-register identity. -/
 theorem mbqcWireGate_one {n : ℕ} (v : Fin n) : mbqcWireGate v (1 : Operator 2) = 1 := by
   have hreg : mbqcRegWireGate v (1 : Operator 2) = 1 := by
     ext x y
@@ -670,6 +778,8 @@ theorem mbqcWireGate_one {n : ℕ} (v : Fin n) : mbqcWireGate v (1 : Operator 2)
         ring
   rw [mbqcWireGate, hreg, relabelGate_one_fin]
 
+/-- The teleportation input frame has amplitude `1 / Real.sqrt 2` when its input bit matches the
+first register bit, and zero otherwise. -/
 theorem teleWire_inFrame_apply (x : Fin (2 ^ 2)) (y : Fin 2) :
     mbqcInputFrame teleWireInput x y
       = (Real.sqrt 2 : ℂ)⁻¹
@@ -681,6 +791,8 @@ theorem teleWire_inFrame_apply (x : Fin (2 ^ 2)) (y : Fin 2) :
   rw [dif_pos h0, dif_neg h1, teleWire_regBitInput y]
   ring
 
+/-- The teleportation output frame selects the recorded first bit and the designated output bit
+of the second vertex. -/
 theorem teleWire_outFrame_apply (z : Fin 2 → Bool) (y : Fin 2) (x : Fin (2 ^ 2)) :
     mbqcOutputFrame clause1OutputA z y x
       = (if (bitVecEquiv 2).symm x 0 = z 0 then (1 : ℂ) else 0)
@@ -691,6 +803,7 @@ theorem teleWire_outFrame_apply (z : Fin 2 → Bool) (y : Fin 2) (x : Fin (2 ^ 2
   have h1 : (1 : Fin 2) ∈ clause1OutputA := by decide
   rw [dif_neg h0, dif_pos h1, teleWire_regBitOutput y]
 
+/-- The two-vertex entangler is diagonal, with controlled-Z phase `bitPhase (x 0 && x 1)`. -/
 theorem teleWire_czMatrix_apply (x y : Reg 2) :
     czMatrix clause1GraphHasFlow.edges x y
       = if x = y then bitPhase (x 0 && x 1) else 0 := by
@@ -699,6 +812,7 @@ theorem teleWire_czMatrix_apply (x y : Reg 2) :
   rw [Finset.prod_singleton]
   by_cases h : x = y <;> simp [h, bitPhase]
 
+/-- A gate on vertex zero acts on the first bit and leaves the second bit unchanged. -/
 theorem teleWire_regWireGate_zero (U : Operator 2) (x y : Reg 2) :
     mbqcRegWireGate 0 U x y
       = U (boolEquivFin2 (x 0)) (boolEquivFin2 (y 0))
@@ -708,6 +822,7 @@ theorem teleWire_regWireGate_zero (U : Operator 2) (x y : Reg 2) :
   have h1 : ((Finset.univ.erase 0 : Finset (Fin 2)) = ({1} : Finset (Fin 2))) := by decide
   rw [h1, Finset.prod_singleton]
 
+/-- A gate on vertex one acts on the second bit and leaves the first bit unchanged. -/
 theorem teleWire_regWireGate_one (U : Operator 2) (x y : Reg 2) :
     mbqcRegWireGate 1 U x y
       = U (boolEquivFin2 (x 1)) (boolEquivFin2 (y 1))
@@ -717,12 +832,14 @@ theorem teleWire_regWireGate_one (U : Operator 2) (x y : Reg 2) :
   have h0 : ((Finset.univ.erase 1 : Finset (Fin 2)) = ({0} : Finset (Fin 2))) := by decide
   rw [h0, Finset.prod_singleton]
 
+/-- The equivalence between a two-bit register and an ordered pair of Boolean values. -/
 def reg2ProdEquiv : Reg 2 ≃ Bool × Bool where
   toFun y := (y 0, y 1)
   invFun p := ![p.1, p.2]
   left_inv y := funext fun k => by fin_cases k <;> rfl
   right_inv p := by cases p with | mk a b => rfl
 
+/-- A sum over a two-bit register expands into the four explicit Boolean assignments. -/
 theorem sum_reg2_eq (F : Reg 2 → ℂ) :
     (∑ y : Reg 2, F y)
       = F ![false, false] + F ![false, true] + F ![true, false] + F ![true, true] := by
@@ -735,6 +852,7 @@ theorem sum_reg2_eq (F : Reg 2 → ℂ) :
   rw [e00, e01, e10, e11]
   ring
 
+/-- Selecting a fixed first register bit reduces the sum to the two choices of the second bit. -/
 theorem sum_reg2_delta0 (x0 : Bool) (g : Reg 2 → ℂ) :
     (∑ y : Reg 2, (if x0 = y 0 then (1 : ℂ) else 0) * g y)
       = g ![x0, false] + g ![x0, true] := by
@@ -752,6 +870,7 @@ theorem sum_reg2_delta0 (x0 : Bool) (g : Reg 2 → ℂ) :
     subst hxt
     simp
 
+/-- Selecting a fixed second register bit reduces the sum to the two choices of the first bit. -/
 theorem sum_reg2_delta1 (x1 : Bool) (g : Reg 2 → ℂ) :
     (∑ y : Reg 2, (if x1 = y 1 then (1 : ℂ) else 0) * g y)
       = g ![false, x1] + g ![true, x1] := by
@@ -769,6 +888,8 @@ theorem sum_reg2_delta1 (x1 : Bool) (g : Reg 2 → ℂ) :
     subst hxt
     simp
 
+/-- Selecting a fixed first bit with the equality written in reverse order reduces the register
+sum to two terms. -/
 theorem sum_reg2_delta0' (x0 : Bool) (g : Reg 2 → ℂ) :
     (∑ y : Reg 2, (if y 0 = x0 then (1 : ℂ) else 0) * g y)
       = g ![x0, false] + g ![x0, true] := by
@@ -778,6 +899,8 @@ theorem sum_reg2_delta0' (x0 : Bool) (g : Reg 2 → ℂ) :
   · rw [if_pos hc, if_pos hc.symm]
   · rw [if_neg hc, if_neg (fun he => hc he.symm)]
 
+/-- The entangled input-frame entries are the normalized input-bit selector multiplied by the
+controlled-Z phase. -/
 theorem teleWire_entangler_frame (x : Fin (2 ^ 2)) (j : Fin 2) :
     (mbqcEntangler clause1GraphHasFlow * mbqcInputFrame teleWireInput) x j
       = (Real.sqrt 2 : ℂ)⁻¹
@@ -825,6 +948,8 @@ theorem teleWire_entangler_frame (x : Fin (2 ^ 2)) (j : Fin 2) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- Applying a gate on the output vertex to the entangled input frame gives a two-term sum over
+the intermediate output bit. -/
 theorem teleWire_corr_entangler_frame (U : Operator 2) (x : Fin (2 ^ 2)) (j : Fin 2) :
     (mbqcWireGate (1 : Fin 2) U
         * (mbqcEntangler clause1GraphHasFlow * mbqcInputFrame teleWireInput)) x j
@@ -881,6 +1006,8 @@ theorem teleWire_corr_entangler_frame (U : Operator 2) (x : Fin (2 ^ 2)) (j : Fi
   · rw [if_neg hd, if_neg hd, if_neg hd]
     ring
 
+/-- The measurement-and-correction composition on the entangled input frame factors into its
+measurement entry and a sum over the output bit. -/
 theorem teleWire_meas_corr_entangler_frame (P U : Operator 2) (x : Fin (2 ^ 2)) (j : Fin 2) :
     (mbqcWireGate (0 : Fin 2) P
         * (mbqcWireGate (1 : Fin 2) U
@@ -957,6 +1084,8 @@ theorem teleWire_meas_corr_entangler_frame (P U : Operator 2) (x : Fin (2 ^ 2)) 
     rw [h1]
     ring
 
+/-- The framed teleportation Kraus entries factor into the normalization, the XY measurement
+entry, and the record-dependent controlled-Z phase. -/
 theorem teleWire_kraus_entry (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) (j' j : Fin 2) :
     (mbqcOutputFrame clause1OutputA z
         * (mbqcWireGate (0 : Fin 2) (MbqcPlaneBasis MbqcPlane.XY (a 0) (s 0))
@@ -1023,6 +1152,8 @@ theorem teleWire_kraus_entry (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) (j' j : 
       rw [hsf]
       simp [boolEquivFin2, bitPhase]
 
+/-- The XY-plane measurement projector has diagonal entries one half and off-diagonal entries
+determined by the outcome sign and the angle's sine and cosine. -/
 theorem planeBasis_XY_entry (a : ℝ) (b : Bool) (u v : Fin 2) :
     MbqcPlaneBasis MbqcPlane.XY a b u v =
       if u = v then (2 : ℂ)⁻¹
@@ -1036,11 +1167,15 @@ theorem planeBasis_XY_entry (a : ℝ) (b : Bool) (u v : Fin 2) :
     simp [MbqcPlaneBasis, mbqcPlaneAxisA, mbqcPlaneAxisB, pauliX, pauliY] <;>
     ring
 
+/-- The complex exponential at a real angle times the imaginary unit equals cosine plus the
+imaginary unit times sine. -/
 theorem exp_ofReal_I (a : ℝ) :
     Complex.exp ((a : ℂ) * Complex.I)
       = Complex.cos (a : ℂ) + Complex.sin (a : ℂ) * Complex.I :=
   (Complex.cos_add_sin_I (a : ℂ)).symm
 
+/-- The complex exponential at the negative imaginary angle equals cosine minus the imaginary
+unit times sine. -/
 theorem exp_neg_ofReal_I (a : ℝ) :
     Complex.exp (-(a : ℂ) * Complex.I)
       = Complex.cos (a : ℂ) - Complex.sin (a : ℂ) * Complex.I := by
@@ -1050,18 +1185,22 @@ theorem exp_neg_ofReal_I (a : ℝ) :
       = Complex.cos (a : ℂ) + -Complex.sin (a : ℂ) * Complex.I := by ring
   rw [h3, ← h]
 
+/-- The complex exponential of an imaginary real angle multiplied by its conjugate is one. -/
 theorem mul_star_exp_one (a : ℝ) :
     Complex.exp ((a : ℂ) * Complex.I) * star (Complex.exp ((a : ℂ) * Complex.I)) = 1 := by
   rw [← starRingEnd_apply, Complex.mul_conj, Complex.normSq_eq_norm_sq,
     Complex.norm_exp_ofReal_mul_I]
   norm_num
 
+/-- The complex reciprocal of two is fixed by conjugation. -/
 theorem star_inv_two : star ((2 : ℂ)⁻¹) = (2 : ℂ)⁻¹ := by
   show star (((2 : ℝ) : ℂ)⁻¹) = (((2 : ℝ) : ℂ)⁻¹)
   rw [← starRingEnd_apply]
   have h : (((2 : ℝ) : ℂ)⁻¹) = Complex.ofReal (2 : ℝ)⁻¹ := (Complex.ofReal_inv 2).symm
   rw [h, Complex.conj_ofReal]
 
+/-- The teleportation-wire unitary has the displayed normalized entries with phase `cos a - sin
+a * I` in its second column. -/
 theorem rbWireUnitary_entry (a : ℝ) (j' j : Fin 2) :
     rbWireUnitary a j' j
       = (Real.sqrt 2 : ℂ)⁻¹ *
@@ -1073,6 +1212,7 @@ theorem rbWireUnitary_entry (a : ℝ) (j' j : Fin 2) :
   rw [exp_neg_ofReal_I]
   fin_cases j' <;> fin_cases j <;> simp
 
+/-- Scaling a Kraus matrix by `c` scales its conjugation branch by `c * star c`. -/
 theorem conjBranch_smul {D : ℕ} (c : ℂ) (M : Matrix (Fin D) (Fin D) ℂ) (ρ : Operator D) :
     conjBranch (c • M) ρ = (c * star c) • (M * ρ * M.conjTranspose) := by
   rw [conjBranch_apply, Matrix.conjTranspose_smul]
@@ -1080,9 +1220,12 @@ theorem conjBranch_smul {D : ℕ} (c : ℂ) (M : Matrix (Fin D) (Fin D) ℂ) (ρ
   congr 1
   ring
 
+/-- The two-vertex teleportation wire measures only vertex zero. -/
 theorem teleWire_execOrder : mbqcExecOrder clause1OutputA teleWireR = [0] :=
   mbqcExecOrder_singleton _ _ _ (by decide)
 
+/-- The teleportation interleaved gate is the XY measurement operator on vertex zero followed on
+the right by its conditional X correction on vertex one. -/
 theorem teleWire_interleaved (a : Fin 2 → ℝ) (s : Fin 2 → Bool) :
     mbqcInterleavedGate clause1OutputA teleWireR (fun _ => MbqcPlane.XY) a teleWireCorr s
       = mbqcWireGate (0 : Fin 2) (MbqcPlaneBasis MbqcPlane.XY (a 0) (s 0))
@@ -1101,6 +1244,8 @@ theorem teleWire_interleaved (a : Fin 2 → ℝ) (s : Fin 2 → Bool) :
     rw [mbqcWireGate, mbqcRegWireGate_eq]
   rw [hfun, hR]
 
+/-- The teleportation pattern Kraus operator expands into its output frame, measurement,
+conditional correction, entangler, and input frame. -/
 theorem teleWire_patternKraus_eq (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) :
     mbqcPatternKraus clause1GraphHasFlow teleWireInput clause1OutputA teleWireR (fun _ => MbqcPlane.XY) a
         teleWireCorr s z
@@ -1113,6 +1258,8 @@ theorem teleWire_patternKraus_eq (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) :
 
 set_option maxHeartbeats 4000000 in
 
+/-- Each teleportation pattern Kraus operator is one half of `rbWireUnitary`, multiplied by the
+explicit record-dependent phase. -/
 theorem teleWire_kraus_phase (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) :
     mbqcPatternKraus clause1GraphHasFlow teleWireInput clause1OutputA teleWireR (fun _ => MbqcPlane.XY) a
         teleWireCorr s z
@@ -1161,6 +1308,8 @@ theorem teleWire_kraus_phase (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) :
     | exact keyC x
     | exact keyD x
 
+/-- Each framed teleportation Kraus conjugation is one quarter of conjugation by the wire
+unitary. -/
 theorem teleWire_kraus_branch (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) (ρ : Operator 2) :
     conjBranch (mbqcPatternKraus clause1GraphHasFlow teleWireInput clause1OutputA teleWireR
       (fun _ => MbqcPlane.XY) a teleWireCorr s z) ρ =
@@ -1207,6 +1356,8 @@ theorem teleWire_kraus_branch (a : Fin 2 → ℝ) (s z : Fin 2 → Bool) (ρ : O
     linear_combination (hphase (s 0) (z 0)) * ((2 : ℂ)⁻¹ * (2 : ℂ)⁻¹)
   rw [hscal]
 
+/-- Summing the framed Kraus contributions for a teleportation pattern branch gives conjugation
+by the wire unitary. -/
 theorem teleWire_branch_eq (a : Fin 2 → ℝ) (s : Fin 2 → Bool) (ρ : Operator 2) :
     mbqcPatternBranch clause1GraphHasFlow teleWireInput clause1OutputA teleWireR (fun _ => MbqcPlane.XY) a
         teleWireCorr s ρ
@@ -1225,6 +1376,7 @@ theorem teleWire_branch_eq (a : Fin 2 → ℝ) (s : Fin 2 → Bool) (ρ : Operat
       + ((2 : ℂ)⁻¹ * (2 : ℂ)⁻¹ + (2 : ℂ)⁻¹ * (2 : ℂ)⁻¹)) = 1 := by norm_num
   rw [hq, one_smul]
 
+/-- Every local teleportation-wire correction satisfies `MbqcPauliWire`. -/
 theorem teleWire_pauliWire (s : Fin 2 → Bool) (v : Fin 2) :
     MbqcPauliWire (teleWireCorr s v) := by
   fin_cases v
@@ -1235,6 +1387,7 @@ theorem teleWire_pauliWire (s : Fin 2 → Bool) (v : Fin 2) :
     rw [teleWireCorr_one]
     cases s 0 <;> simp [MbqcPauliWire]
 
+/-- The teleportation-wire corrections are causal for its execution order. -/
 theorem teleWire_causal : MbqcCausalCorrection (mbqcExecPrec teleWireR) teleWireCorr := by
   intro s s' v hv
   fin_cases v
@@ -1243,6 +1396,8 @@ theorem teleWire_causal : MbqcCausalCorrection (mbqcExecPrec teleWireR) teleWire
     show teleWireCorr s (1 : Fin 2) = teleWireCorr s' (1 : Fin 2)
     rw [teleWireCorr_one, teleWireCorr_one, h0]
 
+/-- The two-vertex teleportation graph with the specified input and output sets possesses a
+flow. -/
 theorem teleWire_hasFlow : MbqcHasFlow clause1GraphHasFlow teleWireInput clause1OutputA := by
   refine ⟨clause1FlowA, fun u v => (u : ℕ) < (v : ℕ), inferInstance,
     { irrefl := fun _ => Nat.lt_irrefl _, trans := fun _ _ _ => Nat.lt_trans }, ?_⟩
@@ -1256,18 +1411,24 @@ theorem teleWire_hasFlow : MbqcHasFlow clause1GraphHasFlow teleWireInput clause1
       fin_cases k <;> simp_all
   · simp [clause1OutputA] at hv
 
+/-- The two-vertex teleportation pattern is strongly deterministic for every choice of XY
+measurement angles. -/
 theorem teleWire_strongDeterminism (a2 : Fin 2 → ℝ) :
     MbqcStronglyDeterministic clause1GraphHasFlow teleWireInput clause1OutputA
       (fun _ => MbqcPlane.XY) a2 :=
   ⟨teleWireR, teleWireCorr, teleWire_pauliWire, teleWire_causal,
     fun ρ _ _ _ => by rw [teleWire_branch_eq, teleWire_branch_eq]⟩
 
+/-- The teleportation graph possesses a flow and its XY pattern is strongly deterministic. -/
 theorem teleWire_flow_determinism (a2 : Fin 2 → ℝ) :
     MbqcHasFlow clause1GraphHasFlow teleWireInput clause1OutputA ∧
       MbqcStronglyDeterministic clause1GraphHasFlow teleWireInput clause1OutputA
         (fun _ => MbqcPlane.XY) a2 :=
   ⟨teleWire_hasFlow, teleWire_strongDeterminism a2⟩
 
+/-- Collect flow decision/search agreement, sequential and pre-entangled execution identities,
+measurement-count agreement, and flow-based strong determinism for the teleportation
+example. -/
 theorem frontier1 {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s z : Fin n → Bool)
@@ -1286,12 +1447,16 @@ theorem frontier1 {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     patternKraus_exchange G I O r lam a corr s z, seqPatternBranch_eq G I O r lam a corr s ρ,
     flowRunLedger_measureCount_eq G O r f, fun a2 => teleWire_flow_determinism a2⟩
 
+/-- The two-vertex record whose first bit is `b` and whose second bit is false. -/
 def wireRecord (b : Bool) : Fin 2 → Bool := ![b, false]
 
+/-- The teleportation branch map for a Boolean measurement record, summed over the Boolean
+output-frame record. -/
 noncomputable def wireBranchMap (a : Fin 2 → ℝ) (b : Bool) : Operator 2 →ₗ[ℂ] Operator 2 :=
   ∑ z : Bool, conjBranch (mbqcPatternKraus clause1GraphHasFlow teleWireInput clause1OutputA teleWireR
     (fun _ => MbqcPlane.XY) a teleWireCorr (wireRecord b) (wireRecord z))
 
+/-- Each Boolean teleportation branch is one half of conjugation by the wire unitary. -/
 theorem wireBranchMap_apply (a : Fin 2 → ℝ) (b : Bool) (ρ : Operator 2) :
     wireBranchMap a b ρ = (1 / 2 : ℂ) • conjBranch (rbWireUnitary (a 0)) ρ := by
   unfold wireBranchMap
@@ -1306,6 +1471,8 @@ theorem wireBranchMap_apply (a : Fin 2 → ℝ) (b : Bool) (ρ : Operator 2) :
     exact teleWire_kraus_branch a (wireRecord b) (wireRecord z) ρ
   exact hs.trans (by rw [Fintype.sum_bool, ← add_smul]; norm_num [conjBranch_apply])
 
+/-- The Boolean wire branch can be computed with sequential controlled-Z execution inside each
+framed Kraus operator. -/
 theorem wireBranchMap_exchange (a : Fin 2 → ℝ) (b : Bool) (ρ : Operator 2) :
     wireBranchMap a b ρ = ∑ z : Bool,
       conjBranch (mbqcOutputFrame clause1OutputA (wireRecord z) *
@@ -1316,18 +1483,21 @@ theorem wireBranchMap_exchange (a : Fin 2 → ℝ) (b : Bool) (ρ : Operator 2) 
       (fun _ => MbqcPlane.XY) a teleWireCorr]
   rfl
 
+/-- The wire unitary equals `clusterJ` evaluated at the phase `exp (-a * I)`. -/
 theorem rbWireUnitary_eq_clusterJ (a : ℝ) :
     rbWireUnitary a = clusterJ (Complex.exp (-(a : ℂ) * Complex.I)) := by
   ext i j
   rw [rbWireUnitary_entry, clusterJ_entry, exp_neg_ofReal_I]
   fin_cases i <;> fin_cases j <;> simp
 
+/-- The teleportation-wire matrix belongs to the unitary group. -/
 theorem rbWireUnitary_unitary (a : ℝ) :
     rbWireUnitary a ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [rbWireUnitary_eq_clusterJ]
   apply clusterJ_unitary
   simp [Complex.norm_exp]
 
+/-- The two-outcome teleportation-wire instrument built from the Boolean branch maps. -/
 noncomputable def wireInstrument (a : Fin 2 → ℝ) : Instrument Bool 2 2 :=
   Instrument.ofBranches (wireBranchMap a)
     (fun _ => CompletelyPositive.sum (fun _ _ => completelyPositive_conjBranch _)) (by
@@ -1337,10 +1507,14 @@ noncomputable def wireInstrument (a : Fin 2 → ℝ) : Instrument Bool 2 2 :=
       norm_num
       exact trace_conjBranch_unitary _ (rbWireUnitary_unitary (a 0)) A)
 
+/-- Each outcome of `wireInstrument` has branch map equal to one half of conjugation by the wire
+unitary. -/
 theorem wireInstrument_branch (a : Fin 2 → ℝ) (b : Bool) (ρ : Operator 2) :
     (wireInstrument a).branch b ρ = (1 / 2 : ℂ) • conjBranch (rbWireUnitary (a 0)) ρ :=
   wireBranchMap_apply a b ρ
 
+/-- Each wire-instrument outcome has probability equal to half the real trace of the input
+operator. -/
 theorem wireInstrument_probability (a : Fin 2 → ℝ) (ρ : Operator 2) (b : Bool) :
     instrumentProb (wireInstrument a) ρ b = (Matrix.trace ρ).re / 2 := by
   rw [instrumentProb, wireInstrument_branch, Matrix.trace_smul, smul_eq_mul,
@@ -1348,14 +1522,20 @@ theorem wireInstrument_probability (a : Fin 2 → ℝ) (ρ : Operator 2) (b : Bo
   simp [Complex.mul_re]
   ring
 
+/-- The wire-instrument branch equals the corresponding cluster-wire branch with phase `exp (-(a
+0) * I)`. -/
 theorem wireInstrument_eq_clusterBranch (a : Fin 2 → ℝ) (ρ : Operator 2) (b : Bool) :
     (wireInstrument a).branch b ρ =
       (clusterWireInstrument (Complex.exp (-(a 0 : ℂ) * Complex.I))
         (by simp [Complex.norm_exp])).branch b ρ := by
   rw [wireInstrument_branch, clusterWireInstrument_branch_apply, rbWireUnitary_eq_clusterJ]
 
+/-- The flow map sending vertex zero to vertex one and leaving vertex one undefined. -/
 def wireFlow : Fin 2 → Option (Fin 2) := fun i => if i = 0 then some 1 else none
 
+/-- On a density operator, each wire outcome has probability one half and the stated unitary
+branch. Its ledger records one entangling gate, the execution-order measurement count, and
+one bit each of feedback and communication. -/
 theorem wireInstrument_run (a : Fin 2 → ℝ) (ρ : Operator 2) (hρ : IsDensityOperator ρ) (b : Bool) :
     instrumentProb (wireInstrument a) ρ b = 1 / 2 ∧
     (wireInstrument a).branch b ρ = (1 / 2 : ℂ) • conjBranch (rbWireUnitary (a 0)) ρ ∧
@@ -1371,6 +1551,8 @@ theorem wireInstrument_run (a : Fin 2 → ℝ) (ρ : Operator 2) (hρ : IsDensit
   · decide
   · decide
 
+/-- Conditioning a density input on a positive-probability wire outcome gives conjugation by the
+wire unitary. -/
 theorem wireInstrument_conditional (a : Fin 2 → ℝ) (ρ : Operator 2)
     (hρ : IsDensityOperator ρ) (b : Bool)
     (hp : 0 < instrumentProb (wireInstrument a) ρ b) :

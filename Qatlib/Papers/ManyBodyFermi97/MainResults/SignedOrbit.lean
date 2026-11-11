@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ManyBodyFermi97.MainResults.TwoParticleAntisym
 import Mathlib.GroupTheory.Perm.Sign
 import Mathlib.Data.Fintype.Perm
+
+/-!
+# Signed permutation orbits and normalization
+
+`raw` is the signed sum of the permutation orbit of a particle configuration. For configurations
+with distinct entries, the module computes its squared norm and compares the printed coefficient
+`1 / n!` with the normalized coefficient `1 / sqrt(n!)`. It also proves the permutation
+covariance of both signed vectors.
+
+The mathematical setting is that of [AbramsLloyd1997].
+
+## Main statements
+
+* `raw_normSq`: For a configuration with distinct entries, the raw signed orbit sum has squared
+  norm `n!`.
+* `printed_normSq`: For a configuration with distinct entries, the printed signed vector has
+  squared norm `1 / n!`.
+* `corrected_normalized`: For a configuration with distinct entries, the corrected signed vector
+  is normalized.
+* `corrected_antisymmetric`: Permuting the argument of the corrected signed vector multiplies
+  its amplitude by the permutation sign.
+
+## References
+
+* [Abrams and Lloyd, 1997][AbramsLloyd1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,9 +43,12 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open scoped Classical BigOperators
 
+/-- The particle configuration obtained by precomposing `a` with a permutation. -/
 def permuted {n m : ℕ} (a : Fin n → Fin m) (σ : Equiv.Perm (Fin n)) : Fin n → Fin m :=
   a ∘ σ
 
+/-- For a configuration with distinct entries, different particle permutations give different
+configurations. -/
 theorem permuted_injective {n m : ℕ} (a : Fin n → Fin m) (ha : Function.Injective a) :
     Function.Injective (permuted a) := by
   intro σ τ h
@@ -27,15 +57,20 @@ theorem permuted_injective {n m : ℕ} (a : Fin n → Fin m) (ha : Function.Inje
   apply ha
   exact congrFun h i
 
+/-- The sign of a permutation, regarded as a complex scalar. -/
 def parity {n : ℕ} (σ : Equiv.Perm (Fin n)) : ℂ := (Equiv.Perm.sign σ : ℤ)
 
+/-- A permutation's complex sign has squared norm one. -/
 theorem parity_normSq {n : ℕ} (σ : Equiv.Perm (Fin n)) :
     Complex.normSq (parity σ) = 1 := by
   rcases Int.units_eq_one_or (Equiv.Perm.sign σ) with h | h <;> simp [parity, h]
 
+/-- The signed sum of basis vectors over the permutation orbit of a particle configuration. -/
 def raw {n m : ℕ} (a : Fin n → Fin m) : QState (Fin n → Fin m) :=
   ∑ σ : Equiv.Perm (Fin n), parity σ • Ket (permuted a σ)
 
+/-- For a configuration with distinct entries, the raw orbit sum has amplitude equal to the
+corresponding permutation sign at each orbit point. -/
 theorem raw_at_permuted {n m : ℕ} (a : Fin n → Fin m)
     (ha : Function.Injective a) (σ : Equiv.Perm (Fin n)) :
     raw a (permuted a σ) = parity σ := by
@@ -48,6 +83,7 @@ theorem raw_at_permuted {n m : ℕ} (a : Fin n → Fin m)
     simp [hne]
   · simp
 
+/-- The raw signed orbit sum vanishes outside the permutation orbit. -/
 theorem raw_off_orbit {n m : ℕ} (a : Fin n → Fin m) (x : Fin n → Fin m)
     (hx : x ∉ Set.range (permuted a)) : raw a x = 0 := by
   classical
@@ -57,6 +93,7 @@ theorem raw_off_orbit {n m : ℕ} (a : Fin n → Fin m) (x : Fin n → Fin m)
   have hne : x ≠ permuted a σ := fun h => hx ⟨σ,h.symm⟩
   simp [hne]
 
+/-- For a configuration with distinct entries, the raw signed orbit sum has squared norm `n!`. -/
 theorem raw_normSq {n m : ℕ} (a : Fin n → Fin m) (ha : Function.Injective a) :
     ∑ x, Complex.normSq (raw a x) = (n.factorial : ℝ) := by
   classical
@@ -70,9 +107,12 @@ theorem raw_normSq {n m : ℕ} (a : Fin n → Fin m) (ha : Function.Injective a)
   · intro σ
     rfl
 
+/-- The raw signed orbit sum scaled by the printed coefficient `1 / n!`. -/
 def printed {n m : ℕ} (a : Fin n → Fin m) : QState (Fin n → Fin m) :=
   (((n.factorial : ℝ) : ℂ)⁻¹) • raw a
 
+/-- For a configuration with distinct entries, the printed signed vector has squared norm `1 /
+n!`. [AbramsLloyd1997] -/
 theorem printed_normSq {n m : ℕ} (a : Fin n → Fin m) (ha : Function.Injective a) :
     ∑ x, Complex.normSq (printed a x) = (n.factorial : ℝ)⁻¹ := by
   have hn : (n.factorial : ℝ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero n
@@ -80,9 +120,12 @@ theorem printed_normSq {n m : ℕ} (a : Fin n → Fin m) (ha : Function.Injectiv
     ← Finset.mul_sum,raw_normSq a ha,Complex.normSq_inv,Complex.normSq_ofReal]
   field_simp
 
+/-- The raw signed orbit sum scaled by `1 / sqrt(n!)`. -/
 def corrected {n m : ℕ} (a : Fin n → Fin m) : QState (Fin n → Fin m) :=
   ((Real.sqrt (n.factorial : ℝ) : ℂ)⁻¹) • raw a
 
+/-- For a configuration with distinct entries, the corrected signed vector is normalized.
+[AbramsLloyd1997] -/
 theorem corrected_normalized {n m : ℕ} (a : Fin n → Fin m)
     (ha : Function.Injective a) : Normalized (corrected a) := by
   have hn : (0 : ℝ) < n.factorial := by exact_mod_cast Nat.factorial_pos n
@@ -93,10 +136,13 @@ theorem corrected_normalized {n m : ℕ} (a : Fin n → Fin m)
     ← pow_two, Real.sq_sqrt (le_of_lt hn)]
   exact inv_mul_cancel₀ (ne_of_gt hn)
 
+/-- The complex permutation sign is multiplicative under composition. -/
 theorem parity_mul {n : ℕ} (σ τ : Equiv.Perm (Fin n)) :
     parity (σ*τ)=parity σ * parity τ := by
   simp [parity,Equiv.Perm.sign_mul]
 
+/-- Permuting the argument of the raw signed orbit sum multiplies its amplitude by the
+permutation sign. -/
 theorem raw_antisymmetric {n m : ℕ} (a x : Fin n → Fin m)
     (τ : Equiv.Perm (Fin n)) :
     raw a (permuted x τ)=parity τ * raw a x := by
@@ -121,6 +167,8 @@ theorem raw_antisymmetric {n m : ℕ} (a x : Fin n → Fin m)
       simp only [parity_mul,Ket,he]
       ring
 
+/-- Permuting the argument of the corrected signed vector multiplies its amplitude by the
+permutation sign. [AbramsLloyd1997] -/
 theorem corrected_antisymmetric {n m : ℕ} (a x : Fin n → Fin m)
     (τ : Equiv.Perm (Fin n)) :
     corrected a (permuted x τ)=parity τ * corrected a x := by

@@ -11,6 +11,26 @@ import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Tactic
 
+/-!
+# Continuous time search adversary bounds
+
+This module compares normalized evolutions under a common self adjoint driver with and without a
+rank one oracle term. It bounds the growth of their total squared distance by 2E√N T and derives
+time lower bounds from aggregate, pointwise, or all but one separation hypotheses, following the
+continuous search argument of [FarhiGutmann1998a].
+
+## Main statements
+
+* `distance_growth_le`: bound the total squared distance from a common initial state.
+* `continuous_sum_lower_bound`: total separation implies T ≥ ε√N/(2E).
+* `continuous_except_one_lower_bound`: derive a time bound when one marked index may be
+  excluded.
+
+## References
+
+* [Farhi and Gutmann, 1998][FarhiGutmann1998a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -21,14 +41,18 @@ namespace Qatlib.Concepts.QueryComplexity.ContinuousAdv
 variable {ι V : Type*} [Fintype ι]
   [NormedAddCommGroup V] [InnerProductSpace ℂ V]
 
+/-- The rank one action obtained by projecting onto basis vector `b i` and scaling by the real
+energy `E`. -/
 def rankOneAction (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι) (v : V) : V :=
   (E : ℂ) • (inner ℂ (b i) v • b i)
 
+/-- The sum of the rank one actions over the orthonormal basis is scalar multiplication by `E`. -/
 theorem sum_rankOneAction (b : OrthonormalBasis ι ℂ V) (E : ℝ) (v : V) :
     (∑ i, rankOneAction b E i v) = (E : ℂ) • v := by
   unfold rankOneAction
   rw [← Finset.smul_sum, b.sum_repr']
 
+/-- The rank one action is self adjoint with respect to the complex inner product. -/
 theorem rankOneAction_inner_comm (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι) (x y : V) :
     inner ℂ (rankOneAction b E i x) y = inner ℂ x (rankOneAction b E i y) := by
   unfold rankOneAction
@@ -36,6 +60,7 @@ theorem rankOneAction_inner_comm (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : 
     inner_smul_left, inner_smul_right, ← inner_conj_symm, Complex.conj_conj]
   ring
 
+/-- The expectation of the rank one action has zero imaginary part. -/
 theorem rankOneAction_inner_self_im (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι) (x : V) :
     (inner ℂ x (rankOneAction b E i x)).im = 0 := by
   unfold rankOneAction
@@ -43,6 +68,8 @@ theorem rankOneAction_inner_self_im (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i
   rw [mul_comm ((starRingEnd ℂ) (inner ℂ x (b i))), Complex.mul_conj]
   simp
 
+/-- The expectation of the rank one action equals `E` times the squared norm of the
+corresponding basis coefficient. -/
 theorem rankOneAction_inner_self (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι) (x : V) :
     inner ℂ x (rankOneAction b E i x) = ((E * ‖inner ℂ (b i) x‖ ^ 2 : ℝ) : ℂ) := by
   unfold rankOneAction
@@ -52,6 +79,8 @@ theorem rankOneAction_inner_self (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : 
   push_cast
   ring
 
+/-- For nonnegative energy, the norm of the rank one action is `E` times the norm of the
+corresponding basis coefficient. -/
 theorem norm_rankOneAction (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι) (x : V)
     (hE : 0 ≤ E) :
     ‖rankOneAction b E i x‖ = E * ‖inner ℂ (b i) x‖ := by
@@ -59,6 +88,8 @@ theorem norm_rankOneAction (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι) (x
   rw [norm_smul, norm_smul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hE,
     b.norm_eq_one, mul_one]
 
+/-- For a self adjoint driver, the real inner product determining squared distance growth
+reduces to the imaginary part of the oracle coupling. -/
 theorem distance_deriv_value (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι)
     (HD : V →L[ℂ] V) (hHD : ∀ u v, inner ℂ (HD u) v = inner ℂ u (HD v)) (ψw ψ : V) :
     (inner ℂ (ψw - ψ)
@@ -98,6 +129,8 @@ theorem distance_deriv_value (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι)
     neg_zero] at *
   linarith
 
+/-- For evolutions with a common self adjoint driver and one rank one oracle term, the
+derivative of their squared distance is twice the imaginary part of the oracle coupling. -/
 theorem distance_hasDerivAt (b : OrthonormalBasis ι ℂ V) (E : ℝ)
     (HD : ℝ → V →L[ℂ] V) (hHD : ∀ t u v, inner ℂ ((HD t) u) v = inner ℂ u ((HD t) v))
     (ψw : ι → ℝ → V) (ψ : ℝ → V)
@@ -124,6 +157,8 @@ theorem distance_hasDerivAt (b : OrthonormalBasis ι ℂ V) (E : ℝ)
   rw [hval] at hnorm
   exact hnorm
 
+/-- The sum of the absolute basis coefficients of a unit vector is at most the square root of
+the basis cardinality. -/
 theorem sum_norm_inner_le_sqrt_card (b : OrthonormalBasis ι ℂ V) (ψ : V) (hψ : ‖ψ‖ = 1) :
     (∑ i, ‖inner ℂ (b i) ψ‖) ≤ Real.sqrt (Fintype.card ι) := by
   have hcs := sq_sum_le_card_mul_sum_sq (s := (Finset.univ : Finset ι))
@@ -138,6 +173,8 @@ theorem sum_norm_inner_le_sqrt_card (b : OrthonormalBasis ι ℂ V) (ψ : V) (h�
   calc (∑ i, ‖inner ℂ (b i) ψ‖) = |∑ i, ‖inner ℂ (b i) ψ‖| := (abs_of_nonneg hF).symm
     _ ≤ Real.sqrt (Fintype.card ι) := abs_le_of_sq_le_sq hle (Real.sqrt_nonneg _)
 
+/-- For nonnegative energy and a unit marked state, the squared distance derivative term is at
+most twice the energy times the corresponding reference basis coefficient norm. -/
 theorem distance_deriv_term_le (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι)
     (ψw ψ : V) (hE : 0 ≤ E) (hψw : ‖ψw‖ = 1) :
     2 * (inner ℂ ψw (rankOneAction b E i ψ)).im ≤ 2 * E * ‖inner ℂ (b i) ψ‖ := by
@@ -149,6 +186,8 @@ theorem distance_deriv_term_le (b : OrthonormalBasis ι ℂ V) (E : ℝ) (i : ι
   rw [h3, hψw, one_mul] at h2
   linarith
 
+/-- For unit marked states and a unit reference state, the sum of squared distance derivative
+terms is at most 2E√N for nonnegative energy. -/
 theorem distance_deriv_le (b : OrthonormalBasis ι ℂ V) (E : ℝ) (ψw : ι → V) (ψ : V)
     (hE : 0 ≤ E) (hψw : ∀ i, ‖ψw i‖ = 1) (hψ : ‖ψ‖ = 1) :
     (∑ i, 2 * (inner ℂ (ψw i) (rankOneAction b E i ψ)).im) ≤
@@ -165,6 +204,10 @@ theorem distance_deriv_le (b : OrthonormalBasis ι ℂ V) (E : ℝ) (ψw : ι �
   rw [hfac] at hstep
   nlinarith [hstep, hcs]
 
+/-- For normalized evolutions starting from a common state and sharing a self adjoint driver,
+the total squared distance at nonnegative time `T` is at most 2E√N T when the rank one
+oracle energy is nonnegative. This is the growth estimate behind the continuous search bound
+in [FarhiGutmann1998a]. -/
 theorem distance_growth_le (b : OrthonormalBasis ι ℂ V) (E : ℝ) (hE : 0 ≤ E)
     (HD : ℝ → V →L[ℂ] V) (hHD : ∀ t u v, inner ℂ ((HD t) u) v = inner ℂ u ((HD t) v))
     (ψw : ι → ℝ → V) (ψ : ℝ → V)
@@ -208,6 +251,9 @@ theorem distance_growth_le (b : OrthonormalBasis ι ℂ V) (E : ℝ) (hE : 0 ≤
       (show T ∈ Set.Icc 0 T from ⟨hT, le_rfl⟩)
   simpa [F] using hmain
 
+/-- If the total squared distance at nonnegative time `T` is at least Nε, normalized evolutions
+with positive oracle energy and a common initial state satisfy T ≥ ε√N/(2E), under the
+stated evolution equations. -/
 theorem continuous_sum_lower_bound [Nonempty ι]
     (b : OrthonormalBasis ι ℂ V) {E ε T : ℝ} (hE : 0 < E) (_hε : 0 ≤ ε)
     (HD : ℝ → V →L[ℂ] V) (hHD : ∀ t u v, inner ℂ ((HD t) u) v = inner ℂ u ((HD t) v))
@@ -241,6 +287,8 @@ theorem continuous_sum_lower_bound [Nonempty ι]
   rw [div_le_iff₀ (by positivity : (0 : ℝ) < 2 * E)]
   nlinarith [hdiv]
 
+/-- If each marked evolution has squared distance at least ε from the reference at nonnegative
+time `T`, the stated normalized evolutions with positive energy satisfy T ≥ ε√N/(2E). -/
 theorem continuous_pointwise_lower_bound [Nonempty ι]
     (b : OrthonormalBasis ι ℂ V) {E ε T : ℝ} (hE : 0 < E) (hε : 0 ≤ ε)
     (HD : ℝ → V →L[ℂ] V) (hHD : ∀ t u v, inner ℂ ((HD t) u) v = inner ℂ u ((HD t) v))
@@ -257,6 +305,9 @@ theorem continuous_pointwise_lower_bound [Nonempty ι]
   calc (Fintype.card ι : ℝ) * ε = ∑ _i : ι, ε := by simp
        _ ≤ ∑ i, ‖ψw i T - ψ T‖ ^ 2 := Finset.sum_le_sum (fun i _ => hsep i)
 
+/-- If every marked evolution except possibly one has squared distance at least ε from the
+reference at nonnegative time `T`, the stated normalized evolutions with positive energy
+satisfy T ≥ ε(N − 1)/(2E√N). -/
 theorem continuous_except_one_lower_bound
     (b : OrthonormalBasis ι ℂ V) {E ε T : ℝ} (hE : 0 < E)
     (HD : ℝ → V →L[ℂ] V) (hHD : ∀ t u v, inner ℂ ((HD t) u) v = inner ℂ u ((HD t) v))

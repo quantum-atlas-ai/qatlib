@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+
+/-!
+# Composing returning probabilistic stages
+
+This module supplies cost and support lemmas for composing probabilistic stages in the
+algorithms of [BrassardHoyerTapp1998Collision]. The construction `returnLaw` extracts costed
+outputs from an unbounded execution, and `relabelSupported` permits an output map that uses a
+proof of support membership.
+
+The results cover additive expected-cost bounds, fixed-length stage sequences, and invariants
+propagated through supported transitions.
+
+## Main statements
+
+* `returnLaw_expectedCost`: With zero nontermination mass, the expected cost of `returnLaw`
+  equals the unbounded expected execution time.
+* `fixed_stage_expected_bound`: A sequence of `n` stages, each with expected cost uniformly at
+  most `c`, has expected cost at most `n * c`.
+* `stageSequence_invariant`: An indexed property holding initially and preserved by every
+  supported stage transition holds on the support of the resulting stage sequence.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,11 +42,14 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
+/-- Finite unbounded expected execution time implies zero nontermination mass. -/
 theorem finite_expected_time_never_zero {S O : Type} (next : S → PMF (O ⊕ S))
     (cfg : O ⊕ S) (h : generalUnboundedTime next cfg < ⊤) :
     generalNeverMass next cfg = 0 :=
   (general_unbounded_actual_expected_time S O next cfg).2.1 h
 
+/-- Composing a first stage of expected cost at most `a` with uniformly bounded second stages of
+expected cost at most `b` has expected cost at most `a + b`. -/
 theorem adaptive_two_stage_bound {S T : Type} (p : CostedLaw S)
     (step : S → CostedLaw T) (a b : ℝ≥0∞)
     (hp : expectedCost p ≤ a) (hs : ∀ s, expectedCost (step s) ≤ b) :
@@ -33,11 +62,15 @@ theorem adaptive_two_stage_bound {S T : Type} (p : CostedLaw S)
         (fun x => hs x.1)
     _ = b := expectation_const p b
 
+/-- The costed law obtained by applying the indexed stages successively, starting from a
+deterministic initial state. -/
 noncomputable def stageSequence {S : Type} (step : ℕ → S → CostedLaw S)
     (initial : S) : ℕ → CostedLaw S
   | 0 => CostedLaw.ret initial
   | n+1 => CostedLaw.bind (stageSequence step initial n) (step n)
 
+/-- A sequence of `n` stages, each with expected cost uniformly at most `c`, has expected cost
+at most `n * c`. -/
 theorem fixed_stage_expected_bound {S : Type} (step : ℕ → S → CostedLaw S)
     (initial : S) (c : ℝ≥0∞) (hs : ∀ i s, expectedCost (step i s) ≤ c) (n : ℕ) :
     expectedCost (stageSequence step initial n) ≤ (n : ℝ≥0∞)*c := by
@@ -49,6 +82,8 @@ theorem fixed_stage_expected_bound {S : Type} (step : ℕ → S → CostedLaw S)
         adaptive_two_stage_bound (stageSequence step initial n) (step n) _ _ ih (hs n)
       _ = ((n+1:ℕ):ℝ≥0∞)*c := by simp [Nat.cast_add, add_mul]
 
+/-- Splits an extended nonnegative sum over an option type into the sum over `some` values and
+the term at `none`. -/
 theorem option_tsum_split {α : Type} (F : Option α → ℝ≥0∞) :
     ∑' z, F z = (∑' a, F (some a)) + F none := by
   have hs := (ENNReal.summable
@@ -57,10 +92,14 @@ theorem option_tsum_split {α : Type} (F : Option α → ℝ≥0∞) :
   have h := ((Equiv.hasSum_iff (Equiv.optionEquivSumPUnit α).symm).mp hs).tsum_eq
   simpa using h
 
+/-- Maps the unbounded execution law to output-cost pairs, using an arbitrary output with zero
+cost for the nontermination outcome. -/
 noncomputable def returnLaw {S O : Type} [Nonempty O]
     (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S) : CostedLaw O :=
   (generalUnboundedLaw next cfg).map (fun z => z.getD (Classical.choice inferInstance, 0))
 
+/-- If nontermination mass is zero, the mass of an output-cost pair under `returnLaw` equals its
+joint halting mass. -/
 theorem returnLaw_apply {S O : Type} [Nonempty O]
     (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S)
     (hNever : generalNeverMass next cfg = 0) (o : O) (k : ℕ) :
@@ -75,6 +114,8 @@ theorem returnLaw_apply {S O : Type} [Nonempty O]
     simp only [eq_comm]
   rw [tsum_congr hp, tsum_ite_eq]
 
+/-- With zero nontermination mass, every supported pair under `returnLaw` comes from the
+corresponding terminal outcome of the unbounded law. -/
 theorem returnLaw_nonzero_some {S O : Type} [Nonempty O]
     (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S)
     (hNever : generalNeverMass next cfg = 0) (o : O) (k : ℕ)
@@ -83,6 +124,8 @@ theorem returnLaw_nonzero_some {S O : Type} [Nonempty O]
   simpa only [returnLaw_apply next cfg hNever o k,
     generalUnboundedLaw_apply, generalUnboundedMass_some] using h
 
+/-- With zero nontermination mass, the expected cost of `returnLaw` equals the unbounded
+expected execution time. -/
 theorem returnLaw_expectedCost {S O : Type} [Nonempty O]
     (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S)
     (hNever : generalNeverMass next cfg = 0) :
@@ -93,10 +136,13 @@ theorem returnLaw_expectedCost {S O : Type} [Nonempty O]
   exact tsum_congr fun o => tsum_congr fun k => by
     rw [returnLaw_apply next cfg hNever o k, mul_comm]
 
+/-- Relabels outputs using a function defined on supported output-cost pairs, preserving their
+costs. -/
 noncomputable def relabelSupported {α β : Type} (p : CostedLaw α)
     (f : ∀ z ∈ p.support, β) : CostedLaw β :=
   p.bindOnSupport fun z hz => PMF.pure (f z hz, z.2)
 
+/-- Relabeling supported outputs preserves expected cost. -/
 theorem relabelSupported_expectedCost {α β : Type} (p : CostedLaw α)
     (f : ∀ z ∈ p.support, β) : expectedCost (relabelSupported p f) = expectedCost p := by
   classical
@@ -110,6 +156,8 @@ theorem relabelSupported_expectedCost {α β : Type} (p : CostedLaw α)
   · simp only [dif_neg hz, PMF.pure_apply, mul_ite, mul_one, mul_zero,
       ite_mul, zero_mul, tsum_ite_eq]
 
+/-- Every supported relabeled output-cost pair comes from a supported original pair with the
+same cost. -/
 theorem relabelSupported_support {α β : Type} (p : CostedLaw α)
     (f : ∀ z ∈ p.support, β) (b : β) (c : ℕ)
     (h : relabelSupported p f (b,c) ≠ 0) :
@@ -119,6 +167,8 @@ theorem relabelSupported_support {α β : Type} (p : CostedLaw α)
   have he : (b,c) = (f z hz, z.2) := (PMF.mem_support_pure_iff _ _).mp hb
   exact ⟨z, hz, congrArg Prod.fst he, congrArg Prod.snd he⟩
 
+/-- A function constant on the support of a probability mass function has that constant as its
+expectation. -/
 theorem expectation_const_on_support {α : Type} (p : PMF α) (f : α → ℝ≥0∞) (c : ℝ≥0∞)
     (h : ∀ a, p a ≠ 0 → f a = c) : expectation p f = c := by
   calc
@@ -131,6 +181,8 @@ theorem expectation_const_on_support {α : Type} (p : PMF α) (f : α → ℝ≥
       · rw [h a ha]
     _ = c := expectation_const p c
 
+/-- A lower bound holding on the support of a probability mass function is also a lower bound on
+the expectation. -/
 theorem expectation_lower_on_support {α : Type} (p : PMF α) (f : α → ℝ≥0∞) (c : ℝ≥0∞)
     (h : ∀ a, p a ≠ 0 → c ≤ f a) : c ≤ expectation p f := by
   rw [← expectation_const p c]
@@ -141,6 +193,8 @@ theorem expectation_lower_on_support {α : Type} (p : PMF α) (f : α → ℝ≥
   · simp [ha]
   · exact mul_le_mul' le_rfl (h a ha)
 
+/-- Every supported output of costed composition has supported first and second stages whose
+costs sum to the total cost. -/
 theorem bind_support {α β : Type} (p : CostedLaw α) (f : α → CostedLaw β)
     (b : β) (c : ℕ) (h : CostedLaw.bind p f (b,c) ≠ 0) :
     ∃ (a : α) (i j : ℕ), p (a,i) ≠ 0 ∧ f a (b,j) ≠ 0 ∧ c = i+j := by
@@ -153,6 +207,8 @@ theorem bind_support {α β : Type} (p : CostedLaw α) (f : α → CostedLaw β)
   subst b'
   exact ⟨a,i,j,hz,hw,(congrArg Prod.snd he).symm⟩
 
+/-- An indexed property holding initially and preserved by every supported stage transition
+holds on the support of the resulting stage sequence. -/
 theorem stageSequence_invariant {S : Type} (step : ℕ → S → CostedLaw S) (initial : S)
     (P : ℕ → S → Prop) (h0 : P 0 initial)
     (hs : ∀ n s t c, P n s → step n s (t,c) ≠ 0 → P (n+1) t)

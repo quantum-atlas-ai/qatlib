@@ -8,6 +8,25 @@ import Qatlib.Concepts.TrotterFormula.LieStrang.AnticommutingPropagator.Defs
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
+
+/-!
+# Algebra of anticommuting propagators
+
+This module proves polynomial identities for `shiftedGenerator` and `rescaledStep` when `P` and
+`Q` are anticommuting involutions. The calculations reduce matrix products to scalar coefficient
+identities, using the matrix-algebra setting of [Bhatia1997].
+
+## Main statements
+
+* `shiftedGenerator_square`: the shifted generator squares to `(a² - ω²)` times identity.
+* `rescaledStep_inverse`: opposite step parameters give two-sided inverses under the coefficient
+  relation.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +37,8 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- For anticommuting involutions `P` and `Q`, the square of `iω P + a Q` is `(a² - ω²)` times
+identity. -/
 theorem shiftedGenerator_square (P Q : Matrix I I ℂ) (a ω : ℝ)
     (hP : P * P = 1) (hQ : Q * Q = 1) (hPQ : P * Q = -(Q * P)) :
     shiftedGenerator P Q a ω * shiftedGenerator P Q a ω =
@@ -35,6 +56,8 @@ theorem shiftedGenerator_square (P Q : Matrix I I ℂ) (a ω : ℝ)
   push_cast
   ring
 
+/-- For anticommuting involutions and `c² + (ω² - a²) * s² = 1`, the rescaled steps with
+parameters `s` and `-s` are two-sided inverses. -/
 theorem rescaledStep_inverse (P Q : Matrix I I ℂ) (a ω c s : ℝ)
     (hP : P * P = 1) (hQ : Q * Q = 1) (hPQ : P * Q = -(Q * P))
     (hcs : c ^ 2 + (ω ^ 2 - a ^ 2) * s ^ 2 = 1) :

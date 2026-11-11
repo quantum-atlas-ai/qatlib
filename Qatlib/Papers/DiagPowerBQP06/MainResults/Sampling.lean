@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 import Mathlib.Tactic
+
+/-!
+# Sampling powered readouts
+
+This module applies a finite-distribution concentration bound to independent powered readouts
+bounded in absolute value by one. It also combines the sampling and moment errors into a bound
+on the diagonal-entry estimation error.
+
+These constructions accompany the results of [JanzingWocjan2006a].
+
+## Main statements
+
+* `sampling_error_bound`: bounds the probability of a sample-mean error of at least `ε / 3`.
+* `sampled_mean_to_diagonal_error`: adds the sampling and moment error allocations.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006a]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +40,9 @@ namespace Qatlib.Papers.DiagPowerBQP06.MainResults.Sampling
 
 variable {Ω : Type*} [Fintype Ω] [DecidableEq Ω]
 
+/-- For a positive number of independent samples and readouts bounded in absolute value by one,
+the probability that the powered sample mean differs from its expectation by at least `ε /
+3` is at most `2 * exp (-(ε ^ 2 * k) / 18)`. See [JanzingWocjan2006a]. -/
 theorem sampling_error_bound
     (p : FinDist Ω) (Z : Ω → ℝ) (m k : ℕ) (hk : 0 < k) (ε : ℝ) (hε : 0 < ε)
     (hZ : ∀ ω, |Z ω| ≤ 1) :
@@ -63,6 +86,8 @@ theorem sampling_error_bound
     ring
   rwa [hexp_eq] at hmain
 
+/-- Sampling error and moment-to-diagonal error each at most `ε / 3` give mean-to-diagonal error
+at most `2 * ε / 3`. See [JanzingWocjan2006a]. -/
 theorem sampled_mean_to_diagonal_error {mean moment diag ε : ℝ}
     (h1 : |mean - moment| ≤ ε / 3) (h2 : |moment - diag| ≤ ε / 3) (hε : 0 ≤ ε) :
     |mean - diag| ≤ 2 * ε / 3 := by

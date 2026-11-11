@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinateFibre
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
+
+/-!
+# Coordinate Gram actions as update sums
+
+Expresses the action of a coordinate Gram matrix as a sum over all replacement labels, using
+zero extension to discard noninjective updates. The auxiliary results `sum_indicator_subtype`
+and `update_injective_iff` relate indicator sums and available-label conditions to this formula.
+See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `update_injective_iff`: Updating coordinate `i` of an injective tuple with `a` preserves
+  injectivity exactly when `a` is absent from the tuple with coordinate `i` deleted.
+* `coordinateGram_apply`: The coordinate Gram action at an injective tuple is the sum of the
+  zero-extended amplitudes over all updates to coordinate `i`.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,12 +38,16 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 
+/-- Summing a function with the indicator of a predicate over a finite type equals summing it
+over the subtype satisfying that predicate. -/
 theorem sum_indicator_subtype {A K : Type*} [Fintype A] [AddCommMonoid K] (p : A → Prop)
     (g : A → K) : (∑ a : A,if p a then g a else 0)=∑ a : {a // p a},g a := by
   rw [← Finset.sum_filter]
   exact Finset.sum_subtype (F := inferInstance) (Finset.univ.filter p) (by simp) g
 omit [Fintype I] [Fintype L] in
 
+/-- Updating coordinate `i` of an injective tuple with `a` preserves injectivity exactly when
+`a` is absent from the tuple with coordinate `i` deleted. -/
 theorem update_injective_iff (i : I) (u : InjectiveTuple I L) (a : L) :
     Function.Injective (Function.update (u : I → L) i a) ↔ a ∉ Set.range (eraseTuple i u) := by
   constructor
@@ -34,6 +59,8 @@ theorem update_injective_iff (i : I) (u : InjectiveTuple I L) (a : L) :
   · intro h
     exact (completeCoordinate i u ⟨a,h⟩).injective
 
+/-- The coordinate Gram action at an injective tuple is the sum of the zero-extended amplitudes
+over all updates to coordinate `i`. -/
 theorem coordinateGram_apply (i : I) (u : InjectiveTuple I L) (v : InjectiveTuple I L → ℂ) :
     (coordinateGram (L := L) i*ᵥ v) u=∑ a : L,extend v (Function.update (u : I → L) i a) := by
   change (∑ z : InjectiveTuple I L,(if eraseTuple i u=eraseTuple i z then (1 : ℂ) else 0)*v z)=_

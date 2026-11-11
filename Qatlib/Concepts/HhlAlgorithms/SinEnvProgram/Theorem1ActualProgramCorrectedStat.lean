@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeProgramDefinitions
+
+/-!
+# Corrected sine-envelope HHL program specification
+
+This module defines the corrected guarantee package for the sine-envelope HHL program analyzed
+in [HarrowHassidimLloyd2009]. It combines basic circuit laws with full-workspace accuracy and
+relative flag-mass error, then specifies normalized well-branch accuracy and the
+reciprocal-filter identity on well-separated positive spectra.
+
+## Main statements
+
+* `Theorem1ActualProgramCorrected`: the specification with positive thresholds,
+  decoded-filter-weighted well states, and linear relative mass bounds.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,6 +54,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Real
 
+/-- The corrected guarantee package combines basic laws, workspace error at resolution
+`21/(d*η)`, and normalized well-branch error at resolution `420/(d*η)`, with relative mass
+factor `47/(d*M)` and the spectral reciprocal-filter identity. -/
 def Theorem1ActualProgramCorrected : Prop :=
   SinEnvelopeBasicLawsCorrected ∧
   (∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D)

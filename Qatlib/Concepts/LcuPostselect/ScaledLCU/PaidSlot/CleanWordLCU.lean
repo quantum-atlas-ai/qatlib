@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LcuPostselect.ScaledLCU.PaidSlot.CleanBlockLCU
+
+/-!
+# Weighted LCU words from clean blocks
+
+`clean_word_lcu_encoding_cost` lifts the clean-block LCU compression identity to an explicit
+adjoint-query word. A unitary word whose clean compression is a controlled family yields a
+projected unitary encoding of its normalized weighted sum.
+
+The construction follows the LCU framework of [GilyenSuLowWiebe2019] and records the unchanged
+query count, the three additional fixed gates, and preservation of circuit well-formedness.
+
+## Main statements
+
+* `clean_word_lcu_encoding_cost`: certify the projected encoding, exact costs, and conditional
+  preservation of well-formedness.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +39,8 @@ variable {J T I : Type} [Fintype J] [DecidableEq J]
 
 omit [Fintype J] [Fintype T] in
 
+/-- Selection of the coefficient-phase-weighted identity family equals the lifted diagonal phase
+matrix. -/
 private theorem word_phase_matrix (d : J → ℂ) :
     Qatlib.Concepts.BlockEncoding.LCU.select (Qatlib.Concepts.BlockEncoding.EncodingCore.phaseAbsorbed d (fun _ => (1 : Matrix T T ℂ))) =
       Qatlib.Concepts.BlockEncoding.EncodingCore.prepareRegister (I := T) (Matrix.diagonal (fun j => Qatlib.Concepts.BlockEncoding.EncodingCore.coefficientPhase (d j))) := by
@@ -27,6 +50,9 @@ private theorem word_phase_matrix (d : J → ℂ) :
     simp [Qatlib.Concepts.BlockEncoding.EncodingCore.prepareRegister, Matrix.kroneckerMap_apply, Qatlib.Concepts.BlockEncoding.LCU.select, Qatlib.Concepts.BlockEncoding.EncodingCore.phaseAbsorbed,
       Matrix.one_apply, hj, hx]
 
+/-- A unitary word with controlled clean-frame compression yields a projected encoding of the
+normalized weighted sum, preserves the query count, and adds three fixed gates;
+well-formedness is preserved when the original word is well-formed. -/
 theorem clean_word_lcu_encoding_cost
     (L : Matrix T I ℂ) (O : Matrix (J × T) (J × T) ℂ)
     (W : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (J × T))) (Y : J → Matrix I I ℂ)

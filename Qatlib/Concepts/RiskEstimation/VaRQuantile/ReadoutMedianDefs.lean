@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalStat
 import Qatlib.Concepts.RiskEstimation.CDFEstimation.CDFActualFiniteSubgoalQuan
+
+/-!
+# Median amplification for risk readout
+
+This module connects finite-distribution event mass with PMF event probability and proves the
+median tail bound used for risk estimation. `risk_mean_good` supplies a uniform success window
+for bounded payoff means from amplitude estimation [BrassardEtAl2002], while `risk_median_tail`
+turns the one-shot success bound into exponential decay in the repetition parameter.
+
+## Main statements
+
+* `risk_closure_event`: identify the event probability of a closed finite distribution.
+* `risk_median_tail`: bound median failure by `(8/9)^r`.
+* `risk_mean_good`: lower-bound the probability of an accurate payoff mean estimate.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +50,8 @@ set_option maxHeartbeats 1000000
 
 namespace Qatlib.Concepts.RiskEstimation.VaRQuantile
 
+/-- The event probability of `closurePMF p` is the nonnegative extended-real image of the
+corresponding finite-distribution mass. -/
 theorem risk_closure_event {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) (E : X → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (closurePMF p) E = ENNReal.ofReal (Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.mass p E) := by
   classical
@@ -41,6 +63,9 @@ theorem risk_closure_event {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X
   intro x _
   by_cases hx : E x <;> simp [hx]
 
+/-- If one amplitude estimate lies within `e` of `mu` with probability at least `8/π²`, the
+median of `2*r + 1` independent estimates exceeds that error with probability at most
+`(8/9)^r`. -/
 theorem risk_median_tail {M : ℕ} (p : FinDist (Fin M)) (r : ℕ) (mu e : ℝ)
     (he : 0 ≤ e) (hgood : 8/Real.pi^2 ≤ Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.mass p (fun z => |aeEstimate M z-mu| ≤ e)) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (riskMedianPMF p r) (fun z => e < |z-mu|) ≤ ENNReal.ofReal ((8/9:ℝ)^r) := by
@@ -63,6 +88,8 @@ theorem risk_median_tail {M : ℕ} (p : FinDist (Fin M)) (r : ℕ) (mu e : ℝ)
   apply ENNReal.ofReal_le_ofReal
   exact hm
 
+/-- For a unitary preparation and a payoff in `[0, 1]`, the mean-law estimate is within `π/M +
+π²/M²` of the Born-weighted payoff mean with probability at least `8/π²`. -/
 theorem risk_mean_good {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (f : I → ℝ) (M : ℕ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (hf : ∀ i, f i ∈ Set.Icc (0:ℝ) 1) (hM : 2 ≤ M) :

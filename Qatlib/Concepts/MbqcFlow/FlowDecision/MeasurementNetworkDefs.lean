@@ -8,6 +8,34 @@ import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
 import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+
+/-!
+# Finite measurement networks and message trees
+
+`FiniteNetwork` describes finite adaptive executions with instrument measurements, explicit bit
+transmissions, and corrected qudit teleportation. Its dependent transcripts determine event
+lists and `ExecutionResources`, while `feedForwardBranch` and `Clause8Claim` specify
+conditional-unitary and reference-system behavior.
+
+`BinaryMessageTree` represents finite messages by leaf paths and provides encoding and partial
+decoding. `OneWayGuessingProtocol` describes input-dependent local instruments and
+message-dependent guessing, in the quantum-information framework of [Watrous2018] and the
+teleportation setting of [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `FiniteNetwork.Transcript`, `FiniteNetwork.events`, and `FiniteNetwork.resources`: execution
+  records.
+* `BinaryMessageTree.encode` and `BinaryMessageTree.decode`: tree-message representations.
+* `OneWayGuessingProtocol.success`: prior-weighted guessing success.
+* `Clause8Claim`: conditional-unitary, teleportation, and ledger properties.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -24,11 +52,15 @@ open Matrix
 open Qatlib
 open scoped ComplexOrder
 
+/-- The branch map obtained by applying an instrument branch and then conjugating by its
+outcome-selected matrix. -/
 noncomputable def feedForwardBranch {O : Type*} [Fintype O] {D E : ℕ}
     (I : Instrument O D E) (U : O → Matrix (Fin E) (Fin E) ℂ) (o : O) :
     Operator D →ₗ[ℂ] Operator E :=
   (conjBranch (U o)).comp (I.branch o)
 
+/-- A ledger recording created and consumed EPR pairs, loaded inputs, local measurements, and
+transmitted classical bits. -/
 structure NetworkResourceLedger where
   eprCreated : ℕ
   sharedEprUsed : ℕ
@@ -36,9 +68,12 @@ structure NetworkResourceLedger where
   localMeasurements : ℕ
   classicalBits : ℕ
 
+/-- The condition that consumed shared EPR pairs do not exceed the number recorded as created. -/
 def NetworkResourceLedger.EntanglementLaw (L : NetworkResourceLedger) : Prop :=
   L.sharedEprUsed ≤ L.eprCreated
 
+/-- The conjunction of conditional-unitary instrument laws, corrected qudit teleportation
+formulas with a reference system, and the resource-ledger entanglement condition. -/
 def Clause8Claim : Prop :=
   (∀ (O : Type) [Fintype O] [DecidableEq O] (D E : ℕ)
     (I : Instrument O D E) (U : O → Matrix (Fin E) (Fin E) ℂ)
@@ -60,6 +95,8 @@ end Qatlib.Concepts.MbqcFlow.FlowDecision
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
 
+/-- Finite adaptive networks indexed by input and output dimension, with termination, instrument
+measurement, classical transmission, and corrected qudit teleportation nodes. -/
 inductive FiniteNetwork : ℕ → ℕ → Type where
   | done (D : ℕ) : FiniteNetwork D D
   | measure {D M E : ℕ} (s : ℕ) (I : Instrument (Fin s) D M)
@@ -68,6 +105,8 @@ inductive FiniteNetwork : ℕ → ℕ → Type where
   | teleport {n E : ℕ} (hn : NeZero n) (width : ℕ) (fits : n ≤ 2 ^ width)
       (next : Fin n × Fin n → FiniteNetwork n E) : FiniteNetwork n E
 
+/-- The dependent type of outcome transcripts for a finite network, recording measurement and
+teleportation outcomes along the chosen continuation. -/
 def FiniteNetwork.Transcript {D E : ℕ} : FiniteNetwork D E → Type
   | .done _ => Unit
   | .measure s _ next => (o : Fin s) × (next o).Transcript
@@ -86,11 +125,15 @@ noncomputable instance FiniteNetwork.transcriptFintype {D E : ℕ} (P : FiniteNe
       letI := ih
       exact inferInstanceAs (Fintype ((o : _ × _) × (next o).Transcript))
 
+/-- Execution events recording an instrument outcome, a transmitted bit string, or a qudit
+teleportation outcome. -/
 inductive NetworkEvent where
   | instrument (outcomes report : ℕ)
   | transmit (bits : List Bool)
   | teleport (n : ℕ) (hn : NeZero n) (outcome : Fin n × Fin n)
 
+/-- The ordered event list associated with a network transcript, including the classical message
+sent after each teleportation. -/
 def FiniteNetwork.events {D E : ℕ} (P : FiniteNetwork D E) :
     P.Transcript → List NetworkEvent :=
   match P with
@@ -101,6 +144,8 @@ def FiniteNetwork.events {D E : ℕ} (P : FiniteNetwork D E) :
   | .teleport (n := n) hn width _ next => fun t =>
       .teleport n hn t.1 :: .transmit (quditMessage n width t.1) :: (next t.1).events t.2
 
+/-- Resource counts for abstract instrument calls, fresh pair dimensions, Bell pairs, matrix
+gates, macro measurements, and classical bits. -/
 structure ExecutionResources where
   abstractInstrumentCalls : ℕ := 0
   freshPairDimensions : List ℕ := []
@@ -110,6 +155,8 @@ structure ExecutionResources where
   classicalBits : ℕ := 0
   deriving DecidableEq
 
+/-- The resource totals accumulated from an event list, including the implementation cost of
+each teleportation event. -/
 noncomputable def eventResources : List NetworkEvent → ExecutionResources
   | [] => {}
   | .instrument _ _ :: es =>
@@ -127,9 +174,11 @@ noncomputable def eventResources : List NetworkEvent → ExecutionResources
         matrixGates := (quditProgramLeaf n o).gates + r.matrixGates
         macroMeasurements := (quditProgramLeaf n o).measurements + r.macroMeasurements }
 
+/-- The resource record obtained by accumulating the events of a network transcript. -/
 noncomputable def FiniteNetwork.resources {D E : ℕ} (P : FiniteNetwork D E)
     (t : P.Transcript) : ExecutionResources := eventResources (P.events t)
 
+/-- The list of bit strings carried by transmission events, preserving their order. -/
 def transmittedWords (es : List NetworkEvent) : List (List Bool) :=
   es.filterMap fun e => match e with
     | .transmit bits => some bits
@@ -139,10 +188,13 @@ end Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
 
+/-- Finite binary trees representing messages as paths from the root to a leaf. -/
 inductive BinaryMessageTree where
   | leaf
   | fork (left right : BinaryMessageTree)
 
+/-- The type of leaf paths of a binary message tree, choosing a left or right subtree at each
+fork. -/
 def BinaryMessageTree.Path : BinaryMessageTree → Type
   | .leaf => Unit
   | .fork l r => l.Path ⊕ r.Path
@@ -155,10 +207,12 @@ noncomputable instance BinaryMessageTree.pathFintype (T : BinaryMessageTree) : F
       letI := ihr
       exact inferInstanceAs (Fintype (l.Path ⊕ r.Path))
 
+/-- The maximum number of forks on a path from the root to a leaf. -/
 def BinaryMessageTree.depth : BinaryMessageTree → ℕ
   | .leaf => 0
   | .fork l r => max l.depth r.depth + 1
 
+/-- The bit-string encoding of a leaf path, using `false` for left and `true` for right. -/
 def BinaryMessageTree.encode (T : BinaryMessageTree) : T.Path → List Bool :=
   match T with
   | .leaf => fun _ => []
@@ -166,6 +220,8 @@ def BinaryMessageTree.encode (T : BinaryMessageTree) : T.Path → List Bool :=
       | .inl p => false :: l.encode p
       | .inr p => true :: r.encode p
 
+/-- The partial decoder that accepts precisely bit strings ending at a leaf of the binary
+message tree. -/
 def BinaryMessageTree.decode (T : BinaryMessageTree) : List Bool → Option T.Path :=
   match T with
   | .leaf => fun bits => match bits with
@@ -176,16 +232,21 @@ def BinaryMessageTree.decode (T : BinaryMessageTree) : List Bool → Option T.Pa
       | false :: bs => (l.decode bs).map Sum.inl
       | true :: bs => (r.decode bs).map Sum.inr
 
+/-- A one-way guessing protocol with input-dependent Alice instruments producing tree paths and
+message-dependent Bob instruments guessing the input. -/
 structure OneWayGuessingProtocol (X : Type) [Fintype X] (T : BinaryMessageTree)
     (A E B F : ℕ) where
   alice : X → Instrument T.Path A E
   bob : T.Path → Instrument X B F
 
+/-- Bob's unnormalized conditional state after Alice applies the branch selected by the input
+and message. -/
 noncomputable def OneWayGuessingProtocol.bobState {X : Type} [Fintype X]
     {T : BinaryMessageTree} {A E B F : ℕ} (P : OneWayGuessingProtocol X T A E B F)
     (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (x : X) (t : T.Path) : Operator B :=
   partialTraceFirst (tensorLeft ((P.alice x).branch t) σ)
 
+/-- The prior-weighted sum of correct-guess probabilities over inputs and message-tree paths. -/
 noncomputable def OneWayGuessingProtocol.success {X : Type} [Fintype X]
     {T : BinaryMessageTree} {A E B F : ℕ} (P : OneWayGuessingProtocol X T A E B F)
     (σ : Matrix (Fin A × Fin B) (Fin A × Fin B) ℂ) (prior : X → ℝ) : ℝ :=

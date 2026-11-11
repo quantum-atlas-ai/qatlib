@@ -18,6 +18,30 @@ import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.FieldSimp
+
+/-!
+# OR polynomials and comparison-model programs
+
+This module defines the Boolean function `orFunction`, its representing polynomial
+`orPolynomial`, and the classical scan tree `orScanTree`. It proves polynomial evaluation and
+degree bounds, scan correctness and query counts, and exact zero-query programs for constant
+functions.
+
+The definitions `sourceQE`, `sourceQ2`, and `sourceQ0` expose the selected finite-machine query
+minima. These objects support comparisons with the polynomial method of [BealsEtAl2001].
+
+## Main statements
+
+* `orPolynomial_represents`: The product-form polynomial represents OR on Boolean inputs.
+* `orPolynomial_totalDegree_le`: The OR polynomial has degree at most the input size.
+* `orScanTree_run`: The scan tree detects a true bit in its index list.
+* `orScanTree_maxQueries`: The maximum number of queries equals the list length.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,13 +60,17 @@ open scoped Classical BigOperators ENNReal
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The Boolean OR function on the finite input index type. -/
 def orFunction : (I → Bool) → Bool := fun g => ∃ i, g i = true
 
+/-- The real multivariate OR polynomial `1 - ∏ i, (1 - X i)`. -/
 def orPolynomial : MvPolynomial I ℝ :=
   MvPolynomial.C 1 - (Finset.univ.prod fun i => (1 - MvPolynomial.X i : MvPolynomial I ℝ))
 
 omit [DecidableEq I] in
 
+/-- Evaluating the OR polynomial at a Boolean oracle point gives one for a true OR value and
+zero otherwise. -/
 theorem orPolynomial_eval (g : I → Bool) :
     MvPolynomial.eval (oraclePoint g) (orPolynomial) = if orFunction g then (1 : ℝ) else 0 := by
   unfold orPolynomial orFunction
@@ -68,6 +96,7 @@ theorem orPolynomial_eval (g : I → Bool) :
       Finset.prod_eq_one hall
     simp [h, hprod]
 
+/-- The total degree of the OR polynomial is at most the number of input indices. -/
 theorem orPolynomial_totalDegree_le :
     (orPolynomial : MvPolynomial I ℝ).totalDegree ≤ Fintype.card I := by
   let P : MvPolynomial I ℝ :=
@@ -108,23 +137,29 @@ theorem orPolynomial_totalDegree_le :
   rw [hone, max_eq_right (Nat.zero_le _)]
   exact hdegP
 
+/-- A list enumerating all elements of the finite type `I`. -/
 def allElements (I : Type) [Fintype I] : List I := (Finset.univ : Finset I).toList
 
+/-- The enumeration of all elements has length equal to the cardinality of `I`. -/
 theorem allElements_length (I : Type) [Fintype I] :
     (allElements I).length = Fintype.card I := by
   rw [allElements, Finset.length_toList]
   exact Finset.card_univ
 
+/-- Every element of `I` appears in `allElements I`. -/
 theorem allElements_mem (I : Type) [Fintype I] (i : I) : i ∈ allElements I := by
   rw [allElements, Finset.mem_toList]
   exact Finset.mem_univ i
 
+/-- The decision tree that scans the listed indices until a true bit is found, returning false
+if the list is exhausted. -/
 def orScanTree : List I → BoolQueryTree I Bool
   | [] => .halt false
   | i :: is => .ask i (orScanTree is) (.halt true)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The scan tree returns true exactly when at least one index in its list has a true input bit. -/
 theorem orScanTree_run (l : List I) (g : I → Bool) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run g (orScanTree l)).1 = true ↔ ∃ i ∈ l, g i = true := by
   induction l with
@@ -162,6 +197,7 @@ theorem orScanTree_run (l : List I) (g : I → Bool) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The maximum query count of the scan tree is the length of its index list. -/
 theorem orScanTree_maxQueries (l : List I) :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.MaxQueries (orScanTree l) = l.length := by
   induction l with
@@ -172,11 +208,15 @@ theorem orScanTree_maxQueries (l : List I) :
         Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.MaxQueries]
     omega
 
+/-- A zero-query decision program initialized at the basis state `p` with an empty accepting
+event. -/
 def rejectProgram (p : (I × Bool) × W) : DecisionProgram I W where
   circuit := []
   initial := Ket p
   accept := ∅
 
+/-- A zero-query decision program initialized at the basis state `p` and accepting that basis
+outcome. -/
 def acceptProgram (p : (I × Bool) × W) : DecisionProgram I W where
   circuit := []
   initial := Ket p
@@ -184,50 +224,63 @@ def acceptProgram (p : (I × Bool) × W) : DecisionProgram I W where
 
 omit [Fintype I] [Fintype W] in
 
+/-- The constant-reject program uses zero queries. -/
 theorem rejectProgram_queryCount (p : (I × Bool) × W) :
     QueryCount (rejectProgram p).circuit = 0 := rfl
 
 omit [Fintype I] [Fintype W] in
 
+/-- The constant-accept program uses zero queries. -/
 theorem acceptProgram_queryCount (p : (I × Bool) × W) :
     QueryCount (acceptProgram p).circuit = 0 := rfl
 
+/-- The acceptance probability of the constant-reject program is zero on every oracle. -/
 theorem rejectProgram_successProb (p : (I × Bool) × W) (g : I → Bool) :
     (rejectProgram p).successProb g = 0 := by
   unfold DecisionProgram.successProb
   simp [rejectProgram, MeasureProb, Finset.sum_empty]
 
+/-- The acceptance probability of the constant-accept program is one on every oracle. -/
 theorem acceptProgram_successProb (p : (I × Bool) × W) (g : I → Bool) :
     (acceptProgram p).successProb g = 1 := by
   unfold DecisionProgram.successProb
   simp [acceptProgram, MeasureProb, Ket, BornProb]
 
+/-- The constant-reject program exactly computes the constant-false function. -/
 theorem rejectProgram_exact_false (p : (I × Bool) × W) :
     (rejectProgram p).ExactFor (fun _ => false) := by
   intro g
   rw [rejectProgram_successProb]
   simp
 
+/-- The constant-accept program exactly computes the constant-true function. -/
 theorem acceptProgram_exact_true (p : (I × Bool) × W) :
     (acceptProgram p).ExactFor (fun _ => true) := by
   intro g
   rw [acceptProgram_successProb]
   simp
 
+/-- The selected machine class's minimum query count under `BoundedFor`, given a nonempty
+bounded count set. -/
 noncomputable def sourceQE (M : MachineClass I W) (f : (I → Bool) → Bool)
     (h : ∃ n, n ∈ M.boundedCountSet f) : ℕ :=
   M.minBoundedQueries f h
 
+/-- The selected machine class's minimum query count under `SuccessFor`, given a nonempty
+success count set. -/
 noncomputable def sourceQ2 (M : MachineClass I W) (f : (I → Bool) → Bool)
     (h : ∃ n, n ∈ M.successCountSet f) : ℕ :=
   M.minSuccessQueries f h
 
+/-- The selected machine class's minimum query count under `ZeroErrorFor`, given a nonempty
+zero-error count set. -/
 noncomputable def sourceQ0 (M : MachineClass I W) (f : (I → Bool) → Bool)
     (h : ∃ n, n ∈ M.zeroErrorCountSet f) : ℕ :=
   M.minZeroErrorQueries f h
 
 omit [DecidableEq I] in
 
+/-- The OR polynomial represents `orFunction` under Boolean evaluation [BealsEtAl2001]. -/
 theorem orPolynomial_represents : ∀ g : I → Bool,
     Qatlib.Concepts.QueryComplexity.DegreeMethod.boolEval orPolynomial g = if orFunction g then (1 : ℝ) else 0 := by
   intro g

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.FixedTail
 import Qatlib.Papers.OverlapGapGoh26.UniformGrid.CubeGround
+
+/-!
+# Finite grid reduction for repeated index energies
+
+`cube_product_difference` and `repeated_box_difference` control changes of the repeated index
+energy under coordinate approximation. `remainder_grid_inclusion` reduces a large energy
+somewhere on the cube to a large tensor entry or a large energy on a finite grid, and
+`remainder_grid_tail` bounds these events. These estimates support the Gaussian remainder
+analysis associated with [GohMuller2026].
+
+## Main statements
+
+* `remainder_grid_inclusion`: Under the mesh error bound, a repeated index energy of absolute
+  value at least `ηN` somewhere on the cube forces either a tensor entry of absolute value at
+  least `N` or a grid energy of absolute value at least `ηN/2`.
+* `remainder_grid_tail`: For positive `N`, `m`, and `η` satisfying the mesh bound, the
+  probability of a repeated index energy of size at least `ηN` somewhere on the cube is bounded
+  by the displayed sum of entry and finite grid Gaussian tails.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -20,6 +44,8 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Linear
 open Qatlib.Papers.OverlapGapGoh26.UniformGrid.CubeGround
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder
 
+/-- For two cube vectors differing by at most `ε ≥ 0` in each coordinate, every degree `q`
+monomial differs by at most `qε`. -/
 theorem cube_product_difference {q N:ℕ} (u v:Fin N→ℝ) (hu:u∈hilbertCube N) (hv:v∈hilbertCube N)
     (ε:ℝ) (hε:0≤ε) (he:∀ i,|u i-v i|≤ε) (k:Fin q→Fin N) :
     |(∏ a,u (k a))-(∏ a,v (k a))|≤(q:ℝ)*ε := by
@@ -44,6 +70,9 @@ theorem cube_product_difference {q N:ℕ} (u v:Fin N→ℝ) (hu:u∈hilbertCube 
     nlinarith
   exact hh.trans (mul_le_mul hb hd (norm_nonneg _) (Nat.cast_nonneg q))
 
+/-- If all tensor coefficients have absolute value at most `B ≥ 0`, then cube vectors within
+coordinate distance `ε ≥ 0` have repeated index energies differing by at most `N^q * B * q *
+ε`. -/
 theorem repeated_box_difference {q N:ℕ} (A:Tensor q N) (B:ℝ) (hB:0≤B) (hA:∀k,|A k|≤B)
     (u v:Fin N→ℝ) (hu:u∈hilbertCube N) (hv:v∈hilbertCube N)
     (ε:ℝ) (hε:0≤ε) (he:∀i,|u i-v i|≤ε) :
@@ -67,6 +96,8 @@ theorem repeated_box_difference {q N:ℕ} (A:Tensor q N) (B:ℝ) (hB:0≤B) (hA:
       exact mul_le_mul (hR k) (cube_product_difference u v hu hv ε hε he k) (abs_nonneg _) hB
     _ = _ := by simp;ring
 
+/-- For `N > 0`, every tensor coordinate under `gaussianTensorLaw` satisfies a subgaussian bound
+with parameter one. -/
 theorem source_entry_subgaussian {r N:ℕ} (hN:0 < N) (k:Fin (r+1)→Fin N) :
     HasSubgaussianMGF (fun A:Tensor (r+1) N=>A k) 1 (gaussianTensorLaw r N) := by
   let v:NNReal:=((N:NNReal)^r)⁻¹
@@ -85,6 +116,8 @@ theorem source_entry_subgaussian {r N:ℕ} (hN:0 < N) (k:Fin (r+1)→Fin N) :
         (measurable_pi_apply k).aemeasurable h)
   exact subgaussian_enlarge hh hv
 
+/-- For `N > 0`, the probability that some tensor coefficient has absolute value at least `N` is
+at most `2N^(r+1) exp(-N²/2)`. -/
 theorem entry_box_tail {r N:ℕ} (hN:0 < N) :
     (gaussianTensorLaw r N).real {A|∃k,(N:ℝ)≤|A k|}≤
       2*(N:ℝ)^(r+1)*Real.exp (-(N:ℝ)^2/2) := by
@@ -97,11 +130,16 @@ theorem entry_box_tail {r N:ℕ} (hN:0 < N) :
       Finset.sum_le_sum (fun k _=>by simpa only [NNReal.coe_one,mul_one] using! subgaussian_abs_tail (source_entry_subgaussian hN k) (N:ℝ) (Nat.cast_nonneg N))
     _ = _ := by simp;ring
 
+/-- For positive mesh parameter `m`, every Hilbert cube vector is within `2/m` in each
+coordinate of a grid vector `cubeState m v`. -/
 theorem cube_uniform_cover {N m:ℕ} (hm:0 < m) (u:Fin N→ℝ) (hu:u∈hilbertCube N) :
     ∃v:Fin N→Fin (m+1),∀i,|u i-cubeState m v i|≤2/(m:ℝ) := by
   choose v hv using fun i=>coordinate_cover hm (u i) (hu i)
   exact ⟨v,hv⟩
 
+/-- Under the mesh error bound, a repeated index energy of absolute value at least `ηN`
+somewhere on the cube forces either a tensor entry of absolute value at least `N` or a grid
+energy of absolute value at least `ηN/2`. -/
 theorem remainder_grid_inclusion {r N m:ℕ} (hm:0 < m) (η:ℝ)
     (hmesh : (N:ℝ)^(r+1)*(N:ℝ)*(r+1)*(2/(m:ℝ))≤η*(N:ℝ)/2) :
     {A:Tensor (r+1) N|∃u∈hilbertCube N,η*(N:ℝ)≤|tensorEnergy (repeated A) u|}⊆
@@ -121,6 +159,9 @@ theorem remainder_grid_inclusion {r N m:ℕ} (hm:0 < m) (η:ℝ)
       (tensorEnergy (repeated A) (cubeState m v))
   linarith
 
+/-- For positive `N`, `m`, and `η` satisfying the mesh bound, the probability of a repeated
+index energy of size at least `ηN` somewhere on the cube is bounded by the displayed sum of
+entry and finite grid Gaussian tails. -/
 theorem remainder_grid_tail {r N m:ℕ} (hN:0 < N) (hm:0 < m) (η:ℝ) (hη:0 < η)
     (hmesh : (N:ℝ)^(r+1)*(N:ℝ)*(r+1)*(2/(m:ℝ))≤η*(N:ℝ)/2) :
     (gaussianTensorLaw r N).real {A|∃u∈hilbertCube N,η*(N:ℝ)≤|tensorEnergy (repeated A) u|}≤

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem4Quan
+
+/-!
+# A checker amplification counterexample
+
+Constructs a collision solver with one failing seed and a noisy-search implementation that
+selects marked vertices exactly. On the three-vertex triangle these primitives refute
+`triCheckSpec`, exposing a composition obstruction in the bounded-error search setting of
+[HoyerMoscaDeWolf2003].
+
+## Main statements
+
+* `triCheckSpec_amplification_obstruction`: The checker specification `triCheckSpec` fails for
+  the three-vertex triangle with the supplied collision and exact marked-search primitives at
+  parameters `r' = 1` and `c₀ = 4`.
+
+## References
+
+* [Hoyer, Mosca and de Wolf, 2003][HoyerMoscaDeWolf2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
@@ -15,6 +35,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical
 
+/-- A zero-cost collision solver that returns no witness for seed zero when the domain size is
+at most three, and otherwise chooses a satisfying witness whenever one exists. -/
 def oneBadCollisionSolver : KCollisionSolver where
   seed := Fin 4
   seedFin := inferInstance
@@ -52,6 +74,8 @@ def oneBadCollisionSolver : KCollisionSolver where
     · simp [hR,hn]
   charges := by intros; simp
 
+/-- A zero-cost noisy-search implementation that ignores the supplied test and returns a marked
+vertex whenever one exists, preferring vertex zero when marked. -/
 def exactMarkedNoisySearch : NoisySearch where
   seed := Unit
   seedFin := inferInstance
@@ -93,14 +117,19 @@ def exactMarkedNoisySearch : NoisySearch where
     · simp [hN,hR,hm]
   charges := by intros; simp
 
+/-- The Boolean adjacency relation on three vertices that holds exactly for distinct vertices. -/
 def threeVertexTriangle (a b : Fin 3) : Bool := decide (a≠b)
 
+/-- The three-vertex triangle adjacency relation is false on every diagonal pair. -/
 theorem threeVertexTriangle_loopless (a : Fin 3) : threeVertexTriangle a a=false := by
   simp [threeVertexTriangle]
 
+/-- The three-vertex triangle adjacency relation is symmetric. -/
 theorem threeVertexTriangle_symm (a b : Fin 3) : threeVertexTriangle a b=threeVertexTriangle b a := by
   simp [threeVertexTriangle,ne_comm]
 
+/-- The checker specification `triCheckSpec` fails for the three-vertex triangle with the
+supplied collision and exact marked-search primitives at parameters `r' = 1` and `c₀ = 4`. -/
 theorem triCheckSpec_amplification_obstruction :
     ¬triCheckSpec threeVertexTriangle Finset.univ oneBadCollisionSolver exactMarkedNoisySearch 1 4 := by
   intro h

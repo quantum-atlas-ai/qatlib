@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.ImaginaryTime.FiniteImaginaryProduct
+
+/-!
+# Imaginary-time output and accuracy bounds
+
+This module transfers finite-family imaginary-time operator error bounds to normalized output
+vectors and selects a segment count for a requested positive tolerance. It uses the first-order
+commutator estimates associated with [ChildsEtAl2021Trotter].
+
+## Main statements
+
+* `imaginary_family_actual_postselection_consumer`: success-norm and normalized-output bounds
+  under a positive output gap.
+* `imaginary_family_selected_accuracy`: a positive segment count, exact word length,
+  contraction, and tolerance bound.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,10 @@ namespace Qatlib.Concepts.TrotterFormula.ImaginaryTime
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- For a normalized input, positive-semidefinite terms, nonnegative time, and positive segment
+count, an error budget `η < ‖v‖` gives success norm squared at least `(‖v‖ - η)²`,
+normalized-output error at most `2 * η / ‖v‖`, and output norm at most one. The budget comes
+from the finite first-order commutator bound of [ChildsEtAl2021Trotter]. -/
 theorem imaginary_family_actual_postselection_consumer :
   ∀ {I : Type} [Fintype I] [DecidableEq I] {m : ℕ} (H : Fin m → Matrix I I ℂ)
     (t : ℝ) (r : ℕ) (ψ : I → ℂ),
@@ -33,6 +57,9 @@ theorem imaginary_family_actual_postselection_consumer :
   exact contractive_mulVec_output_of_gap (imaginaryFamilyRun H t r)
     (NormedSpace.exp (-t • ∑ j, H j)) ψ η h.1 h.2.2.2.2 hψ hgap
 
+/-- For positive-semidefinite terms, nonnegative time, and positive tolerance `ε`,
+`finiteImaginarySegments` gives a positive segment count, word length `m * r`, a contractive
+run, and error at most `ε`; see [ChildsEtAl2021Trotter] for the underlying error framework. -/
 theorem imaginary_family_selected_accuracy :
   ∀ {I : Type} [Fintype I] [DecidableEq I] {m : ℕ} (H : Fin m → Matrix I I ℂ)
     (t ε : ℝ),

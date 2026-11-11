@@ -6,6 +6,20 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.SimultaneousDiagonalization
+
+/-!
+# Root fidelity and the commuting-state reduction
+
+Commuting density matrices admit simultaneous unitary diagonalization into
+probability vectors. This discharges the classical-reduction condition in the
+assembled fidelity statement, which also records normalization, symmetry,
+pure-state and diagonal formulas, unitary invariance, and multiplicativity of
+the trace-norm expression on tensor products.
+
+`Froot` is root fidelity, with pure-state value `|⟨ψ, φ⟩|`, rather than its
+square. See [Uhlmann1976], [Jozsa1994], and
+[Watrous, fidelity of states][Watrous2018]; trace-norm background is [Simon2005].
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -17,6 +31,8 @@ namespace Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Matrix
 open scoped BigOperators MatrixOrder ComplexOrder
 
+/-- If a density operator becomes a real diagonal matrix under conjugation by `U` with `Uᴴ * U =
+1`, its diagonal vector is a probability vector. -/
 theorem isProbVector_of_unitary_diagonal {D : ℕ} {ρ : Operator D}
     (hρ : IsDensityOperator ρ) {U : Operator D}
     (hU : Uᴴ * U = 1) {p : Fin D → ℝ}
@@ -34,6 +50,9 @@ theorem isProbVector_of_unitary_diagonal {D : ℕ} {ρ : Operator D}
     have hr := congrArg Complex.re ht
     simpa [diagDensity, Matrix.trace] using hr
 
+/-- Commuting density operators can be represented by probability vectors in a
+common unitary basis, the classical case of fidelity discussed in
+[Watrous, *The Theory of Quantum Information*][Watrous2018]. -/
 theorem commutesToClassical_of_density {D : ℕ} {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     CommutesToClassical ρ σ := by
@@ -68,10 +87,14 @@ theorem commutesToClassical_of_density {D : ℕ} {ρ σ : Operator D}
   change Uᴴ * (Uᴴ)ᴴ = 1
   simpa only [Matrix.conjTranspose_conjTranspose] using hUl
 
+/-- The trace-norm product-of-square-roots expression for root fidelity on an arbitrary finite
+matrix index type. -/
 private noncomputable def completeFrootG {I : Type} [Fintype I] [DecidableEq I]
     (ρ σ : Matrix I I ℂ) : ℝ :=
   Matrix.traceNorm (CFC.sqrt ρ * CFC.sqrt σ)
 
+/-- Collect root-fidelity identities and prove the commuting-state reduction;
+compare [Uhlmann1976] and [Jozsa, mixed-state fidelity][Jozsa1994]. -/
 theorem clause1_complete :
   (∀ (D : ℕ) (ρ σ : Operator D), IsDensityOperator ρ → IsDensityOperator σ →
     (completeFrootG ρ σ = Froot ρ σ) ∧

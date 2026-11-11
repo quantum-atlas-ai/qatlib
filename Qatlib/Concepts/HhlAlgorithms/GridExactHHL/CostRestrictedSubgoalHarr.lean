@@ -5,10 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.CostRestrictedSubgoalStat
+
+/-!
+# Resolution bounds for the restricted HHL model
+
+This module proves `CostRestrictedSubgoal`, the elementary inequalities relating grid size,
+error tolerance, and the spectral bound parameter. These inequalities provide numerical
+prerequisites for the restricted linear-system setting inspired by [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `costRestrictedSubgoal`: positivity of the inverse-square bound and the grid-resolution
+  inequality.
+
+## References
+
+* [Harrow, Hassidim, and Lloyd, 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.HhlAlgorithms.GridExactHHL
 
+/-- For `κ ≥ 1`, positive `ε`, and grid size `M ≥ κ / ε`, the quantity `1 / κ²` is positive and
+`M⁻¹ ≤ ε / κ`. -/
 theorem costRestrictedSubgoal : CostRestrictedSubgoal := by
   intro κ ε hκ hε M hM
   have hκpos : 0 < κ := zero_lt_one.trans_le hκ

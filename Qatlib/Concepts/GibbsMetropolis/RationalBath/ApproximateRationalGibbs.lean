@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalBoltzmannWeights
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
+
+/-!
+# Rational approximation of diagonal Gibbs states
+
+`rationalEnergyGibbsDensity` is the diagonal Gibbs target for rational energies at unit inverse
+temperature. The module compares it with the heat-bath state built from integer-scaled Taylor
+weights, using an explicit trace-norm error.
+
+The final estimate includes an arbitrary finite reference register and bounds one heat-bath
+application at the selected precision. See [TemmeEtAl2011] for background.
+
+## Main statements
+
+* `rational_energy_gibbs_target_and_trace_accuracy`: For a nonempty system with energies in `[0,
+  1]`, the Gibbs target is a density operator and its integer-weight heat-bath approximation has
+  trace-norm error at most `4 * (1 / 2) ^ K`.
+* `rational_energy_gibbs_actual_reference_precision`: For positive semidefinite system-reference
+  inputs and energies in `[0, 1]`, the specified Taylor precision and rejection cutoff give one
+  heat-bath step error at most `(1 / 2) ^ k` times the input trace norm.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,9 +48,12 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
+/-- The diagonal matrix with normalized weights `exp (-E i)` for rational energies `E`. -/
 noncomputable def rationalEnergyGibbsDensity {N : ℕ} (E : Fin N → ℚ) : Operator N :=
   Matrix.diagonal fun i => Complex.ofReal (Real.exp (-(E i:ℝ)) / ∑ j, Real.exp (-(E j:ℝ)))
 
+/-- The trace norm of a real diagonal complex matrix is the sum of the absolute values of its
+diagonal entries. -/
 theorem real_diagonal_traceNorm {N : ℕ} (d : Fin N → ℝ) :
     Matrix.traceNorm (Matrix.diagonal fun i => (d i : ℂ)) = ∑ i, |d i| := by
   open MatrixOrder in
@@ -48,10 +76,13 @@ theorem real_diagonal_traceNorm {N : ℕ} (d : Fin N → ℝ) :
   rw [hs]
   simp
 
+/-- The trace norm of a positive semidefinite complex matrix equals the real part of its trace. -/
 theorem rationalGibbs_psd_traceNorm {I : Type*} [Fintype I] [DecidableEq I]
     (X : Matrix I I ℂ) (hX : X.PosSemidef) : Matrix.traceNorm X = (Matrix.trace X).re := by
   simpa using congrArg Complex.re hX.traceNorm_eq_trace
 
+/-- Tensoring a real diagonal matrix with a positive semidefinite matrix has trace norm at most
+the diagonal absolute sum times the latter trace norm. -/
 theorem real_diagonal_tensor_traceNorm_le {N r : ℕ} (d : Fin N → ℝ)
     (Y : Operator r) (hY : Y.PosSemidef) :
     Matrix.traceNorm (TensorGate (Matrix.diagonal fun i => (d i:ℂ)) Y) ≤
@@ -89,6 +120,8 @@ theorem real_diagonal_tensor_traceNorm_le {N r : ℕ} (d : Fin N → ℝ)
       intro i _
       rw [Matrix.traceNorm_smul, hn, Complex.norm_real, Real.norm_eq_abs]
 
+/-- On a nonempty finite index set, if `1 ≤ a i ≤ b i` and each weight increment is at most `δ`,
+the normalized weight vectors differ in l1 norm by at most `2 * δ`. -/
 theorem normalized_positive_weights_l1 {N : ℕ} (hN : 0 < N)
     (a b : Fin N → ℝ) (δ : ℝ) (ha : ∀ i, 1 ≤ a i)
     (hb : ∀ i, a i ≤ b i) (he : ∀ i, b i-a i ≤ δ) :
@@ -133,6 +166,8 @@ theorem normalized_positive_weights_l1 {N : ℕ} (hN : 0 < N)
       apply (div_le_iff₀ hB).2
       nlinarith [mul_le_mul_of_nonneg_right hBn hδ]
 
+/-- Adding one to every Boltzmann exponent leaves the normalized rational-energy Gibbs density
+unchanged. -/
 theorem rationalEnergyGibbsDensity_shift {N : ℕ} (E : Fin N → ℚ) :
     rationalEnergyGibbsDensity E = Matrix.diagonal fun i =>
       Complex.ofReal (Real.exp (1-(E i:ℝ)) / ∑ j, Real.exp (1-(E j:ℝ))) := by
@@ -142,6 +177,7 @@ theorem rationalEnergyGibbsDensity_shift {N : ℕ} (E : Fin N → ℚ) :
   simp only [sub_eq_add_neg, Real.exp_add, ← Finset.mul_sum]
   rw [mul_div_mul_left _ _ (Real.exp_ne_zero 1)]
 
+/-- For a nonempty energy index set, the rational-energy Gibbs matrix is a density operator. -/
 theorem rationalEnergyGibbsDensity_isDensity {N : ℕ} (E : Fin N → ℚ) (hN : 0 < N) :
     IsDensityOperator (rationalEnergyGibbsDensity E) := by
   have hs : 0 < ∑ j, Real.exp (-(E j:ℝ)) := Finset.sum_pos'
@@ -153,6 +189,8 @@ theorem rationalEnergyGibbsDensity_isDensity {N : ℕ} (E : Fin N → ℚ) (hN :
   · simp only [rationalEnergyGibbsDensity, Matrix.trace_diagonal, ← Complex.ofReal_sum,
       ← Finset.sum_div, div_self hs.ne', Complex.ofReal_one]
 
+/-- For energies in `[0, 1]`, the heat-bath density from integer Boltzmann weights is the
+diagonal of the normalized Taylor weights. -/
 theorem rationalHeatBathDensity_taylor {N K : ℕ} (E : Fin N → ℚ)
     (hW : 0 < weightTotal (boltzmannIntegerWeights K E)) (hN : 0 < N)
     (hE : ∀ i, 0 ≤ E i ∧ E i ≤ 1) :
@@ -164,6 +202,8 @@ theorem rationalHeatBathDensity_taylor {N K : ℕ} (E : Fin N → ℚ)
   funext i
   rw [(rational_boltzmann_exact_integer_normalization N K E hN hE).2 i]
 
+/-- For energies in `[0, 1]`, normalized degree-`K` Taylor weights approximate normalized
+exponential weights within `4 * (1 / 2) ^ K` in l1 norm. -/
 theorem rationalEnergyGibbs_l1 {N : ℕ} (K : ℕ) (E : Fin N → ℚ) (hN : 0 < N)
     (hE : ∀ i, 0 ≤ E i ∧ E i ≤ 1) :
     (∑ i, |(rationalBoltzmannTaylor K (E i):ℝ) / ∑ j, (rationalBoltzmannTaylor K (E j):ℝ) -
@@ -177,6 +217,8 @@ theorem rationalEnergyGibbs_l1 {N : ℕ} (K : ℕ) (E : Fin N → ℚ) (hN : 0 <
     (fun i => (rational_boltzmann_computed_positive_tail K (E i) (hE i).1 (hE i).2).2.2)
   linarith
 
+/-- For a nonempty system with energies in `[0, 1]`, the Gibbs target is a density operator and
+its integer-weight heat-bath approximation has trace-norm error at most `4 * (1 / 2) ^ K`. -/
 theorem rational_energy_gibbs_target_and_trace_accuracy :
     ∀ (N K : ℕ) (E : Fin N → ℚ) (hW : 0 < weightTotal (boltzmannIntegerWeights K E)),
       0 < N → (∀ i, 0 ≤ E i ∧ E i ≤ 1) → IsDensityOperator (rationalEnergyGibbsDensity E) ∧
@@ -189,6 +231,9 @@ theorem rational_energy_gibbs_target_and_trace_accuracy :
   simpa only [Pi.sub_apply, ← Complex.ofReal_sub, real_diagonal_traceNorm] using
     rationalEnergyGibbs_l1 K E hN hE
 
+/-- For positive semidefinite system-reference inputs and energies in `[0, 1]`, the specified
+Taylor precision and rejection cutoff give one heat-bath step error at most `(1 / 2) ^ k`
+times the input trace norm. -/
 theorem rational_energy_gibbs_actual_reference_precision :
     ∀ (N k r : ℕ) (E : Fin N → ℚ)
       (hW : 0 < weightTotal (boltzmannIntegerWeights (k+3) E))

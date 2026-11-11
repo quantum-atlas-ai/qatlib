@@ -12,6 +12,31 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Algebra.Field.GeomSum
 import Mathlib.Algebra.Order.Field.Basic
 import Mathlib.Algebra.BigOperators.Finprod
+
+/-!
+# Scalar amplification bounds for bounded-error search
+
+This module develops analytic estimates for the bounded-error search argument of
+[HoyerMoscaDeWolf2003]. `ampGain`, `errFactor`, and `roundGain` encode the trigonometric gain
+and error factor, while `sum_theta_sq_le` and `prod_gainLower_ge` control accumulated angle and
+product losses.
+
+`amplitude_ge_constant` proves the threshold `α m ≥ 1/24` from explicit recurrence, angle,
+initialization, and stopping-scale hypotheses. `src_amplitude_ge_constant` derives the required
+angle-sum bound from the supplied amplitude estimates, and `success_probability_ge` converts the
+amplitude threshold into `α m ^ 2 ≥ 1/576`.
+
+## Main statements
+
+* `amplitude_ge_constant`: the conditional scalar amplitude threshold `1/24`.
+* `src_amplitude_ge_constant`: the threshold derived from the supplied amplitude recurrences.
+* `success_probability_ge`: the resulting squared-amplitude threshold `1/576`.
+
+## References
+
+* [Høyer et al., 2003][HoyerMoscaDeWolf2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,14 +47,17 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.BndErrSearch03.MainResults.BoundedErrorSearchAmplification
 
+/-- The scalar trigonometric gain `Real.sin (3 * θ) / Real.sin θ`. -/
 def ampGain (θ : ℝ) : ℝ := Real.sin (3 * θ) / Real.sin θ
 
+/-- When `Real.sin θ` is nonzero, the amplification gain equals `3 - 4 * (Real.sin θ) ^ 2`. -/
 theorem ampGain_eq (θ : ℝ) (h : Real.sin θ ≠ 0) :
     ampGain θ = 3 - 4 * (Real.sin θ) ^ 2 := by
   unfold ampGain
   rw [Real.sin_three_mul]
   field_simp
 
+/-- For `0 < θ ≤ Real.pi / 2`, the amplification gain is at least `3 - (9 / 2) * θ ^ 2`. -/
 theorem ampGain_ge (θ : ℝ) (h0 : 0 < θ) (h1 : θ ≤ Real.pi / 2) :
     3 - (9 / 2) * θ ^ 2 ≤ ampGain θ := by
   have hspos : 0 < Real.sin θ :=
@@ -41,6 +69,7 @@ theorem ampGain_ge (θ : ℝ) (h0 : 0 < θ) (h1 : θ ≤ Real.pi / 2) :
     nlinarith [sq_nonneg (Real.sin θ), sq_nonneg θ]
   nlinarith [hsq]
 
+/-- For `0 < θ ≤ Real.pi / 2`, the amplification gain is at most three. -/
 theorem ampGain_le_three (θ : ℝ) (h0 : 0 < θ) (h1 : θ ≤ Real.pi / 2) :
     ampGain θ ≤ 3 := by
   have hspos : 0 < Real.sin θ :=
@@ -49,8 +78,10 @@ theorem ampGain_le_three (θ : ℝ) (h0 : 0 < θ) (h1 : θ ≤ Real.pi / 2) :
   have hsq : 0 ≤ (Real.sin θ) ^ 2 := sq_nonneg _
   nlinarith [hsq]
 
+/-- The round-dependent error factor `Real.sqrt (1 - ((2 : ℝ) ^ (k + 5))⁻¹)`. -/
 def errFactor (k : ℕ) : ℝ := Real.sqrt (1 - ((2 : ℝ) ^ (k + 5))⁻¹)
 
+/-- For `0 ≤ e ≤ 1`, the square root of `1 - e` is at least `1 - e`. -/
 theorem sqrt_one_sub_ge (e : ℝ) (he0 : 0 ≤ e) (he1 : e ≤ 1) :
     1 - e ≤ Real.sqrt (1 - e) := by
   have h1me : 0 ≤ 1 - e := by linarith
@@ -58,15 +89,20 @@ theorem sqrt_one_sub_ge (e : ℝ) (he0 : 0 ≤ e) (he1 : e ≤ 1) :
   calc (1 - e) = Real.sqrt ((1 - e) ^ 2) := (Real.sqrt_sq h1me).symm
     _ ≤ Real.sqrt (1 - e) := Real.sqrt_le_sqrt hsq
 
+/-- The reciprocal of any natural power of two is at most one. -/
 theorem inv_pow_two_le_one (j : ℕ) : ((2 : ℝ) ^ j)⁻¹ ≤ 1 := by
   have h1 : (1 : ℝ) ≤ (2 : ℝ) ^ j := one_le_pow₀ (by norm_num)
   exact inv_le_one_of_one_le₀ h1
 
+/-- The reciprocal of any natural power of two is nonnegative. -/
 theorem inv_pow_two_nonneg (j : ℕ) : (0 : ℝ) ≤ ((2 : ℝ) ^ j)⁻¹ := by
   positivity
 
+/-- The product of the trigonometric amplification gain and the round-dependent error factor. -/
 def roundGain (k : ℕ) (θ : ℝ) : ℝ := ampGain θ * errFactor k
 
+/-- Under the stated positive-angle and small-angle hypotheses, `roundGain k θ` is at least `(3
+- (9 / 2) * θ ^ 2) * (1 - ((2 : ℝ) ^ (k + 5))⁻¹)`. -/
 theorem roundGain_ge (k : ℕ) (θ : ℝ) (h0 : 0 < θ) (h1 : θ ≤ Real.pi / 2)
     (hsmall : (3 / 2) * θ ^ 2 ≤ 1) :
     (3 - (9 / 2) * θ ^ 2) * (1 - ((2 : ℝ) ^ (k + 5))⁻¹) ≤ roundGain k θ := by
@@ -84,6 +120,7 @@ theorem roundGain_ge (k : ℕ) (θ : ℝ) (h0 : 0 < θ) (h1 : θ ≤ Real.pi / 2
           unfold errFactor
           exact Real.sqrt_nonneg _)
 
+/-- Under the stated positive-angle and small-angle hypotheses, the round gain is nonnegative. -/
 theorem roundGain_nonneg (k : ℕ) (θ : ℝ) (h0 : 0 < θ) (h1 : θ ≤ Real.pi / 2)
     (hsmall : (3 / 2) * θ ^ 2 ≤ 1) : 0 ≤ roundGain k θ := by
   unfold roundGain
@@ -94,6 +131,8 @@ theorem roundGain_nonneg (k : ℕ) (θ : ℝ) (h0 : 0 < θ) (h1 : θ ≤ Real.pi
     exact Real.sqrt_nonneg _
   exact mul_nonneg hgain_nn herr
 
+/-- Iterates the assumed amplitude recurrence with nonnegative gains to bound `α m` below by `α
+1` times the product of gains from rounds one through `m - 1`, for `m ≥ 1`. -/
 theorem amplitude_iterate_ge (α : ℕ → ℝ) (θ : ℕ → ℝ)
     (_hα : 0 < α 1)
     (hrec : ∀ k, α (k + 2) ≥ α (k + 1) * roundGain (k + 1) (θ (k + 1)))
@@ -122,6 +161,8 @@ theorem amplitude_iterate_ge (α : ℕ → ℝ) (θ : ℕ → ℝ)
           mul_le_mul_of_nonneg_right hprev (hgain n)
       _ ≤ α (n + 1 + 1) := hstep
 
+/-- A nonnegative sequence growing by at most a factor of three per step satisfies `α m ^ 2 ≤ 9
+^ (m - 1) * α 1 ^ 2` for `m ≥ 1`. -/
 theorem alpha_sq_le (α : ℕ → ℝ) (hα0 : ∀ k, 0 ≤ α k)
     (hstep : ∀ k, α (k + 1) ≤ 3 * α k) (m : ℕ) (hm : 1 ≤ m) :
     α m ^ 2 ≤ 9 ^ (m - 1) * α 1 ^ 2 := by
@@ -138,6 +179,8 @@ theorem alpha_sq_le (α : ℕ → ℝ) (hα0 : ∀ k, 0 ≤ α k)
       _ ≤ 9 * (9 ^ n * α 1 ^ 2) := mul_le_mul_of_nonneg_left ih (by norm_num)
       _ = 9 ^ (n + 1) * α 1 ^ 2 := by rw [pow_succ]; ring
 
+/-- The assumed squared-amplitude recurrence implies `β m ^ 2 ≤ β 1 ^ 2 * (9 / 64) ^ (m - 1)`
+for `m ≥ 1`. -/
 theorem beta_sq_le (β : ℕ → ℝ) (_hβ0 : ∀ k, 0 ≤ β k)
     (hstep : ∀ k, β (k + 1) ^ 2 ≤ (9 / (2 : ℝ) ^ (k + 5)) * β k ^ 2)
     (m : ℕ) (hm : 1 ≤ m) :
@@ -161,6 +204,7 @@ theorem beta_sq_le (β : ℕ → ℝ) (_hβ0 : ∀ k, 0 ≤ β k)
           mul_le_mul_of_nonneg_left ih (by norm_num)
       _ = β 1 ^ 2 * (9 / 64) ^ (n + 1) := by rw [pow_succ]; ring
 
+/-- For `0 ≤ θ ≤ 1`, the squared angle is at most twice the squared sine. -/
 theorem theta_sq_le_two_sin_sq (θ : ℝ) (h0 : 0 ≤ θ) (h1 : θ ≤ 1) :
     θ ^ 2 ≤ 2 * (Real.sin θ) ^ 2 := by
   rcases lt_or_eq_of_le h0 with hpos | rfl
@@ -178,6 +222,7 @@ theorem theta_sq_le_two_sin_sq (θ : ℝ) (h0 : 0 ≤ θ) (h1 : θ ≤ 1) :
     nlinarith [hsq]
   · simp
 
+/-- The sum of the first `n` powers of nine is at most `9 ^ n / 8`. -/
 theorem geom_sum_nine_le (n : ℕ) :
     ∑ k ∈ Finset.range n, (9 : ℝ) ^ k ≤ 9 ^ n / 8 := by
   rw [geom_sum_eq (by norm_num : (9 : ℝ) ≠ 1) n]
@@ -186,6 +231,7 @@ theorem geom_sum_nine_le (n : ℕ) :
   rw [div_le_iff₀ (by norm_num : (0 : ℝ) < 8)]
   nlinarith
 
+/-- The sum of the first `n` powers of `9 / 64` is at most `64 / 55`. -/
 theorem geom_sum_sixtyfour_le (n : ℕ) :
     ∑ k ∈ Finset.range n, (9 / 64 : ℝ) ^ k ≤ 64 / 55 := by
   rw [geom_sum_eq (by norm_num : (9 / 64 : ℝ) ≠ 1) n]
@@ -194,6 +240,9 @@ theorem geom_sum_sixtyfour_le (n : ℕ) :
   rw [div_le_iff_of_neg hneg]
   nlinarith
 
+/-- The stated bounds on squared amplitudes, together with the sine decomposition and angles in
+`[0, 1]`, bound the sum of squared angles through round `m - 1` by `2 * 9 ^ (m - 1) * α 1 ^
+2 + 1/4`. -/
 theorem sum_theta_sq_le (α β θ : ℕ → ℝ) (m : ℕ)
     (hα : ∀ k, 1 ≤ k → α k ^ 2 ≤ 9 ^ (k - 1) * α 1 ^ 2)
     (hβ : ∀ k, 1 ≤ k → β k ^ 2 ≤ (1 / 10) * (9 / 64) ^ (k - 1))
@@ -232,6 +281,8 @@ theorem sum_theta_sq_le (α β θ : ℕ → ℝ) (m : ℕ)
         have ha : (0 : ℝ) ≤ α 1 ^ 2 := sq_nonneg _
         nlinarith
 
+/-- For a finite family with each `a i` in `[0, 1]`, the product of `1 - a i` is at least one
+minus the sum of the `a i`. -/
 theorem prod_one_sub_ge {ι : Type*} (s : Finset ι) (a : ι → ℝ)
     (ha0 : ∀ i ∈ s, 0 ≤ a i) (ha1 : ∀ i ∈ s, a i ≤ 1) :
     1 - ∑ i ∈ s, a i ≤ ∏ i ∈ s, (1 - a i) := by
@@ -250,6 +301,7 @@ theorem prod_one_sub_ge {ι : Type*} (s : Finset ι) (a : ι → ℝ)
       mul_le_mul_of_nonneg_left hprod (sub_nonneg.2 ha1i)
     nlinarith [hmul, mul_nonneg ha0i hsum_nonneg]
 
+/-- The sum of the first `n` powers of one half is at most two. -/
 theorem sum_half_le_two (n : ℕ) :
     ∑ k ∈ Finset.range n, ((1 / 2 : ℝ) ^ k) ≤ 2 := by
   rw [geom_sum_eq (by norm_num : (1 / 2 : ℝ) ≠ 1) n]
@@ -257,6 +309,7 @@ theorem sum_half_le_two (n : ℕ) :
   have hpos : (0 : ℝ) < (1 / 2 : ℝ) ^ n := pow_pos (by norm_num) n
   linarith
 
+/-- The sum of the reciprocal powers `2 ^ (k + 6)` for `k < m - 1` is at most `1/32`. -/
 theorem sum_inv_pow_two_le (m : ℕ) :
     ∑ k ∈ Finset.range (m - 1), ((2 : ℝ) ^ ((k + 1) + 5))⁻¹ ≤ 1 / 32 := by
   have hterm : ∀ k : ℕ, ((2 : ℝ) ^ ((k + 1) + 5))⁻¹ = (1 / 64) * ((1 / 2) ^ k) := by
@@ -275,6 +328,9 @@ theorem sum_inv_pow_two_le (m : ℕ) :
         mul_le_mul_of_nonneg_left (sum_half_le_two _) (by norm_num)
     _ = 1 / 32 := by norm_num
 
+/-- If the squared angles sum to at most a nonnegative `S` with `(3 / 2) * S ≤ 1`, and each
+angle satisfies the stated smallness bound, the product of the explicit lower gain factors
+is at least `3 ^ (m - 1) * (1 - (3 / 2) * S - 1/16)`. -/
 theorem prod_gainLower_ge (θ : ℕ → ℝ) (m : ℕ) (_hm : 1 ≤ m) (S : ℝ)
     (hθsmall : ∀ k, (3 / 2) * θ (k + 1) ^ 2 ≤ 1)
     (hsum : ∑ k ∈ Finset.range (m - 1), θ (k + 1) ^ 2 ≤ S)
@@ -342,6 +398,7 @@ theorem prod_gainLower_ge (θ : ℕ → ℝ) (m : ℕ) (_hm : 1 ≤ m) (S : ℝ)
     _ = 3 ^ (m - 1) * (∏ k ∈ Finset.range (m - 1), (1 - (3 / 2) * θ (k + 1) ^ 2))
           * (∏ k ∈ Finset.range (m - 1), (1 - ((2 : ℝ) ^ ((k + 1) + 5))⁻¹)) := by ring
 
+/-- For `1/90 ≤ s ≤ 1/10`, the expression `Real.sqrt s * (1/2 - 3 * s)` is at least `1/24`. -/
 theorem sqrt_mul_factor_ge (s : ℝ) (hlo : 1 / 90 ≤ s) (hhi : s ≤ 1 / 10) :
     (1 / 24 : ℝ) ≤ Real.sqrt s * (1 / 2 - 3 * s) := by
   have hs0 : 0 ≤ s := by linarith
@@ -374,6 +431,9 @@ theorem sqrt_mul_factor_ge (s : ℝ) (hlo : 1 / 90 ≤ s) (hhi : s ≤ 1 / 10) :
   rw [show s = w ^ 2 from hw2.symm]
   exact htarget
 
+/-- The initialization `α1 ^ 2 = 9 * t / (10 * n)` and scale bounds `9 ^ m * t ≤ n ≤ 9 ^ (m + 1)
+* t` imply the stated amplified scalar expression is at least `1/24`, under the positivity
+hypotheses. -/
 theorem threshold_amplitude_ge (m : ℕ) (hm : 1 ≤ m) (α1 t n : ℝ)
     (hα1 : 0 < α1) (_ht : 0 < t) (hn : 0 < n)
     (hαsq : α1 ^ 2 = 9 * t / (10 * n))
@@ -413,8 +473,10 @@ theorem threshold_amplitude_ge (m : ℕ) (hm : 1 ≤ m) (α1 t n : ℝ)
   rw [h3s]
   exact hmain
 
+/-- The explicit lower gain factor `(3 - (9 / 2) * θ ^ 2) * (1 - ((2 : ℝ) ^ (k + 5))⁻¹)`. -/
 def gainLower (k : ℕ) (θ : ℝ) : ℝ := (3 - (9 / 2) * θ ^ 2) * (1 - ((2 : ℝ) ^ (k + 5))⁻¹)
 
+/-- The explicit lower gain factor is nonnegative whenever `(3 / 2) * θ ^ 2 ≤ 1`. -/
 theorem gainLower_nonneg (k : ℕ) (θ : ℝ) (hsmall : (3 / 2) * θ ^ 2 ≤ 1) :
     0 ≤ gainLower k θ := by
   unfold gainLower
@@ -422,6 +484,8 @@ theorem gainLower_nonneg (k : ℕ) (θ : ℝ) (hsmall : (3 / 2) * θ ^ 2 ≤ 1) 
   have h2 : 0 ≤ 1 - ((2 : ℝ) ^ (k + 5))⁻¹ := by linarith [inv_pow_two_le_one (k + 5)]
   exact mul_nonneg h1 h2
 
+/-- The stated initialization, gain recurrence, angle bounds, squared-angle sum bound, and
+stopping-scale inequalities imply `α m ≥ 1/24`. -/
 theorem amplitude_ge_constant (α : ℕ → ℝ) (θ : ℕ → ℝ) (m : ℕ) (t n : ℝ)
     (hm : 1 ≤ m) (hα1 : 0 < α 1)
     (ht : 0 < t) (hn : 0 < n)
@@ -481,6 +545,9 @@ theorem amplitude_ge_constant (α : ℕ → ℝ) (θ : ℕ → ℝ) (m : ℕ) (t
       _ ≤ α m := hiter
   exact hfinal
 
+/-- The stated initial amplitudes, amplitude recurrences, sine decomposition, angle bounds, and
+stopping-scale inequalities imply `α m ≥ 1/24`. This supplies the conditional scalar
+amplitude threshold used in the bounded-error search analysis of [HoyerMoscaDeWolf2003]. -/
 theorem src_amplitude_ge_constant (α β θ : ℕ → ℝ) (m : ℕ) (t n : ℝ)
     (hm : 1 ≤ m) (ht : 0 < t) (hn : 0 < n)
     (hα0 : ∀ k, 0 ≤ α k) (hβ0 : ∀ k, 0 ≤ β k)
@@ -525,6 +592,7 @@ theorem src_amplitude_ge_constant (α β θ : ℕ → ℝ) (m : ℕ) (t n : ℝ)
   exact amplitude_ge_constant α θ m t n hm hα1 ht hn hα1sq hrec hθpos hθle
     hθsmall hsum hlo hhi
 
+/-- An amplitude at least `1/24` has square at least `1/576`. -/
 theorem success_probability_ge (α : ℕ → ℝ) (m : ℕ) (h : (1 / 24 : ℝ) ≤ α m) :
     (1 / 576 : ℝ) ≤ α m ^ 2 := by
   have h0 : 0 ≤ α m := le_trans (by norm_num) h

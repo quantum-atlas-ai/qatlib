@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SingleQuery97.MainResults.RandomResource
+
+/-!
+# Existence of collision-free linear response codes
+
+This module uses collision bounds to construct a generator matrix whose responses separate an
+entire finite candidate family. It proves birthday-style row cutoffs, exact one-query recovery
+with a fixed separating matrix, and code lengths capped by the database dimension, formalizing
+the code-existence argument of [TerhalSmolin1998].
+
+## Main statements
+
+* `exists_prime_cutoff`: Over a prime alphabet, every injective candidate family possesses a
+  separating response matrix with `2*Nat.clog A k + 1` rows, giving the birthday-code existence
+  bound of [TerhalSmolin1998].
+* `whole_family_recovery`: A fixed matrix separating all candidates yields a point-mass decoded
+  output at the true label with exactly one oracle query, as in the collision-free construction
+  of [TerhalSmolin1998].
+
+## References
+
+* [Terhal and Smolin, 1998][TerhalSmolin1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +41,8 @@ variable {A m n k : ℕ} [NeZero A] [NeZero k]
 
 omit [NeZero k] in
 
+/-- If each candidate's collision probability is bounded by `(k - 1)*q` and `k*(k - 1)*q < 1`,
+some generator matrix separates all candidates. -/
 theorem exists_injective_code_of_bound (candidates : Fin k → Fin n → ZMod A) (q : ENNReal)
     (hcollision : ∀ t : Fin k, (matrixLaw A m n).toOuterMeasure
       {g | ∃ j : {j : Fin k // j≠t}, response g (candidates j) = response g (candidates t)} ≤
@@ -54,6 +79,8 @@ theorem exists_injective_code_of_bound (candidates : Fin k → Fin n → ZMod A)
 
 omit [NeZero A] in
 
+/-- For a fixed generator matrix with injective candidate responses, the response decoder
+returns the true label exactly. -/
 theorem decoder_exact (candidates : Fin k → Fin n → ZMod A)
     (g : Fin m → Fin n → ZMod A)
     (hcode : Function.Injective (fun t => response g (candidates t))) (t : Fin k) :
@@ -62,6 +89,8 @@ theorem decoder_exact (candidates : Fin k → Fin n → ZMod A)
   obtain ⟨j,hj⟩ := error_implies_collision candidates g t h
   exact j.property (hcode hj)
 
+/-- For `b ≥ 2`, the birthday collision budget at row count `2*Nat.clog b k + 1` is strictly
+less than one. -/
 theorem birthday_budget (k b : ℕ) (hb : 2≤b) :
     (k:ENNReal)*((k-1:ℕ):ENNReal)*((1:ENNReal)/(b:ENNReal)^(2*Nat.clog b k+1)) < 1 := by
   have hbpos : 0<b := by omega
@@ -84,6 +113,8 @@ theorem birthday_budget (k b : ℕ) (hb : 2≤b) :
 
 omit [NeZero k] in
 
+/-- Every injective candidate family possesses a separating response matrix with `2*Nat.clog 2 k
++ 1` rows. -/
 theorem exists_binary_cutoff (candidates : Fin k → Fin n → ZMod A)
     (hinj : Function.Injective candidates) :
     ∃ g : Fin (2*Nat.clog 2 k+1) → Fin n → ZMod A,
@@ -93,6 +124,9 @@ theorem exists_binary_cutoff (candidates : Fin k → Fin n → ZMod A)
 
 omit [NeZero k] in
 
+/-- Over a prime alphabet, every injective candidate family possesses a separating response
+matrix with `2*Nat.clog A k + 1` rows, giving the birthday-code existence bound of
+[TerhalSmolin1998]. -/
 theorem exists_prime_cutoff [Fact (Nat.Prime A)] (candidates : Fin k → Fin n → ZMod A)
     (hinj : Function.Injective candidates) :
     ∃ g : Fin (2*Nat.clog A k+1) → Fin n → ZMod A,
@@ -100,6 +134,9 @@ theorem exists_prime_cutoff [Fact (Nat.Prime A)] (candidates : Fin k → Fin n �
   exists_injective_code_of_bound candidates ((1:ENNReal)/A^(2*Nat.clog A k+1))
     (collision_union_bound candidates hinj) (birthday_budget k A (Nat.Prime.two_le Fact.out))
 
+/-- A fixed matrix separating all candidates yields a point-mass decoded output at the true
+label with exactly one oracle query, as in the collision-free construction of
+[TerhalSmolin1998]. -/
 theorem whole_family_recovery (candidates : Fin k → Fin n → ZMod A)
     (g : Fin m → Fin n → ZMod A)
     (hcode : Function.Injective (fun t => response g (candidates t))) (t : Fin k) :
@@ -111,6 +148,8 @@ theorem whole_family_recovery (candidates : Fin k → Fin n → ZMod A)
 
 omit [NeZero k] [NeZero A] in
 
+/-- If a separating code of length `M` exists for an injective candidate family, one also exists
+with length at most `min n M`. -/
 theorem cap_code_length (candidates : Fin k → Fin n → ZMod A)
     (hinj : Function.Injective candidates) (M : ℕ)
     (hex : ∃ g : Fin M → Fin n → ZMod A, Function.Injective (fun t => response g (candidates t))) :
@@ -126,6 +165,9 @@ theorem cap_code_length (candidates : Fin k → Fin n → ZMod A)
 
 omit [NeZero k] in
 
+/-- Every injective candidate family possesses a separating code of length at most `min n
+(2*Nat.clog 2 k + 1)`, providing a dimension-capped code-existence bound for
+[TerhalSmolin1998]. -/
 theorem capped_binary_code (candidates : Fin k → Fin n → ZMod A)
     (hinj : Function.Injective candidates) :
     ∃ m, m ≤ min n (2*Nat.clog 2 k+1) ∧ ∃ g : Fin m → Fin n → ZMod A,

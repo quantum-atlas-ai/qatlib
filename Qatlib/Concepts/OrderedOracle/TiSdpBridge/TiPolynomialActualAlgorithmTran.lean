@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialActualAlgorithmStat
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiReadoutHelpers
+
+/-!
+# Realizing polynomial data as ordered search circuits
+
+This module proves `tiPolynomialActualAlgorithm`, assembling the unitary polynomial query word,
+its Fourier preparation gate, and the readout identities. The prepared circuit uses `k` queries
+and `k + 1` gates, and its correct-output probability is the squared norm of the terminal
+constant coefficient. These guarantees implement the polynomial description of invariant ordered
+search [FarhiEtAl1999].
+
+## Main statements
+
+* `tiPolynomialActualAlgorithm`: proves circuit realization, normalization, resource counts, and
+  the readout probability formulas.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +39,9 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped Classical BigOperators
 
+/-- Polynomial data satisfying the initial, normalization, and root matching conditions realizes
+the circuits, resource counts, and readout probability guarantees of
+`TiPolynomialActualAlgorithm`, in the invariant ordered search setting of [FarhiEtAl1999]. -/
 theorem tiPolynomialActualAlgorithm : TiPolynomialActualAlgorithm := by
   intro n k _ p hp0 _hnorm hm
   have hN : 0<2*n := by have := NeZero.pos n; omega

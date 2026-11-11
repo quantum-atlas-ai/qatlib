@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+
+/-!
+# Hermitian trace norm contraction
+
+This module constructs the positive and negative spectral parts of a Hermitian matrix and proves
+their difference and trace norm decomposition formulas. This finite-dimensional spectral
+framework is standard in [Bhatia1997].
+
+The decomposition yields trace norm contraction for positive trace-preserving maps on Hermitian
+inputs. The module applies this to quantum channels, finite reference amplifications, and
+partial trace, as treated in [Watrous2018].
+
+## Main statements
+
+* `sub_posPart_negPart` and `traceNorm_sub_posPart_negPart`: spectral decomposition identities.
+* `positive_trace_preserving_hermitian_trace_contraction`: contraction from positivity and trace
+  preservation.
+* `channel_reference_hermitian_trace_contraction`: contraction with a finite reference.
+* `traceRight_hermitian_trace_contraction`: contraction under partial trace.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -18,18 +44,23 @@ namespace HermitianSplit
 open Matrix
 open scoped ComplexOrder
 
+/-- The positive spectral part of a Hermitian matrix, obtained by replacing each eigenvalue with
+its maximum with zero. -/
 noncomputable def posPart {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) : Matrix n n ℂ :=
   (hA.eigenvectorUnitary : Matrix n n ℂ) *
       Matrix.diagonal (fun i => ((max (hA.eigenvalues i) 0 : ℝ) : ℂ)) *
     (hA.eigenvectorUnitary : Matrix n n ℂ)ᴴ
 
+/-- The negative spectral part of a Hermitian matrix, obtained by replacing each eigenvalue with
+the maximum of its negation and zero. -/
 noncomputable def negPart {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) : Matrix n n ℂ :=
   (hA.eigenvectorUnitary : Matrix n n ℂ) *
       Matrix.diagonal (fun i => ((max (-hA.eigenvalues i) 0 : ℝ) : ℂ)) *
     (hA.eigenvectorUnitary : Matrix n n ℂ)ᴴ
 
+/-- A Hermitian matrix is the unitary conjugate of the diagonal matrix of its real eigenvalues. -/
 theorem hermitian_eq_unitary_diagonal_conjTranspose
     {n : Type*} [Fintype n] [DecidableEq n] {A : Matrix n n ℂ} (hA : A.IsHermitian) :
     A = (hA.eigenvectorUnitary : Matrix n n ℂ) *
@@ -37,6 +68,7 @@ theorem hermitian_eq_unitary_diagonal_conjTranspose
       (hA.eigenvectorUnitary : Matrix n n ℂ)ᴴ := by
   exact hA.spectral_theorem
 
+/-- The sum of the positive and negative parts of a real number equals its absolute value. -/
 private theorem max_add_max_neg (l : ℝ) : max l 0 + max (-l) 0 = |l| := by
   rcases le_total l 0 with h | h
   · have h1 : max l 0 = 0 := max_eq_right h
@@ -48,6 +80,7 @@ private theorem max_add_max_neg (l : ℝ) : max l 0 + max (-l) 0 = |l| := by
     have h3 : |l| = l := abs_of_nonneg h
     linarith
 
+/-- The maximum of a real number and zero is nonnegative. -/
 private theorem nonneg_max_right (l : ℝ) : 0 ≤ max l 0 := by
   rcases le_total l 0 with h | h
   · have h1 : max l 0 = 0 := max_eq_right h
@@ -55,18 +88,21 @@ private theorem nonneg_max_right (l : ℝ) : 0 ≤ max l 0 := by
   · have h1 : max l 0 = l := max_eq_left h
     rw [h1]; exact h
 
+/-- The positive spectral part of a Hermitian matrix is positive semidefinite. -/
 private theorem posPart_posSemidef {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) : (posPart hA).PosSemidef := by
   refine (Matrix.posSemidef_diagonal_iff.mpr ?_).mul_mul_conjTranspose_same _
   intro i
   exact RCLike.ofReal_nonneg.mpr (nonneg_max_right _)
 
+/-- The negative spectral part of a Hermitian matrix is positive semidefinite. -/
 private theorem negPart_posSemidef {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) : (negPart hA).PosSemidef := by
   refine (Matrix.posSemidef_diagonal_iff.mpr ?_).mul_mul_conjTranspose_same _
   intro i
   exact RCLike.ofReal_nonneg.mpr (nonneg_max_right _)
 
+/-- Pointwise subtraction of diagonal functions gives subtraction of their diagonal matrices. -/
 private theorem diagonal_sub_eq {n : Type*} [Fintype n] [DecidableEq n]
     (f g h : n → ℂ) (hfg : ∀ i, f i - g i = h i) :
     Matrix.diagonal f - Matrix.diagonal g = Matrix.diagonal h := by
@@ -75,6 +111,7 @@ private theorem diagonal_sub_eq {n : Type*} [Fintype n] [DecidableEq n]
   funext i
   exact hfg i
 
+/-- A Hermitian matrix equals its positive spectral part minus its negative spectral part. -/
 theorem sub_posPart_negPart {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) : posPart hA - negPart hA = A := by
   have hpoint : ∀ i : n,
@@ -106,12 +143,15 @@ theorem sub_posPart_negPart {n : Type*} [Fintype n] [DecidableEq n]
     rw [diagonal_sub_eq _ _ _ hpoint]
   exact hstep.trans hfac |>.trans (hermitian_eq_unitary_diagonal_conjTranspose hA).symm
 
+/-- Conjugation by a matrix satisfying `Uᴴ*U = 1` preserves the trace. -/
 private theorem trace_unitary_conjTranspose_mul
     {n : Type*} [Fintype n] [DecidableEq n] (U D : Matrix n n ℂ) (hU : Uᴴ * U = 1) :
     Matrix.trace (U * D * Uᴴ) = Matrix.trace D := by
   have h1 : (U * D * Uᴴ).trace = (Uᴴ * U * D).trace := Matrix.trace_mul_cycle U D Uᴴ
   rw [h1, hU, Matrix.one_mul]
 
+/-- The trace of the positive spectral part is the sum of the nonnegative parts of the
+eigenvalues. -/
 private theorem trace_posPart {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) :
     Matrix.trace (posPart hA) = ∑ i, ((max (hA.eigenvalues i) 0 : ℝ) : ℂ) := by
@@ -123,6 +163,8 @@ private theorem trace_posPart {n : Type*} [Fintype n] [DecidableEq n]
     exact trace_unitary_conjTranspose_mul _ _ hU
   rw [htrace, Matrix.trace_diagonal]
 
+/-- The trace of the negative spectral part is the sum of the nonnegative parts of the negated
+eigenvalues. -/
 private theorem trace_negPart {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) :
     Matrix.trace (negPart hA) = ∑ i, ((max (-hA.eigenvalues i) 0 : ℝ) : ℂ) := by
@@ -134,6 +176,8 @@ private theorem trace_negPart {n : Type*} [Fintype n] [DecidableEq n]
     exact trace_unitary_conjTranspose_mul _ _ hU
   rw [htrace, Matrix.trace_diagonal]
 
+/-- The trace norm of a Hermitian matrix is the sum of the trace norms of its positive and
+negative spectral parts. -/
 theorem traceNorm_sub_posPart_negPart {n : Type*} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) :
     A.traceNorm = (posPart hA).traceNorm + (negPart hA).traceNorm := by
@@ -163,9 +207,11 @@ open scoped ComplexOrder
 
 variable {D E : ℕ}
 
+/-- Equality of the complex casts of two real numbers implies equality of those real numbers. -/
 private theorem real_of_complex_eq {a b : ℝ} (h : (a : ℂ) = b) : a = b := by
   simpa using congrArg Complex.re h
 
+/-- A quantum channel contracts the trace norm of every Hermitian system input. -/
 theorem channel_hermitian_trace_contraction
     {D E : ℕ} (T : QuantumChannel D E) {X : Operator D} (hX : X.IsHermitian) :
     (T.map X).traceNorm ≤ X.traceNorm := by
@@ -209,6 +255,7 @@ theorem channel_hermitian_trace_contraction
     linarith [h1]
   linarith [hle, hnormP, hnormN, hsplit]
 
+/-- Finite reference amplification of a trace-preserving linear map preserves the matrix trace. -/
 theorem amplification_trace {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (htp : TracePreserving T) (r : ℕ) (A : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) :
     Matrix.trace (ChannelAmplification T r A) = Matrix.trace A := by
@@ -220,6 +267,7 @@ theorem amplification_trace {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
   simp only [Matrix.trace, Fintype.sum_prod_type]
   exact Finset.sum_congr rfl fun a _ => hstep a
 
+/-- Finite reference amplification of a linear map preserves subtraction. -/
 theorem amplification_sub {D E r : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (A B : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) :
     ChannelAmplification T r (A - B)
@@ -229,6 +277,8 @@ theorem amplification_sub {D E r : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
   have h := T.map_sub (fun i j => A (p.1, i) (q.1, j)) (fun i j => B (p.1, i) (q.1, j))
   exact congrArg (fun M : Operator E => M p.2 q.2) h
 
+/-- Finite reference amplification of a quantum channel contracts the trace norm of every
+Hermitian input. -/
 theorem channel_reference_hermitian_trace_contraction
     {D E r : ℕ} (T : QuantumChannel D E)
     {X : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ} (hX : X.IsHermitian) :
@@ -278,6 +328,7 @@ theorem channel_reference_hermitian_trace_contraction
     linarith [h1]
   linarith [hle, hnormP, hnormN, hsplit]
 
+/-- A positive trace-preserving finite matrix map contracts the trace norm of Hermitian inputs. -/
 theorem positive_trace_preserving_hermitian_trace_contraction
     {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (T : MatrixMap I J ℂ) (hpos : T.IsPositive) (htp : T.IsTracePreserving)
@@ -302,6 +353,8 @@ theorem positive_trace_preserving_hermitian_trace_contraction
     _ = X.traceNorm := by
       rw [hnp, hnn, ← HermitianSplit.traceNorm_sub_posPart_negPart hX]
 
+/-- Finite reference amplification of a quantum channel maps Hermitian matrices to Hermitian
+matrices. -/
 theorem channel_reference_hermitian_preserving
     {D E r : ℕ} (T : QuantumChannel D E)
     {X : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ} (hX : X.IsHermitian) :
@@ -313,6 +366,7 @@ theorem channel_reference_hermitian_preserving
   rw [← he]
   exact hp.isHermitian.sub hn.isHermitian
 
+/-- Partial trace over the right tensor factor contracts the trace norm of a Hermitian matrix. -/
 theorem traceRight_hermitian_trace_contraction
     {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (X : Matrix (I × J) (I × J) ℂ) (hX : X.IsHermitian) :

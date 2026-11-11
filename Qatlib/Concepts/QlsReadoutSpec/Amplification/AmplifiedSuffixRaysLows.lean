@@ -8,6 +8,29 @@ import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplifiedSuffixRaysStat
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportLows
+
+/-!
+# Amplified suffix state rays
+
+Proves that compatible amplified prefix states give the same normalized projected suffix state
+and the same relative norm change at later clock indices. The proof expresses suffix words as
+matrix products and propagates the positive proportionality supplied by the one-step
+normalized-state hypothesis.
+
+`Clause6AmplifiedSuffixRays_answer` establishes the suffix consistency statement associated with
+[LowSu2026].
+
+## Main statements
+
+* `suffixState_eq_prod`: expresses suffix evolution as an ordered matrix product.
+* `suffixState_commute_left`: moves a commuting operator through suffix evolution.
+* `Clause6AmplifiedSuffixRays_answer`: proves normalized-ray and relative-norm consistency.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,11 +47,13 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators ComplexOrder
 
+/-- The squared vector norm is the sum of squared norms of the coordinates. -/
 private theorem normVec_sq_eq {H : Type} [Fintype H] (v : QState H) :
     normVec v ^ 2 = ∑ i, ‖v i‖ ^ 2 := by
   show ‖toEuclidean_fromVec v‖ ^ 2 = _
   exact norm_toEuclidean_fromVec_sq v
 
+/-- Complex scalar multiplication scales the vector norm by the norm of the scalar. -/
 private theorem normVec_smul_complex {H : Type} [Fintype H] (c : ℂ) (v : QState H) :
     normVec (c • v) = ‖c‖ * normVec v := by
   have key : normVec (c • v) ^ 2 = (‖c‖ * normVec v) ^ 2 := by
@@ -39,10 +64,13 @@ private theorem normVec_smul_complex {H : Type} [Fintype H] (c : ℂ) (v : QStat
     (le_of_sq_le_sq key.le (mul_nonneg (norm_nonneg _) (norm_nonneg _)))
     (le_of_sq_le_sq key.ge (norm_nonneg _))
 
+/-- Real scalar multiplication scales the vector norm by the absolute value of the scalar. -/
 private theorem normVec_real_smul {H : Type} [Fintype H] (r : ℝ) (v : QState H) :
     normVec ((r : ℂ) • v) = |r| * normVec v := by
   rw [normVec_smul_complex, Complex.norm_real, Real.norm_eq_abs]
 
+/-- Multiplication by a positive real scalar leaves the normalized state unchanged when the
+vector norm is nonzero. -/
 private theorem normState_smul_pos {H : Type} [Fintype H] {r : ℝ} (hr : 0 < r)
     (v : QState H) (hv : normVec v ≠ 0) :
     normState ((r : ℂ) • v) = normState v := by
@@ -59,6 +87,8 @@ private theorem normState_smul_pos {H : Type} [Fintype H] {r : ℝ} (hr : 0 < r)
     rw [h3]
   exact hkey
 
+/-- Vectors with equal normalized states and positive norms are related by the positive scalar
+equal to the ratio of their norms. -/
 private theorem smul_of_normState_eq {H : Type} [Fintype H]
     (a b : QState H) (_ha : 0 < normVec a) (hb : 0 < normVec b)
     (h : normState a = normState b) :
@@ -73,15 +103,20 @@ private theorem smul_of_normState_eq {H : Type} [Fintype H]
   rw [h2] at hsmul
   exact hsmul.symm
 
+/-- The forward oracle call at slot `i`, controlled on the entire singleton clock. -/
 private def callStep {H : Type} (i : ℕ) : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H 1 :=
     .call i Finset.univ false
 
+/-- The word of forward oracle calls for the given list of slot indices. -/
 private def callWord {H : Type} (is : List ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 1 := is.map callStep
 
+/-- The matrix of the empty singleton-clock word is the identity. -/
 private theorem wordMatrix_nil' {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) : wordMatrix U ([] : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 1) = 1 := rfl
 
+/-- Prepending a forward call at slot `i` multiplies the remaining word matrix on the right by
+the fully controlled `U i`. -/
 private theorem wordMatrix_cons_call {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (i : ℕ) (C : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 1) :
     wordMatrix U (callStep i :: C) = wordMatrix U C * controlled (U i) Finset.univ := by
@@ -90,6 +125,8 @@ private theorem wordMatrix_cons_call {H : Type} [Fintype H] [DecidableEq H]
     List.prod_nil, mul_one]
   rfl
 
+/-- A fully controlled operator on the singleton clock maps a clean state to the clean embedding
+of the transformed state. -/
 private theorem controlled_univ_clean {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (ψ : QState H) (hr : 0 < 1) :
     controlled U Finset.univ *ᵥ clean 1 hr ψ = clean 1 hr (U *ᵥ ψ) := by
@@ -116,6 +153,8 @@ private theorem controlled_univ_clean {H : Type} [Fintype H] [DecidableEq H]
   show (∑ h' : H, U h h' * ψ h') = (U *ᵥ ψ) h
   rfl
 
+/-- A word of forward calls acts on clean states by the reversed product of the listed oracle
+matrices. -/
 private theorem wordMatrix_callWord_clean {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (is : List ℕ) (hr : 0 < 1) :
     ∀ ψ : QState H, wordMatrix U (callWord (H := H) is) *ᵥ clean 1 hr ψ
@@ -138,6 +177,8 @@ private theorem wordMatrix_callWord_clean {H : Type} [Fintype H] [DecidableEq H]
     rw [List.map_cons, List.reverse_cons, List.prod_append, List.prod_cons,
       List.prod_nil, mul_one]
 
+/-- The clock state after a list of forward calls is the reversed product of the listed oracle
+matrices applied to the input state. -/
 private theorem clockState_callWord {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (is : List ℕ) (ψ : QState H) :
     clockState U (callWord (H := H) is) ψ = (is.map U).reverse.prod *ᵥ ψ := by
@@ -151,12 +192,16 @@ private theorem clockState_callWord {H : Type} [Fintype H] [DecidableEq H]
       = (wordMatrix U (callWord is) *ᵥ clean 1 (by omega) ψ) (h, 0) := rfl
   rw [key, hrun, hclean]
 
+/-- The suffix word from `j` to `k` is the forward-call word for indices `j + 1` through `k`,
+with an empty list when `k ≤ j`. -/
 private theorem suffixWord_eq_callWord {H : Type} (j k : ℕ) :
     suffixWord (H := H) j k = callWord ((List.range (k - j)).map (fun i => j + i + 1)) := by
   unfold suffixWord callWord callStep
   rw [List.map_map]
   rfl
 
+/-- Suffix evolution equals the reversed product of oracle matrices at indices `j + 1` through
+`k`, applied to the input state. -/
 private theorem suffixState_eq_prod {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (j k : ℕ) (ψ : QState H) :
     suffixState U j k ψ
@@ -171,6 +216,7 @@ private theorem suffixState_eq_prod {H : Type} [Fintype H] [DecidableEq H]
     rfl
   rw [hmaps]
 
+/-- A suffix with equal start and end indices leaves the input state unchanged. -/
 private theorem suffixState_self {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (j : ℕ) (ψ : QState H) :
     suffixState U j j ψ = ψ := by
@@ -178,6 +224,8 @@ private theorem suffixState_self {H : Type} [Fintype H] [DecidableEq H]
   show (((List.range 0).map (fun i => U (j + i + 1))).reverse.prod) *ᵥ ψ = ψ
   rw [List.range_zero, List.map_nil, List.reverse_nil, List.prod_nil, Matrix.one_mulVec]
 
+/-- For `j ≤ k`, suffix evolution through `k + 1` applies `U (k + 1)` after suffix evolution
+through `k`. -/
 private theorem suffixState_succ {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (j k : ℕ) (hjk : j ≤ k) (ψ : QState H) :
     suffixState U j (k + 1) ψ = U (k + 1) *ᵥ suffixState U j k ψ := by
@@ -189,6 +237,8 @@ private theorem suffixState_succ {H : Type} [Fintype H] [DecidableEq H]
   have hjk2 : j + (k - j) + 1 = k + 1 := by omega
   rw [hjk2, Matrix.mulVec_mulVec]
 
+/-- For `j < k`, suffix evolution can begin with `U (j + 1)` and then continue from `j + 1` to
+`k`. -/
 private theorem suffixState_split {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (j k : ℕ) (hjk : j < k) (ψ : QState H) :
     suffixState U j k ψ = suffixState U (j + 1) k (U (j + 1) *ᵥ ψ) := by
@@ -206,11 +256,13 @@ private theorem suffixState_split {H : Type} [Fintype H] [DecidableEq H]
   rw [hmap, List.reverse_cons, List.prod_append, List.prod_cons, List.prod_nil, mul_one,
     ← Matrix.mulVec_mulVec]
 
+/-- Suffix evolution commutes with complex scalar multiplication. -/
 private theorem suffixState_smul {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (j k : ℕ) (c : ℂ) (ψ : QState H) :
     suffixState U j k (c • ψ) = c • suffixState U j k ψ := by
   rw [suffixState_eq_prod, suffixState_eq_prod, Matrix.mulVec_smul]
 
+/-- A matrix commuting with every listed oracle matrix commutes with their reversed product. -/
 private theorem comm_map_prod {H : Type} [Fintype H] [DecidableEq H]
     (M : Matrix H H ℂ) (U : ℕ → Matrix H H ℂ) (is : List ℕ)
     (hc : ∀ i ∈ is, M * U i = U i * M) :
@@ -232,6 +284,8 @@ private theorem comm_map_prod {H : Type} [Fintype H] [DecidableEq H]
       _ = (as.map U).reverse.prod * (U a * M) := by rw [ha]
       _ = ((as.map U).reverse.prod * U a) * M := by rw [← mul_assoc]
 
+/-- An operator commuting with each stage between `j + 1` and `k` can be moved through suffix
+evolution. -/
 private theorem suffixState_commute_left {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (M : Matrix H H ℂ) (j k : ℕ)
     (hc : ∀ i, j < i → i ≤ k → M * U i = U i * M) (ψ : QState H) :
@@ -255,6 +309,8 @@ private theorem suffixState_commute_left {H : Type} [Fintype H] [DecidableEq H]
       omega)
   rw [hcommW]
 
+/-- For `i < m`, the ratio of projected norms before and after the compatible amplified prefix
+at stage `i + 1`; it is one outside that range. -/
 private def stageGain {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m + 1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (V : ℕ → Matrix H H ℂ) (ω : QState H) (i : ℕ) : ℝ :=
@@ -263,11 +319,15 @@ private def stageGain {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
       normVec (potential (P ⟨i + 1, by omega⟩) bad *ᵥ (V (i + 1) *ᵥ ω))
   else 1
 
+/-- The product of `stageGain` over the first `n` stage indices. -/
 private def gainProd {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m + 1) → Matrix H H ℂ) (bad : Matrix H H ℂ)
     (U : ℕ → Matrix H H ℂ) (V : ℕ → Matrix H H ℂ) (ω : QState H) (n : ℕ) : ℝ :=
   Finset.prod (Finset.range n) (fun i => stageGain m P bad U V ω i)
 
+/-- Proves equality of normalized projected suffix states and of relative norm changes for
+compatible amplified prefixes, under the stated legality and positivity hypotheses; see [Low
+and Su, Proposition 15][LowSu2026]. -/
 theorem Clause6AmplifiedSuffixRays_answer : Clause6AmplifiedSuffixRays := by
   intro H _ _ m P bad U V ω hlegal hstage hnormω hV0 hVunit hass j l k h hjk hlk hjh hlh
   obtain ⟨hP, hP0, hPm, hpsd, hbad, hcomm⟩ := hlegal

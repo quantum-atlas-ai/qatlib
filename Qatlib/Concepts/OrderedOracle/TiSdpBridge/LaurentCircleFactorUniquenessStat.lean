@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchSDP
+
+/-!
+# Laurent circle factor uniqueness statement
+
+`LaurentCircleFactorUniqueness` specifies uniqueness up to a unit complex scalar for two circle
+square-norm factors whose roots lie in the closed unit disk. The proposition assumes a nonzero
+highest Laurent coefficient and records exact factor degrees, refining the factorization
+vocabulary used for ordered-search semidefinite programs [ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `LaurentCircleFactorUniqueness`: two closed-disk factors have degree `n - 1` and coefficient
+  vectors related by a scalar of norm one.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +33,9 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge Polynomial Matrix
 open scoped BigOperators Classical ComplexOrder
 
+/-- The proposition that two closed-disk polynomial square-norm factors of a nonnegative Laurent
+family with nonzero highest coefficient both have degree `n - 1`. It further requires their
+coefficient vectors to differ by multiplication by a complex scalar of norm one. -/
 def LaurentCircleFactorUniqueness : Prop :=
   ∀ (n : ℕ) [NeZero n] (a p q : Fin n → ℂ),
     complexLaurentNonnegative a →

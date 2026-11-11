@@ -7,6 +7,7 @@
 **The Lean Library for Formalized Quantum Computing and Quantum Information**
 
 [![Lint](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/lint.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/lint.yml)
+[![Build](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/build.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/build.yml)
 [![Cache](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/publish-cache.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/publish-cache.yml)
 [![api_docs](https://img.shields.io/badge/doc-API_docs-blue)](https://quantum-atlas-ai.github.io/qatlib/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
@@ -33,21 +34,23 @@ If you do not have Lean 4 and `elan` installed yet, follow the [official Lean 4 
 
 ### <a id="as-dependency"></a>Using `Qatlib` as a Dependency
 
-Add `Qatlib` to your project's `lakefile.toml`:
+Ensure your project's `lean-toolchain` matches this repository (`leanprover/lean4:v4.35.0`), and add `Qatlib` to your `lakefile.toml`:
 
 ```toml
 [[require]]
 name = "Qatlib"
 git = "https://github.com/quantum-atlas-ai/qatlib.git"
-rev = "v4.35.0"
+rev = "main" # Track the latest theorems (recommended); or pin to "v4.35.0" for the initial toolchain baseline
 ```
 
-Fetch the dependency and prebuilt caches (`Mathlib` + `Physlib` + `Qatlib`) so you do not need to compile `Qatlib` from source:
+When adding the dependency for the first time (or when pulling newly added upstream theorems), run both commands below to update `lake-manifest.json` and fetch the prebuilt caches (`Mathlib` + `Physlib` + `Qatlib`):
 
 ```bash
 lake update
 lake exe get_cache
 ```
+
+> **Note**: Lake locks the exact Git commit SHA in `lake-manifest.json`. Upstream commits on `main` will not affect your local build unless you explicitly run `lake update` (or `lake update Qatlib`). Whenever you run `lake update`, follow it with `lake exe get_cache` to fetch the corresponding prebuilt caches.
 
 Then import `Qatlib` (or specific submodules) in your `.lean` files:
 

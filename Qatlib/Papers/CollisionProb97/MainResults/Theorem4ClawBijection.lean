@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CollisionProb97.MainResults.Theorem1TwoToOne
+
+/-!
+# Injective claw counts and scalar budgets
+
+This module proves the candidate and scalar budget statements associated with Theorem 4 of
+[BrassardHoyerTapp1998Collision]. For injective `F` and `G`, with the domain of `G` as large as
+its codomain, each distinct table value gives one claw candidate.
+
+The theorem `bijectionClaw_real_cube_budget` simplifies the proposed claw search budget at an
+exact real cube-root table size.
+
+## Main statements
+
+* `rToOne_one_of_injective`: An injective function has fibers of cardinality one over its image.
+* `bijectionClaw_count_and_budget`: Under injectivity and the cardinality hypothesis making `G`
+  surjective, proves the claw candidate count, witnesses, scalar search bound, and table and
+  record counts associated with Theorem 4 of [BrassardHoyerTapp1998Collision].
+* `bijectionClaw_real_cube_budget`: At `k³ = N` with `k ≥ 1`, the proposed claw search budget is
+  at most `groverCoefficient l * k`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +42,7 @@ open scoped BigOperators
 
 universe u
 
+/-- An injective function has fibers of cardinality one over its image. -/
 theorem rToOne_one_of_injective {Y Z : Type u} [Fintype Y] [DecidableEq Y]
     [DecidableEq Z] (G : Y → Z) (hG : Function.Injective G) : RToOne G 1 := by
   classical
@@ -33,6 +59,9 @@ theorem rToOne_one_of_injective {Y Z : Type u} [Fintype Y] [DecidableEq Y]
       exact hy0
   rw [hset, Finset.card_singleton]
 
+/-- Under injectivity and the cardinality hypothesis making `G` surjective, proves the claw
+candidate count, witnesses, scalar search bound, and table and record counts associated with
+Theorem 4 of [BrassardHoyerTapp1998Collision]. -/
 theorem bijectionClaw_count_and_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3) :
     ∃ C : ℝ, 0 < C ∧
       ∀ {X Y Z : Type u} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -66,6 +95,8 @@ theorem bijectionClaw_count_and_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3) 
   · rw [hcount]
     exact le_rfl
 
+/-- At `k³ = N` with `k ≥ 1`, the proposed claw search budget is at most `groverCoefficient l *
+k`. -/
 theorem bijectionClaw_real_cube_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3)
     {N k : ℝ} (hk : 1 ≤ k) (hcube : k ^ 3 = N) :
     proposedClawBudget (groverCoefficient l) N k ≤ groverCoefficient l * k := by

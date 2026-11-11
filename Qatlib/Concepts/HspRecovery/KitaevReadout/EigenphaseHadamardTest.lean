@@ -17,6 +17,29 @@ import Mathlib.Tactic.Ring
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+
+/-!
+# Hadamard test sampling and phase decoding
+
+This module defines the controlled matrix `eigenphaseControlledGate`, the Hadamard test matrix
+`hadamardTestGate`, and the corresponding ancilla amplitudes and bit distribution. These
+constructions support the phase estimation procedure of [Kitaev1995].
+
+`eigenphaseSampleLaw` combines independent samples at phases `φ` and `φ + 1/4`;
+`eigenphaseDecode` reconstructs a phase from the argument of the empirical cosine and sine
+estimates.
+
+## Main statements
+
+* `hadamardBitDist`: the Born distribution of the phase-dependent ancilla state.
+* `eigenphaseSampleLaw`: the joint law of the two sample blocks.
+* `eigenphaseDecode`: the phase estimator obtained from their empirical frequencies.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -27,14 +50,18 @@ namespace Qatlib.Concepts.HspRecovery.KitaevReadout
 open Matrix
 open scoped Classical BigOperators
 
+/-- The complex phase factor `exp (2πiφ)` associated with the real phase `φ`. -/
 noncomputable def eigenPhase (φ : ℝ) : ℂ := Complex.exp (2 * Real.pi * Complex.I * φ)
 
 variable (I : Type) [Fintype I] [DecidableEq I]
 
+/-- The matrix that applies `U` to the first register when the Boolean control is true and the
+identity when it is false. -/
 noncomputable def eigenphaseControlledGate (U : Matrix I I ℂ) :
     Matrix (I × Bool) (I × Bool) ℂ :=
   Matrix.of fun p q => if p.2 = q.2 then (if q.2 = true then U else 1) p.1 q.1 else 0
 
+/-- The controlled-`U` matrix conjugated by a Hadamard on the Boolean register. -/
 noncomputable def hadamardTestGate (U : Matrix I I ℂ) :
     Matrix (I × Bool) (I × Bool) ℂ :=
   TensorGate (1 : Matrix I I ℂ) Hadamard * eigenphaseControlledGate I U *
@@ -42,9 +69,13 @@ noncomputable def hadamardTestGate (U : Matrix I I ℂ) :
 
 variable {I}
 
+/-- The ancilla amplitude function with values `(1 + lam) / 2` at false and `(1 - lam) / 2` at
+true. -/
 noncomputable def hadamardTestBitState (lam : ℂ) : QState Bool :=
   fun b => if b then (1 - lam) / 2 else (1 + lam) / 2
 
+/-- The finite Boolean distribution given by the Born probabilities of `hadamardTestBitState
+(eigenPhase φ)`. -/
 noncomputable def hadamardBitDist (φ : ℝ) : FinDist Bool where
   prob b := BornProb (hadamardTestBitState (eigenPhase φ)) b
   nonneg b := bornProb_nonneg _ _
@@ -82,10 +113,14 @@ noncomputable def hadamardBitDist (φ : ℝ) : FinDist Bool where
     rw [hf, ht, key]
     linarith
 
+/-- The joint distribution of independent Hadamard test bits, with `s` samples at phase `φ`
+followed by `s` samples at phase `φ + 1/4`. -/
 noncomputable def eigenphaseSampleLaw (φ : ℝ) (s : ℕ) : FinDist (Fin (s + s) → Bool) :=
   independentSampleLaw (fun j : Fin (s + s) =>
     if (j : ℕ) < s then hadamardBitDist φ else hadamardBitDist (φ + 1 / 4))
 
+/-- Estimates a phase by dividing the complex argument of the empirical cosine and sine
+estimates from the two sample blocks by `2π`. -/
 noncomputable def eigenphaseDecode (s : ℕ) (ω : Fin (s + s) → Bool) : ℝ :=
   Complex.arg ((1 - 2 * ((∑ j : Fin s, (if ω (Fin.castAdd s j) then (1 : ℝ) else 0)) / (s : ℝ)))
       + (2 * ((∑ j : Fin s, (if ω (Fin.natAdd s j) then (1 : ℝ) else 0)) / (s : ℝ)) - 1)

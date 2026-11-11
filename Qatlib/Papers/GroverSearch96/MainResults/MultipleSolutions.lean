@@ -9,6 +9,19 @@ import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
 import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+/-!
+# Grover search with several marked inputs
+
+The marked and unmarked amplitudes evolve by an explicit rotation. With a
+known nonzero number of marked inputs smaller than the search space, the
+chosen iteration count gives success probability at least one minus the
+marked fraction. An additional endpoint connects unknown-count search with
+its actual execution and resource bounds.
+
+The rotation comes from [Grover1996]; multiple-solution and unknown-count
+search are treated by [Boyer et al., *Tight Bounds on Quantum Searching*][BoyerEtAl1998].
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +36,8 @@ open Qatlib.Concepts.SearchStopping.KnownCount
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
+/-- If `sin² θ` equals the marked fraction and `sin θ` and `cos θ` are nonzero, `j` Grover
+iterations advance the two amplitude phase from `x` to `x + 2*j*θ`. See [Grover1996]. -/
 theorem multipleSolutions_rotation (n : ℕ) (A : Finset (Reg n)) (θ u : ℝ)
     (hθ : (Real.sin θ) ^ 2 = (A.card : ℝ) / (Fintype.card (Reg n) : ℝ))
     (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) (j : ℕ) (x : ℝ) :
@@ -33,6 +48,9 @@ theorem multipleSolutions_rotation (n : ℕ) (A : Finset (Reg n)) (θ u : ℝ)
         (u * Real.cos (x + 2 * j * θ) / Real.cos θ : ℂ) :=
   run_groverCircuit_markedVector Fintype.card_pos A θ u hθ hs hc j x
 
+/-- With a known positive, non-total marked count, the selected Grover iteration
+count succeeds with probability at least one minus the marked fraction;
+see [Boyer et al., quantum searching][BoyerEtAl1998]. -/
 theorem multipleSolutions_knownCount_success (n : ℕ) (A : Finset (Reg n))
     (hA : A.Nonempty) (hAc : A.card < Fintype.card (Reg n)) :
     1 - (A.card : ℝ) / (Fintype.card (Reg n) : ℝ) ≤
@@ -45,6 +63,9 @@ theorem multipleSolutions_knownCount_success (n : ℕ) (A : Finset (Reg n))
 open Qatlib.Concepts.SearchStopping.UnknownCount
 open Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
+/-- For a nonempty marked set, the unknown count strategy with growth factor `6/5` has
+nonnegative terminal masses summing to one, uniform output on the marked set, and expected
+Boolean query count at most `(29/2) * sqrt (2^n / A.card)`. See [Grover1996]. -/
 theorem multipleSolutions_unknown_actual (n : ℕ) (A : Finset (Reg n))
     (hA : 0 < A.card) :
     let sizes := SourceSizes (Fintype.card (Reg n)) (6/5)

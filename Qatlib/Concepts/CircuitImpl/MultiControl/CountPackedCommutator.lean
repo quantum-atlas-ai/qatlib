@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountFramedBorrowed
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountCommutators
+
+/-!
+# Packed commutators with merged frames
+
+`sourcePackedCommutator` merges adjacent single-wire frames in the commutator of two framed gate
+words. Its matrix theorem identifies the packed expression with the original framed commutator
+under legality, unitarity, and wire-avoidance hypotheses, as needed for the elementary-gate
+counts in [BarencoEtAl1995].
+
+## Main statements
+
+* `sourcePackedCommutator_length`: Exact length `2 * as.length + 2 * bs.length + 7`.
+* `sourcePackedCommutator_legal`: Legality of the packed word.
+* `sourcePackedCommutator_matrix`: Equality with the commutator of the framed input words.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,12 +41,15 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl.CountPackedCommutator
 open Matrix
 open scoped Classical BigOperators
 
+/-- The elementary commutator word with adjacent single-wire frame gates merged around the two
+input words and their adjoints. -/
 def sourcePackedCommutator {N : ℕ} (s t : Fin N) (R E : Matrix Bool Bool ℂ)
     (as bs : List (ReflectionGate N)) : List (ReflectionGate N) :=
   [.inl (t,Hadamard), .inl (s,R)] ++ as ++ [.inl (s,E*Rᴴ)] ++ bs ++
     [.inl (s,R*Eᴴ)] ++ reflectionAdjoint as ++ [.inl (s,E*Rᴴ)] ++ reflectionAdjoint bs ++
     [.inl (s,Eᴴ), .inl (t,Hadamard)]
 
+/-- The packed commutator has length `2 * as.length + 2 * bs.length + 7`. -/
 theorem sourcePackedCommutator_length {N : ℕ} (s t : Fin N) (R E : Matrix Bool Bool ℂ)
     (as bs : List (ReflectionGate N)) :
     (sourcePackedCommutator s t R E as bs).length = 2*as.length+2*bs.length+7 := by
@@ -34,10 +57,13 @@ theorem sourcePackedCommutator_length {N : ℕ} (s t : Fin N) (R E : Matrix Bool
     reflectionAdjoint_length]
   omega
 
+/-- A singleton word containing a unitary single-wire gate is legal. -/
 private theorem singleton_legal {N : ℕ} (s : Fin N) (U : Matrix Bool Bool ℂ)
     (hU : U ∈ unitaryGroup Bool ℂ) : reflectionLegal [.inl (s,U)] := by
   simpa [reflectionLegal, reflectionGateLegal] using! hU
 
+/-- The packed commutator is legal when both input words are legal and both frame matrices are
+unitary. -/
 theorem sourcePackedCommutator_legal {N : ℕ} (s t : Fin N) (R E : Matrix Bool Bool ℂ)
     (hR : R ∈ unitaryGroup Bool ℂ) (hE : E ∈ unitaryGroup Bool ℂ)
     (as bs : List (ReflectionGate N)) (has : reflectionLegal as) (hbs : reflectionLegal bs) :
@@ -65,6 +91,8 @@ theorem sourcePackedCommutator_legal {N : ℕ} (s t : Fin N) (R E : Matrix Bool 
   simp only [sourcePackedCommutator, reflectionLegal_append]
   exact ⟨⟨⟨⟨⟨⟨⟨⟨hfront,has⟩,hS⟩,hbs⟩,hT⟩,haa⟩,hS⟩,hba⟩,hback⟩
 
+/-- Factors the packed matrix product into the commutator expression for framed matrices under
+the stated commutation identities and `H * H = 1`. -/
 private theorem packing_algebra {I : Type} [Fintype I] [DecidableEq I]
     (P Q E D H A B : Matrix I I ℂ)
     (hP : H*P=P*H) (hQ : H*Q=Q*H) (hE : H*E=E*H) (hD : H*D=D*H)
@@ -94,9 +122,12 @@ private theorem packing_algebra {I : Type} [Fintype I] [DecidableEq I]
   simp only [Matrix.mul_assoc]
   rw [middle, rightSide, leftSide]
 
+/-- The program matrix of a singleton gate word equals the matrix of its gate. -/
 private theorem singleton_matrix {N : ℕ} (g : ReflectionGate N) :
     reflectionProgramMatrix [g] = reflectionGateMatrix g := by simp [reflectionProgramMatrix]
 
+/-- When `s ≠ t` and the first input word avoids `t`, the packed word has the same program
+matrix as the commutator of the two explicitly framed input words. -/
 theorem sourcePackedCommutator_matrix {N : ℕ} (s t : Fin N) (hst : s ≠ t)
     (R E : Matrix Bool Bool ℂ) (hR : R ∈ unitaryGroup Bool ℂ) (hE : E ∈ unitaryGroup Bool ℂ)
     (as bs : List (ReflectionGate N)) (has : reflectionLegal as) (hbs : reflectionLegal bs)

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositiveComplementSqrt
 import Mathlib.Analysis.Normed.Ring.Units
+
+/-!
+# Unitary polar factor from a positive Gram complement
+
+`polarUnitaryFromGram` multiplies a matrix by the inverse of a positive complement square root.
+If the Gram matrix is `1 - E` and `0 ≤ E ≤ q • 1` for `q < 1`, the module proves that this
+factor is unitary and reconstructs the original matrix.
+
+An inverse-norm estimate supplies the quantitative invertibility needed for the construction.
+Polar decomposition and positive square roots are treated in [Bhatia1997].
+
+## Main statements
+
+* `positive_complement_sqrt_inverse`: The complement square root is invertible with inverse norm
+  at most `1 / (1 - q)`.
+* `positive_polar_factor`: The constructed factor is unitary and reconstructs the matrix through
+  the positive square root.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,9 +39,13 @@ open Matrix
 open scoped Classical Matrix.Norms.L2Operator ComplexOrder
 variable {N : Type*} [Fintype N] [DecidableEq N]
 
+/-- The candidate polar factor `B * (positiveComplementSqrt E)⁻¹` associated with a Gram
+complement `E`. -/
 noncomputable def polarUnitaryFromGram (B E : Matrix N N ℂ) : Matrix N N ℂ :=
   B * (positiveComplementSqrt E)⁻¹
 
+/-- If `0 ≤ E ≤ q • 1` and `0 ≤ q < 1`, the positive complement square root is invertible and
+its inverse has operator norm at most `1 / (1 - q)`. -/
 theorem positive_complement_sqrt_inverse (E : Matrix N N ℂ) (q : ℝ)
     (hq : 0 ≤ q) (hq1 : q < 1) (hE : E.PosSemidef)
     (hcap : (q • (1 : Matrix N N ℂ)-E).PosSemidef) :
@@ -43,6 +70,8 @@ theorem positive_complement_sqrt_inverse (E : Matrix N N ℂ) (q : ℝ)
   refine ⟨hunit, (le_div_iff₀ (by linarith : 0 < 1-q)).mpr ?_⟩
   nlinarith
 
+/-- If `B.conjTranspose * B = 1 - E` with `0 ≤ E ≤ q • 1` and `0 ≤ q < 1`, the constructed polar
+factor is unitary and its product with the positive complement square root equals `B`. -/
 theorem positive_polar_factor (B E : Matrix N N ℂ) (q : ℝ)
     (hq : 0 ≤ q) (hq1 : q < 1) (hE : E.PosSemidef)
     (hcap : (q • (1 : Matrix N N ℂ)-E).PosSemidef) (hgram : B.conjTranspose*B=1-E) :

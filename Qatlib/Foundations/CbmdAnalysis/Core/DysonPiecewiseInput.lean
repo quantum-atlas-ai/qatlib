@@ -8,6 +8,28 @@ import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewise
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonUniqueness
 import Mathlib.Topology.Piecewise
 import Mathlib.MeasureTheory.Measure.Typeclasses.NoAtoms
+
+/-!
+# Assembling piecewise matrix evolutions
+
+`assembledField` and `assembledDyson` glue interval fields and their Dyson paths along a finite
+partition. The assembled path is continuous and locally Lipschitz, hence absolutely continuous
+on every compact interval, and satisfies the assembled differential equation almost everywhere.
+
+The module proves uniqueness for absolutely continuous solutions, identifies the endpoint with
+`dysonPiecewise`, and expresses its growth bound using the integral norm of the assembled field.
+This supplies piecewise input data for the contour-based matrix decomposition in [WangEtAl2026].
+
+## Main statements
+
+* `assembledDyson_unique_ae`: proves uniqueness for the almost-everywhere evolution equation.
+* `assembledDyson_norm_le`: bounds the endpoint by the assembled integral budget.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -20,17 +42,23 @@ namespace CBMD
 open Set MeasureTheory Filter
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder Topology Classical NNReal
 
+/-- The field obtained by recursively selecting the interval field after each partition time,
+starting from the zero field. -/
 def assembledField {E : Type*} [Zero E]
     (F : ℕ → ℝ → E) (τ : ℕ → ℝ) : ℕ → ℝ → E
   | 0, _ => 0
   | n + 1, t => if t < τ n then assembledField F τ n t else F n t
 
+/-- The path obtained by recursively joining the interval Dyson paths, retaining the preceding
+path at and before each joining time. -/
 def assembledDyson {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) : ℕ → ℂ → ℝ → Matrix I I ℂ
   | 0, _, _ => 1
   | n + 1, z, t => if t ≤ τ n then assembledDyson H L τ n z t
       else dysonPiecewisePath H L τ n z t
 
+/-- At `τ n`, the assembled path equals the product of the first `n` interval propagators for a
+strictly increasing partition. -/
 theorem assembledDyson_endpoint {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (hτ : StrictMono τ)
     (n : ℕ) (z : ℂ) : assembledDyson H L τ n z (τ n) = dysonPiecewise H L τ n z := by
@@ -40,6 +68,7 @@ theorem assembledDyson_endpoint {I : Type} [Fintype I] [DecidableEq I]
     simp only [assembledDyson, not_le.mpr (hτ (Nat.lt_succ_self n)), ↓reduceIte,
       dysonPiecewisePath, dysonPiecewise]
 
+/-- For a monotone partition, the assembled path equals the identity at `τ 0`. -/
 @[simp] theorem assembledDyson_initial {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (hτ : Monotone τ)
     (n : ℕ) (z : ℂ) : assembledDyson H L τ n z (τ 0) = 1 := by
@@ -47,6 +76,7 @@ theorem assembledDyson_endpoint {I : Type} [Fintype I] [DecidableEq I]
   | zero => rfl
   | succ n ih => simp only [assembledDyson, hτ (Nat.zero_le n), ↓reduceIte, ih]
 
+/-- Inside partition cell `j < n`, the assembled field equals `F j`. -/
 theorem assembledField_eq_on_piece {E : Type*} [Zero E]
     (F : ℕ → ℝ → E) (τ : ℕ → ℝ) (hτ : Monotone τ)
     (n j : ℕ) (hj : j < n) {t : ℝ} (ht : t ∈ Ioo (τ j) (τ (j + 1))) :
@@ -62,6 +92,8 @@ theorem assembledField_eq_on_piece {E : Type*} [Zero E]
       subst j
       simp only [assembledField, not_lt.mpr ht.1.le, ↓reduceIte]
 
+/-- On the closed partition cell `j < n`, the assembled path equals `dysonPiecewisePath H L τ j
+z` for a strictly increasing partition. -/
 theorem assembledDyson_eq_on_piece {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (hτ : StrictMono τ)
     (n j : ℕ) (hj : j < n) (z : ℂ) {t : ℝ} (ht : t ∈ Icc (τ j) (τ (j + 1))) :
@@ -83,6 +115,8 @@ theorem assembledDyson_eq_on_piece {I : Type} [Fintype I] [DecidableEq I]
       · have hlt : τ n < t := lt_of_le_of_ne ht.1 (Ne.symm he)
         simp only [assembledDyson, not_le.mpr hlt, ↓reduceIte]
 
+/-- Continuous interval fields and a strictly increasing partition give a continuous assembled
+Dyson path. -/
 theorem assembledDyson_continuous {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j)) (τ : ℕ → ℝ) (hτ : StrictMono τ)
@@ -102,6 +136,8 @@ theorem assembledDyson_continuous {I : Type} [Fintype I] [DecidableEq I]
     simp only [assembledDyson_endpoint H L τ hτ, dysonPiecewisePath,
       dysonPropagator_self, one_mul]
 
+/-- Inside a partition cell with continuous fields, the assembled path satisfies the evolution
+equation for the assembled `H` and `L`. -/
 theorem assembledDyson_hasDerivAt_piece {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (hτ : StrictMono τ)
     (n j : ℕ) (hj : j < n) (hH : Continuous (H j)) (hL : Continuous (L j))
@@ -116,6 +152,8 @@ theorem assembledDyson_hasDerivAt_piece {I : Type} [Fintype I] [DecidableEq I]
   filter_upwards [Ioo_mem_nhds ht.1 ht.2] with u hu
   exact assembledDyson_eq_on_piece H L τ hτ n j hj z ⟨hu.1.le, hu.2.le⟩
 
+/-- A point between the first and last partition times that differs from every partition time
+lies in an open partition cell. -/
 private theorem exists_partition_cell (τ : ℕ → ℝ) (n : ℕ) (t : ℝ)
     (ht : t ∈ Icc (τ 0) (τ n)) (hne : ∀ j ≤ n, t ≠ τ j) :
     ∃ j < n, t ∈ Ioo (τ j) (τ (j + 1)) := by
@@ -128,6 +166,8 @@ private theorem exists_partition_cell (τ : ℕ → ℝ) (n : ℕ) (t : ℝ)
     · exact ⟨n, Nat.lt_succ_self n, lt_of_le_of_ne (not_lt.mp hn) (Ne.symm (hne n (by omega))),
         lt_of_le_of_ne ht.2 (hne (n + 1) le_rfl)⟩
 
+/-- For continuous interval fields and a strictly increasing partition, the assembled Dyson path
+satisfies its matrix evolution equation almost everywhere on the partition interval. -/
 theorem assembledDyson_hasDerivAt_ae {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j)) (τ : ℕ → ℝ) (hτ : StrictMono τ)
@@ -146,6 +186,8 @@ theorem assembledDyson_hasDerivAt_ae {I : Type} [Fintype I] [DecidableEq I]
   obtain ⟨j, hj, hc⟩ := exists_partition_cell τ n t hmem hne
   exact assembledDyson_hasDerivAt_piece H L τ hτ n j hj (hH j) (hL j) z hc
 
+/-- The assembled field is interval integrable on each partition cell when all interval fields
+are continuous and the partition is monotone. -/
 theorem assembledField_intervalIntegrable_piece {E : Type*} [NormedAddCommGroup E]
     [NormedSpace ℝ E] (F : ℕ → ℝ → E) (hF : ∀ j, Continuous (F j))
     (τ : ℕ → ℝ) (hτ : Monotone τ) (n j : ℕ) (hj : j < n) :
@@ -156,6 +198,8 @@ theorem assembledField_intervalIntegrable_piece {E : Type*} [NormedAddCommGroup 
   exact hi.congr_fun (fun t ht => (assembledField_eq_on_piece F τ hτ n j hj ht).symm)
     measurableSet_Ioo
 
+/-- The integral of an assembled continuous field over a monotone partition equals the sum of
+its interval integrals. -/
 theorem assembledField_integral_eq_sum {E : Type*} [NormedAddCommGroup E]
     [NormedSpace ℝ E] [CompleteSpace E]
     (F : ℕ → ℝ → E) (hF : ∀ j, Continuous (F j))
@@ -172,6 +216,8 @@ theorem assembledField_integral_eq_sum {E : Type*} [NormedAddCommGroup E]
   exact assembledField_eq_on_piece F τ hτ n j (Finset.mem_range.mp hj)
     ⟨ht.1, lt_of_le_of_ne ht.2 hne⟩
 
+/-- Taking the norm of an assembled field is the same as assembling the norms of its interval
+fields. -/
 private theorem assembledField_norm {E : Type*} [NormedAddCommGroup E]
     (F : ℕ → ℝ → E) (τ : ℕ → ℝ) (n : ℕ) (t : ℝ) :
     ‖assembledField F τ n t‖ = assembledField (fun j u => ‖F j u‖) τ n t := by
@@ -181,6 +227,8 @@ private theorem assembledField_norm {E : Type*} [NormedAddCommGroup E]
     simp only [assembledField]
     split_ifs <;> simp only [ih]
 
+/-- The integral norm of the assembled matrix field equals the piecewise Dyson budget for
+continuous fields and a monotone partition. -/
 theorem assembledField_norm_integral {I : Type} [Fintype I] [DecidableEq I]
     (L : ℕ → ℝ → Matrix I I ℂ) (hL : ∀ j, Continuous (L j))
     (τ : ℕ → ℝ) (hτ : Monotone τ) (n : ℕ) :
@@ -188,6 +236,8 @@ theorem assembledField_norm_integral {I : Type} [Fintype I] [DecidableEq I]
   simp_rw [assembledField_norm]
   exact assembledField_integral_eq_sum (fun j u => ‖L j u‖) (fun j => (hL j).norm) τ hτ n
 
+/-- Two Lipschitz functions that agree at the switching point glue to a Lipschitz function with
+the sum of their Lipschitz constants. -/
 private theorem lipschitzOn_if_le {E : Type*} [PseudoMetricSpace E]
     {f g : ℝ → E} {a b c : ℝ} {Kf Kg : ℝ≥0}
     (hf : LipschitzOnWith Kf f (Icc a b)) (hg : LipschitzOnWith Kg g (Icc a b))
@@ -230,6 +280,8 @@ private theorem lipschitzOn_if_le {E : Type*} [PseudoMetricSpace E]
   · exact hfwd x hx y hy hxy
   · simpa only [dist_comm] using hfwd y hy x hx hyx
 
+/-- The extended Dyson path is continuously differentiable in time when its interval fields are
+continuous. -/
 theorem dysonPiecewisePath_contDiff_one {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (n : ℕ)
     (hH : Continuous (H n)) (hL : Continuous (L n)) (z : ℂ) :
@@ -238,6 +290,8 @@ theorem dysonPiecewisePath_contDiff_one {I : Type} [Fintype I] [DecidableEq I]
     (fun u => Complex.I • (H n u + z • L n u))
     ((hH.add (hL.const_smul z)).const_smul Complex.I) (τ n)).mul contDiff_const
 
+/-- With continuous interval fields and a strictly increasing partition, the assembled path has
+a Lipschitz constant on every compact unordered interval. -/
 theorem assembledDyson_exists_lipschitz {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j)) (τ : ℕ → ℝ) (hτ : StrictMono τ)
@@ -253,6 +307,8 @@ theorem assembledDyson_exists_lipschitz {I : Type} [Fintype I] [DecidableEq I]
     simp only [assembledDyson_endpoint H L τ hτ, dysonPiecewisePath,
       dysonPropagator_self, one_mul]
 
+/-- With continuous interval fields and a strictly increasing partition, the assembled Dyson
+path is absolutely continuous on every interval. -/
 theorem assembledDyson_absolutelyContinuous {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j)) (τ : ℕ → ℝ) (hτ : StrictMono τ)
@@ -261,6 +317,8 @@ theorem assembledDyson_absolutelyContinuous {I : Type} [Fintype I] [DecidableEq 
   obtain ⟨K, hK⟩ := assembledDyson_exists_lipschitz H L hH hL τ hτ n z a b
   exact hK.absolutelyContinuousOnInterval
 
+/-- An absolutely continuous solution of the assembled evolution equation with identity initial
+value agrees with the assembled Dyson path on the partition interval. -/
 theorem assembledDyson_unique_ae {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j)) (τ : ℕ → ℝ) (hτ : StrictMono τ)
@@ -327,6 +385,8 @@ theorem assembledDyson_unique_ae {I : Type} [Fintype I] [DecidableEq I]
         exact ⟨(lt_of_not_ge htn).le, ht.2⟩
       simpa only [assembledDyson, htn, ↓reduceIte] using htail hmem
 
+/-- The endpoint of the assembled Dyson path is complex differentiable in the parameter for
+continuous interval fields and a strictly increasing partition. -/
 theorem assembledDyson_differentiable_parameter {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j)) (τ : ℕ → ℝ) (hτ : StrictMono τ) (n : ℕ) :
@@ -334,6 +394,8 @@ theorem assembledDyson_differentiable_parameter {I : Type} [Fintype I] [Decidabl
   simp_rw [assembledDyson_endpoint H L τ hτ]
   exact dysonPiecewise_differentiable H L hH hL τ n
 
+/-- For continuous Hermitian `H` and positive semidefinite `L`, the assembled endpoint norm is
+bounded by the exponential of `max z.im 0` times the assembled integral norm. -/
 theorem assembledDyson_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j))

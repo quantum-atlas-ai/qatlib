@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
 import Mathlib.Tactic.NormNum
+
+/-!
+# Refutation of the SDP matrix Hoeffding contract
+
+This module proves `not_sdpMatrixHoeffding` using a one-dimensional matrix family taking the
+values `1` and `-1` on two outcomes. The matrices are Hermitian contractions with zero summed
+mean, yet the deviation event has probability one, contradicting the specialized diagnostic
+contract.
+
+The contract belongs to the concentration interfaces used for quantum SDP algorithms;
+[BrandaoSvore2017] provides the algorithmic setting.
+
+## Main statements
+
+* `not_sdpMatrixHoeffding`: refutation of `SdpMatrixHoeffding`.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
@@ -16,6 +37,7 @@ noncomputable section
 namespace Qatlib.Concepts.SdpDuality.ConeSeparation
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 
+/-- The diagnostic contract `SdpMatrixHoeffding` is false. -/
 theorem not_sdpMatrixHoeffding : ¬ SdpMatrixHoeffding := by
   intro h
   let Z : Fin 2 → Fin 1 → Operator 1 := fun s _ => if s = 0 then 1 else -1

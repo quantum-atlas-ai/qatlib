@@ -10,6 +10,26 @@ import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestrictedDefs
+
+/-!
+# Bounded-error parity-oracle separation
+
+This module proves `parityBoundedErrorSeparation` for the parity-secret recovery task associated
+with [BernsteinVazirani1997]. The classical part uses the average-success bound for randomized
+query trees; the quantum part uses the explicit one-query circuit and its exact recovery
+identity.
+
+## Main statements
+
+* `parityBoundedErrorSeparation`: success probability at least `2 / 3` for every secret requires
+  a classical query bound of at least `n`, while the specified unitary quantum circuit recovers
+  every secret with probability `1` using one query.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree
@@ -23,6 +43,10 @@ namespace Qatlib.Papers.QComplexity97.XorSeparation
 open Matrix
 open scoped BigOperators
 
+/-- Establishes the bounded-error parity-secret separation: a randomized classical query tree
+distribution with success at least `2 / 3` on every secret needs query bound at least `n`,
+whereas the specified normalized unitary quantum circuit recovers every secret with
+probability `1` using one query [BernsteinVazirani1997]. -/
 theorem parityBoundedErrorSeparation : ParityBoundedErrorSeparation := by
   classical
   constructor

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevNodes
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+
+/-!
+# Conditioning of Chebyshev multi-product formulas
+
+The rounded Chebyshev nodes and interpolation weights are compared with exact Chebyshev roots to
+control the coefficient mass of the multi-product construction in [AftabAnTrivisa2026]. The
+estimates yield logarithmic weight mass, an O(m² log² m) query factor, and a local approximation
+error with explicit constants.
+
+## Main statements
+
+* `weight_mass_bound`: bounds the absolute weight sum by a logarithm.
+* `query_factor_isBigO`: gives the asymptotic query factor.
+* `construction`: collects positivity, distinctness, cost, coefficient matching, and local
+  error.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +39,7 @@ open Real Set
 open Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevNodes
 open scoped BigOperators
 
+/-- For 0 ≤ a ≤ b ≤ π/2, the cosine difference is at least (b² - a²)/π. -/
 private theorem cosine_gap {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) (hb : b ≤ Real.pi / 2) :
     (b ^ 2 - a ^ 2) / Real.pi ≤ Real.cos a - Real.cos b := by
   have h := intervalIntegral.integral_mono_on (μ := MeasureTheory.volume) hab
@@ -29,6 +51,8 @@ private theorem cosine_gap {a b : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) (hb : b �
   convert! h using 1
   ring
 
+/-- For positive m, the sequence of node values multiplied by the sine of twice their angles is
+strictly decreasing. -/
 theorem scaled_sine_strictAnti (m : ℕ) (hm : 0 < m) :
     StrictAnti (fun j : Fin m => (node m j : ℝ) * Real.sin (2 * angle m j)) := by
   intro i j hij
@@ -74,6 +98,8 @@ theorem scaled_sine_strictAnti (m : ℕ) (hm : 0 < m) :
   rw [he i] at hl
   linarith
 
+/-- The cross-product inequality r t ≤ q s bounds both normalized square factors when 0 < r < q
+and 0 < s < t. -/
 private theorem two_factor_comparison {q r s t : ℝ} (hr : 0 < r) (hqr : r < q)
     (hs : 0 < s) (hst : s < t) (h : r * t ≤ q * s) :
     q ^ 2 / (q ^ 2 - r ^ 2) ≤ t ^ 2 / (t ^ 2 - s ^ 2) ∧
@@ -90,6 +116,8 @@ private theorem two_factor_comparison {q r s t : ℝ} (hr : 0 < r) (hqr : r < q)
   · apply (div_le_div_iff₀ hdenq hdent).mpr
     nlinarith only [hprod]
 
+/-- Each absolute interpolation factor for the rounded nodes is bounded by the corresponding
+sine-based reference factor. -/
 theorem factor_le_reference (m : ℕ) (hm : 0 < m) (j l : Fin m) (hlj : l ≠ j) :
     |(node m j : ℝ) ^ 2 / ((node m j : ℝ) ^ 2 - (node m l : ℝ) ^ 2)| ≤
       |Real.sin (2 * angle m l) ^ 2 /
@@ -136,8 +164,10 @@ theorem factor_le_reference (m : ℕ) (hm : 0 < m) (j l : Fin m) (hlj : l ≠ j)
 
 open Polynomial
 
+/-- The Chebyshev root phase π(2j + 1)/(2m). -/
 def phase (m : ℕ) (j : Fin m) : ℝ := Real.pi * (2 * (j.val : ℝ) + 1) / (2 * (m : ℝ))
 
+/-- For positive m, every reference phase lies strictly between 0 and π. -/
 theorem phase_bounds (m : ℕ) (hm : 0 < m) (j : Fin m) :
     0 < phase m j ∧ phase m j < Real.pi := by
   have hmpos : 0 < (m : ℝ) := by exact_mod_cast hm
@@ -147,6 +177,7 @@ theorem phase_bounds (m : ℕ) (hm : 0 < m) (j : Fin m) :
   · rw [phase, div_lt_iff₀ (by positivity : 0 < 2 * (m : ℝ))]
     nlinarith [Real.pi_pos]
 
+/-- For positive m, the cosines of the reference phases form a strictly decreasing sequence. -/
 theorem cosine_strictAnti (m : ℕ) (hm : 0 < m) :
     StrictAnti (fun j : Fin m => Real.cos (phase m j)) := by
   intro i j hij
@@ -159,6 +190,7 @@ theorem cosine_strictAnti (m : ℕ) (hm : 0 < m) :
   apply div_lt_div_of_pos_right _ (by positivity)
   exact mul_lt_mul_of_pos_left (by linarith) Real.pi_pos
 
+/-- Each cosine of a reference phase is a root of the degree-m Chebyshev polynomial. -/
 theorem reference_root (m : ℕ) (hm : 0 < m) (j : Fin m) :
     (Polynomial.Chebyshev.T ℝ m).eval (Real.cos (phase m j)) = 0 := by
   rw [Polynomial.Chebyshev.T_real_cos]
@@ -169,6 +201,8 @@ theorem reference_root (m : ℕ) (hm : 0 < m) (j : Fin m) :
     field_simp
   rw [he, Real.cos_add_pi_div_two, Real.sin_nat_mul_pi, neg_zero]
 
+/-- The degree-m Chebyshev polynomial is its leading coefficient times the nodal polynomial of
+the reference roots. -/
 theorem reference_nodal (m : ℕ) (hm : 0 < m) :
     Polynomial.Chebyshev.T ℝ m =
       Polynomial.C (Polynomial.Chebyshev.T ℝ m).leadingCoeff *
@@ -186,9 +220,12 @@ theorem reference_nodal (m : ℕ) (hm : 0 < m) :
     rw [reference_root m hm j, Polynomial.eval_mul, Polynomial.eval_C,
       Lagrange.eval_nodal_at_node (v := fun k : Fin m => Real.cos (phase m k)) hj, mul_zero]
 
+/-- The Lagrange basis polynomial for the reference Chebyshev roots, evaluated at 1. -/
 def referenceWeight (m : ℕ) (j : Fin m) : ℝ :=
   (Lagrange.basis Finset.univ (fun k : Fin m => Real.cos (phase m k)) j).eval 1
 
+/-- A reference weight multiplied by the Chebyshev derivative at its root and the distance of
+that root from 1 equals 1. -/
 theorem reference_weight_derivative (m : ℕ) (hm : 0 < m) (j : Fin m) :
     referenceWeight m j * (Polynomial.Chebyshev.T ℝ m).derivative.eval (Real.cos (phase m j)) *
       (1 - Real.cos (phase m j)) = 1 := by
@@ -222,6 +259,8 @@ theorem reference_weight_derivative (m : ℕ) (hm : 0 < m) (j : Fin m) :
     simpa only [mul_comm] using! heval.symm
   rw [hz, one_mul]
 
+/-- At a reference root, the absolute Chebyshev derivative multiplied by the sine of its phase
+equals m. -/
 theorem reference_derivative_abs (m : ℕ) (hm : 0 < m) (j : Fin m) :
     |(Polynomial.Chebyshev.T ℝ m).derivative.eval (Real.cos (phase m j))| *
       Real.sin (phase m j) = (m : ℝ) := by
@@ -243,6 +282,7 @@ theorem reference_derivative_abs (m : ℕ) (hm : 0 < m) (j : Fin m) :
   simpa only [abs_mul, abs_of_pos hs, abs_of_nonneg (show (0 : ℝ) ≤ m from Nat.cast_nonneg m),
       habs, mul_one] using! h
 
+/-- The absolute reference weight at index j is at most 2/(j + 1). -/
 theorem reference_weight_bound (m : ℕ) (hm : 0 < m) (j : Fin m) :
     |referenceWeight m j| ≤ 2 / ((j.val : ℝ) + 1) := by
   have hp := phase_bounds m hm j
@@ -285,10 +325,12 @@ theorem reference_weight_bound (m : ℕ) (hm : 0 < m) (j : Fin m) :
   rw [← mul_assoc, hhalf] at h
   linarith [Real.cos_le_one (phase m j / 2)]
 
+/-- The reference phase is four times the node angle. -/
 theorem phase_eq_four_angle (m : ℕ) (j : Fin m) : phase m j = 4 * angle m j := by
   unfold phase angle
   ring
 
+/-- A reference weight is the product of the corresponding sine-square interpolation factors. -/
 theorem reference_weight_product (m : ℕ) (j : Fin m) :
     referenceWeight m j = ∏ l ∈ Finset.univ.erase j,
       Real.sin (2 * angle m l) ^ 2 /
@@ -311,6 +353,8 @@ theorem reference_weight_product (m : ℕ) (j : Fin m) :
   simp only [div_eq_mul_inv]
   ring
 
+/-- For positive m, each rounded-node weight is bounded in absolute value by its reference
+weight. -/
 theorem weight_le_reference (m : ℕ) (hm : 0 < m) (j : Fin m) :
     |weight m j| ≤ |referenceWeight m j| := by
   rw [weight_product m hm j, reference_weight_product]
@@ -319,10 +363,12 @@ theorem weight_le_reference (m : ℕ) (hm : 0 < m) (j : Fin m) :
   intro l hl
   exact factor_le_reference m hm j l (Finset.mem_erase.mp hl).1
 
+/-- For positive m, the absolute rounded-node weight at index j is at most 2/(j + 1). -/
 theorem weight_bound (m : ℕ) (hm : 0 < m) (j : Fin m) :
     |weight m j| ≤ 2 / ((j.val : ℝ) + 1) :=
   (weight_le_reference m hm j).trans (reference_weight_bound m hm j)
 
+/-- The total absolute weight is at most twice the m-th harmonic number. -/
 theorem weight_mass_harmonic (m : ℕ) (hm : 0 < m) :
     (∑ j : Fin m, |weight m j|) ≤ 2 * (harmonic m : ℝ) := by
   calc
@@ -336,6 +382,7 @@ theorem weight_mass_harmonic (m : ℕ) (hm : 0 < m) :
           Fin.sum_univ_eq_sum_range (fun j : ℕ => ((j : ℝ) + 1)⁻¹) m
         _ = _ := by unfold harmonic; push_cast; rfl
 
+/-- The total absolute weight is bounded by (2 + 2/log 2) log(m + 1). -/
 theorem weight_mass_bound (m : ℕ) (hm : 0 < m) :
     (∑ j : Fin m, |weight m j|) ≤
       (2 + 2 / Real.log 2) * Real.log ((m : ℝ) + 1) := by
@@ -353,6 +400,7 @@ theorem weight_mass_bound (m : ℕ) (hm : 0 < m) :
   have hmass := weight_mass_harmonic m hm
   nlinarith only [hu, hh, hmass, hmono]
 
+/-- The total absolute Chebyshev weight is O(log m) as m tends to infinity. -/
 theorem weight_mass_isBigO :
     (fun m : ℕ => ∑ j : Fin m, |weight m j|) =O[Filter.atTop]
       (fun m : ℕ => Real.log (m : ℝ)) := by
@@ -377,6 +425,8 @@ theorem weight_mass_isBigO :
     _ ≤ C * (2 * Real.log (m : ℝ)) := mul_le_mul_of_nonneg_left hlogbound hC
     _ = _ := by ring
 
+/-- The product of total absolute weight and total node count is bounded by an explicit constant
+times m² log²(m + 1). -/
 theorem query_factor_bound (m : ℕ) (hm : 0 < m) :
     (∑ j : Fin m, |weight m j|) * (∑ j : Fin m, (node m j : ℝ)) ≤
       (2 + 2 / Real.log 2) * (16 + 17 / Real.log 2) *
@@ -389,6 +439,7 @@ theorem query_factor_bound (m : ℕ) (hm : 0 < m) :
   convert! h using 1
   ring
 
+/-- The product of total absolute weight and total node count is O(m² log² m). -/
 theorem query_factor_isBigO :
     (fun m : ℕ => (∑ j : Fin m, |weight m j|) * (∑ j : Fin m, (node m j : ℝ)))
       =O[Filter.atTop] (fun m : ℕ => (m : ℝ) ^ 2 * Real.log (m : ℝ) ^ 2) := by
@@ -406,6 +457,8 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The Chebyshev multi-product formula has local error bounded by the exponential Taylor tail
+of order 2m + 1 times the explicit logarithmic conditioning factor. -/
 theorem well_conditioned_local_error (X Y : Matrix I I ℂ) (m : ℕ) (hm : 0 < m) (t : ℝ) :
     ‖multiProduct (fun j => strangRepeats X Y (node m j)) (weight m) t -
       NormedSpace.exp (t • (X + Y))‖ ≤
@@ -416,6 +469,9 @@ theorem well_conditioned_local_error (X Y : Matrix I I ℂ) (m : ℕ) (hm : 0 < 
   apply mul_le_mul_of_nonneg_right (_root_.add_le_add (weight_mass_bound m hm) le_rfl)
   positivity
 
+/-- The Chebyshev construction has positive distinct nodes, controlled weight mass and word
+length, coefficient matching through degree 2m, and the stated local error bound
+[AftabAnTrivisa2026]. -/
 theorem construction (X Y : Matrix I I ℂ) (m : ℕ) (hm : 0 < m) :
     (∀ j : Fin m, 0 < node m j) ∧ Function.Injective (node m) ∧
     1 ≤ (∑ j : Fin m, |weight m j|) ∧

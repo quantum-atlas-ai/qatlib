@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityStat
 import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogGoodPairCounting
 import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogPrimePowerDivisibilityShor
+
+/-!
+# Divisibility probabilities for uniform good samples
+
+Relates the divisibility probability under `dlogUniformGoodLaw` to a ratio of finite
+cardinalities. This identity proves `dlogUniformGoodDivisibility`, the single-sample estimate
+used in the discrete-logarithm recovery analysis associated with [Shor1997].
+
+## Main statements
+
+* `dlog_uniform_good_divisibility_mass`: Expresses a divisibility probability as a cardinality
+  ratio.
+* `dlogUniformGoodDivisibility`: Proves the uniform-good divisibility contract.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +43,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogDivBudget
 open Qatlib
 open scoped Classical BigOperators
 
+/-- A one-sample event probability equals the sum of the distribution masses over the elements
+satisfying its predicate. -/
 theorem dlog_probEvent_one {X : Type} [Fintype X] [DecidableEq X]
     (law : FinDist X) (E : X → Prop) [DecidablePred E] :
     law.probEvent (L := 1) (fun ω => E (ω 0)) =
@@ -31,6 +52,9 @@ theorem dlog_probEvent_one {X : Type} [Fintype X] [DecidableEq X]
   have h := law.expect_coord (L := 1) 0 (fun x => if E x then (1 : ℝ) else 0)
   simpa only [FinDist.probEvent, Finset.sum_filter, mul_ite, mul_one, mul_zero] using h
 
+/-- The probability that `w` divides `dlogCprime` for one uniform good sample equals the number
+of small-residue samples satisfying divisibility divided by the number of good first
+coordinates. -/
 theorem dlog_uniform_good_divisibility_mass (p q w : ℕ) [NeZero q] :
     (dlogUniformGoodLaw p q).probEvent (L := 1)
       (fun ω => (w : ℤ) ∣ dlogCprime p q (ω 0).val) =
@@ -51,6 +75,8 @@ theorem dlog_uniform_good_divisibility_mass (p q w : ℕ) [NeZero q] :
       left_inv := fun _ => rfl
       right_inv := fun _ => rfl }
 
+/-- Establishes the uniform-good single-sample divisibility estimate used in the recovery
+analysis of [Shor1997]. -/
 theorem dlogUniformGoodDivisibility : DlogUniformGoodDivisibility := by
   intro p q _ _ hprime hp hpq hq w hw hwp
   rw [dlog_uniform_good_divisibility_mass]

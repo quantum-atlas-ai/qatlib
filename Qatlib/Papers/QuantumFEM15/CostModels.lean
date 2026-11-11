@@ -9,6 +9,30 @@ import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Tactic
 
+/-!
+# Finite element runtime cost models
+
+This module defines scalar runtime models for classical and quantum finite element methods, with
+and without preconditioning. It proves substitutions and upper bounds for the modeled quantum
+linear equation cost and compares the resulting accuracy exponents. See
+[MontanaroPallister2016].
+
+## Main statements
+
+* `modeledNo_preconditioning_bound`: Substituting the modeled unpreconditioned condition number
+  into the quantum cost expression yields `modeledNoPrecondBound` under the stated positivity
+  assumptions.
+* `modeledOptimal_preconditioning_bound`: For `0 ≤ κ ≤ K`, `K ≥ 1`, and the stated norm bounds,
+  the unit sparsity quantum cost is at most `2 * K ^ 2 * C * u1Norm / ε`.
+* `modeledSpeedup_is_at_most_polynomial`: For fixed dimension and degree `k ≥ 1`, the ratio of
+  the unpreconditioned classical and quantum runtime models is bounded by a nonnegative power of
+  `1 / ε` on `0 < ε ≤ 1`.
+
+## References
+
+* [Montanaro and Pallister, 2016][MontanaroPallister2016]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,18 +40,25 @@ namespace Qatlib.Papers.QuantumFEM15.CostModels
 
 open Real
 
+/-- The scalar quantum linear equation cost model `C * s * (κ ^ 2 * uNorm + κ * u1Norm) / ε`. -/
 def modeledQleCost (C s κ uNorm u1Norm ε : ℝ) : ℝ :=
   C * (s * (κ ^ 2 * uNorm + κ * u1Norm)) / ε
 
+/-- The two term quantum finite element cost model without preconditioning, expressed through
+solution norms, a seminorm, and powers of `ε`. -/
 def modeledNoPrecondBound (C : ℝ) (k : ℕ) (uNorm u1Norm semNorm ε : ℝ) : ℝ :=
   C * (uNorm * semNorm ^ ((4 : ℝ) / (k + 1)) /
         ε ^ (((k : ℝ) + 5) / (k + 1))
       + u1Norm * semNorm ^ ((2 : ℝ) / (k + 1)) /
         ε ^ (((k : ℝ) + 3) / (k + 1)))
 
+/-- The modeled unpreconditioned condition number `(semNorm / ε) ^ (2 / (k + 1))`. -/
 def modeledNoPrecondKappa (k : ℕ) (semNorm ε : ℝ) : ℝ :=
   (semNorm / ε) ^ ((2 : ℝ) / (k + 1))
 
+/-- Substituting the modeled unpreconditioned condition number into the quantum cost expression
+yields `modeledNoPrecondBound` under the stated positivity assumptions. See
+[MontanaroPallister2016]. -/
 theorem modeledNo_preconditioning_bound (C : ℝ) (k : ℕ) (hk : 1 ≤ k)
     (uNorm u1Norm semNorm ε : ℝ) (_hu : 0 ≤ uNorm) (_hu1 : 0 ≤ u1Norm)
     (hsem : 0 < semNorm) (hε : 0 < ε) :
@@ -59,6 +90,8 @@ theorem modeledNo_preconditioning_bound (C : ℝ) (k : ℕ) (hk : 1 ≤ k)
   field_simp [hea, heb, he]
   try ring
 
+/-- For `0 ≤ κ ≤ K`, `K ≥ 1`, and the stated norm bounds, the unit sparsity quantum cost is at
+most `2 * K ^ 2 * C * u1Norm / ε`. See [MontanaroPallister2016]. -/
 theorem modeledOptimal_preconditioning_bound (C κ K uNorm u1Norm ε : ℝ)
     (hC : 0 ≤ C) (hκ0 : 0 ≤ κ) (hκK : κ ≤ K) (hK : 1 ≤ K)
     (hu : 0 ≤ uNorm) (hu1 : 0 ≤ u1Norm) (hule : uNorm ≤ u1Norm)
@@ -88,6 +121,8 @@ theorem modeledOptimal_preconditioning_bound (C κ K uNorm u1Norm ε : ℝ)
       ≤ C * (2 * (K ^ 2 * u1Norm)) / ε := hstep
     _ = (2 * K ^ 2 * C) * u1Norm / ε := by ring
 
+/-- For condition number between zero and one and equal nonnegative norm parameters, the unit
+sparsity quantum cost is at most `2 * C0 * u1Norm / ε`. See [MontanaroPallister2016]. -/
 theorem modeledOptimal_accuracy_exponent_is_one (C0 u1Norm ε : ℝ) (hC0 : 0 ≤ C0) :
     ∀ κ : ℝ, 0 ≤ κ → κ ≤ 1 → 0 ≤ u1Norm → 0 < ε →
       modeledQleCost C0 1 κ u1Norm u1Norm ε ≤ 2 * C0 * u1Norm / ε := by
@@ -96,25 +131,37 @@ theorem modeledOptimal_accuracy_exponent_is_one (C0 u1Norm ε : ℝ) (hC0 : 0 �
     hC0 hκ0 hκ1 le_rfl hu1 hu1 le_rfl hε
   simpa using this
 
+/-- The classical accuracy exponent `(d + 1) / (k + 1)` without preconditioning. -/
 def modeledClassicalNoPrecondExp (d k : ℕ) : ℝ := ((d : ℝ) + 1) / ((k : ℝ) + 1)
 
+/-- The classical accuracy exponent `d / 2` with optimal preconditioning. -/
 def modeledClassicalOptExp (d : ℕ) : ℝ := (d : ℝ) / 2
 
+/-- The leading quantum accuracy exponent `(k + 5) / (k + 1)` without preconditioning. -/
 def modeledQuantumNoPrecondExp (k : ℕ) : ℝ := ((k : ℝ) + 5) / ((k : ℝ) + 1)
 
+/-- The quantum accuracy exponent one with optimal preconditioning. -/
 def modeledQuantumOptExp : ℝ := 1
 
+/-- The modeled classical runtime `(1 / ε) ^ ((d + 1) / (k + 1))` without preconditioning. -/
 def modeledClassicalNoPrecondRuntime (d k : ℕ) (ε : ℝ) : ℝ :=
   (1 / ε) ^ modeledClassicalNoPrecondExp d k
 
+/-- The modeled quantum runtime without preconditioning, the sum of inverse accuracy powers with
+exponents `(k + 5) / (k + 1)` and `(k + 3) / (k + 1)`. -/
 def modeledQuantumNoPrecondRuntime (k : ℕ) (ε : ℝ) : ℝ :=
   (1 / ε) ^ (((k : ℝ) + 5) / ((k : ℝ) + 1)) +
     (1 / ε) ^ (((k : ℝ) + 3) / ((k : ℝ) + 1))
 
+/-- The modeled quantum runtime `1 / ε` with optimal preconditioning. -/
 def modeledQuantumOptRuntime (ε : ℝ) : ℝ := 1 / ε
 
+/-- The modeled classical runtime `(1 / ε) ^ (d / 2)` with optimal preconditioning. -/
 def modeledClassicalOptRuntime (d : ℕ) (ε : ℝ) : ℝ := (1 / ε) ^ modeledClassicalOptExp d
 
+/-- For fixed dimension and degree `k ≥ 1`, the ratio of the unpreconditioned classical and
+quantum runtime models is bounded by a nonnegative power of `1 / ε` on `0 < ε ≤ 1`. See
+[MontanaroPallister2016]. -/
 theorem modeledSpeedup_is_at_most_polynomial (d k : ℕ) (_hk : 1 ≤ k) :
     ∃ B : ℝ, 0 ≤ B ∧ ∀ ε : ℝ, 0 < ε → ε ≤ 1 →
       modeledClassicalNoPrecondRuntime d k ε / modeledQuantumNoPrecondRuntime k ε
@@ -160,6 +207,9 @@ theorem modeledSpeedup_is_at_most_polynomial (d k : ℕ) (_hk : 1 ≤ k) :
   apply Real.rpow_le_rpow_of_exponent_le hX1
   exact le_max_right _ _
 
+/-- In dimension four and degree one, the modeled unpreconditioned exponents are `5 / 2`
+classically and `3` quantumly, while the optimally preconditioned exponents are `2` and `1`.
+See [MontanaroPallister2016]. -/
 theorem modeledDimension_four_exponents :
     modeledClassicalNoPrecondExp 4 1 = 5 / 2 ∧
     modeledQuantumNoPrecondExp 1 = 3 ∧
@@ -170,6 +220,8 @@ theorem modeledDimension_four_exponents :
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;> norm_num [
     modeledClassicalNoPrecondExp, modeledQuantumNoPrecondExp, modeledClassicalOptExp, modeledQuantumOptExp]
 
+/-- For degree `k ≥ 1`, the classical unpreconditioned accuracy exponent strictly increases with
+dimension, while the quantum exponent depends only on `k`. See [MontanaroPallister2016]. -/
 theorem modeledDimension_dependence (k : ℕ) (d d' : ℕ) (hd : d < d') (hk : 1 ≤ k) :
     modeledClassicalNoPrecondExp d k < modeledClassicalNoPrecondExp d' k ∧
     modeledQuantumNoPrecondExp k = modeledQuantumNoPrecondExp k := by

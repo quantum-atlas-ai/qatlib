@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CopyEvolution.SelfTomography.GramSpectralReadoutSubgoalStat
 import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+
+/-!
+# Spectral readout of Gram density operators
+
+This module proves `gramSpectralReadoutSubgoal` for normalized weighted Gram states. Given a
+unitary spectral decomposition, every QPE label event differs from the ideal spectral kernel law
+by at most `8 * (M - 1) * π² / n`, with an exact fresh-copy resource count.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `gramSpectralReadoutSubgoal`: the spectral-event error bound and `(M - 1) * n` copies, gates,
+  and discards.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CopyEvolution.GramReadout (gramColumn gramMatrix gramState)
@@ -20,6 +40,9 @@ namespace Qatlib.Concepts.CopyEvolution.SelfTomography
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- Proves the Gram spectral-event error bound `8 * (M - 1) * π² / n` and exact resource counts
+for `M ≥ 2` and positive `n` under the stated normalization and spectral assumptions
+[LloydMohseniRebentrost2014]. -/
 theorem gramSpectralReadoutSubgoal : GramSpectralReadoutSubgoal := by
   intro r d M n ψ hψ w hw hsumw hM hn V hV eig hs E
   have hd := (gramFirstRegisterDensity r d ψ hψ w hw hsumw).2.2

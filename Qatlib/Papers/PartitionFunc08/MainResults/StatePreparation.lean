@@ -10,6 +10,28 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 
+/-!
+# Gibbs overlaps and state-preparation error
+
+The functions `gibbsWeight`, `gibbsPartition`, and `gibbsOverlapSq` describe finite Gibbs
+weights, partition sums, and squared overlap. For nonnegative energies and an ordered pair of
+inverse temperatures, a partition-function ratio at most two gives squared overlap at least one
+half; a separate square-root estimate controls probability error. These estimates form part of
+the partition-function scheme in [WocjanEtAl2009a].
+
+## Main statements
+
+* `gibbs_overlap_ge_half`: For nonnegative energies and `β ≤ β'`, positive partition sums with
+  `gibbsPartition β E ≤ 2 * gibbsPartition β' E` give squared Gibbs overlap at least one half.
+* `lemma4_state_preparation`: The Gibbs overlap is at least one half under the temperature and
+  partition-ratio assumptions, and probability error is at most `2 * εS` whenever the
+  corresponding square-root error is at most `εS`.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009a]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,16 +41,23 @@ namespace Qatlib.Papers.PartitionFunc08.MainResults.StatePreparation
 
 variable {Ω : Type*} [Fintype Ω]
 
+/-- The Gibbs weight `exp (-β * E σ)` of configuration `σ`. -/
 noncomputable def gibbsWeight (β : ℝ) (E : Ω → ℝ) (σ : Ω) : ℝ :=
   Real.exp (-(β * E σ))
 
+/-- The finite sum of the Gibbs weights at inverse temperature `β`. -/
 noncomputable def gibbsPartition (β : ℝ) (E : Ω → ℝ) : ℝ :=
   ∑ σ, gibbsWeight β E σ
 
+/-- The squared sum of the geometric means of the two Gibbs weights, divided by the product of
+their partition sums. -/
 noncomputable def gibbsOverlapSq (β β' : ℝ) (E : Ω → ℝ) : ℝ :=
   (∑ σ, Real.sqrt (gibbsWeight β E σ * gibbsWeight β' E σ)) ^ 2 /
     (gibbsPartition β E * gibbsPartition β' E)
 
+/-- For nonnegative energies and `β ≤ β'`, positive partition sums with `gibbsPartition β E ≤ 2
+* gibbsPartition β' E` give squared Gibbs overlap at least one half. See [Wocjan et al.,
+2009][WocjanEtAl2009a]. -/
 theorem gibbs_overlap_ge_half (E : Ω → ℝ) (hE : ∀ σ, 0 ≤ E σ) {β β' : ℝ} (hβ : β ≤ β')
     (hZ0 : 0 < gibbsPartition β E) (hZ1 : 0 < gibbsPartition β' E)
     (hα : gibbsPartition β E ≤ 2 * gibbsPartition β' E) :
@@ -73,6 +102,8 @@ theorem gibbs_overlap_ge_half (E : Ω → ℝ) (hE : ∀ σ, 0 ≤ E σ) {β β'
       _ = 2 * (gibbsPartition β' E) ^ 2 := by ring
   linarith [hstep1, hsq]
 
+/-- For `p` and `q` in the unit interval, a nonnegative bound `εS` on their square-root
+difference gives `|p - q| ≤ 2 * εS`. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem sqrt_prob_diff_le {p q εS : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hq0 : 0 ≤ q)
     (hq1 : q ≤ 1) (hεS : 0 ≤ εS) (h : |Real.sqrt p - Real.sqrt q| ≤ εS) :
     |p - q| ≤ 2 * εS := by
@@ -93,6 +124,9 @@ theorem sqrt_prob_diff_le {p q εS : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hq0 :
       ≤ εS * 2 := mul_le_mul h hsum (abs_nonneg _) hεS
     _ = 2 * εS := by ring
 
+/-- The Gibbs overlap is at least one half under the temperature and partition-ratio
+assumptions, and probability error is at most `2 * εS` whenever the corresponding
+square-root error is at most `εS`. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem lemma4_state_preparation (E : Ω → ℝ) (hE : ∀ σ, 0 ≤ E σ) {β β' : ℝ} (hβ : β ≤ β')
     (hZ0 : 0 < gibbsPartition β E) (hZ1 : 0 < gibbsPartition β' E)
     (hα : gibbsPartition β E ≤ 2 * gibbsPartition β' E) {εS : ℝ} (hεS : 0 ≤ εS) :

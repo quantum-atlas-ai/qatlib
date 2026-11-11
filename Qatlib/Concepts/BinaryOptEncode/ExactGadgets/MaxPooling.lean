@@ -6,13 +6,39 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.BinaryOptEncode.ExactGadgets.LocalGadgets
 
+/-!
+# Exact maximum-pooling selectors
+
+This module encodes the maximum of a finite real family using a Boolean selector with exactly
+one true entry and inequalities controlled by a ceiling M. The selected sum `poolValue` equals a
+maximizing entry whenever the constraints hold. Conversely, a maximizing entry produces a
+feasible selector when M bounds all entries; the sum of absolute values supplies an explicit
+ceiling. This construction supports neural-network optimization encodings in the setting of
+[SongEtAl2023].
+
+## Main statements
+
+* `maxpool_correct`: the selector constraints force the selected value to be a maximum.
+* `maxpool_witness`: a specified maximizing index yields a feasible selector.
+* `maxpool_with_explicit_ceiling`: every finite nonempty family has a feasible selector with
+  ceiling equal to the sum of absolute values.
+
+## References
+
+* [Song et al., 2023][SongEtAl2023]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.BinaryOptEncode.ExactGadgets
 open scoped BigOperators
 
+/-- The sum of the entries selected by a Boolean selector, with Boolean weights interpreted as
+zero or one. -/
 def poolValue {I : Type*} [Fintype I] (a : I → ℝ) (selector : I → Bool) : ℝ :=
   ∑ i, bitValue (selector i) * a i
 
+/-- If exactly one selector entry is true and the stated ceiling inequalities hold, the selected
+sum equals a selected entry and is at least every entry of the family. -/
 theorem maxpool_correct {I : Type*} [Fintype I] (a : I → ℝ) (selector : I → Bool)
     (M : ℝ) (hone : (∑ i, if selector i then (1 : ℕ) else 0) = 1)
     (hc : ∀ i j, a j ≤ bitValue (selector i) * a i + (1 - bitValue (selector i)) * M) :
@@ -45,6 +71,8 @@ theorem maxpool_correct {I : Type*} [Fintype I] (a : I → ℝ) (selector : I �
   rw [hvalue]
   simpa [bitValue, hk] using hc k j
 
+/-- A specified maximizing index yields a selector with exactly one true entry satisfying all
+maximum-pooling inequalities whenever M bounds the entire family. -/
 theorem maxpool_witness {I : Type*} [Fintype I] (a : I → ℝ) (M : ℝ) (k : I)
     (hmax : ∀ j, a j ≤ a k) (hM : ∀ j, a j ≤ M) :
     ∃ selector : I → Bool, (∑ i, if selector i then (1 : ℕ) else 0) = 1 ∧
@@ -57,6 +85,8 @@ theorem maxpool_witness {I : Type*} [Fintype I] (a : I → ℝ) (M : ℝ) (k : I
     simpa [bitValue] using hmax j
   · simpa [bitValue, hi] using hM j
 
+/-- Every finite nonempty real family with upper bound M possesses a selector with exactly one
+true entry satisfying the maximum-pooling inequalities. -/
 theorem maxpool_feasible_exists {I : Type*} [Fintype I] [Nonempty I]
     (a : I → ℝ) (M : ℝ) (hM : ∀ j, a j ≤ M) :
     ∃ selector : I → Bool, (∑ i, if selector i then (1 : ℕ) else 0) = 1 ∧
@@ -65,6 +95,8 @@ theorem maxpool_feasible_exists {I : Type*} [Fintype I] [Nonempty I]
   obtain ⟨k, _, hk⟩ := Finset.exists_max_image Finset.univ a Finset.univ_nonempty
   exact maxpool_witness a M k (fun j => hk j (Finset.mem_univ j)) hM
 
+/-- Every finite nonempty real family possesses a feasible maximum-pooling selector using the
+sum of absolute entry values as its ceiling. -/
 theorem maxpool_with_explicit_ceiling {I : Type*} [Fintype I] [Nonempty I] (a : I → ℝ) :
     ∃ selector : I → Bool, (∑ i, if selector i then (1 : ℕ) else 0) = 1 ∧
       ∀ i j, a j ≤ bitValue (selector i) * a i +

@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedExpectedDistance
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMetadataHybrid
+
+/-!
+# Expected query hybrid theorem
+
+`observed_expected_oracle_hybrid` proves `PairedExpectedHybridSpecification` by combining the
+paired state distance estimate with the bound for scores of classical branch metadata. It
+provides an expected query version of the oracle hybrid method associated with
+[BennettEtAl1997].
+
+The resulting specification controls both terminal state distance and changes in any score
+bounded in absolute value by one. If both expected query counts are at most `Q` and a score
+separates the executions by at least twice a nonnegative `gamma`, it also bounds `gamma` squared
+in terms of `Q` and the oracle difference.
+
+## Main statements
+
+* `observed_expected_oracle_hybrid` establishes the complete paired expected hybrid
+  specification.
+* Its proof combines `observed_paired_expected_distance` and
+  `observed_metadata_score_sq_le_distance`.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +42,8 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 open scoped Matrix.Norms.L2Operator
 
+/-- Establishes the paired expected hybrid specification, including its terminal distance,
+bounded metadata score, and common query budget conclusions. -/
 theorem observed_expected_oracle_hybrid : PairedExpectedHybridSpecification := by
   intro I _ _ A B P ψ hA hB hP hψ
   let q := Real.sqrt

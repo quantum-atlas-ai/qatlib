@@ -7,6 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+
+/-!
+# Spectral Label Laws for Copy Phase Estimation
+
+This module derives the spectral distribution of ideal copy driven phase estimation from a
+unitary diagonalization of the density operator. `copyQPEIdealOutput_spectral_label` expresses
+each label mass as an eigenvalue weighted sum of squared phase kernel amplitudes at phases `-eig
+i / 2`.
+
+Event projectors transfer trace norm bounds on output matrices to errors in label event masses.
+`copy_qpe_actual_spectral_label_event` then connects the actual fresh copy execution with the
+spectral law, in the density matrix exponentiation and phase estimation setting of
+[LloydMohseniRebentrost2014] and [NielsenChuang2010].
+
+## Main statements
+
+* `copyQPE_evolution_spectral` computes the time pi evolution in a unitary eigenbasis.
+* `copyQPEIdealOutput_spectral_label` gives the ideal eigenvalue weighted phase kernel formula.
+* `copyQPELabelMass_event_error_of_trace_eq` improves the event error bound to half the trace
+  norm when traces agree.
+* `copy_qpe_actual_spectral_label_event` bounds actual spectral event error by `8 * (M - 1) *
+  pi^2 / n`.
+
+## References
+
+* [Lloyd et al., 2014][LloydMohseniRebentrost2014], Quantum principal component analysis.
+* [Nielsen and Chuang, 2010][NielsenChuang2010], Quantum Computation and Quantum Information.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -57,6 +86,8 @@ section CopySpectralReadout
 open scoped Classical ComplexOrder Matrix.Norms.L2Operator
 set_option maxHeartbeats 2000000
 
+/-- Conjugating the outer product of a state by any matrix gives the outer product of the state
+after applying that matrix. -/
 private theorem copyQPE_outer_conj {I : Type*} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (ψ : QState I) :
     MatrixMap.conj U (outerProduct ψ) = outerProduct (ApplyGate U ψ) := by
@@ -70,6 +101,9 @@ private theorem copyQPE_outer_conj {I : Type*} [Fintype I] [DecidableEq I]
   simp only [RCLike.star_def]
   ring
 
+/-- Given a unitary diagonalization of `rho` with real eigenvalues, computes its time pi
+Hamiltonian evolution by exponentiating each diagonal eigenvalue and conjugating back by the
+unitary eigenbasis. -/
 theorem copyQPE_evolution_spectral (D : ℕ) (ρ V : Operator D) (eig : Fin D → ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hs : ρ = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ) :
@@ -97,17 +131,21 @@ theorem copyQPE_evolution_spectral (D : ℕ) (ρ V : Operator D) (eig : Fin D �
   funext i
   rw [Pi.coe_exp, ← Complex.exp_eq_exp_ℂ]
 
+/-- Applying a matrix to basis state `i` yields its `i`th column as a state vector. -/
 private theorem copyQPE_column (D : ℕ) (V : Operator D) (i : Fin D) :
     ApplyGate V (Qatlib.Foundations.PureStateMath.Ket i) = fun j => V j i := by
   funext j
   simp [ApplyGate, Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- Every column of a unitary matrix is a normalized state vector. -/
 private theorem copyQPE_column_normalized (D : ℕ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (i : Fin D) :
     Normalized (fun j => V j i) := by
   rw [← copyQPE_column]
   exact normalized_applyGate hV (normalized_ket i)
 
+/-- Expands a matrix of the form `V * diagonal eig * Vᴴ` as the sum of column outer products of
+`V`, weighted by the real diagonal coefficients. -/
 private theorem copyQPE_spectral_density_sum (D : ℕ) (V : Operator D) (eig : Fin D → ℝ) :
     V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ =
       ∑ i, (eig i : ℂ) • outerProduct (fun j => V j i) := by
@@ -120,6 +158,8 @@ private theorem copyQPE_spectral_density_sum (D : ℕ) (V : Operator D) (eig : F
   simp only [RCLike.star_def]
   ring
 
+/-- For a unitary diagonalization of `rho`, its `i`th eigenvector column acquires phase `exp (2
+* pi * I * (-eig i / 2))` under time pi Hamiltonian evolution. -/
 private theorem copyQPE_eigenphase (D : ℕ) (ρ V : Operator D) (eig : Fin D → ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hs : ρ = V * Matrix.diagonal (fun i => (eig i : ℂ)) * Vᴴ) (i : Fin D) :
@@ -141,6 +181,8 @@ private theorem copyQPE_eigenphase (D : ℕ) (ρ V : Operator D) (eig : Fin D �
     Complex.exp (2 * Real.pi * Complex.I * ((-eig i / 2 : ℝ) : ℂ)) * V j i
   rw [h, hphase, mul_comm]
 
+/-- Ideal copy program execution on a pure state outer product equals the outer product of the
+corresponding pure state circuit execution with the ideal controlled evolution oracle. -/
 private theorem copyQPEIdealProgram_outer (D M : ℕ) (ρ : Operator D)
     (C : Circuit (Fin M × (Bool × Fin D))) (ψ : QState (Fin M × (Bool × Fin D))) :
     copyQPEIdealProgram D M ρ C (outerProduct ψ) =
@@ -151,6 +193,8 @@ private theorem copyQPEIdealProgram_outer (D M : ℕ) (ρ : Operator D)
   | cons s C ih =>
     cases s <;> simp only [copyQPEIdealProgram, Run, copyQPE_outer_conj, ih]
 
+/-- Packages ideal copy program execution as a complex linear matrix map by composing gate
+conjugations and ideal controlled evolution conjugations along the circuit. -/
 private noncomputable def copyQPEIdealProgramMap (D M : ℕ) (ρ : Operator D) :
     Circuit (Fin M × (Bool × Fin D)) →
       MatrixMap (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ
@@ -160,6 +204,8 @@ private noncomputable def copyQPEIdealProgramMap (D M : ℕ) (ρ : Operator D) :
       (MatrixMap.conj (TensorGate (1 : Operator M)
         (controlOracle (hamiltonianEvolution ρ Real.pi))))
 
+/-- Applying the linear map `copyQPEIdealProgramMap` agrees with the recursive matrix execution
+`copyQPEIdealProgram`. -/
 private theorem copyQPEIdealProgramMap_apply (D M : ℕ) (ρ : Operator D)
     (C : Circuit (Fin M × (Bool × Fin D)))
     (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
@@ -169,6 +215,8 @@ private theorem copyQPEIdealProgramMap_apply (D M : ℕ) (ρ : Operator D)
   | cons s C ih => cases s <;> simp only [copyQPEIdealProgramMap, LinearMap.comp_apply,
       copyQPEIdealProgram, ih]
 
+/-- For a positive phase register size, initialization sends a real weighted sum of data column
+outer products to the same weighted sum of initialized joint state outer products. -/
 private theorem copyQPEInput_spectral_sum (D M : ℕ) (hM : 0 < M)
     (V : Operator D) (eig : Fin D → ℝ) :
     copyQPEInput D M (∑ i, (eig i : ℂ) • outerProduct (fun j => V j i)) =
@@ -182,6 +230,9 @@ private theorem copyQPEInput_spectral_sum (D M : ℕ) (hM : 0 < M)
   intro i _
   ring
 
+/-- On the outer product of an eigenstate with eigenphase `phi`, the ideal counted phase
+estimation program outputs the outer product with amplitudes `qpeKernel M phi z` times the
+data eigenstate and with false control. -/
 private theorem copyQPEIdealProgram_eigen (D M : ℕ) (hM : 0 < M) (ρ : Operator D)
     (ψ : QState (Fin D)) (φ : ℝ)
     (hψ : ApplyGate (hamiltonianEvolution ρ Real.pi) ψ =
@@ -194,6 +245,8 @@ private theorem copyQPEIdealProgram_eigen (D M : ℕ) (hM : 0 < M) (ρ : Operato
       (hamiltonianEvolution ρ Real.pi) ψ).1, qpeOutput_eigen M _ ψ φ hψ]
   rfl
 
+/-- For normalized data and false control, the phase label mass of the phase kernel output outer
+product equals the squared norm of the kernel amplitude at that label. -/
 private theorem copyQPELabelMass_pure_kernel (D M : ℕ) (ψ : QState (Fin D)) (hψ : Normalized ψ)
     (φ : ℝ) (z : Fin M) :
     copyQPELabelMass D M (outerProduct (fun p : Fin M × (Bool × Fin D) =>
@@ -209,6 +262,8 @@ private theorem copyQPELabelMass_pure_kernel (D M : ℕ) (ψ : QState (Fin D)) (
     zero_add, norm_mul, mul_pow]
   rw [← Finset.mul_sum, hψ, mul_one]
 
+/-- Phase label mass distributes over a finite real weighted sum of matrices, yielding the same
+weighted sum of label masses. -/
 private theorem copyQPELabelMass_weighted_sum (D M : ℕ) (c : Fin D → ℝ)
     (X : Fin D → Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) (z : Fin M) :
     copyQPELabelMass D M (∑ i, (c i : ℂ) • X i) z =
@@ -219,6 +274,9 @@ private theorem copyQPELabelMass_weighted_sum (D M : ℕ) (c : Fin D → ℝ)
   rw [Finset.sum_comm]
   exact Finset.sum_congr rfl fun i _ => (Finset.mul_sum _ _ _).symm
 
+/-- For a positive phase register size and a unitary diagonalization of `rho` with real
+eigenvalues, the ideal output mass at label `z` is the sum of `eig i * norm (qpeKernel M
+(-eig i / 2) z)^2` over all eigenvalue indices. -/
 theorem copyQPEIdealOutput_spectral_label (D M : ℕ) (hM : 0 < M)
     (ρ V : Operator D) (eig : Fin D → ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -251,15 +309,20 @@ theorem copyQPEIdealOutput_spectral_label (D M : ℕ) (hM : 0 < M)
   intro i _
   rw [copyQPELabelMass_pure_kernel D M _ (copyQPE_column_normalized D V hV i)]
 
+/-- Defines the diagonal projector selecting all control and data coordinates whose phase label
+belongs to the event `E`. -/
 private noncomputable def copyQPEEventProjector (D M : ℕ) (E : Finset (Fin M)) :
     Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ :=
   Matrix.diagonal (fun p => if p.1 ∈ E then 1 else 0)
 
+/-- The phase label event projector has Euclidean operator norm at most one. -/
 private theorem copyQPEEventProjector_norm (D M : ℕ) (E : Finset (Fin M)) :
     ‖copyQPEEventProjector D M E‖ ≤ 1 := by
   rw [copyQPEEventProjector, Matrix.l2_opNorm_diagonal]
   exact (pi_norm_le_iff_of_nonneg zero_le_one).mpr (by intro p; split_ifs <;> simp)
 
+/-- The real trace of the event projector times a matrix equals the sum of that matrix's phase
+label masses over the event. -/
 private theorem copyQPE_event_trace (D M : ℕ) (E : Finset (Fin M))
     (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
     (Matrix.trace (copyQPEEventProjector D M E * X)).re =
@@ -278,6 +341,8 @@ private theorem copyQPE_event_trace (D M : ℕ) (E : Finset (Fin M))
   have h := congrArg Complex.re hc
   simpa only [Complex.re_sum, copyQPELabelMass] using! h
 
+/-- For any two output matrices, the absolute difference of their total phase label masses on an
+event is at most the trace norm of their difference. -/
 theorem copyQPELabelMass_event_error (D M : ℕ) (E : Finset (Fin M))
     (X Y : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
     |(∑ z ∈ E, copyQPELabelMass D M X z) - (∑ z ∈ E, copyQPELabelMass D M Y z)| ≤
@@ -293,6 +358,8 @@ theorem copyQPELabelMass_event_error (D M : ℕ) (E : Finset (Fin M))
       mul_le_mul_of_nonneg_right (copyQPEEventProjector_norm D M E) (Matrix.traceNorm_nonneg _)
     _ = _ := one_mul _
 
+/-- For two matrices with equal traces, the absolute difference of their total phase label
+masses on an event is at most half the trace norm of their difference. -/
 theorem copyQPELabelMass_event_error_of_trace_eq (D M : ℕ) (E : Finset (Fin M))
     (X Y : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ)
     (htrace : Matrix.trace X = Matrix.trace Y) :
@@ -329,6 +396,10 @@ theorem copyQPELabelMass_event_error_of_trace_eq (D M : ℕ) (E : Finset (Fin M)
       mul_le_mul_of_nonneg_right hnorm (Matrix.traceNorm_nonneg _)
     _ = Matrix.traceNorm (X - Y) / 2 := by ring
 
+/-- For a density operator with a unitary diagonalization and nonnegative eigenvalues, at least
+two phase labels, and positive `n`, the actual mass of any label event differs from the
+eigenvalue weighted phase kernel event mass by at most `8 * (M - 1) * pi^2 / n` in the
+density matrix exponentiation setting of [LloydMohseniRebentrost2014]. -/
 theorem copy_qpe_actual_spectral_label_event
     (D M n : ℕ) (hM : 2 ≤ M) (hn : 0 < n) (ρ V : Operator D) (eig : Fin D → ℝ)
     (hρ : IsDensityOperator ρ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)

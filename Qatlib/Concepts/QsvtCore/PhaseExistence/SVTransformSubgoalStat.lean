@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SignalPrimitive.LCUConsumers.SingularValueTransformation
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+/-!
+# Specification of a cubic singular value transformation
+
+`SVTransformSubgoal` states an explicit four-phase QSVT calculation for a projected unitary
+encoding. The proposition records unitarity, compression to a polynomial in `A` and `A * Aᴴ`,
+and evaluation of that polynomial along a normalized singular-vector pair. See
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `SVTransformSubgoal`: the four-phase word and singular-vector specification.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding Qatlib.Concepts.SignalPrimitive.LCUConsumers
@@ -15,6 +33,9 @@ open Matrix
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
+/-- The assertion that a four-phase QSVT word for a projected unitary encoding is unitary, has
+the displayed cubic compression, and acts on normalized singular-vector pairs by the
+displayed scalar polynomial. -/
 def SVTransformSubgoal : Prop :=
   ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
     (U : Matrix (J × I) (J × I) ℂ) (j₀ : J) (A : Matrix I I ℂ),

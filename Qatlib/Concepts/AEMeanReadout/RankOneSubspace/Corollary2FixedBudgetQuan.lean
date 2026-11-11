@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary2FixedBudgetStat
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
+
+/-!
+# Approximate counting with a fixed square-root budget
+
+`corollary2FixedBudget` specializes approximate counting to an estimation grid `P = c * sqrt N`.
+It gives an exact query count and a count-error window with probability at least `8 / π^2`, in
+the setting of [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `corollary2FixedBudget`: the query count and success window for a square-root grid.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +35,9 @@ open Qatlib
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- For `P = c * sqrt N` with `c > 0`, `P ≥ 4`, and `S.card ≤ N / 2`, the circuit uses `P - 1`
+queries and estimates the cardinality within `2 * π * sqrt S.card / c + π^2 / c^2` with
+probability at least `8 / π^2` [BrassardHoyerTapp1998Counting]. -/
 theorem corollary2FixedBudget : Corollary2FixedBudget := by
   intro N P S c hN hS hc hPc hP
   refine ⟨(prepared_ae_access_ledger P (by omega) (QFTMatrix N) ⟨0, hN⟩).1, ?_⟩

@@ -11,6 +11,29 @@ import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemantic
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+
+/-!
+# Continuous source evolution and filtered Gram bounds
+
+The logarithm of the alphabet oracle acts separately on each address slice. For normalized state
+families, its Gram tangent possesses a filtered certificate with budget `1+π²`; equal input
+symbols cancel from the tangent.
+
+Volterra evolution supplies the integral state equation and almost-everywhere derivative needed
+to integrate this certificate. `continuousConversion_source_evolve_distance` bounds the filtered
+Gram change by `(1+π²)*T`, in the continuous-query setting of [LeeEtAl2011].
+
+## Main statements
+
+* `continuousConversion_source_tangent_cert`: the local filtered certificate.
+* `continuousConversion_source_pair_integral`: the overlap-change integral identity.
+* `continuousConversion_source_evolve_distance`: the integrated filtered Gram bound.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -39,6 +62,8 @@ set_option maxHeartbeats 1000000
 set_option maxRecDepth 4000
 noncomputable section
 
+/-- The logarithmic alphabet oracle acts on a fixed address and workspace slice by the logarithm
+of the corresponding value-query matrix. -/
 theorem continuousConversion_log_action {X W : Type} [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (ψ : QState ((Fin (n+1) × Fin (q+1)) × W))
@@ -52,12 +77,15 @@ theorem continuousConversion_log_action {X W : Type} [Fintype W] [DecidableEq W]
   simp
 end
 noncomputable section
+/-- The family of value-and-workspace slices of a state family at the active source addresses. -/
 def continuousConversion_source_slice {X W : Type} {n q : ℕ}
     (ψ : X → QState ((Fin (n+1) × Fin (q+1)) × W)) :
     X → Fin n → QState (Fin (q+1) × W) := fun x j p => ψ x ((j.castSucc,p.1),p.2)
 end
 noncomputable section
 
+/-- The total squared amplitude on active addresses is at most the total squared amplitude of
+the state. -/
 theorem continuousConversion_source_active_mass {W : Type} [Fintype W] {n q : ℕ}
     (ψ : QState ((Fin (n+1) × Fin (q+1)) × W)) :
     (∑ j : Fin n, ∑ p : Fin (q+1) × W, Complex.normSq (ψ ((j.castSucc,p.1),p.2))) ≤
@@ -70,6 +98,8 @@ end
 noncomputable section
 set_option maxHeartbeats 400000 in
 
+/-- The Gram tangent of a normalized family and its logarithmic-oracle images has a filtered
+certificate of budget `1+π²`. -/
 theorem continuousConversion_source_tangent_cert {X W : Type} [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1))
     (ψ : X → QState ((Fin (n+1) × Fin (q+1)) × W)) (hψ : ∀ x, Normalized (ψ x)) :
@@ -127,6 +157,8 @@ local instance continuousConversionAnalysis_matrixPseudoMetrizable (H : Type) [F
 
 set_option maxHeartbeats 400000 in
 
+/-- A state evolved by a Volterra propagator satisfies the coordinatewise integral state
+equation, and its integrand is interval integrable. -/
 theorem continuousConversion_source_state_equation {H : Type} [Fintype H] [DecidableEq H]
     (K V : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0 ≤ T)
     (hK : IntervalIntegrable K volume 0 T) (hV : sourceVolterra K T V)
@@ -158,6 +190,8 @@ theorem continuousConversion_source_state_equation {H : Type} [Fintype H] [Decid
       ⟨L.integrable_comp hI.1,L.integrable_comp hI.2⟩
     simpa only [hLi] using! hi
 
+/-- Each evolved state coordinate has absolutely continuous real and imaginary parts and
+satisfies the state differential equation almost everywhere. -/
 theorem continuousConversion_source_state_regularity {H : Type} [Fintype H] [DecidableEq H]
     (K V : ℝ → Matrix H H ℂ) (T : ℝ) (hT : 0 ≤ T)
     (hK : IntervalIntegrable K volume 0 T) (hV : sourceVolterra K T V)
@@ -185,6 +219,9 @@ theorem continuousConversion_source_state_regularity {H : Type} [Fintype H] [Dec
     exact hEq u ⟨hu.1.le,hu.2.le⟩
 set_option maxHeartbeats 600000 in
 
+/-- For evolutions with a common integrable Hermitian driver and constant perturbations `A` and
+`B`, the change in their state overlap equals the integral of the perturbation overlap
+difference multiplied by `Complex.I`. -/
 theorem continuousConversion_source_pair_integral {H : Type} [Fintype H] [DecidableEq H]
     (K U V : ℝ → Matrix H H ℂ) (A B : Matrix H H ℂ) (T : ℝ) (hT : 0 ≤ T)
     (hK : IntervalIntegrable K volume 0 T) (hHerm : ∀ t ∈ Icc 0 T, (K t).IsHermitian)
@@ -244,6 +281,8 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator Topology
 set_option maxHeartbeats 600000 in
 noncomputable section
 
+/-- At an address where two inputs have the same padded symbol, the logarithmic oracle can be
+moved between the two arguments of the slice inner product. -/
 theorem continuousConversion_source_log_local {X W : Type} [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1))
     (ψ : X → QState ((Fin (n+1) × Fin (q+1)) × W)) (x y : X)
@@ -265,6 +304,8 @@ theorem continuousConversion_source_log_local {X W : Type} [Fintype W] [Decidabl
 end
 noncomputable section
 
+/-- The difference of logarithmic-oracle inner products, multiplied by `Complex.I`, equals the
+continuous-conversion tangent of the active slices. -/
 theorem continuousConversion_source_generator_eq {X W : Type} [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1))
     (ψ : X → QState ((Fin (n+1) × Fin (q+1)) × W)) (x y : X) :
@@ -288,6 +329,7 @@ theorem continuousConversion_source_generator_eq {X W : Type} [Fintype W] [Decid
 end
 noncomputable section
 
+/-- Negating the first argument negates the inner product. -/
 theorem continuousConversion_inner_neg_left {H : Type} [Fintype H] (ψ φ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (-ψ) φ = -Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   simpa only [neg_one_smul,star_neg,star_one,neg_one_mul] using!
@@ -295,6 +337,7 @@ theorem continuousConversion_inner_neg_left {H : Type} [Fintype H] (ψ φ : QSta
 end
 noncomputable section
 
+/-- Negating the second argument negates the inner product. -/
 theorem continuousConversion_inner_neg_right {H : Type} [Fintype H] (ψ φ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner ψ (-φ) = -Qatlib.Foundations.PureStateMath.Inner ψ φ := by
   simpa only [neg_one_smul,neg_one_mul] using!
@@ -302,6 +345,8 @@ theorem continuousConversion_inner_neg_right {H : Type} [Fintype H] (ψ φ : QSt
 end
 noncomputable section
 
+/-- For either oracle sign, the Gram generator of a normalized state family has a filtered
+certificate of budget `1+π²`. -/
 theorem continuousConversion_source_signed_cert {X W : Type} [Fintype W] [DecidableEq W]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (adj : Bool)
     (ψ : X → QState ((Fin (n+1) × Fin (q+1)) × W)) (hψ : ∀ x, Normalized (ψ x)) :
@@ -329,6 +374,9 @@ noncomputable section
 set_option maxHeartbeats 1000000 in
 set_option backward.isDefEq.respectTransparency false in
 
+/-- Evolution for nonnegative time `T` under an integrable Hermitian driver plus either sign of
+the logarithmic oracle changes the Gram matrix by filtered value at most `ENNReal.ofReal
+((1+π²)*T)`. -/
 theorem continuousConversion_source_evolve_distance {X W : Type} [Fintype X] [DecidableEq X]
     [Fintype W] [DecidableEq W] {n q : ℕ}
     (input : X → Fin n → Fin (q+1))

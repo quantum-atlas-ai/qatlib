@@ -24,6 +24,36 @@ import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationPurity
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationWeyl
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationPurityAssembly
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationMEProtocol
+
+/-!
+# Qudit teleportation resources and communication
+
+`g4` assembles resource necessity and sufficiency, communication counting, message guessing,
+explicit qudit protocol properties, and repeated-observation reliability. For a positive
+semidefinite resource, perfect teleportation with unitary corrections forces purity and a
+maximally mixed receiver marginal.
+
+Conversely, orthonormal-family maximally entangled resources support a finite complete
+measurement with unitary corrections, as expressed by `clause4_clause1b`. These results develop
+resource and communication properties of teleportation [BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `clause4_clause1`: A positive semidefinite resource enabling perfect teleportation in nonzero
+  dimension with unitary corrections is a normalized pure state with maximally mixed receiver
+  marginal [BennettEtAl1993Teleportation].
+* `clause4_clause1b`: A resource formed from two orthonormal families supports a finite
+  teleportation protocol with unitary corrections and perfect recovery
+  [BennettEtAl1993Teleportation].
+* `g4`: The combined theorem for qudit teleportation resources, outcome and bit counts, guessing
+  bounds, composite systems, explicit protocol recovery, and redundant-coding reliability
+  [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -58,14 +88,18 @@ namespace Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportation
 open Matrix
 open scoped BigOperators ComplexOrder
 
+/-- A double sum over two finite types equals the corresponding sum over their product. -/
 private theorem sum2_merge {α β : Type} [Fintype α] [Fintype β] (g : α → β → ℂ) :
     (∑ a : α, ∑ b : β, g a b) = ∑ p : α × β, g p.1 p.2 :=
   (Fintype.sum_prod_type (fun p => g p.1 p.2)).symm
 
+/-- Merging a double finite sum into a product-indexed sum preserves its product with a fixed
+complex scalar. -/
 private theorem sum2_merge_mul {α β : Type} [Fintype α] [Fintype β] (g : α → β → ℂ) (s : ℂ) :
     ((∑ a : α, ∑ b : β, g a b) * s) = (∑ p : α × β, g p.1 p.2) * s :=
   congrArg (fun z => z * s) (sum2_merge g)
 
+/-- Four finite sums can be grouped into two sums over pairs of indices. -/
 private theorem sum4_merge22 {α β : Type} [Fintype α] [Fintype β]
     (g : α → α → β → β → ℂ) :
     (∑ a1 : α, ∑ a2 : α, ∑ b1 : β, ∑ b2 : β, g a1 a2 b1 b2)
@@ -73,6 +107,7 @@ private theorem sum4_merge22 {α β : Type} [Fintype α] [Fintype β]
   rw [sum2_merge]
   exact Finset.sum_congr rfl (fun p _ => sum2_merge _)
 
+/-- The first and third indices of a triple finite complex sum can be interchanged. -/
 private theorem sum3_swap_first_third {α β γ : Type} [Fintype α] [Fintype β] [Fintype γ]
     (F : α → β → γ → ℂ) :
     (∑ a : α, ∑ b : β, ∑ c : γ, F a b c) = (∑ c : γ, ∑ b : β, ∑ a : α, F a b c) := by
@@ -117,6 +152,7 @@ open Qatlib.Concepts.QuditTeleport.MessagingBounds
 open Qatlib.Concepts.QuditTeleport.QdLoccModel
 open Qatlib.Concepts.QuditTeleport.ResourceIff
 
+/-- The complex-linear map sending `ρ` to `C * ρ * Cᴴ`. -/
 noncomputable def clause4Aux_conjLin (n : ℕ) (C : Operator n) : Operator n →ₗ[ℂ] Operator n where
   toFun := fun ρ => C * ρ * C.conjTranspose
   map_add' := by
@@ -126,6 +162,9 @@ noncomputable def clause4Aux_conjLin (n : ℕ) (C : Operator n) : Operator n →
     intro c A
     simp [Matrix.mul_smul, Matrix.smul_mul]
 
+/-- A positive semidefinite resource enabling perfect teleportation in nonzero dimension with
+unitary corrections is a normalized pure state with maximally mixed receiver marginal
+[BennettEtAl1993Teleportation]. -/
 theorem clause4_clause1 : ∀ (n : ℕ) (_hn : NeZero n)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ),
     ω.PosSemidef →
@@ -140,6 +179,8 @@ theorem clause4_clause1 : ∀ (n : ℕ) (_hn : NeZero n)
   obtain ⟨Ψ, hΨn, hΨe⟩ := g8p_mixed_purity P U hU ω hω hperf
   exact ⟨Ψ, hΨn, hΨe, g8p_bobMarginal P U hU ω hω hperf⟩
 
+/-- A resource formed from two orthonormal families supports a finite teleportation protocol
+with unitary corrections and perfect recovery [BennettEtAl1993Teleportation]. -/
 theorem clause4_clause1b : ∀ (n : ℕ) (u v : Fin n → QState (Fin n)),
     QuditOrthonormalFamily n u → QuditOrthonormalFamily n v →
     ∃ (κ : Type) (_hκ : Fintype κ) (P : QdLoccTeleport n κ) (U : κ → Operator n),
@@ -206,6 +247,9 @@ theorem clause4_clause1b : ∀ (n : ℕ) (u v : Fin n → QState (Fin n)),
       rw [Finset.sum_congr rfl (fun o _ => hbranch o)]
       rw [← Finset.sum_smul, qudit_uniform_scalar_sum n, one_smul]
 
+/-- The combined theorem for qudit teleportation resources, outcome and bit counts, guessing
+bounds, composite systems, explicit protocol recovery, and redundant-coding reliability
+[BennettEtAl1993Teleportation]. -/
 theorem g4 :
 
   (∀ (n : ℕ) (_hn : NeZero n) (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ),

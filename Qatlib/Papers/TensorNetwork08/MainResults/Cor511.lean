@@ -6,10 +6,29 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.SpecialFunctions.Exp
 
+/-!
+# Homogeneous Potts scale by coupling sign
+
+Simplifies the homogeneous Potts scale expression in Corollary 5.11 of [AradLandau2010]. For
+positive inverse temperature, the cycle-edge factor is `exp (β * J)` when `J > 0` and one
+otherwise.
+
+## Main statements
+
+* `corollary5_11_potts_scale`: gives the two coupling-sign branches of the scale expression.
+
+## References
+
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Cor511
 
+/-- For positive `β`, the Potts scale with cycle factor `max (exp (β * J)) 1` equals the
+exponential-factor expression when `J > 0` and the expression without that cycle factor
+otherwise. See [AradLandau2010]. -/
 theorem corollary5_11_potts_scale
     (q : ℕ) (β J : ℝ) (hβ : 0 < β) (nEtr nEcyc : ℕ) :
     (q : ℝ) * (Real.exp (β * J) + ((q : ℝ) - 1)) ^ nEtr *

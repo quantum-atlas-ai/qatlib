@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionGeometry
 import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
+
+/-!
+# Phase reflection programs for witness conversion
+
+Constructs a two-query matching-phase circuit and proves error estimates for phase reflection
+applied to witness walks. Exact residual identities express the error through the zero outcome
+of phase detection, linking the circuit analysis to the state conversion method of
+[LeeEtAl2011].
+
+The module derives single-pass conversion bounds from fixed and forbidden witnesses, and bounds
+the explicit phase clock sizes, repetition counts, and expanded circuit costs.
+
+## Main statements
+
+* `conversionMatchingWord_run`: computes the two-query matching phase action.
+* `conversion_phase_actual_error_norm`: identifies reflection error with twice the zero-event
+  norm.
+* `conversion_onepass_witness_error`: gives a conversion error of at most `2*η`.
+* `conversion_onepass_cost_bounds`: bounds the selected implementation's resource expressions.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -50,19 +75,24 @@ open Qatlib
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The conjugate transpose of a unitary matrix is unitary. -/
 private theorem conversion_adjoint_unitary {I : Type} [Fintype I] [DecidableEq I]
     {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     Uᴴ ∈ Matrix.unitaryGroup I ℂ := by
   simpa only [Matrix.star_eq_conjTranspose] using Unitary.star_mem hU
 
+/-- The phase equal to minus one when the workspace is active and the answer bit matches its
+selected bit, and one otherwise. -/
 def conversionMatchingPhase {I K : Type} (active bit : K → Bool)
     (p : (I × Bool) × K) : ℂ :=
   if active p.2 then (if p.1.2 = bit p.2 then -1 else 1) else 1
 
+/-- The circuit consisting of a query, the diagonal matching phase gate, and a second query. -/
 def conversionMatchingWord {I K : Type} [DecidableEq I] [DecidableEq K]
     (active bit : K → Bool) : Circuit ((I × Bool) × K) :=
   [.query, .gate (Matrix.diagonal (conversionMatchingPhase active bit)), .query]
 
+/-- The diagonal matching phase gate is unitary. -/
 theorem conversionMatchingGate_unitary {I K : Type} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (active bit : K → Bool) :
     Matrix.diagonal (conversionMatchingPhase (I := I) active bit) ∈
@@ -79,6 +109,7 @@ theorem conversionMatchingGate_unitary {I K : Type} [Fintype I] [DecidableEq I]
   rw [h]
   exact Matrix.diagonal_one
 
+/-- The matching phase circuit is unitary and uses exactly two queries and one gate. -/
 theorem conversionMatchingWord_resources {I K : Type} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (active bit : K → Bool) :
     IsUnitaryCircuit (conversionMatchingWord (I := I) active bit) ∧
@@ -89,6 +120,8 @@ theorem conversionMatchingWord_resources {I K : Type} [Fintype I] [DecidableEq I
     isUnitaryCircuit_nil, and_true]
   exact conversionMatchingGate_unitary active bit
 
+/-- The matching phase circuit multiplies each amplitude by minus one exactly when its workspace
+is active and the queried answer bit matches the selected workspace bit. -/
 theorem conversionMatchingWord_run {I K : Type} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (f : I → Bool) (active bit : K → Bool)
     (ψ : QState ((I × Bool) × K)) (i : I) (t : Bool) (w : K) :
@@ -101,6 +134,8 @@ theorem conversionMatchingWord_run {I K : Type} [Fintype I] [DecidableEq I]
   rw [Matrix.mulVec_diagonal, applyGate_workspaceBitOracle_mk]
   cases t <;> cases f i <;> simp [conversionMatchingPhase]
 
+/-- On a false answer bit, the matching circuit applies minus one exactly when the workspace is
+active and the input bit matches its selected bit. -/
 theorem conversionMatchingWord_clean_sector {I K : Type} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (f : I → Bool) (active bit : K → Bool)
     (ψ : QState ((I × Bool) × K)) (i : I) (w : K) :
@@ -108,6 +143,9 @@ theorem conversionMatchingWord_clean_sector {I K : Type} [Fintype I] [DecidableE
       (if active w then (if f i = bit w then (-1 : ℂ) else 1) else 1) * ψ ((i,false),w) := by
   simpa using conversionMatchingWord_run f active bit ψ i false w
 
+/-- For a packet of eigenvectors, the phase reflection residual is the inverse detection circuit
+applied to twice the embedded packet weighted by the zero-outcome phase kernel raised to the
+repetition count. -/
 theorem conversion_phase_packet_residual
     {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
@@ -138,6 +176,8 @@ theorem conversion_phase_packet_residual
     exact phase_reflection_eigenstate_residual M k hM W (v j) (φ j) hW (he j)
   rw [hj, map_smul]
 
+/-- For orthonormal eigenvectors, the squared phase reflection residual is `4 * ∑ j, ‖c j‖^2 *
+‖qpeKernel M (φ j) 0‖^(2*k)`. -/
 theorem conversion_phase_packet_error_sq
     {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
@@ -161,6 +201,7 @@ theorem conversion_phase_packet_error_sq
   intro j _
   rw [norm_mul, norm_pow, mul_pow, ← pow_mul, Nat.mul_comm k 2]
 
+/-- For positive clock size, every phase estimation kernel value has norm at most one. -/
 private theorem conversion_kernel_norm_le_one (M : ℕ) (hM : 0 < M) (φ : ℝ) (z : Fin M) :
     ‖qpeKernel M φ z‖ ≤ 1 := by
   have hphase := (offgrid_phase_kernel_formula M φ (⟨0,hM⟩ : Fin M) hM).2.2
@@ -171,6 +212,9 @@ private theorem conversion_kernel_norm_le_one (M : ℕ) (hM : 0 < M) (φ : ℝ) 
     exact Finset.single_le_sum (fun y _ => sq_nonneg ‖qpeKernel M φ y‖) (Finset.mem_univ z)
   nlinarith [norm_nonneg (qpeKernel M φ z)]
 
+/-- For an orthonormal eigenvector packet with phase distance at least `η` outside a chosen low
+set, the squared reflection residual is bounded by four times the low coefficient mass plus
+four times `(1/(2*M*η))^(2*k)` times the total coefficient mass. -/
 theorem conversion_phase_low_high_bound
     {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (M k : ℕ) (hM : 2 ≤ M) (W : Matrix I I ℂ) (hW : W ∈ Matrix.unitaryGroup I ℂ)
@@ -204,6 +248,7 @@ theorem conversion_phase_low_high_bound
   simpa only [Finset.sum_add_distrib, Finset.sum_ite_mem, Finset.univ_inter,
     ← Finset.mul_sum] using hsum
 
+/-- For positive `W`, replacing `W` by `max 1 W` leaves its natural ceiling unchanged. -/
 theorem conversion_budget_inflation_ceil (W : ℝ) (hW : 0 < W) :
     Nat.ceil (max 1 W) = Nat.ceil W := by
   apply le_antisymm
@@ -213,9 +258,13 @@ theorem conversion_budget_inflation_ceil (W : ℝ) (hW : 0 < W) :
     · exact Nat.le_ceil W
   · exact Nat.ceil_mono (le_max_right 1 W)
 
+/-- The phase clock size `Nat.ceil (6400 * max 1 W / ε^2)`. -/
 def conversionPhaseSize (W ε : ℝ) : ℕ := Nat.ceil (6400 * max 1 W / ε^2)
+/-- The phase repetition count `Nat.ceil (Real.log (16/ε) / Real.log 2)`. -/
 def conversionPhaseRepeats (ε : ℝ) : ℕ := Nat.ceil (Real.log (16 / ε) / Real.log 2)
 
+/-- For positive `W` and `ε`, the phase clock size is at most `6400 * Nat.ceil W * Nat.ceil
+(1/ε^2)`. -/
 theorem conversionPhaseSize_bound (W ε : ℝ) (hW : 0 < W) (hε : 0 < ε) :
     conversionPhaseSize W ε ≤ 6400 * Nat.ceil W * Nat.ceil (1 / ε^2) := by
   have hA : max 1 W ≤ (Nat.ceil W : ℝ) := by
@@ -229,6 +278,8 @@ theorem conversionPhaseSize_bound (W ε : ℝ) (hW : 0 < W) (hε : 0 < ε) :
     _ ≤ 6400 * (Nat.ceil W : ℝ) * (Nat.ceil (1 / ε^2) : ℝ) := by
       gcongr
 
+/-- For `0 < ε ≤ 1/2`, the phase repetition count is at most `6 * (Nat.ceil (Real.log (2/ε)) +
+1)`. -/
 theorem conversionPhaseRepeats_bound (ε : ℝ) (hε : 0 < ε) (hεmax : ε ≤ 1/2) :
     conversionPhaseRepeats ε ≤ 6 * (Nat.ceil (Real.log (2 / ε)) + 1) := by
   have hl2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
@@ -252,6 +303,9 @@ theorem conversionPhaseRepeats_bound (ε : ℝ) (hε : 0 < ε) (hεmax : ε ≤ 
   rw [hlog]
   nlinarith
 
+/-- For positive `W` and `0 < ε ≤ 1/2`, bounds the expanded query expression by `1000000 *
+Nat.ceil W * conversionPrecisionPrice ε` and the gate expression by `3 + 10000000 * Nat.ceil
+W * conversionPrecisionPrice ε`. -/
 theorem conversion_phase_expanded_cost_bounds (W ε : ℝ) (hW : 0 < W)
     (hε : 0 < ε) (hεmax : ε ≤ 1/2) :
     4 * conversionPhaseRepeats ε * (conversionPhaseSize W ε - 1) ≤
@@ -268,6 +322,8 @@ theorem conversion_phase_expanded_cost_bounds (W ε : ℝ) (hW : 0 < W)
   unfold conversionPrecisionPrice
   constructor <;> nlinarith
 
+/-- For a vector annihilated by `Λ`, twice the sum of the first `M` walk powers applied to its
+`P` component telescopes to the vector minus its `M`th walk iterate. -/
 theorem conversion_walk_power_sum
     {I : Type} [Fintype I] [DecidableEq I] (P Λ : Matrix I I ℂ)
     (ψ : QState I) (hΛ : ApplyGate Λ ψ = 0) (M : ℕ) :
@@ -291,6 +347,8 @@ theorem conversion_walk_power_sum
     rw [Finset.sum_range_succ, smul_add, ih, hstep]
     abel
 
+/-- For orthogonal projectors `P` and `Λ` and a vector annihilated by `Λ`, the sum of the first
+`M` walk iterates of its `P` component has norm at most the original vector's norm. -/
 theorem conversion_walk_power_sum_norm
     {I : Type} [Fintype I] [DecidableEq I] (P Λ : Matrix I I ℂ)
     (hP : IsOrthogonalProjector P) (hΛ : IsOrthogonalProjector Λ)
@@ -310,6 +368,8 @@ theorem conversion_walk_power_sum_norm
   rw [norm_applyGate_of_mem_unitaryGroup ((Matrix.unitaryGroup I ℂ).pow_mem hU M)] at hb
   nlinarith
 
+/-- For positive clock size, the zero-output phase estimation amplitude is the average of the
+first `M` powers of the unitary applied to the input state. -/
 theorem conversion_qpe_zero_branch
     {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (U : Matrix I I ℂ) (ψ : QState I) (i : I) :
@@ -345,6 +405,8 @@ theorem conversion_qpe_zero_branch
     (M : ℂ)⁻¹ * ∑ t : Fin M, ApplyGate (U^t.val) ψ i
   simp only [hp, ← mul_assoc, inv_sqrt_mul_inv_sqrt hM, ← Finset.mul_sum]
 
+/-- For orthogonal projectors and a vector annihilated by `Λ`, the zero branch of phase
+estimation on its `P` component has norm at most the vector's norm divided by `M`. -/
 theorem conversion_qpe_forbidden_zero_branch_bound
     {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (hM : 0 < M)
     (P Λ : Matrix I I ℂ) (hP : IsOrthogonalProjector P) (hΛ : IsOrthogonalProjector Λ)
@@ -367,6 +429,9 @@ theorem conversion_qpe_forbidden_zero_branch_bound
     (conversion_walk_power_sum_norm P Λ hP hΛ ψ hψ M) (inv_nonneg.mpr (Nat.cast_nonneg M : (0 : ℝ) ≤ M))
   simpa only [div_eq_mul_inv, mul_comm] using hb
 
+/-- For a unitary and positive clock size, the phase reflection residual equals the inverse
+detection circuit applied to twice the detection state collapsed onto the all-zero clock
+event. -/
 theorem conversion_phase_actual_residual
     {I : Type} [Fintype I] [DecidableEq I]
     (M k : ℕ) (hM : 0 < M) (U : Matrix I I ℂ)
@@ -396,6 +461,8 @@ theorem conversion_phase_actual_residual
   simp only [degenerateDetectionState, D, ApplyGate]
   module
 
+/-- For a unitary and positive clock size, the phase reflection residual norm equals twice the
+norm of the detection state collapsed onto the all-zero clock event. -/
 theorem conversion_phase_actual_error_norm
     {I : Type} [Fintype I] [DecidableEq I]
     (M k : ℕ) (hM : 0 < M) (U : Matrix I I ℂ)
@@ -412,6 +479,8 @@ theorem conversion_phase_actual_error_norm
   norm_num only [Complex.norm_ofNat]
   rfl
 
+/-- The inner product of tensor product states factors into the product of the component inner
+products. -/
 private theorem conversion_tensor_inner {I J : Type} [Fintype I] [Fintype J]
     (a b : QState I) (c d : QState J) :
     Qatlib.Foundations.PureStateMath.Inner (TensorState a c) (TensorState b d) = Qatlib.Foundations.PureStateMath.Inner a b * Qatlib.Foundations.PureStateMath.Inner c d := by
@@ -424,6 +493,7 @@ private theorem conversion_tensor_inner {I J : Type} [Fintype I] [Fintype J]
   intro j _
   ring
 
+/-- For positive clock size, the phase reflection embedding preserves inner products. -/
 theorem phaseReflectionEmbed_inner {I : Type} [Fintype I] [DecidableEq I]
     {M : ℕ} (hM : 0 < M) (k : ℕ) (a b : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (phaseReflectionEmbed M k a) (phaseReflectionEmbed M k b) = Qatlib.Foundations.PureStateMath.Inner a b := by
@@ -431,12 +501,14 @@ theorem phaseReflectionEmbed_inner {I : Type} [Fintype I] [DecidableEq I]
     conversion_tensor_inner, inner_ket_ket, if_pos rfl, one_mul,
     conversion_tensor_inner, inner_ket_ket, if_pos rfl, one_mul]
 
+/-- The phase reflection state construction commutes with complex scalar multiplication. -/
 theorem phaseReflectionState_smul {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (M k : ℕ) (c : ℂ) (x : QState I) :
     phaseReflectionState W M k (c • x) = c • phaseReflectionState W M k x := by
   simp only [phaseReflectionState, phaseReflectionEmbed_smul, ApplyGate,
     Matrix.mulVec_smul]
 
+/-- The phase reflection state construction preserves subtraction. -/
 theorem phaseReflectionState_sub {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (M k : ℕ) (x y : QState I) :
     phaseReflectionState W M k (x - y) =
@@ -444,6 +516,8 @@ theorem phaseReflectionState_sub {I : Type} [Fintype I] [DecidableEq I]
   simp only [phaseReflectionState, phaseReflectionEmbed_sub, ApplyGate,
     Matrix.mulVec_sub]
 
+/-- For a unitary matrix and clock size at least two, the phase reflection state has the same
+Euclidean norm as its input. -/
 theorem phaseReflectionState_norm {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (hW : W ∈ Matrix.unitaryGroup I ℂ) (M k : ℕ) (hM : 2 ≤ M)
     (hMk : 0 < M) (x : QState I) :
@@ -455,6 +529,8 @@ theorem phaseReflectionState_norm {I : Type} [Fintype I] [DecidableEq I]
   have h := norm_applyGate_of_mem_unitaryGroup hD (phaseReflectionEmbed M k x)
   rwa [phaseReflectionEmbed_norm M k hMk x] at h
 
+/-- One repetition of the detection state is the relabeled tensor product of the empty clock's
+zero state and the flagged phase estimation output. -/
 theorem conversion_detection_single {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (ψ : QState I) :
     degenerateDetectionState U M 1 ψ =
@@ -499,6 +575,8 @@ theorem conversion_detection_single {I : Type} [Fintype I] [DecidableEq I]
   rw [hqpe]
   rfl
 
+/-- The amplitude of a single detection repetition is the flagged phase estimation amplitude at
+its sole clock value and payload. -/
 theorem conversion_detection_single_apply {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (ψ : QState I)
     (p : PhaseReflectionSpace I M 1) :
@@ -511,12 +589,16 @@ theorem conversion_detection_single_apply {I : Type} [Fintype I] [DecidableEq I]
   rw [show (Ket (phaseZeroIndex M 0 hM)) (fun j : Fin 0 => p.1 j.succ) = 1 from
     if_pos (hsub0.elim _ _), one_mul]
 
+/-- The single-repetition degenerate zero branch equals the zero-output branch of phase
+estimation. -/
 theorem conversion_zero_branch_single {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (ψ : QState I) (i : I) :
     degenerateZeroBranch U M 1 hM ψ i = qpeOutput M U ψ ((⟨0, hM⟩ : Fin M), i) := by
   rw [degenerateZeroBranch, conversion_detection_single_apply U M hM ψ]
   rfl
 
+/-- Collapsing a single detection repetition onto the zero clock event gives the phase embedding
+of its degenerate zero branch. -/
 theorem conversion_collapse_single {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (ψ : QState I) :
     Collapse (degenerateDetectionState U M 1 ψ) (phaseZeroEvent M 1) =
@@ -536,6 +618,8 @@ theorem conversion_collapse_single {I : Type} [Fintype I] [DecidableEq I]
       simpa only [Subsingleton.elim j (0 : Fin 1)] using h
     simp [phaseZeroEvent, hx, phaseReflectionEmbed, hp0]
 
+/-- For a unitary and positive clock size, the single-pass reflection residual norm is twice the
+norm of the degenerate zero branch. -/
 theorem conversion_reflection_error_single {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (M : ℕ) (hM : 0 < M)
     (ψ : QState I) :
@@ -544,6 +628,8 @@ theorem conversion_reflection_error_single {I : Type} [Fintype I] [DecidableEq I
   rw [conversion_phase_actual_error_norm M 1 hM U hU ψ,
     conversion_collapse_single U M hM ψ, phaseReflectionEmbed_norm M 1 hM]
 
+/-- If `Λ` annihilates `w`, `P` sends `w` to `t`, and `‖w‖ ≤ C`, then a single phase pass for
+the orthogonal-projector walk has sign-reversal error on `t` at most `2*C/M`. -/
 theorem conversion_onepass_forbidden_root_error {I : Type} [Fintype I] [DecidableEq I]
     (M : ℕ) (hM : 0 < M) (P Λ : Matrix I I ℂ) (hP : IsOrthogonalProjector P)
     (hΛ : IsOrthogonalProjector Λ) (t w : QState I)
@@ -569,6 +655,8 @@ theorem conversion_onepass_forbidden_root_error {I : Type} [Fintype I] [Decidabl
       mul_le_mul_of_nonneg_left (div_le_div_of_nonneg_right hC (by positivity)) (by positivity)
     _ = 2 * C / (M : ℝ) := by ring
 
+/-- For a unitary and positive clock size, phase reflection acts exactly as the clean embedding
+on a fixed vector. -/
 theorem conversion_onepass_fixed_exact {I : Type} [Fintype I] [DecidableEq I]
     (M k : ℕ) (hM : 0 < M) (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (ψ : QState I) (hfix : ApplyGate U ψ = ψ) :
@@ -615,6 +703,8 @@ theorem conversion_onepass_fixed_exact {I : Type} [Fintype I] [DecidableEq I]
     (ApplyGate D (phaseReflectionEmbed M k ψ))) = _
   rw [he, phaseZeroReflection, applyGate_reflectionAbout_of_fixed hp, hc]
 
+/-- For a unitary and clock size at least two, a state within distance `δ` of a fixed vector has
+phase reflection error from its clean embedding at most `2*δ`. -/
 theorem conversion_onepass_fixed_root_error {I : Type} [Fintype I] [DecidableEq I]
     (M k : ℕ) (hM : 2 ≤ M) (hMk : 0 < M) (U : Matrix I I ℂ)
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (fw t : QState I)
@@ -647,6 +737,8 @@ theorem conversion_onepass_fixed_root_error {I : Type} [Fintype I] [DecidableEq 
       ring
     _ ≤ 2 * δ := mul_le_mul_of_nonneg_left hdist (by positivity)
 
+/-- Bounds the source-to-target root conversion error by `a+b` when the plus-root preservation
+error is at most `a` and the minus-root sign-reversal error is at most `b`. -/
 theorem conversion_onepass_balanced_error {H Q : Type} [Fintype H] [DecidableEq H]
     [Fintype Q] [DecidableEq Q] {n : ℕ}
     (U : Matrix ((H ⊕ H) ⊕ (Fin n × Bool × Q)) ((H ⊕ H) ⊕ (Fin n × Bool × Q)) ℂ)
@@ -688,6 +780,9 @@ theorem conversion_onepass_balanced_error {H Q : Type} [Fintype H] [DecidableEq 
       rw [one_mul]
       exact (norm_add_le _ _).trans (add_le_add hplus hminus)
 
+/-- For normalized states and a filtered Gram factorization with witness budgets at most `B ≥
+1`, a clock of size at least `100*B/η^2` yields a common orthogonal projector and
+single-pass root conversion error at most `2*η` when `0 < η ≤ 1`. -/
 theorem conversion_onepass_witness_error {X H Q : Type} [Fintype H] [DecidableEq H]
     [Fintype Q] [DecidableEq Q] {n : ℕ}
     (input : X → Fin n → Bool) (ρ σ : X → QState H)
@@ -744,6 +839,8 @@ theorem conversion_onepass_witness_error {X H Q : Type} [Fintype H] [DecidableEq
   (try dsimp only)
   exact hb.trans (by linarith)
 
+/-- For `0 < ε ≤ 1/2`, the selected phase clock size is at least two and at least `100 * max 1 W
+/ (ε/8)^2`. -/
 theorem conversionPhaseSize_scale (W ε : ℝ) (hε : 0 < ε) (hεmax : ε ≤ 1/2) :
     2 ≤ conversionPhaseSize W ε ∧
       100 * max 1 W / (ε / 8) ^ 2 ≤ (conversionPhaseSize W ε : ℝ) := by
@@ -758,6 +855,9 @@ theorem conversionPhaseSize_scale (W ε : ℝ) (hε : 0 < ε) (hεmax : ε ≤ 1
   · rw [show 100 * max 1 W / (ε / 8) ^ 2 = 6400 * max 1 W / ε ^ 2 by ring]
     exact Nat.le_ceil _
 
+/-- For positive `W` and `ε`, bounds the one-pass query expression by `1000000 * Nat.ceil W *
+conversionPrecisionPrice ε` and the gate expression by `3 + 10000000 * Nat.ceil W *
+conversionPrecisionPrice ε`. -/
 theorem conversion_onepass_cost_bounds (W ε : ℝ) (hW : 0 < W) (hε : 0 < ε) :
     4 * (conversionPhaseSize W ε - 1) ≤ 1000000 * Nat.ceil W * conversionPrecisionPrice ε ∧
     8 * (conversionPhaseSize W ε - 1) + 7 ≤

@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Qatlib.Papers.DihedralHSP04.MainResults.StatisticalAnalysis
+
+/-!
+# Subexponential pipeline schedules for the dihedral problem
+
+This module chooses the integer block length `Nat.sqrt (n * (Nat.log2 n + 1))` and bounds the
+resulting pipeline resources. It proves a subexponential time envelope, a polynomial space
+envelope, and a uniform combination success probability of at least one half for the constructed
+schedules.
+
+These constructions accompany the results of [Regev2004a].
+
+## Main statements
+
+* `time_bound`: bounds the explicit time expression by `2 ^ (64 * sqrt (n * log n))`.
+* `space_bound`: bounds the block-count times block-width expression quadratically.
+* `dihedralHSPSubexponentialPolySpace`: constructs schedules meeting the resource and success
+  predicates.
+
+## References
+
+* [Regev, 2004][Regev2004a]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +41,9 @@ namespace Qatlib.Papers.DihedralHSP04.MainResults
 
 open scoped BigOperators
 
+/-- The existence of a positive constant such that every input size at least two has a pipeline
+schedule within the specified subexponential time and polynomial space envelopes, with
+uniform combination success probability at least one half for every residue. -/
 def DihedralHSPSubexponentialPolySpace : Prop :=
   ∃ C : ℝ, 0 < C ∧
     ∀ n : ℕ, 2 ≤ n →
@@ -29,6 +55,7 @@ def DihedralHSPSubexponentialPolySpace : Prop :=
           (1 : ℝ) / 2 ≤
             uniformProb (fun y : SampleSpace P.l => combinationSucceeds P.l y z))
 
+/-- For `n ≥ 2`, the natural logarithm of `n` is at most `(Nat.log2 n + 1) * log 2`. -/
 lemma b_lower (n : ℕ) (hn : 2 ≤ n) :
     Real.log n ≤ (Nat.log2 n + 1 : ℝ) * Real.log 2 := by
   have hnpos : (0:ℝ) < n := by exact_mod_cast (show 0 < n by omega)
@@ -40,6 +67,7 @@ lemma b_lower (n : ℕ) (hn : 2 ≤ n) :
   push_cast at hlog
   exact le_of_lt hlog
 
+/-- For `n ≥ 2`, `Nat.log2 n + 1` is at most `4 * log n`. -/
 lemma b_upper (n : ℕ) (hn : 2 ≤ n) :
     (Nat.log2 n + 1 : ℝ) ≤ 4 * Real.log n := by
   have hn1 : (1:ℝ) ≤ n := by exact_mod_cast (show 1 ≤ n by omega)
@@ -59,6 +87,8 @@ lemma b_upper (n : ℕ) (hn : 2 ≤ n) :
     linarith [Real.log_two_gt_d9]
   linarith
 
+/-- For `n ≥ 2`, the chosen natural square-root block length, cast to the reals, is at most the
+corresponding real square root. -/
 lemma l_le_sqrt (n : ℕ) (hn : 2 ≤ n) :
     (Nat.sqrt (n * (Nat.log2 n + 1)) : ℝ) ≤
       Real.sqrt ((n : ℝ) * (Nat.log2 n + 1 : ℕ)) := by
@@ -70,6 +100,7 @@ lemma l_le_sqrt (n : ℕ) (hn : 2 ≤ n) :
   have hnn : (0:ℝ) ≤ (Nat.sqrt (n * (Nat.log2 n + 1)) : ℕ) := by positivity
   exact (Real.le_sqrt hnn (by positivity)).mpr h2
 
+/-- For `n ≥ 2`, `sqrt (n * log n)` is at most the real square root of `n * (Nat.log2 n + 1)`. -/
 lemma sqrt_nb_ge_B (n : ℕ) (hn : 2 ≤ n) :
     Real.sqrt ((n:ℝ) * Real.log n) ≤
       Real.sqrt ((n:ℝ) * (Nat.log2 n + 1 : ℕ)) := by
@@ -87,6 +118,8 @@ lemma sqrt_nb_ge_B (n : ℕ) (hn : 2 ≤ n) :
     exact hbge
   exact Real.sqrt_le_sqrt (by nlinarith [hbge', hn0])
 
+/-- For `n ≥ 2`, the chosen natural square-root block length is at least half the corresponding
+real square root. -/
 lemma l_ge_half (n : ℕ) (hn : 2 ≤ n) :
     Real.sqrt ((n:ℝ) * (Nat.log2 n + 1 : ℕ)) / 2 ≤
       (Nat.sqrt (n * (Nat.log2 n + 1)) : ℝ) := by
@@ -118,6 +151,7 @@ lemma l_ge_half (n : ℕ) (hn : 2 ≤ n) :
     nlinarith [hb2, hn2]
   nlinarith [hsqrt_lt, hs]
 
+/-- For `n ≥ 2`, the chosen natural square-root block length, cast to the reals, is at most `n`. -/
 lemma l_le_n (n : ℕ) (hn : 2 ≤ n) :
     (Nat.sqrt (n * (Nat.log2 n + 1)) : ℝ) ≤ n := by
   have h1 := l_le_sqrt n hn
@@ -133,6 +167,7 @@ lemma l_le_n (n : ℕ) (hn : 2 ≤ n) :
       _ = (n:ℝ)^2 := by ring
   linarith [h1, h2]
 
+/-- For `n ≥ 2`, the logarithm of the chosen block length plus four is at most `4 * log n`. -/
 lemma log_l4_le (n : ℕ) (hn : 2 ≤ n) :
     Real.log ((Nat.sqrt (n * (Nat.log2 n + 1)) : ℝ) + 4) ≤ 4 * Real.log n := by
   set P := (n:ℝ) * (Nat.log2 n + 1 : ℕ) with hP
@@ -175,6 +210,7 @@ lemma log_l4_le (n : ℕ) (hn : 2 ≤ n) :
     rw [Real.log_pow]; push_cast; ring
   linarith [hlog1, hlog2, hpow.le, Real.log_nonneg (by exact_mod_cast (show 1 ≤ n by omega) : (1:ℝ) ≤ n)]
 
+/-- For `n ≥ 2`, the real quantity `n * log n` is positive. -/
 lemma pos_of_two_le (n : ℕ) (hn : 2 ≤ n) : (0:ℝ) < (n:ℝ) * Real.log n := by
   have hn2 : (2:ℝ) ≤ n := by exact_mod_cast hn
   have hlog : 0 < Real.log n := by
@@ -182,6 +218,7 @@ lemma pos_of_two_le (n : ℕ) (hn : 2 ≤ n) : (0:ℝ) < (n:ℝ) * Real.log n :=
     linarith [Real.log_two_gt_d9]
   positivity
 
+/-- For `n ≥ 2`, `log n` is at most `sqrt (n * log n)`. -/
 lemma ln_le_B (n : ℕ) (hn : 2 ≤ n) :
     Real.log n ≤ Real.sqrt ((n:ℝ) * Real.log n) := by
   have hprod : 0 < (n:ℝ) * Real.log n := pos_of_two_le n hn
@@ -194,6 +231,7 @@ lemma ln_le_B (n : ℕ) (hn : 2 ≤ n) :
     simpa using Real.log_le_self hn1
   nlinarith [hlogn, hln_le_n]
 
+/-- For `n ≥ 2`, `sqrt (n * log n)` is at least one. -/
 lemma B_ge_one (n : ℕ) (hn : 2 ≤ n) :
     (1:ℝ) ≤ Real.sqrt ((n:ℝ) * Real.log n) := by
   have hprod : 0 < (n:ℝ) * Real.log n := pos_of_two_le n hn
@@ -203,6 +241,7 @@ lemma B_ge_one (n : ℕ) (hn : 2 ≤ n) :
   norm_num
   nlinarith [Real.log_two_gt_d9, hn2, hlog]
 
+/-- For `n ≥ 2`, the chosen block length plus four is at most `6 * sqrt (n * log n)`. -/
 lemma l4_le_sixB (n : ℕ) (hn : 2 ≤ n) :
     (Nat.sqrt (n * (Nat.log2 n + 1)) : ℝ) + 4 ≤
       6 * Real.sqrt ((n:ℝ) * Real.log n) := by
@@ -222,6 +261,8 @@ lemma l4_le_sixB (n : ℕ) (hn : 2 ≤ n) :
   have h1 := l_le_sqrt n hn
   linarith
 
+/-- For `n ≥ 2`, the block count `(n - 1) / Nat.sqrt (n * (Nat.log2 n + 1)) + 1`, cast to the
+reals, is at most `4 * n / sqrt (n * log n)`. -/
 lemma k_le (n : ℕ) (hn : 2 ≤ n) :
     (((n - 1) / Nat.sqrt (n * (Nat.log2 n + 1)) + 1 : ℕ) : ℝ) ≤
       4 * (n:ℝ) / Real.sqrt ((n:ℝ) * Real.log n) := by
@@ -267,6 +308,8 @@ lemma k_le (n : ℕ) (hn : 2 ≤ n) :
     linarith [h1, h2.le, h2.ge]
   exact le_trans hk2 hstep
 
+/-- For `n ≥ 2`, the chosen block count times the logarithm of the block length plus four is at
+most `16 * sqrt (n * log n)`. -/
 lemma k_log_bound (n : ℕ) (hn : 2 ≤ n) :
     ((n - 1) / Nat.sqrt (n * (Nat.log2 n + 1)) + 1 : ℕ) *
         Real.log ((Nat.sqrt (n * (Nat.log2 n + 1)) : ℝ) + 4) ≤
@@ -291,6 +334,8 @@ lemma k_log_bound (n : ℕ) (hn : 2 ≤ n) :
     nlinarith [hB2]
   linarith [h1, h2, h3.le, h3.ge]
 
+/-- For `n ≥ 2`, the logarithm of the chosen block length plus four is at most `4 * sqrt (n *
+log n)`. -/
 lemma log_l4_le_B (n : ℕ) (hn : 2 ≤ n) :
     Real.log ((Nat.sqrt (n * (Nat.log2 n + 1)) : ℝ) + 4) ≤
       4 * Real.sqrt ((n:ℝ) * Real.log n) := by
@@ -298,6 +343,8 @@ lemma log_l4_le_B (n : ℕ) (hn : 2 ≤ n) :
   have h2 := ln_le_B n hn
   linarith
 
+/-- For `n ≥ 2`, the explicit pipeline time expression for the chosen block length and block
+count is at most `2 ^ (64 * sqrt (n * log n))`. See [Regev2004a]. -/
 lemma time_bound (n : ℕ) (hn : 2 ≤ n) :
     (((Nat.sqrt (n * (Nat.log2 n + 1)) + 4) ^
         ((n - 1) / Nat.sqrt (n * (Nat.log2 n + 1)) + 1) *
@@ -360,6 +407,7 @@ lemma time_bound (n : ℕ) (hn : 2 ≤ n) :
         simpa [mul_comm] using hle)
   simpa [hl, hk, hB] using hfinal
 
+/-- For `n ≥ 2`, the chosen natural square-root block length is at least two. -/
 lemma sqrt_ge_two (n : ℕ) (hn : 2 ≤ n) : 2 ≤ Nat.sqrt (n * (Nat.log2 n + 1)) := by
   rw [Nat.le_sqrt]
   have hb2 : (2:ℕ) ≤ Nat.log2 n + 1 := by
@@ -367,13 +415,18 @@ lemma sqrt_ge_two (n : ℕ) (hn : 2 ≤ n) : 2 ≤ Nat.sqrt (n * (Nat.log2 n + 1
     omega
   exact Nat.mul_le_mul hn hb2
 
+/-- For `n ≥ 2`, the chosen natural square-root block length is at most `n` as a natural-number
+inequality. -/
 lemma sqrt_le_n_nat (n : ℕ) (hn : 2 ≤ n) : Nat.sqrt (n * (Nat.log2 n + 1)) ≤ n := by
   exact_mod_cast l_le_n n hn
 
+/-- For `n ≥ 2`, the chosen natural square-root block length is positive. -/
 lemma sqrt_pos_two_le (n : ℕ) (hn : 2 ≤ n) : 0 < Nat.sqrt (n * (Nat.log2 n + 1)) := by
   have := sqrt_ge_two n hn
   omega
 
+/-- For `n ≥ 2`, the chosen block count times the block length plus four is at most `(n + 1) ^
+2`. See [Regev2004a]. -/
 lemma space_bound (n : ℕ) (hn : 2 ≤ n) :
     ((n - 1) / Nat.sqrt (n * (Nat.log2 n + 1)) + 1) *
       (Nat.sqrt (n * (Nat.log2 n + 1)) + 4) ≤ (n + 1) ^ 2 := by
@@ -406,6 +459,8 @@ lemma space_bound (n : ℕ) (hn : 2 ≤ n) :
   have hstep : n - 1 + l + (2 * n + 2) ≤ (n + 1) ^ 2 := by omega
   omega
 
+/-- For `n ≥ 2`, one plus the product of the chosen block count and block length covers `n`. See
+[Regev2004a]. -/
 lemma covers_two_le (n : ℕ) (hn : 2 ≤ n) :
     n ≤ 1 + ((n - 1) / Nat.sqrt (n * (Nat.log2 n + 1)) + 1) *
       Nat.sqrt (n * (Nat.log2 n + 1)) := by
@@ -425,6 +480,9 @@ lemma covers_two_le (n : ℕ) (hn : 2 ≤ n) :
   rw [hkl]
   omega
 
+/-- Constructs pipeline schedules satisfying the specified subexponential time and polynomial
+space bounds, with uniform combination success probability at least one half for each
+residue. See [Regev2004a]. -/
 theorem dihedralHSPSubexponentialPolySpace :
     DihedralHSPSubexponentialPolySpace := by
   refine ⟨64, by norm_num, fun n hn => ?_⟩

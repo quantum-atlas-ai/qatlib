@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicFreshRegisterBridge
 import Qatlib.Papers.Cbmd26.Algorithms.SelectedOracleWordBridge
+
+/-!
+# Outer dynamic LCU compilation
+
+The construction `dynamicOuterOriginalWord` adds coefficient preparation to a fresh dynamic
+sample word and compiles it to the original selected oracle. Its block encoding represents the
+weighted sum of the branch targets, with scale and error determined by the coefficient mass.
+These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `dynamicOuterOriginalWord_cost`: gives the original-oracle overhead.
+* `dynamicOuterOriginalWord_blockEncoding`: proves the outer LCU encoding on the final frame.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -73,6 +92,8 @@ local instance cbmdDynamicOuterWordBridgeInstance6 (F Anc J I : Type) (K : ℕ) 
     [DecidableEq J] [DecidableEq I] : DecidableEq (DynamicFreshFinalSpace F Anc J I K) :=
   inferInstanceAs (DecidableEq (Bool × ((DynamicOriginalLabels (DynamicFreshStored Anc J K) × F) × (J × (Anc × I)))))
 
+/-- Adds a selected coefficient LCU layer to a fresh word, reindexes the workspace, and compiles
+it into the time-selected original-oracle layout. -/
 def dynamicOuterOriginalWord (K : ℕ) (α Λ : ℝ) (s : F → ℝ)
     (c : F → ℂ) (f₀ : F)
     (cs : List (AdjointStep (TaylorWordLabel J K ×
@@ -81,6 +102,8 @@ def dynamicOuterOriginalWord (K : ℕ) (α Λ : ℝ) (s : F → ℝ)
   dynamicTimeOriginalWord α Λ (fun fj : F × J => s fj.1)
     (dynamicFreshReindexedWord K (selectedCoefficientWord c f₀ cs))
 
+/-- The outer compiled word doubles the query count and has the original gate count plus three
+coefficient gates and twelve gates per original query. -/
 theorem dynamicOuterOriginalWord_cost (K : ℕ) (α Λ : ℝ) (s : F → ℝ)
     (c : F → ℂ) (f₀ : F)
     (cs : List (AdjointStep (TaylorWordLabel J K ×
@@ -94,6 +117,9 @@ theorem dynamicOuterOriginalWord_cost (K : ℕ) (α Λ : ℝ) (s : F → ℝ)
     (dynamicFreshReindexedWord_cost _ _).2, (selectedCoefficientWord_cost _ _ _).1,
     (selectedCoefficientWord_cost _ _ _).2] using! And.intro hq hg
 
+/-- Scale-one branch encodings with error `ζ` yield a well-formed outer encoding with scale
+equal to the coefficient mass and error `ζ` times that mass, with the stated exact
+original-oracle counts. -/
 theorem dynamicOuterOriginalWord_blockEncoding (K : ℕ) (α Λ : ℝ) (s : F → ℝ)
     (hα : 0 < α) (hΛ : 0 < Λ) (hbound : ∀ f, α * Real.sqrt (1 + (s f)^2) ≤ Λ)
     (c : F → ℂ) (f₀ : F) (hmass : 0 < coefficientMass c)

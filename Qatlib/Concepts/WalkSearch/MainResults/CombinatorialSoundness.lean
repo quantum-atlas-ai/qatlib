@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialBudgetRun
+
+/-!
+# Soundness of combinatorial triangle outputs
+
+`CombOut.Sound` states that a returned triple is a triangle with all three graph edges, while
+placing no condition on rejection outputs. `sourceCombAlg_sound_at` verifies this property for
+each tape and `sourceCombAlg_sound` packages it as universal algorithm soundness. For background
+on quantum search and amplitude amplification, see [BrassardEtAl2002].
+
+## Main statements
+
+* `CombOut.Sound`: A triangle output satisfies `tri3` and has all three edges in `G`; a
+  rejection output satisfies this predicate automatically.
+* `sourceCombAlg_sound`: The combinatorial algorithm satisfies `sourceCombSound` for all graphs,
+  search families, and integer parameters.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,10 +37,14 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical
 variable {n : ℕ}
 
+/-- A triangle output satisfies `tri3` and has all three edges in `G`; a rejection output
+satisfies this predicate automatically. -/
 def CombOut.Sound (G : UGraph n) : CombOut n→Prop
   | .tri a b c _=>tri3 G.edges a b c ∧ (a,b)∈G.edges ∧ (a,c)∈G.edges ∧ (b,c)∈G.edges
   | .reject _=>True
 
+/-- The output of `sourceCombAlg` is sound for every fixed tape and every choice of its integer
+parameters. -/
 theorem sourceCombAlg_sound_at (G : UGraph n) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily)
     (k K c dHi dLo τ tThin : ℕ) (t : sourceCombTape n k K c sgs ets) :
     Qatlib.Concepts.WalkSearch.MainResults.CombOut.Sound G (sourceCombAlg G sgs ets k K c dHi dLo τ tThin t) := by
@@ -66,6 +91,8 @@ theorem sourceCombAlg_sound_at (G : UGraph n) (sgs : SGSExecution) (ets : Promis
               obtain ⟨h1,h2,h3,_,ha,hb,hc⟩:=ets.sound G E _ _ hE
               exact ⟨(tri3_iff _ _ _ _).mpr ⟨h1,h2,h3,Or.inl ha,Or.inl hc,Or.inl hb⟩,ha,hb,hc⟩
 
+/-- The combinatorial algorithm satisfies `sourceCombSound` for all graphs, search families, and
+integer parameters. -/
 theorem sourceCombAlg_sound (G : UGraph n) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily)
     (k K c dHi dLo τ tThin : ℕ) : sourceCombSound G sgs ets k K c dHi dLo τ tThin := by
   intro t a b cc q hout

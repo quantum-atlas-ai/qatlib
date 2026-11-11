@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.SketchPerturb.TruncatedSketchIsometryStat
 import Mathlib.LinearAlgebra.Lagrange
+
+/-!
+# Thresholded sketch pseudoinverses and retained projectors
+
+This module proves the truncated sketch isometry statement using the thresholded reciprocal
+singular transform of Ccᴴ. At a positive cutoff `τ`, the transform has operator norm at most 1 /
+τ. A Frobenius Gram error at most η₂ ≤ τ²α then gives operator error at most `α`, and the
+transformed exact Gram matrix is the retained right singular projector [ChiaEtAl2022].
+
+## Main statements
+
+* `truncatedSketchIsometry_inverse_norm`: the cutoff reciprocal norm bound.
+* `truncatedSketchIsometry_projection_identity`: the retained right singular projector identity.
+* `truncatedSketchIsometry`: the combined error estimate and projector identity.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -26,6 +46,8 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- For positive `τ`, the operator norm of the thresholded reciprocal singular transform of Ccᴴ
+is at most 1 / τ. -/
 theorem truncatedSketchIsometry_inverse_norm
     (RS CT : Type) [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
     (Cc : Matrix RS CT ℂ) (τ : ℝ) (hτ : 0 < τ) :
@@ -39,6 +61,8 @@ theorem truncatedSketchIsometry_inverse_norm
   · simp only [norm_zero]
     positivity
 
+/-- For positive `τ`, a Frobenius Gram error at most η ≤ τ²α bounds the difference between the
+two transformed Gram matrices in operator norm by `α`. -/
 theorem truncatedSketchIsometry_sandwich_error
     (C RS CT : Type) [Fintype C] [DecidableEq C] [Fintype RS] [DecidableEq RS]
     [Fintype CT] [DecidableEq CT] (R : Matrix RS C ℂ) (Cc : Matrix RS CT ℂ)
@@ -63,6 +87,8 @@ theorem truncatedSketchIsometry_sandwich_error
     _ = η/(τ*τ) := by ring
     _ ≤ α := (div_le_iff₀ (mul_pos hτ hτ)).mpr (by simpa [mul_comm, mul_left_comm, mul_assoc] using hbound)
 
+/-- For positive `τ`, multiplying the thresholded reciprocal singular transform of Ccᴴ by `Cc`
+gives an orthogonal projector. -/
 theorem truncatedSketchIsometry_product_projector
     (RS CT : Type) [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
     (Cc : Matrix RS CT ℂ) (τ : ℝ) (hτ : 0 < τ) :
@@ -126,6 +152,8 @@ theorem truncatedSketchIsometry_product_projector
   · change (L*diagonal e*Lᴴ)ᴴ = L*diagonal e*Lᴴ
     simp only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,hea,Matrix.mul_assoc]
 
+/-- A rectangular matrix intertwines polynomial evaluation on AᴴA with polynomial evaluation on
+AAᴴ. -/
 private theorem rectangular_gram_polynomial (I O : Type) [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (p : Polynomial ℂ) :
     A*aeval (Aᴴ*A) p = aeval (A*Aᴴ) p*A := by
@@ -139,6 +167,8 @@ private theorem rectangular_gram_polynomial (I O : Type) [Fintype I] [DecidableE
     simp only [Polynomial.aeval_monomial,Algebra.algebraMap_eq_smul_one,Matrix.smul_mul,
       Matrix.one_mul,Matrix.mul_smul,hpow]
 
+/-- At a nonnegative `x` whose square is an interpolation node, the interpolating cutoff
+reciprocal equals the inverse square of `x` when τ ≤ x and zero otherwise, for positive `τ`. -/
 private theorem interpolation_cutoff (nodes : Finset ℂ) (τ x : ℝ) (hτ : 0 < τ)
     (hx : 0 ≤ x) (hnode : (x:ℂ)^2 ∈ nodes) :
     (Lagrange.interpolate nodes id (fun z : ℂ => if τ^2 ≤ z.re then z⁻¹ else 0)).eval ((x:ℂ)^2) =
@@ -152,6 +182,8 @@ private theorem interpolation_cutoff (nodes : Finset ℂ) (τ x : ℝ) (hτ : 0 
   have he : τ^2 ≤ x^2 ↔ τ ≤ x := (sq_le_sq₀ hτ.le hx)
   simp only [he]
 
+/-- For positive `τ`, sandwiching CcCcᴴ by the thresholded reciprocal singular transform gives
+the right singular projector retaining singular values at least `τ`. -/
 theorem truncatedSketchIsometry_projection_identity
     (RS CT : Type) [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
     (Cc : Matrix RS CT ℂ) (τ : ℝ) (hτ : 0 < τ) :
@@ -209,6 +241,9 @@ theorem truncatedSketchIsometry_projection_identity
   change P*Cc*Ccᴴ*Pᴴ = _
   rw [he,hsa,hproj.1,hQ]
 
+/-- The thresholded reciprocal singular transform satisfies both the operator error bound and
+the retained right singular projector identity in `TruncatedSketchIsometry`. See
+[ChiaEtAl2022]. -/
 theorem truncatedSketchIsometry : TruncatedSketchIsometry := by
   intro C RS CT _ _ _ _ _ _ R Cc τ α η hτ hα hη hclose hbound
   exact ⟨truncatedSketchIsometry_sandwich_error C RS CT R Cc τ α η hτ hα hη hclose hbound,

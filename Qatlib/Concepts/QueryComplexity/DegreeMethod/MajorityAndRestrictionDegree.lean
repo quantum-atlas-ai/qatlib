@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeAndOr
+
+/-!
+# Top coefficients and an AND query lower bound
+
+An alternating sum over the Boolean cube extracts the full monomial coefficient of a multilinear
+polynomial. Applying this coefficient identity to query amplitudes gives
+`sameCircuit_and_lower`, a lower bound for a fixed circuit whose chosen measurement event has
+positive mass only on the all-true oracle.
+
+The mathematical background is developed in [BealsEtAl2001].
+
+## Main statements
+
+* `cube_top_coefficient`: extracts the top coefficient by a signed cube sum.
+* `sameCircuit_and_lower`: bounds the number of input bits by the circuit's query count under
+  the stated zero-mass conditions.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -17,9 +39,13 @@ noncomputable section
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib MvPolynomial
 open scoped BigOperators Classical
+/-- The product of a factor `1` for each true bit and `-1` for each false bit of a Boolean
+assignment. -/
 private noncomputable def cubeComplementSign {I : Type} [Fintype I] (g : I → Bool) : ℝ :=
   ∏ i, if g i then 1 else -1
 
+/-- The signed Boolean-cube sum of a monomial is `1` when every variable has positive exponent,
+and `0` otherwise. -/
 private theorem cube_monomial_top_sum {I : Type} [Fintype I] [DecidableEq I]
     (d : I →₀ ℕ) :
     (∑ g : I → Bool, cubeComplementSign g * ∏ i, (boolPoint g i)^d i)=
@@ -42,6 +68,8 @@ private theorem cube_monomial_top_sum {I : Type} [Fintype I] [DecidableEq I]
     have hdi : d i=0 := not_ne_iff.mp hi
     exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hdi])
 
+/-- For a multilinear real polynomial, the coefficient of the product of all variables equals
+its signed sum of evaluations over the Boolean cube. -/
 private theorem cube_top_coefficient {I : Type} [Fintype I] [DecidableEq I]
     (q : MvPolynomial I ℝ)
     (hml : ∀ d : I →₀ ℕ, q.coeff d ≠ 0 → ∀ i, d i ≤ 1) :
@@ -77,6 +105,8 @@ private theorem cube_top_coefficient {I : Type} [Fintype I] [DecidableEq I]
     simp [top,mem_support_iff] at hn ⊢
     exact hn
 
+/-- A polynomial with nonzero coefficient at the product of all variables has total degree at
+least the number of variables. -/
 private theorem full_coefficient_degree {I : Type} [Fintype I] [DecidableEq I]
     (q : MvPolynomial I ℝ) (hq : q.coeff (Finsupp.equivFunOnFinite.symm fun _ => 1) ≠ 0) :
     Fintype.card I ≤ q.totalDegree := by
@@ -86,6 +116,8 @@ private theorem full_coefficient_degree {I : Type} [Fintype I] [DecidableEq I]
     simp
   simpa only [ht] using h
 
+/-- If a fixed circuit's measurement event has zero mass on every oracle with a false bit and
+positive mass on the all-true oracle, its query count is at least the number of input bits. -/
 theorem sameCircuit_and_lower {I W : Type} [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace I W)) (ψ : QState (PolynomialWorkspace I W))

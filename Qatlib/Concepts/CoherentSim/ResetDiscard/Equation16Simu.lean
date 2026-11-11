@@ -8,6 +8,25 @@ import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Stat
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Simu
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Reduced-state bounds for oblivious amplification
+
+This module relates fiber embeddings and vector outer products to reduced operators and proves a
+trace-norm perturbation estimate for conjugation by contractions. `equation16` applies these
+facts to the projected amplified output, supporting the robustness analysis of
+[BerryEtAl2015Taylor].
+
+## Main statements
+
+* `oaa_traceNorm_conjugation_error`: Trace-norm stability of conjugation by contractions.
+* `equation16`: A reduced-state bound for the projected amplified vector.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,18 +46,23 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical ComplexOrder Matrix.Norms.L2Operator
 
+/-- Tracing out the ancillary register of the outer product of an embedded vector gives the
+outer product of the data vector. -/
 theorem reducedState_fiber_outer {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (j₀ : J) (v : QState I) :
     ReducedState (vecOuter (TensorState (Qatlib.Foundations.PureStateMath.Ket j₀) v))=vecOuter v := by
   ext i j
   simp [ReducedState, vecOuter, TensorState, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The outer product of `A *ᵥ v` equals `A * vecOuter v * Aᴴ`. -/
 theorem vecOuter_mulVec {I : Type*} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (v : QState I) : vecOuter (A *ᵥ v)=A*vecOuter v*Aᴴ := by
   change Matrix.vecMulVec (A *ᵥ v) (star (A *ᵥ v))=
     A*Matrix.vecMulVec v (star v)*Aᴴ
   rw [Matrix.mul_vecMulVec, Matrix.vecMulVec_mul, Matrix.star_mulVec]
 
+/-- Conjugating an operator by two contractions changes it in trace norm by at most twice their
+norm distance times the operator's trace norm. -/
 theorem oaa_traceNorm_conjugation_error {I : Type*} [Fintype I] [DecidableEq I]
     (C U ρ : Matrix I I ℂ) (hC : ‖C‖ ≤ 1) (hU : ‖U‖ ≤ 1) :
     Matrix.traceNorm (C*ρ*Cᴴ-U*ρ*Uᴴ) ≤ 2*‖C-U‖*Matrix.traceNorm ρ := by
@@ -65,6 +89,8 @@ theorem oaa_traceNorm_conjugation_error {I : Type*} [Fintype I] [DecidableEq I]
       _ = _ := by rw [one_mul, Matrix.l2_opNorm_conjTranspose]
   exact (Matrix.traceNorm_add_le _ _).trans (by nlinarith)
 
+/-- The cubic operator obtained from a scaled block encoding by oblivious amplification has norm
+at most one. -/
 theorem oaa_cubic_contraction {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (W : Matrix (J × I) (J × I) ℂ)
     (j₀ : J) (X : Matrix I I ℂ) (s : ℝ) (hW : IsBlockEncoding W j₀ X s) :
@@ -83,6 +109,9 @@ theorem oaa_cubic_contraction {J I : Type*} [Fintype J] [DecidableEq J]
   rw [← hc, ← compress_encodingFiber_blockCorner]
   exact l2_norm_compress_le_one (encodingFiber_isIsometry j₀) hO (encodingFiber_isIsometry j₀)
 
+/-- The reduced outer product of the projected amplified output differs in trace norm from the
+ideal reduced outer product by at most twice the stated cubic perturbation bound for
+normalized inputs. See [BerryEtAl2015Taylor]. -/
 theorem equation16 : Equation16 := by
   intro J I _ _ _ _ W j₀ X U s δ₁ δ₂ hW hU hX hs hd hδ ψ hψ
   let C : Matrix I I ℂ := ((3/s : ℝ) : ℂ) • X-((4/s^3 : ℝ) : ℂ) • (X*Xᴴ*X)

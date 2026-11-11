@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
+
+/-!
+# Hamming graph witnesses for alphabet interrogation
+
+This module computes the operator norms of the alphabet Hamming graph adversary matrix
+`alphabetCubeGamma` and its coordinate filters. It applies these witnesses to the finite
+alphabet interrogation problem using the adversary method [Ambainis2002].
+
+The lower bound is combined with an explicit exact interrogation circuit, recording its query
+and gate counts.
+
+## Main statements
+
+* `alphabet_hamming_actual_witness_norms`: the Hamming matrix has norm `n * (a - 1)` and each
+  filter has norm `a - 1`.
+* `alphabet_interrogation_matching_lower_bound`: a bounded-error interrogation circuit satisfies
+  a linear query lower bound.
+* `alphabet_interrogation_upper_and_lower`: an exact circuit uses `n` queries and at most `3 * n
+  + 1` gates.
+
+## References
+
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +46,7 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The permutation of alphabet strings that adds `c` at coordinate `i`. -/
 noncomputable def alphabetCoordinateShift {n a : ℕ} (i : Fin n) (c : ZMod a) :
     Equiv.Perm (Fin n → ZMod a) where
   toFun x := Function.update x i (x i + c)
@@ -28,6 +54,8 @@ noncomputable def alphabetCoordinateShift {n a : ℕ} (i : Fin n) (c : ZMod a) :
   left_inv x := by ext j; by_cases h : j = i <;> simp [h]
   right_inv x := by ext j; by_cases h : j = i <;> simp [h]
 
+/-- Two strings differing only at coordinate `i` are related by the coordinate shift with
+increment `x i - y i`. -/
 private theorem alphabet_single_diff {n a : ℕ} (x y : Fin n → ZMod a) (i : Fin n)
     (hc : (Finset.univ.filter (fun j => x j ≠ y j)).card = 1) (hi : x i ≠ y i) :
     x = alphabetCoordinateShift i (x i - y i) y := by
@@ -47,12 +75,15 @@ private theorem alphabet_single_diff {n a : ℕ} (x y : Fin n → ZMod a) (i : F
       exact hk (Finset.mem_singleton.mp hm)
     simp [alphabetCoordinateShift, hk, he]
 
+/-- A nonzero coordinate shift changes exactly the chosen coordinate. -/
 private theorem alphabet_shift_diff {n a : ℕ} (i : Fin n) (c : ZMod a) (hc : c ≠ 0)
     (y : Fin n → ZMod a) :
     Finset.univ.filter (fun j => alphabetCoordinateShift i c y j ≠ y j) = {i} := by
   ext j
   by_cases h : j = i <;> simp [alphabetCoordinateShift, h, hc]
 
+/-- The coordinate filter of the alphabet Hamming matrix is the sum of the permutation matrices
+for all nonzero shifts at that coordinate. -/
 private theorem alphabetFilter_sum_perm {n a : ℕ} [NeZero a] (i : Fin n) :
     alphabetFilter (fun x : Fin n → ZMod a => x) (alphabetCubeGamma n a) i =
       ∑ c ∈ Finset.univ.erase (0 : ZMod a), permMatrix (alphabetCoordinateShift i c) := by
@@ -86,6 +117,7 @@ private theorem alphabetFilter_sum_perm {n a : ℕ} [NeZero a] (i : Fin n) :
         by simp [alphabetCoordinateShift, hd]⟩
     simp [permMatrix, hne]
 
+/-- The alphabet Hamming adjacency matrix is the sum of its coordinate filters. -/
 private theorem alphabetCubeGamma_sum (n a : ℕ) [NeZero a] :
     alphabetCubeGamma n a = ∑ i, alphabetFilter (fun x : Fin n → ZMod a => x) (alphabetCubeGamma n a) i := by
   ext x y
@@ -96,6 +128,7 @@ private theorem alphabetCubeGamma_sum (n a : ℕ) [NeZero a] :
     simp [hc]
   · simp [hc]
 
+/-- A permutation matrix fixes the constant vector with value one. -/
 private theorem alphabet_perm_ones {I : Type} [Fintype I] [DecidableEq I] (e : Equiv.Perm I) :
     permMatrix e *ᵥ (fun _ => (1 : ℂ)) = (fun _ => (1 : ℂ)) := by
   ext x
@@ -109,11 +142,15 @@ private theorem alphabet_perm_ones {I : Type} [Fintype I] [DecidableEq I] (e : E
     simp [hxy]
   · simp
 
+/-- For a nonzero alphabet size, the real cardinality of the nonzero elements of `ZMod a` is `a
+- 1`. -/
 private theorem alphabet_nonzero_card (a : ℕ) [NeZero a] :
     ((Finset.univ.erase (0 : ZMod a)).card : ℝ) = (a : ℝ) - 1 := by
   rw [Finset.card_erase_of_mem (Finset.mem_univ _), Finset.card_univ, ZMod.card]
   exact_mod_cast Nat.cast_sub (R:=ℝ) (Nat.one_le_iff_ne_zero.mpr (NeZero.ne a))
 
+/-- The absolute value of a real eigenvalue with an eigenvector of positive norm is bounded by
+the matrix operator norm. -/
 private theorem alphabet_eigenvalue_le_norm {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (v : QState I) (lam : ℝ)
     (hv : 0 < ‖toEuclidean_fromVec v‖) (he : A *ᵥ v = (lam : ℂ) • v) : |lam| ≤ ‖A‖ := by
@@ -122,6 +159,7 @@ private theorem alphabet_eigenvalue_le_norm {I : Type} [Fintype I] [DecidableEq 
     norm_smul, Complex.norm_real, Real.norm_eq_abs] at h
   exact (mul_le_mul_iff_left₀ hv).mp h
 
+/-- The constant vector with value one on alphabet strings has positive Euclidean norm. -/
 private theorem alphabet_ones_norm_pos (n a : ℕ) [NeZero a] :
     0 < ‖toEuclidean_fromVec (fun _ : Fin n → ZMod a => (1 : ℂ))‖ := by
   apply norm_pos_iff.mpr
@@ -129,6 +167,8 @@ private theorem alphabet_ones_norm_pos (n a : ℕ) [NeZero a] :
   have h := congrArg (fun z : EuclideanSpace ℂ (Fin n → ZMod a) => z (fun _ => 0)) hz
   simp at h
 
+/-- The constant vector with value one is an eigenvector of each Hamming coordinate filter with
+eigenvalue `a - 1`. -/
 private theorem alphabetFilter_ones {n a : ℕ} [NeZero a] (i : Fin n) :
     alphabetFilter (fun x : Fin n → ZMod a => x) (alphabetCubeGamma n a) i *ᵥ (fun _ => (1 : ℂ)) =
       (((a : ℝ) - 1 : ℝ) : ℂ) • (fun _ => (1 : ℂ)) := by
@@ -138,6 +178,8 @@ private theorem alphabetFilter_ones {n a : ℕ} [NeZero a] (i : Fin n) :
   simp only [Finset.sum_apply, Finset.sum_const, nsmul_eq_mul, mul_one, Pi.smul_apply, smul_eq_mul]
   exact_mod_cast alphabet_nonzero_card a
 
+/-- For an alphabet of size at least two, each Hamming coordinate filter has operator norm `a -
+1`. -/
 private theorem alphabetFilter_norm {n a : ℕ} [NeZero a] (ha : 2 ≤ a) (i : Fin n) :
     ‖alphabetFilter (fun x : Fin n → ZMod a => x) (alphabetCubeGamma n a) i‖ = (a : ℝ) - 1 := by
   apply le_antisymm
@@ -152,6 +194,8 @@ private theorem alphabetFilter_norm {n a : ℕ} [NeZero a] (ha : 2 ≤ a) (i : F
     rw [abs_of_nonneg (by linarith : 0 ≤ (a : ℝ) - 1)] at h
     exact h
 
+/-- For `a ≥ 2`, the alphabet Hamming matrix is Hermitian with norm `n * (a - 1)`, and each
+coordinate filter has norm `a - 1`. -/
 theorem alphabet_hamming_actual_witness_norms (n a : ℕ) [NeZero a] (ha : 2 ≤ a) :
     (alphabetCubeGamma n a).IsHermitian ∧
     ‖alphabetCubeGamma n a‖ = (n : ℝ) * ((a : ℝ) - 1) ∧
@@ -178,6 +222,8 @@ theorem alphabet_hamming_actual_witness_norms (n a : ℕ) [NeZero a] (ha : 2 ≤
     rw [abs_of_nonneg (mul_nonneg (Nat.cast_nonneg _) (by exact_mod_cast (show 0 ≤ (a : ℤ) - 1 by omega)))] at h
     exact h
 
+/-- A unitary alphabet interrogation circuit with error at most `eps`, where `0 ≤ eps ≤ 1 / 2`,
+satisfies `(1 - 2 * Real.sqrt (eps * (1 - eps)) - 2 * eps) * n ≤ 2 * QueryCount C`. -/
 theorem alphabet_interrogation_matching_lower_bound
     (W : Type) [Fintype W] [DecidableEq W] (n a : ℕ) [NeZero a]
     (C : Circuit ((Fin n × ZMod a) × W)) (ψ : QState ((Fin n × ZMod a) × W))
@@ -200,6 +246,9 @@ theorem alphabet_interrogation_matching_lower_bound
       (2 * (QueryCount C)) * ((a : ℝ) - 1) := by nlinarith [h]
   exact (mul_le_mul_iff_left₀ hap).mp h'
 
+/-- For positive string length and alphabet size at least two, there is a unitary exact
+interrogation circuit with `n` queries and at most `3 * n + 1` gates, also satisfying `n ≤ 2
+* QueryCount C`. -/
 theorem alphabet_interrogation_upper_and_lower (n a : ℕ) [NeZero a] (hn : 0 < n) (ha : 2 ≤ a) :
     ∃ (C : Circuit ((Fin n × ZMod a) × (Fin n → ZMod a)))
       (j : (Fin n × ZMod a) × (Fin n → ZMod a)),

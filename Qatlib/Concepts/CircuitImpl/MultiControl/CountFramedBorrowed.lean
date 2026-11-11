@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.CountBorrowed
+
+/-!
+# Framed borrowed-work cores
+
+`sourceBorrowedRelativeCore` and `sourceBorrowedExactCore` isolate the middle words of
+borrowed-work constructions so their surrounding single-wire frames can be shared or merged. The
+frame identities compare these cores with the complete borrowed words used in the multi-control
+constructions of [BarencoEtAl1995].
+
+The module proves exact core lengths, legality under the required layouts, and avoidance of
+wires outside the relative core.
+
+## Main statements
+
+* `sourceBorrowedCore_lengths`: Lengths `24 * r` and `24 * r + 14` for nonempty ladders.
+* `sourceBorrowedRelative_frame`: Matrix equality after restoring the relative frame.
+* `sourceBorrowedExact_frame`: Matrix equality after restoring the exact frame.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,16 +47,22 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl.CountFramedBorrowed
 open Matrix
 open scoped Classical BigOperators
 
+/-- The borrowed relative core alternating two relative middle words with two compressed prefix
+ladders. -/
 def sourceBorrowedRelativeCore {N : ℕ} (c w : ℕ → Fin N) (s : Fin N) (r : ℕ) : List (ReflectionGate N) :=
   let g := sourceRelativeMiddle (c (r+1)) (w (r-1)) s;
   let F := sourcePrefixCompressed c w r;
   g ++ F ++ g ++ F
 
+/-- The borrowed exact core alternating a Toffoli middle word, a compressed prefix ladder, the
+adjoint middle word, and the ladder. -/
 def sourceBorrowedExactCore {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ) : List (ReflectionGate N) :=
   let g := sourceToffoliMiddle (c (r+1)) (w (r-1)) t;
   let F := sourcePrefixCompressed c w r;
   g ++ F ++ reflectionAdjoint g ++ F
 
+/-- For `r ≥ 1`, the relative borrowed core has length `24 * r` and the exact borrowed core has
+length `24 * r + 14`. -/
 theorem sourceBorrowedCore_lengths {N : ℕ} (c w : ℕ → Fin N) (s t : Fin N) (r : ℕ) (hr : 1 ≤ r) :
     (sourceBorrowedRelativeCore c w s r).length = 24*r ∧
     (sourceBorrowedExactCore c w t r).length = 24*r+14 := by
@@ -46,9 +75,12 @@ theorem sourceBorrowedCore_lengths {N : ℕ} (c w : ℕ → Fin N) (s t : Fin N)
   · simp only [sourceBorrowedExactCore, List.length_append, reflectionAdjoint_length, ht, hF]
     omega
 
+/-- The program matrix of a singleton gate word is the matrix of its gate. -/
 private theorem singleton_matrix {N : ℕ} (g : ReflectionGate N) :
     reflectionProgramMatrix [g] = reflectionGateMatrix g := by simp [reflectionProgramMatrix]
 
+/-- Rearranges the relative-frame matrix product using the commutation of `S` with `F` and the
+cancellation identity `R * S = 1`. -/
 private theorem relative_frame_algebra {I : Type} [Fintype I] [DecidableEq I]
     (R S K F : Matrix I I ℂ) (hS : S*F=F*S) (hRS : R*S=1) :
     S*(F*(K*(F*(K*R)))) = F*((S*(K*R))*(F*(S*(K*R)))) := by
@@ -58,6 +90,8 @@ private theorem relative_frame_algebra {I : Type} [Fintype I] [DecidableEq I]
     rw [← Matrix.mul_assoc, hRS, Matrix.one_mul]
   simp only [Matrix.mul_assoc, hFS, hcancel]
 
+/-- Rearranges the exact-frame matrix product when `H` and `S` commute with `F` and `H` squares
+to the identity. -/
 private theorem exact_frame_algebra {I : Type} [Fintype I] [DecidableEq I]
     (E S H K F : Matrix I I ℂ) (hH : H*F=F*H) (hS : S*F=F*S) (hHH : H*H=1) :
     S*(H*(F*(Kᴴ*(F*(K*(H*E)))))) =
@@ -70,6 +104,8 @@ private theorem exact_frame_algebra {I : Type} [Fintype I] [DecidableEq I]
     rw [← Matrix.mul_assoc, ← hH, Matrix.mul_assoc]
   simp only [Matrix.mul_assoc, hFS, hFH, hcancel]
 
+/-- Adding the target rotation and its adjoint around the relative borrowed core gives the same
+program matrix as the full relative borrowed word. -/
 theorem sourceBorrowedRelative_frame {N : ℕ} (c w : ℕ → Fin N) (s : Fin N) (r : ℕ)
     (h : noWorkDirtyPrefixLayout c w r)
     (hc : ∀ i < r+1, c i ≠ s) (hw : ∀ j < r, w j ≠ s) :
@@ -124,6 +160,9 @@ theorem sourceBorrowedRelative_frame {N : ℕ} (c w : ℕ → Fin N) (s : Fin N)
     _ = F*(G*(F*G)) := congrArg (fun Q : Matrix (Reg N) (Reg N) ℂ => F*(Q*(F*Q))) hG.symm
     _ = _ := hraw.symm
 
+/-- Adding the control phase and target Hadamard frames around the exact borrowed core gives the
+same program matrix as the full exact borrowed word under the stated layout and separation
+hypotheses. -/
 theorem sourceBorrowedExact_frame {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hlast : ∀ j < r, c (r+1) ≠ w j)
@@ -189,6 +228,8 @@ theorem sourceBorrowedExact_frame {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r
       exact congrArg₂ (fun Q P : Matrix (Reg N) (Reg N) ℂ => F*(Q*(F*P))) hTa.symm hT.symm
     _ = _ := hraw.symm
 
+/-- The relative borrowed core is legal for a nonempty valid prefix layout whose controls and
+work wires avoid its target. -/
 theorem sourceBorrowedRelativeCore_legal {N : ℕ} (c w : ℕ → Fin N) (s : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hc : ∀ i < r+2, c i ≠ s) (hw : ∀ j < r, w j ≠ s) :
@@ -198,6 +239,8 @@ theorem sourceBorrowedRelativeCore_legal {N : ℕ} (c w : ℕ → Fin N) (s : Fi
   simp only [sourceBorrowedRelativeCore, reflectionLegal_append]
   exact ⟨⟨⟨hg,hF⟩,hg⟩,hF⟩
 
+/-- The exact borrowed core is legal under the nonempty prefix layout and the stated control,
+work, and target separation hypotheses. -/
 theorem sourceBorrowedExactCore_legal {N : ℕ} (c w : ℕ → Fin N) (t : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (h : noWorkDirtyPrefixLayout c w r)
     (hlast : ∀ j < r, c (r+1) ≠ w j)
@@ -210,6 +253,8 @@ theorem sourceBorrowedExactCore_legal {N : ℕ} (c w : ℕ → Fin N) (t : Fin N
   simp only [sourceBorrowedExactCore, reflectionLegal_append]
   exact ⟨⟨⟨hg,hF⟩,hga⟩,hF⟩
 
+/-- Every gate of the relative borrowed core avoids any wire outside its control wires, work
+wires, and target. -/
 theorem sourceBorrowedRelativeCore_avoids {N : ℕ} (c w : ℕ → Fin N) (s z : Fin N) (r : ℕ)
     (hr : 1 ≤ r) (hc : ∀ i < r+2, z ≠ c i) (hw : ∀ j < r, z ≠ w j) (hs : z ≠ s) :
     ∀ g ∈ sourceBorrowedRelativeCore c w s r, z ∉ reflectionGateWires g := by

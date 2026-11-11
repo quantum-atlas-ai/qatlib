@@ -135,6 +135,34 @@ import Mathlib.Topology.Metrizable.Uniformity
 import Mathlib.Topology.UniformSpace.Cauchy
 import Mathlib.Topology.UniformSpace.Defs
 import Mathlib.Topology.UniformSpace.Matrix
+
+/-!
+# Actual spectral diagonalization for LCHS
+
+This module constructs the unitary eigenbasis `frequencyBasis` and real eigenvalues
+`frequencyValues` of each Hermitian frequency matrix `H + k L`. The matrix `diagonalizedUnitary`
+conjugates the corresponding diagonal phase evolution back to the original basis and equals
+`spectralUnitary`.
+
+The result `actual_diagonalized_lchs` realizes the diagonalized representation in Theorem 1 of
+[ZhangEtAl2026], including matrix and entrywise integrability. The definitions `generatorL` and
+`generatorH` also decompose an arbitrary complex matrix into its two Hermitian components.
+
+## Main statements
+
+* `hermitian_exp_spectral` expresses the exponential of a complex multiple of a Hermitian matrix
+  in an eigenbasis.
+* `frequency_diagonalization` and `diagonalizedUnitary_eq` give the actual frequency
+  decomposition and phase evolution.
+- `generator_reconstruction` proves `generatorL A + i generatorH A = A`.
+* `actual_diagonalized_lchs` identifies the Cauchy integral of diagonalized unitaries with the
+  dissipative propagator.
+
+## References
+
+- [Zhang et al., 2026][ZhangEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -147,6 +175,8 @@ open Qatlib.Papers.KoopmanSim26.SpectralRep
 namespace Qatlib.Papers.KoopmanSim26.SpectralRep
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- For a Hermitian matrix `G` and any complex scalar `z`, `exp(z G)` is its unitary eigenbasis
+conjugating the diagonal entries `exp(z lambda_j)`. -/
 theorem hermitian_exp_spectral (G : Matrix I I ℂ) (hG : G.IsHermitian) (z : ℂ) :
     NormedSpace.exp (z • G) = (hG.eigenvectorUnitary : Matrix I I ℂ) *
       diagonal (fun j => Complex.exp (z * (hG.eigenvalues j : ℂ))) *
@@ -172,43 +202,61 @@ theorem hermitian_exp_spectral (G : Matrix I I ℂ) (hG : G.IsHermitian) (z : �
   rw [hd]
   rfl
 
+/-- The frequency matrix `H + k L` is Hermitian whenever `L` and `H` are Hermitian and `k` is
+real. -/
 def frequency_hermitian (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (k : ℝ) : (H + k • L).IsHermitian :=
   hH.add (hL.smul (R := ℝ) (IsSelfAdjoint.all k))
 
+/-- The matrix `frequencyBasis` is the unitary eigenvector matrix selected by the spectral
+theorem for the Hermitian frequency matrix `H + k L`. -/
 def frequencyBasis (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (k : ℝ) : Matrix.unitaryGroup I ℂ := (frequency_hermitian L H hL hH k).eigenvectorUnitary
 
+/-- The function `frequencyValues` gives the real eigenvalues of the Hermitian frequency matrix
+`H + k L`, indexed by the matrix basis. -/
 def frequencyValues (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (k : ℝ) : I → ℝ := (frequency_hermitian L H hL hH k).eigenvalues
 
+/-- The matrix `diagonalizedUnitary` conjugates the diagonal phases `exp(i t lambda_j(k))` from
+the frequency eigenbasis back to the original basis. -/
 def diagonalizedUnitary (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (t k : ℝ) : Matrix I I ℂ :=
   (frequencyBasis L H hL hH k : Matrix I I ℂ) *
     diagonal (fun j => Complex.exp ((Complex.I * (t : ℂ)) * (frequencyValues L H hL hH k j : ℂ))) *
     (frequencyBasis L H hL hH k : Matrix I I ℂ).conjTranspose
 
+/-- The frequency matrix `H + k L` equals its unitary eigenbasis conjugating the diagonal matrix
+of `frequencyValues`. -/
 theorem frequency_diagonalization (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (k : ℝ) : H+k • L = (frequencyBasis L H hL hH k : Matrix I I ℂ) *
       diagonal (fun j => (frequencyValues L H hL hH k j : ℂ)) *
       (frequencyBasis L H hL hH k : Matrix I I ℂ).conjTranspose :=
   (frequency_hermitian L H hL hH k).spectral_theorem
 
+/-- The explicit eigenbasis construction `diagonalizedUnitary` equals the matrix exponential
+`spectralUnitary`. -/
 theorem diagonalizedUnitary_eq (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (t k : ℝ) : diagonalizedUnitary L H hL hH t k = spectralUnitary L H t k := by
   exact (hermitian_exp_spectral (H+k • L) (frequency_hermitian L H hL hH k)
     (Complex.I * (t:ℂ))).symm
 
+/-- The matrix `generatorL A` is the Hermitian part of `A`, defined as `(A + A†) / 2`. -/
 def generatorL (A : Matrix I I ℂ) : Matrix I I ℂ := (1/2:ℝ) • (A+A.conjTranspose)
 
+/-- The matrix `generatorH A` is the Hermitian matrix `(A - A†) / (2 i)` whose imaginary
+multiple is the skew-Hermitian part of `A`. -/
 def generatorH (A : Matrix I I ℂ) : Matrix I I ℂ := (-Complex.I/2) • (A-A.conjTranspose)
 
+/-- The complex scalar `-i / 2` equals the reciprocal of `2 i`, identifying the two coefficient
+conventions for `generatorH`. -/
 theorem generatorH_coefficient : -Complex.I/2 = (2*Complex.I)⁻¹ := by
   rw [_root_.mul_inv_rev]
   simp [div_eq_mul_inv]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The Hermitian part `generatorL A` is Hermitian for every complex square matrix `A`. -/
 theorem generatorL_hermitian (A : Matrix I I ℂ) : (generatorL A).IsHermitian := by
   change (generatorL A).conjTranspose=generatorL A
   simp only [generatorL, Matrix.conjTranspose_smul, star_trivial,
@@ -217,6 +265,7 @@ theorem generatorL_hermitian (A : Matrix I I ℂ) : (generatorL A).IsHermitian :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The matrix `generatorH A` is Hermitian for every complex square matrix `A`. -/
 theorem generatorH_hermitian (A : Matrix I I ℂ) : (generatorH A).IsHermitian := by
   change (generatorH A).conjTranspose=generatorH A
   simp only [generatorH, Matrix.conjTranspose_smul, Matrix.conjTranspose_sub,
@@ -227,6 +276,8 @@ theorem generatorH_hermitian (A : Matrix I I ℂ) : (generatorH A).IsHermitian :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The two Hermitian components reconstruct the original matrix as `generatorL A + i generatorH
+A`. -/
 theorem generator_reconstruction (A : Matrix I I ℂ) : generatorL A+Complex.I • generatorH A=A := by
   unfold generatorL generatorH
   rw [smul_smul]
@@ -240,6 +291,7 @@ theorem generator_reconstruction (A : Matrix I I ℂ) : generatorL A+Complex.I �
   push_cast
   ring
 
+/-- If `-L` is positive semidefinite, then `L` is Hermitian. -/
 def dissipativeHermitian (L : Matrix I I ℂ) (hL : (-L).PosSemidef) : L.IsHermitian := by
   simpa using hL.isHermitian.neg
 
@@ -248,6 +300,8 @@ local instance matrixNormedAddCommGroup : NormedAddCommGroup (Matrix I I ℂ) :=
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- For Hermitian `L` and `H` and any real time, the Cauchy-weighted spectral-unitary function
+is integrable as a matrix-valued function. -/
 theorem spectral_integrand_integrable (L H : Matrix I I ℂ)
     (hL : L.IsHermitian) (hH : H.IsHermitian) (t : ℝ) :
     Integrable (fun k : ℝ => (1/(Real.pi*(1+k^2))) • spectralUnitary L H t k) := by
@@ -268,6 +322,10 @@ theorem spectral_integrand_integrable (L H : Matrix I I ℂ)
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- For nonnegative time, positive semidefinite `-L`, and Hermitian `H`, the Cauchy-weighted
+explicitly diagonalized unitaries are integrable as matrices and entrywise, and their
+integral equals `propagator L H t`. This realizes the actual spectral-basis representation
+in Theorem 1 of [ZhangEtAl2026]. -/
 theorem actual_diagonalized_lchs (L H : Matrix I I ℂ) (t : ℝ)
     (hL : (-L).PosSemidef) (hH : H.IsHermitian) (ht : 0 ≤ t) :
     Integrable (fun k : ℝ => (1/(Real.pi*(1+k^2))) •

@@ -20,10 +20,29 @@ import Mathlib.Data.Nat.Basic
 import Mathlib.Order.Filter.AtTopBot.Defs
 import Mathlib.Tactic
 
+/-!
+# Asymptotic composition of primality-test costs
+
+The two theorems multiply an assumed logarithmic iteration bound by an assumed per-iteration
+cost bound. They give the total operation bounds for the standard and faster multiplication cost
+models as direct statements of asymptotic big-O composition [DonisVelaGarciaEscartin2017].
+
+## Main statements
+
+* `operation_count_bigO`: Logarithmic iterations and O(log n · n³) cost give O((log n)² · n³).
+* `operation_count_bigO_fast`: The faster cost model gives O(log log n · (log n)³ · n²).
+
+## References
+
+* [Donis-Vela and Garcia-Escartin, 2017][DonisVelaGarciaEscartin2017]
+-/
+
 set_option autoImplicit false
 open Asymptotics Filter
 namespace Qatlib.Papers.PrimalityOrd17.MainResults
 
+/-- An `O(log n)` iteration bound multiplied by an `O(log n * n³)` per-iteration cost gives
+total cost `O((log n)² * n³)` [DonisVelaGarciaEscartin2017]. -/
 theorem operation_count_bigO
     (iter cost : ℕ → ℝ)
     (hiter : IsBigO atTop iter (fun n : ℕ => Real.log n))
@@ -33,6 +52,8 @@ theorem operation_count_bigO
   have h := hiter.mul hcost
   simpa only [pow_two, mul_assoc] using h
 
+/-- An `O(log n)` iteration bound multiplied by an `O(log log n * (log n)² * n²)` per-iteration
+cost gives total cost `O(log log n * (log n)³ * n²)` [DonisVelaGarciaEscartin2017]. -/
 theorem operation_count_bigO_fast
     (iter cost : ℕ → ℝ)
     (hiter : IsBigO atTop iter (fun n : ℕ => Real.log n))

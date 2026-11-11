@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
 import Mathlib.Analysis.Complex.Polynomial.Basic
 import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
+
+/-!
+# Population identities for Johnson diffusion
+
+This module proves that a two-dimensional diffusion block fixes the vector of square-root
+populations. It supplies population identities after adjoining an address and rewrites the
+diffusion entries in normalized population coordinates for Johnson-walk analysis
+[Ambainis2007ElementDistinctness].
+
+A separate spectral lemma lifts an eigenvalue of a unitary power to an eigenvalue of the
+original unitary while preserving orthogonality to a fixed starting vector.
+
+## Main statements
+
+* `jwD2_population_fixed`: the square-root population vector is fixed.
+* `jwCnt_inserted_false` and `jwCnt_inserted_true`: populations in adjoined coordinates.
+* `jw_unitary_pow_eigenvector_lift`: eigenvalue lifting from a unitary power.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
@@ -14,6 +37,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- For nonnegative populations `A` and `B` with positive sum, the diffusion block with
+parameter `B/(A+B)` fixes the vector `(sqrt A, sqrt B)`. -/
 theorem jwD2_population_fixed (A B : ℝ) (hA : 0 ≤ A) (hB : 0 ≤ B) (hAB : 0 < A+B)
     (a : Bool) :
     jwD2 (B/(A+B)) a false * (Real.sqrt A : ℂ) +
@@ -36,6 +61,8 @@ theorem jwD2_population_fixed (A B : ℝ) (hA : 0 ≤ A) (hB : 0 ≤ B) (hAB : 0
   · linear_combination 2 * Real.sqrt A * hsqB
   · linear_combination 2 * Real.sqrt B * hsqA
 
+/-- Under the stated index bounds, the false-type population equals `choose k j * choose (N-k)
+(r+1-j) * (r+1-j)`. -/
 theorem jwCnt_inserted_false (k N r j : ℕ) (hjr : j ≤ r) (hjk : j ≤ k)
     (_hNr : k ≤ N-r) :
     jwCnt k N r j false =
@@ -48,6 +75,8 @@ theorem jwCnt_inserted_false (k N r j : ℕ) (hjr : j ≤ r) (hjk : j ≤ k)
   simp only [Bool.false_eq_true, if_false]
   rw [mul_assoc, ← h, ← mul_assoc]
 
+/-- Under the stated index bounds, the true-type population at `j-1` equals `choose k j * choose
+(N-k) (r+1-j) * j`. -/
 theorem jwCnt_inserted_true (k N r j : ℕ) (hj : 1 ≤ j) (hjr : j ≤ r+1)
     (_hjk : j ≤ k) :
     jwCnt k N r (j-1) true =
@@ -62,6 +91,8 @@ theorem jwCnt_inserted_true (k N r j : ℕ) (hj : 1 ≤ j) (hjr : j ≤ r+1)
     _ = (Nat.choose k (j-1) * (k-(j-1))) * Nat.choose (N-k) (r+1-j) := by ring
     _ = _ := by rw [← h]; ring
 
+/-- An eigenvalue `ν` of a unitary power on a nonzero vector orthogonal to a fixed starting
+vector lifts to an eigenvalue `μ` of the unitary on such a vector, with `μ^t = ν`. -/
 theorem jw_unitary_pow_eigenvector_lift (m t : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (start v : Fin m → ℂ) (ν : ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -130,6 +161,8 @@ theorem jw_unitary_pow_eigenvector_lift (m t : ℕ)
   rw [hconj] at hz
   exact star_eq_zero.mp hz
 
+/-- For positive populations, diffusion entries scaled by reciprocal square-root output
+populations equal the displayed normalized averaging-minus-identity entries. -/
 theorem jwD2_population_normalized (A B : ℝ) (hA : 0 < A) (hB : 0 < B)
     (a b : Bool) :
     jwD2 (B/(A+B)) a b * ((1 / Real.sqrt (if a then B else A) : ℝ) : ℂ) =
@@ -155,6 +188,8 @@ theorem jwD2_population_normalized (A B : ℝ) (hA : 0 < A) (hB : 0 < B)
   all_goals field_simp
   all_goals nlinarith
 
+/-- The normalized diffusion-entry formula remains valid when both populations share a positive
+common factor `C`. -/
 theorem jwD2_fiber_normalized (C a b : ℝ) (hC : 0 < C) (ha : 0 < a) (hb : 0 < b)
     (o l : Bool) :
     jwD2 (b/(a+b)) o l * ((1 / Real.sqrt (C*(if o then b else a)) : ℝ) : ℂ) =

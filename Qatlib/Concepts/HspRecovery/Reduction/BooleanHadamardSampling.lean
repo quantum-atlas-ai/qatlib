@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardFourierBridge
 import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
+
+/-!
+# Boolean Hadamard subgroup sampling
+
+This module identifies `HadamardN` with the Boolean Fourier gate in register coordinates and
+specializes the hidden subgroup sampling circuit resources. For a hiding oracle, its
+single-register outcome law is uniform on `booleanOrthogonal H` and zero outside it. See
+[Simon1997] for the mathematical background.
+
+## Main statements
+
+* `hadamardN_eq_booleanFourierGate_submatrix`: identify the Boolean Fourier gate with the
+  Hadamard transform.
+* `hiddenSubgroupSamplingCircuit_boolean_resources`: one query, one counted gate, and circuit
+  size two.
+* `marginalProbLeft_hiddenSubgroupSampling_booleanReg_singleton`: the probability of an encoded
+  register outcome.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QuditTeleport.TeleportCore
@@ -24,6 +47,8 @@ namespace Qatlib.Concepts.HspRecovery.ReductionCore
 open Matrix
 open scoped Classical
 
+/-- Reindexing both coordinates of the Boolean Fourier gate by `regBooleanEquiv` gives
+`HadamardN`. -/
 theorem hadamardN_eq_booleanFourierGate_submatrix (n : ℕ) :
     Qatlib.Foundations.PureStateMath.HadamardN n =
       (fourierGate (booleanCharacterEquiv n).toEquiv).submatrix
@@ -32,6 +57,8 @@ theorem hadamardN_eq_booleanFourierGate_submatrix (n : ℕ) :
   simpa [fourierGate, booleanCharacterEquiv_apply] using
     congrArg (fun M => M y z) (hadamardN_eq_booleanFourier_submatrix n)
 
+/-- The Boolean hidden subgroup sampling circuit has query count one, gate count one, and size
+two in the circuit counting model. -/
 theorem hiddenSubgroupSamplingCircuit_boolean_resources
     (n : ℕ) {R : Type*}
     [AddCommGroup R] [Fintype R] [DecidableEq R] :
@@ -44,6 +71,8 @@ theorem hiddenSubgroupSamplingCircuit_boolean_resources
   exact hiddenSubgroupSamplingCircuit_resources
     (R := R) (booleanCharacterEquiv n).toEquiv
 
+/-- For a hiding oracle, an encoded register outcome has probability the reciprocal of the
+character annihilator cardinality when it is orthogonal to `H`, and zero otherwise. -/
 theorem marginalProbLeft_hiddenSubgroupSampling_booleanReg_singleton
     {n : ℕ} {R : Type*}
     [AddCommGroup R] [Fintype R] [DecidableEq R]

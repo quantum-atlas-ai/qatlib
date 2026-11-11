@@ -5,17 +5,47 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+
+/-!
+# Parameterized capped exponential search schedules
+
+Defines `SourceWidths` and `SourceSizes` for a general growth factor `l`. For `l ≥ 1`, the
+schedule has a closed capped-power formula and positive ceiling sizes;
+`search_source_schedule_instance` identifies the factor `6 / 5` specialization. For the
+quantum-search analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `search_source_schedule_laws`: For positive `N` and `l ≥ 1`, gives the capped-power width
+  formula, positivity and exponential bounds for the ceiling sizes, and the equivalence between
+  admissible indices and naturals below the width.
+* `search_source_schedule_instance`: The fixed-factor schedules `ExponentialWidth` and
+  `ExponentialSizes` equal the parameterized schedules at `l = 6 / 5`.
+* `search_source_first_scale_crossing`: For `l > 1` and `m0 ≥ 1`, there is a positive exponent
+  `K` with `m0 ≤ l ^ K ≤ l * m0`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.SearchStopping.UnknownCount
 
+/-- The search-width schedule starting at one and multiplying by `l` at each stage, capped at
+`Real.sqrt N`. -/
 noncomputable def SourceWidths (N : ℕ) (l : ℝ) : ℕ → ℝ
   | 0 => 1
   | k + 1 => min (l * SourceWidths N l k) (Real.sqrt N)
 
+/-- The natural-number ceiling of the parameterized width `SourceWidths N l k`. -/
 noncomputable def SourceSizes (N : ℕ) (l : ℝ) (k : ℕ) : ℕ :=
   Nat.ceil (SourceWidths N l k)
 
+/-- For positive `N` and `l ≥ 1`, gives the capped-power width formula, positivity and
+exponential bounds for the ceiling sizes, and the equivalence between admissible indices and
+naturals below the width. -/
 theorem search_source_schedule_laws (N : ℕ) (hN : 0 < N) (l : ℝ) (hl : 1 ≤ l) :
     (∀ k, SourceWidths N l k = min (l ^ k) (Real.sqrt N)) ∧
     (∀ k, 0 < SourceSizes N l k) ∧
@@ -51,6 +81,8 @@ theorem search_source_schedule_laws (N : ℕ) (hN : 0 < N) (l : ℝ) (hl : 1 ≤
   change (Nat.ceil (SourceWidths N l k) : ℝ) ≤ _
   linarith
 
+/-- The fixed-factor schedules `ExponentialWidth` and `ExponentialSizes` equal the parameterized
+schedules at `l = 6 / 5`. -/
 theorem search_source_schedule_instance (N : ℕ) :
     ExponentialWidth N = SourceWidths N (6 / 5) ∧
     ExponentialSizes N = SourceSizes N (6 / 5) := by
@@ -61,6 +93,7 @@ theorem search_source_schedule_instance (N : ℕ) :
     | succ k ih => simp only [ExponentialWidth, SourceWidths, ih]
   exact ⟨hw, by funext k; simp only [ExponentialSizes, SourceSizes, hw]⟩
 
+/-- For `l > 1` and `m0 ≥ 1`, there is a positive exponent `K` with `m0 ≤ l ^ K ≤ l * m0`. -/
 theorem search_source_first_scale_crossing (l : ℝ) (hl : 1 < l)
     (m0 : ℝ) (hm0 : 1 ≤ m0) :
     ∃ K : ℕ, 0 < K ∧ m0 ≤ l ^ K ∧ l ^ K ≤ l * m0 := by

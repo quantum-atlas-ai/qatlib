@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ExpectedNoiseEnvelopeBridgeStat
 import Qatlib.Concepts.SpectralReadout.NoiseStatistics.NoiseSequenceSecondMomentAmpl
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+
+/-!
+# Expected intensity bounds and corrected envelope minima
+
+This module bounds the actual uniform-sequence noise average by a rational envelope and rewrites
+its density prefactor as a squared tangent. `expectedNoiseEnvelopeBridge_answer` separates the
+interior minimizer for M ≥ 2 from the physical M = 1 boundary, while the original combined
+contract is refuted in the setting of [Cornwell2014].
+
+## Main statements
+
+* `expectedNoiseEnvelopeBridge_false`: The original combined noise-envelope contract
+  `ExpectedNoiseEnvelopeBridgeOriginal` is false.
+* `expectedNoiseEnvelope_actual_tan_average`: The normalized uniform-sequence intensity average,
+  multiplied by tan²(`aqAngle N (M+L)`) and the gain, is bounded by the rational noise envelope
+  under the stated size and signal-norm assumptions.
+* `expectedNoiseEnvelopeBridge_answer`: Proves the corrected envelope bridge: an interior
+  positive minimum for M ≥ 2, the physical M=1 boundary minimum, and the actual tangent-weighted
+  intensity bound; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +43,9 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 set_option autoImplicit false
 namespace Qatlib.Concepts.AmpTransform.NoiseEnvelope
 
+/-- The original proposed envelope contract requiring an interior minimizer for every M ≥ 1, its
+global minimality and conditional positivity, and a positive integer multiple of the minimum
+bounded by one. -/
 def ExpectedNoiseEnvelopeBridgeOriginal : Prop :=
   ∀ (M N : ℕ), 1 ≤ M → 0 < N →
     let MinL : ℝ := if M = 1 then -(1 : ℝ)
@@ -30,11 +58,15 @@ def ExpectedNoiseEnvelopeBridgeOriginal : Prop :=
     (1 < M → 0 < bound MinL) ∧
     (∃ k : ℕ, 1 ≤ k ∧ (k:ℝ) * bound MinL ≤ 1)
 
+/-- The original combined noise-envelope contract `ExpectedNoiseEnvelopeBridgeOriginal` is
+false. -/
 theorem expectedNoiseEnvelopeBridge_false : ¬ ExpectedNoiseEnvelopeBridgeOriginal := by
   intro h
   have hb := (h 1 1 (by decide) (by decide)).1.1
   norm_num at hb
 
+/-- For nonzero frequency and ‖c‖ ≤ M with M ≥ 1 and M+L < N, the mean intensity divided by
+(M+L)² and multiplied by (M+L)/(N−L−M) and the gain is bounded by (L+M²)/((N−L−M)(L+M)). -/
 theorem expectedNoiseEnvelope_actual_average (N M L : ℕ) [NeZero N]
     (y : ZMod N) (c : ℂ) (hy : y ≠ 0) (hM : 1 ≤ M)
     (hsize : M + L < N) (hc : ‖c‖ ≤ (M : ℝ)) :
@@ -68,6 +100,8 @@ theorem expectedNoiseEnvelope_actual_average (N M L : ℕ) [NeZero N]
       apply div_le_div_of_nonneg_right _ (by positivity)
       nlinarith [norm_nonneg c]
 
+/-- For M=1 and physical 0 ≤ L < N−1, the envelope equals 1/(N−L−1) and is at least its value
+1/(N−1) at L=0. -/
 theorem expectedNoiseEnvelope_one_physical_minimum (N : ℕ) (hN : 1 < N)
     (L : ℝ) (hL : 0 ≤ L) (hLN : L < (N : ℝ) - 1) :
     (L + 1) / (((N : ℝ) - L - 1) * (L + 1)) =
@@ -80,6 +114,7 @@ theorem expectedNoiseEnvelope_one_physical_minimum (N : ℕ) (hN : 1 < N)
   rw [he]
   exact one_div_le_one_div_of_le (by linarith) (by linarith)
 
+/-- For 0 ≤ T < N and N > 0, tan²(`aqAngle N T`) equals T/(N−T). -/
 theorem expectedNoiseEnvelope_tan_density (N T : ℕ) (hN : 0 < N) (hTN : T < N) :
     (Real.tan (aqAngle N T)) ^ 2 = (T : ℝ) / ((N : ℝ) - T) := by
   have hn : (0 : ℝ) < N := by exact_mod_cast hN
@@ -95,6 +130,9 @@ theorem expectedNoiseEnvelope_tan_density (N T : ℕ) (hN : 0 < N) (hTN : T < N)
   rw [Real.tan_eq_sin_div_cos, div_pow, hs, hc]
   field_simp
 
+/-- The normalized uniform-sequence intensity average, multiplied by tan²(`aqAngle N (M+L)`) and
+the gain, is bounded by the rational noise envelope under the stated size and signal-norm
+assumptions. -/
 theorem expectedNoiseEnvelope_actual_tan_average (N M L : ℕ) [NeZero N]
     (y : ZMod N) (c : ℂ) (hy : y ≠ 0) (hM : 1 ≤ M)
     (hsize : M + L < N) (hc : ‖c‖ ≤ (M : ℝ)) :
@@ -108,6 +146,8 @@ theorem expectedNoiseEnvelope_actual_tan_average (N M L : ℕ) [NeZero N]
   rw [he]
   simpa only [Nat.cast_add] using expectedNoiseEnvelope_actual_average N M L y c hy hM hsize hc
 
+/-- Proves the corrected envelope bridge: an interior positive minimum for M ≥ 2, the physical
+M=1 boundary minimum, and the actual tangent-weighted intensity bound; see [Cornwell2014]. -/
 theorem expectedNoiseEnvelopeBridge_answer : ExpectedNoiseEnvelopeBridge := by
   refine ⟨?_, expectedNoiseEnvelope_one_physical_minimum, expectedNoiseEnvelope_actual_tan_average⟩
   intro M N hM hN

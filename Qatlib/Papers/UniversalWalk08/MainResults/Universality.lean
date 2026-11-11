@@ -8,6 +8,25 @@ import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
 import Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
 import Qatlib.Papers.UniversalWalk08.MainResults.AmplitudeStatistics
 import Qatlib.Papers.UniversalWalk08.MainResults.Assembly
+
+/-!
+# Conditional output guarantees for walk simulation
+
+This module packages output guarantees for a supplied finite walk model in the setting of
+[Childs2009]. The theorem `conditional_indexed_output_bounds` retains the zero-one Hermitian
+adjacency and degree-three predicates and deduces a probability-sum lower bound and conditioned
+circuit statistics from the assumed amplitude proportionality and scale bound.
+
+## Main statements
+
+* `conditional_indexed_output_bounds`: Combine the supplied graph predicates with the output
+  probability and statistics guarantees.
+
+## References
+
+* [Childs, 2009][Childs2009]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.UniversalWalk08.MainResults.Universality
@@ -18,6 +37,10 @@ open Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
 
 set_option autoImplicit false
 
+/-- Given a degree-three zero-one Hermitian adjacency matrix and walk amplitudes proportional to
+a circuit column by a nonzero scale of squared modulus at least `1 / m ^ 4`, retain the
+graph predicates and obtain that lower bound on the indexed output probability sum together
+with equality of conditioned statistics. [Childs2009] -/
 theorem conditional_indexed_output_bounds
     {n m : ℕ} (C : GateCircuit n)
     {V : Type*} [Fintype V] [DecidableEq V]

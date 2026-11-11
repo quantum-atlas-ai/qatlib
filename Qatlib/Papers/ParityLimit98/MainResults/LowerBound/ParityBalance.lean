@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+
+/-!
+# Boolean parity and polynomial cancellation
+
+This module defines the parity sign `boolSign`, bit flips, and Boolean parity `parityOddB`. It
+proves that polynomial evaluations of degree below the number of input bits have zero signed
+sum, and converts this cancellation into equality of parity-class sums. These results support
+the parity analysis of [FarhiEtAl1998].
+
+## Main statements
+
+* `signed_sum_eval_eq_zero`: A polynomial of total degree below the number of input bits has
+  zero sum against the parity sign on the Boolean cube.
+* `sum_balance_of_signed_sum_zero`: A vanishing parity-weighted sum implies equal sums over the
+  even- and odd-parity input classes.
+
+## References
+
+* [Farhi et al., 1998][FarhiEtAl1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.ParityLimit98.MainResults.LowerBound
@@ -20,13 +41,19 @@ set_option autoImplicit false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The real parity character, obtained by multiplying a factor of minus one for each true input
+bit. -/
 noncomputable def boolSign (f : I → Bool) : ℝ := ∏ i, if f i then (-1 : ℝ) else 1
 
+/-- The Boolean input obtained by negating `f` at address `i` and leaving the other values
+fixed. -/
 def flipAt (i : I) (f : I → Bool) : I → Bool := Function.update f i (!f i)
 
+/-- The value of the monomial with exponent vector `m` at the Boolean point associated with `f`. -/
 noncomputable def monomialValue (m : I →₀ ℕ) (f : I → Bool) : ℝ :=
   ∏ i, (boolPoint f i) ^ (m i)
 
+/-- Flipping one input bit negates the parity sign. -/
 theorem boolSign_flipAt (i : I) (f : I → Bool) : boolSign (flipAt i f) = - boolSign f := by
   unfold boolSign flipAt
   conv_lhs => rw [← Finset.mul_prod_erase (Finset.univ : Finset I)
@@ -49,6 +76,7 @@ theorem boolSign_flipAt (i : I) (f : I → Bool) : boolSign (flipAt i f) = - boo
 
 omit [Fintype I] in
 
+/-- Flipping the same input bit twice restores the original Boolean input. -/
 theorem flipAt_involutive (i : I) : Function.Involutive (flipAt i) := by
   intro f
   unfold flipAt
@@ -60,6 +88,8 @@ theorem flipAt_involutive (i : I) : Function.Involutive (flipAt i) := by
 
 omit [DecidableEq I] in
 
+/-- Evaluation at a Boolean point is the sum of the polynomial's coefficients times the
+corresponding monomial values. -/
 theorem eval_eq_monomial_sum (p : MvPolynomial I ℝ) (f : I → Bool) :
     MvPolynomial.eval (boolPoint f) p =
       ∑ m ∈ p.support, p.coeff m * monomialValue m f := by
@@ -68,12 +98,14 @@ theorem eval_eq_monomial_sum (p : MvPolynomial I ℝ) (f : I → Bool) :
 
 omit [DecidableEq I] in
 
+/-- The parity sign times a monomial value is the product of their coordinatewise factors. -/
 theorem boolSign_mul_monomialValue (m : I →₀ ℕ) (f : I → Bool) :
     boolSign f * monomialValue m f =
       ∏ i, (if f i then (-1 : ℝ) else 1) * (boolPoint f i) ^ (m i) := by
   unfold boolSign monomialValue
   rw [Finset.prod_mul_distrib]
 
+/-- A monomial whose support omits an input coordinate has zero sum against the parity sign. -/
 theorem sum_boolSign_mul_monomialValue (m : I →₀ ℕ) (hm : m.support ≠ Finset.univ) :
     ∑ f : I → Bool, boolSign f * monomialValue m f = 0 := by
   classical
@@ -103,6 +135,8 @@ theorem sum_boolSign_mul_monomialValue (m : I →₀ ℕ) (hm : m.support ≠ Fi
           ((if b then (-1 : ℝ) else 1) * (if b = true then (1 : ℝ) else 0) ^ (m i)) := hfac
     _ = 0 := hzero
 
+/-- A polynomial of total degree below the number of input bits has zero sum against the parity
+sign on the Boolean cube. -/
 theorem signed_sum_eval_eq_zero (p : MvPolynomial I ℝ) (hdeg : p.totalDegree < Fintype.card I) :
     ∑ f : I → Bool, boolSign f * MvPolynomial.eval (boolPoint f) p = 0 := by
   classical
@@ -136,10 +170,12 @@ theorem signed_sum_eval_eq_zero (p : MvPolynomial I ℝ) (hdeg : p.totalDegree <
         refine Finset.sum_eq_zero fun m hm => ?_
         rw [sum_boolSign_mul_monomialValue m (hnotuniv m hm), mul_zero]
 
+/-- The Boolean indicator that the number of true values of `f` is odd. -/
 def parityOddB (f : I → Bool) : Bool := decide ((boolSupp f).card % 2 = 1)
 
 omit [DecidableEq I] in
 
+/-- The parity sign is minus one raised to the number of true input bits. -/
 theorem boolSign_eq_neg_one_pow (f : I → Bool) :
     boolSign f = (-1 : ℝ) ^ (boolSupp f).card := by
   have h1 : (∏ i ∈ Finset.univ.filter (fun i => f i = true), (if f i then (-1 : ℝ) else 1))
@@ -166,6 +202,7 @@ theorem boolSign_eq_neg_one_pow (f : I → Bool) :
 
 omit [DecidableEq I] in
 
+/-- The parity sign is minus one on odd inputs and one on even inputs. -/
 theorem boolSign_eq_ite (f : I → Bool) :
     boolSign f = if parityOddB f then (-1 : ℝ) else 1 := by
   rw [boolSign_eq_neg_one_pow]
@@ -185,6 +222,7 @@ theorem boolSign_eq_ite (f : I → Bool) :
     have hdec : decide ((boolSupp f).card % 2 = 1) = false := by simp [h]
     simp [he, hdec]
 
+/-- Flipping one input bit negates the Boolean parity value. -/
 theorem parityOddB_flipAt (i : I) (f : I → Bool) :
     parityOddB (flipAt i f) = !(parityOddB f) := by
   have hf := boolSign_eq_ite f
@@ -206,6 +244,7 @@ theorem parityOddB_flipAt (i : I) (f : I → Bool) :
     · rw [if_neg hp'] at h1
       exact absurd h1 (by norm_num)
 
+/-- The parity-weighted sum of a real function is its even-parity sum minus its odd-parity sum. -/
 theorem signed_sum_eq_balance (a : (I → Bool) → ℝ) :
     (∑ f : I → Bool, boolSign f * a f)
       = (∑ f ∈ Finset.univ.filter (fun f => parityOddB f = false), a f)
@@ -234,6 +273,8 @@ theorem signed_sum_eq_balance (a : (I → Bool) → ℝ) :
   rw [← hsplit, hnot, hpos]
   ring
 
+/-- A vanishing parity-weighted sum implies equal sums over the even- and odd-parity input
+classes. -/
 theorem sum_balance_of_signed_sum_zero (a : (I → Bool) → ℝ)
     (h : ∑ f : I → Bool, boolSign f * a f = 0) :
     (∑ f ∈ Finset.univ.filter (fun f => parityOddB f = false), a f)
@@ -244,6 +285,8 @@ theorem sum_balance_of_signed_sum_zero (a : (I → Bool) → ℝ)
 
 variable {W : Type} [Fintype W] [DecidableEq W]
 
+/-- The measurement mass of event `E` after running `C` with the source bit oracle for `f` and
+an unchanged workspace. -/
 noncomputable def parityAcceptance (C : Circuit (PolynomialWorkspace I W))
     (ψ : QState (PolynomialWorkspace I W)) (E : Finset (PolynomialWorkspace I W))
     (f : I → Bool) : ℝ :=

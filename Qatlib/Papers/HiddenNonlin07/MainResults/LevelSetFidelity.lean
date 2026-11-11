@@ -10,6 +10,32 @@ import Mathlib.Data.Complex.BigOperators
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
+
+/-!
+# Level-set matrices and fidelity bounds
+
+This module constructs the level-set matrices `rho` and their explicit positive square roots
+`sqrtRho` for the hidden nonlinear structures of [ChildsSchulmanVazirani2007]. It expresses
+matrix traces in terms of level-set overlap counts and proves the codomain-size rank bound for
+the square root.
+
+The squared trace-norm fidelity is bounded using either the overlap second moment or the support
+projector `suppProj`. Counting hypotheses on large overlaps then yield `lemma8` and `lemma9`;
+the module also proves invariance under invertible relabeling of function values.
+
+## Main statements
+
+* `trace_rho_mul_re`: expresses a matrix overlap as a normalized sum of squared level-set
+  intersections.
+* `lemma8`: derives a squared-fidelity bound from a bound on large overlap pairs.
+* `lemma9`: derives a squared-fidelity bound from a bound on rows containing a large overlap.
+* `rho_comp_equiv`: proves invariance under codomain equivalences.
+
+## References
+
+* [Childs et al., 2007][ChildsSchulmanVazirani2007]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.HiddenNonlin07.MainResults.LevelSetFidelity
@@ -21,16 +47,22 @@ set_option autoImplicit false
 
 variable {X Y : Type*} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 
+/-- The finite level set of `f` with value `y`. -/
 def lset (f : X → Y) (y : Y) : Finset X := Finset.univ.filter (fun x => f x = y)
 
+/-- The cardinality of the intersection of the level sets `lset f y` and `lset f' y'`. -/
 def ovl (f f' : X → Y) (y y' : Y) : ℕ := (lset f y ∩ lset f' y').card
 
+/-- Membership in `lset f y` is equivalent to the equation `f x = y`. -/
 @[simp] theorem mem_lset {f : X → Y} {y : Y} {x : X} : x ∈ lset f y ↔ f x = y := by
   simp [lset]
 
+/-- The level set containing a given input has positive cardinality. -/
 theorem card_lset_pos (f : X → Y) (x : X) : 0 < (lset f (f x)).card :=
   Finset.card_pos.mpr ⟨x, by simp⟩
 
+/-- The overlap of two level sets counts the inputs whose pair of function values equals `(y,
+y')`. -/
 theorem ovl_eq_card_filter (f f' : X → Y) (y y' : Y) :
     ovl f f' y y'
       = (Finset.univ.filter (fun x => (f x, f' x) = (y, y'))).card := by
@@ -39,17 +71,26 @@ theorem ovl_eq_card_filter (f f' : X → Y) (y y' : Y) :
   ext x
   simp [Finset.mem_inter, Finset.mem_filter, Prod.ext_iff]
 
+/-- The level-set matrix with entry `1 / |X|` when the two function values agree and zero
+otherwise. -/
 noncomputable def rho (f : X → Y) : Matrix X X ℂ :=
   fun x x' => if f x = f x' then ((Fintype.card X : ℂ))⁻¹ else 0
 
+/-- The complex-valued indicator of the level set `lset f y`. -/
 def indL (f : X → Y) (y : Y) : X → ℂ := fun x => if f x = y then 1 else 0
 
+/-- The inverse square root of the product of the domain cardinality and the cardinality of
+`lset f y`. -/
 noncomputable def wt (f : X → Y) (y : Y) : ℝ :=
   (Real.sqrt ((Fintype.card X : ℝ) * ((lset f y).card : ℝ)))⁻¹
 
+/-- The blockwise square-root matrix of `rho f`, with entry `wt f (f x)` when the two function
+values agree and zero otherwise. -/
 noncomputable def sqrtRho (f : X → Y) : Matrix X X ℂ :=
   fun x x' => if f x = f x' then (wt f (f x) : ℂ) else 0
 
+/-- The matrix `sqrtRho f` is the sum of the level-set indicator outer products weighted by `wt
+f y`. -/
 theorem sqrtRho_eq_sum (f : X → Y) :
     sqrtRho f = ∑ y, wt f y • Matrix.vecMulVec (indL f y) (star (indL f y)) := by
   ext x x'
@@ -76,6 +117,7 @@ theorem sqrtRho_eq_sum (f : X → Y) :
     · have hy' : ¬(f x = y) := hy
       simp [indL, hy']
 
+/-- The matrix `sqrtRho f` is positive semidefinite. -/
 theorem sqrtRho_posSemidef (f : X → Y) : (sqrtRho f).PosSemidef := by
   rw [sqrtRho_eq_sum]
   refine Matrix.posSemidef_sum Finset.univ ?_
@@ -83,10 +125,13 @@ theorem sqrtRho_posSemidef (f : X → Y) : (sqrtRho f).PosSemidef := by
   exact (Matrix.posSemidef_vecMulVec_self_star (indL f y)).smul (a := wt f y) (by
     unfold wt; positivity)
 
+/-- The matrix whose column indexed by `y` is the indicator of `lset f y`. -/
 def preB (f : X → Y) : Matrix X Y ℂ := fun x y => indL f y x
 
+/-- The matrix whose row indexed by `y` is the indicator of `lset f y` scaled by `wt f y`. -/
 noncomputable def preC (f : X → Y) : Matrix Y X ℂ := fun y x => wt f y • indL f y x
 
+/-- The level-set square-root matrix factors as `preB f * preC f`. -/
 theorem sqrtRho_eq_mul (f : X → Y) : sqrtRho f = preB f * preC f := by
   ext x x'
   simp only [Matrix.mul_apply, preB, preC, sqrtRho, Complex.real_smul]
@@ -111,18 +156,23 @@ theorem sqrtRho_eq_mul (f : X → Y) : sqrtRho f = preB f * preC f := by
     · have hy' : ¬(f x = y) := hy
       simp [indL, hy']
 
+/-- The rank of the level-set square-root matrix is at most the cardinality of the codomain. -/
 theorem rank_sqrtRho_le (f : X → Y) : (sqrtRho f).rank ≤ Fintype.card Y := by
   rw [sqrtRho_eq_mul]
   exact (Matrix.rank_mul_le_left (preB f) (preC f)).trans (Matrix.rank_le_card_width _)
 
+/-- The sum of a level-set indicator equals the complex cast of the level-set cardinality. -/
 theorem sum_indL (f : X → Y) (y : Y) :
     (∑ z, indL f y z) = ((lset f y).card : ℂ) := by
   simp [indL, lset]
 
+/-- Summing a fixed complex value times a level-set indicator multiplies that value by the
+level-set cardinality. -/
 theorem sum_indL_mul (f : X → Y) (y : Y) (c : ℂ) :
     (∑ z, indL f y z * c) = ((lset f y).card : ℂ) * c := by
   rw [← Finset.sum_mul, sum_indL]
 
+/-- The square of `sqrtRho f` is `rho f`. -/
 theorem sqrtRho_sq (f : X → Y) : sqrtRho f * sqrtRho f = rho f := by
   ext x x'
   rw [Matrix.mul_apply]
@@ -167,12 +217,16 @@ theorem sqrtRho_sq (f : X → Y) : sqrtRho f * sqrtRho f = rho f := by
     · have hxz : f x ≠ f z := fun hc => hz hc.symm
       simp [sqrtRho, hxz]
 
+/-- The continuous functional calculus square root of `rho f` equals its explicit level-set
+square-root matrix. -/
 theorem cfc_sqrt_rho (f : X → Y) : CFC.sqrt (rho f) = sqrtRho f :=
   CFC.sqrt_unique (sqrtRho_sq f) (Matrix.PosSemidef.nonneg (sqrtRho_posSemidef f))
 
+/-- The complex indicator that an input lies in both `lset f y` and `lset f' y'`. -/
 def ind2 (f f' : X → Y) (y y' : Y) (x : X) : ℂ :=
   if f x = y ∧ f' x = y' then 1 else 0
 
+/-- The complex cast of the overlap cardinality equals the sum of the joint level-set indicator. -/
 theorem ovl_eq_sum (f f' : X → Y) (y y' : Y) :
     (ovl f f' y y' : ℂ) = ∑ x, ind2 f f' y y' x := by
   have hsum : (∑ x, ind2 f f' y y' x)
@@ -182,6 +236,8 @@ theorem ovl_eq_sum (f f' : X → Y) (y y' : Y) :
     congr 1
   rw [ovl_eq_card_filter, hsum]
 
+/-- A sum depending only on the pair `(f x, f' x)` can be grouped by that pair, with
+multiplicities given by the level-set overlaps. -/
 theorem sum_pair_fiber (f f' : X → Y) (h : Y → Y → ℂ) :
     (∑ x, h (f x) (f' x))
       = ∑ y, ∑ y', (ovl f f' y y' : ℂ) * h y y' := by
@@ -227,6 +283,8 @@ theorem sum_pair_fiber (f f' : X → Y) (h : Y → Y → ℂ) :
         refine Finset.sum_congr rfl (fun y' _ => ?_)
         rw [← ovl_eq_sum]
 
+/-- A diagonal entry of `rho f * rho f'` is the joint-level-set count at that input multiplied
+by the inverse square of the domain size. -/
 theorem entry_rho_mul (f f' : X → Y) (x : X) :
     (rho f * rho f') x x
       = (Fintype.card X : ℂ)⁻¹ * (Fintype.card X : ℂ)⁻¹ *
@@ -246,6 +304,8 @@ theorem entry_rho_mul (f f' : X → Y) (x : X) :
       if_neg (show ¬(f x = f z ∧ f' x = f' z) from fun hh => h1 hh.1)]
     ring
 
+/-- The trace of the product of two level-set matrices is the complex cast of the sum of squared
+overlaps divided by the squared domain size. -/
 theorem trace_rho_mul (f f' : X → Y) :
     (rho f * rho f').trace
       = ((((Fintype.card X : ℝ)⁻¹ ^ 2
@@ -287,6 +347,8 @@ theorem trace_rho_mul (f f' : X → Y) :
           * (∑ y, ∑ y', (ovl f f' y y' : ℝ) ^ 2)) : ℝ) : ℂ) := by
         rw [ha, hb, ← Complex.ofReal_mul]
 
+/-- The real trace of the product of two level-set matrices is the sum of squared overlaps
+divided by the squared domain size. -/
 theorem trace_rho_mul_re (f f' : X → Y) :
     ((rho f * rho f').trace).re
       = (Fintype.card X : ℝ)⁻¹ ^ 2 * (∑ y, ∑ y', (ovl f f' y y' : ℝ) ^ 2) := by
@@ -294,6 +356,8 @@ theorem trace_rho_mul_re (f f' : X → Y) :
   rw [Complex.ofReal_re] at h
   exact h
 
+/-- If level-set sizes are at most `δ` and at most `β * |Y| ^ 2` pairs have overlap at least `α
+≥ 0`, the sum of squared overlaps is at most `(α ^ 2 + β * δ ^ 2) * |Y| ^ 2`. -/
 theorem sum_sq_ovl_le (f f' : X → Y) {α δ β : ℝ}
     (hα : 0 ≤ α)
     (hδ : ∀ y, ((lset f y).card : ℝ) ≤ δ)
@@ -344,6 +408,8 @@ theorem sum_sq_ovl_le (f f' : X → Y) {α δ β : ℝ}
         nlinarith [hβ, hδ2]
     _ = (α ^ 2 + β * δ ^ 2) * (Fintype.card Y : ℝ) ^ 2 := by ring
 
+/-- The squared trace norm of the product of the two level-set matrix square roots is at most
+the codomain size times the real trace of `rho f * rho f'`. -/
 theorem fidelity_sq_le_cardY_mul_trace (f f' : X → Y) :
     (Matrix.traceNorm (CFC.sqrt (rho f) * CFC.sqrt (rho f'))) ^ 2
       ≤ (Fintype.card Y : ℝ) * ((rho f * rho f').trace).re := by
@@ -377,6 +443,9 @@ theorem fidelity_sq_le_cardY_mul_trace (f f' : X → Y) :
         exact mul_nonneg (sq_nonneg _)
           (Finset.sum_nonneg (fun y _ => Finset.sum_nonneg (fun y' _ => sq_nonneg _)))
 
+/-- For a nonempty domain, a level-size bound `δ` and at most `β * |Y| ^ 2` overlap pairs of
+size at least `α ≥ 0` give squared fidelity at most `(α ^ 2 + β * δ ^ 2) * |Y| ^ 3 / |X| ^
+2`. [ChildsSchulmanVazirani2007]. -/
 theorem lemma8 [Nonempty X] (f f' : X → Y) {α δ β : ℝ}
     (hα : 0 ≤ α)
     (hδ : ∀ y, ((lset f y).card : ℝ) ≤ δ)
@@ -402,6 +471,8 @@ theorem lemma8 [Nonempty X] (f f' : X → Y) {α δ β : ℝ}
     _ = (α ^ 2 + β * δ ^ 2) * (Fintype.card Y : ℝ) ^ 3 / (Fintype.card X : ℝ) ^ 2 := by
         field_simp
 
+/-- The sum of the squared singular values of a complex square matrix equals the real trace of
+its Gram matrix. -/
 theorem sum_sq_singularValues_eq_trace (A : Matrix X X ℂ) :
     (∑ i, singularValues A i ^ 2) = ((Aᴴ * A).trace).re := by
   classical
@@ -423,6 +494,8 @@ theorem sum_sq_singularValues_eq_trace (A : Matrix X X ℂ) :
       rw [hsingular i, Real.sq_sqrt (hnonneg i)]
     _ = ((Aᴴ * A).trace).re := htrace
 
+/-- The squared trace norm of `A * B` is at most the product of the real traces of `Aᴴ * A` and
+`Bᴴ * B`. -/
 theorem traceNorm_mul_sq_le_gram_trace (A B : Matrix X X ℂ) :
     (A * B).traceNorm ^ 2 ≤
       ((Aᴴ * A).trace).re * ((Bᴴ * B).trace).re := by
@@ -469,9 +542,12 @@ theorem traceNorm_mul_sq_le_gram_trace (A B : Matrix X X ℂ) :
     _ ≤ _ := hCS
     _ = ((Aᴴ * A).trace).re * ((Bᴴ * B).trace).re := by rw [hA2, hB2]
 
+/-- The blockwise level-set projector, with entry the inverse size of the common level set when
+the function values agree and zero otherwise. -/
 noncomputable def suppProj (f : X → Y) : Matrix X X ℂ :=
   fun x x' => if f x = f x' then ((↑((lset f (f x)).card) : ℂ))⁻¹ else 0
 
+/-- The level-set support projector is equal to its conjugate transpose. -/
 theorem suppProj_conjTranspose (f : X → Y) : (suppProj f)ᴴ = suppProj f := by
   ext x x'
   rw [Matrix.conjTranspose_apply]
@@ -481,6 +557,7 @@ theorem suppProj_conjTranspose (f : X → Y) : (suppProj f)ᴴ = suppProj f := b
     simp [h]
   · rw [if_neg (fun hc => h hc.symm), if_neg h, star_zero]
 
+/-- Right multiplication by the level-set support projector leaves `sqrtRho f` unchanged. -/
 theorem sqrtRho_mul_suppProj (f : X → Y) :
     sqrtRho f * suppProj f = sqrtRho f := by
   ext x x'
@@ -524,6 +601,7 @@ theorem sqrtRho_mul_suppProj (f : X → Y) :
       rw [if_neg hxz]
       simp
 
+/-- Left multiplication by the level-set support projector leaves `sqrtRho f` unchanged. -/
 theorem suppProj_mul_sqrtRho (f : X → Y) :
     suppProj f * sqrtRho f = sqrtRho f := by
   ext x x'
@@ -567,6 +645,7 @@ theorem suppProj_mul_sqrtRho (f : X → Y) :
       rw [if_neg hxz]
       simp
 
+/-- The level-set support projector is idempotent. -/
 theorem suppProj_mul_self (f : X → Y) :
     suppProj f * suppProj f = suppProj f := by
   ext x x'
@@ -611,6 +690,7 @@ theorem suppProj_mul_self (f : X → Y) :
       rw [if_neg hxz]
       simp
 
+/-- For a nonempty domain, the real trace of `rho f` equals one. -/
 theorem trace_rho_re [Nonempty X] (f : X → Y) : ((rho f).trace).re = 1 := by
   have hcard : ((Fintype.card X : ℂ)) ≠ 0 := by
     exact_mod_cast (Fintype.card_pos_iff.mpr ‹Nonempty X›).ne'
@@ -627,6 +707,8 @@ theorem trace_rho_re [Nonempty X] (f : X → Y) : ((rho f).trace).re = 1 := by
         rw [mul_inv_cancel₀ hcard]
         simp
 
+/-- Summing the overlaps with all level sets of `f'` gives the size of the fixed level set of
+`f`. -/
 theorem sum_ovl_eq_card (f f' : X → Y) (y : Y) :
     (∑ y', ovl f f' y y') = (lset f y).card := by
   have h := Finset.card_eq_sum_card_fiberwise (s := lset f y)
@@ -638,6 +720,8 @@ theorem sum_ovl_eq_card (f f' : X → Y) (y : Y) :
   ext x
   simp [Finset.mem_inter, Finset.mem_filter, Finset.mem_univ]
 
+/-- The real trace of `suppProj f * rho f'` equals the domain-size-normalized sum of squared
+overlaps divided by the corresponding level-set sizes of `f`. -/
 theorem trace_suppProj_mul_rho_re (f f' : X → Y) :
     ((suppProj f * rho f').trace).re
       = (Fintype.card X : ℝ)⁻¹ *
@@ -703,6 +787,8 @@ theorem trace_suppProj_mul_rho_re (f f' : X → Y) :
     ring
   rw [hEq, Complex.ofReal_re]
 
+/-- For a nonempty domain, the squared fidelity of the level-set matrices is at most the real
+trace of `suppProj f * rho f'`. -/
 theorem fidelity_sq_le_suppProj_trace [Nonempty X] (f f' : X → Y) :
     (Matrix.traceNorm (CFC.sqrt (rho f) * CFC.sqrt (rho f'))) ^ 2
       ≤ ((suppProj f * rho f').trace).re := by
@@ -762,6 +848,9 @@ theorem fidelity_sq_le_suppProj_trace [Nonempty X] (f f' : X → Y) :
     _ = 1 * ((suppProj f * rho f').trace).re := by rw [trace_rho_re f]
     _ = ((suppProj f * rho f').trace).re := one_mul _
 
+/-- If every `f`-level set has size at most `δ` and at most `β * |Y|` such level sets have any
+overlap of size at least `α ≥ 0`, the sum of squared overlaps divided by the corresponding
+level sizes is at most `(α + β * δ) * |Y|`. -/
 theorem sum_div_ovl_le [Nonempty X] (f f' : X → Y) {α β δ : ℝ}
     (hα : 0 ≤ α)
     (hδ : ∀ y, ((lset f y).card : ℝ) ≤ δ)
@@ -848,6 +937,9 @@ theorem sum_div_ovl_le [Nonempty X] (f f' : X → Y) {α β δ : ℝ}
         linarith
     _ = (α + β * δ) * (Fintype.card Y : ℝ) := by ring
 
+/-- For a nonempty domain, level sizes at most `δ` and at most `β * |Y|` level sets of `f` with
+any overlap at least `α ≥ 0` give squared fidelity at most `(α + β * δ) * |Y| / |X|`.
+[ChildsSchulmanVazirani2007]. -/
 theorem lemma9 [Nonempty X] (f f' : X → Y) {α β δ : ℝ}
     (hα : 0 ≤ α)
     (hδ : ∀ y, ((lset f y).card : ℝ) ≤ δ)
@@ -872,17 +964,23 @@ theorem lemma9 [Nonempty X] (f f' : X → Y) {α β δ : ℝ}
         rw [div_eq_mul_inv]
         ring
 
+/-- Relabeling function values by a codomain equivalence leaves the level-set matrix unchanged.
+[ChildsSchulmanVazirani2007]. -/
 theorem rho_comp_equiv (e : Y ≃ Y) (f : X → Y) :
     rho (fun x => e (f x)) = rho f := by
   funext x x'
   simp only [rho, e.apply_eq_iff_eq]
 
+/-- Adding a fixed codomain group element to every function value leaves the level-set matrix
+unchanged. -/
 theorem rho_add_const [AddGroup Y] (f : X → Y) (b : Y) :
     rho (fun x => f x + b) = rho f := by
   have he : (fun x => f x + b) = fun x => (Equiv.addRight b) (f x) := rfl
   rw [he]
   exact rho_comp_equiv _ f
 
+/-- Multiplying all function values by a nonzero field element leaves the level-set matrix
+unchanged. [ChildsSchulmanVazirani2007]. -/
 theorem rho_mul_const_of_ne_zero [Field Y] (f : X → Y) {c : Y} (hc : c ≠ 0) :
     rho (fun x => c * f x) = rho f := by
   let e : Y ≃ Y :=

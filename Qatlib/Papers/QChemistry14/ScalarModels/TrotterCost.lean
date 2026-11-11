@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+
+/-!
+# Scalar Trotter error and cost bounds
+
+`trotterErrorBound` and `trotterStep` model a quadratic step error and its precision-dependent
+step size. The module rewrites the resulting call count and proves an explicit bound
+proportional to M⁵ log M for the scalar cost expression used in the chemistry analysis. See
+[McCleanEtAl2014].
+
+## Main statements
+
+* `trotter_error_le_precision`: controls any error bounded by the scalar Trotter model.
+* `trotter_Nc_rewrite`: evaluates the call count at the chosen step size.
+* `trotter_bigO`: bounds the cost expression by an explicit multiple of M⁵ log M.
+
+## References
+
+* [McClean et al., 2014][McCleanEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,15 +33,22 @@ namespace Qatlib.Papers.QChemistry14.ScalarModels.TrotterCost
 
 noncomputable section
 
+/-- The scalar Trotter error model `C ^ 3 * dt ^ 2`. -/
 def trotterErrorBound (C dt : ℝ) : ℝ := C ^ 3 * dt ^ 2
 
+/-- The step size `Real.sqrt (ε / C ^ 3)` selected for the scalar error budget. -/
 def trotterStep (C ε : ℝ) : ℝ := Real.sqrt (ε / C ^ 3)
 
+/-- The scalar call count `Ng * T / dt` for gate multiplicity `Ng`, duration `T`, and step size
+`dt`. -/
 def trotterCallCount (Ng T dt : ℝ) : ℝ := Ng * T / dt
 
+/-- The scalar gate cost `C ^ (3 / 2 : ℝ) * Ng / ε ^ (3 / 2 : ℝ)`. -/
 def trotterGateCount (C Ng ε : ℝ) : ℝ :=
   C ^ (3 / 2 : ℝ) * Ng / ε ^ (3 / 2 : ℝ)
 
+/-- For positive `C` and `ε`, a nonnegative step at most `trotterStep C ε` has square at most `ε
+/ C ^ 3`. -/
 theorem step_sq_le (C ε dt : ℝ) (hC : 0 < C) (hε : 0 < ε) (hdt : 0 ≤ dt)
     (hstep : dt ≤ trotterStep C ε) :
     dt ^ 2 ≤ ε / C ^ 3 := by
@@ -31,6 +58,8 @@ theorem step_sq_le (C ε dt : ℝ) (hC : 0 < C) (hε : 0 < ε) (hdt : 0 ≤ dt)
     pow_le_pow_left₀ hdt hstep 2
   rwa [Real.sq_sqrt hεC] at hsq
 
+/-- An error bounded by `trotterErrorBound C dt` is at most `ε` when `C` and `ε` are positive
+and the nonnegative step is at most `trotterStep C ε`. -/
 theorem trotter_error_le_precision (E1 C ε dt : ℝ) (hC : 0 < C) (hε : 0 < ε)
     (hdt : 0 ≤ dt) (hE1 : E1 ≤ trotterErrorBound C dt) (hstep : dt ≤ trotterStep C ε) :
     E1 ≤ ε := by
@@ -42,6 +71,8 @@ theorem trotter_error_le_precision (E1 C ε dt : ℝ) (hC : 0 < C) (hε : 0 < ε
   unfold trotterErrorBound at hE1
   linarith
 
+/-- For positive `C` and `ε`, substituting `trotterStep C ε` into the call count gives `C ^ (3 /
+2 : ℝ) * Ng * T / ε ^ (1 / 2 : ℝ)`. -/
 theorem trotter_Nc_rewrite (C Ng ε T : ℝ) (hC : 0 < C) (hε : 0 < ε) :
     trotterCallCount Ng T (trotterStep C ε)
       = C ^ (3 / 2 : ℝ) * Ng * T / ε ^ (1 / 2 : ℝ) := by
@@ -55,6 +86,9 @@ theorem trotter_Nc_rewrite (C Ng ε T : ℝ) (hC : 0 < C) (hε : 0 < ε) :
     norm_num]
   field_simp
 
+/-- For `M ≥ 1`, nonnegative coefficients, and positive precision, the displayed scalar cost is
+at most `2 * (β + h) ^ (3 / 2 : ℝ) * M ^ 5 * Real.log M / ε ^ (3 / 2 : ℝ)`. This is the
+scalar estimate associated with Eqs. (34)–(37) of [McCleanEtAl2014]. -/
 theorem trotter_bigO (β h M ε : ℝ) (hM : 1 ≤ M) (hβ : 0 ≤ β) (hh : 0 ≤ h)
     (hε : 0 < ε) :
     (β * M ^ (5 / 3 : ℝ) + h * M ^ 2) ^ (3 / 2 : ℝ) * ((M + M ^ 2) * Real.log M)

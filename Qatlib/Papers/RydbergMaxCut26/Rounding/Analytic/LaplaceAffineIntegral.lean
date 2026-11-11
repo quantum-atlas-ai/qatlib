@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.PositiveChart
 import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.LaplaceNorm
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# A positive-line affine square-root integral
+
+`halfAffine` is the rational square-root integrand arising after evaluation of the tilted
+Gaussian moments. The substitution `positiveChart (A/B)` transforms its positive-line integral
+to a constant multiple of `1-u^2` on (0, 1), giving an exact value for positive `A` and `B`.
+
+These results support the development of [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `halfAffine_chart`: computes the transformed integrand with its Jacobian.
+* `halfAffine_integral`: evaluates the positive-line integral.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,9 +37,12 @@ open MeasureTheory Set Real
 
 namespace Qatlib.Papers.RydbergMaxCut26.Rounding.Laplace
 
+/-- The integrand `1 / (sqrt a * (A+B*a)^2 * sqrt (A+B*a))`. -/
 def halfAffine (A B a : ℝ) : ℝ :=
   1/(Real.sqrt a*(A+B*a)^2*Real.sqrt (A+B*a))
 
+/-- For positive `A` and `B` and `0 < u < 1`, substitution by `positiveChart (A/B)` with its
+Jacobian transforms `halfAffine A B` to `2*(1-u^2)/(A^2*sqrt B)`. -/
 theorem halfAffine_chart (A B u : ℝ) (hA : 0<A) (hB : 0<B) (hu : u∈Ioo (0:ℝ) 1) :
     (2*(A/B)*u/(1-u^2)^2)*halfAffine A B (positiveChart (A/B) u)=
       (2/(A^2*Real.sqrt B))*(1-u^2) := by
@@ -41,6 +64,8 @@ theorem halfAffine_chart (A B u : ℝ) (hA : 0<A) (hB : 0<B) (hu : u∈Ioo (0:�
   rw [Real.sq_sqrt hq.le,Real.sq_sqrt hA.le,Real.sq_sqrt hB.le]
   ring
 
+/-- For positive `A` and `B`, the integral of `halfAffine A B` over the positive real line is
+`4/(3*A^2*sqrt B)`. -/
 theorem halfAffine_integral (A B : ℝ) (hA : 0<A) (hB : 0<B) :
     (∫ a in Ioi (0:ℝ),halfAffine A B a)=4/(3*A^2*Real.sqrt B) := by
   rw [positiveChart_integral (div_pos hA hB)]

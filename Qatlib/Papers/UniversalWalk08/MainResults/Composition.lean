@@ -11,10 +11,32 @@ import Mathlib.Data.Matrix.Mul
 import Mathlib.Data.List.Basic
 import Mathlib.Tactic
 
+/-!
+# Composition of scattering blocks
+
+This module defines two-port scattering data in a normed ring and composes them using inverse
+factors for repeated reflections. It proves exact transmission and reflection identities for
+`ScatterBlock.perfect` and norm estimates controlling composition errors, supporting the
+scattering constructions of [Childs2009].
+
+## Main statements
+
+* `ScatterBlock.composeList_perfect`: A list of reflection-free blocks has product transmission
+  and zero reflection.
+* `norm_compose_T_sub_le`: Bound the transmission correction from internal reflections.
+* `norm_compose_R_le`: Bound the reflection of a composite block.
+
+## References
+
+* [Childs, 2009][Childs2009]
+-/
+
 namespace Qatlib.Papers.UniversalWalk08.MainResults.Composition
 
 set_option autoImplicit false
 
+/-- Two-port scattering data consisting of forward and reverse transmission and reflection
+elements. -/
 structure ScatterBlock (E : Type*) where
 
   T : E
@@ -29,31 +51,44 @@ namespace ScatterBlock
 
 variable {E : Type*} [NormedRing E]
 
+/-- The scattering block obtained by composing two blocks with inverse factors accounting for
+repeated internal reflections. -/
 noncomputable def compose (S₁ S₂ : ScatterBlock E) : ScatterBlock E where
   T := S₁.T * Ring.inverse (1 - S₂.R * S₁.Rbar) * S₂.T
   Tbar := S₂.Tbar * Ring.inverse (1 - S₁.Rbar * S₂.R) * S₁.Tbar
   R := S₁.R + S₁.T * Ring.inverse (1 - S₂.R * S₁.Rbar) * S₂.R * S₁.Tbar
   Rbar := S₂.Rbar + S₂.Tbar * Ring.inverse (1 - S₁.Rbar * S₂.R) * S₁.Rbar * S₂.T
 
+/-- A scattering block with transmission `g` in both directions and zero reflection. -/
 def perfect (g : E) : ScatterBlock E :=
   ⟨g, g, 0, 0⟩
 
+/-- Composing `S` on the right with a reflection-free block of transmission `g` multiplies its
+transmission by `g` on the right. -/
 theorem compose_perfect_T (S : ScatterBlock E) (g : E) :
     (S.compose (perfect g)).T = S.T * g := by
   simp [compose, perfect, Ring.inverse_one]
 
+/-- Composing `S` on the right with the zero-transmission reflection-free block preserves its
+forward reflection. -/
 theorem compose_perfect_R (S : ScatterBlock E) :
     (S.compose (perfect 0)).R = S.R := by
   simp [compose, perfect, Ring.inverse_one]
 
+/-- Composing a reflection-free block of transmission `g` on the left multiplies the forward
+transmission of `S` by `g` on the left. -/
 theorem perfect_compose_T (g : E) (S : ScatterBlock E) :
     ((perfect g).compose S).T = g * S.T := by
   simp [compose, perfect, Ring.inverse_one]
 
+/-- The recursive composition of a list of scattering blocks, with identity transmission and
+zero reflection for the empty list. -/
 noncomputable def composeList : List (ScatterBlock E) → ScatterBlock E
   | [] => ⟨1, 1, 0, 0⟩
   | S :: Ss => S.compose (composeList Ss)
 
+/-- The forward transmission of a list of reflection-free blocks is the ordered product of their
+transmissions [Childs2009]. -/
 theorem composeList_T_of_perfect (gs : List E) :
     (composeList (gs.map perfect)).T = gs.prod := by
   induction gs with
@@ -61,6 +96,7 @@ theorem composeList_T_of_perfect (gs : List E) :
   | cons g gs ih =>
     simp only [List.map_cons, composeList, perfect_compose_T, ih, List.prod_cons]
 
+/-- The forward reflection of a list of reflection-free blocks is zero. -/
 theorem composeList_R_of_perfect (gs : List E) :
     (composeList (gs.map perfect)).R = 0 := by
   induction gs with
@@ -71,6 +107,8 @@ theorem composeList_R_of_perfect (gs : List E) :
       simp [compose, perfect, ih, Ring.inverse_one]
     exact hstep
 
+/-- A list of reflection-free blocks has forward transmission equal to the ordered product and
+forward reflection equal to zero. -/
 theorem composeList_perfect (gs : List E) :
     (composeList (gs.map perfect)).T = gs.prod ∧
       (composeList (gs.map perfect)).R = 0 :=
@@ -82,12 +120,14 @@ section NormBounds
 
 variable {E : Type*} [NormedRing E] [NormOneClass E] [HasSummableGeomSeries E]
 
+/-- If `‖x‖ < 1`, the norm of the ring inverse of `1 - x` is at most `(1 - ‖x‖)⁻¹`. -/
 theorem norm_inverse_one_sub_le {x : E} (hx : ‖x‖ < 1) :
     ‖Ring.inverse (1 - x)‖ ≤ (1 - ‖x‖)⁻¹ := by
   rw [← geom_series_eq_inverse x hx]
   have h := tsum_geometric_le_of_norm_lt_one x hx
   simpa [norm_one] using h
 
+/-- If `‖x‖ < 1`, the norm of `Ring.inverse (1 - x) - 1` is at most `‖x‖ * (1 - ‖x‖)⁻¹`. -/
 theorem norm_inverse_one_sub_sub_one_le {x : E} (hx : ‖x‖ < 1) :
     ‖Ring.inverse (1 - x) - 1‖ ≤ ‖x‖ * (1 - ‖x‖)⁻¹ := by
   have hmul : Ring.inverse (1 - x) * (1 - x) = 1 := by
@@ -106,6 +146,7 @@ theorem norm_inverse_one_sub_sub_one_le {x : E} (hx : ‖x‖ < 1) :
         exact norm_inverse_one_sub_le hx
     _ = ‖x‖ * (1 - ‖x‖)⁻¹ := by ring
 
+/-- For real `u ≤ v < 1`, the quantity `u * (1 - u)⁻¹` is at most `v * (1 - v)⁻¹`. -/
 theorem mul_inv_le_of_le {u v : ℝ} (huv : u ≤ v) (hv : v < 1) :
     u * (1 - u)⁻¹ ≤ v * (1 - v)⁻¹ := by
   have h1u : 0 < 1 - u := by linarith
@@ -113,6 +154,8 @@ theorem mul_inv_le_of_le {u v : ℝ} (huv : u ≤ v) (hv : v < 1) :
   rw [← div_eq_mul_inv, ← div_eq_mul_inv, div_le_div_iff₀ h1u h1v]
   nlinarith
 
+/-- If the internal reflection product has norm at most `δ < 1`, the transmission differs from
+`S₁.T * S₂.T` by at most `‖S₁.T‖ * ‖S₂.T‖ * δ / (1 - δ)` [Childs2009]. -/
 theorem norm_compose_T_sub_le (S₁ S₂ : ScatterBlock E) {δ : ℝ}
     (hxδ : ‖S₂.R * S₁.Rbar‖ ≤ δ) (hδ1 : δ < 1) :
     ‖(S₁.compose S₂).T - S₁.T * S₂.T‖ ≤
@@ -141,6 +184,8 @@ theorem norm_compose_T_sub_le (S₁ S₂ : ScatterBlock E) {δ : ℝ}
     _ ≤ ‖S₁.T‖ * ‖S₂.T‖ * (δ * (1 - δ)⁻¹) :=
         mul_le_mul_of_nonneg_left hmono (mul_nonneg (norm_nonneg _) (norm_nonneg _))
 
+/-- Under the stated reflection bounds and contractive transmissions, the composite reflection
+has norm at most `δ₁ + δ₂ / (1 - δ₁ * δ₂)` when `δ₁ * δ₂ < 1` [Childs2009]. -/
 theorem norm_compose_R_le {δ₁ δ₂ : ℝ} (S₁ S₂ : ScatterBlock E)
     (hδ₂0 : 0 ≤ δ₂)
     (hR₁ : ‖S₁.R‖ ≤ δ₁) (hRb₁ : ‖S₁.Rbar‖ ≤ δ₁) (hR₂ : ‖S₂.R‖ ≤ δ₂)
@@ -193,6 +238,8 @@ section Matrices
 
 open scoped Matrix.Norms.Operator
 
+/-- For square complex matrix blocks, an internal reflection product bounded by `δ < 1` gives
+transmission error at most `‖S₁.T‖ * ‖S₂.T‖ * δ / (1 - δ)`. -/
 theorem matrix_norm_compose_T_sub_le {N : ℕ} [NeZero N]
     (S₁ S₂ : ScatterBlock (Matrix (Fin N) (Fin N) ℂ)) {δ : ℝ}
     (hxδ : ‖S₂.R * S₁.Rbar‖ ≤ δ) (hδ1 : δ < 1) :

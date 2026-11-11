@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+
+/-!
+# Specification of upper polynomial completion
+
+`Theorem4PCharacterization` specifies when an upper response polynomial possesses a partner
+making a `CompletedPair`. Besides degree and parity, the criterion controls its squared norm
+inside and outside the real unit interval and, for even length, on the imaginary axis. See
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `Theorem4PCharacterization`: the upper response completion criterion.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -16,6 +34,9 @@ open Polynomial
 
 namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
+/-- The upper-polynomial completion criterion of [Gilyén et al., Theorem
+4][GilyenSuLowWiebe2019], expressed through degree, parity, real-axis squared-norm bounds,
+and an imaginary-axis bound when `k` is even. -/
 def Theorem4PCharacterization : Prop :=
   ∀ (k : ℕ) (P : Polynomial ℂ),
     (∃ Q : Polynomial ℂ,

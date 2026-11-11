@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedQuan
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
+
+/-!
+# Endpoint cases of amplitude amplification
+
+The good and bad projections are related to vanishing squared norm. `source_theorem1_zero_angle`
+and `source_theorem1_full_angle` describe powers of the standard iterate at marked probability
+zero and one. The mathematical context is [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `source_theorem1_zero_angle`: At zero marked probability, every power of the standard iterate
+  fixes the prepared state, assuming `A * A.conjTranspose = 1`.
+* `source_theorem1_full_angle`: At marked probability one, the `j`th power of the standard
+  iterate multiplies the prepared state by `(-1)^j`, assuming `A * A.conjTranspose = 1`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +38,7 @@ open Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 open Qatlib.Concepts.AEMeanReadout.RankOneSubspace.RankOneReflection
 open scoped BigOperators
 
+/-- A finite complex vector is zero if the sum of its squared coordinate norms is zero. -/
 theorem source_eq_zero_of_normSq_sum_eq_zero {n : ℕ} (v : Fin (n + 1) → ℂ)
     (h : ∑ i, Complex.normSq (v i) = 0) : v = 0 := by
   funext i
@@ -26,6 +47,7 @@ theorem source_eq_zero_of_normSq_sum_eq_zero {n : ℕ} (v : Fin (n + 1) → ℂ)
       (Finset.mem_univ i)
   simpa using Complex.normSq_eq_zero.mp hzero
 
+/-- If the good part vanishes, the bad part equals the whole vector. -/
 theorem source_badPart_eq_self {n : ℕ} (g : Fin (n + 1) → Bool) (v : Fin (n + 1) → ℂ)
     (h : goodPart g v = 0) : badPart g v = v := by
   funext i
@@ -33,6 +55,7 @@ theorem source_badPart_eq_self {n : ℕ} (g : Fin (n + 1) → Bool) (v : Fin (n 
   by_cases hg : g i <;> simp [goodPart, badPart, hg] at hi ⊢
   exact hi.symm
 
+/-- If the bad part vanishes, the good part equals the whole vector. -/
 theorem source_goodPart_eq_self {n : ℕ} (g : Fin (n + 1) → Bool) (v : Fin (n + 1) → ℂ)
     (h : badPart g v = 0) : goodPart g v = v := by
   funext i
@@ -40,6 +63,8 @@ theorem source_goodPart_eq_self {n : ℕ} (g : Fin (n + 1) → Bool) (v : Fin (n
   by_cases hg : g i <;> simp [goodPart, badPart, hg] at hi ⊢
   exact hi.symm
 
+/-- At zero marked probability, every power of the standard iterate fixes the prepared state,
+assuming `A * A.conjTranspose = 1`. See [BrassardHoyerTapp1998Counting]. -/
 theorem source_theorem1_zero_angle {n : ℕ}
     (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (hA : A * A.conjTranspose = 1)
@@ -59,6 +84,8 @@ theorem source_theorem1_zero_angle {n : ℕ}
   | zero => rw [pow_zero, Matrix.one_mulVec]
   | succ j ih => rw [pow_succ', ← Matrix.mulVec_mulVec, ih, hstep]
 
+/-- At marked probability one, the `j`th power of the standard iterate multiplies the prepared
+state by `(-1)^j`, assuming `A * A.conjTranspose = 1`. See [BrassardHoyerTapp1998Counting]. -/
 theorem source_theorem1_full_angle {n : ℕ}
     (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ) (g : Fin (n + 1) → Bool)
     (hA : A * A.conjTranspose = 1)

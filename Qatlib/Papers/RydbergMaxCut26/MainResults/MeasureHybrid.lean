@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.RydbergMaxCut26.MainResults.FiniteHybrid
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
+
+/-!
+# Measure-theoretic hybrid state selection
+
+Defines the measurable selector retaining a sample and its energy-comparison flag, and pushes a
+sample measure forward to the output space. Measurable candidate energies give the output-energy
+integral identity, while integrability under a probability measure gives an upper bound by every
+convex combination of the fixed and expected sampled energies. See [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `output_energy`: identifies the output-energy integral with the integral of the pointwise
+  minimum.
+* `output_expected_convex`: bounds expected energy by a convex combination.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -16,26 +36,35 @@ namespace Qatlib.Papers.RydbergMaxCut26.MainResults.MeasureHybrid
 open Qatlib.Papers.RydbergMaxCut26.MainResults.FiniteHybrid
 open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Graph
 
+/-- The map retaining `ω` together with the ideal Boolean choice between the fixed and sampled
+candidate energies. -/
 noncomputable def selectorMap {n : ℕ} {Ω : Type*} (H ρ : Matrix (Reg n) (Reg n) ℂ)
     (σ : Ω → Matrix (Reg n) (Reg n) ℂ) (ω : Ω) : Ω×Bool :=
   (ω,idealChoice H ρ σ ω)
 
+/-- If the sampled candidate energy is measurable, the sample-and-choice selector map is
+measurable. -/
 theorem selector_measurable {n : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (H ρ : Matrix (Reg n) (Reg n) ℂ) (σ : Ω → Matrix (Reg n) (Reg n) ℂ)
     (hσ : Measurable (fun ω => energy H (σ ω))) : Measurable (selectorMap H ρ σ) := by
   apply measurable_id.prodMk
   exact Measurable.ite (measurableSet_le measurable_const hσ) measurable_const measurable_const
 
+/-- The pushforward of the sample measure `μ` along the sample-and-choice selector map. -/
 noncomputable def outputLaw {n : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure Ω) (H ρ : Matrix (Reg n) (Reg n) ℂ) (σ : Ω → Matrix (Reg n) (Reg n) ℂ) :
     Measure (Ω×Bool) := μ.map (selectorMap H ρ σ)
 
+/-- If `μ` is a probability measure and the sampled candidate energy is measurable, the hybrid
+output law is a probability measure. -/
 theorem outputLaw_probability {n : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure Ω) [IsProbabilityMeasure μ] (H ρ : Matrix (Reg n) (Reg n) ℂ)
     (σ : Ω → Matrix (Reg n) (Reg n) ℂ) (_hσ : Measurable (fun ω => energy H (σ ω))) :
     IsProbabilityMeasure (outputLaw μ H ρ σ) := by
   unfold outputLaw; infer_instance
 
+/-- If the sampled candidate energy is measurable, the selected output energy is measurable on
+the sample-and-Boolean output space. -/
 theorem output_energy_measurable {n : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (H ρ : Matrix (Reg n) (Reg n) ℂ) (σ : Ω → Matrix (Reg n) (Reg n) ℂ)
     (hσ : Measurable (fun ω => energy H (σ ω))) :
@@ -48,6 +77,8 @@ theorem output_energy_measurable {n : ℕ} {Ω : Type*} [MeasurableSpace Ω]
   exact Measurable.ite (measurable_snd (measurableSet_singleton true)) measurable_const
       (hσ.comp measurable_fst)
 
+/-- For measurable sampled candidate energy, the integral of the selected energy under the
+output law equals the original integral of the pointwise minimum of the two energies. -/
 theorem output_energy {n : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure Ω) (H ρ : Matrix (Reg n) (Reg n) ℂ) (σ : Ω → Matrix (Reg n) (Reg n) ℂ)
     (hσ : Measurable (fun ω => energy H (σ ω))) :
@@ -57,6 +88,9 @@ theorem output_energy {n : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (output_energy_measurable H ρ σ hσ).aestronglyMeasurable]
   exact integral_congr_ae (Filter.Eventually.of_forall (fun ω => ideal_energy H ρ σ ω))
 
+/-- For measurable integrable sampled energy under a probability measure and `p ∈ [0,1]`, the
+expected selected energy is at most `p` times the fixed energy plus `1 - p` times the
+expected sampled energy. -/
 theorem output_expected_convex {n : ℕ} {Ω : Type*} [MeasurableSpace Ω]
     (μ : Measure Ω) [IsProbabilityMeasure μ] (H ρ : Matrix (Reg n) (Reg n) ℂ)
     (σ : Ω → Matrix (Reg n) (Reg n) ℂ) (hσ : Measurable (fun ω => energy H (σ ω)))

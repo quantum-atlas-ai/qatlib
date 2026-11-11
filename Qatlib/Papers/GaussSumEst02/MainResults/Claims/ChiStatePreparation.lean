@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+
+/-!
+# Normalized multiplicative-character states
+
+The theorem `lemma1_chiStatePreparation` records the amplitudes and normalization of `chiState`.
+It also combines assumed polylogarithmic discrete-logarithm and Fourier-transform cost functions
+into a polylogarithmic total cost. See [VanDamSeroussi2002].
+
+## Main statements
+
+* `lemma1_chiStatePreparation`: For a nontrivial multiplicative character, `chiState` has total
+  squared norm one and amplitudes equal to the character values divided by `√(card K - 1)`.
+  Polylogarithmic discrete-logarithm and Fourier-transform costs yield a polylogarithmic sum
+  cost with an additional constant overhead.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +38,10 @@ namespace Qatlib.Papers.GaussSumEst02.MainResults.Claims
 
 open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- For a nontrivial multiplicative character, `chiState` has total squared norm one and
+amplitudes equal to the character values divided by `√(card K - 1)`. Polylogarithmic
+discrete-logarithm and Fourier-transform costs yield a polylogarithmic sum cost with an
+additional constant overhead [VanDamSeroussi2002]. -/
 theorem lemma1_chiStatePreparation {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
     (hnt : χ.IsNontrivial)
     (dlog qft : ℕ → ℕ) (hdlog : PolyLog dlog) (hqft : PolyLog qft) :

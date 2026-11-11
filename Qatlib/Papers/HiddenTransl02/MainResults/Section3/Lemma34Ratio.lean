@@ -11,6 +11,32 @@ import Mathlib.Data.ZMod.Basic
 import Qatlib.Papers.HiddenTransl02.MainResults.Section3.HiddenTranslationElementaryAbelian
 import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
 import Mathlib.Tactic
+
+/-!
+# Counting polynomial constraints within dot-product fibers
+
+This module decomposes the dot-product fibers `VSet` into lines along a vector in the kernel and
+counts the constrained points `RSet` using `RProd`. If the direction polynomial lies outside
+`W`, each line has at most p − 1 acceptable scalars; `lemma_3_4_ratio_zero_fiber` gives the
+resulting cardinality inequality for every fiber.
+
+The development follows [FriedlEtAl2014].
+
+## Main statements
+
+* `VSet_card_eq`: Over a prime residue field, if `y0` has nonzero i-th coordinate and zero dot
+  product with `u`, the k-th fiber has p times as many elements as `TSet`.
+* `goodScalars_card_le`: If `lin y0 ^ (p - 1)` lies outside `W` over a prime residue field, each
+  line in direction `y0` has at most p − 1 good scalars.
+* `lemma_3_4_ratio_zero_fiber`: For prime p, if `y0` has a nonzero i-th coordinate, lies in the
+  dot-product kernel, and its direction polynomial power lies outside `W`, then p times the
+  constrained fiber cardinality is at most (p − 1) times the full fiber cardinality.
+
+## References
+
+* [Friedl et al., 2014][FriedlEtAl2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +52,8 @@ attribute [local instance] Classical.propDecidable
 
 variable {n p : ℕ}
 
+/-- The additive coordinate projection sending `z` to its i-th coordinate multiplied by the
+inverse of the i-th coordinate of `y0`. -/
 def projAlong (y0 : Fin n → ZMod p) (i : Fin n) : (Fin n → ZMod p) →+ ZMod p where
   toFun z := z i * (y0 i)⁻¹
   map_zero' := by simp
@@ -34,17 +62,22 @@ def projAlong (y0 : Fin n → ZMod p) (i : Fin n) : (Fin n → ZMod p) →+ ZMod
     show (a + b) i * (y0 i)⁻¹ = a i * (y0 i)⁻¹ + b i * (y0 i)⁻¹
     rw [Pi.add_apply, add_mul]
 
+/-- Over a prime residue field, if the i-th coordinate of `y0` is nonzero, its projection along
+itself is one. -/
 theorem projAlong_self (hp : p.Prime) {y0 : Fin n → ZMod p} {i : Fin n}
     (hi : y0 i ≠ 0) : projAlong y0 i y0 = 1 := by
   haveI : Fact p.Prime := ⟨hp⟩
   show y0 i * (y0 i)⁻¹ = 1
   exact mul_inv_cancel₀ hi
 
+/-- The coordinate projection along `y0` sends a scalar multiple to the scalar times the
+projection. -/
 theorem projAlong_smul (y0 : Fin n → ZMod p) (i : Fin n) (a : ZMod p)
     (z : Fin n → ZMod p) : projAlong y0 i (a • z) = a * projAlong y0 i z := by
   show (a • z) i * (y0 i)⁻¹ = a * (z i * (y0 i)⁻¹)
   rw [Pi.smul_apply, smul_eq_mul, mul_assoc]
 
+/-- The dot-product homomorphism sends a scalar multiple to the scalar times the dot product. -/
 theorem dotU_smul (u : Fin n → ZMod p) (a : ZMod p) (y : Fin n → ZMod p) :
     dotU u (a • y) = a * dotU u y := by
   change (∑ i, (a • y) i * u i) = a * ∑ i, y i * u i
@@ -54,6 +87,8 @@ theorem dotU_smul (u : Fin n → ZMod p) (a : ZMod p) (y : Fin n → ZMod p) :
   rw [Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- Over a prime residue field, if `lin (z + a • y) ^ (p - 1)` belongs to `W` for every scalar
+a, then `lin y ^ (p - 1)` also belongs to `W`. -/
 theorem line_pow_mem_of_all_mem_zmod (hp : p.Prime)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p)))
     (z y : Fin n → ZMod p)
@@ -63,29 +98,39 @@ theorem line_pow_mem_of_all_mem_zmod (hp : p.Prime)
 
 variable [Fintype (ZMod p)]
 
+/-- The finite set of vectors whose dot product with `u` equals `k`. -/
 def VSet (u : Fin n → ZMod p) (k : ZMod p) : Finset (Fin n → ZMod p) :=
   univ.filter (fun x => dotU u x = k)
 
+/-- The finite set of vectors in the k-th dot-product fiber whose associated linear polynomial
+raised to p − 1 belongs to `W`. -/
 def RSet (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) (k : ZMod p) :
     Finset (Fin n → ZMod p) :=
   univ.filter (fun x => lin x ^ (p - 1) ∈ W ∧ dotU u x = k)
 
+/-- The finite set of vectors in the k-th dot-product fiber with zero projection along `y0` at
+coordinate `i`. -/
 def TSet (y0 : Fin n → ZMod p) (i : Fin n) (u : Fin n → ZMod p) (k : ZMod p) :
     Finset (Fin n → ZMod p) :=
   univ.filter (fun t => projAlong y0 i t = 0 ∧ dotU u t = k)
 
+/-- The scalars a for which `lin (t + a • y0) ^ (p - 1)` belongs to `W`. -/
 def goodScalars (y0 : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) (t : Fin n → ZMod p) :
     Finset (ZMod p) :=
   univ.filter (fun a => lin (t + a • y0) ^ (p - 1) ∈ W)
 
+/-- The pairs of a vector in `TSet` and a scalar whose reconstructed line point has its
+associated linear polynomial raised to p − 1 in `W`. -/
 def RProd (y0 : Fin n → ZMod p) (i : Fin n) (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) (k : ZMod p) :
     Finset ((Fin n → ZMod p) × ZMod p) :=
   ((TSet y0 i u k) ×ˢ (univ : Finset (ZMod p))).filter
     (fun q => lin (q.1 + q.2 • y0) ^ (p - 1) ∈ W)
 
+/-- Over a prime residue field, if `y0` has nonzero i-th coordinate and zero dot product with
+`u`, the k-th fiber has p times as many elements as `TSet`. -/
 theorem VSet_card_eq (hp : p.Prime) (u y0 : Fin n → ZMod p) {i : Fin n}
     (hi : y0 i ≠ 0) (hy0u : dotU u y0 = 0) (k : ZMod p) :
     (VSet u k).card = (TSet y0 i u k).card * p := by
@@ -127,6 +172,8 @@ theorem VSet_card_eq (hp : p.Prime) (u y0 : Fin n → ZMod p) {i : Fin n}
         rw [map_add, projAlong_smul, hπ, mul_one, hqd, zero_add])
   rw [hcard, Finset.card_product, Finset.card_univ, ZMod.card]
 
+/-- Under the nonzero-coordinate and kernel-direction hypotheses over a prime residue field, the
+constrained fiber `RSet` and its parameter set `RProd` have equal cardinality. -/
 theorem RSet_card_eq (hp : p.Prime) (u y0 : Fin n → ZMod p) {i : Fin n}
     (hi : y0 i ≠ 0) (hy0u : dotU u y0 = 0)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) (k : ZMod p) :
@@ -177,6 +224,8 @@ theorem RSet_card_eq (hp : p.Prime) (u y0 : Fin n → ZMod p) {i : Fin n}
         rw [map_add, projAlong_smul, hπ, mul_one, hqd, zero_add])
   exact hcard
 
+/-- Over a prime residue field, every nonzero dot-product fiber has the same cardinality as the
+fiber at one ([Lemma 3.4][FriedlEtAl2014]). -/
 theorem VSet_card_eq_smul (hp : p.Prime) (u : Fin n → ZMod p) {k : ZMod p}
     (hk : k ≠ 0) : (VSet u k).card = (VSet u 1).card := by
   haveI : Fact p.Prime := ⟨hp⟩
@@ -207,6 +256,8 @@ theorem VSet_card_eq_smul (hp : p.Prime) (u : Fin n → ZMod p) {k : ZMod p}
       rw [smul_smul, h1k, one_smul])
   exact hcard.symm
 
+/-- Over a prime residue field, every nonzero constrained dot-product fiber has the same
+cardinality as the constrained fiber at one ([Lemma 3.4][FriedlEtAl2014]). -/
 theorem RSet_card_eq_smul (hp : p.Prime) (u : Fin n → ZMod p)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p))) {k : ZMod p}
     (hk : k ≠ 0) : (RSet u W k).card = (RSet u W 1).card := by
@@ -246,6 +297,8 @@ theorem RSet_card_eq_smul (hp : p.Prime) (u : Fin n → ZMod p)
       rw [smul_smul, h1k, one_smul])
   exact hcard.symm
 
+/-- If `lin y0 ^ (p - 1)` lies outside `W` over a prime residue field, each line in direction
+`y0` has at most p − 1 good scalars. -/
 theorem goodScalars_card_le (hp : p.Prime)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p)))
     (t y0 : Fin n → ZMod p) (hy0R : lin y0 ^ (p - 1) ∉ W) :
@@ -266,6 +319,8 @@ theorem goodScalars_card_le (hp : p.Prime)
 
 set_option maxHeartbeats 1000000 in
 
+/-- If `lin y0 ^ (p - 1)` lies outside `W`, the constrained parameter set has cardinality at
+most (p − 1) times the cardinality of `TSet`, for prime p. -/
 theorem RProd_card_le (hp : p.Prime) {u y0 : Fin n → ZMod p} {i : Fin n}
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p)))
     (hy0R : lin y0 ^ (p - 1) ∉ W) (k : ZMod p) :
@@ -317,6 +372,9 @@ theorem RProd_card_le (hp : p.Prime) {u y0 : Fin n → ZMod p} {i : Fin n}
     _ = (TSet y0 i u k).card * (p - 1) :=
         Finset.sum_const_nat (fun _ _ => rfl)
 
+/-- For prime p, if `y0` has a nonzero i-th coordinate, lies in the dot-product kernel, and its
+direction polynomial power lies outside `W`, then p times the constrained fiber cardinality
+is at most (p − 1) times the full fiber cardinality ([Lemma 3.4][FriedlEtAl2014]). -/
 theorem lemma_3_4_ratio_zero_fiber (hp : p.Prime) (u y0 : Fin n → ZMod p) {i : Fin n}
     (hi : y0 i ≠ 0) (hy0u : dotU u y0 = 0)
     (W : Submodule (ZMod p) (MvPolynomial (Fin n) (ZMod p)))

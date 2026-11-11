@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ParabolicPDE24.MainResults.InitialLayer
 import Qatlib.Papers.ParabolicPDE24.MainResults.Normalization
+
+/-!
+# Conditional multimode heat-error budgets
+
+`GoldsteinTaylorMultidim` and `SolvesHeatMultidim` specify the coupled relaxation and heat
+systems. Given a decomposition with controlled initial layers and remainder, the module derives
+an error budget proportional to the number of modes and transfers it to normalized-state
+precision, in the setting of [JinLiu2024].
+
+## Main statements
+
+* `conditional_multimode_budget`: a specified layer-and-remainder decomposition gives a decaying
+  quadratic error bound.
+* `conditional_multimode_precision`: the conditional estimates yield a target normalized-state
+  tolerance.
+
+## References
+
+* [Jin and Liu, 2024][JinLiu2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +37,8 @@ namespace Qatlib.Papers.ParabolicPDE24.MainResults
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 variable {ι : Type*} [Fintype ι]
 
+/-- The coupled multidirectional Goldstein–Taylor derivative equations for a signal `u` and
+fluxes `v`, with directional scales, relaxation parameters, and linear operators. -/
 structure GoldsteinTaylorMultidim (k ε : ι → ℝ) (D : ι → E →L[ℝ] E)
     (u : ℝ → E) (v : ι → ℝ → E) : Prop where
 
@@ -24,11 +47,14 @@ structure GoldsteinTaylorMultidim (k ε : ι → ℝ) (D : ι → E →L[ℝ] E)
   v_deriv : ∀ j t,
     HasDerivAt (v j) (-(1 / ε j) • D j (u t) - (1 / (k j * (ε j) ^ 2)) • v j t) t
 
+/-- The condition that `ũ` has derivative `∑ j, k j • D j (D j (ũ t))` at every time. -/
 def SolvesHeatMultidim (k : ι → ℝ) (D : ι → E →L[ℝ] E) (ũ : ℝ → E) : Prop :=
   ∀ t, HasDerivAt ũ (∑ j, k j • D j (D j (ũ t))) t
 
 omit [NormedSpace ℝ E] in
 
+/-- If each vector in a finite family has norm at most `b`, the norm of its sum is at most the
+family cardinality times `b`. See [JinLiu2024]. -/
 theorem norm_sum_le_card_mul (I : ι → E) (b : ℝ) (hI : ∀ j, ‖I j‖ ≤ b) :
     ‖∑ j, I j‖ ≤ (Fintype.card ι : ℝ) * b := by
   calc ‖∑ j, I j‖ ≤ ∑ j, ‖I j‖ := norm_sum_le Finset.univ I
@@ -38,6 +64,9 @@ theorem norm_sum_le_card_mul (I : ι → E) (b : ℝ) (hI : ∀ j, ‖I j‖ ≤
 
 omit [NormedSpace ℝ E] in
 
+/-- Given the stated initial-layer decomposition and remainder estimates, positivity and
+smallness conditions, and logarithmic waiting time, the signal error is at most `card ι * (C
++ k * B) * ε² * exp (−2 * k * t)`. -/
 theorem conditional_multimode_budget
     (k ε C B : ℝ) (hk : 0 < k) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hsmall : 2 * k ^ 2 * ε ^ 2 ≤ 1 / 2) (_hC : 0 ≤ C) (hB : 0 ≤ B)
@@ -73,6 +102,8 @@ theorem conditional_multimode_budget
     _ = ((Fintype.card ι : ℝ) * C + (Fintype.card ι : ℝ) * k * B) *
           ε ^ 2 * Real.exp (-2 * k * t) := by ring
 
+/-- For nonzero states with the stated error bound and lower bound on the heat-state norm,
+normalization gives error at most `2 * card ι * D * ε²`. -/
 theorem conditional_multimode_normalization
     (k ε D : ℝ) (hk : 0 < k) (hε : 0 < ε) (hD : 0 ≤ D)
     (u ũ : ℝ → E) {t : ℝ}
@@ -85,6 +116,8 @@ theorem conditional_multimode_normalization
   conditional_normalized_budget k ε ((Fintype.card ι : ℝ) * D) hk hε
     (mul_nonneg (by positivity) hD) u ũ h_err h_lower hu hũ
 
+/-- For a nonempty mode family and the stated conditional error and norm bounds, `ε ≤ sqrt (δ /
+(2 * card ι * D))` ensures normalized-state error at most the positive tolerance `δ`. -/
 theorem conditional_multimode_precision
     (k ε D δ : ℝ) (hk : 0 < k) (hε : 0 < ε) (hD : 0 < D) (hδ : 0 < δ)
     (hd : (0 : ℝ) < Fintype.card ι)

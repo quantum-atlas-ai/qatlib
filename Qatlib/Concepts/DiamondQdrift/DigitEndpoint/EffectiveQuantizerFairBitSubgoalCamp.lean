@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.EffectiveQuantizerFairBitSubgoalStat
 import Qatlib.Concepts.DiamondQdrift.QuantizerCert.EffectiveCeilQuantizerLawCamp
 import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
+
+/-!
+# Certified quantization for finite coin qDRIFT
+
+This module proves `EffectiveQuantizerFairBitSubgoal` by combining certified ceiling
+quantization with finite coin sampling and signed Hermitian terms. Auxiliary estimates control
+sampling bias, numerical budgets, and the signed Hamiltonian identity for the qDRIFT
+construction of [Campbell2019].
+
+## Main statements
+
+* `signed_flag_hamiltonian`: the sign flagged representation equals the original Hamiltonian.
+* `effectiveQuantizerFairBitSubgoal`: certified quantization with finite diamond and circuit
+  bounds.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -32,6 +52,7 @@ namespace Qatlib.Concepts.DiamondQdrift.DigitEndpoint
 open Matrix
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- Every real `x` is at most twice the power of two selected by `Nat.log2 (Nat.ceil x + 1)`. -/
 private theorem log2_ceil_half_bound (x : ℝ) :
     x ≤ 2*((2 ^ Nat.log2 (Nat.ceil x+1) : ℕ) : ℝ) := by
   have hl := Nat.lt_pow_succ_log_self (by decide : 1 < 2) (Nat.ceil x+1)
@@ -42,6 +63,8 @@ private theorem log2_ceil_half_bound (x : ℝ) :
     linarith only [hr]
   exact (Nat.le_ceil x).trans hc
 
+/-- Mixing a finite probability law with a point mass by a nonnegative parameter `α` changes its
+total absolute probability difference by at most `2 * α`. -/
 private theorem cap_law_l1 {J : Type} [Fintype J] [DecidableEq J]
     (d e : FinDist J) (j0 : J) (α : ℝ) (hα : 0 ≤ α)
     (he : ∀ j, e.prob j = (1-α)*d.prob j+α*(if j=j0 then 1 else 0)) :
@@ -59,6 +82,7 @@ private theorem cap_law_l1 {J : Type} [Fintype J] [DecidableEq J]
   simp
   ring
 
+/-- The fair qDRIFT fuel makes `2 * n * 2⁻ᴿ` at most `2⁻ˢ / 2`. -/
 private theorem fair_fuel_inverse_budget (n s : ℕ) :
     2*(n : ℝ)*((2 : ℝ)⁻¹)^(fairQdriftFuel n s) ≤ ((2 : ℝ)⁻¹)^s/2 := by
   let c := Nat.clog 2 (max 1 n)
@@ -70,6 +94,9 @@ private theorem fair_fuel_inverse_budget (n s : ℕ) :
     _ ≤ 2*(2 : ℝ)^c*(((2 : ℝ)⁻¹)^s*((2 : ℝ)⁻¹)^c*((2 : ℝ)⁻¹)^2) := by gcongr
     _ = _ := by simp only [inv_pow]; field_simp
 
+/-- For positive tolerance, the chosen step and quantization counts are positive and bound
+analytic error by `ε / 3`, accumulated quantization error by `2 * ε / 3`, and rejection
+error by `ε / 6`. -/
 private theorem effective_budgets (L : ℕ) (lam t ε : ℝ) (hε : 0 < ε) :
     let n := realCoefQdriftSteps lam t ε
     let M : ℕ := 2^(effectiveQdriftBits L n ε)
@@ -110,6 +137,8 @@ private theorem effective_budgets (L : ℕ) (lam t ε : ℝ) (hε : 0 < ε) :
   refine ⟨hn, hM, hanalytic, hquant, ?_⟩
   exact (fair_fuel_inverse_budget n s).trans (by linarith only [hsbudget])
 
+/-- A correct sign flag multiplied by the coefficient magnitude recovers the original real
+coefficient as a complex scalar. -/
 private theorem signed_flag_scalar {L : ℕ} (a : Fin L → ℝ) (sgn : Fin L → Bool)
     (hpromise : ∀ j, (if sgn j then -(a j) else a j) = |a j|) (j : Fin L) :
     (((|a j| : ℝ) : ℂ))*(if sgn j then (-1 : ℂ) else 1) = ((a j : ℝ) : ℂ) := by
@@ -120,6 +149,8 @@ private theorem signed_flag_scalar {L : ℕ} (a : Fin L → ℝ) (sgn : Fin L �
   · rw [if_neg hb] at hp
     rw [if_neg hb, mul_one, ← hp]
 
+/-- Multiplication by a sign flag preserves Hermitianity and the operator norm bound of a
+Hermitian contraction. -/
 private theorem signed_flag_contract {L D : ℕ} (K : Fin L → Operator D)
     (sgn : Fin L → Bool) (Ks : Fin L → Operator D)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -132,6 +163,8 @@ private theorem signed_flag_contract {L D : ℕ} (K : Fin L → Operator D)
   · rw [if_neg hb]
     simpa using! hK j
 
+/-- Magnitude sampling with correctly sign flagged terms reproduces the original signed
+coefficient Hamiltonian. -/
 private theorem signed_flag_hamiltonian {L D : ℕ} (a : Fin L → ℝ)
     (K : Fin L → Operator D) (sgn : Fin L → Bool) (hlam : 0 < ∑ j, |a j|)
     (Ks : Fin L → Operator D)
@@ -151,6 +184,8 @@ private theorem signed_flag_hamiltonian {L D : ℕ} (a : Fin L → ℝ)
   rw [← mul_assoc, Complex.ofReal_div, mul_div_cancel₀ _ hneC]
   exact signed_flag_scalar a sgn hpromise j
 
+/-- Certified effective quantization satisfies the precision and probability law bounds, finite
+diamond tolerance, and branchwise circuit and sampling cost guarantees [Campbell2019]. -/
 theorem effectiveQuantizerFairBitSubgoal : EffectiveQuantizerFairBitSubgoal := by
   intro L D a K t ε j0 q sgn hlam hK hε horacle hpromise
   (try dsimp only)

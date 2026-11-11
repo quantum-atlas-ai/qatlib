@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.CbDegreeBridge.CbFormsAux
 import Qatlib.Concepts.QueryComplexity.NormObstruction.Lemma33FactorizationToAlgorithmStat
+
+/-!
+# From completely bounded factorizations to query algorithms
+
+Constructs a sign algorithm from a completely bounded factorization of a real tensor of order `2
+* t`. The proof builds unitary dilations of contractions, stores defect components in separate
+position slots, and interferes two branches to recover the factorization sandwich as a sign
+bias.
+
+`lemma3_3FactorizationToAlgorithm` packages the resulting `t`-query construction. Completely
+bounded maps provide the operator-theoretic background [Paulsen2002], and finite-dimensional
+unitary dilation is also used in [AradLandau2010].
+
+## Main statements
+
+* `contraction_unitary_dilation`: a contraction extends to a unitary on a doubled register with
+  the prescribed first output component.
+* `lemma3_3FactorizationToAlgorithm`: a completely bounded factorization gives a sign algorithm
+  for the tensor bias.
+
+## References
+
+* [Paulsen, 2002][Paulsen2002]
+* [Arad and Landau, 2010][AradLandau2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -27,18 +53,23 @@ section InnerHelpers
 
 variable {I J : Type*} [Fintype I] [Fintype J]
 
+/-- The state inner product distributes over addition in its first argument. -/
 private theorem inner_add_left (x y z : QState I) : Qatlib.Foundations.PureStateMath.Inner (x + y) z = Qatlib.Foundations.PureStateMath.Inner x z + Qatlib.Foundations.PureStateMath.Inner y z := by
   rw [inner_apply, inner_apply, inner_apply, ← Finset.sum_add_distrib]
   exact Finset.sum_congr rfl fun i _ => by rw [Pi.add_apply, map_add, add_mul]
 
+/-- The state inner product distributes over addition in its second argument. -/
 private theorem inner_add_right (x y z : QState I) : Qatlib.Foundations.PureStateMath.Inner x (y + z) = Qatlib.Foundations.PureStateMath.Inner x y + Qatlib.Foundations.PureStateMath.Inner x z := by
   rw [inner_apply, inner_apply, inner_apply, ← Finset.sum_add_distrib]
   exact Finset.sum_congr rfl fun i _ => by rw [Pi.add_apply, mul_add]
 
+/-- The state inner product distributes over subtraction in its second argument. -/
 private theorem inner_sub_right (x y z : QState I) : Qatlib.Foundations.PureStateMath.Inner x (y - z) = Qatlib.Foundations.PureStateMath.Inner x y - Qatlib.Foundations.PureStateMath.Inner x z := by
   rw [inner_apply, inner_apply, inner_apply, ← Finset.sum_sub_distrib]
   exact Finset.sum_congr rfl fun i _ => by rw [Pi.sub_apply, mul_sub]
 
+/-- Scaling the first argument of the state inner product multiplies the result by the conjugate
+scalar. -/
 private theorem inner_smul_left (c : ℂ) (x y : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (c • x) y = (starRingEnd ℂ) c * Qatlib.Foundations.PureStateMath.Inner x y := by
   rw [inner_apply, inner_apply, Finset.mul_sum]
@@ -46,6 +77,8 @@ private theorem inner_smul_left (c : ℂ) (x y : QState I) :
     rw [Pi.smul_apply, smul_eq_mul, map_mul]
     ring
 
+/-- Moves a conjugate-transpose matrix from the second argument of the state inner product to
+the first. -/
 private theorem inner_conjTranspose_mulVec (A : Matrix I J ℂ) (x : QState J) (y : QState I) :
     Qatlib.Foundations.PureStateMath.Inner x (Aᴴ *ᵥ y) = Qatlib.Foundations.PureStateMath.Inner (A *ᵥ x) y := by
   rw [inner_apply, inner_apply]
@@ -54,10 +87,13 @@ private theorem inner_conjTranspose_mulVec (A : Matrix I J ℂ) (x : QState J) (
   rw [Finset.sum_comm]
   exact Finset.sum_congr rfl fun j _ => Finset.sum_congr rfl fun i _ => by ring
 
+/-- Moves a matrix from the first argument of the state inner product to its conjugate transpose
+in the second. -/
 private theorem inner_mulVec_left (A : Matrix I I ℂ) (x y : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (A *ᵥ x) y = Qatlib.Foundations.PureStateMath.Inner x (Aᴴ *ᵥ y) :=
   (inner_conjTranspose_mulVec (I := I) (J := I) A x y).symm
 
+/-- States with disjoint supports have zero inner product. -/
 private theorem inner_eq_zero_of_support_disjoint (z w : QState I)
     (h : ∀ i, z i ≠ 0 → w i = 0) : Qatlib.Foundations.PureStateMath.Inner z w = 0 := by
   rw [inner_apply]
@@ -72,11 +108,13 @@ section Dilation
 
 variable {R : Type} [Fintype R] [DecidableEq R]
 
+/-- The defect matrix `1 - Mᴴ * M` is Hermitian. -/
 private theorem dil_hermitian (M : Matrix R R ℂ) : (1 - Mᴴ * M).IsHermitian :=
   Matrix.isHermitian_one.sub (Matrix.isHermitian_conjTranspose_mul_self M)
 
 set_option maxHeartbeats 1000000 in
 
+/-- Every eigenvalue of the defect matrix is nonnegative when `M` is a contraction. -/
 private theorem dil_eigen_nonneg (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (i : R) :
     0 ≤ (dil_hermitian M).eigenvalues i := by
   set hG := dil_hermitian M
@@ -113,6 +151,8 @@ private theorem dil_eigen_nonneg (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (i : 
   calc (0 : ℝ) ≤ (Qatlib.Foundations.PureStateMath.Inner (⇑e : QState R) ((1 - Mᴴ * M) *ᵥ ⇑e)).re := by rw [hre]; exact hfin
     _ = hG.eigenvalues i := by rw [← heig]; exact Complex.ofReal_re _
 
+/-- Applies the real square root to the eigenvalues of a Hermitian matrix in a unitary
+eigenbasis. -/
 private noncomputable def hermSqrt {A : Matrix R R ℂ} (hA : A.IsHermitian) : Matrix R R ℂ :=
   (hA.eigenvectorUnitary : Matrix R R ℂ) *
     Matrix.diagonal (fun i => (Real.sqrt (hA.eigenvalues i) : ℂ)) *
@@ -120,6 +160,8 @@ private noncomputable def hermSqrt {A : Matrix R R ℂ} (hA : A.IsHermitian) : M
 
 set_option maxHeartbeats 1000000 in
 
+/-- For nonnegative eigenvalues, the square of the spectral square-root matrix equals the
+original matrix. -/
 private theorem hermSqrt_mul_self {A : Matrix R R ℂ} (hA : A.IsHermitian)
     (hnn : ∀ i, 0 ≤ hA.eigenvalues i) : hermSqrt hA * hermSqrt hA = A := by
   have hUU : star (hA.eigenvectorUnitary : Matrix R R ℂ) * (hA.eigenvectorUnitary : Matrix R R ℂ)
@@ -155,6 +197,7 @@ private theorem hermSqrt_mul_self {A : Matrix R R ℂ} (hA : A.IsHermitian)
           hDD]
     _ = A := hspec.symm
 
+/-- The matrix constructed by taking real square roots in a Hermitian eigenbasis is Hermitian. -/
 private theorem hermSqrt_hermitian {A : Matrix R R ℂ} (hA : A.IsHermitian) :
     (hermSqrt hA)ᴴ = hermSqrt hA := by
   have hD : (Matrix.diagonal (fun i => (Real.sqrt (hA.eigenvalues i) : ℂ)))ᴴ
@@ -173,24 +216,31 @@ private theorem hermSqrt_hermitian {A : Matrix R R ℂ} (hA : A.IsHermitian) :
   unfold hermSqrt
   rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_mul, hD, h1, h2, mul_assoc]
 
+/-- The spectral square-root construction for the defect matrix `1 - Mᴴ * M`. -/
 private noncomputable def dilSqrt (M : Matrix R R ℂ) : Matrix R R ℂ :=
   hermSqrt (dil_hermitian M)
 
+/-- For a contraction, the square of `dilSqrt M` equals `1 - Mᴴ * M`. -/
 private theorem dilSqrt_mul_self (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     dilSqrt M * dilSqrt M = 1 - Mᴴ * M :=
   hermSqrt_mul_self (dil_hermitian M) (dil_eigen_nonneg M hM)
 
+/-- The defect square-root construction is Hermitian. -/
 private theorem dilSqrt_hermitian (M : Matrix R R ℂ) : (dilSqrt M)ᴴ = dilSqrt M :=
   hermSqrt_hermitian (dil_hermitian M)
 
+/-- Stacks `M` above its defect square-root matrix on a doubled output register. -/
 private noncomputable def dilStack (M : Matrix R R ℂ) : Matrix (R ⊕ R) R ℂ :=
   Sum.elim M (dilSqrt M)
 
+/-- The first block of the stacked dilation matrix is `M`. -/
 @[simp] theorem dilStack_inl (M : Matrix R R ℂ) (a y : R) : dilStack M (Sum.inl a) y = M a y := rfl
 
+/-- The second block of the stacked dilation matrix is `dilSqrt M`. -/
 @[simp] theorem dilStack_inr (M : Matrix R R ℂ) (a y : R) :
     dilStack M (Sum.inr a) y = dilSqrt M a y := rfl
 
+/-- The stacked dilation sends a vector to the pair of its images under `M` and `dilSqrt M`. -/
 private theorem dilStack_mulVec (M : Matrix R R ℂ) (y : QState R) :
     dilStack M *ᵥ y = Sum.elim (M *ᵥ y) (dilSqrt M *ᵥ y) := by
   funext w
@@ -198,6 +248,7 @@ private theorem dilStack_mulVec (M : Matrix R R ℂ) (y : QState R) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- For a contraction, the stacked dilation matrix has orthonormal columns. -/
 private theorem dilStack_unit (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) : (dilStack M)ᴴ * dilStack M = 1 := by
   have hSS : (dilSqrt M)ᴴ * dilSqrt M = 1 - Mᴴ * M := by
     rw [dilSqrt_hermitian]
@@ -214,6 +265,8 @@ private theorem dilStack_unit (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) : (dilSt
   simp only [Matrix.conjTranspose_apply, dilStack_inl, dilStack_inr]
   rw [← e1, ← e2, hSS, ← Matrix.add_apply, add_sub_cancel]
 
+/-- The linear embedding into the first summand of the doubled Euclidean space, with zero second
+component. -/
 private noncomputable def embInlLM : EuclideanSpace ℂ R →ₗ[ℂ] EuclideanSpace ℂ (R ⊕ R) where
   toFun x := WithLp.toLp 2 (Sum.elim (WithLp.ofLp x) 0)
   map_add' := fun x y => by
@@ -227,9 +280,12 @@ private noncomputable def embInlLM : EuclideanSpace ℂ R →ₗ[ℂ] EuclideanS
     funext i
     cases i <;> simp
 
+/-- Evaluates the linear embedding as the original vector followed by a zero component. -/
 @[simp] theorem embInlLM_apply (x : EuclideanSpace ℂ R) :
     embInlLM x = WithLp.toLp 2 (Sum.elim (WithLp.ofLp x) 0) := rfl
 
+/-- The linear isometry embedding a Euclidean vector into the first summand of the doubled
+space. -/
 private noncomputable def embInlE : EuclideanSpace ℂ R →ₗᵢ[ℂ] EuclideanSpace ℂ (R ⊕ R) :=
   ⟨embInlLM, fun x => by
     rw [EuclideanSpace.norm_eq, embInlLM_apply, EuclideanSpace.norm_eq]
@@ -240,9 +296,11 @@ private noncomputable def embInlE : EuclideanSpace ℂ R →ₗᵢ[ℂ] Euclidea
     rw [hz, add_zero]
     exact Finset.sum_congr rfl fun r _ => rfl⟩
 
+/-- Evaluates the isometric embedding as the original vector followed by a zero component. -/
 private theorem embInlE_apply (x : EuclideanSpace ℂ R) :
     embInlE (R := R) x = WithLp.toLp 2 (Sum.elim (WithLp.ofLp x) 0) := rfl
 
+/-- The linear map on Euclidean spaces represented by the stacked dilation matrix. -/
 private noncomputable def dilIsoLM (M : Matrix R R ℂ) : EuclideanSpace ℂ R →ₗ[ℂ] EuclideanSpace ℂ (R ⊕ R) where
   toFun x := WithLp.toLp 2 (dilStack M *ᵥ (WithLp.ofLp x))
   map_add' := fun x y => by
@@ -252,9 +310,11 @@ private noncomputable def dilIsoLM (M : Matrix R R ℂ) : EuclideanSpace ℂ R �
     apply WithLp.ofLp_injective
     simp only [RingHom.id_apply, WithLp.ofLp_smul, Matrix.mulVec_smul]
 
+/-- Evaluates the dilation linear map by matrix-vector multiplication with `dilStack M`. -/
 @[simp] theorem dilIsoLM_apply (M : Matrix R R ℂ) (x : EuclideanSpace ℂ R) :
     dilIsoLM M x = WithLp.toLp 2 (dilStack M *ᵥ (WithLp.ofLp x)) := rfl
 
+/-- The linear isometry associated with the stacked dilation of a contraction. -/
 private noncomputable def dilIso (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     EuclideanSpace ℂ R →ₗᵢ[ℂ] EuclideanSpace ℂ (R ⊕ R) :=
   ⟨dilIsoLM M, fun x => by
@@ -267,21 +327,28 @@ private noncomputable def dilIso (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     rw [inner_self, inner_self, ← Complex.ofReal_sum, ← Complex.ofReal_sum] at key
     exact Complex.ofReal_injective key⟩
 
+/-- The dilation isometry acts by multiplication with the stacked dilation matrix. -/
 private theorem dilIso_apply (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (x : EuclideanSpace ℂ R) :
     dilIso M hM x = WithLp.toLp 2 (dilStack M *ᵥ (WithLp.ofLp x)) := rfl
 
+/-- The subspace of the doubled Euclidean space consisting of vectors supported in the first
+summand. -/
 private noncomputable def dilDom : Submodule ℂ (EuclideanSpace ℂ (R ⊕ R)) :=
   LinearMap.range (embInlLM (R := R))
 
+/-- The linear equivalence identifying the original Euclidean space with its first-summand
+image. -/
 private noncomputable def dilDomEquiv :
     EuclideanSpace ℂ R ≃ₗ[ℂ] ↥(dilDom (R := R)) :=
   LinearEquiv.ofInjective (embInlLM (R := R)) ((embInlE (R := R)).injective)
 
+/-- The underlying vector of `dilDomEquiv x` is the first-summand isometric embedding of `x`. -/
 private theorem dilDomEquiv_apply_val (x : EuclideanSpace ℂ R) :
     ((dilDomEquiv (R := R)) x : EuclideanSpace ℂ (R ⊕ R)) = embInlE (R := R) x :=
   LinearEquiv.ofInjective_apply (f := embInlLM (R := R))
     (h := (embInlE (R := R)).injective) x
 
+/-- The inverse domain equivalence recovers a vector from its first-summand embedding. -/
 private theorem dilDomEquiv_symm_emb (x : EuclideanSpace ℂ R) :
     (dilDomEquiv (R := R)).symm ⟨embInlE (R := R) x,
       LinearMap.mem_range_self (embInlLM (R := R)) x⟩ = x := by
@@ -289,10 +356,13 @@ private theorem dilDomEquiv_symm_emb (x : EuclideanSpace ℂ R) :
   rw [LinearEquiv.apply_symm_apply]
   exact Subtype.ext (dilDomEquiv_apply_val x).symm
 
+/-- Transports the dilation linear map to the first-summand subspace using `dilDomEquiv`. -/
 private noncomputable def dilIsoSubLM (M : Matrix R R ℂ) :
     ↥(dilDom (R := R)) →ₗ[ℂ] EuclideanSpace ℂ (R ⊕ R) :=
   (dilIsoLM M).comp (dilDomEquiv (R := R)).symm.toLinearMap
 
+/-- The dilation of a contraction, viewed as a linear isometry defined on the first-summand
+subspace. -/
 private noncomputable def dilIsoSub (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     ↥(dilDom (R := R)) →ₗᵢ[ℂ] EuclideanSpace ℂ (R ⊕ R) :=
   ⟨dilIsoSubLM M, fun s => by
@@ -308,10 +378,13 @@ private noncomputable def dilIsoSub (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     rw [h2]
     exact ((embInlE (R := R)).norm_map _).symm⟩
 
+/-- Extends the dilation isometry from the first-summand subspace to the entire doubled
+Euclidean space. -/
 private noncomputable def dilExtend (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     EuclideanSpace ℂ (R ⊕ R) →ₗᵢ[ℂ] EuclideanSpace ℂ (R ⊕ R) :=
   (dilIsoSub M hM).extend
 
+/-- The extended isometry agrees with the dilation isometry on first-summand embeddings. -/
 private theorem dilExtend_emb (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (x : EuclideanSpace ℂ R) :
     dilExtend M hM (embInlE (R := R) x) = dilIso M hM x := by
   have h1 := LinearIsometry.extend_apply (dilIsoSub M hM)
@@ -321,12 +394,14 @@ private theorem dilExtend_emb (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (x : Euc
   rw [dilDomEquiv_symm_emb]
   rfl
 
+/-- The matrix of the extended dilation isometry in the standard basis of the doubled register. -/
 private noncomputable def dilUnitaryMat (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     Matrix (R ⊕ R) (R ⊕ R) ℂ :=
   fun i j => (dilExtend M hM (WithLp.toLp 2 (Qatlib.Foundations.PureStateMath.Ket j))) i
 
 set_option maxHeartbeats 1000000 in
 
+/-- The matrix of the extended dilation isometry is unitary. -/
 private theorem dilUnitaryMat_unitary (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     dilUnitaryMat M hM ∈ Matrix.unitaryGroup (R ⊕ R) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff']
@@ -352,6 +427,8 @@ private theorem dilUnitaryMat_unitary (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) 
 
 set_option maxHeartbeats 1000000 in
 
+/-- On an input supported in the first summand, the dilation unitary produces the images under
+`M` and its defect square root. -/
 private theorem dilUnitaryMat_action (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (x : QState R) :
     dilUnitaryMat M hM *ᵥ (Sum.elim x 0) = Sum.elim (M *ᵥ x) (dilSqrt M *ᵥ x) := by
   funext i
@@ -402,12 +479,16 @@ private theorem dilUnitaryMat_action (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (
 
 set_option maxHeartbeats 1000000 in
 
+/-- Every contraction possesses a unitary dilation on the doubled register whose first output
+block is its action. -/
 private theorem exists_unitary_dilation (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     ∃ (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) (S : Matrix R R ℂ),
       U ∈ Matrix.unitaryGroup (R ⊕ R) ℂ ∧
         ∀ x : QState R, U *ᵥ (Sum.elim x 0) = Sum.elim (M *ᵥ x) (S *ᵥ x) :=
   ⟨dilUnitaryMat M hM, dilSqrt M, dilUnitaryMat_unitary M hM, dilUnitaryMat_action M hM⟩
 
+/-- A contraction possesses a unitary on the doubled register sending `x ⊕ 0` to `M x ⊕ S x` for
+some matrix `S`. This is the finite-dimensional dilation used in [AradLandau2010]. -/
 theorem contraction_unitary_dilation (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
     ∃ (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) (S : Matrix R R ℂ),
       U ∈ Matrix.unitaryGroup (R ⊕ R) ℂ ∧
@@ -420,44 +501,59 @@ section Register
 
 variable {R : Type} [Fintype R] [DecidableEq R] {n t : ℕ}
 
+/-- The position register with `2 * t + 2` slots, each carrying a copy of `R`. -/
 private abbrev Pos (t : ℕ) (R : Type) := Fin (2 * t + 2) × R
 
+/-- The position register together with a Boolean branch register. -/
 private abbrev RegB (t : ℕ) (R : Type) := Bool × Pos t R
 
+/-- Embeds a state into one position slot and sets all other slots to zero. -/
 private def embSlot (i : Fin (2 * t + 2)) (φ : QState R) : QState (Pos t R) :=
   fun p => if p.1 = i then φ p.2 else 0
 
+/-- The embedded state equals the original state in the selected slot and vanishes elsewhere. -/
 private theorem embSlot_apply (i : Fin (2 * t + 2)) (φ : QState R) (p : Pos t R) :
     embSlot i φ p = if p.1 = i then φ p.2 else 0 := rfl
 
+/-- Embeds a position-register state into the false branch. -/
 private def brF (X : QState (Pos t R)) : QState (RegB t R) :=
   fun q => if q.1 = false then X q.2 else 0
 
+/-- Embeds a position-register state into the true branch. -/
 private def brT (X : QState (Pos t R)) : QState (RegB t R) :=
   fun q => if q.1 = true then X q.2 else 0
 
+/-- The block diagonal matrix acting by `Af` on the false branch and `At` on the true branch. -/
 private noncomputable def branchMatrix (Af At : Matrix (Pos t R) (Pos t R) ℂ) :
     Matrix (RegB t R) (RegB t R) ℂ :=
   fun x y => if x.1 = y.1 then (if x.1 then At x.2 y.2 else Af x.2 y.2) else 0
 
+/-- A branch-matrix entry vanishes between different branches and otherwise selects the matrix
+for that branch. -/
 private theorem branchMatrix_apply (Af At : Matrix (Pos t R) (Pos t R) ℂ) (x y : RegB t R) :
     branchMatrix Af At x y
       = if x.1 = y.1 then (if x.1 then At x.2 y.2 else Af x.2 y.2) else 0 := rfl
 
+/-- The position indices outside slot zero and the selected slot `k`. -/
 private abbrev RestPos (t : ℕ) (R : Type) (k : Fin (2 * t + 2)) : Type :=
   { p : Pos t R // p.1 ≠ 0 ∧ p.1 ≠ k }
 
+/-- Separates slot zero and slot `k` from the remaining positions. -/
 private def slotFwd (k : Fin (2 * t + 2)) : Pos t R → (R ⊕ R) ⊕ RestPos t R k :=
   fun p => if h : p.1 = 0 then Sum.inl (Sum.inl p.2)
     else if h2 : p.1 = k then Sum.inl (Sum.inr p.2)
     else Sum.inr ⟨p, h, h2⟩
 
+/-- Reassembles the distinguished two slots and the remaining positions into the position
+register. -/
 private def slotBwd (k : Fin (2 * t + 2)) : (R ⊕ R) ⊕ RestPos t R k → Pos t R :=
   fun s => match s with
     | Sum.inl (Sum.inl r) => (0, r)
     | Sum.inl (Sum.inr r) => (k, r)
     | Sum.inr p => p.1
 
+/-- For nonzero `k`, identifies the position register with two copies of `R` and the remaining
+positions. -/
 private def slotEquiv (k : Fin (2 * t + 2)) (hk : k ≠ 0) : Pos t R ≃ (R ⊕ R) ⊕ RestPos t R k where
   toFun := slotFwd k
   invFun := slotBwd k
@@ -484,35 +580,46 @@ private def slotEquiv (k : Fin (2 * t + 2)) (hk : k ≠ 0) : Pos t R ≃ (R ⊕ 
     · show slotFwd k (i, r) = Sum.inr ⟨⟨i, r⟩, h1, h2⟩
       simp [slotFwd, h1, h2]
 
+/-- The forward slot equivalence is given by `slotFwd`. -/
 private theorem slotEquiv_apply (k : Fin (2 * t + 2)) (hk : k ≠ 0) (p : Pos t R) :
     slotEquiv k hk p = slotFwd k p := rfl
 
+/-- The inverse slot equivalence is given by `slotBwd`. -/
 private theorem slotEquiv_symm_apply (k : Fin (2 * t + 2)) (hk : k ≠ 0)
     (s : (R ⊕ R) ⊕ RestPos t R k) :
     (slotEquiv k hk).symm s = slotBwd k s := rfl
 
+/-- The forward slot map sends slot zero into the first distinguished copy of `R`. -/
 @[simp] theorem slotFwd_zero (k : Fin (2 * t + 2)) (r : R) :
     slotFwd k (0, r) = Sum.inl (Sum.inl r) := by
   simp [slotFwd]
 
+/-- For nonzero `k`, the forward slot map sends slot `k` into the second distinguished copy of
+`R`. -/
 @[simp] theorem slotFwd_k (k : Fin (2 * t + 2)) (hk : k ≠ 0) (r : R) :
     slotFwd k (k, r) = Sum.inl (Sum.inr r) := by
   simp [slotFwd, hk]
 
+/-- A position outside slots zero and `k` maps into the remaining-position summand. -/
 @[simp] theorem slotFwd_other (k : Fin (2 * t + 2)) (i : Fin (2 * t + 2))
     (h1 : i ≠ 0) (h2 : i ≠ k) (r : R) :
     slotFwd k (i, r) = Sum.inr ⟨(i, r), h1, h2⟩ := by
   simp [slotFwd, h1, h2]
 
+/-- The backward slot map sends the first distinguished copy of `R` to slot zero. -/
 @[simp] theorem slotBwd_inl_inl (k : Fin (2 * t + 2)) (r : R) :
     slotBwd k (Sum.inl (Sum.inl r)) = (0, r) := rfl
 
+/-- The backward slot map sends the second distinguished copy of `R` to slot `k`. -/
 @[simp] theorem slotBwd_inl_inr (k : Fin (2 * t + 2)) (r : R) :
     slotBwd k (Sum.inl (Sum.inr r)) = (k, r) := rfl
 
+/-- The backward slot map preserves a remaining-position index. -/
 @[simp] theorem slotBwd_inr (k : Fin (2 * t + 2)) (p : RestPos t R k) :
     slotBwd k (Sum.inr p) = p.1 := rfl
 
+/-- Extends a matrix on the two distinguished copies of `R` by the identity on all remaining
+positions. -/
 private noncomputable def blockU (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) :
     Matrix ((R ⊕ R) ⊕ RestPos t R k) ((R ⊕ R) ⊕ RestPos t R k) ℂ :=
   fun x y => match x with
@@ -523,23 +630,28 @@ private noncomputable def blockU (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R 
       | Sum.inl _ => 0
       | Sum.inr d => if c = d then 1 else 0
 
+/-- The distinguished block of `blockU k U` equals `U`. -/
 @[simp] theorem blockU_inl_inl (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) (a b : R ⊕ R) :
     blockU k U (Sum.inl a) (Sum.inl b) = U a b := rfl
 
+/-- The block from remaining positions into distinguished positions is zero. -/
 @[simp] theorem blockU_inl_inr (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (a : R ⊕ R) (c : RestPos t R k) :
     blockU k U (Sum.inl a) (Sum.inr c) = 0 := rfl
 
+/-- The block from distinguished positions into remaining positions is zero. -/
 @[simp] theorem blockU_inr_inl (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (c : RestPos t R k) (b : R ⊕ R) :
     blockU k U (Sum.inr c) (Sum.inl b) = 0 := rfl
 
+/-- The remaining-position block of `blockU k U` is the identity matrix. -/
 @[simp] theorem blockU_inr_inr (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (c d : RestPos t R k) :
     blockU k U (Sum.inr c) (Sum.inr d) = if c = d then 1 else 0 := rfl
 
 set_option maxHeartbeats 1000000 in
 
+/-- Extending a unitary matrix by an identity block preserves unitarity. -/
 private theorem blockU_unitary (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (R ⊕ R) ℂ) :
     blockU (t := t) (R := R) k U ∈ Matrix.unitaryGroup ((R ⊕ R) ⊕ RestPos t R k) ℂ := by
@@ -585,16 +697,21 @@ private theorem blockU_unitary (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R �
           simp [hcd]
         · simp [hec]
 
+/-- Transports a two-slot matrix to slots zero and `k`, acting identically on the other
+positions. -/
 private noncomputable def liftP (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) :
     Matrix (Pos t R) (Pos t R) ℂ :=
   (blockU (t := t) (R := R) k U).submatrix (slotEquiv k hk) (slotEquiv k hk)
 
+/-- Expresses the action of the lifted matrix through the slot equivalence and the block
+extension. -/
 private theorem liftP_mulVec (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (z : QState (Pos t R)) :
     liftP (t := t) k hk U *ᵥ z
       = (blockU k U *ᵥ (z ∘ (slotEquiv k hk).symm)) ∘ (slotEquiv k hk) :=
   Matrix.submatrix_mulVec_equiv _ _ _ _
 
+/-- Lifting a unitary two-slot matrix to the position register preserves unitarity. -/
 private theorem liftP_unitary (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (R ⊕ R) ℂ) :
     liftP (t := t) k hk U ∈ Matrix.unitaryGroup (Pos t R) ℂ := by
@@ -605,6 +722,8 @@ private theorem liftP_unitary (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (
 
 set_option maxHeartbeats 1000000 in
 
+/-- On a state in slot zero, the lifted matrix places its two output components in slots zero
+and `k`. -/
 private theorem liftP_act0 (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (φ : QState R) :
     liftP (t := t) k hk U *ᵥ embSlot 0 φ
@@ -684,6 +803,7 @@ private theorem liftP_act0 (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R �
       rw [Pi.zero_apply, Pi.add_apply, embSlot_apply, embSlot_apply, if_neg h0, if_neg hkk,
         add_zero]
 
+/-- The Boolean phase-oracle entry equals the corresponding signed-variable diagonal entry. -/
 private theorem cbPhaseEntry_eq_dzO (x : Fin n → Bool) (o : Option (Fin n ⊕ Fin n)) :
     cbPhaseEntry x o = dzO (signVecC x) o := by
   cases o with
@@ -692,6 +812,7 @@ private theorem cbPhaseEntry_eq_dzO (x : Fin n → Bool) (o : Option (Fin n ⊕ 
     | inl i => rfl
     | inr i => rfl
 
+/-- The Boolean phase oracle equals `cbDelta` evaluated at the complex sign vector. -/
 private theorem cbPhaseOracle_eq_cbDelta (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool) :
     cbPhaseOracle δ x = cbDelta δ (signVecC x) := by
   ext a b
@@ -702,6 +823,7 @@ private theorem cbPhaseOracle_eq_cbDelta (δ : R → Option (Fin n ⊕ Fin n)) (
     rw [Matrix.diagonal_apply_eq, Matrix.diagonal_apply_eq, cbPhaseEntry_eq_dzO, dzval_eq_dzO]
   · rw [Matrix.diagonal_apply_ne _ hab, Matrix.diagonal_apply_ne _ hab]
 
+/-- A diagonal matrix multiplies each state coordinate by the corresponding diagonal entry. -/
 private theorem diagonal_mulVec_apply {I : Type} [Fintype I] [DecidableEq I] (d : I → ℂ)
     (z : QState I) (i : I) :
     (Matrix.diagonal d *ᵥ z) i = d i * z i := by
@@ -713,10 +835,13 @@ private theorem diagonal_mulVec_apply {I : Type} [Fintype I] [DecidableEq I] (d 
   · intro h
     exact absurd (Finset.mem_univ i) h
 
+/-- Applies the signed-variable phase oracle in slot zero and acts identically in all other
+slots. -/
 private noncomputable def figOracleP (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool) :
     Matrix (Pos t R) (Pos t R) ℂ :=
   Matrix.diagonal fun p => if p.1 = 0 then dzval δ (signVecC x) p.2 else 1
 
+/-- The position oracle acts on slot zero by the signed-variable diagonal oracle. -/
 private theorem figOracleP_mulVec_main (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool)
     (φ : QState R) :
     figOracleP (t := t) δ x *ᵥ embSlot 0 φ = embSlot 0 (cbDelta δ (signVecC x) *ᵥ φ) := by
@@ -733,6 +858,7 @@ private theorem figOracleP_mulVec_main (δ : R → Option (Fin n ⊕ Fin n)) (x 
     rfl
   · rw [if_neg h0, if_neg h0, if_neg h0, mul_zero]
 
+/-- The position oracle fixes every state embedded in a nonzero slot. -/
 private theorem figOracleP_mulVec_junk (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool)
     (i : Fin (2 * t + 2)) (h0 : i ≠ 0) (φ : QState R) :
     figOracleP (t := t) δ x *ᵥ embSlot i φ = embSlot i φ := by
@@ -746,6 +872,7 @@ private theorem figOracleP_mulVec_junk (δ : R → Option (Fin n ⊕ Fin n)) (x 
     rw [if_pos rfl, if_neg (fun h => h0 h.symm), mul_zero]
   · rw [if_neg hj, one_mul]
 
+/-- The position oracle fixes every state supported outside slot zero. -/
 private theorem figOracleP_mulVec_of_support (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool)
     (z : QState (Pos t R)) (hz : ∀ p, z p ≠ 0 → p.1 ≠ 0) :
     figOracleP (t := t) δ x *ᵥ z = z := by
@@ -759,11 +886,13 @@ private theorem figOracleP_mulVec_of_support (δ : R → Option (Fin n ⊕ Fin n
     rw [if_pos h0, hz0, mul_zero]
   · rw [if_neg h0, one_mul]
 
+/-- Labels the main slot by `δ` and all other slots by the inactive oracle label. -/
 private def figLabel (δ : R → Option (Fin n ⊕ Fin n)) : RegB t R → Option (Fin n ⊕ Fin n) :=
   fun q => if q.2.1 = 0 then δ q.2.2 else none
 
 set_option maxHeartbeats 1000000 in
 
+/-- The phase oracle for `figLabel` is the same position oracle on both Boolean branches. -/
 private theorem figOracle_eq (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool) :
     cbPhaseOracle (figLabel (t := t) (R := R) δ) x
       = branchMatrix (figOracleP δ x) (figOracleP δ x) := by
@@ -794,6 +923,7 @@ private theorem figOracle_eq (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n �
       · exact (Matrix.diagonal_apply_ne _ h2).symm
     · rw [if_neg h1]
 
+/-- Embedding two states in the same slot preserves their inner product. -/
 private theorem inner_embSlot (i : Fin (2 * t + 2)) (φ ψ : QState R) :
     Qatlib.Foundations.PureStateMath.Inner (embSlot i φ) (embSlot i ψ) = Qatlib.Foundations.PureStateMath.Inner φ ψ := by
   rw [inner_apply, inner_apply, Fintype.sum_prod_type]
@@ -806,6 +936,7 @@ private theorem inner_embSlot (i : Fin (2 * t + 2)) (φ ψ : QState R) :
   · intro hmem
     exact absurd (Finset.mem_univ i) hmem
 
+/-- States embedded in distinct slots have zero inner product. -/
 private theorem inner_embSlot_disjoint {i i' : Fin (2 * t + 2)} (h : i ≠ i') (φ ψ : QState R) :
     Qatlib.Foundations.PureStateMath.Inner (embSlot i φ) (embSlot i' ψ) = 0 :=
   inner_eq_zero_of_support_disjoint _ _ fun p hp => by
@@ -817,6 +948,7 @@ private theorem inner_embSlot_disjoint {i i' : Fin (2 * t + 2)} (h : i ≠ i') (
       exact absurd (hpi ▸ hp1) h
     · rw [embSlot_apply, if_neg hp1]
 
+/-- A lifted two-slot matrix fixes every state in a slot outside its two active positions. -/
 private theorem liftP_actOther (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ)
     (i : Fin (2 * t + 2)) (h0 : i ≠ 0) (hik : i ≠ k) (φ : QState R) :
     liftP (t := t) k hk U *ᵥ embSlot i φ = embSlot i φ := by
@@ -888,6 +1020,7 @@ private theorem liftP_actOther (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix 
         if_neg (fun h => hik h.symm)]
     · rw [slotEquiv_apply, slotFwd_other k i' h0' hik', Sum.elim_inr]
 
+/-- Every position-register state is the sum of its individual slot embeddings. -/
 private theorem pos_decomp (z : QState (Pos t R)) :
     z = ∑ i : Fin (2 * t + 2), embSlot i (fun r => z (i, r)) := by
   funext p
@@ -900,11 +1033,13 @@ private theorem pos_decomp (z : QState (Pos t R)) :
   · intro hmem
     exact absurd (Finset.mem_univ i) hmem
 
+/-- Embedding the zero state in any slot gives the zero state. -/
 private theorem embSlot_zero (i : Fin (2 * t + 2)) : embSlot i (0 : QState R) = (0 : QState (Pos t R)) := by
   funext p
   rw [embSlot_apply, Pi.zero_apply]
   simp
 
+/-- The lifted matrix fixes every state supported outside slots zero and `k`. -/
 private theorem liftP_mulVec_of_support (k : Fin (2 * t + 2)) (hk : k ≠ 0)
     (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) (z : QState (Pos t R))
     (hz : ∀ p, z p ≠ 0 → p.1 ≠ 0 ∧ p.1 ≠ k) :
@@ -929,6 +1064,7 @@ private theorem liftP_mulVec_of_support (k : Fin (2 * t + 2)) (hk : k ≠ 0)
       rw [hzk, embSlot_zero, Matrix.mulVec_zero]
     · exact liftP_actOther k hk U i h0 hik _
 
+/-- The branch matrix applies `Af` to a state in the false branch. -/
 private theorem branchMatrix_mulVec_brF (Af At : Matrix (Pos t R) (Pos t R) ℂ) (X : QState (Pos t R)) :
     branchMatrix Af At *ᵥ brF X = brF (Af *ᵥ X) := by
   funext q
@@ -950,6 +1086,7 @@ private theorem branchMatrix_mulVec_brF (Af At : Matrix (Pos t R) (Pos t R) ℂ)
     rw [h1]
     rfl
 
+/-- The branch matrix applies `At` to a state in the true branch. -/
 private theorem branchMatrix_mulVec_brT (Af At : Matrix (Pos t R) (Pos t R) ℂ) (X : QState (Pos t R)) :
     branchMatrix Af At *ᵥ brT X = brT (At *ᵥ X) := by
   funext q
@@ -973,6 +1110,7 @@ private theorem branchMatrix_mulVec_brT (Af At : Matrix (Pos t R) (Pos t R) ℂ)
 
 set_option maxHeartbeats 1000000 in
 
+/-- A branch matrix is unitary when both of its branch matrices are unitary. -/
 private theorem branchMatrix_unitary (Af At : Matrix (Pos t R) (Pos t R) ℂ)
     (hAf : Af ∈ Matrix.unitaryGroup (Pos t R) ℂ) (hAt : At ∈ Matrix.unitaryGroup (Pos t R) ℂ) :
     branchMatrix Af At ∈ Matrix.unitaryGroup (RegB t R) ℂ := by
@@ -1038,15 +1176,19 @@ private theorem branchMatrix_unitary (Af At : Matrix (Pos t R) (Pos t R) ℂ)
         simp
     rw [hz true, hz false, add_zero, if_neg (fun h => hb (congrArg Prod.fst h))]
 
+/-- The Hadamard matrix on the Boolean branch register, tensored with the identity on positions. -/
 private noncomputable def hadGate : Matrix (RegB t R) (RegB t R) ℂ :=
   fun x y => if x.2 = y.2 then Qatlib.Foundations.PureStateMath.Hadamard x.1 y.1 else 0
 
+/-- The branch Hadamard matrix has the usual Hadamard entries when positions agree and zero
+entries otherwise. -/
 private theorem hadGate_apply (x y : RegB t R) :
     hadGate (t := t) (R := R) x y
       = if x.2 = y.2 then Qatlib.Foundations.PureStateMath.Hadamard x.1 y.1 else 0 := rfl
 
 set_option maxHeartbeats 1000000 in
 
+/-- The Hadamard gate on the branch register is unitary. -/
 private theorem hadGate_unitary : hadGate (t := t) (R := R) ∈ Matrix.unitaryGroup (RegB t R) ℂ := by
   have hH := hadamard_unitary
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] at hH
@@ -1104,6 +1246,7 @@ private theorem hadGate_unitary : hadGate (t := t) (R := R) ∈ Matrix.unitaryGr
       Finset.sum_eq_zero fun c _ => h0 c
     rw [h0', if_neg (fun h => hp (Prod.ext_iff.mp h).2)]
 
+/-- Expands the branch Hadamard action on the sum of false-branch and true-branch states. -/
 private theorem hadGate_mulVec (X Y : QState (Pos t R)) :
     hadGate (t := t) (R := R) *ᵥ (brF X + brT Y)
       = fun q => Qatlib.Foundations.PureStateMath.Hadamard q.1 false * X q.2
@@ -1134,10 +1277,13 @@ private theorem hadGate_mulVec (X Y : QState (Pos t R)) :
       exact absurd (Finset.mem_univ p) hmem
   rw [htrue, hfalse, add_comm]
 
+/-- The true-column Hadamard entry is the inverse square root of two with sign determined by the
+output bit. -/
 private theorem hadamard_entry_true (b : Bool) :
     Qatlib.Foundations.PureStateMath.Hadamard b true = (if b then -1 else 1) * (Real.sqrt 2 : ℂ)⁻¹ := by
   cases b <;> simp [Qatlib.Foundations.PureStateMath.Hadamard]
 
+/-- Pointwise equal finite matrix families have equal ordered products. -/
 private theorem matProdFin_congr {k : ℕ} (M N : Fin k → Matrix R R ℂ) (h : ∀ j, M j = N j) :
     matProdFin k M = matProdFin k N := by
   unfold matProdFin
@@ -1146,6 +1292,8 @@ private theorem matProdFin_congr {k : ℕ} (M N : Fin k → Matrix R R ℂ) (h :
 
 set_option maxHeartbeats 1000000 in
 
+/-- Reassociates a product of pairs into its first left factor, an ordered product of adjacent
+middle pairs, and its last right factor. -/
 private theorem matProdFin_mul_shift {k : ℕ} (f g : Fin (k + 1) → Matrix R R ℂ) :
     matProdFin (k + 1) (fun i => f i * g i)
       = f 0 * matProdFin k (fun j : Fin k => g j.castSucc * f j.succ) * g (Fin.last k) := by
@@ -1166,6 +1314,7 @@ private theorem matProdFin_mul_shift {k : ℕ} (f g : Fin (k + 1) → Matrix R R
 
 set_option maxHeartbeats 1000000 in
 
+/-- Splits an ordered matrix product at the boundary between its first `k` and last `l` factors. -/
 private theorem matProdFin_add {k l : ℕ} (M : Fin (k + l) → Matrix R R ℂ) :
     matProdFin (k + l) M
       = matProdFin k (fun j => M (Fin.castAdd l j)) * matProdFin l (fun j => M (Fin.natAdd k j)) := by
@@ -1190,9 +1339,11 @@ private theorem matProdFin_add {k l : ℕ} (M : Fin (k + l) → Matrix R R ℂ) 
     have e4 : M (Fin.last (k + l)) = M (Fin.natAdd k (Fin.last l)) := congrArg M (Fin.ext rfl)
     rw [e1, e2, e3, e4, mul_assoc]
 
+/-- The signed-variable diagonal oracle on the original register. -/
 private noncomputable def figOR (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool) : Matrix R R ℂ :=
   cbDelta δ (signVecC x)
 
+/-- The signed-variable oracle evaluated on Boolean inputs is Hermitian. -/
 private theorem figOR_hermitian (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool) :
     (figOR δ x)ᴴ = figOR δ x := by
   show (Matrix.diagonal fun r => dzval δ (signVecC x) r)ᴴ = Matrix.diagonal fun r => dzval δ (signVecC x) r
@@ -1212,6 +1363,8 @@ private theorem figOR_hermitian (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n
       show star (signVecC x (Sum.inr i)) = signVecC x (Sum.inr i)
       simp [signVecC]
 
+/-- The signed-variable oracle can be moved between arguments of the state inner product without
+changing it. -/
 private theorem inner_figOR_symm (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool) (X w : QState R) :
     Qatlib.Foundations.PureStateMath.Inner (figOR δ x *ᵥ X) w = Qatlib.Foundations.PureStateMath.Inner X (figOR δ x *ᵥ w) := by
   rw [inner_mulVec_left, figOR_hermitian]
@@ -1226,14 +1379,18 @@ variable (δ : R → Option (Fin n ⊕ Fin n)) (W : Fin (2 * t + 1) → Matrix R
   (dU : Fin (2 * t + 1) → Bool → Matrix (R ⊕ R) (R ⊕ R) ℂ)
   (dS : Fin (2 * t + 1) → Bool → Matrix R R ℂ)
 
+/-- The odd slot `2 * j + 1` when it lies in the position register, and slot one otherwise. -/
 private def slotF (t j : ℕ) : Fin (2 * t + 2) :=
   ⟨if 2 * j + 1 < 2 * t + 2 then 2 * j + 1 else 1, by split <;> omega⟩
 
+/-- The even slot `2 * j + 2` when it lies in the position register, and slot one otherwise. -/
 private def slotT (t j : ℕ) : Fin (2 * t + 2) :=
   ⟨if 2 * j + 2 < 2 * t + 2 then 2 * j + 2 else 1, by split <;> omega⟩
 
+/-- The final position slot, with index `2 * t + 1`. -/
 private def slotM (t : ℕ) : Fin (2 * t + 2) := ⟨2 * t + 1, by omega⟩
 
+/-- The false-branch auxiliary slot is never slot zero. -/
 private theorem slotF_ne_zero (t j : ℕ) : slotF t j ≠ 0 := by
   intro h
   have h2 : (slotF t j).val = 0 := congrArg Fin.val h
@@ -1241,6 +1398,7 @@ private theorem slotF_ne_zero (t j : ℕ) : slotF t j ≠ 0 := by
   rw [h3] at h2
   split at h2 <;> omega
 
+/-- The true-branch auxiliary slot is never slot zero. -/
 private theorem slotT_ne_zero (t j : ℕ) : slotT t j ≠ 0 := by
   intro h
   have h2 : (slotT t j).val = 0 := congrArg Fin.val h
@@ -1248,34 +1406,45 @@ private theorem slotT_ne_zero (t j : ℕ) : slotT t j ≠ 0 := by
   rw [h3] at h2
   split at h2 <;> omega
 
+/-- The middle-gate auxiliary slot is never slot zero. -/
 private theorem slotM_ne_zero (t : ℕ) : slotM t ≠ 0 := by
   intro h
   have h2 : (slotM t).val = 0 := congrArg Fin.val h
   have h3 : (slotM t).val = 2 * t + 1 := rfl
   omega
 
+/-- For `j ≤ t`, the false-branch auxiliary slot has index `2 * j + 1`. -/
 private theorem slotF_val {t j : ℕ} (hj : j ≤ t) : (slotF t j).val = 2 * j + 1 := by
   show (if 2 * j + 1 < 2 * t + 2 then 2 * j + 1 else 1) = 2 * j + 1
   rw [if_pos (by omega)]
 
+/-- For `j < t`, the true-branch auxiliary slot has index `2 * j + 2`. -/
 private theorem slotT_val {t j : ℕ} (hj : j < t) : (slotT t j).val = 2 * j + 2 := by
   show (if 2 * j + 2 < 2 * t + 2 then 2 * j + 2 else 1) = 2 * j + 2
   rw [if_pos (by omega)]
 
+/-- The middle-gate auxiliary slot has index `2 * t + 1`. -/
 private theorem slotM_val (t : ℕ) : (slotM t).val = 2 * t + 1 := rfl
 
+/-- Lifts the false-branch dilation for round `j` to the main slot and its odd auxiliary slot. -/
 private noncomputable def figGateF (j : ℕ) : Matrix (Pos t R) (Pos t R) ℂ :=
   liftP (slotF t j) (slotF_ne_zero t j) (dU ⟨j % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ false)
 
+/-- Lifts the true-branch dilation, with reversed factor index, to the main slot and its even
+auxiliary slot. -/
 private noncomputable def figGateT (j : ℕ) : Matrix (Pos t R) (Pos t R) ℂ :=
   liftP (slotT t j) (slotT_ne_zero t j) (dU ⟨(2 * t - j) % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ true)
 
+/-- Lifts the middle-factor dilation to the main slot and the final auxiliary slot. -/
 private noncomputable def figGateM : Matrix (Pos t R) (Pos t R) ℂ :=
   liftP (slotM t) (slotM_ne_zero t) (dU ⟨t % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ true)
 
+/-- Combines the false-branch and true-branch lifted gates for one query round. -/
 private noncomputable def figRoundGate (j : ℕ) : Matrix (RegB t R) (RegB t R) ℂ :=
   branchMatrix (figGateF dU j) (figGateT dU j)
 
+/-- Under the dilation action hypothesis, the false-branch gate applies the adjoint factor in
+slot zero and places the defect component in its auxiliary slot. -/
 private theorem figGateF_act (j : ℕ) (φ : QState R)
     (hact : ∀ m b x, dU m b *ᵥ Sum.elim x 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x) (dS m b *ᵥ x)) :
@@ -1289,6 +1458,8 @@ private theorem figGateF_act (j : ℕ) (φ : QState R)
       (dU ⟨j % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ false) from rfl, h1]
   congr 1
 
+/-- Under the dilation action hypothesis, the true-branch gate applies the reversed-index factor
+in slot zero and places the defect component in its auxiliary slot. -/
 private theorem figGateT_act (j : ℕ) (φ : QState R)
     (hact : ∀ m b x, dU m b *ᵥ Sum.elim x 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x) (dS m b *ᵥ x)) :
@@ -1302,6 +1473,8 @@ private theorem figGateT_act (j : ℕ) (φ : QState R)
       (dU ⟨(2 * t - j) % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ true) from rfl, h1]
   congr 1
 
+/-- Under the dilation action hypothesis, the middle gate applies the middle factor in slot zero
+and places the defect component in the final slot. -/
 private theorem figGateM_act (φ : QState R)
     (hact : ∀ m b x, dU m b *ᵥ Sum.elim x 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x) (dS m b *ᵥ x)) :
@@ -1315,39 +1488,52 @@ private theorem figGateM_act (φ : QState R)
       (dU ⟨t % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ true) from rfl, h1]
   congr 1
 
+/-- The false-branch gate fixes states supported outside its main and auxiliary slots. -/
 private theorem figGateF_supported (j : ℕ) (z : QState (Pos t R))
     (hz : ∀ p, z p ≠ 0 → p.1 ≠ 0 ∧ p.1 ≠ slotF t j) :
     figGateF dU j *ᵥ z = z :=
   liftP_mulVec_of_support _ _ _ _ hz
 
+/-- The true-branch gate fixes states supported outside its main and auxiliary slots. -/
 private theorem figGateT_supported (j : ℕ) (z : QState (Pos t R))
     (hz : ∀ p, z p ≠ 0 → p.1 ≠ 0 ∧ p.1 ≠ slotT t j) :
     figGateT dU j *ᵥ z = z :=
   liftP_mulVec_of_support _ _ _ _ hz
 
+/-- The middle gate fixes states supported outside its main and final slots. -/
 private theorem figGateM_supported (z : QState (Pos t R))
     (hz : ∀ p, z p ≠ 0 → p.1 ≠ 0 ∧ p.1 ≠ slotM t) :
     figGateM dU *ᵥ z = z :=
   liftP_mulVec_of_support _ _ _ _ hz
 
+/-- The false-branch state obtained by iterating its lifted gate followed by the position
+oracle, starting from `u` in slot zero. -/
 private noncomputable def figAstate (x : Fin n → Bool) : ℕ → QState (Pos t R)
   | 0 => embSlot 0 u
   | j + 1 => figOracleP δ x *ᵥ (figGateF dU j *ᵥ figAstate x j)
 
+/-- The true-branch state obtained by iterating its lifted gate followed by the position oracle,
+starting from `v` in slot zero. -/
 private noncomputable def figBstate (x : Fin n → Bool) : ℕ → QState (Pos t R)
   | 0 => embSlot 0 v
   | j + 1 => figOracleP δ x *ᵥ (figGateT dU j *ᵥ figBstate x j)
 
+/-- The main-register chain alternating adjoint factors and signed-variable oracles, starting
+from `u`. -/
 private noncomputable def figAchain (x : Fin n → Bool) : ℕ → QState R
   | 0 => u
   | j + 1 => figOR δ x *ᵥ ((W ⟨j % (2 * t + 1), Nat.mod_lt _ (by omega)⟩)ᴴ *ᵥ figAchain x j)
 
+/-- The main-register chain alternating reversed-index factors and signed-variable oracles,
+starting from `v`. -/
 private noncomputable def figBchain (x : Fin n → Bool) : ℕ → QState R
   | 0 => v
   | j + 1 => figOR δ x *ᵥ (W ⟨(2 * t - j) % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ *ᵥ figBchain x j)
 
 set_option maxHeartbeats 1000000 in
 
+/-- Expresses pairing with the false-branch main chain by an ordered product of factors and
+oracles in the second argument. -/
 private theorem figAchain_inner (x : Fin n → Bool) (j : ℕ) (hj : j ≤ t) (w : QState R) :
     Qatlib.Foundations.PureStateMath.Inner (figAchain δ W u x j) w
       = Qatlib.Foundations.PureStateMath.Inner u (matProdFin j (fun i : Fin j =>
@@ -1370,6 +1556,8 @@ private theorem figAchain_inner (x : Fin n → Bool) (j : ℕ) (hj : j ≤ t) (w
 
 set_option maxHeartbeats 1000000 in
 
+/-- Expresses the true-branch main chain as an ordered product of oracles and factors applied to
+`v`. -/
 private theorem figBchain_eq (x : Fin n → Bool) (j : ℕ) (hj : j ≤ t) :
     figBchain δ W v x j
       = matProdFin j (fun i : Fin j => figOR δ x *
@@ -1393,10 +1581,13 @@ private theorem figBchain_eq (x : Fin n → Bool) (j : ℕ) (hj : j ≤ t) :
           have hs : (i.succ : Fin (j + 1)).val = i.val + 1 := by simp
           omega))))
 
+/-- An index at most `2 * t` is unchanged by reduction modulo `2 * t + 1`. -/
 private theorem figW_mod_eq (a : ℕ) (ha : a ≤ 2 * t) :
     (⟨a % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ : Fin (2 * t + 1)) = ⟨a, by omega⟩ :=
   Fin.ext (Nat.mod_eq_of_lt (by omega))
 
+/-- Before the last factor, a constant-input sandwich slot equals its matrix factor followed by
+the signed-variable oracle. -/
 private theorem cbSlot_const_lt {k : ℕ} (W' : Fin (2 * k + 1) → Matrix R R ℂ) (i : Fin (2 * k + 1))
     (h : i.val < 2 * k) (z : Fin n → Bool) :
     cbSlot W' δ (fun _ => signVecC z) i = W' i * figOR δ z := by
@@ -1406,6 +1597,7 @@ private theorem cbSlot_const_lt {k : ℕ} (W' : Fin (2 * k + 1) → Matrix R R �
   show W' ⟨i.val, by omega⟩ * cbDelta δ (signVecC z) = W' i * figOR δ z
   exact congrArg₂ (· * ·) (congrArg W' (Fin.ext rfl)) rfl
 
+/-- At the last factor, a constant-input sandwich slot equals the matrix factor alone. -/
 private theorem cbSlot_const_ge {k : ℕ} (W' : Fin (2 * k + 1) → Matrix R R ℂ) (i : Fin (2 * k + 1))
     (h : ¬ i.val < 2 * k) (z : Fin n → Bool) :
     cbSlot W' δ (fun _ => signVecC z) i = W' i := by
@@ -1415,6 +1607,8 @@ private theorem cbSlot_const_ge {k : ℕ} (W' : Fin (2 * k + 1) → Matrix R R �
 
 set_option maxHeartbeats 1000000 in
 
+/-- Combines the two length-`k` chains and their middle factor into the full ordered product of
+`cbSlot` factors. -/
 private theorem fig_chain_sandwich (z : Fin n → Bool) :
     ∀ (k : ℕ) (W' : Fin (2 * k + 1) → Matrix R R ℂ),
       (matProdFin k (fun i : Fin k => W' ⟨i.val, by omega⟩ * figOR δ z)) *
@@ -1531,6 +1725,8 @@ private theorem fig_chain_sandwich (z : Fin n → Bool) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- The product of the two query chains and their middle factor equals `cbSandwichMatrix` on
+constant sign-vector inputs. -/
 private theorem fig_sandwich_matrix (x : Fin n → Bool) :
     (matProdFin t (fun i : Fin t =>
         W ⟨i.val % (2 * t + 1), Nat.mod_lt _ (by omega)⟩ * figOR δ x)) *
@@ -1556,6 +1752,8 @@ private theorem fig_sandwich_matrix (x : Fin n → Bool) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- Under the dilation action hypothesis, the false-branch main slot equals `figAchain`, and all
+other nonzero coordinates lie in previously used odd slots. -/
 private theorem figAstate_supp (x : Fin n → Bool)
     (hact : ∀ m b x0, dU m b *ᵥ Sum.elim x0 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x0) (dS m b *ᵥ x0)) :
@@ -1665,6 +1863,8 @@ private theorem figAstate_supp (x : Fin n → Bool)
 
 set_option maxHeartbeats 1000000 in
 
+/-- Under the dilation action hypothesis, the true-branch main slot equals `figBchain`, and all
+other nonzero coordinates lie in previously used even slots. -/
 private theorem figBstate_supp (x : Fin n → Bool)
     (hact : ∀ m b x0, dU m b *ᵥ Sum.elim x0 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x0) (dS m b *ᵥ x0)) :
@@ -1772,6 +1972,7 @@ private theorem figBstate_supp (x : Fin n → Bool)
           · exact absurd (Fin.ext h0') h0
           · exact ⟨j', by omega, hj2⟩
 
+/-- Subtracting the embedded false-branch main chain leaves a state that vanishes in slot zero. -/
 private theorem figAstate_sub_main (x : Fin n → Bool)
     (hact : ∀ m b x0, dU m b *ᵥ Sum.elim x0 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x0) (dS m b *ᵥ x0)) :
@@ -1780,6 +1981,8 @@ private theorem figAstate_sub_main (x : Fin n → Bool)
   obtain ⟨hmain, _⟩ := figAstate_supp δ W u dU dS x hact t (le_refl t)
   rw [Pi.sub_apply, hmain r, embSlot_apply, if_pos rfl, sub_self]
 
+/-- Every nonzero coordinate remaining after subtracting the false-branch main chain lies in an
+odd auxiliary slot used before round `t`. -/
 private theorem figAstate_sub_supp (x : Fin n → Bool)
     (hact : ∀ m b x0, dU m b *ᵥ Sum.elim x0 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x0) (dS m b *ᵥ x0))
@@ -1805,6 +2008,7 @@ private theorem figAstate_sub_supp (x : Fin n → Bool)
     exact hp (figAstate_sub_main δ W u dU dS x hact p.2)
   · exact ⟨j', hj1, hj2⟩
 
+/-- Subtracting the embedded true-branch main chain leaves a state that vanishes in slot zero. -/
 private theorem figBstate_sub_main (x : Fin n → Bool)
     (hact : ∀ m b x0, dU m b *ᵥ Sum.elim x0 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x0) (dS m b *ᵥ x0)) :
@@ -1813,6 +2017,8 @@ private theorem figBstate_sub_main (x : Fin n → Bool)
   obtain ⟨hmain, _⟩ := figBstate_supp δ W v dU dS x hact t (le_refl t)
   rw [Pi.sub_apply, hmain r, embSlot_apply, if_pos rfl, sub_self]
 
+/-- Every nonzero coordinate remaining after subtracting the true-branch main chain lies in an
+even auxiliary slot used before round `t`. -/
 private theorem figBstate_sub_supp (x : Fin n → Bool)
     (hact : ∀ m b x0, dU m b *ᵥ Sum.elim x0 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x0) (dS m b *ᵥ x0))
@@ -1840,6 +2046,8 @@ private theorem figBstate_sub_supp (x : Fin n → Bool)
 
 set_option maxHeartbeats 1000000 in
 
+/-- The pairing of the false-branch state with the middle-gate image of the true-branch state
+reduces to the pairing of their main chains through the middle factor. -/
 private theorem fig_pairing (x : Fin n → Bool)
     (hact : ∀ m b x0, dU m b *ᵥ Sum.elim x0 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x0) (dS m b *ᵥ x0)) :
@@ -1933,19 +2141,26 @@ private theorem fig_pairing (x : Fin n → Bool)
   rw [e1, e2, e3, e4, e5, e6]
   simp
 
+/-- The circuit consisting of successive branch gates, each followed by one oracle query. -/
 private noncomputable def figRounds : ℕ → Circuit (RegB t R)
   | 0 => []
   | j + 1 => figRounds j ++ [Step.gate (figRoundGate dU j), Step.query]
 
+/-- The equal superposition of `u` in the false branch and `v` in the true branch, both in slot
+zero. -/
 private noncomputable def figInit : QState (RegB t R) :=
   brF ((Real.sqrt 2 : ℂ)⁻¹ • embSlot 0 u) + brT ((Real.sqrt 2 : ℂ)⁻¹ • embSlot 0 v)
 
+/-- The `t`-round query circuit followed by the true-branch middle gate and a branch Hadamard
+gate. -/
 private noncomputable def figCircuit : Circuit (RegB t R) :=
   figRounds dU t ++ [Step.gate (branchMatrix 1 (figGateM dU)), Step.gate hadGate]
 
+/-- One additional round appends its branch gate and a single oracle query. -/
 private theorem figRounds_succ (dU : Fin (2 * t + 1) → Bool → Matrix (R ⊕ R) (R ⊕ R) ℂ) (j : ℕ) :
     figRounds dU (j + 1) = figRounds dU j ++ [Step.gate (figRoundGate dU j), Step.query] := rfl
 
+/-- The circuit of `j` rounds contains exactly `j` queries. -/
 private theorem figRounds_queryCount (dU : Fin (2 * t + 1) → Bool → Matrix (R ⊕ R) (R ⊕ R) ℂ) (j : ℕ) :
     QueryCount (figRounds dU j) = j := by
   induction j with
@@ -1954,6 +2169,7 @@ private theorem figRounds_queryCount (dU : Fin (2 * t + 1) → Bool → Matrix (
     rw [figRounds_succ, queryCount_append, ih]
     rfl
 
+/-- Every gate in the round circuit is unitary when all supplied dilation matrices are unitary. -/
 private theorem figRounds_unitary
     (hU : ∀ m b, dU m b ∈ Matrix.unitaryGroup (R ⊕ R) ℂ) :
     ∀ (j : ℕ) (U : Matrix (RegB t R) (RegB t R) ℂ),
@@ -1977,6 +2193,7 @@ private theorem figRounds_unitary
           (liftP_unitary _ _ _ (hU _ false)) (liftP_unitary _ _ _ (hU _ true))
       · cases h2
 
+/-- The complete constructed circuit is unitary when all supplied dilation matrices are unitary. -/
 private theorem figCircuit_unitary
     (hU : ∀ m b, dU m b ∈ Matrix.unitaryGroup (R ⊕ R) ℂ) :
     IsUnitaryCircuit (figCircuit (t := t) dU) := by
@@ -1994,11 +2211,13 @@ private theorem figCircuit_unitary
       rw [h2]
       exact hadGate_unitary
 
+/-- The complete constructed circuit contains exactly `t` queries. -/
 private theorem figCircuit_queryCount (dU : Fin (2 * t + 1) → Bool → Matrix (R ⊕ R) (R ⊕ R) ℂ) :
     QueryCount (figCircuit (t := t) dU) = t := by
   rw [figCircuit, queryCount_append, figRounds_queryCount]
   rfl
 
+/-- The initial equal-branch superposition is normalized when both input states are normalized. -/
 private theorem figInit_normalized (hu : Normalized u) (hv : Normalized v) :
     Normalized (figInit (t := t) u v) := by
   show (∑ q : RegB t R, ‖figInit u v q‖ ^ 2) = 1
@@ -2040,6 +2259,8 @@ private theorem figInit_normalized (hu : Normalized u) (hv : Normalized v) :
   rw [hhalf v hv, hhalf u hu]
   norm_num
 
+/-- The difference between the squared moduli of `a + b` and `a - b` is four times the real part
+of `conj a * b`. -/
 private theorem normSq_add_sub (a b : ℂ) :
     ‖a + b‖ ^ 2 - ‖a - b‖ ^ 2 = 4 * ((starRingEnd ℂ) a * b).re := by
   rw [← Complex.normSq_eq_norm_sq, ← Complex.normSq_eq_norm_sq]
@@ -2050,6 +2271,8 @@ private theorem normSq_add_sub (a b : ℂ) :
   rw [show (star a).re = a.re from by simp, show (star a).im = -a.im from by simp]
   ring
 
+/-- The sign bias of the two-branch interference state equals the real part of the inner product
+of its two component states. -/
 private theorem fig_signBias_form (A B : QState (Pos t R)) :
     signBias (fun q => ((2 : ℂ))⁻¹ * (A q.2 + (if q.1 then -1 else 1) * B q.2))
         ({false} ×ˢ Finset.univ)
@@ -2113,6 +2336,8 @@ private theorem fig_signBias_form (A B : QState (Pos t R)) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- Running the round circuit yields the equally weighted false-branch and true-branch states
+defined by the round recursions. -/
 private theorem figRun (x : Fin n → Bool) (j : ℕ) :
     Run (cbPhaseOracle (figLabel δ) x) (figRounds dU j) (figInit u v)
       = brF ((Real.sqrt 2 : ℂ)⁻¹ • figAstate δ u dU x j) +
@@ -2138,6 +2363,8 @@ private theorem figRun (x : Fin n → Bool) (j : ℕ) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- Under the dilation action hypothesis, the final sign bias is the real part of the
+factorization sandwich paired with `u` and `v`. -/
 private theorem fig_correct (x : Fin n → Bool)
     (hact : ∀ m b x0, dU m b *ᵥ Sum.elim x0 0
       = Sum.elim ((match b with | false => (W m)ᴴ | true => W m) *ᵥ x0) (dS m b *ᵥ x0)) :
@@ -2184,6 +2411,8 @@ private theorem fig_correct (x : Fin n → Bool)
   rw [Matrix.mulVec_mulVec, Matrix.mulVec_mulVec]
   rw [fig_sandwich_matrix δ W x]
 
+/-- A real tensor of order `2 * t` with a completely bounded factorization has a sign algorithm
+realizing its tensor bias with `t` queries. -/
 theorem lemma3_3FactorizationToAlgorithm : Lemma3_3FactorizationToAlgorithm := by
   intro n t T hfac
   obtain ⟨R, hRfin, hRdec, δ, u, v, W, hu, hv, hW, hcert⟩ := hfac

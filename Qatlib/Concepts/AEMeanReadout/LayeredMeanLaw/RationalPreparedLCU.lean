@@ -20,6 +20,27 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Rationally prepared linear combinations of unitaries
+
+This module constructs `rationalWeightLCUWord` from rational weight preparation and a SELECT
+operation. It proves unitarity, exact query and gate counts, and an operator norm bound for the
+normalized weighted sum, using the preparation and compression framework for linear combinations
+of unitaries described in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `rational_weight_actual_lcu_error_and_accesses`: gives one SELECT query, `2*n` fixed gates,
+  and error at most `64*n/2^k`.
+* `rational_weight_quarter_three_quarter_lcu_consumer`: specializes to the combination of the
+  identity and Pauli X with weights one quarter and three quarters.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -46,15 +67,20 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
+/-- Matrix multiplication with the finite intermediate index made explicit. -/
 private noncomputable def weightMatrixMul {M N P : Type} [Fintype N]
     (A : Matrix M N ℂ) (B : Matrix N P ℂ) : Matrix M P ℂ :=
   @HMul.hMul _ _ _ Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
 local infixl:70 " *ₘ " => weightMatrixMul
 
+/-- The preparation, SELECT, and inverse-preparation circuit word for rational weights, written
+in the evaluation convention of `AdjointStep`. -/
 noncomputable def rationalWeightLCUWord {n : ℕ} (I : Type) [Fintype I] [DecidableEq I]
     (w : Option (Fin n) → ℚ) (k : ℕ) :=
   adjointCircuit (rationalWeightLiftWord I w k) ++ [.forward] ++ rationalWeightLiftWord I w k
 
+/-- Evaluating a reversed list of gates tensored with the identity equals the tensor lift of
+their evaluation. -/
 theorem weight_lift_evaluate {n : ℕ} (I : Type) [Fintype I] [DecidableEq I]
     (g : Fin n → Matrix (Option (Fin n)) (Option (Fin n)) ℂ) (l : List (Fin n))
     (O : Matrix (Option (Fin n) × I) (Option (Fin n) × I) ℂ) :
@@ -67,6 +93,7 @@ theorem weight_lift_evaluate {n : ℕ} (I : Type) [Fintype I] [DecidableEq I]
       instructionMatrix, Matrix.mul_one, ih]
     rw [tensorGate_mul, Matrix.one_mul]
 
+/-- Applying `P` to the preparation register of `prepareLift a` gives `prepareLift (P *ᵥ a)`. -/
 theorem weight_tensor_prepareLift {J I : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (P : Matrix J J ℂ) (a : QState J) :
     TensorGate P (1 : Matrix I I ℂ) *ₘ prepareLift a = prepareLift (P *ᵥ a) := by
@@ -78,6 +105,8 @@ theorem weight_tensor_prepareLift {J I : Type} [Fintype J] [DecidableEq J]
       Matrix.mulVec, dotProduct]
   · simp [Matrix.mul_apply, TensorGate, prepareLift, Fintype.sum_prod_type, hik]
 
+/-- For nonnegative rational weights of positive total mass, the target preparation yields the
+normalized weighted sum of the matrices `U a`. -/
 theorem weight_target_lcu {n : ℕ} (I : Type) [Fintype I] [DecidableEq I]
     (w : Option (Fin n) → ℚ) (hw : ∀ a, 0 ≤ w a)
     (hZ : 0 < rationalWeightMass w) (U : Option (Fin n) → Matrix I I ℂ) :
@@ -96,6 +125,8 @@ theorem weight_target_lcu {n : ℕ} (I : Type) [Fintype I] [DecidableEq I]
     exact_mod_cast hs
   rw [he]
 
+/-- Conjugating a unitary `T` by unitaries `P` and `Q` changes it by at most `2*‖P-Q‖` in
+operator norm. -/
 theorem weight_sandwich_error {H : Type} [Fintype H] [DecidableEq H]
     (P Q T : Matrix H H ℂ) (hP : P ∈ Matrix.unitaryGroup H ℂ)
     (hQ : Q ∈ Matrix.unitaryGroup H ℂ) (hT : T ∈ Matrix.unitaryGroup H ℂ) :
@@ -117,6 +148,8 @@ theorem weight_sandwich_error {H : Type} [Fintype H] [DecidableEq H]
       (mul_le_mul_of_nonneg_right hright (norm_nonneg _))
     _ = _ := by ring
 
+/-- Compression by the same isometry on both sides does not increase the operator norm of a
+matrix difference. -/
 theorem weight_compress_error {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (F : Matrix H I ℂ) (hF : IsIsometry F)
     (A B : Matrix H H ℂ) : ‖compress F A F-compress F B F‖ ≤ ‖A-B‖ := by
@@ -132,6 +165,8 @@ theorem weight_compress_error {H I : Type} [Fintype H] [DecidableEq H]
       (mul_le_mul_of_nonneg_right hFt (norm_nonneg _)) hFn (norm_nonneg _) (by positivity)
     _ = _ := by ring
 
+/-- A reversed list of fixed gates has no oracle queries and has gate count equal to the list
+length. -/
 theorem weight_lift_counts {H J : Type} (g : J → Matrix H H ℂ) (l : List J) :
     adjointQueryCount ((l.map (fun j => AdjointStep.gate (g j))).reverse) = 0 ∧
     adjointGateCount ((l.map (fun j => AdjointStep.gate (g j))).reverse) = l.length := by
@@ -141,6 +176,7 @@ theorem weight_lift_counts {H J : Type} (g : J → Matrix H H ℂ) (l : List J) 
     simp [List.reverse_cons, adjointQueryCount_append, adjointGateCount_append,
       adjointQueryCount, adjointGateCount, ih]
 
+/-- The tensor-lifted rational weight preparation word is a well-formed adjoint circuit. -/
 theorem rationalWeightLiftWord_wellFormed {n : ℕ} (I : Type) [Fintype I] [DecidableEq I]
     (w : Option (Fin n) → ℚ) (k : ℕ) :
     WellFormedAdjointCircuit (rationalWeightLiftWord I w k) := by
@@ -150,6 +186,9 @@ theorem rationalWeightLiftWord_wellFormed {n : ℕ} (I : Type) [Fintype I] [Deci
   cases hj
   exact tensorGate_unitary (rationalWeightGate_unitary w k j) (by simp)
 
+/-- For nonnegative rational weights of positive mass and unitary summands, the LCU word is well
+formed and unitary, with one query and `2*n` fixed gates. Its compression equals the LCU of
+the prepared state and approximates the normalized weighted sum within `64*n/2^k`. -/
 theorem rational_weight_actual_lcu_error_and_accesses : ∀ (n k : ℕ)
     (I : Type) [Fintype I] [DecidableEq I]
     (w : Option (Fin n) → ℚ) (U : Option (Fin n) → Matrix I I ℂ),
@@ -217,6 +256,8 @@ theorem rational_weight_actual_lcu_error_and_accesses : ∀ (n k : ℕ)
       ((weight_sandwich_error P Q T hP hQ hT).trans
         ((mul_le_mul_of_nonneg_left hPQ (by norm_num)).trans_eq (by ring)))
 
+/-- The probability of returning to preparation label `j` equals the total squared norm after
+compression to that label. -/
 theorem weight_pivot_probability {J I : Type} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (A : Matrix (J×I) (J×I) ℂ) (j : J) (x : I) :
     MeasureProb (A *ᵥ Ket (j,x)) (Finset.univ.filter (fun p : J×I => p.1=j)) =
@@ -229,6 +270,9 @@ theorem weight_pivot_probability {J I : Type} [Fintype J] [DecidableEq J]
   rw [Fintype.sum_prod_type]
   simp [hentry, Matrix.mulVec, dotProduct, Ket, mul_ite]
 
+/-- The rational LCU for weights one and three approximates `(1/4) • 1 + (3/4) • PauliX` within
+`64/2^k`. On the specified input, the return probability differs from `5/8` by at most
+`128/2^k`. -/
 theorem rational_weight_quarter_three_quarter_lcu_consumer : ∀ (k : ℕ),
     let w : Option (Fin 1) → ℚ := fun a => if a=none then 1 else 3;
     let U : Option (Fin 1) → Matrix Bool Bool ℂ := fun a => if a=none then 1 else PauliX;

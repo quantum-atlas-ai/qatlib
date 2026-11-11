@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGNodes
 import Qatlib.Concepts.CircuitImpl.ReflectionCompile.CleanZeroReflection
 import Mathlib.Tactic
+
+/-!
+# Reversible compilation of Boolean directed acyclic graphs
+
+This module verifies the local gate compilation of `BooleanDAG`. The compiler evaluates the
+graph into clean work bits, XORs selected values into the output register, and uncomputes the
+work bits. It proves basis-state and coherent action together with explicit resource bounds.
+
+The construction uses reversible computation as described in [NielsenChuang2010].
+
+## Main statements
+
+* `boolean_dag_resources`: bounds the gate list by 30n + o gates with no queries.
+* `boolean_dag_basis`: proves the output XOR action and workspace restoration.
+* `boolean_dag_coherent`: extends the action to arbitrary embedded states.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,15 +42,20 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Replaces the first m+n bits of a larger register by the input and evaluated graph values,
+preserving the remaining bits. -/
 private def dagFilled {m n L : ℕ} (g : BooleanDAG m n) (_h : m+n ≤ L)
     (x : Reg m) (s : Reg L) : Reg L := fun w =>
   if hw : w.val < m+n then booleanDAGValue g x ⟨w.val,hw⟩ else s w
 
+/-- A source coordinate of `dagFilled` equals the corresponding evaluated graph value. -/
 private theorem dag_filled_source {m n L : ℕ} (g : BooleanDAG m n)
     (h : m+n ≤ L) (x : Reg m) (s : Reg L) (i : Fin (m+n)) :
     dagFilled g h x s (Fin.castLE h i)=booleanDAGValue g x i := by
   simp [dagFilled,i.isLt]
 
+/-- Compiling a graph into a register with the specified inputs and clean work bits fills its
+graph coordinates with `booleanDAGValue`. -/
 private theorem dag_compute_into_basis {m n L : ℕ} (g : BooleanDAG m n)
     (h : m+n ≤ L) (x : Reg m) (s : Reg L)
     (hx : ∀i:Fin m,s (Fin.castLE (by omega) i)=x i)
@@ -89,6 +115,7 @@ private theorem dag_compute_into_basis {m n L : ℕ} (g : BooleanDAG m n)
         have hnew : ¬w.val < m+(n+1) := by omega
         simp [dagFilled,hwp,hnew]
 
+/-- The graph evaluation list is legal and contains at most 15 gates per graph node. -/
 private theorem dag_compute_into_resources {m n L : ℕ} (g : BooleanDAG m n)
     (h : m+n ≤ L) :
     reflectionLegal (booleanDAGComputeInto g h) ∧
@@ -106,6 +133,8 @@ private theorem dag_compute_into_resources {m n L : ℕ} (g : BooleanDAG m n)
     · rw [booleanDAGComputeInto,List.length_append]
       omega
 
+/-- The forward graph computation maps a clean input basis register to the corresponding
+computed basis register. -/
 theorem boolean_dag_compute_basis {m n : ℕ} (g : BooleanDAG m n) (o : ℕ)
     (x : Reg m) (y : Reg o) :
     Run (1 : Matrix (Reg (m+n+o)) (Reg (m+n+o)) ℂ)
@@ -126,20 +155,25 @@ theorem boolean_dag_compute_basis {m n : ℕ} (g : BooleanDAG m n) (o : ℕ)
   · have hm : ¬w.val < m := by omega
     simp [dagFilled,booleanDAGComputed,booleanDAGInput,hwp,hm]
 
+/-- The physical wire occupied by an output bit after the input and work registers. -/
 private def dagOutputWire (m n o : ℕ) (j : Fin o) : Fin (m+n+o) :=
   ⟨m+n+j.val,by have := j.isLt; omega⟩
 
+/-- The output coordinates of a computed graph register retain the original output bits. -/
 private theorem dag_computed_output {m n : ℕ} (g : BooleanDAG m n)
     (o : ℕ) (x : Reg m) (y : Reg o) (j : Fin o) :
     booleanDAGComputed g o x y (dagOutputWire m n o j)=y j := by
   have hnot : ¬m+n+j.val < m+n := by omega
   simp [dagOutputWire,booleanDAGComputed,hnot]
 
+/-- The input and work coordinates of a computed graph register equal the graph evaluation. -/
 private theorem dag_computed_source {m n : ℕ} (g : BooleanDAG m n)
     (o : ℕ) (x : Reg m) (y : Reg o) (i : Fin (m+n)) :
     booleanDAGComputed g o x y (Fin.castLE (by omega) i)=booleanDAGValue g x i := by
   simp [booleanDAGComputed,i.isLt]
 
+/-- Updating an output wire in a computed graph register is equivalent to updating the
+corresponding output-register bit. -/
 private theorem dag_computed_update {m n : ℕ} (g : BooleanDAG m n)
     (o : ℕ) (x : Reg m) (y : Reg o) (j : Fin o) (v : Bool) :
     Function.update (booleanDAGComputed g o x y) (dagOutputWire m n o j) v =
@@ -161,9 +195,11 @@ private theorem dag_computed_update {m n : ℕ} (g : BooleanDAG m n)
         omega
       simp [booleanDAGComputed,hp,Function.update_of_ne hj]
 
+/-- The CNOT copying a selected graph value into its designated output wire by XOR. -/
 private def dagCopyGate {m n o : ℕ} (out : Fin o → Fin (m+n)) (j : Fin o) :
     ReflectionGate (m+n+o) := .inr (Fin.castLE (by omega) (out j),dagOutputWire m n o j)
 
+/-- Each copy gate has distinct source and output wires. -/
 private theorem dag_copy_distinct {m n o : ℕ} (out : Fin o → Fin (m+n)) (j : Fin o) :
     Fin.castLE (by omega) (out j) ≠ dagOutputWire m n o j := by
   intro he
@@ -172,6 +208,8 @@ private theorem dag_copy_distinct {m n o : ℕ} (out : Fin o → Fin (m+n)) (j :
   dsimp [dagOutputWire] at hv
   omega
 
+/-- Copying a list of distinct output positions XORs the selected graph values into exactly
+those output bits. -/
 private theorem dag_copy_list_basis {m n o : ℕ} (g : BooleanDAG m n)
     (out : Fin o → Fin (m+n)) (xs : List (Fin o)) (hxs : xs.Nodup)
     (x : Reg m) (y : Reg o) :
@@ -197,6 +235,8 @@ private theorem dag_copy_list_basis {m n o : ℕ} (g : BooleanDAG m n)
       simp [hn]
     · simp [hj]
 
+/-- The full copy list changes the output register to `booleanDAGOutput` while retaining the
+computed graph values. -/
 private theorem dag_copy_basis {m n o : ℕ} (g : BooleanDAG m n)
     (out : Fin o → Fin (m+n)) (x : Reg m) (y : Reg o) :
     Run (1:Matrix (Reg (m+n+o)) (Reg (m+n+o)) ℂ)
@@ -205,6 +245,7 @@ private theorem dag_copy_basis {m n o : ℕ} (g : BooleanDAG m n)
   simpa [booleanDAGCopy,dagCopyGate,dagOutputWire,booleanDAGOutput] using!
     dag_copy_list_basis g out (List.finRange o) (List.nodup_finRange o) x y
 
+/-- The copy list is legal and contains exactly one gate per output bit. -/
 private theorem dag_copy_resources {m n o : ℕ} (out : Fin o → Fin (m+n)) :
     reflectionLegal (booleanDAGCopy m n o out) ∧ (booleanDAGCopy m n o out).length=o := by
   constructor
@@ -213,6 +254,8 @@ private theorem dag_copy_resources {m n o : ℕ} (out : Fin o → Fin (m+n)) :
     exact dag_copy_distinct out j
   · simp [booleanDAGCopy]
 
+/-- The compute-copy-uncompute list is legal, has length at most 30n + o, uses no queries, and
+has compiled gate count equal to its length. -/
 theorem boolean_dag_resources {m n o : ℕ} (g : BooleanDAG m n)
     (out : Fin o → Fin (m+n)) :
     reflectionLegal (booleanDAGSteps g out) ∧
@@ -229,6 +272,8 @@ theorem boolean_dag_resources {m n o : ℕ} (g : BooleanDAG m n)
   · simp only [booleanDAGSteps,List.length_append,reflectionAdjoint_length,hp.2]
     omega
 
+/-- If a legal local gate list maps one basis state to another, its adjoint list maps the
+resulting basis state back to the original. -/
 private theorem dag_adjoint_uncomputes {L : ℕ} (gs : List (ReflectionGate L))
     (hg : reflectionLegal gs) (s t : Reg L)
     (hst : Run (1:Matrix (Reg L) (Reg L) ℂ) (reflectionCompile gs) (Ket s)=Ket t) :
@@ -240,6 +285,8 @@ private theorem dag_adjoint_uncomputes {L : ℕ} (gs : List (ReflectionGate L))
   simp only [Matrix.star_eq_conjTranspose] at hu
   rw [hu,applyGate_one]
 
+/-- The full compiled graph XORs the selected graph values into a basis output register,
+preserves the input, and restores clean work bits. -/
 theorem boolean_dag_basis {m n o : ℕ} (g : BooleanDAG m n)
     (out : Fin o → Fin (m+n)) (x : Reg m) (y : Reg o) :
     Run (1 : Matrix (Reg (m+n+o)) (Reg (m+n+o)) ℂ)
@@ -251,6 +298,8 @@ theorem boolean_dag_basis {m n o : ℕ} (g : BooleanDAG m n)
     (dag_compute_into_resources g (by omega : m+n ≤ m+n+o)).1 _ _
     (boolean_dag_compute_basis g o x (booleanDAGOutput g out x y))
 
+/-- The compiled graph performs the same output XOR operation coherently on an arbitrary
+embedded state, with its work bits restored to false. -/
 theorem boolean_dag_coherent {m n o : ℕ} (g : BooleanDAG m n)
     (out : Fin o → Fin (m+n)) (ψ : QState (Reg m × Reg o)) :
     Run (1 : Matrix (Reg (m+n+o)) (Reg (m+n+o)) ℂ)

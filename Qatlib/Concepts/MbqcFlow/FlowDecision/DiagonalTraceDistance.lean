@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
+
+/-!
+# Diagonal entries controlled by trace distance
+
+This module proves `abs_diagonal_re_le_half_traceNorm`: each real diagonal entry of a finite
+Hermitian matrix with trace zero has absolute value at most half its trace norm. Applied to a
+difference of density operators, this controls differences of computational-basis measurement
+probabilities by trace distance, as in the distinguishability framework of [Watrous2018].
+
+## Main statements
+
+* `abs_diagonal_re_le_half_traceNorm`: the diagonal-entry bound for a trace-zero Hermitian
+  matrix.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +32,8 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 
 open scoped BigOperators
 
+/-- For a finite Hermitian matrix with trace zero, the absolute real part of any diagonal entry
+is at most half its trace norm. -/
 theorem abs_diagonal_re_le_half_traceNorm
     {I : Type*} [Fintype I] [DecidableEq I] (X : Matrix I I ℂ)
     (_hX : X.IsHermitian) (htrace : X.trace = 0) (i : I) :

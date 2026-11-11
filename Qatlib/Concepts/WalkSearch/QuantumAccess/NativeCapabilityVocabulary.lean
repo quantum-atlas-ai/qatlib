@@ -11,6 +11,29 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
 import Qatlib.Foundations.PureStateMath.Qubit
 import Mathlib.Data.Fintype.Card
+
+/-!
+# Native circuit-realization predicates
+
+This module defines circuit-realization predicates for Grover, noisy-search, and
+collision-solver interfaces. Each predicate requires unitary circuit families, normalized
+initial states, query bounds, and per-seed Born-probability guarantees when a marked witness
+exists.
+
+The predicates use the finite-state circuit and measurement framework described in
+[NielsenChuang2010].
+
+## Main statements
+
+* `SafeGrover.NativeRealized`: the native marked-item realization requirement.
+* `NoisySearch.NativeRealized`: the requirement conditional on test soundness.
+* `KCollisionSolver.NativeRealized`: the tuple-register realization requirement.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -25,6 +48,8 @@ open Qatlib
 open Qatlib.Concepts.WalkSearch.Primitives
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- Requires bounded-query unitary circuit families and normalized initial states for every
+marked-item input, with the stated per-seed success lower bound when a marked item exists. -/
 def SafeGrover.NativeRealized (sgs : Qatlib.Concepts.WalkSearch.Primitives.SafeGrover) : Prop :=
   ∀ (N : ℕ) (marked : Fin N → Bool) (check floor : ℕ),
     ∃ (circuit : sgs.seed → Circuit (Fin N)) (start : sgs.seed → QState (Fin N)),
@@ -39,6 +64,9 @@ def SafeGrover.NativeRealized (sgs : Qatlib.Concepts.WalkSearch.Primitives.SafeG
             (circuit ρ) (start ρ))
             (Finset.univ.filter (fun x => marked x = true)))
 
+/-- Requires bounded-query unitary circuit families and normalized initial states for every
+input with a sound test, with the stated per-seed success lower bound when a marked item
+exists. -/
 def NoisySearch.NativeRealized (ncs : NoisySearch) : Prop :=
   ∀ (N : ℕ) (marked : Fin N → Bool) (test : Fin N → Bool) (tcost floor : ℕ),
     (∀ v, test v = true → marked v = true) →
@@ -53,6 +81,8 @@ def NoisySearch.NativeRealized (ncs : NoisySearch) : Prop :=
             (circuit ρ) (start ρ))
             (Finset.univ.filter (fun v => marked v = true)))
 
+/-- Requires unitary circuit families on tuple registers with normalized starts, the stated
+real-valued query bound, and a per-seed success lower bound when a satisfying tuple exists. -/
 def KCollisionSolver.NativeRealized (kcs : KCollisionSolver) : Prop :=
   ∀ (n k r s u c : ℕ) (R : (Fin k → Fin n) → Bool),
     ∃ (circuit : kcs.seed → Circuit (Fin k → Fin n))

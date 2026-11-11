@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.IndexedQSVTBridge
 import Qatlib.Papers.Cbmd26.Algorithms.ControlledAccessBridge
+
+/-!
+# Compiling four selected circuit branches
+
+`fourLabelEquiv` represents four branch labels by two Boolean registers, allowing
+`compileFourSelected` to assemble four circuit words into a selected unitary.
+`fourCoefficientWord` adds LCU coefficient preparation, and `cleanFourCoefficientWord`
+implements the resulting word through a controlled parallel oracle. These constructions support
+the four-branch combinations used in [WangEtAl2026].
+
+## Main statements
+
+* `compileFourSelected_evaluate`: identifies the compiled word with selection among the four
+  branch evaluations.
+* `cleanFourCoefficientWord_blockEncoding`: preserves a supplied LCU block encoding and records
+  exact circuit costs.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -45,6 +67,8 @@ noncomputable section
 namespace CBMD
 open Matrix
 
+/-- The equivalence between four labels and two Boolean bits, using the high and low binary
+digits. -/
 def fourLabelEquiv : Fin 4 ≃ Bool × Bool where
   toFun j := (decide (2 ≤ j.val), decide (j.val % 2 = 1))
   invFun b := ⟨(if b.1 then 2 else 0) + (if b.2 then 1 else 0), by
@@ -52,18 +76,25 @@ def fourLabelEquiv : Fin 4 ≃ Bool × Bool where
   left_inv j := by fin_cases j <;> rfl
   right_inv b := by rcases b with ⟨a,b⟩; cases a <;> cases b <;> rfl
 
+/-- The workspace equivalence replacing a `Fin 4` branch register by two nested Boolean
+registers. -/
 def fourWorkspaceEquiv (H : Type) : Fin 4 × H ≃ Bool × (Bool × H) :=
   (Equiv.prodCongr fourLabelEquiv (Equiv.refl H)).trans (Equiv.prodAssoc Bool Bool H)
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- The circuit word selecting among four branch words, compiled through two levels of Boolean
+selection. -/
 def compileFourSelected (cs : Fin 4 → List (AdjointStep H)) :
     List (AdjointStep (Fin 4 × H)) :=
   reindexAdjointWord (fourWorkspaceEquiv H)
     (compileSelected (compileSelected (cs 3) (cs 2)) (compileSelected (cs 1) (cs 0)))
 
+/-- The activation mask that is true exactly on branch label three. -/
 def fourActive (j : Fin 4) : Bool := decide (j = 3)
 
+/-- Evaluating the four-branch word with the masked oracle gives the block-diagonal selection of
+the four branch evaluations. -/
 theorem compileFourSelected_evaluate (U : Matrix H H ℂ)
     (cs : Fin 4 → List (AdjointStep H)) :
     evaluate (maskedOracle fourActive U) (compileFourSelected cs) =
@@ -83,6 +114,8 @@ theorem compileFourSelected_evaluate (U : Matrix H H ℂ)
 
 omit [Fintype H] in
 
+/-- The selected word uses the sum of the four branch query counts and the sum of their
+fixed-gate counts plus six. -/
 theorem compileFourSelected_cost (cs : Fin 4 → List (AdjointStep H)) :
     adjointQueryCount (compileFourSelected cs) = ∑ j, adjointQueryCount (cs j) ∧
     adjointGateCount (compileFourSelected cs) = (∑ j, adjointGateCount (cs j)) + 6 := by
@@ -91,6 +124,7 @@ theorem compileFourSelected_cost (cs : Fin 4 → List (AdjointStep H)) :
     Fin.sum_univ_succ]
   omega
 
+/-- Compiling four well-formed branch words produces a well-formed selected word. -/
 theorem compileFourSelected_wellFormed (cs : Fin 4 → List (AdjointStep H))
     (hcs : ∀ j, WellFormedAdjointCircuit (cs j)) :
     WellFormedAdjointCircuit (compileFourSelected cs) :=
@@ -98,10 +132,13 @@ theorem compileFourSelected_wellFormed (cs : Fin 4 → List (AdjointStep H))
     (compileSelected_wellFormed (hcs 3) (hcs 2))
     (compileSelected_wellFormed (hcs 1) (hcs 0)))
 
+/-- The four-branch selected word wrapped with LCU coefficient preparation at label zero. -/
 def fourCoefficientWord (c : Fin 4 → ℂ) (cs : Fin 4 → List (AdjointStep H)) :
     List (AdjointStep (Fin 4 × H)) :=
   outerCoefficientWord c 0 (compileFourSelected cs)
 
+/-- The coefficient-wrapped four-branch word evaluates to the coefficient LCU unitary of the
+four branch evaluations. -/
 theorem fourCoefficientWord_evaluate (U : Matrix H H ℂ) (c : Fin 4 → ℂ)
     (cs : Fin 4 → List (AdjointStep H)) :
     evaluate (maskedOracle fourActive U) (fourCoefficientWord c cs) =
@@ -110,6 +147,8 @@ theorem fourCoefficientWord_evaluate (U : Matrix H H ℂ) (c : Fin 4 → ℂ)
 
 omit [Fintype H] in
 
+/-- The coefficient word uses the sum of the branch query counts and the sum of their fixed-gate
+counts plus nine. -/
 theorem fourCoefficientWord_cost (c : Fin 4 → ℂ) (cs : Fin 4 → List (AdjointStep H)) :
     adjointQueryCount (fourCoefficientWord c cs) = ∑ j, adjointQueryCount (cs j) ∧
     adjointGateCount (fourCoefficientWord c cs) = (∑ j, adjointGateCount (cs j)) + 9 := by
@@ -118,15 +157,21 @@ theorem fourCoefficientWord_cost (c : Fin 4 → ℂ) (cs : Fin 4 → List (Adjoi
   rw [(compileFourSelected_cost cs).2] at hg
   exact ⟨hq, hg.trans (by omega)⟩
 
+/-- Positive coefficient mass and well-formed branches make the four-branch coefficient word
+well formed. -/
 theorem fourCoefficientWord_wellFormed (c : Fin 4 → ℂ) (hc : 0 < coefficientMass c)
     (cs : Fin 4 → List (AdjointStep H)) (hcs : ∀ j, WellFormedAdjointCircuit (cs j)) :
     WellFormedAdjointCircuit (fourCoefficientWord c cs) :=
   outerCoefficientWord_wellFormed c 0 hc (compileFourSelected_wellFormed cs hcs)
 
+/-- The four-branch coefficient word compiled with a clean control register for access to a
+controlled parallel oracle. -/
 def cleanFourCoefficientWord (c : Fin 4 → ℂ) (cs : Fin 4 → List (AdjointStep H)) :
     List (AdjointStep (Bool × (Fin 4 × H))) :=
   cleanMaskedWord fourActive (fourCoefficientWord c cs)
 
+/-- Cleaning preserves the total branch query count and adds nine fixed gates plus two fixed
+gates per branch query to the total branch fixed-gate count. -/
 theorem cleanFourCoefficientWord_cost (c : Fin 4 → ℂ)
     (cs : Fin 4 → List (AdjointStep H)) :
     adjointQueryCount (cleanFourCoefficientWord c cs) = ∑ j, adjointQueryCount (cs j) ∧
@@ -137,6 +182,9 @@ theorem cleanFourCoefficientWord_cost (c : Fin 4 → ℂ)
   rw [(fourCoefficientWord_cost c cs).1, (fourCoefficientWord_cost c cs).2] at hg
   exact ⟨hq, hg⟩
 
+/-- For a unitary oracle, positive coefficient mass, and well-formed branches, the clean word
+preserves the supplied LCU block encoding in a false-tagged frame. It uses the sum of branch
+queries and the sum of branch fixed gates plus nine plus twice the total queries. -/
 theorem cleanFourCoefficientWord_blockEncoding {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ)
     (c : Fin 4 → ℂ) (hc : 0 < coefficientMass c)

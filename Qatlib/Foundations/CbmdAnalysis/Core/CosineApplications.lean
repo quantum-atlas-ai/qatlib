@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineSeriesIdentity
 import Qatlib.Foundations.CbmdAnalysis.Core.CosineAngularComparison
+
+/-!
+# Cosine sampling formulas for matrix propagators
+
+This module specializes the cosine-regulator sampling series to wave, Bessel, and Airy
+propagators of `L + I • H`. For positive semidefinite `L`, positive definite `H`, and a norm
+bound on `H`, it proves absolute summability and explicit inverse-square truncation errors. The
+Airy formulas use `airyTimeScale`, as in [WangEtAl2026].
+
+## Main statements
+
+* `wave_cbmd_series`: an absolutely summable wave sampling representation.
+* `bessel_cbmd_target_error`: an explicit truncation error for the Bessel representation.
+* `airy_cbmd_target_error`: the corresponding Airy error with the transformed time scale.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -18,6 +38,9 @@ open Complex
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- For positive semidefinite `L`, positive definite `H`, positive `γ` and time with `‖H‖ ≤ γ`,
+the weighted wave samples are absolutely summable and reconstruct the target as the
+regulator-weighted baseline minus the regulator-weighted sample series [WangEtAl2026]. -/
 theorem wave_cbmd_series (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hγH : ‖H‖ ≤ γ) :
     Summable (fun k : ℕ => ‖cosineSampleCoefficient γ t k •
@@ -34,6 +57,8 @@ theorem wave_cbmd_series (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosD
   simpa only [cosineSample, cosineLCUSum, waveCosineNumerator, cosinePencil_sample,
     mul_one, mul_zero, zero_smul, add_zero] using! And.intro hn hid
 
+/-- Under the positivity and norm hypotheses, truncating the wave sampling formula after index
+`K` gives error at most `‖cosineRegulator γ t 1‖ * γ * t ^ 2 / (π ^ 3 * (K + 1 / 2) ^ 2)`. -/
 theorem wave_cbmd_target_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hγH : ‖H‖ ≤ γ) (K : ℕ) :
     ‖wavePropagator (L + I • H) (t : ℂ) -
@@ -49,6 +74,9 @@ theorem wave_cbmd_target_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : 
   simpa only [cosineSample, cosineLCUSum, waveCosineNumerator, cosinePencil_sample,
     mul_one, mul_zero, zero_smul, add_zero] using! he
 
+/-- For positive semidefinite `L`, positive definite `H`, positive `γ` and time with `‖H‖ ≤ γ`,
+the weighted Bessel samples are absolutely summable and reconstruct the target as the
+regulator-weighted baseline minus the regulator-weighted sample series [WangEtAl2026]. -/
 theorem bessel_cbmd_series (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hγH : ‖H‖ ≤ γ) :
     Summable (fun k : ℕ => ‖cosineSampleCoefficient γ t k •
@@ -65,6 +93,8 @@ theorem bessel_cbmd_series (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.Po
   simpa only [cosineSample, cosineLCUSum, besselCosineNumerator, cosinePencil_sample,
     mul_one, mul_zero, zero_smul, add_zero] using! And.intro hn hid
 
+/-- Under the positivity and norm hypotheses, truncating the Bessel sampling formula after index
+`K` gives error at most `‖cosineRegulator γ t 1‖ * γ * t ^ 2 / (π ^ 3 * (K + 1 / 2) ^ 2)`. -/
 theorem bessel_cbmd_target_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hγH : ‖H‖ ≤ γ) (K : ℕ) :
     ‖besselPropagator (L + I • H) (t : ℂ) -
@@ -80,6 +110,9 @@ theorem bessel_cbmd_target_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH 
   simpa only [cosineSample, cosineLCUSum, besselCosineNumerator, cosinePencil_sample,
     mul_one, mul_zero, zero_smul, add_zero] using! he
 
+/-- For positive semidefinite `L`, positive definite `H`, positive `γ` and time with `‖H‖ ≤ γ`,
+the Airy samples using `airyTimeScale t` are absolutely summable and reconstruct the target
+from the regulator-weighted baseline and sample series [WangEtAl2026]. -/
 theorem airy_cbmd_series (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hγH : ‖H‖ ≤ γ) :
     Summable (fun k : ℕ => ‖cosineSampleCoefficient γ (airyTimeScale t) k •
@@ -96,6 +129,9 @@ theorem airy_cbmd_series (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosD
   simpa only [cosineSample, cosineLCUSum, airyCosineNumerator, cosinePencil_sample,
     mul_one, mul_zero, zero_smul, add_zero] using! And.intro hn hid
 
+/-- Under the positivity and norm hypotheses, truncating the Airy sampling formula after index
+`K` gives error at most `‖cosineRegulator γ (airyTimeScale t) 1‖ * γ * (airyTimeScale t) ^ 2
+/ (π ^ 3 * (K + 1 / 2) ^ 2)`. -/
 theorem airy_cbmd_target_error (L H : Matrix n n ℂ) (hL : L.PosSemidef) (hH : H.PosDef)
     {γ t : ℝ} (hγ : 0 < γ) (ht : 0 < t) (hγH : ‖H‖ ≤ γ) (K : ℕ) :
     ‖airyPropagator (L + I • H) (t : ℂ) -

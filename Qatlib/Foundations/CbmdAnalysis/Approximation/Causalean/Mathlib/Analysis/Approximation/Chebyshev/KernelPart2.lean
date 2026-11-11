@@ -10,6 +10,27 @@ import Mathlib.Analysis.Complex.Polynomial.Basic
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Tactic.NormNum.Parity
 import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.KernelPart1
+
+/-!
+# Jackson kernel normalization and moment bounds
+
+This module computes the raw Jackson mass and proves positivity, symmetry, and unit integral for
+the normalized kernel at positive order. First and second moment estimates and a trigonometric
+degree bound supply quantitative kernel estimates for the approximation framework associated
+with [WangEtAl2026].
+
+## Main statements
+
+* `jrawMass_eq`: Compute the normalization constant.
+* `jackson_first_moment`: Bound the absolute first moment by `32 / K`.
+* `jackson_second_moment`: Bound the second moment by `64 / K ^ 2`.
+* `jackson_isTrigPolyLE`: Bound the trigonometric degree by `2 * (K - 1)`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +43,7 @@ namespace Causalean.Mathlib.Analysis.JacksonApproximation
 open MeasureTheory Real
 open scoped BigOperators
 
+/-- For positive `K`, the raw kernel mass is `(2 * π / 3) * K * (2 * K ^ 2 + 1)`. -/
 theorem jrawMass_eq (K : ℕ) (hK : 0 < K) :
     jrawMass K = (2 * Real.pi / 3) * (K : ℝ) * (2 * (K : ℝ) ^ 2 + 1) := by
   have hcast : ((K - 1 : ℕ) : ℝ) = (K : ℝ) - 1 := by
@@ -68,6 +90,7 @@ theorem jrawMass_eq (K : ℕ) (hK : 0 < K) :
   rw [hcoeff, hcast]
   ring
 
+/-- For positive `K`, the raw kernel mass is at least `(4 * π / 3) * K ^ 3`. -/
 theorem jrawMass_lower (K : ℕ) (hK : 0 < K) :
     (4 * Real.pi / 3) * (K : ℝ) ^ 3 ≤ jrawMass K := by
   rw [jrawMass_eq K hK]
@@ -75,6 +98,7 @@ theorem jrawMass_lower (K : ℕ) (hK : 0 < K) :
   have hKR : (1 : ℝ) ≤ K := by exact_mod_cast hK
   nlinarith [sq_nonneg ((K : ℝ) - 1)]
 
+/-- For positive `K`, the raw kernel mass is at most `2 * π * K ^ 3`. -/
 theorem jrawMass_upper (K : ℕ) (hK : 0 < K) :
     jrawMass K ≤ 2 * Real.pi * (K : ℝ) ^ 3 := by
   rw [jrawMass_eq K hK]
@@ -87,38 +111,46 @@ theorem jrawMass_upper (K : ℕ) (hK : 0 < K) :
       exact mul_le_mul_of_nonneg_left hsquare (by positivity)
     _ = 2 * Real.pi * (K : ℝ) ^ 3 := by ring
 
+/-- The raw kernel mass is strictly positive for positive `K`. -/
 theorem jrawMass_pos (K : ℕ) (hK : 0 < K) : 0 < jrawMass K := by
   have hl := jrawMass_lower K hK
   have hpi : 0 < Real.pi := Real.pi_pos
   have hKR : (0 : ℝ) < K := by exact_mod_cast hK
   exact lt_of_lt_of_le (by positivity) hl
 
+/-- The normalized Jackson kernel is continuous. -/
 @[fun_prop]
 theorem continuous_jackson (K : ℕ) : Continuous (jackson K) := by
   unfold jackson
   fun_prop
 
+/-- The normalized Jackson kernel is measurable. -/
 @[fun_prop]
 theorem measurable_jackson (K : ℕ) : Measurable (jackson K) := by
   exact (continuous_jackson K).measurable
 
+/-- The normalized Jackson kernel is integrable on `[-π, π]`. -/
 theorem integrableOn_jackson (K : ℕ) :
     IntegrableOn (jackson K) (Set.Icc (-Real.pi) Real.pi) := by
   exact (continuous_jackson K).continuousOn.integrableOn_compact isCompact_Icc
 
+/-- The normalized Jackson kernel is nonnegative for positive `K`. -/
 theorem jackson_nonneg (K : ℕ) (hK : 0 < K) (t : ℝ) : 0 ≤ jackson K t := by
   exact div_nonneg (jraw_nonneg K t) (jrawMass_pos K hK).le
 
+/-- The normalized Jackson kernel is an even function. -/
 theorem jackson_even (K : ℕ) : Function.Even (jackson K) := by
   intro t
   simp only [jackson, jraw_even K t]
 
+/-- For positive `K`, the normalized Jackson kernel integrates to one over `[-π, π]`. -/
 theorem jackson_integral_eq_one (K : ℕ) (hK : 0 < K) :
     (∫ t in Set.Icc (-Real.pi) Real.pi, jackson K t) = 1 := by
   rw [show jackson K = fun t => jraw K t / jrawMass K by rfl,
     MeasureTheory.integral_div, ← jrawMass]
   exact div_self (jrawMass_pos K hK).ne'
 
+/-- For `t` in `[-π, π]`, `t ^ 2` is bounded by `π ^ 2 * sin (t / 2) ^ 2`. -/
 private lemma sq_le_pi_sq_mul_sin_sq {t : ℝ}
     (ht : t ∈ Set.Icc (-Real.pi) Real.pi) :
     t ^ 2 ≤ Real.pi ^ 2 * Real.sin (t / 2) ^ 2 := by
@@ -147,6 +179,8 @@ private lemma sq_le_pi_sq_mul_sin_sq {t : ℝ}
     _ = Real.pi ^ 2 * Real.sin (t / 2) ^ 2 := by
       rw [mul_pow, sq_abs]
 
+/-- For positive `K` and `t` in `[-π, π]`, `t ^ 2` times the raw kernel is bounded by `π ^ 2`
+times the squared Chebyshev value `U (K - 1)` at `cos (t / 2)`. -/
 private lemma weighted_jraw_le (K : ℕ) (hK : 0 < K) {t : ℝ}
     (ht : t ∈ Set.Icc (-Real.pi) Real.pi) :
     t ^ 2 * jraw K t ≤ Real.pi ^ 2 *
@@ -204,6 +238,8 @@ private lemma weighted_jraw_le (K : ℕ) (hK : 0 < K) {t : ℝ}
           (sq_nonneg (s / d))
       _ = Real.pi ^ 2 * u ^ 2 := by rw [hu]
 
+/-- For positive `K`, the integral of `U (K - 1)` at `cos (t / 2)`, squared, over `[-π, π]` is
+`2 * π * K`. -/
 private lemma integral_cheb_U_sq (K : ℕ) (hK : 0 < K) :
     (∫ t in Set.Icc (-Real.pi) Real.pi,
       (Polynomial.Chebyshev.U ℝ ((K - 1 : ℕ) : ℤ)).eval
@@ -252,6 +288,8 @@ private lemma integral_cheb_U_sq (K : ℕ) (hK : 0 < K) :
   rw [integral_const_Icc]
   ring
 
+/-- For positive `K`, the second moment of the normalized Jackson kernel on `[-π, π]` is at most
+`24 / K ^ 2`. -/
 private lemma jackson_second_moment_aux (K : ℕ) (hK : 0 < K) :
     (∫ t in Set.Icc (-Real.pi) Real.pi, t ^ 2 * jackson K t) ≤
       24 / (K : ℝ) ^ 2 := by
@@ -297,6 +335,8 @@ private lemma jackson_second_moment_aux (K : ℕ) (hK : 0 < K) :
     _ ≤ (24 / (K : ℝ) ^ 2) * jrawMass K := by
       exact mul_le_mul_of_nonneg_left hmass (by positivity)
 
+/-- For positive `K`, the absolute first moment of the normalized Jackson kernel on `[-π, π]` is
+at most `32 / K`. -/
 theorem jackson_first_moment (K : ℕ) (hK : 0 < K) :
     (∫ t in Set.Icc (-Real.pi) Real.pi, |t| * jackson K t) ≤ 32 / (K : ℝ) := by
   have hKR : (0 : ℝ) < K := by exact_mod_cast hK
@@ -347,6 +387,8 @@ theorem jackson_first_moment (K : ℕ) (hK : 0 < K) :
       field_simp
       nlinarith
 
+/-- For positive `K`, the second moment of the normalized Jackson kernel on `[-π, π]` is at most
+`64 / K ^ 2`. -/
 theorem jackson_second_moment (K : ℕ) (hK : 0 < K) :
     (∫ t in Set.Icc (-Real.pi) Real.pi, t ^ 2 * jackson K t) ≤
       64 / (K : ℝ) ^ 2 := by
@@ -355,6 +397,8 @@ theorem jackson_second_moment (K : ℕ) (hK : 0 < K) :
   field_simp
   nlinarith
 
+/-- For positive `K`, the raw Jackson kernel is a trigonometric polynomial of degree at most `2
+* (K - 1)`. -/
 theorem jraw_isTrigPolyLE (K : ℕ) (hK : 0 < K) :
     Causalean.Mathlib.Analysis.BernsteinSzegoTrig.IsTrigPolyLE (2 * (K - 1)) (jraw K) := by
   let U : Polynomial ℝ := Polynomial.Chebyshev.U ℝ ((K - 1 : ℕ) : ℤ)
@@ -413,6 +457,8 @@ theorem jraw_isTrigPolyLE (K : ℕ) (hK : 0 < K) :
       congr 1
       ring
 
+/-- For positive `K`, the normalized Jackson kernel is a trigonometric polynomial of degree at
+most `2 * (K - 1)`. -/
 theorem jackson_isTrigPolyLE (K : ℕ) (hK : 0 < K) :
     Causalean.Mathlib.Analysis.BernsteinSzegoTrig.IsTrigPolyLE
       (2 * (K - 1)) (jackson K) := by

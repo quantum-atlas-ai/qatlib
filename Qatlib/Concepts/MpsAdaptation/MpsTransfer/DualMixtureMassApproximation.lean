@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationError
+
+/-!
+# Positive grid approximations of mixture masses
+
+The rational approximation `gridMass` rounds each nonnegative mass upward on a grid of spacing
+1/(n + 1), giving strictly positive approximate masses. Their total L1 error is at most K/(n +
+1), and `gridEffective` packages this bound with a convergence modulus. These masses support
+mixture sampling for the dual constructions motivated by [BrandaoSvore2017].
+
+## Main statements
+
+* `gridMass_error`: coordinatewise rounding error lies between zero and 1/(n + 1).
+* `gridMass_l1`: the real L1 error is at most K/(n + 1).
+* `gridEffective`: positive rational approximations form an effective-mass package.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,17 +35,24 @@ namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 open Qatlib
 open scoped Classical ENNReal
 
+/-- The rational mass obtained by taking the natural floor of (n + 1) times an input mass,
+adding one, and dividing by `n + 1`. -/
 def gridMass {K : ℕ} (v : Fin K → ℚ) (n : ℕ) (i : Fin K) : ℚ :=
   ((Nat.floor ((n+1 : ℚ) * v i) : ℚ)+1)/(n+1 : ℚ)
 
+/-- The integer sampling weights obtained from the positive rational grid masses by
+`intWeights`. -/
 def gridWeights {K : ℕ} (v : Fin K → ℚ) (n : ℕ) : Fin K → ℕ :=
   intWeights (gridMass v n)
 
+/-- Every grid mass is strictly positive, for any rational input mass and natural grid
+parameter. -/
 theorem gridMass_pos {K : ℕ} (v : Fin K → ℚ) (n : ℕ) (i : Fin K) :
     0 < gridMass v n i := by
   unfold gridMass
   positivity
 
+/-- For a nonnegative input mass, upward grid rounding has error between zero and 1/(n + 1). -/
 theorem gridMass_error {K : ℕ} (v : Fin K → ℚ) (hv : ∀ i, 0 ≤ v i)
     (n : ℕ) (i : Fin K) : 0 ≤ gridMass v n i - v i ∧
       gridMass v n i - v i ≤ 1/(n+1 : ℚ) := by
@@ -42,6 +69,8 @@ theorem gridMass_error {K : ℕ} (v : Fin K → ℚ) (hv : ∀ i, 0 ≤ v i)
     field_simp
     nlinarith
 
+/-- For `K` nonnegative rational masses, the sum of absolute real errors of their grid
+approximations is at most K/(n + 1). -/
 theorem gridMass_l1 {K : ℕ} (v : Fin K → ℚ) (hv : ∀ i, 0 ≤ v i) (n : ℕ) :
     (∑ i, |(gridMass v n i : ℝ)-(v i : ℝ)|) ≤ (K : ℝ)/(n+1) := by
   calc
@@ -56,6 +85,8 @@ theorem gridMass_l1 {K : ℕ} (v : Fin K → ℚ) (hv : ∀ i, 0 ≤ v i) (n : �
       simpa only [Rat.cast_sub, Rat.cast_div, Rat.cast_one, Rat.cast_add, Rat.cast_natCast] using hh
     _ = _ := by simp [div_eq_mul_inv]
 
+/-- The effective-mass package for nonnegative rational masses of positive total, using positive
+grid approximations with error K/(n + 1) and modulus K(k + 1). -/
 noncomputable def gridEffective {K : ℕ} (v : Fin K → ℚ) (hv : ∀ i, 0 ≤ v i)
     (hS : 0 < ∑ i, (v i : ℝ)) : EffectiveMasses K where
   value := fun i => (v i : ℝ)

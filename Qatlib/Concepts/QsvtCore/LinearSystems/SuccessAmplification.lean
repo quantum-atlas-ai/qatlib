@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
 import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
 import Qatlib.Concepts.QsvtCore.LinearSystems.ConstructivePseudoinverse
+
+/-!
+# Fresh-trial amplification for pseudoinverse preparation
+
+This module bounds repeated postselection failure and compiles fresh preparations into a unitary
+program with explicit query counts. `preparedFresh_reliable` transfers a single-trial success
+bound to a failure probability of at most one third after `32 * n` trials.
+
+The constructive pseudoinverse results combine a spectral gap, reciprocal approximation, and
+postselection to prepare approximate minimum-norm solution states, in the QSVT setting of
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `failure_power_32n`: bounds the probability that all trials fail.
+* `constructivePseudoinverse_wellFormed_output`: constructs a circuit with a postselection
+  success bound and an approximate solution state.
+* `constructivePseudoinverse_reliable_fresh`: combines the construction with fresh-trial
+  amplification.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,6 +58,7 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Matrix.Norms.L2Operator
 
+/-- For a real p ≤ 1 and a natural k, the product (1 + kp)(1 - p)^k is at most one. -/
 theorem failure_power_mul_bound {p : ℝ} (hp1 : p ≤ 1) (k : ℕ) :
     (1 + (k : ℝ) * p) * (1 - p) ^ k ≤ 1 := by
   induction k with
@@ -49,12 +75,15 @@ theorem failure_power_mul_bound {p : ℝ} (hp1 : p ≤ 1) (k : ℕ) :
       _ ≤ (1 + (k : ℝ) * p) * (1 - p) ^ k := mul_le_mul_of_nonneg_right hstep hpow
       _ ≤ 1 := ih
 
+/-- For p in [0, 1], bounds the failure power (1 - p)^k by 1 / (1 + kp). -/
 theorem failure_power_le {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (k : ℕ) :
     (1 - p) ^ k ≤ 1 / (1 + (k : ℝ) * p) := by
   have hd : 0 < 1 + (k : ℝ) * p := by positivity
   apply (le_div_iff₀ hd).2
   simpa only [mul_comm] using failure_power_mul_bound hp1 k
 
+/-- If n is positive and p in [0, 1] is at least 1/(16n), then failure in all 32n trials has
+probability at most one third. -/
 theorem failure_power_32n {n : ℕ} (hn : 0 < n) {p : ℝ}
     (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hp : 1 / (16 * (n : ℝ)) ≤ p) :
     (1 - p) ^ (32 * n) ≤ 1 / 3 := by
@@ -68,6 +97,8 @@ theorem failure_power_32n {n : ℕ} (hn : 0 < n) {p : ℝ}
   apply (div_le_iff₀ (show 0 < 1 + ((32 * n : ℕ) : ℝ) * p by positivity)).2
   nlinarith
 
+/-- For an orthogonal projector and a normalized state, the mass of the all-failed fresh history
+is the kth power of the single-trial failure probability. -/
 theorem fresh_failure_eq {H : Type*} [Fintype H] [DecidableEq H]
     {P : Matrix H H ℂ} (hP : IsOrthogonalProjector P)
     {ψ : QState H} (hψ : Normalized ψ) (k : ℕ) :
@@ -77,6 +108,8 @@ theorem fresh_failure_eq {H : Type*} [Fintype H] [DecidableEq H]
   have hf : ProjectiveBranchMass P false ψ = 1 - ProjectiveBranchMass P true ψ := by linarith
   rw [freshHistoryMass_allFailed, hf]
 
+/-- If the single-trial success mass is at least 1/(16n) for positive n, the fresh measurement
+law assigns mass at most one third to failure in all 32n trials. -/
 theorem freshMeasurementLaw_failure_le {H : Type*} [Fintype H] [DecidableEq H]
     {P : Matrix H H ℂ} (hP : IsOrthogonalProjector P)
     {ψ : QState H} (hψ : Normalized ψ) {n : ℕ} (hn : 0 < n)
@@ -93,6 +126,10 @@ section GenericBridge
 variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
   [DecidableEq H] [DecidableEq I] [DecidableEq O]
 
+/-- Given a well-formed circuit, unitary state preparation, and single-trial success probability
+at least 1/(16n), constructs a unitary 32n-trial program with failure mass at most one third
+and explicit data and preparation query counts. Its outcome states are the fresh-trial
+states, and the first successful trial selects the encoded postselection output. -/
 theorem preparedFresh_reliable {U B : Matrix H H ℂ} {cs : List (AdjointStep H)}
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hB : B ∈ Matrix.unitaryGroup H ℂ)
     (hcs : WellFormedAdjointCircuit cs) (zero : H)
@@ -143,6 +180,10 @@ section Constructive
 variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
   [DecidableEq H] [DecidableEq I] [DecidableEq O]
 
+/-- For a projected unitary encoding with a positive lower bound on nonzero singular values,
+constructs a well-formed circuit encoding the scaled pseudoinverse within `inverseScale n *
+η / 2`. The circuit uses `2 * n - 1` oracle queries and `2 * n` gates, with reciprocal error
+at most `η / 2`. -/
 theorem constructivePseudoinverse_wellFormed_encoding
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {δ η : ℝ} (hδ : 0 < δ)
@@ -193,6 +234,10 @@ theorem constructivePseudoinverse_wellFormed_encoding
     rw [evaluate_adjointCircuit, evaluate_compileRealPartQSVT]
     exact hW
 
+/-- For a projected unitary encoding with a positive singular-value gap and 0 < η ≤ 1,
+constructs a well-formed circuit using `2 * n - 1` queries and `2 * n` gates. Every
+normalized input in the range has postselection probability at least 1/(16n) and a
+postselected state satisfying `IsMinimumNormSolutionState` with tolerance η. -/
 theorem constructivePseudoinverse_wellFormed_output
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {δ η : ℝ} (hδ : 0 < δ)
@@ -226,6 +271,10 @@ theorem constructivePseudoinverse_wellFormed_output
   · have he : 2 * (inverseScale n * η / 2) / inverseScale n = η := by field_simp
     simpa only [he] using hspec
 
+/-- Under a positive singular-value gap and 0 < η ≤ 1, constructs a pseudoinverse circuit whose
+32n fresh preparations have failure mass at most one third. The resulting unitary program
+has explicit query counts and selects an encoded approximate minimum-norm solution state at
+the first success. -/
 theorem constructivePseudoinverse_reliable_fresh
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {δ η : ℝ} (hδ : 0 < δ)

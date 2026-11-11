@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+
+/-!
+# Statement of the even SVT Frobenius core
+
+`EvenSVTFrobeniusCore` packages a deterministic error bound for `Rᴴ * fbar(Cc * Ccᴴ) * R`
+relative to the shifted function `f(Aᴴ * A) - f(0) I`. Consistency of `fbar`, cross-spectrum
+Lipschitz estimates, two Gram errors, and an inner Gram norm bound give the additive error
+formula used in [ChiaEtAl2022].
+
+## Main statements
+
+* `EvenSVTFrobeniusCore`: The proposition that the stated spectral consistency, cross-spectrum
+  Lipschitz, Gram error, and norm hypotheses bound the shifted even-SVT sandwich's Frobenius
+  error by `L * η₁ + W * (Lbar * η₂)`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.SketchSpectral.EvenSvtCore
@@ -12,6 +32,9 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSvtCore
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The proposition that the stated spectral consistency, cross-spectrum Lipschitz, Gram error,
+and norm hypotheses bound the shifted even-SVT sandwich's Frobenius error by `L * η₁ + W *
+(Lbar * η₂)`. -/
 def EvenSVTFrobeniusCore : Prop :=
   ∀ (K C RS CT : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]

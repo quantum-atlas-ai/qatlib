@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.PaidBinaryAddition
+
+/-!
+# Addition of framed binary words
+
+`frame` encodes each bit with a continuation marker and terminates the word with a false marker.
+`program` parses two such words into separate stacks and adds them with a carry.
+
+`parse_exec` and `add_exec` give execution specifications with stack-clock bounds. Their
+composition yields a quadratic source bound and the tape-machine existence result `raw_adder`.
+
+## Main statements
+
+* `frame_length` and `input_length`: exact sizes of the framed encodings.
+* `source_exec`: the parsing and addition execution with a quadratic bound.
+* `raw_adder`: a tape machine computing a binary sum with quadratic resource bounds.
+
+For background on classical computation and resource bounds, see [KitaevShenVyalyi2002].
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,20 +39,29 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine.FramedBinaryAddition
 
 open PaidBinaryAddition (digit carry columns digits output_value columns_length digits_length)
+/-- Four Boolean registers storing the carry, two operand bits, and a parsing or availability
+flag. -/
 abbrev Local := Bool × Bool × Bool × Bool
+/-- Configurations with four Boolean stacks, three control labels, and the local Boolean
+registers. -/
 abbrev Config := TM2.Cfg (fun _ : Fin 4 => Bool) (Fin 3) Local
 
+/-- Encode a bit word by prefixing each bit with `true` and ending the word with `false`. -/
 def frame : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   | [] => [false]
   | b :: bs => true :: b :: frame bs
 
+/-- Encode two operands by concatenating their framed reversals and reversing the resulting
+word. -/
 def input (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
     (frame a.reverse ++ frame b.reverse).reverse
 
+/-- Construct the four-stack state consisting of the input, two operands, and output. -/
 def state (i a b o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 4 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   fun k => if k = 0 then i else if k = 1 then a else if k = 2 then b else o
 
+/-- Updating one stack in `state` replaces exactly its corresponding word. -/
 private theorem state_update (i a b o x : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 4) :
     Function.update (state i a b o) k x =
       state (if k = 0 then x else i) (if k = 1 then x else a)
@@ -37,6 +69,8 @@ private theorem state_update (i a b o x : Qatlib.Concepts.BitWordCompiler.Canoni
   funext j
   fin_cases k <;> fin_cases j <;> simp [state, Fin.ext_iff]
 
+/-- Read one framing marker and, when it indicates a bit, push that bit onto `dest` and return
+to `again`. A terminating marker instead continues at `next`. -/
 def readWord (dest : Fin 4) (again next : Fin 3) :
     TM2.Stmt (fun _ : Fin 4 => Bool) (Fin 3) Local :=
   .pop 0 (fun _ x => (false, false, false, x.getD false))
@@ -45,6 +79,8 @@ def readWord (dest : Fin 4) (again next : Fin 3) :
         (.push dest (fun v => v.2.1) (.load (fun _ => default) (.goto (fun _ => again)))))
       (.load (fun _ => default) (.goto (fun _ => next))))
 
+/-- Process one binary addition column, updating the carry and output, or halt after emitting
+any final carry. -/
 def addWord : TM2.Stmt (fun _ : Fin 4 => Bool) (Fin 3) Local :=
   .peek 1 (fun v x => (v.1, x.getD false, false, x.isSome))
     (.peek 2 (fun v x => (v.1, v.2.1, x.getD false, v.2.2.2 || x.isSome))
@@ -57,17 +93,23 @@ def addWord : TM2.Stmt (fun _ : Fin 4 => Bool) (Fin 3) Local :=
           (.push 3 (fun _ => true) (.load (fun _ => default) .halt))
           (.load (fun _ => default) .halt))))
 
+/-- Dispatch the three control labels to the first parser, second parser, and binary addition
+statement. -/
 def program (l : Fin 3) : TM2.Stmt (fun _ : Fin 4 => Bool) (Fin 3) Local :=
   if l = 0 then readWord 1 0 1 else if l = 1 then readWord 2 1 2 else addWord
 
+/-- Execution of `program` from `s` to `t` in some number of steps with stack-clock cost at most
+`cost`. -/
 def Exec (s t : Config) (cost : ℕ) : Prop :=
   ∃ steps, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRun program steps s = some t ∧
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program steps s ≤ cost
 
+/-- A single machine step with the stated clock bound gives a bounded execution. -/
 private theorem exec_one (s t : Config) (cost : ℕ) (h : TM2.step program s = some t)
     (hc : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program 1 s ≤ cost) : Exec s t cost :=
   ⟨1, (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.run_one program s).trans h, hc⟩
 
+/-- Compose two bounded executions by adding their cost bounds. -/
 private theorem exec_trans {s t u : Config} {c d : ℕ} (h : Exec s t c) (g : Exec t u d) :
     Exec s u (c + d) := by
   obtain ⟨n, hn, hc⟩ := h
@@ -78,37 +120,49 @@ private theorem exec_trans {s t u : Config} {c d : ℕ} (h : Exec s t c) (g : Ex
   · rw [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.clock_add program n m s t hn]
     omega
 
+/-- A bounded execution remains valid when its cost bound is increased. -/
 private theorem exec_mono {s t : Config} {c d : ℕ} (h : Exec s t c) (hc : c ≤ d) : Exec s t d := by
   obtain ⟨n, hn, hb⟩ := h
   exact ⟨n, hn, hb.trans hc⟩
 
+/-- Framing a word of length `a.length` produces a word of length `2 * a.length + 1`. -/
 theorem frame_length (a : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (frame a).length = 2 * a.length + 1 := by
   induction a with
   | nil => rfl
   | cons b bs ih => simp only [frame, List.length_cons, ih]; omega
 
+/-- The framed two-operand input has length `2 * (a.length + b.length) + 2`. -/
 theorem input_length (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (input a b).length = 2 * (a.length + b.length) + 2 := by
   simp only [input, List.length_reverse, List.length_append, frame_length]
   omega
 
+/-- Select the first or second parser label according to `which`. -/
 def parserLabel (which : Bool) : Fin 3 := if which then 1 else 0
+/-- Select the label following the chosen parser: the second parser or the addition phase. -/
 def nextLabel (which : Bool) : Fin 3 := if which then 2 else 1
 
+/-- Construct a parser state with `dest` in the selected operand stack and `other` in the
+remaining operand stack. -/
 def parseState (which : Bool) (i dest other o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 4 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   if which then state i other dest o else state i dest other o
 
+/-- A continuation marker followed by `x` is consumed in one step, pushing `x` onto the selected
+destination stack. -/
 theorem parse_step (which x : Bool) (rest dest other o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     TM2.step program ⟨some (parserLabel which), default, parseState which (true :: x :: rest) dest other o⟩ =
       some ⟨some (parserLabel which), default, parseState which rest (x :: dest) other o⟩ := by
   cases which <;> simp [program, readWord, parserLabel, parseState, TM2.step, TM2.stepAux,
     state, state_update, Fin.ext_iff]
 
+/-- A false framing marker is consumed in one step and control passes to the next phase without
+changing the operand stacks. -/
 theorem parse_stop (which : Bool) (rest dest other o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     TM2.step program ⟨some (parserLabel which), default, parseState which (false :: rest) dest other o⟩ =
       some ⟨some (nextLabel which), default, parseState which rest dest other o⟩ := by
   cases which <;> simp [program, readWord, parserLabel, nextLabel, parseState, TM2.step, TM2.stepAux,
     state, state_update, Fin.ext_iff]
 
+/-- Reading one marked bit has stack-clock cost `4 * rest.length + 2 * dest.length + 12`. -/
 theorem parse_clock (which x : Bool) (rest dest other o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program 1
       ⟨some (parserLabel which), default, parseState which (true :: x :: rest) dest other o⟩ =
@@ -116,6 +170,7 @@ theorem parse_clock (which x : Bool) (rest dest other o : Qatlib.Concepts.BitWor
   cases which <;> simp [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackClock, TM2.step, TM2.stepAux,
     program, readWord, parserLabel, parseState, state, Fin.ext_iff] <;> omega
 
+/-- Reading a terminating marker has stack-clock cost `2 * rest.length + 4`. -/
 theorem parse_stop_clock (which : Bool) (rest dest other o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program 1
       ⟨some (parserLabel which), default, parseState which (false :: rest) dest other o⟩ =
@@ -123,6 +178,8 @@ theorem parse_stop_clock (which : Bool) (rest dest other o : Qatlib.Concepts.Bit
   cases which <;> simp [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackClock, TM2.step, TM2.stepAux,
     program, readWord, parserLabel, parseState, state, Fin.ext_iff] <;> omega
 
+/-- Parse a complete framed word, prepend its reversal to the destination stack, and continue at
+the next label within the displayed cost bound. -/
 theorem parse_exec (which : Bool) (xs rest dest other o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Exec ⟨some (parserLabel which), default, parseState which (frame xs ++ rest) dest other o⟩
       ⟨some (nextLabel which), default, parseState which rest (xs.reverse ++ dest) other o⟩
@@ -141,6 +198,8 @@ theorem parse_exec (which : Bool) (xs rest dest other o : Qatlib.Concepts.BitWor
     simp only [List.length_append, frame_length, List.length_cons]
     nlinarith
 
+/-- When either operand is nonempty, one addition step consumes their head positions, pushes the
+sum digit, and updates the carry. -/
 private theorem add_step (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (c : Bool) (o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (h : a ≠ [] ∨ b ≠ []) :
     TM2.step program ⟨some 2, (c, false, false, false), state [] a b o⟩ =
       some ⟨some 2, (carry (a.headD false) (b.headD false) c, false, false, false),
@@ -148,17 +207,22 @@ private theorem add_step (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
   cases a <;> cases b <;> simp_all [program, addWord, TM2.step, TM2.stepAux, state_update, state,
       Fin.ext_iff]
 
+/-- An addition step with a nonempty operand costs at most `4 * (a.length + b.length) + 2 *
+o.length + 12`. -/
 private theorem add_clock (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (c : Bool) (o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (h : a ≠ [] ∨ b ≠ []) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program 1 ⟨some 2, (c, false, false, false), state [] a b o⟩ ≤
       4 * (a.length + b.length) + 2 * o.length + 12 := by
   cases a <;> cases b <;> simp_all [program, addWord, TM2.step, TM2.stepAux, state,
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackClock, Fin.ext_iff] <;> omega
 
+/-- With both operands empty, the addition statement halts, prepending a true bit exactly when a
+final carry is present. -/
 private theorem add_stop (c : Bool) (o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     TM2.step program ⟨some 2, (c, false, false, false), state [] [] [] o⟩ =
       some ⟨none, default, state [] [] [] (if c then true :: o else o)⟩ := by
   cases c <;> simp [program, addWord, TM2.step, TM2.stepAux, state_update, state, Fin.ext_iff]
 
+/-- The final addition step costs at most `2 * o.length + 8`. -/
 private theorem add_stop_clock (c : Bool) (o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock program 1 ⟨some 2, (c, false, false, false), state [] [] [] o⟩ ≤
       2 * o.length + 8 := by
@@ -166,14 +230,19 @@ private theorem add_stop_clock (c : Bool) (o : Qatlib.Concepts.BitWordCompiler.C
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackRunClock, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.stackClock, Fin.ext_iff]
   all_goals omega
 
+/-- Pairing a word with an empty second operand pairs each bit with `false`. -/
 private theorem columns_nil (a : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : columns a [] = a.map (fun x => (x, false)) := by
   cases a <;> rfl
 
+/-- For nonempty combined input, the sum digits consist of the current sum digit followed by the
+tail computation with the updated carry. -/
 private theorem digits_tail (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (c : Bool) (h : a ≠ [] ∨ b ≠ []) :
     digits c (columns a b) = digit (a.headD false) (b.headD false) c ::
       digits (carry (a.headD false) (b.headD false) c) (columns a.tail b.tail) := by
   cases a <;> cases b <;> simp_all [columns, digits, columns_nil]
 
+/-- The addition phase consumes both operands and prepends the reversed sum digits to the output
+within the displayed cost bound. -/
 theorem add_exec (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (c : Bool) (o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Exec ⟨some 2, (c, false, false, false), state [] a b o⟩
       ⟨none, default, state [] [] [] ((digits c (columns a b)).reverse ++ o)⟩
@@ -199,6 +268,8 @@ decreasing_by
   cases a <;> cases b <;> simp_all
   all_goals omega
 
+/-- The initialized program parses both framed operands and halts with the reversed binary sum
+on its output stack, at cost at most `100 * (a.length + b.length + 1) ^ 2`. -/
 theorem source_exec (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Exec (TM2.init (0 : Fin 4) (input a b).reverse)
       ⟨none, default, state [] [] [] ((PaidBinaryAddition.output a b).reverse)⟩
@@ -222,6 +293,9 @@ theorem source_exec (a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) 
   simp only [List.length_reverse, frame_length]
   nlinarith
 
+/-- There is a finite-state tape machine computing a word of value `binaryValue a + binaryValue
+b` from the framed input, with uniform quadratic bounds for both resources in `Runs`. The
+result length is at most `a.length + b.length + 1`. -/
 theorem raw_adder :
     ∃ (q c : ℕ) (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1))), 0 < c ∧ ∀ a b : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits,
       ∃ result : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits,

@@ -6,13 +6,40 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.ClassicalDefs
 
+/-!
+# Classical needle search bounds
+
+This module specializes deterministic query trees to equality testing for an unknown target
+using `needleOracle`. A tree using at most `M` actual queries can correctly recover at most `M +
+1` possible targets.
+
+The counting bound yields upper bounds on uniform success probability for deterministic trees
+and finite randomized mixtures, giving a classical search benchmark for the quantum search
+setting of [Grover1997].
+
+## Main statements
+
+* `bounded_needle_recovery_card`: at most `M + 1` targets are recoverable within `M` queries.
+* `actual_needle_exact_lower`: exact recovery requires at least the number of targets minus one
+  queries.
+* `randomized_needle_success_upper`: the corresponding success bound for randomized mixtures.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.QueryComplexity.AdaptiveInfo.ClassicalDefs
 
+/-- The Boolean equality oracle that returns true exactly when the queried address equals the
+target. -/
 def needleOracle {I : Type} [DecidableEq I] (target address : I) : Bool :=
   decide (address = target)
 
+/-- A classical needle search tree recovers at most `M + 1` targets correctly if each successful
+run uses at most `M` queries. -/
 theorem bounded_needle_recovery_card {I : Type} [DecidableEq I]
     (tree : QueryTree I Bool I) :
     ∀ (S : Finset I) (M : ℕ),
@@ -55,6 +82,8 @@ theorem bounded_needle_recovery_card {I : Type} [DecidableEq I]
         · simp [Finset.erase_eq_of_notMem hq]
       omega
 
+/-- Exact classical recovery of every target with at most `M` actual queries requires the number
+of targets to be at most `M + 1`. -/
 theorem actual_needle_exact_lower {I : Type} [Fintype I] [DecidableEq I]
     (tree : QueryTree I Bool I) (M : ℕ)
     (hcorrect : ∀ y, (run (needleOracle y) tree).1 = y)
@@ -63,11 +92,15 @@ theorem actual_needle_exact_lower {I : Type} [Fintype I] [DecidableEq I]
   simpa using bounded_needle_recovery_card tree Finset.univ M
     (fun y _ => hcorrect y) (fun y _ => hcost y)
 
+/-- The fraction of targets recovered correctly by a classical needle search tree under the
+uniform distribution. -/
 noncomputable def needleSuccess {I : Type} [Fintype I] [DecidableEq I]
     (tree : QueryTree I Bool I) : ℝ :=
   ((Finset.univ.filter (fun y => (run (needleOracle y) tree).1 = y)).card : ℝ) /
     Fintype.card I
 
+/-- A classical needle search tree using at most `M` queries on every target has uniform success
+probability at most `(M + 1) / Fintype.card I`. -/
 theorem actual_needle_success_upper {I : Type} [Fintype I] [DecidableEq I]
     (tree : QueryTree I Bool I) (M : ℕ)
     (hcost : ∀ y, (run (needleOracle y) tree).2 ≤ M) :
@@ -79,6 +112,8 @@ theorem actual_needle_success_upper {I : Type} [Fintype I] [DecidableEq I]
   apply div_le_div_of_nonneg_right _ (Nat.cast_nonneg _)
   exact_mod_cast hc
 
+/-- A finite probability mixture of classical needle search trees, each using at most `M`
+queries, has uniform success probability at most `(M + 1) / Fintype.card I`. -/
 theorem randomized_needle_success_upper {I S : Type} [Fintype I] [DecidableEq I]
     [Fintype S] (weight : S → ℝ) (tree : S → QueryTree I Bool I) (M : ℕ)
     (hw : ∀ s, 0 ≤ weight s) (hmass : ∑ s, weight s = 1)

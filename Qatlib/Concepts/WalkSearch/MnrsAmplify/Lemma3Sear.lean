@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma3Stat
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+/-!
+# Singular-value bounds for Markov discriminants
+
+Proves that the discriminant obtained by conjugating a transition matrix with square roots of a
+positive stationary distribution is a contraction. Consequently, its singular values lie in `[0,
+1]`, as required in the MNRS walk analysis [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `mnrs_discriminant_singular_values_mem_unit_interval`: The discriminant singular values of the
+  stated finite irreducible chain with a positive stationary distribution lie in `[0, 1]`
+  [Magniez et al., Lemma 3][MagniezNayakRolandSantha2011].
+* `mnrs_discriminant_singular_values_mem_unit_interval_spec`: Establishes the discriminant
+  singular-value contract `Lemma3WalkSpec.expected` [Magniez et al., Lemma
+  3][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +41,8 @@ section Discriminant
 
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
+/-- Expands an entry of the stationary-distribution similarity transform as `sqrt (π x) * P x y
+/ sqrt (π y)`, with all factors interpreted in `ℂ`. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval_entry
     (P : Matrix X X ℝ) (π : X → ℝ) (x y : X) :
     (Matrix.diagonal (fun x => (Real.sqrt (π x) : ℂ)) * Matrix.of (fun x y => (P x y : ℂ)) *
@@ -26,11 +50,15 @@ theorem mnrs_discriminant_singular_values_mem_unit_interval_entry
       = (Real.sqrt (π x) : ℂ) * (P x y : ℂ) * (Real.sqrt (π y) : ℂ)⁻¹ := by
   simp
 
+/-- Expands the inner product of `u` with the matrix image of `v` as the corresponding double
+sum of complex entries. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval_inner
     (M : Matrix X X ℂ) (u v : EuclideanSpace ℂ X) :
     inner ℂ u (Matrix.toEuclideanLin M v) = ∑ x, ∑ y, conj (u x) * (M x y * v y) :=
   Qatlib.Foundations.PureStateMath.BornBridge.inner_toEuclideanLin M u v
 
+/-- For a nonnegative stochastic matrix with a positive stationary distribution, the
+discriminant pairing has norm at most `‖u‖ * ‖v‖`. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval_abs_inner_le
     {P : Matrix X X ℝ} {π : X → ℝ} {D : Matrix X X ℂ}
     (hD : ∀ x y, D x y = (Real.sqrt (π x) : ℂ) * (P x y : ℂ) * (Real.sqrt (π y) : ℂ)⁻¹)
@@ -115,6 +143,8 @@ theorem mnrs_discriminant_singular_values_mem_unit_interval_abs_inner_le
     _ = ‖u‖ * ‖v‖ := by rw [hsq _ _ (norm_nonneg a) (norm_nonneg u) hna,
       hsq _ _ (norm_nonneg b) (norm_nonneg v) hnb]
 
+/-- The discriminant associated with a nonnegative stochastic matrix and a positive stationary
+distribution does not increase vector norms. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval_norm_map_le
     {P : Matrix X X ℝ} {π : X → ℝ} {D : Matrix X X ℂ}
     (hD : ∀ x y, D x y = (Real.sqrt (π x) : ℂ) * (P x y : ℂ) * (Real.sqrt (π y) : ℂ)⁻¹)
@@ -138,6 +168,7 @@ theorem mnrs_discriminant_singular_values_mem_unit_interval_norm_map_le
 
 end Discriminant
 
+/-- Every singular value of a finite-dimensional linear contraction is at most one. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval_singularValues_le_one
     {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
     {T : E →ₗ[ℂ] E} (hT : ∀ v, ‖T v‖ ≤ ‖v‖) (n : ℕ) :
@@ -175,6 +206,8 @@ section Core
 
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
+/-- For the stated irreducible stochastic chain and normalized positive stationary distribution,
+every dimension-indexed discriminant singular value lies in `[0, 1]`. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval_core
     (P : Matrix X X ℝ) (π : X → ℝ)
     (hP : ∀ x y, 0 ≤ P x y) (hrow : ∀ x, ∑ y, P x y = 1)
@@ -204,6 +237,9 @@ theorem mnrs_discriminant_singular_values_mem_unit_interval_core
 
 end Core
 
+/-- The discriminant singular values of the stated finite irreducible chain with a positive
+stationary distribution lie in `[0, 1]` [Magniez et al., Lemma
+3][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval :
     ∀ (X : Type*) [Fintype X] [DecidableEq X]
       (P : Matrix X X ℝ) (π : X → ℝ),
@@ -222,6 +258,8 @@ theorem mnrs_discriminant_singular_values_mem_unit_interval :
   fun X _ _ P π hP hrow hirr hπ hmass hstat =>
     mnrs_discriminant_singular_values_mem_unit_interval_core P π hP hrow hirr hπ hmass hstat
 
+/-- Establishes the discriminant singular-value contract `Lemma3WalkSpec.expected` [Magniez et
+al., Lemma 3][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_discriminant_singular_values_mem_unit_interval_spec :
     Lemma3WalkSpec.expected :=
   mnrs_discriminant_singular_values_mem_unit_interval

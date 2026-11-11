@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.StructuralProgram
+
+/-!
+# Variable-time algorithm specification
+
+`VariableTimeAlgorithm` specifies a finite distribution of legal structural programs for a
+supported growing variable-time computation. It requires a uniform weighted-time bound and a set
+of records of mass at least nine tenths on which success is at least two fifths and the good
+component preserves the original direction.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `VariableTimeAlgorithm`: probabilistic structural amplification with time and output
+  guarantees.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +38,10 @@ open Qatlib.Concepts.SpectralReadout.PhaseReadout Qatlib.Foundations.InstrumentC
 set_option autoImplicit false
 namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 
+/-- The specification of legal structural amplification programs for supported growing
+computations with no final running mass and the stated success floor. It requires the
+displayed time bound and, with probability at least nine tenths, success at least two fifths
+with preservation of the good component's direction. -/
 def VariableTimeAlgorithm : Prop :=
   ∀ (C : Type) [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C),

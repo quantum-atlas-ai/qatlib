@@ -1,5 +1,6 @@
 .lake/
 .ci/
+/docbuild/
 __pycache__/
 *.pyc
 .venv/

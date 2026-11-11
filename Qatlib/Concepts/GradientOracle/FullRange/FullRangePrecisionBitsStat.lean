@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientReadoutStat
+
+/-!
+# Specification of full-range precision bits
+
+`FullRangePrecisionBits` expresses how the integer range width and fractional precision combine
+in a dyadic value register. It packages the logarithmic bit comparison, decoding error, and
+readout resources relevant to [Jordan2005Gradient].
+
+## Main statements
+
+* `FullRangePrecisionBits`: the selected range width is within one bit of the stated ceiling
+  logarithms when the scaled range is at least one.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,8 @@ namespace Qatlib.Concepts.GradientOracle.FullRange
 open Matrix
 open scoped Classical
 
+/-- The proposition combining a guarded range-bit choice, ceiling-logarithm comparisons,
+fixed-point decoding precision, and resource and event-error bounds for full-range readout. -/
 def FullRangePrecisionBits : Prop :=
   ∀ (s R : ℚ), 0 < s → 0 ≤ R →
     let K := fullRangeClassicalBits (s*R)

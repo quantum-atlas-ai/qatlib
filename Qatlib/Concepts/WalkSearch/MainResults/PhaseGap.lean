@@ -87,6 +87,27 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Phase gap and approximate reflection estimates
+
+`phaseGap` converts a real spectral parameter to an angular gap. The module bounds the phase
+estimation register size and zero outcome overlap, then controls reflection error using a
+decomposition into fixed and negated components, as needed in the quantum walk reflection
+analysis. For background on search via quantum walks, see [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `phaseGap`: The angular gap `2 * Real.arccos lam` associated with a real spectral parameter
+  `lam`.
+* `reflection_error_bound`: If `ψ = ψ₀ + ψ₁`, `R` fixes `ψ₀`, negates `ψ₁`, and `‖ψ₀‖ ≤ (1 /
+  2)^k`, then `‖R ψ + ψ‖ ≤ 2 * (1 / 2)^k`; see [Magniez et al., Theorem
+  6][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
@@ -94,8 +115,10 @@ namespace Qatlib.Concepts.WalkSearch.MainResults.PhaseGap
 
 open scoped BigOperators
 
+/-- The angular gap `2 * Real.arccos lam` associated with a real spectral parameter `lam`. -/
 noncomputable def phaseGap (lam : ℝ) : ℝ := 2 * Real.arccos lam
 
+/-- For `0 < δ ≤ 1`, the angular gap at `1 - δ` is at least `2 * Real.sqrt δ`. -/
 theorem phaseGap_ge_two_sqrt_gap {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
     2 * Real.sqrt δ ≤ phaseGap (1 - δ) := by
   have hc1 : -1 ≤ 1 - δ := by linarith
@@ -110,6 +133,8 @@ theorem phaseGap_ge_two_sqrt_gap {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
   unfold phaseGap
   linarith only [hsqrt, hsin_eq, hsin_le]
 
+/-- A phase estimation precision exponent satisfying `2^(s - 1) < 2 * π / Δ` and `1 ≤ s` obeys
+`2^s ≤ 4 * π / Δ`; see [Magniez et al., Theorem 6][MagniezNayakRolandSantha2011]. -/
 theorem qpeCopies_le {Δ : ℝ} (hΔ : 0 < Δ) {s : ℕ} (hs : 1 ≤ s)
     (hmin : (2 : ℝ) ^ (s - 1) < 2 * Real.pi / Δ) :
     (2 : ℝ) ^ s ≤ 4 * Real.pi / Δ := by
@@ -122,6 +147,9 @@ theorem qpeCopies_le {Δ : ℝ} (hΔ : 0 < Δ) {s : ℕ} (hs : 1 ≤ s)
   have h3 : 2 * (2 * Real.pi / Δ) = 4 * Real.pi / Δ := by ring
   linarith only [h2, h3]
 
+/-- If `2^s ≥ 2 * π / Δ` and `Δ / 2 ≤ θ ≤ π / 2`, the absolute sine ratio for the zero phase
+estimation outcome is at most `1 / 2`; see [Magniez et al., Theorem
+6][MagniezNayakRolandSantha2011]. -/
 theorem qpeZeroOverlap_le_half {Δ θ : ℝ} (hΔ : 0 < Δ) {s : ℕ}
     (hlo : 2 * Real.pi / Δ ≤ (2 : ℝ) ^ s)
     (hθlo : Δ / 2 ≤ θ) (hθhi : θ ≤ Real.pi / 2) :
@@ -152,6 +180,8 @@ theorem qpeZeroOverlap_le_half {Δ θ : ℝ} (hΔ : 0 < Δ) {s : ℕ}
   rw [abs_div, abs_of_pos hpos, div_le_iff₀ hpos]
   nlinarith only [hnum, hden]
 
+/-- If `ψ = ψ₀ + ψ₁`, `R` fixes `ψ₀`, negates `ψ₁`, and `‖ψ₀‖ ≤ (1 / 2)^k`, then `‖R ψ + ψ‖ ≤ 2
+* (1 / 2)^k`; see [Magniez et al., Theorem 6][MagniezNayakRolandSantha2011]. -/
 theorem reflection_error_bound {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (R : H ≃ₗᵢ[ℂ] H) (ψ ψ₀ ψ₁ : H) (k : ℕ)
     (hdecomp : ψ = ψ₀ + ψ₁) (hR0 : R ψ₀ = ψ₀) (hR1 : R ψ₁ = -ψ₁)

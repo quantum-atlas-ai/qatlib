@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSum2Bound
 import Mathlib.NumberTheory.Harmonic.Bounds
+
+/-!
+# Logarithmic first lattice-sum bound
+
+This module proves an explicit logarithmic upper bound for `latSum1 n 2`, the first
+inverse-dispersion sum on a two-dimensional periodic lattice. The estimate supports the
+low-dimensional spatial search analysis of [ChildsGoldstone2004].
+
+## Main statements
+
+* `latSum1_le_log`: bounds the sum by `(27 / 16) * (1 + Real.log n) + 1 / 16`.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +33,8 @@ namespace Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums
 
 open Finset
 
+/-- For positive side length `n`, the first lattice sum in dimension two is at most `(27 / 16) *
+(1 + Real.log n) + 1 / 16`. -/
 theorem latSum1_le_log {n : ℕ} [NeZero n] (hn : 0 < n) :
     latSum1 n 2 ≤ (27/16) * (1 + Real.log n) + 1/16 := by
   have hnR : (0:ℝ) < (n:ℝ) := by exact_mod_cast hn

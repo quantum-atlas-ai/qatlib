@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
 import Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition4
 import Mathlib.Data.Fin.VecNotation
+
+/-!
+# Five classes of prime-power cyclic actions
+
+`InClass1` through `InClass5` separate prime-order actions, the exceptional involution residues
+modulo powers of two, and the trivial action. `classVec` arranges these predicates into a finite
+family, and `theorem6_classification` proves that exactly one applies when `p` and `q` are
+prime, `r ≥ 1`, and `u ^ q = 1`. See [InuiLeGall2007] for the mathematical setting.
+
+## Main statements
+
+* `exhaust`: proves that at least one of the five class predicates holds.
+* `disjoint`: proves pairwise disjointness of distinct classes.
+* `theorem6_classification`: packages exhaustion and pairwise disjointness.
+
+## References
+
+* [Inui and Le Gall, 2007][InuiLeGall2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,38 +37,48 @@ namespace Qatlib.Papers.SemiDirectHSP04.MainResults.Theorem6
 open Qatlib.Papers.SemiDirectHSP04.MainResults.Model
 open Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition4
 
+/-- The unit has order `q` and `q` divides `p - 1`. -/
 def InClass1 (p q r : ℕ) (u : (ZMod (p ^ r))ˣ) : Prop :=
   q ∣ p - 1 ∧ orderOf u = q
 
+/-- Both primes are two, `r ≥ 2`, and the unit residue is `2 ^ r - 1`. -/
 def InClass2 (p q r : ℕ) (u : (ZMod (p ^ r))ˣ) : Prop :=
   p = 2 ∧ q = 2 ∧ 2 ≤ r ∧ (u : ZMod (p ^ r)) = ((2 ^ r - 1 : ℕ) : ZMod (p ^ r))
 
+/-- Both primes are two, `r > 2`, and the unit residue is `2 ^ (r - 1) - 1`. -/
 def InClass3 (p q r : ℕ) (u : (ZMod (p ^ r))ˣ) : Prop :=
   p = 2 ∧ q = 2 ∧ 2 < r ∧
     (u : ZMod (p ^ r)) = ((2 ^ (r - 1) - 1 : ℕ) : ZMod (p ^ r))
 
+/-- The parameters satisfy `q = p` and `r ≥ 2`, excluding `p = r = 2`, and the unit has order
+`p`; when `p = 2`, its residue avoids the two specified exceptional involutions. -/
 def InClass4 (p q r : ℕ) (u : (ZMod (p ^ r))ˣ) : Prop :=
   q = p ∧ 2 ≤ r ∧ ¬ (p = 2 ∧ r = 2) ∧ orderOf u = p ∧
     (p ≠ 2 ∨ ((u : ZMod (p ^ r)) ≠ ((2 ^ r - 1 : ℕ) : ZMod (p ^ r)) ∧
                (u : ZMod (p ^ r)) ≠ ((2 ^ (r - 1) - 1 : ℕ) : ZMod (p ^ r))))
 
+/-- The underlying residue of the unit is one. -/
 def InClass5 (p _q r : ℕ) (u : (ZMod (p ^ r))ˣ) : Prop :=
   (u : ZMod (p ^ r)) = 1
 
+/-- The five action-class predicates indexed by `Fin 5` in their defining order. -/
 def classVec (p q r : ℕ) (u : (ZMod (p ^ r))ˣ) : Fin 5 → Prop :=
   ![InClass1 p q r u, InClass2 p q r u, InClass3 p q r u,
     InClass4 p q r u, InClass5 p q r u]
 
+/-- For `r ≥ 1`, `2 ^ r` equals `2 * 2 ^ (r - 1)`. -/
 theorem two_pow_eq (r : ℕ) (hr : 1 ≤ r) : 2 ^ r = 2 * 2 ^ (r - 1) := by
   conv_lhs => rw [show r = (r - 1) + 1 from by omega]
   rw [pow_succ']
 
+/-- Distinct natural numbers strictly below the modulus have distinct residues. -/
 theorem zmod_natCast_ne {n a b : ℕ} (ha : a < n) (hb : b < n) (h : a ≠ b) :
     ((a : ZMod n)) ≠ ((b : ZMod n)) := by
   intro hc
   rw [ZMod.natCast_eq_natCast_iff] at hc
   exact h (Nat.ModEq.eq_of_lt_of_lt hc ha hb)
 
+/-- For `r > 2`, the residues of `2 ^ (r - 1) + 1` and `2 ^ r - 1` differ modulo `2 ^ r`. -/
 theorem neA (r : ℕ) (hr : 2 < r) :
     ((2 ^ (r - 1) + 1 : ℕ) : ZMod (2 ^ r)) ≠ ((2 ^ r - 1 : ℕ) : ZMod (2 ^ r)) := by
   have hge : 4 ≤ 2 ^ (r - 1) := by
@@ -59,6 +89,7 @@ theorem neA (r : ℕ) (hr : 2 < r) :
   have hlt2 : 2 ^ r - 1 < 2 ^ r := by omega
   exact zmod_natCast_ne hlt hlt2 (by rw [hpow]; omega)
 
+/-- For `r > 2`, the residues of `2 ^ (r - 1) + 1` and `2 ^ (r - 1) - 1` differ modulo `2 ^ r`. -/
 theorem neB (r : ℕ) (hr : 2 < r) :
     ((2 ^ (r - 1) + 1 : ℕ) : ZMod (2 ^ r)) ≠ ((2 ^ (r - 1) - 1 : ℕ) : ZMod (2 ^ r)) := by
   have hge : 4 ≤ 2 ^ (r - 1) := by
@@ -69,6 +100,7 @@ theorem neB (r : ℕ) (hr : 2 < r) :
   have hb : 2 ^ (r - 1) - 1 < 2 ^ r := by omega
   exact zmod_natCast_ne hlt hb (by omega)
 
+/-- For `r > 2`, the residues of `2 ^ (r - 1) - 1` and `2 ^ r - 1` differ modulo `2 ^ r`. -/
 theorem neC (r : ℕ) (hr : 2 < r) :
     ((2 ^ (r - 1) - 1 : ℕ) : ZMod (2 ^ r)) ≠ ((2 ^ r - 1 : ℕ) : ZMod (2 ^ r)) := by
   have hge : 4 ≤ 2 ^ (r - 1) := by
@@ -79,6 +111,7 @@ theorem neC (r : ℕ) (hr : 2 < r) :
   have hlt2 : 2 ^ r - 1 < 2 ^ r := by omega
   exact zmod_natCast_ne hb hlt2 (by rw [hpow]; omega)
 
+/-- For `r ≥ 2`, the residue of `2 ^ r - 1` differs from one modulo `2 ^ r`. -/
 theorem neOneR (r : ℕ) (hr : 2 ≤ r) :
     ((2 ^ r - 1 : ℕ) : ZMod (2 ^ r)) ≠ 1 := by
   have hge : 4 ≤ 2 ^ r := by
@@ -90,6 +123,7 @@ theorem neOneR (r : ℕ) (hr : 2 ≤ r) :
   have := zmod_natCast_ne hb h1 hne
   simpa using this
 
+/-- For `r > 2`, the residue of `2 ^ (r - 1) - 1` differs from one modulo `2 ^ r`. -/
 theorem neOneH (r : ℕ) (hr : 2 < r) :
     ((2 ^ (r - 1) - 1 : ℕ) : ZMod (2 ^ r)) ≠ 1 := by
   have hge : 4 ≤ 2 ^ (r - 1) := by
@@ -102,6 +136,7 @@ theorem neOneH (r : ℕ) (hr : 2 < r) :
   have := zmod_natCast_ne hb h1 hne
   simpa using this
 
+/-- For prime `p` and `q` and `r ≥ 1`, the first and second action classes cannot both hold. -/
 theorem d01 (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass1 p q r u ∧ InClass2 p q r u) := by
@@ -109,6 +144,7 @@ theorem d01 (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (_hr : 1 ≤ r)
   subst hp2; subst hq2
   exact absurd hq1 (by norm_num)
 
+/-- For prime `p` and `q` and `r ≥ 1`, the first and third action classes cannot both hold. -/
 theorem d02 (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass1 p q r u ∧ InClass3 p q r u) := by
@@ -116,6 +152,7 @@ theorem d02 (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (_hr : 1 ≤ r)
   subst hp2; subst hq2
   exact absurd hq1 (by norm_num)
 
+/-- For prime `p` and `q` and `r ≥ 1`, the first and fourth action classes cannot both hold. -/
 theorem d03 (p q r : ℕ) (hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass1 p q r u ∧ InClass4 p q r u) := by
@@ -125,6 +162,7 @@ theorem d03 (p q r : ℕ) (hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
   have hle : p ≤ p - 1 := Nat.le_of_dvd (by omega) hq1
   omega
 
+/-- For prime `p` and `q` and `r ≥ 1`, the first and fifth action classes cannot both hold. -/
 theorem d04 (_p q r : ℕ) (_hp : _p.Prime) (hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (_p ^ r))ˣ) :
     ¬ (InClass1 _p q r u ∧ InClass5 _p q r u) := by
@@ -133,6 +171,7 @@ theorem d04 (_p q r : ℕ) (_hp : _p.Prime) (hq : q.Prime) (_hr : 1 ≤ r)
   have hq1 : q = 1 := by rw [← ho, hu1', orderOf_one]
   exact hq.ne_one hq1
 
+/-- For prime `p` and `q` and `r ≥ 1`, the second and third action classes cannot both hold. -/
 theorem d12 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass2 p q r u ∧ InClass3 p q r u) := by
@@ -140,6 +179,7 @@ theorem d12 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
   subst hp2; subst hq2
   exact neC r hr3 (hu3.symm.trans hu2)
 
+/-- For prime `p` and `q` and `r ≥ 1`, the second and fourth action classes cannot both hold. -/
 theorem d13 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass2 p q r u ∧ InClass4 p q r u) := by
@@ -149,6 +189,7 @@ theorem d13 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
   · exact absurd rfl h
   · exact h.1 hu2
 
+/-- For prime `p` and `q` and `r ≥ 1`, the second and fifth action classes cannot both hold. -/
 theorem d14 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass2 p q r u ∧ InClass5 p q r u) := by
@@ -156,6 +197,7 @@ theorem d14 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
   subst hp2; subst hq2
   exact neOneR r hr2 (hu2.symm.trans hu1)
 
+/-- For prime `p` and `q` and `r ≥ 1`, the third and fourth action classes cannot both hold. -/
 theorem d23 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass3 p q r u ∧ InClass4 p q r u) := by
@@ -165,6 +207,7 @@ theorem d23 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
   · exact absurd rfl h
   · exact h.2 hu3
 
+/-- For prime `p` and `q` and `r ≥ 1`, the third and fifth action classes cannot both hold. -/
 theorem d24 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass3 p q r u ∧ InClass5 p q r u) := by
@@ -172,6 +215,7 @@ theorem d24 (p q r : ℕ) (_hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
   subst hp2; subst hq2
   exact neOneH r hr3 (hu3.symm.trans hu1)
 
+/-- For prime `p` and `q` and `r ≥ 1`, the fourth and fifth action classes cannot both hold. -/
 theorem d34 (p q r : ℕ) (hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) :
     ¬ (InClass4 p q r u ∧ InClass5 p q r u) := by
@@ -180,6 +224,8 @@ theorem d34 (p q r : ℕ) (hp : p.Prime) (_hq : q.Prime) (_hr : 1 ≤ r)
   rw [hu1', orderOf_one] at hop
   exact hp.ne_one hop.symm
 
+/-- For prime `p` and `q`, `r ≥ 1`, and `u ^ q = 1`, at least one of the five action classes
+holds. -/
 theorem exhaust (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) (hu : u ^ q = 1) :
     ∃ i : Fin 5, classVec p q r u i := by
@@ -251,6 +297,8 @@ theorem exhaust (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
         show InClass4 p q r u
         exact ⟨hqp, by omega, by simp [hp2], hordq.trans hqp, Or.inl hp2⟩
 
+/-- For prime `p` and `q`, `r ≥ 1`, and `u ^ q = 1`, distinct entries of `classVec` cannot both
+hold. -/
 theorem disjoint (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) (hu : u ^ q = 1) :
     ∀ i j : Fin 5, i ≠ j → ¬ (classVec p q r u i ∧ classVec p q r u j) := by
@@ -279,6 +327,8 @@ theorem disjoint (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
   · exact key i j hlt h
   · exact key j i hgt ⟨h.2, h.1⟩
 
+/-- For prime `p` and `q`, `r ≥ 1`, and `u ^ q = 1`, the five action classes are exhaustive and
+pairwise disjoint. See [Inui and Le Gall, 2007, Theorem 6][InuiLeGall2007]. -/
 theorem theorem6_classification
     (p q r : ℕ) (hp : p.Prime) (hq : q.Prime) (hr : 1 ≤ r)
     (u : (ZMod (p ^ r))ˣ) (hu : u ^ q = 1) :

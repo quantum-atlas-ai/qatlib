@@ -49,6 +49,26 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.FibonacciRepresentation
+
+/-!
+# Elementary five-dimensional Fibonacci matrices
+
+The definitions `Mdiag`, `Mn`, and `blockDiag5` specify five-dimensional matrices used in the
+Fibonacci synthesis setting. The module proves the additive multiplication law for `Mdiag` and
+the componentwise multiplication law for the prescribed scalar and 2 × 2 block pattern. See
+[ShorJordan2008].
+
+## Main statements
+
+* `Mdiag_mul`: Multiplication of `Mdiag α` and `Mdiag β` adds their phase parameters.
+* `blockDiag5_mul`: Multiplication of two `blockDiag5` matrices multiplies their corresponding
+  scalar factors and final 2 × 2 blocks.
+
+## References
+
+* [Shor and Jordan, 2008][ShorJordan2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -59,6 +79,8 @@ namespace Qatlib.Papers.JonesPolyShor07.MainResults.Definitions
 open Matrix
 open scoped BigOperators
 
+/-- The diagonal matrix with phase exp(iα/2) in its first four coordinates and exp(−iα/2) in its
+last coordinate. -/
 def Mdiag (α : ℝ) : Matrix (Fin 5) (Fin 5) ℂ :=
   fun i j =>
     if i = j then
@@ -66,6 +88,8 @@ def Mdiag (α : ℝ) : Matrix (Fin 5) (Fin 5) ℂ :=
        else Complex.exp ((α / 2) * Complex.I))
     else 0
 
+/-- The five-dimensional matrix with scalar diagonal blocks bFib, aFib, aFib and final block
+with entries eFib, dFib, dFib, cFib. -/
 def Mn : Matrix (Fin 5) (Fin 5) ℂ :=
   fun i j =>
     match i.val, j.val with
@@ -78,6 +102,7 @@ def Mn : Matrix (Fin 5) (Fin 5) ℂ :=
     | 4, 4 => cFib
     | _, _ => 0
 
+/-- The block-diagonal matrix with scalar entries φ1, φ2, φ2 and final 2 × 2 block V. -/
 def blockDiag5 (φ1 φ2 : ℂ) (V : Matrix (Fin 2) (Fin 2) ℂ) : Matrix (Fin 5) (Fin 5) ℂ :=
   fun i j =>
     match i.val, j.val with
@@ -90,6 +115,7 @@ def blockDiag5 (φ1 φ2 : ℂ) (V : Matrix (Fin 2) (Fin 2) ℂ) : Matrix (Fin 5)
     | 4, 4 => V 1 1
     | _, _ => 0
 
+/-- The entrywise definition of `Mdiag` equals the corresponding `Matrix.diagonal` expression. -/
 theorem Mdiag_eq_diagonal (α : ℝ) :
     Mdiag α = Matrix.diagonal
       (fun i : Fin 5 =>
@@ -101,6 +127,7 @@ theorem Mdiag_eq_diagonal (α : ℝ) :
     simp [Mdiag, Matrix.diagonal]
   · simp [Mdiag, Matrix.diagonal, h]
 
+/-- Multiplication of `Mdiag α` and `Mdiag β` adds their phase parameters; see [ShorJordan2008]. -/
 theorem Mdiag_mul (α β : ℝ) : Mdiag α * Mdiag β = Mdiag (α + β) := by
   rw [Mdiag_eq_diagonal, Mdiag_eq_diagonal, Mdiag_eq_diagonal, Matrix.diagonal_mul_diagonal]
   congr 1
@@ -117,6 +144,7 @@ theorem Mdiag_mul (α β : ℝ) : Mdiag α * Mdiag β = Mdiag (α + β) := by
     push_cast
     ring
 
+/-- The zero-parameter matrix `Mdiag 0` is the identity. -/
 theorem Mdiag_zero : Mdiag 0 = 1 := by
   ext i j
   by_cases h : i = j
@@ -124,6 +152,8 @@ theorem Mdiag_zero : Mdiag 0 = 1 := by
     simp [Mdiag]
   · simp [Mdiag, h]
 
+/-- Multiplication of two `blockDiag5` matrices multiplies their corresponding scalar factors
+and final 2 × 2 blocks; see [ShorJordan2008]. -/
 theorem blockDiag5_mul (φ1 φ2 ψ1 ψ2 : ℂ) (V W : Matrix (Fin 2) (Fin 2) ℂ) :
     blockDiag5 φ1 φ2 V * blockDiag5 ψ1 ψ2 W = blockDiag5 (φ1 * ψ1) (φ2 * ψ2) (V * W) := by
   ext i j

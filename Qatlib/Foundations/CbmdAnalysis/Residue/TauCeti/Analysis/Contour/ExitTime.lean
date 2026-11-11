@@ -10,6 +10,25 @@ import Mathlib.Analysis.Normed.Group.Basic
 import Mathlib.Topology.Order.LeftRightNhds
 import Mathlib.Analysis.Normed.Group.Uniform
 import Mathlib.Topology.Order.IntermediateValue
+
+/-!
+# First exit times from distance balls
+
+This module defines `firstExitTimeRight` and `firstExitTimeLeft` by an infimum and supremum in
+bounded parameter windows. For continuous curves it proves threshold attainment and convergence
+of exit times toward an isolated crossing, supplying distance-truncation endpoints for the
+contour analysis supporting [WangEtAl2026].
+
+## Main statements
+
+* `norm_at_firstExitTimeRight_eq`: exact threshold attainment to the right.
+* `firstExitTimeLeft_tendsto`: convergence to the crossing from the left.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,47 +46,65 @@ section Norm
 
 variable {E : Type*} [Sub E] [Norm E]
 
+/-- The infimum of parameters in `[t₀, t₀ + δ]` at which the distance from `γ t` to `s` is at
+least `ε`. -/
 def firstExitTimeRight (γ : ℝ → E) (t₀ δ : ℝ) (s : E) (ε : ℝ) : ℝ :=
   sInf {t ∈ Icc t₀ (t₀ + δ) | ε ≤ ‖γ t - s‖}
 
+/-- The right endpoint belongs to the right exit set when its distance is at least the threshold
+and `δ` is nonnegative. -/
 private theorem right_endpoint_mem {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     (hδ : 0 ≤ δ) (h_far : ε ≤ ‖γ (t₀ + δ) - s‖) :
     (t₀ + δ) ∈ {t ∈ Icc t₀ (t₀ + δ) | ε ≤ ‖γ t - s‖} :=
   ⟨⟨by linarith, le_rfl⟩, h_far⟩
 
+/-- Every member of the right exit set is bounded below by `t₀`. -/
 private theorem right_set_bddBelow (γ : ℝ → E) (t₀ δ ε : ℝ) (s : E) :
     ∀ t ∈ {t ∈ Icc t₀ (t₀ + δ) | ε ≤ ‖γ t - s‖}, t₀ ≤ t :=
   fun _ ⟨hmem, _⟩ => hmem.1
 
+/-- If the right endpoint reaches the threshold and `δ` is nonnegative, the right exit time lies
+in `[t₀, t₀ + δ]`. -/
 theorem firstExitTimeRight_mem_Icc {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E} (hδ : 0 ≤ δ)
     (hε_le : ε ≤ ‖γ (t₀ + δ) - s‖) :
     firstExitTimeRight γ t₀ δ s ε ∈ Icc t₀ (t₀ + δ) :=
   ⟨le_csInf ⟨t₀ + δ, right_endpoint_mem hδ hε_le⟩ (right_set_bddBelow γ t₀ δ ε s),
     csInf_le ⟨t₀, right_set_bddBelow γ t₀ δ ε s⟩ (right_endpoint_mem hδ hε_le)⟩
 
+/-- The right exit time is no greater than any parameter in its window reaching the distance
+threshold. -/
 theorem firstExitTimeRight_le_of_mem {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     {t₁ : ℝ} (ht₁ : t₁ ∈ Icc t₀ (t₀ + δ)) (h_far : ε ≤ ‖γ t₁ - s‖) :
     firstExitTimeRight γ t₀ δ s ε ≤ t₁ :=
   csInf_le ⟨t₀, right_set_bddBelow γ t₀ δ ε s⟩ ⟨ht₁, h_far⟩
 
+/-- The supremum of parameters in `[t₀ - δ, t₀]` at which the distance from `γ t` to `s` is at
+least `ε`. -/
 def firstExitTimeLeft (γ : ℝ → E) (t₀ δ : ℝ) (s : E) (ε : ℝ) : ℝ :=
   sSup {t ∈ Icc (t₀ - δ) t₀ | ε ≤ ‖γ t - s‖}
 
+/-- The left endpoint belongs to the left exit set when its distance is at least the threshold
+and `δ` is nonnegative. -/
 private theorem left_endpoint_mem {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     (hδ : 0 ≤ δ) (h_far : ε ≤ ‖γ (t₀ - δ) - s‖) :
     (t₀ - δ) ∈ {t ∈ Icc (t₀ - δ) t₀ | ε ≤ ‖γ t - s‖} :=
   ⟨⟨le_rfl, by linarith⟩, h_far⟩
 
+/-- Every member of the left exit set is bounded above by `t₀`. -/
 private theorem left_set_bddAbove (γ : ℝ → E) (t₀ δ ε : ℝ) (s : E) :
     ∀ t ∈ {t ∈ Icc (t₀ - δ) t₀ | ε ≤ ‖γ t - s‖}, t ≤ t₀ :=
   fun _ ⟨hmem, _⟩ => hmem.2
 
+/-- If the left endpoint reaches the threshold and `δ` is nonnegative, the left exit time lies
+in `[t₀ - δ, t₀]`. -/
 theorem firstExitTimeLeft_mem_Icc {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E} (hδ : 0 ≤ δ)
     (hε_le : ε ≤ ‖γ (t₀ - δ) - s‖) :
     firstExitTimeLeft γ t₀ δ s ε ∈ Icc (t₀ - δ) t₀ :=
   ⟨le_csSup ⟨t₀, left_set_bddAbove γ t₀ δ ε s⟩ (left_endpoint_mem hδ hε_le),
     csSup_le ⟨t₀ - δ, left_endpoint_mem hδ hε_le⟩ (left_set_bddAbove γ t₀ δ ε s)⟩
 
+/-- Every parameter in the left window reaching the distance threshold is no greater than the
+left exit time. -/
 theorem le_firstExitTimeLeft_of_mem {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     {t₁ : ℝ} (ht₁ : t₁ ∈ Icc (t₀ - δ) t₀) (h_far : ε ≤ ‖γ t₁ - s‖) :
     t₁ ≤ firstExitTimeLeft γ t₀ δ s ε :=
@@ -79,6 +116,8 @@ section Seminormed
 
 variable {E : Type*} [SeminormedAddCommGroup E]
 
+/-- For a continuous curve whose right endpoint reaches the threshold, the distance at the right
+exit time is at least `ε`. -/
 theorem le_norm_at_firstExitTimeRight {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     (hδ : 0 ≤ δ) (hγ_cont : ContinuousOn γ (Icc t₀ (t₀ + δ))) (hε_le : ε ≤ ‖γ (t₀ + δ) - s‖) :
     ε ≤ ‖γ (firstExitTimeRight γ t₀ δ s ε) - s‖ :=
@@ -87,6 +126,8 @@ theorem le_norm_at_firstExitTimeRight {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E
     ⟨t₀ + δ, right_endpoint_mem hδ hε_le⟩
     ⟨t₀, right_set_bddBelow γ t₀ δ ε s⟩).2
 
+/-- For a continuous curve starting at `s`, a positive reached threshold forces the right exit
+time to be strictly greater than `t₀`. -/
 theorem lt_firstExitTimeRight {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E} (hδ : 0 ≤ δ)
     (hγ_cont : ContinuousOn γ (Icc t₀ (t₀ + δ)))
     (h_s : γ t₀ = s) (hε_pos : 0 < ε) (hε_le : ε ≤ ‖γ (t₀ + δ) - s‖) :
@@ -97,6 +138,8 @@ theorem lt_firstExitTimeRight {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E} (hδ :
   simp [← h, h_s] at this
   linarith
 
+/-- For a continuous curve starting at `s`, the distance at the right exit time equals any
+nonnegative threshold reached by the right endpoint. -/
 theorem norm_at_firstExitTimeRight_eq {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     (hδ : 0 ≤ δ) (hγ_cont : ContinuousOn γ (Icc t₀ (t₀ + δ)))
     (h_s : γ t₀ = s) (hε_nonneg : 0 ≤ ε) (hε_le : ε ≤ ‖γ (t₀ + δ) - s‖) :
@@ -112,6 +155,8 @@ theorem norm_at_firstExitTimeRight_eq {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E
   have hle := firstExitTimeRight_le_of_mem ⟨ht.1, ht.2.le.trans hτ.2⟩ hnorm.ge
   exact hle.not_gt ht.2
 
+/-- For a continuous curve whose left endpoint reaches the threshold, the distance at the left
+exit time is at least `ε`. -/
 theorem le_norm_at_firstExitTimeLeft {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     (hδ : 0 ≤ δ) (hγ_cont : ContinuousOn γ (Icc (t₀ - δ) t₀)) (hε_le : ε ≤ ‖γ (t₀ - δ) - s‖) :
     ε ≤ ‖γ (firstExitTimeLeft γ t₀ δ s ε) - s‖ :=
@@ -120,6 +165,8 @@ theorem le_norm_at_firstExitTimeLeft {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     ⟨t₀ - δ, left_endpoint_mem hδ hε_le⟩
     ⟨t₀, left_set_bddAbove γ t₀ δ ε s⟩).2
 
+/-- For a continuous curve passing through `s` at `t₀`, a positive reached threshold forces the
+left exit time to be strictly less than `t₀`. -/
 theorem firstExitTimeLeft_lt {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E} (hδ : 0 ≤ δ)
     (hγ_cont : ContinuousOn γ (Icc (t₀ - δ) t₀))
     (h_s : γ t₀ = s) (hε_pos : 0 < ε) (hε_le : ε ≤ ‖γ (t₀ - δ) - s‖) :
@@ -130,6 +177,8 @@ theorem firstExitTimeLeft_lt {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E} (hδ : 
   simp [h, h_s] at this
   linarith
 
+/-- For a continuous curve passing through `s` at `t₀`, the distance at the left exit time
+equals any nonnegative threshold reached by the left endpoint. -/
 theorem norm_at_firstExitTimeLeft_eq {γ : ℝ → E} {t₀ δ ε : ℝ} {s : E}
     (hδ : 0 ≤ δ) (hγ_cont : ContinuousOn γ (Icc (t₀ - δ) t₀))
     (h_s : γ t₀ = s) (hε_nonneg : 0 ≤ ε) (hε_le : ε ≤ ‖γ (t₀ - δ) - s‖) :
@@ -151,6 +200,8 @@ section Normed
 
 variable {E : Type*} [NormedAddCommGroup E]
 
+/-- If a continuous curve leaves `s` immediately to the right without returning in the window,
+the right exit times tend to `t₀` from above as positive thresholds tend to zero. -/
 theorem firstExitTimeRight_tendsto {γ : ℝ → E} {t₀ δ : ℝ} {s : E} (hδ : 0 < δ)
     (hγ_cont : ContinuousOn γ (Icc t₀ (t₀ + δ)))
     (h_s : γ t₀ = s) (h_leave : ∀ t ∈ Ioc t₀ (t₀ + δ), γ t ≠ s) :
@@ -176,6 +227,8 @@ theorem firstExitTimeRight_tendsto {γ : ℝ → E} {t₀ δ : ℝ} {s : E} (hδ
     refine ⟨Ioo 0 ‖γ (t₀ + δ) - s‖, Ioo_mem_nhdsGT h_far_pos, fun ε hε => ?_⟩
     exact lt_firstExitTimeRight hδ.le hγ_cont h_s hε.1 hε.2.le
 
+/-- If a continuous curve leaves `s` immediately to the left without returning in the window,
+the left exit times tend to `t₀` from below as positive thresholds tend to zero. -/
 theorem firstExitTimeLeft_tendsto {γ : ℝ → E} {t₀ δ : ℝ} {s : E} (hδ : 0 < δ)
     (hγ_cont : ContinuousOn γ (Icc (t₀ - δ) t₀))
     (h_s : γ t₀ = s) (h_leave : ∀ t ∈ Ico (t₀ - δ) t₀, γ t ≠ s) :
@@ -202,6 +255,8 @@ theorem firstExitTimeLeft_tendsto {γ : ℝ → E} {t₀ δ : ℝ} {s : E} (hδ 
     refine ⟨Ioo 0 ‖γ (t₀ - δ) - s‖, Ioo_mem_nhdsGT h_far_pos, fun ε hε => ?_⟩
     exact firstExitTimeLeft_lt hδ.le hγ_cont h_s hε.1 hε.2.le
 
+/-- For a continuous curve starting at `s` with a different right endpoint value, sufficiently
+small positive thresholds equal the distances attained at their right exit times. -/
 theorem eventually_norm_at_firstExitTimeRight_eq {γ : ℝ → E} {t₀ δ : ℝ} {s : E} (hδ : 0 ≤ δ)
     (hγ_cont : ContinuousOn γ (Icc t₀ (t₀ + δ)))
     (h_s : γ t₀ = s) (h_leave : γ (t₀ + δ) ≠ s) :
@@ -211,6 +266,9 @@ theorem eventually_norm_at_firstExitTimeRight_eq {γ : ℝ → E} {t₀ δ : ℝ
   filter_upwards [Ioo_mem_nhdsGT h_far_pos] with ε hε
   exact norm_at_firstExitTimeRight_eq hδ hγ_cont h_s hε.1.le hε.2.le
 
+/-- For a continuous curve passing through `s` with a different left endpoint value,
+sufficiently small positive thresholds equal the distances attained at their left exit
+times. -/
 theorem eventually_norm_at_firstExitTimeLeft_eq {γ : ℝ → E} {t₀ δ : ℝ} {s : E} (hδ : 0 ≤ δ)
     (hγ_cont : ContinuousOn γ (Icc (t₀ - δ) t₀))
     (h_s : γ t₀ = s) (h_leave : γ (t₀ - δ) ≠ s) :

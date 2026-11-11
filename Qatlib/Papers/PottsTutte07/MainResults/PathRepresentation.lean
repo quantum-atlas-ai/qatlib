@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.PottsTutte07.MainResults.Definitions
+
+/-!
+# Path-coefficient normalization identities
+
+The module derives local normalization identities from reciprocal coefficient relations and a
+weighted adjacency eigenvector equation. Its real-coefficient existence statements characterize
+when every ratio of eigenvector entries has a real square root [AharonovEtAl2007].
+
+## Main statements
+
+* `lemma5_1`: The adjacency eigenvector relation gives normalized sums of squared path
+  coefficients.
+* `corollary5_1_hermitian_iff`: Real square-root coefficients exist exactly when all entry
+  ratios are nonnegative.
+
+## References
+
+* [Aharonov et al., 2007][AharonovEtAl2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +34,8 @@ namespace Qatlib.Papers.PottsTutte07.MainResults
 
 open scoped BigOperators
 
+/-- The reciprocal coefficient and column-sum hypotheses imply the local cancellation and scalar
+extension identities [AharonovEtAl2007]. -/
 theorem claim5_1_representation_conditions
     {R : Type*} [CommRing R] {ι : Type*} [Fintype ι]
     (a b : ι → ι → R) (d : R)
@@ -27,6 +49,8 @@ theorem claim5_1_representation_conditions
   · intro k ext
     rw [← Finset.sum_mul, h23 k]
 
+/-- The stated branch relation and adjacency eigenvector equation imply reciprocal coefficients
+and normalized adjacency sums of their squares [AharonovEtAl2007]. -/
 theorem lemma5_1
     {ι : Type*} [Fintype ι]
     (adj : ι → ι → Bool) (π : ι → ℂ) (a : ι → ι → ℂ) (d : ℂ)
@@ -52,6 +76,8 @@ theorem lemma5_1
     _ = d * π k / π k := by rw [heigen k]
     _ = d := by field_simp [hπ k]
 
+/-- A real coefficient family whose squares are the ratios `π l / π k` exists if and only if all
+those ratios are nonnegative [AharonovEtAl2007]. -/
 theorem corollary5_1_hermitian_iff
     {ι : Type*} (π : ι → ℝ) :
     (∃ a : ι → ι → ℝ, ∀ l k, a l k ^ 2 = π l / π k)
@@ -63,6 +89,8 @@ theorem corollary5_1_hermitian_iff
   · intro h
     exact ⟨fun l k => Real.sqrt (π l / π k), fun l k => Real.sq_sqrt (h l k)⟩
 
+/-- A strictly positive real family `π` possesses real coefficients whose squares are every
+ratio `π l / π k` [AharonovEtAl2007]. -/
 theorem corollary5_1_of_pos
     {ι : Type*} (π : ι → ℝ) (hpos : ∀ i, 0 < π i) :
     ∃ a : ι → ι → ℝ, ∀ l k, a l k ^ 2 = π l / π k := by

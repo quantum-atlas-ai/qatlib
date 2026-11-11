@@ -10,6 +10,26 @@ import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Data.Real.Sqrt
 import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
 import Mathlib.LinearAlgebra.Matrix.Permutation
+
+/-!
+# Controlled addition and phase interference
+
+Controlled gates transfer eigenphases from a common target eigenstate to the control amplitudes.
+This module realizes that mechanism using cyclic addition and a normalized Fourier kernel state,
+giving the exact prescribed phase pattern for `conditionalAddWord` in the setting of
+[CleveEtAl1998].
+
+## Main statements
+
+* `conditional_pattern`: phase transfer for a family with a common eigenstate.
+* `conditional_add_kicks_back`: the Fourier kernel is an eigenstate of cyclic addition.
+* `conditionalAddWord_run`: the exact controlled-addition output state.
+
+## References
+
+* [Cleve et al., 1998][CleveEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,10 +41,15 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 
 namespace Qatlib.Papers.QAlgorithms97.MainResults.InterferencePattern
 
+/-- The block-diagonal gate applying `U x` to the target register when the control has value
+`x`. -/
 def conditionalGate {I J : Type*} [DecidableEq I] (U : I → Matrix J J ℂ) :
     Matrix (I × J) (I × J) ℂ :=
   fun p q => if p.1 = q.1 then U p.1 p.2 q.2 else 0
 
+/-- If the target state is a common eigenstate of the controlled gates with phases determined by
+`φ`, the controlled gate multiplies each control amplitude by its corresponding eigenphase
+[CleveEtAl1998]. -/
 theorem conditional_pattern {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (U : I → Matrix J J ℂ)
     (φ : I → ℝ) (Ψ : QState J)
@@ -49,6 +74,7 @@ theorem conditional_pattern {I J : Type*} [Fintype I] [DecidableEq I]
   rw [← Finset.mul_sum, h]
   ring
 
+/-- A controlled family of unitary target gates defines a unitary gate on the product register. -/
 theorem conditionalGate_unitary {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (U : I → Matrix J J ℂ)
     (hU : ∀ x, U x ∈ Matrix.unitaryGroup J ℂ) :
@@ -64,14 +90,18 @@ theorem conditionalGate_unitary {I J : Type*} [Fintype I] [DecidableEq I]
     simpa [Matrix.one_apply, apply_ite, eq_comm] using! hu
   · simp [apply_ite, h, eq_comm]
 
+/-- Addition of a fixed offset modulo `2 ^ m` on the finite cyclic register. -/
 def cyclicAdd {m : ℕ} (a : Fin (2 ^ m)) (y : Fin (2 ^ m)) : Fin (2 ^ m) :=
   ⟨(y.val + a.val) % 2 ^ m, Nat.mod_lt _ (Nat.two_pow_pos m)⟩
 
+/-- The permutation matrix implementing addition of `a` modulo `2 ^ m`. -/
 def cyclicAddGate {m : ℕ} (a : Fin (2 ^ m)) : Matrix (Fin (2 ^ m)) (Fin (2 ^ m)) ℂ :=
   fun y z => if y = cyclicAdd a z then 1 else 0
 
+/-- The explicit modular definition of `cyclicAdd` equals addition in `Fin (2 ^ m)`. -/
 theorem cyclicAdd_eq_add {m : ℕ} (a y : Fin (2 ^ m)) : cyclicAdd a y = y + a := rfl
 
+/-- Applying cyclic addition by `a` evaluates the input amplitude at the output label minus `a`. -/
 theorem cyclicAddGate_apply {m : ℕ} (a : Fin (2 ^ m)) (ψ : QState (Fin (2 ^ m)))
     (y : Fin (2 ^ m)) : ApplyGate (cyclicAddGate a) ψ y = ψ (y - a) := by
   change (∑ z, (if y = cyclicAdd a z then (1 : ℂ) else 0) * ψ z) = _
@@ -79,6 +109,7 @@ theorem cyclicAddGate_apply {m : ℕ} (a : Fin (2 ^ m)) (ψ : QState (Fin (2 ^ m
     intro z; simp [eq_sub_iff_add_eq, eq_comm], ite_mul, one_mul, zero_mul]
   simp
 
+/-- The cyclic-addition permutation matrix is unitary. -/
 theorem cyclicAddGate_unitary {m : ℕ} (a : Fin (2 ^ m)) :
     cyclicAddGate a ∈ Matrix.unitaryGroup (Fin (2 ^ m)) ℂ := by
   have heq : cyclicAddGate a = Equiv.Perm.permMatrix ℂ (Equiv.addRight a).symm := by
@@ -93,6 +124,8 @@ theorem cyclicAddGate_unitary {m : ℕ} (a : Fin (2 ^ m)) :
   rw [heq]
   exact hp _
 
+/-- The finite cyclic equivalence sends a label to the residue class of its natural-number
+value. -/
 theorem cyclic_label {N : ℕ} [NeZero N] (y : Fin N) :
     ZMod.finEquiv N y = (y.val : ZMod N) := by
   cases N with
@@ -102,6 +135,8 @@ theorem cyclic_label {N : ℕ} [NeZero N] (y : Fin N) :
     change y.val = y.val % (n + 1)
     exact (Nat.mod_eq_of_lt y.isLt).symm
 
+/-- The standard additive character on a register of size `2 ^ m` is the complex exponential
+with angle `2πy / 2 ^ m`. -/
 theorem cyclic_character_exp (m : ℕ) (y : Fin (2 ^ m)) :
     ZMod.stdAddChar (ZMod.finEquiv (2 ^ m) y) =
       Complex.exp (2 * Real.pi * (y.val : ℝ) / (2 : ℝ) ^ m * Complex.I) := by
@@ -113,10 +148,13 @@ theorem cyclic_character_exp (m : ℕ) (y : Fin (2 ^ m)) :
   push_cast
   ring
 
+/-- The normalized negative-frequency Fourier kernel state on a cyclic register of size `2 ^ m`. -/
 def fourierKernelState (m : ℕ) : QState (Fin (2 ^ m)) :=
   fun y => ((Real.sqrt ((2 : ℝ) ^ m) : ℝ) : ℂ)⁻¹ *
     Complex.exp (-(2 * Real.pi * (y.val : ℝ) / (2 : ℝ) ^ m) * Complex.I)
 
+/-- The Fourier kernel amplitude is the inverse square root of the register size times the
+standard additive character of the negative label. -/
 theorem fourierKernelState_character (m : ℕ) (y : Fin (2 ^ m)) :
     fourierKernelState m y = (Real.sqrt ((2 : ℝ) ^ m) : ℂ)⁻¹ *
       ZMod.stdAddChar (-ZMod.finEquiv (2 ^ m) y) := by
@@ -125,6 +163,8 @@ theorem fourierKernelState_character (m : ℕ) (y : Fin (2 ^ m)) :
   congr 2
   ring
 
+/-- Cyclic addition by `a` multiplies the Fourier kernel state by the phase `exp (2πi a / 2 ^
+m)`. -/
 theorem conditional_add_kicks_back (m : ℕ) (a : Fin (2 ^ m)) :
     ApplyGate (cyclicAddGate a) (fourierKernelState m) =
       fun y => Complex.exp (2 * Real.pi * (a.val : ℝ) / (2 : ℝ) ^ m * Complex.I) *
@@ -136,6 +176,7 @@ theorem conditional_add_kicks_back (m : ℕ) (a : Fin (2 ^ m)) :
   rw [neg_sub, sub_eq_add_neg, AddChar.map_add_eq_mul]
   ring
 
+/-- The Fourier kernel state has total Born weight one. -/
 theorem normalized_fourierKernelState (m : ℕ) : Normalized (fourierKernelState m) := by
   have hn := Qatlib.Concepts.QuditTeleport.TeleportCore.normalized_charState
     (-1 : ZMod (2 ^ m))
@@ -150,15 +191,20 @@ theorem normalized_fourierKernelState (m : ℕ) : Normalized (fourierKernelState
       simp only [Nat.cast_pow, Nat.cast_ofNat, RingEquiv.toEquiv_eq_coe, RingEquiv.coe_toEquiv]
     _ = 1 := hn
 
+/-- The single-gate circuit applying cyclic addition by the control-dependent offset `a x`. -/
 def conditionalAddWord {I : Type*} [DecidableEq I] (m : ℕ) (a : I → Fin (2 ^ m)) :
     Circuit (I × Fin (2 ^ m)) :=
   [Step.gate (conditionalGate (fun x => cyclicAddGate (a x)))]
 
+/-- The controlled cyclic-addition word is a unitary circuit. -/
 theorem conditionalAddWord_unitary {I : Type*} [Fintype I] [DecidableEq I]
     (m : ℕ) (a : I → Fin (2 ^ m)) : IsUnitaryCircuit (conditionalAddWord m a) := by
   simp only [conditionalAddWord, isUnitaryCircuit_gate, isUnitaryCircuit_nil, and_true]
   exact conditionalGate_unitary _ (fun _ => cyclicAddGate_unitary _)
 
+/-- Running the controlled-addition word with the Fourier kernel target multiplies each control
+amplitude by its offset-dependent phase and leaves the target state unchanged
+[CleveEtAl1998]. -/
 theorem conditionalAddWord_run {I : Type*} [Fintype I] [DecidableEq I]
     (m : ℕ) (a : I → Fin (2 ^ m)) (α : QState I)
     (oracle : Matrix (I × Fin (2 ^ m)) (I × Fin (2 ^ m)) ℂ) :
@@ -179,6 +225,8 @@ theorem conditionalAddWord_run {I : Type*} [Fintype I] [DecidableEq I]
       push_cast
       ring) α
 
+/-- A normalized control state tensored with the Fourier kernel remains normalized after the
+controlled-addition word. -/
 theorem conditionalAddWord_normalized {I : Type*} [Fintype I] [DecidableEq I]
     (m : ℕ) (a : I → Fin (2 ^ m)) {α : QState I} (hα : Normalized α)
     (oracle : Matrix (I × Fin (2 ^ m)) (I × Fin (2 ^ m)) ℂ) :

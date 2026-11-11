@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftDefs
+
+/-!
+# Certified qDRIFT budgets and postselection
+
+This module derives executable qDRIFT budgets from certified rational parameter reads and
+bracket streams, proves allocation bounds, and compares capped sampling with postselected
+importance sampling. It also establishes projection and conditional-output estimates,
+phase-estimation repetition bounds, and exact synthesis of Hermitian evolutions by two-level
+instructions and reflection-gate circuits.
+
+The mathematical background is described in [Campbell2019].
+
+## Main statements
+
+* `clause19_endpoint`: certified input reads yield simulation budgets and path ledgers.
+* `tight_allocation_endpoint`: allocation bounds imply finite diamond-distance bounds.
+* `clause21_endpoint`: coherence obstruction and postselection guarantees.
+* `synthesis_registers_agree`: two exact synthesis forms on qubit registers.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -34,6 +58,8 @@ namespace Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdrift
 open Matrix Qatlib
 open scoped BigOperators Classical ENNReal Matrix.Norms.L2Operator
 
+/-- If a list contains an element satisfying a Boolean predicate, `List.find?` returns some
+element. -/
 theorem exists_find?_of_mem_true : ∀ (p : ℕ → Bool) (l : List ℕ),
     (∃ a ∈ l, p a = true) → ∃ a, l.find? p = some a := by
   intro p l
@@ -53,6 +79,7 @@ theorem exists_find?_of_mem_true : ∀ (p : ℕ → Bool) (l : List ℕ),
         · obtain ⟨a, ha'⟩ := ih ⟨a, ha, hpa⟩
           exact ⟨a, by simp [hb, ha']⟩
 
+/-- The selected scan precision is at most the available fuel. -/
 theorem scanPrecision_le : ∀ (fuel : ℕ) (cert : ℕ → Bool),
     scanPrecision fuel cert ≤ fuel := by
   intro fuel cert
@@ -66,6 +93,8 @@ theorem scanPrecision_le : ∀ (fuel : ℕ) (cert : ℕ → Bool),
     exact hj
   | none => simp [precScan]
 
+/-- If a certified precision exists within the fuel bound, the precision returned by
+`scanPrecision` is certified. -/
 theorem scanPrecision_certified : ∀ (fuel : ℕ) (cert : ℕ → Bool),
     (∃ k, k ≤ fuel ∧ cert k = true) →
     cert (scanPrecision fuel cert) = true := by
@@ -80,6 +109,7 @@ theorem scanPrecision_certified : ∀ (fuel : ℕ) (cert : ℕ → Bool),
   rw [precScan, hj]
   exact List.find?_some hj
 
+/-- Casting a rational dyadic power to the reals preserves its value. -/
 theorem dyadic_cast (k : ℕ) : ((1 / 2 : ℚ) ^ k : ℝ) = (1 / 2 : ℝ) ^ k := by
   induction k with
   | zero => norm_num
@@ -88,6 +118,8 @@ theorem dyadic_cast (k : ℕ) : ((1 / 2 : ℚ) ^ k : ℝ) = (1 / 2 : ℝ) ^ k :=
     push_cast
     ring
 
+/-- A reliable lower-parameter read produces an error budget no greater than the represented
+real value. -/
 theorem epsBudget_le (x : ℝ) (q : ℕ → ℚ) (hq : RelLowerParamRead x q) (k : ℕ) :
     (epsBudget q k : ℝ) ≤ x := by
   have h1 : (q k : ℝ) ≤ x := (hq k).1
@@ -100,6 +132,7 @@ theorem epsBudget_le (x : ℝ) (q : ℕ → ℚ) (hq : RelLowerParamRead x q) (k
     exact h4
   exact h3.trans h1
 
+/-- A certified error budget is strictly positive as a real number. -/
 theorem epsBudget_pos (q : ℕ → ℚ) (k : ℕ) (h : epsCertified q k = true) :
     0 < (epsBudget q k : ℝ) := by
   have hq : (0 : ℚ) < epsBudget q k := by
@@ -107,6 +140,8 @@ theorem epsBudget_pos (q : ℕ → ℚ) (k : ℕ) (h : epsCertified q k = true) 
     exact h
   exact_mod_cast hq
 
+/-- The integer time bound computed from a reliable parameter read bounds the absolute real
+time. -/
 theorem timeBound_ge (t : ℝ) (tq : ℕ → ℚ) (htq : RelParamRead t tq) (k : ℕ) :
     |t| ≤ (timeBound (tq k) k : ℝ) := by
   have h1 : |t| ≤ |(tq k : ℝ)| + |t - (tq k : ℝ)| := by
@@ -158,6 +193,8 @@ theorem timeBound_ge (t : ℝ) (tq : ℕ → ℚ) (htq : RelParamRead t tq) (k :
     linarith
   linarith
 
+/-- A successful precision certificate ensures `2⁻ˢ / 2` is at most the rational error budget,
+viewed as a real number. -/
 theorem successCertified_ge (eQ : ℚ) (s : ℕ) (h : successCertified eQ s = true) :
     (2 : ℝ)⁻¹ ^ s / 2 ≤ (eQ : ℝ) := by
   have hq : (1 : ℚ) ≤ (2 : ℚ) ^ (s + 1) * eQ := by
@@ -181,6 +218,8 @@ theorem successCertified_ge (eQ : ℚ) (s : ℕ) (h : successCertified eQ s = tr
   rw [h2]
   exact hfin
 
+/-- For a positive rational error budget, the computed success fuel satisfies its precision
+certificate. -/
 theorem successFuel_certified (eQ : ℚ) (he : 0 < eQ) :
     successCertified eQ (successFuel eQ) = true := by
   have hne : eQ ≠ 0 := ne_of_gt he
@@ -211,12 +250,16 @@ theorem successFuel_certified (eQ : ℚ) (he : 0 < eQ) :
   simp only [successCertified, decide_eq_true_eq]
   simpa [div_eq_mul_inv, inv_mul_cancel₀ hne] using! hmul
 
+/-- For a positive rational error budget, the selected success level satisfies its precision
+certificate. -/
 theorem successLevel_certified (eQ : ℚ) (he : 0 < eQ) :
     successCertified eQ (successLevel eQ) = true := by
   have hex : ∃ k, k ≤ successFuel eQ ∧ successCertified eQ k = true :=
     ⟨successFuel eQ, le_rfl, successFuel_certified eQ he⟩
   exact scanPrecision_certified (successFuel eQ) (successCertified eQ) hex
 
+/-- The qDRIFT input run satisfies the stated exact formulas for parameter reads, digit reads,
+arithmetic, ceiling and logarithm operations, bit time, and bit space. -/
 theorem qdriftInputRun_cost (fuel L : ℕ) (tq eq : ℕ → ℚ) :
     let run := qdriftInputRun fuel L tq eq
     run.cost.paramReads = 2 * (run.precision + 1) ∧
@@ -230,6 +273,8 @@ theorem qdriftInputRun_cost (fuel L : ℕ) (tq eq : ℕ → ℚ) :
     run.cost.bitSpace = run.cost.bitLength + run.cost.digitReads * run.cost.bitLength + 16 := by
   refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+/-- The run bit-length bound controls the rational bit sizes of both parameter streams at every
+precision up to `k`. -/
 theorem runBitLength_bounds (k s : ℕ) (L : ℕ) (tq eq : ℕ → ℚ) :
     ∀ k' ≤ k, qdRatBits (tq k') ≤ runBitLength k s L tq eq ∧
       qdRatBits (eq k') ≤ runBitLength k s L tq eq := by
@@ -254,6 +299,7 @@ theorem runBitLength_bounds (k s : ℕ) (L : ℕ) (tq eq : ℕ → ℚ) :
   · exact le_trans (le_max_left _ _) (le_trans hsup hbound)
   · exact le_trans (le_max_right _ _) (le_trans hsup hbound)
 
+/-- The rational dyadic truncation of a number is no greater than that number. -/
 theorem ratTrunc_le (c : ℚ) (k : ℕ) : ratTrunc c k ≤ c := by
   have h1 : ((Rat.floor (c * ((2 : ℚ) ^ k)) : ℤ) : ℚ) ≤ c * ((2 : ℚ) ^ k) := by
     have := Int.floor_le (c * ((2 : ℚ) ^ k))
@@ -262,6 +308,8 @@ theorem ratTrunc_le (c : ℚ) (k : ℕ) : ratTrunc c k ≤ c := by
   rw [ratTrunc]
   exact (div_le_iff₀ h3).mpr h1
 
+/-- The difference between a rational number and its level-`k` truncation is strictly less than
+`2⁻ᵏ`. -/
 theorem ratTrunc_lt (c : ℚ) (k : ℕ) :
     c - ratTrunc c k < (1 / 2 : ℚ) ^ k := by
   have h1 : c * ((2 : ℚ) ^ k) < ((Rat.floor (c * ((2 : ℚ) ^ k)) : ℤ) : ℚ) + 1 := by
@@ -276,6 +324,7 @@ theorem ratTrunc_lt (c : ℚ) (k : ℕ) :
   rw [ratTrunc, h5, h4, div_lt_div_iff_of_pos_right h3]
   linarith
 
+/-- A rational power of one half casts to the same power in the reals. -/
 theorem dyadic_cast_rat (k : ℕ) : ((1 / 2 : ℚ) ^ k : ℝ) = (1 / 2 : ℝ) ^ k := by
   induction k with
   | zero => norm_num
@@ -283,6 +332,7 @@ theorem dyadic_cast_rat (k : ℕ) : ((1 / 2 : ℚ) ^ k : ℝ) = (1 / 2 : ℝ) ^ 
     rw [pow_succ, pow_succ, ih]
     norm_num
 
+/-- The real absolute error of level-`k` rational truncation is at most `2⁻ᵏ`. -/
 theorem ratTrunc_err (c : ℚ) (k : ℕ) :
     |(c : ℝ) - (ratTrunc c k : ℝ)| ≤ (1 / 2 : ℝ) ^ k := by
   have h1 : (ratTrunc c k : ℝ) ≤ (c : ℝ) := by
@@ -294,6 +344,7 @@ theorem ratTrunc_err (c : ℚ) (k : ℕ) :
   rw [abs_le]
   constructor <;> linarith
 
+/-- The real value returned by `bracketRead lo k` is no greater than the lower endpoint `lo`. -/
 theorem bracketRead_le (lo : ℚ) (k : ℕ) :
     (bracketRead lo k : ℝ) ≤ (lo : ℝ) := by
   have h1 : ratTrunc lo (k + 1) ≤ lo := ratTrunc_le lo (k + 1)
@@ -301,12 +352,16 @@ theorem bracketRead_le (lo : ℚ) (k : ℕ) :
   unfold bracketRead
   exact h2
 
+/-- The real absolute difference between `lo` and its level-`k` bracket read is at most
+`2⁻⁽ᵏ⁺¹⁾`. -/
 theorem bracketRead_err (lo : ℚ) (k : ℕ) :
     |(lo : ℝ) - (bracketRead lo k : ℝ)| ≤ (1 / 2 : ℝ) ^ (k + 1) := by
   have h := ratTrunc_err lo (k + 1)
   unfold bracketRead
   exact h
 
+/-- A valid rational bracket yields a read below the represented real value with absolute error
+at most `bracketError lo hi k`. -/
 theorem bracketRead_reliable (x : ℝ) (lo hi : ℚ) (h : RelBracket x lo hi) (k : ℕ) :
     (bracketRead lo k : ℝ) ≤ x ∧
     |x - (bracketRead lo k : ℝ)| ≤ bracketError lo hi k := by
@@ -329,6 +384,8 @@ theorem bracketRead_reliable (x : ℝ) (lo hi : ℚ) (h : RelBracket x lo hi) (k
   · rw [bracketError]
     linarith [h7]
 
+/-- The error budget computed from a valid rational bracket is no greater than the bracketed
+real value. -/
 theorem epsBudgetBracket_le (x : ℝ) (lo hi : ℚ) (h : RelBracket x lo hi) (k : ℕ) :
     (epsBudgetBracket lo hi k : ℝ) ≤ x := by
   have hq1 : bracketRead lo k ≤ lo := by
@@ -343,6 +400,7 @@ theorem epsBudgetBracket_le (x : ℝ) (lo hi : ℚ) (h : RelBracket x lo hi) (k 
   have hq4 : (epsBudgetBracket lo hi k : ℝ) ≤ (lo : ℝ) := by exact_mod_cast hq3
   exact hq4.trans h.1
 
+/-- A certified bracket-based error budget is strictly positive as a real number. -/
 theorem epsBudgetBracket_pos (lo hi : ℚ) (k : ℕ)
     (h : epsCertifiedBracket lo hi k = true) :
     0 < (epsBudgetBracket lo hi k : ℝ) := by
@@ -351,6 +409,8 @@ theorem epsBudgetBracket_pos (lo hi : ℚ) (k : ℕ)
     exact h
   exact_mod_cast hq
 
+/-- The integer time bound computed from a valid rational bracket bounds the absolute bracketed
+real value. -/
 theorem bracketTimeBound_ge (x : ℝ) (lo hi : ℚ) (h : RelBracket x lo hi) :
     |x| ≤ (bracketTimeBound lo hi : ℝ) := by
   have h1 : |x| ≤ max |(lo : ℝ)| |(hi : ℝ)| := by
@@ -375,6 +435,9 @@ theorem bracketTimeBound_ge (x : ℝ) (lo hi : ℚ) (h : RelBracket x lo hi) :
   rw [h3]
   exact h1.trans h2
 
+/-- Reliable parameter reads with a certified positive error budget yield bounded time and
+precision parameters, a fair-bit qDRIFT map within error `ε` in finite diamond distance, and
+the stated pathwise resource ledgers. See [Campbell2019]. -/
 theorem clause19_endpoint : ∀ (L D : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
     (K : Fin L → Operator D) (t ε : ℝ) (tq eq : ℕ → ℚ) (fuel : ℕ),
     RelParamRead t tq → RelLowerParamRead ε eq →
@@ -435,6 +498,8 @@ theorem clause19_endpoint : ∀ (L D : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
   · intro ω
     exact hled ω
 
+/-- Reliable bracket streams with a certified error budget yield time and precision bounds
+giving fair-bit qDRIFT finite diamond distance at most `ε`. -/
 theorem clause19_bracket_endpoint : ∀ (L D : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
     (K : Fin L → Operator D) (t ε : ℝ) (tlo thi elo ehi : ℕ → ℚ) (fuel : ℕ),
     RelBracketStream t tlo thi → RelBracketStream ε elo ehi →
@@ -478,6 +543,8 @@ theorem clause19_bracket_endpoint : ∀ (L D : ℕ) (w : Fin L → ℕ) (j0 : Fi
     successLevel (epsBudgetBracket (elo k0) (ehi k0) k0), hT, hε, ?_⟩
   exact hd.trans (ENNReal.ofReal_le_ofReal hε)
 
+/-- A certified allocation for a positive rational error budget uses at least `sourceTightCount
+W T eQ` steps. -/
 theorem tightCount_lower_bound (W T : ℕ) (eQ : ℚ) (R n : ℕ)
     (he : 0 < eQ) (h : tightCountCertified W T eQ R n = true) :
     sourceTightCount W T eQ ≤ n := by
@@ -504,6 +571,8 @@ theorem tightCount_lower_bound (W T : ℕ) (eQ : ℚ) (R n : ℕ)
   unfold sourceTightCount
   exact Nat.ceil_le.mpr h3
 
+/-- Every positive rational error budget has a certified allocation between `sourceTightCount W
+T eQ` and `max 1 (ceil (4 * W² * T² / eQ))` steps. -/
 theorem tightCount_achievable (W T : ℕ) (eQ : ℚ) (he : 0 < eQ) :
     ∃ (R n : ℕ),
       tightCountCertified W T eQ R n = true ∧
@@ -590,6 +659,8 @@ theorem tightCount_achievable (W T : ℕ) (eQ : ℚ) (he : 0 < eQ) :
     exact h2
   · exact le_rfl
 
+/-- A certified allocation satisfies the real combined-error bound `2 * W² * T² / n + n * 2⁻ᴿ ≤
+eQ`. -/
 theorem tightCount_real_budget (W T : ℕ) (eQ : ℚ) (R n : ℕ)
     (h : tightCountCertified W T eQ R n = true) :
     2 * (W : ℝ) ^ 2 * (T : ℝ) ^ 2 / (n : ℝ) + (n : ℝ) * ((2 : ℝ)⁻¹) ^ R ≤ (eQ : ℝ) := by
@@ -633,6 +704,9 @@ theorem tightCount_real_budget (W T : ℕ) (eQ : ℚ) (R n : ℕ)
   rw [h8] at hsum
   exact hsum
 
+/-- An allocation whose combined simulation and sampling bound is at most `eQ` gives fair-bit
+qDRIFT finite diamond distance at most `eQ` for weighted Hermitian contractions and bounded
+time. -/
 theorem tight_allocation_endpoint : ∀ (L D : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
     (K : Fin L → Operator D) (t : ℝ) (T : ℕ) (eQ : ℝ) (R n : ℕ),
     0 < weightTotal w → |t| ≤ T → (∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) →
@@ -664,18 +738,23 @@ theorem tight_allocation_endpoint : ∀ (L D : ℕ) (w : Fin L → ℕ) (j0 : Fi
     ENNReal.ofReal_le_ofReal hbound
   exact hdist.trans h1
 
+/-- The indexed control-block map has zero cross block for every input matrix. -/
 theorem ctrlBlockMapIdx_cross_zero {D : ℕ} (Λ : Operator D →ₗ[ℂ] Operator D)
     (M : Matrix (Fin 2 × Fin D) (Fin 2 × Fin D) ℂ) :
     ctrlCrossBlock (ctrlBlockMapIdx Λ M) = 0 := by
   ext i j
   simp [ctrlCrossBlock, ctrlBlockMapIdx]
 
+/-- The coherent witness has the constant cross block with entry equal to the fourth power of `1
+/ sqrt 2`, viewed in the complexes. -/
 theorem ctrlCrossBlock_coherent :
     ctrlCrossBlock coherentWitness
       = Matrix.of fun _ _ => (Complex.ofReal ((Real.sqrt 2)⁻¹)) ^ 4 := by
   ext i j
   simp [ctrlCrossBlock, coherentWitness]
 
+/-- The indexed control-block map annihilates the coherent witness's cross block, although that
+witness's original cross block is nonzero. -/
 theorem no_free_lunch_endpoint (Λ : Operator 2 →ₗ[ℂ] Operator 2) :
     ctrlCrossBlock (ctrlBlockMapIdx Λ coherentWitness) = 0 ∧
     ctrlCrossBlock coherentWitness ≠ 0 := by
@@ -684,6 +763,8 @@ theorem no_free_lunch_endpoint (Λ : Operator 2 →ₗ[ℂ] Operator 2) :
   have hh := congrFun (congrFun h 0) 0
   simp [ctrlCrossBlock, coherentWitness] at hh
 
+/-- For positive step count and error, the qDRIFT error inequality is equivalent to the
+corresponding natural-number ceiling lower bound on the step count. -/
 theorem tableQdriftCount_minimal (lam t eps : ℝ) (n : ℕ) (hn : 0 < n) (heps : 0 < eps) :
     (2 * lam ^ 2 * t ^ 2 / (n : ℝ) ≤ eps) ↔
       Nat.ceil (2 * lam ^ 2 * t ^ 2 / eps) ≤ n := by
@@ -707,6 +788,8 @@ theorem tableQdriftCount_minimal (lam t eps : ℝ) (n : ℕ) (hn : 0 < n) (heps 
       simpa [mul_comm] using! h'
     exact (div_le_iff₀ hne).mpr h3
 
+/-- The phase-estimation query-step budget makes `2 * lam² * peTimes j²` at most the allocated
+error share times the step count. -/
 theorem pe_query_accuracy (lam deltaE pf : ℝ) (j : ℕ)
     (hshare : 0 < peErrorShare deltaE pf j) :
     2 * lam ^ 2 * (peTimes j) ^ 2
@@ -728,6 +811,8 @@ theorem pe_query_accuracy (lam deltaE pf : ℝ) (j : ℕ)
     simpa [mul_comm] using! h
   exact hdiv.trans (mul_le_mul_of_nonneg_left hstep (le_of_lt hshare))
 
+/-- The sampler's exhaustion report is true exactly when its raw run ends in an exhaustion
+state. -/
 theorem fairQdriftPickReport_exhausted {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ)
     (hW : 0 < weightTotal w) (ω : Fin R → Reg (Nat.clog 2 (weightTotal w))) :
     fairQdriftPickReport w j0 R ω = true ↔
@@ -739,6 +824,7 @@ theorem fairQdriftPickReport_exhausted {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L
   | inl out => simp [fairQdriftExhausted, hcfg]
   | inr BD => simp [fairQdriftExhausted, hcfg]
 
+/-- When the fair-bit sampler reports exhaustion, its selected label is the fallback label. -/
 theorem fairQdriftPick_exhausted_is_fallback {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ)
     (hW : 0 < weightTotal w) (ω : Fin R → Reg (Nat.clog 2 (weightTotal w)))
     (hex : fairQdriftPickReport w j0 R ω = true) :
@@ -753,6 +839,8 @@ theorem fairQdriftPick_exhausted_is_fallback {L : ℕ} (w : Fin L → ℕ) (j0 :
   | inr BD =>
     simp [fairQdriftFallback, hcfg]
 
+/-- The capped sampling law decomposes into the clean probability times the importance law plus
+the exhaustion probability concentrated at the fallback label. -/
 theorem fairQdriftLaw_exhaust_split {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ)
     (hW : 0 < weightTotal w) (j : Fin L) :
     (fairQdriftLaw w j0 R).prob j =
@@ -763,6 +851,8 @@ theorem fairQdriftLaw_exhaust_split {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (
   rw [h]
   ring
 
+/-- With positive total weight and at least one rejection round, the clean sampling probability
+lies between one half and one. -/
 theorem fairBitCleanProb_bounds {L : ℕ} (w : Fin L → ℕ) (hW : 0 < weightTotal w)
     (R : ℕ) (hR : 1 ≤ R) :
     1 / 2 ≤ fairBitCleanProb w R ∧ fairBitCleanProb w R ≤ 1 := by
@@ -792,6 +882,8 @@ theorem fairBitCleanProb_bounds {L : ℕ} (w : Fin L → ℕ) (hW : 0 < weightTo
     have h := sub_le_sub_left hexn 0
     simpa using! h
 
+/-- With at least one rejection round, the `n`-step postselection success mass lies between
+`2⁻ⁿ` and one. -/
 theorem postSelect_success_mass_bounds {L : ℕ} (w : Fin L → ℕ) (hW : 0 < weightTotal w)
     (R n : ℕ) (hR : 1 ≤ R) :
     (1 / 2) ^ n ≤ postSelectSuccessMass w R n ∧ postSelectSuccessMass w R n ≤ 1 := by
@@ -801,6 +893,8 @@ theorem postSelect_success_mass_bounds {L : ℕ} (w : Fin L → ℕ) (hW : 0 < w
   · exact pow_le_pow_left₀ (by norm_num) h.1 n
   · exact pow_le_one₀ (le_trans (by norm_num) h.1) h.2
 
+/-- The Hamiltonian associated with the weight-based importance law and total-weight scale
+equals the weighted sum of its terms. -/
 theorem importance_hamiltonian {L D : ℕ} (w : Fin L → ℕ) (hW : 0 < weightTotal w)
     (K : Fin L → Operator D) :
     qdriftHamiltonian (fairQdriftImportanceLaw w hW) K (weightTotal w : ℝ) =
@@ -812,6 +906,8 @@ theorem importance_hamiltonian {L D : ℕ} (w : Fin L → ℕ) (hW : 0 < weightT
   simp only [smul_smul, fairQdriftImportanceLaw, Complex.ofReal_div, Complex.ofReal_natCast]
   rw [mul_div_cancel₀ _ (by exact_mod_cast (ne_of_gt hW))]
 
+/-- For weighted Hermitian contractions and a positive step count, the postselected qDRIFT map
+is within `postSelectDiamondBudget w n t` of the target in finite diamond distance. -/
 theorem postSelected_diamond_budget {L D : ℕ} (w : Fin L → ℕ) (n : ℕ)
     (K : Fin L → Operator D) (t : ℝ) (hW : 0 < weightTotal w) (hn : 0 < n)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) :
@@ -824,6 +920,8 @@ theorem postSelected_diamond_budget {L D : ℕ} (w : Fin L → ℕ) (n : ℕ)
   unfold postSelectedQdriftMap
   simpa [postSelectDiamondBudget] using! h
 
+/-- The capped and exact-importance one-step reference mixtures differ in trace norm by at most
+`2 * 2⁻ᴿ * traceNorm X`. -/
 private theorem postSelect_one_step_sampling_error {L D : ℕ} (w : Fin L → ℕ)
     (j0 : Fin L) (R : ℕ) (hW : 0 < weightTotal w) (U : Fin L → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (r : ℕ)
@@ -871,6 +969,8 @@ private theorem postSelect_one_step_sampling_error {L D : ℕ} (w : Fin L → �
       mul_le_mul_of_nonneg_right hab (mul_nonneg (by norm_num) (Matrix.traceNorm_nonneg X))
     _ = _ := by ring
 
+/-- The capped and exact-importance `n`-step reference mixtures differ in trace norm by at most
+`2 * n * 2⁻ᴿ * traceNorm X`. -/
 private theorem postSelect_iterated_sampling_error {L D : ℕ} (w : Fin L → ℕ)
     (j0 : Fin L) (R : ℕ) (hW : 0 < weightTotal w) (U : Fin L → Operator D)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ) (r n : ℕ)
@@ -902,6 +1002,8 @@ private theorem postSelect_iterated_sampling_error {L D : ℕ} (w : Fin L → �
     have h2' := h2.trans (mul_le_mul_of_nonneg_left hB (by positivity))
     exact ((Matrix.traceNorm_add_le _ _).trans (add_le_add h1 h2')).trans_eq (by push_cast; ring)
 
+/-- The capped fair-bit qDRIFT map and the postselected importance-sampling map have finite
+diamond distance at most `n * 2⁻ᴿ`. -/
 theorem postSelect_vs_capped_sampling_bound {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     (n R : ℕ) (K : Fin L → Operator D) (t : ℝ) (hW : 0 < weightTotal w) (hn : 0 < n)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) :
@@ -923,6 +1025,8 @@ theorem postSelect_vs_capped_sampling_bound {L D : ℕ} (w : Fin L → ℕ) (j0 
   rw [h2] at h
   exact h
 
+/-- The stated ceiling lower bound on a positive step count ensures postselected qDRIFT finite
+diamond distance at most `eQ` for bounded time and weighted Hermitian contractions. -/
 theorem postSelected_source_tight_count {L D : ℕ} (w : Fin L → ℕ)
     (K : Fin L → Operator D) (t : ℝ) (T : ℕ) (eQ : ℝ) (n : ℕ)
     (hW : 0 < weightTotal w) (ht : |t| ≤ T) (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -956,6 +1060,8 @@ theorem postSelected_source_tight_count {L D : ℕ} (w : Fin L → ℕ)
     ENNReal.ofReal_le_ofReal hmain
   exact hbud.trans h1
 
+/-- For positive time bound and error budget, some positive step count gives postselected qDRIFT
+finite diamond distance at most the requested error. -/
 theorem postSelected_source_tight_count_achievable {L D : ℕ} (w : Fin L → ℕ)
     (K : Fin L → Operator D) (t : ℝ) (T : ℕ) (eQ : ℝ)
     (hW : 0 < weightTotal w) (ht : |t| ≤ T) (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -972,6 +1078,7 @@ theorem postSelected_source_tight_count_achievable {L D : ℕ} (w : Fin L → �
   exact postSelected_source_tight_count w K t T eQ
     (Nat.ceil (2 * (weightTotal w : ℝ) ^ 2 * (T : ℝ) ^ 2 / eQ)) hW ht hK hpos he le_rfl
 
+/-- A self-adjoint idempotent matrix has operator norm at most one. -/
 theorem projection_opNorm_le_one {D : ℕ} (P : Operator D)
     (hP : Pᴴ = P) (hPP : P * P = P) : ‖P‖ ≤ 1 := by
   have h := Matrix.l2_opNorm_conjTranspose_mul_self (𝕜 := ℂ) P
@@ -983,12 +1090,15 @@ theorem projection_opNorm_le_one {D : ℕ} (P : Operator D)
   · have hz' : ‖P‖ = 1 := by linarith
     simp [hz']
 
+/-- Sandwiching a matrix between a self-adjoint projection cannot increase its trace norm. -/
 theorem projection_sandwich_traceNorm_le {D : ℕ} (P M : Operator D)
     (hP : Pᴴ = P) (hPP : P * P = P) :
     Matrix.traceNorm (P * M * P) ≤ Matrix.traceNorm M :=
   Matrix.traceNorm_sandwich_le (hS := projection_opNorm_le_one P hP hPP)
     (hT := projection_opNorm_le_one P hP hPP)
 
+/-- The difference of selective masses for a common projection and input is bounded by the trace
+norm of the two maps' output difference. -/
 theorem selectiveMass_diff_le {D : ℕ} (Φ Ψ : Operator D →ₗ[ℂ] Operator D)
     (P X : Operator D) (hP : Pᴴ = P) (hPP : P * P = P) :
     |selectiveMass Φ P X - selectiveMass Ψ P X| ≤ Matrix.traceNorm ((Φ - Ψ) X) := by
@@ -1012,10 +1122,12 @@ theorem selectiveMass_diff_le {D : ℕ} (Φ Ψ : Operator D →ₗ[ℂ] Operator
     _ ≤ Matrix.traceNorm ((Φ - Ψ) X) :=
       projection_sandwich_traceNorm_le P _ hP hPP
 
+/-- Every element of `Fin D × Fin 1` equals its first coordinate paired with zero. -/
 theorem finProdOne_eta (D : ℕ) (p : Fin D × Fin 1) : p = (p.1, 0) := by
   have h2 : p.2 = 0 := Subsingleton.elim p.2 0
   exact Prod.ext rfl h2
 
+/-- Two elements of `Fin D × Fin 1` are equal exactly when their first coordinates are equal. -/
 theorem finProdOne_ext_iff (D : ℕ) (p q : Fin D × Fin 1) : p = q ↔ p.1 = q.1 := by
   constructor
   · intro h
@@ -1024,13 +1136,19 @@ theorem finProdOne_ext_iff (D : ℕ) (p q : Fin D × Fin 1) : p = q ↔ p.1 = q.
     have h2 : p.2 = q.2 := Subsingleton.elim p.2 q.2
     exact Prod.ext h h2
 
+/-- The matrix identifying a system basis with its product with the one-element basis, with
+entry one when the system labels coincide and zero otherwise. -/
 noncomputable def prodOneEmbedding (D : ℕ) : Matrix (Fin D) (Fin D × Fin 1) ℂ :=
   Matrix.of fun i p => if i = p.1 then 1 else 0
 
+/-- An entry of `prodOneEmbedding` is one exactly when the system label matches the first
+product coordinate. -/
 theorem prodOneEmbedding_apply (D : ℕ) (i : Fin D) (p : Fin D × Fin 1) :
     prodOneEmbedding D i p = if i = p.1 then 1 else 0 := by
   rw [prodOneEmbedding, Matrix.of_apply]
 
+/-- The conjugate-transpose entries of `prodOneEmbedding` are the same zero-one label-matching
+indicators. -/
 theorem prodOneEmbedding_conjTranspose_apply (D : ℕ) (p : Fin D × Fin 1) (i : Fin D) :
     (prodOneEmbedding D)ᴴ p i = if i = p.1 then 1 else 0 := by
   rw [Matrix.conjTranspose_apply]
@@ -1038,6 +1156,7 @@ theorem prodOneEmbedding_conjTranspose_apply (D : ℕ) (p : Fin D × Fin 1) (i :
   · simp [h, prodOneEmbedding_apply]
   · simp [h, prodOneEmbedding_apply]
 
+/-- The singleton-reference identification matrix is an isometry. -/
 theorem prodOneEmbedding_isometry (D : ℕ) : (prodOneEmbedding D).Isometry := by
   rw [Matrix.Isometry]
   ext p q
@@ -1061,6 +1180,8 @@ theorem prodOneEmbedding_isometry (D : ℕ) : (prodOneEmbedding D).Isometry := b
       simp [hne]
     · simp
 
+/-- Multiplying the singleton-reference identification matrix by its conjugate transpose gives
+the system identity. -/
 theorem prodOneEmbedding_mul_conjTranspose (D : ℕ) :
     prodOneEmbedding D * (prodOneEmbedding D)ᴴ = 1 := by
   ext x y
@@ -1080,6 +1201,8 @@ theorem prodOneEmbedding_mul_conjTranspose (D : ℕ) :
     simp [hne]
   · simp
 
+/-- Summing a function against the singleton-reference label-matching indicator selects its
+value at the matched label. -/
 theorem sum_prodOne_embedding {D : ℕ} (y : Fin D) (g : Fin D → ℂ) :
     (∑ v : Fin D, g v * (if v = y then 1 else 0)) = g y := by
   rw [Finset.sum_eq_single y]
@@ -1088,6 +1211,8 @@ theorem sum_prodOne_embedding {D : ℕ} (y : Fin D) (g : Fin D → ℂ) :
     simp [hv]
   · simp
 
+/-- Sandwiching a system operator by the singleton-reference identification gives its submatrix
+lifted by first-coordinate projection. -/
 theorem prodOneEmbedding_sandwich (D : ℕ) (A : Operator D) :
     (prodOneEmbedding D)ᴴ * A * (prodOneEmbedding D)
       = A.submatrix (fun p : Fin D × Fin 1 => p.1) (fun q : Fin D × Fin 1 => q.1) := by
@@ -1130,6 +1255,8 @@ theorem prodOneEmbedding_sandwich (D : ℕ) (A : Operator D) :
     _ = A.submatrix (fun p : Fin D × Fin 1 => p.1) (fun q : Fin D × Fin 1 => q.1) x y := by
       rw [Matrix.submatrix_apply]
 
+/-- Lifting a system operator to a singleton reference by first-coordinate projection preserves
+its trace norm. -/
 theorem traceNorm_prodOne_submatrix {D : ℕ} (A : Operator D) :
     Matrix.traceNorm (A.submatrix (fun p : Fin D × Fin 1 => p.1)
         (fun q : Fin D × Fin 1 => q.1))
@@ -1154,6 +1281,8 @@ theorem traceNorm_prodOne_submatrix {D : ℕ} (A : Operator D) :
             simpa [Matrix.one_apply, hab, Matrix.conjTranspose_conjTranspose] using!
               congrFun (congrFun h a) b)]
 
+/-- A finite diamond-distance bound `δ` gives system-output trace-norm error at most `2 * δ *
+traceNorm X` for every input operator. -/
 theorem diamondSystemFactor_transfer {D E : ℕ} (Φ Ψ : Operator D →ₗ[ℂ] Operator E)
     (X : Operator D) {δ : ℝ} (hδ : 0 ≤ δ)
     (hd : (finiteDiamondDistance Φ Ψ : ℝ≥0∞) ≤ ENNReal.ofReal δ) :
@@ -1191,6 +1320,8 @@ theorem diamondSystemFactor_transfer {D E : ℕ} (Φ Ψ : Operator D →ₗ[ℂ]
   rw [hρ, traceNorm_prodOne_submatrix, traceNorm_prodOne_submatrix] at h
   exact h
 
+/-- Taking a power of the controlled operator block equals forming the controlled block of that
+power. -/
 theorem ctrlOperatorBlk_pow (D : ℕ) (U : Operator D) (n : ℕ) :
     ctrlOperatorBlk U ^ n = ctrlOperatorBlk (U ^ n) := by
   unfold ctrlOperatorBlk
@@ -1201,6 +1332,8 @@ theorem ctrlOperatorBlk_pow (D : ℕ) (U : Operator D) (n : ℕ) :
   funext b
   by_cases hb : b = 0 <;> simp [hb]
 
+/-- A positive power of the zero-and-term block dilation equals the dilation of the
+corresponding term power. -/
 theorem dilatedTermBlk_pow (D : ℕ) (K : Operator D) (n : ℕ) (hn : 0 < n) :
     dilatedTermBlk K ^ n = dilatedTermBlk (K ^ n) := by
   unfold dilatedTermBlk
@@ -1213,6 +1346,8 @@ theorem dilatedTermBlk_pow (D : ℕ) (K : Operator D) (n : ℕ) (hn : 0 < n) :
   · simp only [hb, if_pos, zero_pow (Nat.ne_of_gt hn)]
   · simp [hb]
 
+/-- Gives the controlled operator's entries: identity in the zero-control block, `U` in the
+other diagonal block, and zero across blocks. -/
 theorem ctrlOperatorBlk_apply (D : ℕ) (U : Operator D) (d d' : Fin D) (b b' : Fin 2) :
     ctrlOperatorBlk U (d, b) (d', b') =
       if b = b' then (if b = 0 then (if d = d' then 1 else 0) else U d d') else 0 := by
@@ -1223,6 +1358,7 @@ theorem ctrlOperatorBlk_apply (D : ℕ) (U : Operator D) (d d' : Fin D) (b b' : 
     · simp [hb, hb']
   · simp [hb]
 
+/-- The binomial sum with coefficients `R.choose i` equals `(x + y)^R`. -/
 theorem binomial_sum_choose (R : ℕ) (x y : ℝ) :
     (∑ i ∈ Finset.range (R + 1), (R.choose i : ℝ) * (x ^ i * y ^ (R - i)))
       = (x + y) ^ R := by
@@ -1262,6 +1398,8 @@ theorem binomial_sum_choose (R : ℕ) (x y : ℝ) :
       _ = (x + y) * (x + y) ^ R := by rw [ih]
       _ = (x + y) ^ (R + 1) := by rw [pow_succ]; ring
 
+/-- For `0 < q < 1` and `t ≥ 1`, the failure probability of an odd-sized majority is bounded by
+`t⁻¹^(m + 1) * (t * q + (1 - q))^(2 * m + 1)`. -/
 theorem majorityFailure_tilt (m : ℕ) (q t : ℝ) (hq0 : 0 < q) (hq1 : q < 1)
     (ht0 : 0 < t) (ht1 : 1 ≤ t) :
     majorityFailure q (2 * m + 1)
@@ -1325,6 +1463,7 @@ theorem majorityFailure_tilt (m : ℕ) (q t : ℝ) (hq0 : 0 < q) (hq1 : q < 1)
       _ = t⁻¹ ^ (m + 1) * ((t * q + (1 - q)) ^ (2 * m + 1)) := by
             rw [binomial_sum_choose]
 
+/-- For `0 ≤ x < 1`, the product `(1 - x)^m * (1 + m * x)` is at most one. -/
 theorem bernoulli_pow_le (x : ℝ) (m : ℕ) (hx0 : 0 ≤ x) (hx1 : x < 1) :
     (1 - x) ^ m * (1 + m * x) ≤ 1 := by
   induction m with
@@ -1344,6 +1483,7 @@ theorem bernoulli_pow_le (x : ℝ) (m : ℕ) (hx0 : 0 ≤ x) (hx1 : x < 1) :
             exact mul_le_mul_of_nonneg_left hmul hnonneg
       _ ≤ 1 := ih
 
+/-- Regroups `a^(m + 1) * b^(2 * m + 1)` as `(a * b²)^m * (a * b)`. -/
 theorem pow_pair (a b : ℝ) (m : ℕ) :
     a ^ (m + 1) * b ^ (2 * m + 1) = (a * b ^ 2) ^ m * (a * b) := by
   rw [pow_succ, pow_succ]
@@ -1352,6 +1492,8 @@ theorem pow_pair (a b : ℝ) (m : ℕ) :
   rw [mul_pow]
   ring
 
+/-- The chosen number of phase-estimation repetitions makes majority failure at single-run error
+`2 / 5` at most `pf / 2`. -/
 theorem majorityFailure_pe (pf : ℝ) (hpf : 0 < pf) :
     majorityFailure (2 / 5) (peRounds pf) ≤ pf / 2 := by
   set m : ℕ := Nat.ceil (70 / pf) with hm
@@ -1403,6 +1545,9 @@ theorem majorityFailure_pe (pf : ℝ) (hpf : 0 < pf) :
     exact hchern.trans hfinal
   exact hchern'
 
+/-- Combines the coherent cross-block obstruction with minimal qDRIFT step counts,
+phase-estimation accuracy and repetition bounds, postselection guarantees, and
+selective-mass stability. -/
 theorem clause21_endpoint : ∀ (Λ : Operator 2 →ₗ[ℂ] Operator 2),
     ctrlCrossBlock (ctrlBlockMapIdx Λ coherentWitness) = 0 ∧
     ctrlCrossBlock coherentWitness ≠ 0 ∧
@@ -1456,6 +1601,8 @@ theorem clause21_endpoint : ∀ (Λ : Operator 2 →ₗ[ℂ] Operator 2),
   · intro D Φ Ψ P X hP hPP
     exact selectiveMass_diff_le Φ Ψ P X hP hPP
 
+/-- Every finite Hermitian evolution has an exact legal two-level program of length at most `D *
+(D + 1) / 2`. -/
 theorem nonPauli_exponential_two_level_synthesis : ∀ (D : ℕ) (K : Operator D) (θ : ℝ),
     K.IsHermitian →
     ∃ ts : List (TwoLevelInstruction (Fin D)),
@@ -1468,6 +1615,9 @@ theorem nonPauli_exponential_two_level_synthesis : ∀ (D : ℕ) (K : Operator D
       (hamiltonianEvolution_unitary hK θ)
   exact ⟨ts, hts, hlen, hprog⟩
 
+/-- Every Hermitian evolution on an `m`-qubit register has a legal reflection-gate
+implementation on `m + (m + 1)` qubits with zero queries, at most `synthGateBudget m` gates,
+and exact action on the known-frame embedding. -/
 theorem hermitian_exponential_circuit_synthesis : ∀ (m : ℕ)
     (K : Matrix (Reg m) (Reg m) ℂ) (θ : ℝ),
     K.IsHermitian →
@@ -1488,6 +1638,8 @@ theorem hermitian_exponential_circuit_synthesis : ∀ (m : ℕ)
     exact hlen
   exact ⟨gs, hgs, hbudget, hq, hg, hsem⟩
 
+/-- Combines the allocated fair-bit qDRIFT error bound with certified step-count bounds, exact
+Hermitian-evolution synthesis, and existence of accurate postselected simulations. -/
 theorem clause20_endpoint : ∀ (L D : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
     (K : Fin L → Operator D) (t : ℝ) (T : ℕ) (eQ : ℝ) (R n : ℕ),
     0 < weightTotal w → |t| ≤ T → (∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) →
@@ -1539,6 +1691,8 @@ theorem clause20_endpoint : ∀ (L D : ℕ) (w : Fin L → ℕ) (j0 : Fin L)
   · intro L' D' w' K' t' T' eQ' hW' ht' hK' hT' he'
     exact postSelected_source_tight_count_achievable w' K' t' T' eQ' hW' ht' hK' hT' he'
 
+/-- Every Hermitian evolution on a qubit register has an exact legal two-level program of length
+at most the register cardinality times its successor divided by two. -/
 theorem nonPauli_exponential_two_level_synthesis_reg : ∀ (m : ℕ)
     (K : Matrix (Reg m) (Reg m) ℂ) (θ : ℝ),
     K.IsHermitian →
@@ -1552,6 +1706,8 @@ theorem nonPauli_exponential_two_level_synthesis_reg : ∀ (m : ℕ)
       (hamiltonianEvolution_unitary hK θ)
   exact ⟨ts, hts, hlen, hprog⟩
 
+/-- A Hermitian evolution on a qubit register possesses both an exact bounded-length two-level
+program and an exact zero-query reflection circuit acting on its known-frame embedding. -/
 theorem synthesis_registers_agree : ∀ (m : ℕ)
     (K : Matrix (Reg m) (Reg m) ℂ) (θ : ℝ),
     K.IsHermitian →
@@ -1575,6 +1731,8 @@ section
 
 variable {D : ℕ} [DecidableEq (Fin D)]
 
+/-- The outer product of a basis ket has entry one only at the pair of its basis label with
+itself. -/
 theorem outerProduct_ket_apply (i j k : Fin D) :
     Qatlib.Foundations.PureStateMath.Reflection.outerProduct (Qatlib.Foundations.PureStateMath.Ket i) j k
       = if j = i ∧ k = i then 1 else 0 := by
@@ -1587,6 +1745,7 @@ theorem outerProduct_ket_apply (i j k : Fin D) :
     · simp [Qatlib.Foundations.PureStateMath.Ket, hj, hk]
   · simp [Qatlib.Foundations.PureStateMath.Ket, hj]
 
+/-- The diagonal of a basis-ket outer product is the indicator of its basis label. -/
 theorem outerProduct_ket_diag (i j : Fin D) :
     Qatlib.Foundations.PureStateMath.Reflection.outerProduct (Qatlib.Foundations.PureStateMath.Ket i) j j = if j = i then 1 else 0 := by
   rw [outerProduct_ket_apply]
@@ -1594,6 +1753,8 @@ theorem outerProduct_ket_diag (i j : Fin D) :
   · rw [if_pos h, if_pos ⟨h, h⟩]
   · rw [if_neg h, if_neg (fun h2 => h h2.1)]
 
+/-- The diagonal of a matrix times a basis-ket outer product is zero away from that basis label
+and equals the selected matrix entry there. -/
 theorem mul_outerProduct_ket_apply (U : Matrix (Fin D) (Fin D) ℂ) (i j : Fin D) :
     (U * Qatlib.Foundations.PureStateMath.Reflection.outerProduct (Qatlib.Foundations.PureStateMath.Ket i)) j j
       = if j = i then U j i else 0 := by
@@ -1606,6 +1767,7 @@ theorem mul_outerProduct_ket_apply (U : Matrix (Fin D) (Fin D) ℂ) (i j : Fin D
     · simp
   · simp [outerProduct_ket_apply, hji]
 
+/-- The outer product of a basis ket has trace norm one. -/
 theorem traceNorm_outerProduct_ket (i : Fin D) :
     Matrix.traceNorm (Qatlib.Foundations.PureStateMath.Reflection.outerProduct (Qatlib.Foundations.PureStateMath.Ket i)) = 1 := by
   have hG := Matrix.traceNorm_eq_max_re_tr_U
@@ -1660,14 +1822,19 @@ section
 
 variable {D : ℕ}
 
+/-- The complex norm of the difference of two real casts equals the real absolute difference. -/
 theorem norm_ofReal_sub (a b : ℝ) : ‖(Complex.ofReal a - Complex.ofReal b : ℂ)‖ = |a - b| := by
   rw [← Complex.ofReal_sub, Complex.norm_real, Real.norm_eq_abs]
 
+/-- A conditional output is its selective output scaled by the inverse selective mass, cast to
+the complexes. -/
 theorem conditionalOutput_eq (Φ : Operator D →ₗ[ℂ] Operator D) (P X : Operator D) :
     conditionalOutput Φ P X
       = Complex.ofReal ((selectiveMass Φ P X)⁻¹) • selectiveOutput Φ P X := by
   rw [conditionalOutput, Complex.ofReal_inv]
 
+/-- Splits the difference of conditional outputs into a scaled selective-output difference and a
+correction for the inverse selective masses. -/
 theorem conditionalOutput_sub (Φ Ψ : Operator D →ₗ[ℂ] Operator D) (P X : Operator D) :
     conditionalOutput Φ P X - conditionalOutput Ψ P X
       = Complex.ofReal ((selectiveMass Φ P X)⁻¹)
@@ -1683,6 +1850,8 @@ theorem conditionalOutput_sub (Φ Ψ : Operator D →ₗ[ℂ] Operator D) (P X :
       _ = a • (S - T) + (a - b) • T := by rw [smul_sub, sub_smul]
   exact h _ _ _ _
 
+/-- Bounds conditional-output trace-norm difference by the output error weighted by the first
+inverse mass and the second output norm weighted by the inverse-mass difference. -/
 theorem conditionalOutput_traceNorm_sub_le
     (Φ Ψ : Operator D →ₗ[ℂ] Operator D) (P X : Operator D)
     (hP : Pᴴ = P) (hPP : P * P = P) :
@@ -1727,6 +1896,8 @@ theorem conditionalOutput_traceNorm_sub_le
       exact add_le_add (mul_le_mul_of_nonneg_left hA (norm_nonneg _))
         (mul_le_mul_of_nonneg_left hB (norm_nonneg _))
 
+/-- Expresses the conditional-output trace-norm bound using real absolute values of the inverse
+selective masses and their difference. -/
 theorem conditionalOutput_traceNorm_sub_le_real
     (Φ Ψ : Operator D →ₗ[ℂ] Operator D) (P X : Operator D)
     (hP : Pᴴ = P) (hPP : P * P = P) :

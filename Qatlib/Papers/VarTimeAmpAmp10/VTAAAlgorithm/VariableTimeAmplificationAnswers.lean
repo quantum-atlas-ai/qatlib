@@ -14,6 +14,27 @@ import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# Estimation and linear-system amplification guarantees
+
+This module establishes the costed amplitude-estimation guarantee `clause65` and the
+linear-system preparation guarantee `clause66`. Supporting results construct a unitary mapping
+between normalized states by aligning their phases and applying a Householder transformation.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `clause65`: accurate estimation with a failure and expected-cost bound.
+* `unitaryMap_mulVec`: the constructed map sends one normalized state to another.
+* `clause66`: a legal linear-system program with state and access-cost guarantees.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -54,6 +75,7 @@ open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 
+/-- A nonnegative value is an accurate estimate of itself for any positive tolerance parameter. -/
 private theorem estimateAccurate_self {c q : ℝ} (hc : 0 < c) (hq : 0 ≤ q) :
     estimateAccurate c q q := by
   refine ⟨hq, fun hqpos => ?_, fun h => h⟩
@@ -61,6 +83,10 @@ private theorem estimateAccurate_self {c q : ℝ} (hc : 0 < c) (hq : 0 ≤ q) :
   exact mul_pos hc hqpos
 noncomputable section
 
+/-- The structural compilation, record-driven algorithm, and estimate sandwich specifications
+hold. For the stated amplitude and threshold inputs, there is a costed estimate law with
+accuracy probability at least `1 - 2⁻ᵏ` and expected cost bounded by a constant times
+`adaptiveEstimateBudget`. -/
 theorem clause65 : StructuralEstimateCompilation ∧
     RecordDrivenVariableTimeAlgorithm ∧
     EstimateSandwich ∧
@@ -105,9 +131,11 @@ theorem clause65 : StructuralEstimateCompilation ∧
     simp
 end
 
+/-- The unit complex phase of `c`, with value one when `c` is zero. -/
 private noncomputable def unitPhase (c : ℂ) : ℂ :=
   if c = 0 then 1 else c * ((‖c‖ : ℝ) : ℂ)⁻¹
 
+/-- The complex number `unitPhase c` has norm one. -/
 private theorem norm_unitPhase (c : ℂ) : ‖unitPhase c‖ = 1 := by
   unfold unitPhase
   by_cases hc : c = 0
@@ -116,10 +144,12 @@ private theorem norm_unitPhase (c : ℂ) : ‖unitPhase c‖ = 1 := by
       abs_of_nonneg (norm_nonneg c)]
     exact mul_inv_cancel₀ (norm_ne_zero_iff.mpr hc)
 
+/-- The phase `unitPhase c` times its complex conjugate equals one. -/
 private theorem unitPhase_mul_star (c : ℂ) : unitPhase c * star (unitPhase c) = 1 := by
   rw [mul_comm, RCLike.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
     norm_unitPhase, one_pow, ← Complex.ofReal_one]
 
+/-- Multiplying `c` by the conjugate of its unit phase gives its real nonnegative norm. -/
 private theorem star_unitPhase_mul (c : ℂ) : star (unitPhase c) * c = (‖c‖ : ℂ) := by
   unfold unitPhase
   by_cases hc : c = 0
@@ -140,14 +170,19 @@ private theorem star_unitPhase_mul (c : ℂ) : star (unitPhase c) * c = (‖c‖
       _ = ((‖c‖ : ℝ) : ℂ) * ((‖c‖ : ℝ) : ℂ) * ((‖c‖ : ℝ) : ℂ)⁻¹ := by rw [Complex.ofReal_mul]
       _ = (‖c‖ : ℂ) := by rw [mul_assoc, mul_inv_cancel₀ h0, mul_one]
 
+/-- The rank-one matrix `pureDensity a` sends `v` to the inner product of `a` with `v` times
+`a`. -/
 private theorem pureDensity_mulVec {κ : Type} [Fintype κ] (a v : QState κ) :
     pureDensity a *ᵥ v = (Qatlib.Foundations.PureStateMath.Inner a v) • a := by
   rw [show pureDensity a = outerProduct a from rfl, outerProduct_mulVec]
 
+/-- The conjugate of a state amplitude times that amplitude equals its squared norm, viewed as a
+complex number. -/
 private theorem inner_star_mul_self {κ : Type} (a : QState κ) (k : κ) :
     star (a k) * a k = ((‖a k‖ ^ 2 : ℝ) : ℂ) := by
   rw [RCLike.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
 
+/-- For a unit vector, its pure-density matrix is idempotent. -/
 private theorem pureDensity_mul_self {κ : Type} [Fintype κ] (a : QState κ)
     (ha : Qatlib.Foundations.PureStateMath.Inner a a = 1) : pureDensity a * pureDensity a = pureDensity a := by
   ext i j
@@ -164,12 +199,14 @@ private theorem pureDensity_mul_self {κ : Type} [Fintype κ] (a : QState κ)
     exact ha
   rw [hsum, mul_one]
 
+/-- Every pure-density matrix is self-adjoint. -/
 private theorem pureDensity_star {κ : Type} [Fintype κ] (a : QState κ) :
     star (pureDensity a) = pureDensity a := by
   ext i j
   rw [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_apply, pureDensity, pureDensity,
     star_mul, star_star]
 
+/-- For a unit vector, the square of its Householder matrix is the identity. -/
 theorem householder_mul_self {κ : Type} [Fintype κ] [DecidableEq κ] (a : QState κ)
     (ha : Qatlib.Foundations.PureStateMath.Inner a a = 1) :
     (1 - (2 : ℂ) • pureDensity a) * (1 - (2 : ℂ) • pureDensity a) = 1 := by
@@ -184,17 +221,21 @@ theorem householder_mul_self {κ : Type} [Fintype κ] [DecidableEq κ] (a : QSta
   rw [hexp, hQQ]
   abel
 
+/-- The Householder matrix formed from any state is self-adjoint. -/
 theorem householder_star {κ : Type} [Fintype κ] [DecidableEq κ] (a : QState κ) :
     star (1 - (2 : ℂ) • pureDensity a) = 1 - (2 : ℂ) • pureDensity a := by
   have hs : star (2 : ℂ) = (2 : ℂ) := by simp
   rw [star_sub, star_one, star_smul, pureDensity_star, hs]
 
+/-- Scaling the first argument of the state inner product multiplies the result by the conjugate
+scalar. -/
 private theorem inner_smul_left {κ : Type} [Fintype κ] (r : ℂ) (x y : QState κ) :
     Qatlib.Foundations.PureStateMath.Inner (fun j => r * x j) y = star r * Qatlib.Foundations.PureStateMath.Inner x y := by
   simp only [inner_apply, starRingEnd_apply, star_mul]
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun j _ => by ring
 
+/-- Scaling the second argument of the state inner product multiplies the result by the scalar. -/
 private theorem inner_smul_right {κ : Type} [Fintype κ] (r : ℂ) (x y : QState κ) :
     Qatlib.Foundations.PureStateMath.Inner x (fun j => r * y j) = r * Qatlib.Foundations.PureStateMath.Inner x y := by
   simp only [inner_apply, starRingEnd_apply]
@@ -202,6 +243,7 @@ private theorem inner_smul_right {κ : Type} [Fintype κ] (r : ℂ) (x y : QStat
   conv_lhs => simp only [h]
   rw [← Finset.mul_sum]
 
+/-- Swapping the arguments of the state inner product conjugates its value. -/
 private theorem inner_star_swap {κ : Type} [Fintype κ] (x y : QState κ) :
     Qatlib.Foundations.PureStateMath.Inner x y = star (Qatlib.Foundations.PureStateMath.Inner y x) := by
   simp only [inner_apply, starRingEnd_apply]
@@ -212,6 +254,8 @@ private theorem inner_star_swap {κ : Type} [Fintype κ] (x y : QState κ) :
       from map_sum (starRingEnd ℂ) _ _]
   exact Finset.sum_congr rfl fun j _ => h j
 
+/-- The inner product of a difference with itself expands into the four pairwise inner products
+with the corresponding signs. -/
 private theorem inner_sub_sub {κ : Type} [Fintype κ] (x y : QState κ) :
     Qatlib.Foundations.PureStateMath.Inner (x - y) (x - y) = Qatlib.Foundations.PureStateMath.Inner x x - Qatlib.Foundations.PureStateMath.Inner x y - Qatlib.Foundations.PureStateMath.Inner y x + Qatlib.Foundations.PureStateMath.Inner y y := by
   simp only [inner_apply, Pi.sub_apply, starRingEnd_apply]
@@ -223,6 +267,7 @@ private theorem inner_sub_sub {κ : Type} [Fintype κ] (x y : QState κ) :
   conv_lhs => simp only [h]
   simp only [Finset.sum_add_distrib, Finset.sum_sub_distrib]
 
+/-- A state with zero inner product with itself has zero state vector. -/
 private theorem stateVector_eq_zero_of_inner {κ : Type} [Fintype κ] (v : QState κ)
     (h : Qatlib.Foundations.PureStateMath.Inner v v = 0) : stateVector v = 0 := by
   have h2 : ((‖stateVector v‖ ^ 2 : ℝ) : ℂ) = 0 := by
@@ -237,23 +282,31 @@ private theorem stateVector_eq_zero_of_inner {κ : Type} [Fintype κ] (v : QStat
   have h4 : ‖stateVector v‖ = 0 := by nlinarith [norm_nonneg (stateVector v)]
   exact norm_eq_zero.mp h4
 
+/-- Two states are equal if their difference has zero inner product with itself. -/
 private theorem eq_of_inner_sub_zero {κ : Type} [Fintype κ] {x y : QState κ}
     (h : Qatlib.Foundations.PureStateMath.Inner (x - y) (x - y) = 0) : x = y := by
   have hvec : stateVector (x - y) = 0 := stateVector_eq_zero_of_inner (x - y) h
   have hsub : x - y = 0 := (stateVector_eq_zero_iff (x - y)).mp hvec
   exact sub_eq_zero.mp hsub
 
+/-- The state `z` multiplied by the unit phase of its inner product with `u`. -/
 private noncomputable def mapShift {κ : Type} [Fintype κ] (u z : QState κ) : QState κ :=
   fun j => unitPhase (Qatlib.Foundations.PureStateMath.Inner z u) * z j
 
+/-- The difference between `u` and `mapShift u z`, divided by `sqrt (2 - 2 * ‖Inner z u‖)` using
+the totalized inverse. -/
 private noncomputable def mapVec {κ : Type} [Fintype κ] (u z : QState κ) : QState κ :=
   fun j => (u j - mapShift u z j) *
     ((Real.sqrt (2 - 2 * ‖Qatlib.Foundations.PureStateMath.Inner z u‖) : ℝ) : ℂ)⁻¹
 
+/-- The phase-corrected Householder matrix constructed from `mapVec u z` to map normalized `u`
+to normalized `z`. -/
 private noncomputable def unitaryMap {κ : Type} [Fintype κ] [DecidableEq κ]
     (u z : QState κ) : Matrix κ κ ℂ :=
   (star (unitPhase (Qatlib.Foundations.PureStateMath.Inner z u))) • (1 - (2 : ℂ) • pureDensity (mapVec u z))
 
+/-- The inner product of `mapShift u z` with `u` equals the norm of the inner product of `z`
+with `u`. -/
 private theorem mapShift_inner {κ : Type} [Fintype κ] (u z : QState κ) :
     Qatlib.Foundations.PureStateMath.Inner (mapShift u z) u = (‖Qatlib.Foundations.PureStateMath.Inner z u‖ : ℂ) := by
   have h := inner_smul_left (unitPhase (Qatlib.Foundations.PureStateMath.Inner z u)) z u
@@ -262,10 +315,13 @@ private theorem mapShift_inner {κ : Type} [Fintype κ] (u z : QState κ) :
       (‖Qatlib.Foundations.PureStateMath.Inner z u‖ : ℂ)
   rw [h, star_unitPhase_mul]
 
+/-- The inner product of `u` with `mapShift u z` equals the norm of the inner product of `z`
+with `u`. -/
 private theorem mapShift_inner_right {κ : Type} [Fintype κ] (u z : QState κ) :
     Qatlib.Foundations.PureStateMath.Inner u (mapShift u z) = (‖Qatlib.Foundations.PureStateMath.Inner z u‖ : ℂ) := by
   rw [inner_star_swap, mapShift_inner, RCLike.star_def, Complex.conj_ofReal]
 
+/-- Phase alignment preserves normalization of `z`. -/
 private theorem mapShift_norm {κ : Type} [Fintype κ] (u z : QState κ)
     (hz : Normalized z) : Normalized (mapShift u z) := by
   have hμ : ‖unitPhase (Qatlib.Foundations.PureStateMath.Inner z u)‖ = 1 := norm_unitPhase _
@@ -276,6 +332,8 @@ private theorem mapShift_norm {κ : Type} [Fintype κ] (u z : QState κ)
   simp only [h]
   exact hz
 
+/-- For normalized states, the squared norm of the phase-aligned difference is `2 - 2 * ‖Inner z
+u‖`, expressed as a complex inner product. -/
 private theorem mapShift_diff {κ : Type} [Fintype κ] (u z : QState κ)
     (hu : Normalized u) (hz : Normalized z) :
     Qatlib.Foundations.PureStateMath.Inner (u - mapShift u z) (u - mapShift u z) = ((2 - 2 * ‖Qatlib.Foundations.PureStateMath.Inner z u‖ : ℝ) : ℂ) := by
@@ -284,6 +342,8 @@ private theorem mapShift_diff {κ : Type} [Fintype κ] (u z : QState κ)
   push_cast
   ring
 
+/-- Normalized states with inner-product norm one coincide after the phase alignment defining
+`mapShift`. -/
 private theorem mapShift_eq_self {κ : Type} [Fintype κ] (u z : QState κ)
     (hu : Normalized u) (hz : Normalized z) (hc : ‖Qatlib.Foundations.PureStateMath.Inner z u‖ = 1) :
     u = mapShift u z := by
@@ -291,6 +351,8 @@ private theorem mapShift_eq_self {κ : Type} [Fintype κ] (u z : QState κ)
   rw [mapShift_diff u z hu hz, hc]
   norm_num
 
+/-- For normalized states with inner-product norm strictly below one, `mapVec` has inner product
+one with itself. -/
 private theorem mapVec_inner {κ : Type} [Fintype κ] (u z : QState κ)
     (hu : Normalized u) (hz : Normalized z) (hc : ‖Qatlib.Foundations.PureStateMath.Inner z u‖ < 1) :
     Qatlib.Foundations.PureStateMath.Inner (mapVec u z) (mapVec u z) = 1 := by
@@ -322,16 +384,19 @@ private theorem mapVec_inner {κ : Type} [Fintype κ] (u z : QState κ)
   have hne : ((d : ℝ) : ℂ) ≠ 0 := by exact_mod_cast hd0.ne'
   rw [inv_mul_cancel₀ hne]
 
+/-- The state inner product distributes over subtraction in its first argument. -/
 private theorem inner_sub_left {κ : Type} [Fintype κ] (x y z : QState κ) :
     Qatlib.Foundations.PureStateMath.Inner (x - y) z = Qatlib.Foundations.PureStateMath.Inner x z - Qatlib.Foundations.PureStateMath.Inner y z := by
   simp only [inner_apply, Pi.sub_apply, starRingEnd_apply, star_sub, sub_mul]
   rw [Finset.sum_sub_distrib]
 
+/-- The pure-density matrix of the zero state is zero. -/
 private theorem pureDensity_zero {κ : Type} [Fintype κ] :
     pureDensity (0 : QState κ) = 0 := by
   ext i j
   simp [pureDensity]
 
+/-- The inner product of two normalized states has norm at most one. -/
 private theorem inner_norm_le_one {κ : Type} [Fintype κ] (x y : QState κ)
     (hx : Normalized x) (hy : Normalized y) : ‖Qatlib.Foundations.PureStateMath.Inner x y‖ ≤ 1 := by
   have h : ‖inner ℂ (toEuclidean_fromVec x : EuclideanSpace ℂ κ) (toEuclidean_fromVec y)‖ ≤
@@ -343,9 +408,13 @@ private theorem inner_norm_le_one {κ : Type} [Fintype κ] (x y : QState κ)
   rw [hx', hy', mul_one] at h
   exact h
 
+/-- The coordinate definition of `mapShift` agrees with scalar multiplication by the selected
+unit phase. -/
 private theorem mapShift_smul {κ : Type} [Fintype κ] (u z : QState κ) :
     mapShift u z = (unitPhase (Qatlib.Foundations.PureStateMath.Inner z u)) • z := rfl
 
+/-- The vector `mapVec` equals the phase-aligned difference scaled by the inverse square-root
+normalization factor. -/
 private theorem mapVec_eq_smul {κ : Type} [Fintype κ] (u z : QState κ) :
     mapVec u z =
       (((Real.sqrt (2 - 2 * ‖Qatlib.Foundations.PureStateMath.Inner z u‖) : ℝ) : ℂ)⁻¹) • (u - mapShift u z) := by
@@ -353,6 +422,7 @@ private theorem mapVec_eq_smul {κ : Type} [Fintype κ] (u z : QState κ) :
   simp only [mapVec, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
   ring
 
+/-- For normalized `u` and `z`, applying `unitaryMap u z` to `u` gives `z`. -/
 private theorem unitaryMap_mulVec {κ : Type} [Fintype κ] [DecidableEq κ] (u z : QState κ)
     (hu : Normalized u) (hz : Normalized z) : unitaryMap u z *ᵥ u = z := by
   have hmap : unitaryMap u z
@@ -412,6 +482,7 @@ private theorem unitaryMap_mulVec {κ : Type} [Fintype κ] [DecidableEq κ] (u z
       abel
   rw [hmap, Matrix.smul_mulVec, hsend, mapShift_smul, smul_smul, hμ, one_smul]
 
+/-- For normalized `u` and `z`, the matrix `unitaryMap u z` is unitary. -/
 private theorem unitaryMap_mem_unitary {κ : Type} [Fintype κ] [DecidableEq κ] (u z : QState κ)
     (hu : Normalized u) (hz : Normalized z) : unitaryMap u z ∈ Matrix.unitaryGroup κ ℂ := by
   rw [Matrix.mem_unitaryGroup_iff']
@@ -435,11 +506,13 @@ private theorem unitaryMap_mem_unitary {κ : Type} [Fintype κ] [DecidableEq κ]
     rw [star_smul, star_star, smul_mul_smul, unitPhase_mul_star, one_smul]
     exact hH
 
+/-- The zero-slot slice of a cleanly embedded state is the original state. -/
 private theorem clean_vec_eq {H : Type} {r : ℕ} (hr : 0 < r) (ψ : QState H) :
     (fun h : H => clean r hr ψ (h, ⟨0, hr⟩)) = ψ := by
   funext h
   simp [clean]
 
+/-- Clean embedding in a positive-size register preserves normalization. -/
 private theorem clean_normalized {H : Type} [Fintype H] {r : ℕ} (hr : 0 < r)
     {ψ : QState H} (hψ : Normalized ψ) : Normalized (clean r hr ψ) := by
   have hpt : ∀ (h : H) (t : Fin r), ‖clean r hr ψ (h, t)‖ ^ 2
@@ -464,6 +537,7 @@ private theorem clean_normalized {H : Type} [Fintype H] {r : ℕ} (hr : 0 < r)
   simp only [hsum]
   exact hψ
 
+/-- Normalizing an already normalized state leaves it unchanged. -/
 private theorem normState_eq_self {I : Type} [Fintype I] {ψ : QState I}
     (hψ : Normalized ψ) : normState ψ = ψ := by
   have hn : normVec ψ = 1 := by
@@ -473,6 +547,7 @@ private theorem normState_eq_self {I : Type} [Fintype I] {ψ : QState I}
   rw [hn]
   simp
 
+/-- Normalizing a nonzero state produces a normalized state. -/
 private theorem normalized_normState {I : Type} [Fintype I] {ψ : QState I}
     (h : ψ ≠ 0) : Normalized (normState ψ) := by
   have hv : stateVector ψ ≠ 0 := fun hz => h ((stateVector_eq_zero_iff ψ).mp hz)
@@ -511,6 +586,9 @@ open Qatlib
 open Qatlib
 noncomputable section
 
+/-- Under `qlsThm3Input`, there is a legal program containing a legal estimation word followed
+by its inverse, with the prescribed normalized pseudoinverse-solution guarantees. Its
+unit-price access time is bounded by a universal positive constant times `qlsThm3Cost`. -/
 theorem clause66 :
   ∃ K : ℝ, 0 < K ∧
     ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]

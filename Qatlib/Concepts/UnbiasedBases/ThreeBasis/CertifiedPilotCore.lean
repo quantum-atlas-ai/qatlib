@@ -7,6 +7,41 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.PilotVariance.PilotQuantumMeanConsumers
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 import Mathlib.Probability.ProductMeasure
+
+/-!
+# Certified Pilot Moments and Fresh Mean Estimates
+
+Independent pilot samples are represented by `stageLaw`, and `badMoments` records failure of
+either empirical first or second moment. Chebyshev bounds give `moments_failure`; a good pilot
+record yields the variance upper bound `varianceCertificate`. The dependent law `freshJoint`
+then supports a fresh main sample whose size is chosen from that certificate, with
+`joint_failure` separating the pilot and conditional main failure terms.
+
+The countable product `streamMeasure` and geometric allocation `stageBudget` provide
+simultaneous guarantees across all scheduled stages. Rescaling by a positive payoff bound
+extends the construction to bounded rational payoffs, while `quantumLaw` connects the pilot
+certificate to a repeated signed quantum mean readout. This quantum consumer lies in the
+variance-sensitive Monte Carlo estimation setting of [Montanaro2015], with its precise
+finite-record bounds stated explicitly here.
+
+## Main statements
+
+* `certificate_good` and `certificate_bounds`: good pilot moments certify the variance, and
+  every certificate lies in `[0, 4]` under the unit payoff assumptions.
+* `joint_failure` and `worst_resources`: the main empirical mean has failure bound `2 / (N nu²)
+  + δ` and uses at most `N + sampleCount 4 eps δ` observations.
+* `frontier1`: the rescaled bounded-payoff readout has failure probability at most `δpilot +
+  δmain`.
+* `quantum_bounded_failure` and `quantum_precision`: the quantum readout has failure bound `2 /
+  (N nu²) + (8/9)^r` and a certified precision range.
+* `simultaneous_certificates`: all scheduled rescaled moment and variance certificates hold
+  outside an event of measure at most `δ`.
+
+## References
+
+- [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
 open Qatlib.Concepts.ProbabilityCore.Concentration
@@ -27,9 +62,12 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Define the finite law of `N` independent observations, each with distribution `p`. -/
 def stageLaw (p : FinDist I) (N : ℕ) : FinDist (Fin N → I) :=
   independentSampleLaw (fun _ : Fin N => p)
 
+/-- Form the law of a dependent pair by assigning mass `p.prob h * (q h).prob x` to `⟨h, x⟩`.
+The second record is drawn from the law selected by the first. -/
 def freshJoint {H : Type} [Fintype H] {S : H → Type} [∀ h, Fintype (S h)]
     (p : FinDist H) (q : ∀ h, FinDist (S h)) : FinDist (Σ h, S h) where
   prob z := p.prob z.1 * (q z.1).prob z.2
@@ -44,12 +82,17 @@ def freshJoint {H : Type} [Fintype H] {S : H → Type} [∀ h, Fintype (S h)]
         rw [← Finset.mul_sum, (q h).sum_one, mul_one]
       _ = 1 := p.sum_one
 
+/-- Compute an event's mass under `freshJoint` by summing its conditional event masses against
+the first-record probabilities. -/
 theorem fresh_event {H : Type} [Fintype H] {S : H → Type} [∀ h, Fintype (S h)]
     (p : FinDist H) (q : ∀ h, FinDist (S h)) (E : (Σ h, S h) → Prop) :
     eventMass (freshJoint p q) E = ∑ h, p.prob h * eventMass (q h) (fun x => E ⟨h,x⟩) := by
   simp only [eventMass, Finset.sum_filter, Fintype.sum_sigma, freshJoint,
     Finset.mul_sum, mul_ite, mul_zero]
 
+/-- If the conditional event probability is at most a nonnegative `δmain` whenever the first
+record is good, its joint probability is at most the first-record bad probability plus
+`δmain`. -/
 theorem fresh_failure {H : Type} [Fintype H] {S : H → Type} [∀ h, Fintype (S h)]
     (p : FinDist H) (q : ∀ h, FinDist (S h)) (bad : H → Prop)
     (E : (Σ h, S h) → Prop) (δmain : ℝ) (hδ : 0 ≤ δmain)
@@ -76,6 +119,8 @@ theorem fresh_failure {H : Type} [Fintype H] {S : H → Type} [∀ h, Fintype (S
 local instance (N : ℕ → ℕ) (j : ℕ) : MeasurableSpace (Fin (N j) → I) := ⊤
 local instance (N : ℕ → ℕ) (j : ℕ) : MeasurableSingletonClass (Fin (N j) → I) := ⟨fun _ => trivial⟩
 
+/-- Construct the countable product measure of independent stage records, where stage `j`
+consists of `N j` observations from `p`. -/
 def streamMeasure (p : FinDist I) (N : ℕ → ℕ) : Measure (∀ j : ℕ, Fin (N j) → I) :=
   Measure.infinitePi (fun j => (toPMF (stageLaw p (N j))).toMeasure)
 
@@ -83,6 +128,8 @@ instance stream_probability (p : FinDist I) (N : ℕ → ℕ) : IsProbabilityMea
   unfold streamMeasure
   infer_instance
 
+/-- An event depending only on stage `j` has stream measure equal to the nonnegative
+extended-real embedding of its mass under `stageLaw p (N j)`. -/
 theorem stream_coordinate (p : FinDist I) (N : ℕ → ℕ)
     (E : ∀ j : ℕ, (Fin (N j) → I) → Prop) (j : ℕ) :
     streamMeasure p N {ω | E j (ω j)} = ENNReal.ofReal (eventMass (stageLaw p (N j)) (E j)) := by
@@ -94,6 +141,8 @@ theorem stream_coordinate (p : FinDist I) (N : ℕ → ℕ)
       rw [streamMeasure, Measure.infinitePi_map_eval]
     _ = _ := eventMass_toMeasure _ _
 
+/-- Bound the measure of a failure at any stage by the sum of the nonnegative extended-real
+embeddings of the supplied stagewise bounds. -/
 theorem stream_union (p : FinDist I) (N : ℕ → ℕ)
     (E : ∀ j : ℕ, (Fin (N j) → I) → Prop) (δ : ℕ → ℝ)
     (hδ : ∀ j, eventMass (stageLaw p (N j)) (E j) ≤ δ j) :
@@ -102,8 +151,11 @@ theorem stream_union (p : FinDist I) (N : ℕ → ℕ)
     rw [stream_coordinate]
     exact ENNReal.ofReal_le_ofReal (hδ j))
 
+/-- Allocate the rational failure budget `δ / 2^(j + 1)` to stage `j`. -/
 def stageBudget (δ : ℚ) (j : ℕ) : ℚ := (δ/2) * (1/2)^j
 
+/-- For nonnegative `δ`, the extended-real sum of all geometric stage budgets is exactly the
+embedding of `δ`. -/
 theorem stageBudget_sum (δ : ℚ) (hδ : 0 ≤ δ) :
     (∑' j : ℕ, ENNReal.ofReal (stageBudget δ j : ℝ)) = ENNReal.ofReal (δ : ℝ) := by
   have hd : (0 : ℝ) ≤ δ := by exact_mod_cast hδ
@@ -113,13 +165,19 @@ theorem stageBudget_sum (δ : ℚ) (hδ : 0 ≤ δ) :
   congr 1
   ring
 
+/-- Declare a pilot record bad if either its empirical first moment or empirical second moment
+differs from the corresponding population moment by more than `nu`. -/
 def badMoments (p : FinDist I) (N : ℕ) (f : I → ℚ) (nu : ℚ) (ω : Fin N → I) : Prop :=
   (nu : ℝ) < |FinDist.avg (fun i => (f i : ℝ)) ω - p.expect (fun i => (f i : ℝ))| ∨
   (nu : ℝ) < |FinDist.avg (fun i => (f i : ℝ)^2) ω - p.expect (fun i => (f i : ℝ)^2)|
 
+/-- Identify event mass under the independent stage law with the finite distribution's
+sample-event probability. -/
 theorem stage_event (p : FinDist I) (N : ℕ) (E : (Fin N → I) → Prop) :
     eventMass (stageLaw p N) E = p.probEvent E := rfl
 
+/-- A real payoff bounded in absolute value by one has variance at most one under any finite
+probability law. -/
 theorem bounded_variance (p : FinDist I) (f : I → ℝ) (hf : ∀ i, |f i| ≤ 1) :
     p.variance f ≤ 1 := by
   rw [FinDist.variance_eq_expect_sq_sub]
@@ -130,6 +188,8 @@ theorem bounded_variance (p : FinDist I) (f : I → ℝ) (hf : ∀ i, |f i| ≤ 
     _ = 1 := p.sum_one
   nlinarith [sq_nonneg (p.expect f)]
 
+/-- For a payoff bounded in absolute value by one, positive sample size `N`, and positive
+tolerance `nu`, the probability that either pilot moment fails is at most `2 / (N * nu^2)`. -/
 theorem moments_failure (p : FinDist I) (N : ℕ) (f : I → ℚ) (nu : ℚ)
     (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1) (hnu : 0 < nu) :
     eventMass (stageLaw p N) (badMoments p N f nu) ≤ 2/((N : ℝ)*(nu : ℝ)^2) := by
@@ -156,9 +216,14 @@ theorem moments_failure (p : FinDist I) (N : ℕ) (f : I → ℚ) (nu : ℚ)
     _ ≤ 1/((N : ℝ)*(nu : ℝ)^2) + 1/((N : ℝ)*(nu : ℝ)^2) := add_le_add h₁ h₂
     _ = 2/((N : ℝ)*(nu : ℝ)^2) := by ring
 
+/-- Define the rational variance certificate as the square of the scale selected from the pilot
+record. -/
 def varianceCertificate (N depth : ℕ) (f : I → ℚ) (nu : ℚ) (ω : Fin N → I) : ℚ :=
   (pilotScale N depth f nu ω)^2
 
+/-- Under the unit payoff bound, positive sample size, and `0 < nu ≤ 1/4`, a good pilot record
+approximates both population moments within `nu` and gives a variance certificate at least
+as large as the true variance. -/
 theorem certificate_good (p : FinDist I) (N depth : ℕ) (f : I → ℚ) (nu : ℚ)
     (ω : Fin N → I) (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1)
     (hnu : 0 < nu) (hnu1 : nu ≤ 1/4) (hg : ¬badMoments p N f nu ω) :
@@ -174,6 +239,8 @@ theorem certificate_good (p : FinDist I) (N depth : ℕ) (f : I → ℚ) (nu : �
   exact ⟨h₁, h₂, by simpa [varianceCertificate] using!
     (unknown_variance_pilot_good_moments_certificate I p N depth f nu ω hN hf hnu hnu1 h₁ h₂).1⟩
 
+/-- Under the unit payoff bound, positive sample size, and `0 < nu ≤ 1/4`, every pilot variance
+certificate lies between zero and four. -/
 theorem certificate_bounds (N depth : ℕ) (f : I → ℚ) (nu : ℚ) (ω : Fin N → I)
     (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4) :
     0 ≤ varianceCertificate N depth f nu ω ∧ varianceCertificate N depth f nu ω ≤ 4 := by
@@ -183,11 +250,15 @@ theorem certificate_bounds (N depth : ℕ) (f : I → ℚ) (nu : ℚ) (ω : Fin 
   unfold varianceCertificate
   exact ⟨sq_nonneg _, by nlinarith⟩
 
+/-- Choose the sample size as the maximum of one and the natural ceiling of `U / (δ * eps^2)`. -/
 def sampleCount (U eps δ : ℚ) : ℕ := max 1 ⌈U/(δ*eps^2)⌉₊
 
+/-- The prescribed sample count is positive for every choice of its rational parameters. -/
 theorem sampleCount_pos (U eps δ : ℚ) : 0 < sampleCount U eps δ :=
   lt_of_lt_of_le (by decide : 0 < 1) (Nat.le_max_left _ _)
 
+/-- For positive `eps` and `δ`, the prescribed sample count makes `U / (sampleCount U eps δ *
+eps^2)` at most `δ`. -/
 theorem sampleCount_budget (U eps δ : ℚ) (heps : 0 < eps) (hδ : 0 < δ) :
     (U : ℝ) / ((sampleCount U eps δ : ℝ)*(eps : ℝ)^2) ≤ δ := by
   have hceil : U/(δ*eps^2) ≤ (sampleCount U eps δ : ℚ) :=
@@ -200,17 +271,24 @@ theorem sampleCount_budget (U eps δ : ℚ) (heps : 0 < eps) (hδ : 0 < δ) :
   apply (div_le_iff₀ (by have := sampleCount_pos U eps δ; positivity)).mpr
   nlinarith
 
+/-- For positive error tolerance and failure budget, increasing the variance proxy cannot
+decrease the prescribed sample count. -/
 theorem sampleCount_mono {U V : ℚ} (eps δ : ℚ) (heps : 0 < eps) (hδ : 0 < δ)
     (hUV : U ≤ V) : sampleCount U eps δ ≤ sampleCount V eps δ := by
   apply max_le_max le_rfl
   exact Nat.ceil_mono (div_le_div_of_nonneg_right hUV (by positivity))
 
+/-- Choose stage `j`'s pilot size using variance proxy two, moment tolerance `nu`, and the
+geometric failure budget `stageBudget δ j`. -/
 def pilotCount (δ nu : ℚ) (j : ℕ) : ℕ := sampleCount 2 nu (stageBudget δ j)
 
+/-- A positive total budget gives a positive geometric budget at every stage. -/
 theorem stageBudget_pos (δ : ℚ) (hδ : 0 < δ) (j : ℕ) : 0 < stageBudget δ j := by
   unfold stageBudget
   positivity
 
+/-- For a unit-bounded payoff and positive tolerance and budget, the stream probability that any
+scheduled pilot record has a bad first or second moment is at most `δ`. -/
 theorem simultaneous_moments (p : FinDist I) (f : I → ℚ) (nu δ : ℚ)
     (hf : ∀ i, |f i| ≤ 1) (hnu : 0 < nu) (hδ : 0 < δ) :
     streamMeasure p (pilotCount δ nu)
@@ -221,22 +299,33 @@ theorem simultaneous_moments (p : FinDist I) (f : I → ℚ) (nu δ : ℚ)
   exact (moments_failure p _ f nu (sampleCount_pos _ _ _) hf hnu).trans
     (sampleCount_budget 2 nu (stageBudget δ j) hnu (stageBudget_pos δ hδ j))
 
+/-- Choose the fresh main sample size from the pilot variance certificate, target error `eps`,
+and failure budget `δ`. -/
 def mainCount (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ) (ω : Fin N → I) : ℕ :=
   sampleCount (varianceCertificate N depth f nu ω) eps δ
 
+/-- Represent a pilot record together with a fresh main record whose length is determined by
+that pilot record's variance certificate. -/
 abbrev MainRecord (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ) :=
   Σ ω : Fin N → I, Fin (mainCount N depth f nu eps δ ω) → I
 
+/-- Draw an independent pilot sample from `p`, then draw a fresh independent sample from `p` of
+the pilot-selected main length. -/
 def mainLaw (p : FinDist I) (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ) :
     FinDist (MainRecord N depth f nu eps δ) :=
   freshJoint (stageLaw p N) (fun ω => stageLaw p (mainCount N depth f nu eps δ ω))
 
+/-- Return the rational empirical mean of the main sample in a dependent pilot-and-main record. -/
 def mainReadout (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ)
     (z : MainRecord N depth f nu eps δ) : ℚ := (pilotMoments _ f z.2).1
 
+/-- Count the total observations as the fixed pilot size plus the main sample size selected by
+the pilot record. -/
 def resources (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ)
     (z : MainRecord N depth f nu eps δ) : ℕ := N + mainCount N depth f nu eps δ z.1
 
+/-- Under the unit payoff bound and positive parameters with `nu ≤ 1/4`, the probability that
+the main readout's error exceeds `eps` is at most `2 / (N * nu^2) + δ`. -/
 theorem joint_failure (p : FinDist I) (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ)
     (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4)
     (heps : 0 < eps) (hδ : 0 < δ) :
@@ -257,6 +346,8 @@ theorem joint_failure (p : FinDist I) (N depth : ℕ) (f : I → ℚ) (nu eps δ
     (div_le_div_of_nonneg_right hv (by positivity))).trans
       (sampleCount_budget _ eps δ heps hδ)
 
+/-- Under the unit payoff bound and positive parameters with `nu ≤ 1/4`, every pilot-and-main
+record uses at most `N + sampleCount 4 eps δ` observations. -/
 theorem worst_resources (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ)
     (z : MainRecord N depth f nu eps δ) (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1)
     (hnu : 0 < nu) (hnu1 : nu ≤ 1/4) (heps : 0 < eps) (hδ : 0 < δ) :
@@ -264,6 +355,8 @@ theorem worst_resources (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ)
   exact Nat.add_le_add_left (sampleCount_mono eps δ heps hδ
     (certificate_bounds N depth f nu z.1 hN hf hnu hnu1).2) N
 
+/-- With stage-scheduled pilot size, a unit-bounded payoff, and positive parameters with `nu ≤
+1/4`, the main readout exceeds error `eps` with probability at most `δpilot + δmain`. -/
 theorem unit_frontier (p : FinDist I) (depth j : ℕ) (f : I → ℚ) (nu eps δpilot δmain : ℚ)
     (hf : ∀ i, |f i| ≤ 1) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4)
     (heps : 0 < eps) (hp : 0 < δpilot) (hm : 0 < δmain) :
@@ -280,14 +373,19 @@ theorem unit_frontier (p : FinDist I) (depth j : ℕ) (f : I → ℚ) (nu eps δ
   exact (joint_failure p _ depth f nu eps δmain (sampleCount_pos _ _ _) hf hnu hnu1 heps hm).trans
     (by linarith [hb])
 
+/-- Normalize a rational payoff by dividing each of its values by the rational bound `B`. -/
 def normalized (B : ℚ) (f : I → ℚ) (i : I) : ℚ := f i / B
 
+/-- If `B` is positive and bounds the payoff's absolute value, the normalized payoff is bounded
+in absolute value by one. -/
 theorem normalized_bound (B : ℚ) (f : I → ℚ) (hB : 0 < B) (hf : ∀ i, |f i| ≤ B) :
     ∀ i, |normalized B f i| ≤ 1 := by
   intro i
   rw [normalized, abs_div, abs_of_pos hB, div_le_one hB]
   exact hf i
 
+/-- For nonzero `B`, the original payoff expectation is `B` times the expectation of its
+normalized payoff. -/
 theorem expect_scaled (p : FinDist I) (B : ℚ) (f : I → ℚ) (hB : B ≠ 0) :
     p.expect (fun i => (f i : ℝ)) = (B : ℝ) * p.expect (fun i => (normalized B f i : ℝ)) := by
   unfold FinDist.expect
@@ -298,6 +396,8 @@ theorem expect_scaled (p : FinDist I) (B : ℚ) (f : I → ℚ) (hB : B ≠ 0) :
   simp only [normalized, Rat.cast_div]
   field_simp
 
+/-- For nonzero `B`, the original payoff variance is `B^2` times the variance of its normalized
+payoff. -/
 theorem variance_scaled (p : FinDist I) (B : ℚ) (f : I → ℚ) (hB : B ≠ 0) :
     p.variance (fun i => (f i : ℝ)) = (B : ℝ)^2 * p.variance (fun i => (normalized B f i : ℝ)) := by
   rw [FinDist.variance_eq_expect_sq_sub, FinDist.variance_eq_expect_sq_sub, expect_scaled p B f hB]
@@ -313,11 +413,17 @@ theorem variance_scaled (p : FinDist I) (B : ℚ) (f : I → ℚ) (hB : B ≠ 0)
   rw [he]
   ring
 
+/-- Return the pilot estimates of the original payoff's first and second moments and its
+variance upper certificate, rescaling the normalized quantities by `B`, `B^2`, and `B^2`
+respectively. -/
 def boundedCertificate (B : ℚ) (N depth : ℕ) (f : I → ℚ) (nu : ℚ) (ω : Fin N → I) : ℚ × ℚ × ℚ :=
   (B*(pilotMoments N (normalized B f) ω).1,
    B^2*(pilotMoments N (normalized B f) ω).2.1,
    B^2*varianceCertificate N depth (normalized B f) nu ω)
 
+/-- For a payoff bounded by positive `B`, positive sample size, and `0 < nu ≤ 1/4`, good
+normalized pilot moments make the rescaled moment errors at most `B * nu` and `B^2 * nu`.
+The third rescaled certificate then bounds the original payoff's variance from above. -/
 theorem boundedCertificate_good (p : FinDist I) (B : ℚ) (N depth : ℕ) (f : I → ℚ) (nu : ℚ)
     (ω : Fin N → I) (hB : 0 < B) (hN : 0 < N) (hf : ∀ i, |f i| ≤ B)
     (hnu : 0 < nu) (hnu1 : nu ≤ 1/4) (hg : ¬badMoments p N (normalized B f) nu ω) :
@@ -346,10 +452,15 @@ theorem boundedCertificate_good (p : FinDist I) (B : ℚ) (N depth : ℕ) (f : I
     exact mul_le_mul_of_nonneg_left hc.2.1 (sq_nonneg _)
   · exact mul_le_mul_of_nonneg_left hc.2.2 (sq_nonneg _)
 
+/-- Rescale by `B` the main empirical mean computed for the normalized payoff with error target
+`eps / B`. -/
 def boundedReadout (B : ℚ) (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ)
     (z : MainRecord N depth (normalized B f) nu (eps/B) δ) : ℚ :=
   B * mainReadout N depth (normalized B f) nu (eps/B) δ z
 
+/-- For a payoff bounded by positive `B` and positive parameters with `nu ≤ 1/4`, the rescaled
+main readout with stage-scheduled pilot size exceeds error `eps` with probability at most
+`δpilot + δmain`. -/
 theorem frontier1 (p : FinDist I) (B : ℚ) (depth j : ℕ) (f : I → ℚ) (nu eps δpilot δmain : ℚ)
     (hB : 0 < B) (hf : ∀ i, |f i| ≤ B) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4)
     (heps : 0 < eps) (hp : 0 < δpilot) (hm : 0 < δmain) :
@@ -367,11 +478,15 @@ theorem frontier1 (p : FinDist I) (B : ℚ) (depth j : ℕ) (f : I → ℚ) (nu 
   rw [Rat.cast_div, div_lt_iff₀ hb]
   simpa [mul_comm] using! hz
 
+/-- A payoff bounded in absolute value by zero vanishes pointwise and has expectation zero under
+the finite law. -/
 theorem zero_payoff (p : FinDist I) (f : I → ℚ) (hf : ∀ i, |f i| ≤ 0) :
     (∀ i, f i = 0) ∧ p.expect (fun i => (f i : ℝ)) = 0 := by
   have hz : ∀ i, f i = 0 := fun i => abs_eq_zero.mp (le_antisymm (hf i) (abs_nonneg _))
   exact ⟨hz, by simp [FinDist.expect, hz]⟩
 
+/-- Package the normalized joint masses `pilotMeanMass` as a finite distribution on pilot
+records and their conditional repeated signed-mean records for a unitary source. -/
 def quantumLaw (A : Matrix I I ℂ) (j : I) (N depth r : ℕ) (f : I → ℚ) (nu eps : ℚ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) : FinDist (PilotMeanRecord I N depth r f nu eps) where
   prob := pilotMeanMass A j N depth r f nu eps hA
@@ -381,6 +496,9 @@ def quantumLaw (A : Matrix I I ℂ) (j : I) (N depth r : ℕ) (f : I → ℚ) (n
       (Finset.prod_nonneg fun _ _ => FinDist.nonneg _ _)
   sum_one := pilotMeanMass_sum_one A j N depth r f nu eps hA
 
+/-- For a unitary source and a payoff bounded by positive `B`, under the stated positivity and
+pilot-tolerance assumptions the rescaled quantum mean readout exceeds error `eps` with
+probability at most `2 / (N * nu^2) + (8/9)^r`. -/
 theorem quantum_bounded_failure (A : Matrix I I ℂ) (j : I) (B : ℚ) (N depth r : ℕ)
     (f : I → ℚ) (nu eps : ℚ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (hB : 0 < B) (hN : 0 < N) (hf : ∀ i, |f i| ≤ B)
@@ -400,6 +518,9 @@ theorem quantum_bounded_failure (A : Matrix I I ℂ) (j : I) (B : ℚ) (N depth 
   rw [Rat.cast_div, div_lt_iff₀ hb]
   simpa [mul_comm] using! hz
 
+/-- Under the bounded-payoff and positivity assumptions, the pilot-selected precision is at
+least four and makes `8 * pilotScale * (1/2)^pilotPrecision ≤ eps / B`. It is at most `max 4
+(Nat.clog 2 ((⌈16/(eps/B)⌉ : ℤ).toNat + 1))`. -/
 theorem quantum_precision (B : ℚ) (N depth : ℕ) (f : I → ℚ) (nu eps : ℚ)
     (ω : Fin N → I) (hB : 0 < B) (hN : 0 < N) (hf : ∀ i, |f i| ≤ B)
     (hnu : 0 < nu) (hnu1 : nu ≤ 1/4) (heps : 0 < eps) :
@@ -411,6 +532,9 @@ theorem quantum_precision (B : ℚ) (N depth : ℕ) (f : I → ℚ) (nu eps : �
   unknown_variance_pilot_computed_precision_and_worst_path I N depth (normalized B f)
     nu (eps/B) ω hN (normalized_bound B f hB hf) hnu hnu1 (div_pos heps hB)
 
+/-- For a payoff bounded by positive `B` and positive tolerance and budget with `nu ≤ 1/4`, the
+probability that any scheduled pilot certificate fails either rescaled moment bound or the
+variance upper bound is at most `δ`. -/
 theorem simultaneous_certificates (p : FinDist I) (B : ℚ) (depth : ℕ) (f : I → ℚ)
     (nu δ : ℚ) (hB : 0 < B) (hf : ∀ i, |f i| ≤ B)
     (hnu : 0 < nu) (hnu1 : nu ≤ 1/4) (hδ : 0 < δ) :

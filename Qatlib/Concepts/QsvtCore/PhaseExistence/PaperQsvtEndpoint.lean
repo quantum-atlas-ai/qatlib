@@ -12,6 +12,31 @@ import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
 import Qatlib.Concepts.QsvtCore.PhaseExistence.SparseAccessConstruction
 import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtPhaseRecovery
+
+/-!
+# QSVT endpoint ledgers and rounded Bessel responses
+
+This module connects source-word ledgers to aggregate resource counts for the QSVT constructions
+of [GilyenSuLowWiebe2019]. It collects odd, even, controlled, and multiply controlled word
+counts, sparse preparation counts, and finite phase-recovery guarantees under `LayerStripExact`.
+
+The rounded Chebyshev–Bessel polynomials `roundedCos` and `roundedSin` use rational coefficient
+tables. Their uniform errors split into the effective truncation error and a weighted
+coefficient approximation budget.
+
+## Main statements
+
+* `clause45_endpoint`: the collected ledger and phase-recovery assertions.
+* `paper_two_query_prepare`: the sparse encoding word counts.
+* `paper_phase_recovery_clause`: conditional inverse-NLFFT guarantees.
+* `paper_bessel_rounded_consumer`: uniform error at most `ε + β`.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -30,6 +55,8 @@ open Matrix Polynomial
 open Qatlib
 open Qatlib
 
+/-- The aggregated ledger for the odd source word equals `paperOddWordLedger` at the phase list
+length. -/
 theorem paper_odd_word_ledger (Φ : List ℝ) :
     paperLedger
       ((def15Ledger (def15Steps Φ .odd)).forwardQueries +
@@ -43,6 +70,8 @@ theorem paper_odd_word_ledger (Φ : List ℝ) :
   rw [hF, hA, hP, hQ, hM]
   congr 1 <;> omega
 
+/-- The aggregated ledger for the even source word equals `paperEvenWordLedger` at the phase
+list length. -/
 theorem paper_even_word_ledger (Φ : List ℝ) :
     paperLedger
       ((def15Ledger (def15Steps Φ .even)).forwardQueries +
@@ -56,12 +85,16 @@ theorem paper_even_word_ledger (Φ : List ℝ) :
   rw [hF, hA, hP, hQ, hM]
   congr 1 <;> omega
 
+/-- Gives the even and odd endpoint formulas for the two projector-controlled NOT counts and
+shows that their sum is `2d`. -/
 theorem paper_projectorNot_parity (d : ℕ) :
     (d % 2 = 0 → 2 * (d / 2) = d ∧ 2 * ((d + 1) / 2) = d) ∧
     (d % 2 = 1 → 2 * (d / 2) = d - 1 ∧ 2 * ((d + 1) / 2) = d + 1) ∧
     (2 * (d / 2) + 2 * ((d + 1) / 2) = 2 * d) :=
   def15_parity_endpoints d
 
+/-- The controlled odd source word has total query count `Φ.length`, twice as many
+projector-controlled NOTs, `Φ.length` controlled phase gates, and workspace count one. -/
 theorem paper_controlled_word_ledger (Φ : List ℝ) :
     paperLedger
       ((ctrlCounts (ctrlDef15Steps Φ .odd)).dataQueries +
@@ -74,6 +107,8 @@ theorem paper_controlled_word_ledger (Φ : List ℝ) :
   rw [hD, hA, hP, hM]
   congr 1 <;> omega
 
+/-- The multiply controlled source word has aggregated counts `d`, `2d`, `d`, and one for
+queries, projector-controlled NOTs, multiply controlled phases, and workspace. -/
 theorem paper_multiplyControlled_word_ledger {m : ℕ} (Φs : List (List ℝ))
     (d : ℕ) :
     paperLedger
@@ -87,6 +122,8 @@ theorem paper_multiplyControlled_word_ledger {m : ℕ} (Φs : List (List ℝ))
   rw [hD, hA, hP, hM]
   congr 1 <;> omega
 
+/-- Collects the odd, even, controlled, and multiply controlled source-word ledger identities,
+sparse preparation counts, and conditional finite inverse-NLFFT phase recovery guarantees. -/
 theorem clause45_endpoint :
     (∀ (Φ : List ℝ),
         paperLedger
@@ -165,6 +202,8 @@ theorem clause45_endpoint :
   · intro A B n h1 h2
     exact Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.g5.2.2.2.1 A B n h1 h2
 
+/-- The sparse encoding word uses one row query, one column query, two value queries, and three
+gate steps. -/
 theorem paper_two_query_prepare :
     Qatlib.Concepts.QsvtCore.PhaseExistence.rowQueryCount
         Qatlib.Concepts.QsvtCore.PhaseExistence.encodingWord = 1 ∧
@@ -176,6 +215,9 @@ theorem paper_two_query_prepare :
         Qatlib.Concepts.QsvtCore.PhaseExistence.encodingWord = 3 :=
   Qatlib.Concepts.QsvtCore.PhaseExistence.encodingWord_ledger
 
+/-- Under `LayerStripExact` and positive order, the finite inverse NLFFT returns `n`
+layer-stripping parameters, reproduces the stated forward transform components, and meets
+the phase-recovery operation bound. -/
 theorem paper_phase_recovery_clause :
     ∀ (A B : Polynomial ℂ) (n : ℕ), 1 ≤ n →
       Qatlib.Concepts.NativeNumerics.NlfftPipeline.LayerStripExact A B n →
@@ -199,14 +241,20 @@ open Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.GslwSourceQsvt
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- The even Chebyshev truncation using the rational coefficient table `J` in place of the
+integral Bessel coefficients. -/
 noncomputable def roundedCos (R : ℕ) (J : ℕ → ℚ) : Polynomial ℝ :=
   C (J 0 : ℝ)+∑ k ∈ Finset.Icc 1 R,
     C (2*(-1:ℝ)^k*(J (2*k):ℝ))*Polynomial.Chebyshev.T ℝ ((2*k:ℕ):ℤ)
 
+/-- The odd Chebyshev truncation using the rational coefficient table `J` in place of the
+integral Bessel coefficients. -/
 noncomputable def roundedSin (R : ℕ) (J : ℕ → ℚ) : Polynomial ℝ :=
   ∑ k ∈ Finset.Icc 0 R,
     C (2*(-1:ℝ)^k*(J (2*k+1):ℝ))*Polynomial.Chebyshev.T ℝ ((2*k+1:ℕ):ℤ)
 
+/-- On `[-1, 1]`, changing the coefficients in the displayed finite Chebyshev sum changes its
+value by at most twice the sum of absolute coefficient errors. -/
 private theorem sparse_cheb_error (I : Finset ℕ) (n : ℕ → ℕ) (a b : ℕ → ℝ)
     (x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     |(∑ k ∈ I, 2*(-1:ℝ)^k*a k*(Polynomial.Chebyshev.T ℝ (n k:ℤ)).eval x)-
@@ -221,6 +269,8 @@ private theorem sparse_cheb_error (I : Finset ℕ) (n : ℕ → ℕ) (a b : ℕ 
   simpa only [abs_mul, abs_pow, abs_neg, abs_one, one_pow, show |(2:ℝ)|=2 by norm_num, mul_one] using!
     mul_le_mul_of_nonneg_left hc (show 0 ≤ 2*|a k-b k| by positivity)
 
+/-- The rounded cosine truncation differs from the integral-coefficient truncation by at most
+the stated weighted sum of coefficient errors on `[-1, 1]`. -/
 theorem roundedCos_error (t : ℝ) (R : ℕ) (J : ℕ → ℚ)
     (x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     |(roundedCos R J).eval x-(compactCosPoly t R).eval x| ≤
@@ -234,6 +284,8 @@ theorem roundedCos_error (t : ℝ) (R : ℕ) (J : ℕ → ℚ)
        (∑ k ∈ Finset.Icc 1 R, 2*(-1:ℝ)^k*besselInt (2*k) t*(Polynomial.Chebyshev.T ℝ ((2*k:ℕ):ℤ)).eval x))| := by congr 1; ring
     _ ≤ _ := (abs_add_le _ _).trans (add_le_add (le_refl _) h)
 
+/-- The rounded sine truncation differs from the integral-coefficient truncation by at most
+twice the sum of the odd coefficient errors on `[-1, 1]`. -/
 theorem roundedSin_error (t : ℝ) (R : ℕ) (J : ℕ → ℚ)
     (x : ℝ) (hx : x ∈ Set.Icc (-1:ℝ) 1) :
     |(roundedSin R J).eval x-(compactSinPoly t R).eval x| ≤
@@ -242,6 +294,8 @@ theorem roundedSin_error (t : ℝ) (R : ℕ) (J : ℕ → ℚ)
   exact sparse_cheb_error (Finset.Icc 0 R) (fun k => 2*k+1)
     (fun k => (J (2*k+1):ℝ)) (fun k => besselInt (2*k+1) t) x hx
 
+/-- At the effective cutoff, coefficient error budgets at most `β` give uniform cosine and sine
+approximation errors at most `ε + β` on `[-1, 1]`. -/
 theorem paper_bessel_rounded_consumer (t ε : ℚ) (hε : 0 < ε) (J : ℕ → ℚ) (β : ℝ)
     (hc : |(J 0:ℝ)-besselInt 0 (t:ℝ)|+
       2*∑ k ∈ Finset.Icc 1 (cutoff t ε hε), |(J (2*k):ℝ)-besselInt (2*k) (t:ℝ)| ≤ β)

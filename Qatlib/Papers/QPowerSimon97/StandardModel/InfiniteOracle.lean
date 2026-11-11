@@ -8,6 +8,34 @@ import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Papers.QPowerSimon97.StandardModel.JointSeparation
 import Mathlib.Data.Nat.Pairing
 import Mathlib.Order.Filter.AtTopBot.Basic
+
+/-!
+# An infinite oracle separation for Simon query trees
+
+This module isolates the promised draws in Simon's oracle construction and proves that their
+quantum success is uniformly high at sufficiently large lengths [Simon1997]. The finite-length
+result `exists_good_low` selects a good oracle on which a bounded classical query tree has
+success below `2 / 3`.
+
+The theorem `simon_infiniteOracle_separation` diagonalizes these choices across a countable
+family of bounded randomized query trees, producing an oracle family satisfying
+`simonQuantumDecides` and defeating every specified classical family.
+
+## Main statements
+
+* `exists_good_low`: For `n ≥ 64`, any randomized query tree with query budget at most `2 ^ ((n
+  : ℝ) / 4)` has success below `2 / 3` on some good oracle draw.
+* `simon_infiniteOracle_separation`: For any countable family of randomized query trees with the
+  stated subexponential query bound, there is an oracle family that the amplified quantum
+  procedure eventually decides with success at least `2 / 3`, while no specified classical
+  family eventually succeeds strictly above `2 / 3`. This formalizes an oracle-separation
+  construction from [Simon1997].
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,18 +59,24 @@ namespace Qatlib.Papers.QPowerSimon97.StandardDefs
 open Qatlib
 open scoped Classical BigOperators ENNReal
 
+/-- A labeled oracle draw is good when a false label accompanies an injective function or a true
+label accompanies a strict Simon function with nonzero mask. -/
 def simonGoodDraw (n : ℕ) (ob : Bool × (BooleanVec n → BooleanVec n)) : Prop :=
   (ob.1 = false ∧ Function.Injective ob.2) ∨
     (ob.1 = true ∧ ∃ s : BooleanVec n, s ≠ 0 ∧ SimonStrictTwoToOne s ob.2)
 
+/-- The indicator, valued in extended nonnegative reals, of an oracle draw that is not good. -/
 def simonBadInd (n : ℕ) (ob : Bool × (BooleanVec n → BooleanVec n)) : ℝ≥0∞ :=
   if simonGoodDraw n ob then 0 else 1
 
+/-- The bad-draw indicator is bounded above by one. -/
 private lemma simonBadInd_le_one (n : ℕ)
     (ob : Bool × (BooleanVec n → BooleanVec n)) : simonBadInd n ob ≤ 1 := by
   unfold simonBadInd
   split <;> simp
 
+/-- An inequality holding on the nonzero-mass support of a probability law implies the
+corresponding expectation inequality. -/
 private lemma expectation_le_of_support {α : Type*} {p : PMF α} {f g : α → ℝ≥0∞}
     (h : ∀ a, p a ≠ 0 → f a ≤ g a) : expectation p f ≤ expectation p g := by
   show ∑' a, p a * f a ≤ ∑' a, p a * g a
@@ -51,6 +85,8 @@ private lemma expectation_le_of_support {α : Type*} {p : PMF α} {f g : α → 
   · simp [hp]
   · exact mul_le_mul_right (h a hp) _
 
+/-- The bad-draw mass in Simon's oracle construction is at most `1 / 2` times the reciprocal of
+`2 ^ n`. -/
 theorem simonBad_mass_le (n : ℕ) :
     expectation (simonOracleConstruction n) (simonBadInd n) ≤
       (1 / 2 : ℝ≥0∞) * (2 ^ n : ℝ≥0∞)⁻¹ := by
@@ -112,6 +148,7 @@ theorem simonBad_mass_le (n : ℕ) :
       _ = (1 / 2 : ℝ≥0∞) * (if s = 0 then 1 else 0) := by rw [mul_zero, add_zero]
   · rw [expectation_const_mul, expectation_uniform_zero_indicator]
 
+/-- The good-draw mass is at least one minus `1 / 2` times the reciprocal of `2 ^ n`. -/
 theorem simonGood_mass_lower (n : ℕ) :
     1 - (1 / 2 : ℝ≥0∞) * (2 ^ n : ℝ≥0∞)⁻¹ ≤
       expectation (simonOracleConstruction n)
@@ -141,6 +178,8 @@ theorem simonGood_mass_lower (n : ℕ) :
   rw [heq]
   exact tsub_le_tsub_left hbad 1
 
+/-- For `n ≥ 64`, the amplified quantum procedure with parameters `2 * n` and `n` succeeds on
+every good draw with probability at least `7 / 8`. -/
 theorem simonQuantumSuccess_good (n : ℕ) (hn : 64 ≤ n)
     (ob : Bool × (BooleanVec n → BooleanVec n)) (hgood : simonGoodDraw n ob) :
     ENNReal.ofReal (7 / 8) ≤ simonQuantumSuccess n (2 * n) n ob := by
@@ -192,6 +231,8 @@ theorem simonQuantumSuccess_good (n : ℕ) (hn : 64 ≤ n)
       _ = simonQuantumSuccess n (2 * n) n (true, f) := by
         simp [simonQuantumSuccess]
 
+/-- For `n ≥ 64`, `5 / 8` is strictly below `2 / 3` times the stated lower bound on good-draw
+mass. -/
 theorem simonNumericGap (n : ℕ) (hn : 64 ≤ n) :
     ENNReal.ofReal (5 / 8 : ℝ) <
       ENNReal.ofReal (2 / 3 : ℝ) *
@@ -237,6 +278,8 @@ theorem simonNumericGap (n : ℕ) (hn : 64 ≤ n) :
         (1 - (1 / 2 : ℝ≥0∞) * (2 ^ n : ℝ≥0∞)⁻¹) := by
       gcongr
 
+/-- For `n ≥ 64`, any randomized query tree with query budget at most `2 ^ ((n : ℝ) / 4)` has
+success below `2 / 3` on some good oracle draw. -/
 theorem exists_good_low (n : ℕ) (hn : 64 ≤ n) (q : ℕ)
     (hq : (q : ℝ) ≤ (2 : ℝ) ^ ((n : ℝ) / 4))
     (P : PMF (SimonQueryTree n)) (hP : SimonQueryTree.bounded P q) :
@@ -288,27 +331,38 @@ theorem exists_good_low (n : ℕ) (hn : 64 ≤ n) (q : ℕ)
     exact hnum.trans_le (hmono.trans hmarkov)
   exact (not_lt_of_ge hclass) hlower
 
+/-- The set of lengths whose oracle-family label is true. -/
 def simonOracleLanguage
     (A : (N : ℕ) → Bool × (BooleanVec N → BooleanVec N)) : Set ℕ :=
   {N | (A N).1 = true}
 
+/-- The predicate that the indexed classical query-tree family eventually guesses the oracle
+labels with probability strictly greater than `2 / 3`. -/
 def simonClassicalDecides
     (A : (N : ℕ) → Bool × (BooleanVec N → BooleanVec N))
     (P : (m N : ℕ) → PMF (SimonQueryTree N)) (m : ℕ) : Prop :=
   ∀ᶠ N in Filter.atTop,
     ENNReal.ofReal (2 / 3 : ℝ) < SimonQueryTree.guessMass (P m N) (A N).2 (A N).1
 
+/-- The predicate that the specified amplified quantum procedure eventually guesses the oracle
+labels with probability at least `2 / 3`. -/
 def simonQuantumDecides
     (A : (N : ℕ) → Bool × (BooleanVec N → BooleanVec N)) : Prop :=
   ∀ᶠ N in Filter.atTop,
     ENNReal.ofReal (2 / 3 : ℝ) ≤ simonQuantumSuccess N (2 * N) N (A N)
 
+/-- Every index occurs as the first component of `Nat.unpair` at arbitrarily large natural
+numbers. -/
 theorem exists_length_of_index (m N₀ : ℕ) :
     ∃ N ≥ N₀, (Nat.unpair N).1 = m := by
   refine ⟨Nat.pair m (max N₀ 64), ?_, ?_⟩
   · exact le_trans (le_max_left _ _) (Nat.right_le_pair m (max N₀ 64))
   · simp [Nat.unpair_pair]
 
+/-- For any countable family of randomized query trees with the stated subexponential query
+bound, there is an oracle family that the amplified quantum procedure eventually decides
+with success at least `2 / 3`, while no specified classical family eventually succeeds
+strictly above `2 / 3`. This formalizes an oracle-separation construction from [Simon1997]. -/
 theorem simon_infiniteOracle_separation
     (q : ℕ → ℕ) (hq : ∀ N, (q N : ℝ) ≤ (2 : ℝ) ^ ((N : ℝ) / 4))
     (P : (m N : ℕ) → PMF (SimonQueryTree N))

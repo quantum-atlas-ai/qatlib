@@ -13,6 +13,25 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Tactic
 
+/-!
+# Roots of unity and Gauss sums
+
+Defines `qroot` and the cyclic exponential sum `subgroupSum`, and evaluates Gauss sums over a
+prime field in the four combinations of trivial and nontrivial characters. It also proves the
+triangle-inequality bound for subgroup sums and their exact value for a generator of the full
+multiplicative group. See [MooreEtAl2002].
+
+## Main statements
+
+* `gauss_norm_sqrt`: a Gauss sum with both characters nontrivial has norm `sqrt(p)`.
+* `subgroupSum_generator_eq_neg_one`: the full multiplicative-group sum is −1 at nonzero
+  frequency.
+
+## References
+
+* [Moore et al., 2002][MooreEtAl2002]
+-/
+
 set_option autoImplicit false
 
 open AddChar MulChar BigOperators
@@ -21,8 +40,10 @@ namespace Qatlib.Papers.AffineHSP02.HarmonicCore
 
 noncomputable section
 
+/-- The complex exponential `exp(2πi / p)`. -/
 def qroot (p : ℕ) : ℂ := Complex.exp (2 * Real.pi * Complex.I / p)
 
+/-- For nonzero `p`, the `t`th power of `qroot p` is `exp(2πi * t / p)`. -/
 theorem qroot_pow_eq' (p t : ℕ) (hp : p ≠ 0) :
     qroot p ^ t = Complex.exp (2 * Real.pi * Complex.I * t / p) := by
   unfold qroot
@@ -31,8 +52,10 @@ theorem qroot_pow_eq' (p t : ℕ) (hp : p ≠ 0) :
   push_cast
   ring
 
+/-- The definition of `qroot` at zero gives one. -/
 theorem qroot_zero : qroot 0 = 1 := by simp [qroot]
 
+/-- For `p ≥ 2`, `qroot p` is different from one. -/
 theorem qroot_ne_one (p : ℕ) (hp : 2 ≤ p) : qroot p ≠ 1 := by
   have hp0 : p ≠ 0 := by omega
   have h : qroot p = Complex.exp (2 * Real.pi * Complex.I * 1 / p) := by
@@ -46,11 +69,13 @@ theorem qroot_ne_one (p : ℕ) (hp : 2 ≤ p) : qroot p ≠ 1 := by
   have hp1 : p = 1 := Nat.dvd_one.mp hdvd
   omega
 
+/-- The standard additive character of `ZMod p` at `j` is `qroot p` raised to `j.val`. -/
 theorem stdAddChar_eq_qroot_pow (p : ℕ) [NeZero p] (j : ZMod p) :
     ZMod.stdAddChar j = qroot p ^ j.val := by
   rw [ZMod.stdAddChar_apply, ZMod.toCircle_apply]
   rw [qroot_pow_eq' p j.val (NeZero.ne p)]
 
+/-- For `p ≥ 2`, the standard additive character of `ZMod p` is nontrivial. -/
 theorem stdAddChar_ne_one (p : ℕ) [NeZero p] (hp : 2 ≤ p) :
     (ZMod.stdAddChar (N := p)) ≠ 1 := by
   rw [AddChar.zmod_char_ne_one_iff]
@@ -59,6 +84,7 @@ theorem stdAddChar_ne_one (p : ℕ) [NeZero p] (hp : 2 ≤ p) :
   rw [ZMod.val_one, pow_one]
   exact qroot_ne_one p hp
 
+/-- Every natural power of `qroot p` has complex norm one. -/
 theorem norm_qroot_pow (p t : ℕ) : ‖qroot p ^ t‖ = 1 := by
   by_cases hp : p = 0
   · subst hp
@@ -71,6 +97,9 @@ theorem norm_qroot_pow (p t : ℕ) : ‖qroot p ^ t‖ = 1 := by
 
 variable {p : ℕ} [Fact p.Prime]
 
+/-- Over a prime field, a Gauss sum with nontrivial multiplicative and additive characters has
+norm equal to the square root of the field cardinality [Moore et al., Theorem
+6][MooreEtAl2002]. -/
 theorem gauss_norm_sqrt (χ : MulChar (ZMod p) ℂ) (hχ : χ ≠ 1)
     (ψ : AddChar (ZMod p) ℂ) (hψ : ψ ≠ 1) :
     ‖gaussSum χ ψ‖ = Real.sqrt (Fintype.card (ZMod p)) := by
@@ -93,6 +122,8 @@ theorem gauss_norm_sqrt (χ : MulChar (ZMod p) ℂ) (hχ : χ ≠ 1)
     rw [← Complex.normSq_eq_norm_sq, hnsq]
   rw [← Real.sqrt_sq (norm_nonneg _), hsq]
 
+/-- The Gauss sum with both characters trivial is `p - 1` [Moore et al., Theorem
+6][MooreEtAl2002]. -/
 theorem gauss_one_one :
     gaussSum (1 : MulChar (ZMod p) ℂ) (1 : AddChar (ZMod p) ℂ) = (p : ℂ) - 1 := by
   rw [gaussSum]
@@ -112,6 +143,8 @@ theorem gauss_one_one :
     Finset.sum_ite_eq' Finset.univ (0 : ZMod p) (fun _ => (1 : ℂ))]
   simp [ZMod.card]
 
+/-- The Gauss sum with trivial multiplicative character and nontrivial additive character is −1
+[Moore et al., Theorem 6][MooreEtAl2002]. -/
 theorem gauss_one_add (ψ : AddChar (ZMod p) ℂ) (hψ : ψ ≠ 1) :
     gaussSum (1 : MulChar (ZMod p) ℂ) ψ = -1 := by
   rw [gaussSum]
@@ -132,15 +165,19 @@ theorem gauss_one_add (ψ : AddChar (ZMod p) ℂ) (hψ : ψ ≠ 1) :
     AddChar.sum_eq_zero_of_ne_one hψ]
   simp
 
+/-- The Gauss sum with nontrivial multiplicative character and trivial additive character is
+zero [Moore et al., Theorem 6][MooreEtAl2002]. -/
 theorem gauss_mul_one (χ : MulChar (ZMod p) ℂ) (hχ : χ ≠ 1) :
     gaussSum χ (1 : AddChar (ZMod p) ℂ) = 0 := by
   rw [gaussSum]
   simp only [AddChar.one_apply, mul_one]
   exact MulChar.sum_eq_zero_of_ne_one hχ
 
+/-- The sum of the standard additive character at `a^t * k` for `0 ≤ t < q`. -/
 def subgroupSum (p : ℕ) (a : (ZMod p)ˣ) (k : ZMod p) (q : ℕ) : ℂ :=
   ∑ t ∈ Finset.range q, qroot p ^ (((a : ZMod p) ^ t * k).val)
 
+/-- The norm of `subgroupSum p a k q` is at most the number `q` of its summands. -/
 theorem subgroupSum_norm_le (p q : ℕ) (a : (ZMod p)ˣ) (k : ZMod p) :
     ‖subgroupSum p a k q‖ ≤ (q : ℝ) := by
   unfold subgroupSum
@@ -153,6 +190,8 @@ theorem subgroupSum_norm_le (p q : ℕ) (a : (ZMod p)ˣ) (k : ZMod p) :
     mul_one] at h1
   exact h1
 
+/-- For prime `p`, a generator `a` of the multiplicative group and nonzero frequency `k` give
+`subgroupSum p a k (p - 1) = -1`. -/
 theorem subgroupSum_generator_eq_neg_one (p : ℕ) [Fact p.Prime] (hp : 2 ≤ p)
     (a : (ZMod p)ˣ) (ha : orderOf a = p - 1) (k : ZMod p) (hk : k ≠ 0) :
     subgroupSum p a k (p - 1) = -1 := by

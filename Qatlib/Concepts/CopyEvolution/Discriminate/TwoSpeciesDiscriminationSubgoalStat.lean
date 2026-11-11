@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
+
+/-!
+# Specification of two-species discrimination identities
+
+This module defines `TwoSpeciesDiscriminationSubgoal`, a proposition collecting the spectral and
+finite-copy properties used for discrimination of two uniform training mixtures. It compares QPE
+event masses with the spectral mixture of kernels at phases `-x j / 2` and specifies an error at
+most `32 * (M - 1) * π ^ 2 / n` together with resource counts.
+
+The proposition also records pure-state reconstruction, squared-overlap weights, the Hermitian
+idempotent positive spectral projector, its Born probability, spectral magnitude bounds, and
+orthogonality at eigenvalues `±1`. These are ingredients of the copy-based discrimination
+application in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `TwoSpeciesDiscriminationSubgoal`: the combined finite-copy event and spectral-identity
+  specification.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -23,6 +47,10 @@ open Matrix
 
 set_option autoImplicit false
 
+/-- The proposition collecting finite-copy QPE event accuracy and resources for two uniform
+training mixtures, together with basis and Born-weight identities. It also requires a
+positive spectral projector, spectral magnitude bounds, and orthogonality at difference
+eigenvalues `±1`. -/
 def TwoSpeciesDiscriminationSubgoal : Prop :=
   ∀ (d m M n : ℕ) (φ ψ : Fin m → QState (Fin d)),
     (∀ i, Normalized (φ i)) → (∀ i, Normalized (ψ i)) → 0 < m → 2 ≤ M → 0 < n →

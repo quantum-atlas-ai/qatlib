@@ -8,6 +8,29 @@ import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.WalshMoment.Forrelation.ThresholdApproximation
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# Statement of the threshold-sector pseudoinverse theorem
+
+`Theorem41OriginalPseudoinverse` specifies a QSVT construction for a projected unitary encoding
+whose nonzero singular values are bounded below by δ, with `0 < ε ≤ δ ≤ 1/2`. It requests a
+bounded windowed reciprocal polynomial, a phase list, an exact encoding of its odd singular
+transform, and explicit compilation counts.
+
+The final estimate compares the adjoint transform with the scaled Moore–Penrose pseudoinverse
+between threshold-sector operators. The statement is associated with Theorem 41 of
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `Theorem41OriginalPseudoinverse`: defines the polynomial, circuit, and sector error guarantees
+  as a proposition.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,6 +61,10 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 
+/-- The proposition requesting a windowed reciprocal polynomial and real QSVT encoding for a
+projected unitary encoding with a positive singular-value gap and 0 < ε ≤ δ ≤ 1/2. It
+records phase length, parameter bounds, compilation counts, and an ε-bound for the
+sector-projected scaled-pseudoinverse error [GilyenSuLowWiebe2019]. -/
 def Theorem41OriginalPseudoinverse : Prop :=
   ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

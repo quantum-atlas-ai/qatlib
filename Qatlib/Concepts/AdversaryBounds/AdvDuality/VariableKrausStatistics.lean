@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Execution.CircuitCompile.VariableKrausDefs
+
+/-!
+# Statistics preserved by Kraus padding
+
+Padding a `VariableKrausCircuit` to a common outcome bound preserves sums of branch statistics
+that vanish on zero-state branches, after restoring the original outcome records. This supplies
+a finite circuit representation compatible with the Kraus description of quantum operations in
+[Kraus1971].
+
+The general statistic identity specializes to event masses and expected oracle-query counts;
+these statements require that each instrument fits the chosen bound.
+
+## Main statements
+
+* `variableKraus_padding_statistic`: preserve zero-state-vanishing branch statistics.
+* `variableKraus_padding_event`: preserve events on restored outcome records.
+* `variableKraus_padding_expected`: preserve expected query counts.
+
+## References
+
+* [Kraus, 1971][Kraus1971]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +39,8 @@ open Qatlib.Concepts.Execution.CircuitCompile
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
+/-- If all instruments fit the common outcome bound `S`, padding preserves the sum of any branch
+statistic that vanishes on zero-state traces, after restoring each padded outcome record. -/
 theorem variableKraus_padding_statistic {d : ℕ} (O : Operator d)
     (P : VariableKrausCircuit d) (S : ℕ) (hfit : variableKrausFits S P)
     (rho : Operator d) (F : MixedBranchTrace d → ℝ)
@@ -68,6 +93,8 @@ theorem variableKraus_padding_statistic {d : ℕ} (O : Operator d)
           restoreVariableKrausRecord]
         exact hzero false 0 2 1 []
 
+/-- Padding a variable Kraus circuit preserves every event mass depending on acceptance and the
+restored outcome record, provided its instruments fit `S`. -/
 theorem variableKraus_padding_event {d : ℕ} (O : Operator d)
     (P : VariableKrausCircuit d) (S : ℕ) (hfit : variableKrausFits S P)
     (rho : Operator d) (E : Bool → List (ℕ × ℕ) → Bool) :
@@ -80,6 +107,8 @@ theorem variableKraus_padding_event {d : ℕ} (O : Operator d)
       (fun t => if E t.accepted t.outcomes then (Matrix.trace t.state).re else 0)
       (by intro b q g m rec; simp))
 
+/-- Padding a variable Kraus circuit to a fitting common outcome bound preserves its expected
+number of oracle queries. -/
 theorem variableKraus_padding_expected {d : ℕ} (O : Operator d)
     (P : VariableKrausCircuit d) (S : ℕ) (hfit : variableKrausFits S P)
     (rho : Operator d) :

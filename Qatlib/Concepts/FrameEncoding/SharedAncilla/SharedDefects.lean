@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FrameEncoding.SharedAncilla.SharedAncillaDefs
+
+/-!
+# Shared Frame Defect and Leakage Bounds
+
+This module bounds the discrepancy between applying a workspace unitary to an encoded state and
+encoding the action of its target operator. `shared_defect_identity` expresses the squared
+defect through the target Gram defect and its mismatch with the compression.
+
+For `GuardedSharedBlock`, the resulting norm bound also controls leakage in both directions
+between the frame range and its orthogonal complement. The estimates support the shared
+workspace block encoding framework associated with [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `shared_defect_bound_le` bounds the squared operator norm by `ζ + 2 * Γ * (|1 - α| + ε)`.
+* `GuardedSharedBlock.defect_norm_le` bounds the intertwining defect by the stored square root
+  bound.
+* `GuardedSharedBlock.leak_le` and `GuardedSharedBlock.leak_adjoint_le` control the two off
+  diagonal frame blocks.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019], Quantum singular value transformation and beyond:
+  exponential improvements for quantum matrix arithmetics.
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -21,6 +47,8 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 variable {F : Matrix H I ℂ}
 
+/-- For an isometric frame and a unitary workspace operator, expands the adjoint square of `U *
+F - F * A` into the target Gram defect and two compression mismatch terms. -/
 theorem shared_defect_identity {A : Matrix I I ℂ} {U : Matrix H H ℂ} (F : Matrix H I ℂ)
     (hF : IsIsometry F) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     (U * F - F * A)ᴴ * (U * F - F * A)
@@ -60,6 +88,8 @@ theorem shared_defect_identity {A : Matrix I I ℂ} {U : Matrix H H ℂ} (F : Ma
           rw [hsub, hsub', hsub'']
           abel
 
+/-- Bounds the squared Euclidean operator norm of `U * F - F * A` by `ζ + 2 * Γ * (|1 - α| + ε)`
+under the stated Gram defect, compression mismatch, and target norm bounds. -/
 theorem shared_defect_bound_le {A : Matrix I I ℂ} {U : Matrix H H ℂ} (F : Matrix H I ℂ)
     (hF : IsIsometry F) (hU : U ∈ Matrix.unitaryGroup H ℂ)
     (α ε ζ Γ : ℝ) (hζ : 0 ≤ ζ) (hΓ : 0 ≤ Γ)
@@ -107,6 +137,8 @@ theorem shared_defect_bound_le {A : Matrix I I ℂ} {U : Matrix H H ℂ} (F : Ma
           linarith
     _ = ζ + 2 * Γ * (|1 - α| + ε) := by ring
 
+/-- The squared Euclidean operator norm of a guarded shared block's intertwining defect is
+bounded by its stored squared defect budget. -/
 theorem GuardedSharedBlock.defect_le (b : GuardedSharedBlock H I F) :
     ‖b.U * F - F * b.A‖ * ‖b.U * F - F * b.A‖ ≤ b.defectBound := by
   have h := shared_defect_bound_le (A := b.A) (U := b.U) F b.frame_isometry
@@ -120,6 +152,8 @@ theorem GuardedSharedBlock.defect_le (b : GuardedSharedBlock H I F) :
   simpa only [GuardedSharedBlock.defectBound, GuardedSharedBlock.mismatch,
     sharedMismatchBound] using h
 
+/-- The Euclidean operator norm of `b.U * F - F * b.A` is at most the guarded block's square
+root defect budget. -/
 theorem GuardedSharedBlock.defect_norm_le (b : GuardedSharedBlock H I F) :
     ‖b.U * F - F * b.A‖ ≤ b.defect := by
   have h4 := b.defect_le
@@ -137,6 +171,8 @@ theorem GuardedSharedBlock.defect_norm_le (b : GuardedSharedBlock H I F) :
     exact h4
   exact (sq_le_sq₀ (norm_nonneg (b.U * F - F * b.A)) h6').mp hsq2
 
+/-- Bounds leakage from the frame range to its orthogonal complement under the workspace unitary
+by the guarded block's defect budget. -/
 theorem GuardedSharedBlock.leak_le (b : GuardedSharedBlock H I F) :
     ‖sharedComplement F * b.U * F‖ ≤ b.defect := by
   have hQ : sharedComplement F * F = 0 := sharedComplement_mul_F F b.frame_isometry
@@ -168,6 +204,8 @@ theorem GuardedSharedBlock.leak_le (b : GuardedSharedBlock H I F) :
   rw [← h1]
   linarith
 
+/-- Bounds the norm of `Fᴴ * b.U * sharedComplement F`, which transfers the complementary
+workspace component back to frame coordinates, by the guarded block's defect budget. -/
 theorem GuardedSharedBlock.leak_adjoint_le (b : GuardedSharedBlock H I F) :
     ‖Fᴴ * b.U * sharedComplement F‖ ≤ b.defect := by
   have h1 : ‖Fᴴ * b.U * sharedComplement F‖ = ‖sharedComplement F * b.Uᴴ * F‖ := by

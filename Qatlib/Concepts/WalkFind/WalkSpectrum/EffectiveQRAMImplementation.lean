@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
 import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+
+/-!
+# From effective descriptions to QRAM implementation bounds
+
+This module compares source instruction bit costs with the lengths of their explicit
+descriptions. The estimates bound both the total bit cost and the instruction count by sums of
+squared description lengths.
+
+`qRAMImplementation_of_effective` uses these comparisons to derive `QRAMImplementationContract`
+from `EffectiveQRAMImplementationContract` for the collision-search implementation model
+[Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `natDescription_length`: the exact length of a natural-number description.
+* `sourceWord_description_budget`: bit and instruction bounds from descriptions.
+* `qRAMImplementation_of_effective`: passage from the effective contract to the QRAM contract.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,10 +42,12 @@ noncomputable section
 namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 open scoped Classical BigOperators
 
+/-- The description of `n` has length `2*Nat.clog 2 (n+1)+1`. -/
 theorem natDescription_length (n : ℕ) : (natDescription n).length = 2*Nat.clog 2 (n+1)+1 := by
   simp [natDescription]
   omega
 
+/-- The bit cost of a source instruction is at most the length of its explicit description. -/
 theorem codeBits_le_description_length (g : SourceCode) : codeBits g ≤ (sourceDescription g).length := by
   cases g with
   | query => simp [codeBits,sourceDescription,natDescription_length,Nat.clog]
@@ -37,6 +62,8 @@ theorem codeBits_le_description_length (g : SourceCode) : codeBits g ≤ (source
     cases g <;> simp only [codeBits,sourceDescription,gateDescription,List.length_append,natDescription_length,hc2,hc3,hc4] <;>
       norm_num <;> omega
 
+/-- Both the total instruction bit cost and the number of instructions are bounded by the sum of
+squared description lengths. -/
 theorem sourceWord_description_budget (cs : List SourceCode) :
     (cs.map codeBits).sum ≤ (cs.map (fun g => (sourceDescription g).length^2)).sum ∧
     cs.length ≤ (cs.map (fun g => (sourceDescription g).length^2)).sum := by
@@ -53,6 +80,8 @@ theorem sourceWord_description_budget (cs : List SourceCode) :
     · have hg := (hlen g).trans (hsq g)
       omega
 
+/-- An effective QRAM implementation satisfying its description and execution bounds also
+satisfies `QRAMImplementationContract`. -/
 theorem qRAMImplementation_of_effective (heffective : EffectiveQRAMImplementationContract) :
     QRAMImplementationContract := by
   intro k hk

@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsNonnegative
 import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Conjugate factorization of nonnegative real polynomials
+
+`exists_conjugate_factor_of_nonneg` factors the complexification of a real polynomial that is
+nonnegative on the whole real line as a complex polynomial times its coefficientwise conjugate.
+Auxiliary results handle squared real-root factors and conjugate pairs of nonreal roots,
+providing tools for polynomial completion in quantum signal processing. See
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `exists_conjugate_factor_of_nonneg`: factor a globally nonnegative real polynomial after
+  complexification.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -18,6 +38,8 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- At a real root of a globally nonnegative real polynomial, the squared linear factor can be
+removed while preserving global nonnegativity of the quotient. -/
 private theorem real_square_root_factor {f : Polynomial ℝ}
     (hf : ∀ x : ℝ, 0 ≤ f.eval x) {r : ℝ} (hr : f.IsRoot r) :
     ∃ g : Polynomial ℝ, f = (X - C r) ^ 2 * g ∧ ∀ x : ℝ, 0 ≤ g.eval x := by
@@ -48,6 +70,8 @@ private theorem real_square_root_factor {f : Polynomial ℝ}
       (fun t ht => haway t ht.1.ne') r ⟨le_rfl, by linarith⟩
   · exact haway x hx
 
+/-- Conjugate polynomial factorizations of two complexified real polynomials combine into such a
+factorization of their product. -/
 private theorem conjugate_factor_mul {f g : Polynomial ℝ}
     (hf : ∃ W : Polynomial ℂ, W * conjugatePolynomial W = f.map Complex.ofRealHom)
     (hg : ∃ W : Polynomial ℂ, W * conjugatePolynomial W = g.map Complex.ofRealHom) :
@@ -58,6 +82,8 @@ private theorem conjugate_factor_mul {f g : Polynomial ℝ}
   rw [conjugatePolynomial_mul, Polynomial.map_mul, ← hU, ← hV]
   ring
 
+/-- A complex linear factor times its coefficientwise conjugate equals the complexification of
+`rootQuadratic z`. -/
 private theorem real_quadratic_conjugate_factor (z : ℂ) :
     (X - C z) * conjugatePolynomial (X - C z) =
       (rootQuadratic z).map Complex.ofRealHom := by
@@ -77,6 +103,8 @@ private theorem real_quadratic_conjugate_factor (z : ℂ) :
         C z * C (star z) := by ring
     _ = _ := by rw [ha, hm]; rfl
 
+/-- Every globally nonnegative real polynomial has a complexification of the form `W *
+conjugatePolynomial W`. -/
 theorem exists_conjugate_factor_of_nonneg (f : Polynomial ℝ)
     (hf : ∀ x : ℝ, 0 ≤ f.eval x) :
     ∃ W : Polynomial ℂ,

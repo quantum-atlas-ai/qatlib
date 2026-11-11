@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SectionIIAmplifiedRuntimeCorrectedStat
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+
+/-!
+# Certificate for corrected HHL amplification bounds
+
+`sectionIIAmplifiedRuntime` proves `SectionIIAmplifiedRuntimeCorrected`, giving a unitary HHL
+preparation and a bounded amplification depth with success probability at least `1 / 4` on the
+corrected filter event. The proposition also records an explicit cost inequality associated with
+the runtime discussion in Section II of [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `sectionIIAmplifiedRuntime`: the corrected amplification and cost proposition holds.
+
+## References
+
+* [Harrow et al., 2009, Section II][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,6 +50,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Real
 
+/-- Establishes the corrected amplification proposition: the HHL preparation is unitary and some
+depth at most `⌈1 / (5 * d)⌉₊ + 1` achieves success probability at least `1 / 4` with the
+stated cost bound. See [Harrow et al., Section II][HarrowHassidimLloyd2009]. -/
 theorem sectionIIAmplifiedRuntime : SectionIIAmplifiedRuntimeCorrected :=
   fun D M hM eig V B j d η hV hB hd h2d hη hη1 heig hbudget =>
     sin_envelope_aa_success_and_cost M hM eig V B j d η hV hB hd h2d hη hη1 heig hbudget

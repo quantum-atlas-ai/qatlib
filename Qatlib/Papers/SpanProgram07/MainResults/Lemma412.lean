@@ -8,6 +8,26 @@ import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
 import Mathlib.Data.Fin.VecNotation
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
+
+/-!
+# Parity and OR span-program witnesses
+
+This module constructs the two-input parity and weighted OR span programs used in Lemma 4.12 of
+[ReichardtSpalek2008]. It characterizes their available column groups and proves exact
+witness-size formulas, with a positive-witness upper bound for the all-true OR input.
+
+## Main statements
+
+* `parity_witness_size`: Collect the exact positive and negative parity witness sizes `B + B'`
+  for the four specified weight and availability patterns.
+* `or_witness_size`: Collect the exact OR witness sizes on the empty and singleton available
+  sets and a positive-witness upper bound of `sqrt (B² + B'²)` when both columns are available.
+
+## References
+
+* [Reichardt and Spalek, 2008][ReichardtSpalek2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +40,8 @@ open Finset
 open SpanProgram
 open scoped BigOperators
 
+/-- When the auxiliary coordinate type is empty, a column pairing is the conjugate target
+coordinate times `b none`. -/
 theorem pair_empty_eq {n : ℕ} {J I : Type} (P : SpanProgram n J Empty I)
     (b : Option Empty → ℂ) (j : J) :
     P.pair b j = (starRingEnd ℂ) (P.v j none) * b none := by
@@ -32,13 +54,17 @@ theorem pair_empty_eq {n : ℕ} {J I : Type} (P : SpanProgram n J Empty I)
   · intro h
     exact absurd (Finset.mem_univ none) h
 
+/-- The squared complex norm of a real number equals its real square. -/
 theorem norm_real_sq (x : ℝ) : ‖((x : ℝ) : ℂ)‖ ^ 2 = x ^ 2 := by
   rw [Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- The squared norm of the conjugate of a real complex number equals its real square. -/
 theorem norm_conj_real_sq (x : ℝ) : ‖(starRingEnd ℂ) ((x : ℝ) : ℂ)‖ ^ 2 = x ^ 2 := by
   have h : (starRingEnd ℂ) ((x : ℝ) : ℂ) = ((x : ℝ) : ℂ) := by simp
   rw [h, norm_real_sq]
 
+/-- For columns identically one and no auxiliary coordinates, a finite linear combination equals
+the target exactly when its coefficients sum to one. -/
 theorem sum_smul_eq_target_empty {ι : Type} (S : Finset ι) (w : ι → ℂ)
     (v : ι → Option Empty → ℂ) (hv : ∀ j k, v j k = 1) :
     (∑ j ∈ S, w j • v j = target Empty) ↔ (∑ j ∈ S, w j) = 1 := by
@@ -52,6 +78,8 @@ theorem sum_smul_eq_target_empty {ι : Type} (S : Finset ι) (w : ι → ℂ)
     | none => simpa [target, hv, Finset.sum_apply, Pi.smul_apply] using h
     | some e => exact e.elim
 
+/-- With target coordinates one and normalized `b none`, the weighted sum of squared pairings
+equals the sum of the weights. -/
 theorem false_value_empty_const {n : ℕ} {J I : Type} [Fintype J] (z : J → ℝ)
     (P : SpanProgram n J Empty I) (hv : ∀ j, P.v j none = 1) (b : Option Empty → ℂ)
     (hb : b none = 1) :
@@ -60,15 +88,21 @@ theorem false_value_empty_const {n : ℕ} {J I : Type} [Fintype J] (z : J → �
   rw [pair_empty_eq P b j, hv j, map_one]
   simp [hb]
 
+/-- Assign the first two parity literals to group zero and the last two to group one. -/
 def parityGrp : Fin 4 → Fin 2 := ![0, 0, 1, 1]
 
+/-- The parity literal list consisting of positive input zero, negative input one, negative
+input zero, and positive input one. -/
 def parityLit : Fin 4 → Lit 2 := ![Lit.pos 0, Lit.neg 1, Lit.neg 0, Lit.pos 1]
 
+/-- The two-input parity span program with two constant columns and conjunctive literal groups
+for the two unequal inputs. -/
 def parityProgram : SpanProgram 2 (Fin 2) Empty (Fin 4) where
   grp := parityGrp
   lit := parityLit
   v _ _ := 1
 
+/-- Parity group zero is available exactly when input zero is true and input one is false. -/
 theorem parityGroupTrue_zero (x : Fin 2 → Bool) :
     parityProgram.groupTrue x 0 ↔ (x 0 = true ∧ x 1 = false) := by
   constructor
@@ -81,6 +115,7 @@ theorem parityGroupTrue_zero (x : Fin 2 → Bool) :
   · rintro ⟨h0, h1⟩ i hi
     fin_cases i <;> simp_all [parityProgram, parityGrp, parityLit, Lit.eval]
 
+/-- Parity group one is available exactly when input zero is false and input one is true. -/
 theorem parityGroupTrue_one (x : Fin 2 → Bool) :
     parityProgram.groupTrue x 1 ↔ (x 0 = false ∧ x 1 = true) := by
   constructor
@@ -93,26 +128,32 @@ theorem parityGroupTrue_one (x : Fin 2 → Bool) :
   · rintro ⟨h0, h1⟩ i hi
     fin_cases i <;> simp_all [parityProgram, parityGrp, parityLit, Lit.eval]
 
+/-- Neither parity group is available on the all-false input. -/
 theorem parityTrue_false_false :
     ∀ j : Fin 2, ¬ parityProgram.groupTrue ![false, false] j := by
   intro j
   fin_cases j <;> simp [parityGroupTrue_zero, parityGroupTrue_one]
 
+/-- On input `[true, false]`, exactly parity group zero is available. -/
 theorem parityTrue_true_false :
     ∀ j : Fin 2, parityProgram.groupTrue ![true, false] j ↔ j = 0 := by
   intro j
   fin_cases j <;> simp [parityGroupTrue_zero, parityGroupTrue_one]
 
+/-- On input `[false, true]`, exactly parity group one is available. -/
 theorem parityTrue_false_true :
     ∀ j : Fin 2, parityProgram.groupTrue ![false, true] j ↔ j = 1 := by
   intro j
   fin_cases j <;> simp [parityGroupTrue_zero, parityGroupTrue_one]
 
+/-- Neither parity group is available on the all-true input. -/
 theorem parityTrue_true_true :
     ∀ j : Fin 2, ¬ parityProgram.groupTrue ![true, true] j := by
   intro j
   fin_cases j <;> simp [parityGroupTrue_zero, parityGroupTrue_one]
 
+/-- For nonnegative `B` and `B'`, the negative witness size on the empty available set with
+weights `[B, B']` is `B + B'`. -/
 theorem parity_wsize_00 (B B' : ℝ) (hB : 0 ≤ B) (hB' : 0 ≤ B') :
     parityProgram.WsizeFalseAt ![B, B'] (∅ : Finset (Fin 2)) (B + B') := by
   constructor
@@ -127,6 +168,8 @@ theorem parity_wsize_00 (B B' : ℝ) (hB : 0 ≤ B) (hB' : 0 ≤ B') :
       rw [Fin.sum_univ_two]
       simp
 
+/-- With only group zero available and weights `[B + B', B]`, the positive witness size is
+exactly `B + B'`. -/
 theorem parity_wsize_10 (B B' : ℝ) :
     parityProgram.WsizeTrueAt ![B + B', B] ({0} : Finset (Fin 2)) (B + B') := by
   constructor
@@ -147,6 +190,8 @@ theorem parity_wsize_10 (B B' : ℝ) :
     · rw [wt, Fin.sum_univ_two]
       simp
 
+/-- With only group one available and weights `[B, B + B']`, the positive witness size is
+exactly `B + B'`. -/
 theorem parity_wsize_01 (B B' : ℝ) :
     parityProgram.WsizeTrueAt ![B, B + B'] ({1} : Finset (Fin 2)) (B + B') := by
   constructor
@@ -167,6 +212,8 @@ theorem parity_wsize_01 (B B' : ℝ) :
     · rw [wt, Fin.sum_univ_two]
       simp
 
+/-- For nonnegative `B` and `B'`, the negative witness size on the empty available set with
+weights `[B', B]` is `B + B'`. -/
 theorem parity_wsize_11 (B B' : ℝ) (hB : 0 ≤ B) (hB' : 0 ≤ B') :
     parityProgram.WsizeFalseAt ![B', B] (∅ : Finset (Fin 2)) (B + B') := by
   constructor
@@ -183,6 +230,8 @@ theorem parity_wsize_11 (B B' : ℝ) (hB : 0 ≤ B) (hB' : 0 ≤ B') :
       simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons]
       linarith
 
+/-- Collect the exact positive and negative parity witness sizes `B + B'` for the four specified
+weight and availability patterns. See [ReichardtSpalek2008]. -/
 theorem parity_witness_size (B B' : ℝ) (hB : 0 ≤ B) (hB' : 0 ≤ B') :
     parityProgram.WsizeTrueAt ![B + B', B] ({0} : Finset (Fin 2)) (B + B') ∧
     parityProgram.WsizeTrueAt ![B, B + B'] ({1} : Finset (Fin 2)) (B + B') ∧
@@ -191,25 +240,31 @@ theorem parity_witness_size (B B' : ℝ) (hB : 0 ≤ B) (hB' : 0 ≤ B') :
   ⟨parity_wsize_10 B B', parity_wsize_01 B B', parity_wsize_00 B B' hB hB',
     parity_wsize_11 B B' hB hB'⟩
 
+/-- The fourth root of `B² + B'²`, expressed as two successive square roots. -/
 def orNorm (B B' : ℝ) : ℝ := Real.sqrt (Real.sqrt (B ^ 2 + B' ^ 2))
 
+/-- The two scalar OR columns, with values `sqrt B / orNorm B B'` and `sqrt B' / orNorm B B'`. -/
 def orCol (B B' : ℝ) : Fin 2 → Option Empty → ℂ :=
   fun j _ => if j = 0 then ((Real.sqrt B / orNorm B B' : ℝ) : ℂ)
     else ((Real.sqrt B' / orNorm B B' : ℝ) : ℂ)
 
+/-- The two-input OR span program with positive literals and scalar columns `orCol B B'`. -/
 def orProgram (B B' : ℝ) : SpanProgram 2 (Fin 2) Empty (Fin 2) where
   grp := ![0, 1]
   lit := ![Lit.pos 0, Lit.pos 1]
   v := orCol B B'
 
+/-- The target coordinate of OR column zero is `sqrt B / orNorm B B'`. -/
 theorem orProgram_v_zero (B B' : ℝ) :
     (orProgram B B').v 0 none = ((Real.sqrt B / orNorm B B' : ℝ) : ℂ) := by
   simp [orProgram, orCol]
 
+/-- The target coordinate of OR column one is `sqrt B' / orNorm B B'`. -/
 theorem orProgram_v_one (B B' : ℝ) :
     (orProgram B B').v 1 none = ((Real.sqrt B' / orNorm B B' : ℝ) : ℂ) := by
   simp [orProgram, orCol]
 
+/-- Pairing with OR column zero multiplies `b none` by the conjugate of `sqrt B / orNorm B B'`. -/
 theorem orProgram_pair_zero (B B' : ℝ) (b : Option Empty → ℂ) :
     (orProgram B B').pair b 0
       = (starRingEnd ℂ) ((Real.sqrt B / orNorm B B' : ℝ) : ℂ) * b none := by
@@ -223,6 +278,7 @@ theorem orProgram_pair_zero (B B' : ℝ) (b : Option Empty → ℂ) :
   · intro h
     exact absurd (Finset.mem_univ none) h
 
+/-- Pairing with OR column one multiplies `b none` by the conjugate of `sqrt B' / orNorm B B'`. -/
 theorem orProgram_pair_one (B B' : ℝ) (b : Option Empty → ℂ) :
     (orProgram B B').pair b 1
       = (starRingEnd ℂ) ((Real.sqrt B' / orNorm B B' : ℝ) : ℂ) * b none := by
@@ -236,6 +292,7 @@ theorem orProgram_pair_one (B B' : ℝ) (b : Option Empty → ℂ) :
   · intro h
     exact absurd (Finset.mem_univ none) h
 
+/-- OR group zero is available exactly when input zero is true. -/
 theorem orGroupTrue_zero (B B' : ℝ) (x : Fin 2 → Bool) :
     (orProgram B B').groupTrue x 0 ↔ x 0 = true := by
   constructor
@@ -245,6 +302,7 @@ theorem orGroupTrue_zero (B B' : ℝ) (x : Fin 2 → Bool) :
   · intro h i hi
     fin_cases i <;> simp_all [orProgram, Lit.eval]
 
+/-- OR group one is available exactly when input one is true. -/
 theorem orGroupTrue_one (B B' : ℝ) (x : Fin 2 → Bool) :
     (orProgram B B').groupTrue x 1 ↔ x 1 = true := by
   constructor
@@ -254,6 +312,8 @@ theorem orGroupTrue_one (B B' : ℝ) (x : Fin 2 → Bool) :
   · intro h i hi
     fin_cases i <;> simp_all [orProgram, Lit.eval]
 
+/-- For positive weights, the weighted sum of the squared normalized OR columns is `sqrt (B² +
+B'²)`. -/
 theorem orCol_weighted (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     B * (Real.sqrt B / orNorm B B') ^ 2 + B' * (Real.sqrt B' / orNorm B B') ^ 2
       = Real.sqrt (B ^ 2 + B' ^ 2) := by
@@ -269,6 +329,7 @@ theorem orCol_weighted (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
   field_simp [hDpos.ne']
   rw [Real.sq_sqrt (by positivity)]
 
+/-- For positive weights, `B * (orNorm B B' / sqrt B)²` equals `sqrt (B² + B'²)`. -/
 theorem mul_orNorm_div_sq (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     B * (orNorm B B' / Real.sqrt B) ^ 2 = Real.sqrt (B ^ 2 + B' ^ 2) := by
   have hn : orNorm B B' ^ 2 = Real.sqrt (B ^ 2 + B' ^ 2) := by
@@ -277,6 +338,7 @@ theorem mul_orNorm_div_sq (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
   rw [div_pow, hn, hsB]
   field_simp
 
+/-- For positive weights, `B' * (orNorm B B' / sqrt B')²` equals `sqrt (B² + B'²)`. -/
 theorem mul_orNorm_div_sq' (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     B' * (orNorm B B' / Real.sqrt B') ^ 2 = Real.sqrt (B ^ 2 + B' ^ 2) := by
   have h := mul_orNorm_div_sq B' B hB' hB
@@ -286,6 +348,8 @@ theorem mul_orNorm_div_sq' (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
   rw [show B' ^ 2 + B ^ 2 = B ^ 2 + B' ^ 2 by ring] at h
   rwa [hnorm] at h
 
+/-- For positive weights, the exact negative OR witness size on the empty available set is `sqrt
+(B² + B'²)`. -/
 theorem or_wsize_00 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     (orProgram B B').WsizeFalseAt ![B, B'] (∅ : Finset (Fin 2))
       (Real.sqrt (B ^ 2 + B' ^ 2)) := by
@@ -302,6 +366,8 @@ theorem or_wsize_00 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     rw [hvalue b hb]
   · exact ⟨fun _ => 1, rfl, (by intro j hj; exact absurd hj (by simp)), hvalue _ rfl⟩
 
+/-- For positive weights, the exact positive OR witness size with only column zero available is
+`sqrt (B² + B'²)`. -/
 theorem or_wsize_10 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     (orProgram B B').WsizeTrueAt ![B, B'] ({0} : Finset (Fin 2))
       (Real.sqrt (B ^ 2 + B' ^ 2)) := by
@@ -355,6 +421,8 @@ theorem or_wsize_10 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
       rw [norm_real_sq, mul_orNorm_div_sq B B' hB hB']
       simp
 
+/-- For positive weights, the exact positive OR witness size with only column one available is
+`sqrt (B² + B'²)`. -/
 theorem or_wsize_01 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     (orProgram B B').WsizeTrueAt ![B, B'] ({1} : Finset (Fin 2))
       (Real.sqrt (B ^ 2 + B' ^ 2)) := by
@@ -408,6 +476,8 @@ theorem or_wsize_01 (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
       rw [norm_real_sq, mul_orNorm_div_sq' B B' hB hB']
       simp
 
+/-- For positive weights, there is a linear combination of both OR columns equal to the target
+with weighted cost at most `sqrt (B² + B'²)`. -/
 theorem or_wsize_11_le (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     ∃ w : Fin 2 → ℂ, (∑ j, w j • (orProgram B B').v j = target Empty) ∧
       wt ![B, B'] w ≤ Real.sqrt (B ^ 2 + B' ^ 2) := by
@@ -431,6 +501,9 @@ theorem or_wsize_11_le (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     rw [norm_real_sq, mul_orNorm_div_sq B B' hB hB']
     simp
 
+/-- Collect the exact OR witness sizes on the empty and singleton available sets and a
+positive-witness upper bound of `sqrt (B² + B'²)` when both columns are available. See
+[ReichardtSpalek2008]. -/
 theorem or_witness_size (B B' : ℝ) (hB : 0 < B) (hB' : 0 < B') :
     (orProgram B B').WsizeFalseAt ![B, B'] (∅ : Finset (Fin 2)) (Real.sqrt (B ^ 2 + B' ^ 2)) ∧
     (orProgram B B').WsizeTrueAt ![B, B'] ({0} : Finset (Fin 2))

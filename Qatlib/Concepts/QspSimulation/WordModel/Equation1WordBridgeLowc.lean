@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeStat
 import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
 import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWordBridge
+
+/-!
+# Axis-rotation words and the QSP convention
+
+This module proves `equation1WordBridge`, relating the axis-rotation word to the adjoint-signal
+QSP convention through half-differences of phases and endpoint rotations. It also establishes
+unitarity of the signal step and each axis rotation. Background and related constructions are
+discussed in [LowChuang2017].
+
+## Main statements
+
+* `lcSignalStep_unitary`: unitarity of the basic signal step.
+* `lcAxisRotation_unitary`: unitarity of an axis rotation.
+* `equation1WordBridge`: the factorization, zero-angle, and word-unitarity properties.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.Phase
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -27,6 +47,7 @@ open Matrix
 
 section Bridge
 
+/-- The signal step `lcSignalStep θ` is unitary for every real angle `θ`. -/
 theorem lcSignalStep_unitary (θ : ℝ) :
     lcSignalStep θ ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   have hcos : (Real.cos (θ/2)) ^ 2 + (Real.sin (θ/2)) ^ 2 = 1 :=
@@ -61,6 +82,7 @@ theorem lcSignalStep_unitary (θ : ℝ) :
   · ring
   · linear_combination hc2 - ((Real.sin (θ/2) : ℂ))^2 * Complex.I_mul_I
 
+/-- The axis rotation `lcAxisRotation φ θ` is unitary for every pair of real angles. -/
 theorem lcAxisRotation_unitary (φ θ : ℝ) :
     lcAxisRotation φ θ ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [lcAxisRotation_factor]
@@ -70,6 +92,9 @@ theorem lcAxisRotation_unitary (φ θ : ℝ) :
 
 end Bridge
 
+/-- Proves the half-difference factorization of axis-rotation words into the QSP convention,
+together with the signal-step identity, zero-angle identity, and word unitarity
+[LowChuang2017]. -/
 theorem equation1WordBridge : Equation1WordBridge := by
   intro phis θ
   refine ⟨?_, fun h1 h2 => lcSignalStep_eq_adjoint h1 h2, lcWord_zero_angle phis, ?_⟩

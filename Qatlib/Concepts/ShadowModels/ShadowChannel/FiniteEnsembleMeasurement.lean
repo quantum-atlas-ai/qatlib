@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+
+/-!
+# Finite ensemble measurement instruments
+
+This module constructs a measurement instrument from a finite distribution of unitary basis
+changes. `ensembleProjector` gives the conjugated basis projectors, `ensembleKraus` supplies
+their sampling weights, and `ensembleRecordLaw` records the resulting Born probabilities.
+
+The forgotten instrument equals `ensembleMeasurementMap`, which is unital and symmetric for the
+trace pairing. An explicit observed circuit realizes each basis measurement, linking its leaves
+to the Kraus operators and giving exact fresh-record resource counts. See
+[HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `finite_ensemble_actual_kraus_born`: Kraus completeness and the record law.
+* `finite_ensemble_measurement_channel_and_trace_adjoint`: the forgotten channel and trace
+  pairing identity.
+* `ensemble_grouped_actual_resources`: exact resources for grouped records.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,25 +56,31 @@ set_option linter.unusedVariables false
 
 variable {X : Type} [Fintype X] {D : ℕ}
 
+/-- The computational basis projector for outcome `o.2`, conjugated backward by the ensemble
+operator indexed by `o.1`. -/
 noncomputable def ensembleProjector (U : X → Operator D) (o : X × Fin D) : Operator D :=
   (U o.1)ᴴ * Projector {o.2} * U o.1
 
+/-- Every conjugated ensemble basis projector is Hermitian. -/
 theorem ensembleProjector_conjTranspose (U : X → Operator D) (o : X × Fin D) :
     (ensembleProjector U o)ᴴ = ensembleProjector U o := by
   rw [ensembleProjector, Matrix.conjTranspose_mul, Matrix.conjTranspose_mul,
     Matrix.conjTranspose_conjTranspose, projector_conjTranspose]
   simp only [Matrix.mul_assoc]
 
+/-- For a unitary ensemble member, its conjugate transpose times itself is the identity. -/
 theorem ensemble_unitary_conj_mul (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (a : X) : (U a)ᴴ * U a = 1 := by
   have h := Matrix.mem_unitaryGroup_iff'.mp (hU a)
   rwa [Matrix.star_eq_conjTranspose] at h
 
+/-- For a unitary ensemble member, its product with its conjugate transpose is the identity. -/
 theorem ensemble_unitary_mul_conj (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (a : X) : U a * (U a)ᴴ = 1 := by
   have h := Matrix.mem_unitaryGroup_iff.mp (hU a)
   rwa [Matrix.star_eq_conjTranspose] at h
 
+/-- Conjugated basis projectors are idempotent when the ensemble operators are unitary. -/
 theorem ensembleProjector_idem (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) :
     ensembleProjector U o * ensembleProjector U o = ensembleProjector U o := by
@@ -62,6 +93,7 @@ theorem ensembleProjector_idem (U : X → Operator D)
     _ = ensembleProjector U o := by
         rw [projector_mul_self, ensembleProjector]
 
+/-- Every backward-conjugated ensemble basis projector is positive semidefinite. -/
 theorem ensembleProjector_posSemidef (U : X → Operator D) (o : X × Fin D) :
     (ensembleProjector U o).PosSemidef := by
   have hM : ensembleProjector U o
@@ -75,11 +107,13 @@ theorem ensembleProjector_posSemidef (U : X → Operator D) (o : X × Fin D) :
   rw [hM]
   exact Matrix.posSemidef_conjTranspose_mul_self _
 
+/-- A singleton computational basis projector has trace one. -/
 theorem trace_projector_singleton (b : Fin D) :
     Matrix.trace (Projector ({b} : Finset (Fin D))) = 1 := by
   rw [Projector, Matrix.trace_diagonal]
   simp
 
+/-- Each ensemble basis projector has trace one when the ensemble operators are unitary. -/
 theorem ensembleProjector_trace (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) :
     Matrix.trace (ensembleProjector U o) = 1 := by
@@ -90,6 +124,7 @@ theorem ensembleProjector_trace (U : X → Operator D)
       _ = Matrix.trace (Projector {o.2}) := by rw [hun, Matrix.one_mul]
       _ = 1 := trace_projector_singleton o.2
 
+/-- The sum of all singleton computational basis projectors is the identity. -/
 theorem projectors_singleton_sum : ∑ b : Fin D, Projector ({b} : Finset (Fin D)) = 1 := by
   ext i j
   simp only [Projector, Matrix.sum_apply, Matrix.diagonal_apply, Finset.mem_singleton,
@@ -99,6 +134,8 @@ theorem projectors_singleton_sum : ∑ b : Fin D, Projector ({b} : Finset (Fin D
     simp
   · simp [hij]
 
+/-- For a fixed unitary ensemble member, summing its conjugated basis projectors over outcomes
+gives the identity. -/
 theorem ensembleProjector_sum_axis (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (a : X) :
     ∑ b : Fin D, ensembleProjector U (a, b) = 1 := by
@@ -110,6 +147,8 @@ theorem ensembleProjector_sum_axis (U : X → Operator D)
     _ = (U a)ᴴ * 1 * U a := by rw [projectors_singleton_sum]
     _ = 1 := by rw [Matrix.mul_one, hun]
 
+/-- Sandwiching a matrix between the basis projector at `b` gives that projector scaled by the
+diagonal entry `M b b`. -/
 theorem projector_singleton_conj (b : Fin D) (M : Operator D) :
     Projector ({b} : Finset (Fin D)) * M * Projector {b}
       = (M b b) • Projector ({b} : Finset (Fin D)) := by
@@ -122,10 +161,14 @@ theorem projector_singleton_conj (b : Fin D) (M : Operator D) :
   simp only [hd, Matrix.mul_apply, Matrix.smul_apply, smul_eq_mul]
   by_cases hi : i = b <;> by_cases hj : j = b <;> simp [hi, hj]
 
+/-- The trace of a singleton basis projector times a matrix is the corresponding diagonal matrix
+entry. -/
 theorem trace_projector_singleton_mul (b : Fin D) (M : Operator D) :
     Matrix.trace (Projector ({b} : Finset (Fin D)) * M) = M b b := by
   simp [Matrix.trace, Projector]
 
+/-- Sandwiching an operator between a unitary-conjugated basis projector gives that projector
+scaled by its trace pairing with the operator. -/
 theorem ensembleProjector_conj_eq_trace_smul (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) (A : Operator D) :
     ensembleProjector U o * A * ensembleProjector U o
@@ -148,10 +191,14 @@ theorem ensembleProjector_conj_eq_trace_smul (U : X → Operator D)
         rw [ensembleProjector, Matrix.mul_smul, Matrix.smul_mul]
     _ = Matrix.trace (ensembleProjector U o * A) • ensembleProjector U o := by rw [htr]
 
+/-- The ensemble record Kraus operator obtained by scaling the conjugated basis projector by the
+square root of the ensemble probability. -/
 noncomputable def ensembleKraus (p : FinDist X) (U : X → Operator D) (o : X × Fin D) :
     Operator D :=
   (Real.sqrt (p.prob o.1) : ℂ) • ensembleProjector U o
 
+/-- The effect of an ensemble record Kraus operator is its conjugated basis projector scaled by
+the ensemble probability. -/
 theorem ensembleKraus_conj_mul (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) :
     (ensembleKraus p U o)ᴴ * ensembleKraus p U o
@@ -164,6 +211,8 @@ theorem ensembleKraus_conj_mul (p : FinDist X) (U : X → Operator D)
   rw [ensembleKraus, Matrix.conjTranspose_smul, hs, ensembleProjector_conjTranspose,
     Matrix.smul_mul, Matrix.mul_smul, smul_smul, hsq, ensembleProjector_idem U hU o]
 
+/-- The effects of all ensemble record Kraus operators sum to the identity for a unitary
+ensemble. -/
 theorem ensembleKraus_complete (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     ∑ o : X × Fin D, (ensembleKraus p U o)ᴴ * ensembleKraus p U o = 1 := by
@@ -180,16 +229,22 @@ theorem ensembleKraus_complete (p : FinDist X) (U : X → Operator D)
         rw [← Complex.ofReal_sum, p.sum_one]
         simp
 
+/-- The quantum instrument generated by the complete family of finite ensemble record Kraus
+operators. -/
 noncomputable def ensembleInstrument (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) : Instrument (X × Fin D) D D :=
   Instrument.ofKraus (ensembleKraus p U) (ensembleKraus_complete p U hU)
 
+/-- Each branch of the ensemble instrument acts by sandwiching the input with its Kraus operator
+and conjugate transpose. -/
 theorem ensembleInstrument_branch (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) (A : Operator D) :
     (ensembleInstrument p U hU).branch o A
       = ensembleKraus p U o * A * (ensembleKraus p U o)ᴴ :=
   Instrument.ofKraus_branch _ _ _ _
 
+/-- The finite distribution of ensemble index and measurement outcome obtained from the
+instrument on the density state `ρ`. -/
 noncomputable def ensembleRecordLaw (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) : FinDist (X × Fin D) where
@@ -197,6 +252,8 @@ noncomputable def ensembleRecordLaw (p : FinDist X) (U : X → Operator D)
   nonneg o := instrumentProb_nonneg _ hρ.1 o
   sum_one := sum_instrumentProb_isDensityOperator _ hρ
 
+/-- The trace of an ensemble instrument branch equals the ensemble probability times the Born
+trace against its conjugated basis projector. -/
 theorem ensembleInstrument_trace_branch (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (ρ : Operator D) (o : X × Fin D) :
     Matrix.trace ((ensembleInstrument p U hU).branch o ρ)
@@ -219,6 +276,9 @@ theorem ensembleInstrument_trace_branch (p : FinDist X) (U : X → Operator D)
         rw [ensembleProjector_conjTranspose, Matrix.trace_mul_cycle,
           ensembleProjector_idem U hU o]
 
+/-- The finite ensemble Kraus family is complete, and each record has probability equal to its
+ensemble weight times its Born probability, realizing the measurement model of
+[HuangKuengPreskill2020]. -/
 theorem finite_ensemble_actual_kraus_born (X : Type) [Fintype X] (D : ℕ) (p : FinDist X)
     (U : X → Operator D) (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     (∑ o : X × Fin D, (ensembleKraus p U o)ᴴ * ensembleKraus p U o) = 1 ∧
@@ -230,6 +290,8 @@ theorem finite_ensemble_actual_kraus_born (X : Type) [Fintype X] (D : ℕ) (p : 
   rw [instrumentProb, ensembleInstrument_trace_branch p U hU ρ o]
   simp [Complex.mul_re]
 
+/-- The complex linear measurement map summing conjugated basis projectors weighted by their
+trace pairings and ensemble probabilities. -/
 noncomputable def ensembleMeasurementMap (p : FinDist X) (U : X → Operator D) :
     Operator D →ₗ[ℂ] Operator D where
   toFun A := ∑ o : X × Fin D,
@@ -252,11 +314,14 @@ noncomputable def ensembleMeasurementMap (p : FinDist X) (U : X → Operator D) 
     congr 1
     ring
 
+/-- The ensemble measurement map evaluates to its defining weighted sum of trace-paired
+projectors. -/
 theorem ensembleMeasurementMap_apply (p : FinDist X) (U : X → Operator D) (A : Operator D) :
     ensembleMeasurementMap p U A = ∑ o : X × Fin D,
       ((p.prob o.1 : ℂ) * Matrix.trace (ensembleProjector U o * A)) • ensembleProjector U o :=
   rfl
 
+/-- Forgetting the classical outcome of the ensemble instrument gives `ensembleMeasurementMap`. -/
 theorem ensembleInstrument_forget_map (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     (ensembleInstrument p U hU).forget.map = ensembleMeasurementMap p U := by
@@ -274,6 +339,7 @@ theorem ensembleInstrument_forget_map (p : FinDist X) (U : X → Operator D)
     Matrix.smul_mul, smul_smul, hsq, ensembleProjector_conj_eq_trace_smul U hU o A,
     smul_smul]
 
+/-- The measurement map of a unitary ensemble sends the identity to the identity. -/
 theorem ensembleMeasurementMap_one (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     ensembleMeasurementMap p U 1 = 1 := by
@@ -292,6 +358,7 @@ theorem ensembleMeasurementMap_one (p : FinDist X) (U : X → Operator D)
         rw [← Complex.ofReal_sum, p.sum_one]
         simp
 
+/-- The ensemble measurement map is symmetric for the bilinear trace pairing. -/
 theorem ensembleMeasurementMap_trace_adjoint (p : FinDist X) (U : X → Operator D)
     (A B : Operator D) :
     Matrix.trace (A * ensembleMeasurementMap p U B)
@@ -303,6 +370,8 @@ theorem ensembleMeasurementMap_trace_adjoint (p : FinDist X) (U : X → Operator
     smul_eq_mul, Matrix.trace_mul_comm A (ensembleProjector U o)]
   ring
 
+/-- The forgotten ensemble instrument is the unital measurement map, and that map is symmetric
+for the trace pairing, as used in the shadow construction of [HuangKuengPreskill2020]. -/
 theorem finite_ensemble_measurement_channel_and_trace_adjoint (X : Type) [Fintype X] (D : ℕ)
     (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) :
@@ -314,9 +383,13 @@ theorem finite_ensemble_measurement_channel_and_trace_adjoint (X : Type) [Fintyp
   ⟨ensembleInstrument_forget_map p U hU, ensembleMeasurementMap_one p U hU,
     ensembleMeasurementMap_trace_adjoint p U⟩
 
+/-- The observed circuit that applies `U`, measures in the computational basis, applies `Uᴴ`,
+and accepts. -/
 noncomputable def ensembleAxisProgram {D : ℕ} (U : Operator D) : ObservedCircuit (Fin D) :=
   .step (.gate U) (.measure D id (fun _ => .step (.gate Uᴴ) (.halt true)))
 
+/-- The observed basis-measurement circuit has one leaf per basis outcome, with operator `Uᴴ *
+Projector {b} * U`, two gates, one measurement, no queries, and the recorded outcome. -/
 theorem ensembleAxis_actual_leaves {D : ℕ} (U : Operator D) :
     observedKrausLeaves 1 (ensembleAxisProgram U) = List.ofFn (fun b : Fin D =>
       (⟨Uᴴ * Projector {b} * U, true, 0, 2, 1, [(D,b.val)]⟩ : ObservedKrausLeaf D)) := by
@@ -338,14 +411,18 @@ theorem ensembleAxis_actual_leaves {D : ℕ} (U : Operator D) :
     simp
   simp [ObservedKrausLeaf.prepend, hs]
 
+/-- The observed Kraus leaf selected by basis outcome `b` in `ensembleAxisProgram U`. -/
 noncomputable def ensembleAxisLeaf {D : ℕ} (U : Operator D) (b : Fin D) : ObservedKrausLeaf D :=
   (observedKrausLeaves 1 (ensembleAxisProgram U)).getD b.val ⟨0,false,0,0,0,[]⟩
 
+/-- The leaf at basis outcome `b` has the conjugated projector operator, accepts, uses two gates
+and one measurement, and records `(D, b.val)`. -/
 theorem ensembleAxisLeaf_eq {D : ℕ} (U : Operator D) (b : Fin D) :
     ensembleAxisLeaf U b = ⟨Uᴴ * Projector {b} * U, true, 0, 2, 1, [(D,b.val)]⟩ := by
   rw [ensembleAxisLeaf, ensembleAxis_actual_leaves]
   simp
 
+/-- The ensemble axis program is well formed when its basis-change matrix is unitary. -/
 theorem ensembleAxisProgram_wellFormed (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) : observedWellFormed (ensembleAxisProgram U) := by
   refine ⟨hU, fun _ => ⟨?_, trivial⟩⟩
@@ -353,23 +430,31 @@ theorem ensembleAxisProgram_wellFormed (U : Operator D)
     Matrix.conjTranspose_conjTranspose]
   simpa only [Matrix.star_eq_conjTranspose] using Matrix.mem_unitaryGroup_iff.mp hU
 
+/-- An ensemble Kraus operator is its actual observed leaf operator scaled by the square root of
+the ensemble probability. -/
 theorem ensembleKraus_actual_leaf_bridge (p : FinDist X) (U : X → Operator D)
     (o : X × Fin D) : ensembleKraus p U o =
       (Real.sqrt (p.prob o.1) : ℂ) • (ensembleAxisLeaf (U o.1) o.2).operator := by
   rw [ensembleAxisLeaf_eq]
   rfl
 
+/-- The tuple counting fresh records, gates, measurements, and queries in the observed leaves of
+a record sequence. -/
 noncomputable def ensembleFreshResourceCounts (U : X → Operator D) {m : ℕ}
     (ω : Fin m → X × Fin D) : ℕ × ℕ × ℕ × ℕ :=
   let leaves := List.ofFn fun i => ensembleAxisLeaf (U (ω i).1) (ω i).2
   (leaves.length, (leaves.map (fun l => l.gates)).sum,
     (leaves.map (fun l => l.measurements)).sum, (leaves.map (fun l => l.queries)).sum)
 
+/-- A sequence of `m` ensemble records uses `m` fresh records, `2*m` gates, `m` measurements,
+and zero queries. -/
 theorem ensembleFreshResourceCounts_spec (U : X → Operator D) {m : ℕ}
     (ω : Fin m → X × Fin D) : ensembleFreshResourceCounts U ω = (m, 2*m, m, 0) := by
   simp [ensembleFreshResourceCounts, ensembleAxisLeaf_eq, List.map_ofFn,
     List.sum_ofFn, Nat.mul_comm]
 
+/-- Each ensemble instrument branch is the Kraus action of the actual observed leaf operator
+scaled by the square root of its ensemble probability. -/
 theorem ensembleInstrument_actual_branch (p : FinDist X) (U : X → Operator D)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup (Fin D) ℂ) (o : X × Fin D) (A : Operator D) :
     (ensembleInstrument p U hU).branch o A =
@@ -377,6 +462,8 @@ theorem ensembleInstrument_actual_branch (p : FinDist X) (U : X → Operator D)
       ((Real.sqrt (p.prob o.1) : ℂ) • (ensembleAxisLeaf (U o.1) o.2).operator)ᴴ := by
   rw [ensembleInstrument_branch, ensembleKraus_actual_leaf_bridge]
 
+/-- Across `K` groups of `L` ensemble records, the total fresh-record, gate, measurement, and
+query counts are `K*L`, `2*(K*L)`, `K*L`, and zero. -/
 theorem ensemble_grouped_actual_resources (U : X → Operator D) {L K : ℕ}
     (ω : Fin K → Fin L → X × Fin D) :
     (∑ b, (ensembleFreshResourceCounts U (ω b)).1) = K*L ∧

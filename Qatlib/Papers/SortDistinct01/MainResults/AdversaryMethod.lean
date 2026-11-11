@@ -8,6 +8,34 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.NumberTheory.Harmonic.Bounds
 
+/-!
+# Adversary potentials and arithmetic query lower bounds
+
+This module proves a telescoping lower bound from a potential's initial value, terminal bound,
+and bounded step changes. It specializes that inequality to the ordered-search, sorting, and
+element-distinctness potential estimates, obtaining the arithmetic conclusions of Theorems 1–3
+of [HoyerNeerbekShi2001] under the stated potential hypotheses.
+
+## Main statements
+
+* `adversary_lower_bound`: If a potential starts at `W0`, ends at most `ε'*W0`, and changes by
+  at most a positive `δ` per step, then `(1 - ε')*W0/δ ≤ T`, the telescoping adversary bound
+  used in [HoyerNeerbekShi2001].
+* `theorem1_ordered_search_lower_bound`: Under the specified initial, terminal, and per-step
+  potential bounds, ordered search satisfies `T ≥ (1 - 2*sqrt (ε*(1 - ε)))*(H_N - 1)/pi` for `0
+  ≤ ε ≤ 1/2`, the arithmetic conclusion of [Hoyer et al., Theorem 1][HoyerNeerbekShi2001].
+* `theorem2_sorting_lower_bound`: Under the specified initial, terminal, and per-step potential
+  bounds, `T ≥ (1 - 2*sqrt (ε*(1 - ε)))*N*(H_N - 1)/(2*pi)`, the arithmetic conclusion of [Hoyer
+  et al., Theorem 2][HoyerNeerbekShi2001].
+* `theorem3_element_distinctness_lower_bound`: Under the specified initial, terminal, and
+  per-step potential bounds, `T ≥ (1 - 2*sqrt (ε*(1 - ε)))*sqrt N*(H_N - 1)/(2*pi)`, the
+  arithmetic conclusion of [Hoyer et al., Theorem 3][HoyerNeerbekShi2001].
+
+## References
+
+* [Hoyer et al., 2001][HoyerNeerbekShi2001]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,8 +45,12 @@ namespace Qatlib.Papers.SortDistinct01.MainResults.AdversaryMethod
 
 open Finset
 
+/-- The overlap parameter `2*sqrt (ε*(1 - ε))` associated with error `ε`. -/
 def epsPrime (ε : ℝ) : ℝ := 2 * Real.sqrt (ε * (1 - ε))
 
+/-- If a potential starts at `W0`, ends at most `ε'*W0`, and changes by at most a positive `δ`
+per step, then `(1 - ε')*W0/δ ≤ T`, the telescoping adversary bound used in
+[HoyerNeerbekShi2001]. -/
 theorem adversary_lower_bound {T : ℕ} {W : ℕ → ℝ} {W0 ε' δ : ℝ}
     (hW0 : W 0 = W0) (hWT : W T ≤ ε' * W0)
     (hstep : ∀ j < T, |W j - W (j + 1)| ≤ δ)
@@ -45,10 +77,15 @@ theorem adversary_lower_bound {T : ℕ} {W : ℕ → ℝ} {W0 ε' δ : ℝ}
   rw [div_le_iff₀ hδ]
   exact hmain
 
+/-- Rewriting `N*(H_N - 1)` gives `N*H_N - N`, the ordered-search initial-value expression in
+[HoyerNeerbekShi2001]. -/
 theorem W0_ordered_eq (N : ℕ) :
     (N : ℝ) * ((harmonic N : ℝ) - 1) = (N : ℝ) * (harmonic N : ℝ) - N := by
   ring
 
+/-- Under the specified initial, terminal, and per-step potential bounds, ordered search
+satisfies `T ≥ (1 - 2*sqrt (ε*(1 - ε)))*(H_N - 1)/pi` for `0 ≤ ε ≤ 1/2`, the arithmetic
+conclusion of [Hoyer et al., Theorem 1][HoyerNeerbekShi2001]. -/
 theorem theorem1_ordered_search_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : ℝ}
     (hN : 1 ≤ N) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2)
     (hW0 : W 0 = (N : ℝ) * ((harmonic N : ℝ) - 1))
@@ -71,6 +108,9 @@ theorem theorem1_ordered_search_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : 
     field_simp
   rwa [heq] at h
 
+/-- With the ordered-search initial and step bounds and nonpositive terminal potential, `T ≥
+(log N - 1)/pi`, the exact-case consequence of [Hoyer et al., Theorem
+1][HoyerNeerbekShi2001]. -/
 theorem theorem1_exact_case {N T : ℕ} {W : ℕ → ℝ}
     (hN : 1 ≤ N)
     (hW0 : W 0 = (N : ℝ) * ((harmonic N : ℝ) - 1))
@@ -103,11 +143,16 @@ theorem theorem1_exact_case {N T : ℕ} {W : ℕ → ℝ}
     rwa [heq] at h
   linarith
 
+/-- Rewriting `N!*(N*H_N - N)` gives `N!*N*(H_N - 1)`, the sorting initial-value expression in
+[HoyerNeerbekShi2001]. -/
 theorem W0_sorting_eq (N : ℕ) :
     (Nat.factorial N : ℝ) * ((N : ℝ) * (harmonic N : ℝ) - N)
       = (Nat.factorial N : ℝ) * (N : ℝ) * ((harmonic N : ℝ) - 1) := by
   ring
 
+/-- Under the specified initial, terminal, and per-step potential bounds, `T ≥ (1 - 2*sqrt (ε*(1
+- ε)))*N*(H_N - 1)/(2*pi)`, the arithmetic conclusion of [Hoyer et al., Theorem
+2][HoyerNeerbekShi2001]. -/
 theorem theorem2_sorting_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : ℝ}
     (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2)
     (hW0 : W 0 = (Nat.factorial N : ℝ) * ((N : ℝ) * (harmonic N : ℝ) - N))
@@ -137,6 +182,9 @@ theorem theorem2_sorting_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : ℝ}
     field_simp
   rwa [heq] at h
 
+/-- Under the specified initial, terminal, and per-step potential bounds, `T ≥ (1 - 2*sqrt (ε*(1
+- ε)))*sqrt N*(H_N - 1)/(2*pi)`, the arithmetic conclusion of [Hoyer et al., Theorem
+3][HoyerNeerbekShi2001]. -/
 theorem theorem3_element_distinctness_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : ℝ}
     (hN : 1 ≤ N) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2)
     (hW0 : W 0 = (Nat.factorial N : ℝ) * ((N : ℝ) * (harmonic N : ℝ) - N))

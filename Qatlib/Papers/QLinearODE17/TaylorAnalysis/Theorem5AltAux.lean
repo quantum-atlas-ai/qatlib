@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorAux
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6AltAux
+
+/-!
+# Explicit solution of the scalar Taylor system
+
+The translated Taylor polynomial `taylorTransPoly` describes how forcing terms propagate between
+blocks. The functions `scalarJumpTerm`, `scalarBlockVal`, and `scalarSolve` give an explicit
+solution of the scalar history system.
+
+Row identities for the initial, history, jump, and padding regions combine in
+`scalarSolve_correct`. See [BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylorTransPoly`: The translated Taylor polynomial `∑ j ∈ Icc b k, b! * z^(j-b) / j!`.
+* `scalarSolve_correct`: For `m > 0`, the explicit function `scalarSolve` satisfies every row of
+  the finite scalar Taylor system.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,9 +37,11 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 open Matrix
 set_option warningAsError false
 
+/-- The translated Taylor polynomial `∑ j ∈ Icc b k, b! * z^(j-b) / j!`. -/
 noncomputable def taylorTransPoly (k b : ℕ) (z : ℂ) : ℂ :=
   ∑ j ∈ Finset.Icc b k, ((Nat.factorial b : ℕ) : ℂ) * z ^ (j - b) / ((Nat.factorial j : ℕ) : ℂ)
 
+/-- The translated Taylor polynomial with `b = 0` equals `taylorPoly`. -/
 theorem taylorTransPoly_zero (k : ℕ) (z : ℂ) :
     taylorTransPoly k 0 z = taylorPoly k z := by
   have hr : Finset.range (k + 1) = Finset.Icc 0 k := by
@@ -28,6 +52,7 @@ theorem taylorTransPoly_zero (k : ℕ) (z : ℂ) :
   refine Finset.sum_congr rfl fun j _ => ?_
   simp
 
+/-- The scalar Taylor-system kernel on natural-number row and column labels. -/
 noncomputable def scalarKernelEntry (m k : ℕ) (lam : ℂ) : ℕ → ℕ → ℂ :=
   fun r c =>
     (if r = c then (1 : ℂ) else 0)
@@ -37,14 +62,19 @@ noncomputable def scalarKernelEntry (m k : ℕ) (lam : ℂ) : ℕ → ℕ → �
           (1 : ℂ) else 0)
       - (if m * (k + 1) < r ∧ c + 1 = r then (1 : ℂ) else 0)
 
+/-- The effective source at a block boundary, combining its right-hand-side entry with
+translated Taylor contributions from the preceding block. -/
 noncomputable def scalarJumpTerm (k : ℕ) (lam : ℂ) (r : ℕ → ℂ) : ℕ → ℂ := fun s =>
   if s = 0 then r 0
   else r (s * (k + 1)) + ∑ i ∈ Finset.range k,
     taylorTransPoly k (i + 1) lam * r ((s - 1) * (k + 1) + i + 1)
 
+/-- The scalar boundary value at block `a`, expressed as the sum of propagated jump sources. -/
 noncomputable def scalarBlockVal (k : ℕ) (lam : ℂ) (r : ℕ → ℂ) (a : ℕ) : ℂ :=
   ∑ s ∈ Finset.range (a + 1), (taylorPoly k lam) ^ (a - s) * scalarJumpTerm k lam r s
 
+/-- The explicit scalar solution on the history and padding regions, extended by zero beyond the
+finite system. -/
 noncomputable def scalarSolve (m k p : ℕ) (lam : ℂ) (r : ℕ → ℂ) : ℕ → ℂ := fun ℓ =>
   if ℓ < m * (k + 1) then
     (lam ^ (ℓ % (k + 1)) / ((Nat.factorial (ℓ % (k + 1)) : ℕ) : ℂ))
@@ -62,6 +92,7 @@ section Rows
 
 variable (m k p : ℕ) (lam : ℂ) (x : ℕ → ℂ)
 
+/-- The zeroth scalar row returns the zeroth coordinate of `x`. -/
 theorem scalarRow_zero :
     ∑ c ∈ Finset.range (m * (k + 1) + p + 1), scalarKernelEntry m k lam 0 c * x c = x 0 := by
   have hentry : ∀ c : ℕ,
@@ -76,6 +107,8 @@ theorem scalarRow_zero :
     rw [hentry c, if_neg (Ne.symm hc)]
     ring
 
+/-- A positive-order history row subtracts `lam / j` times the preceding coordinate from the
+current coordinate. -/
 theorem scalarRow_step (a j : ℕ) (ha : a < m) (hj1 : 1 ≤ j) (hjk : j ≤ k)
     (hlt : a * (k + 1) + j < m * (k + 1) + p + 1) :
     ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
@@ -118,6 +151,8 @@ theorem scalarRow_step (a j : ℕ) (ha : a < m) (hj1 : 1 ≤ j) (hjk : j ≤ k)
   simp only [hentry, sub_mul, Finset.sum_sub_distrib]
   rw [hdiag, hstep]
 
+/-- A block-boundary row subtracts the sum of the preceding history block from its boundary
+coordinate. -/
 theorem scalarRow_jump (a : ℕ) (ha1 : 1 ≤ a) (ham : a ≤ m)
     (hlt : a * (k + 1) < m * (k + 1) + p + 1) :
     ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
@@ -195,6 +230,7 @@ theorem scalarRow_jump (a : ℕ) (ha1 : 1 ≤ a) (ham : a ≤ m)
   simp only [hentry, sub_mul, Finset.sum_sub_distrib]
   rw [hdiag, hjump]
 
+/-- A positive padding row is the difference of consecutive padding coordinates. -/
 theorem scalarRow_pad (q : ℕ) (hq1 : 1 ≤ q) (hqp : q ≤ p)
     (hlt : m * (k + 1) + q < m * (k + 1) + p + 1) :
     ∑ c ∈ Finset.range (m * (k + 1) + p + 1),
@@ -240,6 +276,8 @@ section Values
 
 variable (m k p : ℕ) (lam : ℂ) (r : ℕ → ℂ)
 
+/-- Successive scalar boundary values satisfy the Taylor propagation recurrence with source
+`scalarJumpTerm`. -/
 theorem scalarBlockVal_succ (a : ℕ) :
     scalarBlockVal k lam r (a + 1) = taylorPoly k lam * scalarBlockVal k lam r a
       + scalarJumpTerm k lam r (a + 1) := by
@@ -260,6 +298,7 @@ theorem scalarBlockVal_succ (a : ℕ) :
     rw [Nat.sub_self, pow_zero]
   rw [hzero, one_mul]
 
+/-- For `m > 0`, the explicit scalar solution starts at `r 0`. -/
 theorem scalarSolve_zero (hm : 0 < m) : scalarSolve m k p lam r 0 = r 0 := by
   have hlt : 0 < m * (k + 1) := Nat.mul_pos hm (by omega)
   have hmod : 0 % (k + 1) = 0 := Nat.zero_mod _
@@ -268,6 +307,8 @@ theorem scalarSolve_zero (hm : 0 < m) : scalarSolve m k p lam r 0 = r 0 := by
   rw [scalarBlockVal, Finset.sum_range_succ, scalarJumpTerm]
   simp
 
+/-- Inside a history block, `scalarSolve` is the factorial-scaled propagated boundary value plus
+the accumulated local source terms. -/
 theorem scalarSolve_hist (a j : ℕ) (ha : a < m) (hjk : j ≤ k) :
     scalarSolve m k p lam r (a * (k + 1) + j) =
       (lam ^ j / ((Nat.factorial j : ℕ) : ℂ)) * scalarBlockVal k lam r a
@@ -285,6 +326,7 @@ theorem scalarSolve_hist (a j : ℕ) (ha : a < m) (hjk : j ≤ k) :
   simp only [scalarSolve, hlt, hmod, hdiv]
   rfl
 
+/-- At each boundary `a ≤ m`, `scalarSolve` equals `scalarBlockVal`. -/
 theorem scalarSolve_jump (a : ℕ) (ham : a ≤ m) :
     scalarSolve m k p lam r (a * (k + 1)) = scalarBlockVal k lam r a := by
   rcases Nat.lt_or_eq_of_le ham with hlt | heq
@@ -294,6 +336,8 @@ theorem scalarSolve_jump (a : ℕ) (ham : a ≤ m) :
   · rw [heq]
     simp [scalarSolve]
 
+/-- At padding offset `q`, `scalarSolve` is the final boundary value plus the sum of the first
+`q` padding sources. -/
 theorem scalarSolve_pad (q : ℕ) (hq1 : 1 ≤ q) (hqp : q ≤ p) :
     scalarSolve m k p lam r (m * (k + 1) + q) =
       scalarBlockVal k lam r m
@@ -306,6 +350,7 @@ theorem scalarSolve_pad (q : ℕ) (hq1 : 1 ≤ q) (hqp : q ≤ p) :
 
 end Values
 
+/-- Reorders a finite triangular double sum by summing over its lower index first. -/
 theorem triangular_sum_swap (K : ℕ) : ∀ (f : ℕ → ℕ → ℂ),
     ∑ i ∈ Finset.range (K + 1), ∑ t ∈ Finset.range i, f t i
       = ∑ t ∈ Finset.range K, ∑ i ∈ Finset.Ico (t + 1) (K + 1), f t i := by
@@ -344,6 +389,8 @@ theorem triangular_sum_swap (K : ℕ) : ∀ (f : ℕ → ℕ → ℂ),
 
 section Correct
 
+/-- The sum of a history block equals the propagated preceding boundary value plus its
+translated Taylor source contributions. -/
 theorem scalarBlock_sum (m k p : ℕ) (lam : ℂ) (r : ℕ → ℂ) (a : ℕ) (ham1 : 1 ≤ a) (ham : a ≤ m) :
     ∑ i ∈ Finset.range (k + 1), scalarSolve m k p lam r ((a - 1) * (k + 1) + i)
       = taylorPoly k lam * scalarBlockVal k lam r (a - 1)
@@ -380,6 +427,8 @@ theorem scalarBlock_sum (m k p : ℕ) (lam : ℂ) (r : ℕ → ℂ) (a : ℕ) (h
     rw [show j - t - 1 = j - (t + 1) from by omega]
     ring
 
+/-- The boundary recurrence leaves exactly the right-hand-side entry at that boundary after
+subtracting the preceding block sum. -/
 theorem scalarJump_finish (k : ℕ) (lam : ℂ) (r : ℕ → ℂ) (a : ℕ) (ha1 : 1 ≤ a) :
     scalarBlockVal k lam r a - (taylorPoly k lam * scalarBlockVal k lam r (a - 1)
         + ∑ i ∈ Finset.range k, taylorTransPoly k (i + 1) lam * r ((a - 1) * (k + 1) + i + 1))
@@ -400,6 +449,8 @@ theorem scalarJump_finish (k : ℕ) (lam : ℂ) (r : ℕ → ℂ) (a : ℕ) (ha1
     rw [show (a - 1) + 1 = a from by omega]]
   ring
 
+/-- For `m > 0`, the explicit function `scalarSolve` satisfies every row of the finite scalar
+Taylor system. -/
 theorem scalarSolve_correct (m k p : ℕ) (lam : ℂ) (r : ℕ → ℂ) (hm : 0 < m) :
     ∀ ℓ, ℓ < m * (k + 1) + p + 1 →
       ∑ c ∈ Finset.range (m * (k + 1) + p + 1),

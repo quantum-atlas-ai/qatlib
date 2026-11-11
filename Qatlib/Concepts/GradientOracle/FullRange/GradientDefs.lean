@@ -19,6 +19,30 @@ import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzOpti
 import Qatlib.Concepts.GradientOracle.GradientAlgo.GradientOracle
 import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianOpti
+
+/-!
+# Specifications of collected gradient guarantees
+
+This module defines three conjunctions organizing full-range gradient correctness, analytic
+error bounds, and implementation resources. The specifications connect the gradient setting of
+[Jordan2005Gradient] to robust approximation and median amplification as in
+[GilyenArunachalamWiebe2019].
+
+## Main definitions
+
+* `stageB_fourier_gradient_gext1_spec`: encoding, readout, variance, and step-size
+  specifications.
+* `stageB_fourier_gradient_gext2_spec`: almost-affine approximation and phase-transport
+  specifications.
+* `stageB_fourier_gradient_gext3_spec`: Fourier readout and implementation guarantees with
+  median amplification and character kickback.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -57,6 +81,8 @@ open Qatlib
 open Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
 open Qatlib.Concepts.GradientOracle.GradientAlgo
 
+/-- The conjunction of full-range encoding and readout, numerical gradient estimation,
+stationary-phase variance, and classical/quantum step-size specifications. -/
 def stageB_fourier_gradient_gext1_spec : Prop :=
   FullRangeCharacterKickback ∧
   FullRangeFixedPointPrecision ∧
@@ -65,6 +91,9 @@ def stageB_fourier_gradient_gext1_spec : Prop :=
   StationaryPhaseVariance ∧
   ClassicalQuantumStepSizes
 
+/-- The conjunction of almost-affine gradient estimation, central-difference error
+specifications, exceptional phase transport, pure-state event stability, and full-range
+character kickback. -/
 def stageB_fourier_gradient_gext2_spec : Prop :=
   SourceAlmostAffineGradient ∧
   AnalyticCentralDifferenceGridError ∧
@@ -74,6 +103,8 @@ def stageB_fourier_gradient_gext2_spec : Prop :=
   PureStateEventLipschitz ∧
   FullRangeCharacterKickback
 
+/-- The conjunction collecting Fourier readout and implementation bounds, finite-code matrix
+unitarity, vector-median amplification, and full-range character kickback. -/
 def stageB_fourier_gradient_gext3_spec : Prop :=
   (
     (∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c : ℝ),

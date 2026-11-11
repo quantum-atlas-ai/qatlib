@@ -47,12 +47,32 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# An unbounded precision inequality
+
+The theorem `lemma15_countably_many_iccc_codes` proves that the numerical precision inequality ε
+< q^(m - 1 - m / 2) / 4 holds for arbitrarily large natural numbers m when q ≥ 2 and 0 < ε < 1.
+Natural-number subtraction and division occur in the exponent; the result supplies the
+arithmetic growth step associated with the paper's infinite-family discussion [GeraciLidar2008].
+
+## Main statements
+
+* `lemma15_countably_many_iccc_codes`: The precision inequality holds frequently along the
+  natural numbers.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.MainResults.InfiniteFamily
 
 open Filter
 
+/-- For `q ≥ 2` and `0 < ε < 1`, arbitrarily large natural numbers `m` satisfy `ε < q^(m - 1 - m
+/ 2) / 4`, with natural-number arithmetic in the exponent [GeraciLidar2008]. -/
 theorem lemma15_countably_many_iccc_codes
     (q : ℕ) (hq : 2 ≤ q) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1) :
     ∃ᶠ m in atTop, ε < (1 / 4) * (q : ℝ) ^ (m - 1 - m / 2) := by

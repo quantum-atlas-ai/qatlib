@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.DyadicControlledSwap
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalControlledCopyBridge
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Numerical controlled-copy steps
+
+`numericCopyRawStep` executes a numerically synthesized local controlled swap, then discards the
+fresh copy and auxiliary registers. The resulting map agrees exactly with the abstract
+controlled-copy map at `copyPhaseEffectiveAngle`.
+
+The module bounds the error relative to angle `π / 2^b`, including arbitrary finite reference
+registers. This supplies a numerical implementation of the density matrix exponentiation
+primitive of [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `numericCopyRawStep_eq`: identifies the discarded local execution with the abstract
+  effective-angle map.
+* `numericCopy_reference_error`: bounds the amplified trace-norm error on positive inputs.
+* `numerical_copy_actual_discard_reference_error`: packages the execution identities and
+  reference-register error bound.
+
+## References
+
+* [Lloyd et al., 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -44,20 +69,28 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Executes the numerical controlled-swap word on a framed input with a fresh copy of `rho`,
+then traces out the auxiliary and copy registers. -/
 noncomputable def numericCopyRawStep (n : ℕ) (rho : Operator (2^n)) (b k : ℕ)
     (X : Matrix (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ) :=
   let F := localCopyFrame n
   let W := reflectionProgramMatrix (numericControlledSwapSteps n b k)
   traceRightB (Matrix.traceRight (relabelGate (localCopySplit n) (W*(F*tensorCopyB rho X*Fᴴ)*Wᴴ)))
+/-- Transports `numericCopyRawStep` from the Boolean control layout to the flattened
+finite-index layout. -/
 noncomputable def numericCopyFinStep (n : ℕ) (rho : Operator (2^n)) (b k : ℕ)
     (X : Operator (2*(2^n))) : Operator (2*(2^n)) :=
   relabelGate (controlDataEquiv (2^n)) (numericCopyRawStep n rho b k
     (relabelGate (controlDataEquiv (2^n)).symm X))
+/-- Applies a matrix transformation to each block determined by a reference register of size
+`r`. -/
 noncomputable def numericAmplification {D : ℕ} (T : Operator D → Operator D) (r : ℕ)
     (X : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ) :
     Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ :=
   Matrix.of (fun x y => T (fun i j => X (x.1,i) (y.1,j)) x.2 y.2)
 
+/-- The raw numerical copy step equals the abstract controlled-copy map at the computed
+effective angle. -/
 theorem numericCopyRawStep_eq (n b k : ℕ) (rho : Operator (2^n))
     (X : Matrix (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ) :
     numericCopyRawStep n rho b k X = controlledCopyRawMap rho (copyPhaseEffectiveAngle b k) X := by
@@ -75,6 +108,8 @@ theorem numericCopyRawStep_eq (n b k : ℕ) (rho : Operator (2^n))
     rw [hh]
   rw [he,localCopyFrame_actual_scratch_discard]
 
+/-- The flattened numerical copy step equals the abstract controlled-copy channel map at the
+computed effective angle. -/
 theorem numericCopyFinStep_eq (n b k : ℕ) (rho : Operator (2^n))
     (X : Operator (2*(2^n))) :
     numericCopyFinStep n rho b k X = controlledCopyChannelMap rho (copyPhaseEffectiveAngle b k) X := by
@@ -87,6 +122,8 @@ theorem numericCopyFinStep_eq (n b k : ℕ) (rho : Operator (2^n))
   rw [hr] at h
   exact h.symm
 
+/-- Blockwise numerical amplification agrees with channel amplification of the effective-angle
+controlled-copy map. -/
 theorem numericAmplification_eq (n b k : ℕ) (rho : Operator (2^n)) (r : ℕ)
     (X : Matrix (Fin r × Fin (2*(2^n))) (Fin r × Fin (2*(2^n))) ℂ) :
     numericAmplification (numericCopyFinStep n rho b k) r X =
@@ -94,6 +131,8 @@ theorem numericAmplification_eq (n b k : ℕ) (rho : Operator (2^n)) (r : ℕ)
   ext x y
   simp only [numericAmplification,ChannelAmplification,Matrix.of_apply,numericCopyFinStep_eq]
 
+/-- Compressing the fast controlled-swap program through the clean local frame gives the raw
+controlled-swap gate. -/
 theorem fastControlledSwap_compress (n : ℕ) (t : ℝ) :
     compress (localCopyFrame n) (reflectionProgramMatrix (fastControlledSwapSteps n t)) (localCopyFrame n) =
       controlledSwapRawGate (2^n) t := by
@@ -101,6 +140,8 @@ theorem fastControlledSwap_compress (n : ℕ) (t : ℝ) :
   have hF : (localCopyFrame n)ᴴ*localCopyFrame n = 1 := localCopyFrame_isometry n
   rw [compress,Matrix.mul_assoc,hi,← Matrix.mul_assoc,hF,Matrix.one_mul]
 
+/-- The operator-norm error between the effective-angle and target-angle raw controlled swaps is
+at most `2⁻ᵏ`. -/
 theorem numericCopyRawGate_error (n b k : ℕ) :
     ‖controlledSwapRawGate (2^n) (copyPhaseEffectiveAngle b k)-
       controlledSwapRawGate (2^n) (Real.pi/(2^b:ℕ))‖ ≤ ((2:ℝ)⁻¹)^k := by
@@ -119,6 +160,8 @@ theorem numericCopyRawGate_error (n b k : ℕ) :
     _ ≤ (1*((2:ℝ)⁻¹)^k)*1 := by gcongr
     _ = _ := by ring
 
+/-- The operator-norm error between the effective-angle and target-angle reference gates is at
+most `2⁻ᵏ`. -/
 theorem numericCopyReferenceGate_error (n b k r : ℕ) :
     ‖controlledCopyReferenceGate (2^n) r (copyPhaseEffectiveAngle b k)-
       controlledCopyReferenceGate (2^n) r (Real.pi/(2^b:ℕ))‖ ≤ ((2:ℝ)⁻¹)^k := by
@@ -136,6 +179,8 @@ theorem numericCopyReferenceGate_error (n b k r : ℕ) :
   rw [he,l2_norm_tensorGate]
   exact (mul_le_mul l2_norm_one_le ht (norm_nonneg _) zero_le_one).trans_eq (one_mul _)
 
+/-- Conjugations by unitaries `U` and `V` differ in trace norm by at most `2 * ‖U - V‖ *
+traceNorm X`. -/
 theorem numeric_conjugation_error {I : Type} [Fintype I] [DecidableEq I]
     (U V X : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ) :
     Matrix.traceNorm (U*X*Uᴴ-V*X*Vᴴ) ≤ 2*‖U-V‖*Matrix.traceNorm X := by
@@ -158,6 +203,8 @@ theorem numeric_conjugation_error {I : Type} [Fintype I] [DecidableEq I]
       gcongr
     _ = _ := by ring
 
+/-- The controlled-copy reference gate is unitary for every system size, reference size, and
+real angle. -/
 theorem numericCopyReferenceGate_unitary (D r : ℕ) (t : ℝ) :
     controlledCopyReferenceGate D r t ∈ Matrix.unitaryGroup ((Fin r × Fin (2*D)) × Fin D) ℂ := by
   unfold controlledCopyReferenceGate
@@ -166,6 +213,8 @@ theorem numericCopyReferenceGate_unitary (D r : ℕ) (t : ℝ) :
   unfold controlledSwapGateTensor
   exact relabelGate_mem_unitary (controlledSwapRawGate_unitarity D t) _
 
+/-- For a density operator `rho` and positive input `X`, the amplified effective-angle copy map
+differs from the target-angle map by at most `4 * 2⁻ᵏ * re (trace X)` in trace norm. -/
 theorem numericCopy_reference_error (n b k r : ℕ) (rho : Operator (2^n)) (hrho : IsDensityOperator rho)
     (X : Matrix (Fin r × Fin (2*(2^n))) (Fin r × Fin (2*(2^n))) ℂ) (hX : X.PosSemidef) :
     Matrix.traceNorm (ChannelAmplification (controlledCopyChannelMap rho (copyPhaseEffectiveAngle b k)) r X-
@@ -193,6 +242,9 @@ theorem numericCopy_reference_error (n b k r : ℕ) (rho : Operator (2^n)) (hrho
     _ ≤ _ := by have hp : 0 ≤ ((2:ℝ)⁻¹)^k := by positivity
                 nlinarith [mul_nonneg hp hx0]
 
+/-- Identifies numerical discard execution with the effective-angle copy map and its reference
+amplification. For density operators and positive inputs, the target-angle trace-norm error
+is at most `4 * 2⁻ᵏ * re (trace X)`. -/
 theorem numerical_copy_actual_discard_reference_error : ∀ (n b k : ℕ) (rho : Operator (2^n)),
   (∀ X : Matrix (Bool × Fin (2^n)) (Bool × Fin (2^n)) ℂ,
     numericCopyRawStep n rho b k X = controlledCopyRawMap rho (copyPhaseEffectiveAngle b k) X) ∧

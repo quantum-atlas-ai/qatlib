@@ -7,11 +7,35 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Tactic
 
+/-!
+# Margin progress and perceptron mistake bounds
+
+For a sequence of additive updates starting at zero, `norm_sq_prefix` bounds the squared norm by
+the number of updates when each update has norm at most one and nonpositive inner product with
+the current iterate. `margin_prefix` gives linear progress along a separating direction.
+
+Combining these estimates yields `mistake_prefix_bound`, the inverse-square margin bound for a
+unit separating direction. For perceptron models in quantum learning, see
+[WiebeKapoorSvore2016].
+
+## Main statements
+
+* `norm_sq_prefix`: Squared norm grows by at most one per update.
+* `margin_prefix`: Accumulated progress in a separating direction.
+* `mistake_prefix_bound`: The bound `γ² * M ≤ 1` for positive margin.
+
+## References
+
+* [Wiebe et al., 2016][WiebeKapoorSvore2016]
+-/
+
 namespace Qatlib.Foundations.MarginGeometry.MistakeProgress
 set_option autoImplicit false
 open scoped InnerProductSpace
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- For additive updates from zero with norm at most one and nonpositive inner product with the
+current iterate, every prefix satisfies `‖w n‖² ≤ n`. -/
 theorem norm_sq_prefix (w a : ℕ → E) (M : ℕ) (hw0 : w 0=0)
     (hstep : ∀ n<M, w (n+1)=w n+a n)
     (hunit : ∀ n<M, ‖a n‖≤1) (hmis : ∀ n<M, ⟪w n,a n⟫_ℝ≤0) :
@@ -29,6 +53,8 @@ theorem norm_sq_prefix (w a : ℕ → E) (M : ℕ) (hw0 : w 0=0)
     push_cast
     nlinarith [hmis n hnM]
 
+/-- For additive updates from zero whose inner products with `u` are at least `γ`, every prefix
+satisfies `n * γ ≤ ⟪u, w n⟫_ℝ`. -/
 theorem margin_prefix (u : E) (w a : ℕ → E) (M : ℕ) (γ : ℝ) (hw0 : w 0=0)
     (hstep : ∀ n<M, w (n+1)=w n+a n)
     (hmargin : ∀ n<M, γ≤⟪u,a n⟫_ℝ) :
@@ -44,6 +70,8 @@ theorem margin_prefix (u : E) (w a : ℕ → E) (M : ℕ) (γ : ℝ) (hw0 : w 0=
     push_cast
     linarith [hmargin n hnM]
 
+/-- For a unit separating direction with positive margin `γ`, additive mistake updates of norm
+at most one satisfy `γ² * M ≤ 1`. -/
 theorem mistake_prefix_bound (u : E) (hu : ‖u‖=1) (w a : ℕ → E) (M : ℕ) (γ : ℝ)
     (hγ : 0<γ) (hw0 : w 0=0) (hstep : ∀ n<M, w (n+1)=w n+a n)
     (hunit : ∀ n<M, ‖a n‖≤1) (hmis : ∀ n<M, ⟪w n,a n⟫_ℝ≤0)

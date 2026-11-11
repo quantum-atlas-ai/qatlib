@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpectralMeas17.NativeWalk
+
+/-!
+# Signal projection and eigenvector recovery
+
+This module proves signal-projection identities for the coefficient-based spectral walk of
+[PoulinEtAl2018]. At an interior energy, both normalized paired states have signal probability
+one half; their adjoint-frame compressions recover the original Hamiltonian eigenvector after
+multiplication by `Real.sqrt 2`.
+
+## Main statements
+
+* `physical_signal_probability`: normalization and signal probability for both paired states
+  when `E ^ 2 < 1`.
+* `physical_signal_branch`: exact rescaled adjoint-frame recovery identity.
+
+## References
+
+* [Poulin et al., 2018][PoulinEtAl2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,9 @@ open Qatlib.Papers.SpectralMeas17.NativeWalk
 open Qatlib.Papers.SpectralMeas17.PauliExpect
 variable {J : Type*} [Fintype J] [DecidableEq J] {n : ℕ}
 
+/-- For positive coefficient scale and a normalized Hamiltonian eigenvector with `E ^ 2 < 1`,
+both paired walk states have unit Hilbert norm and squared signal-projection norm one half
+[PoulinEtAl2018]. -/
 theorem physical_signal_probability (α : J → ℝ) (words : J → PauliWord n)
     (φ : State (Fin n → Bool)) (E : ℝ) (hα : 0<coefficientScale α) (hφ : Normalized φ)
     (heig : normalizedHamiltonian α words *ᵥ φ=(E : ℂ) • φ) (hE : E^2<1) :
@@ -31,6 +54,9 @@ theorem physical_signal_probability (α : J → ℝ) (words : J → PauliWord n)
   exact ⟨hn.2.1,hn.2.2.1,signal_probability _ _ φ E
     (coefficientAmplitude_normalized α hα) hφ he⟩
 
+/-- For positive coefficient scale and a Hamiltonian eigenvector at energy `E`, the adjoint
+coefficient frame applied to either paired walk state, then multiplied by `Real.sqrt 2`,
+equals the original eigenvector [PoulinEtAl2018]. -/
 theorem physical_signal_branch (α : J → ℝ) (words : J → PauliWord n)
     (φ : State (Fin n → Bool)) (E : ℝ) (hα : 0<coefficientScale α)
     (heig : normalizedHamiltonian α words *ᵥ φ=(E : ℂ) • φ) :

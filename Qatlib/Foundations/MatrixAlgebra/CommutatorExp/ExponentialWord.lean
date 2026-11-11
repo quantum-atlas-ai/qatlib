@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Exponential
 import Mathlib.Analysis.Calculus.Deriv.Mul
 import Mathlib.Tactic
+
+/-!
+# Exponential words and interaction generators
+
+`word` forms a list-ordered product of exponentials in a real Banach algebra, and `generator`
+recursively constructs its left generator. `word_hasDerivAt` proves that the word derivative is
+the generator multiplied by the word.
+
+Removing a reference exponential defines `interaction`, whose derivative is controlled by
+`interactionGenerator`. These constructions support product-formula analysis in the setting of
+[HejaziZiniArrazola2024].
+
+## Main statements
+
+* `word_hasDerivAt`: Differential equation for an exponential word.
+* `interaction`: Word in a reference interaction frame.
+* `interaction_hasDerivAt`: Differential equation in the interaction frame.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -14,32 +37,41 @@ noncomputable section
 namespace Qatlib.Foundations.MatrixAlgebra.CommutatorExp
 variable {A : Type*} [NormedRing A] [NormedAlgebra ℝ A] [CompleteSpace A]
 
+/-- The list-ordered product of the exponentials `exp(tK)`, with empty product equal to one. -/
 def word : List A → ℝ → A
   | [], _ => 1
   | K :: ks, t => NormedSpace.exp (t • K) * word ks t
 
+/-- The left generator of an exponential word, recursively summing each stage with the
+conjugated generator of the remaining word. -/
 def generator : List A → ℝ → A
   | [], _ => 0
   | K :: ks, t => K + NormedSpace.exp (t • K) * generator ks t * NormedSpace.exp ((-t) • K)
 
+/-- The exponential word multiplied on the left by the inverse reference evolution `exp(-tK)`. -/
 def interaction (K : A) (ks : List A) (t : ℝ) : A :=
   NormedSpace.exp ((-t) • K) * word ks t
 
+/-- The generator difference `generator ks t - K` conjugated by `exp(-tK)` on the left and
+`exp(tK)` on the right. -/
 def interactionGenerator (K : A) (ks : List A) (t : ℝ) : A :=
   NormedSpace.exp ((-t) • K) * (generator ks t - K) * NormedSpace.exp (t • K)
 local instance : NormedAlgebra ℚ A := .restrictScalars ℚ ℝ _
 
+/-- Exponentials of opposite real multiples of the same element multiply to one. -/
 theorem exp_neg_time_mul (K : A) (t : ℝ) :
     NormedSpace.exp ((-t) • K) * NormedSpace.exp (t • K) = 1 := by
   rw [neg_smul, ← NormedSpace.exp_add_of_commute (Commute.refl (t • K)).neg_left,
     neg_add_cancel, NormedSpace.exp_zero]
 omit [CompleteSpace A] in
 
+/-- Every exponential word equals one at time zero. -/
 theorem word_zero (ks : List A) : word ks 0 = 1 := by
   induction ks with
   | nil => rfl
   | cons K ks ih => simp only [word, zero_smul, NormedSpace.exp_zero, one_mul, ih]
 
+/-- The derivative of an exponential word is its left generator multiplied by the word. -/
 theorem word_hasDerivAt (ks : List A) (t : ℝ) :
     HasDerivAt (word ks) (generator ks t * word ks t) t := by
   induction ks with
@@ -57,9 +89,12 @@ theorem word_hasDerivAt (ks : List A) (t : ℝ) :
       _ = _ := by rw [exp_neg_time_mul]; noncomm_ring
 omit [CompleteSpace A] in
 
+/-- The interaction-frame word equals one at time zero. -/
 theorem interaction_zero (K : A) (ks : List A) : interaction K ks 0 = 1 := by
   simp only [interaction, neg_zero, zero_smul, NormedSpace.exp_zero, word_zero, one_mul]
 
+/-- The derivative of the interaction-frame word is its interaction generator multiplied by that
+word. -/
 theorem interaction_hasDerivAt (K : A) (ks : List A) (t : ℝ) :
     HasDerivAt (interaction K ks) (interactionGenerator K ks t * interaction K ks t) t := by
   have he : HasDerivAt (fun s : ℝ => NormedSpace.exp ((-s) • K))

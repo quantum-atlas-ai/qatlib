@@ -9,6 +9,30 @@ import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
 import Mathlib.Data.Finset.Sort
 import Qatlib.Concepts.BlockEncoding.LinearCombination
 import Mathlib.Tactic.Tauto
+
+/-!
+# Native data access for the Johnson walk
+
+This module constructs oracle circuits for Johnson-walk collision search with input data stored
+alongside the subset state. It proves that loading preserves amplitudes and normalization, and
+that the stored collision phase flip implements the input-marked reflection used in
+[Ambainis2007ElementDistinctness].
+
+The setup circuit loads an `r`-element subset with `r` queries. Each native walk step uses one
+loading query and one erasure query, while the stored phase flip uses none. The theorem
+`nativeJohnsonData_answer` packages these circuits and their semantics into `NativeJohnsonData`.
+
+## Main statements
+
+* `nativeSetup_word`: preparation of the loaded uniform state using `r` queries.
+* `nativeWalkWord_semantics`: implementation of `jwWalkBig` on loaded states.
+* `nativeJohnsonData_answer`: the native Johnson data-access contract.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,16 +61,20 @@ namespace Qatlib.Concepts.WalkFind.UniqueCollision
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 open scoped Classical BigOperators
 
+/-- For a fixed input, the loaded basis map is injective on Johnson states. -/
 theorem loadedBasis_injective {N M r : ℕ} (x : Fin N → ZMod M) :
     Function.Injective (loadedBasis (r:=r) x) := by
   intro p q hpq
   exact congrArg (fun z => z.2.1) hpq
 
+/-- The amplitude of a loaded state at the basis label of `p` is the original amplitude at `p`. -/
 theorem loadedState_at_basis {N M r : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (ψ : QState (JRState N r)) (p : JRState N r) :
     loadedState x ψ (loadedBasis x p) = ψ p := by
   simp [loadedState, (loadedBasis_injective x).eq_iff]
 
+/-- The matrix embedding Johnson basis states into their loaded labels has Gram matrix equal to
+the identity. -/
 theorem loadedBasis_isometry {N M r : ℕ} [NeZero M] (x : Fin N → ZMod M) :
     let E : Matrix (LoadedSpace N M r) (JRState N r) ℂ :=
       fun q p => if q = loadedBasis x p then 1 else 0
@@ -60,6 +88,7 @@ theorem loadedBasis_isometry {N M r : ℕ} [NeZero M] (x : Fin N → ZMod M) :
     simp [hq]
   · simp
 
+/-- Loading the input data preserves normalization of a Johnson-walk state. -/
 theorem loadedState_normalized {N M r : ℕ} [NeZero M]
     (x : Fin N → ZMod M) {ψ : QState (JRState N r)} (hψ : Normalized ψ) :
     Normalized (loadedState x ψ) := by
@@ -76,6 +105,8 @@ theorem loadedState_normalized {N M r : ℕ} [NeZero M]
   rw [hstate, normalized_iff_inner_self]
   exact hi.trans ((normalized_iff_inner_self ψ).mp hψ)
 
+/-- On a correctly loaded basis label, the stored collision predicate is equivalent to the
+input-marked predicate. -/
 theorem storedCollision_at_basis {N M r k : ℕ} (x : Fin N → ZMod M)
     (p : JRState N r) :
     storedCollision k (loadedBasis x p) ↔ markedInput k x p := by
@@ -90,9 +121,12 @@ theorem storedCollision_at_basis {N M r k : ℕ} (x : Fin N → ZMod M)
     intro i hi
     simpa [loadedBasis, hS hi] using! hv i hi
 
+/-- The query-free diagonal circuit that negates labels whose stored data contain a collision of
+size `k`. -/
 def nativeStoredFlip (N M r k : ℕ) [NeZero M] : Circuit (LoadedSpace N M r) :=
   [.gate (Matrix.diagonal (fun q => if storedCollision k q then (-1 : ℂ) else 1))]
 
+/-- The stored collision phase-flip circuit is unitary. -/
 theorem nativeStoredFlip_unitary (N M r k : ℕ) [NeZero M] :
     IsUnitaryCircuit (nativeStoredFlip N M r k) := by
   have h : Matrix.diagonal (fun q : LoadedSpace N M r =>
@@ -105,9 +139,12 @@ theorem nativeStoredFlip_unitary (N M r k : ℕ) [NeZero M] :
     split_ifs <;> simp_all
   simpa [nativeStoredFlip] using! h
 
+/-- The stored collision phase flip uses zero oracle queries. -/
 theorem nativeStoredFlip_queries (N M r k : ℕ) [NeZero M] :
     QueryCount (nativeStoredFlip N M r k) = 0 := rfl
 
+/-- On loaded states, the stored collision flip implements `inputFlip` on the underlying Johnson
+state. -/
 theorem nativeStoredFlip_semantics {N M r k : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (ψ : QState (JRState N r)) :
     Run (alphabetOracle x) (nativeStoredFlip N M r k) (loadedState x ψ) =
@@ -120,6 +157,8 @@ theorem nativeStoredFlip_semantics {N M r k : ℕ} [NeZero M]
   · have hn : ∀ p, q ≠ loadedBasis x p := fun p hp => hq ⟨p, hp⟩
     simp [nativeStoredFlip, Run, ApplyGate, Matrix.mulVec_diagonal, loadedState, hn]
 
+/-- The involutive address permutation that swaps the state's distinguished address with the
+selected address. -/
 def nativeAddressRoute {N M r : ℕ} (select : JRState N r → Fin N) :
     Equiv.Perm (LoadedSpace N M r) where
   toFun q := ((Equiv.swap q.2.1.val.2 (select q.2.1) q.1.1, q.1.2), q.2)
@@ -127,6 +166,8 @@ def nativeAddressRoute {N M r : ℕ} (select : JRState N r → Fin N) :
   left_inv q := by simp
   right_inv q := by simp
 
+/-- The involutive permutation that swaps the oracle answer register with the stored value at
+the selected address. -/
 def nativeDataStore {N M r : ℕ} (select : JRState N r → Fin N) :
     Equiv.Perm (LoadedSpace N M r) where
   toFun q := ((q.1.1, q.2.2 (select q.2.1)),
@@ -136,22 +177,28 @@ def nativeDataStore {N M r : ℕ} (select : JRState N r → Fin N) :
   left_inv q := by ext i <;> simp [Function.update_idem]
   right_inv q := by ext i <;> simp [Function.update_idem]
 
+/-- A permutation matrix sends the basis ket at `p` to the basis ket at its permuted label. -/
 private theorem native_perm_ket {H : Type} [Fintype H] [DecidableEq H]
     (f : Equiv.Perm H) (p : H) : permMatrix f *ᵥ Qatlib.Foundations.PureStateMath.Ket p = Qatlib.Foundations.PureStateMath.Ket (f p) := by
   ext q
   simp [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, permMatrix]
 
+/-- Route to a selected address, query its value, swap the answer into stored data, and restore
+the address register. -/
 def nativeLoadRound {N M r : ℕ} [NeZero M] (select : JRState N r → Fin N) :
     Circuit (LoadedSpace N M r) :=
   [.gate (permMatrix (nativeAddressRoute select)), .query,
     .gate (permMatrix (nativeDataStore select)), .gate (permMatrix (nativeAddressRoute select))]
 
+/-- A native loading round is a unitary circuit. -/
 theorem nativeLoadRound_unitary {N M r : ℕ} [NeZero M] (select : JRState N r → Fin N) :
     IsUnitaryCircuit (nativeLoadRound (M:=M) select) := by
   have hR := permMatrix_unitary_of_injective (nativeAddressRoute (M:=M) select).injective
   have hD := permMatrix_unitary_of_injective (nativeDataStore (M:=M) select).injective
   simp [nativeLoadRound, hR, hD]
 
+/-- When the selected stored entry is zero, a loading round fills it with the input value and
+restores the oracle register. -/
 theorem nativeLoadRound_run {N M r : ℕ} [NeZero M] (select : JRState N r → Fin N)
     (x data : Fin N → ZMod M) (p : JRState N r) (hz : data (select p) = 0) :
     Run (alphabetOracle x) (nativeLoadRound select) (Qatlib.Foundations.PureStateMath.Ket ((p.val.2,0),(p,data))) =
@@ -171,11 +218,13 @@ theorem nativeLoadRound_run {N M r : ℕ} [NeZero M] (select : JRState N r → F
   rw [native_perm_ket]
   simp [nativeAddressRoute]
 
+/-- Concatenate loading rounds for a list of state-dependent address selectors. -/
 def nativeLoadList {N M r : ℕ} [NeZero M] :
     List (JRState N r → Fin N) → Circuit (LoadedSpace N M r)
   | [] => []
   | select::rest => nativeLoadRound select ++ nativeLoadList rest
 
+/-- A list of loading rounds is unitary and uses one query for each selector. -/
 theorem nativeLoadList_resources {N M r : ℕ} [NeZero M]
     (ss : List (JRState N r → Fin N)) :
     IsUnitaryCircuit (nativeLoadList (M:=M) ss) ∧ QueryCount (nativeLoadList (M:=M) ss) = ss.length := by
@@ -185,6 +234,8 @@ theorem nativeLoadList_resources {N M r : ℕ} [NeZero M]
     refine ⟨(isUnitaryCircuit_append _ _).mpr ⟨nativeLoadRound_unitary s, ih.1⟩, ?_⟩
     simp [nativeLoadList, nativeLoadRound, QueryCount, ih.2]
 
+/-- Distinct selected addresses with initially zero entries are loaded with their input values,
+leaving all other stored entries unchanged. -/
 theorem nativeLoadList_run {N M r : ℕ} [NeZero M]
     (ss : List (JRState N r → Fin N)) (x data : Fin N → ZMod M) (p : JRState N r)
     (hn : (ss.map (fun select => select p)).Nodup)
@@ -206,12 +257,14 @@ theorem nativeLoadList_run {N M r : ℕ} [NeZero M]
     · subst i; simp [hs]
     · simp [his, Function.update]
 
+/-- The matrix of a circuit for a fixed oracle, with gates multiplied in execution order. -/
 private def nativeCircuitMatrix {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) : Circuit H → Matrix H H ℂ
   | [] => 1
   | .gate U::cs => nativeCircuitMatrix O cs * U
   | .query::cs => nativeCircuitMatrix O cs * O
 
+/-- Running a circuit equals applying its circuit matrix to the initial state. -/
 private theorem nativeCircuitMatrix_spec {H : Type} [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (cs : Circuit H) (ψ : QState H) :
     Run O cs ψ = nativeCircuitMatrix O cs *ᵥ ψ := by
@@ -220,9 +273,12 @@ private theorem nativeCircuitMatrix_spec {H : Type} [Fintype H] [DecidableEq H]
   | cons g cs ih =>
     cases g <;> simp only [Run, ApplyGate, ih, Matrix.mulVec_mulVec, nativeCircuitMatrix]
 
+/-- Push a state forward along a basis-label map by summing amplitudes of labels with the same
+image. -/
 def nativeBasisEmbedding {P H : Type} [Fintype P] [DecidableEq H]
     (e : P → H) (ψ : QState P) : QState H := fun y => ∑ p, if y = e p then ψ p else 0
 
+/-- Embedding a basis ket gives the basis ket at the image label. -/
 @[simp] theorem nativeBasisEmbedding_ket {P H : Type} [Fintype P] [DecidableEq P] [DecidableEq H]
     (e : P → H) (p : P) : nativeBasisEmbedding e (Qatlib.Foundations.PureStateMath.Ket p) = Qatlib.Foundations.PureStateMath.Ket (e p) := by
   ext y
@@ -232,14 +288,17 @@ def nativeBasisEmbedding {P H : Type} [Fintype P] [DecidableEq H]
   · intro q _ hq; simp [Qatlib.Foundations.PureStateMath.Ket, hq]
   · simp
 
+/-- The zero-one matrix of a basis-label map. -/
 private def nativeBasisMatrix {P H : Type} [Fintype P] [DecidableEq H]
     (e : P → H) : Matrix H P ℂ := fun y p => if y = e p then 1 else 0
 
+/-- The basis embedding is matrix multiplication by `nativeBasisMatrix`. -/
 private theorem nativeBasisMatrix_spec {P H : Type} [Fintype P] [DecidableEq H]
     (e : P → H) (ψ : QState P) : nativeBasisEmbedding e ψ = nativeBasisMatrix e *ᵥ ψ := by
   ext y
   simp [nativeBasisEmbedding, nativeBasisMatrix, Matrix.mulVec, dotProduct, ite_mul]
 
+/-- Circuit semantics established on all embedded basis kets extend to every state by linearity. -/
 theorem nativeBasisWord_semantics {P H : Type} [Fintype P] [DecidableEq P]
     [Fintype H] [DecidableEq H] (e e' : P → H) (O : Matrix H H ℂ)
     (cs : Circuit H) (K : Matrix P P ℂ)
@@ -254,17 +313,22 @@ theorem nativeBasisWord_semantics {P H : Type} [Fintype P] [DecidableEq P]
   rw [nativeBasisMatrix_spec, nativeCircuitMatrix_spec, Matrix.mulVec_mulVec, hm,
     nativeBasisMatrix_spec, Matrix.mulVec_mulVec]
 
+/-- The address in position `j` of the increasing enumeration of the stored subset. -/
 def nativeSlot {N r : ℕ} (j : Fin r) (p : JRState N r) : Fin N :=
   p.val.1.orderEmbOfFin p.property.1 j
 
+/-- The circuit loading each address of the stored `r`-element subset once. -/
 def nativeSubsetLoad (N M r : ℕ) [NeZero M] : Circuit (LoadedSpace N M r) :=
   nativeLoadList (List.ofFn (fun j : Fin r => nativeSlot j))
 
+/-- Subset loading is unitary and uses exactly `r` oracle queries. -/
 theorem nativeSubsetLoad_resources (N M r : ℕ) [NeZero M] :
     IsUnitaryCircuit (nativeSubsetLoad N M r) ∧ QueryCount (nativeSubsetLoad N M r) = r := by
   simpa [nativeSubsetLoad] using!
       nativeLoadList_resources (M:=M) (List.ofFn (fun j : Fin r => nativeSlot j))
 
+/-- Subset loading sends the zero-data basis label of a Johnson state to its input-loaded basis
+label. -/
 theorem nativeSubsetLoad_ket {N M r : ℕ} [NeZero M] (x : Fin N → ZMod M) (p : JRState N r) :
     Run (alphabetOracle x) (nativeSubsetLoad N M r)
       (Qatlib.Foundations.PureStateMath.Ket (loadedBasis (fun _ => (0 : ZMod M)) p)) = Qatlib.Foundations.PureStateMath.Ket (loadedBasis x p) := by
@@ -278,6 +342,8 @@ theorem nativeSubsetLoad_ket {N M r : ℕ} [NeZero M] (x : Fin N → ZMod M) (p 
     (by simpa only [List.map_ofFn] using! List.nodup_ofFn.mpr hinj) (by simp)
   simpa [nativeSubsetLoad, loadedBasis, List.map_ofFn, hmem] using! h
 
+/-- Subset loading transforms any zero-data loaded state into the corresponding input-loaded
+state. -/
 theorem nativeSubsetLoad_semantics {N M r : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (ψ : QState (JRState N r)) :
     Run (alphabetOracle x) (nativeSubsetLoad N M r)
@@ -288,6 +354,8 @@ theorem nativeSubsetLoad_semantics {N M r : ℕ} [NeZero M]
       exact nativeSubsetLoad_ket x p) ψ
   simpa only [nativeBasisEmbedding, loadedState, Matrix.one_mulVec] using! h
 
+/-- For `r < N`, a unitary matrix prepares the zero-data loaded uniform Johnson state from a
+basis ket. -/
 theorem nativeInitialPreparation (N M r : ℕ) [NeZero M] (hr : r < N) :
     ∃ (init : LoadedSpace N M r) (P : Matrix (LoadedSpace N M r) (LoadedSpace N M r) ℂ),
       P ∈ Matrix.unitaryGroup (LoadedSpace N M r) ℂ ∧
@@ -320,6 +388,8 @@ theorem nativeInitialPreparation (N M r : ℕ) [NeZero M] (hr : r < N) :
     Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare_unitary amplitude init hamp hsquare, ?_⟩
   rw [Qatlib.Concepts.BlockEncoding.EncodingCore.nonnegativePrepare_mulVec_ket amplitude init hamp, hstate]
 
+/-- For `r < N`, a unitary setup circuit prepares the input-loaded uniform Johnson state using
+exactly `r` queries. -/
 theorem nativeSetup_word (N M r : ℕ) [NeZero M] (hr : r < N) :
     ∃ (init : LoadedSpace N M r) (setup : Circuit (LoadedSpace N M r)),
       IsUnitaryCircuit setup ∧ QueryCount setup = r ∧
@@ -336,10 +406,13 @@ theorem nativeSetup_word (N M r : ℕ) [NeZero M] (hr : r < N) :
         (P *ᵥ Qatlib.Foundations.PureStateMath.Ket init) = _
     rw [hprep, nativeSubsetLoad_semantics]
 
+/-- The matrix with entry `1/d` for pairs with equal fiber labels and zero otherwise. -/
 private def nativeFiberAverage {H F : Type} [DecidableEq F]
     (label : H → F) (d : ℕ) : Matrix H H ℂ :=
   fun p q => if label p = label q then (1/(d : ℂ)) else 0
 
+/-- If every label fiber has the same positive size `d`, its averaging matrix is an orthogonal
+projector. -/
 private theorem nativeFiberAverage_projector {H F : Type} [Fintype H] [DecidableEq H]
     [DecidableEq F] (label : H → F) (d : ℕ) (hd : 0 < d)
     (hc : ∀ p, Fintype.card {q : H // label p = label q} = d) :
@@ -373,12 +446,14 @@ private theorem nativeFiberAverage_projector {H F : Type} [Fintype H] [Decidable
     · simp [nativeFiberAverage, hpq]
     · simp [nativeFiberAverage, hpq, Ne.symm hpq]
 
+/-- Reflection about the averaging projector of equally sized positive fibers is unitary. -/
 private theorem nativeFiberDiffusion_unitary {H F : Type} [Fintype H] [DecidableEq H]
     [DecidableEq F] (label : H → F) (d : ℕ) (hd : 0 < d)
     (hc : ∀ p, Fintype.card {q : H // label p = label q} = d) :
     ReflectionAbout (nativeFiberAverage label d) ∈ Matrix.unitaryGroup H ℂ :=
   reflectionAbout_unitary (nativeFiberAverage_projector label d hd hc)
 
+/-- For `r < N`, the first full Johnson diffusion matrix is unitary. -/
 theorem nativeBigDiff1_unitary (N r : ℕ) (hr : r < N) :
     jwBigDiff1 N r ∈ Matrix.unitaryGroup (JRState N r) ℂ := by
   have heq : jwBigDiff1 N r = ReflectionAbout
@@ -393,6 +468,7 @@ theorem nativeBigDiff1_unitary (N r : ℕ) (hr : r < N) :
   rw [heq]
   exact nativeFiberDiffusion_unitary _ _ (by omega) (jwOutsideFiber_card N r)
 
+/-- The second full Johnson diffusion matrix is unitary. -/
 theorem nativeBigDiff2_unitary (N r : ℕ) :
     jwBigDiff2 N r ∈ Matrix.unitaryGroup (JRState' N r) ℂ := by
   have heq : jwBigDiff2 N r = ReflectionAbout
@@ -407,9 +483,12 @@ theorem nativeBigDiff2_unitary (N r : ℕ) :
   rw [heq]
   exact nativeFiberDiffusion_unitary _ _ (by omega) (jwInsideFiber_card N r)
 
+/-- The second full diffusion transported back to `JRState N r` by the adjoining and removal
+matrices. -/
 def nativeInnerDiffusion (N r : ℕ) : Matrix (JRState N r) (JRState N r) ℂ :=
   jwDropMat N r * jwBigDiff2 N r * jwEmbedMat N r
 
+/-- The transported inner diffusion is unitary. -/
 theorem nativeInnerDiffusion_unitary (N r : ℕ) :
     nativeInnerDiffusion N r ∈ Matrix.unitaryGroup (JRState N r) ℂ := by
   have hD : (jwBigDiff2 N r)ᴴ*jwBigDiff2 N r = 1 := by
@@ -423,12 +502,14 @@ theorem nativeInnerDiffusion_unitary (N r : ℕ) :
     jwEmbedMat_mul_drop, Matrix.one_mul, ← Matrix.mul_assoc (jwBigDiff2 N r)ᴴ (jwBigDiff2 N r),
     hD, Matrix.one_mul, jwDropMat_mul_embed]
 
+/-- Conjugate the tensor extension of `K` by address routing through a fixed reference address. -/
 def nativeCoupledGate {N M r : ℕ} [NeZero M] (zero : Fin N)
     (K : Matrix (JRState N r) (JRState N r) ℂ) :
     Matrix (LoadedSpace N M r) (LoadedSpace N M r) ℂ :=
   let R := permMatrix (nativeAddressRoute (M:=M) (r:=r) (fun _ => zero))
   R * TensorGate 1 (TensorGate K 1) * R
 
+/-- The coupled gate is unitary whenever its underlying Johnson-state matrix is unitary. -/
 theorem nativeCoupledGate_unitary {N M r : ℕ} [NeZero M] (zero : Fin N)
     (K : Matrix (JRState N r) (JRState N r) ℂ) (hK : K ∈ Matrix.unitaryGroup (JRState N r) ℂ) :
     nativeCoupledGate (M:=M) zero K ∈ Matrix.unitaryGroup (LoadedSpace N M r) ℂ := by
@@ -437,6 +518,8 @@ theorem nativeCoupledGate_unitary {N M r : ℕ} [NeZero M] (zero : Fin N)
   exact (Matrix.unitaryGroup _ ℂ).mul_mem
     ((Matrix.unitaryGroup _ ℂ).mul_mem hR (tensorGate_unitary (by simp) (tensorGate_unitary hK (by simp)))) hR
 
+/-- Entries of the coupled gate equal entries of the tensor extension evaluated at the routed
+basis labels. -/
 private theorem nativeCoupledGate_entry {N M r : ℕ} [NeZero M] (zero : Fin N)
     (K : Matrix (JRState N r) (JRState N r) ℂ) (p q : LoadedSpace N M r) :
     nativeCoupledGate zero K p q =
@@ -457,9 +540,13 @@ private theorem nativeCoupledGate_entry {N M r : ℕ} [NeZero M] (zero : Fin N)
     simp [hi]
   · simp
 
+/-- The loaded-space basis label of a Johnson state with its assigned data and a zero oracle
+answer. -/
 def nativeDataBasis {N M r : ℕ} (data : JRState N r → Fin N → ZMod M)
     (p : JRState N r) : LoadedSpace N M r := ((p.val.2,0),(p,data p))
 
+/-- The embedding associated with `nativeDataBasis` is supported on the assigned label and has
+the original Johnson-state amplitude there. -/
 private theorem nativeDataEmbedding_apply {N M r : ℕ} [NeZero M]
     (data : JRState N r → Fin N → ZMod M) (ψ : QState (JRState N r)) (q : LoadedSpace N M r) :
     nativeBasisEmbedding (nativeDataBasis data) ψ q =
@@ -473,6 +560,8 @@ private theorem nativeDataEmbedding_apply {N M r : ℕ} [NeZero M]
     simp [hne]
   · simp
 
+/-- If `K` only connects states with equal assigned data, the coupled gate implements `K` on
+embedded basis kets. -/
 theorem nativeCoupledGate_ket {N M r : ℕ} [NeZero M] (zero : Fin N)
     (K : Matrix (JRState N r) (JRState N r) ℂ)
     (data : JRState N r → Fin N → ZMod M)
@@ -492,12 +581,17 @@ theorem nativeCoupledGate_ket {N M r : ℕ} [NeZero M] (zero : Fin N)
       Equiv.swap_apply_left, Prod.mk.injEq, hswap, hd, ite_mul, mul_ite]
     split_ifs <;> tauto
 
+/-- The input restricted to the stored subset, extended by zero outside it. -/
 def nativeSubsetData {N M r : ℕ} (x : Fin N → ZMod M) (p : JRState N r) : Fin N → ZMod M :=
   fun i => if i ∈ p.val.1 then x i else 0
 
+/-- The input restricted to the stored subset together with its distinguished address, extended
+by zero elsewhere. -/
 def nativeInsertedData {N M r : ℕ} (x : Fin N → ZMod M) (p : JRState N r) : Fin N → ZMod M :=
   fun i => if i ∈ insert p.val.2 p.val.1 then x i else 0
 
+/-- Loading the distinguished address transforms the subset-data embedding into the
+inserted-data embedding. -/
 theorem nativeInsertLoad_semantics {N M r : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (ψ : QState (JRState N r)) :
     Run (alphabetOracle x) (nativeLoadRound (fun p => p.val.2))
@@ -517,17 +611,21 @@ theorem nativeInsertLoad_semantics {N M r : ℕ} [NeZero M]
       · simp [nativeInsertedData, nativeSubsetData, Function.update, hi]) ψ
   simpa only [Matrix.one_mulVec] using! h
 
+/-- The involutive permutation that negates the oracle answer register. -/
 def nativeAnswerNegation (N M r : ℕ) : Equiv.Perm (LoadedSpace N M r) where
   toFun q := ((q.1.1, -q.1.2),q.2)
   invFun q := ((q.1.1, -q.1.2),q.2)
   left_inv q := by simp
   right_inv q := by simp
 
+/-- The circuit that swaps out the distinguished stored value and uncomputes it with one negated
+oracle query. -/
 def nativeEraseWord (N M r : ℕ) [NeZero M] : Circuit (LoadedSpace N M r) :=
   [.gate (permMatrix (nativeDataStore (fun p => p.val.2))),
     .gate (permMatrix (nativeAnswerNegation N M r)), .query,
     .gate (permMatrix (nativeAnswerNegation N M r))]
 
+/-- The erasure circuit is unitary and uses exactly one oracle query. -/
 theorem nativeEraseWord_resources (N M r : ℕ) [NeZero M] :
     IsUnitaryCircuit (nativeEraseWord N M r) ∧ QueryCount (nativeEraseWord N M r) = 1 := by
   have hS :=
@@ -536,6 +634,8 @@ theorem nativeEraseWord_resources (N M r : ℕ) [NeZero M] :
   have hN := permMatrix_unitary_of_injective (nativeAnswerNegation N M r).injective
   simp [nativeEraseWord, hS, hN, QueryCount]
 
+/-- Erasing the distinguished value sends an inserted-data basis label back to the corresponding
+subset-data basis label. -/
 theorem nativeEraseWord_ket {N M r : ℕ} [NeZero M] (x : Fin N → ZMod M) (p : JRState N r) :
     Run (alphabetOracle x) (nativeEraseWord N M r) (Qatlib.Foundations.PureStateMath.Ket (nativeDataBasis (nativeInsertedData x) p)) =
       Qatlib.Foundations.PureStateMath.Ket (nativeDataBasis (nativeSubsetData x) p) := by
@@ -557,6 +657,7 @@ theorem nativeEraseWord_ket {N M r : ℕ} [NeZero M] (x : Fin N → ZMod M) (p :
   rw [native_perm_ket]
   simp [nativeAnswerNegation]
 
+/-- Erasure transforms any inserted-data embedded state into its subset-data embedding. -/
 theorem nativeEraseWord_semantics {N M r : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (ψ : QState (JRState N r)) :
     Run (alphabetOracle x) (nativeEraseWord N M r)
@@ -567,6 +668,8 @@ theorem nativeEraseWord_semantics {N M r : ℕ} [NeZero M]
     (fun p => by rw [Matrix.one_mulVec, nativeBasisEmbedding_ket]; exact nativeEraseWord_ket x p) ψ
   simpa only [Matrix.one_mulVec] using! h
 
+/-- The transported inner-diffusion entry equals the second diffusion entry on the corresponding
+adjoined states. -/
 private theorem nativeInnerDiffusion_entry (N r : ℕ) (p q : JRState N r) :
     nativeInnerDiffusion N r p q = jwBigDiff2 N r (jwInsertEquiv N r p) (jwInsertEquiv N r q) := by
   have hE : jwEmbedMat N r *ᵥ Qatlib.Foundations.PureStateMath.Ket q = Qatlib.Foundations.PureStateMath.Ket (jwInsertEquiv N r q) := by
@@ -579,6 +682,7 @@ private theorem nativeInnerDiffusion_entry (N r : ℕ) (p q : JRState N r) :
   rw [hE, jwDropMat_mulVec, mulVec_ket_apply, mulVec_ket_apply] at heq
   exact heq
 
+/-- States connected by a nonzero first-diffusion entry have identical subset data. -/
 private theorem nativeOutsideData_support {N M r : ℕ} (x : Fin N → ZMod M)
     (p q : JRState N r) (hK : jwBigDiff1 N r p q ≠ 0) : nativeSubsetData x p = nativeSubsetData x q := by
   have hS : p.val.1 = q.val.1 := by
@@ -587,6 +691,7 @@ private theorem nativeOutsideData_support {N M r : ℕ} (x : Fin N → ZMod M)
     exact hK (by simp [jwBigDiff1, h])
   exact congrArg (fun S : Finset (Fin N) => fun i => if i ∈ S then x i else 0) hS
 
+/-- States connected by a nonzero inner-diffusion entry have identical inserted data. -/
 private theorem nativeInsideData_support {N M r : ℕ} (x : Fin N → ZMod M)
     (p q : JRState N r) (hK : nativeInnerDiffusion N r p q ≠ 0) :
     nativeInsertedData x p = nativeInsertedData x q := by
@@ -598,6 +703,8 @@ private theorem nativeInsideData_support {N M r : ℕ} (x : Fin N → ZMod M)
   change insert p.val.2 p.val.1 = insert q.val.2 q.val.1 at hS
   exact congrArg (fun S : Finset (Fin N) => fun i => if i ∈ S then x i else 0) hS
 
+/-- A single coupled gate implements `K` on embedded states when assigned data are constant
+along its nonzero entries. -/
 private theorem nativeCoupledWord_semantics {N M r : ℕ} [NeZero M] (zero : Fin N)
     (K : Matrix (JRState N r) (JRState N r) ℂ)
     (data : JRState N r → Fin N → ZMod M)
@@ -610,10 +717,13 @@ private theorem nativeCoupledWord_semantics {N M r : ℕ} [NeZero M] (zero : Fin
   intro p
   simpa only [Run, ApplyGate] using! nativeCoupledGate_ket zero K data hdata p
 
+/-- The native walk circuit combining the first diffusion, one loading query, the inner
+diffusion, and one erasure query. -/
 def nativeWalkWord {N M r : ℕ} [NeZero M] (zero : Fin N) : Circuit (LoadedSpace N M r) :=
   [.gate (nativeCoupledGate zero (jwBigDiff1 N r))] ++ nativeLoadRound (fun p => p.val.2) ++
     [.gate (nativeCoupledGate zero (nativeInnerDiffusion N r))] ++ nativeEraseWord N M r
 
+/-- For `r < N`, the native walk circuit is unitary and uses exactly two oracle queries. -/
 theorem nativeWalkWord_resources {N M r : ℕ} [NeZero M] (zero : Fin N) (hr : r < N) :
     IsUnitaryCircuit (nativeWalkWord (M:=M) (r:=r) zero) ∧
       QueryCount (nativeWalkWord (M:=M) (r:=r) zero) = 2 := by
@@ -628,6 +738,7 @@ theorem nativeWalkWord_resources {N M r : ℕ} [NeZero M] (zero : Fin N) (hr : r
     exact ⟨⟨⟨hD1, hload⟩, hD2⟩, herase⟩
   · simp [nativeWalkWord, nativeLoadRound, nativeEraseWord, QueryCount]
 
+/-- On input-loaded states, the native walk circuit implements the full Johnson-walk matrix. -/
 theorem nativeWalkWord_semantics {N M r : ℕ} [NeZero M] (zero : Fin N)
     (x : Fin N → ZMod M) (ψ : QState (JRState N r)) :
     Run (alphabetOracle x) (nativeWalkWord (M:=M) (r:=r) zero) (loadedState x ψ) =
@@ -642,6 +753,8 @@ theorem nativeWalkWord_semantics {N M r : ℕ} [NeZero M] (zero : Fin N)
   rw [Matrix.mulVec_mulVec]
   rfl
 
+/-- The native setup, walk, and stored phase-flip circuits satisfy `NativeJohnsonData`, with
+query counts `r`, two, and zero respectively [Ambainis2007ElementDistinctness]. -/
 theorem nativeJohnsonData_answer : NativeJohnsonData := by
   intro N M r k _ _ _ hr
   have hN : 0 < N := by omega

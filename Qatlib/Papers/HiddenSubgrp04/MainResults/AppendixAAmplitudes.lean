@@ -29,6 +29,33 @@ import Mathlib.Data.Nat.Cast.Defs
 import Mathlib.Data.Nat.Init
 import Mathlib.Tactic
 import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
+
+/-!
+# Amplitude-estimate propositions for cyclic Fourier approximation
+
+This module defines the propositions `lemma_A7Statement` through `lemma_A10Statement` for
+Appendix A amplitude and modular-distance estimates. They express a pointwise bound on `Acoef`,
+two reciprocal-distance sum bounds outside cells, and a squared-sum estimate for weighted
+modular distances.
+
+The development follows [Lomont2004].
+
+## Main statements
+
+* `lemma_A7Statement`: The proposition bounding the norm of `Acoef` by √(M/(LN)) times 2/π times
+  the reciprocal modular distance, under positive size, index, and nonintegral phase-difference
+  hypotheses.
+* `lemma_A9Statement`: The proposition that the reciprocal modular-distance sum outside the
+  cells is at most 4N log(N)/M, for odd N ≥ 13 and M ≥ 16N.
+* `lemma_A10Statement`: The proposition bounding the sum over `k` of squared absolute weighted
+  sums of modular distances outside cells by 22N log(N)²/M + 32N³/M², for a real vector of
+  squared norm one and the supplied size hypotheses.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -39,6 +66,8 @@ namespace Qatlib.Papers.HiddenSubgrp04.MainResults
 
 noncomputable section
 
+/-- The proposition bounding the norm of `Acoef` by √(M/(LN)) times 2/π times the reciprocal
+modular distance, under positive size, index, and nonintegral phase-difference hypotheses. -/
 def lemma_A7Statement (L M N i k : ℕ) (hL : 0 < L) (hM : 0 < M) (hN : 0 < N)
     (hi : i < N) (hk : k < M)
     (hnotint : ¬ ∃ z : ℤ, (k : ℝ) / (M : ℝ) - (i : ℝ) / (N : ℝ) = (z : ℝ)) : Prop :=
@@ -46,6 +75,8 @@ def lemma_A7Statement (L M N i k : ℕ) (hL : 0 < L) (hM : 0 < M) (hN : 0 < N)
       Real.sqrt ((M : ℝ) / ((L : ℝ) * (N : ℝ))) * (2 / Real.pi) *
         (1 / distMod (M : ℝ) ((k : ℝ) - (M : ℝ) / (N : ℝ) * (i : ℝ)))
 
+/-- The proposition bounding the sum of reciprocal modular distances over indices whose cells
+exclude `k` by the displayed logarithmic expression, for odd N > 2 and M > 2N. -/
 def lemma_A8Statement (M N k : ℕ) (hN : 2 < N) (hM : 2 * N < M) (hNodd : Odd N)
     (hk : k < M) : Prop :=
     (∑ i ∈ (Finset.range N).filter (fun i => k ∉ cell M N i),
@@ -55,12 +86,17 @@ def lemma_A8Statement (M N k : ℕ) (hN : 2 < N) (hM : 2 * N < M) (hNodd : Odd N
           Real.log |(((N : ℝ) - 1) /
             (2 * (1 / 2 - (N : ℝ) / (M : ℝ)) + 1))|)
 
+/-- The proposition that the reciprocal modular-distance sum outside the cells is at most 4N
+log(N)/M, for odd N ≥ 13 and M ≥ 16N. -/
 def lemma_A9Statement (M N k : ℕ) (hN : 13 ≤ N) (hM : 16 * N ≤ M) (hNodd : Odd N)
     (hk : k < M) : Prop :=
     (∑ i ∈ (Finset.range N).filter (fun i => k ∉ cell M N i),
         1 / distMod (M : ℝ) ((k : ℝ) - (M : ℝ) / (N : ℝ) * (i : ℝ))) ≤
       4 * (N : ℝ) * Real.log (N : ℝ) / (M : ℝ)
 
+/-- The proposition bounding the sum over `k` of squared absolute weighted sums of modular
+distances outside cells by 22N log(N)²/M + 32N³/M², for a real vector of squared norm one
+and the supplied size hypotheses. -/
 def lemma_A10Statement (M N : ℕ) (hN : 13 ≤ N) (hM : 16 * N ≤ M) (hNodd : Odd N)
     (x : Fin N → ℝ) (hx : ∑ i : Fin N, x i ^ 2 = 1) : Prop :=
     (∑ k : Fin M, |∑ i : Fin N,

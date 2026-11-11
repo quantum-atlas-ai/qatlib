@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.Regularity
 import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
+
+/-!
+# Stability of bounded AMP histories
+
+Coordinatewise tensor perturbations propagate through the clipped AMP recursion with an explicit
+factor `stabilityBase`. Product, interaction, readout, and clipping estimates give
+finite-horizon history and output bounds for the dynamics associated with [GohMuller2026].
+
+## Main statements
+
+* `actual_history_difference`: tensor perturbations control all accumulated history entries.
+* `actual_output_difference`: the same exponential-in-time factor controls the AMP output.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,11 +39,15 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
 
 namespace Qatlib.Papers.OverlapGapGoh26.UniformGrid.Stability
 
+/-- A finite product of real numbers of absolute value at most one also has absolute value at
+most one. -/
 theorem unit_product_bound {I : Type} [DecidableEq I] (S : Finset I) (u : I → ℝ)
     (hu : ∀ i∈S, |u i|≤1) : |∏ i∈S,u i|≤1 := by
   rw [Finset.abs_prod]
   exact Finset.prod_le_one₀ (fun _ _ => abs_nonneg _) hu
 
+/-- For two finite families bounded in absolute value by one, the difference of their products
+is at most the sum of the coordinatewise differences. -/
 theorem unit_product_difference {I : Type} [DecidableEq I] (S : Finset I) (u v : I → ℝ)
     (hu : ∀ i∈S,|u i|≤1) (hv : ∀ i∈S,|v i|≤1) :
     |(∏ i∈S,u i)-(∏ i∈S,v i)|≤∑ i∈S,|u i-v i| := by
@@ -46,6 +68,9 @@ theorem unit_product_difference {I : Type} [DecidableEq I] (S : Finset I) (u v :
         (mul_le_mul (hv a (Finset.mem_insert_self _ _)) (ih heu hev) (abs_nonneg _) (by norm_num))
       _ = _ := by ring
 
+/-- With tensor entries differing by at most `δ`, the second tensor bounded by two, and
+unit-bounded spins differing by at most `η`, the interaction difference is at most `N^r * (δ
++ 2 * r * η)`. -/
 theorem interaction_difference {r N : ℕ}
     (J K : Fin N → (Fin r → Fin N) → ℝ) (z w : Fin N → ℝ)
     (δ η : ℝ) (hδ : 0≤δ)
@@ -79,6 +104,8 @@ theorem interaction_difference {r N : ℕ}
         _ = _ := by ring
     _ = _ := by simp; ring
 
+/-- For schedules in `[0, 1]` through `T`, histories differing coordinatewise by at most `D`
+have spin readouts differing by at most `2 * T * D` at times at most `T`. -/
 theorem readout_difference {N T t : ℕ} (s : ℕ → ℝ) (ht : t≤T)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1)
     (U V : Fin (t+1) → Fin N → ℝ) (D : ℝ) (hD : 0≤D)
@@ -96,9 +123,12 @@ theorem readout_difference {N T t : ℕ} (s : ℕ → ℝ) (ht : t≤T)
     _ = 2*(t:ℝ)*D := by simp; ring
     _ ≤ 2*(T:ℝ)*D := by gcongr
 
+/-- The clipping map does not increase absolute differences. -/
 theorem clip_difference (M x y : ℝ) : |clip M x-clip M y|≤|x-y| := by
   simpa only [Real.dist_eq,NNReal.coe_one,one_mul] using (clip_lipschitz M).dist_le_mul x y
 
+/-- Under the stated schedule, tensor, and history bounds, one AMP update differs by at most
+`N^r * δ + (4 * r * T * N^r + 1) * D`. -/
 theorem ampNext_difference {r N T t : ℕ} (M : ℝ) (s : ℕ → ℝ) (ht : t≤T)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1)
     (J K : Fin N → (Fin r → Fin N) → ℝ)
@@ -126,13 +156,18 @@ theorem ampNext_difference {r N T t : ℕ} (M : ℝ) (s : ℕ → ℝ) (ht : t�
       add_le_add hf (mul_le_mul hc' (hUV 0 i) (abs_nonneg _) (by norm_num))
     _ = _ := by ring
 
+/-- The explicit history-stability factor `2 + (4 * r * T + 1) * N^r`. -/
 def stabilityBase (r T N : ℕ) : ℝ := 2+(4*(r:ℝ)*(T:ℝ)+1)*(N:ℝ)^r
 
+/-- The history-stability factor is at least one. -/
 theorem stabilityBase_ge_one (r T N : ℕ) : 1≤ stabilityBase r T N := by
   unfold stabilityBase
   have h : 0≤(4*(r:ℝ)*(T:ℝ)+1)*(N:ℝ)^r := by positivity
   linarith
 
+/-- For a common seed and a schedule in `[0, 1]`, tensor perturbations bounded by `δ` produce
+history differences at most `δ * (stabilityBase r T N)^t` through time `T`, provided the
+second tensor is bounded by two. -/
 theorem actual_history_difference {r N T : ℕ} (M : ℝ) (seed : Fin N → ℝ)
     (s : ℕ → ℝ) (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1)
     (J K : Fin N → (Fin r → Fin N) → ℝ) (δ : ℝ) (hδ : 0≤δ)
@@ -165,6 +200,8 @@ theorem actual_history_difference {r N T : ℕ} (M : ℝ) (seed : Fin N → ℝ)
       rw [pow_succ]
       nlinarith [mul_nonneg (sub_nonneg.mpr hB) hD]
 
+/-- Under the stated tensor and schedule bounds, the AMP outputs differ coordinatewise by at
+most `δ * (stabilityBase r T N)^T`. -/
 theorem actual_output_difference {r N T : ℕ} (M : ℝ) (seed : Fin N → ℝ)
     (s : ℕ → ℝ) (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1)
     (J K : Fin N → (Fin r → Fin N) → ℝ) (δ : ℝ) (hδ : 0≤δ)

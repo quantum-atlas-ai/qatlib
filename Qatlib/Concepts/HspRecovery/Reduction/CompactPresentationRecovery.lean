@@ -8,6 +8,30 @@ import Qatlib.Concepts.HspRecovery.Reduction.ModularReversibleWord
 import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecoveryDefs
 import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
 import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+
+/-!
+# Compact recovery from Smith coordinates
+
+This module proves correctness and operation counts for the gcd decoder defined by
+`compactDecode`. It relates coordinatewise divisibility constraints to a compact description of
+the record annihilator and transports the result to words in a finite abelian presentation.
+
+The cyclic specialization agrees with the character table decoder and inherits its recovery
+probability bound. These constructions fit the finite abelian group methods discussed in
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `compactDecode_iff_recordAnn`: characterizes the decoded divisibility constraints.
+* `clause1_endpoint`: collects canonical factors, reconstruction, and word equality.
+* `cyclic_table_decoder_agrees`: identifies cyclic compact and table decoders.
+* `compact_cyclic_recovery_probability`: transfers the sampling success bound.
+
+## References
+
+* [Kitaev, Shen and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -43,6 +67,7 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- A divisibility relation `a ∣ b` provides a natural number `c` with `b = a * c`. -/
 theorem exists_mul_of_dvd {a b : ℕ} (h : a ∣ b) : ∃ c, b = a * c := by
   have hmod : b % a = 0 := Nat.dvd_iff_mod_eq_zero.mp h
   refine ⟨b / a, ?_⟩
@@ -50,11 +75,13 @@ theorem exists_mul_of_dvd {a b : ℕ} (h : a ∣ b) : ∃ c, b = a * c := by
   rw [hmod, zero_add] at h1
   exact h1.symm
 
+/-- Multiplication by `c` and `x` can be interchanged in `c * (x * t)`. -/
 theorem mul_swap (c x t : ℕ) : c * (x * t) = x * (c * t) := by
   calc c * (x * t) = (c * x) * t := by exact (Nat.mul_assoc c x t).symm
     _ = (x * c) * t := by rw [Nat.mul_comm c x]
     _ = x * (c * t) := by exact Nat.mul_assoc x c t
 
+/-- The gcd of `d` with a list of natural numbers divides `d`. -/
 theorem gcdList_dvd_d (d : ℕ) (cs : List ℕ) : gcdList d cs ∣ d := by
   induction cs with
   | nil => simp [gcdList]
@@ -62,9 +89,11 @@ theorem gcdList_dvd_d (d : ℕ) (cs : List ℕ) : gcdList d cs ∣ d := by
       rw [gcdList]
       exact (Nat.gcd_dvd_left (gcdList d cs) c).trans ih
 
+/-- The gcd of a positive natural number with any list is positive. -/
 theorem gcdList_pos {d : ℕ} (hd : 0 < d) (cs : List ℕ) : 0 < gcdList d cs := by
   exact Nat.pos_of_dvd_of_pos (gcdList_dvd_d d cs) hd
 
+/-- The gcd of `d` with a list divides every member of the list. -/
 theorem gcdList_dvd_of_mem (d : ℕ) (cs : List ℕ) {c : ℕ} (hc : c ∈ cs) :
     gcdList d cs ∣ c := by
   induction cs with
@@ -76,6 +105,8 @@ theorem gcdList_dvd_of_mem (d : ℕ) (cs : List ℕ) {c : ℕ} (hc : c ∈ cs) :
         exact Nat.gcd_dvd_right _ _
       · exact (Nat.gcd_dvd_left _ _).trans (ih h)
 
+/-- If positive `h` divides `c * t`, then `h / gcd h c` divides `t` and is coprime to `c / gcd h
+c`. -/
 theorem coprime_step {h c t : ℕ} (hh : 0 < h) (hct : h ∣ c * t) :
     (h / Nat.gcd h c) ∣ t ∧ Nat.gcd (h / Nat.gcd h c) (c / Nat.gcd h c) = 1 := by
   have hg : Nat.gcd h c ∣ h := Nat.gcd_dvd_left h c
@@ -122,6 +153,8 @@ theorem coprime_step {h c t : ℕ} (hh : 0 < h) (hct : h ∣ c * t) :
     Nat.Coprime.gcd_eq_one hcop
   exact hco.dvd_of_dvd_mul_left hdiv
 
+/-- For positive `d`, all products `c * x` are divisible by `d` exactly when `d / gcdList d cs`
+divides `x`. -/
 theorem ann_iff (d : ℕ) (hd : 0 < d) (cs : List ℕ) (x : ℕ) :
     (∀ c ∈ cs, d ∣ c * x) ↔ (d / gcdList d cs) ∣ x := by
   induction cs with
@@ -236,6 +269,8 @@ theorem ann_iff (d : ℕ) (hd : 0 < d) (cs : List ℕ) (x : ℕ) :
             _ = c' * ((d / gcdList d (c :: cs)) * t) := by
               exact (mul_swap c' (d / gcdList d (c :: cs)) t).symm
 
+/-- The value returned by `labelGcdScan` is the gcd of its initial value and the selected
+coordinate of every label. -/
 theorem labelGcdScan_gcd {m : ℕ} (r : Fin m) (L : List (Fin m → ℕ)) (d : ℕ) :
     (labelGcdScan r L d).1 = gcdList d (L.map (fun l => l r)) := by
   induction L with
@@ -246,17 +281,22 @@ theorem labelGcdScan_gcd {m : ℕ} (r : Fin m) (L : List (Fin m → ℕ)) (d : �
       rw [ih]
       rfl
 
+/-- The coordinate gcd `labelGcd` equals `gcdList` applied to the Smith coefficient and the
+recorded coordinate values. -/
 theorem labelGcd_eq_gcdList {m n : ℕ} (p : NormalizedSmithData m n)
     (L : List (FactorLabel p)) (r : Fin m) :
     labelGcd p L r = gcdList (p.coeff r) (L.map (fun l => l r)) := by
   rw [labelGcd]
   exact labelGcdScan_gcd r L (p.coeff r)
 
+/-- Every Smith coefficient is positive when the normalized Smith data pass the finiteness test. -/
 theorem coeff_pos_of_finite {m n : ℕ} (p : NormalizedSmithData m n) (hf : p.isFinite = true)
     (r : Fin m) : 0 < p.coeff r := by
   have hne : p.coeff r ≠ 0 := (of_decide_eq_true hf) r
   exact Nat.pos_of_ne_zero hne
 
+/-- For a positive Smith coefficient, simultaneous label annihilation in one coordinate is
+equivalent to divisibility by its gcd quotient. -/
 theorem labelAnn_iff {m n : ℕ} (p : NormalizedSmithData m n) (L : List (FactorLabel p))
     (r : Fin m) (hd : 0 < p.coeff r) (x : ℕ) :
     (∀ l ∈ L, p.coeff r ∣ l r * x) ↔ (p.coeff r / labelGcd p L r) ∣ x := by
@@ -274,6 +314,8 @@ theorem labelAnn_iff {m n : ℕ} (p : NormalizedSmithData m n) (L : List (Factor
     intro l hl
     exact hall (l r) (List.mem_map.mpr ⟨l, hl, rfl⟩)
 
+/-- When all Smith coefficients are positive, the decoded divisibility predicate is equivalent
+to the record annihilation predicate. -/
 theorem compactDecode_iff_recordAnn {m n : ℕ} (p : NormalizedSmithData m n)
     (L : List (FactorLabel p)) (hf : ∀ r : Fin m, 0 < p.coeff r) (x : Fin m → ℕ) :
     decodedSet p L x ↔ recordAnn p L x := by
@@ -285,6 +327,8 @@ theorem compactDecode_iff_recordAnn {m n : ℕ} (p : NormalizedSmithData m n)
   · intro h r
     exact (labelAnn_iff p L r (hf r) (x r)).mp (fun l hl => h l hl r)
 
+/-- When all Smith coefficients are positive, every coordinate of `compactDecode` annihilates
+every recorded label in that coordinate. -/
 theorem compactDecode_annihilates {m n : ℕ} (p : NormalizedSmithData m n)
     (L : List (FactorLabel p)) (hf : ∀ r : Fin m, 0 < p.coeff r) :
     ∀ l ∈ L, ∀ r, p.coeff r ∣ l r * compactDecode p L r := by
@@ -295,11 +339,13 @@ theorem compactDecode_annihilates {m n : ℕ} (p : NormalizedSmithData m n)
       exact Nat.dvd_refl _)
   exact hann l hl
 
+/-- Encoding the decoded word in the original generators recovers `compactDecodeNormalized`. -/
 theorem compactDecodeOriginal_encode {m n : ℕ} (p : CompactPresentation)
     (L : List (FactorLabel p.smith)) :
     normalizedEncode p.smith (compactDecodeOriginal p.smith L) = compactDecodeNormalized p.smith L := by
   exact normalizedEncode_decode (smithDecodeRelations p.table) (compactDecodeNormalized p.smith L)
 
+/-- The gcd scan reads one label coordinate per list element. -/
 theorem labelGcdScan_reads {m : ℕ} (r : Fin m) (L : List (Fin m → ℕ)) (d : ℕ) :
     (labelGcdScan r L d).2.1 = L.length := by
   induction L with
@@ -310,6 +356,7 @@ theorem labelGcdScan_reads {m : ℕ} (r : Fin m) (L : List (Fin m → ℕ)) (d :
       rw [ih]
       rfl
 
+/-- The gcd scan performs one gcd reduction per list element. -/
 theorem labelGcdScan_reductions {m : ℕ} (r : Fin m) (L : List (Fin m → ℕ)) (d : ℕ) :
     (labelGcdScan r L d).2.2 = L.length := by
   induction L with
@@ -320,20 +367,25 @@ theorem labelGcdScan_reductions {m : ℕ} (r : Fin m) (L : List (Fin m → ℕ))
       rw [ih]
       rfl
 
+/-- The compact decoder records `m * L.length` label reads. -/
 theorem compactDecodeLedger_reads {m n : ℕ} (p : NormalizedSmithData m n)
     (L : List (FactorLabel p)) :
     (compactDecodeLedger p L).labelReads = m * L.length := by
   simp [compactDecodeLedger, labelGcdScan_reads]
 
+/-- The compact decoder records `m * L.length` gcd reductions. -/
 theorem compactDecodeLedger_reductions {m n : ℕ} (p : NormalizedSmithData m n)
     (L : List (FactorLabel p)) :
     (compactDecodeLedger p L).gcdReductions = m * L.length := by
   simp [compactDecodeLedger, labelGcdScan_reads, labelGcdScan_reductions]
 
+/-- The compact decoder ledger records zero group enumeration operations. -/
 theorem compactDecodeLedger_no_enumeration {m n : ℕ} (p : NormalizedSmithData m n)
     (L : List (FactorLabel p)) :
     (compactDecodeLedger p L).groupEnumeration = 0 := rfl
 
+/-- For a record of length `k`, the compact decoder counts `m * k` label reads and the table
+decoder counts `Fintype.card G * k` operations on a replicated record. -/
 theorem compactDecodeLedger_vs_table {G : Type} [Fintype G] [DecidableEq G]
     {m n : ℕ} (p : NormalizedSmithData m n) (L : List (FactorLabel p))
     (tab : G → G → Bool) (g : G) (k : ℕ) (hk : L.length = k) :
@@ -343,6 +395,8 @@ theorem compactDecodeLedger_vs_table {G : Type} [Fintype G] [DecidableEq G]
   · rw [compactDecodeLedger_reads, hk]
   · rw [tableKernelDecode_reads, List.length_replicate]
 
+/-- For a nonempty record, the compact decoder has a smaller label read count than the table
+decoder when `m < Fintype.card G`. -/
 theorem compactDecodeLedger_lt_table {G : Type} [Fintype G] [DecidableEq G]
     {m n : ℕ} (p : NormalizedSmithData m n) (L : List (FactorLabel p))
     (tab : G → G → Bool) (g : G) (k : ℕ) (hk : L.length = k) (hk0 : 0 < k)
@@ -351,6 +405,8 @@ theorem compactDecodeLedger_lt_table {G : Type} [Fintype G] [DecidableEq G]
   rw [compactDecodeLedger_reads, hk, tableKernelDecode_reads, List.length_replicate]
   exact Nat.mul_lt_mul_of_pos_right hlt hk0
 
+/-- Isomorphic presentation modules have identical compact invariant factors when the first
+presentation passes the finiteness test. -/
 theorem compactPresentation_factors_canonical {p p' : CompactPresentation}
     (hp : p.isFinite = true)
     (e : PresentationModule (p.relationMatrix) ≃+ PresentationModule (p'.relationMatrix)) :
@@ -358,6 +414,8 @@ theorem compactPresentation_factors_canonical {p p' : CompactPresentation}
   exact normalizedSmith_factors_invariant (smithDecodeRelations p.table)
     (smithDecodeRelations p'.table) hp e
 
+/-- The word obtained from the appropriate column of the Smith reduction's left inverse
+represents the corresponding Smith generator. -/
 theorem compactPresentation_generatorWord (p : CompactPresentation)
     (r : Fin p.generators) :
     Submodule.Quotient.mk (fun i : Fin p.generators =>
@@ -366,27 +424,35 @@ theorem compactPresentation_generatorWord (p : CompactPresentation)
       = smithGenerator (p.relationMatrix) r := by
   exact normalizedSmith_generatorWord (smithDecodeRelations p.table) r
 
+/-- Decoding the normalized encoding of a word preserves its class in the presentation module. -/
 theorem compactPresentation_reconstruct (p : CompactPresentation)
     (v : Fin p.generators → ℤ) :
     (Submodule.Quotient.mk (normalizedDecode p.smith (normalizedEncode p.smith v)) :
       PresentationModule (p.relationMatrix)) = Submodule.Quotient.mk v := by
   exact normalizedDecode_encode (smithDecodeRelations p.table) v
 
+/-- Encoding the decoded representative of normalized coordinates returns those coordinates. -/
 theorem compactPresentation_encode_decode (p : CompactPresentation)
     (z : NormalizedCoordinates p.smith) :
     normalizedEncode p.smith (normalizedDecode p.smith z) = z := by
   exact normalizedEncode_decode (smithDecodeRelations p.table) z
 
+/-- The normalized word equality test succeeds exactly when the word difference lies in the
+image of the relation matrix. -/
 theorem compactPresentation_wordEq (p : CompactPresentation)
     (u v : Fin p.generators → ℤ) :
     normalizedWordEq p.smith u v = true ↔
       u - v ∈ LinearMap.range (p.relationMatrix).mulVecLin := by
   exact normalizedWordEq_true_iff (smithDecodeRelations p.table) u v
 
+/-- The compact presentation produces one generator word per invariant factor. -/
 theorem compactPresentation_output_size (p : CompactPresentation) :
     p.generatorWords.length = p.factors.length := by
   exact (normalizedSmith_output_size (smithDecodeRelations p.table)).2
 
+/-- A finite compact presentation has factors invariant under presentation isomorphism, one
+generator word per factor, correct word reconstruction, and a relation-image
+characterization of word equality. -/
 theorem clause1_endpoint {m n m' n' : ℕ}
     (p : CompactPresentation) (p' : CompactPresentation)
     (hp : p.isFinite = true)
@@ -406,12 +472,17 @@ theorem clause1_endpoint {m n m' n' : ℕ}
   · intro u v
     exact compactPresentation_wordEq p u v
 
+/-- The Boolean test for whether the product of two residues in `ZMod N` is zero. -/
 def cyclicTable {N : ℕ} (a x : ZMod N) : Bool := decide (a * x = 0)
 
+/-- For nonzero modulus, a product in `ZMod N` is zero exactly when `N` divides the product of
+the natural representatives. -/
 theorem cyclic_mul_eq_zero_iff {N : ℕ} [NeZero N] (a x : ZMod N) :
     a * x = 0 ↔ N ∣ a.val * x.val := by
   rw [← ZMod.val_eq_zero, ZMod.val_mul, Nat.dvd_iff_mod_eq_zero]
 
+/-- Extracting the sole coordinate of every cyclic record label returns the list of natural
+representatives. -/
 theorem cyclicRecordLabels_map {N : ℕ} (xs : List (ZMod N)) :
     (cyclicRecordLabels xs).map (fun l => l 0) = xs.map (fun l => l.val) := by
   induction xs with
@@ -419,6 +490,8 @@ theorem cyclicRecordLabels_map {N : ℕ} (xs : List (ZMod N)) :
   | cons l xs ih =>
       simp [cyclicRecordLabels, cyclicLabel]
 
+/-- The one-coordinate compact decoder with Smith coefficient `N` returns the cyclic annihilator
+generator. -/
 theorem compact_cyclic_decode {N : ℕ} (p : NormalizedSmithData 1 1)
     (hp : p.coeff 0 = N) (xs : List (ZMod N)) :
     compactDecode p (cyclicRecordLabels xs) 0 = cyclicAnnGenerator xs := by
@@ -429,6 +502,8 @@ theorem compact_cyclic_decode {N : ℕ} (p : NormalizedSmithData 1 1)
     rw [labelGcd_eq_gcdList, hp, hmap]
   rw [compactDecode, annGenerator, hg, hp, cyclicAnnGenerator]
 
+/-- For nonzero modulus, the table kernel decoder using `cyclicTable` returns exactly
+`cyclicDecodedSet`. -/
 theorem cyclic_table_decoder_agrees {N : ℕ} [NeZero N] (xs : List (ZMod N)) :
     (tableKernelDecode cyclicTable xs).1 = cyclicDecodedSet (Nat.pos_of_ne_zero (NeZero.ne N)) xs := by
   have hN : 0 < N := Nat.pos_of_ne_zero (NeZero.ne N)
@@ -456,6 +531,8 @@ theorem cyclic_table_decoder_agrees {N : ℕ} [NeZero N] (xs : List (ZMod N)) :
     simp only [cyclicTable, decide_eq_true_eq]
     exact (cyclic_mul_eq_zero_iff a x).mpr hz
 
+/-- For a hiding oracle and compatible character labels, the cyclic decoded set equals the
+hidden subgroup with probability at least `1 - Fintype.card (ZMod N) * (2⁻¹)^m`. -/
 theorem compact_cyclic_recovery_probability {N : ℕ} [NeZero N]
     {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     (f : ZMod N → R) (e : ZMod N ≃ AddChar (ZMod N) ℂ) (H : AddSubgroup (ZMod N))
@@ -481,6 +558,7 @@ theorem compact_cyclic_recovery_probability {N : ℕ} [NeZero N]
   simp only [cyclicTable, decide_eq_true_eq]
   exact (he a y).symm
 
+/-- The cyclic table sampling circuit uses one query and two gates. -/
 theorem compact_cyclic_quantum_ledger {N : ℕ} [NeZero N]
     {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     (f : ZMod N → R) (e : ZMod N ≃ AddChar (ZMod N) ℂ)

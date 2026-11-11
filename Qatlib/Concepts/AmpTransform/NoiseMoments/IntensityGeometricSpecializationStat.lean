@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralReadout.NoiseStatistics.NoiseIntensityConsumers
+
+/-!
+# Specification of normalized intensity specializations
+
+`IntensityGeometricSpecialization` compares normalized noise-only intensity with the intensity
+for a real signal of size M. It states exact nonresonant means, variance bounds, an envelope
+comparison, and limits as the noise sequence grows in the setting of [Cornwell2014].
+
+## Main statements
+
+* `IntensityGeometricSpecialization`: The normalized-intensity contract for zero and real
+  shifts: ordered nonnegative means, exact means and common variance bounds when 2y ≠ 0, an
+  envelope comparison, and vanishing noise mean and variance bound as L tends to infinity.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -12,6 +31,9 @@ set_option autoImplicit false
 open scoped Classical
 namespace Qatlib.Concepts.AmpTransform.NoiseMoments
 
+/-- The normalized-intensity contract for zero and real shifts: ordered nonnegative means, exact
+means and common variance bounds when 2y ≠ 0, an envelope comparison, and vanishing noise
+mean and variance bound as L tends to infinity. -/
 def IntensityGeometricSpecialization : Prop :=
   ∀ (N L M : ℕ) [NeZero N] (y : ZMod N), y ≠ 0 → 0 < M + L →
     let T : ℝ := ((M + L : ℕ) : ℝ)

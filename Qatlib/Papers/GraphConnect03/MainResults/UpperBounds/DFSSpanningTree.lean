@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.GraphConnect03.MainResults.Defs
+
+/-!
+# DFS trees and discovery-order reachability
+
+This module defines the parent-chain relation `Descendant` and an undirected spanning `DFSTree`
+with discovery-order and no-cross-edge conditions. It proves the corrected discovery-order
+implication `lemma1_corrected`, converts between walks and reachability, and bounds
+`dfsSearchCount` by twice the vertex count. See [DurrMhallaLei2003].
+
+## Main statements
+
+* `connected`: An undirected graph possessing a spanning `DFSTree` is connected.
+* `lemma1_corrected`: Under the stated discovery-order condition on every vertex other than `u`
+  reachable from `u` and able to reach a distinct `w`, reachability from `u` to `w` implies that
+  `w` is a descendant of `u`.
+* `dfsSearchCount_le`: The DFS search count for any visited subset is at most twice the total
+  number of vertices.
+
+## References
+
+* [Durr et al., 2003][DurrMhallaLei2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +39,7 @@ namespace Qatlib.Papers.GraphConnect03.MainResults.UpperBounds
 
 open Qatlib.Papers.GraphConnect03.MainResults.Defs
 
+/-- The reflexive transitive closure of parent-to-child steps specified by the parent function. -/
 def Descendant {n : ℕ} (parent : Vertex n → Option (Vertex n)) (u v : Vertex n) : Prop :=
   Relation.ReflTransGen (fun a b => parent b = some a) u v
 
@@ -23,22 +47,30 @@ namespace Descendant
 
 variable {n : ℕ} {parent : Vertex n → Option (Vertex n)}
 
+/-- Every vertex is its own descendant. -/
 theorem refl (u : Vertex n) : Descendant parent u u :=
   Relation.ReflTransGen.refl
 
+/-- The descendant relation is transitive. -/
 theorem trans {a b c : Vertex n}
     (hab : Descendant parent a b) (hbc : Descendant parent b c) : Descendant parent a c :=
   Relation.ReflTransGen.trans hab hbc
 
+/-- If the parent of `v` is `u`, then `v` is a descendant of `u`. -/
 theorem step {u v : Vertex n} (h : parent v = some u) : Descendant parent u v :=
   Relation.ReflTransGen.single h
 
+/-- Appending a parent-to-child step to a descendant chain preserves descendancy from the
+starting vertex. -/
 theorem of_tail {a b c : Vertex n} (hab : Descendant parent a b) (hbc : parent c = some b) :
     Descendant parent a c :=
   hab.tail hbc
 
 end Descendant
 
+/-- A rooted spanning parent structure for an undirected graph, with injective discovery times
+increasing along tree edges and a no-cross-edge condition relating increasing-time graph
+edges to descendancy. -/
 structure DFSTree (n : ℕ) (G : UndirectedMatrix n) where
 
   parent : Vertex n → Option (Vertex n)
@@ -64,12 +96,15 @@ namespace DFSTree
 
 variable {n : ℕ} {G : UndirectedMatrix n}
 
+/-- Discovery time is nondecreasing along descendant chains in a DFS tree. -/
 theorem desc_disc (T : DFSTree n G) {u v : Vertex n} (h : Descendant T.parent u v) :
     T.disc u ≤ T.disc v := by
   induction h with
   | refl => exact le_rfl
   | tail _ hbc ih => exact le_trans ih (le_of_lt (T.parent_disc _ _ hbc))
 
+/-- If `c` is a proper descendant of `a` and has parent `b`, then `b` is also a descendant of
+`a`. -/
 theorem descendant_parent_of_tail (T : DFSTree n G) {a c b : Vertex n}
     (h : Descendant T.parent a c) (hp : T.parent c = some b) (hne : a ≠ c) :
     Descendant T.parent a b := by
@@ -79,6 +114,8 @@ theorem descendant_parent_of_tail (T : DFSTree n G) {a c b : Vertex n}
     rw [hb]
     exact hc'
 
+/-- If `u` and `w` share a descendant and `u` has earlier discovery time than `w`, then `w` is a
+descendant of `u`. -/
 theorem descendant_of_descendant_of_disc_lt (T : DFSTree n G) {u w c : Vertex n}
     (huc : Descendant T.parent u c) (hwc : Descendant T.parent w c)
     (hlt : T.disc u < T.disc w) : Descendant T.parent u w := by
@@ -98,12 +135,14 @@ theorem descendant_of_descendant_of_disc_lt (T : DFSTree n G) {u w c : Vertex n}
 
 end DFSTree
 
+/-- The existence of a directed graph walk of a specified natural length between two vertices. -/
 def Walk {n : ℕ} (G : Digraph n) : ℕ → Vertex n → Vertex n → Prop
   | 0, s, t => s = t
   | m + 1, s, t => ∃ c : Vertex n, Walk G m s c ∧ G.adj c t = true
 
 namespace Walk
 
+/-- A walk of any finite length gives directed reachability. -/
 theorem reach {n : ℕ} {G : Digraph n} {m : ℕ} {s t : Vertex n} (h : Walk G m s t) :
     G.Reach s t := by
   induction m generalizing t with
@@ -118,6 +157,7 @@ theorem reach {n : ℕ} {G : Digraph n} {m : ℕ} {s t : Vertex n} (h : Walk G m
 
 end Walk
 
+/-- Directed reachability can be witnessed by a walk of some natural length. -/
 theorem reach_walk {n : ℕ} {G : Digraph n} {s t : Vertex n} (h : G.Reach s t) :
     ∃ m : ℕ, Walk G m s t := by
   induction h with
@@ -130,6 +170,9 @@ namespace DFSTree
 
 variable {n : ℕ} {G : UndirectedMatrix n}
 
+/-- A walk from `s` to a distinct `t` implies that `t` is a descendant of `s` if every other
+vertex reachable from `s` and able to reach `t` has later discovery time than `s`
+[DurrMhallaLei2003]. -/
 theorem descendant_of_walk_disc_gt (T : DFSTree n G) {s : Vertex n} :
     ∀ (m : ℕ) {t : Vertex n}, Walk G.toDigraph m s t → s ≠ t →
       (∀ z : Vertex n, G.toDigraph.Reach s z → G.toDigraph.Reach z t → s ≠ z →
@@ -169,6 +212,8 @@ theorem descendant_of_walk_disc_gt (T : DFSTree n G) {s : Vertex n} :
           exact T.descendant_of_descendant_of_disc_lt hdesc hback
             (hwhite t hst Relation.ReflTransGen.refl hne)
 
+/-- If `t` is reachable from a distinct `s` and every other vertex lying on a walk from `s` to
+`t` has later discovery time, then `t` is a descendant of `s` [DurrMhallaLei2003]. -/
 theorem descendant_of_path_disc_gt (T : DFSTree n G) {s t : Vertex n}
     (hpath : G.toDigraph.Reach s t) (hne : s ≠ t)
     (hwhite : ∀ z : Vertex n, G.toDigraph.Reach s z → G.toDigraph.Reach z t → s ≠ z →
@@ -177,18 +222,23 @@ theorem descendant_of_path_disc_gt (T : DFSTree n G) {s t : Vertex n}
   obtain ⟨m, hm⟩ := reach_walk hpath
   exact T.descendant_of_walk_disc_gt m hm hne hwhite
 
+/-- A descendant chain in a DFS tree gives reachability in the underlying graph. -/
 theorem reach_of_descendant (T : DFSTree n G) {u v : Vertex n}
     (h : Descendant T.parent u v) : G.toDigraph.Reach u v := by
   induction h with
   | refl => exact Relation.ReflTransGen.refl
   | tail _ hbc ih => exact ih.tail (T.parent_edge _ _ hbc)
 
+/-- An undirected graph possessing a spanning `DFSTree` is connected [DurrMhallaLei2003]. -/
 theorem connected (T : DFSTree n G) : G.Connected := by
   intro s t
   have hroot_s : G.toDigraph.Reach T.root s := T.reach_of_descendant (T.spanning s)
   have hroot_t : G.toDigraph.Reach T.root t := T.reach_of_descendant (T.spanning t)
   exact (G.reach_symm hroot_s).trans hroot_t
 
+/-- Under the stated discovery-order condition on every vertex other than `u` reachable from `u`
+and able to reach a distinct `w`, reachability from `u` to `w` implies that `w` is a
+descendant of `u` [DurrMhallaLei2003]. -/
 theorem lemma1_corrected (T : DFSTree n G) {u w : Vertex n}
     (hpath : G.toDigraph.Reach u w) (hne : u ≠ w)
     (hwhite : ∀ z : Vertex n, G.toDigraph.Reach u z → G.toDigraph.Reach z w →
@@ -198,6 +248,8 @@ theorem lemma1_corrected (T : DFSTree n G) {u w : Vertex n}
 
 end DFSTree
 
+/-- The DFS search count for any visited subset is at most twice the total number of vertices
+[DurrMhallaLei2003]. -/
 theorem dfsSearchCount_le {n : ℕ} (visited : Finset (Vertex n)) :
     dfsSearchCount visited ≤ 2 * n := by
   unfold dfsSearchCount

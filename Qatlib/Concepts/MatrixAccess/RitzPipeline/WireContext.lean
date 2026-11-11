@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.WireContextData
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+
+/-!
+# Transporting circuits into a wire context
+
+This module proves that `wireContextExtend` and `wireContextEmbed` preserve the selected
+register while fixing the surrounding wires. Legal reflection-gate programs commute with this
+embedding, including on finite sums of states with different surrounding registers. This
+formalizes the register-extension reasoning used in [NielsenChuang2010].
+
+## Main statements
+
+* `wire_context_program`: execution commutes with embedding into selected wires.
+* `wire_context_inner`: each fixed-context embedding preserves inner products.
+* `wire_context_orthogonal`: contexts differing on an unselected wire give orthogonal states.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,13 +43,19 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Extending a register along the wire injection recovers each original bit on its selected
+wire. -/
 private theorem wc_at {a L : ℕ} (e : Fin a ↪ Fin L) (s : Reg L) (x : Reg a) (i : Fin a) :
     wireContextExtend e s x (e i) = x i := e.injective.extend_apply _ _ _
 
+/-- On a wire outside the injection's image, an extended register equals the fixed surrounding
+register. -/
 private theorem wc_out {a L : ℕ} (e : Fin a ↪ Fin L) (s : Reg L) (x : Reg a)
     (j : Fin L) (hj : ¬ ∃ i, e i=j) : wireContextExtend e s x j = s j :=
   Function.extend_apply' _ _ j hj
 
+/-- Register extension agrees with the input on selected wires and with the fixed context
+elsewhere, and is injective. -/
 theorem wire_context_extend (a L : ℕ) (e : Fin a ↪ Fin L) (s : Reg L) :
     (∀ x i, wireContextExtend e s x (e i) = x i) ∧
       (∀ x j, (¬ ∃ i, e i=j) → wireContextExtend e s x j = s j) ∧
@@ -39,6 +65,8 @@ theorem wire_context_extend (a L : ℕ) (e : Fin a ↪ Fin L) (s : Reg L) :
   funext i
   simpa only [wc_at] using! congrFun h (e i)
 
+/-- Updating a selected bit after register extension equals extending the correspondingly
+updated smaller register. -/
 theorem wire_context_update (a L : ℕ) (e : Fin a ↪ Fin L) (s : Reg L)
     (x : Reg a) (t : Fin a) (v : Bool) :
     Function.update (wireContextExtend e s x) (e t) v =
@@ -53,19 +81,25 @@ theorem wire_context_update (a L : ℕ) (e : Fin a ↪ Fin L) (s : Reg L)
   · have hn : j ≠ e t := fun h => hj ⟨t,h.symm⟩
     rw [Function.update_of_ne hn,wc_out e s x j hj,wc_out e s (Function.update x t v) j hj]
 
+/-- The wire-context embedding sends a computational basis ket to the ket of its extended
+register. -/
 theorem wire_context_ket {a L : ℕ} (e : Fin a ↪ Fin L) (s : Reg L) (x : Reg a) :
     wireContextEmbed e s (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (wireContextExtend e s x) := by
   simp [wireContextEmbed,Qatlib.Foundations.PureStateMath.Ket]
 
+/-- The wire-context embedding commutes with complex scalar multiplication. -/
 private theorem wc_smul {a L : ℕ} (e : Fin a ↪ Fin L) (s : Reg L) (z : ℂ) (ψ : QState (Reg a)) :
     wireContextEmbed e s (z • ψ) = z • wireContextEmbed e s ψ := by
   simp [wireContextEmbed,Finset.smul_sum,smul_smul]
 
+/-- The wire-context embedding commutes with finite sums of states. -/
 private theorem wc_sum {a L : ℕ} {J : Type} [Fintype J] (e : Fin a ↪ Fin L) (s : Reg L)
     (ψ : J → QState (Reg a)) : wireContextEmbed e s (∑ j, ψ j) = ∑ j, wireContextEmbed e s (ψ j) := by
   simp only [wireContextEmbed,Finset.sum_apply,Finset.sum_smul]
   exact Finset.sum_comm
 
+/-- Applying a legally mapped reflection gate to an extended basis ket equals embedding the
+original gate's action on that ket. -/
 private theorem wc_gate_ket {a L : ℕ} (e : Fin a ↪ Fin L) (s : Reg L)
     (g : ReflectionGate a) (hg : reflectionGateLegal g) (x : Reg a) :
     ApplyGate (reflectionGateMatrix (knownWireGateMap e g)) (Qatlib.Foundations.PureStateMath.Ket (wireContextExtend e s x)) =
@@ -83,6 +117,8 @@ private theorem wc_gate_ket {a L : ℕ} (e : Fin a ↪ Fin L) (s : Reg L)
       applyGate_cnotGate_ket a c t hg,wire_context_ket,wc_at,wire_context_update]
     simp only [wc_at]
 
+/-- A legal reflection gate mapped along the wire injection commutes with the wire-context state
+embedding. -/
 private theorem wc_gate {a L : ℕ} (e : Fin a ↪ Fin L) (s : Reg L)
     (g : ReflectionGate a) (hg : reflectionGateLegal g) (ψ : QState (Reg a)) :
     ApplyGate (reflectionGateMatrix (knownWireGateMap e g)) (wireContextEmbed e s ψ) =
@@ -98,6 +134,8 @@ private theorem wc_gate {a L : ℕ} (e : Fin a ↪ Fin L) (s : Reg L)
   rw [show reflectionGateMatrix (knownWireGateMap e g) *ᵥ Qatlib.Foundations.PureStateMath.Ket (wireContextExtend e s x) =
     wireContextEmbed e s (reflectionGateMatrix g *ᵥ Qatlib.Foundations.PureStateMath.Ket x) from wc_gate_ket e s g hg x]
 
+/-- Execution of a legal reflection-gate program commutes with embedding the state and mapping
+the program along the wire injection. -/
 theorem wire_context_program (a L : ℕ) (e : Fin a ↪ Fin L) (s : Reg L)
     (gs : List (ReflectionGate a)) (hgs : reflectionLegal gs) (ψ : QState (Reg a)) :
     Run 1 (reflectionCompile (gs.map (knownWireGateMap e))) (wireContextEmbed e s ψ) =
@@ -109,6 +147,8 @@ theorem wire_context_program (a L : ℕ) (e : Fin a ↪ Fin L) (s : Reg L)
     rw [wc_gate e s g (hgs g List.mem_cons_self)]
     exact ih (fun g hg => hgs g (List.mem_cons_of_mem _ hg)) _
 
+/-- A mapped legal reflection program acts termwise on a finite sum of states embedded with
+possibly different surrounding registers. -/
 theorem wire_context_program_family (a L : ℕ) (e : Fin a ↪ Fin L)
     (gs : List (ReflectionGate a)) (hgs : reflectionLegal gs)
     (S : Type) [Fintype S] (s : S → Reg L) (ψ : S → QState (Reg a)) :
@@ -119,6 +159,8 @@ theorem wire_context_program_family (a L : ℕ) (e : Fin a ↪ Fin L)
   intro t _
   exact wire_context_program a L e (s t) gs hgs (ψ t)
 
+/-- Expand the inner product of two wire-context embeddings as a double sum of basis-ket inner
+products weighted by their state coefficients. -/
 private theorem wc_inner_expansion {a L : ℕ} (e : Fin a ↪ Fin L) (s t : Reg L)
     (ψ φ : QState (Reg a)) :
     Qatlib.Foundations.PureStateMath.Inner (wireContextEmbed e s ψ) (wireContextEmbed e t φ) =
@@ -128,6 +170,7 @@ private theorem wc_inner_expansion {a L : ℕ} (e : Fin a ↪ Fin L) (s t : Reg 
     smul_dotProduct,dotProduct_smul,smul_eq_mul]
   simp_rw [Finset.mul_sum]
 
+/-- Embedding two states into the same wire context preserves their inner product. -/
 theorem wire_context_inner (a L : ℕ) (e : Fin a ↪ Fin L) (s : Reg L)
     (ψ φ : QState (Reg a)) :
     Qatlib.Foundations.PureStateMath.Inner (wireContextEmbed e s ψ) (wireContextEmbed e s φ) = Qatlib.Foundations.PureStateMath.Inner ψ φ := by
@@ -135,6 +178,8 @@ theorem wire_context_inner (a L : ℕ) (e : Fin a ↪ Fin L) (s : Reg L)
   simp_rw [inner_ket_ket,(wire_context_extend a L e s).2.2.eq_iff]
   simp [Qatlib.Foundations.PureStateMath.Inner,dotProduct,mul_comm]
 
+/-- States embedded in contexts that differ on a wire outside the selected image have zero inner
+product. -/
 theorem wire_context_orthogonal (a L : ℕ) (e : Fin a ↪ Fin L) (s t : Reg L)
     (j : Fin L) (hj : ¬ ∃ i, e i=j) (hst : s j ≠ t j) (ψ φ : QState (Reg a)) :
     Qatlib.Foundations.PureStateMath.Inner (wireContextEmbed e s ψ) (wireContextEmbed e t φ) = 0 := by

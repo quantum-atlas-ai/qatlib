@@ -21,6 +21,29 @@ import Mathlib.Tactic.Ring
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentStat
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormStat
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureStat
+
+/-!
+# Interpolation identities and signs of multiproduct coefficients
+
+This module relates `mCoeff` to Lagrange interpolation at reciprocal squared nodes and derives
+the normalization and moment identities. It also proves a low-order closed form and identifies
+the terminal coefficient as at least 1 and the penultimate coefficient as negative when N > k ≥
+1. See [ChildsWiebe2012] for the multiproduct and linear-combination simulation framework.
+
+## Main statements
+
+* `multiproduct_moments_of_squared_distinct`: For nonzero nodes with pairwise distinct squares,
+  the coefficients sum to 1 and their reciprocal-node moments of orders 2m vanish for 1 ≤ m ≤ k.
+* `multiproduct_last_coefficient_ge_one`: For k ≥ 1 and N > k, the terminal multiproduct
+  coefficient is at least 1.
+* `multiproduct_penultimate_negative`: For k ≥ 1 and N > k, the coefficient at index k − 1 is
+  strictly negative.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -28,6 +51,8 @@ set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators Classical
 
+/-- For k = 2 and N² distinct from 1 and 4, proves the signed factorial coefficient identity at
+each of the first two nodes. -/
 theorem multiproduct_closed_form_k_two (N : ℝ) (h1 : N^2 ≠ 1) (h4 : N^2 ≠ 4)
     (q : Fin 3) (hq : q.val < 2) :
     mCoeff 2 N q*((q.val+1 : ℝ)^2-N^2)*
@@ -44,6 +69,8 @@ theorem multiproduct_closed_form_k_two (N : ℝ) (h1 : N^2 ≠ 1) (h4 : N^2 ≠ 
     norm_num
   · norm_num at hq
 
+/-- For nonzero nodes with pairwise distinct squares, `mCoeff k N q` is the q-th Lagrange basis
+polynomial at the reciprocal squared nodes evaluated at zero. -/
 theorem multiproduct_lagrange_basis (k : ℕ) (N : ℝ)
     (hzero : ∀ q, mNode k N q ≠ 0)
     (hinj : Function.Injective (fun q => mNode k N q^2)) (q : Fin (k+1)) :
@@ -79,6 +106,8 @@ theorem multiproduct_lagrange_basis (k : ℕ) (N : ℝ)
   ring_nf
   field_simp [hrev]
 
+/-- For nonzero nodes with pairwise distinct squares and m ≤ k, the weighted reciprocal-node
+moment of order 2m equals 0^m. -/
 theorem multiproduct_moment_of_squared_distinct (k : ℕ) (N : ℝ)
     (hzero : ∀ q, mNode k N q ≠ 0)
     (hinj : Function.Injective (fun q => mNode k N q^2)) (m : ℕ) (hm : m ≤ k) :
@@ -106,6 +135,8 @@ theorem multiproduct_moment_of_squared_distinct (k : ℕ) (N : ℝ)
       ring
     _ = _ := he.symm
 
+/-- For nonzero nodes with pairwise distinct squares, the coefficients sum to 1 and their
+reciprocal-node moments of orders 2m vanish for 1 ≤ m ≤ k. -/
 theorem multiproduct_moments_of_squared_distinct (k : ℕ) (N : ℝ)
     (hzero : ∀ q, mNode k N q ≠ 0)
     (hinj : Function.Injective (fun q => mNode k N q^2)) :
@@ -119,12 +150,15 @@ theorem multiproduct_moments_of_squared_distinct (k : ℕ) (N : ℝ)
     simpa only [zero_pow (by omega : m ≠ 0)] using
       multiproduct_moment_of_squared_distinct k N hzero hinj m hmk
 
+/-- At an index q < k, the multiproduct node equals q + 1. -/
 private theorem mNode_small (k : ℕ) (N : ℝ) (q : Fin (k+1)) (hq : q.val < k) :
     mNode k N q=(q.val+1 : ℝ) := by simp [mNode, hq]
 
+/-- The terminal multiproduct node equals N. -/
 private theorem mNode_last (k : ℕ) (N : ℝ) : mNode k N (Fin.last k)=N := by
   simp [mNode]
 
+/-- For k ≥ 1 and N > k, the terminal multiproduct coefficient is at least 1. -/
 theorem multiproduct_last_coefficient_ge_one (k : ℕ) (hk : 1 ≤ k)
     (N : ℝ) (hN : (k : ℝ) < N) : 1 ≤ mCoeff k N (Fin.last k) := by
   unfold mCoeff
@@ -144,6 +178,7 @@ theorem multiproduct_last_coefficient_ge_one (k : ℕ) (hk : 1 ≤ k)
     apply (le_div_iff₀ hden).mpr
     nlinarith [sq_nonneg (j.val+1 : ℝ)]
 
+/-- For k ≥ 1 and N > k, the coefficient at index k − 1 is strictly negative. -/
 theorem multiproduct_penultimate_negative (k : ℕ) (hk : 1 ≤ k)
     (N : ℝ) (hN : (k : ℝ) < N) :
     mCoeff k N (⟨k-1, by omega⟩ : Fin (k+1)) < 0 := by

@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8FactorSubgoalStat
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm6RelativeTrialSubgoalMont
 import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
+
+/-!
+# Median amplification for relative factors
+
+Proves the relative-accuracy guarantee for a factor estimate by taking the median of independent
+pilot-scaled quantum trials. It applies the relative trial bound and the existing sorted-median
+concentration estimate, supplying the factor-level ingredient of Theorem 8 in [Montanaro2015].
+
+## Main statements
+
+* `montanaroTheorem8FactorSubgoal` bounds the amplified relative-error probability by `(143 /
+  144)^r` for `2 * r + 1` trials.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,10 @@ namespace Qatlib.Concepts.EstimatorLaws.TvStability
 open Qatlib
 open scoped Classical BigOperators
 
+/-- Proves the factor-estimator guarantee used in Theorem 8 of [Montanaro2015] by amplifying the
+relative trial bound with a median of `2 * r + 1` independent trials. The failure
+probability is at most `(143 / 144)^r` under the stated variance, pilot-size, and
+layer-accuracy assumptions. -/
 theorem montanaroTheorem8FactorSubgoal : MontanaroTheorem8FactorSubgoal := by
   intro I _ _ A j f B ε N k r hA hf hB hε hε1 hN hk hwindow μ hμ hv
   have htrial := montanaroTheorem6RelativeTrialSubgoal I A j f B ε N k

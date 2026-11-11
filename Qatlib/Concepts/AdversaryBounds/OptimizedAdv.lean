@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+
+/-!
+# Optimized weighted adversary bounds
+
+`advPlus` and `advNonneg` optimize weighted norm-ratio expressions over Hermitian complex
+witnesses and entrywise nonnegative symmetric real witnesses, respectively. `minimaxAlpha`
+defines the corresponding inverse overlap optimization over coordinate distributions, and the
+module proves the weak inequality from the nonnegative adversary value to this minimax quantity
+in the framework of [HoyerLeeSpalek2007].
+
+Further results bound the nonnegative value using intersecting certificates, show monotonicity
+under injective input-domain embeddings, and derive a lower bound for the optimized value of a
+block composition. Approximate witnesses allow the composition argument to work with suprema
+without assuming that optimizers are attained.
+
+## Main statements
+
+* `advNonneg_le_minimaxAlpha`: establish the nonnegative weak duality inequality.
+* `advNonneg_le_of_certificates`: bound the unit-cost value by a certificate size bound.
+* `advPlus_mono_of_injective`: enlarge the input domain along a compatible injection.
+* `advPlus_composition_ge`: transfer inner optimized bounds to a composed function.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,26 +48,36 @@ open Matrix
 
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The real adversary matrix obtained by retaining entries whose inputs differ at coordinate
+`c` and replacing all other entries by zero. -/
 def advFilterR {X : Type} {κ : Type} [DecidableEq κ]
     (input : X → κ → Bool) (Γ : Matrix X X ℝ) (c : κ) : Matrix X X ℝ :=
   fun x y => if input x c ≠ input y c then Γ x y else 0
 
+/-- The real infimum over coordinates of `α i * ‖Γ‖ / ‖weightedAdvFilter input Γ i‖`, using
+ordinary real division. -/
 noncomputable def advWitnessValue {X : Type} [Fintype X] [DecidableEq X]
     {κ : Type} [DecidableEq κ] (input : X → κ → Bool) (α : κ → ℝ)
     (Γ : Matrix X X ℂ) : ℝ :=
   ⨅ i : κ, α i * ‖Γ‖ / ‖weightedAdvFilter input Γ i‖
 
+/-- The extended nonnegative supremum of `advWitnessValue` over Hermitian complex matrices that
+vanish on equal-output input pairs. -/
 noncomputable def advPlus {X : Type} [Fintype X] [DecidableEq X]
     {κ : Type} [DecidableEq κ] (input : X → κ → Bool) (g : X → Bool)
     (α : κ → ℝ) : ℝ≥0∞ :=
   ⨆ Γ : {Γ : Matrix X X ℂ // Γ.IsHermitian ∧ ∀ x y, g x = g y → Γ x y = 0},
     ENNReal.ofReal (advWitnessValue input α Γ)
 
+/-- The real infimum over coordinates of `α i * ‖Γ‖ / ‖advFilterR input Γ i‖`, using ordinary
+real division. -/
 noncomputable def advWitnessValueR {X : Type} [Fintype X] [DecidableEq X]
     {κ : Type} [DecidableEq κ] (input : X → κ → Bool) (α : κ → ℝ)
     (Γ : Matrix X X ℝ) : ℝ :=
   ⨅ i : κ, α i * ‖Γ‖ / ‖advFilterR input Γ i‖
 
+/-- The extended nonnegative supremum of `advWitnessValueR` over symmetric entrywise nonnegative
+real matrices that vanish on equal-output pairs. -/
 noncomputable def advNonneg {X : Type} [Fintype X] [DecidableEq X]
     {κ : Type} [DecidableEq κ] (input : X → κ → Bool) (g : X → Bool)
     (α : κ → ℝ) : ℝ≥0∞ :=
@@ -48,10 +85,14 @@ noncomputable def advNonneg {X : Type} [Fintype X] [DecidableEq X]
     Γ.IsSymm ∧ (∀ x y, 0 ≤ Γ x y) ∧ ∀ x y, g x = g y → Γ x y = 0},
     ENNReal.ofReal (advWitnessValueR input α Γ)
 
+/-- The weighted overlap sum `sqrt (p x i * p y i) / α i` over coordinates on which inputs `x`
+and `y` differ. -/
 noncomputable def advMinimaxTerm {X : Type} {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (α : κ → ℝ) (p : X → κ → ℝ) (x y : X) : ℝ :=
   ∑ i, if input x i ≠ input y i then Real.sqrt (p x i * p y i) / α i else 0
 
+/-- The inverse of the supremum over input-indexed coordinate distributions of the extended
+nonnegative conversion of the least overlap term among unequal-output pairs. -/
 noncomputable def minimaxAlpha {X : Type} {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (g : X → Bool) (α : κ → ℝ) : ℝ≥0∞ :=
   (⨆ p : {p : X → κ → ℝ // (∀ x i, 0 ≤ p x i) ∧ (∀ x, ∑ i, p x i = 1)},
@@ -66,21 +107,27 @@ noncomputable section
 section DomainEmbedding
 variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 
+/-- The coordinate embedding matrix whose `(y, x)` entry is one exactly when `φ x = y`. -/
 private def advDomainEmbedding (φ : X → Y) : Matrix Y X ℂ := fun y x => if φ x = y then 1 else 0
 omit [Fintype X] in
 
+/-- For injective `φ`, the conjugate-transpose Gram matrix of `advDomainEmbedding φ` is the
+identity. -/
 private theorem advDomainEmbedding_gram (φ : X → Y) (hφ : Function.Injective φ) : (advDomainEmbedding φ)ᴴ * advDomainEmbedding φ = 1 := by
   classical
   ext x x'
   simp [advDomainEmbedding, Matrix.mul_apply, Matrix.conjTranspose_apply, hφ.eq_iff,
       Matrix.one_apply]
 
+/-- The operator norm of the coordinate embedding associated with an injection is at most one. -/
 private theorem advDomainEmbedding_norm_le (φ : X → Y) (hφ : Function.Injective φ) : ‖advDomainEmbedding φ‖ ≤ 1 := by
   have hs := Matrix.l2_opNorm_conjTranspose_mul_self (advDomainEmbedding φ)
   rw [advDomainEmbedding_gram φ hφ] at hs
   have hn := l2_norm_one_le (I := X)
   nlinarith [norm_nonneg (advDomainEmbedding φ)]
 
+/-- Padding a matrix by an injective coordinate embedding and its conjugate transpose preserves
+its operator norm. -/
 private theorem advDomainEmbedding_pad_norm (φ : X → Y) (hφ : Function.Injective φ) (A : Matrix X X ℂ) :
     ‖advDomainEmbedding φ * A * (advDomainEmbedding φ)ᴴ‖ = ‖A‖ := by
   have hn := advDomainEmbedding_norm_le φ hφ
@@ -104,6 +151,8 @@ private theorem advDomainEmbedding_pad_norm (φ : X → Y) (hφ : Function.Injec
 
 omit [DecidableEq X] [Fintype Y] in
 
+/-- When the input maps agree along `φ`, coordinate filtering commutes with padding by
+`advDomainEmbedding φ`. -/
 private theorem advDomainEmbedding_filter {κ : Type} [DecidableEq κ]
     (φ : X → Y) (inputX : X → κ → Bool) (inputY : Y → κ → Bool)
     (hinput : ∀ x, inputY (φ x) = inputX x) (A : Matrix X X ℂ) (i : κ) :
@@ -138,6 +187,8 @@ private theorem advDomainEmbedding_filter {κ : Type} [DecidableEq κ]
       simp [advDomainEmbedding, hx, hy, he]
     all_goals simp [advDomainEmbedding, hx, hy]
 
+/-- A compatible injective embedding that preserves input strings and output labels cannot
+decrease the optimized complex adversary value. -/
 theorem advPlus_mono_of_injective {κ : Type} [Fintype κ] [DecidableEq κ] (α : κ → ℝ)
     (φ : X → Y) (hφ : Function.Injective φ)
     (inputX : X → κ → Bool) (gX : X → Bool)
@@ -181,6 +232,8 @@ end DomainEmbedding
 section RealWeakDuality
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- The absolute quadratic form of a real matrix at `v` is bounded by its operator norm times
+the sum of squared coordinates of `v`. -/
 private theorem advReal_rayleigh_bound (A : Matrix X X ℝ) (v : X → ℝ) :
     |dotProduct v (A *ᵥ v)| ≤ ‖A‖ * ∑ x, (v x)^2 := by
   let u : EuclideanSpace ℝ X := WithLp.toLp 2 v
@@ -194,6 +247,8 @@ private theorem advReal_rayleigh_bound (A : Matrix X X ℝ) (v : X → ℝ) :
     _ ≤ ‖u‖*(‖A‖*‖u‖) := mul_le_mul_of_nonneg_left (A.l2_opNorm_mulVec u) (norm_nonneg u)
     _ = _ := by rw [← EuclideanSpace.real_norm_sq_eq u]; ring
 
+/-- A Hermitian real matrix on a nonempty finite index type possesses a unit vector whose
+absolute quadratic form equals its operator norm. -/
 private theorem advReal_extreme [Nonempty X] (A : Matrix X X ℝ) (hA : A.IsHermitian) :
     ∃ v : X → ℝ, (∑ x, (v x)^2) = 1 ∧ |dotProduct v (A*ᵥv)| = ‖A‖ := by
   classical
@@ -221,6 +276,8 @@ private theorem advReal_extreme [Nonempty X] (A : Matrix X X ℝ) (hA : A.IsHerm
   have hs : dotProduct (v : X → ℝ) v = 1 := by simpa only [dotProduct, ← pow_two] using! hv
   rw [hs, smul_eq_mul, mul_one, ← hn, ← hnorm]
 
+/-- A Hermitian entrywise nonnegative real matrix on a nonempty finite index type possesses a
+nonnegative unit vector whose quadratic form is at least its operator norm. -/
 private theorem advReal_nonnegative_extreme [Nonempty X] (A : Matrix X X ℝ)
     (hA : A.IsHermitian) (hnn : ∀ x y, 0 ≤ A x y) :
     ∃ δ : X → ℝ, (∀ x, 0 ≤ δ x) ∧ (∑ x, (δ x)^2) = 1 ∧
@@ -240,6 +297,9 @@ private theorem advReal_nonnegative_extreme [Nonempty X] (A : Matrix X X ℝ)
     rw [abs_mul, abs_mul, abs_of_nonneg (hnn x y)]
     exact le_of_eq (by ring)
 
+/-- For a nonzero symmetric nonnegative witness and positive coordinate costs, every family of
+coordinate distributions has an unequal-output pair whose overlap term is at most the
+supremum of the normalized filter norms. -/
 theorem advNonneg_witness_le_minimaxTerm
     {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (g : X → Bool) (α : κ → ℝ) (hα : ∀ i, 0 < α i)
@@ -358,6 +418,7 @@ theorem advNonneg_witness_le_minimaxTerm
   have hb := mul_le_mul_of_nonneg_left hZsum ht0
   exact (hb.trans_lt hlt).not_ge hM
 
+/-- With nonnegative coordinate costs, the real witness value is nonnegative. -/
 private theorem advWitnessValueR_nonneg {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (α : κ → ℝ) (hα : ∀ i, 0 ≤ α i) (Γ : Matrix X X ℝ) :
     0 ≤ advWitnessValueR input α Γ := by
@@ -368,12 +429,15 @@ private theorem advWitnessValueR_nonneg {κ : Type} [Fintype κ] [DecidableEq κ
   · letI := hκ
     exact le_ciInf (fun i => div_nonneg (mul_nonneg (hα i) (norm_nonneg Γ)) (norm_nonneg _))
 
+/-- A real witness with zero operator norm has witness value zero. -/
 private theorem advWitnessValueR_norm_zero {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (α : κ → ℝ) (Γ : Matrix X X ℝ) (hΓ : ‖Γ‖ = 0) :
     advWitnessValueR input α Γ = 0 := by
   rcases isEmpty_or_nonempty κ with hκ | hκ <;> letI := hκ <;>
     simp [advWitnessValueR, hΓ]
 
+/-- For positive coordinate costs and positive witness norm, the product of the real witness
+value and the supremum of normalized filter norms is at most one. -/
 private theorem advWitnessValueR_mul_filter_sup_le_one {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (α : κ → ℝ) (hα : ∀ i, 0 < α i)
     (Γ : Matrix X X ℝ) (hΓ : 0 < ‖Γ‖) :
@@ -400,6 +464,8 @@ private theorem advWitnessValueR_mul_filter_sup_le_one {κ : Type} [Fintype κ] 
       dsimp [f]
       field_simp [(hα j).ne']
 
+/-- For strictly positive coordinate costs, the optimized nonnegative adversary value is at most
+`minimaxAlpha`. -/
 theorem advNonneg_le_minimaxAlpha {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (g : X → Bool) (α : κ → ℝ) (hα : ∀ i, 0 < α i) :
     advNonneg input g α ≤ minimaxAlpha input g α := by
@@ -425,6 +491,9 @@ theorem advNonneg_le_minimaxAlpha {κ : Type} [Fintype κ] [DecidableEq κ]
         (ENNReal.ofReal_mul (advWitnessValueR_nonneg input α (fun i => (hα i).le) Γ.val)).symm
       _ ≤ 1 := ENNReal.ofReal_le_one.mpr (advWitnessValueR_mul_filter_sup_le_one input α hα Γ.val hpos)
 
+/-- If every unequal-output pair has a differing coordinate in the intersection of its
+certificates and all certificate sizes are at most a nonnegative `C`, the unit-cost
+nonnegative adversary value is at most `ENNReal.ofReal C`. -/
 theorem advNonneg_le_of_certificates {κ : Type} [Fintype κ] [DecidableEq κ]
     (input : X → κ → Bool) (g : X → Bool) (c : X → Finset κ) (C : ℝ) (hC : 0 ≤ C)
     (hcard : ∀ x, (c x).card ≤ C)
@@ -510,11 +579,14 @@ theorem advNonneg_le_of_certificates {κ : Type} [Fintype κ] [DecidableEq κ]
 
 end RealWeakDuality
 
+/-- A complex witness with zero operator norm has witness value zero. -/
 private theorem advWitnessValue_norm_zero {Z κ : Type} [Fintype Z] [DecidableEq Z]
     [Fintype κ] [DecidableEq κ] (input : Z → κ → Bool) (α : κ → ℝ)
     (A : Matrix Z Z ℂ) (hA : ‖A‖ = 0) : advWitnessValue input α A = 0 := by
   rcases isEmpty_or_nonempty κ with hκ | hκ <;> letI := hκ <;> simp [advWitnessValue,hA]
 
+/-- For positive `β` and `δ`, if `ENNReal.ofReal β` is below the optimized adversary value,
+there is a Hermitian output-zero witness of positive norm with value at least `β - δ`. -/
 private theorem advPlus_approximate_witness {Z κ : Type} [Fintype Z] [DecidableEq Z]
     [Fintype κ] [DecidableEq κ] (input : Z → κ → Bool) (g : Z → Bool) (α : κ → ℝ)
     (β δ : ℝ) (hβ : 0 < β) (hδ : 0 < δ) (hS : ENNReal.ofReal β ≤ advPlus input g α) :
@@ -538,6 +610,9 @@ private theorem advPlus_approximate_witness {Z κ : Type} [Fintype Z] [Decidable
     exact (hb0.trans hv).false
   exact ⟨A,hn,(le_max_left _ _).trans hv.le⟩
 
+/-- With positive block lengths, nonconstant inner Boolean functions, and nonnegative coordinate
+costs, any inner optimized lower bounds `β` yield a composed adversary value at least the
+outer value with costs `β`, as in [HoyerLeeSpalek2007]. -/
 theorem advPlus_composition_ge
     (k : ℕ) (X : Fin k → Type) [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (n : Fin k → ℕ) (hne : ∀ i, 0 < n i)

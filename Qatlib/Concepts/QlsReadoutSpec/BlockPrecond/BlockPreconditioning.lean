@@ -9,6 +9,31 @@ import Qatlib.Concepts.BlockEncoding.LinearCombination
 import Qatlib.Concepts.BlockEncoding.Postselection
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# State-direction scaling for block preconditioning
+
+This module defines `stateScaling`, its inverse candidate, and the lifted scaling used to
+precondition a projected unitary encoding. The lifted matrix is represented as a two-term linear
+combination of a reflection and the identity, implemented by `scalingPrepare`,
+`preconditionedBranches`, and `preconditionedUnitary`. The module proves action on the
+normalized state direction, inverse identities, and intertwining with an isometric output frame.
+
+Linear combinations of unitaries and projected encodings provide the implementation framework
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `stateScaling_direction`: Computes the scaling and inverse scaling on the normalized state
+  direction.
+* `stateScaling_inverse`: Proves both inverse identities for nonzero scale.
+* `stateScaling_intertwining`: Relates lifted scaling to scaling on the output space.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,18 +61,26 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
 variable {H O : Type} [Fintype H] [DecidableEq H] [Fintype O] [DecidableEq O]
 
+/-- The matrix `1 - (1 - s) • outerProduct b`, scaling the direction of normalized `b` by `s`
+and fixing its orthogonal complement. -/
 def stateScaling (s : ℝ) (b : QState O) : Matrix O O ℂ :=
   (1 : ℂ) • (1 : Matrix O O ℂ) - ((1 : ℂ) - (s : ℂ)) • outerProduct b
 
+/-- The matrix `1 - (1 - s⁻¹) • outerProduct b`, inverse to `stateScaling s b` when `s ≠ 0` and
+`b` is normalized. -/
 def stateScalingInverse (s : ℝ) (b : QState O) : Matrix O O ℂ :=
   (1 : ℂ) • (1 : Matrix O O ℂ) - ((1 : ℂ) - (s : ℝ)⁻¹) • outerProduct b
 
+/-- The lifted scaling written as a linear combination of the identity and the reflection about
+the complement of `L * outerProduct b * Lᴴ`. -/
 def liftedStateScaling (L : Matrix H O ℂ) (b : QState O) (s : ℝ) :
     Matrix H H ℂ :=
   ((1 - s) / 2 : ℂ) •
     ((1 : ℂ) • (1 : Matrix H H ℂ) - (2 : ℂ) • (L * outerProduct b * Lᴴ)) +
   ((1 + s) / 2 : ℂ) • (1 : Matrix H H ℂ)
 
+/-- The real two-dimensional preparation matrix with first column given by the square roots of
+`(1 - s) / 2` and `(1 + s) / 2`. -/
 def scalingPrepare (s : ℝ) : Matrix Bool Bool ℂ :=
   Matrix.of fun i j =>
     match i, j with
@@ -56,21 +89,29 @@ def scalingPrepare (s : ℝ) : Matrix Bool Bool ℂ :=
     | false, true => -((Real.sqrt ((1 + s) / 2) : ℂ))
     | true, true => (Real.sqrt ((1 - s) / 2) : ℂ)
 
+/-- The two coefficients `(1 - s) / 2` and `(1 + s) / 2` for the reflection and identity
+branches. -/
 def scalingWeights (s : ℝ) : Bool → ℝ :=
   fun j => match j with
   | false => (1 - s) / 2
   | true => (1 + s) / 2
 
+/-- The two branches are the reflection `1 - 2 • (L * outerProduct b * Lᴴ)` followed by `U`, and
+`U` itself. -/
 def preconditionedBranches (L : Matrix H O ℂ) (b : QState O) (_s : ℝ)
     (U : Matrix H H ℂ) : Bool → Matrix H H ℂ :=
   fun j => match j with
   | false => ((1 : ℂ) • (1 : Matrix H H ℂ) - (2 : ℂ) • (L * outerProduct b * Lᴴ)) * U
   | true => U
 
+/-- The linear-combination workspace matrix formed from the preconditioned branches and
+`scalingPrepare s`. -/
 def preconditionedUnitary (L : Matrix H O ℂ) (b : QState O) (s : ℝ)
     (U : Matrix H H ℂ) : Matrix (Bool × H) (Bool × H) ℂ :=
   LCUWorkspace (preconditionedBranches L b s U) (scalingPrepare s)
 
+/-- On a normalized state `b`, the scaling matrix acts by `s` and its inverse candidate acts by
+`s⁻¹`. -/
 theorem stateScaling_direction (s : ℝ) (b : QState O) (hb : Normalized b) :
     stateScaling s b *ᵥ b = (s : ℂ) • b ∧
       stateScalingInverse s b *ᵥ b = ((s : ℝ)⁻¹ : ℂ) • b := by
@@ -81,6 +122,8 @@ theorem stateScaling_direction (s : ℝ) (b : QState O) (hb : Normalized b) :
       Matrix.one_mulVec, Matrix.smul_mulVec, hp] <;>
     module
 
+/-- For nonzero `s` and normalized `b`, the matrices `stateScaling s b` and `stateScalingInverse
+s b` are two-sided inverses. -/
 theorem stateScaling_inverse (s : ℝ) (b : QState O) (hs : s ≠ 0) (hb : Normalized b) :
     stateScaling s b * stateScalingInverse s b = 1 ∧
       stateScalingInverse s b * stateScaling s b = 1 := by
@@ -101,12 +144,15 @@ theorem stateScaling_inverse (s : ℝ) (b : QState O) (hs : s ≠ 0) (hb : Norma
 
 omit [Fintype H] [DecidableEq O] in
 
+/-- The lifted scaling equals `1 - (1 - s) • (L * outerProduct b * Lᴴ)`. -/
 theorem liftedStateScaling_eq (L : Matrix H O ℂ) (b : QState O) (s : ℝ) :
     liftedStateScaling L b s = 1 - (1 - (s : ℂ)) • (L * outerProduct b * Lᴴ) := by
   unfold liftedStateScaling
   simp only [one_smul, smul_sub, smul_smul]
   module
 
+/-- For an isometric frame `L`, compressing the lifted scaling by `Lᴴ` equals applying the
+output-space scaling after `Lᴴ`. -/
 theorem stateScaling_intertwining (L : Matrix H O ℂ) (b : QState O) (s : ℝ)
     (hL : IsIsometry L) :
     Lᴴ * liftedStateScaling L b s = stateScaling s b * Lᴴ := by

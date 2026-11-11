@@ -6,11 +6,31 @@ Authors: Qatlib Contributors
 
 import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.Tactic
+
+/-!
+# Convolution of factorial weights
+
+`factorial_convolution` computes the antidiagonal convolution of two factorial-weighted power
+sequences. The binomial identity combines the degree-`n` terms into `(a + b)^n / n!`.
+
+This scalar identity supports exponential-series estimates in commutator-based product-formula
+analysis; see [HejaziZiniArrazola2024] for that setting.
+
+## Main statements
+
+* `factorial_convolution`: Factorial-weighted binomial convolution.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.MatrixAlgebra.CommutatorExp
 open scoped BigOperators
 
+/-- The sum of `a^i / i! * b^j / j!` over `i + j = n` equals `(a + b)^n / n!`. -/
 theorem factorial_convolution (a b : ℝ) (n : ℕ) :
     (∑ ij ∈ Finset.antidiagonal n, (a^ij.1/(ij.1.factorial : ℝ))*(b^ij.2/(ij.2.factorial : ℝ))) =
       (a+b)^n/(n.factorial : ℝ) := by

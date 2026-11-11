@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.KnownCount.ObservedDecisionLowerBoundStat
+
+/-!
+# Observed-query lower bound for decision
+
+`observedDecisionLowerBound` establishes a square-root query-depth obstruction for well-formed
+observed circuits with workspace. It compares acceptance at most 1/3 for the empty bit oracle
+with acceptance at least 2/3 for every singleton bit oracle.
+
+For the mathematical background, see [BealsEtAl2001].
+
+## Main statements
+
+* `observedDecisionLowerBound`: A well-formed observed circuit distinguishing the empty bit
+  oracle from every singleton with the stated acceptance gap satisfies n ≤ 144 times its squared
+  observed query depth.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +41,8 @@ namespace Qatlib.Concepts.SearchStopping.KnownCount
 open Qatlib
 open scoped Classical
 
+/-- A well-formed observed circuit distinguishing the empty bit oracle from every singleton with
+the stated acceptance gap satisfies n ≤ 144 times its squared observed query depth. -/
 theorem observedDecisionLowerBound : ObservedDecisionLowerBound := by
   intro n W _ _ _ P ψ hP hψ hnull hmark
   by_cases hn : 0 < n

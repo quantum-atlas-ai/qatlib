@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
 import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoalTigh
+
+/-!
+# A square root convergence bound for singleton search
+
+For a finite search space with at least three elements, `section4_convergenceBound` produces an
+integer Grover iteration count strictly below the square root of the search space cardinality.
+The resulting singleton marked success probability is at least one half. See [Grover1997].
+
+## Main statements
+
+* `section4_convergenceBound`: On a finite search space with at least three elements, every
+  singleton target reaches success probability at least `1/2` after some `M < sqrt (Fintype.card
+  I)` Grover iterations.
+
+## References
+
+* [Grover, 1997][Grover1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +37,8 @@ open Qatlib.Concepts.SearchStopping.GroverSuccess
 
 namespace Qatlib.Papers.GroverSearch97.MainResults.Convergence
 
+/-- On a finite search space with at least three elements, every singleton target reaches
+success probability at least `1/2` after some `M < sqrt (Fintype.card I)` Grover iterations. -/
 theorem section4_convergenceBound (I : Type*) [Fintype I] [DecidableEq I]
     (hN : 3 ≤ Fintype.card I) (w : I) :
     ∃ M : ℕ, (M : ℝ) < Real.sqrt (Fintype.card I) ∧

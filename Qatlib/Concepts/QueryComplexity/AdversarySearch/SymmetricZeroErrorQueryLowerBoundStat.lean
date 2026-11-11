@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+/-!
+# Statement of the symmetric zero error lower bound
+
+This module defines `SymmetricZeroErrorQueryLowerBound` for finite Boolean inputs and auxiliary
+workspaces. It states N + 1 ≤ 4Q for a nonconstant symmetric Boolean function when the two
+outcome events never give an incorrect answer and their total probability is at least 1/2 on
+every input, following [BealsEtAl2001].
+
+## Main statements
+
+* `SymmetricZeroErrorQueryLowerBound`: the proposition specifying the symmetric zero error query
+  bound.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
@@ -14,6 +33,9 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.QueryComplexity.AdversarySearch
 
+/-- The statement that a nonconstant symmetric Boolean function requires input size plus one to
+be at most four times the query count when the two outcome events never give a wrong answer
+and have total probability at least 1/2. -/
 def SymmetricZeroErrorQueryLowerBound : Prop :=
   ∀ (I W : Type) [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit (Qatlib.Concepts.QueryWordCore.QueryMachinery.PolynomialWorkspace I W))

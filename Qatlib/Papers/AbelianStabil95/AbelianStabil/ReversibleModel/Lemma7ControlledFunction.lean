@@ -6,16 +6,40 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.ReversibleOperationDefs
 
+/-!
+# Function-controlled reversible operations
+
+`lemma7Seq` computes a function value, uses it to select a reversible data operation, and
+reverses the computation. `lemma7_controlled_function` proves the resulting controlled behavior
+with clean work registers, together with exact cost and basis membership. The development
+follows [Kitaev1995].
+
+## Main statements
+
+* `lemma7_controlled_function`: implements `U (F a)` with restored workspace at cost `2 * L +
+  1`.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel
 
 open Qatlib.Foundations.PureStateMath
 
+/-- The sequence computing the control value, applying one function-controlled operation, and
+reversing the computation. -/
 def lemma7Seq {k l n w : ℕ} (U : Reg l → Reg n ≃ Reg n)
     (sG : List (RevStep (FunMem k l n w))) : List (RevStep (FunMem k l n w)) :=
   sG ++ ([⟨ctrlFun U, 1⟩] ++ reverseSeq sG)
 
+/-- Under the stated computation and basis hypotheses, `lemma7Seq` applies `U (F a)` to the
+data, restores both work registers to zero, and has cost `2 * L + 1`. The theorem also
+records basis membership and the sequence decomposition, as in [Kitaev, 1995, Lemma
+7][Kitaev1995]. -/
 theorem lemma7_controlled_function
     {k l n w : ℕ} (F : Reg k → Reg l) (U : Reg l → Reg n ≃ Reg n)
     (C : (Reg k × (Reg l × Reg w)) ≃ (Reg k × (Reg l × Reg w)))

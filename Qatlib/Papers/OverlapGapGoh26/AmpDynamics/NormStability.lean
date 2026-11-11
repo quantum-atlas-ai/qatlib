@@ -9,6 +9,27 @@ import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.SpinReadoutL2
 import Qatlib.Papers.OverlapGapGoh26.SpinDynamics.Feedback
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTransport
 import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+
+/-!
+# Euclidean stability of actual field histories
+
+Bounds tensor-contraction vectors and the changes caused by perturbing their tensor and spin
+inputs. These estimates control the actual field histories and raw spin outputs used in the
+Gaussian analysis of [GohMuller2026].
+
+The stability bounds depend on a scaled multilinear norm bound for the comparison tensor, the
+interaction degree, and the finite time horizon.
+
+## Main statements
+
+* `actual_history_norm`: propagates input perturbations through the field history.
+* `actual_raw_spin_norm`: bounds the resulting perturbation of the raw spin readout.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,9 +47,12 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.GroundTransport
 
 namespace Qatlib.Papers.OverlapGapGoh26.AmpDynamics.NormStability
 
+/-- The tensor interaction vector regarded as an element of Euclidean space. -/
 def headVector {r N : ℕ} (A : Tensor (r+1) N) (z : EuclideanSpace ℝ (Fin N)) : EuclideanSpace ℝ (Fin N) :=
   WithLp.toLp 2 (interaction (rowTensor A) (WithLp.ofLp z))
 
+/-- The inner product with the tensor interaction vector equals the tensor multilinear form with
+the test vector in its first slot. -/
 theorem headVector_inner {r N : ℕ} (A : Tensor (r+1) N) (z v : EuclideanSpace ℝ (Fin N)) :
     inner ℝ v (headVector A z)=tensorForm A (Fin.cons v (fun _ : Fin r => z)) := by
   rw [tensorForm_apply]
@@ -45,11 +69,13 @@ theorem headVector_inner {r N : ℕ} (A : Tensor (r+1) N) (z v : EuclideanSpace 
   simp only [Fin.cons_zero,Fin.cons_succ]
   ring
 
+/-- If `C ≥ 0` and `|⟪v, v⟫| ≤ C * ‖v‖`, then `‖v‖ ≤ C`. -/
 theorem norm_le_of_inner_self_bound {N : ℕ} (v : EuclideanSpace ℝ (Fin N)) (C : ℝ)
     (hC : 0≤C) (h : |inner ℝ v v|≤C*‖v‖) : ‖v‖≤C := by
   rw [real_inner_self_eq_norm_sq,abs_of_nonneg (sq_nonneg _)] at h
   nlinarith [norm_nonneg v]
 
+/-- The tensor interaction vector has norm at most `‖tensorForm A‖ * ‖z‖ ^ r`. -/
 theorem headVector_norm {r N : ℕ} (A : Tensor (r+1) N) (z : EuclideanSpace ℝ (Fin N)) :
     ‖headVector A z‖≤‖tensorForm A‖*‖z‖^r := by
   apply norm_le_of_inner_self_bound _ _ (by positivity)
@@ -58,6 +84,8 @@ theorem headVector_norm {r N : ℕ} (A : Tensor (r+1) N) (z : EuclideanSpace ℝ
   simpa only [Real.norm_eq_abs,Fin.prod_univ_succ,Fin.cons_zero,Fin.cons_succ,
     Finset.prod_const,Finset.card_univ,Fintype.card_fin,mul_assoc,mul_comm,mul_left_comm] using h
 
+/-- For positive interaction degree, the interaction-vector difference is bounded by the
+multilinear norm times `r * (max ‖z‖ ‖w‖) ^ (r − 1) * ‖z − w‖`. -/
 theorem headVector_spin_difference {r N : ℕ} (hr : 0<r) (A : Tensor (r+1) N)
     (z w : EuclideanSpace ℝ (Fin N)) :
     ‖headVector A z-headVector A w‖≤
@@ -77,6 +105,8 @@ theorem headVector_spin_difference {r N : ℕ} (hr : 0<r) (A : Tensor (r+1) N)
   simpa only [ContinuousMultilinearMap.curryLeft_apply,Real.norm_eq_abs,Fintype.card_fin,
     pi_norm_const, mul_assoc,mul_comm,mul_left_comm] using hs
 
+/-- A spin vector with each coordinate of absolute value at most one has Euclidean norm at most
+`√N`. -/
 theorem cube_spin_norm {N : ℕ} (z : EuclideanSpace ℝ (Fin N))
     (hz : ∀ i,|z i|≤1) : ‖z‖≤Real.sqrt (N:ℝ) := by
   apply Real.le_sqrt_of_sq_le
@@ -85,6 +115,8 @@ theorem cube_spin_norm {N : ℕ} (z : EuclideanSpace ℝ (Fin N))
     _ ≤ ∑ _i : Fin N,(1:ℝ) := Finset.sum_le_sum (fun i _ => by nlinarith [hz i,abs_nonneg (z i),sq_abs (z i)])
     _ = _ := by simp
 
+/-- For positive `N` and a spin vector in the cube, changing the source tensor input from `G` to
+`D` changes the interaction vector by at most `‖G − D‖`. -/
 theorem source_head_tensor_difference {r N : ℕ} (hN : 0<N)
     (G D : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (z : EuclideanSpace ℝ (Fin N))
     (hz : ∀ i,|z i|≤1) :
@@ -119,6 +151,9 @@ theorem source_head_tensor_difference {r N : ℕ} (hN : 0<N)
   simpa only [Fintype.sum_prod_type,Fin.consEquiv_apply] using!
     (Fin.consEquiv (fun _ : Fin (r+1) => Fin N)).sum_comp (fun k => (G k-D k)^2)
 
+/-- For positive degree and dimension, cube-valued spins, and the stated scaled
+comparison-tensor norm bound, the interaction-vector difference is at most `‖G − D‖ + K * r
+* ‖z − w‖`. -/
 theorem source_head_joint_difference {r N : ℕ} (hr : 0<r) (hN : 0<N)
     (G D : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (z w : EuclideanSpace ℝ (Fin N))
     (hz : ∀ i,|z i|≤1) (hw : ∀ i,|w i|≤1) (K : ℝ)
@@ -137,6 +172,7 @@ theorem source_head_joint_difference {r N : ℕ} (hr : 0<r) (hN : 0<N)
   exact (norm_sub_le_norm_sub_add_norm_sub _ _ _).trans
     (add_le_add (source_head_tensor_difference hN G D z hz) hspin)
 
+/-- Applying a scalar 1-Lipschitz map coordinatewise does not increase Euclidean distances. -/
 theorem scalar_map_l2 {N : ℕ} (κ : ℝ→ℝ) (hκ : LipschitzWith 1 κ) (u v : Fin N→ℝ) :
     ‖(WithLp.toLp 2 (fun i => κ (u i)) : EuclideanSpace ℝ (Fin N))-WithLp.toLp 2 (fun i => κ (v i))‖≤
       ‖(WithLp.toLp 2 u : EuclideanSpace ℝ (Fin N))-WithLp.toLp 2 v‖ := by
@@ -148,6 +184,8 @@ theorem scalar_map_l2 {N : ℕ} (κ : ℝ→ℝ) (hκ : LipschitzWith 1 κ) (u v
     simpa only [Real.dist_eq,NNReal.coe_one,one_mul] using hκ.dist_le_mul (u i) (v i)
   simpa only [sq_abs] using! pow_le_pow_left₀ (abs_nonneg _) h 2
 
+/-- The Euclidean distance between histories with an appended vector is at most the old history
+distance plus the appended-vector distance. -/
 theorem snoc_history_norm {t N : ℕ} (U V : Fin (t+1)→Fin N→ℝ) (u v : Fin N→ℝ) :
     ‖historyVector (Fin.snoc U u)-historyVector (Fin.snoc V v)‖≤
       ‖historyVector U-historyVector V‖+
@@ -161,6 +199,9 @@ theorem snoc_history_norm {t N : ℕ} (U V : Fin (t+1)→Fin N→ℝ) (u v : Fin
     norm_nonneg (historyVector U-historyVector V),
     norm_nonneg ((WithLp.toLp 2 u : EuclideanSpace ℝ (Fin N))-WithLp.toLp 2 v)]
 
+/-- Under the stated schedule and comparison-tensor norm bounds, the next-coordinate distance is
+at most the tensor-input distance plus the seed distance plus `2 * K * r * √T` times the
+history distance. -/
 theorem actual_next_norm {r N T t : ℕ} (hr : 0<r) (hN : 0<N)
     (κ : ℝ→ℝ) (hκ : LipschitzWith 1 κ) (s : ℕ→ℝ)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (ht : t≤T)
@@ -220,6 +261,9 @@ theorem actual_next_norm {r N T t : ℕ} (hr : 0<r) (hN : 0<N)
       _ ≤ _ := by nlinarith [mul_le_mul_of_nonneg_left hspin (mul_nonneg hK0 (Nat.cast_nonneg r))]
   exact (scalar_map_l2 κ hκ b b').trans hb
 
+/-- Under the stated nonexpansive update, schedule, and comparison-tensor norm hypotheses, the
+stage-`t` history distance is bounded by `(2 + 2 * K * r * √T) ^ t` times the sum of
+tensor-input and seed distances. -/
 theorem actual_history_norm {r N T : ℕ} (hr : 0<r) (hN : 0<N)
     (κ : ℝ→ℝ) (hκ : LipschitzWith 1 κ) (s : ℕ→ℝ)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1)
@@ -273,6 +317,9 @@ theorem actual_history_norm {r N T : ℕ} (hr : 0<r) (hN : 0<N)
       _ ≤ (B-1)*(B^t*d)+(B^t*d) := add_le_add le_rfl hstep
       _ = _ := by rw [pow_succ]; ring
 
+/-- Under the stated schedule and comparison-tensor norm hypotheses, the raw spin-output
+distance is bounded by `2 * √T * (2 + 2 * K * r * √T) ^ T` times the sum of tensor-input and
+seed distances [GohMuller2026]. -/
 theorem actual_raw_spin_norm {r N T : ℕ} (hr : 0<r) (hN : 0<N)
     (s : ℕ→ℝ) (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1)
     (G D : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (seed seed' : Fin N→ℝ) (K : ℝ)

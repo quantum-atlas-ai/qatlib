@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedHami
+
+/-!
+# Raw reset-and-discard identities and obstructions
+
+This module identifies `ResetDiscardStep` with conjugation by the workspace corner and exhibits
+its scale-dependent loss. `resetDiscardSegmentation_zero_obstruction` and
+`resetDiscardSegmentation_one_step_obstruction` refute the proposed raw segmentation property,
+clarifying the role of amplification in [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `resetDiscardStep_encoding_scalar`: The scale factor in a raw encoded step.
+* `resetDiscardSegmentation_one_step_obstruction`: Failure of the raw-step segmentation
+  property.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +40,8 @@ namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 open Matrix
 open scoped Classical ComplexOrder Matrix.Norms.L2Operator
 
+/-- Tensoring a system operator with the ancillary basis-state outer product equals its fiber
+embedding. -/
 theorem ancillaSystemOp_ket_eq_fiberEmbed {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (j₀ : J) (ρ : Matrix I I ℂ) :
     AncillaSystemOp (vecOuter (Qatlib.Foundations.PureStateMath.Ket j₀)) ρ=FiberEmbed j₀ ρ := by
@@ -28,12 +50,15 @@ theorem ancillaSystemOp_ket_eq_fiberEmbed {J I : Type*} [Fintype J] [DecidableEq
     simp [AncillaSystemOp, vecOuter, Qatlib.Foundations.PureStateMath.Ket, fiberEmbed_apply,
         ha, hb]
 
+/-- Taking the reduced operator of a fiber embedding recovers the original system operator. -/
 theorem reducedState_fiberEmbed {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (j₀ : J) (ρ : Matrix I I ℂ) :
     ReducedState (FiberEmbed j₀ ρ)=ρ := by
   ext i j
   simp [ReducedState, fiberEmbed_apply]
 
+/-- A raw reset-and-discard step equals conjugation by the selected block corner of the
+workspace. -/
 theorem resetDiscardStep_eq_corner {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (W : Matrix (J × I) (J × I) ℂ)
     (j₀ : J) (ρ : Matrix I I ℂ) :
@@ -63,6 +88,7 @@ theorem resetDiscardStep_eq_corner {J I : Type*} [Fintype J] [DecidableEq J]
       F*(BlockCorner W j₀*ρ*(BlockCorner W j₀)ᴴ)*Fᴴ := by simp only [Matrix.mul_assoc]
   rw [he', encodingFiber_mul_mul_conjTranspose, reducedState_fiberEmbed]
 
+/-- For a scale-`s` block encoding of `X`, the raw step equals `s⁻²` times conjugation by `X`. -/
 theorem resetDiscardStep_encoding_scalar {J I : Type*} [Fintype J] [DecidableEq J]
     [Fintype I] [DecidableEq I] (W : Matrix (J × I) (J × I) ℂ)
     (j₀ : J) (X : Matrix I I ℂ) (s : ℝ) (hW : IsBlockEncoding W j₀ X s)
@@ -73,6 +99,8 @@ theorem resetDiscardStep_encoding_scalar {J I : Type*} [Fintype J] [DecidableEq 
   simp only [Matrix.smul_mul, Matrix.mul_smul, smul_smul]
   rw [← Complex.ofReal_mul, ← pow_two]
 
+/-- For every real scale at least one, the one-dimensional identity has a block encoding with a
+Boolean ancillary register. -/
 theorem scaled_identity_encoding_exists (s : ℝ) (hs : 1 ≤ s) :
     ∃ W : Matrix (Bool × Unit) (Bool × Unit) ℂ,
       IsBlockEncoding W false (1 : Matrix Unit Unit ℂ) s := by
@@ -94,6 +122,7 @@ theorem scaled_identity_encoding_exists (s : ℝ) (hs : 1 ≤ s) :
   ext i j
   simp [BlockCorner, TensorGate, hcol, v]
 
+/-- The proposed raw reset-and-discard segmentation property is false in universe zero. -/
 theorem resetDiscardSegmentation_zero_obstruction : ¬ResetDiscardSegmentation.{0,0} := by
   intro h
   have hU : (-1 : Matrix Unit Unit ℂ) ∈ Matrix.unitaryGroup Unit ℂ := by
@@ -120,6 +149,8 @@ theorem resetDiscardSegmentation_zero_obstruction : ¬ResetDiscardSegmentation.{
   have hv := congrArg (fun A : Matrix Unit Unit ℂ => A () ()) he
   norm_num [Matrix.ofNat_apply] at hv
 
+/-- The proposed raw reset-and-discard segmentation property also fails in a one-step instance
+in universe zero. -/
 theorem resetDiscardSegmentation_one_step_obstruction : ¬ResetDiscardSegmentation.{0,0} := by
   intro h
   obtain ⟨W,hW⟩ := scaled_identity_encoding_exists 2 (by norm_num)

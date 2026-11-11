@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QMAAmplify09.MainResults.Defs
+
+/-!
+# Binomial bounds for median confidence amplification
+
+This module proves the binomial strict-majority tail estimate used in the median-confidence
+analysis of [NagajWocjanZhang2009]. The quantity `badMass` sums the terms with more than half of
+the trials bad, and `medianFailureBound` is an explicit exponential upper bound.
+
+The proof handles even and odd repetition counts separately and specializes the bound to error
+parameter `1 / 16`.
+
+## Main statements
+
+* `median_failure_bound`: bounds the strict-majority binomial tail for `0 ≤ ε ≤ 1 / 2`.
+* `median_failure_bound_eps16`: bounds the explicit expression by `2 ^ (-r)` at `ε = 1 / 16`.
+
+## References
+
+* [Nagaj et al., 2009][NagajWocjanZhang2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,15 +36,19 @@ open Finset
 
 namespace Qatlib.Papers.QMAAmplify09.MainResults.MedianLemma
 
+/-- The binomial term `choose r k * ε ^ k * (1 - ε) ^ (r - k)`. -/
 noncomputable def binomialTerm (ε : ℝ) (r k : ℕ) : ℝ :=
   (Nat.choose r k : ℝ) * ε ^ k * (1 - ε) ^ (r - k)
 
+/-- The binomial mass of having strictly more than `r / 2` bad trials. -/
 noncomputable def badMass (ε : ℝ) (r : ℕ) : ℝ :=
   ∑ k ∈ Finset.Icc (r / 2 + 1) r, binomialTerm ε r k
 
+/-- The explicit median-failure bound `(1 / 2) * (2 * √(ε * (1 - ε))) ^ r`. -/
 noncomputable def medianFailureBound (ε : ℝ) (r : ℕ) : ℝ :=
   (1 / 2) * (2 * Real.sqrt (ε * (1 - ε))) ^ r
 
+/-- Twice the sum of binomial coefficients above the midpoint is at most `2 ^ r`. -/
 theorem two_mul_sum_Icc_choose_le (r : ℕ) :
     2 * (∑ k ∈ Finset.Icc (r / 2 + 1) r, (Nat.choose r k : ℝ)) ≤ (2 : ℝ) ^ r := by
   set m := r / 2 + 1 with hm
@@ -75,15 +100,18 @@ theorem two_mul_sum_Icc_choose_le (r : ℕ) :
         push_cast
         ring
 
+/-- For nonnegative `x`, raising `√x` to the power `n + n` gives `x ^ n`. -/
 theorem sqrt_pow_add_self {x : ℝ} (hx : 0 ≤ x) (n : ℕ) :
     (Real.sqrt x) ^ (n + n) = x ^ n := by
   rw [pow_add, ← mul_pow, ← sq, Real.sq_sqrt hx]
 
+/-- For nonnegative `x`, the odd power `(√x) ^ (2 * n + 1)` equals `√x * x ^ n`. -/
 theorem sqrt_pow_two_mul_add_one {x : ℝ} (hx : 0 ≤ x) (n : ℕ) :
     (Real.sqrt x) ^ (2 * n + 1) = Real.sqrt x * x ^ n := by
   rw [pow_add, pow_mul, Real.sq_sqrt hx, pow_one]
   ring
 
+/-- For `0 ≤ ε ≤ 1 / 2`, the even-count core term is at most `(ε * (1 - ε)) ^ n`. -/
 theorem even_core {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) (n : ℕ) :
     ε ^ (n + 1) * (1 - ε) ^ (n - 1) ≤ (ε * (1 - ε)) ^ n := by
   rcases n with _ | n
@@ -100,6 +128,8 @@ theorem even_core {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) (n : ℕ) :
       mul_nonneg (pow_nonneg hε0 _) (pow_nonneg (by linarith : 0 ≤ 1 - ε) _)
     exact mul_le_mul_of_nonneg_left (by linarith) hnn
 
+/-- For `0 ≤ ε ≤ 1 / 2`, the odd-count core term is at most `√(ε * (1 - ε)) * (ε * (1 - ε)) ^
+n`. -/
 theorem odd_core {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) (n : ℕ) :
     ε ^ (n + 1) * (1 - ε) ^ n ≤
       Real.sqrt (ε * (1 - ε)) * (ε * (1 - ε)) ^ n := by
@@ -114,6 +144,8 @@ theorem odd_core {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) (n : ℕ) :
     _ ≤ Real.sqrt (ε * (1 - ε)) * (ε ^ n * (1 - ε) ^ n) :=
         mul_le_mul_of_nonneg_right hεle hnn
 
+/-- For `0 ≤ ε ≤ 1 / 2`, the probability factor at the first strict-majority index is at most
+`(√(ε * (1 - ε))) ^ r`. -/
 theorem power_le_sqrt_pow {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) (r : ℕ) :
     ε ^ (r / 2 + 1) * (1 - ε) ^ (r - (r / 2 + 1)) ≤
       (Real.sqrt (ε * (1 - ε))) ^ r := by
@@ -132,6 +164,8 @@ theorem power_le_sqrt_pow {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) (r 
     rw [hhalf, hrm, sqrt_pow_two_mul_add_one hx0]
     exact odd_core hε0 hε1 n
 
+/-- For `0 ≤ ε ≤ 1 / 2`, the strict-majority binomial mass is at most `medianFailureBound ε r`.
+See [NagajWocjanZhang2009]. -/
 theorem median_failure_bound {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) (r : ℕ) :
     badMass ε r ≤ medianFailureBound ε r := by
   rcases Nat.eq_zero_or_pos r with hr0 | hrpos
@@ -220,6 +254,8 @@ theorem median_failure_bound {ε : ℝ} (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2) 
         rw [hR]
         exact mul_le_mul_of_nonneg_right hcore (by positivity)
 
+/-- At `ε = 1 / 16`, the explicit median-failure bound is at most `2 ^ (-r)`. See
+[NagajWocjanZhang2009]. -/
 theorem median_failure_bound_eps16 (r : ℕ) :
     medianFailureBound (1/16) r ≤ (2:ℝ) ^ (-(r : ℤ)) := by
   unfold medianFailureBound

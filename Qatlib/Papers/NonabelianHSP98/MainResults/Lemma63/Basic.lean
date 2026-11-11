@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NonabelianHSP98.MainResults.Pairing
+
+/-!
+# Random generation of finite groups
+
+`genProb G i` is the fraction of ordered `i`-tuples that generate a finite group. This module
+characterizes generation by escape from every proper subgroup and proves the basic probability
+bounds. This development accompanies [RoettelerBeth1998].
+
+## Main statements
+
+* `closure_range_eq_top_iff`: a tuple generates exactly when it escapes every proper subgroup.
+* `genProb_nonneg` and `genProb_le_one`: the generation fraction lies between zero and one.
+
+## References
+
+* [Roetteler and Beth, 1998][RoettelerBeth1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,10 +37,14 @@ open Classical
 
 variable {n : ℕ}
 
+/-- The probability that `i` independent uniformly chosen elements generate the finite group
+`G`, expressed as a ratio of tuple counts. -/
 noncomputable def genProb (G : Type) [Fintype G] [Group G] (i : ℕ) : ℝ :=
   ((Finset.univ.filter (fun S : Fin i → G => Subgroup.closure (Set.range S) = ⊤)).card : ℝ)
     / ((Fintype.card G : ℝ) ^ i)
 
+/-- A tuple generates the group if and only if every proper subgroup misses at least one of its
+entries. See [RoettelerBeth1998]. -/
 theorem closure_range_eq_top_iff (G : Type) [Fintype G] [Group G] {i : ℕ}
     (S : Fin i → G) :
     Subgroup.closure (Set.range S) = ⊤ ↔
@@ -44,6 +66,7 @@ theorem closure_range_eq_top_iff (G : Type) [Fintype G] [Group G] {i : ℕ}
     obtain ⟨j, hj⟩ := h _ hK
     exact hj (Subgroup.subset_closure ⟨j, rfl⟩)
 
+/-- A tuple contained in a proper subgroup does not generate the whole group. -/
 theorem closure_range_ne_top_of_mem_proper (G : Type) [Fintype G] [Group G] {i : ℕ}
     (S : Fin i → G) (K : Subgroup G) (hK : K < ⊤) (hS : ∀ j, S j ∈ K) :
     Subgroup.closure (Set.range S) ≠ ⊤ := by
@@ -53,11 +76,13 @@ theorem closure_range_ne_top_of_mem_proper (G : Type) [Fintype G] [Group G] {i :
   obtain ⟨j, hj⟩ := h
   exact hj (hS j)
 
+/-- The probability of generating a finite group is nonnegative. -/
 theorem genProb_nonneg (G : Type) [Fintype G] [Group G] (i : ℕ) :
     0 ≤ genProb G i := by
   unfold genProb
   positivity
 
+/-- The probability of generating a finite group is at most one. -/
 theorem genProb_le_one (G : Type) [Fintype G] [Group G] (i : ℕ) :
     genProb G i ≤ 1 := by
   classical

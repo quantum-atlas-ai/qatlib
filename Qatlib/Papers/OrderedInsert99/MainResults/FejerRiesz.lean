@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleSpectralFactorTran
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorUniquenessTran
+
+/-!
+# Fejer-Riesz factorization on the unit circle
+
+The theorem `fejer_riesz_factorization` factors `complexLaurentEval` into a polynomial and its
+reciprocal conjugate on the unit circle. A nonzero top coefficient forces the factor to have
+degree exactly `M`. This supplies the nonnegative Laurent-polynomial factorization used in the
+invariant algorithm analysis of [FarhiEtAl1999].
+
+## Main statements
+
+* `fejer_riesz_factorization`: A Laurent expression with real constant coefficient, nonzero top
+  coefficient, and nonnegative real part on the unit circle possesses a polynomial factor of
+  degree exactly `M`. On the unit circle, the expression equals that factor times its reciprocal
+  conjugate.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,10 @@ open Polynomial
 
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge
 
+/-- A Laurent expression with real constant coefficient, nonzero top coefficient, and
+nonnegative real part on the unit circle possesses a polynomial factor of degree exactly
+`M`. On the unit circle, the expression equals that factor times its reciprocal conjugate
+[FarhiEtAl1999]. -/
 theorem fejer_riesz_factorization (M : ℕ) (q : Fin (M + 1) → ℂ)
     (htop : q ⟨M, Nat.lt_succ_self M⟩ ≠ 0)
     (him : (q ⟨0, Nat.succ_pos M⟩).im = 0)

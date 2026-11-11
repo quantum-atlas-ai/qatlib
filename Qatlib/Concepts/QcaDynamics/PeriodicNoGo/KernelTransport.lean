@@ -6,24 +6,47 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QcaDynamics.ScalarNoGo.OrderedKernel
 
+/-!
+# Transport of scalar kernels through quotients
+
+Defines quotient weights by summing weights over fibers of an additive map and formulates
+`KernelNonalias` on neighborhood differences. Under this condition, quotient autocorrelations
+lift to the covering group, yielding the phase-translation conclusion `quotient_noGo` when that
+group is linearly ordered. The scalar obstruction is developed in [Meyer1996].
+
+## Main statements
+
+* `KernelNonalias`: requires injectivity on neighborhood differences.
+* `unitary_of_quotient`: lifts the weight unitarity condition.
+* `quotient_noGo`: reduces quotient dynamics to a phase times a translation.
+
+## References
+
+* [Meyer, 1996][Meyer1996]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 open Qatlib.Concepts.QcaDynamics.ScalarNoGo
 namespace Qatlib.Concepts.QcaDynamics.PeriodicNoGo
 
+/-- The finite set of all differences of pairs of elements of `E`. -/
 def neighborhoodDiffs {V : Type*} [Sub V] [DecidableEq V] (E : Finset V) : Finset V :=
   (E ×ˢ E).image fun p => p.1 - p.2
 
+/-- The difference of two elements of `E` belongs to `neighborhoodDiffs E`. -/
 theorem sub_mem_neighborhoodDiffs {V : Type*} [Sub V] [DecidableEq V]
     {E : Finset V} {e f : V} (he : e ∈ E) (hf : f ∈ E) :
     e - f ∈ neighborhoodDiffs E :=
   Finset.mem_image.mpr ⟨(e,f), Finset.mem_product.mpr ⟨he,hf⟩, rfl⟩
 
+/-- Injectivity of the additive map `q` on the difference set of the neighborhood `E`. -/
 def KernelNonalias {V W : Type*} [AddCommGroup V] [AddCommGroup W]
     [DecidableEq V] (q : V →+ W) (E : Finset V) : Prop :=
   Set.InjOn q (neighborhoodDiffs E : Set V)
 
+/-- Injectivity on neighborhood differences implies injectivity on the neighborhood itself. -/
 theorem kernelNonalias_injOn {V W : Type*} [AddCommGroup V] [AddCommGroup W]
     [DecidableEq V] (q : V →+ W) (E : Finset V) (hq : KernelNonalias q E) :
     Set.InjOn q (E : Set V) := by
@@ -33,6 +56,8 @@ theorem kernelNonalias_injOn {V W : Type*} [AddCommGroup V] [AddCommGroup W]
   have hzero : e - f = 0 := by simpa using h
   exact sub_eq_zero.mp hzero
 
+/-- Weights on the image neighborhood, obtained by summing the original weights over each fiber
+of `q`. -/
 def quotientWeights {V W : Type*} [AddCommGroup V] [AddCommGroup W]
     [DecidableEq W] (q : V →+ W) (A : Weights V) : Weights W where
   neighborhood := A.neighborhood.image q
@@ -47,6 +72,8 @@ def quotientWeights {V W : Type*} [AddCommGroup V] [AddCommGroup W]
       exact hn (Finset.mem_image.mpr ⟨e,he,h⟩)
     simp [hne]
 
+/-- When `q` is injective on the neighborhood, the quotient weight at `q e` equals the original
+weight at every neighborhood element `e`. -/
 theorem quotient_weight_mem {V W : Type*} [AddCommGroup V] [AddCommGroup W]
     [DecidableEq V] [DecidableEq W] (q : V →+ W) (A : Weights V)
     (hq : Set.InjOn q (A.neighborhood : Set V)) (e : V) (he : e ∈ A.neighborhood) :
@@ -60,6 +87,8 @@ theorem quotient_weight_mem {V W : Type*} [AddCommGroup V] [AddCommGroup W]
     simp [hn]
   · exact fun h => False.elim (h he)
 
+/-- Under `KernelNonalias`, quotient weights at images of `e - d` equal the original weights
+when `e` is in the neighborhood and `d` is a neighborhood difference. -/
 theorem quotient_weight_difference {V W : Type*} [AddCommGroup V] [AddCommGroup W]
     [DecidableEq V] [DecidableEq W] (q : V →+ W) (A : Weights V)
     (hq : KernelNonalias q A.neighborhood) (e d : V)
@@ -84,6 +113,8 @@ theorem quotient_weight_difference {V W : Type*} [AddCommGroup V] [AddCommGroup 
       exact hm (hf' ▸ hf)
     simp only [if_neg hn]
 
+/-- The weight unitarity equations lift from quotient weights to the original weights under
+`KernelNonalias`. -/
 theorem unitary_of_quotient {V W : Type*} [AddCommGroup V] [AddCommGroup W]
     [DecidableEq V] [DecidableEq W] (q : V →+ W) (A : Weights V)
     (hq : KernelNonalias q A.neighborhood) (hU : Unitary (quotientWeights q A)) :
@@ -129,6 +160,8 @@ theorem unitary_of_quotient {V W : Type*} [AddCommGroup V] [AddCommGroup W]
         rwa [hdiff] at h
       exact False.elim (hmem hdmem)
 
+/-- The quotient update equals the sum over original neighborhood elements, using their weights
+and translated arguments `x + q e`. -/
 theorem quotient_step {V W : Type*} [AddCommGroup V] [AddCommGroup W]
     [DecidableEq W] (q : V →+ W) (A : Weights V) (φ : W → ℂ) (x : W) :
     step (quotientWeights q A) φ x =
@@ -146,6 +179,8 @@ theorem quotient_step {V W : Type*} [AddCommGroup V] [AddCommGroup W]
   · intro hn
     exact False.elim (hn (Finset.mem_image.mpr ⟨e,he,rfl⟩))
 
+/-- For a linearly ordered covering group, nonaliasing and quotient unitarity force the quotient
+update to be a single translation multiplied by a scalar of norm one; see [Meyer1996]. -/
 theorem quotient_noGo {V W : Type*} [AddCommGroup V] [LinearOrder V]
     [IsOrderedAddMonoid V] [AddCommGroup W] [DecidableEq V] [DecidableEq W]
     (q : V →+ W) (A : Weights V) (hq : KernelNonalias q A.neighborhood)

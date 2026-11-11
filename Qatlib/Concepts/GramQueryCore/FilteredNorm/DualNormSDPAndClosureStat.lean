@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Dual filtered norm SDP specification
+
+The proposition `DualNormSDPAndClosure` collects the minimum and maximum SDP descriptions of the
+rectangular dual filtered norm, including attainment, together with filter extension, Hadamard
+transport, and tensor product laws. It states the dual norm properties used in the filtered γ₂
+framework of [LeeEtAl2011].
+
+## Main statements
+
+* `DualNormSDPAndClosure`: The conjunction of attained minimum and maximum SDP
+  characterizations, filter extension laws, Hadamard transport and bounds, and tensor
+  multiplicativity for the dual filtered norm.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The conjunction of attained minimum and maximum SDP characterizations, filter extension
+laws, Hadamard transport and bounds, and tensor multiplicativity for the dual filtered norm. -/
 def DualNormSDPAndClosure : Prop :=
   (∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       (n : ℕ) (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),

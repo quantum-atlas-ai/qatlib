@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GraphEnergy.ZeroEnergy.GraphEnergyKernelDefs
 import Qatlib.Concepts.DirichletForm.EnergyIdentity
 import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+
+/-!
+# Positivity and the kernel of graph energy
+
+This module proves nonnegativity of lazy graph energy and identifies its zero set with functions
+constant across every edge. It also relates energy to the combinatorial Laplacian quadratic
+form, treating zero graph volume separately. These classical graph-energy facts support the
+Markov-chain framework of [Szegedy2004].
+
+## Main statements
+
+* `energy_eq_lapQuadratic_div`: energy is the Laplacian quadratic form divided by twice the
+  positive graph volume.
+* `energy_zero_iff_edge_constant`: nonnegativity and the edgewise zero-energy characterization.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.DirichletForm.EnergyIdentity
 
@@ -24,6 +44,7 @@ variable (G : SimpleGraph V) [DecidableRel G.Adj]
 
 omit [DecidableEq V] in
 
+/-- A vertex incident to an edge has positive degree. -/
 theorem degree_pos_of_adj {x y : V} (h : G.Adj x y) : 0 < degree G x := by
   have hpos : ∀ z ∈ (Finset.univ : Finset V),
       (0 : ℝ) ≤ (if G.Adj x z then (1 : ℝ) else 0) := by
@@ -36,6 +57,7 @@ theorem degree_pos_of_adj {x y : V} (h : G.Adj x y) : 0 < degree G x := by
 
 omit [DecidableEq V] in
 
+/-- A graph containing an edge has positive volume. -/
 theorem volume_pos_of_adj {x y : V} (h : G.Adj x y) : 0 < volume G := by
   have hx : (0 : ℝ) < degree G x := degree_pos_of_adj G h
   have hle : degree G x ≤ volume G := by
@@ -43,6 +65,7 @@ theorem volume_pos_of_adj {x y : V} (h : G.Adj x y) : 0 < volume G := by
     exact Finset.single_le_sum (fun z _ => degree_nonneg G z) (Finset.mem_univ x)
   linarith
 
+/-- The stationary transition weight along any graph edge is positive. -/
 theorem edge_measure_pos_of_adj {x y : V} (h : G.Adj x y) :
     0 < stationary G x * kernel G x y := by
   have hdeg : 0 < degree G x := degree_pos_of_adj G h
@@ -60,10 +83,13 @@ theorem edge_measure_pos_of_adj {x y : V} (h : G.Adj x y) :
   have h2 : (0 : ℝ) < 2 * volume G := by linarith
   exact div_pos zero_lt_one h2
 
+/-- The lazy kernel at a vertex of degree zero is the point mass at that vertex. -/
 theorem kernel_eq_of_degree_eq_zero {x y : V} (hdeg : degree G x = 0) :
     kernel G x y = if x = y then (1 : ℝ) else 0 := by
   simp [kernel, hdeg]
 
+/-- For positive graph volume, a stationary transition term equals the squared difference
+divided by twice the volume on edges and is zero elsewhere. -/
 theorem term_eq_of_volume_pos (hv : 0 < volume G) (f : V → ℝ) (x y : V) :
     stationary G x * kernel G x y * (f x - f y) ^ 2 =
       if G.Adj x y then (f x - f y) ^ 2 / (2 * volume G) else 0 := by
@@ -93,6 +119,8 @@ theorem term_eq_of_volume_pos (hv : 0 < volume G) (f : V → ℝ) (x y : V) :
       · have hk : kernel G x y = 0 := by simp [kernel, hdeg0, hadj, hxy]
         simp [hk]
 
+/-- For positive graph volume, lazy graph energy equals the real Laplacian quadratic form
+divided by twice the volume. -/
 theorem energy_eq_lapQuadratic_div [Nonempty V] (hv : 0 < volume G) (f : V → ℝ) :
     energy G f = Matrix.toLinearMap₂' ℝ (G.lapMatrix ℝ) f f / (2 * volume G) := by
   rw [Qatlib.Concepts.DirichletForm.EnergyIdentity.g1 V G f]
@@ -108,6 +136,7 @@ theorem energy_eq_lapQuadratic_div [Nonempty V] (hv : 0 < volume G) (f : V → �
   rw [SimpleGraph.lapMatrix_toLinearMap₂' ℝ G f]
   field_simp
 
+/-- A graph of zero volume has zero energy for every real function. -/
 theorem energy_eq_zero_of_volume_eq_zero (f : V → ℝ) (hv : volume G = 0) :
     energy G f = 0 := by
   unfold energy
@@ -122,6 +151,7 @@ theorem energy_eq_zero_of_volume_eq_zero (f : V → ℝ) (hv : volume G = 0) :
     exact sum_diag x (f x)
   rw [hsum, sub_self, mul_zero]
 
+/-- The real Laplacian quadratic form vanishes for a graph of zero volume. -/
 theorem lapQuadratic_eq_zero_of_volume_eq_zero (f : V → ℝ) (hv : volume G = 0) :
     Matrix.toLinearMap₂' ℝ (G.lapMatrix ℝ) f f = 0 := by
   have hedges : ∀ x y : V, G.Adj x y → f x = f y := by
@@ -129,11 +159,13 @@ theorem lapQuadratic_eq_zero_of_volume_eq_zero (f : V → ℝ) (hv : volume G = 
     exact absurd h (not_adj_of_degree_eq_zero G (degree_eq_zero_of_volume_eq_zero G hv x) y)
   exact (SimpleGraph.lapMatrix_toLinearMap₂'_apply'_eq_zero_iff_forall_adj ℝ G f).mpr hedges
 
+/-- The real combinatorial Laplacian quadratic form is nonnegative. -/
 theorem lapQuadratic_nonneg (f : V → ℝ) :
     0 ≤ Matrix.toLinearMap₂' ℝ (G.lapMatrix ℝ) f f := by
   rw [Matrix.toLinearMap₂'_apply']
   exact (SimpleGraph.posSemidef_lapMatrix ℝ G).dotProduct_mulVec_nonneg f
 
+/-- Lazy graph energy is nonnegative on a nonempty finite vertex type. -/
 theorem energy_nonneg [Nonempty V] (f : V → ℝ) : 0 ≤ energy G f := by
   by_cases hv : volume G = 0
   · rw [energy_eq_zero_of_volume_eq_zero G f hv]
@@ -142,6 +174,9 @@ theorem energy_nonneg [Nonempty V] (f : V → ℝ) : 0 ≤ energy G f := by
     have hpos : (0 : ℝ) < 2 * volume G := by linarith
     exact div_nonneg (lapQuadratic_nonneg G f) hpos.le
 
+/-- Lazy graph energy is nonnegative and vanishes exactly for functions constant across every
+edge, equivalently when `dirichletSum` vanishes. The statement also gives positive edge
+weights and the Laplacian formulas for positive and zero graph volume. -/
 theorem energy_zero_iff_edge_constant :
     ∀ (V : Type) [Fintype V] [DecidableEq V] [Nonempty V]
       (G : SimpleGraph V) [DecidableRel G.Adj] (f : V → ℝ),

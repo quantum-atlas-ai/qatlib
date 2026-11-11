@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHControlled
+
+/-!
+# Evaluation of odd logarithm tails
+
+Under `OddControl`, this module proves convergence of the odd logarithm tail of a symmetric half
+step throughout the closed control disk. The logarithm evaluates to its linear generator sum
+plus terms of odd degree at least three.
+
+The real time formulation `real_tail_hasSum` supplies the convergent tail identity needed for
+the perturbation estimates in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `tail_norm_summable`: proves absolute summability of the odd logarithm tail.
+* `evaluate_eq_linear_add_tail`: separates the linear term from the evaluated logarithm.
+* `real_tail_hasSum`: identifies the tail sum at real times.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -19,6 +41,8 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Under `OddControl`, the norms of the odd logarithm terms of degrees at least three form a
+summable sequence throughout the closed control disk. -/
 theorem tail_norm_summable (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
     (hc : OddControl xs r J) (z : ℂ) (hz : ‖z‖ ≤ r) :
     Summable (fun j : ℕ => ‖z ^ (2 * j + 3) • logCoefficient
@@ -28,6 +52,8 @@ theorem tail_norm_summable (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
       intro a b h; change 2 * a + 3 = 2 * b + 3 at h; omega)
   simpa only [scaled, logSeries, PowerSeries.coeff_mk] using! h
 
+/-- Under `OddControl`, evaluating the symmetric half step logarithm within the control disk
+gives the linear generator sum plus its odd tail starting at degree three. -/
 theorem evaluate_eq_linear_add_tail (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
     (hc : OddControl xs r J) (z : ℂ) (hz : ‖z‖ ≤ r) :
     evaluate (logSeries (SubdivisionPolynomial.wordSeries (recursiveSuzukiGenerators xs 0))) z =
@@ -56,6 +82,8 @@ theorem evaluate_eq_linear_add_tail (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (
   rw [show 2 * (j + 1) + 1 = 2 * j + 3 by omega]
   simp only [PowerSeries.coeff_mk]
 
+/-- Under `OddControl`, the odd logarithm tail at a real time within the control radius sums to
+the evaluated logarithm minus its linear term. -/
 theorem real_tail_hasSum (xs : List (Matrix I I ℂ)) (r : ℝ≥0) (J : ℕ)
     (hc : OddControl xs r J) (t : ℝ) (ht : |t| ≤ r) :
     HasSum (fun j : ℕ => t ^ (2 * j + 3) • logCoefficient

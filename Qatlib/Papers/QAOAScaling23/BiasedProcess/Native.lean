@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.NativeClass
+
+/-!
+# Native search laws for completed rank rows
+
+This module transfers the conditional cost-class law of native strict-threshold search to
+indexed leaves of finite-branch receipt trees. It defines `nativeCompletedRow` and proves its
+normalized next-rank law, connecting quantum search outcomes to the weighted descent process
+used in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `native_rank_point`: At current rank `r + 1`, the scheduled search's mass of output rank `j`
+  equals its success mass times the corresponding conditional lower-class probability.
+* `native_leaf_local`: For a receipt tree with the native scheduled search law, indexed
+  successful lower-rank fibers have masses proportional to the conditional lower-class law.
+* `native_completed_next_real`: For a receipt tree with the native scheduled search law, the
+  completed row's real next-rank marginal equals the prepared class weight divided by the
+  lower-prefix mass.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -22,6 +46,8 @@ open Qatlib.Papers.QAOAScaling23.BiasedProcess
 open Qatlib.Papers.QAOAScaling23.WeightedCost
 namespace Qatlib.Papers.QAOAScaling23.BiasedProcess.Born
 
+/-- For a finite probability mass function, summing the masses satisfying a predicate gives its
+event probability. -/
 theorem finite_event_sum {A : Type} [Fintype A] (p : PMF A) (P : A → Prop) [DecidablePred P] :
     (∑ a, if P a then p a else 0) = event p P := by
   unfold event expectation
@@ -30,10 +56,14 @@ theorem finite_event_sum {A : Type} [Fintype A] (p : PMF A) (P : A → Prop) [De
   intro a _
   split_ifs <;> simp_all
 
+/-- An event evaluated on indexed leaf values has the same probability as the corresponding
+event under the tree's value law. -/
 theorem indexed_event {A : Type} (t : Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree A) (P : A → Prop) [DecidablePred P] :
     event (Tree.indexedLeafLaw t) (fun a => P (Tree.indexedLeafValue t a)) = event t.law P := by
   rw [← event_map,Tree.indexedLeafLaw_value]
 
+/-- If each present-output event has mass `s` times a target probability, its finite fiber sum
+equals the total present-output mass times that target probability. -/
 theorem finite_local_law {K L : ℕ} (p : PMF (Fin K)) (output : Fin K → Option (Fin L))
     (target : PMF (Fin L)) (s : ℝ≥0∞)
     (hpoint : ∀j,event p (fun a => output a = some j) = s * target j) :
@@ -50,6 +80,8 @@ theorem finite_local_law {K L : ℕ} (p : PMF (Fin K)) (output : Fin K → Optio
   rw [finite_event_sum,finite_event_sum,hpoint,hs]
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- When `k` is the current cost rank, the scheduled search's mass of output rank `j` equals its
+total success mass times the conditional lower-class probability. -/
 theorem native_equal_rank_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (k : ℕ) (hk : k ≤ (costLevels cost).card)
     (hr : k = (costRank cost current).val)
@@ -62,6 +94,8 @@ theorem native_equal_rank_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryG
   subst k
   exact native_class_point U hU seed cost current hpos ms j
 
+/-- At current rank `r + 1`, the scheduled search's mass of output rank `j` equals its success
+mass times the corresponding conditional lower-class probability. -/
 theorem native_rank_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (weights cost (preparedLaw U hU seed)) (r+1))
@@ -73,6 +107,8 @@ theorem native_rank_point (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I
         lowerClassLaw cost (preparedLaw U hU seed) (r+1) (by omega) hpos j := by
   exact native_equal_rank_point U hU seed cost current (r+1) (by omega) hr.symm hpos ms j
 
+/-- For a receipt tree with the native scheduled search law, indexed successful lower-rank
+fibers have masses proportional to the conditional lower-class law. -/
 theorem native_leaf_local (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (weights cost (preparedLaw U hU seed)) (r+1)) (ms : List ℕ)
@@ -86,6 +122,8 @@ theorem native_leaf_local (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I
   rw [indexed_event t (fun tr => tr.result.bind (lowerRank cost (r+1)) = some j),ht]
   exact native_rank_point U hU seed cost current r hr hpos ms j
 
+/-- The completed row built from a receipt tree's indexed outputs and fees, using the prepared
+conditional lower-class law as its target. -/
 def nativeCompletedRow (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (weights cost (preparedLaw U hU seed)) (r+1))
@@ -95,6 +133,8 @@ def nativeCompletedRow (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I �
     (fun a => fee (Tree.indexedLeafValue t a))
     (lowerClassLaw cost (preparedLaw U hU seed) (r+1) (by omega) hpos)
 
+/-- For a receipt tree with the native scheduled search law, the completed row's real next-rank
+marginal equals the prepared class weight divided by the lower-prefix mass. -/
 theorem native_completed_next_real (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (weights cost (preparedLaw U hU seed)) (r+1)) (ms : List ℕ)

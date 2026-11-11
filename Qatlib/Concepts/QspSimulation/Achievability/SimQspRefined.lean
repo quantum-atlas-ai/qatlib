@@ -7,6 +7,39 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QspSimulation.JacobiAnger.SimQspDefs
 import Qatlib.Concepts.RandCompile.ChannelBudget.QspSimulation
 import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
+
+/-!
+# Refined endpoints for QSP Hamiltonian simulation
+
+This module exposes certificates connecting computed phase packets, Jacobi-Anger degree
+selection, resource accounting, and noisy-oracle execution. `clause11_endpoint` combines the
+near-optimal truncation count with the identities identifying the synthesized cosine and sine
+packets and a comparison of the declared analytic and exhaustive phase costs. The truncation
+estimate is in the Hamiltonian-simulation setting of [LowChuang2017].
+
+`clause12_endpoint` combines time continuity and rational time reads with the fields of
+`simQspLedger` and a norm bound for the output of `computedSignalWord`. For a unitary oracle
+within distance `δ` of the encoded oracle, `simQsp_single_output_error` adds the dyadic
+truncation error to the query count times `δ`.
+
+## Main statements
+
+* `analyticCosinePacket_exhaustive` and `analyticSinePacket_exhaustive` identify the outputs of
+  finite phase synthesis.
+* `simJaCount_near_optimal` gives the two-sided degree comparison and the factorial truncation
+  bound.
+* `hamiltonianEvolution_time_lipschitz` bounds time perturbations by the time difference times
+  the Hamiltonian norm.
+* `simQspLedger_spec` identifies the declared qubit, gate, query, perturbation, and truncation
+  quantities.
+* `simQsp_single_output_error` bounds the error on the framed input state.
+* `clause11_endpoint` and `clause12_endpoint` assemble the synthesis and execution certificates.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -28,6 +61,8 @@ namespace Qatlib.Concepts.QspSimulation.Achievability
 open Matrix Qatlib
 open scoped BigOperators Classical ENNReal Matrix.Norms.L2Operator
 
+/-- Finite phase synthesis for the computed cosine coefficients returns the selected analytic
+cosine phase packet. -/
 theorem analyticCosinePacket_exhaustive (t : ℚ) (k : ℕ) :
     (finitePhaseSynthesis (computedCosCoefficients (t / (computedSignalSegments t : ℚ))
       (computedSignalCutoff t k)) (2 * computedSignalCutoff t k)
@@ -38,6 +73,8 @@ theorem analyticCosinePacket_exhaustive (t : ℚ) (k : ℕ) :
   dsimp only [analyticPhasePacket]
   exact h1
 
+/-- Finite phase synthesis for the computed sine coefficients returns the selected analytic sine
+phase packet. -/
 theorem analyticSinePacket_exhaustive (t : ℚ) (k : ℕ) :
     (finitePhaseSynthesis (computedSinCoefficients (t / (computedSignalSegments t : ℚ))
       (computedSignalCutoff t k)) (2 * computedSignalCutoff t k + 1)
@@ -48,6 +85,8 @@ theorem analyticSinePacket_exhaustive (t : ℚ) (k : ℕ) :
   dsimp only [analyticPhasePacket]
   exact h2
 
+/-- When the computed cutoff is at least one, the declared analytic phase cost is strictly less
+than the exhaustive phase cost. -/
 theorem analyticPhaseCost_lt_exhaustive (t : ℚ) (k : ℕ) (hk : 1 ≤ computedSignalCutoff t k) :
     analyticPhaseCost t k < exhaustivePhaseCost t k := by
   have hpc : 1 ≤ phaseConstant (2 * computedSignalCutoff t k + 1) := by
@@ -88,6 +127,9 @@ theorem analyticPhaseCost_lt_exhaustive (t : ℚ) (k : ℕ) (hk : 1 ≤ computed
         (Qatlib.Concepts.QspSimulation.JacobiAnger.phaseToleranceBits (computedSignalTolerance t k))) ^ (2 * computedSignalCutoff t k + 2)
   omega
 
+/-- On `JaDomain`, the Jacobi-Anger count lies between the ideal shape and eleven times that
+shape, and its factorial remainder bound is at most `ε / 8`. This expresses the truncation
+scale used in [LowChuang2017]. -/
 theorem simJaCount_near_optimal (τ ε : ℝ) (h : JaDomain τ ε) :
     jaIdealShape τ ε ≤ (jaCount τ ε : ℝ) ∧
       (jaCount τ ε : ℝ) ≤ 11 * jaIdealShape τ ε ∧
@@ -95,6 +137,8 @@ theorem simJaCount_near_optimal (τ ε : ℝ) (h : JaDomain τ ε) :
           (2 ^ (jaCount τ ε : ℝ) * (jaCount τ ε).factorial : ℝ) ≤ ε / 8 :=
   Qatlib.Concepts.RandCompile.ChannelBudget.jaCount_near_optimal τ ε h
 
+/-- For a Hermitian Hamiltonian, the operator-norm distance between evolutions at two times is
+at most the absolute time difference times the Hamiltonian norm. -/
 theorem hamiltonianEvolution_time_lipschitz (D : ℕ) (H : Operator D) (t₁ t₂ : ℝ)
     (hH : H.IsHermitian) :
     ‖HamiltonianEvolution H t₁ - HamiltonianEvolution H t₂‖ ≤ |t₁ - t₂| * ‖H‖ := by
@@ -121,9 +165,12 @@ theorem hamiltonianEvolution_time_lipschitz (D : ℕ) (H : Operator D) (t₁ t�
               exact mul_le_mul_of_nonneg_left hrem (by norm_num)
     _ = |t₁ - t₂| * ‖H‖ := by ring
 
+/-- A certified rational time read at precision `k` has absolute error at most `2⁻ᵏ`. -/
 theorem simQspTimeRead_certified {x : ℝ} {q : ℕ → ℚ} (h : simQspTimeRead x q) (k : ℕ) :
     |x - (q k : ℝ)| ≤ (1 / 2 : ℝ) ^ k := h k
 
+/-- Identifies the ledger's qubit count, fixed-gate count, and oracle-query count, together with
+query count times `δ` and the dyadic truncation error. -/
 theorem simQspLedger_spec {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (F : Matrix H I ℂ) (t : ℚ) (k : ℕ) (δ : ℝ) :
     (simQspLedger F t k δ).qubits = hostingQubits (Fintype.card H) ∧
@@ -138,6 +185,9 @@ theorem simQspLedger_spec {H I : Type} [Fintype H] [DecidableEq H]
   · rfl
   · rfl
 
+/-- For a Hermitian encoded matrix and a unitary oracle within distance `δ` of the exact oracle,
+the computed word's framed output error is at most the ledger's truncation error plus query
+perturbation budget, multiplied by the input norm. -/
 theorem simQsp_single_output_error :
     ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       (A : Matrix I I ℂ) (U V : Matrix H H ℂ) (F : Matrix H I ℂ) (t : ℚ) (k : ℕ) (δ : ℝ),
@@ -158,6 +208,8 @@ theorem simQsp_single_output_error :
   simp only [simQspLedger] at hbound ⊢
   exact hbound
 
+/-- The rational read program evaluates to the sum of segment count, cutoff, dyadic target
+error, and computed phase tolerance. -/
 theorem simQspReadProgram_eval (t : ℚ) (k : ℕ) :
     ratEval (simQspReadProgram t k) =
       (computedSignalSegments t : ℚ) + (computedSignalCutoff t k : ℚ) +
@@ -166,6 +218,9 @@ theorem simQspReadProgram_eval (t : ℚ) (k : ℕ) :
   simp only [Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftRefinedDefs.RatProgram.eval]
   ring
 
+/-- Combines the Jacobi-Anger degree and remainder bounds with the finite-synthesis packet
+identities and strict comparison of declared analytic and exhaustive phase costs. The
+approximation component is in the setting of [LowChuang2017]. -/
 theorem clause11_endpoint : ∀ (τ ε : ℝ), JaDomain τ ε →
     (jaIdealShape τ ε ≤ (jaCount τ ε : ℝ) ∧
       (jaCount τ ε : ℝ) ≤ 11 * jaIdealShape τ ε ∧
@@ -189,6 +244,8 @@ theorem clause11_endpoint : ∀ (τ ε : ℝ), JaDomain τ ε →
   · intro t k hk
     exact analyticPhaseCost_lt_exhaustive t k hk
 
+/-- Collects Hamiltonian time continuity, certified rational time reads, the resource-ledger
+identities, the noisy-oracle output bound, and evaluation of the rational read program. -/
 theorem clause12_endpoint : ∀ (H I : Type) [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (U V : Matrix H H ℂ) (F : Matrix H I ℂ) (t : ℚ) (k : ℕ) (δ : ℝ),

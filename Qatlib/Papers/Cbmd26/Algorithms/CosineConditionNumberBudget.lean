@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.CosineOutputQueryBudget
 import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
+
+/-!
+# Condition-number comparisons for cosine query budgets
+
+Defines `matrixLeastEigenvalue` and the maximum norm-to-eigenvalue ratio
+`matrixTrueConditionMax` for two Hermitian matrices. Fixed-factor lower spectral estimates are
+compared with these true ratios, and the comparison is propagated to the displayed degree and
+source-query bounds. These results support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `matrix_condition_estimate`: compares estimated and true condition ratios.
+* `cosineDisplayedSourceBound_condition_compare`: transfers a condition estimate to the
+  source-query bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,12 +73,16 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 section Spectrum
 variable {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
 
+/-- Selects the final index in the ordered Hermitian eigenvalue list for a nonempty finite
+basis. -/
 def matrixLeastEigenvalueIndex : Fin (Fintype.card I) :=
   ⟨Fintype.card I - 1, Nat.sub_lt Fintype.card_pos (by norm_num)⟩
 
+/-- Defines the least Hermitian eigenvalue using the final ordered eigenvalue. -/
 def matrixLeastEigenvalue {A : Matrix I I ℂ} (hA : A.IsHermitian) : ℝ :=
   orderedHermitianValues hA (matrixLeastEigenvalueIndex (I := I))
 
+/-- The least eigenvalue occurs in the ordered list and is no greater than any entry. -/
 theorem matrixLeastEigenvalue_is_min {A : Matrix I I ℂ} (hA : A.IsHermitian) :
     (∃ i, orderedHermitianValues hA i = matrixLeastEigenvalue hA) ∧
       ∀ i, matrixLeastEigenvalue hA ≤ orderedHermitianValues hA i := by
@@ -69,11 +93,14 @@ theorem matrixLeastEigenvalue_is_min {A : Matrix I I ℂ} (hA : A.IsHermitian) :
   have := i.isLt
   omega
 
+/-- A positive semidefinite lower shift by `μ` implies that the least eigenvalue is at least
+`μ`. -/
 theorem matrixLeastEigenvalue_lower {A : Matrix I I ℂ} (hA : A.IsHermitian)
     {μ : ℝ} (hlower : (A - μ • (1 : Matrix I I ℂ)).PosSemidef) :
     μ ≤ matrixLeastEigenvalue hA :=
   orderedHermitianValues_lower_of_posSemidef A hA μ hlower _
 
+/-- The least Hermitian eigenvalue is at most the operator norm. -/
 theorem matrixLeastEigenvalue_le_norm {A : Matrix I I ℂ} (hA : A.IsHermitian) :
     matrixLeastEigenvalue hA ≤ ‖A‖ := by
   let i := matrixLeastEigenvalueIndex (I := I)
@@ -83,10 +110,13 @@ theorem matrixLeastEigenvalue_le_norm {A : Matrix I I ℂ} (hA : A.IsHermitian) 
     mul_one, mul_one, Complex.norm_real, Real.norm_eq_abs] at hb
   exact (le_abs_self _).trans hb
 
+/-- Defines the maximum of the norm-to-least-eigenvalue ratios for two Hermitian matrices. -/
 def matrixTrueConditionMax {L H : Matrix I I ℂ}
     (hL : L.IsHermitian) (hH : H.IsHermitian) : ℝ :=
   max (‖L‖ / matrixLeastEigenvalue hL) (‖H‖ / matrixLeastEigenvalue hH)
 
+/-- A strictly positive semidefinite lower bound for `L` makes the maximum condition ratio at
+least one. -/
 theorem matrixTrueConditionMax_ge_one {L H : Matrix I I ℂ}
     (hL : L.IsHermitian) (hH : H.IsHermitian) {μ : ℝ} (hμ : 0 < μ)
     (hLlow : (L - μ • (1 : Matrix I I ℂ)).PosSemidef) :
@@ -96,6 +126,8 @@ theorem matrixTrueConditionMax_ge_one {L H : Matrix I I ℂ}
 
 end Spectrum
 
+/-- For positive lower estimates within factor `c` of the denominators, the maximum ratios using
+those estimates lie between the true-denominator maximum and `c` times that maximum. -/
 theorem estimated_condition_max_le_true {βL βH μL μH ellL ellH c : ℝ}
     (hβL : 0 ≤ βL) (hβH : 0 ≤ βH) (hμL : 0 < μL) (hμH : 0 < μH)
     (hL : μL ≤ ellL) (hH : μH ≤ ellH) (hLc : ellL ≤ c * μL) (hHc : ellH ≤ c * μH)
@@ -117,6 +149,8 @@ theorem estimated_condition_max_le_true {βL βH μL μH ellL ellH c : ℝ}
     exact max_le (hl.trans (mul_le_mul_of_nonneg_left (le_max_left _ _) hc0))
       (hh.trans (mul_le_mul_of_nonneg_left (le_max_right _ _) hc0))
 
+/-- Positive spectral lower estimates within factor `c` of the least eigenvalues give a maximum
+estimated condition ratio between the true maximum and `c` times that maximum. -/
 theorem matrix_condition_estimate {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     {L H : Matrix I I ℂ} (hL : L.IsHermitian) (hH : H.IsHermitian)
     {μL μH c : ℝ} (hμL : 0 < μL) (hμH : 0 < μH)
@@ -129,9 +163,12 @@ theorem matrix_condition_estimate {I : Type} [Fintype I] [DecidableEq I] [Nonemp
   estimated_condition_max_le_true (norm_nonneg _) (norm_nonneg _) hμL hμH
     (matrixLeastEigenvalue_lower hL hLlow) (matrixLeastEigenvalue_lower hH hHlow) hLc hHc hc
 
+/-- For `κ ≥ 1`, the affine factor `5 + 2048 * κ` is at most `2053 * κ`. -/
 theorem condition_affine_factor_le {κ : ℝ} (hκ : 1 ≤ κ) :
     5 + 2048 * κ ≤ 2053 * κ := by linarith
 
+/-- If the estimated condition parameter is at most `c` times the true parameter, the displayed
+degree bound increases by at most factor `c` under the stated sign conditions. -/
 theorem cosineDisplayedDegreeBound_condition_compare
     {L H γ τ ε η κestimated κtrue c : ℝ}
     (_hL : 0 ≤ L) (_hH : 0 ≤ H) (hγ : 0 ≤ γ) (hτ : 0 ≤ τ)
@@ -154,6 +191,8 @@ theorem cosineDisplayedDegreeBound_condition_compare
   convert! mul_le_mul_of_nonneg_left hf hb using 1
   ring
 
+/-- The displayed cosine source-query expression increases by at most factor `c` when its
+estimated condition parameter is at most `c` times the true one. -/
 theorem cosineDisplayedSourceBound_condition_compare
     {L H γ τ ε η κestimated κtrue c : ℝ}
     (hL : 0 ≤ L) (hH : 0 ≤ H) (hγ : 0 ≤ γ) (hτ : 0 ≤ τ)

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.RectDilation
+
+/-!
+# Rectangular systems through a Hermitian lift
+
+The theorem `source_rectangular_solution` packages the Hermitian block lift of a rectangular
+matrix and its pseudoinverse action on an embedded right-hand side. It also records
+least-squares and residual identities for the reduction discussed in [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `source_rectangular_solution`: Combines the block solution identity with least-squares,
+  uniqueness, overlap, and residual properties.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,10 @@ open Qatlib.Concepts.BlockEncoding.Postselection
 namespace Qatlib.Papers.LinearSystems09.HermitianLift
 open Matrix
 
+/-- The Hermitian block lift sends the embedded right-hand side under its pseudoinverse to the
+embedded least-squares vector; this vector is a least-squares solution and is unique among
+such solutions of the same norm. The statement also characterizes zero overlap and gives the
+squared residual decomposition for the reduction in [HarrowHassidimLloyd2009]. -/
 theorem source_rectangular_solution (M N : ℕ) (A : Matrix (Fin M) (Fin N) ℂ)
     (b : QState (Fin M)) :
     (Matrix.fromBlocks (0 : Matrix (Fin M) (Fin M) ℂ) A Aᴴ 0).IsHermitian ∧

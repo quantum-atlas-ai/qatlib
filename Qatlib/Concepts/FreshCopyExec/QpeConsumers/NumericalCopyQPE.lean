@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.NumericalControlledCopy
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyQPEConsumers
+
+/-!
+# Numerical fresh-copy phase estimation
+
+`numericCopyQPEProgram` interprets queries by `2^b` numerical controlled-copy steps and
+evaluates the counted phase estimation circuit. The module propagates the angle-synthesis error
+through circuit execution, proves that output labels form a probability law, and compares event
+masses with the spectral kernel law.
+
+`copyBudgetExponent` and `copyBudgetPhasePrecision` choose explicit parameters for error at most
+`2⁻ᵖ`, with an exact resource ledger. The construction implements the fresh-copy spectral
+estimation approach of [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `numerical_copy_qpe_actual_program_error`: bounds the output trace-norm error against local
+  copy QPE.
+* `numerical_copy_qpe_actual_spectral_error_refined`: combines copy-discretization and numerical
+  synthesis errors.
+* `numerical_copy_qpe_computed_budget_and_resources`: gives computed precision parameters, event
+  error, and exact resources.
+
+## References
+
+* [Lloyd et al., 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -40,13 +67,18 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Iterates the numerical controlled-copy step `2^b` times. -/
 noncomputable def numericCopyRun (n : ℕ) (rho : Operator (2^n)) (b k : ℕ) :
     Operator (2*(2^n)) → Operator (2*(2^n)) := (numericCopyFinStep n rho b k)^[2^b]
+/-- The numerical copy QPE query, obtained by amplifying `numericCopyRun` over the phase
+register and restoring the QPE layout. -/
 noncomputable def numericCopyQPEQuery (n M b k : ℕ) (rho : Operator (2^n))
     (X : Matrix (Fin M × (Bool × Fin (2^n))) (Fin M × (Bool × Fin (2^n))) ℂ) :=
   relabelGate (copyQPERegisterEquiv (2^n) M).symm
     (numericAmplification (numericCopyRun n rho b k) M
       (relabelGate (copyQPERegisterEquiv (2^n) M) X))
+/-- Executes a matrix-valued circuit using conjugation for gates and `numericCopyQPEQuery` for
+queries. -/
 noncomputable def numericCopyQPEProgram (n M b k : ℕ) (rho : Operator (2^n)) :
     Circuit (Fin M × (Bool × Fin (2^n))) →
     Matrix (Fin M × (Bool × Fin (2^n))) (Fin M × (Bool × Fin (2^n))) ℂ →
@@ -54,9 +86,12 @@ noncomputable def numericCopyQPEProgram (n M b k : ℕ) (rho : Operator (2^n)) :
   | [],X => X
   | Step.gate U :: C,X => numericCopyQPEProgram n M b k rho C (MatrixMap.conj U X)
   | Step.query :: C,X => numericCopyQPEProgram n M b k rho C (numericCopyQPEQuery n M b k rho X)
+/-- The numerical copy output of the counted phase estimation circuit on the copy QPE input. -/
 noncomputable def numericCopyQPEOutput (n M b k : ℕ) (rho : Operator (2^n)) :=
   numericCopyQPEProgram n M b k rho (countedPhaseCircuit M) (copyQPEInput (2^n) M rho)
 
+/-- Iterating the numerical copy step `s` times equals the `s`-th power of the effective-angle
+controlled-copy map. -/
 theorem numericCopyRun_power (n b k : ℕ) (rho : Operator (2^n)) (s : ℕ) (X : Operator (2*(2^n))) :
     (numericCopyFinStep n rho b k)^[s] X =
       copyMapPower (controlledCopyChannelMap rho (copyPhaseEffectiveAngle b k)) s X := by
@@ -66,6 +101,8 @@ theorem numericCopyRun_power (n b k : ℕ) (rho : Operator (2^n)) (s : ℕ) (X :
     rw [Function.iterate_succ_apply',ih,numericCopyFinStep_eq]
     rfl
 
+/-- Amplifying a numerical copy run equals amplifying the `2^b`-th power of the effective-angle
+copy map. -/
 theorem numericAmplification_run (n b k r : ℕ) (rho : Operator (2^n))
     (X : Matrix (Fin r × Fin (2*(2^n))) (Fin r × Fin (2*(2^n))) ℂ) :
     numericAmplification (numericCopyRun n rho b k) r X =
@@ -73,6 +110,8 @@ theorem numericAmplification_run (n b k r : ℕ) (rho : Operator (2^n))
   ext x y
   simp only [numericAmplification,numericCopyRun,numericCopyRun_power,ChannelAmplification,Matrix.of_apply]
 
+/-- A uniform amplified one-step error bound `ε` on positive inputs grows to at most `s * ε * re
+(trace X)` after `s` channel iterations. -/
 theorem numeric_channel_power_error {D : ℕ} (T S : QuantumChannel D D) (ε : ℝ)
     (hs : ∀ (r : ℕ) (X : Matrix (Fin r × Fin D) (Fin r × Fin D) ℂ),X.PosSemidef →
       (ChannelAmplification T.map r X-ChannelAmplification S.map r X).traceNorm ≤ ε*(Matrix.trace X).re)
@@ -102,20 +141,25 @@ theorem numeric_channel_power_error {D : ℕ} (T S : QuantumChannel D D) (ε : �
     have ht := (Matrix.traceNorm_add_le _ _).trans (add_le_add hc hl)
     exact (ht.trans (add_le_add ih le_rfl)).trans_eq (by push_cast; ring)
 
+/-- Relabeling a square matrix preserves its trace. -/
 theorem numeric_relabel_trace {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (X : Matrix I I ℂ) : Matrix.trace (relabelGate e X) = Matrix.trace X := by
   unfold Matrix.trace
   exact e.symm.sum_comp (fun i => X i i)
 
+/-- Relabeling matrices commutes with subtraction. -/
 theorem numeric_relabel_sub {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (X Y : Matrix I I ℂ) : relabelGate e (X-Y) = relabelGate e X-relabelGate e Y :=
   (Matrix.reindexAlgEquiv ℂ ℂ e).map_sub X Y
 
+/-- Applies a quantum channel to the control-data register while preserving the phase reference
+register, using the QPE register equivalence. -/
 noncomputable def numericChannelQuery (D M : ℕ) (T : QuantumChannel (2*D) (2*D))
     (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :=
   relabelGate (copyQPERegisterEquiv D M).symm
     (ChannelAmplification T.map M (relabelGate (copyQPERegisterEquiv D M) X))
 
+/-- The channel query preserves positive semidefiniteness and trace on positive inputs. -/
 theorem numericChannelQuery_positive_trace (D M : ℕ) (T : QuantumChannel (2*D) (2*D))
     (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) (hX : X.PosSemidef) :
     (numericChannelQuery D M T X).PosSemidef ∧ Matrix.trace (numericChannelQuery D M T X) = Matrix.trace X := by
@@ -124,6 +168,7 @@ theorem numericChannelQuery_positive_trace (D M : ℕ) (T : QuantumChannel (2*D)
   unfold numericChannelQuery
   rw [numeric_relabel_trace,amplification_trace T.map T.tracePreserving,numeric_relabel_trace]
 
+/-- The channel query contracts trace norm on Hermitian inputs. -/
 theorem numericChannelQuery_contraction (D M : ℕ) (T : QuantumChannel (2*D) (2*D))
     (X : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) (hX : X.IsHermitian) :
     (numericChannelQuery D M T X).traceNorm ≤ X.traceNorm := by
@@ -135,12 +180,15 @@ theorem numericChannelQuery_contraction (D M : ℕ) (T : QuantumChannel (2*D) (2
   exact (channel_reference_hermitian_trace_contraction T hY).trans_eq
     (traceNorm_relabel_hermitian _ X hX)
 
+/-- The channel query preserves subtraction. -/
 theorem numericChannelQuery_sub (D M : ℕ) (T : QuantumChannel (2*D) (2*D))
     (X Y : Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ) :
     numericChannelQuery D M T (X-Y) = numericChannelQuery D M T X-numericChannelQuery D M T Y := by
   unfold numericChannelQuery
   rw [numeric_relabel_sub,amplification_sub,numeric_relabel_sub]
 
+/-- For a density operator, the numerical QPE query is the channel query associated with `2^b`
+effective-angle copy steps. -/
 theorem numericCopyQPEQuery_channel (n M b k : ℕ) (rho : Operator (2^n)) (hrho : IsDensityOperator rho)
     (X : Matrix (Fin M × (Bool × Fin (2^n))) (Fin M × (Bool × Fin (2^n))) ℂ) :
     numericCopyQPEQuery n M b k rho X = numericChannelQuery (2^n) M
@@ -149,6 +197,8 @@ theorem numericCopyQPEQuery_channel (n M b k : ℕ) (rho : Operator (2^n)) (hrho
   rw [numericAmplification_run,copyChannelPower_map]
   rfl
 
+/-- For a density operator, the local QPE query with `2^b` steps is the channel query associated
+with `2^b` copy steps at angle `π / 2^b`. -/
 theorem localCopyQPEQuery_channel (n M b : ℕ) (rho : Operator (2^n)) (hrho : IsDensityOperator rho)
     (X : Matrix (Fin M × (Bool × Fin (2^n))) (Fin M × (Bool × Fin (2^n))) ℂ) :
     localCopyQPEQuery n M (2^b) rho X = numericChannelQuery (2^n) M
@@ -157,6 +207,8 @@ theorem localCopyQPEQuery_channel (n M b : ℕ) (rho : Operator (2^n)) (hrho : I
   rw [localCopyRunMap_eq,copyChannelPower_map]
   rfl
 
+/-- On positive inputs, numerical and local copy QPE queries differ in trace norm by at most `4
+* 2^b * 2⁻ᵏ * re (trace X)`. -/
 theorem numericCopyQPEQuery_error (n M b k : ℕ) (rho : Operator (2^n)) (hrho : IsDensityOperator rho)
     (X : Matrix (Fin M × (Bool × Fin (2^n))) (Fin M × (Bool × Fin (2^n))) ℂ) (hX : X.PosSemidef) :
     (numericCopyQPEQuery n M b k rho X-localCopyQPEQuery n M (2^b) rho X).traceNorm ≤
@@ -179,6 +231,7 @@ theorem numericCopyQPEQuery_error (n M b k : ℕ) (rho : Operator (2^n)) (hrho :
   rw [traceNorm_relabel_hermitian _ _ hdiff]
   exact he.trans_eq (by rw [numeric_relabel_trace]; ring)
 
+/-- Conjugation by a unitary preserves matrix trace. -/
 theorem numeric_conj_trace {I : Type} [Fintype I] [DecidableEq I]
     (U X : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     Matrix.trace (MatrixMap.conj U X) = Matrix.trace X := by
@@ -187,6 +240,8 @@ theorem numeric_conj_trace {I : Type} [Fintype I] [DecidableEq I]
   have hu : Uᴴ*U = 1 := by simpa only [Matrix.star_eq_conjTranspose] using! hU.1
   rw [hu,Matrix.one_mul]
 
+/-- Applying the same unitary conjugation to two matrices preserves the trace norm of their
+difference. -/
 theorem numeric_conj_difference_norm {I : Type} [Fintype I] [DecidableEq I]
     (U A B : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     (MatrixMap.conj U A-MatrixMap.conj U B).traceNorm = (A-B).traceNorm := by
@@ -201,6 +256,9 @@ theorem numeric_conj_difference_norm {I : Type} [Fintype I] [DecidableEq I]
   change (U*(A-B)*Uᴴ).traceNorm = (A-B).traceNorm
   rw [Matrix.traceNorm_isometry_right hu,Matrix.traceNorm_isometry_left hu]
 
+/-- For density-operator access and a unitary circuit, numerical execution on `A` and local
+execution on `B` differ by at most their initial trace-norm distance plus `4 * 2^b * 2⁻ᵏ`
+per query times `re (trace B)`, for positive `A` and `B`. -/
 theorem numericCopyQPEProgram_error (n M b k : ℕ) (rho : Operator (2^n)) (hrho : IsDensityOperator rho)
     (C : Circuit (Fin M × (Bool × Fin (2^n)))) (hC : IsUnitaryCircuit C)
     (A B : Matrix (Fin M × (Bool × Fin (2^n))) (Fin M × (Bool × Fin (2^n))) ℂ)
@@ -244,6 +302,8 @@ theorem numericCopyQPEProgram_error (n M b k : ℕ) (rho : Operator (2^n)) (hrho
       exact (hi.trans (add_le_add ht le_rfl)).trans_eq
           (by simp only [QueryCount,Nat.cast_add,Nat.cast_one]; ring)
 
+/-- For `M ≥ 2` and density-operator input, numerical and local copy QPE outputs differ in trace
+norm by at most `4 * (M - 1) * 2^b * 2⁻ᵏ`. -/
 theorem numerical_copy_qpe_actual_program_error : ∀ (n M b k : ℕ) (rho : Operator (2^n)), 2 ≤ M → IsDensityOperator rho →
   Matrix.traceNorm (numericCopyQPEOutput n M b k rho-localCopyQPEOutput n M (2^b) rho) ≤
     4*(M-1)*(2^b:ℕ)*((2:ℝ)⁻¹)^k := by
@@ -256,6 +316,8 @@ theorem numerical_copy_qpe_actual_program_error : ∀ (n M b k : ℕ) (rho : Ope
   simpa only [zero_add,mul_one,numericCopyQPEOutput,localCopyQPEOutput] using!
     h.trans_eq (by rw [Nat.cast_sub (by omega : 1 ≤ M),Nat.cast_one]; ring)
 
+/-- A numerical copy QPE query preserves positive semidefiniteness and trace when `rho` is a
+density operator. -/
 theorem numericCopyQPEQuery_positive_trace (n M b k : ℕ) (rho : Operator (2^n))
     (hrho : IsDensityOperator rho)
     (X : Matrix (Fin M × (Bool × Fin (2^n))) (Fin M × (Bool × Fin (2^n))) ℂ)
@@ -266,6 +328,8 @@ theorem numericCopyQPEQuery_positive_trace (n M b k : ℕ) (rho : Operator (2^n)
     numericChannelQuery_positive_trace (2^n) M
       (copyChannelPower (controlledCopyChannel rho hrho (copyPhaseEffectiveAngle b k)) (2^b)) X hX
 
+/-- Numerical copy execution of a unitary circuit preserves positive semidefiniteness and trace
+for density-operator access. -/
 theorem numericCopyQPEProgram_positive_trace (n M b k : ℕ) (rho : Operator (2^n))
     (hrho : IsDensityOperator rho) (C : Circuit (Fin M × (Bool × Fin (2^n))))
     (hC : IsUnitaryCircuit C)
@@ -286,6 +350,8 @@ theorem numericCopyQPEProgram_positive_trace (n M b k : ℕ) (rho : Operator (2^
       have ht := ih hC' (MatrixMap.conj U X) (hX.mul_mul_conjTranspose_same U)
       exact ⟨ht.1, ht.2.trans (numeric_conj_trace U X hU)⟩
 
+/-- For `M > 0` and density-operator input, the numerical QPE output is positive semidefinite
+with trace one. -/
 theorem numericCopyQPEOutput_density (n M b k : ℕ) (hM : 0 < M)
     (rho : Operator (2^n)) (hrho : IsDensityOperator rho) :
     (numericCopyQPEOutput n M b k rho).PosSemidef ∧
@@ -296,6 +362,8 @@ theorem numericCopyQPEOutput_density (n M b k : ℕ) (hM : 0 < M)
   have h := numericCopyQPEProgram_positive_trace n M b k rho hrho _ hC _ hX.1
   exact ⟨h.1, h.2.trans hX.2⟩
 
+/-- For `M > 0` and density-operator input, numerical QPE label masses are nonnegative and sum
+to one, and every event mass lies in `[0, 1]`. -/
 theorem numerical_copy_qpe_actual_label_law (n M b k : ℕ) (hM : 0 < M)
     (rho : Operator (2^n)) (hrho : IsDensityOperator rho) :
     (∀ z : Fin M, 0 ≤ copyQPELabelMass (2^n) M (numericCopyQPEOutput n M b k rho) z) ∧
@@ -317,6 +385,8 @@ theorem numerical_copy_qpe_actual_label_law (n M b k : ℕ) (hM : 0 < M)
       Finset.sum_le_sum_of_subset_of_nonneg (Finset.subset_univ E) (fun z _ _ => hn z)
     _ = 1 := hs
 
+/-- For `M ≥ 2` and density-operator input, an event's numerical and local QPE masses differ by
+at most `2 * (M - 1) * 2^b * 2⁻ᵏ`. -/
 theorem numerical_copy_qpe_actual_event_error (n M b k : ℕ) (rho : Operator (2^n))
     (E : Finset (Fin M)) (hM : 2 ≤ M) (hrho : IsDensityOperator rho) :
     |(∑ z ∈ E, copyQPELabelMass (2^n) M (numericCopyQPEOutput n M b k rho) z) -
@@ -332,6 +402,8 @@ theorem numerical_copy_qpe_actual_event_error (n M b k : ℕ) (rho : Operator (2
   exact (he.trans (div_le_div_of_nonneg_right hs (by norm_num : (0:ℝ) ≤ 2))).trans_eq
     (by ring)
 
+/-- For `M ≥ 2` and the stated density-operator diagonalization, the spectral event error is at
+most `8 * (M - 1) * π² / 2^b + 2 * (M - 1) * 2^b * 2⁻ᵏ`. -/
 theorem numerical_copy_qpe_actual_spectral_error_refined : ∀ (n M b k : ℕ) (rho V : Operator (2^n)) (eig : Fin (2^n) → ℝ)
     (E : Finset (Fin M)), 2 ≤ M → IsDensityOperator rho →
   V ∈ Matrix.unitaryGroup (Fin (2^n)) ℂ →
@@ -351,6 +423,8 @@ theorem numerical_copy_qpe_actual_spectral_error_refined : ∀ (n M b k : ℕ) (
     (∑ i,eig i*(∑ z ∈ E,‖qpeKernel M (-eig i/2) z‖^2))).trans (add_le_add hnum hexact)
   exact ht.trans_eq (by rw [Nat.cast_sub (by omega : 1 ≤ M),Nat.cast_one]; ring)
 
+/-- For `M ≥ 2` and the stated density-operator diagonalization, the spectral event error is at
+most `8 * (M - 1) * π² / 2^b + 4 * (M - 1) * 2^b * 2⁻ᵏ`. -/
 theorem numerical_copy_qpe_actual_spectral_error : ∀ (n M b k : ℕ) (rho V : Operator (2^n)) (eig : Fin (2^n) → ℝ)
     (E : Finset (Fin M)), 2 ≤ M → IsDensityOperator rho →
   V ∈ Matrix.unitaryGroup (Fin (2^n)) ℂ →
@@ -367,21 +441,30 @@ theorem numerical_copy_qpe_actual_spectral_error : ∀ (n M b k : ℕ) (rho V : 
   have hn : 0 ≤ ((M:ℝ)-1)*(2^b:ℕ)*((2:ℝ)⁻¹)^k := by positivity
   exact h.trans (by nlinarith)
 
+/-- The four-coordinate numerical copy ledger, charging `(2^b * (36 * n + 4), 2^b, 2^b, 0)` per
+query. -/
 def numericCopyResources {I : Type*} (n b : ℕ) : Circuit I → ℕ × ℕ × ℕ × ℕ
   | [] => (0,0,0,0)
   | Step.gate _ :: C => numericCopyResources n b C
   | Step.query :: C =>
     let r := numericCopyResources n b C
     (r.1+(2^b)*(36*n+4),r.2.1+2^b,r.2.2.1+2^b,r.2.2.2)
+/-- The base-two ceiling logarithm of `max 1 (256 * (M - 1) * 2^p)`, used to choose the
+copy-count exponent. -/
 def copyBudgetExponent (M p : ℕ) := Nat.clog 2 (max 1 (256*(M-1)*2^p))
+/-- The target precision `p` plus the base-two ceiling logarithm of `max 1 (8 * (M - 1) * 2^b)`,
+used for phase synthesis. -/
 def copyBudgetPhasePrecision (M b p : ℕ) := p+Nat.clog 2 (max 1 (8*(M-1)*2^b))
 
+/-- The numerical copy ledger equals the query count times `(2^b * (36 * n + 4), 2^b, 2^b, 0)`. -/
 theorem numericCopyResources_eq {I : Type} (n b : ℕ) (C : Circuit I) :
     numericCopyResources n b C = (QueryCount C*(2^b)*(36*n+4),QueryCount C*(2^b),QueryCount C*(2^b),0) := by
   induction C with
   | nil => simp [numericCopyResources,QueryCount]
   | cons g C ih => cases g <;> simp [numericCopyResources,QueryCount,ih,Nat.add_mul]
 
+/-- For `M ≥ 2`, the computed copy exponent and phase precision make the combined spectral error
+expression at most `2⁻ᵖ`. -/
 theorem numericCopy_budget_error (M p : ℕ) (hM : 2 ≤ M) :
     let b := copyBudgetExponent M p
     let k := copyBudgetPhasePrecision M b p
@@ -425,6 +508,9 @@ theorem numericCopy_budget_error (M p : ℕ) (hM : 2 ≤ M) :
     ring
   exact (add_le_add hA hN).trans_eq he
 
+/-- For `M ≥ 2` and the stated density-operator diagonalization, the computed parameters give
+spectral event error at most `2⁻ᵖ`. They also give the exact numerical copy resource tuple
+and `2 * (M - 1) + 2` fixed macros. -/
 theorem numerical_copy_qpe_computed_budget_and_resources : ∀ (n M p : ℕ) (rho V : Operator (2^n)) (eig : Fin (2^n) → ℝ)
     (E : Finset (Fin M)), 2 ≤ M → IsDensityOperator rho →
   V ∈ Matrix.unitaryGroup (Fin (2^n)) ℂ →

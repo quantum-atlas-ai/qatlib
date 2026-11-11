@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
+
+/-!
+# Probability bounds for Boolean subgroup recovery
+
+Decodes character samples into Boolean vectors and relates subgroup recovery to spanning the
+orthogonal complement. Supported samples always produce a candidate containing the hidden
+subgroup; failure is equivalent, in probability, to the existence of a vector outside the
+subgroup orthogonal to every sample.
+
+A halfspace probability and a finite union bound give failure at most `|Hᶜ| * (1 / 2) ^ m`, both
+for independent finite-distribution records and for fresh circuit measurements. These estimates
+formalize the sampling analysis behind Simon-type recovery [Simon1997].
+
+## Main statements
+
+* `booleanSampleCandidate_eq_iff_span_eq_orthogonal`: characterizes exact recovery by spanning.
+* `hiddenSubgroupFreshSamples_boolean_no_false_exclusion`: proves zero probability of excluding
+  a hidden element.
+* `hiddenSubgroupSampleDist_boolean_recovery_failure_le`: bounds recovery failure.
+* `hiddenSubgroupFreshSamples_boolean_recovery_success_ge`: bounds success for fresh
+  measurements.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -18,14 +45,19 @@ namespace Qatlib.Concepts.HspRecovery.Distinguisher
 
 open scoped Classical
 
+/-- Converts each Boolean-group character sample to its vector index using the inverse of
+`booleanCharacterEquiv`. -/
 noncomputable def booleanDecodedSamples {n m : ℕ}
     (xs : Fin m → AddChar (BooleanVec n) ℂ) : Fin m → BooleanVec n :=
   fun i => (booleanCharacterEquiv n).symm (xs i)
 
+/-- The decoded sample at index `i` is the inverse-character-equivalence image of `xs i`. -/
 @[simp] theorem booleanDecodedSamples_apply {n m : ℕ}
     (xs : Fin m → AddChar (BooleanVec n) ℂ) (i : Fin m) :
     booleanDecodedSamples xs i = (booleanCharacterEquiv n).symm (xs i) := rfl
 
+/-- A decoded sample belongs to the Boolean orthogonal complement of `H` exactly when its
+character annihilates `H`. -/
 @[simp] theorem booleanDecodedSamples_mem_orthogonal_iff {n m : ℕ}
     (H : AddSubgroup (BooleanVec n))
     (xs : Fin m → AddChar (BooleanVec n) ℂ) (i : Fin m) :
@@ -36,6 +68,8 @@ noncomputable def booleanDecodedSamples {n m : ℕ}
     (booleanCharacterEquiv_mem_characterAnnihilator_iff H
       ((booleanCharacterEquiv n).symm (xs i))).symm
 
+/-- The sample candidate equals `H` exactly when the sample span equals the Boolean orthogonal
+complement of `H`. -/
 theorem booleanSampleCandidate_eq_iff_span_eq_orthogonal {n m : ℕ}
     (H : AddSubgroup (BooleanVec n)) (samples : Fin m → BooleanVec n) :
     booleanSampleCandidate samples = H ↔
@@ -47,6 +81,8 @@ theorem booleanSampleCandidate_eq_iff_span_eq_orthogonal {n m : ℕ}
     rwa [booleanOrthogonal_booleanOrthogonal_eq] at horth
   · exact booleanSampleCandidate_eq_of_span_eq_orthogonal H samples
 
+/-- The sample candidate contains `H` exactly when every sample belongs to the Boolean
+orthogonal complement of `H`. -/
 theorem le_booleanSampleCandidate_iff {n m : ℕ}
     (H : AddSubgroup (BooleanVec n)) (samples : Fin m → BooleanVec n) :
     H ≤ booleanSampleCandidate samples ↔ ∀ i, samples i ∈ booleanOrthogonal H := by
@@ -60,6 +96,7 @@ theorem le_booleanSampleCandidate_iff {n m : ℕ}
     intro i
     exact (mem_booleanOrthogonal H (samples i)).1 (h i) ⟨x, hx⟩
 
+/-- With no samples, the candidate subgroup is the entire Boolean vector group. -/
 @[simp] theorem booleanSampleCandidate_empty {n : ℕ}
     (samples : Fin 0 → BooleanVec n) :
     booleanSampleCandidate samples = ⊤ := by
@@ -68,12 +105,15 @@ theorem le_booleanSampleCandidate_iff {n m : ℕ}
   intro i
   exact Fin.elim0 i
 
+/-- The event that every decoded sample lies in the orthogonal complement of `H` but their
+additive span is a proper subgroup of that complement. -/
 noncomputable def booleanSpanFailureEvent {n m : ℕ}
     (H : AddSubgroup (BooleanVec n))
     (xs : Fin m → AddChar (BooleanVec n) ℂ) : Prop :=
   (∀ i, booleanDecodedSamples xs i ∈ booleanOrthogonal H) ∧
     booleanSampleSpan (booleanDecodedSamples xs) ≠ booleanOrthogonal H
 
+/-- The Boolean dot product is symmetric. -/
 private theorem booleanDot_comm_recoveryProbability {n : ℕ}
     (a x : BooleanVec n) : booleanDot a x = booleanDot x a := by
   simp only [booleanDot]
@@ -81,6 +121,8 @@ private theorem booleanDot_comm_recoveryProbability {n : ℕ}
   intro i _
   exact mul_comm _ _
 
+/-- Failure to span the orthogonal complement yields a vector outside `H` orthogonal to every
+decoded sample. -/
 theorem booleanSpanFailureEvent_exists_separator {n m : ℕ}
     (H : AddSubgroup (BooleanVec n))
     (xs : Fin m → AddChar (BooleanVec n) ℂ)
@@ -108,6 +150,8 @@ theorem booleanSpanFailureEvent_exists_separator {n m : ℕ}
   rw [booleanDot_comm_recoveryProbability]
   exact hi
 
+/-- Span failure is equivalent to orthogonal support of all decoded samples together with a
+vector outside `H` orthogonal to every sample. -/
 theorem booleanSpanFailureEvent_iff_supported_exists_separator {n m : ℕ}
     (H : AddSubgroup (BooleanVec n))
     (xs : Fin m → AddChar (BooleanVec n) ℂ) :
@@ -131,6 +175,8 @@ theorem booleanSpanFailureEvent_iff_supported_exists_separator {n m : ℕ}
     rw [hcand] at hxcand
     exact hx hxcand
 
+/-- Inclusion of events implies the corresponding inequality of independent-sample event
+probabilities. -/
 private theorem probEvent_mono {X : Type*} [Fintype X] [DecidableEq X]
     {L : ℕ} (p : FinDist X)
     (E F : (Fin L → X) → Prop) [DecidablePred E] [DecidablePred F]
@@ -143,6 +189,8 @@ private theorem probEvent_mono {X : Type*} [Fintype X] [DecidableEq X]
   · intro xs _ _
     exact Finset.prod_nonneg (fun i _ => p.nonneg (xs i))
 
+/-- The probability that at least one event in a finite indexed family occurs is at most the sum
+of their probabilities. -/
 private theorem union_bound_fintype {X I : Type*}
     [Fintype X] [DecidableEq X] [Fintype I]
     {L : ℕ} (p : FinDist X) (E : I → (Fin L → X) → Prop)
@@ -180,6 +228,8 @@ private theorem union_bound_fintype {X I : Type*}
 variable {n : ℕ} {R : Type*}
   [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- If `f` hides `H` and `x ∉ H`, the probability that all `m` decoded samples are orthogonal to
+`x` is `(1 / 2) ^ m`. -/
 theorem hiddenSubgroupSampleDist_boolean_halfspace_event
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -200,6 +250,8 @@ theorem hiddenSubgroupSampleDist_boolean_halfspace_event
   exact (ENNReal.ofReal_eq_ofReal_iff hnonneg
     (pow_nonneg (by norm_num : (0 : ℝ) ≤ 1 / 2) m)).1 h
 
+/-- For a function hiding `H`, the probability of supported span failure is at most the number
+of vectors outside `H` times `(1 / 2) ^ m`. -/
 theorem hiddenSubgroupSampleDist_boolean_span_failure_le
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -232,6 +284,8 @@ theorem hiddenSubgroupSampleDist_boolean_span_failure_le
     _ = (Fintype.card {x : BooleanVec n // x ∉ H} : ℝ) * (1 / 2 : ℝ) ^ m := by
       rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
 
+/-- For a function hiding `H`, the fresh-measurement probability of supported span failure is at
+most `ENNReal.ofReal (|Hᶜ| * (1 / 2) ^ m)`. -/
 theorem hiddenSubgroupFreshSamples_boolean_span_failure_le
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -244,6 +298,8 @@ theorem hiddenSubgroupFreshSamples_boolean_span_failure_le
   apply ENNReal.ofReal_le_ofReal
   exact hiddenSubgroupSampleDist_boolean_span_failure_le f H hf e m
 
+/-- If every decoded sample lies in the orthogonal complement of `H` and span failure does not
+occur, the candidate subgroup equals `H`. -/
 theorem booleanSampleCandidate_eq_of_supported_not_span_failure {n m : ℕ}
     (H : AddSubgroup (BooleanVec n))
     (xs : Fin m → AddChar (BooleanVec n) ℂ)
@@ -254,6 +310,8 @@ theorem booleanSampleCandidate_eq_of_supported_not_span_failure {n m : ℕ}
   by_contra hspan
   exact hnot ⟨hsupported, hspan⟩
 
+/-- For a function hiding `H`, a sample sequence with a decoded vector outside the orthogonal
+complement of `H` has product probability zero. -/
 theorem hiddenSubgroupSampleDist_boolean_probOf_eq_zero_of_not_supported
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -271,6 +329,8 @@ theorem hiddenSubgroupSampleDist_boolean_probOf_eq_zero_of_not_supported
   apply Finset.prod_eq_zero (Finset.mem_univ i)
   rw [hiddenSubgroupSampleDist_prob f H hf e, if_neg hχ]
 
+/-- Every decoded sample in a fresh sequence of nonzero mass belongs to the orthogonal
+complement of the hidden subgroup. -/
 theorem hiddenSubgroupFreshSamples_boolean_supported_of_ne_zero
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -284,6 +344,9 @@ theorem hiddenSubgroupFreshSamples_boolean_supported_of_ne_zero
     hiddenSubgroupSampleDist_boolean_probOf_eq_zero_of_not_supported f H hf e xs hnot,
     ENNReal.ofReal_zero]
 
+/-- For a function hiding `H`, a length-`m` sequence has probability the reciprocal annihilator
+cardinality to the power `m` if all decoded samples are orthogonally supported, and zero
+otherwise. -/
 theorem hiddenSubgroupSampleDist_boolean_probOf
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -306,6 +369,8 @@ theorem hiddenSubgroupSampleDist_boolean_probOf
   · rw [if_neg hs]
     exact hiddenSubgroupSampleDist_boolean_probOf_eq_zero_of_not_supported f H hf e xs hs
 
+/-- For a function hiding `H`, a sequence has positive product probability exactly when every
+decoded sample lies in the orthogonal complement of `H`. -/
 theorem hiddenSubgroupSampleDist_boolean_probOf_pos_iff
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -323,6 +388,8 @@ theorem hiddenSubgroupSampleDist_boolean_probOf_pos_iff
   · rw [if_neg hs]
     exact iff_of_false (lt_irrefl 0) hs
 
+/-- A fresh sample sequence has nonzero mass exactly when all its decoded samples belong to the
+orthogonal complement of the hidden subgroup. -/
 theorem hiddenSubgroupFreshSamples_boolean_ne_zero_iff
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -333,6 +400,8 @@ theorem hiddenSubgroupFreshSamples_boolean_ne_zero_iff
   rw [hiddenSubgroupFreshSamples_apply, ENNReal.ofReal_ne_zero_iff]
   exact hiddenSubgroupSampleDist_boolean_probOf_pos_iff f H hf e xs
 
+/-- For a function hiding `H`, every fresh sequence of nonzero mass produces a candidate
+subgroup containing `H`. -/
 theorem hiddenSubgroupFreshSamples_boolean_le_candidate_of_ne_zero
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -343,6 +412,8 @@ theorem hiddenSubgroupFreshSamples_boolean_le_candidate_of_ne_zero
   (le_booleanSampleCandidate_iff H _).2
     ((hiddenSubgroupFreshSamples_boolean_ne_zero_iff f H hf e xs).1 hprob)
 
+/-- For a function hiding `H`, an event probability equals the number of supported satisfying
+sequences times the reciprocal annihilator cardinality to the power `m`. -/
 theorem hiddenSubgroupSampleDist_boolean_event_eq_card
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -365,6 +436,9 @@ theorem hiddenSubgroupSampleDist_boolean_event_eq_card
       by_cases hE : E xs <;> simp [hE]
     _ = _ := by rw [Finset.sum_const, nsmul_eq_mul]
 
+/-- For a function hiding `H`, a fresh-measurement event probability is the `ENNReal.ofReal`
+conversion of its supported satisfying-sequence count times the reciprocal annihilator
+cardinality to the power `m`. -/
 theorem hiddenSubgroupFreshSamples_boolean_event_eq_card
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -378,6 +452,8 @@ theorem hiddenSubgroupFreshSamples_boolean_event_eq_card
   rw [hiddenSubgroupFreshSamples_event,
     hiddenSubgroupSampleDist_boolean_event_eq_card f H hf e m E]
 
+/-- For a function hiding `H`, events agreeing on orthogonally supported decoded sequences have
+equal independent-sample probabilities. -/
 theorem hiddenSubgroupSampleDist_boolean_event_congr
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -400,6 +476,8 @@ theorem hiddenSubgroupSampleDist_boolean_event_congr
   · rintro ⟨hs, hF⟩
     exact ⟨hs, (hEF xs hs).2 hF⟩
 
+/-- For a function hiding `H`, events agreeing on orthogonally supported decoded sequences have
+equal fresh-measurement probabilities. -/
 theorem hiddenSubgroupFreshSamples_boolean_event_congr
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -414,6 +492,8 @@ theorem hiddenSubgroupFreshSamples_boolean_event_congr
   exact congrArg ENNReal.ofReal
     (hiddenSubgroupSampleDist_boolean_event_congr f H hf e m E F hEF)
 
+/-- For a function hiding `H`, the probability that the sample candidate fails to contain `H` is
+zero. -/
 theorem hiddenSubgroupFreshSamples_boolean_no_false_exclusion
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -429,6 +509,8 @@ theorem hiddenSubgroupFreshSamples_boolean_no_false_exclusion
       simp only [hle, not_true_eq_false])
   simpa only [Finset.filter_false, Finset.sum_empty] using heq
 
+/-- For a function hiding `H`, recovery failure has the same probability as the existence of a
+vector outside `H` orthogonal to every decoded sample. -/
 theorem hiddenSubgroupSampleDist_boolean_recovery_failure_eq_separator_event
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -446,6 +528,8 @@ theorem hiddenSubgroupSampleDist_boolean_recovery_failure_eq_separator_event
   rw [booleanSpanFailureEvent, and_iff_right hs, and_iff_right hs] at h
   exact (not_congr (booleanSampleCandidate_eq_iff_span_eq_orthogonal H _)).trans h
 
+/-- For a function hiding `H`, fresh-measurement recovery failure has the same probability as a
+vector outside `H` being orthogonal to every decoded sample. -/
 theorem hiddenSubgroupFreshSamples_boolean_recovery_failure_eq_separator_event
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -460,6 +544,8 @@ theorem hiddenSubgroupFreshSamples_boolean_recovery_failure_eq_separator_event
   rw [hiddenSubgroupFreshSamples_event, hiddenSubgroupFreshSamples_event,
     hiddenSubgroupSampleDist_boolean_recovery_failure_eq_separator_event f H hf e m]
 
+/-- For a function hiding `H`, the probability that the candidate differs from `H` equals the
+probability of supported span failure. -/
 theorem hiddenSubgroupSampleDist_boolean_recovery_failure_eq_span_failure
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -473,6 +559,8 @@ theorem hiddenSubgroupSampleDist_boolean_recovery_failure_eq_span_failure
   rw [booleanSpanFailureEvent, and_iff_right hs]
   exact not_congr (booleanSampleCandidate_eq_iff_span_eq_orthogonal H _)
 
+/-- For a function hiding `H`, the probability that the sample candidate differs from `H` is at
+most `|Hᶜ| * (1 / 2) ^ m`. -/
 theorem hiddenSubgroupSampleDist_boolean_recovery_failure_le
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -484,6 +572,8 @@ theorem hiddenSubgroupSampleDist_boolean_recovery_failure_le
   rw [hiddenSubgroupSampleDist_boolean_recovery_failure_eq_span_failure f H hf e m]
   exact hiddenSubgroupSampleDist_boolean_span_failure_le f H hf e m
 
+/-- For a function hiding `H`, the fresh-measurement recovery failure probability is at most the
+`ENNReal.ofReal` conversion of `|Hᶜ| * (1 / 2) ^ m`. -/
 theorem hiddenSubgroupFreshSamples_boolean_recovery_failure_le
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -497,6 +587,8 @@ theorem hiddenSubgroupFreshSamples_boolean_recovery_failure_le
   exact ENNReal.ofReal_le_ofReal
     (hiddenSubgroupSampleDist_boolean_recovery_failure_le f H hf e m)
 
+/-- For a function hiding `H`, the sample candidate equals `H` with probability at least `1 -
+|Hᶜ| * (1 / 2) ^ m`. -/
 theorem hiddenSubgroupSampleDist_boolean_recovery_success_ge
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)
@@ -522,6 +614,8 @@ theorem hiddenSubgroupSampleDist_boolean_recovery_success_ge
   change _ ≤ p.probEvent E
   linarith
 
+/-- For a function hiding `H`, the fresh-measurement recovery success probability is at least
+the `ENNReal.ofReal` conversion of `1 - |Hᶜ| * (1 / 2) ^ m`. -/
 theorem hiddenSubgroupFreshSamples_boolean_recovery_success_ge
     (f : BooleanVec n → R) (H : AddSubgroup (BooleanVec n))
     (hf : HidesSubgroup f H)

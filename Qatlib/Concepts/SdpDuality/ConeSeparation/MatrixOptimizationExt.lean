@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationDefs
 import Qatlib.Concepts.MatrixWeights.WeightsCore
 import Mathlib.Tactic.FinCases
+
+/-!
+# Sampled SDP width bounds and their boundary
+
+This module proves `clause29`, which turns nonnegative round vectors with `widthSampled`
+objective bounds into matrix payoffs in the interval from zero to the identity. It also
+establishes the sampled-to-exact width identities, rescaled objective bounds, and the objective
+bound for `sdpDualCertificate`.
+
+The width bookkeeping belongs to the quantum SDP framework of [BrandaoSvore2017]. The theorem
+additionally supplies `widthWrongStrongBoundary`, an explicit example showing that a larger
+width allowance can produce a payoff above the identity; its certificate conclusion bounds the
+objective.
+
+## Main statements
+
+* `clause29`: Under the stated SDP, width, and parameter hypotheses, obtain unit-interval
+  payoffs, rescaling identities, and certificate objective at most `(1 + δ) * α`, together with
+  the wider-width boundary example.
+* `fromBlocks_zero_zero_posSemidef`: A block diagonal matrix with positive semidefinite diagonal
+  blocks is positive semidefinite.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MatrixWeights.WeightsCore
 open Qatlib.Foundations.PureStateMath
@@ -27,23 +54,39 @@ open Qatlib.Concepts.RationalScan.Step2Scan Qatlib.Concepts.SdpDuality.ConeSepar
 set_option warningAsError false
 set_option maxHeartbeats 800000
 
+/-- The two scalar identity constraint matrices used to witness failure under the wider width
+allowance. -/
 private noncomputable def WA : Fin 2 → Operator 1 := fun _ => (1 : Operator 1)
+/-- The scalar negative identity objective matrix used in the wider-width boundary example. -/
 private noncomputable def WCv : Operator 1 := -(1 : Operator 1)
+/-- The constraint bounds one and two for the two-constraint wider-width boundary example. -/
 private def Wb : Fin 2 → ℝ := fun i => if i = 0 then (1:ℝ) else (2:ℝ)
+/-- The constant history assigning weight four to constraint zero and weight zero to constraint
+one. -/
 private noncomputable def Wy : ℕ → Fin 2 → ℝ := fun _ i => if i = 0 then (4:ℝ) else (0:ℝ)
 
+/-- The first constraint bound in `Wb` is one. -/
 private theorem hWb0 : Wb 0 = (1:ℝ) := if_pos rfl
 
+/-- The second constraint bound in `Wb` is two. -/
 private theorem hWb1 : Wb 1 = (2:ℝ) := if_neg (by decide)
 
+/-- At every time, `Wy` assigns weight four to constraint zero. -/
 private theorem hWy0 (t : ℕ) : Wy t 0 = (4:ℝ) := if_pos rfl
 
+/-- At every time, `Wy` assigns weight zero to constraint one. -/
 private theorem hWy1 (t : ℕ) : Wy t 1 = (0:ℝ) := if_neg (by decide)
 
+/-- Every index in `Fin 2` is zero or one. -/
 private theorem hfin2 : ∀ i : Fin 2, i = 0 ∨ i = 1 := by
   intro i
   fin_cases i <;> simp
 
+/-- Under the stated SDP, parameter, and sampled-width assumptions, the round payoffs lie
+between zero and the identity, rescaling gives the exact width bound, and the averaged dual
+certificate has objective at most `(1 + δ) * α`. The conclusion also includes an explicit
+witness that the larger width allowance in `widthWrongStrongBoundary` can violate the
+unit-interval payoff condition. -/
 theorem clause29 : (
   ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
       (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (T : ℕ) (α R δ ε η : ℝ),
@@ -293,6 +336,8 @@ theorem clause29 : (
       linarith
   exact ⟨h1, h2a, h2b, h2c, h2d, h3, h3b, h4⟩
 
+/-- A block diagonal complex matrix with positive semidefinite diagonal blocks is positive
+semidefinite, including when an index type is empty. -/
 private theorem fromBlocks_zero_zero_posSemidef {m n : Type*} [Fintype m] [Fintype n]
     {P : Matrix m m ℂ} {Q : Matrix n n ℂ} (hP : P.PosSemidef) (hQ : Q.PosSemidef) :
     (Matrix.fromBlocks P 0 0 Q).PosSemidef := by

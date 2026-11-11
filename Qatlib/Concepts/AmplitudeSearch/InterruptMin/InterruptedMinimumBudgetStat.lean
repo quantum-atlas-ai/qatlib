@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedMinimumCore
+
+/-!
+# The interrupted minimum-search budget contract
+
+This module defines `InterruptedMinimumBudget`, collecting the positivity, normalization,
+support, and expectation laws for interrupted minimum search. The contract also records the
+observation interface, comparison with atomic search, and success bounds at the charged budget.
+
+Its one-half success clause formalizes a budgeted minimum-finding guarantee in the setting of
+[DurrHoyer1996].
+
+## Main statements
+
+* `InterruptedMinimumBudget`: The contract collecting interrupted minimum-search probability
+  laws, remaining-budget and minimum-preservation properties, partial-observation semantics,
+  domination of atomic success, and success between one half and one at the charged budget.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +50,9 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 open Qatlib.Concepts.SearchStopping.GroverSuccess Qatlib.Concepts.SearchStopping.UnknownCount
 open scoped ENNReal BigOperators Classical
 
+/-- The contract collecting interrupted minimum-search probability laws, remaining-budget and
+minimum-preservation properties, partial-observation semantics, domination of atomic
+success, and success between one half and one at the charged budget. -/
 def InterruptedMinimumBudget : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (α : Type) [LinearOrder α] (T : Fin N → α),
 

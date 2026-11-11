@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdTolerance
 import Qatlib.Papers.LowEnergyProd24.RetainedError.PhysicalSpectral
+
+/-!
+# Positive-group bounds for physical Hamiltonians
+
+This module proves retained nested-commutator estimates for the original groups of a
+`PhysicalHamiltonian`. Assuming group positivity, it gives the compressed-group bound, one-step
+cutoff recursion, full cutoff chain, and tolerance choice used in [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `cutoff_chain`: Bounds an original nested commutator by an enlarged-cutoff leading term and
+  chain remainder.
+* `tolerance_cutoffs`: Chooses a positive gap for any positive remainder tolerance.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,11 +38,16 @@ open Qatlib.Papers.LowEnergyProd24.ImaginaryLeak
 open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- For positive semidefinite physical groups and nonnegative `Λ`, each original group
+compressed below `Λ` has operator norm at most `Λ`. -/
 theorem compressed_group (h : PhysicalHamiltonian N R M k d J) (hp : ∀ m, (h.grouped m).PosSemidef)
     (m : Fin M) (Λ : ℝ) (hΛ : 0 ≤ Λ) :
     ‖low h.total h.total_hermitian Λ*h.grouped m*low h.total h.total_hermitian Λ‖ ≤ Λ :=
   psd_group_compression h.grouped hp m Λ hΛ
 
+/-- For positive semidefinite physical groups, the original nested commutator at `Δ` is bounded
+by `2 * Λ` times the inner commutator at `Λ` plus exponential leakage, when `Δ ≤ Λ`
+[HejaziZiniArrazola2024]. -/
 theorem cutoff_step (h : PhysicalHamiltonian N R M k d J)
     (hp : ∀ m, (h.grouped m).PosSemidef) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (L : ℕ) (hL : ∀ m, (h.labels m).card ≤ L) (a seed : Fin M) (xs : List (Fin M))
@@ -69,6 +93,9 @@ theorem cutoff_step (h : PhysicalHamiltonian N R M k d J)
       rw [hx]
       ring
 
+/-- For positive semidefinite physical groups and nonnegative cutoff and gap, the original
+compressed nested commutator is bounded by the enlarged-cutoff leading term plus
+`chainRemainder` [HejaziZiniArrazola2024]. -/
 theorem cutoff_chain (h : PhysicalHamiltonian N R M k d J)
     (hp : ∀ m, (h.grouped m).PosSemidef) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (L : ℕ) (hL : ∀ m, (h.labels m).card ≤ L) (seed : Fin M) (xs : List (Fin M))
@@ -104,6 +131,9 @@ theorem cutoff_chain (h : PhysicalHamiltonian N R M k d J)
         rw [add_sub_cancel_left]
         nlinarith only [hlead]
 
+/-- For positive semidefinite physical groups, a positive gap can be chosen so that the original
+compressed nested-commutator bound has an additive remainder at most any prescribed positive
+tolerance [HejaziZiniArrazola2024]. -/
 theorem tolerance_cutoffs (h : PhysicalHamiltonian N R M k d J)
     (hp : ∀ m, (h.grouped m).PosSemidef) (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d)
     (L : ℕ) (hL : ∀ m, (h.labels m).card ≤ L) (seed : Fin M) (xs : List (Fin M))

@@ -9,6 +9,29 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+
+/-!
+# Phase sampling probabilities and access assumptions
+
+This module defines the two Born probabilities, independent-record weights, and expected errors
+for `SamplingProtocol`. The structure `PhaseAccessModel` packages a supplied estimation protocol
+with a reciprocal-precision query bound and an expected absolute angular-error guarantee. See
+[VanDamSeroussi2002].
+
+## Main statements
+
+* `bornPlus_add_bornMinus`: The positive and negative Born probabilities sum to one.
+* `fact2_unbiased_sign_mean`: For a positive number of samples, the expected sign average equals
+  the average of `cos(γ - P.angle i)` over the measurement indices.
+* `PhaseAccessModel`: A family of protocols and positive query counts with a uniform
+  constant-times-`sampleCount` bound and expected absolute angular error below each positive
+  tolerance for every real phase.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,43 +42,60 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- The probability `(1 + cos(γ - φ)) / 2` of the positive outcome at measurement angle `φ`. -/
 def bornPlus (γ φ : ℝ) : ℝ := (1 + Real.cos (γ - φ)) / 2
 
+/-- The probability `(1 - cos(γ - φ)) / 2` of the negative outcome at measurement angle `φ`. -/
 def bornMinus (γ φ : ℝ) : ℝ := (1 - Real.cos (γ - φ)) / 2
 
+/-- The real sign associated to a Boolean outcome, with `true` mapped to one and `false` to
+minus one. -/
 def sign (b : Bool) : ℝ := if b then 1 else -1
 
+/-- The positive and negative Born probabilities sum to one. -/
 theorem bornPlus_add_bornMinus (γ φ : ℝ) : bornPlus γ φ + bornMinus γ φ = 1 := by
   unfold bornPlus bornMinus
   ring
 
+/-- The difference of the Born probabilities is `cos(γ - φ)` [VanDamSeroussi2002]. -/
 theorem bornPlus_sub_bornMinus (γ φ : ℝ) :
     bornPlus γ φ - bornMinus γ φ = Real.cos (γ - φ) := by
   unfold bornPlus bornMinus
   ring
 
+/-- The positive-outcome Born probability is nonnegative. -/
 theorem bornPlus_nonneg (γ φ : ℝ) : 0 ≤ bornPlus γ φ := by
   unfold bornPlus
   nlinarith [Real.neg_one_le_cos (γ - φ)]
 
+/-- The negative-outcome Born probability is nonnegative. -/
 theorem bornMinus_nonneg (γ φ : ℝ) : 0 ≤ bornMinus γ φ := by
   unfold bornMinus
   nlinarith [Real.cos_le_one (γ - φ)]
 
+/-- A sequence of measurement angles together with a real-valued estimator for each finite
+Boolean outcome record. -/
 structure SamplingProtocol where
   angle : ℕ → ℝ
   estimate : (t : ℕ) → (Fin t → Bool) → ℝ
 
+/-- The product probability of a Boolean record under the protocol's measurement angles and
+phase `γ`. -/
 def recordProb (γ : ℝ) (P : SamplingProtocol) (t : ℕ) (σ : Fin t → Bool) : ℝ :=
   ∏ i : Fin t, (if σ i then bornPlus γ (P.angle i) else bornMinus γ (P.angle i))
 
+/-- The record-probability-weighted expected absolute difference between the estimator and the
+real phase `γ`. -/
 def expectedAngularError (γ : ℝ) (P : SamplingProtocol) (t : ℕ) : ℝ :=
   ∑ σ : Fin t → Bool, recordProb γ P t σ * |P.estimate t σ - γ|
 
+/-- The expected average of the signed Boolean outcomes under the record probabilities. -/
 def expectedSignMean (γ : ℝ) (P : SamplingProtocol) (t : ℕ) : ℝ :=
   ∑ σ : Fin t → Bool,
     recordProb γ P t σ * ((t : ℝ)⁻¹ * ∑ i : Fin t, sign (σ i))
 
+/-- For a positive number of samples, the expected sign average equals the average of `cos(γ -
+P.angle i)` over the measurement indices [VanDamSeroussi2002]. -/
 theorem fact2_unbiased_sign_mean (γ : ℝ) (P : SamplingProtocol) (t : ℕ) (ht : 0 < t) :
     expectedSignMean γ P t
       = (t : ℝ)⁻¹ * ∑ i : Fin t, Real.cos (γ - P.angle i) := by
@@ -124,13 +164,18 @@ theorem fact2_unbiased_sign_mean (γ : ℝ) (P : SamplingProtocol) (t : ℕ) (ht
     exact Finset.sum_congr rfl fun j _ => hprod j
   rw [hinner]
 
+/-- The natural ceiling of the inverse squared precision `1 / ε²`. -/
 def copySampleCount (ε : ℝ) : ℕ := Nat.ceil (1 / ε ^ 2)
 
+/-- The inverse-square sample count is positive for positive precision [VanDamSeroussi2002]. -/
 theorem copySampleCount_pos (ε : ℝ) (hε : 0 < ε) : 0 < copySampleCount ε := by
   unfold copySampleCount
   apply Nat.ceil_pos.mpr
   positivity
 
+/-- A family of protocols and positive query counts with a uniform constant-times-`sampleCount`
+bound and expected absolute angular error below each positive tolerance for every real phase
+[VanDamSeroussi2002]. -/
 structure PhaseAccessModel where
 
   protocol : ℝ → SamplingProtocol

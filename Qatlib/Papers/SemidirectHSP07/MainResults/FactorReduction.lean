@@ -8,6 +8,31 @@ import Qatlib.Papers.SemidirectHSP07.MainResults.ProductIsomorphism
 import Mathlib.Algebra.Group.Subgroup.Map
 import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
 import Mathlib.GroupTheory.OrderOfElement
+
+/-!
+# Splitting subgroups of products of coprime order
+
+This module proves the subgroup decomposition underlying the direct-product reduction in
+[CosmePortugal2007]. A subgroup of a product of finite groups with coprime orders contains each
+separate coordinate of each of its elements and consequently equals the product of its two
+projected subgroups.
+
+The results are specialized to `Cyc (q ^ s) × SDG p r ψ`, whose factor orders are coprime when
+`p` and `q` are distinct primes and `s` is positive.
+
+## Main statements
+
+* `fst_mem_of_coprime` and `snd_mem_of_coprime` extract the separate coordinates of a subgroup
+  element.
+- `subgroup_eq_prod_of_coprime_card` proves the general subgroup splitting theorem.
+* `coprime_card_cyc_sdg` verifies the order condition, and `source_factor_split` gives the
+  specialized splitting.
+
+## References
+
+* [Cosme and Portugal, 2007][CosmePortugal2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,14 +41,20 @@ noncomputable section
 
 namespace Qatlib.Papers.SemidirectHSP07.MainResults
 
+/-- The first coordinate of a natural power in a product of monoids is the same power of the
+first coordinate. -/
 theorem prod_pow_fst {A B : Type*} [Monoid A] [Monoid B] (x : A × B) (n : ℕ) :
     (x ^ n).1 = x.1 ^ n :=
   map_pow (MonoidHom.fst A B) x n
 
+/-- The second coordinate of a natural power in a product of monoids is the same power of the
+second coordinate. -/
 theorem prod_pow_snd {A B : Type*} [Monoid A] [Monoid B] (x : A × B) (n : ℕ) :
     (x ^ n).2 = x.2 ^ n :=
   map_pow (MonoidHom.snd A B) x n
 
+/-- If `Nat.card A` and `Nat.card B` are coprime and `B` is finite, membership of `(a, b)` in a
+subgroup of `A × B` implies membership of `(a, 1)`. -/
 theorem fst_mem_of_coprime
     {A B : Type*} [Group A] [Group B] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B))
@@ -45,6 +76,8 @@ theorem fst_mem_of_coprime
     exact hcop.symm.coprime_dvd_right (orderOf_dvd_natCard a)
   exact Subgroup.zpowers_le.mpr hpow hmem
 
+/-- If `Nat.card A` and `Nat.card B` are coprime and `A` is finite, membership of `(a, b)` in a
+subgroup of `A × B` implies membership of `(1, b)`. -/
 theorem snd_mem_of_coprime
     {A B : Type*} [Group A] [Group B] [Finite A]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B))
@@ -66,6 +99,8 @@ theorem snd_mem_of_coprime
     exact hcop.coprime_dvd_right (orderOf_dvd_natCard b)
   exact Subgroup.zpowers_le.mpr hpow hmem
 
+/-- Every subgroup of a product of finite groups of coprime orders equals the product of its
+images under the two coordinate projections [CosmePortugal2007]. -/
 theorem subgroup_eq_prod_of_coprime_card
     {A B : Type*} [Group A] [Group B] [Finite A] [Finite B]
     (hcop : Nat.Coprime (Nat.card A) (Nat.card B)) (H : Subgroup (A × B)) :
@@ -90,6 +125,8 @@ theorem subgroup_eq_prod_of_coprime_card
     have hmul := H.mul_mem hfst hsnd
     simpa using hmul
 
+/-- For distinct primes `p` and `q` and positive `s`, the cardinalities of `Cyc (q ^ s)` and
+`SDG p r ψ` are coprime [CosmePortugal2007]. -/
 theorem coprime_card_cyc_sdg (p q r s : ℕ) (hp : p.Prime) (hq : q.Prime)
     (hs : 0 < s) (hne : p ≠ q)
     (ψ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r))) :
@@ -99,6 +136,8 @@ theorem coprime_card_cyc_sdg (p q r s : ℕ) (hp : p.Prime) (hq : q.Prime)
   refine (Nat.coprime_pow_left_iff hs q (p ^ (r + 2))).mpr ?_
   exact (Nat.coprime_pow_right_iff (Nat.succ_pos (r + 1)) q p).mpr hpq
 
+/-- For distinct primes `p` and `q` and positive `s`, every subgroup of `Cyc (q ^ s) × SDG p r
+ψ` is the product of its two projected subgroups [CosmePortugal2007]. -/
 theorem source_factor_split (p q r s : ℕ) (hp : p.Prime) (hq : q.Prime)
     (hs : 0 < s) (hne : p ≠ q)
     (ψ : Cyc (p ^ 2) →* MulAut (Cyc (p ^ r)))

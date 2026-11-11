@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
 import Qatlib.Concepts.QueryWordCore.AdjointCircuits
 import Qatlib.Concepts.QspSimulation.Achievability.OraclePerturbation
+
+/-!
+# Counted access to Szegedy walk updates
+
+`szegedyFrame` embeds a state with a fixed second-register anchor, and `szegedyZeroReflection`
+reflects about its image. Conjugating this reflection by a preparation unitary gives the Szegedy
+row reflection.
+
+`countedSzegedyWord` implements one walk update with four forward or adjoint queries and four
+gates. The module proves the semantics and resource counts of repetitions and a linear
+operator-error bound for noisy unitary access. See [Szegedy2004] for the mathematical
+background.
+
+## Main statements
+
+* `counted_szegedy_actual_walk_semantics`: evaluation of one update.
+* `counted_szegedy_repetition_semantics_resources`: powers and resource counts.
+* `counted_szegedy_noisy_update_operator_error`: the repeated-update error bound.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -38,6 +62,7 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- Applying a matrix to a basis ket extracts the corresponding matrix column. -/
 theorem mulVec_ket_column {H K : Type*} [Fintype H] [DecidableEq H] [Fintype K]
     [DecidableEq K] (M : Matrix H K ℂ) (i : K) (p : H) : (M *ᵥ Ket i) p = M p i := by
   show (∑ k : K, M p k * Ket i k) = _
@@ -46,11 +71,14 @@ theorem mulVec_ket_column {H K : Type*} [Fintype H] [DecidableEq H] [Fintype K]
   · intro k _ hk; rw [ket_ne hk, mul_zero]
   · intro hcon; exact absurd (Finset.mem_univ i) hcon
 
+/-- Two square matrices are equal if they act equally on every basis ket. -/
 theorem matrix_eq_of_forall_mulVec_ket {H : Type*} [Fintype H] [DecidableEq H]
     {M N : Matrix H H ℂ} (h : ∀ q : H, M *ᵥ Ket q = N *ᵥ Ket q) : M = N := by
   ext r c
   rw [← mulVec_ket_column M c r, ← mulVec_ket_column N c r, h c]
 
+/-- Applying a conjugate-transpose matrix to a basis ket extracts the conjugate of the
+corresponding original row entry. -/
 theorem conjTranspose_mulVec_ket_apply {H K : Type*} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (M : Matrix H K ℂ) (i : H) (p : K) :
     ((M)ᴴ *ᵥ Ket i) p = (starRingEnd ℂ) (M i p) := by
@@ -60,15 +88,20 @@ theorem conjTranspose_mulVec_ket_apply {H K : Type*} [Fintype H] [DecidableEq H]
   · intro k _ hk; rw [ket_ne hk, mul_zero]
   · intro hcon; exact absurd (Finset.mem_univ i) hcon
 
+/-- The matrix embedding the basis state indexed by `i` as the pair state `(i, j)`. -/
 noncomputable def szegedyFrame (j : I) : Matrix (I × I) I ℂ :=
   Matrix.of fun p i => if p = (i, j) then 1 else 0
 
+/-- The frame entry is 1 exactly when the pair index is `(i, j)`, and is zero otherwise. -/
 theorem szegedyFrame_apply (j : I) (p : I × I) (i : I) :
     szegedyFrame j p i = if p = (i, j) then (1 : ℂ) else 0 := rfl
 
+/-- The tensor product of the identity on the first register with the reflection about the
+anchor ket `Ket j` on the second register. -/
 noncomputable def szegedyZeroReflection (j : I) : Matrix (I × I) (I × I) ℂ :=
   TensorGate (1 : Matrix I I ℂ) (ReflectionAbout (outerProduct (Ket j)))
 
+/-- The anchor reflection equals twice the frame projector minus the identity. -/
 theorem szegedyZeroReflection_eq (j : I) :
     szegedyZeroReflection j
       = (2 : ℂ) • (szegedyFrame j * (szegedyFrame j)ᴴ) - 1 := by
@@ -108,6 +141,8 @@ theorem szegedyZeroReflection_eq (j : I) :
         rw [if_pos h1, if_neg h2, map_zero, mul_zero]
       · rw [if_neg h1, zero_mul]
 
+/-- The anchor reflection fixes a pair basis ket when its second coordinate is `j` and negates
+it otherwise. -/
 theorem szegedyZeroReflection_mulVec_ket (j a b : I) :
     szegedyZeroReflection j *ᵥ Ket (a, b)
       = if b = j then Ket (a, b) else -(Ket (a, b)) := by
@@ -139,6 +174,8 @@ theorem szegedyZeroReflection_mulVec_ket (j a b : I) :
       funext x; simp [TensorState]
     rw [hneg, tensorState_ket_ket, if_neg hb]
 
+/-- For every anchor, `szegedyZeroReflection` is the stated tensor-product reflection and is
+unitary. -/
 theorem counted_szegedy_actual_source_reflection : ∀ (j : I),
     szegedyZeroReflection j =
       TensorGate (1 : Matrix I I ℂ) (ReflectionAbout (outerProduct (Ket j))) ∧
@@ -147,6 +184,8 @@ theorem counted_szegedy_actual_source_reflection : ∀ (j : I),
   exact ⟨rfl, tensorGate_unitary (Submonoid.one_mem _)
     (outerProduct_reflection_unitary (normalized_ket j))⟩
 
+/-- If `U` prepares the Szegedy row states from anchor `j`, then `U * szegedyFrame j` equals
+`SzegedyIsometry P`. -/
 theorem szegedyPreparation_mul_frame {P : I → I → ℝ} {j : I}
     (U : Matrix (I × I) (I × I) ℂ)
     (h : ∀ i, U *ᵥ TensorState (Ket i) (Ket j) = SzegedyIsometry P *ᵥ Ket i) :
@@ -162,6 +201,8 @@ theorem szegedyPreparation_mul_frame {P : I → I → ℝ} {j : I}
     · intro hcon; exact absurd (Finset.mem_univ _) hcon
   rw [h1, ← tensorState_ket_ket i j, h i, mulVec_ket_column]
 
+/-- For a transition matrix and a unitary row preparation, conjugating the anchor reflection by
+the preparation unitary yields `SzegedyReflection P`. -/
 theorem counted_szegedy_prepare_frame_reflection :
     ∀ (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ),
     IsTransitionMatrix P → U ∈ Matrix.unitaryGroup (I × I) ℂ →
@@ -179,10 +220,13 @@ theorem counted_szegedy_prepare_frame_reflection :
     Matrix.smul_mul, Matrix.mul_one, hprod, hUF, hUU]
   rfl
 
+/-- The eight-instruction Szegedy update word containing two swaps, two anchor reflections, two
+forward queries, and two adjoint queries. -/
 noncomputable def countedSzegedyWord (j : I) : List (AdjointStep (I × I)) :=
   [.gate SwapGate, .forward, .gate (szegedyZeroReflection j), .backward,
    .gate SwapGate, .forward, .gate (szegedyZeroReflection j), .backward]
 
+/-- Expands the Szegedy update word and verifies that it contains four queries and four gates. -/
 theorem counted_szegedy_actual_word_and_counts : ∀ (j : I),
     countedSzegedyWord j = [.gate SwapGate, .forward, .gate (szegedyZeroReflection j),
       .backward, .gate SwapGate, .forward, .gate (szegedyZeroReflection j),
@@ -192,6 +236,7 @@ theorem counted_szegedy_actual_word_and_counts : ∀ (j : I),
   intro j
   exact ⟨rfl, rfl, rfl⟩
 
+/-- The counted Szegedy update word satisfies `WellFormedAdjointCircuit`. -/
 theorem countedSzegedyWord_wellFormed (j : I) :
     WellFormedAdjointCircuit (countedSzegedyWord j) := by
   simp [countedSzegedyWord, WellFormedAdjointCircuit.gate_cons_iff,
@@ -199,6 +244,8 @@ theorem countedSzegedyWord_wellFormed (j : I) :
     WellFormedAdjointCircuit.nil, swapGate_unitary,
     (counted_szegedy_actual_source_reflection j).2]
 
+/-- Given a transition matrix and a unitary row preparation, evaluating the counted update word
+yields `SzegedyWalk P`. -/
 theorem counted_szegedy_actual_walk_semantics :
     ∀ (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ),
     IsTransitionMatrix P → U ∈ Matrix.unitaryGroup (I × I) ℂ →
@@ -212,6 +259,8 @@ theorem counted_szegedy_actual_walk_semantics :
   rw [← hR]
   simp only [Matrix.mul_assoc]
 
+/-- Under the preparation assumptions, `m` concatenated update words evaluate to `(SzegedyWalk
+P) ^ m` and use `4 * m` queries and `4 * m` gates. -/
 theorem counted_szegedy_repetition_semantics_resources :
     ∀ (P : I → I → ℝ) (j : I) (U : Matrix (I × I) (I × I) ℂ) (m : ℕ),
     IsTransitionMatrix P → U ∈ Matrix.unitaryGroup (I × I) ℂ →
@@ -230,6 +279,9 @@ theorem counted_szegedy_repetition_semantics_resources :
       ih.1, ih.2.1, ih.2.2, hc.2.1, hc.2.2, pow_succ']
     exact ⟨rfl, by omega, by omega⟩
 
+/-- If unitary access `V` is within operator distance `δ` of the row preparation `U`, evaluating
+`m` update words with `V` differs from the ideal walk power by at most `4 * m * δ`, for `δ ≥
+0`. -/
 theorem counted_szegedy_noisy_update_operator_error :
     ∀ (P : I → I → ℝ) (j : I) (U V : Matrix (I × I) (I × I) ℂ) (m : ℕ) (δ : ℝ),
     IsTransitionMatrix P → U ∈ Matrix.unitaryGroup (I × I) ℂ →

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleRanks
 import Qatlib.Concepts.WalkSearch.Primitives.CanonicalEdgeCounting
+
+/-!
+# Encoding triangles by their last edge
+
+`triangleLastEdge` associates a triangle with an edge of maximal admission rank and the opposite
+vertex. The module proves that a triangle's encoded vertex was already a common neighbor when
+that edge was added, and that this encoding is injective on canonical triangles.
+
+The encoding supplies finite counting estimates for graph subset-search reductions
+[ChildsEisenberg2003].
+
+## Main statements
+
+* `triangleLastEdge_good`: the encoded edge is canonical and has the required earlier common
+  neighbor.
+* `triangleLastEdge_injective`: injectivity on `trianglesOf l.toFinset`.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 700000
@@ -14,12 +36,16 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- Selects an edge of maximal admission rank among a triple's three edges and records the
+opposite vertex, with fixed tie-breaking. -/
 def triangleLastEdge (l : List (Fin n×Fin n)) (x : Fin n×Fin n×Fin n) : (Fin n×Fin n)×Fin n :=
   let a:=x.1;let b:=x.2.1;let c:=x.2.2
   if edgeAdmissionRank l (a,b) ≤ edgeAdmissionRank l (b,c) ∧ edgeAdmissionRank l (a,c) ≤ edgeAdmissionRank l (b,c)
     then ((b,c),a)
   else if edgeAdmissionRank l (a,b) ≤ edgeAdmissionRank l (a,c) then ((a,c),b) else ((a,b),c)
 
+/-- For a canonical triangle, the selected edge has increasing endpoints and occurs in the list,
+while its opposite vertex is a common neighbor in the preceding prefix. -/
 theorem triangleLastEdge_good (l : List (Fin n×Fin n)) (x : Fin n×Fin n×Fin n)
     (hx : x∈trianglesOf l.toFinset) :
     (triangleLastEdge l x).1.1 < (triangleLastEdge l x).1.2 ∧
@@ -64,6 +90,8 @@ theorem triangleLastEdge_good (l : List (Fin n×Fin n)) (x : Fin n×Fin n×Fin n
     · exact adjacent_prefix_of_rank_lt l a c _ (by omega) rAB.le
     · exact adjacent_prefix_of_rank_lt l b c _ (by omega) rAB.le
 
+/-- The last-edge and opposite-vertex encoding is injective on the canonical triangles of the
+list's edge set. -/
 theorem triangleLastEdge_injective (l : List (Fin n×Fin n)) : Set.InjOn (triangleLastEdge l) (trianglesOf l.toFinset) := by
   intro ⟨a,b,c⟩ hx ⟨a',b',c'⟩ hy he
   have hab := ((mem_trianglesOf_iff _ _ _ _).mp hx).1

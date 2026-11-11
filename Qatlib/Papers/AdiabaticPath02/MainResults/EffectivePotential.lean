@@ -9,6 +9,30 @@ import Mathlib.Topology.Order.Basic
 import Mathlib.Topology.Order.Compact
 import Mathlib.Topology.UniformSpace.HeineCantor
 import Mathlib.Topology.MetricSpace.Basic
+
+/-!
+# Effective potential and its minimum value
+
+Studies the straight and modified effective potentials `V0` and `V` associated with the
+adiabatic paths in [FarhiGoldstoneGutmann2002a]. It proves endpoint minima, bounds at the
+opposite pole, and minimization in the azimuthal variable for `V0`.
+
+The minimum value `vMin` on the compact angular domain `Vdomain` exists for every interpolation
+parameter and is continuous on `[0, 1]`, with zero values at both endpoints.
+
+## Main statements
+
+* `V_zero_global_min`: Identifies a zero global minimum at the initial endpoint.
+* `V_one_global_min`: Identifies a zero global minimum at the final endpoint.
+* `vMin_continuousOn`: Proves continuity of the minimum value on the interpolation interval.
+* `source_effective_potential_conclusion`: Collects the potential identities, minima, and cost
+  nonnegativity statements.
+
+## References
+
+* [Farhi et al., 2002][FarhiGoldstoneGutmann2002a]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,23 +45,29 @@ open Qatlib.Papers.AdiabaticPath02.MainResults.PathDefs
 open Qatlib.Papers.AdiabaticPath02.MainResults.SymmetricDefs
 open scoped BigOperators
 
+/-- Factors `13 + 3 * x - 9 * x ^ 2 - 7 * x ^ 3` as `(1 - x) * (7 * x ^ 2 + 16 * x + 13)`. -/
 theorem cubic_factor (x : ℝ) :
     13 + 3 * x - 9 * x ^ 2 - 7 * x ^ 3 = (1 - x) * (7 * x ^ 2 + 16 * x + 13) := by
   ring
 
+/-- The quadratic polynomial `7 * x ^ 2 + 16 * x + 13` is strictly positive for every real `x`. -/
 theorem quad_pos (x : ℝ) : 0 < 7 * x ^ 2 + 16 * x + 13 := by
   have h : 0 < (7 * x + 8) ^ 2 + 27 := by positivity
   nlinarith
 
+/-- Evaluates the straight-path potential at `s = 0` as `2 * (1 - Real.sin θ * Real.cos φ)`. -/
 @[simp] theorem V0_zero (θ φ : ℝ) :
     V0 θ φ 0 = 2 * (1 - Real.sin θ * Real.cos φ) := by
   simp [V0]
 
+/-- Evaluates the straight-path potential at `s = 1` as the cubic polynomial in `Real.cos θ`
+divided by six. -/
 @[simp] theorem V0_one (θ φ : ℝ) :
     V0 θ φ 1 =
       (1 / 6) * (13 + 3 * Real.cos θ - 9 * Real.cos θ ^ 2 - 7 * Real.cos θ ^ 3) := by
   simp [V0]
 
+/-- The straight-path potential is nonnegative at `s = 0` for all angles. -/
 theorem V0_zero_nonneg (θ φ : ℝ) : 0 ≤ V0 θ φ 0 := by
   rw [V0_zero]
   have hsin : |Real.sin θ| ≤ 1 :=
@@ -51,6 +81,7 @@ theorem V0_zero_nonneg (θ φ : ℝ) : 0 ≤ V0 θ φ 0 := by
   have hle : Real.sin θ * Real.cos φ ≤ 1 := le_trans (le_abs_self _) habs
   linarith
 
+/-- The straight-path potential is nonnegative at `s = 1` for all angles. -/
 theorem V0_one_nonneg (θ φ : ℝ) : 0 ≤ V0 θ φ 1 := by
   rw [V0_one]
   have hfac : 13 + 3 * Real.cos θ - 9 * Real.cos θ ^ 2 - 7 * Real.cos θ ^ 3 =
@@ -63,12 +94,16 @@ theorem V0_one_nonneg (θ φ : ℝ) : 0 ≤ V0 θ φ 1 := by
     mul_nonneg h1 h2
   nlinarith
 
+/-- The modified potential agrees with the straight-path potential at `s = 0`. -/
 @[simp] theorem V_zero (θ φ : ℝ) : V θ φ 0 = V0 θ φ 0 := by
   simp [V, VE]
 
+/-- The modified potential agrees with the straight-path potential at `s = 1`. -/
 @[simp] theorem V_one (θ φ : ℝ) : V θ φ 1 = V0 θ φ 1 := by
   simp [V, VE]
 
+/-- Expresses the modified potential as a term independent of `φ` minus an explicit coefficient
+times `Real.cos φ`. See [FarhiGoldstoneGutmann2002a]. -/
 theorem V_phi_linear (θ φ s : ℝ) :
     V θ φ s =
       2 * (1 - s) +
@@ -78,6 +113,8 @@ theorem V_phi_linear (θ φ s : ℝ) :
   unfold V V0 VE
   ring
 
+/-- At `s = 0`, the modified potential vanishes at `(θ, φ) = (π / 2, 0)` and is nonnegative at
+every angular pair. -/
 theorem V_zero_global_min :
     V (Real.pi / 2) 0 0 = 0 ∧ ∀ θ φ : ℝ, 0 ≤ V θ φ 0 := by
   constructor
@@ -87,6 +124,8 @@ theorem V_zero_global_min :
     rw [V_zero]
     exact V0_zero_nonneg θ φ
 
+/-- At `s = 1`, the modified potential vanishes at `(θ, φ) = (0, 0)` and is nonnegative at every
+angular pair. -/
 theorem V_one_global_min :
     V 0 0 1 = 0 ∧ ∀ θ φ : ℝ, 0 ≤ V θ φ 1 := by
   constructor
@@ -96,6 +135,8 @@ theorem V_one_global_min :
     rw [V_one]
     exact V0_one_nonneg θ φ
 
+/-- For `θ ∈ [0, π]` and `s ∈ [0, 1]`, setting `φ = 0` minimizes the straight-path potential
+over all real `φ`. See [FarhiGoldstoneGutmann2002a]. -/
 theorem V0_phi_le (θ φ s : ℝ) (hθ0 : 0 ≤ θ) (hθπ : θ ≤ Real.pi)
     (_hs0 : 0 ≤ s) (hs1 : s ≤ 1) : V0 θ 0 s ≤ V0 θ φ s := by
   have hsin : 0 ≤ Real.sin θ := Real.sin_nonneg_of_nonneg_of_le_pi hθ0 hθπ
@@ -111,15 +152,19 @@ theorem V0_phi_le (θ φ s : ℝ) (hθ0 : 0 ≤ θ) (hθπ : θ ≤ Real.pi)
     mul_nonneg (mul_nonneg hcoef hsin) h1c
   linarith
 
+/-- The straight-path potential at `(θ, φ, s) = (π, 0, 1)` equals `4 / 3`. -/
 theorem V0_one_pi : V0 Real.pi 0 1 = 4 / 3 := by
   rw [V0_one, Real.cos_pi]
   norm_num
 
+/-- Factors the endpoint cubic potential minus `4 / 3` as `(x + 1) ^ 2 * (5 - 7 * x) / 6`. -/
 theorem V0_one_sub_four_thirds (x : ℝ) :
     (1 / 6) * (13 + 3 * x - 9 * x ^ 2 - 7 * x ^ 3) - 4 / 3 =
       (1 / 6) * (x + 1) ^ 2 * (5 - 7 * x) := by
   ring
 
+/-- For `θ ∈ [2 * π / 3, π]`, the final straight-path potential at `π` is no larger than its
+value at `θ`. -/
 theorem V0_one_pi_le_left (θ : ℝ) (hθ2 : 2 * Real.pi / 3 ≤ θ) (hθπ : θ ≤ Real.pi) :
     V0 Real.pi 0 1 ≤ V0 θ 0 1 := by
   have hcosle : Real.cos θ ≤ -(1 / 2 : ℝ) := by
@@ -137,6 +182,8 @@ theorem V0_one_pi_le_left (θ : ℝ) (hθ2 : 2 * Real.pi / 3 ≤ θ) (hθπ : θ
   rw [V0_one_pi, V0_one]
   linarith
 
+/-- Collects the final straight-path values at `θ = π` and `θ = 0`, minimality at `π` on `[2 * π
+/ 3, π]`, and global nonnegativity. See [FarhiGoldstoneGutmann2002a]. -/
 theorem straight_path_static_bounds :
     V0 Real.pi 0 1 = 4 / 3 ∧ V0 0 0 1 = 0 ∧
       (∀ θ : ℝ, 2 * Real.pi / 3 ≤ θ → θ ≤ Real.pi →
@@ -148,6 +195,8 @@ theorem straight_path_static_bounds :
   · intro θ φ
     exact V0_one_nonneg θ φ
 
+/-- The problem energy is zero at weight zero and nonnegative at every integer weight from zero
+through `n`. -/
 theorem hp_ground_energy_zero (n : ℕ) :
     hpEnergy (n : ℝ) 0 = 0 ∧
       ∀ k : Fin (n + 1), 0 ≤ hpEnergy (n : ℝ) (k.val : ℝ) := by
@@ -156,41 +205,56 @@ theorem hp_ground_energy_zero (n : ℕ) :
   · intro k
     exact hpEnergy_nonneg_nat (Nat.le_of_lt_succ k.isLt)
 
+/-- The all-false bit string has zero cost, and every bit string has nonnegative cost. -/
 theorem cost_ground_min (n : ℕ) :
     cost n (fun _ => false) = 0 ∧ ∀ z : Fin n → Bool, 0 ≤ cost n z :=
   cost_all_zero_is_global_min n
 
+/-- The compact angular rectangle `[0, π] × [0, 2 * π]` used to minimize the effective
+potential. -/
 def Vdomain : Set (ℝ × ℝ) := Set.Icc (0 : ℝ) Real.pi ×ˢ Set.Icc (0 : ℝ) (2 * Real.pi)
 
+/-- The angular domain `Vdomain` is compact. -/
 theorem Vdomain_compact : IsCompact Vdomain := isCompact_Icc.prod isCompact_Icc
 
+/-- The angular domain `Vdomain` contains at least one point. -/
 theorem Vdomain_nonempty : Vdomain.Nonempty :=
   ⟨⟨0, 0⟩, ⟨⟨le_refl 0, Real.pi_pos.le⟩, ⟨le_refl 0, by positivity⟩⟩⟩
 
+/-- The modified effective potential is jointly continuous in both angles and the interpolation
+parameter. -/
 theorem V_continuous :
     Continuous (fun p : ℝ × ℝ × ℝ => V p.1 p.2.1 p.2.2) := by
   unfold V V0 VE
   fun_prop
 
+/-- For each fixed interpolation parameter, the modified effective potential is continuous in
+the angular pair. -/
 theorem V_continuous_fixed (s : ℝ) : Continuous (fun p : ℝ × ℝ => V p.1 p.2 s) := by
   unfold V V0 VE
   fun_prop
 
+/-- For every real `s`, the modified effective potential attains a minimum on `Vdomain`. -/
 theorem V_exists_min (s : ℝ) :
     ∃ p ∈ Vdomain, ∀ q ∈ Vdomain, V p.1 p.2 s ≤ V q.1 q.2 s :=
   Vdomain_compact.exists_isMinOn Vdomain_nonempty (V_continuous_fixed s).continuousOn
 
+/-- The minimum value of the modified effective potential on `Vdomain`, defined using a chosen
+minimizer. -/
 noncomputable def vMin (s : ℝ) : ℝ :=
   V (Classical.choose (V_exists_min s)).1 (Classical.choose (V_exists_min s)).2 s
 
+/-- The minimum value `vMin s` is no larger than the potential at any point of `Vdomain`. -/
 theorem vMin_le (s : ℝ) {q : ℝ × ℝ} (hq : q ∈ Vdomain) :
     vMin s ≤ V q.1 q.2 s :=
   (Classical.choose_spec (V_exists_min s)).2 q hq
 
+/-- Unfolds `vMin` as the potential evaluated at the minimizer selected from `V_exists_min`. -/
 theorem vMin_eq_chosen (s : ℝ) :
     vMin s = V (Classical.choose (V_exists_min s)).1
       (Classical.choose (V_exists_min s)).2 s := rfl
 
+/-- The minimum value `vMin` is continuous on the interpolation interval `[0, 1]`. -/
 theorem vMin_continuousOn : ContinuousOn vMin (Set.Icc (0 : ℝ) 1) := by
   rw [Metric.continuousOn_iff]
   intro s₀ hs₀ ε hε
@@ -247,6 +311,7 @@ theorem vMin_continuousOn : ContinuousOn vMin (Set.Icc (0 : ℝ) 1) := by
   rw [Real.dist_eq, abs_lt]
   exact ⟨by linarith, hA⟩
 
+/-- The minimum value of the modified effective potential at `s = 0` is zero. -/
 theorem vMin_zero : vMin 0 = 0 := by
   apply le_antisymm
   · have hmem : ((Real.pi / 2, (0 : ℝ)) : ℝ × ℝ) ∈ Vdomain := by
@@ -257,6 +322,7 @@ theorem vMin_zero : vMin 0 = 0 := by
   · rw [vMin_eq_chosen]
     exact V_zero_global_min.2 _ _
 
+/-- The minimum value of the modified effective potential at `s = 1` is zero. -/
 theorem vMin_one : vMin 1 = 0 := by
   apply le_antisymm
   · have hmem : ((0, (0 : ℝ)) : ℝ × ℝ) ∈ Vdomain := by
@@ -267,11 +333,17 @@ theorem vMin_one : vMin 1 = 0 := by
   · rw [vMin_eq_chosen]
     exact V_one_global_min.2 _ _
 
+/-- Collects continuity of the minimum value on `[0, 1]`, its zero endpoint values, and
+existence of an angular minimizer for every real parameter. See
+[FarhiGoldstoneGutmann2002a]. -/
 theorem source_effective_potential_branch :
     ContinuousOn vMin (Set.Icc (0 : ℝ) 1) ∧ vMin 0 = 0 ∧ vMin 1 = 0 ∧
       (∀ s : ℝ, ∃ p ∈ Vdomain, ∀ q ∈ Vdomain, V p.1 p.2 s ≤ V q.1 q.2 s) :=
   ⟨vMin_continuousOn, vMin_zero, vMin_one, V_exists_min⟩
 
+/-- Collects the endpoint minima, azimuthal identity, continuity of the minimum value,
+straight-path bounds, and nonnegativity of the discrete cost and problem energies. See
+[FarhiGoldstoneGutmann2002a]. -/
 theorem source_effective_potential_conclusion :
     (V (Real.pi / 2) 0 0 = 0 ∧ ∀ θ φ : ℝ, 0 ≤ V θ φ 0) ∧
       (V 0 0 1 = 0 ∧ ∀ θ φ : ℝ, 0 ≤ V θ φ 1) ∧

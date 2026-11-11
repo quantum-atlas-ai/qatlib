@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianModel.RawInput
+
+/-!
+# Seed reflection symmetry of spin dynamics
+
+`reflectSpin` fixes the first spin coordinate and negates the other two. For odd interaction
+degree, negating the seed reflects the entire feedback trajectory and negates `rawSpin`,
+providing the symmetry used in the Gaussian endpoint analysis for [GohMuller2026].
+
+## Main statements
+
+* `rotation_reflect`: Negating the local field intertwines a rotation step with `reflectSpin`.
+* `feedback_seed_parity`: For odd interaction degree, negating the seed reflects every spin in
+  the feedback state by `reflectSpin`.
+* `rawSpin_seed_odd`: For odd interaction degree, the raw endpoint spin is an odd function of
+  the seed.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
@@ -17,8 +38,10 @@ open Qatlib.Papers.OverlapGapGoh26.SpinDynamics.Feedback
 open Qatlib.Papers.OverlapGapGoh26.UniformGrid.RawEnergyNorm
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint
 
+/-- The spin reflection sending `(x,y,z)` to `(x,-y,-z)`. -/
 def reflectSpin (v : Fin 3→ℝ) : Fin 3→ℝ := ![v 0,-v 1,-v 2]
 
+/-- Negating the local field intertwines a rotation step with `reflectSpin`. -/
 theorem rotation_reflect (s h : ℝ) (v : Fin 3→ℝ) :
     rotationStep s (-h)*ᵥreflectSpin v=reflectSpin (rotationStep s h*ᵥv) := by
   ext j
@@ -26,11 +49,14 @@ theorem rotation_reflect (s h : ℝ) (v : Fin 3→ℝ) :
     simp [rotationStep,driverAngle,problemAngle,reflectSpin,Matrix.mulVec,Matrix.mul_apply,dotProduct,
       Fin.sum_univ_three,mul_neg,Real.cos_neg,Real.sin_neg] <;> ring
 
+/-- For odd interaction degree, negating every spin coordinate negates the tensor interaction. -/
 theorem interaction_neg {r N : ℕ} (hr : Odd r)
     (J : Fin N→(Fin r→Fin N)→ℝ) (z : Fin N→ℝ) (i : Fin N) :
     interaction J (fun j=>-z j) i= -interaction J z i := by
   simp [interaction,Finset.prod_neg,hr.neg_one_pow]
 
+/-- For odd interaction degree, negating the seed reflects every spin in the feedback state by
+`reflectSpin`. -/
 theorem feedback_seed_parity {r N : ℕ} (hr : Odd r)
     (J : Fin N→(Fin r→Fin N)→ℝ) (seed : Fin N→ℝ) (s : ℕ→ℝ) (t : ℕ) :
     feedbackState id J (fun i=>-seed i) s t=
@@ -55,6 +81,7 @@ theorem feedback_seed_parity {r N : ℕ} (hr : Odd r)
     rw [hh,ih]
     exact rotation_reflect _ _ _
 
+/-- For odd interaction degree, the raw endpoint spin is an odd function of the seed. -/
 theorem rawSpin_seed_odd {r N : ℕ} (hr : Odd r) (s : ℕ→ℝ) (T : ℕ)
     (G : EuclideanSpace ℝ (Fin (r+1)→Fin N)) (seed : Fin N→ℝ) :
     rawSpin s T G (fun i=>-seed i)= -rawSpin s T G seed := by

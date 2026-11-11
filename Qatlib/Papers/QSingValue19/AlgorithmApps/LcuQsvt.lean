@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QSingValue19.AlgorithmApps.LcuQsvtDefs
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
 import Qatlib.Concepts.LcuQsvtApprox.SparseWalkFrame
+
+/-!
+# LCU and QSVT application guarantees
+
+This module assembles robustness, phase synthesis, resource counts, retry estimates, and sparse
+Hamiltonian simulation results in the QSVT setting of [GilyenSuLowWiebe2019]. The statements
+`clause1_endpoint` and `clause9_endpoint` retain the rank dependent adequacy conditions for the
+printed robustness factor and the explicit hypotheses of the sparse access model.
+
+## Main statements
+
+* `clause1_endpoint`: Collects conditional robustness and explicit adequacy thresholds.
+* `clause8_endpoint`: Combines corrected integer nodes, exponential counts, and retry bounds.
+* `clause9_endpoint`: Combines source word synthesis and sparse simulation guarantees.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
 open Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery
@@ -42,10 +62,13 @@ set_option warningAsError false
 
 section G1
 
+/-- The chosen quasicommutator constant is strictly positive. -/
 theorem quasicommutatorConstant_pos : 0 < quasicommutatorConstant := by
   unfold quasicommutatorConstant
   norm_num
 
+/-- The divided difference Schur multiplier has norm bounded by the chosen constant times the
+spectral logarithmic factor, scalar Lipschitz constant, and input norm. -/
 private theorem schurBound_frozen_constant :
     ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
       (eigL : I → ℝ) (eigR : J → ℝ) (f : ℝ → ℂ) (L : ℝ), 0 ≤ L →
@@ -59,6 +82,9 @@ private theorem schurBound_frozen_constant :
   intro J I _ _ _ _ μ ν f L hL hf a b q
   exact Qatlib.Concepts.SketchSpectral.MatrixFunctions.RankLogStability.Decomposition.ddMat_hadamard_vecMulVec_sv_bound hL hf a b q
 
+/-- For Hermitian A and B and a scalar function Lipschitz on their spectra, bounds the
+functional quasicommutator by the original quasicommutator times the rank logarithmic weight
+and the chosen constant. -/
 theorem clause1_quasicommutator_constant :
     ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
       (A : Matrix I I ℂ) (hA : A.IsHermitian) (B : Matrix J J ℂ) (hB : B.IsHermitian)
@@ -100,6 +126,9 @@ theorem clause1_quasicommutator_constant :
               mul_le_mul_of_nonneg_left hlog h0
           _ = quasicommutatorConstant * hermitianRankLogWeight A.rank * L * ‖A * S - S * B‖ := by ring
 
+/-- For a scalar function Lipschitz on the spectra of two Hermitian matrices, bounds the
+functional calculus difference by the matrix distance times the Lipschitz constant and the
+logarithmic weight of the smaller rank. -/
 theorem clause1_operator_stability_constant :
     ∀ (I : Type) [Fintype I] [DecidableEq I]
       (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ) (L : ℝ),
@@ -110,6 +139,9 @@ theorem clause1_operator_stability_constant :
     (fun I _ _ A hA B hB S f L hL hf =>
       clause1_quasicommutator_constant I I A hA B hB S f L hL hf)
 
+/-- For Hermitian contractions at positive distance satisfying `printedRobustnessAdequacy`,
+bounds the functional calculus difference by the printed factor times the modulus of
+continuity at that distance. -/
 theorem clause1_hermitian_function_printed {I : Type} [Fintype I] [DecidableEq I]
     (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian) (f : ℝ → ℂ) (ω : ℝ → ℝ)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (hω : ModulusOfContinuity f ω) (hδpos : 0 < ‖A - B‖)
@@ -153,6 +185,8 @@ theorem clause1_hermitian_function_printed {I : Type} [Fintype I] [DecidableEq I
     mul_le_mul_of_nonneg_right hadeq hωδ
   exact h3'.trans hmul
 
+/-- For contractions and an odd function with a modulus of continuity, gives the printed
+singular transform perturbation bound under the stated dilation rank adequacy condition. -/
 theorem clause1_odd_printed_robustness {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (hω : ModulusOfContinuity f ω) (hδpos : 0 < ‖A - B‖)
@@ -185,6 +219,8 @@ theorem clause1_odd_printed_robustness {I O : Type} [Fintype I] [DecidableEq I]
   rw [hermitianDilation_sub_norm] at hth
   exact hle.trans hth
 
+/-- For contractions and an even function with a modulus of continuity, gives the printed right
+singular transform perturbation bound under the stated dilation rank adequacy condition. -/
 theorem clause1_even_printed_robustness {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (hω : ModulusOfContinuity f ω) (hδpos : 0 < ‖A - B‖)
@@ -217,10 +253,12 @@ theorem clause1_even_printed_robustness {I O : Type} [Fintype I] [DecidableEq I]
   rw [hermitianDilation_sub_norm] at hth
   exact hle.trans hth
 
+/-- Zero matrix distance implies equality of both odd and right singular transforms. -/
 theorem clause1_equality_at_zero : SvtEqualityAtZero := by
   intro I O _ _ _ _ A B f hδ
   exact Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt.singularTransforms_eq_of_norm_sub_zero A B f hδ
 
+/-- The explicit robustness threshold is strictly positive for every natural rank parameter. -/
 theorem printedRobustnessThreshold_pos (r : ℕ) : 0 < printedRobustnessThreshold r := by
   have h0 : (0:ℝ) < 7 + 2 * (r : ℝ) := by positivity
   have h1 : (1:ℝ) < Real.exp (7 + 2 * (r : ℝ)) := by
@@ -230,6 +268,8 @@ theorem printedRobustnessThreshold_pos (r : ℕ) : 0 < printedRobustnessThreshol
   unfold printedRobustnessThreshold
   exact div_pos (by norm_num) h2
 
+/-- The printed robustness adequacy condition holds at the explicit threshold for each rank
+parameter. -/
 theorem clause1_printed_robustness_threshold (r : ℕ) :
     printedRobustnessAdequacy (printedRobustnessThreshold r) r := by
   have hexp : (1:ℝ) < Real.exp (7 + 2 * r) := by
@@ -269,6 +309,8 @@ theorem clause1_printed_robustness_threshold (r : ℕ) :
   rw [hw, hfac]
   exact hbound
 
+/-- For positive perturbations below the rank dependent threshold, the printed factor dominates
+2 plus the weighted quasicommutator constant. -/
 theorem clause1_printed_factor_dominates (r : ℕ) (δ : ℝ) (hδ : 0 < δ)
     (hδr : δ ≤ printedRobustnessThreshold r) :
     2 + quasicommutatorConstant * hermitianRankLogWeight r ≤ modulusRobustnessFactor δ := by
@@ -320,11 +362,15 @@ theorem clause1_printed_factor_dominates (r : ℕ) (δ : ℝ) (hδ : 0 < δ)
   unfold hermitianRankLogWeight quasicommutatorConstant modulusRobustnessFactor
   linarith [hpoly, hright, hfinal]
 
+/-- Every positive perturbation below the explicit rank dependent threshold satisfies
+`printedRobustnessAdequacy`. -/
 theorem clause1_printed_adequacy_in_range (r : ℕ) (δ : ℝ) (hδ : 0 < δ)
     (hδr : δ ≤ printedRobustnessThreshold r) :
     printedRobustnessAdequacy δ r :=
   clause1_printed_factor_dominates r δ hδ hδr
 
+/-- For contractions and an odd function, the printed singular transform perturbation bound
+holds when the positive matrix distance is below the specified dilation rank threshold. -/
 theorem clause1_odd_printed_robustness_range {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (hω : ModulusOfContinuity f ω) (hδpos : 0 < ‖A - B‖)
@@ -337,6 +383,9 @@ theorem clause1_odd_printed_robustness_range {I O : Type} [Fintype I] [Decidable
     (min (hermitianDilation A).rank (hermitianDilation B).rank) ‖A - B‖ hδpos hδr
   exact clause1_odd_printed_robustness A B f ω hA1 hB1 hω hδpos hodd hadeq
 
+/-- For contractions and an even function, the printed right singular transform perturbation
+bound holds when the positive matrix distance is below the specified dilation rank
+threshold. -/
 theorem clause1_even_printed_robustness_range {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ)
     (hA1 : ‖A‖ ≤ 1) (hB1 : ‖B‖ ≤ 1) (hω : ModulusOfContinuity f ω) (hδpos : 0 < ‖A - B‖)
@@ -349,6 +398,8 @@ theorem clause1_even_printed_robustness_range {I O : Type} [Fintype I] [Decidabl
     (min (hermitianDilation A).rank (hermitianDilation B).rank) ‖A - B‖ hδpos hδr
   exact clause1_even_printed_robustness A B f ω hA1 hB1 hω hδpos heven hadeq
 
+/-- Collects conditional singular transform robustness, equality at zero distance, and adequacy
+at and below the explicit rank dependent thresholds. See [GilyenSuLowWiebe2019]. -/
 theorem clause1_endpoint :
     SvtRobustnessBound ∧ SvtEqualityAtZero ∧
       (∀ (r : ℕ), printedRobustnessAdequacy (printedRobustnessThreshold r) r) ∧
@@ -364,6 +415,7 @@ theorem clause1_endpoint :
   · intro r δ hδ hδr
     exact clause1_printed_adequacy_in_range r δ hδ hδr
 
+/-- Both the bridge and interior robustness rates vanish at degree zero. -/
 theorem clause2_zero_degree_rates (δ : ℝ) (m : ℝ) :
     zeroDegreeBridgeRate δ = 0 ∧ zeroDegreeInteriorRate m δ = 0 := by
   constructor
@@ -372,16 +424,19 @@ theorem clause2_zero_degree_rates (δ : ℝ) (m : ℝ) :
   · simp only [zeroDegreeInteriorRate, interiorRobustnessRate]
     ring
 
+/-- The bridge robustness bound at degree n is n times its degree one value. -/
 theorem clause2_bridge_rate_homogeneous (n : ℕ) (δ : ℝ) :
     polynomialRobustnessBound n δ = (n : ℝ) * polynomialRobustnessBound 1 δ := by
   simp only [polynomialRobustnessBound]
   ring
 
+/-- The interior robustness rate at degree n is n times its degree one value. -/
 theorem clause2_interior_rate_homogeneous (n : ℕ) (m δ : ℝ) :
     interiorRobustnessRate n m δ = (n : ℝ) * interiorRobustnessRate 1 m δ := by
   simp only [interiorRobustnessRate]
   ring
 
+/-- The bridge robustness bound is monotone in the natural degree parameter. -/
 theorem clause2_bridge_rate_mono (n n' : ℕ) (δ : ℝ) (h : n ≤ n') :
     polynomialRobustnessBound n δ ≤ polynomialRobustnessBound n' δ := by
   have h1 : (n : ℝ) ≤ (n' : ℝ) := by exact_mod_cast h
@@ -391,6 +446,8 @@ theorem clause2_bridge_rate_mono (n n' : ℕ) (δ : ℝ) (h : n ≤ n') :
   unfold polynomialRobustnessBound
   linarith [hmul]
 
+/-- For nonnegative perturbation size, the interior robustness rate is monotone in the natural
+degree parameter. -/
 theorem clause2_interior_rate_mono (n n' : ℕ) (m δ : ℝ) (hδ : 0 ≤ δ) (h : n ≤ n') :
     interiorRobustnessRate n m δ ≤ interiorRobustnessRate n' m δ := by
   have h1 : (n : ℝ) ≤ (n' : ℝ) := by exact_mod_cast h
@@ -402,11 +459,13 @@ theorem clause2_interior_rate_mono (n n' : ℕ) (m δ : ℝ) (hδ : 0 ≤ δ) (h
   unfold interiorRobustnessRate
   linarith [hmul]
 
+/-- The interior robustness rate vanishes when its margin parameter equals one. -/
 theorem clause2_interior_rate_at_boundary (n : ℕ) (δ : ℝ) :
     interiorRobustnessRate n 1 δ = 0 := by
   simp only [interiorRobustnessRate]
   ring
 
+/-- The bridge robustness bound is nonnegative for every degree and real perturbation parameter. -/
 theorem clause2_bridge_rate_nonneg (n : ℕ) (δ : ℝ) :
     0 ≤ polynomialRobustnessBound n δ := by
   unfold polynomialRobustnessBound
@@ -414,6 +473,7 @@ theorem clause2_bridge_rate_nonneg (n : ℕ) (δ : ℝ) :
   have h2 : 0 ≤ Real.sqrt δ := Real.sqrt_nonneg _
   exact mul_nonneg (mul_nonneg (by norm_num) h1) h2
 
+/-- The interior robustness rate is nonnegative for nonnegative perturbation size. -/
 theorem clause2_interior_rate_nonneg (n : ℕ) (m : ℝ) {δ : ℝ} (hδ : 0 ≤ δ) :
     0 ≤ interiorRobustnessRate n m δ := by
   unfold interiorRobustnessRate
@@ -422,6 +482,8 @@ theorem clause2_interior_rate_nonneg (n : ℕ) (m : ℝ) {δ : ℝ} (hδ : 0 ≤
   have h3 : 0 ≤ Real.sqrt (2 / (1 - m ^ 2)) * δ := mul_nonneg h2 hδ
   exact mul_nonneg (mul_nonneg h1 h2) hδ
 
+/-- Collects the polynomial and interior forms of Lemma 23 together with degree zero vanishing
+and linear dependence of the rates on degree. See [GilyenSuLowWiebe2019]. -/
 theorem clause2_endpoint :
     Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma23PolynomialLevel ∧
       Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23InteriorRobustness ∧
@@ -439,6 +501,8 @@ theorem clause2_endpoint :
   · intro n m δ
     exact clause2_interior_rate_homogeneous n m δ
 
+/-- Collects complex and real phase existence, polynomial pair characterization, and the signal
+and single qubit word transport results. See [GilyenSuLowWiebe2019]. -/
 theorem clause3_endpoint :
     Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistence ∧
       Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSP ∧
@@ -451,6 +515,8 @@ theorem clause3_endpoint :
     Qatlib.Concepts.QsvtCore.PhaseExistence.signalWordTransport,
     Qatlib.Concepts.QsvtCore.PhaseExistence.singleQubitWordTransport⟩
 
+/-- The LCU word ledger records d data queries, d adjoint queries, 2⌊d/2⌋ projector negations,
+and d phase gates. -/
 theorem clause4_ledger_counts (d bitTime peakWorkspace : ℕ) :
     (lcuWordLedger d bitTime peakWorkspace).dataQueries = d ∧
       (lcuWordLedger d bitTime peakWorkspace).adjointQueries = d ∧
@@ -458,6 +524,8 @@ theorem clause4_ledger_counts (d bitTime peakWorkspace : ℕ) :
       (lcuWordLedger d bitTime peakWorkspace).phaseGates = d := by
   exact ⟨rfl, rfl, rfl, rfl⟩
 
+/-- The stated data, adjoint, projector negation, and phase gate counts hold for every LCU word
+ledger. See [GilyenSuLowWiebe2019]. -/
 theorem clause4_endpoint :
     ∀ d bitTime peakWorkspace : ℕ,
       (lcuWordLedger d bitTime peakWorkspace).dataQueries = d ∧
@@ -466,14 +534,18 @@ theorem clause4_endpoint :
         (lcuWordLedger d bitTime peakWorkspace).phaseGates = d :=
   fun d bitTime peakWorkspace => clause4_ledger_counts d bitTime peakWorkspace
 
+/-- Provides the Chebyshev word statement of Lemma 9. See [GilyenSuLowWiebe2019]. -/
 theorem clause5_endpoint :
     Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma9ChebyshevWord :=
   Qatlib.Concepts.QsvtCore.PhaseExistence.lemma9ChebyshevWord
 
+/-- Provides the general QSVT statement in the source convention. See [GilyenSuLowWiebe2019]. -/
 theorem clause6_endpoint :
     Qatlib.Concepts.QsvtCore.QsVtMain.SourceConventionQSVTGeneral :=
   Qatlib.Concepts.QsvtCore.QsVtMain.sourceConventionQSVTGeneral
 
+/-- Combines the Hamiltonian simulation cost bounds and cost equation with the LCU ledger
+identities for data queries and phase gates. See [GilyenSuLowWiebe2019]. -/
 theorem clause7_endpoint :
     Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBounds ∧
       Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquation ∧
@@ -486,13 +558,17 @@ theorem clause7_endpoint :
   exact ⟨(clause4_ledger_counts d bitTime peakWorkspace).1,
     (clause4_ledger_counts d bitTime peakWorkspace).2.2.2⟩
 
+/-- The coefficient sequence that is one at index k + 1 and zero elsewhere. -/
 private def clause8CanonicalC (k : ℕ) : ℕ → ℝ := fun q => if q = k + 1 then 1 else 0
 
+/-- The integer and natural versions of the corrected node have equal real casts. -/
 theorem clause8_node_value (η : ℝ) (k : ℕ) :
     ((integerNode η k : Int) : ℝ) = (integerNodeNat η k : ℝ) := by
   unfold integerNode integerNodeNat
   exact (natCast_ceil_eq_intCast_ceil (R := ℝ) (by positivity)).symm
 
+/-- The canonical coefficients sum to one over indices 1 through k + 1 and satisfy the stated
+exponential bounds on indices 1 through k. -/
 private theorem clause8_canonical_coefficients (η : ℝ) (k : ℕ) :
     (∑ q ∈ Finset.Icc 1 (k + 1), clause8CanonicalC k q = 1) ∧
       (∀ q ∈ Finset.Icc 1 k,
@@ -510,6 +586,8 @@ private theorem clause8_canonical_coefficients (η : ℝ) (k : ℕ) :
     positivity
   exact h1
 
+/-- Under the stated parameter conditions, exp((k + 1) `correctedGamma` η k) equals the natural
+integer node. -/
 theorem clause8_node_integral (η : ℝ) (hη1 : 305 / 1000 < η) (hη2 : η < 312 / 1000)
     (k : ℕ) (hk : 1 ≤ k) (m : ℕ) (hm : 1 ≤ m) (h t ε β : ℝ)
     (hh : 0 < h) (ht : 0 < t) (hε : 0 < ε) (hβ : 0 < β) (hβ1 : β < 1) :
@@ -521,6 +599,8 @@ theorem clause8_node_integral (η : ℝ) (hη1 : 305 / 1000 < η) (hη2 : η < 3
   rw [← clause8_node_value η k]
   exact hexp
 
+/-- Under the stated parameter conditions, the corrected gamma lies between `gammaReq` η k and
+two. -/
 theorem clause8_gamma_bounds (η : ℝ) (hη1 : 305 / 1000 < η) (hη2 : η < 312 / 1000)
     (k : ℕ) (hk : 1 ≤ k) (m : ℕ) (hm : 1 ≤ m) (h t ε β : ℝ)
     (hh : 0 < h) (ht : 0 < t) (hε : 0 < ε) (hβ : 0 < β) (hβ1 : β < 1) :
@@ -531,6 +611,8 @@ theorem clause8_gamma_bounds (η : ℝ) (hη1 : 305 / 1000 < η) (hη2 : η < 31
       (clause8_canonical_coefficients η k).2
   exact ⟨hgam1, hgam2⟩
 
+/-- Under the stated positivity and parameter interval conditions, the natural exponential count
+using `retryCountNat` is bounded by `eq67Budget`. -/
 theorem clause8_exponential_count_within_budget (η : ℝ) (hη1 : 305 / 1000 < η)
     (hη2 : η < 312 / 1000) (k : ℕ) (hk : 1 ≤ k) (m : ℕ) (hm : 1 ≤ m) (h t ε β : ℝ)
     (hh : 0 < h) (ht : 0 < t) (hε : 0 < ε) (hβ : 0 < β) (hβ1 : β < 1) :
@@ -560,17 +642,22 @@ theorem clause8_exponential_count_within_budget (η : ℝ) (hη1 : 305 / 1000 < 
   rw [hretry']
   exact hcost
 
+/-- For positive r and failure probabilities in [0, 1/2], the retry state assigns mass at most
+`retryFailureBound` r to exhausted retries. -/
 theorem clause8_recovery_tail (r : ℕ) (hr : 0 < r) (p : Fin (3 * r) → ℝ)
     (hp0 : ∀ i, 0 ≤ p i) (hp1 : ∀ i, p i ≤ 1 / 2) :
     MeasureProb (retryState (3 * r) p) (retryExhausted r) ≤ retryFailureBound r := by
   have h := subtractionRetryTail r hr p hp0 hp1
   exact h
 
+/-- The recovery schedule uses 3r attempts, tolerates 2r failures, and has step budget 5r. -/
 theorem clause8_recovery_ledger (r : ℕ) :
     retryAttemptCount r = 3 * r ∧ retryToleratedFailures r = 2 * r ∧
       retryStepBudget r = 5 * r := by
   exact ⟨rfl, rfl, rfl⟩
 
+/-- For positive r, the retry failure bound is below one and is nonincreasing for all larger
+retry parameters. -/
 theorem clause8_recovery_failure_bound (r : ℕ) (hr : 0 < r) :
     retryFailureBound r < 1 ∧
       ∀ r' : ℕ, r ≤ r' → retryFailureBound r' ≤ retryFailureBound r := by
@@ -587,10 +674,13 @@ theorem clause8_recovery_failure_bound (r : ℕ) (hr : 0 < r) :
       linarith
     exact Real.exp_le_exp.mpr h1
 
+/-- Provides the corrected reset and discard formulation of Theorem 13. -/
 theorem clause8_theorem13_corrected :
     Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13Corrected :=
   Qatlib.Concepts.CoherentSim.ResetDiscard.theorem13Corrected
 
+/-- Collects the corrected integer node statement, integrality identity, exponential budget,
+retry exhaustion bound, and corrected Theorem 13. See [GilyenSuLowWiebe2019]. -/
 theorem clause8_endpoint :
     Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma12IntegerNodesCorrected ∧
       (∀ η : ℝ, 305 / 1000 < η → η < 312 / 1000 → ∀ k : ℕ, 1 ≤ k →
@@ -612,6 +702,8 @@ theorem clause8_endpoint :
     exact clause8_recovery_tail r hr p hp0 hp1
   · exact clause8_theorem13_corrected
 
+/-- For admissible even and odd real polynomial data at positive even degree d, constructs a
+source word with d − 1 phase gates realizing the stated complex response on [−1, 1]. -/
 theorem clause9_source_word_plan (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d) (hd0 : 0 < d)
     (hA : A.comp (-Polynomial.X) = A) (hQt : Qt.comp (-Polynomial.X) = -Qt)
     (hAdeg : A.degree ≤ (d : WithBot ℕ)) (hQtdeg : Qt.degree < (d : WithBot ℕ))
@@ -630,6 +722,8 @@ theorem clause9_source_word_plan (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d)
   · intro x hx
     exact hamp x hx
 
+/-- The admissible polynomial data possess a source word with d − 1 phase gates, 2⌊(d − 1)/2⌋
+projector negations, and two boundary rotations. -/
 theorem clause9_source_word_charges_ledger (d : ℕ) (A Qt : Polynomial ℝ) (hd : Even d) (hd0 : 0 < d)
     (hA : A.comp (-Polynomial.X) = A) (hQt : Qt.comp (-Polynomial.X) = -Qt)
     (hAdeg : A.degree ≤ (d : WithBot ℕ)) (hQtdeg : Qt.degree < (d : WithBot ℕ))
@@ -651,6 +745,8 @@ theorem clause9_source_word_charges_ledger (d : ℕ) (A Qt : Polynomial ℝ) (hd
     simp only [SourceWordPlan.projectorNots, h2]
   · rfl
 
+/-- A source word plan has the same phase gate and projector negation counts as the LCU ledger
+at its phase gate count. -/
 theorem clause9_source_word_matches_compiled_ledger (w : SourceWordPlan)
     (bitTime peakWorkspace : ℕ) :
     w.phaseGates = (lcuWordLedger w.phaseGates bitTime peakWorkspace).phaseGates ∧
@@ -660,6 +756,7 @@ theorem clause9_source_word_matches_compiled_ledger (w : SourceWordPlan)
   calc w.projectorNots = 2 * (w.phaseGates / 2) := rfl
     _ = (lcuWordLedger w.phaseGates bitTime peakWorkspace).projectorNots := h4.2.2.1.symm
 
+/-- Every row of the sparse oracle matrix has at most d nonzero entries. -/
 private theorem clause9_sparse_row_card {n d : ℕ} {b : ℝ} (O : LqSparseOracle n d b) :
     ∀ o : Fin (2 ^ n), (Finset.univ.filter (fun i : Fin (2 ^ n) => O.H o i ≠ 0)).card ≤ d := by
   intro o
@@ -676,6 +773,7 @@ private theorem clause9_sparse_row_card {n d : ℕ} {b : ℝ} (O : LqSparseOracl
   rw [List.length_map]
   exact O.row_bound o
 
+/-- Every column of the sparse oracle matrix has at most d nonzero entries. -/
 private theorem clause9_sparse_col_card {n d : ℕ} {b : ℝ} (O : LqSparseOracle n d b) :
     ∀ i : Fin (2 ^ n), (Finset.univ.filter (fun o : Fin (2 ^ n) => O.H o i ≠ 0)).card ≤ d := by
   intro i
@@ -704,6 +802,8 @@ private theorem clause9_sparse_col_card {n d : ℕ} {b : ℝ} (O : LqSparseOracl
   rw [List.length_map]
   exact O.row_bound i
 
+/-- For positive sparsity and entry bound, scaling the sparse oracle matrix by 1/(db) gives
+operator norm at most one. -/
 private theorem clause9_scaled_opNorm_le_one {n d : ℕ} {b : ℝ}
     (O : LqSparseOracle n d b) (hd : 0 < d) (hb : 0 < b) :
     ‖((((d : ℝ) * b)⁻¹ : ℝ) : ℂ) • O.H‖ ≤ 1 := by
@@ -719,6 +819,8 @@ private theorem clause9_scaled_opNorm_le_one {n d : ℕ} {b : ℝ}
   rw [← div_eq_inv_mul]
   exact (div_le_one hdb).mpr hnorm
 
+/-- For positive sparsity and entry bound, constructs a walk frame encoding the sparse matrix
+scaled by 1/(db). -/
 theorem clause9_walk_frame_constructed {n d : ℕ} {b : ℝ} (hd : 0 < d) (hb : 0 < b)
     (O : LqSparseOracle n d b) :
     ∃ (L R : Matrix (Fin 2 × Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
@@ -727,6 +829,8 @@ theorem clause9_walk_frame_constructed {n d : ℕ} {b : ℝ} (hd : 0 < d) (hb : 
   exact walk_frame_of_spectral (((d : ℝ) * b)⁻¹ : ℝ) O.H O.hermitian
     (clause9_scaled_opNorm_le_one O hd hb)
 
+/-- A supplied sparse walk frame supports eigenphase transport and a `SparseSimulationWord` for
+nonnegative time and accuracy in (0, 1/2]. -/
 theorem clause9_sparse_simulation_constructed {n d : ℕ} {b : ℝ} (hd : 0 < d) (hb : 0 < b)
     (O : LqSparseOracle n d b)
     (L R : Matrix (Fin 2 × Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
@@ -740,6 +844,8 @@ theorem clause9_sparse_simulation_constructed {n d : ℕ} {b : ℝ} (hd : 0 < d)
   intro t ε ht hε hε1
   exact h7 t ε ht hε hε1
 
+/-- A sparse oracle with positive sparsity and entry bound possesses a walk frame, and every
+such frame supports the stated simulation word for the allowed time and accuracy parameters. -/
 theorem clause9_sparse_simulation_from_oracle {n d : ℕ} {b : ℝ} (hd : 0 < d) (hb : 0 < b)
     (O : LqSparseOracle n d b) :
     (∃ (L R : Matrix (Fin 2 × Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
@@ -756,6 +862,8 @@ theorem clause9_sparse_simulation_from_oracle {n d : ℕ} {b : ℝ} (hd : 0 < d)
   obtain ⟨_, h7⟩ := clause9_sparse_simulation_constructed (O := O) hd hb L' R' S' hframe'
   exact h7 t ε ht hε hε1
 
+/-- At degree 2(Q − 1), the LCU ledger has 2(Q − 1) phase gates, data queries, and adjoint
+queries. -/
 theorem clause9_sparse_word_charges_ledger (Q bitTime peakWorkspace : ℕ) :
     (lcuWordLedger (2 * (Q - 1)) bitTime peakWorkspace).phaseGates = 2 * (Q - 1) ∧
       (lcuWordLedger (2 * (Q - 1)) bitTime peakWorkspace).dataQueries = 2 * (Q - 1) ∧
@@ -763,6 +871,9 @@ theorem clause9_sparse_word_charges_ledger (Q bitTime peakWorkspace : ℕ) :
   have h4 := clause4_ledger_counts (2 * (Q - 1)) bitTime peakWorkspace
   exact ⟨h4.2.2.2, h4.1, h4.2.1⟩
 
+/-- For positive d and b, nonnegative time, and accuracy in (0, 1/2], gives the stated lower
+bound on `lcCorrectedQ` and logarithmic and linear upper bounds on twice its real value
+minus two. -/
 theorem clause9_window_count_bounds (d : ℕ) (b t ε : ℝ)
     (hd : 0 < d) (hb : 0 < b) (ht : 0 ≤ t) (hε : 0 < ε) (hε1 : ε ≤ 1 / 2) :
     3 * (t * (d : ℝ) * b) ≤ (lcCorrectedQ (t * (d : ℝ) * b) (ε / 8) : ℝ) ∧
@@ -773,15 +884,21 @@ theorem clause9_window_count_bounds (d : ℕ) (b t ε : ℝ)
         2 * (3 * (t * (d : ℝ) * b) + 3 * Real.log (32 / (ε / 8)) + 8) :=
   clause9_clause4 d b t ε hd hb ht hε hε1
 
+/-- For all real τ and ε, the corrected window count is at least τ + 1 after casting to the
+reals. -/
 theorem clause9_window_length_budget (τ ε : ℝ) :
     τ + 1 ≤ (lcCorrectedQ τ ε : ℝ) :=
   lcCorrectedQ_length_budget τ ε
 
+/-- The LCU window count is at least four for all real input parameters. -/
 theorem clause9_window_count_at_least_four (τ ε : ℝ) :
     4 ≤ lcuWindowCount τ ε := by
   unfold lcuWindowCount lcCorrectedQ
   exact le_trans (le_max_left _ _) (le_max_right _ _)
 
+/-- Collects Jacobi–Anger truncation and degree bounds, source word resource counts, the LC17
+contract, and sparse frame simulation with explicit window count estimates. See
+[GilyenSuLowWiebe2019]. -/
 theorem clause9_endpoint :
     Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncation ∧
       Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegree ∧

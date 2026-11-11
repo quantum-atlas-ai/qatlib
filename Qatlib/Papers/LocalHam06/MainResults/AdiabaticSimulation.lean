@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LocalHam06.MainResults.AdiabaticTheorem
 import Qatlib.Papers.LocalHam06.MainResults.QmaComplete
+
+/-!
+# Operator-path estimates and endpoint energy promises
+
+This module bounds the quadratic operator path `pathOp`, its derivative expressions, and its
+variation on the unit interval. It also gives a norm decomposition and a matrix path ending at
+the padded history Hamiltonian with the yes/no energy promises used in the construction of
+[KempeKitaevRegev2006].
+
+## Main statements
+
+* `path_norm_bounds`: Bounds the quadratic path and its derivative expressions.
+* `path_lipschitz`: Controls variation of the path on the unit interval.
+* `adiabatic_simulation_two_local`: Constructs a path with the stated endpoint energy
+  guarantees.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -31,9 +52,13 @@ open Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
   [FiniteDimensional ℂ E] [Nontrivial E]
 
+/-- The quadratic operator path `A + s • B + s^2 • Cp`. -/
 def pathOp (A B Cp : E →L[ℂ] E) (s : ℝ) : E →L[ℂ] E :=
   A + s • B + s ^ 2 • Cp
 
+/-- On the unit interval, the quadratic path has norm at most `‖A‖ + ‖B‖ + ‖Cp‖`, its first
+derivative expression has norm at most `‖B‖ + 2 * ‖Cp‖`, and its second derivative
+expression has norm `2 * ‖Cp‖` [KempeKitaevRegev2006]. -/
 theorem path_norm_bounds (A B Cp : E →L[ℂ] E) {s : ℝ} (hs0 : 0 ≤ s) (hs1 : s ≤ 1) :
     ‖pathOp A B Cp s‖ ≤ ‖A‖ + ‖B‖ + ‖Cp‖ ∧
       ‖B + (2 * s) • Cp‖ ≤ ‖B‖ + 2 * ‖Cp‖ ∧
@@ -67,6 +92,9 @@ theorem path_norm_bounds (A B Cp : E →L[ℂ] E) {s : ℝ} (hs0 : 0 ≤ s) (hs1
   · rw [norm_smul]
     norm_num
 
+/-- Given bounds `pA`, `pB`, and `pC` on the three coefficient norms, the path and its first two
+derivative expressions satisfy the corresponding sum bounds on the unit interval
+[KempeKitaevRegev2006]. -/
 theorem path_polynomial_bounds (A B Cp : E →L[ℂ] E) (pA pB pC : ℝ)
     (hA : ‖A‖ ≤ pA) (hB : ‖B‖ ≤ pB) (hC : ‖Cp‖ ≤ pC)
     {s : ℝ} (hs0 : 0 ≤ s) (hs1 : s ≤ 1) :
@@ -80,12 +108,15 @@ theorem path_polynomial_bounds (A B Cp : E →L[ℂ] E) (pA pB pC : ℝ)
   · rw [h3]
     linarith
 
+/-- The difference of two path values is `(s - t) • B + (s^2 - t^2) • Cp`. -/
 theorem pathOp_sub (A B Cp : E →L[ℂ] E) (s t : ℝ) :
     pathOp A B Cp s - pathOp A B Cp t =
       (s - t) • B + (s ^ 2 - t ^ 2) • Cp := by
   unfold pathOp
   module
 
+/-- On the unit interval, the quadratic path varies by at most `(‖B‖ + 2 * ‖Cp‖) * |s - t|`
+[KempeKitaevRegev2006]. -/
 theorem path_lipschitz (A B Cp : E →L[ℂ] E) {s t : ℝ}
     (hs : s ∈ Set.Icc (0 : ℝ) 1) (ht : t ∈ Set.Icc (0 : ℝ) 1) :
     ‖pathOp A B Cp s - pathOp A B Cp t‖ ≤
@@ -117,6 +148,8 @@ theorem path_lipschitz (A B Cp : E →L[ℂ] E) {s t : ℝ}
         exact mul_le_mul_of_nonneg_left hcoef habs
     _ = (‖B‖ + 2 * ‖Cp‖) * |s - t| := by ring
 
+/-- For a unit vector `w`, the squared norm of `v` is the squared magnitude of its coefficient
+along `w` plus the squared norm of its orthogonal remainder [KempeKitaevRegev2006]. -/
 theorem norm_sq_decompose (w v : E) (hw : ‖w‖ = 1) :
     ‖v‖ ^ 2 = ‖inner ℂ w v‖ ^ 2 + ‖v - (inner ℂ w v) • w‖ ^ 2 := by
   set c : ℂ := inner ℂ w v with hc
@@ -137,6 +170,9 @@ theorem norm_sq_decompose (w v : E) (hw : ‖w‖ = 1) :
           norm_add_sq_eq_norm_sq_add_norm_sq_of_inner_eq_zero (c • w) (v - c • w) horth
     _ = ‖c‖ ^ 2 + ‖v - c • w‖ ^ 2 := by rw [norm_smul, hw, mul_one]
 
+/-- Under the stated completeness and soundness parameter bounds, there exists a matrix path
+from zero to the padded history Hamiltonian whose endpoint satisfies the specified yes/no
+energy promises [KempeKitaevRegev2006]. -/
 theorem adiabatic_simulation_two_local
     (C : QmaHistoryCircuit) (a ε : ℝ)
     (hε : ε ≤ 1 / 4)

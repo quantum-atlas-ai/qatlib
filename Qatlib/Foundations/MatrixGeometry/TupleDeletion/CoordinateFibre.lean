@@ -8,6 +8,26 @@ import Qatlib.Foundations.MatrixGeometry.TupleDeletion.Incidence
 import Mathlib.Logic.Embedding.Set
 import Mathlib.Data.Fintype.Card
 
+/-!
+# Coordinate fibers of injective tuples
+
+Identifies a fiber of coordinate deletion with the labels absent from the remaining coordinates.
+The equivalence `coordinateFibreEquiv` computes its cardinality, and the matrix `coordinateGram`
+satisfies a scaled square identity; summing these matrices gives the full deletion Gram matrix.
+See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `coordinate_fibre_card`: The deletion fiber at `i` has cardinality `Fintype.card L -
+  Fintype.card (Off I i)`.
+* `deletion_gram_coordinates`: The deletion Gram matrix is the sum of the coordinate Gram
+  matrices.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 450000
 noncomputable section
@@ -16,8 +36,10 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 
+/-- The subtype of labels not used by the tuple after coordinate `i` is deleted. -/
 abbrev Available (i : I) (u : InjectiveTuple I L) := {z : L // z ∉ Set.range (eraseTuple i u)}
 
+/-- The injective tuple obtained by replacing coordinate `i` of `u` with an available label. -/
 def completeCoordinate (i : I) (u : InjectiveTuple I L) (z : Available i u) : InjectiveTuple I L where
   toFun := Function.update u i z.1
   inj' a b hab := by
@@ -35,12 +57,16 @@ def completeCoordinate (i : I) (u : InjectiveTuple I L) (z : Available i u) : In
         exact u.injective hab
 omit [Fintype I] [Fintype L] in
 
+/-- Replacing coordinate `i` with an available label leaves the tuple obtained by deleting `i`
+unchanged. -/
 theorem erase_complete (i : I) (u : InjectiveTuple I L) (z : Available i u) :
     eraseTuple i (completeCoordinate i u z)=eraseTuple i u := by
   apply Function.Embedding.ext
   intro j
   exact Function.update_of_ne j.2 _ _
 
+/-- The equivalence between injective tuples with the same deletion at `i` as `u` and labels
+available at that coordinate. -/
 def coordinateFibreEquiv (i : I) (u : InjectiveTuple I L) :
     {v : InjectiveTuple I L // eraseTuple i v=eraseTuple i u} ≃ Available i u where
   toFun v := ⟨v.1 i,by
@@ -65,6 +91,7 @@ def coordinateFibreEquiv (i : I) (u : InjectiveTuple I L) :
     change Function.update (u : I → L) i z.1 i=z.1
     exact Function.update_self i z.1 (u : I → L)
 
+/-- The deletion fiber at `i` has cardinality `Fintype.card L - Fintype.card (Off I i)`. -/
 theorem coordinate_fibre_card (i : I) (u : InjectiveTuple I L) :
     Fintype.card {v : InjectiveTuple I L // eraseTuple i v=eraseTuple i u}=
       Fintype.card L-Fintype.card (Off I i) := by
@@ -73,9 +100,13 @@ theorem coordinate_fibre_card (i : I) (u : InjectiveTuple I L) :
   rw [Fintype.card_subtype_compl]
   rw [Fintype.card_range]
 
+/-- The matrix with entry one exactly when two injective tuples agree after deleting coordinate
+`i`, and zero otherwise. -/
 def coordinateGram (i : I) : Matrix (InjectiveTuple I L) (InjectiveTuple I L) ℂ :=
   fun u v => if eraseTuple i u=eraseTuple i v then 1 else 0
 
+/-- The coordinate Gram matrix squared equals itself scaled by the complex cast of the
+coordinate-fiber cardinality `Fintype.card L - Fintype.card (Off I i)`. -/
 theorem coordinateGram_squared (i : I) :
     coordinateGram (L := L) i*coordinateGram (L := L) i=
       ((Fintype.card L-Fintype.card (Off I i) : ℕ) : ℂ) • coordinateGram (L := L) i := by
@@ -106,6 +137,7 @@ theorem coordinateGram_squared (i : I) :
       · simp [huz]
     simp [hs,coordinateGram,huv]
 
+/-- The deletion Gram matrix is the sum of the coordinate Gram matrices. -/
 theorem deletion_gram_coordinates :
     (deletion (I := I) (L := L))ᴴ*deletion=∑ i : I,coordinateGram (L := L) i := by
   ext u v

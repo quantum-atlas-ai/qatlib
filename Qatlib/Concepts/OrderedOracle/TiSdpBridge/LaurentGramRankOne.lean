@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGramShift
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGramSchur
+
+/-!
+# Rank one Gram representatives
+
+The Lean declarations show that a nonzero positive semidefinite matrix has an outer Gram
+representative with the same generalized traces and a first diagonal entry at least as large. A
+maximizer of that entry equals its Schur vector outer Gram matrix, yielding rank one
+representatives. This supports the Laurent Gram framework of [ChildsLandahlParrilo2007] with
+positivity tools from [Bhatia1997].
+
+## Main statements
+
+* `maximal_gram_eq_outer`: a nonzero maximizer of the first diagonal entry equals its Schur
+  vector outer Gram matrix.
+* `exists_outer_gram`: an outer Gram representative preserves all generalized traces and does
+  not decrease the first diagonal entry.
+* `exists_rank_one_gram`: the representative can be chosen positive semidefinite of rank one.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +42,8 @@ variable {n : ℕ} [NeZero n]
 
 omit [NeZero n] in
 
+/-- The generalized trace of a sum of matrices is the sum of their generalized traces at the
+same offset. -/
 theorem genTrace_add (A B : Matrix (Fin n) (Fin n) ℂ) (k : ℤ) :
     genTrace (A+B) k=genTrace A k+genTrace B k := by
   have hpoint (i j : Fin n) :
@@ -27,6 +53,9 @@ theorem genTrace_add (A B : Matrix (Fin n) (Fin n) ℂ) (k : ℤ) :
   unfold genTrace
   simp_rw [Matrix.add_apply,hpoint,Finset.sum_add_distrib]
 
+/-- A nonzero positive semidefinite matrix of positive size that maximizes its first diagonal
+entry among matrices with the same generalized traces equals the outer Gram matrix of its
+Schur vector. -/
 theorem maximal_gram_eq_outer (B : Matrix (Fin n) (Fin n) ℂ) (hB : B.PosSemidef) (hB0 : B≠0)
     (hmax : ∀ C : Matrix (Fin n) (Fin n) ℂ,C.PosSemidef →
       (∀ k : ℤ,genTrace C k=genTrace B k) → C 0 0≤B 0 0) :
@@ -60,6 +89,7 @@ theorem maximal_gram_eq_outer (B : Matrix (Fin n) (Fin n) ℂ) (hB : B.PosSemide
 
 omit [NeZero n] in
 
+/-- An outer Gram matrix with a nonzero diagonal entry has rank one. -/
 theorem gramOuter_rank_one_of_diag_ne_zero (v : Fin n → ℂ) (r : Fin n)
     (hr : gramOuter v r r≠0) : (gramOuter v).rank=1 := by
   have hle : (gramOuter v).rank≤1 := by
@@ -75,6 +105,8 @@ theorem gramOuter_rank_one_of_diag_ne_zero (v : Fin n → ℂ) (r : Fin n)
   simp [hr] at hlow
   omega
 
+/-- Every nonzero positive semidefinite matrix of positive size has an outer Gram representative
+of rank one with the same generalized traces and a first diagonal entry at least as large. -/
 theorem exists_outer_gram (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemidef) (hA0 : A≠0) :
     ∃ v : Fin n → ℂ,(gramOuter v).rank=1 ∧
       (∀ k : ℤ,genTrace (gramOuter v) k=genTrace A k) ∧ A 0 0≤gramOuter v 0 0 := by
@@ -98,6 +130,9 @@ theorem exists_outer_gram (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemidef) (
   · simpa only [← he] using htrace
   · simpa only [← he] using hfirst
 
+/-- Every nonzero positive semidefinite matrix of positive size has a positive semidefinite rank
+one representative with the same generalized traces and a first diagonal entry at least as
+large. -/
 theorem exists_rank_one_gram (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemidef) (hA0 : A≠0) :
     ∃ B : Matrix (Fin n) (Fin n) ℂ,B.PosSemidef ∧ B.rank=1 ∧
       (∀ k : ℤ,genTrace B k=genTrace A k) ∧ A 0 0≤B 0 0 := by

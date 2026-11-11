@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# Pauli byproducts of the cluster CNOT pattern
+
+This module computes the Kraus matrices of the four-qubit CNOT pattern and identifies their
+outcome-dependent Pauli byproducts. The calculation uses the explicit input frame, resource
+pulse, local Hadamards, projectors, and output frame from `MbqcFlowCoreDefs`, in the one-way
+computation setting [RaussendorfBriegel2001].
+
+The intermediate matrices `cnotA0` through `cnotA7` support entrywise calculations. Their final
+factorization yields `clause3_clause2`, which states that each branch is one quarter of
+conjugation by a local Pauli byproduct followed by CNOT.
+
+## Main statements
+
+* `rbCnotKraus_smul`: the outcome-supported Kraus factorization.
+* `clause3_clause2`: existence of local Pauli byproducts and the exact CNOT branch formula.
+
+## References
+
+* [Raussendorf and Briegel, 2001][RaussendorfBriegel2001]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -31,14 +54,20 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 
+/-- The outcome-dependent local Pauli factors used to express the four-qubit CNOT pattern's
+byproduct operator. -/
 private noncomputable def clause3Kappa (s : Bool × Bool) (v : Fin 2) : Operator 2 :=
   if v = 0 then (if s.1 then pauliX else 1) * (if s.2 then (1 : Operator 2) else pauliZ)
   else (if s.1 then pauliX else 1) * (if s.2 then pauliZ else (1 : Operator 2))
 
+/-- Each local factor `clause3Kappa s v` belongs to the four operators specified by
+`MbqcPauliWire`. -/
 private theorem clause3Kappa_pauli (s : Bool × Bool) (v : Fin 2) : MbqcPauliWire (clause3Kappa s v) := by
   obtain ⟨s1, s2⟩ := s
   fin_cases v <;> cases s1 <;> cases s2 <;> simp [clause3Kappa, MbqcPauliWire]
 
+/-- Summing against equality indicators on all wires except `v` reduces a register sum to the
+two values obtained by updating bit `v` to false and true. -/
 private theorem sum_reg_erase_delta {n : ℕ} (x : Reg n) (v : Fin n) (F : Reg n → ℂ) :
     (∑ y : Reg n, (∏ i ∈ (Finset.univ : Finset (Fin n)).erase v,
         (if x i = y i then (1 : ℂ) else 0)) * F y)
@@ -118,9 +147,13 @@ private theorem sum_reg_erase_delta {n : ℕ} (x : Reg n) (v : Fin n) (F : Reg n
         rw [Finset.sum_ite_eq', Finset.sum_ite_eq']
         simp
 
+/-- A Boolean-indexed Hadamard entry is `1 / √2` times minus one when both bits are true and one
+otherwise. -/
 private theorem hadamard_entry (a b : Bool) :
     Hadamard a b = (Real.sqrt 2 : ℂ)⁻¹ * (if a && b then -1 else 1) := rfl
 
+/-- Left multiplication by the wire Hadamard replaces each matrix entry by `1 / √2` times the
+false-bit entry plus the true-bit entry with sign determined by `x v`. -/
 private theorem wireH_mul_apply (v : Fin 4) (A : Matrix (Reg 4) (Fin 4) ℂ) (x : Reg 4) (j : Fin 4) :
     (rbWireH v * A) x j
       = (Real.sqrt 2 : ℂ)⁻¹ *
@@ -145,6 +178,8 @@ private theorem wireH_mul_apply (v : Fin 4) (A : Matrix (Reg 4) (Fin 4) ℂ) (x 
   simp only [Function.update_self]
   rcases hx : x v <;> simp_all <;> ring
 
+/-- Left multiplication by the wire projector retains an entry exactly when the selected
+register bit equals the outcome. -/
 private theorem proj_mul_apply (v : Fin 4) (b : Bool) (A : Matrix (Reg 4) (Fin 4) ℂ)
     (x : Reg 4) (j : Fin 4) :
     (rbProjGate v b * A) x j = (if x v = b then (1 : ℂ) else 0) * A x j := by
@@ -172,6 +207,8 @@ private theorem proj_mul_apply (v : Fin 4) (b : Bool) (A : Matrix (Reg 4) (Fin 4
   rw [hxx]
   rcases hx : x v <;> rcases hb : b <;> simp_all
 
+/-- The CNOT input frame has entry one half when its first two register bits match the input
+basis index, and zero otherwise. -/
 private theorem frame_entry (x : Reg 4) (j : Fin 4) :
     rbCnotFrame x j =
       (if x 0 = (bitVecEquiv 2).symm j 0 then (1 : ℂ) else 0) *
@@ -184,6 +221,8 @@ private theorem frame_entry (x : Reg 4) (j : Fin 4) :
   simp
   rw [h2]
 
+/-- The CNOT pulse is diagonal, with its diagonal entry given by the product of the four
+displayed Boolean phase factors. -/
 private theorem pulse_entry (x y : Reg 4) :
     rbCnotPulse x y =
       if x = y then
@@ -211,6 +250,8 @@ private theorem pulse_entry (x y : Reg 4) :
       · rw [if_neg hxw, zero_mul])]
     rw [if_neg hxy]
 
+/-- The CNOT output frame is the product of equality indicators fixing the first two bits to `z`
+and the final two bits to the output index. -/
 private theorem outframe_entry (z : Bool × Bool) (j' : Fin 4) (x : Reg 4) :
     rbCnotOutFrame z j' x =
       (if x 0 = z.1 then (1 : ℂ) else 0) * (if x 1 = z.2 then (1 : ℂ) else 0) *
@@ -220,6 +261,8 @@ private theorem outframe_entry (z : Bool × Bool) (j' : Fin 4) (x : Reg 4) :
   simp only [Matrix.of_apply]
   ring
 
+/-- Multiplication by the CNOT output frame evaluates the register row at the two fixed record
+bits followed by the two output bits. -/
 private theorem outframe_sum (z : Bool × Bool) (j' : Fin 4)
     (B : Matrix (Reg 4) (Fin 4) ℂ) (j : Fin 4) :
     (rbCnotOutFrame z * B) j' j
@@ -255,25 +298,36 @@ private theorem outframe_sum (z : Bool × Bool) (j' : Fin 4)
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The initial CNOT intermediate matrix, equal to `rbCnotFrame`. -/
 private noncomputable def cnotA0 : Matrix (Reg 4) (Fin 4) ℂ := rbCnotFrame
 
+/-- The CNOT intermediate matrix obtained by applying a Hadamard on wire zero to `cnotA0`. -/
 private noncomputable def cnotA1 : Matrix (Reg 4) (Fin 4) ℂ := rbWireH 0 * cnotA0
 
+/-- The CNOT intermediate matrix obtained by applying the resource pulse to `cnotA1`. -/
 private noncomputable def cnotA2 : Matrix (Reg 4) (Fin 4) ℂ := rbCnotPulse * cnotA1
 
+/-- The CNOT intermediate matrix obtained by applying a Hadamard on wire one to `cnotA2`. -/
 private noncomputable def cnotA3 : Matrix (Reg 4) (Fin 4) ℂ := rbWireH 1 * cnotA2
 
+/-- The CNOT intermediate matrix obtained by applying a Hadamard on wire zero to `cnotA3`. -/
 private noncomputable def cnotA4 : Matrix (Reg 4) (Fin 4) ℂ := rbWireH 0 * cnotA3
 
+/-- The CNOT intermediate matrix obtained by projecting wire one of `cnotA4` onto outcome `s.2`. -/
 private noncomputable def cnotA5 (s : Bool × Bool) : Matrix (Reg 4) (Fin 4) ℂ :=
   rbProjGate 1 s.2 * cnotA4
 
+/-- The CNOT intermediate matrix obtained by projecting wire zero of `cnotA5 s` onto outcome
+`s.1`. -/
 private noncomputable def cnotA6 (s : Bool × Bool) : Matrix (Reg 4) (Fin 4) ℂ :=
   rbProjGate 0 s.1 * cnotA5 s
 
+/-- The final CNOT intermediate matrix obtained by applying a Hadamard on wire three to `cnotA6
+s`. -/
 private noncomputable def cnotA7 (s : Bool × Bool) : Matrix (Reg 4) (Fin 4) ℂ :=
   rbWireH 3 * cnotA6 s
 
+/-- Multiplying two gates acting on the same wire equals the wire embedding of their product. -/
 private theorem wireGate_mul_same (v : Fin 4) (U V : Operator 2) :
     mbqcRegWireGate v U * mbqcRegWireGate v V = mbqcRegWireGate v (U * V) := by
   rw [mbqcRegWireGate_eq, mbqcRegWireGate_eq, pauliProductDensity_mul]
@@ -286,6 +340,7 @@ private theorem wireGate_mul_same (v : Fin 4) (U V : Operator 2) :
     · simp [hi]
   rw [h, mbqcRegWireGate_eq]
 
+/-- Embedding the one-qubit identity on any wire gives the register identity. -/
 private theorem wireGate_one (v : Fin 4) :
     mbqcRegWireGate v (1 : Operator 2) = 1 := by
   rw [mbqcRegWireGate_eq]
@@ -295,21 +350,27 @@ private theorem wireGate_one (v : Fin 4) :
     by_cases hi : i = v <;> simp [hi]
   rw [h, pauliProductDensity_one]
 
+/-- The Hadamard embedded on wire one squares to the identity. -/
 private theorem wireH1_sq : rbWireH 1 * rbWireH 1 = (1 : Matrix (Reg 4) (Reg 4) ℂ) := by
   rw [rbWireH, wireGate_mul_same, ← teleportRelabelGate_mul, hadamard_mul_self,
     teleportRelabelGate_one, wireGate_one]
 
+/-- Applying the wire-one Hadamard twice on the left of a matrix recovers that matrix. -/
 private theorem drop_wireH1 (B : Matrix (Reg 4) (Fin 4) ℂ) :
     rbWireH 1 * (rbWireH 1 * B) = B := by
   rw [← Matrix.mul_assoc, wireH1_sq]
   exact Matrix.one_mul B
 
+/-- The CNOT Kraus matrix factors as the output frame multiplied by the final intermediate
+matrix `cnotA7 s`. -/
 private theorem rbCnotKraus_split (s z : Bool × Bool) :
     rbCnotKraus s z = rbCnotOutFrame z * cnotA7 s := by
   rw [rbCnotKraus, cnotA7, cnotA6, cnotA5, cnotA4, cnotA3, cnotA2, cnotA1, cnotA0]
   simp only [Matrix.mul_assoc]
   rw [drop_wireH1]
 
+/-- An entry of `cnotA1` is the first-wire Hadamard phase times the second-input-bit equality
+indicator, scaled by `1 / (2√2)`. -/
 private theorem s1_entry (x : Reg 4) (j : Fin 4) :
     cnotA1 x j = (Real.sqrt 2 : ℂ)⁻¹ *
       bitPhase (x 0 && (bitVecEquiv 2).symm j 0) *
@@ -319,6 +380,8 @@ private theorem s1_entry (x : Reg 4) (j : Fin 4) :
   rcases hd0 : (bitVecEquiv 2).symm j 0
     <;> simp_all [bitPhase]
 
+/-- An entry of `cnotA2` is the `cnotA1` amplitude multiplied by the resource pulse phases on
+bits two and the three graph edges. -/
 private theorem s2_entry (x : Reg 4) (j : Fin 4) :
     cnotA2 x j = bitPhase (x 2) * bitPhase (x 0 && x 2) * bitPhase (x 1 && x 3) *
       bitPhase (x 2 && x 3) *
@@ -334,6 +397,8 @@ private theorem s2_entry (x : Reg 4) (j : Fin 4) :
   · intro h
     exact absurd (Finset.mem_univ x) h
 
+/-- An entry of `cnotA3` has factor `(1 / √2)^2 / 2` times the two input Hadamard phases and the
+resource phases, with the input bit substituted at wire one. -/
 private theorem s3_entry (x : Reg 4) (j : Fin 4) :
     cnotA3 x j = (Real.sqrt 2 : ℂ)⁻¹ * bitPhase (x 1 && (bitVecEquiv 2).symm j 1) *
       bitPhase (x 2) * bitPhase (x 0 && x 2) *
@@ -352,6 +417,8 @@ private theorem s3_entry (x : Reg 4) (j : Fin 4) :
     <;> rcases hx0 : x 0 <;> rcases hx1 : x 1 <;> rcases hx2 : x 2 <;> rcases hx3 : x 3
     <;> simp_all [bitPhase] <;> ring
 
+/-- An entry of `cnotA4` is a product of Boolean phases scaled by `(1 / √2)^3 / 2` and
+multiplied by the two-term sum from the wire-zero Hadamard. -/
 private theorem s4_entry (x : Reg 4) (j : Fin 4) :
     cnotA4 x j = ((Real.sqrt 2 : ℂ)⁻¹) ^ 3 *
       (2 : ℂ)⁻¹ * bitPhase (x 1 && (bitVecEquiv 2).symm j 1) * bitPhase (x 2) *
@@ -370,16 +437,21 @@ private theorem s4_entry (x : Reg 4) (j : Fin 4) :
     <;> rcases hx0 : x 0 <;> rcases hx1 : x 1 <;> rcases hx2 : x 2 <;> rcases hx3 : x 3
     <;> simp_all [bitPhase] <;> ring
 
+/-- The entry of `cnotA5 s` is the corresponding `cnotA4` entry restricted to rows with bit one
+equal to `s.2`. -/
 private theorem s5_entry (s : Bool × Bool) (x : Reg 4) (j : Fin 4) :
     cnotA5 s x j = (if x 1 = s.2 then (1 : ℂ) else 0) * cnotA4 x j := by
   rw [cnotA5, proj_mul_apply]
 
+/-- The entry of `cnotA6 s` is the corresponding `cnotA4` entry restricted to rows whose first
+two bits equal `s`. -/
 private theorem s6_entry (s : Bool × Bool) (x : Reg 4) (j : Fin 4) :
     cnotA6 s x j = (if x 0 = s.1 then (1 : ℂ) else 0) * (if x 1 = s.2 then (1 : ℂ) else 0) *
       cnotA4 x j := by
   rw [cnotA6, proj_mul_apply, s5_entry]
   ring
 
+/-- The scalar `(1 / √2)^4 / 2` equals `(1 / 2)^3` over the complex numbers. -/
 private theorem sqrt2_norm : ((Real.sqrt 2 : ℂ)⁻¹) ^ 4 * (2 : ℂ)⁻¹ = ((2 : ℂ)⁻¹) ^ 3 := by
   have h : ((Real.sqrt 2 : ℂ)⁻¹) ^ 4 = ((2 : ℂ)⁻¹) ^ 2 := by
     calc ((Real.sqrt 2 : ℂ)⁻¹) ^ 4 = (((Real.sqrt 2 : ℂ)⁻¹) ^ 2) ^ 2 := by ring
@@ -388,6 +460,8 @@ private theorem sqrt2_norm : ((Real.sqrt 2 : ℂ)⁻¹) ^ 4 * (2 : ℂ)⁻¹ = (
   rw [h]
   norm_num
 
+/-- An entry of `cnotA7 s` is supported on the measured record `s` and factors into the
+displayed phases and two Hadamard interference sums, scaled by `(1 / √2)^4 / 2`. -/
 private theorem s7_entry (s : Bool × Bool) (x : Reg 4) (j : Fin 4) :
     cnotA7 s x j = (if x 0 = s.1 then (1 : ℂ) else 0) * (if x 1 = s.2 then (1 : ℂ) else 0) *
       ((Real.sqrt 2 : ℂ)⁻¹) ^ 4 * (2 : ℂ)⁻¹ * bitPhase (x 1 && (bitVecEquiv 2).symm j 1) *
@@ -407,37 +481,50 @@ private theorem s7_entry (s : Bool × Bool) (x : Reg 4) (j : Fin 4) :
     <;> rcases hx0 : x 0 <;> rcases hx1 : x 1 <;> rcases hx2 : x 2 <;> rcases hx3 : x 3
     <;> rcases hs0 : s.1 <;> rcases hs1 : s.2 <;> simp_all [bitPhase] <;> ring
 
+/-- The fourth power of the complex inverse square root of two equals the square of one half. -/
 private theorem sqrt2_pow4 : ((Real.sqrt 2 : ℂ)⁻¹) ^ 4 = ((2 : ℂ)⁻¹) ^ 2 := by
   calc ((Real.sqrt 2 : ℂ)⁻¹) ^ 4 = (((Real.sqrt 2 : ℂ)⁻¹) ^ 2) ^ 2 := by ring
     _ = (((Real.sqrt 2 : ℂ) ^ 2)⁻¹) ^ 2 := by rw [inv_pow]
     _ = ((2 : ℂ)⁻¹) ^ 2 := by rw [sqrt2_sq]
 
+/-- A matrix entry of `pauliX` is zero on the diagonal and one off the diagonal. -/
 private theorem pauliX_entry (i j : Fin 2) :
     pauliX i j = if i = j then (0 : ℂ) else 1 := by
   fin_cases i <;> fin_cases j <;> simp [pauliX]
 
+/-- A matrix entry of `pauliZ` is diagonal, with value one at index zero and minus one at the
+other index. -/
 private theorem pauliZ_entry (i j : Fin 2) :
     pauliZ i j = if i = j then (if i = 0 then (1 : ℂ) else -1) else 0 := by
   fin_cases i <;> fin_cases j <;> simp [pauliZ]
 
+/-- The first bit of the inverse two-bit vector equivalence equals the first component of the
+inverse teleportation outcome equivalence. -/
 private theorem bv2_symm_bit0 (k : Fin 4) :
     (bitVecEquiv 2).symm k 0 = (teleportOutcomeEquiv.symm k).1 := by
   fin_cases k <;> decide +kernel
 
+/-- The second bit of the inverse two-bit vector equivalence equals the second component of the
+inverse teleportation outcome equivalence. -/
 private theorem bv2_symm_bit1 (k : Fin 4) :
     (bitVecEquiv 2).symm k 1 = (teleportOutcomeEquiv.symm k).2 := by
   fin_cases k <;> decide +kernel
 
+/-- The CNOT basis permutation preserves the first decoded bit. -/
 private theorem bv2_cnotFlip0 (j : Fin 4) :
     (bitVecEquiv 2).symm (teleportOutcomeEquiv (cnotFlip (teleportOutcomeEquiv.symm j))) 0
       = (bitVecEquiv 2).symm j 0 := by
   fin_cases j <;> decide +kernel
 
+/-- The CNOT basis permutation replaces the second decoded bit by its exclusive-or with the
+first bit. -/
 private theorem bv2_cnotFlip1 (j : Fin 4) :
     (bitVecEquiv 2).symm (teleportOutcomeEquiv (cnotFlip (teleportOutcomeEquiv.symm j))) 1
       = ((bitVecEquiv 2).symm j 1 ^^ (bitVecEquiv 2).symm j 0) := by
   fin_cases j <;> decide +kernel
 
+/-- The finite-indexed CNOT matrix has entry one precisely at the output of the CNOT basis
+permutation and zero elsewhere. -/
 private theorem rbCnotOp_apply (k j : Fin 4) :
     rbCnotOp k j
       = if k = teleportOutcomeEquiv (cnotFlip (teleportOutcomeEquiv.symm j)) then (1 : ℂ) else 0 := by
@@ -448,6 +535,8 @@ private theorem rbCnotOp_apply (k j : Fin 4) :
     Equiv.symm_apply_eq teleportOutcomeEquiv
   simp only [h]
 
+/-- An entry of the Pauli byproduct matrix followed by CNOT factors into the two local Pauli
+entries, with the CNOT exclusive-or applied to the second input bit. -/
 private theorem target_entry (s : Bool × Bool) (j' j : Fin 4) :
     (relabelGate (bitVecEquiv 2) (pauliProductDensity (clause3Kappa s)) * rbCnotOp) j' j
       = clause3Kappa s 0 (boolEquivFin2 ((bitVecEquiv 2).symm j' 0))
@@ -471,6 +560,8 @@ private theorem target_entry (s : Bool × Bool) (j' j : Fin 4) :
   rw [Fin.prod_univ_two]
   rw [bv2_cnotFlip0, bv2_cnotFlip1]
 
+/-- Each CNOT Kraus entry vanishes unless `z = s`; otherwise it is the product of the local
+byproduct entries after the CNOT bit permutation, scaled by a signed one half. -/
 private theorem rbCnotKraus_entry (s z : Bool × Bool) (j' j : Fin 4) :
     rbCnotKraus s z j' j
       = (if z = s then (if s.1 then -(2 : ℂ)⁻¹ else (2 : ℂ)⁻¹) else 0) *
@@ -496,6 +587,8 @@ private theorem rbCnotKraus_entry (s z : Bool × Bool) (j' j : Fin 4) :
       Matrix.mul_apply, Matrix.one_apply, Prod.ext_iff]
     <;> norm_num
 
+/-- The CNOT Kraus matrix is zero unless `z = s`, and otherwise is the Pauli byproduct matrix
+followed by CNOT scaled by a signed one half. -/
 private theorem rbCnotKraus_smul (s z : Bool × Bool) :
     rbCnotKraus s z
       = (if z = s then (if s.1 then -(2 : ℂ)⁻¹ else (2 : ℂ)⁻¹) else 0) •
@@ -504,14 +597,18 @@ private theorem rbCnotKraus_smul (s z : Bool × Bool) :
   simp only [Matrix.smul_apply, smul_eq_mul]
   rw [rbCnotKraus_entry, target_entry]
 
+/-- Conjugation by a scalar multiple of a matrix scales its conjugation map by the scalar times
+its complex conjugate. -/
 private theorem conjBranch_smul {D : ℕ} (c : ℂ) (M ρ : Operator D) :
     conjBranch (c • M) ρ = (c * star c) • (M * ρ * M.conjTranspose) := by
   simp only [conjBranch_apply, Matrix.conjTranspose_smul]
   rw [smul_mul_assoc, mul_smul_comm, smul_mul_assoc, smul_smul, mul_comm]
 
+/-- Complex conjugation fixes the complex scalar one half. -/
 private theorem inv2_star : star ((2 : ℂ)⁻¹) = (2 : ℂ)⁻¹ := by
   rw [Complex.star_def, Complex.conj_inv, Complex.conj_ofNat]
 
+/-- The signed one-half scalar for a CNOT outcome has squared modulus one quarter. -/
 private theorem cnotScalar_norm (s : Bool × Bool) :
     ((if s.1 then -(2 : ℂ)⁻¹ else (2 : ℂ)⁻¹)
         * star (if s.1 then -(2 : ℂ)⁻¹ else (2 : ℂ)⁻¹))
@@ -522,6 +619,9 @@ private theorem cnotScalar_norm (s : Bool × Bool) :
   · rw [if_neg hs, inv2_star]
     ring
 
+/-- There are local Pauli byproducts for which each CNOT-pattern branch equals one quarter of
+conjugation by the byproduct followed by CNOT. This gives the branch form of the one-way
+CNOT construction [RaussendorfBriegel2001]. -/
 theorem clause3_clause2 :
     ∃ κ : (Bool × Bool) → Fin 2 → Operator 2,
       (∀ s : Bool × Bool, ∀ v : Fin 2, MbqcPauliWire (κ s v)) ∧

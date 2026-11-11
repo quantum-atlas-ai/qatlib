@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ElemGates95.MultiControl.Section7.LowerBound
 import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+/-!
+# CNOT lower bound for fully controlled gates
+
+This module connects wire-graph sparsity to matrix factorization and proves the CNOT lower bound
+of Lemma 7.7 in [BarencoEtAl1995]. `cutSplit`, `kronAcross`, and `FactorsAcross` express a
+register and its matrices across a wire partition. Single-wire gates and CNOTs supported on one
+side factor across the partition, so `reflectionProgramMatrix_factors` extends this property to
+a whole gate list.
+
+The matrix `multiCtrlGate` applies `U` to its target when every other wire is true. For
+nonscalar `U`, `multiCtrlGate_not_factors` rules out factorization across every nontrivial
+partition. The interaction graph `cnotGraph` then turns a hypothetical program with fewer than
+`n - 1` CNOT occurrences into an impossible uncrossed cut, yielding `lemma77_lower_bound` for
+exact matrix equality.
+
+## Main statements
+
+* `reflectionProgramMatrix_factors` factors any program whose gates stay within the two sides of
+  a cut.
+* `multiCtrlGate_not_factors` proves the obstruction for a fully controlled nonscalar matrix.
+* `exists_uncrossed_cut_of_sparse` extracts a cut from a small CNOT count.
+* `lemma77_lower_bound` proves `n - 1 <= cnotCount gs` for an exact implementation.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995], Section 7, Lemma 7.7.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,45 +48,64 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.ElemGates95.MultiControl.Section7
 
+/-- The type of Boolean register assignments on the wires belonging to `A`. -/
 abbrev RegA {n : ℕ} (A : Finset (Fin n)) := {i : Fin n // i ∈ A} → Bool
 
+/-- The type of Boolean register assignments on the wires outside `A`. -/
 abbrev RegB {n : ℕ} (A : Finset (Fin n)) := {i : Fin n // i ∉ A} → Bool
 
+/-- The equivalence splitting a full Boolean register into its restrictions to `A` and its
+complement. -/
 noncomputable def cutSplit {n : ℕ} (A : Finset (Fin n)) : Reg n ≃ (RegA A × RegB A) :=
   Equiv.piEquivPiSubtypeProd (fun i : Fin n => i ∈ A) (fun _ => Bool)
 
+/-- The first component of `cutSplit A x` is the restriction of `x` to the wires in `A`. -/
 @[simp] theorem cutSplit_apply_fst {n : ℕ} (A : Finset (Fin n)) (x : Reg n) :
     (cutSplit A x).1 = fun i : {i : Fin n // i ∈ A} => x i.1 := rfl
 
+/-- The second component of `cutSplit A x` is the restriction of `x` to the wires outside `A`. -/
 @[simp] theorem cutSplit_apply_snd {n : ℕ} (A : Finset (Fin n)) (x : Reg n) :
     (cutSplit A x).2 = fun i : {i : Fin n // i ∉ A} => x i.1 := rfl
 
+/-- Recombining two partial registers uses the `A` component at a wire in `A` and the
+complementary component at every other wire. -/
 theorem cutSplit_symm_apply {n : ℕ} (A : Finset (Fin n)) (a : RegA A) (b : RegB A)
     (i : Fin n) : (cutSplit A).symm (a, b) i = if h : i ∈ A then a ⟨i, h⟩ else b ⟨i, h⟩ :=
   rfl
 
+/-- Recombining partial registers recovers the first partial register on every wire in `A`. -/
 @[simp] theorem cutSplit_symm_fst {n : ℕ} (A : Finset (Fin n)) (a : RegA A) (b : RegB A)
     (i : {i : Fin n // i ∈ A}) : (cutSplit A).symm (a, b) i.1 = a i := by
   rw [cutSplit_symm_apply, dif_pos i.2]
 
+/-- Recombining partial registers recovers the second partial register on every wire outside
+`A`. -/
 @[simp] theorem cutSplit_symm_snd {n : ℕ} (A : Finset (Fin n)) (a : RegA A) (b : RegB A)
     (i : {i : Fin n // i ∉ A}) : (cutSplit A).symm (a, b) i.1 = b i := by
   rw [cutSplit_symm_apply, dif_neg i.2]
 
+/-- The tensor product of matrices on the two sides of a wire partition, expressed in
+full-register coordinates through `cutSplit`. -/
 noncomputable def kronAcross {n : ℕ} (A : Finset (Fin n))
     (MA : Matrix (RegA A) (RegA A) ℂ) (MB : Matrix (RegB A) (RegB A) ℂ) :
     Matrix (Reg n) (Reg n) ℂ :=
   fun x y => MA (cutSplit A x).1 (cutSplit A y).1 * MB (cutSplit A x).2 (cutSplit A y).2
 
+/-- The property that a full-register matrix is a tensor product of two matrices acting on the
+two sides of the partition. -/
 def FactorsAcross {n : ℕ} (A : Finset (Fin n)) (M : Matrix (Reg n) (Reg n) ℂ) : Prop :=
   ∃ MA MB, M = kronAcross A MA MB
 
+/-- An entry of `kronAcross A MA MB` is the product of the corresponding entries of `MA` and
+`MB` after splitting both register indices. -/
 theorem kronAcross_apply {n : ℕ} (A : Finset (Fin n))
     (MA : Matrix (RegA A) (RegA A) ℂ) (MB : Matrix (RegB A) (RegB A) ℂ)
     (x y : Reg n) :
     kronAcross A MA MB x y = MA (cutSplit A x).1 (cutSplit A y).1 *
       MB (cutSplit A x).2 (cutSplit A y).2 := rfl
 
+/-- Multiplying two tensor products across the same wire partition multiplies their respective
+factors. -/
 theorem kronAcross_mul {n : ℕ} (A : Finset (Fin n))
     (MA MA' : Matrix (RegA A) (RegA A) ℂ) (MB MB' : Matrix (RegB A) (RegB A) ℂ) :
     kronAcross A MA MB * kronAcross A MA' MB' = kronAcross A (MA * MA') (MB * MB') := by
@@ -71,6 +119,8 @@ theorem kronAcross_mul {n : ℕ} (A : Finset (Fin n))
   refine Finset.sum_congr rfl fun a _ => Finset.sum_congr rfl fun b _ => ?_
   ring
 
+/-- The tensor product of the identity matrices on the two sides of a wire partition is the
+full-register identity. -/
 theorem kronAcross_one {n : ℕ} (A : Finset (Fin n)) :
     kronAcross A (1 : Matrix (RegA A) (RegA A) ℂ) (1 : Matrix (RegB A) (RegB A) ℂ) = 1 := by
   ext x y
@@ -93,6 +143,8 @@ theorem kronAcross_one {n : ℕ} (A : Finset (Fin n)) :
     · simp [h, hxy]
     · simp [h, hxy]
 
+/-- The matrix applying `U` to a specified wire in the partial register on `A` while preserving
+its other wires. -/
 noncomputable def wireGateA {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw : w ∈ A)
     (U : Matrix Bool Bool ℂ) : Matrix (RegA A) (RegA A) ℂ :=
   fun a a' =>
@@ -100,6 +152,8 @@ noncomputable def wireGateA {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw : w �
       U (a ⟨w, hw⟩) (a' ⟨w, hw⟩)
     else 0
 
+/-- A single-wire matrix supported in `A` factors as its restricted matrix on `A` tensored with
+the identity on the complement. -/
 theorem wireGate_factors_mem {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw : w ∈ A)
     (U : Matrix Bool Bool ℂ) :
     wireGate n w U = kronAcross A (wireGateA A w hw U) (1 : Matrix (RegB A) (RegB A) ℂ) := by
@@ -129,6 +183,8 @@ theorem wireGate_factors_mem {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw : w 
         exact hkxy (congrFun he ⟨k, hkA⟩)
       rw [if_neg hBne, mul_zero]
 
+/-- The matrix applying `U` to a specified wire in the partial register outside `A` while
+preserving its other wires. -/
 noncomputable def wireGateB {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw : w ∉ A)
     (U : Matrix Bool Bool ℂ) : Matrix (RegB A) (RegB A) ℂ :=
   fun b b' =>
@@ -136,6 +192,8 @@ noncomputable def wireGateB {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw : w �
       U (b ⟨w, hw⟩) (b' ⟨w, hw⟩)
     else 0
 
+/-- A single-wire matrix supported outside `A` factors as the identity on `A` tensored with its
+restricted matrix on the complement. -/
 theorem wireGate_factors_not_mem {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw : w ∉ A)
     (U : Matrix Bool Bool ℂ) :
     wireGate n w U = kronAcross A (1 : Matrix (RegA A) (RegA A) ℂ) (wireGateB A w hw U) := by
@@ -165,6 +223,8 @@ theorem wireGate_factors_not_mem {n : ℕ} (A : Finset (Fin n)) (w : Fin n) (hw 
         exact hkxy (hall ⟨k, hkA⟩ hkw)
       rw [if_neg hne, mul_zero]
 
+/-- Updating a full register at a wire in `A` is equivalent to updating its restriction to `A`
+and leaving its complementary restriction unchanged. -/
 theorem update_split_mem {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (x y : Reg n) (v : Bool) :
     x = Function.update y t v ↔
@@ -207,6 +267,8 @@ theorem update_split_mem {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ 
       rw [if_neg hkt]
       exact hkB
 
+/-- Updating a full register at a wire outside `A` is equivalent to leaving its restriction to
+`A` unchanged and updating its complementary restriction. -/
 theorem update_split_not_mem {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∉ A)
     (x y : Reg n) (v : Bool) :
     x = Function.update y t v ↔
@@ -249,11 +311,15 @@ theorem update_split_not_mem {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t 
         rw [if_neg hkt]
         exact hkB
 
+/-- The target-XOR-control matrix on the partial register over `A`, with both designated wires
+belonging to `A`. -/
 noncomputable def cnotGateA {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
     (hc : c ∈ A) (ht : t ∈ A) : Matrix (RegA A) (RegA A) ℂ :=
   permMatrix fun a : RegA A =>
     Function.update a ⟨t, ht⟩ (a ⟨t, ht⟩ ^^ a ⟨c, hc⟩)
 
+/-- A CNOT matrix whose control and target lie in `A` factors as the corresponding restricted
+matrix tensored with the complementary identity. -/
 theorem cnotGate_factors_mem {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
     (hc : c ∈ A) (ht : t ∈ A) :
     cnotGate n c t = kronAcross A (cnotGateA A c t hc ht) (1 : Matrix (RegB A) (RegB A) ℂ) := by
@@ -274,11 +340,15 @@ theorem cnotGate_factors_mem {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
       · rw [if_pos hA, if_neg hB, mul_zero]
     · rw [if_neg hA, zero_mul]
 
+/-- The target-XOR-control matrix on the partial register outside `A`, with both designated
+wires outside `A`. -/
 noncomputable def cnotGateB {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
     (hc : c ∉ A) (ht : t ∉ A) : Matrix (RegB A) (RegB A) ℂ :=
   permMatrix fun b : RegB A =>
     Function.update b ⟨t, ht⟩ (b ⟨t, ht⟩ ^^ b ⟨c, hc⟩)
 
+/-- A CNOT matrix whose control and target lie outside `A` factors as the identity on `A`
+tensored with the corresponding restricted matrix. -/
 theorem cnotGate_factors_not_mem {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
     (hc : c ∉ A) (ht : t ∉ A) :
     cnotGate n c t = kronAcross A (1 : Matrix (RegA A) (RegA A) ℂ) (cnotGateB A c t hc ht) := by
@@ -299,6 +369,8 @@ theorem cnotGate_factors_not_mem {n : ℕ} (A : Finset (Fin n)) (c t : Fin n)
       · rw [if_pos hA, if_neg hB, mul_zero]
     · rw [if_neg hA, zero_mul]
 
+/-- The matrix of a reflection-vocabulary gate factors across `A` whenever every wire used by
+the gate belongs to `A`. -/
 theorem reflectionGateMatrix_factors_of_subset {n : ℕ} {A : Finset (Fin n)}
     {g : ReflectionGate n} (h : reflectionGateWires g ⊆ A) :
     FactorsAcross A (reflectionGateMatrix g) := by
@@ -314,6 +386,8 @@ theorem reflectionGateMatrix_factors_of_subset {n : ℕ} {A : Finset (Fin n)}
       have ht : t ∈ A := h (by simp [reflectionGateWires])
       exact ⟨cnotGateA A c t hc ht, 1, cnotGate_factors_mem A c t hc ht⟩
 
+/-- The matrix of a reflection-vocabulary gate factors across `A` whenever its wire set is
+disjoint from `A`. -/
 theorem reflectionGateMatrix_factors_of_disjoint {n : ℕ} {A : Finset (Fin n)}
     {g : ReflectionGate n} (h : Disjoint (reflectionGateWires g) A) :
     FactorsAcross A (reflectionGateMatrix g) := by
@@ -330,6 +404,8 @@ theorem reflectionGateMatrix_factors_of_disjoint {n : ℕ} {A : Finset (Fin n)}
       have ht : t ∉ A := h' t (by simp [reflectionGateWires])
       exact ⟨1, cnotGateB A c t hc ht, cnotGate_factors_not_mem A c t hc ht⟩
 
+/-- A program matrix factors across `A` if each gate uses wires entirely in `A` or entirely
+outside `A`. -/
 theorem reflectionProgramMatrix_factors {n : ℕ} {A : Finset (Fin n)}
     {gs : List (ReflectionGate n)}
     (h : ∀ g ∈ gs, reflectionGateWires g ⊆ A ∨ Disjoint (reflectionGateWires g) A) :
@@ -351,6 +427,8 @@ theorem reflectionProgramMatrix_factors {n : ℕ} {A : Finset (Fin n)}
       obtain ⟨MA₂, MB₂, h2⟩ := hg
       exact ⟨MA₁ * MA₂, MB₁ * MB₂, by rw [h1, h2, kronAcross_mul]⟩
 
+/-- The full-register matrix applying `U` to target `t` precisely when every other wire is true,
+while preserving all control wires. -/
 noncomputable def multiCtrlGate {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ) :
     Matrix (Reg n) (Reg n) ℂ :=
   fun x y =>
@@ -359,6 +437,8 @@ noncomputable def multiCtrlGate {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ)
         else (1 : Matrix Bool Bool ℂ) (x t) (y t))
     else 0
 
+/-- Gives the entries of the fully controlled matrix by testing control-register agreement and
+whether all controls are true. -/
 theorem multiCtrlGate_apply {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ) (x y : Reg n) :
     multiCtrlGate t U x y =
       if (∀ k : Fin n, k ≠ t → x k = y k) then
@@ -366,34 +446,50 @@ theorem multiCtrlGate_apply {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ) (x 
           else (1 : Matrix Bool Bool ℂ) (x t) (y t))
       else 0 := rfl
 
+/-- When the two register indices agree off the target and every control is true, the matrix
+entry is the corresponding entry of `U`. -/
 theorem multiCtrlGate_apply_ctrl {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ)
     {x y : Reg n} (hxy : ∀ k : Fin n, k ≠ t → x k = y k)
     (hx : ∀ k : Fin n, k ≠ t → x k = true) :
     multiCtrlGate t U x y = U (x t) (y t) := by
   rw [multiCtrlGate_apply, if_pos hxy, if_pos hx]
 
+/-- When the two register indices agree off the target but some control is false, the matrix
+entry is the corresponding entry of the target identity matrix. -/
 theorem multiCtrlGate_apply_id {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ)
     {x y : Reg n} (hxy : ∀ k : Fin n, k ≠ t → x k = y k)
     (hx : ¬ ∀ k : Fin n, k ≠ t → x k = true) :
     multiCtrlGate t U x y = (1 : Matrix Bool Bool ℂ) (x t) (y t) := by
   rw [multiCtrlGate_apply, if_pos hxy, if_neg hx]
 
+/-- The partial register on `A` with every wire true. -/
 def allTrueA {n : ℕ} (A : Finset (Fin n)) : RegA A := fun _ => true
 
+/-- The partial register outside `A` with every wire true. -/
 def allTrueB {n : ℕ} (A : Finset (Fin n)) : RegB A := fun _ => true
 
+/-- The partial register on `A` taking value `b` at the designated target and true at every
+other wire. -/
 def ctrlA {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (_ht : t ∈ A) (b : Bool) : RegA A :=
   fun i => if i.1 = t then b else true
 
+/-- The partial register outside `A` taking value `b` at the designated target and true at every
+other wire. -/
 def ctrlB {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (_ht : t ∉ A) (b : Bool) : RegB A :=
   fun j => if j.1 = t then b else true
 
+/-- The partial register on `A` taking value false at the designated control and true at every
+other wire. -/
 def toggleA {n : ℕ} (A : Finset (Fin n)) (c : Fin n) (_hc : c ∈ A) : RegA A :=
   fun i => if i.1 = c then false else true
 
+/-- The partial register outside `A` taking value false at the designated control and true at
+every other wire. -/
 def toggleB {n : ℕ} (A : Finset (Fin n)) (c : Fin n) (_hc : c ∉ A) : RegB A :=
   fun j => if j.1 = c then false else true
 
+/-- Combining `ctrlA` with the all-true complementary register gives value `b` at the designated
+target in `A`. -/
 theorem symm_ctrlA_allTrueB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (b : Bool) :
     (cutSplit A).symm (ctrlA A t ht b, allTrueB A) t = b := by
@@ -401,6 +497,8 @@ theorem symm_ctrlA_allTrueB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : 
   show (if t = t then b else true) = b
   simp
 
+/-- Combining `ctrlA` with the all-true complementary register gives true at every wire other
+than the designated target. -/
 theorem symm_ctrlA_allTrueB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (b : Bool) {k : Fin n} (hk : k ≠ t) :
     (cutSplit A).symm (ctrlA A t ht b, allTrueB A) k = true := by
@@ -412,6 +510,8 @@ theorem symm_ctrlA_allTrueB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht
   · rw [dif_neg hkA]
     rfl
 
+/-- Combining `ctrlA` with a complementary register having one false control preserves value `b`
+at the target in `A`. -/
 theorem symm_ctrlA_toggleB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (c : Fin n) (hc : c ∉ A) (b : Bool) :
     (cutSplit A).symm (ctrlA A t ht b, toggleB A c hc) t = b := by
@@ -419,6 +519,7 @@ theorem symm_ctrlA_toggleB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t
   show (if t = t then b else true) = b
   simp
 
+/-- Combining `ctrlA` with `toggleB` gives false at the designated complementary control. -/
 theorem symm_ctrlA_toggleB_at_c {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (c : Fin n) (hc : c ∉ A) (b : Bool) :
     (cutSplit A).symm (ctrlA A t ht b, toggleB A c hc) c = false := by
@@ -426,6 +527,8 @@ theorem symm_ctrlA_toggleB_at_c {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht :
   show (if c = c then false else true) = false
   simp
 
+/-- Combining `ctrlA` with `toggleB` gives true at every wire distinct from both the target and
+the designated false control. -/
 theorem symm_ctrlA_toggleB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∈ A)
     (c : Fin n) (hc : c ∉ A) (b : Bool) {k : Fin n} (hk : k ≠ t) (hkc : k ≠ c) :
     (cutSplit A).symm (ctrlA A t ht b, toggleB A c hc) k = true := by
@@ -438,6 +541,8 @@ theorem symm_ctrlA_toggleB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht 
     show (if k = c then false else true) = true
     simp [hkc]
 
+/-- Combining the all-true register on `A` with `ctrlB` gives value `b` at the designated target
+outside `A`. -/
 theorem symm_allTrueA_ctrlB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∉ A)
     (b : Bool) :
     (cutSplit A).symm (allTrueA A, ctrlB A t ht b) t = b := by
@@ -445,6 +550,8 @@ theorem symm_allTrueA_ctrlB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : 
   show (if t = t then b else true) = b
   simp
 
+/-- Combining the all-true register on `A` with `ctrlB` gives true at every wire other than the
+designated target. -/
 theorem symm_allTrueA_ctrlB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∉ A)
     (b : Bool) {k : Fin n} (hk : k ≠ t) :
     (cutSplit A).symm (allTrueA A, ctrlB A t ht b) k = true := by
@@ -456,6 +563,7 @@ theorem symm_allTrueA_ctrlB_of_ne {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht
     show (if k = t then b else true) = true
     simp [hk]
 
+/-- Combining `toggleA` with `ctrlB` preserves value `b` at the designated target outside `A`. -/
 theorem symm_toggleA_ctrlB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∉ A)
     (c : Fin n) (hc : c ∈ A) (b : Bool) :
     (cutSplit A).symm (toggleA A c hc, ctrlB A t ht b) t = b := by
@@ -463,6 +571,7 @@ theorem symm_toggleA_ctrlB_at {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t
   show (if t = t then b else true) = b
   simp
 
+/-- Combining `toggleA` with `ctrlB` gives false at the designated control in `A`. -/
 theorem symm_toggleA_ctrlB_at_c {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht : t ∉ A)
     (c : Fin n) (hc : c ∈ A) (b : Bool) :
     (cutSplit A).symm (toggleA A c hc, ctrlB A t ht b) c = false := by
@@ -470,6 +579,9 @@ theorem symm_toggleA_ctrlB_at_c {n : ℕ} (A : Finset (Fin n)) (t : Fin n) (ht :
   show (if c = c then false else true) = false
   simp
 
+/-- For nonscalar `U`, the fully controlled matrix cannot factor across any partition having
+wires on both sides. This supplies the matrix obstruction needed in the proof of Lemma 7.7
+of [BarencoEtAl1995]. -/
 theorem multiCtrlGate_not_factors {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ)
     (hU : ¬ IsScalar U) {A : Finset (Fin n)} (hA : A.Nonempty) (hB : ∃ i, i ∉ A) :
     ¬ FactorsAcross A (multiCtrlGate t U) := by
@@ -687,20 +799,29 @@ theorem multiCtrlGate_not_factors {n : ℕ} (t : Fin n) (U : Matrix Bool Bool �
     cases i <;> cases j <;>
       simp [Matrix.smul_apply, smul_eq_mul, hU01, hU10, hU11]
 
+/-- The list of unordered control-target wire pairs extracted from CNOT occurrences in a
+reflection-vocabulary program, retaining repetitions. -/
 def cnotPairs {n : ℕ} (gs : List (ReflectionGate n)) : List (Sym2 (Fin n)) :=
   gs.filterMap fun g =>
     match g with
     | Sum.inr (c, t) => some s(c, t)
     | Sum.inl _ => none
 
+/-- The number of CNOT occurrences in a reflection-vocabulary program. -/
 def cnotCount {n : ℕ} (gs : List (ReflectionGate n)) : ℕ := (cnotPairs gs).length
 
+/-- The finite set of distinct unordered wire pairs appearing in CNOT occurrences of the
+program. -/
 def cnotEdges {n : ℕ} (gs : List (ReflectionGate n)) : Finset (Sym2 (Fin n)) :=
   (cnotPairs gs).toFinset
 
+/-- The simple interaction graph whose edges are the distinct nonloop wire pairs used by the
+program's CNOTs. -/
 def cnotGraph {n : ℕ} (gs : List (ReflectionGate n)) : SimpleGraph (Fin n) :=
   SimpleGraph.fromEdgeSet (↑(cnotEdges gs) : Set (Sym2 (Fin n)))
 
+/-- The number of edges in the CNOT interaction graph is at most the number of CNOT occurrences
+in the program. -/
 theorem card_edgeSet_cnotGraph_le {n : ℕ} (gs : List (ReflectionGate n)) :
     Nat.card ↑(cnotGraph gs).edgeSet ≤ cnotCount gs := by
   rw [Nat.card_coe_set_eq]
@@ -715,6 +836,8 @@ theorem card_edgeSet_cnotGraph_le {n : ℕ} (gs : List (ReflectionGate n)) :
     _ ≤ (cnotPairs gs).length := List.toFinset_card_le (cnotPairs gs)
     _ = cnotCount gs := rfl
 
+/-- For `n >= 1`, a program with fewer than `n - 1` CNOT occurrences possesses a nontrivial wire
+partition across which no gate acts. -/
 theorem exists_uncrossed_cut_of_sparse {n : ℕ} (gs : List (ReflectionGate n)) (hn : 1 ≤ n)
     (hcount : cnotCount gs < n - 1) :
     ∃ A : Finset (Fin n), A.Nonempty ∧ Aᶜ.Nonempty ∧
@@ -770,6 +893,8 @@ theorem exists_uncrossed_cut_of_sparse {n : ℕ} (gs : List (ReflectionGate n)) 
           · exact hc hxA
           · exact ht hxA
 
+/-- An exact implementation of a fully controlled nonscalar matrix has no nontrivial wire
+partition for which every gate stays on one side. -/
 theorem no_nontrivial_cut_of_multiCtrl {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ)
     (hU : ¬ IsScalar U) {gs : List (ReflectionGate n)}
     (hprog : reflectionProgramMatrix gs = multiCtrlGate t U) :
@@ -781,6 +906,9 @@ theorem no_nontrivial_cut_of_multiCtrl {n : ℕ} (t : Fin n) (U : Matrix Bool Bo
     exact reflectionProgramMatrix_factors hcut
   exact multiCtrlGate_not_factors t U hU hA hB hfac
 
+/-- Any reflection-vocabulary program exactly equal to the fully controlled matrix of a
+nonscalar `U` on `n >= 1` wires contains at least `n - 1` CNOT occurrences. This proves the
+CNOT lower bound underlying Lemma 7.7 of [BarencoEtAl1995]. -/
 theorem lemma77_lower_bound {n : ℕ} (t : Fin n) (U : Matrix Bool Bool ℂ)
     (hU : ¬ IsScalar U) (gs : List (ReflectionGate n)) (hn : 1 ≤ n)
     (hprog : reflectionProgramMatrix gs = multiCtrlGate t U) :

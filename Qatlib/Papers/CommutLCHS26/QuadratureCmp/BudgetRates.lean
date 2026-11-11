@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
 import Mathlib.Analysis.Asymptotics.Theta
+
+/-!
+# Budget-dependent grid rates
+
+This module bounds the mesh and tail logarithms used to choose the uniform quadrature grid in
+[AftabAnTrivisa2026]. For fixed admissible parameters, budgets comparable to the total error
+yield explicit asymptotic bounds for the selected node count and radius.
+
+## Main statements
+
+* `eventual_budget_logs`: logarithmic bounds near zero error.
+* `kernel_balanced_geometry`: node count and radius bounds for balanced budgets.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -18,6 +36,7 @@ open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
 set_option warningAsError false
 
+/-- Under the stated smallness conditions, `log (1 + A / ε)` is at most `2 log (1 / ε)`. -/
 theorem log_one_add_div_le {A ε : ℝ} (hA : 0 ≤ A) (hε : 0 < ε)
     (hε1 : ε ≤ 1) (hεA : ε ≤ 1 / (1 + A)) :
     Real.log (1 + A / ε) ≤ 2 * Real.log (1 / ε) := by
@@ -38,6 +57,8 @@ theorem log_one_add_div_le {A ε : ℝ} (hA : 0 ≤ A) (hε : 0 < ε)
   rw [hL] at hAlog ⊢
   linarith
 
+/-- A mesh budget bounded below by `κ ε` yields `log (1 + 2M / εm) ≤ 2 log (1 / ε)` under the
+stated smallness conditions. -/
 theorem mesh_log_le {M κ ε εm : ℝ} (hM : 0 < M) (hκ : 0 < κ) (hε : 0 < ε)
     (hbudget : κ * ε ≤ εm) (hε1 : ε ≤ 1) (hsmall : ε ≤ 1 / (1 + 2 * M / κ)) :
     Real.log (1 + 2 * M / εm) ≤ 2 * Real.log (1 / ε) := by
@@ -49,6 +70,7 @@ theorem mesh_log_le {M κ ε εm : ℝ} (hM : 0 < M) (hκ : 0 < κ) (hε : 0 < �
   exact (Real.log_le_log (by positivity : 0 < 1 + 2 * M / εm) (by linarith)).trans
     (log_one_add_div_le (by positivity : 0 ≤ 2 * M / κ) hε hε1 hsmall)
 
+/-- If `0 < ε ≤ exp (-1)`, then `log (1 / ε)` is at least one. -/
 theorem log_inv_ge_one {ε : ℝ} (hε : 0 < ε) (hsmall : ε ≤ 1 / Real.exp 1) :
     1 ≤ Real.log (1 / ε) := by
   have he : Real.exp 1 ≤ 1 / ε := by
@@ -57,6 +79,8 @@ theorem log_inv_ge_one {ε : ℝ} (hε : 0 < ε) (hsmall : ε ≤ 1 / Real.exp 1
     nlinarith
   simpa only [Real.log_exp] using! Real.log_le_log (Real.exp_pos 1) he
 
+/-- A tail budget bounded below by `κ ε` bounds its truncated logarithm by `2 log (1 / ε)` under
+the stated smallness conditions. -/
 theorem tail_log_le {C κ ε εt : ℝ} (hC : 0 < C) (hκ : 0 < κ) (hε : 0 < ε)
     (hbudget : κ * ε ≤ εt) (hε1 : ε ≤ 1) (hsmall : ε ≤ 1 / (1 + C / κ))
     (hexp : ε ≤ 1 / Real.exp 1) :
@@ -72,6 +96,8 @@ theorem tail_log_le {C κ ε εt : ℝ} (hC : 0 < C) (hκ : 0 < κ) (hε : 0 < �
   · exact (Real.log_le_log (div_pos hC ht) hr).trans
       (log_one_add_div_le (by positivity : 0 ≤ C / κ) hε hε1 hsmall)
 
+/-- Positive fixed constants possess a common small-error window in which both budget logarithms
+are bounded by `2 log (1 / ε)` and `log (1 / ε) ≥ 1`. -/
 theorem exists_log_window (M C κm κt : ℝ) (hM : 0 < M) (hC : 0 < C)
     (hκm : 0 < κm) (hκt : 0 < κt) :
     ∃ δ : ℝ, 0 < δ ∧ ∀ ε : ℝ, 0 < ε → ε ≤ δ → ∀ εm εt : ℝ,
@@ -92,6 +118,7 @@ theorem exists_log_window (M C κm κt : ℝ) (hM : 0 < M) (hC : 0 < C)
   exact ⟨mesh_log_le hM hκm hε hmesh hε1 hsmallm,
     tail_log_le hC hκt hε htail hε1 hsmallt hexp, log_inv_ge_one hε hexp⟩
 
+/-- If `L ≥ 1` and `ℓ ≤ 2L`, then `sqrt ℓ ≤ 2 sqrt L`. -/
 theorem sqrt_log_le {L ℓ : ℝ} (hL : 1 ≤ L) (hℓ : ℓ ≤ 2 * L) :
     Real.sqrt ℓ ≤ 2 * Real.sqrt L := by
   have h4 : Real.sqrt (4 : ℝ) = 2 := by
@@ -101,6 +128,8 @@ theorem sqrt_log_le {L ℓ : ℝ} (hL : 1 ≤ L) (hℓ : ℓ ≤ 2 * L) :
     _ ≤ Real.sqrt (4 * L) := Real.sqrt_le_sqrt (by linarith)
     _ = _ := by rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 4), h4]
 
+/-- Logarithmic bounds on the mesh and tail parameters control the displayed node-count scale by
+`(12 + 8c + 16c / ρ) L sqrt L`. -/
 theorem node_scale_le {c ρ L ℓt ℓm : ℝ} (hc : 0 < c) (hρ : 0 < ρ) (hL : 1 ≤ L)
     (ht : ℓt ≤ 2 * L) (hm : ℓm ≤ 2 * L) (hm0 : 0 ≤ ℓm) :
     4 * (1 + (1 + c) * Real.sqrt ℓt + (c / ρ) * Real.sqrt ℓt * ℓm) ≤
@@ -126,12 +155,15 @@ theorem node_scale_le {c ρ L ℓt ℓm : ℝ} (hc : 0 < c) (hρ : 0 < ρ) (hL :
       exact _root_.add_le_add (_root_.add_le_add (by simpa only [mul_one] using! hp1) hp2) le_rfl
     _ = _ := by ring
 
+/-- A logarithmic tail bound controls `2c sqrt ℓt + 1` by `(4c + 1) sqrt L`. -/
 theorem radius_scale_le {c L ℓt : ℝ} (hc : 0 < c) (hL : 1 ≤ L) (ht : ℓt ≤ 2 * L) :
     2 * c * Real.sqrt ℓt + 1 ≤ (4 * c + 1) * Real.sqrt L := by
   have hs := mul_le_mul_of_nonneg_left (sqrt_log_le hL ht) (by positivity : 0 ≤ 2 * c)
   have hroot : 1 ≤ Real.sqrt L := by simpa using! Real.sqrt_le_sqrt hL
   nlinarith
 
+/-- If both positive budgets asymptotically dominate `ε`, their logarithmic parameters are
+eventually at most `2 log (1 / ε)` as `ε` tends to zero from above. -/
 theorem eventual_budget_logs (M C : ℝ) (hM : 0 < M) (hC : 0 < C)
     (εm εt : ℝ → ℝ)
     (hmpos : ∀ᶠ ε : ℝ in 𝓝[>] 0, 0 < εm ε)
@@ -153,11 +185,14 @@ theorem eventual_budget_logs (M C : ℝ) (hM : 0 < M) (hC : 0 < C)
   simp only [Real.norm_eq_abs, abs_of_pos hεp, abs_of_pos hetp] at ht
   exact ⟨hεp, hwindow ε hεp hεδ.le (εm ε) (εt ε) hm ht⟩
 
+/-- For `L ≥ 1`, the expression `L sqrt L` equals `L^(3 / 2)`. -/
 theorem three_halves {L : ℝ} (hL : 1 ≤ L) :
     L * Real.sqrt L = L ^ (3 / 2 : ℝ) := by
   rw [show (3 / 2 : ℝ) = 1 + 1 / 2 by norm_num,
     Real.rpow_add (by linarith : 0 < L), Real.rpow_one, ← Real.sqrt_eq_rpow]
 
+/-- For nonnegative mesh step, `radius R h` is the greatest absolute node value on the cutoff
+grid used in [Aftab et al., Corollary 4.15][AftabAnTrivisa2026]. -/
 theorem radius_isGreatest (R h : ℝ) (hh : 0 ≤ h) :
     IsGreatest {r : ℝ | ∃ q ∈ Finset.Icc (-(cutoff R h : ℤ)) (cutoff R h : ℤ),
       r = |h * (q : ℝ)|} (radius R h) := by
@@ -169,6 +204,8 @@ theorem radius_isGreatest (R h : ℝ) (hh : 0 ≤ h) :
     obtain ⟨q, hq, rfl⟩ := hr
     exact node_le_radius R h hh q hq
 
+/-- With fixed positive parameters and budgets asymptotically dominating `ε`, the selected grid
+cardinality is `O((c / ρ) log(1 / ε)^(3 / 2))` as `ε` tends to zero from above. -/
 theorem selected_nodes_isBigO (c ρ M C : ℝ) (hc : 0 < c) (hρ : 0 < ρ)
     (hM : 0 < M) (hC : 0 < C) (εm εt : ℝ → ℝ)
     (hmpos : ∀ᶠ ε : ℝ in 𝓝[>] 0, 0 < εm ε)
@@ -195,6 +232,8 @@ theorem selected_nodes_isBigO (c ρ M C : ℝ) (hc : 0 < c) (hρ : 0 < ρ)
         (Real.log (1 / ε) * Real.sqrt (Real.log (1 / ε))) := hn.trans hs
     _ = _ := by rw [three_halves hlogs.2.2.2]; field_simp
 
+/-- With fixed positive parameters and budgets asymptotically dominating `ε`, the selected grid
+radius is `O(c sqrt (log (1 / ε)))` as `ε` tends to zero from above. -/
 theorem selected_radius_isBigO (c ρ M C : ℝ) (hc : 0 < c) (hρ : 0 < ρ)
     (hM : 0 < M) (hC : 0 < C) (εm εt : ℝ → ℝ)
     (hmpos : ∀ᶠ ε : ℝ in 𝓝[>] 0, 0 < εm ε)
@@ -223,6 +262,9 @@ theorem selected_radius_isBigO (c ρ M C : ℝ) (hc : 0 < c) (hρ : 0 < ρ)
       radius_scale_le hc hlogs.2.2.2 hlogs.2.2.1
     _ = _ := by field_simp
 
+/-- For fixed admissible kernel parameters and budgets of order `ε`, the selected grid has
+cardinality `O((c / ρ) log(1 / ε)^(3 / 2))` and radius `O(c sqrt (log (1 / ε)))`; see [Aftab
+et al., Corollary 4.15][AftabAnTrivisa2026]. -/
 theorem kernel_balanced_geometry (n : ℕ) (b c d ρ K : ℝ) (hb : 0 < b) (hc : 0 < c)
     (hρ0 : 0 < ρ) (hρ1 : ρ < 1) (hbn : n = 0 ∨ ρ < b) (εm εt : ℝ → ℝ)
     (hmpos : ∀ᶠ ε : ℝ in 𝓝[>] 0, 0 < εm ε)

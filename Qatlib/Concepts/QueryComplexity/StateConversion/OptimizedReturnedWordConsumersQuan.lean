@@ -8,6 +8,27 @@ import Qatlib.Concepts.GramQueryCore.GramRealization.NoncoherentStateConversion
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersStat
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
+
+/-!
+# Optimized state-conversion words
+
+This module constructs legal `SourceWord` programs from coherent and noncoherent approximate
+Gram-matrix budgets. Compactness gives budget witnesses, while basis-frame compilation transfers
+enlarged data spaces to native work registers and preserves the required output overlaps.
+
+The mathematical background is described in [LeeEtAl2011].
+
+## Main statements
+
+* `sourceCoherent_raw_budget_word`: coherent conversion from a raw approximate budget.
+* `sourceNoncoherent_raw_budget_word`: conversion with a normalized garbage state.
+* `optimizedReturnedWordConsumers`: the uniform optimized consumer interface.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -35,6 +56,8 @@ open scoped Matrix.Norms.Elementwise
 
 open scoped Matrix.Norms.L2Operator in
 
+ /-- Filtered rectangular norm bounds pass to limits of matrices and convergent nonnegative real
+ budgets. -/
  theorem sourceRectValue_limit_sublevel {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S] {n : ℕ}
     (Z : Fin n → Matrix R S ℂ) (A : ℕ → Matrix R S ℂ) (B : Matrix R S ℂ)
@@ -59,6 +82,8 @@ open scoped Matrix.Norms.L2Operator in
   exact ENNReal.ofReal_le_ofReal (le_of_tendsto_of_tendsto (hc.tendsto B |>.comp hA) hab
     (Eventually.of_forall hm))
 
+/-- The finite-dimensional set of positive semidefinite complex matrices with unit diagonal is
+compact. -/
 theorem sourceNormalizedPSD_compact (X : Type) [Fintype X] [DecidableEq X] :
     IsCompact {T : Matrix X X ℂ | T.PosSemidef ∧ ∀ x, T x x=1} := by
   have hc : IsClosed {T : Matrix X X ℂ | T.PosSemidef ∧ ∀ x, T x x=1} := by
@@ -79,6 +104,8 @@ theorem sourceNormalizedPSD_compact (X : Type) [Fintype X] [DecidableEq X] :
   intro z
   simp [hT.2 z]
 
+/-- Finiteness of the alphabet-filtered value of `R - T` forces `T` to have unit diagonal when
+`R` does. -/
 theorem sourceAlphabet_finite_diagonal {X : Type} [Fintype X] [DecidableEq X]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (R T : Matrix X X ℂ)
     (hR : ∀ x, R x x=1) (hfinite : sourceRectValue (R-T) (sourceAlphabetDelta input)<⊤) :
@@ -92,6 +119,8 @@ theorem sourceAlphabet_finite_diagonal {X : Type} [Fintype X] [DecidableEq X]
   rw [hR x] at he
   exact (sub_eq_zero.mp he).symm
 
+/-- A nonnegative upper bound on `sourceQDelta` is realized by a positive semidefinite
+intermediate matrix satisfying both the approximation and filtered-budget bounds. -/
 theorem sourceQDelta_raw_attainment {X : Type} [Fintype X] [DecidableEq X]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (δ W : ℝ) (R S : Matrix X X ℂ)
     (hδ : 0≤δ) (hW : 0≤W) (_hR : R.PosSemidef) (hRdiag : ∀ x, R x x=1)
@@ -129,6 +158,9 @@ theorem sourceQDelta_raw_attainment {X : Type} [Fintype X] [DecidableEq X]
       (fun k => add_nonneg hW (hε _).le) (hc.tendsto τ |>.comp hτt) ht (fun k => (hT (φ k)).le)
   exact ⟨τ,hτ.1,hδlim,hob⟩
 
+/-- A nonnegative upper bound on `sourceQNoncoherentDelta` is realized by positive semidefinite
+matrices `T` and `K`, with unit diagonal for `K` and the stated approximation and budget
+bounds. -/
 theorem sourceQNoncoherentDelta_raw_attainment {X : Type} [Fintype X] [DecidableEq X]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (δ W : ℝ) (R S : Matrix X X ℂ)
     (hδ : 0≤δ) (hW : 0≤W) (_hR : R.PosSemidef) (hRdiag : ∀ x, R x x=1)
@@ -185,16 +217,20 @@ theorem sourceQNoncoherentDelta_raw_attainment {X : Type} [Fintype X] [Decidable
 
 end SourceOptimizedAttainment
 
+/-- Lifts a map of work-register labels while preserving the query and alphabet coordinates. -/
 def sourceWorkCode {A B : Type} {n q : ℕ} (e : A → B) :
     ((Fin (n+1)×Fin (q+1))×A) → ((Fin (n+1)×Fin (q+1))×B) :=
   fun p => (p.1,e p.2)
 
+/-- An injective work-register map induces an injective `sourceWorkCode`. -/
 theorem sourceWorkCode_injective {A B : Type} {n q : ℕ} (e : A → B)
     (he : Function.Injective e) : Function.Injective (sourceWorkCode (n:=n) (q:=q) e) := by
   intro p t h
   exact Prod.ext (congrArg (fun v : (Fin (n+1)×Fin (q+1))×B => v.1) h)
     (he (congrArg (fun v : (Fin (n+1)×Fin (q+1))×B => v.2) h))
 
+/-- The basis frame induced by a work-register map intertwines the corresponding alphabet
+oracles. -/
 theorem sourceWorkFrame_oracle {X A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (e : A → B) (x : X) :
@@ -206,6 +242,8 @@ theorem sourceWorkFrame_oracle {X A B : Type} [Fintype A] [DecidableEq A]
   intro t
   rfl
 
+/-- Compiles a legal source word along an injective work-register map, intertwining its
+evaluation and using at most twice as many oracle calls. -/
 theorem sourceWork_compile {X A B : Type} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (e : A → B) (he : Function.Injective e)
@@ -222,11 +260,14 @@ theorem sourceWork_compile {X A B : Type} [Fintype A] [DecidableEq A]
     (by simp [sourceWordCalls])
     (fun x => by simpa [sourceWordMatrix] using! sourceWorkFrame_oracle input e x) C hC
 
+/-- Encodes an additional direct-sum data register into an enlarged clock register using a fixed
+data label for the added summand. -/
 def sourcePaddingWorkCode {H K : Type} [Fintype K] (r : ℕ) (h0 : H) :
     ((Bool×(H⊕K))×Fin r) → ((Bool×H)×Fin ((Fintype.card K+1)*r))
   | ((tag,.inl h),a) => ((tag,h),finProdFinEquiv (0,a))
   | ((tag,.inr k),a) => ((tag,h0),finProdFinEquiv (((Fintype.equivFin K) k).succ,a))
 
+/-- The work-register encoding `sourcePaddingWorkCode` is injective. -/
 theorem sourcePaddingWorkCode_injective {H K : Type} [Fintype K] (r : ℕ) (h0 : H) :
     Function.Injective (sourcePaddingWorkCode (K:=K) r h0) := by
   intro p t h
@@ -267,6 +308,7 @@ theorem sourcePaddingWorkCode_injective {H K : Type} [Fintype K] (r : ℕ) (h0 :
       subst z
       rfl
 
+/-- Multiplication of basis frames agrees with composition of their underlying label maps. -/
 theorem sourceBasisFrame_comp {S T U : Type} [Fintype T] [DecidableEq S] [DecidableEq T]
     (e : T → S) (f : U → T) : sourceBasisFrame e*sourceBasisFrame f=sourceBasisFrame (e ∘ f) := by
   ext s u
@@ -277,6 +319,8 @@ theorem sourceBasisFrame_comp {S T U : Type} [Fintype T] [DecidableEq S] [Decida
     simp [ht]
   · simp
 
+/-- The basis frame at zero query and clock coordinates sends a data state to its clean source
+embedding. -/
 theorem sourceClean_basisFrame {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ : QState H) :
     sourceBasisFrame (fun h : H => ((0,0),((tag,h),(⟨0,hr⟩ : Fin r))) :
@@ -293,6 +337,8 @@ theorem sourceClean_basisFrame {H : Type} [Fintype H] [DecidableEq H]
     simp [hp]
   · simp
 
+/-- The basis frame into the left data summand sends a state to the clean embedding of its
+extension by zero. -/
 theorem sourceClean_inl_basisFrame {H K : Type} [Fintype H] [DecidableEq H] [DecidableEq K]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ : QState H) :
     sourceBasisFrame (fun h : H => ((0,0),((tag,Sum.inl h),(⟨0,hr⟩ : Fin r))) :
@@ -322,6 +368,8 @@ theorem sourceClean_inl_basisFrame {H K : Type} [Fintype H] [DecidableEq H] [Dec
       cases hh
     simp [Matrix.mulVec,dotProduct,sourceBasisFrame,hp,sourceClean,TensorState,hd]
 
+/-- The padding frame sends a clean state in the left data summand to the same clean data state
+with an enlarged clock register. -/
 theorem sourcePaddingFrame_clean {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (n q r : ℕ) (hr : 0<r) (h0 : H)
     (tag : Bool) (ψ : QState H) :
@@ -339,6 +387,8 @@ theorem sourcePaddingFrame_clean {H K : Type} [Fintype H] [DecidableEq H]
   rw [he]
   exact sourceClean_basisFrame n q _ _ tag ψ
 
+/-- Transfers a legal conversion program from `H ⊕ K` to `H` with enlarged workspace, preserving
+the error bound and at most doubling oracle calls. -/
 theorem sourcePadding_program {X H K : Type} [Fintype H] [DecidableEq H] [Nonempty H]
     [Fintype K] [DecidableEq K] {n q : ℕ} (input : X → Fin n → Fin (q+1))
     (ρ σ : X → QState H) (r : ℕ) (hr : 0<r)
@@ -370,6 +420,8 @@ theorem sourcePadding_program {X H K : Type} [Fintype H] [DecidableEq H] [Nonemp
     Qatlib.Concepts.BlockEncoding.EncodingCore.isometry_mulVec_norm hF]
   exact herr x
 
+/-- Every finite positive semidefinite matrix with unit diagonal is the Gram matrix of a family
+of normalized states. -/
 theorem sourcePSD_normalized_family {X : Type} [Fintype X] [DecidableEq X]
     (T : Matrix X X ℂ) (hT : T.PosSemidef) (hd : ∀ x,T x x=1) :
     ∃ τ : X → QState X,(∀ x,Normalized (τ x))∧gramStateMatrix τ=T := by
@@ -384,41 +436,49 @@ theorem sourcePSD_normalized_family {X : Type} [Fintype X] [DecidableEq X]
   have hh := congrFun (congrFun hg x) x
   exact hh.trans (hd x)
 
+/-- Extension by zero into a left direct summand preserves a family's Gram matrix. -/
 theorem sourceSum_left_gram {X H K : Type} [Fintype H] [Fintype K]
     (ρ : X → QState H) : gramStateMatrix (fun x => Sum.elim (ρ x) (0 : QState K))=
       gramStateMatrix ρ := by
   ext x y
   simp [gramStateMatrix,Qatlib.Foundations.PureStateMath.Inner,dotProduct,Fintype.sum_sum_type]
 
+/-- Extension by zero into a right direct summand preserves a family's Gram matrix. -/
 theorem sourceSum_right_gram {X H K : Type} [Fintype H] [Fintype K]
     (ρ : X → QState K) : gramStateMatrix (fun x => Sum.elim (0 : QState H) (ρ x))=
       gramStateMatrix ρ := by
   ext x y
   simp [gramStateMatrix,Qatlib.Foundations.PureStateMath.Inner,dotProduct,Fintype.sum_sum_type]
 
+/-- Extension by zero into a left direct summand preserves normalization. -/
 theorem sourceSum_left_normalized {H K : Type} [Fintype H] [Fintype K]
     (ρ : QState H) (hρ : Normalized ρ) : Normalized (Sum.elim ρ (0 : QState K)) := by
   simp only [Normalized,Fintype.sum_sum_type,Sum.elim_inl,Sum.elim_inr,Pi.zero_apply,
     norm_zero,zero_pow (by decide : 2≠0),Finset.sum_const_zero,add_zero]
   exact hρ
 
+/-- Extension by zero into a right direct summand preserves normalization. -/
 theorem sourceSum_right_normalized {H K : Type} [Fintype H] [Fintype K]
     (ρ : QState K) (hρ : Normalized ρ) : Normalized (Sum.elim (0 : QState H) ρ) := by
   simp only [Normalized,Fintype.sum_sum_type,Sum.elim_inl,Sum.elim_inr,Pi.zero_apply,
     norm_zero,zero_pow (by decide : 2≠0),Finset.sum_const_zero,zero_add]
   exact hρ
 
+/-- Lifts a matrix on the data register to the source space, acting identically on the other
+registers. -/
 def sourceDataGate {H : Type} [DecidableEq H] (n q r : ℕ) (U : Matrix H H ℂ) :
     Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ :=
   TensorGate (1 : Matrix (Fin (n+1)×Fin (q+1)) _ ℂ)
     (TensorGate (TensorGate (1 : Matrix Bool Bool ℂ) U) (1 : Matrix (Fin r) _ ℂ))
 
+/-- Lifting a unitary data matrix by `sourceDataGate` yields a unitary source-space matrix. -/
 theorem sourceDataGate_unitary {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (U : Matrix H H ℂ) (hU : U∈Matrix.unitaryGroup _ ℂ) :
     sourceDataGate n q r U∈Matrix.unitaryGroup _ ℂ := by
   exact tensorGate_unitary (Submonoid.one_mem _) (tensorGate_unitary
     (tensorGate_unitary (Submonoid.one_mem _) hU) (Submonoid.one_mem _))
 
+/-- A lifted data gate acts on a clean source state by applying its matrix to the data state. -/
 theorem sourceDataGate_clean {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0<r) (U : Matrix H H ℂ) (tag : Bool) (ψ : QState H) :
     sourceDataGate n q r U *ᵥ sourceClean n q r hr tag ψ=
@@ -428,6 +488,7 @@ theorem sourceDataGate_clean {H : Type} [Fintype H] [DecidableEq H]
     applyGate_tensorGate,applyGate_one,applyGate_one]
   rfl
 
+/-- The clean source embedding preserves subtraction of data states. -/
 theorem sourceClean_sub {H : Type} [DecidableEq H]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ φ : QState H) :
     sourceClean n q r hr tag ψ-sourceClean n q r hr tag φ=
@@ -436,6 +497,7 @@ theorem sourceClean_sub {H : Type} [DecidableEq H]
   simp only [sourceClean,TensorState,Pi.sub_apply]
   ring
 
+/-- The clean source embedding preserves the Euclidean norm. -/
 theorem sourceClean_norm {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ : QState H) :
     ‖toEuclidean_fromVec (sourceClean n q r hr tag ψ)‖=‖toEuclidean_fromVec ψ‖ := by
@@ -443,6 +505,8 @@ theorem sourceClean_norm {H : Type} [Fintype H] [DecidableEq H]
     (normalized_iff_norm_toEuclidean_fromVec _).mp (normalized_ket _),(normalized_iff_norm_toEuclidean_fromVec _).mp (normalized_ket _),(normalized_iff_norm_toEuclidean_fromVec _).mp (normalized_ket _),
     one_mul,one_mul,mul_one]
 
+/-- Appends a unitary data correction to a legal conversion word without changing its
+oracle-call count, adding the two error bounds. -/
 theorem sourceDataGate_append {X H : Type} [Fintype H] [DecidableEq H]
     {n q : ℕ} (input : X → Fin n → Fin (q+1)) (ρ τ σ : X → QState H)
     (r : ℕ) (hr : 0<r) (C : SourceWord (SourceSpace n q H r)) (hC : sourceWordLegal C)
@@ -484,6 +548,8 @@ theorem sourceDataGate_append {X H : Type} [Fintype H] [DecidableEq H]
       rw [sourceDataGate_clean,sourceClean_sub,sourceClean_norm]
       exact hu x
 
+/-- The stated ceiling-based call bound is at most `131072 * c * W * log (1 / ε) / ε²` for the
+given positive error and budget range. -/
 theorem sourceOptimized_resources (W ε : ℝ) (c T : ℕ)
     (hε : 0<ε) (hε1 : ε≤1/3) (hW : ε/64≤W)
     (hT : T≤2*c*Nat.ceil (W*Real.log (2/(ε/64))/(ε/64)^2)) :
@@ -535,6 +601,7 @@ theorem sourceOptimized_resources (W ε : ℝ) (c T : ℕ)
   dsimp [X,L]
   ring
 
+/-- Relabeling states by direct-sum associativity reassociates their componentwise direct sum. -/
 theorem sourceRelabel_sum_assoc {H J K : Type} (ρ : QState H) (σ : QState J) (τ : QState K) :
     relabelState (Equiv.sumAssoc H J K) (Sum.elim (Sum.elim ρ σ) τ)=
       Sum.elim ρ (Sum.elim σ τ) := by
@@ -543,6 +610,8 @@ theorem sourceRelabel_sum_assoc {H J K : Type} (ρ : QState H) (σ : QState J) (
   | inl h => rfl
   | inr p => cases p <;> rfl
 
+/-- Normalized families with unfiltered Gram discrepancy at most `δ` possess a unitary on an
+enlarged data space with pointwise error at most `sqrt (2 * δ)`. -/
 theorem sourceFreeData_completion {X J : Type} [Fintype X] [DecidableEq X]
     [Fintype J] [DecidableEq J] (ρ σ : X → QState J) (δ : ℝ)
     (hn : ∀ x,Normalized (ρ x)∧Normalized (σ x)) (hδ : 0≤δ)
@@ -558,17 +627,22 @@ theorem sourceFreeData_completion {X J : Type} [Fintype X] [DecidableEq X]
     exact (filteredGamma2_budget_boundary X 1 _ _ δ hδ).mp hg
   exact sourceGram_unitary_L2_of_cert hδ ρ σ (fun x => (hn x).1) (fun x => (hn x).2) hc
 
+/-- Combines a data matrix with a flip of the Boolean source tag, leaving query and clock
+coordinates unchanged. -/
 def sourceFlipDataGate {H : Type} [DecidableEq H] (n q r : ℕ) (U : Matrix H H ℂ) :
     Matrix (SourceSpace n q H r) (SourceSpace n q H r) ℂ :=
   TensorGate (1 : Matrix (Fin (n+1)×Fin (q+1)) _ ℂ)
     (TensorGate (TensorGate PauliX U) (1 : Matrix (Fin r) _ ℂ))
 
+/-- The tag-flipping lift of a unitary data matrix is unitary. -/
 theorem sourceFlipDataGate_unitary {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (U : Matrix H H ℂ) (hU : U∈Matrix.unitaryGroup _ ℂ) :
     sourceFlipDataGate n q r U∈Matrix.unitaryGroup _ ℂ := by
   exact tensorGate_unitary (Submonoid.one_mem _) (tensorGate_unitary
     (tensorGate_unitary pauliX_unitary hU) (Submonoid.one_mem _))
 
+/-- The tag-flipping data gate sends a clean false-tagged state to the true-tagged clean
+embedding of the transformed data state. -/
 theorem sourceFlipDataGate_clean {H : Type} [Fintype H] [DecidableEq H]
     (n q r : ℕ) (hr : 0<r) (U : Matrix H H ℂ) (ψ : QState H) :
     sourceFlipDataGate n q r U *ᵥ sourceClean n q r hr false ψ=
@@ -578,6 +652,9 @@ theorem sourceFlipDataGate_clean {H : Type} [Fintype H] [DecidableEq H]
     applyGate_tensorGate,applyGate_pauliX_ket,applyGate_one]
   rfl
 
+/-- A positive semidefinite intermediate Gram matrix within `ε⁴ / 16` of the target yields a
+legal enlarged-space conversion word with squared error at most `ε` and the stated call
+bound. -/
 theorem sourceOptimized_public_program {X J : Type} [Fintype X] [DecidableEq X]
     [Fintype J] [DecidableEq J] [Nonempty J] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState J) (T : Matrix X X ℂ)
@@ -736,6 +813,9 @@ theorem sourceOptimized_public_program {X J : Type} [Fintype X] [DecidableEq X]
         (sourceAlphabetOracle input x) D *ᵥ
     sourceClean n q r hr false (R x)-sourceClean n q r hr true (S x)))]
 
+/-- A coherent raw budget `W` at tolerance `ε⁴ / 16` yields a legal word with real output
+overlap at least `sqrt (1 - ε)` and at most `17179869184 * W * log (1 / ε) / ε²` calls. See
+[LeeEtAl2011]. -/
 theorem sourceCoherent_raw_budget_word {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε W : ℝ)
@@ -779,17 +859,22 @@ theorem sourceCoherent_raw_budget_word {X H : Type} [Fintype X] [DecidableEq X]
       (sourceClean_normalized n q s hs false (ρ x) (hn x).1))
     (sourceClean_normalized n q s hs true (σ x) (hn x).2) ε hε.le he1 hd2
 
+/-- Encodes a garbage-state label in the record block following the distinguished zero record. -/
 def sourceNCYRecord {Y K : Type} [Fintype Y] [Fintype K] (y : Y) :
     Fin (Fintype.card Y+1+Fintype.card K) := ((Fintype.equivFin Y) y).succ.castAdd (Fintype.card K)
+/-- Encodes an auxiliary data label in the record block following the garbage-label records. -/
 def sourceNCKRecord {Y K : Type} [Fintype Y] [Fintype K] (k : K) :
     Fin (Fintype.card Y+1+Fintype.card K) := Fin.natAdd (Fintype.card Y+1) ((Fintype.equivFin K) k)
 
+/-- Encodes the nested data sum into a data label and a finite record, using a fixed data label
+for the auxiliary summand. -/
 def sourceNCDataRecord {H Y K : Type} [Fintype Y] [Fintype K] (h0 : H) :
     ((H⊕(H×Y))⊕K) → H×Fin (Fintype.card Y+1+Fintype.card K)
   | .inl (.inl h) => (h,⟨0,by omega⟩)
   | .inl (.inr (h,y)) => (h,sourceNCYRecord (K:=K) y)
   | .inr k => (h0,sourceNCKRecord (Y:=Y) k)
 
+/-- The nested-data record encoding is injective. -/
 theorem sourceNCDataRecord_injective {H Y K : Type} [Fintype Y] [Fintype K] (h0 : H) :
     Function.Injective (sourceNCDataRecord (Y:=Y) (K:=K) h0) := by
   intro p t he
@@ -840,12 +925,14 @@ theorem sourceNCDataRecord_injective {H Y K : Type} [Fintype Y] [Fintype K] (h0 
       simp [sourceNCDataRecord,sourceNCKRecord] at hr
       omega
 
+/-- Combines the noncoherent data-record encoding with the Boolean tag and clock coordinates. -/
 def sourceNCWorkCode {H Y K : Type} [Fintype Y] [Fintype K] (r : ℕ) (h0 : H) :
     ((Bool×((H⊕(H×Y))⊕K))×Fin r) →
       ((Bool×H)×Fin ((Fintype.card Y+1+Fintype.card K)*r)) := fun p =>
   ((p.1.1,(sourceNCDataRecord (Y:=Y) (K:=K) h0 p.1.2).1),
     finProdFinEquiv ((sourceNCDataRecord (Y:=Y) (K:=K) h0 p.1.2).2,p.2))
 
+/-- The noncoherent work-register encoding is injective. -/
 theorem sourceNCWorkCode_injective {H Y K : Type} [Fintype Y] [Fintype K]
     (r : ℕ) (h0 : H) : Function.Injective (sourceNCWorkCode (Y:=Y) (K:=K) r h0) := by
   intro p t he
@@ -857,10 +944,13 @@ theorem sourceNCWorkCode_injective {H Y K : Type} [Fintype Y] [Fintype K]
   have hdata := sourceNCDataRecord_injective (Y:=Y) (K:=K) h0 (Prod.ext hd hrecord)
   exact Prod.ext (Prod.ext hf hdata) hclock
 
+/-- Encodes a garbage label as its record together with the zero clock value in the enlarged
+clock register. -/
 def sourceNCYClockCode {Y K : Type} [Fintype Y] [Fintype K] (r : ℕ) (hr : 0<r)
     (y : Y) : Fin ((Fintype.card Y+1+Fintype.card K)*r) :=
   finProdFinEquiv (sourceNCYRecord (K:=K) y,(⟨0,hr⟩ : Fin r))
 
+/-- The garbage-label clock encoding is injective when the original clock size is positive. -/
 theorem sourceNCYClockCode_injective {Y K : Type} [Fintype Y] [Fintype K]
     (r : ℕ) (hr : 0<r) : Function.Injective (sourceNCYClockCode (Y:=Y) (K:=K) r hr) := by
   intro y z he
@@ -870,12 +960,15 @@ theorem sourceNCYClockCode_injective {Y K : Type} [Fintype Y] [Fintype K]
   simp only [sourceNCYRecord,Fin.val_castAdd,Fin.val_succ] at h
   omega
 
+/-- Embeds a garbage state into the zero query register, true tag, and encoded garbage-label
+clock positions. -/
 def sourceNCGarbageState {Y K : Type} [Fintype Y] [DecidableEq Y] [Fintype K]
     (n q r : ℕ) (hr : 0<r) (ξ : QState Y) :
     QState ((Fin (n+1)×Fin (q+1))×(Bool×Fin ((Fintype.card Y+1+Fintype.card K)*r))) :=
   TensorState (Qatlib.Foundations.PureStateMath.Ket (0,0)) (TensorState (Qatlib.Foundations.PureStateMath.Ket true)
     (sourceBasisFrame (sourceNCYClockCode (Y:=Y) (K:=K) r hr) *ᵥ ξ))
 
+/-- The encoded noncoherent garbage state is normalized when its input state is normalized. -/
 theorem sourceNCGarbageState_normalized {Y K : Type} [Fintype Y] [DecidableEq Y] [Fintype K]
     (n q r : ℕ) (hr : 0<r) (ξ : QState Y) (hξ : Normalized ξ) :
     Normalized (sourceNCGarbageState (K:=K) n q r hr ξ) := by
@@ -887,16 +980,20 @@ theorem sourceNCGarbageState_normalized {Y K : Type} [Fintype Y] [DecidableEq Y]
   apply (normalized_iff_norm_toEuclidean_fromVec _).mpr
   rw [Qatlib.Concepts.BlockEncoding.EncodingCore.isometry_mulVec_norm hF,(normalized_iff_norm_toEuclidean_fromVec _).mp hξ]
 
+/-- The basis frame of the left injection acts by extension by zero into the right summand. -/
 theorem sourceBasisFrame_inl_action {H K : Type} [Fintype H] [DecidableEq H] [DecidableEq K]
     (ψ : QState H) : sourceBasisFrame (Sum.inl : H → H⊕K) *ᵥ ψ=Sum.elim ψ 0 := by
   ext p
   cases p <;> simp [sourceBasisFrame,Matrix.mulVec,dotProduct]
 
+/-- The basis frame of the right injection acts by extension by zero into the left summand. -/
 theorem sourceBasisFrame_inr_action {H K : Type} [Fintype K] [DecidableEq H] [DecidableEq K]
     (ψ : QState K) : sourceBasisFrame (Sum.inr : K → H⊕K) *ᵥ ψ=Sum.elim (0 : QState H) ψ := by
   ext p
   cases p <;> simp [sourceBasisFrame,Matrix.mulVec,dotProduct]
 
+/-- The basis frame into the first nested data summand agrees with the clean embedding of the
+twice extended state. -/
 theorem sourceClean_nested_left_frame {H B K : Type} [Fintype H] [Fintype B]
     [DecidableEq H] [DecidableEq B] [DecidableEq K]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ : QState H) :
@@ -924,6 +1021,8 @@ theorem sourceClean_nested_left_frame {H B K : Type} [Fintype H] [Fintype B]
     | inr d => simp [sourceBasisFrame,Matrix.mulVec,dotProduct,Prod.ext_iff,hd,sourceClean,TensorState]
   | inr d => simp [sourceBasisFrame,Matrix.mulVec,dotProduct,Prod.ext_iff,hd,sourceClean,TensorState]
 
+/-- The basis frame into the second nested data summand agrees with its clean embedding after
+extension by zero. -/
 theorem sourceClean_nested_right_frame {H B K : Type} [Fintype H] [Fintype B]
     [DecidableEq H] [DecidableEq B] [DecidableEq K]
     (n q r : ℕ) (hr : 0<r) (tag : Bool) (ψ : QState B) :
@@ -951,6 +1050,8 @@ theorem sourceClean_nested_right_frame {H B K : Type} [Fintype H] [Fintype B]
       · simp
   | inr d => simp [sourceBasisFrame,Matrix.mulVec,dotProduct,Prod.ext_iff,hd,sourceClean,TensorState]
 
+/-- Embedding a tensor-product data and garbage state by the record frame yields the
+corresponding `sourceGarbageTarget`. -/
 theorem sourceRecord_frame_tensor {H Y : Type} [Fintype H] [DecidableEq H]
     [Fintype Y] [DecidableEq Y] {r : ℕ} (n q : ℕ) (e : Y → Fin r)
     (σ : QState H) (ξ : QState Y) :
@@ -980,6 +1081,8 @@ theorem sourceRecord_frame_tensor {H Y : Type} [Fintype H] [DecidableEq H]
     simp [hp]
   · simp
 
+/-- The noncoherent compilation frame sends a clean state in the first nested summand to the
+native clean state with enlarged workspace. -/
 theorem sourceNCFrame_clean {H Y K : Type} [Fintype H] [DecidableEq H]
     [Fintype Y] [DecidableEq Y] [Fintype K] [DecidableEq K]
     (n q r : ℕ) (hr : 0<r) (h0 : H) (tag : Bool) (ψ : QState H) :
@@ -998,6 +1101,8 @@ theorem sourceNCFrame_clean {H Y K : Type} [Fintype H] [DecidableEq H]
   rw [he]
   exact sourceClean_basisFrame n q _ _ tag ψ
 
+/-- The noncoherent compilation frame turns the tensor-product target in the nested data sum
+into a native target with `sourceNCGarbageState`. -/
 theorem sourceNCFrame_target {H Y K : Type} [Fintype H] [DecidableEq H]
     [Fintype Y] [DecidableEq Y] [Fintype K] [DecidableEq K]
     (n q r : ℕ) (hr : 0<r) (h0 : H) (σ : QState H) (ξ : QState Y) :
@@ -1017,6 +1122,8 @@ theorem sourceNCFrame_target {H Y K : Type} [Fintype H] [DecidableEq H]
 set_option maxHeartbeats 0
 set_option synthInstance.maxHeartbeats 1000000
 
+/-- Transfers an enlarged-space conversion word to a native noncoherent word with at most twice
+the calls and overlap at least `sqrt (1 - ε)` against some normalized garbage state. -/
 theorem sourceNC_program {X H Y K : Type} [Fintype H] [DecidableEq H] [Nonempty H]
     [Fintype Y] [DecidableEq Y] [Fintype K] [DecidableEq K] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ξ : X → QState Y)
@@ -1075,6 +1182,9 @@ theorem sourceNC_program {X H Y K : Type} [Fintype H] [DecidableEq H] [Nonempty 
   exact (source_overlap_of_distance _ _ hout htarget ε hε hε1 hd).trans
     (Complex.re_le_norm _)
 
+/-- A noncoherent raw budget `W` at tolerance `ε⁴ / 16` yields a legal word with
+target-and-garbage overlap at least `sqrt (1 - ε)` and the stated `17179869184 * W * log (1
+/ ε) / ε²` call bound. See [LeeEtAl2011]. -/
 theorem sourceNoncoherent_raw_budget_word {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H] {n q : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H) (ε W : ℝ)
@@ -1130,6 +1240,8 @@ theorem sourceNoncoherent_raw_budget_word {X H : Type} [Fintype X] [DecidableEq 
       _ = _ := by ring
   exact ⟨s,hs,D,hD,hreal,hout⟩
 
+/-- A real upper bound on a source word's oracle-call count implies the corresponding
+natural-number ceiling bound. -/
 theorem sourceCall_le_ceil {n q : ℕ} {H : Type} {c : ℕ} {W ε : ℝ} {r : ℕ}
     {C : SourceWord (SourceSpace n q H r)}
     (h : (sourceWordCalls C : ℝ)≤c*W*Real.log (1/ε)/ε^2) :
@@ -1138,6 +1250,8 @@ theorem sourceCall_le_ceil {n q : ℕ} {H : Type} {c : ℕ} {W ε : ℝ} {r : �
     h.trans (Nat.le_ceil _)
   exact_mod_cast h2
 
+/-- Establishes the uniform coherent and noncoherent optimized returned-word guarantees of
+`OptimizedReturnedWordConsumers`; see [Lee et al., Theorem 4.9][LeeEtAl2011]. -/
 theorem optimizedReturnedWordConsumers : OptimizedReturnedWordConsumers := by
   refine ⟨17179869184,by norm_num,?_⟩
   intro X _ _ H _ _ _ n q input ρ σ ε W hn hε hε1 hW

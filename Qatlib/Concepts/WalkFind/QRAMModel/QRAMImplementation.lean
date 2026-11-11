@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
 import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackQuan
+
+/-!
+# Bit-register semantics of the value oracle
+
+This module verifies binary address reading and the register action of the source value oracle.
+Valid addresses receive modular addition in the answer region, invalid encodings are fixed, and
+the complete action is injective and hence defines a unitary permutation matrix.
+
+The mathematical background is developed in [NielsenChuang2010].
+
+## Main statements
+
+* `sourceValueAction_answer`: describes the modular answer update.
+* `sourceValueOracle_unitary`: proves unitarity of the source value oracle.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LinearCombination
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -21,6 +41,7 @@ namespace Qatlib.Concepts.WalkFind.QRAMModel
 open Matrix
 open scoped Classical BigOperators
 
+/-- The weighted sum of the first `w` binary digits of `n` equals `n % 2^w`. -/
 theorem naturalBit_sum (n w : ℕ) :
     (∑ j ∈ Finset.range w, if naturalBit n j then 2^j else 0) = n % 2^w := by
   induction w with
@@ -33,6 +54,8 @@ theorem naturalBit_sum (n w : ℕ) :
     · have hz : n / 2^w % 2 = 0 := by omega
       simp [naturalBit, hz]
 
+/-- Writing the low `w` bits of `n` into an in-range address region makes that region read as `n
+% 2^w`. -/
 theorem addressValue_written {b : ℕ} (ψ : Reg b) (a w n : ℕ) (haw : a+w ≤ b) :
     addressValue (fun i => if a ≤ i.val ∧ i.val < a+w then naturalBit n (i.val-a) else ψ i) a w =
       n % 2^w := by
@@ -44,6 +67,8 @@ theorem addressValue_written {b : ℕ} (ψ : Reg b) (a w n : ℕ) (haw : a+w ≤
   have hib : a+i < b := by omega
   simp [readBit, hib, show a ≤ a+i by omega, show a+i < a+w by omega]
 
+/-- Equal values read from the same address region imply equality of every bit read in that
+region. -/
 theorem addressValue_bits_injective {b : ℕ} (ψ φ : Reg b) (a w : ℕ)
     (h : addressValue ψ a w = addressValue φ a w) :
     ∀ i < w, readBit ψ (a+i) = readBit φ (a+i) := by
@@ -69,6 +94,7 @@ theorem addressValue_bits_injective {b : ℕ} (ψ φ : Reg b) (a w : ℕ)
     · have hie : i = w := by omega
       simpa [hie] using! heq
 
+/-- The source value action preserves every bit outside the answer region. -/
 theorem sourceValueAction_outside {N M k w : ℕ} (x : Fin N → ZMod M)
     (ψ : Reg (nativeWidth N M k w)) (i : Fin (nativeWidth N M k w))
     (hi : ¬(Nat.clog 2 (N+1) ≤ i.val ∧ i.val < Nat.clog 2 (N+1)+Nat.clog 2 (M+1))) :
@@ -76,6 +102,8 @@ theorem sourceValueAction_outside {N M k w : ℕ} (x : Fin N → ZMod M)
   unfold sourceValueAction
   split_ifs <;> simp_all
 
+/-- The source value action fixes a register if its address or answer value lies outside the
+valid range. -/
 theorem sourceValueAction_invalid {N M k w : ℕ} (x : Fin N → ZMod M)
     (ψ : Reg (nativeWidth N M k w))
     (h : N ≤ addressValue ψ 0 (Nat.clog 2 (N+1)) ∨
@@ -87,6 +115,7 @@ theorem sourceValueAction_invalid {N M k w : ℕ} (x : Fin N → ZMod M)
   · simp [show ¬addressValue ψ 0 (Nat.clog 2 (N+1)) < N by omega]
   · simp [show ¬addressValue ψ (Nat.clog 2 (N+1)) (Nat.clog 2 (M+1)) < M by omega]
 
+/-- The source value action preserves the value in the address region. -/
 theorem sourceValueAction_address {N M k w : ℕ} (x : Fin N → ZMod M)
     (ψ : Reg (nativeWidth N M k w)) :
     addressValue (sourceValueAction x ψ) 0 (Nat.clog 2 (N+1)) =
@@ -99,6 +128,8 @@ theorem sourceValueAction_address {N M k w : ℕ} (x : Fin N → ZMod M)
   have hbit := sourceValueAction_outside x ψ (⟨i,hib⟩) (by dsimp; omega)
   simpa [readBit,hib] using! congrArg (fun b => if b then 2^i else 0) hbit
 
+/-- For valid address and answer values and positive `M`, the source value action adds the
+queried input value modulo `M` to the answer. -/
 theorem sourceValueAction_answer {N M k w : ℕ} (hM : 0 < M) (x : Fin N → ZMod M)
     (ψ : Reg (nativeWidth N M k w))
     (ha : addressValue ψ 0 (Nat.clog 2 (N+1)) < N)
@@ -112,6 +143,7 @@ theorem sourceValueAction_answer {N M k w : ℕ} (hM : 0 < M) (x : Fin N → ZMo
   rw [dif_pos ha,if_pos hb,addressValue_written ψ _ _ _ (by unfold nativeWidth; omega)]
   exact Nat.mod_eq_of_lt (lt_of_lt_of_le (Nat.mod_lt _ hM) (by omega))
 
+/-- For positive `M`, the source value action is injective on physical registers. -/
 theorem sourceValueAction_injective {N M k w : ℕ} (hM : 0 < M) (x : Fin N → ZMod M) :
     Function.Injective (sourceValueAction (k:=k) (w:=w) x) := by
   letI : NeZero M := ⟨hM.ne'⟩
@@ -168,6 +200,7 @@ theorem sourceValueAction_injective {N M k w : ℕ} (hM : 0 < M) (x : Fin N → 
     have hφ := sourceValueAction_invalid x φ (Or.inl (by omega))
     simpa only [hψ,hφ] using! heq
 
+/-- For positive `M`, the source value oracle is a unitary matrix. -/
 theorem sourceValueOracle_unitary {N M k w : ℕ} (hM : 0 < M) (x : Fin N → ZMod M) :
     sourceValueOracle (k:=k) (w:=w) x ∈ Matrix.unitaryGroup (Reg (nativeWidth N M k w)) ℂ :=
   permMatrix_unitary_of_injective (sourceValueAction_injective hM x)

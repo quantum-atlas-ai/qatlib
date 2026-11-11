@@ -6,12 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsStat
 import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostEquationGily
+
+/-!
+# Bounds for the simulation cost equation
+
+This module proves `SimulationCostBounds` using monotonicity estimates for real logarithms. The
+bounds control a solution of `(t / r) ^ r = ε` in two parameter regimes and give a family of
+upper bounds indexed by positive `q`. The mathematical background is developed in
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `simulationCostBounds_answer`: logarithmic and linear estimates for the simulation cost
+  parameter.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.QsvtCore.HamiltonianSim
 
 open Real
 
+/-- For `x` and `y` at least one, the inequality `x * log x ≤ y * log y` implies `x ≤ y`. -/
 theorem sim157_log_mul_le_of_le {x y : ℝ} (hx : 1 ≤ x) (hy : 1 ≤ y)
     (h : x * Real.log x ≤ y * Real.log y) : x ≤ y := by
   by_contra hne
@@ -19,6 +39,7 @@ theorem sim157_log_mul_le_of_le {x y : ℝ} (hx : 1 ≤ x) (hy : 1 ≤ y)
   have h7 := sim157_log_mul_strictMono hy hlt
   linarith
 
+/-- For `w ≥ 1`, twice the natural logarithm of `w` is at most `w`. -/
 theorem sim157_two_log_le {w : ℝ} (hw : 1 ≤ w) : 2 * Real.log w ≤ w := by
   by_cases hw2 : w ≤ 2
   · have h1 : Real.log w ≤ w - 1 := Real.log_le_sub_one_of_pos (by linarith : (0:ℝ) < w)
@@ -38,6 +59,8 @@ theorem sim157_two_log_le {w : ℝ} (hw : 1 ≤ w) : 2 * Real.log w ≤ w := by
         _ = 1 := Real.log_exp 1
     linarith
 
+/-- For positive `t`, the expression `r * log (t / r)` strictly decreases as `r` increases above
+`t`. -/
 theorem sim157_g_antimono {t a b : ℝ} (ht : 0 < t) (ha : t ≤ a) (hab : a < b) :
     b * Real.log (t/b) < a * Real.log (t/a) := by
   have ha0 : (0:ℝ) < a := by have := ha; linarith
@@ -51,6 +74,8 @@ theorem sim157_g_antimono {t a b : ℝ} (ht : 0 < t) (ha : t ≤ a) (hab : a < b
 
 set_option maxHeartbeats 400000 in
 
+/-- Solutions of the simulation cost equation satisfy `SimulationCostBounds`, corresponding to
+[Gilyén et al., Lemma 59][GilyenSuLowWiebe2019]. -/
 theorem simulationCostBounds_answer : SimulationCostBounds := by
   intro t ε r ht hε hε1 htr hreq
   have hε0 : (0:ℝ) < ε := hε

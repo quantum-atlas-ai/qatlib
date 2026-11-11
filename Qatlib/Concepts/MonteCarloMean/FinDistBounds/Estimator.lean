@@ -21,11 +21,39 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 
+/-!
+# Finite distributions and Monte Carlo estimators
+
+This module defines `FinDist`, expectations, independent sample weights, variance, and the
+sorted `medianOfMeans` estimator. It proves product expectation identities, the variance and
+Chebyshev bounds for sample means, and a median of means concentration bound. These finite
+probability tools support the Monte Carlo estimation setting of [Montanaro2015].
+
+## Main statements
+
+* `FinDist`: A probability distribution on a finite type, represented by nonnegative real masses
+  summing to one.
+* `chebyshev_avg`: For positive sample length and `ε > 0`, the probability that the sample
+  average deviates from its expectation by more than `ε` is at most `variance p f / (L * ε ^
+  2)`.
+* `median_of_means_concentration`: For positive block size and block count, the condition `4 *
+  p.variance f ≤ L * ε ^ 2` bounds the median of means failure probability by `3 ^ (M / 2) / 2 ^
+  M`.
+* `FinDist.independentPair`: The product distribution on pairs with independent marginals `d`
+  and `e`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 set_option linter.unusedSectionVars false
 set_option maxHeartbeats 2000000
 
+/-- A probability distribution on a finite type, represented by nonnegative real masses summing
+to one. -/
 structure FinDist (X : Type*) [Fintype X] where
 
   prob : X → ℝ
@@ -38,13 +66,19 @@ namespace FinDist
 
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
+/-- The expectation of a real function under a finite distribution, computed as the probability
+weighted sum. -/
 def expect (p : FinDist X) (f : X → ℝ) : ℝ := ∑ x, p.prob x * f x
 
+/-- The product probability of a finite record of independent samples from `p`. -/
 def probOf {L : ℕ} (p : FinDist X) (ω : Fin L → X) : ℝ := ∏ i, p.prob (ω i)
 
+/-- The probability of a decidable event on finite independent sample records, computed by
+summing their product probabilities. -/
 def probEvent {L : ℕ} (p : FinDist X) (E : (Fin L → X) → Prop) [DecidablePred E] : ℝ :=
   ∑ ω ∈ Finset.univ.filter E, p.probOf ω
 
+/-- The probability weighted sum of a function centered at its expectation is zero. -/
 theorem sum_sub_mean (p : FinDist X) (f : X → ℝ) :
     ∑ x, p.prob x * (f x - expect p f) = 0 := by
   have h1 : ∀ x : X, p.prob x * (f x - expect p f)
@@ -57,6 +91,7 @@ theorem sum_sub_mean (p : FinDist X) (f : X → ℝ) :
   rw [h2, h3, p.sum_one, mul_one]
   exact sub_self (∑ x, p.prob x * f x)
 
+/-- The product probabilities of all length `L` records sum to one. -/
 theorem sum_probOf (p : FinDist X) (L : ℕ) : ∑ ω : Fin L → X, p.probOf ω = 1 := by
   have hswap : ∑ ω : Fin L → X, ∏ i, p.prob (ω i)
       = ∑ ω ∈ Fintype.piFinset (fun _ : Fin L => (Finset.univ : Finset X)),
@@ -66,6 +101,8 @@ theorem sum_probOf (p : FinDist X) (L : ℕ) : ∑ ω : Fin L → X, p.probOf ω
   rw [hswap, ← Finset.prod_univ_sum, Finset.prod_congr rfl (fun i _ => p.sum_one)]
   simp
 
+/-- The expectation of a product of separate coordinate functions factors into the product of
+their expectations under independent sampling. -/
 theorem expect_prod {L : ℕ} (p : FinDist X) (g : Fin L → X → ℝ) :
     ∑ ω : Fin L → X, p.probOf ω * ∏ k, g k (ω k)
       = ∏ k, (∑ x, p.prob x * g k x) := by
@@ -85,6 +122,8 @@ theorem expect_prod {L : ℕ} (p : FinDist X) (g : Fin L → X → ℝ) :
           (t := fun _ : Fin L => (Finset.univ : Finset X))
           (f := fun k x => p.prob x * g k x)).symm
 
+/-- The expectation of a function of one sample coordinate equals its expectation under the
+original distribution. -/
 theorem expect_coord {L : ℕ} (p : FinDist X) (k : Fin L) (h : X → ℝ) :
     ∑ ω : Fin L → X, p.probOf ω * h (ω k) = ∑ x, p.prob x * h x := by
   have hsplit : ∀ ω : Fin L → X,
@@ -110,8 +149,11 @@ theorem expect_coord {L : ℕ} (p : FinDist X) (k : Fin L) (h : X → ℝ) :
         · intro hcon
           exact absurd (Finset.mem_univ k) hcon
 
+/-- The arithmetic average of `f` over the finite sample record, using real division by its
+length. -/
 noncomputable def avg {L : ℕ} (f : X → ℝ) (ω : Fin L → X) : ℝ := (∑ k, f (ω k)) / L
 
+/-- For positive sample length, the expected sample average equals the population expectation. -/
 theorem expect_avg {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L) :
     ∑ ω : Fin L → X, p.probOf ω * avg f ω = expect p f := by
   calc ∑ ω : Fin L → X, p.probOf ω * avg f ω
@@ -133,8 +175,11 @@ theorem expect_avg {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L) :
         simp only [Finset.sum_const, nsmul_eq_mul, Finset.card_univ, Fintype.card_fin]
         exact mul_div_cancel_left₀ _ (by exact_mod_cast hL.ne')
 
+/-- The expectation of the squared deviation of a real function from its expectation. -/
 def variance (p : FinDist X) (f : X → ℝ) : ℝ := expect p (fun x => (f x - expect p f) ^ 2)
 
+/-- For positive sample length `L`, the mean squared error of the sample average equals the
+population variance divided by `L`. -/
 theorem expect_avg_sub_sq {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L) :
     ∑ ω : Fin L → X, p.probOf ω * (avg f ω - expect p f) ^ 2
       = variance p f / L := by
@@ -264,6 +309,8 @@ theorem expect_avg_sub_sq {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L)
     _ = variance p f / L := by
         rw [hdiag, sq, mul_div_mul_left _ _ (by exact_mod_cast hL.ne')]
 
+/-- For positive sample length and `ε > 0`, the probability that the sample average deviates
+from its expectation by more than `ε` is at most `variance p f / (L * ε ^ 2)`. -/
 theorem chebyshev_avg {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L) (ε : ℝ)
     (hε : 0 < ε) :
     probEvent (L := L) p (fun ω : Fin L → X => ε < |avg f ω - expect p f|)
@@ -341,6 +388,8 @@ theorem chebyshev_avg {L : ℕ} (p : FinDist X) (f : X → ℝ) (hL : 0 < L) (ε
         rw [show (variance p f / L / ε ^ 2) = variance p f / (L * ε ^ 2) from by
           field_simp]
 
+/-- The probability of the union of a finite indexed family of sample events is at most the sum
+of their probabilities. -/
 theorem union_bound {L : ℕ} (p : FinDist X) {M : ℕ} (E : Fin M → (Fin L → X) → Prop)
     [∀ m, DecidablePred (E m)]
     [DecidablePred (fun ω : Fin L → X => ∃ m, E m ω)] :
@@ -385,10 +434,14 @@ theorem union_bound {L : ℕ} (p : FinDist X) {M : ℕ} (E : Fin M → (Fin L �
 
 set_option linter.unusedVariables false in
 
+/-- The sample block averages sorted in ascending order, evaluated at index `M / 2` with default
+value zero. -/
 noncomputable def medianOfMeans {L M : ℕ} (p : FinDist X) (f : X → ℝ)
     (ω : Fin M → Fin L → X) : ℝ :=
   ((List.ofFn fun m => avg f (ω m)).mergeSort (· ≤ ·)).getD (M / 2) 0
 
+/-- Counting entries of `List.ofFn ys` satisfying a predicate equals the cardinality of the
+corresponding filtered finite index set. -/
 theorem countP_ofFn_eq_card_filter {M : ℕ} (ys : Fin M → ℝ) (Q : ℝ → Prop)
     [DecidablePred Q] :
     (List.ofFn ys).countP (fun x => decide (Q x))
@@ -403,6 +456,8 @@ theorem countP_ofFn_eq_card_filter {M : ℕ} (ys : Fin M → ℝ) (Q : ℝ → P
   rw [Multiset.coe_countP]
   rfl
 
+/-- If the middle entry of a nonempty sorted list of length `M` deviates from `μ` by more than
+`ε`, at least `M - M / 2` entries have that deviation. -/
 theorem sorted_countP_ge_of_median_dev {M : ℕ} {s : List ℝ} (hs : s.SortedLE)
     (hslen : s.length = M) (hM : 0 < M) {μ ε : ℝ}
     (hmed : ε < |s.getD (M / 2) 0 - μ|) :
@@ -459,6 +514,8 @@ theorem sorted_countP_ge_of_median_dev {M : ℕ} {s : List ℝ} (hs : s.SortedLE
               (fun x hx => decide_eq_true_eq.mpr (htake x hx))).symm
         _ ≤ s.countP _ := List.Sublist.countP_le (List.take_sublist _ s)
 
+/-- A deviation of the median of block means forces at least `M - M / 2` block averages to have
+the same deviation threshold when `M > 0`. -/
 theorem medianOfMeans_bad_imp_many_bad {L M : ℕ} (p : FinDist X) (f : X → ℝ)
     (hM : 0 < M) (μ ε : ℝ) (ω : Fin M → Fin L → X)
     (hmed : ε < |medianOfMeans p f ω - μ|) :
@@ -474,6 +531,8 @@ theorem medianOfMeans_bad_imp_many_bad {L M : ℕ} (p : FinDist X) (f : X → �
     countP_ofFn_eq_card_filter] at h
   exact h
 
+/-- For positive block size and block count, the condition `4 * p.variance f ≤ L * ε ^ 2` bounds
+the median of means failure probability by `3 ^ (M / 2) / 2 ^ M`. -/
 theorem median_of_means_concentration {L M : ℕ} (p : FinDist X) (f : X → ℝ)
     (hL : 0 < L) (hM : 0 < M) (ε : ℝ) (hε : 0 < ε)
     (hvar : 4 * p.variance f ≤ (L : ℝ) * ε ^ 2) :
@@ -645,6 +704,7 @@ open scoped ComplexOrder
 set_option autoImplicit false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
+/-- The product distribution on pairs with independent marginals `d` and `e`. -/
 noncomputable def FinDist.independentPair {J K : Type*} [Fintype J] [Fintype K]
     (d : FinDist J) (e : FinDist K) : FinDist (J × K) where
   prob jk := d.prob jk.1 * e.prob jk.2
@@ -660,10 +720,13 @@ noncomputable def FinDist.independentPair {J K : Type*} [Fintype J] [Fintype K]
         rw [e.sum_one]
       _ = 1 := by rw [(Finset.sum_mul _ _ _).symm, d.sum_one, one_mul]
 
+/-- The mass of `(j, k)` under the independent pair distribution is `d.prob j * e.prob k`. -/
 theorem FinDist.independentPair_prob {J K : Type*} [Fintype J] [Fintype K] (d : FinDist J)
     (e : FinDist K) (j : J) (k : K) :
     (FinDist.independentPair d e).prob (j, k) = d.prob j * e.prob k := rfl
 
+/-- Summing the independent pair masses over the second coordinate recovers the first marginal
+mass. -/
 theorem FinDist.independentPair_sum_left {J K : Type*} [Fintype J] [Fintype K] (d : FinDist J)
     (e : FinDist K) (j : J) : ∑ k, (FinDist.independentPair d e).prob (j, k) = d.prob j := by
   calc ∑ k, (FinDist.independentPair d e).prob (j, k) = ∑ k, d.prob j * e.prob k :=
@@ -672,6 +735,8 @@ theorem FinDist.independentPair_sum_left {J K : Type*} [Fintype J] [Fintype K] (
     _ = d.prob j * 1 := by rw [e.sum_one]
     _ = d.prob j := by ring
 
+/-- Summing the independent pair masses over the first coordinate recovers the second marginal
+mass. -/
 theorem FinDist.independentPair_sum_right {J K : Type*} [Fintype J] [Fintype K] (d : FinDist J)
     (e : FinDist K) (k : K) : ∑ j, (FinDist.independentPair d e).prob (j, k) = e.prob k := by
   calc ∑ j, (FinDist.independentPair d e).prob (j, k) = ∑ j, d.prob j * e.prob k :=
@@ -688,6 +753,7 @@ set_option maxHeartbeats 4000000
 set_option linter.unusedSectionVars false
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
+/-- Variance equals the expectation of the square minus the square of the expectation. -/
 theorem FinDist.variance_eq_expect_sq_sub {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) :
     p.variance f = p.expect (fun x => (f x)^2) - (p.expect f)^2 := by
@@ -712,6 +778,8 @@ set_option linter.unusedVariables false
 variable {I : Type} [Fintype I] [DecidableEq I]
 namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
+/-- The probability that a predicate holds at every index in a chosen finite set factors into
+the product of its one sample probabilities. -/
 theorem FinDist.probOf_subset_product {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
     (p : FinDist X) (B : X → Prop) [DecidablePred B] (J : Finset (Fin L)) :
     ∑ ω ∈ Finset.univ.filter (fun ω => ∀ n ∈ J, B (ω n)), p.probOf ω

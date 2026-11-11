@@ -10,6 +10,29 @@ import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Data.Fin.Basic
 
+/-!
+# Derivative bounds for expectation losses
+
+`expectationLoss` is the real part of an observable expectation, and `partialDeriv` evaluates
+its real derivative on a coordinate basis vector. Bounded operator representations imply first-
+and second-derivative estimates; `lemma5_gradient_lipschitz` derives a Lipschitz bound for the
+derivative from bounded Hessian entries. See [TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `lemma5_first_derivative`: If each coordinate derivative is an expectation of an operator of
+  norm at most two in a unit state, its absolute value is at most two.
+* `lemma5_second_derivative`: If each second coordinate derivative is an expectation of an
+  operator of norm at most four in a unit state, its absolute value is at most four.
+* `lemma5_gradient_lipschitz`: Differentiable coordinate derivatives with Hessian entries
+  bounded by four give a Lipschitz constant for the Fréchet derivative no greater than `4 * (K +
+  1) * (K + 1)`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -17,14 +40,20 @@ namespace Qatlib.Papers.LatentPQCTran26.MainResults.GradientLipschitz
 
 open Complex
 
+/-- The real part of the expectation of the continuous linear operator `O` in the
+parameter-dependent vector `ψ θ`. -/
 def expectationLoss {K : ℕ} {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (O : H →L[ℂ] H) (ψ : (Fin K → ℝ) → H) : (Fin K → ℝ) → ℝ :=
   fun θ => (inner ℂ (ψ θ) (O (ψ θ))).re
 
+/-- The real Fréchet derivative of `expectationLoss` evaluated on the `j`th coordinate basis
+vector. -/
 def partialDeriv {K : ℕ} {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (O : H →L[ℂ] H) (ψ : (Fin K → ℝ) → H) (θ : Fin K → ℝ) (j : Fin K) : ℝ :=
   (fderiv ℝ (expectationLoss O ψ) θ) (Pi.single j 1)
 
+/-- The absolute real part of the expectation of a bounded operator in a unit vector is at most
+its operator norm. -/
 private theorem abs_re_inner_le {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (M : H →L[ℂ] H) (φ : H) (hφ : ‖φ‖ = 1) :
     |(inner ℂ φ (M φ)).re| ≤ ‖M‖ := by
@@ -38,6 +67,8 @@ private theorem abs_re_inner_le {H : Type*} [NormedAddCommGroup H] [InnerProduct
     exact h4
   exact h1.trans (h2.trans h3)
 
+/-- If each coordinate derivative is an expectation of an operator of norm at most two in a unit
+state, its absolute value is at most two [TranEtAl2026]. -/
 theorem lemma5_first_derivative
     {K : ℕ} {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (O : H →L[ℂ] H)
@@ -50,6 +81,8 @@ theorem lemma5_first_derivative
   rw [heq]
   exact (abs_re_inner_le M (ψ θ) (hunit θ)).trans hM
 
+/-- If each second coordinate derivative is an expectation of an operator of norm at most four
+in a unit state, its absolute value is at most four [TranEtAl2026]. -/
 theorem lemma5_second_derivative
     {K : ℕ} {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (O : H →L[ℂ] H)
@@ -65,6 +98,8 @@ theorem lemma5_second_derivative
   rw [heq]
   exact (abs_re_inner_le M (ψ θ) (hunit θ)).trans hM
 
+/-- A real coordinate basis vector equals the function that is one at its index and zero
+elsewhere. -/
 private theorem single_eq_ite {K : ℕ} (i : Fin K) :
     (Pi.single i 1 : Fin K → ℝ) = fun j => if i = j then 1 else 0 := by
   funext j
@@ -72,6 +107,8 @@ private theorem single_eq_ite {K : ℕ} (i : Fin K) :
   · rw [Pi.single_apply, if_pos h.symm, if_pos h]
   · rw [Pi.single_apply, if_neg (fun hc => h hc.symm), if_neg h]
 
+/-- A real continuous linear functional whose coordinate values have absolute value at most
+nonnegative `B` satisfies `|T x| ≤ K * B * ‖x‖`. -/
 private theorem scalarClm_bound {K : ℕ} (T : (Fin K → ℝ) →L[ℝ] ℝ) {B : ℝ} (hB : 0 ≤ B)
     (hent : ∀ i : Fin K, |T (Pi.single i 1)| ≤ B) (x : Fin K → ℝ) :
     |T x| ≤ (K : ℝ) * B * ‖x‖ := by
@@ -97,6 +134,8 @@ private theorem scalarClm_bound {K : ℕ} (T : (Fin K → ℝ) →L[ℝ] ℝ) {B
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
     _ = (K : ℝ) * B * ‖x‖ := by ring
 
+/-- Differentiable coordinate derivatives with Hessian entries bounded by four give a Lipschitz
+constant for the Fréchet derivative no greater than `4 * (K + 1) * (K + 1)` [TranEtAl2026]. -/
 theorem lemma5_gradient_lipschitz
     {K : ℕ} {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (O : H →L[ℂ] H)

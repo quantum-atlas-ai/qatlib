@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLinearODE17.EndToEnd.LinearDifferentialConstructionDefs
+
+/-!
+# Construction and resource lemmas for the ODE solver
+
+This module proves support and resource identities for the finite Taylor-system construction
+used in [BerryEtAl2017ODE]. It relates sparse access costs to support cardinalities, verifies a
+controlled preparation circuit and its formal counts, and gives padding-quality and finite-digit
+estimates.
+
+The module also separates the order-dependent Taylor bound `smallOrderUniformConstant` from the
+fixed constant `frozenUniformConstant`, proving the latter valid from order five and exhibiting
+its failure at order three.
+
+## Main statements
+
+* `controlled_prepare_actual_cost`: Unitarity, counts, and compression identity for the paired
+  preparation circuit.
+* `section7PaddingCount_quality`: The reciprocal-square-root quality bound for the chosen
+  padding.
+* `frozenUniformConstant_fails_at_three`: A low-order counterexample to the fixed Taylor bound.
+* `padding_distribution_small_k`: Padding blocks copy the final time block without a lower bound
+  on Taylor order.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.QueryWordCore.Circuit Qatlib.Concepts.ReferenceError.MixturePaths
@@ -22,6 +50,7 @@ open Matrix
 open scoped Classical Matrix.Norms.L2Operator BigOperators
 set_option warningAsError false
 
+/-- The sum of entry norms in a row equals the sum restricted to its nonzero positions. -/
 theorem sparseRowMass_eq_positions {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (A : Matrix O I ℂ) (o : O) :
     sparseRowMass A o = ∑ i ∈ sparsePositions A o, ‖A o i‖ := by
@@ -35,6 +64,7 @@ theorem sparseRowMass_eq_positions {O I : Type} [Fintype O] [Fintype I]
     _ = ∑ i ∈ Finset.univ.filter (fun i => A o i ≠ 0), ‖A o i‖ :=
       (Finset.sum_filter _ _).symm
 
+/-- The sum of entry norms in a column equals the sum restricted to its nonzero rows. -/
 theorem sparseColumnMass_eq_positions {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (A : Matrix O I ℂ) (i : I) :
     sparseColumnMass A i = ∑ o ∈ Finset.univ.filter (fun o => A o i ≠ 0), ‖A o i‖ := by
@@ -48,18 +78,23 @@ theorem sparseColumnMass_eq_positions {O I : Type} [Fintype O] [Fintype I]
     _ = ∑ o ∈ Finset.univ.filter (fun o => A o i ≠ 0), ‖A o i‖ :=
       (Finset.sum_filter _ _).symm
 
+/-- If every row has at most `s` nonzero entries, the sparse access cost of any row is at most
+`s`. -/
 theorem sparseRowAccessCost_le {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (A : Matrix O I ℂ) (s : ℕ) (o : O)
     (hs : ∀ n : O, (Finset.univ.filter (fun c => A n c ≠ 0)).card ≤ s) :
     sparseRowAccessCost A o ≤ s := by
   exact hs o
 
+/-- If every column has at most `s` nonzero entries, the sparse access cost of any column is at
+most `s`. -/
 theorem sparseColumnAccessCost_le {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (A : Matrix O I ℂ) (s : ℕ) (i : I)
     (hs : ∀ c : I, (Finset.univ.filter (fun n => A n c ≠ 0)).card ≤ s) :
     sparseColumnAccessCost A i ≤ s := by
   exact hs i
 
+/-- The Taylor right-hand side vanishes at every label outside `taylorRHSSupport m k p`. -/
 theorem taylorRHS_zero_outside_support {N : Type} [Fintype N] [DecidableEq N]
     (m k p : ℕ) (h : ℝ) (x_in b : QState N)
     (r : Fin (m * (k + 1) + p + 1) × N) :
@@ -88,11 +123,15 @@ theorem taylorRHS_zero_outside_support {N : Type} [Fintype N] [DecidableEq N]
     exact Or.inr ⟨(r.1 : ℕ) / (k + 1), hil, hdecomp'⟩
   · simp [h1]
 
+/-- At label zero, the Taylor right-hand side equals the initial vector. -/
 theorem taylorRHS_at_zero {N : Type} [Fintype N] [DecidableEq N]
     (m k p : ℕ) (h : ℝ) (x_in b : QState N) (n : N) :
     taylorRHS m k p h x_in b (Prod.mk ⟨0, by omega⟩ n) = x_in n := by
   simp [taylorRHS]
 
+/-- Unitary left and right preparations and unitary controlled fibers produce a unitary paired
+circuit with zero queries and three gates in the formal count. Its compression is the stated
+weighted sum of the compressed fibers. -/
 theorem controlled_prepare_actual_cost {J K I : Type} [Fintype J] [DecidableEq J]
     [Fintype K] [DecidableEq K] [Fintype I] [DecidableEq I]
     (PL PR : Matrix J J ℂ) (U : J → Matrix (K × I) (K × I) ℂ) (j₀ : J) (k₀ : K)
@@ -107,6 +146,8 @@ theorem controlled_prepare_actual_cost {J K I : Type} [Fintype J] [DecidableEq J
   have h := paired_prepare_actual_corner_and_word PL PR U j₀ k₀ hPL hPR hU
   exact ⟨h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.1⟩
 
+/-- A record of access queries, inverse queries and gates, preparation gates, and readout gates
+for a solver run. -/
 structure SolveRunCost where
 
   accessQueries : ℕ
@@ -120,6 +161,8 @@ structure SolveRunCost where
   readoutGates : ℕ
   deriving DecidableEq, Repr
 
+/-- For positive `g` and `m`, if p + 77mg² < 4^kq, then its reciprocal square root is greater
+than 2^(-kq). -/
 theorem padding_quality_of_sum_bound (p kq m : ℕ) (g : ℝ) (hg : 0 < g) (hm : 0 < m)
     (hbound : (p : ℝ) + 77 * (m : ℝ) * g ^ 2 < (4 : ℝ) ^ kq) :
     1 / Real.sqrt ((p : ℝ) + 77 * (m : ℝ) * g ^ 2) > (1 : ℝ) / 2 ^ kq := by
@@ -140,6 +183,8 @@ theorem padding_quality_of_sum_bound (p kq m : ℕ) (g : ℝ) (hg : 0 < g) (hm :
     linarith
   linarith
 
+/-- If the stated ceiling bound leaves room below 4^kq, the padding selected by
+`section7PaddingCount` has reciprocal-square-root quality greater than 2^(-kq). -/
 theorem section7PaddingCount_quality (kq m : ℕ) (g : ℝ) (hg : 0 < g) (hm : 0 < m)
     (hroom : Nat.ceil (77 * (m : ℝ) * g ^ 2) + 1 < 4 ^ kq) :
     1 / Real.sqrt ((section7PaddingCount kq m g : ℝ) + 77 * (m : ℝ) * g ^ 2) >
@@ -161,17 +206,21 @@ theorem section7PaddingCount_quality (kq m : ℕ) (g : ℝ) (hg : 0 < g) (hm : 0
     linarith
   exact padding_quality_of_sum_bound (section7PaddingCount kq m g) kq m g hg hm hbound
 
+/-- The Section 7 label count is m(k + 1) + p + 1. -/
 theorem section7LabelCount_eq (pars : Section7Parameters) :
     section7LabelCount pars = pars.m * (pars.k + 1) + pars.p + 1 := rfl
 
+/-- The query ledger `eq112QueryCount` expands to (2nq - 1) + s(m + p + 1). -/
 theorem eq112QueryCount_eq (pars : Section7Parameters) (s nq : ℕ) :
     eq112QueryCount pars s nq = (2 * nq - 1) + s * (pars.m + pars.p + 1) := rfl
 
+/-- The explicit inverse cutoff at parameters κq and kq + 2 equals κq²(kq + κq + 3). -/
 theorem eq112_cutoff_closed_form (κq kq : ℕ) :
     explicitInverseCutoff κq (kq + 2) = κq * κq * (kq + κq + 3) := by
   rw [(explicit_inverse_cutoff_integer_formula κq (kq + 2)).1]
   ring
 
+/-- The value of `roundFiniteDigit x bits` differs from `x` by at most 2^(-bits). -/
 theorem roundFiniteDigit_error (x : ℝ) (bits : ℕ) :
     |(roundFiniteDigit x bits).value - x| ≤ (1 : ℝ) / 2 ^ bits := by
   have hn : (Nat.floor (|x| * 2 ^ bits) : ℝ) ≤ |x| * 2 ^ bits := by
@@ -215,21 +264,28 @@ theorem roundFiniteDigit_error (x : ℝ) (bits : ℕ) :
       linarith : 0 ≤ |x| - (Nat.floor (|x| * 2 ^ bits) : ℝ) / 2 ^ bits)]
     exact hlt.le
 
+/-- For a rounded finite digit, the defined bit count is `bits + 1` and the defined gate count
+is `bits`. -/
 theorem finiteDigit_counts (x : ℝ) (bits : ℕ) :
     finiteDigitBitCount (roundFiniteDigit x bits) = bits + 1 ∧
       finiteDigitGateCount (roundFiniteDigit x bits) = bits := by
   simp [finiteDigitBitCount, finiteDigitGateCount, roundFiniteDigit]
 
+/-- For 1 ≤ b ≤ k and a complex z with norm at most 1 and nonpositive real part,
+`taylorTransPoly k b z` has norm at most `smallOrderUniformConstant k b`. -/
 theorem smallOrderUniformConstant_bound {k b : ℕ} (hb : 1 ≤ b) (hbk : b ≤ k)
     (z : ℂ) (h1 : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
     ‖taylorTransPoly k b z‖ ≤ smallOrderUniformConstant k b := by
   exact taylorTransPoly_le hb hbk z h1 hre
 
+/-- For k ≥ 5, 1 ≤ b ≤ k, and z in the closed left unit half-disk, `taylorTransPoly k b z` has
+norm at most `frozenUniformConstant`. -/
 theorem frozenUniformConstant_valid_from_five {k b : ℕ} (hk : 5 ≤ k) (hb : 1 ≤ b)
     (hbk : b ≤ k) (z : ℂ) (h1 : ‖z‖ ≤ 1) (hre : z.re ≤ 0) :
     ‖taylorTransPoly k b z‖ ≤ frozenUniformConstant :=
   taylorTransPoly_uniform hk hb hbk z h1 hre
 
+/-- The norm of `taylorTransPoly 3 2 Complex.I` exceeds `frozenUniformConstant`. -/
 theorem frozenUniformConstant_fails_at_three :
     ‖taylorTransPoly 3 2 (Complex.I : ℂ)‖ > frozenUniformConstant := by
   have hpoly : taylorTransPoly 3 2 (Complex.I : ℂ) = 1 + (Complex.I : ℂ) / 3 := by
@@ -252,6 +308,8 @@ theorem frozenUniformConstant_fails_at_three :
   have hsqle : ‖(1 : ℂ) + (Complex.I : ℂ) / 3‖ ^ 2 ≤ (31 / 30) ^ 2 := by nlinarith
   linarith
 
+/-- For a solution of the V2 Taylor linear system, every final padding block equals the final
+time block, including at arbitrary Taylor order. -/
 theorem padding_distribution_small_k {N : Type} [Fintype N] [DecidableEq N]
     (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ)
     (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))

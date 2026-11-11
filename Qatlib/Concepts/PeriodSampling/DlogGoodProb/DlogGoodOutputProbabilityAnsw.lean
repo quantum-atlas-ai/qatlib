@@ -9,6 +9,26 @@ import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogAmplitudeLower
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodPairCountingAnsw
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.MeasureImageBounds
+
+/-!
+# Good-output probabilities and a legacy counterexample
+
+Proves the generator-based contract `DlogGoodOutputProbability` by summing lower bounds over
+distinct powers of a generator. A vanishing measurement row for `g = 1` refutes the legacy
+contract without the generator assumption; these results concern the discrete-logarithm
+construction of [Shor1997].
+
+## Main statements
+
+* `dlogGoodOutputProbability`: Establishes the valid good-output probability contract.
+* `dlogGoodOutputProbability_false`: Refutes the legacy contract.
+* `dlog_orbit_injective`: Shows that generator powers with exponents below `p - 1` are distinct.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +43,8 @@ open Qatlib
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Evaluates the off-grid phase at frequency one eighth and output four as the negative
+reciprocal of the square root of eight. -/
 private theorem dlog_half_phase : offGridPhase 8 (8 : ℝ)⁻¹ (4 : Fin 8) =
     -(Real.sqrt 8 : ℂ)⁻¹ := by
   rw [offGridPhase]
@@ -33,6 +55,8 @@ private theorem dlog_half_phase : offGridPhase 8 (8 : ℝ)⁻¹ (4 : Fin 8) =
     (Real.pi : ℂ)*Complex.I by ring, Complex.exp_pi_mul_I]
   ring
 
+/-- For `p = 3`, `q = 8`, and `g = x = 1`, every amplitude in the row with first coordinate four
+vanishes. -/
 theorem dlog_trivial_group_dark_row (d : Fin 8) (y : ZMod 3) :
     dlogTwoDimState 3 8 1 1 (4, d, y) = 0 := by
   by_cases hy : y = (1 : ZMod 3)
@@ -44,6 +68,7 @@ theorem dlog_trivial_group_dark_row (d : Fin 8) (y : ZMod 3) :
     ring
   · simp [dlogTwoDimState, Ne.symm hy]
 
+/-- The legacy good-output probability contract is false. -/
 theorem dlogGoodOutputProbability_false : ¬ DlogGoodOutputProbabilityLegacy := by
   intro h
   have hg : dlogGoodPair 3 8 1 (4 : Fin 8) (4 : Fin 8) := by
@@ -53,6 +78,8 @@ theorem dlogGoodOutputProbability_false : ¬ DlogGoodOutputProbabilityLegacy := 
     (by norm_num) (by norm_num) (by simp)).2.1 (4 : Fin 8) (4 : Fin 8) 0 (by norm_num) hg
   norm_num [BornProb, dlog_trivial_group_dark_row] at hh
 
+/-- If `g` has order `p - 1` and `p > 1`, its powers indexed by `Fin (p - 1)` form an injective
+map. -/
 theorem dlog_orbit_injective (p : ℕ) [NeZero p] (g : ZMod p) (hp : 1 < p)
     (ho : orderOf g = p-1) : Function.Injective (fun k : Fin (p-1) => g ^ k.val) := by
   have hg : IsOfFinOrder g := orderOf_pos_iff.mp (by rw [ho]; omega)
@@ -61,6 +88,8 @@ theorem dlog_orbit_injective (p : ℕ) [NeZero p] (g : ZMod p) (hp : 1 < p)
   have he := hg.pow_inj_mod.mp h
   simpa only [ho, Nat.mod_eq_of_lt k.isLt, Nat.mod_eq_of_lt l.isLt] using! he
 
+/-- Establishes the good-output and individual-outcome probability bounds with the generator
+hypothesis for the discrete-logarithm construction of [Shor1997]. -/
 theorem dlogGoodOutputProbability : DlogGoodOutputProbability := by
   intro p q r _ g x hprime hp hx0 hpq ho hx
   have hq : 0 < q := by omega

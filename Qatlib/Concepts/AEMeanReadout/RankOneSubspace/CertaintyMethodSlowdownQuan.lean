@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.CertaintyMethodSlowdownStat
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2QuadraticSpeedupRestrictedQuan
+
+/-!
+# A final phase adjustment for certain success
+
+`certaintyMethodSlowdown` proves the phase-adjustment method for exact amplification described
+in [BrassardHoyerTapp1998Counting]. After the integer number of ordinary iterations below the
+ideal stopping point, suitable unit-modulus phases give marked mass one.
+
+## Main statements
+
+* `certaintyMethodSlowdown`: existence of a final phase adjustment yielding certain marked
+  output.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +33,8 @@ namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 
 open scoped BigOperators
 
+/-- For positive amplitudes satisfying the stated normalization and size bound, constructs two
+unit-modulus phases solving the cancellation equations and giving final marked mass one. -/
 private lemma slowdown_phases (a k l : ℝ) (ha : 0 < a)
     (hk : 0 < k) (hl : 0 < l) (hbound : l ^ 2 ≤ 4 * a)
     (hstate : a * k ^ 2 + (1 - a) * l ^ 2 = 1) :
@@ -98,6 +118,8 @@ private lemma slowdown_phases (a k l : ℝ) (ha : 0 < a)
     convert hmass using 1 <;> ring
   exact ⟨φ, ϕ, hφ, hϕ, hfirst, hsecond, hfinal⟩
 
+/-- For `0 < θ < π/2` and a strict floor inequality, the angle after the floored number of
+ordinary iterations lies in `(0, π/2)` and satisfies the stated cosine bound. -/
 private lemma slowdown_angle (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2)
     (hfloor : (Nat.floor (Real.pi / (4 * θ) - 1 / 2) : ℝ) <
       Real.pi / (4 * θ) - 1 / 2) :
@@ -146,6 +168,9 @@ private lemma slowdown_angle (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi / 2
     rw [Real.sin_two_mul] at hc2
     nlinarith
 
+/-- Constructs a final pair of unit-modulus phases that yields marked mass one after the floored
+number of ordinary amplification iterations, under the strict floor condition [Brassard et
+al., Section 2][BrassardHoyerTapp1998Counting]. -/
 theorem certaintyMethodSlowdown : CertaintyMethodSlowdown := by
   intro n A g hA a θ hθ0 hθ1 hmass m hfloor
   let x : ℝ := (2 * (m : ℝ) + 1) * θ

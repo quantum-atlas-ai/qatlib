@@ -8,6 +8,28 @@ import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpDualCertificateMacroStat
 import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpDualPayoffRangeQuan
 import Qatlib.Concepts.MatrixWeights.LambdaMin
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+/-!
+# Dual certificates from matrix multiplicative weights
+
+`sdpDualCertificateMacro` derives a nonnegative, dual feasible certificate with objective at
+most (1 + δ)α from successful oracle responses along the Gibbs history. Trace identities and a
+comparator threshold convert the matrix multiplicative weights estimate into positive
+semidefiniteness of the certificate slack.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpDualCertificateMacro`: Under the normalized input and oracle hypotheses, the averaged dual
+  certificate is nonnegative, has objective at most (1 + δ)α, and has positive semidefinite
+  slack. See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -25,6 +47,8 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 set_option warningAsError false
 
+/-- Evaluates a linear functional on `sdpDualCertificate` as the distinguished-coordinate
+correction plus the time average of the response functionals. -/
 private theorem dualOutputEval (m T : ℕ) (delta alpha R : ℝ) (j0 : Fin m)
     (y : ℕ → Fin m → ℝ) (f : Fin m → ℝ) :
     (∑ i, sdpDualCertificate m delta alpha R j0 y T i * f i) =
@@ -35,6 +59,8 @@ private theorem dualOutputEval (m T : ℕ) (delta alpha R : ℝ) (j0 : Fin m)
   simp only [Finset.sum_mul, ← Finset.sum_div]
   rw [Finset.sum_comm]
 
+/-- Expands the real trace of an SDP dual payoff against a density operator into the weighted
+constraint traces, objective trace, and scalar offset. -/
 private theorem payoffTrace (D m : ℕ) (A : Fin m → Operator D) (C : Operator D)
     (alpha : ℝ) (y : ℕ → Fin m → ℝ) (s : ℕ) (sigma : Operator D)
     (hsigma : IsDensityOperator sigma) :
@@ -47,6 +73,8 @@ private theorem payoffTrace (D m : ℕ) (A : Fin m → Operator D) (C : Operator
     Complex.sub_re, Complex.smul_re, smul_eq_mul, hsigma.2, Complex.one_re, mul_one]
   ring
 
+/-- Sums the payoff trace identity over the first `T` rounds, expressing the result through
+cumulative constraint traces. -/
 private theorem payoffTraceSum (D m T : ℕ) (A : Fin m → Operator D) (C : Operator D)
     (alpha : ℝ) (y : ℕ → Fin m → ℝ) (sigma : Operator D)
     (hsigma : IsDensityOperator sigma) :
@@ -57,6 +85,8 @@ private theorem payoffTraceSum (D m T : ℕ) (A : Fin m → Operator D) (C : Ope
   rw [← Finset.sum_div, Finset.sum_add_distrib, Finset.sum_sub_distrib]
   simp only [Finset.sum_const, Finset.card_range, nsmul_eq_mul]
 
+/-- Expresses the certificate slack trace against a density operator in terms of cumulative
+payoff traces when the distinguished constraint is the identity. -/
 private theorem certificateTrace (D m T : ℕ) (A : Fin m → Operator D) (C : Operator D)
     (delta alpha R : ℝ) (j0 : Fin m) (y : ℕ → Fin m → ℝ) (sigma : Operator D)
     (ha : 0 < alpha) (hT : 0 < T) (hA0 : A j0 = 1) (hsigma : IsDensityOperator sigma) :
@@ -73,6 +103,8 @@ private theorem certificateTrace (D m T : ℕ) (A : Fin m → Operator D) (C : O
   field_simp [ha.ne', hTr]
   ring
 
+/-- Derives the comparator lower bound T(1/2 − δ/(8R)) from the stated regret bound,
+actual-payoff lower bound, and parameter inequalities. -/
 private theorem comparatorThreshold (R delta eps eta T L S actual : ℝ)
     (hR : 0 < R) (hd : 0 < delta) (heta : 0 < eta) (hT : 0 < T)
     (hsmall : eta + eps ≤ delta / (8 * R)) (hround : 16 * R * L ≤ T * delta * eta)
@@ -108,6 +140,8 @@ private theorem comparatorThreshold (R delta eps eta T L S actual : ℝ)
   dsimp [q]
   ring
 
+/-- Identifies the trace of `A` times the outer product of `v` with the inner product of `v` and
+`A *ᵥ v`. -/
 private theorem traceOuterEval {D : ℕ} (A : Operator D) (v : QState (Fin D)) :
     Matrix.trace (A * outerProduct v) = Qatlib.Foundations.PureStateMath.Inner v (A *ᵥ v) := by
   simp only [Matrix.trace, Matrix.diag_apply, Matrix.mul_apply, outerProduct, Matrix.of_apply, Qatlib.Foundations.PureStateMath.Inner,
@@ -119,6 +153,8 @@ private theorem traceOuterEval {D : ℕ} (A : Operator D) (v : QState (Fin D)) :
   intro j _
   ring
 
+/-- A Hermitian operator is positive semidefinite if its real trace pairing with every density
+operator is nonnegative. -/
 private theorem psdOfDensityTrace {D : ℕ} (A : Operator D) (hA : A.IsHermitian)
     (h : ∀ sigma : Operator D, IsDensityOperator sigma → 0 ≤ (Matrix.trace (A * sigma)).re) :
     A.PosSemidef := by
@@ -134,6 +170,9 @@ private theorem psdOfDensityTrace {D : ℕ} (A : Operator D) (hA : A.IsHermitian
   change 0 ≤ ((hA.eigenvalues i : ℂ) * Qatlib.Foundations.PureStateMath.Inner v v).re at ht
   rwa [(normalized_iff_inner_self v).mp hv, mul_one, Complex.ofReal_re] at ht
 
+/-- Under the normalized input and oracle hypotheses, the averaged dual certificate is
+nonnegative, has objective at most (1 + δ)α, and has positive semidefinite slack. See
+[BrandaoSvore2017]. -/
 theorem sdpDualCertificateMacro : SdpDualCertificateMacro := by
   intro D m A Cv b y j0 alpha R delta eps eta hD ha ha1 hR hd he heta hsmall hA hCv hb hA0 hb0 hy
   let T := sdpDualCertRounds D R delta eta

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalAccess
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+/-!
+# Query bounds for fixed scalar signal words
+
+This module bounds changes in the evaluation of a fixed well-formed oracle word by its query
+count times the scalar signal distance. Compression and orthogonal projection estimates turn
+this hybrid bound into response and leakage lower bounds related to [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `scalar_signal_fixed_word_hybrid_bound`: A query-count Lipschitz bound for a fixed word.
+* `scalar_signal_actual_response_query_lower_bound`: Response separation forces a minimum number
+  of queries.
+* `scalar_signal_safe_leakage_query_lower_bound_corrected`: A lower bound combining response
+  separation and a safe leakage difference.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -35,6 +56,7 @@ open Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Evaluation of a scalar-signal word is the product of its instruction matrices. -/
 private theorem scalar_word_prod {W : Type} [Fintype W] [DecidableEq W]
     (x : ℝ) (word : List (AdjointStep (Bool×W))) :
     evaluate (scalarSignalLift W x) word=(word.map (instructionMatrix (scalarSignalLift W x))).prod := by
@@ -42,6 +64,8 @@ private theorem scalar_word_prod {W : Type} [Fintype W] [DecidableEq W]
   | nil => rfl
   | cons c cs ih => simp [evaluate,ih]
 
+/-- Tensor lifting to a finite workspace does not increase the scalar signal distance for
+parameters in `[-1, 1]`. -/
 private theorem scalar_lift_distance_le (W : Type) [Fintype W] [DecidableEq W]
     (x y : ℝ) (hx : x∈Set.Icc (-1) 1) (hy : y∈Set.Icc (-1) 1) :
     ‖scalarSignalLift W x-scalarSignalLift W y‖ ≤  scalarSignalDistance x y := by
@@ -54,6 +78,8 @@ private theorem scalar_lift_distance_le (W : Type) [Fintype W] [DecidableEq W]
   simpa only [mul_one] using!
       mul_le_mul_of_nonneg_left (l2_norm_one_le (I:=W)) (scalarSignalDistance_nonneg x y)
 
+/-- Every instruction in a well-formed scalar-signal word has operator norm at most one when the
+signal lies in `[-1, 1]`. -/
 private theorem scalar_instruction_norm {W : Type} [Fintype W] [DecidableEq W]
     (x : ℝ) (hx : x∈Set.Icc (-1) 1) (word : List (AdjointStep (Bool×W)))
     (hw : WellFormedAdjointCircuit word) (c : AdjointStep (Bool×W)) (hc : c∈word) :
@@ -64,6 +90,8 @@ private theorem scalar_instruction_norm {W : Type} [Fintype W] [DecidableEq W]
   | forward => exact l2_norm_unitary_le_one hu
   | backward => exact l2_norm_unitary_le_one (adjoint_unitary hu)
 
+/-- For a fixed well-formed word and signals in `[-1, 1]`, the evaluation difference is at most
+the query count times `scalarSignalDistance`. -/
 theorem scalar_signal_fixed_word_hybrid_bound : ∀ (W : Type) [Fintype W] [DecidableEq W]
   (word : List (AdjointStep (Bool×W))) (x y : ℝ),
   WellFormedAdjointCircuit word → x ∈ Set.Icc (-1) 1 → y ∈ Set.Icc (-1) 1 →
@@ -101,6 +129,7 @@ theorem scalar_signal_fixed_word_hybrid_bound : ∀ (W : Type) [Fintype W] [Deci
         nlinarith only [ih,hback]
   exact hp.trans (by simpa only [pairs,List.map_map,Function.comp_def] using! hsum)
 
+/-- Compression between isometries does not increase the operator norm of a matrix difference. -/
 private theorem scalar_compression_difference {W I : Type} [Fintype W] [DecidableEq W]
     [Fintype I] [DecidableEq I] (L R : Matrix (Bool×W) I ℂ)
     (hL : IsIsometry L) (hR : IsIsometry R) (V Z : Matrix (Bool×W) (Bool×W) ℂ) :
@@ -116,6 +145,9 @@ private theorem scalar_compression_difference {W I : Type} [Fintype W] [Decidabl
   have hh := mul_le_mul hmid hR1 (norm_nonneg R) (norm_nonneg (V-Z))
   exact hnorm.trans (by simpa only [mul_one] using! hh)
 
+/-- Approximating scalar responses `a` and `b` at distinct signals within nonnegative error
+`eps` requires at least `max 0 (|a - b| - 2 * eps) / scalarSignalDistance x y` queries. For
+both signals in `[-1/2, 1/2]`, the denominator can be replaced by `2 * |x - y|`. -/
 theorem scalar_signal_actual_response_query_lower_bound : ∀ (W I : Type) [Fintype W] [DecidableEq W] [Fintype I]
   [DecidableEq I] [Nonempty I] (L R : Matrix (Bool×W) I ℂ)
   (word : List (AdjointStep (Bool×W))) (x y a b eps : ℝ),
@@ -155,12 +187,15 @@ theorem scalar_signal_actual_response_query_lower_bound : ∀ (W I : Type) [Fint
   apply (div_le_iff₀ hdx).mpr
   exact hnum.trans (mul_le_mul_of_nonneg_left (hd.2.2.2.2 hxhalf hyhalf) (Nat.cast_nonneg _))
 
+/-- An orthogonal projector and its complement split the squared Euclidean norm of a state
+additively. -/
 private theorem scalar_projector_norm_split {H : Type} [Fintype H] [DecidableEq H]
     (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P) (ψ : QState H) :
     ‖toEuclidean_fromVec ((1-P)*ᵥψ)‖^2+‖toEuclidean_fromVec (P*ᵥψ)‖^2=‖toEuclidean_fromVec ψ‖^2 := by
   simpa only [ProjectiveBranchMass,ProjectiveBranch,ApplyGate,↓reduceIte,MeasureProb,BornProb,
     ← norm_toEuclidean_fromVec_sq] using! projectiveBranchMass_add hP ψ
 
+/-- The complement of an orthogonal projector is a contraction on state vectors. -/
 private theorem scalar_failure_contract {H : Type} [Fintype H] [DecidableEq H]
     (P : Matrix H H ℂ) (hP : IsOrthogonalProjector P) (ψ : QState H) :
     ‖toEuclidean_fromVec ((1-P)*ᵥψ)‖ ≤ ‖toEuclidean_fromVec ψ‖ := by
@@ -168,6 +203,8 @@ private theorem scalar_failure_contract {H : Type} [Fintype H] [DecidableEq H]
   have hh := scalar_projector_norm_split P hP ψ
   nlinarith only [hh,sq_nonneg ‖toEuclidean_fromVec (P*ᵥψ)‖]
 
+/-- For a unit state and an isometry `L`, the norm outside the range of `L` is the square root
+of one minus the squared norm of `Lᴴ` applied to the state. -/
 private theorem scalar_failure_norm {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (L : Matrix H I ℂ) (hL : IsIsometry L)
     (ψ : QState H) (hn : ‖toEuclidean_fromVec ψ‖=1) :
@@ -182,6 +219,8 @@ private theorem scalar_failure_norm {H I : Type} [Fintype H] [DecidableEq H]
     nlinarith only [hh,sq_nonneg ‖toEuclidean_fromVec ((1-rangeProjector L)*ᵥψ)‖]
   nlinarith only [hh,Real.sq_sqrt hrad,norm_nonneg (toEuclidean_fromVec ((1-rangeProjector L)*ᵥψ)),Real.sqrt_nonneg (1-‖toEuclidean_fromVec (Lᴴ*ᵥψ)‖^2)]
 
+/-- An operator-norm approximation to the scalar matrix `a` bounds the difference between `|a|`
+and each compressed basis-output norm by `eps`. -/
 private theorem scalar_corner_state_error {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (L R : Matrix H I ℂ) (V : Matrix H H ℂ)
     (a eps : ℝ) (j : I) (ha : ‖(a : ℂ) • (1 : Matrix I I ℂ)-compress L V R‖ ≤ eps) :
@@ -200,6 +239,10 @@ private theorem scalar_corner_state_error {H I : Type} [Fintype H] [DecidableEq 
     rw [norm_smul,hket,mul_one,Complex.norm_real,Real.norm_eq_abs]
   rwa [htarget] at hh
 
+/-- Under the stated scalar response, isometry, and error assumptions, the query count is
+bounded below by the maximum of zero, response separation, and the oriented leakage
+difference, divided by scalar signal distance. This is the corrected leakage comparison in
+the setting of [Gilyén et al., Theorem 73][GilyenSuLowWiebe2019]. -/
 theorem scalar_signal_safe_leakage_query_lower_bound_corrected : ∀ (W I : Type) [Fintype W] [DecidableEq W] [Fintype I]
   [DecidableEq I] [Nonempty I] (L R : Matrix (Bool×W) I ℂ)
   (word : List (AdjointStep (Bool×W))) (x y a b eps : ℝ),

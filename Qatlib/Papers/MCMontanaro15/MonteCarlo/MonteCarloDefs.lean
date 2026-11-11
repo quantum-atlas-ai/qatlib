@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
 import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityStat
+
+/-!
+# Finite payoff sources and Monte Carlo parameters
+
+This module defines finite payoff sources, draw records, centered payoff bands, and resource
+records for the Monte Carlo analysis of [Montanaro2015]. The identity
+`algorithm3_reconstruction` reconstructs the scaled expectation from the two centered bands.
+
+It also provides a second-moment bound on `tailAbove`, a two-level probability law, pilot
+variance bounds and certified group sizes, and exponential bounds comparing a partition function
+with its zero-energy limit.
+
+## Main statements
+
+* `algorithm3_reconstruction`: Reconstruction of the scaled expectation from centered bands.
+* `tailAbove_le_secondMoment_div`: A second-moment bound for the upper tail contribution.
+* `partitionFn_sub_partitionFnLimit_le`: An exponential bound on the partition-function tail.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 open Qatlib.Concepts.EstimatorLaws.TvStability
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -23,30 +46,40 @@ set_option linter.unusedSectionVars false
 
 variable {X : Type} [Fintype X] [DecidableEq X]
 
+/-- A finite probability distribution together with a real-valued payoff on its sample space. -/
 structure PayoffSource where
 
   law : FinDist X
 
   payoff : X → ℝ
 
+/-- A record of n draws from `X`, represented by a function from `Fin n`. -/
 abbrev DrawRecord (n : ℕ) (X : Type) := Fin n → X
 
+/-- The empirical average of the payoff over a finite draw record. -/
 noncomputable def recordMean {X : Type} [Fintype X] {n : ℕ} (f : X → ℝ) (ω : DrawRecord n X) : ℝ :=
   FinDist.avg f ω
 
+/-- The payoff obtained by dividing each value of `f` by σ. -/
 noncomputable def scaledPayoff (f : X → ℝ) (σ : ℝ) : X → ℝ := fun x => f x / σ
 
+/-- The scaled payoff f/σ shifted by the real value m. -/
 noncomputable def centeredPayoff (f : X → ℝ) (σ m : ℝ) : X → ℝ := fun x => f x / σ - m
 
+/-- The negative part of a real value, retained with its original sign and set to zero
+otherwise. -/
 noncomputable def bandBelowZero (v : ℝ) : ℝ := if v < 0 then v else 0
 
+/-- The nonnegative part of a real value, set to zero on negative inputs. -/
 noncomputable def bandAtLeastZero (v : ℝ) : ℝ := if 0 ≤ v then v else 0
 
+/-- Expectation under a finite distribution is additive on real payoffs. -/
 theorem expect_add (p : FinDist X) (f g : X → ℝ) :
     p.expect (f + g) = p.expect f + p.expect g := by
   simp only [FinDist.expect, Pi.add_apply, mul_add]
   rw [← Finset.sum_add_distrib]
 
+/-- The expectation of a negated payoff is the negative of its expectation. -/
 theorem expect_neg (p : FinDist X) (f : X → ℝ) :
     p.expect (fun x => -f x) = -p.expect f := by
   have e : ∀ x, p.prob x * (-f x) = -(p.prob x * f x) := fun x => by ring
@@ -55,6 +88,7 @@ theorem expect_neg (p : FinDist X) (f : X → ℝ) :
   unfold FinDist.expect
   exact hmain
 
+/-- Subtracting a constant from a payoff subtracts the same constant from its expectation. -/
 theorem expect_sub_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
     p.expect (fun x => f x - c) = p.expect f - c := by
   have h : (∑ x, p.prob x * c) = c := by
@@ -65,6 +99,7 @@ theorem expect_sub_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
   unfold FinDist.expect
   exact hmain
 
+/-- Dividing a payoff by a real constant divides its expectation by that constant. -/
 theorem expect_div_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
     p.expect (fun x => f x / c) = p.expect f / c := by
   have e : ∀ x, p.prob x * (f x / c) = (p.prob x * f x) / c := fun x => by ring
@@ -73,6 +108,7 @@ theorem expect_div_const (p : FinDist X) (f : X → ℝ) (c : ℝ) :
   unfold FinDist.expect
   exact hmain
 
+/-- The negative and nonnegative bands sum to the original real value. -/
 theorem bandBelowZero_add_bandAtLeastZero (v : ℝ) :
     bandBelowZero v + bandAtLeastZero v = v := by
   by_cases h : v < 0
@@ -81,6 +117,8 @@ theorem bandBelowZero_add_bandAtLeastZero (v : ℝ) :
   · have hpos : 0 ≤ v := le_of_not_gt h
     simp [bandBelowZero, bandAtLeastZero, h, hpos]
 
+/-- The center minus the expected negated negative band plus the expected nonnegative band
+equals the scaled payoff expectation. -/
 theorem algorithm3_reconstruction (p : FinDist X) (f : X → ℝ) (σ m : ℝ) :
     m - p.expect (fun i => -(bandBelowZero (centeredPayoff f σ m i)))
         + p.expect (fun i => bandAtLeastZero (centeredPayoff f σ m i))
@@ -103,11 +141,14 @@ theorem algorithm3_reconstruction (p : FinDist X) (f : X → ℝ) (σ m : ℝ) :
       = p.expect (fun i => f i / σ) - m := expect_sub_const p _ _
   linarith
 
+/-- The empirical mean of a one-draw record equals the payoff of its single entry. -/
 theorem recordMean_one (f : X → ℝ) (ω : DrawRecord 1 X) : recordMean f ω = f (ω 0) := by
   unfold recordMean FinDist.avg
   rw [Fin.sum_univ_one]
   norm_num
 
+/-- If a payoff has variance at most one, a single draw differs from its expectation by more
+than three with probability at most 1/9. -/
 theorem pilot_chebyshev_one (p : FinDist X) (g : X → ℝ) (hg : p.variance g ≤ 1) :
     p.probEvent (L := 1) (fun ω : DrawRecord 1 X => 3 < |g (ω 0) - p.expect g|) ≤ 1 / 9 := by
   have h := p.chebyshev_avg g (by norm_num : (0 : ℕ) < 1) 3 (by norm_num)
@@ -123,9 +164,12 @@ theorem pilot_chebyshev_one (p : FinDist X) (g : X → ℝ) (hg : p.variance g �
       rw [hone]
       exact div_le_div_of_nonneg_right hg (by norm_num)
 
+/-- The expected payoff retained only on outcomes where f(x) ≥ m. -/
 noncomputable def tailAbove (p : FinDist X) (f : X → ℝ) (m : ℝ) : ℝ :=
   p.expect (fun x => if m ≤ f x then f x else 0)
 
+/-- For a nonnegative payoff and positive threshold m, its retained upper-tail expectation is at
+most its second moment divided by m. -/
 theorem tailAbove_le_secondMoment_div (p : FinDist X) (f : X → ℝ)
     (hf : ∀ x, 0 ≤ f x) (m : ℝ) (hm : 0 < m) :
     tailAbove p f m ≤ p.expect (fun x => f x ^ 2) / m := by
@@ -151,6 +195,7 @@ theorem tailAbove_le_secondMoment_div (p : FinDist X) (f : X → ℝ)
         rw [FinDist.expect]
         exact expect_div_const p (fun x => f x ^ 2) m
 
+/-- The layer count, work per layer, accuracy, and failure parameters for a layered estimate. -/
 structure LayerParameters where
 
   layers : ℕ
@@ -161,6 +206,7 @@ structure LayerParameters where
 
   failure : ℝ
 
+/-- The scale, accuracy, failure parameter, and layer parameters associated with Algorithm 3. -/
 structure Algorithm3Parameters where
 
   sigma : ℝ
@@ -171,6 +217,7 @@ structure Algorithm3Parameters where
 
   layers : LayerParameters
 
+/-- Natural-number counts for copies, reflections, median operations, and classical bits. -/
 structure CostLedger where
 
   copies : ℕ
@@ -181,20 +228,25 @@ structure CostLedger where
 
   classicalBits : ℕ
 
+/-- The cost ledger obtained by multiplying every count by the number of repetitions. -/
 def CostLedger.replicate (c : CostLedger) (n : ℕ) : CostLedger :=
   { copies := c.copies * n
     reflections := c.reflections * n
     medians := c.medians * n
     classicalBits := c.classicalBits * n }
 
+/-- A fixed draw count and a real-valued output function of that many natural-number
+observations. -/
 structure OpaqueSampler where
 
   draws : ℕ
 
   run : (Fin draws → ℕ) → ℝ
 
+/-- The distinguished value N + 1 in `Fin (N + 2)`. -/
 def twoLevelLarge (N : ℕ) : Fin (N + 2) := ⟨N + 1, by omega⟩
 
+/-- The finite probability law assigning mass 1 − p to zero and mass p to N + 1, for 0 ≤ p ≤ 1. -/
 noncomputable def twoLevelLaw (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (N : ℕ) :
     FinDist (Fin (N + 2)) where
   prob x := (if x = 0 then 1 - p else 0) + (if x = twoLevelLarge N then p else 0)
@@ -218,20 +270,26 @@ noncomputable def twoLevelLaw (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (N : ℕ
     rw [Finset.sum_add_distrib, h1, h2]
     ring
 
+/-- The empirical average of the squared payoff over a pilot draw record. -/
 noncomputable def pilotSecondMoment {n : ℕ} (f : X → ℝ) (ω : DrawRecord n X) : ℝ :=
   FinDist.avg (fun x => f x ^ 2) ω
 
+/-- The empirical pilot second moment plus the tolerance t. -/
 noncomputable def pilotVarianceBound {n : ℕ} (f : X → ℝ) (t : ℝ)
     (ω : DrawRecord n X) : ℝ :=
   pilotSecondMoment f ω + t
 
+/-- The natural ceiling of four times the pilot variance bound divided by ε². -/
 noncomputable def certifiedSamplesPerGroup {n : ℕ} (f : X → ℝ) (t ε : ℝ)
     (ω : DrawRecord n X) : ℕ :=
   Nat.ceil (4 * pilotVarianceBound f t ω / ε ^ 2)
 
+/-- The number of zero-energy configurations, expressed as a real finite sum. -/
 noncomputable def partitionFnLimit {Ω : Type} [Fintype Ω] (H : Ω → ℕ) : ℝ :=
   ∑ x : Ω, if H x = 0 then 1 else 0
 
+/-- The zero-energy partition limit is at most the partition function at every real
+inverse-temperature parameter. -/
 theorem partitionFnLimit_le_partitionFn {Ω : Type} [Fintype Ω] (H : Ω → ℕ) (β : ℝ) :
     partitionFnLimit H ≤ partitionFn H β := by
   have hpoint : ∀ x : Ω, (if H x = 0 then 1 else 0) ≤ Real.exp (-(β * (H x : ℝ))) := by
@@ -245,6 +303,8 @@ theorem partitionFnLimit_le_partitionFn {Ω : Type} [Fintype Ω] (H : Ω → ℕ
   unfold partitionFnLimit partitionFn
   exact Finset.sum_le_sum fun x _ => hpoint x
 
+/-- For β ≥ 0, the partition function minus its zero-energy limit lies between zero and the
+number of configurations times exp(−β). -/
 theorem partitionFn_sub_partitionFnLimit_le {Ω : Type} [Fintype Ω] (H : Ω → ℕ) (β : ℝ)
     (hβ : 0 ≤ β) :
     0 ≤ partitionFn H β - partitionFnLimit H ∧

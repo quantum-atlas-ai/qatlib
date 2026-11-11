@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationContracts
 import Qatlib.Foundations.BornMetrics.EventProbability
+
+/-!
+# Prescribed accuracy for variable-time estimates
+
+The radius `vtEstimateRadius` bounds the standard amplitude-estimation error and defines a
+success event of mass at least `8 / π²`. This module also proves support exactness at zero
+probability and connects the sampling law with the counted circuit, providing the estimation
+primitive used in the variable-time framework of [Ambainis2012].
+
+## Main statements
+
+* `vt_prescribed_estimate_success`: the prescribed-radius success bound.
+* `vt_prescribed_estimate_zero_support`: exactness for zero success mass.
+* `vt_prescribed_estimate_circuit_and_count`: Born semantics and the count `6 * M - 3`.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,9 +43,12 @@ open Matrix
 open scoped Classical
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The prescribed estimation radius `a / 4 + 8 * sqrt a / M + 10 / M²`. -/
 def vtEstimateRadius (a : ℝ) (M : ℕ) : ℝ :=
   a / 4 + 8 / (M : ℝ) * Real.sqrt a + 10 / (M : ℝ) ^ 2
 
+/-- For nonnegative `a` and positive `M`, the standard amplitude-estimation error expression is
+bounded by `vtEstimateRadius a M`. -/
 theorem vt_bhmt_error_le_radius (a : ℝ) (ha0 : 0 ≤ a)
     (M : ℕ) (hM : 0 < M) :
     2*Real.pi*Real.sqrt (a*(1-a))/(M : ℝ)+Real.pi^2/(M : ℝ)^2 ≤ vtEstimateRadius a M := by
@@ -45,6 +68,8 @@ theorem vt_bhmt_error_le_radius (a : ℝ) (ha0 : 0 ≤ a)
       rw [show (8*Real.sqrt a)/(M : ℝ)=8/(M : ℝ)*Real.sqrt a from by ring]
       linarith
 
+/-- For unitary preparation and `M ≥ 2`, the amplitude estimate lies within the prescribed
+radius with probability at least `8 / π²`. -/
 theorem vt_prescribed_estimate_success (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (hA : A∈Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I) :
     8/Real.pi^2 ≤ ∑ z∈Finset.univ.filter
@@ -60,6 +85,8 @@ theorem vt_prescribed_estimate_success (M : ℕ) (hM : 2 ≤ M)
   have hbounds := prepared_aa_good_bad_geometry A j S hA
   exact vt_bhmt_error_le_radius _ hbounds.2.2.2.2.1 M (by omega)
 
+/-- If the prepared success mass is zero, every outcome label of positive probability has
+estimate zero. -/
 theorem vt_prescribed_estimate_zero_support (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (hA : A∈Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (ha : MeasureProb (preparedAAState A j) S=0) (z : Fin M)
@@ -73,6 +100,8 @@ theorem vt_prescribed_estimate_zero_support (M : ℕ) (hM : 2 ≤ M)
   subst z
   simp [aeEstimate]
 
+/-- For unitary preparation and `M ≥ 2`, the estimation law equals the counted circuit's label
+measurement law, and the total query and gate count is `6 * M - 3`. -/
 theorem vt_prescribed_estimate_circuit_and_count (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (hA : A∈Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I) :
     (∀ z,(aeLaw M A j S hA hM).prob z =

@@ -83,27 +83,60 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Finite complex states for LCU frames
+
+`State` represents finite complex coordinate vectors, with `Inner` and `Normalized` expressing
+the complex inner product and squared-amplitude normalization. `toHilbert` converts these
+coordinates to complex Euclidean space, and the module proves that inner products and unit norms
+agree under this conversion.
+
+`inner_mulVec_left_rect` gives the adjoint identity for rectangular matrix actions. These
+coordinate identities provide the Hilbert-space foundations for the LCU frame calculations
+associated with [PoulinEtAl2018].
+
+## Main statements
+
+* `inner_toHilbert`: coordinate and Euclidean inner products agree.
+* `normalized_iff_hilbert`: squared-amplitude normalization is equivalent to Hilbert norm one.
+* `inner_mulVec_left_rect`: rectangular matrix action transfers across the inner product by
+  conjugate transpose.
+
+## References
+
+* [Poulin et al., 2018][PoulinEtAl2018]
+-/
+
 namespace Qatlib.Foundations.MatrixGeometry.LcuFrame
 set_option autoImplicit false
 noncomputable section
 open Matrix
 
+/-- Complex coordinate vectors indexed by `I`. -/
 abbrev State (I : Type*) := I → ℂ
 
+/-- The finite complex inner product, conjugate-linear in its first coordinate vector. -/
 def Inner {I : Type*} [Fintype I] (u v : State I) : ℂ := star u ⬝ᵥ v
 
+/-- The condition that the sum of squared coordinate norms is one. -/
 def Normalized {I : Type*} [Fintype I] (u : State I) : Prop := ∑ i, ‖u i‖^2=1
 
+/-- The coordinate vector regarded as an element of complex Euclidean space. -/
 def toHilbert {I : Type*} (u : State I) : EuclideanSpace ℂ I := WithLp.toLp 2 u
 
+/-- The coordinate inner product is the sum of conjugated first coordinates times second
+coordinates. -/
 theorem inner_apply {I : Type*} [Fintype I] (u v : State I) :
     Inner u v = ∑ i, (starRingEnd ℂ) (u i) * v i := by
   simp only [Inner, dotProduct, Pi.star_apply, RCLike.star_def]
 
+/-- Converting coordinate vectors to Euclidean space preserves their complex inner product. -/
 theorem inner_toHilbert {I : Type*} [Fintype I] (u v : State I) :
     inner ℂ (toHilbert u) (toHilbert v) = Inner u v := by
   simp [toHilbert, EuclideanSpace.inner_toLp_toLp, Inner, dotProduct_comm]
 
+/-- A finite coordinate vector is normalized exactly when its Euclidean realization has norm
+one. -/
 theorem normalized_iff_hilbert {I : Type*} [Fintype I] (u : State I) :
     Normalized u ↔ ‖toHilbert u‖=1 := by
   have h := EuclideanSpace.norm_sq_eq (toHilbert u)
@@ -113,6 +146,8 @@ theorem normalized_iff_hilbert {I : Type*} [Fintype I] (u : State I) :
   · nlinarith [norm_nonneg (toHilbert u)]
   · nlinarith
 
+/-- The inner product of `M *ᵥ ψ` with `φ` equals the inner product of `ψ` with `Mᴴ *ᵥ φ` for
+any finite rectangular complex matrix. -/
 theorem inner_mulVec_left_rect {I K : Type*} [Fintype I] [DecidableEq I] [Fintype K]
     [DecidableEq K] (M : Matrix K I ℂ) (ψ : State I) (φ : State K) :
     Inner (M *ᵥ ψ) φ = Inner ψ (Mᴴ *ᵥ φ) := by

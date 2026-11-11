@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.TopLevelAllMarkedGainStat
+
+/-!
+# All-marked boundary of amplified Fourier sampling
+
+`topLevelAllMarkedGain_answer` treats the boundary in which the progression and its complement
+mark every label. The amplified output is concentrated at zero, and the theorem transports this
+fact through the Bernoulli subset weight in the noisy-transform setting of [Cornwell2014].
+
+## Main statements
+
+* `topLevelAllMarkedGain_answer`: Proves `TopLevelAllMarkedGain`: marking a set and its
+  complement yields a unitary circuit with output concentrated at zero and the stated
+  Bernoulli-weighted probabilities; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -17,6 +36,9 @@ open Matrix
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- Proves `TopLevelAllMarkedGain`: marking a set and its complement yields a unitary circuit
+with output concentrated at zero and the stated Bernoulli-weighted probabilities; see
+[Cornwell2014]. -/
 theorem topLevelAllMarkedGain_answer : TopLevelAllMarkedGain := by
   intro N k _ p _hp0 _hp1 d hd A
   (try dsimp only)

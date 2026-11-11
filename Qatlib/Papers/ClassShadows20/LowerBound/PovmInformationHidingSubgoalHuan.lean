@@ -9,6 +9,26 @@ import Qatlib.Papers.ClassShadows20.LowerBound.FiniteMutualInformation
 import QuantumInfo.ForMathlib.HermitianMat.Inner
 import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Finite POVM information hiding bound
+
+Trace inequalities for positive semidefinite operators support `povmInformationHidingSubgoal`.
+The proof bounds the entropy gap of finite POVM outcomes for rotated projector codes,
+conditional on the specified first and Hermitian second moments. `gatedConjugate` handles
+ensemble elements outside the positive-probability support.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `povmInformationHidingSubgoal`: proves the conditional finite POVM entropy bound.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +44,7 @@ open Matrix
 open scoped ComplexOrder
 open scoped Classical BigOperators
 
+/-- The real trace of the product of two positive semidefinite operators is nonnegative. -/
 private theorem trace_mul_re_nonneg {D : ℕ} (A B : Operator D)
     (hA : A.PosSemidef) (hB : B.PosSemidef) :
     0 ≤ (Matrix.trace (A * B)).re := by
@@ -33,6 +54,8 @@ private theorem trace_mul_re_nonneg {D : ℕ} (A B : Operator D)
   rw [HermitianMat.inner_eq_re_trace] at h
   exact h
 
+/-- For a positive semidefinite operator, the real trace of its square is at most the square of
+its real trace. -/
 private theorem trace_sq_le_trace_sq {D : ℕ} (A : Operator D) (hA : A.PosSemidef) :
     (Matrix.trace (A * A)).re ≤ (Matrix.trace A).re ^ 2 := by
   have hA' : (0 : HermitianMat (Fin D) ℂ) ≤ ⟨A, hA.1⟩ := HermitianMat.zero_le_iff.mpr hA
@@ -40,11 +63,16 @@ private theorem trace_sq_le_trace_sq {D : ℕ} (A : Operator D) (hA : A.PosSemid
   rw [HermitianMat.inner_eq_re_trace] at h
   exact h.trans_eq (pow_two _).symm
 
+/-- Conjugates the input by `Uf i` on the positive-probability support of `μ` and returns the
+input elsewhere. -/
 private noncomputable def gatedConjugate {d : ℕ} {I : Type} [Fintype I]
     (μ : FinDist I) (Uf : I → Operator d)
     (ρ : Operator d) (i : I) : Operator d :=
   if 0 < μ.prob i then Uf i * ρ * (Uf i)ᴴ else ρ
 
+/-- Under the finite POVM, projector-code, and rotation-moment assumptions of
+`PovmInformationHidingSubgoal`, the outcome entropy gap is at most `α² * (d - r) / (r * (d +
+1))`; see [Huang et al., Lemma 8][HuangKuengPreskill2020]. -/
 theorem povmInformationHidingSubgoal : PovmInformationHidingSubgoal := by
   intro d r M O _ _ I _ _ F hFpsd hFsum P hP hd hr hrd hM α hα0 hα1 μ Uf hμU s hs h1 h2
   classical

@@ -8,6 +8,24 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Dixon.Def
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.IntegralBound
+
+/-!
+# Decay bounds for the second Dixon component
+
+This module bounds `dixonH2` outside a ball containing the curve, using either a uniform
+numerator bound or an integral of its norm. The bounds imply decay at infinity, as needed for
+the Liouville argument in the contour foundations supporting [WangEtAl2026].
+
+## Main statements
+
+* `dixonH2_norm_le_of_integrable`: an integral numerator bound.
+* `dixonH2_tendsto_zero_of_integrable`: decay along the cocompact filter.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -22,6 +40,8 @@ namespace TauCeti.Contour
 
 variable {f : ℂ → ℂ} {γ : ℝ → ℂ} {a b : ℝ}
 
+/-- If the curve lies in the radius `R` ball and its numerator is bounded by `M`, bounds
+`‖dixonH2 f γ a b w‖` by `M * |b - a| / (‖w‖ - R)` outside that ball. -/
 theorem dixonH2_norm_le {R M : ℝ}
     (hR : ∀ t ∈ uIcc a b, ‖γ t‖ ≤ R) (hM : ∀ t ∈ uIcc a b, ‖f (γ t) * deriv γ t‖ ≤ M)
     {w : ℂ} (hw : R < ‖w‖) :
@@ -39,6 +59,8 @@ theorem dixonH2_norm_le {R M : ℝ}
     exact hM t ht
   exact intervalIntegral.norm_integral_le_of_norm_le_const h_ptwise
 
+/-- A complex function bounded by `C / (‖w‖ - R)` outside a ball tends to zero along the
+cocompact filter. -/
 private theorem tendsto_zero_cocompact_of_norm_le_div {F : ℂ → ℂ} {R C : ℝ}
     (hbound : ∀ w : ℂ, R < ‖w‖ → ‖F w‖ ≤ C / (‖w‖ - R)) :
     Tendsto F (cocompact ℂ) (nhds 0) := by
@@ -58,6 +80,8 @@ private theorem tendsto_zero_cocompact_of_norm_le_div {F : ℂ → ℂ} {R C : �
         rw [div_lt_iff₀ hε] at h2
         linarith [mul_comm ε (‖w‖ - R)]
 
+/-- The second Dixon component tends to zero at infinity when the curve and contour numerator
+have uniform bounds. -/
 theorem dixonH2_tendsto_zero {R M : ℝ}
     (hR : ∀ t ∈ uIcc a b, ‖γ t‖ ≤ R) (hM : ∀ t ∈ uIcc a b, ‖f (γ t) * deriv γ t‖ ≤ M) :
     Tendsto (dixonH2 f γ a b) (cocompact ℂ) (nhds 0) := by
@@ -65,6 +89,8 @@ theorem dixonH2_tendsto_zero {R M : ℝ}
   rw [← div_mul_eq_mul_div]
   exact dixonH2_norm_le hR hM hw
 
+/-- Bounds the second Dixon component by the integral of the numerator norm divided by `‖w‖ -
+R`, assuming numerator integrability and a curve norm bound. -/
 theorem dixonH2_norm_le_of_integrable {R : ℝ} (hR : ∀ t ∈ Ι a b, ‖γ t‖ ≤ R)
     (hg : IntervalIntegrable (fun t ↦ f (γ t) * deriv γ t) volume a b) {w : ℂ} (hw : R < ‖w‖) :
     ‖dixonH2 f γ a b w‖ ≤ (∫ t in Ι a b, ‖f (γ t) * deriv γ t‖) / (‖w‖ - R) := by
@@ -74,6 +100,8 @@ theorem dixonH2_norm_le_of_integrable {R : ℝ} (hR : ∀ t ∈ Ι a b, ‖γ t�
   rw [dixonH2_def, hcongr]
   exact norm_integral_inv_sub_smul_le hg hR hw
 
+/-- The second Dixon component tends to zero at infinity when its numerator is interval
+integrable and the curve is bounded. -/
 theorem dixonH2_tendsto_zero_of_integrable {R : ℝ} (hR : ∀ t ∈ Ι a b, ‖γ t‖ ≤ R)
     (hg : IntervalIntegrable (fun t ↦ f (γ t) * deriv γ t) volume a b) :
     Tendsto (dixonH2 f γ a b) (cocompact ℂ) (nhds 0) :=

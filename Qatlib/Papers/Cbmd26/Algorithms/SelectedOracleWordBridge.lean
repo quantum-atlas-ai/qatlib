@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.IndexedQSVTBridge
 import Qatlib.Papers.Cbmd26.Algorithms.ControlledAccessBridge
+
+/-!
+# Coefficient LCU words for selected oracles
+
+`selectedCoefficientWord` wraps a common oracle word with coefficient preparation to implement a
+linear combination over a selected oracle family. The construction supports the contour-based
+matrix decompositions of [WangEtAl2026].
+
+## Main statements
+
+* `selectedCoefficientWord_evaluate`: identifies the evaluated word with the coefficient LCU
+  unitary.
+* `selectedCoefficientWord_blockEncoding`: combines branch encodings with weighted normalization
+  and error while preserving the query count.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -45,11 +65,15 @@ open scoped BigOperators Matrix.Norms.L2Operator
 variable {J W I : Type} [Fintype J] [DecidableEq J] [Fintype W] [DecidableEq W]
   [Fintype I] [DecidableEq I]
 
+/-- The coefficient LCU word obtained by lifting a common oracle word to a spectator label
+register and adding coefficient preparation. -/
 def selectedCoefficientWord (c : J → ℂ) (j₀ : J) (cs : List (AdjointStep W)) :
     List (AdjointStep (J × W)) := outerCoefficientWord c j₀ (spectatorLiftWord J cs)
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Evaluating the selected coefficient word yields the coefficient LCU unitary of the
+individually evaluated branch words. -/
 theorem selectedCoefficientWord_evaluate (c : J → ℂ) (j₀ : J)
     (U : J → Matrix W W ℂ) (cs : List (AdjointStep W)) :
     evaluate (select U) (selectedCoefficientWord c j₀ cs) =
@@ -58,6 +82,7 @@ theorem selectedCoefficientWord_evaluate (c : J → ℂ) (j₀ : J)
 
 omit [Fintype I] [DecidableEq I] [Fintype W] in
 
+/-- Coefficient wrapping preserves the adjoint-oracle query count and adds three fixed gates. -/
 theorem selectedCoefficientWord_cost (c : J → ℂ) (j₀ : J) (cs : List (AdjointStep W)) :
     adjointQueryCount (selectedCoefficientWord c j₀ cs) = adjointQueryCount cs ∧
     adjointGateCount (selectedCoefficientWord c j₀ cs) = adjointGateCount cs + 3 := by
@@ -65,6 +90,9 @@ theorem selectedCoefficientWord_cost (c : J → ℂ) (j₀ : J) (cs : List (Adjo
   simpa only [(spectatorLiftWord_cost J cs).1, (spectatorLiftWord_cost J cs).2] using!
       And.intro hq hg
 
+/-- A well-formed common word encoding each branch yields a well-formed coefficient LCU encoding
+of `∑ j, c j • A j`, with weighted normalization and error. The construction preserves the
+common word's query count when the scaled coefficient mass is positive. -/
 theorem selectedCoefficientWord_blockEncoding (c : J → ℂ) (j₀ : J)
     (U : J → Matrix W W ℂ) (cs : List (AdjointStep W))
     (hcs : WellFormedAdjointCircuit cs) (A : J → Matrix I I ℂ) (F : Matrix W I ℂ)

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AndersonLoc09.MainResults.Defs
 
+/-!
+# Leading splitting at the crossing threshold
+
+The leading splitting expression equals four at `lambdaStar` and is at least four above that
+threshold for positive size and splitting coefficient. The elementary inequality
+`clause_anticrossing` compares two energies after a shift smaller than four
+[AltshulerKroviRoland2010].
+
+## Main statements
+
+* `leadingSplitting_lambdaStar`: evaluates the splitting at the threshold.
+* `splitting_ge_four_of_lambda_ge`: bounds the splitting above the threshold.
+* `clause_anticrossing`: compares energies after a bounded shift.
+
+## References
+
+* [Altshuler et al., 2010][AltshulerKroviRoland2010]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -13,6 +32,8 @@ namespace Qatlib.Papers.AndersonLoc09.MainResults
 
 open Real
 
+/-- For positive `N` and `f2`, evaluating the leading splitting at `lambdaStar N f2` gives four
+[AltshulerKroviRoland2010]. -/
 theorem leadingSplitting_lambdaStar (N f2 : ℝ) (hN : 0 < N) (hf2 : 0 < f2) :
     leadingSplitting N (lambdaStar N f2) f2 = 4 := by
   unfold leadingSplitting lambdaStar
@@ -40,6 +61,8 @@ theorem leadingSplitting_lambdaStar (N f2 : ℝ) (hN : 0 < N) (hf2 : 0 < f2) :
   rw [hsN, inv_mul_cancel₀ (ne_of_gt hf2)]
   ring
 
+/-- For positive `N` and `f2`, any parameter at least `lambdaStar N f2` gives a leading
+splitting of at least four [AltshulerKroviRoland2010]. -/
 theorem splitting_ge_four_of_lambda_ge (N f2 lam : ℝ) (hN : 0 < N) (hf2 : 0 < f2)
     (hlam : lambdaStar N f2 ≤ lam) : 4 ≤ leadingSplitting N lam f2 := by
   have hstar_nonneg : 0 ≤ lambdaStar N f2 := by
@@ -54,6 +77,8 @@ theorem splitting_ge_four_of_lambda_ge (N f2 lam : ℝ) (hN : 0 < N) (hf2 : 0 < 
     exact mul_le_mul_of_nonneg_left hpow (Real.sqrt_nonneg N)
   linarith
 
+/-- If `E1 - E2` is at least four and `shift` is less than four, then `E2 + shift < E1`
+[AltshulerKroviRoland2010]. -/
 theorem clause_anticrossing (E1 E2 shift : ℝ) (hgap : 4 ≤ E1 - E2) (hshift : shift < 4) :
     E2 + shift < E1 := by
   linarith

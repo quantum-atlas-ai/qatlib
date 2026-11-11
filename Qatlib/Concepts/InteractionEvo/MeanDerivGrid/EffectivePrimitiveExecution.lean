@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
 import Mathlib.Data.Nat.Bitwise
+
+/-!
+# Encoding and execution laws for effective instructions
+
+This module proves injectivity of the natural and signed-integer field encodings and identifies
+the state component of stopped execution with matrix semantics. It also partitions the
+instruction count and proves unitarity for legal coherent programs without queries. These
+elementary program facts support explicit simulation descriptions in the setting of
+[LowWiebe2018].
+
+## Main statements
+
+* `effectiveStoppedRun_matrix`: execution agrees with the product of instruction matrices.
+* `effectiveInstruction_partition`: instruction categories account for the whole list.
+* `effectiveFixedProgram_unitary`: legal coherent programs with zero queries are unitary.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +43,7 @@ namespace Qatlib.Concepts.InteractionEvo.MeanDerivGrid
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The self-delimiting natural-number bit encoding is injective. -/
 theorem effectiveNatBits_injective : Function.Injective effectiveNatBits := by
   intro n m h
   have hlen : n.bits.length=m.bits.length := by
@@ -36,10 +58,13 @@ theorem effectiveNatBits_injective : Function.Injective effectiveNatBits := by
   intro i
   rw [Nat.testBit_eq_inth,Nat.testBit_eq_inth,hb]
 
+/-- The sign-and-magnitude natural-number field encoding of integers is injective. -/
 theorem effectiveIntFields_injective : Function.Injective effectiveIntFields := by
   intro a b h
   cases a <;> cases b <;> simp_all [effectiveIntFields]
 
+/-- The vector returned by stopped execution equals the reverse product of instruction matrices
+applied to the input vector. -/
 theorem effectiveStoppedRun_matrix (n : ℕ) (E : EffectiveEnvironment)
     (steps : List EffectiveStep) (ψ : QState (Reg n)) :
     (effectiveStoppedRun n E steps ψ).1 =
@@ -51,6 +76,7 @@ theorem effectiveStoppedRun_matrix (n : ℕ) (E : EffectiveEnvironment)
       List.prod_cons, List.prod_nil, mul_one]
     cases s <;> (try dsimp only) <;> rw [← Matrix.mulVec_mulVec] <;> exact ih _
 
+/-- The gate, query, and postselection counts sum to the total number of instructions. -/
 theorem effectiveInstruction_partition (p : EffectiveProgram) :
     effectiveGates p + effectiveQueries p + effectivePostselects p = p.steps.length := by
   rcases p with ⟨n,l⟩
@@ -60,6 +86,7 @@ theorem effectiveInstruction_partition (p : EffectiveProgram) :
   | nil => simp
   | cons s l ih => cases s <;> simp_all <;> omega
 
+/-- A legal coherent program with no oracle queries has a unitary program matrix. -/
 theorem effectiveFixedProgram_unitary (p : EffectiveProgram) (E : EffectiveEnvironment)
     (hleg : effectiveLegal p) (hcoh : effectiveCoherent p) (hq : effectiveQueries p=0) :
     effectiveMatrix p E ∈ Matrix.unitaryGroup (Reg p.width) ℂ := by

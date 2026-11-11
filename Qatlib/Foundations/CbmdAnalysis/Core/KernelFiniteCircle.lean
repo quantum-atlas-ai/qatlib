@@ -9,6 +9,27 @@ import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleSet
 import Qatlib.Foundations.CbmdAnalysis.Core.AnalyticRegulator
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelLCU
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourLimit
+
+/-!
+# Finite circle identity for the integer kernel
+
+This module evaluates the integer-kernel integral over a half-grid circle enclosing all
+auxiliary poles. The residue sum consists of the target value at `-i`, the negative finite
+real-sampling sum, and the auxiliary correction.
+
+`integerContour_circle_identity_normalized` divides by `2πi` to expose the finite sampling
+identity used in [WangEtAl2026].
+
+## Main statements
+
+* `integerContour_circle_identity`: evaluates the finite circle integral.
+* `integerContour_circle_identity_normalized`: states the normalized identity.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -20,6 +41,9 @@ open scoped BigOperators Topology
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- For positive spacing and an entire `U`, a half-grid circle of radius greater than `m + 2`
+has integral `2πi` times the target value minus the finite LCU sum plus the auxiliary
+correction [WangEtAl2026]. -/
 theorem integerContour_circle_identity (m : ℕ) {a : ℝ} (ha : 0 < a) (n : ℕ)
     (hR : (m : ℝ) + 2 < halfGridRadius a n) (U : ℂ → E) (hU : Differentiable ℂ U) :
     (∮ z in C(0, halfGridRadius a n), integerContourIntegrand m a U z) =
@@ -68,6 +92,9 @@ theorem integerContour_circle_identity (m : ℕ) {a : ℝ} (ha : 0 < a) (n : ℕ
   unfold integerLCUSum integerSample integerAuxiliaryCorrection
   abel
 
+/-- After division by `2πi`, the integer-kernel circle integral equals `U (-i) - integerLCUSum m
+a n U + integerAuxiliaryCorrection m a U` under the stated enclosure and differentiability
+hypotheses. -/
 theorem integerContour_circle_identity_normalized (m : ℕ) {a : ℝ} (ha : 0 < a) (n : ℕ)
     (hR : (m : ℝ) + 2 < halfGridRadius a n) (U : ℂ → E) (hU : Differentiable ℂ U) :
     (2 * (Real.pi : ℂ) * Complex.I)⁻¹ •

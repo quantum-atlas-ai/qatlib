@@ -12,6 +12,30 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Data.Fintype.Card
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
+
+/-!
+# Contracts and transition models for ordered Bayesian search
+
+This module defines propositions and executable probability models for the ordered search
+analysis of [BenOrHassidim2007]. It includes Bayesian likelihoods, posterior updates, a
+generalized Markov bound, finite costed runs, and binary and cyclic answer models. The contract
+declarations specify claims for later proofs or obstruction results.
+
+The namespace `ContractModels.OrderedSearch2007` also defines candidate noisy-oracle matrices,
+numerical information constants, and contracts concerning quantum bounds.
+
+## Main definitions
+
+* `GeneralizedMarkovContract`: a tail estimate using a mean bound and a lower-tail guarantee.
+* `runCostedFor`: finite iteration of a costed transition with absorbing outputs.
+* `Lemma2_3SharpContract`: a quadratic error bound for expected information gain.
+* `NoisyQuantumOracleContract`: unitarity and amplitude requirements for the specified matrix.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -29,6 +53,9 @@ namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 open scoped ENNReal NNReal BigOperators Classical
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 
+/-- The proposition that P(X > c) ≤ (a - b + βb)/(c - b) for a nonnegative discrete random
+variable with mean at most a and P(X ≥ b) ≥ 1 - β, assuming 0 ≤ β ≤ 1 and 0 ≤ b ≤ a < c
+[BenOrHassidim2007]. -/
 def GeneralizedMarkovContract : Prop :=
   ∀ (α : Type) (μ : PMF α) (X : α → ℝ) (a b β c : ℝ),
     (∀ x, 0 ≤ X x) →
@@ -38,24 +65,35 @@ def GeneralizedMarkovContract : Prop :=
     a < c →
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event μ (fun x => c < X x) ≤ ENNReal.ofReal ((a - b + β * b) / (c - b))
 
+/-- The true-answer likelihood p when `c ≤ m`, and 1 - p otherwise. -/
 noncomputable def bayesTrueLikelihood {n : ℕ} (c m : Fin n) (p : ℝ) : ℝ :=
   if (c : ℕ) ≤ (m : ℕ) then p else 1 - p
 
+/-- The false-answer likelihood 1 - p when `c ≤ m`, and p otherwise. -/
 noncomputable def bayesFalseLikelihood {n : ℕ} (c m : Fin n) (p : ℝ) : ℝ :=
   if (c : ℕ) ≤ (m : ℕ) then 1 - p else p
 
+/-- The prior-weighted sum of `bayesTrueLikelihood` over all possible ordered cells. -/
 noncomputable def bayesTrueNorm {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ) : ℝ :=
   ∑ m, a m * bayesTrueLikelihood c m p
 
+/-- The prior-weighted sum of `bayesFalseLikelihood` over all possible ordered cells. -/
 noncomputable def bayesFalseNorm {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ) : ℝ :=
   ∑ m, a m * bayesFalseLikelihood c m p
 
+/-- The prior weight times the true-answer likelihood, divided by `bayesTrueNorm` at each cell. -/
 noncomputable def bayesTruePost {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ) : Fin n → ℝ :=
   fun m => a m * bayesTrueLikelihood c m p / bayesTrueNorm a c p
 
+/-- The prior weight times the false-answer likelihood, divided by `bayesFalseNorm` at each
+cell. -/
 noncomputable def bayesFalsePost {n : ℕ} (a : Fin n → ℝ) (c : Fin n) (p : ℝ) : Fin n → ℝ :=
   fun m => a m * bayesFalseLikelihood c m p / bayesFalseNorm a c p
 
+/-- The conjunction of universal positive-normalizer and posterior-transport requirements for
+strictly positive normalized priors and 0 ≤ p ≤ 1, and the existence of an
+interior-parameter example where an existing update differs from the corresponding Bayesian
+posterior. -/
 def EqualCutBayesTransportContract : Prop :=
   (∀ (n : ℕ) (a : Fin n → ℝ) (c : Fin n) (p : ℝ),
       0 ≤ p → p ≤ 1 →
@@ -73,6 +111,9 @@ def EqualCutBayesTransportContract : Prop :=
         (updateTrue a c p ≠ bayesTruePost a c p ∨
           updateFalse a c p ≠ bayesFalsePost a c p))
 
+/-- The proposition that a strictly positive normalized prior with no cell reaching ε has a
+nonempty `cutSet`, a selected prefix mass in [1/2 - ε, 1/2), and two normalized posterior
+updates under the stated dimension, noise, and threshold bounds. -/
 def LearnerCutBridgeContract : Prop :=
   ∀ (n : ℕ) (hn : 2 ≤ n) (a : Fin n → ℝ) (p ε : ℝ),
     1 / 2 < p → p < 1 → 0 < ε →
@@ -85,6 +126,9 @@ def LearnerCutBridgeContract : Prop :=
       (∑ m, updateTrue a (stageTwoCut (n := n) (lt_of_lt_of_le zero_lt_two hn) a ε) p m) = 1 ∧
       (∑ m, updateFalse a (stageTwoCut (n := n) (lt_of_lt_of_le zero_lt_two hn) a ε) p m) = 1
 
+/-- The proposition that a cut with prefix mass in [1/2 - ε, 1/2) has expected information gain
+at least `queryInfo p` - 4ε²(1 - 2p)² under the stated prior and parameter hypotheses
+[BenOrHassidim2007]. -/
 def Lemma2_3SharpContract : Prop :=
   ∀ (n : ℕ) (a : Fin n → ℝ) (i : Fin n) (p ε : ℝ),
     2 ≤ n → 1 / 2 < p → p < 1 → 0 < ε →
@@ -95,16 +139,23 @@ def Lemma2_3SharpContract : Prop :=
       normFalse a i p * (postInfo (updateFalse a i p) - postInfo a) +
         normTrue a i p * (postInfo (updateTrue a i p) - postInfo a)
 
+/-- Extends a costed state transition to configurations by returning halted outputs at zero
+additional cost and applying `next` to running states. -/
 noncomputable def tickCosted {S A : Type*} (next : S → CostedLaw (Configuration S A)) :
     Configuration S A → CostedLaw (Configuration S A)
   | .inl out => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (.inl out)
   | .inr s => next s
 
+/-- Iterates `tickCosted next` for the given number of steps, accumulating costs through
+`CostedLaw.bind` and leaving halted outputs absorbing. -/
 noncomputable def runCostedFor {S A : Type*} (next : S → CostedLaw (Configuration S A)) :
     ℕ → Configuration S A → CostedLaw (Configuration S A)
   | 0, cfg => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret cfg
   | fuel + 1, cfg => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind (tickCosted next cfg) (runCostedFor next fuel)
 
+/-- A transition that halts with the current prior at zero cost when some cell reaches ε.
+Otherwise it samples a truth-conditioned answer at `stageTwoCut`, updates the prior, and
+charges one query. -/
 noncomputable def truthStepCosted {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ) :
     (Fin n → ℝ) → CostedLaw (Configuration (Fin n → ℝ) (Fin n → ℝ)) :=
   fun a =>
@@ -115,6 +166,9 @@ noncomputable def truthStepCosted {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ
           ((Sum.inr (if b then updateTrue a (stageTwoCut hn a ε) p
             else updateFalse a (stageTwoCut hn a ε) p)), 1)
 
+/-- The proposition requiring every finite-fuel truth-conditioned run from the uniform prior to
+recover `j` with probability at least 1 - δ and to satisfy the displayed expected-cost
+bound, under the specified dimension, noise, and threshold hypotheses. -/
 def RecursiveRecoveryCostContract : Prop :=
   ∀ (n : ℕ) (hn : 2 ≤ n) (j : Fin n) (p ε δ : ℝ),
     1 / 2 < p → p < 1 → 0 < δ → δ < 1 → 0 < ε →
@@ -134,14 +188,21 @@ def RecursiveRecoveryCostContract : Prop :=
         ENNReal.ofReal (L / queryInfo p + L * (Real.log (1 / δ) / Real.log 2) / queryInfo p
           + 2 / (3 * queryInfo p)))
 
+/-- The displayed real lower-bound expression (log₂ n - log₂(1/(1 - τ)))/`queryInfo p`
+associated with [BenOrHassidim2007]. -/
 noncomputable def printedT26Bound (n : ℕ) (p τ : ℝ) : ℝ :=
   (Real.log n / Real.log 2 - Real.log (1 / (1 - τ)) / Real.log 2) / queryInfo p
 
+/-- A costed Boolean comparison that returns the true bit with probability 3/4 and its negation
+with probability 1/4, always charging one query. -/
 noncomputable def oneComparison (truth : Bool) : CostedLaw Bool :=
   (PMF.bernoulli (3 / 4 : ℝ≥0) (by
     exact_mod_cast (show (3 : ℝ) / 4 ≤ 1 by norm_num))).bind fun correct =>
     PMF.pure ((if correct then truth else !truth), 1)
 
+/-- The conjunction of a Fano-type expected-query lower bound for randomized Boolean query trees
+identifying every ordered cell with error at most τ, and explicit checks that the displayed
+two-cell bound exceeds the cost of `oneComparison` [BenOrHassidim2007]. -/
 def ClassicalInfoLowerBoundContract : Prop :=
   (∀ (n : ℕ) (τ p : ℝ) (program : PMF (BoolQueryTree (Fin n) (Fin n))) (oracle : Fin n → Bool),
       2 ≤ n → 0 ≤ τ → τ < 1 / 2 → 1 / 2 < p → p < 1 →
@@ -157,6 +218,9 @@ def ClassicalInfoLowerBoundContract : Prop :=
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (oneComparison truth) (fun x => x.1 = truth) = (3 / 4 : ℝ≥0∞) ∧
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (oneComparison truth) = 1))
 
+/-- The proposition requiring the displayed expected-query and query-tail lower bounds on every
+oracle for a randomized query tree that identifies each ordered cell with error at most τ,
+where n ≥ 2 and 0 ≤ τ < 1/2 [BenOrHassidim2007]. -/
 def Corollary2_7Contract : Prop :=
   ∀ (n : ℕ) (τ : ℝ) (program : PMF (BoolQueryTree (Fin n) (Fin n))) (oracle : Fin n → Bool),
     2 ≤ n → 0 ≤ τ → τ < 1 / 2 →
@@ -169,6 +233,9 @@ def Corollary2_7Contract : Prop :=
         if (Real.log n / Real.log 2 - 2 * Real.log (1 / (1 - τ)) / Real.log 2)
             ≤ (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run oracle tree).2 then 1 else 0
 
+/-- The proposed tail estimate P(Q > L/I + χ(c₁ + 2)log₂(L)/I) ≤ 1/χ, where L = log₂ n and I =
+`queryInfo p`, from the specified mean and lower-tail bounds for a nonnegative Q
+[BenOrHassidim2007]. -/
 def Lemma2_9TailContract : Prop :=
   ∀ (n : ℕ) (p δ c₁ χ : ℝ) (X : Type) (μ : PMF X) (Q : X → ℝ),
     4 ≤ n → 1 / 2 < p → p < 1 → 0 < δ → δ < 1 → 0 < c₁ → 1 < χ →
@@ -184,12 +251,16 @@ def Lemma2_9TailContract : Prop :=
         (fun x => L / queryInfo p + χ * (c₁ + 2) * lgL / queryInfo p < Q x) ≤
       ENNReal.ofReal (1 / χ)
 
+/-- The base-two information expression log₂(k + 1) minus the entropy sum of the k + 1 real
+weights `p`. -/
 noncomputable def multiInfo {k : ℕ} (p : Fin (k + 1) → ℝ) : ℝ :=
   Real.log (k + 1) / Real.log 2 - (∑ h, -(p h * (Real.log (p h) / Real.log 2)))
 
+/-- The cyclic answer weight `p (h - iv)`, with subtraction in `Fin (k + 1)`. -/
 noncomputable def cyclicLikelihood {k : ℕ} (p : Fin (k + 1) → ℝ)
     (iv h : Fin (k + 1)) : ℝ := p (h - iv)
 
+/-- The number of cuts whose indices are at most `m`, regarded as an element of `Fin (k + 1)`. -/
 def intervalOf {k n : ℕ} (cuts : Fin k → Fin n) (m : Fin n) : Fin (k + 1) :=
   ⟨(Finset.univ.filter fun i : Fin k => (cuts i).val ≤ m.val).card, by
     have h1 := Finset.card_filter_le (s := (Finset.univ : Finset (Fin k)))
@@ -197,12 +268,16 @@ def intervalOf {k n : ℕ} (cuts : Fin k → Fin n) (m : Fin n) : Fin (k + 1) :=
     have h2 : (Finset.univ : Finset (Fin k)).card = k := Finset.card_fin _
     omega⟩
 
+/-- The cellwise prior times the cyclic answer likelihood for `h`, divided by the total
+prior-weighted likelihood over all cells. -/
 noncomputable def generalizedUpdate {k n : ℕ} (p : Fin (k + 1) → ℝ) (cuts : Fin k → Fin n)
     (a : Fin n → ℝ) (h : Fin (k + 1)) : Fin n → ℝ :=
   fun m =>
     a m * cyclicLikelihood p (intervalOf cuts m) h /
       (∑ m', a m' * cyclicLikelihood p (intervalOf cuts m') h)
 
+/-- The answer probability mass function obtained by cyclically shifting the nonnegative
+normalized weights `p` by `iv`. -/
 noncomputable def cyclicAnswerPMF {k : ℕ} (p : Fin (k + 1) → ℝ) (iv : Fin (k + 1))
     (hp : ∀ h, 0 ≤ p h) (hs : ∑ h, p h = 1) : PMF (Fin (k + 1)) :=
   PMF.ofFintype (fun h => ENNReal.ofReal (cyclicLikelihood p iv h))
@@ -219,6 +294,9 @@ noncomputable def cyclicAnswerPMF {k : ℕ} (p : Fin (k + 1) → ℝ) (iv : Fin 
         _ = ENNReal.ofReal 1 := by rw [hs]
         _ = 1 := ENNReal.ofReal_one)
 
+/-- A transition that halts with the current prior at zero cost if a cell reaches ε. Otherwise
+it samples a cyclic answer for the true cell's interval, applies `generalizedUpdate`, and
+charges one query. -/
 noncomputable def generalizedStepCosted {k n : ℕ} (_hn : 0 < n) (j : Fin n)
     (p : Fin (k + 1) → ℝ) (cuts : Fin k → Fin n) (ε : ℝ)
     (hp : ∀ h, 0 ≤ p h) (hs : ∑ h, p h = 1) :
@@ -230,6 +308,9 @@ noncomputable def generalizedStepCosted {k n : ℕ} (_hn : 0 < n) (j : Fin n)
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge 1
           (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inr (generalizedUpdate p cuts a h)))
 
+/-- The proposition requiring every finite-fuel cyclic-answer run to recover the true cell with
+probability at least 1 - δ and satisfy the displayed cost bound in terms of `multiInfo p`,
+for the specified positive initial prior and strictly increasing cuts [BenOrHassidim2007]. -/
 def Theorem2_10Contract : Prop :=
   ∀ (k n : ℕ) (p : Fin (k + 1) → ℝ) (δ : ℝ),
     1 ≤ k → 4 ≤ n → 0 < δ → δ < 1 →
@@ -258,6 +339,8 @@ namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels.OrderedSear
 open scoped ENNReal NNReal BigOperators Classical
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 
+/-- The complex matrix preserving the query index and assigning amplitudes √p and √(1 - p) to
+the Boolean output `c != f x` and its negation, respectively. -/
 noncomputable def noisyOracle {n : ℕ} (f : Fin n → Bool) (p : ℝ) :
     Matrix (Fin n × Bool) (Fin n × Bool) ℂ :=
   fun b a =>
@@ -267,9 +350,13 @@ noncomputable def noisyOracle {n : ℕ} (f : Fin n → Bool) (p : ℝ) :
       else 0
     else 0
 
+/-- The two-dimensional complex matrix with diagonal entries 4/5 and off-diagonal entries 3/5
+used to check the proposed noisy-oracle formula. -/
 noncomputable def printedOracle : Matrix (Fin 2) (Fin 2) ℂ :=
   fun i j => if i = j then (4 : ℂ) / 5 else 3 / 5
 
+/-- The conjunction of unitarity and the specified output amplitudes for every `noisyOracle`
+with 0 ≤ p ≤ 1, and failure of the unitary identity for `printedOracle`. -/
 def NoisyQuantumOracleContract : Prop :=
   (∀ (n : ℕ) (f : Fin n → Bool) (p : ℝ), 0 ≤ p → p ≤ 1 →
       noisyOracle f p ∈ Matrix.unitaryGroup (Fin n × Bool) ℂ) ∧
@@ -279,6 +366,8 @@ def NoisyQuantumOracleContract : Prop :=
         noisyOracle f p (x, !(c != f x)) (x, c) = (Real.sqrt (1 - p) : ℂ)) ∧
   (printedOracle.conjTranspose * printedOracle ≠ 1)
 
+/-- The proposition comparing the log(e)/π and log(2)/π multiples of (1 - δ)log₂ k - `binEntropy
+δ` whenever k ≥ 2 and 0 ≤ δ ≤ (k - 1)/k [BenOrHassidim2007]. -/
 def Theorem4_2_4_3Contract : Prop :=
   ∀ (k : ℕ) (δ : ℝ),
     2 ≤ k → 0 ≤ δ → δ ≤ (k - 1) / (k : ℝ) →
@@ -286,8 +375,12 @@ def Theorem4_2_4_3Contract : Prop :=
     (Real.log (Real.exp 1) / Real.pi) * ((1 - δ) * (Real.log k / Real.log 2) - Hδ) ≤
       (Real.log 2 / Real.pi) * ((1 - δ) * (Real.log k / Real.log 2) - Hδ)
 
+/-- The real constant 297/16 used in the greedy information certificate. -/
 noncomputable def fggsInfo : ℝ := 297 / 16
 
+/-- The conjunction of the stated numerical bounds for `fggsInfo` and a requirement that every
+strictly positive probability distribution on 2^23 points have entropy at most 23 -
+`fggsInfo` [BenOrHassidim2007]. -/
 def FGGS99GreedyCertificateContract : Prop :=
   fggsInfo = 297 / 16 ∧
     (18 : ℝ) < fggsInfo ∧
@@ -297,6 +390,9 @@ def FGGS99GreedyCertificateContract : Prop :=
       (∀ i, 0 < Q i) → (∑ i, Q i) = 1 →
       (∑ i, -(Q i * (Real.log (Q i) / Real.log 2))) ≤ (23 : ℝ) - fggsInfo
 
+/-- The conjunction of the specified finite-fuel recovery and expected-cost requirements with
+the condition that δ cannot satisfy both δ ≤ (log₂ n)^3 and ¬(δ ≥ (log₂ n)^3), for the
+stated parameter ranges [BenOrHassidim2007]. -/
 def Theorem1_1Contract : Prop :=
   (∀ (n : ℕ) (hn : 2 ≤ n) (j : Fin n) (p ε δ : ℝ),
       1 / 2 < p → p < 1 → 0 < δ → δ < 1 → 0 < ε →

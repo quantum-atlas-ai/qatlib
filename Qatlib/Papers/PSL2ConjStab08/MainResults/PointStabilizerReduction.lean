@@ -11,6 +11,26 @@ import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
 import Mathlib.Data.Matrix.Action
 import Mathlib.Data.Matrix.Mul
 
+/-!
+# Affine point stabilizer reductions
+
+`AffineGroup` equips `V × G` with the semidirect-product group law and its affine action on `V`.
+Translation conjugacy and linear stabilizer intersections explain point-stabilizer reductions,
+while a movement hypothesis ensures distinct points have distinct stabilizers, as used in the
+setting of [DenneyMooreRussell2008].
+
+## Main statements
+
+* `stabilizer_eq_map_conj`: translations conjugate the stabilizer of zero to each point
+  stabilizer.
+* `stabilizer_injective_of_moves_nonzero`: moving every nonzero vector makes the
+  point-stabilizer map injective.
+
+## References
+
+* [Denney et al., 2008][DenneyMooreRussell2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,6 +39,8 @@ open scoped Matrix
 
 namespace Qatlib.Papers.PSL2ConjStab08.MainResults.PointStabilizerReduction
 
+/-- The underlying type `V × G` for the affine semidirect product determined by the action of
+`G` on `V`. -/
 abbrev AffineGroup (V G : Type*) [AddCommGroup V] [Group G] [DistribMulAction G V] :=
   V × G
 
@@ -35,11 +57,15 @@ instance : One (AffineGroup V G) where
 instance : Inv (AffineGroup V G) where
   inv x := (-(x.2⁻¹ • x.1), x.2⁻¹)
 
+/-- Affine multiplication combines translations as `x.1 + x.2 • y.1` and multiplies the linear
+parts. -/
 @[simp] theorem mul_def (x y : AffineGroup V G) :
     x * y = (x.1 + x.2 • y.1, x.2 * y.2) := rfl
 
+/-- The identity affine element is `(0, 1)`. -/
 @[simp] theorem one_def : (1 : AffineGroup V G) = (0, 1) := rfl
 
+/-- The inverse affine element has translation `−(x.2⁻¹ • x.1)` and linear part `x.2⁻¹`. -/
 @[simp] theorem inv_def (x : AffineGroup V G) :
     x⁻¹ = (-(x.2⁻¹ • x.1), x.2⁻¹) := rfl
 
@@ -54,8 +80,11 @@ instance : Group (AffineGroup V G) where
   inv_mul_cancel x := by
     apply Prod.ext <;> simp [mul_def, one_def, inv_def]
 
+/-- The pure translation by `v`, represented by `(v, 1)`. -/
 def inl (v : V) : AffineGroup V G := (v, 1)
 
+/-- The multiplicative homomorphism embedding a linear group element as the affine element `(0,
+g)`. -/
 def inrHom : G →* AffineGroup V G where
   toFun g := (0, g)
   map_one' := rfl
@@ -64,8 +93,10 @@ def inrHom : G →* AffineGroup V G where
     rw [mul_def]
     simp
 
+/-- The translation embedding sends `v` to `(v, 1)`. -/
 @[simp] theorem inl_def (v : V) : inl (G := G) v = (v, 1) := rfl
 
+/-- The linear embedding sends `g` to `(0, g)`. -/
 @[simp] theorem inrHom_apply (g : G) : inrHom (V := V) g = (0, g) := rfl
 
 instance : MulAction (AffineGroup V G) V where
@@ -77,9 +108,11 @@ instance : MulAction (AffineGroup V G) V where
     show (x.1 + x.2 • y.1) + (x.2 * y.2) • v = x.1 + x.2 • (y.1 + y.2 • v)
     rw [smul_add, smul_smul, add_assoc]
 
+/-- The affine action sends `v` to `x.1 + x.2 • v`. -/
 @[simp] theorem smul_def (x : AffineGroup V G) (v : V) :
     x • v = x.1 + x.2 • v := rfl
 
+/-- The subgroup of linear group elements fixing `v`. -/
 def linearFixing (v : V) : Subgroup G where
   carrier := {g | g • v = v}
   one_mem' := one_smul G v
@@ -95,6 +128,8 @@ def linearFixing (v : V) : Subgroup G where
     rw [← mul_smul, inv_mul_cancel, one_smul] at h2
     exact h2.symm
 
+/-- The affine stabilizer of zero is the range of the linear embedding. See
+[DenneyMooreRussell2008]. -/
 theorem stabilizer_zero_eq_range_inr :
     stabilizer (AffineGroup V G) (0 : V) = (inrHom : G →* AffineGroup V G).range := by
   ext x
@@ -107,6 +142,8 @@ theorem stabilizer_zero_eq_range_inr :
     rw [mem_stabilizer_iff]
     simp [inrHom]
 
+/-- The affine stabilizer of `v` is the image of the stabilizer of zero under conjugation by
+translation by `v`. See [DenneyMooreRussell2008]. -/
 theorem stabilizer_eq_map_conj (v : V) :
     stabilizer (AffineGroup V G) v =
       (stabilizer (AffineGroup V G) (0 : V)).map
@@ -116,6 +153,8 @@ theorem stabilizer_eq_map_conj (v : V) :
   have hconj := stabilizer_smul_eq_stabilizer_map_conj (inl (G := G) v) (0 : V)
   simpa [h] using hconj
 
+/-- The intersection of the affine stabilizers of zero and `v` is the image of `linearFixing v`
+under the linear embedding. See [DenneyMooreRussell2008]. -/
 theorem stabilizer_zero_inf_stabilizer_eq_fixing (v : V) :
     stabilizer (AffineGroup V G) (0 : V) ⊓ stabilizer (AffineGroup V G) v =
       (linearFixing v).map (inrHom : G →* AffineGroup V G) := by
@@ -138,6 +177,8 @@ theorem stabilizer_zero_inf_stabilizer_eq_fixing (v : V) :
     · show (inrHom g) • v = v
       simpa [linearFixing, inrHom, smul_def] using hg
 
+/-- If every nonzero vector is moved by some linear group element, the map sending a point to
+its affine stabilizer is injective. See [DenneyMooreRussell2008]. -/
 theorem stabilizer_injective_of_moves_nonzero
     (hmove : ∀ u : V, u ≠ 0 → ∃ g : G, g • u ≠ u) :
     Function.Injective fun v : V => stabilizer (AffineGroup V G) v := by

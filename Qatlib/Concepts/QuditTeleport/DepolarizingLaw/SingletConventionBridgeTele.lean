@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.SingletConventionBridgeStat
+
+/-!
+# The singlet convention bridge
+
+`singletConventionBridge` identifies singlet-prepared teleportation branches with signed
+standard branches at complemented outcomes. The associated corrections recover one quarter of
+each input operator on every branch. The singlet convention follows the qubit protocol of
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `singlet_branch_bridge`: The singlet branch at `o` is `singletSign o` times the standard
+  branch at `singletSwap o`.
+* `singletConventionBridge`: Singlet preparation satisfies the signed outcome bridge and each
+  corrected branch recovers one quarter of the input. See [Bennett et al., 1993, Eqs.
+  (1)–(6)][BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +38,8 @@ open Qatlib.Concepts.QuditTeleport.TeleportCore
 namespace Qatlib.Concepts.QuditTeleport.DepolarizingLaw
 open Matrix
 
+/-- An entry of a singlet branch Kraus operator is the signed sum of the two singlet amplitudes
+selected by the input basis index. -/
 private theorem singlet_branch_entry (o : Bool × Bool) (c i : Fin 2) :
     singletBranchKraus o c i = (Real.sqrt 2 : ℂ)⁻¹ *
       ((if false = boolEquivFin2.symm i then singletResource (o.2,boolEquivFin2.symm c) else 0) +
@@ -35,6 +59,7 @@ private theorem singlet_branch_entry (o : Bool × Bool) (c i : Fin 2) :
   cases o with
   | mk a b => cases a <;> cases b <;> simp [relabelState, ψ]
 
+/-- The singlet branch at `o` is `singletSign o` times the standard branch at `singletSwap o`. -/
 private theorem singlet_branch_bridge (o : Bool × Bool) :
     singletBranchKraus o = singletSign o • teleportBranchKraus (singletSwap o) := by
   ext c i
@@ -45,6 +70,9 @@ private theorem singlet_branch_bridge (o : Bool × Bool) :
   cases a <;> cases b <;> fin_cases c <;> fin_cases i <;>
     simp [singletResource, singletSign, singletSwap, boolEquivFin2, sqrt2_inv_sq]
 
+/-- Singlet preparation satisfies the signed outcome bridge and each corrected branch recovers
+one quarter of the input. See [Bennett et al., 1993, Eqs.
+(1)–(6)][BennettEtAl1993Teleportation]. -/
 theorem singletConventionBridge : SingletConventionBridge := by
   refine ⟨singlet_branch_bridge, ?_⟩
   intro ρ o

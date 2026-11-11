@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedStat
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedContracts
 import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+/-!
+# Well-formedness of stopping models
+
+The module proves both fixed stopped-subspace and growing-history well-formedness contracts. For
+the fixed-subspace condition `IsVtStage`, stopped mass is constant, so `pstop` and `vtTav`
+vanish and a running source has zero good mass at every prefix.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `variableTimeModelWellFormed_proof`: fixed-subspace well-formedness.
+* `vt_pstop_eq_zero` and `vtTav_eq_zero`: consequences of fixing all stopped states.
+* `variableTimeModelWellFormed_answer`: growing-history well-formedness.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +46,7 @@ open Matrix
 section
 variable {C : Type} [Fintype C] [DecidableEq C]
 
+/-- A stage satisfying `IsVtStage` fixes every stopped basis ket. -/
 theorem vt_stage_stopped_ket {U : Matrix (VtSpace C) (VtSpace C) ℂ}
     (hU : IsVtStage U) (p : VtSpace C) (hp : p.1 ≠ vtRunningFlag) :
     U *ᵥ Ket p = Ket p := by
@@ -32,6 +54,7 @@ theorem vt_stage_stopped_ket {U : Matrix (VtSpace C) (VtSpace C) ℂ}
   rw [mulVec_ket_apply, hU.2 p hp q]
   rfl
 
+/-- A stage satisfying `IsVtStage` has the identity row at every stopped basis label. -/
 theorem vt_stage_stopped_row {U : Matrix (VtSpace C) (VtSpace C) ℂ}
     (hU : IsVtStage U) (p : VtSpace C) (hp : p.1 ≠ vtRunningFlag)
     (q : VtSpace C) : U p q = if p = q then 1 else 0 := by
@@ -44,11 +67,14 @@ theorem vt_stage_stopped_row {U : Matrix (VtSpace C) (VtSpace C) ℂ}
   have he := congrArg star (congrFun hadj q)
   simpa [mulVec_ket_apply, Matrix.conjTranspose_apply, Ket, eq_comm] using he
 
+/-- Applying a stage satisfying `IsVtStage` leaves each stopped coordinate of any state
+unchanged. -/
 theorem vt_stage_stopped_apply {U : Matrix (VtSpace C) (VtSpace C) ℂ}
     (hU : IsVtStage U) (ψ : QState (VtSpace C)) (p : VtSpace C)
     (hp : p.1 ≠ vtRunningFlag) : ApplyGate U ψ p = ψ p := by
   simp [ApplyGate, Matrix.mulVec, dotProduct, vt_stage_stopped_row hU p hp]
 
+/-- A stage satisfying `IsVtStage` preserves the collapse of any state onto the stopped set. -/
 theorem vt_stage_collapse {U : Matrix (VtSpace C) (VtSpace C) ℂ}
     (hU : IsVtStage U) (ψ : QState (VtSpace C)) :
     Collapse (ApplyGate U ψ) (stoppedSet C) = Collapse ψ (stoppedSet C) := by
@@ -59,14 +85,17 @@ theorem vt_stage_collapse {U : Matrix (VtSpace C) (VtSpace C) ℂ}
     exact vt_stage_stopped_apply hU ψ p (by simpa [stoppedSet] using hp)
   · simp [hp]
 
+/-- A stage satisfying `IsVtStage` preserves measurement mass on the stopped set. -/
 theorem vt_stage_measure_eq {U : Matrix (VtSpace C) (VtSpace C) ℂ}
     (hU : IsVtStage U) (ψ : QState (VtSpace C)) :
     MeasureProb (ApplyGate U ψ) (stoppedSet C) = MeasureProb ψ (stoppedSet C) := by
   rw [← sum_normSq_collapse, vt_stage_collapse hU, sum_normSq_collapse]
 
+/-- The identity matrix satisfies `IsVtStage`. -/
 theorem isVtStage_one : IsVtStage (1 : Matrix (VtSpace C) (VtSpace C) ℂ) := by
   exact ⟨(Matrix.unitaryGroup _ _).one_mem, fun _ _ _ => Matrix.one_apply⟩
 
+/-- The product of two matrices satisfying `IsVtStage` also satisfies `IsVtStage`. -/
 theorem isVtStage_mul {U V : Matrix (VtSpace C) (VtSpace C) ℂ}
     (hU : IsVtStage U) (hV : IsVtStage V) : IsVtStage (U * V) := by
   refine ⟨(Matrix.unitaryGroup _ _).mul_mem hU.1 hV.1, ?_⟩
@@ -75,6 +104,8 @@ theorem isVtStage_mul {U V : Matrix (VtSpace C) (VtSpace C) ℂ}
     vt_stage_stopped_ket hV p hp, mulVec_ket_apply]
   exact hU.2 p hp q
 
+/-- Folding a list of valid fixed-subspace stages from a valid accumulator preserves
+`IsVtStage`. -/
 theorem vt_fold_isVtStage (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (hs : ∀ U ∈ stages, IsVtStage U) (A : Matrix (VtSpace C) (VtSpace C) ℂ)
     (hA : IsVtStage A) : IsVtStage (stages.foldl (fun A U => U * A) A) := by
@@ -84,27 +115,34 @@ theorem vt_fold_isVtStage (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
       exact ih (fun V hV => hs V (List.mem_cons_of_mem U hV)) (U * A)
         (isVtStage_mul (hs U (by simp)) hA)
 
+/-- Every prefix product of stages satisfying `IsVtStage` also satisfies `IsVtStage`. -/
 theorem vtRunMatrix_isVtStage
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (hs : ∀ U ∈ stages, IsVtStage U) (k : ℕ) : IsVtStage (vtRunMatrix stages k) := by
   exact vt_fold_isVtStage (stages.take k)
     (fun U hU => hs U (List.mem_of_mem_take hU)) 1 isVtStage_one
 
+/-- When every stage fixes the stopped subspace, stopped mass at every prefix equals the initial
+stopped mass. -/
 theorem stoppedMass_eq_initial
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (hs : ∀ U ∈ stages, IsVtStage U) (j₀ : VtSpace C) (k : ℕ) :
     stoppedMass stages j₀ k = MeasureProb (Ket j₀) (stoppedSet C) :=
   vt_stage_measure_eq (vtRunMatrix_isVtStage stages hs k) (Ket j₀)
 
+/-- Every stopping increment is zero when all stages satisfy the fixed stopped-subspace
+condition `IsVtStage`. -/
 theorem vt_pstop_eq_zero (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (hs : ∀ U ∈ stages, IsVtStage U) (j₀ : VtSpace C) (j : ℕ) :
     pstop stages j₀ j = 0 := by
   simp [pstop, stoppedMass_eq_initial stages hs]
 
+/-- The average stopping-time quantity is zero when every stage fixes the full stopped subspace. -/
 theorem vtTav_eq_zero (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (hs : ∀ U ∈ stages, IsVtStage U) (j₀ : VtSpace C) : vtTav stages j₀ = 0 := by
   simp [vtTav, vt_pstop_eq_zero stages hs]
 
+/-- The fixed stopped-subspace model satisfies `variableTimeModelWellFormed`. -/
 theorem variableTimeModelWellFormed_proof : variableTimeModelWellFormed := by
   intro C _ _ stages hs
   refine ⟨fun U hU ψ => vt_stage_collapse hU ψ, ?_, ?_⟩
@@ -114,6 +152,8 @@ theorem variableTimeModelWellFormed_proof : variableTimeModelWellFormed := by
   · intro k
     exact (vtRunMatrix_isVtStage stages hs k).1
 
+/-- A running basis source has zero good mass at every prefix when all stages fix the full
+stopped subspace. -/
 theorem vt_running_source_good_mass_zero
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (hs : ∀ U ∈ stages, IsVtStage U) (j₀ : VtSpace C)
@@ -135,6 +175,9 @@ theorem vt_running_source_good_mass_zero
 
 end
 
+/-- Legal growing-history runs satisfy the preservation, mass monotonicity, increment
+nonnegativity, and prefix unitarity contract `VariableTimeModelWellFormed`, formalizing the
+stopping-model conditions associated with Section 3.1 of [Ambainis2012]. -/
 theorem variableTimeModelWellFormed_answer : VariableTimeModelWellFormed := by
   intro C _ _ stages history hs
   refine ⟨?_,?_,growing_prefix_unitary stages history hs⟩

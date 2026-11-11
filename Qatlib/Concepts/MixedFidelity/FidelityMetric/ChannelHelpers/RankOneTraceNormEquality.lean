@@ -7,12 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.RankOneTraceNormBound
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Linarith
+
+/-!
+# Rank-one trace norms and finite mixtures
+
+`traceNorm_rankOne_eq` computes the trace norm of a rank-one outer product from the squared
+norms of its two vectors. The module also proves trace-norm bounds for finite sums and
+nonnegative weighted averages. See [Bhatia1997].
+
+## Main statements
+
+* `traceNorm_rankOne_eq`: the exact rank-one trace-norm formula.
+* `traceNorm_weighted_sum_le`: a weighted triangle inequality.
+* `traceNorm_probability_sum_le`: a uniform bound for probability-weighted mixtures.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.MixedFidelity.FidelityMetric
 open scoped BigOperators ComplexOrder
 
+/-- The real trace of `Aᴴ * A` is at most the square of the trace norm of `A`. -/
 theorem hilbertSchmidt_le_traceNorm_sq
     {I : Type*} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) :
     ((A.conjTranspose * A).trace).re ≤ A.traceNorm ^ 2 := by
@@ -31,6 +51,8 @@ theorem hilbertSchmidt_le_traceNorm_sq
   rw [← hsq, Matrix.traceNorm_eq_sum_singularValues]
   exact Finset.sum_sq_le_sq_sum_of_nonneg (fun i _ => singularValues_nonneg A i)
 
+/-- The real trace of the Gram matrix of `u vᴴ` is the product of the sums of squared moduli of
+`u` and `v`. -/
 private theorem rankOne_gram_trace {I : Type*} [Fintype I]
     (u v : I → ℂ) :
     (((Matrix.vecMulVec u (star v)).conjTranspose *
@@ -54,6 +76,8 @@ private theorem rankOne_gram_trace {I : Type*} [Fintype I]
   rw [hfactor, hsum, hsum]
   simp only [← Complex.ofReal_mul, Complex.ofReal_re]
 
+/-- The trace norm of `u vᴴ` is the square root of the product of the vectors' sums of squared
+moduli. -/
 theorem traceNorm_rankOne_eq {I : Type*} [Fintype I] [DecidableEq I]
     (u v : I → ℂ) :
     (Matrix.vecMulVec u (star v)).traceNorm =
@@ -64,6 +88,7 @@ theorem traceNorm_rankOne_eq {I : Type*} [Fintype I] [DecidableEq I]
     rw [← rankOne_gram_trace u v]
     exact Qatlib.Concepts.MixedFidelity.FidelityMetric.hilbertSchmidt_le_traceNorm_sq _⟩
 
+/-- The trace norm of a finite matrix sum is at most the sum of the individual trace norms. -/
 private theorem finite_sum_traceNorm_le {I X : Type*} [Fintype I] [DecidableEq I]
     (s : Finset X) (A : X → Matrix I I ℂ) :
     (∑ x ∈ s, A x).traceNorm ≤ ∑ x ∈ s, (A x).traceNorm := by
@@ -74,12 +99,16 @@ private theorem finite_sum_traceNorm_le {I X : Type*} [Fintype I] [DecidableEq I
     simp only [Finset.sum_insert hx]
     exact (Matrix.traceNorm_add_le _ _).trans (add_le_add_right ih _)
 
+/-- For nonnegative real weights, the trace norm of the weighted sum is at most the weighted sum
+of trace norms. -/
 theorem traceNorm_weighted_sum_le {I X : Type*} [Fintype I] [DecidableEq I]
     [Fintype X] (p : X → ℝ) (hp : ∀ x, 0 ≤ p x) (A : X → Matrix I I ℂ) :
     (∑ x, (p x : ℂ) • A x).traceNorm ≤ ∑ x, p x * (A x).traceNorm := by
   simpa only [Matrix.traceNorm_smul, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (hp _)] using finite_sum_traceNorm_le Finset.univ (fun x => (p x : ℂ) • A x)
 
+/-- A probability-weighted sum of matrices with trace norm at most `R` also has trace norm at
+most `R`. -/
 theorem traceNorm_probability_sum_le {I X : Type*} [Fintype I] [DecidableEq I]
     [Fintype X] (p : X → ℝ) (hp : ∀ x, 0 ≤ p x) (hone : ∑ x, p x = 1)
     (A : X → Matrix I I ℂ) (R : ℝ) (hR : ∀ x, (A x).traceNorm ≤ R) :

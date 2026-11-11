@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule.Basic
+
+/-!
+# Square-root asymptotic of local adiabatic search
+
+The theorem `source_local_adiabatic_time_asymptotic` establishes the asymptotic constant for the
+local search schedule of [RolandCerf2002]. For fixed positive `ε`, the schedule time divided by
+`sqrt N` converges to `π / (2 * ε)` as the real size parameter tends to infinity.
+
+## Main statements
+
+* `source_local_adiabatic_time_asymptotic`: Proves the limiting constant for the normalized
+  local search time.
+
+## References
+
+* [Roland and Cerf, 2002][RolandCerf2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +35,8 @@ namespace Qatlib.Papers.LocAdiabSrch01.MainResults.MainResult
 
 open Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule
 
+/-- For fixed positive `ε`, the ratio `localAdiabaticTime ε N / sqrt N` tends to `π / (2 * ε)`
+as `N` tends to infinity [RolandCerf2002]. -/
 theorem source_local_adiabatic_time_asymptotic {ε : ℝ} (hε : 0 < ε) :
     Tendsto (fun N : ℝ => localAdiabaticTime ε N / sqrt N) atTop
       (𝓝 (Real.pi / (2 * ε))) := by

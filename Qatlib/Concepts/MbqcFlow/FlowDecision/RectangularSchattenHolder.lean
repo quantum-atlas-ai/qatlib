@@ -9,6 +9,30 @@ import QuantumInfo.ForMathlib.HermitianMat.Schatten
 import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Unique
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
+
+/-!
+# Rectangular Schatten inequalities and isometric embeddings
+
+Uses the embedding `embed U V A = U * A * Vᴴ` to transfer Schatten inequalities from square
+matrices to rectangular matrices. It proves invariance of `schattenPower`, operator norm, and
+nonzero singular values under isometric embeddings, together with the rectangular Hölder and
+operator-factor bounds.
+
+The module also treats zero-dimensional matrices and row-column Schur multipliers through
+`rowColumnSchur_bound`. The relevant Schatten and matrix-analysis background is given in
+[Bhatia1997].
+
+## Main statements
+
+* `rectangular_holder`: the rectangular Schatten Hölder inequality.
+* `nonzero_singular_embed`: preservation of nonzero singular values with multiplicities.
+* `rowColumnSchur_bound`: a Schatten bound for separable row-column multipliers.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -29,11 +53,13 @@ variable {M N K D E : Type} [Fintype M] [Fintype N] [Fintype K]
   [Fintype D] [Fintype E]
   [DecidableEq M] [DecidableEq N] [DecidableEq K] [DecidableEq D] [DecidableEq E]
 
+/-- The rectangular matrix embedding `U * A * Vᴴ` determined by two surrounding matrices. -/
 def embed (U : Matrix D M ℂ) (V : Matrix E N ℂ) (A : Matrix M N ℂ) : Matrix D E ℂ :=
   U * A * Vᴴ
 
 omit [Fintype E] [DecidableEq N] [DecidableEq D] [DecidableEq E] in
 
+/-- If `Uᴴ * U = 1`, the Gram matrix of the embedding equals `V * (Aᴴ * A) * Vᴴ`. -/
 theorem embed_gram (U : Matrix D M ℂ) (V : Matrix E N ℂ)
     (A : Matrix M N ℂ) (hU : Uᴴ * U = 1) :
     (embed U V A)ᴴ * embed U V A = V * (Aᴴ * A) * Vᴴ := by
@@ -42,6 +68,8 @@ theorem embed_gram (U : Matrix D M ℂ) (V : Matrix E N ℂ)
     V * (Aᴴ * Uᴴ) * (U * A * Vᴴ) = V * Aᴴ * (Uᴴ * U) * A * Vᴴ := by simp only [Matrix.mul_assoc]
     _ = _ := by simp [hU, Matrix.mul_assoc]
 
+/-- The nonunital real star-algebra homomorphism sending `A` to `V * A * Vᴴ` for an isometry
+`V`. -/
 def cornerHom (V : Matrix E N ℂ) (hV : Vᴴ * V = 1) :
     Matrix N N ℂ →⋆ₙₐ[ℝ] Matrix E E ℂ where
   toFun A := V * A * Vᴴ
@@ -54,6 +82,8 @@ def cornerHom (V : Matrix E N ℂ) (hV : Vᴴ * V = 1) :
   map_smul' c A := by simp [Matrix.smul_mul, Matrix.mul_smul]
   map_star' A := by simp [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_mul, Matrix.mul_assoc]
 
+/-- Continuous real functional calculus for a Hermitian matrix commutes with an isometric corner
+embedding when the function vanishes at zero. -/
 theorem cfc_corner (V : Matrix E N ℂ) (hV : Vᴴ * V = 1)
     (G : Matrix N N ℂ) (hG : G.IsHermitian) (f : ℝ → ℝ)
     (hf : Continuous f) (hf0 : f 0 = 0) :
@@ -72,15 +102,20 @@ theorem cfc_corner (V : Matrix E N ℂ) (hV : Vᴴ * V = 1)
 
 omit [DecidableEq E] in
 
+/-- An isometric corner embedding preserves matrix trace. -/
 theorem trace_corner (V : Matrix E N ℂ) (hV : Vᴴ * V = 1) (G : Matrix N N ℂ) :
     Matrix.trace (V * G * Vᴴ) = Matrix.trace G := by
   rw [Matrix.trace_mul_cycle, hV, Matrix.one_mul]
 
+/-- For a Hermitian matrix, summing a real function over its eigenvalues equals the real trace
+of its functional-calculus matrix. -/
 theorem spectral_sum_eq_trace (G : Matrix N N ℂ) (hG : G.IsHermitian) (f : ℝ → ℝ) :
     ∑ i, f (hG.eigenvalues i) = (Matrix.trace (cfc f G)).re := by
   rw [hG.cfc_eq, Matrix.IsHermitian.cfc]
   simp [Matrix.trace_mul_comm, Matrix.mul_assoc]
 
+/-- An isometric corner embedding preserves spectral sums of continuous real functions that
+vanish at zero. -/
 theorem spectral_sum_corner (V : Matrix E N ℂ) (hV : Vᴴ * V = 1)
     (G : Matrix N N ℂ) (hG : G.IsHermitian) (f : ℝ → ℝ)
     (hf : Continuous f) (hf0 : f 0 = 0) :
@@ -91,6 +126,8 @@ theorem spectral_sum_corner (V : Matrix E N ℂ) (hV : Vᴴ * V = 1)
 
 omit [DecidableEq D] in
 
+/-- For positive `p`, an embedding with isometric left and right factors preserves
+`schattenPower p`. -/
 theorem schatten_embed (p : ℝ) (hp : 0 < p)
     (U : Matrix D M ℂ) (V : Matrix E N ℂ)
     (hU : Uᴴ * U = 1) (hV : Vᴴ * V = 1) (A : Matrix M N ℂ) :
@@ -105,12 +142,15 @@ theorem schatten_embed (p : ℝ) (hp : 0 < p)
     (by simp [Real.zero_rpow hp.ne'])
   simpa only [← hg] using! he
 
+/-- A matrix with orthonormal columns has operator norm at most one. -/
 theorem isometry_norm_le (U : Matrix D M ℂ) (hU : Uᴴ*U=1) : ‖U‖ ≤ 1 := by
   have h := Matrix.l2_opNorm_conjTranspose_mul_self U
   rw [hU] at h
   have h₁ : ‖(1 : Matrix M M ℂ)‖ ≤ 1 := Qatlib.Foundations.OperatorErrors.OperatorError.l2_norm_one_le
   nlinarith [norm_nonneg U]
 
+/-- Multiplying a matrix on the left and right by operator-norm contractions does not increase
+its operator norm. -/
 theorem norm_two_contractions (L : Matrix D M ℂ) (R : Matrix N E ℂ) (A : Matrix M N ℂ)
     (hL : ‖L‖ ≤ 1) (hR : ‖R‖ ≤ 1) : ‖L*A*R‖ ≤ ‖A‖ := by
   calc
@@ -119,12 +159,15 @@ theorem norm_two_contractions (L : Matrix D M ℂ) (R : Matrix N E ℂ) (A : Mat
     _ ≤ (1*‖A‖)*1 := by gcongr
     _ = _ := by ring
 
+/-- Multiplying an isometric embedding by the left isometry's adjoint and the right isometry
+recovers the original matrix. -/
 theorem extract_embed (U : Matrix D M ℂ) (V : Matrix E N ℂ)
     (hU : Uᴴ*U=1) (hV : Vᴴ*V=1) (A : Matrix M N ℂ) : Uᴴ*(embed U V A)*V=A := by
   calc
     _ = (Uᴴ*U)*A*(Vᴴ*V) := by simp only [embed, Matrix.mul_assoc]
     _ = A := by simp [hU,hV]
 
+/-- An embedding with isometric left and right factors preserves operator norm. -/
 theorem opnorm_embed (U : Matrix D M ℂ) (V : Matrix E N ℂ)
     (hU : Uᴴ*U=1) (hV : Vᴴ*V=1) (A : Matrix M N ℂ) : ‖embed U V A‖=‖A‖ := by
   have hu := isometry_norm_le U hU
@@ -136,6 +179,7 @@ theorem opnorm_embed (U : Matrix D M ℂ) (V : Matrix E N ℂ)
     ‖A‖ = ‖Uᴴ*(embed U V A)*V‖ := by rw [extract_embed U V hU hV A]
     _ ≤ ‖embed U V A‖ := norm_two_contractions Uᴴ V (embed U V A) hu' hv
 
+/-- For positive `p` and a square matrix, `schattenPower p A` equals `schattenNorm A p`. -/
 theorem square_norm_eq (A : Matrix N N ℂ) (p : ℝ) (hp : 0 < p) :
     schattenPower p A = schattenNorm A p := by
   have hn : schattenNorm A p = @schattenNorm N _ (Classical.decEq N) A p :=
@@ -145,32 +189,40 @@ theorem square_norm_eq (A : Matrix N N ℂ) (p : ℝ) (hp : 0 < p) :
   simpa only [one_div] using!
     (@schattenNorm_eq_sum_singularValues_rpow N _ (Classical.decEq N) A p hp).symm
 
+/-- The coordinate inclusion of `M` into the first summand of `M ⊕ (N ⊕ K)`. -/
 def coordM : Matrix (Sum M (Sum N K)) M ℂ := Matrix.fromRows 1 0
 
+/-- The coordinate inclusion of `N` into the middle summand of `M ⊕ (N ⊕ K)`. -/
 def coordN : Matrix (Sum M (Sum N K)) N ℂ := Matrix.fromRows 0 (Matrix.fromRows 1 0)
 
+/-- The coordinate inclusion of `K` into the last summand of `M ⊕ (N ⊕ K)`. -/
 def coordK : Matrix (Sum M (Sum N K)) K ℂ := Matrix.fromRows 0 (Matrix.fromRows 0 1)
 
 omit [DecidableEq N] [DecidableEq K] in
 
+/-- The first coordinate inclusion has adjoint-product equal to the identity. -/
 theorem coordM_iso : (coordM (M:=M) (N:=N) (K:=K))ᴴ * coordM (M:=M) (N:=N) (K:=K) = 1 := by
   simp [coordM, Matrix.conjTranspose_fromRows_eq_fromCols_conjTranspose,
     Matrix.fromCols_mul_fromRows]
 
 omit [DecidableEq M] [DecidableEq K] in
 
+/-- The middle coordinate inclusion has adjoint-product equal to the identity. -/
 theorem coordN_iso : (coordN (M:=M) (N:=N) (K:=K))ᴴ * coordN (M:=M) (N:=N) (K:=K) = 1 := by
   simp [coordN, Matrix.conjTranspose_fromRows_eq_fromCols_conjTranspose,
     Matrix.fromCols_mul_fromRows]
 
 omit [DecidableEq M] [DecidableEq N] in
 
+/-- The last coordinate inclusion has adjoint-product equal to the identity. -/
 theorem coordK_iso : (coordK (M:=M) (N:=N) (K:=K))ᴴ * coordK (M:=M) (N:=N) (K:=K) = 1 := by
   simp [coordK, Matrix.conjTranspose_fromRows_eq_fromCols_conjTranspose,
     Matrix.fromCols_mul_fromRows]
 
 omit [DecidableEq M] [DecidableEq K] [DecidableEq D] in
 
+/-- Embedding a rectangular matrix product equals the product of the corresponding embeddings
+when the intermediate inclusion is isometric. -/
 theorem embed_mul (U : Matrix D M ℂ) (V : Matrix D N ℂ) (W : Matrix D K ℂ)
     (hV : Vᴴ * V = 1) (A : Matrix M N ℂ) (B : Matrix N K ℂ) :
     embed U W (A * B) = embed U V A * embed V W B := by
@@ -179,6 +231,8 @@ theorem embed_mul (U : Matrix D M ℂ) (V : Matrix D N ℂ) (W : Matrix D K ℂ)
     U * (A * B) * Wᴴ = U * A * (Vᴴ * V) * B * Wᴴ := by simp [hV, Matrix.mul_assoc]
     _ = _ := by simp only [Matrix.mul_assoc]
 
+/-- For positive exponents satisfying `1 / r = 1 / p + 1 / q`, bounds `schattenPower r (A * B)`
+by the product of the corresponding `p` and `q` quantities. -/
 theorem rectangular_holder (A : Matrix M N ℂ) (B : Matrix N K ℂ)
     (r p q : ℝ) (hr : 0 < r) (hp : 0 < p) (hq : 0 < q)
     (hpqr : 1/r = 1/p + 1/q) :
@@ -197,6 +251,8 @@ theorem rectangular_holder (A : Matrix M N ℂ) (B : Matrix N K ℂ)
 
 open Polynomial
 
+/-- Relates the characteristic polynomials of a matrix and its isometric corner by multiplying
+them by powers of `X` determined by the opposite dimensions. -/
 theorem charpoly_corner (V : Matrix E N ℂ) (hV : Vᴴ * V = 1) (G : Matrix N N ℂ) :
     X ^ Fintype.card N * (V * G * Vᴴ).charpoly
       = X ^ Fintype.card E * G.charpoly := by
@@ -204,6 +260,8 @@ theorem charpoly_corner (V : Matrix E N ℂ) (hV : Vᴴ * V = 1) (G : Matrix N N
   have hm : Vᴴ * (V * G) = G := by rw [← Matrix.mul_assoc, hV, Matrix.one_mul]
   simpa only [hm] using! h
 
+/-- An isometric corner embedding preserves the multiset of nonzero characteristic-polynomial
+roots. -/
 theorem roots_corner_nonzero (V : Matrix E N ℂ) (hV : Vᴴ * V = 1) (G : Matrix N N ℂ) :
     (V * G * Vᴴ).charpoly.roots.filter (fun z => z ≠ 0)
       = G.charpoly.roots.filter (fun z => z ≠ 0) := by
@@ -222,12 +280,16 @@ theorem roots_corner_nonzero (V : Matrix E N ℂ) (hV : Vᴴ * V = 1) (G : Matri
     | succ n ih => simp [succ_nsmul, Multiset.filter_add, ih]
   simpa [hz] using! hf
 
+/-- The multiset of square roots of the eigenvalues of `Aᴴ * A`, including zero values. -/
 def singularMultiset (A : Matrix M N ℂ) : Multiset ℝ :=
   Finset.univ.val.map (fun i => Real.sqrt ((Matrix.isHermitian_conjTranspose_mul_self A).eigenvalues i))
 
+/-- The multiset obtained by removing zero values from `singularMultiset A`. -/
 def nonzeroSingularValues (A : Matrix M N ℂ) : Multiset ℝ :=
   (singularMultiset A).filter (fun x => x ≠ 0)
 
+/-- For a nonnegative real number, its square root is nonzero exactly when the number is
+nonzero. -/
 theorem sqrt_ne_zero_iff (x : ℝ) (hx : 0 ≤ x) : Real.sqrt x ≠ 0 ↔ x ≠ 0 := by
   constructor
   · intro hs hz
@@ -236,6 +298,8 @@ theorem sqrt_ne_zero_iff (x : ℝ) (hx : 0 ≤ x) : Real.sqrt x ≠ 0 ↔ x ≠ 
     apply hn
     nlinarith [Real.sq_sqrt hx]
 
+/-- The nonzero singular-value multiset is obtained from the nonzero roots of the Gram
+characteristic polynomial by taking square roots of their real parts. -/
 theorem nonzeroSingularValues_eq_roots (A : Matrix M N ℂ) :
     nonzeroSingularValues A =
       ((Aᴴ*A).charpoly.roots.filter (fun z => z ≠ 0)).map (fun z : ℂ => Real.sqrt z.re) := by
@@ -258,6 +322,8 @@ theorem nonzeroSingularValues_eq_roots (A : Matrix M N ℂ) :
     simp only [not_not] at he
     simp [he]
 
+/-- An embedding with isometric left and right factors preserves nonzero singular values with
+their multiplicities. -/
 theorem nonzero_singular_embed (U : Matrix D M ℂ) (V : Matrix E N ℂ)
     (hU : Uᴴ*U=1) (hV : Vᴴ*V=1) (A : Matrix M N ℂ) :
     nonzeroSingularValues (embed U V A) = nonzeroSingularValues A := by
@@ -266,6 +332,7 @@ theorem nonzero_singular_embed (U : Matrix D M ℂ) (V : Matrix E N ℂ)
 
 omit [DecidableEq N] in
 
+/-- Conjugate transpose preserves `schattenPower p` for square matrices. -/
 theorem power_conjTranspose (A : Matrix N N ℂ) (p : ℝ) :
     schattenPower p Aᴴ = schattenPower p A := by
   classical
@@ -276,10 +343,14 @@ theorem power_conjTranspose (A : Matrix N N ℂ) (p : ℝ) :
   dsimp only [schattenPower]
   rw [he]
 
+/-- For positive `p`, conjugate transpose preserves the square-matrix Schatten quantity
+`schattenNorm`. -/
 theorem norm_conjTranspose (A : Matrix N N ℂ) (p : ℝ) (hp : 0 < p) :
     schattenNorm Aᴴ p = schattenNorm A p := by
   rw [← square_norm_eq Aᴴ p hp, ← square_norm_eq A p hp, power_conjTranspose]
 
+/-- For positive `p`, the Schatten quantity of `A * B` is bounded by that of `A` times the
+operator norm of `B`. -/
 theorem norm_mul_le_op_right (A B : Matrix N N ℂ) (p : ℝ) (hp : 0 < p) :
     schattenNorm (A*B) p ≤ schattenNorm A p * ‖B‖ := by
   calc
@@ -290,16 +361,22 @@ theorem norm_mul_le_op_right (A B : Matrix N N ℂ) (p : ℝ) (hp : 0 < p) :
       rw [Matrix.l2_opNorm_conjTranspose, norm_conjTranspose A p hp]
       exact mul_comm _ _
 
+/-- For positive `p`, bounds `schattenPower p (A * B)` by the operator norm of `A` times
+`schattenPower p B`. -/
 theorem power_mul_le_op_left (A B : Matrix N N ℂ) (p : ℝ) (hp : 0 < p) :
     schattenPower p (A*B) ≤ ‖A‖ * schattenPower p B := by
   rw [square_norm_eq _ p hp, square_norm_eq _ p hp]
   exact Qatlib.Concepts.MatrixExpTrace.ExpPerturbation.schatten_mul_le_op A B p hp
 
+/-- For positive `p`, bounds `schattenPower p (A * B)` by `schattenPower p A` times the operator
+norm of `B`. -/
 theorem power_mul_le_op_right (A B : Matrix N N ℂ) (p : ℝ) (hp : 0 < p) :
     schattenPower p (A*B) ≤ schattenPower p A * ‖B‖ := by
   rw [square_norm_eq _ p hp, square_norm_eq _ p hp]
   exact norm_mul_le_op_right A B p hp
 
+/-- For positive `p`, the rectangular product's Schatten quantity is bounded by the left
+factor's operator norm times the right factor's Schatten quantity. -/
 theorem rectangular_op_left (A : Matrix M N ℂ) (B : Matrix N K ℂ) (p : ℝ) (hp : 0 < p) :
     schattenPower p (A*B) ≤ ‖A‖ * schattenPower p B := by
   let U := coordM (M:=M) (N:=N) (K:=K)
@@ -313,6 +390,8 @@ theorem rectangular_op_left (A : Matrix M N ℂ) (B : Matrix N K ℂ) (p : ℝ) 
     opnorm_embed U V hU hV, schatten_embed p hp V W hV hW] at h
   exact h
 
+/-- For positive `p`, the rectangular product's Schatten quantity is bounded by the left
+factor's Schatten quantity times the right factor's operator norm. -/
 theorem rectangular_op_right (A : Matrix M N ℂ) (B : Matrix N K ℂ) (p : ℝ) (hp : 0 < p) :
     schattenPower p (A*B) ≤ schattenPower p A * ‖B‖ := by
   let U := coordM (M:=M) (N:=N) (K:=K)
@@ -326,6 +405,8 @@ theorem rectangular_op_right (A : Matrix M N ℂ) (B : Matrix N K ℂ) (p : ℝ)
     schatten_embed p hp U V hU hV, opnorm_embed V W hV hW] at h
   exact h
 
+/-- Left and right unitary transformations preserve both `schattenPower p` for positive `p` and
+the operator norm of a rectangular matrix. -/
 theorem unitary_transport (p : ℝ) (hp : 0 < p) (A : Matrix M N ℂ)
     (U : Matrix M M ℂ) (V : Matrix N N ℂ)
     (hU : U ∈ Matrix.unitaryGroup M ℂ) (hV : V ∈ Matrix.unitaryGroup N ℂ) :
@@ -334,11 +415,13 @@ theorem unitary_transport (p : ℝ) (hp : 0 < p) (A : Matrix M N ℂ)
   have hv : Vᴴ*V=1 := ((Matrix.mem_unitaryGroup_iff_isometry V).mp hV).1
   exact ⟨schatten_embed p hp U V hu hv A, opnorm_embed U V hu hv A⟩
 
+/-- Every eigenvalue of the Gram matrix of the zero rectangular matrix is zero. -/
 theorem gram_zero_eigenvalues :
     (Matrix.isHermitian_conjTranspose_mul_self (0 : Matrix M N ℂ)).eigenvalues = 0 := by
   exact (Matrix.IsHermitian.eigenvalues_eq_zero_iff
     (Matrix.isHermitian_conjTranspose_mul_self (0 : Matrix M N ℂ))).mpr (by simp)
 
+/-- For positive `p`, the zero rectangular matrix has `schattenPower p` equal to zero. -/
 theorem schatten_zero (p : ℝ) (hp : 0 < p) : schattenPower p (0 : Matrix M N ℂ)=0 := by
   letI : DecidableEq M := Classical.decEq M
   letI : DecidableEq N := Classical.decEq N
@@ -346,11 +429,14 @@ theorem schatten_zero (p : ℝ) (hp : 0 < p) : schattenPower p (0 : Matrix M N �
   rw [gram_zero_eigenvalues (M:=M) (N:=N)]
   simp [Real.zero_rpow hp.ne', Real.zero_rpow (inv_pos.mpr hp).ne']
 
+/-- The zero rectangular matrix has empty nonzero singular-value multiset. -/
 theorem singular_zero : nonzeroSingularValues (0 : Matrix M N ℂ) = 0 := by
   unfold nonzeroSingularValues singularMultiset
   rw [gram_zero_eigenvalues (M:=M) (N:=N)]
   simp [Multiset.mem_replicate]
 
+/-- If either matrix index type is empty, its positive-exponent Schatten quantity and operator
+norm vanish and its nonzero singular-value multiset is empty. -/
 theorem zero_dimensions (p : ℝ) (hp : 0 < p) (A : Matrix M N ℂ) (h : IsEmpty M ∨ IsEmpty N) :
     schattenPower p A = 0 ∧ ‖A‖=0 ∧ nonzeroSingularValues A=0 := by
   have ha : A=0 := by
@@ -361,6 +447,8 @@ theorem zero_dimensions (p : ℝ) (hp : 0 < p) (A : Matrix M N ℂ) (h : IsEmpty
   rw [ha]
   exact ⟨schatten_zero p hp, norm_zero, singular_zero⟩
 
+/-- Collects the rectangular Schatten Hölder inequality, the two operator-factor Schatten
+bounds, and operator-norm submultiplicativity. -/
 theorem frontier1 (A : Matrix M N ℂ) (B : Matrix N K ℂ)
     (r p q : ℝ) (hr : 0 < r) (hp : 0 < p) (hq : 0 < q) (hpqr : 1/r=1/p+1/q) :
     schattenPower r (A*B) ≤ schattenPower p A * schattenPower q B ∧
@@ -370,15 +458,20 @@ theorem frontier1 (A : Matrix M N ℂ) (B : Matrix N K ℂ)
   exact ⟨rectangular_holder A B r p q hr hp hq hpqr, rectangular_op_left A B r hr,
     rectangular_op_right A B r hr, Matrix.l2_opNorm_mul A B⟩
 
+/-- Multiplies each matrix entry `A i j` by the row factor `u i` and column factor `v j`. -/
 def rowColumnSchur (u : M → ℂ) (v : N → ℂ) (A : Matrix M N ℂ) : Matrix M N ℂ :=
   fun i j => u i * v j * A i j
 
+/-- The row-column Schur multiplier equals left and right multiplication by the corresponding
+diagonal matrices. -/
 theorem rowColumnSchur_eq (u : M → ℂ) (v : N → ℂ) (A : Matrix M N ℂ) :
     rowColumnSchur u v A = Matrix.diagonal u * A * Matrix.diagonal v := by
   ext i j
   simp only [rowColumnSchur, Matrix.mul_diagonal, Matrix.diagonal_mul]
   ring
 
+/-- For positive `p`, the Schatten quantity of the row-column Schur multiplier is bounded by
+`‖u‖ * schattenPower p A * ‖v‖`. -/
 theorem rowColumnSchur_bound (p : ℝ) (hp : 0 < p) (u : M → ℂ) (v : N → ℂ) (A : Matrix M N ℂ) :
     schattenPower p (rowColumnSchur u v A) ≤ ‖u‖ * schattenPower p A * ‖v‖ := by
   rw [rowColumnSchur_eq]

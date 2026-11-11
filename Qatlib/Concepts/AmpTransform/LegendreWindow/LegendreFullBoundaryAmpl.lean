@@ -5,9 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreFullBoundaryStat
+
+/-!
+# Corrected numerator and Legendre boundary for period recovery
+
+`legendreFullBoundary_answer` recovers a continued-fraction convergent from the rounded modular
+quotient, while `legendreFullBoundary_false` refutes the original residue-distance numerator.
+The module also isolates the denominator-one obstruction to a closed Legendre inequality in the
+period-recovery setting of [Cornwell2014].
+
+## Main statements
+
+* `legendreFullBoundary_false`: The original modular recovery contract using residue distance as
+  the numerator is false.
+* `legendre_correct_numerator`: If P² ≤ N and |Py−Na| ≤ P/2, then a/P is a convergent of y/N and
+  its reduced denominator divides P.
+* `legendreFullBoundary_answer`: Proves the corrected rounded-numerator recovery contract
+  `LegendreFullBoundary`; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.AmpTransform.LegendreWindow
 
+/-- The rational 1/5 is not a continued-fraction convergent of 25/63. -/
 private theorem convergent_25_63_ne (n : ℕ) :
     (25 / 63 : ℝ).convergent n ≠ (1 / 5 : ℚ) := by
   have h1 (m : ℕ) : (25 / 63 : ℝ).convergent (m + 1) =
@@ -47,6 +71,8 @@ private theorem convergent_25_63_ne (n : ℕ) :
           rw [hi]
           norm_num
 
+/-- The original proposed modular recovery condition, identifying the recovered rational with
+residue distance divided by P and requiring a continued-fraction denominator dividing P. -/
 def LegendreFullBoundaryOriginal : Prop :=
   ∀ (N P y : ℕ), 0 < N → 0 < P → P ^ 2 ≤ N → 0 < y → y < N →
     let r := (P * y) % N
@@ -56,6 +82,7 @@ def LegendreFullBoundaryOriginal : Prop :=
       ((a : ℚ) / (b : ℚ) = (d : ℚ) / (P : ℚ)) ∧
       ∃ n : ℕ, ((a : ℚ) / (b : ℚ)) = (((y : ℝ) / (N : ℝ)).convergent n)
 
+/-- The original modular recovery contract using residue distance as the numerator is false. -/
 theorem legendreFullBoundary_false : ¬ LegendreFullBoundaryOriginal := by
   intro h
   obtain ⟨a, b, _hb, _hcop, _hdiv, hab, n, hn⟩ :=
@@ -63,6 +90,8 @@ theorem legendreFullBoundary_false : ¬ LegendreFullBoundaryOriginal := by
   norm_num at hab hn
   exact convergent_25_63_ne n (hn.symm.trans hab)
 
+/-- If P² ≤ N and |Py−Na| ≤ P/2, then a/P is a convergent of y/N and its reduced denominator
+divides P. -/
 theorem legendre_correct_numerator (N P y a : ℕ) (hN : 0 < N) (hP : 0 < P)
     (hsize : P ^ 2 ≤ N)
     (hwindow : |(P : ℝ) * y - (N : ℝ) * a| ≤ (P : ℝ) / 2) :
@@ -118,6 +147,8 @@ theorem legendre_correct_numerator (N P y a : ℕ) (hN : 0 < N) (hP : 0 < P)
         _ = 1 / (2 * (N : ℝ)) * ((N : ℝ) * P) := by field_simp
   exact ⟨hdiv, Real.exists_rat_eq_convergent hleg⟩
 
+/-- Proves the corrected rounded-numerator recovery contract `LegendreFullBoundary`; see
+[Cornwell2014]. -/
 theorem legendreFullBoundary_answer : LegendreFullBoundary := by
   intro N P y hN hP hsize _hy _hyN
   dsimp only
@@ -158,6 +189,8 @@ theorem legendreFullBoundary_answer : LegendreFullBoundary := by
   refine ⟨q.num.natAbs, q.den, q.den_pos, q.reduced, hdiv, heq, n, ?_⟩
   exact heq.trans hn
 
+/-- The non-strict Legendre approximation bound alone does not ensure that a rational is a
+continued-fraction convergent. -/
 theorem legendre_source_nonstrict_boundary_false :
     ¬ (∀ (ξ : ℝ) (q : ℚ), |ξ - (q : ℝ)| ≤ 1 / (2 * (q.den : ℝ) ^ 2) →
       ∃ n : ℕ, q = ξ.convergent n) := by
@@ -172,6 +205,8 @@ theorem legendre_source_nonstrict_boundary_false :
     rw [hi] at hn
     norm_num at hn
 
+/-- A rational of denominator at least two satisfying the non-strict Legendre bound is a
+continued-fraction convergent. See [Cornwell2014]. -/
 theorem legendre_nonstrict_den_ge_two (ξ : ℝ) (q : ℚ) (hq : 2 ≤ q.den)
     (h : |ξ - (q : ℝ)| ≤ 1 / (2 * (q.den : ℝ) ^ 2)) :
     ∃ n : ℕ, q = ξ.convergent n := by

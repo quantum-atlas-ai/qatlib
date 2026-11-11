@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCayleyTransport
 import Mathlib.Algebra.Polynomial.Reverse
+
+/-!
+# Uniqueness of polynomial circle factors
+
+The Lean declarations use conjugate coefficient reflection to compare polynomials with the same
+modulus on the unit circle. They prove phase uniqueness under equal degree, nonzero constant
+term, and closed disk root hypotheses, and compute the highest generalized trace of an outer
+Gram matrix. These results support the Laurent spectral factor framework of
+[ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `closed_disk_polynomial_phase_unique`: the two factors differ by a complex scalar of norm one.
+* `gramOuter_highest_trace`: the highest generalized trace is the product of the conjugated
+  first coefficient and the last coefficient.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
@@ -16,13 +37,17 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open scoped Classical BigOperators ComplexOrder
 
+/-- The coefficientwise conjugate of `P` reflected at degree `d`. -/
 private def circleStarReverse (P : Polynomial ℂ) (d : ℕ) : Polynomial ℂ :=
   (conjugatePolynomial P).reflect d
 
+/-- Evaluating the coefficientwise conjugate polynomial at `z` gives the conjugate of `P`
+evaluated at the conjugate of `z`. -/
 private theorem conjugatePolynomial_eval_complex (P : Polynomial ℂ) (z : ℂ) :
     (conjugatePolynomial P).eval z=star (P.eval (star z)) := by
   simpa [conjugatePolynomial] using! Polynomial.eval_map_apply (p := P) (starRingEnd ℂ) (star z)
 
+/-- Conjugating and reflecting a nonzero polynomial produces a nonzero polynomial. -/
 private theorem circleStarReverse_ne_zero (P : Polynomial ℂ) (d : ℕ) (hP : P≠0) :
     circleStarReverse P d≠0 := by
   intro h
@@ -31,6 +56,8 @@ private theorem circleStarReverse_ne_zero (P : Polynomial ℂ) (d : ℕ) (hP : P
   apply hP
   simpa only [conjugatePolynomial_conjugate,conjugatePolynomial_zero] using! he
 
+/-- Conjugate reflection of a product at degree `d + e` is the product of the reflections at `d`
+and `e`, provided these bounds contain the respective degrees. -/
 private theorem circleStarReverse_mul (P Q : Polynomial ℂ) (d e : ℕ)
     (hP : P.natDegree≤d) (hQ : Q.natDegree≤e) :
     circleStarReverse (P*Q) (d+e)=circleStarReverse P d*circleStarReverse Q e := by
@@ -39,6 +66,8 @@ private theorem circleStarReverse_mul (P Q : Polynomial ℂ) (d e : ℕ)
   exact Polynomial.reflect_mul _ _ (Polynomial.natDegree_map_le.trans hP)
     (Polynomial.natDegree_map_le.trans hQ)
 
+/-- For nonzero `z` and degree bound `d`, the reflected conjugate evaluates to `z ^ d` times the
+conjugate of `P` evaluated at the conjugate reciprocal of `z`. -/
 private theorem circleStarReverse_eval (P : Polynomial ℂ) (d : ℕ) (hP : P.natDegree≤d)
     (z : ℂ) (hz : z≠0) :
     (circleStarReverse P d).eval z=z^d*star (P.eval (star (z⁻¹))) := by
@@ -52,12 +81,16 @@ private theorem circleStarReverse_eval (P : Polynomial ℂ) (d : ℕ) (hP : P.na
   simp only [inv_pow,mul_assoc,inv_mul_cancel₀ hp,mul_one] at hh
   exact hh.trans (mul_comm _ _)
 
+/-- At a nonzero point, the reflected conjugate vanishes exactly when `P` vanishes at the
+conjugate reciprocal point, assuming the degree bound `d`. -/
 private theorem circleStarReverse_eval_zero_iff (P : Polynomial ℂ) (d : ℕ)
     (hP : P.natDegree≤d) (z : ℂ) (hz : z≠0) :
     (circleStarReverse P d).eval z=0 ↔ P.eval (star (z⁻¹))=0 := by
   rw [circleStarReverse_eval P d hP z hz]
   simp only [mul_eq_zero,pow_ne_zero _ hz,false_or,star_eq_zero]
 
+/-- On the unit circle, the reflected conjugate evaluates to `z ^ d` times the conjugate of
+`P.eval z`, assuming the degree bound `d`. -/
 private theorem circleStarReverse_circle_eval (P : Polynomial ℂ) (d : ℕ)
     (hP : P.natDegree≤d) (z : ℂ) (hz : ‖z‖=1) :
     (circleStarReverse P d).eval z=z^d*star (P.eval z) := by
@@ -66,6 +99,8 @@ private theorem circleStarReverse_circle_eval (P : Polynomial ℂ) (d : ℕ)
   change z^d*star (P.eval (star (star z)))=z^d*star (P.eval z)
   rw [star_star]
 
+/-- On the unit circle, the product of `P` and its reflected conjugate evaluates to `z ^ d`
+times the squared norm of `P.eval z`, assuming the degree bound `d`. -/
 private theorem circleProduct_eval (P : Polynomial ℂ) (d : ℕ)
     (hP : P.natDegree≤d) (z : ℂ) (hz : ‖z‖=1) :
     (P*circleStarReverse P d).eval z=z^d*((‖P.eval z‖^2 : ℝ) : ℂ) := by
@@ -74,6 +109,8 @@ private theorem circleProduct_eval (P : Polynomial ℂ) (d : ℕ)
     _ = z^d*(P.eval z*star (P.eval z)) := by ring
     _ = _ := by rw [Complex.star_def,Complex.mul_conj,Complex.normSq_eq_norm_sq]
 
+/-- Polynomials of degree at most `d` with equal modulus on the unit circle have equal products
+with their conjugate reflections at degree `d`. -/
 private theorem circleProducts_eq (P Q : Polynomial ℂ) (d : ℕ)
     (hP : P.natDegree≤d) (hQ : Q.natDegree≤d)
     (h : ∀ z : ℂ, ‖z‖=1 → ‖P.eval z‖=‖Q.eval z‖) :
@@ -82,6 +119,9 @@ private theorem circleProducts_eq (P Q : Polynomial ℂ) (d : ℕ)
   intro z hz
   rw [circleProduct_eval P d hP z hz,circleProduct_eval Q d hQ z hz,h z hz]
 
+/-- Two polynomials of the same degree, with nonzero constant terms and all roots in the closed
+unit disk, differ by a nonzero scalar if their products with their conjugate reflections
+agree. -/
 private theorem closed_disk_associated : ∀ n : ℕ, ∀ P Q : Polynomial ℂ,
     P.natDegree=n → Q.natDegree=n → P.eval 0≠0 → Q.eval 0≠0 →
     P*circleStarReverse P n=Q*circleStarReverse Q n →
@@ -168,6 +208,8 @@ private theorem closed_disk_associated : ∀ n : ℕ, ∀ P Q : Polynomial ℂ,
     rw [hP,hQ,hrel]
     ring
 
+/-- Two polynomials of the same degree, with nonzero constant terms and all roots in the closed
+unit disk, differ by a scalar of norm one if their moduli agree on the unit circle. -/
 theorem closed_disk_polynomial_phase_unique (P Q : Polynomial ℂ)
     (hD : Q.natDegree=P.natDegree) (hPc : P.eval 0≠0) (hQc : Q.eval 0≠0)
     (hPr : ∀ z : ℂ, P.eval z=0 → ‖z‖≤1) (hQr : ∀ z : ℂ, Q.eval z=0 → ‖z‖≤1)
@@ -183,6 +225,8 @@ theorem closed_disk_polynomial_phase_unique (P Q : Polynomial ℂ)
   apply mul_right_cancel₀ (norm_ne_zero_iff.mpr hzn)
   simpa only [one_mul] using! he.symm
 
+/-- For positive `n`, the generalized trace of `gramOuter p` at offset `n - 1` is `star (p 0)`
+times the last coefficient of `p`. -/
 theorem gramOuter_highest_trace (n : ℕ) [NeZero n] (p : Fin n → ℂ) :
     genTrace (gramOuter p) ((n-1 : ℕ) : ℤ)=
       star (p 0)*p ⟨n-1,by have := NeZero.pos n; omega⟩ := by

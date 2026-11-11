@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpResidualMacros
+
+/-!
+# Diagnostic contracts for SDP oracle errors
+
+This module records proposed concentration, sampling, rescaling, and Gibbs perturbation
+contracts as propositions. `SdpStep2SampledOracleContract` and
+`SdpSparsificationGibbsErrorContract` expose the hypotheses whose sufficiency is examined by
+separate counterexamples; defining these propositions does not establish them.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `SdpSparsificationGibbsErrorContract`: The proposed statement that per-round payoff errors at
+  most 1/(4T) imply Gibbs trace distance at most an arbitrary positive ε before round T.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +41,8 @@ namespace Qatlib.Concepts.SdpMmwSolver.OracleError
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
 
+/-- The proposed finite matrix concentration statement bounding the fraction of samples with
+large averaged operator norm from Hermitian boundedness and coordinatewise zero sums. -/
 def SdpMatrixHoeffdingContract : Prop :=
   ∀ (d k R : ℕ) (Z : Fin R → Fin k → Operator d) (bound δ : ℝ),
     0 < d → 0 < k → 0 < R → 0 < bound → 0 < δ →
@@ -30,8 +53,11 @@ def SdpMatrixHoeffdingContract : Prop :=
       δ ≤ ‖(k : ℝ)⁻¹ • (∑ i, Z s i)‖) ≤
       (d : ℝ) * Real.exp ((-(k : ℝ)) * δ ^ 2 / (8 * bound ^ 2))
 
+/-- An alias for the proposed matrix concentration proposition `SdpMatrixHoeffdingContract`. -/
 def SdpMatrixHoeffding : Prop := SdpMatrixHoeffdingContract
 
+/-- The proposed implication from empirical acceptance inequalities to true weighted width and
+separation bounds, without additional sample approximation hypotheses. -/
 def SdpStep2SampledOracleContract : Prop :=
   ∀ (D m M : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (y : ℕ → Fin m → ℝ) (α R κ ν η : ℝ) (t N : ℕ) (q : Fin m → ℝ)
@@ -56,8 +82,11 @@ def SdpStep2SampledOracleContract : Prop :=
       (Matrix.trace (Cv * mmwState D (sdpDualPayoff D m A Cv α y) η t)).re -
         sdpSampledSeparationSlack α κ ν
 
+/-- An alias for the proposed sampled-oracle proposition `SdpStep2SampledOracleContract`. -/
 def SdpStep2SampledOracle : Prop := SdpStep2SampledOracleContract
 
+/-- The proposed statement that a zero response at a round forces every nonnegative vector
+meeting the trace threshold to have cost at least α(1 − 3Rε). -/
 def SdpStep2NoOutputSeparatorContract : Prop :=
   ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (y : ℕ → Fin m → ℝ) (α R ε η : ℝ) (t₀ : ℕ),
@@ -73,8 +102,12 @@ def SdpStep2NoOutputSeparatorContract : Prop :=
           3 * α * ε) →
       α * (1 - 3 * R * ε) ≤ ∑ i, z i * b i)
 
+/-- An alias for the proposed no-output separator proposition
+`SdpStep2NoOutputSeparatorContract`. -/
 def SdpStep2NoOutputSeparator : Prop := SdpStep2NoOutputSeparatorContract
 
+/-- The proposed statement that per-round payoff errors at most 1/(4T) imply Gibbs trace
+distance at most an arbitrary positive ε before round T. -/
 def SdpSparsificationGibbsErrorContract : Prop :=
   ∀ (D m Q T : ℕ) (A : Fin m → Operator D) (Cv : Operator D)
     (b : Fin m → ℝ) (y : ℕ → Fin m → ℝ) (α ε η : ℝ)
@@ -91,8 +124,12 @@ def SdpSparsificationGibbsErrorContract : Prop :=
         mmwState D (fun s => sdpSparsifiedPayoff D m Q A Cv α (idx s)) η t) ≤
         ε)
 
+/-- An alias for the proposed Gibbs approximation proposition
+`SdpSparsificationGibbsErrorContract`. -/
 def SdpSparsificationGibbsError : Prop := SdpSparsificationGibbsErrorContract
 
+/-- The numerical proposition asserting existence of positive real copy and measurement budgets
+satisfying the displayed logarithmic upper bounds. -/
 def SdpExpectationEstimationContract : Prop :=
   ∀ (n m s : ℕ) (ε h p_e : ℝ),
     0 < n → 0 < m → 0 < s → 0 < ε → 0 < h → 0 < p_e → p_e < 1 →
@@ -107,8 +144,11 @@ def SdpExpectationEstimationContract : Prop :=
       oracle ≤ 8 * (s : ℝ) / h ^ 2 *
         (Real.log (4 * (n : ℝ) * (m : ℝ) * (s : ℝ) / (p_e * h))) ^ 4)
 
+/-- An alias for the numerical budget proposition `SdpExpectationEstimationContract`. -/
 def SdpExpectationEstimation : Prop := SdpExpectationEstimationContract
 
+/-- The original proposed payoff-range and certificate-cost statement using the sampled width
+budget with both tolerances equal to ε. -/
 def SdpWidthSlackPayoffRangeOriginalContract : Prop :=
   ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ ε : ℝ),
@@ -125,6 +165,8 @@ def SdpWidthSlackPayoffRangeOriginalContract : Prop :=
     (∑ i, sdpDualCertificate m δ α R j₀ y (sdpDualCertRounds D R δ ε) i * b i ≤
       (1 + δ) * α)
 
+/-- The original proposed lifting and objective-rescaling statement using normalized tolerance
+δ/α and the multiplicative conclusion (1 + δ)α. -/
 def SdpAlphaRescaleLemma2OriginalContract : Prop :=
   ∀ (n m : ℕ) (b : Fin m → ℝ) (R r α δ : ℝ),
     0 < n → 0 < m → 0 < R → 0 < r → 0 < α → 0 < δ →

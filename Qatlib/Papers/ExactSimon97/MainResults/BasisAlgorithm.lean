@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ExactSimon97.MainResults.Defs
 import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+
+/-!
+# Boolean echelon bases and orthogonal generators
+
+This module converts Boolean pivot rows and kernel rows into linearly independent generating
+families over `ZMod 2`. It transfers the correctness and operation bounds of the Boolean echelon
+algorithms to the submodule language used by the exact Simon development. These constructions
+support the results of [BrassardHoyer1997].
+
+## Main statements
+
+* `proposition1_actual_algorithm`: proves independence, spanning, and operation bounds for pivot
+  extraction.
+* `proposition2_actual_algorithm`: proves correctness and a polynomial operation bound for the
+  orthogonal basis.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,12 +45,15 @@ open Qatlib.Concepts.PauliClifford.ExactRank
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- The subtype of coordinate indices for which a pivot row is present. -/
 abbrev PivotIdx {n : ℕ} (piv : Fin n → Option (Reg n)) : Type :=
   {i : Fin n // (piv i).isSome = true}
 
+/-- The binary vector represented by the pivot row at a present pivot index. -/
 def pivotVec {n : ℕ} (piv : Fin n → Option (Reg n)) (p : PivotIdx piv) : BoolVec n :=
   regBooleanEquiv n ((piv p.1).get p.2)
 
+/-- In Boolean echelon form, a later pivot vector vanishes at every earlier pivot coordinate. -/
 theorem pivotVec_apply_eq_zero {n : ℕ} {piv : Fin n → Option (Reg n)}
     (hech : IsBooleanEchelon piv) {p q : PivotIdx piv} (hlt : p.1 < q.1) :
     pivotVec piv q p.1 = 0 := by
@@ -38,6 +62,7 @@ theorem pivotVec_apply_eq_zero {n : ℕ} {piv : Fin n → Option (Reg n)}
     (hech q.1 _ hrow).2 p.1 hlt
   simp [pivotVec, hfalse]
 
+/-- In Boolean echelon form, a pivot vector has value one at its own pivot coordinate. -/
 theorem pivotVec_apply_self {n : ℕ} {piv : Fin n → Option (Reg n)}
     (hech : IsBooleanEchelon piv) (p : PivotIdx piv) :
     pivotVec piv p p.1 = 1 := by
@@ -45,6 +70,7 @@ theorem pivotVec_apply_self {n : ℕ} {piv : Fin n → Option (Reg n)}
   have htrue : ((piv p.1).get p.2) p.1 = true := (hech p.1 _ hrow).1
   simp [pivotVec, htrue]
 
+/-- The pivot vectors of a Boolean echelon table are linearly independent over `ZMod 2`. -/
 theorem pivotVec_linearIndependent {n : ℕ} (piv : Fin n → Option (Reg n))
     (hech : IsBooleanEchelon piv) :
     LinearIndependent (ZMod 2) (pivotVec piv) := by
@@ -80,6 +106,7 @@ theorem pivotVec_linearIndependent {n : ℕ} (piv : Fin n → Option (Reg n))
   rw [hsingle, pivotVec_apply_self hech p0, mul_one] at hcoord
   exact hp0ne hcoord
 
+/-- The range of `pivotVec` consists exactly of the vectors represented by present pivot rows. -/
 theorem range_pivotVec {n : ℕ} (piv : Fin n → Option (Reg n)) :
     Set.range (pivotVec piv) =
       {v : BooleanVec n | ∃ i row, piv i = some row ∧ v = regBooleanEquiv n row} := by
@@ -96,6 +123,7 @@ theorem range_pivotVec {n : ℕ} (piv : Fin n → Option (Reg n)) :
       calc some ((piv i).get hisSome) = piv i := Option.some_get hisSome
         _ = some row := hrow)
 
+/-- The span of the pivot vectors equals the submodule associated with the Boolean pivot span. -/
 theorem span_pivotVec {n : ℕ} (piv : Fin n → Option (Reg n)) :
     Submodule.span (ZMod 2) (Set.range (pivotVec piv)) =
       AddSubgroup.toZModSubmodule 2 (booleanPivotSpan piv) := by
@@ -105,6 +133,8 @@ theorem span_pivotVec {n : ℕ} (piv : Fin n → Option (Reg n)) :
     range_pivotVec]
   rfl
 
+/-- The span of the vectors in a row list equals the submodule associated with the Boolean row
+span. -/
 theorem span_range_get {n : ℕ} (l : List (Reg n)) :
     Submodule.span (ZMod 2)
         (Set.range (fun j : Fin l.length => regBooleanEquiv n (l.get j))) =
@@ -124,6 +154,8 @@ theorem span_range_get {n : ℕ} (l : List (Reg n)) :
   rw [hgen]
   rfl
 
+/-- The computed pivot family is independent and spans the input rows, with at most `rows.length
+* n` XORs and `rows.length * (4 * n ^ 2 + 4 * n)` bit operations. See [BrassardHoyer1997]. -/
 theorem proposition1_actual_algorithm {n : ℕ} (rows : List (Reg n)) :
     LinearIndependent (ZMod 2) (pivotVec (booleanEchelonRun rows).pivots) ∧
       Submodule.span (ZMod 2)
@@ -140,6 +172,8 @@ theorem proposition1_actual_algorithm {n : ℕ} (rows : List (Reg n)) :
   refine ⟨pivotVec_linearIndependent _ hech, ?_, hxor, hbit⟩
   rw [span_pivotVec, hspan]
 
+/-- The finite enumeration of computed pivot vectors is an independent generating family for the
+submodule spanned by the input rows. See [BrassardHoyer1997]. -/
 theorem proposition1_generating_set {n : ℕ} (rows : List (Reg n)) :
     LinIndep (fun j : Fin (Fintype.card (PivotIdx (booleanEchelonRun rows).pivots)) =>
         pivotVec (booleanEchelonRun rows).pivots
@@ -166,6 +200,9 @@ theorem proposition1_generating_set {n : ℕ} (rows : List (Reg n)) :
   unfold Generates
   rw [hrange, span_pivotVec, hspan]
 
+/-- The computed kernel list has no duplicates, is linearly independent, spans the orthogonal
+row submodule, and has operation count at most `n + n * (n * (2 + 5 * n))`. See
+[BrassardHoyer1997]. -/
 theorem proposition2_actual_algorithm {n : ℕ} (rows : List (Reg n)) :
     (booleanKernelBasis (booleanEchelonRun rows).pivots).Nodup ∧
       LinearIndependent (ZMod 2)
@@ -187,6 +224,8 @@ theorem proposition2_actual_algorithm {n : ℕ} (rows : List (Reg n)) :
   refine ⟨hnodup, hli, ?_, booleanKernelBasisFull_snd_le _⟩
   rw [span_range_get, hrows, booleanPivotKernel_eq_booleanOrthogonal_span, hspan]
 
+/-- The computed kernel vectors form an independent generating family for the orthogonal
+submodule of the input row span. See [BrassardHoyer1997]. -/
 theorem proposition2_ortho_generating_set {n : ℕ} (rows : List (Reg n)) :
     LinIndep
         (fun j : Fin (booleanKernelBasis (booleanEchelonRun rows).pivots).length =>

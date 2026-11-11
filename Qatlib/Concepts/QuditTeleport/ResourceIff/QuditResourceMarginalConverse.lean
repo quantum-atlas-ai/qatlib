@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditConverseTools
 import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPositiveBranches
+
+/-!
+# The qudit teleportation resource marginal converse
+
+`quditResourceMarginalConverse` proves that a positive semidefinite resource supporting fixed
+correction teleportation must have maximally mixed Bob marginal. The argument combines
+positivity of the corrected branches with no signalling for Alice's complete local operation.
+
+This gives a necessary resource condition for the teleportation setting of
+[BennettEtAl1993Teleportation], which can then be specialized to normalized pure resources.
+
+## Main statements
+
+* `quditResourceMarginalConverse`: fixed correction teleportation forces the maximally mixed Bob
+  marginal.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +39,9 @@ namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- A positive semidefinite resource supporting qudit teleportation with fixed unitary
+corrections has Bob marginal equal to `1 / n` times the identity
+[BennettEtAl1993Teleportation]. -/
 theorem quditResourceMarginalConverse : QuditResourceMarginalConverse := by
   intro n _ K U ω hω htele
   obtain ⟨hU, hK, hsum⟩ := htele

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.IsingPartit08.MainResults.Defs
+
+/-!
+# Propagation of additive estimation errors
+
+This module proves positivity and the square identity for the normalizer `normalizerOf`. Given
+`MasterCorrespondence` and a numerical `HadamardTestEstimate`, it propagates the amplitude error
+to a scaled additive error for the associated sum, supplying the numerical containment step in
+Theorem 1 of [Geraci2008].
+
+## Main statements
+
+* `normalizerOf_pos`: proves the normalizer is positive for every real parameter.
+* `containment_additive`: scales an assumed amplitude estimate and its error.
+* `containment_additive_normalizer`: specializes the estimate to `normalizerOf`.
+
+## References
+
+* [Geraci, 2008][Geraci2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,17 +37,22 @@ attribute [local instance] Classical.propDecidable
 
 namespace Qatlib.Papers.IsingPartit08.MainResults
 
+/-- The normalizer `normalizerOf lam edges` is strictly positive for every real `lam` and
+natural `edges`. -/
 theorem normalizerOf_pos (lam : ℝ) (edges : ℕ) : 0 < normalizerOf lam edges := by
   unfold normalizerOf
   apply Real.sqrt_pos.mpr
   have hbase : 0 < lam ^ 2 + 1 := by nlinarith [sq_nonneg lam]
   exact pow_pos hbase edges
 
+/-- The square of the normalizer equals `(lam ^ 2 + 1) ^ edges`. -/
 theorem normalizerOf_sq (lam : ℝ) (edges : ℕ) :
     normalizerOf lam edges ^ 2 = (lam ^ 2 + 1) ^ edges := by
   unfold normalizerOf
   rw [Real.sq_sqrt (by positivity)]
 
+/-- If `q * normalizer = s` and `m` estimates `q` within `p`, then `normalizer * m` estimates
+`s` within `normalizer * p` for positive `normalizer`. See [Geraci2008]. -/
 theorem containment_additive {q normalizer s p m : ℝ}
     (hN : 0 < normalizer) (hmaster : MasterCorrespondence q normalizer s)
     (hm : HadamardTestEstimate q p m) :
@@ -39,6 +64,8 @@ theorem containment_additive {q normalizer s p m : ℝ}
   rw [hrw, abs_mul, abs_of_pos hN]
   exact mul_le_mul_of_nonneg_left hm (le_of_lt hN)
 
+/-- Specializes the scaled additive-error bound to the positive factor `normalizerOf lam edges`.
+See [Geraci2008]. -/
 theorem containment_additive_normalizer {q s p m : ℝ} (lam : ℝ) (edges : ℕ)
     (hmaster : MasterCorrespondence q (normalizerOf lam edges) s)
     (hm : HadamardTestEstimate q p m) :

@@ -11,6 +11,31 @@ import Mathlib.Probability.ProbabilityMassFunction.Constructions
 import Mathlib.Probability.Distributions.Uniform
 import Mathlib.LinearAlgebra.Semisimple
 import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianIrrep
+
+/-!
+# Actual record marginals and representation transport
+
+This module proves circuit counts, record factorization, qubit extraction, and uniform marginals
+for actual dihedral measurements. Counting representation-label fibers then constructs the
+staged transport in `g1`, connecting those measurements to the representation description
+associated with Proposition 8.1 of [Kuperberg2005].
+
+The half-width-record section also gives combining identities and stage laws. Its modulus-two
+example disproves the stated unrestricted ideal-hit lower bound and hence the universally
+quantified conjunction in `clause2_is_false`.
+
+## Main statements
+
+* `clause27_exists_stages`: actual records with uniform label-bit and label marginal stages.
+* `g1`: representation transport, extraction, and circuit counts.
+* `clause2_stageLaw`: intermediate half-width combining laws.
+* `clause2_is_false`: failure of the displayed unrestricted sieve conjunction.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian.TopBitBundle
@@ -26,11 +51,14 @@ set_option autoImplicit false
 open Qatlib
 open scoped BigOperators
 
+/-- The dihedral record circuit uses exactly one oracle query and one gate. -/
 theorem clause27_costs (N : ℕ) [NeZero N] (S : Type) [Fintype S] [DecidableEq S] [AddCommGroup S] :
     QueryCount (dihedralRecordCircuit (N := N) (S := S)) = 1 ∧
       GateCount (dihedralRecordCircuit (N := N) (S := S)) = 1 := by
   refine ⟨?_, ?_⟩ <;> simp [dihedralRecordCircuit, QueryCount, GateCount]
 
+/-- Under the reflection-hiding promise, each Fourier-label branch factors into a phase qubit
+and an output amplitude with squared norm sum `1 / N`. -/
 theorem clause27_recordFactor (N : ℕ) [NeZero N] (S : Type) [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg N → S) (s : ZMod N)
     (hf : DihedralReflectionHides N f s) :
@@ -47,6 +75,8 @@ theorem clause27_recordFactor (N : ℕ) [NeZero N] (S : Type) [Fintype S] [Decid
     Qatlib.Concepts.HspRecovery.RecordExtract.sourceGeneralRecordLaw
   exact (hlaw N S f s hf).2.2
 
+/-- Extraction of two phase qubits is supported on the tagged sum and difference states up to
+scalars of norm one, assigning each mass one half. -/
 theorem clause27_extraction_conjunct (N : ℕ) [NeZero N] (s k ℓ : ZMod N) :
     ∃ xiPlus xiMinus : QState Bool, ∃ uPlus uMinus : ℂ,
       ‖uPlus‖ = 1 ∧ ‖uMinus‖ = 1 ∧
@@ -67,6 +97,8 @@ theorem clause27_extraction_conjunct (N : ℕ) [NeZero N] (s k ℓ : ZMod N) :
   · norm_num
   · rfl
 
+/-- The actual finite record law at `(k, t, z)` is the extended nonnegative real conversion of
+the corresponding joint-state Born probability. -/
 theorem clause27_actual_apply {N : ℕ} [NeZero N] (S : Type) [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg N → S) (k : ZMod N) (t : Bool) (z : S) :
     actualRecordFiniteLaw f (k, t, z) =
@@ -98,6 +130,8 @@ theorem clause27_actual_apply {N : ℕ} [NeZero N] (S : Type) [Fintype S] [Decid
     rfl
   rw [key]
 
+/-- For a reflection-hiding oracle, summing out the oracle output gives mass `1 / (2 * N)` for
+every label-bit pair. -/
 theorem clause27_bitMarginal {N : ℕ} [NeZero N] (S : Type) [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg N → S) (s : ZMod N)
     (hf : DihedralReflectionHides N f s) (k : ZMod N) (t : Bool) :
@@ -121,10 +155,14 @@ theorem clause27_bitMarginal {N : ℕ} [NeZero N] (S : Type) [Fintype S] [Decida
   have hN : (N : ℝ) ≠ 0 := by exact_mod_cast (NeZero.pos N).ne'
   field_simp [hN]
 
+/-- Combining half-width records subtracts their labels and divides the sum of their widths by
+`a` using natural-number division. -/
 theorem clause2_combineRecords_eq {N : ℕ} (a : ℕ) (r₁ r₂ : HalfWidthRecord N) :
     combineRecords a r₁ r₂ = ⟨r₁.label - r₂.label, (r₁.width + r₂.width) / a⟩ :=
   rfl
 
+/-- There are counts with `L0` samples, twice as many records, and `L0` extractions, matching
+the prescribed sieve counts when `L0` is the fresh-record count. -/
 theorem clause2_resourceCounts (m L0 : ℕ) :
     ∃ (samples records extractions : ℕ),
       samples = L0 ∧ records = 2 * L0 ∧ extractions = L0 ∧
@@ -137,6 +175,8 @@ theorem clause2_resourceCounts (m L0 : ℕ) :
   rw [h]
   rfl
 
+/-- The half-width combining run has intermediate laws starting at the fresh-record law and
+evolving by one layer at each stage. -/
 theorem clause2_stageLaw {N : ℕ} [NeZero N] (a q w L0 m : ℕ) :
     ∃ (stageLaw : Fin (m + 1) → PMF (List (HalfWidthRecord N))),
       stageLaw 0 = freshHalfWidthRecords N w L0 ∧
@@ -153,6 +193,8 @@ theorem clause2_stageLaw {N : ℕ} [NeZero N] (a q w L0 m : ℕ) :
     rfl
   · rfl
 
+/-- Twice the number of selected pairs is at most the input length, and the resulting unpaired
+count is at most that length. -/
 theorem clause2_pairWindowMod_length {N : ℕ} (q : ℕ) {α : Type} [DecidableEq α]
     (label : α → ZMod N) (L : List α) :
     (pairWindowMod q label L).length * 2 ≤ L.length ∧
@@ -174,11 +216,14 @@ section Clause28Counterexamples
 
 open scoped Classical
 
+/-- Performing zero half-width combining layers leaves the fresh-record distribution unchanged. -/
 theorem clause2_run_at_zero {N : ℕ} [NeZero N] (a q w L0 : ℕ) :
     (freshHalfWidthRecords N w L0).bind (layeredCombine a q 0)
       = freshHalfWidthRecords N w L0 :=
   PMF.bind_pure _
 
+/-- One fresh width-zero record at modulus two is obtained by uniformly sampling its label and
+returning the corresponding singleton list. -/
 theorem clause2_fresh_one :
     freshHalfWidthRecords 2 0 1 =
       (PMF.uniformOfFintype' (ZMod 2)).bind
@@ -194,6 +239,8 @@ theorem clause2_fresh_one :
   funext k
   exact PMF.pure_map _ _
 
+/-- The zero-layer modulus-two run with one fresh width-zero record assigns mass one half to the
+singleton record with label zero. -/
 theorem clause2_run_mass_zero :
     ((freshHalfWidthRecords 2 0 1).bind (layeredCombine 1 1 0))
       [⟨(0 : ZMod 2), 0⟩] = (2⁻¹ : ENNReal) := by
@@ -219,6 +266,7 @@ theorem clause2_run_mass_zero :
   rw [PMF.uniformOfFintype'_apply, ZMod.card]
   norm_num
 
+/-- The singleton width-zero record with label zero at modulus two contains no ideal hit. -/
 theorem clause2_noHit_zero :
     ¬(∃ r : HalfWidthRecord 2, r ∈ [⟨(0 : ZMod 2), 0⟩] ∧ isIdealHit 2 r) := by
   rintro ⟨r, hr, hi⟩
@@ -226,6 +274,8 @@ theorem clause2_noHit_zero :
   subst hr
   simp [isIdealHit] at hi
 
+/-- At modulus two with one fresh width-zero record and zero layers, the ideal-hit probability
+fails the proposed `idealHitLowerBound 0` inequality. -/
 theorem clause2_idealHit_conjunct_false :
     ¬(ENNReal.ofReal (idealHitLowerBound 0) ≤
       ∑' L : List (HalfWidthRecord 2),
@@ -287,6 +337,8 @@ theorem clause2_idealHit_conjunct_false :
   have hpos : (0 : ENNReal) < 2⁻¹ := ENNReal.inv_pos.mpr (by norm_num)
   exact absurd hsub (not_le_of_gt hpos)
 
+/-- The displayed universally quantified conjunction of stage laws, combining identities,
+pairing bounds, success and failure bounds, and resource counts is false. -/
 theorem clause2_is_false :
     ¬(∀ (N : ℕ) [NeZero N] (a q w L0 : ℕ) (_ha : LegalSlopeFactor a) (_hq : 0 < q)
       (_hL0 : 0 < L0) (m : ℕ),
@@ -323,6 +375,8 @@ theorem clause2_is_false :
 
 end Clause28Counterexamples
 
+/-- For a reflection-hiding oracle, summing out the tag and oracle output gives mass `1 / N` for
+every Fourier label. -/
 theorem clause27_labelMarginal {N : ℕ} [NeZero N] (S : Type) [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg N → S) (s : ZMod N)
     (hf : DihedralReflectionHides N f s) (k : ZMod N) :
@@ -338,6 +392,8 @@ theorem clause27_labelMarginal {N : ℕ} [NeZero N] (S : Type) [Fintype S] [Deci
   have hN : (N : ℝ) ≠ 0 := by exact_mod_cast (NeZero.pos N).ne'
   field_simp [hN]; norm_num
 
+/-- The first-coordinate marginal of a finite product probability mass function is the sum of
+its masses over the second coordinate. -/
 theorem clause27_map_fst_apply {α β : Type} [Fintype α] [Fintype β] (p : PMF (α × β)) (a : α) :
     p.map Prod.fst a = ∑' b : β, p (a, b) := by
   rw [PMF.map_apply]
@@ -362,6 +418,8 @@ theorem clause27_map_fst_apply {α β : Type} [Fintype α] [Fintype β] (p : PMF
     rw [hsingle, if_pos rfl]
   rw [hz]
 
+/-- Projecting a finite triple probability mass function to its first two coordinates sums its
+masses over the third coordinate. -/
 theorem clause27_map_fst2_apply {α β γ : Type} [Fintype α] [Fintype β] [Fintype γ]
     (p : PMF (α × (β × γ))) (a : α) (b : β) :
     p.map (fun q : α × (β × γ) => (q.1, q.2.1)) (a, b) = ∑' c : γ, p (a, (b, c)) := by
@@ -395,6 +453,8 @@ theorem clause27_map_fst2_apply {α β γ : Type} [Fintype α] [Fintype β] [Fin
   funext c
   exact if_pos rfl
 
+/-- A reflection-hiding oracle has a two-step staged bridge from actual records to uniform
+label-bit masses `1 / (2 * N)` and uniform label masses `1 / N`. -/
 theorem clause27_exists_stages {N : ℕ} [NeZero N] (S : Type) [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg N → S) (s : ZMod N)
     (hf : DihedralReflectionHides N f s) :
@@ -464,6 +524,7 @@ theorem clause27_exists_stages {N : ℕ} [NeZero N] (S : Type) [Fintype S] [Deci
     rw [hval]
     exact ENNReal.toReal_ofReal (by positivity)
 
+/-- A finite sum over triples equals the three nested sums over their coordinates. -/
 theorem clause27_sum_triple {α β γ : Type} [Fintype α] [Fintype β] [Fintype γ]
     (f : α × β × γ → ℝ) :
     ∑ q : α × β × γ, f q = ∑ a : α, ∑ b : β, ∑ c : γ, f (a, (b, c)) := by
@@ -471,6 +532,8 @@ theorem clause27_sum_triple {α β γ : Type} [Fintype α] [Fintype β] [Fintype
   refine Finset.sum_congr rfl fun a _ => ?_
   rw [← Finset.univ_product_univ, Finset.sum_product]
 
+/-- For a reflection-hiding oracle, summing the real-valued actual masses over the output
+register gives `1 / (2 * N)` for each label-bit pair. -/
 theorem clause27_toReal_bitMarginal {N : ℕ} [NeZero N] (S : Type) [Fintype S] [DecidableEq S]
     [AddCommGroup S] (f : DihedralReg N → S) (s : ZMod N)
     (hf : DihedralReflectionHides N f s) (k : ZMod N) (t : Bool) :
@@ -487,6 +550,8 @@ theorem clause27_toReal_bitMarginal {N : ℕ} [NeZero N] (S : Type) [Fintype S] 
     clause27_bitMarginal S f s hf k t]
   exact ENNReal.toReal_ofReal (by positivity)
 
+/-- Extract the fixed-subspace row index by splitting the finite product index supplied by the
+representation-label equivalence. -/
 noncomputable def transportRowOf {N : ℕ} [NeZero N] {Label : Type} [Fintype Label]
     [DecidableEq Label] (family : IrrepFamily N Label) (s : ZMod N)
     (e : ZMod N ≃ Σ V : Label, Fin ((family.irrep V).dim * dimFixed (family.irrep V) s))
@@ -494,6 +559,8 @@ noncomputable def transportRowOf {N : ℕ} [NeZero N] {Label : Type} [Fintype La
   ((finProdFinEquiv (m := (family.irrep ((e k).1)).dim)
     (n := dimFixed (family.irrep ((e k).1)) s)).symm (e k).2).2.val
 
+/-- For each representation and fixed-subspace row, the number of label-bit pairs mapping to
+that fiber is twice the representation dimension, expressed as a real indicator sum. -/
 theorem clause27_transport_row_count {N : ℕ} [NeZero N] {Label : Type} [Fintype Label]
     [DecidableEq Label] (family : IrrepFamily N Label) (s : ZMod N)
     (e : ZMod N ≃ Σ V : Label, Fin ((family.irrep V).dim * dimFixed (family.irrep V) s))
@@ -583,6 +650,8 @@ theorem clause27_transport_row_count {N : ℕ} [NeZero N] {Label : Type} [Fintyp
   simp only [hinner]
   rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ V)]
 
+/-- The real indicator count of label-bit pairs mapping to a representation is twice its
+dimension times its fixed-subspace dimension. -/
 theorem clause27_transport_label_count {N : ℕ} [NeZero N] {Label : Type} [Fintype Label]
     [DecidableEq Label] (family : IrrepFamily N Label) (s : ZMod N)
     (e : ZMod N ≃ Σ V : Label, Fin ((family.irrep V).dim * dimFixed (family.irrep V) s))
@@ -624,6 +693,9 @@ theorem clause27_transport_label_count {N : ℕ} [NeZero N] {Label : Type} [Fint
   simp only [hinner]
   rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ V)]
 
+/-- The representation dimension identity yields label and row transport of actual records,
+uniform staged marginals, phase-qubit factorization and extraction, and the stated circuit
+counts. -/
 theorem clause1_of_dimFixedCount
     (hdim : ∀ (N : ℕ) [NeZero N] (Label : Type) [Fintype Label] [DecidableEq Label]
       (family : IrrepFamily N Label) (s : ZMod N),
@@ -802,6 +874,9 @@ open Matrix
 
 open scoped ComplexConjugate
 
+/-- Every reflection-hiding oracle has representation-label and fixed-subspace-row transport
+matching the actual record masses, together with uniform staged marginals, qubit
+factorization and extraction, and one-query, one-gate circuit counts [Kuperberg2005]. -/
 theorem g1 :
 ∀ (N : ℕ) [NeZero N] (S : Type) (_ : Fintype S) (_ : DecidableEq S) (_ : AddCommGroup S)
       (f : DihedralReg N → S) (s : ZMod N) (_hf : DihedralReflectionHides N f s)

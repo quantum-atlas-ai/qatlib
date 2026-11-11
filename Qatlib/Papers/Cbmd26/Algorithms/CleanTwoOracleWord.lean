@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.TwoOracleWordBridge
+
+/-!
+# Clean compilation of masked two-oracle words
+
+`cleanTwoOracleStep` and `cleanTwoOracleWord` compile masked data and input queries using an
+additional Boolean register and controlled parallel oracles. `cleanTwoOracleWord_evaluate`
+identifies the two Boolean sectors, while `cleanTwoOracleWord_cost` preserves each query count
+and adds two fixed gates per query. Validity, unitarity, and `cleanTwoOracleWord_blockEncoding`
+transport the original block encoding to the sector tagged `false`.
+
+This compilation supports the separate-oracle CBMD implementations associated with
+[WangEtAl2026].
+
+## Main statements
+
+* `cleanTwoOracleWord_evaluate` identifies the Boolean sectors of the compiled word.
+* `cleanTwoOracleWord_cost` gives exact query and fixed-gate counts.
+* `cleanTwoOracleWord_blockEncoding` transports a block encoding to the sector tagged `false`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -46,6 +70,8 @@ open Matrix
 
 variable {J H : Type} [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
 
+/-- Compiles a prepared instruction onto an extra Boolean register, lifting fixed gates in
+parallel and surrounding each data or input query by two mask-computation gates. -/
 def cleanTwoOracleStep (mask : J → Bool) : PreparedStep (J × H) →
     List (PreparedStep (Bool × (J × H)))
   | .gate V => [.gate (parallelOracle (J := Bool) V)]
@@ -54,11 +80,16 @@ def cleanTwoOracleStep (mask : J → Bool) : PreparedStep (J × H) →
   | .prepareForward => [.gate (maskCompute mask), .prepareForward, .gate (maskCompute mask)]
   | .prepareBackward => [.gate (maskCompute mask), .prepareBackward, .gate (maskCompute mask)]
 
+/-- Compiles a prepared two-oracle word by concatenating the compiled instructions in their
+original order. -/
 def cleanTwoOracleWord (mask : J → Bool) : List (PreparedStep (J × H)) →
     List (PreparedStep (Bool × (J × H)))
   | [] => []
   | c :: cs => cleanTwoOracleStep mask c ++ cleanTwoOracleWord mask cs
 
+/-- The compiled instruction evaluated with controlled parallel oracles is block diagonal in the
+added Boolean register. In sector `b`, it applies the original instruction with each oracle
+masked by `xor b (mask j)`. -/
 theorem cleanTwoOracleStep_evaluate (mask : J → Bool) (O1 O2 : Matrix H H ℂ)
     (c : PreparedStep (J × H)) :
     evaluatePrepared (controlOracle (parallelOracle (J := J) O1))
@@ -81,6 +112,9 @@ theorem cleanTwoOracleStep_evaluate (mask : J → Bool) (O1 O2 : Matrix H H ℂ)
   | prepareBackward => simpa only [cleanTwoOracleStep, evaluatePrepared, preparedInstruction,
       Matrix.mul_one] using hb O2
 
+/-- The compiled word evaluated with controlled parallel oracles is block diagonal in the added
+Boolean register. In sector `b`, it evaluates the original word with both oracles masked by
+`xor b (mask j)`. -/
 theorem cleanTwoOracleWord_evaluate (mask : J → Bool) (O1 O2 : Matrix H H ℂ)
     (cs : List (PreparedStep (J × H))) :
     evaluatePrepared (controlOracle (parallelOracle (J := J) O1))
@@ -97,6 +131,8 @@ theorem cleanTwoOracleWord_evaluate (mask : J → Bool) (O1 O2 : Matrix H H ℂ)
 
 omit [Fintype J] [Fintype H] in
 
+/-- Compilation preserves the data-query and input-query counts exactly and increases the
+fixed-gate count by twice the total number of those queries. -/
 theorem cleanTwoOracleWord_cost (mask : J → Bool) (cs : List (PreparedStep (J × H))) :
     preparedDataQueries (cleanTwoOracleWord mask cs) = preparedDataQueries cs ∧
     preparedInputQueries (cleanTwoOracleWord mask cs) = preparedInputQueries cs ∧
@@ -109,6 +145,7 @@ theorem cleanTwoOracleWord_cost (mask : J → Bool) (cs : List (PreparedStep (J 
       preparedDataQueries, preparedInputQueries, preparedFixedGates,
       ih.1, ih.2.1, ih.2.2] <;> omega
 
+/-- Compilation of a valid prepared instruction yields a valid prepared circuit. -/
 theorem cleanTwoOracleStep_valid (mask : J → Bool) {c : PreparedStep (J × H)}
     (hc : PreparedInstructionValid c) : PreparedCircuitValid (cleanTwoOracleStep mask c) := by
   have hm := maskCompute_unitary (W := H) mask
@@ -123,6 +160,7 @@ theorem cleanTwoOracleStep_valid (mask : J → Bool) {c : PreparedStep (J × H)}
     simp only [cleanTwoOracleStep, List.mem_cons, List.not_mem_nil, or_false] at hd
     rcases hd with rfl | rfl | rfl <;> simp only [PreparedInstructionValid] <;> exact hm
 
+/-- Compilation preserves validity of a prepared two-oracle circuit. -/
 theorem cleanTwoOracleWord_valid (mask : J → Bool) {cs : List (PreparedStep (J × H))}
     (hcs : PreparedCircuitValid cs) : PreparedCircuitValid (cleanTwoOracleWord mask cs) := by
   induction cs with
@@ -133,6 +171,8 @@ theorem cleanTwoOracleWord_valid (mask : J → Bool) {cs : List (PreparedStep (J
     · exact cleanTwoOracleStep_valid mask (hcs c (by simp)) d hd
     · exact ih (fun e he => hcs e (List.mem_cons_of_mem c he)) d hd
 
+/-- If both oracles are unitary and the original prepared circuit is valid, the compiled word
+evaluated with controlled parallel oracles is unitary. -/
 theorem cleanTwoOracleWord_unitary (mask : J → Bool) {O1 O2 : Matrix H H ℂ}
     (hO1 : O1 ∈ Matrix.unitaryGroup H ℂ) (hO2 : O2 ∈ Matrix.unitaryGroup H ℂ)
     {cs : List (PreparedStep (J × H))} (hcs : PreparedCircuitValid cs) :
@@ -143,6 +183,9 @@ theorem cleanTwoOracleWord_unitary (mask : J → Bool) {O1 O2 : Matrix H H ℂ}
     (controlOracle_unitary (parallelOracle_unitary hO1))
     (controlOracle_unitary (parallelOracle_unitary hO2))
 
+/-- For unitary oracles and a valid prepared circuit, any block encoding obtained from the
+original masked-oracle word lifts to the compiled word in the Boolean sector tagged `false`.
+The normalization and error parameters are preserved. -/
 theorem cleanTwoOracleWord_blockEncoding {I : Type} [Fintype I] [DecidableEq I]
     (mask : J → Bool) (O1 O2 : Matrix H H ℂ)
     (hO1 : O1 ∈ Matrix.unitaryGroup H ℂ) (hO2 : O2 ∈ Matrix.unitaryGroup H ℂ)

@@ -11,6 +11,33 @@ import Qatlib.Concepts.MixedFidelity.FidelityMetric.RankOneTraceNormBound
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
 import QuantumInfo.States.Mixed.Fidelity
+
+/-!
+# Root fidelity, purifications, and trace distance
+
+`Froot` and `traceDistance` satisfy the basic range, symmetry, pure-state, classical-state,
+unitary-invariance, and tensor-product identities collected in `g1`. Matrix square-root and
+polar-decomposition lemmas support the purification-overlap characterization of root fidelity in
+`g2`.
+
+The module proves that quantum channels increase root fidelity and contract trace distance.
+These properties accompany the two Fuchs–van de Graaf inequalities collected in `g3`. See
+[Uhlmann1976].
+
+## Main statements
+
+* `g1`: basic identities for root fidelity and trace distance.
+* `g2`: root fidelity is the maximal overlap of purifications with sufficient ancillary
+  dimension.
+* `g3`: Fuchs–van de Graaf inequalities and channel monotonicity.
+
+## References
+
+* [Uhlmann, 1976][Uhlmann1976]
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+* [Wilde, 2017][Wilde2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
@@ -26,6 +53,8 @@ namespace Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Matrix
 open scoped BigOperators MatrixOrder ComplexOrder
 
+/-- The root-fidelity expression given by the trace norm of the product of two matrix square
+roots, for an arbitrary finite index type. -/
 private noncomputable def FrootG {I : Type} [Fintype I] [DecidableEq I]
     (ρ σ : Matrix I I ℂ) : ℝ :=
   Matrix.traceNorm (CFC.sqrt ρ * CFC.sqrt σ)
@@ -34,18 +63,25 @@ section Sqrt
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The continuous-functional-calculus square root of a complex matrix is Hermitian. -/
 private theorem cfc_sqrt_conjTranspose (A : Matrix I I ℂ) :
     (CFC.sqrt A)ᴴ = CFC.sqrt A :=
   (Matrix.nonneg_iff_posSemidef.mp (CFC.sqrt_nonneg A)).1
 
+/-- The continuous-functional-calculus square root of a positive semidefinite matrix squares to
+that matrix. -/
 private theorem cfc_sqrt_sq_of_posSemidef {A : Matrix I I ℂ} (hA : A.PosSemidef) :
     CFC.sqrt A * CFC.sqrt A = A :=
   CFC.sqrt_mul_sqrt_self A (Matrix.PosSemidef.nonneg hA)
 
+/-- A positive semidefinite matrix whose square is `A` equals the continuous-functional-calculus
+square root of `A`. -/
 private theorem cfc_sqrt_unique {A B : Matrix I I ℂ} (hB : B.PosSemidef)
     (h : B * B = A) : CFC.sqrt A = B :=
   CFC.sqrt_unique h (Matrix.PosSemidef.nonneg hB)
 
+/-- The bundled Hermitian-matrix square root of a positive semidefinite matrix agrees with its
+continuous-functional-calculus square root. -/
 private theorem hermMat_sqrt_eq_cfc {A : Matrix I I ℂ} (hA : A.PosSemidef) :
     (HermitianMat.sqrt ⟨A, hA.1⟩).mat = CFC.sqrt A := by
   rw [HermitianMat.sqrt, HermitianMat.mat_cfc,
@@ -60,6 +96,7 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- The trace norm of a product of two Hermitian matrices is unchanged by swapping the factors. -/
 private theorem traceNorm_mul_hermitian_swap {A B : Matrix I I ℂ}
     (hA : Aᴴ = A) (hB : Bᴴ = B) :
     Matrix.traceNorm (A * B) = Matrix.traceNorm (B * A) := by
@@ -67,10 +104,12 @@ private theorem traceNorm_mul_hermitian_swap {A B : Matrix I I ℂ}
 
 omit [DecidableEq I] in
 
+/-- The trace norm of a positive semidefinite matrix equals the real part of its trace. -/
 private theorem psd_traceNorm_eq_re_trace {A : Matrix I I ℂ} (hA : A.PosSemidef) :
     Matrix.traceNorm A = (Matrix.trace A).re := by
   simpa using congrArg Complex.re hA.traceNorm_eq_trace
 
+/-- Every density operator has trace norm one. -/
 private theorem density_traceNorm_eq_one {D : ℕ} {ρ : Operator D}
     (hρ : IsDensityOperator ρ) : Matrix.traceNorm ρ = 1 := by
   rw [psd_traceNorm_eq_re_trace hρ.1, hρ.2, Complex.one_re]
@@ -81,16 +120,20 @@ section Bridge
 
 variable {D : ℕ}
 
+/-- The bundled mixed state associated with an operator satisfying `IsDensityOperator`. -/
 private noncomputable def toMState {ρ : Operator D} (hρ : IsDensityOperator ρ) :
     MState (Fin D) :=
   Qatlib.Foundations.PureStateMath.BornBridge.densityOperatorEquivMState D ⟨ρ, hρ⟩
 
+/-- The square root of the bundled mixed state agrees with the continuous-functional-calculus
+square root of its operator. -/
 private theorem toMState_sqrt_mat {ρ : Operator D} (hρ : IsDensityOperator ρ) :
     (toMState hρ).M.sqrt.mat = CFC.sqrt ρ := by
   have : (toMState hρ).M = ⟨ρ, hρ.1.1⟩ := rfl
   rw [this]
   exact hermMat_sqrt_eq_cfc hρ.1
 
+/-- For density operators, `Froot` agrees with the bundled mixed-state fidelity. -/
 private theorem froot_eq_fidelity {ρ σ : Operator D} (hρ : IsDensityOperator ρ)
     (hσ : IsDensityOperator σ) :
     Froot ρ σ = MState.fidelity (toMState hρ) (toMState hσ) := by
@@ -99,11 +142,13 @@ private theorem froot_eq_fidelity {ρ σ : Operator D} (hρ : IsDensityOperator 
   exact traceNorm_mul_hermitian_swap (cfc_sqrt_conjTranspose ρ)
     (cfc_sqrt_conjTranspose σ)
 
+/-- The root fidelity between two density operators is at most one. -/
 private theorem froot_le_one {ρ σ : Operator D} (hρ : IsDensityOperator ρ)
     (hσ : IsDensityOperator σ) : Froot ρ σ ≤ 1 := by
   rw [froot_eq_fidelity hρ hσ]
   exact MState.fidelity_le_one _ _
 
+/-- Two density operators have root fidelity one exactly when they are equal. -/
 private theorem froot_eq_one_iff {ρ σ : Operator D} (hρ : IsDensityOperator ρ)
     (hσ : IsDensityOperator σ) : Froot ρ σ = 1 ↔ ρ = σ := by
   rw [froot_eq_fidelity hρ hσ]
@@ -125,15 +170,18 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- A state's outer-product matrix is its vector outer product with its conjugate. -/
 private theorem outerProduct_eq_vecMulVec (ψ : QState I) :
     outerProduct ψ = Matrix.vecMulVec ψ (star ψ) := by
   ext i j
   rfl
 
+/-- The outer product of a normalized vector is its own positive square root. -/
 private theorem cfc_sqrt_outerProduct {ψ : QState I} (hψ : Normalized ψ) :
     CFC.sqrt (outerProduct ψ) = outerProduct ψ :=
   cfc_sqrt_unique (outerProduct_posSemidef ψ) (isOrthogonalProjector_outerProduct hψ).1
 
+/-- The rank-one outer product of two normalized vectors has trace norm one. -/
 private theorem traceNorm_vecMulVec_normalized {u v : QState I}
     (hu : Normalized u) (hv : Normalized v) :
     Matrix.traceNorm (Matrix.vecMulVec u (star v)) = 1 := by
@@ -150,6 +198,8 @@ private theorem traceNorm_vecMulVec_normalized {u v : QState I}
     dotProduct_comm]
   exact congrArg RCLike.re hvv
 
+/-- For normalized pure vectors, the trace norm of the product of their outer-product square
+roots equals the modulus of their inner product. -/
 private theorem froot_outerProduct {ψ φ : QState I} (hψ : Normalized ψ)
     (hφ : Normalized φ) :
     Matrix.traceNorm (CFC.sqrt (outerProduct ψ) * CFC.sqrt (outerProduct φ))
@@ -176,6 +226,8 @@ section Classical
 
 variable {D : ℕ}
 
+/-- The positive square root of a diagonal probability matrix is obtained by taking square roots
+of its diagonal probabilities. -/
 private theorem cfc_sqrt_diagDensity {p : Fin D → ℝ} (hp : IsProbVector p) :
     CFC.sqrt (diagDensity p) = diagDensity (fun i => Real.sqrt (p i)) := by
   apply cfc_sqrt_unique
@@ -192,6 +244,8 @@ private theorem cfc_sqrt_diagDensity {p : Fin D → ℝ} (hp : IsProbVector p) :
       exact Real.mul_self_sqrt (hp.1 i)
     exact hsq
 
+/-- The root fidelity of diagonal probability matrices is the sum of the square roots of their
+coordinatewise probability products. -/
 private theorem froot_diagDensity {p q : Fin D → ℝ} (hp : IsProbVector p)
     (hq : IsProbVector q) :
     Froot (diagDensity p) (diagDensity q) = ∑ i, Real.sqrt (p i * q i) := by
@@ -217,26 +271,31 @@ section Unitary
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Conjugation by a square matrix satisfying `Uᴴ * U = 1` preserves matrix multiplication. -/
 private theorem unitary_conj_mul {U X Y : Matrix I I ℂ} (hU : Uᴴ * U = 1) :
     (U * X * Uᴴ) * (U * Y * Uᴴ) = U * (X * Y) * Uᴴ := by
   simp only [Matrix.mul_assoc]
   rw [← Matrix.mul_assoc Uᴴ U (Y * Uᴴ), hU, Matrix.one_mul]
 
+/-- A matrix in the unitary group satisfies `Uᴴ * U = 1`. -/
 private theorem unitary_star_mul {D : ℕ} {U : Matrix (Fin D) (Fin D) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) : Uᴴ * U = 1 :=
   (Matrix.mem_unitaryGroup_iff').mp hU
 
 omit [DecidableEq I] in
 
+/-- The adjoint of `U * A * Uᴴ` is `U * Aᴴ * Uᴴ`. -/
 private theorem conjTranspose_unitary_conj {U A : Matrix I I ℂ} :
     (U * A * Uᴴ)ᴴ = U * Aᴴ * Uᴴ := by
   rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_mul,
     Matrix.conjTranspose_conjTranspose, Matrix.mul_assoc]
 
+/-- Conjugation by a square matrix satisfying `Uᴴ * U = 1` preserves trace. -/
 private theorem trace_unitary_conj {U S : Matrix I I ℂ} (hU : Uᴴ * U = 1) :
     (U * S * Uᴴ).trace = S.trace := by
   rw [Matrix.trace_mul_comm, ← Matrix.mul_assoc, hU, Matrix.one_mul]
 
+/-- Conjugation by a square matrix satisfying `Uᴴ * U = 1` preserves the trace norm. -/
 private theorem traceNorm_unitary_conj' {U A : Matrix I I ℂ} (hU : Uᴴ * U = 1) :
     Matrix.traceNorm (U * A * Uᴴ) = Matrix.traceNorm A := by
   have hS : (CFC.sqrt (Aᴴ * A)).PosSemidef :=
@@ -250,6 +309,7 @@ private theorem traceNorm_unitary_conj' {U A : Matrix I I ℂ} (hU : Uᴴ * U = 
   unfold Matrix.traceNorm
   rw [hconj, trace_unitary_conj hU]
 
+/-- The positive square root of a density operator commutes with unitary conjugation. -/
 private theorem cfc_sqrt_unitary_conj {D : ℕ} {U : Matrix (Fin D) (Fin D) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) {ρ : Operator D}
     (hρ : IsDensityOperator ρ) :
@@ -258,6 +318,8 @@ private theorem cfc_sqrt_unitary_conj {D : ℕ} {U : Matrix (Fin D) (Fin D) ℂ}
   · exact (Matrix.nonneg_iff_posSemidef.mp (CFC.sqrt_nonneg ρ)).mul_mul_conjTranspose_same U
   · rw [unitary_conj_mul (unitary_star_mul hU), cfc_sqrt_sq_of_posSemidef hρ.1]
 
+/-- Applying the same unitary conjugation to two density operators preserves their root
+fidelity. -/
 private theorem froot_unitary_conj {D : ℕ} {U : Matrix (Fin D) (Fin D) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
@@ -266,6 +328,7 @@ private theorem froot_unitary_conj {D : ℕ} {U : Matrix (Fin D) (Fin D) ℂ}
     unitary_conj_mul (unitary_star_mul hU),
     traceNorm_unitary_conj' (unitary_star_mul hU)]
 
+/-- Applying the same unitary conjugation to two operators preserves their trace distance. -/
 private theorem traceDistance_unitary_conj {D : ℕ} {U : Matrix (Fin D) (Fin D) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (ρ σ : Operator D) :
     traceDistance (U * ρ * Uᴴ) (U * σ * Uᴴ) = traceDistance ρ σ := by
@@ -280,6 +343,8 @@ variable {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
 open scoped Kronecker
 
+/-- The positive square root of a Kronecker product of positive semidefinite matrices is the
+Kronecker product of their square roots. -/
 private theorem cfc_sqrt_kronecker {A : Matrix I I ℂ} (hA : A.PosSemidef)
     {B : Matrix J J ℂ} (hB : B.PosSemidef) :
     CFC.sqrt (A ⊗ₖ B) = (CFC.sqrt A) ⊗ₖ (CFC.sqrt B) := by
@@ -290,6 +355,7 @@ private theorem cfc_sqrt_kronecker {A : Matrix I I ℂ} (hA : A.PosSemidef)
   · rw [← Matrix.mul_kronecker_mul, cfc_sqrt_sq_of_posSemidef hA,
       cfc_sqrt_sq_of_posSemidef hB]
 
+/-- The trace norm of a Kronecker product is the product of the two trace norms. -/
 private theorem traceNorm_kronecker (M : Matrix I I ℂ) (N : Matrix J J ℂ) :
     Matrix.traceNorm (M ⊗ₖ N) = Matrix.traceNorm M * Matrix.traceNorm N := by
   have hkey : CFC.sqrt ((M ⊗ₖ N)ᴴ * (M ⊗ₖ N))
@@ -315,6 +381,8 @@ private theorem traceNorm_kronecker (M : Matrix I I ℂ) (N : Matrix J J ℂ) :
 
 open scoped Kronecker in
 
+/-- The root-fidelity expression is multiplicative on tensor products of positive semidefinite
+matrices. -/
 private theorem frootG_tensor {ρ σ : Matrix I I ℂ} (hρ : ρ.PosSemidef)
     (hσ : σ.PosSemidef) {τ ω : Matrix J J ℂ} (hτ : τ.PosSemidef)
     (hω : ω.PosSemidef) :
@@ -329,10 +397,12 @@ section Range
 
 variable {D : ℕ}
 
+/-- Root fidelity is symmetric in its two operator arguments. -/
 private theorem froot_symm (ρ σ : Operator D) : Froot ρ σ = Froot σ ρ := by
   rw [Froot, Froot]
   exact traceNorm_mul_hermitian_swap (cfc_sqrt_conjTranspose ρ) (cfc_sqrt_conjTranspose σ)
 
+/-- The trace distance between two density operators is at most one. -/
 private theorem traceDistance_le_one {ρ σ : Operator D} (hρ : IsDensityOperator ρ)
     (hσ : IsDensityOperator σ) : traceDistance ρ σ ≤ 1 := by
   have h : Matrix.traceNorm (ρ - σ) ≤ 2 := by
@@ -347,6 +417,9 @@ private theorem traceDistance_le_one {ρ σ : Operator D} (hρ : IsDensityOperat
 
 end Range
 
+/-- Collect the range, symmetry, equality, pure-state, diagonal-state, unitary-invariance, and
+tensor-product identities for root fidelity and trace distance. The commuting-state formula
+is stated for a supplied simultaneous unitary diagonalization. -/
 theorem g1 :
   (∀ (D : ℕ) (ρ σ : Operator D), IsDensityOperator ρ → IsDensityOperator σ →
     (FrootG ρ σ = Froot ρ σ) ∧
@@ -387,14 +460,17 @@ theorem g1 :
   · intro E τ ω hτ hω
     exact frootG_tensor hρ.1 hσ.1 hτ.1 hω.1
 
+/-- A bundled unitary matrix satisfies the left adjoint identity `U.valᴴ * U.val = 1`. -/
 private theorem uhlmann_unitary_left {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix.unitaryGroup I ℂ) : U.valᴴ * U.val = 1 := by
   exact (Matrix.mem_unitaryGroup_iff').mp U.property
 
+/-- A bundled unitary matrix satisfies the right adjoint identity `U.val * U.valᴴ = 1`. -/
 private theorem uhlmann_unitary_right {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix.unitaryGroup I ℂ) : U.val * U.valᴴ = 1 := by
   exact (Matrix.mem_unitaryGroup_iff).mp U.property
 
+/-- Right multiplication by the adjoint of a rectangular isometry preserves the trace norm. -/
 private theorem uhlmann_traceNorm_isometry_right {I J K : Type}
     [Fintype I] [Fintype J] [Fintype K] [DecidableEq J]
     (A : Matrix I J ℂ) {U : Matrix K J ℂ} (hU : U.Isometry) :
@@ -404,6 +480,7 @@ private theorem uhlmann_traceNorm_isometry_right {I J K : Type}
   by_cases hij : i = j <;>
     simpa [Matrix.one_apply, hij] using congrFun (congrFun hU i) j
 
+/-- Left multiplication by a rectangular isometry preserves the trace norm. -/
 private theorem uhlmann_traceNorm_isometry_left {I J K : Type}
     [Fintype I] [Fintype J] [Fintype K] [DecidableEq I]
     (A : Matrix I J ℂ) {U : Matrix K I ℂ} (hU : U.Isometry) :
@@ -413,6 +490,8 @@ private theorem uhlmann_traceNorm_isometry_left {I J K : Type}
   by_cases hij : i = j <;>
     simpa [Matrix.one_apply, hij] using congrFun (congrFun hU i) j
 
+/-- Every finite square complex matrix factors as `CFC.sqrt (A * Aᴴ) * U.val` for a unitary
+matrix `U`. -/
 theorem exists_unitary_sqrt_mul_adjoint {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) :
     ∃ U : Matrix.unitaryGroup I ℂ, A = CFC.sqrt (A * Aᴴ) * U.val := by
@@ -443,6 +522,8 @@ theorem exists_unitary_sqrt_mul_adjoint {I : Type} [Fintype I] [DecidableEq I]
   rw [← Matrix.mul_assoc V.valᴴ V.val, hV, Matrix.one_mul]
   simpa only [Matrix.mul_assoc] using hA'
 
+/-- The positive square root commutes with isometric conjugation of a positive semidefinite
+matrix. -/
 theorem sqrt_isometry_conjugation {I J : Type} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] {ρ : Matrix I I ℂ} (hρ : ρ.PosSemidef)
     {Jm : Matrix J I ℂ} (hJ : Jm.Isometry) :
@@ -453,6 +534,8 @@ theorem sqrt_isometry_conjugation {I J : Type} [Fintype I] [Fintype J]
   rw [← Matrix.mul_assoc Jmᴴ Jm, show Jmᴴ * Jm = 1 from hJ, Matrix.one_mul,
     ← Matrix.mul_assoc (CFC.sqrt ρ) (CFC.sqrt ρ), CFC.sqrt_mul_sqrt_self ρ hρ.nonneg]
 
+/-- The modulus of the trace overlap of two square matrices is at most the trace norm of the
+product of the square roots of their row Gram matrices. -/
 theorem trace_overlap_le_sqrt_gram_square {I : Type} [Fintype I] [DecidableEq I]
     (X Y : Matrix I I ℂ) :
     ‖(Xᴴ * Y).trace‖ ≤ Matrix.traceNorm (CFC.sqrt (X * Xᴴ) * CFC.sqrt (Y * Yᴴ)) := by
@@ -477,6 +560,9 @@ theorem trace_overlap_le_sqrt_gram_square {I : Type} [Fintype I] [DecidableEq I]
         Matrix.mul_assoc]
     _ = _ := by rw [uhlmann_traceNorm_isometry_right _ hV, uhlmann_traceNorm_isometry_left _ hU]
 
+/-- Given an isometry from the row index space into the column index space, rectangular matrix
+overlap is bounded by the trace norm of the product of the square roots of the row Gram
+matrices. -/
 theorem trace_overlap_le_sqrt_gram_of_isometry {I J : Type} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] (Jm : Matrix J I ℂ) (hJ : Jm.Isometry)
     (X Y : Matrix I J ℂ) :
@@ -498,6 +584,8 @@ theorem trace_overlap_le_sqrt_gram_of_isometry {I J : Type} [Fintype I] [Fintype
     rw [← Matrix.mul_assoc Jmᴴ Jm, show Jmᴴ * Jm = 1 from hJ, Matrix.one_mul]
   rwa [hprod, uhlmann_traceNorm_isometry_right _ hJ, uhlmann_traceNorm_isometry_left _ hJ] at h
 
+/-- For rectangular matrices with at least as many columns as rows, the modulus of their trace
+overlap is bounded by the root-fidelity expression of their row Gram matrices. -/
 theorem trace_overlap_le_sqrt_gram {D E : ℕ} (hDE : D ≤ E)
     (X Y : Matrix (Fin D) (Fin E) ℂ) :
     ‖(Xᴴ * Y).trace‖ ≤ Matrix.traceNorm (CFC.sqrt (X * Xᴴ) * CFC.sqrt (Y * Yᴴ)) := by
@@ -505,21 +593,27 @@ theorem trace_overlap_le_sqrt_gram {D E : ℕ} (hDE : D ≤ E)
   exact trace_overlap_le_sqrt_gram_of_isometry J
     (Matrix.submatrix_one_id_right_isometry (Fin.castLE_injective hDE)) X Y
 
+/-- The rectangular amplitude matrix of a bipartite state vector. -/
 private def purificationMatrix {D E : ℕ} (ψ : QState (Fin D × Fin E)) :
     Matrix (Fin D) (Fin E) ℂ := fun i e => ψ (i,e)
 
+/-- The row Gram matrix of a bipartite amplitude matrix equals the partial trace of its pure
+outer product. -/
 private theorem purificationMatrix_gram {D E : ℕ} (ψ : QState (Fin D × Fin E)) :
     purificationMatrix ψ * (purificationMatrix ψ)ᴴ = PartialTrace (outerProduct ψ) := by
   ext i j
   simp [purificationMatrix, Matrix.mul_apply, Matrix.conjTranspose_apply,
     PartialTrace, outerProduct]
 
+/-- The inner product of bipartite vectors equals the trace overlap of their amplitude matrices. -/
 private theorem purificationMatrix_inner {D E : ℕ} (ψ φ : QState (Fin D × Fin E)) :
     Qatlib.Foundations.PureStateMath.Inner ψ φ = ((purificationMatrix ψ)ᴴ * purificationMatrix φ).trace := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.star_apply, Matrix.trace, Matrix.diag_apply,
     Matrix.mul_apply, Matrix.conjTranspose_apply, purificationMatrix]
   rw [Fintype.sum_prod_type, Finset.sum_comm]
 
+/-- When the ancillary dimension is at least the system dimension, the overlap modulus of any
+two purifications is bounded by the root fidelity of their reduced operators. -/
 theorem purification_overlap_le_froot {D E : ℕ} (hDE : D ≤ E)
     {ρ σ : Operator D} {ψ φ : QState (Fin D × Fin E)}
     (hψ : IsPurification ψ ρ) (hφ : IsPurification φ σ) :
@@ -528,6 +622,8 @@ theorem purification_overlap_le_froot {D E : ℕ} (hDE : D ≤ E)
   have h := trace_overlap_le_sqrt_gram hDE (purificationMatrix ψ) (purificationMatrix φ)
   simpa only [purificationMatrix_gram, hψ.2, hφ.2, Froot] using h
 
+/-- An amplitude matrix with row Gram matrix `ρ` of trace one defines a normalized purification
+of `ρ`. -/
 theorem isPurification_of_amplitude_gram {D E : ℕ}
     {ρ : Operator D} (hρ : ρ.trace = 1) (X : Matrix (Fin D) (Fin E) ℂ)
     (hX : X * Xᴴ = ρ) : IsPurification (fun q => X q.1 q.2) ρ := by
@@ -539,6 +635,8 @@ theorem isPurification_of_amplitude_gram {D E : ℕ}
   rw [trace_partialTrace, trace_outerProduct, hρ] at ht
   exact_mod_cast ht
 
+/-- Two density operators possess purifications attaining their root fidelity as overlap modulus
+whenever the ancillary dimension is at least the system dimension. -/
 theorem exists_purifications_overlap_eq_froot {D E : ℕ} (hDE : D ≤ E)
     {ρ σ : Operator D} (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     ∃ ψ φ : QState (Fin D × Fin E),
@@ -593,6 +691,9 @@ theorem exists_purifications_overlap_eq_froot {D E : ℕ} (hDE : D ≤ E)
   rw [← hUmax]
   exact Complex.re_le_norm _
 
+/-- For sufficient ancillary dimension, all purification overlaps are bounded by root fidelity
+and some purifications attain equality. This is the root-fidelity form of [Wilde, Theorem
+9.2.1][Wilde2017]. -/
 theorem g2 :
   ∀ (D E : ℕ), D ≤ E → ∀ (ρ σ : Operator D),
     IsDensityOperator ρ → IsDensityOperator σ →
@@ -606,6 +707,7 @@ theorem g2 :
   exact ⟨fun _ _ hψ hφ => purification_overlap_le_froot hDE hψ hφ,
     exists_purifications_overlap_eq_froot hDE hρ hσ⟩
 
+/-- Applying a quantum channel to both density operators cannot decrease their root fidelity. -/
 theorem froot_channel_le {D E : ℕ} (Λ : Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel D E)
     {ρ σ : Operator D} (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     Froot ρ σ ≤ Froot (Λ.map ρ) (Λ.map σ) := by
@@ -660,6 +762,7 @@ theorem froot_channel_le {D E : ℕ} (Λ : Qatlib.Concepts.AdaptiveCP.BranchTrac
   have h := trace_overlap_le_sqrt_gram_of_isometry J hJ A B
   rwa [hab, hmax, hAA, hBB] at h
 
+/-- Applying a quantum channel to both density operators cannot increase their trace distance. -/
 theorem traceDistance_channel_le {D E : ℕ} (Λ : Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel D E)
     {ρ σ : Operator D} (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     traceDistance (Λ.map ρ) (Λ.map σ) ≤ traceDistance ρ σ := by
@@ -668,6 +771,8 @@ theorem traceDistance_channel_le {D E : ℕ} (Λ : Qatlib.Concepts.AdaptiveCP.Br
   exact div_le_div_of_nonneg_right
     (channel_hermitian_trace_contraction Λ (hρ.1.1.sub hσ.1.1)) (by norm_num)
 
+/-- For normalized pure vectors, half the trace norm of their outer-product difference is at
+most the square root of one minus the square of the real part of their inner product. -/
 theorem pure_trace_distance_le_re_inner {I : Type} [Fintype I] [DecidableEq I]
     (u v : QState I) (hu : Normalized u) (hv : Normalized v) :
     (outerProduct u - outerProduct v).traceNorm / 2 ≤
@@ -720,6 +825,7 @@ theorem pure_trace_distance_le_re_inner {I : Type} [Fintype I] [DecidableEq I]
   norm_num [h4] at htr
   linarith
 
+/-- Multiplying a vector by a complex scalar of modulus one preserves its outer-product matrix. -/
 private theorem phase_outerProduct {I : Type} [Fintype I] [DecidableEq I]
     (c : ℂ) (hc : ‖c‖ = 1) (v : QState I) : outerProduct (c • v) = outerProduct v := by
   have hcc : c * star c = 1 := by
@@ -732,6 +838,7 @@ private theorem phase_outerProduct {I : Type} [Fintype I] [DecidableEq I]
     (c * v i) * (star (v j) * star c) = (c * star c) * (v i * star (v j)) := by ring
     _ = _ := by rw [hcc, one_mul]
 
+/-- The trace distance between density operators is at most `Real.sqrt (1 - Froot ρ σ ^ 2)`. -/
 theorem traceDistance_le_sqrt_one_sub_froot_sq {D : ℕ} {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     traceDistance ρ σ ≤ Real.sqrt (1 - Froot ρ σ ^ 2) := by
@@ -762,6 +869,8 @@ theorem traceDistance_le_sqrt_one_sub_froot_sq {D : ℕ} {ρ σ : Operator D}
   rw [hi, Complex.ofReal_re] at h
   exact (div_le_div_of_nonneg_right hcontract (by norm_num : (0 : ℝ) ≤ 2)).trans h
 
+/-- For positive semidefinite `R` and `S`, the real trace of `(R - S) * (R - S)` is at most the
+trace norm of `R * R - S * S`. -/
 theorem positive_square_difference_trace_le {I : Type} [Fintype I] [DecidableEq I]
     {R S : Matrix I I ℂ} (hR : R.PosSemidef) (hS : S.PosSemidef) :
     ((R - S) * (R - S)).trace.re ≤ (R * R - S * S).traceNorm := by
@@ -855,6 +964,7 @@ theorem positive_square_difference_trace_le {I : Type} [Fintype I] [DecidableEq 
   rw [hsqtrace]
   exact (Finset.sum_le_sum (fun i _ => hscalar i)).trans (hentry ▸ hb)
 
+/-- One minus the root fidelity of two density operators is at most their trace distance. -/
 theorem one_sub_froot_le_traceDistance {D : ℕ} {ρ σ : Operator D}
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     1 - Froot ρ σ ≤ traceDistance ρ σ := by
@@ -879,6 +989,10 @@ theorem one_sub_froot_le_traceDistance {D : ℕ} {ρ σ : Operator D}
   unfold traceDistance
   linarith
 
+/-- The Fuchs–van de Graaf inequalities bound trace distance between `1 - Froot ρ σ` and
+`Real.sqrt (1 - Froot ρ σ ^ 2)`; quantum channels contract trace distance and increase root
+fidelity. Compare [Fuchs and van de Graaf, Theorem 1][FuchsVanDeGraaf1999] and [Wilde,
+Theorem 9.3.1][Wilde2017]. -/
 theorem g3 :
   ∀ (D : ℕ) (ρ σ : Operator D), IsDensityOperator ρ → IsDensityOperator σ →
     (1 - Froot ρ σ ≤ traceDistance ρ σ ∧

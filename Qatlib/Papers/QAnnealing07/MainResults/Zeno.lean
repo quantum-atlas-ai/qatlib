@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# Scalar Zeno success estimates
+
+This module proves the scalar product and squared-amplitude bounds used in the Zeno preparation
+analysis of [SommaBoixoBarnum2007]. Explicit assumptions on the step size, step count, and
+per-step loss yield lower bounds linear in the accumulated error budget.
+
+## Main statements
+
+* `zeno_success_probability`: a product lower bound from a bounded total step scale.
+* `eqB12_amplitude_lower_bound`: the squared-amplitude estimate of Equation (B12).
+* `eqB12_success_lower_bound`: the same estimate with the success-bound coefficient order.
+
+## References
+
+* [Somma et al., 2007][SommaBoixoBarnum2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -14,6 +32,8 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Papers.QAnnealing07.MainResults.Zeno
 
+/-- For positive `ν`, nonnegative `c`, per-step loss at most one, and `Q * ν ≤ C`, the product
+`(1 - c * ν ^ 2) ^ Q` is at least `1 - c * C * ν` [SommaBoixoBarnum2007]. -/
 theorem zeno_success_probability (ν c C : ℝ) (Q : ℕ)
     (hν : 0 < ν) (hc : 0 ≤ c) (hQν : (Q : ℝ) * ν ≤ C) (hcν : c * ν ^ 2 ≤ 1) :
     1 - c * C * ν ≤ (1 - c * ν ^ 2) ^ Q := by
@@ -30,6 +50,8 @@ theorem zeno_success_probability (ν c C : ℝ) (Q : ℕ)
     _ ≤ (1 + -(c * ν ^ 2)) ^ Q := hbern
     _ = (1 - c * ν ^ 2) ^ Q := by rw [hbase]
 
+/-- For `Q ≥ 1` and `0 ≤ c * ν ^ 2 ≤ 1`, the displayed squared corrected amplitude is at least
+`1 - 4 * Q * c * ν ^ 2` [SommaBoixoBarnum2007]. -/
 theorem eqB12_amplitude_lower_bound (ν c : ℝ) (Q : ℕ)
     (hν : 0 < ν) (hc : 0 ≤ c) (hcν : c * ν ^ 2 ≤ 1) (hQ : 1 ≤ Q) :
     1 - 4 * (Q : ℝ) * c * ν ^ 2 ≤
@@ -74,6 +96,8 @@ theorem eqB12_amplitude_lower_bound (ν c : ℝ) (Q : ℕ)
       _ ≤ 0 := le_of_lt hneg
       _ ≤ base ^ 2 := hsq0
 
+/-- Under the stated step-size and step-count assumptions, the displayed squared corrected
+amplitude is at least `1 - 4 * c * Q * ν ^ 2` [SommaBoixoBarnum2007]. -/
 theorem eqB12_success_lower_bound (ν c : ℝ) (Q : ℕ)
     (hν : 0 < ν) (hc : 0 ≤ c) (hcν : c * ν ^ 2 ≤ 1) (hQ : 1 ≤ Q) :
     1 - 4 * c * (Q : ℝ) * ν ^ 2 ≤

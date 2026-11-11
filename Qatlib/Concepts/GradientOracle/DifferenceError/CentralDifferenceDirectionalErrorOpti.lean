@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceDirectionalErrorStat
 import Qatlib.Concepts.GradientOracle.DifferenceError.CentralDifferenceOneDimErrorOpti
 import Mathlib.Analysis.Calculus.ContDiff.Basic
+
+/-!
+# Directional central-difference error
+
+`centralDifferenceDirectionalError` derives the multidimensional error estimate by restricting a
+smooth function to the line in the given nonzero direction. A bound on its normalized
+directional derivative of order `2 * m + 1` controls the difference from the derivative at zero.
+See [GilyenArunachalamWiebe2019] for background.
+
+## Main statements
+
+* `centralDifferenceDirectionalError`: For a nonzero direction and the stated smoothness and
+  normalized directional-derivative bound, the central-difference error is at most `B * exp (-(1
+  / 2) * m) * ‖x‖ ^ (2 * m + 1)`.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GradientOracle.CentralDiff
 
@@ -15,6 +35,8 @@ set_option maxHeartbeats 1600000
 namespace Qatlib.Concepts.GradientOracle.DifferenceError
 open scoped Classical BigOperators
 
+/-- For a nonzero direction and the stated smoothness and normalized directional-derivative
+bound, the central-difference error is at most `B * exp (-(1 / 2) * m) * ‖x‖ ^ (2 * m + 1)`. -/
 theorem centralDifferenceDirectionalError : CentralDifferenceDirectionalError := by
   intro d m hm B f hf x hx hbound
   let L : ℝ →L[ℝ] EuclideanSpace ℝ (Fin d) := (ContinuousLinearMap.id ℝ ℝ).smulRight x

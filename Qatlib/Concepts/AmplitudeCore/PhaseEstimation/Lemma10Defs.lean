@@ -15,12 +15,35 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.Normed.Lp.PiLp
 import Mathlib.Analysis.InnerProductSpace.l2Space
 
+/-!
+# Fourier phase states and circular distance
+
+`bhmtPhaseState` defines the finite uniform phase state, and `bhmtPhaseDistance` measures phase
+displacement modulo integers. These are the state and distance used in the phase state overlap
+formula. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `bhmtPhaseState`: The length `M` phase state with coordinate `exp (2 * π * I * ω * y) / sqrt
+  M`. See [BrassardEtAl2002].
+* `bhmtPhaseDistance`: The circular distance between two real phases, defined as the infimum of
+  their absolute differences after integer shifts. See [BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 namespace Qatlib.Concepts.AmplitudeCore.PhaseEstimation
 
+/-- The length `M` phase state with coordinate `exp (2 * π * I * ω * y) / sqrt M`. See
+[BrassardEtAl2002]. -/
 noncomputable def bhmtPhaseState (M : ℕ) (ω : ℝ) : EuclideanSpace ℂ (Fin M) :=
   WithLp.toLp 2 (fun y : Fin M =>
     ((1 / Real.sqrt (M : ℝ) : ℝ) : ℂ) *
       Complex.exp (((2 * Real.pi * ω * (y.val : ℝ) : ℝ) : ℂ) * Complex.I))
+/-- The circular distance between two real phases, defined as the infimum of their absolute
+differences after integer shifts. See [BrassardEtAl2002]. -/
 noncomputable def bhmtPhaseDistance (ω₀ ω₁ : ℝ) : ℝ :=
   sInf (Set.range (fun z : ℤ => |(z : ℝ) + ω₁ - ω₀|))
 

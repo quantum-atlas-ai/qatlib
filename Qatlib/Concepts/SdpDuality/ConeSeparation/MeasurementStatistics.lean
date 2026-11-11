@@ -9,6 +9,30 @@ import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatisticsDefs
 import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+
+/-!
+# POVM outcome statistics and fresh measurements
+
+This module constructs `povmLaw` from the square-root instrument of a POVM and identifies its
+probabilities, moments, and variance with finite Born-rule sums. It also transfers unbiasedness
+and variance bounds for ordered U-statistics to measurement records.
+
+`freshPovmInstrument` acts on a tensor product of separate input states, and
+`freshPovmLaw_eq_independent` proves that its record distribution is the product of the
+component laws. The resulting weighted variance and Hoeffding bounds connect quantum measurement
+probabilities with classical statistics; see [Watrous2018].
+
+## Main statements
+
+* `freshPovm_record_mass`: factorization of joint record probabilities.
+* `freshPovm_weighted_hoeffding`: concentration of weighted measurement statistics.
+* `freshPovm_ordered_u_variance`: variance bound for fresh-copy U-statistics.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -30,10 +54,13 @@ open Qatlib.Concepts.TensorRegisters.RegisterModel Matrix
 open scoped BigOperators ComplexOrder
 set_option warningAsError false
 
+/-- The finite outcome distribution obtained by applying the POVM `Λ` to the density operator
+`ρ`. -/
 def povmLaw {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ) : FinDist O :=
   ofPMF (instrumentPMF (Instrument.ofPOVM Λ) hρ)
 
+/-- The probability of a POVM outcome is the real trace Re tr(Λ(o) ρ). -/
 theorem povmLaw_prob {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (o : O) :
     (povmLaw Λ ρ hρ).prob o = (Matrix.trace ((Λ.mats o).mat * ρ)).re := by
@@ -41,10 +68,14 @@ theorem povmLaw_prob {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
   rw [instrumentPMF_apply, ENNReal.toReal_ofReal
     (instrumentProb_nonneg (Instrument.ofPOVM Λ) hρ.1 o), instrumentProb_ofPOVM]
 
+/-- Converting `povmLaw` to a probability mass function recovers the PMF of the associated
+instrument. -/
 theorem povmLaw_same_pmf {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ) :
     toPMF (povmLaw Λ ρ hρ) = instrumentPMF (Instrument.ofPOVM Λ) hρ := toPMF_ofPMF _
 
+/-- The `k`th moment about `c` of a POVM statistic is its finite sum weighted by Born
+probabilities. -/
 theorem povm_moment {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (f : O → ℝ) (c : ℝ) (k : ℕ) :
@@ -52,12 +83,16 @@ theorem povm_moment {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
       ∑ o, (Matrix.trace ((Λ.mats o).mat * ρ)).re * (f o - c)^k := by
   simp only [FinDist.expect, povmLaw_prob]
 
+/-- The variance of a POVM statistic is the sum of squared deviations from its mean weighted by
+Born probabilities. -/
 theorem povm_variance {O : Type*} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (f : O → ℝ) :
     (povmLaw Λ ρ hρ).variance f =
       ∑ o, (Matrix.trace ((Λ.mats o).mat * ρ)).re *
         (f o - (povmLaw Λ ρ hρ).expect f)^2 := povm_moment _ _ _ _ _ 2
 
+/-- The ordered U-statistic of order `r ≤ m` is unbiased under independent POVM outcomes, and
+its order-zero counted evaluation has cost one. -/
 theorem povm_ordered_u_unbiased {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (m r : ℕ) (h : List O → ℝ) (hr : r ≤ m) :
@@ -66,6 +101,8 @@ theorem povm_ordered_u_unbiased {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
       (∀ ω : Fin m → O, (higherUCounted m 0 h ω).2 = 1) :=
   higher_u_asymmetric_unbiased_and_empty O (povmLaw Λ ρ hρ) m r h hr
 
+/-- For a kernel bounded in absolute value by `B`, the mean squared error of the ordered
+U-statistic is at most `4 * r² * B² / m`. -/
 theorem povm_ordered_u_variance {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (m r : ℕ) (h : List O → ℝ) (B : ℝ) (hm : 0 < m) (hr : r ≤ m)
@@ -75,6 +112,7 @@ theorem povm_ordered_u_variance {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
       4 * (r : ℝ)^2 * B^2 / m :=
   higher_u_overlap_covariance_and_variance O (povmLaw Λ ρ hρ) m r h B hm hr hB hb
 
+/-- The reindexed tensor product of density operators is a density operator. -/
 theorem freshPovmDensity_density {m : ℕ} (d : Fin m → ℕ) (ρ : ∀ i, Operator (d i))
     (hρ : ∀ i, IsDensityOperator (ρ i)) : IsDensityOperator (freshPovmDensity d ρ) := by
   refine ⟨(productMatrix_psd ρ (fun i => (hρ i).1)).submatrix (flatten d).symm, ?_⟩
@@ -83,6 +121,8 @@ theorem freshPovmDensity_density {m : ℕ} (d : Fin m → ℕ) (ρ : ∀ i, Oper
   have ht (i : Fin m) : Matrix.trace (ρ i) = 1 := (hρ i).2
   simp only [ht, Finset.prod_const_one]
 
+/-- The tensor products of the square-root POVM Kraus matrices satisfy the Kraus completeness
+relation. -/
 theorem freshPovmKraus_complete {m : ℕ} (d : Fin m → ℕ)
     {O : Fin m → Type*} [∀ i, Fintype (O i)] [∀ i, DecidableEq (O i)]
     (Λ : ∀ i, POVM (O i) (Fin (d i))) :
@@ -102,11 +142,15 @@ theorem freshPovmKraus_complete {m : ℕ} (d : Fin m → ℕ)
   simp only [hadj, ← map_mul F]
   rw [← map_sum F, hraw, map_one]
 
+/-- The joint instrument applying the component square-root POVM instruments to separate
+registers. -/
 def freshPovmInstrument {m : ℕ} (d : Fin m → ℕ)
     {O : Fin m → Type*} [∀ i, Fintype (O i)] [∀ i, DecidableEq (O i)]
     (Λ : ∀ i, POVM (O i) (Fin (d i))) : Instrument (∀ i, O i) (∏ i, d i) (∏ i, d i) :=
   Instrument.ofKraus (freshPovmKraus d Λ) (freshPovmKraus_complete d Λ)
 
+/-- The probability of a joint outcome on the product state factors as the product of its
+component POVM probabilities. -/
 theorem freshPovm_record_mass {m : ℕ} (d : Fin m → ℕ)
     {O : Fin m → Type*} [∀ i, Fintype (O i)] [∀ i, DecidableEq (O i)]
     (Λ : ∀ i, POVM (O i) (Fin (d i))) (ρ : ∀ i, Operator (d i))
@@ -132,12 +176,15 @@ theorem freshPovm_record_mass {m : ℕ} (d : Fin m → ℕ)
   simp only [hr, ← Complex.ofReal_prod, Complex.ofReal_re,
     povmLaw_prob, instrumentProb_ofPOVM]
 
+/-- The finite distribution of the joint POVM record obtained from the product state. -/
 def freshPovmLaw {m : ℕ} (d : Fin m → ℕ)
     {O : Fin m → Type*} [∀ i, Fintype (O i)] [∀ i, DecidableEq (O i)]
     (Λ : ∀ i, POVM (O i) (Fin (d i))) (ρ : ∀ i, Operator (d i))
     (hρ : ∀ i, IsDensityOperator (ρ i)) : FinDist (∀ i, O i) :=
   ofPMF (instrumentPMF (freshPovmInstrument d Λ) (freshPovmDensity_density d ρ hρ))
 
+/-- The probability of a fresh joint POVM record is the product of its component outcome
+probabilities. -/
 theorem freshPovmLaw_prob {m : ℕ} (d : Fin m → ℕ)
     {O : Fin m → Type*} [∀ i, Fintype (O i)] [∀ i, DecidableEq (O i)]
     (Λ : ∀ i, POVM (O i) (Fin (d i))) (ρ : ∀ i, Operator (d i))
@@ -147,6 +194,8 @@ theorem freshPovmLaw_prob {m : ℕ} (d : Fin m → ℕ)
   rw [instrumentPMF_apply, ENNReal.toReal_ofReal
     (instrumentProb_nonneg _ (freshPovmDensity_density d ρ hρ).1 ω), freshPovm_record_mass d Λ ρ hρ]
 
+/-- The distribution of fresh POVM records equals the independent product of the component POVM
+distributions. -/
 theorem freshPovmLaw_eq_independent {m : ℕ} (d : Fin m → ℕ)
     {O : Fin m → Type*} [∀ i, Fintype (O i)] [∀ i, DecidableEq (O i)]
     (Λ : ∀ i, POVM (O i) (Fin (d i))) (ρ : ∀ i, Operator (d i))
@@ -156,6 +205,8 @@ theorem freshPovmLaw_eq_independent {m : ℕ} (d : Fin m → ℕ)
   intro ω
   exact freshPovmLaw_prob d Λ ρ hρ ω
 
+/-- The variance of a weighted sum of fresh POVM statistics is the sum of component variances
+multiplied by squared weights. -/
 theorem freshPovm_weighted_variance {m : ℕ} (d : Fin m → ℕ)
     {O : Fin m → Type*} [∀ i, Fintype (O i)] [∀ i, DecidableEq (O i)]
     (Λ : ∀ i, POVM (O i) (Fin (d i))) (ρ : ∀ i, Operator (d i))
@@ -166,6 +217,8 @@ theorem freshPovm_weighted_variance {m : ℕ} (d : Fin m → ℕ)
     ProbabilityInterfaces.independent_weighted_variance
       (fun i => povmLaw (Λ i) (ρ i) (hρ i)) w f
 
+/-- A weighted sum of bounded fresh POVM statistics satisfies a two-sided Hoeffding bound with
+denominator `∑ i, (w i)² * (b i - a i)²`. -/
 theorem freshPovm_weighted_hoeffding {m : ℕ} (d : Fin m → ℕ)
     {O : Fin m → Type*} [∀ i, Fintype (O i)] [∀ i, DecidableEq (O i)]
     (Λ : ∀ i, POVM (O i) (Fin (d i))) (ρ : ∀ i, Operator (d i))
@@ -181,6 +234,8 @@ theorem freshPovm_weighted_hoeffding {m : ℕ} (d : Fin m → ℕ)
     ProbabilityInterfaces.independent_weighted_hoeffding
       (fun i => povmLaw (Λ i) (ρ i) (hρ i)) w f a b u hab hf hu hS
 
+/-- The ordered U-statistic from fresh copies of a fixed POVM measurement has expectation
+`higherUMean` when `r ≤ m`. -/
 theorem freshPovm_ordered_u_mean {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (m r : ℕ) (h : List O → ℝ) (hr : r ≤ m) :
@@ -191,6 +246,8 @@ theorem freshPovm_ordered_u_mean {O : Type} [Fintype O] [DecidableEq O] {D : ℕ
   simp_rw [freshPovm_record_mass _ _ _ (fun _ => hρ)]
   exact (povm_ordered_u_unbiased Λ ρ hρ m r h hr).1
 
+/-- For a bounded kernel, the ordered U-statistic from fresh POVM copies has mean squared error
+at most `4 * r² * B² / m`. -/
 theorem freshPovm_ordered_u_variance {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
     (Λ : POVM O (Fin D)) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     (m r : ℕ) (h : List O → ℝ) (B : ℝ) (hm : 0 < m) (hr : r ≤ m)

@@ -10,6 +10,32 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Tactic
 
+/-!
+# Unitary norms and perturbation estimates
+
+This module collects matrix and continuous-linear-map norm facts used in the precision analysis
+of [BernsteinVazirani1997]. The results `unitary_opNorm_eq_one` and `entrywise_opNorm_le`
+connect unitary and entrywise hypotheses to Euclidean operator bounds, and `norm_mul_sub_le`
+controls errors in a product of two maps.
+
+The final equivalences characterize norm preservation by adjoint and inner-product identities.
+In finite dimension, `norm_preserving_iff_two_sided_unitary` gives both inverse identities with
+the adjoint.
+
+## Main statements
+
+* `unitary_opNorm_eq_one`: a nonempty finite unitary matrix has operator norm `1`.
+* `entrywise_opNorm_le`: an entry bound `ε` for a `d`-dimensional matrix gives operator bound `d
+  * ε`.
+* `norm_mul_sub_le`: bounds product error when the specified factors preserve norms.
+* `norm_preserving_iff_two_sided_unitary`: characterizes norm preservation by two adjoint
+  inverse identities in finite dimension.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,6 +44,7 @@ namespace Qatlib.Papers.QComplexity97.PrecisionModel
 open Matrix
 open scoped Matrix.Norms.L2Operator InnerProductSpace
 
+/-- The identity complex matrix of positive dimension has Euclidean operator norm `1`. -/
 theorem one_opNorm {d : ℕ} [NeZero d] :
     ‖(1 : Matrix (Fin d) (Fin d) ℂ)‖ = 1 := by
   rw [Matrix.cstar_norm_def]
@@ -27,6 +54,8 @@ theorem one_opNorm {d : ℕ} [NeZero d] :
     simp [Matrix.toEuclideanCLM]
   rw [h, ContinuousLinearMap.norm_id]
 
+/-- A positive-dimensional complex square matrix satisfying `Uᴴ * U = 1` has Euclidean operator
+norm `1`. -/
 theorem unitary_opNorm_eq_one {d : ℕ} [NeZero d] (U : Matrix (Fin d) (Fin d) ℂ)
     (hU : Uᴴ * U = 1) : ‖U‖ = 1 := by
   have h : ‖U‖ * ‖U‖ = 1 := by
@@ -37,10 +66,14 @@ theorem unitary_opNorm_eq_one {d : ℕ} [NeZero d] (U : Matrix (Fin d) (Fin d) �
   · exact h1
   · rw [h1] at hnn; linarith
 
+/-- The conjugate transpose of a positive-dimensional complex square matrix satisfying `Uᴴ * U =
+1` has Euclidean operator norm `1`. -/
 theorem unitary_adjoint_opNorm_eq_one {d : ℕ} [NeZero d]
     (U : Matrix (Fin d) (Fin d) ℂ) (hU : Uᴴ * U = 1) : ‖Uᴴ‖ = 1 := by
   rw [Matrix.l2_opNorm_conjTranspose, unitary_opNorm_eq_one U hU]
 
+/-- A `d`-dimensional complex square matrix with every entry norm at most `ε ≥ 0` has Euclidean
+operator norm at most `d * ε`. -/
 theorem entrywise_opNorm_le {d : ℕ} (M : Matrix (Fin d) (Fin d) ℂ) {ε : ℝ}
     (hε : 0 ≤ ε) (h : ∀ i j, ‖M i j‖ ≤ ε) : ‖M‖ ≤ (d : ℝ) * ε := by
   classical
@@ -91,6 +124,8 @@ theorem entrywise_opNorm_le {d : ℕ} (M : Matrix (Fin d) (Fin d) ℂ) {ε : ℝ
         ≤ ((d : ℝ) * ε) ^ 2 * ‖x‖ ^ 2 := hsq
       _ = ((d : ℝ) * ε * ‖x‖) ^ 2 := by ring
 
+/-- If `U₁'` and `U₂` preserve norms, the operator-norm difference of `U₁' * U₂'` and `U₁ * U₂`
+is at most the sum of the corresponding factor differences. -/
 theorem norm_mul_sub_le {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
     (U₁ U₁' U₂ U₂' : E →L[ℂ] E)
     (h₁ : ∀ x, ‖U₁' x‖ = ‖x‖) (h₂ : ∀ x, ‖U₂ x‖ = ‖x‖) :
@@ -116,12 +151,16 @@ theorem norm_mul_sub_le {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E]
     _ = ‖U₂' - U₂‖ + ‖U₁' - U₁‖ := by rw [one_mul, mul_one]
     _ = ‖U₁' - U₁‖ + ‖U₂' - U₂‖ := by ring
 
+/-- A continuous linear endomorphism of a complex Hilbert space preserves norms exactly when its
+adjoint composed with it is the identity. -/
 theorem norm_preserving_iff_adjoint_comp_self
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (u : H →L[ℂ] H) :
     (∀ x, ‖u x‖ = ‖x‖) ↔ ContinuousLinearMap.adjoint u ∘L u = 1 :=
   ContinuousLinearMap.norm_map_iff_adjoint_comp_self u
 
+/-- A continuous linear endomorphism of a complex Hilbert space preserves norms exactly when it
+preserves every inner product. -/
 theorem norm_preserving_iff_inner_preserving
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [CompleteSpace H]
     (u : H →L[ℂ] H) :
@@ -129,6 +168,8 @@ theorem norm_preserving_iff_inner_preserving
       (∀ x y : H, ⟪u x, u y⟫_ℂ = ⟪x, y⟫_ℂ) := by
   rw [LinearMap.norm_map_iff_inner_map_map]
 
+/-- A continuous linear endomorphism of a finite-dimensional complex Hilbert space preserves
+norms exactly when composition with its adjoint is the identity in both orders. -/
 theorem norm_preserving_iff_two_sided_unitary
     {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℂ H] [FiniteDimensional ℂ H]
     [CompleteSpace H] (u : H →L[ℂ] H) :

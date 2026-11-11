@@ -62,12 +62,32 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Numerical probability and register bounds
+
+These real inequalities supply explicit powers-of-two bounds for the success expressions in the
+regulator and principal-ideal models. Further logarithmic inequalities convert size constraints
+on q and form parameters into register-size bounds [Schmidt2009].
+
+## Main statements
+
+* `dual_count_bound`: A bounded range of run lengths gives the regulator counting constant.
+* `pip_dual_count_bound`: The corresponding principal-ideal counting expression has a fixed
+  lower bound.
+* `first_register_bits_bound`: A size bound for q gives a base-two logarithmic register bound.
+
+## References
+
+* [Schmidt, 2009][Schmidt2009]
+-/
+
 set_option autoImplicit false
 set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.PrincIdeal09.MainResults
 
+/-- The constant `6 / π²` is strictly greater than one half [Schmidt2009]. -/
 theorem six_div_pi_sq_gt_half : (1 / 2 : ℝ) < 6 / Real.pi ^ 2 := by
   have hpi_lt : Real.pi < 3.141593 := Real.pi_lt_d6
   have hpi_pos : 0 < Real.pi := Real.pi_pos
@@ -76,6 +96,7 @@ theorem six_div_pi_sq_gt_half : (1 / 2 : ℝ) < 6 / Real.pi ^ 2 := by
   rw [lt_div_iff₀ hpos]
   nlinarith [hsq]
 
+/-- The quantity `(6 / π²) * 2^(-25)` is at least `2^(-26)` [Schmidt2009]. -/
 theorem thm2_prob_bound : (2 : ℝ) ^ (-26 : ℤ) ≤ (6 / Real.pi ^ 2) * (2 : ℝ) ^ (-25 : ℤ) := by
   have h := six_div_pi_sq_gt_half
   have h2 : (2 : ℝ) ^ (-25 : ℤ) = 2 * (2 : ℝ) ^ (-26 : ℤ) := by
@@ -85,6 +106,7 @@ theorem thm2_prob_bound : (2 : ℝ) ^ (-26 : ℤ) ≤ (6 / Real.pi ^ 2) * (2 : �
   have hpos : (0 : ℝ) < (2 : ℝ) ^ (-26 : ℤ) := by positivity
   nlinarith [h, hpos]
 
+/-- The quantity `(6 / π²) * 2^(-35)` is at least `2^(-37)` [Schmidt2009]. -/
 theorem thm4_prob_bound : (2 : ℝ) ^ (-37 : ℤ) ≤ (6 / Real.pi ^ 2) * (2 : ℝ) ^ (-35 : ℤ) := by
   have h := six_div_pi_sq_gt_half
   have h2 : (2 : ℝ) ^ (-35 : ℤ) = 4 * (2 : ℝ) ^ (-37 : ℤ) := by
@@ -94,6 +116,8 @@ theorem thm4_prob_bound : (2 : ℝ) ^ (-37 : ℤ) ≤ (6 / Real.pi ^ 2) * (2 : �
   have hpos : (0 : ℝ) < (2 : ℝ) ^ (-37 : ℤ) := by positivity
   nlinarith [h, hpos]
 
+/-- If `mmin ≥ 1` and `mmax ≤ mmin + 4`, then `(mmin + 1) / (2^9 * (mmax + 1)) ≥ 2^(-11)`
+[Schmidt2009]. -/
 theorem dual_count_bound {mmin mmax : ℕ} (hmin : 1 ≤ mmin) (hmax : mmax ≤ mmin + 4) :
     (2 : ℝ) ^ (-11 : ℤ) ≤
       ((mmin : ℝ) + 1) / (2 ^ 9 * ((mmax : ℝ) + 1)) := by
@@ -109,6 +133,8 @@ theorem dual_count_bound {mmin mmax : ℕ} (hmin : 1 ≤ mmin) (hmax : mmax ≤ 
   rw [heq]
   linarith
 
+/-- If `mmin ≥ 1` and `mmax ≤ mmin + 4`, then `(mmin + 1) / (2^13 * (mmax + 2)) ≥ 2^(-16)`
+[Schmidt2009]. -/
 theorem pip_dual_count_bound {mmin mmax : ℕ} (hmin : 1 ≤ mmin) (hmax : mmax ≤ mmin + 4) :
     (2 : ℝ) ^ (-16 : ℤ) ≤
       ((mmin : ℝ) + 1) / (2 ^ 13 * ((mmax : ℝ) + 2)) := by
@@ -124,10 +150,13 @@ theorem pip_dual_count_bound {mmin mmax : ℕ} (hmin : 1 ≤ mmin) (hmax : mmax 
   rw [heq]
   linarith
 
+/-- The base-two logarithm of ten is at most five. -/
 theorem logb_two_ten_le_five : Real.logb 2 10 ≤ 5 := by
   rw [Real.logb_le_iff_le_rpow (by norm_num : (1 : ℝ) < 2) (by norm_num : (0 : ℝ) < 10)]
   norm_num
 
+/-- If `Δ > 1` and `0 < q ≤ 10 * Δ * (log Δ)²`, then `logb 2 q ≤ logb 2 Δ + 2 * logb 2 (log Δ) +
+5`. -/
 theorem first_register_bits_bound {Δ q : ℝ} (hΔ : 1 < Δ) (hq : 0 < q)
     (hq_le : q ≤ 10 * Δ * (Real.log Δ) ^ 2) :
     Real.logb 2 q ≤ Real.logb 2 Δ + 2 * Real.logb 2 (Real.log Δ) + 5 := by
@@ -148,6 +177,8 @@ theorem first_register_bits_bound {Δ q : ℝ} (hΔ : 1 < Δ) (hq : 0 < q)
     _ ≤ Real.logb 2 Δ + 2 * Real.logb 2 (Real.log Δ) + 5 := by
         have := logb_two_ten_le_five; linarith
 
+/-- If `Δ > 1` and `0 < q ≤ Δ * (log Δ)² / 2`, then `logb 2 q ≤ logb 2 Δ + 2 * logb 2 (log Δ)`
+[Schmidt2009]. -/
 theorem pip_register_bits_bound {Δ q : ℝ} (hΔ : 1 < Δ) (hq : 0 < q)
     (hq_le : q ≤ Δ * (Real.log Δ) ^ 2 / 2) :
     Real.logb 2 q ≤ Real.logb 2 Δ + 2 * Real.logb 2 (Real.log Δ) := by
@@ -167,6 +198,8 @@ theorem pip_register_bits_bound {Δ q : ℝ} (hΔ : 1 < Δ) (hq : 0 < q)
     _ = Real.logb 2 Δ + 2 * Real.logb 2 (Real.log Δ) - 1 := hmul
     _ ≤ Real.logb 2 Δ + 2 * Real.logb 2 (Real.log Δ) := by linarith
 
+/-- Positive parameters `a` and `b` bounded by `sqrt Δ` satisfy `logb 2 a + logb 2 b + 2 ≤ logb
+2 Δ + 2`. -/
 theorem form_register_bits_bound {a b Δ : ℝ} (hΔ : 0 < Δ) (ha : 0 < a) (hb : 0 < b)
     (haΔ : a ≤ Real.sqrt Δ) (hbΔ : b ≤ Real.sqrt Δ) :
     Real.logb 2 a + Real.logb 2 b + 2 ≤ Real.logb 2 Δ + 2 := by

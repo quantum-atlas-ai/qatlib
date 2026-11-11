@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Mathlib.Algebra.Order.Chebyshev
+
+/-!
+# Spectral error bound for the power-method ratio
+
+The eigenvector expansion expresses the sum of all entries of `G ^ L` as a weighted sum of
+eigenvalue powers. Under nonnegative spectrum, a nonnegative leading eigenvector, and the stated
+logarithmic separation, `lemma5_power_method_error` bounds the error of `ExpectedMu` by `2 ^
+(-n)`. See [BravyiEtAl2008Stoquastic].
+
+## Main statements
+
+* `sum_entries_pow_eq`: the total mass of a matrix power has a spectral expansion.
+* `sum_sq_sums`: the squared coordinate sums of an orthonormal eigenbasis total the dimension.
+* `lemma5_power_method_error`: the ratio estimates the leading eigenvalue within `(1 / 2) ^ n`
+  when `5 * n * r ≤ 2 * L`.
+
+## References
+
+* [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +41,8 @@ namespace Qatlib.Papers.StoquasticHam06.MainResults.Lemma5
 
 open Matrix
 
+/-- For a finite family of nonnegative reals, the sum of their squares is at most the square of
+their sum. -/
 theorem sum_sq_le_sq_sum {ι : Type*} {s : Finset ι} {f : ι → ℝ}
     (hf : ∀ i ∈ s, 0 ≤ f i) :
     ∑ i ∈ s, f i ^ 2 ≤ (∑ i ∈ s, f i) ^ 2 := by
@@ -36,6 +59,8 @@ theorem sum_sq_le_sq_sum {ι : Type*} {s : Finset ι} {f : ι → ℝ}
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- A vector is the sum of its dot-product coefficients times the vectors in a real Hermitian
+matrix's orthonormal eigenbasis. -/
 theorem sum_repr_dot (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (w : ι → ℝ) :
     ∑ i, (dotProduct w (⇑(hG.eigenvectorBasis i) : ι → ℝ)) •
       (⇑(hG.eigenvectorBasis i) : ι → ℝ) = w := by
@@ -45,6 +70,8 @@ theorem sum_repr_dot (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (w : ι → ℝ
     dotProduct, star_trivial] at h2
   exact h2
 
+/-- The squared coordinate sums of the vectors in a real Hermitian matrix's orthonormal
+eigenbasis sum to the cardinality of the index type. See [BravyiEtAl2008Stoquastic]. -/
 theorem sum_sq_sums (G : Matrix ι ι ℝ) (hG : G.IsHermitian) :
     ∑ i, (∑ x, (⇑(hG.eigenvectorBasis i) : ι → ℝ) x) ^ 2 = (Fintype.card ι : ℝ) := by
   have h := hG.eigenvectorBasis.sum_inner_mul_inner
@@ -53,6 +80,7 @@ theorem sum_sq_sums (G : Matrix ι ι ℝ) (hG : G.IsHermitian) :
     one_mul, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one] at h
   simpa only [pow_two] using h
 
+/-- A matrix power acts on an eigenvector by the corresponding power of the eigenvalue. -/
 theorem mulVec_pow_of_eigen (G : Matrix ι ι ℝ) (v : ι → ℝ) (mu : ℝ)
     (hv : G.mulVec v = mu • v) (L : ℕ) : (G ^ L).mulVec v = (mu ^ L) • v := by
   induction L with
@@ -61,11 +89,15 @@ theorem mulVec_pow_of_eigen (G : Matrix ι ι ℝ) (v : ι → ℝ) (mu : ℝ)
       rw [pow_succ, ← Matrix.mulVec_mulVec, hv, Matrix.mulVec_smul, ih, smul_smul,
         pow_succ']
 
+/-- The `L`th power of a real Hermitian matrix acts on its `i`th eigenbasis vector by the `L`th
+power of that eigenvalue. -/
 theorem mulVec_evec_pow (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (i : ι) (L : ℕ) :
     (G ^ L).mulVec (⇑(hG.eigenvectorBasis i) : ι → ℝ) =
       (hG.eigenvalues i ^ L) • (⇑(hG.eigenvectorBasis i) : ι → ℝ) :=
   mulVec_pow_of_eigen G _ _ (hG.mulVec_eigenvectorBasis i) L
 
+/-- The action of a real Hermitian matrix power is the eigenbasis expansion with each
+coefficient multiplied by the corresponding eigenvalue power. -/
 theorem mulVec_pow_eq_sum (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (L : ℕ) (w : ι → ℝ) :
     (G ^ L).mulVec w =
       ∑ i, ((hG.eigenvalues i ^ L) * dotProduct w (⇑(hG.eigenvectorBasis i) : ι → ℝ)) •
@@ -76,6 +108,8 @@ theorem mulVec_pow_eq_sum (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (L : ℕ) 
   rw [Matrix.mulVec_smul, mulVec_evec_pow, smul_smul]
   ring_nf
 
+/-- The sum of all entries of `G ^ L` equals the sum of eigenvalue powers weighted by squared
+coordinate sums of the eigenbasis vectors. See [BravyiEtAl2008Stoquastic]. -/
 theorem sum_entries_pow_eq (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (L : ℕ) :
     ∑ x, ∑ y, (G ^ L) x y =
       ∑ i, (hG.eigenvalues i) ^ L * (∑ x, (⇑(hG.eigenvectorBasis i) : ι → ℝ) x) ^ 2 := by
@@ -91,6 +125,9 @@ theorem sum_entries_pow_eq (G : Matrix ι ι ℝ) (hG : G.IsHermitian) (L : ℕ)
   rw [hdc]
   ring
 
+/-- For a Hermitian matrix on `2 ^ n` indices with nonnegative spectrum and a nonnegative
+leading eigenvector of eigenvalue in `(0, 1]`, the stated logarithmic gap and `5 * n * r ≤ 2
+* L` imply `|mu0 - ExpectedMu G L| ≤ (1 / 2) ^ n`. See [BravyiEtAl2008Stoquastic]. -/
 theorem lemma5_power_method_error
     (G : Matrix ι ι ℝ) (hG : G.IsHermitian)
     (hpsd : ∀ i, 0 ≤ hG.eigenvalues i)

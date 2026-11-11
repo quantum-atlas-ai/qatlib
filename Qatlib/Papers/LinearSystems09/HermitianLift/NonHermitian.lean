@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LinearSystems09.HermitianLift.Basic
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Non-Hermitian systems and signed singular values
+
+This module exposes the rectangular-to-Hermitian reduction from [HarrowHassidimLloyd2009]
+together with its signed singular spectrum. The block formula
+`source_A33_dilation_eq_fromBlocks` identifies the dilation, and
+`source_A33_rectangular_reduction` records the resulting least-squares solution properties.
+
+## Main statements
+
+* `source_A33_rectangular_reduction`: Packages the pseudoinverse reduction and least-squares
+  identities.
+* `source_A33_signed_singular_spectrum`: Identifies each dilation eigenvalue as a signed
+  singular value.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,6 +47,10 @@ open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.ChannelBudget
 open Qatlib.Concepts.BlockEncoding.Postselection Qatlib.Concepts.QsvtCore.QsVtStability
 
+/-- The rectangular Hermitian lift is Hermitian and its pseudoinverse produces the embedded
+least-squares vector, with uniqueness among least-squares vectors of equal norm. It also
+satisfies the zero-overlap equivalence and squared residual identity for the non-Hermitian
+reduction in [HarrowHassidimLloyd2009]. -/
 theorem source_A33_rectangular_reduction (M N : ℕ) (A : Matrix (Fin M) (Fin N) ℂ)
     (b : QState (Fin M)) :
     (Matrix.fromBlocks (0 : Matrix (Fin M) (Fin M) ℂ) A Aᴴ 0).IsHermitian ∧
@@ -41,6 +66,8 @@ theorem source_A33_rectangular_reduction (M N : ℕ) (A : Matrix (Fin M) (Fin N)
         ‖stateVector (A *ᵥ leastSquaresVector A b - b)‖ ^ 2 :=
   Qatlib.Papers.LinearSystems09.HermitianLift.source_rectangular_solution M N A b
 
+/-- Each ordered eigenvalue of the Hermitian dilation is a singular value of `A` or its
+negative, as used in the non-Hermitian reduction of [HarrowHassidimLloyd2009]. -/
 theorem source_A33_signed_singular_spectrum {M N : ℕ} (A : Matrix (Fin M) (Fin N) ℂ)
     (j : Fin (Fintype.card (Fin M ⊕ Fin N))) :
     ∃ k : ℕ,
@@ -48,6 +75,8 @@ theorem source_A33_signed_singular_spectrum {M N : ℕ} (A : Matrix (Fin M) (Fin
         orderedHermitianValues (hermitianDilation_adjoint A) j = -matrixSingularValues A k :=
   dilation_orderedValue_signed_singular A j
 
+/-- The Hermitian dilation of `A` has zero diagonal blocks and off-diagonal blocks `A` and `Aᴴ`
+[HarrowHassidimLloyd2009]. -/
 theorem source_A33_dilation_eq_fromBlocks {M N : ℕ} (A : Matrix (Fin M) (Fin N) ℂ) :
     hermitianDilation A = Matrix.fromBlocks (0 : Matrix (Fin M) (Fin M) ℂ) A Aᴴ 0 :=
   rfl

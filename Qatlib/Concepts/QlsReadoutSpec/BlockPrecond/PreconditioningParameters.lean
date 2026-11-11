@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditionedNormGap
+
+/-!
+# Preconditioning parameters and normalized solution direction
+
+This module proves the scale and solution-norm guarantees needed by the preconditioned
+reciprocal construction. Under consistency and the specified spectral and lower solution-norm
+promises, `s = t / (c * κ)` lies strictly between zero and one and the preconditioned solution
+norm is at least `κ`. Positive state scaling and a positive encoding coefficient preserve the
+normalized pseudoinverse solution direction.
+
+The argument uses singular-value bounds and scaling properties of pseudoinverse solutions
+[Bhatia1997].
+
+## Main statements
+
+* `preconditioning_scale_and_solution`: Establishes the valid scale interval and lower
+  solution-norm bound.
+* `preconditioning_normalized_target`: Identifies the normalized preconditioned target with the
+  original target.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +59,9 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical Matrix.Norms.L2Operator
 variable {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
 
+/-- For a normalized consistent right-hand side with the stated singular gap and lower
+solution-norm estimate, `κ > 1`, `c > 1`, and `t > 0`, the scale `s = t / (c * κ)` satisfies
+`0 < s < 1` and the preconditioned solution norm is at least `κ`. -/
 theorem preconditioning_scale_and_solution (A : Matrix O I ℂ) (b : QState O) (κ t c s : ℝ)
     (hb : Normalized b) (hκ : 1<κ) (hc : 1< c) (ht : 0< t) (hs : s=t/(c*κ))
     (hgap : ∀ i : Fin (Fintype.card I),0< matrixSingularValues A i→ κ⁻¹≤ matrixSingularValues A i)
@@ -64,6 +92,9 @@ theorem preconditioning_scale_and_solution (A : Matrix O I ℂ) (b : QState O) (
   have he : s⁻¹*(s*κ)=κ := by field_simp
   exact he ▸ hh
 
+/-- For positive scale and coefficient and a normalized consistent right-hand side, the
+normalized scaled preconditioned pseudoinverse solution equals the normalized original
+pseudoinverse solution. -/
 theorem preconditioning_normalized_target (A : Matrix O I ℂ) (b : QState O) (s c₀ : ℝ)
     (hs : 0< s) (hc : 0< c₀) (hb : Normalized b) (hconsistent : ∃ z : QState I,A*ᵥz=b) :
     NormedSpace.normalize (stateVector (((c₀:ℂ)•matrixPseudoinverse (stateScaling s b*A))*ᵥb))=

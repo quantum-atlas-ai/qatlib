@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFairBitSamplerStat
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAuxiliary
+
+/-!
+# Fair-bit residue sampler correctness
+
+Proves `residueFairBitSampler`, the exact decoding counts and bit-cost support for sampling
+residues from fair bits. It includes the power-of-two capacity window for the chosen bit width
+used in the factoring model associated with [Shor1997].
+
+## Main statements
+
+* `residueFairBitSampler`: Establishes residue encoding counts, exact bit cost, and the width
+  window.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +37,8 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open Qatlib
 open scoped Classical
 
+/-- Establishes the unique encoding of each residue, rejection count, exact bit-cost support,
+and chosen bit-width window for the residue sampler in the model associated with [Shor1997]. -/
 theorem residueFairBitSampler : ResidueFairBitSampler := by
   refine ⟨?_, residue_bit_width_window⟩
   intro N k _ hk

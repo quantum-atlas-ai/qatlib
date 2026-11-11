@@ -8,6 +8,24 @@ import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsRefinedDefs
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.QuantumGibbs
 import Qatlib.Concepts.FourierRecovery.ModularFourier.FourierGradient
 import Mathlib.Data.Nat.Basic
+
+/-!
+# Phase-estimation resource counts
+
+This module specializes the phase-estimation cost ledger to a grid with `m` levels. It separates
+`m` controlled-power entries and `m` inverse-QFT ledger entries from the quadratic bound on
+elementary QFT gates, matching the resource accounting discussed in [CleveEtAl1998].
+
+## Main statements
+
+* `phase_estimation_cost`: the combined controlled-power, inverse-QFT, and elementary-gate
+  bounds.
+
+## References
+
+* [Cleve et al., 1998][CleveEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,16 +38,20 @@ open Qatlib.Concepts.FourierRecovery.ModularFourier
 
 namespace Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation
 
+/-- For a phase grid with `m` levels, the phase-estimation ledger records `m` controlled powers. -/
 theorem qpe_controlled_power_count {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (m : ℕ) (hlevels : G.levels = m) :
     (qpeCostLedger O G).controlledPowers = m := by
   rw [(qpeCostLedger_counts O G).2.1, hlevels]
 
+/-- For a phase grid with `m` levels, the phase-estimation ledger records `m` inverse-QFT gate
+entries. -/
 theorem qpe_inverse_qft_layer_count {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (m : ℕ) (hlevels : G.levels = m) :
     (qpeCostLedger O G).inverseQftGates = m := by
   rw [(qpeCostLedger_counts O G).2.2.1, hlevels]
 
+/-- The elementary QFT gate count is at most `3 * (m + 1) ^ 2`. -/
 theorem qft_elementary_gates_quadratic (m : ℕ) :
     qftElementaryGates m ≤ 3 * (m + 1) ^ 2 := by
   unfold qftElementaryGates
@@ -45,6 +67,9 @@ theorem qft_elementary_gates_quadratic (m : ℕ) :
   set M := (m + 1) * (m + 1) with hM
   omega
 
+/-- For a phase grid with `m` levels, the ledger has `m` controlled powers and `m` inverse-QFT
+gate entries, and the elementary QFT gate count is at most `3 * (m + 1) ^ 2` [Cleve et al.,
+Section 5][CleveEtAl1998]. -/
 theorem phase_estimation_cost {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid)
     (m : ℕ) (hlevels : G.levels = m) :
     (qpeCostLedger O G).controlledPowers = m ∧

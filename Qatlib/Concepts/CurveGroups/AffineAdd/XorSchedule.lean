@@ -6,12 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CurveGroups.AffineAdd.EncodedOracle
 
+/-!
+# XOR schedule and inversion domains
+
+This module computes `xorPointRun` on encoded affine coordinates, both when the second inversion
+argument is nonzero and when it vanishes. The formulas identify the coordinate outputs and the
+remaining auxiliary registers for the schedule motivated by [RoettelerEtAl2017].
+
+## Main statements
+
+* `xorPointRun_clean`: the coordinate formula with cleared auxiliary registers.
+* `xorPointRun_zero_second`: the exact output when the second inversion argument vanishes.
+
+## References
+
+* [Roetteler et al., 2017][RoettelerEtAl2017]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.CurveGroups.AffineAdd
 
 variable {K : Type*} [Field K] {w : ℕ}
 
+/-- With distinct input X coordinates and nonzero second inversion argument `X`, the encoded
+schedule outputs coordinates `-X + x2` and `S * X - y2`, with both auxiliary registers zero. -/
 theorem xorPointRun_clean (E : FieldEncoding K w) (x1 y1 x2 y2 : K)
     (hD : x1 ≠ x2)
     (hX : (x1 - x2) - (((y1 - y2) * (x1 - x2)⁻¹)^2) + 3*x2 ≠ 0) :
@@ -32,6 +51,9 @@ theorem xorPointRun_clean (E : FieldEncoding K w) (x1 y1 x2 y2 : K)
   simp only [hs, xorBits_uncompute, E.decode_encode, E.encode_zero,
     xorBits_zero, hi, negateBits_apply, shiftBits_apply]
 
+/-- When the first inversion argument is nonzero and the second is zero, the schedule returns
+encoded coordinates `x2` and `-y2`, retains the encoded secant slope, and clears the
+temporary register. -/
 theorem xorPointRun_zero_second (E : FieldEncoding K w) (x1 y1 x2 y2 : K)
     (hD : x1 ≠ x2)
     (hX : (x1-x2)-((y1-y2)*(x1-x2)⁻¹)^2+3*x2 = 0) :

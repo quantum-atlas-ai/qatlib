@@ -11,6 +11,28 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
 import Mathlib.Analysis.Calculus.Deriv.Slope
 import Mathlib.Topology.MetricSpace.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Limits of confluent propagator amplitudes
+
+This module proves continuity of the two confluent series and evaluates the punctured-zero
+limits of `confluentOddAmp / ε` and `confluentEvenAmp / ε`. For positive light-cone coordinates,
+the odd limit is also expressed using the order-zero Bessel function. See [Meyer1996a].
+
+## Main statements
+
+* `tendsto_confluentOddAmp_scaled`: As nonzero `ε` tends to zero, the odd confluent amplitude
+  divided by `ε` tends to `i * θ * ₀F₁(; 1; -(u * v) * θ²)`.
+* `tendsto_confluentEvenAmp_scaled`: As nonzero `ε` tends to zero, the even confluent amplitude
+  divided by `ε` tends to `-u * θ² * ₀F₁(; 2; -(u * v) * θ²)`.
+* `tendsto_confluentOddAmp_bessel`: For positive `u` and `v`, the odd confluent amplitude
+  divided by `ε` tends to `i * θ * J₀(tau u v * θ)` as nonzero `ε` tends to zero.
+
+## References
+
+* [Meyer, 1996][Meyer1996a]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +43,8 @@ open scoped Topology
 
 namespace Qatlib.Papers.QCellAutomata96.MainResults
 
+/-- The function `zeroFone1` is continuous on every closed complex ball centered at zero with
+nonnegative radius. -/
 theorem continuousOn_zeroFone1 (R : ℝ) (hR : 0 ≤ R) :
     ContinuousOn zeroFone1 (Metric.closedBall (0 : ℂ) R) := by
   have hu : Summable (fun n : ℕ =>
@@ -46,6 +70,7 @@ theorem continuousOn_zeroFone1 (R : ℝ) (hR : 0 ≤ R) :
     apply div_le_div_of_nonneg_right (pow_le_pow_left₀ (norm_nonneg z) hzn n)
     positivity
 
+/-- The function `zeroFone1` is continuous at every complex argument. -/
 theorem continuousAt_zeroFone1 (z : ℂ) : ContinuousAt zeroFone1 z := by
   have hzmem : z ∈ Metric.ball (0 : ℂ) (‖z‖ + 1) := by
     rw [Metric.mem_ball, dist_zero_right]
@@ -56,6 +81,8 @@ theorem continuousAt_zeroFone1 (z : ℂ) : ContinuousAt zeroFone1 z := by
     mem_of_superset hball Metric.ball_subset_closedBall
   exact (continuousOn_zeroFone1 (‖z‖ + 1) (by positivity)).continuousAt hclosed
 
+/-- The function `zeroFone2` is continuous on every closed complex ball centered at zero with
+nonnegative radius. -/
 theorem continuousOn_zeroFone2 (R : ℝ) (hR : 0 ≤ R) :
     ContinuousOn zeroFone2 (Metric.closedBall (0 : ℂ) R) := by
   have hu : Summable (fun n : ℕ =>
@@ -90,6 +117,7 @@ theorem continuousOn_zeroFone2 (R : ℝ) (hR : 0 ≤ R) :
           have hpos : (0 : ℝ) < (Nat.factorial n : ℝ) := by positivity
           nlinarith [hfac, hpos]
 
+/-- The function `zeroFone2` is continuous at every complex argument. -/
 theorem continuousAt_zeroFone2 (z : ℂ) : ContinuousAt zeroFone2 z := by
   have hzmem : z ∈ Metric.ball (0 : ℂ) (‖z‖ + 1) := by
     rw [Metric.mem_ball, dist_zero_right]
@@ -100,6 +128,7 @@ theorem continuousAt_zeroFone2 (z : ℂ) : ContinuousAt zeroFone2 z := by
     mem_of_superset hball Metric.ball_subset_closedBall
   exact (continuousOn_zeroFone2 (‖z‖ + 1) (by positivity)).continuousAt hclosed
 
+/-- As nonzero real `ε` tends to zero, `tan (ε * θ) / ε` tends to `θ`. See [Meyer1996a]. -/
 theorem tendsto_tan_mul_div (θ : ℝ) :
     Tendsto (fun ε : ℝ => Real.tan (ε * θ) / ε) (𝓝[≠] 0) (𝓝 θ) := by
   have hderiv : HasDerivAt (fun ε : ℝ => Real.tan (ε * θ)) θ 0 := by
@@ -114,13 +143,16 @@ theorem tendsto_tan_mul_div (θ : ℝ) :
   have := hderiv.tendsto_slope_zero
   simpa [div_eq_inv_mul, mul_comm] using this
 
+/-- The real confluent argument `-(u * v) * (tan (ε * θ) / ε)²`. -/
 def confArg (θ u v ε : ℝ) : ℝ := -((u * v) * (Real.tan (ε * θ) / ε) ^ 2)
 
+/-- For nonzero `ε`, the original scaled tangent argument equals `confArg θ u v ε`. -/
 theorem confArg_eq (θ u v ε : ℝ) (hε : ε ≠ 0) :
     -((u * v) / ε ^ 2 * Real.tan (ε * θ) ^ 2) = confArg θ u v ε := by
   unfold confArg
   field_simp
 
+/-- As nonzero `ε` tends to zero, the confluent argument tends to `-(u * v) * θ²`. -/
 theorem tendsto_confArg (θ u v : ℝ) :
     Tendsto (fun ε : ℝ => confArg θ u v ε) (𝓝[≠] 0) (𝓝 (-((u * v) * θ ^ 2))) := by
   have h := tendsto_tan_mul_div θ
@@ -130,6 +162,8 @@ theorem tendsto_confArg (θ u v : ℝ) :
   have := (hsq.const_mul (u * v)).neg
   simpa [confArg] using this
 
+/-- For nonzero `ε`, division of the odd amplitude by `ε` moves the scale factor into its
+tangent prefactor. -/
 theorem confluentOddAmp_div (θ u v ε : ℝ) (hε : ε ≠ 0) :
     confluentOddAmp θ u v ε / ε =
       (I * Complex.ofReal (Real.tan (ε * θ) / ε)) *
@@ -139,6 +173,7 @@ theorem confluentOddAmp_div (θ u v ε : ℝ) (hε : ε ≠ 0) :
   rw [Complex.ofReal_div]
   field_simp [hεC]
 
+/-- For nonzero `ε`, the even amplitude divided by `ε` has prefactor `-u * (tan (ε * θ) / ε)²`. -/
 theorem confluentEvenAmp_div (θ u v ε : ℝ) (hε : ε ≠ 0) :
     confluentEvenAmp θ u v ε / ε =
       (-(Complex.ofReal (u * (Real.tan (ε * θ) / ε) ^ 2))) *
@@ -148,6 +183,8 @@ theorem confluentEvenAmp_div (θ u v ε : ℝ) (hε : ε ≠ 0) :
   push_cast
   field_simp [hεC]
 
+/-- As nonzero `ε` tends to zero, the odd confluent amplitude divided by `ε` tends to `i * θ *
+₀F₁(; 1; -(u * v) * θ²)`. See [Meyer1996a]. -/
 theorem tendsto_confluentOddAmp_scaled (θ u v : ℝ) :
     Tendsto (fun ε : ℝ => confluentOddAmp θ u v ε / ε) (𝓝[≠] 0)
       (𝓝 (I * (θ : ℂ) * zeroFone1 (Complex.ofReal (-((u * v) * θ ^ 2))))) := by
@@ -183,6 +220,8 @@ theorem tendsto_confluentOddAmp_scaled (θ u v : ℝ) :
   filter_upwards [self_mem_nhdsWithin] with ε hε
   exact (confluentOddAmp_div θ u v ε hε).symm
 
+/-- As nonzero `ε` tends to zero, the even confluent amplitude divided by `ε` tends to `-u * θ²
+* ₀F₁(; 2; -(u * v) * θ²)`. See [Meyer1996a]. -/
 theorem tendsto_confluentEvenAmp_scaled (θ u v : ℝ) :
     Tendsto (fun ε : ℝ => confluentEvenAmp θ u v ε / ε) (𝓝[≠] 0)
       (𝓝 (-((u : ℂ) * (θ : ℂ) ^ 2) *
@@ -223,6 +262,8 @@ theorem tendsto_confluentEvenAmp_scaled (θ u v : ℝ) :
   filter_upwards [self_mem_nhdsWithin] with ε hε
   exact (confluentEvenAmp_div θ u v ε hε).symm
 
+/-- For positive `u` and `v`, the odd confluent amplitude divided by `ε` tends to `i * θ *
+J₀(tau u v * θ)` as nonzero `ε` tends to zero. See [Meyer1996a]. -/
 theorem tendsto_confluentOddAmp_bessel (θ u v : ℝ) (hu : 0 < u) (hv : 0 < v) :
     Tendsto (fun ε : ℝ => confluentOddAmp θ u v ε / ε) (𝓝[≠] 0)
       (𝓝 (I * (θ : ℂ) * besselJ0 (Complex.ofReal (tau u v * θ)))) := by

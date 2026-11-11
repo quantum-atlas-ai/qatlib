@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximationCauchy
 import Qatlib.Papers.Cbmd26.Algorithms.ApproximationWindow
 import Mathlib.Algebra.Polynomial.Degree.Operations
+
+/-!
+# Bounded polynomial approximation from Cauchy truncations
+
+`realCauchyTruncation` takes the real parts of Cauchy coefficients on the radius-two circle,
+with geometric error and uniform size estimates. `bounded_holomorphic_polynomial_exists`
+combines this truncation with a step polynomial to approximate on `[g, 1]` while remaining
+bounded by `1 + ε` on `[-1, 1]`; `bounded_real_holomorphic_complex_polynomial_exists` treats
+functions real on `[0, 1]`, and `holomorphic_degree_budget_le` gives a logarithmic degree
+estimate.
+
+These approximation bounds supply polynomial inputs for the CBMD algorithms associated with
+[WangEtAl2026].
+
+## Main statements
+
+* `realCauchyTruncation_error` gives a geometric truncation-error estimate.
+* `bounded_real_holomorphic_complex_polynomial_exists` supplies bounded complex polynomial
+  approximation.
+* `holomorphic_degree_budget_le` bounds the degree budget using logarithms.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,20 +45,27 @@ namespace CBMD
 open Polynomial Complex Metric Set
 open scoped BigOperators
 
+/-- The real polynomial formed from the real parts of the first `N` Cauchy coefficients of `f`,
+centered at `0` and defined using radius `2`. -/
 def realCauchyTruncation (f : ℂ → ℂ) (N : ℕ) : Polynomial ℝ :=
   ∑ n ∈ Finset.range N, C (cauchyCoefficient f 0 2 n).re * X ^ n
 
+/-- The real Cauchy truncation using the first `N` coefficients has natural degree at most `N`. -/
 theorem realCauchyTruncation_degree (f : ℂ → ℂ) (N : ℕ) :
     (realCauchyTruncation f N).natDegree ≤ N := by
   apply natDegree_sum_le_of_forall_le
   intro n hn
   exact (natDegree_C_mul_X_pow_le _ _).trans (Nat.le_of_lt (Finset.mem_range.mp hn))
 
+/-- Evaluation of the real Cauchy truncation at a real point equals the real part of the
+corresponding complex partial sum. -/
 theorem realCauchyTruncation_eval (f : ℂ → ℂ) (N : ℕ) (x : ℝ) :
     (realCauchyTruncation f N).eval x =
       (∑ n ∈ Finset.range N, cauchyCoefficient f 0 2 n * (x : ℂ) ^ n).re := by
   simp [realCauchyTruncation, eval_finsetSum, Complex.mul_re, ← Complex.ofReal_pow]
 
+/-- A norm bound `M` on the radius-two circle bounds the norm of the Cauchy term of order `n` at
+every real `x` with `|x| ≤ 1` by `M * (1 / 2) ^ n`. -/
 private theorem cauchyTerm_bound (f : ℂ → ℂ) (M : ℝ)
     (hb : ∀ z ∈ sphere (0 : ℂ) 2, ‖f z‖ ≤ M)
     (x : ℝ) (hx : |x| ≤ 1) (n : ℕ) :
@@ -45,6 +78,9 @@ private theorem cauchyTerm_bound (f : ℂ → ℂ) (M : ℝ)
     _ ≤ M * (1 / 2 : ℝ) ^ n := by
       simpa using cauchyCoefficient_norm_le f 0 2 M (by norm_num) hb n
 
+/-- If `f` is complex differentiable on the radius-two closed disk and bounded by `M` on its
+circle, its real Cauchy truncation approximates the real part of `f` on `[-1, 1]` with error
+at most `2 * M * (1 / 2) ^ N`. -/
 theorem realCauchyTruncation_error (f : ℂ → ℂ) (M : ℝ)
     (hf : DifferentiableOn ℂ f (closedBall 0 2))
     (hb : ∀ z ∈ sphere (0 : ℂ) 2, ‖f z‖ ≤ M)
@@ -59,6 +95,8 @@ theorem realCauchyTruncation_error (f : ℂ → ℂ) (M : ℝ)
   rw [realCauchyTruncation_eval, ← Complex.sub_re]
   exact (Complex.abs_re_le_norm _).trans (he.trans_eq (by ring))
 
+/-- A norm bound `M` on the radius-two circle bounds every real Cauchy truncation in absolute
+value by `2 * M` on `[-1, 1]`. -/
 theorem realCauchyTruncation_bound (f : ℂ → ℂ) (M : ℝ)
     (hb : ∀ z ∈ sphere (0 : ℂ) 2, ‖f z‖ ≤ M)
     (N : ℕ) (x : ℝ) (hx : |x| ≤ 1) :
@@ -77,6 +115,11 @@ theorem realCauchyTruncation_bound (f : ℂ → ℂ) (M : ℝ)
       hgeom.sum_le_tsum _ (fun _ _ => mul_nonneg hM (by positivity))
     _ = 2 * M := by rw [tsum_mul_left, tsum_geometric_of_lt_one (by norm_num) (by norm_num)]; ring
 
+/-- Suppose `g, ε > 0`, `M ≥ 1`, and `f` is complex differentiable on the radius-two closed
+disk, bounded by `M` on its circle, with real part bounded in absolute value by `1` on `[0,
+1]`. Then a real polynomial of degree at most `dyadicOrder (ε / (4 * M)) * (1 + 4 * ⌈512 /
+g⌉₊)` is bounded by `1 + ε` on `[-1, 1]` and approximates that real part within `ε` on `[g,
+1]`. -/
 theorem bounded_holomorphic_polynomial_exists (f : ℂ → ℂ) (g M ε : ℝ)
     (hg : 0 < g) (hM : 1 ≤ M) (hε : 0 < ε)
     (hf : DifferentiableOn ℂ f (closedBall 0 2))
@@ -141,6 +184,10 @@ theorem bounded_holomorphic_polynomial_exists (f : ℂ → ℂ) (g M ε : ℝ)
         (mul_le_mul (hpos x ⟨hx0, hx.2⟩) (hWh x hx) (sub_nonneg.mpr hw.2) (by norm_num))
       _ ≤ ε := by linarith
 
+/-- Suppose `g, ε > 0`, `M ≥ 1`, and `f` is complex differentiable on the radius-two closed
+disk, bounded by `M` on its circle, and real with norm at most `1` on `[0, 1]`. Then a
+complex polynomial with the stated dyadic degree budget is bounded by `1 + ε` on `[-1, 1]`
+and approximates `f` within `ε` on `[g, 1]`. -/
 theorem bounded_real_holomorphic_complex_polynomial_exists
     (f : ℂ → ℂ) (g M ε : ℝ) (hg : 0 < g) (hM : 1 ≤ M) (hε : 0 < ε)
     (hf : DifferentiableOn ℂ f (closedBall 0 2))
@@ -164,6 +211,8 @@ theorem bounded_real_holomorphic_complex_polynomial_exists
       Complex.norm_real, Real.norm_eq_abs]
     exact he x hx
 
+/-- For `g > 0`, `M ≥ 1`, and `0 < ε ≤ 1`, the real-valued degree budget is at most `(log (4 * M
+/ ε) / log 2 + 1) * (5 + 2048 / g)`. -/
 theorem holomorphic_degree_budget_le (g M ε : ℝ) (hg : 0 < g)
     (hM : 1 ≤ M) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     ((dyadicOrder (ε / (4 * M)) * (1 + 4 * ⌈512 / g⌉₊) : ℕ) : ℝ) ≤

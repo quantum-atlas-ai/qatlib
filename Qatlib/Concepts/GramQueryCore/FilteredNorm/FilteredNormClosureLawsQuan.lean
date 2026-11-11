@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsStat
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormBasicLawsQuan
 import Mathlib.Analysis.CStarAlgebra.GelfandDuality
+
+/-!
+# Closure laws of the rectangular filtered norm
+
+This module proves that simultaneous submatrix restriction decreases `sourceRectValue`, while
+surjective pullback preserves it. Dual-feasibility arguments show invariance under redundant
+filter extension, contractive linear combinations, and merging row and column disjoint filters
+in the setting of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceRectValue_submatrix_le`: Taking the same row and column submatrix in the target and all
+  filters cannot increase the rectangular filtered value.
+
+* `sourceRectValue_surjective_submatrix`: Pulling back the target and its filters along
+  surjective row and column maps preserves the rectangular filtered value.
+
+* `sourceRectValue_convexFilter`: Adding a linear combination of the filters with coefficient
+  norms summing to at most one preserves the rectangular filtered value.
+
+* `sourceRectValue_mergeTwo`: Merging the first two row and column disjoint filters preserves
+  the rectangular filtered value.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +48,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- Restricting the row and column indices of a target and its filters preserves a rectangular
+certificate. -/
 theorem sourceRectCert_submatrix
     {R S R' S' : Type} {n : ℕ} {A : Matrix R S ℂ} {Z : Fin n → Matrix R S ℂ} {w : ℝ}
     (f : R' → R) (g : S' → S) (h : sourceRectCert n A Z w) :
@@ -28,12 +58,16 @@ theorem sourceRectCert_submatrix
   exact ⟨m, fun r j => u (f r) j, fun s j => v (g s) j,
     fun r s => heq (f r) (g s), fun r => hu (f r), fun s => hv (g s)⟩
 
+/-- Taking the same row and column submatrix in the target and all filters cannot increase the
+rectangular filtered value. -/
 theorem sourceRectValue_submatrix_le
     {R S R' S' : Type} {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ)
     (f : R' → R) (g : S' → S) :
     sourceRectValue (A.submatrix f g) (fun j => (Z j).submatrix f g) ≤ sourceRectValue A Z :=
   sourceRectValue_le_of_cert_imp A Z _ _ (fun _ _ => sourceRectCert_submatrix f g)
 
+/-- Pulling back the target and its filters along surjective row and column maps preserves the
+rectangular filtered value. -/
 theorem sourceRectValue_surjective_submatrix
     {R S R' S' : Type} {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ)
     (f : R' → R) (g : S' → S) (hf : Function.Surjective f) (hg : Function.Surjective g) :
@@ -50,9 +84,12 @@ theorem sourceRectValue_surjective_submatrix
   · intro r; exact hu (f' r)
   · intro s; exact hv (g' s)
 
+/-- The matrix obtained by retaining the entries in the specified row and column sets and
+setting all other entries to zero. -/
 def sourceRectMask {R S : Type} (rows : Finset R) (cols : Finset S) (A : Matrix R S ℂ) : Matrix R S ℂ :=
   fun r s => if r ∈ rows ∧ s ∈ cols then A r s else 0
 
+/-- Masking a matrix to specified rows and columns does not increase its operator norm. -/
 theorem sourceRectMask_norm_le
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (rows : Finset R) (cols : Finset S) (A : Matrix R S ℂ) : ‖sourceRectMask rows cols A‖ ≤ ‖A‖ := by
@@ -80,6 +117,8 @@ theorem sourceRectMask_norm_le
   exact (Matrix.l2_opNorm_mul (row*A) col).trans
     ((mul_le_mul_of_nonneg_right hfirst (norm_nonneg col)).trans (by nlinarith [norm_nonneg A]))
 
+/-- Dual feasibility for a union of filter families is equivalent to feasibility for each family
+separately. -/
 theorem sourceFilterUnion_feasible_iff
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {m n : ℕ} (Y : Fin m → Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (M : Matrix R S ℂ) :
@@ -99,6 +138,8 @@ theorem sourceFilterUnion_feasible_iff
     | inl i => simpa only [sourceFilterUnion, he, Sum.elim_inl] using! hY i
     | inr i => simpa only [sourceFilterUnion, he, Sum.elim_inr] using! hZ i
 
+/-- If dual feasibility for `Y` implies dual feasibility for `Z`, then the rectangular value for
+`Y` is bounded by that for `Z`. -/
 theorem sourceRectValue_le_of_dual_feasible_imp
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {m n : ℕ} (A : Matrix R S ℂ) (Y : Fin m → Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ)
@@ -110,12 +151,15 @@ theorem sourceRectValue_le_of_dual_feasible_imp
   intro M
   exact le_iSup_of_le ⟨M.val,h M.val M.property⟩ le_rfl
 
+/-- Adding a filter family cannot increase the rectangular filtered value. -/
 theorem sourceRectValue_filterUnion_le
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {m n : ℕ} (A : Matrix R S ℂ) (Y : Fin m → Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) :
     sourceRectValue A (sourceFilterUnion Y Z) ≤ sourceRectValue A Z :=
   sourceRectValue_le_of_dual_feasible_imp A _ _ (fun M h => (sourceFilterUnion_feasible_iff Y Z M).mp h |>.2)
 
+/-- Adding filters whose dual constraints follow from the existing constraints preserves the
+rectangular filtered value. -/
 theorem sourceRectValue_filterUnion_eq_of_redundant
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {m n : ℕ} (A : Matrix R S ℂ) (Y : Fin m → Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ)
@@ -125,6 +169,8 @@ theorem sourceRectValue_filterUnion_eq_of_redundant
   exact sourceRectValue_le_of_dual_feasible_imp A _ _
     (fun M hM => (sourceFilterUnion_feasible_iff Y Z M).mpr ⟨h M hM,hM⟩)
 
+/-- Adding filters obtained by row and column masking of existing filters preserves the
+rectangular filtered value. -/
 theorem sourceRectValue_filterUnion_eq_of_masks
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {m n : ℕ} (A : Matrix R S ℂ) (Y : Fin m → Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ)
@@ -142,6 +188,8 @@ theorem sourceRectValue_filterUnion_eq_of_masks
   rw [hmask]
   exact (sourceRectMask_norm_le rows cols _).trans (hM j)
 
+/-- Adding a linear combination of the filters with coefficient norms summing to at most one
+preserves the rectangular filtered value. -/
 theorem sourceRectValue_convexFilter
     {R S : Type} [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ) (p : Fin n → ℂ)
@@ -168,6 +216,7 @@ theorem sourceRectValue_convexFilter
         by simpa only [mul_one] using! mul_le_mul_of_nonneg_left (hM j) (norm_nonneg (p j))
       _ ≤ 1 := hp
 
+/-- Entrywise multiplication by a common matrix preserves row and column disjointness. -/
 theorem sourceRowColumnDisjoint_hadamard {R S : Type} (A B M : Matrix R S ℂ)
     (h : sourceRowColumnDisjoint A B) : sourceRowColumnDisjoint (A ⊙ M) (B ⊙ M) := by
   constructor
@@ -178,6 +227,8 @@ theorem sourceRowColumnDisjoint_hadamard {R S : Type} (A B M : Matrix R S ℂ)
     simp only [Matrix.hadamard_apply] at hrs ⊢
     exact mul_eq_zero_of_left (h.2 s r t (fun he => hrs (by simp [he]))) _
 
+/-- The operator norm of the sum of two row and column disjoint matrices is the maximum of their
+operator norms. -/
 theorem sourceRowColumnDisjoint_norm_add {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (A B : Matrix R S ℂ) (h : sourceRowColumnDisjoint A B) :
@@ -221,6 +272,7 @@ theorem sourceRowColumnDisjoint_norm_add {R S : Type}
     rw [max_eq_left (mul_self_le_mul_self (norm_nonneg B) hh)] at hn
     nlinarith [norm_nonneg (A+B), norm_nonneg A]
 
+/-- Merging the first two row and column disjoint filters preserves dual feasibility. -/
 theorem sourceMergeTwo_feasible_iff {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (Z : Fin (n+2) → Matrix R S ℂ) (M : Matrix R S ℂ)
@@ -254,6 +306,8 @@ theorem sourceMergeTwo_feasible_iff {R S : Type}
       exact max_le (hm 0) (hm 1)
     · exact hm _
 
+/-- Merging the first two row and column disjoint filters preserves the rectangular filtered
+value. -/
 theorem sourceRectValue_mergeTwo {R S : Type}
     [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     {n : ℕ} (A : Matrix R S ℂ) (Z : Fin (n+2) → Matrix R S ℂ)
@@ -265,6 +319,8 @@ theorem sourceRectValue_mergeTwo {R S : Type}
   · exact sourceRectValue_le_of_dual_feasible_imp _ _ _
       (fun M hM => (sourceMergeTwo_feasible_iff Z M h).mpr hM)
 
+/-- The rectangular filtered value satisfies the bundled restriction, filter extension, and
+disjoint merging laws [LeeEtAl2011]. -/
 theorem filteredNormClosureLaws : FilteredNormClosureLaws := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro R S R' S' _ _ _ _ _ _ _ _ n A Z f g hf hg

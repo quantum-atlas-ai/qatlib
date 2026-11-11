@@ -6,6 +6,40 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
 import Lean
+
+/-!
+# Uniform BQP generator metatheory
+
+This module proves parsing, execution, and resource properties for `UniformBqpGenerator`. The
+exposed model parsers support the exact round trip `decode_encodeUniformBqpWord`, while
+`modelRunUntilHaltWithin_eq_some_iff` relates bounded execution to exact machine steps and
+halting. Legal finite gate words satisfy both dyadic approximation and exact finite-digit
+amplitude premises.
+
+Concrete diverging, clock, and fixed-word printer machines make the operational boundary
+explicit. The transformation `nfGen` preserves generated outputs and gives a unidirectional
+normal form with doubled execution time. Standard quantum gate and circuit background is treated
+in [NielsenChuang2010], with related quantum verification context in [MarriottWatrous2005].
+
+## Main statements
+
+* `clause16_roundTrip` and `clause16_nativeToStandard` establish exact decoding and the passage
+  from valid native generators to polynomially bounded legal word families.
+* `clause16_perLengthLedgers` supplies legality, query and gate counts, resource bounds,
+  normalization, and acceptance-probability bounds.
+* `clause16_standardToNative` constructs a valid printer for each fixed legal gate word with an
+  explicit linear time bound.
+* `generatorWellformed_normalForm` preserves generated outputs, well-formedness, and polynomial
+  clocking under conversion to normal form.
+* `clause17` assembles the clock, duplication, totalized-output, and backend results, while
+  `clause16_boundary` separates totalization from generator validity.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Marriott and Watrous, 2005][MarriottWatrous2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +58,8 @@ namespace Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
 
 open Turing
 
+/-- Parses a unary field consisting of `k` true bits followed by a false bit, returning `k` and
+the unconsumed suffix. Returns `none` when no terminating false bit is present. -/
 def modelParseUnaryField : List Bool → Option (ℕ × List Bool) := by
   run_tac do
     let moduleName :=
@@ -34,6 +70,8 @@ def modelParseUnaryField : List Bool → Option (ℕ × List Bool) := by
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Parses the wire fields for a gate selected by its numeric tag, returning the gate code and
+the remaining bits. Tags outside the five supported gate constructors fail. -/
 def modelParseGateCodeFields : (tag : ℕ) → (bits : List Bool) → Option (FiniteGateCode × List Bool) := by
   run_tac do
     let moduleName :=
@@ -44,6 +82,8 @@ def modelParseGateCodeFields : (tag : ℕ) → (bits : List Bool) → Option (Fi
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Parses a concatenation of finite gate encodings using at most the supplied number of
+gate-parsing steps. Success requires consuming the entire bit list. -/
 def modelParseGateCodeListFuel : ℕ → List Bool → Option (List FiniteGateCode) := by
   run_tac do
     let moduleName :=
@@ -54,6 +94,8 @@ def modelParseGateCodeListFuel : ℕ → List Bool → Option (List FiniteGateCo
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Runs the machine from the given configuration until it halts within the supplied number of
+steps. Returns the halted configuration, or `none` if the step budget expires first. -/
 def modelRunUntilHaltWithin : {k : ℕ} → (machine : Turing.TM0.Machine (Option Bool) (Fin (k + 1))) → ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) → Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1))) := by
   run_tac do
     let moduleName :=
@@ -64,6 +106,8 @@ def modelRunUntilHaltWithin : {k : ℕ} → (machine : Turing.TM0.Machine (Optio
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Reads Boolean symbols from the tape until the first blank, allowing at most the supplied
+number of nonblank symbols. Returns `none` if no blank is reached within that bound. -/
 def modelReadOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool) := by
   run_tac do
     let moduleName :=
@@ -74,6 +118,7 @@ def modelReadOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Optio
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- The one-state machine that moves right over nonblank symbols and halts on a blank. -/
 def modelClockMachine : Turing.TM0.Machine (Option Bool) (Fin 1) := by
   run_tac do
     let moduleName :=
@@ -84,6 +129,8 @@ def modelClockMachine : Turing.TM0.Machine (Option Bool) (Fin 1) := by
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- The finite-control machine that scans the input, prints the fixed word `bs`, and returns its
+head to the beginning of the printed word. Its state type has `3 * bs.length + 1` elements. -/
 def modelWordPrinterMachine : (bs : List Bool) → Turing.TM0.Machine (Option Bool) (Fin (3 * bs.length + 1)) := by
   run_tac do
     let moduleName :=
@@ -94,37 +141,50 @@ def modelWordPrinterMachine : (bs : List Bool) → Turing.TM0.Machine (Option Bo
     let constant := name.foldl (init := root) Lean.Name.mkStr
     Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
 
+/-- Decodes a unary wire count followed by a list of finite gate encodings. The gate parser
+receives the remaining bit length as its fuel. -/
 noncomputable def modelDecode (bits : List Bool) : Option (ℕ × List FiniteGateCode) := do
   let (q, rest) ← modelParseUnaryField bits
   let gs ← modelParseGateCodeListFuel rest.length rest
   pure (q, gs)
 
+/-- The exposed model decoder agrees with `decodeUniformBqpWord`. -/
 theorem modelDecode_eq : modelDecode = decodeUniformBqpWord := rfl
 
+/-- Parsing a unary field from the empty list fails. -/
 @[simp] theorem modelParseUnaryField_nil :
     modelParseUnaryField [] = none := rfl
 
+/-- A leading false bit encodes zero and leaves the remaining bits untouched. -/
 @[simp] theorem modelParseUnaryField_cons_false (rest : List Bool) :
     modelParseUnaryField (false :: rest) = some (0, rest) := rfl
 
+/-- A leading true bit increments the value parsed from the remaining unary field while
+preserving its final suffix. -/
 @[simp] theorem modelParseUnaryField_cons_true (rest : List Bool) :
     modelParseUnaryField (true :: rest) =
       (modelParseUnaryField rest).map fun (k, tail) => (k + 1, tail) := rfl
 
+/-- Encoding a successor prepends a true bit to the unary encoding of its predecessor. -/
 theorem encodeUnaryField_succ (k : ℕ) :
     encodeUnaryField (k + 1) = true :: encodeUnaryField k := rfl
 
+/-- The unary encoding of zero is the singleton false bit. -/
 theorem encodeUnaryField_zero : encodeUnaryField 0 = [false] := rfl
 
+/-- The unary encoding of `k` has length `k + 1`. -/
 theorem encodeUnaryField_length (k : ℕ) : (encodeUnaryField k).length = k + 1 := by
   simp [encodeUnaryField]
 
+/-- Parsing an encoded unary field recovers its value and leaves an arbitrary appended suffix. -/
 theorem modelParseUnaryField_encode (k : ℕ) (rest : List Bool) :
     modelParseUnaryField (encodeUnaryField k ++ rest) = some (k, rest) := by
   induction k with
   | zero => simp [encodeUnaryField_zero]
   | succ k ih => simp [encodeUnaryField_succ, ih]
 
+/-- A successful unary parse decomposes the input into the recovered value's encoding followed
+by the returned suffix. -/
 theorem modelParseUnaryField_eq_some {bits : List Bool} {k : ℕ} {rest : List Bool}
     (h : modelParseUnaryField bits = some (k, rest)) :
     bits = encodeUnaryField k ++ rest := by
@@ -149,12 +209,15 @@ theorem modelParseUnaryField_eq_some {bits : List Bool} {k : ℕ} {rest : List B
         have hi : bits = encodeUnaryField w ++ t := ih hm
         simp [encodeUnaryField_succ, hi, List.cons_append]
 
+/-- A unary parse returns `(k, rest)` exactly when its input is `encodeUnaryField k ++ rest`. -/
 theorem modelParseUnaryField_eq_some_iff {bits : List Bool} {k : ℕ} {rest : List Bool} :
     modelParseUnaryField bits = some (k, rest) ↔ bits = encodeUnaryField k ++ rest :=
   ⟨modelParseUnaryField_eq_some, fun h => by
     rw [h]
     exact modelParseUnaryField_encode k rest⟩
 
+/-- Assigns tags zero through four to the Hadamard, X, T, adjoint T, and controlled-X gate
+constructors, respectively. -/
 def gateTag : FiniteGateCode → ℕ
   | .h _ => 0
   | .x _ => 1
@@ -162,6 +225,8 @@ def gateTag : FiniteGateCode → ℕ
   | .tdg _ => 3
   | .cx _ _ => 4
 
+/-- Encodes a gate's wire indices as unary fields, omitting the gate tag. Controlled-X
+contributes its control field followed by its target field. -/
 def gateWireFields : FiniteGateCode → List Bool
   | .h w => encodeUnaryField w
   | .x w => encodeUnaryField w
@@ -169,10 +234,13 @@ def gateWireFields : FiniteGateCode → List Bool
   | .tdg w => encodeUnaryField w
   | .cx c t => encodeUnaryField c ++ encodeUnaryField t
 
+/-- A finite gate encoding is the unary encoding of its tag followed by its encoded wire fields. -/
 theorem encodeFiniteGateCode_eq (g : FiniteGateCode) :
     encodeFiniteGateCode g = encodeUnaryField (gateTag g) ++ gateWireFields g := by
   cases g <;> rfl
 
+/-- Gives the explicit tag-by-tag parser for the wire fields of the five supported finite gates.
+Unsupported tags return `none`. -/
 noncomputable def modelParseGateCodeFieldsBody : ℕ → List Bool → Option (FiniteGateCode × List Bool) :=
   fun tag bits =>
     if tag = 0 then
@@ -188,30 +256,39 @@ noncomputable def modelParseGateCodeFieldsBody : ℕ → List Bool → Option (F
         (modelParseUnaryField rest).bind fun (t, tail) => some (FiniteGateCode.cx c t, tail)
     else none
 
+/-- The exposed gate-field parser equals its explicit tag-by-tag body. -/
 theorem modelParseGateCodeFields_eq_body :
     modelParseGateCodeFields = modelParseGateCodeFieldsBody := rfl
 
+/-- Tag zero parses one unary wire field and constructs a Hadamard gate. -/
 @[simp] theorem modelParseGateCodeFields_zero (bits : List Bool) :
     modelParseGateCodeFields 0 bits =
       (modelParseUnaryField bits).bind fun (w, rest) => some (FiniteGateCode.h w, rest) := rfl
 
+/-- Tag one parses one unary wire field and constructs an X gate. -/
 @[simp] theorem modelParseGateCodeFields_one (bits : List Bool) :
     modelParseGateCodeFields 1 bits =
       (modelParseUnaryField bits).bind fun (w, rest) => some (FiniteGateCode.x w, rest) := rfl
 
+/-- Tag two parses one unary wire field and constructs a T gate. -/
 @[simp] theorem modelParseGateCodeFields_two (bits : List Bool) :
     modelParseGateCodeFields 2 bits =
       (modelParseUnaryField bits).bind fun (w, rest) => some (FiniteGateCode.t w, rest) := rfl
 
+/-- Tag three parses one unary wire field and constructs an adjoint T gate. -/
 @[simp] theorem modelParseGateCodeFields_three (bits : List Bool) :
     modelParseGateCodeFields 3 bits =
       (modelParseUnaryField bits).bind fun (w, rest) => some (FiniteGateCode.tdg w, rest) := rfl
 
+/-- Tag four parses a unary control field followed by a unary target field and constructs a
+controlled-X gate. -/
 @[simp] theorem modelParseGateCodeFields_four (bits : List Bool) :
     modelParseGateCodeFields 4 bits =
       (modelParseUnaryField bits).bind fun (c, rest) =>
         (modelParseUnaryField rest).bind fun (t, tail) => some (FiniteGateCode.cx c t, tail) := rfl
 
+/-- Parsing a gate's wire fields with its tag recovers that gate and preserves an arbitrary
+appended suffix. -/
 theorem modelParseGateCodeFields_encode (g : FiniteGateCode) (rest : List Bool) :
     modelParseGateCodeFields (gateTag g) (gateWireFields g ++ rest) = some (g, rest) := by
   cases g with
@@ -221,6 +298,8 @@ theorem modelParseGateCodeFields_encode (g : FiniteGateCode) (rest : List Bool) 
   | tdg w => simp [gateTag, gateWireFields, modelParseUnaryField_encode]
   | cx c t => simp [gateTag, gateWireFields, modelParseUnaryField_encode]
 
+/-- A successful gate-field parse has the recovered gate's tag and splits the input into its
+wire encoding and the returned suffix. -/
 theorem modelParseGateCodeFields_eq_some {tag : ℕ} {bits : List Bool}
     {g : FiniteGateCode} {tail : List Bool}
     (h : modelParseGateCodeFields tag bits = some (g, tail)) :
@@ -300,21 +379,27 @@ theorem modelParseGateCodeFields_eq_some {tag : ℕ} {bits : List Bool}
             unfold modelParseGateCodeFieldsBody at h
             simp [h0, h1, h2, h3, h4] at h
 
+/-- With zero fuel, the gate-list parser accepts the empty input as the empty list. -/
 @[simp] theorem modelParseGateCodeListFuel_zero_nil :
     modelParseGateCodeListFuel 0 [] = some [] := rfl
 
+/-- With zero fuel, the gate-list parser rejects every nonempty input. -/
 @[simp] theorem modelParseGateCodeListFuel_zero_cons (b : Bool) (rest : List Bool) :
     modelParseGateCodeListFuel 0 (b :: rest) = none := rfl
 
+/-- With positive fuel, the gate-list parser accepts the empty input as the empty list. -/
 @[simp] theorem modelParseGateCodeListFuel_succ_nil (fuel : ℕ) :
     modelParseGateCodeListFuel (fuel + 1) [] = some [] := rfl
 
+/-- On nonempty input and positive fuel, the parser reads a tag and its gate fields, then parses
+the remaining gates with one less unit of fuel. -/
 @[simp] theorem modelParseGateCodeListFuel_succ_cons (fuel : ℕ) (b : Bool) (bits : List Bool) :
     modelParseGateCodeListFuel (fuel + 1) (b :: bits) =
       (modelParseUnaryField (b :: bits)).bind fun (tag, rest) =>
         (modelParseGateCodeFields tag rest).bind fun (g, tail) =>
           (modelParseGateCodeListFuel fuel tail).bind fun gs => some (g :: gs) := rfl
 
+/-- Every finite gate encoding is nonempty. -/
 theorem encodeFiniteGateCode_ne_nil (g : FiniteGateCode) : encodeFiniteGateCode g ≠ [] := by
   have h2 : (encodeFiniteGateCode g).length = gateTag g + 1 + (gateWireFields g).length := by
     rw [encodeFiniteGateCode_eq, List.length_append, encodeUnaryField_length]
@@ -324,6 +409,7 @@ theorem encodeFiniteGateCode_ne_nil (g : FiniteGateCode) : encodeFiniteGateCode 
     rfl
   omega
 
+/-- A finite gate encoding remains nonempty after any suffix is appended. -/
 theorem encodeFiniteGateCode_append_ne_nil (g : FiniteGateCode) (rest : List Bool) :
     encodeFiniteGateCode g ++ rest ≠ [] := by
   have h2 : (encodeFiniteGateCode g).length = gateTag g + 1 + (gateWireFields g).length := by
@@ -335,6 +421,7 @@ theorem encodeFiniteGateCode_append_ne_nil (g : FiniteGateCode) (rest : List Boo
   rw [List.length_append] at hlen'
   omega
 
+/-- The number of gates is at most the bit length of their concatenated encodings. -/
 theorem length_le_flatMap_encodeFiniteGateCode (gs : List FiniteGateCode) :
     gs.length ≤ (gs.flatMap encodeFiniteGateCode).length := by
   induction gs with
@@ -347,6 +434,8 @@ theorem length_le_flatMap_encodeFiniteGateCode (gs : List FiniteGateCode) :
     simp only [List.flatMap_cons, List.length_append]
     omega
 
+/-- For any nonempty input, positive-fuel gate-list parsing reads one gate before recursively
+parsing the suffix. -/
 theorem modelParseGateCodeListFuel_succ_ne_nil (fuel : ℕ) (bits : List Bool)
     (hbits : bits ≠ []) :
     modelParseGateCodeListFuel (fuel + 1) bits =
@@ -357,6 +446,8 @@ theorem modelParseGateCodeListFuel_succ_ne_nil (fuel : ℕ) (bits : List Bool)
   | nil => exact absurd rfl hbits
   | cons b bits => rfl
 
+/-- If the fuel is at least the number of gates, parsing their concatenated encodings recovers
+the gate list. -/
 theorem modelParseGateCodeListFuel_encode (fuel : ℕ) (gs : List FiniteGateCode)
     (hfuel : gs.length ≤ fuel) :
     modelParseGateCodeListFuel fuel (gs.flatMap encodeFiniteGateCode) = some gs := by
@@ -393,6 +484,8 @@ theorem modelParseGateCodeListFuel_encode (fuel : ℕ) (gs : List FiniteGateCode
       rw [ih fuel hlen]
       simp
 
+/-- A successful gate-list parse determines the input as exactly the concatenated encodings of
+the returned gates. -/
 theorem modelParseGateCodeListFuel_eq_some {fuel : ℕ} {bits : List Bool}
     {gs : List FiniteGateCode} (h : modelParseGateCodeListFuel fuel bits = some gs) :
     bits = gs.flatMap encodeFiniteGateCode := by
@@ -436,6 +529,8 @@ theorem modelParseGateCodeListFuel_eq_some {fuel : ℕ} {bits : List Bool}
             subst htag
             simp [List.flatMap_cons, encodeFiniteGateCode_eq, List.append_assoc]
 
+/-- The model decoder recovers the wire count and gate list from their uniform BQP word
+encoding. -/
 theorem modelDecode_encode (q : ℕ) (gs : List FiniteGateCode) :
     modelDecode (encodeUniformBqpWord q gs) = some (q, gs) := by
   unfold modelDecode encodeUniformBqpWord
@@ -448,6 +543,8 @@ theorem modelDecode_encode (q : ℕ) (gs : List FiniteGateCode) :
   rw [hl]
   rfl
 
+/-- A successful model decode identifies its input with the encoding of the returned wire count
+and gate list. -/
 theorem modelDecode_eq_some {bits : List Bool} {q : ℕ} {gs : List FiniteGateCode}
     (h : modelDecode bits = some (q, gs)) : bits = encodeUniformBqpWord q gs := by
   unfold modelDecode at h
@@ -469,24 +566,32 @@ theorem modelDecode_eq_some {bits : List Bool} {q : ℕ} {gs : List FiniteGateCo
       subst hgs'
       rfl
 
+/-- Decoding an encoded uniform BQP word recovers its wire count and gate list. -/
 theorem decode_encodeUniformBqpWord (q : ℕ) (gs : List FiniteGateCode) :
     decodeUniformBqpWord (encodeUniformBqpWord q gs) = some (q, gs) :=
   modelDecode_encode q gs
 
+/-- A successfully decoded bit list is exactly the encoding of the returned wire count and gate
+list. -/
 theorem decodeUniformBqpWord_eq_some {bits : List Bool} {q : ℕ} {gs : List FiniteGateCode}
     (h : decodeUniformBqpWord bits = some (q, gs)) : bits = encodeUniformBqpWord q gs :=
   modelDecode_eq_some h
 
+/-- Re-encoding a successful decoding preserves the original bit length. -/
 theorem encodeUniformBqpWord_length_of_decode {bits : List Bool} {q : ℕ}
     {gs : List FiniteGateCode} (h : decodeUniformBqpWord bits = some (q, gs)) :
     (encodeUniformBqpWord q gs).length = bits.length := by
   rw [decodeUniformBqpWord_eq_some h]
 
+/-- With zero fuel, bounded execution succeeds precisely when the initial configuration is
+already halted. -/
 @[simp] theorem modelRunUntilHaltWithin_zero {k : ℕ}
     (m : TM0.Machine (Option Bool) (Fin (k + 1))) (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     modelRunUntilHaltWithin m 0 cfg =
       if TM0.step m cfg = none then some cfg else none := rfl
 
+/-- With positive fuel, bounded execution returns an already halted configuration or takes one
+step and continues with one less unit of fuel. -/
 @[simp] theorem modelRunUntilHaltWithin_succ {k : ℕ}
     (m : TM0.Machine (Option Bool) (Fin (k + 1))) (fuel : ℕ)
     (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))) :
@@ -495,29 +600,39 @@ theorem encodeUniformBqpWord_length_of_decode {bits : List Bool} {q : ℕ}
       | none => some cfg
       | some next => modelRunUntilHaltWithin m fuel next := rfl
 
+/-- With zero fuel, output reading succeeds with the empty word exactly when the first tape
+symbol is blank. -/
 @[simp] theorem modelReadOutputUntilBlank_zero (tape : ListBlank (Option Bool)) :
     modelReadOutputUntilBlank 0 tape = if tape.nth 0 = none then some [] else none := rfl
 
+/-- With positive fuel, output reading stops at a blank or prepends the current bit to the
+recursively read tape tail. -/
 @[simp] theorem modelReadOutputUntilBlank_succ (fuel : ℕ) (tape : ListBlank (Option Bool)) :
     modelReadOutputUntilBlank (fuel + 1) tape =
       match tape.nth 0 with
       | none => some []
       | some bit => (modelReadOutputUntilBlank fuel tape.tail).map (bit :: ·) := rfl
 
+/-- Iterates the machine's partial step function for exactly the given number of steps, starting
+with the supplied configuration. An attempted step beyond a halt yields `none`. -/
 def iterStep {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     ℕ → Option (TM0.Cfg (Option Bool) (Fin (k + 1)))
   | 0 => some cfg
   | t + 1 => (iterStep m cfg t).bind (TM0.step m)
 
+/-- Executing `t + 1` steps consists of executing `t` steps and then applying one machine step. -/
 theorem iterStep_succ {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))) (t : ℕ) :
     iterStep m cfg (t + 1) = (iterStep m cfg t).bind (TM0.step m) := rfl
 
+/-- One iteration of `iterStep` is the machine's step function. -/
 theorem iterStep_one {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     iterStep m cfg 1 = TM0.step m cfg := rfl
 
+/-- If the first step reaches `next`, execution for `t + 1` steps equals execution for `t` steps
+from `next`. -/
 theorem iterStep_succ_of_step {k : ℕ} {m : TM0.Machine (Option Bool) (Fin (k + 1))}
     {cfg0 next : TM0.Cfg (Option Bool) (Fin (k + 1))} {t : ℕ}
     (hstep : TM0.step m cfg0 = some next) :
@@ -530,11 +645,14 @@ theorem iterStep_succ_of_step {k : ℕ} {m : TM0.Machine (Option Bool) (Fin (k +
     show (iterStep m cfg0 (t + 1)).bind (TM0.step m) = iterStep m next (t + 1)
     rw [ih, iterStep_succ]
 
+/-- Every option unequal to `none` is equal to `some a` for a suitable value `a`. -/
 theorem exists_of_ne_none {α : Type} {o : Option α} (h : o ≠ none) : ∃ a, o = some a := by
   cases o with
   | none => exact absurd rfl h
   | some a => exact ⟨a, rfl⟩
 
+/-- From an already halted configuration, every positive number of exact iterations yields
+`none`. -/
 theorem iterStep_eq_none_of_step_eq_none {k : ℕ} {m : TM0.Machine (Option Bool) (Fin (k + 1))}
     {cfg0 : TM0.Cfg (Option Bool) (Fin (k + 1))} {t : ℕ}
     (h : TM0.step m cfg0 = none) :
@@ -543,6 +661,8 @@ theorem iterStep_eq_none_of_step_eq_none {k : ℕ} {m : TM0.Machine (Option Bool
   | zero => simp [iterStep, h]
   | succ t ih => rw [iterStep_succ, ih]; simp
 
+/-- Bounded execution returns `cfgf` exactly when some iteration at most the fuel reaches `cfgf`
+and that configuration is halted. -/
 theorem modelRunUntilHaltWithin_eq_some_iff {k : ℕ}
     {m : TM0.Machine (Option Bool) (Fin (k + 1))} {fuel : ℕ}
     {cfg0 cfgf : TM0.Cfg (Option Bool) (Fin (k + 1))} :
@@ -598,6 +718,8 @@ theorem modelRunUntilHaltWithin_eq_some_iff {k : ℕ}
           simp [hnext]
           exact ih.mpr ⟨t, hle, hcfg', hstop⟩
 
+/-- Output reading returns `w` exactly when its length fits the budget, its bits match the
+initial tape segment, and the next symbol is blank. -/
 theorem modelReadOutputUntilBlank_eq_some_iff {B : ℕ} {tape : ListBlank (Option Bool)}
     {w : List Bool} :
     modelReadOutputUntilBlank B tape = some w ↔
@@ -708,6 +830,8 @@ theorem modelReadOutputUntilBlank_eq_some_iff {B : ℕ} {tape : ListBlank (Optio
         rw [hbit, ih.mpr ⟨hlen', hblank', hcells'⟩]
         rfl
 
+/-- Runs a generator on unary input within its time bound, reads the halted output up to the
+prescribed blank bound, and decodes the resulting uniform BQP word. -/
 noncomputable def modelGeneratedAt (g : UniformBqpGenerator) (n : ℕ) :
     Option (ℕ × List FiniteGateCode) :=
   (modelRunUntilHaltWithin g.machine (uniformBqpTimeBound g n)
@@ -715,8 +839,11 @@ noncomputable def modelGeneratedAt (g : UniformBqpGenerator) (n : ℕ) :
       (modelReadOutputUntilBlank (n + uniformBqpTimeBound g n + 1) cfg.Tape.right₀).bind
         decodeUniformBqpWord
 
+/-- The model's generation operation agrees with `uniformBqpGeneratedAt`. -/
 theorem modelGeneratedAt_eq : modelGeneratedAt = uniformBqpGeneratedAt := rfl
 
+/-- A run that halts within the generator's time bound and whose bounded output read is the
+encoding of `(q, gs)` generates that pair. -/
 theorem modelGeneratedAt_of_run {g : UniformBqpGenerator} {n : ℕ} {t : ℕ}
     {cfg : TM0.Cfg (Option Bool) (Fin (g.controlBound + 1))}
     (ht : t ≤ uniformBqpTimeBound g n)
@@ -732,6 +859,7 @@ theorem modelGeneratedAt_of_run {g : UniformBqpGenerator} {n : ℕ} {t : ℕ}
   rw [hread]
   exact decode_encodeUniformBqpWord q gs
 
+/-- Every valid uniform BQP generator produces only legal finite gate words. -/
 theorem generatorValid_implies_generatorWellformed {g : UniformBqpGenerator}
     (h : uniformBqpGeneratorValid g) : generatorWellformed g := by
   intro n q gs hg
@@ -740,12 +868,16 @@ theorem generatorValid_implies_generatorWellformed {g : UniformBqpGenerator}
   obtain ⟨rfl, rfl⟩ := heq
   exact hlegal
 
+/-- Every valid uniform BQP generator has a polynomial bound on the halting time of its
+unary-input runs. -/
 theorem generatorValid_implies_generatorClocked {g : UniformBqpGenerator}
     (h : uniformBqpGeneratorValid g) : generatorClocked g := by
   refine ⟨g.timeCoefficient, g.timeDegree, fun n => ?_⟩
   obtain ⟨q, gs, _, ⟨t, ht, hhalts⟩, _⟩ := h n
   exact ⟨t, ht, hhalts⟩
 
+/-- A polynomially clocked generator halts after some finite number of steps on every unary
+input. -/
 theorem generatorClocked_implies_generatorHaltsEffectively {g : UniformBqpGenerator}
     (h : generatorClocked g) : generatorHaltsEffectively g := by
   intro n
@@ -753,6 +885,7 @@ theorem generatorClocked_implies_generatorHaltsEffectively {g : UniformBqpGenera
   obtain ⟨t, _, hhalts⟩ := h n
   exact ⟨t, hhalts⟩
 
+/-- The diverging generator has an enabled step at every configuration. -/
 theorem diverging_step_ne_none :
     ∀ cfg : TM0.Cfg (Option Bool) (Fin 1),
       TM0.step uniformBqpDivergingGenerator.machine cfg ≠ none := by
@@ -760,6 +893,7 @@ theorem diverging_step_ne_none :
   cases cfg with
   | mk q T => simp [uniformBqpDivergingGenerator, TM0.step]
 
+/-- No finite execution budget finds a halted configuration for the diverging generator. -/
 theorem diverging_run_none (fuel : ℕ) :
     ∀ cfg : TM0.Cfg (Option Bool) (Fin 1),
       modelRunUntilHaltWithin uniformBqpDivergingGenerator.machine fuel cfg = none := by
@@ -775,20 +909,27 @@ theorem diverging_run_none (fuel : ℕ) :
       rw [modelRunUntilHaltWithin_succ, hs]
       exact ih next
 
+/-- The model generation operation returns `none` for the diverging generator at every input
+length. -/
 theorem diverging_modelGeneratedAt_none (n : ℕ) :
     modelGeneratedAt uniformBqpDivergingGenerator n = none := by
   unfold modelGeneratedAt
   rw [diverging_run_none]
   rfl
 
+/-- The diverging generator produces no decoded word at any input length. -/
 theorem diverging_generatedAt_none (n : ℕ) :
     uniformBqpGeneratedAt uniformBqpDivergingGenerator n = none :=
   diverging_modelGeneratedAt_none n
 
+/-- At input length zero, totalized generation for the diverging generator returns the default
+pair `(0, [])`. -/
 theorem diverging_generatedTotal_zero :
     uniformBqpGeneratedTotal uniformBqpDivergingGenerator 0 = (0, []) := by
   simp [uniformBqpGeneratedTotal, diverging_generatedAt_none]
 
+/-- Every valid native generator realizes a standard family of legal gate words with polynomial
+bounds on gate-list length and wire count. -/
 theorem generatorValid_native_to_standard {g : UniformBqpGenerator}
     (h : uniformBqpGeneratorValid g) :
     ∃ W : StandardWordFamily, nativeRealizes g W ∧ standardFamilyLegal W ∧
@@ -814,6 +955,9 @@ theorem generatorValid_native_to_standard {g : UniformBqpGenerator}
     rw [htot]
     exact ⟨hlen, hq⟩
 
+/-- At every input length, a valid generator produces a legal word with zero queries, gate count
+equal to its list length, and the stated word, space, and encoding bounds. Every basis input
+yields a normalized output state and an acceptance probability in `[0, 1]`. -/
 theorem generatorValid_per_length_ledgers {g : UniformBqpGenerator}
     (h : uniformBqpGeneratorValid g) :
     ∀ n : ℕ, ∃ (q : ℕ) (gs : List FiniteGateCode),
@@ -840,6 +984,8 @@ theorem generatorValid_per_length_ledgers {g : UniformBqpGenerator}
         (Matrix.unitaryGroup (Reg q) ℂ).one_mem _ hu (normalized_ket x)
     exact ⟨hn, measureProb_nonneg _ _, measureProb_le_one hn _⟩
 
+/-- In the complex numbers, the reciprocal of the square root of two equals half the square root
+of two. -/
 theorem inv_sqrt2_eq : ((Real.sqrt 2 : ℂ))⁻¹ = (Real.sqrt 2 : ℂ) / 2 := by
   have h : ((Real.sqrt 2 : ℂ)) * (Real.sqrt 2 : ℂ) = 2 := by
     rw [← pow_two, sqrt2_sq]
@@ -855,29 +1001,43 @@ theorem inv_sqrt2_eq : ((Real.sqrt 2 : ℂ))⁻¹ = (Real.sqrt 2 : ℂ) / 2 := b
     _ = (1 : ℂ) * ((Real.sqrt 2 : ℂ)) := by rw [inv_mul_cancel₀ hne]
     _ = (Real.sqrt 2 : ℂ) := by rw [one_mul]
 
+/-- The finite-digit record with zero real and imaginary numerators and unit denominator
+represents zero. -/
 theorem finiteDigitVal_zero : finiteDigitVal ⟨0, 0, false, 0⟩ = 0 := by
   simp [finiteDigitVal]
 
+/-- The finite-digit record with real numerator one, no square-root factor, and unit denominator
+represents one. -/
 theorem finiteDigitVal_one : finiteDigitVal ⟨1, 0, false, 0⟩ = 1 := by
   simp [finiteDigitVal]
 
+/-- The finite-digit record with real numerator minus one, no square-root factor, and unit
+denominator represents minus one. -/
 theorem finiteDigitVal_neg_one : finiteDigitVal ⟨-1, 0, false, 0⟩ = -1 := by
   simp [finiteDigitVal]
 
+/-- The record with real numerator one, a square-root-of-two factor, and denominator two
+represents the reciprocal of the square root of two. -/
 theorem finiteDigitVal_inv_sqrt2 : finiteDigitVal ⟨1, 0, true, 1⟩ = ((Real.sqrt 2 : ℂ))⁻¹ := by
   simp [finiteDigitVal, inv_sqrt2_eq]
 
+/-- The record with real numerator minus one, a square-root-of-two factor, and denominator two
+represents the negative reciprocal of the square root of two. -/
 theorem finiteDigitVal_neg_inv_sqrt2 :
     finiteDigitVal ⟨-1, 0, true, 1⟩ = -((Real.sqrt 2 : ℂ))⁻¹ := by
   simp [finiteDigitVal, inv_sqrt2_eq]
   ring
 
+/-- The record with real and imaginary numerators one, a square-root-of-two factor, and
+denominator two represents `exp ((pi / 4) * I)`. -/
 theorem finiteDigitVal_phase_quarter :
     finiteDigitVal ⟨1, 1, true, 1⟩ = Complex.exp ((Real.pi / 4 : ℝ) * Complex.I) := by
   rw [Complex.exp_ofReal_mul_I, Real.cos_pi_div_four, Real.sin_pi_div_four]
   simp [finiteDigitVal]
   ring
 
+/-- The record with real numerator one and imaginary numerator minus one, a square-root-of-two
+factor, and denominator two represents `exp (-(pi / 4) * I)`. -/
 theorem finiteDigitVal_phase_quarter_neg :
     finiteDigitVal ⟨1, -1, true, 1⟩ =
       Complex.exp (Complex.ofReal (-(Real.pi / 4)) * Complex.I) := by
@@ -886,6 +1046,7 @@ theorem finiteDigitVal_phase_quarter_neg :
   simp [finiteDigitVal]
   ring
 
+/-- Every entry of the matrix `permMatrix σ` has an exact finite-digit amplitude representation. -/
 theorem permMatrix_entry_finiteDigit {I : Type} [Fintype I] [DecidableEq I]
     (σ : I → I) (i j : I) :
     (∃ r : FiniteDigitAmplitude, finiteDigitVal r = permMatrix σ i j) := by
@@ -895,6 +1056,7 @@ theorem permMatrix_entry_finiteDigit {I : Type} [Fintype I] [DecidableEq I]
   · exact ⟨⟨1, 0, false, 0⟩, finiteDigitVal_one⟩
   · exact ⟨⟨0, 0, false, 0⟩, finiteDigitVal_zero⟩
 
+/-- Every Hadamard matrix entry has an exact finite-digit amplitude representation. -/
 theorem hadamard_apply_finiteDigit (a b : Bool) :
     ∃ r : FiniteDigitAmplitude, finiteDigitVal r = Hadamard a b := by
   rcases a with - | - <;> rcases b with - | -
@@ -903,6 +1065,7 @@ theorem hadamard_apply_finiteDigit (a b : Bool) :
   · refine ⟨⟨1, 0, true, 1⟩, by simp [Hadamard, finiteDigitVal, inv_sqrt2_eq]⟩
   · refine ⟨⟨-1, 0, true, 1⟩, by simp [Hadamard, finiteDigitVal, inv_sqrt2_eq, neg_div]⟩
 
+/-- Every T-gate matrix entry has an exact finite-digit amplitude representation. -/
 theorem tGate_apply_finiteDigit (a b : Bool) :
     ∃ r : FiniteDigitAmplitude, finiteDigitVal r = tGate a b := by
   by_cases hab : a = b
@@ -917,6 +1080,7 @@ theorem tGate_apply_finiteDigit (a b : Bool) :
   · refine ⟨⟨0, 0, false, 0⟩, ?_⟩
     simp [tGate, Rz, finiteDigitVal, hab]
 
+/-- Every adjoint T-gate matrix entry has an exact finite-digit amplitude representation. -/
 theorem tGateAdj_apply_finiteDigit (a b : Bool) :
     ∃ r : FiniteDigitAmplitude, finiteDigitVal r = tGateAdj a b := by
   by_cases hab : a = b
@@ -931,6 +1095,8 @@ theorem tGateAdj_apply_finiteDigit (a b : Bool) :
   · refine ⟨⟨0, 0, false, 0⟩, ?_⟩
     simp [tGateAdj, Rz, finiteDigitVal, hab]
 
+/-- Every matrix entry of a finite gate code legal on `q` wires has an exact finite-digit
+amplitude representation. -/
 theorem finiteCodeMatrix_entry_finiteDigit (q : ℕ) (g : FiniteGateCode)
     (hg : finiteCodeLegal q g = true) (i j : Reg q) :
     ∃ r : FiniteDigitAmplitude, finiteDigitVal r = finiteCodeMatrix q g i j := by
@@ -970,17 +1136,21 @@ theorem finiteCodeMatrix_entry_finiteDigit (q : ℕ) (g : FiniteGateCode)
     simpa [cnotGate] using! permMatrix_entry_finiteDigit
       (fun x : Reg q => Function.update x ⟨t, hw.2.1⟩ (x ⟨t, hw.2.1⟩ ^^ x ⟨c, hw.1⟩)) i j
 
+/-- Every legal finite gate word satisfies the finite-digit backend premise. -/
 theorem finiteDigitBackendPremise_of_legal {q : ℕ} {gs : List FiniteGateCode}
     (h : finiteWordLegal q gs = true) : finiteDigitBackendPremise (q, gs) := by
   refine ⟨h, ?_⟩
   intro g hg i j
   exact finiteCodeMatrix_entry_finiteDigit q g ((List.all_eq_true.mp h) g hg) i j
 
+/-- For a nonzero real denominator, subtracting `y` from `x / N` gives `(x - y * N) / N`. -/
 theorem div_sub_eq_sub_div {x y N : ℝ} (h : N ≠ 0) : x / N - y = (x - y * N) / N := by
   have key : y * N / N = y := by
     rw [div_eq_mul_inv, mul_assoc, mul_inv_cancel₀ h, mul_one]
   rw [sub_div, key]
 
+/-- Every complex number has dyadic approximations to its real and imaginary parts with
+denominator `2 ^ lam` and coordinatewise error at most `2 ^ (-lam)`. -/
 theorem hasDyadicDigit_of_complex (lam : ℕ) (z : ℂ) : HasDyadicDigit lam z := by
   set N : ℝ := ((2 ^ lam : ℕ) : ℝ)
   have hNpos : 0 < N := by
@@ -1018,12 +1188,14 @@ theorem hasDyadicDigit_of_complex (lam : ℕ) (z : ℂ) : HasDyadicDigit lam z :
     exact (mul_le_mul_of_nonneg_right (le_of_lt h3)
       (inv_nonneg.mpr (le_of_lt hNpos))).trans (by simp)
 
+/-- Every legal finite gate word satisfies the dyadic backend premise at every precision. -/
 theorem dyadicBackendPremise_of_legal {q : ℕ} {gs : List FiniteGateCode}
     (h : finiteWordLegal q gs = true) (lam : ℕ) : dyadicBackendPremise lam (q, gs) := by
   refine ⟨h, ?_⟩
   intro g hg i j
   exact hasDyadicDigit_of_complex lam (finiteCodeMatrix q g i j)
 
+/-- Two tapes are equal if their symbols agree at every integer position relative to the head. -/
 theorem tape_ext {Γ : Type} [Inhabited Γ] {T₁ T₂ : Turing.Tape Γ}
     (h : ∀ i : ℤ, T₁.nth i = T₂.nth i) : T₁ = T₂ := by
   obtain ⟨a₁, l₁, r₁⟩ := T₁
@@ -1037,6 +1209,8 @@ theorem tape_ext {Γ : Type} [Inhabited Γ] {T₁ T₂ : Turing.Tape Γ}
     exact h (n + 1 : ℕ)
   rw [ha, hl, hr]
 
+/-- The tape initialized from `l` is blank at negative positions and has the default-extended
+list value at each nonnegative position. -/
 theorem init_nth {Γ : Type} [Inhabited Γ] (l : List Γ) (x : ℤ) :
     (Turing.Tape.mk₁ l).nth x = if x < 0 then default else l.getI x.toNat := by
   cases x with
@@ -1055,12 +1229,16 @@ theorem init_nth {Γ : Type} [Inhabited Γ] (l : List Γ) (x : ℤ) :
     simp [hlt]
     rfl
 
+/-- A configuration is halted exactly when the machine has no transition for its state and
+current tape symbol. -/
 theorem tm0_step_none_iff {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     TM0.step m cfg = none ↔ m cfg.q cfg.Tape.head = none := by
   obtain ⟨q, T⟩ := cfg
   simp [TM0.step]
 
+/-- An enabled transition updates the control state and applies its move or write instruction to
+the tape. -/
 theorem tm0_step_eq_some' {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))) (q' : Fin (k + 1))
     (st : TM0.Stmt (Option Bool)) (h : m cfg.q cfg.Tape.head = some (q', st)) :
@@ -1072,6 +1250,7 @@ theorem tm0_step_eq_some' {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))
   | move d => simp [TM0.step, h]
   | write b => simp [TM0.step, h]
 
+/-- Execution for `a + b` steps factors into `a` steps followed, on success, by `b` more steps. -/
 theorem iterStep_add {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) :
     ∀ (a b : ℕ) (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))),
       iterStep m cfg (a + b) = (iterStep m cfg a).bind (fun cfg' => iterStep m cfg' b) := by
@@ -1089,12 +1268,14 @@ theorem iterStep_add {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) :
       (iterStep m cfg a).bind (fun cfg' => (iterStep m cfg' b).bind (TM0.step m))
     exact Option.bind_assoc _ _ _
 
+/-- Execution for `a + 1` steps factors into `a` steps followed by one machine step. -/
 theorem iterStep_add1 {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (a : ℕ) (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     iterStep m cfg (a + 1) = (iterStep m cfg a).bind (TM0.step m) := by
   rw [iterStep_add]
   rfl
 
+/-- Exact iteration from the initialized tape agrees with `BitMachineAfter`. -/
 theorem iterStep_init_eq_bitMachineAfter {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (l : List (Option Bool)) (t : ℕ) :
     iterStep m (TM0.init l) t = BitMachineAfter m l t := by
@@ -1102,6 +1283,7 @@ theorem iterStep_init_eq_bitMachineAfter {k : ℕ} (m : TM0.Machine (Option Bool
   | zero => rfl
   | succ t ih => rw [iterStep_succ, ih]; rfl
 
+/-- Increasing the output-reading budget preserves any successful read and its returned word. -/
 theorem modelReadOutputUntilBlank_mono {B₁ B₂ : ℕ} (hB : B₁ ≤ B₂)
     (tape : Turing.ListBlank (Option Bool)) (w : List Bool)
     (h : modelReadOutputUntilBlank B₁ tape = some w) :
@@ -1109,6 +1291,7 @@ theorem modelReadOutputUntilBlank_mono {B₁ B₂ : ℕ} (hB : B₁ ≤ B₂)
   obtain ⟨hlen, hblank, hcells⟩ := modelReadOutputUntilBlank_eq_some_iff.mp h
   exact modelReadOutputUntilBlank_eq_some_iff.mpr ⟨by omega, hblank, hcells⟩
 
+/-- If the machine halts at time `t`, exact execution at time `t + 1` returns `none`. -/
 theorem bitMachineAfter_succ_of_halts' {k : ℕ} {m : TM0.Machine (Option Bool) (Fin (k + 1))}
     {l : List (Option Bool)} {t : ℕ} (h : BitMachineHaltsAt m l t) :
     BitMachineAfter m l (t + 1) = none := by
@@ -1117,6 +1300,7 @@ theorem bitMachineAfter_succ_of_halts' {k : ℕ} {m : TM0.Machine (Option Bool) 
   rw [hrun]
   exact hstop
 
+/-- After a halting time, every strictly later exact execution returns `none`. -/
 theorem bitMachineAfter_none_of_lt {k : ℕ} {m : TM0.Machine (Option Bool) (Fin (k + 1))}
     {l : List (Option Bool)} {t t' : ℕ} (h : BitMachineHaltsAt m l t) (ht : t < t') :
     BitMachineAfter m l t' = none := by
@@ -1131,6 +1315,7 @@ theorem bitMachineAfter_none_of_lt {k : ℕ} {m : TM0.Machine (Option Bool) (Fin
       rw [ih hlt]
       rfl
 
+/-- Every position strictly below `n` in the unary input of length `n` contains `some true`. -/
 theorem unaryInput_getI_of_lt (n t : ℕ) (ht : t < n) :
     (uniformBqpUnaryInput n).getI t = some true := by
   unfold uniformBqpUnaryInput
@@ -1138,6 +1323,7 @@ theorem unaryInput_getI_of_lt (n t : ℕ) (ht : t < n) :
     (by simp [ht] : t < (List.replicate n (some true)).length)]
   simp
 
+/-- The default-extended unary input is blank at every position at least `n`. -/
 theorem unaryInput_getI_of_le (n t : ℕ) (ht : n ≤ t) :
     (uniformBqpUnaryInput n).getI t = (none : Option Bool) := by
   unfold uniformBqpUnaryInput
@@ -1145,12 +1331,16 @@ theorem unaryInput_getI_of_le (n t : ℕ) (ht : n ≤ t) :
     (by simp [ht] : (List.replicate n (some true)).length ≤ t)]
   rfl
 
+/-- The clock machine halts on a blank symbol and otherwise moves right in its sole control
+state. -/
 theorem modelClockMachine_apply (q : Fin 1) (a : Option Bool) :
     modelClockMachine q a = if a = none then none
       else some ⟨default, TM0.Stmt.move Turing.Dir.right⟩ := rfl
 
+/-- The clock generator's machine is `modelClockMachine`. -/
 theorem clock_machine_eq : uniformBqpClockGenerator.machine = modelClockMachine := rfl
 
+/-- A clock-generator step halts on a blank head symbol and otherwise moves the tape head right. -/
 theorem clock_step (cfg : TM0.Cfg (Option Bool) (Fin 1)) :
     TM0.step uniformBqpClockGenerator.machine cfg =
       if cfg.Tape.head = none then none
@@ -1170,6 +1360,8 @@ theorem clock_step (cfg : TM0.Cfg (Option Bool) (Fin 1)) :
     exact tm0_step_eq_some' modelClockMachine ⟨q, T⟩ default
       (TM0.Stmt.move Turing.Dir.right) happ
 
+/-- After fewer than `n` right moves on unary input of length `n`, the head symbol is `some
+true`. -/
 theorem clock_head_of_lt (n t : ℕ) (ht : t < n) :
     ((Turing.Tape.move Turing.Dir.right)^[t]
       (Turing.Tape.mk₁ (uniformBqpUnaryInput n))).head = some true := by
@@ -1178,6 +1370,7 @@ theorem clock_head_of_lt (n t : ℕ) (ht : t < n) :
   simp only [if_neg (by omega : ¬((t : ℤ) < 0)), Int.toNat_natCast]
   exact unaryInput_getI_of_lt n t ht
 
+/-- After `n` right moves on unary input of length `n`, the head symbol is blank. -/
 theorem clock_head_none (n : ℕ) :
     ((Turing.Tape.move Turing.Dir.right)^[n]
       (Turing.Tape.mk₁ (uniformBqpUnaryInput n))).head = none := by
@@ -1186,6 +1379,8 @@ theorem clock_head_none (n : ℕ) :
   simp only [if_neg (by omega : ¬((n : ℤ) < 0)), Int.toNat_natCast]
   exact unaryInput_getI_of_le n n le_rfl
 
+/-- Up to time `n`, the clock configuration has its sole control state and the initial unary
+tape shifted right by the elapsed number of steps. -/
 theorem clock_after_of_le (n t : ℕ) (ht : t ≤ n) :
     BitMachineAfter uniformBqpClockGenerator.machine (uniformBqpUnaryInput n) t
       = some ⟨default,
@@ -1211,6 +1406,7 @@ theorem clock_after_of_le (n t : ℕ) (ht : t ≤ n) :
     rw [hcfg]
     exact hstep
 
+/-- On unary input of length `n`, the clock generator halts at time `n`. -/
 theorem clock_haltsAt (n : ℕ) :
     BitMachineHaltsAt uniformBqpClockGenerator.machine (uniformBqpUnaryInput n) n := by
   refine ⟨⟨default, (Turing.Tape.move Turing.Dir.right)^[n]
@@ -1218,10 +1414,13 @@ theorem clock_haltsAt (n : ℕ) :
   rw [clock_step, clock_head_none]
   simp
 
+/-- Exact clock execution returns `none` at every time strictly greater than the unary input
+length. -/
 theorem clock_after_of_gt (n t : ℕ) (ht : n < t) :
     BitMachineAfter uniformBqpClockGenerator.machine (uniformBqpUnaryInput n) t = none :=
   bitMachineAfter_none_of_lt (clock_haltsAt n) ht
 
+/-- The clock generator halts at time `t` on unary input of length `n` exactly when `t = n`. -/
 theorem clock_haltsAt_iff (n t : ℕ) :
     BitMachineHaltsAt uniformBqpClockGenerator.machine (uniformBqpUnaryInput n) t ↔ t = n := by
   constructor
@@ -1244,6 +1443,7 @@ theorem clock_haltsAt_iff (n t : ℕ) :
   · rintro rfl
     exact clock_haltsAt _
 
+/-- The clock generator produces no decoded uniform BQP word at any input length. -/
 theorem clock_generatedAt_none (n : ℕ) :
     uniformBqpGeneratedAt uniformBqpClockGenerator n = none := by
   rw [← modelGeneratedAt_eq]
@@ -1276,37 +1476,47 @@ theorem clock_generatedAt_none (n : ℕ) :
   show decodeUniformBqpWord [] = none
   rfl
 
+/-- The clock generator is well formed because it never produces a decoded word. -/
 theorem clock_wellformed : generatorWellformed uniformBqpClockGenerator := by
   intro n q gs hg
   rw [clock_generatedAt_none] at hg
   simp at hg
 
+/-- Describes a tape with `n` initial true symbols followed by `w` written bits from `bs`, using
+false for out-of-range list entries. All other positions are blank. -/
 def printerContent (n w : ℕ) (bs : List Bool) (x : ℤ) : Option Bool :=
   if x < 0 then none
   else if x < n then some true
   else if x < n + w then some (bs.getD (x.toNat - n) false)
   else none
 
+/-- The printer-content model is blank at every negative position. -/
 theorem printerContent_neg {n w : ℕ} {bs : List Bool} {x : ℤ} (hx : x < 0) :
     printerContent n w bs x = none := by
   unfold printerContent
   rw [if_pos hx]
 
+/-- The initial input segment of the printer-content model contains `some true`. -/
 theorem printerContent_input {n w : ℕ} {bs : List Bool} {x : ℤ} (hx : 0 ≤ x) (hxn : x < n) :
     printerContent n w bs x = some true := by
   unfold printerContent
   rw [if_neg (by omega : ¬x < 0), if_pos hxn]
 
+/-- Within the written segment, the printer-content model contains the corresponding bit of
+`bs`, defaulting to false. -/
 theorem printerContent_written {n w : ℕ} {bs : List Bool} {x : ℤ} (hxn : n ≤ x)
     (hxw : x < n + w) : printerContent n w bs x = some (bs.getD (x.toNat - n) false) := by
   unfold printerContent
   rw [if_neg (by omega : ¬x < 0), if_neg (by omega : ¬x < n), if_pos hxw]
 
+/-- The printer-content model is blank at positions at or beyond the end of the written segment. -/
 theorem printerContent_blank {n w : ℕ} {bs : List Bool} {x : ℤ} (hxw : n + w ≤ x) :
     printerContent n w bs x = none := by
   unfold printerContent
   rw [if_neg (by omega : ¬x < 0), if_neg (by omega : ¬x < n), if_neg (by omega : ¬x < n + w)]
 
+/-- Expands the printer's transition table into its scanning, writing, right-moving,
+left-returning, and halting cases. -/
 theorem modelWordPrinterMachine_apply (bs : List Bool) :
     ∀ (q : Fin (3 * bs.length + 1)) (a : Option Bool),
       modelWordPrinterMachine bs q a =
@@ -1324,10 +1534,13 @@ theorem modelWordPrinterMachine_apply (bs : List Bool) :
           some ⟨⟨q.val + 1, by omega⟩, TM0.Stmt.move Turing.Dir.left⟩
         else none := fun _ _ => rfl
 
+/-- The word-printer generator uses the model printer machine for the encoding of `(q, gs)`. -/
 theorem wordPrinter_machine_eq (q : ℕ) (gs : List FiniteGateCode) :
     (uniformBqpWordPrinter q gs).machine
       = modelWordPrinterMachine (encodeUniformBqpWord q gs) := rfl
 
+/-- The printer halts in any nonzero state outside its writing, right-moving, and left-returning
+state ranges. -/
 theorem modelWordPrinterMachine_halt (bs : List Bool) (q : Fin (3 * bs.length + 1))
     (a : Option Bool)
     (h0 : ¬q.val = 0)
@@ -1338,6 +1551,8 @@ theorem modelWordPrinterMachine_halt (bs : List Bool) (q : Fin (3 * bs.length + 
   rw [modelWordPrinterMachine_apply]
   split_ifs <;> first | rfl | grind
 
+/-- In the left-returning state range, after excluding earlier transition cases, the printer
+advances its state and moves left. -/
 theorem modelWordPrinterMachine_left (bs : List Bool) (q : Fin (3 * bs.length + 1))
     (a : Option Bool)
     (h0 : ¬q.val = 0)
@@ -1349,17 +1564,21 @@ theorem modelWordPrinterMachine_left (bs : List Bool) (q : Fin (3 * bs.length + 
   rw [modelWordPrinterMachine_apply]
   split_ifs <;> first | rfl | grind
 
+/-- The word printer's declared time bound is `(3 * encodedLength + 2) * (n + 1)`. -/
 theorem wordPrinter_timeBound_eq (q : ℕ) (gs : List FiniteGateCode) (n : ℕ) :
     uniformBqpTimeBound (uniformBqpWordPrinter q gs) n
       = (3 * (encodeUniformBqpWord q gs).length + 2) * (n + 1) := by
   simp [uniformBqpTimeBound, uniformBqpPolynomial, uniformBqpWordPrinter]
 
+/-- Every uniform BQP word encoding has positive length. -/
 theorem encodeUniformBqpWord_length_pos (q : ℕ) (gs : List FiniteGateCode) :
     0 < (encodeUniformBqpWord q gs).length := by
   unfold encodeUniformBqpWord
   rw [List.length_append, encodeUnaryField_length]
   omega
 
+/-- Within the unary input segment, a printer configuration satisfying the scanning invariant
+advances one position right and remains in state zero. -/
 theorem printer_step_scan {bs : List Bool} {n k : ℕ} (hk : k < n)
     (cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)))
     (hq : cfg.q.val = 0)
@@ -1384,6 +1603,8 @@ theorem printer_step_scan {bs : List Bool} {n k : ℕ} (hk : k < n)
     congr 1
     omega
 
+/-- At each time `k ≤ n`, the printer is in scanning state zero with its head at input position
+`k` and no output bits written. -/
 theorem printer_scan_reach (bs : List Bool) (n : ℕ) : ∀ k ≤ n,
     ∃ cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)),
       BitMachineAfter (modelWordPrinterMachine bs) (uniformBqpUnaryInput n) k = some cfg ∧
@@ -1422,6 +1643,8 @@ theorem printer_scan_reach (bs : List Bool) (n : ℕ) : ∀ k ≤ n,
     rw [hr]
     exact hs
 
+/-- Increasing the written length from `w` to `w + 1` changes only position `n + w`, where the
+next bit of `bs` is written. -/
 theorem printerContent_succ (n w : ℕ) (bs : List Bool) (x : ℤ) :
     printerContent n (w + 1) bs x =
       if x = (n : ℤ) + w then some (bs.getD w false) else printerContent n w bs x := by
@@ -1449,6 +1672,8 @@ theorem printerContent_succ (n w : ℕ) (bs : List Bool) (x : ℤ) :
     rw [h4, h5]
   · rw [if_neg h2, printerContent_blank (by omega), printerContent_blank (by omega)]
 
+/-- For a nonempty output word, the printer at the end of its input scan writes the first output
+bit and enters state one. -/
 theorem printer_step_first_write {bs : List Bool} {n : ℕ} (hL : 1 ≤ bs.length)
     (cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)))
     (hq : cfg.q.val = 0)
@@ -1482,6 +1707,8 @@ theorem printer_step_first_write {bs : List Bool} {n : ℕ} (hL : 1 ≤ bs.lengt
       rw [printerContent_succ n 0 bs (↑n + i)]
       rw [if_neg (by omega)]
 
+/-- After writing bit `j`, if another bit remains, the printer moves right and advances from
+state `2 * j + 1` to state `2 * j + 2`. -/
 theorem printer_step_move_right {bs : List Bool} {n j : ℕ}
     (hj : j + 1 < bs.length)
     (cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)))
@@ -1517,6 +1744,8 @@ theorem printer_step_move_right {bs : List Bool} {n j : ℕ}
     congr 1
     omega
 
+/-- At a positive output index `j`, the printer writes bit `j`, extends the written prefix, and
+advances from state `2 * j` to state `2 * j + 1`. -/
 theorem printer_step_write {bs : List Bool} {n j : ℕ}
     (hj : j < bs.length) (hj0 : 0 < j)
     (cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)))
@@ -1561,6 +1790,8 @@ theorem printer_step_write {bs : List Bool} {n j : ℕ}
       rw [printerContent_succ n j bs (↑(n + j) + i)]
       rw [if_neg (by omega)]
 
+/-- During the return phase, the printer advances its control state and moves one position left
+while preserving the completed output word. -/
 theorem printer_step_left {bs : List Bool} {n r : ℕ}
     (hr : r + 2 < bs.length + 1) (_hr' : r + 1 ≤ bs.length - 1)
     (cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)))
@@ -1597,6 +1828,9 @@ theorem printer_step_left {bs : List Bool} {n r : ℕ}
     congr 1
     omega
 
+/-- For every output index, the printer reaches the specified state and tape after writing that
+bit at time `n + 1 + 2 * j`. If another bit remains, it reaches the next writing position
+one step later. -/
 theorem printer_write_reach (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) : ∀ j ≤ bs.length - 1,
     (∃ cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)),
       BitMachineAfter (modelWordPrinterMachine bs) (uniformBqpUnaryInput n) (n + 1 + 2 * j)
@@ -1659,6 +1893,8 @@ theorem printer_write_reach (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) : 
       rw [hrA]
       exact hsB
 
+/-- After printing a nonempty word, the printer reaches each return-phase configuration at time
+`n + 2 * bs.length - 1 + r`, with the head shifted `r` positions left. -/
 theorem printer_left_reach (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) :
     ∀ r ≤ bs.length - 1,
       ∃ cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)),
@@ -1697,6 +1933,8 @@ theorem printer_left_reach (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) :
     rw [hr0]
     exact hs
 
+/-- For a nonempty word `bs`, the printer halts on unary input of length `n` at time `n + 3 *
+bs.length - 2`. -/
 theorem printer_haltsAt (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) :
     BitMachineHaltsAt (modelWordPrinterMachine bs) (uniformBqpUnaryInput n)
       (n + 3 * bs.length - 2) := by
@@ -1712,6 +1950,8 @@ theorem printer_haltsAt (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) :
       (by rw [hq]; rintro ⟨_, h⟩; omega)
       (by rw [hq]; rintro ⟨_, _, h⟩; omega)
 
+/-- From the start of the completed output segment, the printer-content model reads the bits of
+`bs` followed by blanks. -/
 theorem printerContent_at_halt (n : ℕ) (bs : List Bool) (i : ℕ) :
     printerContent n bs.length bs (↑n + (i : ℤ)) =
       if i < bs.length then some (bs.getD i false) else none := by
@@ -1728,6 +1968,8 @@ theorem printerContent_at_halt (n : ℕ) (bs : List Bool) (i : ℕ) :
     rw [h2]
   · rw [if_neg hi, printerContent_blank (by omega)]
 
+/-- For a nonempty output word, the printer reaches a halted configuration at time `n + 3 *
+bs.length - 2`. Its tape from the head contains exactly `bs` followed by a blank. -/
 theorem printer_final_nth (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) :
     ∃ cfg : TM0.Cfg (Option Bool) (Fin (3 * bs.length + 1)),
       BitMachineAfter (modelWordPrinterMachine bs) (uniformBqpUnaryInput n)
@@ -1752,6 +1994,8 @@ theorem printer_final_nth (bs : List Bool) (n : ℕ) (hL : 1 ≤ bs.length) :
   · rw [Turing.Tape.right₀_nth, hc, hpos, printerContent_at_halt]
     rw [if_neg (by omega)]
 
+/-- The printer's halting time for an encoded uniform BQP word is at most its declared time
+bound. -/
 theorem printer_time_bound (q : ℕ) (gs : List FiniteGateCode) (n : ℕ) :
     n + 3 * (encodeUniformBqpWord q gs).length - 2
       ≤ uniformBqpTimeBound (uniformBqpWordPrinter q gs) n := by
@@ -1762,6 +2006,7 @@ theorem printer_time_bound (q : ℕ) (gs : List FiniteGateCode) (n : ℕ) :
   rw [h1]
   omega
 
+/-- The word-printer generator produces `(q, gs)` at every input length. -/
 theorem printer_generatedAt (q : ℕ) (gs : List FiniteGateCode) (n : ℕ) :
     uniformBqpGeneratedAt (uniformBqpWordPrinter q gs) n = some (q, gs) := by
   have hL : 1 ≤ (encodeUniformBqpWord q gs).length := encodeUniformBqpWord_length_pos q gs
@@ -1785,6 +2030,7 @@ theorem printer_generatedAt (q : ℕ) (gs : List FiniteGateCode) (n : ℕ) :
       exact hcells i hi
   exact modelGeneratedAt_of_run (printer_time_bound q gs n) hcfg hstop q gs hread
 
+/-- The word-printer generator is valid whenever its fixed finite gate word is legal. -/
 theorem printer_valid (q : ℕ) (gs : List FiniteGateCode)
     (hlegal : finiteWordLegal q gs = true) :
     uniformBqpGeneratorValid (uniformBqpWordPrinter q gs) := by
@@ -1814,10 +2060,12 @@ theorem printer_valid (q : ℕ) (gs : List FiniteGateCode)
     rw [h1]
     omega
 
+/-- With no initial protected wires, wire padding shifts every wire index by `k`. -/
 theorem padWire_zero (k w : ℕ) : Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.padWire 0 k w = w + k := by
   unfold Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.padWire
   rw [if_neg (by omega : ¬w < 0)]
 
+/-- A finite gate code legal on `q` wires remains legal on any larger wire register. -/
 theorem finiteCodeLegal_of_le {q q' : ℕ} {g : FiniteGateCode} (hle : q ≤ q')
     (hg : finiteCodeLegal q g = true) : finiteCodeLegal q' g = true := by
   cases g with
@@ -1843,6 +2091,7 @@ theorem finiteCodeLegal_of_le {q q' : ℕ} {g : FiniteGateCode} (hle : q ≤ q')
       ⟨lt_of_lt_of_le hw.1 hle, lt_of_lt_of_le hw.2.1 hle, hw.2.2⟩
     simpa [finiteCodeLegal] using! hw'
 
+/-- Padding a gate legal on `q` wires by an offset of `q` gives a gate legal on `2 * q` wires. -/
 theorem padFiniteCode_legal {q : ℕ} {g : FiniteGateCode}
     (h : finiteCodeLegal q g = true) :
     finiteCodeLegal (2 * q) (Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.padFiniteCode 0 q g) = true := by
@@ -1868,6 +2117,7 @@ theorem padFiniteCode_legal {q : ℕ} {g : FiniteGateCode}
     simp [finiteCodeLegal,
         Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.padFiniteCode, padWire_zero]; omega
 
+/-- Duplicating a legal word onto two disjoint blocks of `q` wires preserves legality. -/
 theorem duplicateWord_legal (q : ℕ) (gs : List FiniteGateCode)
     (h : finiteWordLegal q gs = true) :
     finiteWordLegal (duplicateWord q gs).1 (duplicateWord q gs).2 = true := by
@@ -1882,6 +2132,8 @@ theorem duplicateWord_legal (q : ℕ) (gs : List FiniteGateCode)
     obtain ⟨g0, hg0, rfl⟩ := List.mem_map.mp hx
     exact padFiniteCode_legal (List.all_eq_true.mp hall g0 hg0)
 
+/-- The circuit for a duplicated word has zero queries and exactly twice the original gate-list
+length. -/
 theorem duplicateWord_counts (q : ℕ) (gs : List FiniteGateCode) :
     QueryCount (finiteCodeCircuit (duplicateWord q gs).1 (duplicateWord q gs).2) = 0 ∧
       GateCount (finiteCodeCircuit (duplicateWord q gs).1 (duplicateWord q gs).2) = 2 * gs.length := by
@@ -1892,24 +2144,29 @@ theorem duplicateWord_counts (q : ℕ) (gs : List FiniteGateCode) :
   simp only [List.length_append, List.length_map]
   omega
 
+/-- The printer for a duplicated word generates that duplicated word at every input length. -/
 theorem duplicateWord_printer_generatedAt (q : ℕ) (gs : List FiniteGateCode) (n : ℕ) :
     uniformBqpGeneratedAt
       (uniformBqpWordPrinter (duplicateWord q gs).1 (duplicateWord q gs).2) n =
       some (duplicateWord q gs) :=
   printer_generatedAt (duplicateWord q gs).1 (duplicateWord q gs).2 n
 
+/-- The printer for a duplicated legal word is a valid uniform BQP generator. -/
 theorem duplicateWord_printer_valid (q : ℕ) (gs : List FiniteGateCode)
     (h : finiteWordLegal q gs = true) :
     uniformBqpGeneratorValid
       (uniformBqpWordPrinter (duplicateWord q gs).1 (duplicateWord q gs).2) :=
   printer_valid (duplicateWord q gs).1 (duplicateWord q gs).2 (duplicateWord_legal q gs h)
 
+/-- An option bind returns `some b` exactly when its input is `some a` for a value whose image
+is `some b`. -/
 theorem option_bind_eq_some' {α β : Type} {o : Option α} {f : α → Option β} {b : β} :
     o.bind f = some b ↔ ∃ a, o = some a ∧ f a = some b := by
   cases o with
   | none => simp
   | some a => simp
 
+/-- For a well-formed generator, the totalized generated word is legal at every input length. -/
 theorem wellformed_generatedTotal_legal {g : UniformBqpGenerator} (h : generatorWellformed g) :
     ∀ n : ℕ, finiteWordLegal (uniformBqpGeneratedTotal g n).1
       (uniformBqpGeneratedTotal g n).2 = true := by
@@ -1927,6 +2184,8 @@ theorem wellformed_generatedTotal_legal {g : UniformBqpGenerator} (h : generator
     rw [htot]
     exact h n q gs hs
 
+/-- The totalized generated gate-list length and wire count are each at most `n +
+uniformBqpTimeBound g n + 1`. -/
 theorem generatedTotal_bit_bound (g : UniformBqpGenerator) (n : ℕ) :
     (uniformBqpGeneratedTotal g n).2.length ≤ n + uniformBqpTimeBound g n + 1 ∧
       (uniformBqpGeneratedTotal g n).1 ≤ n + uniformBqpTimeBound g n + 1 := by
@@ -1963,6 +2222,8 @@ theorem generatedTotal_bit_bound (g : UniformBqpGenerator) (n : ℕ) :
       omega
     omega
 
+/-- The expression `n + tc * (n + 1) ^ td + 1` is bounded by `uniformBqpPolynomial (tc + 1) (td
++ 1) n`. -/
 theorem poly_encode_bound (tc td n : ℕ) :
     n + tc * (n + 1) ^ td + 1 ≤ uniformBqpPolynomial (tc + 1) (td + 1) n := by
   unfold uniformBqpPolynomial
@@ -1989,6 +2250,8 @@ theorem poly_encode_bound (tc td n : ℕ) :
       simpa using! h1
     omega
 
+/-- Every generator's totalized outputs have polynomial bounds on both gate-list length and wire
+count. -/
 theorem generatedTotal_poly_bounds (g : UniformBqpGenerator) :
     ∃ cW dW cS dS : ℕ, ∀ n : ℕ,
       (uniformBqpGeneratedTotal g n).2.length ≤ uniformBqpPolynomial cW dW n ∧
@@ -2002,6 +2265,8 @@ theorem generatedTotal_poly_bounds (g : UniformBqpGenerator) :
   rw [h3] at h1 h2
   exact ⟨h2.trans h4, h1.trans h4⟩
 
+/-- A clocked generator satisfies the bit-Turing-machine backend premise, including effective
+halting and a polynomial bound on encoded totalized outputs. -/
 theorem clocked_bitTm {g : UniformBqpGenerator} (h : generatorClocked g) :
     bitTmBackendPremise g := by
   refine ⟨generatorClocked_implies_generatorHaltsEffectively h, ?_⟩
@@ -2047,45 +2312,58 @@ theorem clocked_bitTm {g : UniformBqpGenerator} (h : generatorClocked g) :
       poly_encode_bound g.timeCoefficient g.timeDegree n
     omega
 
+/-- Encodes blank, false, and true tape symbols as the natural numbers zero, one, and two. -/
 def nfAIdx : Option Bool → ℕ
   | none => 0
   | some false => 1
   | some true => 2
 
+/-- Decodes zero as blank, one as false, and every larger natural number as true. -/
 def nfAOfIdx : ℕ → Option Bool
   | 0 => none
   | 1 => some false
   | _ => some true
 
+/-- The index of every optional Boolean tape symbol is less than three. -/
 theorem nfAIdx_lt (a : Option Bool) : nfAIdx a < 3 := by
   cases a with
   | none => decide
   | some b => cases b <;> decide
 
+/-- Decoding a tape symbol's index recovers that symbol. -/
 theorem nfAOfIdx_nfAIdx (a : Option Bool) : nfAOfIdx (nfAIdx a) = a := by
   cases a with
   | none => rfl
   | some b => cases b <;> rfl
 
+/-- Encoding a decoded index recovers the index whenever it is less than three. -/
 theorem nfAIdx_nfAOfIdx {i : ℕ} (hi : i < 3) : nfAIdx (nfAOfIdx i) = i := by
   interval_cases i <;> rfl
 
+/-- The upper state index `4 * (k + 1) - 1` for the normal-form machine with four states per
+original state. -/
 def nfBound (k : ℕ) : ℕ := 4 * (k + 1) - 1
 
+/-- The normal-form state type has `4 * (k + 1)` elements. -/
 theorem nfBound_add_one (k : ℕ) : nfBound k + 1 = 4 * (k + 1) := by
   unfold nfBound
   omega
 
+/-- The numeric code of the entry state associated with the original control state `q`. -/
 def nfEnterVal (k : ℕ) (q : Fin (k + 1)) : ℕ := q.val
 
+/-- The numeric code `(k + 1) + 3 * q.val + nfAIdx a` of the action state recording control
+state `q` and tape symbol `a`. -/
 def nfActVal (k : ℕ) (q : Fin (k + 1)) (a : Option Bool) : ℕ := (k + 1) + 3 * q.val + nfAIdx a
 
+/-- Every entry-state code lies within the normal-form state bound. -/
 theorem nfEnterVal_lt (k : ℕ) (q : Fin (k + 1)) : nfEnterVal k q < nfBound k + 1 := by
   unfold nfEnterVal
   rw [nfBound_add_one]
   have hq := q.isLt
   omega
 
+/-- Every action-state code lies within the normal-form state bound. -/
 theorem nfActVal_lt (k : ℕ) (q : Fin (k + 1)) (a : Option Bool) :
     nfActVal k q a < nfBound k + 1 := by
   unfold nfActVal
@@ -2094,38 +2372,49 @@ theorem nfActVal_lt (k : ℕ) (q : Fin (k + 1)) (a : Option Bool) :
   have ha := nfAIdx_lt a
   omega
 
+/-- Subtracting the action-state offset and dividing by three recovers the original
+control-state index. -/
 theorem nfActVal_div (k : ℕ) (q : Fin (k + 1)) (a : Option Bool) :
     (nfActVal k q a - (k + 1)) / 3 = q.val := by
   unfold nfActVal
   have ha := nfAIdx_lt a
   omega
 
+/-- Subtracting the action-state offset and taking the remainder modulo three recovers the
+recorded tape-symbol index. -/
 theorem nfActVal_mod (k : ℕ) (q : Fin (k + 1)) (a : Option Bool) :
     (nfActVal k q a - (k + 1)) % 3 = nfAIdx a := by
   unfold nfActVal
   have ha := nfAIdx_lt a
   omega
 
+/-- Embeds an original control state as an entry state of the normal-form machine. -/
 def nfEnter {k : ℕ} (q : Fin (k + 1)) : Fin (nfBound k + 1) :=
   ⟨nfEnterVal k q, nfEnterVal_lt k q⟩
 
+/-- Encodes an original control state and a recorded tape symbol as an action state of the
+normal-form machine. -/
 def nfAct {k : ℕ} (q : Fin (k + 1)) (a : Option Bool) : Fin (nfBound k + 1) :=
   ⟨nfActVal k q a, nfActVal_lt k q a⟩
 
+/-- Decodes the original control-state component from a normal-form action-state code. -/
 def nfDecQ (k : ℕ) (s : Fin (nfBound k + 1)) : Fin (k + 1) :=
   ⟨(s.val - (k + 1)) / 3, by
     have h1 : s.val < 4 * (k + 1) := by rw [← nfBound_add_one]; exact s.isLt
     exact Nat.div_lt_of_lt_mul (by omega)⟩
 
+/-- Decodes the recorded tape-symbol component from a normal-form action-state code. -/
 def nfDecA (k : ℕ) (s : Fin (nfBound k + 1)) : Option Bool :=
   nfAOfIdx ((s.val - (k + 1)) % 3)
 
+/-- Decoding the control-state component of `nfAct q a` recovers `q`. -/
 theorem nfDecQ_nfAct (k : ℕ) (q : Fin (k + 1)) (a : Option Bool) :
     nfDecQ k (nfAct q a) = q := by
   apply Fin.eq_of_val_eq
   simp only [nfDecQ, nfAct]
   exact nfActVal_div k q a
 
+/-- Decoding the tape-symbol component of `nfAct q a` recovers `a`. -/
 theorem nfDecA_nfAct (k : ℕ) (q : Fin (k + 1)) (a : Option Bool) :
     nfDecA k (nfAct q a) = a := by
   have h1 : (nfAct q a).val = nfActVal k q a := rfl
@@ -2133,6 +2422,9 @@ theorem nfDecA_nfAct (k : ℕ) (q : Fin (k + 1)) (a : Option Bool) :
   rw [h1, nfActVal_mod]
   exact nfAOfIdx_nfAIdx a
 
+/-- Transforms a machine into a unidirectional machine by recording the scanned symbol in an
+intermediate action state. Each enabled original transition is simulated by an
+unchanged-symbol write followed by the original instruction. -/
 def nfMachine {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) :
     TM0.Machine (Option Bool) (Fin (nfBound k + 1)) := fun s a =>
   if hs : s.val < k + 1 then
@@ -2142,6 +2434,8 @@ def nfMachine {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) :
   else
     some ⟨nfEnter (nfDecQ k s), TM0.Stmt.write a⟩
 
+/-- At an entry state, an enabled original transition enters the corresponding action state and
+writes the scanned symbol unchanged; an absent transition remains absent. -/
 theorem nfMachine_enter_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (q : Fin (k + 1)) (a : Option Bool) :
     nfMachine m (nfEnter q) a =
@@ -2152,6 +2446,8 @@ theorem nfMachine_enter_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)
   have heq : (⟨(nfEnter q).val, hcond⟩ : Fin (k + 1)) = q := Fin.eq_of_val_eq rfl
   rw [heq]
 
+/-- At an action state whose recorded symbol matches the scanned symbol, the normal-form machine
+performs the original instruction and enters the next entry state. -/
 theorem nfMachine_act_match_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (q : Fin (k + 1)) (a : Option Bool) :
     nfMachine m (nfAct q a) a = (m q a).map fun p => ⟨nfEnter p.1, p.2⟩ := by
@@ -2166,6 +2462,8 @@ theorem nfMachine_act_match_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k 
   have hiff : a = nfDecA k (nfAct q a) := by rw [nfDecA_nfAct]
   rw [dif_neg hcond, if_pos hiff, nfDecQ_nfAct, nfDecA_nfAct]
 
+/-- At an action state with a mismatching scanned symbol, the normal-form machine preserves that
+symbol and returns to the recorded control state's entry state. -/
 theorem nfMachine_act_mismatch_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (q : Fin (k + 1)) (a b : Option Bool) (hab : b ≠ a) :
     nfMachine m (nfAct q a) b = some ⟨nfEnter q, TM0.Stmt.write b⟩ := by
@@ -2182,6 +2480,8 @@ theorem nfMachine_act_mismatch_eq {k : ℕ} (m : TM0.Machine (Option Bool) (Fin 
     exact hab
   rw [dif_neg hcond, if_neg hiff, nfDecQ_nfAct]
 
+/-- The transformed machine is unidirectional: any two movement instructions enabled at the same
+state have the same direction. -/
 theorem nfMachine_unidirectional {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) :
     tm0Unidirectional (nfMachine m) := by
   intro s a b r s' ha hb hra hsb
@@ -2234,12 +2534,18 @@ theorem nfMachine_unidirectional {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (
       obtain rfl := ha.symm
       simp at hd₁
 
+/-- Embeds a configuration into the normal-form machine by replacing its control state with the
+corresponding entry state and preserving its tape. -/
 def nfEmbed {k : ℕ} (c : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     TM0.Cfg (Option Bool) (Fin (nfBound k + 1)) := ⟨nfEnter c.q, c.Tape⟩
 
+/-- Forms the intermediate configuration whose action state records the current control state
+and scanned symbol, with the tape unchanged. -/
 def nfMid {k : ℕ} (c : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     TM0.Cfg (Option Bool) (Fin (nfBound k + 1)) := ⟨nfAct c.q c.Tape.head, c.Tape⟩
 
+/-- A normal-form step from an embedded configuration reaches its intermediate configuration
+exactly when the original machine can step. -/
 theorem nf_step_embed {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (c : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     TM0.step (nfMachine m) (nfEmbed c) = (TM0.step m c).map fun _ => nfMid c := by
@@ -2251,6 +2557,8 @@ theorem nf_step_embed {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     obtain ⟨q', st⟩ := p
     simp [TM0.step, nfEmbed, nfMid, nfMachine_enter_eq, h, Tape.write_self]
 
+/-- A normal-form step from an intermediate configuration produces the embedding of the original
+machine's next configuration. -/
 theorem nf_step_mid {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (c : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     TM0.step (nfMachine m) (nfMid c) = (TM0.step m c).map nfEmbed := by
@@ -2262,12 +2570,16 @@ theorem nf_step_mid {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     obtain ⟨q', st⟩ := p
     simp [TM0.step, nfEmbed, nfMid, nfMachine_act_match_eq, h]
 
+/-- An embedded configuration is halted in the normal-form machine exactly when its original
+configuration is halted. -/
 theorem nf_step_embed_none_iff {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (c : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     TM0.step (nfMachine m) (nfEmbed c) = none ↔ TM0.step m c = none := by
   rw [nf_step_embed]
   cases TM0.step m c <;> simp
 
+/-- If the original configuration has an enabled step, its intermediate normal-form
+configuration also has an enabled step. -/
 theorem nf_step_mid_ne_none {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (c : TM0.Cfg (Option Bool) (Fin (k + 1))) (hc : TM0.step m c ≠ none) :
     TM0.step (nfMachine m) (nfMid c) ≠ none := by
@@ -2276,11 +2588,15 @@ theorem nf_step_mid_ne_none {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1
   | none => exact absurd h hc
   | some ct => simp
 
+/-- Embedding an initialized original configuration gives the initialized normal-form
+configuration on the same input. -/
 theorem nf_embed_init {k : ℕ} (l : List (Option Bool)) :
     nfEmbed (TM0.init l : TM0.Cfg (Option Bool) (Fin (k + 1)))
       = (TM0.init l : TM0.Cfg (Option Bool) (Fin (nfBound k + 1))) :=
   rfl
 
+/-- Two normal-form steps from an embedded configuration simulate one original step and embed
+its result. -/
 theorem nf_iterStep_two {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (c : TM0.Cfg (Option Bool) (Fin (k + 1))) :
     iterStep (nfMachine m) (nfEmbed c) 2 = (TM0.step m c).map nfEmbed := by
@@ -2289,6 +2605,8 @@ theorem nf_iterStep_two {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
   | none => simp
   | some ct => simp [nf_step_mid, hc]
 
+/-- After `2 * t` normal-form steps from an embedded configuration, the result is the embedding
+of the original `t`-step execution. -/
 theorem nf_iterStep_even {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (c : TM0.Cfg (Option Bool) (Fin (k + 1))) (t : ℕ) :
     iterStep (nfMachine m) (nfEmbed c) (2 * t) = (iterStep m c t).map nfEmbed := by
@@ -2301,6 +2619,8 @@ theorem nf_iterStep_even {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     | none => simp
     | some ct => simp [nf_iterStep_two]
 
+/-- After `2 * t + 1` normal-form steps, a surviving execution is at the intermediate
+configuration for the original time-`t` configuration, provided its next step is enabled. -/
 theorem nf_iterStep_odd {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (c : TM0.Cfg (Option Bool) (Fin (k + 1))) (t : ℕ) :
     iterStep (nfMachine m) (nfEmbed c) (2 * t + 1) =
@@ -2311,6 +2631,8 @@ theorem nf_iterStep_odd {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
   | none => simp
   | some ct => simp [nf_step_embed]
 
+/-- On the same input, normal-form execution after `2 * t` steps is the embedded original
+execution after `t` steps. -/
 theorem nf_bitMachineAfter_even {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (l : List (Option Bool)) (t : ℕ) :
     BitMachineAfter (nfMachine m) l (2 * t) = (BitMachineAfter m l t).map nfEmbed := by
@@ -2319,6 +2641,8 @@ theorem nf_bitMachineAfter_even {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k
   rw [← nf_embed_init (k := k) l]
   exact nf_iterStep_even m (TM0.init l) t
 
+/-- On the same input, the normal-form machine halts at time `2 * t` exactly when the original
+machine halts at time `t`. -/
 theorem nf_haltsAt_iff {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (l : List (Option Bool)) (t : ℕ) :
     BitMachineHaltsAt (nfMachine m) l (2 * t) ↔ BitMachineHaltsAt m l t := by
@@ -2340,6 +2664,8 @@ theorem nf_haltsAt_iff {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     · simp [nf_bitMachineAfter_even, hrun]
     · exact (nf_step_embed_none_iff m ct).mpr hstop
 
+/-- Any halted normal-form run from an embedded configuration has even length. Its final
+configuration embeds a halted original configuration reached in half as many steps. -/
 theorem nf_iterStep_halts {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (c : TM0.Cfg (Option Bool) (Fin (k + 1))) {t' : ℕ}
     {cfg' : TM0.Cfg (Option Bool) (Fin (nfBound k + 1))}
@@ -2377,6 +2703,8 @@ theorem nf_iterStep_halts {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))
         rw [nf_step_mid, hs] at hstop
         simp at hstop
 
+/-- Bounded execution of the normal-form machine with budget `2 * F` equals bounded original
+execution with budget `F`, followed by configuration embedding. -/
 theorem nf_runUntilHaltWithin {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1)))
     (l : List (Option Bool)) (F : ℕ) :
     modelRunUntilHaltWithin (nfMachine m) (2 * F) (TM0.init l) =
@@ -2403,6 +2731,8 @@ theorem nf_runUntilHaltWithin {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k +
       rw [hctr] at hc
       simp at hc
 
+/-- After `t` steps on unary input of length `n`, every tape position at least `n + t` to the
+right of the current head is blank. -/
 theorem blank_bound {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) (n : ℕ) :
     ∀ (t : ℕ) (cfg : TM0.Cfg (Option Bool) (Fin (k + 1))),
       BitMachineAfter m (uniformBqpUnaryInput n) t = some cfg →
@@ -2468,6 +2798,8 @@ theorem blank_bound {k : ℕ} (m : TM0.Machine (Option Bool) (Fin (k + 1))) (n :
         rw [if_neg hi0]
         exact hblankT i (by omega)
 
+/-- If every tape position at least `N` is blank, reading with budget `N` succeeds for some
+Boolean word. -/
 theorem modelReadOutputUntilBlank_exists_of_blank {N : ℕ}
     {tape : Turing.ListBlank (Option Bool)}
     (hblank : ∀ i : ℕ, N ≤ i → tape.nth i = none) :
@@ -2494,6 +2826,8 @@ theorem modelReadOutputUntilBlank_exists_of_blank {N : ℕ}
       rw [modelReadOutputUntilBlank_succ, hb, hw]
       rfl
 
+/-- If the tape is blank from position `N` onward, all output-reading budgets at least `N` give
+the same result. -/
 theorem modelReadOutputUntilBlank_eq_of_blank_bound {N : ℕ}
     {tape : Turing.ListBlank (Option Bool)}
     (hblank : ∀ i : ℕ, N ≤ i → tape.nth i = none) :
@@ -2504,6 +2838,8 @@ theorem modelReadOutputUntilBlank_eq_of_blank_bound {N : ℕ}
   rw [modelReadOutputUntilBlank_mono (B₁ := N) (B₂ := B₁) h1 tape w hw,
     modelReadOutputUntilBlank_mono (B₁ := N) (B₂ := B₂) h2 tape w hw]
 
+/-- Replaces a generator's machine by its normal-form transformation and doubles its time
+coefficient. The word and space bounds are preserved. -/
 def nfGen (g : UniformBqpGenerator) : UniformBqpGenerator where
   controlBound := nfBound g.controlBound
   machine := nfMachine g.machine
@@ -2514,14 +2850,19 @@ def nfGen (g : UniformBqpGenerator) : UniformBqpGenerator where
   spaceCoefficient := g.spaceCoefficient
   spaceDegree := g.spaceDegree
 
+/-- The normal-form generator's declared time bound is twice the original generator's time
+bound. -/
 theorem nfGen_timeBound (g : UniformBqpGenerator) (n : ℕ) :
     uniformBqpTimeBound (nfGen g) n = 2 * uniformBqpTimeBound g n := by
   simp [uniformBqpTimeBound, uniformBqpPolynomial, nfGen, Nat.mul_assoc]
 
+/-- The machine of `nfGen g` is `nfMachine g.machine`. -/
 theorem nfGen_machine (g : UniformBqpGenerator) :
     (nfGen g).machine = nfMachine g.machine :=
   rfl
 
+/-- Running the normal-form generator within its declared time bound yields the embedded result
+of running the original generator within its time bound. -/
 theorem nfGen_runUntilHaltWithin (g : UniformBqpGenerator) (n : ℕ) :
     modelRunUntilHaltWithin (nfGen g).machine (uniformBqpTimeBound (nfGen g) n)
         (TM0.init (uniformBqpUnaryInput n)) =
@@ -2530,6 +2871,8 @@ theorem nfGen_runUntilHaltWithin (g : UniformBqpGenerator) (n : ℕ) :
   rw [nfGen_machine, nfGen_timeBound]
   exact nf_runUntilHaltWithin g.machine (uniformBqpUnaryInput n) (uniformBqpTimeBound g n)
 
+/-- The normal-form transformation preserves the generated output at every input length,
+including failure. -/
 theorem nf_generatedAt (g : UniformBqpGenerator) (n : ℕ) :
     uniformBqpGeneratedAt (nfGen g) n = uniformBqpGeneratedAt g n := by
   show modelGeneratedAt (nfGen g) n = modelGeneratedAt g n
@@ -2561,15 +2904,18 @@ theorem nf_generatedAt (g : UniformBqpGenerator) (n : ℕ) :
         decodeUniformBqpWord
     rw [hread]
 
+/-- The transformed generator satisfies the unidirectional normal-form condition. -/
 theorem nfGen_normalForm (g : UniformBqpGenerator) : generatorNormalForm (nfGen g) :=
   nfMachine_unidirectional g.machine
 
+/-- The normal-form transformation preserves generator well-formedness. -/
 theorem nfGen_wellformed {g : UniformBqpGenerator} (hg : generatorWellformed g) :
     generatorWellformed (nfGen g) := by
   intro n q gs hgen
   rw [nf_generatedAt g n] at hgen
   exact hg n q gs hgen
 
+/-- The normal-form transformation preserves polynomial clocking. -/
 theorem nfGen_clocked {g : UniformBqpGenerator} (h : generatorClocked g) :
     generatorClocked (nfGen g) := by
   obtain ⟨c, d, hc⟩ := h
@@ -2583,6 +2929,8 @@ theorem nfGen_clocked {g : UniformBqpGenerator} (h : generatorClocked g) :
   rw [h3]
   exact h2
 
+/-- Every well-formed generator has a well-formed normal-form generator with identical generated
+outputs at every input length. Polynomial clocking is preserved when present. -/
 theorem generatorWellformed_normalForm {g : UniformBqpGenerator}
     (hg : generatorWellformed g) :
     ∃ g' : UniformBqpGenerator, generatorNormalForm g' ∧ generatorWellformed g' ∧
@@ -2594,6 +2942,10 @@ theorem generatorWellformed_normalForm {g : UniformBqpGenerator}
   · intro hc
     exact nfGen_clocked hc
 
+/-- Collects the generator well-formedness, clocking, normal-form, exact-clock, duplication,
+output-bound, and backend results. The package includes legality of totalized outputs,
+dyadic and finite-digit amplitude premises, and the bit-Turing-machine backend premise under
+their respective hypotheses. -/
 theorem clause17 :
 
   (∀ g : UniformBqpGenerator, uniformBqpGeneratorValid g → generatorWellformed g) ∧
@@ -2654,17 +3006,22 @@ theorem clause17 :
     fun _g h n => finiteDigitBackendPremise_of_legal (wellformed_generatedTotal_legal h n),
     fun _g h => clocked_bitTm h⟩
 
+/-- Records the encoding-decoding round trip for every wire count and finite gate list. -/
 theorem clause16_roundTrip :
     ∀ (q : ℕ) (gs : List FiniteGateCode),
       decodeUniformBqpWord (encodeUniformBqpWord q gs) = some (q, gs) :=
   fun q gs => decode_encodeUniformBqpWord q gs
 
+/-- Records that every valid native generator realizes a legal standard family with polynomial
+gate-list and wire bounds. -/
 theorem clause16_nativeToStandard :
     ∀ g : UniformBqpGenerator, uniformBqpGeneratorValid g →
       ∃ W : StandardWordFamily, nativeRealizes g W ∧ standardFamilyLegal W ∧
         ∃ cW dW cS dS : ℕ, standardFamilyBounded cW dW cS dS W :=
   fun _g h => generatorValid_native_to_standard h
 
+/-- Records the per-length legality, circuit counts, resource bounds, normalized output states,
+and acceptance-probability bounds for every valid generator. -/
 theorem clause16_perLengthLedgers :
     ∀ g : UniformBqpGenerator, uniformBqpGeneratorValid g →
       ∀ n : ℕ, ∃ (q : ℕ) (gs : List FiniteGateCode),
@@ -2680,6 +3037,7 @@ theorem clause16_perLengthLedgers :
               0 ≤ uniformBqpAcceptProb q gs x ∧ uniformBqpAcceptProb q gs x ≤ 1 :=
   fun _g h => generatorValid_per_length_ledgers h
 
+/-- The fixed-word printer's declared time bound is at most `(4 * encodedLength + 4) * (n + 1)`. -/
 theorem clause16_printer_time_bound (q : ℕ) (gs : List FiniteGateCode) (n : ℕ) :
     uniformBqpTimeBound (uniformBqpWordPrinter q gs) n ≤
       (4 * (encodeUniformBqpWord q gs).length + 4) * (n + 1) := by
@@ -2688,6 +3046,8 @@ theorem clause16_printer_time_bound (q : ℕ) (gs : List FiniteGateCode) (n : �
       ≤ 4 * (encodeUniformBqpWord q gs).length + 4 := by omega
   exact Nat.mul_le_mul h (le_refl (n + 1))
 
+/-- Every fixed legal gate word has a valid native printer that produces it at every input
+length. Its declared time bound is at most `(4 * encodedLength + 4) * (n + 1)`. -/
 theorem clause16_standardToNative :
     ∀ (q : ℕ) (gs : List FiniteGateCode), finiteWordLegal q gs = true →
       uniformBqpGeneratorValid (uniformBqpWordPrinter q gs) ∧
@@ -2697,12 +3057,15 @@ theorem clause16_standardToNative :
   fun q gs h => ⟨printer_valid q gs h, fun n => printer_generatedAt q gs n,
     fun n => clause16_printer_time_bound q gs n⟩
 
+/-- The diverging generator is not a valid uniform BQP generator. -/
 theorem diverging_not_valid : ¬ uniformBqpGeneratorValid uniformBqpDivergingGenerator := by
   intro h
   obtain ⟨q, gs, hg, _⟩ := h 0
   rw [diverging_generatedAt_none] at hg
   simp at hg
 
+/-- The diverging generator fails validity even though its totalized output at input length zero
+is the default word `(0, [])`. -/
 theorem clause16_boundary :
     ¬ uniformBqpGeneratorValid uniformBqpDivergingGenerator ∧
       uniformBqpGeneratedTotal uniformBqpDivergingGenerator 0 = (0, []) :=

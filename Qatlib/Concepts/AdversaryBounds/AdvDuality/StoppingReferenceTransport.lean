@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransportDefs
+
+/-!
+# Stopping, sampling, and instrument transport laws
+
+This module relates finite-fuel stopping laws, accumulated charges, and exact fair-bit sampling
+to their marginals and limiting masses. It proves truncation identities, resource-transport
+statements, and concrete examples with zero costs, positive costs, and infinite zero-charge
+evolution.
+
+For quantum instruments, it identifies event branch maps with unnormalized post-measurement
+states, proves the normalized mixture formula, and transports these descriptions through
+coarsening and feed-forward composition. The instrument viewpoint follows the operational
+framework of [DaviesLewis1970].
+
+## Main statements
+
+* `clause16_complete`: bundles exact sampling, tail truncation, and resource transport.
+* `walkGoal_complete`: bundles event-state correspondence, mixtures, and downstream instrument
+  laws.
+* `clause14_complete`: bundles stopping semantics and charge-sensitive examples.
+
+## References
+
+* [Davies and Lewis, 1970][DaviesLewis1970]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ZeroCostLimit.FirstHitMass
@@ -29,6 +55,8 @@ open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open Qatlib.Concepts.ZeroCostLimit.FirstHitMass
 open scoped ENNReal BigOperators Classical Matrix ComplexOrder
 
+/-- Mapping a probability mass function first by `f` and then by `g` equals mapping it by their
+composition. -/
 theorem map_map_law {α β γ : Type} (p : PMF α) (f : α → β) (g : β → γ) :
     (p.map f).map g = p.map (fun a => g (f a)) := by
   simp only [PMF.map]
@@ -39,9 +67,12 @@ theorem map_map_law {α β γ : Type} (p : PMF α) (f : α → β) (g : β → �
   rw [PMF.pure_bind]
   rfl
 
+/-- Mapping a probability mass function by the identity leaves it unchanged. -/
 theorem map_id_law {α : Type} (p : PMF α) : p.map (fun a => a) = p := by
   simpa only [PMF.map] using! PMF.bind_pure p
 
+/-- The probability of an output decoded from fair bits is the number of bit assignments
+decoding to it divided by `2 ^ Fintype.card R`. -/
 theorem clause16_sampler_law {X R : Type} [Fintype X] [DecidableEq X] [Fintype R] [DecidableEq R]
     (decode : (R → Bool) → X) (x : X) :
     bitDecodeSampler decode x =
@@ -76,6 +107,7 @@ theorem clause16_sampler_law {X R : Type} [Fintype X] [DecidableEq X] [Fintype R
           (2 ^ Fintype.card R) := by
           rw [hfilter, div_eq_mul_inv, mul_comm]
 
+/-- Projecting away the constant sampling charge recovers the decoded fair-bit distribution. -/
 theorem clause16_sampler_charge_marginal {X R : Type} [Fintype X] [DecidableEq X] [Fintype R]
     [DecidableEq R] (decode : (R → Bool) → X) :
     (samplerCharge (Fintype.card R) (bitDecodeSampler decode)).map Prod.fst =
@@ -84,6 +116,8 @@ theorem clause16_sampler_charge_marginal {X R : Type} [Fintype X] [DecidableEq X
   rw [samplerCharge, map_map_law]
   exact map_id_law _
 
+/-- Attaching constant charge `n` to every outcome of a probability mass function gives expected
+cost `n`. -/
 theorem expectedCost_const_charge {α : Type} (p : PMF α) (n : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (p.map (fun x => (x, n))) = (n : ℝ≥0∞) := by
   classical
@@ -95,6 +129,8 @@ theorem expectedCost_const_charge {α : Type} (p : PMF α) (n : ℕ) :
     simp
   rw [h, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const]
 
+/-- The expected charge of the fair-bit decoder sampler is the number of available bit
+positions. -/
 theorem clause16_sampler_expected_cost {X R : Type} [Fintype X] [DecidableEq X] [Fintype R]
     [DecidableEq R] (decode : (R → Bool) → X) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (samplerCharge (Fintype.card R) (bitDecodeSampler decode)) =
@@ -103,6 +139,8 @@ theorem clause16_sampler_expected_cost {X R : Type} [Fintype X] [DecidableEq X] 
   unfold samplerCharge
   exact expectedCost_const_charge _ _
 
+/-- Every supported outcome of the constantly charged fair-bit sampler has charge `Fintype.card
+R`. -/
 theorem clause16_sampler_support {X R : Type} [Fintype X] [DecidableEq X] [Fintype R]
     [DecidableEq R] (decode : (R → Bool) → X) :
     ∀ y ∈ (samplerCharge (Fintype.card R) (bitDecodeSampler decode)).support,
@@ -111,6 +149,8 @@ theorem clause16_sampler_support {X R : Type} [Fintype X] [DecidableEq X] [Finty
   obtain ⟨a, ha, rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hy
   rfl
 
+/-- Finite-fuel halting mass plus pending mass equals one. A pending-mass bound `ε` therefore
+gives halting mass at least `1 - ε`. -/
 theorem clause16_tail_truncation :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S) (fuel : ℕ),
@@ -145,6 +185,9 @@ theorem clause16_tail_truncation :
     tsub_le_tsub (le_refl 1) hε
   exact h2.trans h1.le
 
+/-- Micro-executions compose across fuel splits and record the reversed consumed word prefix in
+their log. Up to the word length, they preserve the reference and possess the stated bit,
+time, space, and zero-error resource record. -/
 theorem clause16_sampler_resource_transport :
     ∀ (I R : Type) [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (m n : ℕ)
       (cfg : InterruptConfig I R),
@@ -163,6 +206,9 @@ theorem clause16_sampler_resource_transport :
     rw [microAfter_spec]
     exact ⟨rfl, ⟨⟨k, k, cfg.word.length, 0⟩, rfl, rfl, rfl, rfl⟩⟩
 
+/-- The fair-bit decoder has its exact counting law and unchanged output marginal after
+charging, with constant supported charge and expected cost equal to the number of bit
+positions. -/
 theorem clause16_sampler_exact :
     ∀ (X R : Type) [Fintype X] [DecidableEq X] [Fintype R] [DecidableEq R]
       (decode : (R → Bool) → X) (x : X),
@@ -179,11 +225,14 @@ theorem clause16_sampler_exact :
   exact ⟨clause16_sampler_law decode x, clause16_sampler_charge_marginal decode,
     clause16_sampler_support decode, clause16_sampler_expected_cost decode⟩
 
+/-- The bundled exact-sampling, finite-tail truncation, and sampler-resource transport claim
+holds. -/
 theorem clause16_complete : Clause16Claim :=
   ⟨clause16_sampler_exact, clause16_tail_truncation, clause16_sampler_resource_transport⟩
 
 variable {X : Type}
 
+/-- The output marginal of a `ChargedSampler`'s charged law is its original law. -/
 theorem clause16_charged_sampler_marginal (C : ChargedSampler X) :
     C.chargedLaw.map Prod.fst = C.law := by
   classical
@@ -193,12 +242,16 @@ theorem clause16_charged_sampler_marginal (C : ChargedSampler X) :
     rfl
   rw [h, map_id_law]
 
+/-- Every supported outcome-charge pair of a charged sampler has charge equal to the outcome's
+price. -/
 theorem clause16_charged_sampler_cost (C : ChargedSampler X) :
     ∀ y ∈ C.chargedLaw.support, y.2 = C.price y.1 := by
   intro y hy
   obtain ⟨a, ha, rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hy
   rfl
 
+/-- The expected cost of a charged sampler is the sum of each outcome probability multiplied by
+its price. -/
 theorem clause16_charged_sampler_expected_cost (C : ChargedSampler X) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost C.chargedLaw =
       ∑' x, C.law x * (C.price x : ℝ≥0∞) := by
@@ -211,21 +264,26 @@ theorem clause16_charged_sampler_expected_cost (C : ChargedSampler X) :
 
 variable {X : Type} [Fintype X] [DecidableEq X] {D E : ℕ}
 
+/-- Applying an instrument's event branch map equals summing its branches over the event. -/
 theorem eventBranchMap_apply (I : Instrument X D E) (ρ : Operator D) (Ev : X → Prop)
     [DecidablePred Ev] :
     eventBranchMap I Ev ρ = ∑ x ∈ Finset.univ.filter Ev, I.branch x ρ := by
   rw [eventBranchMap, LinearMap.sum_apply]
 
+/-- An instrument's event probability is the sum of its outcome probabilities over the event. -/
 theorem eventProb_eq_sum (I : Instrument X D E) (ρ : Operator D) (Ev : X → Prop)
     [DecidablePred Ev] :
     eventProb I ρ Ev = ∑ x ∈ Finset.univ.filter Ev, instrumentProb I ρ x := rfl
 
+/-- The trace of the event branch output equals the sum of the traces of its constituent branch
+outputs. -/
 theorem eventBranchMap_trace (I : Instrument X D E) (ρ : Operator D) (Ev : X → Prop)
     [DecidablePred Ev] :
     Matrix.trace (eventBranchMap I Ev ρ) =
       ∑ x ∈ Finset.univ.filter Ev, Matrix.trace (I.branch x ρ) := by
   rw [eventBranchMap_apply, Matrix.trace_sum]
 
+/-- The real part of the event branch output's trace equals the event probability. -/
 theorem eventBranchMap_trace_re (I : Instrument X D E) (ρ : Operator D) (Ev : X → Prop)
     [DecidablePred Ev] :
     (Matrix.trace (eventBranchMap I Ev ρ)).re = eventProb I ρ Ev := by
@@ -234,6 +292,8 @@ theorem eventBranchMap_trace_re (I : Instrument X D E) (ρ : Operator D) (Ev : X
   intro x _
   rfl
 
+/-- The event branch map of an instrument sends a positive semidefinite input to a positive
+semidefinite output. -/
 theorem eventBranchMap_posSemidef (I : Instrument X D E) (ρ : Operator D) (hρ : ρ.PosSemidef)
     (Ev : X → Prop) [DecidablePred Ev] :
     (eventBranchMap I Ev ρ).PosSemidef := by
@@ -253,6 +313,8 @@ theorem eventBranchMap_posSemidef (I : Instrument X D E) (ρ : Operator D) (hρ 
   rw [eventBranchMap_apply]
   exact hmain _ _ fun x _ => (I.cp x).positive hρ
 
+/-- For a positive semidefinite input, an event of zero probability has zero event branch
+output. -/
 theorem eventBranchMap_eq_zero (I : Instrument X D E) (ρ : Operator D) (hρ : ρ.PosSemidef)
     (Ev : X → Prop) [DecidablePred Ev] (hp : eventProb I ρ Ev = 0) :
     eventBranchMap I Ev ρ = 0 := by
@@ -269,6 +331,10 @@ theorem eventBranchMap_eq_zero (I : Instrument X D E) (ρ : Operator D) (hρ : �
     le_antisymm hle (instrumentProb_nonneg I hρ x)
   rw [(instrumentProb_eq_zero_iff I hρ x).mp hz]
 
+/-- For a density input, the event branch output is the event probability times the normalized
+post-measurement state, and its real trace is that probability. A zero-probability event has
+zero branch output and normalized state, while a positive-probability event has a density
+post-state. -/
 theorem walkGoal_correspondence :
     ∀ (X : Type) [Fintype X] [DecidableEq X] (D E : ℕ) (I : Instrument X D E)
       (ρ : Operator D) (hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
@@ -324,6 +390,8 @@ theorem walkGoal_correspondence :
           _ = ((eventProb I ρ Ev : ℝ) : ℂ) := by rw [eventProb_eq_sum]
       rw [eventBranchMap_trace, htr, smul_eq_mul, inv_mul_cancel₀ hne]
 
+/-- The sums of an extended-nonnegative-valued function over an event and its complement add to
+its sum over the whole finite type. -/
 theorem sum_filter_split {O : Type} [Fintype O] [DecidableEq O] (f : O → ℝ≥0∞)
     (Ev : O → Prop) [DecidablePred Ev] :
     (∑ o ∈ Finset.univ.filter Ev, f o) + (∑ o ∈ Finset.univ.filter (fun o => ¬ Ev o), f o)
@@ -353,6 +421,9 @@ theorem sum_filter_split {O : Type} [Fintype O] [DecidableEq O] (f : O → ℝ�
   intro o _
   by_cases ho : Ev o <;> simp [ho]
 
+/-- For a density input, the normalized post-state of an event is the mixture of its
+positive-probability conditional branch states weighted by their probabilities divided by
+the event probability. -/
 theorem walkGoal_mixture :
     ∀ (X : Type) [Fintype X] [DecidableEq X] (D E : ℕ) (I : Instrument X D E)
       (ρ : Operator D) (hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
@@ -408,6 +479,9 @@ theorem walkGoal_mixture :
         le_antisymm (not_lt.mp ho) (instrumentProb_nonneg I hρ.1 x)
       rw [dif_neg ho, (instrumentProb_eq_zero_iff I hρ.1 x).mp hz, smul_zero]
 
+/-- An event defined by a coarsening fiber has the branch map and probability of that coarse
+outcome. Finite-fuel halting masses for an event and its complement, together with pending
+mass, sum to one. -/
 theorem walkGoal_coarse_residual :
     (∀ (X P : Type) [Fintype X] [DecidableEq X] [Fintype P] [DecidableEq P]
       (D E : ℕ) (I : Instrument X D E) (f : X → P) (p : P),
@@ -442,6 +516,7 @@ theorem walkGoal_coarse_residual :
     have hpend : (residualsOf next cfg fuel 0).pending = pendingMass next cfg fuel := rfl
     rw [hpend, hpart]
 
+/-- The Pauli X and Pauli Z matrices do not commute. -/
 theorem pauliX_pauliZ_ne : PauliX * PauliZ ≠ PauliZ * PauliX := by
   intro h
   have h1 := congrArg (fun M : Matrix Bool Bool ℂ => M true false) h
@@ -449,6 +524,8 @@ theorem pauliX_pauliZ_ne : PauliX * PauliZ ≠ PauliZ * PauliX := by
     Matrix.diagonal_apply, Fintype.sum_bool] at h1
   norm_num at h1
 
+/-- Applying Pauli X and Pauli Z in opposite orders gives different vectors on the basis ket
+indexed by false. -/
 theorem pauliX_pauliZ_ket_ne :
     ApplyGate PauliX (ApplyGate PauliZ (Qatlib.Foundations.PureStateMath.Ket false)) ≠
       ApplyGate PauliZ (ApplyGate PauliX (Qatlib.Foundations.PureStateMath.Ket false)) := by
@@ -458,6 +535,8 @@ theorem pauliX_pauliZ_ket_ne :
     Matrix.of_apply, Matrix.diagonal_apply, Fintype.sum_bool, Qatlib.Foundations.PureStateMath.Ket] at h1
   norm_num at h1
 
+/-- Conjugating the outer product of the false basis ket by Pauli X gives a different operator
+from conjugating it by Pauli Z. -/
 theorem conjByX_outer_ne :
     conjByX (outerProduct (Qatlib.Foundations.PureStateMath.Ket false)) ≠ conjByZ (outerProduct (Qatlib.Foundations.PureStateMath.Ket false)) := by
   intro h
@@ -467,6 +546,9 @@ theorem conjByX_outer_ne :
     Fintype.sum_bool, Qatlib.Foundations.PureStateMath.Ket] at h1
   norm_num at h1
 
+/-- Feed-forward instrument branches compose in outcome order, event maps preserve addition and
+real scalar multiplication, and pure-state event probabilities equal real branch traces. The
+bundled examples also distinguish the stated Pauli operations. -/
 theorem walkGoal_downstream :
     (∀ (X : Type) (Q : X → Type) [Fintype X] [∀ o, Fintype (Q o)]
       (D E F : ℕ) (I : Instrument X D E) (J : ∀ o, Instrument (Q o) E F)
@@ -499,9 +581,13 @@ theorem walkGoal_downstream :
       · intro X _ _ D E I ρ σ c Ev _
         exact ⟨map_smul (eventBranchMap I Ev) _ _, map_add (eventBranchMap I Ev) _ _⟩
 
+/-- The bundled event-state correspondence, conditional mixture, coarsening, residual-mass, and
+downstream instrument claim holds. -/
 theorem walkGoal_complete : PaidWalkClaim :=
   ⟨walkGoal_correspondence, walkGoal_mixture, walkGoal_coarse_residual, walkGoal_downstream⟩
 
+/-- Applying the charged event map equals summing event branch outputs weighted by their
+natural-number prices. -/
 theorem walkGoal_charged_map_apply {X : Type} [Fintype X] [DecidableEq X] {D E : ℕ}
     (I : Instrument X D E) (price : X → ℕ) (ρ : Operator D) (Ev : X → Prop) [DecidablePred Ev] :
     chargedEventMap I price Ev ρ = ∑ x ∈ Finset.univ.filter Ev, (price x : ℂ) • (I.branch x ρ) := by
@@ -510,6 +596,7 @@ theorem walkGoal_charged_map_apply {X : Type} [Fintype X] [DecidableEq X] {D E :
   intro x _
   rfl
 
+/-- The real trace of the charged event map output equals the charged event mass. -/
 theorem walkGoal_charged_mass_trace {X : Type} [Fintype X] [DecidableEq X] {D E : ℕ}
     (I : Instrument X D E) (price : X → ℕ) (ρ : Operator D) (Ev : X → Prop) [DecidablePred Ev] :
     (Matrix.trace (chargedEventMap I price Ev ρ)).re = chargedEventMass I price ρ Ev := by
@@ -528,6 +615,8 @@ theorem walkGoal_charged_mass_trace {X : Type} [Fintype X] [DecidableEq X] {D E 
           rfl
     _ = chargedEventMass I price ρ Ev := rfl
 
+/-- Giving every outcome price one makes the charged event map equal to the ordinary event
+branch map. -/
 theorem walkGoal_charged_map_unweighted {X : Type} [Fintype X] [DecidableEq X] {D E : ℕ}
     (I : Instrument X D E) (Ev : X → Prop) [DecidablePred Ev] :
     chargedEventMap I (fun _ => 1) Ev = eventBranchMap I Ev := by
@@ -536,6 +625,8 @@ theorem walkGoal_charged_map_unweighted {X : Type} [Fintype X] [DecidableEq X] {
   intro x _
   rw [Nat.cast_one, one_smul]
 
+/-- A charged event map with natural-number prices sends positive semidefinite inputs to
+positive semidefinite outputs. -/
 theorem walkGoal_charged_map_posSemidef {X : Type} [Fintype X] [DecidableEq X] {D E : ℕ}
     (I : Instrument X D E) (price : X → ℕ) (ρ : Operator D) (hρ : ρ.PosSemidef)
     (Ev : X → Prop) [DecidablePred Ev] :
@@ -560,10 +651,12 @@ theorem walkGoal_charged_map_posSemidef {X : Type} [Fintype X] [DecidableEq X] {
 
 variable {S O : Type} [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
 
+/-- The bundled nontermination-mass semantics `ZeroCostNeverSemantics` holds. -/
 theorem clause14_never_semantics : ZeroCostNeverSemantics := by
   intro S O _ _ _ _ next cost cfg
   exact Qatlib.Concepts.ZeroCostLimit.FirstHitMass.g1 S O next cost cfg
 
+/-- The Boolean non-Zeno check succeeds exactly when every state's charge is positive. -/
 theorem clause14_nonZenoCheck_iff (S : Type) [Fintype S] [DecidableEq S] (c : S → ℕ) :
     nonZenoCheck c = true ↔ positiveCharge c := by
   classical
@@ -605,6 +698,8 @@ theorem clause14_nonZenoCheck_iff (S : Type) [Fintype S] [DecidableEq S] (c : S 
         exact h s
     rw [hfilter]
 
+/-- When every state costs at least one, the finite-fuel mass of a halted outcome with charge
+`k` agrees with its weighted halting mass once the fuel is at least `k`. -/
 theorem clause14_charge_stable :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (cost : S → ℕ) (hc : ∀ s, 1 ≤ cost s)
@@ -613,6 +708,7 @@ theorem clause14_charge_stable :
   fun S O _ _ _ _ next cost hc cfg o k fuel h =>
     weightedRunFor_halt_stable next cost hc cfg o k fuel h
 
+/-- The sum of halting masses through the fuel bound and the pending mass is one. -/
 theorem clause14_truncation :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S) (fuel : ℕ),
@@ -620,6 +716,9 @@ theorem clause14_truncation :
         pendingMass next cfg fuel = 1 :=
   fun S O _ _ _ _ next cfg fuel => (unbounded_finite_halt_pending_partition next cfg fuel).2.1
 
+/-- The first-stop mass at a fixed outcome and charge is the supremum of finite-fuel halted
+masses, and each finite-fuel law has total halted-plus-running mass one. The finite-fuel
+halted masses converge to that first-stop mass whenever it is positive. -/
 theorem clause14_first_stop_joint :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
       (next : S → PMF (O ⊕ S)) (cost : S → ℕ) (cfg : O ⊕ S) (o : O) (k : ℕ),
@@ -642,9 +741,13 @@ theorem clause14_first_stop_joint :
       weightedRunFor_halt_monotone next cost cfg o k
     simpa [haltMass] using! (tendsto_atTop_iSup hm)
 
+/-- The bundled positive-charge check, charge-stability law, and finite-fuel truncation law
+hold. -/
 theorem clause14_nonZeno_laws : ZeroCostNonZenoLaws :=
   ⟨clause14_nonZenoCheck_iff, clause14_charge_stable, clause14_truncation⟩
 
+/-- The zero-cost countdown starting from true halts deterministically after two steps with
+output unit and zero charge. -/
 theorem clause14_zero_countdown_two :
     weightedRunFor zeroCountdownNext (fun _ => 0) 2 (Sum.inr true) = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inl ()) := by
   rw [weightedRunFor_succ_running]
@@ -655,11 +758,15 @@ theorem clause14_zero_countdown_two :
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_zero]
   rfl
 
+/-- The zero-cost countdown has mass one at output unit and accumulated charge zero after two
+steps. -/
 theorem clause14_zero_countdown_mass :
     weightedRunFor zeroCountdownNext (fun _ => 0) 2 (Sum.inr true) (Sum.inl (), 0) = 1 := by
   rw [clause14_zero_countdown_two]
   simp [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret, PMF.pure_apply]
 
+/-- The zero-cost countdown assigns zero halted mass to every nonzero accumulated charge at
+every fuel and initial configuration. -/
 theorem clause14_zero_countdown_positive_charge :
     ∀ (fuel : ℕ) (cfg : Unit ⊕ Bool) (k : ℕ), k ≠ 0 →
       weightedRunFor zeroCountdownNext (fun _ => 0) fuel cfg (Sum.inl (), k) = 0 := by
@@ -688,6 +795,7 @@ theorem clause14_zero_countdown_positive_charge :
                   Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_zero]
               exact ih (Sum.inl ()) k hk
 
+/-- The zero-cost countdown starting from true has no pending mass after two steps. -/
 theorem clause14_zero_countdown_pending :
     pendingMass zeroCountdownNext (Sum.inr true) 2 = 0 := by
   have hrun : runFor zeroCountdownNext 2 (Sum.inr true) = PMF.pure ((Sum.inl () : Unit ⊕ Bool), 2) := by
@@ -703,6 +811,8 @@ theorem clause14_zero_countdown_pending :
   rw [hrun, PMF.pure_apply]
   simp
 
+/-- The zero-cost countdown stops with total mass one at charge zero, has no mass at nonzero
+charges, and has zero nontermination mass. -/
 theorem clause14_zero_cost_consumers :
     haltMass zeroCountdownNext (fun _ => 0) (Sum.inr true) () 0 = 1 ∧
       (∀ k : ℕ, k ≠ 0 → haltMass zeroCountdownNext (fun _ => 0) (Sum.inr true) () k = 0) ∧
@@ -732,6 +842,7 @@ theorem clause14_zero_cost_consumers :
     rw [h2] at hle
     exact hle
 
+/-- The specified Zeno process has infinite zero-charge evolution and never stops with mass one. -/
 theorem clause14_zeno_consumers :
     zenoZeroCharge zenoNext zenoCharge PUnit.unit ∧
       neverStopMass zenoNext (Sum.inr PUnit.unit) = 1 := by
@@ -740,10 +851,14 @@ theorem clause14_zeno_consumers :
   simp only [Qatlib.Concepts.StoppingCore.InterruptBridge.pendingMass_zeno]
   simp
 
+/-- The unit-charge function assigns a positive charge to every state. -/
 theorem clause14_unit_charge_positive : positiveCharge unitCharge := by
   intro s
   simp [unitCharge]
 
+/-- The countdown with unit charges stops at total charge two with mass one. Its budgeted law is
+the initial state below budget one, the intermediate state at budget one, and the halted
+output from budget two onward. -/
 theorem clause14_positive_cost_consumers :
     positiveCharge unitCharge ∧
       weightedHaltJoint zeroCountdownNext unitCharge (Sum.inr true) () 2 = 1 ∧
@@ -803,6 +918,8 @@ theorem clause14_positive_cost_consumers :
               rw [hfalse B, if_neg hb1]
         · next h => omega
 
+/-- The bundled nontermination semantics, positive-charge laws, first-stop joint laws, and
+zero-cost, Zeno, and positive-cost examples hold. -/
 theorem clause14_complete : Clause14Claim := by
   refine ⟨clause14_never_semantics, clause14_nonZeno_laws, clause14_first_stop_joint, ?_⟩
   exact And.intro clause14_zero_cost_consumers

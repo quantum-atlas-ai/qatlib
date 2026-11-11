@@ -21,6 +21,32 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+/-!
+# Geometric search for a four-label Fourier source
+
+This module specializes randomized amplitude-amplification search to the four-dimensional
+Fourier source with the singleton marked set `{0}`, an explicit setting for the search analysis
+of [BoyerEtAl1998]. The initial marked mass is `1/4`, and one amplification iteration succeeds
+with probability one.
+
+For the capped schedule consisting of one window of size one followed by windows of size two,
+`geometric_search_quarter_mass_actual_consumer` gives the exact failure probability and uniform
+expected phase, validation, and total query bounds.
+
+## Main statements
+
+* `qft4_round_one`: certain success after one amplification iteration.
+* `qft4_tail_fail`: failure probability `(3/8)^r` for `r` window-two stages.
+* `geometric_search_quarter_mass_actual_consumer`: the complete finite-schedule probability and
+  query bounds.
+
+## References
+
+* [Boyer et al., Lemma 2][BoyerEtAl1998]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -41,6 +67,7 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Matrix
 open scoped ENNReal Classical
 
+/-- Every entry in the zeroth row of the four-dimensional Fourier matrix is `1/2`. -/
 private theorem qft4_entry_zero (y : Fin 4) : QFTMatrix 4 0 y = (2:ℂ)⁻¹ := by
   rw [qftMatrix_apply]
   have h0 : ((0 : Fin 4).val : ℤ) * ((y : Fin 4).val : ℤ) = 0 := by omega
@@ -49,6 +76,7 @@ private theorem qft4_entry_zero (y : Fin 4) : QFTMatrix 4 0 y = (2:ℂ)⁻¹ := 
   rw [h1, mul_one]
   norm_num
 
+/-- The Fourier-prepared state on four labels assigns marked mass `1/4` to the singleton `{0}`. -/
 private theorem qft4_quarter_mass :
     MeasureProb (preparedAAState (QFTMatrix 4) (0 : Fin 4)) ({0} : Finset (Fin 4)) = 1/4 := by
   have hemp : (preparedAAState (QFTMatrix 4) (0 : Fin 4)) 0 = (2:ℂ)⁻¹ := by
@@ -62,6 +90,8 @@ private theorem qft4_quarter_mass :
   rw [hsingle, BornProb, hemp]
   norm_num
 
+/-- One prepared amplitude-amplification iteration for the four-dimensional Fourier source and
+marked set `{0}` succeeds with probability one. -/
 private theorem qft4_round_one :
     MeasureProb (Run (preparedMark ({0} : Finset (Fin 4)))
         (preparedAACircuit (QFTMatrix 4) (0 : Fin 4) 1) (Ket (0 : Fin 4))) {0} = 1 := by
@@ -81,10 +111,12 @@ private theorem qft4_round_one :
   rw [hang, Real.sin_pi_div_two]
   norm_num
 
+/-- The initial geometric search window with cap two is one. -/
 private theorem window_cap2_zero : geometricWindow 2 0 = 1 := by
   show max 1 (min 2 ((6^(0:ℕ)+5^(0:ℕ)-1)/5^(0:ℕ))) = 1
   norm_num
 
+/-- Every positive-index geometric search window with cap two equals two. -/
 private theorem window_cap2_succ (j : ℕ) : geometricWindow 2 (j+1) = 2 := by
   have h5 : (0:ℕ) < 5^(j+1) := Nat.pow_pos (by norm_num)
   have h61 : 5^(j+1) + 1 ≤ 6^(j+1) := by
@@ -102,6 +134,7 @@ private theorem window_cap2_succ (j : ℕ) : geometricWindow 2 (j+1) = 2 := by
   show max 1 (min 2 ((6^(j+1)+5^(j+1)-1)/5^(j+1))) = 2
   omega
 
+/-- A cap-two schedule starting at a positive offset consists of `T` copies of the window two. -/
 theorem schedFrom_cap2_shifted : ∀ (T off : ℕ), 1 ≤ off →
     schedFrom 2 off T = List.replicate T 2 := by
   intro T off hoff
@@ -115,6 +148,7 @@ theorem schedFrom_cap2_shifted : ∀ (T off : ℕ), 1 ≤ off →
       rw [schedFrom_succ, hoff', ih (off + 1) (by omega)]
       rfl
 
+/-- The Boolean test for label zero accepts exactly the marked singleton `{0}`. -/
 private theorem qft4_valid_iff (y : Fin 4) : (decide (y = 0) : Bool) = true ↔ y ∈ ({0} : Finset (Fin 4)) := by
   constructor
   · intro h
@@ -127,6 +161,8 @@ private theorem qft4_valid_iff (y : Fin 4) : (decide (y = 0) : Bool) = true ↔ 
     rw [hy]
     simp
 
+/-- A successful marked output in the four-label example is precisely an output containing label
+zero with some gate count. -/
 private theorem qft4_success_conv (x : Option (Fin 4 × ℕ) × ℕ × ℕ) :
     (∃ y gates, x.1 = some (y, gates) ∧ y ∈ ({0} : Finset (Fin 4)))
       ↔ ∃ g, x.1 = some (0, g) := by
@@ -138,6 +174,8 @@ private theorem qft4_success_conv (x : Option (Fin 4 × ℕ) × ℕ × ℕ) :
   · rintro ⟨g, h1⟩
     exact ⟨0, g, h1, by simp⟩
 
+/-- The sampled four-label search slot with window one and three rejection attempts has failure
+probability `3/4`. -/
 private theorem qft4_fail_slot_zero :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (preparedAASampled (QFTMatrix 4) (qftMatrix_unitary (by decide : 0<4))
         (0 : Fin 4) {0} (Nat.clog 2 1) 1 3)
@@ -186,6 +224,8 @@ private theorem qft4_fail_slot_zero :
     exact ENNReal.ofReal_ne_top) hpart
   rw [show Nat.clog 2 1 = 0 from Nat.clog_one_right 2, hr, h34]
 
+/-- The sampled four-label search slot with window two and three rejection attempts has failure
+probability `3/8`. -/
 private theorem qft4_fail_slot_two :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (preparedAASampled (QFTMatrix 4) (qftMatrix_unitary (by decide : 0<4))
         (0 : Fin 4) {0} (Nat.clog 2 2) 2 3)
@@ -265,13 +305,17 @@ private theorem qft4_fail_slot_two :
   have hr := ENNReal.eq_sub_of_add_eq h58 hpart
   rw [show Nat.clog 2 2 = 1 from by norm_num, hr, hval, h38]
 
+/-- The validation function `fun y => decide (y = 0)` accepts exactly the marked set `{0}`. -/
 private theorem qft4_valid (y : Fin 4) : (fun y => decide (y = 0)) y = true ↔ y ∈ ({0} : Finset (Fin 4)) :=
   qft4_valid_iff y
 
+/-- The cap-two geometric schedule of length `r + 1` is an initial window one followed by `r`
+windows two. -/
 private theorem qft4_schedule_eq (r : ℕ) :
     geometricSearchSchedule 2 (r+1) = 1 :: List.replicate r 2 := by
   rw [← schedFrom_zero, schedFrom_succ, window_cap2_zero, schedFrom_cap2_shifted r 1 (by omega)]
 
+/-- The expected phase-query increment of the sampled four-label slot with window two is `1/2`. -/
 private theorem qft4_phase_inc_two :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (preparedAASampled (QFTMatrix 4) (qftMatrix_unitary (by decide : 0<4))
         (0 : Fin 4) {0} 1 2 3) (fun out => (out.2.2 : ℝ≥0∞)) = 1/2 := by
@@ -284,6 +328,8 @@ private theorem qft4_phase_inc_two :
   simp at hL
   rw [hL, show ((2:ℝ≥0∞))⁻¹ = (1/2:ℝ≥0∞) from by rw [inv_eq_one_div]]
 
+/-- For any number of window-two stages in the four-label search, the expected phase-query count
+is at most `4/5`. -/
 private theorem qft4_tail_phase : ∀ r : ℕ,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (searchForSchedule (QFTMatrix 4) (qftMatrix_unitary (by decide : 0<4))
         (0 : Fin 4) {0} (fun y => decide (y = 0)) (List.replicate r 2))
@@ -325,6 +371,8 @@ private theorem qft4_tail_phase : ∀ r : ℕ,
             add_le_add (le_refl _) (mul_le_mul' (le_refl _) ih)
         _ = 4/5 := by rw [add_comm]; exact h38
 
+/-- For any number of window-two stages in the four-label search, the expected validation-query
+count is at most `8/5`. -/
 private theorem qft4_tail_val : ∀ r : ℕ,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (searchForSchedule (QFTMatrix 4) (qftMatrix_unitary (by decide : 0<4))
         (0 : Fin 4) {0} (fun y => decide (y = 0)) (List.replicate r 2))
@@ -375,6 +423,8 @@ private theorem qft4_tail_val : ∀ r : ℕ,
             add_le_add hinc (mul_le_mul' (le_refl _) ih)
         _ = 8/5 := by rw [add_comm]; exact h58
 
+/-- The four-label search with `r` consecutive window-two stages fails with probability
+`(3/8)^r`. -/
 private theorem qft4_tail_fail : ∀ r : ℕ,
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (searchForSchedule (QFTMatrix 4) (qftMatrix_unitary (by decide : 0<4))
         (0 : Fin 4) {0} (fun y => decide (y = 0)) (List.replicate r 2))
@@ -391,6 +441,7 @@ private theorem qft4_tail_fail : ∀ r : ℕ,
       rw [List.replicate_succ, search_event_none_recursion, qft4_fail_slot_two, ih, pow_succ,
         mul_comm]
 
+/-- The sampled four-label slot with window one has expected phase-query increment zero. -/
 private theorem qft4_phase_inc_one :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (preparedAASampled (QFTMatrix 4) (qftMatrix_unitary (by decide : 0<4))
         (0 : Fin 4) {0} 0 1 3) (fun out => (out.2.2 : ℝ≥0∞)) = 0 := by
@@ -403,6 +454,10 @@ private theorem qft4_phase_inc_one :
   simp at hL
   exact hL
 
+/-- For the four-label Fourier source with marked set `{0}`, the cap-two schedule of length `r +
+1` fails with probability `(3/4)(3/8)^r`. Its expected phase, validation, and combined query
+counts are at most `3/5`, `11/5`, and `14/5`, respectively, giving a concrete instance of
+randomized quantum search [Boyer et al., Lemma 2][BoyerEtAl1998]. -/
 theorem geometric_search_quarter_mass_actual_consumer :
     ∀ (r : ℕ),
       let A := QFTMatrix 4

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+
+/-!
+# Explicit coherent Taylor simulation bounds
+
+`taylorSegments`, `taylorCutoff`, and `taylorSimulationWord` give explicit segment parameters
+and a coherently amplified Taylor circuit. The module proves its resource counts and dyadic
+full-workspace error, with a concrete noncommuting Pauli example, using truncated Taylor
+simulation [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `taylor_actual_oaa_expansion_and_segment_cost`: Exact resource counts for the repeated
+  amplified circuit.
+* `taylor_computed_coherent_full_simulation_error`: The full-workspace dyadic error bound.
+* `taylor_actual_noncommuting_xz_consumer`: A counted simulation of `PauliX + PauliZ`.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,10 +57,14 @@ open scoped Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option linter.unusedSectionVars false
 
+/-- The positive segment count `max 1 (2 * Λ * T)`. -/
 def taylorSegments (Λ T : ℕ) : ℕ := max 1 (2 * Λ * T)
 
+/-- The Taylor truncation parameter `2 * (k + s + 4)`. -/
 def taylorCutoff (s k : ℕ) : ℕ := 2 * (k + s + 4)
 
+/-- The segment and cutoff definitions satisfy the displayed formulas, and the segment count is
+positive. -/
 theorem taylor_actual_segment_parameters (Λ T k : ℕ) :
     taylorSegments Λ T = max 1 (2 * Λ * T) ∧ 0 < taylorSegments Λ T ∧
       taylorCutoff (taylorSegments Λ T) k = 2 * (k + taylorSegments Λ T + 4) :=
@@ -49,6 +74,8 @@ section Simulation
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- The circuit repeating coherently amplified Taylor LCU segments with the explicit segment
+count and cutoff. -/
 noncomputable def taylorSimulationWord (h : J → ℝ) (j0 : J) (t : ℝ) (Λ T k : ℕ) :
     List (AdjointStep (TaylorWordLabel J (taylorCutoff (taylorSegments Λ T) k) ×
       (Bool × (J × I)))) :=
@@ -57,6 +84,8 @@ noncomputable def taylorSimulationWord (h : J → ℝ) (j0 : J) (t : ℝ) (Λ T 
   repeatAdjointWord (substituteAdjointCircuit (taylorLCUWord h j0 (t / s) K)
     (coherentOAAWord (taylorFrame j0 K))) s
 
+/-- The repeated Taylor circuit uses `3 * s * K` queries and `s * (6 * K + 13)` gates for its
+chosen parameters. See [BerryEtAl2015Taylor]. -/
 theorem taylor_actual_oaa_expansion_and_segment_cost (h : J → ℝ) (j0 : J)
     (t : ℝ) (Λ T k : ℕ) :
     let s := taylorSegments Λ T
@@ -82,6 +111,8 @@ theorem taylor_actual_oaa_expansion_and_segment_cost (h : J → ℝ) (j0 : J)
   rw [rqc, rgc, eqc, egc, hq, hg, bqc, bgc]
   constructor <;> ring
 
+/-- The coefficient mass times the absolute duration of each chosen Taylor segment is at most `1
+/ 2`. -/
 private theorem taylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : ℕ)
     (hΛ : (∑ j, |h j|) ≤ Λ) (hT : |t| ≤ T) :
     (∑ j, |h j|) * |t / (taylorSegments Λ T : ℝ)| ≤ 1 / 2 := by
@@ -94,6 +125,8 @@ private theorem taylor_segment_small (h : J → ℝ) (t : ℝ) (Λ T : ℕ)
     mul_le_mul hΛ hT (abs_nonneg _) (Nat.cast_nonneg _)
   linarith
 
+/-- Repeating exact evolution for time `t / s` a positive number `s` of times gives evolution
+for time `t`. -/
 private theorem taylor_ideal_power (H : Matrix I I ℂ) (t : ℝ) (s : ℕ) (hs : 0 < s) :
     (hamiltonianEvolution H (t / s)) ^ s = hamiltonianEvolution H t := by
   have hp : ∀ n : ℕ, (hamiltonianEvolution H (t / s)) ^ n =
@@ -113,6 +146,8 @@ private theorem taylor_ideal_power (H : Matrix I I ℂ) (t : ℝ) (s : ℕ) (hs 
   have hs0 : (s : ℝ) ≠ 0 := by exact_mod_cast hs.ne'
   rw [mul_div_cancel₀ _ hs0]
 
+/-- The explicit Taylor cutoff bounds the accumulated coherent amplification error over `s`
+segments by `2⁻ᵏ`. -/
 private theorem taylor_coherent_precision (s k : ℕ) :
     (s : ℝ) * Real.sqrt (2 * coherentOAAError ((1 / 2 : ℝ) ^ taylorCutoff s k)) ≤
       (1 / 2 : ℝ) ^ k := by
@@ -154,6 +189,9 @@ private theorem taylor_coherent_precision (s k : ℕ) :
       have hp : 0 ≤ (1 / 2 : ℝ) ^ k := by positivity
       nlinarith [mul_le_mul_of_nonneg_left hsp hp]
 
+/-- For Hermitian unitary summands with the stated coefficient and time bounds, the explicit
+Taylor word is well formed and approximates the embedded Hamiltonian evolution with vector
+error at most `2⁻ᵏ` times the input norm. See [BerryEtAl2015Taylor]. -/
 theorem taylor_computed_coherent_full_simulation_error (h : J → ℝ)
     (U : J → Matrix I I ℂ) (j0 : J) (t : ℝ) (Λ T k : ℕ)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ ∧ (U j).IsHermitian)
@@ -195,6 +233,9 @@ theorem taylor_computed_coherent_full_simulation_error (h : J → ℝ)
 
 end Simulation
 
+/-- The explicit Taylor circuit for `PauliX + PauliZ` at time one uses 216 queries and 484
+gates. Its embedded output on `Ket false` has vector error at most `1 / 2`. See
+[BerryEtAl2015Taylor]. -/
 theorem taylor_actual_noncommuting_xz_consumer :
     let h : Bool → ℝ := fun _ => 1
     let U : Bool → Matrix Bool Bool ℂ := fun b => if b then PauliZ else PauliX

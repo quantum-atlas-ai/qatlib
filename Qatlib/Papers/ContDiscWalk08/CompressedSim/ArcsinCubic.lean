@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# A cubic bound for the arcsine phase error
+
+This module bounds the difference between a real number and its arcsine on the unit interval.
+The estimate `abs_arcsin_sub_self_le_two_mul_abs_cube` gives the cubic phase control used for
+compressed continuous-time simulation by a discrete-time walk in [Childs2010].
+
+## Main statements
+
+* `arcsin_sub_self_le_two_mul_cube`: Bounds `arcsin lam - lam` by `2 * lam ^ 3` on `[0, 1]`.
+* `abs_arcsin_sub_self_le_two_mul_abs_cube`: Extends the bound to `|lam| ≤ 1` using absolute
+  values.
+
+## References
+
+* [Childs, 2010][Childs2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +36,7 @@ noncomputable section
 
 namespace Qatlib.Papers.ContDiscWalk08.CompressedSim
 
+/-- For `0 ≤ lam ≤ 1`, the arcsine remainder satisfies `Real.arcsin lam - lam ≤ 2 * lam ^ 3`. -/
 theorem arcsin_sub_self_le_two_mul_cube {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) :
     Real.arcsin lam - lam ≤ 2 * lam ^ 3 := by
   set u := Real.arcsin lam with hu_def
@@ -66,6 +86,7 @@ theorem arcsin_sub_self_le_two_mul_cube {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam �
     rw [← hsin]
     linarith
 
+/-- For `0 ≤ lam ≤ 1`, `lam ≤ Real.arcsin lam`. -/
 theorem le_arcsin_self {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) :
     lam ≤ Real.arcsin lam := by
   have hsin : Real.sin lam ≤ lam := Real.sin_le h0
@@ -74,6 +95,9 @@ theorem le_arcsin_self {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) :
     Real.arcsin_sin (by linarith [Real.pi_div_two_pos]) (by linarith [Real.pi_gt_three])
   linarith
 
+/-- For `|lam| ≤ 1`, the phase remainder satisfies `|Real.arcsin lam - lam| ≤ 2 * |lam| ^ 3`.
+This supplies cubic phase control for the compressed-simulation estimates associated with
+[Childs, Theorem 2][Childs2010]. -/
 theorem abs_arcsin_sub_self_le_two_mul_abs_cube {lam : ℝ} (h : |lam| ≤ 1) :
     |Real.arcsin lam - lam| ≤ 2 * |lam| ^ 3 := by
   have hpos := arcsin_sub_self_le_two_mul_cube (abs_nonneg lam) h

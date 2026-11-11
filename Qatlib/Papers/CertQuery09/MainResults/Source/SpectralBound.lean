@@ -99,6 +99,25 @@ import Mathlib.Topology.EMetricSpace.Defs
 import Mathlib.Topology.MetricSpace.Algebra
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Operator norms from nonnegative row sums
+
+This module bounds the Euclidean operator norm of a finite symmetric nonnegative real matrix by
+a uniform row-sum bound. On a nonempty index type, a constant row sum also gives a lower bound
+and hence an exact norm formula, supporting the adversary matrices used for [AmbainisEtAl2009].
+
+## Main statements
+
+* `l2_opNorm_le_of_row_sum_le`: gives the row-sum upper bound.
+* `l2_opNorm_eq_of_regular`: computes the norm of a symmetric nonnegative matrix with constant
+  row sum.
+
+## References
+
+* [Ambainis et al., 2009][AmbainisEtAl2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -111,6 +130,8 @@ namespace Qatlib.Papers.CertQuery09.MainResults.Source
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- A symmetric entrywise nonnegative real matrix whose row sums are bounded by `r ≥ 0` has
+Euclidean operator norm at most `r`. -/
 theorem l2_opNorm_le_of_row_sum_le (A : Matrix ι ι ℝ)
     (h0 : ∀ x y, 0 ≤ A x y) (hsym : ∀ x y, A x y = A y x)
     {r : ℝ} (hr : 0 ≤ r) (hrow : ∀ x, ∑ y, A x y ≤ r) :
@@ -165,6 +186,8 @@ theorem l2_opNorm_le_of_row_sum_le (A : Matrix ι ι ℝ)
 
 variable [Nonempty ι]
 
+/-- On a nonempty finite index type, an entrywise nonnegative real matrix with constant row sum
+`r` has Euclidean operator norm at least `r`. -/
 theorem row_sum_eq_le_l2_opNorm (A : Matrix ι ι ℝ)
     (h0 : ∀ x y, 0 ≤ A x y) {r : ℝ} (hrow : ∀ x, ∑ y, A x y = r) :
     r ≤ ‖A‖ := by
@@ -192,6 +215,8 @@ theorem row_sum_eq_le_l2_opNorm (A : Matrix ι ι ℝ)
   rw [hnorm, mul_div_cancel_right₀ r (ne_of_gt honesq)] at hratio
   simpa using! hratio
 
+/-- On a nonempty finite index type, a symmetric entrywise nonnegative real matrix with constant
+row sum `r` has Euclidean operator norm exactly `r`. -/
 theorem l2_opNorm_eq_of_regular (A : Matrix ι ι ℝ)
     (h0 : ∀ x y, 0 ≤ A x y) (hsym : ∀ x y, A x y = A y x)
     {r : ℝ} (hrow : ∀ x, ∑ y, A x y = r) :

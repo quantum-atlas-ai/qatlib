@@ -8,6 +8,29 @@ import Qatlib.Papers.QCellAutomata96.MainResults.PathCounting
 import Mathlib.LinearAlgebra.Matrix.Notation
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+/-!
+# Exact lattice propagator recurrences
+
+This module defines the two-component lattice evolution and explicit binomial-sum amplitudes in
+light-cone coordinates. It proves their recurrences, identifies them with evolution from
+localized initial states, and derives reflection, translation, and path-sum formulas. See
+[Meyer1996a].
+
+## Main statements
+
+* `caEvolve_amp`: If `u + v = t`, evolution from the localized component-one state at `lcCell u
+  v` equals the explicit amplitude vector.
+* `caEvolve_left_amp`: For `u + v = t`, evolution from the localized component-zero state has
+  components `ampE θ v u` and `ampO θ v u`.
+* `fullEvenAmp_eq_ampE`: Adding the straight-path boundary contribution to the even path sum
+  gives `ampE` for all light-cone coordinates.
+
+## References
+
+* [Meyer, 1996][Meyer1996a]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,34 +41,47 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.QCellAutomata96.MainResults
 
+/-- The nearest-neighbor update block with nonzero second column `(i * sin θ, cos θ)`. -/
 def caBlockA (θ : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![0, I * (Real.sin θ : ℂ); 0, (Real.cos θ : ℂ)]
 
+/-- The nearest-neighbor update block with nonzero first column `(cos θ, i * sin θ)`. -/
 def caBlockB (θ : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   !![(Real.cos θ : ℂ), 0; I * (Real.sin θ : ℂ), 0]
 
+/-- One lattice update, combining `caBlockA` on the left neighbor and `caBlockB` on the right
+neighbor. -/
 def caStep (θ : ℝ) (ψ : ℤ → Fin 2 → ℂ) : ℤ → Fin 2 → ℂ :=
   fun x => (caBlockA θ).mulVec (ψ (x - 1)) + (caBlockB θ).mulVec (ψ (x + 1))
 
+/-- Iterate the lattice update for a natural number of time steps. -/
 def caEvolve (θ : ℝ) : ℕ → (ℤ → Fin 2 → ℂ) → (ℤ → Fin 2 → ℂ)
   | 0, ψ => ψ
   | n + 1, ψ => caStep θ (caEvolve θ n ψ)
 
+/-- The state localized at the origin in component one. -/
 def caPsi0 : ℤ → Fin 2 → ℂ := fun x i => if x = 0 ∧ i = 1 then 1 else 0
 
+/-- The integer lattice position `u - v` associated with natural light-cone coordinates. -/
 def lcCell (u v : ℕ) : ℤ := (u : ℤ) - (v : ℤ)
 
+/-- The light-cone update from the two predecessor coordinates, omitting terms across a zero
+boundary. -/
 def lcStep (θ : ℝ) (F : ℕ → ℕ → Fin 2 → ℂ) : ℕ → ℕ → Fin 2 → ℂ :=
   fun u v =>
     (if u = 0 then 0 else (caBlockA θ).mulVec (F (u - 1) v)) +
       (if v = 0 then 0 else (caBlockB θ).mulVec (F u (v - 1)))
 
+/-- Iterate the light-cone update for a natural number of steps. -/
 def lcEvolve (θ : ℝ) : ℕ → (ℕ → ℕ → Fin 2 → ℂ) → (ℕ → ℕ → Fin 2 → ℂ)
   | 0, F => F
   | n + 1, F => lcStep θ (lcEvolve θ n F)
 
+/-- The pullback of `caPsi0` along the position map `lcCell`. -/
 def lcPsi0 : ℕ → ℕ → Fin 2 → ℂ := fun u v i => caPsi0 (lcCell u v) i
 
+/-- The action of `caBlockA` uses only component one and yields `(i * sin θ * z 1, cos θ * z
+1)`. -/
 theorem caBlockA_mulVec (θ : ℝ) (z : Fin 2 → ℂ) :
     (caBlockA θ).mulVec z =
       ![I * (Real.sin θ : ℂ) * z 1, (Real.cos θ : ℂ) * z 1] := by
@@ -53,6 +89,8 @@ theorem caBlockA_mulVec (θ : ℝ) (z : Fin 2 → ℂ) :
   fin_cases i <;>
     simp [caBlockA, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
 
+/-- The action of `caBlockB` uses only component zero and yields `(cos θ * z 0, i * sin θ * z
+0)`. -/
 theorem caBlockB_mulVec (θ : ℝ) (z : Fin 2 → ℂ) :
     (caBlockB θ).mulVec z =
       ![(Real.cos θ : ℂ) * z 0, I * (Real.sin θ : ℂ) * z 0] := by
@@ -60,6 +98,7 @@ theorem caBlockB_mulVec (θ : ℝ) (z : Fin 2 → ℂ) :
   fin_cases i <;>
     simp [caBlockB, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
 
+/-- The finite binomial sum for the odd component, set to zero when `u = 0`. -/
 def ampO (θ : ℝ) (u v : ℕ) : ℂ :=
   if u = 0 then 0 else
     ∑ j ∈ Finset.range (min (u - 1) v + 1),
@@ -67,6 +106,8 @@ def ampO (θ : ℝ) (u v : ℕ) : ℂ :=
         (I * (Real.sin θ : ℂ)) ^ (2 * j + 1) *
           (Real.cos θ : ℂ) ^ (u + v - (2 * j + 1))
 
+/-- The finite binomial sum for the even component, with the straight-path value on the boundary
+`v = 0`. -/
 def ampE (θ : ℝ) (u v : ℕ) : ℂ :=
   if v = 0 then (Real.cos θ : ℂ) ^ (u + v) else
     ∑ k ∈ Finset.range (min u v),
@@ -74,20 +115,25 @@ def ampE (θ : ℝ) (u v : ℕ) : ℂ :=
         (I * (Real.sin θ : ℂ)) ^ (2 * (k + 1)) *
           (Real.cos θ : ℂ) ^ (u + v - 2 * (k + 1))
 
+/-- The two-component vector formed from `ampO` and `ampE`. -/
 def ampVec (θ : ℝ) (u v : ℕ) : Fin 2 → ℂ := ![ampO θ u v, ampE θ u v]
 
+/-- A finite sum with vanishing zeroth term equals the sum over the shifted range. -/
 lemma sum_range_shift (f : ℕ → ℂ) (m : ℕ) (h0 : f 0 = 0) :
     (∑ j ∈ Finset.range (m + 1), f j) = ∑ k ∈ Finset.range m, f (k + 1) := by
   rw [Finset.sum_range_succ']
   simp [h0]
 
+/-- On the boundary `v = 0`, the even amplitude is `cos θ` raised to `u`. -/
 theorem ampE_zero_right (θ : ℝ) (u : ℕ) : ampE θ u 0 = (Real.cos θ : ℂ) ^ u := by
   simp [ampE]
 
+/-- On the boundary `u = 0` with `v ≥ 1`, the even amplitude vanishes. -/
 theorem ampE_zero_left (θ : ℝ) (v : ℕ) (hv : 1 ≤ v) : ampE θ 0 v = 0 := by
   unfold ampE
   rw [if_neg (by omega), Nat.zero_min, Finset.range_zero, Finset.sum_empty]
 
+/-- For `u ≥ 1` and `v = 0`, the odd amplitude is `i * sin θ * cos θ^(u - 1)`. -/
 theorem ampO_zero_right (θ : ℝ) (u : ℕ) (hu : 1 ≤ u) :
     ampO θ u 0 = I * (Real.sin θ : ℂ) * (Real.cos θ : ℂ) ^ (u - 1) := by
   unfold ampO
@@ -99,12 +145,16 @@ theorem ampO_zero_right (θ : ℝ) (u : ℕ) (hu : 1 ≤ u) :
   · intro h
     exact absurd (Finset.mem_range.mpr (by omega)) h
 
+/-- The odd amplitude vanishes whenever `u = 0`. -/
 theorem ampO_zero_left (θ : ℝ) (v : ℕ) : ampO θ 0 v = 0 := by
   simp [ampO]
 
+/-- The odd amplitude vanishes at the light-cone origin. -/
 theorem ampO_zero_zero (θ : ℝ) : ampO θ 0 0 = 0 := by
   simp [ampO]
 
+/-- At positive light-cone coordinates, the odd amplitude satisfies the recurrence combining the
+preceding odd amplitude with the other preceding even amplitude. See [Meyer1996a]. -/
 theorem ampO_rec (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) (hv : 1 ≤ v) :
     ampO θ u v =
       (Real.cos θ : ℂ) * ampO θ u (v - 1) + (I * (Real.sin θ : ℂ)) * ampE θ (u - 1) v := by
@@ -220,6 +270,8 @@ theorem ampO_rec (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) (hv : 1 ≤ v) :
       rw [hexp, hexp2]
       simp
 
+/-- At positive light-cone coordinates, the even amplitude satisfies the recurrence combining
+the preceding even amplitude with the other preceding odd amplitude. See [Meyer1996a]. -/
 theorem ampE_rec (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) (hv : 1 ≤ v) :
     ampE θ u v =
       (Real.cos θ : ℂ) * ampE θ (u - 1) v + (I * (Real.sin θ : ℂ)) * ampO θ u (v - 1) := by
@@ -354,6 +406,8 @@ theorem ampE_rec (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) (hv : 1 ≤ v) :
     rw [hexp, hexp2]
     simp
 
+/-- Away from the light-cone origin, applying the light-cone recurrence to the explicit
+amplitudes reproduces them. See [Meyer1996a]. -/
 theorem lcStep_ampVec (θ : ℝ) (u v : ℕ) (h : 0 < u + v) :
     lcStep θ (ampVec θ) u v = ampVec θ u v := by
   ext i
@@ -397,6 +451,8 @@ theorem lcStep_ampVec (θ : ℝ) (u v : ℕ) (h : 0 < u + v) :
       rw [ampE_rec θ u v hu1 hv1]
       simp
 
+/-- Decreasing a positive left light-cone coordinate by one decreases its lattice position by
+one. -/
 lemma lcCell_pred_left (u v : ℕ) (hu : 1 ≤ u) :
     lcCell (u - 1) v = lcCell u v - 1 := by
   unfold lcCell
@@ -406,6 +462,8 @@ lemma lcCell_pred_left (u v : ℕ) (hu : 1 ≤ u) :
   rw [hcast]
   ring
 
+/-- Decreasing a positive right light-cone coordinate by one increases its lattice position by
+one. -/
 lemma lcCell_pred_right (u v : ℕ) (hv : 1 ≤ v) :
     lcCell u (v - 1) = lcCell u v + 1 := by
   unfold lcCell
@@ -415,6 +473,8 @@ lemma lcCell_pred_right (u v : ℕ) (hv : 1 ≤ v) :
   rw [hcast]
   ring
 
+/-- Evolution from `caPsi0` vanishes strictly to the right of the time-`t` light cone. See
+[Meyer1996a]. -/
 theorem caEvolve_gt (θ : ℝ) :
     ∀ (t : ℕ) (y : ℤ), (t : ℤ) < y → caEvolve θ t caPsi0 y = 0 := by
   intro t
@@ -433,6 +493,8 @@ theorem caEvolve_gt (θ : ℝ) :
     ext i
     fin_cases i <;> simp [caBlockA_mulVec, caBlockB_mulVec]
 
+/-- Evolution from `caPsi0` vanishes strictly to the left of the time-`t` light cone. See
+[Meyer1996a]. -/
 theorem caEvolve_lt (θ : ℝ) :
     ∀ (t : ℕ) (y : ℤ), y < -((t : ℤ)) → caEvolve θ t caPsi0 y = 0 := by
   intro t
@@ -451,6 +513,8 @@ theorem caEvolve_lt (θ : ℝ) :
     ext i
     fin_cases i <;> simp [caBlockA_mulVec, caBlockB_mulVec]
 
+/-- If `u + v = t`, evolution from the localized component-one state at `lcCell u v` equals the
+explicit amplitude vector. See [Meyer1996a]. -/
 theorem caEvolve_amp (θ : ℝ) :
     ∀ (t u v : ℕ), u + v = t →
       caEvolve θ t caPsi0 (lcCell u v) = ampVec θ u v := by
@@ -514,26 +578,34 @@ theorem caEvolve_amp (θ : ℝ) :
         simp only [lcStep, if_neg (by omega : ¬ u = 0), if_neg (by omega : ¬ v = 0)] at hstep
         exact hstep
 
+/-- The two-by-two matrix interchanging the two components. -/
 def swap2 : Matrix (Fin 2) (Fin 2) ℂ := !![0, 1; 1, 0]
 
+/-- Swapping components intertwines `caBlockA` with `caBlockB`. -/
 theorem swap2_mul_caBlockA (θ : ℝ) :
     swap2 * caBlockA θ = caBlockB θ * swap2 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [swap2, caBlockA, caBlockB]
 
+/-- Swapping components intertwines `caBlockB` with `caBlockA`. -/
 theorem swap2_mul_caBlockB (θ : ℝ) :
     swap2 * caBlockB θ = caBlockA θ * swap2 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [swap2, caBlockA, caBlockB]
 
+/-- The state localized at the origin in component zero. -/
 def caPsi0L : ℤ → Fin 2 → ℂ := fun x i => if x = 0 ∧ i = 0 then 1 else 0
 
+/-- The localized component-zero state is the reflected and component-swapped localized
+component-one state. -/
 theorem caPsi0L_eq (x : ℤ) : caPsi0L x = swap2.mulVec (caPsi0 (-x)) := by
   ext i
   fin_cases i <;>
     by_cases hx : x = 0 <;>
       simp [caPsi0L, caPsi0, swap2, Matrix.mulVec, dotProduct, Fin.sum_univ_two, hx]
 
+/-- Evolution from the component-zero initial state is obtained by reflecting and swapping the
+evolution from the component-one initial state. See [Meyer1996a]. -/
 theorem caEvolve_mirror (θ : ℝ) (t : ℕ) (x : ℤ) :
     caEvolve θ t caPsi0L x = swap2.mulVec (caEvolve θ t caPsi0 (-x)) := by
   have hA : ∀ w : Fin 2 → ℂ,
@@ -555,6 +627,8 @@ theorem caEvolve_mirror (θ : ℝ) (t : ℕ) (x : ℤ) :
     rw [show -(x - 1) = -x + 1 by ring, show -(x + 1) = -x - 1 by ring]
     rw [add_comm]
 
+/-- For `u + v = t`, evolution from the localized component-zero state has components `ampE θ v
+u` and `ampO θ v u`. See [Meyer1996a]. -/
 theorem caEvolve_left_amp (θ : ℝ) (t u v : ℕ) (h : u + v = t) :
     caEvolve θ t caPsi0L (lcCell u v) = ![ampE θ v u, ampO θ v u] := by
   rw [caEvolve_mirror]
@@ -567,6 +641,8 @@ theorem caEvolve_left_amp (θ : ℝ) (t u v : ℕ) (h : u + v = t) :
   fin_cases i <;>
     simp [ampVec, swap2, Matrix.mulVec, dotProduct, Fin.sum_univ_two]
 
+/-- Lattice evolution commutes with translation of the initial state by any integer. See
+[Meyer1996a]. -/
 theorem caEvolve_translate (θ : ℝ) (t : ℕ) (k : ℤ) (ψ : ℤ → Fin 2 → ℂ) :
     caEvolve θ t (fun x => ψ (x - k)) = fun x => caEvolve θ t ψ (x - k) := by
   induction t with
@@ -580,12 +656,16 @@ theorem caEvolve_translate (θ : ℝ) (t : ℕ) (k : ℤ) (ψ : ℤ → Fin 2 �
     rw [show x - k - 1 = x - 1 - k by ring,
       show x - k + 1 = x + 1 - k by ring]
 
+/-- The explicit amplitude vector gives evolution from a translated component-one initial state
+at the correspondingly translated light-cone position. See [Meyer1996a]. -/
 theorem caEvolve_amp_translate (θ : ℝ) (t u v : ℕ) (h : u + v = t) (k : ℤ) :
     caEvolve θ t (fun x => caPsi0 (x - k)) (lcCell u v + k) = ampVec θ u v := by
   rw [caEvolve_translate θ t k caPsi0]
   change caEvolve θ t caPsi0 (lcCell u v + k - k) = ampVec θ u v
   rw [show lcCell u v + k - k = lcCell u v by ring, caEvolve_amp θ t u v h]
 
+/-- The swapped explicit amplitudes give evolution from a translated component-zero initial
+state at the correspondingly translated light-cone position. See [Meyer1996a]. -/
 theorem caEvolve_left_amp_translate (θ : ℝ) (t u v : ℕ) (h : u + v = t) (k : ℤ) :
     caEvolve θ t (fun x => caPsi0L (x - k)) (lcCell u v + k) =
       ![ampE θ v u, ampO θ v u] := by
@@ -593,6 +673,7 @@ theorem caEvolve_left_amp_translate (θ : ℝ) (t u v : ℕ) (h : u + v = t) (k 
   change caEvolve θ t caPsi0L (lcCell u v + k - k) = ![ampE θ v u, ampO θ v u]
   rw [show lcCell u v + k - k = lcCell u v by ring, caEvolve_left_amp θ t u v h]
 
+/-- For `u ≥ 1`, the odd recurrence amplitude equals the odd path sum. See [Meyer1996a]. -/
 theorem ampO_eq_pathSumOdd (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) :
     ampO θ u v = pathSumOdd θ u v := by
   unfold ampO pathSumOdd
@@ -609,6 +690,7 @@ theorem ampO_eq_pathSumOdd (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) :
   simp only [show 2 * (k + 1) - 1 = 2 * k + 1 by omega]
   ring
 
+/-- For `v ≥ 1`, the even recurrence amplitude equals the even path sum. See [Meyer1996a]. -/
 theorem ampE_eq_pathSumEven (θ : ℝ) (u v : ℕ) (hv : 1 ≤ v) :
     ampE θ u v = pathSumEven θ u v := by
   unfold ampE pathSumEven
@@ -620,6 +702,8 @@ theorem ampE_eq_pathSumEven (θ : ℝ) (u v : ℕ) (hv : 1 ≤ v) :
   rw [h1]
   ring
 
+/-- Adding the straight-path boundary contribution to the even path sum gives `ampE` for all
+light-cone coordinates. See [Meyer1996a]. -/
 theorem fullEvenAmp_eq_ampE (θ : ℝ) (u v : ℕ) :
     fullEvenAmp θ u v = ampE θ u v := by
   by_cases hv : v = 0

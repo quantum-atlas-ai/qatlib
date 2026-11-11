@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileFiniteRestrictedStat
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileDefs
+
+/-!
+# Recovery of a separated finite quantile
+
+`riskStableQuantileFinite` proves that `riskVaR` returns a specified quantile index with high
+probability when the CDF values have the required margin around the target. It combines the
+approximate-bracket estimate with `risk_stable_wrong_index`, yielding a depth-weighted median
+failure bound for the search of [WoernerEgger2019].
+
+## Main statements
+
+* `riskStableQuantileFinite`: establish the finite separated-quantile recovery contract.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +35,9 @@ open Matrix
 open scoped Classical BigOperators ENNReal
 set_option autoImplicit false
 
+/-- Under the separated-quantile and readout-window assumptions, `riskVaR` returns an index
+unequal to `v` with probability at most `(Nat.clog 2 xs.length + 1) * (8/9)^r`. This is the
+stable quantile case of the search in [Woerner and Egger, Section II][WoernerEgger2019]. -/
 theorem riskStableQuantileFinite : StableQuantileFiniteRestricted := by
   intro I _ _ A j loss xs q eps M r v hA hM hxs hs hloss hq0 hq1 heps hv hwindow habove hbelow
   apply le_trans

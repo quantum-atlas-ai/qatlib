@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedStat
 import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
+
+/-!
+# Restricted QSP compilation
+
+This module proves `QspCompilationRestricted`, a scalar response version of the QSP compilation
+guarantee in [LowChuang2017]. An even polynomial and an odd polynomial satisfying the prescribed
+degree and approximation conditions yield a phase sequence with response error at most 8ε and
+squared modulus at least 1 − 16ε.
+
+## Main statements
+
+* `qspCompilationRestricted`: The restricted compilation specification follows from polynomial
+  achievability.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,10 +42,12 @@ open Polynomial
 
 section Helpers
 
+/-- Composing a constant real polynomial with any real polynomial leaves it unchanged. -/
 private theorem lcC_comp_real (s : ℝ) (p : Polynomial ℝ) :
     (Polynomial.C s).comp p = Polynomial.C s := by
   simp [Polynomial.comp]
 
+/-- The complex norm of a real number embedded in ℂ equals its absolute value. -/
 private theorem norm_ofReal' (r : ℝ) : ‖((r : ℝ) : ℂ)‖ = |r| := by
   have h : Complex.normSq ((r : ℝ) : ℂ) = r * r := Complex.normSq_ofReal r
   rw [Complex.normSq_eq_norm_sq] at h
@@ -39,6 +60,7 @@ private theorem norm_ofReal' (r : ℝ) : ‖((r : ℝ) : ℂ)‖ = |r| := by
     have hna : 0 ≤ |r| := abs_nonneg r
     linarith
 
+/-- The complex exponential exp(iy) has norm one for real y. -/
 private theorem norm_exp_I (y : ℝ) : ‖Complex.exp (Complex.I * (y : ℂ))‖ = 1 := by
   have hre : (Complex.I * (y : ℂ)).re = 0 := by
     simp [Complex.mul_re]
@@ -59,6 +81,9 @@ private theorem norm_exp_I (y : ℝ) : ‖Complex.exp (Complex.I * (y : ℂ))‖
 
 end Helpers
 
+/-- The restricted QSP compilation specification holds: the stated polynomial approximation
+hypotheses yield phases with response error at most 8ε and squared modulus at least 1 − 16ε.
+This is the scalar guarantee corresponding to [Low and Chuang, Theorem 2][LowChuang2017]. -/
 theorem qspCompilationRestricted : QspCompilationRestricted := by
   intro N h A Qt ε hN hp hodd hper hAeven hQtodd hAdeg hQtdeg hεpos hε16 happrox
   set s : ℝ := 1 / (1 + ε) with hsdef

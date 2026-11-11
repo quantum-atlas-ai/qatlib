@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.TrotterFormula.LieStrang.TrotterFirstOrderTailSumStat
+
+/-!
+# First-order Trotter bounds using tail sums
+
+This module proves a first-order finite-family error bound that retains each commutator with the
+sum of later terms before taking its norm. It formalizes the tail-sum form of the estimate in
+[ChildsEtAl2021Trotter].
+
+The proof establishes a one-segment bound and then accumulates the error through unitary powers
+to obtain the positive-segment statement `trotterFirstOrderTailSum`.
+
+## Main statements
+
+* `tailSegment_error`: the one-segment tail-commutator bound.
+* `trotterFirstOrderTailSum`: the segmented first-order tail-sum specification.
+
+## References
+
+* [Childs et al., Proposition 15][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,27 +41,37 @@ namespace Qatlib.Concepts.TrotterFormula.LieStrang
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The single family segment interpreted from the ordered evolutions with dummy labels. -/
 private def tailSegment {D m : ℕ} (H : Fin m → Operator D) (t : ℝ) : Operator D :=
   pfInterpret (List.ofFn (fun j => (HamiltonianEvolution (H j) t, 0)))
 
+/-- Interpreting a word with head `x` equals the tail interpretation multiplied on the right by
+`x.1`. -/
 private theorem tail_interpret_cons {D : ℕ} (x : Operator D × ℕ) (xs) :
     pfInterpret (x :: xs) = pfInterpret xs*x.1 := by
   change xs.foldl (fun V y => y.1*V) (x.1*1) = _
   rw [pfInterpret_start, mul_one]
 
+/-- A nonempty family segment is the segment for later terms multiplied on the right by the
+first term's evolution. -/
 private theorem tailSegment_cons {D m : ℕ} (H : Fin (m+1) → Operator D) (t : ℝ) :
     tailSegment H t = tailSegment (fun i : Fin m => H i.succ) t*HamiltonianEvolution (H 0) t := by
   rw [tailSegment, List.ofFn_succ, tail_interpret_cons]
   rfl
 
+/-- The tail sum after index zero is the sum of the successor-indexed family terms. -/
 private theorem tail_zero {D m : ℕ} (H : Fin (m+1) → Operator D) :
     finiteStrangTail H 0 = ∑ j : Fin m, H j.succ := by
   simp [finiteStrangTail, Fin.sum_univ_succ]
 
+/-- A tail sum at a successor index equals the corresponding tail sum in the family with its
+first term removed. -/
 private theorem tail_succ {D m : ℕ} (H : Fin (m+1) → Operator D) (j : Fin m) :
     finiteStrangTail H j.succ = finiteStrangTail (fun i : Fin m => H i.succ) j := by
   simp [finiteStrangTail, Fin.sum_univ_succ]
 
+/-- For Hermitian family terms, the one-segment error is at most `t² / 2` times the sum of norms
+of commutators between each term and its later-term sum. -/
 private theorem tailSegment_error (D m : ℕ) (H : Fin m → Operator D) (t : ℝ)
     (hH : ∀ j, (H j).IsHermitian) :
     ‖tailSegment H t-HamiltonianEvolution (∑ j, H j) t‖ ≤
@@ -80,11 +111,13 @@ private theorem tailSegment_error (D m : ℕ) (H : Fin m → Operator D) (t : �
         dsimp only [B, tail]
         ring
 
+/-- Word interpretation equals the left-multiplication fold of its matrix entries. -/
 private theorem tail_interpret_fst {D : ℕ} (xs : List (Operator D × ℕ)) :
     pfInterpret xs = (xs.map Prod.fst).foldl (fun U V => V*U) 1 := by
   unfold pfInterpret
   exact (List.foldl_map (f := Prod.fst) (g := fun U V => V*U)).symm
 
+/-- The segmented family operator is the `r`th power of the tail segment at step size `t / r`. -/
 private theorem tailFamily_power {D m : ℕ} (H : Fin m → Operator D) (t : ℝ) (r : ℕ) :
     pfFamily H t r = (tailSegment H (t/r))^r := by
   unfold pfFamily pfFamilyWord
@@ -93,6 +126,8 @@ private theorem tailFamily_power {D m : ℕ} (H : Fin m → Operator D) (t : ℝ
   rw [tail_interpret_fst, tailSegment, tail_interpret_fst, List.map_ofFn, List.map_ofFn]
   rfl
 
+/-- The first-order tail-sum specification holds for Hermitian finite families and positive
+segment counts, in the form of [Childs et al., Proposition 15][ChildsEtAl2021Trotter]. -/
 theorem trotterFirstOrderTailSum : TrotterFirstOrderTailSum := by
   intro D m r H t hr hH
   have hR : (0 : ℝ) < r := by exact_mod_cast hr

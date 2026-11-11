@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
 import Mathlib.Tactic.Linarith
+
+/-!
+# Event bounds for query-truncated observed circuits
+
+This module compares events in an observed circuit with the same events after
+`truncateObservedQueries` imposes a query budget. It proves preservation of event mass on short
+executions and bounds the possible loss by the expected query count divided by `K + 1`. These
+estimates support query-resource comparisons in the computational setting of
+[NielsenChuang2010].
+
+## Main statements
+
+* `observed_event_short_le_truncate`: Event mass on executions using at most `K` queries is
+  bounded by the truncated event mass.
+* `observed_event_sub_expected_le_truncate`: Expected query count controls event mass lost under
+  truncation.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +42,8 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The mass of an event restricted to executions using at most `K` queries is at most its mass
+in the query-truncated circuit. -/
 theorem observed_event_short_le_truncate (O : Matrix I I ℂ) (P : ObservedCircuit I)
     (psi : QState I) (K : ℕ) (E : Bool → List (ℕ × ℕ) → Bool) :
     observedEventMass O P psi
@@ -68,6 +92,8 @@ theorem observed_event_short_le_truncate (O : Matrix I I ℂ) (P : ObservedCircu
         ihTrue (ProjectiveBranch M true psi) K
           (fun accepted outcomes => E accepted ((2, 1) :: outcomes))
 
+/-- Truncating after `K` queries decreases event mass by at most the original expected query
+count divided by `K + 1`. -/
 theorem observed_event_sub_expected_le_truncate (O : Matrix I I ℂ)
     (P : ObservedCircuit I) (psi : QState I) (K : ℕ)
     (E : Bool → List (ℕ × ℕ) → Bool) :

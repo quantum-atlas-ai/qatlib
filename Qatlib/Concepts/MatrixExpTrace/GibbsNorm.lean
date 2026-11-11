@@ -7,6 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpGibbsPerturbation
 import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
 import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
+
+/-!
+# Perturbation bounds for normalized Gibbs matrices
+
+This module transfers the trace-norm perturbation bound for Hermitian exponentials to their
+normalized Gibbs matrices. `normalized_gibbs_branch_traceNorm_le` supplies positivity, positive
+partition functions, and a normalized trace-norm bound, while `normalized_gibbs_branch_eps_le`
+turns a logarithmic operator-norm tolerance into a prescribed error.
+
+`sdp_gibbs_perturbation_noncommuting` states the same estimate in the operator representation
+used by semidefinite-programming routines. The matrix positivity background is standard
+[Bhatia1997], and Gibbs-state approximation is a component of the SDP framework in
+[BrandaoSvore2017].
+
+## Main statements
+
+- `exp_posSemidef` and `exp_trace_re_pos` establish the positivity needed for normalization.
+* `normalized_gibbs_branch_traceNorm_le` bounds normalized trace-norm distance by `2 * (exp ‖H -
+  K‖ - 1)`.
+- `normalized_gibbs_branch_eps_le` gives an error tolerance under `‖H - K‖ ≤ log (1 + ε / 2)`.
+- `normalized_gibbs_completion` packages the branch, tolerance, and SDP formulations.
+
+## References
+
+- [Bhatia, 1997][Bhatia1997]. Matrix Analysis.
+* [Brandao and Svore, 2017][BrandaoSvore2017]. Quantum Speed-Ups for Solving Semidefinite
+  Programs.
+-/
+
 open Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.SdpMmwSolver.OracleError
@@ -22,6 +51,7 @@ open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The matrix exponential of a Hermitian matrix is positive semidefinite. -/
 theorem exp_posSemidef {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (hH : H.IsHermitian) :
     (NormedSpace.exp H).PosSemidef := by
@@ -29,11 +59,16 @@ theorem exp_posSemidef {I : Type} [Fintype I] [DecidableEq I]
   have h : Hm.exp.mat.PosSemidef := HermitianMat.zero_le_iff.mp Hm.exp_nonneg
   simpa only [hermitian_exp_mat] using! h
 
+/-- The real trace of a Hermitian matrix exponential is strictly positive when the matrix index
+type is nonempty. -/
 theorem exp_trace_re_pos {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (H : Matrix I I ℂ) (hH : H.IsHermitian) :
     0 < (Matrix.trace (NormedSpace.exp H)).re :=
   exp_trace_pos ⟨H, hH⟩
 
+/-- Establishes positivity and positive real traces for the Hermitian exponentials of `H` and
+`K`, and bounds the trace-norm distance of their normalized positive branches by `2 * (exp
+‖H - K‖ - 1)`. -/
 theorem normalized_gibbs_branch_traceNorm_le {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (H K : Matrix I I ℂ) (hH : H.IsHermitian) (hK : H.IsHermitian → K.IsHermitian) :
     (NormedSpace.exp H).PosSemidef ∧ (NormedSpace.exp K).PosSemidef ∧
@@ -71,6 +106,8 @@ theorem normalized_gibbs_branch_traceNorm_le {I : Type} [Fintype I] [DecidableEq
   apply (div_le_iff₀ (lt_max_of_lt_left hp)).mpr
   linarith
 
+/-- For Hermitian inputs, an operator-norm perturbation at most `log (1 + ε / 2)` implies that
+their normalized Gibbs branches have trace-norm distance at most the positive tolerance `ε`. -/
 theorem normalized_gibbs_branch_eps_le (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (H K : Matrix I I ℂ) (ε : ℝ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) (hε : 0 < ε)
@@ -86,6 +123,8 @@ theorem normalized_gibbs_branch_eps_le (I : Type) [Fintype I] [DecidableEq I] [N
       _ = 1 + ε / 2 := Real.exp_log h1
   linarith
 
+/-- For positive dimension and Hermitian `H` and `K`, bounds the trace-norm distance between
+`exp H / re (trace (exp H))` and its `K` counterpart by `2 * (exp ‖H - K‖ - 1)`. -/
 theorem sdp_gibbs_perturbation_noncommuting (D : ℕ) (H K : Qatlib.Foundations.PureStateMath.Operator D)
     (hD : 0 < D) (hH : H.IsHermitian) (hK : K.IsHermitian) :
     Matrix.traceNorm
@@ -119,6 +158,9 @@ theorem sdp_gibbs_perturbation_noncommuting (D : ℕ) (H K : Qatlib.Foundations.
   apply (div_le_iff₀ (lt_max_of_lt_left hp)).mpr
   linarith
 
+/-- Packages the normalized Gibbs perturbation bound with its positivity guarantees, the
+logarithmic tolerance criterion, and the equivalent formula using explicitly normalized SDP
+operators. -/
 theorem normalized_gibbs_completion :
     (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
         (H K : Matrix I I ℂ), H.IsHermitian → K.IsHermitian →

@@ -10,12 +10,33 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.Complex.Basic
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma4RestrictedQuan
 import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+
+/-!
+# Specification of known-success amplification
+
+`Theorem2RestrictedSpec.expected` packages the good-mass guarantee for a unitary prepared state
+when its initial success angle is known. The chosen number of iterations is `Nat.floor (π / (4 *
+θ))`. For background, see [BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `expected`: The proposition that the prescribed iteration count gives good squared mass at
+  least `max (1 - a) a` for a unitary preparation with positive initial mass `a = sin² θ` and `0
+  ≤ θ ≤ π/2`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
 open scoped BigOperators
 
 namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem2RestrictedSpec
+/-- The proposition that the prescribed iteration count gives good squared mass at least `max (1
+- a) a` for a unitary preparation with positive initial mass `a = sin² θ` and `0 ≤ θ ≤ π/2`. -/
 def expected : Prop :=
   (∀ (n : ℕ) (A : Matrix (Fin (n + 1)) (Fin (n + 1)) ℂ)
     (g : Fin (n + 1) → Bool),

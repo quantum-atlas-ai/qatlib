@@ -85,6 +85,27 @@ import Mathlib.Tactic.Zify
 import Qatlib.Papers.CertQuery09.MainResults.Source.SpectralBound
 import Qatlib.Papers.CertQuery09.MainResults.Source.QueryLowerSum
 import Qatlib.Papers.CertQuery09.MainResults.Source.TwoLevelAdversary
+
+/-!
+# Product adversary matrices for two-level certification
+
+This module constructs a product adjacency matrix by changing exactly one component of a tuple
+of two-level representatives. Its operator norm grows linearly with the number of components,
+while each query-filtered row sum remains bounded by `d`, yielding the explicit product lower
+bound used in the certification analysis of [AmbainisEtAl2009].
+
+## Main statements
+
+* `gammaProd_opNorm`: computes the product matrix norm.
+* `two_level_prod_adv_ratio_ge`: bounds the explicit adversary ratio below by `t * (d - 1)`.
+* `two_level_prod_advValue_ge`: transfers this bound to the adversary value under boundedness of
+  the ratio set.
+
+## References
+
+* [Ambainis et al., 2009][AmbainisEtAl2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -100,9 +121,12 @@ namespace Qatlib.Papers.CertQuery09.MainResults.Source
 
 variable {d : ℕ}
 
+/-- Adjacency of tuples that are representative-adjacent in one component and equal in every
+other component. -/
 def prodAdj (t : ℕ) (X Y : Fin t → TwoLevelRep d) : Prop :=
   ∃ j : Fin t, repAdj (X j) (Y j) ∧ ∀ l : Fin t, l ≠ j → X l = Y l
 
+/-- The component witnessing product adjacency is unique. -/
 theorem prodAdj_witness_unique {t : ℕ} {X Y : Fin t → TwoLevelRep d} {j j' : Fin t}
     (hj : repAdj (X j) (Y j) ∧ ∀ l, l ≠ j → X l = Y l)
     (hj' : repAdj (X j') (Y j') ∧ ∀ l, l ≠ j' → X l = Y l) : j = j' := by
@@ -110,14 +134,18 @@ theorem prodAdj_witness_unique {t : ℕ} {X Y : Fin t → TwoLevelRep d} {j j' :
   have hX : X j' = Y j' := hj.2 j' (fun h => hne h.symm)
   exact hj'.1.1 (congrArg repRow hX)
 
+/-- Product adjacency is symmetric. -/
 theorem prodAdj_comm {t : ℕ} {X Y : Fin t → TwoLevelRep d}
     (h : prodAdj (d := d) t X Y) : prodAdj t Y X := by
   obtain ⟨j, hadj, hagree⟩ := h
   exact ⟨j, repAdj_comm hadj, fun l hl => (hagree l hl).symm⟩
 
+/-- The real zero-one adjacency matrix of the product relation on tuples of two-level
+representatives. -/
 def gammaProd (t : ℕ) : Matrix (Fin t → TwoLevelRep d) (Fin t → TwoLevelRep d) ℝ := by
   classical exact fun X Y => if prodAdj t X Y then 1 else 0
 
+/-- The product adjacency matrix is symmetric. -/
 theorem gammaProd_symm (t : ℕ) :
     ∀ X Y, gammaProd (d := d) t X Y = gammaProd t Y X := by
   classical
@@ -127,12 +155,14 @@ theorem gammaProd_symm (t : ℕ) :
   · rw [if_pos h, if_pos (prodAdj_comm h)]
   · rw [if_neg h, if_neg (fun h' => h (prodAdj_comm h'))]
 
+/-- Every entry of the product adjacency matrix is nonnegative. -/
 theorem gammaProd_nonneg (t : ℕ) : ∀ X Y, 0 ≤ gammaProd (d := d) t X Y := by
   classical
   intro X Y
   unfold gammaProd
   split <;> norm_num
 
+/-- The product adjacency matrix vanishes between tuples with the same componentwise output. -/
 theorem gammaProd_eq_zero (t : ℕ) :
     ∀ X Y, sumFun (repFun (d := d)) t X = sumFun (repFun (d := d)) t Y →
       gammaProd (d := d) t X Y = 0 := by
@@ -146,6 +176,8 @@ theorem gammaProd_eq_zero (t : ℕ) :
   simp only [sumFun] at hf
   exact hadj.1 hf
 
+/-- Each product adjacency entry is the sum of the indicators for its possible single-component
+witnesses. -/
 theorem gammaProd_eq_indicator_sum (t : ℕ) (X Y : Fin t → TwoLevelRep d) :
     gammaProd (d := d) t X Y
       = ∑ j : Fin t,
@@ -169,6 +201,8 @@ theorem gammaProd_eq_indicator_sum (t : ℕ) (X Y : Fin t → TwoLevelRep d) :
       exact if_neg (fun hc => h ⟨j, hc⟩)
     rw [if_neg h, hsum]
 
+/-- The number of product neighbors witnessed by a fixed component equals the number of
+representative neighbors of that component. -/
 theorem filter_witness_card (t : ℕ) (X : Fin t → TwoLevelRep d) (j : Fin t) :
     (Finset.univ.filter (fun Y : Fin t → TwoLevelRep d =>
         repAdj (X j) (Y j) ∧ ∀ l : Fin t, l ≠ j → X l = Y l)).card
@@ -191,10 +225,13 @@ theorem filter_witness_card (t : ℕ) (X : Fin t → TwoLevelRep d) (j : Fin t) 
       exact ⟨by simpa using hq, fun l hl => by simp [hl]⟩
     · simp
 
+/-- The real-valued cardinality of a filtered finite universe equals the sum of its zero-one
+indicator function. -/
 theorem card_filter_cast {ι : Type*} [Fintype ι] (P : ι → Prop) [DecidablePred P] :
     ((Finset.univ.filter P).card : ℝ) = ∑ x, (if P x then (1 : ℝ) else 0) := by
   rw [← Finset.sum_boole (p := P) (s := (Finset.univ : Finset ι))]
 
+/-- For `d ≥ 1`, every row sum of the product adjacency matrix is `t * (d * (d - 1))`. -/
 theorem gammaProd_row_sum (t : ℕ) (hd : 1 ≤ d) (X : Fin t → TwoLevelRep d) :
     ∑ Y, gammaProd (d := d) t X Y = ((t * (d * (d - 1)) : ℕ) : ℝ) := by
   classical
@@ -215,6 +252,8 @@ theorem gammaProd_row_sum (t : ℕ) (hd : 1 ≤ d) (X : Fin t → TwoLevelRep d)
   rw [Nat.cast_mul, Nat.cast_mul, Nat.cast_sub hd, Nat.cast_one]
   ring
 
+/-- For `d ≥ 1` and positive `t`, the Euclidean operator norm of the product adjacency matrix is
+`t * (d * (d - 1))`. -/
 theorem gammaProd_opNorm (t : ℕ) (hd : 1 ≤ d) (_ht : 0 < t) :
     ‖gammaProd (d := d) t‖ = ((t * (d * (d - 1)) : ℕ) : ℝ) := by
   haveI : Nonempty (Fin t → TwoLevelRep d) :=
@@ -222,6 +261,8 @@ theorem gammaProd_opNorm (t : ℕ) (hd : 1 ≤ d) (_ht : 0 < t) :
   exact l2_opNorm_eq_of_regular (gammaProd (d := d) t) (gammaProd_nonneg t)
     (gammaProd_symm t) (gammaProd_row_sum t hd)
 
+/-- The query-filtered product adjacency entry is one exactly when the tuples are
+product-adjacent and differ at the queried input bit, and is zero otherwise. -/
 theorem hadamard_gammaProd (hn : 0 < d * d) (t : ℕ)
     (X Y : Fin t → TwoLevelRep d) (i : Fin (d * d * t)) :
     (gammaProd (d := d) t ⊙ diffMatrix (sumBit (repBits d) t hn) i) X Y
@@ -234,6 +275,7 @@ theorem hadamard_gammaProd (hn : 0 < d * d) (t : ℕ)
     by_cases h2 : sumBit (repBits d) t hn X i = sumBit (repBits d) t hn Y i <;>
     simp [h1, h2]
 
+/-- Every row sum of a query-filtered product adjacency matrix is at most `d`. -/
 theorem hadamard_gammaProd_row_sum_le (hn : 0 < d * d) (t : ℕ)
     (X : Fin t → TwoLevelRep d) (i : Fin (d * d * t)) :
     ∑ Y, (gammaProd (d := d) t ⊙ diffMatrix (sumBit (repBits d) t hn) i) X Y
@@ -327,6 +369,8 @@ theorem hadamard_gammaProd_row_sum_le (hn : 0 < d * d) (t : ℕ)
     _ ≤ (T.card : ℝ) := by exact_mod_cast hinj
     _ ≤ (d : ℝ) := by exact_mod_cast hTcard
 
+/-- For positive block and total input lengths, the adversary denominator of the product
+adjacency matrix is at most `d`. -/
 theorem gammaProd_advDenom_le (t : ℕ) (hdd : 0 < d * d) (HN : 0 < d * d * t) :
     advDenom (sumBit (repBits d) t hdd) HN (gammaProd (d := d) t) ≤ (d : ℝ) := by
   classical
@@ -340,9 +384,12 @@ theorem gammaProd_advDenom_le (t : ℕ) (hdd : 0 < d * d) (HN : 0 < d * d * t) :
       (diffMatrix (sumBit (repBits d) t hdd) i)
       (gammaProd_symm t) (fun x y => diffMatrix_symm _ _ x y) X Y
 
+/-- The two-level representative with distinguished row zero and all stored positions zero,
+defined when `d ≥ 1`. -/
 def baseRep (d : ℕ) (hd : 1 ≤ d) : TwoLevelRep d :=
   ⟨(⟨0, hd⟩, fun _ => ⟨0, hd⟩), rfl⟩
 
+/-- For `d ≥ 2` and positive tuple length, the product adjacency matrix is nonzero. -/
 theorem gammaProd_ne_zero {t : ℕ} (hd : 2 ≤ d) (ht : 0 < t) :
     gammaProd (d := d) t ≠ 0 := by
   classical
@@ -374,6 +421,8 @@ theorem gammaProd_ne_zero {t : ℕ} (hd : 2 ≤ d) (ht : 0 < t) :
   rw [if_pos hprod] at h1
   exact one_ne_zero h1
 
+/-- Querying the concatenated input at offset `j * (d * d) + ip` returns bit `ip` of component
+`j`. -/
 theorem sumBit_eq_of_block (hn : 0 < d * d) (t : ℕ) (X : Fin t → TwoLevelRep d)
     (j : Fin t) (ip : Fin (d * d)) :
     sumBit (repBits d) t hn X
@@ -392,6 +441,8 @@ theorem sumBit_eq_of_block (hn : 0 < d * d) (t : ℕ) (X : Fin t → TwoLevelRep
   · exact congrArg X (Fin.ext hdiv)
   · exact Fin.ext hmod
 
+/-- For `d ≥ 2` and positive tuple length, the product adjacency matrix has a strictly positive
+adversary denominator. -/
 theorem gammaProd_advDenom_pos {t : ℕ} (hd : 2 ≤ d) (hdd : 0 < d * d) (ht : 0 < t)
     (HN : 0 < d * d * t) :
     0 < advDenom (sumBit (repBits d) t hdd) HN (gammaProd (d := d) t) := by
@@ -456,6 +507,8 @@ theorem gammaProd_advDenom_pos {t : ℕ} (hd : 2 ≤ d) (hdd : 0 < d * d) (ht : 
   rw [Finset.lt_sup'_iff ⟨⟨0, HN⟩, Finset.mem_univ _⟩]
   exact ⟨i, Finset.mem_univ _, hpos_norm⟩
 
+/-- For `d ≥ 2` and positive tuple length `t`, the product adjacency matrix's adversary ratio is
+at least `t * (d - 1)`. -/
 theorem two_level_prod_adv_ratio_ge {t : ℕ} (hd : 2 ≤ d) (ht : 0 < t)
     (hdd : 0 < d * d) (HN : 0 < d * d * t) :
     (t : ℝ) * ((d : ℝ) - 1)
@@ -476,6 +529,9 @@ theorem two_level_prod_adv_ratio_ge {t : ℕ} (hd : 2 ≤ d) (ht : 0 < t)
           ring
     _ = ‖gammaProd (d := d) t‖ := hop.symm
 
+/-- For `d ≥ 2` and positive tuple length `t`, boundedness above of the product adversary-ratio
+set implies that its adversary value is at least `t * (d - 1)`. This is the explicit
+two-level product lower bound used in the certification analysis of [AmbainisEtAl2009]. -/
 theorem two_level_prod_advValue_ge {t : ℕ} (hd : 2 ≤ d) (ht : 0 < t)
     (hdd : 0 < d * d) (HN : 0 < d * d * t)
     (hbdd : BddAbove (advRatios (sumBit (repBits d) t hdd) HN (sumFun (repFun (d := d)) t))) :

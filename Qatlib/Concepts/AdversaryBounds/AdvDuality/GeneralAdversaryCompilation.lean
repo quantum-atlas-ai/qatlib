@@ -18,6 +18,38 @@ import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+
+/-!
+# Compiling adaptive circuits for adversary bounds
+
+This module constructs phase query simulations that store observed branch states in a history
+register. `phase_observed_full_branch_purification` and `phase_kraus_full_branch_purification`
+preserve the corresponding query depth or budget, while event transport identifies the simulated
+readout with the original execution mass. The constructions use the quantum operation and
+dilation framework described in [Watrous2018].
+
+These simulations transfer general adversary query bounds to observed, Kraus, and instrument
+circuits, including mixed inputs and decoded outputs [HoyerLeeSpalek2007]. Query truncation and
+a tail estimate then give bounds in terms of expected queries, with constants `128` for exact
+computation and `512` for error at most `1 / 16`.
+
+## Main statements
+
+* `phase_observed_full_branch_purification`: a unitary simulation retaining every observed
+  branch state.
+* `phase_instrument_mixed_value_bound`: the general adversary value bounds the instrument query
+  budget with the stated error factor.
+* `instrument_event_sub_expected_le_truncate`: the event mass lost under truncation is bounded
+  by the expected query count divided by the next query threshold.
+* `phase_instrument_small_error_expected_value_bound`: a uniform mean query bound `T` implies
+  `advPmValue input f ≤ ENNReal.ofReal (512 * T)`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -51,6 +83,7 @@ set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000
 noncomputable section
 
+/-- The phase padding word is unitary and contains exactly one query and two gates. -/
 theorem phasePaddingWord_cost {n q : ℕ} {W H : Type}
     [Fintype W] [DecidableEq W] [Fintype H] [DecidableEq H] (active : H → Bool) :
     IsUnitaryCircuit (phasePaddingWord (n := n) (q := q) (W := W) active) ∧
@@ -63,6 +96,8 @@ theorem phasePaddingWord_cost {n q : ℕ} {W H : Type}
 end
 noncomputable section
 
+/-- The padding word multiplies each amplitude by the phase of the answer register in active
+sectors and the auxiliary register otherwise. -/
 theorem phasePaddingWord_raw {n q : ℕ} [NeZero q] {W H : Type}
     [Fintype W] [DecidableEq W] [Fintype H] [DecidableEq H]
     (active : H → Bool) (input : Fin n → Fin q) (v : QState (PhasePaddingSpace n q W H))
@@ -80,6 +115,8 @@ theorem phasePaddingWord_raw {n q : ℕ} [NeZero q] {W H : Type}
 end
 noncomputable section
 
+/-- On an embedded state with zero auxiliary register, phase padding applies the query phase
+only in active history sectors. -/
 theorem phasePaddingWord_frame {n q : ℕ} [NeZero q] {W H : Type}
     [Fintype W] [DecidableEq W] [Fintype H] [DecidableEq H]
     (active : H → Bool) (input : Fin n → Fin q)
@@ -94,6 +131,7 @@ theorem phasePaddingWord_frame {n q : ℕ} [NeZero q] {W H : Type}
 end
 noncomputable section
 
+/-- Embedding into the phase padding space preserves normalization. -/
 theorem phasePaddingInput_normalized {n q : ℕ} [NeZero q] {W H : Type}
     [Fintype W] [Fintype H] (v : QState ((Fin n × Fin q) × (W × H))) (hv : Normalized v) :
     Normalized (phasePaddingInput v) := by
@@ -115,6 +153,8 @@ set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000
 variable {n q : ℕ} [NeZero q] {W H : Type} [Fintype W] [Fintype H] [DecidableEq W] [DecidableEq H]
 noncomputable section
+/-- Reassociate the query, workspace, history, and auxiliary answer registers into
+`PhasePaddingSpace`. -/
 def phaseHistoryLayout : ((((Fin n × Fin q) × W) × H) × Fin q) ≃ PhasePaddingSpace n q W H where
   toFun x := (x.1.1.1,x.1.1.2,x.1.2,x.2)
   invFun x := (((x.1,x.2.1),x.2.2.1),x.2.2.2)
@@ -122,6 +162,8 @@ def phaseHistoryLayout : ((((Fin n × Fin q) × W) × H) × Fin q) ≃ PhasePadd
   right_inv _ := rfl
 end
 noncomputable section
+/-- Extend a history space operator by the identity on the auxiliary answer register and reindex
+into the padding layout. -/
 def phaseHistoryLift
     (U : Matrix (((Fin n × Fin q) × W) × H) (((Fin n × Fin q) × W) × H) ℂ) :
     Matrix (PhasePaddingSpace n q W H) (PhasePaddingSpace n q W H) ℂ :=
@@ -130,6 +172,7 @@ end
 noncomputable section
 omit [NeZero q] in
 
+/-- Extending and reindexing a unitary history operator gives a unitary padding space operator. -/
 theorem phaseHistoryLift_unitary
     {U : Matrix (((Fin n × Fin q) × W) × H) (((Fin n × Fin q) × W) × H) ℂ}
     (hU : U ∈ Matrix.unitaryGroup _ ℂ) :
@@ -137,6 +180,8 @@ theorem phaseHistoryLift_unitary
   unitaryGroup_reindex phaseHistoryLayout (tensorGate_unitary hU (Submonoid.one_mem _))
 end
 noncomputable section
+/-- Reassociate a state with a history register and embed it with the auxiliary answer register
+fixed to zero. -/
 def phaseHistoryInput (v : QState (((Fin n × Fin q) × W) × H)) :
     QState (PhasePaddingSpace n q W H) :=
   phasePaddingInput (fun x => v ((x.1,x.2.1),x.2.2))
@@ -144,6 +189,8 @@ end
 noncomputable section
 omit [DecidableEq W] [DecidableEq H] in
 
+/-- Applying a lifted history operator to an embedded state agrees with embedding the original
+operator's output. -/
 theorem apply_phaseHistoryLift
     (U : Matrix (((Fin n × Fin q) × W) × H) (((Fin n × Fin q) × W) × H) ℂ)
     (v : QState (((Fin n × Fin q) × W) × H)) :
@@ -159,6 +206,8 @@ theorem apply_phaseHistoryLift
 end
 noncomputable section
 
+/-- Phase padding on an embedded history subspace applies the query phase exactly in the
+original active sectors. -/
 theorem run_phasePadding_embedded {K : Type} [Fintype K] [DecidableEq K]
     (e : K ↪ H) (active : K → Bool) (input : Fin n → Fin q)
     (v : QState (((Fin n × Fin q) × W) × K)) :
@@ -180,6 +229,8 @@ theorem run_phasePadding_embedded {K : Type} [Fintype K] [DecidableEq K]
     simp only [hzero, mul_zero]
 end
 noncomputable section
+/-- Build a circuit from an initial lifted gate followed by successive padded queries and lifted
+frontier gates. -/
 def phaseFrontierLayerWord
     (U0 : Matrix (((Fin n × Fin q) × W) × H) (((Fin n × Fin q) × W) × H) ℂ)
     (Us : ℕ → Matrix (((Fin n × Fin q) × W) × H) (((Fin n × Fin q) × W) × H) ℂ)
@@ -191,6 +242,8 @@ end
 noncomputable section
 omit [NeZero q] in
 
+/-- With unitary frontier gates, the circuit of `k` layers is unitary with `k` queries and `1 +
+3 * k` gates. -/
 theorem phaseFrontierLayerWord_cost
     (U0 : Matrix (((Fin n × Fin q) × W) × H) (((Fin n × Fin q) × W) × H) ℂ)
     (Us : ℕ → Matrix (((Fin n × Fin q) × W) × H) (((Fin n × Fin q) × W) × H) ℂ)
@@ -216,6 +269,8 @@ theorem phaseFrontierLayerWord_cost
 end
 noncomputable section
 
+/-- Under the initialization and advancement identities, the layered circuit realizes the
+embedded adaptive frontier state. -/
 theorem run_phaseFrontierLayerWord
     (P : ObservedCircuit ((Fin n × Fin q) × W))
     (e : ∀ j, adaptiveFrontierType P j ↪ H) (blank : H)
@@ -253,6 +308,9 @@ theorem run_phaseFrontierLayerWord
 end
 noncomputable section
 
+/-- Every well formed observed circuit has a unitary phase query simulation packing all branch
+states into a history register. Its query count is the observed query depth and its gate
+count is one plus three times that depth. -/
 theorem phase_observed_full_branch_purification
     (P : ObservedCircuit ((Fin n × Fin q) × W)) (hP : observedWellFormed P) :
     ∃ (R : ℕ) (C : Circuit (PhasePaddingSpace n q W (Fin (R+1)))),
@@ -296,6 +354,7 @@ end
 noncomputable section
 omit [DecidableEq W] [DecidableEq H] in
 
+/-- Embedding a history state into the padding space preserves its branch mass. -/
 theorem phaseHistoryInput_mass (v : QState (((Fin n × Fin q) × W) × H)) :
     branchMass (phaseHistoryInput v) = branchMass v := by
   have hs (a : Fin n × Fin q) (w : W) (h : H) :
@@ -309,6 +368,8 @@ theorem phaseHistoryInput_mass (v : QState (((Fin n × Fin q) × W) × H)) :
 end
 noncomputable section
 
+/-- Measuring an event on a packed trace history gives the sum of the selected trace masses when
+the history register fits the list. -/
 theorem phasePackedTrace_readout
     (ts : List (BranchTrace ((Fin n × Fin q) × W))) (K : ℕ) (hK : ts.length ≤ K)
     (event : BranchTrace ((Fin n × Fin q) × W) → Bool) :
@@ -354,12 +415,16 @@ theorem phasePackedTrace_readout
       cases event t <;> simp [branchMass,MeasureProb,BornProb]
 end
 noncomputable section
+/-- The padding space basis event selecting history indices whose syntactic observed branches
+accept. -/
 def phaseObservedHistoryEvent (P : ObservedCircuit ((Fin n × Fin q) × W)) (R : ℕ) :
     Finset (PhasePaddingSpace n q W (Fin (R+1))) :=
   Finset.univ.filter (fun x => ((observedBranchWords P).map Prod.fst).getD x.2.2.1.val false)
 end
 noncomputable section
 
+/-- A circuit satisfying the packed branch state formula has history event probability equal to
+the original observed acceptance mass. -/
 theorem phase_observed_acceptance_transport
     (P : ObservedCircuit ((Fin n × Fin q) × W)) (R : ℕ)
     (C : Circuit (PhasePaddingSpace n q W (Fin (R+1))))
@@ -392,6 +457,8 @@ end
 noncomputable section
 omit [DecidableEq W] in
 
+/-- Embedding a normalized initial state with blank history zero gives a normalized padding
+space state. -/
 theorem phaseHistory_initial_normalized (R : ℕ) (ψ : QState ((Fin n × Fin q) × W))
     (hψ : Normalized ψ) :
     Normalized (phaseHistoryInput (H := Fin (R+1)) (fun y => if y.2 = 0 then ψ y.1 else 0)) := by
@@ -415,12 +482,16 @@ set_option maxRecDepth 100000
 variable {n q : ℕ} [NeZero q] {W H : Type}
 variable {n q : ℕ} [NeZero q] {W : Type} [Fintype W]
 noncomputable section
+/-- Read the Boolean return flag of the syntactic branch indexed by the history register,
+defaulting to false. -/
 def phaseObservedReturnLabel (P : ObservedCircuit ((Fin n × Fin q) × W)) (R : ℕ)
     (x : PhasePaddingSpace n q W (Fin (R+1))) : Bool :=
   ((observedBranchWords P).map Prod.fst).getD x.2.2.1.val false
 end
 noncomputable section
 
+/-- Under the packed branch state formula, the return label POVM probability equals the mass of
+observed branches returning that Boolean. -/
 theorem phase_observed_return_transport
     (P : ObservedCircuit ((Fin n × Fin q) × W)) (R : ℕ)
     (C : Circuit (PhasePaddingSpace n q W (Fin (R+1))))
@@ -453,6 +524,8 @@ theorem phase_observed_return_transport
 end
 noncomputable section
 
+/-- A successful observed phase query circuit computing a Boolean function satisfies the general
+adversary bound with the binary output error factor [HoyerLeeSpalek2007]. -/
 theorem phase_observed_binary_query_lower_bound
     {X : Type} [Fintype X] [DecidableEq X]
     (input : X → Fin n → Fin q) (f : X → Bool) (Gamma : Matrix X X ℂ)
@@ -488,17 +561,23 @@ variable {n q : ℕ} [NeZero q] {W H : Type}
 variable {n q : ℕ} [NeZero q] {W : Type} [Fintype W]
 variable {n q d s : ℕ} [NeZero q] {W : Type} [Fintype W]
 noncomputable section
+/-- Reassociate an encoded query register and Kraus ancilla into a query register with an
+enlarged workspace. -/
 def phaseKrausLayout (e : Fin d ≃ (Fin n × Fin q) × W) :
     (Fin d × Fin s) ≃ (Fin n × Fin q) × (W × Fin s) :=
   (Equiv.prodCongr e (Equiv.refl (Fin s))).trans (Equiv.prodAssoc _ _ _)
 end
 noncomputable section
+/-- The phase oracle relabeled onto the finite dimensional data register by the given register
+equivalence. -/
 def phaseKrausOracle (e : Fin d ≃ (Fin n × Fin q) × W) (input : Fin n → Fin q) : Operator d :=
   relabelGate e.symm (phaseOracle (W := W) input)
 end
 noncomputable section
 omit [Fintype W] in
 
+/-- Tensoring the encoded phase oracle with an identity ancilla and relabeling gives the phase
+oracle on the enlarged workspace. -/
 theorem phaseKrausOracle_extend (e : Fin d ≃ (Fin n × Fin q) × W) (input : Fin n → Fin q) :
     relabelGate (phaseKrausLayout (s := s) e) (TensorGate (phaseKrausOracle e input) (1 : Operator s)) =
       phaseOracle (W := W × Fin s) input := by
@@ -518,6 +597,8 @@ theorem phaseKrausOracle_extend (e : Fin d ≃ (Fin n × Fin q) × W) (input : F
 end
 noncomputable section
 
+/-- Compile a well formed Kraus circuit into an observed circuit and relabel it into the
+enlarged phase query register layout. -/
 def phaseKrausObserved (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (P : KrausCircuit d s) (hP : krausCircuitWellFormed P) :
     ObservedCircuit ((Fin n × Fin q) × (W × Fin s)) :=
@@ -526,6 +607,7 @@ end
 noncomputable section
 omit [NeZero q] in
 
+/-- The observed circuit compiled from a well formed Kraus circuit is well formed. -/
 theorem phaseKrausObserved_legal (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (P : KrausCircuit d s) (hP : krausCircuitWellFormed P) :
     observedWellFormed (phaseKrausObserved e zero P hP) :=
@@ -534,12 +616,15 @@ end
 noncomputable section
 omit [NeZero q] in
 
+/-- The compiled observed circuit's query depth equals the original Kraus circuit budget. -/
 theorem phaseKrausObserved_depth (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (P : KrausCircuit d s) (hP : krausCircuitWellFormed P) :
     observedQueryDepth (phaseKrausObserved e zero P hP) = krausCircuitBudget P := by
   rw [observedQueryDepth_eq_budget,phaseKrausObserved,relabelObserved_budget,compileKrausCircuit_budget]
 end
 noncomputable section
+/-- Tensor a pure data state with a fixed Kraus ancilla basis state and relabel into the
+enlarged phase query register. -/
 def phaseKrausInput (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (ψ : QState (Fin d)) : QState ((Fin n × Fin q) × (W × Fin s)) :=
   relabelState (phaseKrausLayout e) (TensorState ψ (Ket zero))
@@ -547,12 +632,16 @@ end
 noncomputable section
 omit [NeZero q] in
 
+/-- The relabeled data state with a fixed Kraus ancilla is normalized when the original state is
+normalized. -/
 theorem phaseKrausInput_normalized (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (ψ : QState (Fin d)) (hψ : Normalized ψ) : Normalized (phaseKrausInput e zero ψ) :=
   normalized_relabelState _ (normalized_tensorState hψ (normalized_ket zero))
 end
 noncomputable section
 
+/-- The compiled observed traces are the original Kraus traces embedded with the fixed ancilla
+and relabeled into the phase query layout. -/
 theorem phaseKrausObserved_traces (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (P : KrausCircuit d s) (hP : krausCircuitWellFormed P) (input : Fin n → Fin q)
     (ψ : QState (Fin d)) :
@@ -566,12 +655,16 @@ theorem phaseKrausObserved_traces (e : Fin d ≃ (Fin n × Fin q) × W) (zero : 
 end
 noncomputable section
 
+/-- The sum of pure Kraus branch masses selected by an event on return flags and measurement
+records. -/
 def krausPureEventMass (O : Operator d) (P : KrausCircuit d s) (ψ : QState (Fin d))
     (event : Bool → List (ℕ × ℕ) → Bool) : ℝ :=
   ((krausCircuitTraces O P ψ).map fun t => if event t.accepted t.outcomes then branchMass t.state else 0).sum
 end
 noncomputable section
 
+/-- Compiling and relabeling a Kraus circuit preserves the mass of every event on return flags
+and measurement records. -/
 theorem phaseKrausObserved_event (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (P : KrausCircuit d s) (hP : krausCircuitWellFormed P) (input : Fin n → Fin q)
     (ψ : QState (Fin d)) (event : Bool → List (ℕ × ℕ) → Bool) :
@@ -594,6 +687,8 @@ theorem phaseKrausObserved_event (e : Fin d ≃ (Fin n × Fin q) × W) (zero : F
 end
 noncomputable section
 
+/-- Embed the relabeled data and Kraus ancilla state into blank history zero with auxiliary
+phase register zero. -/
 def phaseKrausDeferredInput (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (R : ℕ) (ψ : QState (Fin d)) :
     QState (PhasePaddingSpace n q (W × Fin s) (Fin (R+1))) :=
@@ -601,6 +696,7 @@ def phaseKrausDeferredInput (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
 end
 noncomputable section
 
+/-- The deferred Kraus input is normalized whenever the original data state is normalized. -/
 theorem phaseKrausDeferredInput_normalized (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (R : ℕ) (ψ : QState (Fin d)) (hψ : Normalized ψ) :
     Normalized (phaseKrausDeferredInput e zero R ψ) :=
@@ -608,6 +704,9 @@ theorem phaseKrausDeferredInput_normalized (e : Fin d ≃ (Fin n × Fin q) × W)
 end
 noncomputable section
 
+/-- A well formed Kraus circuit has a unitary phase query simulation packing its embedded branch
+states into history sectors. Its query count equals the Kraus budget and its gate count is
+one plus three times that budget. -/
 theorem phase_kraus_full_branch_purification
     (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (P : KrausCircuit d s) (hP : krausCircuitWellFormed P) :
@@ -632,6 +731,8 @@ theorem phase_kraus_full_branch_purification
 end
 noncomputable section
 
+/-- For an output separating Hermitian witness, a successful Boolean Kraus circuit satisfies the
+binary error adversary bound in terms of its query budget [HoyerLeeSpalek2007]. -/
 theorem phase_kraus_binary_query_lower_bound
     {X : Type} [Fintype X] [DecidableEq X]
     (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
@@ -664,11 +765,15 @@ theorem phase_kraus_binary_query_lower_bound
   simpa only [phaseKrausObserved_depth] using! h
 end
 noncomputable section
+/-- Replace a pure trace's state by its outer product while preserving its return flag, counts,
+and measurement record. -/
 def krausOuterTrace (t : BranchTrace (Fin d)) : MixedBranchTrace d :=
   ⟨outerProduct t.state,t.accepted,t.queries,t.gates,t.measurements,t.outcomes⟩
 end
 noncomputable section
 
+/-- Kraus mixed execution on a pure outer product equals the outer product conversion of every
+pure execution trace. -/
 theorem krausMixedTraces_outer (O : Operator d) (P : KrausCircuit d s) (ψ : QState (Fin d)) :
     krausCircuitMixedTraces O P (outerProduct ψ) =
       (krausCircuitTraces O P ψ).map krausOuterTrace := by
@@ -684,6 +789,7 @@ theorem krausMixedTraces_outer (O : Operator d) (P : KrausCircuit d s) (ψ : QSt
 end
 noncomputable section
 
+/-- Pure Kraus event mass equals mixed event mass on the initial state's outer product. -/
 theorem krausPureEventMass_eq_mixed (O : Operator d) (P : KrausCircuit d s)
     (ψ : QState (Fin d)) (event : Bool → List (ℕ × ℕ) → Bool) :
     krausPureEventMass O P ψ event = krausCircuitEventMass O P (outerProduct ψ) event := by
@@ -693,6 +799,8 @@ theorem krausPureEventMass_eq_mixed (O : Operator d) (P : KrausCircuit d s)
 end
 noncomputable section
 
+/-- A fitting padded Kraus compilation preserves instrument event mass on a pure input after
+restoring the original measurement record. -/
 theorem phase_instrument_padded_event
     (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
     (P : InstrumentCircuit d) (hP : instrumentCircuitWellFormed P)
@@ -716,6 +824,8 @@ theorem phase_instrument_padded_event
 end
 noncomputable section
 
+/-- The maximum number of queries along an instrument circuit branch, taking the supremum over
+instrument outcomes. -/
 def instrumentCircuitQueryBudget : InstrumentCircuit d → ℕ
   | .halt _ => 0
   | .step (.gate _) P => instrumentCircuitQueryBudget P
@@ -724,6 +834,8 @@ def instrumentCircuitQueryBudget : InstrumentCircuit d → ℕ
 end
 noncomputable section
 
+/-- Compiling an instrument circuit to a variable Kraus circuit does not exceed its instrument
+query budget. -/
 theorem instrument_compile_budget_le (P : InstrumentCircuit d) :
     variableKrausBudget (compileInstrumentCircuit P) ≤ instrumentCircuitQueryBudget P := by
   induction P with
@@ -740,6 +852,8 @@ theorem instrument_compile_budget_le (P : InstrumentCircuit d) :
 end
 noncomputable section
 
+/-- For an output separating Hermitian witness, a successful Boolean instrument circuit on a
+normalized pure input satisfies the binary error adversary query bound [HoyerLeeSpalek2007]. -/
 theorem phase_instrument_binary_query_lower_bound
     {X : Type} [Fintype X] [DecidableEq X]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -775,6 +889,8 @@ theorem phase_instrument_binary_query_lower_bound
 end
 noncomputable section
 
+/-- The list of decoded return flags and measurement records of observed traces is independent
+of the oracle and input state. -/
 theorem observedDecoder_syntax {I Y : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I)
     (decode : Bool → List (ℕ × ℕ) → Y) :
@@ -789,6 +905,8 @@ theorem observedDecoder_syntax {I Y : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- Decode the syntactic observed branch selected by a history index, using `decode false []`
+when the index is absent. -/
 def phaseObservedDecodedLabel {Y : Type}
     (P : ObservedCircuit ((Fin n × Fin q) × W)) (R : ℕ)
     (decode : Bool → List (ℕ × ℕ) → Y)
@@ -798,6 +916,8 @@ def phaseObservedDecodedLabel {Y : Type}
 end
 noncomputable section
 
+/-- Under the packed branch state formula, decoded label POVM probabilities equal the masses of
+observed branches with that decoded output. -/
 theorem phase_observed_decode_transport {Y : Type} [Fintype Y] [DecidableEq Y]
     (P : ObservedCircuit ((Fin n × Fin q) × W)) (R : ℕ)
     (decode : Bool → List (ℕ × ℕ) → Y)
@@ -838,6 +958,9 @@ theorem phase_observed_decode_transport {Y : Type} [Fintype Y] [DecidableEq Y]
 end
 noncomputable section
 
+/-- A successful decoded observed circuit with normalized pure input satisfies the general
+output adversary bound with error factor `1 - 2 * sqrt (eps * (1 - eps)) - 2 * eps`
+[HoyerLeeSpalek2007]. -/
 theorem phase_observed_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (input : X → Fin n → Fin q) (f : X → Y) (Gamma : Matrix X X ℂ)
@@ -866,6 +989,8 @@ theorem phase_observed_query_lower_bound
 end
 noncomputable section
 
+/-- A successful decoded instrument circuit with normalized pure input satisfies the general
+output adversary witness bound in terms of its query budget [HoyerLeeSpalek2007]. -/
 theorem phase_instrument_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -912,6 +1037,8 @@ theorem phase_instrument_query_lower_bound
 end
 noncomputable section
 
+/-- A successful decoded observed circuit on a density operator satisfies the general output
+adversary witness bound in terms of `observedQueryBudget` [HoyerLeeSpalek2007]. -/
 theorem phase_observed_mixed_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -954,6 +1081,8 @@ theorem phase_observed_mixed_query_lower_bound
   simpa only [hq] using! hb
 end
 noncomputable section
+/-- Identify a flattened data and Kraus ancilla index with the phase query register and enlarged
+workspace layout. -/
 def phaseKrausFlatLayout (e : Fin d ≃ (Fin n × Fin q) × W) :
     Fin (d*s) ≃ (Fin n × Fin q) × (W × Fin s) :=
   finProdFinEquiv.symm.trans (phaseKrausLayout e)
@@ -961,6 +1090,8 @@ end
 noncomputable section
 omit [Fintype W] in
 
+/-- The phase oracle in the flattened layout equals the data oracle tensored with the ancilla
+identity and reindexed by `finProdFinEquiv`. -/
 theorem phaseKrausFlatOracle (e : Fin d ≃ (Fin n × Fin q) × W) (input : Fin n → Fin q) :
     phaseKrausOracle (phaseKrausFlatLayout (s := s) e) input =
       relabelGate finProdFinEquiv (TensorGate (phaseKrausOracle e input) (1 : Operator s)) := by
@@ -972,6 +1103,8 @@ theorem phaseKrausFlatOracle (e : Fin d ≃ (Fin n × Fin q) × W) (input : Fin 
 end
 noncomputable section
 
+/-- A successful decoded Kraus circuit on a density operator satisfies the general output
+adversary witness bound in terms of its Kraus query budget [HoyerLeeSpalek2007]. -/
 theorem phase_kraus_mixed_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W) (zero : Fin s)
@@ -1009,6 +1142,8 @@ theorem phase_kraus_mixed_query_lower_bound
 end
 noncomputable section
 
+/-- A successful decoded instrument circuit on a density operator satisfies the general output
+adversary witness bound in terms of its instrument query budget [HoyerLeeSpalek2007]. -/
 theorem phase_instrument_mixed_query_lower_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -1045,6 +1180,9 @@ theorem phase_instrument_mixed_query_lower_bound
 end
 noncomputable section
 
+/-- For successful decoded instrument computation on a density operator, the general adversary
+value times half the general output error factor is bounded by the query budget
+[HoyerLeeSpalek2007]. -/
 theorem phase_instrument_mixed_value_bound
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
@@ -1071,6 +1209,8 @@ variable {n q d s : ℕ} [NeZero q] {W : Type} [Fintype W]
 variable {d : ℕ}
 noncomputable section
 
+/-- Limit an instrument circuit to the given query budget, returning false when a further query
+would exceed it. -/
 def truncateInstrumentQueries : InstrumentCircuit d → ℕ → InstrumentCircuit d
   | .halt b, _ => .halt b
   | .step (.gate U) P, K => .step (.gate U) (truncateInstrumentQueries P K)
@@ -1080,6 +1220,7 @@ def truncateInstrumentQueries : InstrumentCircuit d → ℕ → InstrumentCircui
 end
 noncomputable section
 
+/-- Truncating a well formed instrument circuit preserves well formedness. -/
 theorem truncateInstrumentQueries_legal (P : InstrumentCircuit d)
     (hP : instrumentCircuitWellFormed P) (K : ℕ) :
     instrumentCircuitWellFormed (truncateInstrumentQueries P K) := by
@@ -1095,6 +1236,7 @@ theorem truncateInstrumentQueries_legal (P : InstrumentCircuit d)
 end
 noncomputable section
 
+/-- The query budget of a truncated instrument circuit is at most the truncation threshold. -/
 theorem truncateInstrumentQueries_budget (P : InstrumentCircuit d) (K : ℕ) :
     instrumentCircuitQueryBudget (truncateInstrumentQueries P K) ≤ K := by
   induction P generalizing K with
@@ -1109,6 +1251,8 @@ theorem truncateInstrumentQueries_budget (P : InstrumentCircuit d) (K : ℕ) :
 end
 noncomputable section
 
+/-- Every instrument execution trace has a positive semidefinite state when the input is
+positive semidefinite. -/
 theorem instrumentTraces_psd (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (hrho : rho.PosSemidef) :
     ∀ t ∈ instrumentCircuitMixedTraces O P rho, t.state.PosSemidef := by
@@ -1133,6 +1277,7 @@ theorem instrumentTraces_psd (O : Operator d) (P : InstrumentCircuit d)
 end
 noncomputable section
 
+/-- Every instrument execution trace has nonnegative mass on a positive semidefinite input. -/
 theorem instrumentTraceMass_nonneg (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (hrho : rho.PosSemidef) :
     ∀ t ∈ instrumentCircuitMixedTraces O P rho, 0 ≤ mixedMass t := by
@@ -1140,6 +1285,7 @@ theorem instrumentTraceMass_nonneg (O : Operator d) (P : InstrumentCircuit d)
   exact (RCLike.nonneg_iff.mp (instrumentTraces_psd O P rho hrho t ht).trace_nonneg).1
 end
 
+/-- A sum over a list is nonnegative when every summand on that list is nonnegative. -/
 private theorem real_list_sum_nonneg {α : Type} (xs : List α) (f : α → ℝ)
     (hf : ∀ x ∈ xs, 0 ≤ f x) : 0 ≤ (xs.map f).sum := by
   induction xs with
@@ -1148,6 +1294,7 @@ private theorem real_list_sum_nonneg {α : Type} (xs : List α) (f : α → ℝ)
     exact add_nonneg (hf x List.mem_cons_self)
       (ih (fun y hy => hf y (List.mem_cons_of_mem x hy)))
 
+/-- Pointwise comparison on a list implies comparison of the corresponding real sums. -/
 private theorem real_list_sum_mono {α : Type} (xs : List α) (f g : α → ℝ)
     (hfg : ∀ x ∈ xs, f x ≤ g x) : (xs.map f).sum ≤ (xs.map g).sum := by
   induction xs with
@@ -1157,6 +1304,7 @@ private theorem real_list_sum_mono {α : Type} (xs : List α) (f g : α → ℝ)
       (ih (fun y hy => hfg y (List.mem_cons_of_mem x hy)))
 noncomputable section
 
+/-- Every instrument event has nonnegative mass on a positive semidefinite input. -/
 theorem instrumentEventMass_nonneg (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (hrho : rho.PosSemidef) (E : Bool → List (ℕ × ℕ) → Bool) :
     0 ≤ instrumentCircuitEventMass O P rho E := by
@@ -1168,12 +1316,15 @@ theorem instrumentEventMass_nonneg (O : Operator d) (P : InstrumentCircuit d)
 end
 noncomputable section
 
+/-- The total mass of instrument traces making at least the specified number of queries. -/
 def instrumentQueryTailMass (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (K : ℕ) : ℝ :=
   ((instrumentCircuitMixedTraces O P rho).map fun t => if K ≤ t.queries then mixedMass t else 0).sum
 end
 noncomputable section
 
+/-- For a positive threshold and positive semidefinite input, query tail mass is at most the
+expected query count divided by that threshold. -/
 theorem instrumentQueryTail_le_expected (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (hrho : rho.PosSemidef) (K : ℕ) (hK : 0 < K) :
     instrumentQueryTailMass O P rho K ≤ instrumentCircuitExpectedQueries O P rho / K := by
@@ -1202,6 +1353,8 @@ theorem instrumentQueryTail_le_expected (O : Operator d) (P : InstrumentCircuit 
 end
 noncomputable section
 
+/-- The mass of event traces using at most `K` queries is at most the event mass after
+truncation to `K` queries. -/
 theorem instrument_event_short_le_truncate (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (hrho : rho.PosSemidef) (K : ℕ)
     (E : Bool → List (ℕ × ℕ) → Bool) :
@@ -1238,6 +1391,8 @@ theorem instrument_event_short_le_truncate (O : Operator d) (P : InstrumentCircu
 end
 noncomputable section
 
+/-- On a positive semidefinite input, truncating to `K` queries decreases event mass by at most
+the expected query count divided by `K + 1`. -/
 theorem instrument_event_sub_expected_le_truncate (O : Operator d) (P : InstrumentCircuit d)
     (rho : Operator d) (hrho : rho.PosSemidef) (K : ℕ)
     (E : Bool → List (ℕ × ℕ) → Bool) :
@@ -1266,6 +1421,8 @@ theorem instrument_event_sub_expected_le_truncate (O : Operator d) (P : Instrume
 end
 noncomputable section
 
+/-- If expected queries are uniformly at most `T`, truncation gives the adversary witness bound
+with budget `K` and error `eps + T / (K + 1)`, provided that error is at most one half. -/
 theorem phase_instrument_expected_truncation_bound
     {n q : ℕ} [NeZero q] {W X Y : Type} [Fintype W]
     [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -1299,6 +1456,8 @@ theorem phase_instrument_expected_truncation_bound
     (maxFilterNorm_nonneg input Gamma))
 end
 
+/-- The general output progress factor is at least one quarter when its error parameter is at
+most `1 / 16`. -/
 private theorem small_error_progress_constant (delta : ℝ) (hd : delta ≤ 1/16) :
     1/4 ≤ 1-2*Real.sqrt (delta*(1-delta))-2*delta := by
   have hs : Real.sqrt (delta*(1-delta)) ≤ 1/4 :=
@@ -1306,6 +1465,8 @@ private theorem small_error_progress_constant (delta : ℝ) (hd : delta ≤ 1/16
   linarith
 noncomputable section
 
+/-- For exact decoded instrument computation with uniform expected query bound `T`, every output
+separating Hermitian witness satisfies `‖Gamma‖ ≤ 128 * T * maxFilterNorm input Gamma`. -/
 theorem phase_instrument_exact_expected_lower_bound
     {n q : ℕ} [NeZero q] {W X Y : Type} [Fintype W]
     [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -1342,6 +1503,8 @@ theorem phase_instrument_exact_expected_lower_bound
 end
 noncomputable section
 
+/-- Exact decoded instrument computation with uniform expected query bound `T` satisfies
+`advPmValue input f ≤ ENNReal.ofReal (128 * T)`. -/
 theorem phase_instrument_exact_expected_value_bound
     {n q : ℕ} [NeZero q] {W X Y : Type} [Fintype W]
     [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -1370,6 +1533,9 @@ theorem phase_instrument_exact_expected_value_bound
 end
 noncomputable section
 
+/-- For decoded instrument computation with error at most `1 / 16` and uniform expected query
+bound `T`, each output separating Hermitian witness satisfies the norm bound with constant
+`512`. -/
 theorem phase_instrument_small_error_expected_lower_bound
     {n q : ℕ} [NeZero q] {W X Y : Type} [Fintype W]
     [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -1406,6 +1572,8 @@ theorem phase_instrument_small_error_expected_lower_bound
 end
 noncomputable section
 
+/-- Decoded instrument computation with error at most `1 / 16` and uniform expected query bound
+`T` satisfies `advPmValue input f ≤ ENNReal.ofReal (512 * T)`. -/
 theorem phase_instrument_small_error_expected_value_bound
     {n q : ℕ} [NeZero q] {W X Y : Type} [Fintype W]
     [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SpinModels08.MainResults.Defs
 import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+/-!
+# Hadamard-test expectation and concentration bounds
+
+This module models a Hadamard-test outcome as a two-point distribution with sign expectation
+`μ`. It proves concentration bounds for independent samples and the statistical success estimate
+used for additive approximation in [VanDenNestEtAl2009].
+
+## Main statements
+
+* `expect_hadamardLaw`: the signed outcome has expectation `μ`.
+* `hadamard_hoeffding`: the sample mean has tail mass at most `2 * exp (-K * ε² / 2)`.
+* `eq5_statistical_tail_bound`: the sample-size condition yields a success bound of `1 - 2 * exp
+  (-N)`.
+
+## References
+
+* [Van den Nest et al., 2009][VanDenNestEtAl2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,8 +41,10 @@ namespace Qatlib.Papers.SpinModels08.MainResults.HadamardTest
 
 open Qatlib.Papers.SpinModels08.MainResults
 
+/-- The signed outcome equal to one at zero and minus one at one. -/
 def signOutcome (x : Fin 2) : ℝ := if x = 0 then 1 else -1
 
+/-- The binary distribution with probabilities `(1 + μ) / 2` and `(1 - μ) / 2` for `|μ| ≤ 1`. -/
 def hadamardLaw (μ : ℝ) (hμ : |μ| ≤ 1) : FinDist (Fin 2) where
   prob x := if x = 0 then (1 + μ) / 2 else (1 - μ) / 2
   nonneg x := by
@@ -39,22 +61,27 @@ def hadamardLaw (μ : ℝ) (hμ : |μ| ≤ 1) : FinDist (Fin 2) where
     rw [if_pos rfl, if_neg h1]
     ring
 
+/-- The probability of outcome zero is `(1 + μ) / 2`. -/
 theorem hadamardLaw_prob_zero (μ : ℝ) (hμ : |μ| ≤ 1) :
     (hadamardLaw μ hμ).prob 0 = (1 + μ) / 2 := by
   show (if (0 : Fin 2) = 0 then (1 + μ) / 2 else (1 - μ) / 2) = (1 + μ) / 2
   exact if_pos rfl
 
+/-- The probability of outcome one is `(1 - μ) / 2`. -/
 theorem hadamardLaw_prob_one (μ : ℝ) (hμ : |μ| ≤ 1) :
     (hadamardLaw μ hμ).prob 1 = (1 - μ) / 2 := by
   show (if (1 : Fin 2) = 0 then (1 + μ) / 2 else (1 - μ) / 2) = (1 - μ) / 2
   exact if_neg (by decide)
 
+/-- The signed outcome at zero equals one. -/
 theorem signOutcome_zero : signOutcome 0 = 1 := if_pos rfl
 
+/-- The signed outcome at one equals minus one. -/
 theorem signOutcome_one : signOutcome 1 = -1 := by
   show (if (1 : Fin 2) = 0 then (1 : ℝ) else -1) = -1
   exact if_neg (by decide)
 
+/-- The signed Hadamard-test outcome has expectation `μ` [VanDenNestEtAl2009]. -/
 theorem expect_hadamardLaw (μ : ℝ) (hμ : |μ| ≤ 1) :
     (hadamardLaw μ hμ).expect signOutcome = μ := by
   show (∑ x : Fin 2, (if x = 0 then (1 + μ) / 2 else (1 - μ) / 2) * signOutcome x) = μ
@@ -62,6 +89,7 @@ theorem expect_hadamardLaw (μ : ℝ) (hμ : |μ| ≤ 1) :
     signOutcome_zero, signOutcome_one]
   ring
 
+/-- The uniformly weighted sum of the signed outcomes equals their finite sample average. -/
 theorem weightedSum_eq_avg {K : ℕ} (ω : Fin K → Fin 2) :
     weightedSum (fun _ : Fin K => (1 : ℝ) / K) (fun _ => signOutcome) ω
       = FinDist.avg signOutcome ω := by
@@ -69,6 +97,9 @@ theorem weightedSum_eq_avg {K : ℕ} (ω : Fin K → Fin 2) :
   rw [← Finset.mul_sum]
   ring
 
+/-- For a positive number of independent samples and positive `ε`, the probability of an
+absolute sample-mean error at least `ε` is at most `2 * exp (-K * ε² / 2)`
+[VanDenNestEtAl2009]. -/
 theorem hadamard_hoeffding {K : ℕ} (hK : 0 < K) (μ : ℝ) (hμ : |μ| ≤ 1)
     (ε : ℝ) (hε : 0 < ε) :
     eventMass (independent (fun _ : Fin K => hadamardLaw μ hμ))
@@ -124,6 +155,8 @@ theorem hadamard_hoeffding {K : ℕ} (hK : 0 < K) (μ : ℝ) (hμ : |μ| ≤ 1)
         field_simp [hKne]
         ring
 
+/-- If `K * ε² ≥ 2 * N`, the complement of the sample-mean error event has mass at least `1 - 2
+* exp (-N)` [VanDenNestEtAl2009]. -/
 theorem eq5_statistical_tail_bound {N K : ℕ} (hK : 0 < K)
     (μ : ℝ) (hμ : |μ| ≤ 1) (ε : ℝ) (hε : 0 < ε)
     (hKeps : 2 * (N : ℝ) ≤ (K : ℝ) * ε ^ 2) :

@@ -17,6 +17,27 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.FieldSimp
 import Qatlib.Papers.AnyonicSpin06.MainResults.FibonacciDensity
 
+/-!
+# Normalized Fibonacci generators in SU(2)
+
+The matrices `Gfib` and `Hfib` are explicit special unitary normalizations of Fibonacci
+generators, and `Gfib` has tenth power minus the identity and twentieth power the identity. The
+predicates `generatedDense`, `FibDense`, and `GenericB3Dense` state approximation and
+generic-density properties; `trivial_rep_not_dense` refutes the assertion that every special
+unitary braid pair generates dense words [KauffmanLomonaco2006].
+
+## Main statements
+
+* `Gfib_mem_SU2`: proves that `Gfib` is special unitary.
+* `Hfib_mem_SU2`: proves that `Hfib` is special unitary.
+* `Gfib_pow_twenty`: gives the twentieth-power identity.
+* `trivial_rep_not_dense`: refutes universal density of special unitary braid pairs.
+
+## References
+
+* [Kauffman and Lomonaco, 2006][KauffmanLomonaco2006]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -27,16 +48,21 @@ namespace Qatlib.Papers.AnyonicSpin06.MainResults.FibonacciSU2
 
 open Qatlib.Papers.AnyonicSpin06.MainResults.FibonacciDensity
 
+/-- The Fibonacci angle `7 * π / 10`. -/
 def thetaFib : ℝ := 7 * Real.pi / 10
 
+/-- The diagonal matrix with phases `exp (I * thetaFib)` and `exp (-I * thetaFib)`. -/
 def Gfib : Matrix (Fin 2) (Fin 2) ℂ :=
   !![Complex.exp (Complex.I * ((thetaFib : ℝ) : ℂ)), 0;
      0, Complex.exp (-(Complex.I * ((thetaFib : ℝ) : ℂ)))]
 
+/-- The matrix `Fmat` multiplied by the scalar `I`. -/
 def Ffib : Matrix (Fin 2) (Fin 2) ℂ := Complex.I • Fmat
 
+/-- The conjugate `Fmat * Gfib * Fmat` of the diagonal Fibonacci generator. -/
 def Hfib : Matrix (Fin 2) (Fin 2) ℂ := Fmat * Gfib * Fmat
 
+/-- For real `θ`, the complex phase `exp (I * θ)` has norm one. -/
 lemma norm_exp_I_mul (θ : ℝ) : ‖Complex.exp (Complex.I * ((θ : ℝ) : ℂ))‖ = 1 := by
   rw [Complex.norm_exp]
   have h : (Complex.I * ((θ : ℝ) : ℂ)).re = - ((θ : ℝ) : ℂ).im := by
@@ -44,6 +70,7 @@ lemma norm_exp_I_mul (θ : ℝ) : ‖Complex.exp (Complex.I * ((θ : ℝ) : ℂ)
   rw [h, Complex.ofReal_im]
   simp
 
+/-- For real `θ`, the complex phase `exp (-I * θ)` has norm one. -/
 lemma norm_exp_neg_I_mul (θ : ℝ) :
     ‖Complex.exp (-(Complex.I * ((θ : ℝ) : ℂ)))‖ = 1 := by
   rw [Complex.norm_exp]
@@ -52,6 +79,7 @@ lemma norm_exp_neg_I_mul (θ : ℝ) :
   rw [h]
   simp
 
+/-- The matrix `Gfib` is unitary. -/
 lemma Gfib_unitary : Gfib ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff]
   ext i j
@@ -60,15 +88,18 @@ lemma Gfib_unitary : Gfib ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   · simpa using mul_star_self_of_norm_one (norm_exp_I_mul thetaFib)
   · simpa using mul_star_self_of_norm_one (norm_exp_neg_I_mul thetaFib)
 
+/-- The determinant of `Gfib` equals one. -/
 lemma Gfib_det : Gfib.det = 1 := by
   rw [Matrix.det_fin_two]
   simp [Gfib, ← Complex.exp_add]
 
+/-- The square of `Ffib` equals minus the identity matrix. -/
 lemma Ffib_sq : Ffib * Ffib = -(1 : Matrix (Fin 2) (Fin 2) ℂ) := by
   unfold Ffib
   rw [smul_mul_smul, F_sq]
   simp [Complex.I_mul_I]
 
+/-- The matrix `Ffib` is unitary. -/
 lemma Ffib_unitary : Ffib ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff]
   unfold Ffib
@@ -96,6 +127,7 @@ lemma Ffib_unitary : Ffib ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
     ring_nf
     simpa [pow_two, add_comm] using hc
 
+/-- The determinant of `Fmat` equals minus one. -/
 lemma Fmat_det : Fmat.det = -1 := by
   rw [Matrix.det_fin_two]
   simp [Fmat]
@@ -106,6 +138,7 @@ lemma Fmat_det : Fmat.det = -1 := by
   have hc : (tau : ℂ) * (tau : ℂ) + (tau : ℂ) = 1 := by exact_mod_cast h
   linear_combination -hc
 
+/-- The determinant of `Ffib` equals one. -/
 lemma Ffib_det : Ffib.det = 1 := by
   unfold Ffib
   rw [Matrix.det_smul, Fmat_det]
@@ -113,40 +146,54 @@ lemma Ffib_det : Ffib.det = 1 := by
   rw [pow_two, Complex.I_mul_I]
   norm_num
 
+/-- The matrix `Hfib` is unitary. -/
 lemma Hfib_unitary : Hfib ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   unfold Hfib
   exact mul_mem (mul_mem F_unitary Gfib_unitary) F_unitary
 
+/-- The determinant of `Hfib` equals one. -/
 lemma Hfib_det : Hfib.det = 1 := by
   unfold Hfib
   rw [Matrix.det_mul, Matrix.det_mul, Fmat_det, Gfib_det]
   norm_num
 
+/-- The matrix `Gfib` belongs to the special unitary group on `Fin 2` [KauffmanLomonaco2006]. -/
 theorem Gfib_mem_SU2 : Gfib ∈ Matrix.specialUnitaryGroup (Fin 2) ℂ :=
   Matrix.mem_specialUnitaryGroup_iff.mpr ⟨Gfib_unitary, Gfib_det⟩
 
+/-- The matrix `Hfib` belongs to the special unitary group on `Fin 2` [KauffmanLomonaco2006]. -/
 theorem Hfib_mem_SU2 : Hfib ∈ Matrix.specialUnitaryGroup (Fin 2) ℂ :=
   Matrix.mem_specialUnitaryGroup_iff.mpr ⟨Hfib_unitary, Hfib_det⟩
 
+/-- The ordered product of a Boolean word in matrices `A` and `B`, with true selecting `A` and
+false selecting `B`. -/
 def wordProductGen (A B : Matrix (Fin 2) (Fin 2) ℂ) :
     List Bool → Matrix (Fin 2) (Fin 2) ℂ
   | [] => 1
   | b :: w => (if b then A else B) * wordProductGen A B w
 
+/-- The assertion that words in `A` and `B` approximate every special unitary two-by-two matrix
+to any positive entrywise tolerance. -/
 def generatedDense (A B : Matrix (Fin 2) (Fin 2) ℂ) : Prop :=
   ∀ U ∈ Matrix.specialUnitaryGroup (Fin 2) ℂ, ∀ ε : ℝ, 0 < ε →
     ∃ w : List Bool, ∀ i j, ‖wordProductGen A B w i j - U i j‖ < ε
 
+/-- The assertion that words in `Gfib` and `Hfib` are dense in the special unitary group in the
+entrywise approximation sense. -/
 def FibDense : Prop := generatedDense Gfib Hfib
 
+/-- The set of pairs of special unitary two-by-two matrices satisfying the braid relation `A * B
+* A = B * A * B`. -/
 def BraidPairSU2 : Set (Matrix (Fin 2) (Fin 2) ℂ × Matrix (Fin 2) (Fin 2) ℂ) :=
   {p | p.1 ∈ Matrix.specialUnitaryGroup (Fin 2) ℂ ∧
        p.2 ∈ Matrix.specialUnitaryGroup (Fin 2) ℂ ∧
        p.1 * p.2 * p.1 = p.2 * p.1 * p.2}
 
+/-- The assertion that braid pairs generating dense words form a dense subset of `BraidPairSU2`. -/
 def GenericB3Dense : Prop :=
   Dense {p : BraidPairSU2 | generatedDense p.val.1 p.val.2}
 
+/-- A natural power of `exp (I * θ)` equals `exp (I * (n * θ))`. -/
 lemma exp_I_mul_pow (θ : ℝ) (n : ℕ) :
     (Complex.exp (Complex.I * ((θ : ℝ) : ℂ))) ^ n
       = Complex.exp (Complex.I * (((n : ℝ) * θ : ℝ) : ℂ)) := by
@@ -155,6 +202,7 @@ lemma exp_I_mul_pow (θ : ℝ) (n : ℕ) :
   push_cast
   ring
 
+/-- A natural power of `exp (-I * θ)` equals `exp (-I * (n * θ))`. -/
 lemma exp_neg_I_mul_pow (θ : ℝ) (n : ℕ) :
     (Complex.exp (-(Complex.I * ((θ : ℝ) : ℂ)))) ^ n
       = Complex.exp (-(Complex.I * (((n : ℝ) * θ : ℝ) : ℂ))) := by
@@ -163,6 +211,7 @@ lemma exp_neg_I_mul_pow (θ : ℝ) (n : ℕ) :
   push_cast
   ring
 
+/-- The complex phase `exp (I * 7 * π)` equals minus one. -/
 lemma exp_I_mul_seven_pi :
     Complex.exp (Complex.I * ((7 * Real.pi : ℝ) : ℂ)) = -1 := by
   have h : Complex.I * ((7 * Real.pi : ℝ) : ℂ)
@@ -176,6 +225,7 @@ lemma exp_I_mul_seven_pi :
   rw [hpi]
   norm_num
 
+/-- The complex phase `exp (I * 14 * π)` equals one. -/
 lemma exp_I_mul_fourteen_pi :
     Complex.exp (Complex.I * ((14 * Real.pi : ℝ) : ℂ)) = 1 := by
   have h : Complex.I * ((14 * Real.pi : ℝ) : ℂ)
@@ -185,6 +235,7 @@ lemma exp_I_mul_fourteen_pi :
   rw [h, Complex.exp_nat_mul, exp_I_mul_seven_pi]
   norm_num
 
+/-- A natural power of a two-by-two diagonal matrix raises each diagonal entry to that power. -/
 lemma diag2_pow (a b : ℂ) (n : ℕ) :
     (!![a, 0; 0, b] : Matrix (Fin 2) (Fin 2) ℂ) ^ n = !![a ^ n, 0; 0, b ^ n] := by
   induction n with
@@ -197,16 +248,19 @@ lemma diag2_pow (a b : ℂ) (n : ℕ) :
       fin_cases i <;> fin_cases j <;>
         simp [Matrix.mul_apply, Fin.sum_univ_two, pow_succ]
 
+/-- Ten times `thetaFib` equals `7 * π`. -/
 lemma thetaFib_mul_ten : (((10 : ℕ) : ℝ) * thetaFib) = 7 * Real.pi := by
   unfold thetaFib
   push_cast
   ring
 
+/-- Twenty times `thetaFib` equals `14 * π`. -/
 lemma thetaFib_mul_twenty : (((20 : ℕ) : ℝ) * thetaFib) = 14 * Real.pi := by
   unfold thetaFib
   push_cast
   ring
 
+/-- The tenth power of `Gfib` equals minus the identity matrix [KauffmanLomonaco2006]. -/
 theorem Gfib_pow_ten : Gfib ^ 10 = -1 := by
   unfold Gfib
   rw [diag2_pow]
@@ -221,6 +275,7 @@ theorem Gfib_pow_ten : Gfib ^ 10 = -1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [Matrix.neg_apply]
 
+/-- The twentieth power of `Gfib` equals the identity matrix [KauffmanLomonaco2006]. -/
 theorem Gfib_pow_twenty : Gfib ^ 20 = 1 := by
   unfold Gfib
   rw [diag2_pow]
@@ -235,6 +290,8 @@ theorem Gfib_pow_twenty : Gfib ^ 20 = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp
 
+/-- It is false that every pair of special unitary two-by-two matrices satisfying the braid
+relation generates words dense in the special unitary group [KauffmanLomonaco2006]. -/
 theorem trivial_rep_not_dense :
     ¬ (∀ A B : Matrix (Fin 2) (Fin 2) ℂ,
         A ∈ Matrix.specialUnitaryGroup (Fin 2) ℂ →

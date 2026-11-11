@@ -12,6 +12,31 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Tactic.NormNum
+
+/-!
+# Fair-coin tape computation
+
+This module models a probabilistic tape machine by a pair of TM0 transition tables selected by
+successive Boolean coin reads. `coinTapeRunAux` records both an optional decision and the number
+of coins consumed; `fairTapeSuccess` averages decisions over all coin strings of a fixed length.
+This gives a tape-level formulation of randomized computation in the setting discussed in
+[NielsenChuang2010].
+
+The module proves stability after termination, embeds deterministic tape computation, and
+defines `TapeInP` and `TapeInBPP` with explicit integer polynomial budgets.
+
+## Main statements
+
+* `fair_coin_tape_actual_consumption_and_mass`: coin-consumption and total probability-mass
+  bounds.
+* `fair_coin_tape_deterministic_embedding`: agreement with deterministic clocked decisions.
+* `tape_polynomial_classes_deterministic_inclusion`: `TapeInP L` implies `TapeInBPP L`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
@@ -23,29 +48,37 @@ open scoped BigOperators Classical
 
 variable {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
 
+/-- Apply a TM0 move or write instruction to a tape. -/
 def TM0StmtApply (T : Turing.Tape Γ) : Turing.TM0.Stmt Γ → Turing.Tape Γ
   | Turing.TM0.Stmt.move d => T.move d
   | Turing.TM0.Stmt.write a => T.write a
 
+/-- A TM0 step maps the transition-table result to the corresponding updated state and tape. -/
 theorem TM0_step_apply (M : Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     Turing.TM0.step M cfg =
       (M cfg.q cfg.Tape.head).map fun p => ⟨p.1, TM0StmtApply cfg.Tape p.2⟩ := by
   obtain ⟨q, T⟩ := cfg
   rfl
 
+/-- A TM0 step halts exactly when the transition table has no entry for the current state and
+head symbol. -/
 theorem TM0_step_eq_none (M : Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     (Turing.TM0.step M cfg = none) ↔ (M cfg.q cfg.Tape.head = none) := by
   rw [TM0_step_apply, Option.map_eq_none_iff]
 
+/-- A specified transition-table entry produces the corresponding next configuration. -/
 theorem TM0_step_eq_some (M : Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ)
     (q' : Λ) (stmt : Turing.TM0.Stmt Γ) (h : M cfg.q cfg.Tape.head = some (q', stmt)) :
     Turing.TM0.step M cfg = some ⟨q', TM0StmtApply cfg.Tape stmt⟩ := by
   rw [TM0_step_apply, h]
   rfl
 
+/-- Test whether both coin-selected transition tables halt at the current configuration. -/
 def coinHalt (M : Bool → Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) : Bool :=
   (M false cfg.q cfg.Tape.head).isNone && (M true cfg.q cfg.Tape.head).isNone
 
+/-- Run from a configuration using a finite coin list, returning an optional decision and the
+number of coin reads consumed. -/
 def coinTapeRunAux (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     List Bool → Turing.TM0.Cfg Γ Λ → Option Bool × ℕ
   | [], cfg =>
@@ -57,10 +90,14 @@ def coinTapeRunAux (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool
         | none => (some (accept cfg.q), 1)
         | some cfg' => Prod.map id (· + 1) (coinTapeRunAux M accept cs cfg')
 
+/-- Run the coin-selected machine from its initialized input tape, returning an optional
+decision and the consumed coin count. -/
 def coinTapeRun (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool)
     (input : List Γ) (coins : List Bool) : Option Bool × ℕ :=
   coinTapeRunAux M accept coins (Turing.TM0.init input)
 
+/-- Count successful configuration transitions from a given configuration along a finite coin
+list. -/
 def coinTapeTransitionCountAux (M : Bool → Turing.TM0.Machine Γ Λ) :
     List Bool → Turing.TM0.Cfg Γ Λ → ℕ
   | [], _ => 0
@@ -70,10 +107,14 @@ def coinTapeTransitionCountAux (M : Bool → Turing.TM0.Machine Γ Λ) :
         | none => 0
         | some cfg' => coinTapeTransitionCountAux M cs cfg' + 1
 
+/-- Count successful configuration transitions from the initialized input tape along a finite
+coin list. -/
 def coinTapeTransitionCount (M : Bool → Turing.TM0.Machine Γ Λ)
     (input : List Γ) (coins : List Bool) : ℕ :=
   coinTapeTransitionCountAux M coins (Turing.TM0.init input)
 
+/-- The number of successful transitions from a configuration is at most the number of coin
+reads consumed. -/
 theorem coinTapeTransitionCountAux_le_reads (M : Bool → Turing.TM0.Machine Γ Λ)
     (accept : Λ → Bool) : ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ),
     coinTapeTransitionCountAux M coins cfg ≤ (coinTapeRunAux M accept coins cfg).2 := by
@@ -93,11 +134,15 @@ theorem coinTapeTransitionCountAux_le_reads (M : Bool → Turing.TM0.Machine Γ 
         simpa [coinTapeTransitionCountAux, coinTapeRunAux, hc, hs, Prod.map] using
           Nat.succ_le_succ (ih cfg')
 
+/-- The number of successful transitions on an input is at most the number of coin reads
+consumed. -/
 theorem coinTapeTransitionCount_le_reads (M : Bool → Turing.TM0.Machine Γ Λ)
     (accept : Λ → Bool) (input : List Γ) (coins : List Bool) :
     coinTapeTransitionCount M input coins ≤ (coinTapeRun M accept input coins).2 :=
   coinTapeTransitionCountAux_le_reads M accept coins _
 
+/-- If both coin branches halt, the run returns the current acceptance bit without consuming any
+coins. -/
 theorem coinTapeRunAux_of_coinHalt (M : Bool → Turing.TM0.Machine Γ Λ)
     (accept : Λ → Bool) (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : coinHalt M cfg = true) :
@@ -106,12 +151,16 @@ theorem coinTapeRunAux_of_coinHalt (M : Bool → Turing.TM0.Machine Γ Λ)
   | nil => simp only [coinTapeRunAux]; rw [if_pos h]
   | cons c cs => simp only [coinTapeRunAux]; rw [if_pos h]
 
+/-- With no coins and without simultaneous halting of both branches, the run returns no decision
+and consumes no coins. -/
 theorem coinTapeRunAux_nil_of_not_coinHalt (M : Bool → Turing.TM0.Machine Γ Λ)
     (accept : Λ → Bool) (cfg : Turing.TM0.Cfg Γ Λ) (h : coinHalt M cfg = false) :
     coinTapeRunAux M accept [] cfg = (none, 0) := by
   simp only [coinTapeRunAux]
   rw [if_neg (by simp [h])]
 
+/-- If the selected branch halts while the configuration is not simultaneously halting, the run
+returns the current acceptance bit after one coin read. -/
 theorem coinTapeRunAux_cons_of_step_none (M : Bool → Turing.TM0.Machine Γ Λ)
     (accept : Λ → Bool) (c : Bool) (cs : List Bool) (cfg : Turing.TM0.Cfg Γ Λ)
     (h : coinHalt M cfg = false) (hs : Turing.TM0.step (M c) cfg = none) :
@@ -120,6 +169,8 @@ theorem coinTapeRunAux_cons_of_step_none (M : Bool → Turing.TM0.Machine Γ Λ)
   rw [if_neg (by simp [h])]
   rw [hs]
 
+/-- A successful selected transition recurses on the remaining coins and adds one to the
+consumed coin count. -/
 theorem coinTapeRunAux_cons_of_step_some (M : Bool → Turing.TM0.Machine Γ Λ)
     (accept : Λ → Bool) (c : Bool) (cs : List Bool) (cfg cfg' : Turing.TM0.Cfg Γ Λ)
     (h : coinHalt M cfg = false) (hs : Turing.TM0.step (M c) cfg = some cfg') :
@@ -129,6 +180,8 @@ theorem coinTapeRunAux_cons_of_step_some (M : Bool → Turing.TM0.Machine Γ Λ)
   rw [if_neg (by simp [h])]
   rw [hs]
 
+/-- The number of coins consumed by a run from any configuration is bounded by the supplied
+coin-list length. -/
 theorem coinTapeRunAux_snd_le (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ),
       (coinTapeRunAux M accept coins cfg).2 ≤ coins.length := by
@@ -158,6 +211,8 @@ theorem coinTapeRunAux_snd_le (M : Bool → Turing.TM0.Machine Γ Λ) (accept : 
             simp only [Prod.map, id, List.length_cons]
             omega
 
+/-- Appending extra coins to a run that has already returned a decision preserves both its
+decision and its consumed coin count. -/
 theorem coinTapeRunAux_append (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) (b : Bool) (k : ℕ),
       coinTapeRunAux M accept coins cfg = (some b, k) →
@@ -197,6 +252,8 @@ theorem coinTapeRunAux_append (M : Bool → Turing.TM0.Machine Γ Λ) (accept : 
               ih cfg' b m hr extra]
             rfl
 
+/-- A completed run can be restricted to the prefix of coins it consumed without changing its
+result. -/
 theorem coinTapeRunAux_take (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ) (b : Bool) (k : ℕ),
       coinTapeRunAux M accept coins cfg = (some b, k) →
@@ -242,11 +299,14 @@ theorem coinTapeRunAux_take (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ
               ih cfg' b m hr hm]
             rfl
 
+/-- The probability of returning `target` when the machine is supplied with `t` independent fair
+Boolean coins. -/
 noncomputable def fairTapeSuccess (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool)
     (input : List Γ) (t : ℕ) (target : Bool) : ℝ :=
   (∑ ω : Fin t → Bool,
     if (coinTapeRun M accept input (List.ofFn ω)).1 = some target then (1 : ℝ) else 0) / 2 ^ t
 
+/-- The fair-coin probability of returning a specified decision is nonnegative. -/
 theorem fairTapeSuccess_nonneg (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool)
     (input : List Γ) (t : ℕ) (target : Bool) :
     0 ≤ fairTapeSuccess M accept input t target := by
@@ -254,6 +314,7 @@ theorem fairTapeSuccess_nonneg (M : Bool → Turing.TM0.Machine Γ Λ) (accept :
   exact div_nonneg (Finset.sum_nonneg fun ω _ => by split_ifs <;> norm_num)
     (pow_nonneg (by norm_num) t)
 
+/-- The probabilities of returning true and false sum to at most one. -/
 theorem fairTapeSuccess_add_le_one (M : Bool → Turing.TM0.Machine Γ Λ) (accept : Λ → Bool)
     (input : List Γ) (t : ℕ) :
     fairTapeSuccess M accept input t true + fairTapeSuccess M accept input t false ≤ 1 := by
@@ -281,6 +342,8 @@ theorem fairTapeSuccess_add_le_one (M : Bool → Turing.TM0.Machine Γ Λ) (acce
         ≤ (2 ^ t : ℝ) / 2 ^ t := (div_le_div_iff_of_pos_right (pow_pos (by norm_num) t)).mpr hle
     _ = 1 := div_self (pow_ne_zero t (by norm_num))
 
+/-- Every run consumes at most the supplied number of coins, and the two decision probabilities
+are nonnegative with total mass at most one. -/
 theorem fair_coin_tape_actual_consumption_and_mass :
     ∀ (Γ Λ : Type) [Inhabited Γ] [Inhabited Λ] (M : Bool → Turing.TM0.Machine Γ Λ)
       (a : Λ → Bool) (input : List Γ) (coins : List Bool),
@@ -293,6 +356,8 @@ theorem fair_coin_tape_actual_consumption_and_mass :
     ⟨fairTapeSuccess_nonneg M a input t true, fairTapeSuccess_nonneg M a input t false,
       fairTapeSuccess_add_le_one M a input t⟩⟩
 
+/-- When the transition table ignores the coin, the run's decision equals the deterministic
+clocked decision with the same time budget. -/
 theorem coinTapeRunAux_const_fst (M : Turing.TM0.Machine Γ Λ) (accept : Λ → Bool) :
     ∀ (coins : List Bool) (cfg : Turing.TM0.Cfg Γ Λ),
       (coinTapeRunAux (fun _ => M) accept coins cfg).1 =
@@ -325,6 +390,8 @@ theorem coinTapeRunAux_const_fst (M : Turing.TM0.Machine Γ Λ) (accept : Λ →
         simp only [tapeDecisionRun]
         rw [hs]
 
+/-- A coin-independent transition table gives the deterministic tape decision on every coin
+string of the prescribed length. -/
 theorem fair_coin_tape_deterministic_embedding :
     ∀ (Γ Λ : Type) [Inhabited Γ] [Inhabited Λ] (M : Turing.TM0.Machine Γ Λ)
       (a : Λ → Bool) (input : List Γ) (t : ℕ) (ω : Fin t → Bool),
@@ -335,6 +402,8 @@ theorem fair_coin_tape_deterministic_embedding :
   have h := coinTapeRunAux_const_fst M a (List.ofFn ω) (Turing.TM0.init input)
   rwa [List.length_ofFn] at h
 
+/-- The equivalence between a Boolean string paired with one final bit and a Boolean string one
+coordinate longer. -/
 def finBoolSnocEquiv (t : ℕ) : (Fin t → Bool) × Bool ≃ (Fin (t + 1) → Bool) where
   toFun p := Fin.snoc p.1 p.2
   invFun w := (w ∘ Fin.castSucc, w (Fin.last t))
@@ -351,6 +420,8 @@ def finBoolSnocEquiv (t : ℕ) : (Fin t → Bool) × Bool ≃ (Fin (t + 1) → B
     · intro j
       simp
 
+/-- If every length-`t` coin string yields a decision, supplying one additional fair coin leaves
+the success probability unchanged. -/
 theorem fairTapeSuccess_succ_of_forall_isSome (M : Bool → Turing.TM0.Machine Γ Λ)
     (accept : Λ → Bool) (input : List Γ) (t : ℕ) (target : Bool)
     (h : ∀ ω : Fin t → Bool, ((coinTapeRun M accept input (List.ofFn ω)).1).isSome) :
@@ -386,6 +457,8 @@ theorem fairTapeSuccess_succ_of_forall_isSome (M : Bool → Turing.TM0.Machine �
   rw [← Finset.mul_sum]
   rw [pow_succ, mul_comm (2 : ℝ) _, mul_div_mul_right _ _ (two_ne_zero (α := ℝ))]
 
+/-- If every coin string of every length at least `m` yields a decision, the success probability
+is constant for all such lengths. -/
 theorem fairTapeSuccess_eq_of_forall_isSome (M : Bool → Turing.TM0.Machine Γ Λ)
     (accept : Λ → Bool) (input : List Γ) (m : ℕ) (target : Bool)
     (h : ∀ t ≥ m, ∀ ω : Fin t → Bool, ((coinTapeRun M accept input (List.ofFn ω)).1).isSome) :
@@ -397,12 +470,17 @@ theorem fairTapeSuccess_eq_of_forall_isSome (M : Bool → Turing.TM0.Machine Γ 
   | succ n hn ih =>
       rw [fairTapeSuccess_succ_of_forall_isSome M accept input n target (h n hn), ih]
 
+/-- A Boolean language is decided by a finite-state deterministic bit-tape machine within one
+integer polynomial bound on every input. -/
 def TapeInP (L : List Bool → Prop) : Prop :=
   ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (accept : Fin (q + 1) → Bool) (c k : ℕ),
     ∀ input : List Bool, ∃ t : ℕ, t ≤ c * input.length ^ k + c ∧
       tapeDecision M accept (input.map some) t = some (decide (L input))
 
+/-- A Boolean language is decided with success probability at least `2 / 3` by a finite-state
+fair-coin bit-tape machine, with synchronized halting domains and termination on every coin
+path within one integer polynomial budget. -/
 def TapeInBPP (L : List Bool → Prop) : Prop :=
   ∃ (q : ℕ) (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
     (accept : Fin (q + 1) → Bool) (c k : ℕ),
@@ -413,6 +491,8 @@ def TapeInBPP (L : List Bool → Prop) : Prop :=
           fairTapeSuccess M accept (input.map some) (c * input.length ^ k + c)
             (if L input then true else false) ≥ 2 / 3
 
+/-- Every language in the deterministic polynomial-time tape class `TapeInP` belongs to the
+bounded-error fair-coin tape class `TapeInBPP`. -/
 theorem tape_polynomial_classes_deterministic_inclusion :
     ∀ L : List Bool → Prop, TapeInP L → TapeInBPP L := by
   intro L hP

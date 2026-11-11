@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.AlgorithmicInterface
+
+/-!
+# Exhaustive hidden-subgroup solvers for finite encodings
+
+`hasPolyQuerySolverFor_self` constructs a solver by recovering the oracle fiber containing the
+group identity and querying the full token space. Thus the bound is linear in token cardinality,
+and `hasPolynomialQueryHSPSolver` holds for every group in this finite-encoding interface. See
+[InuiLeGall2007] for the mathematical setting.
+
+## Main statements
+
+* `hasPolyQuerySolverFor_self`: constructs a solver for any supplied finite encoding.
+* `hasPolynomialQueryHSPSolver`: extends the construction to every finite encoding of a group.
+
+## References
+
+* [Inui and Le Gall, 2007][InuiLeGall2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -12,6 +31,8 @@ noncomputable section
 
 namespace Qatlib.Papers.SemiDirectHSP04.MainResults.Model
 
+/-- Every finite encoding possesses a correct hidden-subgroup solver with a query bound
+polynomial in token cardinality, obtained by querying all tokens. -/
 theorem hasPolyQuerySolverFor_self {G : Type*} [Group G] (e : BlackBoxEncoding G) :
     HasPolyQuerySolverFor e := by
   classical
@@ -54,6 +75,8 @@ theorem hasPolyQuerySolverFor_self {G : Type*} [Group G] (e : BlackBoxEncoding G
     have hfg : f = g := funext fun x => hagree x (Finset.mem_univ x)
     rw [hfg]
 
+/-- Every group satisfies the finite-encoding polynomial-query solver predicate using the entire
+token space as its determining set. See [Inui and Le Gall, 2007, Theorem 9][InuiLeGall2007]. -/
 theorem hasPolynomialQueryHSPSolver (G : Type*) [Group G] :
     HasPolynomialQueryHSPSolver G := fun e => hasPolyQuerySolverFor_self e
 

@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RecordedMedianProgram
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
+
+/-!
+# Recorded median estimation of risk CDFs
+
+This module expresses a rational loss threshold indicator as a payoff and proves that its Born
+weighted expectation is the risk CDF. Its variance is at most one quarter for unitary
+preparation, enabling a recorded median estimator in the quantum Monte Carlo framework of
+[Montanaro2015].
+
+`frontier1` combines an exponentially decreasing median failure bound with explicit comparison,
+bit time, storage, output size, and query accounting.
+
+## Main statements
+
+* `riskCDFPayoffRat_sum`: the indicator expectation is the risk CDF.
+* `riskCDFPayoffRat_variance`: the one quarter variance bound.
+* `frontier1`: confidence and resource guarantees for recorded median readout.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -38,9 +62,11 @@ open Matrix
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- The rational indicator that outcome `i` has loss at most threshold `t`. -/
 def riskCDFPayoffRat {I : Type} (loss : I → ℚ) (t : ℚ) (i : I) : ℚ :=
   if loss i ≤ t then 1 else 0
 
+/-- Casting the rational CDF payoff to the reals gives the existing real risk CDF payoff. -/
 theorem riskCDFPayoffRat_cast {I : Type} (loss : I → ℚ) (t : ℚ) (i : I) :
     ((riskCDFPayoffRat loss t i : ℚ) : ℝ)
       = Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018.riskCDFPayoff loss t i := by
@@ -49,6 +75,7 @@ theorem riskCDFPayoffRat_cast {I : Type} (loss : I → ℚ) (t : ℚ) (i : I) :
   · norm_num
   · norm_num
 
+/-- The Born weighted expectation of the rational indicator equals `riskCDF A j loss t`. -/
 theorem riskCDFPayoffRat_sum {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (t : ℚ) :
     (∑ i, BornProb (A *ᵥ Ket j) i*(riskCDFPayoffRat loss t i : ℝ))
@@ -57,6 +84,7 @@ theorem riskCDFPayoffRat_sum {I : Type} [Fintype I] [DecidableEq I]
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [riskCDFPayoffRat_cast]
 
+/-- The rational CDF payoff takes only the values zero and one. -/
 theorem riskCDFPayoffRat_zero_or_one {I : Type} (loss : I → ℚ) (t : ℚ) (i : I) :
     riskCDFPayoffRat loss t i = 0 ∨ riskCDFPayoffRat loss t i = 1 := by
   unfold riskCDFPayoffRat
@@ -64,6 +92,8 @@ theorem riskCDFPayoffRat_zero_or_one {I : Type} (loss : I → ℚ) (t : ℚ) (i 
   · exact Or.inr rfl
   · exact Or.inl rfl
 
+/-- Under unitary preparation, the Born weighted variance of the CDF indicator is at most `(1 /
+2) ^ 2`. -/
 theorem riskCDFPayoffRat_variance {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (loss : I → ℚ) (t : ℚ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
@@ -134,6 +164,9 @@ theorem riskCDFPayoffRat_variance {I : Type} [Fintype I] [DecidableEq I]
 
 namespace output2
 
+/-- For unitary preparation and `k ≥ 4`, the recorded median estimates the risk CDF within `9 *
+(1 / 2) * (1 / 2) ^ k` except with probability at most `(143 / 144) ^ r`. It also gives
+explicit comparison, bit time, storage, output bit size, and per anchor query guarantees. -/
 theorem frontier1 :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
       (j : I) (loss : I → ℚ) (t : ℚ) (k r : ℕ)

@@ -9,6 +9,27 @@ import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.InnerProductSpace.Basic
+
+/-!
+# Walk eigenphases and zero-overlap identities
+
+This module identifies the bipartite-walk eigenvalues associated with a singular value `cos φ`
+as phases `exp (±2iφ)` and obtains normalized eigenvectors from isometric embeddings. It also
+proves the orthogonality and finite-expansion identities used in the walk-spectrum analysis of
+[SommaBoixoBarnum2007].
+
+## Main statements
+
+* `source_eq14_normalized_eigenpair`: normalized bipartite-walk eigenpairs.
+* `inner_eq_zero_of_distinct_unit_eigen`: orthogonality for distinct eigenvalues of an
+  inner-product-preserving map.
+* `source_eq16_zero_overlap_of_walk`: zero overlap with the specified spectral expansion.
+
+## References
+
+* [Somma et al., 2007][SommaBoixoBarnum2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +45,7 @@ open Qatlib.Concepts.SpectralFilter.BusySpectrum
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Foundations.PureStateMath
 
+/-- For `0 < φ < π / 2`, the true branch of `bipartitePhase (cos φ)` is `exp (-2iφ)`. -/
 theorem bipartitePhase_cos_true (φ : ℝ) (h0 : 0 < φ) (hπ : φ < Real.pi / 2) :
     bipartitePhase (Real.cos φ) true
       = Complex.exp ((-(2 * φ) : ℝ) * Complex.I) := by
@@ -48,6 +70,7 @@ theorem bipartitePhase_cos_true (φ : ℝ) (h0 : 0 < φ) (hπ : φ < Real.pi / 2
     rw [Real.sin_neg, hsin2]
     ring
 
+/-- For `0 < φ < π / 2`, the false branch of `bipartitePhase (cos φ)` is `exp (2iφ)`. -/
 theorem bipartitePhase_cos_false (φ : ℝ) (h0 : 0 < φ) (hπ : φ < Real.pi / 2) :
     bipartitePhase (Real.cos φ) false
       = Complex.exp (((2 * φ) : ℝ) * Complex.I) := by
@@ -74,16 +97,22 @@ theorem bipartitePhase_cos_false (φ : ℝ) (h0 : 0 < φ) (hπ : φ < Real.pi / 
     rw [hsin2]
     ring
 
+/-- For `0 < φ < π / 2`, the two bipartite phase branches are the exponentials with angles `-2φ`
+and `2φ` [SommaBoixoBarnum2007]. -/
 theorem bipartitePhase_cos_eq_exp (φ : ℝ) (h0 : 0 < φ) (hπ : φ < Real.pi / 2) :
     bipartitePhase (Real.cos φ) true = Complex.exp ((-(2 * φ) : ℝ) * Complex.I) ∧
       bipartitePhase (Real.cos φ) false = Complex.exp (((2 * φ) : ℝ) * Complex.I) :=
   ⟨bipartitePhase_cos_true φ h0 hπ, bipartitePhase_cos_false φ h0 hπ⟩
 
+/-- Both bipartite phase branches at singular value one equal one [SommaBoixoBarnum2007]. -/
 theorem bipartitePhase_one (s : Bool) : bipartitePhase 1 s = 1 := by
   unfold bipartitePhase
   simp
   norm_num
 
+/-- Isometric embeddings and a normalized singular-vector pair with singular value `cos φ`, for
+`0 < φ < π / 2`, give normalized `bipartiteTau` eigenvectors of the bipartite walk
+[SommaBoixoBarnum2007]. -/
 theorem source_eq14_normalized_eigenpair
     (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)
@@ -109,6 +138,8 @@ theorem source_eq14_normalized_eigenpair
     (bipartite_normalized_tau_pair H I J A B a b (Real.cos φ) hA hB hcos0 hcos1
       hn hab hba s).2.1⟩
 
+/-- Eigenvectors with distinct unit-modulus eigenvalues of a complex linear map preserving inner
+products are orthogonal [SommaBoixoBarnum2007]. -/
 theorem inner_eq_zero_of_distinct_unit_eigen
     {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
     (T : E →L[ℂ] E) (hT : ∀ x y : E, inner ℂ (T x) (T y) = inner ℂ x y)
@@ -134,6 +165,8 @@ theorem inner_eq_zero_of_distinct_unit_eigen
     rw [sub_mul, one_mul, mul_assoc ((starRingEnd ℂ) lam) mu (inner ℂ ψ φ), h, sub_self]
   exact (mul_eq_zero.mp hzero).resolve_left hfac
 
+/-- A vector orthogonal to every specified component is orthogonal to their displayed finite
+linear combination [SommaBoixoBarnum2007]. -/
 theorem source_eq16_zero_overlap
     {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
     {m : ℕ} (u ψ0 : E) (ψp ψm : Fin m → E) (c0 : ℂ) (cj : Fin m → ℂ)
@@ -144,6 +177,9 @@ theorem source_eq16_zero_overlap
   refine Finset.sum_eq_zero fun j _ => ?_
   rw [inner_smul_right, inner_add_right, hup j, hum j, add_zero, mul_zero]
 
+/-- An eigenvector of an inner-product-preserving map is orthogonal to the displayed spectral
+expansion when its eigenvalue differs from every component eigenvalue and all have unit
+modulus [SommaBoixoBarnum2007]. -/
 theorem source_eq16_zero_overlap_of_walk
     {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
     {m : ℕ} (T : E →L[ℂ] E) (hT : ∀ x y : E, inner ℂ (T x) (T y) = inner ℂ x y)

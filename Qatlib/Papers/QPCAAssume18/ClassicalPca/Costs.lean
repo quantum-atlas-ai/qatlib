@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.Batch
+
+/-!
+# Paid preprocessing and PCA access costs
+
+Establishes explicit work bounds for the paid small-SVD preprocessing model and the
+norm-estimation access routine. The bounds specialize the chosen PCA precision and confidence
+allocations to the source parameter dependence in [Tang2021].
+
+## Main statements
+
+* `source_classical_pca_paid_cost`: For every supplied small-SVD primitive and sample record,
+  paid preprocessing obeys the explicit cubic-log and squared-log source bounds at confidence
+  `delta / 3` [Tang2021].
+* `source_classical_pca_access_cost`: Under the stated cutoff and positivity assumptions, every
+  norm-estimation record obeys the explicit access-work bound proportional to `T * K^9 / e^4`
+  times the cubed confidence logarithm [Tang2021].
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,12 +37,15 @@ namespace Qatlib.Papers.QPCAAssume18.ClassicalPca
 open Matrix
 open Qatlib.Concepts.SketchArith.SketchBuild
 
+/-- For `K ≥ 1`, the chosen PCA precision parameter is at most one. -/
 theorem pca_source_parameter_le_one (s v eta K : ℝ) (hK : 1≤K) : epsParameter s v eta K≤1 := by
   have hs := (pca_rank_sqrt K hK).1
   have hi : (Real.sqrt K)⁻¹≤1 := (inv_le_one₀ (by linarith)).mpr hs
   have he := source_theorem9_eps_le_inv_sqrt_branch s v eta K
   nlinarith
 
+/-- For every supplied small-SVD primitive and sample record, paid preprocessing obeys the
+explicit cubic-log and squared-log source bounds at confidence `delta / 3` [Tang2021]. -/
 theorem source_classical_pca_paid_cost {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0<sketchSquared A) (hd : 0<d) (k : ℕ) (hk : 1≤k) (hkd : k≤d)
     (sigma s v eta delta T : ℝ) (hsigma : 0<sigma) (hs : 0<s) (hv : 0<v) (heta : 0<eta)
@@ -45,6 +70,9 @@ theorem source_classical_pca_paid_cost {n d : ℕ} (A : Matrix (Fin n) (Fin d) �
   have hid : 4/(delta/3)=12/delta := by ring
   simpa only [hid] using! h
 
+/-- Under the stated cutoff and positivity assumptions, every norm-estimation record obeys the
+explicit access-work bound proportional to `T * K^9 / e^4` times the cubed confidence
+logarithm [Tang2021]. -/
 theorem source_classical_pca_access_cost {I : Type} {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (k Q : ℕ) (hk : 1≤k) (hkd : k≤d) (sigma s v eta delta T energy : ℝ)
     (hsigma : 0<sigma) (hs : 0<s) (hv : 0<v) (heta : 0<eta)

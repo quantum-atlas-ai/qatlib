@@ -13,6 +13,33 @@ import Mathlib.Tactic
 import Qatlib.Papers.HiddenPoly07.MainResults.CountingLemmas
 import Qatlib.Papers.HiddenPoly07.MainResults.GoodSetCardinality
 import Qatlib.Papers.HiddenPoly07.MainResults.MeasurementSuccessBound
+
+/-!
+# Algebraic counting bounds for hidden polynomials
+
+This module combines polynomial nonvanishing estimates and bounded fibers to obtain lower bounds
+on image sizes and good output sets. It then bounds the normalized square-root sums used in
+hidden-polynomial measurements, including the quantitative forms `prop43_image_lower_bound`,
+`prop46_success_of_nonvanishing`, and `cor42_constant_bound`.
+
+The development follows [DeckerDraismaWocjan2009].
+
+## Main statements
+
+* `prop43_image_lower_bound`: For a fixed parameter `x`, bounds the image of `f x` below by
+  d^n/(2D), assuming a nonzero controlling polynomial, d ≥ 2 deg(q), and fibers of size at most
+  D at its nonvanishing points.
+* `prop46_success_of_nonvanishing`: Bounds the normalized square-root sum below by 2^(−3n) when
+  the selected sets are nonvanishing loci of nonzero polynomials whose degrees are at most half
+  the field cardinality and all selected multiplicities are positive.
+* `cor42_constant_bound`: Bounds the normalized square-root sum below by 1/(2^(3n+2)D²) from
+  positive selected multiplicities and the stated lower bounds on `X` and each `W x`.
+
+## References
+
+* [Decker et al., 2009][DeckerDraismaWocjan2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,6 +50,9 @@ namespace Qatlib.Papers.HiddenPoly07.MainResults
 
 open scoped BigOperators
 
+/-- For a nonzero polynomial in n ≥ 1 variables, bounds the image size of `φ` below by (d^n −
+deg(q)d^(n−1))/D, where d is the field cardinality, provided fibers through nonvanishing
+points have size at most D > 0 ([Proposition 4.3][DeckerDraismaWocjan2009]). -/
 theorem image_card_ge_of_fiber_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (hn : 1 ≤ n) (φ : (Fin n → F) → (Fin n → F))
     (q : MvPolynomial (Fin n) F) (hq : q ≠ 0) (D : ℕ) (hD : 0 < D)
@@ -65,6 +95,8 @@ theorem image_card_ge_of_fiber_bound {F : Type*} [Field F] [Fintype F] [Decidabl
   rw [div_le_iff₀ hDpos]
   nlinarith [hgood_ge, hcountR]
 
+/-- If d ≥ 2 deg(q), a nonzero polynomial and a positive fiber bound D imply that the image of
+`φ` has at least d^n/(2D) elements ([Proposition 4.3][DeckerDraismaWocjan2009]). -/
 theorem image_card_ge_of_big_field {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (hn : 1 ≤ n) (φ : (Fin n → F) → (Fin n → F))
     (q : MvPolynomial (Fin n) F) (hq : q ≠ 0) (D : ℕ) (hD : 0 < D)
@@ -106,6 +138,9 @@ theorem image_card_ge_of_big_field {F : Type*} [Field F] [Fintype F] [DecidableE
   rw [heq]
   exact le_trans hfrac hmain
 
+/-- For a fixed parameter `x`, bounds the image of `f x` below by d^n/(2D), assuming a nonzero
+controlling polynomial, d ≥ 2 deg(q), and fibers of size at most D at its nonvanishing
+points ([Proposition 4.3][DeckerDraismaWocjan2009]). -/
 theorem prop43_image_lower_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {m n : ℕ} (hn : 1 ≤ n) (f : (Fin m → F) → (Fin n → F) → (Fin n → F))
     (x : Fin m → F) (q : MvPolynomial (Fin n) F) (hq : q ≠ 0) (D : ℕ) (hD : 0 < D)
@@ -116,6 +151,9 @@ theorem prop43_image_lower_bound {F : Type*} [Field F] [Fintype F] [DecidableEq 
       ≤ ((Finset.univ.image (fun b => f x b)).card : ℝ) :=
   image_card_ge_of_big_field (F := F) hn (fun b => f x b) q hq D hD hfib hbig
 
+/-- If `U` has descending-factorial cardinality and its restricted fibers have size at most D >
+0, removing `Ix` from its image leaves at least d.descFactorial(n)/D − κd^(n−1) points under
+the stated bound on `Ix` ([Proposition 4.1][DeckerDraismaWocjan2009]). -/
 theorem Wgood_card_ge_of_fiber_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (φ : (Fin n → F) → (Fin n → F))
     (U : Finset (Fin n → F)) (hU : U.card = (Fintype.card F).descFactorial n)
@@ -161,6 +199,8 @@ theorem Wgood_card_ge_of_fiber_bound {F : Type*} [Field F] [Fintype F] [Decidabl
       ≤ ((U.image φ \ Ix).card : ℝ) := by linarith [hcoverR]
   linarith [hstep, hstep2]
 
+/-- A common real lower bound on the cardinalities of `W x` for `x` in a nonempty `X` also
+bounds `WgoodMin X W` below ([Proposition 4.6][DeckerDraismaWocjan2009]). -/
 theorem WgoodMin_ge {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
     (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F)) {c : ℝ}
     (hne : X.Nonempty) (h : ∀ x ∈ X, c ≤ ((W x).card : ℝ)) :
@@ -173,6 +213,9 @@ theorem WgoodMin_ge {F : Type*} [Field F] [DecidableEq F] {n : ℕ}
   rw [← hxe]
   exact h x hx
 
+/-- If all selected multiplicities are at least one and both good-set cardinalities are at least
+d^n/2^n, the normalized sum of squared square-root sums is at least 2^(−3n) ([Proposition
+4.6][DeckerDraismaWocjan2009]). -/
 theorem success_constant_of_good_counts {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F))
     (eta : (Fin n → F) → (Fin n → F) → ℕ)
@@ -191,6 +234,10 @@ theorem success_constant_of_good_counts {F : Type*} [Field F] [Fintype F] [Decid
     WgoodMin_ge X W hXne hWc
   exact success_probability_constant_of_good_counts X W eta hη hd hXc hWmin
 
+/-- Bounds the normalized square-root sum below by 2^(−3n) when the selected sets are
+nonvanishing loci of nonzero polynomials whose degrees are at most half the field
+cardinality and all selected multiplicities are positive ([Proposition
+4.6][DeckerDraismaWocjan2009]). -/
 theorem prop46_success_of_nonvanishing {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n : ℕ} (hn : 1 ≤ n)
     (g : MvPolynomial (Fin n) F) (hg : g ≠ 0)
@@ -231,6 +278,8 @@ theorem prop46_success_of_nonvanishing {F : Type*} [Field F] [Fintype F] [Decida
     exact hη x hgx w hwx
   exact success_constant_of_good_counts _ _ eta hη' hXc hWc
 
+/-- For positive d and D, bounds the displayed normalized product below by 1/(2^(3n+2)D²)
+([Corollary 4.2][DeckerDraismaWocjan2009]). -/
 theorem cor42_arith {d n D : ℕ} (hd : 0 < d) (hD : 0 < D) :
     (1 : ℝ) / (2 ^ (3 * n + 2) * (D : ℝ) ^ 2)
       ≤ ((d : ℝ) ^ (3 * n))⁻¹
@@ -249,6 +298,9 @@ theorem cor42_arith {d n D : ℕ} (hd : 0 < d) (hD : 0 < D) :
   field_simp
   ring_nf
 
+/-- Bounds the normalized square-root sum below by 1/(2^(3n+2)D²) from positive selected
+multiplicities and the stated lower bounds on `X` and each `W x` ([Corollary
+4.2][DeckerDraismaWocjan2009]). -/
 theorem cor42_constant_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n D : ℕ} (_hn : 1 ≤ n) (hD : 0 < D)
     (X : Finset (Fin n → F)) (W : (Fin n → F) → Finset (Fin n → F))
@@ -289,6 +341,9 @@ theorem cor42_constant_bound {F : Type*} [Field F] [Fintype F] [DecidableEq F]
         mul_le_mul_of_nonneg_left hprod hnonneg
     _ ≤ _ := hmain
 
+/-- Transfers a nonnegative common lower bound d.descFactorial(n)/D − κd^(n−1) for the good
+output counts into the corresponding squared lower bound for the normalized sum over `Xgood`
+([Corollary 4.2][DeckerDraismaWocjan2009]). -/
 theorem cor42_source_chain {F : Type*} [Field F] [Fintype F] [DecidableEq F]
     {n D κ : ℕ} (_hD : 0 < D)
     (W : (Fin n → F) → Finset (Fin n → F))

@@ -15,6 +15,30 @@ import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
 import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
 import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+
+/-!
+# Population quantile recovery and finite-sample obstructions
+
+This module defines exact and empirical value-at-risk indices and proves recovery under a
+uniform CDF error bound and a population gap. It also constructs two nearby populations for
+which no deterministic procedure on a fixed finite sample has the required exact output with
+probability one under both populations.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `exactVaR_recovery_bound`: For positive sample size and tolerance, a population quantile gap
+  bounds the probability of index-recovery failure by `xs.length / (4 * N * ν²)`.
+* `exactVaR_no_procedure_exact_under_both`: No deterministic function of a fixed finite sample
+  returns zero with probability one under `noGapPop` and one with probability one under
+  `nearPop`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -48,25 +72,33 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 variable {n N : ℕ}
 
 namespace Qatlib.Concepts.RiskEstimation.PopulationGap
+/-- The indices in the candidate list whose population CDF is at least `q`. -/
 noncomputable def exactVaRSet {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (q : ℝ) : Finset ℕ :=
   (Finset.range xs.length).filter (fun v => q ≤ populationCDF p loss (xs.getD v 0))
 
+/-- The least candidate index whose population CDF reaches `q`, or `xs.length` if no such index
+exists. -/
 noncomputable def exactVaRIndex {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (q : ℝ) : ℕ :=
   if h : (exactVaRSet p loss xs q).Nonempty then (exactVaRSet p loss xs q).min' h
   else xs.length
 
+/-- The indices in the candidate list whose empirical CDF is at least `q`. -/
 noncomputable def sampleVaRSet {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (q : ℝ) : Finset ℕ :=
   (Finset.range xs.length).filter
     (fun v => q ≤ (empiricalCDF ω loss (xs.getD v 0) : ℝ))
 
+/-- The least candidate index whose empirical CDF reaches `q`, or `xs.length` if no such index
+exists. -/
 noncomputable def sampleVaRIndex {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (q : ℝ) : ℕ :=
   if h : (sampleVaRSet ω loss xs q).Nonempty then (sampleVaRSet ω loss xs q).min' h
   else xs.length
 
+/-- The exact index reaches level `q` when it is in range, and every earlier index has
+population CDF strictly below `q`. -/
 theorem exactVaRIndex_spec {n : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (q : ℝ) :
     (exactVaRIndex p loss xs q < xs.length →
@@ -108,6 +140,8 @@ theorem exactVaRIndex_spec {n : ℕ} (p : FinDist (Option (Fin n)))
         exact h ⟨u, Finset.mem_filter.mpr hin⟩
       exact lt_of_not_ge (fun hq => hnin ⟨Finset.mem_range.mpr (by omega), hq⟩)
 
+/-- The empirical index reaches level `q` when it is in range, and every earlier index has
+empirical CDF strictly below `q`. -/
 theorem sampleVaRIndex_spec {n N : ℕ} (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (q : ℝ) :
     (sampleVaRIndex ω loss xs q < xs.length →
@@ -149,10 +183,14 @@ theorem sampleVaRIndex_spec {n N : ℕ} (ω : Fin N → Option (Fin n))
         exact h ⟨u, Finset.mem_filter.mpr hin⟩
       exact lt_of_not_ge (fun hq => hnin ⟨Finset.mem_range.mpr (by omega), hq⟩)
 
+/-- The predicate that empirical and population CDFs differ by at most `ν` at every threshold in
+`xs`. -/
 def cdfGood {n N : ℕ} (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ)
     (xs : List ℚ) (ν : ℝ) (ω : Fin N → Option (Fin n)) : Prop :=
   ∀ t ∈ xs, |(empiricalCDF ω loss t : ℝ) - populationCDF p loss t| ≤ ν
 
+/-- The population quantile gap condition: the exact index is in range, all earlier CDF values
+plus `ν` are below `q`, and its CDF is at least `q + ν`. -/
 def exactVaRGap {n : ℕ} (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ)
     (xs : List ℚ) (q ν : ℝ) : Prop :=
   let v := exactVaRIndex p loss xs q
@@ -160,6 +198,8 @@ def exactVaRGap {n : ℕ} (p : FinDist (Option (Fin n))) (loss : Option (Fin n) 
   (∀ u, u < v → populationCDF p loss (xs.getD u 0) + ν < q) ∧
   (q + ν ≤ populationCDF p loss (xs.getD v 0))
 
+/-- A uniformly accurate empirical CDF recovers the exact population quantile index under
+`exactVaRGap`. -/
 theorem sampleVaRIndex_eq_exact_of_good {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (q ν : ℝ)
     (ω : Fin N → Option (Fin n)) (hgood : cdfGood p loss xs ν ω)
@@ -208,6 +248,8 @@ theorem sampleVaRIndex_eq_exact_of_good {n N : ℕ} (p : FinDist (Option (Fin n)
   · rename_i h
     exact absurd ⟨exactVaRIndex p loss xs q, hvinset⟩ h
 
+/-- For positive sample size and tolerance, a population quantile gap bounds the probability of
+index-recovery failure by `xs.length / (4 * N * ν²)`. -/
 theorem exactVaR_recovery_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (q ν : ℝ)
     (hN : 0 < N) (hν : 0 < ν) (hgap : exactVaRGap p loss xs q ν) :
@@ -235,6 +277,8 @@ theorem exactVaR_recovery_bound {n N : ℕ} (p : FinDist (Option (Fin n)))
       exact Finset.prod_nonneg fun i _ => p.nonneg (ω i)
   exact hmono.trans (empirical_uniform_cdf_sampling_bound p loss xs ν hN hν)
 
+/-- Uniform CDF accuracy places the population CDF at an in-range empirical quantile above `q -
+ν` and all earlier population CDF values below `q + ν`. -/
 theorem sampleVaRIndex_population_bounds_of_good {n N : ℕ}
     (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ) (xs : List ℚ)
     (q ν : ℝ) (ω : Fin N → Option (Fin n)) (hgood : cdfGood p loss xs ν ω)
@@ -268,6 +312,9 @@ theorem sampleVaRIndex_population_bounds_of_good {n N : ℕ}
     have hu' := hspec.2 u hu
     linarith
 
+/-- At each candidate threshold, empirical state preparation changes the population CDF by at
+most `ν + 64 * n / 2 ^ bits` when the empirical CDF error is at most `ν` and the sample is
+nonempty. -/
 theorem prepared_cdf_transport {n N bits : ℕ} (p : FinDist (Option (Fin n)))
     (loss : Option (Fin n) → ℚ) (xs : List ℚ) (ν : ℝ)
     (ω : Fin N → Option (Fin n)) (hN : 0 < N) (hgood : cdfGood p loss xs ν ω) :
@@ -287,11 +334,15 @@ theorem prepared_cdf_transport {n N bits : ℕ} (p : FinDist (Option (Fin n)))
       have h2 := abs_le.mp hclose
       linarith
 
+/-- The two-atom rational loss, equal to one at `some 1` and zero elsewhere. -/
 def twoAtomLoss (x : Option (Fin 2)) : ℚ := if x = some 1 then 1 else 0
 
+/-- The mass function assigning weights `a` and `1 - a` to `some 0` and `some 1`, and zero to
+`none`. -/
 noncomputable def twoAtomProb (a : ℝ) (x : Option (Fin 2)) : ℝ :=
   if x = some 0 then a else if x = some 1 then 1 - a else 0
 
+/-- The two-atom finite probability distribution with weights `a` and `1 - a` for `0 ≤ a ≤ 1`. -/
 noncomputable def twoAtomPop (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) : FinDist (Option (Fin 2)) where
   prob := twoAtomProb a
   nonneg := by
@@ -304,12 +355,15 @@ noncomputable def twoAtomPop (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) : FinDist
     rw [h, h2]
     simp [twoAtomProb]
 
+/-- The equally weighted two-atom population used at the quantile boundary. -/
 noncomputable def noGapPop : FinDist (Option (Fin 2)) :=
   twoAtomPop (1/2) (by norm_num) (by norm_num)
 
+/-- The nearby two-atom population with first weight `1 / 2 - ε`, for `0 < ε < 1 / 2`. -/
 noncomputable def nearPop (ε : ℝ) (hε : 0 < ε) (hε1 : ε < 1/2) : FinDist (Option (Fin 2)) :=
   twoAtomPop (1/2 - ε) (by linarith) (by linarith)
 
+/-- The population CDF of the two-atom loss at zero is `a`. -/
 theorem twoAtomPop_cdf_zero (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
     populationCDF (twoAtomPop a ha0 ha1) twoAtomLoss 0 = a := by
   have hprob : (twoAtomPop a ha0 ha1).prob = twoAtomProb a := rfl
@@ -322,6 +376,7 @@ theorem twoAtomPop_cdf_zero (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
   rw [h, h2]
   simp [twoAtomProb, twoAtomLoss]
 
+/-- The population CDF of the two-atom loss at one is one. -/
 theorem twoAtomPop_cdf_one (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
     populationCDF (twoAtomPop a ha0 ha1) twoAtomLoss 1 = 1 := by
   have hprob : (twoAtomPop a ha0 ha1).prob = twoAtomProb a := rfl
@@ -334,6 +389,8 @@ theorem twoAtomPop_cdf_one (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
   rw [h, h2]
   simp [twoAtomProb, twoAtomLoss]
 
+/-- At confidence level one half on candidates `[0, 1]`, an index is eligible exactly when it is
+zero with `a ≥ 1 / 2`, or it is one. -/
 theorem twoAtom_exactVaRSet_mem (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) (v : ℕ) :
     v ∈ exactVaRSet (twoAtomPop a ha0 ha1) twoAtomLoss [0, 1] (1/2) ↔
       (v = 0 ∧ (1/2:ℝ) ≤ a) ∨ (v = 1) := by
@@ -370,6 +427,8 @@ theorem twoAtom_exactVaRSet_mem (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) (v : �
           twoAtomPop_cdf_one a ha0 ha1]
         norm_num
 
+/-- For `a ≥ 1 / 2`, the two-atom quantile index on `[0, 1]` at confidence level one half is
+zero. -/
 theorem twoAtom_exactVaRIndex_le (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1)
     (ha : (1/2:ℝ) ≤ a) :
     exactVaRIndex (twoAtomPop a ha0 ha1) twoAtomLoss [0, 1] (1/2) = 0 := by
@@ -386,6 +445,8 @@ theorem twoAtom_exactVaRIndex_le (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1)
   · rename_i h
     exact absurd hne h
 
+/-- For `a < 1 / 2`, the two-atom quantile index on `[0, 1]` at confidence level one half is
+one. -/
 theorem twoAtom_exactVaRIndex_gt (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1)
     (ha : a < (1/2:ℝ)) :
     exactVaRIndex (twoAtomPop a ha0 ha1) twoAtomLoss [0, 1] (1/2) = 1 := by
@@ -404,6 +465,8 @@ theorem twoAtom_exactVaRIndex_gt (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1)
   · rename_i h
     exact absurd hne h
 
+/-- If `0 ≤ a < 1`, the sample consisting entirely of `some 1` has positive probability for
+every sample size. -/
 theorem twoAtomProbOf_all_some_one (a : ℝ) (ha0 : 0 ≤ a) (ha2 : a < 1) (N : ℕ) :
     0 < (twoAtomPop a ha0 (le_of_lt ha2)).probOf (fun _ : Fin N => some (1 : Fin 2)) := by
   have hprob : (twoAtomPop a ha0 (le_of_lt ha2)).prob = twoAtomProb a := rfl
@@ -418,6 +481,8 @@ theorem twoAtomProbOf_all_some_one (a : ℝ) (ha0 : 0 ≤ a) (ha2 : a < 1) (N : 
     linarith
   exact pow_pos hpos N
 
+/-- For a nonempty sample consisting entirely of `some 1`, the empirical CDF is one at
+thresholds at least one and zero otherwise. -/
 theorem empiricalCDF_all_some_one (N : ℕ) (hN : 0 < N) (t : ℚ) :
     (empiricalCDF (fun _ : Fin N => some (1 : Fin 2)) twoAtomLoss t : ℝ) =
       if (1:ℚ) ≤ t then 1 else 0 := by
@@ -439,6 +504,8 @@ theorem empiricalCDF_all_some_one (N : ℕ) (hN : 0 < N) (t : ℚ) :
     calc
       ((0:ℝ) * (N:ℝ)) / (N:ℝ) = 0 := by rw [zero_mul, zero_div]
 
+/-- For a nonempty sample consisting entirely of `some 1`, the empirical quantile index on `[0,
+1]` at confidence level one half is one. -/
 theorem sampleVaRIndex_all_some_one (N : ℕ) (hN : 0 < N) :
     sampleVaRIndex (fun _ : Fin N => some (1 : Fin 2)) twoAtomLoss [0, 1] (1/2) = 1 := by
   have h0 := empiricalCDF_all_some_one N hN 0
@@ -481,6 +548,8 @@ theorem sampleVaRIndex_all_some_one (N : ℕ) (hN : 0 < N) :
   · rename_i h
     exact absurd hne h
 
+/-- If an event excludes a sample of positive probability, its probability is strictly less than
+one. -/
 theorem probEvent_lt_one_of_not_mem {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
     (p : FinDist X) (E : (Fin L → X) → Prop) [DecidablePred E]
     (ω : Fin L → X) (hnot : ¬ E ω) (hω : 0 < p.probOf ω) : p.probEvent E < 1 := by
@@ -506,6 +575,7 @@ theorem probEvent_lt_one_of_not_mem {X : Type} [Fintype X] [DecidableEq X] {L : 
         ≤ ∑ x ∈ (Finset.univ : Finset (Fin L → X)).erase ω, p.probOf x := hle
     _ < 1 := by linarith
 
+/-- An event of probability one contains every sample with positive probability. -/
 theorem probEvent_eq_one_imp {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
     (p : FinDist X) (E : (Fin L → X) → Prop) [DecidablePred E]
     (h : p.probEvent E = 1) (ω : Fin L → X) (hω : 0 < p.probOf ω) : E ω := by
@@ -513,6 +583,8 @@ theorem probEvent_eq_one_imp {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
   have hlt := probEvent_lt_one_of_not_mem p E ω hnot hω
   linarith
 
+/-- For every positive sample size, the empirical quantile index equals zero with probability
+strictly less than one under `noGapPop`. -/
 theorem sampleVaRIndex_success_lt_one {N : ℕ} (hN : 0 < N) :
     FinDist.probEvent (L := N) noGapPop (fun ω : Fin N → Option (Fin 2) =>
       sampleVaRIndex ω twoAtomLoss [0, 1] (1/2) = 0) < 1 := by
@@ -523,6 +595,8 @@ theorem sampleVaRIndex_success_lt_one {N : ℕ} (hN : 0 < N) :
     norm_num
   · exact twoAtomProbOf_all_some_one (1/2) (by norm_num) (by norm_num) N
 
+/-- No deterministic function of a fixed finite sample returns zero with probability one under
+`noGapPop` and one with probability one under `nearPop`. -/
 theorem exactVaR_no_procedure_exact_under_both {N : ℕ} (ε : ℝ) (hε : 0 < ε)
     (hε1 : ε < 1/2) (alg : (Fin N → Option (Fin 2)) → ℕ) :
     ¬ (FinDist.probEvent (L := N) noGapPop (fun ω : Fin N → Option (Fin 2) =>

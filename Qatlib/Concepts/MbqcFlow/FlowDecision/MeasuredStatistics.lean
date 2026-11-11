@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasuredStatisticsDefs
+
+/-!
+# Measured-record statistical guarantees
+
+This module collects product-marginal identities, unbiased kernel averages, and sample-mean
+confidence bounds for finite POVM records. For a bijective POVM measurement map,
+`clause9_complete` bounds deviations of reconstructed statistics for one observable and for two
+observables using shared records.
+
+`thresholdGoal_complete` combines rational insertion-sort and median properties with a concrete
+outcome-dependent axis selector and its cost bound. The quantum statistical background is
+described in [Holevo1982].
+
+## Main statements
+
+* `clause6_complete`: selected-record product laws and unbiased kernel averages.
+* `clause9_complete`: sample-mean, variance, and confidence bounds.
+* `thresholdGoal_complete`: sorted-median and adaptive-axis properties.
+
+## References
+
+* [Holevo, 1982][Holevo1982]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -27,6 +51,9 @@ set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
 
+/-- Distinct positions in the POVM sample record have product marginals and product-law
+expectations. Averaging a kernel over injective tuples is unbiased when the number of such
+tuples is nonzero. -/
 theorem clause6_complete (E : FinitePOVM O D) (hM : Function.Bijective (povmMeasurementMap E))
     (ρ : Operator D) (hρ : IsDensityOperator ρ) {n k : ℕ} (hn : 0 < n)
     (h : (Fin k → O) → ℝ) (hcount : (distinctTupleCount n k : ℕ) ≠ 0) :
@@ -46,6 +73,10 @@ theorem clause6_complete (E : FinitePOVM O D) (hM : Function.Bijective (povmMeas
     exact povm_joint_expect (povmRecordLaw E ρ hρ) idx hidx g
   · exact povmUStatisticK_unbiased (povmRecordLaw E ρ hρ) h hcount
 
+/-- For a POVM with bijective measurement map, the reconstructed sample mean is unbiased, its
+mean squared error is the single-record variance divided by `n`, and the variance is bounded
+by the moment-effect norm. The resulting confidence bounds apply to one observable and to
+two observables using the same records. -/
 theorem clause9_complete (E : FinitePOVM O D) (hM : Function.Bijective (povmMeasurementMap E))
     (ρ : Operator D) (hρ : IsDensityOperator ρ) (A : Fin 2 → Operator D) {n : ℕ} (hn : 0 < n)
     (ε : ℝ) (hε : 0 < ε) :
@@ -75,6 +106,9 @@ theorem clause9_complete (E : FinitePOVM O D) (hM : Function.Bijective (povmMeas
   · exact povm_sample_confidence_bound E hM ρ hρ (A 0) hn ε hε
   · exact povm_two_observables_shared_records E hM ρ hρ A hn ε hε
 
+/-- Counted insertion sort preserves the rational data, sorts it, and gives the stated median
+inequalities. The outcome-dependent axis distinguishes the displayed histories and has cost
+at most the history length plus the axis-table length. -/
 theorem thresholdGoal_complete {K : ℕ} (means : List ℚ) (hK : 0 < K) (hlen : means.length = K)
     (history : List (Fin 3 × Fin 2)) :
     (rationalInsertionSortCounted means).1.Perm means ∧

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DihedralHSP04.MainResults.CombinationCorrectness
+
+/-!
+# Counting fibers of mask label maps
+
+`linForm` packages the modular dot product as an additive homomorphism. A nonzero mask gives a
+surjective map with fibers of cardinality `(2 ^ l) ^ (l + 3)`, supplying the single-label
+counting input for the combination analysis.
+
+This development follows [Regev2004a].
+
+## Main statements
+
+* `linForm_surjective`: every label occurs for a nonzero mask.
+* `linForm_fiber_card`: all fibers of a nonzero mask have the same explicit size.
+
+## References
+
+* [Regev, 2004][Regev2004a]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +36,7 @@ namespace Qatlib.Papers.DihedralHSP04.MainResults
 
 open scoped BigOperators
 
+/-- The additive homomorphism sending a sample to its modular dot product with the mask `b`. -/
 def linForm (l : ℕ) (b : Mask l) : SampleSpace l →+ ZMod (2 ^ l) where
   toFun := fun y => dotMod l b y
   map_zero' := by simp [dotMod]
@@ -26,17 +47,21 @@ def linForm (l : ℕ) (b : Mask l) : SampleSpace l →+ ZMod (2 ^ l) where
     refine Finset.sum_congr rfl (fun j _ => ?_)
     by_cases h : b j <;> simp [h]
 
+/-- Evaluating `linForm` gives the corresponding modular dot product. -/
 theorem linForm_apply (l : ℕ) (b : Mask l) (y : SampleSpace l) :
     linForm l b y = dotMod l b y := rfl
 
+/-- The sample space has cardinality `(2 ^ l) ^ (l + 4)`. -/
 theorem natCard_sampleSpace (l : ℕ) :
     Nat.card (SampleSpace l) = (2 ^ l) ^ (l + 4) := by
   rw [Nat.card_fun]
   simp [Nat.card_eq_fintype_card]
 
+/-- The modular outcome space has cardinality `2 ^ l`. -/
 theorem natCard_outcome (l : ℕ) : Nat.card (ZMod (2 ^ l)) = 2 ^ l := by
   rw [Nat.card_eq_fintype_card, ZMod.card]
 
+/-- A mask different from `zeroMask` is true at some coordinate. -/
 theorem exists_true_of_ne_zero {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l) :
     ∃ j : Fin (l + 4), b j = true := by
   by_contra h
@@ -47,6 +72,7 @@ theorem exists_true_of_ne_zero {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l) :
   · rfl
   · exact absurd hbj (h j)
 
+/-- The label homomorphism of a nonzero mask is surjective. -/
 theorem linForm_surjective {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l) :
     Function.Surjective (linForm l b) := by
   intro z
@@ -61,6 +87,8 @@ theorem linForm_surjective {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l) :
   · intro hjnot
     exact absurd (Finset.mem_univ j) hjnot
 
+/-- For a nonzero mask, each modular label has exactly `(2 ^ l) ^ (l + 3)` preimages. See
+[Regev2004a]. -/
 theorem linForm_fiber_card {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l)
     (z : ZMod (2 ^ l)) :
     (Finset.univ.filter (fun y : SampleSpace l => dotMod l b y = z)).card =

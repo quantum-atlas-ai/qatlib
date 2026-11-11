@@ -41,6 +41,30 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+
+/-!
+# Effective integer readouts for quantum counting
+
+This module defines the rational amplitude decoder `effectiveLabelEstimate` and its rounded
+integer count `effectiveIntegerCount`. The rational estimate lies in `[0, 1]` and approximates
+the ideal label estimate within `2⁻ᵏ`, yielding count error at most `N * 2⁻ᵏ + 1/2`.
+
+The module records rounding behavior, bit and space budget inequalities, and transfers counting
+guarantees associated with [BrassardEtAl2002] to effective readouts through
+`effectiveIntegerReadoutTransportsSpec`.
+
+## Main statements
+
+* `effectiveIntegerCount_error`: the combined decoder and rounding error bound.
+* `effectiveIntegerCount_tie`: rounding at a half-integer.
+* `effectiveIntegerCount_near_dev_nearest`: comparison with the ideal nearest count.
+* `effectiveIntegerReadout_transports`: the combined effective counting guarantees.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -70,33 +94,45 @@ open Filter
 open scoped Topology
 set_option warningAsError false
 
+/-- The rational amplitude estimate obtained by applying `nativeAEDecode` to label `z` at
+precision `k`. -/
 def effectiveLabelEstimate (M k : ℕ) (z : Fin M) : ℚ :=
   nativeAEDecode M k z
 
+/-- The integer count obtained by applying `aeEffRound` to the rational estimate `N *
+effectiveLabelEstimate M k z`. -/
 def effectiveIntegerCount (N M k : ℕ) (z : Fin M) : ℤ :=
   aeEffRound ((N : ℚ) * effectiveLabelEstimate M k z)
 
+/-- The effective label estimate equals the native rational amplitude decoder on the same
+record. -/
 theorem effectiveLabelEstimate_eq_native (M k : ℕ) (z : Fin M) :
     effectiveLabelEstimate M k z = nativeAEDecode M k z := rfl
 
+/-- The effective rational label estimate lies in the interval `[0, 1]`. -/
 theorem effectiveLabelEstimate_mem (M k : ℕ) (z : Fin M) :
     0 ≤ effectiveLabelEstimate M k z ∧ effectiveLabelEstimate M k z ≤ 1 := by
   have h := native_ae_computed_scalar_precision M k z
   exact ⟨h.1, h.2.1⟩
 
+/-- The effective rational label estimate differs from `aeEstimate M z` by at most `2⁻ᵏ`. -/
 theorem effectiveLabelEstimate_error (M k : ℕ) (z : Fin M) :
     |(effectiveLabelEstimate M k z : ℝ) - aeEstimate M z| ≤ ((2 : ℝ)⁻¹) ^ k := by
   have h := native_ae_computed_scalar_precision M k z
   exact h.2.2
 
+/-- The effective integer count equals `aeEffCount` on the same parameters and label. -/
 theorem effectiveIntegerCount_eq_frozen (N M k : ℕ) (z : Fin M) :
     effectiveIntegerCount N M k z = aeEffCount N M k z := rfl
 
+/-- The effective integer count differs from the ideal scaled amplitude estimate `N * aeEstimate
+M z` by at most `N * 2⁻ᵏ + 1/2`. -/
 theorem effectiveIntegerCount_error (N M k : ℕ) (z : Fin M) :
     |(effectiveIntegerCount N M k z : ℝ) - (N : ℝ) * aeEstimate M z| ≤
       (N : ℝ) * ((2 : ℝ)⁻¹) ^ k + 1 / 2 :=
   aeEffCount_error N M k z
 
+/-- For a rational input in `[0, n]`, `aeEffRound` produces an integer in `[0, n]`. -/
 private theorem effRound_valid (x : ℚ) (n : ℕ) (hx0 : (0:ℚ) ≤ x) (hx1 : x ≤ (n:ℚ)) :
     0 ≤ aeEffRound x ∧ aeEffRound x ≤ n := by
   rw [aeEffRound_eq_intFloor]
@@ -111,6 +147,7 @@ private theorem effRound_valid (x : ℚ) (n : ℕ) (hx0 : (0:ℚ) ≤ x) (hx1 : 
     have hlt' : (Int.floor ((x : ℝ) + 1 / 2) : ℤ) < n + 1 := by exact_mod_cast hlt
     omega
 
+/-- The effective integer count lies between zero and `N`. -/
 theorem effectiveIntegerCount_valid (N M k : ℕ) (z : Fin M) :
     0 ≤ effectiveIntegerCount N M k z ∧ effectiveIntegerCount N M k z ≤ N := by
   have h := native_ae_computed_scalar_precision M k z
@@ -120,18 +157,24 @@ theorem effectiveIntegerCount_valid (N M k : ℕ) (z : Fin M) :
     (mul_nonneg (Nat.cast_nonneg N) hq0)
     (by simpa using! mul_le_mul_of_nonneg_left hq1 (Nat.cast_nonneg N))
 
+/-- If the scaled rational estimate is the half-integer `n + 1/2`, the effective integer count
+is `n + 1`. -/
 theorem effectiveIntegerCount_tie (N M k : ℕ) (z : Fin M) (n : ℤ)
     (h : (N : ℚ) * effectiveLabelEstimate M k z = (n : ℚ) + 1 / 2) :
     effectiveIntegerCount N M k z = n + 1 := by
   rw [effectiveIntegerCount, h]
   exact aeEffRound_half_up n
 
+/-- Every positive-radius neighborhood of a half-integer contains rational inputs whose
+effective rounded outputs are the two adjacent integers. -/
 theorem effectiveIntegerReadout_boundary_density (n : ℤ) (ε : ℝ) (hε : 0 < ε) :
     ∃ x y : ℚ,
       |(x : ℝ) - ((n : ℝ) + 1 / 2)| < ε ∧ aeEffRound x = n ∧
         |(y : ℝ) - ((n : ℝ) + 1 / 2)| < ε ∧ aeEffRound y = n + 1 :=
   aeEffRound_boundary_dense n ε hε
 
+/-- The effective integer count differs from `countLabelReadoutNearest N M z` by at most
+`effRoundSlack N k`. -/
 theorem effectiveIntegerCount_near_dev_nearest (N M k : ℕ) (z : Fin M) :
     |(effectiveIntegerCount N M k z : ℝ) - (countLabelReadoutNearest N M z : ℝ)| ≤
       effRoundSlack N k := by
@@ -152,12 +195,17 @@ theorem effectiveIntegerCount_near_dev_nearest (N M k : ℕ) (z : Fin M) :
   rw [effectiveIntegerCount_eq_frozen]
   exact h
 
+/-- The effective count bit budget is at least `Nat.clog 2 (N + 1) + k`, and the space budget is
+at least twice the bit budget. -/
 theorem effectiveIntegerReadout_budgets (N k : ℕ) :
     Nat.clog 2 (N + 1) + k ≤ effCountBitBudget N k ∧
       2 * effCountBitBudget N k ≤ effCountSpaceBudget N k := by
   obtain ⟨_, _, _, _, _, _, _, _, _, _, _, hb⟩ := clause90
   exact hb N k
 
+/-- The conjunction of the effective-readout guarantees for Corollary 14, the singleton case,
+basic approximate counting, and exact counting. These include their stated success
+probabilities and the exact-counting cost bound [BrassardEtAl2002]. -/
 def effectiveIntegerReadoutTransportsSpec : Prop :=
 
     (∀ (N : ℕ) (S : Finset (Fin N)) (hN : 0 < N), 2 ≤ N →
@@ -198,6 +246,8 @@ def effectiveIntegerReadoutTransportsSpec : Prop :=
         BHMTTh17.exactCountCostMass hN S hM₀ hM ≤
           1000 * Real.sqrt (((S.card : ℝ) + 1) * ((N : ℝ) - (S.card : ℝ) + 1)))
 
+/-- The effective integer readout satisfies all guarantees in
+`effectiveIntegerReadoutTransportsSpec`. -/
 theorem effectiveIntegerReadout_transports : effectiveIntegerReadoutTransportsSpec := by
   obtain ⟨_, _, _, _, _, _, _, _, h9, h10, h11, _⟩ := clause90
   exact ⟨h9.2.1, h9.2.2, h10, h11⟩

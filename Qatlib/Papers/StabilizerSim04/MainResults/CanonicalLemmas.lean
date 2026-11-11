@@ -12,6 +12,18 @@ import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Tactic.Ring
 import Qatlib.Papers.StabilizerSim04.MainResults.Basic
+
+/-!
+# Binary symmetric decompositions for stabilizer canonical forms
+
+A symmetric matrix over `ZMod 2` admits a diagonal correction after which it is
+`M * Mᵀ` for a unit lower-triangular matrix `M`. The determinant of this factor
+is one, yielding an invertible version of the decomposition. These algebraic
+lemmas support the canonical-form analysis of stabilizer circuits.
+
+The source is [AaronsonGottesman2004]; stabilizer and binary-matrix background
+is [Gottesman, *Stabilizer Codes and Quantum Error Correction*][Gottesman1997].
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,32 +34,42 @@ namespace Qatlib.Papers.StabilizerSim04.MainResults
 
 open Matrix
 
+/-- The binary block matrix with upper-left entry one, zero upper-right row, lower-left column
+`v`, and lower-right block `N`. -/
 def lowerBlock {n : ℕ} (v : Fin n → ZMod 2) (N : Matrix (Fin n) (Fin n) (ZMod 2)) :
     Matrix (Fin (n + 1)) (Fin (n + 1)) (ZMod 2) :=
   Matrix.of fun i j =>
     Fin.cases (Fin.cases (1 : ZMod 2) (fun _ => 0) j)
       (fun i' => Fin.cases (v i') (fun j' => N i' j') j) i
 
+/-- The upper-left entry of `lowerBlock v N` equals one. -/
 @[simp] theorem lowerBlock_zero_zero {n : ℕ} (v : Fin n → ZMod 2)
     (N : Matrix (Fin n) (Fin n) (ZMod 2)) : lowerBlock v N 0 0 = 1 := rfl
 
+/-- The remaining entries in the first row of `lowerBlock v N` equal zero. -/
 @[simp] theorem lowerBlock_zero_succ {n : ℕ} (v : Fin n → ZMod 2)
     (N : Matrix (Fin n) (Fin n) (ZMod 2)) (j : Fin n) :
     lowerBlock v N 0 j.succ = 0 := rfl
 
+/-- The remaining entries in the first column of `lowerBlock v N` are the coordinates of `v`. -/
 @[simp] theorem lowerBlock_succ_zero {n : ℕ} (v : Fin n → ZMod 2)
     (N : Matrix (Fin n) (Fin n) (ZMod 2)) (i : Fin n) :
     lowerBlock v N i.succ 0 = v i := rfl
 
+/-- The lower-right entries of `lowerBlock v N` are those of `N`. -/
 @[simp] theorem lowerBlock_succ_succ {n : ℕ} (v : Fin n → ZMod 2)
     (N : Matrix (Fin n) (Fin n) (ZMod 2)) (i j : Fin n) :
     lowerBlock v N i.succ j.succ = N i j := rfl
 
+/-- Every element of `ZMod 2` added to itself equals zero. -/
 theorem zmod2_add_self (x : ZMod 2) : x + x = 0 := by
   have h2 : (2 : ZMod 2) = 0 := by decide
   calc x + x = 2 * x := by ring
     _ = 0 := by rw [h2, zero_mul]
 
+/-- A symmetric binary matrix has a diagonal correction equal to `M * Mᵀ`
+with `M` unit lower triangular, refining the decomposition used by
+[Aaronson & Gottesman][AaronsonGottesman2004]. -/
 theorem exists_unit_lower_decomposition :
     ∀ (n : ℕ) (A : Matrix (Fin n) (Fin n) (ZMod 2)), Aᵀ = A →
       ∃ (Λ M : Matrix (Fin n) (Fin n) (ZMod 2)),
@@ -170,12 +192,15 @@ theorem exists_unit_lower_decomposition :
               · subst h; simp
               · simp [h, hΛ'diag i' j' h]
 
+/-- A lower triangular binary matrix with all diagonal entries equal to one has determinant one. -/
 theorem det_one_of_unit_lower {n : ℕ} (M : Matrix (Fin n) (Fin n) (ZMod 2))
     (htri : M.BlockTriangular OrderDual.toDual) (hdiag : ∀ i : Fin n, M i i = 1) :
     M.det = 1 := by
   rw [Matrix.det_of_lowerTriangular M htri]
   simp [hdiag]
 
+/-- For every symmetric binary matrix `A`, there exist a diagonal matrix `Λ` and an invertible
+matrix `M` such that `A + Λ = M * Mᵀ` [AaronsonGottesman2004]. -/
 theorem exists_invertible_decomposition (n : ℕ) (A : Matrix (Fin n) (Fin n) (ZMod 2))
     (hA : Aᵀ = A) :
     ∃ (Λ M : Matrix (Fin n) (Fin n) (ZMod 2)),
@@ -187,6 +212,8 @@ theorem exists_invertible_decomposition (n : ℕ) (A : Matrix (Fin n) (Fin n) (Z
     exact isUnit_one
   exact ⟨Λ, M, hΛ, hunit, hMM⟩
 
+/-- The symmetric binary matrix decomposition specified by
+`lemma7_symmetric_decomposition_statement` holds. -/
 theorem lemma7_symmetric_decomposition : lemma7_symmetric_decomposition_statement := by
   intro n A hA
   exact exists_invertible_decomposition n A hA

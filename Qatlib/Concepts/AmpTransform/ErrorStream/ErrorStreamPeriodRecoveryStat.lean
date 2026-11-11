@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessMass
+
+/-!
+# Period recovery with an error stream
+
+`ErrorStreamPeriodRecovery` specifies repeated amplified Fourier sampling for a progression with
+disjoint marked noise. It combines normalization of the product law, an exact failure
+probability, a lower bound for recovering the planted period, and worst-case and expected query
+bounds in the setting of [Cornwell2014].
+
+## Main statements
+
+* `ErrorStreamPeriodRecovery`: Specifies the normalized repeated-sampling law, exact retry
+  failure mass, planted-period success lower bound, and query bounds for a progression with
+  disjoint marked noise under the stated separation and density hypotheses.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,9 @@ set_option autoImplicit false
 open scoped Classical BigOperators
 namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
+/-- Specifies the normalized repeated-sampling law, exact retry failure mass, planted-period
+success lower bound, and query bounds for a progression with disjoint marked noise under the
+stated separation and density hypotheses. -/
 def ErrorStreamPeriodRecovery : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (s M L P B R : ℕ) (G : Finset (Fin N)) (h : Fin N → Bool),
     2 ≤ M → 2 ≤ P → s+(M-1)*P < N → M*P ≤ N → P ≤ B → 2*B^2 < N →

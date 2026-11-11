@@ -6,15 +6,41 @@ Authors: Qatlib Contributors
 
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# Cramér–Rao resolution formulas
+
+The resolution expression `cramerRaoResolution` is the reciprocal square root of Fisher
+information. This module derives its variance bound, evaluates the intensity and Gaussian field
+formulas, and solves the unit signal-to-noise equation. See [DelaubertEtAl2008] for the paper
+context.
+
+## Main statements
+
+* `cramerRao_bound`: For positive Fisher information, a variance lower bound by its reciprocal
+  implies the corresponding lower bound on `pmin = sqrt Var`.
+* `resolution_intensity_fisher`: For positive `N` and `a`, the resolution associated with Fisher
+  information `4N/a²` is `a/(2√N)`.
+* `resolution_gauss_fisher`: For positive `N`, `b`, and `σ`, the resolution associated with
+  Fisher information `4N/(b²σ²)` is `bσ/(2√N)`.
+
+## References
+
+* [Delaubert et al., 2008][DelaubertEtAl2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.QImagingLimit06.MainResults
 
+/-- The identity function recording a supplied scalar Fisher information value. -/
 def fisherInformation (IF : ℝ) : ℝ := IF
 
+/-- The reciprocal square root of the supplied Fisher information. -/
 noncomputable def cramerRaoResolution (IF : ℝ) : ℝ := 1 / Real.sqrt IF
 
+/-- For positive Fisher information, a variance lower bound by its reciprocal implies the
+corresponding lower bound on `pmin = sqrt Var`. -/
 theorem cramerRao_bound {IF Var pmin : ℝ} (hIF : 0 < IF)
     (hVar : 1 / IF ≤ Var) (hpmin : pmin = Real.sqrt Var) :
     cramerRaoResolution IF ≤ pmin := by
@@ -29,10 +55,13 @@ theorem cramerRao_bound {IF Var pmin : ℝ} (hIF : 0 < IF)
     _ ≤ Real.sqrt Var := hle
     _ = pmin := hpmin.symm
 
+/-- The real square root of four is two. -/
 theorem sqrt_four : Real.sqrt 4 = (2 : ℝ) := by
   rw [Real.sqrt_eq_iff_eq_sq (by norm_num) (by norm_num)]
   norm_num
 
+/-- For positive `N` and `a`, the resolution associated with Fisher information `4N/a²` is
+`a/(2√N)`. -/
 theorem resolution_intensity_fisher {N a : ℝ} (hN : 0 < N) (ha : 0 < a) :
     cramerRaoResolution ((4 * N) / a ^ 2) = a / (2 * Real.sqrt N) := by
   have h4N : (0 : ℝ) ≤ 4 * N := by positivity
@@ -45,6 +74,8 @@ theorem resolution_intensity_fisher {N a : ℝ} (hN : 0 < N) (ha : 0 < a) :
   have ha' : a ≠ 0 := ha.ne'
   field_simp
 
+/-- For positive `N`, `b`, and `σ`, the resolution associated with Fisher information
+`4N/(b²σ²)` is `bσ/(2√N)`. -/
 theorem resolution_gauss_fisher {N b σ : ℝ} (hN : 0 < N) (hb : 0 < b)
     (hσ : 0 < σ) :
     cramerRaoResolution ((4 * N) / (b ^ 2 * σ ^ 2)) =
@@ -61,6 +92,7 @@ theorem resolution_gauss_fisher {N b σ : ℝ} (hN : 0 < N) (hb : 0 < b)
   have hbσ : b * σ ≠ 0 := (mul_pos hb hσ).ne'
   field_simp
 
+/-- With positive parameters, the equation `4N p²/c² = 1` implies `p = c/(2√N)`. -/
 theorem pmin_of_snr_one {N c p : ℝ} (hN : 0 < N) (hc : 0 < c) (hp : 0 < p)
     (hSNR : 4 * N * p ^ 2 / c ^ 2 = 1) : p = c / (2 * Real.sqrt N) := by
   have hp2 : p ^ 2 = c ^ 2 / (4 * N) := by

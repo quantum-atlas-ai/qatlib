@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.RydbergMaxCut26.MainResults.RationalSelector
+
+/-!
+# Hybrid selection with sampled energy estimates
+
+`joint` combines a projection sample with measurements of a fixed candidate and a
+projection-dependent candidate. `sampledLaw` retains the projection sample and the Boolean
+decision from rational scores; `pauliSampledLaw` specializes this construction to fresh Pauli
+readouts and bounds its expected output energy by the ideal minimum plus variance-controlled
+sampling errors.
+
+These results support the development of [CrostaSaubanereHuber2026].
+
+## Main statements
+
+* `sampled_expected_error`: controls the loss from estimated candidate energies.
+* `pauli_expected_error`: specializes the loss bound to Pauli sample means.
+
+## References
+
+* [Crosta et al., 2026][CrostaSaubanereHuber2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -18,6 +40,7 @@ open Qatlib.Papers.RydbergMaxCut26.MainResults.RationalSelector
 open Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Graph
 open Qatlib.Papers.RydbergMaxCut26.MainResults.PauliReadout
 
+/-- The finite joint distribution with mass `q.prob ω * r.prob x * (s ω).prob y` at `(ω, x, y)`. -/
 noncomputable def joint {Ω X Y : Type*} [Fintype Ω] [Fintype X] [Fintype Y]
     (q : FinDist Ω) (r : FinDist X) (s : Ω → FinDist Y) : FinDist (Ω×(X×Y)) where
   prob z := q.prob z.1*r.prob z.2.1*(s z.1).prob z.2.2
@@ -26,6 +49,8 @@ noncomputable def joint {Ω X Y : Type*} [Fintype Ω] [Fintype X] [Fintype Y]
     simp only [Fintype.sum_prod_type,← Finset.mul_sum]
     simp only [fun ω => (s ω).sum_one,mul_one,← Finset.mul_sum,r.sum_one,q.sum_one]
 
+/-- Expectation under `joint` equals the iterated expectations over `q`, `r`, and the
+conditional distribution `s ω`. -/
 theorem joint_expect {Ω X Y : Type*} [Fintype Ω] [Fintype X] [Fintype Y]
     [DecidableEq Ω] [DecidableEq X] [DecidableEq Y]
     (q : FinDist Ω) (r : FinDist X) (s : Ω → FinDist Y) (f : Ω×(X×Y) → ℝ) :
@@ -39,11 +64,15 @@ theorem joint_expect {Ω X Y : Type*} [Fintype Ω] [Fintype X] [Fintype Y]
   intro y _
   ring
 
+/-- The pushforward joint law retaining the projection sample and the Boolean comparison of the
+two rational scores. -/
 noncomputable def sampledLaw {Ω X Y : Type*} [Fintype Ω] [Fintype X] [Fintype Y]
     [DecidableEq Ω] (q : FinDist Ω) (r : FinDist X) (s : Ω → FinDist Y)
     (scoreR : X → ℚ) (scoreP : Y → ℚ) : FinDist (Ω×Bool) :=
   push (joint q r s) (fun z => (z.1,chooseQ (scoreR z.2.1) (scoreP z.2.2)))
 
+/-- The expected selected energy is at most the expected minimum candidate energy plus the
+expected absolute errors of the fixed and conditional rational scores. -/
 theorem sampled_expected_error {n : ℕ} {Ω X Y : Type} [Fintype Ω] [Fintype X] [Fintype Y]
     [DecidableEq Ω] [DecidableEq X] [DecidableEq Y]
     (q : FinDist Ω) (r : FinDist X) (s : Ω → FinDist Y)
@@ -67,6 +96,8 @@ theorem sampled_expected_error {n : ℕ} {Ω X Y : Type} [Fintype Ω] [Fintype X
   simp only [FinDist.expect,mul_add,Finset.sum_add_distrib]
   simp only [← Finset.sum_mul,fun ω => (s ω).sum_one,r.sum_one,q.sum_one,one_mul]
 
+/-- The projection-and-selection law obtained by comparing rational mean Pauli energy scores
+from `N` fresh shots of each candidate. -/
 noncomputable def pauliSampledLaw {n N : ℕ} {Ω E : Type} [Fintype Ω] [Fintype E] [DecidableEq Ω]
     (q : FinDist Ω) (ends : E → Fin n×Fin n) (w : E → ℚ)
     (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1)
@@ -74,6 +105,10 @@ noncomputable def pauliSampledLaw {n N : ℕ} {Ω E : Type} [Fintype Ω] [Fintyp
   sampledLaw q (shotsLaw n N ρ hρ htr) (fun ω => shotsLaw n N (σ ω) (hσ ω).1 (hσ ω).2)
     (meanScoreQ ends w) (meanScoreQ ends w)
 
+/-- For `N > 0`, the Pauli-sampled selector has expected QMC energy at most the expected minimum
+candidate energy plus the fixed-candidate square-root variance term and its
+conditional-candidate average. This quantifies the sampled selection step associated with
+[CrostaSaubanereHuber2026]. -/
 theorem pauli_expected_error {n N : ℕ} {Ω E : Type} [Fintype Ω] [Fintype E] [DecidableEq Ω]
     (q : FinDist Ω) (ends : E → Fin n×Fin n) (w : E → ℚ)
     (ρ : Matrix (Reg n) (Reg n) ℂ) (hρ : ρ.PosSemidef) (htr : ρ.trace=1)

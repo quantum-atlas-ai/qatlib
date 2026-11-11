@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StateConvLee10.EffectiveCert.StateConversionCertifiedDefs
+
+/-!
+# Certified rational scales and frame synthesis
+
+This module proves positivity, monotonicity, and error bounds for the rational Newton scales
+used in diagonal factorization certificates. It establishes successful finite search for
+near-optimal scales, verifies the emitted fixed-gate frame program, and bounds
+rational-coordinate and Gram-matrix approximation errors for effective constructions in the
+state-conversion framework of [LeeEtAl2011].
+
+## Main statements
+
+* `scaleSearch_sound`: a successful search returns a positive Newton iterate with the requested
+  squared error.
+* `clause90_search_complete`: positive tolerance yields a rational certificate and a
+  near-optimal norm bound.
+* `clause94_sourceFrame_padded_error`: emitted fixed primitives have zero padded matrix error.
+* `selectedComplexGram_error`: coordinate approximation controls each Gram-matrix entry.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BitWordCompiler.WordComposition
@@ -23,6 +47,7 @@ open Qatlib
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- Casting a rational absolute value to the reals commutes with taking absolute value. -/
 theorem abs_rat_cast (q : ℚ) : ((|q| : ℚ) : ℝ) = |(q : ℝ)| := by
   by_cases h : 0 ≤ q
   · have h' : (0 : ℝ) ≤ (q : ℝ) := by exact_mod_cast h
@@ -31,18 +56,22 @@ theorem abs_rat_cast (q : ℚ) : ((|q| : ℚ) : ℝ) = |(q : ℝ)| := by
     rw [abs_of_nonpos (le_of_not_ge h), abs_of_nonpos h']
     norm_cast
 
+/-- The absolute value of every coordinate is bounded by `maxAbsRat a`. -/
 theorem maxAbsRat_ge {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ) (r : X) :
     |a r| ≤ maxAbsRat a := by
   unfold maxAbsRat
   rw [Finset.le_fold_max]
   exact Or.inr ⟨r, Finset.mem_univ r, le_rfl⟩
 
+/-- Casting the maximum of two rationals to the reals commutes with taking their maximum. -/
 theorem max_rat_cast (u v : ℚ) : ((max u v : ℚ) : ℝ) = max (u : ℝ) (v : ℝ) := by
   by_cases h : u ≤ v
   · rw [max_eq_right h, max_eq_right (by exact_mod_cast h)]
   · have h' : v ≤ u := le_of_not_ge h
     rw [max_eq_left h', max_eq_left (by exact_mod_cast h')]
 
+/-- The real cast of `maxAbsRat a` equals the finite maximum fold of the real-cast absolute
+values. -/
 theorem maxAbsRat_cast {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ) :
     ((maxAbsRat a : ℚ) : ℝ)
       = Finset.fold max 0 (fun r => ((|a r| : ℚ) : ℝ)) (Finset.univ : Finset X) := by
@@ -53,6 +82,8 @@ theorem maxAbsRat_cast {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ) :
   | @insert x s hx ih =>
       rw [Finset.fold_insert hx, Finset.fold_insert hx, max_rat_cast, ih]
 
+/-- The rational maximum absolute coordinate, viewed in the reals, is at most `diagonalScaleReal
+a`. -/
 theorem maxAbsRat_le_scale {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ) :
     maxAbsRat a ≤ diagonalScaleReal a := by
   have hnonneg : (0 : ℝ) ≤ diagonalScaleReal a := norm_nonneg _
@@ -64,6 +95,7 @@ theorem maxAbsRat_le_scale {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ
   rw [hcast]
   exact abs_entry_le_diagonalScaleReal a x
 
+/-- For nonnegative `M`, every rational Newton scale is positive. -/
 theorem newtonScale_pos {M : ℚ} (hM : 0 ≤ M) : ∀ n, 0 < newtonScale M n := by
   intro n
   induction n with
@@ -76,6 +108,8 @@ theorem newtonScale_pos {M : ℚ} (hM : 0 ≤ M) : ∀ n, 0 < newtonScale M n :=
       have h2 : 0 < newtonScale M n + M / newtonScale M n := add_pos_of_pos_of_nonneg ih h1
       exact div_pos h2 (by norm_num)
 
+/-- The squared error of a Newton update equals one quarter of the square of the difference
+between the current scale and `M` divided by that scale. -/
 theorem newtonScale_identity {M : ℚ} {n : ℕ} (hpos : 0 < newtonScale M n) :
     ((newtonScale M n + M / newtonScale M n) / 2) ^ 2 - M
       = ((newtonScale M n - M / newtonScale M n) ^ 2) / 4 := by
@@ -83,6 +117,7 @@ theorem newtonScale_identity {M : ℚ} {n : ℕ} (hpos : 0 < newtonScale M n) :
   field_simp
   ring
 
+/-- For nonnegative `M`, the square of every Newton scale is at least `M`. -/
 theorem newtonScale_sq_ge {M : ℚ} (hM : 0 ≤ M) : ∀ n, M ≤ (newtonScale M n) ^ 2 := by
   intro n
   induction n with
@@ -97,6 +132,7 @@ theorem newtonScale_sq_ge {M : ℚ} (hM : 0 ≤ M) : ∀ n, M ≤ (newtonScale M
       have hnonneg : 0 ≤ ((newtonScale M n - M / newtonScale M n) ^ 2) / 4 := by positivity
       linarith
 
+/-- For nonnegative `M`, the squared Newton scales form a nonincreasing sequence. -/
 theorem newtonScale_sq_le {M : ℚ} (hM : 0 ≤ M) :
     ∀ n, (newtonScale M (n + 1)) ^ 2 ≤ (newtonScale M n) ^ 2 := by
   intro n
@@ -115,11 +151,14 @@ theorem newtonScale_sq_le {M : ℚ} (hM : 0 ≤ M) :
   simp only [newtonScale]
   nlinarith [hprod]
 
+/-- For nonnegative `M`, every squared Newton-scale error is nonnegative. -/
 theorem newtonScale_err_nonneg {M : ℚ} (hM : 0 ≤ M) (n : ℕ) :
     0 ≤ (newtonScale M n) ^ 2 - M := by
   have h := newtonScale_sq_ge hM n
   linarith
 
+/-- For nonnegative `M`, each Newton step reduces the squared error by a factor of at least
+four. -/
 theorem newtonScale_err_step {M : ℚ} (hM : 0 ≤ M) (n : ℕ) :
     (newtonScale M (n + 1)) ^ 2 - M ≤ ((newtonScale M n) ^ 2 - M) / 4 := by
   have hpos : 0 < newtonScale M n := newtonScale_pos hM n
@@ -143,6 +182,8 @@ theorem newtonScale_err_step {M : ℚ} (hM : 0 ≤ M) (n : ℕ) :
   rw [div_le_div_iff₀ hden (by positivity)]
   nlinarith [hmul]
 
+/-- For nonnegative `M`, multiplying the squared error at step `n` by `4 ^ n` gives at most the
+initial squared error. -/
 theorem newtonScale_err_le {M : ℚ} (hM : 0 ≤ M) :
     ∀ n, ((newtonScale M n) ^ 2 - M) * 4 ^ n ≤ (M + 1) ^ 2 - M := by
   intro n
@@ -165,6 +206,8 @@ theorem newtonScale_err_le {M : ℚ} (hM : 0 ≤ M) :
             exact mul_le_mul_of_nonneg_right hmul (by positivity)
         _ ≤ (M + 1) ^ 2 - M := ih
 
+/-- A successful scale search for nonnegative `M` returns a positive Newton iterate whose square
+lies between `M` and `M + δ`. -/
 theorem scaleSearch_sound {M δ : ℚ} (hM : 0 ≤ M) {fuel : ℕ} {t : ℚ}
     (h : scaleSearch M δ fuel = some t) :
     ∃ n : ℕ, t = newtonScale M n ∧ M ≤ t ^ 2 ∧ t ^ 2 - M ≤ δ ∧ 0 < t := by
@@ -181,6 +224,7 @@ theorem scaleSearch_sound {M δ : ℚ} (hM : 0 ≤ M) {fuel : ℕ} {t : ℚ}
       · simp only [if_neg hc] at h
         exact ih h
 
+/-- Every natural number `m` is strictly smaller than `4 ^ m`. -/
 theorem nat_lt_four_pow (m : ℕ) : m < 4 ^ m := by
   induction m with
   | zero =>
@@ -194,6 +238,7 @@ theorem nat_lt_four_pow (m : ℕ) : m < 4 ^ m := by
         _ < 4 * 4 ^ m := by linarith
         _ = 4 ^ (m + 1) := by rw [pow_succ]; ring
 
+/-- For nonnegative `M` and positive rational tolerance, some finite search fuel yields a scale. -/
 theorem scaleSearch_exists {M δ : ℚ} (hM : 0 ≤ M) (hδ : 0 < δ) :
     ∃ fuel t, scaleSearch M δ fuel = some t := by
   have he0 : 0 ≤ ((M + 1) ^ 2 - M : ℚ) := by nlinarith [hM]
@@ -220,6 +265,7 @@ theorem scaleSearch_exists {M δ : ℚ} (hM : 0 ≤ M) (hδ : 0 < δ) :
   simp only [scaleSearch]
   rw [if_pos (by linarith [herr, hquot])]
 
+/-- The source-access wire list has no repeated indices. -/
 theorem sourceAccessWires_nodup (d : SourceRationalProblem) (w : ℕ)
     (hw : sourceAddressBits d + sourceValueBits d ≤ w) :
     (sourceAccessWires d w hw).Nodup := by
@@ -228,15 +274,18 @@ theorem sourceAccessWires_nodup (d : SourceRationalProblem) (w : ℕ)
   intro a ha b hb heq
   exact Fin.ext (congrArg (fun x : Fin w => x.val) heq)
 
+/-- The source-access wire list has length equal to the sum of the address and value bit counts. -/
 theorem sourceAccessWires_length (d : SourceRationalProblem) (w : ℕ)
     (hw : sourceAddressBits d + sourceValueBits d ≤ w) :
     (sourceAccessWires d w hw).length = sourceAddressBits d + sourceValueBits d := by
   simp [sourceAccessWires]
 
+/-- The emitted word equals the word produced by `partialCompiler.emit`. -/
 theorem emittedWord_engine {w : ℕ} (g : LocalQFTGate w) (k : ℕ) :
     emittedWord w g k = (partialCompiler.emit w g k : List (LocalQFTGate w)) := by
   cases g <;> rfl
 
+/-- Every gate in an emitted word satisfies `sourceFixedGate`. -/
 theorem emit_fixed {w : ℕ} (g : LocalQFTGate w) (k : ℕ) :
     ∀ h ∈ emittedWord w g k, sourceFixedGate h := by
   cases g with
@@ -264,6 +313,7 @@ theorem emit_fixed {w : ℕ} (g : LocalQFTGate w) (k : ℕ) :
         rw [if_neg he] at hmem
         simp at hmem
 
+/-- Lifting a gate to a larger width preserves `sourceFixedGate`. -/
 theorem sourceFixedGate_lift {w w' : ℕ} (hw : w ≤ w') {g : LocalQFTGate w}
     (hg : sourceFixedGate g) : sourceFixedGate (liftGateTo hw g) := by
   cases g with
@@ -275,12 +325,14 @@ theorem sourceFixedGate_lift {w w' : ℕ} (hw : w ≤ w') {g : LocalQFTGate w}
       simp [sourceFixedGate, liftGateTo] at hg ⊢
       exact hg
 
+/-- Every gate in a lifted emitted word satisfies `sourceFixedGate`. -/
 theorem emit_lift_fixed {w w' : ℕ} (hw : w ≤ w') (g : LocalQFTGate w) (k : ℕ) :
     ∀ h ∈ liftWordTo hw (emittedWord w g k), sourceFixedGate h := by
   intro h hh
   obtain ⟨h', hh', rfl⟩ := List.mem_map.mp hh
   exact sourceFixedGate_lift hw (emit_fixed g k h' hh')
 
+/-- The frame-synthesis program satisfies the native legality predicate. -/
 theorem sourceFrameSynthesisProgram_legal (d : SourceRationalProblem) (w : ℕ)
     (g : LocalQFTGate w) (k : ℕ) (hw : w ≤ nativeFrameWidth d + k) :
     sourceNativeLegal d (sourceFrameSynthesisProgram d w g k hw) := by
@@ -300,28 +352,35 @@ theorem sourceFrameSynthesisProgram_legal (d : SourceRationalProblem) (w : ℕ)
     exact ⟨sourceAccessWires_nodup d _ _, sourceAccessWires_length d _ _⟩
   · exact emit_lift_fixed hw g k h hh
 
+/-- The frame-synthesis program makes exactly one native query. -/
 theorem sourceFrameSynthesisProgram_calls (d : SourceRationalProblem) (w : ℕ)
     (g : LocalQFTGate w) (k : ℕ) (hw : w ≤ nativeFrameWidth d + k) :
     sourceNativeCalls (sourceFrameSynthesisProgram d w g k hw) = 1 := by
   simp [sourceFrameSynthesisProgram, sourceNativeCalls]
 
+/-- The native local-gate count of the frame-synthesis program equals the emitted word length. -/
 theorem sourceFrameSynthesisProgram_gates (d : SourceRationalProblem) (w : ℕ)
     (g : LocalQFTGate w) (k : ℕ) (hw : w ≤ nativeFrameWidth d + k) :
     sourceNativeGates (sourceFrameSynthesisProgram d w g k hw)
       = (emittedWord w g k).length := by
   simp [sourceFrameSynthesisProgram, sourceNativeGates, liftWordTo]
 
+/-- The known matrix of the frame-synthesis program is the local program matrix of the lifted
+emitted word. -/
 theorem sourceFrameSynthesisProgram_knownMatrix (d : SourceRationalProblem) (w : ℕ)
     (g : LocalQFTGate w) (k : ℕ) (hw : w ≤ nativeFrameWidth d + k) :
     sourceNativeKnownMatrix (sourceFrameSynthesisProgram d w g k hw)
       = localProgramMatrix (liftWordTo hw (emittedWord w g k)) := by
   simp [sourceFrameSynthesisProgram, sourceNativeKnownMatrix]
 
+/-- The tail of the frame-synthesis steps is precisely the lifted emitted word mapped to native
+local steps. -/
 theorem sourceFrameSynthesisProgram_sameWord (d : SourceRationalProblem) (w : ℕ)
     (g : LocalQFTGate w) (k : ℕ) (hw : w ≤ nativeFrameWidth d + k) :
     (sourceFrameSynthesisProgram d w g k hw).steps.tail
       = (liftWordTo hw (emittedWord w g k)).map (fun h => SourceNativeStep.local h) := rfl
 
+/-- The first frame-synthesis step is the forward query on the source-access wires. -/
 theorem sourceFrameSynthesisProgram_queryStep (d : SourceRationalProblem) (w : ℕ)
     (g : LocalQFTGate w) (k : ℕ) (hw : w ≤ nativeFrameWidth d + k) :
     (sourceFrameSynthesisProgram d w g k hw).steps.head?
@@ -329,6 +388,8 @@ theorem sourceFrameSynthesisProgram_queryStep (d : SourceRationalProblem) (w : �
           (sourceAccessWires d (nativeFrameWidth d + k) (by unfold nativeFrameWidth; omega))
           false) := rfl
 
+/-- For a fixed primitive, the emitted local word has zero error in the stated clean-padding
+matrix identity [LeeEtAl2011]. -/
 theorem clause94_sourceFrame_padded_error {w : ℕ} (g : LocalQFTGate w) (k : ℕ)
     (hg : IsFixedPrimitive g) :
     localProgramMatrix (emittedWord w g k) * padClean w w
@@ -343,6 +404,8 @@ theorem clause94_sourceFrame_padded_error {w : ℕ} (g : LocalQFTGate w) (k : �
   rw [hemit]
   exact clause94_fixed_primitive_padded_error g
 
+/-- A positive rational scale whose square bounds all absolute coordinates gives a valid
+diagonal rational factorization certificate. -/
 theorem rationalCertValid_diagonal {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ) (t : ℚ)
     (ht : 0 < t) (hb : ∀ r, |a r| ≤ t ^ 2) :
     RationalRectFactorization.rationalCertValid (diagonalRectFactorization a t) := by
@@ -383,6 +446,9 @@ theorem rationalCertValid_diagonal {X : Type} [Fintype X] [DecidableEq X] (a : X
       simp [diagonalRectInstance, Matrix.diagonal, diagonalRectFactorization, hcancel]
     · simp [diagonalRectInstance, Matrix.diagonal, diagonalRectFactorization, h]
 
+/-- For every positive rational tolerance, the scale search produces a positive scale and a
+diagonal certificate whose scale equals that result and whose square bounds every absolute
+coordinate. -/
 theorem clause90_search_certificate {X : Type} [Fintype X] [DecidableEq X] (a : X → ℚ) (δ : ℚ)
     (hδ : 0 < δ) :
     ∃ (fuel : ℕ) (t : ℚ) (C : DiagonalScaleCertificate a),
@@ -402,6 +468,9 @@ theorem clause90_search_certificate {X : Type} [Fintype X] [DecidableEq X] (a : 
     rationalCertValid_diagonal a t hpos hbound
   refine ⟨fuel, t, diagonalScaleCertificate a t hpos hvalid, hsearch, rfl, hpos, hbound⟩
 
+/-- For any positive real tolerance, a successful rational scale search yields a valid
+factorization certificate and bounds the diagonal filtered norm between `diagonalScaleReal
+a` and the returned scale squared, which is within the tolerance [LeeEtAl2011]. -/
 theorem clause90_search_complete {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) (ε : ℝ) (hε : 0 < ε) :
     ∃ (δ : ℚ) (fuel : ℕ) (t : ℚ)
@@ -448,6 +517,9 @@ theorem clause90_search_complete {X : Type} [Fintype X] [DecidableEq X]
   · exact diagonal_value_lower_bound a
   · exact diagonal_value_upper_bound a t (by exact_mod_cast hpos) hbound
 
+/-- For any positive real tolerance, there exist a positive rational scale and a valid
+factorization certificate bounding the diagonal filtered norm between `diagonalScaleReal a`
+and that scale squared, with the square within the tolerance. -/
 theorem clause90_complete {X : Type} [Fintype X] [DecidableEq X]
     (a : X → ℚ) (ε : ℝ) (hε : 0 < ε) :
     ∃ (t : ℚ) (F : RationalRectFactorization 1 1 (diagonalRectInstance a).A
@@ -465,6 +537,8 @@ theorem clause90_complete {X : Type} [Fintype X] [DecidableEq X]
     clause90_search_complete a ε hε
   exact ⟨t, F, hpos, hbound, hnear, hcert, hlo, hhi⟩
 
+/-- The complex number represented by a rational coordinate approximation differs from the
+selected start or target coordinate by at most `2⁻ʳ`. -/
 theorem realCoordinateApprox_error (d : SourceRealProblem) (hacc : sourceRealAccess d)
     (x : Fin d.count) (h : Fin d.dimension) (target : Bool) (r : ℕ) :
     ‖ratCoordComplex (realCoordinateApprox d hacc x h target r) -
@@ -477,6 +551,8 @@ theorem realCoordinateApprox_error (d : SourceRealProblem) (hacc : sourceRealAcc
     simpa only [ratCoordComplex] using! (Classical.choose_spec (Classical.choose_spec hab))
   simpa [realCoordinateApprox] using! hb
 
+/-- Each rationalized start coordinate differs from its original complex coordinate by at most
+`2⁻ᴿ`. -/
 theorem rationalizeReal_start_error (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ)
     (x : Fin d.count) (h : Fin d.dimension) :
     ‖ratCoordComplex ((rationalizeReal d hacc R).start x h) - d.start x h‖ ≤ (1 / 2 : ℝ) ^ R := by
@@ -484,6 +560,8 @@ theorem rationalizeReal_start_error (d : SourceRealProblem) (hacc : sourceRealAc
   rw [h1]
   exact realCoordinateApprox_error d hacc x h false R
 
+/-- The selected complex Gram entry equals the inner-product sum of the rationalized start
+coordinates. -/
 theorem selectedComplexGram_eq (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ)
     (x : Fin d.count) (y : Fin d.count) :
     selectedComplexGram d hacc R x y
@@ -491,6 +569,8 @@ theorem selectedComplexGram_eq (d : SourceRealProblem) (hacc : sourceRealAccess 
           star (ratCoordComplex ((rationalizeReal d hacc R).start x h)) *
             (ratCoordComplex ((rationalizeReal d hacc R).start y h)) := rfl
 
+/-- The error of a selected Gram entry is bounded by `2⁻ᴿ` times the sum of the two coordinate
+norm sums, plus the dimension times `2⁻²ᴿ`. -/
 theorem selectedComplexGram_error (d : SourceRealProblem) (hacc : sourceRealAccess d) (R : ℕ)
     (x : Fin d.count) (y : Fin d.count) :
     ‖selectedComplexGram d hacc R x y - trueComplexGram d x y‖

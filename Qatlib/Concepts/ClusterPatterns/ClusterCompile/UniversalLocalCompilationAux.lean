@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalGraphDefs
+
+/-!
+# Local cluster compilation identities and counts
+
+This module proves structural facts used to compile single-qubit and CNOT gates into
+cluster-network words. It establishes phase normalization, legality, word lengths, and separate
+wire and controlled-Z counts, together with the target-Hadamard conjugation identity for CNOT.
+This supplies finite circuit identities for the one-way universality construction of
+[RaussendorfBriegel2000].
+
+## Main statements
+
+* `mbqcCompiledWord_length`: The compiled length is four times the single-qubit count plus three
+  times the CNOT count.
+* `mbqcCompiledWord_legal`: Legal local gate lists compile to legal cluster networks.
+* `mbqcCompiledWord_counts`: Computes the wire-gate and controlled-Z counts separately.
+* `mbqcCnot_matrix`: Hadamard conjugation on a distinct target converts controlled-Z to CNOT.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,11 +50,14 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- The compiled single-qubit phase word has length four. -/
 theorem mbqcQubitWord_length (U : Matrix Bool Bool ℂ) : (mbqcQubitWord U).length=4 := rfl
 
+/-- Every phase in the compiled single-qubit word has norm one. -/
 theorem mbqcQubitWord_norm (U : Matrix Bool Bool ℂ) : ∀ z ∈ mbqcQubitWord U, ‖z‖=1 := by
   exact (cluster_euler_four_measurement_actual_consumer _ _ _).2.1
 
+/-- The accumulated scalar phase of a local compilation has norm one. -/
 theorem mbqcLocalScalar_norm {n : ℕ} (gs : List (ReflectionGate n)) : ‖mbqcLocalScalar gs‖=1 := by
   induction gs with
   | nil => simp [mbqcLocalScalar]
@@ -44,6 +70,7 @@ theorem mbqcLocalScalar_norm {n : ℕ} (gs : List (ReflectionGate n)) : ‖mbqcL
       exact one_mul _ |>.trans (Complex.norm_exp_ofReal_mul_I _)
     | inr p => simpa [mbqcLocalScalar] using! ih
 
+/-- The compiled word has four steps per single-qubit gate and three per CNOT gate. -/
 theorem mbqcCompiledWord_length {n : ℕ} (gs : List (ReflectionGate n)) :
     (mbqcCompiledWord gs).length=4*(mbqcLocalCounts gs).1+3*(mbqcLocalCounts gs).2 := by
   induction gs with
@@ -65,10 +92,12 @@ theorem mbqcCompiledWord_length {n : ℕ} (gs : List (ReflectionGate n)) :
       rw [ih]
       omega
 
+/-- Enumerating the finite graph word recovers the compiled gate list. -/
 theorem mbqcGraphWord_ofFn {n : ℕ} (gs : List (ReflectionGate n)) :
     List.ofFn (mbqcGraphWord gs)=mbqcCompiledWord gs := by
   exact List.ofFn_getElem
 
+/-- The local expansion of a legal reflection gate is a legal cluster network. -/
 theorem mbqcLocalExpansion_legal {n : ℕ} (g : ReflectionGate n) (hg : reflectionGateLegal g) :
     networkLegal (mbqcLocalExpansion g) := by
   cases g with
@@ -87,12 +116,14 @@ theorem mbqcLocalExpansion_legal {n : ℕ} (g : ReflectionGate n) (hg : reflecti
     · exact hg
     · norm_num
 
+/-- Compiling a legal list of reflection gates gives a legal cluster network. -/
 theorem mbqcCompiledWord_legal {n : ℕ} (gs : List (ReflectionGate n))
     (hgs : reflectionLegal gs) : networkLegal (mbqcCompiledWord gs) := by
   intro g hg
   obtain ⟨a,ha,hga⟩ := List.mem_flatMap.mp hg
   exact mbqcLocalExpansion_legal a (hgs a ha) g hga
 
+/-- Wire-gate and controlled-Z counts add componentwise under concatenation. -/
 private theorem networkCounts_append {n : ℕ} (as bs : List (ClusterNetworkGate n)) :
     networkCounts (as++bs)=((networkCounts as).1+(networkCounts bs).1,
       (networkCounts as).2+(networkCounts bs).2) := by
@@ -102,12 +133,15 @@ private theorem networkCounts_append {n : ℕ} (as bs : List (ClusterNetworkGate
     cases g <;> simp only
         [List.cons_append,networkCounts,ih,Prod.mk.injEq] <;> constructor <;> first | trivial | omega
 
+/-- A phase word on one wire has one wire-gate step per phase and no controlled-Z steps. -/
 private theorem networkCounts_wire {n : ℕ} (i : Fin n) (zs : List ℂ) :
     networkCounts (zs.map (fun z => Sum.inl (i,z)))=(zs.length,0) := by
   induction zs with
   | nil => rfl
   | cons z zs ih => simp [networkCounts,ih]
 
+/-- The compiled network has four wire steps per single-qubit gate, two wire steps per CNOT, and
+one controlled-Z step per CNOT. -/
 theorem mbqcCompiledWord_counts {n : ℕ} (gs : List (ReflectionGate n)) :
     networkCounts (mbqcCompiledWord gs)=
       (4*(mbqcLocalCounts gs).1+2*(mbqcLocalCounts gs).2,(mbqcLocalCounts gs).2) := by
@@ -136,12 +170,15 @@ theorem mbqcCompiledWord_counts {n : ℕ} (gs : List (ReflectionGate n)) :
       simp only [networkCounts,mbqcLocalCounts,Prod.mk.injEq]
       omega
 
+/-- The single-qubit and CNOT counts sum to the length of the original local gate list. -/
 theorem mbqcLocalCounts_length {n : ℕ} (gs : List (ReflectionGate n)) :
     (mbqcLocalCounts gs).1+(mbqcLocalCounts gs).2=gs.length := by
   induction gs with
   | nil => rfl
   | cons g gs ih => cases g <;> simp only [mbqcLocalCounts,List.length_cons] <;> omega
 
+/-- A controlled-Z gate acts on a basis ket by the sign determined by its control and target
+bits. -/
 private theorem cz_ket {n : ℕ} (c t : Fin n) (x : Reg n) :
     ApplyGate (networkCzGateB c t) (Qatlib.Foundations.PureStateMath.Ket x)=
       (if x c && x t then (-1 : ℂ) else 1) • Qatlib.Foundations.PureStateMath.Ket x := by
@@ -150,6 +187,8 @@ private theorem cz_ket {n : ℕ} (c t : Fin n) (x : Reg n) :
     Pi.smul_apply,smul_eq_mul]
   by_cases hy : y=x <;> simp [hy]
 
+/-- Conjugating controlled-Z by Hadamard on its target gives CNOT when the control and target
+wires are distinct. -/
 theorem mbqcCnot_matrix {n : ℕ} (c t : Fin n) (hct : c≠t) :
     wireGate n t Hadamard*networkCzGateB c t*wireGate n t Hadamard=cnotGate n c t := by
   have hc (x : Reg n) : ApplyGate

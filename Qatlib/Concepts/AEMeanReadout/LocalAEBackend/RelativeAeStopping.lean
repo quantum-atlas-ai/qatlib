@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedRelativeAeCertifiedStopping
+
+/-!
+# Stopping distributions for relative amplitude estimation
+
+This module puts fresh median AE blocks on an independent finite history space and partitions
+histories into first-stop and pending events. It derives relative-error failure bounds,
+pending-probability bounds, and expected forward-access accounts from the prepared
+amplitude-estimation windows of [BrassardEtAl2002].
+
+Both linearly increasing and constant repetition schedules are treated. For positive marked
+probability, a calibrated constant schedule gives a failure bound uniform in the horizon, an
+explicit expected-access rate, and pending probability tending to zero; at zero marked
+probability, the positive-readiness process remains pending with probability one.
+
+## Main statements
+
+* `freshHistory_stop_partition`: partition total mass into pending and first-stop probabilities.
+* `freshHistoryFailureMass_le_nine`: bound failure for a linear repetition schedule.
+* `freshHistoryPendingMass_eq_one_of_zero`: describe the zero-amplitude endpoint.
+* `exists_fixedFreshSchedule_failure_expected_tail`: combine calibrated failure, expected cost,
+  and pending-tail bounds.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -33,51 +60,66 @@ set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The type of `2 * r k + 1` fresh phase labels on the adaptive grid at stage `k`. -/
 abbrev FreshBlock (r : ℕ → ℕ) (k : ℕ) := Fin (2 * r k + 1) → Fin (adaptiveGrid k)
 
+/-- A finite history containing a fresh sample block at every stage below `N`. -/
 abbrev FreshHistory (r : ℕ → ℕ) (N : ℕ) := ∀ k : Fin N, FreshBlock r k.val
 
+/-- The independent product distribution of fresh prepared AE blocks over a finite history. -/
 noncomputable def freshHistoryLaw (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     FinDist (FreshHistory r N) :=
   independent (fun k => freshStageLaw k.val (r k.val) A j S hA)
 
+/-- The fresh median readiness condition for one stage of a finite history. -/
 def freshHistoryReady (eps : ℝ) (r : ℕ → ℕ) {N : ℕ} (ω : FreshHistory r N) (k : Fin N) : Prop :=
   freshMedianReady eps (adaptiveGrid k.val) (r k.val) (ω k)
 
+/-- The event that a stage's fresh median lies strictly outside its AE success window. -/
 def freshHistoryWindowBad (r : ℕ → ℕ) {N : ℕ} (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (ω : FreshHistory r N) (k : Fin N) : Prop :=
   nextAeWindow (adaptiveGrid k.val) (MeasureProb (preparedAAState A j) S) <
     |freshMedianEstimate (adaptiveGrid k.val) (r k.val) (ω k)
       - MeasureProb (preparedAAState A j) S|
 
+/-- The event that a stage's fresh median has absolute error strictly greater than `eps` times
+the prepared marked probability. -/
 def freshHistoryRelativeBad (eps : ℝ) (r : ℕ → ℕ) {N : ℕ}
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (ω : FreshHistory r N) (k : Fin N) : Prop :=
   eps * MeasureProb (preparedAAState A j) S <
     |freshMedianEstimate (adaptiveGrid k.val) (r k.val) (ω k)
       - MeasureProb (preparedAAState A j) S|
 
+/-- The condition that a stage is ready and every earlier stage in the history is not ready. -/
 def freshHistoryFirstStop (eps : ℝ) (r : ℕ → ℕ) {N : ℕ}
     (ω : FreshHistory r N) (k : Fin N) : Prop :=
   freshHistoryReady eps r ω k ∧ ∀ l < k, ¬ freshHistoryReady eps r ω l
 
+/-- The condition that no stage in the finite history is ready. -/
 def freshHistoryPending (eps : ℝ) (r : ℕ → ℕ) {N : ℕ} (ω : FreshHistory r N) : Prop :=
   ∀ k, ¬ freshHistoryReady eps r ω k
 
+/-- The probability that stage `k` is the first ready stage under the finite history law. -/
 noncomputable def freshHistoryStopMass (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (k : Fin N) : ℝ :=
   eventMass (freshHistoryLaw r N A j S hA) (fun ω => freshHistoryFirstStop eps r ω k)
 
+/-- The probability that no stage is ready under the finite history law. -/
 noncomputable def freshHistoryPendingMass (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) : ℝ :=
   eventMass (freshHistoryLaw r N A j S hA) (freshHistoryPending eps r)
 
+/-- The probability that the first ready stage exists and its median violates the prescribed
+relative-error band. -/
 noncomputable def freshHistoryFailureMass (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) : ℝ :=
   eventMass (freshHistoryLaw r N A j S hA) (fun ω =>
     ∃ k, freshHistoryFirstStop eps r ω k ∧ freshHistoryRelativeBad eps r A j S ω k)
 
+/-- The expectation of a function of one coordinate under independent finite laws equals its
+expectation under that coordinate's law. -/
 theorem independent_marginal {J : Type*} [Fintype J] [DecidableEq J]
     {X : J → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (k : J) (g : X k → ℝ) :
@@ -104,6 +146,8 @@ theorem independent_marginal {J : Type*} [Fintype J] [DecidableEq J]
     simp [g', hm, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, (p m).sum_one]
   · simp
 
+/-- A finite-history event depending on one stage block has the same mass as under the
+corresponding fresh stage law. -/
 theorem freshHistory_coordinate_event (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (k : Fin N) (E : FreshBlock r k.val → Prop) [DecidablePred E] :
@@ -114,6 +158,7 @@ theorem freshHistory_coordinate_event (r : ℕ → ℕ) (N : ℕ)
   exact independent_marginal (fun k => freshStageLaw k.val (r k.val) A j S hA) k
     (fun x => if E x then (1 : ℝ) else 0)
 
+/-- Pointwise equivalent event predicates have equal mass under a finite distribution. -/
 theorem eventMass_congr {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) {E F : X → Prop} [DecidablePred E] [DecidablePred F]
     (h : ∀ x, E x ↔ F x) : eventMass p E = eventMass p F := by
@@ -126,6 +171,7 @@ theorem eventMass_congr {X : Type*} [Fintype X] [DecidableEq X]
   · intro x _
     rfl
 
+/-- A finite history has at most one first ready stage. -/
 theorem freshHistoryFirstStop_unique (eps : ℝ) (r : ℕ → ℕ) {N : ℕ}
     {ω : FreshHistory r N} {k l : Fin N}
     (hk : freshHistoryFirstStop eps r ω k) (hl : freshHistoryFirstStop eps r ω l) : k = l := by
@@ -134,6 +180,7 @@ theorem freshHistoryFirstStop_unique (eps : ℝ) (r : ℕ → ℕ) {N : ℕ}
   · exact h
   · exact (hk.2 l h hl.1).elim
 
+/-- Every finite history is pending or has a first ready stage. -/
 theorem freshHistory_pending_or_stop (eps : ℝ) (r : ℕ → ℕ) {N : ℕ} (ω : FreshHistory r N) :
     freshHistoryPending eps r ω ∨ ∃ k, freshHistoryFirstStop eps r ω k := by
   classical
@@ -152,6 +199,7 @@ theorem freshHistory_pending_or_stop (eps : ℝ) (r : ℕ → ℕ) {N : ℕ} (ω
     intro hr
     exact hnone ⟨l.isLt, hr⟩
 
+/-- Pending mass plus the sum of all first-stop masses equals one. -/
 theorem freshHistory_stop_partition (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     freshHistoryPendingMass eps r N A j S hA
@@ -196,6 +244,8 @@ theorem freshHistory_stop_partition (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
       rw [hpoint]
     _ = 1 := by simpa only [mul_one] using! law.sum_one
 
+/-- For positive `eps`, relative-error failure mass is at most the sum of masses of first-stop
+events with a bad AE window. -/
 theorem freshHistoryFailureMass_le_window_union (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (heps : 0 < eps) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1) :
@@ -222,6 +272,7 @@ theorem freshHistoryFailureMass_le_window_union (eps : ℝ) (r : ℕ → ℕ) (N
       ext ω
       simp only [Finset.mem_filter, Finset.mem_univ, true_and]
 
+/-- The mass of stopping at stage `k` with a bad AE window is at most `(8/9)^(r k.val)`. -/
 theorem freshHistory_stop_windowBad_le (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (k : Fin N) :
@@ -245,6 +296,8 @@ theorem freshHistory_stop_windowBad_le (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
               - MeasureProb (preparedAAState A j) S|))
     _ ≤ _ := freshStageLaw_window_failure k.val (r k.val) A j S hA
 
+/-- For positive `eps`, total relative-error failure mass is at most the sum of the stage median
+failure bounds. -/
 theorem freshHistoryFailureMass_le_sum (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (heps : 0 < eps) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1) :
@@ -253,9 +306,12 @@ theorem freshHistoryFailureMass_le_sum (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     _ ≤ _ := freshHistoryFailureMass_le_window_union eps r N A j S hA heps ha1
     _ ≤ _ := Finset.sum_le_sum fun k _ => freshHistory_stop_windowBad_le eps r N A j S hA k
 
+/-- The natural ceiling of `32π / (eps√a)`, used as a sufficient adaptive stage index. -/
 noncomputable def relativeAeFineIndex (eps a : ℝ) : ℕ :=
   Nat.ceil (32 * Real.pi / (eps * Real.sqrt a))
 
+/-- For positive `eps` and `a`, the chosen fine index satisfies `32π ≤ eps` times its adaptive
+grid size times `√a`. -/
 theorem relativeAeFineIndex_spec (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a) :
     32 * Real.pi ≤ eps * (adaptiveGrid (relativeAeFineIndex eps a) : ℝ) * Real.sqrt a := by
   have hden : 0 < eps * Real.sqrt a := mul_pos heps (Real.sqrt_pos.2 ha0)
@@ -271,6 +327,7 @@ theorem relativeAeFineIndex_spec (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a) :
   have hmul := (div_le_iff₀ hden).mp hratio
   nlinarith
 
+/-- Every stage at or beyond the chosen fine index satisfies the same grid fineness inequality. -/
 theorem relativeAeFineIndex_spec_at (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a)
     {k : ℕ} (hk : relativeAeFineIndex eps a ≤ k) :
     32 * Real.pi ≤ eps * (adaptiveGrid k : ℝ) * Real.sqrt a := by
@@ -284,22 +341,29 @@ theorem relativeAeFineIndex_spec_at (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a)
     (mul_nonneg heps.le (Real.sqrt_nonneg a))
   nlinarith
 
+/-- For positive `eps` and `a`, some adaptive stage satisfies the relative-AE fineness
+inequality. -/
 theorem relativeAeFine_exists (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a) :
     ∃ k : ℕ, 32 * Real.pi ≤ eps * (adaptiveGrid k : ℝ) * Real.sqrt a :=
   ⟨relativeAeFineIndex eps a, relativeAeFineIndex_spec eps a heps ha0⟩
 
+/-- The least adaptive stage satisfying `32π ≤ eps` times its grid size times `√a` for positive
+`eps` and `a`. -/
 noncomputable def relativeAeLeastFineIndex (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a) : ℕ :=
   Nat.find (relativeAeFine_exists eps a heps ha0)
 
+/-- The least fine index satisfies the relative-AE grid fineness inequality. -/
 theorem relativeAeLeastFineIndex_spec (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a) :
     32 * Real.pi ≤ eps * (adaptiveGrid (relativeAeLeastFineIndex eps a heps ha0) : ℝ) * Real.sqrt a :=
   Nat.find_spec (relativeAeFine_exists eps a heps ha0)
 
+/-- Every stage before the least fine index fails the fineness inequality. -/
 theorem relativeAeLeastFineIndex_not_fine (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a)
     {k : ℕ} (hk : k < relativeAeLeastFineIndex eps a heps ha0) :
     ¬ 32 * Real.pi ≤ eps * (adaptiveGrid k : ℝ) * Real.sqrt a :=
   Nat.find_min (relativeAeFine_exists eps a heps ha0) hk
 
+/-- Every stage at or beyond the least fine index satisfies the fineness inequality. -/
 theorem relativeAeLeastFineIndex_spec_at (eps a : ℝ) (heps : 0 < eps) (ha0 : 0 < a)
     {k : ℕ} (hk : relativeAeLeastFineIndex eps a heps ha0 ≤ k) :
     32 * Real.pi ≤ eps * (adaptiveGrid k : ℝ) * Real.sqrt a := by
@@ -313,6 +377,7 @@ theorem relativeAeLeastFineIndex_spec_at (eps a : ℝ) (heps : 0 < eps) (ha0 : 0
     (mul_nonneg heps.le (Real.sqrt_nonneg a))
   nlinarith
 
+/-- For `0 < eps ≤ 1` and `0 < a ≤ 1`, the least fine grid size is at most `64π / (eps√a)`. -/
 theorem relativeAeLeastFineIndex_grid_upper (eps a : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (ha0 : 0 < a) (ha1 : a ≤ 1) :
     (adaptiveGrid (relativeAeLeastFineIndex eps a heps ha0) : ℝ) ≤
@@ -341,6 +406,8 @@ theorem relativeAeLeastFineIndex_grid_upper (eps a : ℝ) (heps : 0 < eps) (heps
     apply (le_div_iff₀ hden).mpr
     nlinarith
 
+/-- At a stage before the least fine index whose small-amplitude quantity exceeds `1/16`, the
+stated backward geometric weight is at least one. -/
 theorem relativeAe_coarse_backward_weight (eps a : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (ha0 : 0 < a) (ha1 : a ≤ 1) {k : ℕ}
     (hk : k < relativeAeLeastFineIndex eps a heps ha0)
@@ -395,6 +462,8 @@ theorem relativeAe_coarse_backward_weight (eps a : ℝ) (heps : 0 < eps) (heps1 
   change 1 ≤ (128 * Real.pi ^ 2 / eps) * (1 / 2 : ℝ) ^ (K - k)
   simpa only [div_eq_mul_inv, one_div, one_mul, inv_pow] using! hweight
 
+/-- For positive marked probability and `0 < eps ≤ 1`, a fine stage in the horizon bounds
+pending mass by that stage's median failure bound. -/
 theorem freshHistoryPendingMass_le_of_fine (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r : ℕ → ℕ) (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -424,8 +493,11 @@ theorem freshHistoryPendingMass_le_of_fine (eps : ℝ) (heps : 0 < eps) (heps1 :
               - MeasureProb (preparedAAState A j) S|))
     _ ≤ _ := freshStageLaw_window_failure k.val (r k.val) A j S hA
 
+/-- The repetition parameter `r0 + k` at stage `k`. -/
 def linearFreshSchedule (r0 k : ℕ) : ℕ := r0 + k
 
+/-- For the linear repetition schedule, any included stage `K` beyond the chosen fine index
+bounds pending mass by `(8/9)^(r0 + K)`. -/
 theorem freshHistoryPendingMass_le_public (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -438,6 +510,8 @@ theorem freshHistoryPendingMass_le_public (eps : ℝ) (heps : 0 < eps) (heps1 : 
     A j S hA ha0 ha1 ⟨K, hK⟩
     (relativeAeFineIndex_spec_at eps _ heps ha0 hfineK)
 
+/-- The sum of the linear schedule's median failure bounds over any finite horizon is at most
+`9(8/9)^r0`. -/
 theorem linearFreshSchedule_failure_budget (r0 N : ℕ) :
     (∑ k : Fin N, (8 / 9 : ℝ) ^ (linearFreshSchedule r0 k.val)) ≤ 9 * (8 / 9 : ℝ) ^ r0 := by
   rw [Fin.sum_univ_eq_sum_range
@@ -455,6 +529,8 @@ theorem linearFreshSchedule_failure_budget (r0 N : ℕ) :
       mul_le_mul_of_nonneg_left (by nlinarith) (by positivity)
     _ = _ := by ring
 
+/-- For positive `eps`, the linear fresh schedule has relative-error failure mass at most
+`9(8/9)^r0`, uniformly in the horizon. -/
 theorem freshHistoryFailureMass_le_nine (eps : ℝ) (heps : 0 < eps) (r0 N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha1 : MeasureProb (preparedAAState A j) S ≤ 1) :
@@ -463,6 +539,8 @@ theorem freshHistoryFailureMass_le_nine (eps : ℝ) (heps : 0 < eps) (r0 N : ℕ
   (freshHistoryFailureMass_le_sum eps (linearFreshSchedule r0) N A j S hA heps ha1).trans
     (linearFreshSchedule_failure_budget r0 N)
 
+/-- For positive `eps` and `δ`, some initial linear-schedule repetition parameter bounds
+relative-error failure mass by `δ` at every horizon. -/
 theorem exists_linearFreshSchedule_failure_budget (eps : ℝ) (heps : 0 < eps) (δ : ℝ) (hδ : 0 < δ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha1 : MeasureProb (preparedAAState A j) S ≤ 1) :
@@ -473,6 +551,8 @@ theorem exists_linearFreshSchedule_failure_budget (eps : ℝ) (heps : 0 < eps) (
   refine ⟨r0, fun N => (freshHistoryFailureMass_le_nine eps heps r0 N A j S hA ha1).trans ?_⟩
   exact (by nlinarith [hr0] : 9 * (8 / 9 : ℝ) ^ r0 ≤ δ)
 
+/-- For positive marked probability and `0 < eps ≤ 1`, the linear schedule's pending mass is
+eventually bounded by a geometric quantity smaller than any prescribed positive `η`. -/
 theorem freshHistoryPendingMass_vanishes (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha0 : 0 < MeasureProb (preparedAAState A j) S)
@@ -489,14 +569,17 @@ theorem freshHistoryPendingMass_vanishes (eps : ℝ) (heps : 0 < eps) (heps1 : e
   exact freshHistoryPendingMass_le_public eps heps heps1 r0 N A j S hA ha0 ha1 hN
     (by dsimp [K]; omega)
 
+/-- The fresh stage block consisting entirely of phase label zero. -/
 def freshZeroBlock (k r : ℕ) : Fin (2 * r + 1) → Fin (adaptiveGrid k) :=
   fun _ => ⟨0, adaptiveGrid_pos k⟩
 
+/-- The fresh median estimate of the all-zero block is zero. -/
 theorem freshMedianEstimate_zeroBlock (k r : ℕ) :
     freshMedianEstimate (adaptiveGrid k) r (freshZeroBlock k r) = 0 := by
   rw [freshMedianLabel_spec]
   simp [freshMedianLabel, freshZeroBlock, aeEstimate]
 
+/-- The all-zero block fails the fresh median readiness test for every `eps`. -/
 theorem freshMedianNotReady_zeroBlock (eps : ℝ) (k r : ℕ) :
     ¬ freshMedianReady eps (adaptiveGrid k) r (freshZeroBlock k r) := by
   intro hready
@@ -515,6 +598,7 @@ theorem freshMedianNotReady_zeroBlock (eps : ℝ) (k r : ℕ) :
   rw [hL] at hready
   linarith
 
+/-- The event mass of a singleton equals the finite distribution's probability at that point. -/
 theorem eventMass_singleton {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (x : X) : eventMass p (fun y => y = x) = p.prob x := by
   classical
@@ -525,6 +609,7 @@ theorem eventMass_singleton {X : Type*} [Fintype X] [DecidableEq X]
   · intro hx
     simp at hx
 
+/-- Every event under a finite probability distribution has mass at most one. -/
 theorem eventMass_le_one {X : Type*} [Fintype X]
     (p : FinDist X) (E : X → Prop) [DecidablePred E] : eventMass p E ≤ 1 := by
   classical
@@ -538,6 +623,7 @@ theorem eventMass_le_one {X : Type*} [Fintype X]
       split <;> norm_num
     _ = 1 := by simpa only [mul_one] using! p.sum_one
 
+/-- At zero prepared marked probability, the all-zero fresh block has probability one. -/
 theorem freshStageLaw_zeroBlock_prob (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
@@ -547,6 +633,8 @@ theorem freshStageLaw_zeroBlock_prob (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S
   intro i _
   exact (adaptiveStageLaw_zero k A j S hA 0 ha).1
 
+/-- At zero prepared marked probability, all sampled phase labels in a fresh block are zero with
+probability one. -/
 theorem freshStageLaw_all_zero (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
@@ -564,9 +652,12 @@ theorem freshStageLaw_all_zero (k r : ℕ) (A : Matrix I I ℂ) (j : I) (S : Fin
   intro i
   rfl
 
+/-- The finite history consisting of an all-zero fresh block at every stage. -/
 def freshZeroHistory (r : ℕ → ℕ) (N : ℕ) : FreshHistory r N :=
   fun k => freshZeroBlock k.val (r k.val)
 
+/-- At zero prepared marked probability, every label in the finite history is zero with
+probability one. -/
 theorem freshHistoryLaw_all_zero (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
@@ -590,6 +681,8 @@ theorem freshHistoryLaw_all_zero (r : ℕ → ℕ) (N : ℕ)
   intro k i
   rfl
 
+/-- At zero prepared marked probability, the finite-history process remains pending with
+probability one for every schedule and horizon. -/
 theorem freshHistoryPendingMass_eq_one_of_zero (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
@@ -606,6 +699,7 @@ theorem freshHistoryPendingMass_eq_one_of_zero (eps : ℝ) (r : ℕ → ℕ) (N 
     exact freshMedianNotReady_zeroBlock eps k.val (r k.val)
   exact le_antisymm (eventMass_le_one _ _) hlow
 
+/-- At zero prepared marked probability, every finite-history first-stop mass is zero. -/
 theorem freshHistoryStopMass_eq_zero_of_zero (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S = 0) (k : Fin N) :
@@ -625,22 +719,30 @@ theorem freshHistoryStopMass_eq_zero_of_zero (eps : ℝ) (r : ℕ → ℕ) (N : 
   have hk_nonneg : 0 ≤ freshHistoryStopMass eps r N A j S hA k := eventMass_nonneg _ _
   linarith
 
+/-- The condition that no stage strictly before stage `k` is ready, so stage `k` is reached. -/
 def freshHistoryActive (eps : ℝ) (r : ℕ → ℕ) {N : ℕ}
     (ω : FreshHistory r N) (k : Fin N) : Prop :=
   ∀ l < k, ¬ freshHistoryReady eps r ω l
 
+/-- The forward preparation access count `(2 * r k + 1) * adaptiveGrid k` for the fresh samples
+at stage `k`. -/
 def freshStageForwardCost (r : ℕ → ℕ) (k : ℕ) : ℕ :=
   (2 * r k + 1) * adaptiveGrid k
 
+/-- The sum of forward preparation costs over the stages reached before or at the first ready
+stage, truncated to the finite history. -/
 noncomputable def freshHistoryConsumedForward (eps : ℝ) (r : ℕ → ℕ) {N : ℕ}
     (ω : FreshHistory r N) : ℕ :=
   ∑ k, if freshHistoryActive eps r ω k then freshStageForwardCost r k.val else 0
 
+/-- The expected consumed forward preparation count under the finite history law. -/
 noncomputable def freshHistoryExpectedForward (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) : ℝ :=
   (freshHistoryLaw r N A j S hA).expect
     (fun ω => (freshHistoryConsumedForward eps r ω : ℝ))
 
+/-- Expected forward accesses equal the sum of each stage's forward cost times its probability
+of being reached. -/
 theorem freshHistoryExpectedForward_eq_sum (eps : ℝ) (r : ℕ → ℕ) (N : ℕ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     freshHistoryExpectedForward eps r N A j S hA =
@@ -672,6 +774,8 @@ theorem freshHistoryExpectedForward_eq_sum (eps : ℝ) (r : ℕ → ℕ) (N : �
       intro ω _
       by_cases hk : freshHistoryActive eps r ω k <;> simp [hk, mul_comm]
 
+/-- If the preceding stage is fine, the probability of reaching the current stage is at most the
+preceding median's failure bound. -/
 theorem freshHistoryActiveMass_le_of_fine_prev (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r : ℕ → ℕ) (N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -708,6 +812,8 @@ theorem freshHistoryActiveMass_le_of_fine_prev (eps : ℝ) (heps : 0 < eps) (hep
     _ ≤ (8 / 9 : ℝ) ^ (r kp.val) := freshStageLaw_window_failure kp.val (r kp.val) A j S hA
     _ = (8 / 9 : ℝ) ^ (r (k.val - 1)) := by rfl
 
+/-- With constant repetitions and fine stages from `K` through `k - 1`, the probability of
+reaching stage `k` is at most `c^(k - K)`, where `c = (2/3)(8/9)^r0`. -/
 theorem freshHistoryActiveMass_le_fine_prefix (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -775,6 +881,8 @@ theorem freshHistoryActiveMass_le_fine_prefix (eps : ℝ) (heps : 0 < eps) (heps
         exact freshStageLaw_window_failure_precise (K + n.val) r0 A j S hA
     _ = ((2 / 3 : ℝ) * (8 / 9 : ℝ) ^ r0) ^ (k - K) := by simp
 
+/-- With constant repetitions and a fine preceding stage interval, the mass of stopping at `k`
+with a bad window is at most `c^(k - K + 1)`, where `c = (2/3)(8/9)^r0`. -/
 theorem freshHistoryStopWindowBadMass_le_fine_prefix (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -852,6 +960,7 @@ theorem freshHistoryStopWindowBadMass_le_fine_prefix (eps : ℝ) (heps : 0 < eps
     _ = ((2 / 3 : ℝ) * (8 / 9 : ℝ) ^ r0) ^ t.card := by simp
     _ = _ := by rw [htcard]
 
+/-- For `0 ≤ η ≤ τ` and `r ≥ 1`, the power `η^(r + 1)` is at most `τ^r * η`. -/
 theorem pow_succ_le_scaled {η τ : ℝ} (hη0 : 0 ≤ η) (hτ0 : 0 ≤ τ)
     (hητ : η ≤ τ) (r : ℕ) (hr : 1 ≤ r) : η ^ (r + 1) ≤ τ ^ r * η := by
   have hp : η ^ (r - 1) ≤ τ ^ (r - 1) := pow_le_pow_left₀ hη0 hητ _
@@ -868,6 +977,8 @@ theorem pow_succ_le_scaled {η τ : ℝ} (hη0 : 0 ≤ η) (hτ0 : 0 ≤ τ)
         _ = τ ^ (r - 1 + 1) * η := by rw [pow_succ]
         _ = _ := by rw [Nat.sub_add_cancel hr]
 
+/-- For constant repetitions `r0 ≥ 1`, bound the mass of a bad-window stop before the least fine
+stage by the stated sum of a small-amplitude term and a backward geometric term. -/
 theorem freshHistoryStopWindowBadMass_le_coarse (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (a : ℝ) (ha0 : 0 < a) (ha1 : a ≤ 1)
@@ -945,6 +1056,8 @@ theorem freshHistoryStopWindowBadMass_le_coarse (eps : ℝ) (heps : 0 < eps) (he
           (1 / 2 : ℝ) ^ (K - k) := hq
       _ ≤ _ := le_add_of_nonneg_left (by positivity)
 
+/-- For `0 ≤ q < 1`, every finite geometric sum starting at exponent zero is at most `1 / (1 -
+q)`. -/
 theorem relativeAe_sum_pow_le (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q < 1) (n : ℕ) :
     (∑ k ∈ Finset.range n, q ^ k) ≤ 1 / (1 - q) := by
   have hs : Summable fun k : ℕ => q ^ k := summable_geometric_of_lt_one hq0 hq1
@@ -952,6 +1065,8 @@ theorem relativeAe_sum_pow_le (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q < 1) (n : ℕ) 
     _ ≤ ∑' k : ℕ, q ^ k := hs.sum_le_tsum _ (fun k _ => pow_nonneg hq0 k)
     _ = _ := by rw [tsum_geometric_of_lt_one hq0 hq1, one_div]
 
+/-- For `0 ≤ q < 1`, every finite geometric sum starting at exponent one is at most `q / (1 -
+q)`. -/
 theorem relativeAe_sum_pow_succ_le (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q < 1) (n : ℕ) :
     (∑ k ∈ Finset.range n, q ^ (k + 1)) ≤ q / (1 - q) := by
   calc
@@ -965,6 +1080,8 @@ theorem relativeAe_sum_pow_succ_le (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q < 1) (n : 
       mul_le_mul_of_nonneg_left (relativeAe_sum_pow_le q hq0 hq1 n) hq0
     _ = _ := by ring
 
+/-- For `0 ≤ q < 1`, the finite reversed geometric sum with exponents `n - k` is at most `q / (1
+- q)`. -/
 theorem relativeAe_sum_pow_sub_le (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q < 1) (n : ℕ) :
     (∑ k ∈ Finset.range n, q ^ (n - k)) ≤ q / (1 - q) := by
   calc
@@ -977,6 +1094,7 @@ theorem relativeAe_sum_pow_sub_le (q : ℝ) (hq0 : 0 ≤ q) (hq1 : q < 1) (n : �
       omega
     _ ≤ _ := relativeAe_sum_pow_succ_le q hq0 hq1 n
 
+/-- The sum of real-valued adaptive grid sizes before stage `K` is at most the grid size at `K`. -/
 theorem relativeAe_sum_grid_le (K : ℕ) :
     (∑ k ∈ Finset.range K, (adaptiveGrid k : ℝ)) ≤ adaptiveGrid K := by
   induction K with
@@ -987,6 +1105,8 @@ theorem relativeAe_sum_grid_le (K : ℕ) :
     have hM : 0 ≤ (adaptiveGrid K : ℝ) := by positivity
     linarith
 
+/-- The sum of squared adaptive grid sizes before stage `K` is at most the square of the grid
+size at `K`. -/
 theorem relativeAe_sum_grid_sq_le (K : ℕ) :
     (∑ k ∈ Finset.range K, (adaptiveGrid k : ℝ) ^ 2) ≤ (adaptiveGrid K : ℝ) ^ 2 := by
   induction K with
@@ -997,6 +1117,8 @@ theorem relativeAe_sum_grid_sq_le (K : ℕ) :
     have hM : 0 ≤ (adaptiveGrid K : ℝ) := by positivity
     nlinarith
 
+/-- For constant repetitions `r0 ≥ 1`, bound total relative-error failure mass by a stage sum
+split into coarse-stage estimates and fine-stage geometric tails. -/
 theorem freshHistoryFailureMass_le_fixed_split (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a ≤ 1)
@@ -1030,6 +1152,8 @@ theorem freshHistoryFailureMass_le_fixed_split (eps : ℝ) (heps : 0 < eps) (hep
         intro n hKn _
         simpa only [ha] using! relativeAeLeastFineIndex_spec_at eps a heps ha0 hKn
 
+/-- For constant repetitions, bound expected forward accesses by full stage costs through the
+least fine stage and geometrically weighted costs afterward. -/
 theorem freshHistoryExpectedForward_le_fixed_split (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a ≤ 1)
@@ -1059,6 +1183,8 @@ theorem freshHistoryExpectedForward_le_fixed_split (eps : ℝ) (heps : 0 < eps) 
     exact mul_le_mul_of_nonneg_left hm
       (show 0 ≤ (freshStageForwardCost (fun _ => r0) k.val : ℝ) by positivity)
 
+/-- For nonnegative coefficients and `0 ≤ c < 1`, bound the stated coarse/fine piecewise sum by
+`P * (adaptiveGrid K)² + D + c / (1 - c)`. -/
 theorem relativeAe_piecewise_failure_sum_le (P D c : ℝ) (hP : 0 ≤ P) (hD : 0 ≤ D)
     (hc0 : 0 ≤ c) (hc1 : c < 1) (K N : ℕ) :
     (∑ k : Fin N, if k.val < K then
@@ -1122,6 +1248,8 @@ theorem relativeAe_piecewise_failure_sum_le (P D c : ℝ) (hP : 0 ≤ P) (hD : 0
         have hcdiv : 0 ≤ c / (1 - c) := div_nonneg hc0 (by linarith)
         linarith
 
+/-- For nonnegative `P` and `c` with `2c ≤ 1/2`, the stated full-prefix and geometrically
+weighted suffix cost sum is at most `3P * adaptiveGrid K`. -/
 theorem relativeAe_piecewise_cost_sum_le (P c : ℝ) (hP : 0 ≤ P)
     (hc0 : 0 ≤ c) (hc : 2 * c ≤ 1 / 2) (K N : ℕ) :
     (∑ k : Fin N, if k.val ≤ K then P * (adaptiveGrid k.val : ℝ)
@@ -1194,6 +1322,8 @@ theorem relativeAe_piecewise_cost_sum_le (P c : ℝ) (hP : 0 ≤ P)
         have hnonneg : 0 ≤ P * (adaptiveGrid K : ℝ) := mul_nonneg hP (by positivity)
         linarith
 
+/-- For constant repetitions `r0 ≥ 1` and `c = (2/3)(8/9)^r0 < 1`, bound failure by the stated
+coarse-grid term, backward-weight term, and geometric tail `c / (1 - c)`. -/
 theorem freshHistoryFailureMass_le_fixed_budget (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a ≤ 1)
@@ -1228,6 +1358,8 @@ theorem freshHistoryFailureMass_le_fixed_budget (eps : ℝ) (heps : 0 < eps) (he
     _ ≤ _ := relativeAe_piecewise_failure_sum_le P D _ hP hD hc0 hc1 _ N
     _ = _ := by dsimp [P, D]; ring
 
+/-- If `c = (2/3)(8/9)^r0` satisfies `2c ≤ 1/2`, expected forward accesses are at most `3(2r0 +
+1)` times the least fine grid size. -/
 theorem freshHistoryExpectedForward_le_three_grid (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a ≤ 1)
@@ -1261,6 +1393,8 @@ theorem freshHistoryExpectedForward_le_three_grid (eps : ℝ) (heps : 0 < eps) (
       relativeAe_piecewise_cost_sum_le P _ hP hc0 hc _ N
     _ = _ := by rfl
 
+/-- For `0 < eps ≤ 1`, `0 < a ≤ 1`, and the stated repetition-tail condition, expected forward
+accesses are at most `192π(2r0 + 1) / (eps√a)`. -/
 theorem freshHistoryExpectedForward_le_rate (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a ≤ 1)
@@ -1277,6 +1411,7 @@ theorem freshHistoryExpectedForward_le_rate (eps : ℝ) (heps : 0 < eps) (heps1 
         (relativeAeLeastFineIndex_grid_upper eps a heps heps1 ha0 ha1) (by positivity)
     _ = _ := by ring
 
+/-- Simplify `2^(2r + 1) * (1/16)^r` to `2 * (1/4)^r`. -/
 theorem relativeAe_repetition_factor (r : ℕ) :
     (2 : ℝ) ^ (2 * r + 1) * (1 / 16 : ℝ) ^ r = 2 * (1 / 4 : ℝ) ^ r := by
   rw [pow_add, pow_mul, pow_one]
@@ -1284,10 +1419,14 @@ theorem relativeAe_repetition_factor (r : ℕ) :
     _ = (((2 : ℝ) ^ 2) * (1 / 16 : ℝ)) ^ r * 2 := by rw [mul_pow]; ring
     _ = _ := by norm_num [mul_comm]
 
+/-- The explicit horizon-independent failure budget combining an `eps⁻²(1/4)^r0` term and an
+`(eps⁻¹ + 1)(8/9)^r0` term with the stated constants. -/
 noncomputable def fixedFreshFailureBudget (eps : ℝ) (r0 : ℕ) : ℝ :=
   (2048 * Real.pi ^ 4 / eps ^ 2) * (1 / 4 : ℝ) ^ r0 +
     (256 * Real.pi ^ 2 / (3 * eps) + 4 / 3) * (8 / 9 : ℝ) ^ r0
 
+/-- For `r0 ≥ 1` with `(2/3)(8/9)^r0 ≤ 1/4`, the fixed schedule's relative-error failure mass is
+at most `fixedFreshFailureBudget eps r0`. -/
 theorem freshHistoryFailureMass_le_public_budget (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a ≤ 1)
@@ -1342,6 +1481,8 @@ theorem freshHistoryFailureMass_le_public_budget (eps : ℝ) (heps : 0 < eps) (h
       exact add_le_add (add_le_add hamp' (le_refl _)) hfine
     _ = _ := by ring
 
+/-- For positive marked probability and a fixed schedule with `0 ≤ (2/3)(8/9)^r0 < 1`, pending
+mass is eventually smaller than every positive `η`. -/
 theorem freshHistoryPendingMass_lt_fixed (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (a : ℝ) (ha0 : 0 < a) (ha1 : a ≤ 1)
@@ -1371,6 +1512,8 @@ theorem freshHistoryPendingMass_lt_fixed (eps : ℝ) (heps : 0 < eps) (heps1 : e
     pow_le_pow_of_le_one hc0 hc1.le (by omega)
   exact hp.trans_lt (hactive.trans_lt (hpow.trans_lt hn))
 
+/-- For positive `eps` and `δ`, choose `r0 ≥ 1` so that the median failure factor is at most
+`1/4` and the public fixed-schedule budget is at most `δ`. -/
 theorem exists_fixedFreshSchedule_calibration (eps δ : ℝ) (heps : 0 < eps) (hδ : 0 < δ) :
     ∃ r0 : ℕ, 1 ≤ r0 ∧ (2 / 3 : ℝ) * (8 / 9 : ℝ) ^ r0 ≤ 1 / 4 ∧
       fixedFreshFailureBudget eps r0 ≤ δ := by
@@ -1414,6 +1557,9 @@ theorem exists_fixedFreshSchedule_calibration (eps δ : ℝ) (heps : 0 < eps) (h
   change C1 * (1 / 4 : ℝ) ^ r0 + C2 * (8 / 9 : ℝ) ^ r0 ≤ δ
   linarith
 
+/-- For `0 < eps ≤ 1`, `δ > 0`, and `0 < a ≤ 1`, a constant repetition schedule gives failure
+mass at most `δ`, expected forward accesses at most `192π(2r0 + 1)/(eps√a)`, and pending
+mass tending to zero. -/
 theorem exists_fixedFreshSchedule_failure_expected_tail
     (eps δ : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1) (hδ : 0 < δ)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
@@ -1440,6 +1586,9 @@ theorem exists_fixedFreshSchedule_failure_expected_tail
     exact freshHistoryPendingMass_lt_fixed eps heps heps1 r0 A j S hA
       a ha0 ha1 ha hc0 hc1 η hη
 
+/-- For the linear schedule and an included fine stage `K`, bound expected forward accesses by
+full costs through `K` and costs weighted by the preceding stage's median failure bound
+afterward. -/
 theorem freshHistoryExpectedForward_le_linear_split (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha0 : 0 < MeasureProb (preparedAAState A j) S)

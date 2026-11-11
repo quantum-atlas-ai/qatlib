@@ -69,6 +69,31 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.LinearDiseq07.MainResults.CarryPolynomial
+
+/-!
+# Polynomial representation of digits of sums
+
+`pdigit`, `partSum`, and `carry` describe digit extraction and the successive carries in finite
+natural sums. The polynomial constructions `carryAtPoly` and `stepSubst` encode one digit step,
+while substitution lemmas control evaluation and degree. For prime `p`,
+`source_lemma5_digit_polynomials` constructs polynomials for all digits of a sum modulo `p ^ k`
+with the stated degree bounds. See [Ivanyos2008] for the paper context.
+
+## Main statements
+
+* `carry_sum_eq`: For positive `p`, the quotient by `p` of the sum of all entry residues equals
+  the sum of the successive carry indicators.
+* `totalDegree_bind₁_le`: Substituting polynomials of total degree at most `B` into `φ` gives
+  total degree at most `B * φ.totalDegree`.
+* `source_lemma5_digit_polynomials`: For prime `p`, the digits of any sum modulo `p ^ k` are
+  represented by polynomials in the input digits, with the polynomial for position `i` having
+  total degree at most `(2 * p - 2) ^ i`.
+
+## References
+
+* [Ivanyos, 2008][Ivanyos2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -84,14 +109,19 @@ open MvPolynomial
 
 section Numeric
 
+/-- The natural quotient-and-remainder expression `x / p ^ i % p` for the digit at position `i`. -/
 def pdigit (p x i : ℕ) : ℕ := x / p ^ i % p
 
+/-- The sum of the entries of `A` with indices strictly smaller than `t`. -/
 def partSum {T : ℕ} (A : Fin T → ℕ) (t : Fin T) : ℕ :=
   ∑ i : Fin t.val, A ⟨i.val, lt_trans i.isLt t.isLt⟩
 
+/-- The zero-or-one carry indicator for adding the current entry's residue to the preceding
+partial sum's residue modulo `p`. -/
 def carry (p : ℕ) {T : ℕ} (A : Fin T → ℕ) (t : Fin T) : ℕ :=
   if partSum A t % p + A t % p < p then 0 else 1
 
+/-- If `p > 0` and `r < 2 * p`, then `r / p` is zero below `p` and one otherwise. -/
 lemma div_eq_zero_or_one {p r : ℕ} (hp : 0 < p) (hr : r < 2 * p) :
     r / p = if r < p then 0 else 1 := by
   by_cases h : r < p
@@ -102,6 +132,8 @@ lemma div_eq_zero_or_one {p r : ℕ} (hp : 0 < p) (hr : r < 2 * p) :
     have hle : 1 ≤ r / p := (Nat.one_le_div_iff hp).mpr hge
     omega
 
+/-- For positive `p`, dividing `S + A` by `p` gives the sum of the individual quotients plus the
+carry from adding their residues. -/
 lemma add_div_carry {p S A : ℕ} (hp : 0 < p) :
     (S + A) / p = S / p + A / p + (if S % p + A % p < p then 0 else 1) := by
   have hSA : S + A = p * (S / p + A / p) + (S % p + A % p) := by
@@ -116,6 +148,8 @@ lemma add_div_carry {p S A : ℕ} (hp : 0 < p) :
   congr 1
   exact div_eq_zero_or_one hp hr
 
+/-- If `p > 0` and `s < p`, reducing `p * X + s` modulo `p ^ (k + 1)` and dividing by `p` gives
+`X % p ^ k`. -/
 lemma low_digit_shift {p k X s : ℕ} (hp : 0 < p) (hs : s < p) :
     (p * X + s) % p ^ (k + 1) / p = X % p ^ k := by
   have hpk : 0 < p ^ k := pow_pos hp k
@@ -141,22 +175,28 @@ lemma low_digit_shift {p k X s : ℕ} (hp : 0 < p) (hs : s < p) :
   rw [hmod, show p * (X % p ^ k) + s = s + (X % p ^ k) * p by ring,
     Nat.add_mul_div_right s (X % p ^ k) hp, Nat.div_eq_of_lt hs, Nat.zero_add]
 
+/-- Reducing a finite sum modulo `p` is unchanged by first reducing every summand modulo `p`. -/
 lemma sum_mod_eq {α : Type*} (s : Finset α) (f : α → ℕ) (p : ℕ) :
     (∑ x ∈ s, f x) % p = (∑ x ∈ s, f x % p) % p :=
   Nat.ModEq.sum (fun x _ => (Nat.mod_modEq (f x) p).symm)
 
+/-- A partial sum before a nonfinal index is unchanged by restricting a family on `Fin (T + 1)`
+to its first `T` entries. -/
 lemma partSum_castSucc {T : ℕ} (A : Fin (T+1) → ℕ) (t : Fin T) :
     partSum A (Fin.castSucc t) = partSum (fun s => A (Fin.castSucc s)) t := by
   unfold partSum
   refine Finset.sum_congr rfl fun i _ => ?_
   congr 1
 
+/-- The partial sum before the last index of `Fin (T + 1)` is the sum of its first `T` entries. -/
 lemma partSum_last {T : ℕ} (A : Fin (T+1) → ℕ) :
     partSum A (Fin.last T) = ∑ s : Fin T, A (Fin.castSucc s) := by
   unfold partSum
   refine Finset.sum_congr rfl fun i _ => ?_
   congr 1
 
+/-- For positive `p`, the quotient by `p` of the sum of all entry residues equals the sum of the
+successive carry indicators [Ivanyos, Lemma 5][Ivanyos2008]. -/
 lemma carry_sum_eq {p : ℕ} (hp : 0 < p) {T : ℕ} (A : Fin T → ℕ) :
     (∑ t : Fin T, A t % p) / p = ∑ t : Fin T, carry p A t := by
   induction T with
@@ -181,6 +221,8 @@ lemma carry_sum_eq {p : ℕ} (hp : 0 < p) {T : ℕ} (A : Fin T → ℕ) :
 
 end Numeric
 
+/-- Substituting polynomials of total degree at most `B` into `φ` gives total degree at most `B
+* φ.totalDegree` [Ivanyos, Lemma 5][Ivanyos2008]. -/
 theorem totalDegree_bind₁_le {σ τ R : Type*} [CommSemiring R]
     (f : σ → MvPolynomial τ R) (φ : MvPolynomial σ R) (B : ℕ)
     (hf : ∀ i, (f i).totalDegree ≤ B) :
@@ -209,27 +251,37 @@ theorem totalDegree_bind₁_le {σ τ R : Type*} [CommSemiring R]
   rw [hC, Nat.zero_add]
   exact hprod.trans (Nat.mul_le_mul_left B (MvPolynomial.le_totalDegree hv))
 
+/-- Evaluating a polynomial after substitution equals evaluating it at the values of the
+substituted polynomials. -/
 theorem eval_bind₁ {σ τ R : Type*} [CommSemiring R]
     (f : σ → MvPolynomial τ R) (g : τ → R) (φ : MvPolynomial σ R) :
     MvPolynomial.eval g (MvPolynomial.bind₁ f φ)
       = MvPolynomial.eval (fun i => MvPolynomial.eval g (f i)) φ :=
   MvPolynomial.eval₂Hom_bind₁ (RingHom.id R) g f φ
 
+/-- The assignment of each entry-position pair to the corresponding base-`p` digit of `b`,
+viewed in `ZMod p`. -/
 def digitEval (p : ℕ) {T k : ℕ} (b : Fin T → ℕ) : Fin T × Fin k → ZMod p :=
   fun z => ((b z.1 / p ^ z.2.val) % p : ℕ)
 
+/-- The sum of the variables representing the lowest digits of all `T` entries. -/
 def lowDigitPoly (p T k : ℕ) : MvPolynomial (Fin T × Fin (k + 1)) (ZMod p) :=
   ∑ t : Fin T, X (t, (0 : Fin (k + 1)))
 
+/-- The sum of the lowest-digit variables with entry index strictly smaller than `t`. -/
 def partsumPoly (p : ℕ) {T k : ℕ} (t : Fin T) :
     MvPolynomial (Fin T × Fin (k + 1)) (ZMod p) :=
   ∑ i : Fin t.val, X (⟨i.val, lt_trans i.isLt t.isLt⟩, (0 : Fin (k + 1)))
 
+/-- The carry polynomial with its inputs replaced by the preceding lowest-digit partial sum and
+the current lowest-digit variable. -/
 def carryAtPoly (p : ℕ) {T k : ℕ} (t : Fin T) :
     MvPolynomial (Fin T × Fin (k + 1)) (ZMod p) :=
   MvPolynomial.bind₁ (fun s : Fin 2 =>
     if s = 0 then partsumPoly p t else X (t, (0 : Fin (k + 1)))) (carryPoly p)
 
+/-- The digit-step substitution using shifted digit variables for the first `T` entries and
+lowest-position carry polynomials, with higher positions zero, for the second `T` entries. -/
 def stepSubst (p : ℕ) (T k : ℕ) :
     Fin (T + T) × Fin k → MvPolynomial (Fin T × Fin (k + 1)) (ZMod p) :=
   fun z => Fin.addCases
@@ -241,17 +293,22 @@ section Lemma5
 
 variable {p : ℕ} [hp : Fact p.Prime]
 
+/-- Every successive carry indicator is at most one. -/
 lemma carry_le_one (p : ℕ) {T : ℕ} (A : Fin T → ℕ) (t : Fin T) :
     carry p A t ≤ 1 := by
   unfold carry
   split_ifs <;> omega
 
+/-- Summing the initial entries after casting to `ZMod p` equals casting their natural partial
+sum. -/
 lemma sum_zmod_digit {T : ℕ} (b : Fin T → ℕ) (t : Fin T) :
     (∑ i : Fin t.val, ((b ⟨i.val, lt_trans i.isLt t.isLt⟩ : ℕ) : ZMod p))
       = ((partSum b t : ℕ) : ZMod p) := by
   rw [show partSum b t = ∑ i : Fin t.val, b ⟨i.val, lt_trans i.isLt t.isLt⟩ from rfl,
     Nat.cast_sum]
 
+/-- Evaluating the partial-sum polynomial at the digit assignment gives the preceding natural
+partial sum modulo `p`, cast to `ZMod p`. -/
 lemma eval_partsumPoly {T k : ℕ} (b : Fin T → ℕ) (t : Fin T) :
     MvPolynomial.eval (digitEval (k := k + 1) p b) (partsumPoly (k := k) p t)
       = ((partSum b t % p : ℕ) : ZMod p) := by
@@ -269,6 +326,8 @@ lemma eval_partsumPoly {T k : ℕ} (b : Fin T → ℕ) (t : Fin T) :
   rw [ZMod.natCast_mod]
   exact sum_zmod_digit b t
 
+/-- For prime `p`, evaluating the local carry polynomial at the digit assignment gives the
+natural carry indicator cast to `ZMod p` [Ivanyos, Lemma 5][Ivanyos2008]. -/
 lemma eval_carryAtPoly {T k : ℕ} (b : Fin T → ℕ) (t : Fin T) :
     MvPolynomial.eval (digitEval (k := k + 1) p b) (carryAtPoly (k := k) p t)
       = ((carry p b t : ℕ) : ZMod p) := by
@@ -297,6 +356,7 @@ lemma eval_carryAtPoly {T k : ℕ} (b : Fin T → ℕ) (t : Fin T) :
   · rw [if_neg h, if_neg h]
     norm_num
 
+/-- For prime `p`, every local carry polynomial has total degree at most `2 * p - 2`. -/
 lemma totalDegree_carryAtPoly {T k : ℕ} (t : Fin T) :
     (carryAtPoly (p := p) (k := k) t).totalDegree ≤ 2 * p - 2 := by
   unfold carryAtPoly
@@ -318,6 +378,9 @@ lemma totalDegree_carryAtPoly {T k : ℕ} (t : Fin T) :
     _ = (carryPoly p).totalDegree := Nat.one_mul _
     _ ≤ 2 * p - 2 := carryPoly_totalDegree_le hp.out.two_le
 
+/-- For prime `p`, the digits of any sum modulo `p ^ k` are represented by polynomials in the
+input digits, with the polynomial for position `i` having total degree at most `(2 * p - 2)
+^ i` [Ivanyos, Lemma 5][Ivanyos2008]. -/
 theorem source_lemma5_digit_polynomials (p : ℕ) [hp : Fact p.Prime] (k T : ℕ) :
     ∃ Q : Fin k → MvPolynomial (Fin T × Fin k) (ZMod p),
       (∀ i, (Q i).totalDegree ≤ (2 * p - 2) ^ (i.val)) ∧

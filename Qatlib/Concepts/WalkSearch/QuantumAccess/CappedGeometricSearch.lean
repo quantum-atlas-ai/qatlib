@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+
+/-!
+# Capped geometric search with execution traces
+
+`geometricWindow` and `geometricSearchSchedule` define a positive capped integer schedule with
+growth ratio `6 / 5`. `searchForSchedule` runs fresh sampled amplification attempts, validates
+candidates, and records random-bit use, queries, preparation calls, and macro gates in a
+`CappedSearchTrace`.
+
+The schedule follows the unknown-success search strategy associated with [BoyerEtAl1998].
+
+## Main statements
+
+* `geometric_search_actual_integer_schedule`: positivity, monotonicity, and cap properties.
+* `geometric_search_actual_fresh_attempt_recursion`: the recursive search law.
+* `geometric_search_actual_support_soundness_and_metadata`: output soundness and trace
+  identities.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
@@ -20,6 +43,8 @@ namespace Qatlib.Concepts.WalkSearch.QuantumAccess
 open Matrix
 open scoped ENNReal Classical
 
+/-- An optional search result together with attempted windows, iteration counts, candidates, and
+resource counters for bits, queries, preparations, and macro gates. -/
 structure CappedSearchTrace (I : Type) where
   result : Option I
   windows : List ℕ
@@ -31,12 +56,15 @@ structure CappedSearchTrace (I : Type) where
   prepareCalls : ℕ
   macroGates : ℕ
 
+/-- The positive integer window `max 1 (min M ((6 ^ j + 5 ^ j - 1) / 5 ^ j))`. -/
 def geometricWindow (M j : ℕ) : ℕ :=
   max 1 (min M ((6^j + 5^j - 1) / 5^j))
 
+/-- The list of the first `T` capped geometric windows with cap `M`. -/
 def geometricSearchSchedule (M T : ℕ) : List ℕ :=
   List.ofFn fun i : Fin T => geometricWindow M i.val
 
+/-- A search trace with no result, empty attempt lists, and all resource counters zero. -/
 def emptySearchTrace {I : Type} : CappedSearchTrace I where
   result := none
   windows := []
@@ -48,6 +76,8 @@ def emptySearchTrace {I : Type} : CappedSearchTrace I where
   prepareCalls := 0
   macroGates := 0
 
+/-- Prepends an attempt's window, iteration count, and optional candidate to a trace and adds
+its resource charges, preserving the trace's result. -/
 def prependSearchReceipt {I : Type} (m : ℕ) (out : Option (I × ℕ) × ℕ × ℕ)
     (tr : CappedSearchTrace I) : CappedSearchTrace I where
   result := tr.result
@@ -61,6 +91,8 @@ def prependSearchReceipt {I : Type} (m : ℕ) (out : Option (I × ℕ) × ℕ ×
   prepareCalls := (if out.1.isSome then 2 * out.2.2 + 1 else 0) + tr.prepareCalls
   macroGates := (out.1.map fun p => p.2).getD 0 + tr.macroGates
 
+/-- The probability law of successive fresh sampled-amplification attempts, stopping at the
+first validated candidate and recording each executed attempt. -/
 noncomputable def searchForSchedule {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (valid : I → Bool) : List ℕ → PMF (CappedSearchTrace I) :=
@@ -76,6 +108,8 @@ noncomputable def searchForSchedule {I : Type} [Fintype I] [DecidableEq I]
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Every supported attempt uses at most `m` phase queries and `3 * Nat.clog 2 m` bits; an
+absent candidate has zero iterations, and a present one has `3 * iterations + 1` gates. -/
 theorem sampled_attempt_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) (m : ℕ) (out : Option (I × ℕ) × ℕ × ℕ)
     (hout : out ∈ (preparedAASampled A hA j₀ S (Nat.clog 2 m) m 3).support) :
@@ -117,6 +151,8 @@ theorem sampled_attempt_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGro
       obtain ⟨rfl⟩ := hpin
       exact ⟨Nat.zero_le _, hbits _ hx, fun _ => rfl, by rintro y g hg; exact absurd hg (by simp)⟩
 
+/-- Identifies the integer schedule and proves that its windows are positive, nondecreasing, and
+at most a positive cap. -/
 theorem geometric_search_actual_integer_schedule :
     ∀ (M T j : ℕ),
       geometricWindow M j = max 1 (min M ((6^j+5^j-1)/5^j)) ∧
@@ -157,6 +193,8 @@ theorem geometric_search_actual_integer_schedule :
     show max 1 (min M _) ≤ M
     omega
 
+/-- Expands the empty and nonempty schedule cases into a fresh sampled attempt followed by
+validated stopping or recursive continuation. -/
 theorem geometric_search_actual_fresh_attempt_recursion :
     ∀ (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
       (j₀ : I) (S : Finset I) (valid : I → Bool) (m : ℕ) (ms : List ℕ),
@@ -171,6 +209,8 @@ theorem geometric_search_actual_fresh_attempt_recursion :
   intro A hA j₀ S valid m ms
   exact ⟨rfl, rfl⟩
 
+/-- States the exact result, attempt-list, candidate-list, and resource-counter updates
+performed by `prependSearchReceipt`. -/
 theorem geometric_search_receipt_actual_ledger_updates :
     ∀ (m : ℕ) (out : Option (I × ℕ) × ℕ × ℕ) (tr : CappedSearchTrace I),
       (prependSearchReceipt m out tr).result = tr.result ∧
@@ -185,6 +225,8 @@ theorem geometric_search_receipt_actual_ledger_updates :
   intro m out tr
   exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+/-- With exact validation, every supported result is marked, executed windows form a schedule
+prefix, and query, preparation, and gate counters satisfy the stated identities. -/
 theorem geometric_search_actual_support_soundness_and_metadata :
     ∀ (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
       (j₀ : I) (S : Finset I) (valid : I → Bool) (M T : ℕ), (∀ y, valid y=true ↔ y∈S) →

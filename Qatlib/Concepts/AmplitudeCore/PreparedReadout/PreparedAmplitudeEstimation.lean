@@ -8,6 +8,30 @@ import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+
+/-!
+# Prepared amplitude estimation
+
+`AEAccessStep` and `countedAECircuit` expand amplitude estimation into explicit preparation,
+inverse preparation, source-reflection, marking, and fixed-gate operations. `aeLaw` is the
+actual counter-label Born distribution, and `aeEstimate` decodes a label as a squared sine.
+
+The module proves the two-eigenphase distribution, the BHMT error guarantee and endpoint
+behavior, exact access ledgers, and a noisy controlled-access success bound. The
+amplitude-estimation construction follows [BrassardEtAl2002].
+
+## Main statements
+
+* `prepared_ae_access_ledger`: gives the expanded query, gate, and preparation counts.
+* `prepared_ae_two_phase_distribution`: expresses the interior counter law as an equal two-phase
+  mixture.
+* `prepared_ae_bhmt_error_and_endpoints`: proves the error guarantee and exact endpoint cases.
+
+## References
+
+* [Brassard et al., 2002, Theorem 12][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -32,6 +56,8 @@ open scoped Classical Matrix.Norms.L2Operator
 set_option autoImplicit false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The access vocabulary for expanded amplitude estimation, distinguishing initialization,
+preparation directions, source reflection, marking, and fixed gates. -/
 inductive AEAccessStep (R : Type) where
   | initialize
   | prepareForward
@@ -40,14 +66,19 @@ inductive AEAccessStep (R : Type) where
   | mark
   | fixed (U : Matrix R R ℂ)
 
+/-- Expand an iterate query into marking, inverse preparation, source reflection, and forward
+preparation; retain a fixed gate as one access step. -/
 def expandAEAccess {R : Type} : Step R → List (AEAccessStep R)
   | .query => [.mark, .prepareBackward, .sourceReflection, .prepareForward]
   | .gate U => [.fixed U]
 
+/-- The controlled system gate with an identity spectator on the phase counter. -/
 noncomputable def aeControlledGate (M : ℕ) (U : Matrix I I ℂ) :
     Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ :=
   TensorGate (1 : Matrix (Fin M) (Fin M) ℂ) (controlOracle U)
 
+/-- Interpret an amplitude-estimation access step as a gate or marking query on the counter,
+flag, and system registers. -/
 noncomputable def aeAccessInstruction (M : ℕ) (A : Matrix I I ℂ) (j : I) :
     AEAccessStep (Fin M × (Bool × I)) → Step (Fin M × (Bool × I))
   | .initialize => .gate (TensorGate (1 : Matrix (Fin M) (Fin M) ℂ)
@@ -58,29 +89,40 @@ noncomputable def aeAccessInstruction (M : ℕ) (A : Matrix I I ℂ) (j : I) :
   | .mark => .query
   | .fixed U => .gate U
 
+/-- The phase-estimation access word expanded into preparation and reflection operations, with
+an initial preparation step. -/
 noncomputable def aeAccessWord (M : ℕ) : List (AEAccessStep (Fin M × (Bool × I))) :=
   .initialize :: (countedPhaseCircuit (I := I) M).flatMap expandAEAccess
 
+/-- The circuit obtained by interpreting `aeAccessWord` using preparation matrix `A` and seed
+`j`. -/
 noncomputable def countedAECircuit (M : ℕ) (A : Matrix I I ℂ) (j : I) :
     Circuit (Fin M × (Bool × I)) :=
   (aeAccessWord (I := I) M).map (aeAccessInstruction M A j)
 
+/-- Count initialization and forward or backward preparation accesses in an amplitude-estimation
+word. -/
 def aeInputAccesses {R : Type} (w : List (AEAccessStep R)) : ℕ :=
   (w.map (fun s => match s with
     | .initialize | .prepareForward | .prepareBackward => 1
     | _ => 0)).sum
 
+/-- Count source-reflection steps in an amplitude-estimation word. -/
 def aeSourceReflections {R : Type} (w : List (AEAccessStep R)) : ℕ :=
   (w.map (fun s => match s with | .sourceReflection => 1 | _ => 0)).sum
 
+/-- The amplitude estimate `sin²(π z / M)` decoded from a phase-counter label. -/
 noncomputable def aeEstimate (M : ℕ) (z : Fin M) : ℝ :=
   (Real.sin (Real.pi*(z.val : ℝ)/(M : ℝ)))^2
 
+/-- The controlled counter lift preserves matrix multiplication. -/
 private theorem aeControlledGate_mul (M : ℕ) (U V : Matrix I I ℂ) :
     aeControlledGate M U * aeControlledGate M V = aeControlledGate M (U*V) := by
   rw [aeControlledGate, aeControlledGate, tensorGate_mul, Matrix.one_mul, controlOracle_mul]
   rfl
 
+/-- Running the expanded accesses with the marking oracle equals running the original circuit
+with the prepared amplification iterate. -/
 private theorem run_expandedAE (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (C : Circuit (Fin M × (Bool × I))) (ψ : QState (Fin M × (Bool × I))) :
     Run (aeControlledGate M (preparedMark S))
@@ -102,6 +144,8 @@ private theorem run_expandedAE (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finse
 
 omit [Fintype I] in
 
+/-- Expansion preserves the query count, adds three gates per query, and uses two preparation
+accesses and one source reflection per query. -/
 private theorem expandedAE_counts (M : ℕ) (A : Matrix I I ℂ) (j : I)
     (C : Circuit (Fin M × (Bool × I))) :
     QueryCount ((C.flatMap expandAEAccess).map (aeAccessInstruction M A j)) = QueryCount C ∧
@@ -116,11 +160,13 @@ private theorem expandedAE_counts (M : ℕ) (A : Matrix I I ℂ) (j : I)
       simp [expandAEAccess, aeAccessInstruction, aeInputAccesses, aeSourceReflections,
         ih.1, ih.2.1] at * <;> omega
 
+/-- The controlled counter lift of a unitary matrix is unitary. -/
 private theorem aeControlledGate_unitary (M : ℕ) {U : Matrix I I ℂ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     aeControlledGate M U ∈ Matrix.unitaryGroup (Fin M × (Bool × I)) ℂ :=
   tensorGate_unitary (by simp) (controlOracle_unitary hU)
 
+/-- Expanding a unitary circuit through a unitary preparation matrix produces a unitary circuit. -/
 private theorem expandedAE_unitary (M : ℕ) (A : Matrix I I ℂ) (j : I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (C : Circuit (Fin M × (Bool × I)))
     (hC : IsUnitaryCircuit C) :
@@ -140,6 +186,8 @@ private theorem expandedAE_unitary (M : ℕ) (A : Matrix I I ℂ) (j : I)
         aeControlledGate_unitary M (conjTranspose_mem_unitaryGroup hA),
         aeControlledGate_unitary M (outerProduct_reflection_unitary (normalized_ket j))]
 
+/-- The prepared circuit uses `M - 1` marking queries, `5 * (M - 1) + 3` gates, `2 * (M - 1) +
+1` preparation accesses, and `M - 1` source reflections. -/
 theorem prepared_ae_access_ledger (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I) :
     QueryCount (countedAECircuit M A j) = M-1 ∧
     GateCount (countedAECircuit M A j) = 5*(M-1)+3 ∧
@@ -163,12 +211,16 @@ theorem prepared_ae_access_ledger (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j
       simp [aeAccessWord, aeSourceReflections]
     rw [hr, he.2.2.2, hC.1]
 
+/-- For a positive counter size and unitary preparation, the counted amplitude-estimation
+circuit is unitary. -/
 private theorem countedAECircuit_unitary (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ)
     (j : I) (hA : A ∈ Matrix.unitaryGroup I ℂ) : IsUnitaryCircuit (countedAECircuit M A j) := by
   apply (isUnitaryCircuit_gate _ _).mpr
   exact ⟨tensorGate_unitary (by simp) (tensorGate_unitary (by simp) hA),
     expandedAE_unitary M A j hA _ (counted_offgrid_qpe_clean_flag M hM A (Qatlib.Foundations.PureStateMath.Ket j)).2.2.2⟩
 
+/-- The counted amplitude-estimation output equals the flag embedding of phase estimation on the
+prepared amplification iterate. -/
 theorem countedAE_output (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I) (S : Finset I) :
     Run (aeControlledGate M (preparedMark S)) (countedAECircuit M A j)
       (TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0,hM⟩ : Fin M)) (TensorState (Qatlib.Foundations.PureStateMath.Ket false) (Qatlib.Foundations.PureStateMath.Ket j))) =
@@ -179,6 +231,8 @@ theorem countedAE_output (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ) (j : I) (S 
   exact (counted_offgrid_qpe_clean_flag M hM (preparedAAIterate A j S)
     (preparedAAState A j)).1
 
+/-- The counted amplitude-estimation output is normalized for a unitary preparation and positive
+counter size. -/
 private theorem normalized_countedAE_output (M : ℕ) (hM : 0 < M) (A : Matrix I I ℂ)
     (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     Normalized (Run (aeControlledGate M (preparedMark S)) (countedAECircuit M A j)
@@ -187,6 +241,8 @@ private theorem normalized_countedAE_output (M : ℕ) (hM : 0 < M) (A : Matrix I
     (aeControlledGate_unitary M (prepared_aa_reflection_and_access A j S hA).1)
     (normalized_tensorState (normalized_ket _) (normalized_tensorState (normalized_ket _) (normalized_ket _)))
 
+/-- The finite Born distribution of the counter label in the counted prepared
+amplitude-estimation circuit. -/
 noncomputable def aeLaw (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hM : 2 ≤ M) : FinDist (Fin M) where
   prob z := MeasureProb
@@ -201,6 +257,9 @@ noncomputable def aeLaw (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     rw [Finset.sum_comm]
     simpa using hn
 
+/-- The expanded circuit has the stated query and gate counts, is unitary, and produces a
+normalized state with counter law `aeLaw` and zero amplitude on flag `true`
+[BrassardEtAl2002]. -/
 theorem prepared_ae_expanded_access_and_output (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     let input :=
@@ -224,6 +283,8 @@ theorem prepared_ae_expanded_access_and_output (M : ℕ) (hM : 2 ≤ M)
 
 omit [DecidableEq I] in
 
+/-- The inner product of two linear combinations expands into the four pairwise inner products
+with conjugated coefficients in the first argument. -/
 private theorem aeInner_combination (b g : QState I) (a c d e : ℂ) :
     Qatlib.Foundations.PureStateMath.Inner (a • b+c • g) (d • b+e • g) =
       star a*d*Qatlib.Foundations.PureStateMath.Inner b b+star a*e*Qatlib.Foundations.PureStateMath.Inner b g+star c*d*Qatlib.Foundations.PureStateMath.Inner g b+star c*e*Qatlib.Foundations.PureStateMath.Inner g g := by
@@ -231,12 +292,15 @@ private theorem aeInner_combination (b g : QState I) (a c d e : ℂ) :
     smul_dotProduct, dotProduct_smul, smul_eq_mul]
   ring
 
+/-- Swapping the arguments of the complex inner product conjugates its value. -/
 private theorem aeInner_swap (b g : QState I) : Qatlib.Foundations.PureStateMath.Inner b g = star (Qatlib.Foundations.PureStateMath.Inner g b) := by
   rw [inner_apply, inner_apply, star_sum]
   apply Finset.sum_congr rfl
   intro i _
   rw [Complex.star_def, map_mul, starRingEnd_self_apply, mul_comm]
 
+/-- The two candidate amplification eigenvectors formed from the good and bad components of the
+prepared state. -/
 private noncomputable def aeEigenVector (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (θ : ℝ) (b : Bool) : QState I :=
   ((Real.sqrt 2 : ℂ)*(Real.cos θ : ℂ))⁻¹ •
@@ -244,9 +308,13 @@ private noncomputable def aeEigenVector (A : Matrix I I ℂ) (j : I) (S : Finset
     ((if b then -Complex.I else Complex.I)/((Real.sqrt 2 : ℂ)*(Real.sin θ : ℂ))) •
       Collapse (preparedAAState A j) S
 
+/-- The complex coefficients used to express the prepared state in its two amplification
+eigenvectors. -/
 private noncomputable def aeEigenCoefficient (θ : ℝ) (b : Bool) : ℂ :=
   (Real.sqrt 2 : ℂ)⁻¹ * Complex.exp (((if b then θ else -θ : ℝ) : ℂ)*Complex.I)
 
+/-- For nonzero sine and cosine and the stated success probability, the two amplification
+eigenvectors are orthonormal. -/
 private theorem aeEigenVector_orthonormal (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (θ : ℝ) (hs : Real.sin θ ≠ 0)
     (hc : Real.cos θ ≠ 0) (ha : MeasureProb (preparedAAState A j) S=(Real.sin θ)^2) :
@@ -283,6 +351,8 @@ private theorem aeEigenVector_orthonormal (A : Matrix I I ℂ) (j : I) (S : Fins
     field_simp [hsC,hcC,hrC, -Complex.ofReal_cos, -Complex.ofReal_sin] <;>
     simp only [Complex.I_sq,hr2] <;> ring
 
+/-- The amplification eigenvectors have eigenphases `θ / π` and `-θ / π` under the stated
+preparation and probability hypotheses. -/
 private theorem aeEigenVector_eigen (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (θ : ℝ) (hs : Real.sin θ ≠ 0)
     (hc : Real.cos θ ≠ 0) (ha : MeasureProb (preparedAAState A j) S=(Real.sin θ)^2) :
@@ -344,6 +414,7 @@ private theorem aeEigenVector_eigen (A : Matrix I I ℂ) (j : I) (S : Finset I)
         (2*Complex.sin (θ : ℂ)*(preparedAAState A j-Collapse (preparedAAState A j) S) i +
           2*(Complex.sin (θ : ℂ)-Complex.I*Complex.cos (θ : ℂ))*Collapse (preparedAAState A j) S i)
 
+/-- Each amplification eigenvector coefficient has squared norm `1 / 2`. -/
 private theorem aeEigenCoefficient_norm (θ : ℝ) (b : Bool) :
     ‖aeEigenCoefficient θ b‖^2 = 1/2 := by
   have hr : 0 ≤ Real.sqrt 2 := Real.sqrt_nonneg _
@@ -355,6 +426,8 @@ private theorem aeEigenCoefficient_norm (θ : ℝ) (b : Bool) :
   rw [Real.sq_sqrt (by norm_num : (0 : ℝ)≤2)]
   norm_num
 
+/-- The weighted sum of the two amplification eigenvectors equals the prepared state when sine
+and cosine are nonzero. -/
 private theorem aeEigen_decomposition (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (θ : ℝ) (hs : Real.sin θ ≠ 0) (hc : Real.cos θ ≠ 0) :
     (∑ b : Bool, aeEigenCoefficient θ b • aeEigenVector A j S θ b) = preparedAAState A j := by
@@ -375,6 +448,7 @@ private theorem aeEigen_decomposition (A : Matrix I I ℂ) (j : I) (S : Finset I
   simp only [Complex.I_sq,hr2]
   ring
 
+/-- The counter probability in `aeLaw` equals the corresponding phase-estimation marginal. -/
 theorem aeLaw_prob_eq_qpe_marginal (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) (z : Fin M) :
     (aeLaw M A j S hA hM).prob z =
@@ -385,6 +459,8 @@ theorem aeLaw_prob_eq_qpe_marginal (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
   simp [MeasureProb, MarginalProbLeft, Finset.sum_filter,
     Fintype.sum_prod_type, phaseFlagEmbed, BornProb]
 
+/-- For an interior amplification angle, the counter law is the equal mixture of the squared
+phase-estimation kernels at `θ / π` and `-θ / π` [BrassardEtAl2002]. -/
 theorem prepared_ae_two_phase_distribution (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (θ : ℝ) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi/2)
@@ -408,6 +484,8 @@ theorem prepared_ae_two_phase_distribution (M : ℕ) (hM : 2 ≤ M)
   simp only [Fintype.sum_bool, Bool.false_eq_true, if_true, if_false]
   ring
 
+/-- The change in squared sine is bounded by the linear variance term and the squared
+displacement. -/
 private theorem sin_sq_displacement (θ t : ℝ) :
     |(Real.sin (θ+t))^2-(Real.sin θ)^2| ≤
       2*Real.sqrt ((Real.sin θ)^2*(1-(Real.sin θ)^2))*|t|+t^2 := by
@@ -446,6 +524,7 @@ private theorem sin_sq_displacement (θ t : ℝ) :
           _ = _ := by rw [sq_abs,one_mul]
       simpa only [abs_mul,mul_assoc] using add_le_add h1 h2
 
+/-- Adding an integer multiple of π leaves squared sine unchanged. -/
 private theorem sin_sq_integer_shift (t : ℝ) (n : ℤ) :
     (Real.sin (t+(n : ℝ)*Real.pi))^2=(Real.sin t)^2 := by
   rw [Real.sin_add_int_mul_pi,mul_pow]
@@ -454,6 +533,8 @@ private theorem sin_sq_integer_shift (t : ℝ) (n : ℤ) :
     norm_num
   rw [hs,one_mul]
 
+/-- A phase label within circular distance `1 / M` yields amplitude error at most `2π
+sqrt(a(1-a)) / M + π² / M²`. -/
 theorem aeEstimate_error_of_phaseDistance (M : ℕ) (hM : 0 < M) (φ : ℝ) (z : Fin M)
     (hd : phaseDistance φ ((z.val : ℝ)/(M : ℝ)) ≤ 1/(M : ℝ)) :
     let a := (Real.sin (Real.pi*φ))^2
@@ -488,6 +569,8 @@ theorem aeEstimate_error_of_phaseDistance (M : ℕ) (hM : 0 < M) (φ : ℝ) (z :
         simpa only [sq_abs] using hh
     _ = _ := by ring
 
+/-- At success probabilities zero and one, the prepared state is an eigenvector of the
+amplification iterate with eigenvalues one and minus one, respectively. -/
 private theorem preparedAAIterate_endpoint_eigen (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     (MeasureProb (preparedAAState A j) S=0 →
@@ -503,6 +586,8 @@ private theorem preparedAAIterate_endpoint_eigen (A : Matrix I I ℂ) (j : I) (S
   · intro ha
     simpa only [pow_one,neg_one_smul] using hr.symm.trans (he.2 ha)
 
+/-- When the prepared state has a specified eigenphase, its counter law is the squared
+phase-estimation kernel at that phase. -/
 private theorem aeLaw_eigen_mass (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) (φ : ℝ)
     (he : ApplyGate (preparedAAIterate A j S) (preparedAAState A j) =
@@ -512,6 +597,8 @@ private theorem aeLaw_eigen_mass (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     marginalProbLeft_tensorState _ (prepared_aa_reflection_and_access A j S hA).2.1]
   simp [MeasureProb,BornProb]
 
+/-- At zero success probability, the counter law is the squared phase-estimation kernel at phase
+zero. -/
 theorem aeLaw_zero_mass (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S=0) (z : Fin M) :
@@ -519,6 +606,8 @@ theorem aeLaw_zero_mass (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
   apply aeLaw_eigen_mass M hM A j S hA 0
   simpa using (preparedAAIterate_endpoint_eigen A j S hA).1 ha
 
+/-- At unit success probability, the counter law is the squared phase-estimation kernel at phase
+`1 / 2`. -/
 theorem aeLaw_one_mass (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : MeasureProb (preparedAAState A j) S=1) (z : Fin M) :
@@ -528,6 +617,8 @@ theorem aeLaw_one_mass (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
   rw [he,Complex.exp_pi_mul_I,neg_one_smul]
   exact (preparedAAIterate_endpoint_eigen A j S hA).2 ha
 
+/-- The phase-estimation kernel assigns probability at least `8 / π²` to the BHMT
+amplitude-error event [BrassardEtAl2002]. -/
 private theorem qpeKernel_bhmt_success (M : ℕ) (hM : 2 ≤ M) (φ : ℝ) :
     let a := (Real.sin (Real.pi*φ))^2
     ∑ z ∈ Finset.univ.filter (fun z : Fin M => |aeEstimate M z-a| ≤
@@ -541,6 +632,8 @@ private theorem qpeKernel_bhmt_success (M : ℕ) (hM : 2 ≤ M) (φ : ℝ) :
   · intro z _ _
     exact sq_nonneg _
 
+/-- The prepared counter law assigns probability at least `8 / π²` to the BHMT amplitude-error
+event [BrassardEtAl2002]. -/
 private theorem aeLaw_bhmt_success (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
     (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     let a := MeasureProb (preparedAAState A j) S
@@ -589,6 +682,8 @@ private theorem aeLaw_bhmt_success (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ)
   rw [← Finset.sum_div,Finset.sum_add_distrib]
   linarith
 
+/-- The BHMT amplitude-error bound holds with probability at least `8 / π²`; zero amplitude is
+decoded exactly, as is unit amplitude when `M` is even [BrassardEtAl2002]. -/
 theorem prepared_ae_bhmt_error_and_endpoints (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     let a := MeasureProb (preparedAAState A j) S
@@ -628,6 +723,8 @@ theorem prepared_ae_bhmt_error_and_endpoints (M : ℕ) (hM : 2 ≤ M)
       simp [Qatlib.Foundations.PureStateMath.Ket,hy]
     · simp [Finset.mem_filter,he]
 
+/-- Summing `aeLaw` over a counter-label predicate equals the Born probability of that predicate
+on the actual circuit output. -/
 theorem aeLaw_event (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (P : Fin M → Prop) :
     (∑ z ∈ Finset.univ.filter P, (aeLaw M A j S hA hM).prob z) =
@@ -642,6 +739,8 @@ theorem aeLaw_event (M : ℕ) (hM : 2 ≤ M) (A : Matrix I I ℂ) (j : I) (S : F
   rw [Finset.sum_comm]
   simp [Finset.sum_filter]
 
+/-- A unitary marking oracle within operator distance `δ` gives BHMT success probability at
+least `8 / π² - 2 * (M - 1) * δ`. -/
 theorem prepared_ae_noisy_controlled_access (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (V : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) (δ : ℝ)
@@ -677,24 +776,31 @@ theorem prepared_ae_noisy_controlled_access (M : ℕ) (hM : 2 ≤ M)
     MeasureProb (Run V (countedAECircuit M A j) input) E
   linarith only [hgood,hl]
 
+/-- Count initialization and forward preparation steps. -/
 def aeForwardAccesses {R : Type} (w : List (AEAccessStep R)) : ℕ :=
   (w.map (fun s => match s with | .initialize | .prepareForward => 1 | _ => 0)).sum
 
+/-- Count backward preparation steps. -/
 def aeBackwardAccesses {R : Type} (w : List (AEAccessStep R)) : ℕ :=
   (w.map (fun s => match s with | .prepareBackward => 1 | _ => 0)).sum
 
+/-- Count fixed-gate macro steps. -/
 def aeFixedMacros {R : Type} (w : List (AEAccessStep R)) : ℕ :=
   (w.map (fun s => match s with | .fixed _ => 1 | _ => 0)).sum
 
+/-- The expanded threshold-loop portion of amplitude estimation. -/
 noncomputable def aeFlagAccessWord (M : ℕ) : List (AEAccessStep (Fin M × (Bool × I))) :=
   (phaseThresholdLoop (I := I) M (M-1)).flatMap expandAEAccess
 
+/-- The two fixed Fourier macros surrounding the threshold loop. -/
 noncomputable def aeFourierAccessWord (M : ℕ) : List (AEAccessStep (Fin M × (Bool × I))) :=
   [.fixed (TensorGate (QFTMatrix M) (1 : Matrix (Bool × I) (Bool × I) ℂ)),
     .fixed (TensorGate (QFTMatrix M)ᴴ (1 : Matrix (Bool × I) (Bool × I) ℂ))]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Each expanded query contributes one forward and one backward preparation access, while fixed
+macros correspond exactly to the original gates. -/
 private theorem expandedAE_separate_counts {M : ℕ} (C : Circuit (Fin M × (Bool × I))) :
     aeForwardAccesses (C.flatMap expandAEAccess)=QueryCount C ∧
     aeBackwardAccesses (C.flatMap expandAEAccess)=QueryCount C ∧
@@ -707,6 +813,8 @@ private theorem expandedAE_separate_counts {M : ℕ} (C : Circuit (Fin M × (Boo
 
 omit [Fintype I] in
 
+/-- The amplitude-estimation access word splits into initialization, a Fourier gate, the
+expanded flag loop, and an inverse Fourier gate. -/
 theorem aeAccessWord_split (M : ℕ) :
     aeAccessWord (I := I) M = .initialize ::
       ([.fixed (TensorGate (QFTMatrix M) (1 : Matrix (Bool × I) (Bool × I) ℂ))] ++
@@ -714,6 +822,8 @@ theorem aeAccessWord_split (M : ℕ) :
         [.fixed (TensorGate (QFTMatrix M)ᴴ (1 : Matrix (Bool × I) (Bool × I) ℂ))]) := by
   simp [aeAccessWord,countedPhaseCircuit,List.flatMap_append,expandAEAccess,aeFlagAccessWord]
 
+/-- The full word has `M` forward and `M - 1` backward accesses; its flag loop has `2 * (M - 1)`
+fixed macros and its Fourier portion has two. -/
 theorem prepared_ae_separate_access_counts (M : ℕ) (hM : 0 < M) :
     aeForwardAccesses (aeAccessWord (I := I) M)=M ∧
     aeBackwardAccesses (aeAccessWord (I := I) M)=M-1 ∧
@@ -735,6 +845,7 @@ theorem prepared_ae_separate_access_counts (M : ℕ) (hM : 0 < M) :
       (phaseThresholdLoop_resources (I := I) M (M-1)).2.1]
   · rfl
 
+/-- The chord length from one to a complex phase is twice the absolute sine of half its angle. -/
 private theorem aeZero_chord (t : ℝ) :
     ‖Complex.exp (2 * Real.pi * Complex.I * t) - 1‖ = 2 * |Real.sin (Real.pi * t)| := by
   have he : (2 * Real.pi * Complex.I * t : ℂ) =
@@ -743,6 +854,8 @@ private theorem aeZero_chord (t : ℝ) :
     show (2 * Real.pi * t) / 2 = Real.pi * t by ring, Real.norm_eq_abs, abs_mul]
   norm_num
 
+/-- For positive squared sine, the phase-estimation kernel at label zero is bounded by `1 / (M²
+* sin²(πφ))`. -/
 private theorem aeZero_kernel_bound (M : ℕ) (hM : 0 < M) (φ : ℝ)
     (ha : 0 < Real.sin (Real.pi * φ) ^ 2) :
     ‖qpeKernel M φ ⟨0, hM⟩‖ ^ 2 ≤ 1 / ((M : ℝ) ^ 2 * Real.sin (Real.pi * φ) ^ 2) := by
@@ -758,6 +871,8 @@ private theorem aeZero_kernel_bound (M : ℕ) (hM : 0 < M) (φ : ℝ)
   apply (le_div_iff₀ (mul_pos (by positivity : 0 < (M : ℝ) ^ 2) ha)).mpr
   nlinarith only [hsq, hs]
 
+/-- For positive prepared success probability `a`, the counter probability at zero is at most `1
+/ (M² * a)`. -/
 theorem aeLaw_zero_label_mass_bound (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha : 0 < MeasureProb (preparedAAState A j) S) :

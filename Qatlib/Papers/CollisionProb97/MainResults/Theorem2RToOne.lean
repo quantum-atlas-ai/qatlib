@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+
+/-!
+# Regular collision counts and scalar budgets
+
+This module proves the candidate counts and scalar estimates associated with Theorem 2 of
+[BrassardHoyerTapp1998Collision]. The theorem `rToOne_count_and_budget` treats a table with
+distinct function values and an `r`-to-one function with `r ≥ 2`.
+
+A square-root comparison replaces `r - 1` by `r` at a factor of `sqrt 2`, yielding the explicit
+budget at an exact real cube-root parameter.
+
+## Main statements
+
+* `sqrt_div_rToOne_le`: For `N > 0`, `r ≥ 2`, and `k ≥ 1`, replacing `(r - 1) * k` by `r * k` in
+  the square-root denominator costs at most a factor of `sqrt 2`.
+* `rToOne_count_and_budget`: For an `r`-to-one function with `r ≥ 2` and a nonempty table with
+  distinct values, proves the candidate count, collision witnesses, uniform scalar budget bound,
+  and record count associated with Theorem 2 of [BrassardHoyerTapp1998Collision].
+* `rToOne_real_cube_budget`: At `k³ = N / r` with `r ≥ 2`, the proposed collision budget is at
+  most `(groverCoefficient l * sqrt 2 + 2) * k`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +43,8 @@ open scoped BigOperators
 
 universe u
 
+/-- For `N > 0`, `r ≥ 2`, and `k ≥ 1`, replacing `(r - 1) * k` by `r * k` in the square-root
+denominator costs at most a factor of `sqrt 2`. -/
 theorem sqrt_div_rToOne_le {N : ℝ} {r k : ℕ} (hN : 0 < N) (hr : 2 ≤ r) (hk : 1 ≤ k) :
     Real.sqrt (N / (((r : ℝ) - 1) * (k : ℝ)))
       ≤ Real.sqrt 2 * Real.sqrt (N / ((r : ℝ) * (k : ℝ))) := by
@@ -40,6 +68,9 @@ theorem sqrt_div_rToOne_le {N : ℝ} {r k : ℕ} (hN : 0 < N) (hr : 2 ≤ r) (hk
     _ = Real.sqrt 2 * Real.sqrt (N / ((r : ℝ) * (k : ℝ))) :=
         Real.sqrt_mul (by norm_num) _
 
+/-- For an `r`-to-one function with `r ≥ 2` and a nonempty table with distinct values, proves
+the candidate count, collision witnesses, uniform scalar budget bound, and record count
+associated with Theorem 2 of [BrassardHoyerTapp1998Collision]. -/
 theorem rToOne_count_and_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3) :
     ∃ C : ℝ, 0 < C ∧
       ∀ {X Y : Type u} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
@@ -81,6 +112,7 @@ theorem rToOne_count_and_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3) :
     unfold proposedCollisionBudget
     nlinarith [hgs]
 
+/-- If `r > 0`, `k ≥ 1`, and `k³ = N / r`, then `k + sqrt (N / (r * k)) = 2 * k`. -/
 theorem rToOne_cubeRoot {N k : ℝ} {r : ℕ} (hr : 0 < r) (hk : 1 ≤ k)
     (hcube : k ^ 3 = N / (r : ℝ)) :
     k + Real.sqrt (N / ((r : ℝ) * k)) = 2 * k := by
@@ -95,6 +127,8 @@ theorem rToOne_cubeRoot {N k : ℝ} {r : ℕ} (hr : 0 < r) (hk : 1 ≤ k)
   rw [hNk, Real.sqrt_sq_eq_abs, abs_of_nonneg (by linarith)]
   ring
 
+/-- At `k³ = N / r` with `r ≥ 2`, the proposed collision budget is at most `(groverCoefficient l
+* sqrt 2 + 2) * k`. -/
 theorem rToOne_real_cube_budget (l : ℝ) (hl : 1 < l) (hl4 : l < 4 / 3)
     {N k : ℝ} {r : ℕ} (hr : 2 ≤ r) (hk : 1 ≤ k) (hcube : k ^ 3 = N / (r : ℝ)) :
     proposedCollisionBudget (groverCoefficient l) N (((r : ℝ) - 1) * k) k

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.NearoptimalSignWindow
+
+/-!
+# Sign and rectangle construction guarantees
+
+This module packages the real and rational sign and rectangle constructions into
+`SignConstructionClaim` and `RectangleConstructionClaim`. The sign guarantee includes normalized
+coefficient rounding, while the rectangle guarantee includes evenness and an explicit degree
+bound. Background and related constructions are discussed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `signConstruction`: proves the sign construction package associated with Lemma 25.
+* `rectangleConstruction`: proves the rectangle construction package associated with Lemma 29.
+
+## References
+
+* [Gilyén et al., Lemmas 25 and 29][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +37,8 @@ open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 open Qatlib
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
+/-- Packages the real and rational sign approximations with constant 12000, the bounds after
+dyadic rounding and normalization, and the zero-polynomial case for gaps larger than two. -/
 def SignConstructionClaim : Prop :=
   (∀ (δ ε : ℝ), 0<δ → δ≤2 → 0<ε → ε<1/2 →
     NearOptimalSignApproximation 12000 δ ε (nearOptimalPolynomial δ ε)) ∧
@@ -35,9 +56,13 @@ def SignConstructionClaim : Prop :=
   (∀ (δ ε : ℝ), 2<δ → 0<ε → ε<1/2 →
     NearOptimalSignApproximation 12000 δ ε (0 : Polynomial ℝ))
 
+/-- Proves the real, rational, rounded, and large-gap sign construction guarantees collected in
+`SignConstructionClaim` [Gilyén et al., Lemma 25][GilyenSuLowWiebe2019]. -/
 theorem signConstruction : SignConstructionClaim :=
   ⟨@nearOptimalPolynomial_spec,@nativeSignCoefficients_spec,@nativeRoundedSign_bounds,@sign_vacuous⟩
 
+/-- Packages the printed rectangle bands, evenness, and degree bounds with constant 36000 for
+both the real and rational constructions at thresholds at most one. -/
 def RectangleConstructionClaim : Prop :=
   (∀ (δ ε t : ℝ), 0<δ → δ≤2 → 0<ε → ε<1/2 → t≤1 →
     PrintedRectangleBand (nearOptimalRectangle δ ε t) ε δ t ∧
@@ -50,6 +75,8 @@ def RectangleConstructionClaim : Prop :=
     ((realTarget (nativeRectangleCoefficients δ ε t hε hε2)).natDegree:ℝ)≤
       36000*(1+(1/(δ:ℝ))*Real.log (1/(ε:ℝ))))
 
+/-- Proves the real and rational rectangle construction guarantees collected in
+`RectangleConstructionClaim` [Gilyén et al., Lemma 29][GilyenSuLowWiebe2019]. -/
 theorem rectangleConstruction : RectangleConstructionClaim := by
   constructor
   · intro δ ε t hδ hδ2 hε hε2 ht

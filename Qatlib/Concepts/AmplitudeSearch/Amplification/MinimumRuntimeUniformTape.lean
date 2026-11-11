@@ -15,6 +15,38 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
 import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
 import Mathlib.Data.List.GetD
 import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeNativeAttempt
+
+/-!
+# Native tape uniform sampling
+
+This module verifies `UniformTape.program`, a fixed-alphabet tape program that samples uniformly
+below a positive bound `m ≤ 2^b` by rejection sampling. The scan and restart lemmas connect
+concrete tape runs to the unit-weight `weightedSampler`, giving exact capped probabilities, zero
+nontermination mass on valid inputs, and a uniform output law for `nativeTerminalLaw`.
+
+The resource statements track native CPU steps and consumed fair bits separately, compute their
+terminal expectations, and bound all visited and initially occupied cells by `b+2`. The example
+with `b = 2` and `m = 3` shows that finite expected CPU cost can coexist with unbounded CPU
+costs in the terminal support. The surrounding minimum-finding context is described in
+[DurrHoyer1996].
+
+## Main statements
+
+- `nativeLaw_cycle_all` identifies CPU budgets at cycle boundaries with the capped sampler law.
+* `nativeTerminalLaw_output_uniform` gives the uniform law on the integers below `m` for valid
+  inputs.
+* `nativeTerminalLaw_cpu_mean` and `nativeTerminalLaw_reads_mean` compute the exact expected CPU
+  steps and fair-bit reads.
+* `nativeTerminalLaw_no_worst_cpu_bound` exhibits a valid input with unbounded supported CPU
+  costs.
+* `run_workspace_cells_le`, `peakWorkspaceCells_le`, and `nativeTerminalLaw_workspace` give the
+  `b+2` workspace bound.
+
+## References
+
+- [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
@@ -53,32 +85,45 @@ open NativeTape
 open scoped ENNReal
 set_option warningAsError false
 
+/-- In a read state, `program` uses the corresponding comparison command `readCommand` for the
+current symbol. -/
 theorem read_rule (c : Fin 3) (a : Symbol) : program (readState c) a = readCommand c a := by
   fin_cases c <;> rfl
 
+/-- In a move state, `program` deterministically moves one cell to the right and returns to the
+corresponding read state. -/
 theorem move_rule (c : Fin 3) (a : Symbol) :
     program (moveState c) a = .det (readState c) (.move .right) := by
   fin_cases c <;> rfl
 
+/-- The head of a tape whose right list begins with `a` contains `a`. -/
 theorem head_cons (L : List Symbol) (a : Symbol) (R : List Symbol) :
     (Turing.Tape.mk₂ L (a::R)).head = a := by
   simp [Turing.Tape.mk₂, Turing.Tape.mk', Turing.ListBlank.head_mk]
 
+/-- The head of a tape with an empty right list is blank. -/
 theorem head_nil (L : List Symbol) : (Turing.Tape.mk₂ L []).head = none := by
   rfl
 
+/-- Writing `b` at the head replaces the first symbol of the right list and preserves the
+remaining tape lists. -/
 theorem tape_write (L : List Symbol) (a b : Symbol) (R : List Symbol) :
     (Turing.Tape.mk₂ L (a::R)).write b = Turing.Tape.mk₂ L (b::R) := by
   simp [Turing.Tape.mk₂, Turing.Tape.mk', Turing.Tape.write]
 
+/-- Moving right transfers the current head symbol to the front of the left list. -/
 theorem tape_right (L : List Symbol) (a : Symbol) (R : List Symbol) :
     (Turing.Tape.mk₂ L (a::R)).move .right = Turing.Tape.mk₂ (a::L) R := by
   simp [Turing.Tape.mk₂, Turing.Tape.move_right_mk', Turing.ListBlank.cons_mk]
 
+/-- Moving left transfers the first symbol of the left list to the front of the right list. -/
 theorem tape_left (L : List Symbol) (a : Symbol) (R : List Symbol) :
     (Turing.Tape.mk₂ (a::L) R).move .left = Turing.Tape.mk₂ L (a::R) := by
   simp [Turing.Tape.mk₂, Turing.Tape.move_left_mk', Turing.ListBlank.cons_mk]
 
+/-- Scanning a register with an equally long random word takes exactly two steps per cell,
+replaces each first field by its random bit, and accumulates the comparison state. The run
+consumes exactly that word and leaves the suffix `raw` unread. -/
 theorem scan (ys : List (Bool × Bool)) (ω raw : List Bool) (c : Fin 3) (L : List Symbol)
     (hlen : ω.length = ys.length) :
     let out := List.zipWith (fun b p => (b,p.2)) ω ys
@@ -111,6 +156,9 @@ theorem scan (ys : List (Bool × Bool)) (ω raw : List Bool) (c : Fin 3) (L : Li
       simpa [Result.prepend, Result.bits, Result.steps, List.zipWith_cons_cons,
         List.reverse_cons, List.map_append, List.append_assoc, Nat.add_comm] using! hi
 
+/-- Starting in control state `6`, rewinding past `xs` and the marker returns to read state `0`
+in `xs.length+2` steps, with data word `xs.reverse ++ ys`. The run consumes no random bits
+and preserves the entire unread input. -/
 theorem rewind (xs ys : List (Bool × Bool)) (raw : List Bool) :
     let r := Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program (xs.length+2) raw
       ⟨6, Turing.Tape.mk₂ (xs.map data ++ [marker]) (ys.map data)⟩
@@ -135,11 +183,13 @@ theorem rewind (xs ys : List (Bool × Bool)) (raw : List Bool) :
     simpa [tape_left, Result.prepend, Result.bits, Result.steps, List.reverse_cons, List.map_append,
       List.append_assoc, Nat.add_comm] using! hi
 
+/-- The width-`b` encoding of any natural number contains exactly `b` bits. -/
 theorem encode_length (b v : ℕ) : (encode b v).length = b := by
   induction b generalizing v with
   | zero => rfl
   | succ b ih => simp [encode, ih]
 
+/-- For `v < 2^b`, decoding the width-`b` encoding of `v` recovers `v`. -/
 theorem encode_value (b v : ℕ) (hv : v < 2^b) : binaryValue (encode b v) = v := by
   induction b generalizing v with
   | zero =>
@@ -155,6 +205,8 @@ theorem encode_value (b v : ℕ) (hv : v < 2^b) : binaryValue (encode b v) = v :
       omega
     · simp [h, Nat.mod_eq_of_lt (by omega : v < 2^b)]
 
+/-- Testing whether the comparison fold ends in state `2` gives the same Boolean result as
+lexicographic comparison after swapping the two fields of each pair. -/
 theorem compareFold_greater (xs : List (Bool × Bool)) :
     (xs.foldl compareUpdate 0 == 2) = lexLess (xs.map Prod.swap) := by
   induction xs with
@@ -163,6 +215,8 @@ theorem compareFold_greater (xs : List (Bool × Bool)) :
     rcases ab with ⟨a,b⟩
     cases a <;> cases b <;> simp [List.foldl_cons, compareUpdate, lexLess, compareFold_stable, ih]
 
+/-- The comparison fold avoids state `2` exactly when the binary value of the first fields is at
+most that of the second fields. -/
 theorem compareFold_le (xs : List (Bool × Bool)) :
     xs.foldl compareUpdate 0 ≠ 2 ↔ binaryValue (xs.map Prod.fst) ≤ binaryValue (xs.map Prod.snd) := by
   have h := compareFold_greater xs
@@ -173,6 +227,8 @@ theorem compareFold_le (xs : List (Bool × Bool)) :
   simpa using!
       (not_congr ((show xs.foldl compareUpdate 0 = 2 ↔ lexLess (xs.map Prod.swap) = true by simpa using! congrArg (fun b => b = true) h).trans hl))
 
+/-- Appending one bit doubles the binary value and adds one precisely when the appended bit is
+true. -/
 theorem binaryValue_concat (xs : List Bool) (b : Bool) :
     binaryValue (xs ++ [b]) = 2*binaryValue xs + (if b then 1 else 0) := by
   induction xs with
@@ -180,6 +236,8 @@ theorem binaryValue_concat (xs : List Bool) (b : Bool) :
   | cons a xs ih =>
     cases a <;> simp [binaryValue, ih, Nat.pow_succ, Nat.mul_add, Nat.mul_comm, Nat.add_assoc]
 
+/-- The binary value of a register's list of bits equals the natural-number value given by
+`bitVecEquiv`. -/
 theorem binaryValue_reg (b : ℕ) (ω : Reg b) : binaryValue (List.ofFn ω) = (bitVecEquiv b ω).val := by
   induction b with
   | zero => rfl
@@ -190,6 +248,8 @@ theorem binaryValue_reg (b : ℕ) (ω : Reg b) : binaryValue (List.ofFn ω) = (b
     rw [h]
     cases hb : ω (Fin.last b) <;> simp [boolEquivFin2, Nat.add_comm]
 
+/-- Reading as many digits to the left as there are data cells recovers their first fields in
+left-list order, independently of the remaining tape lists. -/
 theorem leftDigits_word (xs : List (Bool × Bool)) (L R : List Symbol) :
     leftDigits xs.length (Turing.Tape.mk₂ (xs.map data ++ L) R) = xs.map Prod.fst := by
   induction xs generalizing R with
@@ -200,6 +260,8 @@ theorem leftDigits_word (xs : List (Bool × Bool)) (L R : List Symbol) :
     rw [tape_left, head_cons, ih (data p :: R)]
     rfl
 
+/-- Overwriting with an equally long word replaces the first fields by that word and preserves
+all second fields. -/
 theorem overwrite_fields (ys : List (Bool × Bool)) (ω : List Bool) (h : ω.length = ys.length) :
     let out := List.zipWith (fun b p => (b,p.2)) ω ys
     out.map Prod.fst = ω ∧ out.map Prod.snd = ys.map Prod.snd := by
@@ -209,6 +271,8 @@ theorem overwrite_fields (ys : List (Bool × Bool)) (ω : List Bool) (h : ω.len
     | nil => simp at h
     | cons b ω => simpa using! ih ω (by simpa using! h)
 
+/-- A valid width-`b` trial returns its sampled register value exactly when that value is below
+`bound`. Its observation records exactly `2*b` CPU steps and `b` random-bit reads. -/
 theorem trial_observation (b bound : ℕ) (hp : 0 < bound) (hb : bound ≤ 2^b) (ω : Reg b) :
     trialObservation b (trial b bound ω) =
       (if (bitVecEquiv b ω).val < bound then some (bitVecEquiv b ω).val else none, 2*b, b) := by
@@ -254,6 +318,9 @@ theorem trial_observation (b bound : ℕ) (hp : 0 < bound) (hb : bound ≤ 2^b) 
   simp only [trialObservation, hout, hbits, hsteps, hh]
   simp [ys, encode_length, w]
 
+/-- For a valid bound, a trial is the image of the uniform law on `Fin (2^b)`, accepting
+precisely the values below the bound. Every outcome records `2*b` CPU steps and `b`
+random-bit reads. -/
 theorem trial_law_uniform (b bound : ℕ) (hp : 0 < bound) (hb : bound ≤ 2^b) :
     trialLaw b bound = (PMF.uniformOfFintype' (Fin (2^b))).map
       (fun v => (if v.val < bound then some v.val else none, 2*b, b)) := by
@@ -266,6 +333,9 @@ theorem trial_law_uniform (b bound : ℕ) (hp : 0 < bound) (hb : bound ≤ 2^b) 
   exact (bitVecEquiv b).sum_comp (fun v : Fin (2^b) =>
     if z = (if v.val < bound then some v.val else none, 2*b, b) then ((2^b : ℕ) : ℝ≥0∞)⁻¹ else 0)
 
+/-- From rejection state `2` at the right blank, the machine returns to read state `0` in
+`xs.length+2` steps, restoring `xs.reverse` to the right of the marker. It consumes no
+random bits and preserves `raw`. -/
 theorem restart (xs : List (Bool × Bool)) (raw : List Bool) :
     let r := Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program (xs.length+2) raw
       ⟨readState 2, Turing.Tape.mk₂ (xs.map data ++ [marker]) []⟩
@@ -276,6 +346,8 @@ theorem restart (xs : List (Bool × Bool)) (raw : List Bool) :
   simpa [Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run, program, readState, head_nil, readCommand, marker,
     Result.prepend, Result.bits, Result.steps] using! h
 
+/-- A run from control state `7` exhausts exactly its allotted fuel while consuming no random
+bits and leaving `raw` unread. -/
 theorem invalid_run (n : ℕ) (raw : List Bool) (T : Turing.Tape Symbol) :
     let r := Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw ⟨7,T⟩
     r.stop = .fuel ∧ r.steps = n ∧ r.bits = [] ∧ r.unread = raw := by
@@ -283,6 +355,8 @@ theorem invalid_run (n : ℕ) (raw : List Bool) (T : Turing.Tape Symbol) :
   | zero => simp [Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run, program, Result.steps, Result.bits]
   | succ n ih => simpa [Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run, program, Result.prepend, Result.steps, Result.bits, advance, TM0StmtApply] using! ih (T.write T.head)
 
+/-- For a valid bound and `v < bound`, the accepting trial outcome `(some v, 2*b, b)` has mass
+`(2^b)⁻¹`. -/
 theorem trial_law_accept (b bound v : ℕ) (hp : 0 < bound) (hb : bound ≤ 2^b) (hv : v < bound) :
     trialLaw b bound (some v, 2*b, b) = (2^b : ℝ≥0∞)⁻¹ := by
   classical
@@ -293,12 +367,16 @@ theorem trial_law_accept (b bound v : ℕ) (hp : 0 < bound) (hb : bound ≤ 2^b)
     by_cases ha : a.val < bound <;> simp [ha, Fin.ext_iff] <;> omega
   simp [he, PMF.uniformOfFintype'_apply]
 
+/-- A loaded register of positive length does not start with a halting program command. -/
 theorem loaded_not_halt (ys : List (Bool × Bool)) (hp : 0 < ys.length) :
     program (loaded ys).q (loaded ys).Tape.head ≠ .halt := by
   cases ys with
   | nil => simp at hp
   | cons p ys => simp [loaded, read_rule, head_cons, readCommand, cell]
 
+/-- A word whose value exceeds the stored threshold completes one rejection cycle in `cycleSteps
+ys.length` steps. The run ends fuel-exhausted in the overwritten loaded configuration,
+having consumed exactly that word and preserved `raw`. -/
 theorem rejected_cycle (ys : List (Bool × Bool)) (ω raw : List Bool)
     (hp : 0 < ys.length) (hlen : ω.length = ys.length)
     (hbad : binaryValue (ys.map Prod.snd) < binaryValue ω) :
@@ -344,9 +422,14 @@ theorem rejected_cycle (ys : List (Bool × Bool)) (ω raw : List Bool)
   (try dsimp only at he)
   rw [hu,hc,hcmp,hbits,hs,hrc,hrf,hru,hrb,hrs] at he
   simpa only [List.append_nil,cycleSteps,show 2*ys.length+(ys.length+2) = 3*ys.length+2 by omega] using! he
+/-- The configuration at the end of a scan, with the folded comparison state and the reversed
+data cells to the left of the blank head. -/
 def endConfig (out : List (Bool × Bool)) : Turing.TM0.Cfg Symbol Control :=
   ⟨readState (out.foldl compareUpdate 0), Turing.Tape.mk₂ (out.reverse.map data ++ [marker]) []⟩
 
+/-- A word at most the stored threshold halts after exactly two steps per cell, even when
+additional fuel is supplied. The final configuration is `endConfig` of the overwritten
+register, and only the accepted word is consumed. -/
 theorem accepted_scan (ys : List (Bool × Bool)) (ω raw : List Bool) (extra : ℕ)
     (hlen : ω.length = ys.length) (hgood : binaryValue ω ≤ binaryValue (ys.map Prod.snd)) :
     (Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program (2*ys.length+extra) (ω++raw) (loaded ys)).observe =
@@ -369,6 +452,8 @@ theorem accepted_scan (ys : List (Bool × Bool)) (ω raw : List Bool) (extra : �
   rw [run_halted_add _ _ _ _ _ hh]
   simp only [Result.observe,hc,hh,hu,hbits,hs]
 
+/-- Overwriting is equivalent to pairing the new word with the old register's second fields
+using `List.zip`. -/
 theorem overwrite_zip (ω : List Bool) (ys : List (Bool × Bool)) :
     overwrite ω ys = ω.zip (ys.map Prod.snd) := by
   induction ω generalizing ys with
@@ -376,9 +461,12 @@ theorem overwrite_zip (ω : List Bool) (ys : List (Bool × Bool)) :
   | cons b ω ih => cases ys with
     | nil => rfl
     | cons p ys => simpa [overwrite] using! congrArg (List.cons (b,p.2)) (ih ys)
+/-- Apply `overwrite` successively to each word in `words`, starting from the register `ys`. -/
 def afterWords (ys : List (Bool × Bool)) (words : List (List Bool)) : List (Bool × Bool) :=
   words.foldl (fun xs w => overwrite w xs) ys
 
+/-- Successively overwriting with words of the original register length preserves the complete
+list of threshold bits. -/
 theorem afterWords_threshold (ys : List (Bool × Bool)) (words : List (List Bool))
     (hlen : ∀ w ∈ words, w.length = ys.length) :
     (afterWords ys words).map Prod.snd = ys.map Prod.snd := by
@@ -393,6 +481,9 @@ theorem afterWords_threshold (ys : List (Bool × Bool)) (words : List (List Bool
     change (afterWords (overwrite w ys) ws).map Prod.snd = _
     rw [ih (overwrite w ys) (fun v hv => by rw [hol]; exact hlen v (by simp [hv])),hs]
 
+/-- A sequence of fixed-width words exceeding the threshold consumes exactly one full rejection
+cycle per word and ends fuel-exhausted in `loaded (afterWords ys words)`. It consumes their
+concatenation and leaves `raw` unread. -/
 theorem all_rejected (ys : List (Bool × Bool)) (words : List (List Bool)) (raw : List Bool)
     (hp : 0 < ys.length) (hlen : ∀ w ∈ words, w.length = ys.length)
     (hbad : ∀ w ∈ words, binaryValue (ys.map Prod.snd) < binaryValue w) :
@@ -425,6 +516,9 @@ theorem all_rejected (ys : List (Bool × Bool)) (words : List (List Bool)) (raw 
     simpa only [List.flatten_cons,List.append_assoc,List.length_cons,afterWords,List.foldl_cons,
       show cycleSteps ys.length*(ws.length+1) = cycleSteps ys.length + cycleSteps ys.length*ws.length by ring] using! he
 
+/-- After a prefix of rejected words, the first word at most the threshold halts after one full
+cycle per rejection and two steps per accepted bit. The final configuration depends on the
+accepted word and original threshold, and any suffix `raw` remains unread. -/
 theorem first_accept (ys : List (Bool × Bool)) (bad : List (List Bool)) (good raw : List Bool) (extra : ℕ)
     (hp : 0 < ys.length) (hlen : ∀ w ∈ bad, w.length = ys.length)
     (hbad : ∀ w ∈ bad, binaryValue (ys.map Prod.snd) < binaryValue w)
@@ -450,6 +544,8 @@ theorem first_accept (ys : List (Bool × Bool)) (bad : List (List Bool)) (good r
   rw [hu,hc,hb,hs,hca,hha,hua,hba,hsa] at he
   simpa only [List.append_assoc,Nat.add_assoc] using! he
 
+/-- Reading the output from an end-of-scan configuration gives the binary value of its data
+cells' first fields. -/
 theorem endConfig_output (xs : List (Bool × Bool)) :
     Qatlib.Concepts.AmplitudeSearch.Amplification.UniformTape.output xs.length (endConfig xs).Tape = binaryValue (xs.map Prod.fst) := by
   have hl := leftDigits_word xs.reverse [marker] []
@@ -458,6 +554,7 @@ theorem endConfig_output (xs : List (Bool × Bool)) :
   rw [hl]
   simp only [List.map_reverse,List.reverse_reverse]
 
+/-- The concatenation of words all of length `b` has length `b` times the number of words. -/
 theorem uniform_words_length (b : ℕ) (words : List (List Bool))
     (hlen : ∀ w ∈ words, w.length = b) : words.flatten.length = b*words.length := by
   induction words with
@@ -466,6 +563,9 @@ theorem uniform_words_length (b : ℕ) (words : List (List Bool))
     rw [List.flatten_cons,List.length_append,hlen w (by simp),ih (fun v hv => hlen v (by simp [hv]))]
     simp [Nat.mul_succ,Nat.add_comm]
 
+/-- The first accepted word determines the returned binary value, while each preceding rejection
+contributes a full cycle to CPU time. The number of random-bit reads is the register width
+times the number of attempted words. -/
 theorem first_accept_observation (ys : List (Bool × Bool)) (bad : List (List Bool))
     (good raw : List Bool) (extra : ℕ) (hp : 0 < ys.length)
     (hlen : ∀ w ∈ bad, w.length = ys.length)
@@ -489,10 +589,15 @@ theorem first_accept_observation (ys : List (Bool × Bool)) (bad : List (List Bo
     uniform_words_length ys.length bad hlen,hgoodLen]
   simp [Nat.mul_succ,Nat.add_comm]
 
+/-- For a positive representable bound, the input configuration is the loaded register with zero
+first fields and the encoding of `bound-1` as its threshold fields. -/
 theorem input_loaded (b bound : ℕ) (hp : 0 < bound) (hb : bound ≤ 2^b) :
     input b bound = loaded ((encode b (bound-1)).map (fun t => (false,t))) := by
   simp [input,loaded,start,hp,hb,Function.comp_def,readState]
 
+/-- For positive width and a valid bound, a rejected prefix followed by an accepted word
+produces its binary value with the stated exact CPU and random-bit counts. The run consumes
+exactly those words and leaves the suffix `raw` unread. -/
 theorem first_accept_input (b bound : ℕ) (bad : List (List Bool)) (good raw : List Bool) (extra : ℕ)
     (hbpos : 0 < b) (hp : 0 < bound) (hb : bound ≤ 2^b)
     (hlen : ∀ w ∈ bad, w.length = b) (hbad : ∀ w ∈ bad, bound ≤ binaryValue w)
@@ -524,6 +629,8 @@ theorem first_accept_input (b bound : ℕ) (bad : List (List Bool)) (good raw : 
   obtain ⟨_,_,hu,hr,_⟩ := (Result.observe_eq_iff _ _ _ _ _ _).mp hs
   exact ⟨ho,hu,hr⟩
 
+/-- The exact first halting time is one full cycle per rejected word plus two steps per accepted
+bit. Every smaller CPU budget ends with fuel exhaustion. -/
 theorem first_accept_time (ys : List (Bool × Bool)) (bad : List (List Bool)) (good raw : List Bool)
     (hp : 0 < ys.length) (hlen : ∀ w ∈ bad, w.length = ys.length)
     (hbad : ∀ w ∈ bad, binaryValue (ys.map Prod.snd) < binaryValue w)
@@ -536,19 +643,26 @@ theorem first_accept_time (ys : List (Bool × Bool)) (bad : List (List Bool)) (g
   obtain ⟨_,hh,_,_,hs⟩ := (Result.observe_eq_iff _ _ _ _ _ _).mp hr
   exact ⟨hh, fun n hn => fuel_before _ _ n _ _ hs hn⟩
 
+/-- For unit weights, the cumulative weight before an index is its natural-number value. -/
 theorem unit_prefix {m : ℕ} (j : Fin m) : weightPrefix (fun _ : Fin m => 1) j = j.val := by
   simp only [weightPrefix,Finset.sum_const,smul_eq_mul,mul_one]
   rw [Fin.card_filter_val_lt,Nat.min_eq_right (Nat.le_of_lt j.isLt)]
 
+/-- The unit-weight decoder returns an index `j` exactly when the decoded natural number equals
+`j.val`. -/
 theorem unit_decode_some {m : ℕ} (u : ℕ) (j : Fin m) :
     (weightDecodeCounted (fun _ : Fin m => 1) u).1 = some j ↔ u = j.val := by
   rw [weightDecodeCounted_some_iff,unit_prefix]
   omega
 
+/-- The unit-weight decoder rejects a natural number exactly when it is at least `m`. -/
 theorem unit_decode_none (m u : ℕ) :
     (weightDecodeCounted (fun _ : Fin m => 1) u).1 = none ↔ m ≤ u := by
   rw [weightDecodeCounted_none_iff]
   simp [weightTotal]
+/-- Relates a counted sampler record to fixed-width rejected words followed, on success, by one
+word encoding its returned index. Pending records consist of exactly `cap` rejected words,
+while a successful record counts its rejected prefix and final word within the cap. -/
 def describesWords (m b cap : ℕ) (z : SamplerRecord m) (raw : List Bool) : Prop :=
   ∃ bad : List (List Bool),
     (∀ w ∈ bad, w.length = b) ∧ (∀ w ∈ bad, m ≤ binaryValue w) ∧
@@ -557,10 +671,14 @@ def describesWords (m b cap : ℕ) (z : SamplerRecord m) (raw : List Bool) : Pro
         raw = bad.flatten++good ∧ z.2 = bad.length+1 ∧ z.2 ≤ cap
     | .inr _ => raw = bad.flatten ∧ bad.length = cap ∧ z.2 = cap
 
+/-- A counted loop started from an already returned output immediately returns that output with
+zero additional trials, for every cap. -/
 theorem countedLoop_halted {m : ℕ} (b cap : ℕ) (out : Fin m × ℕ × ℕ) :
     countedLoop (fun _ : Fin m => 1) b cap (.inl out) = .ret (.inl out,0) := by
   cases cap <;> rfl
 
+/-- Every path of a unit-weight counted loop started from a pending state satisfies
+`describesWords`, including its word lengths, rejected values, and trial count. -/
 theorem countedLoop_words (m b cap : ℕ) (BD : ℕ × ℕ) (z : SamplerRecord m) (raw : List Bool)
     (hz : (z,raw) ∈ (countedLoop (fun _ : Fin m => 1) b cap (.inr BD)).paths) :
     describesWords m b cap z raw := by
@@ -620,12 +738,17 @@ theorem countedLoop_words (m b cap : ℕ) (BD : ℕ × ℕ) (z : SamplerRecord m
       refine ⟨[],by simp,by simp,List.ofFn ω,by simp,?_,by simp,by simp,by omega⟩
       simpa only [binaryValue_reg] using! hj
 
+/-- Subtracting the final `b+2` rewind steps from `k+1` full cycles leaves `k` full rejection
+cycles followed by a `2*b`-step accepted scan. -/
 theorem cycleSteps_rebate (b k : ℕ) :
     cycleSteps b*(k+1)-(b+2) = cycleSteps b*k+2*b := by
   rw [Nat.mul_succ]
   unfold cycleSteps
   omega
 
+/-- For positive width and a valid bound, words satisfying `describesWords` reproduce their
+counted observation in a native run with the corresponding capped cycle budget. The run
+consumes all supplied bits and halts precisely for a returned record. -/
 theorem describesWords_native (m b cap : ℕ) (z : SamplerRecord m) (raw : List Bool)
     (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) (h : describesWords m b cap z raw) :
     let r :=
@@ -680,6 +803,9 @@ theorem describesWords_native (m b cap : ℕ) (z : SamplerRecord m) (raw : List 
     refine ⟨?_,hu,hw,hf⟩
     simp [trialObservation,hf,hw,hs,countedObservation,ht,hread]
 
+/-- Each path word of the valid positive-width unit-weight sampler realizes its counted
+observation in the native tape program. All supplied bits are consumed, and the native stop
+status is halted for returned records and fuel-exhausted for pending records. -/
 theorem weightedSampler_native_word (b m cap : ℕ) (z : SamplerRecord m × List Bool)
     (hz : z ∈ (weightedSampler (fun _ : Fin m => 1) b cap).paths)
     (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
@@ -691,6 +817,8 @@ theorem weightedSampler_native_word (b m cap : ℕ) (z : SamplerRecord m × List
   exact describesWords_native m b cap z.1 z.2 hbpos hm hb
     (countedLoop_words m b cap (0,0) z.1 z.2 hz)
 
+/-- For positive width and a valid bound, running the unit-weight sampler's path law for a
+capped number of cycles gives the full native execution law at that CPU budget. -/
 theorem native_fullLaw_cycle (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     let p := weightedSampler (fun _ : Fin m => 1) b cap
     p.pathLaw.map (fun i => Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program (cycleSteps b*cap) (p.paths.get i).2 (input b m)) =
@@ -702,12 +830,16 @@ theorem native_fullLaw_cycle (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : 
   rw [hh.2.2.2]
   cases z.1.1 <;> simp
 
+/-- For positive width and a valid bound, the native observation law at a whole-cycle CPU budget
+equals `nativeCapLaw` with the corresponding cap. -/
 theorem nativeLaw_cycle (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     nativeLaw b m (cycleSteps b*cap) = nativeCapLaw b m cap := by
   unfold nativeLaw nativeCapLaw
   rw [← native_fullLaw_cycle b m cap hbpos hm hb,PMF.map_comp]
   rfl
 
+/-- For positive width and a valid bound, the capped native law is the image of the unit-weight
+sampler law under `countedObservation`. -/
 theorem nativeCapLaw_counted (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     nativeCapLaw b m cap = (weightedSampler (fun _ : Fin m => 1) b cap).law.map
       (fun z => countedObservation b z.1) := by
@@ -724,16 +856,22 @@ theorem nativeCapLaw_counted (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : 
         (fun z => countedObservation b z.1) := by rw [PMF.map_comp]; rfl
     _ = _ := by rw [CoinCode.pathLaw_map]
 
+/-- A counted observation has no returned value exactly when its sampler configuration has a
+rejected or pending outcome. -/
 theorem countedObservation_none {m : ℕ} (b : ℕ) (z : SamplerRecord m) :
     (countedObservation b z).1 = none ↔ rejectionOutcome z.1 = .inr () := by
   rcases z with ⟨cfg,t⟩
   cases cfg <;> simp [countedObservation,rejectionOutcome]
 
+/-- A counted observation returns `j.val` exactly when its sampler configuration has returned
+the index `j`. -/
 theorem countedObservation_some {m : ℕ} (b : ℕ) (z : SamplerRecord m) (j : Fin m) :
     (countedObservation b z).1 = some j.val ↔ rejectionOutcome z.1 = .inl j := by
   rcases z with ⟨cfg,t⟩
   cases cfg <;> simp [countedObservation,rejectionOutcome,Fin.ext_iff]
 
+/-- For positive width and a valid bound, the probability of no return after `cap` cycles is the
+single-trial rejection mass raised to `cap`. -/
 theorem nativeCapLaw_timeout (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeCapLaw b m cap) (fun z => z.1 = none) =
       rationalRejectMass (fun _ : Fin m => 1) b ^ cap := by
@@ -741,6 +879,8 @@ theorem nativeCapLaw_timeout (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : 
   simpa only [countedObservation_none] using! weightedSampler_timeout (fun _ : Fin m => 1) b cap
     (by simpa [weightTotal] using! hb)
 
+/-- For positive width and a valid bound, each index below `m` has capped return probability
+`1/m` times one minus the timeout probability. -/
 theorem nativeCapLaw_return (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) (j : Fin m) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeCapLaw b m cap) (fun z => z.1 = some j.val) =
       (1 : ℝ≥0∞)/m * (1-rationalRejectMass (fun _ : Fin m => 1) b ^ cap) := by
@@ -749,6 +889,8 @@ theorem nativeCapLaw_return (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m
   simpa [weightTotal] using! weightedSampler_return (fun _ : Fin m => 1) b cap
     (by simpa [weightTotal] using! hm) (by simpa [weightTotal] using! hb) j
 
+/-- For a valid bound, the expected number of trials used by the capped unit-weight sampler is
+the finite geometric sum of rejection probabilities over `Finset.range cap`. -/
 theorem source_trials_mean (b m cap : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (weightedSampler (fun _ : Fin m => 1) b cap).law
       (fun z => (z.1.2 : ℝ≥0∞)) =
@@ -757,6 +899,8 @@ theorem source_trials_mean (b m cap : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
   exact (rational_finite_three_resource_expectations m (fun _ : Fin m => 1) b cap
     (by simpa [weightTotal] using! hm) (by simpa [weightTotal] using! hb)).1
 
+/-- The CPU count in any counted observation is at most the full cycle cost times its recorded
+trial count. -/
 theorem countedObservation_time_le {m : ℕ} (b : ℕ) (z : SamplerRecord m) :
     (countedObservation b z).2.1 ≤ cycleSteps b*z.2 := by
   rcases z with ⟨cfg,t⟩
@@ -764,6 +908,8 @@ theorem countedObservation_time_le {m : ℕ} (b : ℕ) (z : SamplerRecord m) :
   | inl out => exact Nat.sub_le _ _
   | inr state => exact le_rfl
 
+/-- For positive width and a valid bound, expected capped native CPU steps are at most the cycle
+cost times the finite geometric sum of rejection probabilities. -/
 theorem nativeCapLaw_time_le (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.1 : ℝ≥0∞)) ≤
       (cycleSteps b : ℝ≥0∞) * ∑ k ∈ Finset.range cap, rationalRejectMass (fun _ : Fin m => 1) b ^ k := by
@@ -778,11 +924,14 @@ theorem nativeCapLaw_time_le (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : 
       exact_mod_cast countedObservation_time_le b z.1
     _ = _ := by rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_const_mul,source_trials_mean b m cap hm hb]
 
+/-- A counted observation records exactly `b` random-bit reads per recorded trial. -/
 theorem countedObservation_reads {m : ℕ} (b : ℕ) (z : SamplerRecord m) :
     (countedObservation b z).2.2 = b*z.2 := by
   rcases z with ⟨cfg,t⟩
   cases cfg <;> rfl
 
+/-- For positive width and a valid bound, expected capped random-bit reads equal `b` times the
+finite geometric sum of rejection probabilities. -/
 theorem nativeCapLaw_reads_mean (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.2 : ℝ≥0∞)) =
       (b : ℝ≥0∞) * ∑ k ∈ Finset.range cap, rationalRejectMass (fun _ : Fin m => 1) b ^ k := by
@@ -790,6 +939,8 @@ theorem nativeCapLaw_reads_mean (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb
   simp only [countedObservation_reads,Nat.cast_mul]
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_const_mul,source_trials_mean b m cap hm hb]
 
+/-- For positive width and a valid bound, every capped expected CPU cost is bounded by
+`cycleSteps b` divided by one minus the single-trial rejection mass. -/
 theorem nativeCapLaw_time_uniform_bound (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.1 : ℝ≥0∞)) ≤
       (cycleSteps b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b) := by
@@ -801,6 +952,8 @@ theorem nativeCapLaw_time_uniform_bound (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 
       mul_le_mul_right (ENNReal.sum_le_tsum (Finset.range cap)) _
     _ = _ := by rw [ENNReal.tsum_geometric,div_eq_mul_inv]
 
+/-- For positive width and a valid bound, the supremum of expected capped CPU costs over all
+caps is finite. -/
 theorem nativeCapLaw_time_sup_finite (b m : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     (⨆ cap, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.1 : ℝ≥0∞))) < ⊤ := by
   have hfin := (weightedSampler_expected_reads_limit (fun _ : Fin m => 1) b
@@ -812,6 +965,8 @@ theorem nativeCapLaw_time_sup_finite (b m : ℕ) (hbpos : 0 < b) (hm : 0 < m) (h
   exact lt_of_le_of_lt (iSup_le fun cap => nativeCapLaw_time_uniform_bound b m cap hbpos hm hb)
     (ENNReal.div_lt_top (ENNReal.natCast_ne_top _) hden)
 
+/-- For positive width and a valid bound, the capped probability of no returned value tends to
+zero as the cap tends to infinity. -/
 theorem nativeCapLaw_timeout_tendsto_zero (b m : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Filter.Tendsto (fun cap => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeCapLaw b m cap) (fun z => z.1 = none))
       Filter.atTop (nhds (0 : ℝ≥0∞)) := by
@@ -821,6 +976,8 @@ theorem nativeCapLaw_timeout_tendsto_zero (b m : ℕ) (hbpos : 0 < b) (hm : 0 < 
   simp_rw [nativeCapLaw_timeout b m _ hbpos hm hb]
   exact hh
 
+/-- With zero width and bound one, every capped native law returns zero immediately with zero
+CPU steps and zero random-bit reads. -/
 theorem nativeCapLaw_zero_width (cap : ℕ) : nativeCapLaw 0 1 cap = PMF.pure (some 0,0,0) := by
   have hr (raw : List Bool) :
       trialObservation 0 (Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program (cycleSteps 0*cap) raw (input 0 1)) = (some 0,0,0) := by
@@ -831,6 +988,8 @@ theorem nativeCapLaw_zero_width (cap : ℕ) : nativeCapLaw 0 1 cap = PMF.pure (s
   simp only [nativeCapLaw,hr]
   exact PMF.map_const _ _
 
+/-- An invalid bound gives a deterministic capped observation with no return, the full allotted
+cycle budget as CPU time, and zero random-bit reads. -/
 theorem nativeCapLaw_invalid (b m cap : ℕ) (hbad : ¬ (0 < m ∧ m ≤ 2^b)) :
     nativeCapLaw b m cap = PMF.pure (none,cycleSteps b*cap,0) := by
   have hr (raw : List Bool) :
@@ -842,6 +1001,8 @@ theorem nativeCapLaw_invalid (b m cap : ℕ) (hbad : ¬ (0 < m ∧ m ≤ 2^b)) :
   simp only [nativeCapLaw,hr]
   exact PMF.map_const _ _
 
+/-- With zero width and bound one, every CPU-budgeted native law returns zero immediately with
+no CPU steps or random-bit reads. -/
 theorem nativeLaw_zero_width (budget : ℕ) : nativeLaw 0 1 budget = PMF.pure (some 0,0,0) := by
   have he := run_halted_add program 0 budget [] (input 0 1) (by rfl)
   simp only [Nat.zero_add] at he
@@ -850,6 +1011,8 @@ theorem nativeLaw_zero_width (budget : ℕ) : nativeLaw 0 1 budget = PMF.pure (s
   rw [nativeLaw,law_eq_pure_of_run_nil program budget (input 0 1) hs,PMF.pure_map,he]
   rfl
 
+/-- For an invalid bound, every CPU-budgeted law deterministically records no return, the entire
+CPU budget, and zero random-bit reads. -/
 theorem nativeLaw_invalid (b m budget : ℕ) (hbad : ¬ (0 < m ∧ m ≤ 2^b)) :
     nativeLaw b m budget = PMF.pure (none,budget,0) := by
   have hi : input b m = ⟨7,(input b m).Tape⟩ := by simp [input,start,hbad]
@@ -860,6 +1023,8 @@ theorem nativeLaw_invalid (b m budget : ℕ) (hbad : ¬ (0 < m ∧ m ≤ 2^b)) :
   rw [nativeLaw,law_eq_pure_of_run_nil program budget (input b m) hs,PMF.pure_map]
   simp [trialObservation,hr.1,hr.2.1,hr.2.2.1]
 
+/-- At every whole-cycle CPU budget, the native observation law equals the corresponding capped
+law, including zero-width and invalid inputs. -/
 theorem nativeLaw_cycle_all (b m cap : ℕ) :
     nativeLaw b m (cycleSteps b*cap) = nativeCapLaw b m cap := by
   by_cases hv : 0 < m ∧ m ≤ 2^b
@@ -871,6 +1036,8 @@ theorem nativeLaw_cycle_all (b m cap : ℕ) :
     | succ b => exact nativeLaw_cycle (b+1) m cap (by omega) hv.1 hv.2
   · rw [nativeLaw_invalid b m _ hv,nativeCapLaw_invalid b m cap hv]
 
+/-- For every positive representable bound, including the zero-width case, the supremum of
+expected capped CPU costs is finite. -/
 theorem nativeCapLaw_time_sup_finite_all (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     (⨆ cap, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.1 : ℝ≥0∞))) < ⊤ := by
   cases b with
@@ -880,6 +1047,7 @@ theorem nativeCapLaw_time_sup_finite_all (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^
     simp [nativeCapLaw_zero_width]
   | succ b => exact nativeCapLaw_time_sup_finite (b+1) m (Nat.succ_pos _) hm hb
 
+/-- With bound zero, the supremum of expected capped CPU costs is infinite. -/
 theorem nativeCapLaw_zero_bound_time_sup (b : ℕ) :
     (⨆ cap, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b 0 cap) (fun z => (z.2.1 : ℝ≥0∞))) = ⊤ := by
   apply eq_top_iff.mpr
@@ -894,11 +1062,14 @@ theorem nativeCapLaw_zero_bound_time_sup (b : ℕ) :
       have hn : cap ≤ cycleSteps b*cap := by simpa using! Nat.mul_le_mul_right cap hc
       exact_mod_cast hn
 
+/-- With bound zero, the expected number of random-bit reads is zero for every width and cap. -/
 theorem nativeCapLaw_zero_bound_reads (b cap : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b 0 cap) (fun z => (z.2.2 : ℝ≥0∞)) = 0 := by
   rw [nativeCapLaw_invalid b 0 cap (by omega),Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
   simp
 
+/-- For a record described by its input words, adding a rebate of `b+2` steps on success to the
+observed CPU count gives the full cycle cost times its trial count. -/
 theorem countedObservation_clock_identity (m b cap : ℕ) (z : SamplerRecord m) (raw : List Bool)
     (h : describesWords m b cap z raw) :
     (countedObservation b z).2.1 + (if (countedObservation b z).1 = none then 0 else b+2) =
@@ -917,6 +1088,9 @@ theorem countedObservation_clock_identity (m b cap : ℕ) (z : SamplerRecord m) 
     simp only [Nat.mul_one] at hk
     exact le_trans hc hk
 
+/-- For positive width and a valid bound, expected capped CPU time plus the expected
+successful-run rebate equals the cycle cost times the finite geometric sum of rejection
+probabilities. -/
 theorem nativeCapLaw_clock_mean (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.1 : ℝ≥0∞)) +
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z =>
@@ -951,6 +1125,8 @@ theorem nativeCapLaw_clock_mean (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb
       rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_const_mul,htrial]
     _ = _ := by rw [source_trials_mean b m cap hm hb]
 
+/-- For positive width and a valid bound, the capped probability of returning any value is one
+minus the single-trial rejection mass raised to the cap. -/
 theorem nativeCapLaw_return_total (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeCapLaw b m cap) (fun z => z.1 ≠ none) =
       1-rationalRejectMass (fun _ : Fin m => 1) b ^ cap := by
@@ -973,6 +1149,8 @@ theorem nativeCapLaw_return_total (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (
   have hh := ENNReal.eq_sub_of_add_eq hn hsum
   rwa [nativeCapLaw_timeout b m cap hbpos hm hb] at hh
 
+/-- For positive width and a valid bound, the expected successful-run rebate is `b+2` times the
+probability of returning by the cap. -/
 theorem nativeCapLaw_rebate_mean (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z =>
       ((if z.1 = none then 0 else b+2 : ℕ) : ℝ≥0∞)) =
@@ -985,6 +1163,8 @@ theorem nativeCapLaw_rebate_mean (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (h
   funext z
   by_cases hz : z.1 = none <;> simp [hz]
 
+/-- For positive width and a valid bound, expected capped CPU steps equal the cycle cost times
+the finite geometric sum, minus `b+2` times the probability of returning by the cap. -/
 theorem nativeCapLaw_time_exact (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.1 : ℝ≥0∞)) =
       (cycleSteps b : ℝ≥0∞)*(∑ k ∈ Finset.range cap, rationalRejectMass (fun _ : Fin m => 1) b ^ k) -
@@ -998,6 +1178,8 @@ theorem nativeCapLaw_time_exact (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb
       _ = _ := mul_one _
   exact ENNReal.eq_sub_of_add_eq (ne_of_lt (lt_of_le_of_lt hle (by finiteness))) hh
 
+/-- For `m > 0`, choosing width `Nat.clog 2 m` bounds expected capped CPU steps by `6*Nat.clog 2
+m+4`, uniformly in the cap. -/
 theorem nativeCapLaw_effective_time_bound (m cap : ℕ) (hm : 0 < m) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw (Nat.clog 2 m) m cap) (fun z => (z.2.1 : ℝ≥0∞)) ≤
       ((6*Nat.clog 2 m+4 : ℕ) : ℝ≥0∞) := by
@@ -1025,18 +1207,22 @@ theorem nativeCapLaw_effective_time_bound (m cap : ℕ) (hm : 0 < m) :
         norm_num [cycleSteps,Nat.cast_add,Nat.cast_mul]
         ring
 
+/-- Expected CPU steps are monotone in the CPU budget for every width and bound. -/
 theorem nativeLaw_time_mono (b m : ℕ) : Monotone (fun n =>
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.1 : ℝ≥0∞))) := by
   intro n N hN
   simpa only [nativeLaw,Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map,trialObservation] using!
     law_steps_mean_mono program (input b m) hN
 
+/-- Expected random-bit reads are monotone in the CPU budget for every width and bound. -/
 theorem nativeLaw_reads_mono (b m : ℕ) : Monotone (fun n =>
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.2 : ℝ≥0∞))) := by
   intro n N hN
   simpa only [nativeLaw,Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map,trialObservation] using!
     law_reads_mean_mono program (input b m) hN
 
+/-- The probability of observing no return equals the probability that the underlying native
+execution stops by fuel exhaustion. -/
 theorem nativeLaw_timeout_eq_fuel (b m n : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeLaw b m n) (fun z => z.1 = none) =
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (NativeTape.law program n (input b m)) (fun r => r.stop = .fuel) := by
@@ -1047,28 +1233,37 @@ theorem nativeLaw_timeout_eq_fuel (b m n : ℕ) :
   have hn := (law_support_run program n (input b m) r hr).2.2
   cases hs : r.stop <;> simp_all [trialObservation]
 
+/-- The probability of observing no return is antitone in the CPU budget. -/
 theorem nativeLaw_timeout_antitone (b m : ℕ) :
     Antitone (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeLaw b m n) (fun z => z.1 = none)) := by
   intro n N hN
   simpa only [nativeLaw_timeout_eq_fuel] using! law_fuel_antitone program (input b m) hN
 
+/-- The supremum of expected CPU steps over all CPU budgets equals the supremum over capped
+whole-cycle budgets. -/
 theorem nativeLaw_time_sup_cofinal (b m : ℕ) :
     (⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.1 : ℝ≥0∞))) =
       ⨆ cap, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.1 : ℝ≥0∞)) := by
   rw [iSup_mul_budget _ (nativeLaw_time_mono b m) (cycleSteps b) (by simp [cycleSteps])]
   simp only [nativeLaw_cycle_all]
 
+/-- The supremum of expected random-bit reads over all CPU budgets equals the supremum over
+capped whole-cycle budgets. -/
 theorem nativeLaw_reads_sup_cofinal (b m : ℕ) :
     (⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.2 : ℝ≥0∞))) =
       ⨆ cap, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.2 : ℝ≥0∞)) := by
   rw [iSup_mul_budget _ (nativeLaw_reads_mono b m) (cycleSteps b) (by simp [cycleSteps])]
   simp only [nativeLaw_cycle_all]
 
+/-- For a positive representable bound, the supremum of expected CPU steps over all CPU budgets
+is finite. -/
 theorem nativeLaw_time_sup_finite (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     (⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.1 : ℝ≥0∞))) < ⊤ := by
   rw [nativeLaw_time_sup_cofinal]
   exact nativeCapLaw_time_sup_finite_all b m hm hb
 
+/-- For `m > 0`, width `Nat.clog 2 m` bounds expected native CPU steps by `6*Nat.clog 2 m+4` for
+every CPU budget. -/
 theorem nativeLaw_effective_time_bound (m budget : ℕ) (hm : 0 < m) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw (Nat.clog 2 m) m budget) (fun z => (z.2.1 : ℝ≥0∞)) ≤
       6*(Nat.clog 2 m : ℝ≥0∞)+4 := by
@@ -1083,6 +1278,8 @@ theorem nativeLaw_effective_time_bound (m budget : ℕ) (hm : 0 < m) :
       simpa only [Nat.cast_add,Nat.cast_mul,Nat.cast_ofNat] using!
           nativeCapLaw_effective_time_bound m budget hm
 
+/-- For a positive representable bound, the infimum over CPU budgets of the probability of no
+return is zero. -/
 theorem nativeLaw_timeout_inf_zero (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     (⨅ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeLaw b m n) (fun z => z.1 = none)) = 0 := by
   rw [iInf_mul_budget _ (nativeLaw_timeout_antitone b m) (cycleSteps b) (by simp [cycleSteps])]
@@ -1098,12 +1295,16 @@ theorem nativeLaw_timeout_inf_zero (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
       simp [nativeCapLaw_zero_width,Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq]
     | succ b => exact nativeCapLaw_timeout_tendsto_zero (b+1) m (by omega) hm hb
 
+/-- For a positive representable bound, the probability of no return tends to zero as the CPU
+budget tends to infinity. -/
 theorem nativeLaw_timeout_tendsto_zero (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Filter.Tendsto (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeLaw b m n) (fun z => z.1 = none))
       Filter.atTop (nhds (0 : ℝ≥0∞)) := by
   have hh := tendsto_atTop_iInf (nativeLaw_timeout_antitone b m)
   rwa [nativeLaw_timeout_inf_zero b m hm hb] at hh
 
+/-- For `0 < m ≤ 2^b`, the supremum of expected random-bit reads over CPU budgets is `b / (1 -
+rationalRejectMass (fun _ : Fin m => 1) b)`. -/
 theorem nativeLaw_reads_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     (⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.2 : ℝ≥0∞))) =
       (b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b) := by
@@ -1128,18 +1329,24 @@ theorem nativeLaw_reads_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
       rw [heq]
       exact (weightedSampler_expected_reads_limit (fun _ : Fin m => 1) (b+1) hw hcap).1
 
+/-- For a positive representable bound, expected random-bit reads converge to `b / (1 -
+rationalRejectMass (fun _ : Fin m => 1) b)` as the CPU budget grows. -/
 theorem nativeLaw_reads_tendsto (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Filter.Tendsto (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.2 : ℝ≥0∞)))
       Filter.atTop (nhds ((b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b))) := by
   have hh := tendsto_atTop_iSup (nativeLaw_reads_mono b m)
   rwa [nativeLaw_reads_sup b m hm hb] at hh
 
+/-- For a positive representable bound, the supremum of expected random-bit reads over all CPU
+budgets is finite. -/
 theorem nativeLaw_reads_sup_finite (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     (⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.2 : ℝ≥0∞))) < ⊤ := by
   rw [nativeLaw_reads_sup b m hm hb]
   exact (weightedSampler_expected_reads_limit (fun _ : Fin m => 1) b
     (by simpa [weightTotal] using! hm) (by simpa [weightTotal] using! hb)).2
 
+/-- For positive width and a valid bound, expected capped CPU steps converge to `cycleSteps b /
+(1 - rationalRejectMass (fun _ : Fin m => 1) b) - (b+2)`. -/
 theorem nativeCapLaw_time_tendsto (b m : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Filter.Tendsto (fun cap => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.1 : ℝ≥0∞)))
       Filter.atTop (nhds ((cycleSteps b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b) - (b+2 : ℝ≥0∞))) := by
@@ -1166,6 +1373,8 @@ theorem nativeCapLaw_time_tendsto (b m : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb :
   rw [heq]
   simpa only [div_eq_mul_inv] using! hh
 
+/-- For a positive representable bound, the supremum of expected CPU steps over all budgets is
+`cycleSteps b / (1 - rationalRejectMass (fun _ : Fin m => 1) b) - (b+2)`. -/
 theorem nativeLaw_time_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     (⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.1 : ℝ≥0∞))) =
       (cycleSteps b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b) - (b+2 : ℝ≥0∞) := by
@@ -1182,30 +1391,39 @@ theorem nativeLaw_time_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
       simpa only [nativeLaw_cycle_all] using! hh
     · exact nativeCapLaw_time_tendsto (b+1) m (by omega) hm hb
 
+/-- For a positive representable bound, expected CPU steps converge to `cycleSteps b / (1 -
+rationalRejectMass (fun _ : Fin m => 1) b) - (b+2)` as the CPU budget grows. -/
 theorem nativeLaw_time_tendsto (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Filter.Tendsto (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.1 : ℝ≥0∞)))
       Filter.atTop (nhds ((cycleSteps b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b) - (b+2 : ℝ≥0∞))) := by
   have hh := tendsto_atTop_iSup (nativeLaw_time_mono b m)
   rwa [nativeLaw_time_sup b m hm hb] at hh
 
+/-- For an invalid bound, the supremum of expected CPU steps over all CPU budgets is infinite. -/
 theorem nativeLaw_invalid_time_sup (b m : ℕ) (hbad : ¬ (0 < m ∧ m ≤ 2^b)) :
     (⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.1 : ℝ≥0∞))) = ⊤ := by
   simp only [nativeLaw_invalid b m _ hbad,Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
   exact ENNReal.iSup_natCast
 
+/-- For an invalid bound, the probability of no return is one for every CPU budget. -/
 theorem nativeLaw_invalid_timeout (b m budget : ℕ) (hbad : ¬ (0 < m ∧ m ≤ 2^b)) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeLaw b m budget) (fun z => z.1 = none) = 1 := by
   simp [nativeLaw_invalid b m budget hbad,Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq]
 
+/-- The terminal law of the tape sampler, recording a returned value, CPU steps, and consumed
+random bits in `some`, and nontermination in `none`. -/
 noncomputable def nativeTerminalLaw (b m : ℕ) : PMF (Option (ℕ × ℕ × ℕ)) :=
   (terminalLaw program (input b m)).map fun z => z.map (fun r => (Qatlib.Concepts.AmplitudeSearch.Amplification.UniformTape.output b r.cfg.Tape,r.steps,r.bits.length))
 
+/-- For a positive representable bound, the native tape sampler has zero nontermination mass. -/
 theorem native_never_zero (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     NativeTape.neverMass program (input b m) = 0 := by
   rw [neverMass_eq_iInf_fuel]
   simp only [← nativeLaw_timeout_eq_fuel]
   exact nativeLaw_timeout_inf_zero b m hm hb
 
+/-- The mass assigned to `none` by the terminal observation law equals the underlying program's
+nontermination mass. -/
 theorem nativeTerminalLaw_none (b m : ℕ) :
     nativeTerminalLaw b m none = NativeTape.neverMass program (input b m) := by
   classical
@@ -1216,9 +1434,13 @@ theorem nativeTerminalLaw_none (b m : ℕ) :
     | none => exact False.elim (hz rfl)
     | some r => simp
 
+/-- For a positive representable bound, the terminal observation law assigns zero mass to
+`none`. -/
 theorem nativeTerminalLaw_none_zero (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     nativeTerminalLaw b m none = 0 := by rw [nativeTerminalLaw_none,native_never_zero b m hm hb]
 
+/-- The probability of returning `j` within a CPU budget equals the probability that the
+underlying run has halted with tape output `j`. -/
 theorem nativeLaw_return_eq_halted (b m n j : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeLaw b m n) (fun z => z.1 = some j) =
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (NativeTape.law program n (input b m))
@@ -1229,12 +1451,15 @@ theorem nativeLaw_return_eq_halted (b m n j : ℕ) :
   intro r
   cases hs : r.stop <;> simp [trialObservation,hs]
 
+/-- For each fixed value, its probability of being returned is monotone in the CPU budget. -/
 theorem nativeLaw_return_mono (b m j : ℕ) :
     Monotone (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeLaw b m n) (fun z => z.1 = some j)) := by
   intro n N hN
   simpa only [nativeLaw_return_eq_halted] using! law_halted_event_mono program (input b m)
     (fun cfg => Qatlib.Concepts.AmplitudeSearch.Amplification.UniformTape.output b cfg.Tape = j) hN
 
+/-- For a positive representable bound, the supremum over CPU budgets of the probability of
+returning any fixed `j : Fin m` is `1/m`. -/
 theorem nativeLaw_return_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) (j : Fin m) :
     (⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeLaw b m n) (fun z => z.1 = some j.val)) = 1/(m : ℝ≥0∞) := by
   cases b with
@@ -1259,6 +1484,8 @@ theorem nativeLaw_return_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) (j : Fin 
           (Or.inl ENNReal.one_ne_top)) (Or.inr (ENNReal.div_lt_top ENNReal.one_ne_top (by exact_mod_cast hm.ne')).ne)
       simpa using! hh
 
+/-- For a positive representable bound, each index below `m` has terminal return probability
+`1/m`. -/
 theorem nativeTerminalLaw_return (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) (j : Fin m) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (nativeTerminalLaw b m) (fun z => z.map Prod.fst = some j.val) = 1/(m : ℝ≥0∞) := by
   classical
@@ -1275,6 +1502,8 @@ theorem nativeTerminalLaw_return (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) (j : 
       cases z <;> simp
     _ = _ := by simp only [← nativeLaw_return_eq_halted]; exact nativeLaw_return_sup b m hm hb j
 
+/-- For nonzero `m ≤ 2^b`, projecting the terminal law to its optional output gives the uniform
+law on the natural-number values of `Fin m`, each wrapped in `some`. -/
 theorem nativeTerminalLaw_output_uniform (b m : ℕ) [NeZero m] (hb : m ≤ 2^b) :
     (nativeTerminalLaw b m).map (Option.map Prod.fst) =
       (PMF.uniformOfFintype' (Fin m)).map (fun j => some j.val) := by
@@ -1298,6 +1527,7 @@ theorem nativeTerminalLaw_output_uniform (b m : ℕ) [NeZero m] (hb : m ≤ 2^b)
     rw [he,nativeTerminalLaw_return b m hm hb j]
     simp only [PMF.uniformOfFintype'_apply,Fintype.card_fin,one_div,le_refl]
 
+/-- For an invalid bound, the terminal observation law is concentrated on nontermination. -/
 theorem nativeTerminalLaw_invalid (b m : ℕ) (hbad : ¬ (0 < m ∧ m ≤ 2^b)) :
     nativeTerminalLaw b m = PMF.pure none := by
   apply pmf_eq_pure_of_one
@@ -1305,6 +1535,8 @@ theorem nativeTerminalLaw_invalid (b m : ℕ) (hbad : ¬ (0 < m ∧ m ≤ 2^b)) 
   simp only [← nativeLaw_timeout_eq_fuel,nativeLaw_invalid_timeout b m _ hbad,iInf_const]
   exact le_rfl
 
+/-- With zero width and bound one, the terminal law is concentrated on returning zero with zero
+CPU steps and zero random-bit reads. -/
 theorem nativeTerminalLaw_zero_width : nativeTerminalLaw 0 1 = PMF.pure (some (0,0,0)) := by
   have hc := law_complete_terminal program 0 (input 0 1) (fun r hr => by
     rw [law_eq_pure_of_run_nil program 0 (input 0 1) (by decide +kernel),PMF.mem_support_pure_iff] at hr
@@ -1313,6 +1545,9 @@ theorem nativeTerminalLaw_zero_width : nativeTerminalLaw 0 1 = PMF.pure (some (0
   rw [nativeTerminalLaw,← hc,PMF.map_comp,law_eq_pure_of_run_nil program 0 (input 0 1) (by decide +kernel),PMF.pure_map]
   rfl
 
+/-- Every supported returned terminal observation is realized by a halted native run using
+exactly its consumed bits and recorded step count. Its trace is a valid path, no input
+remains unread, and every smaller CPU budget ends in fuel exhaustion. -/
 theorem nativeTerminalLaw_first_stop (b m : ℕ) (z : ℕ × ℕ × ℕ)
     (hz : some z ∈ (nativeTerminalLaw b m).support) :
     ∃ r : Result Symbol Control, (Qatlib.Concepts.AmplitudeSearch.Amplification.UniformTape.output b r.cfg.Tape,r.steps,r.bits.length) = z ∧
@@ -1326,6 +1561,8 @@ theorem nativeTerminalLaw_first_stop (b m : ℕ) (z : ℕ × ℕ × ℕ)
     refine ⟨r,Option.some.inj he,?_⟩
     exact terminalLaw_first_stop program (input b m) r hs
 
+/-- For a positive representable bound, terminal expected CPU cost, assigning infinite cost to
+nontermination, is bounded by the supremum of expected CPU steps over finite CPU budgets. -/
 theorem nativeTerminalLaw_cpu_le_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw b m)
       (fun z => match z with | none => ⊤ | some out => (out.2.1 : ℝ≥0∞)) ≤
@@ -1360,11 +1597,15 @@ theorem nativeTerminalLaw_cpu_le_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
       split_ifs <;> simp
     _ = _ := by simp only [nativeLaw,Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map,trialObservation]
 
+/-- For a positive representable bound, terminal expected CPU cost is finite even when
+nontermination is assigned infinite cost. -/
 theorem nativeTerminalLaw_cpu_finite (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw b m)
       (fun z => match z with | none => ⊤ | some out => (out.2.1 : ℝ≥0∞)) < ⊤ :=
   lt_of_le_of_lt (nativeTerminalLaw_cpu_le_sup b m hm hb) (nativeLaw_time_sup_finite b m hm hb)
 
+/-- For `m > 0`, choosing width `Nat.clog 2 m` bounds terminal expected CPU cost by `6*Nat.clog
+2 m+4`, with infinite cost assigned to nontermination. -/
 theorem nativeTerminalLaw_effective_cpu_bound (m : ℕ) (hm : 0 < m) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw (Nat.clog 2 m) m)
       (fun z => match z with | none => ⊤ | some out => (out.2.1 : ℝ≥0∞)) ≤
@@ -1373,6 +1614,8 @@ theorem nativeTerminalLaw_effective_cpu_bound (m : ℕ) (hm : 0 < m) :
   exact (nativeTerminalLaw_cpu_le_sup _ _ hm hb).trans
     (iSup_le (fun n => nativeLaw_effective_time_bound m n hm))
 
+/-- Evaluating `haltedPayoff F` under the native observation law is equivalent to evaluating `F`
+on halted runs and assigning zero to all other runs. -/
 theorem nativeLaw_haltedPayoff_eq (b m n : ℕ) (F : ℕ × ℕ × ℕ → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (haltedPayoff F) =
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (NativeTape.law program n (input b m))
@@ -1382,12 +1625,16 @@ theorem nativeLaw_haltedPayoff_eq (b m n : ℕ) (F : ℕ × ℕ × ℕ → ℝ�
   intro r
   cases hs : r.stop <;> simp [haltedPayoff,trialObservation,hs]
 
+/-- For every nonnegative extended-real payoff on completed observations, its expected halted
+payoff is monotone in the CPU budget. -/
 theorem nativeLaw_haltedPayoff_mono (b m : ℕ) (F : ℕ × ℕ × ℕ → ℝ≥0∞) :
     Monotone (fun n => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (haltedPayoff F)) := by
   intro n N hN
   simpa only [nativeLaw_haltedPayoff_eq] using! law_halted_expectation_mono program (input b m)
     (fun r => F (Qatlib.Concepts.AmplitudeSearch.Amplification.UniformTape.output b r.cfg.Tape,r.steps,r.bits.length)) hN
 
+/-- A terminal payoff with value zero on nontermination has expectation equal to the supremum of
+its expected halted payoff over all cycle caps. -/
 theorem nativeTerminalLaw_moment_capSup (b m : ℕ) (F : ℕ × ℕ × ℕ → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw b m) (fun z => z.elim 0 F) =
       ⨆ cap, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (haltedPayoff F) := by
@@ -1411,6 +1658,8 @@ theorem nativeTerminalLaw_moment_capSup (b m : ℕ) (F : ℕ × ℕ × ℕ → �
     rw [iSup_mul_budget _ (nativeLaw_haltedPayoff_mono b m F) (cycleSteps b) (by simp [cycleSteps])]
     simp only [nativeLaw_cycle_all]
 
+/-- A pending counted observation arising from a unit-weight sampler path records exactly `cap`
+full cycles and `b*cap` random-bit reads. -/
 theorem countedObservation_pending_path (b m cap : ℕ) (z : SamplerRecord m) (raw : List Bool)
     (hz : (z,raw) ∈ (weightedSampler (fun _ : Fin m => 1) b cap).paths)
     (h : (countedObservation b z).1 = none) :
@@ -1424,6 +1673,8 @@ theorem countedObservation_pending_path (b m cap : ℕ) (z : SamplerRecord m) (r
     rw [hd.2.2]
     rfl
 
+/-- For positive width and a valid bound, every supported capped observation with no return is
+exactly `(none, cycleSteps b*cap, b*cap)`. -/
 theorem nativeCapLaw_pending_support (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b)
     (z : Option ℕ × ℕ × ℕ) (hz : z ∈ (nativeCapLaw b m cap).support) (h : z.1 = none) :
     z = (none,cycleSteps b*cap,b*cap) := by
@@ -1436,6 +1687,9 @@ theorem nativeCapLaw_pending_support (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m
   rw [he] at h ⊢
   exact countedObservation_pending_path b m cap _ _ (List.get_mem _ _) h
 
+/-- For positive width and a valid bound, any capped payoff expectation splits into its
+contribution from returned outcomes and its value at the unique pending observation times
+the timeout probability. -/
 theorem nativeCapLaw_payoff_decomposition (b m cap : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b)
     (F : Option ℕ × ℕ × ℕ → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) F =
@@ -1459,6 +1713,8 @@ theorem nativeCapLaw_payoff_decomposition (b m cap : ℕ) (hbpos : 0 < b) (hm : 
     simp [hp]
   | some j => simp
 
+/-- For an extended nonnegative real `q < 1`, the product `(c*cap) * q^cap` tends to zero for
+every natural coefficient `c`. -/
 theorem pending_geometric_cost_tendsto (q : ℝ≥0∞) (hq : q < 1) (c : ℕ) :
     Filter.Tendsto (fun cap => ((c*cap : ℕ) : ℝ≥0∞)*q^cap) Filter.atTop (nhds 0) := by
   have hqfin : q ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top hq.le
@@ -1477,6 +1733,8 @@ theorem pending_geometric_cost_tendsto (q : ℝ≥0∞) (hq : q < 1) (c : ℕ) :
   have hc := ENNReal.Tendsto.const_mul (a := (c : ℝ≥0∞)) hn (Or.inr (ENNReal.natCast_ne_top _))
   simpa only [Nat.cast_mul,mul_assoc,mul_zero] using! hc
 
+/-- For every positive number `m` of unit weights, the width-`b` rejection mass is strictly less
+than one. -/
 theorem unit_reject_lt_one (b m : ℕ) (hm : 0 < m) :
     rationalRejectMass (fun _ : Fin m => 1) b < 1 := by
   simp only [rationalRejectMass,coinRejectMass,weightTotal,Finset.sum_const,Finset.card_univ,Fintype.card_fin,
@@ -1485,6 +1743,8 @@ theorem unit_reject_lt_one (b m : ℕ) (hm : 0 < m) :
   rw [ENNReal.div_lt_iff (Or.inl hden) (Or.inl (ENNReal.natCast_ne_top _)),one_mul]
   exact_mod_cast Nat.sub_lt (by positivity : 0 < (2 : ℕ)^b) hm
 
+/-- For positive width and a valid bound, a payoff whose value on the pending observation is
+`k*cap` has the same expectation limit after its pending contribution is set to zero. -/
 theorem nativeCapLaw_completed_cost_tendsto (b m k : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b)
     (G : Option ℕ × ℕ × ℕ → ℝ≥0∞) (hk : ∀ cap, G (none,cycleSteps b*cap,b*cap) = ((k*cap : ℕ) : ℝ≥0∞))
     (L : ℝ≥0∞) (hG : Filter.Tendsto (fun cap => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) G)
@@ -1505,12 +1765,16 @@ theorem nativeCapLaw_completed_cost_tendsto (b m k : ℕ) (hbpos : 0 < b) (hm : 
   simp_rw [heq]
   simpa only [tsub_zero] using! ENNReal.Tendsto.sub hG hpending (Or.inr ENNReal.zero_ne_top)
 
+/-- For every nonnegative extended-real payoff on completed observations, its expected halted
+payoff is monotone in the cycle cap. -/
 theorem nativeCapLaw_haltedPayoff_mono (b m : ℕ) (F : ℕ × ℕ × ℕ → ℝ≥0∞) :
     Monotone (fun cap => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (haltedPayoff F)) := by
   intro n N hN
   have hh := nativeLaw_haltedPayoff_mono b m F (Nat.mul_le_mul_left (cycleSteps b) hN)
   simpa only [nativeLaw_cycle_all] using! hh
 
+/-- For a positive representable bound, replacing any assigned payoff on nontermination by zero
+leaves the terminal expectation unchanged. -/
 theorem nativeTerminalLaw_expectation_zero_never (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b)
     (F : ℕ × ℕ × ℕ → ℝ≥0∞) (a : ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw b m) (fun z => z.elim a F) =
@@ -1521,6 +1785,9 @@ theorem nativeTerminalLaw_expectation_zero_never (b m : ℕ) (hm : 0 < m) (hb : 
   | none => exact False.elim (((PMF.mem_support_iff _ _).mp hz) (nativeTerminalLaw_none_zero b m hm hb))
   | some out => rfl
 
+/-- For a positive representable bound, terminal expected CPU cost is `cycleSteps b / (1 -
+rationalRejectMass (fun _ : Fin m => 1) b) - (b+2)`, with infinite cost assigned to
+nontermination. -/
 theorem nativeTerminalLaw_cpu_mean (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw b m) (fun z => z.elim ⊤ (fun out => (out.2.1 : ℝ≥0∞))) =
       (cycleSteps b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b) - (b+2 : ℝ≥0∞) := by
@@ -1536,6 +1803,8 @@ theorem nativeTerminalLaw_cpu_mean (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
       (by omega) hm hb (fun z => (z.2.1 : ℝ≥0∞)) (fun _ => rfl) _
       (nativeCapLaw_time_tendsto (b+1) m (by omega) hm hb)
 
+/-- For positive width and a valid bound, expected capped random-bit reads converge to `b / (1 -
+rationalRejectMass (fun _ : Fin m => 1) b)` as the cap grows. -/
 theorem nativeCapLaw_reads_tendsto (b m : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb : m ≤ 2^b) :
     Filter.Tendsto (fun cap => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeCapLaw b m cap) (fun z => (z.2.2 : ℝ≥0∞)))
       Filter.atTop (nhds ((b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b))) := by
@@ -1548,6 +1817,8 @@ theorem nativeCapLaw_reads_tendsto (b m : ℕ) (hbpos : 0 < b) (hm : 0 < m) (hb 
   rw [heq]
   exact (weightedSampler_expected_reads_limit (fun _ : Fin m => 1) b hw hcap).1
 
+/-- For a positive representable bound, terminal expected random-bit reads are `b / (1 -
+rationalRejectMass (fun _ : Fin m => 1) b)`, assigning zero reads to nontermination. -/
 theorem nativeTerminalLaw_reads_mean (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw b m) (fun z => z.elim 0 (fun out => (out.2.2 : ℝ≥0∞))) =
       (b : ℝ≥0∞)/(1-rationalRejectMass (fun _ : Fin m => 1) b) := by
@@ -1563,6 +1834,8 @@ theorem nativeTerminalLaw_reads_mean (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
       (by omega) hm hb (fun z => (z.2.2 : ℝ≥0∞)) (fun _ => rfl) _
       (nativeCapLaw_reads_tendsto (b+1) m (by omega) hm hb)
 
+/-- Any halted run that consumes its entire supplied random word contributes its output, CPU
+steps, and random-bit count to the support of the terminal observation law. -/
 theorem nativeTerminalLaw_support_halted_run (b m n : ℕ) (raw : List Bool)
     (hs : (Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw (input b m)).stop = .halted)
     (hu : (Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw (input b m)).unread = []) :
@@ -1577,6 +1850,8 @@ theorem nativeTerminalLaw_support_halted_run (b m n : ℕ) (raw : List Bool)
   have hl := law_run_lower program n raw (input b m) (by simp [hs]) hu
   exact ne_of_gt (lt_of_lt_of_le (ENNReal.pow_pos (by norm_num : (0 : ℝ≥0∞) < 1/2) _) hl)
 
+/-- For width two and bound three, the terminal law supports returning zero after `8*k+4` CPU
+steps and `2*(k+1)` random-bit reads for every `k`. -/
 theorem nativeTerminalLaw_repeated_reject_support (k : ℕ) :
     some (0,8*k+4,2*(k+1)) ∈ (nativeTerminalLaw 2 3).support := by
   let bad := List.replicate k [true,true]
@@ -1613,6 +1888,8 @@ theorem nativeTerminalLaw_repeated_reject_support (k : ℕ) :
   change some (Qatlib.Concepts.AmplitudeSearch.Amplification.UniformTape.output 2 r.cfg.Tape,r.steps,r.bits.length) ∈ (nativeTerminalLaw 2 3).support at hp
   rwa [hv] at hp
 
+/-- For width two and bound three, no natural bound controls the CPU steps of every returned
+observation in the terminal support. -/
 theorem nativeTerminalLaw_no_worst_cpu_bound :
     ¬ ∃ B : ℕ, ∀ z : ℕ × ℕ × ℕ, some z ∈ (nativeTerminalLaw 2 3).support → z.2.1 ≤ B := by
   rintro ⟨B,hB⟩
@@ -1620,20 +1897,28 @@ theorem nativeTerminalLaw_no_worst_cpu_bound :
   (try dsimp only at hb)
   omega
 
+/-- For a positive representable bound, terminal expected CPU cost, assigning infinite cost to
+nontermination, equals the supremum of expected CPU steps over finite CPU budgets. -/
 theorem nativeTerminalLaw_cpu_eq_truncated_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw b m) (fun z => z.elim ⊤ (fun out => (out.2.1 : ℝ≥0∞))) =
       ⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.1 : ℝ≥0∞)) := by
   rw [nativeTerminalLaw_cpu_mean b m hm hb,nativeLaw_time_sup b m hm hb]
 
+/-- For a positive representable bound, terminal expected random-bit reads, assigning zero to
+nontermination, equal the supremum of expected reads over finite CPU budgets. -/
 theorem nativeTerminalLaw_reads_eq_truncated_sup (b m : ℕ) (hm : 0 < m) (hb : m ≤ 2^b) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeTerminalLaw b m) (fun z => z.elim 0 (fun out => (out.2.2 : ℝ≥0∞))) =
       ⨆ n, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (nativeLaw b m n) (fun z => (z.2.2 : ℝ≥0∞)) := by
   rw [nativeTerminalLaw_reads_mean b m hm hb,nativeLaw_reads_sup b m hm hb]
 
+/-- A tape window at position `p` places the cursor between absolute positions zero and `b+1`,
+inclusive. -/
 theorem window_bounds {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol} (h : Window b p T) :
     0 ≤ p ∧ p ≤ (b : ℤ)+1 := by
   cases h <;> constructor <;> omega
 
+/-- Moving right from a data cell preserves the width-`b` tape window and increases the absolute
+cursor position by one. -/
 theorem window_right_data {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
     (h : Window b p T) (hd : ∃ v : Bool × Bool, T.head = data v) :
     Window b (p+1) (T.move .right) := by
@@ -1648,6 +1933,8 @@ theorem window_right_data {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
       have hh := Window.span (b := b) (y::xs) ys (by simp only [List.length_cons] at hlen ⊢; omega)
       simpa [List.map_cons,List.cons_append] using! hh
 
+/-- Moving left from a head other than the marker preserves the width-`b` tape window and
+decreases the absolute cursor position by one. -/
 theorem window_left {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
     (h : Window b p T) (hm : T.head ≠ marker) : Window b (p-1) (T.move .left) := by
   cases h with
@@ -1662,6 +1949,8 @@ theorem window_left {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
       have hh := Window.span (b := b) xs (x::ys) (by simp only [List.length_cons] at hlen ⊢; omega)
       convert! hh using 1; simp
 
+/-- Moving right from the marker preserves the width-`b` tape window and increases the absolute
+cursor position by one. -/
 theorem window_right_marker {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
     (h : Window b p T) (hm : T.head = marker) : Window b (p+1) (T.move .right) := by
   cases h with
@@ -1673,6 +1962,8 @@ theorem window_right_marker {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
     | nil => simp [head_nil,marker] at hm
     | cons y ys => simp [List.map_cons,head_cons,data,cell,marker] at hm
 
+/-- Replacing the head data pair by another data pair preserves the tape window at the same
+absolute cursor position. -/
 theorem window_write_data {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
     (h : Window b p T) (hd : ∃ v : Bool × Bool, T.head = data v) (w : Bool × Bool) :
     Window b p (T.write (data w)) := by
@@ -1686,10 +1977,14 @@ theorem window_write_data {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
       simp only [List.map_cons,tape_write]
       exact Window.span xs (w::ys) (by simpa using! hlen)
 
+/-- A tape window supplies the workspace invariant whenever the control state is outside the
+move-state range from `3` through `5`. -/
 theorem workspace_of_window {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol} (q : Control)
     (hw : Window b p T) (hq : ¬ (3 ≤ q.val ∧ q.val ≤ 5)) : Workspace b p ⟨q,T⟩ :=
   ⟨hw,fun h => False.elim (hq h)⟩
 
+/-- A transition from a read state preserves the workspace invariant at the position adjusted by
+the executed statement's displacement. -/
 theorem workspace_read_step (b : ℕ) (p : ℤ) (T : Turing.Tape Symbol) (c : Fin 3)
     (hw : Window b p T) (bit : Bool) (next : Control × Turing.TM0.Stmt Symbol)
     (hp : table program bit (readState c) T.head = some next) :
@@ -1719,6 +2014,8 @@ theorem workspace_read_step (b : ℕ) (p : ℤ) (T : Turing.Tape Symbol) (c : Fi
       · intro _
         exact ⟨(bit,t),rfl⟩
 
+/-- Every defined program-table transition preserves the workspace invariant at the position
+adjusted by its statement displacement. -/
 theorem workspace_table_step (b : ℕ) (p : ℤ) (cfg : Turing.TM0.Cfg Symbol Control)
     (hw : Workspace b p cfg) (bit : Bool) (next : Control × Turing.TM0.Stmt Symbol)
     (hp : table program bit cfg.q cfg.Tape.head = some next) :
@@ -1755,6 +2052,8 @@ theorem workspace_table_step (b : ℕ) (p : ℤ) (cfg : Turing.TM0.Cfg Symbol Co
     rw [add_zero,Turing.Tape.write_self]
     exact workspace_of_window 7 hw.1 (by decide)
 
+/-- Every native execution step preserves the workspace invariant after adding its tick
+displacement to the absolute cursor position. -/
 theorem workspace_step (b : ℕ) (p : ℤ) {cfg next : Turing.TM0.Cfg Symbol Control} {o : Option Bool}
     (hw : Workspace b p cfg) (hs : NativeTape.Step program cfg o next) :
     Workspace b (p+tickDisplacement program (cfg,o)) next := by
@@ -1766,6 +2065,9 @@ theorem workspace_step (b : ℕ) (p : ℤ) {cfg next : Turing.TM0.Cfg Symbol Con
     rw [← he]
     simpa only [tickDisplacement,ht] using! workspace_table_step b p cfg hw (o.getD false) act ht
 
+/-- A native path preserves the final workspace invariant after summing its tick displacements,
+and every cursor position remains between zero and `b+1`. Every tick's source configuration
+also satisfies a workspace invariant at some position. -/
 theorem workspace_path (b : ℕ) {cfg last : Turing.TM0.Cfg Symbol Control} {es : List (Tick Symbol Control)}
     (hp : Path program cfg es last) (p : ℤ) (hw : Workspace b p cfg) :
     Workspace b (p+(es.map (tickDisplacement program)).sum) last ∧
@@ -1794,6 +2096,8 @@ theorem workspace_path (b : ℕ) {cfg last : Turing.TM0.Cfg Symbol Control} {es 
       · exact ⟨p,hw⟩
       · exact hStates e ht
 
+/-- Every sampler input configuration satisfies the width-`b` workspace invariant with initial
+cursor position one. -/
 theorem workspace_input (b m : ℕ) : Workspace b 1 (input b m) := by
   let ys := (encode b (m-1)).map (fun t => (false,t))
   have hT : (input b m).Tape = Turing.Tape.mk₂ [marker] (ys.map data) := by
@@ -1804,6 +2108,9 @@ theorem workspace_input (b m : ℕ) : Workspace b 1 (input b m) := by
   · intro hq
     by_cases hv : 0 < m ∧ m ≤ 2^b <;> simp [input,start,hv] at hq
 
+/-- Every finite sampler run preserves the workspace invariant and keeps all cursor positions
+between zero and `b+1`. Each configuration appearing as a tick source satisfies the
+invariant at some absolute position. -/
 theorem run_workspace (b m n : ℕ) (raw : List Bool) :
     let r := Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw (input b m)
     Workspace b (1+(r.trace.map (tickDisplacement program)).sum) r.cfg ∧
@@ -1811,6 +2118,7 @@ theorem run_workspace (b m n : ℕ) (raw : List Bool) :
         (∀ e ∈ r.trace, ∃ i, Workspace b i e.1) :=
   workspace_path b (run_path program n raw (input b m)) 1 (workspace_input b m)
 
+/-- Every finite sampler run visits at most `b+2` distinct cursor positions. -/
 theorem run_visited_cells_le (b m n : ℕ) (raw : List Bool) :
     (cursorTrace program 1 (Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw (input b m)).trace).toFinset.card ≤ b+2 := by
   have hsub : (cursorTrace program 1 (Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw (input b m)).trace).toFinset ⊆
@@ -1823,6 +2131,8 @@ theorem run_visited_cells_le (b m n : ℕ) (raw : List Bool) :
   exact (Finset.card_le_card hsub).trans (by simpa using! (Finset.card_image_le
     (s := Finset.range (b+2)) (f := fun i : ℕ => (i : ℤ))))
 
+/-- The union of initially occupied cells and visited cursor positions contains at most `b+2`
+cells for every finite sampler run. -/
 theorem run_workspace_cells_le (b m n : ℕ) (raw : List Bool) :
     (workspaceCells b (Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw (input b m)).trace).card ≤ b+2 := by
   have hsub : workspaceCells b (Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw (input b m)).trace ⊆
@@ -1836,6 +2146,8 @@ theorem run_workspace_cells_le (b m n : ℕ) (raw : List Bool) :
   exact (Finset.card_le_card hsub).trans (by simpa using! (Finset.card_image_le
     (s := Finset.range (b+2)) (f := fun i : ℕ => (i : ℤ))))
 
+/-- A tape built from lists `L` and `R` is blank at every relative position strictly below
+`-L.length` or at least `R.length`. -/
 theorem tape_outside_lists (L R : List Symbol) (i : ℤ)
     (hi : i < -(L.length : ℤ) ∨ (R.length : ℤ) ≤ i) : (Turing.Tape.mk₂ L R).nth i = none := by
   cases i with
@@ -1850,6 +2162,8 @@ theorem tape_outside_lists (L R : List Symbol) (i : ℤ)
     rw [Turing.ListBlank.nth_mk,List.getI_eq_default _ hn]
     rfl
 
+/-- A tape satisfying the width-`b` window invariant is blank at every absolute position outside
+the interval from zero to `b`. -/
 theorem window_outside_blank {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
     (hw : Window b p T) (j : ℤ) (hj : j < 0 ∨ (b : ℤ) < j) : T.nth (j-p) = none := by
   cases hw with
@@ -1862,30 +2176,40 @@ theorem window_outside_blank {b : ℕ} {p : ℤ} {T : Turing.Tape Symbol}
     simp only [List.length_append,List.length_map,List.length_singleton] at *
     omega
 
+/-- After any finite sampler run, every absolute tape position outside the interval from zero to
+`b` remains blank, with relative indices adjusted by the final cursor position. -/
 theorem run_outside_blank (b m n : ℕ) (raw : List Bool) (j : ℤ) (hj : j < 0 ∨ (b : ℤ) < j) :
     let r := Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run program n raw (input b m)
     r.cfg.Tape.nth (j-(1+(r.trace.map (tickDisplacement program)).sum)) = none :=
   window_outside_blank (run_workspace b m n raw).1.1 j hj
 
+/-- The finite numeric encoding `symbolCode` distinguishes all tape symbols. -/
 theorem symbolCode_injective : Function.Injective symbolCode := by decide +kernel
 
+/-- The three-bit encoding `symbolBits` distinguishes all tape symbols. -/
 theorem symbolBits_injective : Function.Injective symbolBits :=
   (bitVecEquiv 3).symm.injective.comp symbolCode_injective
 
+/-- The native sampler has six tape symbols and eight control states. -/
 theorem native_alphabet_control_card : Fintype.card Symbol = 6 ∧ Fintype.card Control = 8 := by
     decide +kernel
 
+/-- Every result in a finite native execution law's support uses at most `b+2` workspace cells. -/
 theorem law_workspace_cells_le (b m n : ℕ) (r : Result Symbol Control)
     (hr : r ∈ (NativeTape.law program n (input b m)).support) : (workspaceCells b r.trace).card ≤ b+2 := by
   have he := (law_support_run program n (input b m) r hr).1
   have hh := run_workspace_cells_le b m n r.bits
   rwa [he] at hh
 
+/-- Every returned result in the terminal execution law's support uses at most `b+2` workspace
+cells. -/
 theorem terminal_workspace_cells_le (b m : ℕ) (r : Result Symbol Control)
     (hr : some r ∈ (terminalLaw program (input b m)).support) : (workspaceCells b r.trace).card ≤ b+2 := by
   obtain ⟨_,n,hn⟩ := (terminalLaw_support_some program (input b m) r).mp hr
   exact law_workspace_cells_le b m n r hn
 
+/-- The supremum of workspace-cell counts over all CPU budgets and random input words is at most
+`b+2`. -/
 theorem peakWorkspaceCells_le (b m : ℕ) : peakWorkspaceCells b m ≤ ((b+2 : ℕ) : ℝ≥0∞) := by
   apply iSup_le
   intro n
@@ -1893,9 +2217,12 @@ theorem peakWorkspaceCells_le (b m : ℕ) : peakWorkspaceCells b m ≤ ((b+2 : �
   intro raw
   exact_mod_cast run_workspace_cells_le b m n raw
 
+/-- The sampler's peak workspace-cell count is finite for every width and bound. -/
 theorem peakWorkspaceCells_finite (b m : ℕ) : peakWorkspaceCells b m < ⊤ :=
   lt_of_le_of_lt (peakWorkspaceCells_le b m) (by finiteness)
 
+/-- Every supported returned terminal observation has a realizing native run using exactly its
+recorded steps and consumed bits. That run uses at most `b+2` workspace cells. -/
 theorem nativeTerminalLaw_workspace (b m : ℕ) (z : ℕ × ℕ × ℕ)
     (hz : some z ∈ (nativeTerminalLaw b m).support) :
     ∃ r : Result Symbol Control, (Qatlib.Concepts.AmplitudeSearch.Amplification.UniformTape.output b r.cfg.Tape,r.steps,r.bits.length) = z ∧

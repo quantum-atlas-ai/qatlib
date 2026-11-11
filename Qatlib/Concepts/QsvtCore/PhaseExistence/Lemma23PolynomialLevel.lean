@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
 import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23OutputTransport
+
+/-!
+# Polynomial-level interior QSVT robustness
+
+This module defines `Lemma23PolynomialLevel`, the polynomial-response form of the interior
+robustness statement associated with [GilyenSuLowWiebe2019]. It quantifies over rectangular
+contractions and positive-degree complex polynomials satisfying parity, interval, exterior, and
+conditional imaginary-axis constraints.
+
+The bound depends on the matrix difference and the norm of the midpoint. Odd degree selects the
+odd singular transform, while even degree selects the right singular transform.
+
+## Main statements
+
+* `Lemma23PolynomialLevel`: the interior perturbation estimate under the stated midpoint
+  condition.
+
+## References
+
+* [Gilyén et al., Lemma 23][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -22,6 +44,9 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 open Matrix Polynomial
 open scoped Matrix.Norms.L2Operator
 
+/-- The polynomial-level interior robustness statement for positive-degree responses satisfying
+the parity and norm conditions, with odd or right singular transforms selected by degree
+parity; see [Gilyén et al., Lemma 23][GilyenSuLowWiebe2019]. -/
 def Lemma23PolynomialLevel : Prop :=
   ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A B : Matrix O I ℂ) (P : Polynomial ℂ) (n : ℕ),

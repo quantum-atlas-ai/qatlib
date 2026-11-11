@@ -8,6 +8,24 @@ import Qatlib.Papers.LowEnergyProd24.WordLeakage.PhysicalLeakage
 import Qatlib.Papers.LowEnergyProd24.WordLeakage.Majorant
 import Qatlib.Papers.LowEnergyProd24.WordLeakage.ToleranceCutoff
 import Qatlib.Papers.LowEnergyProd24.WordLeakage.LieConsumer
+
+/-!
+# Physical leakage bounds and explicit consumers
+
+This module applies the source majorant, explicit tolerance cutoff, and Lie-word leakage results
+to a `PhysicalHamiltonian`. The bounds use the original total Hamiltonian and original product
+word, transporting the centered analysis of [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `source_majorant`: Bounds physical product-word leakage by the source exponent.
+* `tolerance_cutoff`: Makes physical leakage at most a prescribed positive tolerance.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +42,9 @@ open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 local instance : NormedAlgebra ℝ (Matrix (Register N) (Register N) ℂ) := .restrictScalars ℝ ℂ _
 
+/-- Under the physical locality, cancellation, and source small-step hypotheses, original
+product-word leakage is bounded by energy-gap exponential decay with `sourceStepExponent`
+[HejaziZiniArrazola2024]. -/
 theorem source_majorant (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))
@@ -36,6 +57,8 @@ theorem source_majorant (h : PhysicalHamiltonian N R M k d J)
   exact (actual_product_leakage h hJ hk hd L hL stages p hp horder s hs hsmall' Δ Λ).trans
     (Real.exp_le_exp.mpr (add_le_add le_rfl (actual_exponent_le_source L k d J hJ.le stages p s hs hsmall)))
 
+/-- For any positive `θ`, physical product-word leakage above the explicit `toleranceCutoff` is
+at most `θ` under the cancellation and small-step hypotheses. -/
 theorem tolerance_cutoff (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (stages : List (ℝ × Fin M))
@@ -54,6 +77,7 @@ theorem tolerance_cutoff (h : PhysicalHamiltonian N R M k d J)
     actual_product_leakage h hJ hk hd L hL stages p hp horder s hs hsmall Δ
       (toleranceCutoff L k d J stages p s Δ θ)
 
+/-- The original physical Lie word satisfies lower-order cancellation at order one. -/
 theorem lie_cancellation (h : PhysicalHamiltonian N R M k d J) : lowerOrderCancellation h (lieStages M) 1 := by
   intro n hn
   have hn0 : n=0 := by omega
@@ -70,6 +94,8 @@ theorem lie_cancellation (h : PhysicalHamiltonian N R M k d J) : lowerOrderCance
   rw [← Finset.smul_sum]
   rfl
 
+/-- The original physical Lie word satisfies the order-one exponential leakage bound for
+nonnegative steps with `2 * J * k * d * M * s < 1`. -/
 theorem lie_product_leakage (h : PhysicalHamiltonian N R M k d J)
     (hJ : 0 < J) (hk : 0 < k) (hd : 0 < d) (L : ℕ)
     (hL : ∀ m, (h.labels m).card ≤ L) (s : ℝ) (hs : 0 ≤ s)

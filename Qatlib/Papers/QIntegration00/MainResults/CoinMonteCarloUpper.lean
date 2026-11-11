@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QIntegration00.MainResults.Defs
+
+/-!
+# Coin Monte Carlo complexity upper bounds for integration
+
+This module balances the coin-model cost and error estimates to bound `complexityOf`. The
+resulting dependence is `ε^(-2/(1+2γ)) * log(ε⁻¹)^(1/(1+2γ))`, with an explicit multiplicative
+constant and small-error range. See [Novak2001] for the paper context.
+
+## Main statements
+
+* `coin_upper_bound`: The assumed coin-model cost and error estimates and `CoinSelection` imply
+  `IsCoinUpper` with the displayed constant.
+* `coin_upper_bound_small`: The assumed coin-model estimates imply the stated complexity bound
+  for positive `ε` at most the minimum of `1/2`, `1/c`, and `c * exp(-(1+2γ))`.
+
+## References
+
+* [Novak, 2001][Novak2001]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -15,6 +35,9 @@ namespace Qatlib.Papers.QIntegration00.MainResults.CoinMonteCarloUpper
 
 open Defs
 
+/-- At a parameter balancing the stated coin-model error estimate with `ε`, the complexity is
+bounded by the explicit constant times `ε^(-2/(1+2γ)) * log(ε⁻¹)^(1/(1+2γ))` under the given
+conditions. -/
 theorem coin_upper_bound_at {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)
     {t ε : ℝ} (ht0 : 0 < t) (hL1 : 1 ≤ Real.log t⁻¹)
@@ -175,6 +198,8 @@ theorem coin_upper_bound_at {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 <
           rw [Real.mul_rpow (by positivity) (le_of_lt hlogε_pos)]
           ring
 
+/-- The assumed coin-model cost and error estimates and `CoinSelection` imply `IsCoinUpper` with
+the displayed constant. -/
 theorem coin_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)
     (hcost : ∀ t ∈ Set.Ioc (0 : ℝ) 1, cost t ≤ C * t⁻¹ ^ 2 * Real.log t⁻¹)
@@ -191,6 +216,8 @@ theorem coin_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
   simpa [IsCoinUpper, coinExponent, coinLogExponent] using
     (coin_upper_bound_at hγ hC hc hcost_nn ht0 hL1 hcostt herrt hbal hε hεc hε2)
 
+/-- The assumed coin-model estimates imply the stated complexity bound for positive `ε` at most
+the minimum of `1/2`, `1/c`, and `c * exp(-(1+2γ))`. See [Novak2001]. -/
 theorem coin_upper_bound_small {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)
     (hcost : ∀ t ∈ Set.Ioc (0 : ℝ) 1, cost t ≤ C * t⁻¹ ^ 2 * Real.log t⁻¹)

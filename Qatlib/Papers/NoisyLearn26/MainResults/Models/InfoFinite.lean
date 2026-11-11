@@ -9,6 +9,31 @@ import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Finite chi-squared divergence and product tests
+
+Defines `chiSq` and independent product weights `prodDist` on finite spaces. The module proves
+the product divergence identity and derives event-advantage and sample lower bounds from a bound
+on the single-sample chi-squared expression. See [CotlerGongKannan2025] for the surrounding
+analysis.
+
+## Main statements
+
+* `chiSq_prod`: For normalized weights and strictly positive `q`, the `N`-fold product
+  chi-squared expression equals `(1 + chiSq p q) ^ N - 1`.
+* `product_advantage_bound`: A single-sample bound `chiSq p q ≤ Δ` bounds the absolute
+  difference of any product-event weights by `√((1 + Δ)^N - 1)`, under normalization and
+  positivity of `q`.
+* `product_samples_lower_bound`: A product event separating the normalized weights at thresholds
+  `2 / 3` and `1 / 3` forces `log(10 / 9) / Δ ≤ N` under the stated positivity and chi-squared
+  assumptions.
+
+## References
+
+* [Cotler et al., 2025][CotlerGongKannan2025]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,15 +47,20 @@ open scoped BigOperators
 
 variable {X : Type*} [Fintype X]
 
+/-- The finite chi-squared expression `∑ x, (p x - q x)² / q x`. -/
 def chiSq (p q : X → ℝ) : ℝ := ∑ x, (p x - q x) ^ 2 / q x
 
+/-- The product weight on `N` samples, given by `∏ i, p (x i)`. -/
 def prodDist {X : Type*} (p : X → ℝ) (N : ℕ) : (Fin N → X) → ℝ :=
   fun x => ∏ i, p (x i)
 
+/-- The chi-squared expression is nonnegative when all reference weights are nonnegative. -/
 theorem chiSq_nonneg (p q : X → ℝ) (hq : ∀ x, 0 ≤ q x) : 0 ≤ chiSq p q := by
   unfold chiSq
   exact Finset.sum_nonneg (fun x _ => div_nonneg (sq_nonneg _) (hq x))
 
+/-- With strictly positive reference weights, the squared difference of event weights is bounded
+by `chiSq p q` times the reference weight of the event. -/
 theorem sq_event_diff_le (p q : X → ℝ) (hq : ∀ x, 0 < q x) (E : Finset X) :
     (∑ x ∈ E, (p x - q x)) ^ 2 ≤ chiSq p q * (∑ x ∈ E, q x) := by
   rcases E.eq_empty_or_nonempty with rfl | hne
@@ -51,6 +81,8 @@ theorem sq_event_diff_le (p q : X → ℝ) (hq : ∀ x, 0 < q x) (E : Finset X) 
     exact div_nonneg (sq_nonneg _) (le_of_lt (hq x))
   exact hdiv.trans (mul_le_mul_of_nonneg_right hmono (le_of_lt hsumpos))
 
+/-- For normalized weights and strictly positive `q`, the sum `∑ x, p x² / q x` equals `1 +
+chiSq p q`. -/
 theorem sum_sq_div (p q : X → ℝ) (hq : ∀ x, 0 < q x) (hp : ∑ x, p x = 1)
     (hq1 : ∑ x, q x = 1) :
     (∑ x, p x ^ 2 / q x) = 1 + chiSq p q := by
@@ -69,11 +101,14 @@ theorem sum_sq_div (p q : X → ℝ) (hq : ∀ x, 0 < q x) (hp : ∑ x, p x = 1)
     _ = chiSq p q + 2 * 1 - 1 := by rw [hp, hq1]; rfl
     _ = 1 + chiSq p q := by linarith
 
+/-- If `q` sums to one, its `N`-fold product weights also sum to one. -/
 theorem sum_prodDist (q : X → ℝ) (hq1 : ∑ x, q x = 1) (N : ℕ) :
     (∑ x : Fin N → X, prodDist q N x) = 1 := by
   unfold prodDist
   rw [(Fintype.sum_pow q N).symm, hq1, one_pow]
 
+/-- For normalized weights and strictly positive `q`, the `N`-fold product chi-squared
+expression equals `(1 + chiSq p q) ^ N - 1`. -/
 theorem chiSq_prod (p q : X → ℝ) (hq : ∀ x, 0 < q x) (hp : ∑ x, p x = 1)
     (hq1 : ∑ x, q x = 1) (N : ℕ) :
     chiSq (prodDist p N) (prodDist q N) = (1 + chiSq p q) ^ N - 1 := by
@@ -115,6 +150,9 @@ theorem chiSq_prod (p q : X → ℝ) (hq : ∀ x, 0 < q x) (hp : ∑ x, p x = 1)
     sum_sq_div p q hq hp hq1]
   ring
 
+/-- A single-sample bound `chiSq p q ≤ Δ` bounds the absolute difference of any product-event
+weights by `√((1 + Δ)^N - 1)`, under normalization and positivity of `q`
+[CotlerGongKannan2025]. -/
 theorem product_advantage_bound (p q : X → ℝ) (hq : ∀ x, 0 < q x)
     (hp : ∑ x, p x = 1) (hq1 : ∑ x, q x = 1) (Δ : ℝ)
     (hchi : chiSq p q ≤ Δ) (N : ℕ) (E : Finset (Fin N → X)) :
@@ -163,6 +201,9 @@ theorem product_advantage_bound (p q : X → ℝ) (hq : ∀ x, 0 < q x)
         rw [Real.sqrt_sq_eq_abs]
     _ ≤ Real.sqrt ((1 + Δ) ^ N - 1) := Real.sqrt_le_sqrt hsqle
 
+/-- A product event with acceptance weights at least `2 / 3` for `p` and at most `1 / 3` for `q`
+forces `log(10 / 9) ≤ N * log(1 + Δ)` under the stated chi-squared bound
+[CotlerGongKannan2025]. -/
 theorem product_test_lower_bound (p q : X → ℝ) (hq : ∀ x, 0 < q x)
     (hp : ∑ x, p x = 1) (hq1 : ∑ x, q x = 1) (Δ : ℝ) (hchi : chiSq p q ≤ Δ)
     (N : ℕ) (E : Finset (Fin N → X))
@@ -194,6 +235,9 @@ theorem product_test_lower_bound (p q : X → ℝ) (hq : ∀ x, 0 < q x)
   rw [Real.log_pow] at hlog
   exact hlog
 
+/-- A product event separating the normalized weights at thresholds `2 / 3` and `1 / 3` forces
+`log(10 / 9) / Δ ≤ N` under the stated positivity and chi-squared assumptions
+[CotlerGongKannan2025]. -/
 theorem product_samples_lower_bound (p q : X → ℝ) (hq : ∀ x, 0 < q x)
     (hp : ∑ x, p x = 1) (hq1 : ∑ x, q x = 1) (Δ : ℝ) (hchi : chiSq p q ≤ Δ)
     (N : ℕ) (E : Finset (Fin N → X))

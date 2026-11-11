@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
 import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedMarkedSetAmplitudes
+
+/-!
+# Success mass for amplified Fourier sampling with noise
+
+This module defines `aqErrorSuccessLower` and bounds the probability of the continued-fraction
+recovery window for a progression with disjoint marked noise. The estimates transfer to any
+readout that succeeds on the window, while the verification results describe accepted candidates
+and their query costs in the error-stream setting of [Cornwell2014].
+
+## Main statements
+
+* `aqErrorSuccessLower`: The lower bound φ(P) · `aqGain N (M+L)` · (2M/π − L)² / ((M+L)(N−M−L))
+  for recovery-window mass, with natural subtraction in the final factor.
+* `aq_error_window_mass_lower`: The good recovery window has probability at least the strictly
+  positive quantity `aqErrorSuccessLower N M L P` under the stated noisy-progression
+  assumptions; see [Cornwell2014].
+* `aq_error_attempt_sound_and_counts`: A sample in the good window makes `aqAttempt` return the
+  planted period, and every returned candidate passes verification, with the stated query and
+  continued-fraction operation bounds; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,10 +54,14 @@ namespace Qatlib.Concepts.AmpTransform.ErrorStream
 
 open scoped Classical BigOperators
 
+/-- The lower bound φ(P) · `aqGain N (M+L)` · (2M/π − L)² / ((M+L)(N−M−L)) for recovery-window
+mass, with natural subtraction in the final factor. -/
 noncomputable def aqErrorSuccessLower (N M L P : ℕ) : ℝ :=
   (Nat.totient P:ℝ)*aqGain N (M+L)*(2*(M:ℝ)/Real.pi-(L:ℝ))^2/
     ((M+L:ℝ)*((N-M-L:ℕ):ℝ))
 
+/-- The amplified Fourier circuit is unitary, its output is normalized, and its query and gate
+counts are `aqRounds N T` and `3 * aqRounds N T + 2`; its Born probabilities sum to one. -/
 theorem aq_error_word_counts (N : ℕ) (hN : 0 < N) (T : ℕ) (C : Finset (Fin N)) :
     IsUnitaryCircuit (aqCircuit N hN T) ∧
     Normalized (aqState N hN T C) ∧
@@ -55,6 +84,9 @@ theorem aq_error_word_counts (N : ℕ) (hN : 0 < N) (T : ℕ) (C : Finset (Fin N
     simp
   · simpa [MeasureProb] using! measureProb_univ hnorm
 
+/-- A progression Fourier sum perturbed by L disjoint noise labels has squared norm at least
+(2M/π − L)² in the stated approximation window, provided L < 2M/π and the progression fits
+in the ambient interval. -/
 private theorem aq_error_root_sum_floor (N : ℕ) (hN : 0 < N) (s M L P : ℕ)
     (G : Finset (Fin N)) (y : Fin N) (hM : 0 < M) (hP : 0 < P)
     (hb : s+(M-1)*P < N) (hG : G.card = L)
@@ -109,6 +141,9 @@ private theorem aq_error_root_sum_floor (N : ℕ) (hN : 0 < N) (s M L P : ℕ)
   rw [← hunion] at hsqF
   exact hsqF
 
+/-- Every frequency in `aqGoodWindow N P` has the stated positive Fourier probability lower
+bound when the progression and disjoint noise satisfy the size, density, and separation
+assumptions. -/
 theorem aq_error_window_pointwise (N : ℕ) (hN : 0 < N) (s M L P : ℕ)
     (G : Finset (Fin N)) (h : Fin N → Bool) (y : Fin N)
     (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s+(M-1)*P < N) (hMP : M*P ≤ N)
@@ -170,6 +205,9 @@ theorem aq_error_window_pointwise (N : ℕ) (hN : 0 < N) (s M L P : ℕ)
   rw [hborn]
   exact hmul
 
+/-- The good recovery window has probability at least the strictly positive quantity
+`aqErrorSuccessLower N M L P` under the stated noisy-progression assumptions; see
+[Cornwell2014]. -/
 theorem aq_error_window_mass_lower (N : ℕ) (hN : 0 < N) (s M L P : ℕ)
     (G : Finset (Fin N)) (h : Fin N → Bool)
     (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s+(M-1)*P < N) (hMP : M*P ≤ N)
@@ -222,6 +260,7 @@ theorem aq_error_window_mass_lower (N : ℕ) (hN : 0 < N) (s M L P : ℕ)
       simp
     _ ≤ _ := Finset.sum_le_sum hpt
 
+/-- With no noise labels, `aqErrorSuccessLower` equals the noiseless bound `aqSuccessLower`. -/
 theorem aq_error_success_lower_noiseless_anchor (N M P : ℕ) :
     aqErrorSuccessLower N M 0 P = aqSuccessLower N M P := by
   by_cases hN0 : N = 0
@@ -249,6 +288,8 @@ theorem aq_error_success_lower_noiseless_anchor (N M P : ℕ) :
     rw [aqErrorSuccessLower, aqSuccessLower, hz]
     simp
 
+/-- The true period passes `aqVerify`, and any accepted candidate has positive spacing and three
+in-range marked test locations; verification uses at most three queries. -/
 theorem aq_error_verify_semantics (N : ℕ) (s M P : ℕ) (G : Finset (Fin N))
     (h : Fin N → Bool) (hM : 2 ≤ M) (hP : 0 < P) (hb : s+(M-1)*P < N)
     (hmark : ∀ x, h x = decide (x ∈ aqProgressionSet N s M P ∪ G)) :
@@ -307,6 +348,9 @@ theorem aq_error_verify_semantics (N : ℕ) (s M P : ℕ) (G : Finset (Fin N))
       simp at hq
   exact ⟨htrue, hsound, fun _ _ => aqVerify_cost _ _ _ _⟩
 
+/-- A sample in the good window makes `aqAttempt` return the planted period, and every returned
+candidate passes verification, with the stated query and continued-fraction operation
+bounds; see [Cornwell2014]. -/
 theorem aq_error_attempt_sound_and_counts (N : ℕ) (s M P B : ℕ) (G : Finset (Fin N))
     (h : Fin N → Bool) (y : Fin N)
     (hM : 2 ≤ M) (hP : 2 ≤ P) (hb : s+(M-1)*P < N) (hPB : P ≤ B) (hsepB : 2*B^2 < N)
@@ -348,6 +392,8 @@ theorem aq_error_attempt_sound_and_counts (N : ℕ) (s M P B : ℕ) (G : Finset 
     (try dsimp only)
     split <;> exact hg
 
+/-- Any readout returning `some z` throughout the good window has success mass at least
+`aqErrorSuccessLower N M L P` under the stated noisy-progression assumptions. -/
 theorem aq_error_attempt_mass_lower (N : ℕ) (hN : 0 < N) (s M L P B : ℕ)
     (G : Finset (Fin N)) (h : Fin N → Bool) {Z : Type} [DecidableEq Z] (z : Z)
     (a : Fin N → Option Z) (ha : ∀ y, y ∈ aqGoodWindow N P → a y = some z)

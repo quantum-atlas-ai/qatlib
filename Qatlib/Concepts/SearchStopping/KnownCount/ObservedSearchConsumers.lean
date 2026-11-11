@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedOutputReadout
+
+/-!
+# Decoded search query bounds
+
+`groverDecodedSearch_query_positive` rules out zero-query decoded singleton search on at least
+two addresses. `groverDecodedSearch_sharp_all_nontrivial` proves n ≤ 64q² for a unitary circuit
+whose decoder succeeds with probability at least 2/3 for every singleton bit oracle.
+
+For the mathematical background, see [BealsEtAl2001].
+
+## Main statements
+
+* `groverDecodedSearch_sharp_all_nontrivial`: For at least two addresses, decoded singleton
+  search with success at least 2/3 for every target satisfies n ≤ 64 times the squared circuit
+  query count.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +40,8 @@ namespace Qatlib.Concepts.SearchStopping.KnownCount
 open Qatlib
 open scoped Classical
 
+/-- On at least two addresses, a normalized unitary circuit whose decoder finds every singleton
+marked address with probability at least 2/3 uses a positive number of queries. -/
 theorem groverDecodedSearch_query_positive {n : ℕ} {W : Type}
     [Fintype W] [DecidableEq W] (C : Circuit ((Fin n × Bool) × W))
     (ψ : QState ((Fin n × Bool) × W))
@@ -49,6 +72,8 @@ theorem groverDecodedSearch_query_positive {n : ℕ} {W : Type}
     exact (measureProb_mono φ (Finset.subset_univ _)).trans (measureProb_univ hφ).le
   linarith [hmass a,hmass b]
 
+/-- For at least two addresses, decoded singleton search with success at least 2/3 for every
+target satisfies n ≤ 64 times the squared circuit query count. -/
 theorem groverDecodedSearch_sharp_all_nontrivial {n : ℕ} {W : Type}
     [Fintype W] [DecidableEq W] (C : Circuit ((Fin n × Bool) × W))
     (ψ : QState ((Fin n × Bool) × W))

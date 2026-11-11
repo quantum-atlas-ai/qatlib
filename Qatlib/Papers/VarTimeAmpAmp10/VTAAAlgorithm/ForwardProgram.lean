@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.StructuralProgram
+
+/-!
+# Forward structural variable-time programs
+
+The word `vtForwardWord` lists the first `n` forward stages of a structural variable-time
+program. Its legality, exact dyadic cost, and tensor-state execution establish a forward-prefix
+implementation for the framework of [Ambainis2012].
+
+## Main statements
+
+* `vt_forward_word_cost`: the exact cost `2 ^ n - 1`.
+* `vt_forward_word_state`: execution of the variable-time prefix.
+* `vt_forward_prefix_program`: the combined legality, cost, and state statement.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,11 +40,14 @@ open Matrix
 open scoped Classical
 variable {W C : Type} [Fintype W] [DecidableEq W] [Fintype C] [DecidableEq C]
 
+/-- The structural word consisting of forward stage instructions indexed by `0, …, n - 1`. -/
 def vtForwardWord (n : ℕ) : List (StructuralVtStep W C) :=
   (List.range n).map StructuralVtStep.stageF
 
 omit [DecidableEq C] in
 
+/-- The forward word is structurally legal whenever its prefix length does not exceed the
+stage-list length. -/
 theorem vt_forward_word_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (n : ℕ) (hn : n ≤ stages.length) : StructuralWordLegal (W := W) stages (vtForwardWord n) := by
   intro s hs
@@ -34,6 +56,7 @@ theorem vt_forward_word_legal (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ
 
 omit [Fintype W] [DecidableEq W] [DecidableEq C] in
 
+/-- The forward word of length `n` has structural time `2 ^ n - 1`. -/
 theorem vt_forward_word_cost (n : ℕ) : structuralWordTime (vtForwardWord (W := W) (C := C) n)=2^n-1 := by
   induction n with
   | zero=>rfl
@@ -45,6 +68,8 @@ theorem vt_forward_word_cost (n : ℕ) : structuralWordTime (vtForwardWord (W :=
     rw [ih,pow_succ]
     omega
 
+/-- Executing a compiled forward word applies `vtState stages n` to the payload while preserving
+the workspace basis state and the false flag. -/
 theorem vt_forward_word_state (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (w₀ : W) (ψ : QState (VtSpace C))
     (n : ℕ) (hn : n ≤ stages.length) :
@@ -68,6 +93,8 @@ theorem vt_forward_word_state (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ
     simp [compileStructuralWord,structuralStepMatrix,stepMatrix,Run,applyGate_tensorGate,
       applyGate_one,List.getElem?_eq_getElem hk,hstep]
 
+/-- The forward prefix word is legal, has structural time `2 ^ n - 1`, and realizes the
+corresponding variable-time prefix state with the workspace and flag preserved. -/
 theorem vt_forward_prefix_program (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (j₀ : VtSpace C) (w₀ : W) (ψ : QState (VtSpace C))
     (n : ℕ) (hn : n ≤ stages.length) :

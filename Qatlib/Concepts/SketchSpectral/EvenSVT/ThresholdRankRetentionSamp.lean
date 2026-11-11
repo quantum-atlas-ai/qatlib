@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.EvenSVT.ThresholdRankRetentionStat
 import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
+
+/-!
+# Retention of singular values above a threshold
+
+The module proves `thresholdRankRetention` using monotonicity of the ordered singular values and
+two Gram perturbation bounds. A sufficient gap between the source squared singular value and the
+threshold ensures that the first `k` sketch singular values remain above the threshold, as used
+in [ChiaEtAl2022].
+
+## Main statements
+
+* `matrixSingularValues_antitone'`: The singular values of a finite complex matrix form an
+  antitone sequence indexed by natural numbers.
+* `thresholdRankRetention`: Two Gram error bounds and the stated squared-singular-value gap
+  ensure `τ ≤ matrixSingularValues Cc i` for every `i < k`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SketchSpectral.SketchPerturb
@@ -20,10 +41,14 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The singular values of a finite complex matrix form an antitone sequence indexed by natural
+numbers. -/
 theorem matrixSingularValues_antitone' (K C : Type) [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (A : Matrix K C ℂ) :
     Antitone (fun i : ℕ => matrixSingularValues A i) := A.toEuclideanLin.singularValues_antitone
 
+/-- Two Gram error bounds and the stated squared-singular-value gap ensure `τ ≤
+matrixSingularValues Cc i` for every `i < k`. See [ChiaEtAl2022]. -/
 theorem thresholdRankRetention : ThresholdRankRetention := by
   intro K C RS CT _ _ _ _ _ _ _ _ A R Cc k η₁ η₂ τ hη₁ hη₂ hkRS hkC _hσ h₁ h₂ hcut i hi
   have hpos := matrixSingularValues_nonneg Cc i

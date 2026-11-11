@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.TanDensityPrefactorInequalityStat
+
+/-!
+# Bounds for the tangent density prefactor
+
+`tanDensityPrefactorInequality_answer` bounds the product of the squared tangent density factor
+and the rounded Grover gain. It also proves the exact tangent-density identity and positivity of
+the gain under the half-density assumptions used in [Cornwell2014].
+
+## Main statements
+
+* `tanDensityPrefactorInequality_answer`: Proves the upper and lower bounds for tan²θ times the
+  gain, the identity tan²θ = T/(N−T), and 0 < gain ≤ 1 for 2 ≤ T and 2T ≤ N; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -13,6 +31,8 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 set_option autoImplicit false
 namespace Qatlib.Concepts.AmpTransform.NoiseEnvelope
 
+/-- Proves the upper and lower bounds for tan²θ times the gain, the identity tan²θ = T/(N−T),
+and 0 < gain ≤ 1 for 2 ≤ T and 2T ≤ N; see [Cornwell2014]. -/
 theorem tanDensityPrefactorInequality_answer : TanDensityPrefactorInequality := by
   intro N T hN hT hhalf
   (try dsimp only)

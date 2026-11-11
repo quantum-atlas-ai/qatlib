@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
 import Qatlib.Concepts.QueryComplexity.Amplification.SubroutineCleaning
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+/-!
+# Tidy standard-oracle amplification specification
+
+`StandardOracleTidyAmplification` specifies error reduction followed by coherent output copying
+and uncomputation. Its success event is the single basis state with the original seed registers
+restored and only the answer bit changed, with explicit repetition and resource bounds. The
+background is described in [BennettEtAl1997].
+
+## Main statements
+
+* `StandardOracleTidyAmplification`: amplification with restored work registers and a designated
+  output bit.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +38,10 @@ namespace Qatlib.Concepts.UniformBqp.OracleAmplify
 open Matrix
 open scoped Classical BigOperators
 
+/-- The assertion that a unitary standard bit-oracle circuit with success at least `2/3` can be
+amplified so that the exact state with restored seed registers and the correct output bit
+has probability at least `1 - ε`. It includes logarithmic repetition, doubled copied-query
+cost, and an explicit gate bound. -/
 def StandardOracleTidyAmplification : Prop :=
   ∀ (n : ℕ) (hn : 0 < n) (W X : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     [Fintype X] [DecidableEq X] (C : Circuit ((Fin n × Bool) × W))

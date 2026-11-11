@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
 import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
+
+/-!
+# T-transform coordinates and spectral bounds
+
+This module proves coordinate formulas, sum preservation, and nonnegativity for T-transforms. In
+dimension two, it proves majorization under mixing and represents a descending vector majorized
+by another as a T-transform, supporting the construction in [Nielsen1999].
+
+It also evaluates the one-bit cost of a two-outcome measurement and identifies the zeroth branch
+spectrum of a T-transform instrument under the stated filter and branch-mass hypotheses.
+
+## Main statements
+
+* `exists_tTransform_of_majorizes`: represents the two-dimensional spectral comparison by a
+  T-transform.
+* `tTransformSpectrum_sum`: proves sum preservation.
+* `branchSpectrum_tTransformInstrument_zero`: identifies the zeroth branch spectrum coordinate.
+
+## References
+
+* [Nielsen, 1999][Nielsen1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,16 +43,20 @@ open Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
 open Qatlib.Papers.EntangleTrans99.MainResults.Majorization
 open scoped BigOperators
 
+/-- The zeroth coordinate of a two-dimensional T-transform is `θ * spec 0 + (1 - θ) * spec 1`. -/
 theorem tTransformSpectrum_zero (spec : Fin 2 → ℝ) (θ : ℝ) :
     tTransformSpectrum spec θ 0 1 0 = θ * spec 0 + (1 - θ) * spec 1 := by
   simp [tTransformSpectrum]
   ring
 
+/-- The first coordinate of a two-dimensional T-transform is `(1 - θ) * spec 0 + θ * spec 1`. -/
 theorem tTransformSpectrum_one (spec : Fin 2 → ℝ) (θ : ℝ) :
     tTransformSpectrum spec θ 0 1 1 = (1 - θ) * spec 0 + θ * spec 1 := by
   simp [tTransformSpectrum]
   ring
 
+/-- A measurement with two outcomes has communication cost one bit under `outcomeCostBits`
+[Nielsen1999]. -/
 theorem outcomeCostBits_two : outcomeCostBits 2 = 1 := by
   unfold outcomeCostBits
   have hlog : Real.log (2 : ℝ) ≠ 0 := ne_of_gt (Real.log_pos (by norm_num))
@@ -37,6 +64,8 @@ theorem outcomeCostBits_two : outcomeCostBits 2 = 1 := by
   rw [h2, div_self hlog]
   norm_num
 
+/-- A two-entry real vector majorizes its T-transform whenever the mixing parameter lies in `[0,
+1]` [Nielsen1999]. -/
 theorem majorizes_tTransformSpectrum {a : Fin 2 → ℝ}
     {θ : ℝ} (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) :
     Majorizes a (tTransformSpectrum a θ 0 1) := by
@@ -50,6 +79,8 @@ theorem majorizes_tTransformSpectrum {a : Fin 2 → ℝ}
     ring_nf
     linarith
 
+/-- If two descending two-entry real vectors have sum one and `a` majorizes `b`, then `b` is a
+T-transform of `a` with a parameter in `[0, 1]` [Nielsen1999]. -/
 theorem exists_tTransform_of_majorizes {a b : Fin 2 → ℝ}
     (ha : a 0 + a 1 = 1) (hb : b 0 + b 1 = 1)
     (hasort : a 1 ≤ a 0) (hbsort : b 1 ≤ b 0) (hmaj : Majorizes a b) :
@@ -101,23 +132,29 @@ section GeneralDim
 
 variable {D : ℕ}
 
+/-- At the first of two distinct selected coordinates, a T-transform has value `θ * spec k + (1
+- θ) * spec l`. -/
 theorem tTransformSpectrum_apply_k (spec : Fin D → ℝ) (θ : ℝ) {k l : Fin D}
     (hkl : k ≠ l) :
     tTransformSpectrum spec θ k l k = θ * spec k + (1 - θ) * spec l := by
   simp [tTransformSpectrum, hkl]
   ring
 
+/-- At the second of two distinct selected coordinates, a T-transform has value `(1 - θ) * spec
+k + θ * spec l`. -/
 theorem tTransformSpectrum_apply_l (spec : Fin D → ℝ) (θ : ℝ) {k l : Fin D}
     (hkl : k ≠ l) :
     tTransformSpectrum spec θ k l l = (1 - θ) * spec k + θ * spec l := by
   simp [tTransformSpectrum, Ne.symm hkl]
   ring
 
+/-- A T-transform leaves every coordinate outside the selected pair unchanged. -/
 theorem tTransformSpectrum_other (spec : Fin D → ℝ) (θ : ℝ) {k l j : Fin D}
     (hjk : j ≠ k) (hjl : j ≠ l) :
     tTransformSpectrum spec θ k l j = spec j := by
   simp [tTransformSpectrum, hjk, hjl]
 
+/-- A T-transform preserves the sum of a finite real vector [Nielsen1999]. -/
 theorem tTransformSpectrum_sum (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) :
     (∑ j, tTransformSpectrum spec θ k l j) = ∑ j, spec j := by
   simp only [tTransformSpectrum]
@@ -129,6 +166,8 @@ theorem tTransformSpectrum_sum (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) :
   rw [← Finset.mul_sum, hpair]
   ring
 
+/-- A T-transform with parameter in `[0, 1]` and distinct selected coordinates preserves
+coordinatewise nonnegativity [Nielsen1999]. -/
 theorem tTransformSpectrum_nonneg (spec : Fin D → ℝ) {θ : ℝ} {k l : Fin D}
     (hkl : k ≠ l) (hspec : ∀ j, 0 ≤ spec j) (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) :
     ∀ j, 0 ≤ tTransformSpectrum spec θ k l j := by
@@ -142,6 +181,9 @@ theorem tTransformSpectrum_nonneg (spec : Fin D → ℝ) {θ : ℝ} {k l : Fin D
     · rw [tTransformSpectrum_other spec θ hjk hjl]
       exact hspec j
 
+/-- For a nonzero input coordinate, the zeroth branch spectrum of the T-transform instrument
+equals the transformed coordinate when its branch mass is the nonzero parameter `p` and the
+filter lies in `[0, 1]` [Nielsen1999]. -/
 theorem branchSpectrum_tTransformInstrument_zero (spec : Fin D → ℝ)
     (p θ : ℝ) {k l : Fin D}
     (hfilter : ∀ j, tTransformFilter spec p θ k l j ≤ 1)

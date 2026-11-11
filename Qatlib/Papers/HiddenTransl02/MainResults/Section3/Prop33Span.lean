@@ -13,6 +13,25 @@ import Mathlib.Data.ZMod.Basic
 import Mathlib.Data.Finsupp.Weight
 import Qatlib.Papers.HiddenTransl02.MainResults.Section3.LineLemmaPoly
 import Mathlib.Tactic
+
+/-!
+# Powers of linear forms span homogeneous polynomials
+
+This module proves Proposition 3.3 of [FriedlEtAl2014]: for `1 ≤ k ≤ p - 1`, the `k`th powers of
+linear forms over the prime field span the homogeneous polynomials of degree `k`. The induction
+uses multiplication by coordinate variables through the linear map `mulXi`.
+
+## Main statements
+
+* `span_lin_pow_one`: proves the degree-one spanning identity.
+* `span_lin_pow_eq_homogeneous`: proves the spanning identity in all degrees from one to `p -
+  1`.
+
+## References
+
+* [Friedl et al., 2014][FriedlEtAl2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +45,7 @@ open MvPolynomial Finset
 
 variable {n p : ℕ}
 
+/-- The polynomial `lin y` is homogeneous of degree one. -/
 theorem lin_isHomogeneous (y : Fin n → ZMod p) : (lin y).IsHomogeneous 1 := by
   rw [lin]
   refine MvPolynomial.IsHomogeneous.sum univ
@@ -33,11 +53,13 @@ theorem lin_isHomogeneous (y : Fin n → ZMod p) : (lin y).IsHomogeneous 1 := by
   intro i _
   exact (MvPolynomial.isHomogeneous_X (R := ZMod p) i).C_mul (y i)
 
+/-- The `k`th power of `lin y` is homogeneous of degree `k`. -/
 theorem lin_pow_isHomogeneous (y : Fin n → ZMod p) (k : ℕ) :
     (lin y ^ k).IsHomogeneous k := by
   have h := (lin_isHomogeneous (p := p) y).pow k
   simpa using h
 
+/-- The span of the first powers of all `lin y` is the degree-one homogeneous subspace. -/
 theorem span_lin_pow_one :
     Submodule.span (ZMod p) (Set.range (fun y : Fin n → ZMod p => lin y ^ 1))
       = MvPolynomial.homogeneousSubmodule (Fin n) (ZMod p) 1 := by
@@ -61,6 +83,8 @@ theorem span_lin_pow_one :
     change lin (Pi.single i (1 : ZMod p)) ^ 1 = MvPolynomial.X i
     rw [pow_one, lin_single]
 
+/-- For prime `p` and `m + 1 ≤ p - 1`, the product `X i * lin z ^ m` lies in the span of `(m +
+1)`st powers of linear forms. -/
 theorem Xi_mul_lin_pow_mem (hp : p.Prime) {m : ℕ} (hmp : m + 1 ≤ p - 1)
     (i : Fin n) (z : Fin n → ZMod p) :
     (MvPolynomial.X i) * lin z ^ m ∈
@@ -77,6 +101,7 @@ theorem Xi_mul_lin_pow_mem (hp : p.Prime) {m : ℕ} (hmp : m + 1 ≤ p - 1)
   have h' := hspan_le h
   simpa [lin_single, pow_one] using h'
 
+/-- The `ZMod p`-linear map given by multiplication by the coordinate variable `X i`. -/
 def mulXi (i : Fin n) :
     MvPolynomial (Fin n) (ZMod p) →ₗ[ZMod p] MvPolynomial (Fin n) (ZMod p) where
   toFun x := MvPolynomial.X i * x
@@ -85,6 +110,8 @@ def mulXi (i : Fin n) :
     simp only [MvPolynomial.smul_eq_C_mul, RingHom.id_apply]
     ring
 
+/-- For prime `p` and `m + 1 ≤ p - 1`, multiplication by `X i` sends the span of `m`th powers of
+linear forms into the span of `(m + 1)`st powers. -/
 theorem Xi_mul_span_le (hp : p.Prime) {m : ℕ} (hmp : m + 1 ≤ p - 1) (i : Fin n) :
     ∀ M' ∈ Submodule.span (ZMod p) (Set.range (fun z : Fin n → ZMod p => lin z ^ m)),
       (MvPolynomial.X i) * M' ∈
@@ -98,6 +125,8 @@ theorem Xi_mul_span_le (hp : p.Prime) {m : ℕ} (hmp : m + 1 ≤ p - 1) (i : Fin
     exact Xi_mul_lin_pow_mem hp hmp i z
   exact hcomap hM'
 
+/-- For prime `p`, assuming the degree-`m` spanning identity, every monomial of degree `m + 1 ≤
+p - 1` belongs to the span of `(m + 1)`st powers of linear forms. -/
 theorem monomial_mem_span_succ (hp : p.Prime) {m : ℕ}
     (hmp : m + 1 ≤ p - 1)
     (hIH : Submodule.span (ZMod p) (Set.range (fun z : Fin n → ZMod p => lin z ^ m))
@@ -137,6 +166,8 @@ theorem monomial_mem_span_succ (hp : p.Prime) {m : ℕ}
   rw [hsplit]
   exact Xi_mul_span_le hp hmp i _ hg_mem
 
+/-- Over a prime field, the degree-`m` spanning identity implies the degree-`(m + 1)` identity
+whenever `m + 1 ≤ p - 1`. -/
 theorem span_lin_pow_succ (hp : p.Prime) {m : ℕ} (hmp : m + 1 ≤ p - 1)
     (hIH : Submodule.span (ZMod p) (Set.range (fun z : Fin n → ZMod p => lin z ^ m))
       = MvPolynomial.homogeneousSubmodule (Fin n) (ZMod p) m) :
@@ -154,6 +185,8 @@ theorem span_lin_pow_succ (hp : p.Prime) {m : ℕ} (hmp : m + 1 ≤ p - 1)
       Submodule.span (ZMod p) (Set.range (fun y : Fin n → ZMod p => lin y ^ (m + 1)))
     exact monomial_mem_span_succ hp hmp hIH d (by simpa using hd)
 
+/-- For prime `p` and `1 ≤ k ≤ p - 1`, the `k`th powers of all linear forms span the degree-`k`
+homogeneous subspace. This is [Friedl et al., Proposition 3.3][FriedlEtAl2014]. -/
 theorem span_lin_pow_eq_homogeneous (hp : p.Prime) :
     ∀ (k : ℕ), 1 ≤ k → k ≤ p - 1 →
       Submodule.span (ZMod p) (Set.range (fun y : Fin n → ZMod p => lin y ^ k))

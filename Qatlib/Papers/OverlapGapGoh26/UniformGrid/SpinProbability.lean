@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.UniformGrid.SpinEnergy
 import Mathlib.Topology.Maps.Proper.Basic
+
+/-!
+# Probability reduction for spin energy paths
+
+A spin-energy continuum exceedance is covered by the data-box complement and finitely many grid
+exceedances. The Gaussian localization estimate and interpolation marginal law yield an explicit
+fixed-instance probability bound for the spin dynamics of [GohMuller2026]; continuity also
+establishes measurability of the continuum event.
+
+## Main statements
+
+* `actual_spin_fixed_instance_reduction`: a continuum event is bounded by a Gaussian tail and a
+  grid factor times one fixed-instance probability.
+* `measurableSet_spin_continuum_energy`: spin-energy continuum threshold events are measurable.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,6 +46,8 @@ open Qatlib.Papers.OverlapGapGoh26.UniformGrid.SpinEnergy
 
 namespace Qatlib.Papers.OverlapGapGoh26.UniformGrid.SpinProbability
 
+/-- For positive `N` and `ε` and schedules in `[0, 1]`, a spin-energy exceedance at `c + ε` lies
+outside the unit data box or produces a grid exceedance at `c`. -/
 theorem actual_spin_grid_inclusion {r N T : ℕ} (hN : 0<N) (M : ℝ)
     (s : ℕ → ℝ) (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (ε : ℝ) (hε : 0<ε) (c : ℝ) :
     {w : Sample r N | ∃ τ∈Set.Icc (0:ℝ) 1,c+ε≤ spinEnergyPath M s T w τ} ⊆
@@ -42,6 +64,10 @@ theorem actual_spin_grid_inclusion {r N T : ℕ} (hN : 0<N) (M : ℝ)
     linarith [hdist.2]
   · exact Or.inl hb
 
+/-- For positive `N` and `ε`, nonnegative `M`, and schedules in `[0, 1]`, the spin-energy
+continuum exceedance probability is bounded by the explicit Gaussian localization tail plus
+the spin-grid cardinality bound times the single-instance spin-energy exceedance
+probability. See [GohMuller2026]. -/
 theorem actual_spin_fixed_instance_reduction {r N T : ℕ} (hN : 0<N)
     (M : ℝ) (hM : 0≤M) (v : NNReal) (s : ℕ → ℝ)
     (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (ε : ℝ) (hε : 0<ε) (c : ℝ) :
@@ -80,6 +106,8 @@ theorem actual_spin_fixed_instance_reduction {r N T : ℕ} (hN : 0<N)
   exact add_le_add hloc
       (mul_le_mul_of_nonneg_right (by exact_mod_cast spinActualGrid_card r T N ε) (zero_le : 0≤Q))
 
+/-- The spin energy path is jointly continuous in the sampled tensors, seed, and interpolation
+parameter. -/
 theorem continuous_spinEnergyPath {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) :
     Continuous (fun p : Sample r N × ℝ => spinEnergyPath M s T p.1 p.2) := by
   have hJ : Continuous (fun p : Sample r N × ℝ => interpolate p.1.1.1 p.1.1.2 p.2) := by
@@ -89,6 +117,7 @@ theorem continuous_spinEnergyPath {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : �
     fun_prop
   exact (continuous_spinEnergy r N M s T).comp (hJ.prodMk (continuous_snd.comp continuous_fst))
 
+/-- The set of samples whose spin energy reaches or exceeds `c` somewhere on `[0, 1]` is closed. -/
 theorem isClosed_spin_continuum_energy {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) (c : ℝ) :
     IsClosed {w : Sample r N | ∃ τ∈Set.Icc (0:ℝ) 1,c≤ spinEnergyPath M s T w τ} := by
   let I := Set.Icc (0:ℝ) 1
@@ -110,6 +139,8 @@ theorem isClosed_spin_continuum_energy {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (
   rw [he] at hp
   exact hp
 
+/-- The set of samples whose spin energy reaches or exceeds `c` somewhere on `[0, 1]` is
+measurable. -/
 theorem measurableSet_spin_continuum_energy {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) (c : ℝ) :
     MeasurableSet {w : Sample r N | ∃ τ∈Set.Icc (0:ℝ) 1,c≤ spinEnergyPath M s T w τ} :=
   (isClosed_spin_continuum_energy M s T c).measurableSet

@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
 import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder
 import Mathlib.Analysis.Calculus.Taylor
+
+/-!
+# Raw nested commutator budgets and a Taylor counterexample
+
+This module defines `pfNestedCommList` and the raw tuple sums `pfCommAlphaInner` and
+`pfCommAlphaSelf` used in product-formula error estimates. These budgets provide the algebraic
+quantities appearing in commutator-scaling analyses such as [ChildsEtAl2021Trotter].
+
+It also constructs an order-zero counterexample to a proposed conjugation estimate using a
+Taylor polynomial through degree `p`, and deduces that the stated uniform skew-Hermitian
+estimate is false.
+
+## Main statements
+
+* `pfNestedCommList`: successive commutation along a matrix list.
+* `pf_comm_alpha_inner_zero`: the order-zero seeded budget is the seed norm.
+* `pf_conjugation_zero_order_counterexample`: a two-dimensional counterexample to the proposed
+  bound.
+* `pf_conjugation_expansion_skew_impossible`: failure of the proposed uniform estimate.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,30 +45,39 @@ namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The nested commutator obtained by starting with the first matrix and successively applying
+`pfComm Y` for each remaining matrix; the empty list gives zero. -/
 noncomputable def pfNestedCommList {I : Type} [Fintype I] :
     List (Matrix I I ℂ) → Matrix I I ℂ
   | [] => 0
   | X :: l => l.foldl (fun D Y => pfComm Y D) X
 
+/-- The list of matrices selected from `xs` by the finite tuple `idx`, in tuple order. -/
 def pfChosenList {I : Type} [Fintype I] (xs : List (Matrix I I ℂ)) {k : ℕ}
     (idx : Fin k → Fin xs.length) : List (Matrix I I ℂ) :=
   (List.finRange k).map (fun j => xs.getD (idx j : ℕ) 0)
 
+/-- The sum over all length-`k` tuples of generators of the norms of nested commutators seeded
+by `B`. -/
 noncomputable def pfCommAlphaInner {I : Type} [Fintype I] (xs : List (Matrix I I ℂ))
     (B : Matrix I I ℂ) (k : ℕ) : ℝ :=
   ∑ idx : Fin k → Fin xs.length,
     ‖pfNestedCommList (B :: pfChosenList xs idx)‖
 
+/-- The sum of the norms of nested commutators over all length-`k` tuples drawn from `xs`. -/
 noncomputable def pfCommAlphaSelf {I : Type} [Fintype I] (xs : List (Matrix I I ℂ))
     (k : ℕ) : ℝ :=
   ∑ idx : Fin k → Fin xs.length, ‖pfNestedCommList (pfChosenList xs idx)‖
 
 set_option backward.isDefEq.respectTransparency false
 
+/-- The inner commutator budget at order zero equals the norm of its seed matrix. -/
 theorem pf_comm_alpha_inner_zero {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) : pfCommAlphaInner xs B 0 = ‖B‖ := by
   simp [pfCommAlphaInner, pfChosenList, pfNestedCommList]
 
+/-- There exists a two-dimensional skew-Hermitian word whose error relative to the degree-zero
+Taylor polynomial exceeds the proposed order-zero inner commutator bound. -/
 theorem pf_conjugation_zero_order_counterexample :
     ∃ (xs : List (Matrix (Fin 2) (Fin 2) ℂ)) (B : Matrix (Fin 2) (Fin 2) ℂ) (t : ℝ),
       (∀ X ∈ xs, Xᴴ = -X) ∧
@@ -93,6 +127,9 @@ theorem pf_conjugation_zero_order_counterexample :
     norm_num [norm_smul]
     linarith only [norm_pos_iff.mpr hB]
 
+/-- The proposed uniform bound for conjugation error relative to the degree-`p` Taylor
+polynomial, with coefficient `pfCommAlphaInner xs B p / p!`, is false even for
+skew-Hermitian generators. -/
 theorem pf_conjugation_expansion_skew_impossible :
     ¬ (∀ (I : Type) [Fintype I] [DecidableEq I] (xs : List (Matrix I I ℂ))
       (B : Matrix I I ℂ) (p : ℕ) (t : ℝ), (∀ X ∈ xs, Xᴴ = -X) →

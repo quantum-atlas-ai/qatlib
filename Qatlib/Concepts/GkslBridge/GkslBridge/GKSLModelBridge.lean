@@ -10,6 +10,19 @@ import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
 import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupKmsMixing
+
+/-!
+# Compatibility of two finite-dimensional GKSL models
+
+The Hamiltonian and jump operators of a Lindblad generator are packaged as
+thermal-model data. The two generator maps coincide, and their exponential
+evolutions agree. This transports a trace-distance mixing estimate under a
+faithful stationary-state KMS symmetry and spectral-gap hypothesis.
+
+The generator form comes from [Lindblad1976] and
+[Gorini, Kossakowski & Sudarshan][GoriniKossakowskiSudarshan1976]. Open-system
+background is [BreuerPetruccione2007].
+-/
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
@@ -25,9 +38,12 @@ namespace Qatlib.Concepts.GkslBridge.GkslBridge
 open Matrix Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Regard a semigroup GKSL model as thermal-source data with the same Hamiltonian and `D * D`
+jump operators. -/
 def thermalData {D : ℕ} (G : GKSL D) : Qatlib.Concepts.GkslBridge.GkslBridge.GKSLData D (D * D) :=
   ⟨G.ham, G.jumps⟩
 
+/-- The generator of the converted thermal data equals the original Lindblad linear map. -/
 theorem generator_eq {D : ℕ} (G : GKSL D) :
     Qatlib.Concepts.GkslBridge.GkslBridge.gkslMap (thermalData G) = lindbladMap G := by
   apply LinearMap.ext
@@ -37,6 +53,9 @@ theorem generator_eq {D : ℕ} (G : GKSL D) :
     LinearMap.add_apply, LinearMap.sub_apply, LinearMap.smul_apply, LinearMap.sum_apply,
     LinearMap.comp_apply, LinearMap.mulLeft_apply, LinearMap.mulRight_apply, Matrix.mul_assoc]
 
+/-- The thermal-model exponential and the Lindblad semigroup give the same
+evolution for the same Hamiltonian and jumps. Compare
+[Lindblad, dynamical semigroup generators][Lindblad1976]. -/
 theorem evolve_eq {D : ℕ} (G : GKSL D) (t : ℝ) (X : Operator D) :
     Qatlib.Concepts.GkslBridge.GkslBridge.evolveAt (thermalData G) t X = lindbladSemigroup G t X := by
   letI : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
@@ -69,6 +88,7 @@ theorem evolve_eq {D : ℕ} (G : GKSL D) (t : ℝ) (X : Operator D) :
   simpa only [Qatlib.Concepts.GkslBridge.GkslBridge.evolveAt, Qatlib.Concepts.GkslBridge.GkslBridge.gkslCLM,
     generator_eq] using! heq
 
+/-- Converting a GKSL model preserves both its generator and its exponential time evolution. -/
 theorem g1 :
     ∀ (D : ℕ) (G : Qatlib.Concepts.LindbladFlow.GkslSemigroup.GKSL D),
       let T : Qatlib.Concepts.GkslBridge.GkslBridge.GKSLData D (D * D) := ⟨G.ham, G.jumps⟩
@@ -78,6 +98,8 @@ theorem g1 :
   intro D G
   exact ⟨generator_eq G, evolve_eq G⟩
 
+/-- Under the positive-definite reference-density, KMS self-adjointness, and KMS gap hypotheses,
+the converted evolution satisfies the stated exponential trace-distance bound. -/
 theorem g2 :
     ∀ (D : ℕ) (G : Qatlib.Concepts.LindbladFlow.GkslSemigroup.GKSL D) (ρ : Operator D),
       IsDensityOperator ρ → ρ.PosDef →

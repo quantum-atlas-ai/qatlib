@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ContDiscWalk08.MainResults.SimulationComplexity.Theorem2NormBound
 import Qatlib.Papers.ContDiscWalk08.CompressedSim.ArcsinCubic
+
+/-!
+# Compressed walk symbols
+
+The scalar functions `sFactor` and `compressedSymbol` encode a square-root weight and a
+combination of the two arcsine phases used in the walk simulation analysis of [Childs2010].
+Exact identities and norm estimates compare this symbol with both the arcsine evolution and the
+linear phase.
+
+## Main statements
+
+* `compressedSymbol_sub_exp`: exact discrepancy from the negative arcsine phase.
+* `norm_compressedSymbol_sub_exp_neg_le_cubic`: quadratic and cubic scalar error bound.
+
+## References
+
+* [Childs, 2010][Childs2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,8 +37,11 @@ open scoped Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.ContDiscWalk08.CompressedSim
 
+/-- Defines the nonnegative square root of `1 - lam ^ 2`. -/
 def sFactor (lam : ℝ) : ℝ := Real.sqrt (1 - lam ^ 2)
 
+/-- Defines `((1 + s) * exp(-i * t * arcsin lam) - (1 - s) * exp(i * t * arcsin lam)) / 2`,
+where `s = sFactor lam`. -/
 def compressedSymbol (lam t : ℝ) : ℂ :=
   (1 / 2 : ℂ) *
     (-(Complex.exp (Complex.I * ((t * Real.arcsin lam : ℝ) : ℂ))) *
@@ -27,17 +49,23 @@ def compressedSymbol (lam t : ℝ) : ℂ :=
       + Complex.exp (-(Complex.I * ((t * Real.arcsin lam : ℝ) : ℂ))) *
         (((1 + sFactor lam : ℝ)) : ℂ))
 
+/-- The square-root factor `sFactor lam` is nonnegative. -/
 theorem sFactor_nonneg (lam : ℝ) : 0 ≤ sFactor lam := Real.sqrt_nonneg _
 
+/-- If `lam ^ 2 ≤ 1`, then `sFactor lam ≤ 1`. -/
 theorem sFactor_le_one {lam : ℝ} (hlam : lam ^ 2 ≤ 1) : sFactor lam ≤ 1 := by
   have hs2 : sFactor lam ^ 2 = 1 - lam ^ 2 := Real.sq_sqrt (by linarith)
   nlinarith [sFactor_nonneg lam]
 
+/-- If `lam ^ 2 ≤ 1`, the deficit `1 - sFactor lam` is at most `lam ^ 2`. -/
 theorem one_sub_sFactor_le_sq {lam : ℝ} (hlam : lam ^ 2 ≤ 1) :
     1 - sFactor lam ≤ lam ^ 2 := by
   have hs2 : sFactor lam ^ 2 = 1 - lam ^ 2 := Real.sq_sqrt (by linarith)
   nlinarith [sFactor_nonneg lam]
 
+/-- Expresses the difference between the compressed symbol and the negative arcsine phase as the
+cosine multiplied by the negative square-root deficit. This is a scalar identity for the
+simulation analysis in [Childs2010]. -/
 theorem compressedSymbol_sub_exp (lam t : ℝ) :
     compressedSymbol lam t
         - Complex.exp (-(Complex.I * ((t * Real.arcsin lam : ℝ) : ℂ)))
@@ -72,6 +100,8 @@ theorem compressedSymbol_sub_exp (lam t : ℝ) :
     linear_combination (((s : ℂ) - 1) / 2) * hsum
   simpa [compressedSymbol, hEdef, a, s] using hmain
 
+/-- For `lam ^ 2 ≤ 1`, bounds the discrepancy from the negative arcsine phase by `lam ^ 2`,
+uniformly in real time. See [Childs2010]. -/
 theorem norm_compressedSymbol_sub_exp_le {lam : ℝ} (hlam : lam ^ 2 ≤ 1) (t : ℝ) :
     ‖compressedSymbol lam t
         - Complex.exp (-(Complex.I * ((t * Real.arcsin lam : ℝ) : ℂ)))‖
@@ -89,6 +119,8 @@ theorem norm_compressedSymbol_sub_exp_le {lam : ℝ} (hlam : lam ^ 2 ≤ 1) (t :
       ≤ lam ^ 2 * 1 := mul_le_mul hcoef hcos (norm_nonneg _) (by positivity)
     _ = lam ^ 2 := by ring
 
+/-- The distance between two negative complex phases is at most the absolute difference of their
+real arguments. -/
 theorem norm_exp_phase_sub_le (u v : ℝ) :
     ‖Complex.exp (-(Complex.I * (u : ℂ))) - Complex.exp (-(Complex.I * (v : ℂ)))‖
       ≤ |u - v| := by
@@ -111,6 +143,8 @@ theorem norm_exp_phase_sub_le (u v : ℝ) :
   rw [abs_sub_comm]
   simpa using h
 
+/-- For `lam ^ 2 ≤ 1`, bounds the discrepancy from the linear phase by `lam ^ 2 + |t| *
+|Real.arcsin lam - lam|`. -/
 theorem norm_compressedSymbol_sub_exp_neg_le {lam : ℝ} (hlam : lam ^ 2 ≤ 1) (t : ℝ) :
     ‖compressedSymbol lam t
         - Complex.exp (-(Complex.I * ((t * lam : ℝ) : ℂ)))‖
@@ -132,6 +166,8 @@ theorem norm_compressedSymbol_sub_exp_neg_le {lam : ℝ} (hlam : lam ^ 2 ≤ 1) 
     rwa [harg, abs_mul] at h
   exact add_le_add (norm_compressedSymbol_sub_exp_le hlam t) hphase
 
+/-- For `|lam| ≤ 1`, bounds the discrepancy from the linear phase by `lam ^ 2 * (1 + 2 * |t| *
+|lam|)`. This gives a scalar simulation estimate related to [Childs2010]. -/
 theorem norm_compressedSymbol_sub_exp_neg_le_cubic {lam : ℝ} (h : |lam| ≤ 1) (t : ℝ) :
     ‖compressedSymbol lam t - Complex.exp (-(Complex.I * ((t * lam : ℝ) : ℂ)))‖
       ≤ lam ^ 2 * (1 + 2 * |t| * |lam|) := by

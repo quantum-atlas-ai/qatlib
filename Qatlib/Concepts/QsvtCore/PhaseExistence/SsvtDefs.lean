@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvtDefs
 import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
 import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+
+/-!
+# Definitions of parity-selected transformation words
+
+`Def15Parity` selects the two compiled forms of the singular value transformation word, and
+`def15Word` supplies their matrix interpretation. `SourceLedger` and `def15Ledger` count data
+queries, projector-NOT steps, and phase macros.
+
+`CtrlStep` extends the symbolic language with controlled and multiply controlled phase
+operations. The module defines phase tables, controlled compilers, and `CtrlLedger`, and proves
+additivity and swap identities for their resource counts. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `def15Steps` and `def15Word`: define the parity-selected compiled words.
+* `def15Ledger_append`: add resource counts under concatenation.
+* `ctrlDef15Steps` and `mulCtrlDef15Steps`: define controlled variants.
+* `ctrlCounts_append`: add controlled resource counts under concatenation.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 
@@ -46,14 +70,19 @@ open Qatlib
 open Qatlib
 open scoped Classical BigOperators Kronecker
 
+/-- The odd and even parity tags selecting the two Definition 15 compilation conventions. -/
 inductive Def15Parity where
   | odd
   | even
 
+/-- The compiled source phase family for odd parity, or the same list with data-query directions
+interchanged for even parity. -/
 def def15Steps (Φ : List ℝ) : Def15Parity → List (CPPStep Bool)
   | .odd => cppCompile (sourceRealFamily Φ)
   | .even => (cppCompile (sourceRealFamily Φ)).map cppSwapData
 
+/-- The matrix interpretation of the parity-selected step list, using projectors `P`, `Q` for
+odd parity and `Q`, `P` for even parity. -/
 noncomputable def def15Word {H : Type} [Fintype H] [DecidableEq H]
     (U P Q : Matrix H H ℂ) (Φ : List ℝ) (p : Def15Parity) :
     Matrix (Bool × (Bool × H)) (Bool × (Bool × H)) ℂ :=
@@ -61,6 +90,8 @@ noncomputable def def15Word {H : Type} [Fintype H] [DecidableEq H]
   | .odd => cppEvaluate U P Q (def15Steps Φ .odd)
   | .even => cppEvaluate U Q P (def15Steps Φ .even)
 
+/-- A record of forward and adjoint data queries, separate `P` and `Q` projector-NOT counts, and
+phase-macro counts. -/
 structure SourceLedger where
 
   forwardQueries : ℕ
@@ -74,6 +105,7 @@ structure SourceLedger where
   phaseMacros : ℕ
   deriving DecidableEq, Repr
 
+/-- Count each type of data query, projector-NOT step, and phase macro in a `CPPStep` list. -/
 def def15Ledger {J : Type} : List (CPPStep J) → SourceLedger
   | [] => ⟨0, 0, 0, 0, 0⟩
   | s :: ss =>
@@ -90,6 +122,7 @@ def def15Ledger {J : Type} : List (CPPStep J) → SourceLedger
     | .phase _ => ⟨c.forwardQueries, c.adjointQueries, c.projectorNotP,
         c.projectorNotQ, c.phaseMacros + 1⟩
 
+/-- Concatenating step lists adds all five components of their source resource ledgers. -/
 theorem def15Ledger_append {J : Type} (ss ts : List (CPPStep J)) :
     def15Ledger (ss ++ ts) =
       { forwardQueries := (def15Ledger ss).forwardQueries + (def15Ledger ts).forwardQueries
@@ -101,6 +134,8 @@ theorem def15Ledger_append {J : Type} (ss ts : List (CPPStep J)) :
   | nil => simp [def15Ledger]
   | cons s ss ih => cases s <;> simp [def15Ledger, ih] <;> omega
 
+/-- Interchanging data-query directions swaps the forward and adjoint counts and preserves
+projector and phase counts. -/
 theorem def15Ledger_swapData {J : Type} (ss : List (CPPStep J)) :
     def15Ledger (ss.map cppSwapData) =
       { forwardQueries := (def15Ledger ss).adjointQueries
@@ -112,6 +147,8 @@ theorem def15Ledger_swapData {J : Type} (ss : List (CPPStep J)) :
   | nil => simp [def15Ledger]
   | cons s ss ih => cases s <;> simp [def15Ledger, cppSwapData, ih]
 
+/-- Applying `cppSwap` exchanges both data-query directions and the two projector counts, while
+preserving the phase count. -/
 theorem def15Ledger_swap {J : Type} (ss : List (CPPStep J)) :
     def15Ledger (ss.map cppSwap) =
       { forwardQueries := (def15Ledger ss).adjointQueries
@@ -123,6 +160,8 @@ theorem def15Ledger_swap {J : Type} (ss : List (CPPStep J)) :
   | nil => simp [def15Ledger]
   | cons s ss ih => cases s <;> simp [def15Ledger, cppSwap, ih]
 
+/-- The symbolic projector, data-query, phase, controlled-phase, multiply controlled phase, and
+controlled data-query operations. -/
 inductive CtrlStep (J : Type) where
   | projectorP
   | projectorQ
@@ -134,6 +173,8 @@ inductive CtrlStep (J : Type) where
   | controlledForward
   | controlledBackward
 
+/-- Interchange the two projectors and both ordinary and controlled data-query directions,
+preserving all phase operations. -/
 def ctrlSwap {J : Type} : CtrlStep J → CtrlStep J
   | .projectorP => .projectorQ
   | .projectorQ => .projectorP
@@ -145,6 +186,8 @@ def ctrlSwap {J : Type} : CtrlStep J → CtrlStep J
   | .controlledForward => .controlledBackward
   | .controlledBackward => .controlledForward
 
+/-- Interchange ordinary and controlled data-query directions while preserving projector and
+phase operations. -/
 def ctrlSwapData {J : Type} : CtrlStep J → CtrlStep J
   | .forward => .backward
   | .backward => .forward
@@ -152,18 +195,24 @@ def ctrlSwapData {J : Type} : CtrlStep J → CtrlStep J
   | .controlledBackward => .controlledForward
   | s => s
 
+/-- Compile a phase family using controlled phases between two projector steps and alternating
+data-query directions. -/
 def ctrlCompileControlled {J : Type} : List (J → ℝ) → List (CtrlStep J)
   | [] => []
   | f :: fs =>
       [.projectorQ, .controlledPhase f, .projectorQ, .forward] ++
         (ctrlCompileControlled fs).map ctrlSwap
 
+/-- Compile a phase family using multiply controlled phases between two projector steps and
+alternating data-query directions. -/
 def ctrlCompileMultiplyControlled {J : Type} : List (J → ℝ) → List (CtrlStep J)
   | [] => []
   | f :: fs =>
       [.projectorQ, .multiplyControlledPhase f, .projectorQ, .forward] ++
         (ctrlCompileMultiplyControlled fs).map ctrlSwap
 
+/-- A record of ordinary and controlled forward and adjoint queries, total projector-NOT steps,
+and ordinary, controlled, and multiply controlled phase counts. -/
 structure CtrlLedger where
 
   dataQueries : ℕ
@@ -183,6 +232,7 @@ structure CtrlLedger where
   controlledAdjointQueries : ℕ
   deriving DecidableEq, Repr
 
+/-- Compute the eight resource counts of a list of controlled symbolic steps. -/
 def ctrlCounts {J : Type} : List (CtrlStep J) → CtrlLedger
   | [] => ⟨0, 0, 0, 0, 0, 0, 0, 0⟩
   | s :: ss =>
@@ -217,15 +267,23 @@ def ctrlCounts {J : Type} : List (CtrlStep J) → CtrlLedger
         c.phaseGates, c.controlledPhaseGates, c.multiplyControlledPhaseGates,
         c.controlledDataQueries, c.controlledAdjointQueries + 1⟩
 
+/-- The phase family assigning each angle or its negative according to the first Boolean
+coordinate. -/
 def ctrlSourceFamily (Φ : List ℝ) : List ((Bool × Bool) → ℝ) :=
   Φ.map (fun φ j => if j.1 then -φ else φ)
 
+/-- Interpret a Boolean control assignment as a natural binary index by folding over
+`List.finRange m`. -/
 def ctrlIndex {m : ℕ} (c : Fin m → Bool) : ℕ :=
   List.foldl (fun acc k => 2 * acc + (if c k then 1 else 0)) 0 (List.finRange m)
 
+/-- Select the phase list indexed by the Boolean control assignment, using the empty list when
+its index is out of range. -/
 def mulCtrlTable {m : ℕ} (Φs : List (List ℝ)) (c : Fin m → Bool) : List ℝ :=
   if h : ctrlIndex c < Φs.length then Φs[ctrlIndex c] else []
 
+/-- The length-`d` phase family selected by the control table, negated according to the final
+Boolean coordinate and padded by zero beyond each selected list. -/
 def mulCtrlSourceFamily {m : ℕ} (Φs : List (List ℝ)) (d : ℕ) :
     List ((Fin m → Bool) × Bool → ℝ) :=
   (List.range d).map (fun i => fun j =>
@@ -234,6 +292,7 @@ def mulCtrlSourceFamily {m : ℕ} (Φs : List (List ℝ)) (d : ℕ) :
       if j.2 then -φ else φ
     else 0)
 
+/-- Concatenating controlled step lists adds all eight components of their resource ledgers. -/
 theorem ctrlCounts_append {J : Type} (ss ts : List (CtrlStep J)) :
     ctrlCounts (ss ++ ts) =
       { dataQueries := (ctrlCounts ss).dataQueries + (ctrlCounts ts).dataQueries
@@ -253,6 +312,8 @@ theorem ctrlCounts_append {J : Type} (ss ts : List (CtrlStep J)) :
   | nil => simp [ctrlCounts]
   | cons s ss ih => cases s <;> simp [ctrlCounts, ih] <;> omega
 
+/-- Applying `ctrlSwap` exchanges the ordinary and controlled forward and adjoint counts and
+preserves all other ledger fields. -/
 theorem ctrlCounts_swap {J : Type} (ss : List (CtrlStep J)) :
     ctrlCounts (ss.map ctrlSwap) =
       { ctrlCounts ss with
@@ -264,6 +325,8 @@ theorem ctrlCounts_swap {J : Type} (ss : List (CtrlStep J)) :
   | nil => simp [ctrlCounts]
   | cons s ss ih => cases s <;> simp [ctrlCounts, ctrlSwap, ih]
 
+/-- Applying `ctrlSwapData` exchanges the ordinary and controlled forward and adjoint counts and
+preserves all other ledger fields. -/
 theorem ctrlCounts_swapData {J : Type} (ss : List (CtrlStep J)) :
     ctrlCounts (ss.map ctrlSwapData) =
       { ctrlCounts ss with
@@ -275,10 +338,14 @@ theorem ctrlCounts_swapData {J : Type} (ss : List (CtrlStep J)) :
   | nil => simp [ctrlCounts]
   | cons s ss ih => cases s <;> simp [ctrlCounts, ctrlSwapData, ih]
 
+/-- The parity-selected controlled compilation of `ctrlSourceFamily Φ`, with data-query
+directions interchanged for even parity. -/
 def ctrlDef15Steps (Φ : List ℝ) : Def15Parity → List (CtrlStep (Bool × Bool))
   | .odd => ctrlCompileControlled (ctrlSourceFamily Φ)
   | .even => (ctrlCompileControlled (ctrlSourceFamily Φ)).map ctrlSwapData
 
+/-- The parity-selected multiply controlled compilation of the length-`d` source family selected
+by an `m`-bit control table. -/
 def mulCtrlDef15Steps (m : ℕ) (Φs : List (List ℝ)) (d : ℕ) :
     Def15Parity → List (CtrlStep ((Fin m → Bool) × Bool))
   | .odd => ctrlCompileMultiplyControlled (mulCtrlSourceFamily (m := m) Φs d)

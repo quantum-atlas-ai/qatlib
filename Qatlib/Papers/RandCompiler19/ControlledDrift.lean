@@ -6,6 +6,19 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQDrift
 import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+
+/-!
+# Controlled qDRIFT simulation
+
+The controlled-copy Hamiltonian embedding preserves Hermiticity and the unit
+norm bound, and commutes with taking the weighted Hamiltonian mean. Applying
+qDRIFT to these embedded components gives finite diamond-distance error at
+most `2 * lam² * t² / N`. Each sampled path is a unitary circuit with exactly
+`N` gates in the component-gate model.
+
+The randomized compiler is introduced in [Campbell2019]. This module applies
+it to the explicit controlled-copy embedding.
+-/
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +38,8 @@ open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
 namespace Qatlib.Papers.RandCompiler19.ControlledDrift
 
+/-- A Hermitian operator of norm at most one yields a controlled copy Hamiltonian that is
+Hermitian and has norm at most one. -/
 theorem source_controlled_components (D : ℕ) (K : Operator D)
     (hK : K.IsHermitian) (hKn : ‖K‖ ≤ 1) :
     (controlledCopyHamiltonian D K).IsHermitian ∧ ‖controlledCopyHamiltonian D K‖ ≤ 1 := by
@@ -44,6 +59,8 @@ theorem source_controlled_components (D : ℕ) (K : Operator D)
       exact (pi_norm_le_iff_of_nonneg zero_le_one).mpr (by intro b; cases b <;> simp)
     exact (mul_le_mul hp hKn (norm_nonneg _) zero_le_one).trans_eq (mul_one 1)
 
+/-- Forming the qDRIFT mean Hamiltonian commutes with the controlled copy-Hamiltonian
+construction. -/
 theorem source_controlled_mean (L D : ℕ) (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam : ℝ) :
     qdriftHamiltonian d (fun j => controlledCopyHamiltonian D (K j)) lam =
@@ -52,6 +69,8 @@ theorem source_controlled_mean (L D : ℕ) (d : FinDist (Fin L))
   simp [qdriftHamiltonian, controlledCopyHamiltonian, relabelGate, TensorGate,
     Matrix.smul_apply, Matrix.sum_apply, Finset.mul_sum, mul_assoc, mul_comm]
 
+/-- The qDRIFT error bound survives the controlled-copy Hamiltonian embedding;
+compare [Campbell, qDRIFT][Campbell2019]. -/
 theorem source_controlled_error (L D N : ℕ) (d : FinDist (Fin L))
     (K : Fin L → Operator D) (lam t : ℝ) (hlam : 0 ≤ lam) (hN : 0 < N)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) :
@@ -63,6 +82,9 @@ theorem source_controlled_error (L D N : ℕ) (d : FinDist (Fin L))
     (fun j => source_controlled_components D (K j) (hK j).1 (hK j).2)).1
   rwa [source_controlled_mean, ← copyControlledEvolution_hamiltonian] at h
 
+/-- For Hermitian component operators of norm at most one, a controlled qDRIFT path has word
+length and circuit gate count `N`, its fold agrees with circuit execution, and its circuit
+is unitary [Campbell2019]. -/
 theorem source_controlled_path_cost (L D N : ℕ) (K : Fin L → Operator D)
     (ω : Fin N → Fin L) (s : ℝ) (ψ : QState (Fin (2*D)))
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) :

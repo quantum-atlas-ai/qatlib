@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessEncoding
+
+/-!
+# Bit length bounds for history Hamiltonian encodings
+
+This module bounds integer coefficient sizes and serialized lengths for the generated local
+Hamiltonian encoding. The predicates `SignedCap` and the bounds on `outputTerms` feed into
+`actualEncoding_bitlength_polynomial`, an explicit cubic bound at the chosen precision. See
+[KempeKitaevRegev2006].
+
+## Main statements
+
+* `encoding_length_le`: A five-local encoding whose integer entries have natural absolute value
+  at most `2^E` satisfies the displayed total bit length bound.
+* `outputTerms_natAbsCap`: All real and imaginary integer entries of generated output terms have
+  natural absolute value at most `2^(b + outputPenalty gs.length aux.card + 3)`.
+* `actualEncoding_bitlength_polynomial`: At precision `3 * (gs.length + n) + 64`, the generated
+  encoding has bit length at most `1200000 * (gs.length + n + 1)^3`.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QmaCompleteness.HistoryHam
@@ -21,6 +44,8 @@ open Qatlib.Concepts.TensorRegisters.RegisterModel
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- If every element has encoding length at most `B`, the sum of the encoding lengths is at most
+`xs.length * B`. -/
 theorem sum_encoded_lengths_le {A : Type} (f : A→List Bool) (xs : List A) (B : ℕ)
     (h : ∀x∈xs,(f x).length ≤ B) :
     ((xs.map f).map List.length).sum ≤ xs.length*B := by
@@ -35,6 +60,8 @@ theorem sum_encoded_lengths_le {A : Type} (f : A→List Bool) (xs : List A) (B :
     simp only [List.map_cons,List.sum_cons,List.length_cons]
     nlinarith
 
+/-- Encoding a list of elements of encoding length at most `B` uses at most `xs.length + 1 +
+xs.length * B` bits. -/
 theorem encList_length_le {A : Type} (f : A→List Bool) (xs : List A) (B : ℕ)
     (h : ∀x∈xs,(f x).length ≤ B) :
     (qmaClause3EncList f xs).length ≤ xs.length+1+xs.length*B := by
@@ -42,14 +69,18 @@ theorem encList_length_le {A : Type} (f : A→List Bool) (xs : List A) (B : ℕ)
   have hh := sum_encoded_lengths_le f xs B h
   omega
 
+/-- The list of ordered matrix index pairs for dimension `d` has length `d * d`. -/
 theorem lhIndexPairs_length (d : ℕ) : (lhIndexPairs d).length=d*d := by
   simp [lhIndexPairs,List.length_flatMap,List.sum_replicate]
 
+/-- The real and imaginary entry list of a local term has length `2 * (2^t.wires.length)^2`. -/
 theorem termEntries_length {N : ℕ} (t : LhTerm N) :
     (qmaClause3TermEntries t).length=2*(2^t.wires.length)^2 := by
   simp only [qmaClause3TermEntries,List.length_append,List.length_map,lhIndexPairs_length,pow_two]
   omega
 
+/-- A natural absolute value bound of `2^E` on both integer entry matrices also bounds every
+entry in their serialized list. -/
 theorem termEntries_cap {N E : ℕ} (t : LhTerm N)
     (h : ∀p q,(t.re p q).natAbs ≤ 2^E ∧ (t.im p q).natAbs ≤ 2^E) :
     ∀z∈qmaClause3TermEntries t,z.natAbs ≤ 2^E := by
@@ -59,11 +90,14 @@ theorem termEntries_cap {N E : ℕ} (t : LhTerm N)
   · exact (h p.1 p.2).1
   · exact (h p.1 p.2).2
 
+/-- The natural number encoding of `v` has length at most `2 * v + 3`. -/
 theorem encNat_length_le_self (v : ℕ) : (qmaClause3EncNat v).length ≤ 2*v+3 := by
   rw [encNat_length]
   have h := Nat.log2_le_self v
   omega
 
+/-- A term on at most five wires with integer entries bounded in natural absolute value by `2^E`
+has encoding length at most `10 * N + 4096 * E + 10275`. -/
 theorem encTerm_length_le {N : ℕ} (t : LhTerm N) (E : ℕ)
     (hk : t.wires.length ≤ 5)
     (hnum : ∀p q,(t.re p q).natAbs ≤ 2^E ∧ (t.im p q).natAbs ≤ 2^E) :
@@ -97,6 +131,8 @@ theorem encTerm_length_le {N : ℕ} (t : LhTerm N) (E : ℕ)
   simp only [qmaClause3EncTerm,List.length_append]
   omega
 
+/-- A five-local encoding whose integer entries have natural absolute value at most `2^E`
+satisfies the displayed total bit length bound. -/
 theorem encoding_length_le (F : LhEncoding) (E : ℕ)
     (hloc : lhLocal 5 F)
     (hnum : ∀t∈F.terms,∀p q,(t.re p q).natAbs ≤ 2^E ∧ (t.im p q).natAbs ≤ 2^E) :
@@ -112,18 +148,23 @@ theorem encoding_length_le (F : LhEncoding) (E : ℕ)
   simp only [qmaClause3ToBits,List.length_append]
   nlinarith
 
+/-- The coefficient bound `(J + 2) * 2^(b + 1)` for penalty weight `J` and precision `b`. -/
 def integerCap (J b : ℕ) : ℕ := (J+2)*2^(b+1)
+/-- The natural output penalty weight `32 * (m + a + 1) + 1`. -/
 def outputPenalty (m a : ℕ) : ℕ := 32*(m+a+1)+1
 
+/-- The predicate that every real and imaginary integer entry lies between `-K` and `K`. -/
 def SignedCap {N : ℕ} (K : ℕ) (t : IntegerLocalTerm N) : Prop :=
   ∀u v,-(K:ℤ) ≤ t.re u v ∧ t.re u v ≤ (K:ℤ) ∧
     -(K:ℤ) ≤ t.im u v ∧ t.im u v ≤ (K:ℤ)
 
+/-- An integer between `-K` and `K` has natural absolute value at most `K`. -/
 theorem natAbs_le_of_signed (z : ℤ) (K : ℕ) (hlo : -(K:ℤ) ≤ z) (hhi : z ≤ (K:ℤ)) :
     z.natAbs ≤ K := by
   rw [← Nat.cast_le (α:=ℤ),Int.natCast_natAbs]
   exact abs_le.mpr ⟨hlo,hhi⟩
 
+/-- The coefficient cap `integerCap J b` is at most `2^(b + J + 3)`. -/
 theorem integerCap_le_pow (J b : ℕ) : integerCap J b ≤ 2^(b+J+3) := by
   have hj : J+2 ≤ 2^(J+2) := (Nat.lt_two_pow_self).le
   calc
@@ -132,6 +173,7 @@ theorem integerCap_le_pow (J b : ℕ) : integerCap J b ≤ 2^(b+J+3) := by
     _ =2^((J+2)+(b+1)) := (Nat.pow_add 2 (J+2) (b+1)).symm
     _ =2^(b+J+3) := by congr 1; omega
 
+/-- Every propagation term satisfies the signed coefficient bound `integerCap J b`. -/
 theorem propagationTerm_signedCap {m : ℕ} (n b J : ℕ) (i : Fin m) (g : FiniteGateCode) :
     SignedCap (integerCap J b) (propagationTerm n b i g) := by
   intro u v
@@ -150,6 +192,7 @@ theorem propagationTerm_signedCap {m : ℕ} (n b J : ℕ) (i : Fin m) (g : Finit
   rcases h with ⟨h₁,h₂,h₃,h₄⟩
   omega
 
+/-- Every input or output boundary term satisfies the signed coefficient bound `integerCap J b`. -/
 theorem boundaryTerm_signedCap (m n b J : ℕ) (last : Bool) (j : Fin n) :
     SignedCap (integerCap J b) (boundaryTerm m n b last j) := by
   intro u v
@@ -162,6 +205,7 @@ theorem boundaryTerm_signedCap (m n b J : ℕ) (last : Bool) (j : Fin n) :
   unfold boundaryCoeff
   split_ifs <;> (try dsimp only) <;> omega
 
+/-- A clock pair term of weight `J` satisfies the signed coefficient bound `integerCap J b`. -/
 theorem clockPairTerm_signedCap (m n b J : ℕ) (i j : Fin m) :
     SignedCap (integerCap J b) (clockPairTerm m n b J i j) := by
   intro u v
@@ -174,6 +218,8 @@ theorem clockPairTerm_signedCap (m n b J : ℕ) (i j : Fin m) :
   dsimp only [clockPairTerm]
   split_ifs <;> omega
 
+/-- Every generated output term satisfies the signed coefficient bound with weight
+`outputPenalty gs.length aux.card`. -/
 theorem outputTerms_signedCap (n b : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     ∀t∈outputTerms n b gs aux out,
@@ -186,6 +232,8 @@ theorem outputTerms_signedCap (n b : ℕ) (gs : List FiniteGateCode)
   · exact boundaryTerm_signedCap gs.length n b _ true out
   · exact clockPairTerm_signedCap gs.length n b _ i j
 
+/-- All real and imaginary integer entries of generated output terms have natural absolute value
+at most `2^(b + outputPenalty gs.length aux.card + 3)`. -/
 theorem outputTerms_natAbsCap (n b : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     ∀t∈outputTerms n b gs aux out,∀u v,
@@ -197,6 +245,8 @@ theorem outputTerms_natAbsCap (n b : ℕ) (gs : List FiniteGateCode)
   exact ⟨(natAbs_le_of_signed _ _ h.1 h.2.1).trans hc,
     (natAbs_le_of_signed _ _ h.2.2.1 h.2.2.2).trans hc⟩
 
+/-- All real and imaginary entries in the generated encoding have natural absolute value at most
+`2^(b + outputPenalty gs.length aux.card + 3)`. -/
 theorem actualEncoding_num_cap (n b : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     ∀t∈(actualEncoding n b gs aux out).terms,∀p q,
@@ -209,6 +259,8 @@ theorem actualEncoding_num_cap (n b : ℕ) (gs : List FiniteGateCode)
   exact outputTerms_natAbsCap n b gs aux out u hu
     (nativeIndexDecode u.support p) (nativeIndexDecode u.support q)
 
+/-- The generated encoding satisfies the displayed bit length bound in the gate count, register
+size, precision, and output penalty. -/
 theorem actualEncoding_bitlength_general (n b : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     (qmaClause3ToBits (actualEncoding n b gs aux out)).length ≤
@@ -220,6 +272,8 @@ theorem actualEncoding_bitlength_general (n b : ℕ) (gs : List FiniteGateCode)
     (actualEncoding_local n b gs aux out) (actualEncoding_num_cap n b gs aux out)
   simpa only [actualEncoding,toLhEncoding,List.length_map,outputTerms_length] using h
 
+/-- At precision `3 * (gs.length + n) + 64`, the generated encoding has bit length at most
+`1200000 * (gs.length + n + 1)^3`. -/
 theorem actualEncoding_bitlength_polynomial (n : ℕ) (gs : List FiniteGateCode)
     (aux : Finset (Fin n)) (out : Fin n) :
     (qmaClause3ToBits (actualEncoding n (3*(gs.length+n)+64) gs aux out)).length ≤

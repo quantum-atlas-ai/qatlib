@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLog
 import Mathlib.Data.Nat.Choose.Sum
+
+/-!
+# Group like exponential words and Lie logarithms
+
+`generatorSeries` and `wordSeries` construct formal exponential products over rational algebras.
+For word algebra series, `IsGroupLike` records compatibility with the coproduct, while
+`IsGraded` matches series degree with word length.
+
+Products of weighted letter exponentials satisfy both properties. Their logarithm coefficients
+are primitive and homogeneous, so the Dynkin identity expresses them as right nested brackets,
+furnishing the formal Lie expansion used in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `logCoefficient_primitive`: gives primitive logarithm coefficients for normalized group like
+  series.
+* `logCoefficient_graded`: preserves the grading in each logarithm coefficient.
+* `letterWord_log_support_length`: identifies the support degree of weighted word logarithms.
+* `letterWord_log_eq_bracket_sum`: expands positive degree logarithm coefficients into brackets.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,14 +45,18 @@ open BCHDynkin BCHWordLog
 section Exponential
 variable {A : Type} [Ring A] [Algebra ℚ A]
 
+/-- The formal exponential series with nth coefficient `X^n / n!` in a rational algebra. -/
 def generatorSeries (X : A) : PowerSeries A :=
   PowerSeries.mk (fun n => (n.factorial : ℚ)⁻¹ • X ^ n)
 
+/-- A generator exponential series has constant coefficient one. -/
 theorem generatorSeries_constant (X : A) : (generatorSeries X).constantCoeff = 1 := by
   rw [← PowerSeries.coeff_zero_eq_constantCoeff]
   simp only [generatorSeries, PowerSeries.coeff_mk, Nat.factorial_zero, Nat.cast_one,
     inv_one, pow_zero, one_smul]
 
+/-- Rational algebra homomorphisms carry generator exponential series to the exponential series
+of the image generator. -/
 theorem generatorSeries_map {B : Type} [Ring B] [Algebra ℚ B] (φ : A →ₐ[ℚ] B) (X : A) :
     PowerSeries.map φ.toRingHom (generatorSeries X) = generatorSeries (φ X) := by
   apply PowerSeries.ext
@@ -35,6 +64,8 @@ theorem generatorSeries_map {B : Type} [Ring B] [Algebra ℚ B] (φ : A →ₐ[�
   simp only [PowerSeries.coeff_map, generatorSeries, PowerSeries.coeff_mk,
     AlgHom.toRingHom_eq_coe, RingHom.coe_coe, map_smul, map_pow]
 
+/-- If `i + j = n`, the binomial coefficient choosing `i` from `n` divided by `n!` equals the
+product of the inverse factorials of `i` and `j`. -/
 theorem factorial_choose (n i j : ℕ) (h : i + j = n) :
     (n.factorial : ℚ)⁻¹ * n.choose i = (i.factorial : ℚ)⁻¹ * (j.factorial : ℚ)⁻¹ := by
   have hi : (i.factorial : ℚ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero i
@@ -47,6 +78,8 @@ theorem factorial_choose (n i j : ℕ) (h : i + j = n) :
   field_simp
   nlinarith [he]
 
+/-- The formal exponential series of a sum of commuting elements is the product of their
+exponential series. -/
 theorem generatorSeries_add (X Y : A) (hXY : Commute X Y) :
     generatorSeries (X + Y) = generatorSeries X * generatorSeries Y := by
   apply PowerSeries.ext
@@ -58,8 +91,10 @@ theorem generatorSeries_add (X Y : A) (hXY : Commute X Y) :
   rw [smul_mul_smul_comm, ← Nat.cast_smul_eq_nsmul ℚ, smul_smul,
     factorial_choose n p.1 p.2 (Finset.mem_antidiagonal.mp hp)]
 
+/-- The ordered product of the formal exponential series of a list of generators. -/
 def wordSeries (xs : List A) : PowerSeries A := (xs.map generatorSeries).prod
 
+/-- Rational algebra homomorphisms preserve ordered exponential word series. -/
 theorem wordSeries_map {B : Type} [Ring B] [Algebra ℚ B] (φ : A →ₐ[ℚ] B) (xs : List A) :
     PowerSeries.map φ.toRingHom (wordSeries xs) = wordSeries (xs.map φ) := by
   induction xs with
@@ -68,6 +103,7 @@ theorem wordSeries_map {B : Type} [Ring B] [Algebra ℚ B] (φ : A →ₐ[ℚ] B
     simpa only [wordSeries, List.map_cons, List.prod_cons, map_mul,
       generatorSeries_map] using congrArg (fun s => generatorSeries (φ X) * s) ih
 
+/-- An exponential word series has constant coefficient one. -/
 theorem wordSeries_constant (xs : List A) : (wordSeries xs).constantCoeff = 1 := by
   induction xs with
   | nil => simp [wordSeries]
@@ -80,6 +116,8 @@ end Exponential
 section Coproduct
 variable {α : Type}
 
+/-- A power series mapped through the left embedding commutes with one mapped through the right
+embedding. -/
 theorem commute_series (f g : PowerSeries (WordAlg α)) :
     Commute (PowerSeries.map leftEmbedding.toRingHom f) (PowerSeries.map rightEmbedding.toRingHom g) := by
   apply PowerSeries.ext
@@ -90,18 +128,23 @@ theorem commute_series (f g : PowerSeries (WordAlg α)) :
   simp only [PowerSeries.coeff_map, AlgHom.toRingHom_eq_coe, RingHom.coe_coe]
   exact (commute_embeddings _ _).eq
 
+/-- A word power series is group like when its coproduct image equals the product of its left
+and right embedding images. -/
 def IsGroupLike (f : PowerSeries (WordAlg α)) : Prop :=
   PowerSeries.map coproduct.toRingHom f =
     PowerSeries.map leftEmbedding.toRingHom f * PowerSeries.map rightEmbedding.toRingHom f
 
+/-- The exponential series of a primitive word algebra element is group like. -/
 theorem generatorSeries_groupLike (p : WordAlg α) (hp : IsPrimitive p) :
     IsGroupLike (generatorSeries p) := by
   rw [IsGroupLike, generatorSeries_map, generatorSeries_map, generatorSeries_map, hp]
   exact generatorSeries_add _ _ (commute_embeddings p p)
 
+/-- The unit word power series is group like. -/
 theorem groupLike_one : IsGroupLike (1 : PowerSeries (WordAlg α)) := by
   simp [IsGroupLike]
 
+/-- The product of two group like word power series is group like. -/
 theorem IsGroupLike.mul {f g : PowerSeries (WordAlg α)}
     (hf : IsGroupLike f) (hg : IsGroupLike g) : IsGroupLike (f * g) := by
   dsimp only [IsGroupLike] at *
@@ -110,6 +153,8 @@ theorem IsGroupLike.mul {f g : PowerSeries (WordAlg α)}
     (commute_series g f).symm.eq]
   simp only [mul_assoc]
 
+/-- The logarithm coefficients of a group like series with constant coefficient one are
+primitive. -/
 theorem logCoefficient_primitive (f : PowerSeries (WordAlg α))
     (hf : f.constantCoeff = 1) (hgroup : IsGroupLike f) (n : ℕ) :
     IsPrimitive (logCoefficient f n) := by
@@ -130,18 +175,22 @@ end Coproduct
 section Grading
 variable {α : Type}
 
+/-- A word power series is graded when grading multiplies its nth coefficient by `n`. -/
 def IsGraded (f : PowerSeries (WordAlg α)) : Prop :=
   ∀ n : ℕ, grading (PowerSeries.coeff n f) = n • PowerSeries.coeff n f
 
+/-- The unit word power series is graded. -/
 theorem graded_one : IsGraded (1 : PowerSeries (WordAlg α)) := by
   intro n
   cases n <;> simp [PowerSeries.coeff_one, grading_one]
 
+/-- The difference of two graded word power series is graded. -/
 theorem IsGraded.sub {f g : PowerSeries (WordAlg α)} (hf : IsGraded f) (hg : IsGraded g) :
     IsGraded (f - g) := by
   intro n
   rw [map_sub, map_sub, hf, hg, smul_sub]
 
+/-- The product of two graded word power series is graded. -/
 theorem IsGraded.mul {f g : PowerSeries (WordAlg α)} (hf : IsGraded f) (hg : IsGraded g) :
     IsGraded (f * g) := by
   intro n
@@ -151,12 +200,14 @@ theorem IsGraded.mul {f g : PowerSeries (WordAlg α)} (hf : IsGraded f) (hg : Is
   rw [grading_mul, hf, hg, smul_mul_assoc, mul_smul_comm, ← add_nsmul,
     Finset.mem_antidiagonal.mp hp]
 
+/-- Every natural power of a graded word power series is graded. -/
 theorem IsGraded.pow {f : PowerSeries (WordAlg α)} (hf : IsGraded f) (k : ℕ) :
     IsGraded (f ^ k) := by
   induction k with
   | zero => simpa only [pow_zero] using graded_one
   | succ k ih => simpa only [pow_succ] using ih.mul hf
 
+/-- The exponential series of an element fixed by grading is graded. -/
 theorem generatorSeries_graded (p : WordAlg α) (hp : grading p = p) :
     IsGraded (generatorSeries p) := by
   intro n
@@ -164,6 +215,7 @@ theorem generatorSeries_graded (p : WordAlg α) (hp : grading p = p) :
     grading_pow_of_degree_one p hp n]
   exact smul_comm _ _ _
 
+/-- For a graded series, grading multiplies its nth logarithm coefficient by `n`. -/
 theorem logCoefficient_graded (f : PowerSeries (WordAlg α)) (hf : IsGraded f) (n : ℕ) :
     grading (logCoefficient f n) = n • logCoefficient f n := by
   rw [logCoefficient_finite, map_sum, Finset.smul_sum]
@@ -177,37 +229,48 @@ end Grading
 section ActualWord
 variable {α : Type}
 
+/-- The exponential word series generated by a list of rationally weighted letters. -/
 def letterWord (xs : List (ℚ × α)) : PowerSeries (WordAlg α) :=
   wordSeries (xs.map (fun p => p.1 • letter p.2))
 
+/-- A rationally weighted letter word series has constant coefficient one. -/
 theorem letterWord_constant (xs : List (ℚ × α)) : (letterWord xs).constantCoeff = 1 :=
   wordSeries_constant _
 
+/-- Every rationally weighted letter word series is group like. -/
 theorem letterWord_groupLike (xs : List (ℚ × α)) : IsGroupLike (letterWord xs) := by
   induction xs with
   | nil => exact groupLike_one
   | cons p xs ih =>
     exact (generatorSeries_groupLike _ ((primitive_letter p.2).smul p.1)).mul ih
 
+/-- Every rationally weighted letter word series is graded. -/
 theorem letterWord_graded (xs : List (ℚ × α)) : IsGraded (letterWord xs) := by
   induction xs with
   | nil => exact graded_one
   | cons p xs ih =>
     exact (generatorSeries_graded (p.1 • letter p.2) (by rw [map_smul, grading_letter])).mul ih
 
+/-- Every logarithm coefficient of a rationally weighted letter word series is primitive. -/
 theorem letterWord_log_primitive (xs : List (ℚ × α)) (n : ℕ) :
     IsPrimitive (logCoefficient (letterWord xs) n) :=
   logCoefficient_primitive _ (letterWord_constant xs) (letterWord_groupLike xs) n
 
+/-- The Dynkin map multiplies the nth logarithm coefficient of a rationally weighted letter word
+series by `n`. -/
 theorem letterWord_log_dynkin (xs : List (ℚ × α)) (n : ℕ) :
     dynkin (logCoefficient (letterWord xs) n) = n • logCoefficient (letterWord xs) n := by
   rw [dynkin_eq_grading (letterWord_log_primitive xs n)]
   exact logCoefficient_graded _ (letterWord_graded xs) n
 
+/-- Every word in the support of the nth logarithm coefficient of a weighted letter word has
+length `n`. -/
 theorem letterWord_log_support_length (xs : List (ℚ × α)) (n : ℕ) (w : FreeMonoid α)
     (hw : w ∈ (logCoefficient (letterWord xs) n).support) : w.toList.length = n :=
   support_length_of_grading _ n (logCoefficient_graded _ (letterWord_graded xs) n) w hw
 
+/-- At positive degree, a weighted letter word logarithm coefficient equals the sum of its word
+coefficients divided by the degree times the corresponding right nested letter brackets. -/
 theorem letterWord_log_eq_bracket_sum (xs : List (ℚ × α)) (n : ℕ) (hn : 0 < n) :
     logCoefficient (letterWord xs) n =
       ∑ w ∈ (logCoefficient (letterWord xs) n).support,

@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
 import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
 import Qatlib.Papers.Cbmd26.Algorithms.ComplexPolynomialSplit
+
+/-!
+# Uniform QSVT Phases for Complex Polynomials
+
+`hermitian_actual_qsvt_uniform_phases` synthesizes phases for any bounded real polynomial with a
+degree bound and matching parity. The phases work for every Hermitian matrix with a projected
+unitary encoding, and `hermitianResponseWord` uses exactly the chosen degree in oracle queries.
+
+`fourBranchCoefficients` combines the four real parity branches with coefficients `1`, `1`,
+`Complex.I`, and `Complex.I`. The resulting LCU gives an exact block encoding of a bounded
+complex polynomial with normalization four, as used in the CBMD constructions of [WangEtAl2026].
+
+## Main statements
+
+* `hermitian_actual_qsvt_uniform_phases` gives matrix-independent phases with `d` queries and `d
+  + 1` fixed gates.
+* `four_parity_qsvt_uniform_phases` combines four parity-polynomial encodings with normalization
+  `4` and error `0`.
+* `complex_polynomial_qsvt_uniform_phases` applies the real-parity split to a complex
+  polynomial, with at most `2 * P.natDegree + 1` queries per branch.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -45,6 +71,9 @@ open Matrix Polynomial
 
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A real polynomial bounded by one on `[-1, 1]`, with degree at most `d` and parity `d`, has
+phases valid for every Hermitian projected unitary encoding. The response word exactly
+encodes the polynomial with `d` queries and `d + 1` fixed gates. -/
 theorem hermitian_actual_qsvt_uniform_phases
     (p : Polynomial ℝ) (d : ℕ)
     (hpdeg : p.degree ≤ (d : WithBot ℕ)) (hpar : HasRealParity d p)
@@ -88,6 +117,9 @@ theorem hermitian_actual_qsvt_uniform_phases
       exact h
   exact ⟨hactual, hermitianResponseWord_counts F d base zs hn⟩
 
+/-- For a Hermitian projected unitary encoding, a bounded real parity polynomial has a phase
+response word exactly encoding its matrix evaluation, using `d` queries and `d + 1` fixed
+gates. -/
 theorem hermitian_actual_qsvt_without_lipschitz
     (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ)
@@ -107,8 +139,13 @@ theorem hermitian_actual_qsvt_without_lipschitz
     hermitian_actual_qsvt_uniform_phases p d hpdeg hpar hbounded
   exact ⟨base, zs, hbase, hzs, hn, hresponse, hactual H I A U F hA hAU⟩
 
+/-- The four LCU coefficients, equal to `1` on branches `0` and `1` and to `Complex.I` on
+branches `2` and `3`. -/
 def fourBranchCoefficients (j : Fin 4) : ℂ := if j.val < 2 then 1 else Complex.I
 
+/-- Four bounded real parity polynomials have matrix-independent QSVT phases whose coefficient
+LCU exactly block-encodes their weighted sum with normalization `4`. Each branch uses its
+specified degree in queries and one additional fixed gate. -/
 theorem four_parity_qsvt_uniform_phases
     (p : Fin 4 → Polynomial ℝ) (d : Fin 4 → ℕ)
     (hpdeg : ∀ j, (p j).degree ≤ (d j : WithBot ℕ))
@@ -155,6 +192,9 @@ theorem four_parity_qsvt_uniform_phases
   rw [hcoeff, hscale, herr] at h
   exact h
 
+/-- For a fixed Hermitian projected unitary encoding, combines four bounded real
+parity-polynomial QSVT words into an exact block encoding with normalization `4` and the
+stated branch costs. -/
 theorem four_parity_qsvt_blockEncoding
     (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ)
@@ -175,6 +215,9 @@ theorem four_parity_qsvt_blockEncoding
     four_parity_qsvt_uniform_phases p d hpdeg hpar hbounded
   exact ⟨base, zs, hphases, hactual H I A U F hA hAU⟩
 
+/-- A complex polynomial bounded by one on `[-1, 1]` has matrix-independent phases for its four
+real parity branches, whose LCU exactly block-encodes `aeval A P` with normalization `4`.
+Each branch has at most `2 * P.natDegree + 1` queries. -/
 theorem complex_polynomial_qsvt_uniform_phases
     (P : Polynomial ℂ)
     (hP : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ‖P.eval (x : ℂ)‖ ≤ 1) :

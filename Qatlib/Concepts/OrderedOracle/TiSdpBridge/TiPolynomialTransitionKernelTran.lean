@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialTransitionKernelStat
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiTranslationHelpers
+
+/-!
+# Fourier analysis of the polynomial transition kernel
+
+This module proves `TiPolynomialTransitionKernel` by computing the Fourier transform of
+`tiPolynomialState` and checking the transition in each momentum mode. The invariant search
+setting is presented in [FarhiEtAl1999], and the polynomial viewpoint is developed in
+[ChildsLandahlParrilo2007].
+
+The formula `ti_polynomial_fourier` shows that only modes with the time parity can be nonzero,
+with amplitudes given by scaled polynomial evaluations. Fourier injectivity and the active-mode
+phase identity then prove `ti_transition_run` under the rootwise equality-of-norms hypothesis.
+
+## Main statements
+
+- `ti_fourier_sum` computes the Fourier amplitudes before simplifying the parity factor.
+- `ti_polynomial_fourier` gives the parity-supported evaluation formula.
+- `ti_transition_run` realizes one polynomial-state update after the zero-input phase query.
+- `tiPolynomialTransitionKernel` proves the packaged kernel proposition.
+
+## References
+
+- [Farhi et al., 1999][FarhiEtAl1999], invariant ordered-search algorithms.
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007], polynomial constraints and
+  ordered search.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +47,8 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Matrix
 open scoped Classical BigOperators
 
+/-- Computes an entry of the adjoint Fourier matrix as `1 / sqrt (2*n)` times the `i.val`th
+power of the momentum root at `l`. -/
 theorem ti_qft_adjoint_entry (n : ℕ) (l i : Fin (2*n)) :
     (QFTMatrix (2*n))ᴴ l i =
       (Real.sqrt (2*n:ℝ) : ℂ)⁻¹ * tiMomentumRoot n l ^ i.val := by
@@ -31,6 +60,8 @@ theorem ti_qft_adjoint_entry (n : ℕ) (l i : Fin (2*n)) :
   congr 1
   ring
 
+/-- Simplifies the product of the inverse square-root scales for `2*n` and `2`, multiplied by
+two, to the inverse square-root scale for `n`. -/
 theorem ti_fourier_scale (n : ℕ) :
     (Real.sqrt (2*n:ℝ) : ℂ)⁻¹*(Real.sqrt 2 : ℂ)⁻¹*2 =
       (Real.sqrt (n:ℝ) : ℂ)⁻¹ := by
@@ -44,6 +75,8 @@ theorem ti_fourier_scale (n : ℕ) :
       rw [h]
       norm_num
 
+/-- Evaluates `1 + (-1)^t * (-1)^r` as two when `r` and `t` have equal parity and zero
+otherwise. -/
 theorem ti_parity_factor (t r : ℕ) :
     1+(-1:ℂ)^t*(-1:ℂ)^r = if r%2=t%2 then 2 else 0 := by
   rw [neg_one_pow_eq_pow_mod_two t,neg_one_pow_eq_pow_mod_two r]
@@ -51,6 +84,9 @@ theorem ti_parity_factor (t r : ℕ) :
   have hr : r%2=0 ∨ r%2=1 := by omega
   rcases ht with ht | ht <;> rcases hr with hr | hr <;> norm_num [ht,hr]
 
+/-- Computes the adjoint Fourier transform of a polynomial state as the product of its
+square-root scales, the factor `1 + (-1)^t * z^n`, and `tiPolyEval p z` at the momentum root
+`z`. -/
 theorem ti_fourier_sum (n t : ℕ) (p : Fin n → ℂ) (l : Fin (2*n)) :
     ApplyGate (QFTMatrix (2*n))ᴴ (tiPolynomialState n t p) l =
       (Real.sqrt (2*n:ℝ) : ℂ)⁻¹*(Real.sqrt 2 : ℂ)⁻¹*
@@ -86,6 +122,8 @@ theorem ti_fourier_sum (n t : ℕ) (p : Fin n → ℂ) (l : Fin (2*n)) :
     c*s*(1+(-1:ℂ)^t*z^n)*tiPolyEval p z
   ring
 
+/-- Shows that the adjoint Fourier transform of `tiPolynomialState n t p` is supported on modes
+with parity `t`, where it equals the polynomial evaluation scaled by `1 / sqrt n`. -/
 theorem ti_polynomial_fourier (n t : ℕ) [NeZero n] (p : Fin n → ℂ) (l : Fin (2*n)) :
     ApplyGate (QFTMatrix (2*n))ᴴ (tiPolynomialState n t p) l =
       if l.val%2=t%2 then
@@ -96,6 +134,8 @@ theorem ti_polynomial_fourier (n t : ℕ) [NeZero n] (p : Fin n → ℂ) (l : Fi
   · rw [ti_fourier_scale]
   · simp
 
+/-- Shows that two states on `Fin (2*n)` are equal when their images under the adjoint Fourier
+matrix are equal, for nonzero `n`. -/
 theorem ti_fourier_injective (n : ℕ) [NeZero n] (ψ φ : QState (Fin (2*n)))
     (h : ApplyGate (QFTMatrix (2*n))ᴴ ψ=ApplyGate (QFTMatrix (2*n))ᴴ φ) : ψ=φ := by
   have hF := qftMatrix_unitary (by have := NeZero.pos n; omega : 0<2*n)
@@ -106,6 +146,9 @@ theorem ti_fourier_injective (n : ℕ) [NeZero n] (ψ φ : QState (Fin (2*n)))
   rw [Matrix.mulVec_mulVec,Matrix.mulVec_mulVec,hFF,Matrix.one_mulVec] at he
   simpa only [Matrix.one_mulVec] using he
 
+/-- For positive `t` and equal polynomial norms on roots of `z^n = (-1)^t`, proves that the
+zero-input phase query followed by the polynomial transition sends the time-`t-1` state of
+`a` to the time-`t` state of `b`. -/
 theorem ti_transition_run (n t : ℕ) [NeZero n] (ht : 0<t) (a b : Fin n → ℂ)
     (hm : ∀ z : ℂ,z^n=(-1:ℂ)^t → ‖tiPolyEval a z‖=‖tiPolyEval b z‖) :
     ApplyGate (tiPolynomialTransition n t a b)
@@ -134,6 +177,9 @@ theorem ti_transition_run (n t : ℕ) [NeZero n] (ht : 0<t) (a b : Fin n → ℂ
       _ = _ := by rw [ti_transition_phase_eval n t a b hm l hl]
   · simp
 
+/-- Proves `TiPolynomialTransitionKernel` by combining the Fourier-coordinate formula with the
+phase, unitarity, commutation, and one-step execution results. The construction is in the
+invariant ordered search setting of [FarhiEtAl1999]. -/
 theorem tiPolynomialTransitionKernel : TiPolynomialTransitionKernel := by
   refine ⟨ti_polynomial_fourier,?_⟩
   intro n t _ ht a b hm

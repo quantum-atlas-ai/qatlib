@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairResampling
+
+/-!
+# Counting sums over coordinate replacements
+
+Proves exact multiplicity identities for sums over one or two coordinate replacements in the
+full tuple carrier. For distinct coordinates and functions vanishing when their values coincide,
+`sum_pair_slices` restricts the replacement pair to distinct labels without changing the
+resulting multiplicity. See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `sum_update`: Summing a function over all tuples and all updates of one coordinate equals
+  `Fintype.card L` times its sum over all tuples.
+* `sum_pair_slices`: For distinct coordinates, if a function vanishes whenever their values
+  coincide, its sum over all tuples and distinct replacement pairs equals `Fintype.card L *
+  Fintype.card L` times its total sum.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +39,8 @@ namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 omit [Fintype I] [Fintype L] in
 
+/-- Updating the distinguished coordinate of a tuple reconstructed by `Equiv.piSplitAt` changes
+only the distinguished value in that reconstruction. -/
 theorem split_restore_update (i : I) (a x : L) (z : Off I i → L) :
     Function.update ((Equiv.piSplitAt i (fun _ : I => L)).symm (a,z)) i x=
       (Equiv.piSplitAt i (fun _ : I => L)).symm (x,z) := by
@@ -26,6 +50,8 @@ theorem split_restore_update (i : I) (a x : L) (z : Off I i → L) :
     simp [Equiv.piSplitAt]
   · simp [Equiv.piSplitAt,hj]
 
+/-- Summing a function over all tuples and all updates of one coordinate equals `Fintype.card L`
+times its sum over all tuples. -/
 theorem sum_update {K : Type*} [AddCommMonoid K] (H : (I → L) → K) (i : I) :
     (∑ f : I → L,∑ x : L,H (Function.update f i x))=Fintype.card L • ∑ f : I → L,H f := by
   let e := Equiv.piSplitAt i (fun _ : I => L)
@@ -43,11 +69,16 @@ theorem sum_update {K : Type*} [AddCommMonoid K] (H : (I → L) → K) (i : I) :
       (fun f => by (try dsimp only);rw [e.symm_apply_apply])
   rw [hH,Fintype.sum_prod_type,Finset.sum_comm]
 
+/-- Summing a function over all tuples and both replacement labels for two successive coordinate
+updates equals `Fintype.card L * Fintype.card L` times its total sum. -/
 theorem sum_double_update {K : Type*} [AddCommMonoid K] (H : (I → L) → K) (i j : I) :
     (∑ f : I → L,∑ x : L,∑ y : L,H (Function.update (Function.update f i x) j y))=
       (Fintype.card L*Fintype.card L) • ∑ f : I → L,H f := by
   rw [sum_update (fun g => ∑ y : L,H (Function.update g j y)) i,sum_update H j,smul_smul]
 
+/-- For distinct coordinates, if a function vanishes whenever their values coincide, its sum
+over all tuples and distinct replacement pairs equals `Fintype.card L * Fintype.card L`
+times its total sum. -/
 theorem sum_pair_slices {K : Type*} [AddCommMonoid K] (H : (I → L) → K) (i j : I) (hij : i ≠ j)
     (hz : ∀ f : I → L,f i=f j → H f=0) :
     (∑ f : I → L,∑ p : Pair L,H (Function.update (Function.update f i p.val.1) j p.val.2))=

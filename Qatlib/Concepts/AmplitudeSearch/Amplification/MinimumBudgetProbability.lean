@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetProbability
+
+/-!
+# Probability laws for budgeted minimum search
+
+This module constructs `minimumBudgetPMFWithInit`, the joint law of the returned index and
+remaining budget for recursive quantum minimum search [DurrHoyer1996]. It identifies
+expectations and event probabilities with the corresponding finite-budget evaluator.
+
+The costed law records the spent budget, while `chargedInitialPMF` adds uniform initial-index
+sampling and the prescribed initialization charge. The resulting success event has probability
+at least one half at `chargedBudget`.
+
+## Main statements
+
+* `minimumBudgetPMFWithInit_expectation`: connects the probability law to payoff evaluation.
+* `minimumBudgetPMFWithInit_conservation`: proves that spent and remaining budgets sum to the
+  initial budget.
+* `chargedInitialPMF_success_half`: establishes the one-half minimum-finding guarantee.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +52,8 @@ open scoped ENNReal BigOperators Classical
 
 variable {N : ℕ} {α : Type*} [LinearOrder α]
 
+/-- Every supported successful finite-budget search candidate strictly improves the current
+table value and is selected by `checkedUpdate`. -/
 theorem minimum_search_success_checkedUpdate (T : Fin N → α) (hN : 0 < N)
     (budget : ℕ) (current candidate : Fin N) (remaining : ℕ)
     (hx : (some candidate, remaining) ∈ (finiteBudgetPMF (by simpa using! hN)
@@ -39,6 +66,8 @@ theorem minimum_search_success_checkedUpdate (T : Fin N → α) (hN : 0 < N)
     simpa only [strictMarked, Finset.mem_filter, Finset.mem_univ, true_and] using! hmem
   exact ⟨hlt, if_pos hlt⟩
 
+/-- The joint probability law of the returned index and remaining budget for recursive minimum
+search with an initialization charge [DurrHoyer1996]. -/
 noncomputable def minimumBudgetPMFWithInit (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) : PMF (Fin N × ℕ) :=
   if N = 1 then PMF.pure (current, budget) else
@@ -55,6 +84,7 @@ noncomputable def minimumBudgetPMFWithInit (T : Fin N → α) (initialization : 
     else PMF.pure (current, budget)
 termination_by budget
 
+/-- Every supported outcome has remaining budget at most the initial budget. -/
 theorem minimumBudgetPMFWithInit_remaining (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (x : Fin N × ℕ)
     (hx : x ∈ (minimumBudgetPMFWithInit T initialization hN budget current).support) :
@@ -86,6 +116,8 @@ theorem minimumBudgetPMFWithInit_remaining (T : Fin N → α) (initialization : 
     · have heq := (PMF.mem_support_pure_iff _ _).mp hx
       simp [heq]
 
+/-- Starting from a global minimum leaves the output index equal to the current index in every
+supported outcome. -/
 theorem minimumBudgetPMFWithInit_minimum_output (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (hmin : ∀ j, T current ≤ T j)
     (x : Fin N × ℕ)
@@ -103,6 +135,8 @@ theorem minimumBudgetPMFWithInit_minimum_output (T : Fin N → α) (initializati
       exact (not_lt_of_ge (hmin candidate) hs.1).elim
   · exact congrArg Prod.fst ((PMF.mem_support_pure_iff _ _).mp hx)
 
+/-- The expectation of a nonnegative terminal payoff under the minimum-search law equals the
+extended nonnegative real image of its recursive evaluation. -/
 theorem minimumBudgetPMFWithInit_expectation (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (payoff : Fin N → ℕ → ℝ)
     (hp : ∀ i r, 0 ≤ payoff i r) :
@@ -161,6 +195,8 @@ theorem minimumBudgetPMFWithInit_expectation (T : Fin N → α) (initialization 
         _ = _ := by congr 1
     · exact Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure _ _
 
+/-- Event probability under the minimum-search law equals the extended nonnegative real image of
+the corresponding indicator evaluation. -/
 theorem minimumBudgetPMFWithInit_event (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (E : Fin N × ℕ → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (minimumBudgetPMFWithInit T initialization hN budget current) E =
@@ -174,11 +210,14 @@ theorem minimumBudgetPMFWithInit_event (T : Fin N → α) (initialization : ℕ)
   funext x
   split_ifs <;> simp
 
+/-- The costed minimum-search law obtained by replacing remaining budget with spent budget
+`budget - remaining`. -/
 noncomputable def minimumBudgetCostedLawWithInit (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) : CostedLaw (Fin N) :=
   (minimumBudgetPMFWithInit T initialization hN budget current).map
     (fun x => (x.1, budget - x.2))
 
+/-- The spent cost in the minimum-search law is bounded by the initial budget. -/
 theorem minimumBudgetCostedLawWithInit_bounded (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.BoundedBy (minimumBudgetCostedLawWithInit T initialization hN budget current) budget := by
@@ -186,16 +225,21 @@ theorem minimumBudgetCostedLawWithInit_bounded (T : Fin N → α) (initializatio
   obtain ⟨y, _, rfl⟩ := (PMF.mem_support_map_iff _ _ x).mp hx
   exact Nat.sub_le _ _
 
+/-- For every supported outcome, spent budget plus remaining budget equals the initial budget. -/
 theorem minimumBudgetPMFWithInit_conservation (T : Fin N → α) (initialization : ℕ)
     (hN : 0 < N) (budget : ℕ) (current : Fin N) (x : Fin N × ℕ)
     (hx : x ∈ (minimumBudgetPMFWithInit T initialization hN budget current).support) :
     (budget - x.2) + x.2 = budget :=
   Nat.sub_add_cancel (minimumBudgetPMFWithInit_remaining T initialization hN budget current x hx)
 
+/-- The joint output-index and remaining-budget law obtained by sampling the initial index and
+using initialization charge `initCharge N`. -/
 noncomputable def chargedInitialPMF (T : Fin N → α) (hN : 0 < N) (budget : ℕ) :
     PMF (Fin N × ℕ) :=
   (iterationPMF N hN).bind (minimumBudgetPMFWithInit T (initCharge N) hN budget)
 
+/-- The probability that `chargedInitialPMF` returns a global minimum equals `ENNReal.ofReal` of
+`chargedInitialSuccess`. -/
 theorem chargedInitialPMF_success (T : Fin N → α) (hN : 0 < N) (budget : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (chargedInitialPMF T hN budget) (fun x => ∀ j, T x.1 ≤ T j) =
       ENNReal.ofReal (chargedInitialSuccess T budget) := by
@@ -224,6 +268,8 @@ theorem chargedInitialPMF_success (T : Fin N → α) (hN : 0 < N) (budget : ℕ)
       unfold chargedInitialSuccess
       ring
 
+/-- At budget `chargedBudget N`, the charged initial minimum-search law returns a global minimum
+with probability at least one half. -/
 theorem chargedInitialPMF_success_half (T : Fin N → α) (hN : 0 < N) :
     (1 / 2 : ℝ≥0∞) ≤ Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (chargedInitialPMF T hN (chargedBudget N))
       (fun x => ∀ j, T x.1 ≤ T j) := by

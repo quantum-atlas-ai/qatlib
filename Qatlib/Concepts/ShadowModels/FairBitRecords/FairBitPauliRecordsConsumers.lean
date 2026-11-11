@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ShadowModels.FairBitRecords.FairBitPauliRecords
+
+/-!
+# Transport of Pauli statistics under fair-bit sampling
+
+Bounds changes in event probabilities when ideal Pauli records are replaced by the fair-bit
+record law. `fair_pauli_fresh_statistics_transport_consumer` gives a batch bound, and
+`fair_pauli_native_median_same_record_transport` specializes it to the native median estimator
+with explicit work counts.
+
+The acquisition ledger identifies the quantum-record resources and bounds the separate fair-bit
+tape consumption. For the local Pauli measurement framework, see [HuangKuengPreskill2020].
+
+## Main statements
+
+* `fair_pauli_fresh_statistics_transport_consumer`: For `B` independent records of an `n`-qubit
+  density operator, any event's probability differs between fair-bit and ideal Pauli sampling by
+  at most `B * n * 4⁻ᴿ`.
+* `fair_pauli_native_median_same_record_transport`: Identifies the native estimator with the
+  sorted median of block means, gives its exact evaluation count and selection-work bound, and
+  bounds the change in its accuracy-event probability by `((2 * r + 1) * m) * n * 4⁻ᴿ`.
+* `fair_pauli_same_record_acquisition_ledger`: For decoded records, gives acquisition counts
+  `(B, 2 * n * B, n * B, 0)`, the exact consumed-bit expression and bound `2 * n * B * R`, and
+  equality between instrument and record weights.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -26,6 +55,8 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- For finite probability distributions, the absolute difference of the probabilities of any
+event is at most half their total absolute probability difference. -/
 theorem fair_record_event_half_l1 {X : Type} [Fintype X] [DecidableEq X]
     (p q : FinDist X) (S : Finset X) :
     |(∑ x ∈ S, p.prob x) - (∑ x ∈ S, q.prob x)| ≤
@@ -42,6 +73,9 @@ theorem fair_record_event_half_l1 {X : Type} [Fintype X] [DecidableEq X]
   have hsplitabs := S.sum_add_sum_compl (fun x => |p.prob x - q.prob x|)
   linarith
 
+/-- For `B` independent records of an `n`-qubit density operator, any event's probability
+differs between fair-bit and ideal Pauli sampling by at most `B * n * 4⁻ᴿ`. See
+[HuangKuengPreskill2020]. -/
 theorem fair_pauli_fresh_statistics_transport_consumer :
     ∀ (n R B : ℕ) (ρ : Operator (2 ^ n)) (hρ : IsDensityOperator ρ)
       (S : Finset (Fin B → Fin n → Fin 3 × Bool)),
@@ -65,11 +99,16 @@ theorem fair_pauli_fresh_statistics_transport_consumer :
   apply (fair_record_event_half_l1 _ _ S).trans
   exact (div_le_div_of_nonneg_right hb (by norm_num)).trans_eq (by ring)
 
+/-- The counted sparse-Pauli median estimator applied to a flat record array reindexed into `2 *
+r + 1` blocks of size `m`. -/
 def fairPauliNativeMedian {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℚ) (m r : ℕ)
     (ω : Fin ((2 * r + 1) * m) → Fin n → Fin 3 × Bool) : ℚ × ℕ × ℕ :=
   localSparseMedianCounted w c m r (fun j i => ω (finProdFinEquiv (j, i)))
 
+/-- Identifies the native estimator with the sorted median of block means, gives its exact
+evaluation count and selection-work bound, and bounds the change in its accuracy-event
+probability by `((2 * r + 1) * m) * n * 4⁻ᴿ`. -/
 theorem fair_pauli_native_median_same_record_transport
     (n q m r R : ℕ) (ρ : Operator (2 ^ n)) (hρ : IsDensityOperator ρ)
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ) (μ ε : ℝ) :
@@ -95,10 +134,15 @@ theorem fair_pauli_native_median_same_record_transport
     simpa only [Nat.cast_mul, Nat.cast_add, Nat.cast_one, Nat.cast_ofNat] using!
       fair_pauli_fresh_statistics_transport_consumer n R ((2 * r + 1) * m) ρ hρ S
 
+/-- Combines the axes decoded from each tape with the supplied Boolean outcomes to form the
+Pauli records. -/
 def fairPauliDecodedRecords {B n R : ℕ} (tapes : Fin B → Fin n → Fin R → Fin 4)
     (outcomes : Fin B → Reg n) : Fin B → Fin n → Fin 3 × Bool :=
   fun j i => ((fairPauliAxis (List.ofFn (tapes j i))).1, outcomes j i)
 
+/-- For decoded records, gives acquisition counts `(B, 2 * n * B, n * B, 0)`, the exact
+consumed-bit expression and bound `2 * n * B * R`, and equality between instrument and
+record weights. -/
 theorem fair_pauli_same_record_acquisition_ledger (B n R : ℕ)
     (tapes : Fin B → Fin n → Fin R → Fin 4) (outcomes : Fin B → Reg n)
     (ρ : Operator (2 ^ n)) :

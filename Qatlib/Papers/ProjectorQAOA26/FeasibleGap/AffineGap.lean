@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.AffineSpectrum
 import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
+
+/-!
+# Affine reduction of the interpolation gap
+
+For positive interpolation parameter s, `actual_spectralGap_rankOne` expresses the gap of the
+actual Hamiltonian as s times the gap between the two lowest ordered eigenvalues of a rank-one
+perturbation. The perturbation parameter is (1 - s) / s, allowing later separation estimates to
+control the original interpolation [ZhouAnLiu2026].
+
+## Main statements
+
+* `actual_spectralGap_rankOne`: The Hamiltonian gap equals the scaled rank-one gap for s > 0.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +33,8 @@ noncomputable section
 namespace Qatlib.Papers.ProjectorQAOA26.FeasibleGap
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- For `s > 0`, the interpolation gap is `s` times the difference between the two lowest
+ordered eigenvalues of the rank-one operator with parameter `(1 - s) / s`. -/
 theorem actual_spectralGap_rankOne (E : I → ℝ) (hL : 2 ≤ Fintype.card I)
     (s : ℝ) (hs : 0 < s) :
     spectralGap E hL s = s *

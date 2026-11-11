@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.NearGridHHLOutput
 import Mathlib.Data.Real.Sign
+
+/-!
+# Clipped reciprocal filters for uniform HHL
+
+This module defines a signed clipped reciprocal amplitude, its Boolean flag rotation, and the
+counted uniform HHL word. It proves phase-kernel tail bounds and local filter continuity used in
+the off-grid analysis of the HHL method [HarrowHassidimLloyd2009].
+
+The good-label and tail estimates combine into a kernel-weighted squared rotation-error bound
+with an explicit grid requirement.
+
+## Main statements
+
+* `uniformHHLRotation_unitary`: unitarity of the clipped rotation for positive `d`.
+* `uniform_hhl_actual_legal_forward_inverse_ledger`: legality and exact instruction counts.
+* `uniform_hhl_clipped_rotation_and_local_continuity`: local rotation stability away from zero.
+* `uniformHHL_spectral_window_error`: mean squared flag-rotation error at most `η^2`.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,6 +61,7 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Circular phase distance is at most `1/2`. -/
 theorem uniform_phaseDistance_le_half (x y : ℝ) : phaseDistance x y ≤ 1 / 2 := by
   unfold phaseDistance
   apply abs_le.mpr
@@ -45,6 +69,8 @@ theorem uniform_phaseDistance_le_half (x y : ℝ) : phaseDistance x y ≤ 1 / 2 
   have h₁ := Int.lt_floor_add_one (x - y + 1 / 2)
   constructor <;> linarith
 
+/-- The complex chord length at phase `t` is at least four times its circular distance from
+zero. -/
 theorem uniform_phase_chord_lower (t : ℝ) :
     4 * phaseDistance t 0 ≤ ‖Complex.exp (2 * Real.pi * Complex.I * t) - 1‖ := by
   let n : ℤ := ⌊t + 1 / 2⌋
@@ -75,6 +101,7 @@ theorem uniform_phase_chord_lower (t : ℝ) :
   change 4 * |r| ≤ _
   linarith
 
+/-- A phase-kernel amplitude at circular distance greater than `w > 0` is at most `1/(2*M*w)`. -/
 theorem uniform_qpeKernel_bad_label (M : ℕ) (φ w : ℝ) (y : Fin M)
     (hM : 0 < M) (hw : 0 < w)
     (hy : w < phaseDistance φ ((y.val : ℝ) / (M : ℝ))) :
@@ -105,6 +132,8 @@ theorem uniform_qpeKernel_bad_label (M : ℕ) (φ w : ℝ) (y : Fin M)
     (mul_nonneg hm.le (norm_nonneg (qpeKernel M φ y)))
   nlinarith
 
+/-- For `M ≥ 2` and `0 < w ≤ 1/2`, the total squared kernel mass beyond circular distance `w` is
+at most `1/(4*M*w^2)`. -/
 theorem uniform_phase_kernel_derived_tail :
     ∀ (M : ℕ) (φ w : ℝ), 2 ≤ M → 0 < w → w ≤ 1 / 2 →
       (∑ y ∈ Finset.univ.filter (fun y : Fin M =>
@@ -129,9 +158,11 @@ theorem uniform_phase_kernel_derived_tail :
       mul_le_mul_of_nonneg_right hs (sq_nonneg _)
     _ = _ := by field_simp; ring
 
+/-- The signed clipped reciprocal amplitude `(d/4) * sign x / max (d/2) |x|`. -/
 noncomputable def uniformHHLGamma (d x : ℝ) : ℝ :=
   (d / 4) * Real.sign x / max (d / 2) |x|
 
+/-- For positive `d`, the clipped reciprocal amplitude has absolute value at most `1/2`. -/
 theorem uniformHHLGamma_abs_le (d x : ℝ) (hd : 0 < d) :
     |uniformHHLGamma d x| ≤ 1 / 2 := by
   have hden : 0 < max (d / 2) |x| := lt_of_lt_of_le (by linarith) (le_max_left _ _)
@@ -143,6 +174,8 @@ theorem uniformHHLGamma_abs_le (d x : ℝ) (hd : 0 < d) :
   have hm := le_max_left (d / 2) |x|
   nlinarith
 
+/-- The real Boolean rotation with sine amplitude `γ = uniformHHLGamma d x` and nonnegative
+cosine amplitude `sqrt (1-γ^2)`. -/
 noncomputable def uniformHHLRotation (d x : ℝ) : Matrix Bool Bool ℂ :=
   Matrix.of fun p q => match p, q with
     | false, false => (Real.sqrt (1 - uniformHHLGamma d x ^ 2) : ℂ)
@@ -150,6 +183,7 @@ noncomputable def uniformHHLRotation (d x : ℝ) : Matrix Bool Bool ℂ :=
     | false, true => (-(uniformHHLGamma d x) : ℂ)
     | true, true => (Real.sqrt (1 - uniformHHLGamma d x ^ 2) : ℂ)
 
+/-- The clipped reciprocal flag rotation is unitary for positive `d`. -/
 theorem uniformHHLRotation_unitary (d x : ℝ) (hd : 0 < d) :
     uniformHHLRotation d x ∈ Matrix.unitaryGroup Bool ℂ := by
   have ha := uniformHHLGamma_abs_le d x hd
@@ -176,27 +210,35 @@ theorem uniformHHLRotation_unitary (d x : ℝ) (hd : 0 < d) :
   · simp [uniformHHLRotation]; ring
   · simp [uniformHHLRotation, hone]
 
+/-- Decode a phase label as `y/M` up to the midpoint and as `y/M - 1` above it. -/
 noncomputable def uniformHHLDecode (M : ℕ) (y : Fin M) : ℝ :=
   if 2 * y.val ≤ M then (y.val : ℝ) / (M : ℝ)
   else (y.val : ℝ) / (M : ℝ) - 1
 
+/-- The phase-label-controlled clipped rotation on the Boolean flag, leaving the data register
+unchanged. -/
 noncomputable def uniformHHLFlag {D M : ℕ} (d : ℝ) :
     Matrix (Fin M × (Bool × Fin D)) (Fin M × (Bool × Fin D)) ℂ :=
   relabelGate (gridHHLFlagData (D := D) (M := M))
     (TensorGate (BlockDiag (fun y : Fin M => uniformHHLRotation d (uniformHHLDecode M y)))
       (1 : Operator D))
 
+/-- The decoded-label flag gate is unitary for positive `d`. -/
 theorem uniformHHLFlag_unitary {D M : ℕ} (d : ℝ) (hd : 0 < d) :
     uniformHHLFlag (D := D) (M := M) d ∈ Matrix.unitaryGroup _ ℂ := by
   apply (relabelGate_mem_unitaryGroup _ _).2
   exact tensorGate_unitary (blockDiag_unitary _ fun y => uniformHHLRotation_unitary d _ hd)
     (Submonoid.one_mem _)
 
+/-- The counted uniform HHL word formed from preparation, forward phase estimation, the clipped
+flag rotation, and adjoint uncomputation. -/
 noncomputable def uniformHHLWord {D : ℕ} (M : ℕ) (d : ℝ) (B : Operator D) :
     List (AdjointStep (Fin M × (Bool × (Bool × Fin D)))) :=
   adjointCircuit (countedQPEWord D M) ++ [.gate (countedHHLLiftGate (uniformHHLFlag d))] ++
     countedQPEWord D M ++ [.gate (countedHHLLiftGate (countedHHLPrepMain B))]
 
+/-- For `M ≥ 2`, positive `d`, and unitary input preparation, the uniform HHL word is well
+formed with `2*(M-1)` queries and `4*(M-1)+6` gates. -/
 theorem uniform_hhl_actual_legal_forward_inverse_ledger :
     ∀ (D M : ℕ) (d : ℝ) (B : Operator D), 2 ≤ M → 0 < d →
       B ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -222,6 +264,7 @@ theorem uniform_hhl_actual_legal_forward_inverse_ledger :
     simp only [adjointGateCount]
     omega
 
+/-- Outside the clipped region `|x| ≥ d/2`, the amplitude equals `d/(4*x)` when `d > 0`. -/
 theorem uniformHHLGamma_eq_reciprocal (d x : ℝ) (hd : 0 < d)
     (hx : d / 2 ≤ |x|) : uniformHHLGamma d x = d / (4 * x) := by
   have hxn : x ≠ 0 := by intro h; subst x; simp at hx; linarith
@@ -232,6 +275,8 @@ theorem uniformHHLGamma_eq_reciprocal (d x : ℝ) (hd : 0 < d)
   · rw [Real.sign_of_pos hp, abs_of_pos hp]
     field_simp
 
+/-- For `|a|, |b| ≤ 1/2`, the difference of the nonnegative cosine amplitudes is at most
+`|a-b|`. -/
 theorem uniformHHL_cosine_difference (a b : ℝ) (ha : |a| ≤ 1 / 2)
     (hb : |b| ≤ 1 / 2) :
     |Real.sqrt (1 - a ^ 2) - Real.sqrt (1 - b ^ 2)| ≤ |a - b| := by
@@ -255,6 +300,8 @@ theorem uniformHHL_cosine_difference (a b : ℝ) (ha : |a| ≤ 1 / 2)
     (abs_nonneg (Real.sqrt (1 - a ^ 2) - Real.sqrt (1 - b ^ 2)))
   nlinarith
 
+/-- The distance between rotated zero-flag states is at most twice the difference of their
+clipped reciprocal amplitudes. -/
 theorem uniformHHLRotation_vector_difference (d x y : ℝ) (hd : 0 < d) :
     ‖toEuclidean_fromVec (uniformHHLRotation d x *ᵥ Ket false -
       uniformHHLRotation d y *ᵥ Ket false)‖ ≤ 2 * |uniformHHLGamma d x - uniformHHLGamma d y| := by
@@ -275,6 +322,8 @@ theorem uniformHHLRotation_vector_difference (d x y : ℝ) (hd : 0 < d) :
     (uniformHHLRotation d x *ᵥ Ket false - uniformHHLRotation d y *ᵥ Ket false))
   nlinarith [abs_nonneg (uniformHHLGamma d x - uniformHHLGamma d y)]
 
+/-- If `x` is within `w ≤ d/32` of an eigenphase of magnitude in `[d, 1/4]`, its rotation is
+unitary and its rotated zero state differs by at most `8*w/d`. -/
 theorem uniform_hhl_clipped_rotation_and_local_continuity :
     ∀ (d lam x w : ℝ), 0 < d → d ≤ |lam| → |lam| ≤ 1 / 4 →
       0 < w → w ≤ d / 32 → |x - lam| ≤ w →
@@ -311,6 +360,8 @@ theorem uniform_hhl_clipped_rotation_and_local_continuity :
     _ ≤ 2 * (4 * w / d) := mul_le_mul_of_nonneg_left hg (by norm_num)
     _ = _ := by ring
 
+/-- A phase label within circular distance `w ≤ d/32` of a phase of magnitude in `[d, 1/4]`
+decodes to a real value within `w`. -/
 theorem uniformHHLDecode_good (M : ℕ) (y : Fin M) (lam d w : ℝ)
     (hM : 2 ≤ M) (hd : 0 < d) (hlam : d ≤ |lam|) (hlam' : |lam| ≤ 1 / 4)
     (hw : w ≤ d / 32)
@@ -356,11 +407,13 @@ theorem uniformHHLDecode_good (M : ℕ) (y : Fin M) (lam d w : ℝ)
     rw [he, abs_neg]
     exact hg
 
+/-- For positive `M`, the squared amplitudes of the uniform phase-estimation kernel sum to one. -/
 theorem uniform_qpeKernel_normalized (M : ℕ) (φ : ℝ) (hM : 0 < M) :
     ∑ y : Fin M, ‖qpeKernel M φ y‖ ^ 2 = 1 := by
   have hphase := (offgrid_phase_kernel_formula M φ (⟨0, hM⟩ : Fin M) hM).2.2
   exact normalized_applyGate (mem_unitaryGroup_adjoint (qftMatrix_unitary hM)) hphase
 
+/-- For positive `d`, any two rotated zero-flag states have Euclidean distance at most two. -/
 theorem uniformHHLRotation_vector_difference_le_two (d x y : ℝ) (hd : 0 < d) :
     ‖toEuclidean_fromVec (uniformHHLRotation d x *ᵥ Ket false -
       uniformHHLRotation d y *ᵥ Ket false)‖ ≤ 2 := by
@@ -375,6 +428,8 @@ theorem uniformHHLRotation_vector_difference_le_two (d x y : ℝ) (hd : 0 < d) :
         ‖toEuclidean_fromVec (uniformHHLRotation d y *ᵥ Ket false)‖ := norm_sub_le _ _
     _ = 2 := by rw [hx, hy]; norm_num
 
+/-- Under the stated spectral window and grid budget, the kernel-weighted squared error between
+decoded and exact flag rotations is at most `η^2`. -/
 theorem uniformHHL_spectral_window_error (M : ℕ) (lam d η : ℝ)
     (hM : 2 ≤ M) (hd : 0 < d) (hη : 0 < η) (hη1 : η ≤ 1)
     (hlam : d ≤ |lam|) (hlam' : |lam| ≤ 1 / 4)

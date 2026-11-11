@@ -8,6 +8,34 @@ import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
 import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAmplification
+
+/-!
+# Oracle transcript bounds for Simon's separation
+
+This module analyzes classical query transcripts for Simon's oracle construction [Simon1997]. It
+bounds period hits by a birthday estimate and compares the laws of two-to-one functions and
+uniformly random permutations on transcripts that avoid the hidden period.
+
+The comparison culminates in `simon_good_observation_mass` and
+`simon_twoToOne_true_le_reference`, which control a query tree's acceptance probability through
+its period-hit probability.
+
+## Main statements
+
+* `queries_period_hit`: Among the first `q` positions of a random input list, the probability
+  that a distinct pair sums to an independently uniform mask is at most `q * q` times the
+  reciprocal of the domain size.
+* `simonTwoToOneDist_restrict_eq`: On an injective input family avoiding pairs whose sum is a
+  nonzero mask, the Simon oracle law and uniform permutation law have identical restrictions.
+* `simon_twoToOne_true_le_reference`: For positive width and nonzero mask, a tree's true-output
+  probability under the Simon law is bounded by its true-output and period-hit probabilities
+  under the permutation law.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,6 +64,8 @@ open scoped Classical BigOperators ENNReal
 namespace Qatlib.Papers.QPowerSimon97.Recovery
 noncomputable section
 
+/-- For positive input width, there exists a function satisfying `SimonStrictTwoToOne s` for
+every mask `s`. -/
 lemma simonStrictTwoToOne_nonempty {n : ℕ} (hn : 1 ≤ n) (s : BooleanVec n) :
     Nonempty {f : BooleanVec n → BooleanVec n // SimonStrictTwoToOne s f} := by
   classical
@@ -137,12 +167,15 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.SimonQueryTree
 variable {n : ℕ}
 noncomputable section
 
+/-- The list of inputs queried along the execution path of a Simon query tree with oracle `f`. -/
 def asked (f : BooleanVec n → BooleanVec n) : SimonQueryTree n → List (BooleanVec n)
   | .halt _ => []
   | .ask x next => x :: asked f (next (f x))
 end
 noncomputable section
 
+/-- The number of inputs queried on any execution path is at most the tree's maximum query
+count. -/
 lemma asked_length_le_maxQueries (f : BooleanVec n → BooleanVec n) :
     ∀ τ : SimonQueryTree n, (asked f τ).length ≤ τ.maxQueries
   | .halt _ => by simp [asked, maxQueries]
@@ -156,11 +189,13 @@ lemma asked_length_le_maxQueries (f : BooleanVec n → BooleanVec n) :
 end
 noncomputable section
 
+/-- The event that two distinct queried inputs have the same oracle value. -/
 def valueCollision (f : BooleanVec n → BooleanVec n) (τ : SimonQueryTree n) : Prop :=
   ∃ a ∈ asked f τ, ∃ b ∈ asked f τ, a ≠ b ∧ f a = f b
 end
 noncomputable section
 
+/-- An injective oracle produces no value collision along any query-tree execution. -/
 lemma not_valueCollision_of_injective {f : BooleanVec n → BooleanVec n}
     (hf : Function.Injective f) (τ : SimonQueryTree n) : ¬ valueCollision f τ := by
   intro ⟨a, _, b, _, hne, heq⟩
@@ -171,11 +206,15 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
 variable {n : ℕ}
 noncomputable section
 
+/-- The oracle law obtained by drawing a uniform mask and then drawing from its Simon two-to-one
+distribution. -/
 noncomputable def twoToOneLaw (n : ℕ) : PMF (BooleanVec n → BooleanVec n) :=
   PMF.bind (PMF.uniformOfFintype' (BooleanVec n)) simonTwoToOneDist
 end
 noncomputable section
 
+/-- The probability of an event under a bound distribution equals the expected conditional event
+probability. -/
 lemma event_bind {α β : Type*} (p : PMF α) (q : α → PMF β) (E : β → Prop) :
     event (p.bind q) E = expectation p fun a => event (q a) E := by
   unfold event
@@ -183,6 +222,8 @@ lemma event_bind {α β : Type*} (p : PMF α) (q : α → PMF β) (E : β → Pr
 end
 noncomputable section
 
+/-- For positive width, every function with nonzero mass under `simonTwoToOneDist s` satisfies
+`SimonStrictTwoToOne s`. -/
 lemma simonTwoToOneDist_of_pos {n : ℕ} (hn : 1 ≤ n) (s : BooleanVec n)
     {f : BooleanVec n → BooleanVec n} (hpos : simonTwoToOneDist s f ≠ 0) :
     SimonStrictTwoToOne s f := by
@@ -214,6 +255,7 @@ lemma simonTwoToOneDist_of_pos {n : ℕ} (hn : 1 ≤ n) (s : BooleanVec n)
 end
 noncomputable section
 
+/-- Every element of `ZMod 2` is zero or one. -/
 lemma zmod2_bit (a : ZMod 2) : a = 0 ∨ a = 1 := by
   fin_cases a
   · exact Or.inl rfl
@@ -221,6 +263,8 @@ lemma zmod2_bit (a : ZMod 2) : a = 0 ∨ a = 1 := by
 end
 noncomputable section
 
+/-- For a nonzero strict Simon mask, the sum of two distinct inputs with equal outputs is the
+mask. -/
 lemma strict_collision_period {n : ℕ} {s x x' : BooleanVec n}
     {f : BooleanVec n → BooleanVec n} (hf : SimonStrictTwoToOne s f)
     (hs : s ≠ 0) (hneq : x ≠ x') (heq : f x = f x') : s = x + x' := by
@@ -271,6 +315,8 @@ lemma strict_collision_period {n : ℕ} {s x x' : BooleanVec n}
 end
 noncomputable section
 
+/-- Under `twoToOneLaw n` at positive width, the collision probability for two fixed distinct
+inputs is at most the reciprocal of `2 ^ (n - 1)`. -/
 lemma twoToOneLaw_pair_le {n : ℕ} (hn : 1 ≤ n) {x x' : BooleanVec n} (hneq : x ≠ x') :
     event (twoToOneLaw n) (fun f => f x = f x') ≤ (2 ^ (n - 1) : ℝ≥0∞)⁻¹ := by
   classical
@@ -348,11 +394,14 @@ lemma twoToOneLaw_pair_le {n : ℕ} (hn : 1 ≤ n) {x x' : BooleanVec n} (hneq :
 end
 noncomputable section
 
+/-- There are exactly `2 ^ n` Boolean vectors of length `n`. -/
 lemma booleanVec_card (n : ℕ) : Fintype.card (BooleanVec n) = 2 ^ n := by
   simp [BooleanVec, ZMod.card, Fintype.card_fin]
 end
 noncomputable section
 
+/-- An independently uniform mask equals the sum of a random distinct input pair with
+probability at most the reciprocal of the number of Boolean vectors. -/
 lemma uniform_period_hit {n : ℕ} (μ : PMF (BooleanVec n × BooleanVec n)) :
     event (μ.bind fun ab => (PMF.uniformOfFintype' (BooleanVec n)).map fun s => (ab, s))
       (fun p => p.1.1 ≠ p.1.2 ∧ p.1.1 + p.1.2 = p.2) ≤
@@ -392,6 +441,9 @@ lemma uniform_period_hit {n : ℕ} (μ : PMF (BooleanVec n × BooleanVec n)) :
 end
 noncomputable section
 
+/-- Among the first `q` positions of a random input list, the probability that a distinct pair
+sums to an independently uniform mask is at most `q * q` times the reciprocal of the domain
+size. -/
 lemma queries_period_hit {n q : ℕ} (μ : PMF (List (BooleanVec n))) :
     event (μ.bind fun l => (PMF.uniformOfFintype' (BooleanVec n)).map fun s => (l, s))
       (fun p => ∃ i j : Fin q,
@@ -482,6 +534,7 @@ lemma queries_period_hit {n q : ℕ} (μ : PMF (List (BooleanVec n))) :
 end
 noncomputable section
 
+/-- If `q ≤ 2 ^ (n / 4)`, then the birthday ratio `q² / 2ⁿ` is at most `2 ^ (-(n : ℝ) / 2)`. -/
 lemma birthday_query_le (n q : ℕ) (hq : q ≤ 2 ^ (n / 4)) :
     ((q * q : ℕ) : ℝ) / (2 ^ n : ℝ) ≤ (2 : ℝ) ^ (-(n : ℝ) / 2) := by
   have hdiv : 2 * (n / 4) ≤ n / 2 := by omega
@@ -518,6 +571,7 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.SimonQueryTree
 variable {n : ℕ}
 noncomputable section
 
+/-- Oracles agreeing on all inputs queried along one execution give the same query-tree result. -/
 lemma run_eq_of_agree_on_asked (f g : BooleanVec n → BooleanVec n) :
     ∀ τ : SimonQueryTree n,
       (∀ x ∈ asked f τ, f x = g x) → run f τ = run g τ
@@ -532,6 +586,7 @@ lemma run_eq_of_agree_on_asked (f g : BooleanVec n → BooleanVec n) :
 end
 noncomputable section
 
+/-- Oracles agreeing on the queried inputs give the same list of queried inputs. -/
 lemma asked_eq_of_agree_on_asked (f g : BooleanVec n → BooleanVec n) :
     ∀ τ : SimonQueryTree n,
       (∀ x ∈ asked f τ, f x = g x) → asked f τ = asked g τ
@@ -546,12 +601,15 @@ lemma asked_eq_of_agree_on_asked (f g : BooleanVec n → BooleanVec n) :
 end
 noncomputable section
 
+/-- The event that two distinct queried inputs sum to the specified mask. -/
 def periodHit (s : BooleanVec n) (τ : SimonQueryTree n)
     (f : BooleanVec n → BooleanVec n) : Prop :=
   ∃ a ∈ asked f τ, ∃ b ∈ asked f τ, a ≠ b ∧ a + b = s
 end
 noncomputable section
 
+/-- For a strict Simon oracle with nonzero mask, a queried value collision is equivalent to a
+period hit. -/
 lemma valueCollision_iff_periodHit {s : BooleanVec n}
     {f : BooleanVec n → BooleanVec n} (hf : SimonStrictTwoToOne s f)
     (hs : s ≠ 0) (τ : SimonQueryTree n) :
@@ -573,6 +631,8 @@ lemma valueCollision_iff_periodHit {s : BooleanVec n}
 end
 noncomputable section
 
+/-- For a tree with at most `q` queries, a period hit is equivalent to a pair of valid list
+indices bounded by `q` whose distinct inputs sum to the mask. -/
 lemma periodHit_iff_indices {q : ℕ} (s : BooleanVec n) (τ : SimonQueryTree n)
     (f : BooleanVec n → BooleanVec n) (hq : τ.maxQueries ≤ q) :
     periodHit s τ f ↔ ∃ i j : Fin q,
@@ -595,6 +655,8 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
 variable {n : ℕ}
 noncomputable section
 
+/-- A query tree with at most `q` queries hits an independently uniform mask with probability at
+most `q²` divided by the domain size. -/
 lemma independent_path_period_hit {n q : ℕ}
     (ρ : PMF (BooleanVec n → BooleanVec n)) (τ : SimonQueryTree n)
     (hq : τ.maxQueries ≤ q) :
@@ -611,6 +673,8 @@ lemma independent_path_period_hit {n q : ℕ}
 end
 noncomputable section
 
+/-- A randomized query tree bounded by `q` hits an independently uniform mask with probability
+at most `q²` divided by the domain size. -/
 lemma randomized_independent_path_period_hit {n q : ℕ}
     (P : PMF (SimonQueryTree n)) (ρ : PMF (BooleanVec n → BooleanVec n))
     (hq : SimonQueryTree.bounded P q) :
@@ -638,6 +702,7 @@ lemma randomized_independent_path_period_hit {n q : ℕ}
 end
 noncomputable section
 
+/-- A permutation of a finite nonempty type preserves its uniform probability law. -/
 private lemma uniform_map_equiv {α : Type} [Fintype α] [Nonempty α] (e : α ≃ α) :
     (PMF.uniformOfFintype' α).map e = PMF.uniformOfFintype' α := by
   classical
@@ -650,6 +715,8 @@ private lemma uniform_map_equiv {α : Type} [Fintype α] [Nonempty α] (e : α �
 end
 noncomputable section
 
+/-- Postcomposing a strict Simon oracle with an output permutation preserves its strict mask
+condition. -/
 lemma strict_postcompose {n : ℕ} {s : BooleanVec n}
     {f : BooleanVec n → BooleanVec n} (hf : SimonStrictTwoToOne s f)
     (π : Equiv.Perm (BooleanVec n)) : SimonStrictTwoToOne s (π ∘ f) := by
@@ -662,6 +729,7 @@ lemma strict_postcompose {n : ℕ} {s : BooleanVec n}
   exact hf.2 (π.symm y)
 end
 noncomputable section
+/-- The equivalence on strict Simon oracles induced by permuting output labels. -/
 private def strictLabelEquiv {n : ℕ} (s : BooleanVec n)
     (π : Equiv.Perm (BooleanVec n)) :
     {f : BooleanVec n → BooleanVec n // SimonStrictTwoToOne s f} ≃
@@ -679,6 +747,7 @@ private def strictLabelEquiv {n : ℕ} (s : BooleanVec n)
 end
 noncomputable section
 
+/-- For positive width, permuting output labels preserves `simonTwoToOneDist s`. -/
 lemma simonTwoToOneDist_postcompose {n : ℕ} (hn : 1 ≤ n)
     (s : BooleanVec n) (π : Equiv.Perm (BooleanVec n)) :
     (simonTwoToOneDist s).map (fun f => π ∘ f) = simonTwoToOneDist s := by
@@ -701,6 +770,8 @@ lemma simonTwoToOneDist_postcompose {n : ℕ} (hn : 1 ≤ n)
 end
 noncomputable section
 
+/-- Transporting a probability law through an equivalence preserves each point mass at the
+corresponding image. -/
 private lemma map_equiv_apply {α : Type} (p : PMF α) (e : α ≃ α) (a : α) :
     (p.map e) (e a) = p a := by
   classical
@@ -711,6 +782,7 @@ private lemma map_equiv_apply {α : Type} (p : PMF α) (e : α ≃ α) (a : α) 
 end
 noncomputable section
 
+/-- A probability law on Boolean vectors invariant under every permutation is uniform. -/
 private lemma booleanVec_law_uniform {n : ℕ} (p : PMF (BooleanVec n))
     (h : ∀ π : Equiv.Perm (BooleanVec n), p.map π = p) :
     p = PMF.uniformOfFintype' (BooleanVec n) := by
@@ -735,6 +807,7 @@ private lemma booleanVec_law_uniform {n : ℕ} (p : PMF (BooleanVec n))
 end
 noncomputable section
 
+/-- For positive width, the value of a Simon-distributed oracle at any fixed input is uniform. -/
 lemma simonTwoToOneDist_eval_uniform {n : ℕ} (hn : 1 ≤ n)
     (s x : BooleanVec n) :
     (simonTwoToOneDist s).map (fun f => f x) =
@@ -747,6 +820,7 @@ lemma simonTwoToOneDist_eval_uniform {n : ℕ} (hn : 1 ≤ n)
 end
 noncomputable section
 
+/-- The image of a fixed Boolean vector under a uniformly random permutation is uniform. -/
 lemma uniform_permutation_eval {n : ℕ} (x : BooleanVec n) :
     (PMF.uniformOfFintype' (Equiv.Perm (BooleanVec n))).map (fun π => π x) =
       PMF.uniformOfFintype' (BooleanVec n) := by
@@ -764,6 +838,7 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.SimonQueryTree
 variable {n : ℕ}
 noncomputable section
 
+/-- A query tree with zero maximum queries has the same result for all oracles. -/
 lemma run_eq_of_maxQueries_zero (f g : BooleanVec n → BooleanVec n)
     (τ : SimonQueryTree n) (h : τ.maxQueries = 0) : run f τ = run g τ := by
   cases τ with
@@ -772,6 +847,8 @@ lemma run_eq_of_maxQueries_zero (f g : BooleanVec n → BooleanVec n)
 end
 noncomputable section
 
+/-- Oracle laws with matching single-input value distributions induce the same result law for a
+tree using at most one query. -/
 lemma one_query_run_law_eq (ρ σ : PMF (BooleanVec n → BooleanVec n))
     (h : ∀ x, ρ.map (fun f => f x) = σ.map (fun f => f x))
     (τ : SimonQueryTree n) (hq : τ.maxQueries ≤ 1) :
@@ -802,6 +879,8 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
 variable {n : ℕ}
 noncomputable section
 
+/-- At positive width, a tree using at most one query has the same result law under a Simon
+oracle and a uniformly random permutation. -/
 lemma one_query_twoToOne_run_law {n : ℕ} (hn : 1 ≤ n) (s : BooleanVec n)
     (τ : SimonQueryTree n) (hq : τ.maxQueries ≤ 1) :
     (simonTwoToOneDist s).map (fun f => SimonQueryTree.run f τ) =
@@ -817,6 +896,8 @@ lemma one_query_twoToOne_run_law {n : ℕ} (hn : 1 ≤ n) (s : BooleanVec n)
 end
 noncomputable section
 
+/-- For positive width, prescribing either of two injective output labelings on the same input
+list gives equal event probabilities under the Simon oracle law. -/
 lemma simonTwoToOneDist_injective_cylinder_eq {n k : ℕ} (hn : 1 ≤ n)
     (s : BooleanVec n) (xs a b : Fin k → BooleanVec n)
     (ha : Function.Injective a) (hb : Function.Injective b) :
@@ -839,6 +920,8 @@ lemma simonTwoToOneDist_injective_cylinder_eq {n k : ℕ} (hn : 1 ≤ n)
 end
 noncomputable section
 
+/-- For positive width, a Simon-distributed oracle agrees at `x` and `x + s` with probability
+one. -/
 lemma simonTwoToOneDist_period_pair_mass {n : ℕ} (hn : 1 ≤ n)
     (s x : BooleanVec n) :
     event (simonTwoToOneDist s) (fun f => f x = f (x + s)) = 1 := by
@@ -856,6 +939,8 @@ lemma simonTwoToOneDist_period_pair_mass {n : ℕ} (hn : 1 ≤ n)
 end
 noncomputable section
 
+/-- A uniformly random permutation agrees at `x` and `x + s` with probability zero when `s` is
+nonzero. -/
 lemma uniform_permutation_period_pair_mass {n : ℕ} {s : BooleanVec n}
     (hs : s ≠ 0) (x : BooleanVec n) :
     event (PMF.uniformOfFintype' (Equiv.Perm (BooleanVec n)))
@@ -869,6 +954,8 @@ lemma uniform_permutation_period_pair_mass {n : ℕ} {s : BooleanVec n}
 end
 noncomputable section
 
+/-- Two finite probability laws supported on the same nonempty set and constant on that set are
+equal. -/
 private lemma finite_pmf_eq_of_uniform_on {α : Type} [Fintype α]
     (p q : PMF α) (E : α → Prop) (r : α) (hr : E r)
     (hp0 : ∀ a, ¬ E a → p a = 0) (hq0 : ∀ a, ¬ E a → q a = 0)
@@ -900,6 +987,7 @@ private lemma finite_pmf_eq_of_uniform_on {α : Type} [Fintype α]
 end
 noncomputable section
 
+/-- The mass of a point under a mapped probability law equals the probability of its fiber. -/
 private lemma pmf_map_apply_event {α β : Type} (p : PMF α) (F : α → β) (b : β) :
     p.map F b = event p (fun a => F a = b) := by
   classical
@@ -913,6 +1001,8 @@ private lemma pmf_map_apply_event {α β : Type} (p : PMF α) (F : α → β) (b
 end
 noncomputable section
 
+/-- On an injective input family avoiding pairs whose sum is a nonzero mask, the Simon oracle
+law and uniform permutation law have identical restrictions. -/
 lemma simonTwoToOneDist_restrict_eq {n : ℕ} (hn : 1 ≤ n)
     (s : BooleanVec n) (hs : s ≠ 0) {ι : Type} [Fintype ι]
     (xs : ι → BooleanVec n) (hxs : Function.Injective xs)
@@ -979,6 +1069,8 @@ lemma simonTwoToOneDist_restrict_eq {n : ℕ} (hn : 1 ≤ n)
 end
 noncomputable section
 
+/-- On a finite set avoiding the nonzero mask, agreement with a fixed permutation has the same
+probability under the Simon oracle law and the uniform permutation law. -/
 lemma simonTwoToOneDist_finset_cylinder_eq {n : ℕ} (hn : 1 ≤ n)
     (s : BooleanVec n) (hs : s ≠ 0) (xs : Finset (BooleanVec n))
     (havoid : ∀ a ∈ xs, ∀ b ∈ xs, a ≠ b → a + b ≠ s)
@@ -1009,6 +1101,7 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.SimonQueryTree
 variable {n : ℕ}
 noncomputable section
 
+/-- The list of query inputs and oracle responses along a query-tree execution. -/
 def simonTrace (f : BooleanVec n → BooleanVec n) : SimonQueryTree n →
     List (BooleanVec n × BooleanVec n)
   | .halt _ => []
@@ -1016,6 +1109,7 @@ def simonTrace (f : BooleanVec n → BooleanVec n) : SimonQueryTree n →
 end
 noncomputable section
 
+/-- Projecting the inputs of a Simon transcript recovers the list of queried inputs. -/
 lemma trace_inputs (f : BooleanVec n → BooleanVec n) :
     ∀ τ : SimonQueryTree n, (simonTrace f τ).map Prod.fst = asked f τ
   | .halt _ => rfl
@@ -1023,6 +1117,8 @@ lemma trace_inputs (f : BooleanVec n → BooleanVec n) :
 end
 noncomputable section
 
+/-- Two oracles give the same transcript exactly when they agree on all inputs queried along the
+first execution. -/
 lemma trace_eq_iff_agree (f g : BooleanVec n → BooleanVec n) :
     ∀ τ : SimonQueryTree n,
       simonTrace f τ = simonTrace g τ ↔ ∀ x ∈ asked f τ, f x = g x
@@ -1047,12 +1143,15 @@ lemma trace_eq_iff_agree (f g : BooleanVec n → BooleanVec n) :
 end
 noncomputable section
 
+/-- Equal query transcripts imply equal query-tree results. -/
 lemma run_eq_of_trace_eq (f g : BooleanVec n → BooleanVec n)
     (τ : SimonQueryTree n) (h : simonTrace f τ = simonTrace g τ) : run f τ = run g τ :=
   run_eq_of_agree_on_asked f g τ ((trace_eq_iff_agree f g τ).mp h)
 end
 noncomputable section
 
+/-- An oracle with no queried value collision agrees on its queried inputs with some
+permutation. -/
 lemma exists_perm_agree_of_not_valueCollision (f : BooleanVec n → BooleanVec n)
     (τ : SimonQueryTree n) (h : ¬ valueCollision f τ) :
     ∃ π : Equiv.Perm (BooleanVec n), ∀ x ∈ asked f τ, π x = f x := by
@@ -1070,11 +1169,15 @@ lemma exists_perm_agree_of_not_valueCollision (f : BooleanVec n → BooleanVec n
 end
 noncomputable section
 
+/-- The pair consisting of the query transcript and the final Boolean result with its query
+count. -/
 def simonObservation (f : BooleanVec n → BooleanVec n) (τ : SimonQueryTree n) :=
   (simonTrace f τ, run f τ)
 end
 noncomputable section
 
+/-- Two oracles give the same observation exactly when they agree on the inputs queried along
+the first execution. -/
 lemma observation_eq_iff_agree (f g : BooleanVec n → BooleanVec n)
     (τ : SimonQueryTree n) :
     simonObservation f τ = simonObservation g τ ↔ ∀ x ∈ asked f τ, f x = g x := by
@@ -1090,6 +1193,8 @@ namespace Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
 variable {n : ℕ}
 noncomputable section
 
+/-- If two laws agree pointwise outside a bad event, any event under the first law is bounded by
+its probability under the second plus the second law's bad-event probability. -/
 private lemma event_le_of_agree_off_bad {α : Type} (p q : PMF α)
     (B E : α → Prop) (h : ∀ x, ¬ B x → p x = q x) :
     event p E ≤ event q E + event q B := by
@@ -1125,12 +1230,15 @@ private lemma event_le_of_agree_off_bad {α : Type} (p q : PMF α)
 end
 noncomputable section
 
+/-- The predicate that an observation contains two distinct query inputs summing to the
+specified mask. -/
 def simonObservationBad {n : ℕ} (s : BooleanVec n)
     (t : List (BooleanVec n × BooleanVec n) × (Bool × ℕ)) : Prop :=
   ∃ a ∈ t.1.map Prod.fst, ∃ b ∈ t.1.map Prod.fst, a ≠ b ∧ a + b = s
 end
 noncomputable section
 
+/-- An observation is bad exactly when its execution hits the specified period. -/
 lemma simonObservationBad_observation {n : ℕ} (s : BooleanVec n)
     (f : BooleanVec n → BooleanVec n) (τ : SimonQueryTree n) :
     simonObservationBad s (SimonQueryTree.simonObservation f τ) ↔
@@ -1140,12 +1248,15 @@ lemma simonObservationBad_observation {n : ℕ} (s : BooleanVec n)
 end
 noncomputable section
 
+/-- The law on oracle functions induced by a uniformly random permutation of Boolean vectors. -/
 def simonPermutationLaw (n : ℕ) : PMF (BooleanVec n → BooleanVec n) :=
   (PMF.uniformOfFintype' (Equiv.Perm (BooleanVec n))).map
     (fun (π : Equiv.Perm (BooleanVec n)) => (π : BooleanVec n → BooleanVec n))
 end
 noncomputable section
 
+/-- For positive width and nonzero mask, any observation avoiding a period hit has equal mass
+under the Simon oracle law and the permutation law. -/
 lemma simon_good_observation_mass {n : ℕ} (hn : 1 ≤ n)
     (s : BooleanVec n) (hs : s ≠ 0) (τ : SimonQueryTree n)
     (t : List (BooleanVec n × BooleanVec n) × (Bool × ℕ))
@@ -1210,6 +1321,8 @@ lemma simon_good_observation_mass {n : ℕ} (hn : 1 ≤ n)
 end
 noncomputable section
 
+/-- For positive width and nonzero mask, a tree's true-output probability under the Simon law is
+bounded by its true-output and period-hit probabilities under the permutation law. -/
 lemma simon_twoToOne_true_le_reference {n : ℕ} (hn : 1 ≤ n)
     (s : BooleanVec n) (hs : s ≠ 0) (τ : SimonQueryTree n) :
     event (simonTwoToOneDist s) (fun f => (SimonQueryTree.run f τ).1 = true) ≤

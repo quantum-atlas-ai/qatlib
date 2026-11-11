@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OrderedInsert99.MainResults.Exact
+
+/-!
+# Excluding two-query insertion at large sizes
+
+Specializes the invariant success bound to exclude exact two-query invariant insertion
+algorithms when `6 ^ 8 ≤ N`. The module develops a large-size obstruction in the
+ordered-insertion setting of [FarhiEtAl1999].
+
+## Main statements
+
+* `two_query_no_large`: rules out exact two-query invariant algorithms under the explicit size
+  threshold.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +31,7 @@ noncomputable section
 
 namespace Qatlib.Papers.OrderedInsert99.MainResults
 
+/-- For `N ≥ 6 ^ 8`, no exact two-query invariant insertion algorithm exists [FarhiEtAl1999]. -/
 theorem two_query_no_large (N : ℕ) (hN : 6 ^ 8 ≤ N) :
     ¬ ExactInvariantAlgorithm N 2 := by
   rintro ⟨α, hα⟩

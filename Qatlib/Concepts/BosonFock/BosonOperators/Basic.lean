@@ -9,6 +9,30 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.Data.Fintype.Perm
 import Mathlib.Data.Complex.BigOperators
+
+/-!
+# Finite bosonic sectors and second quantization
+
+`Sector` is the Hilbert space indexed by occupations of a fixed particle number. `create` and
+`annihilate` connect adjacent sectors with square-root occupation coefficients, while
+`cutCreate` restricts creation to a finite particle cutoff. The module proves graded commutation
+relations, operator norm bounds, and the compatibility of the permanent formula `gamma` with
+second quantization.
+
+The mathematical background is described in [BratteliRobinson1997II].
+
+## Main statements
+
+* `graded_creation_annihilation`: basis, vacuum, and graded commutation identities.
+* `sector_and_polynomial_norm_bounds`: sector and cutoff polynomial norm estimates.
+* `second_quantization_permanent_bridge`: unitary mode transformations, ladder operators, and
+  boson weights.
+
+## References
+
+* [Bratteli and Robinson, 1997][BratteliRobinson1997II]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,40 +42,62 @@ namespace Qatlib.Concepts.BosonFock.BosonOperators
 open Qatlib
 open scoped BigOperators Classical Matrix Matrix.Norms.L2Operator
 
+/-- The type of mode occupations with fixed total particle number, identified with
+`FockOccupation`. -/
 abbrev Occupation := FockOccupation
+/-- The complex Euclidean Hilbert space indexed by occupations of `n` particles in `m` modes. -/
 abbrev Sector (m n : ℕ) := EuclideanSpace ℂ (Occupation m n)
+/-- The unit coordinate vector corresponding to the occupation `s`. -/
 def basis {m n : ℕ} (s : Occupation m n) : Sector m n := WithLp.toLp 2 (Pi.single s 1)
+/-- The occupation with zero particles in every mode. -/
 def vacuum (m : ℕ) : Occupation m 0 := ⟨fun _ => 0, by simp⟩
+/-- The particle number operator on the `n`-particle sector, equal to `n` times the identity. -/
 def number (m n : ℕ) : Matrix (Occupation m n) (Occupation m n) ℂ := (n : ℂ) • 1
 
+/-- The creation matrix from sector `n` to sector `n + 1`, adding one particle in mode `i` with
+coefficient `sqrt (s i + 1)`. -/
 def create (m n : ℕ) (i : Fin m) : Matrix (Occupation m (n+1)) (Occupation m n) ℂ :=
   fun t s => if ∀ j, (t.val j : ℕ) = (s.val j : ℕ) + if j = i then 1 else 0
     then (Real.sqrt ((s.val i : ℕ) + 1) : ℂ) else 0
+/-- The annihilation matrix from sector `n + 1` to sector `n`, defined as the adjoint of
+creation in mode `i`. -/
 def annihilate (m n : ℕ) (i : Fin m) := (create m n i).conjTranspose
+/-- The occupation basis containing all particle sectors from zero through the cutoff `Q`. -/
 abbrev CutBasis (m Q : ℕ) := (n : Fin (Q+1)) × Occupation m n.val
+/-- The creation matrix on the cutoff basis, raising occupation in mode `i` when the resulting
+sector lies within the cutoff. -/
 def cutCreate (m Q : ℕ) (i : Fin m) : Matrix (CutBasis m Q) (CutBasis m Q) ℂ :=
   fun t s => if t.1.val = s.1.val+1 ∧
     (∀ j, (t.2.val j : ℕ) = (s.2.val j : ℕ) + if j = i then 1 else 0)
     then (Real.sqrt ((s.2.val i : ℕ) + 1) : ℂ) else 0
 
+/-- The ordered product of cutoff ladder matrices specified by a list, with `true` selecting
+creation and `false` its adjoint. -/
 def cutWord (m Q : ℕ) (w : List (Fin m × Bool)) : Matrix (CutBasis m Q) (CutBasis m Q) ℂ :=
   w.foldr (fun a B => (if a.2 then cutCreate m Q a.1 else (cutCreate m Q a.1).conjTranspose) * B) 1
 
+/-- The mode label at position `a` in the list repeating each mode according to occupation `s`. -/
 def rowAt {m n : ℕ} (s : Occupation m n) (a : Fin n) : Fin m :=
   (bosonRows (fun i => (s.val i : ℕ))).get ⟨a.val, by
     rw [(bosonRows_length _).trans s.property]; exact a.isLt⟩
+/-- The matrix obtained from `U` by repeating its rows and columns according to occupations `r`
+and `s`. -/
 def occupationMatrix {m n : ℕ} (U : Matrix (Fin m) (Fin m) ℂ)
     (r s : Occupation m n) : Matrix (Fin n) (Fin n) ℂ :=
   fun a b => U (rowAt r a) (rowAt s b)
+/-- The fixed-particle matrix whose entries are permanents of repeated mode matrices divided by
+the square root of the two occupation factorial products. -/
 def gamma (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) : Matrix (Occupation m n) (Occupation m n) ℂ :=
   fun r s => Matrix.permanent (occupationMatrix U r s) /
     (Real.sqrt ((∏ i, (r.val i : ℕ).factorial) * (∏ i, (s.val i : ℕ).factorial)) : ℂ)
 
+/-- Two occupations are equal when their particle counts agree in every mode. -/
 @[ext]
 private theorem occupation_ext {m n : ℕ} {s t : Occupation m n}
     (h : ∀ j, (s.val j : ℕ) = (t.val j : ℕ)) : s = t :=
   Subtype.ext (funext fun j => Fin.ext (h j))
 
+/-- The occupation of any mode is at most the total particle number. -/
 private theorem occupation_val_le {m n : ℕ} (s : Occupation m n) (j : Fin m) :
     (s.val j : ℕ) ≤ n := by
   have h1 := Finset.single_le_sum (f := fun k : Fin m => (s.val k : ℕ))
@@ -59,6 +105,7 @@ private theorem occupation_val_le {m n : ℕ} (s : Occupation m n) (j : Fin m) :
   have h2 := s.property
   omega
 
+/-- The sum of occupations in two distinct modes is at most the total particle number. -/
 private theorem occupation_add_le {m n : ℕ} (s : Occupation m n) {j i : Fin m} (hji : j ≠ i) :
     (s.val j : ℕ) + (s.val i : ℕ) ≤ n := by
   have h1 := Finset.add_le_sum (f := fun k : Fin m => (s.val k : ℕ))
@@ -67,20 +114,24 @@ private theorem occupation_add_le {m n : ℕ} (s : Occupation m n) {j i : Fin m}
   try dsimp at h1
   omega
 
+/-- The occupation obtained by adding one particle in mode `i`. -/
 private def bump {m n : ℕ} (s : Occupation m n) (i : Fin m) : Occupation m (n + 1) :=
   ⟨fun j => ⟨(s.val j : ℕ) + if j = i then 1 else 0, by
     have hle := occupation_val_le s j
     split_ifs <;> omega⟩, by
     simp only [Finset.sum_add_distrib, s.property, Fintype.sum_ite_eq']⟩
 
+/-- Adding a particle increases the count in mode `i` by one and leaves other counts unchanged. -/
 @[simp]
 private theorem bump_val {m n : ℕ} (s : Occupation m n) (i j : Fin m) :
     ((bump s i).val j : ℕ) = (s.val j : ℕ) + if j = i then 1 else 0 := rfl
 
+/-- The entrywise one-particle increment condition is equivalent to equality with `bump s i`. -/
 private theorem step_iff_eq_bump {m n : ℕ} {t : Occupation m (n + 1)} {s : Occupation m n} {i : Fin m} :
     (∀ j, (t.val j : ℕ) = (s.val j : ℕ) + if j = i then 1 else 0) ↔ t = bump s i :=
   ⟨fun h => occupation_ext h, fun h j => by rw [h, bump_val]⟩
 
+/-- Adding a particle in a fixed mode is injective on occupations. -/
 private theorem bump_injective {m n : ℕ} (i : Fin m) {s₁ s₂ : Occupation m n}
     (h : bump s₁ i = bump s₂ i) : s₁ = s₂ := by
   ext j
@@ -88,12 +139,14 @@ private theorem bump_injective {m n : ℕ} (i : Fin m) {s₁ s₂ : Occupation m
   dsimp [bump] at hj
   omega
 
+/-- Adding particles in two modes commutes. -/
 private theorem bump_comm {m n : ℕ} (s : Occupation m n) (i j : Fin m) :
     bump (bump s j) i = bump (bump s i) j := by
   ext k
   simp only [bump_val]
   omega
 
+/-- The occupation obtained by removing one particle from a mode with positive occupation. -/
 private def unbump {m n : ℕ} (t : Occupation m (n + 1)) (i : Fin m) (h : 0 < (t.val i : ℕ)) :
     Occupation m n :=
   ⟨fun j => ⟨(t.val j : ℕ) - if j = i then 1 else 0, by
@@ -114,11 +167,14 @@ private def unbump {m n : ℕ} (t : Occupation m (n + 1)) (i : Fin m) (h : 0 < (
     dsimp
     omega⟩
 
+/-- Removing a particle subtracts one in the chosen mode and leaves all other counts unchanged. -/
 @[simp]
 private theorem unbump_val {m n : ℕ} (t : Occupation m (n + 1)) (i : Fin m)
     (h : 0 < (t.val i : ℕ)) (j : Fin m) :
     ((unbump t i h).val j : ℕ) = (t.val j : ℕ) - if j = i then 1 else 0 := rfl
 
+/-- Adding back a particle after removing it from an occupied mode recovers the original
+occupation. -/
 private theorem bump_unbump {m n : ℕ} (t : Occupation m (n + 1)) (i : Fin m) (h : 0 < (t.val i : ℕ)) :
     bump (unbump t i h) i = t := by
   ext j
@@ -127,17 +183,23 @@ private theorem bump_unbump {m n : ℕ} (t : Occupation m (n + 1)) (i : Fin m) (
   · subst hji; simp; omega
   · simp [hji]
 
+/-- A creation matrix entry is `sqrt (s i + 1)` at the incremented occupation and zero
+elsewhere. -/
 private theorem create_apply_bump {m n : ℕ} (i : Fin m) (t : Occupation m (n + 1)) (s : Occupation m n) :
     create m n i t s = if t = bump s i then (Real.sqrt ((s.val i : ℕ) + 1) : ℂ) else 0 := by
   unfold create
   simp only [step_iff_eq_bump]
 
+/-- An annihilation matrix entry is `sqrt (s i + 1)` exactly when its input occupation is `bump
+s i`. -/
 private theorem annihilate_apply_bump {m n : ℕ} (i : Fin m) (s : Occupation m n) (t : Occupation m (n + 1)) :
     annihilate m n i s t = if t = bump s i then (Real.sqrt ((s.val i : ℕ) + 1) : ℂ) else 0 := by
   change star (create m n i t s) = _
   rw [create_apply_bump]
   split_ifs <;> simp
 
+/-- An annihilation entry equals the square root of the input occupation in mode `i` when the
+output removes that particle, and is zero otherwise. -/
 private theorem annihilate_apply_formula {m n : ℕ} (i : Fin m) (s : Occupation m n) (t : Occupation m (n + 1)) :
     annihilate m n i s t =
       if ∀ j, (t.val j : ℕ) = (s.val j : ℕ) + if j = i then 1 else 0
@@ -149,6 +211,8 @@ private theorem annihilate_apply_formula {m n : ℕ} (i : Fin m) (s : Occupation
     simp
   · rfl
 
+/-- An entry of annihilation after creation is the product of the two square-root coefficients
+when the corresponding incremented occupations agree, and zero otherwise. -/
 private theorem annihilate_mul_create_entry {m n : ℕ} (i j : Fin m) (r s : Occupation m n) :
     (annihilate m n i * create m n j) r s =
       if bump r i = bump s j then
@@ -166,6 +230,8 @@ private theorem annihilate_mul_create_entry {m n : ℕ} (i j : Fin m) (r s : Occ
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- An entry of creation after annihilation is determined by removing a particle from an
+occupied input mode and then adding one in the creation mode. -/
 private theorem create_mul_annihilate_entry {m n : ℕ} (i j : Fin m) (r s : Occupation m (n + 1)) :
     (create m n j * annihilate m n i) r s =
       if h : 0 < (s.val i : ℕ) then
@@ -200,6 +266,8 @@ private theorem create_mul_annihilate_entry {m n : ℕ} (i j : Fin m) (r s : Occ
       omega
     rw [annihilate_apply_bump, if_neg hne, mul_zero]
 
+/-- On the vacuum sector, annihilation in mode `i` after creation in mode `j` is the identity
+times the Kronecker delta of the modes. -/
 private theorem ccr_zero {m : ℕ} (i j : Fin m) :
     annihilate m 0 i * create m 0 j = (if i = j then (1 : ℂ) else 0) • 1 := by
   ext r s
@@ -219,6 +287,8 @@ private theorem ccr_zero {m : ℕ} (i j : Fin m) :
       omega
     rw [if_neg hne, if_neg hij, zero_smul]
 
+/-- On each positive particle sector, annihilation followed by creation minus creation followed
+by annihilation equals the identity times the mode Kronecker delta. -/
 private theorem ccr_succ {m n : ℕ} (i j : Fin m) :
     annihilate m (n + 1) i * create m (n + 1) j - create m n j * annihilate m n i =
       (if i = j then (1 : ℂ) else 0) • 1 := by
@@ -289,6 +359,7 @@ private theorem ccr_succ {m n : ℕ} (i j : Fin m) :
         omega
       rw [if_neg hne]
 
+/-- Creation in two modes commutes as a map between the corresponding graded sectors. -/
 private theorem create_comm {m n : ℕ} (i j : Fin m) :
     create m (n + 1) i * create m n j = create m (n + 1) j * create m n i := by
   ext t s
@@ -311,6 +382,8 @@ private theorem create_comm {m n : ℕ} (i j : Fin m) :
     rw [create_apply_bump j, if_neg hu, mul_zero]
   · intro h; exact absurd (Finset.mem_univ _) h
 
+/-- Below the cutoff, the same-sector entries of adjoint cutoff creation times cutoff creation
+agree with graded annihilation times creation. -/
 private theorem cutCreate_conjTranspose_mul_entry {m Q : ℕ} (i j : Fin m)
     {k : Fin (Q + 1)} (hk : k.val < Q) (t₂ s₂ : Occupation m k.val) :
     ((cutCreate m Q i).conjTranspose * cutCreate m Q j) ⟨k, t₂⟩ ⟨k, s₂⟩ =
@@ -342,6 +415,7 @@ private theorem cutCreate_conjTranspose_mul_entry {m Q : ℕ} (i j : Fin m)
     rw [hcz, mul_zero]
   · intro hm; exact absurd (Finset.mem_univ _) hm
 
+/-- The vacuum-sector entries of cutoff creation times adjoint cutoff creation vanish. -/
 private theorem cutCreate_mul_conjTranspose_entry_zero {m Q : ℕ} (i j : Fin m)
     {k : Fin (Q + 1)} (hk0 : k.val = 0) (t₂ s₂ : Occupation m k.val) :
     (cutCreate m Q j * (cutCreate m Q i).conjTranspose) ⟨k, t₂⟩ ⟨k, s₂⟩ = 0 := by
@@ -355,6 +429,8 @@ private theorem cutCreate_mul_conjTranspose_entry_zero {m Q : ℕ} (i j : Fin m)
     omega
   rw [hcz, zero_mul]
 
+/-- On a positive sector within the cutoff, cutoff creation times adjoint cutoff creation agrees
+with graded creation times annihilation. -/
 private theorem cutCreate_mul_conjTranspose_entry_succ {m Q n : ℕ} (i j : Fin m)
     (hklt : n + 1 < Q + 1) (t₂ s₂ : Occupation m (n + 1)) :
     (cutCreate m Q j * (cutCreate m Q i).conjTranspose) ⟨⟨n + 1, hklt⟩, t₂⟩ ⟨⟨n + 1, hklt⟩, s₂⟩ =
@@ -405,12 +481,16 @@ private theorem cutCreate_mul_conjTranspose_entry_succ {m Q n : ℕ} (i j : Fin 
     change _ * star (cutCreate m Q i ⟨⟨n + 1, hklt⟩, s₂⟩ ⟨⟨uk, huklt⟩, u₂⟩) = 0
     rw [hcz, star_zero, mul_zero]
 
+/-- Occupation basis vectors have inner product one when their labels agree and zero otherwise. -/
 private theorem inner_basis {m n : ℕ} (s t : Occupation m n) :
     inner ℂ (basis s) (basis t) = if s = t then 1 else 0 := by
   change inner ℂ (EuclideanSpace.single s (1 : ℂ)) (basis t) = _
   rw [EuclideanSpace.inner_single_left]
   simp [basis]
 
+/-- The occupation basis is orthonormal, the vacuum is unit, and the ladder matrices satisfy
+their adjoint, number operator, and graded commutation identities. The cutoff commutator
+agrees with the mode Kronecker delta on each sector below the cutoff. -/
 theorem graded_creation_annihilation :
     (∀ (m n : ℕ) (s t : Occupation m n),
       inner ℂ (basis s) (basis t) = if s=t then 1 else 0) ∧
@@ -465,6 +545,8 @@ theorem graded_creation_annihilation :
       rw [h1, Matrix.smul_apply, Matrix.one_apply]
       by_cases hij : i = j <;> by_cases hts : t₂ = s₂ <;> simp [hij, hts]
 
+/-- A uniform squared Euclidean output estimate with nonnegative constant `C` bounds the matrix
+operator norm by `C`. -/
 private theorem l2_opNorm_le_of_mulVec_sq {I J : Type*} [Fintype I] [Fintype J] [DecidableEq J]
     (A : Matrix I J ℂ) (C : ℝ) (hC : 0 ≤ C)
     (h : ∀ x : J → ℂ, ∑ i : I, ‖A.mulVec x i‖ ^ 2 ≤ C ^ 2 * ∑ j : J, ‖x j‖ ^ 2) :
@@ -481,6 +563,8 @@ private theorem l2_opNorm_le_of_mulVec_sq {I J : Type*} [Fintype I] [Fintype J] 
   rw [hTx, ← mul_pow] at hx
   exact (sq_le_sq₀ (norm_nonneg _) (mul_nonneg hC (norm_nonneg _))).mp hx
 
+/-- Annihilation applied to a vector at occupation `s` is `sqrt (s i + 1)` times the input at
+`bump s i`. -/
 private theorem annihilate_mulVec_apply {m n : ℕ} (i : Fin m) (y : Occupation m (n + 1) → ℂ)
     (s : Occupation m n) :
     (annihilate m n i).mulVec y s = (Real.sqrt ((s.val i : ℕ) + 1) : ℂ) * y (bump s i) := by
@@ -490,6 +574,8 @@ private theorem annihilate_mulVec_apply {m n : ℕ} (i : Fin m) (y : Occupation 
     rw [annihilate_apply_bump, if_neg ht, zero_mul]
   · intro hm; exact absurd (Finset.mem_univ _) hm
 
+/-- The squared norm of a weighted annihilation output is bounded by `n + 1` times the
+coefficient squared norm and the input squared norm. -/
 private theorem weighted_annihilate_mulVec_sq (m n : ℕ) (u : Fin m → ℂ)
     (y : Occupation m (n + 1) → ℂ) :
     ∑ s : Occupation m n, ‖(∑ i, star (u i) • annihilate m n i).mulVec y s‖ ^ 2 ≤
@@ -551,6 +637,8 @@ private theorem weighted_annihilate_mulVec_sq (m n : ℕ) (u : Fin m → ℂ)
         simp only [hsum, ← Finset.mul_sum]
         ring
 
+/-- The weighted annihilation operator has norm at most `sqrt (n + 1)` times the Euclidean norm
+of its mode coefficients. -/
 private theorem weighted_annihilate_norm_le (m n : ℕ) (u : Fin m → ℂ) :
     ‖∑ i, star (u i) • annihilate m n i‖ ≤
       Real.sqrt (n + 1) * Real.sqrt (∑ i, Complex.normSq (u i)) := by
@@ -564,6 +652,8 @@ private theorem weighted_annihilate_norm_le (m n : ℕ) (u : Fin m → ℂ) :
   rw [hC2]
   exact weighted_annihilate_mulVec_sq m n u y
 
+/-- The weighted creation operator has norm at most `sqrt (n + 1)` times the Euclidean norm of
+its mode coefficients. -/
 private theorem weighted_create_norm_le (m n : ℕ) (u : Fin m → ℂ) :
     ‖∑ i, u i • create m n i‖ ≤
       Real.sqrt (n + 1) * Real.sqrt (∑ i, Complex.normSq (u i)) := by
@@ -573,6 +663,8 @@ private theorem weighted_create_norm_le (m n : ℕ) (u : Fin m → ℂ) :
   rw [← Matrix.l2_opNorm_conjTranspose, hconj]
   exact weighted_annihilate_norm_le m n u
 
+/-- Adjoint cutoff creation acts by graded annihilation on the next input sector below the
+cutoff and vanishes at the top sector. -/
 private theorem cutCreate_conjTranspose_mulVec_apply {m Q : ℕ} (i : Fin m)
     (y : CutBasis m Q → ℂ) (k : Fin (Q + 1)) (s₂ : Occupation m k.val) :
     (cutCreate m Q i).conjTranspose.mulVec y ⟨k, s₂⟩ =
@@ -611,6 +703,8 @@ private theorem cutCreate_conjTranspose_mulVec_apply {m Q : ℕ} (i : Fin m)
     change star (cutCreate m Q i ⟨⟨tk, htk⟩, t₂⟩ ⟨k, s₂⟩) * _ = 0
     rw [hcz, star_zero, zero_mul]
 
+/-- A weighted sum of cutoff creation matrices has norm at most `sqrt Q` times the Euclidean
+norm of its coefficients. -/
 private theorem weighted_cutCreate_norm_le (m Q : ℕ) (u : Fin m → ℂ) :
     ‖∑ i, u i • cutCreate m Q i‖ ≤
       Real.sqrt Q * Real.sqrt (∑ i, Complex.normSq (u i)) := by
@@ -675,6 +769,7 @@ private theorem weighted_cutCreate_norm_le (m Q : ℕ) (u : Fin m → ℂ) :
         rw [← Finset.mul_sum]
         linarith
 
+/-- The sum of squared magnitudes of a single-mode indicator vector is one. -/
 private theorem single_normSq_sum {m : ℕ} (i : Fin m) :
     ∑ j : Fin m, Complex.normSq ((fun k : Fin m => if k = i then (1 : ℂ) else 0) j) = 1 := by
   rw [Finset.sum_eq_single i]
@@ -683,6 +778,7 @@ private theorem single_normSq_sum {m : ℕ} (i : Fin m) :
     simp [hj]
   · intro hm; exact absurd (Finset.mem_univ _) hm
 
+/-- Each cutoff creation matrix has operator norm at most `sqrt Q`. -/
 private theorem cutCreate_norm_le {m Q : ℕ} (i : Fin m) :
     ‖cutCreate m Q i‖ ≤ Real.sqrt Q := by
   have h := weighted_cutCreate_norm_le m Q (fun k : Fin m => if k = i then (1 : ℂ) else 0)
@@ -694,6 +790,8 @@ private theorem cutCreate_norm_le {m Q : ℕ} (i : Fin m) :
   rw [hsum, single_normSq_sum i, Real.sqrt_one, mul_one] at h
   exact h
 
+/-- A word of cutoff creation and annihilation matrices has norm at most `sqrt Q` raised to the
+word length. -/
 private theorem cutWord_norm_le (m Q : ℕ) (w : List (Fin m × Bool)) :
     ‖cutWord m Q w‖ ≤ (Real.sqrt Q) ^ w.length := by
   induction w with
@@ -716,6 +814,9 @@ private theorem cutWord_norm_le (m Q : ℕ) (w : List (Fin m × Bool)) :
       _ ≤ Real.sqrt Q * (Real.sqrt Q) ^ w.length := by
           gcongr
 
+/-- Creation and annihilation satisfy sector norm bounds, and weighted creation satisfies the
+corresponding cutoff bound. A finite polynomial in cutoff ladder matrices is bounded by the
+sum of coefficient norms times the word-length powers of `sqrt Q`. -/
 theorem sector_and_polynomial_norm_bounds :
     (∀ (m n : ℕ) (i : Fin m),
       ‖create m n i‖ ≤ Real.sqrt (n+1) ∧ ‖annihilate m n i‖ ≤ Real.sqrt (n+1)) ∧
@@ -758,9 +859,11 @@ theorem sector_and_polynomial_norm_bounds :
             gcongr
             exact cutWord_norm_le m Q t.2
 
+/-- The mode-count function of an assignment of particle positions to modes. -/
 private def occFn {m n : ℕ} (f : Fin n → Fin m) : Fin m → ℕ :=
   fun i => ∑ j : Fin n, if f j = i then 1 else 0
 
+/-- Permuting particle positions preserves their mode-count function. -/
 private theorem occFn_comp_perm {m n : ℕ} (f : Fin n → Fin m) (σ : Equiv.Perm (Fin n)) :
     occFn (fun j => f (σ j)) = occFn f := by
   funext i
@@ -768,6 +871,7 @@ private theorem occFn_comp_perm {m n : ℕ} (f : Fin n → Fin m) (σ : Equiv.Pe
   exact Fintype.sum_equiv σ (fun j => if f (σ j) = i then (1 : ℕ) else 0)
     (fun j => if f j = i then (1 : ℕ) else 0) (fun _ => rfl)
 
+/-- The total count of a mode assignment equals the number of particle positions. -/
 private theorem occFn_sum {m n : ℕ} (f : Fin n → Fin m) : ∑ i, occFn f i = n := by
   have hcomm : ∑ i : Fin m, ∑ j : Fin n, (if f j = i then (1 : ℕ) else 0)
       = ∑ j : Fin n, ∑ i : Fin m, (if f j = i then (1 : ℕ) else 0) :=
@@ -779,25 +883,31 @@ private theorem occFn_sum {m n : ℕ} (f : Fin n → Fin m) : ∑ i, occFn f i =
   rw [hcomm]
   simp [hinner]
 
+/-- Each mode count is at most the number of particle positions. -/
 private theorem occFn_le {m n : ℕ} (f : Fin n → Fin m) (i : Fin m) : occFn f i ≤ n := by
   have hle : occFn f i ≤ ∑ i', occFn f i' :=
     Finset.single_le_sum (fun i' _ => Nat.zero_le _) (Finset.mem_univ i)
   rw [occFn_sum] at hle
   exact hle
 
+/-- The occupation associated with the mode counts of a particle assignment. -/
 private def occOf {m n : ℕ} (f : Fin n → Fin m) : Occupation m n :=
   ⟨fun i => ⟨occFn f i, by have := occFn_le f i; omega⟩, occFn_sum f⟩
 
+/-- The count of mode `i` in the occupation of an assignment is `occFn f i`. -/
 @[simp]
 private theorem occOf_val {m n : ℕ} (f : Fin n → Fin m) (i : Fin m) :
     ((occOf f).val i : ℕ) = occFn f i := rfl
 
+/-- An assignment has occupation `s` exactly when its mode-count function equals the counts of
+`s`. -/
 private theorem occOf_eq_iff {m n : ℕ} (f : Fin n → Fin m) (s : Occupation m n) :
     occOf f = s ↔ occFn f = fun i => (s.val i : ℕ) := by
   constructor
   · rintro rfl; rfl
   · intro h; ext i; exact congrFun h i
 
+/-- Pointwise equivalent predicates define finite subtypes of equal cardinality. -/
 private theorem card_subtype_iff {α : Type*} (p q : α → Prop)
     [Fintype { x // p x }] [Fintype { x // q x }] (h : ∀ a, p a ↔ q a) :
     Fintype.card { x // p x } = Fintype.card { x // q x } := by
@@ -806,11 +916,14 @@ private theorem card_subtype_iff {α : Type*} (p q : α → Prop)
       ⟨fun x y hxy => Subtype.ext (by simpa using hxy),
         fun y => ⟨⟨(y : α), (h _).2 y.2⟩, Subtype.ext (by simp)⟩⟩)
 
+/-- The fiber of a mode assignment at `i` has cardinality `occFn f i`. -/
 private theorem card_fiber_subtype {m n : ℕ} (f : Fin n → Fin m) (i : Fin m) :
     Fintype.card { j : Fin n // f j = i } = occFn f i := by
   rw [Fintype.card_subtype, Finset.card_filter]
   rfl
 
+/-- Given an equivalence between two finite types, the number of equivalences between them
+equals the number of permutations of the source. -/
 private theorem card_perm_equiv_perm {α β : Type*} [Fintype α] [Fintype β]
     [Fintype (α ≃ β)] [Fintype (Equiv.Perm α)] (e : α ≃ β) :
     Fintype.card (α ≃ β) = Fintype.card (Equiv.Perm α) := by
@@ -820,6 +933,8 @@ private theorem card_perm_equiv_perm {α β : Type*} [Fintype α] [Fintype β]
       left_inv := fun f1 => Equiv.ext fun a => by simp
       right_inv := fun f2 => Equiv.ext fun a => by simp }
 
+/-- Assignments with equal mode counts are related by a number of position permutations equal to
+the product of the count factorials. -/
 private theorem perm_fiber_card {m n : ℕ} (f g : Fin n → Fin m) (h : occFn f = occFn g) :
     Fintype.card { τ : Equiv.Perm (Fin n) // ∀ j, f (τ j) = g j } = ∏ i, (occFn f i).factorial := by
   have hkey : ∀ (π : ∀ i : Fin m, ({j : Fin n // g j = i} ≃ {j : Fin n // f j = i}))
@@ -876,6 +991,8 @@ private theorem perm_fiber_card {m n : ℕ} (f g : Fin n → Fin m) (h : occFn f
   have e₀ : {j : Fin n // g j = i} ≃ {j : Fin n // f j = i} := Fintype.equivOfCardEq hce
   rw [card_perm_equiv_perm e₀, Fintype.card_perm, card_fiber_subtype g i, ← h]
 
+/-- The number of permutations taking one mode assignment to another is the product of
+occupation factorials when counts agree, and zero otherwise. -/
 private theorem card_perm_fiber {m n : ℕ} (f g : Fin n → Fin m) :
     Fintype.card { τ : Equiv.Perm (Fin n) // ∀ j, f (τ j) = g j }
       = if occFn f = occFn g then ∏ i, (occFn f i).factorial else 0 := by
@@ -886,6 +1003,8 @@ private theorem card_perm_fiber {m n : ℕ} (f g : Fin n → Fin m) :
     have h2 : (fun j => f ((τ : Equiv.Perm (Fin n)) j)) = g := funext fun j => τ.2 j
     exact (occFn_comp_perm f (τ : Equiv.Perm (Fin n))).symm.trans (by rw [h2])
 
+/-- Summing a function over permutations of an assignment equals the occupation factorial
+product times the sum over assignments with the same counts. -/
 private theorem sum_perm_comp {m n : ℕ} (f₀ : Fin n → Fin m) (Φ : (Fin n → Fin m) → ℂ) :
     ∑ σ : Equiv.Perm (Fin n), Φ (fun j => f₀ (σ j))
       = ((∏ i, (occFn f₀ i).factorial : ℕ) : ℂ) * ∑ g : Fin n → Fin m,
@@ -927,6 +1046,7 @@ private theorem sum_perm_comp {m n : ℕ} (f₀ : Fin n → Fin m) (Φ : (Fin n 
   rw [Finset.sum_congr rfl (fun F _ => hterm F), ← Finset.sum_mul]
   exact mul_comm _ _
 
+/-- The sum of the occurrence indicator over list positions equals the list count. -/
 private theorem sum_get_count {α : Type*} [DecidableEq α] (L : List α) (a : α) :
     ∑ p : Fin L.length, (if L.get p = a then (1 : ℕ) else 0) = L.count a := by
   induction L with
@@ -945,6 +1065,7 @@ private theorem sum_get_count {α : Type*} [DecidableEq α] (L : List α) (a : �
       · subst hxa; simp [Nat.add_comm]
       · simp [hxa]
 
+/-- The repeated mode list contains mode `i₀` exactly `s i₀` times. -/
 private theorem count_bosonRows {m : ℕ} (s : Fin m → ℕ) (i₀ : Fin m) :
     (bosonRows s).count i₀ = s i₀ := by
   induction m with
@@ -982,6 +1103,7 @@ private theorem count_bosonRows {m : ℕ} (s : Fin m → ℕ) (i₀ : Fin m) :
           exact Fin.succ_ne_zero j hmem.2
         rw [hne, Nat.zero_add, ih (fun j : Fin m => s ((Fin.succ : Fin m → Fin (m + 1)) j))]
 
+/-- The mode counts of `rowAt s` equal the counts of occupation `s`. -/
 private theorem occFn_rowAt {m n : ℕ} (s : Occupation m n) :
     occFn (rowAt s) = fun i => (s.val i : ℕ) := by
   funext i
@@ -996,11 +1118,13 @@ private theorem occFn_rowAt {m n : ℕ} (s : Occupation m n) :
       (fun _ => rfl)
   exact heq.trans ((sum_get_count L i).trans (count_bosonRows (fun k => (s.val k : ℕ)) i))
 
+/-- Converting the repeated mode list of `s` back to an occupation recovers `s`. -/
 @[simp]
 private theorem occOf_rowAt {m n : ℕ} (s : Occupation m n) :
     occOf (rowAt s) = s := by
   rw [occOf_eq_iff, occFn_rowAt]
 
+/-- Any assignment with occupation `s` is a permutation of the repeated mode list of `s`. -/
 private theorem exists_perm_rowAt {m n : ℕ} (s : Occupation m n) (f : Fin n → Fin m)
     (hf : occOf f = s) : ∃ τ : Equiv.Perm (Fin n), ∀ b, rowAt s (τ b) = f b := by
   have hf' : occFn (rowAt s) = occFn f := by
@@ -1011,6 +1135,8 @@ private theorem exists_perm_rowAt {m n : ℕ} (s : Occupation m n) (f : Fin n �
   rcases Fintype.card_pos_iff.mp hpos with ⟨τ, hτ⟩
   exact ⟨τ, hτ⟩
 
+/-- Replacing the column mode list by any assignment with the same occupation preserves the
+associated permanent sum. -/
 private theorem perm_col_replace {m n : ℕ} (U : Matrix (Fin m) (Fin m) ℂ)
     (r s : Occupation m n) (f : Fin n → Fin m) (hf : occOf f = s) :
     (∑ σ : Equiv.Perm (Fin n), ∏ b : Fin n, U (rowAt r (σ b)) (f b)) =
@@ -1031,6 +1157,8 @@ private theorem perm_col_replace {m n : ℕ} (U : Matrix (Fin m) (Fin m) ℂ)
     (fun σ => ∏ b : Fin n, U (rowAt r (σ b)) (rowAt s b))
     (fun _ => rfl)
 
+/-- The permanent of an occupation matrix is the row occupation factorial product times the sum
+over assignments with that row occupation. -/
 private theorem permanent_occupationMatrix_row_sum {m n : ℕ}
     (U : Matrix (Fin m) (Fin m) ℂ) (r s : Occupation m n) :
     Matrix.permanent (occupationMatrix U r s) =
@@ -1042,21 +1170,27 @@ private theorem permanent_occupationMatrix_row_sum {m n : ℕ}
   simp only [← occOf_eq_iff] at h1
   exact h1
 
+/-- The real product of the factorials of all mode occupations. -/
 private def factProd {m n : ℕ} (s : Occupation m n) : ℝ :=
   ∏ i : Fin m, ((s.val i : ℕ).factorial : ℝ)
 
+/-- The occupation factorial product is strictly positive. -/
 private theorem factProd_pos {m n : ℕ} (s : Occupation m n) : 0 < factProd s :=
   Finset.prod_pos fun i _ => by exact_mod_cast Nat.factorial_pos (s.val i : ℕ)
 
+/-- The occupation factorial product is nonnegative. -/
 private theorem factProd_nonneg {m n : ℕ} (s : Occupation m n) : 0 ≤ factProd s :=
   le_of_lt (factProd_pos s)
 
+/-- Casting the natural occupation factorial product to the reals gives `factProd`. -/
 private theorem factProd_cast {m n : ℕ} (s : Occupation m n) :
     (((∏ i : Fin m, (s.val i : ℕ).factorial : ℕ) : ℝ)) = factProd s := by
   unfold factProd
   push_cast
   rfl
 
+/-- An entry of `gamma` is the occupation permanent divided by the separate square roots of the
+row and column factorial products. -/
 private theorem gamma_apply_factProd {m n : ℕ} (U : Matrix (Fin m) (Fin m) ℂ)
     (r s : Occupation m n) :
     gamma m n U r s =
@@ -1065,6 +1199,7 @@ private theorem gamma_apply_factProd {m n : ℕ} (U : Matrix (Fin m) (Fin m) ℂ
   unfold gamma
   rw [factProd_cast, factProd_cast, Real.sqrt_mul (factProd_nonneg r), Complex.ofReal_mul]
 
+/-- Second quantization of the identity mode matrix is the identity on each particle sector. -/
 private theorem gamma_one (m n : ℕ) :
     gamma m n (1 : Matrix (Fin m) (Fin m) ℂ) = 1 := by
   ext r s
@@ -1104,12 +1239,14 @@ private theorem gamma_one (m n : ℕ) :
     rw [if_neg hg, mul_zero]
   · intro hm; exact absurd (Finset.mem_univ _) hm
 
+/-- The permanent of a conjugate transpose is the complex conjugate of the permanent. -/
 private theorem permanent_conjTranspose {n : ℕ} (M : Matrix (Fin n) (Fin n) ℂ) :
     Matrix.permanent M.conjTranspose = star (Matrix.permanent M) := by
   rw [← Matrix.permanent_transpose]
   simp only [Matrix.permanent, Matrix.transpose_apply, Matrix.conjTranspose_apply,
     star_sum, star_prod]
 
+/-- The permanent construction `gamma` commutes with conjugate transpose. -/
 private theorem gamma_conjTranspose (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) :
     gamma m n U.conjTranspose = (gamma m n U).conjTranspose := by
   ext r s
@@ -1121,6 +1258,7 @@ private theorem gamma_conjTranspose (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ)
     Complex.star_def, Complex.conj_ofReal, Complex.conj_ofReal]
   ring
 
+/-- The permanent construction `gamma` preserves multiplication of mode matrices. -/
 private theorem gamma_mul (m n : ℕ) (U V : Matrix (Fin m) (Fin m) ℂ) :
     gamma m n (U * V) = gamma m n U * gamma m n V := by
   ext r t
@@ -1189,6 +1327,8 @@ private theorem gamma_mul (m n : ℕ) (U V : Matrix (Fin m) (Fin m) ℂ) :
   simp only [occupationMatrix, Matrix.mul_apply]
   exact Fintype.prod_sum (fun b k => U (rowAt r (σ b)) k * V k (rowAt t b))
 
+/-- Adding a particle in mode `j` multiplies the occupation factorial product by the new
+occupation count in that mode. -/
 private theorem factProd_bump {m n : ℕ} (u : Occupation m n) (j : Fin m) :
     factProd (bump u j) = ((u.val j : ℕ) + 1 : ℝ) * factProd u := by
   unfold factProd
@@ -1203,9 +1343,11 @@ private theorem factProd_bump {m n : ℕ} (u : Occupation m n) (j : Fin m) :
   push_cast
   ring
 
+/-- The mode assignment obtained by appending one mode label to an assignment. -/
 private abbrev snocMode {m n : ℕ} (f : Fin n → Fin m) (i : Fin m) : Fin (n + 1) → Fin m :=
   Fin.snoc (α := fun _ => Fin m) f i
 
+/-- Appending mode `j` to an assignment increments its occupation in mode `j`. -/
 private theorem occOf_snocMode {m n : ℕ} (g₀ : Fin n → Fin m) (j : Fin m) :
     occOf (snocMode g₀ j) = bump (occOf g₀) j := by
   ext k
@@ -1213,6 +1355,8 @@ private theorem occOf_snocMode {m n : ℕ} (g₀ : Fin n → Fin m) (j : Fin m) 
   rw [Fin.sum_univ_castSucc]
   simp [Fin.snoc_castSucc, Fin.snoc_last, eq_comm]
 
+/-- Second quantization intertwines creation in mode `i` with the linear combination of creation
+operators weighted by column `i` of the mode matrix. -/
 private theorem gamma_create (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (i : Fin m) :
     gamma m (n + 1) U * create m n i =
       (∑ j, U j i • create m n j) * gamma m n U := by
@@ -1357,16 +1501,20 @@ private theorem gamma_create (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (i : F
   rw [Fin.prod_univ_castSucc]
   simp [snocMode, Fin.init, Fin.snoc_castSucc, Fin.snoc_last, mul_comm]
 
+/-- For a unitary mode matrix, the adjoint of `gamma` times `gamma` is the identity. -/
 private theorem gamma_unitary_left (m n : ℕ) (U : Matrix.unitaryGroup (Fin m) ℂ) :
     (gamma m n U.val).conjTranspose * gamma m n U.val = 1 := by
   have hU : U.val.conjTranspose * U.val = 1 := Matrix.mem_unitaryGroup_iff'.mp U.property
   rw [← gamma_conjTranspose, ← gamma_mul, hU, gamma_one]
 
+/-- For a unitary mode matrix, `gamma` times its adjoint is the identity. -/
 private theorem gamma_unitary_right (m n : ℕ) (U : Matrix.unitaryGroup (Fin m) ℂ) :
     gamma m n U.val * (gamma m n U.val).conjTranspose = 1 := by
   have hU : U.val * U.val.conjTranspose = 1 := Matrix.mem_unitaryGroup_iff.mp U.property
   rw [← gamma_conjTranspose, ← gamma_mul, hU, gamma_one]
 
+/-- For a unitary mode matrix, second quantization intertwines annihilation with the combination
+weighted by the conjugates of its column entries. -/
 private theorem gamma_annihilate (m n : ℕ) (U : Matrix.unitaryGroup (Fin m) ℂ) (i : Fin m) :
     gamma m n U.val * annihilate m n i =
       (∑ j, star (U.val j i) • annihilate m n j) * gamma m (n + 1) U.val := by
@@ -1394,6 +1542,8 @@ private theorem gamma_annihilate (m n : ℕ) (U : Matrix.unitaryGroup (Fin m) �
     _ = (∑ j, star (U.val j i) • annihilate m n j) * gamma m (n + 1) U.val := by
         rw [gamma_unitary_right, Matrix.one_mul]
 
+/-- For a collision-free input assignment, the squared magnitude of the second-quantized
+transition entry equals the corresponding `bosonWeight` of the selected mode columns. -/
 private theorem gamma_bosonWeight (m n : ℕ) (U : Matrix.unitaryGroup (Fin m) ℂ)
     (f : Fin n → Fin m) (s r : Occupation m n)
     (hf : Function.Injective f)
@@ -1425,6 +1575,9 @@ private theorem gamma_bosonWeight (m n : ℕ) (U : Matrix.unitaryGroup (Fin m) �
     map_div₀, Complex.normSq_ofReal, Real.mul_self_sqrt (factProd_nonneg r),
     bosonWeight, hper, ← factProd_cast]
 
+/-- The permanent construction preserves identity, products, and adjoints and gives isometries
+for unitary mode matrices. It intertwines ladder operators and identifies squared transition
+amplitudes from collision-free inputs with boson weights. -/
 theorem second_quantization_permanent_bridge :
     (∀ (m n : ℕ) (U V : Matrix.unitaryGroup (Fin m) ℂ),
       (gamma m n U.val).conjTranspose * gamma m n U.val = 1 ∧

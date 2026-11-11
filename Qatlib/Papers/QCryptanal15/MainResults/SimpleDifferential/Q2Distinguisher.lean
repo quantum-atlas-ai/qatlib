@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
 import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoalTigh
+
+/-!
+# Q2 simple-differential distinguisher scales
+
+`simpleMarkedFraction` sets the exponential marked scale for a simple differential. The
+classical and Q2 cost expressions satisfy an exact quadratic relation, and
+`grover_half_budget_iterations` gives a finite-state Grover success guarantee with an explicit
+iteration bound. The mathematical context is [KaplanEtAl2015].
+
+## Main statements
+
+* `q2_simple_quadratic_speedup`: The classical simple-differential cost expression equals half
+  the square of the Q2 expression.
+* `grover_half_budget_iterations`: For marked fraction `0 < ε < 1` on a nonempty finite domain,
+  some Grover iteration count at most `π/(8√ε) + 1` achieves marked probability at least one
+  half.
+
+## References
+
+* [Kaplan et al., 2015][KaplanEtAl2015]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,23 +38,30 @@ namespace Qatlib.Papers.QCryptanal15.MainResults.SimpleDifferential
 
 open Complexity
 
+/-- The marked-fraction expression `2^(-hS)` for a simple differential. -/
 noncomputable def simpleMarkedFraction (hS : ℝ) : ℝ := pow2 (-hS)
 
+/-- The Q2 simple-differential distinguisher cost expression `2^(hS/2+1)`. -/
 noncomputable def q2SimpleDistinguisherCost (hS : ℝ) : ℝ := pow2 (hS / 2 + 1)
 
+/-- The classical simple-differential distinguisher cost expression `2^(hS+1)`. -/
 noncomputable def classicalSimpleDistinguisherCost (hS : ℝ) : ℝ := pow2 (hS + 1)
 
+/-- The reciprocal square root of `simpleMarkedFraction hS` is `2^(hS/2)`. See [KaplanEtAl2015]. -/
 theorem q2_simple_grover_iterations (hS : ℝ) :
     (Real.sqrt (simpleMarkedFraction hS))⁻¹ = pow2 (hS / 2) := by
   unfold simpleMarkedFraction
   exact inv_sqrt_pow2_neg hS
 
+/-- The Q2 simple-differential cost expression is twice `2^(hS/2)`. See [KaplanEtAl2015]. -/
 theorem q2_simple_distinguisher_cost (hS : ℝ) :
     q2SimpleDistinguisherCost hS = 2 * pow2 (hS / 2) := by
   unfold q2SimpleDistinguisherCost
   rw [pow2_add, pow2_one]
   ring
 
+/-- The classical simple-differential cost expression equals half the square of the Q2
+expression. See [KaplanEtAl2015]. -/
 theorem q2_simple_quadratic_speedup (hS : ℝ) :
     classicalSimpleDistinguisherCost hS = q2SimpleDistinguisherCost hS ^ 2 / 2 := by
   unfold classicalSimpleDistinguisherCost q2SimpleDistinguisherCost
@@ -47,6 +76,8 @@ theorem q2_simple_quadratic_speedup (hS : ℝ) :
   congr 1
   ring
 
+/-- For marked fraction `0 < ε < 1` on a nonempty finite domain, some Grover iteration count at
+most `π/(8√ε) + 1` achieves marked probability at least one half. See [KaplanEtAl2015]. -/
 theorem grover_half_budget_iterations
     {I : Type*} [Fintype I] [DecidableEq I] (hN : 0 < Fintype.card I)
     (A : Finset I) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1)

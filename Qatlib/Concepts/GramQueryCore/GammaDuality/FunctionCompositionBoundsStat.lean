@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Function composition bound specification
+
+The proposition `FunctionCompositionBounds` states a guarded upper bound for compatible outer
+and inner inputs and a product lower bound for independent copies of a Boolean-valued inner
+function. It packages the adversary composition estimates associated with [LeeEtAl2011].
+
+## Main statements
+
+* `FunctionCompositionBounds`: The conjunction of a guarded adversary upper bound for compatible
+  outer and inner inputs and a product lower bound for independent Boolean-valued inner
+  functions.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -18,6 +37,8 @@ namespace Qatlib.Concepts.GramQueryCore.GammaDuality
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The conjunction of a guarded adversary upper bound for compatible outer and inner inputs and
+a product lower bound for independent Boolean-valued inner functions. -/
 def FunctionCompositionBounds : Prop :=
   (∀ (X Y E : Type) [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
       [Fintype E] [DecidableEq E] (n m q a : ℕ)

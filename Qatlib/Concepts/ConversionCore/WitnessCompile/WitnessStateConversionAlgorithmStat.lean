@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionDefs
+
+/-!
+# Specification of counted witness state conversion
+
+`WitnessStateConversionAlgorithm` specifies a unitary bit-query circuit converting normalized
+input states to target states from a filtered Gram certificate. The specification requires error
+at most ε, explicit query and gate bounds, and exact zero-query behavior when the budget or
+input length vanishes.
+
+This is a concrete resource-accounted formulation of the witness approach in [LeeEtAl2011].
+
+## Main statements
+
+* `WitnessStateConversionAlgorithm`: states clean-state conversion and its resource bounds.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -21,6 +42,9 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical
 
+/-- Specifies clean-state conversion from a filtered Gram certificate with Euclidean error at
+most `ε`, query bound `1000000 * Nat.ceil W * conversionPrecisionPrice ε`, and the stated
+gate bound. It also requires exact conversion with zero queries when `W = 0` or `n = 0`. -/
 def WitnessStateConversionAlgorithm : Prop :=
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H] [Nonempty H]
     (n : ℕ) (input : X → Fin n → Bool) (ρ σ : X → QState H) (W ε : ℝ),

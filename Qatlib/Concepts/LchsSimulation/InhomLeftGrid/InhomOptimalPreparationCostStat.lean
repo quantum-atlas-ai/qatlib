@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionStat
+
+/-!
+# Statement of the inhomogeneous preparation cost
+
+`InhomogeneousOptimalPreparationCost` specifies a bound on the amplification-window length for
+the scheduled inhomogeneous LCHS quadrature. The hypotheses include positive semidefinite and
+Hermitian generator fields, source derivative and norm bounds, source-state preparation
+unitaries, a quadrature slack condition, and a lower bound τ on the solution norm. This gives a
+concrete finite-grid preparation estimate related to [AnLiuLin2023].
+
+## Main statements
+
+* `InhomogeneousOptimalPreparationCost`: the proposition asserting window length at most `8*q +
+  1`.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -28,6 +48,9 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that the prescribed inhomogeneous LCHS schedule has preparation-window
+length at most `8*q + 1`, where `q = (1 + ∫ ‖b(u)‖ du) / τ`, under the stated regularity,
+preparation, and slack conditions. -/
 def InhomogeneousOptimalPreparationCost : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (b b' : ℝ → QState I)
     (s t ε τ Λ β lamL lamH bmax : ℝ) (Mt : ℕ) (B : Matrix I I ℂ)

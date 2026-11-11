@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.Eq9MaxEntMarginals
+
+/-!
+# Maximally mixed marginals of Eq. (9) resources
+
+The orthonormal-pair completeness relation gives the first marginal of `eq9Resource` as half the
+identity. Applying the same argument after exchanging the factors proves `eq9MaxEntMarginals`
+for both qubits. The resource setting is the qubit teleportation protocol of
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `pair_complete`: The outer products of two normalized orthogonal qubit vectors sum entrywise
+  to the identity matrix.
+* `eq9MaxEntMarginals`: Both marginals of a two-pair resource built from orthonormal qubit pairs
+  equal `(1 / 2) • 1`. See [Bennett et al., 1993, Eq. (9)][BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,15 +39,19 @@ open Qatlib.Concepts.QuditTeleport.TeleportCore
 namespace Qatlib.Concepts.QuditTeleport.ResourceIff
 open Matrix
 
+/-- Orthogonality of two qubit vectors is symmetric. -/
 private theorem inner_reverse_zero {u v : QState (Fin 2)} (h : Qatlib.Foundations.PureStateMath.Inner u v = 0) :
     Qatlib.Foundations.PureStateMath.Inner v u = 0 := by
   have hc := congrArg (starRingEnd ℂ) h
   simpa [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Fin.sum_univ_two, map_add,
       map_mul, mul_comm] using hc
 
+/-- The two-dimensional matrix whose first and second columns are `u` and `v`. -/
 private def pairColumns (u v : QState (Fin 2)) : Operator 2 :=
   fun i j => if j = 0 then u i else v i
 
+/-- The outer products of two normalized orthogonal qubit vectors sum entrywise to the identity
+matrix. -/
 private theorem pair_complete {u v : QState (Fin 2)}
     (hu : Normalized u) (hv : Normalized v) (huv : Qatlib.Foundations.PureStateMath.Inner u v = 0) (i j : Fin 2) :
     u i * starRingEnd ℂ (u j) + v i * starRingEnd ℂ (v j) =
@@ -52,6 +77,7 @@ private theorem pair_complete {u v : QState (Fin 2)}
   simpa [Matrix.mul_apply, Matrix.conjTranspose_apply, pairColumns,
     Fin.sum_univ_two] using congrArg (fun A : Operator 2 => A i j) hc
 
+/-- A two-pair resource built from orthonormal pairs has first marginal `(1 / 2) • 1`. -/
 private theorem first_marginal {u v p q : QState (Fin 2)}
     (h : eq9OrthoPairs u v p q) :
     PartialTrace (outerProduct (eq9Resource u v p q)) = (1/2 : ℂ) • (1 : Operator 2) := by
@@ -75,6 +101,8 @@ private theorem first_marginal {u v p q : QState (Fin 2)}
       rw [hpp,hqq,hpq,hqp,sqrt2_inv_sq]
       simp [pair_complete hu hv huv i j]
 
+/-- Both marginals of a two-pair resource built from orthonormal qubit pairs equal `(1 / 2) •
+1`. See [Bennett et al., 1993, Eq. (9)][BennettEtAl1993Teleportation]. -/
 theorem eq9MaxEntMarginals : Eq9MaxEntMarginals := by
   intro u v p q h
   refine ⟨first_marginal h, ?_⟩

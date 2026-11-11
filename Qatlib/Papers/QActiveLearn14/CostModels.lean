@@ -79,6 +79,26 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Theorem3
+
+/-!
+# Active-learning reflection cost bounds
+
+This module bounds the geometric attempt scale and the separate diffusion and checking costs in
+the quantum reflecting procedure of [PaparoEtAl2014]. Under the explicit angle and
+primitive-cost bounds, `quantum_rps_total_cost` gives a total bound with constant 99, and the
+final identities compare inverse-square-root and inverse classical count scales.
+
+## Main statements
+
+* `quantum_rps_total_cost`: a total cost bound in the marked mass and spectral gap.
+* `diffusion_calls_bound`: the diffusion contribution.
+* `check_calls_bound`: the checking contribution.
+
+## References
+
+* [Paparo et al., 2014][PaparoEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -88,6 +108,8 @@ namespace Qatlib.Papers.QActiveLearn14.CostModels
 
 open scoped BigOperators
 
+/-- Under the stated attempt-angle and primitive-cost assumptions, the total cost is at most `99
+* (1 / Real.sqrt ε) * ((1 / Real.sqrt δ) * U + C)` [PaparoEtAl2014]. -/
 theorem quantum_rps_total_cost
     (ε c₁ c₂ U C δ : ℝ) (tMax : ℕ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hc₁ : 0 ≤ c₁) (hc₂ : 0 ≤ c₂)
@@ -98,12 +120,15 @@ theorem quantum_rps_total_cost
   Qatlib.Concepts.WalkSearch.MnrsAmplify.mnrs_order_form_cost
     ε c₁ c₂ U C δ tMax hε hε1 hc₁ hc₂ hmax hδ hC hcU hcc
 
+/-- The natural logarithm of 72 is at most five. -/
 theorem log_seventy_two_le_five : Real.log 72 ≤ 5 := by
   apply (Real.log_le_iff_le_exp (by norm_num : (0 : ℝ) < 72)).mpr
   have hs := Real.sum_le_exp_of_nonneg (by norm_num : (0 : ℝ) ≤ 5) 6
   norm_num [Finset.sum_range_succ] at hs
   linarith only [hs]
 
+/-- For positive `ε ≤ 1`, the stated upper bound on the amplified angle implies `2 * 3 ^ tMax ≤
+5 / Real.sqrt ε`. -/
 theorem attempt_scale (ε : ℝ) (tMax : ℕ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hmax : (3 : ℝ) ^ tMax * Real.arcsin (Real.sqrt ε) ≤ 3 * Real.pi / 4) :
     2 * (3 : ℝ) ^ tMax ≤ 5 / Real.sqrt ε := by
@@ -118,6 +143,8 @@ theorem attempt_scale (ε : ℝ) (tMax : ℕ) (hε : 0 < ε) (hε1 : ε ≤ 1)
   have he := mul_le_mul_of_nonneg_left hroot_angle (by positivity : (0 : ℝ) ≤ 3 ^ tMax)
   nlinarith only [he, hmax, Real.pi_lt_d2]
 
+/-- The diffusion contribution is at most `99 * (1 / Real.sqrt ε) * ((1 / Real.sqrt δ) * U)`
+under the stated angle and diffusion-cost bounds. -/
 theorem diffusion_calls_bound
     (ε c₁ c₂ U C δ : ℝ) (tMax : ℕ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hc₁ : 0 ≤ c₁) (_hc₂ : 0 ≤ c₂)
@@ -159,6 +186,8 @@ theorem diffusion_calls_bound
         mul_le_mul_of_nonneg_right (by norm_num) (by positivity)
     _ = 99 * (1 / Real.sqrt ε) * ((1 / Real.sqrt δ) * U) := hgoal.symm
 
+/-- The checking contribution is at most `99 * (1 / Real.sqrt ε) * C` under the stated angle and
+checking-cost bounds. -/
 theorem check_calls_bound
     (ε c₁ c₂ U C δ : ℝ) (tMax : ℕ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (_hc₁ : 0 ≤ c₁) (hc₂ : 0 ≤ c₂)
@@ -178,11 +207,15 @@ theorem check_calls_bound
         mul_le_mul_of_nonneg_right (by norm_num) (by positivity)
     _ = 99 * (1 / Real.sqrt ε) * C := hgoal.symm
 
+/-- For positive marked mass and gap, the inverse product equals the square of its
+inverse-square-root scale. -/
 theorem classical_count_eq_quantum_count_sq {ε δ : ℝ} (hε : 0 < ε) (hδ : 0 < δ) :
     1 / (ε * δ) = (1 / Real.sqrt (ε * δ)) ^ 2 := by
   have h : Real.sqrt (ε * δ) ^ 2 = ε * δ := Real.sq_sqrt (le_of_lt (mul_pos hε hδ))
   rw [div_pow, one_pow, h]
 
+/-- For marked mass and gap in `(0, 1]`, the inverse-square-root count scale is at most the
+inverse-product count scale. -/
 theorem quantum_count_le_classical {ε δ : ℝ} (hε : 0 < ε) (hδ : 0 < δ)
     (hε1 : ε ≤ 1) (hδ1 : δ ≤ 1) :
     1 / Real.sqrt (ε * δ) ≤ 1 / (ε * δ) := by

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
 import Qatlib.Concepts.LchsSimulation.TimeLchs
+
+/-!
+# Restricted composite Gauss specification
+
+`Lemma11CompositeGaussRestrictedCorrected` states a conditional global quadrature bound for the
+near-exponential LCHS integrand. Its premise supplies cellwise derivative-norm witnesses and
+remainder estimates, so polynomial exactness of an arbitrary supplied rule is not asserted by
+this proposition. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `Lemma11CompositeGaussRestrictedCorrected`: The conditional composite Gauss specification
+  bounding the cutoff-interval error from the stated cellwise derivative-norm witnesses and
+  remainder inequalities, corresponding to a restricted form of [An, Childs, and Lin, Lemma
+  11][AnChildsLin2026].
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +43,9 @@ namespace Qatlib.Concepts.LchsSimulation.Quadrature
 open MeasureTheory Set
 open scoped Matrix.Norms.L2Operator
 
+/-- The conditional composite Gauss specification bounding the cutoff-interval error from the
+stated cellwise derivative-norm witnesses and remainder inequalities, corresponding to a
+restricted form of [An, Childs, and Lin, Lemma 11][AnChildsLin2026]. -/
 def Lemma11CompositeGaussRestrictedCorrected : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (T β Λ : ℝ)
     (K Q M : ℕ) (node weight : Fin Q → ℝ),

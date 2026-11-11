@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QLinearODE17.Structure.Theorem9Stat
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Quan
 import Qatlib.Papers.QLinearODE17.Structure.Theorem9Encoding
+
+/-!
+# Inverse-word guarantees for the Taylor linear system
+
+This module derives singular-value gaps from left-inverse bounds and applies the finite
+inverse-word construction to a solved linear system. It gives explicit query and gate counts,
+normalized output error, and a postselection probability bound.
+
+For the V2 Taylor matrix, `taylorV2_encoding_and_gap` combines diagonalizability, stability,
+norm, and sparsity hypotheses to produce a bounded positive integer gap parameter and a sparse
+overlap encoding. This supplies the linear-system step in the ODE algorithm of
+[BerryEtAl2017ODE].
+
+## Main statements
+
+* `taylor_actual_inverse_word_of_solved`: Finite inverse-word counts, output accuracy, and
+  postselection bound.
+* `taylor_scaled_inverse`: Two-sided inverse identities for the scaled Taylor matrix.
+* `taylorV2_encoding_and_gap`: A bounded integer gap parameter and sparse overlap encoding.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError
@@ -42,6 +67,8 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- If `B * A = 1`, κ is positive, and ‖B‖ ≤ κ, every positive singular value of `A` is at least
+1/κ. -/
 theorem taylor_singular_gap_of_left_inverse (A B : Matrix I I ℂ) (hBA : B*A=1)
     (κ : ℕ) (hκ : 0 < κ) (hB : ‖B‖ ≤ (κ : ℝ))
     (i : Fin (Fintype.card I)) (hσ : 0 < matrixSingularValues A i) :
@@ -61,6 +88,10 @@ theorem taylor_singular_gap_of_left_inverse (A B : Matrix I I ℂ) (hBA : B*A=1)
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- For a projected unitary encoding with the stated singular-value gap and a normalized
+right-hand side `z = A *ᵥ y`, the finite inverse word has the explicit query and gate
+counts. It produces a normalized postselected state within 2^(-k) of normalized `y`, with
+the stated postselection lower bound. -/
 theorem taylor_actual_inverse_word_of_solved (A B : Matrix I I ℂ)
     (U : Matrix H H ℂ) (L R : Matrix H I ℂ) (κ k : ℕ) (z y : QState I)
     (henc : ProjectedUnitaryEncoding A U L R) (hκ : 0 < κ) (hz : Normalized z)
@@ -108,6 +139,8 @@ theorem taylor_actual_inverse_word_of_solved (A B : Matrix I I ℂ)
   · rw [hτ] at hprob
     simpa only [_root_.one_div_pow] using! hprob
 
+/-- For κV ≥ 1, k ≥ 5, and p > 0, there is a positive integer κ between 3κV√k(m + p)(k + s + 3)
+and 6κV k(m + p)(k + s + 3). -/
 theorem taylor_integer_kappa (m k p s : ℕ) (κV : ℝ) (hκV : 1 ≤ κV)
     (hk : 5 ≤ k) (hp : 0 < p) :
     ∃ κ : ℕ,0 < κ ∧
@@ -142,6 +175,8 @@ variable {N : Type} [Fintype N] [DecidableEq N]
 
 omit [DecidableEq N] in
 
+/-- Real scalar multiplication preserves the stated upper bounds on the row and column sparsity
+of `A`. -/
 theorem taylor_scaled_data_sparse (A : Matrix N N ℂ) (h : ℝ) (s : ℕ)
     (hr : ∀ n,(Finset.univ.filter (fun c => A n c≠0)).card ≤ s)
     (hc : ∀ c,(Finset.univ.filter (fun n => A n c≠0)).card ≤ s) :
@@ -161,6 +196,8 @@ theorem taylor_scaled_data_sparse (A : Matrix N N ℂ) (h : ℝ) (s : ℕ)
     intro hz
     exact hn (by simp [Matrix.smul_apply,hz])
 
+/-- Multiplying the inverse V2 Taylor matrix by k + s + 3 gives a two-sided inverse of the
+Taylor matrix divided by k + s + 3. -/
 theorem taylor_scaled_inverse (m k p s : ℕ) (M : Matrix N N ℂ) :
     (((k+s+3 : ℕ) : ℂ) • (taylorStepMatrixV2 m k p M)⁻¹) *
         (((k+s+3 : ℕ) : ℂ)⁻¹ • taylorStepMatrixV2 m k p M)=1 ∧
@@ -171,6 +208,9 @@ theorem taylor_scaled_inverse (m k p s : ℕ) (M : Matrix N N ℂ) :
     one_smul,one_smul]
   exact (taylorStepMatrixV2_inverse m k p M).symm
 
+/-- Under the stated diagonalizability, stability, Taylor-parameter, and generator sparsity
+assumptions, the scaled V2 Taylor matrix has a sparse overlap encoding and positive singular
+values at least 1/κ for a positive integer κ with the explicit upper bound. -/
 theorem taylorV2_encoding_and_gap [Nonempty N] (s m k p : ℕ) (A V D : Matrix N N ℂ)
     (h : ℝ) (hm : 0 < m) (hk : 5 ≤ k) (hp : 0 < p) (hh : 0 < h)
     (hfac : 2*m ≤ Nat.factorial (k+1))

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.GraphVocabulary
+
+/-!
+# First-admission ranks of edges
+
+`edgeAdmissionRank` records the first list position containing either orientation of an edge.
+Its symmetry, prefix-membership, and uniqueness properties support the incremental encoding of
+triangles used in graph subset-search arguments [ChildsEisenberg2003].
+
+## Main statements
+
+* `edgeAdmissionRank_getElem`: recover the edge up to orientation at its rank.
+* `canonical_rank_injective`: canonical present edges have distinct admission ranks.
+
+## References
+
+* [Childs and Eisenberg, 2003][ChildsEisenberg2003]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 700000
@@ -13,9 +31,12 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- The first index containing an edge or its reverse, with the list length returned if neither
+occurs. -/
 def edgeAdmissionRank (l : List (Fin n×Fin n)) (e : Fin n×Fin n) : ℕ :=
   l.findIdx (fun p=>decide (p=e ∨ p=e.swap))
 
+/-- Reversing an edge does not change its first-admission rank. -/
 theorem edgeAdmissionRank_swap (l : List (Fin n×Fin n)) (e : Fin n×Fin n) :
     edgeAdmissionRank l e.swap=edgeAdmissionRank l e := by
   unfold edgeAdmissionRank
@@ -23,6 +44,7 @@ theorem edgeAdmissionRank_swap (l : List (Fin n×Fin n)) (e : Fin n×Fin n) :
   funext p
   simp only [Prod.swap_swap,or_comm]
 
+/-- An edge present in either orientation has admission rank strictly below the list length. -/
 theorem edgeAdmissionRank_lt_of_adjacent (l : List (Fin n×Fin n)) (a b : Fin n)
     (h : adjacent l.toFinset a b) : edgeAdmissionRank l (a,b) < l.length := by
   apply List.findIdx_lt_length_of_exists
@@ -30,12 +52,15 @@ theorem edgeAdmissionRank_lt_of_adjacent (l : List (Fin n×Fin n)) (a b : Fin n)
   · exact ⟨(a,b),by simpa only [List.mem_toFinset] using hab,by simp⟩
   · exact ⟨(b,a),by simpa only [List.mem_toFinset] using hba,by simp⟩
 
+/-- The list entry at a valid admission rank is the edge or its reverse. -/
 theorem edgeAdmissionRank_getElem (l : List (Fin n×Fin n)) (e : Fin n×Fin n)
     (h : edgeAdmissionRank l e < l.length) :
     l[edgeAdmissionRank l e]=e ∨ l[edgeAdmissionRank l e]=e.swap := by
   have hh := List.findIdx_getElem (xs := l) (p := fun p=>decide (p=e ∨ p=e.swap)) (w := h)
   simpa only [decide_eq_true_eq] using! hh
 
+/-- An edge whose admission rank is below `i` is adjacent in the prefix of length `i`, provided
+`i ≤ l.length`. -/
 theorem adjacent_prefix_of_rank_lt (l : List (Fin n×Fin n)) (a b : Fin n) (i : ℕ)
     (hr : edgeAdmissionRank l (a,b) < i) (hi : i ≤ l.length) : adjacent (l.take i).toFinset a b := by
   have hl : edgeAdmissionRank l (a,b) < l.length := hr.trans_le hi
@@ -46,6 +71,7 @@ theorem adjacent_prefix_of_rank_lt (l : List (Fin n×Fin n)) (a b : Fin n) (i : 
   · exact Or.inl (by rw [List.mem_toFinset];simpa only [he] using hm)
   · exact Or.inr (by rw [List.mem_toFinset];simpa only [he] using! hm)
 
+/-- Two present edges with strictly increasing endpoints and equal admission ranks are equal. -/
 theorem canonical_rank_injective (l : List (Fin n×Fin n)) (e f : Fin n×Fin n)
     (he : e.1 < e.2) (hf : f.1 < f.2) (heR : edgeAdmissionRank l e < l.length)
     (hfR : edgeAdmissionRank l f < l.length) (hR : edgeAdmissionRank l e=edgeAdmissionRank l f) : e=f := by

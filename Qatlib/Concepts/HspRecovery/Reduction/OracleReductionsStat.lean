@@ -5,11 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.Reduction.Reductions
+
+/-!
+# Statement of oracle promise reductions
+
+`SourceOracleReductions` collects five implications between hidden shift, abelian reflection,
+dihedral reflection hiding, and Simon promises. The statement includes the doubling condition
+for constructing an injective hidden shift pair and the exponent-two alternative.
+
+These are oracle promise transformations in the setting of [Kuperberg2005].
+
+## Main statements
+
+* `SourceOracleReductions`: packages the five reductions as a conjunction.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
+/-- The conjunction of five oracle promise reductions between hidden shifts, abelian
+reflections, dihedral reflection hiding, and Simon promises, with the stated doubling
+hypotheses. -/
 def SourceOracleReductions : Prop := by
   classical
   exact

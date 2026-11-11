@@ -9,6 +9,27 @@ import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodi
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalStat
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingLows
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalLows
+
+/-!
+# Algebra for variable-time applications
+
+This module supplies state normalization, pseudoinverse, and preconditioning identities used in
+variable-time applications. It also constructs the zero-time evolution and zero-polynomial
+endpoint cases, using a slot permutation with zero projected corner.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `clause115_preconditioned_algebra`: norm, direction, and amplitude bounds after state scaling.
+* `clause116_zero_time`: preparation guarantee for zero evolution time.
+* `clause118_zero_polynomial`: encoding guarantee for the zero polynomial.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -57,17 +78,21 @@ open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open Qatlib.Papers.VarTimeAmpAmp10.CoherentAA
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The vector norm `normVec` equals the norm of the corresponding `stateVector`. -/
 theorem normVec_eq_stateVector_norm {I : Type} [Fintype I] (ψ : QState I) :
     normVec ψ = ‖stateVector ψ‖ := rfl
 
+/-- Passing from a state to its state vector commutes with complex scalar multiplication. -/
 theorem stateVector_smul {I : Type} (c : ℂ) (ψ : QState I) :
     stateVector (c • ψ) = c • stateVector ψ := rfl
 
+/-- Scaling a state by a real scalar scales its norm by the scalar's absolute value. -/
 theorem normVec_smul_real {I : Type} [Fintype I] (c : ℝ) (ψ : QState I) :
     normVec ((c : ℂ) • ψ) = |c| * normVec ψ := by
   rw [normVec_eq_stateVector_norm, stateVector_smul, norm_smul, Complex.norm_real,
     Real.norm_eq_abs, normVec_eq_stateVector_norm]
 
+/-- Normalizing a state is unchanged by multiplication by a positive real scalar. -/
 theorem normState_smul_of_pos {I : Type} [Fintype I] {c : ℝ} (hc : 0 < c) (ψ : QState I) :
     normState ((c : ℂ) • ψ) = normState ψ := by
   rcases eq_or_ne ψ 0 with hψ | hψ
@@ -86,6 +111,8 @@ theorem normState_smul_of_pos {I : Type} [Fintype I] {c : ℝ} (hc : 0 < c) (ψ 
   unfold normState
   rw [hsmul, smul_smul, hcoef]
 
+/-- Multiplying the pseudoinverse by the inverse state-scaling operator splits into the scaled
+rank-one part and its complementary part. -/
 theorem pseudoinverse_scalingInverse_decompose {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (b : QState O) (s : ℝ) :
     matrixPseudoinverse A * stateScalingInverse s b =
@@ -98,6 +125,8 @@ theorem pseudoinverse_scalingInverse_decompose {I O : Type} [Fintype I] [Decidab
     module
   exact he
 
+/-- For normalized `b`, the scaled rank-one pseudoinverse component times the conjugate
+transpose of its complementary component is zero. -/
 theorem preconditioned_cross_term_zero {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (b : QState O) (s : ℝ)
     (hb : Normalized b) :
@@ -134,6 +163,7 @@ theorem preconditioned_cross_term_zero {I O : Type} [Fintype I] [DecidableEq I]
       _ = 0 := by rw [Matrix.zero_mul, Matrix.mul_zero]
   rw [hYadj, Matrix.smul_mul, hmid, smul_zero]
 
+/-- The operator norm of `M * Mᴴ` equals the square of the operator norm of `M`. -/
 theorem norm_self_mul_conjTranspose {m n : Type} [Fintype m] [Fintype n]
     [DecidableEq m] [DecidableEq n] (M : Matrix m n ℂ) :
     ‖M * Mᴴ‖ = ‖M‖ * ‖M‖ := by
@@ -141,10 +171,15 @@ theorem norm_self_mul_conjTranspose {m n : Type} [Fintype m] [Fintype n]
   rw [Matrix.conjTranspose_conjTranspose, l2_opNorm_conjTranspose] at h
   exact h
 
+/-- The optimal coefficient block-encoding and corrected block-preconditioning subgoals both
+hold. -/
 theorem clause115_consumed_slices :
     OptimalCoefficientBlockEncodingSubgoal ∧ BlockPreconditioningCorrectedSubgoal :=
   ⟨optimalCoefficientBlockEncodingSubgoal, blockPreconditioningCorrectedSubgoal⟩
 
+/-- Under consistency and the stated norm window, state scaling bounds the new pseudoinverse
+norm, preserves the normalized solution, and gives a lower bound `1 / (c ^ 4 + 1)` on the
+squared scaled solution norm. -/
 theorem clause115_preconditioned_algebra {I O : Type} [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (b : QState O) (αInv t c : ℝ)
     (hb : Normalized b) (hαInv : 0 < αInv) (hc : 1 < c) (ht : 0 < t)
@@ -270,6 +305,7 @@ theorem clause115_preconditioned_algebra {I O : Type} [Fintype I] [DecidableEq I
     rw [← hsqr]
     exact hsqle
 
+/-- Running the one-stage word with the paired oracles places `UB *ᵥ ω` in the unique flag slot. -/
 theorem run_stageWord_one {H : Type} [Fintype H] [DecidableEq H]
     (UA UB : Matrix H H ℂ) (ω : QState H) (hr : 0 < 1) :
     run hr (pairOracles UA UB) (stageWord 1) ω
@@ -302,6 +338,8 @@ theorem run_stageWord_one {H : Type} [Fintype H] [DecidableEq H]
     rfl
   · exact absurd hp hpk
 
+/-- At zero evolution time, there is a legal preparation word with the stated state guarantee
+and oracle budgets, making no calls to the matrix oracle. -/
 theorem clause116_zero_time : ∃ K : ℝ, 0 < K ∧
     ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       (L : Matrix H I ℂ) (αA t αexp αbmax αb ε : ℝ),
@@ -408,9 +446,12 @@ theorem clause116_zero_time : ∃ K : ℝ, 0 < K ∧
       rw [hc0, Nat.cast_zero, hz, mul_zero]
     exact ⟨hgoal, hcost1, hcost0, fun _ => hc0⟩
 
+/-- The permutation that exchanges the two flag slots while preserving the data coordinate. -/
 def slotFlip (H : Type) : Equiv.Perm (H × Fin 2) :=
   Equiv.prodCongr (Equiv.refl H) (Equiv.swap (0 : Fin 2) 1)
 
+/-- The slot-flip permutation matrix has zero entries between pairs of states both in flag slot
+zero. -/
 theorem slotFlip_entry_zero {H : Type} [DecidableEq H] (hr : 0 < 2) (h t : H) :
     ((slotFlip H).permMatrix ℂ) (h, ⟨0, hr⟩) (t, ⟨0, hr⟩) = 0 := by
   have hne : ((t, ⟨0, hr⟩) : H × Fin 2) ≠ (slotFlip H) (h, ⟨0, hr⟩) := by
@@ -426,6 +467,7 @@ theorem slotFlip_entry_zero {H : Type} [DecidableEq H] (hr : 0 < 2) (h t : H) :
   rw [PEquiv.toMatrix_toPEquiv_apply, Pi.single_apply]
   exact if_neg hne
 
+/-- The permutation matrix of `slotFlip` is unitary. -/
 theorem slotFlip_unitary {H : Type} [Fintype H] [DecidableEq H] :
     ((slotFlip H).permMatrix ℂ) ∈ Matrix.unitaryGroup (H × Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff]
@@ -433,6 +475,8 @@ theorem slotFlip_unitary {H : Type} [Fintype H] [DecidableEq H] :
   rw [Matrix.conjTranspose_permMatrix, ← Matrix.permMatrix_mul, inv_mul_cancel,
     Matrix.permMatrix_one]
 
+/-- The projected corner of the slot-flip permutation matrix is zero for arbitrary left and
+right embeddings. -/
 theorem slotFlip_projectedCorner {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [Fintype O] (L : Matrix H O ℂ) (R : Matrix H I ℂ) (hr : 0 < 2) :
     projectedCorner L R hr ((slotFlip H).permMatrix ℂ) = 0 := by
@@ -445,15 +489,18 @@ theorem slotFlip_projectedCorner {H I O : Type} [Fintype H] [DecidableEq H]
   intro t _
   rw [slotFlip_entry_zero hr h t, mul_zero, zero_mul]
 
+/-- Evaluating a Chebyshev expansion with all coefficients zero gives zero. -/
 theorem chebValue_zero {n : ℕ} (x : ℝ) :
     chebValue ((fun _ => (0 : ℂ)) : Fin n → ℂ) x = 0 := by
   simp [chebValue]
 
+/-- The operator Chebyshev expansion with all coefficients zero is the zero matrix. -/
 theorem chebOperator_zero {I : Type} [Fintype I] [DecidableEq I] {n : ℕ}
     (A : Matrix I I ℂ) :
     chebOperator ((fun _ => (0 : ℂ)) : Fin n → ℂ) A = 0 := by
   simp [chebOperator]
 
+/-- The supremum quantity for the zero polynomial on the half-radius interval is zero. -/
 theorem polynomialSup_zero_half {n : ℕ} :
     polynomialSup ((fun _ => (0 : ℂ)) : Fin n → ℂ) (1 / 2) = 0 := by
   have hcheb (x : ℝ) : chebValue ((fun _ => (0 : ℂ)) : Fin n → ℂ) x = 0 :=
@@ -469,6 +516,8 @@ theorem polynomialSup_zero_half {n : ℕ} :
     rw [hcheb, norm_zero]
   exact le_antisymm (Real.sSup_le hle (by norm_num)) (le_csSup ⟨0, hle⟩ hmem)
 
+/-- Under the stated encoding and spectral hypotheses, the zero polynomial has a legal word
+satisfying the prescribed query budget and projected-corner approximation bound. -/
 theorem clause118_zero_polynomial {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (L R : Matrix H I ℂ) (αA κ α ε : ℝ) (n : ℕ) :
     0 < n → 0 < αA → 1 ≤ κ → 0 < α → 0 < ε → ε < 1 / 4 →

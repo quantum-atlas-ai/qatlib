@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhlDefs
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+/-!
+# Signed diagonal instances for HHL lower-bound arguments
+
+`q86Data` and `q86Req` define one-sparse sign-diagonal linear systems with Hadamard-prepared
+uniform inputs. Their matrices are unitary and self-inverse, so their least-squares solutions
+are the signed uniform states `q86Target`, providing explicit instances in the linear-systems
+setting of [HarrowHassidimLloyd2009].
+
+The module verifies preparation legality, register embeddings, and zero-extension identities,
+then expresses target-state separation in terms of the Hamming distance `q86Ham`.
+
+## Main statements
+
+* `q86_leastSquaresDirection`: the least-squares direction is the signed uniform target.
+* `q86_zeroExtend_sub_sq`: zero extension preserves squared target distances.
+* `q86_target_sub_sq`: squared distance is four times normalized Hamming distance.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,8 +73,11 @@ open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The finite-gate word applying a Hadamard gate to each of the first `m` wires. -/
 def q86HWord (m : ℕ) : List FiniteGateCode := (List.range m).map FiniteGateCode.h
 
+/-- The diagonal sparse-oracle data with entry `1` when `σ` is true and `-1` otherwise, and zero
+recorded access and arithmetic costs. -/
 def q86Data {N : ℕ} (σ : Fin N → Bool) : SparseOracleData (Fin N) (Fin N) where
   rowPos := fun o => [o]
   colPos := fun i => [i]
@@ -61,8 +87,10 @@ def q86Data {N : ℕ} (σ : Fin N → Bool) : SparseOracleData (Fin N) (Fin N) w
   valueCallGates := 0
   arithBits := 0
 
+/-- The complex sign vector taking value `1` on true bits and `-1` on false bits. -/
 def q86Sign {N : ℕ} (σ : Fin N → Bool) : Fin N → ℂ := fun j => if σ j then 1 else -1
 
+/-- The matrix represented by `q86Data σ` is diagonal with diagonal entries `q86Sign σ`. -/
 theorem q86Data_matrix {N : ℕ} (σ : Fin N → Bool) :
     (q86Data σ).matrix = diagonal (q86Sign σ) := by
   ext o i
@@ -72,6 +100,7 @@ theorem q86Data_matrix {N : ℕ} (σ : Fin N → Bool) :
     by_cases hs : σ o = true <;> simp [q86Sign, hs]
   · simp [h]
 
+/-- The sign-diagonal oracle data is one-sparse with entry bound one. -/
 theorem q86_sparseBounded {N : ℕ} (σ : Fin N → Bool) :
     (q86Data σ).IsSparseBounded 1 1 := by
   refine ⟨by norm_num, by norm_num, ?_, ?_, ?_, ?_, ?_⟩
@@ -106,12 +135,14 @@ theorem q86_sparseBounded {N : ℕ} (σ : Fin N → Bool) :
       by_cases hs : σ o = true <;> simp [gaussianRatComplex, hs]
     · simp [gaussianRatComplex, h]
 
+/-- The complex sign vector is self-adjoint under pointwise conjugation. -/
 theorem q86_sign_selfAdjoint {N : ℕ} (σ : Fin N → Bool) :
     IsSelfAdjoint (q86Sign σ) := by
   show star (q86Sign σ) = q86Sign σ
   funext j
   by_cases hs : σ j = true <;> simp [q86Sign, hs]
 
+/-- The sign-diagonal data satisfies `qlsSparseHermitianBounded`. -/
 theorem q86_hermitianBounded {N : ℕ} (σ : Fin N → Bool) :
     qlsSparseHermitianBounded (q86Data σ) := by
   refine ⟨?_, ?_⟩
@@ -122,6 +153,7 @@ theorem q86_hermitianBounded {N : ℕ} (σ : Fin N → Bool) :
     intro i
     by_cases hs : σ i = true <;> simp [q86Sign, hs]
 
+/-- The sign-diagonal oracle matrix is unitary. -/
 theorem q86_matrix_unitary {N : ℕ} (σ : Fin N → Bool) :
     (q86Data σ).matrix ∈ Matrix.unitaryGroup (Fin N) ℂ := by
   rw [q86Data_matrix, Matrix.mem_unitaryGroup_iff']
@@ -135,6 +167,7 @@ theorem q86_matrix_unitary {N : ℕ} (σ : Fin N → Bool) :
     exact Matrix.isHermitian_diagonal_of_self_adjoint _ (q86_sign_selfAdjoint σ)
   rw [hstar, hsq]
 
+/-- The sign-diagonal oracle matrix satisfies the condition window with parameter one. -/
 theorem q86_condWindow {N : ℕ} (σ : Fin N → Bool) :
     HasConditionWindow ((q86Data σ).matrix : Operator N) 1 := by
   refine ⟨by norm_num, ?_⟩
@@ -152,6 +185,7 @@ theorem q86_condWindow {N : ℕ} (σ : Fin N → Bool) :
     rw [← Real.sqrt_sq (norm_nonneg _), norm_toEuclidean_fromVec_sq]
   rw [h1, h2, hsq']
 
+/-- Running a concatenated circuit equals running its first part and then its second part. -/
 theorem run_append {I : Type} [Fintype I] [DecidableEq I] (o : Matrix I I ℂ)
     (C1 C2 : List (Step I)) (ψ : QState I) :
     Run o (C1 ++ C2) ψ = Run o C2 (Run o C1 ψ) := by
@@ -162,6 +196,8 @@ theorem run_append {I : Type} [Fintype I] [DecidableEq I] (o : Matrix I I ℂ)
     | gate U => simpa using! ih (ApplyGate U ψ)
     | query => simpa using! ih (ApplyGate o ψ)
 
+/-- A gate on wire `w` acts at each register value by summing over the two possible replacements
+of that wire. -/
 theorem wireGate_mulVec_update {n : ℕ} (w : Fin n) (U : Matrix Bool Bool ℂ)
     (ψ : QState (Reg n)) (z : Reg n) :
     (wireGate n w U *ᵥ ψ) z = ∑ b : Bool, U (z w) b * ψ (Function.update z w b) := by
@@ -227,6 +263,8 @@ theorem wireGate_mulVec_update {n : ℕ} (w : Fin n) (U : Matrix Bool Bool ℂ)
   rw [hstep, Finset.sum_image hinj]
   simp only [Function.update_self]
 
+/-- Applying Hadamards to the first `k` wires of the zero register gives amplitude `((sqrt
+2)⁻¹)^k` on registers whose remaining wires are false, and zero elsewhere. -/
 theorem q86HWord_run (n m : ℕ) (hmn : m ≤ n) : ∀ k, k ≤ m → ∀ z : Reg n,
     Run (1 : Matrix (Reg n) (Reg n) ℂ)
       (finiteCodeCircuit n ((List.range k).map FiniteGateCode.h))
@@ -323,6 +361,8 @@ theorem q86HWord_run (n m : ℕ) (hmn : m ≤ n) : ∀ k, k ≤ m → ∀ z : Re
       rw [if_neg hz1, if_neg hz2]
       simp only [mul_zero, add_zero]
 
+/-- The Hadamard preparation has amplitude `((sqrt 2)⁻¹)^m` at every embedded label of `Fin
+(2^m)`. -/
 theorem q86_run_at_label (m : ℕ) (i : Fin (2 ^ m)) :
     Run (1 : Matrix (Reg (qlsBitWidth (2 ^ m))) (Reg (qlsBitWidth (2 ^ m))) ℂ)
       (finiteCodeCircuit (qlsBitWidth (2 ^ m)) ((List.range m).map FiniteGateCode.h))
@@ -344,6 +384,8 @@ theorem q86_run_at_label (m : ℕ) (i : Fin (2 ^ m)) :
     rw [Nat.testBit_lt_two_pow hi2]
   simp only [if_pos hcond]
 
+/-- The dimension-`2^m` sparse HHL request with sign-diagonal data, sparsity and condition
+parameter one, error `1 / 4`, and Hadamard input preparation. -/
 noncomputable def q86Req (m : ℕ) (σ : Fin (2 ^ m) → Bool) : SparseHHLRequest where
   dim := 2 ^ m
   sparsity := 1
@@ -352,6 +394,7 @@ noncomputable def q86Req (m : ℕ) (σ : Fin (2 ^ m) → Bool) : SparseHHLReques
   data := q86Data σ
   inputPrep := q86HWord m
 
+/-- The Hadamard input-preparation word of `q86Req` is legal on its allocated register. -/
 theorem q86_inputPrep_legal (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
     finiteWordLegal (qlsBitWidth (q86Req m σ).dim) (q86Req m σ).inputPrep = true := by
   have hbw : qlsBitWidth (q86Req m σ).dim = m + 1 := by
@@ -373,6 +416,7 @@ theorem q86_inputPrep_legal (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
     exact h
   simpa [finiteWordLegal, q86Req, q86HWord] using! hall
 
+/-- The prepared input of `q86Req` is the constant vector with amplitude `((sqrt 2)⁻¹)^m`. -/
 theorem q86_preparedInput (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
     qlsPreparedInput (q86Req m σ) = fun _ : Fin (2 ^ m) => ((Real.sqrt 2 : ℂ)⁻¹) ^ m := by
   funext i
@@ -381,9 +425,11 @@ theorem q86_preparedInput (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
       = ((Real.sqrt 2 : ℂ)⁻¹) ^ m
   exact q86_run_at_label m i
 
+/-- The uniform-amplitude target vector with signs prescribed by `σ`. -/
 noncomputable def q86Target (m : ℕ) (σ : Fin (2 ^ m) → Bool) : QState (Fin (2 ^ m)) :=
   fun j => q86Sign σ j * ((Real.sqrt 2 : ℂ)⁻¹) ^ m
 
+/-- The signed uniform target vector `q86Target m σ` is normalized. -/
 theorem q86_target_normalized (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
     Normalized (q86Target m σ) := by
   have hterm : ∀ j : Fin (2 ^ m),
@@ -411,6 +457,7 @@ theorem q86_target_normalized (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
   have hcast : ((2 ^ m : ℕ) : ℝ) = (2 : ℝ) ^ m := by norm_cast
   rw [hcast, mul_inv_cancel₀ (by positivity)]
 
+/-- The sign-diagonal oracle matrix is its own inverse. -/
 theorem q86_matrix_selfInv (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
     (q86Data σ).matrix * (q86Data σ).matrix = 1 := by
   rw [q86Data_matrix, Matrix.diagonal_mul_diagonal, ← Matrix.diagonal_one]
@@ -418,6 +465,7 @@ theorem q86_matrix_selfInv (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
   funext j
   by_cases hs : σ j = true <;> simp [q86Sign, hs]
 
+/-- The least-squares vector of the sign-diagonal request is exactly `q86Target m σ`. -/
 theorem q86_leastSquaresVector (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
     leastSquaresVector ((q86Req m σ).data.matrix) (qlsPreparedInput (q86Req m σ))
       = q86Target m σ := by
@@ -445,6 +493,7 @@ theorem q86_leastSquaresVector (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
   unfold leastSquaresVector
   rw [hpseudo, hmul]
 
+/-- The least-squares direction of the sign-diagonal request is `some (q86Target m σ)`. -/
 theorem q86_leastSquaresDirection (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
     leastSquaresDirection ((q86Req m σ).data.matrix) (qlsPreparedInput (q86Req m σ))
       = some (q86Target m σ) := by
@@ -478,11 +527,13 @@ theorem q86_leastSquaresDirection (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
   funext i
   simp [PostMeasure, hcollapse, hprob]
 
+/-- The register width allocated to dimension `2^m` is `m + 1`. -/
 theorem q86_bitWidth (m : ℕ) : qlsBitWidth (2 ^ m) = m + 1 := by
   have hlog : Nat.log2 (2 ^ m) = m := by
     rw [Nat.log2_eq_log_two, Nat.log_pow (by norm_num)]
   simp only [qlsBitWidth, hlog]
 
+/-- The register embedding for `Fin (2^m)` is injective. -/
 theorem q86_regEmbed_inj (m : ℕ) : Function.Injective (qlsRegEmbed (2 ^ m)) := by
   intro i j hij
   apply Fin.ext
@@ -496,6 +547,7 @@ theorem q86_regEmbed_inj (m : ℕ) : Function.Injective (qlsRegEmbed (2 ^ m)) :=
     have hj : j.val < 2 ^ t := lt_of_lt_of_le j.isLt (pow_le_pow_right' (by norm_num) (by omega))
     rw [Nat.testBit_lt_two_pow hi, Nat.testBit_lt_two_pow hj]
 
+/-- Zero extension evaluated at an embedded label returns the original vector entry. -/
 theorem q86_zeroExtend_apply (m : ℕ) (ψ : QState (Fin (2 ^ m))) (j : Fin (2 ^ m)) :
     qlsZeroExtend ψ (qlsRegEmbed (2 ^ m) j) = ψ j := by
   simp only [qlsZeroExtend]
@@ -503,6 +555,8 @@ theorem q86_zeroExtend_apply (m : ℕ) (ψ : QState (Fin (2 ^ m))) (j : Fin (2 ^
   rw [dif_pos hex]
   exact congrArg ψ (q86_regEmbed_inj m (Classical.choose_spec hex))
 
+/-- Zero extension preserves the sum of squared entrywise distances between two signed target
+vectors. -/
 theorem q86_zeroExtend_sub_sq (m : ℕ) (σ τ : Fin (2 ^ m) → Bool) :
     ∑ x : Reg (qlsBitWidth (2 ^ m)),
         ‖qlsZeroExtend (q86Target m σ) x - qlsZeroExtend (q86Target m τ) x‖ ^ 2
@@ -540,13 +594,16 @@ theorem q86_zeroExtend_sub_sq (m : ℕ) (σ τ : Fin (2 ^ m) → Bool) :
       Finset.sum_congr rfl (fun j _ => by
         rw [q86_zeroExtend_apply, q86_zeroExtend_apply])
 
+/-- The Hamming distance between the Boolean sign assignments `σ` and `τ`. -/
 def q86Ham (m : ℕ) (σ τ : Fin (2 ^ m) → Bool) : ℕ :=
   (Finset.univ.filter fun j : Fin (2 ^ m) => σ j ≠ τ j).card
 
+/-- The complex number `2` has norm two. -/
 theorem q86_norm_two : ‖(2 : ℂ)‖ = 2 := by
   rw [show (2 : ℂ) = ((2 : ℝ) : ℂ) from rfl, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (by norm_num)]
 
+/-- Different Boolean labels give signs whose complex distance is two. -/
 theorem q86_sign_sub_norm {N : ℕ} (σ τ : Fin N → Bool) (j : Fin N)
     (hne : σ j ≠ τ j) : ‖(q86Sign σ j - q86Sign τ j : ℂ)‖ = 2 := by
   by_cases hs : σ j = true <;> by_cases ht : τ j = true
@@ -561,6 +618,7 @@ theorem q86_sign_sub_norm {N : ℕ} (σ τ : Fin N → Bool) (j : Fin N)
     rw [h1, norm_neg, q86_norm_two]
   · simp [hs, ht] at hne
 
+/-- The squared distance between two signed uniform targets is `4 * q86Ham m σ τ / 2^m`. -/
 theorem q86_target_sub_sq (m : ℕ) (σ τ : Fin (2 ^ m) → Bool) :
     ∑ j : Fin (2 ^ m), ‖q86Target m σ j - q86Target m τ j‖ ^ 2
       = (4 : ℝ) * q86Ham m σ τ * ((2 : ℝ) ^ m)⁻¹ := by

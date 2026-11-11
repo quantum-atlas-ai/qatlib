@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversal
+
+/-!
+# Compute copy and reverse subroutines
+
+This module constructs `AnswerCopyGate` and analyzes a circuit followed by copying its Boolean
+answer and reversing the original computation. For a self adjoint unitary oracle and a unitary
+circuit, the Born probability of the restored input and a specified answer is the square of the
+original answer probability, giving the cleaning identity used in [BennettEtAl1997].
+
+## Main statements
+
+* `answerCopyGate_unitary`: the controlled answer copy is unitary.
+* `run_liftCircuit_tensorState`: a lifted execution preserves the extra tensor factor.
+* `subroutine_cleaning_mass`: compute, copy, and reverse squares the answer probability at the
+  restored input.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 open Qatlib.Foundations.CircuitReversal.ReversalAlgebra
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -19,21 +40,26 @@ set_option linter.unusedSectionVars false
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The permutation that XORs `v` of the first register into an answer bit. -/
 def answerCopyPerm (v : I → Bool) : I × Bool → I × Bool :=
   fun p => (p.1, p.2 ^^ v p.1)
 
+/-- The permutation matrix that copies the Boolean value `v` into an answer bit by XOR. -/
 noncomputable def AnswerCopyGate (v : I → Bool) : Matrix (I × Bool) (I × Bool) ℂ :=
   permMatrix (answerCopyPerm v)
 
+/-- XORing `v` of the first register into the answer bit is an involution. -/
 theorem answerCopyPerm_involutive (v : I → Bool) : Function.Involutive (answerCopyPerm v) := by
   intro p
   obtain ⟨y, c⟩ := p
   simp [answerCopyPerm]
 
+/-- The answer copy gate is unitary. -/
 theorem answerCopyGate_unitary (v : I → Bool) :
     AnswerCopyGate v ∈ Matrix.unitaryGroup (I × Bool) ℂ :=
   permMatrix_unitary (answerCopyPerm_involutive v)
 
+/-- The inner product with basis state `Ket i` in the first argument is the amplitude at `i`. -/
 private theorem inner_ket_left (i : I) (φ : QState I) : Inner (Ket i) φ = φ i := by
   rw [inner_apply, Finset.sum_eq_single i]
   · simp [Ket]
@@ -41,6 +67,7 @@ private theorem inner_ket_left (i : I) (φ : QState I) : Inner (Ket i) φ = φ i
     simp [Ket, hk]
   · simp
 
+/-- Lifting circuits to an additional answer bit preserves concatenation. -/
 private theorem liftCircuit_append (C D : Circuit I) :
     LiftCircuit (C ++ D) = LiftCircuit C ++ LiftCircuit D := by
   induction C with
@@ -50,10 +77,13 @@ private theorem liftCircuit_append (C D : Circuit I) :
     | gate U => rw [List.cons_append, liftCircuit_gate, liftCircuit_gate, ih]; rfl
     | query => rw [List.cons_append, liftCircuit_query, liftCircuit_query, ih]; rfl
 
+/-- Lifting a gate to an additional answer bit commutes with conjugate transposition. -/
 private theorem liftGate_conjTranspose (U : Matrix I I ℂ) :
     (LiftGate U)ᴴ = LiftGate Uᴴ := by
   rw [LiftGate, tensorGate_conjTranspose, Matrix.conjTranspose_one, ← LiftGate]
 
+/-- For a unitary gate, applying it in the first inner product argument equals applying its
+conjugate transpose in the second. -/
 private theorem inner_applyGate_conjTranspose {U : Matrix I I ℂ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ φ : QState I) :
     Inner (ApplyGate U ψ) φ = Inner ψ (ApplyGate Uᴴ φ) := by
@@ -63,6 +93,8 @@ private theorem inner_applyGate_conjTranspose {U : Matrix I I ℂ}
     exact hU
   rw [← inner_applyGate hU' (ApplyGate U ψ) φ, ← applyGate_mul, hUU, applyGate_one]
 
+/-- For a self adjoint unitary oracle and a unitary circuit, moving the lifted execution across
+an inner product gives the lifted reversed circuit. -/
 private theorem inner_run_liftCircuit (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (hOH : Oᴴ = O) (C : Circuit I) :
     ∀ (_ : IsUnitaryCircuit C) (χ φ : QState (I × Bool)),
@@ -95,6 +127,8 @@ private theorem inner_run_liftCircuit (O : Matrix I I ℂ) (hO : O ∈ Matrix.un
       rw [liftCircuit_query, run_query, ih hC' (ApplyGate (LiftGate O) χ) φ,
         inner_applyGate_conjTranspose (liftGate_unitary hO), liftGate_conjTranspose, hOH, hkey]
 
+/-- Running a lifted circuit with a lifted oracle on a tensor state applies the original
+execution to the first factor. -/
 theorem run_liftCircuit_tensorState (O : Matrix I I ℂ) (C : Circuit I) (ψ : QState I)
     (χ : QState Bool) :
     Run (LiftGate O) (LiftCircuit C) (TensorState ψ χ) = TensorState (Run O C ψ) χ := by
@@ -105,6 +139,9 @@ theorem run_liftCircuit_tensorState (O : Matrix I I ℂ) (C : Circuit I) (ψ : Q
     | gate U => rw [liftCircuit_gate, run_gate, run_gate, applyGate_liftGate, ih]
     | query => rw [liftCircuit_query, run_query, run_query, applyGate_liftGate, ih]
 
+/-- For a self adjoint unitary oracle and a unitary circuit, compute, copy, and reverse gives
+the restored input and answer `b` with Born probability equal to the square of the original
+probability of answer `b`. See [Bennett et al., Theorem 4.14][BennettEtAl1997]. -/
 theorem subroutine_cleaning_mass (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (hOH : Oᴴ = O) (C : Circuit I) (hC : IsUnitaryCircuit C) (x₀ : I) (v : I → Bool)
     (b : Bool) :

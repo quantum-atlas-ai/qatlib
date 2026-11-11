@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.PolyTransform26.ResidualCert.ResidualCertData
 import Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra.NCResponse
+
+/-!
+# Residual recurrences and polynomial responses
+
+The coefficients `residualCoeff` are obtained by applying ordered residual matrix products to an
+initial vector. Vanishing products at length `D` imply truncation at all longer words, yielding
+coefficient-response identities and a finite noncommutative evaluation formula. The
+residual-certificate setting follows [ShenEtAl2026].
+
+## Main statements
+
+* `residual_certificate_response`: The coefficient-representation and length-`D` nilpotence
+  assumptions give a residual response with the stated prefix recurrence, truncation, constant
+  coefficient, and tail-coefficient identities.
+* `residual_certificate_nc_response`: The residual representation and length-`D` nilpotence
+  assumptions imply that `q` is supported on words of length at most `D`; for every finite
+  matrix tuple, they also give the truncated transition-series evaluation and vanishing of its
+  length-`D` transition applied to the injection.
+
+## References
+
+* [Shen et al., 2026][ShenEtAl2026]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.MatrixAlgebra.ResponseAlgebra
 
@@ -17,6 +41,8 @@ variable {J : Type} [Fintype J]
 
 omit [Fintype J] in
 
+/-- Applying the residual matrix for `j` to the coefficient at `w` gives the coefficient at the
+prefixed word `j :: w`. -/
 theorem residualCoeff_rec {r : ℕ} (a0 : EuclideanSpace ℂ (Fin r))
     (Ares : J → Matrix (Fin r) (Fin r) ℂ) (j : J) (w : List J) :
     (Ares j).toEuclideanLin (residualCoeff a0 Ares w) = residualCoeff a0 Ares (j :: w) :=
@@ -24,6 +50,8 @@ theorem residualCoeff_rec {r : ℕ} (a0 : EuclideanSpace ℂ (Fin r))
 
 omit [Fintype J] in
 
+/-- The residual coefficient at a word is its ordered matrix product applied to the initial
+vector. -/
 theorem residualCoeff_matrixWord {r : ℕ} (a0 : EuclideanSpace ℂ (Fin r))
     (Ares : J → Matrix (Fin r) (Fin r) ℂ) (w : List J) :
     residualCoeff a0 Ares w = (matrixWord Ares w).toEuclideanLin a0 := by
@@ -39,6 +67,8 @@ theorem residualCoeff_matrixWord {r : ℕ} (a0 : EuclideanSpace ℂ (Fin r))
 
 omit [Fintype J] in
 
+/-- If every residual matrix product of length `D` is zero, then every such product of length at
+least `D` is zero. -/
 theorem matrixWord_zero_of_le {r : ℕ}
     (Ares : J → Matrix (Fin r) (Fin r) ℂ) (D : ℕ)
     (h : ∀ w : List J, w.length = D → matrixWord Ares w = 0) :
@@ -63,6 +93,8 @@ theorem matrixWord_zero_of_le {r : ℕ}
 
 omit [Fintype J] in
 
+/-- If every residual matrix product of length `D` is zero, then residual coefficients vanish at
+every word of length at least `D`. -/
 theorem residualCoeff_truncate {r : ℕ} (a0 : EuclideanSpace ℂ (Fin r))
     (Ares : J → Matrix (Fin r) (Fin r) ℂ) (D : ℕ)
     (h : ∀ w : List J, w.length = D → matrixWord Ares w = 0) :
@@ -76,6 +108,9 @@ theorem residualCoeff_truncate {r : ℕ} (a0 : EuclideanSpace ℂ (Fin r))
 
 omit [Fintype J] in
 
+/-- The coefficient-representation and length-`D` nilpotence assumptions give a residual
+response with the stated prefix recurrence, truncation, constant coefficient, and
+tail-coefficient identities. See [Shen et al., 2026][ShenEtAl2026]. -/
 theorem residual_certificate_response {r D : ℕ}
     (a0 : EuclideanSpace ℂ (Fin r)) (Ares : J → Matrix (Fin r) (Fin r) ℂ)
     (cConst : ℂ) (pRow : J → Fin r → ℂ) (q : NCPoly J)
@@ -97,6 +132,10 @@ theorem residual_certificate_response {r D : ℕ}
   · intro j w
     exact hq j w
 
+/-- The residual representation and length-`D` nilpotence assumptions imply that `q` is
+supported on words of length at most `D`; for every finite matrix tuple, they also give the
+truncated transition-series evaluation and vanishing of its length-`D` transition applied to
+the injection. See [Shen et al., 2026][ShenEtAl2026]. -/
 theorem residual_certificate_nc_response {r D : ℕ}
     (a0 : EuclideanSpace ℂ (Fin r)) (Ares : J → Matrix (Fin r) (Fin r) ℂ)
     (cConst : ℂ) (pRow : J → Fin r → ℂ) (q : NCPoly J)

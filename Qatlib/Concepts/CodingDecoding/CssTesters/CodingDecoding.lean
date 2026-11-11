@@ -9,6 +9,38 @@ import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
 import Qatlib.Concepts.CodingDecoding.CssTesters.CssTester
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Qatlib.Concepts.CodingDecoding.CssTesters.LogicalNonscalarRestriction
+
+/-!
+# CSS recovery correctness
+
+This module constructs the minimum-weight correction `clause1Corr` and proves correctness of
+`clause1Prog` for Pauli errors of weight at most `t` when the CSS distance is at least `2 * t +
+1`. Stabilizer labels fix the codespace and preserve matrices with codespace columns, providing
+the logical reference condition used in recovery. The CSS and stabilizer background is developed
+in [CalderbankShor1996] and [Gottesman1997].
+
+Syndrome projectors give complete outcome masses, select the true syndrome of a Pauli-corrupted
+code vector, and yield recovery of its outer-product matrix when the residual is a stabilizer.
+The theorem `g1` assembles encoding, recovery, and resource bounds; `g3` supplies a finite
+realization of the gadget and noise conditions using trivial data.
+
+## Main statements
+
+* `logicalReferencePreserved_of_stabilizer`: proves logical reference preservation for
+  stabilizer labels.
+* `clause1Prog_correctsUpTo`: proves bounded-weight correction from the distance hypothesis.
+* `sum_syndromeOutcomeMass`: proves completeness of syndrome outcome masses.
+* `recoveryChannel_corrects_density`: restores code-vector outer products under a stabilizer
+  residual.
+* `g1`: assembles the CSS encoding and recovery guarantees.
+* `g3`: gives a finite realization with gadget, noise, and resource bounds.
+
+## References
+
+* [Calderbank and Shor, 1996][CalderbankShor1996]
+* [Gottesman, 1997][Gottesman1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
@@ -25,6 +57,7 @@ namespace Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding
 open Matrix
 open scoped Classical
 
+/-- A binary vector with Hamming weight zero is the zero vector. -/
 theorem bitWeight_eq_zero {κ : Type} [Fintype κ] [DecidableEq κ] {v : κ → ZMod 2}
     (h : bitWeight v = 0) : v = 0 := by
   funext i
@@ -36,16 +69,19 @@ theorem bitWeight_eq_zero {κ : Type} [Fintype κ] [DecidableEq κ] {v : κ → 
   simp only [bitWeight] at h
   omega
 
+/-- A nonzero binary vector has positive Hamming weight. -/
 theorem bitWeight_pos_of_ne_zero {κ : Type} [Fintype κ] [DecidableEq κ] {v : κ → ZMod 2}
     (h : v ≠ 0) : 0 < bitWeight v := by
   by_contra hn
   exact h (bitWeight_eq_zero (Nat.eq_zero_of_not_pos hn))
 
+/-- The Pauli label with both components zero has weight zero. -/
 theorem pauliWeight_zero_zero {κ : Type} [Fintype κ] [DecidableEq κ] :
     pauliWeight (0 : κ → ZMod 2) 0 = 0 := by
   unfold pauliWeight
   simp
 
+/-- A Pauli label with weight zero has both components zero. -/
 theorem pauliWeight_eq_zero {κ : Type} [Fintype κ] [DecidableEq κ] {x z : κ → ZMod 2}
     (h : pauliWeight x z = 0) : x = 0 ∧ z = 0 := by
   have hall : ∀ i : κ, x i = 0 ∧ z i = 0 := by
@@ -59,16 +95,19 @@ theorem pauliWeight_eq_zero {κ : Type} [Fintype κ] [DecidableEq κ] {x z : κ 
     omega
   exact ⟨funext fun i => (hall i).1, funext fun i => (hall i).2⟩
 
+/-- The zero vector lies in the range of the linear map defined by a binary matrix. -/
 theorem zero_mem_range_mulVecLin {κ κ' : Type} [Fintype κ] [Fintype κ']
     (A : Matrix κ κ' (ZMod 2)) :
     (0 : κ → ZMod 2) ∈ LinearMap.range (Matrix.mulVecLin A) :=
   ⟨(0 : κ' → ZMod 2), map_zero (Matrix.mulVecLin A)⟩
 
+/-- The zero Pauli label is a stabilizer label for every CSS code. -/
 theorem isStabilizerLabel_zero {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
     IsStabilizerLabel c ((0 : ι → ZMod 2), 0) :=
   ⟨zero_mem_range_mulVecLin c.hXᵀ, zero_mem_range_mulVecLin c.hZᵀ⟩
 
+/-- The extended-natural distance of every CSS code is at least one. -/
 theorem one_le_cssDistance {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
     (1 : ℕ∞) ≤ cssDistance c := by
@@ -91,15 +130,20 @@ theorem one_le_cssDistance {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Finty
     have : (1 : ℕ) ≤ bitWeight x := Nat.succ_le_of_lt (bitWeight_pos_of_ne_zero hx0)
     exact_mod_cast this
 
+/-- The one-qubit CSS data with one zero X check and one zero Z check. -/
 def trivialCode : CssData (Fin 1) (Fin 1) (Fin 1) where
   hX := 0
   hZ := 0
   hcompat := by simp
 
+/-- The recovery program for `trivialCode` that always chooses zero correction and assigns zero
+decoding time. -/
 def trivialProg : RecoveryProgram trivialCode where
   corr := fun _ => (0, 0)
   decodeTime := fun _ => 0
 
+/-- A gadget of the specified kind with one location, unit space and time, and zero ideal and
+residual labels. -/
 def trivialGadget (k : GadgetKind) : GadgetSpec trivialCode where
   kind := k
   locations := 1
@@ -108,6 +152,8 @@ def trivialGadget (k : GadgetKind) : GadgetSpec trivialCode where
   ideal := (0, 0)
   residual := fun _ => (0, 0)
 
+/-- The finite fault-tolerance parameter record built from the trivial code, a zero-correction
+decoder, and two trivial gadgets. -/
 noncomputable def trivialFtRealization : FtRealization where
   N := 1
   mX := 1
@@ -122,21 +168,26 @@ noncomputable def trivialFtRealization : FtRealization where
   budget := 2
   peak := 1
 
+/-- The trivial recovery program leaves every input Pauli label as its residual. -/
 theorem residualLabel_trivialProg {e : PauliLabel (Fin 1)} :
     residualLabel trivialProg e = e := by
   unfold residualLabel residualFromObserved
   simp [trivialProg, pauliSyndrome]
 
+/-- Every trivial gadget satisfies ideal correctness. -/
 theorem trivialGadget_idealCorrect (k : GadgetKind) :
     (trivialGadget k).IsIdealCorrect :=
   ⟨isStabilizerLabel_zero trivialCode, rfl⟩
 
+/-- Every trivial gadget satisfies the fault-tolerance predicate at tolerance zero. -/
 theorem trivialGadget_faultTolerant (k : GadgetKind) :
     (trivialGadget k).IsFaultTolerantAt 0 := by
   intro F _
   show pauliWeight (0 : Fin 1 → ZMod 2) 0 ≤ 0
   simp [pauliWeight]
 
+/-- For a single fault location, summing over nonempty fault sets equals summing over sets
+containing the full location set. -/
 theorem fin1_filter_card_pos (pp : Finset (Fin 1) → ℝ) :
     ∑ F ∈ Finset.univ.filter (fun F : Finset (Fin 1) => 0 < F.card), pp F =
       ∑ F ∈ Finset.univ.filter
@@ -157,6 +208,8 @@ theorem fin1_filter_card_pos (pp : Finset (Fin 1) → ℝ) :
       exact Finset.card_pos.mpr ⟨0, hsub h0⟩
   rw [Finset.filter_congr fun F _ => hiff F]
 
+/-- For one fault location under local stochastic noise, the zero-tolerance failure probability
+is bounded by the first-order binomial expression. -/
 theorem gadgetFailureProb_fin1_zero (pp : Finset (Fin 1) → ℝ) (p : ℝ)
     (h : LocalStochasticNoiseLaw pp p) :
     gadgetFailureProb pp 0 ≤ ((1 : ℕ).choose (0 + 1) : ℝ) * p ^ (0 + 1) := by
@@ -167,6 +220,8 @@ theorem gadgetFailureProb_fin1_zero (pp : Finset (Fin 1) → ℝ) (p : ℝ)
   rw [hg, fin1_filter_card_pos]
   simpa [pow_one] using hsum
 
+/-- An adversarial fault budget of zero forces the zero-tolerance gadget failure probability to
+vanish. -/
 theorem gadgetFailureProb_adversarial_zero {ζ : ℕ} {pp : Finset (Fin ζ) → ℝ} {a : ℕ}
     (h : AdversarialFaultBudget pp a) (ha : a ≤ 0) : gadgetFailureProb pp 0 = 0 := by
   have hnonneg : ∀ F, 0 ≤ pp F := h.1
@@ -183,6 +238,9 @@ theorem gadgetFailureProb_adversarial_zero {ζ : ℕ} {pp : Finset (Fin ζ) → 
   simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hF
   exact hzero F hF
 
+/-- There exists a finite fault-tolerance realization with decoder correctness, ideal and
+bounded-fault gadget properties, positive noise and error parameters, stochastic and
+adversarial failure bounds, and spacetime and peak-space bounds. -/
 theorem g3 :
   ∃ (r : FtRealization),
 
@@ -285,6 +343,7 @@ theorem g3 :
   · show peakSpace [trivialGadget .syndromeRound, trivialGadget .gate] ≤ 1
     norm_num [peakSpace, trivialGadget]
 
+/-- A vector belongs to the CSS codespace exactly when every X check and every Z check fixes it. -/
 theorem mem_cssCodespace_iff' {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (v : (ι → ZMod 2) → ℂ) :
     v ∈ cssCodespace c ↔
@@ -293,6 +352,8 @@ theorem mem_cssCodespace_iff' {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
   simp [cssCodespace, cssXStabilized, cssZStabilized, cssXCheckKernel, cssZCheckKernel,
     sub_eq_zero]
 
+/-- If each X operator in a finite family fixes a vector, the X operator labeled by the sum of
+their labels also fixes it. -/
 theorem cssPauliX_sum_fixes {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq ι]
     (s : Finset κ) (f : κ → ι → ZMod 2) (v : (ι → ZMod 2) → ℂ)
     (h : ∀ i ∈ s, cssPauliX (f i) *ᵥ v = v) : cssPauliX (∑ i ∈ s, f i) *ᵥ v = v := by
@@ -303,6 +364,8 @@ theorem cssPauliX_sum_fixes {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableE
     rw [Finset.sum_insert hi, ← cssPauliX_mul, ← Matrix.mulVec_mulVec,
       ih (fun j hj => h j (Finset.mem_insert_of_mem hj)), h i (Finset.mem_insert_self i s)]
 
+/-- If each Z operator in a finite family fixes a vector, the Z operator labeled by the sum of
+their labels also fixes it. -/
 theorem cssPauliZ_sum_fixes {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq ι]
     (s : Finset κ) (f : κ → ι → ZMod 2) (v : (ι → ZMod 2) → ℂ)
     (h : ∀ i ∈ s, cssPauliZ (f i) *ᵥ v = v) : cssPauliZ (∑ i ∈ s, f i) *ᵥ v = v := by
@@ -313,6 +376,8 @@ theorem cssPauliZ_sum_fixes {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableE
     rw [Finset.sum_insert hi, ← cssPauliZ_mul, ← Matrix.mulVec_mulVec,
       ih (fun j hj => h j (Finset.mem_insert_of_mem hj)), h i (Finset.mem_insert_self i s)]
 
+/-- Multiplication by the transpose of a binary matrix is the linear combination of its rows
+with the input coefficients. -/
 theorem transpose_mulVec_eq_smul_sum {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq ι]
     (A : Matrix κ ι (ZMod 2)) (u : κ → ZMod 2) :
     Aᵀ *ᵥ u = ∑ i : κ, u i • A i := by
@@ -321,6 +386,8 @@ theorem transpose_mulVec_eq_smul_sum {ι κ : Type} [Fintype ι] [Fintype κ] [D
     Pi.smul_apply, smul_eq_mul]
   exact Finset.sum_congr rfl (fun i _ => mul_comm _ _)
 
+/-- Every X operator labeled by a linear combination of X-check rows fixes every codespace
+vector. -/
 theorem cssPauliX_fixes_row {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (u : κX → ZMod 2) (v : (ι → ZMod 2) → ℂ)
     (hv : v ∈ cssCodespace c) : cssPauliX (c.hXᵀ *ᵥ u) *ᵥ v = v := by
@@ -331,6 +398,8 @@ theorem cssPauliX_fixes_row {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fint
   · rw [h, zero_smul, cssPauliX_zero, Matrix.one_mulVec]
   · rw [h, one_smul, hrow]
 
+/-- Every Z operator labeled by a linear combination of Z-check rows fixes every codespace
+vector. -/
 theorem cssPauliZ_fixes_row {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (u : κZ → ZMod 2) (v : (ι → ZMod 2) → ℂ)
     (hv : v ∈ cssCodespace c) : cssPauliZ (c.hZᵀ *ᵥ u) *ᵥ v = v := by
@@ -341,6 +410,7 @@ theorem cssPauliZ_fixes_row {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fint
   · rw [h, zero_smul, cssPauliZ_zero, Matrix.one_mulVec]
   · rw [h, one_smul, hrow]
 
+/-- The Pauli operator associated with a stabilizer label fixes every CSS codespace vector. -/
 theorem isStabilizerLabel_fixes {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) {e : PauliLabel ι}
     (h : IsStabilizerLabel c e) (v : (ι → ZMod 2) → ℂ) (hv : v ∈ cssCodespace c) :
@@ -352,6 +422,7 @@ theorem isStabilizerLabel_fixes {ι κX κZ : Type} [Fintype ι] [Fintype κX] [
   rw [← Matrix.mulVec_mulVec, ← hw', cssPauliZ_fixes_row c w v hv, ← hu',
     cssPauliX_fixes_row c u v hv]
 
+/-- Every CSS stabilizer label preserves all matrices whose columns lie in the codespace. -/
 theorem logicalReferencePreserved_of_stabilizer {ι κX κZ : Type} [Fintype ι] [Fintype κX]
     [Fintype κZ] [DecidableEq ι] (c : CssData ι κX κZ) {e : PauliLabel ι}
     (h : IsStabilizerLabel c e) : LogicalReferencePreserved c e := by
@@ -364,12 +435,14 @@ theorem logicalReferencePreserved_of_stabilizer {ι κX κZ : Type} [Fintype ι]
     simp [Matrix.mul_apply, Matrix.mulVec, dotProduct]
   rw [hkey, hcol]
 
+/-- Every CSS check operator is Hermitian. -/
 theorem cssCheck_hermitian {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (k : κX ⊕ κZ) : (cssCheck c k).IsHermitian := by
   cases k with
   | inl i => exact cssPauliX_isHermitian (c.hX i)
   | inr j => exact cssPauliZ_isHermitian (c.hZ j)
 
+/-- Every X check commutes with every Z check of compatible CSS data. -/
 theorem css_check_cross' {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (i : κX) (j : κZ) :
     cssPauliX (c.hX i) * cssPauliZ (c.hZ j) = cssPauliZ (c.hZ j) * cssPauliX (c.hX i) := by
@@ -377,6 +450,7 @@ theorem css_check_cross' {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype
     simpa [bitDot, dotProduct, Matrix.mul_apply] using congrFun (congrFun c.hcompat i) j
   rw [cssPauliXZ_comm, bitDot_comm, h, phaseOfBit_zero, one_smul]
 
+/-- Any two CSS check operators commute. -/
 theorem cssCheck_commute {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (k k' : κX ⊕ κZ) :
     Commute (cssCheck c k) (cssCheck c k') := by
@@ -397,6 +471,7 @@ theorem cssCheck_commute {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype
       show cssPauliZ (c.hZ j) * cssPauliZ (c.hZ j') = cssPauliZ (c.hZ j') * cssPauliZ (c.hZ j)
       rw [cssPauliZ_mul, cssPauliZ_mul, add_comm]
 
+/-- The outcome projectors of any two CSS checks commute. -/
 theorem cssCheckProjector_commute {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (k k' : κX ⊕ κZ) (b b' : ZMod 2) :
     Commute (cssCheckProjector (cssCheck c k) b) (cssCheckProjector (cssCheck c k') b') := by
@@ -408,12 +483,14 @@ theorem cssCheckProjector_commute {ι κX κZ : Type} [Fintype ι] [Fintype κX]
       (Commute.add_right (Commute.one_right _) hS)
   exact (h.smul_left (2⁻¹ : ℂ)).smul_right (2⁻¹ : ℂ)
 
+/-- Every outcome projector of a CSS check is Hermitian. -/
 theorem cssCheckProjector_hermitian {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (k : κX ⊕ κZ) (b : ZMod 2) :
     (cssCheckProjector (cssCheck c k) b).IsHermitian :=
   (Matrix.isHermitian_one.add ((cssCheck_hermitian c k).smul (phaseOfBit_star b))).smul
     (by simp)
 
+/-- The product of a list of pairwise commuting Hermitian matrices is Hermitian. -/
 theorem list_prod_isHermitian {σ : Type} [Fintype σ] [DecidableEq σ] (l : List (Matrix σ σ ℂ))
     (hherm : ∀ S ∈ l, S.IsHermitian) (hcomm : ∀ S ∈ l, ∀ T ∈ l, Commute S T) :
     l.prod.IsHermitian := by
@@ -433,6 +510,7 @@ theorem list_prod_isHermitian {σ : Type} [Fintype σ] [DecidableEq σ] (l : Lis
     show (S * l.prod).conjTranspose = S * l.prod
     rw [h1, hSl.eq]
 
+/-- Every CSS syndrome projector is Hermitian. -/
 theorem cssSyndromeProjector_isHermitian {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) : (cssSyndromeProjector c η).IsHermitian := by
@@ -445,6 +523,7 @@ theorem cssSyndromeProjector_isHermitian {ι κX κZ : Type} [Fintype ι] [Finty
     obtain ⟨k', _, rfl⟩ := List.mem_map.mp hT
     exact cssCheckProjector_commute c k k' _ _
 
+/-- A product of matrices fixes a vector if every matrix in the list fixes it. -/
 theorem list_prod_mulVec {σ : Type} [Fintype σ] [DecidableEq σ] (l : List (Matrix σ σ ℂ))
     (v : σ → ℂ) (h : ∀ S ∈ l, S *ᵥ v = v) : l.prod *ᵥ v = v := by
   induction l with
@@ -453,6 +532,8 @@ theorem list_prod_mulVec {σ : Type} [Fintype σ] [DecidableEq σ] (l : List (Ma
     rw [List.prod_cons, ← Matrix.mulVec_mulVec,
       ih (fun T hT => h T (List.mem_cons_of_mem _ hT)), h S List.mem_cons_self]
 
+/-- The coefficient inner product of a vector with itself is its real squared norm, embedded in
+`ℂ`. -/
 theorem coeffInner_self {ι : Type} [Fintype ι] [DecidableEq ι] (ψ : (ι → ZMod 2) → ℂ) :
     coeffInner ψ ψ = (vecNormSq ψ : ℂ) := by
   classical
@@ -462,12 +543,15 @@ theorem coeffInner_self {ι : Type} [Fintype ι] [DecidableEq ι] (ψ : (ι → 
   exact (show (Complex.normSq (ψ i) : ℂ) = starRingEnd ℂ (ψ i) * ψ i from
     Complex.normSq_eq_conj_mul_self).symm
 
+/-- The coefficient inner product is additive in its second argument. -/
 theorem coeffInner_add_right {ι : Type} [Fintype ι] [DecidableEq ι] (ψ u v : (ι → ZMod 2) → ℂ) :
     coeffInner ψ (u + v) = coeffInner ψ u + coeffInner ψ v := by
   classical
   simp only [coeffInner, Pi.add_apply, mul_add]
   rw [Finset.sum_add_distrib]
 
+/-- A finite sum of coefficient inner products equals the inner product with the sum in the
+second argument. -/
 theorem coeffInner_sum_right {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq ι]
     (ψ : (ι → ZMod 2) → ℂ) (s : Finset κ) (f : κ → (ι → ZMod 2) → ℂ) :
     (∑ i ∈ s, coeffInner ψ (f i)) = coeffInner ψ (∑ i ∈ s, f i) := by
@@ -477,6 +561,8 @@ theorem coeffInner_sum_right {ι κ : Type} [Fintype ι] [Fintype κ] [Decidable
   | insert i s hi ih =>
     rw [Finset.sum_insert hi, ih, Finset.sum_insert hi, coeffInner_add_right]
 
+/-- A matrix acting in the first argument of the coefficient inner product transfers to its
+conjugate transpose in the second argument. -/
 theorem coeffInner_mulVec {ι : Type} [Fintype ι] [DecidableEq ι]
     (M : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (u v : (ι → ZMod 2) → ℂ) :
     coeffInner (M *ᵥ u) v = coeffInner u (Matrix.conjTranspose M *ᵥ v) := by
@@ -492,6 +578,7 @@ theorem coeffInner_mulVec {ι : Type} [Fintype ι] [DecidableEq ι]
   rw [Finset.sum_comm]
   exact Finset.sum_congr rfl (fun j _ => Finset.sum_congr rfl (fun i _ => by ring))
 
+/-- The masses of all CSS syndrome outcomes sum to the squared norm of the input vector. -/
 theorem sum_syndromeOutcomeMass {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (ψ : (ι → ZMod 2) → ℂ) :
@@ -535,6 +622,8 @@ theorem sum_syndromeOutcomeMass {ι κX κZ : Type} [Fintype ι] [Fintype κX] [
     exact hsum
   exact Complex.ofReal_inj.mp hcast
 
+/-- A Pauli correction of minimum weight among labels with syndrome `η`, or the zero label when
+that syndrome has no representative. -/
 noncomputable def clause1Corr {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) : PauliLabel ι :=
@@ -543,6 +632,8 @@ noncomputable def clause1Corr {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
       {e : PauliLabel ι | pauliSyndrome c e = η} h
   else (0, 0)
 
+/-- For a syndrome represented by `e`, `clause1Corr` is the selected weight minimizer over
+labels with that syndrome. -/
 theorem clause1Corr_eq_of_mem {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (e : PauliLabel ι) (he : pauliSyndrome c e = η) :
@@ -555,6 +646,7 @@ theorem clause1Corr_eq_of_mem {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
     else (0, 0)) = _
   rw [dif_pos hne]
 
+/-- For a represented syndrome, the selected minimum-weight correction has that syndrome. -/
 theorem clause1Corr_mem {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (e : PauliLabel ι) (he : pauliSyndrome c e = η) :
@@ -565,6 +657,7 @@ theorem clause1Corr_mem {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype 
       {e : PauliLabel ι | pauliSyndrome c e = η}
   exact Function.argminOn_mem (fun e : PauliLabel ι => pauliWeight e.1 e.2) _ _
 
+/-- The selected correction has weight at most that of any Pauli label with the given syndrome. -/
 theorem clause1Corr_le {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (e : PauliLabel ι) (he : pauliSyndrome c e = η) :
@@ -573,12 +666,14 @@ theorem clause1Corr_le {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype �
   exact Function.argminOn_le (fun e : PauliLabel ι => pauliWeight e.1 e.2) _
     (show e ∈ {e : PauliLabel ι | pauliSyndrome c e = η} from he)
 
+/-- The recovery program using `clause1Corr` and assigning zero classical decoding time. -/
 noncomputable def clause1Prog {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
     RecoveryProgram c where
   corr := clause1Corr c
   decodeTime := fun _ => 0
 
+/-- The program using `clause1Corr` satisfies minimum-weight soundness. -/
 theorem clause1Prog_minimumWeightSound {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
     MinimumWeightSound (clause1Prog c) := by
@@ -586,6 +681,7 @@ theorem clause1Prog_minimumWeightSound {ι κX κZ : Type} [Fintype ι] [Fintype
   show pauliWeight (clause1Corr c η).1 (clause1Corr c η).2 ≤ pauliWeight e.1 e.2
   exact clause1Corr_le c η e he
 
+/-- The Pauli weight of a componentwise sum is at most the sum of the Pauli weights. -/
 theorem pauliWeight_add_le {ι : Type} [Fintype ι] [DecidableEq ι]
     (x x' z z' : ι → ZMod 2) :
     pauliWeight (x + x') (z + z') ≤ pauliWeight x z + pauliWeight x' z' := by
@@ -605,6 +701,8 @@ theorem pauliWeight_add_le {ι : Type} [Fintype ι] [DecidableEq ι]
   have hz' : z' i = 0 := not_not.mp (not_or.mp h2).2
   rcases hi with h | h <;> simp [Pi.add_apply, hx, hz, hx', hz'] at h
 
+/-- If the CSS distance is at least `2 * t + 1`, a zero-syndrome Pauli label of weight at most
+`2 * t` is a stabilizer label. -/
 theorem isStabilizerLabel_of_syndrome_zero {ι κX κZ : Type} [Fintype ι] [Fintype κX]
     [Fintype κZ] [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (t : ℕ) (e : PauliLabel ι) (hsyn : pauliSyndrome c e = (0, 0))
@@ -627,6 +725,8 @@ theorem isStabilizerLabel_of_syndrome_zero {ι κX κZ : Type} [Fintype ι] [Fin
   have h3 : 2 * t + 1 ≤ pauliWeight e.1 e.2 := by exact_mod_cast h2
   omega
 
+/-- The minimum-weight recovery program corrects Pauli labels of weight at most `t` when the CSS
+distance is at least `2 * t + 1`. -/
 theorem clause1Prog_correctsUpTo {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) (t : ℕ)
     (hd : ((2 * t + 1 : ℕ) : ℕ∞) ≤ cssDistance c) : CorrectsUpTo (clause1Prog c) t := by
@@ -657,6 +757,8 @@ theorem clause1Prog_correctsUpTo {ι κX κZ : Type} [Fintype ι] [Fintype κX] 
     omega
   exact isStabilizerLabel_of_syndrome_zero c t (residualLabel (clause1Prog c) e) hsyn0 hw hd
 
+/-- Conjugating a vector's outer-product matrix by `M` gives the outer-product matrix of `M *ᵥ
+ψ`. -/
 theorem densityOf_mul_conjTranspose {ι : Type} [Fintype ι] [DecidableEq ι]
     (M : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (ψ : (ι → ZMod 2) → ℂ) :
     M * densityOf ψ * Matrix.conjTranspose M = densityOf (M *ᵥ ψ) := by
@@ -678,6 +780,8 @@ theorem densityOf_mul_conjTranspose {ι : Type} [Fintype ι] [DecidableEq ι]
     (Fintype.sum_mul_sum _ _).symm
   exact hL.trans (key.trans hR.symm)
 
+/-- Multiplying a vector's outer-product matrix on both sides by a Hermitian matrix gives the
+outer-product matrix of the transformed vector. -/
 theorem densityOf_mul_hermitian {ι : Type} [Fintype ι] [DecidableEq ι]
     (P : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (hH : P.IsHermitian) (ψ : (ι → ZMod 2) → ℂ) :
     P * densityOf ψ * P = densityOf (P *ᵥ ψ) := by
@@ -685,6 +789,7 @@ theorem densityOf_mul_hermitian {ι : Type} [Fintype ι] [DecidableEq ι]
   rw [hH.eq] at h
   exact h
 
+/-- Scaling a vector by `z` scales its outer-product matrix by `z * star z`. -/
 theorem densityOf_smul {ι : Type} [Fintype ι] [DecidableEq ι] (z : ℂ) (ψ : (ι → ZMod 2) → ℂ) :
     densityOf (z • ψ) = (z * star z) • densityOf ψ := by
   classical
@@ -693,16 +798,19 @@ theorem densityOf_smul {ι : Type} [Fintype ι] [DecidableEq ι] (z : ℂ) (ψ :
     Matrix.smul_apply]
   ring
 
+/-- The outer-product matrix of the zero vector is zero. -/
 theorem densityOf_zero {ι : Type} [Fintype ι] [DecidableEq ι] :
     densityOf (0 : (ι → ZMod 2) → ℂ) = 0 := by
   classical
   ext a b
   simp [densityOf]
 
+/-- Multiplication by a binary phase leaves a vector's outer-product matrix unchanged. -/
 theorem densityOf_smul_phase {ι : Type} [Fintype ι] [DecidableEq ι] (b : ZMod 2)
     (ψ : (ι → ZMod 2) → ℂ) : densityOf (phaseOfBit b • ψ) = densityOf ψ := by
   rw [densityOf_smul, phaseOfBit_star, phaseOfBit_mul_self, one_smul]
 
+/-- The projector for outcome `b` fixes a vector on which the check acts by `phaseOfBit b`. -/
 theorem cssCheckProjector_fixes {ι : Type} [Fintype ι] [DecidableEq ι]
     (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (b : ZMod 2)
     (v : (ι → ZMod 2) → ℂ) (h : S *ᵥ v = phaseOfBit b • v) :
@@ -713,6 +821,8 @@ theorem cssCheckProjector_fixes {ι : Type} [Fintype ι] [DecidableEq ι]
   rw [cssCheckProjector, Matrix.smul_mulVec, h1]
   rw [smul_add, ← add_smul, show (2 : ℂ)⁻¹ + 2⁻¹ = 1 from by ring, one_smul]
 
+/-- A Pauli error applied to a codespace vector is an eigenvector of each check with eigenvalue
+given by the corresponding syndrome bit. -/
 theorem cssCheck_mulVec_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (e : PauliLabel ι) (ψ : (ι → ZMod 2) → ℂ)
     (hψ : ψ ∈ cssCodespace c) (k : κX ⊕ κZ) :
@@ -791,6 +901,7 @@ theorem cssCheck_mulVec_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
       _ = phaseOfBit (Sum.elim (pauliSyndrome c e).1 (pauliSyndrome c e).2 (Sum.inr j)) •
             ((cssPauliX e.1 * cssPauliZ e.2) *ᵥ ψ) := by rw [hph, Sum.elim_inr]
 
+/-- The projector for the true Pauli syndrome fixes the corrupted codespace vector. -/
 theorem syndromeProjector_fixes_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) (e : PauliLabel ι)
     (ψ : (ι → ZMod 2) → ℂ) (hψ : ψ ∈ cssCodespace c) :
@@ -803,6 +914,7 @@ theorem syndromeProjector_fixes_pauli {ι κX κZ : Type} [Fintype ι] [Fintype 
   obtain ⟨k, _, rfl⟩ := List.mem_map.mp hS
   exact cssCheckProjector_fixes _ _ _ (cssCheck_mulVec_pauli c e ψ hψ k)
 
+/-- Applying a binary Pauli operator preserves the squared norm of a vector. -/
 theorem vecNormSq_pauli {ι : Type} [Fintype ι] [DecidableEq ι] (x z : ι → ZMod 2)
     (ψ : (ι → ZMod 2) → ℂ) :
     vecNormSq ((cssPauliX x * cssPauliZ z) *ᵥ ψ) = vecNormSq ψ := by
@@ -823,6 +935,8 @@ theorem vecNormSq_pauli {ι : Type} [Fintype ι] [DecidableEq ι] (x z : ι → 
   have h5 := coeffInner_self ψ
   exact_mod_cast h4.symm.trans (h3.trans h5)
 
+/-- For a Pauli-corrupted codespace vector, the true syndrome outcome has mass equal to the
+original squared norm. -/
 theorem syndromeOutcomeMass_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) (e : PauliLabel ι)
     (ψ : (ι → ZMod 2) → ℂ) (hψ : ψ ∈ cssCodespace c) :
@@ -834,6 +948,8 @@ theorem syndromeOutcomeMass_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX]
   rw [hfix]
   exact vecNormSq_pauli e.1 e.2 ψ
 
+/-- The recovery channel on a vector's outer-product matrix is the sum of the outer-product
+matrices of its syndrome-projected and corrected vectors. -/
 theorem recoveryChannel_densityOf {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (prog : RecoveryProgram c) (ψ : (ι → ZMod 2) → ℂ) :
@@ -853,6 +969,8 @@ theorem recoveryChannel_densityOf {ι κX κZ : Type} [Fintype ι] [Fintype κX]
   rw [densityOf_mul_hermitian (cssSyndromeProjector c η) (cssSyndromeProjector_isHermitian c η) ψ,
     densityOf_mul_conjTranspose]
 
+/-- Every CSS code possesses an orthonormal encoding basis indexed by binary strings of length
+`c.encodedQubits`. -/
 theorem exists_cssEncoding {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
     Nonempty (CssEncoding c c.encodedQubits) := by
@@ -887,6 +1005,8 @@ theorem exists_cssEncoding {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Finty
     rw [map_smul]
     exact Submodule.smul_mem _ _ (Submodule.subset_span ⟨i, rfl⟩)
 
+/-- A syndrome projector different from the true Pauli syndrome annihilates the corrupted
+codespace vector. -/
 theorem syndromeProjector_other_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
     (e : PauliLabel ι) (ψ : (ι → ZMod 2) → ℂ) (hψ : ψ ∈ cssCodespace c)
@@ -895,6 +1015,8 @@ theorem syndromeProjector_other_pauli {ι κX κZ : Type} [Fintype ι] [Fintype 
   rw [← syndromeProjector_fixes_pauli c e ψ hψ, Matrix.mulVec_mulVec,
     cssSyndromeProjector_mul, if_neg hη, Matrix.zero_mulVec]
 
+/-- If decoding leaves a stabilizer residual, the recovery channel restores the outer-product
+matrix of every codespace vector after the Pauli error. -/
 theorem recoveryChannel_corrects_density {ι κX κZ : Type} [Fintype ι] [Fintype κX]
     [Fintype κZ] [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ]
     (c : CssData ι κX κZ) (prog : RecoveryProgram c) (e : PauliLabel ι)
@@ -915,6 +1037,11 @@ theorem recoveryChannel_corrects_density {ι κX κZ : Type} [Fintype ι] [Finty
     rw [syndromeProjector_other_pauli c e ψ hψ η hη, Matrix.mulVec_zero, densityOf_zero]
   · simp
 
+/-- A CSS code of distance at least `2 * t + 1` possesses an encoding and a minimum-weight
+recovery program correcting weight-`t` Pauli errors, preserving logical references, and
+restoring encoded basis-state outer products. Syndrome masses obey completeness and
+true-syndrome identities, and recovery receipts satisfy the stated gate, measurement, and
+classical-time bounds. -/
 theorem g1 :
   ∀ (ι κX κZ : Type) [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ]

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.PolynomialDomainRescalingStat
 import Mathlib.RingTheory.Polynomial.Chebyshev
+
+/-!
+# Rescaling the domain of Chebyshev expansions
+
+This module converts the half-weighted Chebyshev convention to ordinary polynomial evaluation
+and constructs coefficients for composition with twice the variable. The construction preserves
+the coefficient-vector length, relates interval suprema, and gives the corresponding
+matrix-evaluation identity. Related mathematical background is given in [LowSu2026].
+
+## Main statements
+
+* `exists_cheb_coeff`: Chebyshev representation after composition with twice the variable.
+* `Clause27PolynomialDomainRescaling_answer`: Scalar, supremum, and matrix rescaling identities.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
@@ -20,6 +39,8 @@ open Polynomial Polynomial.Chebyshev Matrix Module Qatlib.Concepts.QlsReadoutSpe
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Twice the variable times a first-kind Chebyshev polynomial equals the sum of its two
+adjacent-index Chebyshev polynomials. -/
 private theorem two_mul_X_mul_T (j : ℤ) :
     2 * X * T ℂ j = T ℂ (j + 1) + T ℂ (j - 1) := by
   have h := T_mul_T ℂ 1 j
@@ -30,6 +51,8 @@ private theorem two_mul_X_mul_T (j : ℤ) :
   rw [add_comm 1 j, hneg] at h
   exact h
 
+/-- The recursive real Chebyshev value agrees with complex evaluation of the corresponding
+first-kind polynomial. -/
 private theorem chebT_eq_eval (x : ℝ) (k : ℕ) :
     ((chebT x k : ℝ) : ℂ) = (T ℂ (k : ℤ)).eval (x : ℂ) := by
   induction k using Nat.twoStepInduction with
@@ -47,12 +70,15 @@ private theorem chebT_eq_eval (x : ℝ) (k : ℕ) :
     push_cast
     ring
 
+/-- Algebra evaluation of the polynomial twice the variable at a matrix gives twice that matrix. -/
 private theorem aeval_two_mul_X {I : Type} [Fintype I] [DecidableEq I]
     (B : Matrix I I ℂ) : aeval B (2 * X : ℂ[X]) = (2 : ℂ) • B := by
   have h2 : (2 : ℂ[X]) = C 2 := (Polynomial.C_ofNat 2).symm
   rw [h2, map_mul, Polynomial.aeval_C, Polynomial.aeval_X]
   rw [Algebra.algebraMap_eq_smul_one, smul_mul_assoc, one_mul]
 
+/-- The matrix Chebyshev recurrence agrees with algebra evaluation of the first-kind Chebyshev
+polynomial. -/
 private theorem chebMatrix_eq_aeval {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (k : ℕ) :
     chebMatrix A k = aeval A (T ℂ (k : ℤ)) := by
@@ -74,18 +100,27 @@ private theorem chebMatrix_eq_aeval {I : Type} [Fintype I] [DecidableEq I]
     rw [h2]
     simp only [smul_mul_assoc, one_mul]
 
+/-- The standard Chebyshev coefficient vector obtained by halving the coefficient at index zero. -/
 private def toStd {n : ℕ} (c : Fin n → ℂ) : Fin n → ℂ :=
   fun k => if k.val = 0 then c k / 2 else c k
 
+/-- The conversion to standard coefficients halves index zero and leaves every other coefficient
+unchanged. -/
 private theorem toStd_apply {n : ℕ} (c : Fin n → ℂ) (k : Fin n) :
     toStd c k = if k.val = 0 then c k / 2 else c k := rfl
 
+/-- The half-weighted-convention coefficient vector obtained by doubling the standard
+coefficient at index zero. -/
 private def fromStd {n : ℕ} (d : Fin n → ℂ) : Fin n → ℂ :=
   fun k => if k.val = 0 then 2 * d k else d k
 
+/-- The conversion from standard coefficients doubles index zero and leaves every other
+coefficient unchanged. -/
 private theorem fromStd_apply {n : ℕ} (d : Fin n → ℂ) (k : Fin n) :
     fromStd d k = if k.val = 0 then 2 * d k else d k := rfl
 
+/-- Converting from standard coefficients and then back to standard coefficients recovers the
+original vector. -/
 private theorem toStd_fromStd {n : ℕ} (d : Fin n → ℂ) : toStd (fromStd d) = d := by
   funext k
   by_cases hk : k.val = 0
@@ -93,9 +128,13 @@ private theorem toStd_fromStd {n : ℕ} (d : Fin n → ℂ) : toStd (fromStd d) 
     field_simp
   · simp only [toStd_apply, fromStd_apply, if_neg hk]
 
+/-- The polynomial given by the finite sum of standard coefficients times first-kind Chebyshev
+polynomials. -/
 private def chebPolyOf {n : ℕ} (d : Fin n → ℂ) : ℂ[X] :=
   ∑ k : Fin n, d k • T ℂ (k.val : ℤ)
 
+/-- The half-weighted Chebyshev value equals polynomial evaluation after converting its
+coefficients to the standard convention. -/
 private theorem chebValue_eq {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
     chebValue c x = (chebPolyOf (toStd c)).eval (x : ℂ) := by
   rw [chebValue, chebPolyOf, Polynomial.eval_finsetSum]
@@ -111,6 +150,8 @@ private theorem chebValue_eq {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
   · rw [if_neg hk0, toStd_apply, if_neg hk0]
     rfl
 
+/-- The half-weighted matrix Chebyshev operator equals algebra evaluation of its
+standard-coefficient polynomial. -/
 private theorem chebOperator_eq {n : ℕ} (c : Fin n → ℂ)
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) :
     chebOperator c A = aeval A (chebPolyOf (toStd c)) := by
@@ -128,6 +169,8 @@ private theorem chebOperator_eq {n : ℕ} (c : Fin n → ℂ)
     rw [show (c k * (1 / 2 : ℂ)) = c k / 2 by field_simp]
   · rw [if_neg hk0, toStd_apply, if_neg hk0, chebMatrix_eq_aeval]
 
+/-- The polynomial represented by a coefficient vector of length `n` has degree strictly less
+than `n`. -/
 private theorem chebPolyOf_degree_lt {n : ℕ} (d : Fin n → ℂ) :
     (chebPolyOf d).degree < n := by
   rw [chebPolyOf]
@@ -150,6 +193,8 @@ private theorem chebPolyOf_degree_lt {n : ℕ} (d : Fin n → ℂ) :
     norm_cast
     omega
 
+/-- Composing the represented Chebyshev polynomial with twice the variable leaves its degree
+strictly less than the coefficient-vector length. -/
 private theorem comp_degree_lt {n : ℕ} (d : Fin n → ℂ) :
     ((chebPolyOf d).comp (2 * X)).degree < n := by
   by_cases h : (chebPolyOf d) = 0
@@ -169,6 +214,8 @@ private theorem comp_degree_lt {n : ℕ} (d : Fin n → ℂ) :
     refine lt_of_le_of_lt h4 ?_
     exact_mod_cast lt_of_le_of_lt hcomp hnd
 
+/-- The polynomial obtained by composing the input Chebyshev expansion with twice the variable
+has a standard Chebyshev coefficient vector of the same length. -/
 private theorem exists_cheb_coeff {n : ℕ} (c : Fin n → ℂ) :
     ∃ e : Fin n → ℂ, chebPolyOf e = (chebPolyOf (toStd c)).comp (2 * X) := by
   set S : Polynomial.Sequence ℂ := chebyshevTsequence ℂ with hS
@@ -230,6 +277,9 @@ private theorem exists_cheb_coeff {n : ℕ} (c : Fin n → ℂ) :
       rw [hB, S.basis_eq_self hCoeff, hS]
       simp [chebyshevTsequence, chebyshevTSequence]]
 
+/-- Every finite Chebyshev expansion can be rescaled by twice its argument with the same
+coefficient-vector length, preserving the stated interval supremum and matrix-evaluation
+identities. -/
 theorem Clause27PolynomialDomainRescaling_answer : Clause27PolynomialDomainRescaling := by
   intro n c
   obtain ⟨e, he⟩ := exists_cheb_coeff c

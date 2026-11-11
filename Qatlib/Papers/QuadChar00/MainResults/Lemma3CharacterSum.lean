@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QuadChar00.MainResults.Defs
+
+/-!
+# Quadratic character sums over finite fields
+
+This module evaluates the sum of the finite field quadratic character. The two cases in
+`lemma3_quadCharSum` distinguish characteristic two from all other characteristics. See
+[VanDamHallgren2000].
+
+## Main statements
+
+* `lemma3_quadCharSum`: The quadratic character sums to zero when the characteristic is not two,
+  and to the field cardinality minus one in characteristic two.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +32,8 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 
 open scoped BigOperators
 
+/-- The quadratic character sums to zero when the characteristic is not two, and to the field
+cardinality minus one in characteristic two. See [VanDamHallgren2000]. -/
 theorem lemma3_quadCharSum (F : Type*) [Field F] [Fintype F] [DecidableEq F] :
     (ringChar F ≠ 2 → ∑ x : F, finiteFieldQuadChar F x = 0) ∧
     (ringChar F = 2 →

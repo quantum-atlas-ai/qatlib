@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NoncommHSP98.MainResults.MaxIdentify
+
+/-!
+# Dihedral hidden-subgroup identification
+
+Constructs the finite output distribution `algDist` by selecting a maximum cosine score and
+checking the resulting candidate against the oracle. The interface `alg` records the query
+budget, and `theorem3_holds` proves the stated success guarantees for the trivial subgroup and
+nonzero reflection parameters. See [EttingerHoyer1999].
+
+## Main statements
+
+* `bestK_max`: the selected candidate maximizes the sampled cosine score.
+* `probSingleC_algDist_H2`: reflection identification succeeds with probability at least 1 -
+  1/(2N).
+* `theorem3_holds`: the modeled algorithm satisfies `Theorem3Statement`.
+
+## References
+
+* [Ettinger and Hoyer, 1999][EttingerHoyer1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,6 +42,8 @@ set_option warningAsError false
 
 namespace Qatlib.Papers.NoncommHSP98.MainResults
 
+/-- The pushforward of a finite probability distribution along `f`, summing the probabilities
+over each fiber. -/
 def mapDist {X Y : Type*} [Fintype X] [Fintype Y] [DecidableEq Y]
     (p : FinDist X) (f : X → Y) : FinDist Y := by
   classical
@@ -41,6 +64,7 @@ def mapDist {X Y : Type*} [Fintype X] [Fintype Y] [DecidableEq Y]
           (Finset.filter_congr_decidable (Finset.univ : Finset X) (fun x => f x = y) _)
           (fun x _ => rfl) }
 
+/-- The finite probability distribution concentrated at `y`. -/
 def pointDist {Y : Type*} [Fintype Y] [DecidableEq Y] (y : Y) : FinDist Y where
   prob y' := if y' = y then 1 else 0
   nonneg y' := by by_cases h : y' = y <;> simp [h]
@@ -48,32 +72,39 @@ def pointDist {Y : Type*} [Fintype Y] [DecidableEq Y] (y : Y) : FinDist Y where
     classical
     simp [Finset.sum_ite_eq', Finset.mem_univ]
 
+/-- The mass of an event is independent of the chosen decision procedure for that event. -/
 theorem eventMass_inst_eq {X : Type*} [Fintype X] (p : FinDist X) (E : X → Prop)
     (i1 i2 : DecidablePred E) :
     @eventMass X _ p E i1 = @eventMass X _ p E i2 := by
   have hi : i1 = i2 := funext fun x => Subsingleton.elim _ _
   exact congrArg (fun i => @eventMass X _ p E i) hi
 
+/-- The single-sample probability of `E`, using classical decidability. -/
 noncomputable def probSingleC {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : X → Prop) : ℝ :=
   @probSingle X _ _ p E (Classical.decPred E)
 
+/-- The single-sample probability of an event is independent of its decision procedure. -/
 theorem probSingle_inst_eq {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X)
     (E : X → Prop) (i1 i2 : DecidablePred E) :
     @probSingle X _ _ p E i1 = @probSingle X _ _ p E i2 := by
   have hi : i1 = i2 := funext fun x => Subsingleton.elim _ _
   exact congrArg (fun i => @probSingle X _ _ p E i) hi
 
+/-- The decidable and classical versions of single-sample event probability agree. -/
 theorem probSingle_eq_C {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X)
     (E : X → Prop) [DecidablePred E] : probSingle p E = probSingleC p E := by
   classical
   unfold probSingleC
   exact probSingle_inst_eq p E _ (Classical.decPred E)
 
+/-- Single-sample event probability equals `eventMass` for the same decision procedure. -/
 theorem probSingle_eq_eventMass {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X)
     (E : X → Prop) (i : DecidablePred E) :
     @probSingle X _ _ p E i = @eventMass X _ p E i := rfl
 
+/-- The mass of the singleton `y` under a pushforward distribution equals the original mass of
+its fiber. -/
 theorem eventMass_mapDist {X Y : Type*} [Fintype X] [Fintype Y]
     [DecidableEq Y] (p : FinDist X) (f : X → Y) (y : Y)
     (i : DecidablePred (fun o => o = y)) :
@@ -86,6 +117,8 @@ theorem eventMass_mapDist {X Y : Type*} [Fintype X] [Fintype Y]
   · intro hy
     exact absurd (by simp) hy
 
+/-- The classical probability of output `y` under `mapDist` equals the mass of the fiber of `f`
+over `y`. -/
 theorem probSingleC_mapDist {X Y : Type*} [Fintype X] [Fintype Y]
     [DecidableEq X] [DecidableEq Y] (p : FinDist X) (f : X → Y) (y : Y) :
     probSingleC (mapDist p f) (fun o => o = y) = evMass p (fun x => f x = y) := by
@@ -94,6 +127,8 @@ theorem probSingleC_mapDist {X Y : Type*} [Fintype X] [Fintype Y]
   rw [probSingle_eq_eventMass _ _ (Classical.decPred _)]
   exact eventMass_mapDist p f y (Classical.decPred _)
 
+/-- Chooses a candidate maximizing the sum of sampled cosine phases, returning zero when
+`Candidates N` is empty. -/
 def bestK (N : ℕ) [NeZero N] (m : ℕ) (ω : Fin m → ZMod N) : ZMod N := by
   classical
   exact if h : (Candidates N).Nonempty then
@@ -101,6 +136,7 @@ def bestK (N : ℕ) [NeZero N] (m : ℕ) (ω : Fin m → ZMod N) : ZMod N := by
       (fun k => ∑ i, cosPhase N k (ω i)) h)
   else 0
 
+/-- The selected maximum-score parameter belongs to `Candidates N` when that set is nonempty. -/
 theorem bestK_mem {N : ℕ} [NeZero N] {m : ℕ} (ω : Fin m → ZMod N)
     (h : (Candidates N).Nonempty) : bestK N m ω ∈ Candidates N := by
   unfold bestK
@@ -108,6 +144,7 @@ theorem bestK_mem {N : ℕ} [NeZero N] {m : ℕ} (ω : Fin m → ZMod N)
   exact (Classical.choose_spec (Finset.exists_max_image (Candidates N)
     (fun k => ∑ i, cosPhase N k (ω i)) h)).1
 
+/-- Every candidate has cosine score at most the score of `bestK`. -/
 theorem bestK_max {N : ℕ} [NeZero N] {m : ℕ} (ω : Fin m → ZMod N)
     (h : (Candidates N).Nonempty) :
     ∀ k ∈ Candidates N, ∑ i, cosPhase N k (ω i)
@@ -117,6 +154,8 @@ theorem bestK_max {N : ℕ} [NeZero N] {m : ℕ} (ω : Fin m → ZMod N)
   exact (Classical.choose_spec (Finset.exists_max_image (Candidates N)
     (fun k => ∑ i, cosPhase N k (ω i)) h)).2
 
+/-- If the representative of a nonzero hidden parameter strictly outscores every other
+candidate, `bestK` equals that representative. -/
 theorem bestK_eq_kRep {N : ℕ} [NeZero N] {m : ℕ} {k0 : ZMod N} (hk0 : k0 ≠ 0)
     {ω : Fin m → ZMod N}
     (hω : ∀ k ∈ Candidates N, k ≠ kRep N k0 →
@@ -130,6 +169,8 @@ theorem bestK_eq_kRep {N : ℕ} [NeZero N] {m : ℕ} {k0 : ZMod N} (hk0 : k0 ≠
   have hle := hmax _ (kRep_mem_Candidates hk0)
   linarith
 
+/-- Tests the oracle values at the identity and the reflections with parameters `k` and `-k`,
+returning the first matching parameter or `none`. -/
 def postproc (N : ℕ) [NeZero N] {R : Type*} (γ : DihPt N → R)
     (k : ZMod N) : Option (ZMod N) := by
   classical
@@ -137,6 +178,8 @@ def postproc (N : ℕ) [NeZero N] {R : Type*} (γ : DihPt N → R)
     else if γ (0, 0) = γ (-k, 1) then some (-k)
     else none
 
+/-- Under the reflection-subgroup promise, either sign of the hidden parameter is postprocessed
+to `some k0`. -/
 theorem postproc_eq_some_of_H2 {N : ℕ} [NeZero N] {R : Type*} {k0 k : ZMod N}
     {γ : DihPt N → R} (hγ : FulfillsDihedralPromise N (H2 N k0) γ)
     (hk : k = k0 ∨ k = -k0) : postproc N γ k = some k0 := by
@@ -152,6 +195,7 @@ theorem postproc_eq_some_of_H2 {N : ℕ} [NeZero N] {R : Type*} {k0 k : ZMod N}
         (promise_H2_test_iff hγ).mpr (by simp)
       rw [if_pos htest, neg_neg]
 
+/-- Under the trivial-subgroup promise, postprocessing a nonzero candidate returns `none`. -/
 theorem postproc_eq_none_of_HTriv {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N → R}
     (hγ : FulfillsDihedralPromise N (HTriv N) γ) {k : ZMod N} (_hk : k ≠ 0) :
     postproc N γ k = none := by
@@ -170,11 +214,15 @@ theorem postproc_eq_none_of_HTriv {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N
   unfold postproc
   rw [if_neg hne, if_neg hne2]
 
+/-- Classically selects a nonzero parameter satisfying the reflection-subgroup promise,
+returning `none` when no such parameter exists. -/
 def hiddenK (N : ℕ) [NeZero N] (R : Type*) (γ : DihPt N → R) : Option (ZMod N) := by
   classical
   exact if h : ∃ k0 : ZMod N, k0 ≠ 0 ∧ FulfillsDihedralPromise N (H2 N k0) γ
     then some (Classical.choose h) else none
 
+/-- For a nonzero reflection parameter satisfying the oracle promise, `hiddenK` returns exactly
+that parameter. -/
 theorem hiddenK_eq_some {N : ℕ} [NeZero N] {R : Type*} {k0 : ZMod N} {γ : DihPt N → R}
     (hk0 : k0 ≠ 0) (hγ : FulfillsDihedralPromise N (H2 N k0) γ) :
     hiddenK N R γ = some k0 := by
@@ -186,6 +234,7 @@ theorem hiddenK_eq_some {N : ℕ} [NeZero N] {R : Type*} {k0 : ZMod N} {γ : Dih
   obtain ⟨hk0', hγ'⟩ := Classical.choose_spec h0
   exact (promise_H2_test_iff hγ).mp ((promise_H2_test_iff hγ').mpr rfl)
 
+/-- An oracle satisfying the trivial-subgroup promise has `hiddenK` equal to `none`. -/
 theorem hiddenK_eq_none {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N → R}
     (hγ : FulfillsDihedralPromise N (HTriv N) γ) : hiddenK N R γ = none := by
   classical
@@ -198,8 +247,12 @@ theorem hiddenK_eq_none {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N → R}
     subst hh
     simp [dihMul] at hmul)]
 
+/-- The sample budget given by twice the natural ceiling of `64 * Real.log N`. -/
 def sampleCount (N : ℕ) : ℕ := 2 * Nat.ceil (64 * Real.log N)
 
+/-- The modeled output distribution obtained by cosine-score maximization and oracle
+postprocessing of independent `zLaw` samples when `hiddenK` is present, and the point mass
+at `none` otherwise. -/
 def algDist (N : ℕ) [NeZero N] (R : Type*) (γ : DihPt N → R) :
     FinDist (Option (ZMod N)) :=
   match hiddenK N R γ with
@@ -208,16 +261,20 @@ def algDist (N : ℕ) [NeZero N] (R : Type*) (γ : DihPt N → R) :
         postproc N γ (bestK N (sampleCount N) ω))
   | none => pointDist none
 
+/-- The dihedral algorithm interface with output law `algDist` and query budget `sampleCount N +
+5`. -/
 def alg (N : ℕ) [NeZero N] (R : Type*) : DihAlgorithm N R where
   queries _ := sampleCount N + 5
   dist γ := algDist N R γ
 
+/-- The point mass at `none` assigns probability one to output `none`. -/
 theorem probSingleC_point_none {N : ℕ} [NeZero N] :
     probSingleC (pointDist (none : Option (ZMod N))) (fun o => o = none) = 1 := by
   classical
   unfold probSingleC probSingle pointDist
   simp
 
+/-- For a trivial hidden subgroup, `algDist` returns `none` with probability one. -/
 theorem probSingleC_algDist_HTriv {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N → R}
     (hγ : FulfillsDihedralPromise N (HTriv N) γ) :
     probSingleC (algDist N R γ) (fun o => o = none) = 1 := by
@@ -227,6 +284,7 @@ theorem probSingleC_algDist_HTriv {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N
   (try dsimp only)
   exact probSingleC_point_none
 
+/-- For `N ≥ 2`, the sample budget is at least `64 * Real.log N`. -/
 theorem le_sampleCount {N : ℕ} (h2N : 2 ≤ N) :
     64 * Real.log N ≤ (sampleCount N : ℝ) := by
   have hpos : 0 ≤ 64 * Real.log N := by
@@ -237,6 +295,9 @@ theorem le_sampleCount {N : ℕ} (h2N : 2 ≤ N) :
   push_cast
   nlinarith [hle, Nat.zero_le (Nat.ceil (64 * Real.log N))]
 
+/-- With at least `64 * Real.log N` independent samples and a nonzero hidden parameter, its
+representative strictly maximizes the candidate cosine score with probability at least 1 -
+1/(2N). See [Ettinger and Hoyer, Theorem 5][EttingerHoyer1999]. -/
 theorem theorem5_evMass {N : ℕ} [NeZero N] (h2N : 2 ≤ N) {k0 : ZMod N}
     (hk0 : k0 ≠ 0) {m : ℕ} (hm : 64 * Real.log N ≤ (m : ℝ)) :
     1 - 1 / (2 * (N : ℝ)) ≤ evMass (independent (fun _ : Fin m => zLaw N k0))
@@ -248,6 +309,8 @@ theorem theorem5_evMass {N : ℕ} [NeZero N] (h2N : 2 ≤ N) {k0 : ZMod N}
     at h
   simpa [evMass] using! h
 
+/-- For `N ≥ 2` and a nonzero reflection parameter satisfying the oracle promise, the
+probability of returning that parameter is at least 1 - 1/(2N). -/
 theorem probSingleC_algDist_H2 {N : ℕ} [NeZero N] {R : Type*} {k0 : ZMod N}
     (hk0 : k0 ≠ 0) (h2N : 2 ≤ N) {γ : DihPt N → R}
     (hγ : FulfillsDihedralPromise N (H2 N k0) γ) :
@@ -265,6 +328,7 @@ theorem probSingleC_algDist_H2 {N : ℕ} [NeZero N] {R : Type*} {k0 : ZMod N}
   rw [hbk]
   exact postproc_eq_some_of_H2 hγ (kRep_eq_or N k0)
 
+/-- For `N ≥ 2`, the recorded query budget is at most `89 * Real.log N / Real.log 2 + 7`. -/
 theorem queries_le {N : ℕ} [NeZero N] (h2N : 2 ≤ N) :
     (sampleCount N + 5 : ℝ) ≤ 89 * Real.log N / Real.log 2 + 7 := by
   have hlnN : 0 ≤ Real.log N := (Real.log_pos (by exact_mod_cast h2N)).le
@@ -280,6 +344,8 @@ theorem queries_le {N : ℕ} [NeZero N] (h2N : 2 ≤ N) :
   push_cast
   linarith
 
+/-- The modeled dihedral algorithm satisfies `Theorem3Statement`, including its logarithmic
+query bound and success guarantees. See [Ettinger and Hoyer, Theorem 3][EttingerHoyer1999]. -/
 theorem theorem3_holds : Theorem3Statement := by
   intro N hN R h2N
   refine ⟨alg N R, ?_, ?_, ?_⟩

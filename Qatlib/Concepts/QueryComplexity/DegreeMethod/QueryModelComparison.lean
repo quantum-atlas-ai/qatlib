@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonDefs
+
+/-!
+# Grover iteration bounds and classical query minima
+
+This module proves elementary angle, rotation, and rounding properties for Grover search,
+including the least iteration count at which the amplified angle reaches `π / 2`. The search
+quantities follow the amplitude-amplification setting of [BrassardEtAl2002].
+
+It also defines finite classes of classical and randomized programs and their minimum query
+budgets. Polynomial degree bounds compare deterministic tree depth and exact quantum query
+counts with `exactDegree`, following [BealsEtAl2001].
+
+## Main statements
+
+* `groverIterations_least`: Characterizes the first iteration count whose amplified angle
+  reaches `π / 2`.
+* `groverIterations_floor_bounds`: Bounds that count between the floor and ceiling of `π / (4 *
+  θ)`.
+* `tree_depth_ge_exactDegree`: An exact decision tree has depth at least the exact degree.
+* `minExactQueries_degree_bound`: The exact degree is at most twice the minimum exact quantum
+  query count.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +47,8 @@ open scoped Classical BigOperators ENNReal
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The sine of the Grover angle is the square root of the marked fraction `M / N`, for `0 < M ≤
+N`. -/
 theorem groverAngle_sin {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
     Real.sin (groverAngle N M hM hN) = Real.sqrt ((M : ℝ) / (N : ℝ)) := by
   have hN0 : 0 < N := by omega
@@ -38,6 +68,7 @@ theorem groverAngle_sin {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
   unfold groverAngle
   exact hsin
 
+/-- The Grover angle is strictly positive when `0 < M ≤ N`. -/
 theorem groverAngle_pos {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
     0 < groverAngle N M hM hN := by
   rw [groverAngle]
@@ -47,11 +78,13 @@ theorem groverAngle_pos {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
     exact_mod_cast hN0
   positivity
 
+/-- The Grover angle is at most `π / 2` when `0 < M ≤ N`. -/
 theorem groverAngle_le_pi_div_two {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
     groverAngle N M hM hN ≤ Real.pi / 2 := by
   rw [groverAngle]
   exact Real.arcsin_le_pi_div_two _
 
+/-- Multiplying two Grover rotation matrices adds their angles. -/
 theorem groverRotation_mul (θ φ : ℝ) :
     groverRotation θ * groverRotation φ = groverRotation (θ + φ) := by
   ext i j
@@ -59,11 +92,13 @@ theorem groverRotation_mul (θ φ : ℝ) :
   fin_cases i <;> fin_cases j <;>
     simp [Real.cos_add, Real.sin_add] <;> ring
 
+/-- The Grover rotation through zero is the identity matrix. -/
 theorem groverRotation_zero : groverRotation 0 = 1 := by
   ext i j
   simp only [groverRotation, Matrix.of_apply]
   fin_cases i <;> fin_cases j <;> simp
 
+/-- The `k`th power of a Grover rotation is the rotation through `k` times its angle. -/
 theorem groverRotation_pow (θ : ℝ) (k : ℕ) :
     groverRotation θ ^ k = groverRotation (k * θ) := by
   induction k with
@@ -73,6 +108,8 @@ theorem groverRotation_pow (θ : ℝ) (k : ℕ) :
     congr 1
     simp only [Nat.cast_add, Nat.cast_one, mul_add, mul_one, add_comm, mul_comm]
 
+/-- The selected Grover iteration count is the least natural number `k` for which `(2 * k + 1) *
+θ` reaches `π / 2`. -/
 theorem groverIterations_least {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
     (∀ k : ℕ, k < groverIterations N M hM hN →
         (2 * k + 1) * groverAngle N M hM hN < Real.pi / 2) ∧
@@ -101,6 +138,8 @@ theorem groverIterations_least {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
       nlinarith
     linarith
 
+/-- For nonnegative `x`, the natural ceiling of `x - 1 / 2` lies between the natural floor and
+ceiling of `x`. -/
 theorem ceil_sub_half_bounds {x : ℝ} (hx : 0 ≤ x) :
     Nat.floor x ≤ Nat.ceil (x - 1 / 2) ∧ Nat.ceil (x - 1 / 2) ≤ Nat.ceil x := by
   have hfloor : (Nat.floor x : ℝ) ≤ x := Nat.floor_le hx
@@ -116,6 +155,8 @@ theorem ceil_sub_half_bounds {x : ℝ} (hx : 0 ≤ x) :
   · refine (Nat.ceil_le).2 ?_
     linarith
 
+/-- The selected Grover iteration count lies between the natural floor and ceiling of `π / (4 *
+θ)`. -/
 theorem groverIterations_floor_bounds {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
     Nat.floor (Real.pi / (4 * groverAngle N M hM hN)) ≤ groverIterations N M hM hN ∧
       groverIterations N M hM hN
@@ -131,46 +172,62 @@ theorem groverIterations_floor_bounds {N M : ℕ} (hM : 0 < M) (hN : M ≤ N) :
   · rw [groverIterations]
     exact hbounds.2
 
+/-- A nonempty finite list of Boolean decision trees over the input index type. -/
 structure ClassicalMachineClass (I : Type) where
   trees : List (BoolQueryTree I Bool)
   nonempty : trees ≠ []
 
+/-- The finite set of maximum query counts of trees in the class that exactly compute `f`. -/
 def ClassicalMachineClass.depthSet (M : ClassicalMachineClass I) (f : (I → Bool) → Bool) :
     Finset ℕ :=
   (M.trees.filter (fun t => decide (∀ g, (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run g t).1 = f g))).map
     Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.MaxQueries |>.toFinset
 
+/-- The least maximum query count among trees in the class computing `f`, given a nonempty
+feasible depth set. -/
 noncomputable def ClassicalMachineClass.minDepth (M : ClassicalMachineClass I)
     (f : (I → Bool) → Bool) (h : ∃ n, n ∈ M.depthSet f) : ℕ :=
   finsetMinNat (M.depthSet f) h
 
+/-- A nonempty finite list of randomized classical Boolean query programs. -/
 structure RandomizedMachineClass (I : Type) where
   programs : List (ClassicalProgram I Bool)
   nonempty : programs ≠ []
 
+/-- The finite set of worst-case query counts of programs in the class satisfying the predicate
+`P`. -/
 def RandomizedMachineClass.budgetSet (M : RandomizedMachineClass I)
     (P : ClassicalProgram I Bool → Prop) : Finset ℕ :=
   (M.programs.filter (fun prog => decide (P prog))).map ClassicalProgram.worstQueries |>.toFinset
 
+/-- The least worst-case query count of a program satisfying `P` in the class, given a nonempty
+feasible budget set. -/
 noncomputable def RandomizedMachineClass.minBudget (M : RandomizedMachineClass I)
     (P : ClassicalProgram I Bool → Prop) (h : ∃ n, n ∈ M.budgetSet P) : ℕ :=
   finsetMinNat (M.budgetSet P) h
 
+/-- Requires the probability of returning the correct Boolean value to be at least `threshold`
+on every input. -/
 def ClassicalProgram.ComputesWithSuccess (prog : ClassicalProgram I Bool)
     (f : (I → Bool) → Bool) (threshold : ℝ≥0∞) : Prop :=
   ∀ g : I → Bool,
     threshold ≤ Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.SuccessProb prog.law g (fun b => b = f g)
 
+/-- Requires the probability of returning the correct Boolean value to equal one on every input. -/
 def ClassicalProgram.ComputesZeroError (prog : ClassicalProgram I Bool)
     (f : (I → Bool) → Bool) : Prop :=
   ∀ g : I → Bool,
     Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.SuccessProb prog.law g (fun b => b = f g) = 1
 
+/-- Requires the probability of returning the correct Boolean value to be at least `1 -
+threshold` on every input. -/
 def ClassicalProgram.ComputesZeroErrorInconclusive (prog : ClassicalProgram I Bool)
     (f : (I → Bool) → Bool) (threshold : ℝ≥0∞) : Prop :=
   ∀ g : I → Bool,
     1 - threshold ≤ Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.SuccessProb prog.law g (fun b => b = f g)
 
+/-- The exact polynomial degree of a Boolean function is at most the maximum query count of any
+decision tree computing it [BealsEtAl2001]. -/
 theorem tree_depth_ge_exactDegree {I : Type} [Fintype I] [DecidableEq I]
     (t : BoolQueryTree I Bool) (f : (I → Bool) → Bool)
     (h : ∀ g, (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run g t).1 = f g) :
@@ -185,6 +242,8 @@ theorem tree_depth_ge_exactDegree {I : Type} [Fintype I] [DecidableEq I]
   unfold Qatlib.Concepts.QueryComplexity.DegreeMethod.boolEval
   rw [h1, h g]
 
+/-- The exact polynomial degree is at most twice the minimum exact query count in the finite
+quantum machine class [BealsEtAl2001]. -/
 theorem minExactQueries_degree_bound {M : MachineClass I W} {f : (I → Bool) → Bool}
     {h : ∃ n, n ∈ M.exactCountSet f} :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f ≤ 2 * M.minExactQueries f h := by
@@ -196,6 +255,8 @@ theorem minExactQueries_degree_bound {M : MachineClass I W} {f : (I → Bool) �
   rw [hcnt] at hbound
   exact hbound
 
+/-- The exact polynomial degree is at most the minimum depth of an exact decision tree in the
+finite classical machine class. -/
 theorem minDepth_ge_exactDegree {I : Type} [Fintype I] [DecidableEq I]
     (M : ClassicalMachineClass I) (f : (I → Bool) → Bool)
     (h : ∃ n, n ∈ M.depthSet f) :

@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
 import Qatlib.Concepts.QspSimulation.Achievability.CleanSignalSimulation
 import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+/-!
+# Hamiltonian simulation from computed phase packets
+
+Rational Taylor coefficients and finite phase synthesis produce the cosine and sine phase
+packets used by `computedSignalBody`. Explicit segment lengths, truncation indices, and dyadic
+tolerances control the scalar approximation and its transfer to Hermitian matrices, combining
+QSP simulation [LowChuang2017] with the truncated Taylor approach [BerryEtAl2015Taylor].
+
+The compiled body has a scale-eight block encoding with explicit query and gate counts.
+`computed_signal_same_clean_segment` bounds the state error of the amplified body on the encoded
+input space, and `computedSignalWord` repeats this amplified segment.
+
+## Main statements
+
+* `computed_signal_synthesized_packets`: Both finite phase searches return valid packets with
+  uniform real response bounds.
+* `computed_signal_phase_packets_and_body`: The compiled segment is well formed and has explicit
+  encoding error and resource counts.
+* `computed_signal_same_clean_segment`: The amplified segment approximates the encoded
+  Hamiltonian evolution.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 
 
@@ -46,13 +73,23 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open scoped Classical BigOperators Matrix.Norms.L2Operator
+/-- The positive segment count max(1, ⌈2|t|⌉) for rational evolution time t. -/
 def computedSignalSegments (t : ℚ) : ℕ := max 1 ⌈2*|t|⌉₊
+/-- The Taylor cutoff 32(k + ⌈log₂ r⌉ + 16), where r is `computedSignalSegments t` and the
+logarithm is computed by `Nat.clog`. -/
 def computedSignalCutoff (t : ℚ) (k : ℕ) : ℕ := 32*(k+Nat.clog 2 (computedSignalSegments t)+16)
+/-- The rational dyadic tolerance 2 raised to the negative `computedSignalCutoff t k`. -/
 def computedSignalTolerance (t : ℚ) (k : ℕ) : ℚ := (1/2)^computedSignalCutoff t k
+/-- The first n rational coefficients of one quarter of the cosine Taylor polynomial at time t,
+with odd coefficients set to zero. -/
 def computedCosCoefficients (t : ℚ) (n : ℕ) : List ℚ :=
   List.ofFn (fun j : Fin n => if j.val%2=0 then (-1:ℚ)^(j.val/2)*t^j.val/(4*(j.val.factorial:ℚ)) else 0)
+/-- The first n rational coefficients of one quarter of the sine Taylor polynomial at time t,
+with even coefficients set to zero. -/
 def computedSinCoefficients (t : ℚ) (n : ℕ) : List ℚ :=
   List.ofFn (fun j : Fin n => if j.val%2=1 then (-1:ℚ)^((j.val-1)/2)*t^j.val/(4*(j.val.factorial:ℚ)) else 0)
+/-- Compile the cosine and sine phase packets synthesized for a single time segment, returning
+the empty word if either synthesis produces no packet. -/
 noncomputable def computedSignalBody {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (F : Matrix H I ℂ) (t : ℚ) (k : ℕ) : List (AdjointStep (Bool×(Bool×H))) :=
   let n := computedSignalCutoff t k
@@ -62,11 +99,14 @@ noncomputable def computedSignalBody {H I : Type} [Fintype H] [DecidableEq H] [F
   | some c,some s => compileHamiltonian F (gaussianRatComplex c.base) (c.phases.map gaussianRatComplex)
       (gaussianRatComplex s.base) (s.phases.map gaussianRatComplex)
   | _,_ => []
+/-- Concatenate `computedSignalSegments t` copies of the scale-eight amplified word built from
+`computedSignalBody F t k`. -/
 noncomputable def computedSignalWord {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (F : Matrix H I ℂ) (t : ℚ) (k : ℕ) : List (AdjointStep (Bool×(Bool×(Bool×H)))) :=
   (List.replicate (computedSignalSegments t)
     (scaleEightAmplifyWord (hamiltonianFrame F) (computedSignalBody F t k))).flatten
 
+/-- Decompose (−i)^j into (−1)^(j/2) times the remaining power (−i)^(j mod 2). -/
 theorem computed_signal_minus_I_pow (j : ℕ) :
     (-Complex.I)^j = (-1:ℂ)^(j/2) * (-Complex.I)^(j%2) := by
   have hj : j = 2*(j/2)+j%2 := by omega
@@ -74,6 +114,8 @@ theorem computed_signal_minus_I_pow (j : ℕ) :
   rw [pow_add, pow_mul]
   norm_num [Complex.I_sq]
 
+/-- The rational cosine and sine coefficients equal one quarter of the real part and one quarter
+of the negative imaginary part, respectively, of the exponential Taylor coefficient. -/
 theorem computed_signal_trig_scalar_coefficients (t : ℚ) (j : ℕ) :
     ((if j%2=0 then (-1:ℚ)^(j/2)*t^j/(4*(j.factorial:ℚ)) else 0):ℝ) =
       (1/4) * (exponentialTaylorCoefficient (t:ℝ) j).re ∧
@@ -114,6 +156,8 @@ theorem computed_signal_trig_scalar_coefficients (t : ℚ) (j : ℕ) :
     · dsimp [a]
       field_simp
 
+/-- The two rational coefficient lists represent `hamiltonianCosine` and `hamiltonianSine` under
+`realTarget`, and each list has length n. -/
 theorem computed_signal_native_trig_coefficients : ∀ (t : ℚ) (n : ℕ),
     realTarget (computedCosCoefficients t n) = hamiltonianCosine (t:ℝ) n ∧
     realTarget (computedSinCoefficients t n) = hamiltonianSine (t:ℝ) n ∧
@@ -149,6 +193,8 @@ theorem computed_signal_native_trig_coefficients : ∀ (t : ℚ) (n : ℕ),
     · simp [hj, hamiltonianSine, sineTaylorPolynomial, Polynomial.coeff_C_mul,
         Polynomial.finsetSum_coeff, Polynomial.coeff_monomial]
 
+/-- The computed segment count is positive and the absolute value of the time per segment is at
+most 1/2. -/
 theorem computed_signal_segment_size (t : ℚ) :
     0 < computedSignalSegments t ∧ |(t:ℝ)/(computedSignalSegments t:ℝ)| ≤ 1/2 := by
   have hr : 0 < computedSignalSegments t := by
@@ -162,6 +208,8 @@ theorem computed_signal_segment_size (t : ℚ) :
   apply (div_le_iff₀ (by exact_mod_cast hr)).mpr
   linarith
 
+/-- The total budget r√(6750 · 16 · 2^(−32(k + ⌈log₂ r⌉ + 16))) is at most 2^(−k) for natural r
+and k, using `Nat.clog` for the logarithm. -/
 theorem computed_signal_geometric_budget (r k : ℕ) :
     (r:ℝ) * Real.sqrt (6750*(16*(1/2:ℝ)^(32*(k+Nat.clog 2 r+16)))) ≤ (1/2:ℝ)^k := by
   let l := Nat.clog 2 r
@@ -191,6 +239,9 @@ theorem computed_signal_geometric_budget (r k : ℕ) :
       ring
     _ ≤ (1/2:ℝ)^k := by nlinarith [mul_le_mul_of_nonneg_left hrl (by positivity : 0 ≤ (1/2:ℝ)^k)]
 
+/-- The computed segment count, cutoff, and tolerance are positive, the time per segment has
+absolute value at most 1/2, and its Taylor error is at most 2 · 2^(−n). The accumulated
+square-root error budget is at most 2^(−k). -/
 theorem computed_signal_explicit_segment_precision : ∀ (t : ℚ) (k : ℕ),
     let r := computedSignalSegments t
     let n := computedSignalCutoff t k
@@ -214,6 +265,8 @@ theorem computed_signal_explicit_segment_precision : ∀ (t : ℚ) (k : ℕ),
       _ = _ := by ring
   · exact computed_signal_geometric_budget (computedSignalSegments t) k
 
+/-- The complex algebra homomorphism sending a function of spectral values to its diagonal
+operator in the orthonormal basis b. -/
 noncomputable def computedSignalSpectralHom {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I)) :
     (J → ℂ) →ₐ[ℂ] Matrix I I ℂ where
@@ -239,6 +292,8 @@ noncomputable def computedSignalSpectralHom {I J : Type} [Fintype I] [DecidableE
     rw [hsrc, Algebra.algebraMap_eq_smul_one]
     exact spectralDiagonal_const b c
 
+/-- Exponentiating a matrix diagonal in an orthonormal basis exponentiates each of its spectral
+values. -/
 theorem computed_signal_spectral_exp {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (b : OrthonormalBasis J ℂ (EuclideanSpace ℂ I))
     (f : J → ℂ) :
@@ -248,6 +303,8 @@ theorem computed_signal_spectral_exp {I J : Type} [Fintype I] [DecidableEq I]
     (computedSignalSpectralHom b).toLinearMap.continuous_of_finiteDimensional f
   simpa only [computedSignalSpectralHom, Pi.exp_def] using! h.symm
 
+/-- A uniform scalar error bound ε ≥ 0 for approximating exp(−itx) on [−1, 1] gives the same
+operator norm bound for polynomial evaluation at a Hermitian contraction A. -/
 theorem computed_signal_hermitian_polynomial_error {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (hNorm : ‖A‖ ≤ 1)
     (p : Polynomial ℂ) (t ε : ℝ) (hε : 0 ≤ ε)
@@ -278,6 +335,9 @@ theorem computed_signal_hermitian_polynomial_error {I : Type} [Fintype I] [Decid
     exact he'.trans hNorm
   exact hscalar (hA.eigenvalues i) (abs_le.mp hi)
 
+/-- Both finite synthesis runs return phase packets of lengths 2n and 2n + 1 with unit-modulus
+phase data. Their real response polynomials approximate the segment cosine and sine targets
+uniformly on [−1, 1] within 2^(−n). -/
 theorem computed_signal_synthesized_packets (t : ℚ) (k : ℕ) :
     let n := computedSignalCutoff t k
     let u := t/(computedSignalSegments t:ℚ)
@@ -348,10 +408,15 @@ theorem computed_signal_synthesized_packets (t : ℚ) (k : ℕ) :
   · simpa only [hc.2.1, computedSignalTolerance, Rat.cast_pow, Rat.cast_div, Rat.cast_one,
       Rat.cast_ofNat, Rat.cast_natCast, n, u] using! hsApprox
 
+/-- Four times the difference between the real-part cosine response polynomial and i times the
+real-part sine response polynomial from packets c and s. -/
 noncomputable def computedSignalResponsePolynomial (c s : PhaseData) : Polynomial ℂ :=
   Polynomial.C 4 * (realPartPolynomial (responseP (gaussianRatComplex c.base) (c.phases.map gaussianRatComplex)) -
     Polynomial.C Complex.I * realPartPolynomial (responseP (gaussianRatComplex s.base) (s.phases.map gaussianRatComplex)))
 
+/-- If both real response polynomials approximate their Hamiltonian trigonometric targets within
+ε on [−1, 1] and 2|t| ≤ n + 1, their combined response approximates exp(−itx) within 8ε plus
+`exponentialTaylorError t n`. -/
 theorem computed_signal_response_pair_scalar_bound (t ε : ℝ) (n : ℕ) (c s : PhaseData)
     (_hε : 0 ≤ ε) (ht : 2*|t| ≤ (n:ℝ)+1)
     (hc : ∀ x ∈ Set.Icc (-1:ℝ) 1,
@@ -398,6 +463,9 @@ theorem computed_signal_response_pair_scalar_bound (t ε : ℝ) (n : ℕ) (c s :
   exact (norm_sub_le_norm_sub_add_norm_sub _ ((exponentialTaylorPolynomial t n).eval (x:ℂ)) _).trans
     (add_le_add hdiff (exponentialTaylorPolynomial_error_le t n ht hx))
 
+/-- For a Hermitian projected unitary encoding, both segment phase searches succeed and the
+computed body is well formed. It block encodes the segment evolution with scale 8 and error
+16 · 2^(−n), using exactly 4n + 1 oracle queries and 4n + 6 gates. -/
 theorem computed_signal_phase_packets_and_body : ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ) (t : ℚ) (k : ℕ),
   A.IsHermitian → ProjectedUnitaryEncoding A U F F →
@@ -471,6 +539,9 @@ theorem computed_signal_phase_packets_and_body : ∀ (H I : Type) [Fintype H] [D
   · rw [hbody,(counts_compileHamiltonian F _ _ _ _).2,List.length_map,List.length_map,hcLen,hsLen]
     omega
 
+/-- For a Hermitian projected unitary encoding and any input state, the amplified computed
+segment approximates the encoded segment evolution with vector norm error at most √(6750 ·
+16 · 2^(−n)) times the input norm, where n is the computed cutoff. -/
 theorem computed_signal_same_clean_segment : ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
   (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ) (t : ℚ) (k : ℕ),
   A.IsHermitian → ProjectedUnitaryEncoding A U F F →

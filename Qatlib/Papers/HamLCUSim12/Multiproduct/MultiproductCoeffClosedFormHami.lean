@@ -5,11 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentHami
+
+/-!
+# Factorial closed form for multiproduct coefficients
+
+This module proves `multiproductCoeffClosedForm` by splitting off the terminal-node factor in
+`mCoeff` and evaluating the remaining products using factorials. The resulting identity gives
+the sign and magnitude factors for each coefficient indexed below k. See [ChildsWiebe2012] for
+the multiproduct and linear-combination simulation framework.
+
+## Main statements
+
+* `multiproductCoeffClosedForm`: Establishes the signed factorial identity for the first k
+  multiproduct coefficients when k ≥ 1, N > 0, and `NodesDistinct k N` holds.
+* `coefficient_split`: For q < k, factors `mCoeff k N q` into the product over the first k nodes
+  and the terminal-node ratio (q + 1)² / ((q + 1)² − N²).
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators Classical
 
+/-- The product of q + j + 2 for 0 ≤ j < k, multiplied by (q + 1)!, equals (k + q + 1)!. -/
 private theorem plus_product_factorial (k q : ℕ) :
     (∏ j ∈ Finset.range k, (q+j+2 : ℝ)) * ((q+1).factorial : ℝ) =
       ((k+q+1).factorial : ℝ) := by
@@ -26,6 +48,8 @@ private theorem plus_product_factorial (k q : ℕ) :
         push_cast
         ring
 
+/-- For q < k, the product of q − j with the j = q factor replaced by 1 equals q! · (−1)^(k − q
+− 1) · (k − q − 1)!. -/
 private theorem minus_product_factorial (k q : ℕ) (hq : q < k) :
     (∏ j ∈ Finset.range k, if j=q then (1 : ℝ) else (q : ℝ)-j) =
       (q.factorial : ℝ) * (-1 : ℝ)^(k-q-1) * ((k-q-1).factorial : ℝ) := by
@@ -64,6 +88,8 @@ private theorem minus_product_factorial (k q : ℕ) (hq : q < k) :
   rw [hr]
   ring
 
+/-- For q < k, evaluates the product of differences (q + 1)² − (j + 1)², omitting j = q and
+multiplying by 2(q + 1)², as the signed factorial product. -/
 private theorem denominator_factorial (k q : ℕ) (hq : q < k) :
     (∏ j ∈ Finset.range k, if j=q then (1 : ℝ) else
       (q+1 : ℝ)^2-(j+1 : ℝ)^2) * (2*(q+1 : ℝ)^2) =
@@ -104,6 +130,8 @@ private theorem denominator_factorial (k q : ℕ) (hq : q < k) :
         ring
     _ = _ := by rw [hb]; ring
 
+/-- For q < k, multiplying the product of the nonterminal coefficient ratios by their
+denominator product yields (q + 1)^(2(k − 1)). -/
 private theorem small_product_numerator (k q : ℕ) (hq : q < k) :
     (∏ j ∈ Finset.range k, if j=q then (1 : ℝ) else
       (q+1 : ℝ)^2/((q+1 : ℝ)^2-(j+1 : ℝ)^2)) *
@@ -137,6 +165,8 @@ private theorem small_product_numerator (k q : ℕ) (hq : q < k) :
         exact div_mul_cancel₀ _ hd
     _ = _ := by rw [he, ← pow_mul]
 
+/-- For q < k, factors `mCoeff k N q` into the product over the first k nodes and the
+terminal-node ratio (q + 1)² / ((q + 1)² − N²). -/
 private theorem coefficient_split (k : ℕ) (N : ℝ) (q : Fin (k+1)) (hq : q.val < k) :
     mCoeff k N q =
       (∏ j ∈ Finset.range k, if j=q.val then (1 : ℝ) else
@@ -163,6 +193,8 @@ private theorem coefficient_split (k : ℕ) (N : ℝ) (q : Fin (k+1)) (hq : q.va
         (fun j => if j=q.val then (1 : ℝ) else
           (q.val+1 : ℝ)^2/((q.val+1 : ℝ)^2-(j+1 : ℝ)^2)) k]
 
+/-- Establishes the signed factorial identity for the first k multiproduct coefficients when k ≥
+1, N > 0, and `NodesDistinct k N` holds. See [ChildsWiebe2012]. -/
 theorem multiproductCoeffClosedForm : MultiproductCoeffClosedForm := by
   intro k hk N hN hd q hq
   let p : ℝ := q.val+1

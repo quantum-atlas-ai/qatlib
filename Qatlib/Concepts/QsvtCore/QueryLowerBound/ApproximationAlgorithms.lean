@@ -15,6 +15,38 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
 import Mathlib.Analysis.Complex.Trigonometric
 import Mathlib.Algebra.Order.Field.GeomSum
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+/-!
+# Scalar signal approximation and query complexity
+
+This module develops perturbation bounds for fixed words evaluated on scalar signal oracles,
+using the signal-distance geometry underlying the QSVT query lower-bound framework of
+[GilyenSuLowWiebe2019]. It applies interior Lipschitz and global square-root estimates to
+Chebyshev truncations for reciprocal, sign, and window functions.
+
+The module also proves interpolation and unweighted quadrature results at Chebyshev–Gauss nodes,
+compares them with Gauss–Legendre rules, and records response-integration query costs.
+Scalar-output and leakage bounds extend to adaptive histories and finite families of coordinate
+words.
+
+## Main statements
+
+* `frontier1`: Bound word perturbations by the query count and scalar approximation error.
+* `chebyshev_truncation_word_transport`: Transfer Chebyshev tail bounds through a word.
+* `quadratureCompositeComparisonEntry`: Collect composite quadrature error estimates and node
+  counts.
+* `uniformErrorQueryLowerBound`: Derive response-gap query lower bounds.
+* `uniformLeakageQueryLowerBound`: Include the leakage numerator in query lower bounds.
+* `wordResponseQuadSelector`: Choose a response quadrature size with an explicit query cost.
+* `adaptiveFirstDivergenceFloor`: Bound adaptive round and total query costs after agreeing
+  histories.
+* `multiSignalSingleCoordinateFloor`: Bound coordinate and total costs from an aggregate gap.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.Execution.WorkspaceCP
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -34,6 +66,8 @@ namespace Qatlib.Concepts.QsvtCore.QueryLowerBound
 open Matrix Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- For ordered points `x ≤ y` in `[-1, 1]`, the product `(1 - y) * (1 + x)` is bounded by `√((1
+- x²) * (1 - y²))`. -/
 private theorem chord_inner_sqrt_ge_of_le (x y : ℝ)
     (hx1 : -1 ≤ x) (_hx2 : x ≤ 1) (_hy1 : -1 ≤ y) (hy2 : y ≤ 1) (hxy : x ≤ y) :
     (1 - y) * (1 + x) ≤ Real.sqrt ((1 - x ^ 2) * (1 - y ^ 2)) := by
@@ -46,6 +80,8 @@ private theorem chord_inner_sqrt_ge_of_le (x y : ℝ)
   rw [← Real.sqrt_sq hnn]
   exact Real.sqrt_le_sqrt hsq
 
+/-- The inner product of the two scalar-signal coordinates is at least `1 - |x - y|` on `[-1,
+1]`. -/
 theorem scalar_signal_inner_ge_one_sub_abs (x y : ℝ)
     (hx : x ∈ Set.Icc (-1) 1) (hy : y ∈ Set.Icc (-1) 1) :
     1 - |x - y| ≤ x * y + Real.sqrt ((1 - x ^ 2) * (1 - y ^ 2)) := by
@@ -63,6 +99,7 @@ theorem scalar_signal_inner_ge_one_sub_abs (x y : ℝ)
     rw [abs_of_nonneg (by linarith : 0 ≤ x - y)]
     linarith
 
+/-- On `[-1, 1]`, the squared signal distance is `2 * (1 - x * y - √((1 - x²) * (1 - y²)))`. -/
 private theorem scalar_chord_sq_eq (x y : ℝ)
     (hx : x ∈ Set.Icc (-1) 1) (hy : y ∈ Set.Icc (-1) 1) :
     scalarSignalDistance x y ^ 2 =
@@ -76,6 +113,7 @@ private theorem scalar_chord_sq_eq (x y : ℝ)
   rw [scalarSignalDistance_sq, Real.sqrt_mul hpx]
   nlinarith only [h1, h2]
 
+/-- The squared scalar signal distance is at most `2 * |x - y|` on `[-1, 1]`. -/
 private theorem scalar_chord_sq_le_two_abs (x y : ℝ)
     (hx : x ∈ Set.Icc (-1) 1) (hy : y ∈ Set.Icc (-1) 1) :
     scalarSignalDistance x y ^ 2 ≤ 2 * |x - y| := by
@@ -83,6 +121,7 @@ private theorem scalar_chord_sq_le_two_abs (x y : ℝ)
   have hsq := scalar_chord_sq_eq x y hx hy
   linarith
 
+/-- The scalar signal distance on `[-1, 1]` is at most `√2 * √|x - y|`. -/
 theorem scalarSignalDistance_le_sqrt_two_mul_abs (x y : ℝ)
     (hx : x ∈ Set.Icc (-1) 1) (hy : y ∈ Set.Icc (-1) 1) :
     scalarSignalDistance x y ≤ Real.sqrt 2 * Real.sqrt |x - y| := by
@@ -92,6 +131,8 @@ theorem scalarSignalDistance_le_sqrt_two_mul_abs (x y : ℝ)
     Real.sq_sqrt (abs_nonneg (x - y))]
   exact scalar_chord_sq_le_two_abs x y hx hy
 
+/-- Parameters in `[-1, 1]` separated by at most nonnegative `ε` have scalar signal distance at
+most `√(2 * ε)`. -/
 theorem scalarSignalDistance_le_sqrt_two_mul_of_abs_le (x y ε : ℝ)
     (hx : x ∈ Set.Icc (-1) 1) (hy : y ∈ Set.Icc (-1) 1)
     (hε : 0 ≤ ε) (hle : |x - y| ≤ ε) :
@@ -100,6 +141,8 @@ theorem scalarSignalDistance_le_sqrt_two_mul_of_abs_le (x y ε : ℝ)
   rw [Real.sq_sqrt (by nlinarith : 0 ≤ 2 * ε)]
   exact (scalar_chord_sq_le_two_abs x y hx hy).trans (by linarith)
 
+/-- On the strict interior window `[-m, m]`, scalar signal distance is at most `|x - y| / √(1 -
+m²)`. -/
 theorem scalarSignalDistance_le_abs_div_window (m x y : ℝ)
     (hm : 0 ≤ m) (hm1 : m < 1) (hx : |x| ≤ m) (hy : |y| ≤ m) :
     scalarSignalDistance x y ≤ |x - y| / Real.sqrt (1 - m ^ 2) := by
@@ -157,6 +200,8 @@ theorem scalarSignalDistance_le_abs_div_window (m x y : ℝ)
   apply (le_div_iff₀ hm2).mpr
   nlinarith [hd, htsq, hm2.le]
 
+/-- A well-formed word with `q` oracle queries has perturbation bounds `q * ε / √(1 - m²)` on an
+interior window and `q * √(2 * ε)` on `[-1, 1]`. -/
 theorem frontier1 : ∀ (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (m ε : ℝ),
     WellFormedAdjointCircuit word → 0 ≤ ε → 0 ≤ m → m < 1 →
@@ -191,6 +236,8 @@ theorem frontier1 : ∀ (W : Type) [Fintype W] [DecidableEq W]
         (scalarSignalDistance_le_sqrt_two_mul_of_abs_le x y ε hx hy hε hxy)
         (Nat.cast_nonneg _))
 
+/-- Uniform scalar approximation within the interior window transfers through a well-formed word
+with error at most its query count times `ε / √(1 - m²)`. -/
 theorem uniform_approx_signal_transport (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (m ε : ℝ) (approx : ℝ → ℝ)
     (hw : WellFormedAdjointCircuit word) (hε : 0 ≤ ε) (hm : 0 ≤ m) (hm1 : m < 1)
@@ -200,6 +247,8 @@ theorem uniform_approx_signal_transport (W : Type) [Fintype W] [DecidableEq W]
         (adjointQueryCount word : ℝ) * ε / Real.sqrt (1 - m ^ 2) :=
   fun x hx hax => (frontier1 W word m ε hw hε hm hm1).1 (approx x) x hax hx (huni x hx hax)
 
+/-- Uniformly close polynomial signals staying in `[-m, m]` give both interior Lipschitz and
+global square-root bounds for a fixed well-formed word. -/
 theorem polynomial_pair_word_transport (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (m δ : ℝ) (p q : Polynomial ℝ)
     (hw : WellFormedAdjointCircuit word) (hδ : 0 ≤ δ) (hm : 0 ≤ m) (hm1 : m < 1)
@@ -226,16 +275,21 @@ theorem polynomial_pair_word_transport (W : Type) [Fintype W] [DecidableEq W]
     exact ⟨by linarith, by linarith⟩
   exact (frontier1 W word m δ hw hδ hm hm1).2 (p.eval t) (q.eval t) hp hq (huni t ht)
 
+/-- The Chebyshev expansion truncated after degree `N`, with real coefficients `c`. -/
 noncomputable def chebTrunc (N : ℕ) (c : ℕ → ℝ) : Polynomial ℝ :=
   ∑ k ∈ Finset.range (N + 1),
     Polynomial.C (c k) * Polynomial.Chebyshev.T ℝ (k : ℤ)
 
+/-- Evaluation of a Chebyshev truncation is the corresponding finite weighted sum of Chebyshev
+evaluations. -/
 theorem chebTrunc_eval (N : ℕ) (c : ℕ → ℝ) (x : ℝ) :
     (chebTrunc N c).eval x =
       ∑ k ∈ Finset.range (N + 1), c k * (Polynomial.Chebyshev.T ℝ (k : ℤ)).eval x := by
   rw [chebTrunc, Polynomial.eval_finsetSum]
   exact Finset.sum_congr rfl fun k _ => by rw [Polynomial.eval_mul, Polynomial.eval_C]
 
+/-- On `[-1, 1]`, the absolute value of a finite weighted Chebyshev sum is bounded by the sum of
+absolute coefficients. -/
 private theorem abs_cheb_sum_le (s : Finset ℕ) (c : ℕ → ℝ) {x : ℝ} (hx : |x| ≤ 1) :
     |∑ k ∈ s, c k * (Polynomial.Chebyshev.T ℝ (k : ℤ)).eval x| ≤ ∑ k ∈ s, |c k| := by
   refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun k _ => ?_)
@@ -244,17 +298,22 @@ private theorem abs_cheb_sum_le (s : Finset ℕ) (c : ℕ → ℝ) {x : ℝ} (hx
   have hc := abs_nonneg (c k)
   nlinarith
 
+/-- On `[-1, 1]`, a Chebyshev truncation is bounded by the absolute coefficient sum through
+degree `N`. -/
 theorem chebTrunc_abs_eval_le (N : ℕ) (c : ℕ → ℝ) {x : ℝ} (hx : x ∈ Set.Icc (-1) 1) :
     |(chebTrunc N c).eval x| ≤ ∑ k ∈ Finset.range (N + 1), |c k| := by
   rw [chebTrunc_eval]
   exact abs_cheb_sum_le _ c (abs_le.mpr ⟨hx.1, hx.2⟩)
 
+/-- Split the natural range through `N'` into the range through `N` and the inclusive tail when
+`N ≤ N'`. -/
 private theorem range_union_Icc_of_le (N N' : ℕ) (h : N ≤ N') :
     Finset.range (N' + 1) = Finset.range (N + 1) ∪ Finset.Icc (N + 1) N' := by
   ext k
   simp only [Finset.mem_range, Finset.mem_union, Finset.mem_Icc]
   omega
 
+/-- A longer Chebyshev truncation equals the shorter truncation plus its finite tail. -/
 theorem chebTrunc_add_tail (N N' : ℕ) (c : ℕ → ℝ) (h : N ≤ N') :
     chebTrunc N' c = chebTrunc N c +
       ∑ k ∈ Finset.Icc (N + 1) N',
@@ -268,6 +327,8 @@ theorem chebTrunc_add_tail (N N' : ℕ) (c : ℕ → ℝ) (h : N ≤ N') :
   simp only [chebTrunc]
   rw [range_union_Icc_of_le N N' h, Finset.sum_union hdisj]
 
+/-- The difference of two ordered Chebyshev truncations is bounded on `[-1, 1]` by the absolute
+tail coefficient sum. -/
 theorem chebTrunc_tail_abs_eval_le (N N' : ℕ) (c : ℕ → ℝ) (h : N ≤ N') {x : ℝ}
     (hx : x ∈ Set.Icc (-1) 1) :
     |(chebTrunc N' c).eval x - (chebTrunc N c).eval x| ≤
@@ -277,6 +338,8 @@ theorem chebTrunc_tail_abs_eval_le (N N' : ℕ) (c : ℕ → ℝ) (h : N ≤ N')
       rw [Polynomial.eval_mul, Polynomial.eval_C]]
   exact abs_cheb_sum_le _ c (abs_le.mpr ⟨hx.1, hx.2⟩)
 
+/-- Bounds on total and tail Chebyshev coefficients give interior and square-root transport
+estimates for a fixed well-formed signal word. -/
 theorem chebyshev_truncation_word_transport (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (m δ : ℝ) (N N' : ℕ) (c : ℕ → ℝ)
     (hw : WellFormedAdjointCircuit word) (hδ : 0 ≤ δ) (hm : 0 ≤ m) (hm1 : m < 1)
@@ -326,14 +389,18 @@ theorem chebyshev_truncation_word_transport (W : Type) [Fintype W] [DecidableEq 
     fun t ht =>
       (frontier1 W word m δ hw hδ hm hm1).2 _ _ (hgN t ht) (hgN' t ht) (huni t ht)⟩
 
+/-- The natural degree of the `n`th Chebyshev polynomial of the first kind is `n`. -/
 theorem chebT_natDegree_eq (n : ℕ) :
     (Polynomial.Chebyshev.T ℝ ((n : ℕ) : ℤ)).natDegree = n := by
   rw [Polynomial.Chebyshev.natDegree_T ℝ ((n : ℕ) : ℤ), Int.natAbs_natCast]
 
+/-- The leading coefficient of the `n`th Chebyshev polynomial is `2 ^ (n - 1)`. -/
 theorem chebT_leadingCoeff_eq (n : ℕ) :
     (Polynomial.Chebyshev.T ℝ ((n : ℕ) : ℤ)).leadingCoeff = 2 ^ (n - 1) := by
   rw [Polynomial.Chebyshev.leadingCoeff_T ℝ ((n : ℕ) : ℤ), Int.natAbs_natCast]
 
+/-- Collect the initial values, three-term recurrence, natural degree, and leading coefficient
+of the Chebyshev polynomials. -/
 theorem chebTRecurrenceEntry :
     (Polynomial.Chebyshev.T ℝ ((0 : ℕ) : ℤ)) = 1 ∧
     (Polynomial.Chebyshev.T ℝ ((1 : ℕ) : ℤ)) = Polynomial.X ∧
@@ -352,6 +419,8 @@ theorem chebTRecurrenceEntry :
   rw [h1, h2]
   exact Polynomial.Chebyshev.T_add_one ℝ ((n : ℤ))
 
+/-- Chebyshev polynomials are orthogonal on `[-1, 1]` with weight `√((1 - x²)⁻¹)`, with squared
+norms `π` and `π / 2`. -/
 theorem chebTOrthogonalityEntry (n m : ℕ) :
     ∫ x in (-1 : ℝ)..1,
         (Polynomial.Chebyshev.T ℝ ((n : ℕ) : ℤ)).eval x *
@@ -370,6 +439,8 @@ theorem chebTOrthogonalityEntry (n m : ℕ) :
         Polynomial.Chebyshev.integral_T_real_mul_self_measureT_of_ne_zero h0
   · simpa [h] using Polynomial.Chebyshev.integral_eval_T_real_mul_eval_T_real_measureT_of_ne h
 
+/-- For positive `N`, the `N` Chebyshev nodes are exactly the real roots of `T_N`, are pairwise
+distinct, and lie in `(-1, 1)`. -/
 theorem chebTNodesEntry (N : ℕ) (hN : 0 < N) :
     (∀ j : ℕ, j < N →
       (Polynomial.Chebyshev.T ℝ ((N : ℕ) : ℤ)).eval
@@ -428,6 +499,8 @@ theorem chebTNodesEntry (N : ℕ) (hN : 0 < N) :
     rw [Real.cos_zero] at hlt1
     exact ⟨hgt1, hlt1⟩
 
+/-- Chebyshev evaluation satisfies `T_n(cos θ) = cos(nθ)`, and every point of `[-1, 1]` has a
+cosine parameter in `[0, π]`. -/
 theorem chebTTrigEntry (n : ℕ) (θ : ℝ) :
     (Polynomial.Chebyshev.T ℝ ((n : ℕ) : ℤ)).eval (Real.cos θ) = Real.cos ((n : ℝ) * θ) ∧
     (∀ x : ℝ, x ∈ Set.Icc (-1) 1 → ∃ φ : ℝ, φ ∈ Set.Icc 0 Real.pi ∧ x = Real.cos φ) := by
@@ -438,6 +511,7 @@ theorem chebTTrigEntry (n : ℕ) (θ : ℝ) :
   · obtain ⟨φ, hφ, hcos⟩ := Real.surjOn_cos hx
     exact ⟨φ, hφ, hcos.symm⟩
 
+/-- A Chebyshev truncation through degree `N` has natural degree at most `N`. -/
 theorem chebTrunc_natDegree_le (N : ℕ) (c : ℕ → ℝ) :
     (chebTrunc N c).natDegree ≤ N := by
   refine Polynomial.natDegree_sum_le_of_forall_le _ _ fun k hk => ?_
@@ -445,15 +519,20 @@ theorem chebTrunc_natDegree_le (N : ℕ) (c : ℕ → ℝ) :
   rw [chebT_natDegree_eq]
   exact Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
 
+/-- Lift a Boolean-space circuit instruction to a trivial workspace by tensoring fixed gates
+with the identity. -/
 noncomputable def unitLiftStep (c : AdjointStep Bool) : AdjointStep (Bool × Unit) :=
   match c with
   | .gate V => .gate (TensorGate V (1 : Matrix Unit Unit ℂ))
   | .forward => .forward
   | .backward => .backward
 
+/-- The trivial-workspace Chebyshev word is the Boolean Chebyshev word mapped through
+`unitLiftStep`. -/
 theorem signalChebyshevUnitWord_eq (n : ℕ) :
     signalChebyshevUnitWord n = (signalChebyshevWord n).map unitLiftStep := rfl
 
+/-- Lifting instructions to a trivial workspace preserves both query and fixed-gate counts. -/
 private theorem unitLiftStep_counts (word : List (AdjointStep Bool)) :
     adjointQueryCount (word.map unitLiftStep) = adjointQueryCount word ∧
       adjointGateCount (word.map unitLiftStep) = adjointGateCount word := by
@@ -465,6 +544,7 @@ private theorem unitLiftStep_counts (word : List (AdjointStep Bool)) :
     | forward => simpa [unitLiftStep, adjointQueryCount, adjointGateCount] using ih
     | backward => simpa [unitLiftStep, adjointQueryCount, adjointGateCount] using ih
 
+/-- Lifting instructions to a trivial workspace preserves well-formedness. -/
 private theorem unitLiftStep_wellFormed {word : List (AdjointStep Bool)}
     (hw : WellFormedAdjointCircuit word) :
     WellFormedAdjointCircuit (word.map unitLiftStep) := by
@@ -482,6 +562,8 @@ private theorem unitLiftStep_wellFormed {word : List (AdjointStep Bool)}
       simp only [List.map_cons, unitLiftStep, WellFormedAdjointCircuit.backward_cons_iff] at hw ⊢
       exact ih hw
 
+/-- The trivial-workspace Chebyshev word is well formed and has exactly `n` queries and `n`
+fixed gates. -/
 theorem signalChebyshevUnitWord_cost (n : ℕ) :
     WellFormedAdjointCircuit (signalChebyshevUnitWord n) ∧
       adjointQueryCount (signalChebyshevUnitWord n) = n ∧
@@ -491,6 +573,7 @@ theorem signalChebyshevUnitWord_cost (n : ℕ) :
   exact ⟨unitLiftStep_wellFormed hc.1,
     (unitLiftStep_counts _).1.trans hc.2.1, (unitLiftStep_counts _).2.trans hc.2.2.1⟩
 
+/-- The norm of a matrix entry is bounded by the matrix operator norm. -/
 theorem norm_entry_le_l2_norm {I : Type} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) (a b : I) : ‖M a b‖ ≤ ‖M‖ := by
   have hket : ‖toEuclidean_fromVec (Ket b)‖ = 1 :=
@@ -510,6 +593,8 @@ theorem norm_entry_le_l2_norm {I : Type} [Fintype I] [DecidableEq I]
   rw [hentry] at hle
   exact hle.trans hv
 
+/-- The degree-`n` Chebyshev word satisfies oracle transport bounds by `n * √(2 * ε)` and `n`
+times signal distance, yielding the corresponding Chebyshev value bound. -/
 theorem chebyshev_word_output_transport : ∀ (n : ℕ) (x y ε : ℝ),
     x ∈ Set.Icc (-1) 1 → y ∈ Set.Icc (-1) 1 → 0 ≤ ε → |x - y| ≤ ε →
     ‖evaluate (scalarSignalLift Unit x) (signalChebyshevUnitWord n) -
@@ -550,6 +635,7 @@ theorem chebyshev_word_output_transport : ∀ (n : ℕ) (x y ε : ℝ),
 
 open Complex in
 
+/-- The real part of the complex exponential of an imaginary real angle is its cosine. -/
 private theorem cexp_re (φ : ℝ) : (cexp (φ * I)).re = Real.cos φ := by
   rw [Complex.exp_mul_I, Complex.add_re, Complex.mul_re, Complex.cos_ofReal_re,
     Complex.sin_ofReal_re, Complex.sin_ofReal_im, Complex.I_re, Complex.I_im]
@@ -557,6 +643,7 @@ private theorem cexp_re (φ : ℝ) : (cexp (φ * I)).re = Real.cos φ := by
 
 open Complex in
 
+/-- The imaginary part of the complex exponential of an imaginary real angle is its sine. -/
 private theorem cexp_im (φ : ℝ) : (cexp (φ * I)).im = Real.sin φ := by
   rw [Complex.exp_mul_I, Complex.add_im, Complex.mul_im, Complex.cos_ofReal_im,
     Complex.sin_ofReal_re, Complex.I_im, Complex.I_re]
@@ -564,6 +651,7 @@ private theorem cexp_im (φ : ℝ) : (cexp (φ * I)).im = Real.sin φ := by
 
 open Complex in
 
+/-- The real part of the `k`th power of `q * exp(φ i)` is `q ^ k * cos(kφ)`. -/
 private theorem re_pow_cexp_mul (q φ : ℝ) (k : ℕ) :
     (((q : ℂ) * cexp (φ * I)) ^ k).re = q ^ k * Real.cos (↑k * φ) := by
   have hpow : ((q : ℂ) * cexp (φ * I)) ^ k = ↑(q ^ k) * cexp (↑(↑k * φ) * I) := by
@@ -576,12 +664,15 @@ private theorem re_pow_cexp_mul (q φ : ℝ) (k : ℕ) :
 
 open Complex in
 
+/-- The norm of `q * exp(φ i)` is `|q|`. -/
 private theorem norm_cexp_mul (q φ : ℝ) : ‖((q : ℂ) * cexp (φ * I))‖ = |q| := by
   rw [norm_mul, Complex.norm_exp_ofReal_mul_I, Complex.norm_real, mul_one]
   exact Real.norm_eq_abs q
 
 open Complex in
 
+/-- For `‖z‖ < 1`, the finite geometric approximation to the Poisson kernel has remainder at
+most `2 * ‖z‖ ^ (n + 1) / (1 - ‖z‖)`. -/
 private theorem poisson_dev_gen (z : ℂ) (hz1 : ‖z‖ < 1) (n : ℕ) :
     |(1 - Complex.normSq z) / Complex.normSq (1 - z) -
       (2 * (∑ k ∈ Finset.range (n + 1), z ^ k).re - 1)| ≤ 2 * ‖z‖ ^ (n + 1) / (1 - ‖z‖) := by
@@ -642,6 +733,8 @@ private theorem poisson_dev_gen (z : ℂ) (hz1 : ‖z‖ < 1) (n : ℕ) :
 
 open Complex in
 
+/-- For `|q| < 1`, the finite complex-geometric approximation to the real Poisson kernel has the
+stated geometric remainder bound. -/
 private theorem poisson_dev (q φ : ℝ) (hq1 : |q| < 1) (n : ℕ) :
     |(1 - q ^ 2) / (1 - 2 * q * Real.cos φ + q ^ 2) -
       (2 * (∑ k ∈ Finset.range (n + 1), ((q : ℂ) * cexp (φ * I)) ^ k).re - 1)| ≤
@@ -664,11 +757,16 @@ private theorem poisson_dev (q φ : ℝ) (hq1 : |q| < 1) (n : ℕ) :
   rw [hpy, hK, norm_cexp_mul] at hmain
   exact hmain
 
+/-- The reciprocal Chebyshev decay ratio `(1 - √δ) / (1 + √δ)`. -/
 noncomputable def recipChebRatio (δ : ℝ) : ℝ := (1 - Real.sqrt δ) / (1 + Real.sqrt δ)
 
+/-- The reciprocal Chebyshev coefficients, with constant coefficient `1 / √δ` and alternating
+geometric higher coefficients. -/
 noncomputable def recipChebCoeff (δ : ℝ) : ℕ → ℝ :=
   fun k => if k = 0 then 1 / Real.sqrt δ else (2 / Real.sqrt δ) * (-(recipChebRatio δ)) ^ k
 
+/-- For `0 < δ ≤ 1`, the reciprocal decay ratio belongs to `[0, 1)` and its complement is `2 *
+√δ / (1 + √δ)`. -/
 private theorem recipChebRatio_bounds (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     0 ≤ recipChebRatio δ ∧ recipChebRatio δ < 1 ∧
       1 - recipChebRatio δ = 2 * Real.sqrt δ / (1 + Real.sqrt δ) := by
@@ -684,6 +782,7 @@ private theorem recipChebRatio_bounds (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1
     field_simp
     ring
 
+/-- A finite geometric sum with ratio in `[0, 1)` is bounded by `1 / (1 - r)`. -/
 private theorem geom_sum_le_inv (r : ℝ) (hr0 : 0 ≤ r) (hr1 : r < 1) (n : ℕ) :
     ∑ k ∈ Finset.range n, r ^ k ≤ 1 / (1 - r) := by
   have hrne : r ≠ 1 := ne_of_lt hr1
@@ -696,6 +795,7 @@ private theorem geom_sum_le_inv (r : ℝ) (hr0 : 0 ≤ r) (hr1 : r < 1) (n : ℕ
   field_simp
   linarith [pow_nonneg hr0 n]
 
+/-- Rewrite the affine reciprocal denominator in Poisson-kernel form for positive `s`. -/
 private theorem recip_affine_poisson (s cφ : ℝ) (hs : 0 < s) :
     (1 + s ^ 2) / 2 + (1 - s ^ 2) / 2 * cφ =
       s / (1 - ((1 - s) / (1 + s)) ^ 2) *
@@ -711,6 +811,7 @@ private theorem recip_affine_poisson (s cφ : ℝ) (hs : 0 < s) :
   field_simp
   ring
 
+/-- At a cosine argument, a Chebyshev truncation equals its finite cosine series. -/
 private theorem chebTrunc_eval_cos (n : ℕ) (c : ℕ → ℝ) (φ : ℝ) :
     (chebTrunc n c).eval (Real.cos φ) =
       ∑ k ∈ Finset.range (n + 1), c k * Real.cos ((k : ℝ) * φ) := by
@@ -720,6 +821,7 @@ private theorem chebTrunc_eval_cos (n : ℕ) (c : ℕ → ℝ) (φ : ℝ) :
   push_cast
   ring_nf
 
+/-- For `δ ≤ 1`, the affine rescaling of `[-1, 1]` lies in `[δ, 1]`. -/
 theorem recipWindowIcc (δ : ℝ) (hδ1 : δ ≤ 1) {t : ℝ} (ht : t ∈ Set.Icc (-1) 1) :
     (1 + δ) / 2 + (1 - δ) / 2 * t ∈ Set.Icc δ 1 := by
   have hb : (0 : ℝ) ≤ (1 - δ) / 2 := by
@@ -735,6 +837,8 @@ theorem recipWindowIcc (δ : ℝ) (hδ1 : δ ≤ 1) {t : ℝ} (ht : t ∈ Set.Ic
   · linarith
   · linarith
 
+/-- For `0 < δ ≤ 1`, every finite absolute sum of reciprocal Chebyshev coefficients is at most
+`1 / δ`. -/
 theorem recipChebCoeff_abs_sum_le (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (n : ℕ) :
     ∑ k ∈ Finset.range (n + 1), |recipChebCoeff δ k| ≤ 1 / δ := by
   have hs : 0 < Real.sqrt δ := Real.sqrt_pos.mpr hδ
@@ -771,6 +875,7 @@ theorem recipChebCoeff_abs_sum_le (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (n
   rw [hsum, hscale]
   exact (add_le_add (le_refl _) hmul).trans ((le_of_eq hfinal).trans (le_of_eq hlast))
 
+/-- For `0 < δ ≤ 1`, the reciprocal Chebyshev truncation is bounded by `1 / δ` on `[-1, 1]`. -/
 theorem recipChebTruncAbsEvalLe (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (n : ℕ)
     {t : ℝ} (ht : t ∈ Set.Icc (-1) 1) :
     |(chebTrunc n (recipChebCoeff δ)).eval t| ≤ 1 / δ :=
@@ -778,6 +883,8 @@ theorem recipChebTruncAbsEvalLe (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (n :
 
 open Complex in
 
+/-- The reciprocal Chebyshev truncation approximates the reciprocal affine window on `[-1, 1]`
+with error at most `(1 + √δ) * recipChebRatio δ ^ (n + 1) / δ`. -/
 theorem recipChebTruncError (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (n : ℕ)
     {t : ℝ} (ht : t ∈ Set.Icc (-1) 1) :
     |1 / ((1 + δ) / 2 + (1 - δ) / 2 * t) - (chebTrunc n (recipChebCoeff δ)).eval t| ≤
@@ -862,6 +969,8 @@ theorem recipChebTruncError (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (n : ℕ
   exact (mul_le_mul_of_nonneg_left hdev (by positivity : (0 : ℝ) ≤ 1 / s)).trans
     (le_of_eq hconst)
 
+/-- For `0 < δ ≤ 1` and an interior radius `m ≥ 1 / 2`, the scaled reciprocal truncation
+transfers through a well-formed word with the stated Lipschitz and square-root error bounds. -/
 theorem recipChebTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (δ : ℝ) (n : ℕ) (m : ℝ)
     (hw : WellFormedAdjointCircuit word) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
@@ -964,6 +1073,7 @@ theorem recipChebTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
       exact (mul_le_mul_of_nonneg_left h1 (by positivity : (0 : ℝ) ≤ δ / 2)).trans_eq hcalc
     exact hmain.2 _ _ hx hy herr
 
+/-- For positive `u`, the arctangents of `u` and its reciprocal sum to `π / 2`. -/
 private theorem arctan_add_inv_eq_pi_div_two (u : ℝ) (hu : 0 < u) :
     Real.arctan u + Real.arctan u⁻¹ = Real.pi / 2 := by
   have hu' : 0 < u⁻¹ := inv_pos.mpr hu
@@ -1009,6 +1119,7 @@ private theorem arctan_add_inv_eq_pi_div_two (u : ℝ) (hu : 0 < u) :
 
 open Complex in
 
+/-- Squaring the complex exponential of an imaginary angle doubles that angle. -/
 private theorem cexp_sq (θ : ℝ) : (cexp (θ * I)) ^ 2 = cexp ((2 * θ : ℝ) * I) := by
   have h : (2 * θ : ℝ) * I = θ * I + θ * I := by
     push_cast
@@ -1017,6 +1128,7 @@ private theorem cexp_sq (θ : ℝ) : (cexp (θ * I)) ^ 2 = cexp ((2 * θ : ℝ) 
 
 open Complex in
 
+/-- The real part of the square-wave denominator is `1 + t² * cos(2θ)`. -/
 private theorem sq_wave_denom_re (θ t : ℝ) :
     (1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2).re = 1 + t ^ 2 * Real.cos (2 * θ) := by
   rw [cexp_sq θ, Complex.add_re, Complex.mul_re, Complex.one_re, Complex.ofReal_re,
@@ -1024,6 +1136,7 @@ private theorem sq_wave_denom_re (θ t : ℝ) :
 
 open Complex in
 
+/-- The imaginary part of the square-wave denominator is `t² * sin(2θ)`. -/
 private theorem sq_wave_denom_im (θ t : ℝ) :
     (1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2).im = t ^ 2 * Real.sin (2 * θ) := by
   rw [cexp_sq θ, Complex.add_im, Complex.mul_im, Complex.one_im, Complex.ofReal_re,
@@ -1032,6 +1145,7 @@ private theorem sq_wave_denom_im (θ t : ℝ) :
 
 open Complex in
 
+/-- The square-wave denominator is nonzero when `0 ≤ θ < π / 2`. -/
 private theorem sq_wave_denom_ne {θ : ℝ} (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 2) (t : ℝ) :
     1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2 ≠ 0 := by
   intro h0
@@ -1061,6 +1175,8 @@ private theorem sq_wave_denom_ne {θ : ℝ} (hθ : 0 ≤ θ) (hθ2 : θ < Real.p
 
 open Complex in
 
+/-- Express the squared norm of the square-wave denominator as `(1 + t²)² * cos² θ + (1 - t²)² *
+sin² θ`. -/
 private theorem sq_wave_denom_normSq (θ t : ℝ) :
     Complex.normSq (1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2) =
       (1 + t ^ 2) ^ 2 * Real.cos θ ^ 2 + (1 - t ^ 2) ^ 2 * Real.sin θ ^ 2 := by
@@ -1074,6 +1190,8 @@ private theorem sq_wave_denom_normSq (θ t : ℝ) :
 
 open Complex in
 
+/-- For positive `cos θ`, compute the real part of the square-wave integrand as a real rational
+expression. -/
 private theorem sq_wave_integrand_re (θ t : ℝ) (hc : 0 < Real.cos θ) :
     ((cexp (θ * I)) / (1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2)).re =
       (1 + t ^ 2) * Real.cos θ /
@@ -1117,6 +1235,8 @@ private theorem sq_wave_integrand_re (θ t : ℝ) (hc : 0 < Real.cos θ) :
 
 open Complex in
 
+/-- For `0 ≤ θ < π / 2`, the integral of the real part of the square-wave integrand over `[0,
+1]` is `π / 4`. -/
 private theorem sq_wave_value_re (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 2) :
     (∫ t in (0 : ℝ)..1, ((cexp (θ * I)) / (1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2)).re) =
       Real.pi / 4 := by
@@ -1195,6 +1315,7 @@ private theorem sq_wave_value_re (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.p
     hpair]
   ring
 
+/-- A finite sum of interval-integrable complex functions is interval integrable. -/
 private theorem interval_integrable_finset_sum (f : ℕ → ℝ → ℂ) (s : Finset ℕ) (a b : ℝ)
     (hf : ∀ k ∈ s, IntervalIntegrable (f k) MeasureTheory.volume a b) :
     IntervalIntegrable (fun t => ∑ k ∈ s, f k t) MeasureTheory.volume a b := by
@@ -1208,6 +1329,8 @@ private theorem interval_integrable_finset_sum (f : ℕ → ℝ → ℂ) (s : Fi
     simp only [Finset.sum_insert hk] at h ⊢
     exact h
 
+/-- Integration over an interval commutes with a finite sum of interval-integrable complex
+functions. -/
 private theorem integral_finset_sum_interval (f : ℕ → ℝ → ℂ) (s : Finset ℕ) (a b : ℝ)
     (hf : ∀ k ∈ s, IntervalIntegrable (f k) MeasureTheory.volume a b) :
     ∫ t in a..b, ∑ k ∈ s, f k t = ∑ k ∈ s, ∫ t in a..b, f k t := by
@@ -1222,6 +1345,7 @@ private theorem integral_finset_sum_interval (f : ℕ → ℝ → ℂ) (s : Fins
     simp only [Finset.sum_insert hk]
     rw [intervalIntegral.integral_add (hf k (Finset.mem_insert_self k s)) hsum, ih hf']
 
+/-- The integral of `t ^ n` over `[0, 1]` is `1 / (n + 1)`. -/
 private theorem sq_wave_pow_int (n : ℕ) : ∫ t in (0 : ℝ)..1, t ^ n = 1 / ((n : ℝ) + 1) := by
   have hn : (0 : ℝ) < (n : ℝ) + 1 := by positivity
   have hder : ∀ t ∈ Set.uIcc (0 : ℝ) 1,
@@ -1240,6 +1364,7 @@ private theorem sq_wave_pow_int (n : ℕ) : ∫ t in (0 : ℝ)..1, t ^ n = 1 / (
 
 open Complex in
 
+/-- Rewrite the square-wave denominator as one minus its geometric-series ratio. -/
 private theorem sq_wave_W_eq (θ t : ℝ) :
     1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2 =
       1 - (-(t ^ 2 : ℝ) * (cexp (θ * I)) ^ 2 : ℂ) := by
@@ -1248,6 +1373,7 @@ private theorem sq_wave_W_eq (θ t : ℝ) :
 
 open Complex in
 
+/-- The square-wave geometric-series ratio is not one when `0 ≤ θ < π / 2`. -/
 private theorem sq_wave_x_ne_one {θ : ℝ} (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 2) (t : ℝ) :
     (-(t ^ 2 : ℝ) * (cexp (θ * I)) ^ 2 : ℂ) ≠ 1 := by
   intro h
@@ -1255,6 +1381,8 @@ private theorem sq_wave_x_ne_one {θ : ℝ} (hθ : 0 ≤ θ) (hθ2 : θ < Real.p
   rw [h, sub_self] at hwx
   exact sq_wave_denom_ne hθ hθ2 t hwx
 
+/-- The finite geometric series through degree `K` equals `(1 - x ^ (K + 1)) / (1 - x)` for
+complex `x ≠ 1`. -/
 private theorem sq_wave_geom_sum (x : ℂ) (hx : x ≠ 1) (K : ℕ) :
     ∑ k ∈ Finset.range (K + 1), x ^ k = (1 - x ^ (K + 1)) / (1 - x) := by
   have hden : (1 : ℂ) - x ≠ 0 := sub_ne_zero_of_ne (Ne.symm hx)
@@ -1268,6 +1396,8 @@ private theorem sq_wave_geom_sum (x : ℂ) (hx : x ≠ 1) (K : ℕ) :
 
 open Complex in
 
+/-- Expand the finite geometric quotient in the square-wave integrand as a sum of its first `K +
+1` terms. -/
 private theorem sq_wave_geom (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 2) (K : ℕ) (t : ℝ) :
     cexp (θ * I) * (1 - (-(t ^ 2 : ℝ) * (cexp (θ * I)) ^ 2 : ℂ) ^ (K + 1)) /
         (1 - (-(t ^ 2 : ℝ) * (cexp (θ * I)) ^ 2 : ℂ)) =
@@ -1279,6 +1409,8 @@ private theorem sq_wave_geom (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 
 
 open Complex in
 
+/-- Expand the `k`th power of the square-wave geometric ratio into its sign, real power, and
+complex phase factors. -/
 private theorem sq_wave_pow_expand (θ : ℝ) (t : ℝ) (k : ℕ) :
     ((-(t ^ 2 : ℝ) * (cexp (θ * I)) ^ 2 : ℂ)) ^ k =
       (((-(1 : ℝ)) ^ k : ℂ)) * (((t ^ (2 * k) : ℝ) : ℂ)) * (cexp (θ * I)) ^ (2 * k) := by
@@ -1291,6 +1423,7 @@ private theorem sq_wave_pow_expand (θ : ℝ) (t : ℝ) (k : ℕ) :
 
 open Complex in
 
+/-- Rewrite a square-wave geometric term using the odd harmonic angle `(2 * k + 1) * θ`. -/
 private theorem sq_wave_term_eq (θ : ℝ) (t : ℝ) (k : ℕ) :
     cexp (θ * I) * ((-(t ^ 2 : ℝ) * (cexp (θ * I)) ^ 2 : ℂ) ^ k) =
       (((-(1 : ℝ)) ^ k : ℂ)) * cexp (((2 * k + 1 : ℕ) : ℝ) * θ * I) *
@@ -1313,6 +1446,8 @@ private theorem sq_wave_term_eq (θ : ℝ) (t : ℝ) (k : ℕ) :
 
 open Complex in
 
+/-- The finite odd-harmonic complex sum equals the integral of the truncated square-wave
+geometric quotient for `0 ≤ θ < π / 2`. -/
 private theorem sq_wave_partial (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 2) (K : ℕ) :
     ∑ k ∈ Finset.range (K + 1),
         (((-(1 : ℝ)) ^ k : ℂ) * cexp (((2 * k + 1 : ℕ) : ℝ) * θ * I)) /
@@ -1351,6 +1486,8 @@ private theorem sq_wave_partial (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi
 
 open Complex in
 
+/-- The real part of the interval integral of a continuous complex function is the integral of
+its real part. -/
 private theorem sq_wave_re_of_integral {f : ℝ → ℂ} (a b : ℝ) (hfc : Continuous f) :
     (∫ x in a..b, f x).re = ∫ x in a..b, (f x).re := by
   have hre : Continuous fun x : ℝ => ((f x).re : ℂ) := by fun_prop
@@ -1369,6 +1506,7 @@ private theorem sq_wave_re_of_integral {f : ℝ → ℂ} (a b : ℝ) (hfc : Cont
 
 open Complex in
 
+/-- The square-wave complex integral has real part `π / 4` for `0 ≤ θ < π / 2`. -/
 private theorem sq_wave_integral_re (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 2) :
     (∫ t in (0 : ℝ)..1, cexp (θ * I) / (1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2)).re =
       Real.pi / 4 := by
@@ -1379,6 +1517,8 @@ private theorem sq_wave_integral_re (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Rea
 
 open Complex in
 
+/-- The complex square-wave partial sum differs from its integral by at most `1 / (4 * (K + 1) *
+cos θ)`. -/
 private theorem sq_wave_tail_abs (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 2) (K : ℕ) :
     ‖(∫ t in (0 : ℝ)..1, cexp (θ * I) / (1 + ((t ^ 2 : ℝ) : ℂ) * (cexp (θ * I)) ^ 2)) -
       ∑ k ∈ Finset.range (K + 1),
@@ -1498,6 +1638,8 @@ private theorem sq_wave_tail_abs (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.p
 
 open Complex in
 
+/-- The alternating odd cosine sum approximates `π / 4` with error at most `1 / (4 * (K + 1) *
+cos θ)` for `0 ≤ θ < π / 2`. -/
 private theorem sq_wave_tail (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 2) (K : ℕ) :
     |Real.pi / 4 - ∑ k ∈ Finset.range (K + 1),
         ((-(1 : ℝ)) ^ k * Real.cos (((2 * k + 1 : ℕ) : ℝ) * θ)) /
@@ -1535,24 +1677,30 @@ private theorem sq_wave_tail (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.pi / 
   rw [← hreA, ← hreS, ← Complex.sub_re]
   exact (Complex.abs_re_le_norm _).trans (sq_wave_tail_abs θ hθ hθ2 K)
 
+/-- The Chebyshev coefficients of the sign expansion: zero at even indices and alternating
+reciprocal odd coefficients scaled by `4 / π`. -/
 noncomputable def signChebCoeff : ℕ → ℝ :=
   fun k => if k % 2 = 1 then (4 / Real.pi) * (-(1 : ℝ)) ^ (k / 2) / ((k : ℝ)) else 0
 
+/-- The even-indexed sign Chebyshev coefficients vanish. -/
 theorem signChebCoeff_even (j : ℕ) : signChebCoeff (2 * j) = 0 := by
   simp only [signChebCoeff, if_neg (show (2 * j) % 2 ≠ 1 by omega)]
 
+/-- At index `2 * j + 1`, the sign Chebyshev coefficient is `(4 / π) * (-1) ^ j / (2 * j + 1)`. -/
 theorem signChebCoeff_odd (j : ℕ) :
     signChebCoeff (2 * j + 1) =
       (4 / Real.pi) * (-(1 : ℝ)) ^ j / (((2 * j + 1 : ℕ) : ℝ)) := by
   simp only [signChebCoeff, if_pos (show (2 * j + 1) % 2 = 1 by omega),
     show (2 * j + 1) / 2 = j from by omega]
 
+/-- Chebyshev evaluation at `-x` is `(-1) ^ k` times evaluation at `x`. -/
 theorem chebT_eval_neg (k : ℕ) (x : ℝ) :
     (Polynomial.Chebyshev.T ℝ ((k : ℕ) : ℤ)).eval (-x) =
       (-(1 : ℝ)) ^ k * (Polynomial.Chebyshev.T ℝ ((k : ℕ) : ℤ)).eval x := by
   rw [Polynomial.Chebyshev.T_eval_neg ℝ ((k : ℕ) : ℤ) x,
     Int.cast_negOnePow_natCast]
 
+/-- Express the sign Chebyshev truncation as the finite sum of its odd Chebyshev terms. -/
 theorem signChebTrunc_eval_eq (K : ℕ) (x : ℝ) :
     (chebTrunc (2 * K + 1) signChebCoeff).eval x =
       ∑ j ∈ Finset.range (K + 1),
@@ -1579,6 +1727,7 @@ theorem signChebTrunc_eval_eq (K : ℕ) (x : ℝ) :
         Finset.sum_range_succ (n := n + 1)]
       ring
 
+/-- The sign Chebyshev truncation is an odd function. -/
 theorem signChebTrunc_odd (K : ℕ) (x : ℝ) :
     (chebTrunc (2 * K + 1) signChebCoeff).eval (-x) =
       -((chebTrunc (2 * K + 1) signChebCoeff).eval x) := by
@@ -1593,6 +1742,8 @@ theorem signChebTrunc_odd (K : ℕ) (x : ℝ) :
   rw [signChebTrunc_eval_eq, signChebTrunc_eval_eq,
     Finset.sum_congr rfl (fun j hj => hterm j hj), Finset.sum_neg_distrib]
 
+/-- On `(0, 1]`, the degree-`2 * K + 1` sign truncation approximates one within `1 / ((K + 1) *
+π * x)`. -/
 theorem signChebTruncErrorPos (K : ℕ) {x : ℝ} (hx1 : (0 : ℝ) < x) (hx2 : x ≤ 1) :
     |1 - (chebTrunc (2 * K + 1) signChebCoeff).eval x| ≤
       1 / (((K + 1 : ℕ) : ℝ) * Real.pi * x) := by
@@ -1641,6 +1792,7 @@ theorem signChebTruncErrorPos (K : ℕ) {x : ℝ} (hx1 : (0 : ℝ) < x) (hx2 : x
   exact le_trans (mul_le_mul_of_nonneg_left (sq_wave_tail (Real.arccos x) hθ hθ2 K)
     (show (0 : ℝ) ≤ 4 / Real.pi by positivity)) (le_of_eq hcalc)
 
+/-- On `[-1, 0)`, the sign truncation approximates minus one within `1 / ((K + 1) * π * (-x))`. -/
 theorem signChebTruncErrorNeg (K : ℕ) {x : ℝ} (hx1 : (-1 : ℝ) ≤ x) (hx2 : x < 0) :
     |(-1 : ℝ) - (chebTrunc (2 * K + 1) signChebCoeff).eval x| ≤
       1 / (((K + 1 : ℕ) : ℝ) * Real.pi * (-x)) := by
@@ -1654,6 +1806,8 @@ theorem signChebTruncErrorNeg (K : ℕ) {x : ℝ} (hx1 : (-1 : ℝ) ≤ x) (hx2 
     abs_neg]
   exact signChebTruncErrorPos K hy1 hy2
 
+/-- On `δ ≤ |x| ≤ 1` with positive `δ`, the sign truncation has absolute value at most `1 + 1 /
+((K + 1) * π * δ)`. -/
 theorem signChebTruncAbsEvalLe (K : ℕ) {x δ : ℝ} (hδ : (0 : ℝ) < δ)
     (hx1 : δ ≤ |x|) (hx2 : |x| ≤ 1) :
     |(chebTrunc (2 * K + 1) signChebCoeff).eval x| ≤
@@ -1693,6 +1847,8 @@ theorem signChebTruncAbsEvalLe (K : ℕ) {x δ : ℝ} (hδ : (0 : ℝ) < δ)
       _ ≤ 1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) + 1 := by linarith
       _ = 1 + 1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) := by ring
 
+/-- On the gapped unit interval, a half-scaled sign truncation and the half-sign signal satisfy
+the stated interior and square-root transport bounds for a well-formed word. -/
 theorem signChebTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (K : ℕ) (δ m : ℝ)
     (hw : WellFormedAdjointCircuit word) (hδ : (0 : ℝ) < δ)
@@ -1859,18 +2015,24 @@ theorem signChebTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
       linarith
     exact hmain2.2 _ _ hx hy herr
 
+/-- The affine polynomial `(X - C c) / 2`. -/
 noncomputable def shiftScale (c : ℝ) : Polynomial ℝ :=
   Polynomial.C (1 / 2) * (Polynomial.X - Polynomial.C c)
 
+/-- Evaluation of `shiftScale c` at `t` is `(t - c) / 2`. -/
 theorem shiftScale_eval (c t : ℝ) : (shiftScale c).eval t = (t - c) / 2 := by
   rw [shiftScale, Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_sub,
     Polynomial.eval_X, Polynomial.eval_C]
   ring
 
+/-- The polynomial window formed by half the difference of sign truncations shifted to `a` and
+`b`. -/
 noncomputable def windowTrunc (a b : ℝ) (K : ℕ) : Polynomial ℝ :=
   Polynomial.C (1 / 2) * ((chebTrunc (2 * K + 1) signChebCoeff).comp (shiftScale a) -
     (chebTrunc (2 * K + 1) signChebCoeff).comp (shiftScale b))
 
+/-- Evaluate the window truncation as half the difference of the two shifted sign-truncation
+values. -/
 theorem windowTrunc_eval (a b : ℝ) (K : ℕ) (t : ℝ) :
     (windowTrunc a b K).eval t =
       (1 / 2) * ((chebTrunc (2 * K + 1) signChebCoeff).eval ((t - a) / 2) -
@@ -1878,24 +2040,31 @@ theorem windowTrunc_eval (a b : ℝ) (K : ℕ) (t : ℝ) :
   rw [windowTrunc, Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_sub]
   rw [Polynomial.eval_comp, shiftScale_eval, Polynomial.eval_comp, shiftScale_eval]
 
+/-- Division by two preserves a real weak inequality. -/
 private theorem window_half_mono {x y : ℝ} (h : x ≤ y) : x / 2 ≤ y / 2 := by
   nlinarith [h]
 
+/-- Half of a positive real number is positive. -/
 private theorem window_half_pos {x : ℝ} (h : 0 < x) : 0 < x / 2 := by
   nlinarith [h]
 
+/-- Half of a negative real number is negative. -/
 private theorem window_half_lt {x : ℝ} (h : x < 0) : x / 2 < 0 := by
   nlinarith [h]
 
+/-- A real number at most two has half at most one. -/
 private theorem window_half_le_one {x : ℝ} (h : x ≤ 2) : x / 2 ≤ 1 := by
   have h2 := window_half_mono h
   rwa [div_self two_ne_zero] at h2
 
+/-- A real number at least minus two has half at least minus one. -/
 private theorem window_half_ge_neg_one {x : ℝ} (h : -2 ≤ x) : -1 ≤ x / 2 := by
   have h2 := window_half_mono h
   rw [neg_div, div_self two_ne_zero] at h2
   exact h2
 
+/-- For positive `K`, `δ`, and `u` with `δ ≤ 2 * u`, the reciprocal error at `u` is at most `2 /
+(K * π * δ)`. -/
 private theorem window_err_mono (K : ℕ) {u δ : ℝ} (hK : 0 < K) (hδ : 0 < δ)
     (hu0 : 0 < u) (hu : δ ≤ 2 * u) :
     1 / (((K : ℕ) : ℝ) * Real.pi * u) ≤ 2 / (((K : ℕ) : ℝ) * Real.pi * δ) := by
@@ -1911,6 +2080,8 @@ private theorem window_err_mono (K : ℕ) {u δ : ℝ} (hK : 0 < K) (hδ : 0 < �
   rw [div_le_div_iff₀ hKu hKδ]
   nlinarith [hmul]
 
+/-- Inside the window and at distance at least positive `δ` from both endpoints, the window
+truncation approximates one within `2 / ((K + 1) * π * δ)`. -/
 theorem windowTruncErrorInside (K : ℕ) {a b δ t : ℝ}
     (ha : -1 ≤ a) (hb : b ≤ 1) (hδ : 0 < δ)
     (h1 : a + δ ≤ t) (h2 : t ≤ b - δ) :
@@ -1967,6 +2138,8 @@ theorem windowTruncErrorInside (K : ℕ) {a b δ t : ℝ}
         mul_le_mul_of_nonneg_left (add_le_add e1' e2') (show (0 : ℝ) ≤ 1 / 2 by norm_num)
     _ = 2 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) := by ring
 
+/-- To the left of the window by at least positive `δ`, within the stated unit-interval bounds,
+the window truncation is at most `2 / ((K + 1) * π * δ)` in absolute value. -/
 theorem windowTruncErrorOutsideLeft (K : ℕ) {a b δ t : ℝ}
     (hb1 : b ≤ 1) (hab : a < b) (hδ : 0 < δ)
     (ht1 : -1 ≤ t) (ht : t ≤ a - δ) :
@@ -2044,6 +2217,8 @@ theorem windowTruncErrorOutsideLeft (K : ℕ) {a b δ t : ℝ}
         mul_le_mul_of_nonneg_left (add_le_add e1' e2') (show (0 : ℝ) ≤ 1 / 2 by norm_num)
     _ = 2 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) := by ring
 
+/-- To the right of the window by at least positive `δ`, within the stated unit-interval bounds,
+the window truncation is at most `2 / ((K + 1) * π * δ)` in absolute value. -/
 theorem windowTruncErrorOutsideRight (K : ℕ) {a b δ t : ℝ}
     (ha : -1 ≤ a) (hab : a < b) (hδ : 0 < δ)
     (ht : b + δ ≤ t) (ht2 : t ≤ 1) :
@@ -2097,6 +2272,8 @@ theorem windowTruncErrorOutsideRight (K : ℕ) {a b δ t : ℝ}
         mul_le_mul_of_nonneg_left (add_le_add e2' e1') (show (0 : ℝ) ≤ 1 / 2 by norm_num)
     _ = 2 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) := by ring
 
+/-- On `[-1, 1]` away from both window endpoints by positive `δ`, the window truncation has
+absolute value at most `1 + 2 / ((K + 1) * π * δ)`. -/
 theorem windowTruncAbsEvalLe (K : ℕ) {a b δ t : ℝ}
     (ha : -1 ≤ a) (hb1 : b ≤ 1) (hab : a < b)
     (hδ : (0 : ℝ) < δ) (ht1 : -1 ≤ t) (ht2 : t ≤ 1)
@@ -2137,6 +2314,8 @@ theorem windowTruncAbsEvalLe (K : ℕ) {a b δ t : ℝ}
       have h := windowTruncErrorOutsideRight K ha hab hδ hle ht2
       linarith
 
+/-- A half-scaled window truncation and half the open-window indicator satisfy interior and
+square-root word transport bounds away from the endpoints. -/
 theorem windowTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (K : ℕ) (a b δ m : ℝ)
     (ha : -1 ≤ a) (hb1 : b ≤ 1) (hab : a < b)
@@ -2277,42 +2456,51 @@ theorem windowTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
   · obtain ⟨hx, hx1, hy, hy1, herr⟩ := hpt t ht hdista hdistb
     exact hmain.2 _ _ hx1 hy1 herr
 
+/-- The `j`th Chebyshev–Gauss node `cos((2 * j + 1) * π / (2 * N))`. -/
 noncomputable def chebGaussNode (N : ℕ) (j : Fin N) : ℝ :=
   Real.cos ((2 * (j : ℕ) + 1) * Real.pi / (2 * N))
 
+/-- For positive `N`, the indexed Chebyshev–Gauss nodes are pairwise distinct. -/
 theorem chebGaussNode_injective {N : ℕ} (hN : 0 < N) :
     Function.Injective (chebGaussNode N) := by
   intro i j hij
   exact Fin.val_injective
     ((chebTNodesEntry N hN).2.2.1 (i : ℕ) (j : ℕ) i.isLt j.isLt hij)
 
+/-- Each Chebyshev–Gauss node is a root of `T_N` for positive `N`. -/
 theorem chebT_eval_chebGaussNode {N : ℕ} (hN : 0 < N) (j : Fin N) :
     (Polynomial.Chebyshev.T ℝ ((N : ℕ) : ℤ)).eval (chebGaussNode N j) = 0 :=
   (chebTNodesEntry N hN).1 (j : ℕ) j.isLt
 
+/-- For positive `N`, every Chebyshev–Gauss node lies in `[-1, 1]`. -/
 theorem chebGaussNode_mem_Icc {N : ℕ} (hN : 0 < N) (j : Fin N) :
     chebGaussNode N j ∈ Set.Icc (-1) 1 :=
   ⟨((chebTNodesEntry N hN).2.2.2 j j.isLt).1.le,
     ((chebTNodesEntry N hN).2.2.2 j j.isLt).2.le⟩
 
+/-- The monic product of the linear factors at the `N` Chebyshev–Gauss nodes. -/
 noncomputable def chebNodeProd (N : ℕ) : Polynomial ℝ :=
   ∏ j : Fin N, (Polynomial.X - Polynomial.C (chebGaussNode N j))
 
+/-- The product of the Chebyshev node factors is monic. -/
 theorem chebNodeProd_monic (N : ℕ) : (chebNodeProd N).Monic := by
   rw [chebNodeProd]
   exact Polynomial.monic_prod_X_sub_C _ _
 
+/-- The natural degree of the Chebyshev node product is `N`. -/
 theorem chebNodeProd_natDegree (N : ℕ) : (chebNodeProd N).natDegree = N := by
   rw [chebNodeProd, Polynomial.natDegree_prod_of_monic Finset.univ
     (fun j => Polynomial.X - Polynomial.C (chebGaussNode N j))
     (fun j _ => Polynomial.monic_X_sub_C _)]
   simp
 
+/-- Evaluate the Chebyshev node polynomial as the product of the distances from its nodes. -/
 theorem chebNodeProd_eval (N : ℕ) (x : ℝ) :
     (chebNodeProd N).eval x = ∏ j : Fin N, (x - chebGaussNode N j) := by
   rw [chebNodeProd, Polynomial.eval_prod]
   simp only [Polynomial.eval_sub, Polynomial.eval_X, Polynomial.eval_C]
 
+/-- For positive `N`, `T_N` is the Chebyshev node product scaled by `2 ^ (N - 1)`. -/
 theorem chebT_eq_scale_nodeProd {N : ℕ} (hN : 0 < N) :
     Polynomial.Chebyshev.T ℝ ((N : ℕ) : ℤ) =
       Polynomial.C (2 ^ (N - 1)) * chebNodeProd N := by
@@ -2360,6 +2548,8 @@ theorem chebT_eq_scale_nodeProd {N : ℕ} (hN : 0 < N) :
     ring
   exact sub_eq_zero.mp hzero
 
+/-- On `[-1, 1]`, the product of absolute distances to the `N` Chebyshev–Gauss nodes is at most
+`2 / 2 ^ N` for positive `N`. -/
 theorem chebNodeProd_abs_eval_le {N : ℕ} (hN : 0 < N) {x : ℝ} (hx : x ∈ Set.Icc (-1) 1) :
     ∏ j : Fin N, |x - chebGaussNode N j| ≤ 2 / (2 : ℝ) ^ N := by
   have hcx : |x| ≤ 1 := abs_le.mpr ⟨hx.1, hx.2⟩
@@ -2383,10 +2573,13 @@ theorem chebNodeProd_abs_eval_le {N : ℕ} (hN : 0 < N) {x : ℝ} (hx : x ∈ Se
     (Polynomial.Chebyshev.abs_eval_T_real_le_one ((N : ℕ) : ℤ) hcx) hpos.le).trans_eq
     (one_mul (2 ^ (N - 1)))
 
+/-- The Lagrange interpolation polynomial for the values of `f` at the given finite node family. -/
 noncomputable def lagrangeInterpPoly {N : ℕ} (node : Fin N → ℝ) (f : ℝ → ℝ) :
     Polynomial ℝ :=
   ∑ i, Polynomial.C (f (node i)) * Qatlib.Concepts.LchsSimulation.Quadrature.lagrangeBasis node i
 
+/-- At distinct interpolation nodes, the Lagrange interpolation polynomial agrees with the
+sampled function. -/
 theorem lagrangeInterpPoly_eval_node {N : ℕ} (node : Fin N → ℝ)
     (hinj : Function.Injective node) (f : ℝ → ℝ) (j : Fin N) :
     (lagrangeInterpPoly node f).eval (node j) = f (node j) := by
@@ -2398,6 +2591,8 @@ theorem lagrangeInterpPoly_eval_node {N : ℕ} (node : Fin N → ℝ)
   rw [Polynomial.eval_mul, Polynomial.eval_C,
     Qatlib.Concepts.LchsSimulation.Quadrature.lagrangeBasis_eval_self node hinj j, mul_one]
 
+/-- For positive `N`, the interpolation polynomial on `N` nodes has natural degree less than
+`N`. -/
 theorem lagrangeInterpPoly_natDegree_lt {N : ℕ} (node : Fin N → ℝ) (f : ℝ → ℝ)
     (hN : 0 < N) : (lagrangeInterpPoly node f).natDegree < N := by
   have hsup : (Finset.univ.sup fun i : Fin N =>
@@ -2411,13 +2606,19 @@ theorem lagrangeInterpPoly_natDegree_lt {N : ℕ} (node : Fin N → ℝ) (f : �
     (fun i _ => (Finset.le_sup (Finset.mem_univ i)).trans hsup)).trans_lt
     (Nat.sub_lt hN (by omega))
 
+/-- The unweighted integral over `[-1, 1]` of the Lagrange basis polynomial at a Chebyshev–Gauss
+node. -/
 noncomputable def chebInterpWeight (N : ℕ) (j : Fin N) : ℝ :=
   ∫ x in (-1 : ℝ)..1,
     (Qatlib.Concepts.LchsSimulation.Quadrature.lagrangeBasis (chebGaussNode N) j).eval x
 
+/-- The interpolatory quadrature sum using Chebyshev–Gauss nodes and integrated Lagrange
+weights. -/
 noncomputable def chebQuadRule (N : ℕ) (f : ℝ → ℝ) : ℝ :=
   ∑ j, chebInterpWeight N j * f (chebGaussNode N j)
 
+/-- Integration of a finite sum of interval-integrable real functions equals the sum of their
+integrals. -/
 private theorem integral_finset_sum_real {ι : Type} [DecidableEq ι] (s : Finset ι)
     (g : ι → ℝ → ℝ) (a b : ℝ)
     (hg : ∀ i ∈ s, IntervalIntegrable (g i) MeasureTheory.volume a b) :
@@ -2440,6 +2641,8 @@ private theorem integral_finset_sum_real {ι : Type} [DecidableEq ι] (s : Finse
       simp only [Finset.sum_insert hi]
       rw [intervalIntegral.integral_add h1 h3, ih h2]
 
+/-- The interpolatory Chebyshev quadrature rule integrates every polynomial of natural degree
+less than positive `N` exactly. -/
 theorem chebQuadExact {N : ℕ} (hN : 0 < N) (p : Polynomial ℝ) (hp : p.natDegree < N) :
     (∫ x in (-1 : ℝ)..1, p.eval x) = chebQuadRule N p.eval := by
   have hinj := chebGaussNode_injective hN
@@ -2476,6 +2679,7 @@ theorem chebQuadExact {N : ℕ} (hN : 0 < N) (p : Polynomial ℝ) (hp : p.natDeg
         simp only [hint]
         exact Finset.sum_congr rfl fun i _ => mul_comm _ _
 
+/-- The interpolatory Chebyshev quadrature weights sum to two for positive `N`. -/
 theorem chebQuadWeightSum {N : ℕ} (hN : 0 < N) :
     ∑ j, chebInterpWeight N j = 2 := by
   have h := chebQuadExact hN 1 (by simp; omega)
@@ -2487,24 +2691,31 @@ theorem chebQuadWeightSum {N : ℕ} (hN : 0 < N) :
   rw [h2] at h
   simpa only [chebQuadRule, mul_one] using h.symm
 
+/-- The angle `(2 * j + 1) * π / (2 * N)` associated to a Chebyshev–Gauss node. -/
 noncomputable def chebGaussAngle (N : ℕ) (j : Fin N) : ℝ :=
   (2 * ((j : ℕ) : ℝ) + 1) * Real.pi / (2 * (N : ℝ))
 
+/-- A Chebyshev–Gauss node is the cosine of its associated angle. -/
 theorem chebGaussNode_eq_cos (N : ℕ) (j : Fin N) :
     chebGaussNode N j = Real.cos (chebGaussAngle N j) := by
   rw [chebGaussNode, chebGaussAngle]
 
+/-- The sum of the integer-frequency cosines over the Chebyshev–Gauss angles. -/
 noncomputable def cosNodeSum (N : ℕ) (r : ℤ) : ℝ :=
   ∑ j : Fin N, Real.cos (((r : ℤ) : ℝ) * chebGaussAngle N j)
 
+/-- The zero-frequency cosine sum equals the number of nodes. -/
 theorem cosNodeSum_zero (N : ℕ) : cosNodeSum N 0 = (N : ℝ) := by
   simp [cosNodeSum, chebGaussAngle]
 
+/-- The sum of the constant Chebyshev polynomial over `N` nodes equals `N`. -/
 theorem chebNodeEvalSum_zero (N : ℕ) :
     ∑ j : Fin N, (Polynomial.Chebyshev.T ℝ ((0 : ℕ) : ℤ)).eval (chebGaussNode N j)
       = (N : ℝ) := by
   simp [Polynomial.Chebyshev.T_zero]
 
+/-- The sum of Chebyshev evaluations at `N` nodes vanishes for nonzero integer frequency of
+absolute value less than `2 * N`. -/
 theorem chebNodeEvalSum_eq_zero {N : ℕ} (hN : 0 < N) {r : ℤ} (hr0 : r ≠ 0)
     (hrN : |r| < 2 * N) :
     ∑ j : Fin N, (Polynomial.Chebyshev.T ℝ r).eval (chebGaussNode N j) = 0 := by
@@ -2537,6 +2748,8 @@ theorem chebNodeEvalSum_eq_zero {N : ℕ} (hN : 0 < N) {r : ℤ} (hr0 : r ≠ 0)
         (Real.cos ((2 * ((i : ℕ) : ℝ) + 1) / (2 * ((N : ℕ) : ℝ)) * Real.pi)))]
   exact h
 
+/-- The cosine sum over `N` Chebyshev–Gauss angles vanishes for nonzero integer frequency of
+absolute value less than `2 * N`. -/
 theorem cosNodeSum_eq_zero {N : ℕ} (hN : 0 < N) {r : ℤ} (hr0 : r ≠ 0)
     (hrN : |r| < 2 * N) :
     cosNodeSum N r = 0 := by
@@ -2548,11 +2761,14 @@ theorem cosNodeSum_eq_zero {N : ℕ} (hN : 0 < N) {r : ℤ} (hr0 : r ≠ 0)
         rw [chebGaussNode_eq_cos, Polynomial.Chebyshev.T_real_cos]])]
   exact h
 
+/-- The cosine node sum vanishes at every nonzero natural frequency below `2 * N`. -/
 theorem cosNodeSum_natCast_eq_zero {N : ℕ} (hN0 : 0 < N) {n : ℕ} (hn0 : n ≠ 0)
     (hnN : n < 2 * N) :
     cosNodeSum N ((n : ℕ) : ℤ) = 0 :=
   cosNodeSum_eq_zero hN0 (by exact_mod_cast hn0) (by exact_mod_cast hnN)
 
+/-- The cosine node sum at frequency `2 * k - m` vanishes when the two frequencies are distinct
+and both below `2 * N`. -/
 theorem cosNodeSum_sub_eq_zero {N : ℕ} (hN0 : 0 < N) {k m : ℕ}
     (hne : 2 * k ≠ m) (hkN : 2 * k < 2 * N) (hmN : m < 2 * N) :
     cosNodeSum N (((2 * k : ℕ) : ℤ) - ((m : ℕ) : ℤ)) = 0 := by
@@ -2566,6 +2782,7 @@ theorem cosNodeSum_sub_eq_zero {N : ℕ} (hN0 : 0 < N) {k m : ℕ}
     constructor <;> (push_cast; omega)
   exact cosNodeSum_eq_zero hN0 hr0 hrN
 
+/-- Chebyshev evaluation at a Gauss node is the cosine of its degree times the node angle. -/
 theorem chebT_eval_chebGaussNode_eq_cos (N : ℕ) (m : ℕ) (j : Fin N) :
     (Polynomial.Chebyshev.T ℝ m).eval (chebGaussNode N j)
       = Real.cos ((m : ℝ) * chebGaussAngle N j) := by
@@ -2574,14 +2791,18 @@ theorem chebT_eval_chebGaussNode_eq_cos (N : ℕ) (m : ℕ) (j : Fin N) :
   push_cast
   ring
 
+/-- The derivative of `2 * X * p` is `2 * p + 2 * X * p.derivative`. -/
 private theorem derivative_two_mul_X (p : Polynomial ℝ) :
     (2 * Polynomial.X * p).derivative = 2 * p + 2 * Polynomial.X * p.derivative := by
   rw [Polynomial.derivative_mul, Polynomial.derivative_mul, Polynomial.derivative_X,
     Polynomial.derivative_ofNat, zero_mul, mul_one, zero_add]
 
+/-- The polynomial numeral two equals the constant polynomial with real value two. -/
 private theorem natCast_two : ((2 : Polynomial ℝ)) = Polynomial.C (2 : ℝ) :=
   (Polynomial.C_eq_natCast 2).symm
 
+/-- The derivative of `T_(n+1)` is `(n + 1)` times the Chebyshev polynomial `U_n` of the second
+kind. -/
 private theorem chebT_derivative_succ (n : ℕ) :
     (Polynomial.Chebyshev.T ℝ (((n : ℕ) : ℤ) + 1)).derivative
       = ((n : ℝ) + 1) • Polynomial.Chebyshev.U ℝ ((n : ℕ) : ℤ) := by
@@ -2626,12 +2847,14 @@ private theorem chebT_derivative_succ (n : ℕ) :
         Algebra.mul_smul_comm, Algebra.smul_mul_assoc, smul_smul]
       module
 
+/-- The integral of `T_0` over `[-1, 1]` is two. -/
 theorem chebT_integral_zero :
     (∫ x in (-1 : ℝ)..1, (Polynomial.Chebyshev.T ℝ ((0 : ℕ) : ℤ)).eval x) = 2 := by
   simp only [show ((0 : ℕ) : ℤ) = 0 from rfl, Polynomial.Chebyshev.T_zero,
     Polynomial.eval_one, intervalIntegral.integral_const]
   norm_num
 
+/-- For `m ≥ 2`, the derivative of `T_(m+1) / (2 * (m + 1)) - T_(m-1) / (2 * (m - 1))` is `T_m`. -/
 private theorem chebT_antiderivative_derivative (m : ℕ) (hm : 2 ≤ m) :
     (Polynomial.C ((1 : ℝ) / (2 * (((m : ℕ) : ℝ) + 1)))
         * Polynomial.Chebyshev.T ℝ (((m : ℕ) : ℤ) + 1)
@@ -2679,6 +2902,8 @@ private theorem chebT_antiderivative_derivative (m : ℕ) (hm : 2 ≤ m) :
     rw [key1, key2, one_smul, one_smul]
   exact mul_left_cancel₀ (two_ne_zero) hgoal
 
+/-- For `m ≥ 2`, compute the integral of `T_m` over `[-1, 1]` using its adjacent-degree
+antiderivative. -/
 private theorem chebT_integral_succ_sub (m : ℕ) (hm : 2 ≤ m) :
     (∫ x in (-1 : ℝ)..1, (Polynomial.Chebyshev.T ℝ ((m : ℕ) : ℤ)).eval x)
       = (1 - (-1 : ℝ) ^ (m + 1)) / (2 * (((m : ℕ) : ℝ) + 1))
@@ -2728,6 +2953,7 @@ private theorem chebT_integral_succ_sub (m : ℕ) (hm : 2 ≤ m) :
         rw [hc1, hc2, Int.cast_negOnePow ℝ, Int.cast_negOnePow ℝ, zpow_natCast,
           zpow_natCast]
 
+/-- The integral of an odd-degree Chebyshev polynomial over `[-1, 1]` vanishes. -/
 theorem chebT_integral_of_odd {m : ℕ} (hm : Odd m) :
     (∫ x in (-1 : ℝ)..1, (Polynomial.Chebyshev.T ℝ ((m : ℕ) : ℤ)).eval x) = 0 := by
   obtain ⟨t, rfl⟩ := hm
@@ -2754,6 +2980,8 @@ theorem chebT_integral_of_odd {m : ℕ} (hm : Odd m) :
     rw [chebT_integral_succ_sub (2 * t + 1) hm2, hnp1, hnp2]
     norm_num
 
+/-- Simplify the adjacent-denominator expression for the even Chebyshev integral to `2 / (1 -
+x²)` under nonvanishing denominator assumptions. -/
 private theorem even_integral_identity (x : ℝ) (h1 : x + 1 ≠ 0) (h2 : x - 1 ≠ 0)
     (h3 : 1 - x ^ 2 ≠ 0) :
     (1 - (-1 : ℝ)) / (2 * (x + 1)) - (1 - (-1 : ℝ)) / (2 * (x - 1))
@@ -2761,6 +2989,7 @@ private theorem even_integral_identity (x : ℝ) (h1 : x + 1 ≠ 0) (h2 : x - 1 
   field_simp
   ring
 
+/-- For even `m ≥ 2`, the integral of `T_m` over `[-1, 1]` is `2 / (1 - m²)`. -/
 theorem chebT_integral_of_even {m : ℕ} (hm2 : 2 ≤ m) (hme : Even m) :
     (∫ x in (-1 : ℝ)..1, (Polynomial.Chebyshev.T ℝ ((m : ℕ) : ℤ)).eval x)
       = 2 / (1 - ((m : ℕ) : ℝ) ^ 2) := by
@@ -2780,22 +3009,28 @@ theorem chebT_integral_of_even {m : ℕ} (hm2 : 2 ≤ m) (hme : Even m) :
       exact_mod_cast (show (2 : ℕ) ≤ 2 * t by omega)
     nlinarith [htwo]
 
+/-- The explicit Fejér weight at a Chebyshev–Gauss node, given by a finite even cosine sum. -/
 noncomputable def fejerWeight (N : ℕ) (j : Fin N) : ℝ :=
   (2 / ((N : ℝ))) * (1 - 2 * ∑ k ∈ Finset.Icc 1 (N / 2),
     Real.cos (2 * ((k : ℕ) : ℝ) * chebGaussAngle N j) / (4 * ((k : ℕ) : ℝ) ^ 2 - 1))
 
+/-- The quadrature sum at Chebyshev–Gauss nodes with the explicit Fejér weights. -/
 noncomputable def fejerQuad (N : ℕ) (f : ℝ → ℝ) : ℝ :=
   ∑ j, fejerWeight N j * f (chebGaussNode N j)
 
+/-- Fejér quadrature commutes with finite sums of real functions. -/
 private theorem fejerQuad_sum {N : ℕ} {ι : Type} (s : Finset ι) (f : ι → ℝ → ℝ) :
     fejerQuad N (fun x => ∑ i ∈ s, f i x) = ∑ i ∈ s, fejerQuad N (f i) := by
   simp only [fejerQuad, Finset.mul_sum]
   rw [Finset.sum_comm]
 
+/-- Fejér quadrature commutes with multiplication by a real constant. -/
 private theorem fejerQuad_const_mul {N : ℕ} (c : ℝ) (f : ℝ → ℝ) :
     fejerQuad N (fun x => c * f x) = c * fejerQuad N f := by
   simp only [fejerQuad, mul_left_comm, ← Finset.mul_sum]
 
+/-- Expand Fejér quadrature into an unweighted node sum and finite even-frequency cosine
+corrections. -/
 private theorem fejerQuad_expand {N : ℕ} (f : ℝ → ℝ) :
     fejerQuad N f = (2 / ((N : ℝ))) * ∑ j : Fin N, f (chebGaussNode N j)
       - (4 / ((N : ℝ))) * ∑ k ∈ Finset.Icc 1 (N / 2),
@@ -2828,6 +3063,8 @@ private theorem fejerQuad_expand {N : ℕ} (f : ℝ → ℝ) :
     (fun x : Fin N => Real.cos (2 * ((y : ℕ) : ℝ) * chebGaussAngle N x)
       * f (chebGaussNode N x)) (4 * ((y : ℕ) : ℝ) ^ 2 - 1)).symm
 
+/-- The discrete product of the even cosine mode `2 * k` and the Chebyshev mode `m` sums to `N /
+2` when the modes coincide and to zero otherwise, under the stated frequency bounds. -/
 private theorem fejerCrossSum_eq {N : ℕ} (hN : 0 < N) {k m : ℕ}
     (hk1 : 1 ≤ k) (hkN : 2 * k ≤ N) (hmN : m < N) :
     ∑ j : Fin N, Real.cos (2 * ((k : ℕ) : ℝ) * chebGaussAngle N j)
@@ -2890,6 +3127,7 @@ private theorem fejerCrossSum_eq {N : ℕ} (hN : 0 < N) {k m : ℕ}
     rw [hSm]
     ring
 
+/-- For positive `N`, Fejér quadrature of `T_0` is two. -/
 theorem fejerQuad_T_zero {N : ℕ} (hN : 0 < N) :
     fejerQuad N (fun x => (Polynomial.Chebyshev.T ℝ ((0 : ℕ) : ℤ)).eval x) = 2 := by
   rw [fejerQuad_expand, chebNodeEvalSum_zero]
@@ -2905,6 +3143,7 @@ theorem fejerQuad_T_zero {N : ℕ} (hN : 0 < N) :
   rw [Finset.sum_congr rfl hk, Finset.sum_const_zero, mul_zero, sub_zero,
     div_mul_cancel₀ _ hN0]
 
+/-- For positive `N`, Fejér quadrature of an odd Chebyshev mode below `N` vanishes. -/
 theorem fejerQuad_T_of_odd {N : ℕ} (hN : 0 < N) {m : ℕ} (hmN : m < N) (hm : Odd m) :
     fejerQuad N (fun x => (Polynomial.Chebyshev.T ℝ ((m : ℕ) : ℤ)).eval x) = 0 := by
   have hmne : m ≠ 0 := by
@@ -2923,6 +3162,7 @@ theorem fejerQuad_T_of_odd {N : ℕ} (hN : 0 < N) {m : ℕ} (hmN : m < N) (hm : 
   rw [Finset.sum_congr rfl hk, Finset.sum_const_zero, mul_zero, mul_zero]
   norm_num
 
+/-- For even `2 ≤ m < N`, Fejér quadrature of `T_m` is `2 / (1 - m²)`. -/
 theorem fejerQuad_T_of_even {N : ℕ} (hN : 0 < N) {m : ℕ} (hm2 : 2 ≤ m)
     (hme : Even m) (hmN : m < N) :
     fejerQuad N (fun x => (Polynomial.Chebyshev.T ℝ ((m : ℕ) : ℤ)).eval x)
@@ -2972,6 +3212,8 @@ theorem fejerQuad_T_of_even {N : ℕ} (hN : 0 < N) {m : ℕ} (hm2 : 2 ≤ m)
   rw [key]
   ring
 
+/-- Every polynomial of natural degree less than `N` is a linear combination of the first `N`
+Chebyshev polynomials. -/
 theorem chebT_span {N : ℕ} (p : Polynomial ℝ) (hp : p.natDegree < N) :
     ∃ c : ℕ → ℝ, p = ∑ m ∈ Finset.range N,
       c m • Polynomial.Chebyshev.T ℝ ((m : ℕ) : ℤ) := by
@@ -2988,6 +3230,8 @@ theorem chebT_span {N : ℕ} (p : Polynomial ℝ) (hp : p.natDegree < N) :
     obtain ⟨c, rfl⟩ := hmem
     exact ⟨fun m => c m, rfl⟩
 
+/-- Fejér quadrature integrates every polynomial of natural degree less than positive `N`
+exactly. -/
 theorem fejerQuad_exact {N : ℕ} (hN : 0 < N) (p : Polynomial ℝ) (hp : p.natDegree < N) :
     (∫ x in (-1 : ℝ)..1, p.eval x) = fejerQuad N p.eval := by
   obtain ⟨c, hc⟩ := chebT_span p hp
@@ -3021,11 +3265,14 @@ theorem fejerQuad_exact {N : ℕ} (hN : 0 < N) (p : Polynomial ℝ) (hp : p.natD
         chebT_integral_of_even (by omega) ⟨t, by omega⟩]
     · rw [fejerQuad_T_of_odd hN hmN ⟨t, hm⟩, chebT_integral_of_odd ⟨t, hm⟩]
 
+/-- The interpolatory Chebyshev rule and the explicit Fejér rule agree on polynomials of natural
+degree less than positive `N`. -/
 theorem chebQuadRule_eq_fejerQuad {N : ℕ} (hN : 0 < N) (p : Polynomial ℝ)
     (hp : p.natDegree < N) :
     chebQuadRule N p.eval = fejerQuad N p.eval :=
   (chebQuadExact hN p hp).symm.trans (fejerQuad_exact hN p hp)
 
+/-- For positive `N`, the Fejér quadrature weights sum to two. -/
 theorem fejerWeightSum {N : ℕ} (hN : 0 < N) :
     ∑ j : Fin N, fejerWeight N j = 2 := by
   have h := fejerQuad_T_zero hN
@@ -3033,6 +3280,8 @@ theorem fejerWeightSum {N : ℕ} (hN : 0 < N) :
     Polynomial.eval_one, mul_one] at h
   exact h
 
+/-- For positive `N`, the integrated Lagrange weight at each Chebyshev–Gauss node equals its
+explicit Fejér weight. -/
 theorem chebInterpWeight_eq_fejerWeight {N : ℕ} (hN : 0 < N) (j : Fin N) :
     chebInterpWeight N j = fejerWeight N j := by
   have hinj := chebGaussNode_injective hN
@@ -3052,6 +3301,8 @@ theorem chebInterpWeight_eq_fejerWeight {N : ℕ} (hN : 0 < N) (j : Fin N) :
   · intro hnm
     exact absurd (Finset.mem_univ j) hnm
 
+/-- The supremum of the absolute `n`th derivative over a nonempty closed interval is nonnegative
+for a `C^n` function. -/
 private theorem iterSup_nonneg {n : ℕ} {a b : ℝ} (hab : a ≤ b) (f : ℝ → ℝ)
     (hf : ContDiff ℝ ((n : ℕ) : WithTop ℕ∞) f) :
     (0 : ℝ) ≤ ⨆ k ∈ Set.Icc a b, |iteratedDeriv n f k| := by
@@ -3073,6 +3324,8 @@ private theorem iterSup_nonneg {n : ℕ} {a b : ℝ} (hab : a ≤ b) (f : ℝ �
     |iteratedDeriv n f k|) (hbdd.mono htrange) z hz
   linarith [abs_nonneg (iteratedDeriv n f z)]
 
+/-- For a `C^N` function and `N` distinct nodes in a closed interval, bound the interpolation
+error by the derivative supremum divided by `N!` times the absolute node product. -/
 theorem lagrangeInterpRemainderAbs {N : ℕ} (hN : 0 < N) (a b : ℝ) (hab : a ≤ b)
     (node : Fin N → ℝ) (hinj : Function.Injective node) (hmem : ∀ i, node i ∈ Set.Icc a b)
     (f : ℝ → ℝ) (hf : ContDiff ℝ ((N : ℕ) : WithTop ℕ∞) f)
@@ -3229,12 +3482,16 @@ theorem lagrangeInterpRemainderAbs {N : ℕ} (hN : 0 < N) (a b : ℝ) (hab : a �
     rw [le_div_iff₀ (by positivity : (0 : ℝ) < (N.factorial : ℝ))]
     exact hKb
 
+/-- The Gauss–Legendre error constant `(Q!)⁴ * 2 ^ (2 * Q + 1) / ((2 * Q + 1) * ((2 * Q)!)³)`. -/
 noncomputable def glErrorConst (Q : ℕ) : ℝ :=
   ((Q.factorial : ℝ) ^ 4 * (2 : ℝ) ^ (2 * Q + 1)) /
     (((2 * Q + 1 : ℕ) : ℝ) * ((2 * Q).factorial : ℝ) ^ 3)
 
+/-- The Chebyshev interpolation quadrature error constant `4 / (2 ^ N * N!)`. -/
 noncomputable def chebErrorConst (N : ℕ) : ℝ := (4 : ℝ) / ((2 : ℝ) ^ N * (N.factorial : ℝ))
 
+/-- For a `C^N` function, the `N`-node Chebyshev quadrature error is bounded by `chebErrorConst
+N` times the supremum of the absolute `N`th derivative. -/
 theorem chebQuadErrorBound {N : ℕ} (hN : 0 < N) (f : ℝ → ℝ)
     (hf : ContDiff ℝ ((N : ℕ) : WithTop ℕ∞) f) :
     |(∫ x in (-1 : ℝ)..1, f x) - chebQuadRule N f| ≤
@@ -3286,6 +3543,9 @@ theorem chebQuadErrorBound {N : ℕ} (hN : 0 < N) (f : ℝ → ℝ)
         field_simp
         ring
 
+/-- For positive `Q`, there exist distinct interior nodes and positive weights exact through
+degree `2 * Q - 1`, with Gauss–Legendre error bounded by `glErrorConst Q` times the absolute
+`2 * Q`th derivative supremum. -/
 theorem gaussLegendreUnitError (Q : ℕ) (hQ : 0 < Q) (f : ℝ → ℝ)
     (hf : ContDiff ℝ ((2 * Q : ℕ) : WithTop ℕ∞) f) :
     ∃ node weight : Fin Q → ℝ,
@@ -3313,10 +3573,13 @@ theorem gaussLegendreUnitError (Q : ℕ) (hQ : 0 < Q) (f : ℝ → ℝ)
   rw [hrpow] at hcell
   simpa only [glErrorConst] using hcell
 
+/-- The Chebyshev quadrature error constant is strictly positive. -/
 theorem chebErrorConst_pos (N : ℕ) : 0 < chebErrorConst N := by
   unfold chebErrorConst
   positivity
 
+/-- The Gauss–Legendre error constants satisfy the displayed multiplicative recurrence between
+successive indices. -/
 private theorem glErrorConst_succ (N : ℕ) :
     glErrorConst (N + 1) * (2 * ((2 * N + 3 : ℕ) : ℝ) * ((2 * N + 1 : ℕ) : ℝ) ^ 2)
       = glErrorConst N * ((N + 1 : ℕ) : ℝ) := by
@@ -3347,6 +3610,8 @@ private theorem glErrorConst_succ (N : ℕ) :
   field_simp
   ring
 
+/-- The Chebyshev quadrature error constants satisfy `chebErrorConst (N + 1) * (2 * (N + 1)) =
+chebErrorConst N`. -/
 private theorem chebErrorConst_succ (N : ℕ) :
     chebErrorConst (N + 1) * (2 * ((N + 1 : ℕ) : ℝ)) = chebErrorConst N := by
   unfold chebErrorConst
@@ -3357,6 +3622,7 @@ private theorem chebErrorConst_succ (N : ℕ) :
   push_cast
   ring
 
+/-- For `N ≥ 1`, the Gauss–Legendre error constant is at most the Chebyshev error constant. -/
 theorem glErrorConst_le_chebErrorConst (N : ℕ) (hN : 1 ≤ N) :
     glErrorConst N ≤ chebErrorConst N := by
   induction N with
@@ -3398,6 +3664,8 @@ theorem glErrorConst_le_chebErrorConst (N : ℕ) (hN : 1 ≤ N) :
       subst hN0
       norm_num [glErrorConst, chebErrorConst, Nat.factorial]
 
+/-- Collect the Gauss–Legendre node and error guarantees, the Chebyshev quadrature error bound,
+and the comparison of their error constants. -/
 theorem quadratureComparisonEntry (N : ℕ) (hN : 0 < N) (f : ℝ → ℝ)
     (hfN : ContDiff ℝ ((N : ℕ) : WithTop ℕ∞) f)
     (hf2N : ContDiff ℝ ((2 * N : ℕ) : WithTop ℕ∞) f) :
@@ -3413,10 +3681,14 @@ theorem quadratureComparisonEntry (N : ℕ) (hN : 0 < N) (f : ℝ → ℝ)
   ⟨gaussLegendreUnitError N hN f hf2N, chebQuadErrorBound hN f hfN,
     glErrorConst_le_chebErrorConst N (by omega)⟩
 
+/-- An `N`-node Chebyshev rule integrates every Chebyshev truncation of degree bound `K < N`
+exactly. -/
 theorem chebTruncChebQuadExact {N : ℕ} (hN : 0 < N) {K : ℕ} (hK : K < N) (c : ℕ → ℝ) :
     (∫ x in (-1 : ℝ)..1, (chebTrunc K c).eval x) = chebQuadRule N (chebTrunc K c).eval :=
   chebQuadExact hN _ ((chebTrunc_natDegree_le K c).trans_lt hK)
 
+/-- A Chebyshev truncation through degree `K ≤ 2 * Q - 1` is integrated exactly by some `Q`-node
+Gauss–Legendre rule with distinct interior nodes and positive weights. -/
 theorem chebTruncGLExact {Q : ℕ} (hQ : 0 < Q) {K : ℕ} (hK : K ≤ 2 * Q - 1) (c : ℕ → ℝ) :
     ∃ node weight : Fin Q → ℝ,
       (∀ q, node q ∈ Set.Ioo (-1) 1) ∧ Function.Injective node ∧ (∀ q, 0 < weight q) ∧
@@ -3427,10 +3699,13 @@ theorem chebTruncGLExact {Q : ℕ} (hQ : 0 < Q) {K : ℕ} (hK : K ≤ 2 * Q - 1)
   exact ⟨node, weight, hIoo, hinj, hwpos,
     hexact _ ((chebTrunc_natDegree_le K c).trans hK)⟩
 
+/-- A nonnegative pointwise upper bound on a real function bounds its supremum over a set. -/
 theorem iSup_mem_le {s : Set ℝ} {u : ℝ → ℝ} {C : ℝ} (hC : 0 ≤ C)
     (hpt : ∀ k ∈ s, u k ≤ C) : (⨆ k ∈ s, u k) ≤ C :=
   Real.iSup_le (fun k => Real.iSup_le (fun hk => hpt k hk) hC) hC
 
+/-- The `k`th derivative of `f(c * t + d)` is `c ^ k` times the `k`th derivative of `f` at the
+affine argument, for `k ≤ N` and `C^N` functions. -/
 private theorem iteratedDeriv_comp_affine {N : ℕ} (f : ℝ → ℝ)
     (hf : ContDiff ℝ ((N : ℕ) : WithTop ℕ∞) f) (c d : ℝ) (k : ℕ) (hk : k ≤ N) :
     ∀ t : ℝ, iteratedDeriv k (fun s => f (c * s + d)) t
@@ -3456,6 +3731,8 @@ private theorem iteratedDeriv_comp_affine {N : ℕ} (f : ℝ → ℝ)
     rw [hd.deriv, pow_succ]
     ring
 
+/-- The integral of a continuous function over `n` consecutive equal-width cells starting at
+minus one is the sum of the cell integrals. -/
 private theorem integral_partition_eq_sum (f : ℝ → ℝ) (hf : Continuous f) (δ : ℝ)
     (n : ℕ) :
     (∫ x in (-1 : ℝ)..(-1 : ℝ) + ((n : ℕ) : ℝ) * δ, f x)
@@ -3475,9 +3752,12 @@ private theorem integral_partition_eq_sum (f : ℝ → ℝ) (hf : Continuous f) 
       ring
     rw [hc, Finset.sum_range_succ, ← hsplit, ih]
 
+/-- The Chebyshev interpolatory quadrature rule rescaled to the cell from `a` to `a + h`. -/
 noncomputable def chebCellQuad (N : ℕ) (f : ℝ → ℝ) (a h : ℝ) : ℝ :=
   ∑ j, (h / 2) * chebInterpWeight N j * f (a + h * (chebGaussNode N j + 1) / 2)
 
+/-- The rescaled Chebyshev cell rule exactly integrates polynomials of natural degree less than
+positive `N`. -/
 theorem chebCellQuadExact {N : ℕ} (hN : 0 < N) (a h : ℝ) (p : Polynomial ℝ)
     (hp : p.natDegree < N) :
     (∫ x in a..a + h, p.eval x) = chebCellQuad N p.eval a h := by
@@ -3509,6 +3789,8 @@ theorem chebCellQuadExact {N : ℕ} (hN : 0 < N) (a h : ℝ) (p : Polynomial ℝ
       = h / 2 * chebGaussNode N j + (a + h / 2) from by ring]
   ring
 
+/-- For a positive-width cell and a `C^N` function, the cell quadrature error is at most
+`chebErrorConst N * (h / 2) ^ (N + 1)` times the absolute derivative supremum on the cell. -/
 theorem chebCellQuadErrorBound {N : ℕ} (hN : 0 < N) (a h : ℝ) (hpos : 0 < h)
     (f : ℝ → ℝ) (hf : ContDiff ℝ ((N : ℕ) : WithTop ℕ∞) f) :
     |(∫ x in a..a + h, f x) - chebCellQuad N f a h| ≤
@@ -3582,14 +3864,19 @@ theorem chebCellQuadErrorBound {N : ℕ} (hN : 0 < N) (a h : ℝ) (hpos : 0 < h)
         rw [pow_succ]
         ring
 
+/-- The composite Chebyshev quadrature rule on `M` equal cells partitioning `[-1, 1]`. -/
 noncomputable def chebCompositeQuad (N M : ℕ) (f : ℝ → ℝ) : ℝ :=
   ∑ i ∈ Finset.range M, chebCellQuad N f (-1 + ((i : ℕ) : ℝ) * (2 / ((M : ℕ) : ℝ)))
     (2 / ((M : ℕ) : ℝ))
 
+/-- The number of node occurrences in `M` cells with `N` nodes each is `M * N`, expressed as a
+real sum. -/
 theorem compositeQuadNodeCount (N M : ℕ) :
     (∑ _i : Fin M, ∑ _j : Fin N, (1 : ℝ)) = ((M * N : ℕ) : ℝ) := by
   simp
 
+/-- For positive `N` and `M`, composite Chebyshev quadrature exactly integrates polynomials of
+natural degree less than `N`. -/
 theorem chebCompositeQuadExact {N M : ℕ} (hN : 0 < N) (hM : 0 < M)
     (p : Polynomial ℝ) (hp : p.natDegree < N) :
     (∫ x in (-1 : ℝ)..1, p.eval x) = chebCompositeQuad N M p.eval := by
@@ -3603,6 +3890,8 @@ theorem chebCompositeQuadExact {N M : ℕ} (hN : 0 < N) (hM : 0 < M)
   refine Finset.sum_congr rfl fun i _ => ?_
   exact chebCellQuadExact hN _ _ p hp
 
+/-- The composite Chebyshev error for a `C^N` function is at most `chebErrorConst N / M ^ N`
+times the absolute `N`th derivative supremum. -/
 theorem chebCompositeQuadErrorBound {N M : ℕ} (hN : 0 < N) (hM : 0 < M)
     (f : ℝ → ℝ) (hf : ContDiff ℝ ((N : ℕ) : WithTop ℕ∞) f) :
     |(∫ x in (-1 : ℝ)..1, f x) - chebCompositeQuad N M f| ≤
@@ -3704,11 +3993,15 @@ theorem chebCompositeQuadErrorBound {N M : ℕ} (hN : 0 < N) (hM : 0 < M)
           ring
         rw [hL, hkey, div_mul_eq_mul_div, one_mul, div_mul_eq_mul_div]
 
+/-- The composite rule obtained by rescaling a supplied `Q`-node quadrature rule to `M` equal
+cells of `[-1, 1]`. -/
 noncomputable def glCompositeQuad (Q M : ℕ) (node weight : Fin Q → ℝ) (f : ℝ → ℝ) : ℝ :=
   ∑ i ∈ Finset.range M, ∑ q, (1 / ((M : ℕ) : ℝ)) * weight q
     * f (-1 + ((i : ℕ) : ℝ) * (2 / ((M : ℕ) : ℝ))
       + (2 / ((M : ℕ) : ℝ)) * (node q + 1) / 2)
 
+/-- If a supplied rule is exact through degree `2 * Q - 1`, its positive-cell-count composite
+rule has the same polynomial exactness. -/
 theorem glCompositeQuadExact (Q M : ℕ) (hM : 0 < M) {node weight : Fin Q → ℝ}
     (hexact : ∀ p : Polynomial ℝ, p.natDegree ≤ 2 * Q - 1 →
       (∫ x in (-1 : ℝ)..1, p.eval x) = ∑ q, weight q * p.eval (node q))
@@ -3727,6 +4020,7 @@ theorem glCompositeQuadExact (Q M : ℕ) (hM : 0 < M) {node weight : Fin Q → �
   refine Finset.sum_congr rfl fun q _ => ?_
   rw [show (2 / ((M : ℕ) : ℝ)) / 2 = 1 / ((M : ℕ) : ℝ) from by ring]
 
+/-- Express the Gauss–Legendre cell error factor as `glErrorConst Q * (h / 2) ^ (2 * Q + 1)`. -/
 private theorem gl_cell_const_eq (Q : ℕ) (h : ℝ) :
     (((Q.factorial : ℕ) : ℝ) ^ 4 * h ^ ((2 : ℝ) * Q + 1))
         / ((((2 * Q + 1 : ℕ) : ℝ)) * ((((2 * Q).factorial : ℕ) : ℝ) ^ 3))
@@ -3738,10 +4032,14 @@ private theorem gl_cell_const_eq (Q : ℕ) (h : ℝ) :
   unfold glErrorConst
   field_simp
 
+/-- The Gauss–Legendre quadrature error constant is strictly positive. -/
 theorem glErrorConst_pos (Q : ℕ) : 0 < glErrorConst Q := by
   unfold glErrorConst
   positivity
 
+/-- Under polynomial exactness and the stated squared-node-product integral identity, the
+composite rule has error at most `glErrorConst Q / M ^ (2 * Q)` times the absolute `2 * Q`th
+derivative supremum. -/
 theorem glCompositeQuadErrorBound (Q M : ℕ) (hQ : 0 < Q) (hM : 0 < M)
     (node weight : Fin Q → ℝ)
     (hexact : ∀ p : Polynomial ℝ, p.natDegree ≤ 2 * Q - 1 →
@@ -3861,6 +4159,8 @@ theorem glCompositeQuadErrorBound (Q M : ℕ) (hQ : 0 < Q) (hM : 0 < M)
           ring
         rw [hL, hkey, div_mul_eq_mul_div, one_mul, div_mul_eq_mul_div]
 
+/-- For positive node and cell counts, the composite Gauss–Legendre error factor is at most the
+composite Chebyshev error factor. -/
 theorem glCompositeErrorConst_le_chebCompositeErrorConst (N M : ℕ) (hN : 1 ≤ N)
     (hM : 1 ≤ M) :
     glErrorConst N / ((M : ℕ) : ℝ) ^ (2 * N)
@@ -3877,6 +4177,8 @@ theorem glCompositeErrorConst_le_chebCompositeErrorConst (N M : ℕ) (hN : 1 ≤
     _ ≤ chebErrorConst N * ((M : ℕ) : ℝ) ^ (2 * N) :=
         mul_le_mul_of_nonneg_left hMpown (chebErrorConst_pos N).le
 
+/-- Collect composite Gauss–Legendre existence and exactness, both composite error bounds, their
+constant comparison, and the `M * N` node count. -/
 theorem quadratureCompositeComparisonEntry (N M : ℕ) (hN : 0 < N) (hM : 0 < M)
     (f : ℝ → ℝ)
     (hfN : ContDiff ℝ ((N : ℕ) : WithTop ℕ∞) f)
@@ -3902,6 +4204,7 @@ theorem quadratureCompositeComparisonEntry (N M : ℕ) (hN : 0 < N) (hM : 0 < M)
     glCompositeErrorConst_le_chebCompositeErrorConst N M (by omega) (by omega),
     compositeQuadNodeCount N M⟩
 
+/-- A lower bound using `max 0 num / d` implies `num / C` when `0 < d ≤ C`. -/
 private theorem query_lower_translate {q d C num : ℝ}
     (hq : max 0 num / d ≤ q) (hd : 0 < d) (hC : 0 < C) (hdc : d ≤ C) :
     num / C ≤ q := by
@@ -3912,6 +4215,9 @@ private theorem query_lower_translate {q d C num : ℝ}
     have hnc : num / C ≤ 0 := (div_le_iff₀ hC).mpr (by rw [zero_mul]; exact hnum)
     linarith
 
+/-- A well-formed word approximating scalar outputs `a` and `b` within `eps` at distinct signals
+has query count at least `(|a - b| - 2 * eps) / √(2 * η)`; an interior window gives the
+stronger stated Lipschitz lower bound. -/
 theorem uniformErrorQueryLowerBound : ∀ (W I : Type) [Fintype W] [DecidableEq W]
     [Fintype I] [DecidableEq I] [Nonempty I]
     (L R : Matrix (Bool × W) I ℂ) (word : List (AdjointStep (Bool × W)))
@@ -3952,17 +4258,24 @@ theorem uniformErrorQueryLowerBound : ∀ (W I : Type) [Fintype W] [DecidableEq 
     ring
   rwa [hconv] at hW
 
+/-- The maximum of zero, the approximation-adjusted output gap, and the square-root leakage gap
+used in query lower bounds. -/
 noncomputable def leakageNumerator (a b eps : ℝ) : ℝ :=
   max (max 0 (|a - b| - 2 * eps))
     (Real.sqrt (1 - (b + eps) ^ 2) - Real.sqrt (1 - (a - eps) ^ 2))
 
+/-- The leakage lower-bound numerator is nonnegative. -/
 theorem leakageNumerator_nonneg (a b eps : ℝ) : 0 ≤ leakageNumerator a b eps :=
   le_trans (le_max_left 0 (|a - b| - 2 * eps)) (le_max_left _ _)
 
+/-- The leakage numerator is at least the nonnegative part of the approximation-adjusted
+response gap. -/
 theorem leakageNumerator_ge_response (a b eps : ℝ) :
     max 0 (|a - b| - 2 * eps) ≤ leakageNumerator a b eps :=
   le_max_left _ _
 
+/-- Under the stated approximation and leakage-range conditions, the query count is bounded
+below by `leakageNumerator / √(2 * η)`, with the stronger stated interior-window bound. -/
 theorem uniformLeakageQueryLowerBound : ∀ (W I : Type) [Fintype W] [DecidableEq W]
     [Fintype I] [DecidableEq I] [Nonempty I]
     (L R : Matrix (Bool × W) I ℂ) (word : List (AdjointStep (Bool × W)))
@@ -4009,10 +4322,14 @@ theorem uniformLeakageQueryLowerBound : ∀ (W I : Type) [Fintype W] [DecidableE
     ring
   rwa [hconv] at hW
 
+/-- The `false`-fiber matrix entry of the degree-`n` Chebyshev word evaluated at the polynomial
+signal `q.eval t`. -/
 noncomputable def wordResponse (n : ℕ) (q : Polynomial ℝ) (t : ℝ) : ℂ :=
   (evaluate (scalarSignalLift Unit (q.eval t)) (signalChebyshevUnitWord n))
     (false, ()) (false, ())
 
+/-- When `q.eval t ∈ [-1, 1]`, the word response equals the real Chebyshev value `T_n(q.eval t)`
+embedded in the complex numbers. -/
 theorem wordResponse_eq (n : ℕ) (q : Polynomial ℝ) {t : ℝ}
     (ht : q.eval t ∈ Set.Icc (-1) 1) :
     wordResponse n q t =
@@ -4021,11 +4338,14 @@ theorem wordResponse_eq (n : ℕ) (q : Polynomial ℝ) {t : ℝ}
   rw [wordResponse, hc.2.2.2.2.2, tensorGate_apply, Matrix.one_apply_eq, mul_one,
     hc.2.2.2.2.1]
 
+/-- Composing `T_n` with a degree-`K` Chebyshev truncation gives natural degree at most `n * K`. -/
 theorem chebT_comp_chebTrunc_natDegree_le (n K : ℕ) (c : ℕ → ℝ) :
     ((Polynomial.Chebyshev.T ℝ ((n : ℕ) : ℤ)).comp (chebTrunc K c)).natDegree ≤ n * K := by
   rw [Polynomial.natDegree_comp, chebT_natDegree_eq]
   exact Nat.mul_le_mul_left _ (chebTrunc_natDegree_le K c)
 
+/-- If a unit-interval-valued function is uniformly approximated within `δ` by a Chebyshev
+truncation and `n * K < N`, the response quadrature error is at most `2 * n * √(2 * δ)`. -/
 theorem wordResponseQuadratureChain (n K N : ℕ) (c : ℕ → ℝ) (f : ℝ → ℝ) (δ : ℝ)
     (hNK : n * K < N) (hδ : 0 ≤ δ)
     (hq1 : ∀ t ∈ Set.Icc (-1) 1, (chebTrunc K c).eval t ∈ Set.Icc (-1) 1)
@@ -4098,6 +4418,8 @@ theorem wordResponseQuadratureChain (n K N : ℕ) (c : ℕ → ℝ) (f : ℝ →
         norm_num
         ring
 
+/-- For positive `t` and `r`, the logarithmic inequality `log(1 / t) ≤ k * log(1 / r)` implies
+`r ^ k ≤ t`. -/
 theorem pow_le_of_log_ge {t r : ℝ} (k : ℕ) (ht : 0 < t) (hr0 : 0 < r)
     (h : Real.log (1 / t) ≤ (k : ℝ) * Real.log (1 / r)) : r ^ k ≤ t := by
   have hp : 0 < r ^ k := pow_pos hr0 k
@@ -4109,6 +4431,8 @@ theorem pow_le_of_log_ge {t r : ℝ} (k : ℕ) (ht : 0 < t) (hr0 : 0 < r)
   rw [Real.log_pow, hlr, hlt]
   linarith
 
+/-- The stated logarithmic truncation-degree condition makes the scaled reciprocal Chebyshev
+signal produce word error at most `ε`, using the interior transport bound. -/
 theorem recipChebTruncQueryUpperBound (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (δ m ε : ℝ) (n : ℕ)
     (hw : WellFormedAdjointCircuit word) (hδ : (0 : ℝ) < δ) (hδ1 : δ < 1)
@@ -4170,6 +4494,8 @@ theorem recipChebTruncQueryUpperBound (W : Type) [Fintype W] [DecidableEq W]
     _ = ε := by
         field_simp
 
+/-- The stated logarithmic truncation-degree condition makes the scaled reciprocal Chebyshev
+signal produce word error at most `ε`, using the global square-root transport bound. -/
 theorem recipChebTruncQueryUpperBoundGlobal (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (δ m ε : ℝ) (n : ℕ)
     (hw : WellFormedAdjointCircuit word) (hδ : (0 : ℝ) < δ) (hδ1 : δ < 1)
@@ -4233,6 +4559,8 @@ theorem recipChebTruncQueryUpperBoundGlobal (W : Type) [Fintype W] [DecidableEq 
       _ = ε ^ 2 := hfin
   exact (sq_le_sq₀ (mul_nonneg hQ.le (Real.sqrt_nonneg _)) hε.le).mp hsq
 
+/-- The stated truncation-size and interior-window conditions make the half-scaled sign
+Chebyshev signal produce word error at most `ε` on `δ ≤ |t| ≤ 1`. -/
 theorem signChebTruncQueryUpperBound (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (K : ℕ) (δ m ε : ℝ)
     (hw : WellFormedAdjointCircuit word) (hδ : (0 : ℝ) < δ) (hε : (0 : ℝ) < ε)
@@ -4276,6 +4604,8 @@ theorem signChebTruncQueryUpperBound (W : Type) [Fintype W] [DecidableEq W]
     _ = ε * (2 * (((K + 1 : ℕ) : ℝ) * Real.pi * δ *
         Real.sqrt (1 - m ^ 2))) := by ring
 
+/-- The stated truncation-size and interior-window conditions make the half-scaled window
+polynomial produce word error at most `ε` away from both window endpoints. -/
 theorem windowTruncQueryUpperBound (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (K : ℕ) (a b δ m ε : ℝ)
     (ha : -1 ≤ a) (hb1 : b ≤ 1) (hab : a < b)
@@ -4317,9 +4647,11 @@ theorem windowTruncQueryUpperBound (W : Type) [Fintype W] [DecidableEq W]
     rwa [hring] at h
   exact hK2
 
+/-- The one-column embedding selecting the `false` Boolean fiber with a trivial workspace. -/
 private def pickEntry : Matrix (Bool × Unit) Unit ℂ :=
   Matrix.of fun i _ => if i.1 = false then (1 : ℂ) else 0
 
+/-- The `false`-fiber entry-selection embedding is an isometry. -/
 private theorem pickEntry_isometry : IsIsometry pickEntry := by
   unfold IsIsometry
   ext a b
@@ -4338,6 +4670,8 @@ private theorem pickEntry_isometry : IsIsometry pickEntry := by
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- Compression by the entry-selection embedding gives the one-dimensional matrix containing the
+`false`-fiber diagonal entry. -/
 private theorem compress_pickEntry (V : Matrix (Bool × Unit) (Bool × Unit) ℂ) :
     compress pickEntry V pickEntry =
       Matrix.of fun _ _ => V (false, ()) (false, ()) := by
@@ -4370,13 +4704,17 @@ private theorem compress_pickEntry (V : Matrix (Bool × Unit) (Bool × Unit) ℂ
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The total query count for evaluating the degree-`n` Chebyshev word at `N` quadrature nodes. -/
 noncomputable def wordResponseQuadQueryCost (n N : ℕ) : ℕ :=
   N * adjointQueryCount (signalChebyshevUnitWord n)
 
+/-- Response quadrature with `N` nodes and a degree-`n` Chebyshev word uses `N * n` queries. -/
 theorem wordResponseQuadQueryCost_eq (n N : ℕ) :
     wordResponseQuadQueryCost n N = N * n := by
   rw [wordResponseQuadQueryCost, (signalChebyshevUnitWord_cost n).2.1]
 
+/-- For positive `n` and `ε`, the choice `δ = ε² / (8 * n²)` makes the response integration
+error budget `2 * n * √(2 * δ)` equal to `ε`. -/
 theorem wordResponseQuadBudget_eq (n : ℕ) (hn : 0 < n) (ε : ℝ) (hε : 0 < ε) :
     2 * (n : ℝ) * Real.sqrt (2 * (ε ^ 2 / (8 * (n : ℝ) ^ 2))) = ε := by
   have hn0 : (0 : ℝ) < (n : ℝ) := Nat.cast_pos.mpr hn
@@ -4399,6 +4737,8 @@ theorem wordResponseQuadBudget_eq (n : ℕ) (hn : 0 < n) (ε : ℝ) (hε : 0 < �
   rw [hs, div_eq_mul_inv, mul_comm ε ((2 * (n : ℝ))⁻¹), ← mul_assoc,
     mul_inv_cancel₀ h2n, one_mul]
 
+/-- With `δ ≤ ε² / (8 * n²)` and `n * K < N`, the word-response quadrature error is at most `ε`
+and its total query count is `N * n`. -/
 theorem wordResponseQuadComplexityLedger (n K N : ℕ) (c : ℕ → ℝ) (f : ℝ → ℝ) (δ ε : ℝ)
     (hn : 0 < n) (hNK : n * K < N) (hε : 0 < ε) (hδ : 0 ≤ δ)
     (hδle : δ ≤ ε ^ 2 / (8 * (n : ℝ) ^ 2))
@@ -4419,6 +4759,8 @@ theorem wordResponseQuadComplexityLedger (n K N : ℕ) (c : ℕ → ℝ) (f : �
           (mul_nonneg (by norm_num) (Nat.cast_nonneg n))
     _ = ε := wordResponseQuadBudget_eq n hn ε hε
 
+/-- Choosing `N = n * K + 1` gives response quadrature error at most `ε` and total query count
+`(n * K + 1) * n` under the stated approximation budget. -/
 theorem wordResponseQuadSelector (n K : ℕ) (c : ℕ → ℝ) (f : ℝ → ℝ) (δ ε : ℝ)
     (hn : 0 < n) (hε : 0 < ε) (hδ : 0 ≤ δ) (hδle : δ ≤ ε ^ 2 / (8 * (n : ℝ) ^ 2))
     (hq1 : ∀ t ∈ Set.Icc (-1) 1, (chebTrunc K c).eval t ∈ Set.Icc (-1) 1)
@@ -4432,6 +4774,8 @@ theorem wordResponseQuadSelector (n K : ℕ) (c : ℕ → ℝ) (f : ℝ → ℝ)
   wordResponseQuadComplexityLedger n K (n * K + 1) c f δ ε hn (Nat.lt_succ_self _)
     hε hδ hδle hq1 hf1 huni hfc
 
+/-- The difference of degree-`n` Chebyshev responses at distinct scalar signals yields both
+global and interior-window query lower bounds bounded above by `n`. -/
 theorem chebyshevWordResponseQueryFloor (n : ℕ) (x y η m : ℝ)
     (hx : x ∈ Set.Icc (-1) 1) (hy : y ∈ Set.Icc (-1) 1) (hxy : x ≠ y)
     (hη : 0 ≤ η) (hηle : |x - y| ≤ η)
@@ -4484,6 +4828,8 @@ theorem chebyshevWordResponseQueryFloor (n : ℕ) (x y η m : ℝ)
   rw [h0sub] at hmain
   exact ⟨hmain.1, hmain.2 hm hm1 hxm hym⟩
 
+/-- An adaptive scalar-signal protocol consisting of a complex readout and a well-formed circuit
+word chosen from the preceding readout history. -/
 structure AdaptiveSignalQuery (W : Type) [Fintype W] [DecidableEq W] where
 
   read : Matrix (Bool × W) (Bool × W) ℂ → ℂ
@@ -4492,25 +4838,30 @@ structure AdaptiveSignalQuery (W : Type) [Fintype W] [DecidableEq W] where
 
   wordChoice_legal : ∀ h : List ℂ, WellFormedAdjointCircuit (wordChoice h)
 
+/-- The readout history after a given number of rounds of an adaptive scalar-signal protocol. -/
 noncomputable def adaptiveReads {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) : ℕ → List ℂ
   | 0 => []
   | j + 1 => adaptiveReads P x j ++
       [P.read (evaluate (scalarSignalLift W x) (P.wordChoice (adaptiveReads P x j)))]
 
+/-- The circuit word chosen in round `j` from the preceding adaptive readout history. -/
 noncomputable def adaptiveWordAt {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) (j : ℕ) :
     List (AdjointStep (Bool × W)) :=
   P.wordChoice (adaptiveReads P x j)
 
+/-- The complex readout obtained by evaluating the chosen round-`j` word at the scalar signal. -/
 noncomputable def adaptiveReadAt {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) (j : ℕ) : ℂ :=
   P.read (evaluate (scalarSignalLift W x) (adaptiveWordAt P x j))
 
+/-- The next adaptive history appends the current round's readout. -/
 theorem adaptiveReads_succ {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) (j : ℕ) :
     adaptiveReads P x (j + 1) = adaptiveReads P x j ++ [adaptiveReadAt P x j] := rfl
 
+/-- The history after `j` adaptive rounds has length `j`. -/
 theorem adaptiveReads_length {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) (j : ℕ) :
     (adaptiveReads P x j).length = j := by
@@ -4519,16 +4870,21 @@ theorem adaptiveReads_length {W : Type} [Fintype W] [DecidableEq W]
   | succ j ih =>
     rw [adaptiveReads_succ, List.length_append, ih, List.length_singleton]
 
+/-- The sum of the query counts of the first `T` adaptively chosen words. -/
 noncomputable def adaptiveQueryCost {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) (T : ℕ) : ℕ :=
   ∑ j ∈ Finset.range T, adjointQueryCount (adaptiveWordAt P x j)
 
+/-- The query cost through `T + 1` rounds is the cost through `T` rounds plus the next word's
+query count. -/
 theorem adaptiveQueryCost_succ {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) (T : ℕ) :
     adaptiveQueryCost P x (T + 1) =
       adaptiveQueryCost P x T + adjointQueryCount (adaptiveWordAt P x T) := by
   simp only [adaptiveQueryCost, Finset.sum_range_succ]
 
+/-- If the protocol's word choice is constant on all histories, every adaptive round uses that
+word. -/
 theorem adaptiveConstantProtocolWord {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) (w : List (AdjointStep (Bool × W)))
     (hconst : ∀ h : List ℂ, P.wordChoice h = w) (j : ℕ) :
@@ -4536,6 +4892,8 @@ theorem adaptiveConstantProtocolWord {W : Type} [Fintype W] [DecidableEq W]
   unfold adaptiveWordAt
   exact hconst _
 
+/-- If the protocol always selects the same word, its cost over `T` rounds is `T` times that
+word's query count. -/
 theorem adaptiveConstantProtocolCost {W : Type} [Fintype W] [DecidableEq W]
     (P : AdaptiveSignalQuery W) (x : ℝ) (w : List (AdjointStep (Bool × W)))
     (hconst : ∀ h : List ℂ, P.wordChoice h = w) (T : ℕ) :
@@ -4547,6 +4905,7 @@ theorem adaptiveConstantProtocolCost {W : Type} [Fintype W] [DecidableEq W]
   rw [Finset.sum_congr rfl h, Finset.sum_const, Finset.card_range, nsmul_eq_mul,
     Nat.cast_id]
 
+/-- Agreement of all readouts before round `j` implies equality of the round-`j` histories. -/
 private theorem adaptiveReads_eq {W : Type} [Fintype W] [DecidableEq W]
     {P : AdaptiveSignalQuery W} {x y : ℝ} {j : ℕ}
     (hagree : ∀ k < j, adaptiveReadAt P x k = adaptiveReadAt P y k) :
@@ -4557,6 +4916,8 @@ private theorem adaptiveReads_eq {W : Type} [Fintype W] [DecidableEq W]
     have hpre := ih fun k hk => hagree k (Nat.lt_succ_of_lt hk)
     rw [adaptiveReads_succ, adaptiveReads_succ, hpre, hagree j (Nat.lt_succ_self j)]
 
+/-- Agreement of all readouts before round `j` implies that both signals select the same
+round-`j` word. -/
 theorem adaptiveWord_eq {W : Type} [Fintype W] [DecidableEq W]
     {P : AdaptiveSignalQuery W} {x y : ℝ} {j : ℕ}
     (hagree : ∀ k < j, adaptiveReadAt P x k = adaptiveReadAt P y k) :
@@ -4565,6 +4926,8 @@ theorem adaptiveWord_eq {W : Type} [Fintype W] [DecidableEq W]
   unfold adaptiveWordAt
   rw [hreads]
 
+/-- When earlier readouts agree, the two round-`j` circuit outputs satisfy both interior
+Lipschitz and global square-root transport bounds. -/
 theorem adaptiveRoundTransport {W : Type} [Fintype W] [DecidableEq W]
     {P : AdaptiveSignalQuery W} {x y η m : ℝ} {j : ℕ}
     (hagree : ∀ k < j, adaptiveReadAt P x k = adaptiveReadAt P y k)
@@ -4585,6 +4948,9 @@ theorem adaptiveRoundTransport {W : Type} [Fintype W] [DecidableEq W]
   rw [hw]
   exact ⟨hmain.1 x y hxw hyw hηle, hmain.2 x y hx hy hηle⟩
 
+/-- If earlier readouts agree and the round-`j` compressed outputs approximate scalars `a` and
+`b`, their adjusted gap gives a global query lower bound for that round and any total cost
+including it. -/
 theorem adaptiveFirstDivergenceFloor {W I : Type} [Fintype W] [DecidableEq W]
     [Fintype I] [DecidableEq I] [Nonempty I]
     {P : AdaptiveSignalQuery W} {x y a b eps η : ℝ} {j T : ℕ}
@@ -4612,6 +4978,7 @@ theorem adaptiveFirstDivergenceFloor {W I : Type} [Fintype W] [DecidableEq W]
     simpa only [adaptiveQueryCost, Nat.cast_sum] using h
   exact hmain.1.trans hsingle
 
+/-- A finite family of well-formed scalar-signal circuit words, one for each signal coordinate. -/
 structure MultiSignalQuery (ι W : Type) [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] where
 
@@ -4619,27 +4986,33 @@ structure MultiSignalQuery (ι W : Type) [Fintype ι] [DecidableEq ι]
 
   word_legal : ∀ i, WellFormedAdjointCircuit (word i)
 
+/-- Evaluate each coordinate's circuit word at its corresponding scalar-signal parameter. -/
 noncomputable def multiSignalOutput {ι W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] (M : MultiSignalQuery ι W) (x : ι → ℝ) :
     ι → Matrix (Bool × W) (Bool × W) ℂ :=
   fun i => evaluate (scalarSignalLift W (x i)) (M.word i)
 
+/-- The sum of query counts over all coordinate words in a multisignal family. -/
 def multiSignalQueryCost {ι W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] (M : MultiSignalQuery ι W) : ℕ :=
   ∑ i, adjointQueryCount (M.word i)
 
+/-- The query count of any coordinate word is at most the total multisignal query cost. -/
 theorem multiSignalQueryCost_ge_single {ι W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] (M : MultiSignalQuery ι W) (i₀ : ι) :
     adjointQueryCount (M.word i₀) ≤ multiSignalQueryCost M :=
   Finset.single_le_sum (f := fun i => adjointQueryCount (M.word i))
     (fun _ _ => Nat.zero_le _) (Finset.mem_univ i₀)
 
+/-- Equal parameters at a coordinate give equal circuit outputs at that coordinate. -/
 theorem multiSignalOutput_congr {ι W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] (M : MultiSignalQuery ι W) {x y : ι → ℝ} {i : ι}
     (h : x i = y i) : multiSignalOutput M x i = multiSignalOutput M y i := by
   simp only [multiSignalOutput]
   rw [h]
 
+/-- An aggregate Lipschitz in the sum of coordinate operator norms satisfies both interior and
+square-root transport bounds scaled by the total multisignal query count. -/
 theorem multiSignalAggregateTransport {ι W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] (M : MultiSignalQuery ι W)
     (g : (ι → Matrix (Bool × W) (Bool × W) ℂ) → ℝ) (L m ε : ℝ) (x y : ι → ℝ)
@@ -4677,6 +5050,8 @@ theorem multiSignalAggregateTransport {ι W : Type} [Fintype ι] [DecidableEq ι
     rw [← Finset.sum_mul] at h1
     simpa only [multiSignalQueryCost, Nat.cast_sum] using h1
 
+/-- If only coordinate `i₀` changes and an `L`-Lipschitz aggregate changes by at least `ν`, both
+that coordinate's query count and the total cost are at least `ν / (L * √(2 * η))`. -/
 theorem multiSignalSingleCoordinateFloor {ι W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] (M : MultiSignalQuery ι W)
     (g : (ι → Matrix (Bool × W) (Bool × W) ℂ) → ℝ) (L ν η : ℝ) (i₀ : ι)
@@ -4716,6 +5091,7 @@ theorem multiSignalSingleCoordinateFloor {ι W : Type} [Fintype ι] [DecidableEq
     exact hkey
   exact ⟨hfirst, hfirst.trans hsingle⟩
 
+/-- The absolute real part of a complex number is bounded by its norm. -/
 private theorem abs_re_le_norm (z : ℂ) : |z.re| ≤ ‖z‖ := by
   have h2 : ‖z‖ ^ 2 = z.re * z.re + z.im * z.im := by
     rw [← Complex.normSq_eq_norm_sq, Complex.normSq_apply]
@@ -4723,11 +5099,14 @@ private theorem abs_re_le_norm (z : ℂ) : |z.re| ≤ ‖z‖ := by
   rw [sq_abs, h2, pow_two]
   linarith [sq_nonneg z.im]
 
+/-- The sum over coordinates of the real `((false, w₀), (false, w₀))` diagonal entries. -/
 noncomputable def sumEntryReAgg {ι W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] (w₀ : W)
     (u : ι → Matrix (Bool × W) (Bool × W) ℂ) : ℝ :=
   ∑ i, (u i (false, w₀) (false, w₀)).re
 
+/-- The difference of summed real diagonal entries is bounded by the sum of coordinate
+operator-norm differences. -/
 theorem abs_sumEntryReAgg_sub_le {ι W : Type} [Fintype ι] [DecidableEq ι]
     [Fintype W] [DecidableEq W] (w₀ : W)
     (u v : ι → Matrix (Bool × W) (Bool × W) ℂ) :

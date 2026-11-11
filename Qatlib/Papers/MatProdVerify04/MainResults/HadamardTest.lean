@@ -8,6 +8,30 @@ import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.Complex.Norm
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# Hadamard-test interference probability
+
+`diagonalBranches` represents two equally weighted state branches, and `hadamardFirstQubit`
+mixes them by a Hadamard transformation. For unit vectors, `hadamard_test_probability`
+identifies the squared norm of the second output branch as `(1 - Re ⟪φ, ψ⟫) / 2` and proves that
+it lies in `[0, 1]`.
+
+The mathematical setting is that of [BuhrmanSpalek2006].
+
+## Main statements
+
+* `hadamard_test_reflects`: Applying the branch Hadamard transformation to equally weighted
+  inputs gives `(φ + ψ) / 2` and `(φ - ψ) / 2`.
+* `hadamard_test_probability`: For unit vectors `φ` and `ψ`, the second Hadamard-test branch has
+  squared norm `(1 - Re ⟪φ, ψ⟫) / 2`.
+* `hadamard_test_probability_bounds`: For unit vectors, the Hadamard-test expression `(1 - Re
+  ⟪φ, ψ⟫) / 2` lies between zero and one.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,12 +39,17 @@ namespace Qatlib.Papers.MatProdVerify04.MainResults
 
 open scoped ComplexOrder ComplexInnerProductSpace
 
+/-- The pair of branches obtained by scaling each of `φ` and `ψ` by `1 / sqrt(2)`. -/
 def diagonalBranches {H : Type*} [AddCommGroup H] [Module ℂ H] (φ ψ : H) : H × H :=
   ((Real.sqrt 2)⁻¹ • φ, (Real.sqrt 2)⁻¹ • ψ)
 
+/-- The Hadamard transformation of two state branches, giving their sum and difference scaled by
+`1 / sqrt(2)`. -/
 def hadamardFirstQubit {H : Type*} [AddCommGroup H] [Module ℂ H] (a b : H) : H × H :=
   ((Real.sqrt 2)⁻¹ • (a + b), (Real.sqrt 2)⁻¹ • (a - b))
 
+/-- Applying the branch Hadamard transformation to equally weighted inputs gives `(φ + ψ) / 2`
+and `(φ - ψ) / 2`. -/
 theorem hadamard_test_reflects {H : Type*} [AddCommGroup H] [Module ℂ H]
     (φ ψ : H) :
     hadamardFirstQubit ((Real.sqrt 2)⁻¹ • φ) ((Real.sqrt 2)⁻¹ • ψ)
@@ -31,6 +60,8 @@ theorem hadamard_test_reflects {H : Type*} [AddCommGroup H] [Module ℂ H]
     exact Real.mul_self_sqrt (by norm_num : (0 : ℝ) ≤ 2)
   simp only [hadamardFirstQubit, smul_add, smul_sub, smul_smul, hsq]
 
+/-- For unit vectors `φ` and `ψ`, the second Hadamard-test branch has squared norm `(1 - Re ⟪φ,
+ψ⟫) / 2`. [BuhrmanSpalek2006] -/
 theorem hadamard_test_probability {H : Type*}
     [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (φ ψ : H) (hφ : ‖φ‖ = 1) (hψ : ‖ψ‖ = 1) :
@@ -50,6 +81,8 @@ theorem hadamard_test_probability {H : Type*}
     _ = (1 / 4 : ℝ) * (2 - 2 * (⟪φ, ψ⟫).re) := by rw [hsq]
     _ = (1 / 2) * (1 - (⟪φ, ψ⟫).re) := by ring
 
+/-- For unit vectors, the Hadamard-test expression `(1 - Re ⟪φ, ψ⟫) / 2` lies between zero and
+one. [BuhrmanSpalek2006] -/
 theorem hadamard_test_probability_bounds {H : Type*}
     [NormedAddCommGroup H] [InnerProductSpace ℂ H]
     (φ ψ : H) (hφ : ‖φ‖ = 1) (hψ : ‖ψ‖ = 1) :

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityExactLowerBoundRestrictedStat
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeAndOr
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+/-!
+# A restricted majority lower bound from acceptance degree
+
+Fixing the second summand of a Boolean input to false preserves evaluation and cannot increase
+polynomial degree. These restriction lemmas yield `majorityExactQueryLowerBoundRestricted` from
+the degree bound for a circuit's acceptance polynomial.
+
+The mathematical background is developed in [BealsEtAl2001].
+
+## Main statements
+
+* `fixedFalse_degree`: shows that setting the complementary variables to zero does not increase
+  total degree.
+* `majorityExactQueryLowerBoundRestricted`: proves the restricted exact-query proposition using
+  an AND restriction.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
@@ -15,6 +37,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open MvPolynomial
 
+/-- Setting all variables in the `J` summand to zero does not increase the total degree of a
+polynomial on `K ⊕ J`. -/
 private theorem fixedFalse_degree {K J : Type} [Fintype K] [DecidableEq K]
     [Fintype J] [DecidableEq J] (p : MvPolynomial (K ⊕ J) ℝ) :
     (killCompl (Sum.inl_injective : Function.Injective (Sum.inl : K → K ⊕ J)) p).totalDegree ≤
@@ -33,6 +57,8 @@ private theorem fixedFalse_degree {K J : Type} [Fintype K] [DecidableEq K]
   rw [hsum] at ht
   exact ht
 
+/-- Evaluating the polynomial after eliminating the `J` variables agrees with evaluating the
+original polynomial with those Boolean inputs fixed to false. -/
 private theorem fixedFalse_eval {K J : Type} [Fintype K] [DecidableEq K]
     [Fintype J] [DecidableEq J] (p : MvPolynomial (K ⊕ J) ℝ) (g : K → Bool) :
     eval (boolPoint g) (killCompl (Sum.inl_injective : Function.Injective (Sum.inl : K → K ⊕ J)) p)=
@@ -52,6 +78,9 @@ private theorem fixedFalse_eval {K J : Type} [Fintype K] [DecidableEq K]
     | inr j => simp [AlgHom.comp_apply,hinr,boolPoint]
   simpa only [AlgHom.comp_apply,aeval_eq_eval] using AlgHom.congr_fun he p
 
+/-- For a circuit that computes AND exactly on the specified majority restriction with `|K| =
+|J| + 1`, the acceptance-degree argument gives `|K| ≤ 2 * QueryCount C`. See [Beals et al.,
+Section 6][BealsEtAl2001]. -/
 theorem majorityExactQueryLowerBoundRestricted : MajorityExactQueryLowerBoundRestricted := by
   classical
   intro K J W _ _ _ _ _ _ C ψ E1 _ hs

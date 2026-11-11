@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.FastLCU
 import Qatlib.Foundations.CbmdAnalysis.Core.AuxSeriesIdentity
 import Mathlib.Analysis.Matrix.Order
+
+/-!
+# Evolutions from finite piecewise-continuous inputs
+
+`FinitePiecewiseContinuousOn` records a finite partition and continuous cell extensions that
+agree with the original input inside each cell. Clamping the extensions produces global
+continuous pieces whose assembled fields recover the input almost everywhere, preserving closed
+constraints such as Hermiticity and positive semidefiniteness.
+
+The induced matrix `evolution` is absolutely continuous, satisfies the original evolution
+equation almost everywhere, and is independent of the chosen representation. Endpoint
+analyticity, norm bounds, real-parameter unitarity, and the resulting sampling identities and
+finite LCU bounds connect these inputs to [WangEtAl2026].
+
+## Main statements
+
+* `FinitePiecewiseContinuousOn.evolution_unique_ae`: proves uniqueness for the original input
+  equation.
+* `FinitePiecewiseContinuousOn.evolution_partition_independent`: identifies evolutions from
+  different partitions.
+* `FinitePiecewiseContinuousOn.fast_lcu_original_input`: gives finite LCU bounds for the
+  original input.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -18,6 +46,8 @@ noncomputable section
 namespace CBMD
 open Set MeasureTheory Filter Matrix
 open scoped Topology BigOperators Matrix.Norms.L2Operator ComplexOrder MatrixOrder
+/-- A point between the first and last partition times that differs from every partition time
+belongs to an open partition cell. -/
 private theorem exists_partition_cell (τ : ℕ → ℝ) (n : ℕ) (t : ℝ)
     (ht : t ∈ Icc (τ 0) (τ n)) (hne : ∀ j ≤ n, t ≠ τ j) :
     ∃ j < n, t ∈ Ioo (τ j) (τ (j + 1)) := by
@@ -30,6 +60,9 @@ private theorem exists_partition_cell (τ : ℕ → ℝ) (n : ℕ) (t : ℝ)
     · exact ⟨n, Nat.lt_succ_self n, lt_of_le_of_ne (not_lt.mp hn) (Ne.symm (hne n (by omega))),
         lt_of_le_of_ne ht.2 (hne (n + 1) le_rfl)⟩
 
+/-- A finite strictly increasing partition from `a` to `b` with cell extensions continuous on
+each closed cell and agreeing with `F` on its interior. Values of `F` at partition points
+need not agree with the extensions. -/
 structure FinitePiecewiseContinuousOn {E : Type*} [TopologicalSpace E]
     (F : ℝ → E) (a b : ℝ) where
   count : ℕ
@@ -45,15 +78,20 @@ namespace FinitePiecewiseContinuousOn
 variable {E : Type*} [TopologicalSpace E] [Zero E]
 variable {F : ℝ → E} {a b : ℝ}
 
+/-- The cell extension evaluated at time clamped to its closed cell when `j < P.count`, and the
+zero value for all other indices. -/
 def clampedPiece (P : FinitePiecewiseContinuousOn F a b) (j : ℕ) (t : ℝ) : E :=
   if j < P.count then P.extension j (min (P.time (j + 1)) (max (P.time j) t)) else 0
 
 omit [Zero E] in
 
+/-- Clamping a real time between consecutive partition times produces a point in that closed
+cell. -/
 theorem clamp_mem (P : FinitePiecewiseContinuousOn F a b) (j : ℕ) (t : ℝ) :
     min (P.time (j + 1)) (max (P.time j) t) ∈ Icc (P.time j) (P.time (j + 1)) := by
   exact ⟨le_min (P.strict.monotone (Nat.le_succ j)) (le_max_left _ _), min_le_left _ _⟩
 
+/-- Every clamped piece is continuous on the whole real line. -/
 theorem clampedPiece_continuous (P : FinitePiecewiseContinuousOn F a b) (j : ℕ) :
     Continuous (P.clampedPiece j) := by
   unfold clampedPiece
@@ -62,11 +100,15 @@ theorem clampedPiece_continuous (P : FinitePiecewiseContinuousOn F a b) (j : ℕ
       (continuous_const.min (continuous_const.max continuous_id)) (P.clamp_mem j)
   · exact continuous_const
 
+/-- On the interior of a represented cell, the corresponding clamped piece equals the original
+input. -/
 theorem clampedPiece_eq (P : FinitePiecewiseContinuousOn F a b) (j : ℕ) (hj : j < P.count)
     {t : ℝ} (ht : t ∈ Ioo (P.time j) (P.time (j + 1))) : P.clampedPiece j t = F t := by
   simp only [clampedPiece, hj, ↓reduceIte, max_eq_right ht.1.le, min_eq_right ht.2.le]
   exact P.agrees j hj t ht
 
+/-- If the original input lies in a closed set containing zero throughout the interval, every
+clamped piece lies in that set at every time. -/
 theorem clampedPiece_mem_closed (P : FinitePiecewiseContinuousOn F a b)
     (S : Set E) (hS : IsClosed S) (hzero : (0 : E) ∈ S)
     (hF : ∀ t ∈ Icc a b, F t ∈ S) (j : ℕ) (t : ℝ) : P.clampedPiece j t ∈ S := by
@@ -87,6 +129,8 @@ theorem clampedPiece_mem_closed (P : FinitePiecewiseContinuousOn F a b)
     simpa only [clampedPiece, hj, ↓reduceIte] using! hm (P.clamp_mem j t)
   · simpa only [clampedPiece, hj, ↓reduceIte] using! hzero
 
+/-- The field assembled from the clamped pieces equals the original input almost everywhere on
+`Icc a b`. -/
 theorem assembledField_ae_eq (P : FinitePiecewiseContinuousOn F a b) :
     ∀ᵐ t : ℝ, t ∈ Icc a b → assembledField P.clampedPiece P.time P.count t = F t := by
   have hnull := ((Finset.range (P.count + 1)).image P.time).finite_toSet.countable.ae_notMem volume
@@ -104,6 +148,8 @@ theorem assembledField_ae_eq (P : FinitePiecewiseContinuousOn F a b) :
 
 end FinitePiecewiseContinuousOn
 
+/-- A normed-space-valued function with a finite piecewise-continuous representation is interval
+integrable. -/
 theorem FinitePiecewiseContinuousOn.intervalIntegrable {E : Type*}
     [NormedAddCommGroup E] [NormedSpace ℝ E] {F : ℝ → E} {a b : ℝ}
     (P : FinitePiecewiseContinuousOn F a b) : IntervalIntegrable F volume a b := by
@@ -119,6 +165,8 @@ theorem FinitePiecewiseContinuousOn.intervalIntegrable {E : Type*}
   rw [uIoc_of_le hab] at hmem
   exact ht ⟨hmem.1.le, hmem.2⟩
 
+/-- Taking the first component of an assembled pair-valued field commutes with assembling its
+component fields. -/
 private theorem assembledField_fst {E G : Type*} [Zero E] [Zero G]
     (F : ℕ → ℝ → E × G) (τ : ℕ → ℝ) (n : ℕ) (t : ℝ) :
     (assembledField F τ n t).1 = assembledField (fun j u => (F j u).1) τ n t := by
@@ -126,6 +174,8 @@ private theorem assembledField_fst {E G : Type*} [Zero E] [Zero G]
   | zero => rfl
   | succ n ih => simp only [assembledField]; split_ifs <;> simp only [ih]
 
+/-- Taking the second component of an assembled pair-valued field commutes with assembling its
+component fields. -/
 private theorem assembledField_snd {E G : Type*} [Zero E] [Zero G]
     (F : ℕ → ℝ → E × G) (τ : ℕ → ℝ) (n : ℕ) (t : ℝ) :
     (assembledField F τ n t).2 = assembledField (fun j u => (F j u).2) τ n t := by
@@ -137,24 +187,30 @@ namespace FinitePiecewiseContinuousOn
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {H L : ℝ → Matrix I I ℂ} {a b : ℝ}
 
+/-- The first component of the clamped piece for the pair-valued input `(H, L)`. -/
 def hPiece (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) (j : ℕ) (t : ℝ) :
     Matrix I I ℂ := (P.clampedPiece j t).1
 
+/-- The second component of the clamped piece for the pair-valued input `(H, L)`. -/
 def lPiece (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) (j : ℕ) (t : ℝ) :
     Matrix I I ℂ := (P.clampedPiece j t).2
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Every clamped `H` piece is continuous on the real line. -/
 theorem hPiece_continuous (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) (j : ℕ) :
     Continuous (P.hPiece j) := (P.clampedPiece_continuous j).fst
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Every clamped `L` piece is continuous on the real line. -/
 theorem lPiece_continuous (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) (j : ℕ) :
     Continuous (P.lPiece j) := (P.clampedPiece_continuous j).snd
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- If `H` is Hermitian throughout the original interval, each clamped `H` piece is Hermitian at
+every time. -/
 theorem hPiece_hermitian (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian) (j : ℕ) (t : ℝ) : (P.hPiece j t).IsHermitian := by
   have hc : IsClosed {M : Matrix I I ℂ | M.IsHermitian} := by
@@ -165,6 +221,8 @@ theorem hPiece_hermitian (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) 
 
 omit [DecidableEq I] in
 
+/-- If `L` is positive semidefinite throughout the original interval, each clamped `L` piece is
+positive semidefinite at every time. -/
 theorem lPiece_positive (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hL : ∀ t ∈ Icc a b, (L t).PosSemidef) (j : ℕ) (t : ℝ) : (P.lPiece j t).PosSemidef := by
   have hherm : IsClosed {M : Matrix I I ℂ | M.IsHermitian} := by
@@ -188,6 +246,8 @@ theorem lPiece_positive (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The fields assembled from the clamped `H` and `L` pieces equal the original fields
+simultaneously almost everywhere on the interval. -/
 theorem fields_ae_eq (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) :
     ∀ᵐ t : ℝ, t ∈ Icc a b →
       assembledField P.hPiece P.time P.count t = H t ∧
@@ -197,6 +257,8 @@ theorem fields_ae_eq (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
   exact ⟨by simpa only [assembledField_fst, hPiece] using! congrArg Prod.fst he,
     by simpa only [assembledField_snd, lPiece] using! congrArg Prod.snd he⟩
 
+/-- The original field `L` is interval integrable when the pair `(H, L)` has a finite
+piecewise-continuous representation. -/
 theorem original_l_intervalIntegrable
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) :
     IntervalIntegrable L volume a b := by
@@ -212,10 +274,14 @@ theorem original_l_intervalIntegrable
   rw [uIoc_of_le hab] at hmem
   exact (ht ⟨hmem.1.le, hmem.2⟩).2
 
+/-- The norm of the original field `L` is interval integrable when `(H, L)` has a finite
+piecewise-continuous representation. -/
 theorem original_l_norm_intervalIntegrable
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) :
     IntervalIntegrable (fun t => ‖L t‖) volume a b := P.original_l_intervalIntegrable.norm
 
+/-- The integral of `‖L t‖` over the original interval equals the piecewise Dyson budget of the
+clamped `L` pieces. -/
 theorem budget_eq (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) :
     (∫ t in a..b, ‖L t‖) = dysonPiecewiseBudget P.lPiece P.time P.count := by
   rw [← assembledField_norm_integral P.lPiece P.lPiece_continuous P.time P.strict.monotone]
@@ -227,20 +293,26 @@ theorem budget_eq (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) :
   rw [uIoc_of_le hab] at hmem
   rw [(ht ⟨hmem.1.le, hmem.2⟩).2]
 
+/-- The assembled Dyson evolution built from the globally continuous clamped pieces of the pair
+`(H, L)`. -/
 def evolution (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (z : ℂ) (t : ℝ) : Matrix I I ℂ := assembledDyson P.hPiece P.lPiece P.time P.count z t
 
+/-- The represented evolution equals the identity at the original initial time `a`. -/
 theorem evolution_initial (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) (z : ℂ) :
     P.evolution z a = 1 := by
   simpa only [P.start, evolution] using!
     assembledDyson_initial P.hPiece P.lPiece P.time P.strict.monotone P.count z
 
+/-- The represented evolution is absolutely continuous on the original interval. -/
 theorem evolution_absolutelyContinuous
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) (z : ℂ) :
     AbsolutelyContinuousOnInterval (P.evolution z) a b :=
   assembledDyson_absolutelyContinuous P.hPiece P.lPiece P.hPiece_continuous P.lPiece_continuous
     P.time P.strict P.count z a b
 
+/-- The represented evolution satisfies `U' = -i (H + z L) U` almost everywhere on the original
+interval. -/
 theorem evolution_hasDerivAt_ae
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) (z : ℂ) :
     ∀ᵐ t : ℝ, t ∈ Icc a b →
@@ -251,6 +323,8 @@ theorem evolution_hasDerivAt_ae
   filter_upwards [hd, P.fields_ae_eq] with t ht he hmem
   simpa only [(he hmem).1, (he hmem).2, evolution] using! ht hmem
 
+/-- Every absolutely continuous solution of the original parameter-dependent evolution equation
+with identity initial value agrees with the represented evolution on `Icc a b`. -/
 theorem evolution_unique_ae
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (z : ℂ) (f : ℝ → Matrix I I ℂ) (hf : AbsolutelyContinuousOnInterval f a b)
@@ -269,6 +343,7 @@ theorem evolution_unique_ae
     (by simpa only [P.start] using! hinit) hd
   simpa only [P.start, P.finish, evolution] using! hu
 
+/-- The represented evolution at the final time `b` is complex differentiable in its parameter. -/
 theorem evolution_differentiable_parameter
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) :
     Differentiable ℂ (fun z => P.evolution z b) := by
@@ -276,6 +351,8 @@ theorem evolution_differentiable_parameter
     assembledDyson_differentiable_parameter P.hPiece P.lPiece P.hPiece_continuous
       P.lPiece_continuous P.time P.strict P.count
 
+/-- For Hermitian `H` and positive semidefinite `L` on the original interval, the endpoint norm
+is at most `exp (max z.im 0 * ∫ t in a..b, ‖L t‖)`. -/
 theorem evolution_norm_le
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian) (hL : ∀ t ∈ Icc a b, (L t).PosSemidef) (z : ℂ) :
@@ -286,6 +363,8 @@ theorem evolution_norm_le
   rw [← he, ← P.budget_eq] at hb
   simpa only [P.finish, evolution] using! hb
 
+/-- For Hermitian `H` and positive semidefinite `L` on the original interval, the represented
+endpoint evolution is unitary at every real parameter. -/
 theorem evolution_real_unitary
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian) (hL : ∀ t ∈ Icc a b, (L t).PosSemidef) (x : ℝ) :
@@ -296,12 +375,16 @@ theorem evolution_real_unitary
   rw [← he] at hu
   simpa only [P.finish, evolution] using! hu
 
+/-- Two finite piecewise-continuous representations of the same input pair give identical
+evolutions on the original interval. -/
 theorem evolution_partition_independent
     (P Q : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) (z : ℂ) :
     EqOn (P.evolution z) (Q.evolution z) (Icc a b) :=
   Q.evolution_unique_ae z (P.evolution z) (P.evolution_absolutelyContinuous z)
     (P.evolution_initial z) (P.evolution_hasDerivAt_ae z)
 
+/-- At parameter `-i`, the represented evolution satisfies `U' = -(L + i H) U` almost everywhere
+on the original interval. -/
 theorem evolution_target_hasDerivAt_ae
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b) :
     ∀ᵐ t : ℝ, t ∈ Icc a b →
@@ -312,6 +395,8 @@ theorem evolution_target_hasDerivAt_ae
     exact add_comm _ _
   simpa only [he] using! P.evolution_hasDerivAt_ae (-Complex.I)
 
+/-- Every absolutely continuous solution of `U' = -(L + i H) U` with identity initial value
+agrees with the represented evolution at parameter `-i` on the original interval. -/
 theorem evolution_target_unique_ae
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (f : ℝ → Matrix I I ℂ) (hf : AbsolutelyContinuousOnInterval f a b)
@@ -327,6 +412,10 @@ theorem evolution_target_unique_ae
 
 set_option backward.isDefEq.respectTransparency true in
 
+/-- For Hermitian `H`, positive semidefinite `L`, and a finite nonempty auxiliary pole set
+avoiding the target and sampling lattice, the compatible budget bound yields absolute
+summability of the sample series and the stated target-minus-series-minus-residues identity
+[WangEtAl2026]. -/
 theorem matrix_series_original_input
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian) (hL : ∀ t ∈ Icc a b, (L t).PosSemidef)
@@ -352,6 +441,9 @@ theorem matrix_series_original_input
 
 set_option backward.isDefEq.respectTransparency true in
 
+/-- For `0 < δ ≤ 1`, the original piecewise-continuous input with Hermitian `H` and positive
+semidefinite `L` has the prescribed finite LCU approximation within `δ`, with unitary real
+samples and the stated coefficient, frequency, and sample-count bounds [WangEtAl2026]. -/
 theorem fast_lcu_original_input
     (P : FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian) (hL : ∀ t ∈ Icc a b, (L t).PosSemidef)

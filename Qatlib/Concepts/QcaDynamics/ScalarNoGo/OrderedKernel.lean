@@ -12,6 +12,26 @@ import Mathlib.Tactic
 
 import Qatlib.Concepts.QcaDynamics.ScalarNoGo.LocalKernel
 
+/-!
+# Scalar unitarity on ordered groups
+
+Proves that normalized finite-neighborhood scalar weights on a linearly ordered abelian group
+have exactly one nonzero coefficient. The corresponding update is a norm-one scalar times a
+translation, with specializations to the integers and lexicographically ordered integer
+lattices. This is the scalar obstruction of [Meyer1996]; `weightedTranslation` also provides the
+converse construction.
+
+## Main statements
+
+* `noGo_weights`: forces singleton support with coefficient of norm one.
+* `noGo_theorem`: identifies the resulting translation update.
+* `weightedTranslation_isUnitary`: verifies the converse construction.
+
+## References
+
+* [Meyer, 1996][Meyer1996]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.QcaDynamics.ScalarNoGo
@@ -22,6 +42,8 @@ open Qatlib.Concepts.QcaDynamics.ScalarNoGo
 
 variable {V : Type*}
 
+/-- On a linearly ordered abelian group, `Unitary A` forces exactly one nonzero weight, whose
+norm is one; see [Meyer1996]. -/
 theorem noGo_weights [AddCommGroup V] [LinearOrder V] [IsOrderedAddMonoid V]
     (A : Weights V) (hunit : Unitary A) :
     ∃ e₀ : V, A.weight e₀ ≠ 0 ∧ (∀ e, A.weight e ≠ 0 → e = e₀) ∧
@@ -130,6 +152,9 @@ theorem noGo_weights [AddCommGroup V] [LinearOrder V] [IsOrderedAddMonoid V]
     · have := norm_nonneg (A.weight k)
       linarith
 
+/-- Finite-neighborhood unitary scalar dynamics on a linearly ordered abelian group are a single
+translation multiplied by a norm-one coefficient, with every nonzero weight at that
+displacement. -/
 theorem noGo_theorem [AddCommGroup V] [LinearOrder V] [IsOrderedAddMonoid V]
     (A : Weights V) (hunit : Unitary A) :
     ∃ (e₀ : V) (c : ℂ), A.weight e₀ = c ∧ ‖c‖ = 1 ∧
@@ -147,6 +172,8 @@ theorem noGo_theorem [AddCommGroup V] [LinearOrder V] [IsOrderedAddMonoid V]
   · intro hmem
     exact absurd (A.support e₀ hne) hmem
 
+/-- Unitary finite-neighborhood scalar weights on the integers yield a single translation with a
+norm-one coefficient and no other nonzero weights. -/
 theorem noGo_oneDimension (A : Weights ℤ) (hunit : Unitary A) :
     ∃ (e₀ : ℤ) (c : ℂ), A.weight e₀ = c ∧ ‖c‖ = 1 ∧
       (∀ e, A.weight e ≠ 0 → e = e₀) ∧ evolveByTranslation A e₀ c :=
@@ -169,11 +196,14 @@ noncomputable instance instIsOrderedAddMonoidLexPi (d : ℕ) :
     · right
       rw [h]
 
+/-- The scalar translation conclusion holds on every finite-dimensional integer lattice equipped
+with the lexicographic order. -/
 theorem noGo_finDimension (d : ℕ) (A : Weights (Lex (Fin d → ℤ))) (hunit : Unitary A) :
     ∃ (e₀ : Lex (Fin d → ℤ)) (c : ℂ), A.weight e₀ = c ∧ ‖c‖ = 1 ∧
       (∀ e, A.weight e ≠ 0 → e = e₀) ∧ evolveByTranslation A e₀ c :=
   @noGo_theorem (Lex (Fin d → ℤ)) _ _ (instIsOrderedAddMonoidLexPi d) A hunit
 
+/-- The finite-neighborhood weight model supported at `e₀` with coefficient `c`. -/
 noncomputable def weightedTranslation [DecidableEq V] (e₀ : V) (c : ℂ) : Weights V where
   neighborhood := {e₀}
   weight := fun e => if e = e₀ then c else 0
@@ -183,6 +213,7 @@ noncomputable def weightedTranslation [DecidableEq V] (e₀ : V) (c : ℂ) : Wei
     rw [Finset.mem_singleton] at h
     exact hv (if_neg h)
 
+/-- A singleton weight with coefficient of norm one satisfies the weight unitarity equations. -/
 theorem weightedTranslation_isUnitary [AddCommGroup V] [DecidableEq V] (e₀ : V) {c : ℂ}
     (hc : ‖c‖ = 1) :
     Unitary (weightedTranslation e₀ c) := by
@@ -208,6 +239,8 @@ theorem weightedTranslation_isUnitary [AddCommGroup V] [DecidableEq V] (e₀ : V
       simpa [add_comm, add_left_comm, add_assoc] using this
     simp [hsub]
 
+/-- The singleton weight model `weightedTranslation e₀ c` acts on every field by translation by
+`e₀` followed by multiplication by `c`. -/
 theorem weightedTranslation_evolution [AddCommGroup V] [DecidableEq V] (e₀ : V) (c : ℂ) :
     evolveByTranslation (weightedTranslation e₀ c) e₀ c := by
   intro φ x

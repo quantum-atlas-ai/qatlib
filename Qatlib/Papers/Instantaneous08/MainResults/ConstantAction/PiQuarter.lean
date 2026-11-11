@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.Degenerate
 import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.CodeWeight
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+
+/-!
+# Quarter-angle examples and eighth roots of unity
+
+This module evaluates a single-qubit X-program at action π/4 and shows that its collision
+probability is `1 / 2`. It also proves that phases at integer multiples of π/4 are eighth roots
+of unity, providing explicit checks of the quarter-angle discussion in Lemma 2 of
+[ShepherdBremner2009].
+
+## Main statements
+
+* `collisionProb_pi_div_four_qubit`: computes the collision probability of the single-qubit
+  example.
+* `expAction_pi_div_four_pow_eight`: proves the eighth-root identity for the action phases.
+
+## References
+
+* [Shepherd and Bremner, 2009][ShepherdBremner2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,8 +40,10 @@ open Qatlib.Papers.Instantaneous08.MainResults.XProgram
 
 attribute [local instance] Classical.propDecidable
 
+/-- The binary vector whose coordinates all equal `1`. -/
 def oneVec {n : ℕ} : F2Vec n := fun _ => 1
 
+/-- The one-dimensional binary vector space consists of zero and `oneVec`. -/
 theorem univ_f2vec_one : (Finset.univ : Finset (F2Vec 1)) = {0, oneVec} := by
   ext x
   simp only [Finset.mem_univ, Finset.mem_insert, Finset.mem_singleton]
@@ -40,24 +62,29 @@ theorem univ_f2vec_one : (Finset.univ : Finset (F2Vec 1)) = {0, oneVec} := by
       exact h1
   · intro _; trivial
 
+/-- The all-ones binary vector in dimension one is nonzero. -/
 theorem oneVec_ne_zero : (oneVec : F2Vec 1) ≠ 0 := by
   intro h
   have h0 := congrFun h 0
   simp [oneVec] at h0
 
+/-- A sum over one-dimensional binary vectors is the sum of the values at zero and `oneVec`. -/
 theorem sum_f2vec_one (f : F2Vec 1 → ℝ) :
     (∑ x : F2Vec 1, f x) = f 0 + f oneVec := by
   have hne : (0 : F2Vec 1) ≠ oneVec := fun h => oneVec_ne_zero h.symm
   rw [univ_f2vec_one, Finset.sum_pair hne]
 
+/-- The one-row, one-qubit X-program whose single row is `oneVec`. -/
 def oneQubitProg : Fin 1 → F2Vec 1 := fun _ => oneVec
 
+/-- The zero-output circuit amplitude of `oneQubitProg` at π/4 is `cos (π / 4)`. -/
 theorem circuit_oneQubitProg_zero :
     circuit 1 oneQubitProg (fun _ => Real.pi / 4) 0 = (Real.cos (Real.pi / 4) : ℂ) := by
   simp only [circuit, oneQubitProg]
   have hne : (oneVec : F2Vec 1) ≠ 0 := oneVec_ne_zero
   simp [xGate, hne]
 
+/-- The `oneVec` circuit amplitude of `oneQubitProg` at π/4 is `I * sin (π / 4)`. -/
 theorem circuit_oneQubitProg_one :
     circuit 1 oneQubitProg (fun _ => Real.pi / 4) oneVec =
       Complex.I * (Real.sin (Real.pi / 4) : ℂ) := by
@@ -69,6 +96,7 @@ theorem circuit_oneQubitProg_one :
     decide
   simp [xGate, hne, hsum]
 
+/-- The zero-output probability of `oneQubitProg` at π/4 equals `1 / 2`. -/
 theorem prob_oneQubitProg_zero :
     prob oneQubitProg (fun _ => Real.pi / 4) 0 = 1 / 2 := by
   unfold prob
@@ -77,6 +105,7 @@ theorem prob_oneQubitProg_zero :
   have h2 : Real.sqrt 2 ^ 2 = 2 := Real.sq_sqrt (by norm_num)
   nlinarith
 
+/-- The `oneVec` output probability of `oneQubitProg` at π/4 equals `1 / 2`. -/
 theorem prob_oneQubitProg_one :
     prob oneQubitProg (fun _ => Real.pi / 4) oneVec = 1 / 2 := by
   unfold prob
@@ -85,6 +114,8 @@ theorem prob_oneQubitProg_one :
   have h2 : Real.sqrt 2 ^ 2 = 2 := Real.sq_sqrt (by norm_num)
   nlinarith
 
+/-- The single-qubit π/4 example has collision probability `1 / 2`, giving a nonunit
+collision-probability example for the setting of [ShepherdBremner2009]. -/
 theorem collisionProb_pi_div_four_qubit :
     collisionProb oneQubitProg (fun _ => Real.pi / 4) = 1 / 2 := by
   unfold collisionProb
@@ -92,6 +123,7 @@ theorem collisionProb_pi_div_four_qubit :
   rw [prob_oneQubitProg_zero, prob_oneQubitProg_one]
   norm_num
 
+/-- The signed action sum takes an integer value. -/
 theorem actSum_int {n k : ℕ} (p : Fin k → F2Vec n) (a : F2Vec n) :
     ∃ z : ℤ, actSum p a = z := by
   refine ⟨∑ i, if dot (p i) a = 0 then (1 : ℤ) else -1, ?_⟩
@@ -101,6 +133,8 @@ theorem actSum_int {n k : ℕ} (p : Fin k → F2Vec n) (a : F2Vec n) :
   intro i _
   by_cases h : dot (p i) a = 0 <;> simp [rSign, h]
 
+/-- At any integer multiple of π/4, the eighth power of every action phase equals one. See
+[ShepherdBremner2009]. -/
 theorem expAction_pi_div_four_pow_eight {n k : ℕ} (p : Fin k → F2Vec n)
     (m : ℤ) (a : F2Vec n) :
     (expAction p ((m : ℝ) * (Real.pi / 4)) a) ^ 8 = 1 := by

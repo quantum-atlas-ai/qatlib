@@ -9,6 +9,26 @@ import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Data.Nat.Choose.Vandermonde
 import Mathlib.Data.Nat.Basic
+
+/-!
+# Type populations and the initial marked overlap
+
+This module evaluates the total type population of the Johnson walk using a Vandermonde
+identity. It also computes the overlap of the reduced good vector with the starting vector and
+proves the marked-fraction specification `AlphaFromInput` used in collision search
+[Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `jwStartNormSq_eq`: the total population is `choose N r * (N-r)`.
+* `jwGoodTilde_overlap`: the starting overlap is the square root of the marked population.
+* `alphaFromInput`: the marked-fraction identities and bounds.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
@@ -18,6 +38,8 @@ namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- For `k ≤ r` and `k ≤ N`, summing the subset-intersection populations over `j = 0,…,k` gives
+`Nat.choose N r`. -/
 private theorem vandermonde_types (k N r : ℕ) (hkr : k ≤ r) (hkN : k ≤ N) :
     (∑ j ∈ Finset.range (k + 1), Nat.choose k j * Nat.choose (N - k) (r - j)) =
       Nat.choose N r := by
@@ -34,6 +56,8 @@ private theorem vandermonde_types (k N r : ℕ) (hkr : k ≤ r) (hkN : k ≤ N) 
     rw [Nat.choose_eq_zero_of_lt (by omega), zero_mul]
   simpa [hz] using h.symm
 
+/-- Under the stated size assumptions, the total Johnson type population is `Nat.choose N r *
+(N-r)`. -/
 theorem jwStartNormSq_eq (k N r : ℕ) (hkr : k ≤ r) (hkNr : k ≤ N - r) (hrN : r ≤ N) :
     jwStartNormSq k N r = ((Nat.choose N r) * (N - r) : ℝ) := by
   have hjN : k ≤ N := le_trans hkNr (Nat.sub_le _ _)
@@ -63,6 +87,8 @@ theorem jwStartNormSq_eq (k N r : ℕ) (hkr : k ≤ r) (hkNr : k ≤ N - r) (hrN
   rw [jwTypeSum k (fun j l => (jwCnt k N r j l : ℝ)), ← Nat.cast_sub hrN]
   exact_mod_cast htotal
 
+/-- The overlap of `jwGoodTilde` with `jwStart` is the square root of the population of type
+`(k, false)`. -/
 theorem jwGoodTilde_overlap (k N r : ℕ) :
     (∑ i : Fin (2 * k + 1), star (jwGoodTilde k i) * jwStart k N r i) =
       (Real.sqrt (jwCnt k N r k false) : ℂ) := by
@@ -80,6 +106,8 @@ theorem jwGoodTilde_overlap (k N r : ℕ) :
   simp_rw [jwGoodTilde, hcoord]
   simp [jwStart, jwPsiCoord]
 
+/-- The initial Johnson-walk population, overlap, marked-fraction identity, and bounds satisfy
+`AlphaFromInput`. -/
 theorem alphaFromInput : AlphaFromInput := by
   intro k N r hk hkr hkNr
   have hNr : 0 < N - r := by omega

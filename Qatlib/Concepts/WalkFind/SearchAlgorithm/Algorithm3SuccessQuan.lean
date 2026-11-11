@@ -8,6 +8,29 @@ import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3SuccessStat
 import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
 import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3IsolationQuan
 import Qatlib.Foundations.BornMetrics.EventProbability
+
+/-!
+# Success bounds for recursive collision search
+
+This module bounds the success probability of valid Algorithm 3 trees using unique-collision
+call guarantees and isolation at each recursive step. It controls recursion depth and transports
+collision existence and uniqueness between original frames and extended inputs with distinct
+dummy values.
+
+The mathematical background is developed in [Ambainis2007ElementDistinctness].
+
+## Main statements
+
+* `algorithm3Tree_isolation_success`: bounds success in terms of depth and isolation error.
+* `algorithm3Depth_source_log_bound`: bounds recursion depth logarithmically.
+* `algorithm3Isolation_implies_success`: derives the success contract from the isolation
+  contract.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +49,7 @@ noncomputable section
 namespace Qatlib.Concepts.WalkFind.SearchAlgorithm
 open scoped Classical BigOperators
 
+/-- A verified output witnesses a `k`-collision in the input. -/
 theorem verifiedOutput_hasCollision {N M k w : ℕ} (x : Fin N → ZMod M)
     (q : OutputSpace N M k w) (hq : verifiedOutput x q) : HasCollision k x := by
   obtain ⟨_, hinj, v, hv⟩ := hq
@@ -35,6 +59,7 @@ theorem verifiedOutput_hasCollision {N M k w : ℕ} (x : Fin N → ZMod M)
     obtain ⟨j, _, rfl⟩ := Finset.mem_image.mp hi
     exact hv j
 
+/-- The success probability of a frame call lies between zero and one. -/
 theorem frameCallProbability_bounds {N M k : ℕ} [NeZero M]
     (A : RandomQueryAlgorithm N M k) (f : Algorithm3Frame N) (x : Fin N → ZMod M) :
     0 ≤ frameCallProbability A f x ∧ frameCallProbability A f x ≤ 1 := by
@@ -51,6 +76,7 @@ theorem frameCallProbability_bounds {N M k : ℕ} [NeZero M]
     apply (div_le_one hseeds).mpr
     simpa using! Finset.sum_le_sum (fun s (_ : s ∈ Finset.univ) => hb s)
 
+/-- A frame call has zero verified success probability when the input has no `k`-collision. -/
 theorem frameCallProbability_no_collision {N M k : ℕ} [NeZero M]
     (A : RandomQueryAlgorithm N M k) (f : Algorithm3Frame N) (x : Fin N → ZMod M)
     (hx : ¬HasCollision k x) : frameCallProbability A f x = 0 := by
@@ -62,6 +88,8 @@ theorem frameCallProbability_no_collision {N M k : ℕ} [NeZero M]
     exact hx (verifiedOutput_hasCollision x q hq.1)
   simp [frameCallProbability, hevent, MeasureProb]
 
+/-- Every Algorithm 3 tree has zero verified success probability on an input without a
+`k`-collision. -/
 theorem algorithm3Tree_no_collision {N M k : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (hx : ¬HasCollision k x) (P : Algorithm3Tree N M k) :
     treeProbability x P = 0 := by
@@ -71,6 +99,7 @@ theorem algorithm3Tree_no_collision {N M k : ℕ} [NeZero M]
   | walk f memory A plan children ih =>
     simp [treeProbability, frameCallProbability_no_collision A.actual f x hx, ih]
 
+/-- The success probability of any Algorithm 3 tree lies between zero and one. -/
 theorem algorithm3Tree_probability_bounds {N M k : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (P : Algorithm3Tree N M k) :
     0 ≤ treeProbability x P ∧ treeProbability x P ≤ 1 := by
@@ -90,6 +119,8 @@ theorem algorithm3Tree_probability_bounds {N M k : ℕ} [NeZero M]
     · exact add_nonneg hA0 (mul_nonneg (sub_nonneg.mpr hA1) hmean0)
     · nlinarith
 
+/-- The success probability of the first frame call is at most that of the walk node containing
+it. -/
 theorem algorithm3Tree_first_call {N M k : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (f : Algorithm3Frame N) (memory : ℕ)
     (A : Algorithm3NativeCall (M:=M) k f memory) (plan : Algorithm3Plan k N f)
@@ -103,6 +134,8 @@ theorem algorithm3Tree_first_call {N M k : ℕ} [NeZero M]
   dsimp only [treeProbability]
   exact le_add_of_nonneg_right (mul_nonneg (sub_nonneg.mpr hA.2) hmean)
 
+/-- The mean success probability of the children is at most the success probability of their
+walk node. -/
 theorem algorithm3Tree_children_mean {N M k : ℕ} [NeZero M]
     (x : Fin N → ZMod M) (f : Algorithm3Frame N) (memory : ℕ)
     (A : Algorithm3NativeCall (M:=M) k f memory) (plan : Algorithm3Plan k N f)
@@ -118,10 +151,13 @@ theorem algorithm3Tree_children_mean {N M k : ℕ} [NeZero M]
   dsimp only [treeProbability]
   nlinarith
 
+/-- The initial frame represents the entire index set. -/
 theorem frameSet_initial (N : ℕ) : frameSet (initialFrame N) = Finset.univ := by
   ext i
   simp [frameSet, initialFrame]
 
+/-- On an input with a unique collision, a valid initial-frame tree with unique-call guarantee
+`p` succeeds with probability at least `(1 - ε) * p / 2` under the stated bounds. -/
 theorem algorithm3Tree_unique_success {N M k r : ℕ} [NeZero M]
     (hN : 2 ≤ N) (ε C p : ℝ) (hε : 0 < ε) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (P : Algorithm3Tree N M k) (hroot : treeFrame P = initialFrame N)
@@ -157,6 +193,8 @@ theorem algorithm3Tree_unique_success {N M k r : ℕ} [NeZero M]
     exact le_trans hlo (le_trans hpcall
       (algorithm3Tree_first_call x f memory A plan children))
 
+/-- Given the stated collision and unique-event success bounds and the isolation inequality, the
+mean success is at least `α * (1 - δ)`. -/
 theorem isolationSuccess_mean {R : ℕ} (hR : 0 < R)
     (collision unique : Fin R → Prop) (funique : ∀ s, unique s → collision s)
     (success : Fin R → ℝ) (hs0 : ∀ s, 0 ≤ success s)
@@ -201,11 +239,14 @@ theorem isolationSuccess_mean {R : ℕ} (hR : 0 < R)
     div_nonneg (Nat.cast_nonneg _) hr.le
   nlinarith [mul_nonneg hα (sub_nonneg.mpr hisolate)]
 
+/-- The maximum number of walk nodes on a branch, with depth zero at read-all and Grover leaves. -/
 def algorithm3Depth {N M k : ℕ} [NeZero M] : Algorithm3Tree N M k → ℕ
   | .readAll _ _ | .grover _ _ => 0
   | .walk _ _ _ plan children => 1+maximumFinite plan.seeds
       (fun s => algorithm3Depth (children s))
 
+/-- The recursive predicate requiring the no-collision probability to be at most the
+unique-collision probability plus `δ` at each walk node whose frame contains a collision. -/
 def algorithm3Isolates {N M k : ℕ} [NeZero M] (x : Fin N → ZMod M) (δ : ℝ) :
     Algorithm3Tree N M k → Prop
   | .readAll _ _ | .grover _ _ => True
@@ -215,6 +256,8 @@ def algorithm3Isolates {N M k : ℕ} [NeZero M] (x : Fin N → ZMod M) (δ : ℝ
         eventProbability (fun s => ∃! S, S ⊆ frameSet (treeFrame (children s)) ∧
           IsCollision k x S)+δ) ∧ ∀ s, algorithm3Isolates x δ (children s)
 
+/-- If the root frame contains a unique collision, a valid tree with unique-call guarantee `p`
+succeeds with probability at least `p * (1 - 1 / N)`. -/
 theorem algorithm3Tree_frame_unique {N M k r : ℕ} [NeZero M]
     (hN : 2 ≤ N) (C p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (P : Algorithm3Tree N M k) (hvalid : algorithm3Valid r C P)
@@ -241,6 +284,8 @@ theorem algorithm3Tree_frame_unique {N M k r : ℕ} [NeZero M]
     exact le_trans hup (le_trans (hp.1 x hx)
       (algorithm3Tree_first_call x f memory A plan children))
 
+/-- A valid isolating tree whose root frame contains a collision succeeds with probability at
+least `p * (1 - 1 / N) / 2 * (1 - algorithm3Depth P * δ)` under the stated bounds. -/
 theorem algorithm3Tree_isolation_success {N M k r : ℕ} [NeZero M]
     (hN : 2 ≤ N) (C p δ : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) (hδ : 0 ≤ δ)
     (P : Algorithm3Tree N M k) (hvalid : algorithm3Valid r C P)
@@ -311,6 +356,7 @@ theorem algorithm3Tree_isolation_success {N M k r : ℕ} [NeZero M]
       exact le_trans htarget
           (algorithm3Tree_probability_bounds x (.walk f memory A plan children)).1
 
+/-- The depth of a valid tree is at most the size of its root frame. -/
 theorem algorithm3Depth_le_frameSize {N M k r : ℕ} [NeZero M]
     (C : ℝ) (P : Algorithm3Tree N M k) (hvalid : algorithm3Valid r C P) :
     algorithm3Depth P ≤ (treeFrame P).size := by
@@ -330,17 +376,22 @@ theorem algorithm3Depth_le_frameSize {N M k r : ℕ} [NeZero M]
       have hdec := plan.decreases
       omega)
 
+/-- The recursive predicate that every child frame has size at most `a` times its parent frame
+size. -/
 def algorithm3Shrinks {N M k : ℕ} [NeZero M] (a : ℝ) : Algorithm3Tree N M k → Prop
   | .readAll _ _ | .grover _ _ => True
   | .walk f _ _ _plan children => ∀ s,
       (treeFrame (children s)).size ≤ a*f.size ∧ algorithm3Shrinks a (children s)
 
+/-- The real logarithm of a natural number is nonnegative, including its defined value at zero. -/
 private theorem nat_log_nonneg (n : ℕ) : 0 ≤ Real.log (n : ℝ) := by
   by_cases hn : n = 0
   · simp [hn]
   · apply Real.log_nonneg
     exact_mod_cast (Nat.one_le_iff_ne_zero.mpr hn)
 
+/-- For a valid tree shrinking by `0 < a < 1`, the natural depth minus one times `-log a` is at
+most the logarithm of the root-frame size. -/
 theorem algorithm3Depth_log_bound {N M k r : ℕ} [NeZero M]
     (C a : ℝ) (ha0 : 0 < a) (ha1 : a < 1) (P : Algorithm3Tree N M k)
     (hvalid : algorithm3Valid r C P) (hshrink : algorithm3Shrinks a P) :
@@ -378,6 +429,8 @@ theorem algorithm3Depth_log_bound {N M k r : ℕ} [NeZero M]
       rw [hpred] at hih
       linarith
 
+/-- Under the stated lower bound on `sqrt N` and `k ≥ 2`, every valid tree shrinks by the factor
+`1 - 1 / (10 * k)`. -/
 theorem algorithm3Shrinks_valid {N M k r : ℕ} [NeZero M]
     (hk : 2 ≤ k) (hN : (8*k*k : ℝ) ≤ Real.sqrt N)
     (C : ℝ) (P : Algorithm3Tree N M k) (hvalid : algorithm3Valid r C P) :
@@ -398,6 +451,8 @@ theorem algorithm3Shrinks_valid {N M k r : ℕ} [NeZero M]
       exact hratio
     · exact ih s (hchildren s).2
 
+/-- Under the stated scale hypotheses, the depth of a valid tree is at most `1 + 10 * k * log
+rootSize`. -/
 theorem algorithm3Depth_source_log_bound {N M k r : ℕ} [NeZero M]
     (hk : 2 ≤ k) (hN : (8*k*k : ℝ) ≤ Real.sqrt N)
     (C : ℝ) (P : Algorithm3Tree N M k) (hvalid : algorithm3Valid r C P) :
@@ -434,6 +489,9 @@ theorem algorithm3Depth_source_log_bound {N M k r : ℕ} [NeZero M]
     rw [hcast] at hpred
     linarith
 
+/-- Under the size and terminal-error hypotheses, a valid initial-frame tree with the specified
+isolation error and unique-call guarantee `p` succeeds with probability at least `(1 - ε) *
+p / 2` on collision inputs. -/
 theorem algorithm3Tree_epsilon_success {N M k r : ℕ} [NeZero M]
     (hk : 2 ≤ k) (hN : 2 ≤ N) (hscale : (8*k*k : ℝ) ≤ Real.sqrt N)
     (ε C p : ℝ) (hε : 0 < ε) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
@@ -481,16 +539,21 @@ theorem algorithm3Tree_epsilon_success {N M k r : ℕ} [NeZero M]
       _ = p*(1-1/(N : ℝ))/2*(1-(algorithm3Depth P : ℝ)*δ) := by ring
       _ ≤ _ := hactual
 
+/-- The frame's partial origin map extended to `Fin q` by returning `none` outside the frame
+size. -/
 def algorithm3ExtendedOrigin {N q : ℕ} (f : Algorithm3Frame N) (_h : f.size ≤ q)
     (j : Fin q) : Option (Fin N) :=
   if hj : j.val < f.size then f.origin ⟨j.val,hj⟩ else none
 
+/-- The input on the enlarged domain, using original values at real origins and distinct dummy
+values `M + j.val` otherwise. -/
 def algorithm3ExtendedInput {N M q : ℕ} (f : Algorithm3Frame N) (h : f.size ≤ q)
     (x : Fin N → ZMod M) (j : Fin q) : ZMod (M+q+1) :=
   match algorithm3ExtendedOrigin f h j with
   | some i => (x i).val
   | none => ((M+j.val : ℕ) : ZMod (M+q+1))
 
+/-- For a well-formed frame, two extended positions with the same real origin are equal. -/
 theorem algorithm3ExtendedOrigin_injective {N q : ℕ} (f : Algorithm3Frame N)
     (h : f.size ≤ q) (hf : frameWellFormed f) {j l : Fin q} {v : Fin N}
     (hj : algorithm3ExtendedOrigin f h j = some v)
@@ -507,6 +570,8 @@ theorem algorithm3ExtendedOrigin_injective {N q : ℕ} (f : Algorithm3Frame N)
   apply Fin.ext
   exact congrArg (fun z : Fin f.size => z.val) he
 
+/-- For nonzero `M`, the extended input's natural representative is the original value at a real
+origin and `M + j.val` at a dummy position. -/
 theorem algorithm3ExtendedInput_val {N M q : ℕ} [NeZero M] (f : Algorithm3Frame N)
     (h : f.size ≤ q) (x : Fin N → ZMod M) (j : Fin q) :
     (algorithm3ExtendedInput f h x j).val =
@@ -526,6 +591,7 @@ theorem algorithm3ExtendedInput_val {N M q : ℕ} [NeZero M] (f : Algorithm3Fram
     have ht := (x i).val_lt
     omega
 
+/-- A dummy position cannot share its extended input value with any different position. -/
 theorem algorithm3ExtendedInput_dummy_eq {N M q : ℕ} [NeZero M] (f : Algorithm3Frame N)
     (h : f.size ≤ q) (x : Fin N → ZMod M) (j l : Fin q)
     (hj : algorithm3ExtendedOrigin f h j = none)
@@ -544,6 +610,8 @@ theorem algorithm3ExtendedInput_dummy_eq {N M q : ℕ} [NeZero M] (f : Algorithm
     have hle : M ≤ (x i).val := by rw [← hv]; exact Nat.le_add_right _ _
     exact False.elim (Nat.not_le_of_gt ht hle)
 
+/-- Equality of extended input values at two real origins is equivalent to equality of the
+corresponding original input values. -/
 theorem algorithm3ExtendedInput_real_eq {N M q : ℕ} [NeZero M] (f : Algorithm3Frame N)
     (h : f.size ≤ q) (x : Fin N → ZMod M) (j l : Fin q) (a b : Fin N)
     (hj : algorithm3ExtendedOrigin f h j = some a)
@@ -558,6 +626,7 @@ theorem algorithm3ExtendedInput_real_eq {N M q : ℕ} [NeZero M] (f : Algorithm3
   · intro he
     simp only [algorithm3ExtendedInput,hj,hl,he]
 
+/-- For `k ≥ 2`, every position in a collision of the extended input has a real origin. -/
 theorem algorithm3ExtendedInput_collision_real {N M q : ℕ} [NeZero M]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (x : Fin N → ZMod M)
     (k : ℕ) (hk : 2 ≤ k) (S : Finset (Fin q))
@@ -573,18 +642,22 @@ theorem algorithm3ExtendedInput_collision_real {N M q : ℕ} [NeZero M]
     have heq := algorithm3ExtendedInput_dummy_eq f h x j l ho ((hval j hj).trans (hval l hl).symm)
     exact False.elim (hne heq.symm)
 
+/-- The finite set of real origins represented by positions in `U`. -/
 def algorithm3OriginSet {N q : ℕ} (f : Algorithm3Frame N) (h : f.size ≤ q)
     (U : Finset (Fin q)) : Finset (Fin N) :=
   Finset.univ.filter (fun v => ∃ j ∈ U, algorithm3ExtendedOrigin f h j = some v)
 
+/-- A chosen position in `U` representing the given origin when one exists, and zero otherwise. -/
 def algorithm3Position {N q : ℕ} [NeZero q] (f : Algorithm3Frame N) (h : f.size ≤ q)
     (U : Finset (Fin q)) (v : Fin N) : Fin q :=
   if hv : v ∈ algorithm3OriginSet f h U then
     Classical.choose ((Finset.mem_filter.mp hv).2) else 0
 
+/-- The real origin of an extended position, defaulting to zero at dummy positions. -/
 def algorithm3Address {N q : ℕ} [NeZero N] (f : Algorithm3Frame N) (h : f.size ≤ q)
     (j : Fin q) : Fin N := (algorithm3ExtendedOrigin f h j).getD 0
 
+/-- For an origin represented in `U`, the chosen position belongs to `U` and has that origin. -/
 theorem algorithm3Position_spec {N q : ℕ} [NeZero q] (f : Algorithm3Frame N)
     (h : f.size ≤ q) (U : Finset (Fin q)) (v : Fin N)
     (hv : v ∈ algorithm3OriginSet f h U) :
@@ -593,17 +666,21 @@ theorem algorithm3Position_spec {N q : ℕ} [NeZero q] (f : Algorithm3Frame N)
   simp only [algorithm3Position,dif_pos hv]
   exact Classical.choose_spec ((Finset.mem_filter.mp hv).2)
 
+/-- At a position with real origin `v`, the address map equals `v`. -/
 theorem algorithm3Address_some {N q : ℕ} [NeZero N] (f : Algorithm3Frame N)
     (h : f.size ≤ q) (j : Fin q) (v : Fin N)
     (hv : algorithm3ExtendedOrigin f h j = some v) : algorithm3Address f h j = v := by
   simp [algorithm3Address,hv]
 
+/-- Applying the address map to a chosen position recovers every origin represented in `U`. -/
 theorem algorithm3Address_position {N q : ℕ} [NeZero N] [NeZero q]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (U : Finset (Fin q)) (v : Fin N)
     (hv : v ∈ algorithm3OriginSet f h U) :
     algorithm3Address f h (algorithm3Position f h U v) = v :=
   algorithm3Address_some f h _ v (algorithm3Position_spec f h U v hv).2
 
+/-- For a well-formed frame, choosing the position of the address of a real position in `U`
+recovers that position. -/
 theorem algorithm3Position_address {N q : ℕ} [NeZero N] [NeZero q]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (hf : frameWellFormed f)
     (U : Finset (Fin q)) (j : Fin q) (hj : j ∈ U)
@@ -614,6 +691,8 @@ theorem algorithm3Position_address {N q : ℕ} [NeZero N] [NeZero q]
   have ho : v ∈ algorithm3OriginSet f h U := Finset.mem_filter.mpr ⟨Finset.mem_univ _,j,hj,hv⟩
   exact algorithm3ExtendedOrigin_injective f h hf (algorithm3Position_spec f h U v ho).2 hv
 
+/-- Mapping a set of represented origins to chosen positions and then back to addresses recovers
+the original set. -/
 theorem algorithm3AddressPosition_image {N q : ℕ} [NeZero N] [NeZero q]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (U : Finset (Fin q))
     (S : Finset (Fin N)) (hS : S ⊆ algorithm3OriginSet f h U) :
@@ -623,6 +702,8 @@ theorem algorithm3AddressPosition_image {N q : ℕ} [NeZero N] [NeZero q]
     _ = S.image id := Finset.image_congr (fun v hv => algorithm3Address_position f h U v (hS hv))
     _ = _ := Finset.image_id
 
+/-- For a collision of size at least two in a well-formed extended frame, mapping to addresses
+and then to chosen positions recovers the collision set. -/
 theorem algorithm3PositionAddress_image {N M q : ℕ} [NeZero N] [NeZero q] [NeZero M]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (hf : frameWellFormed f)
     (U : Finset (Fin q)) (x : Fin N → ZMod M) (k : ℕ) (hk : 2 ≤ k)
@@ -635,6 +716,8 @@ theorem algorithm3PositionAddress_image {N M q : ℕ} [NeZero N] [NeZero q] [NeZ
         (algorithm3ExtendedInput_collision_real f h x k hk S hS.2 j hj))
     _ = _ := Finset.image_id
 
+/-- A collision among represented origins lifts through the chosen-position map to a collision
+of the extended input in `U`. -/
 theorem algorithm3LiftCollision {N M q : ℕ} [NeZero q]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (U : Finset (Fin q))
     (x : Fin N → ZMod M) (k : ℕ) (S : Finset (Fin N))
@@ -656,6 +739,8 @@ theorem algorithm3LiftCollision {N M q : ℕ} [NeZero q]
     simp only [algorithm3ExtendedInput, (algorithm3Position_spec f h U v (hS.1 hv)).2,
       hval v hv]
 
+/-- For a well-formed frame and `k ≥ 2`, a collision of the extended input projects through the
+address map to an original collision among represented origins. -/
 theorem algorithm3DropCollision {N M q : ℕ} [NeZero N] [NeZero M]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (hf : frameWellFormed f)
     (U : Finset (Fin q)) (x : Fin N → ZMod M) (k : ℕ) (hk : 2 ≤ k)
@@ -687,6 +772,8 @@ theorem algorithm3DropCollision {N M q : ℕ} [NeZero N] [NeZero M]
     exact (algorithm3ExtendedInput_real_eq f h x l j u v hu hv).mp
       ((hval l hl).trans (hval j hj).symm)
 
+/-- For a well-formed frame and `k ≥ 2`, collision existence among represented origins is
+equivalent to collision existence in the extended input restricted to `U`. -/
 theorem algorithm3Origin_collision_exists_iff {N M q : ℕ} [NeZero q] [NeZero M]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (hf : frameWellFormed f)
     (U : Finset (Fin q)) (x : Fin N → ZMod M) (k : ℕ) (hk : 2 ≤ k) :
@@ -702,6 +789,8 @@ theorem algorithm3Origin_collision_exists_iff {N M q : ℕ} [NeZero q] [NeZero M
     letI : NeZero N := ⟨by have ht := v.isLt; omega⟩
     exact ⟨_,algorithm3DropCollision f h hf U x k hk S hS⟩
 
+/-- For a well-formed frame and `k ≥ 2`, unique-collision existence is equivalent for
+represented origins and the extended input restricted to `U`. -/
 theorem algorithm3Origin_collision_unique_iff {N M q : ℕ} [NeZero q] [NeZero M]
     (f : Algorithm3Frame N) (h : f.size ≤ q) (hf : frameWellFormed f)
     (U : Finset (Fin q)) (x : Fin N → ZMod M) (k : ℕ) (hk : 2 ≤ k) :
@@ -734,9 +823,11 @@ theorem algorithm3Origin_collision_unique_iff {N M q : ℕ} [NeZero q] [NeZero M
         (algorithm3AddressPosition_image f h U S hS.1).symm
       _ = _ := congrArg (fun A => A.image (algorithm3Address f h)) heq
 
+/-- The positions of `Fin q` whose values lie below the frame size. -/
 def algorithm3ExtendedDomain {N q : ℕ} (f : Algorithm3Frame N) : Finset (Fin q) :=
   Finset.univ.filter (fun j => j.val < f.size)
 
+/-- The real origins represented by the extended domain are exactly the frame's represented set. -/
 theorem algorithm3OriginSet_initial {N q : ℕ} (f : Algorithm3Frame N) (h : f.size ≤ q) :
     algorithm3OriginSet f h (algorithm3ExtendedDomain f) = frameSet f := by
   ext v
@@ -751,6 +842,8 @@ theorem algorithm3OriginSet_initial {N q : ℕ} (f : Algorithm3Frame N) (h : f.s
     · simp [algorithm3ExtendedDomain,j.isLt]
     · simpa [algorithm3ExtendedOrigin,j.isLt] using! hj
 
+/-- The origins represented by a retained extended domain are exactly the set represented by the
+next frame. -/
 theorem algorithm3OriginSet_nextFrame {k N : ℕ} {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (s : Fin P.seeds) :
     algorithm3OriginSet f P.enough (retained k (algorithm3ExtendedDomain f) P.permutation s) =
@@ -774,6 +867,8 @@ theorem algorithm3OriginSet_nextFrame {k N : ℕ} {f : Algorithm3Frame N}
       exact ⟨by simp [algorithm3ExtendedDomain,j.isLt],by simpa only [hkeep] using! hret⟩
     · simpa [algorithm3ExtendedOrigin,j.isLt] using! hj
 
+/-- For a well-formed frame and `k ≥ 2`, collision existence in the frame is equivalent to
+collision existence in its extended input domain. -/
 theorem frame_extended_collision_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (hk : 2 ≤ k) (hf : frameWellFormed f)
     (x : Fin N → ZMod M) :
@@ -784,6 +879,8 @@ theorem frame_extended_collision_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Fra
   rw [algorithm3OriginSet_initial] at hh
   exact hh
 
+/-- For a well-formed frame and `k ≥ 2`, unique-collision existence in the frame is equivalent
+to unique-collision existence in its extended input domain. -/
 theorem frame_extended_unique_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (hk : 2 ≤ k) (hf : frameWellFormed f)
     (x : Fin N → ZMod M) :
@@ -794,6 +891,8 @@ theorem frame_extended_unique_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Frame 
   rw [algorithm3OriginSet_initial] at hh
   exact hh
 
+/-- For a well-formed frame and `k ≥ 2`, collision existence in the next frame is equivalent to
+collision existence in the retained extended domain. -/
 theorem nextFrame_extended_collision_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (hk : 2 ≤ k) (hf : frameWellFormed f)
     (x : Fin N → ZMod M) (s : Fin P.seeds) :
@@ -806,6 +905,8 @@ theorem nextFrame_extended_collision_iff {k N M : ℕ} [NeZero M] {f : Algorithm
   rw [algorithm3OriginSet_nextFrame] at hh
   exact hh
 
+/-- For a well-formed frame and `k ≥ 2`, unique-collision existence in the next frame is
+equivalent to unique-collision existence in the retained extended domain. -/
 theorem nextFrame_extended_unique_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Frame N}
     (P : Algorithm3Plan k N f) (hk : 2 ≤ k) (hf : frameWellFormed f)
     (x : Fin N → ZMod M) (s : Fin P.seeds) :
@@ -818,6 +919,8 @@ theorem nextFrame_extended_unique_iff {k N M : ℕ} [NeZero M] {f : Algorithm3Fr
   rw [algorithm3OriginSet_nextFrame] at hh
   exact hh
 
+/-- A uniform one-step isolation estimate on the stated frame sizes implies recursive isolation
+for every valid tree whose root size is at most `N`. -/
 theorem algorithm3Tree_isolates_of_step {N M k r : ℕ} [NeZero M]
     (C δ : ℝ) (x : Fin N → ZMod M)
     (hstep : ∀ (f : Algorithm3Frame N) (plan : Algorithm3Plan k N f),
@@ -851,6 +954,7 @@ theorem algorithm3Tree_isolates_of_step {N M k r : ℕ} [NeZero M]
       change plan.kept ≤ N
       exact le_trans plan.decreases.le hsize
 
+/-- The Algorithm 3 isolation contract implies the Algorithm 3 success contract. -/
 theorem algorithm3Isolation_implies_success (hIsolation : Algorithm3IsolationContract) :
     Algorithm3SuccessContract := by
   intro k hk ε hε
@@ -916,6 +1020,8 @@ theorem algorithm3Isolation_implies_success (hIsolation : Algorithm3IsolationCon
   · intro hno
     exact algorithm3Tree_no_collision x hno P
 
+/-- The Algorithm 3 success proposition follows from the proved isolation contract
+[Ambainis2007ElementDistinctness]. -/
 theorem algorithm3Success_answer : Algorithm3Success :=
   algorithm3Isolation_implies_success algorithm3Isolation_answer
 

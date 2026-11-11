@@ -9,6 +9,30 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Tactic
 
+/-!
+# Counting decision and guessing problems from state covers
+
+`decides` and `guesses` express success thresholds for families of output states. Euclidean
+perturbation bounds separate distinct decision problems and control which guessing outcomes can
+remain probable near a cover center.
+
+The module converts finite covers into cardinality bounds, with one decision problem per
+sufficiently small ball and a factor of `(4 * q) ^ (Fintype.card ι)` for guessing problems. See
+[Knill1995].
+
+## Main statements
+
+* `decides_eq_of_close`: identifies decision problems whose normalized output states are
+  sufficiently close.
+* `decision_card_le_centres`: bounds decision problems by the number of centers.
+* `guess_card_le_centres`: bounds guessing problems using probability thresholds at normalized
+  centers.
+
+## References
+
+* [Knill, 1995][Knill1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Matrix
@@ -17,20 +41,26 @@ open Qatlib.Foundations.BornMetrics.FiniteStats
 
 namespace Qatlib.Papers.QCircApprox95.MainResults
 
+/-- A binary-valued function on the input type `ι`. -/
 abbrev DecisionProblem (ι : Type*) := ι → Fin 2
 
+/-- Every input has probability at least `(1 + 1 / q) / 2` of producing its prescribed binary
+output under measurement `p`. -/
 def decides {ι : Type*} {N : ℕ} (p : Fin N → Fin 2) (q : ℝ)
     (u : ι → Fin N → ℂ) (f : ι → Fin 2) : Prop :=
   ∀ b, 1 / 2 * (1 + 1 / q) ≤ fiberProb p (u b) (f b)
 
+/-- Every state in the input-indexed family has total squared amplitude equal to one. -/
 def StateNorm {ι : Type*} {N : ℕ} (u : ι → Fin N → ℂ) : Prop :=
   ∀ b, ∑ i, ‖u b i‖ ^ 2 = 1
 
+/-- The probability mass of any measurement fiber is nonnegative. -/
 theorem fiberProb_nonneg {N A : ℕ} (p : Fin N → Fin A) (u : Fin N → ℂ) (a : Fin A) :
     0 ≤ fiberProb p u a := by
   unfold fiberProb
   exact Finset.sum_nonneg fun i _ => by split_ifs <;> positivity
 
+/-- Every element of `Fin 2` is either zero or one. -/
 theorem fin_two_eq_zero_or_one (i : Fin 2) : i = 0 ∨ i = 1 := by
   have hlt := i.isLt
   have hval : i.val = 0 ∨ i.val = 1 := by omega
@@ -38,6 +68,7 @@ theorem fin_two_eq_zero_or_one (i : Fin 2) : i = 0 ∨ i = 1 := by
   · left; exact Fin.ext (by simpa using h0)
   · right; exact Fin.ext (by simpa using h1)
 
+/-- The masses of the two fibers of a binary measurement sum to the total squared amplitude. -/
 theorem fiberProb_zero_add_one {N : ℕ} (p : Fin N → Fin 2) (u : Fin N → ℂ) :
     fiberProb p u 0 + fiberProb p u 1 = ∑ i, ‖u i‖ ^ 2 := by
   unfold fiberProb
@@ -46,6 +77,8 @@ theorem fiberProb_zero_add_one {N : ℕ} (p : Fin N → Fin 2) (u : Fin N → �
   intro i _
   rcases fin_two_eq_zero_or_one (p i) with h | h <;> simp [h]
 
+/-- The square root of a measurement fiber's mass equals the Euclidean norm of the vector
+restricted to that fiber. -/
 theorem sqrt_fiberProb_eq_l2norm_mask {N A : ℕ} (p : Fin N → Fin A) (u : Fin N → ℂ)
     (c : Fin A) :
     Real.sqrt (fiberProb p u c) =
@@ -56,6 +89,8 @@ theorem sqrt_fiberProb_eq_l2norm_mask {N A : ℕ} (p : Fin N → Fin A) (u : Fin
   intro i _
   by_cases h : p i = c <;> simp [h]
 
+/-- The difference between square roots of corresponding fiber masses is bounded by the
+Euclidean distance between the vectors. -/
 theorem abs_sqrt_fiberProb_sub_le {N A : ℕ} (p : Fin N → Fin A)
     (u v : Fin N → ℂ) (c : Fin A) :
     |Real.sqrt (fiberProb p u c) - Real.sqrt (fiberProb p v c)| ≤ l2norm (u - v) := by
@@ -93,6 +128,9 @@ theorem abs_sqrt_fiberProb_sub_le {N A : ℕ} (p : Fin N → Fin A)
   rw [abs_sub_le_iff]
   constructor <;> linarith
 
+/-- Two decision problems with normalized output families and positive `q` coincide if their
+pointwise Euclidean distances are strictly below `1 / q`. This is the separation step for
+Theorem 5.1 of [Knill1995]. -/
 theorem decides_eq_of_close {N : ℕ} {ι : Type*} (p : Fin N → Fin 2) {q : ℝ}
     (hq : 0 < q) {u v : ι → Fin N → ℂ} {f g : ι → Fin 2}
     (hu : StateNorm u) (hv : StateNorm v)
@@ -157,6 +195,8 @@ theorem decides_eq_of_close {N : ℕ} {ι : Type*} (p : Fin N → Fin 2) {q : �
     rwa [mul_one_div] at this
   linarith
 
+/-- Two normalized output families deciding problems with parameter `q` decide the same problem
+if both lie within radius `δ` of a common family and `2 * δ < 1 / q`. -/
 theorem decides_eq_of_ball {N : ℕ} {ι : Type*} {p : Fin N → Fin 2} {q δ : ℝ}
     (hq : 0 < q) {u w v : ι → Fin N → ℂ} {f g : ι → Fin 2}
     (hu : StateNorm u) (hw : StateNorm w)
@@ -180,6 +220,9 @@ theorem decides_eq_of_ball {N : ℕ} {ι : Type*} {p : Fin N → Fin 2} {q δ : 
     exact h
   linarith [huv b, hwv b, hδ]
 
+/-- If every decision problem in `F` has normalized outputs within radius `δ` of one of `m`
+centers and `2 * δ < 1 / q`, then `F.card ≤ m`. This is a covering form of the count in
+Theorem 5.1 of [Knill1995]. -/
 theorem decision_card_le_centres {N : ℕ} {ι : Type*} [Fintype ι]
     (p : Fin N → Fin 2) {q δ : ℝ} (hq : 0 < q) (hδ : 2 * δ < 1 / q)
     {m : ℕ} (c : Fin m → ι → Fin N → ℂ)
@@ -213,6 +256,8 @@ theorem decision_card_le_centres {N : ℕ} {ι : Type*} [Fintype ι]
     _ ≤ Fintype.card (Fin m) := Fintype.card_le_of_injective g hg_inj
     _ = m := Fintype.card_fin m
 
+/-- Under the stated decision gap and covering hypotheses, `F.card` is at most the cardinality
+of the finite center index type `τ`. See Theorem 5.1 of [Knill1995]. -/
 theorem decision_card_le_indexed {N : ℕ} {ι : Type*} [Fintype ι]
     {τ : Type*} [Fintype τ]
     (p : Fin N → Fin 2) {q δ : ℝ} (hq : 0 < q) (hδ : 2 * δ < 1 / q)
@@ -246,10 +291,15 @@ theorem decision_card_le_indexed {N : ℕ} {ι : Type*} [Fintype ι]
   calc F.card = Fintype.card ↥F := (Fintype.card_coe F).symm
     _ ≤ Fintype.card τ := Fintype.card_le_of_injective g hg_inj
 
+/-- Every input has probability at least `1 / q` of producing its prescribed output under
+measurement `p`. -/
 def guesses {ι : Type*} {N A : ℕ} (p : Fin N → Fin A) (q : ℝ)
     (u : ι → Fin N → ℂ) (f : ι → Fin A) : Prop :=
   ∀ b, 1 / q ≤ fiberProb p (u b) (f b)
 
+/-- A family within Euclidean distance `δ ≤ 1 / (2 * Real.sqrt q)` of a family guessing with
+probability at least `1 / q` retains probability at least `1 / (4 * q)` for each prescribed
+output. This is the perturbation estimate used in Theorem 5.3 of [Knill1995]. -/
 theorem fiberProb_ge_quarter_of_close {N A : ℕ} {ι : Type*} (p : Fin N → Fin A)
     {q δ : ℝ} (hq : 0 < q) {u v : ι → Fin N → ℂ} {f : ι → Fin A}
     (hg : guesses p q u f)
@@ -287,6 +337,9 @@ theorem fiberProb_ge_quarter_of_close {N A : ℕ} {ι : Type*} (p : Fin N → Fi
     norm_num
   linarith
 
+/-- For a normalized vector and positive `α`, the number of measurement outcomes with
+probability at least `α`, multiplied by `α`, is at most one. This bounds the output choices
+in Theorem 5.3 of [Knill1995]. -/
 theorem card_threshold_mass_le {N A : ℕ} (p : Fin N → Fin A) (u : Fin N → ℂ)
     (hn : ∑ i, ‖u i‖ ^ 2 = 1) {α : ℝ} (hα : 0 < α) :
     ((Finset.univ.filter (fun c : Fin A => α ≤ fiberProb p u c)).card : ℝ) * α ≤ 1 := by
@@ -310,6 +363,8 @@ theorem card_threshold_mass_le {N A : ℕ} (p : Fin N → Fin A) (u : Fin N → 
       exact fiberProb_nonneg p u c
     _ = 1 := hsum
 
+/-- The number of functions whose value at each input lies in the given finite set equals the
+product of the sizes of those sets. -/
 theorem card_functions_mem_pi {ι : Type*} [Fintype ι] [DecidableEq ι] {A : ℕ}
     (S : ι → Finset (Fin A)) :
     (Finset.univ.filter (fun f : ι → Fin A => ∀ b, f b ∈ S b)).card
@@ -327,6 +382,8 @@ theorem card_functions_mem_pi {ι : Type*} [Fintype ι] [DecidableEq ι] {A : �
       intro b _
       exact Fintype.card_coe (S b)
 
+/-- For `δ < 1 / (2 * Real.sqrt q)`, a cover by `m` normalized centers bounds the number of
+guessing problems by `m * (4 * q) ^ (Fintype.card ι)`. See Theorem 5.3 of [Knill1995]. -/
 theorem guess_card_le_centres {N A : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
     (p : Fin N → Fin A) {q δ : ℝ} (hq : 0 < q) (hδ : δ < 1 / (2 * Real.sqrt q))
     {m : ℕ} (c : Fin m → ι → Fin N → ℂ)
@@ -385,6 +442,8 @@ theorem guess_card_le_centres {N A : ℕ} {ι : Type*} [Fintype ι] [DecidableEq
     _ = (m : ℝ) * (4 * q) ^ (Fintype.card ι) := by
       rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
 
+/-- Under the stated guessing gap and normalized covering hypotheses, the number of problems is
+at most `Fintype.card τ * (4 * q) ^ (Fintype.card ι)`. See Theorem 5.3 of [Knill1995]. -/
 theorem guess_card_le_indexed {N A : ℕ} {ι : Type*} [Fintype ι] [DecidableEq ι]
     {τ : Type*} [Fintype τ]
     (p : Fin N → Fin A) {q δ : ℝ} (hq : 0 < q) (hδ : δ < 1 / (2 * Real.sqrt q))

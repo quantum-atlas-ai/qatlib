@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+
+/-!
+# Distinguishability in finite learning trees
+
+Establishes positivity and normalization of finite learning-tree path probabilities, using
+`layerTreeTail` to split off the first outcome. The result `distinguishability_propagation`
+bounds the total variation of leaf distributions by the number of layers times a uniform kernel
+bound. See [CotlerGongKannan2025] for the surrounding analysis.
+
+## Main statements
+
+* `pathProb_cons`: The probability of a path starting with `a` factors as the first-step kernel
+  weight times the path probability in `layerTreeTail T a`.
+* `pathProb_sum_one`: The path probabilities of a finite learning tree sum to one.
+* `distinguishability_propagation`: If corresponding kernels differ in total variation by at
+  most nonnegative `ε` at every prefix, the leaf distributions differ by at most `ε * N`.
+
+## References
+
+* [Cotler et al., 2025][CotlerGongKannan2025]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,10 +36,13 @@ namespace Qatlib.Papers.NoisyLearn26.MainResults.LearningTree
 
 open Qatlib.Papers.NoisyLearn26.MainResults
 
+/-- The total variation expression `tvDist` is nonnegative for any two real-valued functions on
+a finite type. -/
 theorem tvDist_nonneg {X : Type*} [Fintype X] (p q : X → ℝ) : 0 ≤ tvDist p q := by
   unfold tvDist
   positivity
 
+/-- The total variation expression `tvDist` is symmetric in its two arguments. -/
 theorem tvDist_comm {X : Type*} [Fintype X] (p q : X → ℝ) :
     tvDist p q = tvDist q p := by
   unfold tvDist
@@ -25,12 +50,15 @@ theorem tvDist_comm {X : Type*} [Fintype X] (p q : X → ℝ) :
   refine Finset.sum_congr rfl (fun x _ => ?_)
   rw [abs_sub_comm]
 
+/-- The remaining `N` layers of a learning tree after fixing its first outcome to `a`. -/
 def layerTreeTail {A : Type*} [Fintype A] {N : ℕ} (T : LayerTree A (N + 1))
     (a : A) : LayerTree A N where
   kernel i u b := T.kernel i.succ (Fin.cons a u) b
   kernel_nonneg i u b := T.kernel_nonneg i.succ (Fin.cons a u) b
   kernel_sum_one i u := T.kernel_sum_one i.succ (Fin.cons a u)
 
+/-- The prefix of `Fin.cons a xs` at a successor index is `a` followed by the corresponding
+prefix of `xs`. -/
 theorem pathPrefix_cons_succ {A : Type*} [Fintype A] {N : ℕ} (a : A)
     (xs : Fin N → A) (i : Fin N) :
     LayerTree.pathPrefix (A := A) (Fin.cons a xs) i.succ =
@@ -38,11 +66,14 @@ theorem pathPrefix_cons_succ {A : Type*} [Fintype A] {N : ℕ} (a : A)
   funext j
   cases j using Fin.cases <;> rfl
 
+/-- Every path probability of a `LayerTree` is nonnegative. -/
 theorem pathProb_nonneg {A : Type*} [Fintype A] {N : ℕ} (T : LayerTree A N)
     (x : Fin N → A) : 0 ≤ T.pathProb x := by
   unfold LayerTree.pathProb
   exact Finset.prod_nonneg (fun i _ => T.kernel_nonneg i _ _)
 
+/-- The probability of a path starting with `a` factors as the first-step kernel weight times
+the path probability in `layerTreeTail T a`. -/
 theorem pathProb_cons {A : Type*} [Fintype A] {N : ℕ} (T : LayerTree A (N + 1))
     (a : A) (xs : Fin N → A) :
     T.pathProb (Fin.cons a xs) =
@@ -62,6 +93,7 @@ theorem pathProb_cons {A : Type*} [Fintype A] {N : ℕ} (T : LayerTree A (N + 1)
     rw [Fin.cons_succ, pathPrefix_cons_succ]
     rfl
 
+/-- The path probabilities of a finite learning tree sum to one. -/
 theorem pathProb_sum_one {A : Type*} [Fintype A] {N : ℕ} (T : LayerTree A N) :
     (∑ x : Fin N → A, T.pathProb x) = 1 := by
   revert T
@@ -103,6 +135,8 @@ theorem pathProb_sum_one {A : Type*} [Fintype A] {N : ℕ} (T : LayerTree A N) :
             rw [T.kernel_sum_one 0 (fun j => Fin.elim0 j)]
             ring
 
+/-- If corresponding kernels differ in total variation by at most nonnegative `ε` at every
+prefix, the leaf distributions differ by at most `ε * N` [CotlerGongKannan2025]. -/
 theorem distinguishability_propagation
     {A : Type*} [Fintype A] [DecidableEq A] {N : ℕ}
     (T T' : LayerTree A N) (ε : ℝ) (hε : 0 ≤ ε)

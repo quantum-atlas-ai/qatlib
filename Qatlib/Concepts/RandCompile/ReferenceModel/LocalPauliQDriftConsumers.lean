@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RandCompile.ReferenceModel.LocalRationalPauliQDrift
+
+/-!
+# A rational XZ qDRIFT example
+
+This module instantiates the rational Pauli qDRIFT construction with the one-qubit Hamiltonian
+`(1/3) X - (2/3) Z`. It computes the dyadic coefficient table and the actual gate count, then
+combines simulation, sampling, phase, and coefficient errors in the setting of [Campbell2019].
+
+## Main statements
+
+* `localXZ_dyadic_table`: the weights at precision two are `1` and `3`.
+* `localXZ_qdrift_gateCount`: each selected X term adds two gates to the baseline path length.
+* `local_rational_xz_qdrift_actual_consumer`: the resulting finite-reference trace norm error
+  bound.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.ChannelTheory.Stinespring
@@ -24,10 +44,13 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option maxHeartbeats 1000000
 
+/-- The rational coefficient pair `(1/3, -2/3)` for the XZ Hamiltonian example. -/
 def localXZCoefficients : Fin 2 → ℚ := ![1/3,-2/3]
 
+/-- The one-qubit Pauli labels selecting X for the first component and Z for the second. -/
 def localXZLabels (j : Fin 2) : Fin 1 → Fin 4 := fun _ => if j = 0 then 1 else 3
 
+/-- The labeled one-qubit Pauli strings are respectively `pauliX` and `pauliZ`. -/
 theorem localXZ_pauli_matrix (j : Fin 2) :
     pauliStringMatrix 1 (localXZLabels j) = if j = 0 then pauliX else pauliZ := by
   have h0 : (bitVecEquiv 1).symm (0 : Fin 2) (0 : Fin 1) = false := rfl
@@ -36,6 +59,8 @@ theorem localXZ_pauli_matrix (j : Fin 2) :
     simp [pauliStringMatrix,localXZLabels,localPauliMatrix,tensorPauliProduct,
       relabelGate,pauliProductDensity,boolEquivFin2,h0,h1,pauliX,pauliZ]
 
+/-- At precision two, the dyadic coefficients are `(1, -3)`, the absolute weights are `(1, 3)`,
+and their total is four. -/
 theorem localXZ_dyadic_table :
     (∀ j : Fin 2, dyadicCoefficient 2 (localXZCoefficients j) = (![1,-3] : Fin 2 → ℤ) j) ∧
     dyadicWeights 2 localXZCoefficients = (![1,3] : Fin 2 → ℕ) ∧
@@ -48,10 +73,12 @@ theorem localXZ_dyadic_table :
     fin_cases j <;> norm_num [dyadicWeights,dyadicCoefficient,localXZCoefficients]
   · norm_num [weightTotal,Fin.sum_univ_two,dyadicWeights,dyadicCoefficient,localXZCoefficients]
 
+/-- The X component has gate cost three and the Z component has gate cost one. -/
 private theorem localXZ_gateCost (j : Fin 2) :
     localPauliGateCost 1 (localXZLabels j) = 1+2*(if j = 0 then 1 else 0) := by
   fin_cases j <;> decide
 
+/-- An `N`-step XZ path uses `N + 2*c` gates, where `c` is the number of sampled X components. -/
 theorem localXZ_qdrift_gateCount (N R k : ℕ) (t : ℚ)
     (ω : Fin N → Fin R → Reg (Nat.clog 2 (weightTotal (dyadicWeights 2 localXZCoefficients)))) :
     GateCount (reflectionCompile (localPauliQdriftSteps 1 2 N R k localXZCoefficients 0 localXZLabels t ω)) =
@@ -67,6 +94,9 @@ theorem localXZ_qdrift_gateCount (N R k : ℕ) (t : ℚ)
   congr 1
   exact (Finset.card_filter _ _).symm
 
+/-- For positive `N` and `|2*t/N| ≤ 1`, the XZ implementation has gate count `N+2*c` and
+reference trace norm error bounded by `(4*t^2/N + 2*N*(1/2)^R + 2*N*(1/2)^k +
+|t|/2)*Matrix.traceNorm X`. -/
 theorem local_rational_xz_qdrift_actual_consumer :
     ∀ (N R k r : ℕ) (t : ℚ) (X : Matrix (Fin 2 × Fin r) (Fin 2 × Fin r) ℂ)
       (ω : Fin N → Fin R → Reg

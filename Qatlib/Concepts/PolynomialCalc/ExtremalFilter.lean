@@ -6,11 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PolynomialCalc.ChebyshevScale
 
+/-!
+# Admissibility and band edge of Chebyshev filters
+
+This module verifies the scaled Chebyshev candidate from `ChebyshevScale.filterPolynomial`. It
+identifies the supremal point where the candidate takes the value `ε`, and proves its
+admissibility and exact degree under the stated parameter restrictions. The construction is
+related to the Chebyshev filters in [YoderLowChuang2014].
+
+## Main statements
+
+* `candidate_band_edge`: the upper level-set edge is `1 - bandWidth ε k`.
+* `candidate_membership`: the candidate is admissible and has degree exactly `k`.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option autoImplicit false
 open scoped BigOperators
 namespace Qatlib.Concepts.PolynomialCalc.ExtremalFilter
 open Qatlib.Concepts.PolynomialCalc.ChebyshevScale
 
+/-- The hyperbolic scaling point used by the Chebyshev filter is at least one. -/
 lemma cheb_band_const_one_le (ε : ℝ) (k : ℕ) :
     1 ≤ hyperbolicScale ((k : ℝ))⁻¹ (1 / ε) := by
   have hc : Real.cosh (((k : ℝ))⁻¹ * Real.arcosh (1 / ε))
@@ -18,6 +37,7 @@ lemma cheb_band_const_one_le (ε : ℝ) (k : ℕ) :
   rw [← hc]
   exact Real.one_le_cosh _
 
+/-- One minus the filter bandwidth equals the reciprocal of its hyperbolic scaling point. -/
 lemma one_sub_delta_eq (ε : ℝ) (k : ℕ) :
     1 - bandWidth ε k = (hyperbolicScale ((k : ℝ))⁻¹ (1 / ε))⁻¹ := by
   have hc0 : 0 < hyperbolicScale ((k : ℝ))⁻¹ (1 / ε) :=
@@ -25,6 +45,8 @@ lemma one_sub_delta_eq (ε : ℝ) (k : ℕ) :
   rw [bandWidth, div_eq_inv_mul, mul_sub, inv_mul_cancel₀ (ne_of_gt hc0), mul_one]
   ring
 
+/-- For `ε > 0` and positive degree, the supremum of points in `[-1, 1]` where the filter equals
+`ε` is `1 - bandWidth ε k`. -/
 theorem candidate_band_edge
     (ε : ℝ) (k : ℕ) (hε0 : 0 < ε) (hk : 1 ≤ k) :
     sSup {x : ℝ | |x| ≤ 1 ∧ filterValue ε k x = ε} = 1 - bandWidth ε k := by
@@ -60,6 +82,8 @@ theorem candidate_band_edge
     exact (le_div_iff₀ hc0).mpr (mul_comm (hyperbolicScale ((k : ℝ))⁻¹ (1 / ε)) x ▸ hcxe)
   rw [le_antisymm (csSup_le hSne hkey) (le_csSup hSbd hmem)]
 
+/-- For `0 < ε < 1` and positive `k`, the scaled Chebyshev candidate satisfies
+`AdmissibleFilter` and has natural degree exactly `k`. -/
 theorem candidate_membership
     (ε : ℝ) (k : ℕ) (hε0 : 0 < ε) (hε1 : ε < 1) (hk : 1 ≤ k) :
     AdmissibleFilter ε k (filterPolynomial ε k) ∧ (filterPolynomial ε k).natDegree = k := by

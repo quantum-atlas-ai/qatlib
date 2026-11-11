@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QAOAScaling23.BiasedProcess.JointPayload
 import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeOracle
+
+/-!
+# Actual search oracles as completed descent rows
+
+This module extracts receipt trees from the paid strict-threshold search code and constructs
+`actualRow` by completing failed searches with lower-rank samples. It preserves the actual
+candidate and charge jointly, connecting the executable oracle to the biased descent model used
+for [ShaydulinEtAl2024].
+
+## Main statements
+
+* `actual_row_next`: The next-rank marginal of the actual completed row equals the prepared Born
+  class weight divided by the lower-rank prefix mass.
+* `actual_candidate_rank`: The candidate associated with an actual row outcome has the rank
+  recorded by that row's next state.
+* `actual_joint_paid`: The joint law of the actual oracle's optional candidate and fee equals
+  the corresponding completed-row law, with bad outcomes mapped to no candidate.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -22,11 +45,14 @@ open Qatlib.Papers.QAOAScaling23.WeightedCost
 namespace Qatlib.Papers.QAOAScaling23.BiasedProcess.NativeRows
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The tree of capped search receipts obtained by projecting the result component of the paid
+strict-threshold search execution. -/
 def receiptTree (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (ms : List ℕ) : Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree (CappedSearchTrace I) :=
   (paidTree cost current (Qatlib.Papers.QAOAScaling23.CausalSearch.searchCode U hU seed
     (Qatlib.Papers.QAOAScaling23.CausalSearch.strictMarked cost current) (Qatlib.Papers.QAOAScaling23.CausalSearch.strictValid cost current) ms)).map Prod.fst
 
+/-- The receipt tree has the law of the corresponding scheduled strict-threshold search. -/
 theorem receiptTree_law (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (ms : List ℕ) :
     (receiptTree U hU seed cost current ms).law = searchForSchedule U hU seed
@@ -34,6 +60,8 @@ theorem receiptTree_law (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I �
   rw [receiptTree,Tree.law_map,paidTree_value_law,
     Qatlib.Papers.QAOAScaling23.CausalSearch.searchCode_actual_law]
 
+/-- Every candidate returned by the receipt tree has strictly smaller cost than the current
+candidate. -/
 theorem receiptTree_sound (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (ms : List ℕ) :
     (receiptTree U hU seed cost current ms).All (fun tr => ∀i,tr.result = some i → cost i < cost current) := by
@@ -46,6 +74,8 @@ theorem receiptTree_sound (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I
   intro tr fee h i hi
   simpa [Qatlib.Papers.QAOAScaling23.CausalSearch.strictValid] using h i hi
 
+/-- Every successful indexed receipt has rank strictly below `r + 1` when the current candidate
+has that rank. -/
 theorem indexed_sound (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (ms : List ℕ) (r : ℕ) (hr : (costRank cost current).val = r+1) :
     ∀a i,(Tree.indexedLeafValue (receiptTree U hU seed cost current ms) a).result = some i →
@@ -58,12 +88,16 @@ theorem indexed_sound (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ
   change (costRank cost i).val < (costRank cost current).val at hrank
   rwa [hr] at hrank
 
+/-- The completed descent row built from the actual receipt tree for schedule `1 :: ms`,
+retaining the search fee. -/
 def actualRow (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.weights cost (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.preparedLaw U hU seed)) (r+1)) (ms : List ℕ) : Row r :=
   Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.nativeCompletedRow U hU seed cost current r hr hpos
     (receiptTree U hU seed cost current (1::ms)) Qatlib.Papers.QAOAScaling23.CausalSearch.searchFee
 
+/-- The candidate associated with an actual completed-row outcome, using the receipt result or a
+representative of the completed rank. -/
 def actualCandidate (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.weights cost (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.preparedLaw U hU seed)) (r+1)) (ms : List ℕ)
@@ -74,6 +108,8 @@ def actualCandidate (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) 
     (fun a => Qatlib.Papers.QAOAScaling23.CausalSearch.searchFee (Tree.indexedLeafValue (receiptTree U hU seed cost current (1::ms)) a))
     (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.lowerClassLaw cost (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.preparedLaw U hU seed) (r+1) (by omega) hpos) a
 
+/-- The next-rank marginal of the actual completed row equals the prepared Born class weight
+divided by the lower-rank prefix mass. -/
 theorem actual_row_next (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.weights cost (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.preparedLaw U hU seed)) (r+1)) (ms : List ℕ)
@@ -85,6 +121,8 @@ theorem actual_row_next (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I �
   Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.native_completed_next_real U hU seed cost current r hr hpos ms _
     (receiptTree_law U hU seed cost current (1::ms)) _ j
 
+/-- The candidate associated with an actual row outcome has the rank recorded by that row's next
+state. -/
 theorem actual_candidate_rank (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.weights cost (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.preparedLaw U hU seed)) (r+1)) (ms : List ℕ)
@@ -93,6 +131,8 @@ theorem actual_candidate_rank (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGro
       ((actualRow U hU seed cost current r hr hpos ms).next a).val :=
   Qatlib.Papers.QAOAScaling23.BiasedProcess.Payload.candidate_rank cost r (by omega) _ _ _ _ (indexed_sound U hU seed cost current (1::ms) r hr) a
 
+/-- The joint law of the actual oracle's optional candidate and fee equals the corresponding
+completed-row law, with bad outcomes mapped to no candidate. -/
 theorem actual_joint_paid (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (seed : I)
     (cost : I → ℝ) (current : I) (r : ℕ) (hr : (costRank cost current).val = r+1)
     (hpos : 0 < prefixSum (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.weights cost (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.preparedLaw U hU seed)) (r+1)) (ms : List ℕ) :

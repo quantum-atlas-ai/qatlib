@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.BesselMixture
 import Mathlib.Analysis.Matrix.PosDef
+
+/-!
+# Contractive wave and Bessel propagators
+
+The wave propagator respects diagonal matrices and unitary conjugation, yielding an explicit
+spectral representation for Hermitian matrices. For positive semidefinite matrices, this
+representation bounds its norm by one at every real time.
+
+`besselPropagator_posSemidef_norm_le_one` gives the corresponding Bessel contractivity bound.
+These real-parameter estimates supply norm control for special-function decompositions in
+[WangEtAl2026].
+
+## Main statements
+
+* `wavePropagator_spectral`: expresses the wave propagator in an eigenbasis.
+* `besselPropagator_posSemidef_norm_le_one`: bounds the Bessel propagator at real times.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -17,6 +39,8 @@ open Matrix Unitary
 open scoped Matrix.Norms.L2Operator ComplexOrder
 variable {n : Type*} [Fintype n] [DecidableEq n]
 
+/-- The wave propagator of a diagonal matrix is diagonal, with entries given by the scalar wave
+propagators of the diagonal entries. -/
 private theorem wavePropagator_diagonal (v : n → ℂ) (t : ℂ) :
     wavePropagator (diagonal v) t = diagonal (fun i => wavePropagator (v i) t) := by
   unfold wavePropagator
@@ -38,6 +62,7 @@ private theorem wavePropagator_diagonal (v : n → ℂ) (t : ℂ) :
       ext i
       exact Pi.tsum_apply hs
 
+/-- The wave propagator commutes with conjugation by a unitary matrix. -/
 private theorem wavePropagator_conj (A : Matrix n n ℂ)
     (U : unitary (Matrix n n ℂ)) (t : ℂ) :
     wavePropagator (conjStarAlgAut ℂ _ U A) t =
@@ -49,6 +74,8 @@ private theorem wavePropagator_conj (A : Matrix n n ℂ)
       (f := fun k : ℕ => (((2 * k).factorial : ℂ)⁻¹) • (-(t ^ 2) • A) ^ k)
   simpa [L, e, wavePropagator, map_smul, map_pow] using! h.symm
 
+/-- For a Hermitian matrix, the wave propagator is the unitary conjugate of the diagonal scalar
+propagators evaluated at its real eigenvalues. -/
 theorem wavePropagator_spectral (A : Matrix n n ℂ) (hA : A.IsHermitian) (t : ℂ) :
     wavePropagator A t = conjStarAlgAut ℂ _ hA.eigenvectorUnitary
       (diagonal (fun i => wavePropagator (hA.eigenvalues i : ℂ) t)) := by
@@ -56,6 +83,8 @@ theorem wavePropagator_spectral (A : Matrix n n ℂ) (hA : A.IsHermitian) (t : �
   rw [wavePropagator_conj, wavePropagator_diagonal]
   rfl
 
+/-- For a positive semidefinite matrix, the wave propagator has operator norm at most one at
+every real time. -/
 theorem wavePropagator_posSemidef_norm_le_one (A : Matrix n n ℂ) (hA : A.PosSemidef) (t : ℝ) :
     ‖wavePropagator A (t : ℂ)‖ ≤ 1 := by
   rw [wavePropagator_spectral A hA.isHermitian, conjStarAlgAut_apply,
@@ -65,6 +94,8 @@ theorem wavePropagator_posSemidef_norm_le_one (A : Matrix n n ℂ) (hA : A.PosSe
   intro i
   exact wavePropagator_scalar_nonneg_norm_le_one _ t (hA.eigenvalues_nonneg i)
 
+/-- For a positive semidefinite matrix, the Bessel propagator has operator norm at most one at
+every real time. -/
 theorem besselPropagator_posSemidef_norm_le_one (A : Matrix n n ℂ) (hA : A.PosSemidef) (t : ℝ) :
     ‖besselPropagator A (t : ℂ)‖ ≤ 1 := by
   rw [besselPropagator_wave_mixture, norm_smul, Real.norm_eq_abs,

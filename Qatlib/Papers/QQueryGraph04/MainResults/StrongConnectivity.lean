@@ -91,6 +91,33 @@ import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.Basic
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.SupportBounds
 import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
+
+/-!
+# Strong connectivity and tier estimates
+
+This module proves directed-tree cost bounds and a strong-connectivity reduction through a DFS
+edge set and selected outgoing edges. It formalizes tier sizes and cumulative counts with
+`TierInv`, proves update estimates for successful and failed steps, and bounds weighted tier
+failures and expected cost expressions.
+
+The source paper is [DurrEtAl2006].
+
+## Main statements
+
+* `theorem13_strong_connectivity_reduction`: Under the stated edge inclusion, rooted DFS order,
+  and outgoing-edge selection hypotheses, the original graph is strongly connected exactly when
+  A ∪ B is strongly connected.
+* `TierInv`: The tier family has the specified lowest and highest nonempty tiers, disjoint
+  tiers, individual size bounds, and cumulative size bounds.
+* `lemma17_expected_cost`: For each n there is a positive constant uniformly bounding finite
+  weighted tier costs by that constant times √n when the nonnegative weights are at most
+  (1/2)^(2ⁱ).
+
+## References
+
+* [Dürr et al., 2006][DurrEtAl2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -101,6 +128,8 @@ open Finset
 open Qatlib.Papers.QQueryGraph04.MainResults.Model
 open Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
 
+/-- Bounds the directed-tree cost by √(nmL) when the sums of the vertex parameters b and d are
+at most n and m [DurrEtAl2006]. -/
 theorem theorem12_query_cost {V : Type*} [Fintype V] (L : ℕ) (b d : V → ℕ) (n m : ℕ)
     (hb : (∑ u, b u) ≤ n) (hd : (∑ u, d u) ≤ m) :
     directedTreeCost L b d ≤ Real.sqrt ((n : ℝ) * (m : ℝ) * (L : ℝ)) := by
@@ -137,21 +166,26 @@ theorem theorem12_query_cost {V : Type*} [Fintype V] (L : ℕ) (b d : V → ℕ)
         congr 1
         ring
 
+/-- For n ≥ 1, the directed-tree error expression is at most 1/10 [DurrEtAl2006]. -/
 theorem theorem12_error (n : ℕ) (hn : 1 ≤ n) : directedTreeError n ≤ 1 / 10 :=
   directedTreeError_le n hn
 
+/-- For n ≥ 1, one minus the directed-tree error expression is at least 9/10 [DurrEtAl2006]. -/
 theorem theorem12_success (n : ℕ) (hn : 1 ≤ n) :
     9 / 10 ≤ 1 - directedTreeError n := by
   have h := theorem12_error n hn
   linarith
 
+/-- The Boolean directed adjacency relation determined by membership in a finite edge set. -/
 def edgeRel {V : Type*} [DecidableEq V] (E : Finset (V × V)) : V → V → Bool :=
   fun a b => decide ((a, b) ∈ E)
 
+/-- The relation `edgeRel E` holds exactly for ordered pairs belonging to `E`. -/
 theorem edgeRel_iff {V : Type*} [DecidableEq V] (E : Finset (V × V)) (a b : V) :
     edgeRel E a b = true ↔ (a, b) ∈ E := by
   simp [edgeRel]
 
+/-- A path using edges of A remains a path after adjoining the edge set B. -/
 theorem reach_mono_left {V : Type*} [DecidableEq V] (A B : Finset (V × V)) {a b : V}
     (h : Reach (edgeRel A) a b) : Reach (edgeRel (A ∪ B)) a b :=
   Relation.ReflTransGen.mono (fun x y hxy => by
@@ -159,6 +193,8 @@ theorem reach_mono_left {V : Type*} [DecidableEq V] (A B : Finset (V × V)) {a b
     simp only [decide_eq_true_eq] at hxy ⊢
     exact Finset.mem_union.mpr (Or.inl hxy)) _ _ h
 
+/-- If a vertex has an outgoing edge, one outgoing neighbor minimizes the natural-number order
+function among all outgoing neighbors. -/
 theorem exists_min_out {V : Type*} [Fintype V] [DecidableEq V]
     (adj : V → V → Bool) (ord : V → ℕ) {x : V} (h : ∃ y, adj x y = true) :
     ∃ w, adj x w = true ∧ ∀ y, adj x y = true → ord w ≤ ord y := by
@@ -171,6 +207,8 @@ theorem exists_min_out {V : Type*} [Fintype V] [DecidableEq V]
   refine ⟨w, (Finset.mem_filter.mp hw).2, fun y hy => hmin y ?_⟩
   simp [S, hy]
 
+/-- A path starting at order at least i and ending below i contains an edge that crosses below
+i, preceded by a path from the start [DurrEtAl2006]. -/
 theorem exists_first_drop {α : Type*} {r : α → α → Prop} {ord : α → ℕ} (i : ℕ)
     {a b : α} (hab : Relation.ReflTransGen r a b) (ha : i ≤ ord a) (hb : ord b < i) :
     ∃ x y, Relation.ReflTransGen r a x ∧ r x y ∧ i ≤ ord x ∧ ord y < i := by
@@ -186,6 +224,8 @@ theorem exists_first_drop {α : Type*} {r : α → α → Prop} {ord : α → �
     | tail hz' hstep ih => exact hval _ _ hz' hstep ih
   exact absurd (hall b hab) (not_le.mpr hb)
 
+/-- If all edges of A and B belong to the original graph, strong connectivity of their union
+implies strong connectivity of the original graph [DurrEtAl2006]. -/
 theorem theorem13_reduction_forward {V : Type*} [Fintype V] [DecidableEq V] (adj : V → V → Bool)
     (A B : Finset (V × V))
     (hA : ∀ e ∈ A, adj e.1 e.2 = true) (hB : ∀ e ∈ B, adj e.1 e.2 = true) :
@@ -202,6 +242,9 @@ theorem theorem13_reduction_forward {V : Type*} [Fintype V] [DecidableEq V] (adj
   exact ⟨Relation.ReflTransGen.mono (fun a b hab => hmono a b hab) _ _ h1,
     Relation.ReflTransGen.mono (fun a b hab => hmono a b hab) _ _ h2⟩
 
+/-- Under the injective rooted order, DFS reachability, and minimum-outgoing-edge hypotheses,
+strong connectivity of the original graph implies strong connectivity of A ∪ B
+[DurrEtAl2006]. -/
 theorem theorem13_reduction_backward {V : Type*} [Fintype V] [DecidableEq V]
     (adj : V → V → Bool) (A B : Finset (V × V)) (v0 : V) (ord : V → ℕ)
     (hord : Function.Injective ord) (hroot : ∀ w, ord v0 ≤ ord w)
@@ -284,6 +327,9 @@ theorem theorem13_reduction_backward {V : Type*} [Fintype V] [DecidableEq V]
   intro u _ v _
   exact ⟨(hToRoot u).trans (hFromRoot v), (hToRoot v).trans (hFromRoot u)⟩
 
+/-- Under the stated edge inclusion, rooted DFS order, and outgoing-edge selection hypotheses,
+the original graph is strongly connected exactly when A ∪ B is strongly connected
+[DurrEtAl2006]. -/
 theorem theorem13_strong_connectivity_reduction {V : Type*} [Fintype V] [DecidableEq V]
     (adj : V → V → Bool) (A B : Finset (V × V)) (v0 : V) (ord : V → ℕ)
     (hord : Function.Injective ord) (hroot : ∀ w, ord v0 ≤ ord w)
@@ -296,6 +342,8 @@ theorem theorem13_strong_connectivity_reduction {V : Type*} [Fintype V] [Decidab
   ⟨theorem13_reduction_backward adj A B v0 ord hord hroot hDFS hB,
     theorem13_reduction_forward adj A B hA hBsub⟩
 
+/-- If every edge strictly increases the order function, reachability weakly increases it
+[DurrEtAl2006]. -/
 theorem dfs_ord_mono {V : Type*} (A : V → V → Bool) (ord : V → ℕ)
     (hmono : ∀ a b, A a b = true → ord a < ord b) {u v : V}
     (h : Reach A u v) : ord u ≤ ord v := by
@@ -303,6 +351,9 @@ theorem dfs_ord_mono {V : Type*} (A : V → V → Bool) (ord : V → ℕ)
   | refl => exact le_refl _
   | tail _ hbc ih => exact le_trans ih (le_of_lt (hmono _ _ hbc))
 
+/-- Under the stated DFS order, edge, tree-comparability, and reachable-vertex order hypotheses,
+a path from an earlier vertex to a later vertex yields reachability in the DFS relation
+[DurrEtAl2006]. -/
 theorem lemma14_dfs_subtree {V : Type*} [Fintype V] [DecidableEq V]
     (adj : V → V → Bool) (A : V → V → Bool) (ord : V → ℕ)
     (hInj : Function.Injective ord) (hmono : ∀ a b, A a b = true → ord a < ord b)
@@ -339,15 +390,20 @@ theorem lemma14_dfs_subtree {V : Type*} [Fintype V] [DecidableEq V]
               exact absurd (hInj (le_antisymm hcle hwhite_c)) hcl
   exact hmain l' hpath
 
+/-- The sum of tier cardinalities from tier zero through tier j. -/
 noncomputable def tierTotal {V : Type*} (T : ℕ → Finset V) (j : ℕ) : ℕ :=
   ∑ i ∈ Finset.range (j + 1), (T i).card
 
+/-- The tier family has lowest and highest nonempty tiers, satisfies the top-tier size bound,
+and satisfies the cumulative size bounds between them. -/
 def TierInvariant {V : Type*} (T : ℕ → Finset V) : Prop :=
   ∃ k ℓ : ℕ, k ≤ ℓ ∧ (T k).Nonempty ∧ (T ℓ).Nonempty ∧
     (∀ i, i < k → T i = ∅) ∧ (∀ j, ℓ < j → T j = ∅) ∧
     2 ^ (ℓ - 1) ≤ (T ℓ).card ∧
     ∀ j, k ≤ j → j < ℓ → 2 ^ j ≤ tierTotal T j
 
+/-- From `TierInvariant`, obtains indices k and ℓ such that k < ℓ implies tier k has at least 2ᵏ
+elements and all lower tiers have fewer than their respective powers of two [DurrEtAl2006]. -/
 theorem lemma15_chosen_index {V : Type*} (T : ℕ → Finset V)
     (hinv : TierInvariant T) :
     ∃ k ℓ : ℕ, k < ℓ → 2 ^ k ≤ (T k).card ∧ ∀ j, j < k → (T j).card < 2 ^ j := by
@@ -367,6 +423,8 @@ theorem lemma15_chosen_index {V : Type*} (T : ℕ → Finset V)
     rw [hbelow j hj, Finset.card_empty]
     exact pow_pos (by norm_num) j
 
+/-- If `TierInvariant` holds and every tier is below its power-of-two threshold, exactly one
+tier is nonempty, with cardinality between 2^(i − 1) and 2ⁱ [DurrEtAl2006]. -/
 theorem lemma15_stop_state {V : Type*} (T : ℕ → Finset V)
     (hinv : TierInvariant T) (hstop : ∀ i, (T i).card < 2 ^ i) :
     ∃ i : ℕ, (T i).Nonempty ∧ 2 ^ (i - 1) ≤ (T i).card ∧ (T i).card < 2 ^ i ∧
@@ -396,21 +454,29 @@ theorem lemma15_stop_state {V : Type*} (T : ℕ → Finset V)
 
 variable {V : Type*}
 
+/-- Tier k is nonempty and every lower tier is empty. -/
 def IsLowestNonempty (T : ℕ → Finset V) (k : ℕ) : Prop :=
   (T k).Nonempty ∧ ∀ j, j < k → T j = ∅
 
+/-- Tier `ell` is nonempty and every higher tier is empty. -/
 def IsTopNonempty (T : ℕ → Finset V) (ell : ℕ) : Prop :=
   (T ell).Nonempty ∧ ∀ j, ell < j → T j = ∅
 
+/-- Distinct tiers are pairwise disjoint. -/
 def TiersDisjoint (T : ℕ → Finset V) : Prop :=
   ∀ i j, i ≠ j → Disjoint (T i) (T j)
 
+/-- Every nonempty tier j has cardinality at least 2^(j − 1). -/
 def TierSized (T : ℕ → Finset V) : Prop :=
   ∀ j, T j = ∅ ∨ 2 ^ (j - 1) ≤ (T j).card
 
+/-- Between the lowest and highest specified tiers, the cumulative cardinality through j is at
+least 2ʲ. -/
 def TierCumul (T : ℕ → Finset V) (k ell : ℕ) : Prop :=
   ∀ j, k ≤ j → j < ell → 2 ^ j ≤ tierTotal T j
 
+/-- The tier family has the specified lowest and highest nonempty tiers, disjoint tiers,
+individual size bounds, and cumulative size bounds. -/
 structure TierInv (T : ℕ → Finset V) (k ell : ℕ) : Prop where
   hk : k ≤ ell
   hlow : IsLowestNonempty T k
@@ -419,31 +485,42 @@ structure TierInv (T : ℕ → Finset V) (k ell : ℕ) : Prop where
   hsize : TierSized T
   hcum : TierCumul T k ell
 
+/-- The selected subset R lies in tier i and is either the entire tier or has size 2ⁱ in a tier
+of size at least 2^(i + 1), with tier i of size at least 2ⁱ. -/
 def StepData (T : ℕ → Finset V) (i : ℕ) (R : Finset V) : Prop :=
   R ⊆ T i ∧ 2 ^ i ≤ (T i).card ∧
     (R = T i ∨ (R.card = 2 ^ i ∧ 2 ^ (i + 1) ≤ (T i).card))
 
+/-- The successful tier update joins R and v to tier zero and removes R from tier i when i is
+positive. -/
 noncomputable def tierStepSucc [DecidableEq V] (T : ℕ → Finset V) (i : ℕ) (R : Finset V)
     (v : V) : ℕ → Finset V :=
   fun j => if j = 0 then T 0 ∪ R ∪ {v} else if j = i then T i \ R else T j
 
+/-- The failed tier update removes R from tier i and joins it to tier i + 1. -/
 noncomputable def tierStepFail [DecidableEq V] (T : ℕ → Finset V) (i : ℕ)
     (R : Finset V) : ℕ → Finset V :=
   fun j => if j = i then T i \ R else if j = i + 1 then T (i + 1) ∪ R else T j
 
+/-- A subset satisfying `StepData` has at least 2ⁱ elements. -/
 theorem StepData.card_ge {T : ℕ → Finset V} {i : ℕ} {R : Finset V} (h : StepData T i R) :
     2 ^ i ≤ R.card := by
   rcases h.2.2 with rfl | ⟨hc, _⟩
   · exact h.2.1
   · rw [hc]
 
+/-- A subset satisfying `StepData` has cardinality at most that of tier i. -/
 theorem StepData.card_le {T : ℕ → Finset V} {i : ℕ} {R : Finset V} (h : StepData T i R) :
     R.card ≤ (T i).card := Finset.card_le_card h.1
 
+/-- A subset satisfying `StepData` is the whole tier, or has size 2ⁱ while the tier has size at
+least 2^(i + 1). -/
 theorem StepData.eq_or_card {T : ℕ → Finset V} {i : ℕ} {R : Finset V}
     (h : StepData T i R) :
     R = T i ∨ (R.card = 2 ^ i ∧ 2 ^ (i + 1) ≤ (T i).card) := h.2.2
 
+/-- If a valid step leaves a nonempty remainder in tier i, then the tier has size at least 2^(i
++ 1) and R has size 2ⁱ. -/
 theorem StepData.proper_card [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Finset V}
     (h : StepData T i R) (hne : T i \ R ≠ ∅) :
     2 ^ (i + 1) ≤ (T i).card ∧ R.card = 2 ^ i := by
@@ -451,27 +528,36 @@ theorem StepData.proper_card [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R
   · exact absurd (Finset.sdiff_self (T i)) hne
   · exact ⟨hc.2, hc.1⟩
 
+/-- The cumulative cardinality through tier zero equals the cardinality of tier zero. -/
 theorem tierTotal_zero (T : ℕ → Finset V) : tierTotal T 0 = (T 0).card := by
   simp [tierTotal]
 
+/-- The cumulative cardinality through tier j + 1 is the cumulative cardinality through j plus
+the next tier size. -/
 theorem tierTotal_succ (T : ℕ → Finset V) (j : ℕ) :
     tierTotal T (j + 1) = tierTotal T j + (T (j + 1)).card := by
   unfold tierTotal
   rw [Finset.sum_range_succ]
 
+/-- Removing a finite subset subtracts its cardinality from the cardinality of the containing
+set. -/
 theorem card_sdiff_subset [DecidableEq V] {A B : Finset V} (h : B ⊆ A) :
     (A \ B).card = A.card - B.card := by
   rw [Finset.card_sdiff, Finset.inter_eq_left.mpr h]
 
+/-- Tier zero after a successful update is T 0 ∪ R ∪ {v}. -/
 theorem stepSucc_zero [DecidableEq V] (T : ℕ → Finset V) (i : ℕ) (R : Finset V) (v : V) :
     tierStepSucc T i R v 0 = T 0 ∪ R ∪ {v} := by
   simp [tierStepSucc]
 
+/-- A positive tier after a successful update loses R exactly when its index equals i. -/
 theorem stepSucc_pos [DecidableEq V] (T : ℕ → Finset V) (i : ℕ) (R : Finset V) (v : V)
     (j : ℕ) (hj : j ≠ 0) :
     tierStepSucc T i R v j = if j = i then T i \ R else T j := by
   simp only [tierStepSucc, if_neg hj]
 
+/-- For disjoint tiers and valid step data, a failed update subtracts the size of R at tier i
+and adds it at tier i + 1. -/
 theorem stepFail_card [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Finset V}
     (h : StepData T i R) (hdisj : TiersDisjoint T) (j : ℕ) :
     (tierStepFail T i R j).card =
@@ -488,6 +574,8 @@ theorem stepFail_card [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fins
       exact Finset.card_union_of_disjoint hdis
     · rw [if_neg h2, if_neg h2]
 
+/-- For disjoint tiers, valid step data, and a fresh vertex v, a successful update increases the
+cumulative size by one and also by the size of R below tier i [DurrEtAl2006]. -/
 theorem stepSucc_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Finset V} {v : V}
     (h : StepData T i R) (hdisj : TiersDisjoint T) (hv : ∀ j, v ∉ T j) (j : ℕ) :
     tierTotal (tierStepSucc T i R v) j =
@@ -527,6 +615,8 @@ theorem stepSucc_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fin
           rw [if_neg h2, if_neg hjt]
           omega
 
+/-- For disjoint tiers and valid step data, a failed update decreases the cumulative size by the
+size of R exactly at index i [DurrEtAl2006]. -/
 theorem stepFail_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Finset V}
     (h : StepData T i R) (hdisj : TiersDisjoint T) (j : ℕ) :
     tierTotal (tierStepFail T i R) j = tierTotal T j - (if j = i then R.card else 0) := by
@@ -565,16 +655,20 @@ theorem stepFail_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fin
           simp only [if_neg h1, if_neg h2, if_neg hji]
           omega
 
+/-- The highest nonempty tier in `TierInv` has cardinality at least 2^(ell − 1). -/
 theorem TierInv.card_top {T : ℕ → Finset V} {k ell : ℕ} (h : TierInv T k ell) :
     2 ^ (ell - 1) ≤ (T ell).card := by
   rcases h.hsize ell with he | hge
   · exact absurd he h.htop.1.ne_empty
   · exact hge
 
+/-- The structured tier conditions `TierInv` imply `TierInvariant`. -/
 theorem TierInv.toInvariant {T : ℕ → Finset V} {k ell : ℕ} (h : TierInv T k ell) :
     TierInvariant T := by
   exact ⟨k, ell, h.hk, h.hlow.1, h.htop.1, h.hlow.2, h.htop.2, h.card_top, h.hcum⟩
 
+/-- A valid successful update below the top tier with a fresh vertex preserves the cumulative
+power-of-two lower bounds at every index below the top tier [DurrEtAl2006]. -/
 theorem tier_cumul_succ [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {R : Finset V}
     {v : V} (h : TierInv T k ell) (hi : k ≤ i) (_hielt : i < ell) (hstep : StepData T i R)
     (hv : ∀ j, v ∉ T j) :
@@ -592,6 +686,8 @@ theorem tier_cumul_succ [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {
     have hcum := h.hcum j hkj hjell
     omega
 
+/-- A valid failed update below the top tier preserves the cumulative bounds between k and ell
+when a nonempty remainder stays in tier i [DurrEtAl2006]. -/
 theorem tier_cumul_fail_leftover [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ}
     {R : Finset V} (h : TierInv T k ell) (_hi : k ≤ i) (_hielt : i < ell)
     (hstep : StepData T i R) (hne : T i \ R ≠ ∅) :
@@ -613,6 +709,8 @@ theorem tier_cumul_fail_leftover [DecidableEq V] {T : ℕ → Finset V} {k ell i
     have hcum := h.hcum j hkj hjell
     omega
 
+/-- A valid failed update below the top tier preserves the cumulative bounds between k and ell
+away from index i [DurrEtAl2006]. -/
 theorem tier_cumul_fail_inherit [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ}
     {R : Finset V} (h : TierInv T k ell) (_hielt : i < ell)
     (hstep : StepData T i R) :
@@ -623,6 +721,8 @@ theorem tier_cumul_fail_inherit [DecidableEq V] {T : ℕ → Finset V} {k ell i 
   have hcum := h.hcum j hkj hjell
   omega
 
+/-- A successful update strictly below the top tier preserves its power-of-two size lower bound
+[DurrEtAl2006]. -/
 theorem tier_top_succ [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {R : Finset V}
     {v : V} (h : TierInv T k ell) (hielt : i < ell) :
     2 ^ (ell - 1) ≤ (tierStepSucc T i R v ell).card := by
@@ -631,6 +731,8 @@ theorem tier_top_succ [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {R 
   rw [stepSucc_pos T i R v ell hell0, if_neg helli]
   exact h.card_top
 
+/-- A valid failed update strictly below the top tier preserves its power-of-two size lower
+bound [DurrEtAl2006]. -/
 theorem tier_top_fail [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {R : Finset V}
     (h : TierInv T k ell) (hielt : i < ell) (hstep : StepData T i R) :
     2 ^ (ell - 1) ≤ (tierStepFail T i R ell).card := by
@@ -644,6 +746,8 @@ theorem tier_top_fail [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {R 
   · rw [if_neg h1]
     exact h.card_top
 
+/-- The family consisting of the singleton {v0} at tier zero and empty higher tiers satisfies
+`TierInv` with both endpoints zero [DurrEtAl2006]. -/
 theorem tierInv_initial [DecidableEq V] (v0 : V) :
     TierInv (fun j => if j = 0 then ({v0} : Finset V) else ∅) 0 0 := by
   refine ⟨le_rfl, ?_, ?_, ?_, ?_, ?_⟩
@@ -666,6 +770,8 @@ theorem tierInv_initial [DecidableEq V] (v0 : V) :
   · intro j _ hlt
     omega
 
+/-- A nonnegative weighted sum of terms bounded above by 1/3 is at most 1/3 when the total
+weight is at most one [DurrEtAl2006]. -/
 theorem lemma16_failure_bound {ι : Type*} (s : Finset ι) (q p : ι → ℝ)
     (hq : ∀ i ∈ s, 0 ≤ q i) (hq1 : (∑ i ∈ s, q i) ≤ 1)
     (hp : ∀ i ∈ s, p i ≤ 1 / 3) :
@@ -676,12 +782,15 @@ theorem lemma16_failure_bound {ι : Type*} (s : Finset ι) (q p : ι → ℝ)
     _ ≤ 1 * (1 / 3) := mul_le_mul_of_nonneg_right hq1 (by norm_num)
     _ = 1 / 3 := by norm_num
 
+/-- A nonnegative weighted sum of tier failure expressions is at most 1/3 when the total weight
+is at most one [DurrEtAl2006]. -/
 theorem lemma16_tier_failure (m : ℕ) (q : ℕ → ℝ) (hq : ∀ i, 0 ≤ q i)
     (hq1 : (∑ i ∈ Finset.range m, q i) ≤ 1) :
     (∑ i ∈ Finset.range m, q i * tierFailure i) ≤ 1 / 3 :=
   lemma16_failure_bound (Finset.range m) q tierFailure
     (fun i _ => hq i) hq1 (fun i _ => tierFailure_le_third i)
 
+/-- For r > 1, the sum of rʲ through j = i is at most r/(r − 1) times rⁱ [DurrEtAl2006]. -/
 theorem geom_sum_range_le {r : ℝ} (hr : 1 < r) (i : ℕ) :
     (∑ j ∈ Finset.range (i + 1), r ^ j) ≤ (r / (r - 1)) * r ^ i := by
   have hr0 : (0 : ℝ) < r := lt_trans zero_lt_one hr
@@ -697,12 +806,16 @@ theorem geom_sum_range_le {r : ℝ} (hr : 1 < r) (i : ℕ) :
         field_simp
         ring
 
+/-- Bounds the finite geometric sum with ratio 2^(3/4) by its final power times the factor
+2^(3/4)/(2^(3/4) − 1) [DurrEtAl2006]. -/
 theorem lemma17_per_tier_geom (i : ℕ) :
     (∑ j ∈ Finset.range (i + 1), (Real.rpow 2 ((3 : ℝ) / 4)) ^ j) ≤
       (Real.rpow 2 ((3 : ℝ) / 4) / (Real.rpow 2 ((3 : ℝ) / 4) - 1)) *
         (Real.rpow 2 ((3 : ℝ) / 4)) ^ i :=
   geom_sum_range_le (Real.one_lt_rpow (by norm_num) (by norm_num)) i
 
+/-- For each n there is a positive constant uniformly bounding finite weighted tier costs by
+that constant times √n when the nonnegative weights are at most (1/2)^(2ⁱ) [DurrEtAl2006]. -/
 theorem lemma17_expected_cost (n : ℕ) :
     ∃ C : ℝ, 0 < C ∧ ∀ (m : ℕ) (q : ℕ → ℝ), (∀ i, 0 ≤ q i) →
       (∀ i, q i ≤ (1 / 2 : ℝ) ^ (2 ^ i)) →

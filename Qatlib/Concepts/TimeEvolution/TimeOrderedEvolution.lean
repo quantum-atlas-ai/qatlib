@@ -13,6 +13,27 @@ import Mathlib.Analysis.Calculus.Deriv.Star
 import Mathlib.Analysis.InnerProductSpace.Calculus
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Time-ordered matrix evolution from Dyson series
+
+The iterated integrals `orderedDysonTerm` define `orderedEvolution` for the equation `U' = -A *
+U`. For continuous matrix generators the module proves convergence, the initial condition,
+uniqueness, composition, invertibility, and differentiation in either endpoint. Positive
+Hermitian parts give forward contraction, while imaginary multiples of Hermitian generators give
+unitary evolution. For background, see [BerryEtAl2020Dyson].
+
+## Main statements
+
+* `ordered_evolution_dyson_semantics`: convergence and ODE semantics of the Dyson construction.
+* `orderedEvolution_cocycle`: composition of propagators.
+* `ordered_evolution_hermitian_unitary`: unitarity for Hermitian Hamiltonians.
+
+## References
+
+* [Berry et al., 2020][BerryEtAl2020Dyson]
+-/
+
 set_option warningAsError false
 
 
@@ -26,15 +47,20 @@ namespace Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 open Matrix Set
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
+/-- The recursively integrated Dyson terms for `U' = -A * U`, with zeroth term the identity and
+integration starting at `s`. -/
 noncomputable def orderedDysonTerm {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s : ℝ) : ℕ → ℝ → Matrix I I ℂ
   | 0, _ => 1
   | n+1, t => ∫ u in s..t, -(A u * orderedDysonTerm A s n u)
 
+/-- The infinite sum of the ordered Dyson terms from the initial time `s` to the final time `t`. -/
 noncomputable def orderedEvolution {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s t : ℝ) : Matrix I I ℂ :=
   ∑' n : ℕ, orderedDysonTerm A s n t
 
+/-- Each ordered Dyson term is continuous in its final time when the matrix generator is
+continuous. -/
 theorem orderedDysonTerm_continuous {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s : ℝ) (n : ℕ) :
     Continuous (orderedDysonTerm A s n) := by
@@ -44,6 +70,7 @@ theorem orderedDysonTerm_continuous {I : Type} [Fintype I] [DecidableEq I]
     exact (intervalIntegral.differentiable_integral_of_continuous
       (hA.mul ih).neg).continuous
 
+/-- The derivative of the successor Dyson term is `-(A t * orderedDysonTerm A s n t)`. -/
 theorem orderedDysonTerm_hasDerivAt_succ {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s : ℝ) (n : ℕ) (t : ℝ) :
     HasDerivAt (orderedDysonTerm A s (n+1))
@@ -52,10 +79,12 @@ theorem orderedDysonTerm_hasDerivAt_succ {I : Type} [Fintype I] [DecidableEq I]
   exact intervalIntegral.integral_hasDerivAt_right (hc.intervalIntegrable _ _)
     hc.aestronglyMeasurable.stronglyMeasurableAtFilter hc.continuousAt
 
+/-- Every positive-degree Dyson term vanishes when the final time equals the initial time. -/
 @[simp] theorem orderedDysonTerm_succ_self {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s : ℝ) (n : ℕ) : orderedDysonTerm A s (n+1) s = 0 := by
   simp [orderedDysonTerm]
 
+/-- The ordered evolution from a time to itself is the identity. -/
 @[simp] theorem orderedEvolution_self {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (s : ℝ) : orderedEvolution A s s = 1 := by
   unfold orderedEvolution
@@ -65,6 +94,8 @@ theorem orderedDysonTerm_hasDerivAt_succ {I : Type} [Fintype I] [DecidableEq I]
     obtain ⟨k, rfl⟩ := Nat.exists_eq_succ_of_ne_zero hn
     exact orderedDysonTerm_succ_self A s k
 
+/-- If the generator norm is bounded by `M` between the endpoints, the `n`th Dyson term has norm
+at most `(M * |t - s|) ^ n / n!`. -/
 theorem orderedDysonTerm_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t M : ℝ)
     (hM : 0 ≤ M) (hbound : ∀ u ∈ uIcc s t, ‖A u‖ ≤ M) (n : ℕ) :
@@ -98,6 +129,8 @@ theorem orderedDysonTerm_norm_le {I : Type} [Fintype I] [DecidableEq I]
         rw [Nat.factorial_succ, Nat.cast_mul, Nat.cast_add, Nat.cast_one, mul_pow]
         field_simp
 
+/-- A continuous finite-dimensional matrix generator has a summable Dyson series between any two
+real times. -/
 theorem orderedDysonTerm_summable {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) :
     Summable (fun n => orderedDysonTerm A s n t) := by
@@ -108,6 +141,8 @@ theorem orderedDysonTerm_summable {I : Type} [Fintype I] [DecidableEq I]
   exact orderedDysonTerm_norm_le A hA s t M (le_max_left _ _)
     (fun u hu => (hC (A u) ⟨u, hu, rfl⟩).trans (le_max_right _ _)) n
 
+/-- For a continuous generator, the ordered evolution has final-time derivative `-(A t *
+orderedEvolution A s t)`. -/
 theorem orderedEvolution_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) :
     HasDerivAt (orderedEvolution A s) (-(A t * orderedEvolution A s t)) t := by
@@ -155,6 +190,8 @@ theorem orderedEvolution_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
   rw [hsum] at hd
   simpa only [he] using! hd.const_add 1
 
+/-- Two solutions of `U' = -A * U` for a continuous generator agree everywhere if they agree at
+one time. -/
 theorem ordered_matrix_ode_unique {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A)
     (f g : ℝ → Matrix I I ℂ) (s : ℝ) (hinit : f s = g s)
@@ -187,6 +224,8 @@ theorem ordered_matrix_ode_unique {I : Type} [Fintype I] [DecidableEq I]
     (continuous_iff_continuousAt.mpr (fun u => (hg u).continuousAt)).continuousOn
     (fun u _ => hg u) (fun _ _ => Set.mem_univ _) hinit ht
 
+/-- Composing evolution from `s` to `r` with evolution from `r` to `t` gives evolution from `s`
+to `t`. -/
 theorem orderedEvolution_cocycle {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s r t : ℝ) :
     orderedEvolution A r t * orderedEvolution A s r = orderedEvolution A s t := by
@@ -199,6 +238,9 @@ theorem orderedEvolution_cocycle {I : Type} [Fintype I] [DecidableEq I]
     (orderedEvolution_hasDerivAt A hA s)
   exact congrFun he t
 
+/-- For a continuous generator, bundles Dyson summability, the identity initial value, the
+evolution equation, composition, and uniqueness of the normalized propagator
+[BerryEtAl2020Dyson]. -/
 theorem ordered_evolution_dyson_semantics :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : ℝ → Matrix I I ℂ),
       Continuous A →
@@ -216,6 +258,8 @@ theorem ordered_evolution_dyson_semantics :
   exact ordered_matrix_ode_unique A hA V (orderedEvolution A s) s
     (by simpa using! hV) hder (orderedEvolution_hasDerivAt A hA s)
 
+/-- The continuous complex linear map sending a matrix to its action on a fixed vector,
+expressed in Euclidean space. -/
 private noncomputable def orderedActionCLM {I : Type} [Fintype I] [DecidableEq I]
     (v : QState I) : Matrix I I ℂ →L[ℂ] EuclideanSpace ℂ I := by
   let e : EuclideanSpace ℂ I ≃L[ℂ] (I → ℂ) := PiLp.continuousLinearEquiv 2 ℂ (fun _ : I => ℂ)
@@ -224,6 +268,8 @@ private noncomputable def orderedActionCLM {I : Type} [Fintype I] [DecidableEq I
   intro X
   exact (Matrix.l2_opNorm_mulVec X (toEuclidean_fromVec v)).trans_eq (mul_comm _ _)
 
+/-- The propagated vector has derivative equal to minus the generator applied to that vector, in
+Euclidean coordinates. -/
 private theorem ordered_action_deriv {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) (v : QState I) :
     HasDerivAt (fun u => toEuclidean_fromVec (orderedEvolution A s u *ᵥ v))
@@ -232,6 +278,8 @@ private theorem ordered_action_deriv {I : Type} [Fintype I] [DecidableEq I]
     (orderedEvolution_hasDerivAt A hA s t)
   simpa [orderedActionCLM, toEuclidean_fromVec, Matrix.neg_mulVec, Matrix.mulVec_mulVec] using! hd
 
+/-- If `A + Aᴴ` is positive semidefinite, the real part of the quadratic form of `A` is
+nonnegative. -/
 private theorem ordered_quadratic_re_nonneg {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : (A + Aᴴ).PosSemidef) (v : QState I) :
     0 ≤ (Qatlib.Foundations.PureStateMath.Inner v (A *ᵥ v)).re := by
@@ -243,6 +291,8 @@ private theorem ordered_quadratic_re_nonneg {I : Type} [Fintype I] [DecidableEq 
     simpa [Qatlib.Foundations.PureStateMath.Inner, two_mul] using! h
   linarith
 
+/-- A continuous generator with pointwise positive semidefinite Hermitian part yields evolution
+of norm at most one for increasing time. -/
 theorem ordered_evolution_psd_contraction :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : ℝ → Matrix I I ℂ),
       Continuous A → (∀ u, (A u + (A u)ᴴ).PosSemidef) →
@@ -273,6 +323,8 @@ theorem ordered_evolution_psd_contraction :
   intro x
   simpa [toEuclideanCLM_applyGate, ApplyGate, one_mul] using! hv (toVec_fromEuclidean x)
 
+/-- For a continuous Hermitian Hamiltonian `H`, the ordered evolution generated by `I • H` is
+unitary between any two times [BerryEtAl2020Dyson]. -/
 theorem ordered_evolution_hermitian_unitary :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (H : ℝ → Matrix I I ℂ),
       Continuous H → (∀ u, (H u).IsHermitian) →
@@ -295,6 +347,8 @@ theorem ordered_evolution_hermitian_unitary :
   have hunit : star (E t) * E t = 1 := by simpa [E] using! he
   exact Matrix.mem_unitaryGroup_iff'.mpr hunit
 
+/-- The ordered evolution packaged as a matrix unit, with inverse given by reversing the
+endpoints. -/
 noncomputable def orderedEvolutionUnit {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) : (Matrix I I ℂ)ˣ where
   val := orderedEvolution A s t
@@ -302,11 +356,15 @@ noncomputable def orderedEvolutionUnit {I : Type} [Fintype I] [DecidableEq I]
   val_inv := by simpa using! orderedEvolution_cocycle A hA t s t
   inv_val := by simpa using! orderedEvolution_cocycle A hA s t s
 
+/-- The ring inverse of an ordered evolution is the ordered evolution with its endpoints
+reversed. -/
 theorem orderedEvolution_ringInverse {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) :
     Ring.inverse (orderedEvolution A s t) = orderedEvolution A t s :=
   Ring.inverse_unit (orderedEvolutionUnit A hA s t)
 
+/-- Differentiating the initial endpoint of `orderedEvolution A t s` gives `orderedEvolution A t
+s * A t`. -/
 theorem orderedEvolution_hasDerivAt_start {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (hA : Continuous A) (s t : ℝ) :
     HasDerivAt (fun u => orderedEvolution A u s) (orderedEvolution A t s * A t) t := by

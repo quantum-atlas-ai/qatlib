@@ -12,6 +12,28 @@ import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+/-!
+# Paired eigenphases for the Johnson spectrum
+
+`purePhase` parametrizes the complex unit circle. The functions `phaseAngle` and
+`phaseEigenvalues` enumerate a distinguished phase zero followed by pairs of positive and
+negative phases.
+
+The module proves distinctness for strictly increasing angles in `(0, π)`, unit-modulus
+identities, and the quadratic relation satisfied by each nontrivial eigenvalue. See
+[Ambainis2007ElementDistinctness] for the mathematical background.
+
+## Main statements
+
+* `phaseEigenvalues_injective`: distinctness of the paired eigenvalues.
+* `phaseEigenvalues_quadratic`: quadratic relation for nonzero indices.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,16 +44,19 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 noncomputable section
+/-- The complex phase `exp (a * I)` corresponding to a real angle `a`. -/
 def purePhase (a : ℝ) : ℂ := Complex.exp ((a : ℂ)*Complex.I)
 end
 noncomputable section
 
+/-- The imaginary part of `purePhase a` equals `sin a`. -/
 theorem purePhase_im (a : ℝ) : (purePhase a).im = Real.sin a := by
   rw [purePhase, Complex.exp_ofReal_mul_I]
   simp [-Complex.ofReal_sin]
 end
 noncomputable section
 
+/-- The product of the conjugate of `purePhase a` with `purePhase a` equals 1. -/
 theorem purePhase_star_mul (a : ℝ) : star (purePhase a)*purePhase a = 1 := by
   have hc : star (purePhase a) = purePhase (-a) := by
     simp [purePhase, ← Complex.exp_conj]
@@ -42,6 +67,7 @@ theorem purePhase_star_mul (a : ℝ) : star (purePhase a)*purePhase a = 1 := by
 end
 noncomputable section
 
+/-- Two angles in `(−π, π)` with equal complex phases are equal. -/
 theorem purePhase_injective_between {a b : ℝ}
     (ha : -Real.pi < a ∧ a < Real.pi) (hb : -Real.pi < b ∧ b < Real.pi)
     (h : purePhase a = purePhase b) : a = b := by
@@ -54,6 +80,7 @@ theorem purePhase_injective_between {a b : ℝ}
 end
 noncomputable section
 
+/-- For `0 < a < π`, the square of `purePhase a` is not 1. -/
 theorem purePhase_sq_ne_one {a : ℝ} (ha0 : 0 < a) (hapi : a < Real.pi) :
     (purePhase a)^2 ≠ 1 := by
   intro h
@@ -66,6 +93,7 @@ theorem purePhase_sq_ne_one {a : ℝ} (ha0 : 0 < a) (hapi : a < Real.pi) :
 end
 noncomputable section
 
+/-- The phase `purePhase a` satisfies the quadratic equation `z² - 2 * cos a * z + 1 = 0`. -/
 theorem purePhase_quadratic (a : ℝ) :
     (purePhase a)^2-2*(Real.cos a : ℂ)*purePhase a+1 = 0 := by
   have hprod : purePhase (-a)*purePhase a = 1 := by
@@ -80,20 +108,25 @@ theorem purePhase_quadratic (a : ℝ) :
   linear_combination (purePhase a)*hsum-hprod
 end
 noncomputable section
+/-- The pair index `(i.val - 1) / 2` associated with a nonzero index in `Fin (2 * k + 1)`. -/
 def phaseIndex {k : ℕ} (i : Fin (2*k+1)) (hi : i.val ≠ 0) : Fin k :=
   ⟨(i.val-1)/2, by omega⟩
 end
 noncomputable section
+/-- The angle enumeration consisting of zero at index zero and alternating `θ j` and `-θ j` at
+the remaining indices. -/
 def phaseAngle {k : ℕ} (θ : Fin k → ℝ) (i : Fin (2*k+1)) : ℝ :=
   if hi : i.val = 0 then 0
   else if i.val%2 = 1 then θ (phaseIndex i hi) else -θ (phaseIndex i hi)
 end
 noncomputable section
+/-- The complex phases obtained by applying `purePhase` to `phaseAngle θ`. -/
 def phaseEigenvalues {k : ℕ} (θ : Fin k → ℝ) (i : Fin (2*k+1)) : ℂ :=
   purePhase (phaseAngle θ i)
 end
 noncomputable section
 
+/-- If each `θ j` lies in `(0, π)`, then every enumerated phase angle lies in `(−π, π)`. -/
 theorem phaseAngle_bounds {k : ℕ} (θ : Fin k → ℝ)
     (hθ : ∀ j, 0 < θ j ∧ θ j < Real.pi) (i : Fin (2*k+1)) :
     -Real.pi < phaseAngle θ i ∧ phaseAngle θ i < Real.pi := by
@@ -105,6 +138,8 @@ theorem phaseAngle_bounds {k : ℕ} (θ : Fin k → ℝ)
 end
 noncomputable section
 
+/-- Strictly increasing angles in `(0, π)` give an injective enumeration by zero and signed
+angle pairs. -/
 theorem phaseAngle_injective {k : ℕ} (θ : Fin k → ℝ)
     (hmono : StrictMono θ) (hθ : ∀ j, 0 < θ j ∧ θ j < Real.pi) :
     Function.Injective (phaseAngle θ) := by
@@ -139,6 +174,7 @@ theorem phaseAngle_injective {k : ℕ} (θ : Fin k → ℝ)
 end
 noncomputable section
 
+/-- Strictly increasing angles in `(0, π)` give distinct complex values in `phaseEigenvalues`. -/
 theorem phaseEigenvalues_injective {k : ℕ} (θ : Fin k → ℝ)
     (hmono : StrictMono θ) (hθ : ∀ j, 0 < θ j ∧ θ j < Real.pi) :
     Function.Injective (phaseEigenvalues θ) := by
@@ -148,16 +184,19 @@ theorem phaseEigenvalues_injective {k : ℕ} (θ : Fin k → ℝ)
 end
 noncomputable section
 
+/-- Each enumerated eigenvalue multiplied by its complex conjugate equals 1. -/
 theorem phaseEigenvalues_star_mul {k : ℕ} (θ : Fin k → ℝ) (i : Fin (2*k+1)) :
     star (phaseEigenvalues θ i)*phaseEigenvalues θ i = 1 := purePhase_star_mul _
 end
 noncomputable section
 
+/-- The enumerated eigenvalue at index zero is 1. -/
 theorem phaseEigenvalues_zero {k : ℕ} (θ : Fin k → ℝ) :
     phaseEigenvalues θ ⟨0, by omega⟩ = 1 := by simp [phaseEigenvalues, phaseAngle, purePhase]
 end
 noncomputable section
 
+/-- The eigenvalue at index `2 * j + 1` equals `exp (I * θ j)`. -/
 theorem phaseEigenvalues_plus {k : ℕ} (θ : Fin k → ℝ) (j : Fin k) :
     phaseEigenvalues θ ⟨2*j.val+1, by omega⟩ = Complex.exp (Complex.I*(θ j : ℂ)) := by
   have hz : 2*j.val+1 ≠ 0 := by omega
@@ -172,6 +211,7 @@ theorem phaseEigenvalues_plus {k : ℕ} (θ : Fin k → ℝ) (j : Fin k) :
 end
 noncomputable section
 
+/-- The eigenvalue at index `2 * j + 2` equals `exp (-I * θ j)`. -/
 theorem phaseEigenvalues_minus {k : ℕ} (θ : Fin k → ℝ) (j : Fin k) :
     phaseEigenvalues θ ⟨2*j.val+2, by omega⟩ = Complex.exp (-Complex.I*(θ j : ℂ)) := by
   have hz : 2*j.val+2 ≠ 0 := by omega
@@ -189,6 +229,7 @@ theorem phaseEigenvalues_minus {k : ℕ} (θ : Fin k → ℝ) (j : Fin k) :
 end
 noncomputable section
 
+/-- For `0 < a < π`, the square of `purePhase (-a)` is not 1. -/
 theorem purePhase_neg_sq_ne_one {a : ℝ} (ha0 : 0 < a) (hapi : a < Real.pi) :
     (purePhase (-a))^2 ≠ 1 := by
   intro h
@@ -199,6 +240,7 @@ theorem purePhase_neg_sq_ne_one {a : ℝ} (ha0 : 0 < a) (hapi : a < Real.pi) :
 end
 noncomputable section
 
+/-- For angles in `(0, π)`, every eigenvalue with nonzero index has square different from 1. -/
 theorem phaseEigenvalues_sq_ne_one {k : ℕ} (θ : Fin k → ℝ)
     (hθ : ∀ j, 0 < θ j ∧ θ j < Real.pi) (i : Fin (2*k+1)) (hi : i.val ≠ 0) :
     (phaseEigenvalues θ i)^2 ≠ 1 := by
@@ -210,6 +252,8 @@ theorem phaseEigenvalues_sq_ne_one {k : ℕ} (θ : Fin k → ℝ)
 end
 noncomputable section
 
+/-- Every eigenvalue with nonzero index satisfies `z² - 2 * cos (θ j) * z + 1 = 0` for its
+associated pair index `j`. -/
 theorem phaseEigenvalues_quadratic {k : ℕ} (θ : Fin k → ℝ)
     (i : Fin (2*k+1)) (hi : i.val ≠ 0) :
     (phaseEigenvalues θ i)^2-2*(Real.cos (θ (phaseIndex i hi)) : ℂ)*phaseEigenvalues θ i+1 = 0 := by
@@ -221,6 +265,7 @@ theorem phaseEigenvalues_quadratic {k : ℕ} (θ : Fin k → ℝ)
 end
 noncomputable section
 
+/-- Every index is either zero or belongs to the positive or negative position of a phase pair. -/
 theorem phaseIndex_cover {k : ℕ} (i : Fin (2*k+1)) :
     i = ⟨0, by omega⟩ ∨ ∃ j : Fin k,
       i = ⟨2*j.val+1, by omega⟩ ∨ i = ⟨2*j.val+2, by omega⟩ := by

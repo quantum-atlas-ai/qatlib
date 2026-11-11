@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
+
+/-!
+# Gaussian energy bounds at the first AMP step
+
+`cube_energy_subgaussian` bounds the subgaussian parameter of the energy of any fixed cube
+vector by `N`. The explicit formula `actual_first_output` shows that the first AMP output is
+independent of the coupling tensor, giving a Gaussian tail for its energy density in the model
+of [GohMuller2026].
+
+## Main statements
+
+* `cube_energy_subgaussian`: For `N > 0`, the Gaussian tensor energy of a fixed vector in
+  `[-1,1]^N` has subgaussian parameter `N`.
+* `actual_first_output`: For positive interaction degree, the first AMP output is the
+  coordinatewise clipped seed multiplied by the initial catalyst coefficient, with the nested
+  clipping shown in the formula.
+* `actual_first_amp_density_tail`: For positive `r` and `N` and `ε ≥ 0`, the absolute first step
+  AMP energy density exceeds `ε` with probability at most `2 exp(-ε²N/2)`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,12 +42,16 @@ open Qatlib.Papers.OverlapGapGoh26.AmpDynamics.Program
 
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.FirstStep
 
+/-- A subgaussian moment generating function bound remains valid when its nonnegative parameter
+is increased. -/
 theorem subgaussian_parameter_mono {Ω : Type} [MeasurableSpace Ω] {P : Measure Ω}
     {X : Ω → ℝ} {c d : NNReal} (h : HasSubgaussianMGF X c P) (hcd : c≤d) :
     HasSubgaussianMGF X d P where
   integrable_exp_mul := h.integrable_exp_mul
   mgf_le t := (h.mgf_le t).trans (Real.exp_le_exp.mpr (by exact_mod_cast (by gcongr : (c:ℝ)*t^2/2≤(d:ℝ)*t^2/2)))
 
+/-- For `N > 0`, the Gaussian tensor energy of a fixed vector in `[-1,1]^N` has subgaussian
+parameter `N`. -/
 theorem cube_energy_subgaussian {r N : ℕ} (hN : 0<N) (u : Fin N → ℝ)
     (hu : ∀ i, u i ∈ Set.Icc (-1:ℝ) 1) :
     HasSubgaussianMGF (fun A : Tensor (r+1) N => tensorEnergy A u)
@@ -53,6 +81,9 @@ theorem cube_energy_subgaussian {r N : ℕ} (hN : 0<N) (u : Fin N → ℝ)
   have hh := subgaussian_parameter_mono h hc
   simpa only [gaussianTensorLaw, tensorEnergy, w, mul_comm] using hh
 
+/-- For positive interaction degree, the first AMP output is the coordinatewise clipped seed
+multiplied by the initial catalyst coefficient, with the nested clipping shown in the
+formula. -/
 theorem actual_first_output {r N : ℕ} (hr : 0<r) (M : ℝ)
     (J : Fin N → (Fin r → Fin N) → ℝ) (seed : Fin N → ℝ) (s : ℕ → ℝ) :
     ampOutput M J seed s 1=fun i => clip 1 (clip M (clip M (seed i)*(s 0)^2*(1-s 0))) := by
@@ -70,6 +101,8 @@ theorem actual_first_output {r N : ℕ} (hr : 0<r) (M : ℝ)
   rw [hi]
   simp only [FCoord, ampHistory, zero_add]
 
+/-- For positive `r` and `N` and `ε ≥ 0`, the absolute first step AMP energy density exceeds `ε`
+with probability at most `2 exp(-ε²N/2)`. -/
 theorem actual_first_amp_density_tail {r N : ℕ} (hr : 0<r) (hN : 0<N)
     (M : ℝ) (seed : Fin N → ℝ) (s : ℕ → ℝ) (ε : ℝ) (hε : 0≤ε) :
     (gaussianTensorLaw r N).real {A | ε≤|tensorEnergy A (ampOutput M (rowTensor A) seed s 1)/(N:ℝ)|}≤

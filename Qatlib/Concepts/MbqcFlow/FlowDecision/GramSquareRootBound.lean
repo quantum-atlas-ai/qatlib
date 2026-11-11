@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.PrettyGoodMeasurementData
+
+/-!
+# A row bound for positive matrix square roots
+
+This module bounds the diagonal square-root deficit of a positive semidefinite Hermitian matrix
+whose selected diagonal entry is one. `gram_square_root_row_failure_bound` controls that deficit
+by the sum of squared moduli of the off-diagonal entries in the same row.
+
+The proof lifts the scalar inequality `sqrt_correction_nonneg` through continuous functional
+calculus and evaluates the resulting positive matrix at the selected diagonal entry. The
+matrix-analysis background is developed in [Bhatia1997].
+
+## Main statements
+
+* `sqrt_correction_nonneg`: nonnegativity of `x ^ 2 - 3 * x + 2 * √x` for nonnegative `x`.
+* `gram_square_root_row_failure_bound`: the off-diagonal row bound for the square-root deficit.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 
@@ -13,6 +35,8 @@ namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 open Matrix
 open scoped ComplexOrder MatrixOrder
 
+/-- For nonnegative real `x`, the square-root correction `x ^ 2 - 3 * x + 2 * √x` is
+nonnegative. -/
 private theorem sqrt_correction_nonneg (x : ℝ) (hx : 0 ≤ x) :
     0 ≤ x ^ 2 - 3 * x + 2 * Real.sqrt x := by
   have hp : 0 ≤ Real.sqrt x * (Real.sqrt x - 1) ^ 2 * (Real.sqrt x + 2) :=
@@ -25,6 +49,8 @@ private theorem sqrt_correction_nonneg (x : ℝ) (hx : 0 ≤ x) :
   rw [hfactor, Real.mul_self_sqrt hx] at hp
   simpa only [pow_two] using hp
 
+/-- For a positive semidefinite Hermitian matrix with diagonal entry one at `i`, the deficit `1
+- |(√H)ᵢᵢ|²` is at most the sum of squared moduli of the off-diagonal entries in row `i`. -/
 theorem gram_square_root_row_failure_bound (I : Type) [Fintype I] [DecidableEq I]
     (H : HermitianMat I ℂ) (hH : 0 ≤ H) (i : I) (hi : H.mat i i = 1) :
     1 - Complex.normSq (H.sqrt.mat i i) ≤

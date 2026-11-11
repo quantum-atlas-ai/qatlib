@@ -9,6 +9,31 @@ import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Order.Filter.AtTopBot.Field
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
+
+/-!
+# Finite Gibbs weights and ground-state deficiency
+
+This module defines a finite nonempty Boltzmann partition function and its normalized Gibbs
+weights, as used in the thermal comparison of [KadowakiNishimori1998]. It expresses the
+deficiency of a distinguished level through energy differences and establishes the
+low-temperature equivalent for a unique lowest-energy level.
+
+For two levels, the deficiency is the logistic expression `twoLevelGibbsDeficiency`. Different
+gaps determine different functions of inverse temperature.
+
+## Main statements
+
+* `sum_gibbsWeight`: the Gibbs weights sum to one.
+* `ground_deficiency_eq`: expresses the distinguished-level deficiency through the other energy
+  differences.
+* `ground_deficiency_lowT_asymptotic`: gives the equivalent as inverse temperature grows.
+* `twoLevelGibbsDeficiency_eq`: identifies the two-level logistic formula.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,25 +47,33 @@ open scoped Topology BigOperators
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 
+/-- The finite Boltzmann partition function `∑ i, exp (-β * E i)`. -/
 def boltzmannPartition (E : ι → ℝ) (β : ℝ) : ℝ :=
   ∑ i, Real.exp (-(β * E i))
 
+/-- The Boltzmann factor of level `i` divided by the partition function. -/
 def gibbsWeight (E : ι → ℝ) (β : ℝ) (i : ι) : ℝ :=
   Real.exp (-(β * E i)) / boltzmannPartition E β
 
+/-- The Boltzmann partition function of a finite nonempty collection of real energies is
+strictly positive [KadowakiNishimori1998]. -/
 theorem boltzmannPartition_pos (E : ι → ℝ) (β : ℝ) : 0 < boltzmannPartition E β := by
   unfold boltzmannPartition
   exact Finset.sum_pos (fun i _ => Real.exp_pos _) Finset.univ_nonempty
 
+/-- Every Gibbs weight in a finite nonempty collection is strictly positive
+[KadowakiNishimori1998]. -/
 theorem gibbsWeight_pos (E : ι → ℝ) (β : ℝ) (i : ι) : 0 < gibbsWeight E β i := by
   unfold gibbsWeight
   exact div_pos (Real.exp_pos _) (boltzmannPartition_pos E β)
 
+/-- The finite Gibbs weights sum to one [KadowakiNishimori1998]. -/
 theorem sum_gibbsWeight (E : ι → ℝ) (β : ℝ) : ∑ i, gibbsWeight E β i = 1 := by
   unfold gibbsWeight
   rw [← Finset.sum_div]
   exact div_self (ne_of_gt (boltzmannPartition_pos E β))
 
+/-- Every Gibbs weight is at most one [KadowakiNishimori1998]. -/
 theorem gibbsWeight_le_one (E : ι → ℝ) (β : ℝ) (i : ι) : gibbsWeight E β i ≤ 1 := by
   have hsum := sum_gibbsWeight E β
   have hle : gibbsWeight E β i ≤ ∑ j, gibbsWeight E β j :=
@@ -48,6 +81,8 @@ theorem gibbsWeight_le_one (E : ι → ℝ) (β : ℝ) (i : ι) : gibbsWeight E 
   rw [hsum] at hle
   exact hle
 
+/-- Factors the Boltzmann partition function by the factor of a distinguished level `g`, leaving
+one plus the sum of relative Boltzmann factors over `i ≠ g` [KadowakiNishimori1998]. -/
 theorem boltzmannPartition_ground_factor (E : ι → ℝ) (β : ℝ) (g : ι) :
     boltzmannPartition E β
       = Real.exp (-(β * E g))
@@ -66,6 +101,8 @@ theorem boltzmannPartition_ground_factor (E : ι → ℝ) (β : ℝ) (g : ι) :
   congr 1
   ring
 
+/-- The deficiency `1 - gibbsWeight E β g` equals the sum of relative Boltzmann factors over `i
+≠ g` divided by one plus that sum [KadowakiNishimori1998]. -/
 theorem ground_deficiency_eq (E : ι → ℝ) (β : ℝ) (g : ι) :
     1 - gibbsWeight E β g
       = (∑ i ∈ Finset.univ.erase g, Real.exp (-(β * (E i - E g))))
@@ -82,6 +119,8 @@ theorem ground_deficiency_eq (E : ι → ℝ) (β : ℝ) (g : ι) :
   field_simp
   ring
 
+/-- If a level other than `g` exists, the deficiency of the Gibbs weight at `g` is strictly
+positive [KadowakiNishimori1998]. -/
 theorem ground_deficiency_pos (E : ι → ℝ) (β : ℝ) (g : ι)
     (hne : (Finset.univ.erase g).Nonempty) :
     0 < 1 - gibbsWeight E β g := by
@@ -92,11 +131,16 @@ theorem ground_deficiency_pos (E : ι → ℝ) (β : ℝ) (g : ι)
     positivity
   exact div_pos hSpos hD
 
+/-- The deficiency of any distinguished Gibbs weight is strictly less than one
+[KadowakiNishimori1998]. -/
 theorem ground_deficiency_lt_one (E : ι → ℝ) (β : ℝ) (g : ι) :
     1 - gibbsWeight E β g < 1 := by
   have := gibbsWeight_pos E β g
   linarith
 
+/-- If `g` has strictly lower energy than every other level and another level exists, its Gibbs
+deficiency is asymptotically equivalent to the sum of relative Boltzmann factors as `β`
+tends to infinity [KadowakiNishimori1998]. -/
 theorem ground_deficiency_lowT_asymptotic (E : ι → ℝ) (g : ι)
     (hgap : ∀ i, i ≠ g → E g < E i)
     (hne : (Finset.univ.erase g).Nonempty) :
@@ -139,8 +183,11 @@ theorem ground_deficiency_lowT_asymptotic (E : ι → ℝ) (g : ι)
     hD.inv₀ (by norm_num)
   simpa using hinv
 
+/-- The two-level logistic deficiency `1 / (exp (β * d) + 1)`. -/
 def twoLevelGibbsDeficiency (d β : ℝ) : ℝ := 1 / (Real.exp (β * d) + 1)
 
+/-- For two energy levels zero and `d`, the deficiency of the Gibbs weight at level zero equals
+`twoLevelGibbsDeficiency d β` [KadowakiNishimori1998]. -/
 theorem twoLevelGibbsDeficiency_eq (d β : ℝ) :
     1 - gibbsWeight (fun i : Fin 2 => ![0, d] i) β 0
       = twoLevelGibbsDeficiency d β := by
@@ -159,6 +206,8 @@ theorem twoLevelGibbsDeficiency_eq (d β : ℝ) :
   field_simp
   ring
 
+/-- Distinct real gaps give distinct two-level Gibbs-deficiency functions of inverse temperature
+[KadowakiNishimori1998]. -/
 theorem twoLevelGibbsDeficiency_depends_on_gap {d₁ d₂ : ℝ}
     (hne : d₁ ≠ d₂) :
     twoLevelGibbsDeficiency d₁ ≠ twoLevelGibbsDeficiency d₂ := by

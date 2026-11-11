@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.SpatialSearch03.MainResults.LatticeDefs
 import Mathlib.Analysis.Calculus.Deriv.Prod
 import Mathlib.Analysis.Calculus.MeanValue
+
+/-!
+# Time bounds for lattice search amplitudes
+
+This module differentiates the lattice search success amplitude and bounds its rate of change by
+the inverse square root of the number of lattice vertices. These estimates yield finite-time and
+repetition bounds for the model of [ChildsGoldstone2004].
+
+## Main statements
+
+* `hasDerivAt_successAmplitude`: derivative expressed using the marked-state return amplitude.
+* `time_ge_amplitude`: lower bound on elapsed time in terms of the attained amplitude.
+* `repetition_time_ge`: lower bound involving time and success probability under an explicit
+  time threshold.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +42,7 @@ attribute [local instance] Matrix.linftyOpNormedRing Matrix.linftyOpNormedAlgebr
 
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
+/-- The inner product of a basis ket with a state is the corresponding state coordinate. -/
 theorem inner_ket_apply (w : ι) (z : QState ι) : Inner (Ket w) z = z w := by
   rw [inner_apply, Finset.sum_eq_single w]
   · simp [Ket]
@@ -30,6 +51,7 @@ theorem inner_ket_apply (w : ι) (z : QState ι) : Inner (Ket w) z = z w := by
   · intro h
     exact absurd (Finset.mem_univ w) h
 
+/-- The sum of squared coordinate norms of a basis ket is one. -/
 theorem sum_normSq_ket (w : ι) : ∑ i, ‖Ket w i‖ ^ 2 = 1 := by
   rw [Finset.sum_eq_single w]
   · simp [Ket]
@@ -39,6 +61,7 @@ theorem sum_normSq_ket (w : ι) : ∑ i, ‖Ket w i‖ ^ 2 = 1 := by
   · intro h
     exact absurd (Finset.mem_univ w) h
 
+/-- A unitary matrix preserves the sum of squared coordinate norms of a state. -/
 theorem sum_normSq_mulVec_unitary (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryGroup ι ℂ)
     (ψ : QState ι) : ∑ i, ‖((U *ᵥ ψ) i)‖ ^ 2 = ∑ j, ‖ψ j‖ ^ 2 := by
   have h := sum_normSq_mulVec_of_mem_unitaryGroup hU ψ
@@ -46,6 +69,8 @@ theorem sum_normSq_mulVec_unitary (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unit
 
 omit [DecidableEq ι] in
 
+/-- The norm of any state coordinate is at most the square root of the sum of all squared
+coordinate norms. -/
 theorem norm_le_sqrt_sum_normSq (z : QState ι) (i : ι) :
     ‖z i‖ ≤ Real.sqrt (∑ j, ‖z j‖ ^ 2) := by
   have hsq : ‖z i‖ ^ 2 ≤ ∑ j, ‖z j‖ ^ 2 := by
@@ -55,6 +80,7 @@ theorem norm_le_sqrt_sum_normSq (z : QState ι) (i : ι) :
   calc ‖z i‖ = Real.sqrt (‖z i‖ ^ 2) := (Real.sqrt_sq (norm_nonneg _)).symm
     _ ≤ Real.sqrt (∑ j, ‖z j‖ ^ 2) := Real.sqrt_le_sqrt hsq
 
+/-- The overlap of a basis ket with a unitary image of a normalized state has norm at most one. -/
 theorem norm_inner_ket_mulVec_le_one (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.unitaryGroup ι ℂ)
     (w : ι) (ψ : QState ι) (hψ : Normalized ψ) :
     ‖Inner (Ket w) (U *ᵥ ψ)‖ ≤ 1 := by
@@ -64,14 +90,17 @@ theorem norm_inner_ket_mulVec_le_one (U : Matrix ι ι ℂ) (hU : U ∈ Matrix.u
     rw [sum_normSq_mulVec_unitary U hU ψ, hψ]
   rw [hnorm, Real.sqrt_one]
 
+/-- The lattice search success amplitude has norm at most one when the side length is positive. -/
 theorem norm_successAmplitude_le_one (d n : ℕ) (hn : 0 < n) (γ : ℝ)
     (w : LatticeVertex d n) (t : ℝ) : ‖successAmplitude d n γ w t‖ ≤ 1 :=
   norm_inner_ket_mulVec_le_one (HamiltonianEvolution (searchHamiltonian d n γ w) t)
     (hamiltonianEvolution_unitary (searchHamiltonian_isHermitian d n γ w) t) w
     (latticeUniform d n) (normalized_latticeUniform d n hn)
 
+/-- The evolution generator `-i` times the Hamiltonian matrix. -/
 noncomputable def evolGen (H : Matrix ι ι ℂ) : Matrix ι ι ℂ := (-Complex.I) • H
 
+/-- Hamiltonian evolution at time `t` is the matrix exponential of `t` times `evolGen H`. -/
 theorem hamiltonianEvolution_eq_exp (H : Matrix ι ι ℂ) (t : ℝ) :
     HamiltonianEvolution H t = NormedSpace.exp (t • evolGen H) := by
   have htower : t • (-Complex.I • H) = (t : ℂ) • (-Complex.I • H) :=
@@ -80,6 +109,8 @@ theorem hamiltonianEvolution_eq_exp (H : Matrix ι ι ℂ) (t : ℝ) :
   unfold HamiltonianEvolution evolGen
   rw [htower, smul_smul, hc]
 
+/-- Each matrix entry of Hamiltonian evolution has derivative equal to the corresponding entry
+of the evolution matrix multiplied by its generator. -/
 theorem hasDerivAt_hamiltonianEvolution_entry (H : Matrix ι ι ℂ) (i j : ι) (t : ℝ) :
     HasDerivAt (fun u : ℝ => HamiltonianEvolution H u i j)
       ((HamiltonianEvolution H t * evolGen H) i j) t := by
@@ -97,6 +128,8 @@ theorem hasDerivAt_hamiltonianEvolution_entry (H : Matrix ι ι ℂ) (i j : ι) 
     exact h
   exact hasDerivAt_pi.mp (hasDerivAt_pi.mp h' i) j
 
+/-- The lattice search evolution generator maps the uniform state to `i` times the marked ket
+divided by the square root of the number of vertices. -/
 theorem evolGen_mulVec_uniform (d n : ℕ) (γ : ℝ) (w : LatticeVertex d n) :
     evolGen (searchHamiltonian d n γ w) *ᵥ latticeUniform d n =
       (Complex.I * ((Real.sqrt (Fintype.card (LatticeVertex d n) : ℝ) : ℂ))⁻¹) • Ket w := by
@@ -105,6 +138,9 @@ theorem evolGen_mulVec_uniform (d n : ℕ) (γ : ℝ) (w : LatticeVertex d n) :
   congr 1
   ring
 
+/-- The derivative of the lattice search success amplitude is the marked-state return amplitude
+multiplied by `i` and the inverse square root of the number of vertices
+[ChildsGoldstone2004]. -/
 theorem hasDerivAt_successAmplitude (d n : ℕ) (γ : ℝ) (w : LatticeVertex d n) (t : ℝ) :
     HasDerivAt (fun u : ℝ => successAmplitude d n γ w u)
       (Complex.I * ((Real.sqrt (Fintype.card (LatticeVertex d n) : ℝ) : ℂ))⁻¹ *
@@ -143,6 +179,8 @@ theorem hasDerivAt_successAmplitude (d n : ℕ) (γ : ℝ) (w : LatticeVertex d 
   rw [hfun, hval] at hsum
   exact hsum
 
+/-- The explicit derivative expression for the lattice search success amplitude has norm at most
+the inverse square root of the number of lattice vertices. -/
 theorem norm_deriv_successAmplitude_le (d n : ℕ) (γ : ℝ)
     (w : LatticeVertex d n) (t : ℝ) :
     ‖Complex.I * ((Real.sqrt (Fintype.card (LatticeVertex d n) : ℝ) : ℂ))⁻¹ *
@@ -159,6 +197,9 @@ theorem norm_deriv_successAmplitude_le (d n : ℕ) (γ : ℝ)
       abs_of_nonneg (Real.sqrt_nonneg _)]]
   exact mul_le_of_le_one_right (by positivity) hinner
 
+/-- At nonnegative time and positive side length, the success-amplitude norm multiplied by the
+square root of the number of vertices, minus one, is at most the elapsed time
+[ChildsGoldstone2004]. -/
 theorem time_ge_amplitude (d n : ℕ) (hn : 0 < n) (γ : ℝ) (w : LatticeVertex d n)
     {t : ℝ} (ht : 0 ≤ t) :
     ‖successAmplitude d n γ w t‖ * Real.sqrt (Fintype.card (LatticeVertex d n) : ℝ) - 1 ≤ t := by
@@ -219,6 +260,9 @@ theorem time_ge_amplitude (d n : ℕ) (hn : 0 < n) (γ : ℝ) (w : LatticeVertex
       _ = 1 + t := by rw [hcancel, mul_one]
   linarith
 
+/-- For `0 < ε ≤ 1` and `t ≥ 1 / ε`, the quantity `(1 - ε)` times the square root of the number
+of vertices times the lattice search success probability is at most `t`
+[ChildsGoldstone2004]. -/
 theorem repetition_time_ge (d n : ℕ) (hn : 0 < n) (γ : ℝ) (w : LatticeVertex d n)
     {ε t : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1) (ht : 1 / ε ≤ t) :
     (1 - ε) * Real.sqrt (Fintype.card (LatticeVertex d n) : ℝ) *

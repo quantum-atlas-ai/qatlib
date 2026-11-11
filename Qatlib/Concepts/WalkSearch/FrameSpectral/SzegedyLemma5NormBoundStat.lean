@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+
+/-!
+# Specification of the bipartite discriminant norm bound
+
+The proposition `SzegedyLemma5NormBound` records two consequences of frame isometry. The
+bipartite discriminant contracts the squared Euclidean norm, and a source vector fixed by it has
+matching images under the two frames. The quantum walk spectral framework is developed in
+[Szegedy2004].
+
+## Main statements
+
+* `SzegedyLemma5NormBound`: Discriminant contraction and matching endpoint images.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -22,6 +40,9 @@ namespace Qatlib.Concepts.WalkSearch.FrameSpectral
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.Execution.WorkspaceCP (IsIsometry)
 
+/-- The requirement that the bipartite discriminant of two isometric frames contracts the
+squared coordinate norm and that a fixed source pair has equal frame images [Szegedy, Lemma
+5][Szegedy2004]. -/
 def SzegedyLemma5NormBound : Prop :=
   ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),

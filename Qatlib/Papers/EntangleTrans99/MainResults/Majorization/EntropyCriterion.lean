@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
 import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
+
+/-!
+# Entropy and the two-dimensional spectral criterion
+
+This module proves that majorization of two-entry probability vectors is equivalent to the
+reverse ordering of their Shannon entropies. It rewrites entropy as `Real.binEntropy` of the
+larger entry and uses its monotonicity on the interval from one half to one.
+
+The theorem `qubit_entropy_criterion` specializes this equivalence to Schmidt spectra of
+normalized bipartite pure states with a two-dimensional first subsystem, giving the spectral
+entropy criterion discussed in [Nielsen1999].
+
+## Main statements
+
+* `majorizes_two_iff_entropy`: equates two-dimensional majorization with an entropy inequality.
+* `qubit_entropy_criterion`: expresses the Schmidt-spectrum comparison as nonincrease of Schmidt
+  entropy.
+
+## References
+
+* [Nielsen, 1999][Nielsen1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +44,8 @@ open Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
 open Qatlib.Foundations.PureStateMath
 open scoped BigOperators
 
+/-- For two real entries summing to one, their sum of `Real.negMulLog` values equals the binary
+entropy of their maximum [Nielsen1999]. -/
 theorem entropy_eq_binEntropy_max (a : Fin 2 → ℝ) (ha : a 0 + a 1 = 1) :
     (∑ j, Real.negMulLog (a j)) = Real.binEntropy (max (a 0) (a 1)) := by
   rw [Fin.sum_univ_two]
@@ -33,6 +58,7 @@ theorem entropy_eq_binEntropy_max (a : Fin 2 → ℝ) (ha : a 0 + a 1 = 1) :
     have h1 : a 1 = 1 - a 0 := by linarith
     rw [h1, Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub]
 
+/-- The larger entry of a nonnegative two-entry vector with sum one lies in `[1/2, 1]`. -/
 theorem max_mem_Icc_of_sum_one {a : Fin 2 → ℝ}
     (h0 : 0 ≤ a 0) (h1 : 0 ≤ a 1) (ha : a 0 + a 1 = 1) :
     max (a 0) (a 1) ∈ Set.Icc (2⁻¹) 1 := by
@@ -42,6 +68,8 @@ theorem max_mem_Icc_of_sum_one {a : Fin 2 → ℝ}
     · rw [max_eq_left hle]; linarith
   · exact max_le (by linarith) (by linarith)
 
+/-- If one two-entry probability vector majorizes another, its Shannon entropy is no larger
+[Nielsen1999]. -/
 theorem entropy_le_entropy_of_majorizes {a b : Fin 2 → ℝ}
     (ha0 : 0 ≤ a 0) (ha1 : 0 ≤ a 1) (ha : a 0 + a 1 = 1)
     (hb0 : 0 ≤ b 0) (hb1 : 0 ≤ b 1) (hb : b 0 + b 1 = 1)
@@ -54,6 +82,8 @@ theorem entropy_le_entropy_of_majorizes {a b : Fin 2 → ℝ}
     Real.binEntropy_strictAntiOn.antitoneOn
   exact hanti (max_mem_Icc_of_sum_one hb0 hb1 hb) (max_mem_Icc_of_sum_one ha0 ha1 ha) hmax
 
+/-- For two-entry probability vectors, `Majorizes a b` is equivalent to the Shannon entropy of
+`a` being at most that of `b` [Nielsen1999]. -/
 theorem majorizes_two_iff_entropy {a b : Fin 2 → ℝ}
     (ha0 : 0 ≤ a 0) (ha1 : 0 ≤ a 1) (ha : a 0 + a 1 = 1)
     (hb0 : 0 ≤ b 0) (hb1 : 0 ≤ b 1) (hb : b 0 + b 1 = 1) :
@@ -73,6 +103,9 @@ theorem majorizes_two_iff_entropy {a b : Fin 2 → ℝ}
     have hstrict := Real.binEntropy_strictAntiOn ha_mem hb_mem hlt
     linarith
 
+/-- For normalized bipartite pure states with a two-dimensional first subsystem, majorization of
+the source Schmidt spectrum by the target spectrum is equivalent to nonincrease of Schmidt
+entropy [Nielsen1999]. -/
 theorem qubit_entropy_criterion {E : ℕ} (ψ φ : QState (Fin 2 × Fin E))
     (hψ : Normalized ψ) (hφ : Normalized φ) :
     Majorizes (schmidtSpectrum φ hφ) (schmidtSpectrum ψ hψ) ↔

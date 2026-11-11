@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.PureStateMath.Qubit
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+/-!
+# Born distribution variation for pure states
+
+This module bounds the total variation of Born outcome distributions by the square root of one
+minus the squared inner-product norm of normalized pure states. The theorem
+`pureState_born_tv_le_sqrt_fidelity` gives the same bound after a common unitary gate. For
+background on fidelity and measurement distinguishability, see [Watrous2018].
+
+## Main statements
+
+* `pureState_born_tv_le_sqrt_fidelity`: a common unitary preserves the overlap bound on Born
+  total variation.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 open Qatlib.Foundations.PureStateMath
 open Qatlib
 
@@ -13,6 +32,8 @@ namespace Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 open scoped BigOperators
 
+/-- The total variation distance of the Born distributions of two normalized pure states is at
+most sqrt(1 - |⟨ψ, φ⟩|²). -/
 private theorem born_tv_le_sqrt_inner {I : Type} [Fintype I] [DecidableEq I]
     (ψ φ : QState I) (hψ : Normalized ψ) (hφ : Normalized φ) :
     (1 / 2 : ℝ) * ∑ i, |BornProb ψ i - BornProb φ i| ≤
@@ -53,6 +74,8 @@ private theorem born_tv_le_sqrt_inner {I : Type} [Fintype I] [DecidableEq I]
   change (1 / 2 : ℝ) * L ≤ Real.sqrt (1 - ‖Inner ψ φ‖ ^ 2)
   nlinarith [Real.sq_sqrt hnonneg, Real.sqrt_nonneg (1 - ‖Inner ψ φ‖ ^ 2)]
 
+/-- After applying the same unitary to two normalized pure states, their Born distributions have
+total variation at most sqrt(1 - |⟨ψ, φ⟩|²) for the original states. -/
 theorem pureState_born_tv_le_sqrt_fidelity {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ)
     (ψ φ : QState I) (hψ : Normalized ψ) (hφ : Normalized φ) :

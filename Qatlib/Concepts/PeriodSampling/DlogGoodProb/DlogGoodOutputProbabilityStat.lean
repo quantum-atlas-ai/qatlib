@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogPrograms
+
+/-!
+# Good-output probability contract
+
+Defines `DlogGoodOutputProbability`, collecting lower bounds for the total good-pair probability
+and for individual outcomes over a generator orbit. A constant success bound follows within the
+additional Fourier-modulus window used in the analysis associated with [Shor1997].
+
+## Main statements
+
+* `DlogGoodOutputProbability`: Specifies total and individual good-outcome probability bounds.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +36,9 @@ namespace Qatlib.Concepts.PeriodSampling.DlogGoodProb
 open Qatlib
 open scoped Classical
 
+/-- Under the prime, generator, and modulus assumptions, requires good-pair probability at least
+`(p - 1) / (240 * q)`, each stated good outcome to have probability at least `1 / (20 * q ^
+2)`, and total probability at least `1 / 480` when `q ≤ 2 * (p - 1)`. -/
 def DlogGoodOutputProbability : Prop :=
   ∀ (p q r : ℕ) [NeZero p] (g x : ZMod p), Nat.Prime p → 3 ≤ p → x ≠ 0 →
     (p : ℕ) < q → orderOf g = p - 1 → x = g ^ r →

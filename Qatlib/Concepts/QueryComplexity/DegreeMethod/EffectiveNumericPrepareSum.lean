@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCore
+
+/-!
+# Binary addition between registers
+
+The addition `program` copies two source registers, reverses their working copies, invokes
+native binary addition, normalizes the result, and transfers it into an initially empty
+destination. The external registers are retained apart from the designated destination, and the
+working stacks are empty on termination.
+
+The native and composed execution bounds are quadratic in one plus the combined source-word
+lengths. For background on the classical computational setting, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `add_exact_end`: the exact terminal state and step count of native addition.
+* `normalize_call`: normalization produces the canonical reversed binary sum.
+* `complete`: register addition is correct with a quadratic execution bound.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,9 +49,13 @@ open Qatlib
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
 open Qatlib
 
+/-- The final addition-local state, retaining the carry after all input positions have been
+processed and clearing both symbol registers. -/
 def finalAddVar (x y : Bits) : AddVar :=
   ⟨(addTurns (max x.length y.length) ⟨false,x,y,[]⟩).carry,none,none⟩
 
+/-- Binary addition halts after the maximum input length plus one steps with the reversed sum on
+its output stack and clock cost bounded by `addClockBound`. -/
 theorem add_exact_end (x y : Bits) :
     stackRun addProgram (max x.length y.length+1) (addStart x y)=
       some ⟨none,finalAddVar x y,addStacks [] [] (bitAdd x y).reverse⟩ ∧
@@ -56,11 +83,17 @@ instance instFintypeAddVar : Fintype AddVar :=
       left_inv := by rintro ⟨a,b,c⟩; rfl
       right_inv := by intro v; cases v; rfl }
 instance : Inhabited AddVar := ⟨AddVar.init⟩
+/-- The eight external registers available to the addition subroutine. -/
 abbrev Register := Fin 8
+/-- Five addition workspace stacks together with a family of external registers. -/
 abbrev SlotOf (K : Type) := Fin 5 ⊕ K
+/-- The addition workspace and eight external registers. -/
 abbrev Slot := SlotOf Register
+/-- The addition-local state paired with an input/output symbol register. -/
 abbrev Local := AddVar × Symbol
 
+/-- Control labels for copying and reversing inputs, addition, normalization, saving, and
+halting. -/
 inductive Label where
   | copy (which : Bool) (l : NatEmit.Label)
   | reverse (which : Bool) (l : Fin 1)
@@ -71,20 +104,30 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.copy false .emit⟩
 
+/-- Replaces the addition-local component while preserving the symbol register. -/
 def putAdd (v : Local) (w : AddVar) : Local := (w,v.2)
+/-- Replaces the symbol register while preserving the addition-local component. -/
 def putIO (v : Local) (w : Symbol) : Local := (v.1,w)
 
 section ArbitraryRegisters
 variable {K : Type} [DecidableEq K]
 
+/-- Maps a source-register copy to the restoration and staging stacks. -/
 def copyCode (src : K) : Fin 3 → (SlotOf K) | 0 => .inr src | 1 => .inl 3 | _ => .inl 4
+/-- Maps reversal from the staging stack to the selected addition-input stack. -/
 def reverseCode (which : Bool) : Fin 2 →
     (SlotOf K) | 0 => .inl 4 | _ => .inl (if which then 1 else 0)
+/-- Embeds the three native addition stacks into the addition workspace. -/
 def addCode (i : Fin 3) : (SlotOf K) := .inl (Fin.castLE (by decide) i)
+/-- Selects the sum-output workspace stack for binary normalization. -/
 def normalizeCode (_ : Fin 1) : SlotOf K := .inl 2
+/-- Maps transfer from the sum-output stack to the destination register. -/
 def saveCode (dst : K) : Fin 2 → (SlotOf K) | 0 => .inl 2 | _ => .inr dst
+/-- Selects the second input copy or the addition phase after reversing an input. -/
 def nextReverse (which : Bool) : Label := if which then .add .loop else .copy true .emit
 
+/-- The program that copies two registers, adds their binary values, normalizes the sum, and
+saves it to a destination register. -/
 def program (x y dst : K) : Label → TM2.Stmt (fun _ : (SlotOf K) => Bool) Label Local
   | .copy which l => StackCall.stmt (copyCode (if which then y else x)) (Label.copy which)
       (.reverse which 0) Prod.snd putIO (NatEmit.program l)
@@ -95,32 +138,39 @@ def program (x y dst : K) : Label → TM2.Stmt (fun _ : (SlotOf K) => Bool) Labe
   | .save l => StackCall.stmt (saveCode dst) Label.save .done Prod.snd putIO (transferProgram l)
   | .done => .load (fun _ => (AddVar.init,none)) .halt
 
+/-- Combines the five working stacks with the external register store. -/
 def store (W : Fin 5 → Bits) (R : K → Bits) : (SlotOf K) → Bits := Sum.elim W R
 
 omit [DecidableEq K] in
 
+/-- The stack map for copying an input register is injective. -/
 theorem copyCode_injective (src : K) : Function.Injective (copyCode src) := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp [copyCode] at h ⊢
 
 omit [DecidableEq K] in
 
+/-- The stack map for reversing either addition input is injective. -/
 theorem reverseCode_injective (which : Bool) : Function.Injective (reverseCode (K:=K) which) := by
   intro a b h
   cases which <;> fin_cases a <;> fin_cases b <;> simp [reverseCode] at h ⊢
 
 omit [DecidableEq K] in
 
+/-- The embedding of the native addition stacks is injective. -/
 theorem addCode_injective : Function.Injective (addCode (K:=K)) := by
   intro a b h
   exact Fin.ext (congrArg (fun s : (SlotOf K) => match s with | .inl i => i.val | .inr _ => 0) h)
 
 omit [DecidableEq K] in
 
+/-- The stack map for saving the sum is injective. -/
 theorem saveCode_injective (dst : K) : Function.Injective (saveCode dst) := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp [saveCode] at h ⊢
 
+/-- Copying an input register prepends its reversed contents to the staging stack while
+preserving the register, with the stated step count and quadratic clock bound. -/
 theorem copy_call (x y dst : K) (which : Bool) (S : SlotOf K → Bits) (v : Local)
     (htmp : S (.inl 3)=[]) :
     let bits := S (.inr (if which then y else x))
@@ -158,19 +208,25 @@ theorem copy_call (x y dst : K) (which : Bool) (S : SlotOf K → Bits) (v : Loca
     hsame,hfinal,hio] at hr hc
   exact ⟨hr,hc.trans_le (NatEmit.copy_clock_bound bits (S (.inl 4)) v.2)⟩
 
+/-- Selects the stack map for saving the sum or reversing one of the two inputs. -/
 def transferCode (dst : K) : Option Bool → Fin 2 → SlotOf K
   | none => saveCode dst | some which => reverseCode which
+/-- Selects the control-label family for saving the sum or reversing an input. -/
 def transferLabel : Option Bool → Fin 1 →
     Label | none => Label.save | some which => Label.reverse which
+/-- Selects the return label after saving the sum or reversing an input. -/
 def transferNext : Option Bool → Label | none => .done | some which => nextReverse which
 
 omit [DecidableEq K] in
 
+/-- Each stack map used for input reversal or saving the sum is injective. -/
 theorem transferCode_injective (dst : K) (job : Option Bool) : Function.Injective (transferCode dst job) := by
   cases job with
   | none => exact saveCode_injective dst
   | some which => exact reverseCode_injective which
 
+/-- A reversal or save transfer clears its source and prepends the reversed source to its
+destination, with a quadratic clock bound. -/
 theorem transfer_call (x y dst : K) (job : Option Bool) (S : SlotOf K → Bits) (v : Local) :
     let code := transferCode dst job
     let bits := S (code 0)
@@ -211,15 +267,19 @@ theorem transfer_call (x y dst : K) (job : Option Bool) (S : SlotOf K → Bits) 
   rw [hc,transfer_clock]
   nlinarith
 
+/-- Embeds a native three-stack addition store while retaining the external registers and
+restoration and staging stacks. -/
 def addFrame (R : K → Bits) (restore staging : Bits) (S : Fin 3 → Bits) : SlotOf K → Bits :=
   store (fun i => match i with | 0 => S 0 | 1 => S 1 | 2 => S 2 | 3 => restore | _ => staging) R
 
 omit [DecidableEq K] in
 
+/-- Reading an embedded native addition stack recovers its original contents. -/
 theorem addFrame_at (R : K → Bits) (restore staging : Bits) (S : Fin 3 → Bits) (i : Fin 3) :
     addFrame R restore staging S (addCode i)=S i := by
   fin_cases i <;> rfl
 
+/-- Updating a native addition stack commutes with its embedding into the working store. -/
 theorem addFrame_update (R : K → Bits) (restore staging : Bits) (S : Fin 3 → Bits) (i : Fin 3) (bits : Bits) :
     addFrame R restore staging (Function.update S i bits)=
       Function.update (addFrame R restore staging S) (addCode i) bits := by
@@ -228,6 +288,8 @@ theorem addFrame_update (R : K → Bits) (restore staging : Bits) (S : Fin 3 →
   | inl j => fin_cases i <;> fin_cases j <;> rfl
   | inr j => fin_cases i <;> rfl
 
+/-- The embedded addition consumes both inputs and produces the reversed sum with the native
+final local state and clock bound. -/
 theorem add_call (x y dst : K) (a b : Bits) (R : K → Bits) (restore staging : Bits) (v : Local) :
     stackRun (program x y dst) (max a.length b.length+1)
       ⟨some (.add .loop),putAdd v AddVar.init,addFrame R restore staging (addStacks a b [])⟩ =
@@ -242,6 +304,8 @@ theorem add_call (x y dst : K) (a b : Bits) (R : K → Bits) (restore staging : 
   simp only [StackCall.cfg,addStart,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none] at hr hc
   exact ⟨hr,hc.trans_le (add_exact_end a b).2⟩
 
+/-- Normalization replaces the reversed sum by the reversed canonical binary expansion of its
+value, with a quadratic clock bound. -/
 theorem normalize_call (x y dst : K) (S : SlotOf K → Bits) (v : Local) :
     ∃ ticks last, stackRun (program x y dst) ticks ⟨some (.normalize 0),v,S⟩ =
       some ⟨some (.save 0),putIO v last,Function.update S (.inl 2)
@@ -276,6 +340,7 @@ theorem normalize_call (x y dst : K) (S : SlotOf K → Bits) (v : Local) :
     hsame,hfinal,hio] at hN hNC
   exact ⟨ticks,last,hN,hNC.trans_le hc⟩
 
+/-- The native addition clock bound is at most `22 * (1 + a.length + b.length)^2`. -/
 theorem native_clock_bound (a b : Bits) : addClockBound a b ≤ 22*(1+a.length+b.length)^2 := by
   let N := 1+a.length+b.length
   have hN : 1≤N := by dsimp [N]; omega
@@ -285,6 +350,8 @@ theorem native_clock_bound (a b : Bits) : addClockBound a b ≤ 22*(1+a.length+b
   change (max a.length b.length+1)*(4*(a.length+b.length+max a.length b.length)+14) ≤ 22*N^2
   nlinarith only [h]
 
+/-- With an empty destination, the addition subroutine writes the canonical binary sum there and
+halts with empty workspace within a quadratic execution bound. -/
 theorem complete (x y dst : K) (R : K → Bits) (hfresh : R dst=[]) :
     Execution (program x y dst)
       ⟨some (.copy false .emit),(AddVar.init,none),store (fun _ => []) R⟩

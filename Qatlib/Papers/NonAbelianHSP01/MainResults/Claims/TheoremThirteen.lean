@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
 import Qatlib.Papers.NonAbelianHSP01.MainResults.ElementaryAbelianTwo
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Reductions
+
+/-!
+# Coset reductions for elementary abelian two subgroups
+
+Bundles coset-intersection and subgroup-reconstruction identities in the presence of a normal
+subgroup satisfying `IsElementaryAbelianTwo`. The result `theorem_thirteen` also records that
+every element of that subgroup is its own inverse. See [IvanyosMagniezSantha2003] for the
+surrounding analysis.
+
+## Main statements
+
+* `theorem_thirteen`: For normal elementary abelian two `N`, the stated coset intersections are
+  empty or cosets of `I.H ⊓ N`, their representatives yield elements of `I.H` and the displayed
+  translate identity, and the join/intersection hypotheses reconstruct `I.H`. Every element of
+  `N` is also its own inverse.
+
+## References
+
+* [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +35,10 @@ set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults.Claims
 
+/-- For normal elementary abelian two `N`, the stated coset intersections are empty or cosets of
+`I.H ⊓ N`, their representatives yield elements of `I.H` and the displayed translate
+identity, and the join/intersection hypotheses reconstruct `I.H`. Every element of `N` is
+also its own inverse [IvanyosMagniezSantha2003]. -/
 theorem theorem_thirteen {G : Type*} [Group G] (N : Subgroup G) [N.Normal]
     {X : Type*} (I : HiddenSubgroupInstance G X) (hNtwo : IsElementaryAbelianTwo ↥N) :
     (∀ z : G, leftCoset z I.H ∩ (N : Set G) = ∅ ∨

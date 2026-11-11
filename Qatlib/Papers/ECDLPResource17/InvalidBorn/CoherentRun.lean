@@ -8,6 +8,28 @@ import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Papers.ECDLPResource17.InvalidBorn.ActualFailure
 import Qatlib.Concepts.TensorRegisters.CohGraph.Controlled
 import Qatlib.Concepts.TensorRegisters.CohGraph.GraphOverlap
+
+/-!
+# Coherent encoded double scalar runs
+
+This module lifts the encoded elliptic curve bit run to a controlled unitary acting on a graph
+state over bit word pairs. It proves that the resulting graph state is normalized and identifies
+its real overlap defect from the ideal double scalar target with the uniform probability of a
+bit run error.
+
+The mathematical setting follows [RoettelerEtAl2017].
+
+## Main statements
+
+* `source_coherent_bit_run`: the controlled unitary produces the actual run graph state with
+  norm one.
+* `source_coherent_defect`: the real overlap defect equals the word error probability.
+
+## References
+
+* [Roetteler et al., 2017][RoettelerEtAl2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +41,10 @@ open Qatlib.Concepts.CurveGroups.AffineAdd
 open Qatlib.Concepts.FiniteCounts.OffsetWord
 open Qatlib.Concepts.TensorRegisters.CohGraph
 
+/-- The unitary controlled by the two scalar bit words maps the constant encoded offset graph
+state to the actual bit run graph state, and the resulting state has norm one. See
+[Roetteler et al., 2017, Section4.3: overall invalid fraction and double-word
+fidelity][RoettelerEtAl2017]. -/
 theorem source_coherent_bit_run (p w : ℕ) [Fact p.Prime] (hp : p ≤ 2^w)
     {a b : ZMod p} (P : (shortCurve a b).Point) (m n : ℕ)
     (a0 : AddSubgroup.zmultiples P) :
@@ -41,6 +67,8 @@ theorem source_coherent_bit_run (p w : ℕ) [Fact p.Prime] (hp : p ≤ 2^w)
   · rw [LinearIsometryEquiv.norm_map]
     exact graphState_norm _
 
+/-- For a fixed cyclic subgroup offset, one minus the real overlap of the actual and ideal graph
+states equals the bit error probability for uniform scalar word pairs. -/
 theorem source_coherent_defect (p w : ℕ) [Fact p.Prime] (hp : p ≤ 2^w)
     {a b : ZMod p} (P : (shortCurve a b).Point) (m n : ℕ)
     (a0 : AddSubgroup.zmultiples P) :

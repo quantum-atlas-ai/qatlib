@@ -14,21 +14,25 @@
 
 ## 2. 作为下游依赖使用
 
-在你的 Lean 4 项目（需使用相同的 [`lean-toolchain`](../lean-toolchain) `leanprover/lean4:v4.35.0`）的 `lakefile.toml` 中添加：
+在你的 Lean 4 项目（需确保 `lean-toolchain` 与本仓库一致，当前为 `leanprover/lean4:v4.35.0`）的 `lakefile.toml` 中添加：
 
 ```toml
 [[require]]
 name = "Qatlib"
 git = "https://github.com/quantum-atlas-ai/qatlib.git"
-rev = "v4.35.0"
+rev = "main" # 跟踪最新合入定理（推荐）；若需固定在工具链发布基线可填 "v4.35.0"
 ```
 
-在下游项目根目录运行以下命令，即可一次性拉取 `Mathlib`、`Physlib` 与 `Qatlib` 三层预编译缓存，无需在本地重新编译 `Qatlib`：
+在下游项目根目录运行以下命令，即可将当前最新 Commit 锁定至 `lake-manifest.json`，并一次性拉取 `Mathlib`、`Physlib` 与 `Qatlib` 三层预编译缓存，无需在本地重新编译 `Qatlib`：
 
 ```bash
 lake update
 lake exe get_cache
 ```
+
+> **版本锁定与更新机制说明**：
+> - `rev = "main"` 会在执行 `lake update` 时拉取 `Qatlib` 主线上的最新定理，并将精确的 Git Commit SHA 写入 `lake-manifest.json`；若希望固定在工具链发布时的初始快照，可将 `rev` 设为 `"v4.35.0"`。
+> - `lake update` 仅更新源码与 `lake-manifest.json`，**不会自动拉取预编译缓存**。每次执行 `lake update`（或 `lake update Qatlib`）同步上游更新后，请紧接着执行一次 `lake exe get_cache`。
 
 随后在 `.lean` 文件中导入总入口或按需导入具体模块（建议在大型项目中按需导入具体子模块，以保持最小的编译依赖集）：
 
@@ -79,7 +83,7 @@ lake test
 1. **必须打开仓库根目录**：
    在 VS Code 中安装官方 [Lean 4 扩展](https://marketplace.visualstudio.com/items?itemName=leanprover.lean4) 后，请务必通过 **File → Open Folder** 打开 `qatlib` **根目录**（不要单独打开 `Qatlib/Papers` 等子目录，否则 Lake 无法读取根目录的 `lakefile.toml` 与 `lean-toolchain`）。
 2. **编辑器内符号跳转与悬停提示**：
-   本仓库在 [`lakefile.toml`](../lakefile.toml) 中默认启用了 `enableArtifactCache = true` 与 `restoreAllArtifacts = true`。运行 `lake exe get_cache` 后，VS Code 的 `lean --server` 会直接复用预编译的 `.olean` 与 `.ilean` 索引，无需等待漫长的后台重编即可获得完整的类型提示与跳转支持。
+   运行 `lake exe get_cache` 将预编译构件拉入本地 Lake 缓存后，VS Code 的 `lean --server` 可直接复用预编译的 `.olean` 与 `.ilean` 索引，无需等待漫长的后台重编即可获得完整的类型提示与跳转支持。
 3. **常见缓存问题排查**：
    - 若切换分支或更新依赖后出现 `.olean` 版本不匹配报错，可先执行 `lake exe get_cache` 重新同步；
    - 若本地构建目录状态异常，可执行 `lake clean` 清理本地构建产物后再运行 `lake exe get_cache && lake build`。

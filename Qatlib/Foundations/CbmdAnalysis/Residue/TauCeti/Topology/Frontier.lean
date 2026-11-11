@@ -7,6 +7,29 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Mathlib.Topology.Connected.Basic
+
+/-!
+# Frontiers of preconnected sets and images
+
+Proves that a preconnected set meeting both sides of a set meets its frontier. Further lemmas
+bound image frontiers using open images, domain covers, and injective open maps.
+
+These boundary estimates support the topological contour arguments associated with
+[WangEtAl2026].
+
+## Main statements
+
+* `IsPreconnected.inter_frontier_nonempty`: A preconnected set meeting both a set and its
+  complement also meets its frontier.
+* `frontier_image_subset_of_closure_subset`: An injective open map carries the frontier of an
+  image into the image of the original frontier together with an exceptional set, under the
+  stated closure inclusion.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +45,7 @@ section Straddle
 
 variable {X : Type*} [TopologicalSpace X] {S V : Set X}
 
+/-- A preconnected set meeting both a set and its complement also meets its frontier. -/
 theorem _root_.Qatlib.Foundations.CbmdAnalysis.Residue.IsPreconnected.inter_frontier_nonempty (hS : IsPreconnected S)
     (h₁ : (S ∩ V).Nonempty) (h₂ : (S \ V).Nonempty) : (S ∩ frontier V).Nonempty := by
   by_contra hcon
@@ -42,6 +66,8 @@ section ImageSplit
 
 variable {X Y : Type*} [TopologicalSpace Y] {f : X → Y} {U s t u : Set X}
 
+/-- For two disjoint open images and a domain cover by three sets, the frontier of the first
+image lies in the third image or the frontier of the full image. -/
 theorem frontier_image_subset_image_union_frontier_image (hfs : IsOpen (f '' s))
     (hft : IsOpen (f '' t)) (hst : Disjoint (f '' s) (f '' t)) (hsU : s ⊆ U)
     (hcov : U ⊆ s ∪ t ∪ u) :
@@ -65,6 +91,8 @@ section Inside
 
 variable {X : Type*} [TopologicalSpace X] {A V : Set X}
 
+/-- If `A ⊆ V`, the intersection of the frontier of `V` with the closure of `A` equals its
+intersection with the frontier of `A`. -/
 theorem frontier_inter_closure_eq_frontier_inter_frontier (hAV : A ⊆ V) :
     frontier V ∩ closure A = frontier V ∩ frontier A := by
   rw [closure_eq_self_union_frontier, inter_union_distrib_left]
@@ -79,6 +107,8 @@ section OpenInjectiveImage
 variable {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y] {f : X → Y} {s : Set X}
   {t : Set Y}
 
+/-- An injective open map carries the frontier of an image into the image of the original
+frontier together with an exceptional set, under the stated closure inclusion. -/
 theorem frontier_image_subset_of_closure_subset (hf : IsOpenMap f) (hfi : Function.Injective f)
     (hcl : closure (f '' s) ⊆ f '' closure s ∪ t) :
     frontier (f '' s) ⊆ f '' frontier s ∪ t := by

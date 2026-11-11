@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.Structure.Theorem9QLS
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Quan
+
+/-!
+# Block normalization and Taylor success mass
+
+This module relates normalization of Taylor-system states to normalization and norms of their
+label blocks. It expresses the success-set mass as the sum of the squared norms of the final and
+padding blocks and bounds block errors by the full state error.
+
+The final estimate turns uniform lower bounds on successful block norms into a lower bound on
+normalized success mass, as needed for the ODE readout in [BerryEtAl2017ODE].
+
+## Main statements
+
+* `taylor_success_mass_blocks`: Success mass as a sum over final and padding blocks.
+* `taylor_block_error_le`: Block projection contracts state error.
+* `taylor_normalized_success_mass`: A lower bound from the norms of all successful blocks.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -28,11 +50,15 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- Embedding a real scalar in the complex numbers before scaling a state agrees with real
+scalar multiplication of its state vector. -/
 theorem taylor_state_real_smul {I : Type} (r : ℝ) (u : QState I) :
     stateVector ((r : ℂ) • u)=r • stateVector u := by
   have he : (r : ℂ) • u=r • u := by ext i; simp [Complex.real_smul]
   rw [he,stateVector_real_smul]
 
+/-- Scaling a state by the complex reciprocal of its state-vector norm gives the normalized
+state vector. -/
 theorem taylor_state_inv_norm {I : Type} [Fintype I] (x : QState I) :
     stateVector (((‖stateVector x‖ : ℝ) : ℂ)⁻¹ • x)=NormedSpace.normalize (stateVector x) := by
   rw [← Complex.ofReal_inv,taylor_state_real_smul]
@@ -42,6 +68,8 @@ variable {N : Type} [Fintype N] [DecidableEq N]
 
 omit [DecidableEq N] in
 
+/-- The Taylor success-set mass is the sum of the squared norms of the final time block and its
+p padding blocks. -/
 theorem taylor_success_mass_blocks (m k p : ℕ)
     (ψ : QState (Fin (m*(k+1)+p+1) × N)) :
     MeasureProb ψ (taylorSuccessSet m k p) =
@@ -82,6 +110,8 @@ theorem taylor_success_mass_blocks (m k p : ℕ)
 
 omit [DecidableEq N] in
 
+/-- The norm of the difference between corresponding label blocks is at most the norm of the
+difference between the full state vectors. -/
 theorem taylor_block_error_le {d : ℕ} (φ ψ : QState (Fin d × N)) (l : Fin d) :
     ‖stateVector (taylorBlock φ l)-stateVector (taylorBlock ψ l)‖ ≤
       ‖stateVector φ-stateVector ψ‖ := by
@@ -98,6 +128,8 @@ theorem taylor_block_error_le {d : ℕ} (φ ψ : QState (Fin d × N)) (l : Fin d
 
 omit [DecidableEq N] in
 
+/-- If a block norm is at least a times the positive full-state norm, then after full-state
+normalization its block norm is at least a. -/
 theorem taylor_normalized_block_lower {d : ℕ} (x : QState (Fin d × N))
     (hx : 0 < ‖stateVector x‖) (l : Fin d) (a : ℝ)
     (ha : a*‖stateVector x‖ ≤ ‖stateVector (taylorBlock x l)‖) :
@@ -110,6 +142,8 @@ theorem taylor_normalized_block_lower {d : ℕ} (x : QState (Fin d × N))
 
 omit [DecidableEq N] in
 
+/-- Scaling a nonzero full state by the reciprocal of its norm preserves the normalized
+direction of each block. -/
 theorem taylor_normalized_block_direction {d : ℕ} (x : QState (Fin d × N))
     (hx : 0 < ‖stateVector x‖) (l : Fin d) :
     NormedSpace.normalize (stateVector (taylorBlock (((‖stateVector x‖ : ℝ) : ℂ)⁻¹ • x) l))=
@@ -120,6 +154,8 @@ theorem taylor_normalized_block_direction {d : ℕ} (x : QState (Fin d × N))
 
 omit [DecidableEq N] in
 
+/-- If each of the p + 1 successful blocks has norm at least ‖x‖/√D with D > 0 and ‖x‖ > 0, then
+the square root of the normalized success mass is at least √((p + 1)/D). -/
 theorem taylor_normalized_success_mass (m k p : ℕ) (D : ℝ) (hD : 0 < D)
     (x : QState (Fin (m*(k+1)+p+1) × N)) (hx : 0 < ‖stateVector x‖)
     (hb : ∀ j : Fin (p+1),

@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.TopK
 import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+
+/-!
+# T-transform chains and binary communication costs
+
+This module writes a T-transform as an affine combination of a vector and a coordinate swap. It
+proves that a vector majorizes the result of any finite `tTransformChain` whose parameters lie
+in the unit interval, supporting the spectral framework of [Nielsen1999].
+
+The definition `twoOutcomeChain` separately constructs a syntactic chain of binary Alice steps
+with identity operators. Its communication cost is the chain length, giving the numerical value
+`D - 1` for that many steps.
+
+## Main statements
+
+* `majorizes_tTransformSpectrum_general`: proves majorization under a T-transform in any finite
+  dimension.
+* `majorizes_tTransformChain`: extends the comparison to finite chains.
+* `loccBits_twoOutcomeChain_pred`: evaluates the cost of a chain of length `D - 1`.
+
+## References
+
+* [Nielsen, 1999][Nielsen1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +45,8 @@ open Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
 open Qatlib.Papers.EntangleTrans99.MainResults.Majorization
 open scoped BigOperators
 
+/-- A T-transform is the coordinatewise affine combination of a vector and the vector obtained
+by swapping the two selected coordinates [Nielsen1999]. -/
 theorem tTransformSpectrum_eq_swap {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D) :
     tTransformSpectrum spec θ k l
       = fun j => θ * spec j + (1 - θ) * spec (Equiv.swap k l j) := by
@@ -41,6 +67,8 @@ theorem tTransformSpectrum_eq_swap {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (
       · rw [if_neg hjk, if_neg hjl, Equiv.swap_apply_of_ne_of_ne hjk hjl]
         ring
 
+/-- A finite real vector majorizes its T-transform whenever the mixing parameter lies in `[0,
+1]` [Nielsen1999]. -/
 theorem majorizes_tTransformSpectrum_general {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ)
     (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) (k l : Fin D) :
     Majorizes spec (tTransformSpectrum spec θ k l) := by
@@ -69,11 +97,14 @@ theorem majorizes_tTransformSpectrum_general {D : ℕ} (spec : Fin D → ℝ) (�
         linarith
     _ = prefixSum (sortedDesc spec) K := by ring
 
+/-- Apply a list of T-transforms successively to an initial finite real vector. -/
 noncomputable def tTransformChain {D : ℕ} (spec : Fin D → ℝ) :
     List (ℝ × Fin D × Fin D) → (Fin D → ℝ)
   | [] => spec
   | (θ, k, l) :: rest => tTransformChain (tTransformSpectrum spec θ k l) rest
 
+/-- A finite real vector majorizes the result of any finite chain of T-transforms whose mixing
+parameters lie in `[0, 1]` [Nielsen1999]. -/
 theorem majorizes_tTransformChain {D : ℕ} (spec : Fin D → ℝ)
     (steps : List (ℝ × Fin D × Fin D))
     (hθ : ∀ p ∈ steps, 0 ≤ p.1 ∧ p.1 ≤ 1) :
@@ -86,10 +117,13 @@ theorem majorizes_tTransformChain {D : ℕ} (spec : Fin D → ℝ)
       (hθ (θ, k, l) (by simp)).1 (hθ (θ, k, l) (by simp)).2 k l) ?_
     exact ih (tTransformSpectrum spec θ k l) (fun q hq => hθ q (by simp [hq]))
 
+/-- The syntactic LOCC protocol consisting of a specified number of two-outcome Alice steps,
+each with identity operators and the same remaining protocol in both branches. -/
 noncomputable def twoOutcomeChain {D E : ℕ} : ℕ → LoccProtocol D E
   | 0 => .halt
   | k + 1 => .stepA 2 (fun _ => 1) (fun _ => twoOutcomeChain k)
 
+/-- The communication cost of `twoOutcomeChain k` is exactly `k` bits [Nielsen1999]. -/
 theorem loccBits_twoOutcomeChain {D E : ℕ} (k : ℕ) :
     LoccBits (twoOutcomeChain (D := D) (E := E) k) = k := by
   induction k with
@@ -102,6 +136,7 @@ theorem loccBits_twoOutcomeChain {D E : ℕ} (k : ℕ) :
     have h2 : Nat.ceil (Real.log ((2 : ℕ) : ℝ) / Real.log 2) = 1 := outcomeCostBits_two
     omega
 
+/-- The communication cost of the two-outcome chain of length `D - 1` is exactly `D - 1` bits. -/
 theorem loccBits_twoOutcomeChain_pred {D E : ℕ} :
     LoccBits (twoOutcomeChain (D := D) (E := E) (D - 1)) = D - 1 :=
   loccBits_twoOutcomeChain (D := D) (E := E) (D - 1)

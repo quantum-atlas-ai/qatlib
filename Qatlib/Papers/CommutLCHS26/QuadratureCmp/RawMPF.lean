@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.MPFRemainder
 import Qatlib.Foundations.OperatorErrors.OperatorError
+
+/-!
+# Raw multi-product errors after quadrature
+
+This module propagates local approximation errors through repeated powers and weighted finite
+quadrature sums. The estimates retain the amplification factors arising from approximate, rather
+than necessarily unitary, steps in the setting of [AftabAnTrivisa2026].
+
+The final results connect profile bounds and local coefficient certificates to explicit
+post-quadrature errors.
+
+## Main statements
+
+* `post_quadrature_profile`: a bound using the maximal local error and weighted profile.
+* `quadrature_from_coefficients`: a quadrature error bound from local coefficient certificates.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +43,8 @@ open Qatlib.Papers.CommutLCHS26.MainResults.MPFRemainder
 
 variable {I J : Type} [Fintype I] [DecidableEq I] [Fintype J]
 
+/-- An approximation within `η` of a unitary has power error at exponent `n + 1` at most `(n +
+1) η (1 + η)ⁿ`. -/
 private theorem power_error_succ (C V : Matrix I I ℂ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ) (η : ℝ) (he : ‖C - V‖ ≤ η) (n : ℕ) :
     ‖C ^ (n + 1) - V ^ (n + 1)‖ ≤ ((n + 1 : ℕ) : ℝ) * η * (1 + η) ^ n := by
@@ -55,6 +78,8 @@ private theorem power_error_succ (C V : Matrix I I ℂ)
         _root_.add_le_add le_rfl (by simpa using! mul_le_mul_of_nonneg_left hpow hη)
       _ = _ := by push_cast; rw [pow_succ]; ring
 
+/-- An approximation within `η` of a unitary has power error at exponent `r` at most `r η (1 +
+η)^(r - 1)`. -/
 theorem power_error (C V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (η : ℝ) (he : ‖C - V‖ ≤ η) (r : ℕ) :
     ‖C ^ r - V ^ r‖ ≤ (r : ℝ) * η * (1 + η) ^ (r - 1) := by
@@ -62,6 +87,8 @@ theorem power_error (C V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ
   | zero => simp
   | succ n => simpa using! power_error_succ C V hV η he n
 
+/-- The error of a weighted sum of approximate unitary powers is bounded by the weighted
+individual errors, which in turn satisfy the stated power-error sum bound. -/
 theorem weighted_power_error (C V : J → Matrix I I ℂ) (v : J → ℂ) (η : J → ℝ)
     (hV : ∀ i, V i ∈ Matrix.unitaryGroup I ℂ)
     (he : ∀ i, ‖C i - V i‖ ≤ η i) (r : ℕ) :
@@ -79,6 +106,8 @@ theorem weighted_power_error (C V : J → Matrix I I ℂ) (v : J → ℂ) (η : 
     exact (mul_le_mul_of_nonneg_left (power_error (C i) (V i) (hV i) (η i) (he i) r)
       (norm_nonneg _)).trans_eq (by ring)
 
+/-- A common upper bound `E` for the local errors factors the weighted power-error estimate into
+`(1 + E)^(r - 1)` times the weighted local-error sum multiplied by `r`. -/
 theorem weighted_power_error_uniform (C V : J → Matrix I I ℂ) (v : J → ℂ)
     (η : J → ℝ) (E : ℝ) (hV : ∀ i, V i ∈ Matrix.unitaryGroup I ℂ)
     (he : ∀ i, ‖C i - V i‖ ≤ η i) (hE : ∀ i, η i ≤ E) (r : ℕ) :
@@ -99,6 +128,8 @@ theorem weighted_power_error_uniform (C V : J → Matrix I I ℂ) (v : J → ℂ
 
 set_option backward.isDefEq.respectTransparency false in
 
+/-- Repeating the exponential step of duration `T / r` exactly `r > 0` times gives the
+exponential at time `T`. -/
 theorem target_power (Z : Matrix I I ℂ) (T : ℝ) (r : ℕ) (hr : 0 < r) :
     NormedSpace.exp ((T / r) • Z) ^ r = NormedSpace.exp (T • Z) := by
   letI : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
@@ -109,6 +140,9 @@ theorem target_power (Z : Matrix I I ℂ) (T : ℝ) (r : ℕ) (hr : 0 < r) :
   have hr0 : (r : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hr)
   field_simp
 
+/-- Local approximation bounds for skew-Hermitian generators yield the weighted post-quadrature
+power-error chain with node-dependent errors; see [Aftab et al., Corollary
+4.1][AftabAnTrivisa2026]. -/
 theorem post_quadrature_chain
     (C : ℝ → ℝ → Matrix I I ℂ) (Z : ℝ → Matrix I I ℂ)
     (node : J → ℝ) (v : J → ℂ) (Φ : ℝ → ℝ) (Cm Rm R cap T : ℝ) (m r : ℕ)
@@ -130,6 +164,9 @@ theorem post_quadrature_chain
     (fun i => hlocal (node i) (hnodes i) (T / r) (div_pos hT hrpos) hstep) r
   simpa only [target_power _ T r hr] using! h
 
+/-- For a nonempty finite node set, the maximal local error gives a post-quadrature bound with
+explicit profile and remainder contributions; see [Aftab et al., Corollary
+4.1][AftabAnTrivisa2026]. -/
 theorem post_quadrature_profile [Nonempty J]
     (C : ℝ → ℝ → Matrix I I ℂ) (Z : ℝ → Matrix I I ℂ)
     (node : J → ℝ) (v : J → ℂ) (Φ : ℝ → ℝ) (Cm Rm R cap T : ℝ) (m r : ℕ)
@@ -178,6 +215,9 @@ theorem post_quadrature_profile [Nonempty J]
       _ = _ := by rw [hscale]; ring
   simpa only [target_power _ T r hr, hrate] using! h
 
+/-- Local coefficient certificates bound the error of the weighted quadrature sum of repeated
+multi-product steps against the exact exponentials, with the stated power amplification
+factors; see [AftabAnTrivisa2026]. -/
 theorem quadrature_from_coefficients {K : Type} [Fintype K]
     (ws : J → K → List (Matrix I I ℂ)) (a : K → ℝ) (Z : J → Matrix I I ℂ)
     (v : J → ℂ) (hZ : ∀ i, (Z i)ᴴ = -Z i) (T : ℝ) (d r : ℕ) (hr : 0 < r) :

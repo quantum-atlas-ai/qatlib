@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallBudget
+
+/-!
+# Probability laws for interrupted search calls
+
+This module proves positivity, normalization, monotonicity, and an expectation representation
+for `interruptedBudgetEval`. It also shows that `interruptedBudgetPMF` never reports a remaining
+budget exceeding the initial budget.
+
+The comparison `interrupted_dominates_atomic` relates partial observation to an atomic timeout
+model for randomized search [BoyerEtAl1998].
+
+## Main statements
+
+* `interrupted_call_expectation`: For a nonnegative payoff, expectation under the
+  interrupted-call law equals the extended nonnegative embedding of `interruptedBudgetEval`.
+* `interrupted_dominates_atomic`: The atomic finite-budget evaluator is bounded by the
+  interrupted evaluator when successful and timeout payoffs satisfy the stated residual-budget
+  comparisons.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +45,7 @@ open Qatlib.Concepts.SearchStopping.GroverSuccess Qatlib.Concepts.SearchStopping
 open scoped ENNReal BigOperators Classical
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The interrupted search evaluator is nonnegative for every nonnegative observation payoff. -/
 theorem interrupted_eval_nonneg (hN : 0 < Fintype.card I) (A : Finset I)
     (sizes : ℕ → ℕ) (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ)
     (s : I → ℕ → ℝ) (hs : ∀ i r, 0 ≤ s i r) :
@@ -39,6 +64,7 @@ theorem interrupted_eval_nonneg (hN : 0 < Fintype.card I) (A : Finset I)
     · simp only [dif_neg hc]
       exact Finset.sum_nonneg fun i _ => mul_nonneg (partialObsMass_nonneg _ _ _ _) (hs i 0)
 
+/-- The interrupted search evaluator sends the constant-one payoff to one. -/
 theorem interrupted_eval_one (hN : 0 < Fintype.card I) (A : Finset I)
     (sizes : ℕ → ℕ) (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ) :
     interruptedBudgetEval A sizes stage budget (fun _ _ => 1) = 1 := by
@@ -60,6 +86,7 @@ theorem interrupted_eval_one (hN : 0 < Fintype.card I) (A : Finset I)
           rw [hm, mul_one]
       _ = 1 := (search_joint_attempt_law hN A (sizes stage) (hsizes stage)).2.1
 
+/-- The interrupted search evaluator preserves pointwise order of observation payoffs. -/
 theorem interrupted_eval_mono (hN : 0 < Fintype.card I) (A : Finset I)
     (sizes : ℕ → ℕ) (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ)
     (f g : I → ℕ → ℝ) (hfg : ∀ i r, f i r ≤ g i r) :
@@ -81,6 +108,7 @@ theorem interrupted_eval_mono (hN : 0 < Fintype.card I) (A : Finset I)
       exact Finset.sum_le_sum fun i _ => mul_le_mul_of_nonneg_left (hfg i 0)
         (partialObsMass_nonneg _ _ _ _)
 
+/-- Every supported interrupted-call result has remaining budget at most the initial budget. -/
 theorem interrupted_call_remaining (hN : 0 < Fintype.card I) (A : Finset I)
     (sizes : ℕ → ℕ) (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ)
     (x : I × ℕ) (hx : x ∈ (interruptedBudgetPMF hN A sizes hsizes stage budget).support) :
@@ -102,6 +130,8 @@ theorem interrupted_call_remaining (hN : 0 < Fintype.card I) (A : Finset I)
       have heq := (PMF.mem_support_pure_iff _ _).mp hi
       simp [heq]
 
+/-- For a nonnegative payoff, expectation under the interrupted-call law equals the extended
+nonnegative embedding of `interruptedBudgetEval`. -/
 theorem interrupted_call_expectation (hN : 0 < Fintype.card I) (A : Finset I)
     (sizes : ℕ → ℕ) (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ)
     (s : I → ℕ → ℝ) (hs : ∀ i r, 0 ≤ s i r) :
@@ -176,6 +206,8 @@ theorem interrupted_call_expectation (hN : 0 < Fintype.card I) (A : Finset I)
         rw [← mul_assoc, search_attempt_factor]
         rfl
 
+/-- The atomic finite-budget evaluator is bounded by the interrupted evaluator when successful
+and timeout payoffs satisfy the stated residual-budget comparisons. -/
 theorem interrupted_dominates_atomic (hN : 0 < Fintype.card I) (A : Finset I)
     (sizes : ℕ → ℕ) (hsizes : ∀ k, 0 < sizes k) (stage budget : ℕ)
     (f g : I → ℕ → ℝ) (t : ℕ → ℝ)

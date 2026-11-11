@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.CleanTwoOracleWord
 import Qatlib.Papers.Cbmd26.Algorithms.CountedAmplificationBridge
+
+/-!
+# Amplitude amplification with three counted oracles
+
+`ThreeOracleStep` separates two matrix oracles from the state preparation oracle. This module
+expands a prepared amplification program into these instructions and proves evaluation,
+validity, exact expected query counts, and pathwise bounds for the preparation framework used in
+[WangEtAl2026].
+
+## Main statements
+
+* `threeAAWord_counts`: counts all three oracle uses and fixed gates.
+* `threeAAWord_expected_costs`: computes expected oracle costs under randomized amplification.
+* `three_oracle_blockEncoding_amplification`: combines heralding probability, costs, and
+  conditional normalized-output accuracy.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -48,31 +69,40 @@ namespace CBMD
 open Matrix
 open scoped Matrix.Norms.L2Operator ENNReal
 
+/-- Instructions consisting of a two-matrix prepared step or a forward or backward call to the
+separate state preparation oracle. -/
 inductive ThreeOracleStep (H : Type*) where
   | matrixStep : PreparedStep H → ThreeOracleStep H
   | stateForward : ThreeOracleStep H
   | stateBackward : ThreeOracleStep H
 
+/-- The number of first matrix-oracle queries in a three-oracle instruction list. -/
 def threeFirstQueries {H : Type*} : List (ThreeOracleStep H) → ℕ
   | [] => 0
   | .matrixStep c :: cs => preparedDataQueries [c] + threeFirstQueries cs
   | _ :: cs => threeFirstQueries cs
 
+/-- The number of second matrix-oracle queries in a three-oracle instruction list. -/
 def threeSecondQueries {H : Type*} : List (ThreeOracleStep H) → ℕ
   | [] => 0
   | .matrixStep c :: cs => preparedInputQueries [c] + threeSecondQueries cs
   | _ :: cs => threeSecondQueries cs
 
+/-- The number of forward and backward state preparation queries in a three-oracle instruction
+list. -/
 def threeStateQueries {H : Type*} : List (ThreeOracleStep H) → ℕ
   | [] => 0
   | .matrixStep _ :: cs => threeStateQueries cs
   | _ :: cs => threeStateQueries cs + 1
 
+/-- The number of fixed gates carried by the matrix steps of a three-oracle instruction list. -/
 def threeFixedGates {H : Type*} : List (ThreeOracleStep H) → ℕ
   | [] => 0
   | .matrixStep c :: cs => preparedFixedGates [c] + threeFixedGates cs
   | _ :: cs => threeFixedGates cs
 
+/-- Each of the three query counts and the fixed-gate count is additive under list
+concatenation. -/
 theorem three_counts_append {H : Type*} (cs ds : List (ThreeOracleStep H)) :
     threeFirstQueries (cs ++ ds) = threeFirstQueries cs + threeFirstQueries ds ∧
     threeSecondQueries (cs ++ ds) = threeSecondQueries cs + threeSecondQueries ds ∧
@@ -84,6 +114,8 @@ theorem three_counts_append {H : Type*} (cs ds : List (ThreeOracleStep H)) :
     cases c <;> simp [threeFirstQueries, threeSecondQueries, threeStateQueries, threeFixedGates,
       ih.1, ih.2.1, ih.2.2.1, ih.2.2.2, Nat.add_assoc, Nat.add_comm 1]
 
+/-- Embedding a prepared word as matrix steps preserves its two matrix-query counts and
+fixed-gate count and introduces no state queries. -/
 theorem three_matrix_counts {H : Type*} (cs : List (PreparedStep H)) :
     threeFirstQueries (cs.map ThreeOracleStep.matrixStep) = preparedDataQueries cs ∧
     threeSecondQueries (cs.map ThreeOracleStep.matrixStep) = preparedInputQueries cs ∧
@@ -97,6 +129,8 @@ theorem three_matrix_counts {H : Type*} (cs : List (PreparedStep H)) :
       preparedDataQueries, preparedInputQueries, preparedFixedGates,
       ih.1, ih.2.1, ih.2.2.1, ih.2.2.2, Nat.add_comm 1]
 
+/-- Expansion of a prepared program by replacing data queries with the matrix body or its
+inverse and preparation queries with the separate state-oracle instructions. -/
 def expandThreeOracleWord {H : Type*} (body : List (PreparedStep H)) :
     List (PreparedStep H) → List (ThreeOracleStep H)
   | [] => []
@@ -107,6 +141,9 @@ def expandThreeOracleWord {H : Type*} (body : List (PreparedStep H)) :
   | .prepareForward :: cs => .stateForward :: expandThreeOracleWord body cs
   | .prepareBackward :: cs => .stateBackward :: expandThreeOracleWord body cs
 
+/-- Expansion multiplies each matrix-body query count by the program's data-query count,
+preserves preparation queries as state queries, and adds the corresponding repeated body
+gate cost. -/
 theorem expandThreeOracleWord_counts {H : Type*}
     (body program : List (PreparedStep H)) :
     threeFirstQueries (expandThreeOracleWord body program) =
@@ -134,34 +171,46 @@ theorem expandThreeOracleWord_counts {H : Type*}
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- The matrix interpretation of a three-oracle step, using the prepared matrix instruction or
+the state preparation matrix `B` and its adjoint. -/
 def threeInstruction (O1 O2 B : Matrix H H ℂ) : ThreeOracleStep H → Matrix H H ℂ
   | .matrixStep c => preparedInstruction O1 O2 c
   | .stateForward => B
   | .stateBackward => Bᴴ
 
+/-- The ordered product of the matrices interpreting a three-oracle instruction list, with the
+empty list interpreted as identity. -/
 def evaluateThree (O1 O2 B : Matrix H H ℂ) : List (ThreeOracleStep H) → Matrix H H ℂ
   | [] => 1
   | c :: cs => threeInstruction O1 O2 B c * evaluateThree O1 O2 B cs
 
+/-- Validity of a three-oracle step, requiring prepared-instruction validity for matrix steps
+and imposing no additional condition on state-oracle steps. -/
 def ThreeInstructionValid : ThreeOracleStep H → Prop
   | .matrixStep c => PreparedInstructionValid c
   | _ => True
 
+/-- The condition that every instruction in a three-oracle circuit is valid. -/
 def ThreeCircuitValid (cs : List (ThreeOracleStep H)) : Prop :=
   ∀ c ∈ cs, ThreeInstructionValid c
 
+/-- Evaluating concatenated three-oracle words equals multiplying their evaluations in order. -/
 theorem evaluateThree_append (O1 O2 B : Matrix H H ℂ) (cs ds : List (ThreeOracleStep H)) :
     evaluateThree O1 O2 B (cs ++ ds) = evaluateThree O1 O2 B cs * evaluateThree O1 O2 B ds := by
   induction cs with
   | nil => simp [evaluateThree]
   | cons c cs ih => simp [evaluateThree, ih, Matrix.mul_assoc]
 
+/-- The three-oracle evaluation of an embedded prepared word equals its original two-oracle
+prepared evaluation. -/
 theorem evaluateThree_matrix (O1 O2 B : Matrix H H ℂ) (cs : List (PreparedStep H)) :
     evaluateThree O1 O2 B (cs.map ThreeOracleStep.matrixStep) = evaluatePrepared O1 O2 cs := by
   induction cs with
   | nil => rfl
   | cons c cs ih => simp [evaluateThree, threeInstruction, evaluatePrepared, ih]
 
+/-- Evaluating an expanded three-oracle word equals evaluating the original program with the
+evaluated matrix body as its data oracle and `B` as its preparation oracle. -/
 theorem expandThreeOracleWord_evaluate (O1 O2 B : Matrix H H ℂ)
     (body program : List (PreparedStep H)) :
     evaluateThree O1 O2 B (expandThreeOracleWord body program) =
@@ -173,6 +222,8 @@ theorem expandThreeOracleWord_evaluate (O1 O2 B : Matrix H H ℂ)
       evaluateThree_matrix, evaluateThree, threeInstruction, evaluatePrepared,
       preparedInstruction, Qatlib.Concepts.LcuPostselect.ScaledLCU.LCUFixedPoint.inverseWord_evaluate, ih]
 
+/-- Expanding a valid prepared program with a valid matrix body produces a valid three-oracle
+circuit. -/
 theorem expandThreeOracleWord_valid {body program : List (PreparedStep H)}
     (hb : PreparedCircuitValid body) (hp : PreparedCircuitValid program) :
     ThreeCircuitValid (expandThreeOracleWord body program) := by
@@ -204,6 +255,8 @@ theorem expandThreeOracleWord_valid {body program : List (PreparedStep H)}
       · trivial
       · exact ht d hd
 
+/-- A valid three-oracle circuit evaluates to a unitary matrix when both matrix oracles and the
+state preparation oracle are unitary. -/
 theorem ThreeCircuitValid.evaluate_unitary {cs : List (ThreeOracleStep H)}
     (hcs : ThreeCircuitValid cs) {O1 O2 B : Matrix H H ℂ}
     (hO1 : O1 ∈ Matrix.unitaryGroup H ℂ) (hO2 : O2 ∈ Matrix.unitaryGroup H ℂ)
@@ -219,10 +272,15 @@ theorem ThreeCircuitValid.evaluate_unitary {cs : List (ThreeOracleStep H)}
     | stateForward => exact hB
     | stateBackward => exact adjoint_unitary hB
 
+/-- The counted amplitude-amplification word expanded into two matrix oracles and a separate
+state preparation oracle. -/
 def threeAAWord (body : List (PreparedStep H)) (zero : H) (S : Finset H) (k : ℕ) :
     List (ThreeOracleStep H) :=
   expandThreeOracleWord body (countedAAWord [.dataForward, .prepareForward] zero S k)
 
+/-- After `k` amplification rounds, each body query count is multiplied by `2 * k + 1`, the
+state-query count is `2 * k + 1`, and the fixed-gate count is `(2 * k + 1) *
+preparedFixedGates body + 2 * k`. -/
 theorem threeAAWord_counts (body : List (PreparedStep H)) (zero : H) (S : Finset H) (k : ℕ) :
     threeFirstQueries (threeAAWord body zero S k) = (2 * k + 1) * preparedDataQueries body ∧
     threeSecondQueries (threeAAWord body zero S k) = (2 * k + 1) * preparedInputQueries body ∧
@@ -236,6 +294,7 @@ theorem threeAAWord_counts (body : List (PreparedStep H)) (zero : H) (S : Finset
     Nat.zero_add, Nat.mul_one, Nat.mul_zero] at hc
   simpa only [threeAAWord, hc.1, hc.2.1, hc.2.2, Nat.add_comm] using h
 
+/-- A valid matrix body gives a valid three-oracle amplification word for every round count. -/
 theorem threeAAWord_valid (body : List (PreparedStep H)) (zero : H) (S : Finset H) (k : ℕ)
     (hb : PreparedCircuitValid body) : ThreeCircuitValid (threeAAWord body zero S k) := by
   apply expandThreeOracleWord_valid hb
@@ -244,6 +303,8 @@ theorem threeAAWord_valid (body : List (PreparedStep H)) (zero : H) (S : Finset 
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
   rcases hc with rfl | rfl <;> trivial
 
+/-- When the composed trial matrix is unitary, the expanded three-oracle amplification word acts
+on the initial basis state exactly as the marked prepared amplification circuit. -/
 theorem threeAAWord_run (O1 O2 B : Matrix H H ℂ) (body : List (PreparedStep H))
     (zero : H) (S : Finset H) (k : ℕ)
     (hA : evaluatePrepared O1 O2 body * B ∈ Matrix.unitaryGroup H ℂ) :
@@ -255,6 +316,8 @@ theorem threeAAWord_run (O1 O2 B : Matrix H H ℂ) (body : List (PreparedStep H)
       [.dataForward, .prepareForward] zero S k (by simpa only
         [evaluatePrepared, preparedInstruction, Matrix.mul_one] using hA)
 
+/-- For a nonzero window `m`, randomized amplification has expected repetition cost `((m + 1) /
+2) * q` for any natural cost `q` per repetition. -/
 theorem three_randomized_repetition_cost (A : Matrix H H ℂ)
     (hA : A ∈ Matrix.unitaryGroup H ℂ) (zero : H) (S : Finset H)
     (m : ℕ) [NeZero m] (q : ℕ) :
@@ -273,6 +336,8 @@ theorem three_randomized_repetition_cost (A : Matrix H H ℂ)
   field_simp
   ring
 
+/-- For a nonzero randomized window `m`, each matrix-oracle expected query count is its body
+count times `(m + 1) / 2`, and the expected state-query count is `(m + 1) / 2`. -/
 theorem threeAAWord_expected_costs (A : Matrix H H ℂ)
     (hA : A ∈ Matrix.unitaryGroup H ℂ) (body : List (PreparedStep H))
     (zero : H) (S : Finset H) (m : ℕ) [NeZero m] :
@@ -294,6 +359,8 @@ theorem threeAAWord_expected_costs (A : Matrix H H ℂ)
     simpa only [Nat.mul_one, Nat.cast_one, mul_one] using
       three_randomized_repetition_cost A hA zero S m 1
 
+/-- Every random choice in a nonzero window `m` uses at most `2 * m - 1` state queries and at
+most that factor times each matrix-body query count. -/
 theorem threeAAWord_path_budget (body : List (PreparedStep H))
     (zero : H) (S : Finset H) (m : ℕ) [NeZero m] (choice : Bool × Fin m) :
     threeFirstQueries (threeAAWord body zero S (aaRounds choice)) ≤
@@ -311,6 +378,12 @@ theorem threeAAWord_path_budget (body : List (PreparedStep H))
     (threeAAWord_counts body zero S _).2.2.1]
   exact ⟨Nat.mul_le_mul_right _ hcount, Nat.mul_le_mul_right _ hcount, hcount⟩
 
+/-- A valid approximate block encoding, prepared normalized input, positive output lower bound,
+and sufficiently large amplification window give heralding probability at least `1/8`, exact
+expected counts for all three oracles, and valid amplification circuits. Each supported
+successful branch decodes, up to a unit-modulus phase, to normalized-application error at
+most `2 * error / ‖stateVector (target *ᵥ ψ)‖`, giving the counted amplification guarantees
+used in [WangEtAl2026]. -/
 theorem three_oracle_blockEncoding_amplification
     {I D : Type} [Fintype I] [DecidableEq I] [Fintype D] [DecidableEq D]
     (target : Matrix D I ℂ) (O1 O2 B : Matrix H H ℂ)

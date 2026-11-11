@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.Tactic
+
+/-!
+# Residual bounds for isolated eigenvectors
+
+The module expands an eigenvector residual in a prescribed orthonormal eigenbasis and bounds the
+coordinate mass outside a chosen eigenvector. A positive spectral separation and a nearby real
+approximate eigenvalue convert residual norm into distance from that eigenvector up to a unit
+complex phase.
+
+`residual_phase_bound` gives the explicit bound with constant `4 / g`, using the phase-alignment
+and spectral estimates developed here. These estimates belong to finite-dimensional spectral
+perturbation theory [Bhatia1997].
+
+## Main statements
+
+* `residual_norm_sq`: the squared residual is a weighted sum of squared eigenbasis coordinates.
+* `residual_off_mass`: spectral separation controls the mass outside one eigenvector.
+* `residual_phase_bound`: a unit vector is close, up to phase, to an isolated eigenvector when
+  its residual is small.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1200000
 noncomputable section
@@ -14,13 +39,18 @@ namespace Qatlib.Foundations.MatrixAlgebra.SpectralPerturb.PhaseResidual
 open scoped ComplexConjugate InnerProductSpace
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- A unit complex phase equal to the conjugate of `z` divided by its norm when `z` is nonzero,
+and equal to one at zero. -/
 def phase (z : ℂ) : ℂ := if z = 0 then 1 else star z / (‖z‖ : ℂ)
 
+/-- The chosen phase has complex norm one for every input. -/
 theorem phase_norm (z : ℂ) : ‖phase z‖ = 1 := by
   by_cases hz : z=0
   · simp [phase,hz]
   · simp [phase,hz,Complex.norm_real,norm_ne_zero_iff.mpr hz]
 
+/-- Multiplying `z` by its chosen phase gives the nonnegative real norm of `z`, cast to the
+complex numbers. -/
 theorem phase_mul (z : ℂ) : phase z*z = (‖z‖:ℂ) := by
   by_cases hz : z=0
   · simp [phase,hz]
@@ -31,6 +61,8 @@ theorem phase_mul (z : ℂ) : phase z*z = (‖z‖:ℂ) := by
     apply (div_eq_iff hn).mpr
     ring
 
+/-- For two unit vectors, there is a unit complex phase whose squared alignment distance is at
+most twice one minus the squared modulus of their inner product. -/
 theorem exists_phase_distance (v w : E) (hv : ‖v‖=1) (hw : ‖w‖=1) :
     ∃ ζ : ℂ, ‖ζ‖=1 ∧ ‖v-ζ • w‖^2 ≤ 2*(1-‖inner ℂ w v‖^2) := by
   let z := inner ℂ v w
@@ -52,10 +84,14 @@ theorem exists_phase_distance (v w : E) (hv : ‖v‖=1) (hw : ‖w‖=1) :
 variable {I : Type*} [Fintype I] [DecidableEq I]
 omit [DecidableEq I] in
 
+/-- The sum of squared coordinate norms in an orthonormal basis equals the squared norm of the
+vector. -/
 theorem repr_norm_sum (b : OrthonormalBasis I ℂ E) (v : E) :
     ∑ j, ‖b.repr v j‖^2 = ‖v‖^2 := by
   simpa only [b.repr_apply_apply] using b.sum_sq_norm_inner_right v
 
+/-- In an orthonormal eigenbasis, each coordinate of `H v` is the corresponding real eigenvalue
+times the coordinate of `v`. -/
 theorem action_repr (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (vals : I → ℝ)
     (hAction : ∀ j,H (b j)=(vals j:ℂ) • b j) (v : E) (j : I) :
     b.repr (H v) j = (vals j:ℂ)*b.repr v j := by
@@ -68,6 +104,8 @@ theorem action_repr (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (vals :
   rw [he]
   simp [map_sum,map_smul,b.repr_self,Pi.single_apply,smul_eq_mul]
 
+/-- The coordinate of the residual `H v - μ • v` is the coordinate of `v` multiplied by the
+corresponding eigenvalue difference. -/
 theorem residual_repr (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (vals : I → ℝ)
     (hAction : ∀ j,H (b j)=(vals j:ℂ) • b j) (v : E) (μ : ℝ) (j : I) :
     b.repr (H v-(μ:ℂ) • v) j = ((vals j-μ:ℝ):ℂ)*b.repr v j := by
@@ -75,6 +113,8 @@ theorem residual_repr (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (vals
     action_repr b H vals hAction,Complex.ofReal_sub]
   ring
 
+/-- The squared residual norm is the sum of squared eigenvalue differences weighted by squared
+eigenbasis coordinate norms. -/
 theorem residual_norm_sq (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (vals : I → ℝ)
     (hAction : ∀ j,H (b j)=(vals j:ℂ) • b j) (v : E) (μ : ℝ) :
     ‖H v-(μ:ℂ) • v‖^2=∑ j,(vals j-μ)^2*‖b.repr v j‖^2 := by
@@ -84,9 +124,12 @@ theorem residual_norm_sq (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (v
   rw [residual_repr b H vals hAction]
   simp only [norm_mul,mul_pow,Complex.norm_real,Real.norm_eq_abs,sq_abs]
 
+/-- The sum of squared coordinate norms outside the distinguished basis index. -/
 def offMass (b : OrthonormalBasis I ℂ E) (v : E) (i : I) : ℝ :=
   ∑ j ∈ Finset.univ.erase i,‖b.repr v j‖^2
 
+/-- The mass outside one basis index equals the squared vector norm minus the squared norm of
+that coordinate. -/
 theorem offMass_eq (b : OrthonormalBasis I ℂ E) (v : E) (i : I) :
     offMass b v i = ‖v‖^2-‖b.repr v i‖^2 := by
   have h := Finset.sum_erase_add (s := Finset.univ)
@@ -96,6 +139,8 @@ theorem offMass_eq (b : OrthonormalBasis I ℂ E) (v : E) (i : I) :
   linarith
 omit [Fintype I] [DecidableEq I] in
 
+/-- If `vals j` is separated from `vals i` by at least `g` and `μ` lies within `g / 2` of `vals
+i`, then `vals j` is at least `g / 2` from `μ`. -/
 theorem separated_gap (vals : I → ℝ) (i j : I) (g μ : ℝ) (hgap : g≤|vals j-vals i|)
     (hμ : |μ-vals i|≤g/2) : g/2≤|vals j-μ| := by
   have h := abs_add_le (vals j-μ) (μ-vals i)
@@ -103,6 +148,8 @@ theorem separated_gap (vals : I → ℝ) (i j : I) (g μ : ℝ) (hgap : g≤|val
   rw [he] at h
   linarith
 
+/-- With positive spectral separation `g` and `μ` within `g / 2` of the distinguished
+eigenvalue, the squared residual bounds `(g / 2)^2` times the mass outside that eigenvector. -/
 theorem residual_off_mass (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (vals : I → ℝ)
     (hAction : ∀ j,H (b j)=(vals j:ℂ) • b j) (v : E) (i : I) (g μ : ℝ)
     (hg : 0<g) (hgap : ∀ j,j≠i → g≤|vals j-vals i|) (hμ : |μ-vals i|≤g/2) :
@@ -120,6 +167,9 @@ theorem residual_off_mass (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (
       intro j _ _
       exact mul_nonneg (sq_nonneg _) (sq_nonneg _))
 
+/-- A unit vector with approximate eigenvalue within `g / 2` of a `g`-separated eigenvalue is
+within `(4 / g)` times its residual norm of the corresponding basis vector, up to a unit
+complex phase. -/
 theorem residual_phase_bound (b : OrthonormalBasis I ℂ E) (H : E →ₗ[ℂ] E) (vals : I → ℝ)
     (hAction : ∀ j,H (b j)=(vals j:ℂ) • b j) (v : E) (hv : ‖v‖=1)
     (i : I) (g μ : ℝ) (hg : 0<g) (hgap : ∀ j,j≠i → g≤|vals j-vals i|)

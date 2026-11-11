@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalSupport
 import Mathlib.Tactic
+
+/-!
+# Tensor locality on qubit supports
+
+The predicate `TensorLocalOn S H` expresses that `H` is a matrix on the support `S` tensored
+with the identity on the complement, using the canonical register split. Products of single-wire
+matrices are local when all off-support factors are identities, and locality is preserved by
+linear combinations and adjoints. For background, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `productMatrix_tensor_local`: support of a product of single-wire matrices.
+* `tensorLocalOn_adjoint`: locality is preserved by conjugate transpose.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,9 +37,13 @@ open Qatlib.Concepts.TensorRegisters.RegisterModel
 
 namespace Qatlib.Concepts.TensorRegisters.RegisterModel
 
+/-- The property that `H` is the partition lift of some matrix on the ordered support register
+`S`. -/
 def TensorLocalOn {N : ℕ} (S : Finset (Fin N)) (H : Matrix (Reg N) (Reg N) ℂ) : Prop :=
   ∃ M : Matrix (Reg S.card) (Reg S.card) ℂ, H = partitionLift (split S) M
 
+/-- A product of single-wire matrices is local on `S` when every factor outside `S` is the
+identity. -/
 theorem productMatrix_tensor_local {N : ℕ} (S : Finset (Fin N))
     (A : Fin N → Matrix Bool Bool ℂ) (hA : ∀ i, i ∉ S → A i = 1) :
     TensorLocalOn S (productMatrix A) := by
@@ -52,6 +75,7 @@ theorem productMatrix_tensor_local {N : ℕ} (S : Finset (Fin N))
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     rw [hA i hi, Matrix.one_apply, if_neg hxy]
 
+/-- The sum of two matrices local on `S` is local on `S`. -/
 theorem tensorLocalOn_add {N : ℕ} (S : Finset (Fin N))
     {A B : Matrix (Reg N) (Reg N) ℂ} (hA : TensorLocalOn S A) (hB : TensorLocalOn S B) :
     TensorLocalOn S (A + B) := by
@@ -62,6 +86,7 @@ theorem tensorLocalOn_add {N : ℕ} (S : Finset (Fin N))
   simp only [Matrix.add_apply, partitionLift_apply]
   split_ifs <;> simp
 
+/-- Multiplying a matrix local on `S` by a complex scalar preserves locality on `S`. -/
 theorem tensorLocalOn_smul {N : ℕ} (S : Finset (Fin N))
     {A : Matrix (Reg N) (Reg N) ℂ} (hA : TensorLocalOn S A) (c : ℂ) :
     TensorLocalOn S (c • A) := by
@@ -71,6 +96,7 @@ theorem tensorLocalOn_smul {N : ℕ} (S : Finset (Fin N))
   simp only [Matrix.smul_apply, partitionLift_apply]
   split_ifs <;> simp
 
+/-- The conjugate transpose of a matrix local on `S` remains local on `S`. -/
 theorem tensorLocalOn_adjoint {N : ℕ} (S : Finset (Fin N))
     {A : Matrix (Reg N) (Reg N) ℂ} (hA : TensorLocalOn S A) :
     TensorLocalOn S Aᴴ := by

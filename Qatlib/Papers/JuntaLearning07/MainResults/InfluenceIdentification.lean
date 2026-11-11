@@ -14,6 +14,31 @@ import Mathlib.Algebra.Order.Field.Basic
 import Mathlib.Algebra.Order.Floor.Semiring
 import Mathlib.Analysis.Complex.Exponential
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Identifying influential variables by Fourier sampling
+
+This module develops probability identities for independent Fourier-sampling transcripts,
+including the mass of missing a coordinate and a finite union bound. For 0 < ε ≤ 1 and a
+function depending only on a nonempty set I, `influence_identification_upper` gives a sample
+count bounded by Cε⁻¹(log |I| + 1) that captures all variables of influence at least ε with
+probability at least 9/10, while positive-weight transcripts contain only variables of positive
+influence. See [AticiServedio2007].
+
+## Main statements
+
+* `fsProb_miss`: The probability that all T Fourier samples miss i equals the T-th power of the
+  total weight of subsets missing i.
+* `influence_identification_upper`: For 0 < ε ≤ 1, there is a positive constant C such that
+  every function depending on a nonempty set I has a sample count N ≤ Cε⁻¹(log |I| + 1)
+  capturing all variables of influence at least ε with probability at least 9/10. Every
+  positive-weight transcript of that length contains only variables of positive influence.
+
+## References
+
+* [Atici and Servedio, 2007][AticiServedio2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,13 +52,17 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- The finite set of subsets of `Fin n` that do not contain i. -/
 def noHitSet (n : ℕ) (i : Fin n) : Finset (Finset (Fin n)) :=
   Finset.univ.filter (fun S => i ∉ S)
 
+/-- A subset belongs to `noHitSet n i` exactly when it does not contain i. -/
 @[simp] theorem mem_noHitSet {n : ℕ} {i : Fin n} {S : Finset (Fin n)} :
     S ∈ noHitSet n i ↔ i ∉ S := by
   simp [noHitSet]
 
+/-- The Fourier-sampling probability of an event is the sum over its transcripts of the products
+of their sample weights; see [AticiServedio2007]. -/
 theorem fsProb_eq_sum (f : (Fin n → Bool) → Bool) (T : ℕ)
     (E : (Fin T → Finset (Fin n)) → Prop) [DecidablePred E] :
     fsProb f T E =
@@ -44,6 +73,7 @@ theorem fsProb_eq_sum (f : (Fin n → Bool) → Bool) (T : ℕ)
   intro s _
   by_cases h : E s <;> simp [h]
 
+/-- The sum of the product Fourier weights over all length-T transcripts is one. -/
 theorem fsProb_univ_one (f : (Fin n → Bool) → Bool) (T : ℕ) :
     (∑ s : Fin T → Finset (Fin n), ∏ t : Fin T, fsWeight f (s t)) = 1 := by
   classical
@@ -55,6 +85,7 @@ theorem fsProb_univ_one (f : (Fin n → Bool) → Bool) (T : ℕ) :
   rw [Finset.sum_prod_piFinset]
   simp [fsWeight_total f]
 
+/-- The event containing every Fourier-sampling transcript has probability one. -/
 theorem fsProb_true (f : (Fin n → Bool) → Bool) (T : ℕ) :
     fsProb f T (fun _ => True) = 1 := by
   classical
@@ -67,6 +98,8 @@ theorem fsProb_true (f : (Fin n → Bool) → Bool) (T : ℕ) :
       simp]
   exact fsProb_univ_one f T
 
+/-- Pointwise inclusion of transcript events implies an inequality between their
+Fourier-sampling probabilities. -/
 theorem fsProb_mono (f : (Fin n → Bool) → Bool) (T : ℕ)
     {E E' : (Fin T → Finset (Fin n)) → Prop} (h : ∀ s, E s → E' s) :
     fsProb f T E ≤ fsProb f T E' := by
@@ -82,6 +115,7 @@ theorem fsProb_mono (f : (Fin n → Bool) → Bool) (T : ℕ)
       exact Finset.prod_nonneg (fun t _ => fsWeight_nonneg f (s t))
     · rw [if_neg hE']
 
+/-- Pointwise equivalent transcript events have equal Fourier-sampling probabilities. -/
 theorem fsProb_congr (f : (Fin n → Bool) → Bool) (T : ℕ)
     {E E' : (Fin T → Finset (Fin n)) → Prop} (h : ∀ s, E s ↔ E' s) :
     fsProb f T E = fsProb f T E' := by
@@ -93,6 +127,8 @@ theorem fsProb_congr (f : (Fin n → Bool) → Bool) (T : ℕ)
   · rw [if_pos hE, if_pos ((h s).mp hE)]
   · rw [if_neg hE, if_neg (fun h' => hE ((h s).mpr h'))]
 
+/-- The probability that some i in a finite set satisfies a transcript event is at most the sum
+of the individual event probabilities; see [AticiServedio2007]. -/
 theorem fsProb_exists_le (f : (Fin n → Bool) → Bool) (T : ℕ) (I : Finset (Fin n))
     (P : Fin n → (Fin T → Finset (Fin n)) → Prop) :
     fsProb f T (fun s => ∃ i ∈ I, P i s) ≤ ∑ i ∈ I, fsProb f T (P i) := by
@@ -133,6 +169,8 @@ theorem fsProb_exists_le (f : (Fin n → Bool) → Bool) (T : ℕ) (I : Finset (
           intro i _
           rw [fsProb_eq_sum]
 
+/-- The probability of the complement of a transcript event equals one minus its probability;
+see [AticiServedio2007]. -/
 theorem fsProb_compl (f : (Fin n → Bool) → Bool) (T : ℕ)
     (E : (Fin T → Finset (Fin n)) → Prop) :
     fsProb f T (fun s => ¬ E s) = 1 - fsProb f T E := by
@@ -150,6 +188,8 @@ theorem fsProb_compl (f : (Fin n → Bool) → Bool) (T : ℕ)
     exact fsProb_univ_one f T
   linarith
 
+/-- The probability that all T Fourier samples miss i equals the T-th power of the total weight
+of subsets missing i; see [AticiServedio2007]. -/
 theorem fsProb_miss (f : (Fin n → Bool) → Bool) (i : Fin n) (T : ℕ) :
     fsProb f T (fun s => ∀ t, i ∉ s t) =
       (∑ S ∈ noHitSet n i, fsWeight f S) ^ T := by
@@ -169,6 +209,8 @@ theorem fsProb_miss (f : (Fin n → Bool) → Bool) (i : Fin n) (T : ℕ) :
     rw [hpi]
   rw [hLHS]
 
+/-- The total Fourier weight of subsets missing i is one minus the Boolean influence of i; see
+[AticiServedio2007]. -/
 theorem sum_noHit_fsWeight (f : (Fin n → Bool) → Bool) (i : Fin n) :
     ∑ S ∈ noHitSet n i, fsWeight f S = 1 - boolInfluence f i := by
   classical
@@ -189,6 +231,7 @@ theorem sum_noHit_fsWeight (f : (Fin n → Bool) → Bool) (i : Fin n) :
     by_cases h : i ∈ S <;> simp [h]
   rw [hnoHit, hsub, htotal, hinf]
 
+/-- The Boolean influence of any coordinate is at most one. -/
 theorem boolInfluence_le_one (f : (Fin n → Bool) → Bool) (i : Fin n) :
     boolInfluence f i ≤ 1 := by
   unfold boolInfluence uniformExpect
@@ -210,6 +253,7 @@ theorem boolInfluence_le_one (f : (Fin n → Bool) → Bool) (i : Fin n) :
         positivity
     _ = 1 := by rw [inv_mul_cancel₀ (by positivity)]
 
+/-- If f depends only on I and i is outside I, then the Boolean influence of i is zero. -/
 theorem boolInfluence_eq_zero_of_not_depends {I : Finset (Fin n)}
     {f : (Fin n → Bool) → Bool} (hdep : dependsOnlyOn I f) {i : Fin n}
     (hi : i ∉ I) : boolInfluence f i = 0 := by
@@ -223,6 +267,8 @@ theorem boolInfluence_eq_zero_of_not_depends {I : Finset (Fin n)}
       simp [cubeFlip, hji])
   simp [hzero]
 
+/-- If every sampled subset has positive Fourier weight, every variable in the transcript union
+has positive Boolean influence; see [AticiServedio2007]. -/
 theorem transcriptUnion_pos_influence {N : ℕ} {f : (Fin n → Bool) → Bool}
     (s : Fin N → Finset (Fin n)) (hpos : ∀ t, 0 < fsWeight f (s t)) :
     ∀ j ∈ transcriptUnion s, 0 < boolInfluence f j := by
@@ -231,6 +277,10 @@ theorem transcriptUnion_pos_influence {N : ℕ} {f : (Fin n → Bool) → Bool}
   obtain ⟨t, ht⟩ := hj
   exact boolInfluence_pos_of_mem_fsWeight f ht (hpos t)
 
+/-- For 0 < ε ≤ 1, there is a positive constant C such that every function depending on a
+nonempty set I has a sample count N ≤ Cε⁻¹(log |I| + 1) capturing all variables of influence
+at least ε with probability at least 9/10. Every positive-weight transcript of that length
+contains only variables of positive influence; see [AticiServedio2007]. -/
 theorem influence_identification_upper (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     ∃ C : ℝ, 0 < C ∧ ∀ (n : ℕ) (f : (Fin n → Bool) → Bool) (I : Finset (Fin n)),
       dependsOnlyOn I f → 0 < I.card →

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.Primitives.DegreeTestContracts
 import Qatlib.Concepts.WalkSearch.Primitives.DegreeRounds
+
+/-!
+# Concentration for corrected degree tests
+
+Proves the corrected high- and low-degree misclassification bounds using single-round sampling
+estimates and finite majority concentration. `fact2DegreeTest_concentration_allPositive` covers
+every positive vertex count, and `fact2DegreeTest_concentration` supplies the version assuming
+`n ≥ 64`; see [Ambainis2005] for the graph-search setting.
+
+## Main statements
+
+* `fact2DegreeTest_concentration_allPositive`: For every positive `n` and `0 < δ < 1`, the
+  prescribed repeated degree test satisfies both high- and low-degree error-event bounds of at
+  most `1 / n ^ 3` over uniformly counted tapes.
+* `fact2DegreeTest_concentration`: Establishes the corrected degree-test concentration contract
+  for `n ≥ 64`, with both error-event fractions bounded by `1 / n ^ 3`.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -14,6 +36,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 
+/-- For every positive `n` and `0 < δ < 1`, the prescribed repeated degree test satisfies both
+high- and low-degree error-event bounds of at most `1 / n ^ 3` over uniformly counted tapes. -/
 theorem fact2DegreeTest_concentration_allPositive : fact2DegreeTestAllPositive := by
   intro n δ hn hδ _hδ1 K c _hc G v
   have hn0 : 0<n := by omega
@@ -98,6 +122,8 @@ theorem fact2DegreeTest_concentration_allPositive : fact2DegreeTestAllPositive :
       exact_mod_cast hb
     · simp [hg]
 
+/-- Establishes the corrected degree-test concentration contract for `n ≥ 64`, with both
+error-event fractions bounded by `1 / n ^ 3`. -/
 theorem fact2DegreeTest_concentration : fact2DegreeTestCorrected := by
   intro n δ hn hδ hδ1
   exact fact2DegreeTest_concentration_allPositive n δ (by omega) hδ hδ1

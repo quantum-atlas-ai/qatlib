@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkFind.UniqueCollision.JohnsonWalk
+
+/-!
+# Block decompositions of the Johnson diffusion steps
+
+This module proves unitarity of the two-dimensional diffusion block and expresses each reduced
+Johnson diffusion step as such blocks together with one fixed coordinate. The resulting size
+conditions ensure identity Gram matrices for the two steps in the collision-search walk
+[Ambainis2007ElementDistinctness].
+
+Pairwise action formulas and fixed-vector criteria expose the same decomposition directly on
+state vectors.
+
+## Main statements
+
+* `jwD2_unitary`: unitarity of a diffusion block for parameters in `[0,1]`.
+* `jwStep1_unitary` and `jwStep2_unitary`: conditional unitarity of the reduced steps.
+* `jwStep1_fixed_of_pairs` and `jwStep2_fixed_of_pairs`: pairwise fixed-vector criteria.
+
+## References
+
+* [Ambainis, 2007][Ambainis2007ElementDistinctness]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.WalkFind.UniqueCollision
 
@@ -14,6 +37,7 @@ namespace Qatlib.Concepts.WalkFind.WalkSpectrum
 
 open Matrix Qatlib.Concepts.WalkFind.UniqueCollision
 
+/-- For `0 ≤ ε ≤ 1`, the two-dimensional diffusion matrix has identity Gram matrix. -/
 theorem jwD2_unitary (ε : ℝ) (h0 : 0 ≤ ε) (h1 : ε ≤ 1) :
     star (Matrix.of (jwD2 ε)) * Matrix.of (jwD2 ε) = (1 : Matrix Bool Bool ℂ) := by
   have hs : (Real.sqrt (ε - ε * ε) : ℂ) ^ 2 = (ε - ε * ε : ℝ) := by
@@ -25,12 +49,16 @@ theorem jwD2_unitary (ε : ℝ) (h0 : 0 ≤ ε) (h1 : ε ≤ 1) :
   all_goals ring_nf at hs ⊢
   all_goals linear_combination 4 * hs
 
+/-- The disjoint union of `k` Boolean coordinate pairs and one singleton coordinate. -/
 private abbrev BlockIndex (k : ℕ) := (Bool × Fin k) ⊕ Fin 1
 
+/-- Enumerate the Boolean coordinate pairs consecutively, followed by the final coordinate
+`2*k`. -/
 private def blockLabel (k : ℕ) : BlockIndex k → Fin (2 * k + 1)
   | .inl (b, j) => ⟨2 * j.val + if b then 1 else 0, by cases b <;> dsimp <;> omega⟩
   | .inr _ => ⟨2 * k, by omega⟩
 
+/-- The enumeration of paired blocks and the final coordinate is bijective. -/
 private theorem blockLabel_bijective (k : ℕ) : Function.Bijective (blockLabel k) := by
   constructor
   · intro x y h
@@ -67,12 +95,16 @@ private theorem blockLabel_bijective (k : ℕ) : Function.Bijective (blockLabel 
       simp only [blockLabel]
       omega
 
+/-- The equivalence between the paired block index and `Fin (2*k+1)` induced by `blockLabel`. -/
 private noncomputable def blockEquiv (k : ℕ) : BlockIndex k ≃ Fin (2 * k + 1) :=
   Equiv.ofBijective (blockLabel k) (blockLabel_bijective k)
 
+/-- The block diagonal matrix of the `k` diffusion blocks, extended by the identity on the final
+coordinate. -/
 private noncomputable def blocks (k : ℕ) (ε : Fin k → ℝ) : Matrix (BlockIndex k) (BlockIndex k) ℂ :=
   Matrix.fromBlocks (Matrix.blockDiagonal fun j => Matrix.of (jwD2 (ε j))) 0 0 1
 
+/-- If each diffusion parameter lies in `[0,1]`, the block matrix has identity Gram matrix. -/
 private theorem blocks_unitary (k : ℕ) (ε : Fin k → ℝ)
     (hε : ∀ j, 0 ≤ ε j ∧ ε j ≤ 1) : star (blocks k ε) * blocks k ε = 1 := by
   have h : star (Matrix.blockDiagonal fun j => Matrix.of (jwD2 (ε j))) *
@@ -89,6 +121,8 @@ private theorem blocks_unitary (k : ℕ) (ε : Fin k → ℝ)
   ext i j
   cases i <;> cases j <;> simp [Matrix.one_apply]
 
+/-- Identity Gram matrix for a matrix reindexed by an equivalence implies identity Gram matrix
+for the original matrix. -/
 private theorem unitary_of_submatrix {n m : Type*} [Fintype n] [Fintype m]
     [DecidableEq n] [DecidableEq m] (e : n ≃ m) (A : Matrix m m ℂ)
     (h : star (A.submatrix e e) * A.submatrix e e = 1) : star A * A = 1 := by
@@ -100,6 +134,8 @@ private theorem unitary_of_submatrix {n m : Type*} [Fintype n] [Fintype m]
   obtain ⟨j', rfl⟩ := e.surjective j
   exact congrFun (congrFun hs i') j'
 
+/-- Reindexing the first diffusion step by `blockEquiv` gives diffusion blocks with parameters
+`(k-j)/(N-r)`. -/
 private theorem step1_blocks (k N r : ℕ) :
     (jwStep1 k N r).submatrix (blockEquiv k) (blockEquiv k) =
       blocks k (fun j => (k - j.val : ℝ) / (N - r)) := by
@@ -131,6 +167,8 @@ private theorem step1_blocks (k N r : ℕ) :
       all_goals omega
     | inr j => simp [jwStep1, blockLabel, jwPsiCoord, jwPhiCoord, blocks, jwD2, Nat.add_div, Subsingleton.elim i j]
 
+/-- Reindexing the second diffusion step by the reversed block equivalence gives diffusion
+blocks with parameters `(k-j)/(r+1)`. -/
 private theorem step2_blocks (k r : ℕ) :
     (jwStep2 k r).submatrix ((blockEquiv k).trans Fin.revPerm)
         ((blockEquiv k).trans Fin.revPerm) =
@@ -190,6 +228,7 @@ private theorem step2_blocks (k r : ℕ) :
       subst j
       simp [jwStep2, zero, jwPsiCoord, jwPhiCoord, blocks, jwD2]
 
+/-- If `k ≤ N-r`, the first reduced Johnson diffusion step has identity Gram matrix. -/
 theorem jwStep1_unitary (k N r : ℕ) (hkr : k ≤ N - r) :
     star (jwStep1 k N r) * jwStep1 k N r = 1 := by
   apply unitary_of_submatrix (blockEquiv k)
@@ -207,6 +246,7 @@ theorem jwStep1_unitary (k N r : ℕ) (hkr : k ≤ N - r) :
     have hkp : (0 : ℝ) < k := by exact_mod_cast (by omega : 0 < k)
     exact (div_le_one (by linarith)).mpr (by linarith)
 
+/-- If `k ≤ r+1`, the second reduced Johnson diffusion step has identity Gram matrix. -/
 theorem jwStep2_unitary (k r : ℕ) (hkr : k ≤ r + 1) :
     star (jwStep2 k r) * jwStep2 k r = 1 := by
   apply unitary_of_submatrix ((blockEquiv k).trans Fin.revPerm)
@@ -219,6 +259,8 @@ theorem jwStep2_unitary (k r : ℕ) (hkr : k ≤ r + 1) :
   · exact div_nonneg (by linarith) (by positivity)
   · exact (div_le_one (by positivity)).mpr (by linarith)
 
+/-- A sum over reduced coordinates splits into `k` Boolean coordinate pairs and the final type
+`(k, false)`. -/
 theorem jwTypeSum {A : Type*} [AddCommMonoid A] (k : ℕ) (f : ℕ → Bool → A) :
     (∑ i : Fin (2 * k + 1), f (jwPsiCoord k i).1 (jwPsiCoord k i).2) =
       (∑ j : Fin k, (f j.val false + f j.val true)) + f k false := by
@@ -226,9 +268,11 @@ theorem jwTypeSum {A : Type*} [AddCommMonoid A] (k : ℕ) (f : ℕ → Bool → 
   simp [blockEquiv, blockLabel, jwPsiCoord, Fintype.sum_sum_type,
     Fintype.sum_prod_type, Nat.add_div, Nat.add_mod, Finset.sum_add_distrib, add_comm]
 
+/-- The reduced coordinate at position `2*j` or `2*j+1`, selected by the Boolean parameter. -/
 def jwPairIndex (k : ℕ) (a : Bool) (j : Fin k) : Fin (2*k+1) :=
   ⟨2*j.val + if a then 1 else 0, by cases a <;> dsimp <;> omega⟩
 
+/-- On each coordinate pair, the first diffusion step acts by the block `jwD2 ((k-j)/(N-r))`. -/
 theorem jwStep1_pair_action (k N r : ℕ) (v : Fin (2*k+1) → ℂ)
     (a : Bool) (j : Fin k) :
     (jwStep1 k N r *ᵥ v) (jwPairIndex k a j) =
@@ -241,6 +285,7 @@ theorem jwStep1_pair_action (k N r : ℕ) (v : Fin (2*k+1) → ℂ)
   simp [blocks, Fintype.sum_sum_type, Fintype.sum_prod_type, Matrix.blockDiagonal_apply]
   exact add_comm _ _
 
+/-- The first diffusion step preserves the final coordinate of every vector. -/
 theorem jwStep1_last_action (k N r : ℕ) (v : Fin (2*k+1) → ℂ) :
     (jwStep1 k N r *ᵥ v) (Fin.last (2*k)) = v (Fin.last (2*k)) := by
   change (jwStep1 k N r *ᵥ v) (blockLabel k (.inr 0)) = _
@@ -251,6 +296,8 @@ theorem jwStep1_last_action (k N r : ℕ) (v : Fin (2*k+1) → ℂ) :
   simp [blocks, Fintype.sum_sum_type, blockLabel]
   rfl
 
+/-- On each reversed coordinate pair, the second diffusion step acts by the block `jwD2
+((k-j)/(r+1))`. -/
 theorem jwStep2_pair_action (k r : ℕ) (v : Fin (2*k+1) → ℂ)
     (a : Bool) (j : Fin k) :
     (jwStep2 k r *ᵥ v) (jwPairIndex k a j).rev =
@@ -263,6 +310,7 @@ theorem jwStep2_pair_action (k r : ℕ) (v : Fin (2*k+1) → ℂ)
   simp [blocks, Fintype.sum_sum_type, Fintype.sum_prod_type, Matrix.blockDiagonal_apply]
   exact add_comm _ _
 
+/-- The second diffusion step preserves coordinate zero of every vector. -/
 theorem jwStep2_zero_action (k r : ℕ) (v : Fin (2*k+1) → ℂ) :
     (jwStep2 k r *ᵥ v) 0 = v 0 := by
   have hz : (blockLabel k (.inr (0 : Fin 1))).rev = 0 := by
@@ -275,6 +323,8 @@ theorem jwStep2_zero_action (k r : ℕ) (v : Fin (2*k+1) → ℂ) :
   rw [step2_blocks]
   simp [blocks, Fintype.sum_sum_type, hz]
 
+/-- A vector fixed by every first-step diffusion block is fixed by the whole first diffusion
+step. -/
 theorem jwStep1_fixed_of_pairs (k N r : ℕ) (v : Fin (2*k+1) → ℂ)
     (h : ∀ (j : Fin k) (a : Bool),
       jwD2 ((k - j.val : ℝ) / (N-r)) a false * v (jwPairIndex k false j) +
@@ -291,6 +341,8 @@ theorem jwStep1_fixed_of_pairs (k N r : ℕ) (v : Fin (2*k+1) → ℂ)
     subst x
     exact jwStep1_last_action k N r v
 
+/-- A vector fixed by every reversed second-step diffusion block is fixed by the whole second
+diffusion step. -/
 theorem jwStep2_fixed_of_pairs (k r : ℕ) (v : Fin (2*k+1) → ℂ)
     (h : ∀ (j : Fin k) (a : Bool),
       jwD2 ((k - j.val : ℝ) / (r+1)) a false * v (jwPairIndex k false j).rev +

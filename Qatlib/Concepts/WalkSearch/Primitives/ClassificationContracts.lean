@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+
+/-!
+# Corrected classification contract
+
+Defines `classifySpecCorrected`, the deterministic contract for a full graph classification scan
+with correct degree tests. It requires a query bound and either a valid triangle or a disjoint
+pair partition with triangle-count and graph-edge bounds; the surrounding quantum graph-search
+setting is surveyed in [Ambainis2005].
+
+## Main statements
+
+* `classifySpecCorrected`: The classification contract asserting the corrected query bound and,
+  under graph containment, thinness, and correct-test hypotheses, either a valid triangle or a
+  disjoint partition with the stated triangle and retained-edge bounds.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +35,9 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical
 
+/-- The classification contract asserting the corrected query bound and, under graph
+containment, thinness, and correct-test hypotheses, either a valid triangle or a disjoint
+partition with the stated triangle and retained-edge bounds. -/
 def classifySpecCorrected : Prop :=
   ∀ (n : ℕ) (G : UGraph n) (sgs : SGSExecution) (τ dHi dLo K c tThin : ℕ),
     0<n→1≤dLo→dLo≤dHi→1≤τ→

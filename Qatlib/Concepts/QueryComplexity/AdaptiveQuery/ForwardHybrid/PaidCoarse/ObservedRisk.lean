@@ -8,6 +8,30 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
 import Qatlib.Concepts.HspRecovery.SieveLaw.SharpSelectiveStability
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardHybrid.PaidCoarse.ProjectiveRisk
+
+/-!
+# Trace norm stability of observed record statistics
+
+This module defines `weightedBranchMap` for a finite quantum instrument and
+`observedRecordExpectation` for a mixed state observed circuit. Nonnegative weights preserve
+positivity, and weights at most one give an upper bound on the output trace.
+
+For positive semidefinite inputs with equal trace and weights in `[0, 1]`, the change in the
+weighted outcome statistic is bounded by half the trace norm of the input difference. The
+observed circuit result uses the instrument interpretation of observation records and trace
+distance estimates described in [Watrous2018].
+
+## Main statements
+
+* `weighted_instrument_input_error`: trace norm stability for bounded instrument statistics.
+* `observedRecordExpectation_eq_instrument`: the instrument expression for a record expectation.
+* `observed_record_input_error`: trace norm stability for bounded observation record statistics.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,10 +44,14 @@ open scoped ComplexOrder Matrix.Norms.L2Operator
 
 variable {d : ℕ}
 
+/-- The complex linear map obtained by summing the branches of a finite instrument with real
+weights. -/
 noncomputable def weightedBranchMap {O : Type*} [Fintype O]
     (J : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O d d) (f : O → ℝ) : Qatlib.Foundations.PureStateMath.Operator d →ₗ[ℂ] Qatlib.Foundations.PureStateMath.Operator d :=
   ∑ o, (f o : ℂ) • J.branch o
 
+/-- The real trace of a weighted branch map is the corresponding weighted sum of instrument
+outcome probabilities. -/
 theorem trace_weightedBranchMap {O : Type*} [Fintype O]
     (J : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O d d) (f : O → ℝ) (ρ : Qatlib.Foundations.PureStateMath.Operator d) :
     (trace (Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.weightedBranchMap J f ρ)).re =
@@ -31,6 +59,8 @@ theorem trace_weightedBranchMap {O : Type*} [Fintype O]
   simp [Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.weightedBranchMap, LinearMap.sum_apply, trace_sum, trace_smul,
     Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb, Complex.mul_re, mul_comm]
 
+/-- A weighted branch map with nonnegative weights sends positive semidefinite inputs to
+positive semidefinite outputs. -/
 theorem weightedBranchMap_positive {O : Type*} [Fintype O]
     (J : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O d d) (f : O → ℝ) (hf : ∀ o, 0 ≤ f o)
     (ρ : Qatlib.Foundations.PureStateMath.Operator d) (hρ : ρ.PosSemidef) :
@@ -39,6 +69,8 @@ theorem weightedBranchMap_positive {O : Type*} [Fintype O]
   exact Matrix.posSemidef_sum _ fun o _ =>
     ((J.cp o).positive hρ).smul (RCLike.ofReal_nonneg.mpr (hf o))
 
+/-- If every weight is at most one, the real trace of the weighted branch map on a positive
+semidefinite input is at most the input's real trace. -/
 theorem weightedBranchMap_tni {O : Type*} [Fintype O]
     (J : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O d d) (f : O → ℝ) (hf : ∀ o, f o ≤ 1)
     (ρ : Qatlib.Foundations.PureStateMath.Operator d) (hρ : ρ.PosSemidef) :
@@ -49,6 +81,8 @@ theorem weightedBranchMap_tni {O : Type*} [Fintype O]
   simpa only [mul_one] using
     mul_le_mul_of_nonneg_left (hf o) (Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb_nonneg J hρ o)
 
+/-- For positive semidefinite inputs with equal real trace and weights in `[0, 1]`, weighted
+instrument outcome sums differ by at most half the trace norm of the input difference. -/
 theorem weighted_instrument_input_error {O : Type*} [Fintype O]
     (J : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O d d) (f : O → ℝ) (hf : ∀ o, 0 ≤ f o ∧ f o ≤ 1)
     (ρ τ : Qatlib.Foundations.PureStateMath.Operator d) (hρ : ρ.PosSemidef) (hτ : τ.PosSemidef)
@@ -70,11 +104,15 @@ theorem weighted_instrument_input_error {O : Type*} [Fintype O]
   simpa only [T,
       Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardAdaptiveHybrid.PaidCoarse.trace_weightedBranchMap] using hh
 
+/-- The expectation of a real observation record statistic, formed by summing the statistic
+against the mixed trace masses. -/
 noncomputable def observedRecordExpectation (O : Qatlib.Foundations.PureStateMath.Operator d)
     (P : Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit (Fin d)) (ρ : Qatlib.Foundations.PureStateMath.Operator d)
     (f : List (ℕ × ℕ) → ℝ) : ℝ :=
   ((Qatlib.Concepts.AdversaryBounds.AdvDuality.observedMixedTraces O P ρ).map fun t => Qatlib.Concepts.AdversaryBounds.AdvDuality.mixedMass t * f t.outcomes).sum
 
+/-- For a unitary oracle and a well formed observed circuit, the record expectation equals the
+weighted outcome sum of its associated instrument. -/
 theorem observedRecordExpectation_eq_instrument (O : Qatlib.Foundations.PureStateMath.Operator d)
     (hO : O ∈ Matrix.unitaryGroup (Fin d) ℂ)
     (P : Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit (Fin d)) (hP : Qatlib.Concepts.AdversaryBounds.AdvDuality.observedWellFormed P)
@@ -85,6 +123,9 @@ theorem observedRecordExpectation_eq_instrument (O : Qatlib.Foundations.PureStat
   exact (Qatlib.Concepts.AdversaryBounds.AdvDuality.observedMixedTraces_event_statistic O hO P hP ρ
     (fun t => f t.outcomes)).1.symm
 
+/-- For positive semidefinite inputs with equal real trace, a record statistic in `[0, 1]`
+changes by at most half the trace norm of the input difference under a fixed well formed
+observed circuit with unitary oracle. -/
 theorem observed_record_input_error (O : Qatlib.Foundations.PureStateMath.Operator d)
     (hO : O ∈ Matrix.unitaryGroup (Fin d) ℂ)
     (P : Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit (Fin d)) (hP : Qatlib.Concepts.AdversaryBounds.AdvDuality.observedWellFormed P)

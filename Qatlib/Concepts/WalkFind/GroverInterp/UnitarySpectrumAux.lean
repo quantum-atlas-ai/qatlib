@@ -9,6 +9,27 @@ import Mathlib.Analysis.Matrix.Hermitian
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Spectral tools for finite unitary walks
+
+This module constructs orthonormal eigenbases for finite unitary matrices and develops Parseval
+and resolvent norm identities. Spectral gap weights and real-eigenvector rotation estimates
+support the quantitative Grover interpolation argument.
+
+The mathematical background is developed in [Bhatia1997].
+
+## Main statements
+
+* `jw_unitary_orthonormal_eigenbasis`: constructs a unitary matrix of eigenvectors.
+* `jw_unitary_gap_weights`: separates fixed and nonfixed spectral mass.
+* `jw_real_unitary_normalized_quarter_iteration`: bounds the normalized quarter-turn error.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +40,8 @@ namespace Qatlib.Concepts.WalkFind.GroverInterp
 open Matrix
 open scoped InnerProductSpace
 
+/-- A finite complex unitary matrix has an orthonormal eigenbasis in Euclidean space with all
+eigenvalues of norm one. -/
 theorem jw_unitary_euclidean_eigenbasis (m : ℕ) (U : Matrix (Fin m) (Fin m) ℂ)
     (hu : star U * U = 1) :
     ∃ (b : OrthonormalBasis (Fin m) ℂ (EuclideanSpace ℂ (Fin m))) (μ : Fin m → ℂ),
@@ -108,6 +131,8 @@ theorem jw_unitary_euclidean_eigenbasis (m : ℕ) (U : Matrix (Fin m) (Fin m) �
   simp only [norm_mul, norm_star, norm_one] at hnorm
   nlinarith only [hnorm, norm_nonneg (μ j)]
 
+/-- A finite complex unitary matrix has a unitary eigenbasis matrix whose eigenvalues all have
+norm one. -/
 theorem jw_unitary_orthonormal_eigenbasis (m : ℕ) (U : Matrix (Fin m) (Fin m) ℂ)
     (hu : star U * U = 1) :
     ∃ (B : Matrix (Fin m) (Fin m) ℂ) (μ : Fin m → ℂ),
@@ -124,12 +149,15 @@ theorem jw_unitary_orthonormal_eigenbasis (m : ℕ) (U : Matrix (Fin m) (Fin m) 
   change U *ᵥ (WithLp.ofLp (b j)) = μ j • WithLp.ofLp (b j)
   exact congrArg WithLp.ofLp (hb j)
 
+/-- The Hermitian self-pairing of a complex vector equals the real sum of its squared coordinate
+norms. -/
 theorem jw_star_dot_self (m : ℕ) (v : Fin m → ℂ) :
     star v ⬝ᵥ v = ((∑ i, ‖v i‖ ^ 2 : ℝ) : ℂ) := by
   have he (i : Fin m) : star (v i) * v i = ((‖v i‖ ^ 2 : ℝ) : ℂ) := by
     rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
   simp only [dotProduct, Pi.star_apply, he, Complex.ofReal_sum]
 
+/-- Multiplication by a unitary matrix preserves the sum of squared coordinate norms. -/
 theorem jw_unitary_mulVec_norm_sq (m : ℕ) (B : Matrix (Fin m) (Fin m) ℂ)
     (hu : star B * B = 1) (v : Fin m → ℂ) :
     (∑ i, ‖(B *ᵥ v) i‖ ^ 2) = ∑ i, ‖v i‖ ^ 2 := by
@@ -139,12 +167,15 @@ theorem jw_unitary_mulVec_norm_sq (m : ℕ) (B : Matrix (Fin m) (Fin m) ℂ)
   change star v ⬝ᵥ ((star B * B) *ᵥ v) = star v ⬝ᵥ v
   rw [hu, Matrix.one_mulVec]
 
+/-- The sum of squared coefficients in a unitary basis equals the sum of squared coordinate
+norms. -/
 theorem jw_unitary_basis_parseval (m : ℕ) (B : Matrix (Fin m) (Fin m) ℂ)
     (hB : B * star B = 1) (v : Fin m → ℂ) :
     (∑ j, ‖(star B *ᵥ v) j‖ ^ 2) = ∑ i, ‖v i‖ ^ 2 := by
   apply jw_unitary_mulVec_norm_sq
   simpa using hB
 
+/-- A complex exponential with phase strictly between zero and `2π` is different from one. -/
 theorem jw_phase_ne_one (θ : ℝ) (hθ : 0 < θ) (hθtop : θ < 2 * Real.pi) :
     Complex.exp (Complex.I * θ) ≠ 1 := by
   intro h
@@ -157,6 +188,8 @@ theorem jw_phase_ne_one (θ : ℝ) (hθ : 0 < θ) (hθtop : θ < 2 * Real.pi) :
   have hnhi' : n < 1 := by exact_mod_cast hnhi
   omega
 
+/-- Under the spectral phase condition, every fixed vector lies on the line spanned by the
+normalized fixed vector `start`. -/
 theorem jw_fixed_vector_start_line (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     (U : Matrix (Fin m) (Fin m) ℂ) (start v : Fin m → ℂ)
     (hstart : U *ᵥ start = start) (hfixed : U *ᵥ v = v)
@@ -183,6 +216,8 @@ theorem jw_fixed_vector_start_line (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     exact jw_phase_ne_one θ (hε.trans_le hlo) (by linarith only [hhi, hε]) he.symm
   exact sub_eq_zero.mp hwzero
 
+/-- An eigenvector with eigenvalue different from one has zero Hermitian pairing with a fixed
+vector of the unitary matrix. -/
 theorem jw_eigenvector_start_coefficient_zero (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (start v : Fin m → ℂ) (μ : ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -204,6 +239,8 @@ theorem jw_eigenvector_start_coefficient_zero (m : ℕ)
   apply star_eq_zero.mp
   simpa only [dotProduct, Pi.star_apply, star_sum, star_mul, star_star, mul_comm] using hc0
 
+/-- There are an orthonormal eigenbasis and nonnegative fixed and nonfixed weights splitting the
+target spectral mass into totals `α^2` and `1 - α^2`. -/
 theorem jw_unitary_gap_weights (m : ℕ) (ε α : ℝ) (hε : 0 < ε)
     (U : Matrix (Fin m) (Fin m) ℂ) (start good : Fin m → ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -266,6 +303,8 @@ theorem jw_unitary_gap_weights (m : ℕ) (ε α : ℝ) (hε : 0 < ε)
   · intro j hj
     simp only [s, hd0 j hj, norm_zero, zero_pow (by decide : 2 ≠ 0)]
 
+/-- Under the phase-gap hypothesis, a nonfixed eigenvalue with a nonzero eigenvector has real
+part in `[-1, cos ε]`. -/
 theorem jw_nonfixed_eigenvalue_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     (U : Matrix (Fin m) (Fin m) ℂ) (start v : Fin m → ℂ) (μ : ℂ)
     (hu : star U * U = 1) (hstart : U *ᵥ start = start)
@@ -287,6 +326,7 @@ theorem jw_nonfixed_eigenvalue_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
       _ ≤ Real.cos ε := Real.cos_le_cos_of_nonneg_of_le_pi hε.le
         (by linarith only [hθ]) (by linarith only [hhi])
 
+/-- Every column of a matrix satisfying `star B * B = 1` is nonzero. -/
 theorem jw_unitary_basis_column_ne_zero (m : ℕ) (B : Matrix (Fin m) (Fin m) ℂ)
     (hB : star B * B = 1) (j : Fin m) : (fun i => B i j) ≠ 0 := by
   intro hj
@@ -296,6 +336,8 @@ theorem jw_unitary_basis_column_ne_zero (m : ℕ) (B : Matrix (Fin m) (Fin m) �
     hz, star_zero, mul_zero, Finset.sum_const_zero, Matrix.one_apply_eq] at hdiag
   exact zero_ne_one hdiag
 
+/-- Replacing the real part of every fixed eigenvalue by `-1` puts all eigenbasis values in
+`[-1, cos ε]` under the phase-gap hypothesis. -/
 theorem jw_unitary_basis_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     (U B : Matrix (Fin m) (Fin m) ℂ) (start : Fin m → ℂ) (μ : Fin m → ℂ)
     (hu : star U * U = 1) (hB : star B * B = 1) (hstart : U *ᵥ start = start)
@@ -314,6 +356,8 @@ theorem jw_unitary_basis_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
     exact jw_nonfixed_eigenvalue_real_gap m ε hε U start (fun i => B i j) (μ j)
       hu hstart (heigen j) hj (jw_unitary_basis_column_ne_zero m B hB j) hphase
 
+/-- The small-overlap phase endpoints form a nonempty positive interval below `ε`, on which the
+sine is nonnegative. -/
 theorem grover_small_interval_bounds (ε α : ℝ)
     (hε : 0 < ε) (hε1 : ε ≤ 1) (hα : 0 < α) (hsmall : α ≤ ε ^ 2 / 200) :
     let lo := ε * α / Real.sqrt (2 * Real.pi)
@@ -339,6 +383,8 @@ theorem grover_small_interval_bounds (ε α : ℝ)
   exact ⟨hb0, hbe, Real.sin_nonneg_of_nonneg_of_le_pi hb0.le
     (by linarith only [hbe, hε1, Real.pi_gt_three])⟩
 
+/-- Applying an invertible matrix inverse divides the coefficients in its unitary eigenbasis by
+the eigenvalues. -/
 theorem jw_eigenbasis_inverse_mulVec (m : ℕ)
     (K B : Matrix (Fin m) (Fin m) ℂ) (eig : Fin m → ℂ)
     (hB : star B * B = 1) (hB' : B * star B = 1) (hK : IsUnit K)
@@ -380,6 +426,8 @@ theorem jw_eigenbasis_inverse_mulVec (m : ℕ)
       ext j
       simp only [D, Matrix.mulVec_diagonal, div_eq_mul_inv, mul_comm]
 
+/-- The squared norm after applying an inverse equals the sum of squared eigenbasis coefficients
+divided by squared eigenvalue norms. -/
 theorem jw_eigenbasis_inverse_norm_sq (m : ℕ)
     (K B : Matrix (Fin m) (Fin m) ℂ) (eig : Fin m → ℂ)
     (hB : star B * B = 1) (hB' : B * star B = 1) (hK : IsUnit K)
@@ -390,6 +438,8 @@ theorem jw_eigenbasis_inverse_norm_sq (m : ℕ)
     jw_unitary_mulVec_norm_sq m B hB]
   simp only [norm_div, div_pow]
 
+/-- The resolvent vector has squared norm equal to the sum of target spectral weights divided by
+`‖μ j - z‖^2`. -/
 theorem jw_unitary_eigenbasis_resolvent_norm_sq (m : ℕ)
     (U B : Matrix (Fin m) (Fin m) ℂ) (μ : Fin m → ℂ)
     (hB : star B * B = 1) (hB' : B * star B = 1)
@@ -421,6 +471,8 @@ theorem jw_unitary_eigenbasis_resolvent_norm_sq (m : ℕ)
     hB hB' hz hAe (U *ᵥ good)]
   simp only [hcoeff, Matrix.mulVec_diagonal, norm_mul, hμ, one_mul]
 
+/-- A unitary matrix has an orthonormal eigenbasis realizing the spectral sum formula for the
+squared resolvent-vector norm. -/
 theorem jw_unitary_resolvent_norm_sq_exists (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (hu : star U * U = 1)
     (good : Fin m → ℂ) (z : ℂ)
@@ -434,6 +486,8 @@ theorem jw_unitary_resolvent_norm_sq_exists (m : ℕ)
   exact ⟨B, μ, hB, hB', hμ, he,
     jw_unitary_eigenbasis_resolvent_norm_sq m U B μ hB hB' hμ he good z hz⟩
 
+/-- Eigenvectors of a unitary matrix with distinct eigenvalues are orthogonal when the first
+eigenvalue has modulus one. -/
 theorem jw_unitary_distinct_eigenvectors_orthogonal (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (v w : Fin m → ℂ) (μ ν : ℂ)
     (hu : star U * U = 1) (hμ : star μ * μ = 1)
@@ -457,6 +511,8 @@ theorem jw_unitary_distinct_eigenvectors_orthogonal (m : ℕ)
     exact hne (mul_left_cancel₀ hμ0 heq).symm
   exact (mul_eq_zero.mp hc).resolve_left hcoeff
 
+/-- An eigenvector of a real unitary matrix with phase in `(0, π)` is orthogonal to its complex
+conjugate. -/
 theorem jw_real_unitary_eigenvector_conjugate_orthogonal (m : ℕ) (β : ℝ)
     (hβ : 0 < β) (hβπ : β < Real.pi)
     (U : Matrix (Fin m) (Fin m) ℂ) (y : Fin m → ℂ)
@@ -486,6 +542,8 @@ theorem jw_real_unitary_eigenvector_conjugate_orthogonal (m : ℕ) (β : ℝ)
   exact jw_unitary_distinct_eigenvectors_orthogonal m U y (star y) μ (star μ)
     hu hμ hy hyconj hne
 
+/-- The real and imaginary parts of such an eigenvector are orthogonal with equal squared norms,
+each half the full squared norm. -/
 theorem jw_real_unitary_eigenvector_parts (m : ℕ) (β : ℝ)
     (hβ : 0 < β) (hβπ : β < Real.pi)
     (U : Matrix (Fin m) (Fin m) ℂ) (y : Fin m → ℂ)
@@ -517,6 +575,7 @@ theorem jw_real_unitary_eigenvector_parts (m : ℕ) (β : ℝ)
   simp only [hnorm, Finset.sum_add_distrib, heq]
   ring
 
+/-- A matrix power acts on an eigenvector by the corresponding power of its eigenvalue. -/
 theorem jw_matrix_eigenvector_power (m : ℕ)
     (U : Matrix (Fin m) (Fin m) ℂ) (y : Fin m → ℂ) (μ : ℂ)
     (hy : U *ᵥ y = μ • y) (t : ℕ) : U ^ t *ᵥ y = μ ^ t • y := by
@@ -526,6 +585,8 @@ theorem jw_matrix_eigenvector_power (m : ℕ)
     rw [pow_succ', ← Matrix.mulVec_mulVec, ih, Matrix.mulVec_smul, hy, smul_smul,
       pow_succ]
 
+/-- Powers of a real matrix rotate the imaginary part of a phase eigenvector into the stated
+sine-cosine combination of its real and imaginary parts. -/
 theorem jw_real_matrix_eigenvector_power_imaginary (m : ℕ) (β : ℝ)
     (U : Matrix (Fin m) (Fin m) ℂ) (y : Fin m → ℂ)
     (hreal : ∀ i j, (U i j).im = 0)
@@ -568,6 +629,8 @@ theorem jw_real_matrix_eigenvector_power_imaginary (m : ℕ) (β : ℝ)
     Complex.cos_ofReal_im, Complex.sin_ofReal_im, zero_mul, zero_add]
   all_goals ring
 
+/-- For orthogonal vectors of equal norm, the distance of the sine-cosine combination from the
+first vector is at most the quarter-turn angle error times their norm. -/
 theorem jw_quarter_rotation_norm_bound {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℂ E] (u v : E) (τ : ℝ)
     (hn : ‖u‖ = ‖v‖) (ho : ⟪u, v⟫_ℂ = 0) :
@@ -595,6 +658,8 @@ theorem jw_quarter_rotation_norm_bound {E : Type*} [NormedAddCommGroup E]
   rw [hnormsq, mul_pow, sq_abs]
   exact mul_le_mul_of_nonneg_right htrig (sq_nonneg _)
 
+/-- An iteration angle within `β` below a quarter turn sends the imaginary eigenvector part
+within `β` times its norm of the real part. -/
 theorem jw_real_unitary_quarter_iteration (m : ℕ) (β : ℝ)
     (hβ : 0 < β) (hβπ : β < Real.pi)
     (U : Matrix (Fin m) (Fin m) ℂ) (y : Fin m → ℂ)
@@ -625,6 +690,8 @@ theorem jw_real_unitary_quarter_iteration (m : ℕ) (β : ℝ)
   rw [abs_of_nonneg ht.1] at hraw
   exact hraw.trans (mul_le_mul_of_nonneg_right ht.2 (norm_nonneg _))
 
+/-- After normalization by the positive imaginary-part norm, the quarter-turn approximation
+error is at most `β`. -/
 theorem jw_real_unitary_normalized_quarter_iteration (m : ℕ) (β : ℝ)
     (hβ : 0 < β) (hβπ : β < Real.pi)
     (U : Matrix (Fin m) (Fin m) ℂ) (y : Fin m → ℂ)

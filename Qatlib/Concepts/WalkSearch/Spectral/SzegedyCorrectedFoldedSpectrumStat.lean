@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
 import Qatlib.Concepts.WalkSearch.Spectral.BipartiteTauCorrespondenceConsumers
+
+/-!
+# Folded-spectrum contract for corrected marked walks
+
+`SzegedyCorrectedFoldedSpectrum` specifies the spectrum of the corrected marked walk on the
+combined unmarked-frame range. For each real source value, it requires an explicit linear
+equivalence from the product of the unmarked principal eigenspaces at opposite values.
+
+The contract also records that each signed interior phase has the sum of those source
+multiplicities, while the plus-one endpoint collects the two unit endpoints and the minus-one
+endpoint has twice the nullity. This is formulated in the walk spectral framework of
+[Szegedy2004].
+
+## Main statements
+
+* `SzegedyCorrectedFoldedSpectrum`: source equivalences and folded multiplicity formulas.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +40,9 @@ open Qatlib.Concepts.WalkSearch.TwoLevelLower
 
 namespace Qatlib.Concepts.WalkSearch.Spectral
 
+/-- The folded-spectrum contract for corrected marked walks of symmetric transition matrices:
+explicit source-space equivalences, signed interior multiplicities, and formulas for the
+plus-one and minus-one multiplicities [Szegedy2004]. -/
 def SzegedyCorrectedFoldedSpectrum : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (P : I→I→ℝ) (S : Finset I),
     Qatlib.Concepts.WalkSearch.TwoLevelLower.IsTransitionMatrix P → (∀ i j, P i j = P j i) →

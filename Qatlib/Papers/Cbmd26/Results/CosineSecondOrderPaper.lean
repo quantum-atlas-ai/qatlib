@@ -8,6 +8,26 @@ import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleCombinedCost
 import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderPaperNormalization
 import Qatlib.Papers.Cbmd26.Algorithms.CosineConditionNumberBudget
 import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderZeroTime
+
+/-!
+# Paper statements for second-order preparation
+
+`SecondOrderPaperStatement` packages uniform phase choices and a three-oracle output certificate
+for the wave, Bessel, and Airy families. The query budgets use the paper output norm and the
+true condition estimates, with factors recording the supplied spectral and output estimates in
+[WangEtAl2026].
+
+## Main statements
+
+* `secondOrder_paper_theorem`: proves the shared statement for every family.
+* `theorem5_wave`, `theorem6_bessel`, and `theorem7_airy`: specialize it to the three paper
+  propagators.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,6 +73,10 @@ namespace CBMD
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The uniform second-order preparation specification requiring common phase data and a
+three-oracle output certificate for positive-definite matrix parts with exact separate
+encodings and fixed-factor spectral and output estimates. Its matrix and state budgets are
+expressed using the paper output norm and true condition maximum. -/
 def SecondOrderPaperStatement {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
     [Fintype I] [DecidableEq I] [Nonempty I]
     (kind : SecondOrderFamily) (a₀ : Anc) (t βL βH μL μH ε η cout cκ : ℝ) : Prop :=
@@ -99,6 +123,9 @@ def SecondOrderPaperStatement {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
           (8 * cosineDisplayedDegreeBound βL βH βH τ ε ν κtrue + 2)))
       (cR * (112 * cosineRelativeEnvelope βH τ ν * Real.log (2 + βH * τ ^ 2)))
 
+/-- For positive time, scales, spectral lower estimates, and output lower estimate, with `0 < ε
+< 1/2` and estimate factors at least one, every family satisfies `SecondOrderPaperStatement`
+as used in [WangEtAl2026]. -/
 theorem secondOrder_paper_theorem {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
     [Fintype I] [DecidableEq I] [Nonempty I]
     (kind : SecondOrderFamily) (a₀ : Anc) (t βL βH μL μH ε η cout cκ : ℝ)
@@ -146,6 +173,9 @@ theorem secondOrder_paper_theorem {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
     convert! hs using 1 <;> ring
   exact hcert.mono hbudget' hs'
 
+/-- The wave family satisfies `SecondOrderPaperStatement` under the stated positive parameter,
+error, and estimate-factor hypotheses, providing the preparation certificate for [Wang et
+al., Theorem 5][WangEtAl2026]. -/
 theorem theorem5_wave {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
     [Fintype I] [DecidableEq I] [Nonempty I]
     (a₀ : Anc) (t βL βH μL μH ε η cout cκ : ℝ)
@@ -154,6 +184,9 @@ theorem theorem5_wave {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
     SecondOrderPaperStatement (I := I) .wave a₀ t βL βH μL μH ε η cout cκ :=
   secondOrder_paper_theorem .wave a₀ t βL βH μL μH ε η cout cκ ht hβL hβH hμL hμH hε hε1 hη hout hcκ
 
+/-- The Bessel family satisfies `SecondOrderPaperStatement` under the stated positive parameter,
+error, and estimate-factor hypotheses, providing the preparation certificate for [Wang et
+al., Theorem 6][WangEtAl2026]. -/
 theorem theorem6_bessel {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
     [Fintype I] [DecidableEq I] [Nonempty I]
     (a₀ : Anc) (t βL βH μL μH ε η cout cκ : ℝ)
@@ -162,6 +195,9 @@ theorem theorem6_bessel {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
     SecondOrderPaperStatement (I := I) .bessel a₀ t βL βH μL μH ε η cout cκ :=
   secondOrder_paper_theorem .bessel a₀ t βL βH μL μH ε η cout cκ ht hβL hβH hμL hμH hε hε1 hη hout hcκ
 
+/-- The Airy family satisfies `SecondOrderPaperStatement` under the stated positive parameter,
+error, and estimate-factor hypotheses, providing the preparation certificate for [Wang et
+al., Theorem 7][WangEtAl2026]. -/
 theorem theorem7_airy {Anc I : Type} [Fintype Anc] [DecidableEq Anc]
     [Fintype I] [DecidableEq I] [Nonempty I]
     (a₀ : Anc) (t βL βH μL μH ε η cout cκ : ℝ)

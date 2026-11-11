@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
 import QuantumInfo.ForMathlib.HermitianMat.Inner
+
+/-!
+# Compactness of Gram representation sets
+
+The Lean declarations prove continuity of generalized traces and compactness of the positive
+semidefinite Hermitian matrices with prescribed generalized traces. They then obtain a matrix
+maximizing any chosen diagonal entry in that set. The finite dimensional positivity and trace
+bounds belong to the matrix analysis setting of [Bhatia1997].
+
+## Main statements
+
+* `continuous_genTrace`: each generalized trace depends continuously on the matrix.
+* `isCompact_gramFace`: the positive semidefinite set with fixed generalized traces is compact.
+* `exists_maximal_gram`: a prescribed diagonal entry attains its maximum among matrices with the
+  same generalized traces.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +38,8 @@ open scoped Classical BigOperators ComplexOrder
 
 variable {n : ℕ}
 
+/-- For each integer offset, the generalized trace is a continuous function of the matrix
+entries. -/
 theorem continuous_genTrace (j : ℤ) : Continuous (fun A : Matrix (Fin n) (Fin n) ℂ => genTrace A j) := by
   unfold genTrace
   apply continuous_finsetSum
@@ -29,6 +52,8 @@ theorem continuous_genTrace (j : ℤ) : Continuous (fun A : Matrix (Fin n) (Fin 
   · simp only [h,if_false]
     exact continuous_const
 
+/-- The set of nonnegative Hermitian matrices having the same generalized traces as `A` is
+closed. -/
 theorem isClosed_gramFace (A : Matrix (Fin n) (Fin n) ℂ) :
     IsClosed {B : HermitianMat (Fin n) ℂ | 0≤B ∧ ∀ j : ℤ,genTrace B.mat j=genTrace A j} := by
   have hc : IsClosed {B : HermitianMat (Fin n) ℂ | ∀ j : ℤ,genTrace B.mat j=genTrace A j} := by
@@ -38,6 +63,8 @@ theorem isClosed_gramFace (A : Matrix (Fin n) (Fin n) ℂ) :
     exact isClosed_eq ((continuous_genTrace j).comp HermitianMat.continuous_mat) continuous_const
   exact HermitianMat.isClosed_nonneg.inter hc
 
+/-- The set of nonnegative Hermitian matrices having the same generalized traces as `A` is
+compact. -/
 theorem isCompact_gramFace (A : Matrix (Fin n) (Fin n) ℂ) :
     IsCompact {B : HermitianMat (Fin n) ℂ | 0≤B ∧ ∀ j : ℤ,genTrace B.mat j=genTrace A j} := by
   have hs : {B : HermitianMat (Fin n) ℂ | 0≤B ∧ ∀ j : ℤ,genTrace B.mat j=genTrace A j}⊆
@@ -50,6 +77,9 @@ theorem isCompact_gramFace (A : Matrix (Fin n) (Fin n) ℂ) :
     simpa only [ht] using HermitianMat.le_trace_smul_one hB.1
   exact isCompact_Icc.of_isClosed_subset (isClosed_gramFace A) hs
 
+/-- For a positive semidefinite matrix `A` and a chosen index `i`, there is a positive
+semidefinite matrix with the same generalized traces whose `i`th diagonal entry is maximal
+among all such matrices. Its chosen entry is at least `A i i`. -/
 theorem exists_maximal_gram (A : Matrix (Fin n) (Fin n) ℂ) (hA : A.PosSemidef)
     (i : Fin n) :
     ∃ B : Matrix (Fin n) (Fin n) ℂ,B.PosSemidef ∧ (∀ j : ℤ,genTrace B j=genTrace A j) ∧

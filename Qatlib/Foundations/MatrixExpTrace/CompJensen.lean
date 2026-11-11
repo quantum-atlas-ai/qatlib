@@ -8,6 +8,31 @@ import QuantumInfo.ForMathlib.HermitianMat.LogExp
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
 import Mathlib.Tactic
+
+/-!
+# Jensen bounds for compressed matrix exponentials
+
+`density_exp_jensen` compares the exponential of a Hermitian expectation with the expectation of
+the matrix exponential in a positive semidefinite trace-one matrix. Coordinate projection
+identities then yield `isometry_exp_trace_le`, a trace inequality for compression by a
+rectangular isometry.
+
+The module also identifies `HermitianMat.exp` with the normed-algebra matrix exponential. These
+are finite-dimensional exponential convexity estimates in the setting of [HiaiPetz2014].
+
+## Main statements
+
+* `density_exp_jensen`: the scalar exponential Jensen bound for a density matrix.
+* `coordinate_sandwich_trace`: a rank-one coordinate sandwich extracts a compressed diagonal
+  entry.
+* `isometry_exp_trace_le`: the exponential of a compression has trace at most the compressed
+  exponential's trace.
+
+## References
+
+* [Hiai and Petz, 2014][HiaiPetz2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +43,8 @@ open Matrix
 open scoped Classical BigOperators ComplexOrder MatrixOrder Matrix Matrix.Norms.L2Operator
 namespace Qatlib.Foundations.MatrixExpTrace.CompJensen
 
+/-- For Hermitian `X` and a positive semidefinite trace-one matrix `sigma`, the exponential of
+the real part of `trace (sigma * X)` is at most the real part of `trace (sigma * exp X)`. -/
 theorem density_exp_jensen (D : ℕ) (X sigma : Matrix (Fin D) (Fin D) ℂ)
     (hX : X.IsHermitian) (hsigma : sigma.PosSemidef) (htrace : Matrix.trace sigma=1) :
     Real.exp (Matrix.trace (sigma*X)).re ≤
@@ -60,6 +87,8 @@ theorem density_exp_jensen (D : ℕ) (X sigma : Matrix (Fin D) (Fin D) ℂ)
   simpa only [smul_eq_mul] using convexOn_exp.map_sum_le (t := Finset.univ) (w := p)
     (p := hX.eigenvalues) (fun i _=>hpn i) hpsum (fun _ _=>Set.mem_univ _)
 
+/-- The underlying matrix of the Hermitian-matrix exponential equals the normed-algebra
+exponential of the underlying matrix. -/
 theorem hermitian_exp_mat {E : ℕ} (H : HermitianMat (Fin E) ℂ) :
     H.exp.mat=NormedSpace.exp H.mat := by
   rw [HermitianMat.exp,HermitianMat.mat_cfc]
@@ -67,9 +96,11 @@ theorem hermitian_exp_mat {E : ℕ} (H : HermitianMat (Fin E) ℂ) :
     Matrix.IsHermitian.instContinuousFunctionalCalculus
   exact CFC.real_exp_eq_normedSpace_exp H.H
 
+/-- The diagonal projection onto the coordinate indexed by `i`. -/
 def coordinateProjection {E : ℕ} (i : Fin E) : Matrix (Fin E) (Fin E) ℂ :=
   Matrix.diagonal (fun j=>if j=i then 1 else 0)
 
+/-- A coordinate projection matrix is positive semidefinite. -/
 theorem coordinateProjection_psd {E : ℕ} (i : Fin E) :
     (coordinateProjection i).PosSemidef := by
   apply Matrix.PosSemidef.diagonal
@@ -77,6 +108,8 @@ theorem coordinateProjection_psd {E : ℕ} (i : Fin E) :
   change (0 : ℂ) ≤ if j=i then 1 else 0
   split_ifs <;> simp
 
+/-- The trace pairing of `K * coordinateProjection i * Kᴴ` with `X` equals the `i`th diagonal
+entry of `Kᴴ * X * K`. -/
 theorem coordinate_sandwich_trace {D E : ℕ} (K : Matrix (Fin D) (Fin E) ℂ)
     (X : Matrix (Fin D) (Fin D) ℂ) (i : Fin E) :
     Matrix.trace ((K*coordinateProjection i*Kᴴ)*X)=(Kᴴ*X*K) i i := by
@@ -86,6 +119,8 @@ theorem coordinate_sandwich_trace {D E : ℕ} (K : Matrix (Fin D) (Fin E) ℂ)
     _ = Matrix.trace ((Kᴴ*X*K)*coordinateProjection i) := by simp only [Matrix.mul_assoc]
     _ = _ := by simp [coordinateProjection,Matrix.trace,Matrix.mul_diagonal]
 
+/-- For Hermitian `X` and `Vᴴ * V = 1`, the real trace of `exp (Vᴴ * X * V)` is at most the real
+trace of `Vᴴ * exp X * V`. -/
 theorem isometry_exp_trace_le {D E : ℕ} (X : Matrix (Fin D) (Fin D) ℂ)
     (hX : X.IsHermitian) (V : Matrix (Fin D) (Fin E) ℂ) (hV : Vᴴ*V=1) :
     (Matrix.trace (NormedSpace.exp (Vᴴ*X*V))).re ≤

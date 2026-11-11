@@ -85,6 +85,31 @@ import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
 import Qatlib.Papers.HiddenSubgrp04.MainResults.AppendixASets
 import Qatlib.Papers.HiddenSubgrp04.MainResults.AppendixAAmplitudes
+
+/-!
+# Geometric sums and Fourier coefficient bounds
+
+This module bounds geometric sums on the unit circle and relates complex exponential separation
+to nearest-integer distance. These estimates yield `lemma_A7`, a bound on `Acoef` by the
+reciprocal modular distance from the corresponding scaled frequency.
+
+The development follows [Lomont2004].
+
+## Main statements
+
+* `norm_geom_sum_le`: For a unit-norm complex number z different from one, the norm of its first
+  n geometric terms is at most 2/‖1 − z‖.
+* `pi_mul_dist_le_norm`: The distance from one to exp(2πix) is at least π times the distance
+  from x to its rounded integer.
+* `lemma_A7`: For positive L, M, and N and nonintegral phase difference k/M − i/N, bounds
+  `Acoef` by √(M/(LN)) times 2/π divided by the modular distance of k − Mi/N, under the supplied
+  index hypotheses.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -95,6 +120,8 @@ namespace Qatlib.Papers.HiddenSubgrp04.MainResults
 
 noncomputable section
 
+/-- For a unit-norm complex number z different from one, the norm of its first n geometric terms
+is at most 2/‖1 − z‖. -/
 theorem norm_geom_sum_le (z : ℂ) (n : ℕ) (hz : z ≠ 1) (hz1 : ‖z‖ = 1) :
     ‖∑ a ∈ Finset.range n, z ^ a‖ ≤ 2 / ‖1 - z‖ := by
   have hden : 0 < ‖1 - z‖ := by
@@ -109,6 +136,7 @@ theorem norm_geom_sum_le (z : ℂ) (n : ℕ) (hz : z ≠ 1) (hz1 : ‖z‖ = 1) 
   rw [hd, div_le_div_iff_of_pos_right hden]
   exact hnum
 
+/-- The distance from one to exp(2πix) equals 2|sin(πx)|. -/
 theorem norm_one_sub_exp_two_pi_I_mul (x : ℝ) :
     ‖(1 : ℂ) - Complex.exp (((2 * Real.pi * x : ℝ) : ℂ) * Complex.I)‖ =
       2 * |Real.sin (Real.pi * x)| := by
@@ -122,6 +150,7 @@ theorem norm_one_sub_exp_two_pi_I_mul (x : ℝ) :
   rw [h, Real.norm_eq_abs, abs_mul]
   norm_num
 
+/-- For |y| ≤ π/2, one has |y| ≤ 2|sin(y)|. -/
 theorem abs_le_two_mul_abs_sin {y : ℝ} (hy : |y| ≤ Real.pi / 2) :
     |y| ≤ 2 * |Real.sin y| := by
   have h := Real.mul_abs_le_abs_sin hy
@@ -136,6 +165,8 @@ theorem abs_le_two_mul_abs_sin {y : ℝ} (hy : |y| ≤ Real.pi / 2) :
     _ ≤ 2 * ((2 / Real.pi) * |y|) := mul_le_mul_of_nonneg_left hstep (by norm_num)
     _ ≤ 2 * |Real.sin y| := mul_le_mul_of_nonneg_left h (by norm_num)
 
+/-- The distance from one to exp(2πix) is at least π times the distance from x to its rounded
+integer. -/
 theorem pi_mul_dist_le_norm (x : ℝ) :
     Real.pi * |x - (nearInt x : ℝ)| ≤
       ‖(1 : ℂ) - Complex.exp (((2 * Real.pi * x : ℝ) : ℂ) * Complex.I)‖ := by
@@ -158,6 +189,7 @@ theorem pi_mul_dist_le_norm (x : ℝ) :
   rw [hyle]
   exact abs_le_two_mul_abs_sin hmem
 
+/-- Expresses `omega n` as the complex exponential with imaginary argument 2π/n. -/
 theorem omega_eq (n : ℕ) :
     omega n = Complex.exp (((2 * Real.pi / (n : ℝ)) : ℝ) * Complex.I) := by
   unfold omega
@@ -165,6 +197,7 @@ theorem omega_eq (n : ℕ) :
   push_cast
   ring
 
+/-- For nonzero M and N, the ratio of the Fourier phases equals exp(2πi(k/M − i/N)). -/
 theorem omega_ratio_eq (M N i k : ℕ) (hM : M ≠ 0) (hN : N ≠ 0) :
     (omega N ^ i)⁻¹ * omega M ^ k =
       Complex.exp (((2 * Real.pi * ((k : ℝ) / (M : ℝ) - (i : ℝ) / (N : ℝ)) : ℝ) : ℂ) *
@@ -180,11 +213,14 @@ theorem omega_ratio_eq (M N i k : ℕ) (hM : M ≠ 0) (hN : N ≠ 0) :
   field_simp [hMc, hNc]
   ring
 
+/-- For nonzero M and N, the ratio of the specified Fourier phases has norm one. -/
 theorem norm_omega_ratio (M N i k : ℕ) (hM : M ≠ 0) (hN : N ≠ 0) :
     ‖(omega N ^ i)⁻¹ * omega M ^ k‖ = 1 := by
   rw [omega_ratio_eq M N i k hM hN]
   exact Complex.norm_exp_ofReal_mul_I _
 
+/-- If M and N are nonzero and k/M − i/N is not an integer, the specified ratio of Fourier
+phases is different from one. -/
 theorem omega_ratio_ne_one (M N i k : ℕ) (hM : M ≠ 0) (hN : N ≠ 0)
     (hnotint : ¬ ∃ z : ℤ, (k : ℝ) / (M : ℝ) - (i : ℝ) / (N : ℝ) = (z : ℝ)) :
     (omega N ^ i)⁻¹ * omega M ^ k ≠ 1 := by
@@ -204,6 +240,9 @@ theorem omega_ratio_ne_one (M N i k : ℕ) (hM : M ≠ 0) (hN : N ≠ 0)
   rw [← Complex.ofReal_intCast n] at h1
   exact Complex.ofReal_injective h1
 
+/-- For positive L, M, and N and nonintegral phase difference k/M − i/N, bounds `Acoef` by
+√(M/(LN)) times 2/π divided by the modular distance of k − Mi/N, under the supplied index
+hypotheses ([Lemma A.7][Lomont2004]). -/
 theorem lemma_A7 (L M N i k : ℕ) (hL : 0 < L) (hM : 0 < M) (hN : 0 < N)
     (_hi : i < N) (_hk : k < M)
     (hnotint : ¬ ∃ z : ℤ, (k : ℝ) / (M : ℝ) - (i : ℝ) / (N : ℝ) = (z : ℝ)) :
@@ -333,6 +372,8 @@ theorem lemma_A7 (L M N i k : ℕ) (hL : 0 < L) (hM : 0 < M) (hN : 0 < N)
     _ = Real.sqrt ((M : ℝ) / ((L : ℝ) * (N : ℝ))) * (2 / Real.pi) *
         (1 / distMod (M : ℝ) y) := step4
 
+/-- Establishes `lemma_A7Statement` under its positive-size, index, and nonintegral
+phase-difference hypotheses. -/
 theorem lemma_A7_statement (L M N i k : ℕ) (hL : 0 < L) (hM : 0 < M) (hN : 0 < N)
     (hi : i < N) (hk : k < M)
     (hnotint : ¬ ∃ z : ℤ, (k : ℝ) / (M : ℝ) - (i : ℝ) / (N : ℝ) = (z : ℝ)) :

@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetCore
 import Qatlib.Concepts.AmplitudeSearch.Amplification.CompletionLaw
 import Qatlib.Concepts.AmplitudeSearch.Amplification.QueryClock
+
+/-!
+# Initialized budget coupling for BBHT runs
+
+`initializedBBHTLaw` charges a fixed initialization amount in addition to each terminal
+Boolean-query cost. The module unfolds the corresponding budgeted minimum-finding procedure
+after paying initialization and compares ranked-run completion with actual success.
+
+The construction connects explicit initialization costs to the BBHT search and quantum
+minimum-finding framework of [BoyerEtAl1998] and [DurrHoyer1996].
+
+## Main statements
+
+* `minimumBudgetSuccessWithInit_step`: unfolds an affordable initialized search call.
+* `initializedCompletion_le_actual_success`: couples initialized completion mass to actual
+  success.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+* [Durr and Hoyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +45,8 @@ open Qatlib
 open Qatlib.Concepts.SearchStopping.GroverSuccess
 open Qatlib.Concepts.SearchStopping.UnknownCount
 open Qatlib
+/-- The ranked BBHT law charging a fixed initialization cost plus the terminal Boolean query
+count for each call. -/
 noncomputable def initializedBBHTLaw {N : ℕ} (e : Fin N ≃ Fin N) (initialization : ℕ) :
     RankedCallLaw N (SearchTrace N) :=
   bbhtJointLaw e (fun x => ((initialization + TerminalBooleanQueries (ExponentialSizes N) x : ℕ) : ℝ))
@@ -29,6 +54,8 @@ noncomputable def initializedBBHTLaw {N : ℕ} (e : Fin N ≃ Fin N) (initializa
 
 variable {N : ℕ} {α : Type*} [LinearOrder α]
 
+/-- When initialization fits the budget and `N ≠ 1`, initialized minimum-finding success unfolds
+into a finite-budget search on the remaining budget followed by checked recursion. -/
 theorem minimumBudgetSuccessWithInit_step (T : Fin N → α) (hN1 : N ≠ 1)
     (initialization budget : ℕ) (hpaid : initialization ≤ budget) (current : Fin N) :
     minimumBudgetSuccessWithInit T initialization budget current =
@@ -39,6 +66,8 @@ theorem minimumBudgetSuccessWithInit_step (T : Fin N → α) (hN1 : N ≠ 1)
   rw [minimumBudgetSuccessWithInit, minimumBudgetEvalWithInit, if_neg hN1, if_pos hpaid]
   rfl
 
+/-- For a sorted ranked table, completion mass under initialization-plus-query charges is
+bounded by the actual initialized minimum-finding success probability. -/
 theorem initializedCompletion_le_actual_success (T : SortedRankedTable N α) (hN : 0 < N)
     (initialization : ℕ) (initial : Fin N) (budget : ℕ) :
     (initializedBBHTLaw T.indexOfRank initialization).completionMass T.skip

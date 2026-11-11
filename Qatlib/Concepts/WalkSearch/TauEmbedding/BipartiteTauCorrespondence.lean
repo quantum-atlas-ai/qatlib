@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
+
+/-!
+# Bipartite τ maps and eigenspace correspondence
+
+This module defines `bipartiteTauLinear` and proves the source-to-walk correspondence for two
+isometric frames. For `0 < lam < 1`, each signed τ map gives a linear equivalence from the
+discriminant eigenspace to the corresponding walk eigenspace on the combined frame range, and
+the distinct signs contribute twice the source dimension.
+
+Endpoint transport uses the combined-frame map at discriminant eigenvalues one and zero. These
+equivalences produce `bipartite_labeled_busy_spectral_frame`, an orthonormal eigenframe labeled
+by its source vectors, in the spectral framework of [Szegedy2004].
+
+## Main statements
+
+* `bipartite_interior_tau_preimage`: nonzero interior sources for walk eigenvectors.
+* `bipartite_tau_eigenspace_pair_equivalence`: signed equivalences and dimension formula.
+* `bipartite_labeled_busy_spectral_frame`: complete source-labeled frame on the combined range.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -33,6 +57,8 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The signed linear τ map combining the left frame image with the right frame image scaled by
+`-lam ± i * sqrt (1 - lam^2)`. -/
 noncomputable def bipartiteTauLinear {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (lam : ℝ) (s : Bool) :
@@ -44,9 +70,12 @@ noncomputable def bipartiteTauLinear {H I J : Type} [Fintype H] [DecidableEq H]
 variable {H I J : Type} [Fintype H] [DecidableEq H]
   [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
+/-- The signed complex coefficient `-lam ± i * sqrt (1 - lam^2)` in the bipartite τ map. -/
 private def tauCoeff (lam : ℝ) (s : Bool) : ℂ :=
   -(lam : ℂ) + (if s then Complex.I else -Complex.I) * (Real.sqrt (1-lam^2) : ℂ)
 
+/-- For `0 < lam < 1`, the τ coefficient squares to the associated walk phase, satisfies the
+stated quadratic identity, is nonzero, and gives a phase different from one. -/
 private theorem tau_coeff_laws (lam : ℝ) (s : Bool) (hl : 0 < lam) (hu : lam < 1) :
     tauCoeff lam s * tauCoeff lam s = bipartitePhase lam s ∧
     2 * (lam : ℂ) * tauCoeff lam s + 1 = -bipartitePhase lam s ∧
@@ -71,11 +100,15 @@ private theorem tau_coeff_laws (lam : ℝ) (s : Bool) (hl : 0 < lam) (hu : lam <
       simp only [pow_two] at hr
       rcases hh with he | he <;> linarith
 
+/-- Evaluate the linear τ map as the left frame image plus the τ coefficient times the right
+frame image. -/
 private theorem tau_apply (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     (lam : ℝ) (s : Bool) (u : QState (I⊕J)) :
     bipartiteTauLinear A B lam s u =
       A*ᵥ(fun i => u (.inl i)) + tauCoeff lam s • (B*ᵥ(fun j => u (.inr j))) := rfl
 
+/-- Every vector in an interior signed-phase walk eigenspace has a discriminant eigenvector
+preimage under the corresponding τ map. -/
 private theorem tau_interior_preimage (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     (hA : IsIsometry A) (hB : IsIsometry B) (w : QState H) (lam : ℝ) (s : Bool)
     (hl : 0 < lam) (hu : lam < 1)
@@ -165,6 +198,8 @@ private theorem tau_interior_preimage (A : Matrix H I ℂ) (B : Matrix H J ℂ)
         module
       _ = w := by rw [hh,smul_smul,inv_mul_cancel₀ hz1,one_smul]
 
+/-- Every nonzero walk eigenvector at an interior signed phase is the τ image of a nonzero
+discriminant eigenvector at `lam` [Szegedy2004]. -/
 theorem bipartite_interior_tau_preimage :
   ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)
@@ -180,6 +215,8 @@ theorem bipartite_interior_tau_preimage :
   rw [he,map_zero] at huw
   exact hw0 huw.symm
 
+/-- A bipartite discriminant eigenvector satisfies the two cross-Gram equations for its left and
+right components. -/
 private theorem tau_disc_blocks (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     (u : QState (I⊕J)) (lam : ℝ) (hd : bipartiteDiscriminant A B*ᵥu=(lam:ℂ)•u) :
     (Aᴴ*B)*ᵥ(fun j => u (.inr j))=(lam:ℂ)•(fun i => u (.inl i)) ∧
@@ -190,6 +227,8 @@ private theorem tau_disc_blocks (A : Matrix H I ℂ) (B : Matrix H J ℂ)
   · have hh := congrArg (fun v : QState (I⊕J) => fun j => v (.inr j)) hd
     simpa [bipartiteDiscriminant,Matrix.fromBlocks_mulVec] using! hh
 
+/-- The τ image of an interior discriminant eigenvector is a walk eigenvector at the
+corresponding signed phase and lies in the combined frame range. -/
 private theorem tau_forward (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     (hA : IsIsometry A) (hB : IsIsometry B) (u : QState (I⊕J)) (lam : ℝ) (s : Bool)
     (hl : 0 < lam) (hu : lam < 1) (hd : bipartiteDiscriminant A B*ᵥu=(lam:ℂ)•u) :
@@ -235,6 +274,8 @@ private theorem tau_forward (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     change bipartiteTilde A B*ᵥ(Sum.elim a (c•b))=bipartiteTauLinear A B lam s u
     rw [bipartiteTilde,Matrix.fromCols_mulVec_sumElim,Matrix.mulVec_smul,tau_apply]
 
+/-- The τ map has trivial kernel on an interior discriminant eigenspace when the left frame is
+isometric. -/
 private theorem tau_kernel_trivial (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     (hA : IsIsometry A) (u : QState (I⊕J)) (lam : ℝ) (s : Bool)
     (hl : 0 < lam) (hu : lam < 1) (hd : bipartiteDiscriminant A B*ᵥu=(lam:ℂ)•u)
@@ -264,6 +305,9 @@ private theorem tau_kernel_trivial (A : Matrix H I ℂ) (B : Matrix H J ℂ)
   · exact congrFun ha i
   · exact congrFun hb j
 
+/-- For `0 < lam < 1`, the two walk phases are distinct and each corresponding eigenspace in the
+combined frame range is linearly equivalent to the discriminant eigenspace at `lam`. Their
+sum has twice the source dimension [Szegedy2004]. -/
 theorem bipartite_tau_eigenspace_pair_equivalence :
   ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ) (lam : ℝ),
@@ -351,6 +395,8 @@ theorem bipartite_tau_eigenspace_pair_equivalence :
   rw [hdisjoint.eq_bot,finrank_bot,add_zero,← ep.finrank_eq,← em.finrank_eq] at hdim
   omega
 
+/-- A walk fixed vector in the combined frame range is the combined-frame image of a
+discriminant fixed vector. -/
 private theorem tau_endpoint_plus_preimage (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     (hA : IsIsometry A) (hB : IsIsometry B) (w : QState H)
     (hw : bipartiteWalk A B*ᵥw=w)
@@ -372,6 +418,8 @@ private theorem tau_endpoint_plus_preimage (A : Matrix H I ℂ) (B : Matrix H J 
       Matrix.mulVec_mulVec,Matrix.mulVec_mulVec,hp.1,hp.2]
     module
 
+/-- A minus-one walk eigenvector is the combined-frame image of a vector in the discriminant
+kernel. -/
 private theorem tau_endpoint_zero_preimage (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     (hA : IsIsometry A) (hB : IsIsometry B) (w : QState H)
     (hw : bipartiteWalk A B*ᵥw=-w) :
@@ -396,6 +444,8 @@ private theorem tau_endpoint_zero_preimage (A : Matrix H I ℂ) (B : Matrix H J 
     simp [hga,hgb]
   · simpa only [bipartiteTilde,Matrix.fromCols_mulVec_sumElim,Matrix.mulVec_mulVec] using! hs
 
+/-- The combined-frame map has trivial kernel on a discriminant eigenspace whose eigenvalue is
+different from minus one. -/
 private theorem tau_tilde_kernel_trivial (A : Matrix H I ℂ) (B : Matrix H J ℂ)
     (hA : IsIsometry A) (hB : IsIsometry B) (u : QState (I⊕J)) (a : ℂ)
     (ha : 1+a ≠ 0) (hd : bipartiteDiscriminant A B*ᵥu=a•u)
@@ -407,6 +457,9 @@ private theorem tau_tilde_kernel_trivial (A : Matrix H I ℂ) (B : Matrix H J �
   have hz : (1+a)•u=0 := by simpa only [add_smul,one_smul] using! hh
   exact (smul_eq_zero.mp hz).resolve_left ha
 
+/-- The combined-frame map gives linear equivalences from the discriminant eigenspaces at one
+and zero to the walk eigenspaces at one and minus one within the combined frame range
+[Szegedy2004]. -/
 theorem bipartite_endpoint_eigenspace_transport :
   ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),
@@ -487,6 +540,9 @@ theorem bipartite_endpoint_eigenspace_transport :
   exact ⟨⟨LinearEquiv.ofBijective f₁ ⟨hinj₁,hsurj₁⟩,fun u => rfl⟩,
     ⟨LinearEquiv.ofBijective f₀ ⟨hinj₀,hsurj₀⟩,fun u => rfl⟩⟩
 
+/-- Construct an orthonormal walk eigenframe spanning the combined frame range, with dimension
+equal to its rank and every column labeled by a nonzero endpoint or signed interior
+discriminant source [Szegedy2004]. -/
 theorem bipartite_labeled_busy_spectral_frame :
   ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),

@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+
+/-!
+# Counted LCU Circuits for Routed Taylor Words
+
+`routedCoefficientWord` combines coefficient preparation and phases with the routed Taylor block
+list. Compression through `taylorFrame` gives the coefficient-weighted sum of Taylor branch
+words, producing an exact block encoding when the queried matrix family is unitary.
+
+`routedPaddedCoefficients` adds two opposite coefficients on identity branches so that
+coefficient mass becomes two without changing the encoded operator. The resulting counted
+circuit supplies the normalization-two input used for coherent amplification in the CBMD
+algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `routed_blocks_evaluate` and `routed_blocks_cost` identify the routed product and its `n`
+  queries and `2 * n` fixed gates.
+* `routedCoefficientWord_compress` computes the normalized LCU, and
+  `routedCoefficientWord_blockEncoding` gives its exact encoding.
+* `routedPaddedCoefficients_mass` and `routedPaddedCoefficients_operator` establish mass two and
+  cancellation of the padding.
+* `routed_padded_lcu_counted` gives an exact normalization-two encoding using `K` queries and `2
+  * K + 3` fixed gates.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,6 +75,8 @@ open scoped Matrix.Norms.L2Operator
 
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
+/-- The routed Taylor LCU word formed from coefficient preparation, coefficient phases, and `K`
+routed query blocks. -/
 def routedCoefficientWord (K : ℕ) (c : TaylorWordLabel J K → ℂ) (j₀ : J) :
     List (AdjointStep (TaylorWordLabel J K × (Bool × (J × I)))) :=
   [.gate (prepareRegister (I := Bool × (J × I))
@@ -56,6 +87,8 @@ def routedCoefficientWord (K : ℕ) (c : TaylorWordLabel J K → ℂ) (j₀ : J)
   [.gate (prepareRegister (I := Bool × (J × I))
       (coefficientPrepare c (taylorEmptyLabel J K)))]
 
+/-- Evaluation of the first `n` routed Taylor blocks against `taylorQuery` equals
+`taylorSelectProductAux`. -/
 theorem routed_blocks_evaluate (U : J → Matrix I I ℂ) (j₀ : J) (K n : ℕ)
     (hn : n ≤ K) :
     evaluate (taylorQuery U K) (taylorBlockList j₀ K n hn) =
@@ -68,6 +101,7 @@ theorem routed_blocks_evaluate (U : J → Matrix I I ℂ) (j₀ : J) (K n : ℕ)
 
 omit [Fintype J] [Fintype I] in
 
+/-- The routed Taylor block list of length `n` uses exactly `n` queries and `2 * n` fixed gates. -/
 theorem routed_blocks_cost (j₀ : J) (K n : ℕ) (hn : n ≤ K) :
     adjointQueryCount (taylorBlockList (I := I) j₀ K n hn) = n ∧
     adjointGateCount (taylorBlockList (I := I) j₀ K n hn) = 2 * n := by
@@ -79,6 +113,7 @@ theorem routed_blocks_cost (j₀ : J) (K n : ℕ) (hn : n ≤ K) :
       taylorQueryRouteStep, adjointQueryCount, adjointGateCount, hq, hg]
     constructor <;> omega
 
+/-- Every routed Taylor block list with `n ≤ K` is a well-formed adjoint circuit. -/
 theorem routed_blocks_wellFormed (j₀ : J) (K n : ℕ) (hn : n ≤ K) :
     WellFormedAdjointCircuit (taylorBlockList (I := I) j₀ K n hn) := by
   induction n with
@@ -92,6 +127,7 @@ theorem routed_blocks_wellFormed (j₀ : J) (K n : ℕ) (hn : n ≤ K) :
 
 omit [Fintype I] in
 
+/-- The routed coefficient word uses exactly `K` queries and `2 * K + 3` fixed gates. -/
 theorem routedCoefficientWord_cost (K : ℕ) (c : TaylorWordLabel J K → ℂ) (j₀ : J) :
     adjointQueryCount (routedCoefficientWord (I := I) K c j₀) = K ∧
     adjointGateCount (routedCoefficientWord (I := I) K c j₀) = 2 * K + 3 := by
@@ -100,6 +136,7 @@ theorem routedCoefficientWord_cost (K : ℕ) (c : TaylorWordLabel J K → ℂ) (
     adjointQueryCount, adjointGateCount, hq, hg]
   constructor <;> omega
 
+/-- Positive coefficient mass makes the routed coefficient word well formed. -/
 theorem routedCoefficientWord_wellFormed (K : ℕ) (c : TaylorWordLabel J K → ℂ) (j₀ : J)
     (hc : 0 < coefficientMass c) :
     WellFormedAdjointCircuit (routedCoefficientWord (I := I) K c j₀) := by
@@ -116,10 +153,13 @@ theorem routedCoefficientWord_wellFormed (K : ℕ) (c : TaylorWordLabel J K → 
     · exact routed_blocks_wellFormed j₀ K K le_rfl
   · simpa using hp
 
+/-- Embeds the Taylor-label and system space into the routed workspace with scratch control
+false and scratch query label `j₀`. -/
 private def routedScratchFrame (j₀ : J) (K : ℕ) :
     Matrix (TaylorWordLabel J K × (Bool × (J × I))) (TaylorWordLabel J K × I) ℂ :=
   Matrix.of fun x y => if (y.1, (false, (j₀, y.2))) = x then 1 else 0
 
+/-- The clean-scratch embedding `routedScratchFrame` is an isometry. -/
 private theorem routedScratchFrame_isometry (j₀ : J) (K : ℕ) :
     IsIsometry (routedScratchFrame (I := I) j₀ K) := by
   unfold IsIsometry
@@ -127,6 +167,8 @@ private theorem routedScratchFrame_isometry (j₀ : J) (K : ℕ) :
   simp [routedScratchFrame, Matrix.mul_apply, Matrix.conjTranspose_apply,
     Matrix.one_apply, eq_comm]
 
+/-- Multiplication by the scratch frame inserts zeros outside the false-control, `j₀` scratch
+sector and otherwise returns the corresponding entry of `V`. -/
 private theorem routedScratchFrame_mul {O : Type} (j₀ : J) (K : ℕ)
     (V : Matrix (TaylorWordLabel J K × I) O ℂ)
     (x : TaylorWordLabel J K × (Bool × (J × I))) (y : O) :
@@ -143,6 +185,8 @@ private theorem routedScratchFrame_mul {O : Type} (j₀ : J) (K : ℕ)
     simp [hj]
   all_goals simp_all [Matrix.mul_apply, routedScratchFrame, eq_comm]
 
+/-- The scratch embedding of a selected branch operator agrees entrywise with the corresponding
+Taylor branch frame multiplied by that branch operator. -/
 private theorem routedScratchFrame_select (j₀ : J) (K : ℕ)
     (V : TaylorWordLabel J K → Matrix I I ℂ)
     (x : TaylorWordLabel J K × (Bool × (J × I))) (w : TaylorWordLabel J K) (i : I) :
@@ -151,6 +195,8 @@ private theorem routedScratchFrame_select (j₀ : J) (K : ℕ)
   simp [Matrix.mul_apply, select, routedScratchFrame, taylorBranchFrame,
     Fintype.sum_prod_type, mul_ite, eq_comm]
 
+/-- The full routed Taylor product intertwines the scratch embedding with the selected family of
+Taylor branch words. -/
 private theorem routed_blocks_scratch (U : J → Matrix I I ℂ) (j₀ : J) (K : ℕ) :
     taylorSelectProductAux U j₀ K K le_rfl * routedScratchFrame (I := I) j₀ K =
       routedScratchFrame (I := I) j₀ K * select (taylorBranchWord U K K le_rfl) := by
@@ -159,6 +205,8 @@ private theorem routed_blocks_scratch (U : J → Matrix I I ℂ) (j₀ : J) (K :
   change (taylorSelectProductAux U j₀ K K le_rfl * taylorBranchFrame (I := I) j₀ K w) x i = _
   exact congrFun (congrFun (taylorSelectProduct_branch U j₀ K K le_rfl w) x) i
 
+/-- Multiplying by a Taylor branch frame selects the column whose branch is `w`, scratch control
+is false, and scratch label is `j₀`. -/
 private theorem mul_routedBranchFrame
     (j₀ : J) (K : ℕ)
     (M : Matrix (TaylorWordLabel J K × (Bool × (J × I)))
@@ -168,6 +216,8 @@ private theorem mul_routedBranchFrame
     (M * taylorBranchFrame (I := I) j₀ K w) x i = M x (w, false, j₀, i) := by
   simp [Matrix.mul_apply, taylorBranchFrame, mul_ite]
 
+/-- Coefficient-register preparation maps the clean Taylor frame to the coefficient-amplitude
+preparation lifted through the scratch embedding. -/
 private theorem routed_prepare_frame (K : ℕ) (c : TaylorWordLabel J K → ℂ) (j₀ : J) :
     prepareRegister (I := Bool × (J × I)) (coefficientPrepare c (taylorEmptyLabel J K)) *
         taylorFrame (I := I) j₀ K =
@@ -187,6 +237,8 @@ private theorem routed_prepare_frame (K : ℕ) (c : TaylorWordLabel J K → ℂ)
     simp [prepareRegister, Matrix.kroneckerMap_apply, Matrix.one_apply,
       hcolumn, prepareLift, hj]
 
+/-- The routed coefficient-phase gate intertwines the scratch embedding with the
+coefficient-phase gate on the Taylor-label and system space. -/
 private theorem routed_phase_scratch (K : ℕ) (c : TaylorWordLabel J K → ℂ) (j₀ : J) :
     select (phaseAbsorbed c
       (fun _ => (1 : Matrix (Bool × (J × I)) (Bool × (J × I)) ℂ))) *
@@ -202,6 +254,8 @@ private theorem routed_phase_scratch (K : ℕ) (c : TaylorWordLabel J K → ℂ)
   cases b <;> by_cases hj : j = j₀ <;>
     simp [select, phaseAbsorbed, Matrix.smul_apply, Matrix.one_apply, hj]
 
+/-- For positive coefficient mass, compression of the routed coefficient word equals the Taylor
+branch-word sum weighted by `c w / coefficientMass c`. -/
 theorem routedCoefficientWord_compress (K : ℕ) (c : TaylorWordLabel J K → ℂ)
     (j₀ : J) (U : J → Matrix I I ℂ) (hc : 0 < coefficientMass c) :
     compress (taylorFrame (I := I) j₀ K) (evaluate (taylorQuery U K) (routedCoefficientWord K c j₀))
@@ -247,6 +301,8 @@ theorem routedCoefficientWord_compress (K : ℕ) (c : TaylorWordLabel J K → �
     _ = _ := by
       rw [prepare_select_compress, coefficientLCU_matrix c B hc]
 
+/-- For unitary branch queries and positive coefficient mass, the routed coefficient word
+exactly block-encodes the weighted Taylor branch sum with normalization `coefficientMass c`. -/
 theorem routedCoefficientWord_blockEncoding (K : ℕ) (c : TaylorWordLabel J K → ℂ)
     (j₀ : J) (U : J → Matrix I I ℂ) (hc : 0 < coefficientMass c)
     (hU : ∀ j, U j ∈ Matrix.unitaryGroup I ℂ) :
@@ -260,6 +316,8 @@ theorem routedCoefficientWord_blockEncoding (K : ℕ) (c : TaylorWordLabel J K �
     coefficientLCU_rescale c (taylorBranchWord U K K le_rfl) hc,
     sub_self, norm_zero]
 
+/-- Extends the Taylor coefficients by two opposite real coefficients on the padding labels,
+each of magnitude `(2 - coefficientMass a) / 2` when the original mass is at most two. -/
 def routedPaddedCoefficients (K : ℕ)
     (a : (Σ l : Fin (K + 1), Fin l.val → J) → ℂ) : TaylorWordLabel J K → ℂ
   | .inl w => a w
@@ -268,6 +326,8 @@ def routedPaddedCoefficients (K : ℕ)
 
 omit [DecidableEq J] in
 
+/-- If the original Taylor coefficient mass is at most two, the padded coefficient family has
+mass exactly two. -/
 theorem routedPaddedCoefficients_mass (K : ℕ)
     (a : (Σ l : Fin (K + 1), Fin l.val → J) → ℂ) (ha : coefficientMass a ≤ 2) :
     coefficientMass (routedPaddedCoefficients K a) = 2 := by
@@ -281,6 +341,7 @@ theorem routedPaddedCoefficients_mass (K : ℕ)
 
 omit [Fintype J] [DecidableEq J] in
 
+/-- Every padding-label Taylor branch word is the identity for any routed prefix length `n ≤ K`. -/
 theorem routed_padding_branch (U : J → Matrix I I ℂ) (K n : ℕ) (hn : n ≤ K)
     (b : Bool) : taylorBranchWord U K n hn (.inr b) = 1 := by
   induction n with
@@ -289,6 +350,8 @@ theorem routed_padding_branch (U : J → Matrix I I ℂ) (K n : ℕ) (hn : n ≤
 
 omit [DecidableEq J] in
 
+/-- The two padding branches cancel, so padding the coefficients leaves the weighted sum of
+genuine Taylor branch words unchanged. -/
 theorem routedPaddedCoefficients_operator (K : ℕ)
     (a : (Σ l : Fin (K + 1), Fin l.val → J) → ℂ) (U : J → Matrix I I ℂ) :
     (∑ w, routedPaddedCoefficients K a w • taylorBranchWord U K K le_rfl w) =
@@ -297,6 +360,9 @@ theorem routedPaddedCoefficients_operator (K : ℕ)
   rw [Fintype.sum_sum_type]
   simp [routedPaddedCoefficients, routed_padding_branch]
 
+/-- For unitary query matrices and coefficient mass at most two, the padded routed word is well
+formed and exactly block-encodes the genuine Taylor sum with normalization two. It uses `K`
+queries and `2 * K + 3` fixed gates. -/
 theorem routed_padded_lcu_counted (K : ℕ)
     (a : (Σ l : Fin (K + 1), Fin l.val → J) → ℂ) (j₀ : J)
     (U : J → Matrix I I ℂ) (ha : coefficientMass a ≤ 2)

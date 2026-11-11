@@ -8,6 +8,36 @@ import Qatlib.Papers.OverlapGapGoh26.UniformGrid.GroundPath
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.Consumer
 import Qatlib.Papers.OverlapGapGoh26.OgpBridge.SmallSpin
 import Qatlib.Papers.OverlapGapGoh26.OgpBridge.MaximizingSpin
+
+/-!
+# Probability bounds for the raw cube energy obstruction
+
+The module combines a continuous raw spin path, norm control, energy stability, ground energy
+stability, and endpoint decorrelation with a density overlap gap assumption.
+`actual_raw_good_events_obstruct` rules out simultaneous success and these path conditions;
+`actual_raw_cube_nogo_bound` turns the resulting event inclusion into an explicit Gaussian
+probability bound. This is the conditional raw dynamics obstruction associated with
+[GohMuller2026].
+
+## Main statements
+
+* `actual_raw_good_events_obstruct`: For positive `r`, `N ≥ 2`, and the stated margin and
+  overlap thresholds, the density overlap gap condition, bounded endpoint norms, uniform energy
+  and maximum deviations below `μ/8`, small endpoint overlap, and initial success within `μ/8`
+  cannot all hold.
+* `actual_raw_success_subset`: Under the stated degree, dimension, and threshold conditions,
+  initial cube success within `μ/8` forces failure of the input overlap gap or norm region, an
+  energy or ground deviation, or an endpoint overlap deviation.
+* `actual_raw_cube_nogo_bound`: For odd `r`, `N ≥ 2`, a schedule in `[0,1]`, `μ > 0`, and `0 <
+  ν₁ < ν₂ < 1`, the raw cube success probability at margin `μ/8` is bounded by the displayed sum
+  of model overlap gap failure, exponential norm tails, energy and ground fluctuations, and
+  endpoint overlap terms.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,11 +62,15 @@ open Qatlib.Papers.OverlapGapGoh26.OgpBridge.SmallSpin
 
 namespace Qatlib.Papers.OverlapGapGoh26.MainResults.RawNoGo
 
+/-- Interpolating the two negated source tensors equals the negated source tensor extracted from
+the combined input path. -/
 theorem cost_path {r N : ℕ} (x y : Input r N) (τ : ℝ) :
     interpolate (-(sourceTensor (tensorCoords x).ofLp)) (-(sourceTensor (tensorCoords y).ofLp)) τ=
       -(sourceTensor (tensorCoords (inputPath x y τ)).ofLp) := by
   rw [Qatlib.Papers.OverlapGapGoh26.OgpBridge.MaximizingSpin.interpolate_neg,source_tensor_path]
 
+/-- For `N > 0`, if the raw energy density is within `μ` below the cube maximum along the input
+path, then the negated tensor energy of the spin path is at most its cube minimum plus `Nμ`. -/
 theorem cost_near_of_gap {r N : ℕ} (hN : 0< N) (s : ℕ→ℝ) (T : ℕ) (x y : Input r N)
     (τ μ : ℝ) (hgap : maximum (inputPath x y τ)-energy s T (inputPath x y τ)≤μ) :
     tensorEnergy (interpolate (-(sourceTensor (tensorCoords x).ofLp)) (-(sourceTensor (tensorCoords y).ofLp)) τ)
@@ -53,6 +87,8 @@ theorem cost_near_of_gap {r N : ℕ} (hN : 0< N) (s : ℕ→ℝ) (T : ℕ) (x y 
       simpa only [sub_div] using! hgap)
   linarith
 
+/-- For `N ≥ 2` and `0 < ν₁ < ν₂ < 1`, the density ensemble overlap gap condition on the negated
+source tensors forces the cube maximum density along the path to be at least `μ`. -/
 theorem maximum_ge_ogp_margin {r N : ℕ} (hN : 2≤ N) (x y : Input r N)
     (μ ν₁ ν₂ : ℝ) (hlo : 0<ν₁) (hgap : ν₁<ν₂) (hhi : ν₂<1)
     (hogp : densityEnsembleOGP (-(sourceTensor (tensorCoords x).ofLp)) (-(sourceTensor (tensorCoords y).ofLp)) μ ν₁ ν₂)
@@ -62,6 +98,8 @@ theorem maximum_ge_ogp_margin {r N : ℕ} (hN : 2≤ N) (x y : Input r N)
   rw [maximum_formula,neg_div]
   linarith
 
+/-- For positive `r`, `N`, and `K`, if `normScale x ≤ 2K` and the raw energy density is at least
+`μ/2`, then the endpoint spin norm is at least `μ√N / (4K(r+1))`. -/
 theorem actual_spin_norm_lower {r N T : ℕ} (hr : 0< r) (hN : 0< N) (s : ℕ→ℝ)
     (x : Input r N) (K μ : ℝ) (hK : 0< K) (hx : normScale x≤2*K)
     (hE : μ/2≤ energy s T x) :
@@ -83,17 +121,24 @@ theorem actual_spin_norm_lower {r N T : ℕ} (hr : 0< r) (hN : 0< N) (s : ℕ→
   apply (div_le_iff₀ (by positivity : 0<4*K*((r+1:ℕ):ℝ))).mpr
   nlinarith
 
+/-- The normalized spin radius `μ / (4 * normBound r * (r+1))` used in the raw path obstruction. -/
 def normRadius (r : ℕ) (μ : ℝ) : ℝ := μ/(4*normBound r*((r+1:ℕ):ℝ))
 
+/-- The endpoint overlap tolerance `ν * (normRadius r μ)^2`. -/
 def overlapTolerance (r : ℕ) (μ ν : ℝ) : ℝ := ν*(normRadius r μ)^2
 
+/-- A positive energy margin `μ` gives a strictly positive `normRadius r μ`. -/
 theorem normRadius_pos (r : ℕ) (μ : ℝ) (hμ : 0<μ) : 0< normRadius r μ := by
   unfold normRadius
   exact div_pos hμ (mul_pos (mul_pos (by norm_num) (normBound_pos r)) (by positivity))
 
+/-- Positive energy and overlap margins give a strictly positive `overlapTolerance r μ ν`. -/
 theorem overlapTolerance_pos (r : ℕ) (μ ν : ℝ) (hμ : 0<μ) (hν : 0<ν) : 0< overlapTolerance r μ ν :=
   mul_pos hν (sq_pos_of_pos (normRadius_pos r μ hμ))
 
+/-- For positive `r`, `N ≥ 2`, and the stated margin and overlap thresholds, the density overlap
+gap condition, bounded endpoint norms, uniform energy and maximum deviations below `μ/8`,
+small endpoint overlap, and initial success within `μ/8` cannot all hold. -/
 theorem actual_raw_good_events_obstruct {r N T : ℕ} (hr : 0< r) (hN : 2≤ N)
     (s : ℕ→ℝ) (x y : Input r N) (μ ν₁ ν₂ : ℝ) (hμ : 0<μ) (hlo : 0<ν₁) (hgap : ν₁<ν₂) (hhi : ν₂<1)
     (hogp : densityEnsembleOGP (-(sourceTensor (tensorCoords x).ofLp)) (-(sourceTensor (tensorCoords y).ofLp)) μ ν₁ ν₂)
@@ -153,24 +198,37 @@ theorem actual_raw_good_events_obstruct {r N T : ℕ} (hr : 0< r) (hN : 2≤ N)
     (cost_near_of_gap hn s T x y 0 μ (hnear' 0 hzero)) (cost_near_of_gap hn s T x y τ μ (hnear' τ hτ))
   rcases hbad with hbad|hbad <;> linarith
 
+/-- The event that a tensor pair satisfies the density ensemble overlap gap condition with the
+given energy margin and overlap thresholds. -/
 def modelOgp (r N : ℕ) (μ ν₁ ν₂ : ℝ) : Set (Tensor (r+1) N×Tensor (r+1) N) :=
   {p | densityEnsembleOGP p.1 p.2 μ ν₁ ν₂}
 
+/-- The event that the negated source tensors extracted from an input pair satisfy the density
+ensemble overlap gap condition. -/
 def inputOgp (r N : ℕ) (μ ν₁ ν₂ : ℝ) : Set (Input r N×Input r N) :=
   {w | densityEnsembleOGP (-(sourceTensor (tensorCoords w.1).ofLp)) (-(sourceTensor (tensorCoords w.2).ofLp)) μ ν₁ ν₂}
 
+/-- The event that the cube maximum density minus the raw energy density is at most `a`. -/
 def nearCube {r N : ℕ} (s : ℕ→ℝ) (T : ℕ) (a : ℝ) : Set (Input r N) :=
   {x | maximum x-energy s T x≤ a}
 
+/-- The event that the raw energy density differs from its initial value by at least `a`
+somewhere along the input interpolation interval. -/
 def energyDeviation {r N : ℕ} (s : ℕ→ℝ) (T : ℕ) (a : ℝ) : Set (Input r N×Input r N) :=
   {w | ∃ τ∈Set.Icc (0:ℝ) 1,a≤|energyPath s T w.1 w.2 τ-energy s T w.1|}
 
+/-- The event that the cube maximum density differs from its initial value by at least `a`
+somewhere along the input interpolation interval. -/
 def groundDeviation (r N : ℕ) (a : ℝ) : Set (Input r N×Input r N) :=
   {w | ∃ τ∈Set.Icc (0:ℝ) 1,a≤|maximum (inputPath w.1 w.2 τ)-maximum w.1|}
 
+/-- The event that the absolute endpoint overlap is at least `a`. -/
 def endpointDeviation {r N : ℕ} (s : ℕ→ℝ) (T : ℕ) (a : ℝ) : Set (Input r N×Input r N) :=
   {w | a≤|Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.overlap s T w|}
 
+/-- Under the stated degree, dimension, and threshold conditions, initial cube success within
+`μ/8` forces failure of the input overlap gap or norm region, an energy or ground deviation,
+or an endpoint overlap deviation. -/
 theorem actual_raw_success_subset {r N T : ℕ} (hr : 0< r) (hN : 2≤ N) (s : ℕ→ℝ)
     (μ ν₁ ν₂ : ℝ) (hμ : 0<μ) (hlo : 0<ν₁) (hgap : ν₁<ν₂) (hhi : ν₂<1) :
     Prod.fst⁻¹' nearCube (r:=r) (N:=N) s T (μ/8)⊆
@@ -185,12 +243,15 @@ theorem actual_raw_success_subset {r N T : ℕ} (hr : 0< r) (hN : 2≤ N) (s : �
     (fun τ hτ => lt_of_not_ge (fun h => hnot.1.2 ⟨τ,hτ,h⟩))
     (lt_of_not_ge hnot.2) hw
 
+/-- For `N > 0`, the raw cube success event `nearCube s T a` is measurable. -/
 theorem nearCube_measurable {r N : ℕ} (hN : 0< N) (s : ℕ→ℝ) (T : ℕ) (a : ℝ) :
     MeasurableSet (nearCube (r:=r) (N:=N) s T a) := by
   have hm : Continuous (maximum (r:=r) (N:=N)) :=
       ((ground_lipschitz hN).continuous.comp continuous_neg).neg
   exact measurableSet_le (hm.sub (contDiff_energy s T).continuous).measurable measurable_const
 
+/-- The probability of input overlap gap failure for independent standard Gaussian inputs is at
+most the corresponding failure probability for independent Gaussian tensors. -/
 theorem inputOgp_failure_le (r N : ℕ) (μ ν₁ ν₂ : ℝ) :
     ((stdGaussian (Input r N)).prod (stdGaussian (Input r N))).real (inputOgp r N μ ν₁ ν₂)ᶜ≤
       ((gaussianTensorLaw r N).prod (gaussianTensorLaw r N)).real (modelOgp r N μ ν₁ ν₂)ᶜ := by
@@ -201,6 +262,10 @@ theorem inputOgp_failure_le (r N : ℕ) (μ ν₁ ν₂ : ℝ) :
   rw [hm.map_eq] at h
   exact ENNReal.toReal_mono (by finiteness) h
 
+/-- For odd `r`, `N ≥ 2`, a schedule in `[0,1]`, `μ > 0`, and `0 < ν₁ < ν₂ < 1`, the raw cube
+success probability at margin `μ/8` is bounded by the displayed sum of model overlap gap
+failure, exponential norm tails, energy and ground fluctuations, and endpoint overlap terms.
+See [GohMuller2026]. -/
 theorem actual_raw_cube_nogo_bound {r N T : ℕ} (hr : Odd r) (hN : 2≤ N) (s : ℕ→ℝ)
     (hs : ∀ j≤ T,s j∈Set.Icc (0:ℝ) 1) (μ ν₁ ν₂ : ℝ)
     (hμ : 0<μ) (hlo : 0<ν₁) (hgap : ν₁<ν₂) (hhi : ν₂<1) :

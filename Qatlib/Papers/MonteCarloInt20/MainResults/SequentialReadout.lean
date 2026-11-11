@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.MonteCarloInt20.MainResults.SequentialProgram
 import Qatlib.Papers.MonteCarloInt20.MainResults.ExecutedAccuracy
+
+/-!
+# Sequential amplitude-estimation readout and query counts
+
+This module applies amplitude estimation to the sequential finite-target preparation and
+expresses its executed readout as the tagged word `previousOuterWord`. Event probabilities agree
+with the associated amplitude-estimation law, yielding an explicit success bound for the finite
+target.
+
+`actual_two_program_counts` compares the exact underlying term-query counts for this sequential
+implementation and the nested construction associated with [KanekoEtAl2020].
+
+## Main statements
+
+* `previous_ae_accuracy`: gives the sequential output-law accuracy bound.
+* `previous_executed_accuracy`: transfers the bound to the executed word.
+* `actual_two_program_counts`: states both exact term-query counts.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -41,6 +64,8 @@ noncomputable local instance fullDecision (n s d p : ℕ) :
 noncomputable local instance outerDecision (n s d p N : ℕ) :
     DecidableEq (Inner N ((Reg s × Work n s d p) × Bool)) := instDecidableEqProd
 
+/-- The sequential preparation evaluates to a unitary matrix when the payoff of every decoded
+code sum lies in `[0, 1]`. -/
 theorem previous_matrix_unitary {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ)
     (hg : ∀ v : Codes d p,g (∑ i : Reg d,Qatlib.Papers.MonteCarloInt20.MainResults.TermCode.decodeCode p (v i)) ∈ Set.Icc (0:ℝ) 1) :
@@ -53,6 +78,9 @@ theorem previous_matrix_unitary {n s d p : ℕ} (a : (ZMod (2^n))ˣ) (c seed : Z
         (loopCircuit_unitary (p:=p) a c seed j (allTerms d))
   · exact fun v => hg v.2.2
 
+/-- For positive coordinate width, `N ≥ 2`, and payoff values in `[0, 1]` on all decoded sums,
+the sequential amplitude-estimation law estimates the finite target at scale `2 ^ d` within
+its outer window with probability at least `8 / π²`. -/
 theorem previous_ae_accuracy {n s d p : ℕ} (hd : 0 < d) (N : ℕ) (hN : 2 ≤ N)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ)
@@ -70,15 +98,20 @@ theorem previous_ae_accuracy {n s d p : ℕ} (hd : 0 < d) (N : ℕ) (hN : 2 ≤ 
   rw [preparedAAState,previous_flag_born hd a c seed termCode g hg] at h
   exact h
 
+/-- Convert a circuit to a tagged gate word, tagging each query as a forward input access and
+each known gate as fixed. -/
 def retained {I : Type} [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (C : Circuit I) : GateWord (Matrix I I ℂ) :=
   C.map (fun s => match s with | .query => (.inputForward,O) | .gate U => (.fixed,U))
 
+/-- The retained tagged word evaluates to the original circuit matrix. -/
 theorem retained_eval {I : Type} [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (C : Circuit I) :
     wordEval (retained O C)=runMatrix O C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> change wordEval (retained O C)*_=runMatrix O C*_ <;> rw [ih]
 
+/-- The retained word has one forward input access per circuit query and zero backward input
+accesses. -/
 theorem retained_counts {I : Type} [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (C : Circuit I) :
     accessCount .inputForward (retained O C)=QueryCount C ∧ accessCount .inputBackward (retained O C)=0 := by
   induction C with
@@ -87,6 +120,8 @@ theorem retained_counts {I : Type} [Fintype I] [DecidableEq I] (O : Matrix I I �
     cases s <;> simp only [retained,List.map_cons,accessCount,List.sum_cons,List.map_cons,reduceCtorEq,
       ↓reduceIte,zero_add,queryCount_gate,queryCount_query] at * <;> constructor <;> omega
 
+/-- The expanded outer amplitude-estimation word using the retained sequential finite-target
+preparation. -/
 def previousOuterWord {n s d p : ℕ} (N : ℕ) (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ) :
     GateWord (Matrix (Inner N ((Reg s × Work n s d p) × Bool)) (Inner N ((Reg s × Work n s d p) × Bool)) ℂ) :=
@@ -94,6 +129,8 @@ def previousOuterWord {n s d p : ℕ} (N : ℕ) (a : (ZMod (2^n))ˣ) (c seed : Z
     (expandOuterStep (I:=(Reg s × Work n s d p) × Bool) N (previousSeed n s d p seed) (Finset.univ.filter (fun v => v.2=true))
       (retained (previousOracle termCode) (previousCircuit (s:=s) (d:=d) (p:=p) a c seed g)))
 
+/-- The expanded sequential outer word evaluates to the counted amplitude-estimation circuit
+built from the sequential preparation matrix. -/
 theorem previousOuterWord_eval {n s d p : ℕ} (N : ℕ) (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ) :
     wordEval (G:=Matrix (Inner N ((Reg s × Work n s d p) × Bool)) (Inner N ((Reg s × Work n s d p) × Bool)) ℂ) (previousOuterWord N a c seed termCode g)=
@@ -107,6 +144,8 @@ theorem previousOuterWord_eval {n s d p : ℕ} (N : ℕ) (a : (ZMod (2^n))ˣ) (c
   rw [retained_eval (I:=(Reg s × Work n s d p) × Bool) (previousOracle termCode) (previousCircuit (s:=s) (d:=d) (p:=p) a c seed g)] at h
   exact h
 
+/-- For positive `N`, the sequential outer word has total forward and backward term-access count
+`(4 * 2 ^ d) * (2 * N - 1)`. -/
 theorem previousOuterWord_counts {n s d p : ℕ} (N : ℕ) (hN : 0 < N)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ) :
@@ -126,6 +165,8 @@ theorem previousOuterWord_counts {n s d p : ℕ} (N : ℕ) (hN : 0 < N)
   rw [hn]
   ring
 
+/-- For `N ≥ 2` and the stated payoff range, the executed sequential outer word's probability of
+any event on its estimate register equals the corresponding event probability under `aeLaw`. -/
 theorem previousOuterWord_event {n s d p : ℕ} (N : ℕ) (hN : 2 ≤ N)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ)
@@ -145,6 +186,9 @@ theorem previousOuterWord_event {n s d p : ℕ} (N : ℕ) (hN : 2 ≤ N)
     (previousSeed n s d p seed) (Finset.univ.filter (fun v => v.2=true))
     (previous_matrix_unitary a c seed termCode g hg) P).symm
 
+/-- For positive coordinate width, `N ≥ 2`, and the stated payoff range, the executed sequential
+outer word estimates the finite target at scale `2 ^ d` within its outer window with Born
+probability at least `8 / π²` [KanekoEtAl2020]. -/
 theorem previous_executed_accuracy {n s d p : ℕ} (hd : 0 < d) (N : ℕ) (hN : 2 ≤ N)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ)
@@ -158,6 +202,9 @@ theorem previous_executed_accuracy {n s d p : ℕ} (hd : 0 < d) (N : ℕ) (hN : 
       (fun z => |aeEstimate N z-finiteTarget a c seed termCode ((2:ℝ)^d) g| ≤
         outerWindow N (finiteTarget a c seed termCode ((2:ℝ)^d) g))).symm
 
+/-- For positive `M` and `N`, the nested construction has underlying term-query count `2 * ((2 *
+N - 1) * (2 * M - 1))`, and the sequential construction has count `(4 * 2 ^ d) * (2 * N -
+1)` [KanekoEtAl2020]. -/
 theorem actual_two_program_counts {n s d p : ℕ} (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (a : (ZMod (2^n))ˣ) (c seed : ZMod (2^n))
     (termCode : Reg s → Reg d → ZMod (2^n) → Fin (2^p+1)) (g : ℝ → ℝ) :

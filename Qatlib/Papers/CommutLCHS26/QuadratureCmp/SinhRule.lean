@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget
 import Mathlib.Analysis.SpecialFunctions.Arsinh
 import Mathlib.MeasureTheory.Function.JacobianOneDim
+
+/-!
+# Sinh-transformed quadrature and tail bounds
+
+The substitution `k = η sinh x` gives the transformed LCHS integrand `transformed` and the
+finite rule `finiteIdeal`. This module proves the change-of-variables identities, summability of
+the transformed lattice samples, and Gaussian tail estimates used in [AftabAnTrivisa2026].
+
+The scalar `majorant` controls the matrix integrand on the real axis. The window selector
+`window` and `selected_tail_budget` turn a positive tail budget into a finite cutoff, while
+`physical_radius_max` identifies the largest physical node.
+
+## Main statements
+
+* `actual_integral_change`: Equality of the original and sinh-transformed integrals.
+* `finite_error_split`: Splits finite-rule error into mesh error and lattice tail.
+* `selected_tail_budget`: Bounds the selected lattice tail by the prescribed budget.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -17,9 +40,12 @@ open scoped Topology BigOperators
 open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 
+/-- The real change-of-variables pullback for `x ↦ η * Real.sinh x`, including the Jacobian
+factor `η * Real.cosh x`. -/
 def pullback {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (η : ℝ) (f : ℝ → E) (x : ℝ) : E := (η * Real.cosh x) • f (η * Real.sinh x)
 
+/-- The scaled hyperbolic sine is surjective when `η > 0`. -/
 theorem scaled_surjective {η : ℝ} (hη : 0 < η) :
     Function.Surjective (fun x : ℝ => η * Real.sinh x) := by
   intro y
@@ -29,6 +55,8 @@ theorem scaled_surjective {η : ℝ} (hη : 0 < η) :
   rw [hx]
   field_simp
 
+/-- For positive `η`, integrating the sinh pullback over the real line gives the integral of the
+original function. -/
 theorem integral_pullback {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {η : ℝ} (hη : 0 < η) (f : ℝ → E) :
     (∫ x : ℝ, pullback η f x) = ∫ y : ℝ, f y := by
@@ -39,6 +67,8 @@ theorem integral_pullback {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     ((Real.sinh_strictMono.const_mul hη).monotone.monotoneOn univ) f
   simpa only [hs, setIntegral_univ, pullback] using! hi.symm
 
+/-- For positive `η`, the sinh pullback is integrable exactly when the original function is
+integrable. -/
 theorem integrable_pullback {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {η : ℝ} (hη : 0 < η) (f : ℝ → E) :
     Integrable (pullback η f) ↔ Integrable f := by
@@ -49,6 +79,8 @@ theorem integrable_pullback {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ 
     ((Real.sinh_strictMono.const_mul hη).monotone.monotoneOn univ) f
   simpa only [hs, integrableOn_univ, pullback] using! hi.symm
 
+/-- For positive `η`, the pullback integral over `x > Y` equals the original integral over `y >
+η * Real.sinh Y`. -/
 theorem integral_pullback_tail {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {η : ℝ} (hη : 0 < η) (f : ℝ → E) (Y : ℝ) :
     (∫ x in Ioi Y, pullback η f x) = ∫ y in Ioi (η * Real.sinh Y), f y := by
@@ -65,8 +97,10 @@ theorem integral_pullback_tail {E : Type*} [NormedAddCommGroup E] [NormedSpace �
     (fun x _ => ((Real.hasDerivAt_sinh x).const_mul η).hasDerivWithinAt) (hm.monotone.monotoneOn (Ioi Y)) f
   simpa only [hs, pullback] using! hi.symm
 
+/-- The scalar envelope `cosh x * exp(-kappa ^ 2 * sinh x ^ 2)`. -/
 def bell (kappa x : ℝ) : ℝ := Real.cosh x * Real.exp (-kappa ^ 2 * Real.sinh x ^ 2)
 
+/-- Computes the derivative of `bell kappa` at every real point. -/
 theorem bell_hasDerivAt (kappa x : ℝ) : HasDerivAt (bell kappa)
     (Real.sinh x * Real.exp (-kappa ^ 2 * Real.sinh x ^ 2) *
       (1 - 2 * kappa ^ 2 * Real.cosh x ^ 2)) x := by
@@ -76,6 +110,8 @@ theorem bell_hasDerivAt (kappa x : ℝ) : HasDerivAt (bell kappa)
   dsimp [bell]
   ring
 
+/-- For positive `kappa`, `bell kappa` is antitone on `x ≥ Y` when `Y ≥ 0` and `kappa * sinh Y ≥
+1`. -/
 theorem bell_antitone {kappa Y : ℝ} (hkappa : 0 < kappa) (hY : 0 ≤ Y)
     (hlarge : 1 ≤ kappa * Real.sinh Y) : AntitoneOn (bell kappa) (Ici Y) := by
   apply antitoneOn_of_hasDerivWithinAt_nonpos (convex_Ici Y)
@@ -91,6 +127,8 @@ theorem bell_antitone {kappa Y : ℝ} (hkappa : 0 < kappa) (hY : 0 ≤ Y)
   · exact mul_nonneg (Real.sinh_nonneg_iff.mpr hx₀) (Real.exp_pos _).le
   · nlinarith [sq_nonneg kappa]
 
+/-- For a nonnegative integrable function antitone beyond `h * N`, the positive-step lattice
+tail is summable and its step-weighted sum is bounded by the integral beyond `h * N`. -/
 theorem scaled_tail_on (f : ℝ → ℝ) (N : ℕ) {h : ℝ} (hh : 0 < h)
     (hf : AntitoneOn f (Ici (h * N))) (hn : ∀ x, 0 ≤ f x) (hi : Integrable f) :
     Summable (fun j : ℕ => f (h * ((N : ℝ) + (j + 1 : ℕ)))) ∧
@@ -107,19 +145,26 @@ theorem scaled_tail_on (f : ℝ → ℝ) (N : ℕ) {h : ℝ} (hh : 0 < h)
   rw [he, smul_eq_mul, ← mul_assoc, mul_inv_cancel₀ hh.ne', one_mul] at hm
   exact hm
 
+/-- The Jacobian-weighted Gaussian envelope for the substitution `k = η * Real.sinh x`. -/
 def majorant (c η x : ℝ) : ℝ := η * Real.cosh x * Real.exp (-(η * Real.sinh x) ^ 2 / (4 * c ^ 2))
 
+/-- Identifies `majorant c η` with the sinh pullback of the Gaussian `exp(-x ^ 2 / (4 * c ^
+2))`. -/
 theorem majorant_eq_pullback (c η : ℝ) : majorant c η =
     pullback η (fun x : ℝ => Real.exp (-x ^ 2 / (4 * c ^ 2))) := by
   rfl
 
+/-- The Gaussian sinh majorant is integrable when `c` and `η` are positive. -/
 theorem majorant_integrable {c η : ℝ} (hc : 0 < c) (hη : 0 < η) : Integrable (majorant c η) := by
   rw [majorant_eq_pullback]
   exact (integrable_pullback hη _).mpr (gaussian_integrable hc)
 
+/-- The Gaussian sinh majorant is an even function of its real argument. -/
 theorem majorant_even (c η x : ℝ) : majorant c η (-x) = majorant c η x := by
   simp only [majorant, Real.cosh_neg, Real.sinh_neg, mul_neg, neg_sq]
 
+/-- The Gaussian sinh majorant is antitone beyond a nonnegative `Y` satisfying `η / (2 * c) *
+sinh Y ≥ 1`, when `c` and `η` are positive. -/
 theorem majorant_antitone {c η Y : ℝ} (hc : 0 < c) (hη : 0 < η) (hY : 0 ≤ Y)
     (hlarge : 1 ≤ η / (2 * c) * Real.sinh Y) : AntitoneOn (majorant c η) (Ici Y) := by
   have he : majorant c η = fun x : ℝ => η * bell (η / (2 * c)) x := by
@@ -135,6 +180,8 @@ theorem majorant_antitone {c η Y : ℝ} (hc : 0 < c) (hη : 0 < η) (hY : 0 ≤
   exact mul_le_mul_of_nonneg_left
     (bell_antitone (div_pos hη (by positivity)) hY hlarge hx hy hxy) hη.le
 
+/-- Evaluates the tail integral of the Gaussian sinh majorant using the complementary error
+function at `η * sinh Y / (2 * c)`. -/
 theorem majorant_tail {c η Y : ℝ} (hc : 0 < c) (hη : 0 < η)
     (hY : 0 < Y) :
     (∫ x in Ioi Y, majorant c η x) = c * Real.sqrt Real.pi *
@@ -150,9 +197,12 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- The complex sinh-transformed LCHS integrand, including its Jacobian factor. -/
 def transformed (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) (z : ℂ) : Matrix ι ι ℂ :=
   ((η : ℂ) * Complex.cosh z) • integrand n b c d T H L ((η : ℂ) * Complex.sinh z)
 
+/-- On the real axis, `transformed` equals the real sinh pullback of the original matrix
+integrand. -/
 theorem transformed_real (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) (x : ℝ) :
     transformed n b c d T η H L (x : ℂ) =
       pullback η (fun k : ℝ => integrand n b c d T H L (k : ℂ)) x := by
@@ -161,6 +211,8 @@ theorem transformed_real (n : ℕ) (b c d T η : ℝ) (H L : Matrix ι ι ℂ) (
   ext i j
   simp only [Matrix.smul_apply, smul_eq_mul, Complex.real_smul]
 
+/-- For positive `η`, the full real integral of the transformed matrix integrand equals that of
+the original integrand. This is the sinh change of variables used in [AftabAnTrivisa2026]. -/
 theorem actual_integral_change (n : ℕ) (b c d T : ℝ) {η : ℝ} (hη : 0 < η)
     (H L : Matrix ι ι ℂ) :
     (∫ x : ℝ, transformed n b c d T η H L (x : ℂ)) =
@@ -168,6 +220,8 @@ theorem actual_integral_change (n : ℕ) (b c d T : ℝ) {η : ℝ} (hη : 0 < �
   simp only [transformed_real]
   exact integral_pullback hη _
 
+/-- Both the original and sinh-transformed real integrands are integrable for positive `b`, `c`,
+and `η`, nonnegative time, Hermitian `H`, and positive semidefinite `L`. -/
 theorem actual_integrability (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T η : ℝ} (hT : 0 ≤ T) (hη : 0 < η) :
@@ -179,6 +233,8 @@ theorem actual_integrability (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
   refine ⟨hf, ?_⟩
   simpa only [transformed_real] using! (integrable_pullback hη _).mpr hf
 
+/-- The norm of the transformed real integrand is bounded by `amplitude n b c d 0 0` times the
+Gaussian sinh majorant under the stated matrix and positivity assumptions. -/
 theorem norm_transformed_le (n : ℕ) (b c d : ℝ) (hb : 0 < b)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T η : ℝ} (hT : 0 ≤ T) (hη : 0 < η) (x : ℝ) :
@@ -191,6 +247,8 @@ theorem norm_transformed_le (n : ℕ) (b c d : ℝ) (hb : 0 < b)
   have hn := (norm_real_integrand_le n b c d H L hH hL hT _).trans he
   exact (mul_le_mul_of_nonneg_left hn (by positivity)).trans_eq (by unfold majorant; ring)
 
+/-- For an even function with summable positive lattice tail, the two-sided tail outside `[-N,
+N]` is summable and equals twice the positive tail. -/
 theorem even_tail (f : ℝ → ℝ) (N : ℕ) (h : ℝ) (heven : ∀ x, f (-x) = f x)
     (hsum : Summable (fun j : ℕ => f (h * ((N : ℝ) + (j + 1 : ℕ))))) :
     Summable (fun q : {q : ℤ // q ∉ Finset.Icc (-(N : ℤ)) N} => f (h * (q.val : ℝ))) ∧
@@ -223,9 +281,14 @@ theorem even_tail (f : ℝ → ℝ) (N : ℕ) (h : ℝ) (heven : ∀ x, f (-x) =
       (hs.comp_injective Sum.inl_injective).tsum_sum (hs.comp_injective Sum.inr_injective)
     _ = _ := by rw [hp, hm]; ring
 
+/-- The finite step-weighted sum of transformed integrand values at lattice indices from `-N` to
+`N`. -/
 def finiteIdeal (n : ℕ) (b c d T η h : ℝ) (H L : Matrix ι ι ℂ) (N : ℕ) : Matrix ι ι ℂ :=
   h • ∑ q ∈ Finset.Icc (-(N : ℤ)) N, transformed n b c d T η H L ((h * (q : ℝ) : ℝ) : ℂ)
 
+/-- Expresses the finite sinh rule as a sum of propagators with coefficient weights multiplied
+by `h * η * cosh(h * q)`. This gives the transformed quadrature weights for
+[AftabAnTrivisa2026]. -/
 theorem finite_weighted (n : ℕ) (b c d T η h : ℝ) (H L : Matrix ι ι ℂ) (N : ℕ) :
     finiteIdeal n b c d T η h H L N =
       ∑ q ∈ Finset.Icc (-(N : ℤ)) N,
@@ -241,10 +304,15 @@ theorem finite_weighted (n : ℕ) (b c d T η h : ℝ) (H L : Matrix ι ι ℂ) 
   push_cast
   ring
 
+/-- The step-weighted sum of norms of transformed lattice samples outside the finite index
+interval `[-N, N]`. -/
 def latticeTail (n : ℕ) (b c d T η h : ℝ) (H L : Matrix ι ι ℂ) (N : ℕ) : ℝ :=
   h * ∑' q : {q : ℤ // q ∉ Finset.Icc (-(N : ℤ)) N},
     ‖transformed n b c d T η H L ((h * (q.val : ℝ) : ℝ) : ℂ)‖
 
+/-- Once the cutoff lies in the decreasing Gaussian regime, the transformed norm tail is
+summable and `latticeTail` is bounded by the tail constant times the complementary error
+function. -/
 theorem actual_tail_erfc (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T η h : ℝ} (hT : 0 ≤ T) (hη : 0 < η) (hh : 0 < h) (N : ℕ)
@@ -288,6 +356,10 @@ theorem actual_tail_erfc (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
       rw [← hcst]
       ring
 
+/-- Bounds the rounded transformed lattice tail first by a complementary-error-function
+expression and then by its Gaussian exponential bound, under the stated cutoff condition.
+These are the rounded tail estimates associated with [Aftab et al., Proposition
+4.17][AftabAnTrivisa2026]. -/
 theorem actual_tail_bounds (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T η h : ℝ} (hT : 0 ≤ T) (hη : 0 < η) (hh : 0 < h) (Y : ℝ)
@@ -312,8 +384,11 @@ theorem actual_tail_bounds (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
   exact mul_le_mul_of_nonneg_left he
     (Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget.tailConstant_pos n b c d hb hc).le
 
+/-- The transformed window `max 1 (arsinh (2 * c / η * u))` used to select a finite sinh cutoff. -/
 def window (c η u : ℝ) : ℝ := max 1 (Real.arsinh (2 * c / η * u))
 
+/-- For positive scale, substitution parameter, and mesh step, rounding the selected window
+ensures `u ≤ η / (2 * c) * sinh(h * cutoff)`. -/
 theorem rounded_sinh_ge {c η h : ℝ} (hc : 0 < c) (hη : 0 < η) (hh : 0 < h) (u : ℝ) :
     u ≤ η / (2 * c) * Real.sinh (h * cutoff (window c η u) h) := by
   have hY : Real.arsinh (2 * c / η * u) ≤ h * cutoff (window c η u) h :=
@@ -324,6 +399,8 @@ theorem rounded_sinh_ge {c η h : ℝ} (hc : 0 < c) (hη : 0 < η) (hh : 0 < h) 
   have he : η / (2 * c) * (2 * c / η * u) = u := by field_simp
   simpa only [he] using! hm
 
+/-- The norms of all transformed real lattice samples form a summable series for positive `b`,
+`c`, `η`, and mesh step under the stated matrix assumptions. -/
 theorem actual_norm_summable (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T η h : ℝ} (hT : 0 ≤ T) (hη : 0 < η) (hh : 0 < h) :
@@ -333,6 +410,8 @@ theorem actual_norm_summable (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (rounded_sinh_ge hc hη hh 1)).1
   exact (Finset.Icc (-(N : ℤ)) N).summable_compl_iff.mp hs
 
+/-- The norm difference between the infinite transformed mesh sum and its finite truncation is
+bounded by `latticeTail`. -/
 theorem mesh_sub_finite_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T η h : ℝ} (hT : 0 ≤ T) (hη : 0 < η) (hh : 0 < h) (N : ℕ) :
@@ -349,6 +428,8 @@ theorem mesh_sub_finite_le (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
   rw [← smul_sub, hid, norm_smul, Real.norm_of_nonneg hh.le]
   exact mul_le_mul_of_nonneg_left (norm_tsum_le_tsum_norm (hFn.subtype _)) hh.le
 
+/-- Bounds the finite sinh quadrature error by the sum of the infinite-mesh error and the
+omitted lattice norm tail. -/
 theorem finite_error_split (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T η h : ℝ} (hT : 0 ≤ T) (hη : 0 < η) (hh : 0 < h) (N : ℕ) :
@@ -371,6 +452,9 @@ theorem finite_error_split (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
         _root_.add_le_add (le_refl ‖A - S‖) htail
       exact htri.trans hsum
 
+/-- For positive parameters and tail budget `ε`, the window selected from
+`sqrt(tailLog(tailConstant, ε))` makes the transformed lattice tail at most `ε`. This is the
+tail-budget selection associated with [Aftab et al., Corollary 4.18][AftabAnTrivisa2026]. -/
 theorem selected_tail_budget (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (H L : Matrix ι ι ℂ) (hH : H.IsHermitian) (hL : L.PosSemidef)
     {T η h ε : ℝ} (hT : 0 ≤ T) (hη : 0 < η) (hh : 0 < h) (hε : 0 < ε) :
@@ -399,6 +483,9 @@ theorem selected_tail_budget (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c)
     (Real.exp_le_exp.mpr (neg_le_neg hsq)) hC.le).trans
       (Qatlib.Papers.CommutLCHS26.QuadratureCmp.TailBudget.exp_tailLog_budget hC hε))
 
+/-- For nonnegative `η` and mesh step, the largest absolute physical node in the rounded finite
+rule is `η * sinh(h * cutoff Y h)`. This identifies the finite-rule radius used in [Aftab et
+al., Corollary 4.18][AftabAnTrivisa2026]. -/
 theorem physical_radius_max (η Y h : ℝ) (hη : 0 ≤ η) (hh : 0 ≤ h) :
     IsGreatest {r : ℝ | ∃ q ∈ Finset.Icc (-(cutoff Y h : ℤ)) (cutoff Y h),
       r = |η * Real.sinh (h * (q : ℝ))|} (η * Real.sinh (h * cutoff Y h)) := by

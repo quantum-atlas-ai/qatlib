@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+
+/-!
+# Lower bounds for adaptive observed circuits
+
+This module applies polynomial representations and history purification to lower bounds for
+observed circuits. It proves parity bounds for general well formed adaptive circuits and for a
+single projective branch followed by queries.
+
+It also transfers negative adversary inequalities to these models using ordinary circuits with
+the same query count. The parity argument uses the polynomial method of [BealsEtAl2001]; the
+adversary statements retain the explicit error dependent prefactor of [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `observed_actual_adaptive_parity_query_lower_bound`: bounded error parity requires at least
+  half as many queries as input bits.
+* `observed_actual_adaptive_negative_adversary_lower_bound`: the negative adversary inequality
+  for well formed adaptive circuits.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +52,9 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- A well formed observed circuit computing parity of `n` positive input bits with error at
+most one third satisfies `n ≤ 2 * observedQueryDepth P`. This is the adaptive parity
+consequence of [Beals et al., Proposition 6.4][BealsEtAl2001]. -/
 theorem observed_actual_adaptive_parity_query_lower_bound
     (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W))
@@ -40,6 +68,8 @@ theorem observed_actual_adaptive_parity_query_lower_bound
   have hdeg := parity_boolean_approximation_degree p (fun f => by rw [he f]; exact hyp f)
   simpa only [Fintype.card_fin] using hdeg.trans hd
 
+/-- A projective branch circuit whose acceptance approximates parity within one third satisfies
+`n ≤ 2 * observedQueryDepth (observedProjectQueryBranch P a b k)`. -/
 theorem observed_project_query_branch_parity_lower_bound
     (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
     (P : Matrix ((Fin n × Bool) × W) ((Fin n × Bool) × W) ℂ)
@@ -53,6 +83,9 @@ theorem observed_project_query_branch_parity_lower_bound
   have hdeg := parity_boolean_approximation_degree p (fun f => by rw [he f]; exact hyp f)
   simpa only [Fintype.card_fin] using hdeg.trans hd
 
+/-- For an orthogonal projective branch circuit computing with error `ε ∈ [0, 1/2]`, the
+negative adversary quantity `(1 - 2√(ε(1 - ε)))‖Γ‖` is at most twice the query depth times
+`advFilterBound input Γ`, under the stated Hermitian and output separation hypotheses. -/
 theorem observed_project_query_branch_negative_adversary_lower_bound
     (X W : Type) [Fintype X] [DecidableEq X] [Nonempty X]
     [Fintype W] [DecidableEq W] (n : ℕ)
@@ -91,6 +124,10 @@ theorem observed_project_query_branch_negative_adversary_lower_bound
     X (W × Fin 2 × Bool) n input Γ f C φ E ε hΓ hz hcost.1 hφ he₀ he₁ hs
   simpa only [C, hcost.2.1, observedProjectQueryBranch_depth] using hb
 
+/-- For a well formed observed circuit computing with error `ε ∈ [0, 1/2]` from a normalized
+state, `(1 - 2√(ε(1 - ε)))‖Γ‖` is at most twice the query depth times `advFilterBound input
+Γ`, under the stated Hermitian and output separation hypotheses. This transfers the Boolean
+output adversary bound of [Hoyer, Lee, and Spalek, Theorem 2][HoyerLeeSpalek2007]. -/
 theorem observed_actual_adaptive_negative_adversary_lower_bound
     (X W : Type) [Fintype X] [DecidableEq X] [Nonempty X]
     [Fintype W] [DecidableEq W] [Nonempty W] (n : ℕ)

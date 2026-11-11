@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedLists
+
+/-!
+# Corrected signed LCU protocol
+
+This module assembles the corrected positive and negative chains into the signed LCU protocol
+associated with Theorem 3 of [ChildsWiebe2012]. `cwProtocolCorrected_decompose` expresses the
+protocol as a corrected LCU level using the positive chain and the negated negative chain, with
+rotation parameter equal to the ratio of their coefficient masses.
+
+The tail-position lemmas show that both chains preserve the final control bit. They support
+`cwProtocolCorrected_unitary`, while `cw_prefixes_zero_corner` computes each chain's zero
+ancilla amplitude as its weighted matrix sum divided by its coefficient mass.
+
+## Main statements
+
+* `cwControlBit`, `cwPositiveCircuitCorrected`, and `cwNegativeCircuitCorrected` name the final
+  control and its two chains.
+* `cw_prefixes_unitary` proves both chains unitary for unitary payloads and nonzero
+  coefficients.
+* `cwProtocolCorrected_unitary` proves the assembled protocol unitary when both coefficient
+  signs occur.
+- `cw_prefixes_zero_corner` evaluates both chain fibers for arbitrary input vectors.
+
+## References
+
+- [Childs and Wiebe, 2012][ChildsWiebe2012], Theorem 3.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,15 +45,24 @@ open Matrix
 open scoped Classical Matrix.Norms.L2Operator
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The final signed-combination control bit, chosen at the positive index-set cardinality
+modulo `k + 1`. -/
 def cwControlBit (k : ℕ) (c : Fin (k+1)→ℝ) : Fin (k+1) :=
   ⟨(cwPositiveTerms k c).card%(k+1),Nat.mod_lt _ (Nat.succ_pos k)⟩
 
+/-- The corrected chain for positive coefficients, with the corresponding matrices and
+ancilla-position offset zero. -/
 def cwPositiveCircuitCorrected (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ) :=
   chainCircuitCorrected (k+1) (cwChainList k 0 c U (cwPositiveTerms k c))
 
+/-- The corrected chain for negative coefficients using their absolute values, with
+ancilla-position offset equal to the number of positive terms. -/
 def cwNegativeCircuitCorrected (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ) :=
   chainCircuitCorrected (k+1) (cwChainList k (cwPositiveTerms k c).card (fun q=>|c q|) U (cwNegativeTerms k c))
 
+/-- Rewrites the corrected signed protocol as a corrected LCU level on `cwControlBit`, combining
+the positive chain with the negated negative chain using the positive-to-negative mass
+ratio. -/
 theorem cwProtocolCorrected_decompose (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ) :
     cwProtocolCorrected k c U=lcuLevelGateCorrected (k+1) (cwControlBit k c)
       (vKappaSource (cwPositiveWeight k c/cwNegativeWeight k c))
@@ -36,6 +73,8 @@ theorem cwProtocolCorrected_decompose (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- For nonzero coefficients with at least one negative term, no entry of the positive
+chain-list tail uses the final signed-combination control bit. -/
 theorem cw_positive_tail_fresh (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ)
     (hc : ∀ q,c q≠0) (hn : ∃ q,c q<0) :
     ∀ t∈(cwChainList k 0 c U (cwPositiveTerms k c)).tail,cwControlBit k c≠t.1 := by
@@ -52,6 +91,8 @@ theorem cw_positive_tail_fresh (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- For nonzero coefficients with at least one negative term, no entry of the negative
+chain-list tail uses the final signed-combination control bit. -/
 theorem cw_negative_tail_fresh (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ)
     (hc : ∀ q,c q≠0) (hn : ∃ q,c q<0) :
     ∀ t∈(cwChainList k (cwPositiveTerms k c).card (fun q=>|c q|) U (cwNegativeTerms k c)).tail,
@@ -59,6 +100,8 @@ theorem cw_negative_tail_fresh (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→
   exact cwChainList_tail_fresh k (cwPositiveTerms k c).card _ U (cwNegativeTerms k c)
     (cw_negative_nonempty k c hn) (le_of_eq (cw_sign_cards k c hc))
 
+/-- Both corrected sign chains are unitary when all system matrices are unitary and all
+coefficients are nonzero. -/
 theorem cw_prefixes_unitary (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ)
     (hU : ∀ q,U q∈Matrix.unitaryGroup I ℂ) (hc : ∀ q,c q≠0) :
     cwPositiveCircuitCorrected k c U∈Matrix.unitaryGroup _ ℂ ∧
@@ -76,6 +119,9 @@ theorem cw_prefixes_unitary (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Mat
       (cwChainList_unitaries k (cwPositiveTerms k c).card _ U (cwNegativeTerms k c) hU)
       (cwChainList_bits_pairwise k (cwPositiveTerms k c).card _ U (cwNegativeTerms k c) (le_of_eq hcards))
 
+/-- The corrected signed LCU protocol is unitary when its system matrices are unitary and its
+coefficients are nonzero with both signs present. This verifies unitarity of the concrete
+corrected construction associated with Theorem 3 in [ChildsWiebe2012]. -/
 theorem cwProtocolCorrected_unitary (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ)
     (hU : ∀ q,U q∈Matrix.unitaryGroup I ℂ) (hc : ∀ q,c q≠0)
     (hp : ∃ q,0<c q) (hn : ∃ q,c q<0) : cwProtocolCorrected k c U∈Matrix.unitaryGroup _ ℂ := by
@@ -90,6 +136,9 @@ theorem cwProtocolCorrected_unitary (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+
   · exact preservesLCUBit_neg _ _
       (chainCircuitCorrected_preserves _ _ (cw_negative_tail_fresh k c U hc hn))
 
+/-- When both coefficient signs occur, each corrected sign chain's zero ancilla amplitude is its
+weighted matrix sum applied to `ψ`, divided by its own coefficient mass. The identity
+requires neither normalized input nor unitary payloads. -/
 theorem cw_prefixes_zero_corner (k : ℕ) (c : Fin (k+1)→ℝ) (U : Fin (k+1)→Matrix I I ℂ)
     (hp : ∃ q,0<c q) (hn : ∃ q,c q<0) (ψ : QState I) (x : I) :
     (cwPositiveCircuitCorrected k c U*ᵥTensorState (Ket (cwZero k)) ψ) (cwZero k,x)=

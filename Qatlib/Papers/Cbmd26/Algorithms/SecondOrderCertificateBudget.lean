@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.CosineSecondOrderAmplification
+
+/-!
+# Monotonicity of Second-Order Query Budgets
+
+`ThreeOracleOutputCertificate.mono` allows the matrix-oracle and state-preparation budgets in a
+three-oracle output certificate to be enlarged. Its proof transports both expected query bounds
+and the bounds for each execution path while retaining the certificate's preparation and output
+guarantees.
+
+This budget relaxation supports reporting convenient upper bounds for the second-order CBMD
+algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `ThreeOracleOutputCertificate.mono` preserves a certificate whenever both replacement budgets
+  are at least the original budgets.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,6 +73,8 @@ open Matrix
 
 variable {W I : Type} [Fintype W] [DecidableEq W] [Fintype I] [DecidableEq I]
 
+/-- A three-oracle output certificate remains valid when its matrix-query and state-preparation
+budgets are enlarged, including both expected and per-path bounds. -/
 theorem ThreeOracleOutputCertificate.mono
     {target : Matrix I I ℂ} {O1 O2 B : Matrix W W ℂ} {cs : List (PreparedStep W)}
     {F : Matrix W I ℂ} {zero : W} {S : Finset W} {ψ : QState I} {ε : ℝ}

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Amplification
+
+/-!
+# Sine response of odd amplification sequences
+
+This module computes the two-step recurrence for the response polynomials with repeated phase i
+and proves the resulting odd-angle sine and cosine identities. These identities determine the
+exact amplification response used for the multi-product encodings associated with
+[AftabAnTrivisa2026].
+
+## Main statements
+
+* `response_two`: gives the simultaneous two-phase recurrence.
+* `sine_response`: evaluates an odd-length phase sequence at sin θ.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +34,8 @@ namespace Qatlib.Papers.CommutLCHS26.MainResults.MPFOAASine
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 
+/-- Prepending two phases i gives the stated coupled recurrence for the P and Q response
+polynomials. -/
 theorem response_two (zs : List ℂ) (x : ℂ) :
     (responseP (-Complex.I) (Complex.I :: Complex.I :: zs)).eval x =
       (1 - 2 * x ^ 2) * (responseP (-Complex.I) zs).eval x -
@@ -27,6 +48,8 @@ theorem response_two (zs : List ℂ) (x : ℂ) :
     Polynomial.eval_pow, Complex.star_def, Complex.conj_I]
   constructor <;> ring_nf <;> norm_num [Complex.I_sq] <;> ring
 
+/-- At sin θ, the response P for 2n + 1 phases i equals sin((2n + 1)θ), while cos θ times the
+response Q equals -cos((2n + 1)θ). -/
 theorem sine_response (n : ℕ) (θ : ℝ) :
     (responseP (-Complex.I) (List.replicate (2 * n + 1) Complex.I)).eval (Real.sin θ : ℂ) =
       (Real.sin (((2 * n + 1 : ℕ) : ℝ) * θ) : ℂ) ∧

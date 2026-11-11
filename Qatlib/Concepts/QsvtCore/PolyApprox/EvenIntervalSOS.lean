@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsNonnegative
 import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+
+/-!
+# Parity-preserving sums of squares on the unit interval
+
+`even_interval_sos_with_source_parities` decomposes an even real polynomial nonnegative on `[-1,
+1]` as `b^2 + (1 - X^2) * c^2`. The construction transfers a Markov–Lukács representation
+through the substitution `X^2`, retaining the degree bounds and alternating parities required
+for signal-processing completion. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `sos_of_rep`: transfer a representation of the contracted polynomial.
+* `even_interval_sos_with_source_parities`: obtain the interval decomposition with prescribed
+  parities.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -16,6 +36,7 @@ namespace Qatlib.Concepts.QsvtCore.PolyApprox
 open Polynomial Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib
 
+/-- Substituting `X^2` into a polynomial of degree at most `m` gives degree at most `2 * m`. -/
 private theorem comp_square_degree_le {f : Polynomial ℝ} {m : ℕ}
     (hf : f.degree ≤ (m : WithBot ℕ)) :
     (f.comp (X ^ 2)).degree ≤ ((2 * m : ℕ) : WithBot ℕ) := by
@@ -24,6 +45,8 @@ private theorem comp_square_degree_le {f : Polynomial ℝ} {m : ℕ}
   have hd := natDegree_le_of_degree_le hf
   omega
 
+/-- Multiplying a polynomial composed with `X^2` by `X` gives degree at most `2 * m + 1` when
+the original degree is at most `m`. -/
 private theorem X_comp_square_degree_le {f : Polynomial ℝ} {m : ℕ}
     (hf : f.degree ≤ (m : WithBot ℕ)) :
     (X * f.comp (X ^ 2)).degree ≤ ((2 * m + 1 : ℕ) : WithBot ℕ) := by
@@ -33,6 +56,8 @@ private theorem X_comp_square_degree_le {f : Polynomial ℝ} {m : ℕ}
   rw [natDegree_X] at h
   omega
 
+/-- If the original polynomial has degree less than `m`, multiplying its composition with `X^2`
+by `X` gives degree less than `2 * m`. -/
 private theorem X_comp_square_degree_lt {f : Polynomial ℝ} {m : ℕ}
     (hf : f.degree < (m : WithBot ℕ)) :
     (X * f.comp (X ^ 2)).degree < ((2 * m : ℕ) : WithBot ℕ) := by
@@ -49,14 +74,19 @@ private theorem X_comp_square_degree_lt {f : Polynomial ℝ} {m : ℕ}
   rw [natDegree_X, hsq] at h
   exact_mod_cast (show (X * f.comp (X ^ 2)).natDegree < 2 * m by omega)
 
+/-- Composition with `X^2` has real parity `2 * m` for every natural `m`. -/
 private theorem comp_square_parity (f : Polynomial ℝ) (m : ℕ) :
     HasRealParity (2 * m) (f.comp (X ^ 2)) := by
   simp [HasRealParity, comp_assoc, pow_comp, pow_mul]
 
+/-- Multiplying a polynomial composed with `X^2` by `X` gives real parity `2 * m + 1`. -/
 private theorem X_comp_square_parity (f : Polynomial ℝ) (m : ℕ) :
     HasRealParity (2 * m + 1) (X * f.comp (X ^ 2)) := by
   simp [HasRealParity, mul_comp, comp_assoc, pow_comp, pow_add, pow_mul]
 
+/-- A degree-indexed representation of `contract 2 a` yields a decomposition `a = b^2 + (1 -
+X^2) * c^2` with the prescribed degree bounds and alternating parities when composition with
+`X^2` recovers `a`. -/
 private theorem sos_of_rep (a : Polynomial ℝ) (k : ℕ)
     (haComp : (contract 2 a).comp (X ^ 2) = a)
     (rep : Representation k (contract 2 a)) :
@@ -95,6 +125,9 @@ private theorem sos_of_rep (a : Polynomial ℝ) (k : ℕ)
     · convert comp_square_parity r.b (k / 2 + 1) using 1
       omega
 
+/-- An even polynomial of degree at most `2 * k` nonnegative on `[-1, 1]` has a decomposition
+`b^2 + (1 - X^2) * c^2` with the stated degree bounds and parities, as in [Gilyén et al.,
+Lemma 6][GilyenSuLowWiebe2019]. -/
 theorem even_interval_sos_with_source_parities : ∀ (a : Polynomial ℝ) (k : ℕ),
   HasRealParity 0 a → a.degree ≤ (2*k : WithBot ℕ) →
   (∀ x ∈ Set.Icc (-1 : ℝ) 1, 0 ≤ a.eval x) →

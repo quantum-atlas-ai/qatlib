@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RandCompile.ReferenceModel.QDriftReferenceSimulation
 import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+
+/-!
+# qDRIFT observable and reference-register estimates
+
+This module applies the qDRIFT precision budget to signed Hamiltonian coefficients and to the
+noncommuting Pauli pair `X` and `Z`. The randomized simulation setting follows [Campbell2019].
+
+The theorem `qdrift_signed_observable_consumer` bounds the real observable trace error for
+arbitrary input matrices, including a finite reference register. The Pauli specialization
+identifies the target Hamiltonian and supplies a trace-norm approximation bound.
+
+## Main statements
+
+* `qdrift_signed_observable_consumer`: observable error for signed coefficients and Hermitian
+  contractions.
+* `qdrift_noncommuting_xz_consumer`: trace-norm guarantee for the Pauli `X+Z` example.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +45,9 @@ set_option maxHeartbeats 2000000
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder Classical
 
+/-- For signed coefficients and Hermitian contractions, the selected qDRIFT mixture approximates
+ideal evolution with real observable trace error at most `‖O‖ * ε * Matrix.traceNorm ρ`,
+including a reference register [Campbell2019]. -/
 theorem qdrift_signed_observable_consumer (L D r : ℕ) (a : Fin L → ℝ)
     (K : Fin L → Operator D) (hlam : 0 < ∑ j, |a j|) (t ε : ℝ)
     (hε : 0 < ε) (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -42,6 +67,7 @@ theorem qdrift_signed_observable_consumer (L D r : ℕ) (a : Fin L → ℝ)
     ((Matrix.traceNorm_mul_le_opNorm_traceNorm _ _).trans
       ((mul_le_mul_of_nonneg_left he (norm_nonneg O)).trans_eq (by ring)))
 
+/-- The Pauli `X` matrix is Hermitian and has operator norm at most one. -/
 private theorem qdrift_pauliX_contract : pauliX.IsHermitian ∧ ‖pauliX‖ ≤ 1 := by
   have hh : pauliXᴴ = pauliX := by
     ext i j
@@ -51,6 +77,7 @@ private theorem qdrift_pauliX_contract : pauliX.IsHermitian ∧ ‖pauliX‖ ≤
   ext i j
   fin_cases i <;> fin_cases j <;> simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The Pauli `Z` matrix is Hermitian and has operator norm at most one. -/
 private theorem qdrift_pauliZ_contract : pauliZ.IsHermitian ∧ ‖pauliZ‖ ≤ 1 := by
   have hh : pauliZᴴ = pauliZ := by
     ext i j
@@ -60,6 +87,9 @@ private theorem qdrift_pauliZ_contract : pauliZ.IsHermitian ∧ ‖pauliZ‖ ≤
   ext i j
   fin_cases i <;> fin_cases j <;> simp [pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The equal-weight qDRIFT model for Pauli `X` and `Z` has Hamiltonian `pauliX + pauliZ`. Its
+selected mixture approximates ideal evolution in trace norm within `ε * Matrix.traceNorm ρ`,
+including an arbitrary finite reference register [Campbell2019]. -/
 theorem qdrift_noncommuting_xz_consumer (r : ℕ) (t ε : ℝ) (hε : 0 < ε) :
     let K := fun j : Fin 2 => if j = 0 then pauliX else pauliZ
     qdriftHamiltonian qdriftTwoLaw K 2 = pauliX + pauliZ ∧

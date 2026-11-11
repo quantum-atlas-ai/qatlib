@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+
+/-!
+# Composite Gauss coefficient-mass specification
+
+`Lemma12CoefficientMass` specifies an upper bound for the sum of the norms of the composite LCHS
+coefficients. It assumes positive rule weights and polynomial exactness, and separates the
+kernel integral budget from a cell-width correction. See [AnChildsLin2026] for the mathematical
+setting.
+
+## Main statements
+
+* `Lemma12CoefficientMass`: The coefficient-mass specification for positive polynomial-exact
+  composite Gauss rules, with bound `exp(1)^2 / Real.pi * (1 + 1 / (β * (1 - β)))` plus the
+  stated cell-width correction, corresponding to [An, Childs, and Lin, Lemma
+  12][AnChildsLin2026].
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +39,9 @@ namespace Qatlib.Concepts.LchsSimulation.Quadrature
 open MeasureTheory
 open scoped Matrix.Norms.L2Operator
 
+/-- The coefficient-mass specification for positive polynomial-exact composite Gauss rules, with
+bound `exp(1)^2 / Real.pi * (1 + 1 / (β * (1 - β)))` plus the stated cell-width correction,
+corresponding to [An, Childs, and Lin, Lemma 12][AnChildsLin2026]. -/
 def Lemma12CoefficientMass : Prop :=
   ∀ (β : ℝ) (K Q M : ℕ) (node weight : Fin Q → ℝ),
     0 < β → β < 1 → 1 ≤ K → 1 ≤ Q → 1 ≤ M →

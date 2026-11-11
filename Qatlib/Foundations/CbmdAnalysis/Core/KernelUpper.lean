@@ -9,6 +9,28 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.EulerSineProd
 import Mathlib.Data.Nat.Factorial.BigOperators
 import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
 import Mathlib.Tactic
+
+/-!
+# Euler product bounds for kernel normalization
+
+`kernelNormalizedProduct` is the finite Euler product of `1 + c² / (j + 1)²`. For positive `c`,
+it converges to `sinh (πc) / (πc)` and each finite product is bounded by that limit.
+
+Separating factorial factors gives bounds on the regulator normalization and a uniform
+numerator-to-distance-product ratio. These estimates enter the coefficient bounds for
+[WangEtAl2026].
+
+## Main statements
+
+* `kernelNormalizedProduct_tendsto`: identifies the infinite Euler product.
+* `regulator_numerator_ratio_upper`: bounds the regulator product ratio uniformly in the real
+  argument.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,9 +43,11 @@ namespace CBMD
 open Filter
 open scoped BigOperators Topology
 
+/-- The finite Euler product `∏ j ∈ range m, (1 + c² / (j + 1)²)`. -/
 noncomputable def kernelNormalizedProduct (c : ℝ) (m : ℕ) : ℝ :=
   ∏ j ∈ Finset.range m, (1 + c ^ 2 / ((j : ℝ) + 1) ^ 2)
 
+/-- For positive `c`, the normalized finite products converge to `sinh (πc) / (πc)`. -/
 theorem kernelNormalizedProduct_tendsto {c : ℝ} (hc : 0 < c) :
     Tendsto (kernelNormalizedProduct c) atTop
       (𝓝 (Real.sinh (Real.pi * c) / (Real.pi * c))) := by
@@ -56,6 +80,7 @@ theorem kernelNormalizedProduct_tendsto {c : ℝ} (hc : 0 < c) :
   funext n
   field_simp
 
+/-- For positive `c`, each normalized finite product is at most `sinh (πc) / (πc)`. -/
 theorem kernelNormalizedProduct_le {c : ℝ} (hc : 0 < c) (m : ℕ) :
     kernelNormalizedProduct c m ≤ Real.sinh (Real.pi * c) / (Real.pi * c) := by
   apply ge_of_tendsto (kernelNormalizedProduct_tendsto hc)
@@ -64,6 +89,8 @@ theorem kernelNormalizedProduct_le {c : ℝ} (hc : 0 < c) (m : ℕ) :
   · intro j _; positivity
   · intro j _ _; exact le_add_of_nonneg_right (by positivity)
 
+/-- The product of `(j + 1)² + c²` over `j < m` equals `(m!)²` times the normalized Euler
+product. -/
 theorem kernel_product_factorial (m : ℕ) (c : ℝ) :
     (∏ j ∈ Finset.range m, (((j : ℝ) + 1) ^ 2 + c ^ 2)) =
       (m.factorial : ℝ) ^ 2 * kernelNormalizedProduct c m := by
@@ -75,12 +102,16 @@ theorem kernel_product_factorial (m : ℕ) (c : ℝ) :
   have hj : ((j : ℝ) + 1) ≠ 0 := by positivity
   field_simp
 
+/-- For positive `c`, the product of `(j + 1)² + c²` over `j < m` is at most `(m!)² * sinh (πc)
+/ (πc)`. -/
 theorem finite_euler_product_upper (m : ℕ) {c : ℝ} (hc : 0 < c) :
     (∏ j ∈ Finset.range m, (((j : ℝ) + 1) ^ 2 + c ^ 2)) ≤
       (m.factorial : ℝ) ^ 2 * (Real.sinh (Real.pi * c) / (Real.pi * c)) := by
   rw [kernel_product_factorial]
   exact mul_le_mul_of_nonneg_left (kernelNormalizedProduct_le hc m) (sq_nonneg _)
 
+/-- For every real `x`, the regulator normalization product divided by the row-distance product
+is at most `sinh (2π) / (2π)`. -/
 theorem regulator_numerator_ratio_upper (m : ℕ) (x : ℝ) :
     (∏ j ∈ Finset.range m, (((j : ℝ) + 1) ^ 2 + 4)) /
         (∏ r ∈ Finset.Icc (-(m : ℤ)) m, ‖(x : ℂ) - (r : ℂ) - Complex.I‖) ≤

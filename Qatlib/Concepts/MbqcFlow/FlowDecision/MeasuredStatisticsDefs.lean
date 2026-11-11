@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNative
+
+/-!
+# Product sampling and statistics of POVM records
+
+`povmSampleLaw` equips finite POVM outcome records with their product distribution. The module
+proves unbiasedness and variance identities for reconstructed sample means, bounds variance by
+`povmMomentEffect`, and obtains confidence bounds for one or two reconstructed observables;
+[Holevo1982] provides the quantum statistical background.
+
+It also defines `povmUStatisticK` as an average over ordered tuples of distinct positions and
+proves its unbiasedness. Additional results establish counted rational insertion-sort properties
+and specify an axis selector driven by outcome labels.
+
+## Main statements
+
+* `povm_sample_mean_unbiased` and `povm_sample_mean_variance`: expectation and mean squared
+  error.
+* `povm_sample_confidence_bound`: a moment-effect confidence bound.
+* `povmUStatisticK_unbiased`: unbiased averaging over distinct tuples.
+* `rationalInsertionSortCounted_median_property`: inequalities around the sorted median.
+* `nativeResultDependentAxis_append`: the axis-selector update after one record.
+
+## References
+
+* [Holevo, 1982][Holevo1982]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -29,16 +56,22 @@ set_option linter.unusedVariables false
 
 variable {O : Type} [Fintype O] [DecidableEq O] {D : ℕ}
 
+/-- The product distribution of `n` independent outcomes drawn from the POVM record law of the
+density operator `ρ`. -/
 noncomputable def povmSampleLaw (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} : FinDist (Fin n → O) where
   prob ω := (povmRecordLaw E ρ hρ).probOf ω
   nonneg ω := Finset.prod_nonneg fun i _ => (povmRecordLaw E ρ hρ).nonneg _
   sum_one := (povmRecordLaw E ρ hρ).sum_probOf n
 
+/-- The probability of a sample record under `povmSampleLaw` is its product probability under
+`povmRecordLaw`. -/
 theorem povmSampleLaw_prob (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (ω : Fin n → O) :
     (povmSampleLaw E ρ hρ).prob ω = (povmRecordLaw E ρ hρ).probOf ω := rfl
 
+/-- The expectation of an event indicator under `povmSampleLaw` equals its product-law event
+probability. -/
 theorem povmSampleLaw_event (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) {n : ℕ} (Ev : (Fin n → O) → Prop) [DecidablePred Ev] :
     (povmSampleLaw E ρ hρ).expect (fun ω : Fin n → O => if Ev ω then 1 else 0)
@@ -49,6 +82,8 @@ theorem povmSampleLaw_event (E : FinitePOVM O D) (ρ : Operator D)
   rw [Finset.sum_filter]
   exact Finset.sum_congr rfl fun ω _ => by rw [mul_ite, mul_one, mul_zero]
 
+/-- For a POVM with bijective measurement map and a positive sample size, the reconstructed
+sample mean has expectation equal to the real part of `trace (A * ρ)`. -/
 theorem povm_sample_mean_unbiased (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D) {n : ℕ} (hn : 0 < n) :
@@ -61,6 +96,8 @@ theorem povm_sample_mean_unbiased (E : FinitePOVM O D)
   rw [povm_expect_statistic E hM ρ hρ A] at h1
   exact h1
 
+/-- The mean squared error of the reconstructed sample mean is the single-record variance
+divided by the positive sample size `n`. -/
 theorem povm_sample_mean_variance (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D) {n : ℕ} (hn : 0 < n) :
@@ -73,6 +110,7 @@ theorem povm_sample_mean_variance (E : FinitePOVM O D)
   rw [povm_expect_statistic E hM ρ hρ A] at h1
   exact h1
 
+/-- The POVM moment effect associated with the reconstructed statistic is positive semidefinite. -/
 theorem povmMomentEffect_posSemidef (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (A : Operator D) :
     (povmMomentEffect E hM A).PosSemidef := by
@@ -83,6 +121,8 @@ theorem povmMomentEffect_posSemidef (E : FinitePOVM O D)
     exact RCLike.ofReal_nonneg.mpr (sq_nonneg (povmStatistic E hM A o))
   exact Matrix.PosSemidef.smul (FinitePOVM.effect_posSemidef E o) hc
 
+/-- The variance of the reconstructed POVM statistic is bounded by the norm of its moment
+effect. -/
 theorem povm_variance_le (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D) :
@@ -106,6 +146,8 @@ theorem povm_variance_le (E : FinitePOVM O D)
         sub_le_self _ (sq_nonneg (Matrix.trace (A * ρ)).re)
     _ ≤ ‖povmMomentEffect E hM A‖ := htrace
 
+/-- For positive `n` and `ε`, the probability that the reconstructed sample mean deviates by
+more than `ε` is bounded by the single-record variance divided by `n * ε ^ 2`. -/
 theorem povm_sample_confidence (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D) {n : ℕ} (hn : 0 < n)
@@ -119,6 +161,8 @@ theorem povm_sample_confidence (E : FinitePOVM O D)
   rw [povm_expect_statistic E hM ρ hρ A] at h1
   exact h1
 
+/-- For positive `n` and `ε`, the sample-mean deviation probability is bounded by the
+moment-effect norm divided by `n * ε ^ 2`. -/
 theorem povm_sample_confidence_bound (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Operator D) {n : ℕ} (hn : 0 < n)
@@ -131,6 +175,9 @@ theorem povm_sample_confidence_bound (E : FinitePOVM O D)
   exact div_le_div_of_nonneg_right (povm_variance_le E hM ρ hρ A)
     (by positivity)
 
+/-- For two observables reconstructed from the same POVM records, the probability that either
+sample mean deviates by more than `ε` is bounded by the sum of the moment-effect norms
+divided by `n * ε ^ 2`. -/
 theorem povm_two_observables_shared_records (E : FinitePOVM O D)
     (hM : Function.Bijective (povmMeasurementMap E)) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (A : Fin 2 → Operator D) {n : ℕ} (hn : 0 < n)
@@ -162,6 +209,8 @@ theorem povm_two_observables_shared_records (E : FinitePOVM O D)
         rw [Fin.sum_univ_two]
         ring
 
+/-- Summing the probability weights against the indicator of `x = a` returns the probability of
+`a`. -/
 theorem prob_ite_sum {O : Type} [Fintype O] [DecidableEq O] (p : FinDist O) (a : O) :
     (∑ x, p.prob x * (if x = a then 1 else 0)) = p.prob a := by
   have hconv : ∀ x, p.prob x * (if x = a then 1 else 0)
@@ -173,6 +222,8 @@ theorem prob_ite_sum {O : Type} [Fintype O] [DecidableEq O] (p : FinDist O) (a :
   simp_rw [hconv]
   rw [Fintype.sum_ite_eq]
 
+/-- A finite product equals the product along an injective selection when the selected factors
+agree and all unselected factors are one. -/
 theorem prod_split_selected {n k : ℕ} (idx : Fin k → Fin n) (hidx : Function.Injective idx) (F : Fin n → ℝ)
     (G : Fin k → ℝ) (hFG : ∀ t, F (idx t) = G t)
     (hfree : ∀ j, (∀ t, idx t ≠ j) → F j = 1) :
@@ -210,6 +261,8 @@ theorem prod_split_selected {n k : ℕ} (idx : Fin k → Fin n) (hidx : Function
   rw [h1, himage, hrest, mul_one]
   exact Finset.prod_congr rfl fun t _ => hFG t
 
+/-- The joint marginal at injectively selected positions in a product sample law is the product
+of the corresponding single-record probabilities. -/
 theorem povm_joint_marginal (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
     (hidx : Function.Injective idx) (y : Fin k → O) :
     (∑ ω : Fin n → O, p.probOf ω
@@ -283,6 +336,8 @@ theorem povm_joint_marginal (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
   rw [hprod] at hp
   exact hp
 
+/-- A function of injectively selected sample positions has the same expectation as under the
+product law on those positions. -/
 theorem povm_joint_expect (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
     (hidx : Function.Injective idx) (f : (Fin k → O) → ℝ) :
     (∑ ω : Fin n → O, p.probOf ω * f (fun t => ω (idx t)))
@@ -346,16 +401,24 @@ theorem povm_joint_expect (p : FinDist O) {n k : ℕ} (idx : Fin k → Fin n)
         refine Finset.sum_congr rfl fun y _ => ?_
         rw [povm_joint_marginal p idx hidx y]
 
+/-- The expectation of a `k`-argument kernel under the product of `k` copies of the finite
+distribution `p`. -/
 noncomputable def kernelMeanK {k : ℕ} (p : FinDist O) (h : (Fin k → O) → ℝ) : ℝ :=
   ∑ y : Fin k → O, (∏ t : Fin k, p.prob (y t)) * h y
 
+/-- The number of injective maps from `Fin k` to `Fin n`, counting ordered selections of
+distinct sample positions. -/
 noncomputable def distinctTupleCount (n k : ℕ) : ℕ :=
   ((Finset.univ : Finset (Fin k → Fin n)).filter (fun t => Function.Injective t)).card
 
+/-- The average of a kernel over all ordered injective selections of `k` positions in the sample
+record. -/
 noncomputable def povmUStatisticK {n k : ℕ} (h : (Fin k → O) → ℝ) (ω : Fin n → O) : ℝ :=
   (∑ t : Fin k → Fin n, (if Function.Injective t then h (fun s => ω (t s)) else 0))
     / ((distinctTupleCount n k : ℕ) : ℝ)
 
+/-- The expectation of the unnormalized sum over injective tuples equals the number of such
+tuples times `kernelMeanK`. -/
 theorem povmUStatisticK_unbiased_scaled (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ) :
     (∑ ω : Fin n → O, p.probOf ω
         * (∑ t : Fin k → Fin n, (if Function.Injective t then h (fun s => ω (t s)) else 0)))
@@ -413,6 +476,8 @@ theorem povmUStatisticK_unbiased_scaled (p : FinDist O) {n k : ℕ} (h : (Fin k 
         · simp [ht]
     _ = ((distinctTupleCount n k : ℕ) : ℝ) * kernelMeanK p h := hcount'
 
+/-- The kernel average over injective tuples has expectation `kernelMeanK` when at least one
+injective tuple exists. -/
 theorem povmUStatisticK_unbiased (p : FinDist O) {n k : ℕ} (h : (Fin k → O) → ℝ)
     (hcount : (distinctTupleCount n k : ℕ) ≠ 0) :
     (∑ ω : Fin n → O, p.probOf ω * povmUStatisticK h ω) = kernelMeanK p h := by
@@ -438,6 +503,8 @@ theorem povmUStatisticK_unbiased (p : FinDist O) {n k : ℕ} (h : (Fin k → O) 
         rw [povmUStatisticK_unbiased_scaled p h]
     _ = kernelMeanK p h := by field_simp [hCne]
 
+/-- Counted insertion produces a permutation of the inserted element followed by the original
+rational list. -/
 theorem rationalInsertSortedCounted_perm (x : ℚ) (l : List ℚ) :
     (rationalInsertSortedCounted x l).1.Perm (x :: l) := by
   induction l with
@@ -448,6 +515,7 @@ theorem rationalInsertSortedCounted_perm (x : ℚ) (l : List ℚ) :
       · exact List.Perm.refl _
       · exact List.Perm.trans (List.Perm.cons y ih) (List.Perm.swap x y ys)
 
+/-- Counted insertion preserves nondecreasing order of a rational list. -/
 theorem rationalInsertSortedCounted_sorted {x : ℚ} {l : List ℚ} (hl : l.SortedLE) :
     (rationalInsertSortedCounted x l).1.SortedLE := by
   induction l with
@@ -475,6 +543,7 @@ theorem rationalInsertSortedCounted_sorted {x : ℚ} {l : List ℚ} (hl : l.Sort
           · exact hyx
           · exact hhead b hbys
 
+/-- Counted insertion sort returns a permutation of its rational input list. -/
 theorem rationalInsertionSortCounted_perm (l : List ℚ) :
     (rationalInsertionSortCounted l).1.Perm l := by
   induction l with
@@ -483,6 +552,7 @@ theorem rationalInsertionSortCounted_perm (l : List ℚ) :
       show ((rationalInsertSortedCounted x (rationalInsertionSortCounted xs).1).1).Perm (x :: xs)
       exact List.Perm.trans (rationalInsertSortedCounted_perm x _) (List.Perm.cons x ih)
 
+/-- Counted insertion sort returns a nondecreasing rational list. -/
 theorem rationalInsertionSortCounted_sorted (l : List ℚ) :
     (rationalInsertionSortCounted l).1.SortedLE := by
   induction l with
@@ -491,6 +561,8 @@ theorem rationalInsertionSortCounted_sorted (l : List ℚ) :
       show ((rationalInsertSortedCounted x (rationalInsertionSortCounted xs).1).1).SortedLE
       exact rationalInsertSortedCounted_sorted ih
 
+/-- For a nonempty list of length `K`, the sorted entry at index `K / 2` lies above all earlier
+entries and below all later valid entries. -/
 theorem rationalInsertionSortCounted_median_property {K : ℕ} (means : List ℚ)
     (hK : 0 < K) (hlen : means.length = K) :
     (∀ j, j < K / 2 →
@@ -531,24 +603,32 @@ theorem rationalInsertionSortCounted_median_property {K : ℕ} (means : List ℚ
     rw [hgetj, hgetm]
     exact hpw (K / 2) j hmid hjlt hj
 
+/-- The axis-table entry indexed by the sum of recorded outcome labels modulo three. -/
 def nativeResultDependentAxis (history : List (Fin 3 × Fin 2)) : Fin 3 :=
   nativeAxisTable.getD (history.foldl (fun acc r => (acc + r.2.val) % 3) 0) 0
 
+/-- Changing the indicated outcome label changes the axis selected for the two displayed
+histories. -/
 theorem nativeResultDependentAxis_depends_on_labels :
     nativeResultDependentAxis [(0, 0), (0, 0)] ≠ nativeResultDependentAxis [(0, 1), (0, 0)] := by
   simp [nativeResultDependentAxis, nativeAxisTable]
 
+/-- On the displayed history, outcome-dependent axis selection differs from `nativeSelectAxis`. -/
 theorem nativeResultDependentAxis_ne_length_based :
     nativeResultDependentAxis [(0, 1), (0, 0)] ≠ nativeSelectAxis [(0, 1), (0, 0)] := by
   simp [nativeResultDependentAxis, nativeSelectAxis, nativeAxisTable]
 
+/-- The history length plus the draw cost of the axis selected from its outcome labels. -/
 def nativeResultDependentAxisCost (history : List (Fin 3 × Fin 2)) : ℕ :=
   history.length + nativeAxisDrawCost (nativeResultDependentAxis history)
 
+/-- Outcome-dependent axis selection costs at most the history length plus the axis-table
+length. -/
 theorem nativeResultDependentAxisCost_le (history : List (Fin 3 × Fin 2)) :
     nativeResultDependentAxisCost history ≤ history.length + nativeAxisTable.length := by
   exact Nat.add_le_add (Nat.le_refl _) (nativeAxisDrawCost_le _)
 
+/-- Appending one record updates the axis-table index by adding its outcome label modulo three. -/
 theorem nativeResultDependentAxis_append (history : List (Fin 3 × Fin 2))
     (r : Fin 3 × Fin 2) :
     nativeResultDependentAxis (history ++ [r])

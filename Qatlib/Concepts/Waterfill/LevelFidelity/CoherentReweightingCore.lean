@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingDefs
 import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingUpperQuan
+
+/-!
+# Coherent reweighting identities and application bounds
+
+This module proves scalar and inner-product identities for `resamplingFamily`, bounds
+exact-resampling source calls, and establishes norm and influence estimates for the application
+profiles in `CoherentReweightingDefs`. The theorem `gext4` collects conditional clipping,
+overlap, and query-budget statements for applications of quantum rejection sampling
+[OzolsRoettelerRoland2013].
+
+## Main statements
+
+* `scheduled_calls_budget`: bound scheduled source calls by a constant times the inverse
+  amplitude.
+* `hidden_state_discipline`: express the exact output using the original hidden-state family.
+* `gext4`: collect exact-resampling and application-specific bounds.
+
+## References
+
+* [Ozols et al., 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +45,8 @@ open Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Real scalar multiplication of a resampling family multiplies each of its real amplitude
+coefficients by that scalar. -/
 theorem resamplingFamily_smul {m D : ℕ} (r : ℝ) (v : Fin m → ℝ)
     (ξ : Fin m → QState (Fin D)) :
     ((r : ℝ) : ℂ) • resamplingFamily v ξ = resamplingFamily (fun i => r * v i) ξ := by
@@ -33,6 +57,8 @@ theorem resamplingFamily_smul {m D : ℕ} (r : ℝ) (v : Fin m → ℝ)
   · simp [hp]
     ring
 
+/-- For normalized hidden states, the inner product of two resampling families equals the real
+dot product of their amplitude coefficients, cast to `ℂ`. -/
 theorem resamplingFamily_inner {m D : ℕ} (v w : Fin m → ℝ)
     (ξ : Fin m → QState (Fin D)) (hξ : ∀ i, Normalized (ξ i)) :
     Inner (resamplingFamily v ξ) (resamplingFamily w ξ) =
@@ -79,11 +105,13 @@ theorem resamplingFamily_inner {m D : ℕ} (v w : Fin m → ℝ)
     exact_mod_cast rfl
   rw [hre]
 
+/-- For `0 < β ≤ 1`, the scheduled source-call count is at most `Real.pi / (2 * β) + 2`. -/
 theorem scheduled_calls_le (β : ℝ) (h : 0 < β) (h1 : β ≤ 1) :
     (scheduledSourceCalls β : ℝ) ≤ Real.pi / (2 * β) + 2 := by
   simpa [scheduledSourceCalls] using!
     (resamplingExactSchedule β h h1).2.2.2.2.2.2.1
 
+/-- For `0 < β ≤ 1`, the scheduled source-call count is at most `(Real.pi / 2 + 2) * β⁻¹`. -/
 theorem scheduled_calls_budget (β : ℝ) (h : 0 < β) (h1 : β ≤ 1) :
     (scheduledSourceCalls β : ℝ) ≤ (Real.pi / 2 + 2) * β⁻¹ := by
   have hbnd := scheduled_calls_le β h h1
@@ -96,10 +124,14 @@ theorem scheduled_calls_budget (β : ℝ) (h : 0 < β) (h1 : β ≤ 1) :
   rw [add_mul]
   exact le_trans hbnd (add_le_add le_rfl h2)
 
+/-- The linear-system query budget equals the inverse of the clipped-profile norm divided by
+`κTilde`. -/
 theorem qls_budget_inv {n : ℕ} (κTilde : ℝ) (wTilde : Fin n → ℝ) :
     qlsQueryBudget κTilde wTilde = (l2Norm wTilde / κTilde)⁻¹ := by
   rw [qlsQueryBudget, inv_div]
 
+/-- For a source of squared norm one and positive cutoff parameter, the clipped
+inverse-eigenvalue profile has Euclidean norm at most `κTilde`. -/
 theorem qls_wTilde_le {n : ℕ} (κTilde : ℝ) (b lam : Fin n → ℝ)
     (hb : (∑ j, b j ^ 2) = 1) (hκ : 0 < κTilde) :
     l2Norm (qlsWTilde b κTilde lam) ≤ κTilde := by
@@ -131,6 +163,7 @@ theorem qls_wTilde_le {n : ℕ} (κTilde : ℝ) (b lam : Fin n → ℝ)
   have := Real.sqrt_le_sqrt hsum
   rwa [Real.sqrt_sq (le_of_lt hκ)] at this
 
+/-- For `0 ≤ γ ≤ 1`, the clipped Boolean hidden-shift profile has Euclidean norm at most one. -/
 theorem bhsp_eps_le {n : ℕ} (fHat : Fin (2 ^ n) → ℝ) (γ : ℝ)
     (hγ : γ ≤ 1) (hγ0 : 0 ≤ γ) : l2Norm (bhspEps fHat γ) ≤ 1 := by
   have hle : ∀ w, (bhspEps fHat γ w) ^ 2 ≤ γ ^ 2 / (2 : ℝ) ^ n := by
@@ -162,6 +195,7 @@ theorem bhsp_eps_le {n : ℕ} (fHat : Fin (2 ^ n) → ℝ) (γ : ℝ)
   have := le_trans hsqrt (Real.sqrt_le_one.mpr hγ1)
   exact this
 
+/-- The fraction of inputs changed by any Boolean shift is at most one. -/
 theorem influenceAt_le_one (n : ℕ) (f : Reg n → Bool) (v : Reg n) :
     influenceAt n f v ≤ 1 := by
   rw [influenceAt]
@@ -183,6 +217,7 @@ theorem influenceAt_le_one (n : ℕ) (f : Reg n → Bool) (v : Reg n) :
     simpa [mul_one] using! this
   exact hdiv
 
+/-- The infimum of shift influences is bounded above by the influence of each shift. -/
 theorem minInfluence_le_influenceAt (n : ℕ) (f : Reg n → Bool) (v : Reg n) :
     minInfluence n f ≤ influenceAt n f v := by
   have hb : BddBelow (Set.range fun v : Reg n => influenceAt n f v) :=
@@ -191,19 +226,23 @@ theorem minInfluence_le_influenceAt (n : ℕ) (f : Reg n → Bool) (v : Reg n) :
       exact div_nonneg (Nat.cast_nonneg _) (by positivity)⟩
   exact csInf_le hb ⟨v, rfl⟩
 
+/-- The infimum of Boolean shift influences is at most one. -/
 theorem minInfluence_le_one (n : ℕ) (f : Reg n → Bool) :
     minInfluence n f ≤ 1 :=
   le_trans (minInfluence_le_influenceAt n f (fun _ => false))
     (influenceAt_le_one n f (fun _ => false))
 
+/-- The bitwise exclusive-or of a register with itself is the all-false register. -/
 theorem xorReg_self {n : ℕ} (s : Reg n) : xorReg s s = fun _ => false := by
   funext i
   simp [xorReg]
 
+/-- Taking bitwise exclusive-or with the all-false register leaves a register unchanged. -/
 theorem xorReg_zero_right {n : ℕ} (x : Reg n) : xorReg x (fun _ => false) = x := by
   funext i
   simp [xorReg]
 
+/-- The all-false shift has zero influence on every Boolean function. -/
 theorem influenceAt_zero (n : ℕ) (f : Reg n → Bool) :
     influenceAt n f (fun _ => false) = 0 := by
   rw [influenceAt]
@@ -214,6 +253,8 @@ theorem influenceAt_zero (n : ℕ) (f : Reg n → Bool) :
   rw [h]
   simp
 
+/-- Under the hypotheses in `HiddenStateDiscipline`, exact resampling produces a resampling
+family built from the original hidden states. -/
 theorem hidden_state_discipline {m D : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
     (U : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j₀ : Fin m × Fin D)
     (ξ : Fin m → QState (Fin D)) : HiddenStateDiscipline π σ γ U j₀ ξ := by
@@ -225,6 +266,8 @@ theorem hidden_state_discipline {m D : ℕ} (π σ : Fin m → ℚ) (γ : ℝ)
   rw [heq]
   exact resamplingFamily_smul (1 / Real.sqrt (levelMass π σ γ)) (levelFill π σ γ) ξ
 
+/-- For positive tolerance, a legal finite gate word exists within the length and workspace
+bounds specified by `HasReweightingFixedGateBackend`. -/
 theorem reweighting_backend {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ)
     (tableBits : ℕ) (ε : ℝ) :
     HasReweightingFixedGateBackend m D π σ γ a tableBits ε := by
@@ -234,6 +277,10 @@ theorem reweighting_backend {m D : ℕ} (π σ : Fin m → ℚ) (γ a : ℝ)
   · simp
   · simp
 
+/-- Collect the exact-resampling upper statement, conditional profile identities and source-call
+bounds for linear systems, Metropolis weights, and Boolean hidden shifts, together with
+hidden-state preservation and bounded legal gate-word existence. These are application
+statements for quantum rejection sampling [OzolsRoettelerRoland2013]. -/
 theorem gext4 :
   Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingUpper ∧
   (∀ (n : ℕ) (b lam : Fin n → ℝ) (κTilde κ : ℝ),

@@ -12,6 +12,32 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+/-!
+# Rational rejection sampling with counted resources
+
+`rationalRejectionRun` repeatedly draws fair bit blocks and decodes tickets according to
+natural-number weights. Its configurations carry separate totals for bits and decoder
+comparisons, while the outer cost records the number of executed attempts.
+
+The module proves the exact one-step distribution, finite return and pending laws, first-stop
+probabilities, and expectations for all three resources. The underlying finite randomized
+execution model is described in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `rational_fair_bit_step_distribution`: decoder fibers determine the exact accepted and
+  rejected masses.
+* `rational_counted_run_projection_and_paths`: discarding resource counters recovers the
+  uncounted run, with exact pathwise counter laws.
+* `rational_finite_three_resource_expectations`: attempts, bits, and comparisons have
+  expectations given by geometric survival sums.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
 open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
@@ -29,6 +55,8 @@ section Helpers
 
 variable {N : ℕ}
 
+/-- A half-open natural-number interval contained in `Fin M` has cardinality equal to its
+length. -/
 private theorem card_interval (M a len : ℕ) (h : a + len ≤ M) :
     (Finset.univ.filter (fun u : Fin M => a ≤ u.val ∧ u.val < a + len)).card = len := by
   refine Finset.card_eq_of_bijective
@@ -46,6 +74,7 @@ private theorem card_interval (M a len : ℕ) (h : a + len ≤ M) :
     simp only at h
     omega
 
+/-- For `k ≤ M`, exactly `M - k` elements of `Fin M` have value at least `k`. -/
 private theorem card_filter_ge (M k : ℕ) (hk : k ≤ M) :
     (Finset.univ.filter (fun u : Fin M => k ≤ u.val)).card = M - k := by
   refine Finset.card_eq_of_bijective
@@ -63,6 +92,8 @@ private theorem card_filter_ge (M k : ℕ) (hk : k ≤ M) :
     simp only at h
     omega
 
+/-- A sum over a finite type equals the filtered finite sum when all terms outside the predicate
+vanish. -/
 private theorem tsum_eq_filter_sum {α : Type} [Fintype α] (F : α → ℝ≥0∞) (P : α → Prop)
     [DecidablePred P] (h0 : ∀ x, ¬ P x → F x = 0) :
     ∑' x : α, F x = ∑ x ∈ Finset.univ.filter P, F x := by
@@ -87,6 +118,7 @@ private theorem tsum_eq_filter_sum {α : Type} [Fintype α] (F : α → ℝ≥0�
         simpa only [Finset.mem_filter, Finset.mem_univ, true_and] using hx
     _ = _ := by rw [add_zero]
 
+/-- The probability of the union of two disjoint events equals the sum of their probabilities. -/
 private theorem event_or {α : Type} (p : PMF α) (A B : α → Prop)
     (hd : ∀ x, ¬ (A x ∧ B x)) :
     CostedLaw.event p (fun x => A x ∨ B x) = CostedLaw.event p A + CostedLaw.event p B := by
@@ -99,6 +131,7 @@ private theorem event_or {α : Type} (p : PMF α) (A B : α → Prop)
     · simp [hA, hB]
     · simp [hA, hB]
 
+/-- An event disjoint from the support of a probability mass function has probability zero. -/
 private theorem event_support_zero {α : Type} (p : PMF α) (E : α → Prop)
     (h : ∀ x ∈ p.support, ¬ E x) : CostedLaw.event p E = 0 := by
   classical
@@ -110,6 +143,8 @@ private theorem event_support_zero {α : Type} (p : PMF α) (E : α → Prop)
     · exact (h x ((PMF.mem_support_iff p x).mpr hp0) hx).elim
   · simp [hx]
 
+/-- Charging a fixed cost after an ordinary probability bind equals charging that cost in each
+continuation. -/
 private theorem costedCharge_bind_pmf (n : ℕ) {α β : Type} (p : PMF α)
     (q : α → PMF (β × ℕ)) :
     CostedLaw.charge n (PMF.bind p q) = PMF.bind p (fun a => CostedLaw.charge n (q a)) := by
@@ -117,6 +152,7 @@ private theorem costedCharge_bind_pmf (n : ℕ) {α β : Type} (p : PMF α)
   rw [PMF.map_bind]
   exact congrArg _ (funext fun a => rfl)
 
+/-- Charging a fixed cost after a costed bind equals charging it in every continuation. -/
 private theorem costedCharge_bind (n : ℕ) {α β : Type} (p : CostedLaw α)
     (f : α → CostedLaw β) :
     CostedLaw.charge n (CostedLaw.bind p f) =
@@ -126,11 +162,14 @@ private theorem costedCharge_bind (n : ℕ) {α β : Type} (p : CostedLaw α)
   exact congrArg _ (funext fun x => by
     rw [CostedLaw.charge_charge, CostedLaw.charge_charge, Nat.add_comm])
 
+/-- Mapping outputs and adding a fixed cost equals mapping outputs first and then applying
+`CostedLaw.charge`. -/
 private theorem map_charge_shift {α β : Type} (q : PMF (α × ℕ)) (f : α → β) (n : ℕ) :
     q.map (fun y => (f y.1, n + y.2)) = CostedLaw.charge n (q.map fun y => (f y.1, y.2)) := by
   rw [CostedLaw.charge, PMF.map_comp]
   rfl
 
+/-- Two maps agreeing on a probability law's support induce the same mapped law. -/
 private theorem pmf_map_congr_support {α β : Type} {p : PMF α} {f g : α → β}
     (h : ∀ a ∈ p.support, f a = g a) : p.map f = p.map g := by
   refine PMF.ext fun z => ?_
@@ -140,6 +179,8 @@ private theorem pmf_map_congr_support {α β : Type} {p : PMF α} {f g : α → 
   · simp [hp]
   · rw [h x ((PMF.mem_support_iff p x).mpr hp)]
 
+/-- Counting bit registers satisfying a predicate equals counting their encoded integers
+satisfying the transported predicate. -/
 private theorem card_filter_reg {b : ℕ} (P : Reg b → Prop) [DecidablePred P] :
     (Finset.univ.filter P).card =
       (Finset.univ.filter (fun u : Fin (2 ^ b) => P ((bitVecEquiv b).symm u))).card := by
@@ -153,12 +194,15 @@ section OneTrial
 
 variable {N : ℕ}
 
+/-- Convert weighted decoding of a bit register into a returned label or a pending unit
+configuration. -/
 private def weightStep (w : Fin N → ℕ) (b : ℕ) (bits : Reg b) :
     RandomizedExecution.Configuration Unit (Fin N) :=
   match (weightDecodeCounted w (bitVecEquiv b bits).val).1 with
   | some j => Sum.inl j
   | none => Sum.inr ()
 
+/-- A weighted step returns `j` exactly when its counted decoder returns `some j`. -/
 private theorem weightStep_inl {N : ℕ} (w : Fin N → ℕ) (b : ℕ) (bits : Reg b) (j : Fin N) :
     weightStep w b bits = Sum.inl j ↔
       (weightDecodeCounted w (bitVecEquiv b bits).val).1 = some j := by
@@ -170,6 +214,7 @@ private theorem weightStep_inl {N : ℕ} (w : Fin N → ℕ) (b : ℕ) (bits : R
   | some i => simp
   | none => simp
 
+/-- A weighted step remains pending exactly when its counted decoder rejects. -/
 private theorem weightStep_inr {N : ℕ} (w : Fin N → ℕ) (b : ℕ) (bits : Reg b) :
     weightStep w b bits = Sum.inr () ↔
       (weightDecodeCounted w (bitVecEquiv b bits).val).1 = none := by
@@ -181,17 +226,24 @@ private theorem weightStep_inr {N : ℕ} (w : Fin N → ℕ) (b : ℕ) (bits : R
   | some i => simp
   | none => simp
 
+/-- The rejection mass for a bit block whose accepted ticket count is the total natural-number
+weight. -/
 noncomputable def rationalRejectMass (w : Fin N → ℕ) (b : ℕ) : ℝ≥0∞ :=
   coinRejectMass b (weightTotal w)
 
+/-- The transition law obtained by drawing fair bits and applying the weighted decoder. -/
 noncomputable def rationalRejectionNext (w : Fin N → ℕ) (b : ℕ) :
     Unit → PMF (RandomizedExecution.Configuration Unit (Fin N)) :=
   fun _ => ((fairBitsCosted b).map Prod.fst).map (weightStep w b)
 
+/-- The rejection transition law is the pushforward of the uniform bit-register law under
+`weightStep`. -/
 theorem rationalRejectionNext_eq (w : Fin N → ℕ) (b : ℕ) :
     rationalRejectionNext w b () = (PMF.uniformOfFintype' (Reg b)).map (weightStep w b) := by
   simp only [rationalRejectionNext, fairBitsCosted_output]
 
+/-- When the total weight fits in the bit space, accepted fibers have cardinalities `w j`, each
+label has mass `w j / 2 ^ b`, and the remaining tickets give the rejection mass. -/
 theorem rational_fair_bit_step_distribution :
     ∀ (N : ℕ) (w : Fin N → ℕ) (b : ℕ), weightTotal w ≤ 2 ^ b →
       (∀ j : Fin N, (Finset.univ.filter (fun bits : Reg b =>
@@ -274,10 +326,13 @@ section RunHelpers
 
 variable {S O : Type}
 
+/-- Successive pushforwards of a probability mass function equal pushforward by the composite
+map. -/
 private theorem pmf_map_map {α β γ : Type} (r : PMF α) (g : α → β) (h : β → γ) :
     (r.map g).map h = r.map (fun a => h (g a)) := by
   rw [PMF.map_comp g r h, Function.comp_def]
 
+/-- A fixed cost charge commutes with mapping only the output coordinate. -/
 private theorem charge_map_comm (r : PMF (S × ℕ)) (f : S → O) (c : ℕ) :
     (CostedLaw.charge c r).map (fun y => (f y.1, y.2)) =
       CostedLaw.charge c (r.map fun y => (f y.1, y.2)) := by
@@ -286,6 +341,8 @@ private theorem charge_map_comm (r : PMF (S × ℕ)) (f : S → O) (c : ℕ) :
     pmf_map_map r (fun y => (y.1, c + y.2)) (fun y => (f y.1, y.2)),
     pmf_map_map r (fun y => (f y.1, y.2)) (fun x => (x.1, c + x.2))]
 
+/-- The expectation of a run with one extra fuel step splits into a first-tick expectation and a
+continuation expectation with added costs. -/
 private theorem expectation_runFor_succ (n : S → PMF (Configuration S O)) (fuel : ℕ)
     (cfg : Configuration S O) (F : Configuration S O × ℕ → ℝ≥0∞) :
     CostedLaw.expectation (runFor n (fuel + 1) cfg) F =
@@ -297,6 +354,8 @@ private theorem expectation_runFor_succ (n : S → PMF (Configuration S O)) (fue
     show CostedLaw.expectation (CostedLaw.charge x.2 (runFor n fuel x.1)) F = _
     rw [CostedLaw.charge, CostedLaw.expectation_map])
 
+/-- A natural-indexed extended nonnegative sum supported below `fuel` equals its finite sum over
+that range. -/
 private theorem tsum_eq_range_sum_aux : ∀ (fuel : ℕ) (F : ℕ → ℝ≥0∞),
     (∀ k, fuel ≤ k → F k = 0) → ∑' k : ℕ, F k = ∑ k ∈ Finset.range fuel, F k := by
   intro fuel
@@ -314,10 +373,14 @@ private theorem tsum_eq_range_sum_aux : ∀ (fuel : ℕ) (F : ℕ → ℝ≥0∞
         _ = F 0 + ∑ k ∈ Finset.range fuel, F (k + 1) := by rw [ih']
         _ = ∑ k ∈ Finset.range (fuel + 1), F k := by rw [Finset.sum_range_succ', add_comm]
 
+/-- If all terms at indices at least `fuel` vanish, the infinite sum equals the finite range
+sum. -/
 private theorem tsum_eq_range_sum (F : ℕ → ℝ≥0∞) (fuel : ℕ) (h0 : ∀ k, fuel ≤ k → F k = 0) :
     ∑' k : ℕ, F k = ∑ k ∈ Finset.range fuel, F k :=
   tsum_eq_range_sum_aux fuel F h0
 
+/-- The probability of a singleton event equals the probability mass function's value at that
+point. -/
 private theorem event_point {α : Type} (p : PMF α) (a : α) :
     CostedLaw.event p (fun z => z = a) = p a := by
   show ∑' z, p z * (if z = a then (1 : ℝ≥0∞) else 0) = p a
@@ -330,6 +393,8 @@ section Counted
 
 variable {N : ℕ}
 
+/-- Execute weighted decoding and add its bit and comparison costs to the counters, returning
+the counters with either the label or the pending state. -/
 private def trialStep (w : Fin N → ℕ) (b : ℕ) (BD : ℕ × ℕ) (ω : Reg b × ℕ) :
     RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ) :=
   let decoded := weightDecodeCounted w (bitVecEquiv b ω.1).val
@@ -337,22 +402,28 @@ private def trialStep (w : Fin N → ℕ) (b : ℕ) (BD : ℕ × ℕ) (ω : Reg 
   | some j => Sum.inl (j, BD.1 + ω.2, BD.2 + decoded.2)
   | none => Sum.inr (BD.1 + ω.2, BD.2 + decoded.2)
 
+/-- A trial returning `j` adds its sampled bit cost and exactly `j.val + 1` comparisons to the
+accumulated counters. -/
 private theorem trialStep_inl (w : Fin N → ℕ) (b : ℕ) (BD : ℕ × ℕ) (ω : Reg b × ℕ) (j : Fin N)
     (hj : (weightDecodeCounted w (bitVecEquiv b ω.1).val).1 = some j) :
     trialStep w b BD ω = Sum.inl (j, BD.1 + ω.2, BD.2 + (j.val + 1)) := by
   dsimp only [trialStep]
   rw [hj, (weightDecodeCounted_bounds w (bitVecEquiv b ω.1).val).2.2 j hj]
 
+/-- A rejected trial adds its sampled bit cost and exactly `N` comparisons to the accumulated
+counters. -/
 private theorem trialStep_inr (w : Fin N → ℕ) (b : ℕ) (BD : ℕ × ℕ) (ω : Reg b × ℕ)
     (hj : (weightDecodeCounted w (bitVecEquiv b ω.1).val).1 = none) :
     trialStep w b BD ω = Sum.inr (BD.1 + ω.2, BD.2 + N) := by
   dsimp only [trialStep]
   rw [hj, (weightDecodeCounted_bounds w (bitVecEquiv b ω.1).val).2.1 hj]
 
+/-- The weighted rejection transition law retaining accumulated bit and comparison counters. -/
 noncomputable def rationalCountedNext (w : Fin N → ℕ) (b : ℕ) (BD : ℕ × ℕ) :
     PMF (RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)) :=
   (fairBitsCosted b).map (trialStep w b BD)
 
+/-- Discard bit and comparison counters, retaining only the returned label or pending status. -/
 def rejectionOutcome
     (z : RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)) :
     RandomizedExecution.Configuration Unit (Fin N) :=
@@ -360,26 +431,35 @@ def rejectionOutcome
   | Sum.inl t => Sum.inl t.1
   | Sum.inr _ => Sum.inr ()
 
+/-- Extract the accumulated bit count from either a returned or pending counted configuration. -/
 def rejectionBits
     (z : RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)) : ℕ :=
   match z with
   | Sum.inl t => t.2.1
   | Sum.inr s => s.1
 
+/-- Extract the accumulated comparison count from either a returned or pending counted
+configuration. -/
 def rejectionComparisons
     (z : RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)) : ℕ :=
   match z with
   | Sum.inl t => t.2.2
   | Sum.inr s => s.2
 
+/-- Run counted weighted rejection sampling for at most `fuel` attempts, starting with zero bit
+and comparison counters. -/
 noncomputable def rationalRejectionRun (w : Fin N → ℕ) (b : ℕ) (fuel : ℕ) :
     CostedLaw (RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)) :=
   runFor (rationalCountedNext w b) fuel (Sum.inr (0, 0))
 
+/-- The per-attempt mean comparison count computed from accepted-label weights and the full-scan
+rejection tickets. -/
 noncomputable def rationalMeanComparisons (w : Fin N → ℕ) (b : ℕ) : ℝ≥0∞ :=
   ((∑ j : Fin N, w j * (j.val + 1)) + (2 ^ b - weightTotal w) * N : ℕ) /
     ((2 ^ b : ℕ) : ℝ≥0∞)
 
+/-- The probability of returning label `j` with exactly `t + 1` executed attempts in a run of
+fuel `t + 1`. -/
 noncomputable def rationalFirstStop (w : Fin N → ℕ) (b : ℕ) (t : ℕ) (j : Fin N) : ℝ≥0∞ :=
   CostedLaw.event (rationalRejectionRun w b (t + 1))
     (fun z => rejectionOutcome z.1 = Sum.inl j ∧ z.2 = t + 1)
@@ -390,6 +470,8 @@ section KernelFacts
 
 variable {N : ℕ}
 
+/-- A fair-bit payoff expectation is the uniform sum over bit registers with deterministic cost
+`b`. -/
 private theorem expectation_fairBitsCosted {b : ℕ} (G : Reg b × ℕ → ℝ≥0∞) :
     CostedLaw.expectation (fairBitsCosted b) G =
       ∑' ω : Reg b, ((2^b : ℕ) : ℝ≥0∞)⁻¹ * G (ω, b) := by
@@ -401,6 +483,8 @@ private theorem expectation_fairBitsCosted {b : ℕ} (G : Reg b × ℕ → ℝ�
   rw [fair_bit_program_joint_distribution b b ω, if_pos rfl,
     PMF.uniformOfFintype'_apply, card_reg]
 
+/-- The probability of a fixed output in a joint output-cost law is the sum of its point masses
+over all costs. -/
 private theorem event_fst_point {X : Type} (p : PMF (X × ℕ)) (a : X) :
     CostedLaw.event p (fun z => z.1 = a) = ∑' k : ℕ, p (a, k) := by
   show ∑' z, p z * (if z.1 = a then (1 : ℝ≥0∞) else 0) = _
@@ -418,6 +502,7 @@ private theorem event_fst_point {X : Type} (p : PMF (X × ℕ)) (a : X) :
         exact tsum_zero),
     tsum_eq_single a (fun x hx => by rw [if_neg hx]), if_pos rfl]
 
+/-- Payoffs agreeing on a probability law's support have equal expectations. -/
 private theorem expectation_congr_support {α : Type} (p : PMF α) (f g : α → ℝ≥0∞)
     (h : ∀ a ∈ p.support, f a = g a) :
     CostedLaw.expectation p f = CostedLaw.expectation p g := by
@@ -427,6 +512,8 @@ private theorem expectation_congr_support {α : Type} (p : PMF α) (f g : α →
   · rw [hp, zero_mul, zero_mul]
   · rw [h a ((PMF.mem_support_iff p a).mpr hp)]
 
+/-- An expectation on returned finite labels and a pending unit state splits into the finite
+label sum and the pending contribution. -/
 private theorem expectation_config_split
     (p : PMF (RandomizedExecution.Configuration Unit (Fin N)))
     (F : RandomizedExecution.Configuration Unit (Fin N) → ℝ≥0∞) :
@@ -437,26 +524,34 @@ private theorem expectation_config_split
   rw [tsum_sum_type', tsum_fintype, tsum_fintype]
   simp
 
+/-- When total weight fits the bit space, exactly `w j` bit registers decode to label `j`. -/
 private theorem fiberSome_card (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b)
     (j : Fin N) :
     (Finset.univ.filter (fun bits : Reg b =>
       (weightDecodeCounted w (bitVecEquiv b bits).val).1 = some j)).card = w j :=
   (rational_fair_bit_step_distribution N w b hb).1 j
 
+/-- When total weight fits the bit space, exactly `2 ^ b - weightTotal w` bit registers are
+rejected. -/
 private theorem fiberNone_card (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b) :
     (Finset.univ.filter (fun bits : Reg b =>
       (weightDecodeCounted w (bitVecEquiv b bits).val).1 = none)).card = 2^b - weightTotal w :=
   (rational_fair_bit_step_distribution N w b hb).2.1
 
+/-- When total weight fits the bit space, the one-step mass of label `j` is `w j / 2 ^ b`. -/
 theorem next_inl_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b)
     (j : Fin N) :
     rationalRejectionNext w b () (Sum.inl j) = (w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞) :=
   (rational_fair_bit_step_distribution N w b hb).2.2.1 j
 
+/-- When total weight fits the bit space, the one-step pending mass equals `rationalRejectMass w
+b`. -/
 theorem next_inr_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b) :
     rationalRejectionNext w b () (Sum.inr ()) = rationalRejectMass w b :=
   (rational_fair_bit_step_distribution N w b hb).2.2.2
 
+/-- When total weight fits the bit space, the accepted-label masses and the pending mass sum to
+one. -/
 theorem rational_rejection_kernel_normalized (w : Fin N → ℕ) (b : ℕ)
     (hb : weightTotal w ≤ 2 ^ b) :
     (∑ j : Fin N, rationalRejectionNext w b () (Sum.inl j))
@@ -471,6 +566,8 @@ theorem rational_rejection_kernel_normalized (w : Fin N → ℕ) (b : ℕ)
     ← Finset.sum_mul, ← Nat.cast_sum, hcast, ← add_mul, ← Nat.cast_add, hwt,
     ENNReal.mul_inv_cancel (by positivity) (by simp)]
 
+/-- The one-step kernel's expected comparison count equals `rationalMeanComparisons w b` when
+the total weight fits the bit space. -/
 theorem rational_mean_comparisons_kernel (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b) :
     (∑ j : Fin N, rationalRejectionNext w b () (Sum.inl j) * (((j.val + 1 : ℕ) : ℝ≥0∞)))
       + rationalRejectionNext w b () (Sum.inr ()) * ((N : ℕ) : ℝ≥0∞)
@@ -495,6 +592,8 @@ section Projection
 
 variable {N : ℕ}
 
+/-- Discarding resource counters from one counted transition gives the uncounted rejection
+transition law. -/
 private theorem countedNext_map_outcome (w : Fin N → ℕ) (b : ℕ) (s : ℕ × ℕ) :
     (rationalCountedNext w b s).map (fun c => c.map (fun t => t.1) (fun _ => ())) =
       rationalRejectionNext w b () := by
@@ -511,6 +610,7 @@ private theorem countedNext_map_outcome (w : Fin N → ℕ) (b : ℕ) (s : ℕ �
   rw [rationalCountedNext, pmf_map_map, rationalRejectionNext, pmf_map_map]
   exact congrArg (fun F => PMF.map F (fairBitsCosted b)) (funext fun ω => hfun ω)
 
+/-- Discarding resource counters commutes with one execution tick, preserving its attempt cost. -/
 private theorem tick_map_outcome (w : Fin N → ℕ) (b : ℕ)
     (z : RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)) :
     (tick (rationalCountedNext w b) z).map (fun y => (rejectionOutcome y.1, y.2)) =
@@ -555,6 +655,8 @@ private theorem tick_map_outcome (w : Fin N → ℕ) (b : ℕ)
         PMF.map (fun c => (c, (1 : ℕ))) (rationalRejectionNext w b ())
       rw [key]
 
+/-- Discarding resource counters from a finite counted run yields the uncounted run with the
+same attempt cost. -/
 private theorem runFor_map_outcome (w : Fin N → ℕ) (b : ℕ) :
     ∀ (fuel : ℕ) (z : RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ)),
       (runFor (rationalCountedNext w b) fuel z).map (fun y => (rejectionOutcome y.1, y.2)) =
@@ -599,6 +701,7 @@ section Invariant
 
 variable {N : ℕ}
 
+/-- Every supported fair-bit outcome has cost exactly equal to its bit-register length. -/
 private theorem fairBits_cost_mem {b : ℕ} {ω : Reg b × ℕ}
     (h : ω ∈ (fairBitsCosted b).support) : ω.2 = b := by
   by_contra hne
@@ -606,6 +709,8 @@ private theorem fairBits_cost_mem {b : ℕ} {ω : Reg b × ℕ}
     rw [fair_bit_program_joint_distribution b ω.2 ω.1]; exact if_neg hne)
     ((PMF.mem_support_iff _ _).mp h)
 
+/-- Every supported run uses at most its fuel, adds `b` bits per attempt, and satisfies the
+exact pending or returned-label comparison formula relative to its initial counters. -/
 private theorem counted_support_invariant (w : Fin N → ℕ) (b : ℕ) :
     ∀ (fuel : ℕ) (BD : ℕ × ℕ)
         (z : RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ) × ℕ),
@@ -699,6 +804,8 @@ private theorem counted_support_invariant (w : Fin N → ℕ) (b : ℕ) :
             have hstop := hstop' hp'
             omega
 
+/-- Projecting a counted run recovers the uncounted outcome-cost law. Supported paths satisfy
+the fuel bound, exact bit count, and the pending or returned-label comparison formulas. -/
 theorem rational_counted_run_projection_and_paths (N : ℕ) (w : Fin N → ℕ) (b fuel : ℕ) :
     (rationalRejectionRun w b fuel).map (fun z => (rejectionOutcome z.1, z.2)) =
       RandomizedExecution.runFor (rationalRejectionNext w b) fuel (Sum.inr ()) ∧
@@ -729,9 +836,13 @@ section PlainMasses
 
 variable {N : ℕ}
 
+/-- Natural-number scalar multiplication in the extended nonnegative reals equals multiplication
+by the cast natural number. -/
 private theorem nat_smul_ennreal (n : ℕ) (x : ℝ≥0∞) : n • x = (n : ℝ≥0∞) * x :=
   nsmul_eq_mul n x
 
+/-- For `q ≤ 1`, the finite geometric sum multiplied by `1 - q`, plus its remaining tail `q ^
+fuel`, equals one. -/
 private theorem geom_tails_mul (q : ℝ≥0∞) (hq : q ≤ 1) (fuel : ℕ) :
     (∑ t ∈ Finset.range fuel, q ^ t) * (1 - q) + q ^ fuel = 1 := by
   induction fuel with
@@ -749,11 +860,13 @@ private theorem geom_tails_mul (q : ℝ≥0∞) (hq : q ≤ 1) (fuel : ℕ) :
         _ = (∑ t ∈ Finset.range fuel, q ^ t) * (1 - q) + q ^ fuel := by rw [hstep]
         _ = 1 := ih
 
+/-- Extending a finite geometric sum by one term gives one plus `q` times the original sum. -/
 private theorem tails_succ (q : ℝ≥0∞) (fuel : ℕ) :
     (∑ t ∈ Finset.range (fuel + 1), q ^ t) = 1 + q * (∑ t ∈ Finset.range fuel, q ^ t) := by
   rw [Finset.sum_range_succ', Finset.mul_sum, pow_zero]
   rw [Finset.sum_congr rfl (fun t _ => (pow_succ' q t).symm), add_comm]
 
+/-- The rational rejection mass is at most one. -/
 private theorem reject_le_one (w : Fin N → ℕ) (b : ℕ) :
     rationalRejectMass w b ≤ 1 := by
   have hmul : rationalRejectMass w b * ((2 ^ b : ℕ) : ℝ≥0∞)
@@ -774,6 +887,8 @@ private theorem reject_le_one (w : Fin N → ℕ) (b : ℕ) :
         rw [div_eq_mul_inv, ENNReal.mul_inv_cancel
           (by exact ne_of_gt (by exact_mod_cast Nat.two_pow_pos b)) (by simp)]
 
+/-- When total weight fits the bit space, one minus the rejection mass equals the accepted
+ticket fraction. -/
 private theorem one_sub_reject (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b) :
     1 - rationalRejectMass w b = (weightTotal w : ℝ≥0∞) * ((2 ^ b : ℕ) : ℝ≥0∞)⁻¹ := by
   have htop : ((2 ^ b : ℕ) : ℝ≥0∞) ≠ ⊤ := by simp
@@ -790,6 +905,8 @@ private theorem one_sub_reject (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w
     ne_of_lt (lt_of_le_of_lt (reject_le_one w b) (by simp))
   exact (ENNReal.eq_sub_of_add_eq hqtop hadd).symm
 
+/-- When total weight fits the bit space, the uncounted run's pending probability is the
+rejection mass raised to its fuel. -/
 private theorem plain_pending_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b) :
     ∀ fuel : ℕ,
       CostedLaw.event (runFor (rationalRejectionNext w b) fuel (Sum.inr ()))
@@ -824,6 +941,8 @@ private theorem plain_pending_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTot
       rw [Finset.sum_eq_zero (fun j' _ => by rw [hhalt j']; ring), ih, pow_succ,
         next_inr_mass w b hb, mul_comm, zero_add]
 
+/-- When total weight fits the bit space, the uncounted run returns `j` at attempt cost `k` with
+geometric mass for `1 ≤ k ≤ fuel`, and with zero mass otherwise. -/
 private theorem plain_halt_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b) :
     ∀ (fuel k : ℕ) (j : Fin N),
       CostedLaw.event (runFor (rationalRejectionNext w b) fuel (Sum.inr ()))
@@ -952,6 +1071,8 @@ end PlainMasses
 
 section GeomMean
 
+/-- A finite arithmetically weighted geometric sum satisfies the identity relating it to the
+geometric survival sum and the terminal tail. -/
 private theorem tails_arith (q : ℝ≥0∞) (hq : q ≤ 1) (fuel : ℕ) :
     (1 - q) * (∑ t ∈ Finset.range fuel, t * q ^ t) + (fuel : ℝ≥0∞) * q ^ fuel
       = q * (∑ t ∈ Finset.range fuel, q ^ t) := by
@@ -992,6 +1113,8 @@ section Finite
 
 variable {N : ℕ}
 
+/-- Counted and uncounted runs have equal pending probabilities, independently of the initial
+resource counters. -/
 private theorem event_counted_eq_plain_pending (w : Fin N → ℕ) (b : ℕ) (fuel : ℕ)
     (BD : ℕ × ℕ) :
     CostedLaw.event (runFor (rationalRejectionNext w b) fuel (Sum.inr ()))
@@ -1004,6 +1127,8 @@ private theorem event_counted_eq_plain_pending (w : Fin N → ℕ) (b : ℕ) (fu
   simp only [] at h
   exact h
 
+/-- Counted and uncounted runs have equal return probabilities for each label, independently of
+the initial resource counters. -/
 private theorem event_counted_eq_plain_inl (w : Fin N → ℕ) (b : ℕ) (fuel : ℕ)
     (BD : ℕ × ℕ) (j : Fin N) :
     CostedLaw.event (runFor (rationalRejectionNext w b) fuel (Sum.inr ()))
@@ -1016,6 +1141,8 @@ private theorem event_counted_eq_plain_inl (w : Fin N → ℕ) (b : ℕ) (fuel :
   simp only [] at h
   exact h
 
+/-- Counted and uncounted runs have equal probabilities of returning a given label at a
+specified positive attempt cost. -/
 private theorem event_counted_eq_plain_inl_cost (w : Fin N → ℕ) (b : ℕ) (fuel : ℕ)
     (BD : ℕ × ℕ) (j : Fin N) (t : ℕ) :
     CostedLaw.event (runFor (rationalRejectionNext w b) fuel (Sum.inr ()))
@@ -1029,6 +1156,8 @@ private theorem event_counted_eq_plain_inl_cost (w : Fin N → ℕ) (b : ℕ) (f
   simp only [] at h
   exact h
 
+/-- Every supported pending outcome of an uncounted run has attempt cost equal to the full fuel
+budget. -/
 private theorem plain_pending_support_cost (w : Fin N → ℕ) (b fuel : ℕ) {k : ℕ}
     (hz : (Sum.inr (), k) ∈
       (runFor (rationalRejectionNext w b) fuel (Sum.inr ())).support) : k = fuel := by
@@ -1043,6 +1172,8 @@ private theorem plain_pending_support_cost (w : Fin N → ℕ) (b fuel : ℕ) {k
   have hcount := (counted_support_invariant w b fuel (0, 0) z hzs).2.2.2.2.2 hout
   exact (congrArg Prod.snd hzeq).symm.trans hcount
 
+/-- When total weight fits the bit space, the uncounted pending point mass is the geometric
+rejection tail at cost `fuel` and zero at every other cost. -/
 private theorem plain_pending_point (w : Fin N → ℕ) (b fuel k : ℕ)
     (hb : weightTotal w ≤ 2 ^ b) :
     (runFor (rationalRejectionNext w b) fuel (Sum.inr ())) (Sum.inr (), k) =
@@ -1082,6 +1213,8 @@ private theorem plain_pending_point (w : Fin N → ℕ) (b fuel k : ℕ)
     simp only [if_neg hk]
     simpa [p] using hzero
 
+/-- When total weight fits the bit space, the counted run's pending probability is the rejection
+mass raised to its fuel. -/
 private theorem counted_pending_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b) :
     ∀ f : ℕ,
       CostedLaw.event (rationalRejectionRun w b f) (fun z => rejectionOutcome z.1 = Sum.inr ())
@@ -1092,6 +1225,8 @@ private theorem counted_pending_mass (w : Fin N → ℕ) (b : ℕ) (hb : weightT
     ← event_counted_eq_plain_pending w b f (0, 0)]
   exact plain_pending_mass w b hb f
 
+/-- For positive total weight fitting the bit space, the probability of returning `j` is its
+normalized weight times one minus the geometric pending mass. -/
 private theorem counted_return_mass (w : Fin N → ℕ) (b : ℕ) (hW : 0 < weightTotal w)
     (hb : weightTotal w ≤ 2 ^ b) (fuel : ℕ) (j : Fin N) :
     CostedLaw.event (rationalRejectionRun w b fuel) (fun z => rejectionOutcome z.1 = Sum.inl j)
@@ -1170,6 +1305,8 @@ private theorem counted_return_mass (w : Fin N → ℕ) (b : ℕ) (hW : 0 < weig
   simp only [mul_comm (1 - rationalRejectMass w b ^ fuel) ((weightTotal w : ℝ≥0∞)⁻¹),
     ← mul_assoc, ← div_eq_mul_inv, zero_add]
 
+/-- When total weight fits the bit space and `t < fuel`, the counted run returns `j` at attempt
+cost `t + 1` with mass `rationalRejectMass w b ^ t * w j / 2 ^ b`. -/
 private theorem counted_first_stop (w : Fin N → ℕ) (b : ℕ) (hb : weightTotal w ≤ 2 ^ b)
     (fuel : ℕ) (t : ℕ) (j : Fin N) (ht : t < fuel) :
     CostedLaw.event (rationalRejectionRun w b fuel)
@@ -1192,18 +1329,25 @@ private theorem counted_first_stop (w : Fin N → ℕ) (b : ℕ) (hb : weightTot
     plain_halt_mass w b hb fuel (t + 1) j, if_pos (by omega), Nat.add_sub_cancel,
     mul_div_assoc]
 
+/-- When total weight fits the bit space, the counted run remains pending with probability
+`rationalRejectMass w b ^ fuel`. -/
 theorem rational_pending_mass (w : Fin N → ℕ) (b fuel : ℕ)
     (hb : weightTotal w ≤ 2^b) :
     CostedLaw.event (rationalRejectionRun w b fuel)
       (fun z => rejectionOutcome z.1 = Sum.inr ()) = (rationalRejectMass w b)^fuel :=
   counted_pending_mass w b hb fuel
 
+/-- When total weight fits the bit space, first-stop mass at label `j` after `t` failed trials
+is `rationalRejectMass w b ^ t * w j / 2 ^ b`. -/
 theorem rationalFirstStop_eq (w : Fin N → ℕ) (b t : ℕ) (j : Fin N)
     (hb : weightTotal w ≤ 2^b) :
     rationalFirstStop w b t j = (rationalRejectMass w b)^t *
       (w j : ℝ≥0∞)/((2^b : ℕ) : ℝ≥0∞) :=
   counted_first_stop w b hb (t+1) t j (by omega)
 
+/-- For positive total weight fitting the bit space, finite return probabilities are normalized
+weights times the stopped mass, pending mass is geometric, and first-stop probabilities have
+the stated geometric formula. -/
 theorem rational_finite_return_pending_and_first_stop (N : ℕ) (w : Fin N → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     CostedLaw.event (rationalRejectionRun w b fuel)
@@ -1227,11 +1371,17 @@ end Finite
 
 section FiniteExp
 
+/-- The comparison total determined by an uncounted outcome and attempt count: a full scan per
+failure and a label-prefix scan on success. -/
 private def compsOf {N : ℕ} :
     RandomizedExecution.Configuration Unit (Fin N) → ℕ → ℝ≥0∞
   | Sum.inl j, k => ((N * (k - 1) + j.val + 1 : ℕ) : ℝ≥0∞)
   | Sum.inr (), k => ((N * k : ℕ) : ℝ≥0∞)
 
+/-- For positive total weight fitting the bit space, expected attempts equal the finite
+geometric survival sum, while expected bits and comparisons multiply that sum by their
+per-attempt means. Every supported path also satisfies the stated fuel-based bit and
+comparison bounds. -/
 theorem rational_finite_three_resource_expectations (N : ℕ) (w : Fin N → ℕ) (b fuel : ℕ)
     (hW : 0 < weightTotal w) (hb : weightTotal w ≤ 2 ^ b) :
     let tails := ∑ t ∈ Finset.range fuel, (rationalRejectMass w b) ^ t

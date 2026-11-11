@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SparseHam05.MainResults.Defs
+
+/-!
+# Recursive Suzuki product-formula error
+
+This module proves unitarity and norm identities for the paper-normalized Suzuki words and
+bounds their scalar remainder terms. `source_lemma1_recursive_suzuki_error` derives the error
+estimate of Lemma 1 in [BerryEtAl2007Sparse] for finite Hermitian matrix lists satisfying
+`PaperLemma1Conditions` and the stated norm bounds.
+
+## Main statements
+
+* `paperSuzukiWord_unitary`: For a Hermitian Hamiltonian list and positive repetition count, the
+  product of the paper Suzuki word is unitary.
+* `source_lemma1_recursive_suzuki_error`: Under the stated Hermiticity, norm, positivity, and
+  `PaperLemma1Conditions` hypotheses, the norm error between the Suzuki word product and the
+  exact generator exponential is at most `paperSuzukiError hs.length k (‖hs.sum‖ * t) r`.
+
+## References
+
+* [Berry et al., 2007][BerryEtAl2007Sparse]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,11 +40,15 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.SparseHam05.MainResults
 
+/-- The pair of scalar step-size and remainder inequalities required for the paper's Suzuki
+error bound. -/
 def PaperLemma1Conditions (m k : ℕ) (τ : ℝ) (r : ℕ) : Prop :=
   4 * (m : ℝ) * (5 : ℝ) ^ (k - 1) * τ / (r : ℝ) ≤ 1 ∧
     (16 / 3) * (2 * (5 : ℝ) ^ (k - 1) * (m : ℝ) * τ) ^ (2 * k + 1) /
         (r : ℝ) ^ (2 * k) ≤ 1
 
+/-- For a Hermitian Hamiltonian list and positive repetition count, the product of the paper
+Suzuki word is unitary. -/
 theorem paperSuzukiWord_unitary {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k r : ℕ) (t : ℝ)
     (hh : ∀ X ∈ hs, Xᴴ = X) (hr : 0 < r) :
@@ -31,6 +57,7 @@ theorem paperSuzukiWord_unitary {I : Type} [Fintype I] [DecidableEq I]
     (k - 1) r t (paperAntiHermitian_antiHermitian hs hh) hr).1
   simpa [paperSuzukiWord] using! h
 
+/-- Multiplying all matrices by `-I` leaves `suzukiMass` unchanged. -/
 theorem suzukiMass_paperAntiHermitian {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) :
     suzukiMass (paperAntiHermitian hs) = suzukiMass hs := by
@@ -43,6 +70,8 @@ theorem suzukiMass_paperAntiHermitian {I : Type} [Fintype I] [DecidableEq I]
     simp
   rw [hfun]
 
+/-- Summing a matrix list after multiplication by a common scalar equals that scalar times the
+original sum. -/
 theorem list_sum_map_smul {I : Type} [Fintype I] [DecidableEq I]
     (a : ℂ) (xs : List (Matrix I I ℂ)) :
     (xs.map (fun H => a • H)).sum = a • xs.sum := by
@@ -51,17 +80,20 @@ theorem list_sum_map_smul {I : Type} [Fintype I] [DecidableEq I]
   | cons X xs ih =>
     simp only [List.map_cons, List.sum_cons, ih, smul_add]
 
+/-- The sum of the generator list equals `-I` times the sum of the Hamiltonian list. -/
 theorem sum_paperAntiHermitian {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) :
     (paperAntiHermitian hs).sum = (-Complex.I) • hs.sum :=
   list_sum_map_smul (-Complex.I) hs
 
+/-- The sum of the generator list and the sum of the Hamiltonian list have the same norm. -/
 theorem norm_sum_paperAntiHermitian {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) :
     ‖(paperAntiHermitian hs).sum‖ = ‖hs.sum‖ := by
   rw [sum_paperAntiHermitian, norm_smul]
   simp [Complex.norm_I]
 
+/-- The Suzuki mass of a matrix list is nonnegative. -/
 theorem suzukiMass_nonneg {I : Type} [Fintype I] [DecidableEq I]
     (xs : List (Matrix I I ℂ)) : 0 ≤ suzukiMass xs := by
   unfold suzukiMass
@@ -69,6 +101,8 @@ theorem suzukiMass_nonneg {I : Type} [Fintype I] [DecidableEq I]
     obtain ⟨Y, _, rfl⟩ := List.mem_map.mp hx
     exact norm_nonneg Y)
 
+/-- If every matrix in the list has norm at most `Λ`, its Suzuki mass is at most the list length
+times `Λ`. -/
 theorem suzukiMass_le_length_mul_norm {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (Λ : ℝ) (h : ∀ X ∈ hs, ‖X‖ ≤ Λ) :
     suzukiMass hs ≤ (hs.length : ℝ) * Λ := by
@@ -82,6 +116,7 @@ theorem suzukiMass_le_length_mul_norm {I : Type} [Fintype I] [DecidableEq I]
       Nat.cast_add, Nat.cast_one]
     nlinarith [hX, hih]
 
+/-- For positive integer `k`, the real quantity `3^(k-1) + 1` is at most `2 * 5^(k-1)`. -/
 theorem three_pow_add_one_le_two_five_pow (k : ℕ) (_hk : 1 ≤ k) :
     (3 : ℝ) ^ (k - 1) + 1 ≤ 2 * (5 : ℝ) ^ (k - 1) := by
   have h35 : (3 : ℝ) ^ (k - 1) ≤ (5 : ℝ) ^ (k - 1) :=
@@ -89,6 +124,7 @@ theorem three_pow_add_one_le_two_five_pow (k : ℕ) (_hk : 1 ≤ k) :
   have h1 : (1 : ℝ) ≤ (5 : ℝ) ^ (k - 1) := one_le_pow₀ (by norm_num)
   linarith
 
+/-- If `0 ≤ x ≤ 1/2`, then `exp x ≤ 2`. -/
 theorem exp_le_two_of_le_half {x : ℝ} (_hx0 : 0 ≤ x) (hx : x ≤ 1 / 2) :
     Real.exp x ≤ 2 := by
   have h1 : Real.exp x ≤ Real.exp (1 / 2 : ℝ) := Real.exp_le_exp.mpr hx
@@ -104,6 +140,8 @@ theorem exp_le_two_of_le_half {x : ℝ} (_hx0 : 0 ≤ x) (hx : x ≤ 1 / 2) :
     nlinarith
   exact h1.trans h2
 
+/-- For nonnegative `x` and `B` with `x ≤ B/r ≤ 1/2` and positive `r`, the stated exponential
+Taylor remainder is at most `5 * B^(2*k+1) / r^(2*k)`. -/
 theorem paper_remainder_bound (k r : ℕ) (_hk : 1 ≤ k) (hr : 0 < r)
     {x B : ℝ} (hx0 : 0 ≤ x) (hB0 : 0 ≤ B)
     (hx : x ≤ B / (r : ℝ)) (hBr : B / (r : ℝ) ≤ 1 / 2) :
@@ -150,6 +188,9 @@ theorem paper_remainder_bound (k r : ℕ) (_hk : 1 ≤ k) (hr : 0 < r)
     _ ≤ 5 * (B ^ (2 * k + 1) / (r : ℝ) ^ (2 * k)) := by linarith
     _ = 5 * B ^ (2 * k + 1) / (r : ℝ) ^ (2 * k) := by ring
 
+/-- Under the stated Hermiticity, norm, positivity, and `PaperLemma1Conditions` hypotheses, the
+norm error between the Suzuki word product and the exact generator exponential is at most
+`paperSuzukiError hs.length k (‖hs.sum‖ * t) r`. See [BerryEtAl2007Sparse]. -/
 theorem source_lemma1_recursive_suzuki_error {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k r : ℕ) (t : ℝ)
     (hh : ∀ X ∈ hs, Xᴴ = X) (hk : 1 ≤ k) (hr : 0 < r) (ht : 0 ≤ t)

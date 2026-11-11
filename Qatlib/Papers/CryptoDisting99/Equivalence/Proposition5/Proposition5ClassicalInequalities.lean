@@ -9,6 +9,27 @@ import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition5.FigOneBounds
 import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
 import Mathlib.Analysis.Convex.Jensen
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Classical distinguishability inequalities
+
+This module proves the classical inequalities in Proposition 5 relating the Bhattacharyya
+coefficient, Kolmogorov distance, error probability, and Shannon distinguishability. Binary
+entropy estimates and posterior-weight identities supply the scalar ingredients.
+
+These constructions accompany the results of [FuchsVanDeGraaf1999].
+
+## Main statements
+
+* `proposition5_43`: bounds Kolmogorov distance using the Bhattacharyya coefficient.
+* `proposition5_44`: bounds Shannon distinguishability using the error probability.
+* `proposition5`: collects the proved classical inequalities.
+
+## References
+
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,29 +44,36 @@ open scoped BigOperators
 
 variable {X : Type} [Fintype X]
 
+/-- Binary entropy vanishes at zero. -/
 @[simp] lemma binaryEntropy_zero : binaryEntropy 0 = 0 := by simp [binaryEntropy]
 
+/-- Binary entropy vanishes at one. -/
 @[simp] lemma binaryEntropy_one : binaryEntropy 1 = 0 := by simp [binaryEntropy]
 
+/-- Binary entropy equals one at one half. -/
 @[simp] lemma binaryEntropy_two_inv : binaryEntropy (1 / 2) = 1 := by
   unfold binaryEntropy
   rw [show (1 / 2 : ℝ) = 2⁻¹ by norm_num, Real.binEntropy_two_inv]
   field_simp
 
+/-- Binary entropy is invariant under replacing its argument by its complement. -/
 @[simp] lemma binaryEntropy_one_sub (r : ℝ) :
     binaryEntropy (1 - r) = binaryEntropy r := by
   unfold binaryEntropy; rw [Real.binEntropy_one_sub]
 
+/-- Binary entropy is concave on the unit interval. -/
 lemma concaveOn_binaryEntropy : ConcaveOn ℝ (Set.Icc 0 1) binaryEntropy := by
   have hc : (0 : ℝ) ≤ (Real.log 2)⁻¹ := le_of_lt (inv_pos.mpr (Real.log_pos (by norm_num)))
   have h := (Real.strictConcave_binEntropy.concaveOn).smul hc
   simpa [binaryEntropy] using! h
 
+/-- Binary entropy is nonnegative on the unit interval. -/
 lemma binaryEntropy_nonneg {r : ℝ} (h0 : 0 ≤ r) (h1 : r ≤ 1) : 0 ≤ binaryEntropy r := by
   unfold binaryEntropy
   exact mul_nonneg (le_of_lt (inv_pos.mpr (Real.log_pos (by norm_num))))
     (Real.binEntropy_nonneg h0 h1)
 
+/-- Binary entropy is at most one for every real argument. -/
 lemma binaryEntropy_le_one (r : ℝ) : binaryEntropy r ≤ 1 := by
   unfold binaryEntropy
   have h := Real.binEntropy_le_log_two (p := r)
@@ -54,6 +82,7 @@ lemma binaryEntropy_le_one (r : ℝ) : binaryEntropy r ≤ 1 := by
         mul_le_mul_of_nonneg_left h (le_of_lt (inv_pos.mpr hpos))
     _ = 1 := inv_mul_cancel₀ hpos.ne'
 
+/-- For a parameter between zero and one half, binary entropy is at least twice the parameter. -/
 lemma two_mul_le_binaryEntropy_of_le_half {r : ℝ} (hr0 : 0 ≤ r) (hr : r ≤ 1 / 2) :
     2 * r ≤ binaryEntropy r := by
   have hmem0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by norm_num
@@ -67,6 +96,8 @@ lemma two_mul_le_binaryEntropy_of_le_half {r : ℝ} (hr0 : 0 ≤ r) (hr : r ≤ 
   rw [show 2 * r * (1 / 2) = r by ring] at key
   linarith
 
+/-- On the unit interval, binary entropy is at least twice the smaller of a parameter and its
+complement. -/
 lemma two_mul_min_le_binaryEntropy {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r ≤ 1) :
     2 * min r (1 - r) ≤ binaryEntropy r := by
   rcases le_total r (1 / 2) with h | h
@@ -77,17 +108,21 @@ lemma two_mul_min_le_binaryEntropy {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r ≤ 1) :
     rw [binaryEntropy_one_sub r] at h'
     linarith
 
+/-- Taking the smaller of a parameter and its complement preserves binary entropy. -/
 lemma binaryEntropy_min (r : ℝ) :
     binaryEntropy (min r (1 - r)) = binaryEntropy r := by
   rcases le_total r (1 / 2) with h | h
   · rw [min_eq_left (by linarith)]
   · rw [min_eq_right (by linarith), binaryEntropy_one_sub]
 
+/-- The Bhattacharyya coefficient is the sum of products of the square roots of corresponding
+probabilities. -/
 theorem bhattacharyya_eq_sum_sqrt_mul (p0 p1 : FinDist X) :
     bhattacharyya p0 p1 = ∑ x, Real.sqrt (p0.prob x) * Real.sqrt (p1.prob x) := by
   unfold bhattacharyya
   exact Finset.sum_congr rfl fun x _ => Real.sqrt_mul (p0.nonneg x) (p1.prob x)
 
+/-- Expands the squared difference of the square roots of two point probabilities. -/
 private lemma sq_sub_sqrt (p0 p1 : FinDist X) (x : X) :
     (Real.sqrt (p0.prob x) - Real.sqrt (p1.prob x)) ^ 2
       = p0.prob x + p1.prob x - 2 * (Real.sqrt (p0.prob x) * Real.sqrt (p1.prob x)) := by
@@ -101,6 +136,7 @@ private lemma sq_sub_sqrt (p0 p1 : FinDist X) (x : X) :
         - 2 * (Real.sqrt (p0.prob x) * Real.sqrt (p1.prob x)) := by ring
   rw [hsq, ha, hb]
 
+/-- Expands the squared sum of the square roots of two point probabilities. -/
 private lemma sq_add_sqrt (p0 p1 : FinDist X) (x : X) :
     (Real.sqrt (p0.prob x) + Real.sqrt (p1.prob x)) ^ 2
       = p0.prob x + p1.prob x + 2 * (Real.sqrt (p0.prob x) * Real.sqrt (p1.prob x)) := by
@@ -114,6 +150,8 @@ private lemma sq_add_sqrt (p0 p1 : FinDist X) (x : X) :
         + 2 * (Real.sqrt (p0.prob x) * Real.sqrt (p1.prob x)) := by ring
   rw [hsq, ha, hb]
 
+/-- One minus the Bhattacharyya coefficient is half the sum of squared differences of square
+roots of probabilities. -/
 theorem one_sub_bhattacharyya_eq_sum_sq (p0 p1 : FinDist X) :
     1 - bhattacharyya p0 p1 =
       (1 / 2) * ∑ x, (Real.sqrt (p0.prob x) - Real.sqrt (p1.prob x)) ^ 2 := by
@@ -127,6 +165,8 @@ theorem one_sub_bhattacharyya_eq_sum_sq (p0 p1 : FinDist X) :
   rw [hB, hsum]
   ring
 
+/-- Expresses Kolmogorov distance using the absolute difference and sum of square roots of
+corresponding probabilities. -/
 theorem kolmogorov_eq_sum_abs_mul (p0 p1 : FinDist X) :
     classicalKolmogorov p0 p1 =
       (1 / 2) * ∑ x, |Real.sqrt (p0.prob x) - Real.sqrt (p1.prob x)| *
@@ -155,6 +195,8 @@ theorem kolmogorov_eq_sum_abs_mul (p0 p1 : FinDist X) :
   rw [hsum]
   ring
 
+/-- One minus the Bhattacharyya coefficient is bounded above by Kolmogorov distance, as in
+Proposition 5, equation (43), of [FuchsVanDeGraaf1999]. -/
 theorem proposition5_43_left (p0 p1 : FinDist X) :
     1 - bhattacharyya p0 p1 ≤ classicalKolmogorov p0 p1 := by
   rw [one_sub_bhattacharyya_eq_sum_sq, kolmogorov_eq_sum_abs_mul]
@@ -172,6 +214,8 @@ theorem proposition5_43_left (p0 p1 : FinDist X) :
           (Real.sqrt (p0.prob x) + Real.sqrt (p1.prob x)) :=
         mul_le_mul_of_nonneg_left h1 (abs_nonneg _)
 
+/-- Kolmogorov distance is at most the square root of one minus the squared Bhattacharyya
+coefficient, as in Proposition 5, equation (43), of [FuchsVanDeGraaf1999]. -/
 theorem proposition5_43_right (p0 p1 : FinDist X) :
     classicalKolmogorov p0 p1 ≤ Real.sqrt (1 - (bhattacharyya p0 p1) ^ 2) := by
   rw [kolmogorov_eq_sum_abs_mul]
@@ -205,11 +249,15 @@ theorem proposition5_43_right (p0 p1 : FinDist X) :
   rw [hF, hG] at h'
   nlinarith
 
+/-- Proves both bounds relating Kolmogorov distance and the Bhattacharyya coefficient in
+Proposition 5, equation (43), of [FuchsVanDeGraaf1999]. -/
 theorem proposition5_43 (p0 p1 : FinDist X) :
     1 - bhattacharyya p0 p1 ≤ classicalKolmogorov p0 p1 ∧
       classicalKolmogorov p0 p1 ≤ Real.sqrt (1 - (bhattacharyya p0 p1) ^ 2) :=
   ⟨proposition5_43_left p0 p1, proposition5_43_right p0 p1⟩
 
+/-- The ratio of the first point probability to the sum of both point probabilities lies in the
+unit interval. -/
 lemma posterior_mem (p0 p1 : FinDist X) (x : X) :
     p0.prob x / (p0.prob x + p1.prob x) ∈ Set.Icc (0 : ℝ) 1 := by
   have h0 := p0.nonneg x
@@ -223,14 +271,18 @@ lemma posterior_mem (p0 p1 : FinDist X) (x : X) :
       rw [div_le_one hpos]
       linarith
 
+/-- The average of two point probabilities is nonnegative. -/
 lemma weight_nonneg (p0 p1 : FinDist X) (x : X) : 0 ≤ (p0.prob x + p1.prob x) / 2 := by
   have h0 := p0.nonneg x; have h1 := p1.nonneg x; linarith
 
+/-- The pointwise averages of two probability distributions sum to one. -/
 lemma sum_weight_eq_one (p0 p1 : FinDist X) :
     (∑ x, (p0.prob x + p1.prob x) / 2) = 1 := by
   rw [← Finset.sum_div, Finset.sum_add_distrib, p0.sum_one, p1.sum_one]
   norm_num
 
+/-- Multiplying the smaller posterior probability by the mixture weight gives half the smaller
+point probability. -/
 lemma weight_mul_min_eq (p0 p1 : FinDist X) (x : X) :
     ((p0.prob x + p1.prob x) / 2) *
       min (p0.prob x / (p0.prob x + p1.prob x))
@@ -278,6 +330,8 @@ lemma weight_mul_min_eq (p0 p1 : FinDist X) (x : X) :
       field_simp
       ring
 
+/-- The mixture-weighted sum of the smaller posterior probabilities equals the classical error
+probability. -/
 lemma sum_weight_mul_min_eq (p0 p1 : FinDist X) :
     (∑ x, ((p0.prob x + p1.prob x) / 2) *
       min (p0.prob x / (p0.prob x + p1.prob x))
@@ -288,6 +342,8 @@ lemma sum_weight_mul_min_eq (p0 p1 : FinDist X) :
   rw [← Finset.sum_div]
   ring
 
+/-- One minus the binary entropy of the error probability is bounded above by Shannon
+distinguishability, as in Proposition 5, equation (44), of [FuchsVanDeGraaf1999]. -/
 theorem proposition5_44_left (p0 p1 : FinDist X) :
     1 - binaryEntropy (classicalErrProb p0 p1) ≤ shannonDist p0 p1 := by
   unfold shannonDist
@@ -316,6 +372,8 @@ theorem proposition5_44_left (p0 p1 : FinDist X) :
   rw [hcongr] at hj
   linarith
 
+/-- Shannon distinguishability is at most one minus twice the classical error probability, as in
+Proposition 5, equation (44), of [FuchsVanDeGraaf1999]. -/
 theorem proposition5_44_right (p0 p1 : FinDist X) :
     shannonDist p0 p1 ≤ 1 - 2 * classicalErrProb p0 p1 := by
   unfold shannonDist
@@ -342,6 +400,7 @@ theorem proposition5_44_right (p0 p1 : FinDist X) :
   rw [hleft] at hsum
   linarith
 
+/-- Shannon distinguishability is at most one. -/
 lemma shannonDist_le_one (p0 p1 : FinDist X) : shannonDist p0 p1 ≤ 1 := by
   unfold shannonDist
   have h : 0 ≤ ∑ x, ((p0.prob x + p1.prob x) / 2) *
@@ -350,6 +409,8 @@ lemma shannonDist_le_one (p0 p1 : FinDist X) : shannonDist p0 p1 ≤ 1 := by
       (binaryEntropy_nonneg (posterior_mem p0 p1 x).1 (posterior_mem p0 p1 x).2)
   linarith
 
+/-- The mixture weight times twice the geometric mean of the posterior probabilities equals the
+geometric mean of the point probabilities. -/
 lemma weight_mul_sqrt_eq (p0 p1 : FinDist X) (x : X) :
     ((p0.prob x + p1.prob x) / 2) *
       (2 * Real.sqrt ((p0.prob x / (p0.prob x + p1.prob x)) *
@@ -376,6 +437,8 @@ lemma weight_mul_sqrt_eq (p0 p1 : FinDist X) (x : X) :
     rw [hsqrt]
     field_simp
 
+/-- The mixture-weighted sum of twice the geometric means of posterior probabilities equals the
+Bhattacharyya coefficient. -/
 lemma sum_weight_mul_sqrt_eq (p0 p1 : FinDist X) :
     (∑ x, ((p0.prob x + p1.prob x) / 2) *
       (2 * Real.sqrt ((p0.prob x / (p0.prob x + p1.prob x)) *
@@ -384,6 +447,8 @@ lemma sum_weight_mul_sqrt_eq (p0 p1 : FinDist X) :
   unfold bhattacharyya
   exact Finset.sum_congr rfl (fun x _ => weight_mul_sqrt_eq p0 p1 x)
 
+/-- One minus the Bhattacharyya coefficient is bounded above by Shannon distinguishability,
+giving the left inequality of Proposition 5, equation (45), of [FuchsVanDeGraaf1999]. -/
 theorem proposition5_45_left (p0 p1 : FinDist X) :
     1 - bhattacharyya p0 p1 ≤ shannonDist p0 p1 := by
   unfold shannonDist
@@ -399,15 +464,21 @@ theorem proposition5_45_left (p0 p1 : FinDist X) :
   rw [sum_weight_mul_sqrt_eq] at hsum
   linarith
 
+/-- Restates the lower bound on Shannon distinguishability by one minus the Bhattacharyya
+coefficient from [FuchsVanDeGraaf1999]. -/
 theorem proposition5_45_left_conj (p0 p1 : FinDist X) :
     1 - bhattacharyya p0 p1 ≤ shannonDist p0 p1 :=
   proposition5_45_left p0 p1
 
+/-- Proves the lower and upper bounds on Shannon distinguishability in terms of the classical
+error probability from Proposition 5, equation (44), of [FuchsVanDeGraaf1999]. -/
 theorem proposition5_44 (p0 p1 : FinDist X) :
     1 - binaryEntropy (classicalErrProb p0 p1) ≤ shannonDist p0 p1 ∧
       shannonDist p0 p1 ≤ 1 - 2 * classicalErrProb p0 p1 :=
   ⟨proposition5_44_left p0 p1, proposition5_44_right p0 p1⟩
 
+/-- Collects equation (43), equation (44), and the left inequality of equation (45) from
+Proposition 5 of [FuchsVanDeGraaf1999]. -/
 theorem proposition5 (p0 p1 : FinDist X) :
     (1 - bhattacharyya p0 p1 ≤ classicalKolmogorov p0 p1 ∧
       classicalKolmogorov p0 p1 ≤ Real.sqrt (1 - (bhattacharyya p0 p1) ^ 2)) ∧

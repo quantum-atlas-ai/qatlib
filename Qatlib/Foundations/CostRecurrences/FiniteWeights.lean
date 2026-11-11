@@ -7,11 +7,36 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 
+/-!
+# Finite weighted polynomial and logarithmic bounds
+
+Proves finite-sum estimates for nonnegative cubic weights and uniformly bounded auxiliary
+factors. `log_prod_le_sum_sub_one` bounds the logarithm of a product of positive factors by a
+sum.
+
+These elementary estimates provide tools for arithmetic cost analyses such as the quantum
+primality-test analysis of [ChauLo1995].
+
+## Main statements
+
+* `sum_cube_le_cube_sum`: The sum of cubes of finitely many nonnegative real numbers is at most
+  the cube of their sum.
+* `weighted_cube_bound`: Bounds the sum of `a i ^ 3 * b i ^ 2 * c i` by `L ^ 3 * B ^ 2 * Cc`
+  when the nonnegative weights satisfy the stated total and pointwise bounds.
+* `log_prod_le_sum_sub_one`: For positive real factors, the logarithm of their product is at
+  most the sum of the factors minus one.
+
+## References
+
+* [Chau and Lo, 1995][ChauLo1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
 namespace Qatlib.Foundations.CostRecurrences.FiniteWeights
 
+/-- The sum of cubes of finitely many nonnegative real numbers is at most the cube of their sum. -/
 theorem sum_cube_le_cube_sum {ι : Type*} (s : Finset ι) (a : ι → ℝ)
     (ha : ∀ i ∈ s, 0 ≤ a i) :
     (∑ i ∈ s, a i ^ 3) ≤ (∑ i ∈ s, a i) ^ 3 := by
@@ -31,6 +56,8 @@ theorem sum_cube_le_cube_sum {ι : Type*} (s : Finset ι) (a : ι → ℝ)
         nlinarith [h1, h2]
       linarith [hih, key]
 
+/-- Bounds the sum of `a i ^ 3 * b i ^ 2 * c i` by `L ^ 3 * B ^ 2 * Cc` when the nonnegative
+weights satisfy the stated total and pointwise bounds. -/
 theorem weighted_cube_bound {ι : Type*} (s : Finset ι) (a b c : ι → ℝ)
     (L B Cc : ℝ)
     (ha : ∀ i ∈ s, 0 ≤ a i) (hb0 : ∀ i ∈ s, 0 ≤ b i) (hbB : ∀ i ∈ s, b i ≤ B)
@@ -67,6 +94,8 @@ theorem weighted_cube_bound {ι : Type*} (s : Finset ι) (a b c : ι → ℝ)
     _ ≤ (B ^ 2 * Cc) * L ^ 3 := hfin
     _ = L ^ 3 * B ^ 2 * Cc := by ring
 
+/-- For positive real factors, the logarithm of their product is at most the sum of the factors
+minus one. -/
 theorem log_prod_le_sum_sub_one {ι : Type*} (s : Finset ι) (a : ι → ℝ)
     (ha : ∀ i ∈ s, 0 < a i) :
     Real.log (∏ i ∈ s, a i) ≤ ∑ i ∈ s, (a i - 1) := by

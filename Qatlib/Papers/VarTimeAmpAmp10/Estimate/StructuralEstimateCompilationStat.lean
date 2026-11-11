@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateInterface
+
+/-!
+# Structural compilation of variable-time estimation
+
+This module defines `StructuralEstimateCompilation`, a statement linking legal variable-time
+data words to amplitude-estimation circuits in the development of [Ambainis2012]. It requires
+unitary word matrices, equivalent compiled executions with exact weighted-time formulas, and
+normalized adaptive record laws whose good-event mass is at least `1 - n * (8 / 9)^r`.
+
+## Main statements
+
+* `StructuralEstimateCompilation`: Unitary data words, exact estimation compilation, and
+  adaptive-record probability bounds.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +42,10 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- The proposition that growing legal variable-time stages yield unitary legal data words and
+equivalent compiled estimation circuits with the specified exact time and repetition
+formulas. It also requires causal adaptive record laws to be normalized, nonnegative, and to
+assign mass at least `1 - n * (8 / 9)^r` to the good records. -/
 def StructuralEstimateCompilation : Prop :=
   ∀ (C : Type) [Fintype C] [DecidableEq C]
     (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)) (history : ℕ → Finset C),

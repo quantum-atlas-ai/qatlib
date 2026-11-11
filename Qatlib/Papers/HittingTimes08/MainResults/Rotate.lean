@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HittingTimes08.MainResults.Detect
+
+/-!
+# Approximate rotation in a normed space
+
+This module models an approximate rotation as `rotationMixtureModel`, a weighted sum of an ideal
+vector and a residual vector. It proves a norm-error estimate and a detection-cost bound
+corresponding to the rotation analysis in [MagniezEtAl2008].
+
+## Main statements
+
+* `theorem_3_9`: bounds the deviation from the ideal vector by `sqrt (8 * ε)`.
+* `theorem_3_9_cost`: bounds the modeled detection cost by `2 * k * (T + 1)`.
+
+## References
+
+* [Magniez et al., 2008][MagniezEtAl2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,9 +33,13 @@ namespace Qatlib.Papers.HittingTimes08.MainResults
 
 open scoped BigOperators
 
+/-- The vector mixture `sqrt (1 - η) • rot + sqrt η • junk`. -/
 def rotationMixtureModel {E : Type*} [Add E] [SMul ℝ E] (rot junk : E) (η : ℝ) : E :=
   Real.sqrt (1 - η) • rot + Real.sqrt η • junk
 
+/-- For unit vectors `rot` and `junk`, `0 < ε ≤ 1 / 2`, and `(1 / 3) ^ k ≤ 2 * ε`, the mixture
+differs from `rot` by at most `sqrt (8 * ε)`. This is the norm estimate associated with
+[Magniez et al., Theorem 3.9][MagniezEtAl2008]. -/
 theorem theorem_3_9 {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (rot junk : E) (ε : ℝ) (k : ℕ)
     (hε0 : 0 < ε) (hε1 : ε ≤ 1 / 2) (hη : (1 / 3 : ℝ) ^ k ≤ 2 * ε)
@@ -77,6 +99,9 @@ theorem theorem_3_9 {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
           linarith
     _ ≤ Real.sqrt (8 * ε) := by linarith
 
+/-- For positive `ε` and `T`, under the stated quantile hypothesis, the detection cost at
+threshold `1 / T` is at most `2 * k * (T + 1)`, as used for Theorem 3.9 of
+[MagniezEtAl2008]. -/
 theorem theorem_3_9_cost {J : Type*} [Fintype J] (S : PhaseSpectrum J)
     (ε T : ℝ) (k : ℕ) (hε0 : 0 < ε) (hT0 : 0 < T)
     (hT : (S.law).quantile ε ≤ T) :

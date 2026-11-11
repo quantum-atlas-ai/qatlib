@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridConstants
 import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridGeometry
 import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceStencilSeries
+
+/-!
+# Central-difference terms on centered grids
+
+This module expresses multilinear evaluations at grid points through coordinate tensors and
+identifies the first-order contribution. It converts a normalized tensor bound into a geometric
+stencil-term bound, supporting [GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `centralDiff_grid_tensor_identity`: coordinate expansion with scale and normalization factors.
+* `centralDiff_grid_good_term`: the stated tensor threshold bounds the stencil term by
+  `(8*R*c*m*sqrt d)^k`.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +34,8 @@ noncomputable section
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators
 
+/-- For nonzero normalization `D`, expands a multilinear form on a grid vector as `D*R^k` times
+the normalized coordinate-tensor polynomial on the unit grid. -/
 theorem centralDiff_grid_tensor_identity (d k M : ℕ) (R D : ℝ) (hD : D≠0)
     (F : ContinuousMultilinearMap ℝ (fun _ : Fin k => EuclideanSpace ℝ (Fin d)) ℝ)
     (z : Fin d → Fin M) :
@@ -32,6 +53,8 @@ theorem centralDiff_grid_tensor_identity (d k M : ℕ) (R D : ℝ) (hD : D≠0)
   simp only [Finset.prod_const,Finset.card_univ,Fintype.card_fin]
   field_simp
 
+/-- The coordinate sum of first derivatives weighted by grid centers equals the derivative at
+zero applied to the grid vector. -/
 theorem centralDiff_grid_first (d M : ℕ) (R : ℝ)
     (f : EuclideanSpace ℝ (Fin d) → ℝ) (z : Fin d → Fin M) :
     (∑ j : Fin d,(fderiv ℝ f 0) (EuclideanSpace.single j (1 : ℝ))*gridCenter M R (z j))=
@@ -42,6 +65,8 @@ theorem centralDiff_grid_first (d M : ℕ) (R : ℝ)
   rw [← hy,map_sum]
   simp only [map_smul,smul_eq_mul,mul_comm]
 
+/-- Under the stated degree, positivity, and normalized tensor bound, the absolute
+stencil-series term at a grid point is at most `(8*R*c*m*sqrt d)^k`. -/
 theorem centralDiff_grid_good_term (d m k M : ℕ) (hd : 0<d) (hm : 0<m)
     (hk : 2*m+1≤k) (R c : ℝ) (hR : 0<R) (hc : 0<c)
     (f : EuclideanSpace ℝ (Fin d) → ℝ) (z : Fin d → Fin M)

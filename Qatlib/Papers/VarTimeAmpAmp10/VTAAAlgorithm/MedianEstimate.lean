@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.FreshEstimateCircuit
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+
+/-!
+# Median amplification of variable-time estimates
+
+This module defines the median estimate `vtMedianEstimate` and its good outcome set
+`vtMedianGood`. It bounds failure under independent amplitude-estimation samples, obtains
+arbitrarily high good mass by repetition, and records exactness on the support at zero success
+probability for the estimation framework of [Ambainis2012].
+
+## Main statements
+
+* `vt_median_estimate_failure`: exponential failure bound `(8 / 9) ^ r`.
+* `vt_median_estimate_good_mass`: existence of a sufficiently reliable median.
+* `vt_median_estimate_zero_support`: exact zero estimates on positive-probability records.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration
@@ -31,12 +51,17 @@ open scoped Classical
 set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The sorted median of the amplitude estimates from `2 * r + 1` outcome labels. -/
 def vtMedianEstimate (M r : ℕ) (ω : Fin (2*r+1) → Fin M) : ℝ :=
   sortedBlockMedian r (fun i=>aeEstimate M (ω i))
 
+/-- The outcome records whose median estimate differs from `a` by at most `vtEstimateRadius a
+M`. -/
 def vtMedianGood (M r : ℕ) (a : ℝ) : Finset (Fin (2*r+1) → Fin M) :=
   Finset.univ.filter fun ω=>|vtMedianEstimate M r ω-a| ≤ vtEstimateRadius a M
 
+/-- For unitary preparation and `M ≥ 2`, the probability that the median estimate exceeds the
+prescribed error radius is at most `(8 / 9) ^ r`. -/
 theorem vt_median_estimate_failure (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
     (A : Matrix I I ℂ) (hA : A∈Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I) :
     (aeLaw M A j S hA hM).probEvent (fun ω : Fin (2*r+1) → Fin M=>
@@ -61,6 +86,7 @@ theorem vt_median_estimate_failure (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
   exact Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedMean.sorted_median_failure p
       (aeEstimate M) r a (vtEstimateRadius a M) hrad hb
 
+/-- For any positive `δ`, some median repetition count gives good-record mass at least `1 - δ`. -/
 theorem vt_median_estimate_good_mass (M : ℕ) (hM : 2 ≤ M)
     (A : Matrix I I ℂ) (hA : A∈Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (δ : ℝ) (hδ : 0 < δ) :
@@ -79,6 +105,8 @@ theorem vt_median_estimate_good_mass (M : ℕ) (hM : 2 ≤ M)
   unfold FinDist.probEvent at hb
   linarith
 
+/-- When the prepared success mass is zero, every median outcome record of positive product-law
+probability has estimate zero. -/
 theorem vt_median_estimate_zero_support (M : ℕ) (hM : 2 ≤ M) (r : ℕ)
     (A : Matrix I I ℂ) (hA : A∈Matrix.unitaryGroup I ℂ) (j : I) (S : Finset I)
     (ha : MeasureProb (preparedAAState A j) S=0) (ω : Fin (2*r+1) → Fin M)

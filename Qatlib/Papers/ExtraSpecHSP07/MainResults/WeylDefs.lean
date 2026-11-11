@@ -9,6 +9,26 @@ import Mathlib.GroupTheory.OrderOfElement
 import Mathlib.RingTheory.ZMod.UnitsCyclic
 import Mathlib.FieldTheory.Finite.Basic
 import Mathlib.Data.ZMod.Basic
+
+/-!
+# Weyl automorphism data for extraspecial groups
+
+`WeylData` packages a central commutator generator and a multiplicative family of automorphisms
+indexed by units modulo an odd prime. The automorphisms act linearly modulo the commutator and
+quadratically on the central generator, leading to a uniform central correction formula. The
+construction follows [IvanyosSanselmeSantha2007].
+
+## Main statements
+
+* `WeylData.exists_zpow_decomp`: expresses an automorphism image as a power times a central
+  correction.
+* `WeylData.phi_eq_pow_mul_zpow`: chooses one correction parameter valid for every unit.
+
+## References
+
+* [Ivanyos et al., 2007][IvanyosSanselmeSantha2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +36,9 @@ set_option autoImplicit false
 
 namespace Qatlib.Papers.ExtraSpecHSP07.MainResults
 
+/-- A group of exponent `p` with a central commutator generator of order `p` and a unit-indexed
+automorphism action that is linear modulo the commutator and quadratic on the generator, for
+an odd prime `p`. -/
 structure WeylData (G : Type*) [Group G] (p : ℕ) where
 
   prime : p.Prime
@@ -43,17 +66,23 @@ namespace WeylData
 
 variable {G : Type*} [Group G] {p : ℕ} (W : WeylData G p)
 
+/-- The central generator in the Weyl data has `p`th power equal to the identity. -/
 theorem z_pow : W.z ^ p = 1 := by
   have h := pow_orderOf_eq_one W.z
   rwa [W.z_order] at h
 
+/-- The central generator in the Weyl data commutes with every group element. -/
 theorem commute_z (g : G) : Commute W.z g :=
   (Subgroup.mem_center_iff.mp W.z_central g).symm
 
+/-- Natural powers of the central generator agree when their exponents have equal residues
+modulo `p`. -/
 theorem z_pow_congr {A B : ℕ} (h : (A : ZMod p) = (B : ZMod p)) :
     W.z ^ A = W.z ^ B :=
   pow_eq_pow_of_modEq ((ZMod.natCast_eq_natCast_iff A B p).mp h) W.z_pow
 
+/-- An integer power of the central generator equals the natural power specified by its residue
+modulo `p`. -/
 theorem zpow_eq_pow_val (k : ℤ) : W.z ^ k = W.z ^ ((k : ZMod p).val) := by
   haveI : NeZero p := ⟨W.prime.ne_zero⟩
   have hpos : (0 : ℤ) < (p : ℤ) := by exact_mod_cast W.prime.pos
@@ -70,6 +99,8 @@ theorem zpow_eq_pow_val (k : ℤ) : W.z ^ k = W.z ^ ((k : ZMod p).val) := by
     exact Int.mod_modEq k (p : ℤ)
   rw [hcast, ZMod.natCast_zmod_val]
 
+/-- A Weyl image of `h` is the corresponding natural power of `h` times a power of the central
+generator. -/
 theorem exists_zpow_decomp (h : G) (j : (ZMod p)ˣ) :
     ∃ s : ZMod p, W.phi j h = h ^ (j : ZMod p).val * W.z ^ s.val := by
   classical
@@ -86,6 +117,7 @@ theorem exists_zpow_decomp (h : G) (j : (ZMod p)ˣ) :
     _ = W.z ^ ((k : ZMod p).val) * (h ^ (j : ZMod p).val) := by rw [← hk]
     _ = h ^ (j : ZMod p).val * W.z ^ ((k : ZMod p).val) := hcomm.eq
 
+/-- For a unit distinct from one, the difference between the unit and its square is nonzero. -/
 theorem sub_sq_ne_zero (W : WeylData G p) {j : (ZMod p)ˣ} (hj : (j : ZMod p) ≠ 1) :
     (j : ZMod p) - (j : ZMod p) ^ 2 ≠ 0 := by
   haveI : Fact p.Prime := ⟨W.prime⟩
@@ -98,6 +130,8 @@ theorem sub_sq_ne_zero (W : WeylData G p) {j : (ZMod p)ˣ} (hj : (j : ZMod p) �
   · exact Units.ne_zero j h3
   · exact hj (sub_eq_zero.mp h3).symm
 
+/-- For each `h`, one central correction parameter expresses every Weyl image as `h` raised to
+the unit residue times the central power weighted by the unit minus its square. -/
 theorem phi_eq_pow_mul_zpow (h : G) :
     ∃ ℓ : ZMod p, ∀ j : (ZMod p)ˣ,
       W.phi j h =

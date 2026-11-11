@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.ThermalRate98.MainResults.FluxCorrelation
 import Mathlib.LinearAlgebra.UnitaryGroup
 import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+/-!
+# Flux operators in an energy frame
+
+This module defines the flux matrix `physicalFlux` as `i / ħ` times the commutator of a
+Hamiltonian and a surface matrix. It proves its transformation under a unitary energy frame and
+identifies entries for a surface matrix diagonal in position coordinates, following the flux
+formulas of [LidarWang1999].
+
+## Main statements
+
+* `physical_flux_frame`: expresses the flux as a commutator with the diagonal energy matrix.
+* `physical_flux_entry`: identifies energy frame flux entries with `sourceFluxMatrixElement`.
+* `physical_flux_hermitian`: proves Hermiticity when the Hamiltonian and surface matrix are
+  Hermitian.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,9 +37,12 @@ open Matrix
 open scoped BigOperators
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The flux matrix `(i / ħ) • (H * P - P * H)` associated with the Hamiltonian `H` and surface
+matrix `P`. -/
 def physicalFlux (ħ : ℝ) (H P : Matrix I I ℂ) : Matrix I I ℂ :=
   (Complex.I/(ħ : ℂ)) • (H*P-P*H)
 
+/-- Conjugation by a unitary frame preserves matrix multiplication. -/
 theorem physical_frame_mul (V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (A B : Matrix I I ℂ) :
     Vᴴ*(A*B)*V = (Vᴴ*A*V)*(Vᴴ*B*V) := by
@@ -29,6 +53,8 @@ theorem physical_frame_mul (V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryGroup 
     _ = Vᴴ*A*(V*Vᴴ)*B*V := by simp only [Matrix.mul_assoc]
     _ = _ := by rw [hVV]; simp only [Matrix.mul_one,Matrix.mul_assoc]
 
+/-- A unitary spectral representation of `H` gives the specified diagonal energy matrix after
+conjugation into that frame. -/
 theorem physical_hamiltonian_frame (H V : Matrix I I ℂ) (E : I → ℝ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (hH : H = V*Matrix.diagonal (fun n => (E n : ℂ))*Vᴴ) :
@@ -38,6 +64,8 @@ theorem physical_hamiltonian_frame (H V : Matrix I I ℂ) (E : I → ℝ)
   rw [hH]
   simp only [Matrix.mul_assoc,← Matrix.mul_assoc Vᴴ V,hVV,Matrix.one_mul,Matrix.mul_one]
 
+/-- In a unitary frame diagonalizing `H`, the flux is `i / ħ` times the commutator of the
+diagonal energy matrix with the transformed surface matrix. -/
 theorem physical_flux_frame (ħ : ℝ) (H V P : Matrix I I ℂ) (E : I → ℝ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (hH : H = V*Matrix.diagonal (fun n => (E n : ℂ))*Vᴴ) :
@@ -49,6 +77,8 @@ theorem physical_flux_frame (ħ : ℝ) (H V P : Matrix I I ℂ) (E : I → ℝ)
     physical_frame_mul V hV H P,physical_frame_mul V hV P H,
     physical_hamiltonian_frame H V E hV hH]
 
+/-- The entries of a position-diagonal surface matrix in frame `V` are sums of conjugated and
+unconjugated frame entries weighted by the surface values. -/
 theorem physical_surface_entry (V : Matrix I I ℂ) (h : I → ℂ) (n m : I) :
     (Vᴴ*Matrix.diagonal h*V) n m = ∑ j, star (V j n)*V j m*h j := by
   rw [Matrix.mul_apply]
@@ -57,6 +87,8 @@ theorem physical_surface_entry (V : Matrix I I ℂ) (h : I → ℂ) (n m : I) :
   intro j _
   ring
 
+/-- For a unitary spectral frame and a position-diagonal surface matrix, each transformed
+physical flux entry equals `sourceFluxMatrixElement`. See [LidarWang1999]. -/
 theorem physical_flux_entry (ħ : ℝ) (H V : Matrix I I ℂ) (E : I → ℝ) (h : I → ℂ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (hH : H = V*Matrix.diagonal (fun n => (E n : ℂ))*Vᴴ) (n m : I) :
@@ -71,6 +103,8 @@ theorem physical_flux_entry (ħ : ℝ) (H V : Matrix I I ℂ) (E : I → ℝ) (h
 section
 omit [DecidableEq I]
 
+/-- The physical flux matrix is Hermitian whenever the Hamiltonian and surface matrix are
+Hermitian. See [LidarWang1999]. -/
 theorem physical_flux_hermitian (ħ : ℝ) (H P : Matrix I I ℂ)
     (hH : H.IsHermitian) (hP : P.IsHermitian) : (physicalFlux ħ H P).IsHermitian := by
   change Hᴴ = H at hH

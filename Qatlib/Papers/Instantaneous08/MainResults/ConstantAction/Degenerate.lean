@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Instantaneous08.MainResults.XProgram
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.Complex.Basic
+
+/-!
+# Degenerate action angles in X-programs
+
+This module defines the collision probability `collisionProb` and total row sum `totalRow` of an
+X-program. It proves deterministic output and unit collision probability when each angle is an
+integer multiple of π or an odd multiple of π/2, covering the corresponding cases of Lemma 2 in
+[ShepherdBremner2009].
+
+## Main statements
+
+* `prob_eq_one_zero_of_multiple_pi`: gives deterministic zero output for integer multiples of π.
+* `prob_eq_one_totalRow_of_odd_pi_div_two`: gives deterministic total-row output for odd
+  multiples of π/2.
+* `collisionProb_eq_one_of_odd_pi_div_two`: evaluates the collision probability in the latter
+  case.
+
+## References
+
+* [Shepherd and Bremner, 2009][ShepherdBremner2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,17 +40,22 @@ namespace Qatlib.Papers.Instantaneous08.MainResults.ConstantAction
 
 open Qatlib.Papers.Instantaneous08.MainResults.XProgram
 
+/-- The collision probability of an X-program, defined as the sum of squared output
+probabilities. -/
 def collisionProb {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ) : ℝ :=
   ∑ x : F2Vec n, prob p θ x ^ 2
 
+/-- The sum of all rows of the binary program matrix. -/
 def totalRow {n k : ℕ} (p : Fin k → F2Vec n) : F2Vec n :=
   ∑ i, p i
 
+/-- The sine of an integer multiple of π vanishes. -/
 theorem sin_eq_zero_of_int_mul_pi {θ : ℝ} (h : ∃ m : ℤ, θ = m * Real.pi) :
     Real.sin θ = 0 := by
   obtain ⟨m, rfl⟩ := h
   exact Real.sin_int_mul_pi m
 
+/-- The squared cosine of an integer multiple of π equals one. -/
 theorem cos_sq_eq_one_of_int_mul_pi {θ : ℝ} (h : ∃ m : ℤ, θ = m * Real.pi) :
     Real.cos θ ^ 2 = 1 := by
   obtain ⟨m, rfl⟩ := h
@@ -37,6 +64,7 @@ theorem cos_sq_eq_one_of_int_mul_pi {θ : ℝ} (h : ∃ m : ℤ, θ = m * Real.p
   rw [hsin] at h
   nlinarith
 
+/-- The cosine of an odd integer multiple of π/2 vanishes. -/
 theorem cos_eq_zero_of_odd_mul_pi_div_two {θ : ℝ}
     (h : ∃ m : ℤ, θ = (2 * (m : ℝ) + 1) * (Real.pi / 2)) : Real.cos θ = 0 := by
   obtain ⟨m, rfl⟩ := h
@@ -45,6 +73,7 @@ theorem cos_eq_zero_of_odd_mul_pi_div_two {θ : ℝ}
   rw [hrewrite, Real.cos_add_pi_div_two, Real.sin_int_mul_pi]
   ring
 
+/-- The squared sine of an odd integer multiple of π/2 equals one. -/
 theorem sin_sq_eq_one_of_odd_mul_pi_div_two {θ : ℝ}
     (h : ∃ m : ℤ, θ = (2 * (m : ℝ) + 1) * (Real.pi / 2)) : Real.sin θ ^ 2 = 1 := by
   have hcos := cos_eq_zero_of_odd_mul_pi_div_two h
@@ -52,6 +81,8 @@ theorem sin_sq_eq_one_of_odd_mul_pi_div_two {θ : ℝ}
   rw [hcos] at h
   nlinarith
 
+/-- When every angle is an integer multiple of π, the path sum is supported at zero and equals
+the product of the cosines there. -/
 theorem pathSum_eq_single_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ) (hθ : ∀ i, ∃ m : ℤ, θ i = m * Real.pi) (x : F2Vec n) :
     pathSum p θ x = if x = 0 then ∏ i, (Real.cos (θ i) : ℂ) else 0 := by
@@ -83,6 +114,8 @@ theorem pathSum_eq_single_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
   · intro h
     exact absurd (Finset.mem_univ (fun _ : Fin k => false)) h
 
+/-- When every angle is an integer multiple of π, the output is zero with probability one. See
+[ShepherdBremner2009]. -/
 theorem prob_eq_one_zero_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ) (hθ : ∀ i, ∃ m : ℤ, θ i = m * Real.pi) :
     prob p θ 0 = 1 := by
@@ -92,12 +125,15 @@ theorem prob_eq_one_zero_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
   rw [Complex.normSq_ofReal, ← sq]
   exact cos_sq_eq_one_of_int_mul_pi (hθ i)
 
+/-- When every angle is an integer multiple of π, every nonzero output has probability zero. -/
 theorem prob_eq_zero_of_ne_zero_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ) (hθ : ∀ i, ∃ m : ℤ, θ i = m * Real.pi) {x : F2Vec n}
     (hx : x ≠ 0) : prob p θ x = 0 := by
   rw [prob, circuit_eq_pathSum, pathSum_eq_single_of_multiple_pi p θ hθ x, if_neg hx]
   simp
 
+/-- When every angle is an integer multiple of π, the collision probability equals one. See
+[ShepherdBremner2009]. -/
 theorem collisionProb_eq_one_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ) (hθ : ∀ i, ∃ m : ℤ, θ i = m * Real.pi) :
     collisionProb p θ = 1 := by
@@ -110,6 +146,8 @@ theorem collisionProb_eq_one_of_multiple_pi {n k : ℕ} (p : Fin k → F2Vec n)
   · intro h
     exact absurd (Finset.mem_univ (0 : F2Vec n)) h
 
+/-- When every angle is an odd multiple of π/2, the path sum is supported at `totalRow p` and
+equals the product of `I * sin (θ i)` there. -/
 theorem pathSum_eq_single_of_odd_pi_div_two {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ)
     (hθ : ∀ i, ∃ m : ℤ, θ i = (2 * (m : ℝ) + 1) * (Real.pi / 2)) (x : F2Vec n) :
@@ -143,6 +181,8 @@ theorem pathSum_eq_single_of_odd_pi_div_two {n k : ℕ} (p : Fin k → F2Vec n)
   · intro h
     exact absurd (Finset.mem_univ (fun _ : Fin k => true)) h
 
+/-- When every angle is an odd multiple of π/2, the output equals `totalRow p` with probability
+one. See [ShepherdBremner2009]. -/
 theorem prob_eq_one_totalRow_of_odd_pi_div_two {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ)
     (hθ : ∀ i, ∃ m : ℤ, θ i = (2 * (m : ℝ) + 1) * (Real.pi / 2)) :
@@ -156,6 +196,8 @@ theorem prob_eq_one_totalRow_of_odd_pi_div_two {n k : ℕ} (p : Fin k → F2Vec 
     ← sq]
   exact hsin
 
+/-- When every angle is an odd multiple of π/2, every output distinct from `totalRow p` has
+probability zero. -/
 theorem prob_eq_zero_of_ne_totalRow_of_odd_pi_div_two {n k : ℕ}
     (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
     (hθ : ∀ i, ∃ m : ℤ, θ i = (2 * (m : ℝ) + 1) * (Real.pi / 2)) {x : F2Vec n}
@@ -164,6 +206,8 @@ theorem prob_eq_zero_of_ne_totalRow_of_odd_pi_div_two {n k : ℕ}
     pathSum_eq_single_of_odd_pi_div_two p θ hθ x, if_neg hx]
   simp
 
+/-- When every angle is an odd multiple of π/2, the collision probability equals one. See
+[ShepherdBremner2009]. -/
 theorem collisionProb_eq_one_of_odd_pi_div_two {n k : ℕ} (p : Fin k → F2Vec n)
     (θ : Fin k → ℝ)
     (hθ : ∀ i, ∃ m : ℤ, θ i = (2 * (m : ℝ) + 1) * (Real.pi / 2)) :

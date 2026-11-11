@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseLowerBound
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseDefs
+
+/-!
+# Matrix signal-response bounds and machine costs
+
+This module extends scalar signal-response bounds to matrix targets and adaptive paths.
+Isometric compression and a hybrid estimate bound the target separation after subtracting
+two approximation errors by query count times oracle distance, following the hybrid
+method of [BennettEtAl1997].
+
+It transports pathwise bounds to expected query counts and then to realized machine
+costs, separating forward and backward access, read bits, and address bits.
+Concrete receipts verify the qualifying-branch and asymmetric-access examples.
+
+## Main statements
+
+* `clause2_matrix_family_response_lower_bound`: a matrix-target response bound.
+* `clause1_matrix_family_joint_distribution`: qualifying thresholds, masses, and expected
+  counts.
+* `clause3_query_forced_cost_decomposition`: minimum charges plus residual access costs.
+* `clause3_machine_ledger_endpoint`: address costs and total bit accounting.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -63,6 +90,7 @@ open Qatlib
 open scoped Classical BigOperators ComplexOrder ENNReal Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- An isometric matrix has operator norm at most one. -/
 private theorem isometry_norm_le_one {H O : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] {L : Matrix H O ℂ} (h : IsIsometry L) :
     ‖L‖ ≤ 1 := by
@@ -73,6 +101,7 @@ private theorem isometry_norm_le_one {H O : Type} [Fintype H] [DecidableEq H]
     nlinarith [hsq, h1, sq_nonneg (‖L‖), norm_nonneg L]
   exact (sq_le_one_iff₀ (norm_nonneg L)).mp h2
 
+/-- The difference of two compressions equals `Lᴴ * (A - B) * R`. -/
 private theorem compress_sub {H O I : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (A B : Matrix H H ℂ) :
@@ -80,6 +109,7 @@ private theorem compress_sub {H O I : Type} [Fintype H] [DecidableEq H]
   show Lᴴ * A * R - Lᴴ * B * R = Lᴴ * (A - B) * R
   rw [← Matrix.sub_mul, ← Matrix.mul_sub]
 
+/-- Compression by isometries does not increase the operator-norm distance between matrices. -/
 private theorem compress_contract {H O I : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (A B : Matrix H H ℂ)
@@ -99,6 +129,9 @@ private theorem compress_contract {H O I : Type} [Fintype H] [DecidableEq H]
   rw [mul_one]
   exact step1
 
+/-- For a well-formed word with contractive instructions and isometric compression approximating
+targets `A` and `B` within `eps ≥ 0`, `max 0 (‖A - B‖ - 2 * eps)` is at most query count
+times oracle distance. -/
 theorem clause2_matrix_family_response_lower_bound :
     ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix H I ℂ) (O₁ O₂ : Matrix H H ℂ)
@@ -137,6 +170,9 @@ theorem clause2_matrix_family_response_lower_bound :
   · exact mul_nonneg (Nat.cast_nonneg _) (norm_nonneg _)
   · linarith
 
+/-- Along a fixed path of a well-formed adaptive tree, contractive instructions and isometric
+target approximations bound `max 0 (‖A - B‖ - 2 * eps)` by path queries times oracle
+distance. -/
 theorem clause1_matrix_family_adaptive_lower_bound :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix I I ℂ) (O₁ O₂ : Matrix I I ℂ)
@@ -178,6 +214,8 @@ theorem clause1_matrix_family_adaptive_lower_bound :
   · exact mul_nonneg (Nat.cast_nonneg _) (norm_nonneg _)
   · linarith
 
+/-- Any nonnegative lower bound `q` on word queries forces minimum-access gate and bit charges
+times `q`, while ledger depth is at least the word query count. -/
 theorem clause3_query_bound_trips_the_machine_ledgers :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)) (q : ℝ),
@@ -198,6 +236,7 @@ theorem clause3_query_bound_trips_the_machine_ledgers :
   · exact le_trans (mul_le_mul_of_nonneg_left hle hng) hgate
   · exact le_trans (mul_le_mul_of_nonneg_left hle hnb) hbit
 
+/-- A left fold of maximum over natural numbers is at least its initial accumulator. -/
 private theorem foldl_max_ge_base : ∀ (l : List ℕ) (m : ℕ), m ≤ l.foldl max m := by
   intro l
   induction l with
@@ -210,6 +249,7 @@ private theorem foldl_max_ge_base : ∀ (l : List ℕ) (m : ℕ), m ≤ l.foldl 
     rw [h3]
     exact le_trans h1 h2
 
+/-- A left fold of maximum is monotone in its initial natural-number accumulator. -/
 private theorem foldl_max_monotone : ∀ (l : List ℕ) (m n : ℕ), m ≤ n →
     l.foldl max m ≤ l.foldl max n := by
   intro l
@@ -223,6 +263,8 @@ private theorem foldl_max_monotone : ∀ (l : List ℕ) (m n : ℕ), m ≤ n →
     rw [h2, h3]
     exact ih (max m a) (max n a) h1
 
+/-- Every member of a natural-number list is at most its maximum computed by a left fold
+starting at zero. -/
 private theorem foldl_max_ge_mem : ∀ (l : List ℕ) (x : ℕ), x ∈ l →
     x ≤ l.foldl max 0 := by
   intro l
@@ -243,6 +285,7 @@ private theorem foldl_max_ge_mem : ∀ (l : List ℕ) (x : ℕ), x ∈ l →
       rw [h3]
       exact le_trans (ih x hx) hmono
 
+/-- Every adaptive signal tree has a nonempty list of paths. -/
 private theorem paths_ne_nil : ∀ (H : Type) [Fintype H] [DecidableEq H]
     (tree : AdaptiveSignalTree H), tree.paths ≠ [] := by
   intro H _ _ tree
@@ -264,6 +307,8 @@ private theorem paths_ne_nil : ∀ (H : Type) [Fintype H] [DecidableEq H]
       exact List.ne_nil_of_mem (List.mem_append_left _ hmem)
     exact absurd hcat h2
 
+/-- A pointwise comparison of real functions on a list bounds the sum of the smaller function by
+that of the larger one, under the stated nonnegativity hypothesis. -/
 private theorem list_sum_le_sum_pointwise {α : Type} (l : List α) (f g : α → ℝ)
     (h : ∀ x ∈ l, g x ≤ f x) (hg : ∀ x ∈ l, 0 ≤ g x) :
     (l.map g).sum ≤ (l.map f).sum := by
@@ -277,6 +322,8 @@ private theorem list_sum_le_sum_pointwise {α : Type} (l : List α) (f g : α �
     simp only [List.map_cons, List.sum_cons]
     linarith
 
+/-- A fixed right multiplicative factor can be moved outside the sum of a mapped real-valued
+list. -/
 private theorem list_sum_const_mul {α : Type} (l : List α) (f : α → ℝ) (c : ℝ) :
     (l.map (fun a => f a * c)).sum = (l.map f).sum * c := by
   induction l with
@@ -286,6 +333,7 @@ private theorem list_sum_const_mul {α : Type} (l : List α) (f : α → ℝ) (c
     rw [ih]
     ring
 
+/-- A mapped real sum splits into the sums over a Boolean filter and its complement. -/
 private theorem list_sum_split {α : Type} (l : List α) (P : α → Bool) (f : α → ℝ) :
     (l.map f).sum =
       ((l.filter P).map f).sum + ((l.filter (fun a => ! P a)).map f).sum := by
@@ -304,6 +352,7 @@ private theorem list_sum_split {α : Type} (l : List α) (P : α → Bool) (f : 
       simp only [List.map_cons, List.sum_cons]
       linarith
 
+/-- A mapped real sum is nonnegative when every summand on the list is nonnegative. -/
 private theorem list_sum_nonneg_of {α : Type} (l : List α) (f : α → ℝ)
     (h : ∀ x ∈ l, 0 ≤ f x) : 0 ≤ (l.map f).sum := by
   induction l with
@@ -314,6 +363,8 @@ private theorem list_sum_nonneg_of {α : Type} (l : List α) (f : α → ℝ)
     have hrest := ih (fun x hx => h x (List.mem_cons_of_mem a hx))
     linarith
 
+/-- Summing over a Boolean-filtered list equals summing the corresponding zero-extended
+indicator expression over the original list. -/
 private theorem list_sum_filter_eq_indicator {α : Type} (l : List α) (P : α → Bool)
     (f : α → ℝ) :
     ((l.filter P).map f).sum = (l.map (fun a => if P a then f a else 0)).sum := by
@@ -324,6 +375,7 @@ private theorem list_sum_filter_eq_indicator {α : Type} (l : List α) (P : α �
     · simp [List.filter, h, ih]
     · simp [List.filter, h, ih]
 
+/-- A Boolean filter that is false at every list member produces the empty list. -/
 private theorem filter_all_false {α : Type} (l : List α) (P : α → Bool)
     (h : ∀ a ∈ l, P a = false) : l.filter P = [] := by
   induction l with
@@ -333,12 +385,18 @@ private theorem filter_all_false {α : Type} (l : List α) (P : α → Bool)
     have hrest : ∀ b ∈ l, P b = false := fun b hb => h b (List.mem_cons_of_mem a hb)
     simp [List.filter, ha, ih hrest]
 
+/-- Filtering weighted paths by membership in `S` agrees with filtering by the explicitly
+decided membership predicate. -/
 private theorem filter_mem_eq (l : List (List Bool × ℝ)) (S : List (List Bool)) :
     l.filter (fun e => e.1 ∈ S) = l.filter (fun e => decide (e.1 ∈ S)) := by
   apply congrArg (fun g => l.filter g)
   funext e
   rfl
 
+/-- Under isometric, contractive, well-formed approximation hypotheses on qualifying paths and
+positive oracle distance, each qualifying path meets the response threshold and has zero
+qualifying mass below it. Expected queries split over qualifying paths and their complement,
+are at least threshold times qualifying mass, and the two masses sum to one. -/
 theorem clause1_matrix_family_joint_distribution :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix I I ℂ) (O₁ O₂ : Matrix I I ℂ)
@@ -448,6 +506,9 @@ theorem clause1_matrix_family_joint_distribution :
       list_sum_split law.support (fun e => decide (e.1 ∈ S)) (fun e => e.2)
     linarith [law.total, hsplit, hmass, htailmass]
 
+/-- If every path has contractive instructions and isometric approximations to both targets,
+worst-case and expected query counts times oracle distance are at least the nonnegative
+target gap after two error allowances. -/
 theorem clause1_matrix_family_worst_case_and_expected_lower_bound :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix I I ℂ) (O₁ O₂ : Matrix I I ℂ)
@@ -512,6 +573,8 @@ theorem clause1_matrix_family_worst_case_and_expected_lower_bound :
       _ = matrixResponseConstant A B eps := one_mul _
   exact ⟨hworst, hexp⟩
 
+/-- If every qualifying path's query count times `d ≥ 0` bounds the matrix response constant,
+expected queries times `d` bound that constant times qualifying mass. -/
 theorem clause1_matrix_family_structural_tail_transport :
     ∀ (I : Type) [Fintype I] [DecidableEq I]
       (tree : AdaptiveSignalTree I) (S : List (List Bool)) (law : SignalBranchLaw)
@@ -590,6 +653,9 @@ theorem clause1_matrix_family_structural_tail_transport :
     _ ≥ law.mass S * matrixResponseConstant A B eps + 0 := by linarith
     _ = matrixResponseConstant A B eps * law.mass S := by ring
 
+/-- For a bounded matrix family and well-formed adaptive tree with contractive gates and
+isometric target approximations, worst-case and expected query counts times the family
+separation bound the matrix response constant. -/
 theorem clause2_bounded_family_adaptive_response_lower_bound :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (F : MatrixFamily I) (z₁ z₂ : ℝ) (L R : Matrix I I ℂ)
@@ -614,6 +680,8 @@ theorem clause2_bounded_family_adaptive_response_lower_bound :
   exact clause1_matrix_family_worst_case_and_expected_lower_bound I L R (F z₁) (F z₂)
     tree A B eps hL hR hWF hguard heps ha hb
 
+/-- If the two oracles coincide and the compressed responses approximate `A` and `B` within
+`eps`, then `‖A - B‖ ≤ 2 * eps`. -/
 theorem clause2_family_coincidence_forces_target_gap :
     ∀ (I : Type) [Fintype I] [DecidableEq I]
       (L R : Matrix I I ℂ) (O₁ O₂ : Matrix I I ℂ)
@@ -635,14 +703,19 @@ theorem clause2_family_coincidence_forces_target_gap :
     rwa [norm_sub_rev] at hb'
   linarith
 
+/-- Evaluating the one-forward-query sharpness word returns the oracle matrix. -/
 theorem sharpness_evaluate_forward (O : Matrix Unit Unit ℂ) :
     evaluate O sharpnessWord = O := by
   simp [sharpnessWord, evaluate, instructionMatrix]
 
+/-- Compressing a `Unit`-indexed matrix by identity matrices leaves it unchanged. -/
 theorem sharpness_compress_identity (O : Matrix Unit Unit ℂ) :
     compress (1 : Matrix Unit Unit ℂ) O (1 : Matrix Unit Unit ℂ) = O := by
   simp [compress, Matrix.conjTranspose_one]
 
+/-- The scalar-matrix example attains the response bound with two error allowances and oracle
+gap `1 / 2`. Using only one error allowance would give `3 / 4`, exceeding query count times
+oracle distance. -/
 theorem clause2_matrix_family_slab_is_sharp :
     (‖sharpnessTargetOne - compress (1 : Matrix Unit Unit ℂ)
         (evaluate sharpnessOracleOne sharpnessWord) (1 : Matrix Unit Unit ℂ)‖ = sharpnessEps) ∧
@@ -710,6 +783,9 @@ theorem clause2_matrix_family_slab_is_sharp :
   · rw [h6]
     norm_num
 
+/-- With positive oracle separation and the stated well-formedness, contraction, and response
+inequality, the response-to-oracle-gap ratio forces minimum gate and bit charges, and depth
+bounds the query count. -/
 theorem clause3_matrix_family_separation_forces_machine_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (M : OracleAccessModel I) (O₁ O₂ : Matrix I I ℂ)
@@ -732,6 +808,7 @@ theorem clause3_matrix_family_separation_forces_machine_cost :
   exact clause3_query_bound_trips_the_machine_ledgers I M O₁ word
     (max 0 (‖A - B‖ - 2 * eps) / ‖O₁ - O₂‖) hq hle
 
+/-- The numbers of forward and backward accesses sum to the adjoint word's query count. -/
 theorem clause3_word_access_counts :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (word : List (AdjointStep I)),
     wordForwardAccesses word + wordBackwardAccesses word = adjointQueryCount word := by
@@ -743,6 +820,8 @@ theorem clause3_word_access_counts :
       simp only [wordForwardAccesses, wordBackwardAccesses, adjointQueryCount, List.map_cons,
         List.sum_cons] at ih ⊢ <;> omega
 
+/-- The realized access gate count is the forward access count times forward cost plus the
+backward access count times backward cost. -/
 theorem clause3_realized_word_gate_cost_is_direction_resolved :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -771,6 +850,8 @@ theorem clause3_realized_word_gate_cost_is_direction_resolved :
       rw [ih]
       ring
 
+/-- The realized read-bit cost is the forward access count times forward read cost plus the
+backward access count times backward read cost. -/
 theorem clause3_realized_word_bit_cost_is_direction_resolved :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -799,6 +880,9 @@ theorem clause3_realized_word_bit_cost_is_direction_resolved :
       rw [ih]
       ring
 
+/-- For any nonnegative query lower bound `q`, realized gate and bit costs decompose into the
+minimum access cost times `q`, the remaining-query charge, and direction-specific excess
+charges. -/
 theorem clause3_query_forced_cost_decomposition :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)) (q : ℝ),
@@ -863,6 +947,9 @@ theorem clause3_query_forced_cost_decomposition :
           rw [hfb]
           ring
 
+/-- Under positive separation and the stated response inequality, the response ratio
+lower-bounds realized gate and bit costs after minimum-access scaling. The excess costs
+equal the remaining-query minimum charge plus the forward and backward excess charges. -/
 theorem clause3_matrix_family_separation_forces_direction_resolved_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (M : OracleAccessModel I) (O₁ O₂ : Matrix I I ℂ)
@@ -960,6 +1047,8 @@ theorem clause3_matrix_family_separation_forces_direction_resolved_cost :
   · rw [hbit]
     ring
 
+/-- A collection of exact path counts, branch masses, response threshold, and expected-query
+comparisons for the concrete joint-distribution example. -/
 structure JointDistributionReceipt where
 
   oneAccessBranch : jointInstanceTree.pathQueries [false, false] = 1
@@ -1015,6 +1104,8 @@ structure JointDistributionReceipt where
     matrixResponseConstant jointInstanceTargetOne jointInstanceTargetTwo jointInstanceEps *
         jointInstanceLaw.mass jointInstanceQualifying = 3 / 8
 
+/-- Construct the receipt verifying all specified counts, masses, thresholds, and expected-query
+comparisons for the joint-distribution example. -/
 theorem clause1_joint_distribution_concrete_instance : JointDistributionReceipt := by
   have hone : ‖(1 : Matrix Unit Unit ℂ)‖ = 1 := l2_norm_one_eq
   have hreal : ∀ c : ℝ, ‖(c : ℂ)‖ = |c| := by
@@ -1092,6 +1183,8 @@ theorem clause1_joint_distribution_concrete_instance : JointDistributionReceipt 
     hconst hd hthr (by rw [hthr, hmass]; norm_num) (by rw [hthr, hmass, hexp]; norm_num)
     (by rw [hexp, hd]; norm_num) (by rw [hconst, hmass]; norm_num)
 
+/-- The example's one-query branch lies below the response requirement, while its two-query
+branch meets it. -/
 theorem clause1_joint_distribution_instance_qualifying :
     jointInstanceTree.pathQueries [false, false] = 1 ∧
     jointInstanceTree.pathQueries [true, false] = 2 ∧
@@ -1135,6 +1228,8 @@ theorem clause1_joint_distribution_instance_qualifying :
   · rw [hq3, hd, hconst]
     norm_num
 
+/-- A collection of exact directional access costs, query counts, and cost decompositions for
+the asymmetric model on the mixed-direction word. -/
 structure DirectionResolvedMachineReceipt where
 
   forwardGateCost : asymmetricAccessModel.accessGateCost (1 : Matrix Unit Unit ℂ) false = 1
@@ -1181,6 +1276,8 @@ structure DirectionResolvedMachineReceipt where
            ((asymmetricAccessModel.readBits (1 : Matrix Unit Unit ℂ) true : ℝ) -
               (asymmetricAccessModel.minAccessBitCost (1 : Matrix Unit Unit ℂ) : ℝ)) * 1))
 
+/-- Construct the receipt verifying the asymmetric model's gate and bit charges and their
+direction-resolved decompositions. -/
 theorem clause3_direction_resolved_machine_cost_concrete_instance :
     DirectionResolvedMachineReceipt := by
   have hcost : asymmetricAccessModel.accessGateCost (1 : Matrix Unit Unit ℂ) false = 1 ∧
@@ -1222,6 +1319,9 @@ theorem clause3_direction_resolved_machine_cost_concrete_instance :
   exact DirectionResolvedMachineReceipt.mk hcost.1 hcost.2.1 hmin.1 hcost.2.2.1 hcost.2.2.2 hmin.2
     hcnt.1 hcnt.2.1 hcnt.2.2 hreal.1 hreal.2 hdec.1 hdec.2
 
+/-- Collect the adaptive matrix-target pathwise bound, worst-case and expected bounds,
+qualifying-mass transport, and joint-distribution threshold conclusions under their stated
+hypotheses. -/
 theorem clause1_endpoint :
     (∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix I I ℂ) (O₁ O₂ : Matrix I I ℂ)
@@ -1287,6 +1387,8 @@ theorem clause1_endpoint :
     exact clause1_matrix_family_joint_distribution I L R O₁ O₂ tree S law A B eps
       heps hd hL hR hWF hguard ha hb
 
+/-- Collect the fixed-word matrix response bound, bounded-family adaptive response bound, and
+the target-gap constraint for coincident oracles. -/
 theorem clause2_endpoint :
     (∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix H I ℂ) (O₁ O₂ : Matrix H H ℂ)
@@ -1326,6 +1428,8 @@ theorem clause2_endpoint :
   · intro I _ _ L R O₁ O₂ word A B eps hEq ha hb
     exact clause2_family_coincidence_forces_target_gap I L R O₁ O₂ word A B eps hEq ha hb
 
+/-- Realized read-bit cost plus address bits equals the sum of forward and backward access
+counts times their respective read-plus-address costs. -/
 theorem clause3_realized_word_total_bit_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -1337,6 +1441,8 @@ theorem clause3_realized_word_total_bit_cost :
   simp only [wordAddressBits]
   ring
 
+/-- A nonnegative lower bound `q` on queries forces address-bit cost at least `q` times the
+address width. -/
 theorem clause3_query_forces_address_bit_cost :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I)
       (O : Matrix I I ℂ) (word : List (AdjointStep I)) (q : ℝ),
@@ -1360,12 +1466,16 @@ theorem clause3_query_forces_address_bit_cost :
   rw [h2, h1]
   exact hmul
 
+/-- The chosen address width gives strictly more binary codes than the cardinality of the index
+type. -/
 theorem clause3_address_bits_sufficient :
     ∀ (I : Type) [Fintype I], Fintype.card I < 2 ^ accessAddressBits (Fintype.card I) := by
   intro I _
   exact Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccessDefs.addressBitsFor_sufficient
       (Fintype.card I)
 
+/-- Collect query-forced machine costs, separation-forced costs, the sharpness example, and the
+directional decomposition of realized gate and bit costs. -/
 theorem clause3_endpoint :
     (∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)) (q : ℝ),
@@ -1420,6 +1530,8 @@ theorem clause3_endpoint :
   · intro I _ _ M O word q hq hle
     exact clause3_query_forced_cost_decomposition I M O word q hq hle
 
+/-- Collect the query-forced address-bit bound, sufficiency of the address width, and the
+directional decomposition of total read and address bits. -/
 theorem clause3_machine_ledger_endpoint :
     (∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)) (q : ℝ),

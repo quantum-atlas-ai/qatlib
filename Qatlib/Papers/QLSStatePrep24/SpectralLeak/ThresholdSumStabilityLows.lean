@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLSStatePrep24.SpectralLeak.ThresholdSumStabilityStat
+
+/-!
+# Threshold sum estimates and perturbation stability
+
+This module proves `Clause32ThresholdSumStability` by expanding the threshold sum into band
+weights and bounding the resulting geometric sums. Norm inequalities also control the change in
+geometrically weighted squared norms under the prescribed state perturbations. See [LowSu2026]
+for the paper context.
+
+## Main statements
+
+* `threshold_weight_bound`: For `0 < l ≤ m` and `1 ≤ k ≤ m`, the accumulated threshold weight
+  lies between `A * 9^l` and `(5/4) * A * 9^l`, where `A = 9^k / 9^m`.
+* `Clause32ThresholdSumStability_answer`: The threshold sums satisfy the comparison with the
+  weighted state norm and the perturbation estimate specified by
+  `Clause32ThresholdSumStability`.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,20 +46,26 @@ open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Papers.QLSStateP
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators
 
+/-- The squared vector norm equals the sum of squared component norms. -/
 private theorem normVec_sq_eq {H : Type} [Fintype H] (v : QState H) :
     normVec v ^ 2 = ∑ i, ‖v i‖ ^ 2 :=
   norm_toEuclidean_fromVec_sq v
 
+/-- Converting a difference of state functions to Euclidean space gives the difference of their
+conversions. -/
 private theorem toEuclidean_fromVec_sub {H : Type} [Fintype H] (x y : QState H) :
     toEuclidean_fromVec (x - y) = toEuclidean_fromVec x - toEuclidean_fromVec y := by
   rfl
 
+/-- The absolute difference of two vector norms is at most the norm of their difference. -/
 private theorem normVec_abs_sub {H : Type} [Fintype H] (x y : QState H) :
     |normVec x - normVec y| ≤ normVec (x - y) := by
   have h := abs_norm_sub_norm_le (toEuclidean_fromVec x) (toEuclidean_fromVec y)
   rw [← toEuclidean_fromVec_sub] at h
   simpa [normVec] using! h
 
+/-- For vectors with norms at most one, the difference of squared norms has absolute value at
+most twice the norm of their difference. -/
 private theorem normVec_sq_diff {H : Type} [Fintype H] (x y : QState H)
     (hx : normVec x ≤ 1) (hy : normVec y ≤ 1) :
     |(normVec x) ^ 2 - (normVec y) ^ 2| ≤ 2 * normVec (x - y) := by
@@ -58,6 +86,7 @@ private theorem normVec_sq_diff {H : Type} [Fintype H] (x y : QState H)
     mul_le_mul_of_nonneg_left hsum hnn
   linarith
 
+/-- The sum of `9^i` for `i < n` equals `(9^n - 1)/8`. -/
 private theorem geom_sum_9 (n : ℕ) : (∑ i ∈ Finset.range n, (9 : ℝ) ^ i) = ((9 : ℝ) ^ n - 1) / 8 := by
   induction n with
   | zero => simp
@@ -67,6 +96,7 @@ private theorem geom_sum_9 (n : ℕ) : (∑ i ∈ Finset.range n, (9 : ℝ) ^ i)
     field_simp
     ring
 
+/-- For `a ≤ b`, the sum of `9^s` from `a` to `b` equals `(9^(b + 1) - 9^a)/8`. -/
 private theorem geom_sum_9_Icc (a b : ℕ) (hab : a ≤ b) :
     (∑ s ∈ Finset.Icc a b, (9 : ℝ) ^ s) = ((9 : ℝ) ^ (b + 1) - (9 : ℝ) ^ a) / 8 := by
   have hsum : (∑ i ∈ Finset.range (b - a + 1), (9 : ℝ) ^ (a + i))
@@ -96,6 +126,8 @@ private theorem geom_sum_9_Icc (a b : ℕ) (hab : a ≤ b) :
   have h8 : (8 : ℝ) ≠ 0 := by norm_num
   field_simp
 
+/-- Reindexing the sum of `f(i + 1)` over `i < n` gives the sum of `f` over the integers from
+one to `n`. -/
 private theorem sum_range_add_one {α : Type} [AddCommMonoid α] (n : ℕ) (f : ℕ → α) :
     (∑ i ∈ Finset.range n, f (i + 1)) = ∑ l ∈ Finset.Icc 1 n, f l := by
   refine Finset.sum_bij (fun i _ => i + 1) ?_ ?_ ?_ ?_
@@ -112,10 +144,14 @@ private theorem sum_range_add_one {α : Type} [AddCommMonoid α] (n : ℕ) (f : 
   · intro i hi
     rfl
 
+/-- The sum of `f(j + 1)` over `Fin m` equals the sum of `f` over the natural interval from one
+to `m`. -/
 private theorem sum_fin_add_one {α : Type} [AddCommMonoid α] (m : ℕ) (f : ℕ → α) :
     (∑ j : Fin m, f (j.val + 1)) = ∑ l ∈ Finset.Icc 1 m, f l :=
   (Fin.sum_univ_eq_sum_range (fun k : ℕ => f (k + 1)) m).trans (sum_range_add_one m f)
 
+/-- Multiplication of a finite weighted double sum by a scalar can be moved into its second
+factor. -/
 private theorem double_sum_scale {I : Type} [Fintype I] {m : ℕ}
     (w : I → Fin m → ℝ) (X : Fin m → ℝ) (c : ℝ) :
     (∑ u, ∑ h, w u h * X h) * c = ∑ u, ∑ h, w u h * (X h * c) := by
@@ -125,6 +161,8 @@ private theorem double_sum_scale {I : Type} [Fintype I] {m : ℕ}
   refine Finset.sum_congr rfl (fun h _ => ?_)
   ring
 
+/-- A pointwise inequality between the second factors of finite double sums is preserved by
+nonnegative weights. -/
 private theorem double_sum_le {I : Type} [Fintype I] {m : ℕ}
     (w : I → Fin m → ℝ) (X Y : Fin m → ℝ)
     (hw : ∀ u h, 0 ≤ w u h) (hle : ∀ h, X h ≤ Y h) :
@@ -135,11 +173,14 @@ private theorem double_sum_le {I : Type} [Fintype I] {m : ℕ}
   intro h _
   exact mul_le_mul_of_nonneg_left (hle h) (hw u h)
 
+/-- Squaring `3^a / 3^b` gives `9^a / 9^b` over the reals. -/
 private theorem three_pow_div_sq (a b : ℕ) :
     ((3 : ℝ) ^ a / (3 : ℝ) ^ b) ^ 2 = (9 : ℝ) ^ a / (9 : ℝ) ^ b := by
   rw [div_pow, pow_two, pow_two, ← mul_pow, ← mul_pow]
   norm_num
 
+/-- The squared norm of the weighted band state equals the double sum of squared coefficient and
+stopping amplitudes with weights `9^(h + 1) / 9^m`. -/
 private theorem weightedBandState_sq {I : Type} [Fintype I] (m : ℕ)
     (γ : I → ℂ) (ζ : ℕ → I → ℂ) :
     (normVec (weightedBandState m γ ζ)) ^ 2
@@ -181,6 +222,8 @@ private theorem weightedBandState_sq {I : Type} [Fintype I] (m : ℕ)
   refine Finset.sum_congr rfl (fun h _ => ?_)
   rw [three_pow_div_sq]
 
+/-- The threshold sum equals a double sum of squared amplitudes times their accumulated
+piecewise geometric threshold weights. -/
 private theorem thresholdSum_eq {I : Type} [Fintype I] (m l : ℕ)
     (γ : I → ℂ) (ζ : ℕ → I → ℂ) :
     thresholdSum m l γ ζ
@@ -262,6 +305,8 @@ private theorem thresholdSum_eq {I : Type} [Fintype I] (m l : ℕ)
     rw [← Finset.mul_sum]
   exact hcomm
 
+/-- For `0 < l ≤ m` and `1 ≤ k ≤ m`, the accumulated threshold weight lies between `A * 9^l` and
+`(5/4) * A * 9^l`, where `A = 9^k / 9^m`. -/
 private theorem threshold_weight_bound (m l : ℕ) (hlm : l ≤ m) (hl : 0 < l)
     (k : ℕ) (_hk1 : 1 ≤ k) (hkm : k ≤ m) :
     let A : ℝ := (9 : ℝ) ^ k / (9 : ℝ) ^ m
@@ -435,6 +480,8 @@ private theorem threshold_weight_bound (m l : ℕ) (hlm : l ≤ m) (hl : 0 < l)
       rw [div_le_iff₀ h8]
       nlinarith [h9pos (k - (m - l)), hA1, hA9, hA2]
 
+/-- The threshold sums satisfy the comparison with the weighted state norm and the perturbation
+estimate specified by `Clause32ThresholdSumStability`. See [LowSu2026]. -/
 theorem Clause32ThresholdSumStability_answer : Clause32ThresholdSumStability := by
   constructor
   · intro I _ m l γ ζ hlm

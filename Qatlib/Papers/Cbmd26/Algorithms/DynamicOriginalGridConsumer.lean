@@ -8,6 +8,27 @@ import Qatlib.Papers.Cbmd26.Algorithms.DynamicOuterWordBridge
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicSampleInputBridge
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicGridConsumer
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicGridAddressBridge
+
+/-!
+# Dynamic grid LCU from original time oracles
+
+The construction `dynamicOriginalGridWord` compiles supplied-grid evolution samples and their
+outer LCU into a word using the original time-dependent matrix oracle. The address type
+`DynamicGridTimeIndex` fixes the fine-time samples, and `dynamic_original_grid_lcu` supplies the
+encoding and exact resource counts. These results support the contour-based algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `dynamicOriginalGridWord`: constructs the compiled grid LCU word.
+* `dynamic_original_grid_lcu`: proves the weighted grid encoding and exact query and gate
+  counts.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -58,9 +79,12 @@ open Matrix Set
 open scoped BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- Abbreviates the finite address type for all segment and fine-grid sample pairs. -/
 abbrev DynamicGridTimeIndex (Λ T : ℝ) (N : ℕ) (ζ : ℝ) :=
   Fin (dynamicSegmentCount Λ T * dynamicGridFineCount Λ T N ζ)
 
+/-- Evaluates the original time-dependent oracle at the supplied-grid sample time corresponding
+to a global fine-grid address. -/
 def dynamicFineTimeOracle {Anc I : Type} (U : ℝ → Matrix (Anc × I) (Anc × I) ℂ)
     (τ : ℕ → ℝ) (Λ T : ℝ) (N : ℕ) (ζ : ℝ)
     (j : DynamicGridTimeIndex Λ T N ζ) : Matrix (Anc × I) (Anc × I) ℂ :=
@@ -81,6 +105,8 @@ local instance cbmdDynamicOriginalGridConsumerInstance4 (F Anc J I : Type) (K : 
     [DecidableEq J] [DecidableEq I] : DecidableEq (DynamicFreshFinalSpace F Anc J I K) :=
   inferInstanceAs (DecidableEq (Bool × ((DynamicOriginalLabels (DynamicFreshStored Anc J K) × F) × (J × (Anc × I)))))
 
+/-- Applies the outer original-oracle compilation to the chosen fresh-register dynamic grid
+word. -/
 def dynamicOriginalGridWord (a₀ : Anc) (α Λ T : ℝ) (N : ℕ) (ζ : ℝ)
     (s : F → ℝ) (c : F → ℂ) (f₀ : F) :
     List (AdjointStep (DynamicFreshFinalSpace F Anc (DynamicGridTimeIndex Λ T N ζ) I
@@ -88,6 +114,9 @@ def dynamicOriginalGridWord (a₀ : Anc) (α Λ T : ℝ) (N : ℕ) (ζ : ℝ)
   dynamicOuterOriginalWord (dynamicGridDegree Λ T ζ) α Λ s c f₀
     (dynamicGridWord (I := I) ((false,false,a₀) : DynamicSampleAnc Anc) Λ T N ζ)
 
+/-- Exact original time-oracle encodings yield a well-formed encoding of the weighted
+supplied-grid evolutions with scale equal to the coefficient mass, error `ζ` times that
+mass, `6 * S * K` queries, and `S * (42 * K + 13) + 3` gates [WangEtAl2026]. -/
 theorem dynamic_original_grid_lcu
     (a₀ : Anc) (α Λ T : ℝ) (N : ℕ) (ζ : ℝ)
     (hα : 0 < α) (hΛ : 0 < Λ) (hT : 0 < T) (hζ : 0 < ζ) (hζ1 : ζ ≤ 1)

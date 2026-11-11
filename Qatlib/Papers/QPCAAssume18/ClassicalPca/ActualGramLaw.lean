@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualSketch
+
+/-!
+# Concentration of the actual PCA sketch
+
+Bounds the two Gram matrix errors arising from length-squared row sampling and conditional
+column sampling. The joint event `pcaBadGram` controls squared singular values of the small
+sketch, providing the concentration step for the classical PCA algorithm in [Tang2021].
+
+## Main statements
+
+* `pca_actual_gram_concentration`: The joint row and conditional column record has Gram failure
+  probability at most `delta` at the prescribed sample count [Tang2021].
+* `pca_actual_small_spectrum`: Outside `pcaBadGram`, each squared singular value indexed below
+  `min n d` differs from that of the input by at most `2 * t * sketchSquared A`.
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +40,7 @@ open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 open Qatlib.Concepts.RandCompile.ChannelBudget
 open Qatlib.Concepts.SketchSpectral.SketchAnalysis
 
+/-- Event probability for independent samples is monotone under pointwise implication. -/
 theorem pca_event_mono {X : Type} [Fintype X] (p : FinDist X) {L : ℕ}
     (P Q : (Fin L → X) → Prop) (h : ∀ z, P z → Q z) : p.probEvent P ≤ p.probEvent Q := by
   unfold FinDist.probEvent
@@ -29,6 +50,8 @@ theorem pca_event_mono {X : Type} [Fintype X] (p : FinDist X) {L : ℕ}
   · intro z _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+/-- The row sketch Gram error exceeds `pcaGramTolerance K e` times the input energy with
+probability at most `delta / 2`, under the stated positivity and confidence assumptions. -/
 theorem pca_actual_row_gram_tail {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (K e delta : ℝ) (hK : 0 < K) (he : 0 < e)
     (hdelta : 0 < delta) (hdelta1 : delta < 1) :
@@ -44,6 +67,8 @@ theorem pca_actual_row_gram_tail {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
   intro rows hrow
   exact (mul_le_mul_of_nonneg_right (pcaGramSamples_scale K e delta hK he) hA.le).trans hrow.le
 
+/-- For each fixed row record, the conditional column sketch Gram error exceeds the prescribed
+input-energy-scaled tolerance with probability at most `delta / 2`. -/
 theorem pca_actual_column_gram_tail {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (K e delta : ℝ) (hK : 0 < K) (he : 0 < e)
     (hdelta : 0 < delta) (hdelta1 : delta < 1)
@@ -112,6 +137,8 @@ theorem pca_actual_column_gram_tail {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     simp only [Finset.sum_empty]
     positivity
 
+/-- The failure predicate asserting that either the row Gram error or the conditional column
+Gram error exceeds `t` times the input energy. -/
 def pcaBadGram {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (q : ℕ) (t : ℝ)
     (z : (Fin q → Fin n) × (Fin q → Fin d)) : Prop :=
@@ -120,6 +147,8 @@ def pcaBadGram {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     t * sketchSquared A < spectralFrobenius (pcaSmallMatrix A hA hd q z.1 z.2 *
       (pcaSmallMatrix A hA hd q z.1 z.2)ᴴ - pcaRowSketch A hA q z.1 * (pcaRowSketch A hA q z.1)ᴴ)
 
+/-- The joint row and conditional column record has Gram failure probability at most `delta` at
+the prescribed sample count [Tang2021]. -/
 theorem pca_actual_gram_concentration {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (K e delta : ℝ) (hK : 0 < K) (he : 0 < e)
     (hdelta : 0 < delta) (hdelta1 : delta < 1) :
@@ -139,6 +168,8 @@ theorem pca_actual_gram_concentration {n d : ℕ} (A : Matrix (Fin n) (Fin d) �
     (pca_actual_column_gram_tail A hA hd K e delta hK he hdelta hdelta1)
   exact h.trans_eq (by ring)
 
+/-- Outside `pcaBadGram`, each squared singular value indexed below `min n d` differs from that
+of the input by at most `2 * t * sketchSquared A`. -/
 theorem pca_actual_small_spectrum {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (hA : 0 < sketchSquared A) (hd : 0 < d) (t : ℝ) (ht : 0 ≤ t)
     (z : (Fin q → Fin n) × (Fin q → Fin d))

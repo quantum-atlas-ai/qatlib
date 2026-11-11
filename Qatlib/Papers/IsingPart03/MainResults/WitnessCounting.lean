@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.IsingPart03.MainResults.SharpPWitness
+
+/-!
+# Signed witness counts for spin-glass partition functions
+
+This module colors both selected and unselected edges to construct `witnesses`, `posWitnesses`,
+and `negWitnesses`. It represents natural-parameter weight enumerators as integer signed counts,
+bounds their absolute values, and transfers the counting identity to normalized partition
+functions in the setting of Corollary 1 of [Lidar2004].
+
+## Main statements
+
+* `source_corollary1_qwgt_signed_counts`: identifies the enumerator with the difference of two
+  finite witness counts.
+* `qwgtInt_abs_le`: bounds the integer enumerator by `(x + y) ^ card E`.
+* `source_corollary1_partition_witness`: gives the corresponding normalized partition-function
+  identity.
+
+## References
+
+* [Lidar, 2004][Lidar2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,23 +38,30 @@ namespace Qatlib.Papers.IsingPart03.MainResults
 
 variable {V E : Type*} [Fintype V] [Fintype E] [DecidableEq V] [DecidableEq E]
 
+/-- The type of `y`-colorings of the coordinates where the binary edge vector `b` vanishes. -/
 abbrev FreeColour (y : ℕ) (b : E → ZMod 2) : Type _ := {e : E // b e = 0} → Fin y
 
+/-- The finite set of binary edge vectors with zero vertex parity. -/
 def zeroParity (ends : E → V × V) : Finset (E → ZMod 2) :=
   Finset.univ.filter (fun b => parity ends b = 0)
 
+/-- The finite set of zero-parity edge vectors equipped with an `x`-coloring of the support and
+a `y`-coloring of its complement. -/
 def witnesses (x y : ℕ) (ends : E → V × V) :
     Finset (Σ b : E → ZMod 2, Colour (E := E) x b × FreeColour (E := E) y b) :=
   (zeroParity ends).sigma (fun _ => Finset.univ)
 
+/-- The witnesses whose binary dot product with the edge-sign vector `w` equals zero. -/
 def posWitnesses (x y : ℕ) (ends : E → V × V) (w : E → ZMod 2) :
     Finset (Σ b : E → ZMod 2, Colour (E := E) x b × FreeColour (E := E) y b) :=
   (zeroParity ends).sigma (fun b => if bDotW b w = 0 then Finset.univ else ∅)
 
+/-- The witnesses whose binary dot product with the edge-sign vector `w` equals one. -/
 def negWitnesses (x y : ℕ) (ends : E → V × V) (w : E → ZMod 2) :
     Finset (Σ b : E → ZMod 2, Colour (E := E) x b × FreeColour (E := E) y b) :=
   (zeroParity ends).sigma (fun b => if bDotW b w = 1 then Finset.univ else ∅)
 
+/-- The number of `x`-colorings of the support of `b` equals `x ^ suppCard b`. -/
 lemma card_colour_nat (x : ℕ) (b : E → ZMod 2) :
     Fintype.card (Colour (E := E) x b) = x ^ suppCard b := by
   classical
@@ -40,6 +69,7 @@ lemma card_colour_nat (x : ℕ) (b : E → ZMod 2) :
 
 omit [DecidableEq E] in
 
+/-- The number of zero coordinates of `b` equals `card E - suppCard b`. -/
 lemma card_zeroDomain (b : E → ZMod 2) :
     Fintype.card {e : E // b e = 0} = Fintype.card E - suppCard b := by
   classical
@@ -47,11 +77,15 @@ lemma card_zeroDomain (b : E → ZMod 2) :
   rw [card_colourDomain] at h
   simpa only [ne_eq, not_not] using h
 
+/-- The number of `y`-colorings of the zero coordinates of `b` equals `y ^ (card E - suppCard
+b)`. -/
 lemma card_freeColour (y : ℕ) (b : E → ZMod 2) :
     Fintype.card (FreeColour (E := E) y b) = y ^ (Fintype.card E - suppCard b) := by
   classical
   rw [Fintype.card_fun, card_zeroDomain, Fintype.card_fin]
 
+/-- The witness count is the sum of `x ^ suppCard b * y ^ (card E - suppCard b)` over
+zero-parity edge vectors. -/
 lemma card_witnesses (x y : ℕ) (ends : E → V × V) :
     (witnesses (E := E) (V := V) x y ends).card
       = ∑ b : E → ZMod 2,
@@ -65,6 +99,8 @@ lemma card_witnesses (x y : ℕ) (ends : E → V × V) :
       card_freeColour]
   · rw [if_neg hp, if_neg hp]
 
+/-- The positive witness count is the weighted sum over edge vectors with zero vertex parity and
+zero binary dot product with `w`. -/
 lemma card_posWitnesses (x y : ℕ) (ends : E → V × V) (w : E → ZMod 2) :
     (posWitnesses (E := E) (V := V) x y ends w).card
       = ∑ b : E → ZMod 2,
@@ -82,6 +118,8 @@ lemma card_posWitnesses (x y : ℕ) (ends : E → V × V) (w : E → ZMod 2) :
       simp
   · rw [if_neg hp, if_neg (fun h => hp h.1)]
 
+/-- The negative witness count is the weighted sum over edge vectors with zero vertex parity and
+binary dot product one with `w`. -/
 lemma card_negWitnesses (x y : ℕ) (ends : E → V × V) (w : E → ZMod 2) :
     (negWitnesses (E := E) (V := V) x y ends w).card
       = ∑ b : E → ZMod 2,
@@ -99,15 +137,20 @@ lemma card_negWitnesses (x y : ℕ) (ends : E → V × V) (w : E → ZMod 2) :
       simp
   · rw [if_neg hp, if_neg (fun h => hp h.1)]
 
+/-- The integer sign of a binary value, equal to `1` at zero and `-1` otherwise. -/
 def sgnZ (x : ZMod 2) : ℤ := if x = 0 then 1 else -1
 
+/-- The integer binary sign at zero equals `1`. -/
 @[simp] lemma sgnZ_zero : sgnZ (0 : ZMod 2) = 1 := by simp [sgnZ]
 
+/-- The integer binary sign at one equals `-1`. -/
 @[simp] lemma sgnZ_one : sgnZ (1 : ZMod 2) = -1 := by rw [sgnZ]; exact if_neg (by decide)
 
+/-- The complex coercion of the integer binary sign equals the complex binary sign. -/
 lemma sgnZ_cast (z : ZMod 2) : ((sgnZ z : ℤ) : ℂ) = sgn z := by
   rcases eq_zero_or_one z with h | h <;> simp [sgnZ, sgn, h]
 
+/-- The integer-valued quadratically signed weight enumerator at natural parameters `x` and `y`. -/
 def qwgtInt (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y : ℕ) : ℤ :=
   ∑ b : E → ZMod 2,
     if A.mulVec b = 0 then
@@ -117,6 +160,7 @@ def qwgtInt (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y : ℕ) : �
 
 omit [DecidableEq V] in
 
+/-- Coercing `qwgtInt A B x y` to the complex numbers gives `qwgt A B (x : ℂ) (y : ℂ)`. -/
 theorem qwgtInt_cast (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y : ℕ) :
     ((qwgtInt A B x y : ℤ) : ℂ) = qwgt A B (x : ℂ) (y : ℂ) := by
   classical
@@ -131,6 +175,8 @@ theorem qwgtInt_cast (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y : 
   · rw [if_neg h, if_neg h]
     simp
 
+/-- For an incidence matrix and a diagonal sign matrix, the integer weight enumerator is the
+signed weighted sum over zero-parity edge vectors. -/
 lemma qwgtInt_incidence_dg (ends : E → V × V) (w : E → ZMod 2) (x y : ℕ) :
     qwgtInt (incidence ends) (dg w) x y
       = ∑ b : E → ZMod 2,
@@ -154,6 +200,8 @@ lemma qwgtInt_incidence_dg (ends : E → V × V) (w : E → ZMod 2) (x y : ℕ) 
   · rw [if_pos hp, if_pos hp, hsum]
   · rw [if_neg hp, if_neg hp]
 
+/-- The complex weight enumerator at natural parameters equals the positive witness count minus
+the negative witness count, as in [Lidar, Corollary 1][Lidar2004]. -/
 theorem source_corollary1_qwgt_signed_counts (ends : E → V × V) (w : E → ZMod 2)
     (x y : ℕ) :
     qwgt (incidence ends) (dg w) (x : ℂ) (y : ℂ)
@@ -201,6 +249,7 @@ theorem source_corollary1_qwgt_signed_counts (ends : E → V × V) (w : E → ZM
   push_cast
   ring
 
+/-- The positive and negative witness counts sum to the total witness count. -/
 theorem source_corollary1_witness_balance (ends : E → V × V) (w : E → ZMod 2)
     (x y : ℕ) :
     (posWitnesses (E := E) (V := V) x y ends w).card
@@ -227,6 +276,8 @@ theorem source_corollary1_witness_balance (ends : E → V × V) (w : E → ZMod 
 
 omit [DecidableEq E] in
 
+/-- The product assigning weight `y` to zero coordinates and `x` to nonzero coordinates equals
+`x ^ suppCard b * y ^ (card E - suppCard b)`. -/
 lemma prod_weight (x y : ℕ) (b : E → ZMod 2) :
     (∏ e : E, (if b e = 0 then y else x))
       = x ^ suppCard b * y ^ (Fintype.card E - suppCard b) := by
@@ -256,6 +307,7 @@ lemma prod_weight (x y : ℕ) (b : E → ZMod 2) :
     rw [← Fintype.card_subtype, hcard]
   rw [← hsplit, hpos, hneg, mul_comm]
 
+/-- The total weight over all binary edge vectors equals `(x + y) ^ card E`. -/
 theorem sum_weight_eq_add_pow (x y : ℕ) :
     (∑ b : E → ZMod 2, x ^ suppCard b * y ^ (Fintype.card E - suppCard b))
       = (x + y) ^ Fintype.card E := by
@@ -278,6 +330,7 @@ theorem sum_weight_eq_add_pow (x y : ℕ) :
 
 omit [DecidableEq V] in
 
+/-- The absolute value of the integer weight enumerator is at most `(x + y) ^ card E`. -/
 theorem qwgtInt_abs_le (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y : ℕ) :
     |qwgtInt A B x y| ≤ (((x + y) ^ Fintype.card E : ℕ) : ℤ) := by
   classical
@@ -327,6 +380,9 @@ theorem qwgtInt_abs_le (A : Matrix V E (ZMod 2)) (B : Matrix E E (ZMod 2)) (x y 
     _ ≤ _ := hsum
     _ = (((x + y) ^ Fintype.card E : ℕ) : ℤ) := hcast
 
+/-- For loop-free endpoints and the stated normalization, the normalized partition function at
+`m` equals the difference of positive and negative witness counts with color parameters `(m,
+1)`. See [Lidar2004]. -/
 theorem source_corollary1_partition_witness (ends : E → V × V)
     (hLoop : ∀ e, (ends e).1 ≠ (ends e).2) (w : E → ZMod 2) (Θ μ : ℂ) (m : ℕ)
     (hΘ : Θ * μ ^ Fintype.card E = 1) :

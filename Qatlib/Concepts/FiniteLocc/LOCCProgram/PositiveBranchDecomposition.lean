@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalUnitaryDiscard
 import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
 import Mathlib.Analysis.Matrix.Order
+
+/-!
+# Positive branch decompositions on qubits
+
+This module proves kernel constraints for finite sums of positive semidefinite matrices and
+applies them to positive complex-linear maps on qubit operators whose sum is the identity map.
+Each component sends the identity operator to a scalar multiple of the identity. The
+matrix-positivity background is described in [Bhatia1997].
+
+The remaining lemmas show that relabeling respects multiplication, adjoints, and positivity, and
+give a partial-trace identity for conjugation on a discarded tensor factor.
+
+## Main statements
+
+* `psd_family_kernel`: zero quadratic form for a positive sum forces every summand to annihilate
+  the vector.
+* `positive_qubit_family_scalar_one`: each positive linear component of the identity map has
+  scalar value at the identity.
+* `partialTrace_discard_sandwich`: moves a conjugation on the discarded factor into an
+  adjoint-product factor.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +45,8 @@ namespace Qatlib.Concepts.FiniteLocc.LOCCProgram
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- If the quadratic form of a finite sum of positive semidefinite matrices vanishes at a
+vector, every summand annihilates that vector. -/
 theorem psd_family_kernel {I : Type} [Fintype I] [DecidableEq I] (m : ℕ)
     (A : Fin m → Matrix I I ℂ) (hA : ∀ s, (A s).PosSemidef) (v : I → ℂ)
     (hz : star v ⬝ᵥ ((∑ s, A s) *ᵥ v) = 0) : ∀ s, A s *ᵥ v = 0 := by
@@ -35,6 +63,8 @@ theorem psd_family_kernel {I : Type} [Fintype I] [DecidableEq I] (m : ℕ)
   apply (hA s).dotProduct_mulVec_zero_iff.mp
   apply Complex.ext <;> simp [hr, hi]
 
+/-- A Hermitian two-dimensional operator annihilating the vector `[1,t]`, with real `t`
+satisfying `t ^ 2 = 1`, has equal diagonal entries. -/
 theorem balanced_diag_of_kernel (A : Operator 2) (hA : A.IsHermitian)
     (t : ℝ) (ht : t^2 = 1) (hk : A *ᵥ ![1, (t : ℂ)] = 0) : A 0 0 = A 1 1 := by
   have h0 := congrFun hk 0
@@ -51,6 +81,8 @@ theorem balanced_diag_of_kernel (A : Operator 2) (hA : A.IsHermitian)
   have hc : (t : ℂ)^2 = 1 := by exact_mod_cast ht
   linear_combination h0 + (A 1 1) * hc
 
+/-- For a finite family of positive complex-linear maps on qubit operators summing to the
+identity map, each map sends the identity operator to a scalar multiple of the identity. -/
 theorem positive_qubit_family_scalar_one (m : ℕ) (F : Fin m → Operator 2 → Operator 2)
     (hadd : ∀ s A B, F s (A + B) = F s A + F s B)
     (hsmul : ∀ s (c : ℂ) A, F s (c • A) = c • F s A)
@@ -110,19 +142,24 @@ theorem positive_qubit_family_scalar_one (m : ℕ) (F : Fin m → Operator 2 →
   ext i j
   fin_cases i <;> fin_cases j <;> simp [h01, h10, hd]
 
+/-- Relabeling matrix indices along an equivalence preserves matrix multiplication. -/
 theorem converse_relabel_mul {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A B : Matrix I I ℂ) :
     relabelGate e (A * B) = relabelGate e A * relabelGate e B :=
   (Matrix.reindexAlgEquiv ℂ ℂ e).map_mul A B
 
+/-- Relabeling matrix indices commutes with taking the conjugate transpose. -/
 theorem converse_relabel_adjoint {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A : Matrix I I ℂ) :
     relabelGate e Aᴴ = (relabelGate e A)ᴴ := by ext i j; rfl
 
+/-- Relabeling matrix indices preserves positive semidefiniteness. -/
 theorem converse_relabel_positive {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A : Matrix I I ℂ) (hA : A.PosSemidef) :
     (relabelGate e A).PosSemidef := hA.submatrix e.symm
 
+/-- Under partial trace over the second factor, conjugating by the identity tensored with `A`
+equals right multiplication by the identity tensored with `Aᴴ * A` before tracing. -/
 theorem partialTrace_discard_sandwich (D E : ℕ) (A : Operator E)
     (X : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     PartialTrace (TensorGate (1 : Operator D) A * X * (TensorGate (1 : Operator D) A)ᴴ) =

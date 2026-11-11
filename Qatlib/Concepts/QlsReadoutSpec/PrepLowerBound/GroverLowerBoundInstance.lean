@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Grover instances for state-preparation lower bounds
+
+This module defines a uniform-projector linear system and its marked-sign right-hand sides, then
+computes inverse norms and marked amplitudes of the normalized solutions. It also proves that
+the original matrix `bOracle` is nonunitary and fails the intended preparation identity. Related
+mathematical background is given in [LowSu2026].
+
+## Main statements
+
+* `groverMatrix_inverse`: Two-sided inverse formula.
+* `bOracle_not_unitary`: Failure of unitarity for the original oracle matrix.
+* `grover_normalized_marked_five_sixths`: A marked-amplitude lower bound for sufficiently large
+  index sets.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 
 
@@ -22,35 +43,47 @@ open Matrix
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The constant-amplitude state with amplitude equal to the reciprocal square root of the index
+cardinality. -/
 def uniformQState : QState I := fun _ => ((Real.sqrt (Fintype.card I : ℝ))⁻¹ : ℂ)
 
+/-- The constant matrix whose entries are the reciprocal of the index cardinality. -/
 def uniformProjector : Matrix I I ℂ :=
   ((Fintype.card I : ℝ))⁻¹ • Matrix.of fun _ _ => (1 : ℂ)
 
+/-- The linear-system matrix acting as the identity on the uniform direction and as the
+reciprocal square root of the cardinality on its complement. -/
 def groverMatrix : Matrix I I ℂ :=
   ((Real.sqrt (Fintype.card I : ℝ))⁻¹ : ℂ) •
       ((1 : ℂ) • (1 : Matrix I I ℂ) - uniformProjector (I := I)) +
   uniformProjector (I := I)
 
+/-- The candidate inverse acting as the identity on the uniform direction and as the square root
+of the cardinality on its complement. -/
 def groverInverse : Matrix I I ℂ :=
   (Real.sqrt (Fintype.card I : ℝ)) •
       ((1 : ℂ) • (1 : Matrix I I ℂ) - uniformProjector (I := I)) +
   uniformProjector (I := I)
 
+/-- The uniform state with the amplitude at the marked index `x` negated. -/
 def bState (x : I) : QState I :=
   fun y =>
     ((Real.sqrt (Fintype.card I : ℝ))⁻¹ : ℂ) -
       if y = x then ((Real.sqrt (Fintype.card I : ℝ))⁻¹ * 2 : ℂ) else 0
 
+/-- The original marked-index matrix defined by subtracting twice the marked block from the
+identity. -/
 def bOracle (x : I) : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ :=
   (1 : ℂ) • (1 : Matrix ((I × Bool) × W) ((I × Bool) × W) ℂ) -
     (2 : ℂ) • Matrix.of
       (fun (p q : (I × Bool) × W) =>
         if p.1.1 = q.1.1 ∧ q.1.1 = x then (1 : ℂ) else 0)
 
+/-- The product of the uniform data state and the supplied ancillary states. -/
 def solverStart (ν₀ : QState Bool) (ω₀ : QState W) : QState ((I × Bool) × W) :=
   fun p => (uniformQState (I := I) p.1.1) * ν₀ p.1.2 * ω₀ p.2
 
+/-- The normalized inverse-applied marked input, tensored with the supplied ancillary states. -/
 def solutionTarget (ν₀ : QState Bool) (ω₀ : QState W) (x : I) :
     QState ((I × Bool) × W) :=
   fun p =>
@@ -60,6 +93,8 @@ def solutionTarget (ν₀ : QState Bool) (ω₀ : QState W) (x : I) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Real scalar multiplication of a complex matrix agrees with multiplication by the
+corresponding complex scalar. -/
 private lemma real_matrix_smul (r : ℝ) (A : Matrix I I ℂ) :
     r • A = (r : ℂ) • A := by
   ext i j
@@ -67,12 +102,14 @@ private lemma real_matrix_smul (r : ℝ) (A : Matrix I I ℂ) :
 
 omit [DecidableEq I] in
 
+/-- Each entry of the uniform projector is the reciprocal of the index cardinality. -/
 @[simp] theorem uniformProjector_apply (i j : I) :
     uniformProjector (I := I) i j = ((Fintype.card I : ℝ)⁻¹ : ℂ) := by
   simp [uniformProjector, Complex.real_smul]
 
 omit [DecidableEq I] in
 
+/-- The uniform projector is idempotent when the index type is nonempty. -/
 theorem uniformProjector_idempotent [Nonempty I] :
     uniformProjector (I := I) * uniformProjector (I := I) = uniformProjector (I := I) := by
   have hc : (Fintype.card I : ℂ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
@@ -84,11 +121,14 @@ theorem uniformProjector_idempotent [Nonempty I] :
 
 omit [DecidableEq I] in
 
+/-- The uniform projector equals its conjugate transpose. -/
 theorem uniformProjector_selfAdjoint :
     (uniformProjector (I := I))ᴴ = uniformProjector (I := I) := by
   ext i j
   simp [uniformProjector, Matrix.conjTranspose_apply]
 
+/-- The uniform projector annihilates its complement on both sides, and its complement is
+idempotent for a nonempty index type. -/
 theorem uniformProjector_complement [Nonempty I] :
     uniformProjector (I := I) * (1 - uniformProjector (I := I)) = 0 ∧
       (1 - uniformProjector (I := I)) * uniformProjector (I := I) = 0 ∧
@@ -97,6 +137,8 @@ theorem uniformProjector_complement [Nonempty I] :
   have hP := uniformProjector_idempotent (I := I)
   simp only [mul_sub, sub_mul, one_mul, mul_one, hP, sub_self, sub_zero, and_self]
 
+/-- The Grover matrix and its candidate inverse multiply to the identity in both orders for a
+nonempty index type. -/
 theorem groverMatrix_inverse [Nonempty I] :
     groverMatrix (I := I) * groverInverse (I := I) = 1 ∧
       groverInverse (I := I) * groverMatrix (I := I) = 1 := by
@@ -118,6 +160,8 @@ theorem groverMatrix_inverse [Nonempty I] :
 
 omit [Fintype I] in
 
+/-- The marked false-input column of the original oracle has amplitude -1 at the marked false
+output, -2 at the marked true output, and zero elsewhere. -/
 theorem bOracle_marked_column (x i : I) (b : Bool) (w : Unit) :
     bOracle (W := Unit) x ((i, b), w) ((x, false), ()) =
       if i = x then (if b = false then (-1 : ℂ) else -2) else 0 := by
@@ -127,6 +171,7 @@ theorem bOracle_marked_column (x i : I) (b : Bool) (w : Unit) :
     cases b <;> norm_num [bOracle]
   · simp [bOracle, hi]
 
+/-- The marked diagonal entry of the Gram matrix of the original oracle is five. -/
 theorem bOracle_marked_gram (x : I) :
     ((bOracle (W := Unit) x)ᴴ * bOracle (W := Unit) x)
       ((x, false), ()) ((x, false), ()) = 5 := by
@@ -134,6 +179,7 @@ theorem bOracle_marked_gram (x : I) :
   simp only [Fintype.sum_prod_type, Fintype.sum_unique, bOracle_marked_column]
   norm_num [map_ofNat]
 
+/-- The original marked-index oracle matrix with trivial workspace is not unitary. -/
 theorem bOracle_not_unitary (x : I) :
     bOracle (W := Unit) x ∉ Matrix.unitaryGroup ((I × Bool) × Unit) ℂ := by
   intro h
@@ -143,6 +189,7 @@ theorem bOracle_not_unitary (x : I) :
   simp only [Matrix.star_eq_conjTranspose, bOracle_marked_gram, Matrix.one_apply_eq] at hd
   norm_num at hd
 
+/-- For `d ≥ 8`, the ratio `(5 * d^2 - 8 * d + 4) / d^3` lies between `4 / d` and `5 / d`. -/
 theorem grover_ratio_bounds (d : ℝ) (hd : 8 ≤ d) :
     4 / d ≤ (5 * d ^ 2 - 8 * d + 4) / d ^ 3 ∧
       (5 * d ^ 2 - 8 * d + 4) / d ^ 3 ≤ 5 / d := by
@@ -157,6 +204,8 @@ theorem grover_ratio_bounds (d : ℝ) (hd : 8 ≤ d) :
   · apply div_le_div_of_nonneg_right _ (pow_nonneg hd0.le 3)
     linarith
 
+/-- No product consisting of the same unitary on both sides of the marked bit oracle equals the
+original nonunitary oracle matrix. -/
 theorem bOracle_not_unitary_conjugate (x : I)
     (U : Matrix ((I × Bool) × Unit) ((I × Bool) × Unit) ℂ)
     (hU : U ∈ Matrix.unitaryGroup ((I × Bool) × Unit) ℂ) :
@@ -167,6 +216,8 @@ theorem bOracle_not_unitary_conjugate (x : I)
   rw [← h]
   exact mul_mem (mul_mem hU (workspaceBitOracle_unitary _)) hU
 
+/-- Applying the original oracle to the false-ancilla starting state produces marked
+true-ancilla amplitude equal to minus twice the reciprocal square root of the cardinality. -/
 theorem bOracle_preparation_leak (x : I) :
     (bOracle (W := Unit) x *ᵥ solverStart (I := I) (Qatlib.Foundations.PureStateMath.Ket false) (Qatlib.Foundations.PureStateMath.Ket ()))
       ((x, true), ()) = -2 * ((Real.sqrt (Fintype.card I : ℝ))⁻¹ : ℂ) := by
@@ -175,6 +226,8 @@ theorem bOracle_preparation_leak (x : I) :
   simp [Matrix.mulVec, dotProduct, bOracle, solverStart, uniformQState, Qatlib.Foundations.PureStateMath.Ket,
     Fintype.sum_prod_type, hiff]
 
+/-- The original oracle fails to prepare the marked-sign input while leaving the false ancilla
+and trivial workspace unchanged. -/
 theorem bOracle_preparation_ne (x : I) :
     bOracle (W := Unit) x *ᵥ solverStart (I := I) (Qatlib.Foundations.PureStateMath.Ket false) (Qatlib.Foundations.PureStateMath.Ket ()) ≠
       (fun p : (I × Bool) × Unit => bState x p.1.1 * Qatlib.Foundations.PureStateMath.Ket false p.1.2 * Qatlib.Foundations.PureStateMath.Ket () p.2) := by
@@ -195,10 +248,14 @@ set_option maxHeartbeats 300000
 
 omit [DecidableEq I] in
 
+/-- Multiplication by the uniform projector gives the coordinate sum divided by the index
+cardinality in every coordinate. -/
 private theorem uniform_mulVec (v : QState I) (i : I) :
     (uniformProjector (I := I)*ᵥv) i = ((Fintype.card I:ℝ)⁻¹:ℂ)*(∑ j,v j) := by
   simp only [Matrix.mulVec,dotProduct,uniformProjector_apply,Finset.mul_sum]
 
+/-- Projecting the marked-sign input onto the uniform direction scales the uniform state by `1 -
+2 / card I`. -/
 theorem grover_uniform_b (x : I) :
     uniformProjector (I := I)*ᵥbState x =
       ((1-2/(Fintype.card I:ℝ):ℝ):ℂ) • uniformQState (I := I) := by
@@ -212,6 +269,8 @@ theorem grover_uniform_b (x : I) :
   rw [mul_sub,← mul_assoc,inv_mul_cancel₀ hc,one_mul]
   ring
 
+/-- The inverse-applied marked input equals the stated multiple of the uniform state minus twice
+the marked basis state. -/
 theorem grover_inverse_b (x : I) :
     groverInverse (I := I)*ᵥbState x =
       fun i => (((1-2/(Fintype.card I:ℝ)+2/Real.sqrt (Fintype.card I:ℝ)):ℝ):ℂ) *
@@ -238,6 +297,8 @@ theorem grover_inverse_b (x : I) :
     field_simp
     ring
 
+/-- The squared norm of the inverse-applied marked input is `(5 * d^2 - 8 * d + 4) / d^2`, where
+`d` is the index cardinality. -/
 theorem grover_solution_norm_sq (x : I) :
     ‖stateVector (groverInverse (I := I)*ᵥbState x)‖^2 =
       (5*(Fintype.card I:ℝ)^2-8*(Fintype.card I:ℝ)+4)/(Fintype.card I:ℝ)^2 := by
@@ -274,6 +335,8 @@ theorem grover_solution_norm_sq (x : I) :
   field_simp
   ring
 
+/-- The operator norm of the Grover inverse is the square root of the index cardinality when
+that cardinality is at least two. -/
 theorem groverInverse_norm (hcard : 2 ≤ Fintype.card I) :
     ‖groverInverse (I := I)‖ = Real.sqrt (Fintype.card I:ℝ) := by
   letI : Nonempty I := Fintype.card_pos_iff.mp (by omega)
@@ -321,6 +384,8 @@ theorem groverInverse_norm (hcard : 2 ≤ Fintype.card I) :
   apply le_antisymm hu
   nlinarith
 
+/-- For index cardinality at least four, the inverse-applied marked input has positive norm at
+most the square root of five. -/
 theorem grover_solution_norm_bounds (x : I) (hcard : 4 ≤ Fintype.card I) :
     0<‖stateVector (groverInverse (I := I)*ᵥbState x)‖ ∧
     ‖stateVector (groverInverse (I := I)*ᵥbState x)‖ ≤ Real.sqrt 5 := by
@@ -342,6 +407,8 @@ theorem grover_solution_norm_bounds (x : I) (hcard : 4 ≤ Fintype.card I) :
   · have hs := Real.sq_sqrt (by norm_num : (0:ℝ)≤5)
     nlinarith [Real.sqrt_nonneg (5:ℝ)]
 
+/-- For index cardinality `d ≥ 4`, the magnitude of the marked solution coordinate is at least
+`2 - 1 / sqrt d - 2 / d`. -/
 theorem grover_solution_marked_lower (x : I) (hcard : 4≤Fintype.card I) :
     2-1/Real.sqrt (Fintype.card I:ℝ)-2/(Fintype.card I:ℝ) ≤
       ‖(groverInverse (I := I)*ᵥbState x) x‖ := by
@@ -370,6 +437,8 @@ theorem grover_solution_marked_lower (x : I) (hcard : 4≤Fintype.card I) :
   have hab := neg_le_abs ((1-2/d+2/s)/s-2)
   linarith
 
+/-- For index cardinality `d ≥ 4`, the normalized marked solution coordinate has magnitude at
+least `(2 - 1 / sqrt d - 2 / d) / sqrt 5`. -/
 theorem grover_normalized_marked_lower (x : I) (hcard : 4≤Fintype.card I) :
     (2-1/Real.sqrt (Fintype.card I:ℝ)-2/(Fintype.card I:ℝ))/Real.sqrt 5 ≤
       ‖NormedSpace.normalize (stateVector (groverInverse (I := I)*ᵥbState x)) x‖ := by
@@ -383,6 +452,8 @@ theorem grover_normalized_marked_lower (x : I) (hcard : 4≤Fintype.card I) :
   rw [he]
   exact div_le_div₀ (norm_nonneg _) hm hn.1 hn.2
 
+/-- For index cardinality at least 150, the magnitude of the normalized solution at the marked
+index is at least `5 / 6`. -/
 theorem grover_normalized_marked_five_sixths (x : I) (hcard : 150≤Fintype.card I) :
     5/6 ≤ ‖NormedSpace.normalize (stateVector (groverInverse (I := I)*ᵥbState x)) x‖ := by
   let d : ℝ := Fintype.card I

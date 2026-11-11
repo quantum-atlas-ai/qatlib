@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeStat
+
+/-!
+# Statement of repeated-segment simulation error
+
+`Corollary4CompositeError` specifies the error bound for powers of a contraction approximating a
+single interaction-picture segment. The target is evolution under the sum of two Hermitian
+matrices for the total segment duration. These estimates support the interaction-picture
+simulation analysis of [LowWiebe2018].
+
+## Main statements
+
+* `Corollary4CompositeError`: the proposition bounding the accumulated error by `L * δ`.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,8 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 
 namespace Qatlib.Concepts.InteractionEvo.SegmentProduct
 
+/-- The proposition that a contraction within δ of one exact interaction-picture segment has its
+`L`th power within `L * δ` of `HamiltonianEvolution (A + B) (L * τ)`. -/
 def Corollary4CompositeError : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ),
     A.IsHermitian → B.IsHermitian →

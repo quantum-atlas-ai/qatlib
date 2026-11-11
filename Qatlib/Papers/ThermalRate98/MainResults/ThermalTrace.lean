@@ -10,6 +10,29 @@ import Mathlib.Analysis.Normed.Algebra.MatrixExponential
 import Mathlib.Algebra.Star.UnitaryStarAlgAut
 import Mathlib.Analysis.Matrix.PosDef
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+
+/-!
+# Thermal matrix exponentials and flux traces
+
+This module defines the half Boltzmann factor, Hamiltonian propagation, and ordered flux
+correlation trace for the finite-dimensional formulation of [LidarWang1999].
+`physical_scaled_exp` transports the matrix exponential into a specified unitary spectral frame.
+
+Trace invariance, compatibility with adjoints, and a diagonal trace expansion provide the
+algebra for spectral correlations. `physical_thermal_phase` combines the separate thermal and
+propagation factors into their pairwise form.
+
+## Main statements
+
+* `physicalFluxCorrelation`: defines the ordered trace `tr (B * F * B * Uᴴ * F * U)`.
+* `physical_scaled_exp`: evaluates a scaled Hamiltonian exponential in a unitary spectral frame.
+* `physical_diagonal_trace`: expands the diagonal-frame trace as a double sum.
+
+## References
+
+* [Lidar and Wang, 1999][LidarWang1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,18 +42,24 @@ open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The matrix exponential of `(-β / 2) • H`, representing the half Boltzmann factor. -/
 def physicalBoltzmannHalf (β : ℝ) (H : Matrix I I ℂ) : Matrix I I ℂ :=
   NormedSpace.exp ((-((β : ℂ)/2)) • H)
 
+/-- The matrix exponential of `(-i * (t / ħ)) • H` for Hamiltonian propagation. -/
 def physicalPropagation (t ħ : ℝ) (H : Matrix I I ℂ) : Matrix I I ℂ :=
   NormedSpace.exp ((-Complex.I*((t/ħ : ℝ) : ℂ)) • H)
 
+/-- The ordered trace `tr (B * F * B * Uᴴ * F * U)`, with `B` the half Boltzmann factor, `U` the
+propagation matrix, and `F` the physical flux. -/
 def physicalFluxCorrelation (β t ħ : ℝ) (H P : Matrix I I ℂ) : ℂ :=
   let B := physicalBoltzmannHalf β H
   let U := physicalPropagation t ħ H
   let F := physicalFlux ħ H P
   Matrix.trace (B*F*B*Uᴴ*F*U)
 
+/-- Given a unitary spectral representation of `H` with real energies, the exponential of `z •
+H` is obtained by exponentiating the scaled energies in that frame. See [LidarWang1999]. -/
 theorem physical_scaled_exp (z : ℂ) (H V : Matrix I I ℂ) (E : I → ℝ)
     (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (hH : H = V*Matrix.diagonal (fun i => (E i : ℂ))*Vᴴ) :
@@ -55,12 +84,15 @@ theorem physical_scaled_exp (z : ℂ) (H V : Matrix I I ℂ) (E : I → ℝ)
   funext i
   rw [Pi.coe_exp,← Complex.exp_eq_exp_ℂ]
 
+/-- Conjugation into a unitary frame preserves the matrix trace. -/
 theorem physical_trace_frame (V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (A : Matrix I I ℂ) : Matrix.trace (Vᴴ*A*V) = Matrix.trace A := by
   have hVV : V*Vᴴ = 1 := by
     simpa only [Matrix.mem_unitaryGroup_iff,Matrix.star_eq_conjTranspose] using hV
   rw [Matrix.trace_mul_cycle,hVV,Matrix.one_mul]
 
+/-- Conjugating a diagonal matrix out of a unitary frame and back returns the original diagonal
+matrix. -/
 theorem physical_diagonal_frame (V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryGroup I ℂ)
     (d : I → ℂ) : Vᴴ*(V*Matrix.diagonal d*Vᴴ)*V = Matrix.diagonal d := by
   have hVV : Vᴴ*V = 1 := by
@@ -70,11 +102,15 @@ theorem physical_diagonal_frame (V : Matrix I I ℂ) (hV : V ∈ Matrix.unitaryG
 section
 omit [DecidableEq I]
 
+/-- Conjugating the adjoint of a matrix by `V` equals the adjoint of the matrix conjugated by
+`V`, without requiring `V` to be unitary. -/
 theorem physical_frame_adjoint (V A : Matrix I I ℂ) : Vᴴ*Aᴴ*V = (Vᴴ*A*V)ᴴ := by
   simp only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,Matrix.mul_assoc]
 
 end
 
+/-- The trace with diagonal thermal and propagation factors expands as the double sum of their
+scalar entries times `F n m * F m n`. -/
 theorem physical_diagonal_trace (b u : I → ℂ) (F : Matrix I I ℂ) :
     Matrix.trace (Matrix.diagonal b*F*Matrix.diagonal b*
       (Matrix.diagonal u)ᴴ*F*Matrix.diagonal u) =
@@ -90,6 +126,8 @@ theorem physical_diagonal_trace (b u : I → ℂ) (F : Matrix I I ℂ) :
   intro m _
   ring
 
+/-- The two half Boltzmann factors and the conjugated and unconjugated propagation phases
+combine into the pair thermal weight and the phase for the energy difference. -/
 theorem physical_thermal_phase (β t ħ en em : ℝ) :
     Complex.exp (-((β : ℂ)/2)*(en : ℂ))*Complex.exp (-((β : ℂ)/2)*(em : ℂ))*
       star (Complex.exp (-Complex.I*((t/ħ : ℝ) : ℂ)*(em : ℂ)))*

@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
+
+/-!
+# Nonnegative matrix from a stoquastic Hamiltonian
+
+`pptMatrix` defines the rational matrix `(I - H / q) / 2`. A positive scale, nonpositive
+off-diagonal Hamiltonian entries, and the diagonal bound `H x x ≤ q` imply entrywise
+nonnegativity after casting to the reals. See [BravyiEtAl2008Stoquastic].
+
+## Main statements
+
+* `pptMatrix`: the shifted and scaled rational matrix.
+* `pptMatrix_nonneg`: the entrywise nonnegativity criterion.
+
+## References
+
+* [Bravyi et al., 2008][BravyiEtAl2008Stoquastic]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,9 +35,13 @@ open Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
 
 namespace Qatlib.Papers.StoquasticHam06.MainResults.Theorem10
 
+/-- The rational matrix `(I - H / q) / 2`, defined entrywise. -/
 def pptMatrix {n : ℕ} (H : QMatrix n) (q : ℚ) : QMatrix n :=
   fun x y => (1 / 2) * ((if x = y then 1 else 0) - H x y / q)
 
+/-- If `q > 0`, the off-diagonal entries of `H` are nonpositive, and every diagonal entry is at
+most `q`, then the real cast of `pptMatrix H q` is entrywise nonnegative. See
+[BravyiEtAl2008Stoquastic]. -/
 theorem pptMatrix_nonneg {n : ℕ} (H : QMatrix n) (q : ℚ) (hq : 0 < q)
     (hoff : ∀ x y : Sigma n, x ≠ y → H x y ≤ 0)
     (hdiag : ∀ x : Sigma n, H x x ≤ q) :

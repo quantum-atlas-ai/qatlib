@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+/-!
+# Sparse matrix encodings from overlap frames
+
+`sparseOverlapLeft` and `sparseOverlapRight` embed row and column labels into a shared space,
+with extra coordinates completing their norms. Bounds on row and column sums make these frames
+isometric and identify their overlap with a scaled copy of the original matrix. Sparsity and
+entry bounds yield a concrete scale.
+
+The mathematical background is described in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `sparse_overlap_actual_frames_and_corner`: isometric frames with overlap `A / s`.
+* `sparse_overlap_derived_sparse_entry_norm_consumer`: encoding and norm bound at scale `k * b`.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -18,6 +39,8 @@ open Matrix Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The row-label frame with amplitudes `sqrt (‖A o i‖ / s)` and a row-specific square-root
+remainder coordinate. -/
 noncomputable def sparseOverlapLeft {I O : Type} [Fintype I] [Fintype O]
  [DecidableEq I] [DecidableEq O] (A : Matrix O I ℂ) (s : ℝ) :
  Matrix ((O×I)⊕(O⊕I)) O ℂ := fun h o => match h with
@@ -25,6 +48,8 @@ noncomputable def sparseOverlapLeft {I O : Type} [Fintype I] [Fintype O]
  | .inr (.inl u) => if u=o then (Real.sqrt (1-(∑ i,‖A o i‖)/s):ℂ) else 0
  | .inr (.inr _) => 0
 
+/-- The column-label frame using the phases of `A` and a column-specific square-root remainder
+coordinate. -/
 noncomputable def sparseOverlapRight {I O : Type} [Fintype I] [Fintype O]
  [DecidableEq I] [DecidableEq O] (A : Matrix O I ℂ) (s : ℝ) :
  Matrix ((O×I)⊕(O⊕I)) I ℂ := fun h i => match h with
@@ -32,11 +57,14 @@ noncomputable def sparseOverlapRight {I O : Type} [Fintype I] [Fintype O]
  | .inr (.inl _) => 0
  | .inr (.inr v) => if v=i then (Real.sqrt (1-(∑ o,‖A o i‖)/s):ℂ) else 0
 
+/-- The conjugate product of the complex square root of a nonnegative real number equals that
+number. -/
 private theorem sparse_sqrt_mass (x : ℝ) (hx : 0 ≤ x) :
     star (Real.sqrt x : ℂ) * (Real.sqrt x : ℂ) = (x : ℂ) := by
   rw [Complex.star_def, Complex.conj_ofReal, ← Complex.ofReal_mul, ← pow_two,
     Real.sq_sqrt hx]
 
+/-- For positive `s`, the squared magnitude of the normalized right amplitude is `‖a‖ / s`. -/
 private theorem sparse_right_mass (a : ℂ) (s : ℝ) (hs : 0 < s) :
     star (a / ((Real.sqrt s * Real.sqrt ‖a‖ : ℝ) : ℂ)) *
       (a / ((Real.sqrt s * Real.sqrt ‖a‖ : ℝ) : ℂ)) = ((‖a‖ / s : ℝ) : ℂ) := by
@@ -55,6 +83,7 @@ private theorem sparse_right_mass (a : ℂ) (s : ℝ) (hs : 0 < s) :
     rw [hsqrt]
     field_simp
 
+/-- For positive `s`, the overlap of the left and right entry amplitudes equals `a / s`. -/
 private theorem sparse_entry_overlap (a : ℂ) (s : ℝ) (hs : 0 < s) :
     star (Real.sqrt (‖a‖ / s) : ℂ) *
       (a / ((Real.sqrt s * Real.sqrt ‖a‖ : ℝ) : ℂ)) = (s : ℂ)⁻¹ * a := by
@@ -71,6 +100,8 @@ private theorem sparse_entry_overlap (a : ℂ) (s : ℝ) (hs : 0 < s) :
     rw [← hsq]
     field_simp
 
+/-- The left overlap frame is isometric when `s` is positive and bounds every row sum of entry
+norms. -/
 private theorem sparse_left_isometry {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] (A : Matrix O I ℂ) (s : ℝ) (hs : 0 < s)
     (hrow : ∀ o, (∑ i, ‖A o i‖) ≤ s) : IsIsometry (sparseOverlapLeft A s) := by
@@ -94,6 +125,8 @@ private theorem sparse_left_isometry {I O : Type} [Fintype I] [Fintype O]
   · have h' : p ≠ o := Ne.symm h
     simp [apply_ite star, ite_mul, mul_ite, h, h', Matrix.one_apply_ne]
 
+/-- The right overlap frame is isometric when `s` is positive and bounds every column sum of
+entry norms. -/
 private theorem sparse_right_isometry {I O : Type} [Fintype I] [Fintype O]
     [DecidableEq I] [DecidableEq O] (A : Matrix O I ℂ) (s : ℝ) (hs : 0 < s)
     (hcol : ∀ i, (∑ o, ‖A o i‖) ≤ s) : IsIsometry (sparseOverlapRight A s) := by
@@ -116,6 +149,8 @@ private theorem sparse_right_isometry {I O : Type} [Fintype I] [Fintype O]
   · have h' : j ≠ i := Ne.symm h
     simp [apply_ite star, ite_mul, mul_ite, h, h', Matrix.one_apply_ne]
 
+/-- A positive common row and column norm-sum bound produces two isometric overlap frames whose
+cross product is `s⁻¹ • A`. See [GilyenSuLowWiebe2019]. -/
 theorem sparse_overlap_actual_frames_and_corner :
     ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
       (A : Matrix O I ℂ) (s : ℝ), 0 < s → (∀ o, (∑ i, ‖A o i‖) ≤ s) →
@@ -132,6 +167,8 @@ theorem sparse_overlap_actual_frames_and_corner :
     add_zero]
   exact sparse_entry_overlap (A o i) s hs
 
+/-- A function with at most `k` nonzero entries, each of norm at most nonnegative `b`, has total
+norm at most `k * b`. -/
 private theorem sparse_sum_norm_le {J : Type} [Fintype J] [DecidableEq J]
     (f : J → ℂ) (k : ℕ) (b : ℝ) (hb : 0 ≤ b)
     (hc : (Finset.univ.filter (fun j => f j ≠ 0)).card ≤ k)
@@ -149,6 +186,8 @@ private theorem sparse_sum_norm_le {J : Type} [Fintype J] [DecidableEq J]
     _ = (t.card : ℝ) * b := by simp
     _ ≤ (k : ℝ) * b := mul_le_mul_of_nonneg_right (by exact_mod_cast hc) hb
 
+/-- Positive sparsity and entry bounds give a projected unitary encoding of `A / (k * b)` using
+the identity between overlap frames, and imply `‖A‖ ≤ k * b`. See [GilyenSuLowWiebe2019]. -/
 theorem sparse_overlap_derived_sparse_entry_norm_consumer :
     ∀ (I O : Type) [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
       (A : Matrix O I ℂ) (k : ℕ) (b : ℝ), 0 < b → 0 < k →

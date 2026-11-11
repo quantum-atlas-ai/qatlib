@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SemidirectHSP05.MainResults.HspMainResults
+
+/-!
+# Geometric sums and metacyclic solution counts
+
+This module develops finite geometric sums in a commutative ring and counting identities
+associated with the metacyclic case of [BaconChildsVanDam2005]. For a nonidentity unit whose pth
+power is one, with p prime, `matSum_injective` separates the first p partial sums;
+multiplication by a unit preserves their cardinality.
+
+## Main statements
+
+* `matSum_injective`: Geometric partial sums with indices below p are distinct under the
+  prime-order hypotheses.
+* `card_solvable_targets`: Each unit input has exactly p attainable targets.
+* `card_solvable_pairs_totient`: The number of solvable pairs with unit input over ZMod N is
+  φ(N) * p.
+
+## References
+
+* [Bacon et al., 2005][BaconChildsVanDam2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,8 +38,11 @@ open scoped BigOperators
 
 variable {R : Type*} [CommRing R]
 
+/-- The sum of the powers `μ ^ i` for natural indices `i < b`. -/
 def matSum (μ : R) (b : ℕ) : R := ∑ i ∈ Finset.range b, μ ^ i
 
+/-- The geometric sum of length `m + n` splits into the length-m sum plus `μ ^ m` times the
+length-n sum [BaconChildsVanDam2005]. -/
 lemma matSum_add (μ : R) (m n : ℕ) :
     matSum μ (m + n) = matSum μ m + μ ^ m * matSum μ n := by
   unfold matSum
@@ -27,11 +52,14 @@ lemma matSum_add (μ : R) (m n : ℕ) :
   intro i _
   rw [pow_add]
 
+/-- For `b' ≤ b`, the length-b geometric sum splits at `b'` into its initial segment and a
+shifted tail. -/
 lemma matSum_sub (μ : R) (b b' : ℕ) (h : b' ≤ b) :
     matSum μ b = matSum μ b' + μ ^ b' * matSum μ (b - b') := by
   conv_lhs => rw [← Nat.add_sub_of_le h]
   rw [matSum_add]
 
+/-- A unit can be cancelled from the right of an equality of products. -/
 lemma mul_right_cancel_of_isUnit {a b x : R} (hx : IsUnit x) (h : a * x = b * x) : a = b := by
   obtain ⟨v, rfl⟩ := hx
   have hv : (↑v : R) * (↑v⁻¹ : R) = 1 := Units.mul_inv v
@@ -40,6 +68,8 @@ lemma mul_right_cancel_of_isUnit {a b x : R} (hx : IsUnit x) (h : a * x = b * x)
   rw [hv, mul_one, mul_one] at h1
   exact h1
 
+/-- For prime `p` and a unit `μ ≠ 1` satisfying `μ ^ p = 1`, equal geometric sums with indices
+below `p` have equal indices [BaconChildsVanDam2005]. -/
 theorem matSum_injective {p : ℕ} (hp : p.Prime) {μ : R} (hu : IsUnit μ)
     (hμp : μ ^ p = 1) (hμ1 : μ ≠ 1) {b b' : ℕ} (hb : b < p) (hb' : b' < p)
     (h : matSum μ b = matSum μ b') : b = b' := by
@@ -105,6 +135,8 @@ theorem matSum_injective {p : ℕ} (hp : p.Prime) {μ : R} (hu : IsUnit μ)
   · exact key hle hb hb' h
   · exact (key hle hb' hb h.symm).symm
 
+/-- Multiplying the first `p` geometric partial sums by a unit gives a finite image of
+cardinality `p` under the prime-order hypotheses on `μ` [BaconChildsVanDam2005]. -/
 theorem card_image_mul {p : ℕ} (hp : p.Prime) {μ x : R} [DecidableEq R] (hu : IsUnit μ)
     (hμp : μ ^ p = 1) (hμ1 : μ ≠ 1) (hx : IsUnit x) :
     (Finset.univ.image (fun b : Fin p => matSum μ (b : ℕ) * x)).card = p := by
@@ -115,6 +147,8 @@ theorem card_image_mul {p : ℕ} (hp : p.Prime) {μ x : R} [DecidableEq R] (hu :
     exact Fin.ext (matSum_injective hp hu hμp hμ1 b1.isLt b2.isLt heq)
   rw [Finset.card_image_of_injective _ hinj, Finset.card_univ, Fintype.card_fin]
 
+/-- For a unit input `x`, exactly `p` targets can be expressed as `matSum μ b * x` with `b < p`
+under the prime-order hypotheses on `μ`. -/
 theorem card_solvable_targets {p : ℕ} (hp : p.Prime) {μ x : R} [Fintype R] [DecidableEq R]
     (hu : IsUnit μ) (hμp : μ ^ p = 1) (hμ1 : μ ≠ 1) (hx : IsUnit x) :
     (Finset.univ.filter (fun w : R => ∃ b : Fin p, matSum μ (b : ℕ) * x = w)).card = p := by
@@ -126,6 +160,8 @@ theorem card_solvable_targets {p : ℕ} (hp : p.Prime) {μ x : R} [Fintype R] [D
   rw [himg]
   exact card_image_mul hp hu hμp hμ1 hx
 
+/-- Over `ZMod N`, the number of pairs with unit first coordinate and a solvable geometric-sum
+equation equals the number of units times `p`. -/
 theorem card_solvable_pairs (N p : ℕ) [Fact p.Prime] [NeZero N] {μ : ZMod N}
     (hu : IsUnit μ) (hμp : μ ^ p = 1) (hμ1 : μ ≠ 1) :
     (Finset.univ.filter (fun xw : ZMod N × ZMod N =>
@@ -179,6 +215,7 @@ theorem card_solvable_pairs (N p : ℕ) [Fact p.Prime] [NeZero N] {μ : ZMod N}
     by_cases hx : IsUnit x <;> simp [hx]
   exact h2
 
+/-- The number of elements of `ZMod N` that are units equals the Euler totient `Nat.totient N`. -/
 theorem card_units_filter (N : ℕ) [NeZero N] :
     (Finset.univ.filter (fun x : ZMod N => IsUnit x)).card = Nat.totient N := by
   classical
@@ -191,6 +228,9 @@ theorem card_units_filter (N : ℕ) [NeZero N] :
   rw [← Fintype.card_subtype (fun x : ZMod N => IsUnit x), heq,
     ZMod.card_units_eq_totient N]
 
+/-- Under the stated prime-order conditions on `μ`, the number of solvable pairs with unit input
+over `ZMod N` equals `Nat.totient N * p`. This is a metacyclic counting ingredient for
+[BaconChildsVanDam2005]. -/
 theorem card_solvable_pairs_totient (N p : ℕ) [Fact p.Prime] [NeZero N] {μ : ZMod N}
     (hu : IsUnit μ) (hμp : μ ^ p = 1) (hμ1 : μ ≠ 1) :
     (Finset.univ.filter (fun xw : ZMod N × ZMod N =>

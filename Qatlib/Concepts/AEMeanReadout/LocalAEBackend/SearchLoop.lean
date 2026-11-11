@@ -41,6 +41,30 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
 import Mathlib.Analysis.CStarAlgebra.Classes
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
+
+/-!
+# Finite quantum-search loops
+
+This module defines `windowLoop`, a finite sequence of search rounds that stops at the first
+successful outcome and adds the two ledgers of failed rounds to subsequent costs.
+`sourceQSearchLoop` specializes it to the source rounds used for amplitude-amplification search
+[BrassardEtAl2002].
+
+The support lemmas show that any returned index belongs to the marked set, first for an
+individual `windowRound` and then for the entire loop.
+
+## Main statements
+
+* `windowLoop_zero_eq` and `windowLoop_succ_eq`: the defining loop equations.
+* `windowRound_shape`: every successful round output is marked.
+* `windowLoop_shape` and `sourceLoop_shape`: preservation of marked-output correctness through
+  finite execution.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib
@@ -63,6 +87,9 @@ set_option warningAsError false
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 
+/-- Runs at most T rounds starting at round off + 1, stopping on the first successful outcome
+and adding the two ledgers across failed rounds. With zero rounds it returns `none` and two
+zero costs. -/
 noncomputable def windowLoop {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (round : ℕ → PMF (Option I × ℕ × ℕ)) : ℕ → ℕ → PMF (Option I × ℕ × ℕ)
@@ -75,16 +102,20 @@ noncomputable def windowLoop {I : Type} [Fintype I] [DecidableEq I]
             (windowLoop A hA j₀ S round T (off + 1)).map fun r =>
               (r.1, r.2.1 + out.2.1, r.2.2 + out.2.2)
 
+/-- The finite search loop obtained by using `sourceQSearchRound` as the round distribution. -/
 noncomputable def sourceQSearchLoop {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) :
     ℕ → ℕ → PMF (Option I × ℕ × ℕ) :=
   windowLoop A hA j₀ S (sourceQSearchRound A hA j₀ S)
 
+/-- A window loop with zero remaining rounds is the point mass at `none` with both ledgers zero. -/
 theorem windowLoop_zero_eq {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (round : ℕ → PMF (Option I × ℕ × ℕ)) (off : ℕ) :
     windowLoop A hA j₀ S round 0 off = PMF.pure (none, 0, 0) := rfl
 
+/-- A nonempty window loop executes the next round, returns immediately on success, and
+otherwise runs the remaining rounds with the failed round's costs added. -/
 theorem windowLoop_succ_eq {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (round : ℕ → PMF (Option I × ℕ × ℕ)) (T off : ℕ) :
@@ -96,6 +127,8 @@ theorem windowLoop_succ_eq {I : Type} [Fintype I] [DecidableEq I]
             (windowLoop A hA j₀ S round T (off + 1)).map fun r =>
               (r.1, r.2.1 + out.2.1, r.2.2 + out.2.2) := rfl
 
+/-- Every supported successful output of `windowRound` belongs to the marked set, regardless of
+the supplied trial distributions and ledgers. -/
 theorem windowRound_shape {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) (hM : 0 < M) (trial : Fin M → CostedLaw (I × ℕ))
@@ -127,6 +160,8 @@ theorem windowRound_shape {I : Type} [Fintype I] [DecidableEq I]
     · rw [if_neg h2] at hy
       exact absurd hy (by simp)
 
+/-- If every round returns only marked indices on success, every supported successful output of
+the finite window loop is also marked. -/
 theorem windowLoop_shape {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (round : ℕ → PMF (Option I × ℕ × ℕ))
@@ -162,6 +197,8 @@ theorem windowLoop_shape {I : Type} [Fintype I] [DecidableEq I]
       subst hout2'
       exact hround (off + 1) _ hout1 y hy
 
+/-- Every supported successful output of a finite source quantum-search loop belongs to the
+marked set. -/
 theorem sourceLoop_shape (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (j₀ : I) (S : Finset I) :
     ∀ (T off : ℕ) (out : Option I × ℕ × ℕ),

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeCVaRTargetErrorStat
 import Qatlib.Concepts.RiskEstimation.CVaREstimation.NativeCVaRFiniteRestrictedQuan
+
+/-!
+# Native empirical CVaR target error guarantee
+
+This module proves `empiricalNativeCVaRTargetError`, a native empirical CVaR guarantee relative
+to a target ratio μ/p. It uses the quantile separation and positive-denominator hypotheses in
+`EmpiricalNativeCVaRTargetError` to control both the selected index and the ratio error.
+
+The source paper is [WoernerEgger2019].
+
+## Main statements
+
+* `empiricalNativeCVaRTargetError`: Establishes `EmpiricalNativeCVaRTargetError`: under its
+  quantile separation, approximation, and denominator hypotheses, the probability of a wrong
+  target index or excessive error from μ/p is at most (Nat.clog 2 xs.length + 3)(8/9)^r.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -21,6 +42,9 @@ namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open scoped Classical BigOperators ENNReal
 set_option warningAsError false
 
+/-- Establishes `EmpiricalNativeCVaRTargetError`: under its quantile separation, approximation,
+and denominator hypotheses, the probability of a wrong target index or excessive error from
+μ/p is at most (Nat.clog 2 xs.length + 3)(8/9)^r [WoernerEgger2019]. -/
 theorem empiricalNativeCVaRTargetError : EmpiricalNativeCVaRTargetError := by
   intro n N ebits rotationBits bits M r ω loss t p μ η xs q ε v hN hloss hM hxs
     hsorted hsupport hq0 hq1 heps hv ht hwindow habove hbelow hden hη hc hm hp hgap

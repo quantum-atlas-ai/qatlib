@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HHLManyBody22.HomOverlap.NormalizedEnergy
 import Qatlib.Papers.HHLManyBody22.AdaptHhl.ActualGrid
+
+/-!
+# Combining exact grid HHL with HOM energy readout
+
+The module connects conditional state normalization and exact grid HHL scaling to the tensor HOM
+circuit. Reindexing identities allow a finite excitation basis to be represented by bit strings
+while preserving state mass and the overlap readout.
+
+Under the stated Hermitian block, invertibility, and nonzero coupling hypotheses,
+`actual_hhl_hom_lcc_readout` combines the HHL output and success probability with the magnitude
+of the projected LCC energy. `actual_hhl_hom_probability_law` verifies nonnegative Born weights
+summing to one for the corresponding normalized circuit inputs. See [BaskaranEtAl2023].
+
+## Main statements
+
+* `actual_hhl_hom_lcc_readout`: For a Hermitian LCC matrix with zero reference diagonal, the
+  stated exact grid excitation block, and nonzero coupling, identifies the HHL output and
+  probability and reconstructs the projected energy magnitude from the normalized inverse
+  solution's HOM parity readout.
+* `actual_hhl_hom_probability_law`: For nonzero input and an invertible rescaled grid matrix
+  with positive `d`, the HOM circuit on the normalized input and inverse solution has
+  nonnegative Born weights summing to one.
+
+## References
+
+* [Baskaran et al., 2023][BaskaranEtAl2023]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,10 +51,12 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.HhlAlgorithms.GridExactHHL
 
+/-- The HOM mass of a finite state equals its total Born probability. -/
 theorem homMass_eq_measureProb {I : Type} [Fintype I] (w : I→ℂ) :
     homMass w=MeasureProb w Finset.univ := by
   simp only [homMass,MeasureProb,BornProb,Complex.normSq_eq_norm_sq]
 
+/-- Normalizing a nonzero state with `homNormalize` gives a nonzero state. -/
 theorem homNormalize_ne_zero {I : Type} [Fintype I] (w : I→ℂ) (hw : w≠0) :
     homNormalize w≠0 := by
   intro hz
@@ -34,6 +64,7 @@ theorem homNormalize_ne_zero {I : Type} [Fintype I] (w : I→ℂ) (hw : w≠0) :
   rw [hz] at hm
   simp [homMass] at hm
 
+/-- For a nonzero state, `ConditionalState` returns `some (homNormalize w)`. -/
 theorem conditionalState_homNormalize {I : Type} [Fintype I] [DecidableEq I]
     (w : I→ℂ) (hw : w≠0) : ConditionalState w=some (homNormalize w) := by
   have hp : 0<MeasureProb w Finset.univ := by
@@ -44,6 +75,8 @@ theorem conditionalState_homNormalize {I : Type} [Fintype I] [DecidableEq I]
   funext i
   simp [PostMeasure,homNormalize,homNorm,homMass_eq_measureProb,Collapse,projector_univ,ApplyGate,Matrix.one_mulVec]
 
+/-- Reindexing two states by a bit string equivalence makes the tensor HOM parity weighted Born
+sum equal the squared norm of their original inner product. -/
 theorem hom_actual_reindexed_overlap {I : Type} [Fintype I] (n : ℕ)
     (e : I≃(Fin n→Bool)) (u v : I→ℂ) :
     (∑z,homParity n z*Complex.normSq ((homTensor n*ᵥ
@@ -52,6 +85,7 @@ theorem hom_actual_reindexed_overlap {I : Type} [Fintype I] (n : ℕ)
   congr 1
   exact e.symm.sum_comp (fun i => star (u i)*v i)
 
+/-- For positive `d`, an invertible grid HHL matrix gives an invertible `adaptGridMatrix`. -/
 theorem adapt_physical_det_isUnit {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
     (label : Fin D→Fin (2^nr)) (V : Matrix (Fin D) (Fin D) ℂ)
     (hG : IsUnit (gridHHLMatrix label V).det) : IsUnit (adaptGridMatrix nr d label V).det := by
@@ -62,6 +96,8 @@ theorem adapt_physical_det_isUnit {D : ℕ} (nr : ℕ) (d : ℝ) (hd : 0<d)
     exact_mod_cast (ne_of_gt (mul_pos (by positivity) hd))
   · exact isUnit_iff_ne_zero.mp hG
 
+/-- An invertible matrix sends the normalization of a nonzero vector to a nonzero inverse
+solution. -/
 theorem hom_actual_inverse_ne_zero {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : IsUnit A.det) (b : I→ℂ) (hb : b≠0) :
     A⁻¹*ᵥhomNormalize b≠0 := by
@@ -72,6 +108,10 @@ theorem hom_actual_inverse_ne_zero {I : Type} [Fintype I] [DecidableEq I]
     Matrix.mulVec_zero] at hm
   exact homNormalize_ne_zero b hb hm
 
+/-- For a Hermitian LCC matrix with zero reference diagonal, the stated exact grid excitation
+block, and nonzero coupling, identifies the HHL output and probability and reconstructs the
+projected energy magnitude from the normalized inverse solution's HOM parity readout. See
+[BaskaranEtAl2023]. -/
 theorem actual_hhl_hom_lcc_readout {D : ℕ} (n nr : ℕ) (e : Fin D≃(Fin n→Bool))
     (d : ℝ) (hd : 0<d) (label : Fin D→Fin (2^nr))
     (V : Matrix (Fin D) (Fin D) ℂ) (hV : V∈Matrix.unitaryGroup (Fin D) ℂ)
@@ -100,6 +140,7 @@ theorem actual_hhl_hom_lcc_readout {D : ℕ} (n nr : ℕ) (e : Fin D≃(Fin n→
       abs_of_nonneg (mul_nonneg (sq_nonneg _) (show 0≤homNorm _ from Real.sqrt_nonneg _)),
       hom_actual_reindexed_overlap,Complex.normSq_eq_norm_sq,Real.sqrt_sq (norm_nonneg _)]
 
+/-- The HOM mass of the joint tensor input is the product of the two input masses. -/
 theorem homJoint_actual_mass (n : ℕ) (u v : (Fin n→Bool)→ℂ) :
     homMass (homJoint n u v)=homMass u*homMass v := by
   simp only [homMass,homJoint,Complex.normSq_mul]
@@ -109,6 +150,7 @@ theorem homJoint_actual_mass (n : ℕ) (u v : (Fin n→Bool)→ℂ) :
     Complex.normSq (u p.1)*Complex.normSq (v p.2)),Fintype.sum_prod_type,Finset.sum_mul]
   simp only [Finset.mul_sum]
 
+/-- If both HOM inputs have mass one, the circuit's total Born mass is one. -/
 theorem hom_actual_born_total (n : ℕ) (u v : (Fin n→Bool)→ℂ)
     (hu : homMass u=1) (hv : homMass v=1) :
     (∑z,Complex.normSq ((homTensor n*ᵥhomJoint n u v) z))=1 := by
@@ -118,10 +160,14 @@ theorem hom_actual_born_total (n : ℕ) (u v : (Fin n→Bool)→ℂ)
   have hout := normalized_applyGate (homTensor_unitary n) hn
   simpa only [Normalized,ApplyGate,Complex.normSq_eq_norm_sq] using! hout
 
+/-- Reindexing a state along an equivalence preserves its HOM mass. -/
 theorem homMass_reindex {I J : Type} [Fintype I] [Fintype J] (e : I≃J) (w : I→ℂ) :
     homMass (w∘e.symm)=homMass w :=
   e.symm.sum_comp (fun i => Complex.normSq (w i))
 
+/-- For nonzero input and an invertible rescaled grid matrix with positive `d`, the HOM circuit
+on the normalized input and inverse solution has nonnegative Born weights summing to one.
+See [BaskaranEtAl2023]. -/
 theorem actual_hhl_hom_probability_law {D : ℕ} (n nr : ℕ) (e : Fin D≃(Fin n→Bool))
     (d : ℝ) (hd : 0<d) (label : Fin D→Fin (2^nr))
     (V : Matrix (Fin D) (Fin D) ℂ) (hG : IsUnit (gridHHLMatrix label V).det)

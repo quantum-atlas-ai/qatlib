@@ -13,6 +13,28 @@ import Mathlib.Algebra.Ring.Parity
 import Mathlib.Algebra.Order.Ring.Basic
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Tactic
+
+/-!
+# Spectral moment separation for diagonal entries
+
+This module defines two finite cosine spectra with endpoint weights and proves their odd-moment
+sign relation. It combines a lower bound from a distinguished unit eigenvalue with a
+cosine-power decay estimate to obtain a signed inverse-polynomial gap under the stated mass and
+spectral assumptions.
+
+These constructions accompany the results of [JanzingWocjan2006a].
+
+## Main statements
+
+* `E1moment_eq_neg`: relates the two moments for odd spectrum size and odd exponent.
+* `cos_pow_decay_strict`: bounds the cosine raised to the cubic exponent.
+* `moment_separation`: derives a moment gap from the supplied spectral and weight conditions.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006a]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,24 +45,33 @@ open Finset
 
 namespace Qatlib.Papers.DiagPowerBQP06.MainResults.Hardness
 
+/-- The natural index bound `(M - 1) / 2 + 1` for the finite cosine spectra. -/
 def halfIdx (M : ℕ) : ℕ := (M - 1) / 2 + 1
 
+/-- The weight `1 / M` at the zero index and `2 / M` at the other indices. -/
 def mass0 (M : ℕ) (l : Fin (halfIdx M)) : ℝ :=
   if (l : ℕ) = 0 then 1 / (M : ℝ) else 2 / (M : ℝ)
 
+/-- The weight `1 / M` at the final index and `2 / M` at the other indices. -/
 def mass1 (M : ℕ) (l : Fin (halfIdx M)) : ℝ :=
   if (l : ℕ) = (M - 1) / 2 then 1 / (M : ℝ) else 2 / (M : ℝ)
 
+/-- The cosine value `cos (2 * π * l / M)` in the first spectrum. -/
 def lam0 (M : ℕ) (l : Fin (halfIdx M)) : ℝ :=
   Real.cos (2 * Real.pi * (l : ℝ) / (M : ℝ))
 
+/-- The cosine value `cos (π * (2 * l + 1) / M)` in the second spectrum. -/
 def lam1 (M : ℕ) (l : Fin (halfIdx M)) : ℝ :=
   Real.cos (Real.pi * (2 * (l : ℝ) + 1) / (M : ℝ))
 
+/-- The weighted `m`th moment of the first finite cosine spectrum. -/
 def E0moment (M m : ℕ) : ℝ := ∑ l, mass0 M l * (lam0 M l) ^ m
 
+/-- The weighted `m`th moment of the second finite cosine spectrum. -/
 def E1moment (M m : ℕ) : ℝ := ∑ l, mass1 M l * (lam1 M l) ^ m
 
+/-- Reversing the index of the first weight family gives the second weight family. See
+[JanzingWocjan2006a]. -/
 theorem mass1_eq_mass0_rev (M : ℕ) (l : Fin (halfIdx M)) :
     mass1 M l = mass0 M (Fin.rev l) := by
   unfold mass1 mass0
@@ -61,6 +92,8 @@ theorem mass1_eq_mass0_rev (M : ℕ) (l : Fin (halfIdx M)) :
       omega
     rw [if_neg h, if_neg h0]
 
+/-- For odd `M`, the second cosine spectrum equals the negative of the first spectrum with
+reversed indices. See [JanzingWocjan2006a]. -/
 theorem lam1_eq_neg_lam0 (M : ℕ) (hM : Odd M) (l : Fin (halfIdx M)) :
     lam1 M l = - lam0 M (Fin.rev l) := by
   obtain ⟨k, hk⟩ := hM
@@ -85,6 +118,8 @@ theorem lam1_eq_neg_lam0 (M : ℕ) (hM : Odd M) (l : Fin (halfIdx M)) :
   field_simp
   ring
 
+/-- For odd `M` and odd `m`, the second weighted moment is the negative of the first. See
+[JanzingWocjan2006a]. -/
 theorem E1moment_eq_neg (M m : ℕ) (hM : Odd M) (hm : Odd m) :
     E1moment M m = - E0moment M m := by
   unfold E1moment E0moment
@@ -105,11 +140,16 @@ theorem E1moment_eq_neg (M m : ℕ) (hM : Odd M) (hm : Odd m) :
     _ = - ∑ l, mass0 M l * (lam0 M l) ^ m := by
           rw [Finset.sum_neg_distrib]
 
+/-- For odd `M` and odd `m`, a linear combination of the two moments equals the coefficient
+difference times the first moment. See [JanzingWocjan2006a]. -/
 theorem moment_sign_split (M m : ℕ) (hM : Odd M) (hm : Odd m) (α0 α1 : ℝ) :
     α0 * E0moment M m + α1 * E1moment M m = (α0 - α1) * E0moment M m := by
   rw [E1moment_eq_neg M m hM hm]
   ring
 
+/-- For nonnegative weights with remaining total mass at most one, a distinguished unit spectral
+value and a negative lower spectral bound give the stated lower bound on an odd weighted
+moment. See [JanzingWocjan2006a]. -/
 theorem moment_lower_bound_of_min {ι : Type*} [Fintype ι] [DecidableEq ι]
     (P lam : ι → ℝ) (i0 : ι) (lamMin : ℝ) (m : ℕ)
     (hP : ∀ i, 0 ≤ P i) (hlam0 : lam i0 = 1)
@@ -141,6 +181,8 @@ theorem moment_lower_bound_of_min {ι : Type*} [Fintype ι] [DecidableEq ι]
   rw [hlam0m, mul_one]
   linarith [hchain]
 
+/-- Under the supplied zero-index, mass, tail, and spectral assumptions, the first odd moment is
+at least `1 / M + lamMin ^ m`. See [JanzingWocjan2006a]. -/
 theorem E0moment_lower_of_min (M m : ℕ) (l0 : Fin (halfIdx M)) (lamMin : ℝ)
     (h0 : (l0 : ℕ) = 0) (hm : Odd m) (hmin : ∀ l, lamMin ≤ lam0 M l)
     (hlamNeg : lamMin < 0)
@@ -157,6 +199,7 @@ theorem E0moment_lower_of_min (M m : ℕ) (l0 : Fin (halfIdx M)) (lamMin : ℝ)
     hmin hlamNeg hm htail
   rwa [hmass0] at h
 
+/-- For `M ≥ 3`, `cos (π / M)` is positive. -/
 theorem cos_pi_div_pos (M : ℕ) (hM : 3 ≤ M) :
     0 < Real.cos (Real.pi / (M : ℝ)) := by
   have hMpos : (0:ℝ) < (M:ℝ) := by positivity
@@ -168,6 +211,7 @@ theorem cos_pi_div_pos (M : ℕ) (hM : 3 ≤ M) :
   · rw [div_lt_div_iff₀ hMpos (by norm_num)]
     nlinarith [Real.pi_pos]
 
+/-- For `M ≥ 2`, `cos (π / M)` is at most `1 - 2 / M ^ 2`. -/
 theorem cos_pi_div_le_one_sub (M : ℕ) (hM : 2 ≤ M) :
     Real.cos (Real.pi / (M : ℝ)) ≤ 1 - 2 / (M : ℝ) ^ 2 := by
   have hM0 : (0:ℝ) < (M:ℝ) := by positivity
@@ -182,6 +226,7 @@ theorem cos_pi_div_le_one_sub (M : ℕ) (hM : 2 ≤ M) :
   rw [heq] at h
   exact h
 
+/-- For `M ≥ 2`, raising `1 - 1 / M ^ 2` to `M ^ 2` gives a value strictly less than `exp (-1)`. -/
 theorem one_sub_sq_pow_lt_exp_neg (M : ℕ) (hM : 2 ≤ M) :
     (1 - 1/(M:ℝ)^2) ^ (M^2) < Real.exp (-1) := by
   have hM0 : (0:ℝ) < (M:ℝ) := by positivity
@@ -214,6 +259,7 @@ theorem one_sub_sq_pow_lt_exp_neg (M : ℕ) (hM : 2 ≤ M) :
     _ < Real.exp (((M:ℝ)^2) * (-(1/(M:ℝ)^2))) := Real.exp_lt_exp.mpr hlogpow
     _ = Real.exp (-1) := by rw [hval]
 
+/-- For positive natural `M`, `exp (-(2 * M))` is at most `1 / (4 * M)`. -/
 theorem exp_neg_two_mul_le (M : ℕ) (hM : 0 < M) :
     Real.exp (-(2*(M:ℝ))) ≤ 1/(4*(M:ℝ)) := by
   have hMpos : (0:ℝ) < (M:ℝ) := by exact_mod_cast hM
@@ -230,6 +276,8 @@ theorem exp_neg_two_mul_le (M : ℕ) (hM : 0 < M) :
   rw [heq]
   exact one_div_le_one_div_of_le (by positivity) hexpge
 
+/-- For `M ≥ 3`, `cos (π / M) ^ (M ^ 3)` is strictly less than `1 / (4 * M)`. See
+[JanzingWocjan2006a]. -/
 theorem cos_pow_decay_strict (M : ℕ) (hM : 3 ≤ M) :
     (Real.cos (Real.pi / (M:ℝ))) ^ (M^3) < 1/(4*(M:ℝ)) := by
   have hMpos : (0:ℝ) < (M:ℝ) := by positivity
@@ -270,10 +318,13 @@ theorem cos_pow_decay_strict (M : ℕ) (hM : 3 ≤ M) :
     _ = Real.exp (-(2*(M:ℝ))) := hexp2
     _ ≤ 1/(4*(M:ℝ)) := hfin
 
+/-- For `M ≥ 3`, `cos (π / M) ^ (M ^ 3)` is at most `1 / (4 * M)`. See [JanzingWocjan2006a]. -/
 theorem cos_pow_decay (M : ℕ) (hM : 3 ≤ M) :
     (Real.cos (Real.pi / (M : ℝ))) ^ (M ^ 3) ≤ 1 / (4 * (M : ℝ)) :=
   (cos_pow_decay_strict M hM).le
 
+/-- An odd-power lower estimate with cosine tail strictly below `1 / (4 * M)` forces `E0` to
+exceed `3 / (4 * M)` for positive `M`. See [JanzingWocjan2006a]. -/
 theorem E0_exceeds_three_quarters_inv (M m : ℕ) (hMpos : 0 < M) (hm : Odd m)
     (E0 : ℝ)
     (hE0 : 1 / (M : ℝ) + (-(Real.cos (Real.pi / (M : ℝ)))) ^ m ≤ E0)
@@ -291,6 +342,8 @@ theorem E0_exceeds_three_quarters_inv (M m : ℕ) (hMpos : 0 < M) (hm : Odd m)
   rw [hpow] at hE0
   linarith [hE0, hkey]
 
+/-- If `E0 > 3 / (4 * M)` and the coefficient difference is signed one third, their product is
+above `1 / (4 * M)` or below its negative. See [JanzingWocjan2006a]. -/
 theorem diagonal_entry_sign_gap (M : ℕ) (E0 α0 α1 : ℝ) (hM : 0 < M)
     (hE0 : 3 / (4 * (M : ℝ)) < E0)
     (hcase : α0 - α1 = 1 / 3 ∨ α0 - α1 = -(1 / 3)) :
@@ -307,6 +360,9 @@ theorem diagonal_entry_sign_gap (M : ℕ) (E0 α0 α1 : ℝ) (hM : 0 < M)
     rw [h]
     nlinarith [hE0, hc]
 
+/-- For odd `M ≥ 3`, the given spectral lower bound, endpoint mass, tail bound, nonnegative
+weights, and signed-one-third coefficient gap force the cubic moment combination outside the
+interval with endpoints `±1 / (4 * M)`. See [JanzingWocjan2006a]. -/
 theorem moment_separation (M : ℕ) (hM : 3 ≤ M) (hModd : Odd M)
     (l0 : Fin (halfIdx M)) (h0 : (l0 : ℕ) = 0)
     (hmin : ∀ l, -(Real.cos (Real.pi / (M:ℝ))) ≤ lam0 M l)

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+
+/-!
+# Addressing supplied time grids
+
+The address `suppliedGridAddress` selects the interval containing a time, and
+`suppliedGridOracle` evaluates an original time-dependent oracle at that interval's left
+endpoint. The encoding lemmas transfer block encodings to the supplied-grid field and then to
+uniform fine-grid sample times. These results support the contour-based algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `suppliedGridAddress_spec`: gives the selected interval's bounds.
+* `original_timeOracle_fineGrid_encoding`: transfers original encodings to fine-grid samples.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -33,6 +53,7 @@ namespace CBMD
 open Matrix Set
 open scoped Matrix.Norms.L2Operator
 
+/-- If `τ 0 = 0` and `0 ≤ u < τ N`, some interval with index below `N` contains `u`. -/
 theorem suppliedGrid_interval_exists {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
     {N : ℕ} {u : ℝ} (hu0 : 0 ≤ u) (huN : u < τ N) :
     ∃ j : ℕ, j < N ∧ τ j ≤ u ∧ u < τ (j+1) := by
@@ -44,17 +65,23 @@ theorem suppliedGrid_interval_exists {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
       exact ⟨j,by omega,hjl,hjr⟩
     · exact ⟨N,by omega,le_of_not_gt hu,huN⟩
 
+/-- Chooses the least supplied-grid interval containing `u`, using zero when no such interval
+exists. -/
 def suppliedGridAddress (τ : ℕ → ℝ) (N : ℕ) (u : ℝ) : ℕ := by
   classical
   exact if h : ∃ j : ℕ, j < N ∧ τ j ≤ u ∧ u < τ (j+1)
     then Nat.find h else 0
 
+/-- Returns the left endpoint of the supplied-grid interval selected for `u`. -/
 def suppliedGridSampleTime (τ : ℕ → ℝ) (N : ℕ) (u : ℝ) : ℝ :=
   τ (suppliedGridAddress τ N u)
 
+/-- Evaluates a time-dependent oracle at the selected supplied-grid sample time. -/
 def suppliedGridOracle {β : Type*} (U : ℝ → β) (τ : ℕ → ℝ) (N : ℕ) (u : ℝ) : β :=
   U (suppliedGridSampleTime τ N u)
 
+/-- For `0 ≤ u < τ N` and `τ 0 = 0`, the chosen address is below `N` and its interval contains
+`u`. -/
 theorem suppliedGridAddress_spec {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
     {N : ℕ} {u : ℝ} (hu0 : 0 ≤ u) (huN : u < τ N) :
     suppliedGridAddress τ N u < N ∧
@@ -63,6 +90,8 @@ theorem suppliedGridAddress_spec {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
   have hex := suppliedGrid_interval_exists hτ0 hu0 huN
   simpa only [suppliedGridAddress, dif_pos hex] using Nat.find_spec hex
 
+/-- For a monotone supplied grid starting at zero, the selected sample time lies in `[0, τ N]`
+when `0 ≤ u < τ N`. -/
 theorem suppliedGridSampleTime_mem {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
     {N : ℕ} {u : ℝ} (hu0 : 0 ≤ u) (huN : u < τ N) :
     suppliedGridSampleTime τ N u ∈ Set.Icc 0 (τ N) := by
@@ -73,6 +102,8 @@ theorem suppliedGridSampleTime_mem {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 
 
 variable {I : Type} {W : Type*} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- Inside the supplied time range, the supplied-grid field equals the matrix at the selected
+grid address. -/
 theorem suppliedGridField_eq_address {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
     (B : ℕ → Matrix I I ℂ) {N : ℕ} {u : ℝ} (hu0 : 0 ≤ u) (huN : u < τ N) :
     suppliedGridField τ B N u = B (suppliedGridAddress τ N u) := by
@@ -80,11 +111,15 @@ theorem suppliedGridField_eq_address {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
   have hex := suppliedGrid_interval_exists hτ0 hu0 huN
   simp only [suppliedGridField, suppliedGridAddress, dif_pos hex]
 
+/-- The supplied-grid field formed from samples of `A` equals `A` at the selected supplied-grid
+sample time. -/
 theorem suppliedGridField_original {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
     (A : ℝ → Matrix I I ℂ) {N : ℕ} {u : ℝ} (hu0 : 0 ≤ u) (huN : u < τ N) :
     suppliedGridField τ (fun j => A (τ j)) N u = A (suppliedGridSampleTime τ N u) :=
   suppliedGridField_eq_address hτ0 (fun j => A (τ j)) hu0 huN
 
+/-- Original time-dependent block encodings transfer to the supplied-grid field with the same
+frames, normalization, and error. -/
 theorem original_timeOracle_suppliedGrid_encoding {τ : ℕ → ℝ} (hτ : Monotone τ)
     (hτ0 : τ 0 = 0) (A : ℝ → Matrix I I ℂ) (U : ℝ → Matrix W W ℂ)
     (L R : Matrix W I ℂ) (N : ℕ) (α ε : ℝ)
@@ -95,6 +130,8 @@ theorem original_timeOracle_suppliedGrid_encoding {τ : ℕ → ℝ} (hτ : Mono
   rw [suppliedGridField_original hτ0 A hu0 huN]
   exact henc _ (suppliedGridSampleTime_mem hτ hτ0 hu0 huN)
 
+/-- For positive `T` and positive grid size `M`, every uniform sample time `T * j / M` lies in
+`[0, T)`. -/
 theorem uniformGridTime_mem {T : ℝ} (hT : 0 < T) {M : ℕ} (hM : 0 < M)
     (j : Fin M) : 0 ≤ T*j.val/M ∧ T*j.val/M < T := by
   have hMp : 0 < (M:ℝ) := by exact_mod_cast hM
@@ -103,6 +140,8 @@ theorem uniformGridTime_mem {T : ℝ} (hT : 0 < T) {M : ℕ} (hM : 0 < M)
   · apply (div_lt_iff₀ hMp).mpr
     exact mul_lt_mul_of_pos_left (by exact_mod_cast j.isLt) hT
 
+/-- Original block encodings on `[0, T]` transfer to supplied-grid fields evaluated at uniform
+fine-grid sample times. -/
 theorem original_timeOracle_fineGrid_encoding {τ : ℕ → ℝ} (hτ : Monotone τ)
     (hτ0 : τ 0 = 0) (A : ℝ → Matrix I I ℂ) (U : ℝ → Matrix W W ℂ)
     (L R : Matrix W I ℂ) (N M : ℕ) {T α ε : ℝ}

@@ -8,6 +8,28 @@ import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.CStarAlgebra.Matrix
 
+/-!
+# Projection Hamiltonians and their unit spectral gap
+
+Defines `projHam v` as the identity minus the outer product of `v` with its conjugate. For unit
+`v`, it annihilates `v`, acts as the identity on orthogonal vectors, and has nonnegative energy,
+making `v` a ground state with spectral gap at least one.
+
+The affine combination `convHam` is Hermitian for every real interpolation parameter, and its
+matrix action decomposes into the corresponding combination of projection Hamiltonian actions.
+See [AharonovTaShma2007].
+
+## Main statements
+
+* `projHam_isGroundstate`: A unit defining vector is a zero-energy ground state.
+* `projHam_spectralGap_one`: The spectral gap above that ground state is at least one.
+* `convHam_isHermitian`: Real affine combinations of projection Hamiltonians are Hermitian.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -21,14 +43,18 @@ open WithLp
 
 variable {n : ℕ}
 
+/-- The Hamiltonian matrix `I - v vᴴ`, equal to the complement of a rank-one orthogonal
+projection when `v` is unit. -/
 def projHam (v : Dim n → ℂ) : Ham n :=
   1 - Matrix.vecMulVec v (star v)
 
+/-- An entry of `projHam v` is the identity entry minus `v i * conj (v j)`. -/
 lemma projHam_apply (v : Dim n → ℂ) (i j : Dim n) :
     projHam v i j = (if i = j then (1 : ℂ) else 0) - v i * star (v j) := by
   simp only [projHam, Matrix.sub_apply, Matrix.one_apply, Matrix.vecMulVec_apply,
     Pi.star_apply]
 
+/-- The matrix `projHam v` is Hermitian for every vector `v` [AharonovTaShma2007]. -/
 theorem projHam_isHermitian (v : Dim n → ℂ) : IsHermitian (projHam v) := by
   refine IsHermitian.ext ?_
   intro i j
@@ -39,6 +65,7 @@ theorem projHam_isHermitian (v : Dim n → ℂ) : IsHermitian (projHam v) := by
   · rw [if_neg h, if_neg (Ne.symm h)]
     simp [mul_comm]
 
+/-- The action of `projHam v` on `w` has coordinate `w i - v i * (star v ⬝ᵥ w)`. -/
 lemma projHam_mulVec_apply (v w : Dim n → ℂ) (i : Dim n) :
     (projHam v *ᵥ w) i = w i - v i * (star v ⬝ᵥ w) := by
   rw [projHam, Matrix.sub_mulVec, Matrix.one_mulVec]
@@ -50,11 +77,13 @@ lemma projHam_mulVec_apply (v w : Dim n → ℂ) (i : Dim n) :
   intro j _
   ring
 
+/-- The conjugated coordinate dot product of `v` with itself equals its Euclidean inner product. -/
 lemma dotProduct_star_self (v : Dim n → ℂ) :
     star v ⬝ᵥ v = (⟪toLp 2 v, toLp 2 v⟫_ℂ) := by
   rw [EuclideanSpace.inner_toLp_toLp]
   exact (dotProduct_comm v (star v)).symm
 
+/-- For unit `v`, the projection Hamiltonian annihilates `v` [AharonovTaShma2007]. -/
 theorem projHam_mulVec_self (v : Dim n → ℂ)
     (hv : ‖toLp 2 v‖ = 1) : projHam v *ᵥ v = 0 := by
   ext i
@@ -64,6 +93,8 @@ theorem projHam_mulVec_self (v : Dim n → ℂ)
     norm_num
   rw [h, mul_one, sub_self]
 
+/-- The projection Hamiltonian acts as the identity on vectors orthogonal to its defining vector
+[AharonovTaShma2007]. -/
 theorem projHam_mulVec_of_orth (v w : Dim n → ℂ)
     (h : ⟪toLp 2 v, toLp 2 w⟫_ℂ = 0) :
     projHam v *ᵥ w = w := by
@@ -74,6 +105,7 @@ theorem projHam_mulVec_of_orth (v w : Dim n → ℂ)
     exact h
   rw [hz, mul_zero, sub_zero]
 
+/-- In coordinate form, the induced operator sends `x` to `ofLp x - ⟪toLp 2 v, x⟫ • v`. -/
 lemma ofLp_toOp_projHam (v : Dim n → ℂ) (x : State n) :
     ofLp (toOp (projHam v) x) = ofLp x - (⟪toLp 2 v, x⟫_ℂ) • v := by
   rw [toOp, Matrix.ofLp_toEuclideanCLM]
@@ -84,12 +116,14 @@ lemma ofLp_toOp_projHam (v : Dim n → ℂ) (x : State n) :
   rw [hc]
   ring
 
+/-- The induced operator acts by subtracting the component `⟪toLp 2 v, x⟫ • toLp 2 v` from `x`. -/
 lemma toOp_projHam_apply (v : Dim n → ℂ) (x : State n) :
     toOp (projHam v) x
       = x - (⟪toLp 2 v, x⟫_ℂ) • toLp 2 v := by
   have h := congrArg (fun y : Dim n → ℂ => toLp 2 y) (ofLp_toOp_projHam v x)
   simpa using h
 
+/-- A unit defining vector has zero energy for its projection Hamiltonian. -/
 theorem projHam_rayleigh_self (v : Dim n → ℂ)
     (hv : ‖toLp 2 v‖ = 1) :
     rayleigh (projHam v) (toLp 2 v) = 0 := by
@@ -104,6 +138,7 @@ theorem projHam_rayleigh_self (v : Dim n → ℂ)
   rw [hzero, inner_zero_right]
   simp
 
+/-- For unit `v`, every state has nonnegative energy under `projHam v` [AharonovTaShma2007]. -/
 theorem projHam_rayleigh_nonneg (v : Dim n → ℂ) (x : State n)
     (hv : ‖toLp 2 v‖ = 1) :
     0 ≤ rayleigh (projHam v) x := by
@@ -129,6 +164,8 @@ theorem projHam_rayleigh_nonneg (v : Dim n → ℂ) (x : State n)
   have hxnn : 0 ≤ ‖x‖ := norm_nonneg x
   nlinarith [sq_nonneg ‖c‖, sq_nonneg ‖x‖, norm_nonneg c]
 
+/-- A unit defining vector is a variational ground state of its projection Hamiltonian
+[AharonovTaShma2007]. -/
 theorem projHam_isGroundstate (v : Dim n → ℂ)
     (hv : ‖toLp 2 v‖ = 1) :
     IsGroundstate (projHam v) (toLp 2 v) := by
@@ -137,6 +174,8 @@ theorem projHam_isGroundstate (v : Dim n → ℂ)
   rw [projHam_rayleigh_self v hv]
   exact projHam_rayleigh_nonneg v φ hv
 
+/-- For unit `v`, the projection Hamiltonian satisfies `SpectralGapAtLeast` with gap bound one
+relative to `v` [AharonovTaShma2007]. -/
 theorem projHam_spectralGap_one (v : Dim n → ℂ)
     (hv : ‖toLp 2 v‖ = 1) :
     SpectralGapAtLeast (projHam v) (toLp 2 v) 1 := by
@@ -151,9 +190,12 @@ theorem projHam_spectralGap_one (v : Dim n → ℂ)
   rw [hray, projHam_rayleigh_self v hv]
   norm_num
 
+/-- The real affine combination `(1 - η) * projHam v + η * projHam w`. -/
 def convHam (η : ℝ) (v w : Dim n → ℂ) : Ham n :=
   ((1 - η : ℝ) : ℂ) • projHam v + (η : ℂ) • projHam w
 
+/-- The affine combination of two projection Hamiltonians is Hermitian for every real parameter
+[AharonovTaShma2007]. -/
 theorem convHam_isHermitian (η : ℝ) (v w : Dim n → ℂ) :
     IsHermitian (convHam η v w) := by
   have h1 : IsSelfAdjoint ((1 - η : ℝ) : ℂ) := by
@@ -166,6 +208,8 @@ theorem convHam_isHermitian (η : ℝ) (v w : Dim n → ℂ) :
   exact IsHermitian.add (IsHermitian.smul (projHam_isHermitian v) h1)
     (IsHermitian.smul (projHam_isHermitian w) h2)
 
+/-- The action of the affine combination is the same affine combination of the two projection
+Hamiltonian actions. -/
 lemma convHam_mulVec (η : ℝ) (v w z : Dim n → ℂ) :
     convHam η v w *ᵥ z
       = ((1 - η : ℝ) : ℂ) • (projHam v *ᵥ z) + (η : ℂ) • (projHam w *ᵥ z) := by

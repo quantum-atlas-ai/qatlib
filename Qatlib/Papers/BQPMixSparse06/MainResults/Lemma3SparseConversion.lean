@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
 
+/-!
+# Sparsity of the unsigned block conversion
+
+The conversion `blockConvert` sends matrices with entries in `{-1, 0, 1}` to matrices with
+entries in `{0, 1}` while preserving the number of nonzero entries in each row. The module also
+bounds row sparsity after symmetrization, supplying the degree estimates used in
+[JanzingWocjan2006].
+
+## Main statements
+
+* `lemma3_sparse_conversion`: a signed matrix with four nonzero entries per row gives a lift
+  with the same row counts.
+* `add_transpose_row_card_le_four`: row and column sparsity at most two give symmetrized row
+  sparsity at most four.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -13,6 +33,7 @@ namespace Qatlib.Papers.BQPMixSparse06.MainResults
 
 open Finset Matrix
 
+/-- Reorders the entry condition `-1`, `0`, or `1` into the order required by the block lemmas. -/
 lemma reorder_entry {N : ℕ} {A : Matrix (Fin N) (Fin N) ℤ}
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (i j : Fin N) :
     A i j = 0 ∨ A i j = 1 ∨ A i j = -1 := by
@@ -21,6 +42,7 @@ lemma reorder_entry {N : ℕ} {A : Matrix (Fin N) (Fin N) ℤ}
   · exact Or.inl h
   · exact Or.inr (Or.inl h)
 
+/-- For `a` in `{-1, 0, 1}`, every entry of `gammaBlock a` is zero or one. -/
 lemma gammaBlock_entry_zero_or_one (a : ℤ) (ha : a = 0 ∨ a = 1 ∨ a = -1)
     (s t : Fin 2) : gammaBlock a s t = 0 ∨ gammaBlock a s t = 1 := by
   rcases ha with rfl | rfl | rfl
@@ -28,12 +50,15 @@ lemma gammaBlock_entry_zero_or_one (a : ℤ) (ha : a = 0 ∨ a = 1 ∨ a = -1)
   · fin_cases s <;> fin_cases t <;> simp [gammaBlock, Matrix.one_apply]
   · fin_cases s <;> fin_cases t <;> simp [gammaBlock]
 
+/-- The block conversion of a matrix with entries in `{-1, 0, 1}` has only zero and one entries. -/
 theorem blockConvert_entry_zero_or_one {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (p q : Fin 2 × Fin N) :
     blockConvert A p q = 0 ∨ blockConvert A p q = 1 := by
   unfold blockConvert
   exact gammaBlock_entry_zero_or_one (A p.2 q.2) (reorder_entry hA p.2 q.2) p.1 q.1
 
+/-- For `a` in `{-1, 0, 1}`, each row of `gammaBlock a` has one nonzero entry exactly when `a`
+is nonzero. -/
 lemma gammaBlock_row_sum (a : ℤ) (ha : a = 0 ∨ a = 1 ∨ a = -1) (s : Fin 2) :
     (∑ t : Fin 2, if gammaBlock a s t ≠ 0 then (1 : ℕ) else 0) =
       (if a ≠ 0 then 1 else 0) := by
@@ -42,6 +67,8 @@ lemma gammaBlock_row_sum (a : ℤ) (ha : a = 0 ∨ a = 1 ∨ a = -1) (s : Fin 2)
   rw [hc]
   by_cases h : a = 0 <;> simp [h]
 
+/-- The block conversion preserves the number of nonzero entries in each row of a matrix with
+entries in `{-1, 0, 1}`. -/
 theorem blockConvert_row_card {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1) (s : Fin 2) (i : Fin N) :
     (univ.filter (fun x : Fin 2 × Fin N => blockConvert A (s, i) x ≠ 0)).card =
@@ -59,6 +86,8 @@ theorem blockConvert_row_card {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     rw [Finset.card_eq_sum_ones, Finset.sum_filter]
   rw [hL, hR]
 
+/-- If every row of a signed matrix has exactly four nonzero entries, then every row of its
+block conversion also has exactly four [JanzingWocjan2006, Lemma 3][JanzingWocjan2006]. -/
 theorem lemma3_sparse_conversion {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (hA : ∀ i j, A i j = -1 ∨ A i j = 0 ∨ A i j = 1)
     (hdeg : ∀ i, (univ.filter (fun j : Fin N => A i j ≠ 0)).card = 4)
@@ -66,6 +95,8 @@ theorem lemma3_sparse_conversion {N : ℕ} (A : Matrix (Fin N) (Fin N) ℤ)
     (univ.filter (fun x : Fin 2 × Fin N => blockConvert A (s, i) x ≠ 0)).card = 4 := by
   rw [blockConvert_row_card A hA s i, hdeg]
 
+/-- The support size of row `i` of `W + Wᵀ` is at most the sum of the support sizes of row `i`
+and column `i` of `W`. -/
 theorem add_transpose_row_card_le {N : ℕ} (W : Matrix (Fin N) (Fin N) ℝ) (i : Fin N) :
     (univ.filter (fun j : Fin N => W i j + W j i ≠ 0)).card ≤
       (univ.filter (fun j : Fin N => W i j ≠ 0)).card +
@@ -88,6 +119,8 @@ theorem add_transpose_row_card_le {N : ℕ} (W : Matrix (Fin N) (Fin N) ℝ) (i 
           (univ.filter (fun j : Fin N => W j i ≠ 0))).card := Finset.card_le_card hsub
     _ ≤ _ + _ := Finset.card_union_le _ _
 
+/-- If every row and column of `W` has at most two nonzero entries, each row of `W + Wᵀ` has at
+most four [JanzingWocjan2006]. -/
 theorem add_transpose_row_card_le_four {N : ℕ} (W : Matrix (Fin N) (Fin N) ℝ)
     (hrow : ∀ i, (univ.filter (fun j : Fin N => W i j ≠ 0)).card ≤ 2)
     (hcol : ∀ i, (univ.filter (fun j : Fin N => W j i ≠ 0)).card ≤ 2) (i : Fin N) :

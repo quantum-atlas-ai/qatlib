@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HidShiftQuad09.MainResults.Defs
 import Mathlib.Analysis.InnerProductSpace.PiL2
+
+/-!
+# Correlation and success perturbation near quadratics
+
+This module proves correlation and Euclidean-vector estimates used in the close-quadratic
+analysis of [Roetteler2009]. Large absolute correlation gives either a small disagreement
+fraction or a disagreement fraction close to one.
+
+The success estimates compare squared overlaps of nearby vectors. Under the explicitly supplied
+unit-vector model and correlation-power identity, `source_theorem2_findCloseQuadratic` gives a
+lower bound by a positive multiple of `1 - n * ε`.
+
+## Main statements
+
+* `abs_corr_gt_implies_close`: translates absolute correlation into a disagreement alternative.
+* `success_perturbation`: bounds the change in a squared success overlap.
+* `source_theorem2_findCloseQuadratic`: combines the correlation and perturbation hypotheses.
+
+## References
+
+* [Roetteler, 2009][Roetteler2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +39,8 @@ namespace Qatlib.Papers.HidShiftQuad09.MainResults.FindCloseQuadratic
 open scoped BigOperators RealInnerProductSpace
 open Qatlib.Papers.HidShiftQuad09.MainResults.Defs
 
+/-- If the absolute correlation is greater than `1 - ε`, the disagreement fraction is less than
+`ε / 2` or greater than `1 - ε / 2`. [Roetteler2009]. -/
 theorem abs_corr_gt_implies_close {n : ℕ} (f g : Cube n → ZMod 2) (ε : ℝ)
     (h : 1 - ε < |corr f g|) :
     disagreeFrac f g < ε / 2 ∨ 1 - ε / 2 < disagreeFrac f g := by
@@ -28,6 +53,8 @@ theorem abs_corr_gt_implies_close {n : ℕ} (f g : Cube n → ZMod 2) (ε : ℝ)
   · right
     linarith
 
+/-- For nonnegative `r` and `ε` with `1 - ε ≤ r`, the natural power `r ^ k` is at least `1 - k *
+ε`. [Roetteler2009]. -/
 theorem one_sub_mul_le_pow_abs (k : ℕ) {r ε : ℝ}
     (_hε0 : 0 ≤ ε) (hr0 : 0 ≤ r) (hr : 1 - ε ≤ r) :
     1 - (k : ℝ) * ε ≤ r ^ k := by
@@ -45,12 +72,17 @@ theorem one_sub_mul_le_pow_abs (k : ℕ) {r ε : ℝ}
       have : 0 ≤ r ^ k := pow_nonneg hr0 k
       linarith
 
+/-- The squared distance between two unit vectors in a real Euclidean space equals two minus
+twice their inner product. -/
 theorem norm_sub_sq_unit {N : ℕ} (u v : EuclideanSpace ℝ (Fin N))
     (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
     ‖u - v‖ ^ 2 = 2 - 2 * ⟪u, v⟫ := by
   rw [norm_sub_sq_real, hu, hv]
   ring
 
+/-- If unit vectors `ψg` and `φ` have squared inner product at least one half and `ψf` is within
+distance `d` of `ψg`, then its squared inner product with `φ` is at least `1 / 2 - 2 * d`.
+[Roetteler2009]. -/
 theorem success_perturbation {N : ℕ} (ψf ψg φ : EuclideanSpace ℝ (Fin N))
     (hψg : ‖ψg‖ = 1) (hφ : ‖φ‖ = 1)
     (hp0 : 1 / 2 ≤ ⟪ψg, φ⟫ ^ 2)
@@ -85,6 +117,8 @@ theorem success_perturbation {N : ℕ} (ψf ψg φ : EuclideanSpace ℝ (Fin N))
   have hb2 : (0 : ℝ) ≤ b ^ 2 := sq_nonneg b
   nlinarith [hab, hp0, hb2]
 
+/-- For `ε ≥ 0` and `k ≤ n / 1000`, the perturbation bound `1 / 2 - 2 * sqrt (2 * k * ε)` is at
+least `(1 / 8) * (1 - n * ε)`. [Roetteler2009]. -/
 theorem corr_perturbation_numeric (n k : ℕ) (ε : ℝ) (hε0 : 0 ≤ ε)
     (hk : (k : ℝ) ≤ (n : ℝ) / 1000) :
     (1 / 8 : ℝ) * (1 - (n : ℝ) * ε) ≤ 1 / 2 - 2 * Real.sqrt (2 * (k : ℝ) * ε) := by
@@ -112,6 +146,9 @@ theorem corr_perturbation_numeric (n k : ℕ) (ε : ℝ) (hε0 : 0 ≤ ε)
     have h2 : 2 * Real.sqrt (2 * (k : ℝ) * ε) ≤ T / 500 + 1 := by nlinarith
     nlinarith
 
+/-- Given the stated high correlation with a quadratic polynomial and unit-vector overlap model,
+there is a positive constant `c` such that the squared success overlap is at least `c * (1 -
+n * ε)`. [Roetteler2009]. -/
 theorem source_theorem2_findCloseQuadratic
     (n : ℕ) (_hn : 0 < n) (ε : ℝ) (f : Cube n → ZMod 2) (g : QuadPoly n)
     (hε0 : 0 ≤ ε)

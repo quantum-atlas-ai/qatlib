@@ -9,6 +9,31 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Data.Complex.BigOperators
 import Mathlib.Analysis.Normed.Ring.Finite
 
+/-!
+# Fourier sampling of a translated pair
+
+This module defines the pair amplitudes `pairAmplitude` and their marginal weights `pairProb`
+for Fourier sampling a translated pair. The result `lemma_3_1` shows that a nonzero translation
+gives total probability one half for the true bit and characterizes the zero-probability
+frequencies by orthogonality.
+
+The development follows [FriedlEtAl2014].
+
+## Main statements
+
+* `pairProb_eq`: The marginal pair probability is ‖1 + sign(c)χ(u)‖²/(4|G|), with χ indexed by
+  `e y`.
+* `fourierSampling_outputs_one_prob`: For a nonzero translation `u`, the total pair probability
+  of the true output bit is one half.
+* `lemma_3_1`: For a nonzero translation, the true bit has total probability one half, its
+  frequency probabilities depend only on the character value at the translation, and they vanish
+  exactly at orthogonal frequencies.
+
+## References
+
+* [Friedl et al., 2014][FriedlEtAl2014]
+-/
+
 open Qatlib.Concepts.WalkFind.UniformThree
 open Qatlib.Concepts.WalshMoment.Forrelation
 open scoped ComplexConjugate BigOperators Classical
@@ -19,23 +44,33 @@ set_option autoImplicit false
 
 variable {G : Type*} [AddCommGroup G] [Fintype G]
 
+/-- The complex sign equal to minus one for `true` and one for `false`. -/
 def signOfBit (c : Bool) : ℂ := if c then -1 else 1
 
+/-- The amplitude at `(y, c, x)` equal to the character value at `x` times 1 + sign(c)χ(u),
+scaled by 1/(2|G|), with χ indexed by `e y`. -/
 noncomputable def pairAmplitude (e : G ≃ AddChar G ℂ) (u : G) (y : G) (c : Bool)
     (x : G) : ℂ :=
   (2 * (Fintype.card G : ℂ))⁻¹ *
     ((e y) x * (1 + signOfBit c * (e y) u))
 
+/-- The sum over `x` of squared norms of the pair amplitudes for the fixed frequency `y` and bit
+`c`. -/
 noncomputable def pairProb (e : G ≃ AddChar G ℂ) (u : G) (y : G) (c : Bool) : ℝ :=
   ∑ x : G, ‖pairAmplitude e u y c x‖ ^ 2
 
+/-- The condition that the character indexed by `y` evaluates to one at `u`. -/
 def memOrthogonal (e : G ≃ AddChar G ℂ) (u y : G) : Prop := (e y) u = 1
 
+/-- The norm of the pair amplitude is the norm of 1/(2|G|) times the norm of 1 + sign(c)χ(u),
+independently of `x`. -/
 lemma norm_pairAmplitude (e : G ≃ AddChar G ℂ) (u y : G) (c : Bool) (x : G) :
     ‖pairAmplitude e u y c x‖ =
       ‖(2 * (Fintype.card G : ℂ))⁻¹‖ * ‖1 + signOfBit c * (e y) u‖ := by
   rw [pairAmplitude, norm_mul, norm_mul, AddChar.norm_apply, one_mul]
 
+/-- The complex norm of the inverse of twice the group cardinality equals the corresponding
+nonnegative real inverse. -/
 lemma norm_inv_two_card :
     ‖(2 * (Fintype.card G : ℂ))⁻¹‖ = (2 * (Fintype.card G : ℝ))⁻¹ := by
   rw [norm_inv, norm_mul]
@@ -44,6 +79,8 @@ lemma norm_inv_two_card :
     rw [norm_natCast]
   rw [h2, hc]
 
+/-- The marginal pair probability is ‖1 + sign(c)χ(u)‖²/(4|G|), with χ indexed by `e y` ([Lemma
+3.1][FriedlEtAl2014]). -/
 theorem pairProb_eq (e : G ≃ AddChar G ℂ) (u y : G) (c : Bool) :
     pairProb e u y c =
       (4 * (Fintype.card G : ℝ))⁻¹ * ‖1 + signOfBit c * (e y) u‖ ^ 2 := by
@@ -54,11 +91,15 @@ theorem pairProb_eq (e : G ≃ AddChar G ℂ) (u y : G) (c : Bool) :
   field_simp
   ring
 
+/-- For the true output bit, frequencies with the same character value at `u` have equal pair
+probabilities. -/
 theorem pairProb_one_depends_only_on_character (e : G ≃ AddChar G ℂ) (u y y' : G)
     (h : (e y) u = (e y') u) :
     pairProb e u y true = pairProb e u y' true := by
   simp only [pairProb_eq, signOfBit, if_true, h]
 
+/-- The true-bit pair probability vanishes exactly when the indexed character evaluates to one
+at `u` ([Lemma 3.1][FriedlEtAl2014]). -/
 theorem pairProb_one_eq_zero_iff (e : G ≃ AddChar G ℂ) (u y : G) :
     pairProb e u y true = 0 ↔ memOrthogonal e u y := by
   rw [pairProb_eq]
@@ -85,6 +126,8 @@ theorem pairProb_one_eq_zero_iff (e : G ≃ AddChar G ℂ) (u y : G) :
     rw [h]
     simp [signOfBit]
 
+/-- Summing the values at `u` of all characters indexed by `e` gives |G| when u = 0 and zero
+otherwise. -/
 theorem sum_character_eval (e : G ≃ AddChar G ℂ) (u : G) :
     (∑ y : G, (e y) u) = if u = 0 then (Fintype.card G : ℂ) else 0 := by
   have h1 : (∑ y : G, (e y) u) = ∑ y : G, ((e y) u * conj ((e y) 0)) := by
@@ -94,6 +137,8 @@ theorem sum_character_eval (e : G ≃ AddChar G ℂ) (u : G) :
   rw [h1, Equiv.sum_comp e (fun χ : AddChar G ℂ => χ u * conj (χ 0)),
     sum_dual_mul_conj u 0]
 
+/-- For a nonzero translation `u`, the total pair probability of the true output bit is one half
+([Lemma 3.1][FriedlEtAl2014]). -/
 theorem fourierSampling_outputs_one_prob (e : G ≃ AddChar G ℂ) (u : G) (hu : u ≠ 0) :
     (∑ y : G, pairProb e u y true) = 1 / 2 := by
   have hC : (Fintype.card G : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
@@ -124,6 +169,9 @@ theorem fourierSampling_outputs_one_prob (e : G ≃ AddChar G ℂ) (u : G) (hu :
   field_simp
   ring
 
+/-- For a nonzero translation, the true bit has total probability one half, its frequency
+probabilities depend only on the character value at the translation, and they vanish exactly
+at orthogonal frequencies ([Lemma 3.1][FriedlEtAl2014]). -/
 theorem lemma_3_1 (e : G ≃ AddChar G ℂ) (u : G) (hu : u ≠ 0) :
     (∑ y : G, pairProb e u y true) = 1 / 2 ∧
       (∀ y y', (e y) u = (e y') u → pairProb e u y true = pairProb e u y' true) ∧

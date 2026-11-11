@@ -8,6 +8,27 @@ import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceEntropy
 import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceAlgebra
 import Mathlib.Data.Nat.Choose.Central
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Exponential bounds for central-difference binomial ratios
+
+Central binomial and entropy estimates bound the ratios appearing in high-order
+central-difference weights. `centralDiff_ratio_power_bound` controls a ratio times `l ^ k` by `2
+* sqrt m * m ^ k * exp (-(7 / 6) * m)` for `1 ≤ l ≤ m` and `2 * m ≤ k`. See
+[GilyenArunachalamWiebe2019] for background.
+
+## Main statements
+
+* `centralDiff_central_choose_lower`: For positive `m`, the central binomial coefficient
+  satisfies `4 ^ m ≤ 2 * sqrt m * choose (2 * m) m`.
+* `centralDiff_ratio_power_bound`: For `0 < l ≤ m` and `2 * m ≤ k`, the binomial ratio times `l
+  ^ k` is at most `2 * sqrt m * m ^ k * exp (-(7 / 6) * m)`.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +38,8 @@ noncomputable section
 namespace Qatlib.Concepts.GradientOracle.CentralDiff
 open scoped BigOperators
 
+/-- For positive `m`, the central binomial coefficient satisfies `4 ^ m ≤ 2 * sqrt m * choose (2
+* m) m`. -/
 theorem centralDiff_central_choose_lower (m : ℕ) (hm : 0<m) :
     (4 : ℝ)^m≤2*Real.sqrt m*(Nat.choose (2*m) m : ℝ) := by
   induction m with
@@ -47,6 +70,7 @@ theorem centralDiff_central_choose_lower (m : ℕ) (hm : 0<m) :
       push_cast
       nlinarith
 
+/-- The real exponential of seven sixths is at most four. -/
 private theorem centralDiff_exp_seven_sixths : Real.exp (7/6 : ℝ)≤4 := by
   calc
     _ = Real.exp 1*Real.exp (1/6 : ℝ) := by rw [← Real.exp_add]; congr 1; ring
@@ -54,6 +78,7 @@ private theorem centralDiff_exp_seven_sixths : Real.exp (7/6 : ℝ)≤4 := by
       (Real.exp_bound_div_one_sub_of_interval (by norm_num) (by norm_num)) (Real.exp_pos _).le (by norm_num)
     _ ≤ 4 := by norm_num
 
+/-- For nonnegative `a` and `b`, any binomial term with `j ≤ n` is at most `(a + b) ^ n`. -/
 theorem centralDiff_binomial_term_le (a b : ℝ) (ha : 0≤a) (hb : 0≤b) (n j : ℕ) (hj : j≤n) :
     (Nat.choose n j : ℝ)*a^j*b^(n-j)≤(a+b)^n := by
   have hmem : j∈Finset.range (n+1) := Finset.mem_range.mpr (by omega)
@@ -63,6 +88,8 @@ theorem centralDiff_binomial_term_le (a b : ℝ) (ha : 0≤a) (hb : 0≤b) (n j 
   rw [← add_pow] at h
   simpa only [mul_assoc,mul_comm,mul_left_comm] using h
 
+/-- For `0 < l < m`, the coefficient ratio multiplied by `(l / m) ^ (2 * m)` is at most `2 *
+sqrt m * exp (-(7 / 6) * m)`. -/
 theorem centralDiff_ratio_entropy (m l : ℕ) (hm : 0<m) (hl : 0<l) (hlm : l<m) :
     let y := (l : ℝ)/(m : ℝ)
     y^(2*m)*((Nat.choose m l : ℝ)/(Nat.choose (m+l) l : ℝ))≤
@@ -122,6 +149,8 @@ theorem centralDiff_ratio_entropy (m l : ℕ) (hm : 0<m) (hl : 0<l) (hlm : l<m) 
       apply mul_le_mul_of_nonneg_left _ (by positivity)
       simpa only [mul_comm] using hexp
 
+/-- The exponentially decaying normalized coefficient-ratio bound holds also at the endpoint `l
+= m`. -/
 theorem centralDiff_ratio_entropy_closed (m l : ℕ) (hm : 0<m) (hl : 0<l) (hlm : l≤m) :
     ((l : ℝ)/(m : ℝ))^(2*m)*((Nat.choose m l : ℝ)/(Nat.choose (m+l) l : ℝ))≤
       2*Real.sqrt m*Real.exp (-(7/6 : ℝ)*(m : ℝ)) := by
@@ -146,6 +175,8 @@ theorem centralDiff_ratio_entropy_closed (m l : ℕ) (hm : 0<m) (hl : 0<l) (hlm 
         hr.trans (by simpa only [div_eq_mul_inv,one_div,one_mul] using mul_le_mul_of_nonneg_left hexp (by positivity : 0≤2*Real.sqrt m))
   · exact centralDiff_ratio_entropy m l hm hl (by omega)
 
+/-- For `0 < l ≤ m` and `2 * m ≤ k`, the binomial ratio times `l ^ k` is at most `2 * sqrt m * m
+^ k * exp (-(7 / 6) * m)`. -/
 theorem centralDiff_ratio_power_bound (m l k : ℕ) (hm : 0<m) (hl : 0<l) (hlm : l≤m) (hk : 2*m≤k) :
     ((Nat.choose m l : ℝ)/(Nat.choose (m+l) l : ℝ))*(l : ℝ)^k≤
       2*Real.sqrt m*(m : ℝ)^k*Real.exp (-(7/6 : ℝ)*(m : ℝ)) := by

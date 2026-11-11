@@ -8,6 +8,29 @@ import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Foundations.InstrumentCore.Measurement.Basic
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
 import Mathlib.Tactic.Ext
+
+/-!
+# Resetting the auxiliary register of a Kraus dilation
+
+`krausMemoryReset` swaps a measured auxiliary label with a designated initial label while acting
+identically on the system. This unitary permutation permits repeated use of an auxiliary
+register in the dilation representation of quantum operations described in [Kraus1971].
+
+The branch identities show that selecting outcome `a` of a dilation and applying the reset
+yields the branch `K a`, tensored with the initialized auxiliary state. Both state-vector and
+operator versions are proved; the operator identity holds for arbitrary input operators.
+
+## Main statements
+
+* `kraus_memory_reset_unitary`: the reset permutation is unitary.
+* `kraus_memory_reset_branch`: measurement followed by reset realizes a pure Kraus branch.
+* `kraus_memory_reset_mixed_branch`: the corresponding operator identity.
+
+## References
+
+* [Kraus, 1971][Kraus1971]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
@@ -20,15 +43,20 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 open Matrix
 
+/-- The joint permutation gate that swaps auxiliary labels `a` and `zero` and acts identically
+on the system. -/
 noncomputable def krausMemoryReset {d s : ℕ} (zero a : Fin s) :
     Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ :=
   TensorGate (1 : Operator d) (permMatrix (Equiv.swap a zero))
 
+/-- The auxiliary reset permutation is unitary. -/
 theorem kraus_memory_reset_unitary {d s : ℕ} (zero a : Fin s) :
     krausMemoryReset (d := d) zero a ∈ Matrix.unitaryGroup (Fin d × Fin s) ℂ := by
   exact tensorGate_unitary (Submonoid.one_mem _)
     (permMatrix_unitary (fun b => Equiv.swap_apply_self a zero b))
 
+/-- Selecting auxiliary outcome `a` of a dilation satisfying `hW` and resetting that label to
+`zero` produces `K a` applied to the system, tensored with `Ket zero`. -/
 theorem kraus_memory_reset_branch {d s : ℕ}
     (K : Fin s → Operator d) (zero a : Fin s)
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
@@ -54,10 +82,13 @@ theorem kraus_memory_reset_branch {d s : ℕ}
     applyGate_permMatrix_ket (fun b => Equiv.swap_apply_self a zero b),
     Equiv.swap_apply_left]
 
+/-- Applying a matrix to the basis state `Ket j` extracts its column indexed by `j`. -/
 private theorem krausMemoryReset_apply_ket {I : Type*} [Fintype I] [DecidableEq I]
     (M : Matrix I I ℂ) (j i : I) : ApplyGate M (Ket j) i = M i j := by
   simp [ApplyGate, Matrix.mulVec, dotProduct, ket_apply, mul_ite]
 
+/-- If the auxiliary-`zero` columns of `M` are given by `L`, the auxiliary block indexed by `b,
+c` of the conjugated initialized operator is `L b * rho * (L c).conjTranspose`. -/
 private theorem krausMemoryReset_joint_block {d s : ℕ}
     (L : Fin s → Operator d) (zero : Fin s)
     (M : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)
@@ -81,6 +112,8 @@ private theorem krausMemoryReset_joint_block {d s : ℕ}
   simp only [Fintype.sum_prod_type, hleft, ite_mul, zero_mul,
     Finset.sum_ite_eq, Finset.sum_ite_eq', Finset.mem_univ, if_true, hcol]
 
+/-- Dilation followed by auxiliary outcome projection and reset maps an initialized joint
+operator to `K a * rho * (K a).conjTranspose` tensored with the projector onto `Ket zero`. -/
 theorem kraus_memory_reset_mixed_branch {d s : ℕ}
     (K : Fin s → Operator d) (zero a : Fin s)
     (W : Matrix (Fin d × Fin s) (Fin d × Fin s) ℂ)

@@ -6,16 +6,43 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.GraphFraction.CoverLP.WeightedCover
 
+/-!
+# Fractional-cover strategies from coefficient magnitudes
+
+This module defines `magnitudeRoot` and its square and cube identities. For nonzero real
+coefficients, `attained_power_strategy` chooses normalized demands proportional to `|c i|^(2/3)`
+and obtains a context distribution with positive coverage at every vertex.
+
+The resulting squared inverse-square-root coverage sum is bounded by the fractional cover value
+times the cube of the sum of the coefficient magnitudes to the power `2/3`. This allocation is
+used in the estimator strategy framework of [XuEtAl2026].
+
+## Main statements
+
+* `magnitudeRoot`: The nonnegative real cube root of the absolute value of `c`, expressed by a
+  real power.
+* `attained_power_strategy`: For nonzero coefficients on a nonempty finite vertex type, demands
+  proportional to `|c i|^(2/3)` possess a positive cover value and a context distribution with
+  positive coverages meeting the normalized demands. Its squared sum of `|c i|/√(coverage G q
+  i)` is at most the cover value times `(∑ i, |c i|^(2/3))³`.
+
+## References
+
+* [Xu et al., 2026][XuEtAl2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.GraphFraction.CoverLP
 open scoped Classical BigOperators
 variable {V : Type*} [Fintype V] [DecidableEq V] [Nonempty V]
 
+/-- The nonnegative real cube root of the absolute value of `c`, expressed by a real power. -/
 def magnitudeRoot (c : ℝ) : ℝ := |c| ^ (1/(3:ℝ))
 
 omit [Fintype V] [DecidableEq V] [Nonempty V] in
 
+/-- The cube of `magnitudeRoot c` equals `|c|`. -/
 theorem magnitudeRoot_cube (c : ℝ) : magnitudeRoot c^3=|c| := by
   unfold magnitudeRoot
   rw [← Real.rpow_natCast,← Real.rpow_mul (abs_nonneg c)]
@@ -23,11 +50,16 @@ theorem magnitudeRoot_cube (c : ℝ) : magnitudeRoot c^3=|c| := by
 
 omit [Fintype V] [DecidableEq V] [Nonempty V] in
 
+/-- The square of `magnitudeRoot c` equals `|c|^(2/3)`. -/
 theorem magnitudeRoot_square (c : ℝ) : magnitudeRoot c^2=|c|^((2:ℝ)/3) := by
   unfold magnitudeRoot
   rw [← Real.rpow_natCast,← Real.rpow_mul (abs_nonneg c)]
   norm_num
 
+/-- For nonzero coefficients on a nonempty finite vertex type, demands proportional to `|c
+i|^(2/3)` possess a positive cover value and a context distribution with positive coverages
+meeting the normalized demands. Its squared sum of `|c i|/√(coverage G q i)` is at most the
+cover value times `(∑ i, |c i|^(2/3))³`. -/
 theorem attained_power_strategy (G : SimpleGraph V) (c : V → ℝ) (hc : ∀ i,c i≠0) :
     let C : ℝ := ∑ i,|c i|^((2:ℝ)/3)
     let a : V → ℝ := fun i => |c i|^((2:ℝ)/3)/C

@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationStat
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateCompilationAux
+
+/-!
+# Verification of structural estimation compilation
+
+This module proves `StructuralEstimateCompilation` for the variable-time estimation framework
+supporting [Ambainis2012]. The theorem `structuralEstimateCompilation_answer` combines unitary
+data-word evaluation, compilation preserving circuit execution and weighted time, and the
+normalized adaptive-record probability bounds.
+
+## Main statements
+
+* `structuralEstimateCompilation_answer`: Establish the structural estimation compilation
+  proposition.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +44,9 @@ open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators
 
+/-- The structural estimation compilation proposition holds: legal data words have unitary
+matrices and exact compiled estimation realizations, and the corresponding causal adaptive
+record laws satisfy the stated probability bounds [Ambainis2012]. -/
 theorem structuralEstimateCompilation_answer : StructuralEstimateCompilation := by
   intro C _ _ stages history hl j₀
   refine ⟨?_, ?_, ?_⟩

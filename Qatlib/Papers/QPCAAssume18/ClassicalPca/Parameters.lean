@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPCAAssume18.ClassicalPca.OutputAccuracy
+
+/-!
+# Precision constraints for PCA accuracy
+
+Shows that the selected precision parameter is positive and that its three branches imply the
+Gram tolerances needed for cutoff preservation, squared singular value accuracy, spectral
+isolation, and vector accuracy. These estimates specialize the perturbation analysis for the PCA
+parameters in [Tang2021].
+
+## Main statements
+
+* `pca_tolerance_spectrum`: The eigenvalue-error precision branch implies `2 * pcaGramTolerance
+  K e ≤ s` under the stated nonnegativity assumptions.
+* `pca_tolerance_vector`: Under the stated parameter, eigenvalue, and row-norm bounds, the
+  combined rescaling and phase-error expression is at most `v`.
+
+## References
+
+* [Tang, 2021][Tang2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,17 +37,22 @@ open Matrix
 open Qatlib.Concepts.SketchArith.SketchBuild
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
 
+/-- The selected PCA precision parameter is positive when both error tolerances, the gap
+parameter, and the effective rank parameter are positive. -/
 theorem pca_source_parameter_pos (s v eta K : ℝ) (hs : 0 < s) (hv : 0 < v)
     (heta : 0 < eta) (hK : 0 < K) : 0 < epsParameter s v eta K := by
   unfold epsParameter
   exact lt_min (lt_min (by positivity) (by positivity)) (by positivity)
 
+/-- For `K ≥ 1`, its square root lies between one and `K`. -/
 theorem pca_rank_sqrt (K : ℝ) (hK : 1 ≤ K) : 1 ≤ Real.sqrt K ∧ Real.sqrt K ≤ K := by
   have h0 : 0 ≤ K := by linarith
   have hs := Real.sq_sqrt h0
   have hn := Real.sqrt_nonneg K
   constructor <;> nlinarith
 
+/-- The inverse-square-root precision constraint and `F = K * sigma^2` imply that the
+energy-scaled Gram tolerance is at most `sigma^2 / 4`. -/
 theorem pca_tolerance_cutoff (F sigma K e : ℝ) (hsigma : 0 < sigma) (hK : 1 ≤ K)
     (hF : F = K * sigma ^ 2) (he : e ≤ (1 / 4) * (Real.sqrt K)⁻¹) :
     pcaGramTolerance K e * F ≤ sigma ^ 2 / 4 := by
@@ -40,6 +66,8 @@ theorem pca_tolerance_cutoff (F sigma K e : ℝ) (hsigma : 0 < sigma) (hK : 1 �
   have hm := mul_le_mul_of_nonneg_right he1 (by positivity : (0:ℝ)≤K*sigma^2)
   nlinarith [sq_nonneg (K-1), mul_nonneg (sub_nonneg.mpr hK) (sq_nonneg sigma)]
 
+/-- The eigenvalue-error precision branch implies `2 * pcaGramTolerance K e ≤ s` under the
+stated nonnegativity assumptions. -/
 theorem pca_tolerance_spectrum (K e s : ℝ) (hK : 1 ≤ K) (hs : 0 ≤ s)
     (he : e ≤ (1 / 10) * s * (K * Real.sqrt K)) :
     2 * pcaGramTolerance K e ≤ s := by
@@ -51,6 +79,8 @@ theorem pca_tolerance_spectrum (K e s : ℝ) (hK : 1 ≤ K) (hs : 0 ≤ s)
   apply (div_le_iff₀ (by positivity : (0:ℝ)<100*K^2)).mpr
   nlinarith [mul_nonneg hs (sq_nonneg K)]
 
+/-- The vector-error precision branch with `0 ≤ v ≤ 1` implies `2 * pcaGramTolerance K e ≤ eta /
+2`. -/
 theorem pca_tolerance_gap (K e v eta : ℝ) (hK : 1 ≤ K) (hv : 0 ≤ v) (hv1 : v ≤ 1)
     (heta : 0 ≤ eta) (he : e ≤ v ^ 2 * eta) :
     2 * pcaGramTolerance K e ≤ eta / 2 := by
@@ -62,6 +92,8 @@ theorem pca_tolerance_gap (K e v eta : ℝ) (hK : 1 ≤ K) (hv : 0 ≤ v) (hv1 :
   apply (div_le_iff₀ (by positivity : (0:ℝ)<100*K^2)).mpr
   nlinarith [sq_nonneg (K-1), mul_nonneg heta (by nlinarith : (0:ℝ)≤K^2-1)]
 
+/-- A sketch with energy at most the input energy has operator norm at most `sigma * K` when the
+input energy is `K * sigma^2` and `K ≥ 1`. -/
 theorem pca_row_operator_bound {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (R : Matrix (Fin q) (Fin d) ℂ) (sigma K : ℝ) (hsigma : 0 < sigma) (hK : 1 ≤ K)
     (hF : sketchSquared A = K * sigma ^ 2) (hR : sketchSquared R ≤ sketchSquared A) :
@@ -77,6 +109,8 @@ theorem pca_row_operator_bound {n d q : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     exact hR.trans (hF.trans_le hm)
   exact (spectral_operator_norm_le_frobenius R).trans hfrob
 
+/-- Under the stated parameter, eigenvalue, and row-norm bounds, the combined rescaling and
+phase-error expression is at most `v`. -/
 theorem pca_tolerance_vector (F sigma K e eta v mu r : ℝ)
     (hF0 : 0 < F) (hsigma : 0 < sigma) (hK : 1 ≤ K) (he0 : 0 ≤ e)
     (heta : 0 < eta) (heta1 : eta ≤ 1) (hv : 0 ≤ v) (hv1 : v ≤ 1)

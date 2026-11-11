@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialRejectionBound
 import Qatlib.Concepts.WalkSearch.Primitives.VertexSamplingQuan
+
+/-!
+# Counting failure events on complete algorithm tapes
+
+Product equivalences isolate each random component of `sourceCombTape`, allowing fiberwise
+failure bounds to be lifted to the full tape space. `sourceComb_reject_card_from_local_bounds`
+combines sampling and degree test bounds with the search family guarantees to bound rejection on
+graphs containing a triangle. For background on quantum search and amplitude amplification, see
+[BrassardEtAl2002].
+
+## Main statements
+
+* `source_event_fiber_bound`: A bound `fiber * R ≤ C * Fintype.card X` on every fiber of a
+  product presentation `Ω ≃ A × X` yields `event * R ≤ C * Fintype.card Ω`.
+* `sourceComb_reject_card_from_local_bounds`: For a graph containing a triangle and the stated
+  search and threshold assumptions, the local sampling and degree test bounds imply `rejecting
+  tapes * n ≤ 2 * total tapes`.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.WalkSearch.Primitives
@@ -17,6 +40,8 @@ namespace Qatlib.Concepts.WalkSearch.MainResults
 open scoped Classical BigOperators
 set_option warningAsError false
 
+/-- A bound `fiber * R ≤ C * Fintype.card X` on every fiber of a product presentation `Ω ≃ A ×
+X` yields `event * R ≤ C * Fintype.card Ω`. -/
 theorem source_event_fiber_bound {Ω A X : Type} [Fintype Ω] [Fintype A] [Fintype X]
     (e : Ω ≃ A×X) (P : Ω → Prop) (R C : ℕ)
     (h : ∀ a, (Finset.univ.filter (fun x => P (e.symm (a,x)))).card*R ≤ C*Fintype.card X) :
@@ -33,6 +58,8 @@ theorem source_event_fiber_bound {Ω A X : Type} [Fintype Ω] [Fintype A] [Finty
   rw [he,Fintype.card_congr e]
   exact product_event_card_bound (fun a x => P (e.symm (a,x))) R C h
 
+/-- Reassociate and reorder a source tape to isolate the sampled vertex function as the final
+product factor. -/
 def sourceTape_sample_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily) :
     sourceCombTape n k K c sgs ets ≃ ((Fin n→sgs.seed)×(Fin n→Fin K→Fin c→Fin n)×(Fin n→sgs.seed)×sgs.seed×ets.seed n)×(Fin k→Fin n) :=
   { toFun := fun t => ((t.2.1,t.2.2.1,t.2.2.2.1,t.2.2.2.2.1,t.2.2.2.2.2),t.1)
@@ -40,6 +67,8 @@ def sourceTape_sample_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : Promised
     left_inv := fun _ => rfl
     right_inv := fun _ => rfl }
 
+/-- Reassociate and reorder a source tape to isolate the preparation seed function as the final
+product factor. -/
 def sourceTape_preparation_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily) :
     sourceCombTape n k K c sgs ets ≃ ((Fin k→Fin n)×(Fin n→Fin K→Fin c→Fin n)×(Fin n→sgs.seed)×sgs.seed×ets.seed n)×(Fin n→sgs.seed) :=
   { toFun := fun t => ((t.1,t.2.2.1,t.2.2.2.1,t.2.2.2.2.1,t.2.2.2.2.2),t.2.1)
@@ -47,6 +76,8 @@ def sourceTape_preparation_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : Pro
     left_inv := fun _ => rfl
     right_inv := fun _ => rfl }
 
+/-- Reassociate and reorder a source tape to isolate the degree test tape as the final product
+factor. -/
 def sourceTape_degree_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily) :
     sourceCombTape n k K c sgs ets ≃ ((Fin k→Fin n)×(Fin n→sgs.seed)×(Fin n→sgs.seed)×sgs.seed×ets.seed n)×(Fin n→Fin K→Fin c→Fin n) :=
   { toFun := fun t => ((t.1,t.2.1,t.2.2.2.1,t.2.2.2.2.1,t.2.2.2.2.2),t.2.2.1)
@@ -54,6 +85,8 @@ def sourceTape_degree_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : Promised
     left_inv := fun _ => rfl
     right_inv := fun _ => rfl }
 
+/-- Reassociate and reorder a source tape to isolate the final triangle search seed as the final
+product factor. -/
 def sourceTape_triangle_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily) :
     sourceCombTape n k K c sgs ets ≃ ((Fin k→Fin n)×(Fin n→sgs.seed)×(Fin n→Fin K→Fin c→Fin n)×(Fin n→sgs.seed)×ets.seed n)×sgs.seed :=
   { toFun := fun t => ((t.1,t.2.1,t.2.2.1,t.2.2.2.1,t.2.2.2.2.2),t.2.2.2.2.1)
@@ -61,6 +94,8 @@ def sourceTape_triangle_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : Promis
     left_inv := fun _ => rfl
     right_inv := fun _ => rfl }
 
+/-- Present a source tape as its other components paired with the final promised edge search
+seed. -/
 def sourceTape_edge_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily) :
     sourceCombTape n k K c sgs ets ≃ ((Fin k→Fin n)×(Fin n→sgs.seed)×(Fin n→Fin K→Fin c→Fin n)×(Fin n→sgs.seed)×sgs.seed)×ets.seed n :=
   { toFun := fun t => ((t.1,t.2.1,t.2.2.1,t.2.2.2.1,t.2.2.2.2.1),t.2.2.2.2.2)
@@ -68,6 +103,8 @@ def sourceTape_edge_equiv (n k K c : ℕ) (sgs : SGSExecution) (ets : PromisedEd
     left_inv := fun _ => rfl
     right_inv := fun _ => rfl }
 
+/-- With the prescribed positive sample size, the number of full tapes failing the sampled
+survivor thinness condition times `n` is at most the total tape count. -/
 theorem source_joint_sampling_bad_card (n : ℕ) (ε : ℝ) (hn : 0<n) (hε : 0<ε) (hε1 : ε<1)
     (G : UGraph n) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily) (K c : ℕ)
     (hk : 0<Nat.ceil (4*(n:ℝ)^ε*(Nat.log 2 n+1))) :
@@ -89,6 +126,8 @@ theorem source_joint_sampling_bad_card (n : ℕ) (ε : ℝ) (hn : 0<n) (hε : 0<
   )
   convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
 
+/-- For a search family with exponent at least three, the number of full tapes with a bad
+preparation call times `(n * n + 1)^3` is at most `n` times the total tape count. -/
 theorem source_joint_preparation_bad_card (n k K c τ : ℕ) (G : UGraph n)
     (family : ScopedGroverFamily) (ets : PromisedEdgeSearchFamily) (hc : 3≤family.cExp) :
     let sgs:=sourceSearchExecution family n τ
@@ -110,6 +149,8 @@ theorem source_joint_preparation_bad_card (n k K c τ : ℕ) (G : UGraph n)
   )
   convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
 
+/-- With the prescribed degree test parameters, the number of full tapes failing classification
+test correctness times `n^3` is at most `2 * n` times the total tape count. -/
 theorem source_joint_degree_bad_card (n : ℕ) (δ : ℝ) (hn : 0<n) (hδ : 0<δ) (hδ1 : δ<1)
     (G : UGraph n) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily) (k τ : ℕ)
     (hc : 0<Nat.ceil ((n:ℝ)^δ)) :
@@ -137,6 +178,8 @@ theorem source_joint_degree_bad_card (n : ℕ) (δ : ℝ) (hn : 0<n) (hδ : 0<δ
   )
   convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
 
+/-- For a scoped search family with exponent at least three, full tapes with a bad final
+triangle search seed satisfy `bad * (n * n + 1)^3 ≤ total`. -/
 theorem source_joint_triangle_bad_card (n k K c τ : ℕ) (G : UGraph n)
     (family : ScopedGroverFamily) (ets : PromisedEdgeSearchFamily) (hc : 3≤family.cExp) :
     let sgs:=sourceSearchExecution family n τ
@@ -168,12 +211,16 @@ theorem source_joint_triangle_bad_card (n k K c τ : ℕ) (G : UGraph n)
   )
   convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
 
+/-- The classification edge set meets its graph mass promise and contains a graph triangle, but
+the final promised edge search returns `none`. -/
 def sourceEdgeBad {n : ℕ} (G : UGraph n) (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily)
     (k K c dHi dLo τ tThin : ℕ) (t : sourceCombTape n k K c sgs ets) : Prop :=
   let E := (sourceTapeClass G sgs ets k K c τ t).movedE
   (E∩G.edges).card ≤ sourceEdgeMassBound n dHi dLo τ tThin ∧
     edgeTriangleExists G E ∧ ets.run G E (sourceEdgeMassBound n dHi dLo τ tThin) t.2.2.2.2.2 = none
 
+/-- For a promised edge search family with exponent at least three, full tapes satisfying
+`sourceEdgeBad` obey `bad * (n * n + 1)^3 ≤ total`. -/
 theorem source_joint_edge_bad_card (n k K c dHi dLo τ tThin : ℕ) (G : UGraph n)
     (sgs : SGSExecution) (ets : PromisedEdgeSearchFamily) (hc : 3≤ets.cExp) :
     letI:=sgs.seedFin
@@ -209,6 +256,8 @@ theorem source_joint_edge_bad_card (n k K c dHi dLo τ tThin : ℕ) (G : UGraph 
   )
   convert! hh using 1 <;> (try simp only [one_mul]) <;> congr 2 <;> ext t <;> try simp
 
+/-- For `3 ≤ n`, the five stated bounds on the error counts and `r ≤ b0 + b1 + b2 + b3 + b4`
+imply `r * n ≤ 2 * Ω`. -/
 theorem source_five_error_budget (n Ω r b0 b1 b2 b3 b4 : ℕ) (hn : 3≤n)
     (hr : r≤b0+b1+b2+b3+b4) (h0 : b0*n≤Ω) (h1 : b1*(n*n+1)^3≤n*Ω)
     (h2 : b2*n^3≤2*n*Ω) (h3 : b3*(n*n+1)^3≤Ω) (h4 : b4*(n*n+1)^3≤Ω) :
@@ -233,6 +282,8 @@ theorem source_five_error_budget (n Ω r b0 b1 b2 b3 b4 : ℕ) (hn : 3≤n)
   have hh : (r*n)*n^5≤(2*Ω)*n^5 := by nlinarith only [hr',hsum,hmul]
   exact Nat.le_of_mul_le_mul_right hh (by positivity : 0<n^5)
 
+/-- For a graph containing a triangle and the stated search and threshold assumptions, the local
+sampling and degree test bounds imply `rejecting tapes * n ≤ 2 * total tapes`. -/
 theorem sourceComb_reject_card_from_local_bounds (n k K c dHi dLo τ tThin : ℕ) (G : UGraph n)
     (family : ScopedGroverFamily) (ets : PromisedEdgeSearchFamily)
     (hc : 3≤family.cExp) (hec : 3≤ets.cExp) (hn : 3≤n)

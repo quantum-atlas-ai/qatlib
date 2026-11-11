@@ -8,6 +8,31 @@ import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
 import Qatlib.Concepts.MatrixAccess.FrameFilterProd
 import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+
+/-!
+# One-flag encoding of the preconditioned matrix
+
+This module proves that `scalingPrepare` and the two preconditioned branches form an exact block
+encoding of the lifted state scaling followed by the input unitary. Compression through
+`flagFrame` then gives `preconditioned_projectedEncoding`, a projected unitary encoding of
+`stateScaling s b * A` for a normalized state and scale strictly between zero and one.
+
+The construction uses linear combinations of unitaries within the projected-encoding framework
+[GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `preconditionedUnitary_blockEncoding`: Proves the exact lifted block encoding.
+* `compress_flag_corner`: Identifies compression through flagged frames with the false-flag
+  corner.
+* `preconditioned_projectedEncoding`: Transfers the original projected encoding to the
+  state-preconditioned matrix.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -39,6 +64,8 @@ variable {H I O : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] 
 
 omit [DecidableEq H] in
 
+/-- The rank-one state projector lifted through an isometric frame is an orthogonal projector
+when the state is normalized. -/
 theorem lifted_state_projector (L : Matrix H O ℂ) (b : QState O) (hL : IsIsometry L) (hb : Normalized b) :
     IsOrthogonalProjector (L*outerProduct b*Lᴴ) := by
   have hP:=isOrthogonalProjector_outerProduct hb
@@ -50,6 +77,8 @@ theorem lifted_state_projector (L : Matrix H O ℂ) (b : QState O) (hL : IsIsome
     have hstar : (outerProduct b)ᴴ=outerProduct b := hP.2
     simp only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,hstar,Matrix.mul_assoc]
 
+/-- For `0 < s < 1`, `scalingPrepare s` prepares the weights `scalingWeights s` from the `false`
+basis state. -/
 theorem scalingPrepare_isPrepare (s : ℝ) (hs0 : 0< s) (hs1 : s<1) :
     IsPrepare (scalingPrepare s) (scalingWeights s) false := by
   have h0 : 0≤(1-s)/2 := by linarith
@@ -64,6 +93,8 @@ theorem scalingPrepare_isPrepare (s : ℝ) (hs0 : 0< s) (hs1 : s<1) :
     cases j <;> simp
         [scalingPrepare,scalingWeights,Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket]
 
+/-- Both preconditioned branches are unitary when the frame is isometric, the state is
+normalized, and the input matrix is unitary. -/
 theorem preconditionedBranches_unitary (L : Matrix H O ℂ) (b : QState O) (s : ℝ)
     (U : Matrix H H ℂ) (hL : IsIsometry L) (hb : Normalized b) (hU : U∈Matrix.unitaryGroup H ℂ) :
     ∀ j,preconditionedBranches L b s U j∈Matrix.unitaryGroup H ℂ := by
@@ -83,6 +114,9 @@ theorem preconditionedBranches_unitary (L : Matrix H O ℂ) (b : QState O) (s : 
   · simpa only [preconditionedBranches,one_smul] using (Matrix.unitaryGroup H ℂ).mul_mem hr hU
   · exact hU
 
+/-- For an isometric frame, normalized state, unitary input, and `0 < s < 1`, the preconditioned
+workspace exactly block-encodes `liftedStateScaling L b s * U` at scale one in the
+false-flag corner. -/
 theorem preconditionedUnitary_blockEncoding (L : Matrix H O ℂ) (b : QState O) (s : ℝ)
     (U : Matrix H H ℂ) (hL : IsIsometry L) (hb : Normalized b)
     (hs0 : 0< s) (hs1 : s<1) (hU : U∈Matrix.unitaryGroup H ℂ) :
@@ -101,11 +135,16 @@ theorem preconditionedUnitary_blockEncoding (L : Matrix H O ℂ) (b : QState O) 
 
 omit [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O] in
 
+/-- Compression through flagged frames equals compression of the false-flag block corner through
+the original frames. -/
 theorem compress_flag_corner (V : Matrix (Bool×H) (Bool×H) ℂ) (L : Matrix H O ℂ) (R : Matrix H I ℂ) :
     compress (flagFrame L) V (flagFrame R)=Lᴴ*BlockCorner V false*R := by
   ext o i
   simp [compress,flagFrame,BlockCorner,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_prod_type]
 
+/-- A projected unitary encoding of `A` yields a projected unitary encoding of `stateScaling s b
+* A` through the preconditioned unitary and flagged frames when `b` is normalized and `0 < s
+< 1`. -/
 theorem preconditioned_projectedEncoding (A : Matrix O I ℂ) (U : Matrix H H ℂ)
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (b : QState O) (s : ℝ)
     (henc : ProjectedUnitaryEncoding A U L R) (hb : Normalized b) (hs0 : 0< s) (hs1 : s<1) :

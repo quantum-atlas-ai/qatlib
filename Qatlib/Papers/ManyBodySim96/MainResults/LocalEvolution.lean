@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
 import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+/-!
+# Exact evolution under register partitions
+
+This module proves that matrix exponentiation commutes with basis reindexing and extension by an
+identity tensor factor. Combining these identities with scalar compatibility gives
+`evolution_partitionLift`, which identifies the evolution of a lifted local Hamiltonian with the
+lift of its local evolution.
+
+The mathematical setting is that of [Wiesner1996].
+
+## Main statements
+
+* `exp_tensor_right_one`: Exponentiating `H` tensored with an identity matrix gives the
+  exponential of `H` tensored with that identity.
+* `exp_partitionLift`: The exponential of a partition-lifted matrix is the partition lift of its
+  exponential.
+* `evolution_partitionLift`: The exact evolution of a partition-lifted Hamiltonian is the
+  partition lift of its exact evolution.
+
+## References
+
+* [Wiesner, 1996][Wiesner1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 set_option autoImplicit false
@@ -16,6 +41,8 @@ open scoped Kronecker Matrix.Norms.Operator
 
 namespace Qatlib.Papers.ManyBodySim96.MainResults
 
+/-- Matrix exponentiation commutes with simultaneous row and column reindexing along an
+equivalence. -/
 theorem exp_reindex {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : A ≃ B) (H : Matrix A A ℂ) :
     NormedSpace.exp (Matrix.reindex e e H) = Matrix.reindex e e (NormedSpace.exp H) := by
@@ -24,6 +51,8 @@ theorem exp_reindex {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B] [Decid
     fun_prop
   exact (NormedSpace.map_exp (Matrix.reindexAlgEquiv ℂ ℂ e) hf H).symm
 
+/-- Exponentiating `H` tensored with an identity matrix gives the exponential of `H` tensored
+with that identity. -/
 theorem exp_tensor_right_one {A B : Type*} [Fintype A] [DecidableEq A]
     [Fintype B] [DecidableEq B] (H : Matrix A A ℂ) :
     NormedSpace.exp (H ⊗ₖ (1 : Matrix B B ℂ)) =
@@ -31,6 +60,7 @@ theorem exp_tensor_right_one {A B : Type*} [Fintype A] [DecidableEq A]
   rw [Matrix.kronecker_one, Matrix.exp_blockDiagonal, Matrix.kronecker_one]
   exact congrArg Matrix.blockDiagonal (Pi.exp_def (fun _ : B => H))
 
+/-- The exponential of a partition-lifted matrix is the partition lift of its exponential. -/
 theorem exp_partitionLift {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) (H : Matrix A A ℂ) :
@@ -38,6 +68,7 @@ theorem exp_partitionLift {S A B : Type*} [Fintype S] [DecidableEq S]
   rw [partitionLift, exp_reindex, exp_tensor_right_one]
   rfl
 
+/-- Partition lifting commutes with complex scalar multiplication. -/
 theorem partitionLift_smul {S A B : Type*} [DecidableEq B]
     (e : S ≃ A × B) (c : ℂ) (H : Matrix A A ℂ) :
     partitionLift e (c • H) = c • partitionLift e H := by
@@ -47,6 +78,8 @@ theorem partitionLift_smul {S A B : Type*} [DecidableEq B]
   simp only [Matrix.smul_apply, smul_eq_mul]
   ring
 
+/-- The exact evolution of a partition-lifted Hamiltonian is the partition lift of its exact
+evolution. [Wiesner1996] -/
 theorem evolution_partitionLift {S A B : Type*} [Fintype S] [DecidableEq S]
     [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) (H : Matrix A A ℂ) (t : ℝ) :

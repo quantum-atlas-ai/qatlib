@@ -8,6 +8,30 @@ import Mathlib.Tactic
 import Mathlib.Data.Nat.Log
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Qatlib.Papers.TensorHyper20.MainResults.Definitions
+
+/-!
+# Explicit Toffoli bounds for tensor hypercontraction
+
+Develops ceiling-division, square-root, and ceiling-logarithm estimates for the QROM blocking
+choices in the tensor hypercontraction resource model of [LeeEtAl2021]. The scale `Lstar N`
+controls the logarithmic register parameters.
+
+Under the stated size and precision bounds, `exists_step_cost_polylog` chooses positive blocking
+parameters with nonnegative step cost bounded by `200 * (N + 1) * (Lstar N)^3`. The main theorem
+combines this estimate with phase-estimation iteration bounds.
+
+## Main statements
+
+* `qrom_balanced`: constructs a positive blocking parameter with an explicit square-root cost
+  bound.
+* `exists_step_cost_polylog`: provides positive parameters satisfying the step-cost bound.
+* `main_result_total_toffoli`: bounds total Toffoli cost using the same resource hypotheses.
+
+## References
+
+* [Lee et al., 2021][LeeEtAl2021]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +40,8 @@ namespace Qatlib.Papers.TensorHyper20.MainResults.ToffoliBlockEncoding
 
 open Qatlib.Papers.TensorHyper20.MainResults
 
+/-- For a positive divisor `k`, the natural ceiling-division expression is at most the natural
+quotient `d / k` plus one. -/
 theorem ceilDiv_le_div_add_one (d k : ℕ) (hk : 1 ≤ k) :
     ceilDiv d k ≤ d / k + 1 := by
   unfold ceilDiv
@@ -24,6 +50,8 @@ theorem ceilDiv_le_div_add_one (d k : ℕ) (hk : 1 ≤ k) :
   calc (d + k - 1) / k ≤ (d + k) / k := by gcongr
     _ = d / k + 1 := by rw [Nat.add_div_right _ hk0]
 
+/-- For positive `k`, the real cast of `ceilDiv d k` is at most the real quotient `d / k` plus
+one. -/
 theorem ceilDiv_cast_le (d k : ℕ) (hk : 1 ≤ k) :
     (ceilDiv d k : ℝ) ≤ (d : ℝ) / (k : ℝ) + 1 := by
   calc (ceilDiv d k : ℝ) ≤ ((d / k + 1 : ℕ) : ℝ) := by
@@ -33,10 +61,13 @@ theorem ceilDiv_cast_le (d k : ℕ) (hk : 1 ≤ k) :
         have h := Nat.cast_div_le (α := ℝ) (m := d) (n := k)
         linarith
 
+/-- For a real number at least one, its square root is at most the number itself. -/
 theorem sqrt_le_self {x : ℝ} (hx : 1 ≤ x) : Real.sqrt x ≤ x := by
   rw [Real.sqrt_le_iff]
   exact ⟨by linarith, by nlinarith [sq_nonneg (x - 1)]⟩
 
+/-- For positive natural numbers `d` and `m`, the real quotient `d / √(d / m)` equals `√(d *
+m)`. -/
 theorem sqrt_div_self (d m : ℕ) (hd : 0 < d) (hm : 0 < m) :
     (d : ℝ) / Real.sqrt ((d : ℝ) / (m : ℝ)) = Real.sqrt ((d : ℝ) * (m : ℝ)) := by
   have hd0 : (0 : ℝ) < d := by exact_mod_cast hd
@@ -50,6 +81,7 @@ theorem sqrt_div_self (d m : ℕ) (hd : 0 < d) (hm : 0 < m) :
     field_simp
   rw [harg, Real.sqrt_sq (le_of_lt hd0)]
 
+/-- For positive natural `m`, the real product `m * √(d / m)` equals `√(d * m)`. -/
 theorem m_mul_sqrt_div (d m : ℕ) (hm : 0 < m) :
     (m : ℝ) * Real.sqrt ((d : ℝ) / (m : ℝ)) = Real.sqrt ((d : ℝ) * (m : ℝ)) := by
   have hm0 : (0 : ℝ) < m := by exact_mod_cast hm
@@ -62,6 +94,8 @@ theorem m_mul_sqrt_div (d m : ℕ) (hm : 0 < m) :
           congr 1
           field_simp
 
+/-- For positive `m`, there is a natural blocking parameter `k ≥ 1` whose ceiling-division cost
+is at most `2 * √(d * m) + m + 2`. -/
 theorem qrom_balanced (d m : ℕ) (hm : 0 < m) :
     ∃ k : ℕ, 1 ≤ k ∧
       (ceilDiv d k : ℝ) + (m : ℝ) * ((k : ℝ) - 1) ≤
@@ -110,13 +144,17 @@ theorem qrom_balanced (d m : ℕ) (hm : 0 < m) :
     have hm1 : (1 : ℝ) ≤ (m : ℝ) := by exact_mod_cast hm
     linarith
 
+/-- The logarithmic scale `Nat.clog 2 (N + 3) + 1` used in the resource estimates. -/
 def Lstar (N : ℕ) : ℕ := Nat.clog 2 (N + 3) + 1
 
+/-- The logarithmic scale `Lstar N` is at least one. -/
 theorem one_le_Lstar (N : ℕ) : 1 ≤ Lstar N := by
   unfold Lstar
   have : 0 ≤ Nat.clog 2 (N + 3) := Nat.zero_le _
   omega
 
+/-- For base `b > 1`, the natural ceiling logarithm of a product is at most the sum of the
+ceiling logarithms of its factors. -/
 theorem clog_mul_le (b x y : ℕ) (hb : 1 < b) :
     Nat.clog b (x * y) ≤ Nat.clog b x + Nat.clog b y := by
   rw [Nat.clog_le_iff_le_pow hb]
@@ -124,10 +162,12 @@ theorem clog_mul_le (b x y : ℕ) (hb : 1 < b) :
         Nat.mul_le_mul (Nat.le_pow_clog hb x) (Nat.le_pow_clog hb y)
     _ = b ^ (Nat.clog b x + Nat.clog b y) := by rw [pow_add]
 
+/-- The natural ceiling logarithm to base two of `L` is at most `L`. -/
 theorem clog_self_le (L : ℕ) : Nat.clog 2 L ≤ L := by
   rw [Nat.clog_le_iff_le_pow (by norm_num)]
   exact Nat.lt_two_pow_self.le
 
+/-- If `M ≤ (N + 1) * Lstar N`, then the register size `nOf M` is at most `2 * Lstar N`. -/
 theorem nOf_le_two_Lstar (N M : ℕ) (hM : M ≤ (N + 1) * Lstar N) :
     nOf M ≤ 2 * Lstar N := by
   have hL1 : 1 ≤ Lstar N := one_le_Lstar N
@@ -151,6 +191,7 @@ theorem nOf_le_two_Lstar (N M : ℕ) (hM : M ≤ (N + 1) * Lstar N) :
   unfold nOf
   omega
 
+/-- If `M ≤ (N + 1) * Lstar N` and `ℵ ≤ Lstar N`, then `mOf M ℵ` is at most `7 * Lstar N`. -/
 theorem mOf_le_seven_Lstar (N M ℵ : ℕ) (hM : M ≤ (N + 1) * Lstar N)
     (hℵ : ℵ ≤ Lstar N) : mOf M ℵ ≤ 7 * Lstar N := by
   unfold mOf
@@ -165,6 +206,8 @@ theorem mOf_le_seven_Lstar (N M ℵ : ℕ) (hM : M ≤ (N + 1) * Lstar N)
 
 set_option maxHeartbeats 1000000 in
 
+/-- Under the stated resource-size hypotheses, there are four positive QROM blocking parameters
+for which the step cost is nonnegative and at most `200 * (N + 1) * (Lstar N)^3`. -/
 theorem exists_step_cost_polylog (N M br ℵ i d : ℕ)
     (hN : 1 ≤ N) (hM1 : 1 ≤ M) (hM : M ≤ (N + 1) * Lstar N)
     (hbr : br ≤ Lstar N) (hℵ : ℵ ≤ Lstar N) (hi2 : 2 ≤ i) (hi : i ≤ Lstar N)
@@ -382,6 +425,9 @@ theorem exists_step_cost_polylog (N M br ℵ i d : ℕ)
     rw [hdecomp]
     linarith [hT1, hT4, hQ1, hQ2, hQ3, hQ4]
 
+/-- Under the stated resource bounds, nonnegative `lam`, and positive `eps`, positive blocking
+parameters exist whose total Toffoli cost is at most `(π * lam / (2 * eps) + 1) * (200 * (N
++ 1) * (Lstar N)^3)`. See [LeeEtAl2021]. -/
 theorem main_result_total_toffoli (N M br ℵ i d : ℕ) (lam eps : ℝ)
     (hN : 1 ≤ N) (hM1 : 1 ≤ M) (hM : M ≤ (N + 1) * Lstar N)
     (hbr : br ≤ Lstar N) (hℵ : ℵ ≤ Lstar N) (hi2 : 2 ≤ i) (hi : i ≤ Lstar N)

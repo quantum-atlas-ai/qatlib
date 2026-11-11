@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.GramAction
 import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceMask
+
+/-!
+# Coordinate Gram actions on pair slices
+
+Identifies masked column and row resampling of a pair slice with pair slices of the two
+coordinate Gram actions. These identities transport the masked resampling inequality to the
+slice estimate `coordinateGram_slice_bound`. See [MagniezZur2026] for related background.
+
+## Main statements
+
+* `masked_R_coordinateGram`: For distinct coordinates `i` and `j`, masked column resampling of a
+  pair slice equals the pair slice of the coordinate Gram action at `i`.
+* `coordinateGram_slice_bound`: For distinct coordinates, the negative sum of the real pairings
+  of a slice with the two coordinate-Gram slices is at most twice the real inner product of
+  those Gram slices.
+
+## References
+
+* [Magniez and Zur, 2026][MagniezZur2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +37,8 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.TupleDeletion
 variable {I L : Type*} [Fintype I] [Fintype L]
 
+/-- For distinct coordinates `i` and `j`, masked column resampling of a pair slice equals the
+pair slice of the coordinate Gram action at `i`. -/
 theorem masked_R_coordinateGram (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j) :
     sliceMask f i j (R (pairSlice v f i j))=pairSlice (coordinateGram (L := L) i*ᵥ v) f i j := by
   ext p
@@ -36,6 +59,8 @@ theorem masked_R_coordinateGram (v : InjectiveTuple I L → ℂ) (f : I → L) (
   · change (if Function.Injective g then _ else 0)=extend (coordinateGram i*ᵥ v) g
     simp [hg,extend]
 
+/-- For distinct coordinates `i` and `j`, masked row resampling of a pair slice equals the pair
+slice of the coordinate Gram action at `j`. -/
 theorem masked_S_coordinateGram (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j) :
     sliceMask f i j (S (pairSlice v f i j))=pairSlice (coordinateGram (L := L) j*ᵥ v) f i j := by
   ext p
@@ -56,6 +81,8 @@ theorem masked_S_coordinateGram (v : InjectiveTuple I L → ℂ) (f : I → L) (
   · change (if Function.Injective g then _ else 0)=extend (coordinateGram j*ᵥ v) g
     simp [hg,extend]
 
+/-- For distinct coordinates, the negative sum of the real pairings of a slice with the two
+coordinate-Gram slices is at most twice the real inner product of those Gram slices. -/
 theorem coordinateGram_slice_bound (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I) (hij : i ≠ j) :
     -(inner ℂ (pairSlice v f i j) (pairSlice (coordinateGram (L := L) i*ᵥ v) f i j)).re-
       (inner ℂ (pairSlice v f i j) (pairSlice (coordinateGram (L := L) j*ᵥ v) f i j)).re ≤

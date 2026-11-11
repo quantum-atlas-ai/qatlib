@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
+
+/-!
+# Real bounds for triangle-search charges
+
+This module converts natural-number subset parameters and integer square roots into real power
+estimates. `walk_root_window`, `walk_inner_bound`, and `walk_sqrt_succ` supply the estimates
+used by `walk_real_budget`.
+
+The final bound controls the triangle-search charge by an explicit constant times the cube of
+`walkKappa`, a cubic logarithmic factor, and n^(13/10), matching the exponent discussed in
+[Ambainis2005].
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -12,6 +29,8 @@ set_option maxHeartbeats 1600000
 noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- If `r` is the least positive integer whose bth power reaches `n ^ a`, then its real value
+lies between n^(a/b) and n^(a/b) + 1. -/
 theorem walk_root_window (n r a b : ℕ) (hn : 0 < n) (hr : 1 ≤ r) (hb : 0 < b)
     (hl : n^a ≤ r^b) (hu : (r-1)^b < n^a) :
     (n : ℝ)^(a / b : ℝ) ≤ r ∧ (r : ℝ) ≤ (n : ℝ)^(a / b : ℝ)+1 := by
@@ -33,6 +52,8 @@ theorem walk_root_window (n r a b : ℕ) (hn : 0 < n) (hr : 1 ≤ r) (hb : 0 < b
     rw [root, nroot, Nat.cast_sub hr, Nat.cast_one] at h
     linarith
 
+/-- For positive `r` and the least positive `r'` whose cube reaches `r²`, the real cast of `r' +
+(r / r') * Nat.sqrt r'` is at most `3 * r^(2/3)`. -/
 theorem walk_inner_bound (r r' : ℕ) (hr : 1 ≤ r) (hr' : 1 ≤ r')
     (hl : r^2 ≤ r'^3) (hu : (r'-1)^3 < r^2) :
     ((r'+(r/r')*Nat.sqrt r' : ℕ) : ℝ) ≤ 3*(r : ℝ)^(2/3 : ℝ) := by
@@ -64,6 +85,7 @@ theorem walk_inner_bound (r r' : ℕ) (hr : 1 ≤ r) (hr' : 1 ≤ r')
   change (r' : ℝ) ≤ A+1 at hhi
   linarith
 
+/-- For positive `n`, the real cast of `Nat.sqrt (n + 1) + 1` is at most `3 * n^(1/2)`. -/
 theorem walk_sqrt_succ (n : ℕ) (hn : 0 < n) :
     ((Nat.sqrt (n+1)+1 : ℕ) : ℝ) ≤ 3*(n : ℝ)^(1/2 : ℝ) := by
   have hs : (Nat.sqrt (n+1) : ℝ)^2 ≤ (n : ℝ)+1 := by
@@ -78,6 +100,9 @@ theorem walk_sqrt_succ (n : ℕ) (hn : 0 < n) :
   push_cast
   linarith
 
+/-- For least-power outer and inner subset sizes and a positive collision-solver constant, the
+triangle-search charge is bounded by `2^16` times `walkKappa³`, a cubic logarithmic factor,
+and n^(13/10). -/
 theorem walk_real_budget (n r r' : ℕ) (hn : 0 < n) (hr : 1 ≤ r) (hr' : 1 ≤ r')
     (hl : n^3 ≤ r^5) (hu : (r-1)^5 < n^3)
     (hl' : r^2 ≤ r'^3) (hu' : (r'-1)^3 < r^2)

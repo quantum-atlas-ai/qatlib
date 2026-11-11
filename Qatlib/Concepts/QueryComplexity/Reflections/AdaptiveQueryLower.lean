@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.AdaptiveQueryLower
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompilation
+
+/-!
+# Adaptive query adversary bounds
+
+Transfers query-budget accounting from trace-nonincreasing circuits to instrument circuits and
+proves `frontier1`, an adversary inequality for adaptive computations with decoded classical
+outcomes. The bound uses a Hermitian adversary matrix vanishing on equal-output pairs and the
+maximum input-filtered norm.
+
+The result supplies an adaptive circuit interface to the adversary viewpoint on query complexity
+[LeeEtAl2011].
+
+## Main statements
+
+* `native_budget`: the circuit-to-instrument translation preserves the query budget.
+* `frontier1`: bounded-error adaptive computation satisfies the stated filtered adversary
+  inequality.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +48,8 @@ variable {d n q : ℕ} [NeZero q] {W : Type} [Fintype W]
 
 omit [NeZero q] [Fintype W] in
 
+/-- Translation from a trace-nonincreasing circuit to an instrument circuit preserves its query
+budget. -/
 theorem native_budget (P : TniCircuit d) :
     instrumentCircuitQueryBudget (toInstrument P) = tniBudget P := by
   induction P with
@@ -37,6 +62,9 @@ theorem native_budget (P : TniCircuit d) :
       funext a
       exact Fin.cases rfl (fun i => ih i) a
 
+/-- A well-formed adaptive trace-nonincreasing circuit computing `f` with error at most `eps ≤
+1/2` satisfies the adversary inequality with coefficient `1 - 2 * sqrt (eps * (1 - eps)) - 2
+* eps` and right side twice its query budget times the maximum filtered norm. -/
 theorem frontier1 {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
     (input : X → Fin n → Fin q) (f : X → Y) (Gamma : Matrix X X ℂ)

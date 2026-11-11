@@ -10,14 +10,36 @@ import Mathlib.Data.Matrix.Basic
 import Mathlib.Data.Real.Basic
 import Mathlib.Tactic
 
+/-!
+# Exact amplification and matrix correction bounds
+
+The polynomial `ampProb` models one amplification step and separates probabilities `1 / 4` and
+`3 / 4` exactly. Matrix correction estimates bound solutions of a perturbation recurrence and
+place their coordinates in the unit interval under an explicit dimension bound. This develops
+part of the framework of [EttingerHoyerKnill2004].
+
+## Main statements
+
+* `ampProb_quarter_three_quarters`: evaluates the amplification polynomial at the two
+  distinguished probabilities.
+* `lemma6_correction_bound`: bounds the coordinate correction by `3 / (4 * (r - 1))`.
+* `lemma6_correction_unit`: places corrected coordinates in `[0, 1]` when `r ≥ 4`.
+
+## References
+
+* [Ettinger et al., 2004][EttingerHoyerKnill2004]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.EttingerHSP04.MainResults
 
 open scoped BigOperators
 
+/-- The amplification polynomial `p * (3 - 4 * p) ^ 2`. -/
 noncomputable def ampProb (p : ℝ) : ℝ := p * (3 - 4 * p) ^ 2
 
+/-- The real sine triple-angle identity. -/
 theorem sin_three_mul_real (θ : ℝ) :
     Real.sin (3 * θ) = 3 * Real.sin θ - 4 * Real.sin θ ^ 3 := by
   have h3 : (3 : ℝ) * θ = θ + 2 * θ := by ring
@@ -25,30 +47,39 @@ theorem sin_three_mul_real (θ : ℝ) :
   have hs : Real.sin θ ^ 2 + Real.cos θ ^ 2 = 1 := Real.sin_sq_add_cos_sq θ
   linear_combination (4 * Real.sin θ) * hs
 
+/-- The amplification polynomial sends `sin θ ^ 2` to `sin (3 * θ) ^ 2`. See
+[EttingerHoyerKnill2004]. -/
 theorem ampProb_sin_sq (θ : ℝ) :
     ampProb (Real.sin θ ^ 2) = Real.sin (3 * θ) ^ 2 := by
   unfold ampProb
   rw [sin_three_mul_real]
   ring
 
+/-- The amplification polynomial takes the value one at `1 / 4`. See [EttingerHoyerKnill2004]. -/
 theorem ampProb_quarter : ampProb (1 / 4) = 1 := by
   unfold ampProb
   norm_num
 
+/-- The amplification polynomial takes the value zero at `3 / 4`. See [EttingerHoyerKnill2004]. -/
 theorem ampProb_three_quarters : ampProb (3 / 4) = 0 := by
   unfold ampProb
   norm_num
 
+/-- The amplification polynomial sends `1 / 4` to one and `3 / 4` to zero. See
+[EttingerHoyerKnill2004]. -/
 theorem ampProb_quarter_three_quarters :
     ampProb (1 / 4) = 1 ∧ ampProb (3 / 4) = 0 :=
   ⟨ampProb_quarter, ampProb_three_quarters⟩
 
+/-- If `p` is `1 / 4` or `3 / 4`, its amplified value is zero or one. -/
 theorem ampProb_eq_zero_or_one {p : ℝ} (hp : p = 1 / 4 ∨ p = 3 / 4) :
     ampProb p = 0 ∨ ampProb p = 1 := by
   rcases hp with rfl | rfl
   · exact Or.inr ampProb_quarter
   · exact Or.inl ampProb_three_quarters
 
+/-- The equation `(1 - Δ).mulVec x = y` yields the coordinate recurrence `x - y = Δ.mulVec x`.
+See [EttingerHoyerKnill2004]. -/
 theorem correction_recurrence {r : ℕ} (M Δ : Matrix (Fin r) (Fin r) ℝ)
     (hM : M = 1 - Δ) (x y : Fin r → ℝ) (hxy : M.mulVec x = y) :
     ∀ ν, x ν - y ν = ∑ μ, Δ ν μ * x μ := by
@@ -60,6 +91,8 @@ theorem correction_recurrence {r : ℕ} (M Δ : Matrix (Fin r) (Fin r) ℝ)
   rw [h2] at h
   linarith
 
+/-- For `r > 1`, entrywise bounds `|Δ i j| ≤ r⁻²` and the correction recurrence imply `|x ν - y
+ν| ≤ 3 / (4 * (r - 1))` when each `y ν` is `1 / 4` or `3 / 4`. See [EttingerHoyerKnill2004]. -/
 theorem lemma6_correction_bound {r : ℕ} (hr : 1 < r)
     (Δ : Matrix (Fin r) (Fin r) ℝ)
     (hΔ : ∀ i j, |Δ i j| ≤ ((r : ℝ)⁻¹) ^ 2)
@@ -142,6 +175,8 @@ theorem lemma6_correction_bound {r : ℕ} (hr : 1 < r)
         have hrne : (r : ℝ) ≠ 0 := ne_of_gt hr0
         field_simp
 
+/-- For `r ≥ 4`, the stated entrywise bound and correction recurrence place every coordinate of
+`x` in the unit interval. See [EttingerHoyerKnill2004]. -/
 theorem lemma6_correction_unit {r : ℕ} (hr : 4 ≤ r)
     (Δ : Matrix (Fin r) (Fin r) ℝ)
     (hΔ : ∀ i j, |Δ i j| ≤ ((r : ℝ)⁻¹) ^ 2)

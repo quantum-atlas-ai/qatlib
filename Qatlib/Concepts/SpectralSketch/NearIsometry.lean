@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.BlockEncoding.Basic
+
+/-!
+# Polar correction of near isometries
+
+This module defines `nearColumnPolar` by replacing positive singular values with one and proves
+quantitative correction bounds for a matrix whose column Gram matrix is within `α < 1` of the
+identity. The construction implements the near-isometry principle of [ChiaEtAl2022].
+
+The corrected matrix is an isometry with the same column range. The module also bounds its
+distance from the original matrix, the original pseudoinverse norm, and the error in conjugated
+matrix products, and records the zero-range obstruction at Gram defect one.
+
+## Main statements
+
+* `nearColumnPolar_singular_bounds`: positive singular values within `α` of one.
+* `near_isometry_polar_range_pseudoinverse_and_error`: range-preserving correction and
+  quantitative bounds.
+* `near_isometry_zero_range_boundary`: the obstruction at the excluded threshold.
+
+## References
+
+* [Chia et al., 2022, Lemma 2.5][ChiaEtAl2022]
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -29,10 +54,14 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The partial polar factor obtained by applying the odd singular transform that maps every
+positive singular value to one and zero to zero. -/
 noncomputable def nearColumnPolar {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     [DecidableEq I] (A : Matrix H I ℂ) : Matrix H I ℂ :=
   oddSingularTransform A (fun x=> if 0< x then 1 else 0)
 
+/-- If `0 ≤ α < 1` and the column Gram defect is at most `α`, every indexed singular value is
+positive and differs from one by at most `α`. -/
 theorem nearColumnPolar_singular_bounds {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A : Matrix H I ℂ) (α : ℝ) (hα : 0 ≤ α) (hsmall : α<1)
     (hGram : ‖Aᴴ*A-1‖ ≤ α) (i : Fin (Fintype.card I)) :
@@ -61,6 +90,9 @@ theorem nearColumnPolar_singular_bounds {H I : Type} [Fintype H] [DecidableEq H]
   · have hi' : matrixSingularValues A i ≤ 1 := le_of_not_ge hi
     constructor <;> nlinarith
 
+/-- If all column-indexed singular values are positive, the singular support is the identity,
+the polar factor has its full-support singular-basis formula, and `matrixPseudoinverse A*A =
+1`. -/
 theorem nearColumnPolar_full_support {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A : Matrix H I ℂ)
     (hpos : ∀ i : Fin (Fintype.card I),0< matrixSingularValues A i) :
@@ -76,6 +108,7 @@ theorem nearColumnPolar_full_support {H I : Type} [Fintype H] [DecidableEq H]
   refine ⟨hs,hp,?_⟩
   rw [matrixPseudoinverse_mul,hs,Matrix.mul_one,basisColumns_mul_adjoint]
 
+/-- If all column-indexed singular values are positive, the column polar factor is an isometry. -/
 theorem nearColumnPolar_isometry {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A : Matrix H I ℂ)
     (hpos : ∀ i : Fin (Fintype.card I),0 < matrixSingularValues A i) :
@@ -94,6 +127,8 @@ theorem nearColumnPolar_isometry {H I : Type} [Fintype H] [DecidableEq H]
 
 set_option maxHeartbeats 800000 in
 
+/-- If all column-indexed singular values are positive, the column polar factor and the original
+matrix have the same Euclidean linear-map range. -/
 theorem nearColumnPolar_range {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A : Matrix H I ℂ)
     (hpos : ∀ i : Fin (Fintype.card I),0 < matrixSingularValues A i) :
@@ -140,6 +175,8 @@ theorem nearColumnPolar_range {H I : Type} [Fintype H] [DecidableEq H]
         (fun X : Matrix H I ℂ => LinearMap.range X.toEuclideanLin) hPA.symm
       _ ≤ LinearMap.range (nearColumnPolar A).toEuclideanLin := hle _ _
 
+/-- If an isometry `P` is within `α` of `A`, the difference of the sandwiches `A*Y*Aᴴ` and
+`P*Y*Pᴴ` has norm at most `α*‖Y*Aᴴ‖+α*‖Y‖`. -/
 theorem nearColumnPolar_sandwich_base {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (A P : Matrix H I ℂ) (α : ℝ) (_hα : 0 ≤ α)
     (hP : IsIsometry P) (hd : ‖A-P‖ ≤ α) (Y : Matrix I I ℂ) :
@@ -162,6 +199,10 @@ theorem nearColumnPolar_sandwich_base {H I : Type} [Fintype H] [DecidableEq H]
 
 set_option maxHeartbeats 800000 in
 
+/-- For Gram defect at most `0 ≤ α < 1`, the polar factor is an isometry with the same range,
+lies within `α` of `A`, and the pseudoinverse norm is at most `(1-α)⁻¹`. The sandwich error
+is bounded by `(2*α+α^2)*‖Y‖` and by `α*(2-α)/(1-α)^2*‖A*Y*Aᴴ‖`, as in the correction
+principle of [Chia et al., Lemma 2.5][ChiaEtAl2022]. -/
 theorem near_isometry_polar_range_pseudoinverse_and_error : ∀ (H I : Type)
     [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] (A : Matrix H I ℂ) (α : ℝ),
     0 ≤ α → α<1 → ‖Aᴴ*A-1‖ ≤ α →
@@ -241,6 +282,9 @@ theorem near_isometry_polar_range_pseudoinverse_and_error : ∀ (H I : Type)
       _=α*((1-α)⁻¹+((1-α)⁻¹)^2)*‖A*Y*Aᴴ‖ := by ring
       _=α*(2-α)/(1-α)^2*‖A*Y*Aᴴ‖ := by rw [hcoeff]
 
+/-- For a nonempty column index type, the zero matrix has Gram defect one and no isometry has
+zero range. This illustrates the strict threshold in the near-isometry correction discussed
+in [ChiaEtAl2022]. -/
 theorem near_isometry_zero_range_boundary : ∀ (H I : Type) [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Nonempty I],
     ‖(0:Matrix H I ℂ)ᴴ*(0:Matrix H I ℂ)-(1:Matrix I I ℂ)‖=1 ∧

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.MonteCarloInt20.MainResults.NestedPreparation
+
+/-!
+# Bias and success bounds for nested amplitude estimation
+
+`nestedMean` is the uniform sample average of the payoff evaluated under each actual inner
+amplitude-estimation law. `nestedLaw` applies outer amplitude estimation to this payoff
+preparation, formalizing the nested construction associated with [KanekoEtAl2020].
+
+The error bounds separate the outer estimation window from the inner bias. The latter uses a
+differentiable payoff with Lipschitz derivative and interior phase parameters.
+
+## Main statements
+
+* `nested_bhmt`: bounds the outer estimation error with probability at least `8 / π²`.
+* `nested_inner_bias`: bounds the difference from `idealMean` by `innerBudget`.
+* `nested_total_error`: combines the outer window and inner bias.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,14 +45,19 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
 namespace Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
 
+/-- The uniform sample average of the payoff expectations under the actual inner
+amplitude-estimation output laws. -/
 def nestedMean {I : Type} [Fintype I] [DecidableEq I]
     (n M : ℕ) (hM : 2 ≤ M) (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I)
     (hA : ∀ j,A j ∈ unitaryGroup I ℂ) (D : ℝ) (g : ℝ → ℝ) : ℝ :=
   (1/(2:ℝ)^n)*∑ j : Reg n,∑ k : Fin M,(aeLaw M (A j) i₀ (S j) (hA j) hM).prob k*g (D*aeEstimate M k)
 
+/-- The uniform sample average of `g` applied to `D` times the phase target. -/
 def idealMean (n : ℕ) (θ : Reg n → ℝ) (D : ℝ) (g : ℝ → ℝ) : ℝ :=
   (1/(2:ℝ)^n)*∑ j : Reg n,g (D*target (θ j))
 
+/-- The outer amplitude-estimation law for the coherent sample and inner-estimate payoff
+preparation, assuming payoff values lie in `[0, 1]`. -/
 def nestedLaw {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
     (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I)
@@ -40,9 +67,11 @@ def nestedLaw {I : Type} [Fintype I] [DecidableEq I]
     (fun p => g (D*aeEstimate M p.2.1)) (samplePreparation_unitary n M hM A i₀ S hA)
     (fun p => hg p.2.1) hN
 
+/-- The amplitude-estimation error window `2 * π * √(μ * (1 - μ)) / N + π ^ 2 / N ^ 2`. -/
 def outerWindow (N : ℕ) (μ : ℝ) : ℝ :=
   2*Real.pi*Real.sqrt (μ*(1-μ))/(N:ℝ)+Real.pi^2/(N:ℝ)^2
 
+/-- The Born-weighted payoff expectation of the coherent sample preparation equals `nestedMean`. -/
 theorem sample_mean_identity {I : Type} [Fintype I] [DecidableEq I]
     (n M : ℕ) (hM : 2 ≤ M) (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I)
     (hA : ∀ j,A j ∈ unitaryGroup I ℂ) (D : ℝ) (g : ℝ → ℝ)
@@ -55,6 +84,8 @@ theorem sample_mean_identity {I : Type} [Fintype I] [DecidableEq I]
     (samplePreparation_unitary n M hM A i₀ S hA) (fun p => hg p.2.1)).2
   exact h.symm.trans (nested_flag_born n M hM A i₀ S hA D g hg)
 
+/-- For `M, N ≥ 2`, unitary sample preparations, and payoff values in `[0, 1]`, the outer
+estimate lies within `outerWindow` of `nestedMean` with probability at least `8 / π²`. -/
 theorem nested_bhmt {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
     (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I)
@@ -71,9 +102,14 @@ theorem nested_bhmt {I : Type} [Fintype I] [DecidableEq I]
   rw [sample_mean_identity n M hM A i₀ S hA D g hg] at h
   exact h
 
+/-- The sample average of the derivative and Lipschitz-remainder bounds on inner payoff bias,
+divided by `M`. -/
 def innerBudget (n M : ℕ) (θ : Reg n → ℝ) (D : ℝ) (gp : ℝ → ℝ) (K : NNReal) : ℝ :=
   (1/(2:ℝ)^n)*∑ j : Reg n,(|gp (D*target (θ j))| *|D|+(K:ℝ)*D^2)/(M:ℝ)
 
+/-- For `M ≥ 2`, phases strictly between zero and one half encoding the preparation
+probabilities, and a payoff with the stated Lipschitz derivative, the difference between
+`nestedMean` and `idealMean` is at most `innerBudget`. -/
 theorem nested_inner_bias {I : Type} [Fintype I] [DecidableEq I]
     (n M : ℕ) (hM : 2 ≤ M) (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I)
     (hA : ∀ j,A j ∈ unitaryGroup I ℂ) (θ : Reg n → ℝ)
@@ -91,6 +127,9 @@ theorem nested_inner_bias {I : Type} [Fintype I] [DecidableEq I]
   exact Qatlib.Papers.MonteCarloInt20.QaeLaw.Actual.actual_smooth_payoff_error M hM (A j) i₀ (S j) (hA j)
     (θ j) (hθ0 j) (hθ1 j) (ha j) D g gp K hg hgp
 
+/-- Under the stated unitary, interior-phase, smoothness, and payoff-range hypotheses with `M, N
+≥ 2`, the outer estimate lies within `outerWindow` plus `innerBudget` of `idealMean` with
+probability at least `8 / π²`. -/
 theorem nested_total_error {I : Type} [Fintype I] [DecidableEq I]
     (n M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
     (A : Reg n → Matrix I I ℂ) (i₀ : I) (S : Reg n → Finset I)

@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CertifiedPilotCore
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
+
+/-!
+# Certified clipping bounds for pilot estimators
+
+This module controls the bias introduced by clipping finite rational-valued observables, using
+either second or fourth moments. `publicMoment` supplies distribution-independent rational
+bounds, while `radius` computes a positive clipping threshold with a prescribed bias budget.
+Quantum mean estimation provides the broader context; see [Montanaro2015] and
+[BrassardEtAl2002].
+
+The clipping estimates are combined with the imported pilot estimator to bound the probability
+of exceeding the total readout error. `tableResources` adds the finite table size to the
+estimator's resource count.
+
+## Main statements
+
+* `finite_clipping_bias` and `finite_clipping_bias4`: clipping bias bounds from second and
+  fourth moments.
+* `radius_bias`: the computed threshold meets the requested positive bias budget.
+* `frontier1` and `computed_radius_frontier`: failure-probability bounds including clipping
+  bias.
+* `table_worst`: a worst-case bound on table and estimator resources.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +53,8 @@ open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open scoped BigOperators Classical
 set_option warningAsError false
 
+/-- For a positive clipping threshold, the pointwise clipping error is at most the fourth power
+of the input divided by the cube of the threshold. -/
 lemma clipping_fourth (T x : ℝ) (hT : 0 < T) :
     |x - Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip T x| ≤ x^4 / T^3 := by
   by_cases h : |x| ≤ T
@@ -40,6 +71,8 @@ lemma clipping_fourth (T x : ℝ) (hT : 0 < T) :
         have hm := mul_le_mul_of_nonneg_right h4 hT.le
         nlinarith [mul_nonneg (pow_nonneg hT.le 1) (pow_nonneg (sq_nonneg x) 2)]
 
+/-- The change in a finite expectation caused by clipping at a positive threshold is at most the
+second moment divided by four times the threshold. -/
 lemma finite_clipping_bias {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℝ) (T : ℝ) (hT : 0<T) :
     |p.expect f - p.expect (fun i => Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip T (f i))| ≤
@@ -57,6 +90,8 @@ lemma finite_clipping_bias {I : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_left (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip_error T (f i) hT) (p.nonneg i)
     _ = _ := by simp only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, mul_div_assoc, Finset.sum_div]
 
+/-- The change in a finite expectation caused by clipping at a positive threshold is at most the
+fourth moment divided by the cube of the threshold. -/
 lemma finite_clipping_bias4 {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℝ) (T : ℝ) (hT : 0<T) :
     |p.expect f - p.expect (fun i => Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip T (f i))| ≤
@@ -74,16 +109,23 @@ lemma finite_clipping_bias4 {I : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_left (clipping_fourth T (f i) hT) (p.nonneg i)
     _ = _ := by simp only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect, mul_div_assoc, Finset.sum_div]
 
+/-- The rational clipping expression `max (-T) (min T x)`, which clamps to the interval from
+`-T` to `T` when `T` is nonnegative. -/
 def rationalClip (T x : ℚ) : ℚ := max (-T) (min T x)
 
+/-- Casting rational clipping to the reals agrees with `boundedClip` at the cast threshold and
+input. -/
 lemma rationalClip_cast (T x : ℚ) :
     (rationalClip T x : ℝ) = Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip T x := by
   simp only [rationalClip, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip, Rat.cast_max,
       Rat.cast_neg, Rat.cast_min]
 
+/-- The unweighted sum of the absolute `k`th powers of a finite rational-valued function. -/
 def publicMoment {I : Type} [Fintype I] (f : I → ℚ) (k : ℕ) : ℚ :=
   ∑ i, |f i|^k
 
+/-- Under any finite probability distribution, the absolute `k`th moment of a rational-valued
+function is bounded by its unweighted `publicMoment`. -/
 lemma publicMoment_bound {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℚ) (k : ℕ) :
     p.expect (fun i => |(f i : ℝ)|^k) ≤ (publicMoment f k : ℝ) := by
@@ -95,6 +137,8 @@ lemma publicMoment_bound {I : Type} [Fintype I] [DecidableEq I]
   push_cast
   exact Finset.sum_le_sum fun i _ => mul_le_of_le_one_left (by positivity) (hp i)
 
+/-- The clipping bias of a rational-valued function is bounded by its public second moment
+divided by four times the positive threshold. -/
 lemma publicMoment_clipping2 {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℚ) (T : ℚ) (hT : 0<T) :
     |p.expect (fun i => (f i : ℝ)) - p.expect (fun i => (rationalClip T (f i) : ℝ))| ≤
@@ -104,6 +148,8 @@ lemma publicMoment_clipping2 {I : Type} [Fintype I] [DecidableEq I]
   exact (finite_clipping_bias p (fun i => (f i : ℝ)) T hTr).trans
     (div_le_div_of_nonneg_right (by simpa only [sq_abs] using! publicMoment_bound p f 2) (by positivity))
 
+/-- The clipping bias of a rational-valued function is bounded by its public fourth moment
+divided by the cube of the positive threshold. -/
 lemma publicMoment_clipping4 {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℚ) (T : ℚ) (hT : 0<T) :
     |p.expect (fun i => (f i : ℝ)) - p.expect (fun i => (rationalClip T (f i) : ℝ))| ≤
@@ -113,6 +159,8 @@ lemma publicMoment_clipping4 {I : Type} [Fintype I] [DecidableEq I]
   exact (finite_clipping_bias4 p (fun i => (f i : ℝ)) T hTr).trans
     (div_le_div_of_nonneg_right (by simpa only [show (4:ℕ)=2*2 by rfl, pow_mul, sq_abs] using! publicMoment_bound p f 4) (by positivity))
 
+/-- At a nonnegative threshold, the absolute value of a rational clipped value is at most the
+threshold. -/
 lemma rationalClip_bound (T x : ℚ) (hT : 0 ≤ T) : |rationalClip T x| ≤ T := by
   have h :=
       Qatlib.Concepts.AEMeanReadout.LocalAEBackend.boundedClip_bound (T:ℝ) (x:ℝ)
@@ -120,16 +168,21 @@ lemma rationalClip_bound (T x : ℚ) (hT : 0 ≤ T) : |rationalClip T x| ≤ T :
   rw [← rationalClip_cast] at h
   exact_mod_cast h
 
+/-- The choice between second-moment and fourth-moment clipping-bias bounds. -/
 inductive TailClass where
   | second
   | fourth
   deriving DecidableEq
 
+/-- The rational clipping-bias bound selected from the public second or fourth moment by
+`TailClass`. -/
 def tailBias {I : Type} [Fintype I] (c : TailClass) (f : I → ℚ) (T : ℚ) : ℚ :=
   match c with
   | .second => publicMoment f 2 / (4*T)
   | .fourth => publicMoment f 4 / T^3
 
+/-- For a positive threshold, `tailBias` bounds the change in expectation caused by rational
+clipping under any finite distribution. -/
 theorem tailBias_valid {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (c : TailClass) (f : I → ℚ) (T : ℚ) (hT : 0 < T) :
     |p.expect (fun i => (f i : ℝ)) - p.expect (fun i => (rationalClip T (f i) : ℝ))| ≤
@@ -138,14 +191,20 @@ theorem tailBias_valid {I : Type} [Fintype I] [DecidableEq I]
   · simpa [tailBias] using! publicMoment_clipping2 p f T hT
   · simpa [tailBias] using! publicMoment_clipping4 p f T hT
 
+/-- A rational clipping threshold at least one, computed from the selected public moment and the
+requested bias parameter. -/
 def radius {I : Type} [Fintype I] (c : TailClass) (f : I → ℚ) (η : ℚ) : ℚ :=
   max 1 (match c with
     | .second => publicMoment f 2 / (4*η)
     | .fourth => publicMoment f 4 / η)
 
+/-- The computed clipping radius is strictly positive for every moment class, function, and bias
+parameter. -/
 theorem radius_pos {I : Type} [Fintype I] (c : TailClass) (f : I → ℚ) (η : ℚ) :
     0 < radius c f η := lt_of_lt_of_le (by norm_num : (0 : ℚ) < 1) (le_max_left _ _)
 
+/-- For a positive requested bias, the computed clipping radius makes `tailBias` at most that
+bias. -/
 theorem radius_bias {I : Type} [Fintype I] (c : TailClass) (f : I → ℚ) (η : ℚ) (hη : 0 < η) :
     tailBias c f (radius c f η) ≤ η := by
   have ht := radius_pos c f η
@@ -165,6 +224,8 @@ theorem radius_bias {I : Type} [Fintype I] (c : TailClass) (f : I → ℚ) (η :
     apply (div_le_iff₀ (by positivity : (0 : ℚ) < (radius .fourth f η)^3)).mpr
     nlinarith [mul_le_mul_of_nonneg_left hcube hη.le]
 
+/-- Under the stated positivity assumptions and pilot parameter bound, the probability that the
+clipped pilot readout error exceeds `eps + tailBias c f T` is at most `δpilot + δmain`. -/
 theorem frontier1 {I : Type} [Fintype I] [DecidableEq I] (p : FinDist I)
     (c : TailClass) (f : I → ℚ) (T : ℚ) (depth j : ℕ) (nu eps δpilot δmain : ℚ)
     (hT : 0 < T) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4)
@@ -186,11 +247,15 @@ theorem frontier1 {I : Type} [Fintype I] [DecidableEq I] (p : FinDist I)
   push_cast at hz
   linarith
 
+/-- The finite table cardinality plus the estimator resource count for a clipped and normalized
+observable on the given main record. -/
 def tableResources {I : Type} [Fintype I] [DecidableEq I] (T : ℚ) (N depth : ℕ)
     (f : I → ℚ) (nu eps δ : ℚ)
     (z : MainRecord N depth (normalized T (fun i => rationalClip T (f i))) nu (eps/T) δ) : ℕ :=
   Fintype.card I + resources N depth (normalized T (fun i => rationalClip T (f i))) nu (eps/T) δ z
 
+/-- Under the stated parameter bounds, the table resource count is at most the table cardinality
+plus `N + sampleCount 4 (eps/T) δ`. -/
 theorem table_worst {I : Type} [Fintype I] [DecidableEq I] (T : ℚ) (N depth : ℕ)
     (f : I → ℚ) (nu eps δ : ℚ)
     (z : MainRecord N depth (normalized T (fun i => rationalClip T (f i))) nu (eps/T) δ)
@@ -201,6 +266,8 @@ theorem table_worst {I : Type} [Fintype I] [DecidableEq I] (T : ℚ) (N depth : 
     (normalized_bound T _ hT (fun i => rationalClip_bound T (f i) hT.le)) hnu hnu1
     (div_pos heps hT) hδ) _
 
+/-- With the computed clipping radius and the stated parameter bounds, the probability that the
+pilot readout error exceeds `eps + η` is at most `δpilot + δmain`. -/
 theorem computed_radius_frontier {I : Type} [Fintype I] [DecidableEq I] (p : FinDist I)
     (c : TailClass) (f : I → ℚ) (η : ℚ) (depth j : ℕ) (nu eps δpilot δmain : ℚ)
     (hη : 0 < η) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4)

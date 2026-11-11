@@ -11,6 +11,28 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+/-!
+# Finite sampling of counted search circuits
+
+`finiteCoinThenAttempt` composes finite fair-bit rejection sampling with a family of costed
+trials. Its expectation and event identities keep sampling costs separate from trial costs.
+`finiteCoinSearch` specializes this construction to Born measurements after a sampled number of
+oracle queries.
+
+The mathematical background is described in [BoyerEtAl1998].
+
+## Main statements
+
+* `finite_coin_attempt_joint_cost`: separates expected sampler and trial costs.
+* `finite_coin_counted_search_event`: computes the marked-event probability.
+* `finite_coin_counted_search_resources`: gives expected queries and support bounds.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend
@@ -26,9 +48,11 @@ namespace Qatlib.Concepts.LchsSimulation.StaticLchs
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped ENNReal Classical
 
+/-- Expectation is the infinite sum of the observable weighted by the probability mass function. -/
 private theorem expectation_tsum {α : Type} (p : PMF α) (f : α → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p f = ∑' a, p a * f a := rfl
 
+/-- The probability of returning `Sum.inl i` is the sum of its joint masses over all costs. -/
 private theorem event_outcome_inl {m : ℕ}
     (p : PMF (RandomizedExecution.Configuration Unit (Fin m) × ℕ)) (i : Fin m) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => x.1 = Sum.inl i) = ∑' n, p ((Sum.inl i : RandomizedExecution.Configuration Unit (Fin m)), n) := by
@@ -68,6 +92,8 @@ private theorem event_outcome_inl {m : ℕ}
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, expectation_tsum, tsum_prod_type', tsum_sum_type',
     hU, add_zero, hF]
 
+/-- The probability of the pending configuration `Sum.inr ()` is the sum of its joint masses
+over all costs. -/
 private theorem event_outcome_inr {m : ℕ}
     (p : PMF (RandomizedExecution.Configuration Unit (Fin m) × ℕ)) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => x.1 = Sum.inr ()) = ∑' n, p ((Sum.inr () : RandomizedExecution.Configuration Unit (Fin m)), n) := by
@@ -101,6 +127,8 @@ private theorem event_outcome_inr {m : ℕ}
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, expectation_tsum, tsum_prod_type', tsum_sum_type',
     hF, zero_add, hU]
 
+/-- The expectation of a configuration observable splits into the finite sum over returned
+indices and the pending contribution. -/
 private theorem expectation_outcome {m : ℕ}
     (p : PMF (RandomizedExecution.Configuration Unit (Fin m) × ℕ))
     (V : RandomizedExecution.Configuration Unit (Fin m) → ℝ≥0∞) :
@@ -118,6 +146,8 @@ private theorem expectation_outcome {m : ℕ}
     exact absurd rfl ht), tsum_fintype]
   simp only [event_outcome_inl, event_outcome_inr]
 
+/-- The continuation that runs the selected costed trial, or returns `none` for a pending
+sample, preserving the sampling cost separately. -/
 private noncomputable def attemptCont {A : Type} {m : ℕ} (F : Fin m → CostedLaw A)
     (x : RandomizedExecution.Configuration Unit (Fin m) × ℕ) :
     PMF (Option A × ℕ × ℕ) :=
@@ -125,10 +155,13 @@ private noncomputable def attemptCont {A : Type} {m : ℕ} (F : Fin m → Costed
   | Sum.inl i => (F i).map fun y => (some y.1, x.2, y.2)
   | Sum.inr _ => PMF.pure (none, x.2, 0)
 
+/-- The joint law of a finite fair-bit sample followed by the corresponding costed trial, with
+an optional outcome and separate sampling and trial costs. -/
 noncomputable def finiteCoinThenAttempt {A : Type} (k m fuel : ℕ)
     (F : Fin m → CostedLaw A) : PMF (Option A × ℕ × ℕ) :=
   PMF.bind (finiteCoinRun k m fuel) (attemptCont F)
 
+/-- The continuation preserves the given sampling cost in expectation. -/
 private theorem expectation_attemptCont_fst {A : Type} {m : ℕ} (F : Fin m → CostedLaw A)
     (x : RandomizedExecution.Configuration Unit (Fin m) × ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (attemptCont F x) (fun z => (z.2.1 : ℕ))
@@ -151,6 +184,8 @@ private theorem expectation_attemptCont_fst {A : Type} {m : ℕ} (F : Fin m → 
           (PMF.pure (none, bits, 0)) (fun z => (z.2.1 : ℕ)) = _
       rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
 
+/-- An observable of the optional trial output and its cost decomposes into the selected-trial
+expectations and the pending contribution. -/
 theorem finite_coin_attempt_observable {A : Type} (k m fuel : ℕ)
     (F : Fin m → CostedLaw A) (g : Option A → ℕ → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (finiteCoinThenAttempt k m fuel F) (fun z => g z.1 z.2.2) =
@@ -172,6 +207,8 @@ theorem finite_coin_attempt_observable {A : Type} (k m fuel : ℕ)
       | Sum.inl i => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (F i) (fun y => g (some y.1) y.2)
       | Sum.inr _ => g none 0)
 
+/-- The joint execution preserves expected sampling cost and expresses expected trial cost as
+the selection-probability-weighted sum of trial costs. -/
 theorem finite_coin_attempt_joint_cost {A : Type} (k m fuel : ℕ) (F : Fin m → CostedLaw A) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (finiteCoinThenAttempt k m fuel F) (fun x => (x.2.1 : ℕ))
       = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (finiteCoinRun k m fuel) ∧
@@ -184,6 +221,8 @@ theorem finite_coin_attempt_joint_cost {A : Type} (k m fuel : ℕ) (F : Fin m �
   · simpa [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost] using
       finite_coin_attempt_observable k m fuel F (fun _ n => (n : ℝ≥0∞))
 
+/-- The probability of a successful trial event is the sum of each selection probability times
+the corresponding trial event probability. -/
 theorem finite_coin_attempt_event {A : Type} (k m fuel : ℕ) (F : Fin m → CostedLaw A)
     (E : A → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (finiteCoinThenAttempt k m fuel F) (fun x => ∃ a, x.1 = some a ∧ E a)
@@ -194,6 +233,8 @@ theorem finite_coin_attempt_event {A : Type} (k m fuel : ℕ) (F : Fin m → Cos
     (fun a _ => @ite ℝ≥0∞ (∃ x, a = some x ∧ E x) (Classical.propDecidable _) 1 0)
   simpa [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event] using h
 
+/-- The composite execution returns `none` with exactly the probability that finite coin
+sampling remains pending. -/
 theorem finite_coin_attempt_pending {A : Type} (k m fuel : ℕ)
     (F : Fin m → CostedLaw A) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (finiteCoinThenAttempt k m fuel F) (fun x => x.1 = none) =
@@ -203,6 +244,7 @@ theorem finite_coin_attempt_pending {A : Type} (k m fuel : ℕ)
     (fun a _ => @ite ℝ≥0∞ (a = none) (Classical.propDecidable _) 1 0)
   simpa [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event] using h
 
+/-- A circuit consisting only of repeated query steps contains no gate step. -/
 private theorem gates_repeat_query {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (m : ℕ) (hU : Step.gate U ∈ RepeatCircuit [Step.query] m) : False := by
   induction m with
@@ -213,11 +255,14 @@ private theorem gates_repeat_query {I : Type} [Fintype I] [DecidableEq I]
       · simp at h
       · exact ih h
 
+/-- Repeating a single query step `m` times has query count `m`. -/
 private theorem queryCount_repeat_query {I : Type} [Fintype I] [DecidableEq I] (m : ℕ) :
     QueryCount ((RepeatCircuit [Step.query] m : Circuit I)) = m := by
   rw [queryCount_repeatCircuit]
   simp
 
+/-- The Born measurement law after `i` oracle applications to a normalized state, with the
+actual circuit query count attached. -/
 noncomputable def countedSearchStep {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) (hψ : Normalized ψ)
     (i : Fin m) : CostedLaw I :=
@@ -226,12 +271,15 @@ noncomputable def countedSearchStep {I : Type} [Fintype I] [DecidableEq I] {m : 
         (fun U hU => (gates_repeat_query U _ hU).elim) hψ)).map
     fun y => (y, QueryCount ((RepeatCircuit [Step.query] (i : ℕ) : Circuit I)))
 
+/-- The joint law of finite fair-bit sampling and the selected counted search trial, recording
+an optional outcome, bit cost, and query cost. -/
 noncomputable def finiteCoinSearch {I : Type} [Fintype I] [DecidableEq I]
     (k m fuel : ℕ) (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (ψ : QState I) (hψ : Normalized ψ) : PMF (Option I × ℕ × ℕ) :=
   finiteCoinThenAttempt k m fuel
     (countedSearchStep O hO ψ hψ)
 
+/-- The probability of membership in a finite set is the sum of its point masses. -/
 private theorem event_pmf_mem_sum {α : Type} [Fintype α] (p : PMF α) (S : Finset α) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun b => b ∈ S) = ∑ b ∈ S, p b := by
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, expectation_tsum,
@@ -252,6 +300,8 @@ private theorem event_pmf_mem_sum {α : Type} [Fintype α] (p : PMF α) (S : Fin
   rw [Finset.sum_congr rfl hEq]
   exact hsub.symm.trans hS
 
+/-- The sum of the natural indices in `Fin n`, cast to extended nonnegative reals, is `n * (n -
+1) / 2`. -/
 private theorem sum_fin_val (n : ℕ) :
     (∑ i : Fin n, ((i : ℕ) : ℝ≥0∞))
       = (((n : ℕ) : ℝ≥0∞) * ((((n - 1 : ℕ) : ℝ≥0∞)) * ((2 : ℝ≥0∞))⁻¹)) := by
@@ -294,6 +344,8 @@ private theorem sum_fin_val (n : ℕ) :
                 * (((n : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞))⁻¹) := by ring
         rw [show (n + 1 - 1 : ℕ) = n from by omega, Nat.cast_add, Nat.cast_one]
 
+/-- For a nonempty window fitting in `k` bits, the marked-event probability is the average
+circuit Born success multiplied by the sampler acceptance probability. -/
 theorem finite_coin_counted_search_event {I : Type} [Fintype I] [DecidableEq I]
     (k m fuel : ℕ) (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (ψ : QState I) (hψ : Normalized ψ) (S : Finset I) (hm0 : 0 < m) (hm : m ≤ 2 ^ k) :
@@ -332,6 +384,8 @@ theorem finite_coin_counted_search_event {I : Type} [Fintype I] [DecidableEq I]
     finite_coin_attempt_event k m fuel (countedSearchStep O hO ψ hψ) fun j => j ∈ S,
     Finset.sum_congr rfl fun i _ => by rw [hmass i, hborn i], ← Finset.mul_sum]
 
+/-- The expected query count is `(1 - coinRejectMass k m ^ fuel) * (m - 1) / 2`; every supported
+execution uses at most `fuel * k` bits and fewer than `m` queries. -/
 theorem finite_coin_counted_search_resources {I : Type} [Fintype I] [DecidableEq I]
     (k m fuel : ℕ) (O : Matrix I I ℂ) (hO : O ∈ Matrix.unitaryGroup I ℂ)
     (ψ : QState I) (hψ : Normalized ψ) (hm0 : 0 < m) (hm : m ≤ 2 ^ k) :

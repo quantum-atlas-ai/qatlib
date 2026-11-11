@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QCircuitYao93.QtmSimulation.PolynomialPhi3
 import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3Encoding
+
+/-!
+# Acceptance preservation for compiled circuit families
+
+The module defines acceptance mass for window configurations and for their encoded register
+states. Injectivity of the configuration encodings allows
+`registerAcceptMass_eq_windowAcceptMass` to transfer acceptance probabilities through the
+elementary circuit compilation.
+
+`corollary2_language_circuit_family` obtains circuit families of polynomial length from the
+stated polynomial-time window acceptance and rejection bounds, preserving the strict two-thirds
+and one-third thresholds at positive input lengths. See [Yao1993].
+
+## Main statements
+
+* `registerAcceptMass_eq_windowAcceptMass`: preserves acceptance mass under compilation.
+* `corollary2_language_circuit_family`: constructs elementary circuit families with the given
+  language thresholds.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,17 +50,22 @@ open Qatlib.Concepts.CircuitImpl.Phi3Universal
 open Qatlib.Concepts.WalkFind.SearchAlgorithm
 open Qatlib.Papers.QCircuitYao93.QtmSimulation.PolynomialPhi3
 
+/-- The sum of Born probabilities of window configurations whose control state belongs to `Acc`. -/
 def windowAcceptMass {t : ℕ} {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (Acc : Set Q) [DecidablePred Acc]
     (ψ : QState (WindowCfg t Q A)) : ℝ :=
   ∑ c : WindowCfg t Q A, if Acc c.state then BornProb ψ c else 0
 
+/-- The sum of register-state Born probabilities at the encodings of window configurations whose
+control state belongs to `Acc`. -/
 def registerAcceptMass {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (t b : ℕ) (e : CellState Q A → Reg b) (Acc : Set Q)
     [DecidablePred Acc] (ψ : QState (Reg ((2*t+1)*b+3))) : ℝ :=
   ∑ c : WindowCfg t Q A,
     if Acc c.state then BornProb ψ (qtmPhi3Basis t b e (windowEncode c)) else 0
 
+/-- The acceptance mass of a configuration basis state is one if its control state lies in
+`Acc`, and zero otherwise. -/
 theorem windowAcceptMass_ket {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] (Acc : Set Q) [DecidablePred Acc] {t : ℕ} (ψ : WindowCfg t Q A) :
     windowAcceptMass Acc (Ket ψ) = if Acc ψ.state then 1 else 0 := by
@@ -49,12 +78,15 @@ theorem windowAcceptMass_ket {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A
   · intro h
     exact absurd (Finset.mem_univ ψ) h
 
+/-- Equality after extending registers along an injective wire map implies equality of the
+original registers. -/
 theorem knownWireExtend_inj {a b : ℕ} (e : Fin a ↪ Fin b) {x y : Reg a}
     (h : knownWireExtend e x = knownWireExtend e y) : x = y := by
   funext i
   have hi := congrFun h (e i)
   simpa using! hi
 
+/-- An injective cell code induces an injective code on window registers. -/
 theorem qtmWindowBasisCode_injective {Q A : Type} (t b : ℕ) (e : CellState Q A → Reg b)
     (he : Function.Injective e) :
     Function.Injective (qtmWindowBasisCode t b e) := by
@@ -65,6 +97,7 @@ theorem qtmWindowBasisCode_injective {Q A : Type} (t b : ℕ) (e : CellState Q A
   have hi := congrFun h (finProdFinEquiv (m := 2*t+1) (n := b) (i, j))
   simpa [qtmWindowBasisCode] using! hi
 
+/-- The encoding of window configurations into cell registers is injective. -/
 theorem windowEncode_injective {t : ℕ} {Q A : Type} :
     Function.Injective (windowEncode (t := t) (Q := Q) (A := A)) := by
   intro c c' hcode
@@ -100,6 +133,8 @@ theorem windowEncode_injective {t : ℕ} {Q A : Type} :
   simp only [WindowCfg.mk.injEq]
   exact ⟨hhead, hstate, htape⟩
 
+/-- When the cell state space fits in `b` bits, the chosen finite cell code gives an injective
+elementary-register encoding of window configurations. -/
 theorem qtmPhi3Basis_encoded_injective {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (t b : ℕ) (hb : Fintype.card (CellState Q A) ≤ 2^b) :
     Function.Injective
@@ -111,6 +146,8 @@ theorem qtmPhi3Basis_encoded_injective {Q A : Type} [Fintype Q] [DecidableEq Q]
       (finiteBasisCode_injective hb) (knownWireExtend_inj _ h)
   exact windowEncode_injective hcode
 
+/-- The compiled polynomial-time circuit has exactly the same acceptance mass on the encoded
+input as the corresponding window QTM evolution. -/
 theorem registerAcceptMass_eq_windowAcceptMass {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : LocalQTM Q A) (b n c k : ℕ)
     (hb : Fintype.card (CellState Q A) ≤ 2^b) (hn : 0 < n) (hc : 0 < c) (hk : 0 < k)
@@ -135,6 +172,10 @@ theorem registerAcceptMass_eq_windowAcceptMass {Q A : Type} [Fintype Q] [Decidab
     exact (hsem x w).2.2.2
   · simp only [hw, if_false]
 
+/-- The stated polynomial-time window acceptance and rejection bounds yield a family of unitary
+elementary circuits with no queries and the displayed polynomial length bound, preserving
+those thresholds for positive input lengths. This is a language-level form of the corollary
+after Theorem 2 of [Yao1993]. -/
 theorem corollary2_language_circuit_family {Q A : Type} [Fintype Q] [DecidableEq Q]
     [Fintype A] [DecidableEq A] (M : LocalQTM Q A) (Acc : Set Q) [DecidablePred Acc]
     (L : (n : ℕ) → Set (Fin n → A)) (b c k : ℕ)

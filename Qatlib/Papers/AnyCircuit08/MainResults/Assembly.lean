@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.AnyCircuit08.MainResults.Basic
 import Qatlib.Papers.AnyCircuit08.MainResults.RandomAssembly
 
+/-!
+# From row moments to dispersing matrices
+
+Fourth-moment bounds for normalized rows imply lower bounds on their sums of norms, yielding
+`IsDispersing` when sufficiently many rows satisfy the estimates. Finite counting and averaging
+then give `fraction_dispersing_ge`, a lower bound on the fraction of matrices satisfying the
+dispersing condition [HallgrenHarrow2008].
+
+## Main statements
+
+* `l1_ge_of_fourth_moment`: converts normalized second and fourth moments into a first-moment
+  bound.
+* `dispersing_of_row_bounds`: assembles row estimates into the dispersing condition.
+* `fraction_dispersing_ge`: bounds the fraction of dispersing matrices.
+
+## References
+
+* [Hallgren and Harrow, 2008][HallgrenHarrow2008]
+-/
+
 namespace Qatlib.Papers.AnyCircuit08.MainResults
 
 set_option autoImplicit false
@@ -15,6 +35,8 @@ open scoped BigOperators
 
 attribute [local instance] Classical.propDecidable
 
+/-- A nonnegative vector with squared norm one and fourth moment at most `1 / (N * β ^ 2)` has
+sum at least `β * sqrt N`, for positive `N` and `β` [HallgrenHarrow2008]. -/
 theorem l1_ge_of_fourth_moment {X : Type} [Fintype X] (y : X → ℝ) (hy : ∀ x, 0 ≤ y x)
     {N β : ℝ} (hN : 0 < N) (hβ : 0 < β) (hunit : ∑ x, y x ^ 2 = 1)
     (hQ : ∑ x, y x ^ 4 ≤ 1 / (N * β ^ 2)) :
@@ -41,6 +63,9 @@ theorem l1_ge_of_fourth_moment {X : Type} [Fintype X] (y : X → ℝ) (hy : ∀ 
     _ ≤ Real.sqrt ((∑ x, y x) ^ 2) := Real.sqrt_le_sqrt h2
     _ = ∑ x, y x := Real.sqrt_sq hBnn
 
+/-- A matrix is `IsDispersing U α β` if at least `card X ^ α` rows have squared norm one and
+fourth moment at most `1 / (card X * β ^ 2)`, with positive size and `β`
+[HallgrenHarrow2008]. -/
 theorem dispersing_of_row_bounds {X : Type} [Fintype X] [DecidableEq X]
     (U : X → X → ℂ) (A : Finset X) {α β : ℝ} (hβ : 0 < β)
     (hcard : (Fintype.card X : ℝ) ^ α ≤ (A.card : ℝ))
@@ -53,6 +78,8 @@ theorem dispersing_of_row_bounds {X : Type} [Fintype X] [DecidableEq X]
   exact l1_ge_of_fourth_moment (fun x => ‖U a x‖) (fun x => norm_nonneg _)
     hN hβ (hunit a ha) (hQ a ha)
 
+/-- If the number of indices marked bad is less than `card X - r`, there is a finite set of more
+than `r` indices all marked good [HallgrenHarrow2008]. -/
 theorem exists_good_set {X : Type} [Fintype X] [DecidableEq X]
     (bad : X → Bool) {r : ℝ}
     (h : ((Finset.univ.filter (fun x => bad x = true)).card : ℝ) <
@@ -85,6 +112,8 @@ theorem exists_good_set {X : Type} [Fintype X] [DecidableEq X]
   · intro a ha
     exact (Finset.mem_filter.mp ha).2
 
+/-- On a nonempty finite sample space, an upper bound `p / s` for the fraction with `s ≤ f`
+gives a lower bound `1 - p / s` for the fraction with `f < s` [HallgrenHarrow2008]. -/
 theorem fraction_lt_of_bad_fraction_le {Ω : Type*} [Fintype Ω] (f : Ω → ℝ) {p s : ℝ}
     (hΩ : 0 < Fintype.card Ω)
     (h : (∑ ω, if s ≤ f ω then (1 : ℝ) else 0) / (Fintype.card Ω : ℝ) ≤ p / s) :
@@ -107,6 +136,9 @@ theorem fraction_lt_of_bad_fraction_le {Ω : Type*} [Fintype Ω] (f : Ω → ℝ
   rw [hX, sub_div, div_self (ne_of_gt hcpos)]
   linarith
 
+/-- The fraction of dispersing matrices is at least `1 - p / s` if each row is bad with
+frequency at most `p`, every good row satisfies the normalization and fourth-moment bounds,
+and the stated size condition leaves at least `card X ^ α` good rows [HallgrenHarrow2008]. -/
 theorem fraction_dispersing_ge {Ω : Type*} {X : Type} [Fintype Ω] [Fintype X] [DecidableEq X]
     (U : Ω → X → X → ℂ) (bad : Ω → X → Bool) {p s α β : ℝ}
     (hβ : 0 < β) (hX1 : 1 ≤ Fintype.card X) (hs : 0 < s)

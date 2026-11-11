@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
 import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+
+/-!
+# Statement of the joint empirical CDF bound
+
+The predicate `EmpiricalNativeCDFReadoutJoint` states an error guarantee for native CDF readout
+after independent sampling. Its tolerance includes population sampling, empirical preparation,
+amplitude estimation, and readout rounding, and its failure bound adds the sampling and
+repetition contributions.
+
+The source paper is [WoernerEgger2019].
+
+## Main statements
+
+* `EmpiricalNativeCDFReadoutJoint`: The joint CDF guarantee: for positive N and ν and M ≥ 2,
+  deviation beyond ν + 64n/2^ebits + π/M + π²/M² + (1/2)^bits has probability at most 1/(4Nν²) +
+  (8/9)^r.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +49,8 @@ namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open Matrix
 open scoped Classical BigOperators ENNReal
 
+/-- The joint CDF guarantee: for positive N and ν and M ≥ 2, deviation beyond ν + 64n/2^ebits +
+π/M + π²/M² + (1/2)^bits has probability at most 1/(4Nν²) + (8/9)^r. -/
 def EmpiricalNativeCDFReadoutJoint : Prop :=
   ∀ (n N ebits bits M r : ℕ) (p : FinDist (Option (Fin n))) (loss : Option (Fin n) → ℚ)
     (t : ℚ) (ν : ℝ), 0 < N → 0 < ν → (hM : 2 ≤ M) →

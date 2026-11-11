@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityStat
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
 import Qatlib.Concepts.GramQueryCore.ModelSemantics.CoherentValueFeasibleBoundaryQuan
+
+/-!
+# Compatibility of Boolean Gram optimization values
+
+Identifies square instances of the rectangular witness model with `gramFilteredCert` and
+`filteredGamma2`. Encoding Boolean symbols as a two-symbol alphabet preserves the coordinate
+difference filters.
+
+These identifications prove compatibility of the source filtered value, coherent approximation
+value, and adversary value with their Boolean definitions in the framework of [LeeEtAl2011].
+
+## Main statements
+
+* `sourceSquareCert_iff`: identifies the two certificate formulations.
+* `sourceSquareValue_eq`: identifies the square optimization values.
+* `booleanValueCompatibility`: proves all Boolean value compatibility identities.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +46,8 @@ namespace Qatlib.Concepts.GramQueryCore.ModelSemantics
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- For square finite matrices, the rectangular source certificate is equivalent to the filtered
+Gram certificate with the same budget. -/
 theorem sourceSquareCert_iff {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) (w : ℝ) :
     sourceRectCert n A Z w ↔ gramFilteredCert A Z w := by
@@ -47,6 +71,8 @@ theorem sourceSquareCert_iff {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
       simp_rw [hv']
       exact hv x
 
+/-- For square finite matrices, `sourceRectValue` equals `filteredGamma2` for the same filter
+family. -/
 theorem sourceSquareValue_eq {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     (A : Matrix X X ℂ) (Z : Fin n → Matrix X X ℂ) : sourceRectValue A Z=filteredGamma2 A Z := by
   unfold sourceRectValue filteredGamma2
@@ -61,12 +87,17 @@ theorem sourceSquareValue_eq {X : Type} [Fintype X] [DecidableEq X] {n : ℕ}
     rw [hb,ENNReal.ofReal_max]
     simp
 
+/-- Encoding Boolean inputs as alphabet symbols leaves the coordinate difference filters
+unchanged. -/
 theorem sourceBooleanDelta_eq {X : Type} {n : ℕ} (input : X → Fin n → Bool) :
     sourceAlphabetDelta (fun x j => sourceBooleanSymbol (input x j))=gramFilterDelta input := by
   ext j x y
   cases hx : input x j <;> cases hy : input y j <;>
     simp [sourceAlphabetDelta,sourceBooleanSymbol,gramFilterDelta,hx,hy]
 
+/-- Proves that Boolean alphabet encoding preserves filtered Gram values, the coherent state
+conversion optimization for nonnegative tolerance, and general adversary values
+[LeeEtAl2011]. -/
 theorem booleanValueCompatibility : BooleanValueCompatibility := by
   intro X _ _ n input R S δ
   have hΔ := sourceBooleanDelta_eq input

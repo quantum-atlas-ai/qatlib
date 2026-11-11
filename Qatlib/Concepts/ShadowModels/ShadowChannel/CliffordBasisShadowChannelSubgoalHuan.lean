@@ -8,6 +8,28 @@ import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubg
 import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
 import Qatlib.Concepts.ShadowModels.ShadowChannel.PauliRealMoments
 import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowDefs
+
+/-!
+# Clifford basis shadow channel identities
+
+This module derives the basis measurement channel and unbiased reconstruction from
+`CliffordMomentHypothesisV2`, using actual Born probabilities and the conjugated basis
+projectors. It also records what the legacy moment condition proves and gives a
+three-dimensional example showing that the two conjugation orientations need not agree
+pointwise. See [HuangKuengPreskill2020] for background.
+
+## Main statements
+
+* `clifford_actual_channel`: the channel formula under the corrected moment condition.
+* `clifford_unbiased_of_actual_channel`: unbiased observable reconstruction from that formula.
+* `clifford_pointwise_orientation_obstruction`: a concrete obstruction to reversing conjugation
+  order.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,9 +45,13 @@ namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The absolute real expectation of any operator in a density state is bounded by its operator
+norm. -/
 theorem basis_shadow_expectation_bound {d : ℕ} (O ρ : Operator d) (hρ : IsDensityOperator ρ) :
     |(Matrix.trace (O*ρ)).re| ≤ ‖O‖ := abs_trace_density_le_norm O ρ hρ.1 hρ.2
 
+/-- The legacy moment hypothesis gives the displayed depolarizing formula for the sum weighted
+by traces against forward-conjugated basis projectors. -/
 theorem clifford_moment_forward_channel (d : ℕ) (hd : 2 ≤ d)
     (I : Type) [Fintype I] [DecidableEq I] (μ : FinDist I) (Uf : I → Operator d)
     (h35 : CliffordMomentHypothesis d I μ Uf) (ρ : Operator d) (hρ : IsDensityOperator ρ) :
@@ -44,6 +70,8 @@ theorem clifford_moment_forward_channel (d : ℕ) (hd : 2 ≤ d)
     field_simp
   rw [he, add_comm]
 
+/-- For ensemble operators unitary on the positive-probability support, the basis measurement
+record weights sum to one. -/
 theorem clifford_basis_record_mass_one (d : ℕ) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)
     (hU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
@@ -67,6 +95,8 @@ theorem clifford_basis_record_mass_one (d : ℕ) (I : Type) [Fintype I] [Decidab
   simp_rw [he]
   exact μ.sum_one
 
+/-- If the actual basis measurement channel has the displayed depolarizing form, the
+reconstruction `(d+1) • Q - 1` is unbiased for the real expectation of every operator. -/
 theorem clifford_unbiased_of_actual_channel (d : ℕ) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)
     (hU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
@@ -107,8 +137,12 @@ theorem clifford_unbiased_of_actual_channel (d : ℕ) (I : Type) [Fintype I] [De
   field_simp
   ring
 
+/-- The three-dimensional cyclic permutation matrix sending basis index `j` to `j+1` modulo
+three. -/
 private def orientationCycle : Operator 3 := fun i j => if i.val = (j.val+1)%3 then 1 else 0
 
+/-- There exist a three-dimensional unitary and a pure density operator for which the actual
+Born trace differs from the trace using the opposite conjugation orientation. -/
 theorem clifford_pointwise_orientation_obstruction :
     ∃ (U ρ : Operator 3), U ∈ Matrix.unitaryGroup (Fin 3) ℂ ∧ IsPureDensityOperator ρ ∧
       Matrix.trace (basisProjector (0 : Fin 3)*(U*ρ*Uᴴ)) ≠
@@ -130,6 +164,8 @@ theorem clifford_pointwise_orientation_obstruction :
   rw [hactual, hmoment]
   norm_num
 
+/-- Under `CliffordMomentHypothesisV2` in dimension at least two, the actual Born-weighted sum
+of conjugated basis projectors is `(ρ + 1)/(d+1)`. -/
 theorem clifford_actual_channel (d : ℕ) (hd : 2 ≤ d)
     (I : Type) [Fintype I] [DecidableEq I] (μ : FinDist I) (Uf : I → Operator d)
     (h35 : CliffordMomentHypothesisV2 d I μ Uf) (ρ : Operator d) (hρ : IsDensityOperator ρ) :
@@ -147,6 +183,8 @@ theorem clifford_actual_channel (d : ℕ) (hd : 2 ≤ d)
     field_simp
   rw [he, add_comm]
 
+/-- The corrected Clifford moment hypothesis yields both the actual basis shadow channel formula
+and unbiased reconstruction of observable expectations. -/
 theorem cliffordBasisShadowChannelSubgoal : CliffordBasisShadowChannelSubgoal := by
   intro d hd I _ _ μ Uf hU h35
   refine ⟨?_, ?_⟩

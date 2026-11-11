@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.LinearSystemCostModelDefs
 import Qatlib.Concepts.HhlErrorBridge.FilterStability
+
+/-!
+# HHL budget comparisons and specification counterexamples
+
+`first_power_budget_window` compares the defined sine-envelope and uniform-grid budgets and
+identifies the former with `nearOptimalKappaEpsBudget (1 / d) η`. The definitions concern the
+phase-estimation and cost accounting of the HHL framework [HarrowHassidimLloyd2009].
+
+`quantizeReal_neg_one` records the behavior of the natural-floor quantizer on a negative input.
+`not_clause30` and `not_clause31` refute the displayed bundled specifications, including their
+universal quantization requirements.
+
+## Main statements
+
+* `first_power_budget_window`: positivity and strict comparison of the budget expressions.
+* `quantizeReal_neg_one`: the natural-floor quantizer maps `-1` to zero.
+* `not_clause31`: the bundled access, retry, backend, and quantization specification is false.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,11 +69,14 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open scoped Classical BigOperators
 
+/-- The natural-floor quantizer sends `-1` to zero at every precision. -/
 theorem quantizeReal_neg_one (k : ℕ) : quantizeReal k (-1) = 0 := by
   unfold quantizeReal
   rw [Nat.floor_of_nonpos (by have h := pow_nonneg (show (0 : ℝ) ≤ 2 by norm_num) k; nlinarith)]
   norm_num
 
+/-- For `0 < d ≤ 1 / 4` and `0 < η ≤ 1`, the sine-envelope budget is positive, strictly below
+the uniform-grid budget, and equal to the defined `κ / ε` budget at `κ = 1 / d`. -/
 theorem first_power_budget_window (d η : ℝ) (hd : 0 < d) (hd1 : d ≤ 1 / 4)
     (hη : 0 < η) (hη1 : η ≤ 1) :
     0 < sinEnvelopeFirstPowerBudget d η ∧
@@ -68,6 +94,8 @@ theorem first_power_budget_window (d η : ℝ) (hd : 0 < d) (hd1 : d ≤ 1 / 4)
   · unfold sinEnvelopeFirstPowerBudget nearOptimalKappaEpsBudget
     field_simp
 
+/-- The displayed conjunction of filter, runtime, backend, dilation, and quantization
+requirements is false. -/
 theorem not_clause30 : ¬ (
 
   (∀ (d η : ℝ), 0 < d → d ≤ 1 / 4 → 0 < η → η ≤ 1 →
@@ -129,6 +157,8 @@ theorem not_clause30 : ¬ (
   rw [quantizeReal_neg_one] at hneg
   norm_num at hneg
 
+/-- The displayed conjunction of circuit, paid-access, retry, preparation-backend, and universal
+system-quantization requirements is false. -/
 theorem not_clause31 : ¬ (
 
   (∀ (H : Type) [Fintype H] [DecidableEq H] (U : Matrix H H ℂ)

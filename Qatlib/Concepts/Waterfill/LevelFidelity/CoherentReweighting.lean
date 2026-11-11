@@ -5,6 +5,18 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
+
+/-!
+# Shared definitions for coherent reweighting
+
+This module imports the common coherent-reweighting definitions, including `realFill`,
+`realFidelity`, `fidelityBracket`, and `ReweightingSuccess`. It provides the namespace and
+shared context used by subsequent real-table and rational-search developments.
+
+The underlying water-level framework is motivated by quantum rejection sampling
+[OzolsRoettelerRoland2013], studied by [Ozols et al., 2013][OzolsRoettelerRoland2013].
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 

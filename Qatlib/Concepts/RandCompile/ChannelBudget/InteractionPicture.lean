@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPictureDefs
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Interaction picture cutoffs and program resources
+
+This module proves cutoff, grid, and resource identities for finite interaction picture
+simulation in the setting of [LowWiebe2018]. It relates the printed logarithmic cutoff to the
+computed Dyson order and splits repeated grid-index sums into injective and collision
+contributions.
+
+The program results identify segment query and phase lists, sparse-program width and step count,
+accumulated failure bounds, and dyadic-time gate-cost estimates. The sorted-word lemmas make the
+multiplication order explicit.
+
+## Main statements
+
+* `ipRepeatedCube_split`: separate injective and colliding grid-index contributions.
+* `ipSegmentProgram_queries`: identify the segment program query count.
+* `ipGateRateTotal`: sum a logarithmic per-time cost bound over dyadic evolution times.
+
+## References
+
+* [Low and Wiebe, 2018][LowWiebe2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.InteractionEvo.ComputedGrid
 open Qatlib.Concepts.InteractionEvo.EffCosts
@@ -22,12 +46,15 @@ open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The printed interaction picture cutoff equals the natural ceiling of `2 log(2 / ε) /
+log(log(2 / ε))`. -/
 theorem ipPrintedCutoff_simplified (ε : ℝ) :
     ipPrintedCutoff ε = Nat.ceil (2 * Real.log (2 / ε) / Real.log (Real.log (2 / ε))) := by
   unfold ipPrintedCutoff
   congr 1
   ring
 
+/-- In the printed tolerance range, `log(2 / ε)` is greater than one. -/
 theorem ipPrintedRange_log_pos (ε : ℝ) (h : ipPrintedRange ε) :
     1 < Real.log (2 / ε) := by
   have hε0 : 0 < ε := h.1
@@ -46,10 +73,12 @@ theorem ipPrintedRange_log_pos (ε : ℝ) (h : ipPrintedRange ε) :
   rw [Real.lt_log_iff_exp_lt (by positivity)]
   exact (lt_div_iff₀ hε0).mpr hmul'
 
+/-- In the printed tolerance range, `log(log(2 / ε))` is positive. -/
 theorem ipPrintedRange_loglog_pos (ε : ℝ) (h : ipPrintedRange ε) :
     0 < Real.log (Real.log (2 / ε)) := by
   exact Real.log_pos (ipPrintedRange_log_pos ε h)
 
+/-- In the printed tolerance range, the printed cutoff is at least two. -/
 theorem ipPrintedCutoff_ge_two (ε : ℝ) (h : ipPrintedRange ε) :
     2 ≤ ipPrintedCutoff ε := by
   have hL : 1 < Real.log (2 / ε) := ipPrintedRange_log_pos ε h
@@ -70,8 +99,11 @@ theorem ipPrintedCutoff_ge_two (ε : ℝ) (h : ipPrintedRange ε) :
     Nat.lt_ceil.mpr hlt'
   omega
 
+/-- The closed-form truncation order equals `computedDysonCutoff k`. -/
 theorem ipClosedFormK_eq (k : ℕ) : ipClosedFormK k = computedDysonCutoff k := rfl
 
+/-- The closed-form grid meets `ipSourceGridCondition` whenever the stated real grid-size
+expression is nonnegative. -/
 theorem ipSourceGridCondition_holds (t Λ χ : ℝ) (k : ℕ)
     (h : 0 ≤ 16 * t ^ 2 * (χ + Λ ^ 2) * (2 : ℝ) ^ k) :
     ipSourceGridCondition t Λ χ k := by
@@ -95,17 +127,22 @@ theorem ipSourceGridCondition_holds (t Λ χ : ℝ) (k : ℕ)
       exact (le_max_right 1 _).trans (le_max_left _ _)
     exact hle
 
+/-- The computed truncation cutoff satisfies `ipTruncationTail k x` for `0 ≤ x ≤ log 2`. -/
 theorem ipTruncationTail_holds (k : ℕ) (x : ℝ) (hx0 : 0 ≤ x) (hx : x ≤ Real.log 2) :
     ipTruncationTail k x := by
   unfold ipTruncationTail ipClosedFormK
   exact computedDysonCutoff_tail_and_rate.1 k x hx0 hx
 
+/-- The repeated-index cube sum splits into the injective-index contribution and the collision
+contribution. -/
 theorem ipRepeatedCube_split {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t : ℝ) (M k : ℕ) :
     ipRepeatedCube H t M k = ipInjectiveCube H t M k + ipCollisionCube H t M k := by
   unfold ipRepeatedCube ipInjectiveCube ipCollisionCube
   exact effectiveCubeRaw_partition H t M k
 
+/-- For strictly increasing grid indices, the sorted Hamiltonian word is the product of the
+sampled Hamiltonians in reverse index order. -/
 theorem ipSortedWord_of_strict {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t : ℝ) (M k : ℕ) (v : Fin k → Fin M) (hv : StrictMono v) :
     ipSortedWord H t M k v =
@@ -124,6 +161,7 @@ theorem ipSortedWord_of_strict {I : Type} [Fintype I] [DecidableEq I]
     simp [Function.comp_def]
   rw [hmap]
 
+/-- The second-order collision sum is the sum of squared Hamiltonian samples over the grid. -/
 theorem ipCollisionCube_two {I : Type} [Fintype I] [DecidableEq I]
     (H : ℝ → Matrix I I ℂ) (t : ℝ) (M : ℕ) :
     ipCollisionCube H t M 2 = ∑ j : Fin M, H (t * j.val / M) * H (t * j.val / M) := by
@@ -193,6 +231,7 @@ theorem ipCollisionCube_two {I : Type} [Fintype I] [DecidableEq I]
     rw [hof, hms]
     simp [hne]
 
+/-- The sorted grid-index list is pairwise nondecreasing. -/
 theorem ipSortedIndexList_pairwise (M k : ℕ) (v : Fin k → Fin M) :
     List.Pairwise (fun a b => decide (a ≤ b) = true) (ipSortedIndexList M k v) := by
   classical
@@ -208,12 +247,14 @@ theorem ipSortedIndexList_pairwise (M k : ℕ) (v : Fin k → Fin M) :
     · exact Or.inl h
     · exact Or.inr (le_of_not_ge h)
 
+/-- The sorted grid-index list is a permutation of the original index list. -/
 theorem ipSortedIndexList_perm (M k : ℕ) (v : Fin k → Fin M) :
     List.Perm (ipSortedIndexList M k v) (List.ofFn v) := by
   classical
   unfold ipSortedIndexList
   exact List.mergeSort_perm (List.ofFn v) (fun a b => decide (a ≤ b))
 
+/-- Sorting a strictly increasing index list leaves the list unchanged. -/
 theorem ipSortedIndexList_of_strict (M k : ℕ) (v : Fin k → Fin M) (hv : StrictMono v) :
     ipSortedIndexList M k v = List.ofFn v := by
   classical
@@ -224,6 +265,8 @@ theorem ipSortedIndexList_of_strict (M k : ℕ) (v : Fin k → Fin M) (hv : Stri
   simp only [decide_eq_true_eq]
   exact le_of_lt (hv hij)
 
+/-- Filtering queries from `K` query-phase pairs yields precisely the list of duplicated-wire
+queries. -/
 theorem ipSegmentQueryList_gen (p : EffectiveSegmentParameters) (K : ℕ) :
     List.filter (fun s => match s with | .query .. => true | _ => false)
       (List.flatMap
@@ -238,6 +281,8 @@ theorem ipSegmentQueryList_gen (p : EffectiveSegmentParameters) (K : ℕ) :
     rw [List.range_succ, List.flatMap_append, List.filter_append, ih]
     simp [List.range_succ]
 
+/-- Filtering fixed and phase gates from `K` query-phase pairs yields precisely the list of
+phase gates. -/
 theorem ipSegmentGateList_gen (p : EffectiveSegmentParameters) (K : ℕ) :
     List.filter (fun s => match s with | .fixed .. | .phase .. => true | _ => false)
       (List.flatMap
@@ -252,12 +297,16 @@ theorem ipSegmentGateList_gen (p : EffectiveSegmentParameters) (K : ℕ) :
     rw [List.range_succ, List.flatMap_append, List.filter_append, ih]
     simp [List.range_succ]
 
+/-- The query steps of the segment are exactly the duplicated-wire queries indexed by
+`ipSegmentCopies p`. -/
 theorem ipSegmentQueryList (p : EffectiveSegmentParameters) :
     List.filter (fun s => match s with | .query .. => true | _ => false) (ipSegmentSteps p)
       = (List.range (ipSegmentCopies p)).map
           (fun j => EffectiveStep.query 0 (effectiveDuplicatedWires p j) [] false) := by
   exact ipSegmentQueryList_gen p (ipSegmentCopies p)
 
+/-- The fixed and phase steps of the segment are exactly the phase gates indexed by
+`ipSegmentCopies p`. -/
 theorem ipSegmentGateList (p : EffectiveSegmentParameters) :
     List.filter (fun s => match s with | .fixed .. | .phase .. => true | _ => false)
         (ipSegmentSteps p)
@@ -265,6 +314,7 @@ theorem ipSegmentGateList (p : EffectiveSegmentParameters) :
           (fun j => EffectiveStep.phase (p.ns + j * (p.na + p.nd) + p.nd) 1 1 false) := by
   exact ipSegmentGateList_gen p (ipSegmentCopies p)
 
+/-- The segment program's query count equals `ipSegmentQueries p`. -/
 theorem ipSegmentProgram_queries (p : EffectiveSegmentParameters) :
     effectiveQueries (ipSegmentProgram p) = ipSegmentQueries p := by
   have h := ipSegmentQueryList p
@@ -277,6 +327,7 @@ theorem ipSegmentProgram_queries (p : EffectiveSegmentParameters) :
     _ = ipSegmentCopies p := by simp
     _ = effectiveSegmentK p := rfl
 
+/-- The segment program's fixed-and-phase gate count equals `ipSegmentCopies p`. -/
 theorem ipSegmentProgram_gates (p : EffectiveSegmentParameters) :
     effectiveGates (ipSegmentProgram p) = ipSegmentCopies p := by
   have h := ipSegmentGateList p
@@ -289,6 +340,8 @@ theorem ipSegmentProgram_gates (p : EffectiveSegmentParameters) :
     _ = ipSegmentCopies p := by simp
     _ = effectiveSegmentK p := rfl
 
+/-- For every index below `effectiveSegmentK p`, the corresponding duplicated-wire query occurs
+in the segment program. -/
 theorem ipSegmentProgram_hasQuery (p : EffectiveSegmentParameters) (j : ℕ)
     (hj : j < effectiveSegmentK p) :
     EffectiveStep.query 0 (effectiveDuplicatedWires p j) [] false ∈ (ipSegmentProgram p).steps := by
@@ -298,6 +351,8 @@ theorem ipSegmentProgram_hasQuery (p : EffectiveSegmentParameters) (j : ℕ)
   · simpa using! hj
   · simp
 
+/-- For every index below `effectiveSegmentK p`, the corresponding phase gate occurs in the
+segment program. -/
 theorem ipSegmentProgram_hasPhase (p : EffectiveSegmentParameters) (j : ℕ)
     (hj : j < effectiveSegmentK p) :
     EffectiveStep.phase (p.ns + j * (p.na + p.nd) + p.nd) 1 1 false ∈ (ipSegmentProgram p).steps := by
@@ -307,6 +362,7 @@ theorem ipSegmentProgram_hasPhase (p : EffectiveSegmentParameters) (j : ℕ)
   · simpa using! hj
   · simp
 
+/-- For `0 ≤ x ≤ 1`, the failure expression `1 - x^L` is at most `L * (1 - x)`. -/
 theorem ipGeomFailureBound (x : ℝ) (L : ℕ) (h0 : 0 ≤ x) (h1 : x ≤ 1) :
     1 - x ^ L ≤ (L : ℝ) * (1 - x) := by
   induction L with
@@ -329,6 +385,8 @@ theorem ipGeomFailureBound (x : ℝ) (L : ℕ) (h0 : 0 ≤ x) (h1 : x ≤ 1) :
     rw [hcast]
     linarith
 
+/-- For `0 ≤ δ ≤ 1`, the total failure expression over `L` segments is at most `L` times the
+per-segment failure expression. -/
 theorem ipTotalFailure_le (L : ℕ) (δ : ℝ) (hδ : 0 ≤ δ) (hδ1 : δ ≤ 1) :
     ipTotalFailure L δ ≤ (L : ℝ) * ipPerSegmentFailure δ := by
   unfold ipTotalFailure ipPerSegmentFailure
@@ -338,11 +396,15 @@ theorem ipTotalFailure_le (L : ℕ) (δ : ℝ) (hδ : 0 ≤ δ) (hδ1 : δ ≤ 1
       have h1 : 1 - (1 - δ) ≤ 2 * δ := by linarith
       exact mul_le_mul_of_nonneg_left h1 (by positivity)
 
+/-- For a positive segment count, multiplying the per-segment error budget by the count recovers
+`ε`. -/
 theorem ipSegmentBudget_total (L : ℕ) (ε : ℝ) (hL : 0 < L) :
     (L : ℝ) * ipSegmentBudget L ε = ε := by
   unfold ipSegmentBudget
   field_simp
 
+/-- Eventually, the shifted truncation order times `clog₂(k + 2)` is bounded by a constant times
+`k + 2`, as used in interaction picture simulation [LowWiebe2018]. -/
 theorem ipLogLogRate : ∃ C m0 : ℕ, ∀ k : ℕ, m0 ≤ k →
     ipClosedFormK (k + 8) * Nat.clog 2 (k + 2) ≤ C * (k + 2) := by
   obtain ⟨C, m0, hrate⟩ := effectiveDysonCutoff_clog_rate
@@ -350,6 +412,8 @@ theorem ipLogLogRate : ∃ C m0 : ℕ, ∀ k : ℕ, m0 ≤ k →
   intro k hk
   simpa [ipClosedFormK] using! hrate k hk
 
+/-- Under the stated per-time cost bound, the sum of costs over dyadic times is bounded by twice
+the full-time logarithmic cost term plus `nd + 1`. -/
 theorem ipGateRateTotal (p : EffectiveSegmentParameters) (gamma : ℝ) (hgamma : 0 < gamma)
     (tau delta : ℚ) (nd : ℕ) (CA : ℝ) (hτ : 0 ≤ tau) (hδ : 0 < delta) (hCA : 0 ≤ CA)
     (cost : ℕ → ℕ)
@@ -360,11 +424,14 @@ theorem ipGateRateTotal (p : EffectiveSegmentParameters) (gamma : ℝ) (hgamma :
       2 * CA * (tau : ℝ) * (1 + Real.log (1 + (tau : ℝ) / (delta : ℝ))) ^ gamma + (nd + 1) :=
   effectiveInteractionGateRate gamma hgamma tau delta nd CA cost hτ hδ hCA hcost
 
+/-- The sparse interaction picture program's query count equals `ipSparseQueries p`. -/
 theorem ipSparseProgram_queries (p : EffectiveSparseParameters) :
     effectiveQueries (ipSparseProgram p) = ipSparseQueries p := by
   unfold ipSparseProgram effectiveQueries ipSparseQueries
   simp
 
+/-- The sparse interaction picture program has width `p.nd + 2 * p.ns + 2 * p.np` and exactly
+three steps. -/
 theorem ipSparseProgram_shape (p : EffectiveSparseParameters) :
     (ipSparseProgram p).width = p.nd + 2 * p.ns + 2 * p.np ∧
       (ipSparseProgram p).steps.length = 3 := by

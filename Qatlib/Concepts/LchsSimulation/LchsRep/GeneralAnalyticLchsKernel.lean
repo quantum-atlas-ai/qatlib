@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralKernelContour
 import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
 import Qatlib.Concepts.LchsSimulation.TimeLchs
+
+/-!
+# Analytic-kernel reproduction and LCHS specialization
+
+The theorem `general_kernel_entire_reproducing` gives a Banach-space reproduction formula for
+entire functions bounded on the right half-plane. The module also exhibits an incomplete-space
+obstruction, proves arbitrary power decay of `highKernelF`, and derives its dissipative matrix
+evolution representation. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `general_kernel_entire_reproducing`: For an entire Banach-space-valued function bounded by one
+  on the right half-plane and a lower-half-plane analytic kernel with positive-order decay, the
+  integrable weighted boundary integral equals the kernel mass times `F 1`.
+* `general_kernel_reproducing_incomplete_obstruction`: In an incomplete complex normed space
+  containing the stated nonzero vector of norm at most one, there exist a decaying kernel and a
+  bounded entire function satisfying the listed hypotheses for which the reproduction identity
+  fails.
+* `principal_power_kernel_lchs_representation`: For `0 < β < 1`, the principal-power kernel
+  represents the forward dissipative ordered evolution as an entrywise integrable weighted
+  integral of the unitary family under the stated continuity and positivity hypotheses.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -25,6 +52,8 @@ open scoped Classical BigOperators
 open scoped ComplexOrder Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- For nonnegative `x` and positive `α`, `β`, and `c`, the product `x^α * exp (-x^β * c)` is at
+most `(α / (β * c))^(α / β)`. -/
 private theorem real_power_exp_bound (x α β c : ℝ) (hx : 0 ≤ x)
     (hα : 0 < α) (hβ : 0 < β) (hc : 0 < c) :
     x ^ α * Real.exp (-(x ^ β) * c) ≤ (α / (β * c)) ^ (α / β) := by
@@ -48,6 +77,8 @@ private theorem real_power_exp_bound (x α β c : ℝ) (hx : 0 ≤ x)
   rw [show Real.log x * α + -(x ^ β) * c = Real.log x * α - x ^ β * c by ring, hid]
   nlinarith
 
+/-- For `0 < β < 1` and any positive power `α`, the weighted norm `‖z‖^α * ‖highKernelF β z‖`
+has the stated uniform bound on the closed lower half-plane. -/
 theorem highKernelF_power_decay :
     ∀ β α : ℝ, 0 < β → β < 1 → 0 < α →
       ∀ z : ℂ, z.im ≤ 0 →
@@ -79,6 +110,9 @@ theorem highKernelF_power_decay :
     _ ≤ _ := div_le_div_of_nonneg_right
       (real_power_exp_bound ‖z‖ α β _ (norm_nonneg z) hα hβ hc) (highKernelC_pos β).le
 
+/-- For an entire Banach-space-valued function bounded by one on the right half-plane and a
+lower-half-plane analytic kernel with positive-order decay, the integrable weighted boundary
+integral equals the kernel mass times `F 1`. -/
 theorem general_kernel_entire_reproducing
     {E : Type} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
     (f : ℂ→ℂ) (F : ℂ→E)
@@ -118,6 +152,9 @@ theorem general_kernel_entire_reproducing
   rw [hscalar,hs]
   simp only [H,smul_eq_mul, mul_neg,Complex.I_mul_I,neg_neg,mul_assoc]
 
+/-- In an incomplete complex normed space containing the stated nonzero vector of norm at most
+one, there exist a decaying kernel and a bounded entire function satisfying the listed
+hypotheses for which the reproduction identity fails. -/
 theorem general_kernel_reproducing_incomplete_obstruction
     {E : Type} [NormedAddCommGroup E] [NormedSpace ℂ E]
     (hE : ¬ CompleteSpace E) (v : E) (hv : ‖v‖ ≤ 1) (hv0 : v ≠ 0) :
@@ -151,6 +188,7 @@ theorem general_kernel_reproducing_incomplete_obstruction
     rw [hz, hn.2.2.2, one_smul]
     exact Ne.symm hv0
 
+/-- The norm of each matrix entry is at most the matrix operator norm. -/
 private theorem kernel_entry_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (i j : I) : ‖A i j‖ ≤ ‖A‖ := by
   have hk : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖ = 1 :=
@@ -166,6 +204,9 @@ private theorem kernel_entry_norm_le {I : Type} [Fintype I] [DecidableEq I]
   rw [he] at hi
   exact hi.trans hn
 
+/-- For `0 < β < 1`, the principal-power kernel represents the forward dissipative ordered
+evolution as an entrywise integrable weighted integral of the unitary family under the
+stated continuity and positivity hypotheses. -/
 theorem principal_power_kernel_lchs_representation :
   ∀ (I : Type) [Fintype I] [DecidableEq I] (β : ℝ) (L H : ℝ → Matrix I I ℂ)
     (s t : ℝ),

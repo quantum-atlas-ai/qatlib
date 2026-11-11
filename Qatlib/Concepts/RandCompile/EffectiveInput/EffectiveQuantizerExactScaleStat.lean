@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.EffectiveQuantizerFairBitSubgoalStat
+
+/-!
+# Specification of exact-scale quantized qDRIFT
+
+This module states `EffectiveQuantizerExactScaleSubgoal` for real signed Hamiltonian
+coefficients supplied through rational lower oracles and Boolean sign flags. The specification
+combines a certified ceiling quantizer with time rescaling by the exact absolute coefficient
+mass and quantized total weight, in the randomized simulation framework of [Campbell2019].
+
+## Main statements
+
+* `EffectiveQuantizerExactScaleSubgoal`: packages quantizer accuracy, finite diamond error, and
+  per-path resource bounds.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -27,6 +46,11 @@ namespace Qatlib.Concepts.RandCompile.EffectiveInput
 open Matrix
 open scoped BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- The exact-scale quantized qDRIFT specification for positive absolute coefficient mass, valid
+lower oracles and sign flags, Hermitian contraction terms, and positive tolerance. It
+requires a quantizer certificate, weight mass and normalized-law error bounds, finite
+diamond error at most `ε`, and unitary sampled circuits with explicit gate, fair-bit, and
+comparison bounds. -/
 def EffectiveQuantizerExactScaleSubgoal : Prop :=
   ∀ (L D : ℕ) (a : Fin L → ℝ) (K : Fin L → Operator D) (t ε : ℝ) (j0 : Fin L)
     (q : Fin L → ℕ → ℚ) (sgn : Fin L → Bool),

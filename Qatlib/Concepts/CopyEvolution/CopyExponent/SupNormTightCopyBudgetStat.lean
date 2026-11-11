@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+
+/-!
+# Specification of an explicit copy budget
+
+`SupNormTightCopyBudget` specifies the sufficient copy count max(1, ⌈8t²‖ρ - σ‖₁/ε⌉) for
+fresh-copy evolution of a density operator. It requires error at most ε, exact resource counts,
+and the uniform bound n ≤ 16t²/ε + 1.
+
+This is an explicit precision budget for density-matrix exponentiation
+[LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `SupNormTightCopyBudget`: states the state-dependent budget and its uniform upper bound.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,8 @@ open Matrix
 
 set_option autoImplicit false
 
+/-- Specifies the error, resource counts, and uniform size bound for the copy budget `max 1
+(Nat.ceil (8 * t² * Matrix.traceNorm (ρ - σ) / ε))` on density operators. -/
 def SupNormTightCopyBudget : Prop :=
   ∀ (D : ℕ) (ρ σ : Operator D) (t ε : ℝ),
     IsDensityOperator ρ → IsDensityOperator σ → 0 < ε →

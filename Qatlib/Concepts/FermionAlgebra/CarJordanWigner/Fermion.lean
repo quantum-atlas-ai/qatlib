@@ -8,6 +8,29 @@ import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
 import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionDefs
 import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionHubbard
+
+/-!
+# Canonical anticommutation and Jordan–Wigner identities
+
+The theorem `g1` collects the canonical anticommutation relations for the occupation-basis
+operators `annihilation` and `creation`, their adjoint relation, and the action and idempotence
+of `numberOp`. It also establishes parity involution and anticommutation, the Jordan–Wigner
+Pauli representation, and annihilation of the vacuum.
+
+The canonical relations are those of [BravyiKitaev2002], with the fermionic simulation
+interpretation developed in [OrtizEtAl2001]. The proofs track the occupation-prefix sign
+explicitly through basis-coordinate updates.
+
+## Main statements
+
+* `g1`: the canonical relations, occupation and parity identities, Jordan–Wigner formulas, and
+  vacuum rule hold for every finite number of modes.
+
+## References
+
+* [Bravyi and Kitaev, 2002][BravyiKitaev2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,17 +48,21 @@ namespace Qatlib.Concepts.FermionAlgebra.CarJordanWigner
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- Finite indices with unequal natural-number values are unequal. -/
 private theorem fin_ne_of_val_ne {n : ℕ} {a b : Fin n} (h : ¬(a : ℕ) = (b : ℕ)) : a ≠ b :=
   fun hab => h (congrArg Fin.val hab)
 
+/-- Updating one register coordinate leaves every distinct coordinate unchanged. -/
 private theorem upd_ne {n : ℕ} (x : Reg n) {i j : Fin n} (h : j ≠ i) (b : Bool) :
     Function.update x i b j = x j := by
   rw [Function.update_apply, if_neg h]
 
+/-- Updates at two distinct register coordinates commute. -/
 private theorem upd_upd_ne {n : ℕ} (x : Reg n) {i j : Fin n} (h : i ≠ j) (a b : Bool) :
     Function.update (Function.update x i a) j b = Function.update (Function.update x j b) i a :=
   Function.update_comm h a b x
 
+/-- Registers agreeing at every position before mode `i` have equal Jordan–Wigner signs at `i`. -/
 private theorem jwSign_congr {n : ℕ} {i : Fin n} {w v : Reg n}
     (h : ∀ k : Fin n, (k : ℕ) < (i : ℕ) → w k = v k) : jwSign i w = jwSign i v := by
   rw [jwSign_eq, jwSign_eq]
@@ -45,12 +72,15 @@ private theorem jwSign_congr {n : ℕ} {i : Fin n} {w v : Reg n}
     · simp [h k hk]
     · simp [hk]
 
+/-- Updating mode `i` leaves its own occupation-prefix sign unchanged. -/
 private theorem jwSign_upd_self {n : ℕ} (i : Fin n) (x : Reg n) (b : Bool) :
     jwSign i (Function.update x i b) = jwSign i x := by
   refine jwSign_congr fun k hk => ?_
   have hki : (k : ℕ) ≠ (i : ℕ) := by omega
   rw [upd_ne x (fin_ne_of_val_ne hki) b]
 
+/-- Changing a Boolean occupation strictly before mode `i` reverses the Jordan–Wigner sign at
+`i`. -/
 private theorem jwSign_upd_flip {n : ℕ} {i j : Fin n} (x : Reg n) (b : Bool)
     (hji : (j : ℕ) < (i : ℕ)) (hne : x j ≠ b) :
     jwSign i (Function.update x j b) = -(jwSign i x) := by
@@ -102,6 +132,8 @@ private theorem jwSign_upd_flip {n : ℕ} {i j : Fin n} (x : Reg n) (b : Bool)
     _ = (-1) * jwSign i x := by rw [key]
     _ = -(jwSign i x) := neg_one_mul _
 
+/-- The Jordan–Wigner sign equals the product of the occupation parity factors at modes
+preceding `i`. -/
 private theorem jwSign_prod {n : ℕ} (i : Fin n) (x : Reg n) :
     jwSign i x = ∏ k : Fin n, (if (k : ℕ) < (i : ℕ) then (if x k then -1 else 1 : ℂ) else 1) := by
   rw [jwSign_eq, ← Finset.prod_pow_eq_pow_sum]
@@ -113,15 +145,20 @@ private theorem jwSign_prod {n : ℕ} (i : Fin n) (x : Reg n) :
     · rw [if_neg hxk, if_neg hxk, pow_zero]
   · rw [if_neg hk, if_neg hk, pow_zero]
 
+/-- The parity operator is diagonal, with entry minus one raised to the total occupation count. -/
 private theorem par_apply {n : ℕ} (y x : Reg n) :
     parityOp (n := n) y x = if x = y then (-1 : ℂ) ^ (∑ k, if x k then 1 else 0) else 0 := rfl
 
+/-- The Jordan–Wigner word has entries given by preceding parity factors, the local lowering
+matrix, and following identity factors. -/
 private theorem jw_apply {n : ℕ} (i : Fin n) (y x : Reg n) :
     jwPauliWord i y x = ∏ j : Fin n,
       (if j < i then (if y j = x j then (if x j then -1 else 1 : ℂ) else 0)
       else if i < j then (if y j = x j then 1 else 0)
       else sigmaMinus (boolEquivFin2 (y j)) (boolEquivFin2 (x j))) := rfl
 
+/-- The Pauli lowering combination equals the matrix with its sole nonzero entry in the
+upper-right position. -/
 private theorem sigmaMinus_eq : sigmaMinus = !![0, 1; 0, 0] := by
   ext a b
   fin_cases a <;> fin_cases b <;>
@@ -129,12 +166,16 @@ private theorem sigmaMinus_eq : sigmaMinus = !![0, 1; 0, 0] := by
       smul_eq_mul] <;>
     norm_num
 
+/-- On Boolean basis indices, the lowering matrix has value one only from occupied input to
+unoccupied output. -/
 private theorem sigmaMinus_apply (a b : Bool) :
     sigmaMinus (boolEquivFin2 a) (boolEquivFin2 b) = if a then 0 else if b then 1 else 0 := by
   rw [sigmaMinus_eq]
   rcases a with _ | _ <;> rcases b with _ | _ <;>
     simp [boolEquivFin2]
 
+/-- The anticommutator of annihilation at `i` and creation at `j` is the identity for equal
+modes and zero otherwise. -/
 private theorem car_delta {n : ℕ} (i j : Fin n) :
     annihilation i * creation j + creation j * annihilation i
       = (if i = j then (1 : Matrix (Reg n) (Reg n) ℂ) else 0) := by
@@ -294,6 +335,7 @@ private theorem car_delta {n : ℕ} (i j : Fin n) :
           rw [ann_apply i z x, if_neg (fun h => absurd h.1 (by simp [hxi])), mul_zero]
         rw [Matrix.add_apply, h1, h2, add_zero, if_neg hij, Matrix.zero_apply]
 
+/-- Any two annihilation operators have zero anticommutator. -/
 private theorem ann_anticommute {n : ℕ} (i j : Fin n) :
     annihilation i * annihilation j + annihilation j * annihilation i = 0 := by
   by_cases hij : i = j
@@ -410,6 +452,7 @@ private theorem ann_anticommute {n : ℕ} (i j : Fin n) :
           rw [ann_apply i z x, if_neg (fun h => absurd h.1 (by simp [hxi])), mul_zero]
         rw [Matrix.add_apply, h1, h2, add_zero, Matrix.zero_apply]
 
+/-- Any two creation operators have zero anticommutator. -/
 private theorem cre_anticommute {n : ℕ} (i j : Fin n) :
     creation i * creation j + creation j * creation i = 0 := by
   calc creation i * creation j + creation j * creation i
@@ -421,6 +464,8 @@ private theorem cre_anticommute {n : ℕ} (i j : Fin n) :
     _ = (0 : Matrix (Reg n) (Reg n) ℂ)ᴴ := by rw [ann_anticommute j i]
     _ = 0 := Matrix.conjTranspose_zero
 
+/-- A basis ket is an eigenvector of `numberOp i` with eigenvalue its Boolean occupation at mode
+`i`. -/
 private theorem numberOp_mulVec {n : ℕ} (i : Fin n) (x : Reg n) :
     numberOp i *ᵥ Ket x = (if x i then (1 : ℂ) else 0) • Ket x := by
   funext y
@@ -442,6 +487,7 @@ private theorem numberOp_mulVec {n : ℕ} (i : Fin n) (x : Reg n) :
       simp [hxi]
     · rw [if_neg hxy, mul_zero, if_neg (fun h => hxy h.1.symm)]
 
+/-- The square of the total parity operator is the identity. -/
 private theorem parity_sq {n : ℕ} :
     parityOp (n := n) * parityOp (n := n) = 1 := by
   ext y x
@@ -455,6 +501,8 @@ private theorem parity_sq {n : ℕ} :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- Replacing one Boolean coordinate changes the total occupation count by the difference
+between its new and old occupations. -/
 private theorem par_count_add {n : ℕ} (x : Reg n) (i : Fin n) (b : Bool) :
     (∑ k : Fin n, if Function.update x i b k then 1 else 0) + (if x i then 1 else 0)
       = (∑ k : Fin n, if x k then 1 else 0) + (if b then 1 else 0) := by
@@ -476,6 +524,7 @@ private theorem par_count_add {n : ℕ} (x : Reg n) (i : Fin n) (b : Bool) :
   simp only [hE1, ← hE0]
   ring
 
+/-- The total parity operator anticommutes with every annihilation operator. -/
 private theorem parity_ann {n : ℕ} (i : Fin n) :
     parityOp (n := n) * annihilation i = -(annihilation i * parityOp (n := n)) := by
   ext y x
@@ -509,6 +558,7 @@ private theorem parity_ann {n : ℕ} (i : Fin n) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The total parity operator anticommutes with every creation operator. -/
 private theorem parity_cre {n : ℕ} (i : Fin n) :
     parityOp (n := n) * creation i = -(creation i * parityOp (n := n)) := by
   ext y x
@@ -542,6 +592,7 @@ private theorem parity_cre {n : ℕ} (i : Fin n) :
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- Each annihilation operator equals its Jordan–Wigner Pauli word. -/
 private theorem jw_eq_ann {n : ℕ} (i : Fin n) : annihilation i = jwPauliWord i := by
   ext y x
   rw [ann_apply i y x, jw_apply i y x]
@@ -598,9 +649,11 @@ private theorem jw_eq_ann {n : ℕ} (i : Fin n) : annihilation i = jwPauliWord i
     rw [if_neg (lt_irrefl _), if_neg (lt_irrefl _), hxi', sigmaMinus_apply]
     simp
 
+/-- Each creation operator equals the adjoint of its Jordan–Wigner Pauli word. -/
 private theorem jw_eq_cre {n : ℕ} (i : Fin n) : creation i = (jwPauliWord i)ᴴ := by
   rw [creation_eq_conjTranspose i, jw_eq_ann i]
 
+/-- Every annihilation operator sends the all-zero occupation ket to zero. -/
 private theorem vacuum {n : ℕ} (i : Fin n) :
     annihilation i *ᵥ Ket (ZeroStr n) = 0 := by
   funext y
@@ -613,6 +666,9 @@ private theorem vacuum {n : ℕ} (i : Fin n) :
       = ∑ z : Reg n, annihilation i y z * Ket (ZeroStr n) z from rfl, hsum, ket_self,
     mul_one, ann_apply, if_neg (by simp [ZeroStr]), Pi.zero_apply]
 
+/-- The finite-mode operators satisfy the canonical anticommutation relations of [Bravyi and
+Kitaev, Eq. (2)][BravyiKitaev2002]. They also satisfy the adjoint, number-operator, parity,
+Jordan–Wigner, and vacuum identities stated here. -/
 theorem g1 : ∀ (n : ℕ),
 
   (∀ i j : Fin n,

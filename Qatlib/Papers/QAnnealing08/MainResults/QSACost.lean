@@ -12,14 +12,36 @@ import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Linarith
 
+/-!
+# Combined quantum annealing cost bound
+
+The expression `qsaComplexityBound` records the energy, inverse-temperature, accuracy, and gap
+dependence of the annealing bound in [SommaEtAl2008]. The theorem `qsa_complexity_bound` derives
+it from explicit upper bounds on the step count, final inverse temperature, and total cost; a
+separate lemma controls repeated half-probability failure.
+
+## Main statements
+
+* `qsa_complexity_bound`: the combined cost estimate under the supplied component bounds.
+* `repeated_failure_bound`: a power-of-two repetition condition for error `ε`.
+
+## References
+
+* [Somma et al., 2008][SommaEtAl2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.QAnnealing08.MainResults.QSACost
 
+/-- The scalar annealing complexity expression `(E_M / γ) ^ 2 * log (d / ε) ^ 2 * log d / (ε *
+sqrt δ)`. -/
 noncomputable def qsaComplexityBound (E_M γ d ε δ : ℝ) : ℝ :=
   (E_M / γ) ^ 2 * (Real.log (d / ε)) ^ 2 * Real.log d / (ε * Real.sqrt δ)
 
+/-- Under the stated positivity and component-cost hypotheses, `N_QSA` is at most `a * b * c ^
+2` times `qsaComplexityBound E_M γ d ε δ` [Somma et al., Equation (6)][SommaEtAl2008]. -/
 theorem qsa_complexity_bound
     (E_M γ d ε δ β_f Q N_QSA a b c : ℝ)
     (hE : 0 < E_M) (hγ : 0 < γ) (hd : 1 < d) (hε : 0 < ε) (hδ : 0 < δ)
@@ -83,6 +105,7 @@ theorem qsa_complexity_bound
     field_simp
   exact hN.trans (h1.trans (h2.trans_eq hfinal))
 
+/-- For positive `ε`, the condition `1 / ε ≤ 2 ^ s` implies `(1 / 2) ^ s ≤ ε` [SommaEtAl2008]. -/
 theorem repeated_failure_bound (s : ℕ) (ε : ℝ) (hε : 0 < ε)
     (h : 1 / ε ≤ (2 : ℝ) ^ s) :
     (1 / 2 : ℝ) ^ s ≤ ε := by

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuantumGibbs.FormAlgebra.ParentWeight
+
+/-!
+# Spectral formulas for Gibbs parent weights
+
+This module computes square roots, fourth roots, and weighted conjugation on diagonal Gibbs
+operators and matrix units. It transports these formulas through unitary conjugation to spectral
+blocks of Hermitian operators; the functional-calculus and matrix-analysis background is given
+in [Bhatia1997].
+
+## Main statements
+
+* `sharp_matUnit`: The Gibbs weighted-conjugation factor on a matrix unit.
+* `CFC_sqrt_conj`: Square roots commute with unitary conjugation of positive matrices.
+* `sharp_hermSpectralBlock`: The energy-difference formula on Hermitian spectral blocks.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -18,6 +38,7 @@ variable {D : ℕ}
 
 section DiagonalRoot
 
+/-- The nonnegative square root of `exp t` equals `exp (t / 2)`. -/
 theorem sqrt_exp (t : ℝ) : Real.sqrt (Real.exp t) = Real.exp (t / 2) := by
   rw [show Real.exp t = Real.exp (t / 2) * Real.exp (t / 2) from by
       rw [← Real.exp_add]
@@ -25,6 +46,8 @@ theorem sqrt_exp (t : ℝ) : Real.sqrt (Real.exp t) = Real.exp (t / 2) := by
       ring]
   exact Real.sqrt_mul_self (Real.exp_nonneg _)
 
+/-- The functional-calculus square root of a diagonal matrix with nonnegative real entries is
+the diagonal of their real square roots. -/
 theorem CFC_sqrt_diagonal (f : Fin D → ℝ) (hf : ∀ i, 0 ≤ f i) :
     CFC.sqrt (Matrix.diagonal fun i => ((f i : ℝ) : ℂ))
       = Matrix.diagonal fun i => ((Real.sqrt (f i) : ℝ) : ℂ) := by
@@ -42,6 +65,8 @@ theorem CFC_sqrt_diagonal (f : Fin D → ℝ) (hf : ∀ i, 0 ≤ f i) :
     rw [if_pos rfl, if_pos rfl, ← Complex.ofReal_mul, Real.mul_self_sqrt (hf i)]
   · rw [if_neg hij, if_neg hij]
 
+/-- The fourth root of a diagonal matrix with nonnegative real entries is obtained by taking two
+real square roots entrywise. -/
 theorem fourthRoot_diagonal (f : Fin D → ℝ) (hf : ∀ i, 0 ≤ f i) :
     fourthRoot (Matrix.diagonal fun i => ((f i : ℝ) : ℂ))
       = Matrix.diagonal fun i => ((Real.sqrt (Real.sqrt (f i)) : ℝ) : ℂ) := by
@@ -54,12 +79,16 @@ end DiagonalRoot
 
 section MatUnit
 
+/-- The matrix with entry `c` at position `(i, j)` and zero at every other position. -/
 def matUnit (i j : Fin D) (c : ℂ) : Operator D :=
   Matrix.of fun k l => if k = i ∧ l = j then c else 0
 
+/-- The entry of `matUnit i j c` is `c` exactly at `(i, j)` and is zero elsewhere. -/
 theorem matUnit_apply (i j : Fin D) (c : ℂ) (k l : Fin D) :
     matUnit i j c k l = if k = i ∧ l = j then c else 0 := rfl
 
+/-- Left multiplication by a diagonal matrix scales `matUnit i j c` by its diagonal entry at
+`i`. -/
 theorem diagonal_mul_matUnit (d : Fin D → ℂ) (i j : Fin D) (c : ℂ) :
     Matrix.diagonal d * matUnit i j c = (d i) • matUnit i j c := by
   ext k l
@@ -68,6 +97,8 @@ theorem diagonal_mul_matUnit (d : Fin D → ℂ) (i j : Fin D) (c : ℂ) :
   · simp [h]
   · simp [h]
 
+/-- Right multiplication by a diagonal matrix scales `matUnit i j c` by its diagonal entry at
+`j`. -/
 theorem matUnit_mul_diagonal (d : Fin D → ℂ) (i j : Fin D) (c : ℂ) :
     matUnit i j c * Matrix.diagonal d = (d j) • matUnit i j c := by
   ext k l
@@ -80,6 +111,8 @@ theorem matUnit_mul_diagonal (d : Fin D → ℂ) (i j : Fin D) (c : ℂ) :
 
 end MatUnit
 
+/-- The inverse of a diagonal matrix with nonzero entries is the diagonal matrix of their
+inverses. -/
 theorem diagonal_inv_eq (d : Fin D → ℂ) (hd : ∀ k, d k ≠ 0) :
     (Matrix.diagonal d)⁻¹ = Matrix.diagonal fun k => (d k)⁻¹ := by
   have hdet : (Matrix.diagonal d).det ≠ 0 := by
@@ -96,20 +129,26 @@ theorem diagonal_inv_eq (d : Fin D → ℂ) (hd : ∀ k, d k ≠ 0) :
 
 section GibbsDiag
 
+/-- The diagonal Gibbs operator with entries proportional to `exp (-(β * lam k))`, normalized by
+their finite sum. -/
 noncomputable def gibbsDiag (lam : Fin D → ℝ) (β : ℝ) : Operator D :=
   Matrix.diagonal fun k =>
     (((Real.exp (-(β * lam k))) / (∑ k' : Fin D, Real.exp (-(β * lam k'))) : ℝ) : ℂ)
 
+/-- Every real diagonal Gibbs weight is nonnegative. -/
 theorem gibbsDiag_entry_nonneg (lam : Fin D → ℝ) (β : ℝ) (k : Fin D) :
     0 ≤ Real.exp (-(β * lam k)) / ∑ k' : Fin D, Real.exp (-(β * lam k')) := by
   positivity
 
+/-- The diagonal Gibbs operator is nonnegative in the matrix order. -/
 theorem gibbsDiag_nonneg (lam : Fin D → ℝ) (β : ℝ) : 0 ≤ gibbsDiag lam β := by
   rw [gibbsDiag]
   exact (Matrix.PosSemidef.diagonal (fun k => Complex.zero_le_real.mpr
     (div_nonneg (Real.exp_nonneg _)
       (Finset.sum_nonneg fun k _ => Real.exp_nonneg _)))).nonneg
 
+/-- Weighted conjugation by the fourth root of the diagonal Gibbs operator scales `matUnit i j
+c` by `exp (-β * (lam i - lam j) / 4)`. -/
 theorem sharp_matUnit (lam : Fin D → ℝ) (β : ℝ) (i j : Fin D) (c : ℂ) :
     sharp (gibbsDiag lam β) (matUnit i j c)
       = ((Real.exp (-(β * (lam i - lam j)) / 4) : ℝ) : ℂ) • matUnit i j c := by
@@ -157,6 +196,8 @@ theorem sharp_matUnit (lam : Fin D → ℝ) (β : ℝ) (i j : Fin D) (c : ℂ) :
 
 end GibbsDiag
 
+/-- For nonnegative `M` and `Uᴴ * U = 1`, the functional-calculus square root of `U * M * Uᴴ` is
+`U * CFC.sqrt M * Uᴴ`. -/
 theorem CFC_sqrt_conj (U M : Operator D) (hU : Uᴴ * U = 1) (hM : 0 ≤ M) :
     CFC.sqrt (U * M * Uᴴ) = U * CFC.sqrt M * Uᴴ := by
   have hc1 : (0 : Operator D) ≤ U * M * Uᴴ := by
@@ -172,16 +213,19 @@ theorem CFC_sqrt_conj (U M : Operator D) (hU : Uᴴ * U = 1) (hM : 0 ≤ M) :
     repeat' rw [← Matrix.mul_assoc]
   rw [e1, hU, Matrix.mul_one, CFC.sqrt_mul_sqrt_self M hM]
 
+/-- For nonnegative `M` and `Uᴴ * U = 1`, taking fourth roots commutes with conjugation by `U`. -/
 theorem fourthRoot_conj (U M : Operator D) (hU : Uᴴ * U = 1) (hM : 0 ≤ M) :
     fourthRoot (U * M * Uᴴ) = U * fourthRoot M * Uᴴ := by
   have hs : 0 ≤ CFC.sqrt M := CFC.sqrt_nonneg M
   unfold fourthRoot
   rw [CFC_sqrt_conj U M hU hM, CFC_sqrt_conj U (CFC.sqrt M) hU hs]
 
+/-- The product of two conjugated matrices equals the conjugation of `M * (Uᴴ * U) * N`. -/
 theorem conj_mul_conj (U M N : Operator D) :
     U * M * Uᴴ * (U * N * Uᴴ) = U * (M * (Uᴴ * U) * N) * Uᴴ := by
   repeat' rw [← Matrix.mul_assoc]
 
+/-- The fourth root of the diagonal Gibbs operator is an invertible matrix. -/
 theorem fourthRoot_gibbsDiag_isUnit (lam : Fin D → ℝ) (β : ℝ) (i : Fin D) :
     IsUnit (fourthRoot (gibbsDiag lam β)) := by
   classical
@@ -203,6 +247,7 @@ theorem fourthRoot_gibbsDiag_isUnit (lam : Fin D → ℝ) (β : ℝ) (i : Fin D)
   exact Complex.ofReal_ne_zero.mpr
     (ne_of_gt (Real.sqrt_pos.mpr (Real.sqrt_pos.mpr (hgpos k))))
 
+/-- For invertible `M` and `Uᴴ * U = 1`, inversion commutes with conjugation by `U`. -/
 theorem conj_inv (U M : Operator D) (hU : Uᴴ * U = 1) (hM : IsUnit M) :
     (U * M * Uᴴ)⁻¹ = U * M⁻¹ * Uᴴ := by
   have hUU : U * Uᴴ = 1 := mul_eq_one_comm.mp hU
@@ -226,6 +271,8 @@ theorem conj_inv (U M : Operator D) (hU : Uᴴ * U = 1) (hM : IsUnit M) :
   refine IsUnit.mul_right_cancel hXunit ?_
   rw [hYX, Matrix.nonsing_inv_mul _ (isUnit_iff_ne_zero.mpr hdetX)]
 
+/-- After conjugation by `U` with `Uᴴ * U = 1`, Gibbs weighted conjugation retains the factor
+`exp (-β * (lam i - lam j) / 4)` on the corresponding matrix unit. -/
 theorem sharp_matUnit_conj (lam : Fin D → ℝ) (β : ℝ) (U : Operator D)
     (hU : Uᴴ * U = 1) (i j : Fin D) (c : ℂ) :
     sharp (U * gibbsDiag lam β * Uᴴ) (U * matUnit i j c * Uᴴ)
@@ -241,20 +288,28 @@ theorem sharp_matUnit_conj (lam : Fin D → ℝ) (β : ℝ) (U : Operator D)
     conj_mul_conj, hU, Matrix.mul_one, conj_mul_conj, hU, Matrix.mul_one, hkey,
     Matrix.mul_smul, Matrix.smul_mul]
 
+/-- The unitary eigenvector matrix chosen for the Hermitian matrix `A`. -/
 noncomputable def hermUnitary (A : Operator D) (hA : A.IsHermitian) : Operator D :=
   (hA.eigenvectorUnitary : Operator D)
 
+/-- The chosen Hermitian eigenvector matrix satisfies `Uᴴ * U = 1`. -/
 theorem hermUnitary_star_mul (A : Operator D) (hA : A.IsHermitian) :
     (hermUnitary A hA)ᴴ * hermUnitary A hA = 1 :=
   Unitary.coe_star_mul_self hA.eigenvectorUnitary
 
+/-- The scaled matrix unit `matUnit i j c` conjugated into the eigenvector basis of the
+Hermitian matrix `A`. -/
 noncomputable def hermSpectralBlock (A : Operator D) (hA : A.IsHermitian)
     (i j : Fin D) (c : ℂ) : Operator D :=
   hermUnitary A hA * matUnit i j c * (hermUnitary A hA)ᴴ
 
+/-- The Gibbs operator formed from the eigenvalues of `A` and conjugated by its chosen
+eigenvector unitary. -/
 noncomputable def hermGibbs (A : Operator D) (hA : A.IsHermitian) (β : ℝ) : Operator D :=
   hermUnitary A hA * gibbsDiag (fun i => hA.eigenvalues i) β * (hermUnitary A hA)ᴴ
 
+/-- Weighted conjugation by the fourth root of the Hermitian Gibbs operator scales its spectral
+block by `exp (-β * (λᵢ - λⱼ) / 4)`. -/
 theorem sharp_hermSpectralBlock (A : Operator D) (hA : A.IsHermitian) (β : ℝ)
     (i j : Fin D) (c : ℂ) :
     sharp (hermGibbs A hA β) (hermSpectralBlock A hA i j c)

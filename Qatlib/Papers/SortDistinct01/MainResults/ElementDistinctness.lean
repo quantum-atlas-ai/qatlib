@@ -9,6 +9,27 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Data.Fintype.Perm
 
+/-!
+# Annotated-permutation potentials for element distinctness
+
+This module defines annotated permutations, cyclic-shift steps, reciprocal-distance weights, and
+the associated real overlap potential. Given a regrouping estimate, a Hilbert-form bound, and
+squared-norm bounds, `lemma10_element_distinctness_step_bound` proves the `2*pi*N!*sqrt N` step
+estimate from the element-distinctness analysis of [HoyerNeerbekShi2001].
+
+## Main statements
+
+* `annotWeight`: The sum of reciprocal shift distances over valid steps taking annotated
+  permutation `σ` to `τ`.
+* `lemma10_element_distinctness_step_bound`: Assuming the stated regrouping, Hilbert-form, and
+  squared-norm bounds, one potential step changes by at most `2*pi*N!*sqrt N`, the bound in
+  [Hoyer et al., Lemma 10][HoyerNeerbekShi2001].
+
+## References
+
+* [Hoyer et al., 2001][HoyerNeerbekShi2001]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,15 +37,21 @@ open scoped BigOperators ComplexInnerProductSpace
 
 namespace Qatlib.Papers.SortDistinct01.MainResults.ElementDistinctness
 
+/-- The joint index type for a workspace of size `Z` and a query register of size `N`. -/
 abbrev QIdx (Z N : ℕ) : Type := Fin Z × Fin N
 
+/-- The finite-dimensional complex Euclidean state space on workspace/query indices. -/
 abbrev QState (Z N : ℕ) : Type := EuclideanSpace ℂ (QIdx Z N)
 
+/-- The Euclidean state vector with coordinate function `f`. -/
 def mkQ {Z N : ℕ} (f : QIdx Z N → ℂ) : QState Z N := WithLp.toLp 2 f
 
+/-- The coordinatewise oracle action multiplying each amplitude by the input value at its query
+index. -/
 def phaseOracle {Z N : ℕ} (x : Fin N → ℂ) (u : QState Z N) : QState Z N :=
   mkQ fun j => x j.2 * u j
 
+/-- A permutation of `Fin N` together with a marked index. -/
 structure AnnotPerm (N : ℕ) where
 
   perm : Equiv.Perm (Fin N)
@@ -32,24 +59,35 @@ structure AnnotPerm (N : ℕ) where
   mark : Fin N
 deriving Fintype, DecidableEq
 
+/-- The permutation given by the ordered product of `d` adjacent swaps starting at `k`, with
+indices reduced modulo positive `N`. -/
 def shiftCycle {N : ℕ} (hN : 0 < N) (k d : ℕ) : Equiv.Perm (Fin N) :=
   ((List.range d).map fun i =>
     Equiv.swap ⟨(k + i) % N, Nat.mod_lt _ hN⟩
       ⟨(k + i + 1) % N, Nat.mod_lt _ hN⟩).prod
 
+/-- The annotated permutation obtained by left-composing with `shiftCycle` and marking `k` when
+in range, or `0` otherwise. -/
 def annotStep {N : ℕ} (hN : 0 < N) (k d : ℕ) (σ : AnnotPerm N) : AnnotPerm N :=
   { perm := shiftCycle hN k d * σ.perm
     mark := if h : k < N then ⟨k, h⟩ else ⟨0, hN⟩ }
 
+/-- The sum of reciprocal shift distances over valid steps taking annotated permutation `σ` to
+`τ`. -/
 def annotWeight {N : ℕ} (hN : 0 < N) (σ τ : AnnotPerm N) : ℝ :=
   ∑ k ∈ Finset.range N, ∑ d ∈ Finset.range N,
     if k + d < N ∧ 1 ≤ d ∧ τ = annotStep hN k d σ then (1 : ℝ) / (d : ℝ) else 0
 
+/-- The weighted sum of real inner products over all pairs of annotated permutations at time
+`j`. -/
 def annotPotential {Z N : ℕ} (hN : 0 < N)
     (ψ : AnnotPerm N → ℕ → QState Z N) (j : ℕ) : ℝ :=
   ∑ σ : AnnotPerm N, ∑ τ : AnnotPerm N,
     annotWeight hN σ τ * Complex.re ⟪ψ σ j, ψ τ j⟫
 
+/-- Assuming the stated regrouping, Hilbert-form, and squared-norm bounds, one potential step
+changes by at most `2*pi*N!*sqrt N`, the bound in [Hoyer et al., Lemma
+10][HoyerNeerbekShi2001]. -/
 theorem lemma10_element_distinctness_step_bound {Z N T : ℕ} (hN : 2 ≤ N)
     (χ : AnnotPerm N → Fin N → ℂ)
     (ψ : AnnotPerm N → ℕ → QState Z N)

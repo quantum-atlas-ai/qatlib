@@ -7,6 +7,23 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Tactic
 
+/-!
+# Reflection identity on a two-vector span
+
+The maps `flaggedReflection` and `piTildeReflection` express the two reflection conventions used
+in the active-learning analysis of [PaparoEtAl2014]. The identity `lemma6_reflection_identity`
+holds on the span of a vector and its normalized flagged component under explicit projection and
+orthogonality hypotheses.
+
+## Main statements
+
+* `lemma6_reflection_identity`: the two reflections differ by a sign on the specified span.
+
+## References
+
+* [Paparo et al., 2014][PaparoEtAl2014]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,10 +33,15 @@ open scoped RealInnerProductSpace
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- The reflection expression `2 • P v - v` associated with a map `P`. -/
 def flaggedReflection (P : E → E) (v : E) : E := 2 • P v - v
 
+/-- The rank-one reflection expression subtracting twice the component along `πtilde`. -/
 def piTildeReflection (πtilde v : E) : E := v - (2 * ⟪v, πtilde⟫) • πtilde
 
+/-- Under the stated projection, linearity, normalization, and orthogonality hypotheses, the
+rank-one reflection equals the negative flagged reflection on the span of `π` and `πtilde`
+[PaparoEtAl2014]. -/
 theorem lemma6_reflection_identity
     (P : E → E) (π πtilde : E) (r : ℝ)
     (hPπ : P π = r • πtilde)

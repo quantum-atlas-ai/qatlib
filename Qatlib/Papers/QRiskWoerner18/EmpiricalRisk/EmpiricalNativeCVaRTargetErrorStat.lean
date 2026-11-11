@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
 import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+
+/-!
+# Statement of the native empirical CVaR bound
+
+The predicate `EmpiricalNativeCVaRTargetError` states a guarantee for native empirical CVaR on a
+sorted loss grid. Given a separated target quantile, bounded losses, approximation bounds for a
+target probability and tail mean, and a positive denominator margin, it bounds the event of an
+incorrect index or excessive error in the target ratio.
+
+The source paper is [WoernerEgger2019].
+
+## Main statements
+
+* `EmpiricalNativeCVaRTargetError`: The native CVaR guarantee relative to μ/p under the
+  specified loss, quantile separation, precision, approximation, and positive-denominator
+  conditions. It bounds the probability of a wrong target index or ratio error above the stated
+  tolerance by (Nat.clog 2 xs.length + 3)(8/9)^r.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +48,10 @@ namespace Qatlib.Papers.QRiskWoerner18.EmpiricalRisk
 open Matrix
 open scoped Classical BigOperators ENNReal
 
+/-- The native CVaR guarantee relative to μ/p under the specified loss, quantile separation,
+precision, approximation, and positive-denominator conditions. It bounds the probability of
+a wrong target index or ratio error above the stated tolerance by (Nat.clog 2 xs.length +
+3)(8/9)^r. -/
 def EmpiricalNativeCVaRTargetError : Prop :=
   ∀ (n N ebits rotationBits bits M r : ℕ) (ω : Fin N → Option (Fin n))
     (loss : Option (Fin n) → ℚ) (t : ℚ) (p μ η : ℝ) (xs : List ℚ) (q ε : ℚ) (v : ℕ),

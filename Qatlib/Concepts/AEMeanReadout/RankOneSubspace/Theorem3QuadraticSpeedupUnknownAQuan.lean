@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem3QuadraticSpeedupUnknownAStat
+
+/-!
+# Search schedules without a known success probability
+
+`theorem3QuadraticSpeedupUnknownA` establishes the geometric-schedule search specification for
+positive success angles at most `π/4`. The auxiliary estimates control the window sizes,
+geometric tails, and expected preparation count. For background, see
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `theorem3QuadraticSpeedupUnknownA`: For a unitary preparation with marked mass `sin² θ` and `0
+  < θ ≤ π/4`, every positive tolerance has a geometric search schedule with failure mass at most
+  that tolerance, expected preparation count at most `150 * sqrt 2 / sin θ`, and only marked
+  successful outputs. See [BrassardHoyerTapp1998Counting].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +40,7 @@ namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 open Qatlib
 open scoped ENNReal
 
+/-- For `0 < θ ≤ π/4`, `sin (2 * θ)` is at least `sqrt 2 * sin θ`. -/
 theorem sin_two_ge_sqrt_two_sin {θ : ℝ} (h0 : 0 < θ) (h4 : θ ≤ Real.pi / 4) :
     Real.sqrt 2 * Real.sin θ ≤ Real.sin (2 * θ) := by
   have h4pi : Real.pi / 4 ≤ Real.pi := by linarith [Real.pi_pos]
@@ -34,6 +56,8 @@ theorem sin_two_ge_sqrt_two_sin {θ : ℝ} (h0 : 0 < θ) (h4 : θ ≤ Real.pi / 
         mul_le_mul_of_nonneg_left hc (mul_nonneg (by norm_num) hs)
     _ = Real.sin (2 * θ) := (Real.sin_two_mul θ).symm
 
+/-- For nonnegative `c` and `0 < θ ≤ π/4`, the ratio `2 * c / sin (2 * θ)` is at most `c * sqrt
+2 / sin θ`. -/
 theorem two_div_sin_two_le {c θ : ℝ} (hc : 0 ≤ c) (h0 : 0 < θ) (h4 : θ ≤ Real.pi / 4) :
     (2 * c) / Real.sin (2 * θ) ≤ c * Real.sqrt 2 / Real.sin θ := by
   have hs : 0 < Real.sin θ :=
@@ -50,6 +74,8 @@ theorem two_div_sin_two_le {c θ : ℝ} (hc : 0 ≤ c) (h0 : 0 < θ) (h4 : θ �
           (mul_nonneg hc (by positivity))
     _ = (c * Real.sqrt 2) * Real.sin (2 * θ) := by ring
 
+/-- The natural-number ceiling expression `(6 ^ j + 5 ^ j - 1) / 5 ^ j` bounds `(6 / 5) ^ j`
+from above after casting to the reals. -/
 theorem window_nat_div_ge {j : ℕ} :
     (6 / 5 : ℝ) ^ j ≤ (((6 ^ j + 5 ^ j - 1) / 5 ^ j : ℕ) : ℝ) := by
   have h5 : 0 < (5 ^ j : ℕ) := by positivity
@@ -65,6 +91,9 @@ theorem window_nat_div_ge {j : ℕ} :
   rw [div_pow]
   exact (div_le_iff₀ (by positivity : (0:ℝ) < (5:ℝ) ^ j)).2 hx'
 
+/-- For a positive angle at most `π/4` and positive tolerance, there exist initial and later
+geometric windows meeting the reciprocal-sine threshold and a geometric tail below the
+tolerance. -/
 theorem exists_window_tail {θ ε : ℝ} (h0 : 0 < θ) (h4 : θ ≤ Real.pi / 4) (hε : 0 < ε) :
     ∃ M J k : ℕ,
       (1:ℝ) ≤ (M:ℝ) * Real.sin (2 * θ) ∧
@@ -99,10 +128,15 @@ theorem exists_window_tail {θ ε : ℝ} (h0 : 0 < θ) (h4 : θ ≤ Real.pi / 4)
     exact hk'.le
   exact ⟨M, J, k, hM1, by rw [hwin]; exact hM1, htail⟩
 
+/-- The mass of any event under a probability mass function is at most one. -/
 theorem event_le_one {α : Type} (p : PMF α) (E : α → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E ≤ 1 :=
   Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one p E
 
+/-- For a unitary preparation with marked mass `sin² θ` and `0 < θ ≤ π/4`, every positive
+tolerance has a geometric search schedule with failure mass at most that tolerance, expected
+preparation count at most `150 * sqrt 2 / sin θ`, and only marked successful outputs. See
+[BrassardHoyerTapp1998Counting]. -/
 theorem theorem3QuadraticSpeedupUnknownA : Theorem3QuadraticSpeedupUnknownA := by
   intro I _ _ A j₀ S hA θ hθ0 hθ4 hmass ε hε
   have hθ1 : θ < Real.pi / 2 := by linarith [Real.pi_pos]

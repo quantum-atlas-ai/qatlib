@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+
+/-!
+# A Boolean-chain detection example
+
+The module evaluates the corrected detector for the uniform transition matrix on `Bool` with
+marked set `{true}`. It computes the initial amplitudes, the unmarked projector, and one walk
+step.
+
+For every unitary realizing the required row preparation,
+`corrected_szegedy_uniform_boolean_actual_consumer` proves exact acceptance at power one and the
+corresponding instruction counts. See [MagniezNayakRolandSantha2011] for the mathematical
+background.
+
+## Main statements
+
+* `detection_uniform_boolean_gap`: gap parameter 1 for the Boolean chain.
+* `corrected_szegedy_uniform_boolean_actual_consumer`: acceptance probability 1 and counts `(5,
+  5, 6)`.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.WalkSearch.ProjectorCS
@@ -26,6 +50,8 @@ open Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
+/-- The uniform Boolean transition matrix with every entry `1 / 2` satisfies `SymmetricChainGap`
+with gap parameter 1. -/
 theorem detection_uniform_boolean_gap :
     SymmetricChainGap (fun _ _ : Bool => (1/2:ℝ)) 1 := by
   refine ⟨⟨by intro i j; norm_num,by intro i; norm_num⟩,by intro i j; rfl,?_⟩
@@ -33,6 +59,7 @@ theorem detection_uniform_boolean_gap :
   simp only [Fintype.sum_bool] at hv ⊢
   nlinarith
 
+/-- Every coordinate of the uniform Boolean chain's detector initial state is `1 / 2`. -/
 private theorem detection_uniform_boolean_initial (xy : Bool×Bool) :
     detectionInitial (fun _ _ : Bool => (1/2:ℝ)) xy=(1/2:ℂ) := by
   rw [detectionInitial_apply]
@@ -40,6 +67,8 @@ private theorem detection_uniform_boolean_initial (xy : Bool×Bool) :
   rw [← pow_two,inv_pow,sqrt2_sq]
   norm_num
 
+/-- For marked set `{true}`, the unmarked row projector has entry `1 / 2` exactly when both row
+indices agree and are false, and zero otherwise. -/
 private theorem detection_uniform_boolean_projector (xy zw : Bool×Bool) :
     (unmarkedRowFrame (fun _ _ : Bool => (1/2:ℝ)) {true} *
       (unmarkedRowFrame (fun _ _ : Bool => (1/2:ℝ)) {true})ᴴ) xy zw =
@@ -51,6 +80,8 @@ private theorem detection_uniform_boolean_projector (xy zw : Bool×Bool) :
   simp only [hs]
   cases xy.1 <;> cases zw.1 <;> simp
 
+/-- One corrected marked-walk step on the uniform Boolean initial state gives amplitude `1 / 2`
+at pairs with true first coordinate and `-1 / 2` at pairs with false first coordinate. -/
 theorem detection_uniform_boolean_walk (xy : Bool×Bool) :
     ((correctedMarkedWalk (fun _ _ : Bool => (1/2:ℝ)) {true}) *ᵥ
       detectionInitial (fun _ _ : Bool => (1/2:ℝ))) xy =
@@ -64,6 +95,9 @@ theorem detection_uniform_boolean_walk (xy : Bool×Bool) :
       Prod.swap_prod_mk,detection_uniform_boolean_projector,detection_uniform_boolean_initial] <;>
       norm_num
 
+/-- For any unitary preparing the uniform Boolean row states, the chain has gap parameter 1 and
+the power-one detector with marked set `{true}` accepts with probability 1 using counts `(5,
+5, 6)`. See [MagniezNayakRolandSantha2011]. -/
 theorem corrected_szegedy_uniform_boolean_actual_consumer :
     ∀ (j : Bool) (U : Matrix (Bool×Bool) (Bool×Bool) ℂ),
     U∈unitaryGroup (Bool×Bool) ℂ →

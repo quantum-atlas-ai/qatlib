@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeFourthComparison
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+
+/-!
+# Degree lower bounds for symmetric Boolean functions
+
+The predicates `Symmetric` and `Nonconstant` characterize nonconstant Boolean functions
+depending only on Hamming weight. Layer averaging converts an exact representing polynomial into
+a nonconstant univariate polynomial, giving `n + 1 ≤ 2 * exactDegree f` and the query
+consequence `n + 1 ≤ 4 * exactMinimum f`. These constructions support the symmetric-function
+analysis of [BealsEtAl2001].
+
+## Main statements
+
+* `symmetric_exactDegree_lower`: A nonconstant symmetric Boolean function on `n` bits satisfies
+  `n + 1 ≤ 2 * exactDegree f`.
+* `symmetric_exactMinimum_lower`: A nonconstant symmetric Boolean function on `n` bits satisfies
+  `n + 1 ≤ 4 * exactMinimum f`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,22 +44,28 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeFourthComparison
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
 open scoped Classical BigOperators
 
+/-- The condition that equal Hamming weights give equal values of the Boolean function. -/
 def Symmetric {n : ℕ} (f : (Fin n → Bool) → Bool) : Prop :=
   ∀ x y : Fin n → Bool, boolWeight x = boolWeight y → f x = f y
 
+/-- The condition that the Boolean function takes distinct values on some pair of inputs. -/
 def Nonconstant {n : ℕ} (f : (Fin n → Bool) → Bool) : Prop :=
   ∃ x y : Fin n → Bool, f x ≠ f y
 
+/-- The Boolean characteristic word of the finite set `T`. -/
 def wordOn {n : ℕ} (T : Finset (Fin n)) : Fin n → Bool := fun i => decide (i ∈ T)
 
+/-- Evaluation of a real multivariate polynomial at `boolPoint g` agrees with `boolEval p g`. -/
 theorem eval_boolPoint_eq_boolEval {n : ℕ} (p : MvPolynomial (Fin n) ℝ)
     (g : Fin n → Bool) : p.eval (boolPoint g) = boolEval p g := rfl
 
+/-- The Hamming weight of the characteristic word of `T` is `T.card`. -/
 theorem boolWeight_wordOn {n : ℕ} (T : Finset (Fin n)) :
     boolWeight (wordOn T) = T.card := by
   unfold boolWeight wordOn
   rw [boolSupp_decide]
 
+/-- For every `k ≤ n`, there exists a Boolean word of length `n` and Hamming weight `k`. -/
 theorem exists_word_weight {n k : ℕ} (hk : k ≤ n) :
     ∃ w : Fin n → Bool, boolWeight w = k := by
   obtain ⟨T, -, hcard⟩ :=
@@ -45,6 +73,8 @@ theorem exists_word_weight {n k : ℕ} (hk : k ≤ n) :
       (by simpa using! hk)
   exact ⟨wordOn T, by rw [boolWeight_wordOn, hcard]⟩
 
+/-- For a symmetric function exactly represented by `p`, its layer average at a valid weight
+equals the Boolean indicator of the function's value on any word of that weight. -/
 theorem layerAverage_of_represents_symmetric {n : ℕ} {f : (Fin n → Bool) → Bool}
     (hsym : Symmetric f) {p : MvPolynomial (Fin n) ℝ}
     (hp : ∀ g : Fin n → Bool, boolEval p g = if f g then (1 : ℝ) else 0)
@@ -71,6 +101,8 @@ theorem layerAverage_of_represents_symmetric {n : ℕ} {f : (Fin n → Bool) →
   rw [hfc]
   field_simp [hck]
 
+/-- The averaging polynomial of an exact representation of a nonconstant symmetric Boolean
+function is unequal to every constant polynomial. -/
 theorem avgPoly_ne_C {n : ℕ} {f : (Fin n → Bool) → Bool}
     (hsym : Symmetric f) (hnc : Nonconstant f) {p : MvPolynomial (Fin n) ℝ}
     (hp : ∀ g : Fin n → Bool, boolEval p g = if f g then (1 : ℝ) else 0) :
@@ -99,6 +131,8 @@ theorem avgPoly_ne_C {n : ℕ} {f : (Fin n → Bool) → Bool}
   simp only [hconst, Polynomial.eval_C] at hxq hyq
   exact hvals (hxq.symm.trans hyq)
 
+/-- If `p` exactly represents a nonconstant symmetric Boolean function on `n` bits, then `n + 1
+≤ 2 * p.totalDegree`. -/
 theorem symmetric_degree_lower {n : ℕ} {f : (Fin n → Bool) → Bool}
     (hsym : Symmetric f) (hnc : Nonconstant f) {p : MvPolynomial (Fin n) ℝ}
     (hp : ∀ g : Fin n → Bool, boolEval p g = if f g then (1 : ℝ) else 0) :
@@ -155,6 +189,8 @@ theorem symmetric_degree_lower {n : ℕ} {f : (Fin n → Bool) → Bool}
     omega
   omega
 
+/-- A nonconstant symmetric Boolean function on `n` bits satisfies `n + 1 ≤ 2 * exactDegree f`.
+See [Beals et al., 2001][BealsEtAl2001]. -/
 theorem symmetric_exactDegree_lower {n : ℕ} {f : (Fin n → Bool) → Bool}
     (hsym : Symmetric f) (hnc : Nonconstant f) :
     n + 1 ≤ 2 * exactDegree f := by
@@ -169,6 +205,8 @@ theorem symmetric_exactDegree_lower {n : ℕ} {f : (Fin n → Bool) → Bool}
     exact symmetric_degree_lower hsym hnc hp
   exact hfinal _ (Nat.sInf_mem (hne.image fun p => p.totalDegree))
 
+/-- A nonconstant symmetric Boolean function on `n` bits satisfies `n + 1 ≤ 4 * exactMinimum f`.
+See [Beals et al., 2001][BealsEtAl2001]. -/
 theorem symmetric_exactMinimum_lower {n : ℕ} {f : (Fin n → Bool) → Bool}
     (hsym : Symmetric f) (hnc : Nonconstant f) :
     n + 1 ≤ 4 * exactMinimum f := by

@@ -19,26 +19,62 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 
+/-!
+# Corrected continued fraction phase recovery
+
+This module defines Euclidean remainders, quotient lists, and rational continued fraction
+values, and propagates the approximation invariant `TailApprox`. The corrected inequalities and
+terminal quotient alternatives recover a bounded denominator phase from a sufficiently accurate
+measurement. Explicit computations for `3 / 7` and `55 / 128` exhibit failures of the formulas
+addressed by the correction. [Kitaev1995]
+
+## Main statements
+
+* `tail_approx_master`: propagates approximation bounds and proves one of two quotient prefixes
+  recovers the target rational.
+* `kitaev_euclid_quotients_corrected`: recovers the phase with the corrected terminal quotient
+  alternatives.
+* `kitaev_measurement_identifies_phase`: proves uniqueness among phases with bounded
+  denominators.
+* `kitaev_cf_inequality_as_printed_false`: provides a numerical counterexample to the stated
+  printed inequality.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 namespace Qatlib.Concepts.HspRecovery.AbelianSampling
 
+/-- One Euclidean algorithm step, sending `(a,b)` to `(b, a % b)`. -/
 def euclidStep (p : ℕ × ℕ) : ℕ × ℕ := (p.2, p.1 % p.2)
 
+/-- Applying `euclidStep` to `(a,b)` gives `(b, a % b)`. -/
 @[simp] theorem euclidStep_apply (a b : ℕ) : euclidStep (a, b) = (b, a % b) := rfl
 
+/-- The Euclidean remainder sequence beginning with `a` and `b`, with each later term the
+remainder of the preceding two terms. -/
 def euclidRem (a b : ℕ) : ℕ → ℕ
   | 0 => a
   | 1 => b
   | j + 2 => euclidRem a b j % euclidRem a b (j + 1)
 
+/-- The zeroth Euclidean remainder is `a`. -/
 @[simp] theorem euclidRem_zero (a b : ℕ) : euclidRem a b 0 = a := rfl
 
+/-- The first Euclidean remainder is `b`. -/
 @[simp] theorem euclidRem_one (a b : ℕ) : euclidRem a b 1 = b := rfl
 
+/-- The second Euclidean remainder is `a % b`. -/
 @[simp] theorem euclidRem_two (a b : ℕ) : euclidRem a b 2 = a % b := rfl
 
+/-- Each Euclidean remainder at index `j + 2` is the remainder of the terms at indices `j` and
+`j + 1`. -/
 theorem euclidRem_succ_succ (a b : ℕ) (j : ℕ) :
     euclidRem a b (j + 2) = euclidRem a b j % euclidRem a b (j + 1) := rfl
 
+/-- Starting the remainder sequence at `(b, a % b)` shifts the sequence for `(a,b)` by one
+index. -/
 theorem euclidRem_shift (a b : ℕ) (j : ℕ) : euclidRem b (a % b) j = euclidRem a b (j + 1) := by
   induction j using Nat.strong_induction_on with
   | h j ih =>
@@ -48,58 +84,77 @@ theorem euclidRem_shift (a b : ℕ) (j : ℕ) : euclidRem b (a % b) j = euclidRe
     | j + 2 =>
       rw [euclidRem_succ_succ, euclidRem_succ_succ, ih j (by omega), ih (j + 1) (by omega)]
 
+/-- A Euclidean remainder is strictly less than its positive predecessor. -/
 theorem euclidRem_lt_of_pos {a b : ℕ} {j : ℕ} (h : 0 < euclidRem a b (j + 1)) :
     euclidRem a b (j + 2) < euclidRem a b (j + 1) := by
   rw [euclidRem_succ_succ]
   exact Nat.mod_lt _ h
 
+/-- A Euclidean remainder is at most its positive predecessor. -/
 theorem euclidRem_step_le (a b : ℕ) {j : ℕ} (hj : 0 < euclidRem a b (j + 1)) :
     euclidRem a b (j + 2) ≤ euclidRem a b (j + 1) :=
   le_of_lt (euclidRem_lt_of_pos hj)
 
+/-- The number of Euclidean division steps until the second argument becomes zero. -/
 def euclidLen : ℕ → ℕ → ℕ
   | _, 0 => 0
   | a, b + 1 => euclidLen (b + 1) (a % (b + 1)) + 1
 termination_by _ b => b
 decreasing_by exact Nat.mod_lt _ (Nat.succ_pos b)
 
+/-- With a positive second argument, the Euclidean length is one plus the length after one
+division step. -/
 theorem euclidLen_eq (a b : ℕ) (hb : 0 < b) : euclidLen a b = euclidLen b (a % b) + 1 := by
   rcases b with _ | b'
   · omega
   · simp only [euclidLen]
 
+/-- The Euclidean length is positive when the second argument is positive. -/
 theorem euclidLen_pos (a b : ℕ) (hb : 0 < b) : 0 < euclidLen a b := by
   rw [euclidLen_eq a b hb]; omega
 
+/-- The Euclidean length is one when the positive second argument divides the first. -/
 theorem euclidLen_mod_zero (a b : ℕ) (hb : 0 < b) (hmod : a % b = 0) :
     euclidLen a b = 1 := by
   rw [euclidLen_eq a b hb, hmod]
   simp only [euclidLen]
 
+/-- The finite list of quotients produced by successive Euclidean divisions, ending when the
+second argument is zero. -/
 def euclidQuotients : ℕ → ℕ → List ℕ
   | _, 0 => []
   | a, b + 1 => a / (b + 1) :: euclidQuotients (b + 1) (a % (b + 1))
 termination_by _ b => b
 decreasing_by exact Nat.mod_lt _ (Nat.succ_pos b)
 
+/-- For positive `b`, the quotient list begins with `a / b` and continues with the list for `(b,
+a % b)`. -/
 theorem euclidQuotients_eq (a b : ℕ) (hb : 0 < b) :
     euclidQuotients a b = a / b :: euclidQuotients b (a % b) := by
   rcases b with _ | b'
   · omega
   · simp only [euclidQuotients]
 
+/-- The rational value of a finite continued fraction, with empty list valued at zero and
+recursion `m + 1 / cfValue ms`. -/
 def cfValue : List ℕ → ℚ
   | [] => 0
   | m :: ms => (m : ℚ) + 1 / cfValue ms
 
+/-- The value of a nonempty continued fraction is its head plus the reciprocal of the tail's
+value. -/
 theorem cfValue_cons (m : ℕ) (ms : List ℕ) : cfValue (m :: ms) = (m : ℚ) + 1 / cfValue ms := rfl
 
+/-- The continued fraction with the single entry `m` has value `m`. -/
 @[simp] theorem cfValue_single (m : ℕ) : cfValue [m] = (m : ℚ) := by
   simp [cfValue]
 
+/-- Prepending zero to a continued fraction gives the reciprocal of its value. -/
 theorem cfValue_zero_cons (ms : List ℕ) : cfValue (0 :: ms) = 1 / cfValue ms := by
   rw [cfValue_cons]; simp
 
+/-- For positive `a` and `b`, the Euclidean quotient list for `(a,b)` prefixed by zero has value
+`b / a`. -/
 theorem cfValue_euclidQuotients : ∀ (b a : ℕ), 0 < b → 0 < a →
     cfValue (0 :: euclidQuotients a b) = (b : ℚ) / a := by
   intro b
@@ -151,10 +206,14 @@ theorem cfValue_euclidQuotients : ∀ (b a : ℕ), 0 < b → 0 < a →
       field_simp
       nlinarith [hcast, hbb]
 
+/-- The interval condition `(a / b) * (1 - 1 / (2*a*b)) < a' / b' ≤ (a / b) * (2*a*b) / (2*a*b -
+1)`, interpreted over the rationals. -/
 def TailApprox (a b a' b' : ℕ) : Prop :=
   (a : ℚ) / b * (1 - 1 / (2 * a * b)) < (a' : ℚ) / b' ∧
     (a' : ℚ) / b' ≤ (a : ℚ) / b * (2 * a * b) / (2 * a * b - 1)
 
+/-- The corrected lower and strict upper bounds for the ratio of consecutive measured Euclidean
+remainders at step `j`, relative to the target remainder ratio. -/
 def CorrectedIneq (a b a' b' : ℕ) (j : ℕ) : Prop :=
   (euclidRem a b (j + 1) : ℚ) / (euclidRem a b j : ℚ) - 1 / (2 * (euclidRem a b j : ℚ) ^ 2) ≤
         (euclidRem a' b' (j + 1) : ℚ) / (euclidRem a' b' j : ℚ)
@@ -163,6 +222,8 @@ def CorrectedIneq (a b a' b' : ℕ) (j : ℕ) : Prop :=
           1 / ((2 * (euclidRem a b j : ℚ) - 1 / (euclidRem a b (j + 1) : ℚ)) *
             (euclidRem a b j : ℚ))
 
+/-- For positive ratios with `b < a` and `b' < a'`, the tail approximation condition is
+equivalent to the corrected remainder inequality at step zero. -/
 theorem tailApprox_iff_correctedIneq {a b a' b' : ℕ} (hb : 0 < b) (hba : b < a)
     (hb' : 0 < b') (hba' : b' < a') :
     TailApprox a b a' b' ↔ CorrectedIneq a b a' b' 0 := by
@@ -216,6 +277,8 @@ theorem tailApprox_iff_correctedIneq {a b a' b' : ℕ} (hb : 0 < b) (hba : b < a
     rw [dA] at hl
     exact ⟨(one_div_lt_one_div hpp hpC).mp hu, (one_div_le_one_div hp1 hpp).mp hl⟩
 
+/-- A measurement error at most `1 / q'` and scale bound `2*q² ≤ q'` imply `TailApprox q p q'
+p'` under the stated positivity conditions. -/
 theorem tailApprox_of_measurement {q p q' p' : ℕ} (hp : 0 < p) (hpq : p < q) (hp' : 0 < p')
     (hp'q' : p' < q') (hqq' : 2 * q * q ≤ q')
     (hmeas : |(p' : ℚ) / q' - (p : ℚ) / q| ≤ 1 / (q' : ℚ)) :
@@ -283,6 +346,8 @@ theorem tailApprox_of_measurement {q p q' p' : ℕ} (hp : 0 < p) (hpq : p < q) (
 
 set_option maxHeartbeats 1000000 in
 
+/-- When the target remainder is positive, `TailApprox` forces matching first quotients, a
+positive measured remainder, and the same approximation invariant after one Euclidean step. -/
 theorem tailApprox_step {a b a' b' : ℕ} (hb : 0 < b) (hba : b < a) (hb' : 0 < b')
     (hba' : b' < a') (hr : 0 < a % b) (hinv : TailApprox a b a' b') :
     a' / b' = a / b ∧ 0 < a' % b' ∧ TailApprox b (a % b) b' (a' % b') := by
@@ -453,11 +518,15 @@ theorem tailApprox_step {a b a' b' : ℕ} (hb : 0 < b) (hba : b < a) (hb' : 0 < 
     rw [div_le_div_iff₀ hB2 hb'p] at h8
     nlinarith [h8]
 
+/-- One Euclidean step in both input pairs shifts the corrected remainder inequality by one
+index. -/
 theorem correctedIneq_shift (a b a' b' j : ℕ) :
     CorrectedIneq b (a % b) b' (a' % b') j ↔ CorrectedIneq a b a' b' (j + 1) := by
   simp only [CorrectedIneq]
   rw [euclidRem_shift, euclidRem_shift, euclidRem_shift, euclidRem_shift]
 
+/-- For positive `b`, rational division of `a` by `b` equals the natural quotient plus the
+remainder divided by `b`. -/
 theorem div_eq_quot_add (a b : ℕ) (hb : 0 < b) :
     (a : ℚ) / b = ((a / b : ℕ) : ℚ) + (a % b : ℕ) / (b : ℚ) := by
   have hbp : (0 : ℚ) < (b : ℚ) := by exact_mod_cast hb
@@ -468,6 +537,10 @@ theorem div_eq_quot_add (a b : ℕ) (hb : 0 < b) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- For coprime positive target inputs satisfying `TailApprox`, corrected inequalities and
+matching nonterminal quotients propagate through the target Euclidean length. The terminal
+quotient either matches or is one smaller with a following quotient of one, and one of the
+corresponding two measured prefixes recovers `b / a`. -/
 theorem tail_approx_master : ∀ (a b a' b' : ℕ), 0 < b → b < a → Nat.Coprime a b →
     0 < b' → b' < a' → TailApprox a b a' b' →
     (∀ j, j < euclidLen a b → 0 < euclidRem a' b' (j + 1) ∧ CorrectedIneq a b a' b' j) ∧
@@ -701,6 +774,7 @@ theorem tail_approx_master : ∀ (a b a' b' : ℕ), 0 < b → b < a → Nat.Copr
         · refine Or.inr ?_
           rw [cfValue_zero_cons, cfValue_cons, ← cfValue_zero_cons, h4, ← hvk2, one_div_div]
 
+/-- If `q ≤ 2 ^ n` and `q' = 2 ^ (2*n + 1)`, then `2*q² ≤ q'`. -/
 theorem two_mul_sq_le_of_meas {n q q' : ℕ} (hq : q ≤ 2 ^ n) (hq' : q' = 2 ^ (2 * n + 1)) :
     2 * q * q ≤ q' := by
   have hq2 : q * q ≤ 2 ^ n * 2 ^ n := Nat.mul_le_mul hq hq
@@ -710,6 +784,9 @@ theorem two_mul_sq_le_of_meas {n q q' : ℕ} (hq : q ≤ 2 ^ n) (hq' : q' = 2 ^ 
   rw [hq', Nat.pow_succ]
   nlinarith [hq2, hq3]
 
+/-- A phase measurement within `1 / q'` at scale `q' = 2 ^ (2*n + 1)` satisfies the corrected
+two sided bounds on consecutive Euclidean remainder ratios through the target Euclidean
+length [Kitaev1995]. -/
 theorem kitaev_cf_inequality_corrected {n p q p' q' : ℕ} (hq : q ≤ 2 ^ n)
     (hp : 0 < p) (hpq : p < q) (hcop : Nat.Coprime q p) (hq' : q' = 2 ^ (2 * n + 1))
     (hp' : 0 < p') (hp'q' : p' < q')
@@ -731,6 +808,10 @@ theorem kitaev_cf_inequality_corrected {n p q p' q' : ℕ} (hq : q ≤ 2 ^ n)
   rw [show j - 1 + 1 = j from by omega] at hineq
   exact hineq
 
+/-- Under the phase measurement and denominator bounds, nonterminal Euclidean quotients match
+and the final quotient satisfies the corrected matching or split alternative. One of the
+measured quotient prefixes of lengths `euclidLen q p` and `euclidLen q p + 1`, prefixed by
+zero, has value `p / q` [Kitaev1995]. -/
 theorem kitaev_euclid_quotients_corrected {n p q p' q' : ℕ} (hq : q ≤ 2 ^ n)
     (hp : 0 < p) (hpq : p < q) (hcop : Nat.Coprime q p) (hq' : q' = 2 ^ (2 * n + 1))
     (hp' : 0 < p') (hp'q' : p' < q')
@@ -753,6 +834,8 @@ theorem kitaev_euclid_quotients_corrected {n p q p' q' : ℕ} (hq : q ≤ 2 ^ n)
   rw [show j - 1 + 1 = j from by omega] at h6
   exact h6
 
+/-- Two distinct rational phases strictly between zero and one with denominators at most `2 ^ n`
+are separated by at least `1 / (2 ^ n * (2 ^ n - 1))` for `n ≥ 1`. -/
 theorem kitaev_separation_bounded_denominators {n p q r s : ℕ} (hn : 1 ≤ n)
     (hp : 0 < p) (hpq : p < q) (hq : q ≤ 2 ^ n) (hr : 0 < r) (hrs : r < s)
     (hs : s ≤ 2 ^ n) (hne : (p : ℚ) / q ≠ (r : ℚ) / s) :
@@ -852,6 +935,9 @@ theorem kitaev_separation_bounded_denominators {n p q r s : ℕ} (hn : 1 ≤ n)
       exact hdenmax
     linarith
 
+/-- For `n ≥ 1`, two phases strictly between zero and one with denominators at most `2 ^ n` are
+equal if both lie within `1 / q'` of the same measurement, where `q' = 2 ^ (2*n + 1)`
+[Kitaev1995]. -/
 theorem kitaev_measurement_identifies_phase {n p q r s p' q' : ℕ} (hn : 1 ≤ n)
     (hp : 0 < p) (hpq : p < q) (hq : q ≤ 2 ^ n) (hr : 0 < r) (hrs : r < s)
     (hs : s ≤ 2 ^ n) (hp' : 0 < p') (hp'q' : p' < q') (hq' : q' = 2 ^ (2 * n + 1))
@@ -905,6 +991,8 @@ theorem kitaev_measurement_identifies_phase {n p q r s p' q' : ℕ} (hn : 1 ≤ 
     nlinarith [h2n']
   linarith
 
+/-- The target phase `3 / 7` and measurement `55 / 128` satisfy the stated measurement
+hypotheses but violate the displayed upper bound with the measured remainder ratio reversed. -/
 theorem kitaev_cf_inequality_as_printed_false :
     (7 : ℕ) ≤ 2 ^ 3 ∧ (3 : ℕ) < 7 ∧ Nat.Coprime 7 3 ∧ (128 : ℕ) = 2 ^ (2 * 3 + 1)
       ∧ (55 : ℕ) < 128 ∧ |(55 : ℚ) / 128 - (3 : ℚ) / 7| ≤ 1 / 128
@@ -921,6 +1009,9 @@ theorem kitaev_cf_inequality_as_printed_false :
 
 example : ¬ ((128 : ℚ) / 55 < (3 : ℚ) / 7 + 1 / ((2 * 7 - 1 / 3) * 7)) := by norm_num
 
+/-- For target inputs `(7,3)` and measured inputs `(128,55)`, the target Euclidean length is two
+and the final target quotient matches the measured quotient, while the next measured
+quotient is eighteen. -/
 theorem kitaev_kprime_succ_as_printed_false :
     euclidLen 7 3 = 2
       ∧ euclidRem 128 55 1 / euclidRem 128 55 2 = euclidRem 7 3 1 / euclidRem 7 3 2

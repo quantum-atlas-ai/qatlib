@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.HermitianMap26.Construction.MainResult
 import Qatlib.Papers.HermitianMap26.Construction.Variance
 import Qatlib.Concepts.KrausCompile.SignedChoi
+
+/-!
+# Compilation at intrinsic Choi rank
+
+This module obtains a canonical `SignedKraus` representation of a Hermitian-preserving,
+trace-preserving map from its Choi matrix, following [CaiEtAl2026]. The number of original
+branches is the Choi rank, and `canonicalSignedKraus_action` identifies the signed action with
+the original map.
+
+The compilation theorem packages Kraus completeness, the resulting completely positive and
+trace-preserving map, the `SingleQubit` program condition, and an exact logarithmic leaf
+measurement count. A spectral-readout theorem recovers the real expectation of any Hermitian
+observable by weighted shots.
+
+## Main statements
+
+* `intrinsic_rank_compilation`: compiles the map using a family indexed by the Choi rank plus
+  one.
+* `intrinsic_rank_shot_mean`: proves the existence of an unbiased weighted spectral readout.
+
+## References
+
+* [Cai et al., 2026][CaiEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +46,8 @@ open scoped ComplexOrder BigOperators
 
 namespace Qatlib.Papers.HermitianMap26.Construction
 
+/-- The canonical signed Kraus representation of a Hermitian-preserving, trace-preserving linear
+map, with as many operators as the rank of its Choi matrix. -/
 def canonicalSignedKraus {d : ℕ} (T : Op d →ₗ[ℂ] Op d)
     (hHP : ∀ X : Op d, X.IsHermitian → (T X).IsHermitian)
     (hTP : TracePreserving T) : SignedKraus d (ChoiMatrix T).rank where
@@ -30,12 +57,17 @@ def canonicalSignedKraus {d : ℕ} (T : Op d →ₗ[ℂ] Op d)
   tracePreserving :=
     (Qatlib.Concepts.KrausCompile.SignedChoi.canonical_signed_representation T hHP hTP).2.2.1
 
+/-- The action of the canonical signed Kraus representation equals the original linear map. -/
 theorem canonicalSignedKraus_action {d : ℕ} (T : Op d →ₗ[ℂ] Op d)
     (hHP : ∀ X : Op d, X.IsHermitian → (T X).IsHermitian)
     (hTP : TracePreserving T) (X : Op d) :
     (canonicalSignedKraus T hHP hTP).action X = T X :=
   ((Qatlib.Concepts.KrausCompile.SignedChoi.canonical_signed_representation T hHP hTP).2.2.2 X).symm
 
+/-- A Hermitian-preserving, trace-preserving map in positive dimension has the stated complete
+CPTP compilation with the `SingleQubit` condition and exactly `Nat.clog 2 ((ChoiMatrix
+T).rank + 1)` measurements per leaf. Weighted branch traces reproduce the trace pairing with
+the original map. [CaiEtAl2026]. -/
 theorem intrinsic_rank_compilation {d : ℕ} (hd : 0 < d) (T : Op d →ₗ[ℂ] Op d)
     (hHP : ∀ X : Op d, X.IsHermitian → (T X).IsHermitian)
     (hTP : TracePreserving T) :
@@ -55,6 +87,9 @@ theorem intrinsic_rank_compilation {d : ℕ} (hd : 0 < d) (T : Op d →ₗ[ℂ] 
   rw [← canonicalSignedKraus_action T hHP hTP X]
   exact D.trace_completed_postprocessing hd X O
 
+/-- For a density matrix and Hermitian observable, a spectral readout exists whose weighted
+compiled-shot expectation equals the real trace pairing of the observable with the original
+map's output. [CaiEtAl2026]. -/
 theorem intrinsic_rank_shot_mean {d : ℕ} (hd : 0 < d) (T : Op d →ₗ[ℂ] Op d)
     (hHP : ∀ X : Op d, X.IsHermitian → (T X).IsHermitian)
     (hTP : TracePreserving T) (ρ : Op d) (hρ : ρ.PosSemidef) (htρ : ρ.trace = 1)

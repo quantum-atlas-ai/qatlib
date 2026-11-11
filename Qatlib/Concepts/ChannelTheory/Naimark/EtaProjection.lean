@@ -54,6 +54,27 @@ import Mathlib.Topology.Algebra.Ring.Basic
 import Mathlib.Topology.Instances.Matrix
 import Mathlib.Topology.MetricSpace.Pseudo.Defs
 import Mathlib.Topology.UniformSpace.Defs
+
+/-!
+# Conserved positive-label weight under Hamiltonian evolution
+
+`hamiltonian` is block diagonal in a finite auxiliary label, with block `A₁ + η e * A₂`. The
+positive-label projector `positive` commutes with this matrix and its exponential `evolution`.
+Hermitian system matrices give unitary evolution and conservation of the projected trace weight.
+
+The mathematical background is described in [JinLiu2024].
+
+## Main statements
+
+* `hamiltonian_hermitian`: Hermitian blocks give a Hermitian joint Hamiltonian.
+* `evolution_unitary`: real-time exponential evolution is unitary.
+* `positive_weight_constant`: positive-label trace weight is conserved.
+
+## References
+
+* [Jin and Liu, 2024][JinLiu2024]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section
@@ -62,11 +83,14 @@ open scoped Classical Matrix.Norms.Operator
 namespace Qatlib.Concepts.ChannelTheory.Naimark.EtaProjection
 variable {I E : Type} [Fintype I] [Fintype E] [DecidableEq I] [DecidableEq E]
 
+/-- The auxiliary-label block diagonal matrix whose block at label `e` is `A₁ + η e * A₂`. -/
 def hamiltonian (A₁ A₂ : Matrix I I ℂ) (η : E→ℝ) : Matrix (I×E) (I×E) ℂ :=
   fun p q=>if p.2=q.2 then A₁ p.1 q.1+(η p.2:ℂ)*A₂ p.1 q.1 else 0
 
+/-- The diagonal projector retaining auxiliary labels for which `η` is strictly positive. -/
 def positive (η : E→ℝ) : Matrix (I×E) (I×E) ℂ :=diagonal (fun p=>if 0<η p.2 then 1 else 0)
 
+/-- The positive-label projector commutes with the auxiliary-label block Hamiltonian. -/
 theorem positive_commutes (A₁ A₂ : Matrix I I ℂ) (η : E→ℝ) :
     Commute (positive (I:=I) η) (hamiltonian A₁ A₂ η) := by
   apply Matrix.ext
@@ -77,6 +101,8 @@ theorem positive_commutes (A₁ A₂ : Matrix I I ℂ) (η : E→ℝ) :
   · simp [hamiltonian,h]
 omit [Fintype I] [Fintype E] [DecidableEq I] in
 
+/-- If `A₁` and `A₂` are Hermitian, their real auxiliary-label block Hamiltonian is Hermitian.
+See [JinLiu2024]. -/
 theorem hamiltonian_hermitian (A₁ A₂ : Matrix I I ℂ) (h₁ : A₁.IsHermitian) (h₂ : A₂.IsHermitian) (η : E→ℝ) :
     (hamiltonian A₁ A₂ η).IsHermitian := by
   apply Matrix.IsHermitian.ext
@@ -88,13 +114,17 @@ theorem hamiltonian_hermitian (A₁ A₂ : Matrix I I ℂ) (h₁ : A₁.IsHermit
   · simp [hamiltonian,h,star_add,star_mul,h₁',h₂',mul_comm]
   · simp [hamiltonian,h,Ne.symm h]
 
+/-- The matrix exponential `exp (-I * t • hamiltonian A₁ A₂ η)` describing real-time evolution. -/
 def evolution (A₁ A₂ : Matrix I I ℂ) (η : E→ℝ) (t : ℝ) : Matrix (I×E) (I×E) ℂ :=
   NormedSpace.exp ((-Complex.I*(t:ℂ)) •hamiltonian A₁ A₂ η)
 
+/-- The positive-label projector commutes with the exponential evolution of the block
+Hamiltonian. -/
 theorem evolution_commutes (A₁ A₂ : Matrix I I ℂ) (η : E→ℝ) (t : ℝ) :
     Commute (positive (I:=I) η) (evolution A₁ A₂ η t) :=
   ((positive_commutes A₁ A₂ η).smul_right _).exp_right
 
+/-- The exponential evolution is unitary for Hermitian `A₁` and `A₂` and real time. -/
 theorem evolution_unitary (A₁ A₂ : Matrix I I ℂ) (h₁ : A₁.IsHermitian) (h₂ : A₂.IsHermitian) (η : E→ℝ) (t : ℝ) :
     evolution A₁ A₂ η t∈Matrix.unitaryGroup (I×E) ℂ := by
   let G := (-Complex.I*(t:ℂ)) •hamiltonian A₁ A₂ η
@@ -105,6 +135,8 @@ theorem evolution_unitary (A₁ A₂ : Matrix I I ℂ) (h₁ : A₁.IsHermitian)
   rw [← Matrix.exp_conjTranspose,hg,← Matrix.exp_add_of_commute _ _ (Commute.refl G).neg_left]
   simp
 
+/-- For Hermitian `A₁` and `A₂`, conjugation by the evolution preserves the trace pairing of
+every input matrix with the positive-label projector. -/
 theorem positive_weight_constant (A₁ A₂ : Matrix I I ℂ) (h₁ : A₁.IsHermitian) (h₂ : A₂.IsHermitian)
     (η : E→ℝ) (ρ : Matrix (I×E) (I×E) ℂ) (t : ℝ) :
     ((positive (I:=I) η)*(evolution A₁ A₂ η t*ρ*(evolution A₁ A₂ η t)ᴴ)).trace=

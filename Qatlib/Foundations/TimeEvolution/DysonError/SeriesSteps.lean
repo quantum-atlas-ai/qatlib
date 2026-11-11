@@ -8,24 +8,53 @@ import Mathlib.Analysis.Normed.Group.InfiniteSum
 import Mathlib.Analysis.Normed.Operator.Basic
 import Mathlib.Tactic
 
+/-!
+# Series truncation and accumulated recurrence residuals
+
+This module expresses the difference between a convergent series and a finite prefix as a
+shifted tail. It bounds truncation errors by summable scalar majorants and proves the existence
+of a prefix meeting any positive tolerance.
+
+The recurrence `affineTrajectory` supports a separate stability estimate: under nonexpansive
+step maps and an exact initial value, trajectory error is bounded by the sum of local residual
+bounds.
+
+The mathematical background is discussed in [BerryCosta2024].
+
+## Main statements
+
+* `truncation_error_le`: controls a vector-series tail by a scalar majorant.
+* `exists_truncation_error_lt`: gives an arbitrarily accurate finite prefix.
+* `residual_error_le`: accumulates local residual bounds along a nonexpansive recurrence.
+
+## References
+
+* [Berry and Costa, 2024][BerryCosta2024]
+-/
+
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Foundations.TimeEvolution.DysonError
 open scoped Topology
 variable {E : Type*} [NormedAddCommGroup E]
 
+/-- A summable series minus its first `K` terms equals the series of terms shifted by `K`. -/
 theorem series_sub_prefix (f : ℕ → E) (hf : Summable f) (K : ℕ) :
     (∑' n, f n) - ∑ n ∈ Finset.range K, f n = ∑' n, f (n + K) := by
   have h := hf.sum_add_tsum_nat_add K
   rw [← h]
   abel
 
+/-- In a complete normed space, a summable scalar majorant of the term norms bounds the norm of
+every truncation tail. -/
 theorem truncation_error_le [CompleteSpace E] (f : ℕ → E) (g : ℕ → ℝ) (hg : Summable g)
     (hfg : ∀ n, ‖f n‖ ≤ g n) (K : ℕ) :
     ‖(∑' n, f n) - ∑ n ∈ Finset.range K, f n‖ ≤ ∑' n, g (n + K) := by
   rw [series_sub_prefix f (Summable.of_norm_bounded hg hfg) K]
   exact tsum_of_norm_bounded ((summable_nat_add_iff K).2 hg).hasSum (fun n => hfg (n+K))
 
+/-- Every summable series has a finite prefix whose truncation error is smaller than any
+prescribed positive tolerance. -/
 theorem exists_truncation_error_lt (f : ℕ → E) (hf : Summable f)
     (ε : ℝ) (hε : 0 < ε) :
     ∃ K, ‖(∑' n, f n) - ∑ n ∈ Finset.range K, f n‖ < ε := by
@@ -34,10 +63,14 @@ theorem exists_truncation_error_lt (f : ℕ → E) (hf : Summable f)
   refine ⟨K, ?_⟩
   simpa [dist_eq_norm, norm_sub_rev] using hK K le_rfl
 
+/-- The trajectory starting at `x₀` and recursively applying `F n` followed by addition of `b
+n`. -/
 def affineTrajectory (F : ℕ → E → E) (b : ℕ → E) (x₀ : E) : ℕ → E
   | 0 => x₀
   | n+1 => F n (affineTrajectory F b x₀ n) + b n
 
+/-- For nonexpansive step maps and an exact initial value, the error of an approximate
+trajectory is at most the sum of its local residual bounds. -/
 theorem residual_error_le (F : ℕ → E → E) (b : ℕ → E) (x₀ : E)
     (y : ℕ → E) (δ : ℕ → ℝ) (hinit : y 0 = x₀)
     (hstable : ∀ n x z, ‖F n x - F n z‖ ≤ ‖x-z‖)

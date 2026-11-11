@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.GeneralAdversary
+
+/-!
+# Weighted Composition Upper Bound
+
+This module presents the weighted nonnegative adversary composition upper bound associated with
+Lemma 19 of [HoyerLeeSpalek2007]. The coordinate costs `α` are strictly positive, the outer and
+every inner function are nonconstant, and the effective inner costs `blockCosts` are finite.
+Under these hypotheses, `advAlphaENN` for the composed input is bounded by the outer weighted
+value with those effective costs.
+
+## Main statements
+
+- `lemma19_upper_bound` transfers the composition upper bound to the source-facing statement.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007], Negative weights make adversaries
+  stronger, Lemma 19.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +39,9 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 noncomputable section
 
+/-- For strictly positive coordinate costs, nonconstant outer and inner functions, and finite
+effective block costs, the weighted nonnegative adversary value of the composition is at
+most the outer value with those block costs. This is Lemma 19 of [HoyerLeeSpalek2007]. -/
 theorem lemma19_upper_bound
     {k : ℕ} {Y : Fin k → Type} {n : Fin k → ℕ}
     [∀ i, Fintype (Y i)] [∀ i, DecidableEq (Y i)]

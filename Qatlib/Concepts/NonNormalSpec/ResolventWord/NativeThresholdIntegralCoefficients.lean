@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralDefs
 import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
+
+/-!
+# Semantics of rational threshold coefficients
+
+Rational coefficient lists implement composition, threshold polynomials, and integration with
+zero constant term. The results identify their real polynomial interpretations with
+`thresholdPolynomial` and `integratedThresholdPolynomial`, supporting polynomial transformations
+in the setting of [GilyenSuLowWiebe2019]
+
+## Main statements
+
+* `rationalPolynomialCompose_semantics`: identifies list composition with polynomial
+  composition.
+* `rationalIntegralCoefficients_semantics`: identifies scaled integration with
+  `thresholdIntegralPrimitive`.
+* `rationalIntegratedThresholdCoefficients_semantics`: identifies the native amplifier
+  coefficients.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +43,8 @@ namespace Qatlib.Concepts.NonNormalSpec.ResolventWord
 
 open Polynomial
 
+/-- Interpreting the rational composition coefficient list over the reals gives the composition
+of the two interpreted polynomials. -/
 theorem rationalPolynomialCompose_semantics (xs ys : List ℚ) :
     realTarget (rationalPolynomialCompose xs ys) =
       (realTarget xs).comp (realTarget ys) := by
@@ -31,6 +56,8 @@ theorem rationalPolynomialCompose_semantics (xs ys : List ℚ) :
       Polynomial.add_comp, Polynomial.C_comp, Polynomial.mul_comp, Polynomial.X_comp]
     ring
 
+/-- The real interpretation of the rational threshold coefficient list is `thresholdPolynomial`
+at the cast threshold. -/
 theorem rationalThresholdCoefficients_semantics (τ : ℚ) (k : ℕ) :
     realTarget (rationalThresholdCoefficients τ k) = thresholdPolynomial (τ : ℝ) k := by
   rw [rationalThresholdCoefficients, realTarget_div, realTarget_add,
@@ -40,6 +67,8 @@ theorem rationalThresholdCoefficients_semantics (τ : ℚ) (k : ℕ) :
   simp [realTarget_cons, Polynomial.eval_comp, thresholdPolynomial_eval]
   ring
 
+/-- The coefficient at index `n + 1` of the scaled integral list is `γ` times the original
+coefficient at index `n`, divided by `n + 1`. -/
 theorem rationalIntegralCoefficients_getD_succ (γ : ℚ) (xs : List ℚ) (n : ℕ) :
     (rationalIntegralCoefficients γ xs).getD (n + 1) 0 =
       γ * xs.getD n 0 / (n + 1 : ℚ) := by
@@ -47,6 +76,8 @@ theorem rationalIntegralCoefficients_getD_succ (γ : ℚ) (xs : List ℚ) (n : �
   simp only [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_zipIdx]
   cases xs[n]? <;> simp
 
+/-- Differentiating the real interpretation of the integral coefficient list gives `γ` times the
+original real polynomial. -/
 theorem rationalIntegralCoefficients_derivative (γ : ℚ) (xs : List ℚ) :
     (realTarget (rationalIntegralCoefficients γ xs)).derivative =
       Polynomial.C (γ : ℝ) * realTarget xs := by
@@ -56,11 +87,14 @@ theorem rationalIntegralCoefficients_derivative (γ : ℚ) (xs : List ℚ) :
   simp only [Rat.cast_div, Rat.cast_mul, Rat.cast_add, Rat.cast_natCast, Rat.cast_one]
   exact div_mul_cancel₀ _ (by positivity)
 
+/-- The real polynomial represented by the integral coefficient list vanishes at zero. -/
 @[simp] theorem rationalIntegralCoefficients_eval_zero (γ : ℚ) (xs : List ℚ) :
     (realTarget (rationalIntegralCoefficients γ xs)).eval 0 = 0 := by
   rw [← Polynomial.coeff_zero_eq_eval_zero, realTarget_coeff]
   simp [rationalIntegralCoefficients]
 
+/-- The integral coefficient list represents `γ` times the zero constant term primitive of the
+original real polynomial. -/
 theorem rationalIntegralCoefficients_semantics (γ : ℚ) (xs : List ℚ) :
     realTarget (rationalIntegralCoefficients γ xs) =
       Polynomial.C (γ : ℝ) * thresholdIntegralPrimitive (realTarget xs) := by
@@ -77,6 +111,8 @@ theorem rationalIntegralCoefficients_semantics (γ : ℚ) (xs : List ℚ) :
       _ = 0 := by rw [Polynomial.coeff_zero_eq_eval_zero, hz]; simp
   exact sub_eq_zero.mp hq
 
+/-- The real interpretation of the rational integrated threshold coefficients is the
+corresponding integrated threshold polynomial. -/
 theorem rationalIntegratedThresholdCoefficients_semantics (γ δ : ℚ) (k : ℕ) :
     realTarget (rationalIntegratedThresholdCoefficients γ δ k) =
       integratedThresholdPolynomial (γ : ℝ) (δ : ℝ) k := by

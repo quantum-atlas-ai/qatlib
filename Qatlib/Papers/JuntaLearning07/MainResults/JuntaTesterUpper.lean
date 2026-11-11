@@ -19,6 +19,37 @@ import Mathlib.Data.Fintype.Card
 import Mathlib.Data.Finset.Dedup
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Data.Real.Sqrt
+
+/-!
+# Fourier-sampling junta tester ingredients
+
+This module develops the acceptance rule and Fourier-mass estimates for the junta tester studied
+in [AticiServedio2007], Theorem III.3. `acceptsTranscript` accepts when the union of sampled
+coordinate sets has size at most `k`; `fsProb_accepts_junta` proves acceptance with probability
+one for every `k`-junta, and `junta_testing_upper_bound` packages this completeness statement
+with a query budget.
+
+The Fourier truncation `truncation` retains coefficients supported on a chosen coordinate set.
+Its dependence property and the pointwise rounding bound `indicator_ne_sgn_le_sq` yield
+`far_fourier_mass_le` and `fsWeight_outside_ge`, which force Fourier mass outside every set of
+at most `k` coordinates for a function far from all `k`-juntas.
+
+## Main statements
+
+* `acceptor_accepts_junta` accepts every transcript whose sampled sets have positive target
+  weight.
+- `fsProb_accepts_junta` proves perfect completeness for any number of Fourier samples.
+* `junta_testing_upper_bound` provides a budget at most `10 * (k + 1) / ε` with this
+  completeness property.
+- `far_fourier_mass_le` bounds Fourier mass supported inside a small coordinate set by `1 - ε`.
+- `fsWeight_outside_ge` gives at least `ε` mass on sets leaving that coordinate set.
+
+## References
+
+* [Atici and Servedio, 2007][AticiServedio2007], Quantum Algorithms for Learning and Testing
+  Juntas, Theorem III.3.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,9 +63,13 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- The acceptance condition that the union of all coordinate sets in a Fourier-sampling
+transcript has cardinality at most `k`. -/
 def acceptsTranscript (k : ℕ) {T : ℕ} (s : Fin T → Finset (Fin n)) : Prop :=
   (transcriptUnion s).card ≤ k
 
+/-- For a `k`-junta, every transcript whose sampled sets all have positive Fourier weight
+satisfies the acceptance condition. -/
 theorem acceptor_accepts_junta {k : ℕ} {f : (Fin n → Bool) → Bool}
     (hf : IsKJunta (n := n) k f) {T : ℕ} (s : Fin T → Finset (Fin n))
     (hpos : ∀ t, 0 < fsWeight f (s t)) :
@@ -50,6 +85,8 @@ theorem acceptor_accepts_junta {k : ℕ} {f : (Fin n → Bool) → Bool}
   unfold acceptsTranscript
   exact le_trans (Finset.card_le_card (transcriptUnion_subset hsubJ)) hJ
 
+/-- The transcript acceptance condition holds with probability one for a `k`-junta, for every
+number `T` of Fourier samples. -/
 theorem fsProb_accepts_junta {k : ℕ} {f : (Fin n → Bool) → Bool}
     (hf : IsKJunta (n := n) k f) (T : ℕ) :
     fsProb f T (acceptsTranscript (n := n) k) = 1 := by
@@ -78,6 +115,9 @@ theorem fsProb_accepts_junta {k : ℕ} {f : (Fin n → Bool) → Bool}
         exact (Finset.prod_eq_zero (Finset.mem_univ t) hzero).symm]
   exact fsProb_univ_one f T
 
+/-- For positive `ε`, there is a sample count `T` at most `10 * (k + 1) / ε` such that every
+`k`-junta is accepted with probability one. This packages the completeness component of the
+tester associated with Theorem III.3 of [AticiServedio2007]. -/
 theorem junta_testing_upper_bound (k : ℕ) (ε : ℝ) (hε : 0 < ε) :
     ∃ T : ℕ, (T : ℝ) ≤ 10 * ((k : ℝ) + 1) / ε ∧
       (∀ f : (Fin n → Bool) → Bool, IsKJunta (n := n) k f →
@@ -94,13 +134,18 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- Rounds a real number to `true` when it is nonnegative and to `false` when it is negative. -/
 def sgnBool (t : ℝ) : Bool := if 0 ≤ t then true else false
 
+/-- Pointwise domination of real-valued Boolean-cube functions implies domination of their
+uniform expectations. -/
 theorem uniformExpect_mono {F G : (Fin n → Bool) → ℝ} (h : ∀ x, F x ≤ G x) :
     uniformExpect F ≤ uniformExpect G := by
   unfold uniformExpect
   exact mul_le_mul_of_nonneg_left (Finset.sum_le_sum (fun x _ => h x)) (by positivity)
 
+/-- For a real cube function expanded in the Boolean characters with coefficients `a`, the
+uniform second moment equals the sum of the squared coefficients. -/
 theorem uniformExpect_sq_expansion {a : Finset (Fin n) → ℝ}
     {F : (Fin n → Bool) → ℝ} (hF : ∀ x, F x = ∑ S, a S * cubeChar S x) :
     uniformExpect (fun x => F x ^ 2) = ∑ S, a S ^ 2 := by
@@ -108,6 +153,8 @@ theorem uniformExpect_sq_expansion {a : Finset (Fin n) → ℝ}
   rw [sum_sq_eq_mul_sum_sq_of_expansion a F hF]
   rw [← mul_assoc, inv_mul_cancel₀ (by positivity : (2 : ℝ) ^ n ≠ 0), one_mul]
 
+/-- The indicator that a Boolean value differs from the sign rounding of `t` is bounded by the
+squared difference between its sign representation and `t`. -/
 theorem indicator_ne_sgn_le_sq (a : Bool) (t : ℝ) :
     (if a = sgnBool t then (0 : ℝ) else 1) ≤
       ((if a then (1 : ℝ) else -1) - t) ^ 2 := by
@@ -132,6 +179,8 @@ theorem indicator_ne_sgn_le_sq (a : Bool) (t : ℝ) :
       rw [if_pos (by simp [hs])]
       positivity
 
+/-- A Boolean character indexed by `S` has the same value on inputs agreeing on a set `T`
+containing `S`. -/
 theorem cubeChar_eq_of_agree {S T : Finset (Fin n)} (hST : S ⊆ T)
     {x y : Fin n → Bool} (h : ∀ i ∈ T, x i = y i) :
     cubeChar S x = cubeChar S y := by
@@ -140,14 +189,18 @@ theorem cubeChar_eq_of_agree {S T : Finset (Fin n)} (hST : S ⊆ T)
   intro i hi
   rw [h i (hST hi)]
 
+/-- The sign Fourier coefficient of `f` at `S` when `S` is contained in `T`, and zero otherwise. -/
 def truncCoeff (T : Finset (Fin n)) (f : (Fin n → Bool) → Bool)
     (S : Finset (Fin n)) : ℝ :=
   if S ⊆ T then signCoeff f S else 0
 
+/-- The real-valued Fourier truncation of the sign representation of `f` obtained by retaining
+only coefficients indexed by subsets of `T`. -/
 def truncation (T : Finset (Fin n)) (f : (Fin n → Bool) → Bool)
     (x : Fin n → Bool) : ℝ :=
   ∑ S, truncCoeff T f S * cubeChar S x
 
+/-- The Fourier truncation to subsets of `T` depends only on the coordinates in `T`. -/
 theorem truncation_dependsOnlyOn {T : Finset (Fin n)} {f : (Fin n → Bool) → Bool} :
     dependsOnlyOnReal T (truncation T f) := by
   intro x y hxy
@@ -160,6 +213,8 @@ theorem truncation_dependsOnlyOn {T : Finset (Fin n)} {f : (Fin n → Bool) → 
     rw [hz]
     simp
 
+/-- If `f` is `ε`-far from every `k`-junta, the total Fourier-sampling weight on subsets of any
+set `T` of at most `k` coordinates is at most `1 - ε`. -/
 theorem far_fourier_mass_le {k : ℕ} {ε : ℝ} {f : (Fin n → Bool) → Bool}
     (hfar : farFromJunta k ε f) {T : Finset (Fin n)} (hT : T.card ≤ k) :
     ∑ S ∈ T.powerset, fsWeight f S ≤ 1 - ε := by
@@ -240,6 +295,8 @@ theorem far_fourier_mass_le {k : ℕ} {ε : ℝ} {f : (Fin n → Bool) → Bool}
   rw [htotal] at hchain
   linarith
 
+/-- If `f` is `ε`-far from every `k`-junta, at least `ε` of its Fourier-sampling weight lies on
+sets that are not contained in any fixed set `U` of at most `k` coordinates. -/
 theorem fsWeight_outside_ge {k : ℕ} {ε : ℝ} {f : (Fin n → Bool) → Bool}
     (hfar : farFromJunta k ε f) {U : Finset (Fin n)} (hU : U.card ≤ k) :
     ε ≤ ∑ S ∈ Finset.univ \ U.powerset, fsWeight f S := by

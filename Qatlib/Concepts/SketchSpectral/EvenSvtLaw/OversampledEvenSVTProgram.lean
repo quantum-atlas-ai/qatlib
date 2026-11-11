@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsSamp
 import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.OversampledEvenSVTDefs
+
+/-!
+# Record identities and Gram tails for oversampled SVT
+
+`oversampledEvenSVTRun_records` identifies the stored lists, indexed records, and sketch
+matrices of an actual oversampled run with their compact-data definitions.
+`oversampledActualGramTail` proves the Gram Frobenius concentration estimate under row-energy
+domination with factor `φ`, supporting the oversampled SVT analysis of [ChiaEtAl2022].
+
+## Main statements
+
+* `oversampledEvenSVTRun_records`: The stored row and column lists, indexed data, and sketch
+  matrices of an oversampled even-SVT run equal the corresponding compact sketch constructions.
+  See [ChiaEtAl2022].
+* `oversampledActualGramTail`: Under row-energy domination with factor `φ`, the probability of
+  Gram Frobenius error at least `√(8 * φ² * log (2 / δ) / r) * sketchSquared A` is at most `δ`.
+  See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,6 +49,8 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSvtLaw.SamplingBasedLowRank2019
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The stored row and column lists, indexed data, and sketch matrices of an oversampled
+even-SVT run equal the corresponding compact sketch constructions. See [ChiaEtAl2022]. -/
 theorem oversampledEvenSVTRun_records :
     ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
       (A : Matrix K C ℂ) (r c : ℕ) (f fbar : ℝ → ℂ) (qs : FinDist K)
@@ -41,6 +66,8 @@ theorem oversampledEvenSVTRun_records :
   intro K C _ _ _ _ A r c f fbar qs condQ v w
   simp [oversampledEvenSVTRun, compactSketchBuild_eq]
 
+/-- Under row-energy domination with factor `φ`, the probability of Gram Frobenius error at
+least `√(8 * φ² * log (2 / δ) / r) * sketchSquared A` is at most `δ`. See [ChiaEtAl2022]. -/
 theorem oversampledActualGramTail :
     ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
       (q : FinDist K) (r : ℕ) (A : Matrix K C ℂ) (φ δ : ℝ),

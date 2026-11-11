@@ -8,6 +8,29 @@ import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary16LCUSimulationStat
 import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1TaylorTruncationLowc
 import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1Simulation
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
+
+/-!
+# Simulation of Hermitian Unitary Combinations
+
+This module proves `corollary16LCUSimulation` for nonnegative linear combinations of Hermitian
+unitaries, using the LCU encoding and the Taylor-based response-word construction associated
+with Corollary 16 of [LowChuang2019]. The normalization is the positive weight sum `α = ∑ j, w
+j`, supplied by `IsScaledPrepare`.
+
+The conclusion gives cosine and sine words whose scaled compressed responses combine to
+approximate `exp (-i t H)` in operator norm. Their query counts are `2 * n` and `2 * n + 1`,
+with `n ≤ 4 * |t * α| + 8 * log (8 / ε) + 8` for `0 < ε < 1`.
+
+## Main statements
+
+* `corollary16LCUSimulation` proves the LCU simulation contract from the concrete preparation
+  and selection encoding.
+
+## References
+
+- [Low and Chuang, 2019][LowChuang2019], Corollary 16.
+-/
+
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
 set_option warningAsError false
 
@@ -27,6 +50,10 @@ open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Proves `Corollary16LCUSimulation` by encoding the nonnegative combination of Hermitian
+unitaries and applying the Taylor simulation construction. The result gives the two
+compressed response words and their explicit degree and resource bounds in the setting of
+Corollary 16 of [LowChuang2019]. -/
 theorem corollary16LCUSimulation : Corollary16LCUSimulation := by
   intro J I _ _ _ _ U hU hHerm w hw P j₀ hP t ε hε hε1
   have hα : 0 < ∑ j, w j := hP.2.1

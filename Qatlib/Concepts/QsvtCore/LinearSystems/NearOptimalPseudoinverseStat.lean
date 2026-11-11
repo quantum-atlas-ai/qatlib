@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
 import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+
+/-!
+# Near optimal pseudoinverse specification
+
+This module defines `NearOptimalPseudoinverse` for projected unitary encodings with positive
+singular values bounded below by `κ⁻¹`. The specification includes the phase length bound `32 *
+κ * log (κ / ε)`, a scaled pseudoinverse encoding, exact compilation counts, and postselection
+guarantees for both consistent and least squares inputs. The mathematical background is
+developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `NearOptimalPseudoinverse`: the combined encoding, cost, and solution state assertion.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,6 +54,10 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- The assertion that a gapped projected unitary encoding has a phase word of length at most
+`32 * κ * log (κ / ε)` giving a positive scaled pseudoinverse encoding with error `2 * c *
+ε` and explicit counts. It also specifies minimum norm and least squares solution state
+errors and success probability bounds. -/
 def NearOptimalPseudoinverse : Prop :=
   ∀ (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

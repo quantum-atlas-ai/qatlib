@@ -8,6 +8,26 @@ import Mathlib.Algebra.DirectSum.Module
 import Mathlib.LinearAlgebra.Eigenspace.Basic
 import Mathlib.Tactic
 
+/-!
+# Eigenvalue closure under cyclic block shifts
+
+`cyclicSucc` indexes a cyclic shift of a finite family of vector spaces. For a linear
+equivalence that sends each summand into its successor, `lemma4_2_eigenvalue_cyclic_closure`
+proves that multiplication by an `n`th root of unity preserves eigenvalues.
+
+This is the cyclic eigenvalue argument associated with Lemma 4.2 of [FreedmanLarsenWang2000].
+
+## Main statements
+
+* `pow_cyclicSucc`: Relate consecutive root-of-unity powers across the cyclic boundary.
+* `lemma4_2_eigenvalue_cyclic_closure`: Rotate eigenvalues of a cyclic block-shifting
+  equivalence.
+
+## References
+
+* [Freedman et al., 2000][FreedmanLarsenWang2000]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,17 +35,21 @@ namespace Qatlib.Papers.ModularFunct00.MainResults.Density
 
 open DirectSum Module.End
 
+/-- The successor of an index in `Fin n`, wrapping the last index to zero. -/
 def cyclicSucc {n : ℕ} [NeZero n] (i : Fin n) : Fin n :=
   if h : (i : ℕ) + 1 < n then ⟨(i : ℕ) + 1, h⟩ else ⟨0, Nat.pos_of_ne_zero (NeZero.ne n)⟩
 
+/-- Away from the cyclic boundary, the value of `cyclicSucc i` is `i + 1`. -/
 @[simp] lemma cyclicSucc_val_of_lt {n : ℕ} [NeZero n] (i : Fin n)
     (h : (i : ℕ) + 1 < n) : (cyclicSucc i : ℕ) = (i : ℕ) + 1 := by
   simp [cyclicSucc, dif_pos h]
 
+/-- At the cyclic boundary, the value of `cyclicSucc i` is zero. -/
 @[simp] lemma cyclicSucc_val_of_not_lt {n : ℕ} [NeZero n] (i : Fin n)
     (h : ¬ (i : ℕ) + 1 < n) : (cyclicSucc i : ℕ) = 0 := by
   simp [cyclicSucc, dif_neg h]
 
+/-- If `c^n = 1`, incrementing the exponent cyclically multiplies `c^i` by `c`. -/
 lemma pow_cyclicSucc {n : ℕ} [NeZero n] {c : ℂ} (hc : c ^ n = 1) (i : Fin n) :
     c ^ (cyclicSucc i : ℕ) = c * c ^ (i : ℕ) := by
   by_cases h : (i : ℕ) + 1 < n
@@ -35,6 +59,9 @@ lemma pow_cyclicSucc {n : ℕ} [NeZero n] {c : ℂ} (hc : c ^ n = 1) (i : Fin n)
       show (i : ℕ) = n - 1 by have := i.isLt; omega, ← pow_succ',
       Nat.sub_add_cancel (Nat.pos_of_ne_zero (NeZero.ne n)), hc]
 
+/-- For a linear equivalence cyclically shifting `n` direct summands, multiplication by any
+`n`th root of unity preserves eigenvalues, as in [Freedman et al., Lemma
+4.2][FreedmanLarsenWang2000]. -/
 theorem lemma4_2_eigenvalue_cyclic_closure {n : ℕ} [NeZero n]
     (W : Fin n → Type*) [∀ i, AddCommGroup (W i)] [∀ i, Module ℂ (W i)]
     (T : (⨁ i, W i) ≃ₗ[ℂ] (⨁ i, W i))

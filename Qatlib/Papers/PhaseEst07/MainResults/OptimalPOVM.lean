@@ -8,6 +8,28 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Data.Int.Basic
 import Mathlib.Tactic
 
+/-!
+# Optimality of the unit phase-measurement kernel
+
+The finite functional `sourceHolevoCost` expresses the cost using spectral-index distances, real
+amplitudes, and a real measurement kernel. For nonnegative cost coefficients and positive
+amplitudes, `source_holevo_cost_optimal` proves that the constant-one kernel minimizes this
+functional among kernels with entries of absolute value at most one. The phase-estimation
+setting is described in [VanDamEtAl2007].
+
+## Main statements
+
+* `source_holevo_cost_optimal`: For nonempty index size, nonnegative cost coefficients, positive
+  amplitudes, and kernel entries bounded in absolute value by one, the constant-one kernel
+  minimizes `sourceHolevoCost` and has the stated coefficient-sum value.
+* `source_holevo_term_equality`: For positive `ψ`, nonzero `c`, and `|χ| ≤ 1`, the term `c * ψ *
+  χ * ψ` is at most `|c| * ψ ^ 2`, with equality exactly when `χ` has the sign of `c`.
+
+## References
+
+* [van Dam et al., 2007][VanDamEtAl2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,16 +37,24 @@ namespace Qatlib.Papers.PhaseEst07.MainResults.OptimalPOVM
 
 open scoped BigOperators
 
+/-- The absolute difference of two spectral indices, regarded as a natural number. -/
 def sourceDist {q : ℕ} (h k : Fin q) : ℕ := Int.natAbs ((h : ℤ) - (k : ℤ))
 
+/-- The finite Holevo cost functional formed from coefficients `c`, amplitudes `ψ`, and kernel
+entries `χ` grouped by spectral-index distance. -/
 noncomputable def sourceHolevoCost {q : ℕ} (c : ℕ → ℝ) (ψ : Fin q → ℝ)
     (χ : Fin q → Fin q → ℝ) : ℝ :=
   - c 0 - (1 / 2) * ∑ l ∈ Finset.Icc 1 (q - 1), c l *
     ∑ h : Fin q, ∑ k : Fin q,
       (if sourceDist h k = l then ψ h * χ h k * ψ k else 0)
 
+/-- The real kernel whose entries are all one. -/
 def sourceUnitChi {q : ℕ} : Fin q → Fin q → ℝ := fun _ _ => 1
 
+/-- For nonempty index size, nonnegative cost coefficients, positive amplitudes, and kernel
+entries bounded in absolute value by one, the constant-one kernel minimizes
+`sourceHolevoCost` and has the stated coefficient-sum value. See [van Dam et al.,
+2007][VanDamEtAl2007]. -/
 theorem source_holevo_cost_optimal {q : ℕ} (hq : 1 ≤ q) (c : ℕ → ℝ)
     (hc : ∀ l, 0 ≤ c l) (ψ : Fin q → ℝ) (hψ : ∀ k, 0 < ψ k)
     (χ : Fin q → Fin q → ℝ) (hχ : ∀ h k, |χ h k| ≤ 1) :
@@ -70,6 +100,9 @@ theorem source_holevo_cost_optimal {q : ℕ} (hq : 1 ≤ q) (c : ℕ → ℝ)
       intro l _
       rw [abs_of_nonneg (hc l)]]
 
+/-- For positive `ψ`, nonzero `c`, and `|χ| ≤ 1`, the term `c * ψ * χ * ψ` is at most `|c| * ψ ^
+2`, with equality exactly when `χ` has the sign of `c`. See [van Dam et al.,
+2007][VanDamEtAl2007]. -/
 theorem source_holevo_term_equality (c ψ χ : ℝ) (hψ : 0 < ψ) (hc : c ≠ 0)
     (hχ : |χ| ≤ 1) :
     c * ψ * χ * ψ ≤ |c| * (ψ * ψ) ∧

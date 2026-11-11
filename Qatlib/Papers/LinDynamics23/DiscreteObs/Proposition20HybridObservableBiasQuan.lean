@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableBiasStat
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+
+/-!
+# Bias bounds for hybrid observable reconstruction
+
+`hybridObservable_double_sum` identifies the coefficient-weighted pairwise observable expression
+with the quadratic form of the reconstructed vector. Vector reconstruction and quadratic-form
+perturbation estimates then establish `proposition20HybridObservableBias`, separating quadrature
+error from errors in the individual simulated evolutions. See [AnChildsLin2026] for the paper
+context.
+
+## Main statements
+
+* `hybridObservable_quadratic_error`: For vectors within Euclidean distance `d`, the difference
+  of their observable quadratic forms has norm at most `‖O‖ * d * (2 * ‖y‖ + d)`, with the
+  vector norm interpreted through `toEuclidean_fromVec`.
+* `hybridObservable_reconstruction_error`: On a unit input, replacing each evolution by a matrix
+  within operator-norm error `εhs` changes the reconstructed vector by at most `(∑ j, ‖c j‖) *
+  εhs` in Euclidean norm.
+* `proposition20HybridObservableBias`: The hybrid observable bias contract holds, giving the
+  double-sum identity and the stated quadratic bias bound from quadrature and
+  individual-evolution errors.
+
+## References
+
+* [An et al., 2026][AnChildsLin2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,6 +59,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The coefficient-weighted double sum of pairwise observable matrix elements equals the
+observable quadratic form of the linearly reconstructed vector. -/
 theorem hybridObservable_double_sum {I : Type} [Fintype I] [DecidableEq I]
     {N : ℕ} (c : Fin N → ℂ) (W : Fin N → Matrix I I ℂ)
     (O : Matrix I I ℂ) (x : QState I) :
@@ -52,6 +81,8 @@ theorem hybridObservable_double_sum {I : Type} [Fintype I] [DecidableEq I]
   simp only [starRingEnd_apply]
   ring
 
+/-- If the Euclidean distance from `x` to `y` is at most `d`, then the Euclidean norm of `x` is
+at most that of `y` plus `d`. -/
 theorem hybridObservable_norm_of_close {I : Type} [Fintype I]
     (x y : QState I) (d : ℝ)
     (h : ‖toEuclidean_fromVec x - toEuclidean_fromVec y‖ ≤ d) :
@@ -61,6 +92,9 @@ theorem hybridObservable_norm_of_close {I : Type} [Fintype I]
   rw [sub_add_cancel] at ht
   linarith
 
+/-- For vectors within Euclidean distance `d`, the difference of their observable quadratic
+forms has norm at most `‖O‖ * d * (2 * ‖y‖ + d)`, with the vector norm interpreted through
+`toEuclidean_fromVec`. -/
 theorem hybridObservable_quadratic_error {I : Type} [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (x y : QState I) (d : ℝ)
     (h : ‖toEuclidean_fromVec x - toEuclidean_fromVec y‖ ≤ d) :
@@ -88,6 +122,8 @@ theorem hybridObservable_quadratic_error {I : Type} [Fintype I] [DecidableEq I]
       mul_le_mul_of_nonneg_left
         (mul_le_mul h (by linarith) (by positivity) hd) (norm_nonneg _)
 
+/-- On a unit input, replacing each evolution by a matrix within operator-norm error `εhs`
+changes the reconstructed vector by at most `(∑ j, ‖c j‖) * εhs` in Euclidean norm. -/
 theorem hybridObservable_reconstruction_error {I : Type} [Fintype I] [DecidableEq I]
     {N : ℕ} (c : Fin N → ℂ) (W U : Fin N → Matrix I I ℂ)
     (x : QState I) (hx : ‖toEuclidean_fromVec x‖ = 1) (εhs : ℝ)
@@ -109,6 +145,9 @@ theorem hybridObservable_reconstruction_error {I : Type} [Fintype I] [DecidableE
   rw [he]
   exact (l2_norm_mulVec_fromVec_le _ x).trans (by simpa only [hx, mul_one] using! hm)
 
+/-- The hybrid observable bias contract holds, giving the double-sum identity and the stated
+quadratic bias bound from quadrature and individual-evolution errors [An et al., Proposition
+20][AnChildsLin2026]. -/
 theorem proposition20HybridObservableBias : Proposition20HybridObservableBias := by
   intro I _ _ N c kk W L H B i₀ O T η εhs _hL _hH _hLp _hHh _hT _hW hB _hO
   (try dsimp only)

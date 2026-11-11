@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.CostDefs
+
+/-!
+# Detection costs for multiple claws
+
+This module defines comparison and standard-query cost expressions for `k`-claw detection in
+[Tani2009]. It expands the costs and bounds them using either a common subset size
+`(N1*A)^(1/(k+1))` or the full size `N1`, according to the relation between `A` and `N1^k`.
+
+## Main statements
+
+* `kClawDetectCost_eq` and `kClawDetectStandardCost_eq`: expanded cost formulas.
+* `lemma6_kClawDetect`: the two comparison cost regimes.
+* `corollary7_kClawDetect`: the two standard-query cost regimes.
+
+## References
+
+* [Tani, 2009][Tani2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,23 +33,31 @@ namespace Qatlib.Papers.ClawFinding07.MainResults.QueryBound
 
 open scoped BigOperators
 
+/-- The comparison detection cost expression for a `k`-claw with product domain parameter `P`
+and common subset size `L`. -/
 def kClawDetectCost (k : ℕ) (P L : ℝ) : ℝ :=
   szegedyCost ((k : ℝ) * L * Real.log ((k : ℝ) * L)) 0 (Real.log ((k : ℝ) * L))
     (1 / L) (L ^ k / P)
 
+/-- The standard-query detection cost expression for a `k`-claw with product domain parameter
+`P` and common subset size `L`. -/
 def kClawDetectStandardCost (k : ℕ) (P L : ℝ) : ℝ :=
   szegedyCost ((k : ℝ) * L) 0 1 (1 / L) (L ^ k / P)
 
+/-- Rewrites the Szegedy cost using multiplication by `sqrt (1/(δ*ε))`, under the stated
+positivity assumption. -/
 theorem szegedyCost_pos_form {CU CF CW δ ε : ℝ} (_h : 0 < δ * ε) :
     szegedyCost CU CF CW δ ε = CU + (CF + CW) * Real.sqrt (1 / (δ * ε)) := by
   have h1 : (CF + CW) / Real.sqrt (δ * ε) = (CF + CW) * Real.sqrt (1 / (δ * ε)) := by
     rw [div_eq_mul_inv, one_div, ← Real.sqrt_inv]
   rw [szegedyCost, h1]
 
+/-- For positive natural `k`, factors `L^k` as `L^(k-1)*L`. -/
 theorem pow_eq_pow_sub_mul {L : ℝ} {k : ℕ} (hk : 0 < k) : L ^ k = L ^ (k - 1) * L := by
   conv_lhs => rw [show k = (k - 1) + 1 by omega]
   rw [pow_succ]
 
+/-- For nonzero `L` and `k ≥ 2`, the quotient `L^(k+1)/L^(k-1)` equals `L*L`. -/
 theorem pow_succ_div_pow_sub {L : ℝ} {k : ℕ} (hL : L ≠ 0) (hk : 2 ≤ k) :
     L ^ (k + 1) / L ^ (k - 1) = L * L := by
   have hdiv : L ^ (k + 1) = L ^ (k - 1) * L ^ 2 := by
@@ -38,6 +65,7 @@ theorem pow_succ_div_pow_sub {L : ℝ} {k : ℕ} (hL : L ≠ 0) (hk : 2 ≤ k) :
   rw [hdiv]
   field_simp
 
+/-- For nonzero `N` and `k ≥ 2`, the quotient `N^k/N^(k-2)` equals `N*N`. -/
 theorem pow_div_pow_sub {N : ℝ} {k : ℕ} (hN : N ≠ 0) (hk : 2 ≤ k) :
     N ^ k / N ^ (k - 2) = N * N := by
   have hdiv : N ^ k = N ^ (k - 2) * N ^ 2 := by
@@ -46,6 +74,8 @@ theorem pow_div_pow_sub {N : ℝ} {k : ℕ} (hN : N ≠ 0) (hk : 2 ≤ k) :
   rw [hdiv]
   field_simp
 
+/-- For positive `k`, `P`, and `L`, expands the comparison detection cost into setup cost and
+`log (k*L)*sqrt (P/L^(k-1))`. -/
 theorem kClawDetectCost_eq {k : ℕ} (hk : 0 < k) {P L : ℝ} (hP : 0 < P) (hL : 0 < L) :
     kClawDetectCost k P L
       = (k : ℝ) * L * Real.log ((k : ℝ) * L)
@@ -63,6 +93,8 @@ theorem kClawDetectCost_eq {k : ℕ} (hk : 0 < k) {P L : ℝ} (hP : 0 < P) (hL :
   rw [hsqrt]
   ring
 
+/-- For positive `k`, `P`, and `L`, expands the standard detection cost as `k*L+sqrt
+(P/L^(k-1))`. -/
 theorem kClawDetectStandardCost_eq {k : ℕ} (hk : 0 < k) {P L : ℝ} (hP : 0 < P)
     (hL : 0 < L) :
     kClawDetectStandardCost k P L
@@ -80,6 +112,8 @@ theorem kClawDetectStandardCost_eq {k : ℕ} (hk : 0 < k) {P L : ℝ} (hP : 0 < 
   rw [hsqrt]
   ring
 
+/-- For positive natural `k` and nonnegative `P`, raising `P^(1/(k+1))` to the natural power
+`k+1` recovers `P`. -/
 theorem rpow_inv_succ_pow (k : ℕ) (hk : 0 < k) {P : ℝ} (hP : 0 ≤ P) :
     (P ^ (1 / ((k : ℝ) + 1))) ^ (k + 1) = P := by
   have h := Real.rpow_mul hP (1 / ((k : ℝ) + 1)) (((k + 1 : ℕ)) : ℝ)
@@ -89,11 +123,13 @@ theorem rpow_inv_succ_pow (k : ℕ) (hk : 0 < k) {P : ℝ} (hP : 0 ≤ P) :
   rw [Real.rpow_natCast] at h
   exact h.symm
 
+/-- For `k ≥ 2` and nonzero `N`, rewrites `N*A/N^(k-1)` as `A/N^(k-2)`. -/
 theorem mul_div_pow_sub {k : ℕ} (hk : 2 ≤ k) {N A : ℝ} (hN : N ≠ 0) :
     N * A / N ^ (k - 1) = A / N ^ (k - 2) := by
   rw [show k - 1 = (k - 2) + 1 by omega, pow_succ]
   field_simp
 
+/-- Every natural number `k` is at most `2^k`. -/
 theorem nat_le_two_pow : ∀ k : ℕ, k ≤ 2 ^ k
   | 0 => by simp
   | n + 1 => by
@@ -102,6 +138,7 @@ theorem nat_le_two_pow : ∀ k : ℕ, k ≤ 2 ^ k
       calc n + 1 ≤ 2 ^ n + 2 ^ n := by omega
         _ = 2 ^ (n + 1) := by rw [pow_succ]; ring
 
+/-- For `k ≥ 2`, `0 < L ≤ N1`, and `N1 ≥ 2`, bounds `log (k*L)` by `(k+1)*log N1`. -/
 theorem log_mul_le {k : ℕ} (hk : 2 ≤ k) {L N1 : ℝ} (hL : 0 < L) (hLle : L ≤ N1)
     (hN1 : 2 ≤ N1) :
     Real.log ((k : ℝ) * L) ≤ ((k : ℝ) + 1) * Real.log N1 := by
@@ -125,6 +162,8 @@ theorem log_mul_le {k : ℕ} (hk : 2 ≤ k) {L N1 : ℝ} (hL : 0 < L) (hLle : L 
     ring
   linarith
 
+/-- When `k ≥ 2`, `N1 ≥ 2`, `0 < L ≤ N1`, and `P = L^(k+1)`, bounds comparison detection cost by
+`(k+1)^2*L*log N1`; see [Tani2009]. -/
 theorem kClawDetect_regime1_le {k : ℕ} (hk : 2 ≤ k) {P L N1 : ℝ} (hN1 : 2 ≤ N1)
     (hL : 0 < L) (hLle : L ≤ N1) (hP : P = L ^ (k + 1)) :
     kClawDetectCost k P L ≤ ((k : ℝ) + 1) ^ 2 * L * Real.log N1 := by
@@ -146,6 +185,8 @@ theorem kClawDetect_regime1_le {k : ℕ} (hk : 2 ≤ k) {P L N1 : ℝ} (hN1 : 2 
       = ((k : ℝ) + 1) * L * Real.log ((k : ℝ) * L) := by ring
   linarith [hcost]
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and positive `A ≥ N1^k`, bounds comparison detection cost at subset
+size `N1` by `(k+1)^2*sqrt (A/N1^(k-2))*log N1`; see [Tani2009]. -/
 theorem kClawDetect_regime2_le {k : ℕ} (hk : 2 ≤ k) {N1 A : ℝ} (hN1 : 2 ≤ N1)
     (hA : 0 < A) (hAk : N1 ^ k ≤ A) :
     kClawDetectCost k (N1 * A) N1
@@ -185,6 +226,8 @@ theorem kClawDetect_regime2_le {k : ℕ} (hk : 2 ≤ k) {N1 A : ℝ} (hN1 : 2 �
       = ((k : ℝ) + 1) ^ 2 * Real.sqrt (A / N1 ^ (k - 2)) * Real.log N1 := by ring
   linarith
 
+/-- Under the stated size assumptions and `P = L^(k+1)`, bounds standard detection cost by
+`(k+1)*L`; see [Tani2009]. -/
 theorem kClawDetectStandard_regime1_le {k : ℕ} (hk : 2 ≤ k) {P L N1 : ℝ}
     (_hN1 : 2 ≤ N1) (hL : 0 < L) (_hLle : L ≤ N1) (hP : P = L ^ (k + 1)) :
     kClawDetectStandardCost k P L ≤ ((k : ℝ) + 1) * L := by
@@ -197,6 +240,8 @@ theorem kClawDetectStandard_regime1_le {k : ℕ} (hk : 2 ≤ k) {P L N1 : ℝ}
   rw [hsqrt]
   linarith
 
+/-- For `k ≥ 2`, `N1 ≥ 2`, and positive `A ≥ N1^k`, bounds standard detection cost at subset
+size `N1` by `(k+1)*sqrt (A/N1^(k-2))`; see [Tani2009]. -/
 theorem kClawDetectStandard_regime2_le {k : ℕ} (hk : 2 ≤ k) {N1 A : ℝ}
     (hN1 : 2 ≤ N1) (hA : 0 < A) (hAk : N1 ^ k ≤ A) :
     kClawDetectStandardCost k (N1 * A) N1
@@ -220,6 +265,8 @@ theorem kClawDetectStandard_regime2_le {k : ℕ} (hk : 2 ≤ k) {N1 A : ℝ}
     mul_le_mul_of_nonneg_left hsqrt_ge hkR
   linarith
 
+/-- Combines the two comparison cost bounds for `k`-claw detection, using the root subset size
+when `A ≤ N1^k` and subset size `N1` when `N1^k ≤ A`. See [Tani, Lemma 6][Tani2009]. -/
 theorem lemma6_kClawDetect (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1)
     (hA : 0 < A) :
     (A ≤ N1 ^ k →
@@ -246,6 +293,9 @@ theorem lemma6_kClawDetect (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1
   · intro hAk
     exact kClawDetect_regime2_le hk hN1 hA hAk
 
+/-- Combines the two standard-query cost bounds for `k`-claw detection, using the root subset
+size when `A ≤ N1^k` and subset size `N1` when `N1^k ≤ A`. See [Tani, Corollary
+7][Tani2009]. -/
 theorem corollary7_kClawDetect (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1)
     (hA : 0 < A) :
     (A ≤ N1 ^ k →

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicGcdDecoder
+
+/-!
+# Concrete cyclic recovery examples
+
+This module evaluates cyclic sampling and verified decoding on constant and injective functions
+and on reduction modulo four from a register of size twelve. The examples instantiate the
+Fourier period recovery method described in [NielsenChuang2010].
+
+## Main statements
+
+* `cyclic_constant_and_injective_consumer`: checks constant decoding and uniform injective
+  sampling.
+* `cyclic_mod_twelve_actual_consumer`: evaluates the modulo-four example and two sample records.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +42,8 @@ open scoped Classical
 
 variable {R : Type} [Fintype R] [DecidableEq R] [AddCommGroup R]
 
+/-- A constant cyclic oracle is verified as period one with probability one, and an injective
+oracle gives uniform sampling on `Fin N`. -/
 theorem cyclic_constant_and_injective_consumer (N m : ℕ) (hN : 0 < N) :
     (cyclicSampleDist N hN (fun _ : Fin N => (0 : ZMod 1))).probEvent
         (fun ω : Fin m → Fin N =>
@@ -107,6 +128,8 @@ theorem cyclic_constant_and_injective_consumer (N m : ℕ) (hN : 0 < N) :
     rw [Nat.div_self hN] at h
     simpa using h
 
+/-- For reduction modulo four on `Fin 12`, sampling is uniform on multiples of three. The record
+`[3, 6]` decodes and verifies period four, whereas `[0, 6]` fails verification. -/
 theorem cyclic_mod_twelve_actual_consumer :
     (∀ y : Fin 12, (cyclicSampleDist 12 (by omega) (fun x : Fin 12 => (x.val : ZMod 4))).prob y =
       if 3 ∣ y.val then 1 / 4 else 0) ∧

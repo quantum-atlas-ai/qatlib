@@ -8,6 +8,26 @@ import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
 import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition2
 import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition5.Proposition5ClassicalInequalities
 import Mathlib.Analysis.SpecificLimits.Basic
+
+/-!
+# Equivalence of classical exponential indistinguishability
+
+The module proves the equivalence of the four classical exponential indistinguishability
+predicates for families of laws on a fixed finite alphabet. The theorem
+`lemma1_classical_exponential_equivalence` formalizes Lemma 1 of [FuchsVanDeGraaf1999], using
+elementary exponential estimates and comparisons among the measures.
+
+## Main statements
+
+* `expSmall_of_le_const_mul`: an eventual constant-factor geometric bound implies `ExpSmall`.
+* `lemma1_classical_exponential_equivalence`: the Kolmogorov predicate is equivalent to each of
+  the other three predicates.
+
+## References
+
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +43,8 @@ open scoped BigOperators
 
 variable {X : Type} [Fintype X]
 
+/-- An eventual upper bound by a positive constant times `ε ^ n`, with `0 < ε < 1`, implies
+`ExpSmall`. -/
 lemma expSmall_of_le_const_mul {d : ℕ → ℝ} {C ε : ℝ} (_hC : 0 < C)
     (hε0 : 0 < ε) (hε1 : ε < 1) (N0 : ℕ)
     (h : ∀ n, N0 ≤ n → d n ≤ C * ε ^ n) : ExpSmall d := by
@@ -40,10 +62,12 @@ lemma expSmall_of_le_const_mul {d : ℕ → ℝ} {C ε : ℝ} (_hC : 0 < C)
     _ ≤ (e / ε) ^ n * ε ^ n := mul_le_mul_of_nonneg_right h2 (pow_nonneg hε0.le n)
     _ = e ^ n := by rw [← mul_pow, div_mul_cancel₀ e hε0.ne']
 
+/-- Classical Kolmogorov distance is nonnegative. -/
 lemma classicalKolmogorov_nonneg (p0 p1 : FinDist X) : 0 ≤ classicalKolmogorov p0 p1 := by
   unfold classicalKolmogorov tv
   positivity
 
+/-- The Bhattacharyya coefficient of two finite probability distributions is at most one. -/
 lemma bhattacharyya_le_one (p0 p1 : FinDist X) : bhattacharyya p0 p1 ≤ 1 := by
   have hB := bhattacharyya_eq_sum_sqrt_mul p0 p1
   have hnn : 0 ≤ ∑ x, Real.sqrt (p0.prob x) * Real.sqrt (p1.prob x) :=
@@ -63,6 +87,7 @@ lemma bhattacharyya_le_one (p0 p1 : FinDist X) : bhattacharyya p0 p1 ≤ 1 := by
   rw [hB]
   nlinarith
 
+/-- For nonnegative `ε`, the square root of `ε ^ n` equals `(√ε) ^ n`. -/
 lemma sqrt_pow_eq (ε : ℝ) (hε : 0 ≤ ε) (n : ℕ) :
     Real.sqrt (ε ^ n) = (Real.sqrt ε) ^ n := by
   induction n with
@@ -70,6 +95,8 @@ lemma sqrt_pow_eq (ε : ℝ) (hε : 0 ≤ ε) (n : ℕ) :
   | succ k ih =>
       rw [pow_succ, Real.sqrt_mul (pow_nonneg hε k), ih, pow_succ]
 
+/-- Exponential smallness of classical Kolmogorov distance implies exponential closeness of the
+error probability to one half. -/
 lemma classExpK_imp_classExpPE (P Q : ℕ → FinDist X) (h : ClassExpK P Q) :
     ClassExpPE P Q := by
   unfold ClassExpK ExpSmall at h
@@ -89,6 +116,8 @@ lemma classExpK_imp_classExpPE (P Q : ℕ → FinDist X) (h : ClassExpK P Q) :
   rw [habs]
   linarith
 
+/-- Exponential closeness of the classical error probability to one half implies exponential
+smallness of Kolmogorov distance. -/
 lemma classExpPE_imp_classExpK (P Q : ℕ → FinDist X) (h : ClassExpPE P Q) :
     ClassExpK P Q := by
   unfold ClassExpPE ExpNear at h
@@ -108,6 +137,8 @@ lemma classExpPE_imp_classExpK (P Q : ℕ → FinDist X) (h : ClassExpPE P Q) :
   rw [habs] at hPE
   linarith
 
+/-- Exponential smallness of classical Kolmogorov distance implies exponential closeness of the
+Bhattacharyya coefficient to one. -/
 lemma classExpK_imp_classExpB (P Q : ℕ → FinDist X) (h : ClassExpK P Q) :
     ClassExpB P Q := by
   unfold ClassExpK ExpSmall at h
@@ -121,6 +152,8 @@ lemma classExpK_imp_classExpB (P Q : ℕ → FinDist X) (h : ClassExpK P Q) :
   rw [habs]
   linarith
 
+/-- Exponential closeness of the Bhattacharyya coefficient to one implies exponential smallness
+of classical Kolmogorov distance. -/
 lemma classExpB_imp_classExpK (P Q : ℕ → FinDist X) (h : ClassExpB P Q) :
     ClassExpK P Q := by
   unfold ClassExpB ExpNear at h
@@ -151,6 +184,8 @@ lemma classExpB_imp_classExpK (P Q : ℕ → FinDist X) (h : ClassExpB P Q) :
     rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2), sqrt_pow_eq ε hε0.le n]
   linarith
 
+/-- Exponential smallness of classical Kolmogorov distance implies exponential smallness of
+Shannon distinguishability. -/
 lemma classExpK_imp_classExpSD (P Q : ℕ → FinDist X) (h : ClassExpK P Q) :
     ClassExpSD P Q := by
   unfold ClassExpK ExpSmall at h
@@ -162,6 +197,8 @@ lemma classExpK_imp_classExpSD (P Q : ℕ → FinDist X) (h : ClassExpK P Q) :
   rw [hPE] at h44
   linarith
 
+/-- Exponential smallness of Shannon distinguishability implies exponential smallness of
+classical Kolmogorov distance. -/
 lemma classExpSD_imp_classExpK (P Q : ℕ → FinDist X) (h : ClassExpSD P Q) :
     ClassExpK P Q := by
   unfold ClassExpSD ExpSmall at h
@@ -189,6 +226,8 @@ lemma classExpSD_imp_classExpK (P Q : ℕ → FinDist X) (h : ClassExpSD P Q) :
     rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2), sqrt_pow_eq ε hε0.le n]
   linarith
 
+/-- Exponential smallness of Shannon distinguishability implies exponential closeness of the
+Bhattacharyya coefficient to one. -/
 lemma classExpSD_imp_classExpB (P Q : ℕ → FinDist X) (h : ClassExpSD P Q) :
     ClassExpB P Q := by
   unfold ClassExpSD ExpSmall at h
@@ -202,10 +241,15 @@ lemma classExpSD_imp_classExpB (P Q : ℕ → FinDist X) (h : ClassExpSD P Q) :
   rw [habs]
   linarith
 
+/-- Exponential smallness of Shannon distinguishability implies exponential closeness of
+classical error probability to one half. -/
 lemma classExpSD_imp_classExpPE (P Q : ℕ → FinDist X) (h : ClassExpSD P Q) :
     ClassExpPE P Q :=
   classExpK_imp_classExpPE P Q (classExpSD_imp_classExpK P Q h)
 
+/-- For two families of distributions on a fixed finite alphabet, `ClassExpK` is equivalent to
+each of `ClassExpPE`, `ClassExpB`, and `ClassExpSD`. This is [Fuchs and van de Graaf, Lemma
+1][FuchsVanDeGraaf1999]. -/
 theorem lemma1_classical_exponential_equivalence (P Q : ℕ → FinDist X) :
     (ClassExpK P Q ↔ ClassExpPE P Q) ∧
     (ClassExpK P Q ↔ ClassExpB P Q) ∧

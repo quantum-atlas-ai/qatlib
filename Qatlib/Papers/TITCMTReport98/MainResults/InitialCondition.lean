@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.TITCMTReport98.MainResults.SqrtSchedule
 import Qatlib.Papers.TITCMTReport98.MainResults.InverseSchedule
+
+/-!
+# Cancellation of square-root-schedule modes
+
+This module establishes nonvanishing and cancellation identities for the square-root-schedule
+coefficients in [KadowakiNishimori1998]. For positive parameters, `sqrtScheduleModeCoeff2` is
+nonzero, allowing a nontrivial linear combination of the two coefficients to vanish.
+
+## Main statements
+
+* `gamma_ne_zero_of_im_ne_zero`: the gamma function is nonzero at arguments with nonzero
+  imaginary part.
+* `sqrtSchedule_mode_cancellation_exists`: produces cancelling coefficients with nonzero first
+  coefficient.
+* `sqrtSchedule_A34_cancellation`: verifies the explicit cancellation formula.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,11 +37,13 @@ namespace Qatlib.Papers.TITCMTReport98.MainResults
 open Complex Filter
 open scoped Topology
 
+/-- The complex gamma function is nonzero at every argument with nonzero imaginary part. -/
 theorem gamma_ne_zero_of_im_ne_zero (s : ℂ) (hs : s.im ≠ 0) : Complex.Gamma s ≠ 0 := by
   refine Complex.Gamma_ne_zero ?_
   intro m hm
   exact hs (by rw [hm]; simp)
 
+/-- The second square-root-schedule mode coefficient is nonzero for positive `h` and `c`. -/
 theorem sqrtScheduleModeCoeff2_ne_zero (h c : ℝ) (hh : 0 < h) (hc : 0 < c) :
     sqrtScheduleModeCoeff2 h c ≠ 0 := by
   unfold sqrtScheduleModeCoeff2
@@ -43,6 +66,9 @@ theorem sqrtScheduleModeCoeff2_ne_zero (h c : ℝ) (hh : 0 < h) (hc : 0 < c) :
     · exact ofReal_ne_zero.mpr hc.ne'
   exact mul_ne_zero hfac (inv_ne_zero hG)
 
+/-- For positive `h` and `c`, there are complex coefficients with nonzero `C1` whose linear
+combination of the two square-root-schedule mode coefficients vanishes
+[KadowakiNishimori1998]. -/
 theorem sqrtSchedule_mode_cancellation_exists (h c : ℝ) (hh : 0 < h) (hc : 0 < c) :
     ∃ C1 C2 : ℂ, C1 ≠ 0 ∧
       C1 * sqrtScheduleModeCoeff1 h c + C2 * sqrtScheduleModeCoeff2 h c = 0 := by
@@ -50,6 +76,8 @@ theorem sqrtSchedule_mode_cancellation_exists (h c : ℝ) (hh : 0 < h) (hc : 0 <
     sqrtScheduleModeCoeff2_ne_zero h c hh hc, ?_⟩
   ring
 
+/-- For positive `h` and `c` and arbitrary `C1`, the displayed gamma-function multiple of `C1`
+cancels the first square-root-schedule mode contribution [KadowakiNishimori1998]. -/
 theorem sqrtSchedule_A34_cancellation (h c : ℝ) (hh : 0 < h) (hc : 0 < c) (C1 : ℂ) :
     C1 * sqrtScheduleModeCoeff1 h c
       + (I * (c : ℂ) ^ 2 / (h : ℂ)

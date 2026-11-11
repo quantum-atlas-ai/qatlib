@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryInterfaces
+
+/-!
+# Polynomial representation of query acceptance probabilities
+
+`actual_query_acceptance_polynomial` represents the measurement probability of an actual Boolean
+bit-oracle circuit by a real multivariate polynomial on Boolean inputs. The total degree is at
+most twice the number of queries, as in the polynomial method of [BealsEtAl2001]. The statement
+allows an arbitrary initial state vector and a finite measurement event.
+
+## Main statements
+
+* `actual_query_acceptance_polynomial`: an acceptance polynomial of degree at most `2 *
+  QueryCount C`.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +34,9 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
+/-- The measurement probability of the Boolean bit-oracle circuit is represented on Boolean
+inputs by a real multivariate polynomial of total degree at most twice its query count
+[BealsEtAl2001]. -/
 theorem actual_query_acceptance_polynomial {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (psi : QState (PolynomialWorkspace (Fin n) W)) (E : Finset (PolynomialWorkspace (Fin n) W)) :

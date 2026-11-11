@@ -11,6 +11,30 @@ import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
 import Mathlib.Analysis.Normed.Lp.WithLp
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 import Mathlib.LinearAlgebra.Lagrange
+
+/-!
+# Rectangle polynomials from sign approximations
+
+This module constructs even rectangle polynomials from a supplied `SignFamily`, using two
+shifted copies of a sign approximation. The construction implements the polynomial filtering
+pattern used in [GilyenSuLowWiebe2019].
+
+The response is bounded by one on the unit interval, lies near one in the inner band, and lies
+near zero in the outer bands. The final theorem expresses the degree bound as a constant times
+the logarithm of the inverse error divided by the transition width.
+
+## Main statements
+
+* `rectPoly`: the shifted sign-polynomial construction.
+* `rectPoly_inner` and `rectPoly_outer`: bounds on the inner and outer bands.
+* `rect_of_sign`: existence with an explicit discrete degree bound.
+* `clause48_of_sign`: the logarithmic degree estimate.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -39,6 +63,8 @@ open Polynomial Real
 set_option warningAsError false
 noncomputable section
 
+/-- States the existence of odd sign-approximating polynomials on `[-2, 2]` with the specified
+degree bound and error away from zero. -/
 def SignFamily (Cs : ℕ) : Prop :=
   ∀ (μ θ : ℝ), 0 < μ → 0 < θ → θ ≤ 1 / 2 →
     ∃ S : Polynomial ℝ,
@@ -49,11 +75,14 @@ def SignFamily (Cs : ℕ) : Prop :=
 end
 noncomputable section
 
+/-- The even rectangle polynomial formed by averaging two shifted evaluations of `S`, rescaling
+by `(1 - ε') / 2`, and adding `ε' / 2`. -/
 def rectPoly (S : Polynomial ℝ) (t ε' : ℝ) : Polynomial ℝ :=
   C ((1 - ε') / 2) * (S.comp (X + C t) + S.comp (C t - X)) + C (ε' / 2)
 end
 noncomputable section
 
+/-- Evaluates the rectangle polynomial in terms of the two shifted values of `S`. -/
 theorem rectPoly_eval {S : Polynomial ℝ} {t ε' x : ℝ} :
     (rectPoly S t ε').eval x =
       (1 - ε') / 2 * (S.eval (x + t) + S.eval (t - x)) + ε' / 2 := by
@@ -61,6 +90,7 @@ theorem rectPoly_eval {S : Polynomial ℝ} {t ε' x : ℝ} :
 end
 noncomputable section
 
+/-- The rectangle polynomial evaluates equally at `x` and `-x`. -/
 theorem rectPoly_eval_neg {S : Polynomial ℝ} {t ε' x : ℝ} :
     (rectPoly S t ε').eval (-x) = (rectPoly S t ε').eval x := by
   rw [rectPoly_eval, rectPoly_eval]
@@ -71,6 +101,7 @@ theorem rectPoly_eval_neg {S : Polynomial ℝ} {t ε' x : ℝ} :
 end
 noncomputable section
 
+/-- The rectangle construction does not increase natural degree. -/
 theorem rectPoly_natDegree_le {S : Polynomial ℝ} {t ε' : ℝ} :
     (rectPoly S t ε').natDegree ≤ S.natDegree := by
   have hcomp : (S.comp (X + C t) + S.comp (C t - X)).natDegree ≤ S.natDegree := by
@@ -94,6 +125,8 @@ theorem rectPoly_natDegree_le {S : Polynomial ℝ} {t ε' : ℝ} :
 end
 noncomputable section
 
+/-- If `S` is bounded by one on `[-2, 2]`, the rectangle polynomial is bounded by one on `[-1,
+1]` under the stated parameter bounds. -/
 theorem rectPoly_abs_le_one {S : Polynomial ℝ} {t ε' x : ℝ}
     (hbound : ∀ y ∈ Set.Icc (-2 : ℝ) 2, |S.eval y| ≤ 1)
     (ht : |t| ≤ 1) (hx : x ∈ Set.Icc (-1 : ℝ) 1) (hε'0 : 0 ≤ ε') (hε' : ε' ≤ 1 / 2) :
@@ -119,6 +152,8 @@ theorem rectPoly_abs_le_one {S : Polynomial ℝ} {t ε' x : ℝ}
 end
 noncomputable section
 
+/-- A bounded sign approximation gives a rectangle response between `1 - ε'` and `1` in the
+inner band. -/
 theorem rectPoly_inner {S : Polynomial ℝ} {t δ' ε' x : ℝ}
     (hbound : ∀ y ∈ Set.Icc (-2 : ℝ) 2, |S.eval y| ≤ 1)
     (hsign : ∀ y ∈ Set.Icc (-2 : ℝ) 2, δ' ≤ |y| → |S.eval y - Real.sign y| ≤ ε' / 4)
@@ -164,6 +199,8 @@ theorem rectPoly_inner {S : Polynomial ℝ} {t δ' ε' x : ℝ}
 end
 noncomputable section
 
+/-- A bounded sign approximation gives a rectangle response between `0` and `ε'` in the outer
+bands. -/
 theorem rectPoly_outer {S : Polynomial ℝ} {t δ' ε' x : ℝ}
     (hbound : ∀ y ∈ Set.Icc (-2 : ℝ) 2, |S.eval y| ≤ 1)
     (hsign : ∀ y ∈ Set.Icc (-2 : ℝ) 2, δ' ≤ |y| → |S.eval y - Real.sign y| ≤ ε' / 4)
@@ -238,6 +275,8 @@ theorem rectPoly_outer {S : Polynomial ℝ} {t δ' ε' x : ℝ}
 end
 noncomputable section
 
+/-- States that a polynomial is even, bounded by one on `[-1, 1]`, near one in the inner band,
+and near zero in the outer bands. -/
 def RectBands (P : Polynomial ℝ) (δ' ε' t : ℝ) : Prop :=
   (∀ x : ℝ, P.eval (-x) = P.eval x) ∧
     (∀ x ∈ Set.Icc (-1 : ℝ) 1, |P.eval x| ≤ 1) ∧
@@ -248,6 +287,8 @@ def RectBands (P : Polynomial ℝ) (δ' ε' t : ℝ) : Prop :=
 end
 noncomputable section
 
+/-- The zero polynomial satisfies the rectangle band conditions when the inner band is empty and
+`ε'` is nonnegative. -/
 theorem rectBands_zero {δ' ε' t : ℝ} (h : t < δ') (hε' : 0 ≤ ε') :
     RectBands 0 δ' ε' t := by
   refine ⟨?_, ?_, ?_, ?_⟩
@@ -263,6 +304,8 @@ theorem rectBands_zero {δ' ε' t : ℝ} (h : t < δ') (hε' : 0 ≤ ε') :
 end
 noncomputable section
 
+/-- A sign approximation family yields a rectangle polynomial with the specified degree bound
+and band conditions. -/
 theorem rect_of_sign {Cs : ℕ} (hs : SignFamily Cs)
     (δ' ε' t : ℝ) (hδ' : 0 < δ') (hδ'2 : δ' ≤ 1 / 2) (hε' : 0 < ε') (hε'2 : ε' ≤ 1 / 2)
     (ht : |t| ≤ 1) :
@@ -299,6 +342,8 @@ theorem rect_of_sign {Cs : ℕ} (hs : SignFamily Cs)
 end
 noncomputable section
 
+/-- Bounds the explicit rectangle degree expression times the transition width by `100 * (Cs +
+1) * log (1 / ε')`. -/
 theorem rectDegree_mul_le {Cs : ℕ} {δ' ε' : ℝ}
     (hδ' : 0 < δ') (hδ'2 : δ' ≤ 1 / 2) (hε' : 0 < ε') (hε'2 : ε' ≤ 1 / 2) :
     ((Cs * Nat.ceil (1 / δ') * (Nat.ceil (Real.logb 2 (4 / ε')) + 1) : ℕ) : ℝ) * δ' ≤
@@ -410,6 +455,9 @@ theorem rectDegree_mul_le {Cs : ℕ} {δ' ε' : ℝ}
 end
 noncomputable section
 
+/-- A sign approximation family yields even rectangle polynomials of degree at most `ceil (C *
+log (1 / ε') / δ')` with the stated inner and outer band bounds, for one universal constant
+depending on the family. -/
 theorem clause48_of_sign {Cs : ℕ} (hs : SignFamily Cs) :
     ∃ C : ℝ, 1 ≤ C ∧
       ∀ (δ' ε' t : ℝ), 0 < δ' → δ' ≤ 1 / 2 → 0 < ε' → ε' ≤ 1 / 2 →

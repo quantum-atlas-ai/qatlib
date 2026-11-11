@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.ContinuedFractionOrderConsumers
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+
+/-!
+# Finite probability model for factoring attempts
+
+Defines factoring preprocessing, fair-bit decoding of units, and a factoring attempt based on
+two order samples and continued-fraction recovery. `attemptLaw` models rejected bit strings and
+accepted unit-based attempts, while `shorProgramSuccessProb` combines preprocessing with
+repeated attempts in the setting associated with [Shor1997].
+
+## Main statements
+
+* `shorPreprocess`: Handles even inputs and perfect powers before the residue branch.
+* `attemptLaw`: Defines the finite distribution of rejected strings and unit-based attempts.
+* `shorProgramSuccessProb`: Defines the success probability of the preprocessing-and-repetition
+  program.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,16 +48,22 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open Qatlib
 open scoped Classical
 
+/-- The result of factoring preprocessing: either a proposed factor or a request to proceed to
+the residue branch. -/
 inductive ShorPreResult where
 
   | factor (d : ℕ)
 
   | residue
 
+/-- Searches bases below `N` whose powers with exponents between two and `N` equal `N`,
+returning the first base in the filtered list. -/
 def shorPerfectPowerDivisor (N : ℕ) : Option ℕ :=
   ((Finset.range N).filter fun m =>
       2 ≤ m ∧ ∃ e ∈ Finset.Icc 2 N, m ^ e = N).toList.head?
 
+/-- Returns factor two for even inputs at least four, otherwise searches for a perfect-power
+base and proceeds to the residue branch if none is found. -/
 def shorPreprocess (N : ℕ) : ShorPreResult :=
   if 4 ≤ N ∧ 2 ∣ N then ShorPreResult.factor 2
   else
@@ -44,14 +71,20 @@ def shorPreprocess (N : ℕ) : ShorPreResult :=
     | some m => ShorPreResult.factor m
     | none => ShorPreResult.residue
 
+/-- Decodes a bounded bit-string index as a unit of `ZMod N`, returning `none` when the index is
+rejected. -/
 def decodeUnit (N k : ℕ) [NeZero N] (b : Reg k) : Option (ZMod N)ˣ :=
   (decodeBoundedBits k (Fintype.card (ZMod N)ˣ) b).map
     fun i => (Fintype.equivFin (ZMod N)ˣ).symm i
 
+/-- Uses the continued-fraction pair decoder to obtain an order candidate and applies
+`orderFactor` to that candidate. -/
 noncomputable def attemptFactor (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (yz : Fin M × Fin M) : Option ℕ :=
   (cfPairLCMOrderDecode N M a yz).1.bind (orderFactor N a)
 
+/-- The event that an accepted unit and its two order samples produce a factor; rejected bit
+strings are unsuccessful. -/
 def attemptSuccess (N M k : ℕ) [NeZero N]
     (t : Reg k ⊕ (ZMod N)ˣ × Fin M × Fin M) : Prop :=
   match t with
@@ -66,6 +99,7 @@ instance instDecidableAttemptSuccess (N M k : ℕ) [NeZero N] :
   · rename_i a y z
     exact inferInstanceAs (Decidable ((attemptFactor N M a (y, z)).isSome))
 
+/-- The event that at least one of `R` attempts satisfies `attemptSuccess`. -/
 def attemptRepSuccess (N M k R : ℕ) [NeZero N]
     (ω : Fin R → Reg k ⊕ (ZMod N)ˣ × Fin M × Fin M) : Prop :=
   ∃ j : Fin R, attemptSuccess N M k (ω j)
@@ -75,6 +109,8 @@ instance instDecidableAttemptRepSuccess (N M k R : ℕ) [NeZero N] :
   Fintype.decidableExistsFintype (α := Fin R)
     (p := fun j => attemptSuccess N M k (ω j))
 
+/-- The attempt mass assigns weight `2⁻ᵏ` to rejected strings and to each unit's product
+distribution of two order samples. -/
 noncomputable def attemptMass (N M k : ℕ) [NeZero N] (hM : 0 < M)
     (t : Reg k ⊕ (ZMod N)ˣ × Fin M × Fin M) : ℝ :=
   ((2 ^ k : ℝ))⁻¹ *
@@ -83,6 +119,8 @@ noncomputable def attemptMass (N M k : ℕ) [NeZero N] (hM : 0 < M)
     | Sum.inr (a, y, z) =>
         (modularOrderLaw N M a hM).prob y * (modularOrderLaw N M a hM).prob z
 
+/-- The finite distribution with mass `attemptMass`, valid when the bit-string space is large
+enough to index all units. -/
 noncomputable def attemptLaw (N M k : ℕ) [NeZero N] (hM : 0 < M)
     (hk : Fintype.card (ZMod N)ˣ ≤ 2 ^ k) :
     FinDist (Reg k ⊕ (ZMod N)ˣ × Fin M × Fin M) where
@@ -168,11 +206,15 @@ noncomputable def attemptLaw (N M k : ℕ) [NeZero N] (hM : 0 < M)
     field_simp
     linarith [hkey]
 
+/-- The product of the accepted-unit mass, the random-base factor bound, and the stated
+two-sample order-recovery constant. -/
 noncomputable def shorAttemptBound (N k : ℕ) [NeZero N] : ℝ :=
   ((Fintype.card (ZMod N)ˣ : ℝ) / 2 ^ k) *
     (1 - (2 : ℝ) ^ (-(N.primeFactors.card - 1 : ℤ))) *
     ((8 / Real.pi ^ 2) ^ 2 / 4)
 
+/-- The program success probability is one when preprocessing returns a factor, and otherwise is
+the probability that at least one repeated attempt succeeds. -/
 noncomputable def shorProgramSuccessProb (N R k M : ℕ) [NeZero N] (hM : 0 < M)
     (hk : Fintype.card (ZMod N)ˣ ≤ 2 ^ k) : ℝ :=
   match shorPreprocess N with

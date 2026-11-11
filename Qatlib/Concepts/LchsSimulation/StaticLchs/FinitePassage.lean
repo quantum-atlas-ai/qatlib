@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticNoncommutingLCHS
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.ApproximationAlgorithms
+
+/-!
+# Finite Hamiltonian passage from a heat-kernel entry
+
+A positive matrix entry of `staticNonunitaryEvolution` forces a substantial entry of a
+Hamiltonian evolution at a finite quadrature node. The grid and cutoff estimates turn this into
+a bounded evolution time; symmetry permits a nonnegative time with a Born success lower bound.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `heat_entry_forces_bounded_time`: produces a time with magnitude at most `33 * T / p`.
+* `heat_entry_forces_born_success`: gives a nonnegative time with success at least `p ^ 2 / 16`.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 open Qatlib.Foundations.PureStateMath.Reflection
 set_option warningAsError false
 
@@ -22,6 +42,7 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 
 namespace Qatlib.Concepts.LchsSimulation.StaticLchs.FinitePassage
 
+/-- Every static LCHS grid node lies in the interval `[-K, K]` when the node count is positive. -/
 theorem grid_abs_le (K N : ℕ) (hN : 0 < N) (j : Fin N) :
     |staticLchsGrid K N j| ≤ (K : ℝ) := by
   have hNr : (0 : ℝ) < N := by exact_mod_cast hN
@@ -38,6 +59,8 @@ theorem grid_abs_le (K N : ℕ) (hN : 0 < N) (j : Fin N) :
       nlinarith [show (0 : ℝ) ≤ K from Nat.cast_nonneg _]
     linarith
 
+/-- A real heat-evolution entry at least `p`, for `0 < p ≤ 1`, yields a finite LCHS node whose
+Hamiltonian evolution entry has norm at least `p / 4`. -/
 theorem heat_entry_forces_unitary_node {I : Type} [Fintype I] [DecidableEq I]
     (L : Matrix I I ℂ) (T p : ℝ) (hL : L.PosSemidef) (hT : 0 ≤ T)
     (hp : 0 < p) (hp1 : p ≤ 1) (target start : I)
@@ -84,6 +107,7 @@ theorem heat_entry_forces_unitary_node {I : Type} [Fintype I] [DecidableEq I]
     mul_le_mul_of_nonneg_right hmass (norm_nonneg _)
   exact ⟨j, by dsimp only [U] at hsum hprod; linarith⟩
 
+/-- Scaling a Hamiltonian by `a` is equivalent to scaling its evolution time by `a`. -/
 theorem scalar_hamiltonian_time {I : Type} [Fintype I] [DecidableEq I]
     (L : Matrix I I ℂ) (a T : ℝ) :
     hamiltonianEvolution (a • L) T = hamiltonianEvolution L (a * T) := by
@@ -95,6 +119,7 @@ theorem scalar_hamiltonian_time {I : Type} [Fintype I] [DecidableEq I]
     ring
   rw [he]
 
+/-- For positive `p`, the static LCHS cutoff at accuracy `p / 2` is at most `32 / p + 1`. -/
 theorem cutoff_le (p : ℝ) (hp : 0 < p) :
     (staticLchsCutoff (p / 2) : ℝ) ≤ 32 / p + 1 := by
   have he : 16 / (p / 2) = 32 / p := by ring
@@ -104,6 +129,8 @@ theorem cutoff_le (p : ℝ) (hp : 0 < p) :
     linarith
   · exact (Nat.ceil_lt_add_one (by positivity : (0 : ℝ) ≤ 32 / p)).le
 
+/-- A heat-evolution entry at least `p`, for `0 < p ≤ 1`, yields a Hamiltonian evolution time of
+magnitude at most `33 * T / p` with entry norm at least `p / 4`. -/
 theorem heat_entry_forces_bounded_time {I : Type} [Fintype I] [DecidableEq I]
     (L : Matrix I I ℂ) (T p : ℝ) (hL : L.PosSemidef) (hT : 0 ≤ T)
     (hp : 0 < p) (hp1 : p ≤ 1) (target start : I)
@@ -129,6 +156,8 @@ theorem heat_entry_forces_bounded_time {I : Type} [Fintype I] [DecidableEq I]
   · rw [← scalar_hamiltonian_time]
     exact hj
 
+/-- For a matrix that is both Hermitian and symmetric, reversing Hamiltonian evolution time
+preserves the norm of each matrix entry. -/
 theorem opposite_time_entry_norm {I : Type} [Fintype I] [DecidableEq I]
     (L : Matrix I I ℂ) (hH : L.IsHermitian) (hS : L.IsSymm) (t : ℝ) (a b : I) :
     ‖hamiltonianEvolution L (-t) a b‖ = ‖hamiltonianEvolution L t a b‖ := by
@@ -143,6 +172,9 @@ theorem opposite_time_entry_norm {I : Type} [Fintype I] [DecidableEq I]
   rw [ha, Matrix.conjTranspose_apply, norm_star]
   exact congrArg norm (congrArg (fun M => M b a) hs.eq).symm
 
+/-- For a symmetric positive semidefinite Hamiltonian and a heat entry at least `p`, there is a
+time in `[0, 33 * T / p]` whose unitary evolution gives a normalized state with target Born
+probability at least `p ^ 2 / 16`. -/
 theorem heat_entry_forces_born_success {I : Type} [Fintype I] [DecidableEq I]
     (L : Matrix I I ℂ) (T p : ℝ) (hL : L.PosSemidef) (hS : L.IsSymm) (hT : 0 ≤ T)
     (hp : 0 < p) (hp1 : p ≤ 1) (target start : I)

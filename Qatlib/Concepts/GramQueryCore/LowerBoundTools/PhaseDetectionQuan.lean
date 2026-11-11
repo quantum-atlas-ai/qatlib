@@ -10,6 +10,28 @@ import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
 import Mathlib.Analysis.Real.Pi.Bounds
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Phase detection by source words
+
+Compiles phase reflection circuits into legal source words while preserving their matrices and
+query counts. Clock routing combines repeated phase registers into a single register whose zero
+state is preserved.
+
+The spectral estimates prove exact action on fixed states and approximate sign reversal away
+from the low-phase subspace, with quantitative query and workspace bounds as in [LeeEtAl2011].
+
+## Main statements
+
+* `phaseSourceCompile_matrix`: identifies the compiled word's matrix.
+* `sourcePhaseHighError`: controls the reflection error outside the low-phase subspace.
+* `phaseDetection`: proves the phase detection specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -35,14 +57,19 @@ open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Translates an adjoint circuit step into a source letter, relabeling gates and retaining the
+direction of oracle calls. -/
 def phaseSourceStep {I J : Type} (e : I ≃ J) : AdjointStep I → Matrix J J ℂ ⊕ Bool
   | .gate U => .inl (relabelGate e U)
   | .forward => .inr false
   | .backward => .inr true
 
+/-- Compiles an adjoint circuit into a source word by reversing its steps and translating each
+step through a basis equivalence. -/
 def phaseSourceCompile {I J : Type} (e : I ≃ J) (cs : List (AdjointStep I)) : SourceWord J :=
   cs.reverse.map (phaseSourceStep e)
 
+/-- Compilation preserves the number of forward and backward oracle calls. -/
 theorem phaseSourceCompile_calls {I J : Type} (e : I ≃ J) (cs : List (AdjointStep I)) :
     sourceWordCalls (phaseSourceCompile e cs) = adjointQueryCount cs := by
   have hmap (ds : List (AdjointStep I)) : sourceWordCalls (ds.map (phaseSourceStep e)) = adjointQueryCount ds := by
@@ -58,6 +85,7 @@ theorem phaseSourceCompile_calls {I J : Type} (e : I ≃ J) (cs : List (AdjointS
     | cons c cs ih => cases c <;> simp [List.reverse_cons,adjointQueryCount_append,adjointQueryCount,ih]
   exact (hmap cs.reverse).trans hrev
 
+/-- A well-formed adjoint circuit compiles to a legal source word. -/
 theorem phaseSourceCompile_legal {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (cs : List (AdjointStep I))
     (hcs : WellFormedAdjointCircuit cs) : sourceWordLegal (phaseSourceCompile e cs) := by
@@ -69,6 +97,8 @@ theorem phaseSourceCompile_legal {I J : Type} [Fintype I] [DecidableEq I]
   | forward => trivial
   | backward => trivial
 
+/-- The compiled source word evaluates to the relabeling of the original adjoint circuit's
+matrix. -/
 theorem phaseSourceCompile_matrix {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (O : Matrix I I ℂ) (cs : List (AdjointStep I)) :
     sourceWordMatrix (relabelGate e O) (phaseSourceCompile e cs) = relabelGate e (evaluate O cs) := by
@@ -86,16 +116,22 @@ theorem phaseSourceCompile_matrix {I J : Type} [Fintype I] [DecidableEq I]
   simp only [List.map_map, ← List.map_reverse, List.reverse_reverse]
   exact hprod cs
 
+/-- A finite equivalence packing `k` clock registers of size `2^a` into one register of size
+`2^(a*k)`. -/
 def sourcePhaseClockBase (a k : ℕ) : (Fin k → Fin (2^a)) ≃ Fin (2^(a*k)) :=
   (Fintype.equivFin (Fin k → Fin (2^a))).trans
     (Equiv.cast (congrArg Fin (by simp [Fintype.card_fin,pow_mul])))
 
+/-- A clock-packing equivalence adjusted to send the tuple of zero clock values to zero. -/
 def sourcePhaseClock (a k : ℕ) : (Fin k → Fin (2^a)) ≃ Fin (2^(a*k)) :=
   (sourcePhaseClockBase a k).trans (Equiv.swap (sourcePhaseClockBase a k (fun _ => 0)) 0)
 
+/-- The clock-packing equivalence sends the all-zero clock tuple to zero. -/
 theorem sourcePhaseClock_zero (a k : ℕ) : sourcePhaseClock a k (fun _ => 0) = 0 := by
   simp [sourcePhaseClock]
 
+/-- Reorders the phase reflection basis and packs its clock registers into a single finite
+register. -/
 def sourcePhaseRoute (H : Type) (a k : ℕ) :
     PhaseReflectionSpace H (2^a) k ≃ ((Bool × H) × Fin (2^(a*k))) where
   toFun p := (p.2,sourcePhaseClock a k p.1)
@@ -103,6 +139,8 @@ def sourcePhaseRoute (H : Type) (a k : ℕ) :
   left_inv p := by simp
   right_inv p := by simp
 
+/-- Routing the parallel controlled oracle gives the source controlled oracle with its packed
+clock register. -/
 theorem sourcePhaseRoute_oracle (H : Type) [DecidableEq H] (a k : ℕ) (U : Matrix H H ℂ) :
     relabelGate (sourcePhaseRoute H a k) (parallelOracle (controlOracle U)) =
       sourceControlledU (2^(a*k)) U := by
@@ -113,6 +151,8 @@ theorem sourcePhaseRoute_oracle (H : Type) [DecidableEq H] (a k : ℕ) (U : Matr
     controlOracle,sourceControlledU,heq]
   split_ifs <;> simp_all [Matrix.one_apply]
 
+/-- Routing the phase reflection embedding gives the state with a false control and a zero
+packed clock. -/
 theorem sourcePhaseRoute_embed {H : Type} [DecidableEq H] (a k : ℕ) (ψ : QState H) :
     relabelState (sourcePhaseRoute H a k) (phaseReflectionEmbed (2^a) k ψ) =
       TensorState (TensorState (Ket false) ψ) (Ket (0 : Fin (2^(a*k)))) := by
@@ -126,6 +166,8 @@ theorem sourcePhaseRoute_embed {H : Type} [DecidableEq H] (a k : ℕ) (ψ : QSta
   simp [relabelState,sourcePhaseRoute,phaseReflectionEmbed,TensorState,Ket,hz,heq]
   split_ifs <;> simp_all
 
+/-- For a principal angle in `(-π, π]`, the circular distance of its normalized phase from zero
+is `|θ|/(2*π)`. -/
 theorem sourcePrincipalPhaseDistance (θ : ℝ) (hlo : -Real.pi < θ)
     (hhi : θ ≤ Real.pi) : phaseDistance (θ/(2*Real.pi)) 0 = |θ|/(2*Real.pi) := by
   have hp : 0 < 2*Real.pi := by positivity
@@ -145,6 +187,8 @@ theorem sourcePrincipalPhaseDistance (θ : ℝ) (hlo : -Real.pi < θ)
     have hf : ⌊θ/(2*Real.pi)+1/2⌋=(0 : ℤ) := Int.floor_eq_iff.mpr (by simpa using! And.intro hl hu)
     simp only [phaseDistance,sub_zero,hf,Int.cast_zero,abs_div,abs_of_pos hp]
 
+/-- For `K ≥ 1`, the selected power-of-two clock size lies between `16*K` and `32*K`, and its
+bit count is at most `Nat.clog 2 (K+1) + 4`. -/
 theorem sourcePhaseClock_bounds (K : ℕ) (hK : 1 ≤ K) :
     16*K ≤ 2^(Nat.clog 2 (16*K)) ∧
     2^(Nat.clog 2 (16*K)) ≤ 32*K ∧
@@ -168,6 +212,8 @@ theorem sourcePhaseClock_bounds (K : ℕ) (hK : 1 ≤ K) :
     norm_num only [show (2 : ℕ)^4=16 by norm_num]
     omega
 
+/-- The columns of a unitary matrix are orthonormal, and every state is reconstructed from its
+adjoint coordinates in those columns. -/
 theorem sourcePhaseColumns {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ) (ψ : QState H) :
     (∀ j l, Inner (fun i => V i j) (fun i => V i l)=if j=l then 1 else 0) ∧
@@ -188,6 +234,8 @@ theorem sourcePhaseColumns {H : Type} [Fintype H] [DecidableEq H]
       ring
     rw [he,Matrix.mulVec_mulVec,hVV,Matrix.one_mulVec]
 
+/-- For positive `δ`, the logarithmically chosen repetition count bounds the amplified phase
+error by `δ`. -/
 theorem sourcePhaseRepetitions (δ : ℝ) (hδ : 0<δ) :
     2*(1/2 : ℝ)^(2*(Nat.ceil (Real.log (2/min 1 δ))+1)) ≤ δ := by
   let d := min 1 δ
@@ -212,6 +260,8 @@ theorem sourcePhaseRepetitions (δ : ℝ) (hδ : 0<δ) :
   rw [hh,← div_eq_mul_inv]
   exact he.trans hdδ
 
+/-- The columns of a unitary spectral basis are eigenvectors with the eigenvalues expressed
+using their normalized phases. -/
 theorem sourcePhaseEigenvectors {H : Type} [Fintype H] [DecidableEq H]
     (U V : Matrix H H ℂ) (angles : H → ℝ) (hV : V ∈ Matrix.unitaryGroup H ℂ)
     (hU : U=V*Matrix.diagonal (fun j => Complex.exp (Complex.I*angles j))*Vᴴ) :
@@ -236,6 +286,8 @@ theorem sourcePhaseEigenvectors {H : Type} [Fintype H] [DecidableEq H]
   · subst i; simp [Matrix.mulVec_diagonal,Ket]
   · simp [Matrix.mulVec_diagonal,Ket,hij]
 
+/-- A state annihilated by the low-phase projector has zero spectral coefficient at every angle
+of absolute value at most `Θ`. -/
 theorem sourcePhaseLowCoefficients {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (angles : H → ℝ) (Θ : ℝ) (hV : V ∈ Matrix.unitaryGroup H ℂ)
     (ψ : QState H) (hψ : sourcePhaseProjector V angles Θ *ᵥ ψ=0) :
@@ -248,6 +300,8 @@ theorem sourcePhaseLowCoefficients {H : Type} [Fintype H] [DecidableEq H]
   have hh := congrFun hz j
   simpa only [Matrix.mulVec_diagonal,if_pos hj,one_mul,Pi.zero_apply] using! hh
 
+/-- Outside the low-phase subspace, a clock satisfying `2*π ≤ M*Θ` bounds the phase reflection's
+error from sign reversal by `2*(1/2)^k` times the state norm. -/
 theorem sourcePhaseHighError {H : Type} [Fintype H] [DecidableEq H]
     (M k : ℕ) (hM : 2≤M) (U V : Matrix H H ℂ) (angles : H → ℝ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ)
@@ -301,6 +355,8 @@ theorem sourcePhaseHighError {H : Type} [Fintype H] [DecidableEq H]
   nlinarith [norm_nonneg (toEuclidean_fromVec (phaseReflectionState U M k ψ+phaseReflectionEmbed M k ψ)),
     show (0 : ℝ)≤2*(1/2 : ℝ)^k*‖toEuclidean_fromVec ψ‖ by positivity]
 
+/-- Running the compiled phase word on the clean packed embedding agrees with routing the
+original phase reflection state. -/
 theorem sourcePhaseCompiledRun {H : Type} [Fintype H] [DecidableEq H]
     (a k : ℕ) (U : Matrix H H ℂ) (ψ : QState H) :
     sourceWordMatrix (sourceControlledU (2^(a*k)) U)
@@ -310,6 +366,8 @@ theorem sourcePhaseCompiledRun {H : Type} [Fintype H] [DecidableEq H]
   rw [← sourcePhaseRoute_oracle H a k U,phaseSourceCompile_matrix,← sourcePhaseRoute_embed]
   exact applyGate_relabelGate _ _ _
 
+/-- Proves phase detection with exact action on fixed states, controlled error on high-phase
+states, and query and workspace bounds as in [Lee et al., Theorem 4.3][LeeEtAl2011]. -/
 theorem phaseDetection : PhaseDetection := by
   refine ⟨128,by norm_num,?_⟩
   intro H _ _ Θ δ hΘ hδ

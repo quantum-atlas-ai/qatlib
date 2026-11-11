@@ -8,6 +8,26 @@ import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
 import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
 import Mathlib.Analysis.Matrix.Spectrum
+
+/-!
+# A two-outcome measurement attaining trace distance
+
+The operator `spectralPlus` selects positive entries of a real diagonal list in a supplied
+matrix basis, and `helstromPOVM` uses it and its complement as two measurement effects. The
+theorem `helstrom_recordLaw_tv` proves attainability of trace distance by such a finite
+measurement, supporting Proposition 1 of [FuchsVanDeGraaf1999].
+
+## Main statements
+
+* `helstrom_record_zero` and `helstrom_record_one`: outcome probability formulas.
+* `helstrom_recordLaw_tv`: a two-outcome POVM attains trace distance as classical Kolmogorov
+  distance.
+
+## References
+
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -24,6 +44,8 @@ open Matrix
 open scoped BigOperators
 set_option warningAsError false
 
+/-- A finite real list has a common positive lower bound, at most one, on the absolute values of
+all its nonzero entries. -/
 lemma exists_gamma_le_one {d : ℕ} (x : Fin d → ℝ) :
     ∃ γ : ℝ, 0 < γ ∧ γ ≤ 1 ∧ ∀ j, x j ≠ 0 → γ ≤ |x j| := by
   classical
@@ -42,13 +64,17 @@ lemma exists_gamma_le_one {d : ℕ} (x : Fin d → ℝ) :
   · refine ⟨1, by norm_num, le_rfl, fun j hj => ?_⟩
     exact absurd (Finset.mem_filter.mpr ⟨Finset.mem_univ j, hj⟩) (fun hmem => hne ⟨j, hmem⟩)
 
+/-- Defines `V` times the diagonal indicator of positive entries of `x` times `Vᴴ`. -/
 noncomputable def spectralPlus {D : ℕ} (V : Operator D) (x : Fin D → ℝ) : Operator D :=
   V * Matrix.diagonal (fun j => if 0 < x j then (1 : ℂ) else 0) * Vᴴ
 
+/-- Expands `spectralPlus V x` as the conjugated diagonal indicator of the positive entries of
+`x`. -/
 lemma spectralPlus_eq {D : ℕ} (V : Operator D) (x : Fin D → ℝ) :
     spectralPlus V x = V * Matrix.diagonal (fun j => if 0 < x j then (1 : ℂ) else 0) * Vᴴ :=
   rfl
 
+/-- The operator `spectralPlus V x` equals its conjugate transpose. -/
 lemma spectralPlus_conjTranspose {D : ℕ} (V : Operator D) (x : Fin D → ℝ) :
     (spectralPlus V x)ᴴ = spectralPlus V x := by
   unfold spectralPlus
@@ -59,6 +85,7 @@ lemma spectralPlus_conjTranspose {D : ℕ} (V : Operator D) (x : Fin D → ℝ) 
     funext j; by_cases h : 0 < x j <;> simp [h]
   rw [he, Matrix.mul_assoc]
 
+/-- If `Vᴴ * V = 1`, then `spectralPlus V x` is idempotent. -/
 lemma spectralPlus_mul_self {D : ℕ} (V : Operator D) (x : Fin D → ℝ) (hV : Vᴴ * V = 1) :
     spectralPlus V x * spectralPlus V x = spectralPlus V x := by
   unfold spectralPlus
@@ -81,10 +108,12 @@ lemma spectralPlus_mul_self {D : ℕ} (V : Operator D) (x : Fin D → ℝ) (hV :
         rw [Matrix.mul_assoc V (Matrix.diagonal (fun j => if 0 < x j then (1 : ℂ) else 0))
           (Matrix.diagonal (fun j => if 0 < x j then (1 : ℂ) else 0)), hd]
 
+/-- The complement `1 - spectralPlus V x` equals its conjugate transpose. -/
 lemma one_sub_spectralPlus_conjTranspose {D : ℕ} (V : Operator D) (x : Fin D → ℝ) :
     (1 - spectralPlus V x)ᴴ = 1 - spectralPlus V x := by
   rw [Matrix.conjTranspose_sub, Matrix.conjTranspose_one, spectralPlus_conjTranspose]
 
+/-- If `Vᴴ * V = 1`, the complement of `spectralPlus V x` is idempotent. -/
 lemma one_sub_spectralPlus_mul_self {D : ℕ} (V : Operator D) (x : Fin D → ℝ)
     (hV : Vᴴ * V = 1) :
     (1 - spectralPlus V x) * (1 - spectralPlus V x) = 1 - spectralPlus V x := by
@@ -92,6 +121,8 @@ lemma one_sub_spectralPlus_mul_self {D : ℕ} (V : Operator D) (x : Fin D → �
   simp only [Matrix.sub_mul, Matrix.mul_sub, Matrix.one_mul, Matrix.mul_one, hsq]
   abel
 
+/-- For `Vᴴ * V = 1`, constructs the two-outcome POVM with effects `spectralPlus V x` and its
+complement. -/
 noncomputable def helstromPOVM {D : ℕ} (V : Operator D) (x : Fin D → ℝ)
     (hV : Vᴴ * V = 1) : FinitePOVM (Fin 2) D where
   effect := fun o => if o = 0 then spectralPlus V x else 1 - spectralPlus V x
@@ -111,6 +142,8 @@ noncomputable def helstromPOVM {D : ℕ} (V : Operator D) (x : Fin D → ℝ)
       rw [one_sub_spectralPlus_conjTranspose, one_sub_spectralPlus_mul_self V x hV]
       simp
 
+/-- The probability of outcome zero in `helstromPOVM` is the real part of the trace of
+`spectralPlus V x * ρ`. -/
 lemma helstrom_record_zero {D : ℕ} (V : Operator D) (x : Fin D → ℝ) (hV : Vᴴ * V = 1)
     (ρ : Operator D) (hρ : IsDensityOperator ρ) :
     (povmRecordLaw (helstromPOVM V x hV) ρ hρ).prob 0 =
@@ -118,6 +151,8 @@ lemma helstrom_record_zero {D : ℕ} (V : Operator D) (x : Fin D → ℝ) (hV : 
   rw [povmRecordLaw_prob]
   simp [helstromPOVM]
 
+/-- The probability of outcome one in `helstromPOVM` is one minus the real part of the trace of
+`spectralPlus V x * ρ`. -/
 lemma helstrom_record_one {D : ℕ} (V : Operator D) (x : Fin D → ℝ) (hV : Vᴴ * V = 1)
     (ρ : Operator D) (hρ : IsDensityOperator ρ) :
     (povmRecordLaw (helstromPOVM V x hV) ρ hρ).prob 1 =
@@ -126,6 +161,9 @@ lemma helstrom_record_one {D : ℕ} (V : Operator D) (x : Fin D → ℝ) (hV : V
   simp only [helstromPOVM, Fin.isValue, reduceIte, Fin.reduceEq]
   rw [Matrix.sub_mul, Matrix.one_mul, Matrix.trace_sub, Complex.sub_re, hρ.2, Complex.one_re]
 
+/-- For two density operators, there exists a two-outcome POVM whose outcome laws have classical
+Kolmogorov distance equal to their trace distance. This supplies the measurement attaining
+the bound behind [Fuchs and van de Graaf, Proposition 1][FuchsVanDeGraaf1999]. -/
 theorem helstrom_recordLaw_tv {D : ℕ} (ρ σ : Operator D)
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ) :
     ∃ (E : FinitePOVM (Fin 2) D),

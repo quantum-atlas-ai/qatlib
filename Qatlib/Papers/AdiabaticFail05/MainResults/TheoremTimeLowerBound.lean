@@ -7,11 +7,32 @@ Authors: Qatlib Contributors
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Tactic
 
+/-!
+# Runtime lower bound from distance estimates
+
+Establishes the scalar inequalities used to deduce the runtime bound in Theorem 1 of
+[FarhiGoldstoneGutmannNagaj2008]. The theorem `theorem1_time_lower_bound` assumes the endpoint
+distance estimate and its integrated derivative bound, then eliminates the intermediate quantity
+`S0`.
+
+## Main statements
+
+* `two_mul_one_sub_sqrt_one_sub_le`: Bounds `b` by an expression involving `sqrt (1 - b)`.
+* `theorem1_time_lower_bound`: Derives the explicit lower bound on `T` from the supplied
+  distance estimates.
+
+## References
+
+* [Farhi et al., 2008][FarhiGoldstoneGutmannNagaj2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.AdiabaticFail05.MainResults
 
+/-- For `b ≤ 1`, the quantity `2 * (1 - Real.sqrt (1 - b))` is at least `b`. See
+[FarhiGoldstoneGutmannNagaj2008]. -/
 theorem two_mul_one_sub_sqrt_one_sub_le (b : ℝ) (hb1 : b ≤ 1) :
     b ≤ 2 * (1 - Real.sqrt (1 - b)) := by
   have h1b : 0 ≤ 1 - b := by linarith
@@ -19,6 +40,9 @@ theorem two_mul_one_sub_sqrt_one_sub_le (b : ℝ) (hb1 : b ≤ 1) :
   have hsnn : 0 ≤ Real.sqrt (1 - b) := Real.sqrt_nonneg _
   nlinarith [sq_nonneg (1 - Real.sqrt (1 - b)), hs2]
 
+/-- Combines the assumed lower and upper bounds on `S0` to prove `b / E * Real.sqrt (N / k) - 2
+* Real.sqrt b / E ≤ T`, the scalar runtime estimate of Theorem 1 in
+[FarhiGoldstoneGutmannNagaj2008]. -/
 theorem theorem1_time_lower_bound
     (N k E T b S0 : ℝ) (hN : 0 < N) (hk : 0 < k) (hE : 0 < E)
     (hb0 : 0 < b) (hb1 : b ≤ 1) (_hT : 0 ≤ T)

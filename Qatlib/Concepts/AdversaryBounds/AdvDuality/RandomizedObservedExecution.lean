@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Randomized observed circuits as quantum instruments
+
+`randomizedObservedLeaf` weights each leaf operator by the square root of its circuit-selection
+probability. For a unitary oracle and well-formed circuits, these operators satisfy Kraus
+completeness and define `randomizedObservedInstrument`. This uses the instrument formalism
+developed in [Watrous2018].
+
+The branch maps and branch probabilities scale by the selection probabilities, and their
+query-weighted sum is the corresponding mixture of expected query counts.
+
+## Main statements
+
+* `randomizedObservedLeaf_complete`: The weighted leaf operators satisfy Kraus completeness.
+* `randomized_observed_branch_law`: Branch maps and probabilities scale by the seed probability.
+* `randomized_observed_expected_cost`: Expected query cost is the weighted sum over selected
+  circuits.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,11 +45,15 @@ open Matrix
 
 variable {J : Type} [Fintype J] {D : ℕ}
 
+/-- The leaf operator for circuit `P ji.1`, scaled by the square root of its selection
+probability under `d`. -/
 noncomputable def randomizedObservedLeaf (d : FinDist J) (O : Operator D)
     (P : J → ObservedCircuit (Fin D)) (ji : Σ j, Fin (observedLeafCount (P j))) :
     Operator D :=
   ((Real.sqrt (d.prob ji.1) : ℂ) • (observedLeaf O (P ji.1) ji.2).operator)
 
+/-- For a unitary oracle and well-formed component circuits, the randomized leaf operators
+satisfy the Kraus completeness identity. -/
 theorem randomizedObservedLeaf_complete (d : FinDist J) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : J → ObservedCircuit (Fin D))
     (hP : ∀ j, observedWellFormed (P j)) :
@@ -73,6 +101,8 @@ theorem randomizedObservedLeaf_complete (d : FinDist J) (O : Operator D)
 
 set_option linter.unusedVariables false in
 
+/-- The quantum instrument whose outcomes pair a selected circuit with one of its leaves and
+whose Kraus operators are `randomizedObservedLeaf`. -/
 noncomputable def randomizedObservedInstrument {J : Type} [Fintype J] [DecidableEq J]
     {D : ℕ} (d : FinDist J) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : J → ObservedCircuit (Fin D))
@@ -83,6 +113,8 @@ noncomputable def randomizedObservedInstrument {J : Type} [Fintype J] [Decidable
 
 set_option linter.unusedVariables false in
 
+/-- Each randomized branch map equals its component branch map scaled by `d.prob j`, and its
+branch probability is scaled by the same real factor. -/
 theorem randomized_observed_branch_law {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : J → ObservedCircuit (Fin D))
@@ -118,6 +150,8 @@ theorem randomized_observed_branch_law {J : Type} [Fintype J] [DecidableEq J] {D
 
 set_option linter.unusedVariables false in
 
+/-- The query-weighted branch sum of the randomized instrument equals the `d`-weighted sum of
+the component mixed-state expected query counts. -/
 theorem randomized_observed_expected_cost {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d : FinDist J) (O : Operator D)
     (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ) (P : J → ObservedCircuit (Fin D))

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.PairedCategoricalLowerBound
+
+/-!
+# Estimation risk for paired categorical laws
+
+Comparing the two estimated masses in each coordinate defines the Boolean decoder `decode`.
+Coordinate mistakes force L1 estimation loss, allowing finite testing bounds to give average and
+worst-case risk lower bounds for deterministic and independently randomized estimators. Relative
+entropy and testing supply the background; see [Watrous2018].
+
+## Main statements
+
+* `risk_pays_hamming`: expected L1 loss controls the coordinate decoding risks.
+* `exists_root_rate`: some strictly positive law forces the stated square-root risk.
+* `exists_randomized_budget`: the budget lower bound also holds for randomized estimators.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,9 +33,13 @@ open FiniteInformationDivergence FiniteAssouad PairedCategoricalLowerBound
 open scoped BigOperators Classical
 noncomputable section
 
+/-- The Boolean cube estimate obtained by choosing true when the estimated false mass is at most
+the estimated true mass in each pair. -/
 def decode {m : ℕ} (estimate : Fin m × Bool → ℝ) : Cube m :=
   fun i => decide (estimate (i,false) ≤ estimate (i,true))
 
+/-- A mistaken comparison of two estimates forces their combined absolute loss to be at least
+`hi - lo` for the indicated bit assignment. -/
 private theorem pair_loss (hi lo x y : ℝ) (bit : Bool) :
     (hi-lo)*(if decide (x≤y) ≠ bit then (1 : ℝ) else 0) ≤
       |x-(if bit then lo else hi)|+|y-(if bit then hi else lo)| := by
@@ -25,6 +49,8 @@ private theorem pair_loss (hi lo x y : ℝ) (bit : Bool) :
     le_abs_self (y-lo), neg_le_abs (y-lo), abs_nonneg (x-hi), abs_nonneg (y-hi),
     abs_nonneg (x-lo), abs_nonneg (y-lo)]
 
+/-- A decoded bit error costs at least a/m in the L1 loss of its coordinate pair under the
+paired categorical law. -/
 theorem coordinate_loss (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a < 1)
     (theta : Cube m) (estimate : Fin m × Bool → ℝ) (i : Fin m) :
     a/(m : ℝ)*(if decode estimate i ≠ theta i then 1 else 0) ≤
@@ -36,10 +62,14 @@ theorem coordinate_loss (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a <
   dsimp only [pairedLaw]
   rcases Bool.eq_false_or_eq_true (theta i) with ht | ht <;> simpa [decode, ht, add_comm] using h
 
+/-- The expected sum of absolute probability-mass errors of an estimator on `n` independent
+observations from the law indexed by `theta`. -/
 def risk {m n : ℕ} (P : Cube m → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin m × Bool))
     (estimate : (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ)) (theta : Cube m) : ℝ :=
   (records (P theta) n).expect (fun w => ∑ x, |estimate w x-(P theta).prob x|)
 
+/-- Expected L1 estimation risk is at least a/m times the sum of the coordinate decoding error
+probabilities. -/
 theorem risk_pays_hamming (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a < 1)
     (n : ℕ) (estimate : (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ)) (theta : Cube m) :
     a/(m : ℝ)*(∑ i, coordinateRisk (pairedLaw m hm a ha ha1)
@@ -69,6 +99,8 @@ theorem risk_pays_hamming (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha1 : a
     _ ≤ risk P estimate theta := Finset.sum_le_sum fun w _ =>
       mul_le_mul_of_nonneg_left (hpoint w) ((records (P theta) n).nonneg w)
 
+/-- For positive bias at most one half, the cube-averaged L1 risk is at least a/2 times 1 -
+sqrt(2n a²/m). -/
 theorem average_l1_lower (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha2 : a ≤ 1/2)
     (n : ℕ) (estimate : (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ)) :
     a/2*(1-Real.sqrt ((n : ℝ)*(4*a^2/(m : ℝ))/2)) ≤
@@ -94,6 +126,8 @@ theorem average_l1_lower (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha2 : a 
         (Fintype.card (Cube m) : ℝ) := by ring
     _ ≤ _ := div_le_div_of_nonneg_right hs hc.le
 
+/-- If n a² ≤ m/8, every estimator has cube-averaged L1 risk at least a/4 for the paired
+categorical family. -/
 theorem average_l1_budget (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha2 : a ≤ 1/2)
     (n : ℕ) (estimate : (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ))
     (hbudget : (n : ℝ)*a^2 ≤ (m : ℝ)/8) :
@@ -110,6 +144,7 @@ theorem average_l1_budget (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha2 : a
   have hh := average_l1_lower m hm a ha ha2 n estimate
   nlinarith
 
+/-- If n a² ≤ m/8, some paired categorical law forces expected L1 risk at least a/4. -/
 theorem exists_l1_budget (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha2 : a ≤ 1/2)
     (n : ℕ) (estimate : (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ))
     (hbudget : (n : ℝ)*a^2 ≤ (m : ℝ)/8) :
@@ -125,6 +160,8 @@ theorem exists_l1_budget (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha2 : a 
       Finset.sum_le_sum fun theta' _ => hmax theta' (Finset.mem_univ _)
     _ = risk P estimate theta*(Fintype.card (Cube m) : ℝ) := by simp [mul_comm]
 
+/-- For 0 < m ≤ n, some strictly positive law on `Fin m × Bool` forces expected L1 error at
+least sqrt(m/(8n))/4. -/
 theorem exists_root_rate (m n : ℕ) (hm : 0 < m) (hmn : m ≤ n)
     (estimate : (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ)) :
     ∃ p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin m × Bool), (∀ x, 0 < p.prob x) ∧
@@ -148,11 +185,15 @@ theorem exists_root_rate (m n : ℕ) (hm : 0 < m) (hmn : m ≤ n)
   refine ⟨pairedLaw m hm a ha (by linarith) theta, ?_, ht⟩
   exact paired_positive m hm a ha (by linarith) theta
 
+/-- The L1 estimation risk averaged over a separate finite random seed with distribution
+`coins`. -/
 def randomizedRisk {R : Type} [Fintype R] {m n : ℕ}
     (coins : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist R) (P : Cube m → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist (Fin m × Bool))
     (estimate : R → (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ)) (theta : Cube m) : ℝ :=
   coins.expect (fun r => risk P (estimate r) theta)
 
+/-- If n a² ≤ m/8, the cube-averaged risk of every estimator with independent finite
+randomization is at least a/4. -/
 theorem average_randomized_budget {R : Type} [Fintype R]
     (coins : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist R) (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha2 : a ≤ 1/2)
     (n : ℕ) (estimate : R → (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ))
@@ -171,6 +212,7 @@ theorem average_randomized_budget {R : Type} [Fintype R]
   rw [Finset.sum_comm] at hw
   simpa only [randomizedRisk, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect] using hw
 
+/-- If n a² ≤ m/8, some paired law forces randomized expected L1 estimation risk at least a/4. -/
 theorem exists_randomized_budget {R : Type} [Fintype R]
     (coins : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist R) (m : ℕ) (hm : 0 < m) (a : ℝ) (ha : 0 < a) (ha2 : a ≤ 1/2)
     (n : ℕ) (estimate : R → (Fin n → Fin m × Bool) → (Fin m × Bool → ℝ))

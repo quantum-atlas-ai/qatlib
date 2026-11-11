@@ -12,6 +12,31 @@ import Mathlib.Analysis.Complex.RealDeriv
 import Mathlib.Analysis.Calculus.FDeriv.Analytic
 import Mathlib.Analysis.Complex.ExponentialBounds
 
+/-!
+# Derivative and precision budgets for LCHS quadrature
+
+Parameter-derivative bounds for ordered unitary evolution combine with strip analyticity of the
+principal-power kernel. The resulting derivative-growth estimate controls high-order LCHS
+quadrature, and `composite_gauss_precision_budget` verifies explicit cell and node counts for a
+positive target precision. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `ordered_unitary_k_derivative_bound`: For every natural `q`, the `q`-th parameter derivative
+  of the ordered evolution has norm at most `(T * q * Λ)^q` under the stated continuity,
+  Hermitian, and generator-bound hypotheses.
+* `near_exponential_lchs_integrand_derivative_bound`: For `q ≥ 2` and `32 ≤ exp(1) * T * Λ`, the
+  LCHS integrand has `q`-th derivative norm at most `(4 / (3 * highKernelC β)) * q.factorial *
+  (q + 1) * (exp(1) * T * Λ)^q` under the stated kernel and generator hypotheses.
+* `composite_gauss_precision_budget`: For the stated positive parameters and cutoff, the
+  prescribed cell and node counts are positive, the cell width is at most `1 / (exp(1) * T *
+  Λ)`, and the composite Gauss error budget is at most `ε`.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 
 open Qatlib.Concepts.LchsSimulation.TimeLchs
 open Qatlib.Concepts.LchsSimulation.Kernel
@@ -28,6 +53,9 @@ open Polynomial Set Metric
 open scoped Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- For derivative orders `q ≤ 1`, the parameter-dependent ordered evolution has derivative norm
+at most `(T * q * Λ)^q` under the stated continuity, Hermitian, and generator-bound
+hypotheses. -/
 theorem ordered_unitary_k_derivative_bound_le_one
     (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (T Λ : ℝ)
     (hL : Continuous L) (hH : Continuous H)
@@ -60,6 +88,7 @@ theorem ordered_unitary_k_derivative_bound_le_one
   · simpa only [iteratedDeriv_one, Nat.cast_one, mul_one, pow_one, U, NNReal.coe_mk] using!
       (norm_deriv_le_of_lipschitz hLip (x₀ := k))
 
+/-- For every natural `n`, `(n + 1).factorial ≤ (n + 1)^n`. -/
 private theorem factorial_succ_le_pow (n : ℕ) : (n+1).factorial≤(n+1)^n := by
   induction n with
   | zero => norm_num
@@ -69,6 +98,8 @@ private theorem factorial_succ_le_pow (n : ℕ) : (n+1).factorial≤(n+1)^n := b
          _≤(n+1+1)*(n+1+1)^n := Nat.mul_le_mul_left _ (Nat.pow_le_pow_left (by omega) n)
          _=(n+1+1)^(n+1) := by rw [pow_succ,Nat.mul_comm]
 
+/-- For every natural `q`, the `q`-th parameter derivative of the ordered evolution has norm at
+most `(T * q * Λ)^q` under the stated continuity, Hermitian, and generator-bound hypotheses. -/
 theorem ordered_unitary_k_derivative_bound
     (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ→Matrix I I ℂ) (T Λ : ℝ)
     (hL : Continuous L) (hH : Continuous H) (hHermL : ∀ u,(L u).IsHermitian)
@@ -117,9 +148,12 @@ theorem ordered_unitary_k_derivative_bound
          _≤(q:ℝ)^q*(T*Λ)^q := mul_le_mul_of_nonneg_right hfac (by positivity)
          _=(T*(q:ℝ)*Λ)^q := by rw [← mul_pow];congr 1;ring
 
+/-- The complex extension of the Cauchy-weighted principal-power kernel `highKernelF β z / (1 -
+Complex.I * z)`. -/
 private noncomputable def complexHighKernelG (β : ℝ) (z : ℂ) : ℂ :=
   highKernelF β z / (1 - Complex.I * z)
 
+/-- The extension `complexHighKernelG β` is analytic at every point with `|z.im| ≤ 1 / 4`. -/
 private theorem complexHighKernelG_analytic (β : ℝ) (z : ℂ)
     (hz : |z.im| ≤ 1 / 4) : AnalyticAt ℂ (complexHighKernelG β) z := by
   have hpos : 0 < (1 + Complex.I * z).re := by
@@ -138,6 +172,8 @@ private theorem complexHighKernelG_analytic (β : ℝ) (z : ℂ)
     analyticAt_const (by exact_mod_cast highKernelC_ne_zero β)).div
       (analyticAt_const.sub (analyticAt_const.mul analyticAt_id)) hden)
 
+/-- For `0 < β < 1` and `|z.im| ≤ 1 / 4`, the complex kernel norm is at most `4 / (3 *
+highKernelC β)`. -/
 private theorem complexHighKernelG_norm (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1)
     (z : ℂ) (hz : |z.im| ≤ 1 / 4) :
     ‖complexHighKernelG β z‖ ≤ 4 / (3 * highKernelC β) := by
@@ -164,6 +200,8 @@ private theorem complexHighKernelG_norm (β : ℝ) (hβ : 0 < β) (hβ1 : β < 1
       div_le_div₀ (by have hC := highKernelC_pos β; positivity) hnum (by norm_num) hden
     _ = _ := by ring
 
+/-- Every iterated real derivative of `highKernelG β` equals the corresponding iterated complex
+derivative of `complexHighKernelG β` at the real input. -/
 private theorem kernel_iteratedDeriv_real_complex (β : ℝ) :
     ∀ q : ℕ, ∀ k : ℝ, iteratedDeriv q (highKernelG β) k =
       iteratedDeriv q (complexHighKernelG β) (k : ℂ) := by
@@ -179,6 +217,8 @@ private theorem kernel_iteratedDeriv_real_complex (β : ℝ) :
     simp only [iteratedDeriv_succ, he]
     simpa only [iteratedDeriv_eq_iterate] using! hd.deriv
 
+/-- For `0 < β < 1` and positive `q`, the `q`-th derivative of `highKernelG β` has norm at most
+`(4 / (3 * highKernelC β)) * 4^q * q.factorial`. -/
 theorem highKernelG_deriv_le :
     ∀ β : ℝ, 0 < β → β < 1 →
       ∀ q : ℕ, 1 ≤ q → ∀ k : ℝ,
@@ -198,6 +238,9 @@ theorem highKernelG_deriv_le :
   rw [kernel_iteratedDeriv_real_complex]
   exact hc.trans_eq (by rw [div_pow, one_pow, div_div_eq_mul_div, div_one]; ring)
 
+/-- For `q ≥ 2` and `32 ≤ exp(1) * T * Λ`, the LCHS integrand has `q`-th derivative norm at most
+`(4 / (3 * highKernelC β)) * q.factorial * (q + 1) * (exp(1) * T * Λ)^q` under the stated
+kernel and generator hypotheses. -/
 theorem near_exponential_lchs_integrand_derivative_bound
     (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ→Matrix I I ℂ) (T β Λ : ℝ)
     (hL : Continuous L) (hH : Continuous H) (hHermL : ∀ u,(L u).IsHermitian)
@@ -279,6 +322,9 @@ theorem near_exponential_lchs_integrand_derivative_bound
            nlinarith [hh]
        _=(4/(3*highKernelC β))*(q.factorial:ℝ)*(q+1:ℕ)*(Real.exp 1*T*Λ)^q := by simp only [X,mul_assoc]
 
+/-- For the stated positive parameters and cutoff, the prescribed cell and node counts are
+positive, the cell width is at most `1 / (exp(1) * T * Λ)`, and the composite Gauss error
+budget is at most `ε`. -/
 theorem composite_gauss_precision_budget :
     ∀ β T Λ ε : ℝ, 0 < β → β < 1 → 0 < T → 0 < Λ → 0 < ε →
       ∀ K : ℕ, 0 < K →

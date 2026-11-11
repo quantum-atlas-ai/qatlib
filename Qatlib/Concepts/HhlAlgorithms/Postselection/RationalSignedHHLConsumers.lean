@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HhlAlgorithms.RationalProgram
+
+/-!
+# Signed rational HHL postselection
+
+This module derives spectral formulas and least-squares postselection guarantees for
+`rationalHHLRun` with signed, possibly zero eigenvalues. It also proves exact zero-mode behavior
+and counts the arithmetic iterations used to build the rational rotation table, extending the
+HHL setting of [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `rational_hhl_same_actual_least_squares_postselection`: success and normalized-direction
+  estimates for the actual rational run.
+* `rationalHHL_zero_mode`: a zero eigenmode retains zero phase and false flags.
+* `rational_hhl_exact_zero_range_branch`: inputs supported on the kernel have zero success
+  probability.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,6 +58,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- For the signed low-rank spectral promise and sufficient grid size, an error `e = eta + 32 /
+2^k < d * tau` gives success probability at least `(d * tau - e)^2` and postselected
+least-squares direction error at most `2 * e / (d * tau)`. -/
 theorem rational_hhl_same_actual_least_squares_postselection :
     ∀ (D M k : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℚ) (eta : ℝ),
       V ∈ Matrix.unitaryGroup (Fin D) ℂ → B ∈ Matrix.unitaryGroup (Fin D) ℂ → 0 < d →
@@ -58,6 +83,8 @@ theorem rational_hhl_same_actual_least_squares_postselection :
       hV hB hd heta heta1 heig hbudget) hgap
   exact ⟨h.1, h.2.2⟩
 
+/-- On a product input with a false flag, the rational HHL flag gate multiplies each phase
+amplitude by the corresponding rotation entry and leaves the data factor unchanged. -/
 theorem rationalHHLFlag_product {D M : ℕ} (d : ℚ) (k : ℕ)
     (a : QState (Fin M)) (v : QState (Fin D)) :
     ApplyGate (rationalHHLFlag (D := D) (M := M) d k)
@@ -69,6 +96,7 @@ theorem rationalHHLFlag_product {D M : ℕ} (d : ℚ) (k : ℕ)
     dotProduct, TensorGate, BlockDiag, TensorState, Ket, Fintype.sum_prod_type,
     Matrix.one_apply, mul_assoc, mul_comm, mul_left_comm]
 
+/-- The rational HHL flag gate fixes a state with zero phase label and a false flag. -/
 theorem rationalHHL_zero_flag {D M : ℕ} (hM : 0 < M) (d : ℚ) (k : ℕ) (v : QState (Fin D)) :
     rationalHHLFlag (D := D) (M := M) d k *ᵥ
       TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) v) =
@@ -82,6 +110,8 @@ theorem rationalHHL_zero_flag {D M : ℕ} (hM : 0 < M) (d : ℚ) (k : ℕ) (v : 
     simp [rationalHHLDecode, rationalHHLRotation_zero, TensorState, Ket, Matrix.one_apply]
   · simp [TensorState, Ket, hy]
 
+/-- Running rational HHL on a zero eigenmode returns that eigenvector with zero phase and both
+flags false. -/
 theorem rationalHHL_zero_mode {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V : Operator D) (i : Fin D) (d : ℚ) (k : ℕ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hi : eig i=0) :
@@ -114,6 +144,8 @@ theorem rationalHHL_zero_mode {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
   rcases p with ⟨y,s,f,i⟩
   cases s <;> simp [a, phaseFlagEmbed, TensorState, Ket]
 
+/-- The rational HHL output is the phase-flag embedding of preparation followed by QPE, the
+rational flag rotation, and inverse QPE. -/
 theorem rationalHHL_run_formula {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (d : ℚ) (k : ℕ) (B : Operator D) (j : Fin D) :
@@ -125,6 +157,8 @@ theorem rationalHHL_run_formula {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     run_append, run_append, run_gate, run_nil, run_qpeBlock_eq, run_qpeBlockInv_eq]
   rfl
 
+/-- The rational HHL output decomposes into eigenmode runs with coefficients given by the
+prepared input in the eigenbasis. -/
 theorem rationalHHL_actual_spectral {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (d : ℚ) (k : ℕ) (j : Fin D) :
     rationalHHLRun M hM (continuousHHLOracle eig V) d k B j =
@@ -153,6 +187,8 @@ theorem rationalHHL_actual_spectral {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → 
   intro i h
   rw [rationalHHL_run_formula hM eig V hV d k V i]
 
+/-- If the prepared input has no component in any nonzero eigenspace, the rational HHL success
+probability is exactly zero. -/
 theorem rational_hhl_exact_zero_range_branch :
     ∀ (D M k : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℚ),
       V ∈ Matrix.unitaryGroup (Fin D) ℂ → B ∈ Matrix.unitaryGroup (Fin D) ℂ → 0 < d →
@@ -174,6 +210,8 @@ theorem rational_hhl_exact_zero_range_branch :
     · rw [hzero i hz, zero_mul]
   rw [hout]; simp
 
+/-- Under the stated precision assumptions, the rational HHL table has `M` entries and its
+square-root bracket computations total exactly `2 * M * k` iterations. -/
 theorem rational_hhl_paid_table_arithmetic_and_precision :
     ∀ (M k : ℕ) (d : ℚ) (eta : ℝ), 0 < d → 0 < eta → 32/(2:ℝ)^k ≤ eta →
       (rationalHHLTable M d k).size=M ∧

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Dirichlet
 import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+
+/-!
+# Dirichlet-character phase changes
+
+The theorem `lemma3_dirichletPhaseChange` collects the unit-support and norm properties of
+`DirichletChar`. Multiplication by the character preserves squared norm for states supported on
+units, and the stated specification cost remains polylogarithmic after adding constant overhead.
+See [VanDamSeroussi2002].
+
+## Main statements
+
+* `lemma3_dirichletPhaseChange`: A Dirichlet character has unit norm on units and vanishes on
+  nonunits, so multiplication by it preserves the total squared norm of unit-supported states. A
+  polylogarithmic specification cost remains polylogarithmic after adding two.
+
+## References
+
+* [van Dam and Seroussi, 2002][VanDamSeroussi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,9 @@ namespace Qatlib.Papers.GaussSumEst02.MainResults.Claims
 
 open Qatlib.Papers.GaussSumEst02.MainResults.Source
 
+/-- A Dirichlet character has unit norm on units and vanishes on nonunits, so multiplication by
+it preserves the total squared norm of unit-supported states. A polylogarithmic
+specification cost remains polylogarithmic after adding two [VanDamSeroussi2002]. -/
 theorem lemma3_dirichletPhaseChange (n : ℕ) [NeZero n] (χ : DirichletChar n)
     (spec : ℕ → ℕ) (hspec : PolyLog spec) :
     (∀ x : ZMod n, IsUnit x → ‖χ.toFun x‖ = 1) ∧

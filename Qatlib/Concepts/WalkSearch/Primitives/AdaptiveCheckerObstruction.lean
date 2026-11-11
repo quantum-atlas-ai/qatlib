@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.CheckerAmplificationObstruction
+
+/-!
+# Adaptive checker counterexamples
+
+Constructs bounded-error primitive implementations that refute the local adaptive checker and
+corrected walk contracts. Explicit disjoint seed boxes give a lower bound on rejection events;
+the examples clarify composition requirements in the bounded-error search setting of
+[HoyerMoscaDeWolf2003].
+
+## Main statements
+
+* `triCheckSpecCorrected_adaptive_obstruction`: The corrected checker specification fails on the
+  three-vertex triangle for `oneBadCollisionSolver`, `failingTestNoisySearch`, and four
+  amplification trials, for every `r'`.
+* `theorem4WalkCorrected_adaptive_obstruction`: The universally quantified corrected walk-search
+  proposition `theorem4WalkCorrected` is false.
+
+## References
+
+* [Hoyer, Mosca and de Wolf, 2003][HoyerMoscaDeWolf2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
@@ -15,6 +37,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical
 
+/-- A zero-cost noisy-search implementation that preferentially selects a marked vertex whose
+test is false, and otherwise selects any marked vertex. -/
 def failingTestNoisySearch : NoisySearch where
   seed := Unit
   seedFin := inferInstance
@@ -50,6 +74,8 @@ def failingTestNoisySearch : NoisySearch where
     · simp [hbad, hR]
   charges := by intros; simp
 
+/-- If all collision-solver trials fail the Boolean adjacency test, `triCheckAmpExtract` returns
+no witness. -/
 theorem triCheckAmpExtract_none_of_any_false {n m : ℕ}
     (adj : Fin n → Fin n → Bool) (e : Fin m → Fin n) (kcs : KCollisionSolver)
     (r' : ℕ) (subR : (Fin 2 → Fin m) → Bool) (v : Fin n) (c₀ : ℕ)
@@ -92,6 +118,8 @@ theorem triCheckAmpExtract_none_of_any_false {n m : ℕ}
   apply hscan (List.range c₀) 0
   simpa only [List.any_eq_false, Bool.not_eq_true] using htest
 
+/-- If some truly marked vertex has no successful collision-solver trial on its assigned seed
+block, the amplified checker using `failingTestNoisySearch` returns no witness. -/
 theorem adaptive_checker_rejects {n : ℕ} (adj : Fin n → Fin n → Bool)
     (U : Finset (Fin n)) (kcs : KCollisionSolver) (r' c₀ : ℕ) (stape : ℕ → kcs.seed)
     (hbad : ∃ v : Fin n,
@@ -130,24 +158,31 @@ theorem adaptive_checker_rejects {n : ℕ} (adj : Fin n → Fin n → Bool)
     funext motive x h₁ h₂
     cases x <;> rfl
 
+/-- The finite seed box with the selected vertex's four-trial block fixed to zero and earlier
+block-start coordinates constrained to be nonzero. -/
 @[irreducible] def adaptiveBadBox (v : Fin 3) : Finset (Fin 13 → Fin 4) :=
   Fintype.piFinset fun i =>
     if v.val*4 ≤ i.val ∧ i.val < v.val*4+4 then {0}
     else if i.val < v.val*4 ∧ i.val % 4 = 0 then Finset.univ.erase 0
     else Finset.univ
 
+/-- The seed box for vertex zero contains `4 ^ 9` tapes. -/
 theorem adaptiveBadBox_card_zero : (adaptiveBadBox 0).card = 4^9 := by
   rw [adaptiveBadBox, Fintype.card_piFinset]
   decide
 
+/-- The seed box for vertex one contains `3 * 4 ^ 8` tapes. -/
 theorem adaptiveBadBox_card_one : (adaptiveBadBox 1).card = 3*4^8 := by
   rw [adaptiveBadBox, Fintype.card_piFinset]
   decide
 
+/-- The seed box for vertex two contains `9 * 4 ^ 7` tapes. -/
 theorem adaptiveBadBox_card_two : (adaptiveBadBox 2).card = 9*4^7 := by
   rw [adaptiveBadBox, Fintype.card_piFinset]
   decide
 
+/-- Every seed in the selected four-trial vertex block is zero for tapes belonging to
+`adaptiveBadBox v`. -/
 theorem adaptiveBadBox_block_zero (v : Fin 3) (τ : Fin 13 → Fin 4)
     (hτ : τ ∈ adaptiveBadBox v) (i : ℕ) (hi : i < 4) :
     @extSeed 13 (Fin 4) inferInstance τ (v.val*4+i) = 0 := by
@@ -157,6 +192,8 @@ theorem adaptiveBadBox_block_zero (v : Fin 3) (τ : Fin 13 → Fin 4)
   have hrange : v.val*4 ≤ v.val*4+i ∧ v.val*4+i < v.val*4+4 := by omega
   simpa [hrange, extSeed, hbound] using ht
 
+/-- Every tape in `adaptiveBadBox v` makes the amplified checker reject the three-vertex
+triangle for the supplied primitive implementations. -/
 theorem adaptiveBadBox_rejects (r' : ℕ) (v : Fin 3) (τ : Fin 13 → Fin 4)
     (hτ : τ ∈ adaptiveBadBox v) :
     (triCheckAmp threeVertexTriangle Finset.univ oneBadCollisionSolver failingTestNoisySearch
@@ -172,6 +209,7 @@ theorem adaptiveBadBox_rejects (r' : ℕ) (v : Fin 3) (τ : Fin 13 → Fin 4)
       show (3 : ℕ) ≤ 3 by decide, hz, true_and, ↓reduceIte]
     simp
 
+/-- The adaptive bad seed boxes for strictly ordered vertices are disjoint. -/
 theorem adaptiveBadBox_disjoint (v w : Fin 3) (hvw : v < w) :
     Disjoint (adaptiveBadBox v) (adaptiveBadBox w) := by
   apply Finset.disjoint_left.mpr
@@ -192,6 +230,7 @@ theorem adaptiveBadBox_disjoint (v w : Fin 3) (hvw : v < w) :
   simp only [hwR, ↓reduceIte, hwE, Finset.mem_erase, Finset.mem_univ, and_true] at hw0
   exact hw0 hv0
 
+/-- The union of the three adaptive bad seed boxes has cardinality `37 * 4 ^ 7`. -/
 theorem adaptiveBadBoxes_card :
     ((adaptiveBadBox 0 ∪ adaptiveBadBox 1) ∪ adaptiveBadBox 2).card = 37*4^7 := by
   have h01 := adaptiveBadBox_disjoint 0 1 (by decide)
@@ -202,6 +241,8 @@ theorem adaptiveBadBoxes_card :
     adaptiveBadBox_card_one, adaptiveBadBox_card_two]
   norm_num
 
+/-- If every element of `S` satisfies `F` after pairing with the unique unit value, then
+`S.card` is at most the cardinality of the full event defined by `F`. -/
 theorem unit_failure_card_ge {α : Type} [Fintype α] (S : Finset α)
     (F : Unit × α → Prop) [DecidablePred F] (hF : ∀ x ∈ S, F ((),x)) :
     S.card ≤ (Finset.univ.filter F).card := by
@@ -214,6 +255,8 @@ theorem unit_failure_card_ge {α : Type} [Fintype α] (S : Finset α)
     exact congrArg Prod.snd hxy
   simpa only [Finset.card_image_of_injective S hi] using Finset.card_le_card hsub
 
+/-- If every element of `S`, paired with the unique unit value, belongs to `E`, then `S.card ≤
+E.card`. -/
 theorem unit_event_card_ge {α : Type} (S : Finset α) (E : Finset (Unit × α))
     (hE : ∀ x ∈ S, ((),x) ∈ E) : S.card ≤ E.card := by
   have hsub : S.image (fun x => ((),x)) ⊆ E := by
@@ -225,6 +268,9 @@ theorem unit_event_card_ge {α : Type} (S : Finset α) (E : Finset (Unit × α))
     exact congrArg Prod.snd hxy
   simpa only [Finset.card_image_of_injective S hi] using Finset.card_le_card hsub
 
+/-- The corrected checker specification fails on the three-vertex triangle for
+`oneBadCollisionSolver`, `failingTestNoisySearch`, and four amplification trials, for every
+`r'`. -/
 theorem triCheckSpecCorrected_adaptive_obstruction (r' : ℕ) :
     ¬triCheckSpecCorrected threeVertexTriangle Finset.univ
       oneBadCollisionSolver failingTestNoisySearch r' 4 := by
@@ -258,6 +304,8 @@ theorem triCheckSpecCorrected_adaptive_obstruction (r' : ℕ) :
   have hcontra := (Nat.mul_le_mul_right (4^4) hl).trans hb
   norm_num at hcontra
 
+/-- A zero-cost `SafeGrover` implementation with `κ = 1` and `cExp = 0` that always returns no
+result. -/
 def positiveNullGrover : SafeGrover where
   seed := Unit
   seedFin := inferInstance
@@ -271,6 +319,8 @@ def positiveNullGrover : SafeGrover where
   finds := by intros; simp
   charges := by intros; simp
 
+/-- The universally quantified corrected walk-search proposition `theorem4WalkCorrected` is
+false. -/
 theorem theorem4WalkCorrected_adaptive_obstruction : ¬theorem4WalkCorrected := by
   intro h
   obtain ⟨r, r', _, _, _, _, _, _, hcheck, _⟩ :=

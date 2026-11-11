@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.KoopmanSim26.SpectralRep.DiagonalizedLCHS
+
+/-!
+# Cauchy spectral quadrature error
+
+This module approximates the exact Cauchy LCHS integral by a uniform right-endpoint sum
+`cauchyQuadrature` on a symmetric interval. Bounds on the Cauchy density, its derivative, and
+its tail separate truncation error from grid error while retaining the density constant `3
+sqrt(3)/(8 pi)`.
+
+The theorem `spectral_sampling_quadrature_error` combines these estimates for dissipative matrix
+evolution. Choosing the balancing cutoff in `spectral_sampling_convergence` yields the explicit
+cube-root convergence bound in Theorem 2 of [ZhangEtAl2026].
+
+## Main statements
+
+* `abs_cauchyDensityDeriv_le` and `cauchyDensity_lipschitz` control variation of the Cauchy
+  weight.
+- `cauchy_weighted_tail` bounds truncation of a norm-bounded continuous integrand.
+- `cauchy_weighted_grid_error` controls the right-endpoint discretization error.
+* `spectral_sampling_quadrature_error` and `spectral_sampling_convergence` give the full
+  operator bound and its optimized cutoff.
+
+## References
+
+- [Zhang et al., 2026][ZhangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,20 +51,29 @@ open Qatlib.Foundations.PureStateMath
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The function `cauchyDensity` is the standard Cauchy density `1/(pi (1+k^2))` on the real
+spectral parameter. -/
 noncomputable def cauchyDensity (k : ℝ) : ℝ := 1/(Real.pi*(1+k^2))
 
+/-- The function `cauchyDensityDeriv` is the derivative expression `-2 k/(pi (1+k^2)^2)` for the
+standard Cauchy density. -/
 noncomputable def cauchyDensityDeriv (k : ℝ) : ℝ := -(2*k)/(Real.pi*(1+k^2)^2)
 
+/-- The value `cauchyLipschitzConst` is `3 sqrt(3)/(8 pi)`, used to bound the derivative
+magnitude and Lipschitz variation of the Cauchy density. -/
 noncomputable def cauchyLipschitzConst : ℝ := 3*Real.sqrt 3/(8*Real.pi)
 
+/-- The Cauchy density is nonnegative at every real argument. -/
 private lemma cauchyDensity_nonneg (k : ℝ) : 0 ≤ cauchyDensity k := by
   dsimp [cauchyDensity]; positivity
 
+/-- The Cauchy density is bounded above by its peak value `1/pi`. -/
 private lemma cauchyDensity_le_peak (k : ℝ) : cauchyDensity k ≤ 1/Real.pi := by
   dsimp only [cauchyDensity]
   apply div_le_div_of_nonneg_left (by norm_num) Real.pi_pos
   nlinarith [mul_nonneg Real.pi_pos.le (sq_nonneg k)]
 
+/-- The Cauchy density has derivative `cauchyDensityDeriv k` at every real point `k`. -/
 private lemma hasDerivAt_cauchyDensity (k : ℝ) :
     HasDerivAt cauchyDensity (cauchyDensityDeriv k) k := by
   have hfun : cauchyDensity = fun k : ℝ => (1+k^2)⁻¹ * Real.pi⁻¹ := by
@@ -56,6 +92,8 @@ private lemma hasDerivAt_cauchyDensity (k : ℝ) :
   rw [hv] at hmul
   exact hmul
 
+/-- The absolute derivative of the Cauchy density is at most `3 sqrt(3)/(8 pi)` at every real
+point. -/
 private lemma abs_cauchyDensityDeriv_le (k : ℝ) : |cauchyDensityDeriv k| ≤ cauchyLipschitzConst := by
   have hs : Real.sqrt 3 ^ 2 = 3 := Real.sq_sqrt (by norm_num)
   simp only [cauchyDensityDeriv, cauchyLipschitzConst]
@@ -81,6 +119,8 @@ private lemma abs_cauchyDensityDeriv_le (k : ℝ) : |cauchyDensityDeriv k| ≤ c
   rw [heq] at hfin
   exact hfin
 
+/-- The absolute change in the Cauchy density between two real points is at most
+`cauchyLipschitzConst` times their distance. -/
 private lemma cauchyDensity_lipschitz (a b : ℝ) :
     |cauchyDensity a - cauchyDensity b| ≤ cauchyLipschitzConst * |a-b| := by
   rcases le_total a b with hab | hba
@@ -102,16 +142,19 @@ private lemma cauchyDensity_lipschitz (a b : ℝ) :
     calc |cauchyDensity a - cauchyDensity b| ≤ cauchyLipschitzConst*(a-b) := h
       _ = cauchyLipschitzConst*|a-b| := by rw [abs_of_nonneg (by linarith : 0 ≤ a - b)]
 
+/-- The Cauchy density is continuous on the real line. -/
 private lemma cauchyDensity_continuous : Continuous cauchyDensity := by
   apply Continuous.div continuous_const
   · fun_prop
   · intro k; positivity
 
+/-- The Cauchy density is integrable over the real line. -/
 private lemma cauchyDensity_integrable : Integrable cauchyDensity := by
   change Integrable (fun k : ℝ => 1/(Real.pi*(1+k^2)))
   simpa [cauchyDensity, div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
     integrable_inv_one_add_sq.const_mul Real.pi⁻¹
 
+/-- For every nonnegative real `x`, `arctan x` is at most `x`. -/
 private lemma cauchy_arctan_le (x : ℝ) (hx : 0 ≤ x) : Real.arctan x ≤ x := by
   have hb := norm_image_sub_le_of_norm_deriv_le_segment'
     (a := 0) (b := x) (f := Real.arctan) (f' := fun k : ℝ => (1+k^2)⁻¹) (C := 1)
@@ -122,6 +165,8 @@ private lemma cauchy_arctan_le (x : ℝ) (hx : 0 ≤ x) : Real.arctan x ≤ x :=
   have hh : |Real.arctan x| ≤ x := by simpa using! hb
   exact (le_abs_self _).trans hh
 
+/-- For positive `K`, the integral of the Cauchy density outside `(-K, K]` is at most `2/(pi
+K)`. -/
 private lemma cauchyDensity_tail (K : ℝ) (hK : 0 < K) :
     (∫ k : ℝ in (Set.Ioc (-K) K)ᶜ, cauchyDensity k) ≤ 2/(Real.pi*K) := by
   have he : (Set.Ioc (-K) K)ᶜ = Set.Iic (-K) ∪ Set.Ioi K := by
@@ -155,12 +200,16 @@ variable {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
 
 omit [CompleteSpace E] in
 
+/-- A continuous real-parameter function bounded in norm by one becomes integrable after
+multiplication by the Cauchy density. -/
 private lemma cauchy_weighted_integrable (V : ℝ → E) (hV : Continuous V)
     (hn : ∀ k, ‖V k‖ ≤ 1) : Integrable (fun k => cauchyDensity k • V k) :=
   cauchyDensity_integrable.smul_bdd 1 hV.aestronglyMeasurable (Filter.Eventually.of_forall hn)
 
 omit [CompleteSpace E] in
 
+/-- For a continuous function bounded in norm by one and positive `K`, truncating its
+Cauchy-weighted integral to `[-K, K]` changes the integral by norm at most `2/(pi K)`. -/
 private lemma cauchy_weighted_tail (V : ℝ → E) (hV : Continuous V)
     (hn : ∀ k, ‖V k‖ ≤ 1) (K : ℝ) (hK : 0 < K) :
     ‖(∫ k : ℝ, cauchyDensity k • V k) - (∫ k in (-K)..K, cauchyDensity k • V k)‖ ≤
@@ -173,6 +222,8 @@ private lemma cauchy_weighted_tail (V : ℝ → E) (hV : Continuous V)
   rw [norm_smul, Real.norm_of_nonneg (cauchyDensity_nonneg k)]
   simpa using! mul_le_mul_of_nonneg_left (hn k) (cauchyDensity_nonneg k)
 
+/-- On an interval of nonnegative length `h`, the integral of distance from the right endpoint
+equals `h^2/2`. -/
 private lemma intervalIntegral_abs_sub_right (a h : ℝ) (hh : 0 ≤ h) :
     (∫ k in a..(a+h), |a+h-k|) = h^2/2 := by
   have hcongr : (∫ k in a..(a+h), |a+h-k|) = ∫ k in a..(a+h), (a+h-k) := by
@@ -196,6 +247,9 @@ private lemma intervalIntegral_abs_sub_right (a h : ℝ) (hh : 0 ≤ h) :
   rw [hF]
   ring
 
+/-- For a continuous function bounded in norm by one with nonnegative Lipschitz bound `T`, the
+`N`-cell Cauchy-weighted right-endpoint sum on `[-K, K]` has error at most `(2
+K^2/N)(cauchyLipschitzConst + T/pi)` when `K` and `N` are positive. -/
 private theorem cauchy_weighted_grid_error (V : ℝ → E) (hVc : Continuous V)
     (hn : ∀ k, ‖V k‖ ≤ 1) (T : ℝ) (_hT : 0 ≤ T)
     (hl : ∀ a b, ‖V a - V b‖ ≤ T*|a-b|)
@@ -273,14 +327,24 @@ private theorem cauchy_weighted_grid_error (V : ℝ → E) (hVc : Continuous V)
 
 end Quadrature
 
+/-- The value `mesh K N` is the uniform width `2 K/N` for a symmetric spectral interval with
+cutoff `K` and `N` cells. -/
 noncomputable def mesh (K : ℝ) (N : ℕ) : ℝ := 2*K/(N:ℝ)
 
+/-- The value `gridPoint K N j` is `-K + mesh(K,N) j` in the uniform partition of the symmetric
+spectral interval. -/
 noncomputable def gridPoint (K : ℝ) (N j : ℕ) : ℝ := -K + mesh K N * j
 
+/-- The matrix `cauchyQuadrature` is the `N`-cell right-endpoint sum of spectral unitaries
+weighted by the Cauchy density and the uniform mesh width. -/
 noncomputable def cauchyQuadrature (L H : Matrix I I ℂ) (t K : ℝ) (N : ℕ) : Matrix I I ℂ :=
   ∑ j ∈ Finset.range N,
     (mesh K N * cauchyDensity (gridPoint K N (j+1))) • spectralUnitary L H t (gridPoint K N (j+1))
 
+/-- For positive semidefinite `-L`, Hermitian `H`, nonnegative time, and positive `K` and `N`,
+the operator error of `cauchyQuadrature` is at most `2/(pi K) + (2
+K^2/N)(cauchyLipschitzConst + t norm(L)/pi)`. This is the truncation and discretization
+estimate in Theorem 2 of [ZhangEtAl2026]. -/
 theorem spectral_sampling_quadrature_error
     (L H : Matrix I I ℂ) (t K : ℝ) (N : ℕ)
     (hL : (-L).PosSemidef) (hH : H.IsHermitian) (ht : 0 ≤ t)
@@ -339,6 +403,10 @@ theorem spectral_sampling_quadrature_error
           V (-K + (2*K/(N:ℝ))*((j+1:ℕ):ℝ)))] at hh
   exact hh.trans (add_le_add htail hg)
 
+/-- For dissipative `L`, Hermitian `H`, nonnegative time, and positive `N`, choosing `K = ((3
+sqrt(3) + 8 t norm(L))/(4 N))^(-1/3)` bounds the quadrature error by `(3/pi) ((3 sqrt(3) + 8
+t norm(L))/(4 N))^(1/3)`. This gives the optimized cutoff and explicit convergence bound in
+Theorem 2 of [ZhangEtAl2026]. -/
 theorem spectral_sampling_convergence
     (L H : Matrix I I ℂ) (t : ℝ) (N : ℕ)
     (hL : (-L).PosSemidef) (hH : H.IsHermitian) (ht : 0 ≤ t) (hN : 0 < N) :

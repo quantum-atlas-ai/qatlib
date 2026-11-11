@@ -8,9 +8,36 @@ import Mathlib.Analysis.SpecialFunctions.Pow.NthRootLemmas
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Tactic
+
+/-!
+# Integer cube-root estimates
+
+This module relates `Nat.nthRoot 3 m` to the real cube root and proves bounds for the table and
+search terms used in [BrassardHoyerTapp1998Collision]. It also verifies the half-image
+constraint for the sampled claw table when `m ≥ 2`.
+
+The theorem `cube_root_table_search_bound` combines the integer table size and square-root
+search term into a real cube-root bound.
+
+## Main statements
+
+* `cube_root_claw_admissible`: For `m ≥ 2`, the integer cube root of `m` is at most `m / 2` in
+  natural-number division.
+* `cube_root_search_bound`: For `m ≥ 1`, the square-root search term at the integer cube-root
+  table size is at most three times that size.
+* `cube_root_table_search_bound`: For `m ≥ 1`, the integer cube-root table size plus its
+  square-root search term is at most four times the real cube root of `m`.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Papers.CollisionProb97.MainResults.IntegerParameters
 
+/-- For `m ≥ 1`, the integer cube root is positive and its cube brackets `m` between consecutive
+cubes. -/
 theorem cube_root_bounds (m : ℕ) (hm : 1 ≤ m) :
   1 ≤ Nat.nthRoot 3 m ∧ (Nat.nthRoot 3 m)^3 ≤ m ∧
     m < (Nat.nthRoot 3 m+1)^3 := by
@@ -19,6 +46,7 @@ theorem cube_root_bounds (m : ℕ) (hm : 1 ≤ m) :
   apply (Nat.le_nthRoot_iff (by decide : 3 ≠ 0)).2
   simpa using hm
 
+/-- For `m ≥ 2`, the integer cube root of `m` is at most `m / 2` in natural-number division. -/
 theorem cube_root_claw_admissible (m : ℕ) (hm : 2 ≤ m) : Nat.nthRoot 3 m ≤ m/2 := by
   let k := Nat.nthRoot 3 m
   obtain ⟨hk1,hpow,_⟩ := cube_root_bounds m (by omega)
@@ -34,6 +62,7 @@ theorem cube_root_claw_admissible (m : ℕ) (hm : 2 ≤ m) : Nat.nthRoot 3 m ≤
         simpa [pow_succ, pow_two] using (Nat.mul_le_mul_left (k*k) hk1)
     omega
 
+/-- The real cube root of `m` lies between its integer cube root and that integer plus one. -/
 theorem cube_root_real_window (m : ℕ) :
   (Nat.nthRoot 3 m : ℝ) ≤ (m : ℝ)^(1/3 : ℝ) ∧
     (m : ℝ)^(1/3 : ℝ) < (Nat.nthRoot 3 m : ℝ)+1 := by
@@ -50,6 +79,7 @@ theorem cube_root_real_window (m : ℕ) :
     norm_num only [← Real.rpow_natCast] at h ⊢
     exact h
 
+/-- If `k ≥ 1` and `m < (k + 1)³`, then `sqrt (m / k) ≤ 3 * k` over the real numbers. -/
 theorem sqrt_div_le_three_of_window {m k : ℕ} (hk : 1 ≤ k) (hu : m < (k+1)^3) :
   Real.sqrt ((m:ℝ)/(k:ℝ)) ≤ 3*(k:ℝ) := by
   have hkR : (1:ℝ) ≤ k := by exact_mod_cast hk
@@ -65,11 +95,15 @@ theorem sqrt_div_le_three_of_window {m k : ℕ} (hk : 1 ≤ k) (hu : m < (k+1)^3
   rw [Real.sqrt_sq (by positivity)] at hs
   exact hs
 
+/-- For `m ≥ 1`, the square-root search term at the integer cube-root table size is at most
+three times that size. -/
 theorem cube_root_search_bound (m : ℕ) (hm : 1 ≤ m) :
   Real.sqrt ((m:ℝ)/(Nat.nthRoot 3 m:ℝ)) ≤ 3*(Nat.nthRoot 3 m:ℝ) := by
   obtain ⟨hk,_,hu⟩ := cube_root_bounds m hm
   exact sqrt_div_le_three_of_window hk hu
 
+/-- For `m ≥ 1`, the integer cube-root table size plus its square-root search term is at most
+four times the real cube root of `m`. -/
 theorem cube_root_table_search_bound (m : ℕ) (hm : 1 ≤ m) :
   (Nat.nthRoot 3 m:ℝ)+Real.sqrt ((m:ℝ)/(Nat.nthRoot 3 m:ℝ)) ≤
     4*(m:ℝ)^(1/3:ℝ) := by

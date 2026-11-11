@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Pauli mixtures and qubit twirling
+
+The Boolean choices `pauliXChoice` and `pauliZChoice`, sampled independently from
+`pauliFairBit`, define the uniform mixture of four qubit Pauli conjugations. The module computes
+each conjugation entrywise and proves that the mixture sends an arbitrary operator to its trace
+times half the identity, the complete depolarization identity discussed in [NielsenChuang2010].
+
+The circuits `pauliTwirlCircuit` implement the selected X and Z operations with two gates and no
+queries. Their output outer products agree with the weighted branches of the sequential mixture
+instruments.
+
+## Main statements
+
+* `pauliTwirl_dephasing`: evaluates the uniform Pauli mixture on every qubit operator.
+* `pauliTwirlCircuit_counts`: gives unitarity and exact circuit resource counts.
+* `pauliTwirl_branch_run`: connects instrument branches to circuit output outer products.
+* `pauliTwirl_correct`: collects the distribution, channel, and circuit identities.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,34 +52,41 @@ open scoped ComplexOrder
 
 set_option autoImplicit false
 
+/-- Nested complex scalar multiplication of a matrix combines by multiplying the scalars. -/
 private lemma smul_smul' {α : Type*} [Fintype α] (c d : ℂ) (M : Matrix α α ℂ) :
     c • (d • M) = (c * d) • M := by
   ext i j
   show c * (d * M i j) = c * d * M i j
   ring
 
+/-- Conjugation by a matrix commutes with complex scalar multiplication. -/
 private lemma smul_conj' {α : Type*} [Fintype α] (c : ℂ) (V Y : Matrix α α ℂ) :
     V * (c • Y) * Vᴴ = c • (V * Y * Vᴴ) := by
   simp only [Matrix.mul_smul, Matrix.smul_mul]
 
+/-- A scalar multiple of a conjugated matrix can be moved inside the conjugation. -/
 private lemma smul_conj {α : Type*} [Fintype α] (c : ℂ) (V Y : Matrix α α ℂ) :
     c • (V * Y * Vᴴ) = V * (c • Y) * Vᴴ :=
   (smul_conj' c V Y).symm
 
+/-- A common complex scalar factor can be taken outside a finite sum of matrices. -/
 private lemma fintype_smul_sum {J : Type*} [Fintype J] {α : Type*} [Fintype α] (c : ℂ)
     (f : J → Matrix α α ℂ) : (∑ j, c • f j) = c • (∑ j, f j) :=
   (Finset.smul_sum (s := Finset.univ)).symm
 
+/-- Left multiplication by a fixed matrix distributes over a finite sum. -/
 private lemma fintype_mul_sum {J : Type*} [Fintype J] {α : Type*} [Fintype α]
     (Z : Matrix α α ℂ) (f : J → Matrix α α ℂ) : (∑ j, Z * f j) = Z * (∑ j, f j) := by
   show Finset.univ.sum (fun j => Z * f j) = Z * Finset.univ.sum f
   exact (Finset.mul_sum (Finset.univ : Finset J) f Z).symm
 
+/-- Right multiplication by a fixed matrix distributes over a finite sum. -/
 private lemma fintype_mul_sum' {J : Type*} [Fintype J] {α : Type*} [Fintype α]
     (f : J → Matrix α α ℂ) (Z : Matrix α α ℂ) : (∑ j, f j) * Z = ∑ j, f j * Z := by
   show Finset.univ.sum f * Z = Finset.univ.sum (fun j => f j * Z)
   exact Finset.sum_mul (Finset.univ : Finset J) f Z
 
+/-- The order of two finite sums in an additive commutative monoid can be exchanged. -/
 private lemma fintype_sum_swap {J K : Type*} [Fintype J] [Fintype K]
     {M : Type*} [AddCommMonoid M] (f : J → K → M) :
     (∑ j, ∑ k, f j k) = ∑ k, ∑ j, f j k := by
@@ -64,19 +96,23 @@ private lemma fintype_sum_swap {J K : Type*} [Fintype J] [Fintype K]
           (fun y : K × J => f y.2 y.1) (fun _ => rfl)
     _ = ∑ k, ∑ j, f j k := Fintype.sum_prod_type' (fun k j => f j k)
 
+/-- Successive conjugation by `U` and `V` equals conjugation by `V * U`. -/
 private lemma rebracket2 {α : Type*} [Fintype α] (V U M : Matrix α α ℂ) :
     V * ((U * M) * Uᴴ) * Vᴴ = (V * U) * M * (V * U)ᴴ := by
   simp only [Matrix.mul_assoc, Matrix.conjTranspose_mul]
 
+/-- Conjugation by `V * U` equals conjugation by `U` followed by conjugation by `V`. -/
 private lemma rebracket1 {α : Type*} [Fintype α] (V U M : Matrix α α ℂ) :
     (V * U) * M * (V * U)ᴴ = V * ((U * M) * Uᴴ) * Vᴴ := by
   simp only [Matrix.mul_assoc, Matrix.conjTranspose_mul]
 
+/-- Conjugating a pure-state outer product by `V` gives the outer product of `V *ᵥ x`. -/
 private lemma conj_outerProduct {D : ℕ} (V : Operator D) (x : QState (Fin D)) :
     V * (outerProduct x) * Vᴴ = outerProduct (V *ᵥ x) := by
   show conjBranch V (outerProduct x) = _
   rw [conjBranch_outerProduct]
 
+/-- Relabeling a finite matrix basis preserves multiplication. -/
 private lemma relabel_mul {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) (U V : Matrix I I ℂ) :
     relabelGate e U * relabelGate e V = relabelGate e (U * V) := by
@@ -84,16 +120,19 @@ private lemma relabel_mul {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] 
   simp only [relabelGate, Matrix.reindex_apply, Matrix.mul_apply, Matrix.submatrix_apply]
   rw [Equiv.sum_comp e.symm (fun y => U (e.symm i) y * V y (e.symm j))]
 
+/-- Relabeling a finite matrix basis commutes with conjugate transpose. -/
 private lemma relabel_star {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) (U : Matrix I I ℂ) : (relabelGate e U)ᴴ = relabelGate e Uᴴ := by
   ext i j
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.conjTranspose_apply]
 
+/-- Relabeling a finite matrix basis preserves the identity matrix. -/
 private lemma relabel_one {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) : relabelGate e (1 : Matrix I I ℂ) = 1 := by
   ext i j
   simp [relabelGate, Matrix.reindex_apply, Matrix.one_apply]
 
+/-- Relabeling a finite matrix basis preserves unitarity. -/
 private lemma relabel_unitary {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I]
     [DecidableEq J] (e : I ≃ J) {U : Matrix I I ℂ} (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     relabelGate e U ∈ Matrix.unitaryGroup J ℂ := by
@@ -103,60 +142,76 @@ private lemma relabel_unitary {I J : Type*} [Fintype I] [Fintype J] [DecidableEq
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, relabel_star, relabel_mul, h,
     relabel_one]
 
+/-- The identity operator is unitary in every finite dimension. -/
 theorem one_unitary {D : ℕ} : (1 : Operator D) ∈ Matrix.unitaryGroup (Fin D) ℂ :=
   Matrix.mem_unitaryGroup_iff'.mpr (by
     rw [Matrix.star_eq_conjTranspose, Matrix.conjTranspose_one, Matrix.one_mul])
 
+/-- The uniform probability distribution on Boolean values. -/
 noncomputable def pauliFairBit : FinDist Bool where
   prob _ := 1 / 2
   nonneg _ := by norm_num
   sum_one := by rw [Fintype.sum_bool]; norm_num
 
+/-- Each Boolean value has probability one half under `pauliFairBit`. -/
 theorem pauliFairBit_prob (b : Bool) : pauliFairBit.prob b = 1 / 2 := rfl
 
+/-- The joint weight of two independent fair Boolean choices, viewed in `ℂ`, is one quarter. -/
 theorem pauliFairBit_weight (j k : Bool) :
     ((pauliFairBit.prob j * pauliFairBit.prob k : ℝ) : ℂ) = (1 / 4 : ℂ) := by
   rw [pauliFairBit_prob, pauliFairBit_prob, Complex.ofReal_mul]
   norm_num
 
+/-- The identity or relabeled Pauli X operator selected by a Boolean value. -/
 noncomputable def pauliXChoice (b : Bool) : Operator 2 :=
   if b then relabelGate boolEquivFin2 PauliX else 1
 
+/-- The identity or relabeled Pauli Z operator selected by a Boolean value. -/
 noncomputable def pauliZChoice (b : Bool) : Operator 2 :=
   if b then relabelGate boolEquivFin2 PauliZ else 1
 
+/-- Each Boolean choice of identity or Pauli X is unitary. -/
 theorem pauliXChoice_unitary (b : Bool) : pauliXChoice b ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   cases b with
   | true => exact relabel_unitary boolEquivFin2 pauliX_unitary
   | false => exact one_unitary
 
+/-- Each Boolean choice of identity or Pauli Z is unitary. -/
 theorem pauliZChoice_unitary (b : Bool) : pauliZChoice b ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   cases b with
   | true => exact relabel_unitary boolEquivFin2 pauliZ_unitary
   | false => exact one_unitary
 
+/-- A true Boolean choice selects the relabeled Pauli X operator. -/
 theorem pauliXChoice_true : pauliXChoice true = relabelGate boolEquivFin2 PauliX := by
   simp [pauliXChoice]
 
+/-- A false Boolean choice selects the identity instead of Pauli X. -/
 theorem pauliXChoice_false : pauliXChoice false = 1 := by
   simp [pauliXChoice]
 
+/-- A true Boolean choice selects the relabeled Pauli Z operator. -/
 theorem pauliZChoice_true : pauliZChoice true = relabelGate boolEquivFin2 PauliZ := by
   simp [pauliZChoice]
 
+/-- A false Boolean choice selects the identity instead of Pauli Z. -/
 theorem pauliZChoice_false : pauliZChoice false = 1 := by
   simp [pauliZChoice]
 
+/-- The relabeled Pauli X matrix has zero diagonal entries and unit off-diagonal entries. -/
 theorem relabel_pauliX_entry (i j : Fin 2) :
     relabelGate boolEquivFin2 PauliX i j = if i = j then 0 else 1 := by
   fin_cases i <;> fin_cases j <;>
     simp [relabelGate, Matrix.reindex_apply, boolEquivFin2, PauliX, permMatrix]
 
+/-- The relabeled Pauli Z matrix is diagonal with entries `1` and `-1`. -/
 theorem relabel_pauliZ_entry (i j : Fin 2) :
     relabelGate boolEquivFin2 PauliZ i j = if i = j then (if j = 1 then -1 else 1) else 0 := by
   fin_cases i <;> fin_cases j <;>
     simp [relabelGate, Matrix.reindex_apply, boolEquivFin2, PauliZ]
 
+/-- Conjugation by the relabeled Pauli X operator flips both indices of a two-dimensional
+operator. -/
 theorem conj_pauliX_true (ρ : Operator 2) :
     relabelGate boolEquivFin2 PauliX * ρ * (relabelGate boolEquivFin2 PauliX)ᴴ
       = fun i j => ρ (1 - i) (1 - j) := by
@@ -164,6 +219,8 @@ theorem conj_pauliX_true (ρ : Operator 2) :
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.mul_apply, Fin.sum_univ_two, relabel_pauliX_entry, Matrix.conjTranspose_apply]
 
+/-- Conjugation by the relabeled Pauli Z operator negates off-diagonal entries and preserves
+diagonal entries. -/
 theorem conj_pauliZ_true (ρ : Operator 2) :
     relabelGate boolEquivFin2 PauliZ * ρ * (relabelGate boolEquivFin2 PauliZ)ᴴ
       = fun i j => (if i = j then 1 else -1) * ρ i j := by
@@ -171,6 +228,8 @@ theorem conj_pauliZ_true (ρ : Operator 2) :
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.mul_apply, Fin.sum_univ_two, relabel_pauliZ_entry, Matrix.conjTranspose_apply]
 
+/-- The branch applying X followed by Z flips both matrix indices and negates the off-diagonal
+entries. -/
 theorem twirl_path_XZ (ρ : Operator 2) :
     (pauliZChoice true * pauliXChoice true) * ρ * (pauliZChoice true * pauliXChoice true)ᴴ
       = fun i j => (if i = j then 1 else -1) * ρ (1 - i) (1 - j) := by
@@ -178,24 +237,30 @@ theorem twirl_path_XZ (ρ : Operator 2) :
   funext i j
   rw [conj_pauliX_true]
 
+/-- The branch applying the identity followed by Z preserves diagonal entries and negates
+off-diagonal entries. -/
 theorem twirl_path_IZ (ρ : Operator 2) :
     (pauliZChoice true * pauliXChoice false) * ρ * (pauliZChoice true * pauliXChoice false)ᴴ
       = fun i j => (if i = j then 1 else -1) * ρ i j := by
   simp only [pauliZChoice_true, pauliXChoice_false, Matrix.mul_one]
   exact conj_pauliZ_true ρ
 
+/-- The branch applying X followed by the identity flips both matrix indices. -/
 theorem twirl_path_XI (ρ : Operator 2) :
     (pauliZChoice false * pauliXChoice true) * ρ * (pauliZChoice false * pauliXChoice true)ᴴ
       = fun i j => ρ (1 - i) (1 - j) := by
   simp only [pauliZChoice_false, pauliXChoice_true, Matrix.one_mul]
   exact conj_pauliX_true ρ
 
+/-- The branch selecting the identity for both Pauli choices leaves the operator unchanged. -/
 theorem twirl_path_II (ρ : Operator 2) :
     (pauliZChoice false * pauliXChoice false) * ρ * (pauliZChoice false * pauliXChoice false)ᴴ
       = ρ := by
   simp only [pauliZChoice_false, pauliXChoice_false, Matrix.mul_one, Matrix.one_mul,
     Matrix.mul_one, Matrix.conjTranspose_one]
 
+/-- Averaging conjugation over the four equally weighted Pauli choices sends any operator to its
+trace times half the identity. -/
 theorem pauliTwirl_dephasing (ρ : Operator 2) :
     ChannelMixture (FinDist.independentPair pauliFairBit pauliFairBit)
       (fun jk => pauliZChoice jk.2 * pauliXChoice jk.1) ρ
@@ -215,9 +280,12 @@ theorem pauliTwirl_dephasing (ρ : Operator 2) :
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.smul_apply, smul_eq_mul, Matrix.trace, Fin.sum_univ_two] <;> ring
 
+/-- The two-gate circuit applying the Boolean-selected X operator followed by the
+Boolean-selected Z operator. -/
 noncomputable def pauliTwirlCircuit (j k : Bool) : Circuit (Fin 2) :=
   [Step.gate (pauliXChoice j), Step.gate (pauliZChoice k)]
 
+/-- Each Pauli twirling circuit is unitary and uses two gates and no queries. -/
 theorem pauliTwirlCircuit_counts (j k : Bool) :
     QueryCount (pauliTwirlCircuit j k) = 0 ∧ GateCount (pauliTwirlCircuit j k) = 2 ∧
       IsUnitaryCircuit (pauliTwirlCircuit j k) := by
@@ -231,12 +299,16 @@ theorem pauliTwirlCircuit_counts (j k : Bool) :
       exact pauliZChoice_unitary k
     · simp at hU
 
+/-- Running the selected Pauli circuit applies `pauliZChoice k * pauliXChoice j` to the input
+state. -/
 theorem run_pauliTwirlCircuit (ψ : QState (Fin 2)) (j k : Bool) :
     Run (1 : Operator 2) (pauliTwirlCircuit j k) ψ
       = (pauliZChoice k * pauliXChoice j) *ᵥ ψ := by
   show Run 1 [Step.gate (pauliXChoice j), Step.gate (pauliZChoice k)] ψ = _
   simp only [Run, ApplyGate, Matrix.mulVec_mulVec]
 
+/-- The Pauli mixture on an input outer product is the sum of the four circuit output outer
+products, each weighted by one quarter. -/
 theorem pauliTwirl_run_outerProduct (ψ : QState (Fin 2)) :
     ChannelMixture (FinDist.independentPair pauliFairBit pauliFairBit)
       (fun jk => pauliZChoice jk.2 * pauliXChoice jk.1) (outerProduct ψ)
@@ -298,6 +370,8 @@ theorem pauliTwirl_run_outerProduct (ψ : QState (Fin 2)) :
         (Fintype.sum_prod_type' (fun j k => (1 / 4 : ℂ) •
           outerProduct (Run (1 : Operator 2) (pauliTwirlCircuit j k) ψ))).symm
 
+/-- Each branch of the sequential X and Z mixture instruments is one quarter of the outer
+product of the corresponding circuit output. -/
 theorem pauliTwirl_branch_run
     (hX : ∀ b, pauliXChoice b ∈ Matrix.unitaryGroup (Fin 2) ℂ)
     (hZ : ∀ b, pauliZChoice b ∈ Matrix.unitaryGroup (Fin 2) ℂ)
@@ -313,6 +387,9 @@ theorem pauliTwirl_branch_run
 
 set_option linter.unusedVariables false in
 
+/-- The fair-bit Pauli choices are unitary and their mixture sends every operator to its trace
+times half the identity. On pure-state outer products this mixture equals the average of the
+four unitary circuit outputs, each circuit using two gates and no queries. -/
 theorem pauliTwirl_correct :
     (∀ b, pauliFairBit.prob b = 1 / 2) ∧
       (∀ b, pauliXChoice b ∈ Matrix.unitaryGroup (Fin 2) ℂ ∧

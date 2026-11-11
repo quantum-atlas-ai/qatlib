@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogTSampleTailStat
 import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityShor
+
+/-!
+# Tail bounds for common prime-power divisors
+
+This module bounds the probability that uniformly sampled good discrete-logarithm outputs share
+a prime-power divisor greater than 18. It combines a union bound with arithmetic estimates for
+the divisor sum to prove `dlogTSampleTail`, including a probability below one half for at least
+twelve samples in the parameter range of [Shor1997].
+
+## Main statements
+
+* `dlog_tsample_union_bound`: Bounds the common-divisor event by a sum of powers of
+  single-sample bounds.
+* `dlog_tsample_sum_bound`: Controls this divisor sum by an explicit constant.
+* `dlogTSampleTail`: Establishes the common-divisor tail contract.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +41,8 @@ namespace Qatlib.Concepts.PeriodSampling.DlogDivBudget
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The probability that all `t` independent samples satisfy `E` is the `t`th power of the
+single-sample mass of `E`. -/
 theorem dlog_probEvent_all {X : Type} [Fintype X] [DecidableEq X]
     (law : FinDist X) (E : X → Prop) [DecidablePred E] (t : ℕ) :
     law.probEvent (L := t) (fun ω => ∀ i, E (ω i)) =
@@ -29,6 +52,8 @@ theorem dlog_probEvent_all {X : Type} [Fintype X] [DecidableEq X]
     Finset.card_univ, Fintype.card_fin, mul_ite, mul_one, mul_zero,
     FinDist.probEvent, Finset.sum_filter] using h
 
+/-- The probability of a union indexed by a finite set is at most the sum of the probabilities
+of its events. -/
 theorem dlog_probEvent_union {X : Type} [Fintype X] [DecidableEq X]
     (law : FinDist X) (t : ℕ) (S : Finset ℕ)
     (E : ℕ → (Fin t → X) → Prop) :
@@ -50,6 +75,8 @@ theorem dlog_probEvent_union {X : Type} [Fintype X] [DecidableEq X]
   · rw [if_neg he]
     exact Finset.sum_nonneg fun j _ => by split_ifs <;> positivity
 
+/-- For the stated prime and Fourier-modulus range, the common prime-power divisibility
+probability is bounded by the sum of the corresponding single-sample bounds raised to `t`. -/
 theorem dlog_tsample_union_bound (p q t : ℕ) [NeZero p] [NeZero q]
     (hprime : Nat.Prime p) (hp : 3 ≤ p) (hpq : p < q) (hq : q < 2 * p) :
     (dlogUniformGoodLaw p q).probEvent (L := t) (dlogCommonPpDivides p q) ≤
@@ -89,11 +116,14 @@ theorem dlog_tsample_union_bound (p q t : ℕ) [NeZero p] [NeZero q]
   exact pow_le_pow_left₀ (Finset.sum_nonneg fun c _ => (dlogUniformGoodLaw p q).nonneg c)
     ((le_div_iff₀ hden).2 hb) t
 
+/-- The common prime-power divisibility event has probability zero when there are no prime-power
+divisors of `p - 1` greater than 18. -/
 theorem dlog_tsample_empty_divisors (p q t : ℕ) [NeZero q]
     (he : (Nat.divisors (p-1)).filter (fun w => dlogIsPrimePower w ∧ 18 < w) = ∅) :
     (dlogUniformGoodLaw p q).probEvent (L := t) (dlogCommonPpDivides p q) = 0 := by
   simp [FinDist.probEvent,dlogCommonPpDivides,he]
 
+/-- For `2 ≤ p ≤ 19`, the common prime-power divisibility event has probability zero. -/
 theorem dlog_tsample_small_modulus (p q t : ℕ) [NeZero q] (hp : 2 ≤ p) (hp19 : p ≤ 19) :
     (dlogUniformGoodLaw p q).probEvent (L := t) (dlogCommonPpDivides p q) = 0 := by
   apply dlog_tsample_empty_divisors
@@ -102,15 +132,19 @@ theorem dlog_tsample_small_modulus (p q t : ℕ) [NeZero q] (hp : 2 ≤ p) (hp19
   have hle : w ≤ p-1 := Nat.le_of_dvd (by omega) (Nat.mem_divisors.mp hw).1
   omega
 
+/-- Natural-number scalar multiplication on the reals equals multiplication by the corresponding
+real cast. -/
 theorem dlog_nat_smul_real (k : ℕ) (x : ℝ) : k • x = (k : ℝ) * x := by
   rw [← smul_one_mul, Nat.smul_one_eq_cast]
 
+/-- For a prime `p ≥ 3`, the identity `p - 1 = 2 * (p / 2)` holds with natural-number division. -/
 theorem dlog_prime_sub_two_mul {p : ℕ} (hprime : Nat.Prime p) (hp3 : 3 ≤ p) :
     p - 1 = 2 * (p / 2) := by
   rcases hprime.eq_two_or_odd with h | h
   · omega
   · omega
 
+/-- An even prime power greater than 18 is a power of two with exponent at least five. -/
 theorem dlog_even_prime_power {w : ℕ} (hpp : dlogIsPrimePower w) (hw18 : 18 < w)
     (hw2 : 2 ∣ w) : ∃ e, 5 ≤ e ∧ 2 ^ e = w := by
   obtain ⟨ℓ, e, hℓ, _, hwe⟩ := hpp
@@ -128,6 +162,7 @@ theorem dlog_even_prime_power {w : ℕ} (hpp : dlogIsPrimePower w) (hw18 : 18 < 
     obtain ⟨j, hj⟩ := (Nat.even_pow.mp (even_iff_two_dvd.mpr hw2)).1
     omega
 
+/-- A prime power between 19 and 28 inclusive is one of 19, 23, 25, or 27. -/
 theorem dlog_prime_power_19_28 {w : ℕ} (hpp : dlogIsPrimePower w)
     (hw19 : 19 ≤ w) (hw28 : w ≤ 28) :
     w = 19 ∨ w = 23 ∨ w = 25 ∨ w = 27 := by
@@ -189,6 +224,8 @@ theorem dlog_prime_power_19_28 {w : ℕ} (hpp : dlogIsPrimePower w)
     norm_num at hwe
     exact absurd hw19 (by omega)
 
+/-- A prime predecessor cannot equal `w * m` when `w` is a prime power in `[19, 23)` and `m` is
+one of 2, 4, 6, or 8. -/
 theorem dlog_mid_even_false {p w m : ℕ} (hprime : Nat.Prime p) (hwm : w * m = p - 1)
     (hw19 : 19 ≤ w) (hpp : dlogIsPrimePower w) (hw22 : w < 23)
     (hm : m = 2 ∨ m = 4 ∨ m = 6 ∨ m = 8) : False := by
@@ -215,6 +252,8 @@ theorem dlog_mid_even_false {p w m : ℕ} (hprime : Nat.Prime p) (hwm : w * m = 
   · omega
   · omega
 
+/-- If `p - 1 = m * w` for an odd prime `p`, a prime power `w ≥ 19`, and `m` in `{3, 5, 7, 9}`,
+then `w ≥ 32`. -/
 theorem dlog_mid_odd_ge {p w m : ℕ} (hprime : Nat.Prime p) (hp3 : 3 ≤ p) (hwm : m * w = p - 1)
     (hw19 : 19 ≤ w) (hpp : dlogIsPrimePower w)
     (hm : m = 3 ∨ m = 5 ∨ m = 7 ∨ m = 9) : 32 ≤ w := by
@@ -230,12 +269,16 @@ theorem dlog_mid_odd_ge {p w m : ℕ} (hprime : Nat.Prime p) (hp3 : 3 ≤ p) (hw
     rcases hm with hm | hm | hm | hm <;> rw [hm] at hwm <;> rw [ha] at hwm
     all_goals omega
 
+/-- From `w * m = p - 1`, `1 ≤ p`, and `p < q`, derives the two stated bounds involving `q` and
+`q / 12`. -/
 theorem dlog_floor_bounds (p q w m : ℕ) (hp1 : 1 ≤ p) (hpq : p < q) (hwm : w * m = p - 1) :
     w * m + 2 ≤ q ∧ w * m ≤ 12 * (q / 12) + 9 := by
   have hqd : q = 12 * (q / 12) + q % 12 := (Nat.div_add_mod q 12).symm
   have hqmod : q % 12 < 12 := Nat.mod_lt _ (by norm_num)
   constructor <;> omega
 
+/-- The natural-number inequality `4 * (m + 1) ≤ 3 * (q / 12)` gives the real ratio bound `(m +
+1) / (q / 12) ≤ 3 / 4` when the denominator is positive. -/
 theorem dlog_rho_of_floor {m q : ℕ} (hD1 : 1 ≤ q / 12)
     (h4 : 4 * (m + 1) ≤ 3 * (q / 12)) :
     (((m + 1 : ℕ) : ℝ) / ((q / 12 : ℕ) : ℝ)) ≤ 3 / 4 := by
@@ -244,6 +287,8 @@ theorem dlog_rho_of_floor {m q : ℕ} (hD1 : 1 ≤ q / 12)
   have hcast : (4:ℝ) * (((m + 1 : ℕ) : ℝ)) ≤ 3 * ((q / 12 : ℕ) : ℝ) := by exact_mod_cast h4
   linarith
 
+/-- When `w ≥ 19` divides `p - 1` and its complementary divisor is at least ten, the ratio `((p
+- 1) / w + 1) / (q / 12)` is at most `14 / w`. -/
 theorem dlog_rho_le_div14 (p q w : ℕ) (hp1 : 1 ≤ p) (hpq : p < q)
     (hw : w ∣ p - 1) (hw19 : 19 ≤ w) (hm10 : 10 ≤ (p - 1) / w) :
     ((((p - 1) / w + 1 : ℕ) : ℝ) / ((q / 12 : ℕ) : ℝ)) ≤ 14 / ((w : ℕ) : ℝ) := by
@@ -266,6 +311,8 @@ theorem dlog_rho_le_div14 (p q w : ℕ) (hp1 : 1 ≤ p) (hpq : p < q)
   push_cast
   nlinarith [hDcast, hprod]
 
+/-- For the stated prime-power divisor and a complementary divisor between two and nine, the
+ratio `((p - 1) / w + 1) / (q / 12)` is at most `3 / 4`. -/
 theorem dlog_rho_le_three_fourths (p q w : ℕ) (hprime : Nat.Prime p) (hp3 : 3 ≤ p)
     (hpq : p < q) (hw : w ∣ p - 1) (hw19 : 19 ≤ w) (hpp : dlogIsPrimePower w)
     (hm2 : 2 ≤ (p - 1) / w) (hm9 : (p - 1) / w ≤ 9) :
@@ -300,6 +347,8 @@ theorem dlog_rho_le_three_fourths (p q w : ℕ) (hprime : Nat.Prime p) (hp3 : 3 
   · have hw32 := dlog_mid_odd_ge hprime hp3 hwm hw19 hpp (Or.inr (Or.inr (Or.inr rfl)))
     exact dlog_rho_of_floor (by omega) (by omega)
 
+/-- For the stated prime-power divisor with complementary divisor one, the ratio `((p - 1) / w +
+1) / (q / 12)` is at most `1 / 10`. -/
 theorem dlog_rho_le_one_tenth (p q w : ℕ) (hprime : Nat.Prime p) (hp3 : 3 ≤ p)
     (hpq : p < q) (hw : w ∣ p - 1) (hw19 : 19 ≤ w) (hpp : dlogIsPrimePower w)
     (hm1 : (p - 1) / w = 1) :
@@ -344,6 +393,7 @@ theorem dlog_rho_le_one_tenth (p q w : ℕ) (hprime : Nat.Prime p) (hp3 : 3 ≤ 
     rw [div_le_iff₀ hDpos]
     linarith
 
+/-- If `0 ≤ a ≤ c ≤ 1` and `t ≥ 12`, then `a ^ t ≤ c ^ 12`. -/
 theorem dlog_pow_t_le {a c : ℝ} {t : ℕ} (ha : 0 ≤ a) (hac : a ≤ c) (hc1 : c ≤ 1)
     (ht : 12 ≤ t) : a ^ t ≤ c ^ 12 := by
   have hsplit : a ^ t = a ^ 12 * a ^ (t - 12) := by
@@ -357,6 +407,8 @@ theorem dlog_pow_t_le {a c : ℝ} {t : ℕ} (ha : 0 ≤ a) (hac : a ≤ c) (hc1 
     _ = a ^ 12 := by ring
     _ ≤ c ^ 12 := ha12
 
+/-- For `x ≥ 19`, bounds `1 / x ^ 12` by one eleventh of the difference between consecutive
+reciprocal eleventh powers. -/
 theorem dlog_inv_pow_step (x : ℝ) (hx : 19 ≤ x) :
     1 / x ^ 12 ≤ 1 / 11 * (1 / (x - 1) ^ 11 - 1 / x ^ 11) := by
   have hx0 : (0:ℝ) < x := by linarith
@@ -399,6 +451,7 @@ theorem dlog_inv_pow_step (x : ℝ) (hx : 19 ≤ x) :
   have hd : (0:ℝ) ≤ x ^ 12 - (x + 11) * (x - 1) ^ 11 := by nlinarith [hkey]
   nlinarith [mul_nonneg hx11 hd]
 
+/-- The finite sum of consecutive differences of `F` telescopes to `F 0 - F m`. -/
 theorem dlog_sum_range_telescope (F : ℕ → ℝ) (m : ℕ) :
     ∑ k ∈ Finset.range m, (F k - F (k + 1)) = F 0 - F m := by
   have hconv : ∑ k ∈ Finset.range m, (F k - F (k + 1))
@@ -412,6 +465,7 @@ theorem dlog_sum_range_telescope (F : ℕ → ℝ) (m : ℕ) :
   rw [h2, Finset.sum_range_sub (fun k => -F k) m]
   ring
 
+/-- The sum of reciprocal twelfth powers from 19 to `n` is at most `1 / (11 * 18 ^ 11)`. -/
 theorem dlog_sum_inv_pow_le (n : ℕ) :
     ∑ w ∈ Finset.Icc 19 n, (1:ℝ) / ((w:ℕ) ^ 12) ≤ 1 / (11 * ((18:ℝ) ^ 11)) := by
   rcases Nat.lt_or_ge n 19 with hlt | h19
@@ -453,10 +507,13 @@ theorem dlog_sum_inv_pow_le (n : ℕ) :
     rw [hident]
     linarith
 
+/-- The explicit constant bounding the twelve-sample divisor sum is strictly less than one half. -/
 theorem dlog_tsample_constant :
     (1 / 10 : ℝ) ^ 12 + 8 * (3 / 4) ^ 12 + 14 ^ 12 / (11 * ((18:ℝ) ^ 11)) < 1 / 2 := by
   norm_num
 
+/-- For `t ≥ 12` and the stated prime-modulus assumptions, the prime-power divisor sum is
+bounded by the explicit twelve-sample constant. -/
 theorem dlog_tsample_sum_bound (p q t : ℕ) (hprime : Nat.Prime p) (hp3 : 3 ≤ p)
     (hpq : p < q) (ht : 12 ≤ t) :
     ∑ w ∈ (Nat.divisors (p - 1)).filter (fun w => dlogIsPrimePower w ∧ 18 < w),
@@ -621,6 +678,8 @@ theorem dlog_tsample_sum_bound (p q t : ℕ) (hprime : Nat.Prime p) (hp3 : 3 ≤
           mul_le_mul_of_nonneg_left (dlog_sum_inv_pow_le (p - 1)) (by positivity)
       _ = 14 ^ 12 / (11 * ((18:ℝ) ^ 11)) := by ring
 
+/-- Establishes the divisor-sum bound and the strict one-half tail estimate for at least twelve
+uniform good samples in the discrete-logarithm analysis of [Shor1997]. -/
 theorem dlogTSampleTail : DlogTSampleTail := by
   intro p q t _ _ hprime hp hpq hq
   refine ⟨dlog_tsample_union_bound p q t hprime hp hpq hq, ?_⟩

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedLaws
 import Qatlib.Concepts.LchsSimulation.StaticLchs.CountedPlanSampling
+
+/-!
+# Clocked finite-coin sampling
+
+`coinCode` implements fuel-limited finite-coin rejection sampling using explicit payment
+instructions. Its value law equals `finiteCoinRun`, whose successor equation separates
+acceptance from another charged sampling attempt.
+
+This development accompanies the study of QAOA-assisted minimum finding in [ShaydulinEtAl2024].
+
+## Main statements
+
+* `native_coin_succ`: One additional finite-coin attempt either accepts with charge `k` or adds
+  `k` to the charge of the remaining run.
+* `coinCode_actual_law`: The value law of the clocked finite-coin sampler equals
+  `finiteCoinRun`.
+
+## References
+
+* [Shaydulin et al., 2024][ShaydulinEtAl2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +38,8 @@ open Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode
 open Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 
+/-- Builds a finite-coin sampler with at most `fuel` attempts, charging `k` per attempt and
+returning the configuration with its accumulated bit charge. -/
 def coinCode (I : Type) (k m : ℕ) : ℕ → Code I (Configuration Unit (Fin m)×ℕ)
   | 0 => .ret (Sum.inr (),0)
   | fuel+1 => .pay k (drawF (finiteCoinNext k m ()) (fun cfg =>
@@ -23,6 +47,8 @@ def coinCode (I : Type) (k m : ℕ) : ℕ → Code I (Configuration Unit (Fin m)
       | .inl i => .ret (.inl i,k)
       | .inr _ => mapCode (fun out => (out.1,k+out.2)) (coinCode I k m fuel)))
 
+/-- One additional finite-coin attempt either accepts with charge `k` or adds `k` to the charge
+of the remaining run. -/
 theorem native_coin_succ (k m fuel : ℕ) :
     finiteCoinRun k m (fuel+1)=
       (finiteCoinNext k m ()).bind (fun cfg => match cfg with
@@ -44,6 +70,7 @@ theorem native_coin_succ (k m fuel : ℕ) :
     simp only [Prod.mk.injEq,true_and]
     ring
 
+/-- The value law of the clocked finite-coin sampler equals `finiteCoinRun`. -/
 theorem coinCode_actual_law (I : Type) (cost : I → ℝ) (current : I) (k m fuel : ℕ) :
     valueLaw cost current (coinCode I k m fuel)=finiteCoinRun k m fuel := by
   induction fuel with

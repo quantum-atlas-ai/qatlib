@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Native nonzero-query compilation specification
+
+`ActualNativeNonzeroQueryConsumer` specifies a uniform native compiler whose output on the
+two-label problem uses a positive number of oracle calls. It records legality, register width,
+gate and query bounds, and a clean-state overlap guarantee at precision parameter `k`.
+
+The native gate and oracle model follows the circuit framework of [NielsenChuang2010].
+
+## Main statements
+
+* `ActualNativeNonzeroQueryConsumer`: the quantified compiler and resource specification.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -17,6 +36,10 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The existence of a uniform native compiler with positive polynomial resource constants whose
+two-label programs, for `k ≥ 4`, are legal, use a positive number of queries, satisfy the
+specified width and cost bounds, and achieve real clean-state overlap at least `sqrt
+(1-(1/2)^k)`. -/
 def ActualNativeNonzeroQueryConsumer : Prop :=
   ∃ (c e : ℕ) (build : SourceRationalProblem → ℕ → SourceNativeProgram),
     0<c ∧ 0<e ∧ sourceNativeCompilerTime build c e ∧ ∀ k : ℕ, 4 ≤ k →

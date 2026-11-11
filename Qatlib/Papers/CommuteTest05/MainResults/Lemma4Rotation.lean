@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupQuan
+
+/-!
+# Two-dimensional reflection rotations
+
+This module computes the rotation induced by two complex-Hilbert-space reflections and relates
+it to normalized good and bad components in amplitude amplification. It gives two explicit
+basis-action formulas for Lemma 4 of [Itakura2005], with the signs determined by the chosen
+reflection order.
+
+## Main statements
+
+* `lemma4_rotation_two_dimensional`: Computes the product of line reflections on an orthonormal
+  pair.
+* `lemma4_amplification_step_normalized_rotation`: Computes the amplification step on normalized
+  projected components.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,10 +35,16 @@ namespace Qatlib.Papers.CommuteTest05.MainResults.Lemma4Rotation
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- The map `x ↦ (2 * inner ℂ a x) • a - x`, which is reflection through the span of `a` when
+`a` is a unit vector. -/
 def reflection (a : E) (x : E) : E := (2 * inner ℂ a x) • a - x
 
+/-- The composition of reflection through `α` followed by reflection through `ψ`. -/
 def amplificationStep (α ψ : E) (x : E) : E := reflection ψ (reflection α x)
 
+/-- For orthonormal `α` and `β` and `ψ = cos θ • α + sin θ • β`, `amplificationStep α ψ` acts on
+their span by the rotation of angle `2 * θ` displayed in the conclusion. See [Itakura, Lemma
+4][Itakura2005]. -/
 theorem lemma4_rotation_two_dimensional {α β : E} {θ : ℝ}
     (hα : inner ℂ α α = 1) (hβ : inner ℂ β β = 1) (hαβ : inner ℂ α β = 0) :
     let ψ : E := (Real.cos θ : ℂ) • α + (Real.sin θ : ℂ) • β
@@ -97,6 +124,9 @@ open Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 
 variable [CompleteSpace E] {S : Set ℤ}
 
+/-- If the good-projection squared norm equals `sin θ ^ 2` with `0 < θ < π / 2`, the
+amplification step acts on the normalized good and bad components by the stated sine-cosine
+rotation formulas. See [Itakura, Lemma 4][Itakura2005]. -/
 theorem lemma4_amplification_step_normalized_rotation
     (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)
     (A : E ≃ₗᵢ[ℂ] E) (χ : ℤ → Bool) (θ : ℝ)

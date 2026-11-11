@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HhlAlgorithms.UniformHHL.OffGridSignedHHL
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+/-!
+# Off-grid HHL examples and fresh retries
+
+This module gives a signed two-dimensional HHL example with eigenvalues `1/10` and `-1/8`, and
+models repeated fresh executions stopped at the first successful flag measurement. It develops a
+probabilistic resource ledger for the postselection step of [HarrowHassidimLloyd2009].
+
+The retry law records attempts, gates, and measurements together with query cost. Its exact
+geometric failure formula yields success and expected-cost bounds from the single-run Born
+probability.
+
+## Main statements
+
+* `uniform_signed_hhl_tenth_and_eighth_real_consumer`: an explicit normalized solution and error
+  bound.
+* `uniformHHLRetryLaw_ledger`: exact resource accounting for each supported outcome.
+* `uniform_offgrid_hhl_fresh_retry_success_and_cost`: retry success and expected query cost.
+* `uniformHHLRetrySelectedState_success`: the selected conditional state after success.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,10 +65,13 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- The two-dimensional example spectrum with eigenvalues `1/10` and `-1/8`. -/
 noncomputable def uniformHHLExampleSpectrum (i : Fin 2) : ℝ := if i = 0 then 1 / 10 else -1 / 8
 
+/-- The unnormalized example solution direction with coordinates `5` and `-4`. -/
 def uniformHHLExampleDirection (i : Fin 2) : ℂ := if i = 0 then 5 else -4
 
+/-- The Euclidean norm of the example direction is `sqrt 41`. -/
 theorem uniformHHLExampleDirection_norm :
     ‖toEuclidean_fromVec uniformHHLExampleDirection‖ = Real.sqrt 41 := by
   have hs : ‖toEuclidean_fromVec uniformHHLExampleDirection‖ ^ 2 = 41 := by
@@ -51,12 +79,15 @@ theorem uniformHHLExampleDirection_norm :
     norm_num [uniformHHLExampleDirection, Complex.normSq_apply]
   rw [← hs, Real.sqrt_sq (norm_nonneg _)]
 
+/-- The example eigenvalues have absolute values between `1/16` and `1/4`. -/
 theorem uniformHHLExampleSpectrum_promise :
     ∀ i, (1 / 16 : ℝ) ≤ |uniformHHLExampleSpectrum i| ∧
       |uniformHHLExampleSpectrum i| ≤ 1 / 4 := by
   intro i
   fin_cases i <;> norm_num [uniformHHLExampleSpectrum]
 
+/-- Applying the example matrix pseudoinverse to the Hadamard-prepared input gives `sqrt 2`
+times the example direction. -/
 theorem uniformHHLExample_inverse :
     matrixPseudoinverse (continuousHHLMatrix uniformHHLExampleSpectrum (1 : Operator 2)) *ᵥ
       (relabelGate boolEquivFin2 Hadamard *ᵥ Ket 0) =
@@ -76,6 +107,8 @@ theorem uniformHHLExample_inverse :
     field_simp <;> ring_nf
   all_goals rw [sqrt2_sq]; norm_num
 
+/-- The example's normalized HHL solution target has data amplitudes `5/sqrt 41` and `-4/sqrt
+41` in the success embedding. -/
 theorem uniformHHLExample_target (M : ℕ) (hM : 2 ≤ M) :
     uniformHHLSolutionTarget M hM uniformHHLExampleSpectrum (1 : Operator 2)
       (relabelGate boolEquivFin2 Hadamard) 0 =
@@ -100,6 +133,8 @@ theorem uniformHHLExample_target (M : ℕ) (hM : 2 ≤ M) :
     norm_num [uniformHHLExampleDirection, Pi.smul_apply, smul_eq_mul] <;>
     field_simp
 
+/-- For every precision index, the signed example has success probability at least `1/1024` and
+postselected error at most `32 * min (1/32) (2^(-k))` from its explicit normalized target. -/
 theorem uniform_signed_hhl_tenth_and_eighth_real_consumer :
     ∀ (k : ℕ), let d : ℝ := 1 / 16
       let M := uniformHHLGrid d k
@@ -132,6 +167,7 @@ theorem uniform_signed_hhl_tenth_and_eighth_real_consumer :
     convert! h.2.2 using 1; norm_num [uniformHHLAccuracy]
     ring
 
+/-- The Boolean measurement law recording whether a normalized state lies in an event. -/
 noncomputable def uniformHHLFlagTrialLaw {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : QState I) (hψ : Normalized ψ) (S : Finset I) : PMF Bool :=
   PMF.ofFintype (fun o => ENNReal.ofReal (ProjectiveBranchMass (Projector S) o ψ)) (by
@@ -140,17 +176,21 @@ noncomputable def uniformHHLFlagTrialLaw {I : Type*} [Fintype I] [DecidableEq I]
       projectiveBranchMass_add (projector_isOrthogonalProjector S),
       measureProb_univ hψ, ENNReal.ofReal_one])
 
+/-- The true outcome of the flag-trial law has mass `ENNReal.ofReal (MeasureProb ψ S)`. -/
 theorem uniformHHLFlagTrialLaw_true {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : QState I) (hψ : Normalized ψ) (S : Finset I) :
     uniformHHLFlagTrialLaw ψ hψ S true = ENNReal.ofReal (MeasureProb ψ S) := by
   change ENNReal.ofReal (MeasureProb (Collapse ψ S) Finset.univ) = _
   rw [measureProb_collapse, Finset.inter_univ]
 
+/-- The law of fresh trials stopped at the first success or after the prescribed number of
+attempts, recording success and the number of attempts used. -/
 noncomputable def uniformHHLFirstSuccess (trial : PMF Bool) : ℕ → PMF (Bool × ℕ)
   | 0 => PMF.pure (false, 0)
   | R + 1 => trial.bind (fun o => if o then PMF.pure (true, 1)
       else (uniformHHLFirstSuccess trial R).map (fun z => (z.1, z.2 + 1)))
 
+/-- Every supported outcome of the stopped trial law uses at most `R` attempts. -/
 theorem uniformHHLFirstSuccess_attempts (trial : PMF Bool) (R : ℕ) :
     ∀ z ∈ (uniformHHLFirstSuccess trial R).support, z.2 ≤ R := by
   induction R with
@@ -169,14 +209,19 @@ theorem uniformHHLFirstSuccess_attempts (trial : PMF Bool) (R : ℕ) :
       subst z
       omega
 
+/-- The two masses of a Boolean probability law sum to one. -/
 theorem uniformHHL_trial_total (trial : PMF Bool) : trial true + trial false = 1 := by
   simpa only [tsum_fintype, Fintype.sum_bool] using! trial.tsum_coe
 
+/-- The expectation of a function under a Boolean law is the sum of its two probability-weighted
+values. -/
 theorem uniformHHL_expectation_bool (trial : PMF Bool) (f : Bool → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation trial f = trial true * f true + trial false * f false := by
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation, tsum_fintype,
       Fintype.sum_bool]
 
+/-- The expected number of attempts with budget `R+1` equals one plus the failure probability
+times the expected number with budget `R`. -/
 theorem uniformHHLFirstSuccess_expected_succ (trial : PMF Bool) (R : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (uniformHHLFirstSuccess trial (R + 1)) (fun z => (z.2 : ℝ≥0∞)) =
       1 + trial false * Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (uniformHHLFirstSuccess trial R)
@@ -197,6 +242,8 @@ theorem uniformHHLFirstSuccess_expected_succ (trial : PMF Bool) (R : ℕ) :
   have ht := uniformHHL_trial_total trial
   rw [mul_add, ← add_assoc, mul_one, mul_one, add_right_comm, ht]
 
+/-- If a trial has nonzero success mass, the expected number of stopped attempts is at most the
+reciprocal success mass. -/
 theorem uniformHHLFirstSuccess_expected_le (trial : PMF Bool) (hp : trial true ≠ 0) (R : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (uniformHHLFirstSuccess trial R) (fun z => (z.2 : ℝ≥0∞)) ≤
       (trial true)⁻¹ := by
@@ -211,6 +258,8 @@ theorem uniformHHLFirstSuccess_expected_le (trial : PMF Bool) (hp : trial true �
       _ = (trial true + trial false) * (trial true)⁻¹ := by rw [add_mul, hcancel]
       _ = (trial true)⁻¹ := by rw [uniformHHL_trial_total, one_mul]
 
+/-- The failure probability after at most `R` fresh attempts is the single-trial failure mass
+raised to `R`. -/
 theorem uniformHHLFirstSuccess_failure (trial : PMF Bool) (R : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (uniformHHLFirstSuccess trial R) (fun z => z.1 = false) =
       trial false ^ R := by
@@ -225,6 +274,8 @@ theorem uniformHHLFirstSuccess_failure (trial : PMF Bool) (R : ℕ) :
       (fun z => z.1 = false) = _
     rw [ih, pow_succ']
 
+/-- The success and failure event masses of a law on a Boolean result and an attempt count sum
+to one. -/
 theorem uniformHHL_bool_event_total (q : PMF (Bool × ℕ)) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event q (fun z => z.1 = true) + Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event q (fun z => z.1 = false) = 1 := by
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event,
@@ -236,6 +287,8 @@ theorem uniformHHL_bool_event_total (q : PMF (Bool × ℕ)) :
       cases z.1 <;> simp
     _ = 1 := Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_const q 1
 
+/-- The stopped trial law succeeds with real probability `1 - (1-p)^R`, where `p` is the
+single-trial success probability. -/
 theorem uniformHHLFirstSuccess_success (trial : PMF Bool) (R : ℕ) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (uniformHHLFirstSuccess trial R) (fun z => z.1 = true)).toReal =
       1 - (1 - (trial true).toReal) ^ R := by
@@ -257,6 +310,8 @@ theorem uniformHHLFirstSuccess_success (trial : PMF Bool) (R : ℕ) :
   rw [hf] at hreal
   linarith
 
+/-- The stopped fresh-retry law for uniform HHL, recording success, attempts, gates, and
+measurements, with oracle queries as its cost. -/
 noncomputable def uniformHHLRetryLaw {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V : Operator D) (d : ℝ) (B : Operator D) (j : Fin D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -269,6 +324,7 @@ noncomputable def uniformHHLRetryLaw {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
   (uniformHHLFirstSuccess (uniformHHLFlagTrialLaw out hout S) R).map
     (fun z => ((z.1, z.2, z.2 * (4 * (M - 1) + 6), z.2), z.2 * (2 * (M - 1))))
 
+/-- With zero attempts, the HHL retry law returns failure and zero resource counts. -/
 theorem uniformHHLRetryLaw_zero {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V : Operator D) (d : ℝ) (B : Operator D) (j : Fin D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -277,6 +333,8 @@ theorem uniformHHLRetryLaw_zero {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
   simp [uniformHHLRetryLaw, uniformHHLFirstSuccess, PMF.pure_map,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret]
 
+/-- Every supported retry outcome uses at most `R` attempts, with `4*(M-1)+6` gates, one
+measurement, and `2*(M-1)` queries per attempt. -/
 theorem uniformHHLRetryLaw_ledger {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V : Operator D) (d : ℝ) (B : Operator D) (j : Fin D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -288,6 +346,8 @@ theorem uniformHHLRetryLaw_ledger {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
   obtain ⟨w, hw, rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hz
   exact ⟨uniformHHLFirstSuccess_attempts _ R w hw, rfl, rfl, rfl⟩
 
+/-- The HHL retry law succeeds with probability `1 - (1-p)^R`, where `p` is the single-run Born
+probability of the success event. -/
 theorem uniformHHLRetryLaw_success {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V : Operator D) (d : ℝ) (B : Operator D) (j : Fin D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -300,6 +360,8 @@ theorem uniformHHLRetryLaw_success {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_map, uniformHHLFirstSuccess_success, uniformHHLFlagTrialLaw_true,
     ENNReal.toReal_ofReal (measureProb_nonneg _ _)]
 
+/-- For positive single-run success probability `p`, the expected query cost is at most
+`2*(M-1)/p`. -/
 theorem uniformHHLRetryLaw_expected_le {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V : Operator D) (d : ℝ) (B : Operator D) (j : Fin D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -335,6 +397,9 @@ theorem uniformHHLRetryLaw_expected_le {D : ℕ} (M : ℕ) (hM : 2 ≤ M)
   rw [uniformHHLFlagTrialLaw_true] at h
   simpa only [div_eq_mul_inv, Nat.cast_mul, mul_comm] using! h
 
+/-- Under the spectral-gap and resolution hypotheses, fresh retries succeed with probability at
+least `1 - (1-d^2/4)^R`, satisfy the exact resource ledger, and have expected query cost at
+most `8*(M-1)/d^2`. -/
 theorem uniform_offgrid_hhl_fresh_retry_success_and_cost :
     ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D)
       (j : Fin D) (d η : ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -372,6 +437,8 @@ theorem uniform_offgrid_hhl_fresh_retry_success_and_cost :
     simp only [div_eq_mul_inv]
     ring
 
+/-- Under the stated gap and resolution hypotheses, conditioning on the successful projective
+measurement returns `some (PostMeasure out S)`. -/
 theorem uniformHHLRetry_success_state {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d η : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -388,6 +455,8 @@ theorem uniformHHLRetry_success_state {D M : ℕ} (hM : 2 ≤ M)
     (uniform_offgrid_signed_hhl_born_and_solution D M hM eig V B j d η
       hV hB hd hη hηd heig hbudget).2.1
 
+/-- The explicit signed example has single-run success at least `1/1024`, retry success at least
+`1 - (1023/1024)^R`, and expected query cost at most `2048*(M-1)`. -/
 theorem uniformHHLExample_fresh_retry (k R : ℕ) :
     let d : ℝ := 1 / 16
     let M := uniformHHLGrid d k
@@ -419,10 +488,14 @@ theorem uniformHHLExample_fresh_retry (k R : ℕ) :
     norm_num
     ring
 
+/-- Return the successful projective conditional state when the retry result reports success,
+and `none` when it reports failure. -/
 noncomputable def uniformHHLRetrySelectedState {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) (result : Bool × ℕ) : Option (QState I) :=
   if result.1 then ProjectiveConditionalState (Projector S) true ψ else none
 
+/-- For a successful retry result and positive event mass, the selected state equals `some
+(PostMeasure ψ S)`. -/
 theorem uniformHHLRetrySelectedState_success {I : Type*} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) (result : Bool × ℕ)
     (hs : result.1 = true) (hp : 0 < MeasureProb ψ S) :

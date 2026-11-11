@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.KTrapezoid.TrapezoidQuadrature
+
+/-!
+# Derivative and mass bounds for trapezoidal sources
+
+`inh_trap_source_derivatives` gives first and second derivatives of the source propagated to a
+fixed final time and bounds the second derivative using generator and source data.
+`inh_trap_source_mass_quadrature` bounds the trapezoidal sum of source norms by their time
+integral plus a derivative-controlled correction.
+
+The mathematical background is described in [AnLiuLin2023].
+
+## Main statements
+
+* `inh_trap_source_derivatives`: constructs the propagated-source derivatives and
+  second-derivative bound.
+* `inh_trap_source_mass_quadrature`: controls the weighted source mass.
+
+## References
+
+* [An et al., 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -30,11 +52,14 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The real continuous linear identification of finite complex state vectors with Euclidean
+space. -/
 private def inhEuclideanMap : QState I →L[ℝ] EuclideanSpace ℂ I :=
   (PiLp.continuousLinearEquiv 2 ℝ (fun _ : I => ℂ)).symm.toContinuousLinearMap
 
 omit [DecidableEq I] in
 
+/-- The derivative of a matrix-vector product is `M' *ᵥ v u + M u *ᵥ v'`. -/
 private theorem inh_mulVec_deriv {M : ℝ → Matrix I I ℂ} {v : ℝ → QState I}
     {M' : Matrix I I ℂ} {v' : QState I} {u : ℝ}
     (hM : HasDerivAt M M' u) (hv : HasDerivAt v v' u) :
@@ -48,6 +73,8 @@ private theorem inh_mulVec_deriv {M : ℝ → Matrix I I ℂ} {v : ℝ → QStat
 
 omit [DecidableEq I] in
 
+/-- A source derivative bounded in Euclidean norm by `β` on a segment makes the Euclidean source
+representation `β`-Lipschitz there. -/
 private theorem inh_derivative_lipschitz (b b' : ℝ → QState I) (s t β : ℝ)
     (hd : ∀ u, s ≤ u → u ≤ t → HasDerivAt b (b' u) u)
     (hn : ∀ u, s ≤ u → u ≤ t → ‖toEuclidean_fromVec (b' u)‖ ≤ β) :
@@ -63,6 +90,8 @@ private theorem inh_derivative_lipschitz (b b' : ℝ → QState I) (s t β : ℝ
     (convex_Icc s t) hz ha
   simpa only [Real.norm_eq_abs] using! hl
 
+/-- The propagated source has two derivatives on the segment, with second-derivative norm
+bounded by `((lamL + lamH) ^ 2 + lamLd + lamHd) * bmax + 2 * (lamL + lamH) * β + β₂`. -/
 theorem inh_trap_source_derivatives
     (L L' H H' : ℝ → Matrix I I ℂ) (b b' b'' : ℝ → QState I)
     (s t β β₂ lamL lamH lamLd lamHd bmax : ℝ)
@@ -154,6 +183,8 @@ theorem inh_trap_source_derivatives
 
 omit [DecidableEq I] in
 
+/-- The trapezoidal sum of source norms is at most their time integral plus `β * (t - s) ^ 2 /
+Mt` when the source derivative norm is bounded by `β` and `Mt` is positive. -/
 theorem inh_trap_source_mass_quadrature
     (b b' : ℝ → QState I) (s t β : ℝ) (Mt : ℕ)
     (hb : Continuous b) (hst : s ≤ t) (hMt : 0 < Mt)

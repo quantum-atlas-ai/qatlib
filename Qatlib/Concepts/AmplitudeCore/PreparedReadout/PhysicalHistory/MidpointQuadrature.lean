@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Lipschitz error bounds for midpoint quadrature
+
+`midpointMean` and `midpointMean₂` define uniform midpoint averages for vector-valued functions
+on the unit interval and square. The error proofs use continuity and Lipschitz estimates rather
+than second derivatives.
+
+These deterministic approximation bounds supply the discretization step for quantum integration;
+see [Novak2001] for the quantum integration context.
+
+## Main statements
+
+* `midpointMean_error`: the one-dimensional error is at most `L/(4*N)`.
+* `midpointMean₂_error`: the iterated two-dimensional error is at most `(Lu+Lv)/(4*N)`.
+
+## References
+
+* [Novak, 2001][Novak2001]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,9 +40,11 @@ namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.Clock
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [CompleteSpace E]
 
+/-- The equally weighted average of `f` over the `N` real midpoints of the unit interval. -/
 def midpointMean (N : ℕ) (f : ℝ → E) : E :=
   (N : ℝ)⁻¹ • ∑ j : Fin N, f (midpoint N j)
 
+/-- For `a ≤ b`, the integral of the distance to the interval midpoint is `(b-a)²/4`. -/
 theorem integral_midpoint_distance (a b : ℝ) (hab : a ≤ b) :
     (∫ t in a..b, |t - (a+b)/2|) = (b-a)^2/4 := by
   let c := (a+b)/2
@@ -51,6 +74,8 @@ theorem integral_midpoint_distance (a b : ℝ) (hab : a ≤ b) :
   dsimp [c]
   ring
 
+/-- A continuous function satisfying the stated midpoint Lipschitz estimate has single-cell
+midpoint error at most `L*(b-a)²/4`. -/
 theorem midpoint_cell_error (f : ℝ → E) (hf : Continuous f)
     (a b L : ℝ) (hab : a ≤ b)
     (hL : ∀ t ∈ Icc a b, ‖f t - f ((a+b)/2)‖ ≤ L * |t-(a+b)/2|) :
@@ -68,6 +93,8 @@ theorem midpoint_cell_error (f : ℝ → E) (hf : Continuous f)
       rw [intervalIntegral.integral_const_mul, integral_midpoint_distance a b hab]
       ring
 
+/-- For positive `N`, a continuous function with Lipschitz constant `L` on `[0,1]` has midpoint
+quadrature error at most `L/(4*N)`. -/
 theorem midpointMean_error (f : ℝ → E) (hf : Continuous f)
     (N : ℕ) (hN : 0 < N) (L : ℝ)
     (hL : ∀ s ∈ Icc (0 : ℝ) 1, ∀ t ∈ Icc (0 : ℝ) 1,
@@ -113,6 +140,8 @@ theorem midpointMean_error (f : ℝ → E) (hf : Continuous f)
 
 omit [CompleteSpace E] in
 
+/-- If corresponding values of two functions on a nonempty finite type differ by at most `δ`,
+their uniform averages differ by at most `δ`. -/
 theorem uniformMean_error {C : Type*} [Fintype C] [Nonempty C]
     (f g : C → E) (δ : ℝ) (hδ : ∀ j, ‖f j-g j‖ ≤ δ) :
     ‖(Fintype.card C : ℝ)⁻¹ • ∑ j, f j -
@@ -129,9 +158,13 @@ theorem uniformMean_error {C : Type*} [Fintype C] [Nonempty C]
       simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
       field_simp
 
+/-- The iterated equally weighted midpoint average of a two-variable function on the unit
+square. -/
 def midpointMean₂ (N : ℕ) (F : ℝ → ℝ → E) : E :=
   midpointMean N (fun u => midpointMean N (F u))
 
+/-- For positive `N`, a continuous function with coordinate Lipschitz bounds `Lu` and `Lv` has
+iterated midpoint error at most `(Lu+Lv)/(4*N)`. -/
 theorem midpointMean₂_error (F : ℝ → ℝ → E) (hF : Continuous F.uncurry)
     (N : ℕ) (hN : 0 < N) (Lu Lv : ℝ)
     (hu : ∀ u ∈ Icc (0 : ℝ) 1, ∀ u' ∈ Icc (0 : ℝ) 1, ∀ v ∈ Icc (0 : ℝ) 1,

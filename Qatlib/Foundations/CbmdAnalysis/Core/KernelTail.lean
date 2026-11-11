@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeights
 import Mathlib.Analysis.SpecialFunctions.Stirling
+
+/-!
+# Exponential tails of integer sampling weights
+
+Stirling bounds compare factorials with the products appearing in the integer regulator far from
+the row poles. Outside `|x| ≥ 2m`, `integerWeight_norm_le_far` improves the Cauchy weight bound
+by the factor `exp (-2m)`.
+
+Summing this estimate gives an exponentially small discarded weight mass for cutoffs at least
+`2am`. These estimates control finite-sampling errors in [WangEtAl2026].
+
+## Main statements
+
+* `integerWeight_norm_le_far`: gives exponential suppression of distant weights.
+* `integerWeight_tail_tsum_le`: bounds the discarded lattice mass.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -14,6 +35,7 @@ set_option autoImplicit false
 namespace CBMD
 open scoped BigOperators
 
+/-- For `m ≥ 1`, the factorial is at most `exp 1 * sqrt m * (m / exp 1) ^ m`. -/
 theorem factorial_stirling_upper (m : ℕ) (hm : 1 ≤ m) :
     (m.factorial : ℝ) ≤ Real.exp 1 * Real.sqrt m * ((m : ℝ) / Real.exp 1) ^ m := by
   have hm0 : 0 < (m : ℝ) := by exact_mod_cast (by omega : 0 < m)
@@ -28,6 +50,7 @@ theorem factorial_stirling_upper (m : ℕ) (hm : 1 ≤ m) :
   rw [Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
   field_simp
 
+/-- For `m ≥ 1`, the squared factorial is at most `exp 2 * m ^ (2 * m + 1) * exp (-2m)`. -/
 theorem factorial_square_cutoff_bound (m : ℕ) (hm : 1 ≤ m) :
     (m.factorial : ℝ) ^ 2 ≤
       Real.exp 2 * (m : ℝ) ^ (2 * m + 1) * Real.exp (-2 * (m : ℝ)) := by
@@ -44,6 +67,7 @@ theorem factorial_square_cutoff_bound (m : ℕ) (hm : 1 ≤ m) :
       rw [pow_succ, Nat.mul_comm m 2]
       ring
 
+/-- If `|x| ≥ 2m`, the product of distances to the row poles is at least `m ^ (2 * m + 1)`. -/
 theorem integer_regulator_product_lower_far (m : ℕ) (x : ℝ) (hx : 2 * m ≤ |x|) :
     (m : ℝ) ^ (2 * m + 1) ≤
       ∏ r ∈ Finset.Icc (-(m : ℤ)) m, ‖(x : ℂ) - (r : ℂ) - Complex.I‖ := by
@@ -68,6 +92,8 @@ theorem integer_regulator_product_lower_far (m : ℕ) (x : ℝ) (hx : 2 * m ≤ 
         sub_zero] at hnorm
       linarith
 
+/-- For `m ≥ 1`, positive spacing, and `|x| ≥ 2m`, the weight norm is at most
+`integerWeightConstant * exp 2 * exp (-2m) / (a * (1 + x²))`. -/
 theorem integerWeight_norm_le_far (m : ℕ) (hm : 1 ≤ m) {a : ℝ} (ha : 0 < a)
     (x : ℝ) (hx : 2 * m ≤ |x|) :
     ‖integerWeight m a x‖ ≤
@@ -121,6 +147,8 @@ theorem integerWeight_norm_le_far (m : ℕ) (hm : 1 ≤ m) {a : ℝ} (ha : 0 < a
           (Real.exp_pos _).le) (by positivity)
       exact mul_le_mul_of_nonneg_left (integerWeight_outer_product_lower x) ha.le
 
+/-- For `m ≥ 1`, `a ≥ 1`, and cutoff `K ≥ 2am`, the total weight norm beyond `K` is at most `5 *
+integerWeightConstant * exp 2 * exp (-2m)`. -/
 theorem integerWeight_tail_tsum_le (m : ℕ) (hm : 1 ≤ m) {a : ℝ} (ha : 1 ≤ a)
     (K : ℕ) (hK : 2 * a * m ≤ K) :
     (∑' k : {k : ℤ // (K : ℤ) < |k|},

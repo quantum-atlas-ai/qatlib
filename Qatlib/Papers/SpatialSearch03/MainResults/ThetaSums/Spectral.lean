@@ -9,6 +9,26 @@ import Mathlib.Data.ZMod.ValMinAbs
 import Mathlib.Topology.Order.IntermediateValue
 import Mathlib.Tactic
 
+/-!
+# Lattice dispersion and the secular function
+
+This module defines the centered wave vectors, dispersion, secular function, and first two
+inverse-dispersion lattice sums for the periodic lattice model of [ChildsGoldstone2004]. It
+establishes quadratic dispersion comparisons and analytic properties of the secular function at
+negative energies.
+
+## Main statements
+
+* `dispersion_le_sum_sq` and `dispersion_ge_sum_sq`: quadratic comparisons for the dispersion.
+* `secular_strictMonoOn` and `hasDerivAt_secular`: monotonicity and differentiation below zero.
+* `existsUnique_secular_eq_one`: existence and uniqueness of a negative solution of the secular
+  equation.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -19,25 +39,32 @@ open Finset
 
 variable {d : ℕ}
 
+/-- The periodic lattice dispersion `2 * ∑ j, (1 - Real.cos (k j))`. -/
 def dispersion (k : Fin d → ℝ) : ℝ := 2 * ∑ j, (1 - Real.cos (k j))
 
+/-- The wave vector obtained by multiplying each centered integer representative of a lattice
+index by `2 * Real.pi / n`. -/
 def waveVector (n : ℕ) (m : Fin d → ZMod n) : Fin d → ℝ :=
   fun j => 2 * Real.pi * ((m j).valMinAbs : ℝ) / n
 
+/-- The wave vector of the zero lattice index is zero. -/
 @[simp] theorem waveVector_zero (n : ℕ) :
     waveVector (d := d) n (0 : Fin d → ZMod n) = 0 := by
   funext j
   simp [waveVector]
 
+/-- The dispersion vanishes at the zero wave vector. -/
 @[simp] theorem dispersion_zero : dispersion (d := d) (0 : Fin d → ℝ) = 0 := by
   simp [dispersion]
 
+/-- The periodic lattice dispersion is nonnegative for every real wave vector. -/
 theorem dispersion_nonneg (k : Fin d → ℝ) : 0 ≤ dispersion k := by
   unfold dispersion
   refine mul_nonneg (by norm_num) (Finset.sum_nonneg ?_)
   intro j _
   linarith [Real.cos_le_one (k j)]
 
+/-- The dispersion is at most the sum of the squared wave-vector coordinates. -/
 theorem dispersion_le_sum_sq (k : Fin d → ℝ) :
     dispersion k ≤ ∑ j, (k j) ^ 2 := by
   unfold dispersion
@@ -48,6 +75,8 @@ theorem dispersion_le_sum_sq (k : Fin d → ℝ) :
       = ∑ j, 2 * (1 - Real.cos (k j)) := by rw [Finset.mul_sum]
     _ ≤ ∑ j, (k j) ^ 2 := Finset.sum_le_sum h
 
+/-- If every coordinate has absolute value at most `Real.pi`, the dispersion is at least `4 /
+Real.pi ^ 2` times the sum of squared coordinates. -/
 theorem dispersion_ge_sum_sq (k : Fin d → ℝ) (hk : ∀ j, |k j| ≤ Real.pi) :
     (4 / Real.pi ^ 2) * ∑ j, (k j) ^ 2 ≤ dispersion k := by
   unfold dispersion
@@ -63,6 +92,7 @@ theorem dispersion_ge_sum_sq (k : Fin d → ℝ) (hk : ∀ j, |k j| ≤ Real.pi)
     _ ≤ ∑ j, 2 * (1 - Real.cos (k j)) := Finset.sum_le_sum h
     _ = 2 * ∑ j, (1 - Real.cos (k j)) := (Finset.mul_sum ..).symm
 
+/-- The dispersion vanishes exactly when the cosine of every coordinate is one. -/
 theorem dispersion_eq_zero_iff (k : Fin d → ℝ) :
     dispersion k = 0 ↔ ∀ j, Real.cos (k j) = 1 := by
   unfold dispersion
@@ -83,6 +113,8 @@ theorem dispersion_eq_zero_iff (k : Fin d → ℝ) :
     intro j _
     rw [h j]; ring
 
+/-- For positive side length, every centered wave-vector coordinate has absolute value at most
+`Real.pi`. -/
 theorem abs_waveVector_le_pi {n : ℕ} (hn : 0 < n) (m : Fin d → ZMod n) (j : Fin d) :
     |waveVector n m j| ≤ Real.pi := by
   haveI : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
@@ -107,8 +139,11 @@ theorem abs_waveVector_le_pi {n : ℕ} (hn : 0 < n) (m : Fin d → ZMod n) (j : 
     _ = Real.pi := by
         field_simp
 
+/-- The integer vector of centered representatives of a periodic lattice index. -/
 def centredVec (n : ℕ) (m : Fin d → ZMod n) : Fin d → ℤ := fun j => (m j).valMinAbs
 
+/-- The map from a periodic lattice index to its vector of centered integer representatives is
+injective. -/
 theorem centredVec_injective (n : ℕ) : Function.Injective (centredVec (d := d) n) := by
   intro m₁ m₂ h
   funext j
@@ -117,17 +152,25 @@ theorem centredVec_injective (n : ℕ) : Function.Injective (centredVec (d := d)
     simpa [centredVec] using this
   exact ZMod.valMinAbs_inj.mp hj
 
+/-- The lattice-volume-normalized sum of reciprocal shifted energies `γ * dispersion (waveVector
+n m) - E` over all periodic lattice indices. -/
 def secular (γ : ℝ) (n d : ℕ) [NeZero n] (E : ℝ) : ℝ :=
   ((n : ℝ) ^ d)⁻¹ * ∑ m : Fin d → ZMod n, (γ * dispersion (waveVector n m) - E)⁻¹
 
+/-- The lattice-volume-normalized sum of inverse dispersions over the nonzero periodic lattice
+indices. -/
 def latSum1 (n d : ℕ) [NeZero n] : ℝ :=
   ((n : ℝ) ^ d)⁻¹ * ∑ m ∈ (Finset.univ.erase (0 : Fin d → ZMod n)),
     (dispersion (waveVector n m))⁻¹
 
+/-- The lattice-volume-normalized sum of squared inverse dispersions over the nonzero periodic
+lattice indices. -/
 def latSum2 (n d : ℕ) [NeZero n] : ℝ :=
   ((n : ℝ) ^ d)⁻¹ * ∑ m ∈ (Finset.univ.erase (0 : Fin d → ZMod n)),
     (dispersion (waveVector n m))⁻¹ ^ 2
 
+/-- For positive coupling and negative energy, each reciprocal shifted lattice energy is at most
+the reciprocal of the absolute energy. -/
 theorem inv_resolvent_le {γ E : ℝ} {n : ℕ} (hγ : 0 < γ) (hE : E < 0)
     (m : Fin d → ZMod n) :
     (γ * dispersion (waveVector n m) - E)⁻¹ ≤ |E|⁻¹ := by
@@ -138,6 +181,8 @@ theorem inv_resolvent_le {γ E : ℝ} {n : ℕ} (hγ : 0 < γ) (hE : E < 0)
     rw [abs_of_neg hE]; linarith
   exact inv_anti₀ hEpos hle
 
+/-- For positive coupling and side length and negative energy, the secular function is at most
+`|E|⁻¹`. -/
 theorem secular_le_inv {γ : ℝ} {E : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     (hE : E < 0) : secular γ n d E ≤ |E|⁻¹ := by
   have hnpos : (0:ℝ) < (n : ℝ) ^ d := by
@@ -160,6 +205,8 @@ theorem secular_le_inv {γ : ℝ} {E : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) 
         rw [Finset.sum_const, hcard, nsmul_eq_mul]; push_cast; ring_nf
     _ = |E|⁻¹ := by field_simp
 
+/-- For positive coupling and side length and negative energy, the zero-mode contribution `|E|⁻¹
+/ n ^ d` is at most the secular function. -/
 theorem le_secular {γ : ℝ} {E : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     (hE : E < 0) : |E|⁻¹ / (n : ℝ) ^ d ≤ secular γ n d E := by
   have hmem : (0 : Fin d → ZMod n) ∈ (Finset.univ : Finset (Fin d → ZMod n)) :=
@@ -188,6 +235,8 @@ theorem le_secular {γ : ℝ} {E : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn 
           (γ * dispersion (waveVector n m) - E)⁻¹ := by
         refine mul_le_mul_of_nonneg_left hsingle (by positivity)
 
+/-- For positive coupling and side length, the secular function is strictly increasing on the
+negative real energies. -/
 theorem secular_strictMonoOn {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n) :
     StrictMonoOn (secular γ n d) (Set.Iio 0) := by
   intro E₁ h₁ E₂ h₂ hlt
@@ -217,6 +266,8 @@ theorem secular_strictMonoOn {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn 
     have : (0:ℝ) < (n:ℝ) := by exact_mod_cast hn
     positivity)
 
+/-- For positive coupling and negative energy, the derivative of the secular function is the
+lattice-volume-normalized sum of squared reciprocal shifted energies [ChildsGoldstone2004]. -/
 theorem hasDerivAt_secular {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) {E : ℝ} (hE : E < 0) :
     HasDerivAt (secular γ n d)
       (((n : ℝ) ^ d)⁻¹ * ∑ m : Fin d → ZMod n,
@@ -242,6 +293,8 @@ theorem hasDerivAt_secular {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) {E : �
   have hsum := HasDerivAt.fun_sum (u := (Finset.univ : Finset (Fin d → ZMod n))) hterm
   exact hsum.const_mul _
 
+/-- For positive side length and negative energy, the zero-mode term `1 / (n ^ d * E ^ 2)`
+bounds the normalized squared-resolvent sum from below [ChildsGoldstone2004]. -/
 theorem secular_deriv_ge {γ : ℝ} {n : ℕ} [NeZero n] (hn : 0 < n) {E : ℝ} (_hE : E < 0) :
     1 / ((n : ℝ) ^ d * E ^ 2)
       ≤ ((n : ℝ) ^ d)⁻¹ * ∑ m : Fin d → ZMod n,
@@ -270,6 +323,8 @@ theorem secular_deriv_ge {γ : ℝ} {n : ℕ} [NeZero n] (hn : 0 < n) {E : ℝ} 
           (γ * dispersion (waveVector n m) - E)⁻¹ ^ 2 :=
         mul_le_mul_of_nonneg_left hsingle hinv_pos.le
 
+/-- For positive coupling, the secular function is continuous on any set consisting entirely of
+negative energies. -/
 theorem continuousOn_secular {γ : ℝ} (hγ : 0 < γ) {n : ℕ} [NeZero n] {s : Set ℝ}
     (hs : ∀ E ∈ s, E < 0) : ContinuousOn (secular γ n d) s := by
   unfold secular
@@ -284,6 +339,8 @@ theorem continuousOn_secular {γ : ℝ} (hγ : 0 < γ) {n : ℕ} [NeZero n] {s :
     have := hs E hE
     linarith
 
+/-- For positive coupling and side length, there is a negative energy at which the secular
+function equals one. -/
 theorem exists_secular_eq_one {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n) :
     ∃ E : ℝ, E < 0 ∧ secular γ n d E = 1 := by
   have hnpos : (0:ℝ) < (n : ℝ) ^ d := by
@@ -331,6 +388,8 @@ theorem exists_secular_eq_one {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn
   obtain ⟨E, hE, hFE⟩ := intermediate_value_Icc hab hcont hmem
   exact ⟨E, by have := hE.2; linarith, hFE⟩
 
+/-- For positive coupling and side length, there is exactly one negative energy at which the
+secular function equals one. -/
 theorem existsUnique_secular_eq_one {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n) :
     ∃! E : ℝ, E < 0 ∧ secular γ n d E = 1 := by
   obtain ⟨E₀, hE₀⟩ := exists_secular_eq_one (d := d) hγ hn

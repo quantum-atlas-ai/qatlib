@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryComparisonSourceDefs
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparison
+
+/-!
+# Polynomial and query-model comparison results
+
+This module collects Hamming-layer symmetrization, finite-class query minima, and the exact
+polynomial degree of OR. The results connect the polynomial method of [BealsEtAl2001] to
+concrete circuit and classical decision-tree formulations.
+
+The OR comparison supplies the bound `Fintype.card I ≤ 2 * QueryCount P.circuit` under
+`ZeroErrorFor`, together with the classical scan characterization. Each statement retains the
+conventions and hypotheses of its underlying program model.
+
+## Main statements
+
+* `clause64_symmetrisation`: Layer averages are represented by a univariate polynomial of
+  bounded degree.
+* `clause67_complete`: Collects minimality, exact attainment, and the exact-degree query bound.
+* `clause70_complete`: OR has exact degree equal to the size of a nonempty input index type.
+* `clause69_lower`: Gives the stated OR query lower bound in the comparison model.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +52,8 @@ open scoped Classical BigOperators ENNReal
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- For every real polynomial on `Fin n`, permutation and layer averages agree at valid weights
+and are represented by a univariate polynomial of no greater degree [BealsEtAl2001]. -/
 theorem clause64_complete :
     ∀ (n : ℕ) (p : MvPolynomial (Fin n) ℝ),
       (∀ k : ℕ, k ≤ n → Qatlib.Concepts.QueryComplexity.DegreeMethod.permLayerAverage n p k
@@ -36,6 +63,9 @@ theorem clause64_complete :
             ∀ k : ℕ, k ≤ n → Qatlib.Concepts.QueryComplexity.DegreeMethod.layerAverage p k = Polynomial.eval (k : ℝ) q :=
   Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryCore.stageB_query_comparison_clause64
 
+/-- The layer averages of a real polynomial agree with its permutation averages and with
+evaluations of a univariate polynomial whose degree is at most its total degree
+[BealsEtAl2001]. -/
 theorem clause64_symmetrisation (n : ℕ) (p : MvPolynomial (Fin n) ℝ) :
     (∀ k : ℕ, k ≤ n → Qatlib.Concepts.QueryComplexity.DegreeMethod.permLayerAverage n p k
           = Qatlib.Concepts.QueryComplexity.DegreeMethod.layerAverage p k) ∧
@@ -44,6 +74,9 @@ theorem clause64_symmetrisation (n : ℕ) (p : MvPolynomial (Fin n) ℝ) :
           ∀ k : ℕ, k ≤ n → Qatlib.Concepts.QueryComplexity.DegreeMethod.layerAverage p k = Polynomial.eval (k : ℝ) q :=
   clause64_complete n p
 
+/-- For nonempty feasible count sets, the exact, bounded, success, and zero-error minima bound
+the corresponding programs' query counts; the exact minimum is attained and bounds half the
+exact polynomial degree. -/
 theorem clause67_complete (M : MachineClass I W) (f : (I → Bool) → Bool)
     (hE : ∃ n, n ∈ M.exactCountSet f)
     (hB : ∃ n, n ∈ M.boundedCountSet f)
@@ -67,6 +100,8 @@ theorem clause67_complete (M : MachineClass I W) (f : (I → Bool) → Bool)
     exact M.minZeroErrorQueries_le hQ hQf
   · exact Qatlib.Concepts.QueryComplexity.DegreeMethod.minExactQueries_degree_bound (h := hE)
 
+/-- OR on a nonempty finite Boolean index type has exact polynomial degree equal to the number
+of indices [BealsEtAl2001]. -/
 theorem clause70_complete (hcard : 0 < Fintype.card I) :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree (I := I) orFunction = Fintype.card I := by
   have horMem : orPolynomial ∈
@@ -99,6 +134,8 @@ theorem clause70_complete (hcard : 0 < Fintype.card I) :
     exact (Qatlib.Concepts.QueryComplexity.DegreeMethod.boolean_multilinear_or_totalDegree p hcard hp').trans_eq hpdeg
   exact le_antisymm hupper hlower
 
+/-- A decision program satisfying `ZeroErrorFor` for OR on a nonempty index type satisfies
+`Fintype.card I ≤ 2 * QueryCount P.circuit` [BealsEtAl2001]. -/
 theorem clause69_lower {P : DecisionProgram I W} (hZ : P.ZeroErrorFor orFunction)
     (hcard : 0 < Fintype.card I) :
     Fintype.card I ≤ 2 * QueryCount P.circuit := by
@@ -108,6 +145,8 @@ theorem clause69_lower {P : DecisionProgram I W} (hZ : P.ZeroErrorFor orFunction
   rw [clause70_complete hcard] at hdeg
   exact hdeg
 
+/-- Scanning all indices returns true exactly when there is a listed true bit, with the scan
+tree's maximum query count equal to the number of indices. -/
 theorem clause69_classical_upper (g : I → Bool) :
     (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run g (orScanTree (allElements I))).1 = true ↔
         ∃ i, i ∈ allElements I ∧ g i = true ∧

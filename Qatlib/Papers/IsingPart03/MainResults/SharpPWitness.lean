@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.IsingPart03.MainResults.SpinGlass
+
+/-!
+# Colored witnesses for signed weight enumerators
+
+This module defines `Colour` as colorings of the support of a binary edge vector and
+`witnessCount` as a count restricted by vertex parity and edge-sign parity. The difference
+between its positive and negative counts equals the specialized weight enumerator, giving a
+finite counting identity for Corollary 1 of [Lidar2004].
+
+## Main statements
+
+* `colour_card_eq_pow`: counts support colorings by a power of the number of colors.
+* `source_corollary1_signed_witness_count`: expresses the specialized weight enumerator as a
+  difference of witness counts.
+
+## References
+
+* [Lidar, 2004][Lidar2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,10 +36,12 @@ namespace Qatlib.Papers.IsingPart03.MainResults
 
 variable {V E : Type*} [Fintype V] [Fintype E] [DecidableEq V] [DecidableEq E]
 
+/-- The type of `m`-colorings of the nonzero support of the binary edge vector `b`. -/
 abbrev Colour (m : ℕ) (b : E → ZMod 2) : Type _ := {e : E // b e ≠ 0} → Fin m
 
 omit [DecidableEq E] in
 
+/-- The cardinality of the nonzero support of `b` equals `suppCard b`. -/
 lemma card_colourDomain (b : E → ZMod 2) :
     Fintype.card {e : E // b e ≠ 0} = suppCard b := by
   classical
@@ -28,16 +50,23 @@ lemma card_colourDomain (b : E → ZMod 2) :
   intro e _
   rcases eq_zero_or_one (b e) with h | h <;> simp [h]
 
+/-- The number of `m`-colorings of the support of `b`, coerced to the complex numbers, equals `m
+^ suppCard b`. -/
 lemma colour_card_eq_pow (m : ℕ) (b : E → ZMod 2) :
     ((Fintype.card (Colour (E := E) m b) : ℕ) : ℂ) = (m : ℂ) ^ suppCard b := by
   rw [Fintype.card_fun, card_colourDomain]
   push_cast
   simp
 
+/-- The number of support colorings of zero-parity edge vectors whose binary dot product with
+`w` equals `s`. -/
 def witnessCount (ends : E → V × V) (w : E → ZMod 2) (m : ℕ) (s : ZMod 2) : ℕ :=
   ∑ b : E → ZMod 2,
     if parity ends b = 0 ∧ bDotW b w = s then Fintype.card (Colour (E := E) m b) else 0
 
+/-- The incidence-matrix weight enumerator at `(m, 1)` equals the positive witness count minus
+the negative witness count, as in the counting formulation of [Lidar, Corollary
+1][Lidar2004]. -/
 theorem source_corollary1_signed_witness_count (ends : E → V × V) (w : E → ZMod 2)
     (m : ℕ) :
     qwgt (incidence ends) (dg w) (m : ℂ) 1

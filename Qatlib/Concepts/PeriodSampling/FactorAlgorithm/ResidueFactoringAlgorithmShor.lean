@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFactoringAlgorithmStat
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAttemptSuccessShor
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
+
+/-!
+# Amplified residue factoring algorithm
+
+Combines preprocessing with repeated residue-based attempts to establish
+`residueFactoringAlgorithm`. Counting gcd-success residues separately from units bounds the
+single-attempt expression by one and yields the amplified success guarantee in the probability
+model associated with [Shor1997].
+
+## Main statements
+
+* `residue_gcd_units_count_le`: Bounds the combined number of gcd-success residues and units.
+* `residueFactoringAlgorithm`: Establishes amplified success and factor soundness.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -21,6 +40,8 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open Qatlib
 open scoped Classical
 
+/-- A lower bound `c` on a single-trial event probability yields lower bound `1 - (1 - c) ^ R`
+on success in `R` independent trials. -/
 private theorem residue_fresh_success_bound {A : Type*} [Fintype A] [DecidableEq A]
     (p : FinDist A) (P : A → Prop) [DecidablePred P] (R : ℕ) (c : ℝ)
     (hc : c ≤ p.probEvent (L := 1) (fun ω => P (ω 0))) :
@@ -57,6 +78,8 @@ private theorem residue_fresh_success_bound {A : Type*} [Fintype A] [DecidableEq
   rw [hbad] at hrecords
   linarith
 
+/-- The number of residues producing a proper gcd factor plus the number of units is at most
+`N`. -/
 theorem residue_gcd_units_count_le (N : ℕ) [NeZero N] :
     residueGcdProperCount N + Fintype.card (ZMod N)ˣ ≤ N := by
   have hsub : (Finset.univ.filter fun y : ZMod N =>
@@ -74,6 +97,7 @@ theorem residue_gcd_units_count_le (N : ℕ) [NeZero N] :
   dsimp [residueGcdProperCount]
   omega
 
+/-- For `N ≥ 3` and sampler capacity at least `N`, the residue-attempt bound is at most one. -/
 private theorem residue_attempt_bound_le_one (N k : ℕ) [NeZero N] (hN : 3 ≤ N)
     (hk : N ≤ 2^k) : shorResidueAttemptBound N k ≤ 1 := by
   have hs : 1 ≤ N.primeFactors.card :=
@@ -101,6 +125,8 @@ private theorem residue_attempt_bound_le_one (N k : ℕ) [NeZero N] (hN : 3 ≤ 
   apply (div_le_one (by positivity)).2
   linarith only [hquant, htotal]
 
+/-- Establishes preprocessing soundness, amplified residue-attempt success, and soundness of
+both classical and unit-based factor outputs in the model associated with [Shor1997]. -/
 theorem residueFactoringAlgorithm : ResidueFactoringAlgorithm := by
   intro N R k M _ hM hk hN hcomposite hsize
   refine ⟨fun d h => factoringPreprocessing.1 N d hN h, ?_,

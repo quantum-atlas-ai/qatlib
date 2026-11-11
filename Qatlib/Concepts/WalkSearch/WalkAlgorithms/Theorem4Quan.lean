@@ -10,6 +10,30 @@ import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem4Stat
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
 import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Quan
+
+/-!
+# Corrected triangle-search guarantees
+
+This module proves soundness, a finite-seed failure bound, and an explicit cost bound for
+`th4Alg`, culminating in `theorem4_answer` for the corrected contract `Theorem4`. The proof
+combines least-power parameter choices with the checker using fresh validation seeds and a real
+cost bound proportional to n^(13/10) with logarithmic factors.
+
+It also constructs zero-cost search contracts and proves `theorem4_rounding_obstruction`, which
+refutes the original `theorem4` parameter window. The triangle-search setting follows
+[Ambainis2005].
+
+## Main statements
+
+* `th4Alg_sound`: any returned triple has distinct vertices and the required edges.
+* `th4Alg_complete`: the number of failing seed pairs satisfies the stated bound.
+* `theorem4_answer`: the corrected triangle-search contract holds.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.WalkSearch.CollisionSearch
@@ -20,6 +44,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 open scoped Classical
 
+/-- A noisy-search interface with a single seed, zero charge, and zero failure exponent that
+always returns `none`. -/
 def nullNoisySearch : NoisySearch where
   seed := Unit
   seedFin := inferInstance
@@ -33,6 +59,8 @@ def nullNoisySearch : NoisySearch where
   finds := by intros; simp
   charges := by intros; simp
 
+/-- A safe Grover-search interface with a single seed, zero charge, and zero failure exponent
+that always returns `none`. -/
 def nullSafeGrover : SafeGrover where
   seed := Unit
   seedFin := inferInstance
@@ -46,6 +74,7 @@ def nullSafeGrover : SafeGrover where
   finds := by intros; simp
   charges := by intros; simp
 
+/-- No positive natural number has its fifth power between 8 and 24 inclusive. -/
 theorem theorem4_no_subset_size_at_two :
     ¬ ∃ r : ℕ, 1 ≤ r ∧ 8 ≤ r * r * r * r * r ∧ r * r * r * r * r ≤ 24 := by
   rintro ⟨r, _, hlo, hhi⟩
@@ -56,6 +85,8 @@ theorem theorem4_no_subset_size_at_two :
     have hp : 2 ^ 5 ≤ r ^ 5 := Nat.pow_le_pow_left hr2 5
     nlinarith
 
+/-- The original `theorem4` contract is false because its subset-size window has no solution at
+`n = 2`. -/
 theorem theorem4_rounding_obstruction : ¬ theorem4 := by
   intro h
   obtain ⟨r, r', hr, hlo, hhi, _⟩ := h 2 (by norm_num) (fun _ _ => false)
@@ -63,13 +94,19 @@ theorem theorem4_rounding_obstruction : ¬ theorem4 := by
   exact theorem4_no_subset_size_at_two ⟨r, hr, by norm_num at hlo; exact hlo,
     by norm_num at hhi; exact hhi⟩
 
+/-- The zero-cost collision and noisy-search interfaces satisfy `triCheckSpec` for every
+adjacency predicate, subset, and choice of checker parameters. -/
 theorem triCheckSpec_null {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (r' c₀ : ℕ) : triCheckSpec adj U (nullKCollisionSolver 0) nullNoisySearch r' c₀ := by
   simp [triCheckSpec, triCheck, cCOf, nullKCollisionSolver, nullNoisySearch]
 
+/-- The Boolean predicate selecting vertices distinct from both entries of `t` and adjacent from
+each of them. -/
 def walkThird {n : ℕ} (adj : Fin n → Fin n → Bool) (t : Fin 2 → Fin n) : Fin n → Bool :=
   fun w => decide (w ≠ t 0 ∧ w ≠ t 1 ∧ adj (t 0) w ∧ adj (t 1) w)
 
+/-- Expands `th4Alg` into collision search followed by safe Grover search with predicate
+`walkThird`, including its validation branches and accumulated costs. -/
 theorem th4Alg_eq {n : ℕ} (adj : Fin n → Fin n → Bool)
     (kcs : KCollisionSolver) (ncs : NoisySearch) (sgs : SafeGrover) (r r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (gtape : ℕ → sgs.seed) :
@@ -87,6 +124,8 @@ theorem th4Alg_eq {n : ℕ} (adj : Fin n → Fin n → Bool)
           sgs.cost (N := n) (walkThird adj t) 3 n (gtape 0))
     | none => (none,kcs.cost (n := n) (k := 2) r (triRel adj) (r*r) r (cCOf kcs ncs n r r' c₀) (stape 0)) := rfl
 
+/-- For a loopless adjacency predicate, a pair satisfying `triRel` has a third vertex satisfying
+`walkThird`. -/
 theorem walkThird_exists {n : ℕ} (adj : Fin n → Fin n → Bool)
     (hl : ∀ a, adj a a = false) (t : Fin 2 → Fin n) (ht : triRel adj t = true) :
     ∃ w, walkThird adj t w = true := by
@@ -98,6 +137,8 @@ theorem walkThird_exists {n : ℕ} (adj : Fin n → Fin n → Bool)
   · intro h; subst w; simp [hl] at h0
   · intro h; subst w; simp [hl] at h1
 
+/-- A pair satisfying `triRel` and a vertex satisfying `walkThird` pass the three-edge Boolean
+validation. -/
 theorem walkThird_validation {n : ℕ} (adj : Fin n → Fin n → Bool)
     (t : Fin 2 → Fin n) (w : Fin n) (ht : triRel adj t = true)
     (hw : walkThird adj t w = true) :
@@ -106,6 +147,8 @@ theorem walkThird_validation {n : ℕ} (adj : Fin n → Fin n → Bool)
   simp only [walkThird,decide_eq_true_eq] at hw
   simp [ht.2.1,hw.2.2.1,hw.2.2.2]
 
+/-- Every triple returned by `th4Alg` consists of three distinct vertices with all three
+specified adjacency values equal to `true`. -/
 theorem th4Alg_sound {n : ℕ} (adj : Fin n → Fin n → Bool)
     (kcs : KCollisionSolver) (ncs : NoisySearch) (sgs : SafeGrover) (r r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (gtape : ℕ → sgs.seed) :
@@ -129,6 +172,8 @@ theorem th4Alg_sound {n : ℕ} (adj : Fin n → Fin n → Bool)
           adj (t 0) (t 1) = true ∧ adj (t 0) w = true ∧ adj (t 1) w = true from
           ⟨ht.1,hw.2.1.symm,hw.1.symm,ht.2.1,hw.2.2.1,hw.2.2.2⟩)
 
+/-- Bounds the recorded cost of `th4Alg` by the collision-search charge, the safe Grover-search
+charge, and three final validation queries. -/
 theorem th4Alg_cost_le {n : ℕ} (adj : Fin n → Fin n → Bool)
     (kcs : KCollisionSolver) (ncs : NoisySearch) (sgs : SafeGrover) (r r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (gtape : ℕ → sgs.seed) :
@@ -148,6 +193,9 @@ theorem th4Alg_cost_le {n : ℕ} (adj : Fin n → Fin n → Bool)
       simp only [th4Alg_eq,hk,hs]
       split <;> (try dsimp only) <;> omega
 
+/-- If the loopless adjacency predicate has a pair satisfying `triRel`, the number of seed pairs
+for which `th4Alg` fails, multiplied by `(n + 1)` to the smaller failure exponent, is at
+most twice the total number of seed pairs. -/
 theorem th4Alg_complete {n : ℕ} (adj : Fin n → Fin n → Bool)
     (hl : ∀ a, adj a a = false)
     (kcs : KCollisionSolver) (ncs : NoisySearch) (sgs : SafeGrover) (r r' c₀ : ℕ)
@@ -209,6 +257,9 @@ theorem th4Alg_complete {n : ℕ} (adj : Fin n → Fin n → Bool)
   simp only [Nat.cast_id] at hsum
   nlinarith only [hsum,hfirst]
 
+/-- Establishes the corrected triangle-search contract `Theorem4`, including fresh validation,
+soundness, a failure-count bound, and the n^(13/10) cost bound with explicit constants and
+logarithmic factors; see [Ambainis2005]. -/
 theorem theorem4_answer : Theorem4 := by
   intro n hn adj _hs hl kcs ncs sgs hk _hnc _hsg
   obtain ⟨r,hr,hlo,hhi⟩ := correctedSubsetWindow (n^3) 5 (pow_pos hn _) (by decide)

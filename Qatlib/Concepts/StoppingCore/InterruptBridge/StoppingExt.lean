@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingDefs
+
+/-!
+# Exact prefix laws for interruptible circuits
+
+This module proves that microstep execution retains the exact unexecuted suffix, prefix quantum
+state, reference value, and reversed execution log. The deterministic and costed resume laws,
+cut classifications, and concrete Pauli and Bell-resource examples establish `Clause13Claim`.
+
+The examples use standard qubit gates and entangled states from [NielsenChuang2010].
+
+## Main statements
+
+* `microAfter_spec`: exact interrupted configuration
+* `micro_runFor_point`: deterministic result and prefix cost
+* `prefix_resume`: resume laws for costed execution and marginals
+* `clause13`: the combined interrupt specification
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -29,6 +51,8 @@ open scoped ENNReal BigOperators Classical Matrix
 
 variable {I R : Type} [Fintype I] [DecidableEq I]
 
+/-- A microstep removes the first circuit step, applies its gate or oracle to memory, and
+prepends that step to the execution log. -/
 theorem microStep_cons (O : Matrix I I ℂ) (s : Step I) (cs : List (Step I))
     (ψ : QState I) (r : R) (lg : List (Step I)) :
     microStep O ⟨s :: cs, ψ, r, lg⟩ =
@@ -37,15 +61,20 @@ theorem microStep_cons (O : Matrix I I ℂ) (s : Step I) (cs : List (Step I))
       | .query => ⟨cs, ApplyGate O ψ, r, .query :: lg⟩ := by
   cases s <;> rfl
 
+/-- A microstep leaves a configuration with an empty circuit unchanged. -/
 theorem microStep_nil (O : Matrix I I ℂ) (ψ : QState I) (r : R) (lg : List (Step I)) :
     microStep O ⟨[], ψ, r, lg⟩ = ⟨[], ψ, r, lg⟩ := rfl
 
+/-- Executing `k + 1` microsteps is one microstep followed by `k` further microsteps. -/
 theorem microAfter_succ (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I R) :
     microAfter O (k + 1) cfg = microAfter O k (microStep O cfg) := rfl
 
+/-- Executing zero microsteps returns the original configuration. -/
 theorem microAfter_zero (O : Matrix I I ℂ) (cfg : InterruptConfig I R) :
     microAfter O 0 cfg = cfg := rfl
 
+/-- After `k` microsteps, the configuration contains the unexecuted suffix, the exact prefix
+state, the original reference, and the reversed prefix appended to its original log. -/
 theorem microAfter_spec (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I R) :
     microAfter O k cfg =
       ⟨cfg.word.drop k, Run O (cfg.word.take k) cfg.mem, cfg.ref,
@@ -75,6 +104,7 @@ theorem microAfter_spec (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I 
         rw [microAfter_succ, hstep, ih]
         simp [List.reverse_cons, List.append_assoc]
 
+/-- Executing `m + n` microsteps equals an `m`-step prefix followed by an `n`-step continuation. -/
 theorem microAfter_add (O : Matrix I I ℂ) (m n : ℕ) (cfg : InterruptConfig I R) :
     microAfter O (m + n) cfg = microAfter O n (microAfter O m cfg) := by
   induction m generalizing cfg with
@@ -82,6 +112,7 @@ theorem microAfter_add (O : Matrix I I ℂ) (m n : ℕ) (cfg : InterruptConfig I
   | succ m ih =>
     rw [show m + 1 + n = m + n + 1 from by omega, microAfter_succ, ih, microAfter_succ]
 
+/-- Any number of microsteps leaves a configuration with an empty circuit unchanged. -/
 theorem microAfter_empty (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I R)
     (h : cfg.word = []) : microAfter O k cfg = cfg := by
   have hd : ∀ n : ℕ, List.drop n ([] : List (Step I)) = [] := by intro n; cases n <;> rfl
@@ -92,17 +123,22 @@ theorem microAfter_empty (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I
   rw [microAfter_spec]
   simp [hd, ht, Run]
 
+/-- Launching an empty circuit returns its memory, reference, and log as a halted output. -/
 theorem microLaunch_nil (cfg : InterruptConfig I R) (h : cfg.word = []) :
     microLaunch cfg = Sum.inl (cfg.mem, cfg.ref, cfg.log) := by
   simp [microLaunch, h]
 
+/-- Launching a nonempty circuit returns it as a running configuration. -/
 theorem microLaunch_cons (cfg : InterruptConfig I R) (h : cfg.word ≠ []) :
     microLaunch cfg = Sum.inr cfg := by
   simp [microLaunch, h]
 
+/-- The transition kernel on an empty circuit is the point mass at its halted output. -/
 theorem microNext_nil (O : Matrix I I ℂ) (ψ : QState I) (r : R) (lg : List (Step I)) :
     microNext O ⟨[], ψ, r, lg⟩ = PMF.pure (Sum.inl (ψ, r, lg)) := rfl
 
+/-- The transition kernel executes the first step and returns a halted output when it was the
+last step, or the updated running configuration otherwise. -/
 theorem microNext_cons (O : Matrix I I ℂ) (s : Step I) (cs : List (Step I))
     (ψ : QState I) (r : R) (lg : List (Step I)) :
     microNext O ⟨s :: cs, ψ, r, lg⟩ =
@@ -112,23 +148,30 @@ theorem microNext_cons (O : Matrix I I ℂ) (s : Step I) (cs : List (Step I))
             (microStep O ⟨s :: cs, ψ, r, lg⟩).ref, (microStep O ⟨s :: cs, ψ, r, lg⟩).log))
       else PMF.pure (Sum.inr (microStep O ⟨s :: cs, ψ, r, lg⟩)) := rfl
 
+/-- The result of an initially empty circuit is the halted memory, reference, and log after
+iteration. -/
 theorem microResult_nil (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I R)
     (h : cfg.word = []) :
     microResult O k cfg = Sum.inl ((microAfter O k cfg).mem, (microAfter O k cfg).ref,
       (microAfter O k cfg).log) := by
   simp [microResult, h]
 
+/-- A nonempty circuit is classified as halted once the number of microsteps reaches its length. -/
 theorem microResult_cons (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I R)
     (h : cfg.word ≠ []) (hk : cfg.word.length ≤ k) :
     microResult O k cfg = Sum.inl ((microAfter O k cfg).mem, (microAfter O k cfg).ref,
       (microAfter O k cfg).log) := by
   simp [microResult, hk]
 
+/-- Before reaching the circuit length, the result is the running configuration produced by
+`microAfter`. -/
 theorem microResult_running (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I R)
     (hk : k < cfg.word.length) :
     microResult O k cfg = Sum.inr (microAfter O k cfg) := by
   simp [microResult, Nat.not_le.mpr hk]
 
+/-- Randomized microstep execution is concentrated on the deterministic result with accumulated
+cost `min k cfg.word.length`. -/
 theorem micro_runFor_point (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig I R) :
     runFor (microNext O) k (microLaunch cfg) =
       PMF.pure (microResult O k cfg, min k cfg.word.length) := by
@@ -194,6 +237,8 @@ theorem micro_runFor_point (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig
         · simp [List.length, hstep]
           omega
 
+/-- Microstep execution satisfies the costed, deterministic, and marginal prefix resume
+specifications. -/
 theorem prefix_resume : InterruptPrefixResume := by
   intro I R _ _ O m n cfg
   refine ⟨runFor_add (microNext O) m n (microLaunch cfg),
@@ -211,11 +256,15 @@ theorem prefix_resume : InterruptPrefixResume := by
     rfl
   rw [hf]
 
+/-- Microstep execution satisfies the exact prefix-state specification, including the
+deterministic costed law at legal cuts. -/
 theorem prefix_state : InterruptPrefixState := by
   intro I R _ _ O k cfg
   refine ⟨microAfter_spec O k cfg, fun hk => ?_⟩
   rw [micro_runFor_point, min_eq_left hk]
 
+/-- Zero-step, halted, and unfinished microstep configurations satisfy the degenerate-cut
+specification. -/
 theorem cut_degenerate : InterruptCutDegenerate := by
   intro I R _ _ O cfg
   refine ⟨microAfter_zero O cfg, ?_, ?_⟩
@@ -231,6 +280,8 @@ theorem cut_degenerate : InterruptCutDegenerate := by
       simp [List.length_drop] at hdrop
       omega
 
+/-- The cut classifier satisfies the stated oracle-boundary characterization and legal-cut
+examples. -/
 theorem cut_kinds : InterruptCutKinds := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro I w k
@@ -250,35 +301,42 @@ theorem cut_kinds : InterruptCutKinds := by
   · intro U V
     rfl
 
+/-- A finite sum of complex values over `Bool` is the sum of the false and true terms. -/
 theorem sum_bool (f : Bool → ℂ) : ∑ i, f i = f false + f true := by
   have h : (Finset.univ : Finset Bool) = {false, true} := by decide
   rw [h]
   simp [Finset.sum_insert, Finset.sum_singleton]
 
+/-- The Pauli X and Z matrices do not commute. -/
 theorem pauliXZ_ne : PauliX * PauliZ ≠ PauliZ * PauliX := by
   intro h
   have h2 := congrFun (congrFun h false) true
   simp [PauliX, PauliZ, permMatrix, Matrix.mul_apply, Matrix.diagonal, sum_bool] at h2
   norm_num at h2
 
+/-- Pauli X sends the false basis state to the true basis state. -/
 theorem applyGate_pauliX_ket_false : ApplyGate PauliX (Qatlib.Foundations.PureStateMath.Ket false) = Qatlib.Foundations.PureStateMath.Ket true := by
   funext i
   cases i with
   | false => simp [ApplyGate, Matrix.mulVec_eq_sum, PauliX, permMatrix, Qatlib.Foundations.PureStateMath.Ket, sum_bool]
   | true => simp [ApplyGate, Matrix.mulVec_eq_sum, PauliX, permMatrix, Qatlib.Foundations.PureStateMath.Ket, sum_bool]
 
+/-- Pauli Z fixes the false basis state. -/
 theorem applyGate_pauliZ_ket_false : ApplyGate PauliZ (Qatlib.Foundations.PureStateMath.Ket false) = Qatlib.Foundations.PureStateMath.Ket false := by
   funext i
   cases i with
   | false => simp [ApplyGate, Matrix.mulVec_eq_sum, PauliZ, Matrix.diagonal, Qatlib.Foundations.PureStateMath.Ket, sum_bool]
   | true => simp [ApplyGate, Matrix.mulVec_eq_sum, PauliZ, Matrix.diagonal, Qatlib.Foundations.PureStateMath.Ket, sum_bool]
 
+/-- Pauli Z sends the true basis state to its negative. -/
 theorem applyGate_pauliZ_ket_true : ApplyGate PauliZ (Qatlib.Foundations.PureStateMath.Ket true) = (-1 : ℂ) • Qatlib.Foundations.PureStateMath.Ket true := by
   funext i
   cases i with
   | false => simp [ApplyGate, Matrix.mulVec_eq_sum, PauliZ, Matrix.diagonal, Qatlib.Foundations.PureStateMath.Ket, sum_bool]
   | true => simp [ApplyGate, Matrix.mulVec_eq_sum, PauliZ, Matrix.diagonal, Qatlib.Foundations.PureStateMath.Ket, sum_bool]
 
+/-- Executing Pauli X then Z on the false basis state gives a different state vector from
+executing Z then X. -/
 theorem run_xz_ne_run_zx (O : Matrix Bool Bool ℂ) :
     Run O [Step.gate PauliX, Step.gate PauliZ] (Qatlib.Foundations.PureStateMath.Ket false) ≠
       Run O [Step.gate PauliZ, Step.gate PauliX] (Qatlib.Foundations.PureStateMath.Ket false) := by
@@ -292,6 +350,7 @@ theorem run_xz_ne_run_zx (O : Matrix Bool Bool ℂ) :
   simp [Qatlib.Foundations.PureStateMath.Ket] at h3
   norm_num at h3
 
+/-- The Pauli and Bell-resource examples satisfy the concrete interrupt-consumer specification. -/
 theorem consumers : InterruptConsumers := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro O
@@ -328,6 +387,8 @@ theorem consumers : InterruptConsumers := by
     · rw [microAfter_spec]
     · rw [microAfter_spec]
 
+/-- The prefix resume, prefix state, cut, and consumer specifications hold together as
+`Clause13Claim`. -/
 theorem clause13 : Clause13Claim :=
   ⟨prefix_resume, prefix_state, cut_degenerate, cut_kinds, consumers⟩
 

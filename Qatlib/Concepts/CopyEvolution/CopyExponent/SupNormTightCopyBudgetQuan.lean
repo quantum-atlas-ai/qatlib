@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetStat
 import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionQuan
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+
+/-!
+# Explicit copy budget for trace-norm precision
+
+`supNormTightCopyBudget` proves that a state-dependent ceiling budget gives error at most ε for
+density operators. The proof combines the state-dependent precision theorem with a trace-norm
+bound on density-operator differences, obtaining n ≤ 16t²/ε + 1.
+
+The result supplies explicit constants for the copy scaling of density-matrix exponentiation
+[LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `traceNorm_tensor_one`: removes a one-dimensional identity factor from a trace norm.
+* `supNormTightCopyBudget`: proves the budget, error, and resource-count specification.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,6 +43,7 @@ open Matrix
 open scoped ComplexOrder
 set_option autoImplicit false
 
+/-- Tensoring an operator with the one-dimensional identity preserves its trace norm. -/
 theorem traceNorm_tensor_one (D : ℕ) (X : Operator D) :
     Matrix.traceNorm (TensorGate X (1:Operator 1)) = Matrix.traceNorm X := by
   let e : Fin D ≃ Fin D × Fin 1 :=
@@ -35,6 +57,9 @@ theorem traceNorm_tensor_one (D : ℕ) (X : Operator D) :
       Subsingleton.elim a b]
   rw [he, diamond_traceNorm_reindex]
 
+/-- Proves that the state-dependent ceiling budget achieves trace-norm error at most `ε`, has
+resource tuple `(n, n, n, 0)`, and satisfies `n ≤ 16t²/ε + 1`. This supplies explicit
+precision accounting for [LloydMohseniRebentrost2014]. -/
 theorem supNormTightCopyBudget : SupNormTightCopyBudget := by
   intro D ρ σ t ε hρ hσ hε
   (try dsimp only)

@@ -5,6 +5,36 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
+
+/-!
+# Instrument Machines and Infinite Query Costs
+
+An `InstrumentMachine` assigns a halting, gate, query, or instrument instruction to each
+classical control state. `instrumentMachineTraces` unfolds a finite number of instructions while
+retaining unnormalized branch states, measurement records, operation counts, and endpoints. This
+branch description uses quantum instruments and density operators as presented in [Watrous2018].
+
+Finite halting masses and expected query costs form monotone families, while pending mass
+decreases for well-formed machines and unitary oracles. Their suprema define
+`instrumentMachineInfiniteHaltMass` and `instrumentMachineInfiniteExpectedQueries`, allowing
+costs and success probabilities to be studied without a fixed running-time bound.
+
+## Main statements
+
+* `instrumentMachineTraces_posSemidef` and `instrumentMachineTraces_total` give positivity and
+  conservation of trace mass.
+* `instrumentMachineHaltMass_add_pending` partitions total mass into halted and pending
+  branches.
+* `instrumentMachineHaltMass_finite_approx` gives one finite cutoff for finitely many strict
+  halting-mass thresholds.
+* `instrumentMachineInfiniteExpectedQueries_le_iff` characterizes an infinite expected cost
+  bound by all finite prefixes.
+
+## References
+
+* [Watrous, 2018][Watrous2018], The Theory of Quantum Information.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,26 +46,37 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Matrix
 open scoped ComplexOrder ENNReal
 
+/-- An instruction for a classically controlled quantum machine: halt with an acceptance bit,
+apply a gate, query the oracle, or branch on a finite quantum instrument outcome. -/
 inductive InstrumentInstruction (D : ℕ) (C : Type*) where
   | halt (accepted : Bool)
   | gate (G : Operator D) (next : C)
   | query (next : C)
   | instrument (s : ℕ) (I : Instrument (Fin s) D D) (next : Fin s → C)
 
+/-- A quantum instrument machine assigning an instruction to each classical control state. -/
 abbrev InstrumentMachine (D : ℕ) (C : Type*) := C → InstrumentInstruction D C
 
+/-- Every gate instruction of the machine uses a unitary operator; the other instruction forms
+impose no additional condition. -/
 def instrumentMachineWellFormed {D : ℕ} {C : Type*} (M : InstrumentMachine D C) : Prop :=
   ∀ c, match M c with
     | .gate G _ => G ∈ Matrix.unitaryGroup (Fin D) ℂ
     | _ => True
 
+/-- The final classical control state of an execution prefix together with a flag indicating
+whether that prefix has halted. -/
 structure InstrumentMachineEndpoint (C : Type*) where
   control : C
   halted : Bool
 
+/-- A mixed-state branch trace augmented with its classical control endpoint and halting flag. -/
 structure InstrumentMachineTrace (D : ℕ) (C : Type*) extends MixedBranchTrace D where
   endpoint : InstrumentMachineEndpoint C
 
+/-- Unfolds the machine for at most `T` instructions, retaining halted branches and marking
+unfinished endpoints when fuel is exhausted. Instrument outcomes produce separate
+unnormalized branch states and records. -/
 noncomputable def instrumentMachineTraces {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) :
     ℕ → C → Operator D → List (InstrumentMachineTrace D C)
@@ -53,6 +94,8 @@ noncomputable def instrumentMachineTraces {D : ℕ} {C : Type*}
           (instrumentMachineTraces M O T (next o) (I.branch o rho)).map fun t =>
             {t with gates := t.gates + 2, measurements := t.measurements + 1, outcomes := (s,o.val) :: t.outcomes}).flatten
 
+/-- The total branch mass of execution prefixes that have halted within `T` instructions and
+satisfy the event on the final control state, acceptance bit, and measurement record. -/
 noncomputable def instrumentMachineHaltMass {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (event : C → Bool → List (ℕ×ℕ) → Bool) : ℝ :=
@@ -60,16 +103,21 @@ noncomputable def instrumentMachineHaltMass {D : ℕ} {C : Type*}
     if t.endpoint.halted && event t.endpoint.control t.accepted t.outcomes then
       mixedMass t.toMixedBranchTrace else 0).sum
 
+/-- The total branch mass of execution prefixes still pending after `T` instructions. -/
 noncomputable def instrumentMachinePendingMass {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D) : ℝ :=
   ((instrumentMachineTraces M O T c rho).map fun t =>
     if t.endpoint.halted then 0 else mixedMass t.toMixedBranchTrace).sum
 
+/-- The sum of each execution prefix's query count weighted by its unnormalized branch mass,
+including both halted and pending prefixes. -/
 noncomputable def instrumentMachineExpectedQueries {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D) : ℝ :=
   ((instrumentMachineTraces M O T c rho).map fun t =>
     mixedMass t.toMixedBranchTrace * t.queries).sum
 
+/-- Every branch state in a finite machine execution is positive semidefinite when the initial
+state is positive semidefinite. -/
 theorem instrumentMachineTraces_posSemidef {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (hrho : rho.PosSemidef) (t : InstrumentMachineTrace D C)
@@ -99,6 +147,8 @@ theorem instrumentMachineTraces_posSemidef {D : ℕ} {C : Type*}
       obtain ⟨u,hu,rfl⟩ := List.mem_map.mp ht
       exact ih (next o) _ ((I.cp o).positive hrho) u hu
 
+/-- The pending mass of a finite machine execution is nonnegative for a positive semidefinite
+initial state. -/
 theorem instrumentMachinePendingMass_nonneg {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (hrho : rho.PosSemidef) : 0 ≤ instrumentMachinePendingMass M O T c rho := by
@@ -111,6 +161,8 @@ theorem instrumentMachinePendingMass_nonneg {D : ℕ} {C : Type*}
   · exact (RCLike.nonneg_iff.mp
       (instrumentMachineTraces_posSemidef M O T c rho hrho t ht).trace_nonneg).1
 
+/-- The expected query count of a finite machine execution is nonnegative for a positive
+semidefinite initial state. -/
 theorem instrumentMachineExpectedQueries_nonneg {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (hrho : rho.PosSemidef) : 0 ≤ instrumentMachineExpectedQueries M O T c rho := by
@@ -122,6 +174,8 @@ theorem instrumentMachineExpectedQueries_nonneg {D : ℕ} {C : Type*}
     (instrumentMachineTraces_posSemidef M O T c rho hrho t ht).trace_nonneg).1)
     (Nat.cast_nonneg _)
 
+/-- For a well-formed machine and a unitary oracle, the masses of all finite execution branches
+sum to the real part of the initial trace. -/
 theorem instrumentMachineTraces_total {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (hM : instrumentMachineWellFormed M)
     (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -149,6 +203,8 @@ theorem instrumentMachineTraces_total {D : ℕ} {C : Type*}
       simp_rw [ih]
       exact sum_instrumentProb I rho
 
+/-- Gives the one-instruction recurrence for pending mass, propagating through gates and queries
+and summing over instrument outcomes. -/
 theorem instrumentMachinePendingMass_succ {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D) :
     instrumentMachinePendingMass M O (T+1) c rho = match M c with
@@ -161,12 +217,17 @@ theorem instrumentMachinePendingMass_succ {D : ℕ} {C : Type*}
     simp [instrumentMachinePendingMass, instrumentMachineTraces, h, Function.comp_def,
       List.map_flatten, List.sum_flatten, List.map_ofFn, List.sum_ofFn, mixedMass]
 
+/-- The sum of the pointwise addition of two real-valued list maps equals the sum of their
+separate mapped sums. -/
 private theorem machine_sum_map_add {A : Type*} (xs : List A) (f g : A → ℝ) :
     (xs.map fun x => f x + g x).sum = (xs.map f).sum + (xs.map g).sum := by
   induction xs with
   | nil => simp
   | cons x xs ih => simp [ih, add_assoc, add_left_comm]
 
+/-- Gives the one-instruction recurrence for expected query cost of a well-formed machine with a
+unitary oracle. A query contributes the real part of the current state's trace in addition
+to the continuation cost. -/
 theorem instrumentMachineExpectedQueries_succ {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (hM : instrumentMachineWellFormed M)
     (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -196,6 +257,8 @@ theorem instrumentMachineExpectedQueries_succ {D : ℕ} {C : Type*}
     rw [instrumentMachineTraces_total M hM O hO, trace_conjBranch_unitary O hO]
     exact add_comm _ _
 
+/-- Pointwise domination on a list implies domination of the sums of the corresponding
+real-valued maps. -/
 private theorem machine_sum_map_mono {A : Type*} (xs : List A) (f g : A → ℝ)
     (h : ∀ x ∈ xs, f x ≤ g x) : (xs.map f).sum ≤ (xs.map g).sum := by
   induction xs with
@@ -204,6 +267,8 @@ private theorem machine_sum_map_mono {A : Type*} (xs : List A) (f g : A → ℝ)
     simp only [List.map_cons, List.sum_cons]
     exact add_le_add (h x (by simp)) (ih fun y hy => h y (by simp [hy]))
 
+/-- For a well-formed machine, a unitary oracle, and a positive semidefinite input, pending mass
+is at most the real part of the initial trace. -/
 theorem instrumentMachinePendingMass_le_trace {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (hM : instrumentMachineWellFormed M)
     (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -220,6 +285,8 @@ theorem instrumentMachinePendingMass_le_trace {D : ℕ} {C : Type*}
       · exact le_rfl
     _ = _ := instrumentMachineTraces_total M hM O hO T c rho
 
+/-- The mass of any halted event in a finite execution is nonnegative for a positive
+semidefinite initial state. -/
 theorem instrumentMachineHaltMass_nonneg {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (hrho : rho.PosSemidef) (event : C → Bool → List (ℕ×ℕ) → Bool) :
@@ -233,6 +300,8 @@ theorem instrumentMachineHaltMass_nonneg {D : ℕ} {C : Type*}
       (instrumentMachineTraces_posSemidef M O T c rho hrho t ht).trace_nonneg).1
   · exact le_rfl
 
+/-- Gives the one-instruction recurrence for halted-event mass, prepending each instrument
+outcome to the event's measurement record. -/
 theorem instrumentMachineHaltMass_succ {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D)
     (event : C → Bool → List (ℕ×ℕ) → Bool) :
@@ -247,6 +316,8 @@ theorem instrumentMachineHaltMass_succ {D : ℕ} {C : Type*}
     simp [instrumentMachineHaltMass, instrumentMachineTraces, h, Function.comp_def,
       List.map_flatten, List.sum_flatten, List.map_ofFn, List.sum_ofFn, mixedMass]
 
+/-- For a positive semidefinite initial state, the mass of a fixed halted event is nondecreasing
+as execution fuel increases. -/
 theorem instrumentMachineHaltMass_monotone {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (c : C) (rho : Operator D)
     (hrho : rho.PosSemidef) (event : C → Bool → List (ℕ×ℕ) → Bool) :
@@ -268,6 +339,8 @@ theorem instrumentMachineHaltMass_monotone {D : ℕ} {C : Type*}
       exact Finset.sum_le_sum fun o _ => ih (next o) _ ((I.cp o).positive hrho)
         (fun c b rec => event c b ((s,o.val)::rec))
 
+/-- For a well-formed machine and a unitary oracle, the mass of all halted prefixes plus pending
+mass equals the real part of the initial trace. -/
 theorem instrumentMachineHaltMass_add_pending {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (hM : instrumentMachineWellFormed M)
     (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -286,6 +359,8 @@ theorem instrumentMachineHaltMass_add_pending {D : ℕ} {C : Type*}
   rw [hsum]
   exact instrumentMachineTraces_total M hM O hO T c rho
 
+/-- For a well-formed machine with a unitary oracle and positive semidefinite input, pending
+mass is nonincreasing as execution fuel grows. -/
 theorem instrumentMachinePendingMass_antitone {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (hM : instrumentMachineWellFormed M)
     (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -310,6 +385,8 @@ theorem instrumentMachinePendingMass_antitone {D : ℕ} {C : Type*}
     | instrument s I next =>
       exact Finset.sum_le_sum fun o _ => ih (next o) _ ((I.cp o).positive hrho)
 
+/-- For a well-formed machine with a unitary oracle and positive semidefinite input, finite
+expected query cost is nondecreasing in execution fuel. -/
 theorem instrumentMachineExpectedQueries_monotone {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (hM : instrumentMachineWellFormed M)
     (O : Operator D) (hO : O ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -334,11 +411,15 @@ theorem instrumentMachineExpectedQueries_monotone {D : ℕ} {C : Type*}
     | instrument s I next =>
       exact Finset.sum_le_sum fun o _ => ih (next o) _ ((I.cp o).positive hrho)
 
+/-- The extended nonnegative halting-event mass defined as the supremum of its finite-fuel
+masses after applying `ENNReal.ofReal`. -/
 noncomputable def instrumentMachineInfiniteHaltMass {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (c : C) (rho : Operator D)
     (event : C → Bool → List (ℕ×ℕ) → Bool) : ℝ≥0∞ :=
   ⨆ T : ℕ, ENNReal.ofReal (instrumentMachineHaltMass M O T c rho event)
 
+/-- For finitely many oracles and halted events, strict thresholds below their infinite halting
+masses are all exceeded at one common finite execution cutoff. -/
 theorem instrumentMachineHaltMass_finite_approx {D : ℕ} {C J : Type*} [Fintype J]
     (M : InstrumentMachine D C) (O : J → Operator D) (c : C) (rho : Operator D)
     (hrho : rho.PosSemidef) (event : J → C → Bool → List (ℕ×ℕ) → Bool)
@@ -356,10 +437,14 @@ theorem instrumentMachineHaltMass_finite_approx {D : ℕ} {C J : Type*} [Fintype
   exact instrumentMachineHaltMass_monotone M (O j) c rho hrho (event j)
     (Finset.le_sup (f := cutoff) (Finset.mem_univ j))
 
+/-- The infinite expected query cost, defined in extended nonnegative reals as the supremum of
+the finite-fuel expected query costs. -/
 noncomputable def instrumentMachineInfiniteExpectedQueries {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (c : C) (rho : Operator D) : ℝ≥0∞ :=
   ⨆ T : ℕ, ENNReal.ofReal (instrumentMachineExpectedQueries M O T c rho)
 
+/-- Every finite-fuel expected query cost, mapped by `ENNReal.ofReal`, is bounded by the
+infinite expected query cost. -/
 theorem instrumentMachineExpectedQueries_le_infinite {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (T : ℕ) (c : C) (rho : Operator D) :
     ENNReal.ofReal (instrumentMachineExpectedQueries M O T c rho) ≤
@@ -367,6 +452,8 @@ theorem instrumentMachineExpectedQueries_le_infinite {D : ℕ} {C : Type*}
   unfold instrumentMachineInfiniteExpectedQueries
   exact le_iSup (fun S => ENNReal.ofReal (instrumentMachineExpectedQueries M O S c rho)) T
 
+/-- An extended nonnegative bound holds for the infinite expected query cost exactly when it
+holds for every finite-fuel expected query cost. -/
 theorem instrumentMachineInfiniteExpectedQueries_le_iff {D : ℕ} {C : Type*}
     (M : InstrumentMachine D C) (O : Operator D) (c : C) (rho : Operator D) (Q : ℝ≥0∞) :
     instrumentMachineInfiniteExpectedQueries M O c rho ≤ Q ↔

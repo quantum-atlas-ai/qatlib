@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+
+/-!
+# The adaptive block sensitivity query bound
+
+This module defines `AdaptiveBlockSensitivityQueryBound`, the proposition bounding the block
+sensitivity of a Boolean function computed by a well formed observed circuit from a normalized
+state. For query depth `T`, the bounds are `16T²` at error at most one third and `8T²` for exact
+acceptance probabilities.
+
+The proposition packages the adaptive circuit form of polynomial method bounds from
+[BealsEtAl2001].
+
+## Main statements
+
+* `AdaptiveBlockSensitivityQueryBound`: the bounded error and exact block sensitivity bounds for
+  observed circuits.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +41,9 @@ namespace Qatlib.Concepts.QueryComplexity.AdaptiveQuery
 open Matrix
 open scoped Classical BigOperators
 
+/-- The proposition that well formed observed circuits on normalized inputs have block
+sensitivity at most `16T²` for error at most one third and `8T²` for exact computation,
+where `T` is their query depth. -/
 def AdaptiveBlockSensitivityQueryBound : Prop :=
   ∀ (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W))

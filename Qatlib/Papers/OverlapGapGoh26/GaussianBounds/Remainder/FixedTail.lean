@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.CollisionCount
+
+/-!
+# Gaussian tails for repeated index energies
+
+`repeated_subgaussian` bounds the subgaussian parameter of the repeated index energy at a fixed
+cube vector by `(r+1)²`. The module derives absolute tail estimates for a single vector and
+finite families, providing probabilistic input to the remainder analysis associated with
+[GohMuller2026].
+
+## Main statements
+
+* `repeated_subgaussian`: For `N > 0` and a fixed cube vector, the repeated index energy is
+  subgaussian with parameter `(r+1)²`.
+* `repeated_finite_tail`: For `N > 0`, a finite family of cube vectors, and `a ≥ 0`, the
+  probability that some repeated index energy has absolute value at least `a` is at most `2 |I|
+  exp(-a²/(2(r+1)²))`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
@@ -17,6 +39,8 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
 open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Linear
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder
 
+/-- A subgaussian moment generating function bound remains valid after increasing its
+nonnegative parameter. -/
 theorem subgaussian_enlarge {Ω:Type} [MeasurableSpace Ω] {P:Measure Ω} {X:Ω→ℝ}
     {c d:NNReal} (h:HasSubgaussianMGF X c P) (hcd:c≤d) : HasSubgaussianMGF X d P where
   integrable_exp_mul := h.integrable_exp_mul
@@ -26,6 +50,8 @@ theorem subgaussian_enlarge {Ω:Type} [MeasurableSpace Ω] {P:Measure Ω} {X:Ω�
     exact div_le_div_of_nonneg_right
       (mul_le_mul_of_nonneg_right (show (c:ℝ)≤d by exact_mod_cast hcd) (sq_nonneg t)) (by norm_num)
 
+/-- For `N > 0` and a fixed cube vector, the repeated index energy is subgaussian with parameter
+`(r+1)²`. -/
 theorem repeated_subgaussian {r N : ℕ} (hN:0<N) (u:Fin N→ℝ) (hu:u∈hilbertCube N) :
     HasSubgaussianMGF (fun A:Tensor (r+1) N=>tensorEnergy (repeated A) u)
       ((r+1:NNReal)^2) (gaussianTensorLaw r N) := by
@@ -67,6 +93,8 @@ theorem repeated_subgaussian {r N : ℕ} (hN:0<N) (u:Fin N→ℝ) (hu:u∈hilber
   intro k _
   by_cases hk:Function.Injective k <;>simp [repeated,w,hk,mul_comm]
 
+/-- For `N > 0`, a fixed cube vector, and `a ≥ 0`, the repeated index energy exceeds `a` in
+absolute value with probability at most `2 exp(-a²/(2(r+1)²))`. -/
 theorem repeated_fixed_tail {r N:ℕ} (hN:0<N) (u:Fin N→ℝ) (hu:u∈hilbertCube N)
     (a:ℝ) (ha:0≤a) :
     (gaussianTensorLaw r N).real {A|a≤|tensorEnergy (repeated A) u|}≤
@@ -74,6 +102,8 @@ theorem repeated_fixed_tail {r N:ℕ} (hN:0<N) (u:Fin N→ℝ) (hu:u∈hilbertCu
   simpa only [NNReal.coe_pow,NNReal.coe_add,NNReal.coe_natCast,NNReal.coe_one] using
     subgaussian_abs_tail (repeated_subgaussian hN u hu) a ha
 
+/-- For `N > 0`, a finite family of cube vectors, and `a ≥ 0`, the probability that some
+repeated index energy has absolute value at least `a` is at most `2 |I| exp(-a²/(2(r+1)²))`. -/
 theorem repeated_finite_tail {r N:ℕ} (hN:0<N) {I:Type} [Fintype I]
     (u:I→Fin N→ℝ) (hu:∀ i,u i∈hilbertCube N) (a:ℝ) (ha:0≤a) :
     (gaussianTensorLaw r N).real {A|∃i,a≤|tensorEnergy (repeated A) (u i)|}≤

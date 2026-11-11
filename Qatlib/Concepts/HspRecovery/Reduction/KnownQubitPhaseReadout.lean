@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+
+/-!
+# Known qubit gates and phase readout
+
+This module instantiates the known-qubit control construction for `Hadamard` and `Rz`, then
+evaluates one-bit phase readout circuits. It computes exact amplitudes and measurement
+probabilities for one or two controlled rotations, together with gate and query counts.
+
+The calculations specialize the controlled-gate and phase readout methods described in
+[NielsenChuang2010].
+
+## Main statements
+
+* `knownControlledHadamard_actual_consumer`: evaluates the controlled Hadamard construction.
+* `knownControlledRz_one_bit_phase_actual_consumer`: computes the one-rotation readout law.
+* `knownControlledRz_two_rotation_phase_actual_consumer`: computes the two-rotation law and the
+  phase-sum-π output.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,28 +47,37 @@ set_option linter.unusedSectionVars false
 set_option linter.unusedSimpArgs false
 set_option linter.unusedTactic false
 
+/-- The known-qubit angle tuple `(π / 2, -π, π / 2, 0)` for the Hadamard gate. -/
 noncomputable def knownHadamardAngles : KnownQubitAngles :=
   ⟨Real.pi / 2, -Real.pi, Real.pi / 2, 0⟩
 
+/-- The known-qubit angle tuple `(t / 2, -t, 0, 0)` for `Rz t`. -/
 noncomputable def knownRzAngles (t : ℝ) : KnownQubitAngles := ⟨t / 2, -t, 0, 0⟩
 
+/-- The known-qubit control circuit instantiated with the Hadamard angles. -/
 noncomputable def knownControlledHadamard : Circuit (Bool × Bool) :=
   knownQubitControlCircuit knownHadamardAngles
 
+/-- The known-qubit control circuit instantiated with the angles for `Rz t`. -/
 noncomputable def knownControlledRz (t : ℝ) : Circuit (Bool × Bool) :=
   knownQubitControlCircuit (knownRzAngles t)
 
+/-- The circuit applying a Hadamard to the control before and after the known controlled
+rotation. -/
 noncomputable def knownOneBitPhaseCircuit (t : ℝ) : Circuit (Bool × Bool) :=
   [Step.gate (TensorGate Hadamard (1 : Matrix Bool Bool ℂ))] ++ knownControlledRz t
     ++ [Step.gate (TensorGate Hadamard (1 : Matrix Bool Bool ℂ))]
 
+/-- The circuit applying two known controlled rotations between Hadamard gates on the control. -/
 noncomputable def knownTwoRotationPhaseCircuit (s t : ℝ) : Circuit (Bool × Bool) :=
   [Step.gate (TensorGate Hadamard (1 : Matrix Bool Bool ℂ))] ++ knownControlledRz s
     ++ knownControlledRz t ++ [Step.gate (TensorGate Hadamard (1 : Matrix Bool Bool ℂ))]
 
+/-- The complex exponential `exp ((π / 2) * I)` equals `I`. -/
 theorem exp_pi_half_mul_I : Complex.exp (((Real.pi / 2 : ℝ) : ℂ) * Complex.I) = Complex.I := by
   simp only [Complex.ofReal_div, Complex.ofReal_ofNat, Complex.exp_pi_div_two_mul_I]
 
+/-- The complex scalar `sqrt 2 / 2` equals the reciprocal of `sqrt 2`. -/
 theorem sqrt2_half : ((Real.sqrt 2 / 2 : ℝ) : ℂ) = ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ := by
   rw [Complex.ofReal_div]
   have h : ((Real.sqrt 2 : ℝ) : ℂ) ^ 2 = ((2 : ℝ) : ℂ) := by
@@ -53,6 +85,7 @@ theorem sqrt2_half : ((Real.sqrt 2 / 2 : ℝ) : ℂ) = ((Real.sqrt 2 : ℝ) : �
   field_simp
   exact h
 
+/-- The complex exponential at `(-π / 2) * I` equals `-I`. -/
 theorem exp_neg_pi_half_mul_I :
     Complex.exp (((((-Real.pi) / 2 : ℝ) : ℂ) * Complex.I)) = -Complex.I := by
   have h : Complex.exp (((((-Real.pi) / 2 : ℝ) : ℂ) * Complex.I))
@@ -63,6 +96,7 @@ theorem exp_neg_pi_half_mul_I :
     ring
   rw [h, exp_pi_half_mul_I, Complex.inv_I]
 
+/-- The complex exponential at the negation of `(-π / 2) * I` equals `I`. -/
 theorem exp_tt_pi_half_mul_I :
     Complex.exp ((-((((-Real.pi) / 2 : ℝ) : ℂ)) * Complex.I)) = Complex.I := by
   have h : ((((-Real.pi) / 2 : ℝ) : ℂ)) = -(((Real.pi / 2 : ℝ) : ℂ)) := by
@@ -70,14 +104,17 @@ theorem exp_tt_pi_half_mul_I :
     ring
   rw [h, neg_neg, exp_pi_half_mul_I]
 
+/-- For every complex `c`, multiplying `-I * c` by `I` returns `c`. -/
 theorem keyI_neg : ∀ c : ℂ, Complex.I * (-Complex.I * c) = c := by
   intro c
   rw [← mul_assoc, mul_neg, Complex.I_mul_I, neg_neg, one_mul]
 
+/-- For every complex `c`, multiplying `I * c` by `I` gives `-c`. -/
 theorem keyI_pos : ∀ c : ℂ, Complex.I * (Complex.I * c) = -c := by
   intro c
   rw [← mul_assoc, Complex.I_mul_I, neg_one_mul]
 
+/-- The unitary specified by `knownHadamardAngles` equals the Hadamard matrix. -/
 theorem knownQubitUnitary_knownHadamardAngles :
     knownQubitUnitary knownHadamardAngles = Hadamard := by
   ext i j
@@ -101,6 +138,7 @@ theorem knownQubitUnitary_knownHadamardAngles :
       show Real.pi / 2 / 2 = Real.pi / 4 from by ring, Real.cos_pi_div_four, sqrt2_half]
     simp
 
+/-- The unitary specified by `knownRzAngles t` equals `Rz t`. -/
 theorem knownQubitUnitary_knownRzAngles (t : ℝ) :
     knownQubitUnitary (knownRzAngles t) = Rz t := by
   ext i j
@@ -121,6 +159,8 @@ theorem knownQubitUnitary_knownRzAngles (t : ℝ) :
     push_cast
     ring
 
+/-- The known controlled Hadamard fixes false-control tensor inputs, sends `Ket (true, false)`
+to `Ket true ⊗ Plus`, and uses six gates and zero queries. -/
 theorem knownControlledHadamard_actual_consumer :
     knownQubitUnitary knownHadamardAngles = Hadamard ∧
   knownControlledHadamard = knownQubitControlCircuit knownHadamardAngles ∧
@@ -145,6 +185,7 @@ theorem knownControlledHadamard_actual_consumer :
       applyGate_isControlledGate_ket_true (isControlledGate_controlledGate Hadamard),
       applyGate_hadamard_ket_false]
 
+/-- With target basis state `true`, a controlled `Rz t` acts as `Rz t` on the control state. -/
 theorem applyGate_controlledRz_tensorState_ket_true (t : ℝ) (χ : QState Bool) :
     ApplyGate (ControlledGate (Rz t)) (TensorState χ (Qatlib.Foundations.PureStateMath.Ket true))
       = TensorState (ApplyGate (Rz t) χ) (Qatlib.Foundations.PureStateMath.Ket true) := by
@@ -155,17 +196,20 @@ theorem applyGate_controlledRz_tensorState_ket_true (t : ℝ) (χ : QState Bool)
       Matrix.diagonal_apply, ApplyGate, Matrix.mulVec, dotProduct, Matrix.mul_apply,
       Fintype.sum_bool, Fintype.sum_prod_type, Matrix.one_apply, if_true, if_false]
 
+/-- The plus state is the normalized sum of the false and true basis states. -/
 theorem plus_eq : Plus = ((Real.sqrt 2 : ℂ)⁻¹) • (Qatlib.Foundations.PureStateMath.Ket false + Qatlib.Foundations.PureStateMath.Ket true) := by
   funext b
   rcases b <;> simp [Plus, Hadamard, Qatlib.Foundations.PureStateMath.Ket, Pi.smul_apply,
       smul_eq_mul]
 
+/-- The probability of false control in `χ ⊗ Ket true` is `‖χ false‖^2`. -/
 theorem measureProb_control_false (χ : QState Bool) :
     MeasureProb (TensorState χ (Qatlib.Foundations.PureStateMath.Ket true)) ({false} ×ˢ (Finset.univ : Finset Bool))
       = ‖χ false‖ ^ 2 := by
   simp [MeasureProb, Finset.sum_product, Fintype.sum_bool, BornProb, TensorState, Qatlib.Foundations.PureStateMath.Ket,
     add_zero, mul_one, zero_mul]
 
+/-- The false amplitude of `Hadamard * Rz t` applied to `Plus` is `(1 + exp (t * I)) / 2`. -/
 theorem hadamard_rz_plus_apply_false (t : ℝ) :
     (ApplyGate (Hadamard * Rz t) Plus) false
       = (1 + Complex.exp ((t : ℂ) * Complex.I)) / 2 := by
@@ -185,6 +229,7 @@ theorem hadamard_rz_plus_apply_false (t : ℝ) :
     Plus, Hadamard, Rz, Matrix.diagonal_apply, Matrix.one_apply]
   simpa using! hA
 
+/-- The true amplitude of `Hadamard * Rz t` applied to `Plus` is `(1 - exp (t * I)) / 2`. -/
 theorem hadamard_rz_plus_apply_true (t : ℝ) :
     (ApplyGate (Hadamard * Rz t) Plus) true
       = (1 - Complex.exp ((t : ℂ) * Complex.I)) / 2 := by
@@ -205,6 +250,7 @@ theorem hadamard_rz_plus_apply_true (t : ℝ) :
     Plus, Hadamard, Rz, Matrix.diagonal_apply, Matrix.one_apply]
   simpa using! hA
 
+/-- The squared norm of `(1 + exp (t * I)) / 2` is `(1 + cos t) / 2`. -/
 theorem norm_one_plus_exp_half (t : ℝ) :
     ‖(1 + Complex.exp ((t : ℂ) * Complex.I)) / 2‖ ^ 2 = (1 + Real.cos t) / 2 := by
   have e1 : Complex.normSq ((1 : ℂ) + Complex.exp ((t : ℂ) * Complex.I))
@@ -218,6 +264,8 @@ theorem norm_one_plus_exp_half (t : ℝ) :
       norm_num, e1]
   ring
 
+/-- The one-bit phase circuit on `Ket (false, true)` produces `Hadamard * Rz t` applied to
+`Plus` in the control, with target true. -/
 theorem run_knownOneBitPhaseCircuit (t : ℝ) :
     Run (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ) (knownOneBitPhaseCircuit t) (Qatlib.Foundations.PureStateMath.Ket (false, true))
       = TensorState (ApplyGate (Hadamard * Rz t) Plus) (Qatlib.Foundations.PureStateMath.Ket true) := by
@@ -229,6 +277,8 @@ theorem run_knownOneBitPhaseCircuit (t : ℝ) :
     knownQubitUnitary_knownRzAngles t, applyGate_controlledRz_tensorState_ket_true]
   rw [applyGate_tensorGate, applyGate_one, applyGate_mul]
 
+/-- The known rotation construction gives false-control probability `(1 + cos t) / 2` in one-bit
+phase readout and uses eight gates and zero queries. -/
 theorem knownControlledRz_one_bit_phase_actual_consumer :
     ∀ t : ℝ,
   knownQubitUnitary (knownRzAngles t) = Rz t ∧
@@ -257,6 +307,8 @@ theorem knownControlledRz_one_bit_phase_actual_consumer :
         = knownControlProgramCircuit (knownQubitControlSteps (knownRzAngles t)) from rfl,
       queryCount_knownControlProgramCircuit]
 
+/-- The false amplitude after rotations `s` and `t` and a Hadamard is `(1 + exp ((t + s) * I)) /
+2`. -/
 theorem hadamard_rz_rz_plus_apply_false (s t : ℝ) :
     (ApplyGate (Hadamard * (Rz t * Rz s)) Plus) false
       = (1 + Complex.exp (((t + s : ℝ) : ℂ) * Complex.I)) / 2 := by
@@ -283,6 +335,8 @@ theorem hadamard_rz_rz_plus_apply_false (s t : ℝ) :
         ring]
   exact hA
 
+/-- The true amplitude after rotations `s` and `t` and a Hadamard is `(1 - exp ((t + s) * I)) /
+2`. -/
 theorem hadamard_rz_rz_plus_apply_true (s t : ℝ) :
     (ApplyGate (Hadamard * (Rz t * Rz s)) Plus) true
       = (1 - Complex.exp (((t + s : ℝ) : ℂ) * Complex.I)) / 2 := by
@@ -310,6 +364,7 @@ theorem hadamard_rz_rz_plus_apply_true (s t : ℝ) :
     ring
   exact hA
 
+/-- The squared norm of the two-rotation false amplitude is `(1 + cos (s + t)) / 2`. -/
 theorem norm_one_plus_exp_half' (s t : ℝ) :
     ‖(1 + Complex.exp (((t + s : ℝ) : ℂ) * Complex.I)) / 2‖ ^ 2 = (1 + Real.cos (s + t)) / 2 := by
   have e1 : Complex.normSq ((1 : ℂ) + Complex.exp (((t + s : ℝ) : ℂ) * Complex.I))
@@ -322,6 +377,8 @@ theorem norm_one_plus_exp_half' (s t : ℝ) :
   rw [h2, e1]
   ring
 
+/-- The two-rotation phase circuit on `Ket (false, true)` produces `Hadamard * (Rz t * Rz s)`
+applied to `Plus` in the control, with target true. -/
 theorem run_knownTwoRotationPhaseCircuit (s t : ℝ) :
     Run (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ) (knownTwoRotationPhaseCircuit s t)
       (Qatlib.Foundations.PureStateMath.Ket (false, true))
@@ -346,6 +403,8 @@ theorem run_knownTwoRotationPhaseCircuit (s t : ℝ) :
   rw [show knownControlledRz t = knownQubitControlCircuit (knownRzAngles t) from rfl, hrunt]
   rw [applyGate_tensorGate, applyGate_one, applyGate_mul, applyGate_mul]
 
+/-- The two-rotation readout has false-control probability `(1 + cos (s + t)) / 2`, uses
+fourteen gates and zero queries, and returns `Ket (true, true)` when `s + t = π`. -/
 theorem knownControlledRz_two_rotation_phase_actual_consumer :
     ∀ s t : ℝ,
   MeasureProb (Run (1 : Matrix (Bool × Bool) (Bool × Bool) ℂ)

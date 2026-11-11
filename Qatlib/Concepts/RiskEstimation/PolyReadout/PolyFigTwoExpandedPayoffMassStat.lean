@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedDefs
+
+/-!
+# Specification of expanded polynomial flag mass
+
+This module states `PolyFigTwoExpandedPayoffMass`, the equality between the expanded circuit's
+flag probability and the finite Born-weighted polynomial rotation payoff.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `PolyFigTwoExpandedPayoffMass`: The proposition that expanded Figure 2 payoff preparation has
+  good-flag mass equal to the Born-weighted mean of `sin (c * riskSinTaylor u c (fp.eval x) + π
+  / 4)²`, with register values interpreted by `figTwoRegEval`.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,9 @@ namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 open Matrix
 open scoped Classical BigOperators
 
+/-- The proposition that expanded Figure 2 payoff preparation has good-flag mass equal to the
+Born-weighted mean of `sin (c * riskSinTaylor u c (fp.eval x) + π / 4)²`, with register
+values interpreted by `figTwoRegEval`. -/
 def PolyFigTwoExpandedPayoffMass : Prop :=
   ∀ (n : ℕ) (A : Matrix (Reg n) (Reg n) ℂ) (j : Reg n) (u : ℕ) (c : ℝ) (fp : Polynomial ℝ),
     A ∈ Matrix.unitaryGroup (Reg n) ℂ →

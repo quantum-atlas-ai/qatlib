@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HspRecovery.Reduction.GradientOracleDefs
 import Qatlib.Foundations.BornMetrics.EventProbability
 import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
+
+/-!
+# From probability oracles to phase oracles
+
+This module compresses an oracle-conjugated reflection to a diagonal operator with entries `1 -
+2 * probabilityMass`. Under unitarity and preservation of input labels on the clean frame, it
+constructs circuits approximating the phase `exp (I * probabilityMass)`.
+
+The simulation and phase results include explicit query and gate counts and norm error bounds.
+They use the projected encoding and signal processing framework of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `probability_reflection_encoding`: constructs the projected unitary encoding.
+* `probability_simulation_actual`: verifies the simulation word and its error bound.
+* `clean_probability_phase_actual`: gives a clean-frame phase approximation with exact resource
+  counts.
+* `clean_probability_phase_tolerance`: chooses precision from a positive rational tolerance.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -48,6 +72,7 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped BigOperators
 set_option warningAsError false
 
+/-- The clean frame fixing the ancillary register at `a₀` is an isometry. -/
 theorem cleanFrame_isometry {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A) : IsIsometry (cleanFrame (X := X) a₀) := by
   ext x y
@@ -58,11 +83,13 @@ theorem cleanFrame_isometry {X A : Type*} [Fintype X] [Fintype A]
     simp [hxa]
   · simp
 
+/-- Multiplying an oracle matrix by the clean frame selects its columns indexed by `(x, a₀)`. -/
 theorem oracle_cleanFrame {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ) (a₀ : A)
     (xa : X × A) (x : X) : (U * cleanFrame (X := X) a₀) xa x = U xa (x,a₀) := by
   simp [cleanFrame, Matrix.mul_apply]
 
+/-- The diagonal reflection marking good ancillary values is self-adjoint. -/
 theorem goodReflection_self_adjoint {X A : Type*} [DecidableEq X] [DecidableEq A]
     (good : Finset A) : (goodReflection (X := X) good)ᴴ = goodReflection (X := X) good := by
   simp only [goodReflection, Matrix.diagonal_conjTranspose]
@@ -70,6 +97,7 @@ theorem goodReflection_self_adjoint {X A : Type*} [DecidableEq X] [DecidableEq A
   funext xa
   by_cases h : xa.2 ∈ good <;> simp [h]
 
+/-- The diagonal reflection marking good ancillary values is unitary. -/
 theorem goodReflection_unitary {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (good : Finset A) :
     goodReflection (X := X) good ∈ Matrix.unitaryGroup (X × A) ℂ := by
@@ -80,11 +108,13 @@ theorem goodReflection_unitary {X A : Type*} [Fintype X] [Fintype A]
   funext xa
   split_ifs <;> norm_num
 
+/-- Evaluating the reflection word gives `Uᴴ * goodReflection good * U`. -/
 theorem evaluate_reflectionWord {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ) (good : Finset A) :
     evaluate U (reflectionWord good) = Uᴴ * goodReflection (X := X) good * U := by
   simp [reflectionWord, evaluate, instructionMatrix, Matrix.mul_assoc]
 
+/-- The reflection word is well formed and uses two adjoint queries and one gate. -/
 theorem reflection_word_receipt {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (good : Finset A) :
     WellFormedAdjointCircuit (reflectionWord (X := X) good) ∧
@@ -93,6 +123,8 @@ theorem reflection_word_receipt {X A : Type*} [Fintype X] [Fintype A]
   refine ⟨?_, rfl, rfl⟩
   simp [WellFormedAdjointCircuit, reflectionWord, goodReflection_unitary]
 
+/-- The probability mass equals the Born probability of outcomes retaining label `x` with
+ancillary value in `good`. -/
 theorem probabilityMass_born {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (a₀ : A) (good : Finset A) (x : X) :
@@ -103,6 +135,7 @@ theorem probabilityMass_born {X A : Type*} [Fintype X] [Fintype A]
     dotProduct, Qatlib.Foundations.PureStateMath.Ket, Finset.sum_filter, Fintype.sum_prod_type,
     ite_and, Complex.normSq_eq_norm_sq]
 
+/-- For a unitary oracle, every probability mass lies between zero and one. -/
 theorem probabilityMass_bounds {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (a₀ : A) (good : Finset A) (x : X) :
@@ -111,6 +144,8 @@ theorem probabilityMass_bounds {X A : Type*} [Fintype X] [Fintype A]
   exact ⟨measureProb_nonneg _ _, measureProb_le_one
     (normalized_applyGate hU (normalized_ket _)) _⟩
 
+/-- For a unitary oracle preserving clean input labels, compression of the conjugated reflection
+is diagonal with entries `1 - 2 * probabilityMass`. -/
 theorem compressed_probability_reflection {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (a₀ : A) (good : Finset A)
@@ -175,6 +210,8 @@ theorem compressed_probability_reflection {X A : Type*} [Fintype X] [Fintype A]
     simp
   · simp [hlabel x y _ hxy, hxy]
 
+/-- A unitary oracle preserving clean input labels yields a projected unitary encoding of the
+diagonal probability reflection. -/
 theorem probability_reflection_encoding {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (a₀ : A) (good : Finset A)
@@ -186,6 +223,8 @@ theorem probability_reflection_encoding {X A : Type*} [Fintype X] [Fintype A]
     cleanFrame_isometry a₀, cleanFrame_isometry a₀,
     compressed_probability_reflection U hU a₀ good hlabel⟩
 
+/-- Expanding each query into a reflection word doubles the adjoint query count and adds one
+gate per original query. -/
 theorem expand_reflection_receipt {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A]
     (good : Finset A) (word : List (AdjointStep (X × A))) :
@@ -197,6 +236,8 @@ theorem expand_reflection_receipt {X A : Type} [Fintype X] [Fintype A]
   exact ⟨by simpa [expandReflection, reflectionWord, adjointQueryCount, mul_comm] using! h.2.1,
     by simpa [expandReflection, reflectionWord, adjointGateCount] using! h.2.2.1⟩
 
+/-- Reflection substitution evaluates as the original word with oracle `Uᴴ * goodReflection good
+* U`, and preserves well-formedness. -/
 theorem expand_reflection_actual {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ) (good : Finset A)
     (word : List (AdjointStep (X × A))) (hw : WellFormedAdjointCircuit word) :
@@ -206,6 +247,8 @@ theorem expand_reflection_actual {X A : Type} [Fintype X] [Fintype A]
   exact ⟨by simpa only [expandReflection, evaluate_reflectionWord] using! h.1,
     h.2.2.2 (reflection_word_receipt good).1 hw⟩
 
+/-- Conjugating a controlled matrix by parallel copies of a unitary gives the controlled
+conjugate matrix. -/
 theorem controlled_sandwich {H : Type*} [Fintype H] [DecidableEq H]
     (U R : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     (parallelOracle (J := Bool) U)ᴴ * controlOracle R * parallelOracle (J := Bool) U =
@@ -219,6 +262,8 @@ theorem controlled_sandwich {H : Type*} [Fintype H] [DecidableEq H]
       (Matrix.mem_unitaryGroup_iff'.mp hU)
   · simp
 
+/-- The controlled reflection word evaluates to the controlled conjugated reflection and is well
+formed with two queries and one gate. -/
 theorem controlled_reflection_actual {X A : Type*} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (good : Finset A) :
@@ -234,6 +279,8 @@ theorem controlled_reflection_actual {X A : Type*} [Fintype X] [Fintype A]
   · simp [controlledReflectionWord, WellFormedAdjointCircuit,
       controlOracle_unitary, goodReflection_unitary]
 
+/-- The probability simulation body evaluates to the controlled parallel reflection extended by
+an identity register. -/
 theorem probability_simulation_body_actual {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (good : Finset A) :
@@ -251,6 +298,9 @@ theorem probability_simulation_body_actual {X A : Type} [Fintype X] [Fintype A]
     ← Matrix.mul_assoc, controlled_sandwich _ _ (parallelOracle_unitary hU), hp,
     evaluate_reflectionWord]
 
+/-- For a unitary oracle preserving clean labels, the simulation word is well formed with the
+stated cutoff-dependent counts and approximates evolution of the diagonal probability
+reflection with relative norm error at most `(1/2)^k`. -/
 theorem probability_simulation_actual {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (a₀ : A) (good : Finset A)
@@ -294,6 +344,8 @@ theorem probability_simulation_actual {X A : Type} [Fintype X] [Fintype A]
     rw [probabilitySimulationWord, hs.1, probability_simulation_body_actual U hU good]
     exact herr ψ
 
+/-- At time one half, multiplying the evolution of the diagonal operator `1 - 2 * p` by `exp (I
+/ 2)` gives the diagonal phases `exp (I * p)`. -/
 theorem probability_half_time_phase {X : Type*} [Fintype X] [DecidableEq X] (p : X → ℝ) :
     Complex.exp (Complex.I/2) •
       hamiltonianEvolution (Matrix.diagonal (fun x => ((1 - 2*p x : ℝ) : ℂ))) (1/2) =
@@ -308,10 +360,12 @@ theorem probability_half_time_phase {X : Type*} [Fintype X] [DecidableEq X] (p :
   push_cast
   ring
 
+/-- The scalar phase correction `exp (I / 2)` has norm one. -/
 private theorem phaseCorrection_norm : ‖Complex.exp (Complex.I/2)‖ = 1 := by
   rw [Complex.norm_exp]
   norm_num
 
+/-- The scalar phase correction times the identity matrix is unitary. -/
 private theorem phaseCorrection_unitary {H : Type*} [Fintype H] [DecidableEq H] :
     Complex.exp (Complex.I/2) • (1 : Matrix H H ℂ) ∈ Matrix.unitaryGroup H ℂ := by
   have hc : star (Complex.exp (Complex.I/2)) * Complex.exp (Complex.I/2) = 1 := by
@@ -323,6 +377,9 @@ private theorem phaseCorrection_unitary {H : Type*} [Fintype H] [DecidableEq H] 
     Matrix.smul_mul, Matrix.mul_smul, Matrix.one_mul, smul_smul]
   rw [mul_comm, hc, one_smul]
 
+/-- Under the oracle hypotheses, the probability phase word is well formed with explicit
+cutoff-dependent counts and approximates the diagonal probability phase on the signal frame
+with relative norm error at most `(1/2)^k`. -/
 theorem probability_phase_clean_frame_bound {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (a₀ : A) (good : Finset A)
@@ -365,6 +422,8 @@ theorem probability_phase_clean_frame_bound {X A : Type} [Fintype X] [Fintype A]
     simp only [c, phaseCorrection_norm, one_mul]
     simpa only [Rat.cast_div, Rat.cast_one, Rat.cast_ofNat] using! herr ψ
 
+/-- Under the oracle hypotheses, the probability phase word uses `6912 * k + 110646` queries and
+`6912 * k + 110861` gates. -/
 theorem probability_phase_linear_resources {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (a₀ : A) (good : Finset A)
@@ -377,6 +436,7 @@ theorem probability_phase_linear_resources {X A : Type} [Fintype X] [Fintype A]
   norm_num [computedSignalCutoff, computedSignalSegments] at hq hg
   omega
 
+/-- The Boolean average preparation matrix is unitary. -/
 theorem averagePreparation_unitary : averagePreparation ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   ext i j
@@ -386,6 +446,8 @@ theorem averagePreparation_unitary : averagePreparation ∈ Matrix.unitaryGroup 
       Complex.mul_re, Complex.mul_im]
   all_goals norm_num [map_ofNat]
 
+/-- Applying the average preparation gate to the flag of `scaleEightFrame F` gives `averageFrame
+F`. -/
 theorem averagePreparation_frame {H I : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] (F : Matrix H I ℂ) :
     TensorGate averagePreparation (1 : Matrix H H ℂ) * scaleEightFrame F = averageFrame F := by
@@ -393,6 +455,7 @@ theorem averagePreparation_frame {H I : Type} [Fintype H] [DecidableEq H]
   simp [TensorGate, Matrix.mul_apply, Matrix.one_apply,
     Fintype.sum_prod_type, scaleEightFrame, averageFrame, prepareLift, averagePreparation]
 
+/-- Lifting an operator by an identity flag commutes with its action on a scaled frame. -/
 theorem flagFrame_lift {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
     (U : Matrix H H ℂ) (F : Matrix H I ℂ) :
     TensorGate (1 : Matrix Bool Bool ℂ) U * scaleEightFrame F = scaleEightFrame (U*F) := by
@@ -400,6 +463,7 @@ theorem flagFrame_lift {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
   cases b <;> simp [scaleEightFrame, Matrix.mul_apply, tensorGate_apply,
     Fintype.sum_prod_type, Matrix.one_apply]
 
+/-- The signal preparation word maps the zero signal frame to the scaled Hamiltonian frame. -/
 theorem signalPreparation_frame {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (a₀ : A)
     (O : Matrix (Bool × (Bool × (Bool × (X × A))))
@@ -410,6 +474,7 @@ theorem signalPreparation_frame {X A : Type} [Fintype X] [Fintype A]
     zeroSignalFrame, Matrix.mul_assoc, flagFrame_lift, averagePreparation_frame]
   rfl
 
+/-- The signal preparation word is well formed and uses zero queries and two gates. -/
 theorem signalPreparation_receipt (H : Type) [Fintype H] [DecidableEq H] :
     WellFormedAdjointCircuit (signalPreparationWord H) ∧
       adjointQueryCount (signalPreparationWord H) = 0 ∧
@@ -423,6 +488,9 @@ theorem signalPreparation_receipt (H : Type) [Fintype H] [DecidableEq H] :
   exact ⟨tensorGate_unitary (one_mem _) hb,
     tensorGate_unitary (one_mem _) (tensorGate_unitary (one_mem _) ha)⟩
 
+/-- Under the oracle hypotheses, the clean probability phase word is well formed, uses `6912 * k
++ 110646` queries and `6912 * k + 110865` gates, and approximates the diagonal probability
+phase on the zero signal frame with relative norm error at most `(1/2)^k`. -/
 theorem clean_probability_phase_actual {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (a₀ : A) (good : Finset A)
@@ -479,6 +547,8 @@ theorem clean_probability_phase_actual {X A : Type} [Fintype X] [Fintype A]
         (Qatlib.Concepts.Execution.WorkspaceCP.adjoint_unitary hP)]
     exact herr ψ
 
+/-- For positive rational `ε`, the chosen phase precision ensures `(1/2)^(phasePrecision ε) ≤
+ε`. -/
 theorem phasePrecision_budget (ε : ℚ) (hε : 0 < ε) :
     (1/2 : ℝ)^phasePrecision ε ≤ (ε : ℝ) := by
   have hεR : 0 < (ε : ℝ) := by exact_mod_cast hε
@@ -493,6 +563,8 @@ theorem phasePrecision_budget (ε : ℚ) (hε : 0 < ε) :
     (div_le_iff₀ (by positivity : 0 < (2 : ℝ)^phasePrecision ε)).mpr (by nlinarith)
   simpa [div_pow] using! hd
 
+/-- Under the oracle hypotheses, choosing precision from positive rational `ε` bounds the clean
+probability phase error by `ε` times the input norm. -/
 theorem clean_probability_phase_tolerance {X A : Type} [Fintype X] [Fintype A]
     [DecidableEq X] [DecidableEq A] (U : Matrix (X × A) (X × A) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ) (a₀ : A) (good : Finset A)

@@ -8,6 +8,25 @@ import Mathlib.Analysis.InnerProductSpace.Orthonormal
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 
+/-!
+# A lower bound from orthonormal overlaps
+
+This module proves `lemma2_sum_sq_dist_lower_bound`, a distance estimate for unit vectors with
+prescribed squared overlaps against an orthonormal family. The estimate bounds their total
+squared distance from any single unit vector below by `b * L - 2 * Real.sqrt L`. The
+mathematical context is [FarhiGoldstoneGutmannNagaj2008].
+
+## Main statements
+
+* `lemma2_sum_sq_dist_lower_bound`: If unit vectors `ψ i` have squared overlaps at least `b`
+  with corresponding vectors in an orthonormal family of size `L`, their total squared distance
+  from any unit vector `φ` is at least `b * L - 2 * Real.sqrt L`.
+
+## References
+
+* [Farhi et al., 2008][FarhiGoldstoneGutmannNagaj2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,6 +37,9 @@ open Finset
 
 variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
 
+/-- If unit vectors `ψ i` have squared overlaps at least `b` with corresponding vectors in an
+orthonormal family of size `L`, their total squared distance from any unit vector `φ` is at
+least `b * L - 2 * Real.sqrt L` [FarhiGoldstoneGutmannNagaj2008]. -/
 theorem lemma2_sum_sq_dist_lower_bound
     (L : ℕ) (e : Fin L → V) (he : Orthonormal ℂ e)
     (ψ : Fin L → V) (hψ : ∀ i, ‖ψ i‖ = 1)

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.EvenSVT.TruncatedSketchSecondIsometryStat
 import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
+
+/-!
+# Near-isometry of a thresholded second sketch
+
+`truncatedSketchSecondIsometry` controls the Gram matrix obtained by inverse-singular-value
+scaling on the retained singular subspace. A Frobenius Gram error bounded by `τ² * α` yields
+operator-norm distance at most `α` from the threshold projector, as used in the sketch
+constructions of [ChiaEtAl2022].
+
+## Main statements
+
+* `truncatedSketchSecondIsometry`: If the Gram approximation error is at most `τ² * α`,
+  thresholded inverse-singular-value scaling makes the transformed Gram matrix differ from the
+  retained-coordinate projector by operator norm at most `α`. See [ChiaEtAl2022].
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SketchSpectral.SketchPerturb
@@ -23,6 +43,9 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- If the Gram approximation error is at most `τ² * α`, thresholded inverse-singular-value
+scaling makes the transformed Gram matrix differ from the retained-coordinate projector by
+operator norm at most `α`. See [ChiaEtAl2022]. -/
 theorem truncatedSketchSecondIsometry : TruncatedSketchSecondIsometry := by
   intro C RS CT _ _ _ _ _ _ R Cc τ α η hτ _hα hη hclose hbound
   let Z := basisColumns (rightSingularBasis Ccᴴ)

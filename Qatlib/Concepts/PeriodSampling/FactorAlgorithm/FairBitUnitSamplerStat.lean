@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPrograms
+
+/-!
+# Fair-bit unit sampler contract
+
+Defines `FairBitUnitSampler`, recording the unique bit-string encoding of each unit, the number
+of rejected strings, and the support of the bit-cost distribution. These properties specify the
+unit sampler used in the factoring probability model associated with [Shor1997].
+
+## Main statements
+
+* `FairBitUnitSampler`: Specifies exact unit-decoding counts and bit-cost support.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +33,9 @@ namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 
 open Qatlib
 
+/-- For positive bit width and sufficient capacity, requires each unit to have exactly one
+encoding, exactly `2 ^ k - Fintype.card (ZMod N)ˣ` strings to be rejected, and costed
+sampling mass to vanish at every cost other than `k`. -/
 def FairBitUnitSampler : Prop :=
   ∀ (N k : ℕ) [NeZero N], 0 < k → Fintype.card (ZMod N)ˣ ≤ 2 ^ k →
     (∀ u : (ZMod N)ˣ,

@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdp
 import Mathlib.GroupTheory.Perm.Finite
+
+/-!
+# Symmetry averaging of query matrix witnesses
+
+This module proves that the matrix constraints in `bssFamilyFeasible` survive compatible
+permutation transport and finite averaging. `bssTransportGroup` organizes the transports, and
+`bssFeasible_exists_symmetry_invariant` produces witnesses invariant under every
+`IsBssSymmetry`. This supplies a matrix symmetrization tool for the ordered-search semidefinite
+programming setting of [ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `bssFamilyFeasible_conjugate`: transport of a feasible family by a symmetry.
+* `bssAverage_posSemidef` and `bssFamilyFeasible_average`: preservation of positivity and
+  feasibility under averaging.
+* `bssFeasible_exists_symmetry_invariant`: existence of witnesses invariant under all compatible
+  symmetries.
+* `bssFeasible_exists_invariant`: the corresponding statement for a specified finite group
+  action.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,6 +43,8 @@ variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 
 omit [Fintype X] [Fintype Y] in
 
+/-- A compatible symmetry preserves the output selector entries when both input indices and the
+output label are transported. -/
 theorem bssDelta_transport {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y)
     (π : Equiv.Perm X) (ρ : Equiv.Perm (Fin m)) (σ : Equiv.Perm Y)
     (h : IsBssSymmetry bit f π ρ σ) (y : Y) (x x' : X) :
@@ -27,6 +54,8 @@ theorem bssDelta_transport {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y)
 
 omit [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] in
 
+/-- Reindexing the query sum by a compatible query permutation transfers the query sign matrices
+to the permuted input indices. -/
 theorem bss_hadamard_sum_transport {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y)
     (π : Equiv.Perm X) (ρ : Equiv.Perm (Fin m)) (σ : Equiv.Perm Y)
     (h : IsBssSymmetry bit f π ρ σ) (M : Fin m → Matrix X X ℂ) (x x' : X) :
@@ -35,6 +64,8 @@ theorem bss_hadamard_sum_transport {m : ℕ} (bit : X → Fin m → Bool) (f : X
   rw [← Equiv.sum_comp ρ (fun i => bssE bit i x x'*M (ρ.symm i) (π x) (π x'))]
   simp only [ρ.symm_apply_apply,h.1]
 
+/-- A feasible matrix family remains feasible after simultaneous input-index permutation,
+inverse query-index relabeling, and output-label relabeling by a compatible symmetry. -/
 theorem bssFamilyFeasible_conjugate {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y)
     (k : ℕ) (ε : ℝ) (π : Equiv.Perm X) (ρ : Equiv.Perm (Fin m)) (σ : Equiv.Perm Y)
     (hs : IsBssSymmetry bit f π ρ σ)
@@ -70,6 +101,8 @@ theorem bssFamilyFeasible_conjugate {X Y : Type} [Fintype X] [DecidableEq X] [Fi
     rw [he]
     exact (hsuccess (σ y)).submatrix π
 
+/-- The subgroup of input, query-index, and output permutations preserving query sign entries
+and the output function, with the query component oriented for transport composition. -/
 def bssTransportGroup {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y) :
     Subgroup (Equiv.Perm X × (Equiv.Perm (Fin m) × Equiv.Perm Y)) where
   carrier := {g | (∀ i x x',bssE bit i x x'=bssE bit (g.2.1 i) (g.1 x) (g.1 x')) ∧
@@ -96,6 +129,8 @@ def bssTransportGroup {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y) :
 
 omit [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] in
 
+/-- An `IsBssSymmetry` triple belongs to `bssTransportGroup` after replacing its query
+permutation by its inverse. -/
 theorem bssTransportGroup_mem {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y)
     (π : Equiv.Perm X) (ρ : Equiv.Perm (Fin m)) (σ : Equiv.Perm Y)
     (h : IsBssSymmetry bit f π ρ σ) : (π,(ρ.symm,σ))∈bssTransportGroup bit f := by
@@ -103,14 +138,17 @@ theorem bssTransportGroup_mem {m : ℕ} (bit : X → Fin m → Bool) (f : X → 
   intro i x x'
   simpa only [Equiv.apply_symm_apply] using h.1 (ρ.symm i) x x'
 
+/-- The finite scalar sum normalized by the inverse complex cardinality of its index type. -/
 def bssAverageScalar {I : Type} [Fintype I] (a : I → ℂ) : ℂ :=
   (Fintype.card I : ℂ)⁻¹*∑ i : I,a i
 
+/-- The finite matrix sum scaled by the inverse real cardinality of its index type. -/
 def bssAverage {I : Type} [Fintype I] (A : I → Matrix X X ℂ) : Matrix X X ℂ :=
   (Fintype.card I : ℝ)⁻¹ • ∑ i : I,A i
 
 omit [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] in
 
+/-- Each entry of the matrix average equals the scalar average of the corresponding entries. -/
 theorem bssAverage_apply {I : Type} [Fintype I] (A : I → Matrix X X ℂ) (x x' : X) :
     bssAverage A x x'=bssAverageScalar (fun i => A i x x') := by
   simp only [bssAverage,bssAverageScalar,Matrix.smul_apply,Matrix.sum_apply,
@@ -118,25 +156,31 @@ theorem bssAverage_apply {I : Type} [Fintype I] (A : I → Matrix X X ℂ) (x x'
   push_cast
   rfl
 
+/-- Scalar averaging distributes over pointwise addition. -/
 theorem bssAverageScalar_add {I : Type} [Fintype I] (a b : I → ℂ) :
     bssAverageScalar (fun i => a i+b i)=bssAverageScalar a+bssAverageScalar b := by
   simp only [bssAverageScalar,Finset.sum_add_distrib,mul_add]
 
+/-- Scalar averaging distributes over pointwise subtraction. -/
 theorem bssAverageScalar_sub {I : Type} [Fintype I] (a b : I → ℂ) :
     bssAverageScalar (fun i => a i-b i)=bssAverageScalar a-bssAverageScalar b := by
   simp only [bssAverageScalar,Finset.sum_sub_distrib,mul_sub]
 
+/-- Multiplying a scalar average by a fixed complex number equals averaging the pointwise
+products. -/
 theorem bssAverageScalar_mul_left {I : Type} [Fintype I] (c : ℂ) (a : I → ℂ) :
     c*bssAverageScalar a=bssAverageScalar (fun i => c*a i) := by
   unfold bssAverageScalar
   rw [← Finset.mul_sum]
   ring
 
+/-- A finite sum of scalar averages equals the scalar average of the pointwise finite sum. -/
 theorem bssAverageScalar_sum {I Z : Type} [Fintype I] [Fintype Z] (a : Z → I → ℂ) :
     (∑ z : Z,bssAverageScalar (a z))=bssAverageScalar (fun i => ∑ z : Z,a z i) := by
   unfold bssAverageScalar
   rw [← Finset.mul_sum,Finset.sum_comm]
 
+/-- Averaging a constant over a nonempty finite index type returns that constant. -/
 theorem bssAverageScalar_const {I : Type} [Fintype I] [Nonempty I] (c : ℂ) :
     bssAverageScalar (fun _ : I => c)=c := by
   have hI : (Fintype.card I : ℂ)≠0 := by
@@ -146,6 +190,7 @@ theorem bssAverageScalar_const {I : Type} [Fintype I] [Nonempty I] (c : ℂ) :
 
 omit [Fintype X] [DecidableEq X] in
 
+/-- The finite average of positive semidefinite matrices is positive semidefinite. -/
 theorem bssAverage_posSemidef {I : Type} [Fintype I] (A : I → Matrix X X ℂ)
     (hA : ∀ i,(A i).PosSemidef) : (bssAverage A).PosSemidef := by
   have hsum (s : Finset I) : (∑ i∈s,A i).PosSemidef := by
@@ -154,6 +199,8 @@ theorem bssAverage_posSemidef {I : Type} [Fintype I] (A : I → Matrix X X ℂ)
     | @insert i s hi ih => rw [Finset.sum_insert hi]; exact (hA i).add ih
   exact (hsum Finset.univ).smul (inv_nonneg.mpr (Nat.cast_nonneg (Fintype.card I)))
 
+/-- Pointwise averaging of a nonempty finite collection of feasible matrix families preserves
+all `bssFamilyFeasible` constraints. -/
 theorem bssFamilyFeasible_average {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] {m : ℕ} {I : Type} [Fintype I] [Nonempty I]
     (bit : X → Fin m → Bool) (f : X → Y) (k : ℕ) (ε : ℝ)
     (M : I → Fin m → ℕ → Matrix X X ℂ) (N : I → ℕ → Matrix X X ℂ)
@@ -194,6 +241,8 @@ theorem bssFamilyFeasible_average {X Y : Type} [Fintype X] [DecidableEq X] [Fint
     rw [he]
     exact bssAverage_posSemidef _ (fun g => (h g).2.2.2.2.2.2 y)
 
+/-- Every feasible instance has matrix witnesses invariant under every compatible input,
+query-index, and output symmetry. -/
 theorem bssFeasible_exists_symmetry_invariant {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y)
     (k : ℕ) (ε : ℝ) (h : bssFeasible bit f k ε) :
     ∃ M : Fin m → ℕ → Matrix X X ℂ,∃ N : ℕ → Matrix X X ℂ,∃ Γ : Y → Matrix X X ℂ,
@@ -244,6 +293,8 @@ theorem bssFeasible_exists_symmetry_invariant {m : ℕ} (bit : X → Fin m → B
       change (∑ g : S,Γg (g*z) y x x')=∑ g : S,Γg g y x x'
       exact Equiv.sum_comp (Equiv.mulRight z) (fun g : S => Γg g y x x')
 
+/-- For a specified finite group of compatible symmetries, feasibility yields witnesses
+invariant under each group element's input, query-index, and output actions. -/
 theorem bssFeasible_exists_invariant {m : ℕ} (bit : X → Fin m → Bool) (f : X → Y)
     (k : ℕ) (ε : ℝ) (G : Type) [Group G] [Fintype G] [DecidableEq G]
     (π : G →* Equiv.Perm X) (ρ : G →* Equiv.Perm (Fin m)) (σ : G →* Equiv.Perm Y)

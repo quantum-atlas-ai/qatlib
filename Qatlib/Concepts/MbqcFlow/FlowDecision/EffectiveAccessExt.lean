@@ -5,6 +5,38 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccess
+
+/-!
+# Effective preparation and amplitude amplification
+
+This module extends finite rational data access with inverse preparation words, controlled
+selection, and quantitative linear-combination circuit bounds. `lcuTopBlock_exact` identifies
+the exact control block with a normalized nonnegative weighted operator sum, while
+`generalPrepare_exists` and `sparsePrepare_exists` extend preparation to complex and sparse
+amplitude data. These constructions fit the block-encoding framework of [GilyenSuLowWiebe2019].
+
+`groverRound` and `phaseRound` describe reflected circuit products. Under a scalar squared-block
+hypothesis, their clean-subspace actions yield Chebyshev formulas, probability and collapse
+estimates, and a two-round phase choice for oblivious amplitude amplification. The amplification
+background is described in [BrassardEtAl2002].
+
+## Main statements
+
+* `prepareRoundTrip`: preparation followed by its inverse evaluates to the identity with
+  explicit gate counts.
+* `lcuTopBlock_error`: bounds the approximate weighted operator block.
+* `groverPower_topBlock_chebT`: expresses the clean block of a Grover power by a Chebyshev
+  polynomial under the scalar squared-block condition.
+* `oaa_two_round_exact`: gives the exact clean-subspace action of two phase rounds.
+* `cmplxLcuWord_collapse_exists`: provides rational-table approximations of normalized
+  postselected outputs.
+
+## References
+
+* [Gilyen et al., 2019][GilyenSuLowWiebe2019]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -62,11 +94,14 @@ open Qatlib
 
 set_option autoImplicit false
 
+/-- The conjugate of a complex number of norm one multiplied by that number equals one. -/
 private theorem star_mul_self_of_norm_one {z : ℂ} (hz : ‖z‖ = 1) :
     starRingEnd ℂ z * z = 1 := by
   rw [← Complex.normSq_eq_conj_mul_self, ← Complex.sq_norm, hz]
   norm_num
 
+/-- The product of the conjugate of `a + b * I` with `a + b * I` is `a² + b²` for real `a` and
+`b`. -/
 private theorem star_ofReal_add_mul_I (a b : ℝ) :
     starRingEnd ℂ (Complex.ofReal a + Complex.ofReal b * Complex.I)
       * (Complex.ofReal a + Complex.ofReal b * Complex.I) = (a ^ 2 + b ^ 2 : ℂ) := by
@@ -75,6 +110,8 @@ private theorem star_ofReal_add_mul_I (a b : ℝ) :
     Complex.mul_re, Complex.mul_im, Complex.I_re, Complex.I_im]
   ring
 
+/-- A finite diagonal complex matrix is unitary when every diagonal entry has conjugate product
+one. -/
 private theorem diagonal_mem_unitaryGroup {n : Type*} [Fintype n] [DecidableEq n]
     (d : n → ℂ) (hd : ∀ i, starRingEnd ℂ (d i) * d i = 1) :
     Matrix.diagonal d ∈ Matrix.unitaryGroup n ℂ := by
@@ -96,6 +133,7 @@ private theorem diagonal_mem_unitaryGroup {n : Type*} [Fintype n] [DecidableEq n
       simp [Matrix.star_apply, Ne.symm hxy]
     · simp [Matrix.star_apply, Ne.symm hkx]
 
+/-- The basis state indexed by `none` has Euclidean norm one. -/
 private theorem stateVector_ket_none_norm {D : ℕ} :
     ‖stateVector (Qatlib.Foundations.PureStateMath.Ket none : QState (Option (Fin D)))‖ = 1 := by
   have hsq : ‖stateVector (Qatlib.Foundations.PureStateMath.Ket none : QState (Option (Fin D)))‖ ^ 2 = 1 := by
@@ -106,6 +144,7 @@ private theorem stateVector_ket_none_norm {D : ℕ} :
       norm_nonneg (stateVector (Qatlib.Foundations.PureStateMath.Ket none : QState (Option (Fin D))))
   nlinarith
 
+/-- Applying a finite unitary matrix preserves the Euclidean norm of a state vector. -/
 private theorem unitary_mulVec_stateVector_norm {I : Type*} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
     ‖stateVector (U *ᵥ ψ)‖ = ‖stateVector ψ‖ := by
@@ -128,6 +167,7 @@ private theorem unitary_mulVec_stateVector_norm {I : Type*} [Fintype I] [Decidab
     exact h.trans hle
   exact le_antisymm h1 h2
 
+/-- The phase diagonal constructed at precision `k` is unitary. -/
 theorem phaseDiagonal_unitary {D : ℕ} (k : ℕ) (amp : Option (Fin D) → RatComplex) :
     phaseDiagonal k amp ∈ Matrix.unitaryGroup (Option (Fin D)) ℂ := by
   have h : Matrix.diagonal (fun a => ratToComplex (phaseApprox (amp a) k))
@@ -137,6 +177,7 @@ theorem phaseDiagonal_unitary {D : ℕ} (k : ℕ) (amp : Option (Fin D) → RatC
     exact_mod_cast (phaseApprox_unit (amp a) k)
   exact h
 
+/-- The diagonal matrix of exact amplitude phases is unitary. -/
 theorem exactPhaseDiagonal_unitary {D : ℕ} (amp : Option (Fin D) → RatComplex) :
     exactPhaseDiagonal amp ∈ Matrix.unitaryGroup (Option (Fin D)) ℂ := by
   refine diagonal_mem_unitaryGroup _ (fun a => star_mul_self_of_norm_one ?_)
@@ -145,6 +186,8 @@ theorem exactPhaseDiagonal_unitary {D : ℕ} (amp : Option (Fin D) → RatComple
     exact exactPhase_zero
   · exact exactPhase_norm (amp a) hz
 
+/-- The exact preparation matrix is unitary for nonnegative rational weights of positive total
+mass. -/
 theorem exactPrepareMatrix_unitary {D : ℕ} (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
     (hm : 0 < rationalWeightMass w) :
@@ -152,10 +195,12 @@ theorem exactPrepareMatrix_unitary {D : ℕ} (w : Option (Fin D) → ℚ)
   (Matrix.unitaryGroup (Option (Fin D)) ℂ).mul_mem (exactPhaseDiagonal_unitary amp)
     ((rational_weight_ideal_preparation_exact D w hw hm).1)
 
+/-- The adjoint circuit word of `prepareWord`, used to reverse the preparation circuit. -/
 noncomputable def prepareInverseWord {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) : List (AdjointStep (Option (Fin D))) :=
   adjointCircuit (prepareWord k w amp)
 
+/-- The preparation word is well formed when all rational weights are nonnegative. -/
 theorem prepareWord_wellFormed {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a) :
     WellFormedAdjointCircuit (prepareWord k w amp) := by
@@ -168,11 +213,13 @@ theorem prepareWord_wellFormed {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
   rw [prepareWord]
   exact hphase.append hweight
 
+/-- The inverse preparation word is well formed for nonnegative rational weights. -/
 theorem prepareInverseWord_wellFormed {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a) :
     WellFormedAdjointCircuit (prepareInverseWord k w amp) :=
   (prepareWord_wellFormed k w amp hw).adjointCircuit
 
+/-- The preparation matrix at precision `k` is unitary for nonnegative rational weights. -/
 theorem prepareMatrix_unitary {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a) :
     prepareMatrix k w amp ∈ Matrix.unitaryGroup (Option (Fin D)) ℂ := by
@@ -181,11 +228,14 @@ theorem prepareMatrix_unitary {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
         ∈ Matrix.unitaryGroup (Option (Fin D)) ℂ by simp)
   rwa [prepareWord_eval] at h
 
+/-- Evaluating the inverse preparation word with identity oracle gives the conjugate transpose
+of the preparation matrix. -/
 theorem prepareInverseWord_eval {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) :
     evaluate 1 (prepareInverseWord k w amp) = (prepareMatrix k w amp)ᴴ := by
   rw [prepareInverseWord, evaluate_adjointCircuit, prepareWord_eval]
 
+/-- The inverse preparation word uses `D + 1` gates and zero oracle queries. -/
 theorem prepareInverseWord_counts {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) :
     adjointGateCount (prepareInverseWord k w amp) = D + 1 ∧
@@ -195,6 +245,8 @@ theorem prepareInverseWord_counts {D : ℕ} (k : ℕ) (w : Option (Fin D) → �
     adjointQueryCount_adjointCircuit]
   exact h
 
+/-- Preparation followed by its inverse is a well-formed identity circuit with `2 * (D + 1)`
+gates and zero queries. -/
 theorem prepareRoundTrip {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a) :
     WellFormedAdjointCircuit (prepareWord k w amp ++ prepareInverseWord k w amp) ∧
@@ -211,6 +263,8 @@ theorem prepareRoundTrip {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
   · rw [hg, hgW]
   · rw [hq, hqW]
 
+/-- Applying approximate preparation after the inverse exact preparation moves the `none` basis
+state by at most `32 * (D + 1) / 2^k` in Euclidean norm. -/
 theorem prepareUncompute_clean {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
     (hm : 0 < rationalWeightMass w) :
@@ -247,6 +301,8 @@ theorem prepareUncompute_clean {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
   rw [hd, ← hkey]
   exact hnorm.trans (prepareMatrix_error k w amp hw hm)
 
+/-- Choosing `precisionFor D ε` bounds the preparation and exact-uncomputation error on the
+`none` basis state by `ε`. -/
 theorem prepareUncompute_clean_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w) :
@@ -259,6 +315,8 @@ theorem prepareUncompute_clean_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε)
   have hb := prepError_le_epsilon (D := D) ε hε
   linarith
 
+/-- The conjugate transposes of approximate and exact preparation matrices differ in norm by at
+most `32 * (D + 1) / 2^k`. -/
 theorem prepareInverseMatrix_error {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
     (hm : 0 < rationalWeightMass w) :
@@ -270,6 +328,8 @@ theorem prepareInverseMatrix_error {D : ℕ} (k : ℕ) (w : Option (Fin D) → �
   rw [h, Matrix.l2_opNorm_conjTranspose]
   exact prepareMatrix_error k w amp hw hm
 
+/-- Collects inverse preparation semantics, gate counts, well-formedness, exact unitarity, and
+quantitative uncomputation bounds. -/
 theorem frontier1 :
     (∀ {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex),
       evaluate 1 (prepareInverseWord k w amp) = (prepareMatrix k w amp)ᴴ) ∧
@@ -316,16 +376,20 @@ theorem frontier1 :
   exact ⟨prepareWord_wellFormed k w amp hw,
     (prepareWord_wellFormed k w amp hw).adjointCircuit, hev, hq, hg⟩
 
+/-- Lifts an adjoint circuit step to a product register by tensoring gates with the identity and
+retaining oracle directions. -/
 noncomputable def liftAdjointStep {H X : Type*} [DecidableEq X] :
     AdjointStep H → AdjointStep (H × X)
   | .gate V => .gate (TensorGate V 1)
   | .forward => .forward
   | .backward => .backward
 
+/-- Lifts every step of an adjoint circuit word to a product register. -/
 noncomputable def liftAdjointWord {H X : Type*} [DecidableEq X]
     (cs : List (AdjointStep H)) :
     List (AdjointStep (H × X)) := cs.map liftAdjointStep
 
+/-- Lifting an adjoint circuit word preserves its gate count. -/
 theorem adjointGateCount_liftAdjointWord {H X : Type*} [DecidableEq X]
     (cs : List (AdjointStep H)) :
     adjointGateCount (liftAdjointWord (X := X) cs) = adjointGateCount cs := by
@@ -343,6 +407,7 @@ theorem adjointGateCount_liftAdjointWord {H X : Type*} [DecidableEq X]
         simp only [liftAdjointWord, List.map_cons, liftAdjointStep, adjointGateCount]
         exact ih
 
+/-- Lifting an adjoint circuit word preserves its oracle query count. -/
 theorem adjointQueryCount_liftAdjointWord {H X : Type*} [DecidableEq X]
     (cs : List (AdjointStep H)) :
     adjointQueryCount (liftAdjointWord (X := X) cs) = adjointQueryCount cs := by
@@ -360,6 +425,7 @@ theorem adjointQueryCount_liftAdjointWord {H X : Type*} [DecidableEq X]
         simp only [liftAdjointWord, List.map_cons, liftAdjointStep, adjointQueryCount]
         exact congrArg (· + 1) ih
 
+/-- Taking the adjoint circuit commutes with lifting to a product register. -/
 theorem adjointCircuit_liftAdjointWord {H X : Type*} [Fintype H] [DecidableEq H]
     [Fintype X] [DecidableEq X] (cs : List (AdjointStep H)) :
     adjointCircuit (liftAdjointWord (X := X) cs) = liftAdjointWord (adjointCircuit cs) := by
@@ -390,6 +456,8 @@ theorem adjointCircuit_liftAdjointWord {H X : Type*} [Fintype H] [DecidableEq H]
         simp only [liftAdjointWord, List.map_append, List.map_cons, List.map_nil,
           adjointInstruction, liftAdjointStep]
 
+/-- Evaluating a lifted word with a lifted oracle tensors the original evaluation with the
+identity. -/
 theorem evaluate_liftAdjointWord {H X : Type*} [Fintype H] [DecidableEq H]
     [Fintype X] [DecidableEq X] (U : Matrix H H ℂ)
     (cs : List (AdjointStep H)) :
@@ -414,12 +482,15 @@ theorem evaluate_liftAdjointWord {H X : Type*} [Fintype H] [DecidableEq H]
         rw [ih, tensorGate_conjTranspose, Matrix.conjTranspose_one, tensorGate_mul,
           Matrix.one_mul]
 
+/-- With identity oracle, evaluating a lifted word gives the tensor product of its original
+evaluation with the identity. -/
 theorem evaluate_liftAdjointWord_one {H X : Type*} [Fintype H] [DecidableEq H]
     [Fintype X] [DecidableEq X] (cs : List (AdjointStep H)) :
     evaluate 1 (liftAdjointWord (X := X) cs) = TensorGate (evaluate 1 cs) 1 := by
   have h := evaluate_liftAdjointWord (X := X) (1 : Matrix H H ℂ) cs
   rwa [tensorGate_one] at h
 
+/-- Lifting a well-formed adjoint circuit word preserves well-formedness. -/
 theorem wellFormed_liftAdjointWord {H X : Type*} [Fintype H] [DecidableEq H]
     [Fintype X] [DecidableEq X] {cs : List (AdjointStep H)}
     (hcs : WellFormedAdjointCircuit cs) :
@@ -442,6 +513,8 @@ theorem wellFormed_liftAdjointWord {H X : Type*} [Fintype H] [DecidableEq H]
           WellFormedAdjointCircuit.backward_cons_iff] at hcs ⊢
         exact ih hcs
 
+/-- The preparation, selection, and inverse-preparation word for a linear combination of
+operators. -/
 noncomputable def lcuBlockWord {D : ℕ} {X : Type*} [DecidableEq X] (k : ℕ)
     (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex)
@@ -450,6 +523,8 @@ noncomputable def lcuBlockWord {D : ℕ} {X : Type*} [DecidableEq X] (k : ℕ)
   liftAdjointWord (prepareInverseWord k w amp) ++ [.gate S]
     ++ liftAdjointWord (prepareWord k w amp)
 
+/-- The linear-combination word evaluates to the selector sandwiched between preparation and its
+conjugate transpose. -/
 theorem lcuBlockWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex)
@@ -460,6 +535,7 @@ theorem lcuBlockWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     evaluate_liftAdjointWord_one, prepareInverseWord_eval, prepareWord_eval]
   simp [evaluate, instructionMatrix]
 
+/-- The linear-combination word uses `2 * (D + 1) + 1` gates and zero queries. -/
 theorem lcuBlockWord_counts {D : ℕ} {X : Type*} [DecidableEq X] (k : ℕ)
     (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex)
@@ -473,6 +549,7 @@ theorem lcuBlockWord_counts {D : ℕ} {X : Type*} [DecidableEq X] (k : ℕ)
     adjointQueryCount]
   omega
 
+/-- The linear-combination word is well formed for nonnegative weights and a unitary selector. -/
 theorem lcuBlockWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a)
@@ -485,10 +562,13 @@ theorem lcuBlockWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
     WellFormedAdjointCircuit.nil,
     wellFormed_liftAdjointWord (prepareWord_wellFormed k w amp hw)⟩
 
+/-- The block diagonal selector whose block indexed by `a` is `U a`. -/
 def blockSelect {D : ℕ} {X : Type*} (U : Option (Fin D) → Matrix X X ℂ) :
     Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ :=
   fun p q => if p.1 = q.1 then U p.1 p.2 q.2 else 0
 
+/-- On a basis control state `a`, the selector applies `U a` to the data state and preserves the
+control. -/
 theorem blockSelect_mulVec_tensorState {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Option (Fin D) → Matrix X X ℂ) (a : Option (Fin D)) (φ : QState X) :
     blockSelect U *ᵥ TensorState (Qatlib.Foundations.PureStateMath.Ket a) φ = TensorState (Qatlib.Foundations.PureStateMath.Ket a) (U a *ᵥ φ) := by
@@ -515,6 +595,7 @@ theorem blockSelect_mulVec_tensorState {D : ℕ} {X : Type*} [Fintype X] [Decida
     rw [Finset.sum_eq_zero key]
     simp [hba, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- A block selector is unitary when every selected matrix is unitary. -/
 theorem blockSelect_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     {U : Option (Fin D) → Matrix X X ℂ} (hU : ∀ a, U a ∈ Matrix.unitaryGroup X ℂ) :
     blockSelect U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ := by
@@ -550,6 +631,8 @@ theorem blockSelect_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
       · rw [if_pos hab, if_neg (fun h => hbc (hab ▸ h)), mul_zero]
       · rw [if_neg hab, star_zero, zero_mul]
 
+/-- Approximate and exact preparation sandwiches around a unitary selector differ in norm by at
+most `64 * (D + 1) / 2^k`. -/
 theorem lcuBlock_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -640,6 +723,8 @@ theorem lcuBlock_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonemp
     ring
   linarith
 
+/-- The preparation sandwich error is at most `64 * (D + 1) / 2^k` for a selector of unitary
+blocks. -/
 theorem lcuBlock_error_blockSelect {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -651,6 +736,7 @@ theorem lcuBlock_error_blockSelect {D : ℕ} {X : Type*} [Fintype X] [DecidableE
       ≤ 64 * (D + 1) / 2 ^ k :=
   lcuBlock_error k w amp hw hm _ (blockSelect_unitary hU)
 
+/-- Tensoring a normalized state with the `none` basis state produces a normalized state. -/
 private theorem stateVector_ket_none_tensor_norm {D : ℕ} {X : Type*}
     [Fintype X] [DecidableEq X] (ψ : QState X) (hψ : ‖stateVector ψ‖ = 1) :
     ‖stateVector (TensorState (Qatlib.Foundations.PureStateMath.Ket none : QState (Option (Fin D))) ψ)‖ = 1 := by
@@ -660,6 +746,8 @@ private theorem stateVector_ket_none_tensor_norm {D : ℕ} {X : Type*}
   rw [stateVector_ket_none_norm, hψ, mul_one] at h
   exact h
 
+/-- Approximate and exact linear-combination sandwiches applied to a normalized data state
+differ by at most `64 * (D + 1) / 2^k`. -/
 theorem lcuUncompute_clean {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -696,6 +784,8 @@ theorem lcuUncompute_clean {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [No
   rw [mul_one]
   exact lcuBlock_error k w amp hw hm S hS
 
+/-- Exact preparation and uncomputation cancel around an operator acting only on the data
+register. -/
 theorem exactLcuPipeline_dataSelect {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -709,6 +799,8 @@ theorem exactLcuPipeline_dataSelect {D : ℕ} {X : Type*} [Fintype X] [Decidable
     simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff'.mp hV)
   simp only [tensorGate_mul, one_mul, Matrix.mul_one, hVHV]
 
+/-- The approximate sandwich for a unitary acting only on data differs from its clean-ancilla
+output by at most `64 * (D + 1) / 2^k`. -/
 theorem lcuUncompute_dataSelect_clean {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -734,6 +826,8 @@ theorem lcuUncompute_dataSelect_clean {D : ℕ} {X : Type*} [Fintype X] [Decidab
   rw [hact] at h
   exact h
 
+/-- Precision `precisionFor D (ε / 2)` bounds the clean-ancilla error for a data-only unitary by
+`ε`. -/
 theorem lcuUncompute_dataSelect_clean_epsilon {D : ℕ} {X : Type*} [Fintype X]
     [DecidableEq X] [Nonempty X] (ε : ℚ) (hε : 0 < ε)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
@@ -756,6 +850,8 @@ theorem lcuUncompute_dataSelect_clean_epsilon {D : ℕ} {X : Type*} [Fintype X]
     ring
   linarith
 
+/-- Evaluating the linear-combination word for a data-only unitary approximates its
+clean-ancilla action within `64 * (D + 1) / 2^k`. -/
 theorem lcuUncompute_word_clean {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -768,6 +864,8 @@ theorem lcuUncompute_word_clean {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
   rw [lcuBlockWord_eval]
   exact lcuUncompute_dataSelect_clean k w amp hw hm U hU ψ hψ
 
+/-- The linear-combination word for a data-only unitary has clean-ancilla error at most `ε` at
+precision `precisionFor D (ε / 2)`. -/
 theorem lcuUncompute_word_clean_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
@@ -782,10 +880,12 @@ theorem lcuUncompute_word_clean_epsilon {D : ℕ} {X : Type*} [Fintype X] [Decid
   rw [lcuBlockWord_eval]
   exact lcuUncompute_dataSelect_clean_epsilon ε hε w amp hw hm U hU ψ hψ
 
+/-- The matrix block obtained by fixing both control indices to `none`. -/
 def blockNone {D : ℕ} {X : Type*}
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     Matrix X X ℂ := fun x y => M (none, x) (none, y)
 
+/-- Restricting a state to the control index `none` cannot increase its Euclidean norm. -/
 private theorem stateVector_restrictNone_norm_le {D : ℕ} {X : Type*}
     [Fintype X] [DecidableEq X] (u : QState (Option (Fin D) × X)) :
     ‖stateVector (fun x => u (none, x))‖ ≤ ‖stateVector u‖ := by
@@ -809,6 +909,7 @@ private theorem stateVector_restrictNone_norm_le {D : ℕ} {X : Type*}
     ← Real.sqrt_sq (norm_nonneg (stateVector u))]
   exact Real.sqrt_le_sqrt hsub
 
+/-- Extracting the `none` control block cannot increase the matrix norm. -/
 theorem blockNone_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     ‖blockNone M‖ ≤ ‖M‖ := by
@@ -838,6 +939,8 @@ theorem blockNone_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
           tensorState_l2_norm _ _
         rw [hT, stateVector_ket_none_norm, one_mul]
 
+/-- The `none` column of the exact preparation matrix is the product of the exact phase and the
+rational weight target. -/
 theorem exactPrepareColumn {D : ℕ} (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
     (hm : 0 < rationalWeightMass w) (a : Option (Fin D)) :
@@ -860,6 +963,8 @@ theorem exactPrepareColumn {D : ℕ} (w : Option (Fin D) → ℚ)
     simp only [exactPrepareMatrix, exactPhaseDiagonal, Matrix.diagonal_mul]
   exact hop.trans (congrArg _ hcol.symm)
 
+/-- The squared modulus of each entry in the exact preparation column is its weight divided by
+the total weight mass. -/
 theorem exactPrepareColumn_sq {D : ℕ} (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
     (hm : 0 < rationalWeightMass w) (a : Option (Fin D)) :
@@ -895,6 +1000,8 @@ theorem exactPrepareColumn_sq {D : ℕ} (w : Option (Fin D) → ℚ)
     ring
   rw [rearr, hone, one_mul, hsq]
 
+/-- Each entry of the extracted preparation-selector sandwich is the sum of selected entries
+weighted by squared preparation-column amplitudes. -/
 theorem lcuSandwich_entry {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (P : Matrix (Option (Fin D)) (Option (Fin D)) ℂ)
     (U : Option (Fin D) → Matrix X X ℂ) (x y : X) :
@@ -959,6 +1066,8 @@ theorem lcuSandwich_entry {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   simp only [blockNone, Matrix.mul_apply, Fintype.sum_prod_type, blockSelect, hleft, hright]
   exact Finset.sum_congr rfl fun a _ => hz a
 
+/-- The exact preparation-selector sandwich has `none` block equal to the sum of the selected
+operators weighted by normalized rational weights. -/
 theorem lcuTopBlock_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -974,6 +1083,8 @@ theorem lcuTopBlock_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   refine Finset.sum_congr rfl fun a _ => ?_
   rw [exactPrepareColumn_sq w amp hw hm a]
 
+/-- The approximate sandwich block differs from the normalized weighted operator sum by at most
+`64 * (D + 1) / 2^k`. -/
 theorem lcuTopBlock_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -996,6 +1107,7 @@ theorem lcuTopBlock_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   exact (blockNone_norm_le _).trans
     (lcuBlock_error k w amp hw hm _ (blockSelect_unitary hU))
 
+/-- Precision `precisionFor D (ε / 2)` makes the approximate sandwich block error at most `ε`. -/
 theorem lcuTopBlock_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex)
@@ -1018,6 +1130,8 @@ theorem lcuTopBlock_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
     ring
   linarith
 
+/-- The `none` block of the evaluated linear-combination word approximates the normalized
+weighted operator sum within `64 * (D + 1) / 2^k`. -/
 theorem lcuWord_topBlock_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1028,6 +1142,8 @@ theorem lcuWord_topBlock_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   rw [lcuBlockWord_eval]
   exact lcuTopBlock_error k w amp hw hm U hU
 
+/-- The evaluated linear-combination word has `none` block error at most `ε` at precision
+`precisionFor D (ε / 2)`. -/
 theorem lcuWord_topBlock_error_epsilon {D : ℕ} {X : Type*} [Fintype X]
     [DecidableEq X] [Nonempty X] (ε : ℚ) (hε : 0 < ε)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
@@ -1040,9 +1156,13 @@ theorem lcuWord_topBlock_error_epsilon {D : ℕ} {X : Type*} [Fintype X]
   rw [lcuBlockWord_eval]
   exact lcuTopBlock_error_epsilon ε hε w amp hw hm U hU
 
+/-- The data state obtained by restricting the control register to `none`, without
+renormalization. -/
 def cleanBranch {D : ℕ} {X : Type*}
     (u : QState (Option (Fin D) × X)) : QState X := fun x => u (none, x)
 
+/-- The probability weight of the `none` control branch equals the squared Euclidean norm of
+`cleanBranch`. -/
 theorem measureProb_none_branch {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (u : QState (Option (Fin D) × X)) :
     MeasureProb u (Finset.univ.filter (fun p : Option (Fin D) × X => p.1 = none))
@@ -1056,6 +1176,8 @@ theorem measureProb_none_branch {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
   · intro hn
     exact absurd (Finset.mem_univ none) hn
 
+/-- The clean branch of a matrix acting on a `none`-initialized control equals its `none` block
+acting on the data state. -/
 theorem lcuCleanBranch {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) (ψ : QState X) :
     cleanBranch (M *ᵥ TensorState (Qatlib.Foundations.PureStateMath.Ket none : QState (Option (Fin D))) ψ)
@@ -1071,6 +1193,7 @@ theorem lcuCleanBranch {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   · intro hn
     exact absurd (Finset.mem_univ none) hn
 
+/-- The exact preparation sandwich of a selector of unitaries is unitary. -/
 theorem lcuSandwichExact_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1091,6 +1214,8 @@ theorem lcuSandwichExact_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   exact (Matrix.unitaryGroup (Option (Fin D) × X) ℂ).mul_mem
     ((Matrix.unitaryGroup (Option (Fin D) × X) ℂ).mul_mem hL (blockSelect_unitary hU)) hR
 
+/-- The clean branch of the exact linear-combination sandwich is the normalized weighted
+operator sum applied to the data state. -/
 theorem lcuExact_apply {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1101,6 +1226,8 @@ theorem lcuExact_apply {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
       = (∑ a, ((w a / rationalWeightMass w : ℚ) : ℂ) • U a) *ᵥ ψ := by
   rw [lcuCleanBranch, lcuTopBlock_exact w amp hw hm U]
 
+/-- The normalized nonnegative weighted sum of the selected unitaries has matrix norm at most
+one. -/
 theorem lcuCombination_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1110,6 +1237,8 @@ theorem lcuCombination_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   exact (blockNone_norm_le _).trans
     (le_of_eq (l2_norm_unitary_eq_one (lcuSandwichExact_unitary w amp hw hm U hU)))
 
+/-- The clean branch of the evaluated linear-combination word approximates the weighted operator
+action with error at most `64 * (D + 1) / 2^k` times the input norm. -/
 theorem lcuWord_apply_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1134,6 +1263,8 @@ theorem lcuWord_apply_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   exact mul_le_mul_of_nonneg_right (lcuWord_topBlock_error k w amp hw hm U hU)
     (norm_nonneg (stateVector ψ))
 
+/-- For normalized input, precision `precisionFor D (ε / 2)` gives clean-branch state error at
+most `ε`. -/
 theorem lcuWord_apply_state_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -1158,6 +1289,8 @@ theorem lcuWord_apply_state_epsilon {D : ℕ} {X : Type*} [Fintype X] [Decidable
     ring
   linarith
 
+/-- For normalized states at Euclidean distance at most `δ`, any specified basis-event
+probabilities differ by at most `2 * δ`. -/
 private theorem born_deviation {I : Type*} [Fintype I] [DecidableEq I]
     (v u : QState I) (S : Finset I)
     (hv : ‖stateVector v‖ = 1) (hu : ‖stateVector u‖ = 1)
@@ -1173,6 +1306,8 @@ private theorem born_deviation {I : Type*} [Fintype I] [DecidableEq I]
   rw [show (1 : ℝ) + 1 = 2 from by norm_num] at hmp
   exact hmp.trans (mul_le_mul_of_nonneg_left h (by norm_num))
 
+/-- The `none`-branch probability of the linear-combination word differs from the ideal squared
+output norm by at most `128 * (D + 1) / 2^k`. -/
 theorem lcuBorn_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1231,6 +1366,8 @@ theorem lcuBorn_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty
       = 128 * ((D : ℝ) + 1) / 2 ^ k := by ring
   linarith
 
+/-- Precision `precisionFor D (ε / 4)` bounds the `none`-branch probability error by `ε` for
+normalized input. -/
 theorem lcuBorn_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -1255,12 +1392,15 @@ theorem lcuBorn_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     ring
   linarith
 
+/-- The adjoint word of the preparation-selector-uncomputation circuit. -/
 noncomputable def lcuBlockWordAdjoint {D : ℕ} {X : Type*} [DecidableEq X] (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     List (AdjointStep (Option (Fin D) × X)) :=
   adjointCircuit (lcuBlockWord k w amp S)
 
+/-- The adjoint linear-combination word evaluates to the conjugate transpose of the preparation
+sandwich. -/
 theorem lcuBlockWordAdjoint_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -1269,6 +1409,8 @@ theorem lcuBlockWordAdjoint_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
           * TensorGate (prepareMatrix k w amp) 1)ᴴ := by
   rw [lcuBlockWordAdjoint, evaluate_adjointCircuit, lcuBlockWord_eval]
 
+/-- The adjoint linear-combination word is well formed for nonnegative weights and a unitary
+selector. -/
 theorem lcuBlockWordAdjoint_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a)
@@ -1277,6 +1419,7 @@ theorem lcuBlockWordAdjoint_wellFormed {D : ℕ} {X : Type*} [Fintype X] [Decida
     WellFormedAdjointCircuit (lcuBlockWordAdjoint k w amp S) :=
   (lcuBlockWord_wellFormed k w amp hw S hS).adjointCircuit
 
+/-- The adjoint linear-combination word has `2 * (D + 1) + 1` gates and zero queries. -/
 theorem lcuBlockWordAdjoint_counts {D : ℕ} {X : Type*} [DecidableEq X] (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -1286,6 +1429,8 @@ theorem lcuBlockWordAdjoint_counts {D : ℕ} {X : Type*} [DecidableEq X] (k : �
     adjointQueryCount_adjointCircuit]
   exact lcuBlockWord_counts k w amp S
 
+/-- A linear-combination word followed by its adjoint is a well-formed identity circuit with
+twice the original gate count and zero queries. -/
 theorem lcuBlockWordRoundTrip {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a)
@@ -1308,6 +1453,7 @@ theorem lcuBlockWordRoundTrip {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   · rw [hgc, hgW]
   · rw [hqc, hqW]
 
+/-- The concatenation of `m` copies of the linear-combination circuit word. -/
 noncomputable def lcuWordRepeat {D : ℕ} {X : Type*} [DecidableEq X] (m : ℕ) (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -1316,6 +1462,8 @@ noncomputable def lcuWordRepeat {D : ℕ} {X : Type*} [DecidableEq X] (m : ℕ) 
   | 0 => []
   | m + 1 => lcuWordRepeat m k w amp S ++ lcuBlockWord k w amp S
 
+/-- Evaluating `m` repeated linear-combination words gives the `m`th power of the single-word
+evaluation. -/
 theorem lcuWordRepeat_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (m : ℕ) (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -1326,6 +1474,8 @@ theorem lcuWordRepeat_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   | succ m ih =>
       simp only [lcuWordRepeat, evaluate_append, ih, pow_succ]
 
+/-- Repeating the linear-combination word `m` times uses `m * (2 * (D + 1) + 1)` gates and zero
+queries. -/
 theorem lcuWordRepeat_counts {D : ℕ} {X : Type*} [DecidableEq X] (m : ℕ) (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -1339,6 +1489,8 @@ theorem lcuWordRepeat_counts {D : ℕ} {X : Type*} [DecidableEq X] (m : ℕ) (k 
       simp only [lcuWordRepeat, adjointGateCount_append, adjointQueryCount_append]
       refine ⟨by rw [hg, hgW]; ring, by rw [hq, hqW]⟩
 
+/-- Repeated linear-combination words are well formed for nonnegative weights and a unitary
+selector. -/
 theorem lcuWordRepeat_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (m : ℕ) (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a)
@@ -1351,6 +1503,7 @@ theorem lcuWordRepeat_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
       simp only [lcuWordRepeat]
       exact ih.append (lcuBlockWord_wellFormed k w amp hw S hS)
 
+/-- Left multiplication by a unitary matrix preserves the matrix norm. -/
 private theorem unitary_mul_norm_eq {H : Type*} [Fintype H] [DecidableEq H] [Nonempty H]
     (M : Matrix H H ℂ) (hM : M ∈ Matrix.unitaryGroup H ℂ) (N : Matrix H H ℂ) :
     ‖M * N‖ = ‖N‖ := by
@@ -1365,6 +1518,8 @@ private theorem unitary_mul_norm_eq {H : Type*} [Fintype H] [DecidableEq H] [Non
       _ = ‖M * N‖ := by rw [l2_norm_unitary_eq_one (adjoint_unitary hM), one_mul]
   exact le_antisymm h1 h2
 
+/-- Sandwiching a unitary selector between exact preparation and its inverse produces a unitary
+matrix. -/
 theorem lcuSandwich_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1384,6 +1539,8 @@ theorem lcuSandwich_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     ((Matrix.unitaryGroup (Option (Fin D) × X) ℂ).mul_mem hL hS)
     (tensorGate_unitary hE h1)
 
+/-- The `m`th powers of the approximate and exact preparation sandwiches differ in norm by at
+most `m * (64 * (D + 1) / 2^k)`. -/
 theorem lcuWord_power_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (m : ℕ) (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1430,6 +1587,7 @@ theorem lcuWord_power_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [N
       have hsum := add_le_add honeshot (h2.trans ih)
       linarith
 
+/-- The bound `c ≤ e / (2 * (n + 1))` implies `(n + 1) * (2 * c) ≤ e`. -/
 private theorem mul_two_div_le {c e : ℝ} {n : ℕ}
     (hb : c ≤ e / (2 * ((n : ℝ) + 1))) :
     ((n : ℝ) + 1) * (2 * c) ≤ e := by
@@ -1440,6 +1598,8 @@ private theorem mul_two_div_le {c e : ℝ} {n : ℕ}
         mul_le_mul_of_nonneg_left hb (by positivity)
     _ = e := mul_div_cancel₀ e hne
 
+/-- Precision `precisionFor D (ε / (2 * (m + 1)))` bounds the error between the `(m + 1)`st
+powers of approximate and exact sandwiches by `ε`. -/
 theorem lcuWord_power_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m : ℕ) (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -1465,6 +1625,8 @@ theorem lcuWord_power_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [Decidable
   rw [hsplit, Nat.cast_succ]
   exact mul_two_div_le hb
 
+/-- The evaluated `m`-fold linear-combination word approximates the `m`th power of the exact
+sandwich with error at most `m * (64 * (D + 1) / 2^k)`. -/
 theorem lcuWordRepeat_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (m : ℕ) (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1480,6 +1642,8 @@ theorem lcuWordRepeat_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [N
 
 set_option maxHeartbeats 400000 in
 
+/-- The `(m + 1)`-fold word has matrix error at most `ε` when the precision allocates `ε / (2 *
+(m + 1))` to preparation. -/
 theorem lcuWordRepeat_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m : ℕ) (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -1493,6 +1657,8 @@ theorem lcuWordRepeat_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [Decidable
   rw [lcuWordRepeat_eval]
   exact lcuWord_power_error_epsilon m ε hε w amp hw hm S hS
 
+/-- On a state `φ`, the repeated-word error is at most `m * (64 * (D + 1) / 2^k)` times the
+Euclidean norm of `φ`. -/
 theorem lcuWordRepeat_state_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m : ℕ) (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -1521,10 +1687,13 @@ theorem lcuWordRepeat_state_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
   exact mul_le_mul_of_nonneg_right (lcuWord_power_error m k w amp hw hm S hS)
     (norm_nonneg (stateVector φ))
 
+/-- The diagonal reflection that fixes control index `none` and negates all other control
+indices. -/
 def reflectNone {D : ℕ} {X : Type*} [DecidableEq X] :
     Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ :=
   Matrix.diagonal fun p : Option (Fin D) × X => if p.1 = none then (1 : ℂ) else -1
 
+/-- The reflection about the `none` control subspace is unitary. -/
 theorem reflectNone_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
     reflectNone (D := D) (X := X) ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ := by
   refine diagonal_mem_unitaryGroup _ fun p => ?_
@@ -1532,6 +1701,7 @@ theorem reflectNone_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
   · simp [h]
   · simp [h]
 
+/-- The reflection about the `none` control subspace squares to the identity. -/
 theorem reflectNone_sq {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
     reflectNone (D := D) (X := X) * reflectNone = 1 := by
   ext p q
@@ -1542,6 +1712,8 @@ theorem reflectNone_sq {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
     · simp [reflectNone, h]
   · simp [reflectNone, hpq]
 
+/-- The reflection multiplies a basis-controlled tensor state by one for control `none` and by
+minus one otherwise. -/
 theorem reflectNone_tensor_apply {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (a : Option (Fin D)) (φ : QState X) :
     reflectNone *ᵥ TensorState (Qatlib.Foundations.PureStateMath.Ket a) φ
@@ -1568,47 +1740,59 @@ theorem reflectNone_tensor_apply {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
     rw [hket, if_neg hba]
     simp
 
+/-- The single-gate circuit word implementing `reflectNone`. -/
 noncomputable def reflectNoneWord {D : ℕ} {X : Type*} [DecidableEq X] :
     List (AdjointStep (Option (Fin D) × X)) := [.gate reflectNone]
 
+/-- The reflection word evaluates to `reflectNone`. -/
 theorem reflectNoneWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
     evaluate 1 (reflectNoneWord (D := D) (X := X)) = reflectNone := by
   simp [reflectNoneWord, evaluate, instructionMatrix]
 
+/-- The reflection word has one gate and zero queries. -/
 theorem reflectNoneWord_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
     adjointGateCount (reflectNoneWord (D := D) (X := X)) = 1 ∧
       adjointQueryCount (reflectNoneWord (D := D) (X := X)) = 0 := by
   simp [reflectNoneWord, adjointGateCount, adjointQueryCount]
 
+/-- The single-gate reflection word is well formed. -/
 theorem reflectNoneWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
     WellFormedAdjointCircuit (reflectNoneWord (D := D) (X := X)) := by
   simp [reflectNoneWord, reflectNone_unitary]
 
+/-- The block of a matrix with output control `none` and input control `a`. -/
 def rowBlock {D : ℕ} {X : Type*} (a : Option (Fin D))
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) : Matrix X X ℂ :=
   fun x z => M (none, x) (a, z)
 
+/-- The block of a matrix with output control `a` and input control `none`. -/
 def colBlock {D : ℕ} {X : Type*} (a : Option (Fin D))
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) : Matrix X X ℂ :=
   fun z y => M (a, z) (none, y)
 
+/-- The `none` block of the identity matrix is the identity on the data register. -/
 theorem blockNone_one {D : ℕ} {X : Type*} [DecidableEq X] :
     blockNone (1 : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) = 1 := by
   ext x y
   simp [blockNone, Matrix.one_apply]
 
+/-- Extracting the `none` block commutes with conjugate transpose. -/
 theorem blockNone_adjoint {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     blockNone Mᴴ = (blockNone M)ᴴ := by
   ext x y
   simp [blockNone, Matrix.conjTranspose_apply]
 
+/-- A row block of a conjugate transpose is the conjugate transpose of the corresponding column
+block. -/
 theorem rowBlock_adjoint {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) (a : Option (Fin D)) :
     rowBlock a Mᴴ = (colBlock a M)ᴴ := by
   ext x y
   simp [rowBlock, colBlock, Matrix.conjTranspose_apply]
 
+/-- The `none` block of a product is the product of its `none` blocks plus the sum over the
+other intermediate control indices. -/
 theorem blockNone_mul_expand {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M N : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     blockNone (M * N) = blockNone M * blockNone N
@@ -1640,6 +1824,8 @@ theorem blockNone_mul_expand {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     exact Finset.sum_congr rfl fun i _ => rfl
   rw [hL, hR1, hR2, Fintype.sum_option]
 
+/-- For a unitary matrix, the squared column blocks associated with input control `none` sum to
+the identity. -/
 theorem unitary_noneCol_sum {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) :
@@ -1658,6 +1844,7 @@ theorem unitary_noneCol_sum {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     Finset.sum_congr rfl fun a _ => by rw [← rowBlock_adjoint U a]
   rw [hsum2, hexp]
 
+/-- Left multiplication by `reflectNone` preserves every matrix row with control index `none`. -/
 theorem reflectNone_mul_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (q : Option (Fin D) × X) (x : X) :
@@ -1671,6 +1858,7 @@ theorem reflectNone_mul_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
   · intro hs
     exact absurd (Finset.mem_univ (none, x)) hs
 
+/-- Left multiplication by `reflectNone` preserves the `none` block. -/
 theorem blockNone_reflectNone_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     blockNone (reflectNone (D := D) (X := X) * M) = blockNone M := by
@@ -1678,6 +1866,7 @@ theorem blockNone_reflectNone_noneRow {D : ℕ} {X : Type*} [Fintype X] [Decidab
   simp only [blockNone]
   rw [reflectNone_mul_noneRow]
 
+/-- Left multiplication by `reflectNone` preserves each row block with output control `none`. -/
 theorem reflectNone_rowBlock_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (a : Option (Fin D)) (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     rowBlock a (reflectNone (D := D) (X := X) * M) = rowBlock a M := by
@@ -1685,6 +1874,8 @@ theorem reflectNone_rowBlock_noneRow {D : ℕ} {X : Type*} [Fintype X] [Decidabl
   simp only [rowBlock]
   rw [reflectNone_mul_noneRow]
 
+/-- Left multiplication by `reflectNone` negates column blocks whose output control index
+differs from `none`. -/
 theorem colBlock_reflectNone_mul {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (a : Option (Fin D)) (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (ha : a ≠ none) :
@@ -1705,6 +1896,8 @@ theorem colBlock_reflectNone_mul {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   rw [if_neg ha]
   simp [colBlock]
 
+/-- For unitary `U`, the `none` block of `reflectNone * Uᴴ * reflectNone * U` equals `2 •
+((blockNone U)ᴴ * blockNone U) - 1`. -/
 theorem groverTopBlock_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) :
@@ -1734,6 +1927,8 @@ theorem groverTopBlock_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     abel
   exact h2
 
+/-- The circuit word for one Grover round built from the linear-combination word, its adjoint,
+and two control reflections. -/
 noncomputable def groverWord {D : ℕ} {X : Type*} [DecidableEq X] (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -1741,6 +1936,8 @@ noncomputable def groverWord {D : ℕ} {X : Type*} [DecidableEq X] (k : ℕ)
   reflectNoneWord ++ lcuBlockWordAdjoint k w amp S ++ reflectNoneWord
     ++ lcuBlockWord k w amp S
 
+/-- The Grover word evaluates to the product of a control reflection, the adjoint
+linear-combination evaluation, another reflection, and the original evaluation. -/
 theorem groverWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -1750,6 +1947,7 @@ theorem groverWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   simp only [groverWord, evaluate_append, reflectNoneWord_eval,
     lcuBlockWordAdjoint_eval, lcuBlockWord_eval]
 
+/-- One Grover word uses `2 * (2 * (D + 1) + 1) + 2` gates and zero queries. -/
 theorem groverWord_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -1761,6 +1959,7 @@ theorem groverWord_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (k :
   simp only [groverWord, adjointGateCount_append, adjointQueryCount_append]
   omega
 
+/-- The Grover word is well formed for nonnegative weights and a unitary selector. -/
 theorem groverWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a)
@@ -1773,6 +1972,8 @@ theorem groverWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     reflectNoneWord_wellFormed⟩,
     lcuBlockWord_wellFormed k w amp hw S hS⟩
 
+/-- The approximate Grover word differs from the exact-sandwich Grover round by at most `128 *
+(D + 1) / 2^k` in matrix norm. -/
 theorem grover_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1888,6 +2089,7 @@ theorem grover_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty
     ring
   linarith
 
+/-- Precision `precisionFor D (ε / 4)` bounds the Grover word error by `ε`. -/
 theorem grover_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -1917,6 +2119,8 @@ theorem grover_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
       ≤ 4 * ((ε : ℝ) / 4) := mul_le_mul_of_nonneg_left hb (by positivity)
     _ = (ε : ℝ) := by ring
 
+/-- The exact linear-combination Grover round has `none` block `2 • (Aᴴ * A) - 1`, where `A` is
+the normalized weighted operator sum. -/
 theorem lcuGroverTop_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1930,6 +2134,8 @@ theorem lcuGroverTop_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   rw [groverTopBlock_exact _ (lcuSandwichExact_unitary w amp hw hm U hU),
     lcuTopBlock_exact w amp hw hm U]
 
+/-- The `none` block of the approximate Grover word differs from `2 • (Aᴴ * A) - 1` by at most
+`128 * (D + 1) / 2^k`. -/
 theorem groverTop_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -1958,6 +2164,8 @@ theorem groverTop_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonem
   exact (blockNone_norm_le _).trans
     (grover_error k w amp hw hm (blockSelect U) (blockSelect_unitary hU))
 
+/-- Precision `precisionFor D (ε / 4)` bounds the error in the Grover word's `none` block by
+`ε`. -/
 theorem groverTop_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -1984,6 +2192,8 @@ theorem groverTop_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
       ≤ 4 * ((ε : ℝ) / 4) := mul_le_mul_of_nonneg_left hb (by positivity)
     _ = (ε : ℝ) := by ring
 
+/-- The clean branch of the Grover word approximates the action of `2 • (Aᴴ * A) - 1` with error
+at most `128 * (D + 1) / 2^k` times the input norm. -/
 theorem grover_state_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2012,10 +2222,12 @@ theorem grover_state_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   exact mul_le_mul_of_nonneg_right (groverTop_error k w amp hw hm U hU)
     (norm_nonneg (stateVector ψ))
 
+/-- The matrix embedding the data register into the control subspace indexed by `none`. -/
 def cleanEmbed {D : ℕ} {X : Type*} [DecidableEq X] :
     Matrix (Option (Fin D) × X) X ℂ :=
   fun p y => if p = (none, y) then 1 else 0
 
+/-- Right multiplication by `cleanEmbed` selects the columns whose control index is `none`. -/
 theorem mul_cleanEmbed_apply {D : ℕ} {X Y : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix Y (Option (Fin D) × X) ℂ) (p : Y) (y : X) :
     (M * (cleanEmbed (D := D) (X := X))) p y = M p (none, y) := by
@@ -2028,6 +2240,8 @@ theorem mul_cleanEmbed_apply {D : ℕ} {X Y : Type*} [Fintype X] [DecidableEq X]
   · intro h
     exact absurd (Finset.mem_univ (none, y)) h
 
+/-- Left multiplication by `cleanEmbed` places a matrix in the rows with control index `none`
+and fills the other rows with zero. -/
 private theorem cleanEmbed_mul_apply {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (N : Matrix X X ℂ) (p : Option (Fin D) × X) (w : X) :
     ((cleanEmbed (D := D) (X := X)) * N) p w = if p.1 = none then N p.2 w else 0 := by
@@ -2047,6 +2261,8 @@ private theorem cleanEmbed_mul_apply {D : ℕ} {X : Type*} [Fintype X] [Decidabl
       rw [if_neg (by simp)]
       simp
 
+/-- Left multiplication by the conjugate transpose of `cleanEmbed` selects the rows with control
+index `none`. -/
 theorem conjTranspose_cleanEmbed_mul_apply {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) X ℂ) (x y : X) :
     (((cleanEmbed (D := D) (X := X))ᴴ * M)) x y = M (none, x) y := by
@@ -2067,6 +2283,7 @@ theorem conjTranspose_cleanEmbed_mul_apply {D : ℕ} {X : Type*} [Fintype X] [De
   · intro h
     exact absurd (Finset.mem_univ (none, x)) h
 
+/-- The `none` block is the compression of a matrix by `cleanEmbed` and its conjugate transpose. -/
 theorem blockNone_eq {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     blockNone M
@@ -2098,6 +2315,8 @@ theorem blockNone_eq {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   rw [h1, h2]
   rfl
 
+/-- The embedding `cleanEmbed` has conjugate-transpose product equal to the identity on the data
+register. -/
 theorem cleanEmbed_conjTranspose_mul {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
     ((cleanEmbed (D := D) (X := X))ᴴ * (cleanEmbed (D := D) (X := X)))
       = (1 : Matrix X X ℂ) := by
@@ -2105,6 +2324,7 @@ theorem cleanEmbed_conjTranspose_mul {D : ℕ} {X : Type*} [Fintype X] [Decidabl
   rw [conjTranspose_cleanEmbed_mul_apply, cleanEmbed]
   by_cases hxy : x = y <;> simp [hxy, Matrix.one_apply]
 
+/-- The control reflection fixes `cleanEmbed`. -/
 theorem reflectNone_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] :
     ((reflectNone (D := D) (X := X)) * (cleanEmbed (D := D) (X := X)))
       = cleanEmbed (D := D) (X := X) := by
@@ -2132,6 +2352,7 @@ theorem reflectNone_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [DecidableE
       rw [hE]
       simp
 
+/-- The control reflection negates a matrix whose rows with control index `none` vanish. -/
 theorem reflectNone_mul_of_noneRow_zero {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (M : Matrix (Option (Fin D) × X) X ℂ)
     (hM : ∀ x y, M (none, x) y = 0) :
@@ -2157,11 +2378,13 @@ theorem reflectNone_mul_of_noneRow_zero {D : ℕ} {X : Type*} [Fintype X] [Decid
       rw [if_neg (by simp)]
       simp [Matrix.neg_apply]
 
+/-- The matrix `reflectNone * Uᴴ * reflectNone * U` for a Grover round associated with `U`. -/
 noncomputable def groverRound {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ :=
   (reflectNone (D := D) (X := X)) * Uᴴ * (reflectNone (D := D) (X := X)) * U
 
+/-- A Grover round associated with a unitary matrix is unitary. -/
 theorem groverRound_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     {U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) :
@@ -2171,12 +2394,16 @@ theorem groverRound_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     ((Matrix.unitaryGroup (Option (Fin D) × X) ℂ).mul_mem
       ((Matrix.unitaryGroup (Option (Fin D) × X) ℂ).mul_mem hR (adjoint_unitary hU)) hR) hU
 
+/-- The matrix `Uᴴ * (cleanEmbed * blockNone U) - sq • cleanEmbed` measuring leakage from the
+clean embedding. -/
 noncomputable def groverLeak {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) (sq : ℂ) :
     Matrix (Option (Fin D) × X) X ℂ :=
   Uᴴ * ((cleanEmbed (D := D) (X := X)) * blockNone U)
     - sq • (cleanEmbed (D := D) (X := X))
 
+/-- The rows with control index `none` in `Uᴴ * (cleanEmbed * blockNone U)` form `(blockNone U)ᴴ
+* blockNone U`. -/
 private theorem adjointEmbed_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) (x y : X) :
     (Uᴴ * ((cleanEmbed (D := D) (X := X)) * blockNone U)) (none, x) y
@@ -2190,6 +2417,8 @@ private theorem adjointEmbed_noneRow {D : ℕ} {X : Type*} [Fintype X] [Decidabl
   refine Finset.sum_congr rfl fun z _ => ?_
   simp only [Matrix.conjTranspose_apply, blockNone]
 
+/-- If the squared `none` block equals `sq • 1`, every row of `groverLeak U sq` with control
+index `none` vanishes. -/
 theorem groverLeak_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) (sq : ℂ)
     (hA : (blockNone U)ᴴ * blockNone U = sq • 1) (x y : X) :
@@ -2198,6 +2427,8 @@ theorem groverLeak_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     Matrix.smul_apply, smul_eq_mul, smul_eq_mul, Matrix.one_apply, cleanEmbed]
   by_cases hxy : x = y <;> simp [hxy]
 
+/-- If the squared `none` block equals `sq • 1`, compressing the leakage matrix with the adjoint
+clean embedding gives zero. -/
 theorem cleanEmbed_conjTranspose_mul_groverLeak {D : ℕ} {X : Type*} [Fintype X]
     [DecidableEq X] (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) (sq : ℂ)
     (hA : (blockNone U)ᴴ * blockNone U = sq • 1) :
@@ -2206,6 +2437,8 @@ theorem cleanEmbed_conjTranspose_mul_groverLeak {D : ℕ} {X : Type*} [Fintype X
   rw [conjTranspose_cleanEmbed_mul_apply, groverLeak_noneRow U sq hA]
   simp
 
+/-- When `U` is unitary and its squared `none` block is `sq • 1`, one Grover round sends the
+clean embedding to `(2 * sq - 1) • cleanEmbed - 2 • groverLeak U sq`. -/
 theorem groverRound_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -2281,6 +2514,9 @@ theorem groverRound_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [DecidableE
   rw [hQ, hRUE, Matrix.mul_sub, Matrix.mul_sub, hUhEA, hUhBad, hR1, hR2]
   module
 
+/-- Under the scalar squared-block condition, one Grover round maps the leakage matrix into the
+span of the clean embedding and leakage, with coefficients `2 * sq * (1 - sq)` and `2 * sq -
+1`. -/
 theorem groverRound_mul_groverLeak {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -2370,30 +2606,39 @@ theorem groverRound_mul_groverLeak {D : ℕ} {X : Type*} [Fintype X] [DecidableE
     hUhEA, hUhBad, Matrix.mul_add, Matrix.mul_smul, Matrix.mul_smul, hR1, hR2]
   module
 
+/-- The two-by-two transition matrix with rows `(p, r)` and `(-2, p)`. -/
 def groverStepMatrix (p r : ℂ) : Matrix (Fin 2) (Fin 2) ℂ := fun i j =>
   if (i, j) = (0, 0) then p else if (i, j) = (0, 1) then r
   else if (i, j) = (1, 0) then (-2 : ℂ) else p
 
+/-- The powers of `groverStepMatrix p r`, defined recursively from the identity matrix. -/
 noncomputable def groverAmp (p r : ℂ) : ℕ → Matrix (Fin 2) (Fin 2) ℂ
   | 0 => 1
   | m + 1 => groverAmp p r m * groverStepMatrix p r
 
+/-- The upper-left entry of `groverStepMatrix p r` is `p`. -/
 private theorem gSM00 (p r : ℂ) : groverStepMatrix p r 0 0 = p := by
   simp [groverStepMatrix]
 
+/-- The upper-right entry of `groverStepMatrix p r` is `r`. -/
 private theorem gSM01 (p r : ℂ) : groverStepMatrix p r 0 1 = r := by
   simp [groverStepMatrix]
 
+/-- The lower-left entry of `groverStepMatrix p r` is minus two. -/
 private theorem gSM10 (p r : ℂ) : groverStepMatrix p r 1 0 = (-2 : ℂ) := by
   simp [groverStepMatrix]
 
+/-- The lower-right entry of `groverStepMatrix p r` is `p`. -/
 private theorem gSM11 (p r : ℂ) : groverStepMatrix p r 1 1 = p := by
   simp [groverStepMatrix]
 
+/-- Scalar multiplication of a two-by-two complex matrix multiplies each entry by the scalar. -/
 private theorem smulEntry (c : ℂ) (M : Matrix (Fin 2) (Fin 2) ℂ) (i j : Fin 2) :
     ((c • M : Matrix (Fin 2) (Fin 2) ℂ)) i j = c * M i j := by
   simp [Matrix.smul_apply]
 
+/-- The four entries of `groverAmp` satisfy the recurrences obtained by right multiplication by
+`groverStepMatrix`. -/
 private theorem groverAmp_succ_entries (p r : ℂ) (m : ℕ) :
     groverAmp p r (m + 1) 0 0 = groverAmp p r m 0 0 * p + groverAmp p r m 0 1 * (-2 : ℂ) ∧
     groverAmp p r (m + 1) 1 0 = groverAmp p r m 1 0 * p + groverAmp p r m 1 1 * (-2 : ℂ) ∧
@@ -2408,11 +2653,15 @@ private theorem groverAmp_succ_entries (p r : ℂ) (m : ℕ) :
       · rw [h, Matrix.mul_apply, Fin.sum_univ_two, gSM01, gSM11]
       · rw [h, Matrix.mul_apply, Fin.sum_univ_two, gSM01, gSM11]
 
+/-- The complex Chebyshev polynomials of the first kind, defined by initial values one and `p`
+and the recurrence `T_(m+2) = 2 * p * T_(m+1) - T_m`. -/
 def groverChebT : ℕ → ℂ → ℂ
   | 0, _ => 1
   | 1, p => p
   | m + 2, p => 2 * p * groverChebT (m + 1) p - groverChebT m p
 
+/-- If `2 * r = 1 - p²`, the second transition power equals `2 * p` times the first power minus
+the identity. -/
 private theorem groverAmp_two {p r : ℂ} (h2r : 2 * r = 1 - p ^ 2) :
     groverAmp p r 2
       = ((2 * p : ℂ) • groverAmp p r 1 : Matrix (Fin 2) (Fin 2) ℂ) - groverAmp p r 0 := by
@@ -2458,6 +2707,7 @@ private theorem groverAmp_two {p r : ℂ} (h2r : 2 * r = 1 - p ^ 2) :
     show (-2 : ℂ) * r + p * p = 2 * p * p - 1
     linear_combination h2r.symm
 
+/-- If `2 * r = 1 - p²`, the transition powers satisfy the Chebyshev recurrence. -/
 private theorem groverAmp_succ_succ {p r : ℂ} (h2r : 2 * r = 1 - p ^ 2) (m : ℕ) :
     groverAmp p r (m + 2)
       = ((2 * p : ℂ) • groverAmp p r (m + 1) : Matrix (Fin 2) (Fin 2) ℂ) - groverAmp p r m := by
@@ -2474,6 +2724,7 @@ private theorem groverAmp_succ_succ {p r : ℂ} (h2r : 2 * r = 1 - p ^ 2) (m : �
               groverAmp]
             ring
 
+/-- Under `2 * r = 1 - p²`, the upper-left entry of `groverAmp p r m` equals `groverChebT m p`. -/
 theorem groverAmp_apply_chebT {p r : ℂ} (h2r : 2 * r = 1 - p ^ 2) (m : ℕ) :
     groverAmp p r m 0 0 = groverChebT m p := by
   induction m using Nat.twoStepInduction with
@@ -2485,6 +2736,8 @@ theorem groverAmp_apply_chebT {p r : ℂ} (h2r : 2 * r = 1 - p ^ 2) (m : ℕ) :
       simp only [smulEntry, ih2, ih1]
       simp [groverChebT]
 
+/-- Under the scalar squared-block condition, every Grover power preserves the span of the clean
+embedding and leakage, with coefficients given by `groverAmp`. -/
 theorem groverPower_structure {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -2518,6 +2771,8 @@ theorem groverPower_structure {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
       · rw [hpowL, Matrix.mul_add, Matrix.mul_smul, Matrix.mul_smul, ihE, ihL, e01, e11]
         module
 
+/-- Under the scalar squared-block condition, the `none` block of a Grover power is the
+upper-left transition coefficient times the identity. -/
 theorem groverPower_topBlock {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -2528,6 +2783,8 @@ theorem groverPower_topBlock {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     Matrix.mul_add, Matrix.mul_smul, Matrix.mul_smul, cleanEmbed_conjTranspose_mul,
     cleanEmbed_conjTranspose_mul_groverLeak U sq hA, smul_zero, add_zero]
 
+/-- If `(blockNone U)ᴴ * blockNone U = sq • 1` and `U` is unitary, the `none` block of its `m`th
+Grover power is `groverChebT m (2 * sq - 1) • 1`. -/
 theorem groverPower_topBlock_chebT {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -2537,6 +2794,8 @@ theorem groverPower_topBlock_chebT {D : ℕ} {X : Type*} [Fintype X] [DecidableE
   have h2r : 2 * (2 * sq * (1 - sq)) = 1 - (2 * sq - 1) ^ 2 := by ring
   rw [groverPower_topBlock U hU sq hA m, groverAmp_apply_chebT h2r m]
 
+/-- If the weighted operator sum has squared modulus `sq • 1`, the exact linear-combination
+Grover power has `none` block `groverChebT m (2 * sq - 1) • 1`. -/
 theorem lcuGroverPower_topBlock {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2559,6 +2818,7 @@ theorem lcuGroverPower_topBlock {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
     rw [lcuTopBlock_exact w amp hw hm U, hA]
   exact groverPower_topBlock_chebT _ hUe sq htop m
 
+/-- The concatenation of `m` copies of the Grover circuit word. -/
 noncomputable def groverWordRepeat {D : ℕ} {X : Type*} [DecidableEq X]
     (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -2567,6 +2827,7 @@ noncomputable def groverWordRepeat {D : ℕ} {X : Type*} [DecidableEq X]
   | 0 => []
   | m + 1 => groverWordRepeat m k w amp S ++ groverWord k w amp S
 
+/-- Evaluating the repeated Grover word gives the `m`th power of the single-round evaluation. -/
 theorem groverWordRepeat_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -2577,6 +2838,7 @@ theorem groverWordRepeat_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   | succ m ih =>
       simp only [groverWordRepeat, evaluate_append, ih, pow_succ]
 
+/-- The repeated Grover word has `m * (2 * (2 * (D + 1) + 1) + 2)` gates and zero queries. -/
 theorem groverWordRepeat_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -2591,6 +2853,7 @@ theorem groverWordRepeat_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
       simp only [groverWordRepeat, adjointGateCount_append, adjointQueryCount_append]
       refine ⟨by rw [hg, hgW]; ring, by rw [hq, hqW]⟩
 
+/-- Repeating a well-formed Grover construction preserves well-formedness. -/
 theorem groverWordRepeat_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a)
@@ -2603,6 +2866,8 @@ theorem groverWordRepeat_wellFormed {D : ℕ} {X : Type*} [Fintype X] [Decidable
       simp only [groverWordRepeat]
       exact ih.append (groverWord_wellFormed k w amp hw S hS)
 
+/-- The difference of the `m`th powers of two unitaries has norm at most `m` times the norm of
+their difference. -/
 private theorem unitary_pow_sub_pow_norm_le {H : Type*} [Fintype H] [DecidableEq H]
     [Nonempty H] (A B : Matrix H H ℂ)
     (hA : A ∈ Matrix.unitaryGroup H ℂ) (hB : B ∈ Matrix.unitaryGroup H ℂ) (m : ℕ) :
@@ -2634,6 +2899,7 @@ private theorem unitary_pow_sub_pow_norm_le {H : Type*} [Fintype H] [DecidableEq
       rw [h5]
       exact h4
 
+/-- The Grover word evaluates to `groverRound` of the evaluated linear-combination word. -/
 theorem groverWord_eval_round {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -2641,6 +2907,8 @@ theorem groverWord_eval_round {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
       = groverRound (evaluate 1 (lcuBlockWord k w amp S)) := by
   rw [groverWord_eval, groverRound]
 
+/-- The error after `m` approximate Grover rounds is at most `m * (128 * (D + 1) / 2^k)` in
+matrix norm. -/
 theorem groverPower_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2661,6 +2929,7 @@ theorem groverPower_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Non
   exact (unitary_pow_sub_pow_norm_le _ _ hW hE m).trans
     (mul_le_mul_of_nonneg_left hone (Nat.cast_nonneg m))
 
+/-- The bound `c ≤ e / (4 * (n + 1))` implies `(n + 1) * (4 * c) ≤ e`. -/
 private theorem mul_four_div_le {c e : ℝ} {n : ℕ}
     (hb : c ≤ e / (4 * ((n : ℝ) + 1))) :
     ((n : ℝ) + 1) * (4 * c) ≤ e := by
@@ -2671,6 +2940,8 @@ private theorem mul_four_div_le {c e : ℝ} {n : ℕ}
         mul_le_mul_of_nonneg_left hb (by positivity)
     _ = e := mul_div_cancel₀ e hne
 
+/-- The evaluated repeated Grover word approximates the exact Grover power within `m * (128 * (D
++ 1) / 2^k)`. -/
 theorem groverWordRepeat_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2683,6 +2954,8 @@ theorem groverWordRepeat_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   rw [groverWordRepeat_eval]
   exact groverPower_error m k w amp hw hm S hS
 
+/-- Precision `precisionFor D (ε / (4 * (m + 1)))` bounds the error after `m + 1` Grover rounds
+by `ε`. -/
 theorem groverWordRepeat_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m : ℕ) (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -2711,6 +2984,8 @@ theorem groverWordRepeat_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [Decida
   rw [hsplit, Nat.cast_succ]
   exact mul_four_div_le hb
 
+/-- Under the scalar squared-block condition, the repeated Grover word's `none` block
+approximates the Chebyshev scalar times identity within `m * (128 * (D + 1) / 2^k)`. -/
 theorem groverPowerTop_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2736,6 +3011,8 @@ theorem groverPowerTop_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   exact (blockNone_norm_le _).trans
     (groverWordRepeat_error m k w amp hw hm (blockSelect U) (blockSelect_unitary hU))
 
+/-- Under the scalar squared-block condition, the specified precision gives error at most `ε` in
+the Chebyshev formula for the `none` block. -/
 theorem groverPowerTop_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m : ℕ) (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -2764,6 +3041,8 @@ theorem groverPowerTop_error_epsilon {D : ℕ} {X : Type*} [Fintype X] [Decidabl
   rw [hsplit, Nat.cast_succ]
   exact mul_four_div_le hb
 
+/-- Under the scalar squared-block condition, the exact Grover power has clean branch
+`groverChebT m (2 * sq - 1) • ψ`. -/
 theorem groverPower_state_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2788,6 +3067,8 @@ theorem groverPower_state_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
   · intro h
     exact absurd (Finset.mem_univ x) h
 
+/-- Under the scalar squared-block condition, the repeated Grover word's clean branch differs
+from the Chebyshev-scaled input by at most `m * (128 * (D + 1) / 2^k)` times the input norm. -/
 theorem groverWordRepeat_state_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2816,6 +3097,7 @@ theorem groverWordRepeat_state_error {D : ℕ} {X : Type*} [Fintype X] [Decidabl
   exact mul_le_mul_of_nonneg_right (groverPowerTop_error m k w amp hw hm U hU sq hA)
     (norm_nonneg (stateVector ψ))
 
+/-- Every polynomial `groverChebT m` takes the value one at one. -/
 theorem groverChebT_eq_one (m : ℕ) : groverChebT m (1 : ℂ) = 1 := by
   induction m using Nat.twoStepInduction with
   | zero => simp [groverChebT]
@@ -2825,6 +3107,7 @@ theorem groverChebT_eq_one (m : ℕ) : groverChebT m (1 : ℂ) = 1 := by
       rw [ih2, ih1]
       ring
 
+/-- The value of `groverChebT m` at minus one is `(-1)^m`. -/
 theorem groverChebT_eq_neg_one_pow (m : ℕ) : groverChebT m (-1 : ℂ) = (-1 : ℂ) ^ m := by
   induction m using Nat.twoStepInduction with
   | zero => simp [groverChebT]
@@ -2837,6 +3120,8 @@ theorem groverChebT_eq_neg_one_pow (m : ℕ) : groverChebT m (-1 : ℂ) = (-1 : 
       rw [ih2, ih1, pow_add, pow_one, hpr]
       ring
 
+/-- The state error of a repeated Grover word is bounded by its matrix error bound times the
+input state's Euclidean norm. -/
 theorem groverWordRepeat_vec_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2863,6 +3148,8 @@ theorem groverWordRepeat_vec_error {D : ℕ} {X : Type*} [Fintype X] [DecidableE
   exact mul_le_mul_of_nonneg_right (groverWordRepeat_error m k w amp hw hm S hS)
     (norm_nonneg (stateVector φ))
 
+/-- Under the scalar squared-block condition, the exact `none`-branch probability is the squared
+Chebyshev modulus times the squared input norm. -/
 theorem groverBorn_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2883,6 +3170,8 @@ theorem groverBorn_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     simp [stateVector, WithLp.toLp_smul]
   rw [hsmul, norm_smul, mul_pow]
 
+/-- If the weighted operator sum has conjugate-transpose product equal to the identity, every
+exact Grover power has clean branch equal to the input. -/
 theorem groverPower_state_isometry {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2899,6 +3188,8 @@ theorem groverPower_state_isometry {D : ℕ} {X : Type*} [Fintype X] [DecidableE
   rw [groverChebT_eq_one]
   simp
 
+/-- If the weighted operator sum has zero conjugate-transpose product, the exact `m`th Grover
+power has clean branch `(-1)^m • ψ`. -/
 theorem groverPower_state_reflecting {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2914,6 +3205,8 @@ theorem groverPower_state_reflecting {D : ℕ} {X : Type*} [Fintype X] [Decidabl
   norm_num
   rw [groverChebT_eq_neg_one_pow]
 
+/-- When the weighted operator sum has conjugate-transpose product equal to the identity, the
+exact Grover `none`-branch probability equals the squared input norm. -/
 theorem groverBorn_exact_isometry {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2931,6 +3224,8 @@ theorem groverBorn_exact_isometry {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
   rw [groverChebT_eq_one]
   simp
 
+/-- When the weighted operator sum has zero conjugate-transpose product, the exact Grover
+`none`-branch probability equals the squared input norm. -/
 theorem groverBorn_exact_reflecting {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -2952,6 +3247,9 @@ theorem groverBorn_exact_reflecting {D : ℕ} {X : Type*} [Fintype X] [Decidable
     | succ m ih => rw [pow_succ, Complex.norm_mul, ih]; simp
   rw [hnorm, one_pow, one_mul]
 
+/-- For normalized input under the scalar squared-block condition, the repeated Grover word's
+`none`-branch probability differs from the squared Chebyshev modulus by at most `2 * (m *
+(128 * (D + 1) / 2^k))`. -/
 theorem groverBorn_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -3010,6 +3308,7 @@ theorem groverBorn_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonem
   rw [hψ, one_pow, mul_one] at hPu
   rwa [hPu] at hd
 
+/-- The bound `c ≤ e / (8 * (n + 1))` implies `2 * ((n + 1) * (4 * c)) ≤ e`. -/
 private theorem born_eps_arith {c e n : ℝ} (hn : 0 ≤ n) (hb : c ≤ e / (8 * (n + 1))) :
     2 * ((n + 1) * (4 * c)) ≤ e := by
   have hne : (8 : ℝ) * (n + 1) ≠ 0 := by positivity
@@ -3019,6 +3318,8 @@ private theorem born_eps_arith {c e n : ℝ} (hn : 0 ≤ n) (hb : c ≤ e / (8 *
         mul_le_mul_of_nonneg_left hb (by positivity)
     _ = e := mul_div_cancel₀ e hne
 
+/-- Under the scalar squared-block condition, precision `precisionFor D (ε / (8 * (m + 1)))`
+bounds the `none`-branch probability error after `m + 1` rounds by `ε`. -/
 theorem groverBorn_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m : ℕ) (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex) (hw : ∀ a, 0 ≤ w a)
@@ -3051,6 +3352,8 @@ theorem groverBorn_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
   rw [hinner, Nat.cast_succ]
   exact born_eps_arith (Nat.cast_nonneg m) hb
 
+/-- The polynomial `groverChebT m` has parity `m`, so evaluating at `-x` multiplies its value by
+`(-1)^m`. -/
 theorem groverChebT_neg (m : ℕ) (x : ℂ) :
     groverChebT m (-x) = (-1 : ℂ) ^ m * groverChebT m x := by
   induction m using Nat.twoStepInduction with
@@ -3064,6 +3367,7 @@ theorem groverChebT_neg (m : ℕ) (x : ℂ) :
       rw [pow_succ, hpr]
       ring
 
+/-- Evaluating `groverChebT m` at `cos θ` gives `cos (m * θ)`. -/
 theorem groverChebT_cos (m : ℕ) (θ : ℝ) :
     groverChebT m (Real.cos θ : ℂ) = (Real.cos (((m : ℕ) : ℝ) * θ) : ℂ) := by
   induction m using Nat.twoStepInduction with
@@ -3096,6 +3400,8 @@ theorem groverChebT_cos (m : ℕ) (θ : ℝ) :
       push_cast
       exact_mod_cast eA
 
+/-- If `sq = sin² θ`, the squared modulus of `groverChebT m (2 * sq - 1)` equals `cos² (m * (2 *
+θ))`. -/
 theorem groverChebT_sq_sin (m : ℕ) (sq θ : ℝ) (hsq : sq = Real.sin θ ^ 2) :
     ‖groverChebT m (2 * (sq : ℂ) - 1)‖ ^ 2
       = Real.cos (((m : ℕ) : ℝ) * (2 * θ)) ^ 2 := by
@@ -3113,12 +3419,15 @@ theorem groverChebT_sq_sin (m : ℕ) (sq θ : ℝ) (hsq : sq = Real.sin θ ^ 2) 
     | succ m ih => rw [pow_succ, Complex.norm_mul, ih]; simp
   rw [hnorm1, one_mul, Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- If `sq = sin² θ` and `m * (2 * θ) = π`, the squared Grover Chebyshev modulus equals one. -/
 theorem groverChebT_sq_sin_hit (m : ℕ) (sq θ : ℝ) (hsq : sq = Real.sin θ ^ 2)
     (hθ : ((m : ℕ) : ℝ) * (2 * θ) = Real.pi) :
     ‖groverChebT m (2 * (sq : ℂ) - 1)‖ ^ 2 = 1 := by
   rw [groverChebT_sq_sin m sq θ hsq, hθ, Real.cos_pi]
   simp
 
+/-- For `0 < sq < 1`, some positive round count has squared Grover Chebyshev modulus at least `1
+- sq`. -/
 private theorem groverOptimal_exists (sq : ℝ) (h0 : 0 < sq) (h1 : sq < 1) :
     ∃ m : ℕ, 1 ≤ m ∧ 1 - sq ≤ ‖groverChebT m (2 * (sq : ℂ) - 1)‖ ^ 2 := by
   have hr0 : 0 < Real.sqrt sq := Real.sqrt_pos.mpr h0
@@ -3212,17 +3521,23 @@ private theorem groverOptimal_exists (sq : ℝ) (h0 : 0 < sq) (h1 : sq < 1) :
     linarith
   linarith
 
+/-- For `0 < sq < 1`, there is a round count with squared Grover Chebyshev modulus at least `1 -
+sq`. -/
 theorem groverOptimal_rounds (sq : ℝ) (h0 : 0 < sq) (h1 : sq < 1) :
     ∃ m : ℕ, 1 - sq ≤ ‖groverChebT m (2 * (sq : ℂ) - 1)‖ ^ 2 := by
   obtain ⟨m, _, hm⟩ := groverOptimal_exists sq h0 h1
   exact ⟨m, hm⟩
 
+/-- For `0 < sq < 1`, a round count of the form `m + 1` achieves squared Grover Chebyshev
+modulus at least `1 - sq`. -/
 theorem groverOptimal_rounds_succ (sq : ℝ) (h0 : 0 < sq) (h1 : sq < 1) :
     ∃ m : ℕ, 1 - sq ≤ ‖groverChebT (m + 1) (2 * (sq : ℂ) - 1)‖ ^ 2 := by
   obtain ⟨m, hm1, hm2⟩ := groverOptimal_exists sq h0 h1
   have hmp : m - 1 + 1 = m := Nat.sub_add_cancel hm1
   exact ⟨m - 1, by rwa [hmp]⟩
 
+/-- Under the scalar squared-block condition with `0 < sq < 1`, some round count achieves
+`none`-branch probability at least `1 - sq` minus the accumulated probability error. -/
 theorem groverBorn_none_optimal {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -3241,6 +3556,8 @@ theorem groverBorn_none_optimal {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
   have hle := abs_le.mp h
   linarith
 
+/-- Under the scalar squared-block condition with `0 < sq < 1`, a suitable positive round count
+and the specified precision give `none`-branch probability at least `1 - sq - ε`. -/
 theorem groverBorn_none_optimal_epsilon {D : ℕ} {X : Type*} [Fintype X]
     [DecidableEq X] [Nonempty X] (ε : ℚ) (hε : 0 < ε)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
@@ -3261,22 +3578,29 @@ theorem groverBorn_none_optimal_epsilon {D : ℕ} {X : Type*} [Fintype X]
   have hle := abs_le.mp h
   linarith
 
+/-- The data state obtained from `MeasureCollapse` on the event that the control register equals
+`none`. -/
 noncomputable def measureCollapse_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (u : QState (Option (Fin D) × X)) : QState X :=
   PostMeasure (cleanBranch u) Finset.univ
 
+/-- The collapsed `none`-branch state vector is the normalization of the clean-branch state
+vector. -/
 theorem stateVector_measureCollapse_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (u : QState (Option (Fin D) × X)) :
     stateVector (measureCollapse_none u)
       = NormedSpace.normalize (stateVector (cleanBranch u)) := by
   rw [measureCollapse_none, stateVector_postMeasure_univ]
 
+/-- If the clean branch is nonzero, its collapsed state has Euclidean norm one. -/
 theorem measureCollapse_none_norm {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     {u : QState (Option (Fin D) × X)} (hu : cleanBranch u ≠ 0) :
     ‖stateVector (measureCollapse_none u)‖ = 1 := by
   rw [stateVector_measureCollapse_none]
   exact NormedSpace.norm_normalize ((stateVector_eq_zero_iff _).not.mpr hu)
 
+/-- Normalizing a nonzero scalar multiple of a unit vector extracts the scalar's unit complex
+phase. -/
 private theorem normalize_smul_cne {X : Type*} [Fintype X] [DecidableEq X] {c : ℂ}
     (_hc : c ≠ 0) {v : EuclideanSpace ℂ X} (hv : ‖v‖ = 1) :
     NormedSpace.normalize (c • v) = (c / ((‖c‖ : ℝ) : ℂ)) • v := by
@@ -3285,6 +3609,8 @@ private theorem normalize_smul_cne {X : Type*} [Fintype X] [DecidableEq X] {c : 
   simp [Complex.real_smul]
   ring
 
+/-- Collapsing the exact linear-combination output onto control `none` normalizes the weighted
+operator sum applied to the input. -/
 theorem lcuExact_collapse {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -3296,6 +3622,8 @@ theorem lcuExact_collapse {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
           (stateVector ((∑ a, ((w a / rationalWeightMass w : ℚ) : ℂ) • U a) *ᵥ ψ)) := by
   rw [stateVector_measureCollapse_none, lcuExact_apply w amp hw hm U ψ]
 
+/-- If `p₀ > 0` bounds the ideal output norm from below and exceeds the approximation error, the
+normalized linear-combination output error is at most `2 * (64 * (D + 1) / 2^k) / p₀`. -/
 theorem lcuWord_collapse_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -3314,16 +3642,20 @@ theorem lcuWord_collapse_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] 
   obtain ⟨_, hb⟩ := normalize_error_of_gap hclose (hk.trans_le hpA)
   exact hb.trans (div_le_div_of_nonneg_left (by positivity) hp₀ hpA)
 
+/-- For `p > 0`, the inequality `δ ≤ p * e / 2` implies `2 * δ / p ≤ e`. -/
 private theorem collapse_eps_arith {δ e p : ℝ} (hp : 0 < p)
     (hδ : δ ≤ p * e / 2) : 2 * δ / p ≤ e := by
   rw [div_le_iff₀ hp]
   linarith
 
+/-- For `p > 0` and `e ≤ 1`, the quantity `p * e / 2` is strictly less than `p`. -/
 private theorem half_budget_lt {p e : ℝ} (hp : 0 < p) (he : e ≤ 1) :
     p * e / 2 < p := by
   have h2 : p * e < p * 2 := by nlinarith [hp, he]
   exact (div_lt_iff₀ (by norm_num : (0 : ℝ) < 2)).mpr h2
 
+/-- For `0 < ε ≤ 1` and a positive rational lower bound `p₀` on the ideal output norm, precision
+`precisionFor D (p₀ * ε / 4)` gives collapsed-state error at most `ε`. -/
 theorem lcuWord_collapse_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε) (hε1 : ε ≤ 1) (p₀ : ℚ) (hp₀ : 0 < p₀)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
@@ -3358,6 +3690,8 @@ theorem lcuWord_collapse_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [Decidab
     (hδ.trans_lt (half_budget_lt (by exact_mod_cast hp₀) (by exact_mod_cast hε1)))
   exact h.trans (collapse_eps_arith (by exact_mod_cast hp₀) hδ)
 
+/-- When the Grover Chebyshev coefficient is nonzero, collapsing the exact Grover output gives
+the normalized input multiplied by that coefficient's unit complex phase. -/
 theorem groverCollapse_exact_phase {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -3379,6 +3713,9 @@ theorem groverCollapse_exact_phase {D : ℕ} {X : Type*} [Fintype X] [DecidableE
     simp [stateVector, WithLp.toLp_smul]
   rw [hsm, normalize_smul_cne hT hψ]
 
+/-- If `p₀ > 0` bounds the Chebyshev modulus from below and exceeds the accumulated
+approximation error, the collapsed Grover output differs from the phase-scaled input by at
+most twice that error divided by `p₀`. -/
 theorem groverWord_collapse_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (m k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -3414,6 +3751,8 @@ theorem groverWord_collapse_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   rw [hnormT]
   exact hpT
 
+/-- For `0 < ε ≤ 1` and a positive rational lower bound on the Chebyshev modulus, the specified
+precision makes the collapsed Grover output error at most `ε`. -/
 theorem groverWord_collapse_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m : ℕ) (ε : ℚ) (hε : 0 < ε) (hε1 : ε ≤ 1) (p₀ : ℚ) (hp₀ : 0 < p₀)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
@@ -3472,6 +3811,8 @@ theorem groverWord_collapse_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [Deci
     (hδ.trans_lt (half_budget_lt (by exact_mod_cast hp₀) (by exact_mod_cast hε1)))
   exact h.trans (collapse_eps_arith (by exact_mod_cast hp₀) hδ)
 
+/-- Under `sq = sin² θ` and `m * (2 * θ) = π`, the exact collapsed Grover output equals the
+input multiplied by the Grover Chebyshev coefficient. -/
 theorem groverCollapse_hit {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -3497,15 +3838,19 @@ theorem groverCollapse_hit {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   rw [groverCollapse_exact_phase w amp hw hm U hU (sq : ℂ) hA m ψ hψ hT, hn]
   norm_num
 
+/-- The diagonal matrix that fixes control `none` and multiplies all other control components by
+`z`. -/
 def reflectPhase {D : ℕ} {X : Type*} [DecidableEq X] (z : ℂ) :
     Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ :=
   Matrix.diagonal fun p : Option (Fin D) × X => if p.1 = none then (1 : ℂ) else z
 
+/-- The phase reflection with phase minus one is `reflectNone`. -/
 theorem reflectPhase_neg_one {D : ℕ} {X : Type*} [DecidableEq X] :
     reflectPhase (D := D) (X := X) (-1) = reflectNone (D := D) (X := X) := by
   ext p q
   simp [reflectPhase, reflectNone]
 
+/-- The phase reflection is unitary when `z` has norm one. -/
 theorem reflectPhase_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {z : ℂ}
     (hz : ‖z‖ = 1) :
     reflectPhase (D := D) (X := X) z ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ := by
@@ -3516,23 +3861,28 @@ theorem reflectPhase_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {
   · simp only [if_neg h]
     exact star_mul_self_of_norm_one hz
 
+/-- The single-gate circuit word implementing `reflectPhase z`. -/
 def reflectPhaseWord {D : ℕ} {X : Type*} [DecidableEq X] (z : ℂ) :
     List (AdjointStep (Option (Fin D) × X)) := [.gate (reflectPhase z)]
 
+/-- The phase reflection word evaluates to `reflectPhase z`. -/
 theorem reflectPhaseWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ) :
     evaluate 1 (reflectPhaseWord (D := D) (X := X) z) = reflectPhase z := by
   simp [reflectPhaseWord, evaluate, instructionMatrix]
 
+/-- The phase reflection word has one gate and zero queries. -/
 theorem reflectPhaseWord_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ) :
     adjointGateCount (reflectPhaseWord (D := D) (X := X) z) = 1 ∧
       adjointQueryCount (reflectPhaseWord (D := D) (X := X) z) = 0 := by
   simp [reflectPhaseWord, adjointGateCount, adjointQueryCount]
 
+/-- A phase reflection word is well formed when its phase has norm one. -/
 theorem reflectPhaseWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     {z : ℂ} (hz : ‖z‖ = 1) :
     WellFormedAdjointCircuit (reflectPhaseWord (D := D) (X := X) z) := by
   simp [reflectPhaseWord, reflectPhase_unitary hz]
 
+/-- Left multiplication by a phase reflection preserves the rows with control index `none`. -/
 theorem reflectPhase_mul_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (q : Option (Fin D) × X) (x : X) :
@@ -3546,6 +3896,7 @@ theorem reflectPhase_mul_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   · intro hs
     exact absurd (Finset.mem_univ (none, x)) hs
 
+/-- Left multiplication by a phase reflection preserves the `none` block. -/
 theorem blockNone_reflectPhase_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (z : ℂ) (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     blockNone (reflectPhase (D := D) (X := X) z * M) = blockNone M := by
@@ -3553,6 +3904,8 @@ theorem blockNone_reflectPhase_noneRow {D : ℕ} {X : Type*} [Fintype X] [Decida
   simp only [blockNone]
   rw [reflectPhase_mul_noneRow]
 
+/-- Left multiplication by a phase reflection preserves each row block with output control
+`none`. -/
 theorem reflectPhase_rowBlock_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (z : ℂ) (a : Option (Fin D)) (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     rowBlock a (reflectPhase (D := D) (X := X) z * M) = rowBlock a M := by
@@ -3560,6 +3913,8 @@ theorem reflectPhase_rowBlock_noneRow {D : ℕ} {X : Type*} [Fintype X] [Decidab
   simp only [rowBlock]
   rw [reflectPhase_mul_noneRow]
 
+/-- Left multiplication by `reflectPhase z` multiplies a column block with output control
+different from `none` by `z`. -/
 theorem colBlock_reflectPhase_mul {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (a : Option (Fin D)) (M : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (ha : a ≠ none) :
@@ -3580,6 +3935,7 @@ theorem colBlock_reflectPhase_mul {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
   rw [if_neg ha]
   simp [colBlock]
 
+/-- Every phase reflection fixes the clean embedding. -/
 theorem reflectPhase_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ) :
     ((reflectPhase (D := D) (X := X) z) * (cleanEmbed (D := D) (X := X)))
       = cleanEmbed (D := D) (X := X) := by
@@ -3608,6 +3964,8 @@ theorem reflectPhase_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [Decidable
       rw [hE]
       simp
 
+/-- Left multiplication by `reflectPhase z` scales a matrix by `z` when its rows with control
+index `none` vanish. -/
 theorem reflectPhase_mul_of_noneRow_zero {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (z : ℂ) (M : Matrix (Option (Fin D) × X) X ℂ)
     (hM : ∀ x y, M (none, x) y = 0) :
@@ -3633,16 +3991,19 @@ theorem reflectPhase_mul_of_noneRow_zero {D : ℕ} {X : Type*} [Fintype X] [Deci
       rw [if_neg (by simp)]
       simp [Matrix.smul_apply, smul_eq_mul]
 
+/-- The matrix `reflectPhase z * Uᴴ * reflectPhase z * U` for a phase-modified Grover round. -/
 noncomputable def phaseRound {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ :=
   reflectPhase z * Uᴴ * reflectPhase z * U
 
+/-- A phase-modified round with phase minus one equals `groverRound`. -/
 theorem phaseRound_neg_one {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     phaseRound (-1) U = groverRound U := by
   rw [phaseRound, groverRound, reflectPhase_neg_one]
 
+/-- A phase-modified round is unitary when the phase has norm one and `U` is unitary. -/
 theorem phaseRound_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {z : ℂ}
     (hz : ‖z‖ = 1)
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
@@ -3653,6 +4014,8 @@ theorem phaseRound_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {z 
     ((Matrix.unitaryGroup (Option (Fin D) × X) ℂ).mul_mem
       ((Matrix.unitaryGroup (Option (Fin D) × X) ℂ).mul_mem hR (adjoint_unitary hU)) hR) hU
 
+/-- For unitary `U`, the `none` block of the phase round is `1 + (z - 1) • (1 - (blockNone U)ᴴ *
+blockNone U)`. -/
 theorem phaseRound_topBlock_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) :
@@ -3684,6 +4047,8 @@ theorem phaseRound_topBlock_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
     module
   exact hfin
 
+/-- If the squared `none` block is `sq • 1`, the phase round has `none` block `(sq + z * (1 -
+sq)) • 1`. -/
 theorem phaseRound_topBlock_step {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -3696,6 +4061,8 @@ theorem phaseRound_topBlock_step {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
       = (sq + z * (1 - sq)) • (1 : Matrix X X ℂ) := by module
   rw [hfin]
 
+/-- Under the scalar squared-block condition, the phase-round and Grover-round `none` blocks
+differ by `((1 + z) * (1 - sq)) • 1`. -/
 theorem phaseRound_mismatch {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -3712,6 +4079,7 @@ theorem phaseRound_mismatch {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z
   have hsc : (sq + z * (1 - sq)) - (2 * sq - 1) = (1 + z) * (1 - sq) := by ring
   rw [hsc]
 
+/-- The norm of a complex scalar times the identity matrix is at most the norm of the scalar. -/
 private theorem smul_one_opNorm_le {X : Type*} [Fintype X] [DecidableEq X] (c : ℂ) :
     ‖c • (1 : Matrix X X ℂ)‖ ≤ ‖c‖ := by
   have hdiag : c • (1 : Matrix X X ℂ) = Matrix.diagonal (fun _ : X => c) := by
@@ -3720,6 +4088,8 @@ private theorem smul_one_opNorm_le {X : Type*} [Fintype X] [DecidableEq X] (c : 
   rw [hdiag, Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (norm_nonneg c)]
   exact fun _ => le_refl _
 
+/-- Under the scalar squared-block condition, the `none`-block mismatch between phase and Grover
+rounds is at most `‖1 + z‖ * ‖1 - sq‖`. -/
 theorem phaseRound_mismatch_norm {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -3731,6 +4101,9 @@ theorem phaseRound_mismatch_norm {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
       ≤ ‖(1 + z) * (1 - sq)‖ := smul_one_opNorm_le _
     _ = ‖1 + z‖ * ‖1 - sq‖ := Complex.norm_mul _ _
 
+/-- Under the scalar squared-block condition, the phase round maps the clean embedding to the
+linear combination of clean embedding and leakage with coefficients `sq + z * (1 - sq)` and
+`z * (1 - z)`. -/
 theorem phaseRound_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -3807,6 +4180,8 @@ theorem phaseRound_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
     Matrix.mul_smul, hR1, hR2]
   module
 
+/-- Under the scalar squared-block condition, the phase round maps leakage to the linear
+combination with coefficients `sq * (1 - sq) * (1 - z)` and `z * (1 - sq + sq * z)`. -/
 theorem phaseRound_mul_groverLeak {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) (sq : ℂ)
@@ -3895,9 +4270,12 @@ theorem phaseRound_mul_groverLeak {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
     hUhEA, hUhBad, Matrix.mul_sub, Matrix.mul_smul, Matrix.mul_smul, hR1, hR2]
   module
 
+/-- The complex phase `(-(1 - s) + I * sqrt (2 * s - 1)) / s` used for two-round oblivious
+amplitude amplification. -/
 noncomputable def oaaPhase (s : ℝ) : ℂ :=
   (-(1 - (s : ℂ)) + Complex.I * ((Real.sqrt (2 * s - 1) : ℝ) : ℂ)) / (s : ℂ)
 
+/-- The phase `oaaPhase s` has norm one for `s > 1 / 2`. -/
 theorem oaaPhase_norm {s : ℝ} (hs : 1 / 2 < s) : ‖oaaPhase s‖ = 1 := by
   have hs0 : s ≠ 0 := by linarith
   have h2 : 0 ≤ 2 * s - 1 := by linarith
@@ -3924,6 +4302,7 @@ theorem oaaPhase_norm {s : ℝ} (hs : 1 / 2 < s) : ‖oaaPhase s‖ = 1 := by
   · exact h
   · linarith [norm_nonneg (oaaPhase s)]
 
+/-- For `s ≥ 1 / 2`, the phase `oaaPhase s` satisfies `s * z² + 2 * (1 - s) * z + s = 0`. -/
 theorem oaaPhase_quad {s : ℝ} (hs : 1 / 2 ≤ s) :
     (s : ℂ) * (oaaPhase s) ^ 2 + 2 * (1 - (s : ℂ)) * oaaPhase s + (s : ℂ) = 0 := by
   have hs0 : s ≠ 0 := by linarith
@@ -3963,10 +4342,13 @@ theorem oaaPhase_quad {s : ℝ} (hs : 1 / 2 ≤ s) :
               * ((Real.sqrt (2 * s - 1) : ℝ) : ℂ) - ht - hco
   exact (mul_eq_zero.mp hmul).resolve_left (by exact_mod_cast hs0)
 
+/-- The scalar clean-subspace coefficient produced by two phase rounds using `oaaPhase s`. -/
 noncomputable def oaaGamma (s : ℝ) : ℂ :=
   ((s : ℂ) + oaaPhase s * (1 - (s : ℂ))) ^ 2
     + (s : ℂ) * (1 - (s : ℂ)) * oaaPhase s * (1 - oaaPhase s) ^ 2
 
+/-- For unitary `U` with squared `none` block `s • 1` and `s > 1 / 2`, two rounds with `oaaPhase
+s` map the clean embedding to `oaaGamma s • cleanEmbed`. -/
 theorem oaa_two_round_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) {s : ℝ}
@@ -4025,6 +4407,8 @@ theorem oaa_two_round_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     module
   rw [hreorder, ← add_smul, ← add_smul, hL0, zero_smul, add_zero, hfinal]
 
+/-- If a unitary on a nonempty data register has squared `none` block `s • 1` with `s > 1 / 2`,
+then `oaaGamma s` has norm one. -/
 theorem oaaGamma_norm {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) {s : ℝ}
@@ -4070,6 +4454,7 @@ theorem oaaGamma_norm {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempt
   · exact h
   · linarith [norm_nonneg (oaaGamma s)]
 
+/-- Applying `cleanEmbed` to a data state tensors it with the `none` control basis state. -/
 private theorem cleanEmbed_mulVec_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (ψ : QState X) :
     (cleanEmbed (D := D) (X := X)) *ᵥ ψ
@@ -4102,6 +4487,8 @@ private theorem cleanEmbed_mulVec_state {D : ℕ} {X : Type*} [Fintype X] [Decid
         rw [if_neg hne]
         simp
 
+/-- For squared `none` block `s • 1` with `s > 1 / 2`, two exact phase rounds preserve a
+clean-ancilla input up to the scalar `oaaGamma s`. -/
 theorem oaa_two_round_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (U : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ) {s : ℝ}
@@ -4113,6 +4500,8 @@ theorem oaa_two_round_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   rw [← cleanEmbed_mulVec_state ψ, Matrix.mulVec_mulVec,
     oaa_two_round_exact U hU hs hA, Matrix.smul_mulVec, cleanEmbed_mulVec_state]
 
+/-- The circuit word for a phase-modified round using the linear-combination word and its
+adjoint. -/
 noncomputable def phaseWord {D : ℕ} {X : Type*} [DecidableEq X] (z : ℂ) (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -4120,6 +4509,7 @@ noncomputable def phaseWord {D : ℕ} {X : Type*} [DecidableEq X] (z : ℂ) (k :
   reflectPhaseWord z ++ lcuBlockWordAdjoint k w amp S ++ reflectPhaseWord z
     ++ lcuBlockWord k w amp S
 
+/-- The phase word evaluates to `phaseRound z` of the evaluated linear-combination word. -/
 theorem phaseWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ) (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -4128,6 +4518,7 @@ theorem phaseWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : �
   simp only [phaseWord, evaluate_append, reflectPhaseWord_eval,
     lcuBlockWordAdjoint_eval, lcuBlockWord_eval, phaseRound]
 
+/-- The phase word uses `2 * (2 * (D + 1) + 1) + 2` gates and zero queries. -/
 theorem phaseWord_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ) (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -4139,6 +4530,8 @@ theorem phaseWord_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : 
   simp only [phaseWord, adjointGateCount_append, adjointQueryCount_append]
   omega
 
+/-- The phase word is well formed for a unit-norm phase, nonnegative weights, and a unitary
+selector. -/
 theorem phaseWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {z : ℂ}
     (hz : ‖z‖ = 1) (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a)
@@ -4151,6 +4544,8 @@ theorem phaseWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {
     reflectPhaseWord_wellFormed hz⟩,
     lcuBlockWord_wellFormed k w amp hw S hS⟩
 
+/-- For a unit-norm phase and unitary selector, the approximate phase word has matrix error at
+most `128 * (D + 1) / 2^k` relative to the exact preparation sandwich. -/
 theorem phaseWord_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     {z : ℂ} (hz : ‖z‖ = 1) (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex)
@@ -4263,12 +4658,14 @@ theorem phaseWord_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonem
     ring
   linarith
 
+/-- The concatenation of two copies of the phase word for oblivious amplitude amplification. -/
 noncomputable def oaaWord {D : ℕ} {X : Type*} [DecidableEq X] (z : ℂ) (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
     List (AdjointStep (Option (Fin D) × X)) :=
   phaseWord z k w amp S ++ phaseWord z k w amp S
 
+/-- The two-round amplification word evaluates to the square of the phase-word evaluation. -/
 theorem oaaWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ) (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -4276,6 +4673,8 @@ theorem oaaWord_eval {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ)
       = (evaluate 1 (phaseWord z k w amp S)) ^ 2 := by
   rw [oaaWord, evaluate_append, sq]
 
+/-- The two-round amplification word uses `2 * (2 * (2 * (D + 1) + 1) + 2)` gates and zero
+queries. -/
 theorem oaaWord_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : ℂ) (k : ℕ)
     (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (S : Matrix (Option (Fin D) × X) (Option (Fin D) × X) ℂ) :
@@ -4285,6 +4684,8 @@ theorem oaaWord_counts {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] (z : �
   simp only [oaaWord, adjointGateCount_append, adjointQueryCount_append]
   exact ⟨by rw [hgW]; ring, by rw [hqW]⟩
 
+/-- The two-round amplification word is well formed for a unit-norm phase, nonnegative weights,
+and a unitary selector. -/
 theorem oaaWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {z : ℂ}
     (hz : ‖z‖ = 1) (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a)
@@ -4293,6 +4694,8 @@ theorem oaaWord_wellFormed {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {z 
     WellFormedAdjointCircuit (oaaWord z k w amp S) :=
   (phaseWord_wellFormed hz k w amp hw S hS).append (phaseWord_wellFormed hz k w amp hw S hS)
 
+/-- The two-round amplification word differs from two exact phase rounds by at most `2 * (128 *
+(D + 1) / 2^k)` in matrix norm. -/
 theorem oaaWord_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     {z : ℂ} (hz : ‖z‖ = 1) (k : ℕ) (w : Option (Fin D) → ℚ)
     (amp : Option (Fin D) → RatComplex)
@@ -4315,6 +4718,9 @@ theorem oaaWord_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempt
   exact (unitary_pow_sub_pow_norm_le _ _ hWU hQU 2).trans
     (mul_le_mul_of_nonneg_left h1 (by norm_num))
 
+/-- Under the scalar squared-block condition with `s > 1 / 2`, the two-round word approximates
+the `oaaGamma s`-scaled clean input with error at most `2 * (128 * (D + 1) / 2^k)` times its
+norm. -/
 theorem oaaWord_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -4369,6 +4775,8 @@ theorem oaaWord_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempt
     _ ≤ 2 * (128 * (D + 1) / 2 ^ k) * ‖stateVector ψ‖ :=
         mul_le_mul_of_nonneg_right hW (norm_nonneg _)
 
+/-- For normalized input and scalar squared block `s • 1` with `s > 1 / 2`, the two-round word's
+clean-branch probability differs from one by at most `2 * (2 * (128 * (D + 1) / 2^k))`. -/
 theorem oaaWord_born {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -4439,6 +4847,8 @@ theorem oaaWord_born {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty
     norm_num
   rwa [hPideal] at hd
 
+/-- Under the two-round amplification hypotheses, precision `precisionFor D (ε / 16)` bounds the
+clean-branch probability's deviation from one by `ε`. -/
 theorem oaaWord_born_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (ε : ℚ) (hε : 0 < ε) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex)
     (hw : ∀ a, 0 ≤ w a) (hm : 0 < rationalWeightMass w)
@@ -4470,24 +4880,33 @@ theorem oaaWord_born_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [
       ≤ 16 * ((ε : ℝ) / 16) := mul_le_mul_of_nonneg_left hb (by positivity)
     _ = (ε : ℝ) := by ring
 
+/-- The complex state obtained by converting each rational complex table entry with
+`ratToComplex`. -/
 def ratVec {D : ℕ} (zs : Option (Fin D) → RatComplex) :
     QState (Option (Fin D)) := fun a => ratToComplex (zs a)
 
+/-- The sum of squared norms of the complex amplitudes, including the control index `none`. -/
 noncomputable def cmplxMass {D : ℕ} (c : Option (Fin D) → ℂ) : ℝ := ∑ a, ‖c a‖ ^ 2
 
+/-- The amplitude vector divided by the square root of its total squared-norm mass. -/
 noncomputable def cmplxTarget {D : ℕ} (c : Option (Fin D) → ℂ) :
     QState (Option (Fin D)) :=
   fun a => c a / Real.sqrt (cmplxMass c : ℝ)
 
+/-- The complex rational-table vector divided by the square root of its rational
+squared-amplitude mass. -/
 noncomputable def ratTarget {D : ℕ} (zs : Option (Fin D) → RatComplex) :
     QState (Option (Fin D)) :=
   fun a => ratToComplex (zs a)
     / Real.sqrt (rationalWeightMass (fun a => ratSq (zs a)) : ℝ)
 
+/-- The sum of the operators `U a` weighted by the squared amplitude norms `‖ψ a‖²`. -/
 noncomputable def stateCombination {D : ℕ} {X : Type*} (ψ : QState (Option (Fin D)))
     (U : Option (Fin D) → Matrix X X ℂ) : Matrix X X ℂ :=
   ∑ a, ((‖ψ a‖ ^ 2 : ℝ) : ℂ) • U a
 
+/-- The squared complex norm of a rational complex value is its rational squared modulus coerced
+to the reals. -/
 private theorem ratToComplex_norm_sq (z : RatComplex) :
     ‖ratToComplex z‖ ^ 2 = (ratSq z : ℝ) := by
   rw [Complex.sq_norm, Complex.normSq_apply]
@@ -4497,6 +4916,7 @@ private theorem ratToComplex_norm_sq (z : RatComplex) :
   push_cast
   ring
 
+/-- The squared Euclidean norm of `ratVec zs` equals the total rational squared-amplitude mass. -/
 private theorem ratVec_norm_sq {D : ℕ} (zs : Option (Fin D) → RatComplex) :
     ‖stateVector (ratVec zs)‖ ^ 2
       = (rationalWeightMass (fun a => ratSq (zs a)) : ℝ) := by
@@ -4508,12 +4928,14 @@ private theorem ratVec_norm_sq {D : ℕ} (zs : Option (Fin D) → RatComplex) :
   rw [Finset.sum_congr rfl fun a _ => h a, rationalWeightMass]
   exact (Rat.cast_sum _ _).symm
 
+/-- The Euclidean norm of `ratVec zs` is the square root of its rational squared-amplitude mass. -/
 private theorem ratVec_norm {D : ℕ} (zs : Option (Fin D) → RatComplex) :
     ‖stateVector (ratVec zs)‖
       = Real.sqrt (rationalWeightMass (fun a => ratSq (zs a)) : ℝ) :=
   (Real.sqrt_sq (norm_nonneg _)).symm.trans
     (congrArg Real.sqrt (ratVec_norm_sq zs))
 
+/-- Each amplitude norm is bounded by the Euclidean norm of the whole state vector. -/
 private theorem stateVector_entry_norm_le {D : ℕ} (u : QState (Option (Fin D)))
     (a : Option (Fin D)) : ‖u a‖ ≤ ‖stateVector u‖ := by
   have hsq : ‖u a‖ ^ 2 ≤ ‖stateVector u‖ ^ 2 := by
@@ -4523,6 +4945,7 @@ private theorem stateVector_entry_norm_le {D : ℕ} (u : QState (Option (Fin D))
     _ ≤ Real.sqrt (‖stateVector u‖ ^ 2) := Real.sqrt_le_sqrt hsq
     _ = ‖stateVector u‖ := Real.sqrt_sq (norm_nonneg _)
 
+/-- A pointwise amplitude error at most `η` gives Euclidean error at most `sqrt (D + 1) * η`. -/
 private theorem stateVector_sub_l2_le {D : ℕ} (u w : QState (Option (Fin D)))
     {η : ℝ} (hη : ∀ a, ‖u a - w a‖ ≤ η) :
     ‖stateVector u - stateVector w‖ ≤ Real.sqrt ((D + 1 : ℝ)) * η := by
@@ -4548,6 +4971,8 @@ private theorem stateVector_sub_l2_le {D : ℕ} (u w : QState (Option (Fin D)))
         rw [Real.sqrt_mul (by positivity : (0 : ℝ) ≤ (D + 1 : ℝ)),
           Real.sqrt_sq hη0]
 
+/-- Every complex amplitude table vanishing at `none` has a rational complex approximation with
+any positive pointwise tolerance that also vanishes at `none`. -/
 theorem ratTable_exists {D : ℕ} (φ : Option (Fin D) → ℂ) (hφ0 : φ none = 0)
     {η : ℝ} (hη : 0 < η) :
     ∃ zs : Option (Fin D) → RatComplex, zs none = ratZero ∧
@@ -4587,6 +5012,7 @@ theorem ratTable_exists {D : ℕ} (φ : Option (Fin D) → ℂ) (hφ0 : φ none 
   choose zs hzs0 hzs using hex
   exact ⟨zs, hzs0 none rfl, hzs⟩
 
+/-- The state vector of `ratTarget zs` is the normalization of `ratVec zs`. -/
 private theorem ratTarget_eq_normalize {D : ℕ} (zs : Option (Fin D) → RatComplex) :
     stateVector (ratTarget zs)
       = NormedSpace.normalize (stateVector (ratVec zs)) := by
@@ -4597,12 +5023,15 @@ private theorem ratTarget_eq_normalize {D : ℕ} (zs : Option (Fin D) → RatCom
       div_eq_inv_mul]
   rw [← hfun, stateVector_postMeasure_univ]
 
+/-- Normalizing a state vector of norm one leaves it unchanged. -/
 private theorem normalize_self {D : ℕ} (ψ : QState (Option (Fin D)))
     (hψ : ‖stateVector ψ‖ = 1) :
     NormedSpace.normalize (stateVector ψ) = stateVector ψ := by
   rw [show NormedSpace.normalize (stateVector ψ)
       = ((‖stateVector ψ‖⁻¹ : ℝ) • stateVector ψ) from rfl, hψ, inv_one, one_smul]
 
+/-- A rational table of positive squared-amplitude mass has normalized target of Euclidean norm
+one. -/
 theorem ratTarget_norm {D : ℕ} (zs : Option (Fin D) → RatComplex)
     (hm : 0 < rationalWeightMass (fun a => ratSq (zs a))) :
     ‖stateVector (ratTarget zs)‖ = 1 := by
@@ -4615,6 +5044,7 @@ theorem ratTarget_norm {D : ℕ} (zs : Option (Fin D) → RatComplex)
     exact absurd hz (ne_of_gt hcast)
   rw [ratTarget_eq_normalize, NormedSpace.norm_normalize hne]
 
+/-- A complex amplitude table of positive mass has normalized target of Euclidean norm one. -/
 theorem cmplxTarget_norm {D : ℕ} (c : Option (Fin D) → ℂ) (hcm : 0 < cmplxMass c) :
     ‖stateVector (cmplxTarget c)‖ = 1 := by
   have hsq : ‖stateVector (cmplxTarget c)‖ ^ 2 = 1 := by
@@ -4631,10 +5061,13 @@ theorem cmplxTarget_norm {D : ℕ} (c : Option (Fin D) → ℂ) (hcm : 0 < cmplx
   have hn := norm_nonneg (stateVector (cmplxTarget c))
   nlinarith
 
+/-- If a complex amplitude table vanishes at `none`, its normalized target also vanishes there. -/
 theorem cmplxTarget_none {D : ℕ} (c : Option (Fin D) → ℂ) (hc0 : c none = 0) :
     (cmplxTarget c) none = 0 := by
   simp only [cmplxTarget, hc0, zero_div]
 
+/-- For a unit target and pointwise error `η` with `sqrt (D + 1) * η < 1`, rational-table
+normalization gives state error at most `2 * sqrt (D + 1) * η`. -/
 theorem ratTarget_near {D : ℕ} (ψ : QState (Option (Fin D)))
     (hψ : ‖stateVector ψ‖ = 1) (zs : Option (Fin D) → RatComplex) {η : ℝ}
     (hη : ∀ a, ‖ratToComplex (zs a) - ψ a‖ ≤ η)
@@ -4652,6 +5085,8 @@ theorem ratTarget_near {D : ℕ} (ψ : QState (Option (Fin D)))
   rw [ratTarget_eq_normalize zs]
   exact hb.trans_eq (by ring)
 
+/-- When `zs none = ratZero`, loading its remaining entries gives weights equal to the squared
+moduli of `zs`. -/
 private theorem ratZs_loadedWeights {D : ℕ} (zs : Option (Fin D) → RatComplex)
     (hz0 : zs none = ratZero) :
     (LoadedInput.mk (fun i => zs (some i)) 0 0).weights = fun a => ratSq (zs a) := by
@@ -4660,6 +5095,8 @@ private theorem ratZs_loadedWeights {D : ℕ} (zs : Option (Fin D) → RatComple
   | none => simp [LoadedInput.weights, hz0, ratSq, ratZero]
   | some i => rfl
 
+/-- When `zs none = ratZero`, loading the table's finite entries reconstructs the full amplitude
+table `zs`. -/
 private theorem ratZs_loadedAmp {D : ℕ} (zs : Option (Fin D) → RatComplex)
     (hz0 : zs none = ratZero) :
     (LoadedInput.mk (fun i => zs (some i)) 0 0).amp = zs := by
@@ -4668,6 +5105,7 @@ private theorem ratZs_loadedAmp {D : ℕ} (zs : Option (Fin D) → RatComplex)
   | none => simp [LoadedInput.amp, hz0]
   | some i => rfl
 
+/-- When `zs none = ratZero`, the loaded target agrees with `ratTarget zs`. -/
 private theorem ratZs_loadedTarget {D : ℕ} (zs : Option (Fin D) → RatComplex)
     (hz0 : zs none = ratZero) :
     loadedTarget (LoadedInput.mk (fun i => zs (some i)) 0 0) = ratTarget zs := by
@@ -4679,6 +5117,9 @@ private theorem ratZs_loadedTarget {D : ℕ} (zs : Option (Fin D) → RatComplex
   | none => simp [loadedTarget, ratTarget, hz0, ratZero, ratToComplex]
   | some i => simp only [loadedTarget, ratTarget, hmass]
 
+/-- For a unit target approximated pointwise within `η` by a rational table vanishing at `none`,
+with `sqrt (D + 1) * η < 1`, preparation error is at most `32 * (D + 1) / 2^k + 2 * sqrt (D
++ 1) * η`. -/
 theorem generalPrepare_state_error {D : ℕ} (k : ℕ) (ψ : QState (Option (Fin D)))
     (hψ : ‖stateVector ψ‖ = 1) (zs : Option (Fin D) → RatComplex)
     (hz0 : zs none = ratZero) {η : ℝ}
@@ -4715,6 +5156,8 @@ theorem generalPrepare_state_error {D : ℕ} (k : ℕ) (ψ : QState (Option (Fin
         + (stateVector (ratTarget zs) - stateVector ψ) from by abel]
   exact (norm_add_le _ _).trans (by linarith [hword, hnear])
 
+/-- For `0 < ε ≤ 1`, pointwise error at most `ε / (8 * sqrt (D + 1))` and precision
+`precisionFor D (ε / 2)` give preparation error at most `ε`. -/
 theorem generalPrepare_state_error_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε)
     (hε1 : ε ≤ 1) (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) (hz0 : zs none = ratZero)
@@ -4746,6 +5189,8 @@ theorem generalPrepare_state_error_epsilon {D : ℕ} (ε : ℚ) (hε : 0 < ε)
     ring
   linarith
 
+/-- Every normalized state vanishing at `none` can be approximated to any positive Euclidean
+tolerance by preparing a suitable rational complex table. -/
 theorem generalPrepare_exists {D : ℕ} (ψ : QState (Option (Fin D)))
     (hψ : ‖stateVector ψ‖ = 1) (hψ0 : ψ none = 0) (ε : ℝ) (hε : 0 < ε) :
     ∃ (zs : Option (Fin D) → RatComplex) (k : ℕ), zs none = ratZero ∧
@@ -4791,6 +5236,8 @@ theorem generalPrepare_exists {D : ℕ} (ψ : QState (Option (Fin D)))
     exact hle
   linarith
 
+/-- The difference of squared complex norms is bounded by the sum of the norms times the norm of
+the difference. -/
 private theorem norm_sq_sub_abs_le (x y : ℂ) :
     |‖x‖ ^ 2 - ‖y‖ ^ 2| ≤ (‖x‖ + ‖y‖) * ‖x - y‖ := by
   rw [sq_sub_sq, abs_mul,
@@ -4798,6 +5245,7 @@ private theorem norm_sq_sub_abs_le (x y : ℂ) :
   exact mul_le_mul_of_nonneg_left (abs_norm_sub_norm_le x y)
     (add_nonneg (norm_nonneg _) (norm_nonneg _))
 
+/-- The sum of amplitude norms is at most `sqrt (D + 1)` times the state's Euclidean norm. -/
 private theorem sum_norm_le {D : ℕ} (u : QState (Option (Fin D))) :
     ∑ a, ‖u a‖ ≤ Real.sqrt ((D + 1 : ℝ)) * ‖stateVector u‖ := by
   have hone : (∑ _ : Option (Fin D), ((1 : ℝ) ^ 2)) = ((D + 1 : ℝ)) := by
@@ -4822,6 +5270,8 @@ private theorem sum_norm_le {D : ℕ} (u : QState (Option (Fin D))) :
     _ = Real.sqrt ((D + 1 : ℝ)) * ‖stateVector u‖ :=
         Real.sqrt_sq (mul_nonneg (Real.sqrt_nonneg _) (norm_nonneg _))
 
+/-- Applying a finite weighted sum of matrices to a vector equals the corresponding weighted sum
+of matrix-vector products. -/
 private theorem sum_smul_mulVec {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     (g : Option (Fin D) → ℂ) (U : Option (Fin D) → Matrix X X ℂ) (v : QState X) :
     (∑ a, g a • U a) *ᵥ v = ∑ a, g a • (U a *ᵥ v) := by
@@ -4831,6 +5281,8 @@ private theorem sum_smul_mulVec {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
     Pi.smul_apply]
   rw [Finset.sum_comm]
 
+/-- A linear combination of unitaries has matrix norm at most the sum of the norms of its
+coefficients. -/
 private theorem combination_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (g : Option (Fin D) → ℂ) (U : Option (Fin D) → Matrix X X ℂ)
     (hU : ∀ a, U a ∈ Matrix.unitaryGroup X ℂ) :
@@ -4860,6 +5312,8 @@ private theorem combination_norm_le {D : ℕ} {X : Type*} [Fintype X] [Decidable
         exact h1
     _ = (∑ a, ‖g a‖) * ‖stateVector v‖ := (Finset.sum_mul _ _ _).symm
 
+/-- Each squared amplitude norm of a positive-mass rational target equals its squared modulus
+divided by the total rational mass. -/
 private theorem ratTarget_entry_norm_sq {D : ℕ} (zs : Option (Fin D) → RatComplex)
     (hm : 0 < rationalWeightMass (fun a => ratSq (zs a))) (a : Option (Fin D)) :
     (‖ratTarget zs a‖ ^ 2 : ℝ)
@@ -4878,6 +5332,9 @@ private theorem ratTarget_entry_norm_sq {D : ℕ} (zs : Option (Fin D) → RatCo
   push_cast [Rat.cast_div]
   ring
 
+/-- For rational amplitudes approximating a unit target pointwise within `η` and satisfying the
+normalization gap, the linear-combination block error is at most `64 * (D + 1) / 2^k + 4 *
+(D + 1) * η`. -/
 theorem cmplxLcuWord_topBlock_error {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (k : ℕ) (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) {η : ℝ}
@@ -4984,6 +5441,8 @@ theorem cmplxLcuWord_topBlock_error {D : ℕ} {X : Type*} [Fintype X] [Decidable
   rw [hsplit]
   exact (norm_add_le _ _).trans (add_le_add hword hsecond)
 
+/-- For `0 < ε ≤ 1`, pointwise error at most `ε / (32 * (D + 1))` and precision `precisionFor D
+(ε / 4)` give linear-combination block error at most `ε`. -/
 theorem cmplxLcuWord_topBlock_error_epsilon {D : ℕ} {X : Type*} [Fintype X]
     [DecidableEq X] [Nonempty X] (ε : ℚ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
@@ -5029,6 +5488,9 @@ theorem cmplxLcuWord_topBlock_error_epsilon {D : ℕ} {X : Type*} [Fintype X]
   have hεr0 : (0 : ℝ) < (ε : ℝ) := by exact_mod_cast hε
   linarith
 
+/-- For a normalized control state vanishing at `none` and unitary selected operators, suitable
+rational amplitudes and precision approximate `stateCombination ψ U` to any positive
+matrix-norm tolerance. -/
 theorem cmplxLcu_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1) (hψ0 : ψ none = 0)
     (U : Option (Fin D) → Matrix X X ℂ) (hU : ∀ a, U a ∈ Matrix.unitaryGroup X ℂ)
@@ -5078,10 +5540,13 @@ theorem cmplxLcu_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonem
     exact hle
   linarith
 
+/-- The amplitude function of a finite list of indexed complex entries, summing repeated indices
+and assigning zero to `none`. -/
 def sparseAmp {D : ℕ} : List (Fin D × ℂ) → Option (Fin D) → ℂ
   | [], _ => 0
   | e :: L, a => (if a = some e.1 then e.2 else 0) + sparseAmp L a
 
+/-- The sparse amplitude function vanishes at `none`. -/
 theorem sparseAmp_none {D : ℕ} : ∀ (L : List (Fin D × ℂ)),
     sparseAmp L none = 0 := by
   intro L
@@ -5089,15 +5554,18 @@ theorem sparseAmp_none {D : ℕ} : ∀ (L : List (Fin D × ℂ)),
   | nil => simp [sparseAmp]
   | cons e L ih => simp [sparseAmp, ih]
 
+/-- Two entries at the same sparse index contribute the sum of their amplitudes. -/
 theorem sparseAmp_dup {D : ℕ} (p : Fin D) (v w : ℂ) :
     sparseAmp [(p, v), (p, w)] (some p) = v + w := by
   simp [sparseAmp]
 
+/-- Adding a sparse entry adds its amplitude at its index and zero at other indices. -/
 theorem sparseAmp_cons {D : ℕ} (e : Fin D × ℂ) (L : List (Fin D × ℂ))
     (a : Option (Fin D)) :
     sparseAmp (e :: L) a = (if a = some e.1 then e.2 else 0) + sparseAmp L a := by
   simp [sparseAmp]
 
+/-- The sparse amplitude at an index absent from the list of indices is zero. -/
 theorem sparseAmp_eq_zero {D : ℕ} {p : Fin D} : ∀ L : List (Fin D × ℂ),
     p ∉ L.map Prod.fst → sparseAmp L (some p) = 0 := by
   intro L
@@ -5117,6 +5585,8 @@ theorem sparseAmp_eq_zero {D : ℕ} {p : Fin D} : ∀ L : List (Fin D × ℂ),
       exact Or.inr hmem
     simp [sparseAmp, hne, ih htail]
 
+/-- If the list of sparse indices has no duplicates, a listed entry gives the amplitude at that
+index. -/
 theorem sparseAmp_mem {D : ℕ} {p : Fin D} {v : ℂ} :
     ∀ (L : List (Fin D × ℂ)), (L.map Prod.fst).Nodup → (p, v) ∈ L →
       sparseAmp L (some p) = v := by
@@ -5137,6 +5607,8 @@ theorem sparseAmp_mem {D : ℕ} {p : Fin D} {v : ℂ} :
         rwa [show (p, v).1 = e.1 from by simp [h]] at hm
       simp [sparseAmp, hne, ih htail hmem']
 
+/-- For a sparse list without repeated indices, the total amplitude mass equals the sum of
+squared norms of its listed values. -/
 theorem sparseMass {D : ℕ} : ∀ (L : List (Fin D × ℂ)), (L.map Prod.fst).Nodup →
     cmplxMass (sparseAmp L) = (L.map (fun e => ‖e.2‖ ^ 2)).sum := by
   intro L
@@ -5179,6 +5651,8 @@ theorem sparseMass {D : ℕ} : ∀ (L : List (Fin D × ℂ)), (L.map Prod.fst).N
       _ = (List.map (fun e => ‖e.2‖ ^ 2) (e :: L)).sum := by
           rw [List.map_cons, List.sum_cons, ih htail]
 
+/-- A sparse list without repeated indices and containing a nonzero amplitude has positive total
+mass. -/
 theorem sparseMass_pos {D : ℕ} (L : List (Fin D × ℂ))
     (hnd : (L.map Prod.fst).Nodup) {p : Fin D} {v : ℂ}
     (hmem : (p, v) ∈ L) (hv : v ≠ 0) :
@@ -5190,6 +5664,8 @@ theorem sparseMass_pos {D : ℕ} (L : List (Fin D × ℂ))
   have h2 : (0 : ℝ) < ‖v‖ ^ 2 := pow_pos (norm_pos_iff.mpr hv) 2
   linarith
 
+/-- For a sparse list without repeated indices, a listed amplitude is divided by the square root
+of the total mass in the normalized target. -/
 theorem cmplxTarget_sparse_mem {D : ℕ} (L : List (Fin D × ℂ))
     (hnd : (L.map Prod.fst).Nodup) {p : Fin D} {v : ℂ}
     (hmem : (p, v) ∈ L) :
@@ -5198,11 +5674,14 @@ theorem cmplxTarget_sparse_mem {D : ℕ} (L : List (Fin D × ℂ))
   simp only [cmplxTarget]
   rw [sparseAmp_mem L hnd hmem]
 
+/-- The normalized sparse target vanishes at an index absent from the sparse list. -/
 theorem cmplxTarget_sparse_eq_zero {D : ℕ} (L : List (Fin D × ℂ)) {p : Fin D}
     (hp : p ∉ L.map Prod.fst) :
     (cmplxTarget (sparseAmp L)) (some p) = 0 := by
   simp only [cmplxTarget, sparseAmp_eq_zero L hp, zero_div]
 
+/-- A sparse complex amplitude list of positive mass has a normalized target that can be
+approximated to any positive tolerance by rational-table preparation. -/
 theorem sparsePrepare_exists {D : ℕ} (L : List (Fin D × ℂ))
     (hmass : 0 < cmplxMass (sparseAmp L)) (ε : ℝ) (hε : 0 < ε) :
     ∃ (zs : Option (Fin D) → RatComplex) (k : ℕ), zs none = ratZero ∧
@@ -5211,6 +5690,9 @@ theorem sparsePrepare_exists {D : ℕ} (L : List (Fin D × ℂ))
   generalPrepare_exists _ (cmplxTarget_norm _ hmass)
     (by rw [cmplxTarget_none (sparseAmp L) (sparseAmp_none L)]) ε hε
 
+/-- For a sparse list of positive mass and unitary selected operators, a rational-table circuit
+approximates the operator combination weighted by the normalized sparse target to any
+positive tolerance. -/
 theorem sparseLcu_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (L : List (Fin D × ℂ)) (hmass : 0 < cmplxMass (sparseAmp L))
     (U : Option (Fin D) → Matrix X X ℂ) (hU : ∀ a, U a ∈ Matrix.unitaryGroup X ℂ)
@@ -5221,6 +5703,8 @@ theorem sparseLcu_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [None
   cmplxLcu_exists _ (cmplxTarget_norm _ hmass)
     (by rw [cmplxTarget_none (sparseAmp L) (sparseAmp_none L)]) U hU ε hε
 
+/-- For Euclidean vectors of norm at most one, the difference of squared norms is at most twice
+the distance between the vectors. -/
 private theorem vec_norm_sq_sub_abs_le {X : Type*} [Fintype X] [DecidableEq X]
     (u v : EuclideanSpace ℂ X) (hu : ‖u‖ ≤ 1) (hv : ‖v‖ ≤ 1) :
     |‖u‖ ^ 2 - ‖v‖ ^ 2| ≤ 2 * ‖u - v‖ := by
@@ -5233,6 +5717,8 @@ private theorem vec_norm_sq_sub_abs_le {X : Type*} [Fintype X] [DecidableEq X]
     _ ≤ 2 * ‖u - v‖ :=
         mul_le_mul_of_nonneg_right h2 (norm_nonneg (u - v))
 
+/-- A rational amplitude table approximating a unit state pointwise within `η` has positive mass
+when `sqrt (D + 1) * η < 1`. -/
 theorem ratMass_pos_of_near {D : ℕ} (ψ : QState (Option (Fin D)))
     (hψ : ‖stateVector ψ‖ = 1) (zs : Option (Fin D) → RatComplex) {η : ℝ}
     (hη : ∀ a, ‖ratToComplex (zs a) - ψ a‖ ≤ η)
@@ -5252,6 +5738,8 @@ theorem ratMass_pos_of_near {D : ℕ} (ψ : QState (Option (Fin D)))
     rw [← hsq]; positivity
   exact_mod_cast hcast
 
+/-- For a normalized control state and unitary selected matrices, `stateCombination ψ U` has
+norm at most one. -/
 theorem stateCombination_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (U : Option (Fin D) → Matrix X X ℂ) (hU : ∀ a, U a ∈ Matrix.unitaryGroup X ℂ) :
@@ -5268,6 +5756,8 @@ theorem stateCombination_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
     _ = ‖stateVector ψ‖ ^ 2 := hmass
     _ ≤ (1 : ℝ) := by rw [hψ, one_pow]
 
+/-- Under the rational-table approximation and normalization-gap hypotheses, clean-branch state
+error is at most `(64 * (D + 1) / 2^k + 4 * (D + 1) * η)` times the data input norm. -/
 theorem cmplxLcuWord_apply_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) {η : ℝ}
@@ -5293,6 +5783,9 @@ theorem cmplxLcuWord_apply_state {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   exact mul_le_mul_of_nonneg_right
     (cmplxLcuWord_topBlock_error k ψ hψ zs hη hgap U hU) (norm_nonneg _)
 
+/-- For normalized control and data states under the table-approximation hypotheses, the
+clean-branch probability differs from the squared ideal output norm by at most twice `64 *
+(D + 1) / 2^k + 4 * (D + 1) * η`. -/
 theorem cmplxLcuBorn_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) {η : ℝ}
@@ -5331,6 +5824,8 @@ theorem cmplxLcuBorn_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Non
   exact (vec_norm_sq_sub_abs_le _ _ hx hy).trans
     (mul_le_mul_of_nonneg_left hclose (by norm_num))
 
+/-- For `0 < ε ≤ 1`, pointwise table error at most `ε / (16 * (D + 1))` and precision
+`precisionFor D (ε / 8)` give clean-branch probability error at most `ε`. -/
 theorem cmplxLcuBorn_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
@@ -5374,6 +5869,9 @@ theorem cmplxLcuBorn_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
   have hεr0 : (0 : ℝ) < (ε : ℝ) := by exact_mod_cast hε
   linarith
 
+/-- For normalized control and data states, with the control vanishing at `none`, rational
+amplitudes and a precision exist that approximate the ideal clean-branch probability to any
+positive tolerance. -/
 theorem cmplxLcuBorn_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1) (hψ0 : ψ none = 0)
     (U : Option (Fin D) → Matrix X X ℂ) (hU : ∀ a, U a ∈ Matrix.unitaryGroup X ℂ)
@@ -5425,6 +5923,8 @@ theorem cmplxLcuBorn_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [N
     linarith
   linarith
 
+/-- If `p₀ > 0` bounds the ideal output norm and exceeds the combined preparation and table
+error, the collapsed-state error is at most twice that combined error divided by `p₀`. -/
 theorem cmplxLcuWord_collapse_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) {η : ℝ}
@@ -5449,6 +5949,9 @@ theorem cmplxLcuWord_collapse_none {D : ℕ} {X : Type*} [Fintype X] [DecidableE
   obtain ⟨_, hb⟩ := normalize_error_of_gap hclose (hk.trans_le hpA)
   exact hb.trans (div_le_div_of_nonneg_left hδnn hp₀ hpA)
 
+/-- For `0 < ε ≤ 1` and a positive rational lower bound on the ideal output norm, the specified
+table tolerance and precision `precisionFor D (p₀ * ε / 8)` give collapsed-state error at
+most `ε`. -/
 theorem cmplxLcuWord_collapse_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε) (hε1 : ε ≤ 1) (p₀ : ℚ) (hp₀ : 0 < p₀)
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
@@ -5511,6 +6014,9 @@ theorem cmplxLcuWord_collapse_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [De
     (hδ.trans_lt (half_budget_lt (by exact_mod_cast hp₀) (by exact_mod_cast hε1)))
   exact h.trans (collapse_eps_arith (by exact_mod_cast hp₀) hδ)
 
+/-- For normalized inputs with control amplitude zero at `none` and a positive lower bound on
+the ideal output norm, rational-table circuits achieve any collapsed-state tolerance `0 < ε
+≤ 1`. -/
 theorem cmplxLcuWord_collapse_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (hψ0 : ψ none = 0) (U : Option (Fin D) → Matrix X X ℂ)
@@ -5569,6 +6075,8 @@ theorem cmplxLcuWord_collapse_exists {D : ℕ} {X : Type*} [Fintype X] [Decidabl
     (hδ.trans_lt (half_budget_lt hp₀ hε1))
   exact h.trans (collapse_eps_arith hp₀ hδ)
 
+/-- For a sparse control table of positive mass and normalized data input, a rational-table
+circuit approximates the ideal clean-branch probability to any positive tolerance. -/
 theorem sparseLcuBorn_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (L : List (Fin D × ℂ)) (hmass : 0 < cmplxMass (sparseAmp L))
     (U : Option (Fin D) → Matrix X X ℂ) (hU : ∀ a, U a ∈ Matrix.unitaryGroup X ℂ)
@@ -5581,6 +6089,9 @@ theorem sparseLcuBorn_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [
   cmplxLcuBorn_exists _ (cmplxTarget_norm _ hmass)
     (by rw [cmplxTarget_none (sparseAmp L) (sparseAmp_none L)]) U hU φ hφ ε hε
 
+/-- For a positive-mass sparse control table and normalized data input with a positive lower
+bound on the ideal output norm, a rational-table circuit achieves any collapsed-state
+tolerance `0 < ε ≤ 1`. -/
 theorem sparseLcuWord_collapse_exists {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (L : List (Fin D × ℂ)) (hmass : 0 < cmplxMass (sparseAmp L))
     (U : Option (Fin D) → Matrix X X ℂ) (hU : ∀ a, U a ∈ Matrix.unitaryGroup X ℂ)
@@ -5596,6 +6107,8 @@ theorem sparseLcuWord_collapse_exists {D : ℕ} {X : Type*} [Fintype X] [Decidab
   cmplxLcuWord_collapse_exists _ (cmplxTarget_norm _ hmass)
     (by rw [cmplxTarget_none (sparseAmp L) (sparseAmp_none L)]) U hU φ hφ p₀ hp₀ hpA ε hε hε1
 
+/-- A rational table approximating a unit state pointwise within `η` under the normalization-gap
+condition changes the associated weighted unitary combination by at most `4 * (D + 1) * η`. -/
 theorem cmplxLcuCombination_near {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) {η : ℝ}
@@ -5674,6 +6187,8 @@ theorem cmplxLcuCombination_near {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   rw [hcsum]
   exact hdiff.trans hsum
 
+/-- The unitary combination weighted by normalized squared rational amplitudes of positive total
+mass has norm at most one. -/
 theorem loadedCombination_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (zs : Option (Fin D) → RatComplex)
     (hm : 0 < rationalWeightMass (fun a => ratSq (zs a)))
@@ -5682,6 +6197,8 @@ theorem loadedCombination_norm_le {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
       ≤ 1 :=
   lcuCombination_norm_le (fun a => ratSq (zs a)) zs (fun a => ratSq_nonneg (zs a)) hm U hU
 
+/-- For matrices of norm at most one, the distance between their conjugate-transpose products is
+at most twice their matrix distance. -/
 theorem opNorm_moment_transport {X : Type*} [Fintype X] [DecidableEq X]
     (A B : Matrix X X ℂ) (hA : ‖A‖ ≤ 1) (hB : ‖B‖ ≤ 1) :
     ‖Aᴴ * A - Bᴴ * B‖ ≤ 2 * ‖A - B‖ := by
@@ -5700,6 +6217,8 @@ theorem opNorm_moment_transport {X : Type*} [Fintype X] [DecidableEq X]
           (mul_le_mul_of_nonneg_right hB (norm_nonneg _))
     _ = 2 * ‖A - B‖ := by ring
 
+/-- If the normalized rational-table combination has squared modulus `sq • 1`, the squared
+modulus of the target state combination differs from `sq • 1` by at most `8 * (D + 1) * η`. -/
 theorem cmplxLcu_moment_transport {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) {η : ℝ}
@@ -5727,6 +6246,8 @@ theorem cmplxLcu_moment_transport {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
   rw [hflip]
   linarith
 
+/-- For unitaries satisfying `Pᴴ * Q + Qᴴ * P = 0`, a real linear combination `c • P + d • Q`
+has conjugate-transpose product `(c² + d²) • 1`. -/
 theorem twoFiber_isometry {X : Type*} [Fintype X] [DecidableEq X]
     (P Q : Matrix X X ℂ) (hP : P ∈ Matrix.unitaryGroup X ℂ)
     (hQ : Q ∈ Matrix.unitaryGroup X ℂ)
@@ -5763,6 +6284,9 @@ theorem twoFiber_isometry {X : Type*} [Fintype X] [DecidableEq X]
     rw [hscalar]
   rw [← add_smul, hsum]
 
+/-- Under the scalar squared-modulus condition on the rational-table combination, the repeated
+Grover word's clean-branch probability differs from the squared Chebyshev modulus by at most
+`2 * (m * (128 * (D + 1) / 2^k))`. -/
 theorem cmplxGroverBorn_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (m k : ℕ) (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) {η : ℝ}
@@ -5782,6 +6306,8 @@ theorem cmplxGroverBorn_none {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [
   groverBorn_none m k (fun a => ratSq (zs a)) zs (fun a => ratSq_nonneg (zs a))
     (ratMass_pos_of_near ψ hψ zs hη hgap) U hU sq hA φ hφ
 
+/-- Under the scalar squared-modulus condition on the rational-table combination, the specified
+precision gives clean-branch probability error at most `ε` after `m + 1` Grover rounds. -/
 theorem cmplxGroverBorn_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (m : ℕ) (ε : ℚ) (hε : 0 < ε)
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
@@ -5803,6 +6329,9 @@ theorem cmplxGroverBorn_none_epsilon {D : ℕ} {X : Type*} [Fintype X] [Decidabl
   groverBorn_none_epsilon m ε hε (fun a => ratSq (zs a)) zs (fun a => ratSq_nonneg (zs a))
     (ratMass_pos_of_near ψ hψ zs hη hgap) U hU sq hA φ hφ
 
+/-- If the rational-table combination has scalar squared modulus `sq` with `0 < sq < 1`, a
+positive round count and the specified precision achieve clean-branch probability at least
+`1 - sq - ε`. -/
 theorem cmplxGroverBorn_none_optimal_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε)
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
@@ -5824,6 +6353,9 @@ theorem cmplxGroverBorn_none_optimal_epsilon {D : ℕ} {X : Type*} [Fintype X] [
     (fun a => ratSq_nonneg (zs a))
     (ratMass_pos_of_near ψ hψ zs hη hgap) U hU sq h0 h1 hA φ hφ
 
+/-- For a rational-table combination with scalar squared modulus `s > 1 / 2`, the two-round
+amplification word has clean-branch probability within `2 * (2 * (128 * (D + 1) / 2^k))` of
+one. -/
 theorem cmplxOaaWord_born {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (k : ℕ) (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)
     (zs : Option (Fin D) → RatComplex) {η : ℝ}
@@ -5843,6 +6375,9 @@ theorem cmplxOaaWord_born {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] [Non
   oaaWord_born k (fun a => ratSq (zs a)) zs (fun a => ratSq_nonneg (zs a))
     (ratMass_pos_of_near ψ hψ zs hη hgap) U hU hs hA φ hφ
 
+/-- For a rational-table combination with scalar squared modulus `s > 1 / 2`, precision
+`precisionFor D (ε / 16)` makes the two-round clean-branch probability differ from one by at
+most `ε`. -/
 theorem cmplxOaaWord_born_epsilon {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     [Nonempty X] (ε : ℚ) (hε : 0 < ε)
     (ψ : QState (Option (Fin D))) (hψ : ‖stateVector ψ‖ = 1)

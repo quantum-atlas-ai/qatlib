@@ -17,6 +17,25 @@ import Mathlib.Data.Finset.Disjoint
 import Mathlib.Data.Finset.Prod
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Tactic
+
+/-!
+# Counting good vectors over finite fields
+
+`Constructible`, `psMap`, and `tripleMap` give an explicit family of good vectors in `(ZMod
+p)^4`. Fiber bounds for a quadratic map yield cardinality and probability lower bounds for
+`goodSet` when `p` is an odd prime. The construction follows [IvanyosSanselmeSantha2007].
+
+## Main statements
+
+* `constructible_good`: the explicit witness construction gives a good vector.
+* `lemma7_card`: bounds twice the number of good vectors below by `(p - 9) * p^3`.
+* `lemma7_probability`: gives the corresponding rational probability bound.
+
+## References
+
+* [Ivanyos et al., 2007][IvanyosSanselmeSantha2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -25,6 +44,7 @@ namespace Qatlib.Papers.ExtraSpecHSP07.MainResults
 
 open scoped BigOperators
 
+/-- Characterizes a witness by the vanishing of its weighted linear and quadratic sums. -/
 theorem isWitness_iff {p : ℕ} (u : Fin 4 → ZMod p) (j : Fin 4 → (ZMod p)ˣ) :
     IsWitness p u j ↔
       (∑ i, u i * (j i : ZMod p) = 0) ∧
@@ -49,25 +69,33 @@ theorem isWitness_iff {p : ℕ} (u : Fin 4 → ZMod p) (j : Fin 4 → (ZMod p)ˣ
       ring
     rw [hsplit, h1, h2, sub_zero]
 
+/-- The four-coordinate vector with entries `u1`, `u2`, `u3`, and `u4`. -/
 def vec4 {p : ℕ} (u1 u2 u3 u4 : ZMod p) : Fin 4 → ZMod p := ![u1, u2, u3, u4]
 
+/-- The coordinate of `vec4 u1 u2 u3 u4` at index zero is `u1`. -/
 @[simp] lemma vec4_zero {p : ℕ} (u1 u2 u3 u4 : ZMod p) :
     vec4 u1 u2 u3 u4 (0 : Fin 4) = u1 := by simp [vec4]
 
+/-- The coordinate of `vec4 u1 u2 u3 u4` at index one is `u2`. -/
 @[simp] lemma vec4_one {p : ℕ} (u1 u2 u3 u4 : ZMod p) :
     vec4 u1 u2 u3 u4 (1 : Fin 4) = u2 := by simp [vec4]
 
+/-- The coordinate of `vec4 u1 u2 u3 u4` at index two is `u3`. -/
 @[simp] lemma vec4_two {p : ℕ} (u1 u2 u3 u4 : ZMod p) :
     vec4 u1 u2 u3 u4 (2 : Fin 4) = u3 := by simp [vec4]
 
+/-- The coordinate of `vec4 u1 u2 u3 u4` at index three is `u4`. -/
 @[simp] lemma vec4_three {p : ℕ} (u1 u2 u3 u4 : ZMod p) :
     vec4 u1 u2 u3 u4 (3 : Fin 4) = u4 := by simp [vec4]
 
+/-- The existence of unit coordinates `j1` and `j2` satisfying the witness equations with
+remaining coordinates `1` and `-1`. -/
 def Constructible {p : ℕ} (u1 u2 u3 u4 : ZMod p) : Prop :=
   ∃ j1 j2 : (ZMod p)ˣ,
     u1 * (j1 : ZMod p) + u2 * (j2 : ZMod p) + u3 - u4 = 0 ∧
       u1 * (j1 : ZMod p) ^ 2 + u2 * (j2 : ZMod p) ^ 2 + u3 + u4 = 0
 
+/-- A constructible four-coordinate vector is good. -/
 theorem constructible_good {p : ℕ} (u1 u2 u3 u4 : ZMod p)
     (h : Constructible u1 u2 u3 u4) : IsGoodVector p (vec4 u1 u2 u3 u4) := by
   obtain ⟨j1, j2, h1, h2⟩ := h
@@ -77,6 +105,8 @@ theorem constructible_good {p : ℕ} (u1 u2 u3 u4 : ZMod p)
   · simpa [vec4, Fin.sum_univ_four, sub_eq_add_neg] using h1
   · simpa [vec4, Fin.sum_univ_four] using h2
 
+/-- A finite set of roots of a quadratic polynomial with nonzero leading coefficient has at most
+two elements. -/
 theorem quad_roots_le_two {K : Type*} [Field K] (s : Finset K) {a b c : K}
     (ha : a ≠ 0) (hs : ∀ x ∈ s, a * x ^ 2 + b * x + c = 0) : s.card ≤ 2 := by
   by_contra h
@@ -106,9 +136,12 @@ theorem quad_roots_le_two {K : Type*} [Field K] (s : Finset K) {a b c : K}
   · exact ha h'
   · exact hyz (sub_eq_zero.mp h')
 
+/-- The pair of weighted quadratic and linear sums of the coordinates of `q`. -/
 def psMap {p : ℕ} (u1 u2 : ZMod p) (q : ZMod p × ZMod p) : ZMod p × ZMod p :=
   (u1 * q.1 ^ 2 + u2 * q.2 ^ 2, u1 * q.1 + u2 * q.2)
 
+/-- Each fiber of `psMap u1 u2` in a finite set has at most two elements when both weights and
+their sum are nonzero. -/
 theorem psMap_fiber_le_two {p : ℕ} [Fact p.Prime] {u1 u2 : ZMod p}
     (h1 : u1 ≠ 0) (h2 : u2 ≠ 0) (h12 : u1 + u2 ≠ 0)
     (s : Finset (ZMod p × ZMod p)) (t : ZMod p × ZMod p) :
@@ -156,9 +189,12 @@ theorem psMap_fiber_le_two {p : ℕ} [Fact p.Prime] {u1 u2 : ZMod p}
   rw [← hcard]
   exact hle
 
+/-- The pair `(-(t.1 + t.2) / 2, (t.2 - t.1) / 2)` used to complete a constructible vector. -/
 noncomputable def tripleMap {p : ℕ} (t : ZMod p × ZMod p) : ZMod p × ZMod p :=
   (-(t.1 + t.2) * (2 : ZMod p)⁻¹, (t.2 - t.1) * (2 : ZMod p)⁻¹)
 
+/-- The completion map `tripleMap` is injective over `ZMod p` when `p` is prime and two is
+nonzero. -/
 theorem tripleMap_inj {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0) :
     Function.Injective (@tripleMap p) := by
   intro a b hab
@@ -173,37 +209,47 @@ theorem tripleMap_inj {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0) :
   have hmul2 : (2 : ZMod p) * a.2 = 2 * b.2 := by linear_combination ha + hb
   exact Prod.ext (mul_left_cancel₀ h2 hmul1) (mul_left_cancel₀ h2 hmul2)
 
+/-- The finite set of nonzero elements of `ZMod p`. -/
 def nz (p : ℕ) [NeZero p] : Finset (ZMod p) := Finset.univ.filter (fun x => x ≠ 0)
 
+/-- Membership in `nz p` is equivalent to being nonzero. -/
 @[simp] theorem mem_nz {p : ℕ} [NeZero p] {x : ZMod p} : x ∈ nz p ↔ x ≠ 0 := by
   simp [nz]
 
+/-- There are `p - 1` nonzero elements of `ZMod p` for prime `p`. -/
 theorem card_nz {p : ℕ} [Fact p.Prime] [NeZero p] : (nz p).card = p - 1 := by
   have h : nz p = Finset.univ.erase (0 : ZMod p) := by
     ext x
     simp [nz]
   rw [h, Finset.card_erase_of_mem (Finset.mem_univ _), Finset.card_univ, ZMod.card]
 
+/-- The finite set of pairs of nonzero elements of `ZMod p`. -/
 def psDom (p : ℕ) [NeZero p] : Finset (ZMod p × ZMod p) := nz p ×ˢ nz p
 
+/-- Membership in `psDom p` is equivalent to both coordinates being nonzero. -/
 @[simp] theorem mem_psDom {p : ℕ} [NeZero p] {q : ZMod p × ZMod p} :
     q ∈ psDom p ↔ q.1 ≠ 0 ∧ q.2 ≠ 0 := by
   simp [psDom, mem_nz]
 
+/-- The set `psDom p` has cardinality `(p - 1) * (p - 1)` for prime `p`. -/
 theorem card_psDom {p : ℕ} [Fact p.Prime] [NeZero p] :
     (psDom p).card = (p - 1) * (p - 1) := by
   rw [psDom, Finset.card_product, card_nz]
 
+/-- The finite set of pairs with nonzero coordinates and nonzero coordinate sum. -/
 def pairSet (p : ℕ) [NeZero p] : Finset (ZMod p × ZMod p) :=
   (nz p ×ˢ nz p).filter (fun q => q.1 + q.2 ≠ 0)
 
+/-- Characterizes membership in `pairSet p` by nonvanishing of both coordinates and their sum. -/
 @[simp] theorem mem_pairSet {p : ℕ} [NeZero p] {q : ZMod p × ZMod p} :
     q ∈ pairSet p ↔ q.1 ≠ 0 ∧ q.2 ≠ 0 ∧ q.1 + q.2 ≠ 0 := by
   simp [pairSet, mem_nz, and_assoc]
 
+/-- The finite set of pairs of nonzero elements whose sum is zero. -/
 def badSet (p : ℕ) [NeZero p] : Finset (ZMod p × ZMod p) :=
   (nz p ×ˢ nz p).filter (fun q => q.1 + q.2 = 0)
 
+/-- For prime `p`, exactly `p - 1` pairs of nonzero elements have sum zero. -/
 theorem card_badSet {p : ℕ} [Fact p.Prime] [NeZero p] : (badSet p).card = p - 1 := by
   classical
   have himg : badSet p = (nz p).image (fun u1 => (u1, -u1)) := by
@@ -228,6 +274,7 @@ theorem card_badSet {p : ℕ} [Fact p.Prime] [NeZero p] : (badSet p).card = p - 
   · intro a _ b _ hab
     simpa using congrArg Prod.fst hab
 
+/-- For an odd prime `p`, `pairSet p` has cardinality `(p - 1) * (p - 2)`. -/
 theorem card_pairSet {p : ℕ} [Fact p.Prime] [NeZero p] (hodd : p ≠ 2) :
     (pairSet p).card = (p - 1) * (p - 2) := by
   classical
@@ -243,20 +290,27 @@ theorem card_pairSet {p : ℕ} [Fact p.Prime] [NeZero p] (hodd : p ≠ 2) :
     _ = ((p - 1) * (p - 2) + (p - 1)) - (p - 1) := by rw [Nat.mul_add, Nat.mul_one]
     _ = (p - 1) * (p - 2) := Nat.add_sub_cancel _ _
 
+/-- The image of the nonzero-coordinate domain under the weighted quadratic-linear map
+determined by `r`. -/
 noncomputable def imgSet (p : ℕ) [NeZero p] (r : ZMod p × ZMod p) :
     Finset (ZMod p × ZMod p) := by
   classical
   exact (psDom p).image (psMap r.1 r.2)
 
+/-- An element lies in `imgSet p r` exactly when it is the image under `psMap r.1 r.2` of an
+element of `psDom p`. -/
 theorem mem_imgSet {p : ℕ} [NeZero p] (r : ZMod p × ZMod p) (t : ZMod p × ZMod p) :
     t ∈ imgSet p r ↔ ∃ q ∈ psDom p, psMap r.1 r.2 q = t := by
   simp [imgSet]
 
+/-- The four-coordinate vectors obtained by adjoining the `tripleMap` completion of each element
+of `imgSet p r` to `r`. -/
 noncomputable def cvSet (p : ℕ) [NeZero p] (r : ZMod p × ZMod p) :
     Finset (Fin 4 → ZMod p) := by
   classical
   exact (imgSet p r).image (fun t => vec4 r.1 r.2 (tripleMap t).1 (tripleMap t).2)
 
+/-- The completion construction preserves the cardinality of `imgSet p r` when two is nonzero. -/
 theorem card_cvSet {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0)
     (r : ZMod p × ZMod p) : (cvSet p r).card = (imgSet p r).card := by
   classical
@@ -270,15 +324,18 @@ theorem card_cvSet {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0)
     simpa using this
   exact tripleMap_inj h2 (Prod.ext h1 h2')
 
+/-- The finite set of all good four-coordinate vectors over `ZMod p`. -/
 noncomputable def goodSet (p : ℕ) [NeZero p] : Finset (Fin 4 → ZMod p) := by
   classical
   exact Finset.univ.filter (fun u => IsGoodVector p u)
 
+/-- Membership in `goodSet p` is equivalent to the good-vector predicate. -/
 @[simp] theorem mem_goodSet {p : ℕ} [NeZero p] {u : Fin 4 → ZMod p} :
     u ∈ goodSet p ↔ IsGoodVector p u := by
   classical
   simp [goodSet]
 
+/-- The vectors constructed from a pair in `pairSet p` are good when two is nonzero. -/
 theorem cvSet_subset_good {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0)
     {r : ZMod p × ZMod p} (hr : r ∈ pairSet p) : cvSet p r ⊆ goodSet p := by
   classical
@@ -309,10 +366,12 @@ theorem cvSet_subset_good {p : ℕ} [Fact p.Prime] (h2 : (2 : ZMod p) ≠ 0)
   rw [← hxt]
   exact hgood
 
+/-- The union of the constructed vector sets over all pairs in `pairSet p`. -/
 noncomputable def CVec (p : ℕ) [NeZero p] : Finset (Fin 4 → ZMod p) := by
   classical
   exact (pairSet p).biUnion (fun r => cvSet p r)
 
+/-- For an odd prime `p`, every vector in `CVec p` is good. -/
 theorem CVec_subset_good {p : ℕ} [Fact p.Prime] (hodd : p ≠ 2) :
     CVec p ⊆ goodSet p := by
   classical
@@ -327,6 +386,8 @@ theorem CVec_subset_good {p : ℕ} [Fact p.Prime] (hodd : p ≠ 2) :
   obtain ⟨r, hr, hxr⟩ := hx
   exact cvSet_subset_good h2 hr hxr
 
+/-- For an odd prime `p`, twice the cardinality of `CVec p` is at least `(p - 1) * (p - 2) * (p
+- 1)^2`. -/
 theorem CVec_card_ge {p : ℕ} [Fact p.Prime] (hodd : p ≠ 2) :
     (p - 1) * (p - 2) * (p - 1) ^ 2 ≤ 2 * (CVec p).card := by
   classical
@@ -380,6 +441,8 @@ theorem CVec_card_ge {p : ℕ} [Fact p.Prime] (hodd : p ≠ 2) :
     _ = 2 * ∑ r ∈ pairSet p, (cvSet p r).card := by rw [Finset.mul_sum]
     _ = 2 * (CVec p).card := by rw [← hcard, CVec]
 
+/-- For `p ≥ 3`, the natural-number expression `(p - 9) * p^3` is at most `(p - 1) * (p - 2) *
+(p - 1)^2`. -/
 theorem arith_key {p : ℕ} (hp : 3 ≤ p) :
     (p - 9) * p ^ 3 ≤ (p - 1) * (p - 2) * (p - 1) ^ 2 := by
   by_cases h9 : p < 9
@@ -403,6 +466,9 @@ theorem arith_key {p : ℕ} (hp : 3 ≤ p) :
       exact_mod_cast hZ
     exact hmain
 
+/-- For an odd prime `p`, twice the number of good vectors is at least `(p - 9) * p^3`, with
+subtraction in natural numbers. This is the cardinality estimate for Lemma 7 of
+[IvanyosSanselmeSantha2007]. -/
 theorem lemma7_card {p : ℕ} [Fact p.Prime] (hodd : p ≠ 2) :
     (p - 9) * p ^ 3 ≤ 2 * (goodSet p).card := by
   classical
@@ -415,6 +481,8 @@ theorem lemma7_card {p : ℕ} [Fact p.Prime] (hodd : p ≠ 2) :
     _ ≤ 2 * (CVec p).card := CVec_card_ge hodd
     _ ≤ 2 * (goodSet p).card := by omega
 
+/-- The fraction of good vectors is at least `((p - 9 : ℕ) : ℚ) / (2 * p)` for an odd prime `p`.
+This is the rational probability form of Lemma 7 of [IvanyosSanselmeSantha2007]. -/
 theorem lemma7_probability {p : ℕ} [Fact p.Prime] (hodd : p ≠ 2) :
     ((p - 9 : ℕ) : ℚ) / (2 * (p : ℚ)) ≤
       ((goodSet p).card : ℚ) / ((p : ℚ) ^ 4) := by

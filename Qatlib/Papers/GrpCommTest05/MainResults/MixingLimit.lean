@@ -8,12 +8,31 @@ import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# An exponential rate from bounds on all powers
+
+`lam_le_exp_of_power_bound` converts an exponential upper bound on every positive integer power
+of a positive real number into a bound on the number itself. The additional estimate `tau ≤
+2*exp 1*T` expresses the result in terms of `T`. See [MagniezNayak2005].
+
+## Main statements
+
+* `lam_le_exp_of_power_bound`: If `lam`, `tau`, and `T` are positive, `tau ≤ 2*exp 1*T`, and
+  `lam^t ≤ 2*exp (-t/tau)` for every positive integer `t`, then `lam ≤ exp (-1/(2*exp 1*T))`.
+
+## References
+
+* [Magniez and Nayak, 2005][MagniezNayak2005]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.GrpCommTest05.MainResults
 
 open Real
 
+/-- If `lam`, `tau`, and `T` are positive, `tau ≤ 2*exp 1*T`, and `lam^t ≤ 2*exp (-t/tau)` for
+every positive integer `t`, then `lam ≤ exp (-1/(2*exp 1*T))`. See [MagniezNayak2005]. -/
 theorem lam_le_exp_of_power_bound {lam tau T : ℝ} (hlam0 : 0 < lam) (htau : 0 < tau)
     (hT : 0 < T) (htauT : tau ≤ 2 * Real.exp 1 * T)
     (hpow : ∀ t : ℕ, 1 ≤ t → lam ^ t ≤ 2 * Real.exp (-(t / tau))) :

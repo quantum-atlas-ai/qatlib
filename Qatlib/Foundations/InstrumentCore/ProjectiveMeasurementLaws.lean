@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 import Qatlib.Foundations.InstrumentCore.Measurement.MeasurementLaws
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Conservation of projective measurement mass
+
+Unitary evolution preserves total Born mass, and complementary orthogonal projectors split that
+mass into two branches. `sum_measureProb_collapse_partition` extends conservation to a finite
+partition of basis coordinates.
+
+These identities express the normalization laws for projective measurements discussed in
+[NielsenChuang2010].
+
+## Main statements
+
+* `measureProb_applyGate_univ`: Unitary invariance of total mass.
+* `projectiveBranchMass_add`: Conservation across complementary branches.
+* `sum_measureProb_collapse_partition`: Conservation for a labeled coordinate partition.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Foundations.InstrumentCore.Measurement
@@ -17,6 +39,7 @@ open Matrix
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- Applying a unitary gate preserves the total Born mass of a state. -/
 theorem measureProb_applyGate_univ {U : Matrix I I ℂ}
     (hU : U ∈ Matrix.unitaryGroup I ℂ) (ψ : QState I) :
     MeasureProb (ApplyGate U ψ) Finset.univ = MeasureProb ψ Finset.univ := by
@@ -24,6 +47,7 @@ theorem measureProb_applyGate_univ {U : Matrix I I ℂ}
   simp_rw [← Complex.normSq_eq_norm_sq]
   exact sum_normSq_mulVec_of_mem_unitaryGroup hU ψ
 
+/-- The complement `1 - P` of an orthogonal projector is an orthogonal projector. -/
 theorem isOrthogonalProjector_compl {P : Matrix I I ℂ}
     (hP : IsOrthogonalProjector P) : IsOrthogonalProjector (1 - P) := by
   have hid : P * P = P := hP.1
@@ -36,6 +60,8 @@ theorem isOrthogonalProjector_compl {P : Matrix I I ℂ}
     simp [hstar]
 omit [DecidableEq I] in
 
+/-- For an orthogonal projector, `Inner (ApplyGate P ψ) (ApplyGate P ψ)` equals `Inner ψ
+(ApplyGate P ψ)`. -/
 private theorem inner_projector {P : Matrix I I ℂ}
     (hP : IsOrthogonalProjector P) (ψ : QState I) :
     Inner (ApplyGate P ψ) (ApplyGate P ψ) = Inner ψ (ApplyGate P ψ) := by
@@ -49,16 +75,20 @@ private theorem inner_projector {P : Matrix I I ℂ}
 
 omit [DecidableEq I] in
 
+/-- The state inner product is additive in its second argument. -/
 private theorem inner_add_right (ψ φ χ : QState I) :
     Inner ψ (φ + χ) = Inner ψ φ + Inner ψ χ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.add_apply, mul_add,
       Finset.sum_add_distrib]
 
+/-- The real part of a state's inner product with itself is its total Born mass. -/
 private theorem inner_self_re (ψ : QState I) :
     (Inner ψ ψ).re = MeasureProb ψ Finset.univ := by
   rw [inner_self, ← Complex.ofReal_sum]
   simp only [Complex.ofReal_re, MeasureProb, BornProb]
 
+/-- The masses of the two complementary branches of an orthogonal projector sum to the input
+state's total Born mass. -/
 theorem projectiveBranchMass_add {P : Matrix I I ℂ}
     (hP : IsOrthogonalProjector P) (ψ : QState I) :
     ProjectiveBranchMass P false ψ + ProjectiveBranchMass P true ψ =
@@ -72,6 +102,8 @@ theorem projectiveBranchMass_add {P : Matrix I I ℂ}
     simp [ApplyGate, Matrix.sub_mulVec]
   rw [hsum]
 
+/-- Summing the collapsed masses over all labels of a finite coordinate partition recovers the
+input state's total Born mass. -/
 theorem sum_measureProb_collapse_partition (ψ : QState I) {n : ℕ}
     (label : I → Fin n) :
     (∑ o : Fin n, MeasureProb

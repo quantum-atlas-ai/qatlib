@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalCacheProgram
+
+/-!
+# Exact Gaussian-rational row programs
+
+`dotPlan` and `scalePlan` construct cache programs for a dot-product accumulation and for
+multiplying that accumulation by conjugated source entries. `rowPlan` combines them into one row
+computation, with exact output locations and operation counts.
+
+The specifications connect encoded Gaussian arithmetic to Gaussian rationals and complex
+numbers. They provide explicit arithmetic components for matrix-witness computations in the
+adversary-method setting of [HoyerLeeSpalek2007].
+
+## Main statements
+
+* `rowPlan_run`: identifies the accumulated dot product and all conjugate-scaled outputs.
+* `rowValue_decode`: relates encoded outputs to Gaussian-rational values.
+* `rowRatValue_toComplex`: identifies the corresponding complex-valued row expression.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -22,10 +45,13 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open scoped BigOperators
 
+/-- Sequential validity of cache operations, increasing the cache length by one after each
+operation. -/
 def CacheWf (sourceCount : ℕ) : List CacheOp → ℕ → Prop
   | [],_ => True
   | op::rest,len => op.Valid sourceCount len ∧ CacheWf sourceCount rest (len+1)
 
+/-- A cache program that is well formed at the initial cache length executes successfully. -/
 theorem cacheRun_of_wf (sourceCount : ℕ) (p : List CacheOp) (cs : List GaussianCode)
     (hw : CacheWf sourceCount p cs.length) : ∃ cs',cacheRun sourceCount p cs=some cs' := by
   induction p generalizing cs with
@@ -37,6 +63,8 @@ theorem cacheRun_of_wf (sourceCount : ℕ) (p : List CacheOp) (cs : List Gaussia
     obtain ⟨cs',hr⟩ := ih (cs++[op.eval cs]) ht
     exact ⟨cs',by simpa only [cacheRun,CacheOp.step,if_pos hv,Option.bind_some] using! hr⟩
 
+/-- Well-formedness of concatenated cache programs is equivalent to well-formedness of each part
+at its corresponding cache length. -/
 theorem cacheWf_append (sourceCount : ℕ) (p q : List CacheOp) (len : ℕ) :
     CacheWf sourceCount (p++q) len ↔ CacheWf sourceCount p len ∧ CacheWf sourceCount q (len+p.length) := by
   induction p generalizing len with
@@ -46,20 +74,27 @@ theorem cacheWf_append (sourceCount : ℕ) (p q : List CacheOp) (len : ℕ) :
     have hl : (len+1)+rest.length=len+(rest.length+1) := by omega
     simp only [hl,and_assoc]
 
+/-- A cache program that repeatedly reads a source entry, multiplies it by a weight, and adds
+the product to the accumulator. -/
 def dotPlan : ℕ → ℕ → ℕ → ℕ → ℕ → List CacheOp
   | 0,_,_,_,_ => []
   | n+1,base,source,weight,acc =>
       [.sourceRead source,.multiply base weight,.add acc (base+1)]++
         dotPlan n (base+3) (source+1) (weight+1) (base+2)
 
+/-- The cache index of the final dot-product accumulator, using the original accumulator when `n
+= 0`. -/
 def dotOutput (n base acc : ℕ) : ℕ := if n=0 then acc else base+3*n-1
 
+/-- A dot-product plan of length `n` contains exactly `3 * n` cache operations. -/
 theorem dotPlan_length (n base source weight acc : ℕ) :
     (dotPlan n base source weight acc).length=3*n := by
   induction n generalizing base source weight acc with
   | zero => rfl
   | succ n ih => simp [dotPlan,ih]; omega
 
+/-- The dot-product plan is well formed when its source range, weight range, and accumulator
+satisfy the stated index bounds. -/
 theorem dotPlan_wf (sourceCount n base source weight acc : ℕ)
     (hs : source+n ≤ sourceCount) (hw : sourceCount ≤ weight) (hwb : weight+n ≤ base)
     (ha : sourceCount ≤ acc) (hab : acc<base) :
@@ -74,12 +109,15 @@ theorem dotPlan_wf (sourceCount n base source weight acc : ℕ)
     · constructor <;> constructor <;> omega
     · apply ih <;> omega
 
+/-- The output index of a nonempty dot-product plan agrees with that of the remaining plan after
+one accumulation step. -/
 theorem dotOutput_succ (n base acc : ℕ) :
     dotOutput (n+1) base acc=dotOutput n (base+3) (base+2) := by
   cases n with
   | zero => simp [dotOutput]
   | succ n => simp [dotOutput]; omega
 
+/-- A dot-product plan of length `n` performs exactly `n` source reads. -/
 theorem dotPlan_source_reads (n base source weight acc : ℕ) :
     cacheSourceReads (dotPlan n base source weight acc)=n := by
   induction n generalizing base source weight acc with
@@ -92,6 +130,7 @@ theorem dotPlan_source_reads (n base source weight acc : ℕ) :
     norm_num [CacheOp.sourceReads]
     omega
 
+/-- A dot-product plan of length `n` performs exactly `n` cache multiplications. -/
 theorem dotPlan_multiplies (n base source weight acc : ℕ) :
     cacheMultiplies (dotPlan n base source weight acc)=n := by
   induction n generalizing base source weight acc with
@@ -104,6 +143,7 @@ theorem dotPlan_multiplies (n base source weight acc : ℕ) :
     norm_num [CacheOp.multiplies]
     omega
 
+/-- A dot-product plan of length `n` performs exactly `n` cache additions. -/
 theorem dotPlan_adds (n base source weight acc : ℕ) :
     cacheAdds (dotPlan n base source weight acc)=n := by
   induction n generalizing base source weight acc with
@@ -116,11 +156,15 @@ theorem dotPlan_adds (n base source weight acc : ℕ) :
     simp
     omega
 
+/-- The encoded Gaussian dot-product accumulation over consecutive source and weight entries,
+starting from `acc`. -/
 def dotSpec : ℕ → ℕ → ℕ → List GaussianCode → GaussianCode → GaussianCode
   | 0,_,_,_,acc => acc
   | n+1,source,weight,cs,acc => dotSpec n (source+1) (weight+1) cs
       (acc.add ((cs.getD source GaussianCode.zero).mul (cs.getD weight GaussianCode.zero)))
 
+/-- Appending entries to the cache preserves a dot-product specification whose source and weight
+ranges lie in the original cache. -/
 theorem dotSpec_append (n source weight : ℕ) (cs tail : List GaussianCode) (acc : GaussianCode)
     (hs : source+n ≤ cs.length) (hw : weight+n ≤ cs.length) :
     dotSpec n source weight (cs++tail) acc=dotSpec n source weight cs acc := by
@@ -132,6 +176,8 @@ theorem dotSpec_append (n source weight : ℕ) (cs tail : List GaussianCode) (ac
       List.getD_append cs tail GaussianCode.zero weight (by omega)]
     apply ih <;> omega
 
+/-- Default lookup in a cache of valid Gaussian codes returns a valid code, including for an
+out-of-range index. -/
 private theorem code_getD_valid (cs : List GaussianCode) (h : ∀ z∈cs,z.Valid) (i : ℕ) :
     (cs.getD i GaussianCode.zero).Valid := by
   induction cs generalizing i with
@@ -144,16 +190,22 @@ private theorem code_getD_valid (cs : List GaussianCode) (h : ∀ z∈cs,z.Valid
       intro z hz
       exact h z (by simp [hz])
 
+/-- Decoding a default lookup of a Gaussian code agrees with default lookup in the decoded
+cache. -/
 theorem code_decode_getD (cs : List GaussianCode) (i : ℕ) :
     (cs.getD i GaussianCode.zero).decode=(cs.map GaussianCode.decode).getD i GaussianRat.zero := by
   simp only [List.getD,List.getElem?_map]
   cases cs[i]? <;> simp [GaussianCode.zero,GaussianCode.decode,Difference.value,GaussianRat.zero]
 
+/-- The Gaussian-rational dot-product accumulation over consecutive source and weight entries,
+starting from `acc`. -/
 def dotRatSpec : ℕ → ℕ → ℕ → List GaussianRat → GaussianRat → GaussianRat
   | 0,_,_,_,acc => acc
   | n+1,source,weight,cs,acc => dotRatSpec n (source+1) (weight+1) cs
       (acc.add ((cs.getD source GaussianRat.zero).mul (cs.getD weight GaussianRat.zero)))
 
+/-- For valid cache entries and accumulator, decoding the encoded dot-product specification
+gives the Gaussian-rational specification. -/
 theorem dotSpec_decode (n source weight : ℕ) (cs : List GaussianCode) (acc : GaussianCode)
     (hcs : ∀ z∈cs,z.Valid) (ha : acc.Valid) :
     (dotSpec n source weight cs acc).decode=
@@ -168,6 +220,8 @@ theorem dotSpec_decode (n source weight : ℕ) (cs : List GaussianCode) (acc : G
     rw [ih _ _ _ (GaussianCode.add_valid _ _ ha hm),GaussianCode.decode_add _ _ ha hm,
       GaussianCode.decode_mul _ _ hs hw,code_decode_getD,code_decode_getD]
 
+/-- Running concatenated cache programs agrees with running the first program and binding its
+result into the second. -/
 theorem cacheRun_append (sourceCount : ℕ) (p q : List CacheOp) (cs : List GaussianCode) :
     cacheRun sourceCount (p++q) cs=(cacheRun sourceCount p cs).bind (cacheRun sourceCount q) := by
   induction p generalizing cs with
@@ -176,6 +230,7 @@ theorem cacheRun_append (sourceCount : ℕ) (p q : List CacheOp) (cs : List Gaus
     simp only [List.cons_append,cacheRun]
     cases hs : op.step sourceCount cs <;> simp [ih]
 
+/-- A successful cache program preserves every entry of the initial cache. -/
 theorem cacheRun_preserves (sourceCount : ℕ) (p : List CacheOp) (cs cs' : List GaussianCode)
     (hr : cacheRun sourceCount p cs=some cs') (i : ℕ) (hi : i<cs.length) :
     cs'.getD i GaussianCode.zero=cs.getD i GaussianCode.zero := by
@@ -191,11 +246,15 @@ theorem cacheRun_preserves (sourceCount : ℕ) (p : List CacheOp) (cs cs' : List
       rw [ih _ ht (by simp; omega),List.getD_append cs _ _ i hi]
     · simp only [cacheRun,CacheOp.step,if_neg hv,Option.bind_none,reduceCtorEq] at hr
 
+/-- The cache obtained by appending a source entry, its weighted product, and the updated
+dot-product accumulator. -/
 def dotStepState (cs : List GaussianCode) (source weight acc : ℕ) : List GaussianCode :=
   let a := cs.getD source GaussianCode.zero
   let prod := a.mul (cs.getD weight GaussianCode.zero)
   cs++[a,prod,(cs.getD acc GaussianCode.zero).add prod]
 
+/-- Under the stated index bounds, one source-read, multiplication, and addition step produces
+`dotStepState`. -/
 theorem dotStep_run (sourceCount source weight acc : ℕ) (cs : List GaussianCode)
     (hs : source<sourceCount) (hsc : sourceCount ≤ cs.length)
     (hw : sourceCount ≤ weight) (hwb : weight<cs.length)
@@ -234,6 +293,8 @@ theorem dotStep_run (sourceCount source weight acc : ℕ) (cs : List GaussianCod
   rw [cacheRun,CacheOp.step,if_pos h2,Option.bind_some,hc]
   simp [cacheRun,c2,c1,dotStepState,a,prod,List.append_assoc]
 
+/-- Under the stated index bounds, the dot-product plan executes successfully and stores
+`dotSpec` at `dotOutput`. -/
 theorem dotPlan_run (sourceCount n source weight acc : ℕ) (cs : List GaussianCode)
     (hs : source+n ≤ sourceCount) (hw : sourceCount ≤ weight) (hwb : weight+n ≤ cs.length)
     (ha : sourceCount ≤ acc) (hab : acc<cs.length) :
@@ -266,6 +327,8 @@ theorem dotPlan_run (sourceCount n source weight acc : ℕ) (cs : List GaussianC
       rw [hacc]
       apply dotSpec_append <;> omega
 
+/-- The source entries copied by a successful dot-product plan occur at indices `cs.length + 3 *
+j` for `j < n`. -/
 theorem dotPlan_sources (sourceCount n source weight acc : ℕ) (cs cs' : List GaussianCode)
     (hs : source+n ≤ sourceCount) (hw : sourceCount ≤ weight) (hwb : weight+n ≤ cs.length)
     (ha : sourceCount ≤ acc) (hab : acc<cs.length)
@@ -300,17 +363,22 @@ theorem dotPlan_sources (sourceCount n source weight acc : ℕ) (cs cs' : List G
       congr 1
       omega
 
+/-- A cache program that conjugates every third cached source entry and multiplies it by a fixed
+dot-product value. -/
 def scalePlan : ℕ → ℕ → ℕ → ℕ → List CacheOp
   | 0,_,_,_ => []
   | n+1,base,sourceCache,dot => [.conjugate sourceCache,.multiply base dot]++
       scalePlan n (base+2) (sourceCache+3) dot
 
+/-- A scaling plan of length `n` contains exactly `2 * n` cache operations. -/
 theorem scalePlan_length (n base sourceCache dot : ℕ) :
     (scalePlan n base sourceCache dot).length=2*n := by
   induction n generalizing base sourceCache dot with
   | zero => rfl
   | succ n ih => simp [scalePlan,ih]; omega
 
+/-- The scaling plan is well formed when the source-cache range and dot-product index satisfy
+the stated bounds. -/
 theorem scalePlan_wf (sourceCount n base sourceCache dot : ℕ)
     (hs : sourceCount ≤ sourceCache) (hsb : sourceCache+3*n ≤ base)
     (hd : sourceCount ≤ dot) (hdb : dot<base) :
@@ -324,10 +392,14 @@ theorem scalePlan_wf (sourceCount n base sourceCache dot : ℕ)
     · constructor <;> constructor <;> omega
     · apply ih <;> omega
 
+/-- The cache obtained by appending a conjugated source entry and its product with the selected
+dot-product value. -/
 def scaleStepState (cs : List GaussianCode) (sourceCache dot : ℕ) : List GaussianCode :=
   let a := (cs.getD sourceCache GaussianCode.zero).conjugate
   cs++[a,a.mul (cs.getD dot GaussianCode.zero)]
 
+/-- Under the stated index bounds, one conjugation and multiplication step produces
+`scaleStepState`. -/
 theorem scaleStep_run (sourceCount sourceCache dot : ℕ) (cs : List GaussianCode)
     (hs : sourceCount ≤ sourceCache) (hsb : sourceCache<cs.length)
     (hd : sourceCount ≤ dot) (hdb : dot<cs.length) :
@@ -349,6 +421,8 @@ theorem scaleStep_run (sourceCount sourceCache dot : ℕ) (cs : List GaussianCod
   rw [cacheRun,CacheOp.step,if_pos h1,Option.bind_some,hm]
   simp [cacheRun,c1,scaleStepState,a,List.append_assoc]
 
+/-- Under the stated index bounds, the scaling plan executes successfully and stores each
+conjugate-scaled product at its specified output index. -/
 theorem scalePlan_run (sourceCount n sourceCache dot : ℕ) (cs : List GaussianCode)
     (hs : sourceCount ≤ sourceCache) (hsb : sourceCache+3*n ≤ cs.length)
     (hd : sourceCount ≤ dot) (hdb : dot<cs.length) :
@@ -387,6 +461,8 @@ theorem scalePlan_run (sourceCount n sourceCache dot : ℕ) (cs : List GaussianC
         congr 3
         omega
 
+/-- An accumulator index in the mutable cache region yields a dot-product output index in that
+region and below `base + 3 * n`. -/
 theorem dotOutput_bounds (sourceCount n base acc : ℕ)
     (ha : sourceCount ≤ acc) (hab : acc<base) :
     sourceCount ≤ dotOutput n base acc ∧ dotOutput n base acc<base+3*n := by
@@ -394,15 +470,20 @@ theorem dotOutput_bounds (sourceCount n base acc : ℕ)
   | zero => simpa [dotOutput] using! And.intro ha hab
   | succ n => simp [dotOutput]; omega
 
+/-- The row program formed by a dot-product plan, a copy of its output, and a conjugate-scaling
+plan. -/
 def rowPlan (n base source weight acc : ℕ) : List CacheOp :=
   dotPlan n base source weight acc++[.copy (dotOutput n base acc)]++
     scalePlan n (base+3*n+1) base (base+3*n)
 
+/-- A row plan of width `n` contains exactly `5 * n + 1` cache operations. -/
 theorem rowPlan_length (n base source weight acc : ℕ) :
     (rowPlan n base source weight acc).length=5*n+1 := by
   simp only [rowPlan,List.length_append,List.length_cons,List.length_nil,dotPlan_length,scalePlan_length]
   omega
 
+/-- Under the stated index bounds, a row plan executes successfully and stores both the
+dot-product accumulation and every conjugate-scaled source product at the specified indices. -/
 theorem rowPlan_run (sourceCount n source weight acc : ℕ) (cs : List GaussianCode)
     (hs : source+n ≤ sourceCount) (hw : sourceCount ≤ weight) (hwb : weight+n ≤ cs.length)
     (ha : sourceCount ≤ acc) (hab : acc<cs.length) :
@@ -448,6 +529,7 @@ theorem rowPlan_run (sourceCount n source weight acc : ℕ) (cs : List GaussianC
       exact dotPlan_sources sourceCount n source weight acc cs cd hs hw hwb ha hab hD j hj
     rw [hsrc,hdot]
 
+/-- A scaling plan performs no source reads. -/
 theorem scalePlan_source_reads (n base sourceCache dot : ℕ) :
     cacheSourceReads (scalePlan n base sourceCache dot)=0 := by
   induction n generalizing base sourceCache dot with
@@ -459,6 +541,7 @@ theorem scalePlan_source_reads (n base sourceCache dot : ℕ) :
     rw [hh]
     norm_num [CacheOp.sourceReads]
 
+/-- A scaling plan of length `n` performs exactly `n` cache multiplications. -/
 theorem scalePlan_multiplies (n base sourceCache dot : ℕ) :
     cacheMultiplies (scalePlan n base sourceCache dot)=n := by
   induction n generalizing base sourceCache dot with
@@ -471,6 +554,7 @@ theorem scalePlan_multiplies (n base sourceCache dot : ℕ) :
     norm_num [CacheOp.multiplies]
     omega
 
+/-- A scaling plan performs no cache additions. -/
 theorem scalePlan_adds (n base sourceCache dot : ℕ) :
     cacheAdds (scalePlan n base sourceCache dot)=0 := by
   induction n generalizing base sourceCache dot with
@@ -482,6 +566,7 @@ theorem scalePlan_adds (n base sourceCache dot : ℕ) :
     rw [hh]
     simp
 
+/-- A row plan of width `n` performs exactly `n` source reads. -/
 theorem rowPlan_source_reads (n base source weight acc : ℕ) :
     cacheSourceReads (rowPlan n base source weight acc)=n := by
   have hd := dotPlan_source_reads n base source weight acc
@@ -491,6 +576,7 @@ theorem rowPlan_source_reads (n base source weight acc : ℕ) :
   rw [hd,hs]
   norm_num [CacheOp.sourceReads]
 
+/-- A row plan of width `n` performs exactly `2 * n` cache multiplications. -/
 theorem rowPlan_multiplies (n base source weight acc : ℕ) :
     cacheMultiplies (rowPlan n base source weight acc)=2*n := by
   have hd := dotPlan_multiplies n base source weight acc
@@ -501,6 +587,7 @@ theorem rowPlan_multiplies (n base source weight acc : ℕ) :
   norm_num [CacheOp.multiplies]
   omega
 
+/-- A row plan of width `n` performs exactly `n` cache additions. -/
 theorem rowPlan_adds (n base source weight acc : ℕ) :
     cacheAdds (rowPlan n base source weight acc)=n := by
   have hd := dotPlan_adds n base source weight acc
@@ -510,30 +597,42 @@ theorem rowPlan_adds (n base source weight acc : ℕ) :
   rw [hd,hs]
   simp
 
+/-- Compiling a row plan of width `n` produces exactly `43 * n` natural-number multiplication
+instructions. -/
 theorem rowPlan_natural_multiplies (n base source weight acc : ℕ) :
     (compileCache (rowPlan n base source weight acc)).count .multiply=43*n := by
   rw [compileCache_natural_multiplies,rowPlan_adds,rowPlan_multiplies]
   omega
 
+/-- Compiling a row plan of width `n` produces exactly `28 * n` natural-number addition
+instructions. -/
 theorem rowPlan_natural_adds (n base source weight acc : ℕ) :
     (compileCache (rowPlan n base source weight acc)).count .add=28*n := by
   rw [compileCache_natural_adds,rowPlan_adds,rowPlan_multiplies]
   omega
 
+/-- The output index for the row's dot product when the choice is `none`, or its selected
+conjugate-scaled product when the choice is `some j`. -/
 def rowOutput (n base : ℕ) : Option ℕ → ℕ
   | none => base+3*n
   | some j => base+3*n+2+2*j
 
+/-- The encoded value selected from a row computation: its dot-product accumulation or a
+conjugate-scaled source product. -/
 def rowValue (n source weight acc : ℕ) (cs : List GaussianCode) : Option ℕ → GaussianCode
   | none => dotSpec n source weight cs (cs.getD acc GaussianCode.zero)
   | some j => (cs.getD (source+j) GaussianCode.zero).conjugate.mul
       (dotSpec n source weight cs (cs.getD acc GaussianCode.zero))
 
+/-- The Gaussian-rational value selected from a row computation: its dot-product accumulation or
+a conjugate-scaled source product. -/
 def rowRatValue (n source weight acc : ℕ) (cs : List GaussianRat) : Option ℕ → GaussianRat
   | none => dotRatSpec n source weight cs (cs.getD acc GaussianRat.zero)
   | some j => (cs.getD (source+j) GaussianRat.zero).conjugate.mul
       (dotRatSpec n source weight cs (cs.getD acc GaussianRat.zero))
 
+/-- A dot-product accumulation of valid Gaussian codes, starting from a valid accumulator, is
+valid. -/
 theorem dotSpec_valid (n source weight : ℕ) (cs : List GaussianCode) (acc : GaussianCode)
     (hcs : ∀ z∈cs,z.Valid) (ha : acc.Valid) : (dotSpec n source weight cs acc).Valid := by
   induction n generalizing source weight acc with
@@ -543,6 +642,8 @@ theorem dotSpec_valid (n source weight : ℕ) (cs : List GaussianCode) (acc : Ga
     exact GaussianCode.add_valid _ _ ha (GaussianCode.mul_valid _ _
       (code_getD_valid cs hcs source) (code_getD_valid cs hcs weight))
 
+/-- For valid cache entries, decoding a selected encoded row value gives the corresponding
+Gaussian-rational row value. -/
 theorem rowValue_decode (n source weight acc : ℕ) (cs : List GaussianCode) (choice : Option ℕ)
     (hcs : ∀ z∈cs,z.Valid) :
     (rowValue n source weight acc cs choice).decode=
@@ -558,6 +659,8 @@ theorem rowValue_decode (n source weight acc : ℕ) (cs : List GaussianCode) (ch
     rw [GaussianCode.decode_mul _ _ (GaussianCode.conjugate_valid _ (code_getD_valid cs hcs (source+j))) hd,
       GaussianCode.decode_conjugate,dotSpec_decode _ _ _ _ _ hcs ha,code_decode_getD,code_decode_getD]
 
+/-- Converting the Gaussian-rational dot-product specification to a complex number gives the
+initial accumulator plus the finite sum of source-weight products. -/
 theorem dotRatSpec_toComplex (n source weight : ℕ) (cs : List GaussianRat) (acc : GaussianRat) :
     (dotRatSpec n source weight cs acc).toComplex=acc.toComplex+
       ∑ j ∈ Finset.range n,(cs.getD (source+j) GaussianRat.zero).toComplex*
@@ -581,6 +684,8 @@ theorem dotRatSpec_toComplex (n source weight : ℕ) (cs : List GaussianRat) (ac
     congr 1
     exact add_comm _ _
 
+/-- The complex dot-product accumulation, optionally multiplied by the complex conjugate of a
+selected source entry. -/
 noncomputable def rowComplexValue (n source weight acc : ℕ) (cs : List GaussianRat) (choice : Option ℕ) : ℂ :=
   let dot := (cs.getD acc GaussianRat.zero).toComplex+
     ∑ j ∈ Finset.range n,(cs.getD (source+j) GaussianRat.zero).toComplex*
@@ -589,6 +694,8 @@ noncomputable def rowComplexValue (n source weight acc : ℕ) (cs : List Gaussia
   | none => dot
   | some j => star (cs.getD (source+j) GaussianRat.zero).toComplex*dot
 
+/-- Converting the selected Gaussian-rational row value to a complex number gives
+`rowComplexValue`. -/
 theorem rowRatValue_toComplex (n source weight acc : ℕ) (cs : List GaussianRat) (choice : Option ℕ) :
     (rowRatValue n source weight acc cs choice).toComplex=rowComplexValue n source weight acc cs choice := by
   cases choice with

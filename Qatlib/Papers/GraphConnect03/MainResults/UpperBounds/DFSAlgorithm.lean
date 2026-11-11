@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GraphConnect03.MainResults.Defs
 import Mathlib.Data.List.Basic
+
+/-!
+# A depth-first search state machine
+
+This module defines the state, transition, and bounded execution of depth-first search with a
+supplied neighbor selector satisfying `StepOk`. It proves invariant preservation and termination
+within `2 * n` steps, then characterizes the final visited set by root reachability and derives
+the undirected connectivity test. See [DurrMhallaLei2003].
+
+## Main statements
+
+* `run_halts`: A run of `2 * n` steps from the initial root state has empty stack when the
+  selector is valid at every state.
+* `mem_visited_iff_reach`: In an invariant state with empty stack, a vertex is visited exactly
+  when it is reachable from the root.
+* `visited_univ_iff_connected`: With a selector valid at every state, the `2 * n`-step run from
+  any root visits every vertex exactly when the undirected graph is connected.
+
+## References
+
+* [Durr et al., 2003][DurrMhallaLei2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +40,8 @@ namespace Qatlib.Papers.GraphConnect03.MainResults.UpperBounds
 
 open Qatlib.Papers.GraphConnect03.MainResults.Defs
 
+/-- A depth-first search state consisting of a finite visited set, an active vertex stack, and a
+finite set of recorded tree edges. -/
 structure DFSState (n : ℕ) where
 
   visited : Finset (Vertex n)
@@ -25,9 +50,13 @@ structure DFSState (n : ℕ) where
 
   tree : Finset (Vertex n × Vertex n)
 
+/-- The initial search state with only the root visited and on the stack, and with no tree
+edges. -/
 def initState {n : ℕ} (root : Vertex n) : DFSState n :=
   { visited := {root}, stack := [root], tree := ∅ }
 
+/-- On a nonempty stack, the selector either returns an unvisited outgoing neighbor of the top
+vertex or returns none only when all its outgoing neighbors are visited. -/
 def StepOk {n : ℕ} (G : Digraph n) (σ : DFSState n → Option (Vertex n))
     (st : DFSState n) : Prop :=
   match st.stack with
@@ -37,6 +66,8 @@ def StepOk {n : ℕ} (G : Digraph n) (σ : DFSState n → Option (Vertex n))
       | some v => G.adj u v = true ∧ v ∉ st.visited
       | none => ∀ v : Vertex n, G.adj u v = true → v ∈ st.visited
 
+/-- One search transition: push and mark a selected vertex while recording its edge, pop when no
+vertex is selected, or leave an empty-stack state unchanged. -/
 def dfsStep {n : ℕ} (σ : DFSState n → Option (Vertex n)) (st : DFSState n) :
     DFSState n :=
   match st.stack with
@@ -49,13 +80,18 @@ def dfsStep {n : ℕ} (σ : DFSState n → Option (Vertex n)) (st : DFSState n) 
             tree := insert (u, v) st.tree }
       | none => { visited := st.visited, stack := rest, tree := st.tree }
 
+/-- The state obtained by applying `dfsStep` the specified number of times. -/
 def dfsRun {n : ℕ} (σ : DFSState n → Option (Vertex n)) : ℕ → DFSState n → DFSState n
   | 0, st => st
   | k + 1, st => dfsRun σ k (dfsStep σ st)
 
+/-- The termination measure `2 * (n - visited.card) + stack.length`. -/
 def dfsMeasure {n : ℕ} (st : DFSState n) : ℕ :=
   2 * (n - st.visited.card) + st.stack.length
 
+/-- The search invariant asserting that the root and stack vertices are visited, visited
+vertices are root-reachable, recorded edges have visited endpoints and belong to the graph,
+and visited vertices outside the stack have no unvisited outgoing neighbor. -/
 structure DFSInv {n : ℕ} (G : Digraph n) (r : Vertex n) (st : DFSState n) : Prop where
 
   root_mem : r ∈ st.visited
@@ -74,6 +110,7 @@ namespace DFSInv
 
 variable {n : ℕ} {G : Digraph n} {r : Vertex n} {st : DFSState n}
 
+/-- The initial state satisfies the DFS invariant for its root. -/
 theorem init {n : ℕ} {G : Digraph n} (r : Vertex n) : DFSInv G r (initState r) := by
   refine ⟨by simp [initState], ?_, ?_, ?_, ?_, ?_⟩
   · intro u hu
@@ -96,40 +133,48 @@ theorem init {n : ℕ} {G : Digraph n} (r : Vertex n) : DFSInv G r (initState r)
 
 end DFSInv
 
+/-- A search step leaves a state with empty stack unchanged. -/
 theorem dfsStep_nil {n : ℕ} (σ : DFSState n → Option (Vertex n)) {st : DFSState n}
     (h : st.stack = []) : dfsStep σ st = st := by
   simp [dfsStep, h]
 
+/-- When the stack top is `u` and the selector returns `v`, a search step pushes `v` above `u`. -/
 theorem dfsStep_stack_cons {n : ℕ} (σ : DFSState n → Option (Vertex n))
     {st : DFSState n} {u : Vertex n} {rest : List (Vertex n)} (h : st.stack = u :: rest)
     {v : Vertex n} (hf : σ st = some v) :
     (dfsStep σ st).stack = v :: u :: rest := by
   simp [dfsStep, h, hf]
 
+/-- When the selector returns none on a nonempty stack, a search step removes the top vertex. -/
 theorem dfsStep_stack_pop {n : ℕ} (σ : DFSState n → Option (Vertex n))
     {st : DFSState n} {u : Vertex n} {rest : List (Vertex n)} (h : st.stack = u :: rest)
     (hf : σ st = none) :
     (dfsStep σ st).stack = rest := by
   simp [dfsStep, h, hf]
 
+/-- When the selector returns `v` on a nonempty stack, the next visited set is obtained by
+inserting `v`. -/
 theorem dfsStep_visited_push {n : ℕ} (σ : DFSState n → Option (Vertex n))
     {st : DFSState n} {u : Vertex n} {rest : List (Vertex n)} (h : st.stack = u :: rest)
     {v : Vertex n} (hf : σ st = some v) :
     (dfsStep σ st).visited = insert v st.visited := by
   simp [dfsStep, h, hf]
 
+/-- Popping the stack leaves the visited set unchanged. -/
 theorem dfsStep_visited_pop {n : ℕ} (σ : DFSState n → Option (Vertex n))
     {st : DFSState n} {u : Vertex n} {rest : List (Vertex n)} (h : st.stack = u :: rest)
     (hf : σ st = none) :
     (dfsStep σ st).visited = st.visited := by
   simp [dfsStep, h, hf]
 
+/-- Selecting `v` from stack top `u` inserts `(u, v)` into the recorded tree-edge set. -/
 theorem dfsStep_tree_push {n : ℕ} (σ : DFSState n → Option (Vertex n))
     {st : DFSState n} {u : Vertex n} {rest : List (Vertex n)} (h : st.stack = u :: rest)
     {v : Vertex n} (hf : σ st = some v) :
     (dfsStep σ st).tree = insert (u, v) st.tree := by
   simp [dfsStep, h, hf]
 
+/-- Popping the stack leaves the recorded tree-edge set unchanged. -/
 theorem dfsStep_tree_pop {n : ℕ} (σ : DFSState n → Option (Vertex n))
     {st : DFSState n} {u : Vertex n} {rest : List (Vertex n)} (h : st.stack = u :: rest)
     (hf : σ st = none) :
@@ -140,6 +185,8 @@ namespace DFSInv
 
 variable {n : ℕ} {G : Digraph n} {r : Vertex n} {st : DFSState n}
 
+/-- A selector satisfying `StepOk` at the current state preserves the DFS invariant for one
+search step [DurrMhallaLei2003]. -/
 theorem step {σ : DFSState n → Option (Vertex n)} (hσ : StepOk G σ st)
     (h : DFSInv G r st) : DFSInv G r (dfsStep σ st) := by
   rcases hs : st.stack with _ | ⟨u, rest⟩
@@ -235,6 +282,7 @@ theorem step {σ : DFSState n → Option (Vertex n)} (hσ : StepOk G σ st)
 
 end DFSInv
 
+/-- Every bounded search run leaves an empty-stack state unchanged. -/
 theorem dfsRun_eq_self_of_nil {n : ℕ} {σ : DFSState n → Option (Vertex n)}
     {st : DFSState n} (h : st.stack = []) : ∀ k : ℕ, dfsRun σ k st = st := by
   intro k
@@ -248,6 +296,8 @@ namespace DFSInv
 
 variable {n : ℕ} {G : Digraph n} {r : Vertex n} {st : DFSState n}
 
+/-- A valid selector step on a nonempty stack decreases `dfsMeasure` by one, with subtraction in
+`ℕ`. -/
 theorem measure_step {σ : DFSState n → Option (Vertex n)} (hσ : StepOk G σ st)
     (hne : st.stack ≠ []) : dfsMeasure (dfsStep σ st) = dfsMeasure st - 1 := by
   rcases hs : st.stack with _ | ⟨u, rest⟩
@@ -273,6 +323,8 @@ theorem measure_step {σ : DFSState n → Option (Vertex n)} (hσ : StepOk G σ 
         hs, List.length_cons, hcard]
       omega
 
+/-- If the selector satisfies `StepOk` at every state, every bounded run preserves the DFS
+invariant. -/
 theorem run {σ : DFSState n → Option (Vertex n)} (hσ : ∀ st, StepOk G σ st) :
     ∀ (k : ℕ) (st : DFSState n), DFSInv G r st → DFSInv G r (dfsRun σ k st) := by
   intro k
@@ -282,6 +334,8 @@ theorem run {σ : DFSState n → Option (Vertex n)} (hσ : ∀ st, StepOk G σ s
       intro st h
       exact ih (dfsStep σ st) (h.step (hσ st))
 
+/-- From a state satisfying the DFS invariant, a run of at least its termination measure has
+empty stack when the selector is valid at every state. -/
 theorem run_halts_aux {n : ℕ} {G : Digraph n} {r : Vertex n}
     {σ : DFSState n → Option (Vertex n)} (hσ : ∀ st, StepOk G σ st) :
     ∀ (k : ℕ) (st : DFSState n), DFSInv G r st → dfsMeasure st ≤ k →
@@ -307,6 +361,8 @@ theorem run_halts_aux {n : ℕ} {G : Digraph n} {r : Vertex n}
           DFSInv.measure_step (st := st) (hσ st) hs
         exact ih (dfsStep σ st) hstep (by omega)
 
+/-- A run of `2 * n` steps from the initial root state has empty stack when the selector is
+valid at every state [DurrMhallaLei2003]. -/
 theorem run_halts {σ : DFSState n → Option (Vertex n)} (hσ : ∀ st, StepOk G σ st)
     (root : Vertex n) :
     (dfsRun σ (2 * n) (initState root)).stack = [] := by
@@ -320,6 +376,8 @@ theorem run_halts {σ : DFSState n → Option (Vertex n)} (hσ : ∀ st, StepOk 
 
 end DFSInv
 
+/-- In an invariant state with empty stack, a vertex is visited exactly when it is reachable
+from the root [DurrMhallaLei2003]. -/
 theorem mem_visited_iff_reach {n : ℕ} {G : Digraph n} {r : Vertex n} {st : DFSState n}
     (hinv : DFSInv G r st) (hst : st.stack = []) (v : Vertex n) :
     v ∈ st.visited ↔ G.Reach r v := by
@@ -332,6 +390,8 @@ theorem mem_visited_iff_reach {n : ℕ} {G : Digraph n} {r : Vertex n} {st : DFS
     | tail _ hbc ih =>
         exact hinv.closed _ ih (by rw [hst]; simp) _ hbc
 
+/-- An undirected graph is connected if an invariant state has empty stack and every vertex
+visited [DurrMhallaLei2003]. -/
 theorem connected_of_all_marked {n : ℕ} {M : UndirectedMatrix n} {r : Vertex n}
     {st : DFSState n} (hinv : DFSInv M.toDigraph r st) (hst : st.stack = [])
     (hall : st.visited = Finset.univ) : M.Connected := by
@@ -342,12 +402,16 @@ theorem connected_of_all_marked {n : ℕ} {M : UndirectedMatrix n} {r : Vertex n
     (mem_visited_iff_reach hinv hst t).mp (by rw [hall]; simp)
   exact Digraph.Reach.trans (M.reach_symm hs) ht
 
+/-- An undirected graph is disconnected if an invariant state has empty stack and contains an
+unvisited vertex [DurrMhallaLei2003]. -/
 theorem not_connected_of_unmarked {n : ℕ} {M : UndirectedMatrix n} {r : Vertex n}
     {st : DFSState n} (hinv : DFSInv M.toDigraph r st) (hst : st.stack = [])
     {v : Vertex n} (hv : v ∉ st.visited) : ¬ M.Connected := by
   intro hc
   exact hv ((mem_visited_iff_reach hinv hst v).mpr (hc r v))
 
+/-- With a selector valid at every state, the `2 * n`-step run from any root visits every vertex
+exactly when the undirected graph is connected [DurrMhallaLei2003]. -/
 theorem visited_univ_iff_connected {n : ℕ} {M : UndirectedMatrix n}
     {σ : DFSState n → Option (Vertex n)} (hσ : ∀ st, StepOk M.toDigraph σ st)
     (root : Vertex n) :

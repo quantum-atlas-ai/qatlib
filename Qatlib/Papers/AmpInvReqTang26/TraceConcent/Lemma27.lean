@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AmpInvReqTang26.TraceConcent.Concentration
 import Qatlib.Papers.AmpInvReqTang26.RootLaws.Lemma23
+
+/-!
+# Normalized traces distinguish the phase ensembles
+
+Zero mean and a separated nonzero mean lead to distinct normalized-trace magnitude windows with
+probability at least `0.99`. The unbiased result is specialized to the actual root ensemble,
+while the biased statements retain explicit mean-window hypotheses. This development supports
+the treatment in [TangWright2025].
+
+## Main statements
+
+* `lemma27_ensemble0_abstract`: the zero-mean concentration window.
+* `lemma27_ensemble1_abstract`: the nonzero-mean concentration window.
+* `lemma27_ensemble0`: the actual unbiased trace bound.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -23,6 +43,8 @@ open Qatlib.Papers.AmpInvReqTang26.AccessModel
 open Qatlib.Papers.AmpInvReqTang26.RootLaws
 set_option warningAsError false
 
+/-- The mass of the complement of a decidable event under a finite probability law is one minus
+its mass. -/
 theorem eventMass_compl {X : Type} [Fintype X] (p : FinDist X) (E : X → Prop)
     [DecidablePred E] :
     eventMass p (fun x => ¬ E x) = 1 - eventMass p E := by
@@ -33,6 +55,7 @@ theorem eventMass_compl {X : Type} [Fintype X] (p : FinDist X) (E : X → Prop)
     exact p.sum_one
   linarith
 
+/-- The normalized phase sum equals its centered deviation plus its expected trace. -/
 theorem trace_eq_deviation_add_expected {d : ℕ} {X : Fin d → Type}
     [∀ i, Fintype (X i)] (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ)
     (ω : ∀ i, X i) :
@@ -43,6 +66,8 @@ theorem trace_eq_deviation_add_expected {d : ℕ} {X : Fin d → Type}
   congr 1
   exact Finset.sum_congr rfl (fun i _ => by ring)
 
+/-- For independent unit phases with zero expected trace, positive `ε`, and `d ≥ 48/(0.1 *
+ε)^2`, the normalized trace magnitude is below `0.1 * ε` with probability at least `0.99`. -/
 theorem lemma27_ensemble0_abstract {d : ℕ} (hd : 0 < d) {X : Fin d → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ)
@@ -72,6 +97,8 @@ theorem lemma27_ensemble0_abstract {d : ℕ} (hd : 0 < d) {X : Fin d → Type}
         hcompl
     _ ≥ 0.99 := by linarith
 
+/-- Under the stated unit-phase, mean-window, and dimension hypotheses, the normalized trace
+magnitude is at least `0.2 * ε` with probability at least `0.99`. -/
 theorem lemma27_ensemble1_abstract {d : ℕ} (hd : 0 < d) {X : Fin d → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ)
@@ -110,6 +137,7 @@ theorem lemma27_ensemble1_abstract {d : ℕ} (hd : 0 < d) {X : Fin d → Type}
         hcompl
     _ ≥ 0.99 := by linarith
 
+/-- The expected normalized trace of the uniform root ensemble is zero when `q > 1`. -/
 theorem expectedTrace_ensemble0 {d q : ℕ} (hq : 1 < q) :
     expectedTrace (fun _ : Fin d => mu0 q (by omega))
       (fun _ : Fin d => phase q) = 0 := by
@@ -120,6 +148,9 @@ theorem expectedTrace_ensemble0 {d q : ℕ} (hq : 1 < q) :
     exact cExpect_mu0_phase q hq
   rw [hsum, mul_zero]
 
+/-- For `q > 1`, positive `ε`, and `d ≥ 48/(0.1 * ε)^2`, the actual unbiased ensemble has
+normalized trace magnitude below `0.1 * ε` with probability at least `0.99` [Tang and
+Wright, Lemma 2.7][TangWright2025]. -/
 theorem lemma27_ensemble0 {d : ℕ} (hd : 0 < d) {q : ℕ} (hq : 1 < q)
     (ε : ℝ) (hε : 0 < ε) (hdC : 48 / (0.1 * ε) ^ 2 ≤ (d : ℝ)) :
     eventMass (ensemble0 d q (by omega))
@@ -130,6 +161,9 @@ theorem lemma27_ensemble0 {d : ℕ} (hd : 0 < d) {q : ℕ} (hq : 1 < q)
     (fun _ k => norm_phase q k) (expectedTrace_ensemble0 (d := d) hq) ε hε hdC
   simpa [ensemble0, normTrace] using! h
 
+/-- Independent unit phases whose expected normalized trace has norm strictly between `ε/2` and
+`ε` have trace magnitude at least `0.2 * ε` with probability at least `0.99`, under the
+stated dimension bound. -/
 theorem lemma27_ensemble1 {d : ℕ} (hd : 0 < d) {X : Fin d → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (phi : ∀ i, X i → ℂ)

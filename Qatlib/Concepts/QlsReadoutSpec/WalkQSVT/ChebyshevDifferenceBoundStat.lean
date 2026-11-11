@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
+
+/-!
+# Chebyshev difference-bound specification
+
+The proposition `Clause21ChebyshevDifferenceBound` states pointwise and supremum bounds for
+Chebyshev expansions on [-1/2, 1/2] in terms of `differenceNorm`. It distinguishes strict bounds
+for nonzero coefficient vectors from the identically zero case. Related mathematical background
+is given in [LowSu2026].
+
+## Main statements
+
+* `Clause21ChebyshevDifferenceBound`: The finite Chebyshev coefficient-difference estimate.
+
+## References
+
+* [Low and Su, 2026, Lemma 9][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -25,6 +43,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The assertion bounding a finite Chebyshev expansion on the half interval by `sqrt n` times
+its coefficient-difference norm, with strict supremum inequality for nonzero coefficients
+and vanishing quantities for zero coefficients. -/
 def Clause21ChebyshevDifferenceBound : Prop :=
   ∀ (n : ℕ) (c : Fin n → ℂ),
     (∀ x : ℝ, -1/2 ≤ x → x ≤ 1/2 →

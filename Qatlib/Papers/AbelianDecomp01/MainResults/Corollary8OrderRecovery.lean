@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicGcdDecoder
+
+/-!
+# Cyclic order recovery and decoder budgets
+
+This module formalizes the cyclic order-recovery setting associated with Corollary 8. The
+equality `source_corollary8_hidden_subgroup` identifies collisions of powers of an element of
+order `r` with equality of exponents in `ZMod r`.
+
+When `r` divides a positive sampling modulus `N`, `source_corollary8_cyclic_decoder_budget`
+packages the recovery success bound, circuit query and gate counts, and the counted GCD decoder
+bound.
+
+The mathematical background is discussed in [CheungMosca2001].
+
+## Main statements
+
+* `source_corollary8_hidden_subgroup`: characterizes power collisions by residues modulo the
+  order.
+* `source_corollary8_cyclic_decoder_budget`: packages success probability and resource bounds.
+
+## References
+
+* [Cheung and Mosca, 2001][CheungMosca2001]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,12 +41,18 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 namespace Qatlib.Papers.AbelianDecomp01.MainResults
 
+/-- For an element of order `r`, two natural powers are equal exactly when their exponents have
+equal images in `ZMod r`. See [Cheung and Mosca, Corollary 8][CheungMosca2001]. -/
 lemma source_corollary8_hidden_subgroup {G : Type*} [Group G] (a : G) {r : ℕ}
     (hr : orderOf a = r) (x y : ℕ) :
     a ^ x = a ^ y ↔ (x : ZMod r) = (y : ZMod r) := by
   rw [pow_eq_pow_iff_modEq, hr, ZMod.natCast_eq_natCast_iff']
   rfl
 
+/-- For positive `r ∣ N` equal to the order of `a`, and `m = Nat.log2 N + 1 + k`, package the
+power-collision characterization with recovery probability at least `1 - 2 ^ (-k)` within
+budget `m + 2`, query count `m + 2`, gate count `2 * m`, and counted GCD bound `m * (N +
+1)`. See [Cheung and Mosca, Corollary 8][CheungMosca2001]. -/
 theorem source_corollary8_cyclic_decoder_budget
     {G : Type*} [Group G] (a : G) {r N k : ℕ} [NeZero r]
     (hr : orderOf a = r) (hrpos : 0 < r) (hN : 0 < N) (hrdvd : r ∣ N) :

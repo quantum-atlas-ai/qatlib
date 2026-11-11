@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonGap
 import Mathlib.Analysis.Matrix.Spectrum
+
+/-!
+# Johnson spectrum and norm contraction
+
+This module analyzes the finite Johnson adjacency operator through containment indicators and
+products of shifted operators. It places every eigenvalue among the values `johnsonTheta n k j`,
+identifies the top eigenspace as constant functions, and derives the normalized contraction
+estimate needed in [Tani2009].
+
+## Main statements
+
+* `johnsonAnn_ind`: annihilation of containment indicators by shifted operators.
+* `johnsonEigenvalue_mem`: classification of eigenvalues of `johnsonAct`.
+* `johnsonNorm_contract'` and `johnsonChain_spectralGap`: squared-norm contraction and a gap
+  lower bound of `1/k` under the stated size assumptions.
+
+## References
+
+* [Tani, 2009][Tani2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +38,8 @@ open Qatlib.Concepts.WalkSearch.ProjectorCS
 open Qatlib.Concepts.WalkSearch.TwoLevelLower (IsTransitionMatrix)
 open scoped BigOperators
 
+/-- Replaces a specified element of a Johnson vertex by an element outside it, preserving its
+cardinality. -/
 def johnsonSwap {n k : ℕ} (S : JohnsonVertex n k) (i j : Fin n)
     (hi : i ∈ S.1) (hj : j ∉ S.1) : JohnsonVertex n k :=
   ⟨insert j (S.1.erase i), by
@@ -29,13 +52,18 @@ def johnsonSwap {n k : ℕ} (S : JohnsonVertex n k) (i j : Fin n)
       omega
     · rw [Finset.mem_erase]; exact fun h => hj h.2⟩
 
+/-- The unnormalized Johnson adjacency operator, summing over all single-element replacements of
+a vertex. -/
 def johnsonAct {n k : ℕ} (g : JohnsonVertex n k → ℝ) : JohnsonVertex n k → ℝ :=
   fun S => ∑ i ∈ S.1.attach, ∑ j ∈ (Finset.univ \ S.1).attach,
     g (johnsonSwap S i.1 j.1 i.2 (Finset.mem_sdiff.mp j.2).2)
 
+/-- The real indicator of the Johnson vertices containing a specified finite set. -/
 def johnsonInd {n k : ℕ} (T : Finset (Fin n)) : JohnsonVertex n k → ℝ :=
   fun S => if T ⊆ S.1 then 1 else 0
 
+/-- An element belongs to a swapped vertex exactly when it is the inserted element or an
+original element distinct from the removed one. -/
 theorem mem_swap_iff {n k : ℕ} (S : JohnsonVertex n k) {i j x : Fin n}
     (hi : i ∈ S.1) (hj : j ∉ S.1) :
     x ∈ (johnsonSwap S i j hi hj).1 ↔ x = j ∨ (x ∈ S.1 ∧ x ≠ i) := by
@@ -43,6 +71,8 @@ theorem mem_swap_iff {n k : ℕ} (S : JohnsonVertex n k) {i j x : Fin n}
   simp only [Finset.mem_insert, Finset.mem_erase]
   tauto
 
+/-- A finite set is contained in a swapped vertex exactly when it excludes the removed element
+and its elements outside the original vertex lie in the inserted singleton. -/
 theorem subset_swap_iff {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) {i j : Fin n}
     (hi : i ∈ S.1) (hj : j ∉ S.1) :
     T ⊆ (johnsonSwap S i j hi hj).1 ↔ i ∉ T ∧ T \ S.1 ⊆ {j} := by
@@ -74,9 +104,13 @@ theorem subset_swap_iff {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k)
       rw [Finset.mem_singleton] at h3
       exact hxj h3
 
+/-- Counts, as a real number, the elements outside a vertex whose singleton contains the part of
+`T` outside that vertex. -/
 def johnsonInner {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) : ℝ :=
   ∑ j ∈ (Finset.univ \ S.1), if T \ S.1 ⊆ {j} then (1 : ℝ) else 0
 
+/-- For `k ≤ n`, evaluates `johnsonInner T S` as `n-k`, one, or zero according as `T` has zero,
+one, or more elements outside `S`. -/
 theorem johnsonInner_eq {n k : ℕ} {T : Finset (Fin n)} {S : JohnsonVertex n k}
     (hk : k ≤ n) :
     johnsonInner T S
@@ -128,6 +162,8 @@ theorem johnsonInner_eq {n k : ℕ} {T : Finset (Fin n)} {S : JohnsonVertex n k}
         Finset.sum_congr rfl fun j hj => by rw [if_neg (hsub j hj)]
       rw [hcongr, Finset.sum_const_zero]
 
+/-- Expresses the Johnson adjacency action on a containment indicator using `johnsonInner` and
+the size of the intersection. -/
 theorem johnsonAct_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) :
     johnsonAct (johnsonInd T) S
       = ((k : ℝ) - ((S.1 ∩ T).card : ℝ)) * johnsonInner T S := by
@@ -175,11 +211,15 @@ theorem johnsonAct_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) 
         _ = k := S.2)]
   rw [hcard]
 
+/-- The unnormalized Johnson eigenvalue expression `(k-m)*(n-k-m)-m` for natural parameters. -/
 def johnsonTheta (n k m : ℕ) : ℝ := ((k : ℝ) - m) * ((n : ℝ) - k - m) - m
 
+/-- The Johnson adjacency operator shifted by the scalar `c` times the identity. -/
 def johnsonOp {n k : ℕ} (c : ℝ) (g : JohnsonVertex n k → ℝ) : JohnsonVertex n k → ℝ :=
   fun S => johnsonAct g S - c * g S
 
+/-- For `u ∈ T`, the set `T.erase u` is contained in `S` exactly when every element of `T`
+outside `S` equals `u`. -/
 theorem erase_subset_iff {n : ℕ} {T S : Finset (Fin n)} {u : Fin n} (hu : u ∈ T) :
     T.erase u ⊆ S ↔ T \ S ⊆ {u} := by
   constructor
@@ -196,6 +236,8 @@ theorem erase_subset_iff {n : ℕ} {T S : Finset (Fin n)} {u : Fin n} (hu : u �
     rw [Finset.mem_singleton] at hx1
     exact hxu hx1
 
+/-- Evaluates the containment indicator of `T.erase u` using whether `T` outside the vertex is
+contained in `{u}`. -/
 theorem johnsonInd_erase {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k)
     {u : Fin n} (hu : u ∈ T) :
     johnsonInd (T.erase u) S = if T \ S.1 ⊆ {u} then (1 : ℝ) else 0 := by
@@ -204,6 +246,8 @@ theorem johnsonInd_erase {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k
   · rw [if_pos h, if_pos ((erase_subset_iff hu).mp h)]
   · rw [if_neg h, if_neg (fun hc => h ((erase_subset_iff hu).mpr hc))]
 
+/-- Counts the single-element erasures of `T` contained in a vertex, according to the
+cardinality of `T` outside that vertex. -/
 theorem sum_ind_erase {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) :
     (∑ u ∈ T, johnsonInd (T.erase u) S)
       = if T \ S.1 = ∅ then ((T.card : ℕ) : ℝ)
@@ -251,6 +295,8 @@ theorem sum_ind_erase {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k) :
         Finset.sum_congr rfl fun u hu => by rw [if_neg (hsub u hu)]
       rw [hcongr2, Finset.sum_const_zero]
 
+/-- For `T.card ≤ k ≤ n`, the Johnson operator shifted by `johnsonTheta n k T.card` sends the
+containment indicator of `T` to `(k-T.card+1)` times the sum of its erasure indicators. -/
 theorem johnsonOp_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k)
     (hk : k ≤ n) (hT : T.card ≤ k) :
     johnsonOp (johnsonTheta n k T.card) (johnsonInd T) S
@@ -297,18 +343,21 @@ theorem johnsonOp_ind {n k : ℕ} (T : Finset (Fin n)) (S : JohnsonVertex n k)
       rw [if_neg hne, if_neg h1, hin, hind]
       ring
 
+/-- The Johnson adjacency operator preserves pointwise addition. -/
 theorem johnsonAct_add {n k : ℕ} (g h : JohnsonVertex n k → ℝ) :
     johnsonAct (fun S => g S + h S) = fun S => johnsonAct g S + johnsonAct h S := by
   funext S
   unfold johnsonAct
   simp only [Finset.sum_add_distrib]
 
+/-- The Johnson adjacency operator commutes with real scalar multiplication. -/
 theorem johnsonAct_smul {n k : ℕ} (a : ℝ) (g : JohnsonVertex n k → ℝ) :
     johnsonAct (fun S => a * g S) = fun S => a * johnsonAct g S := by
   funext S
   unfold johnsonAct
   simp only [Finset.mul_sum]
 
+/-- The shifted Johnson operator preserves pointwise addition. -/
 theorem johnsonOp_add {n k : ℕ} (c : ℝ) (g h : JohnsonVertex n k → ℝ) :
     johnsonOp c (fun S => g S + h S)
       = fun S => johnsonOp c g S + johnsonOp c h S := by
@@ -317,6 +366,7 @@ theorem johnsonOp_add {n k : ℕ} (c : ℝ) (g h : JohnsonVertex n k → ℝ) :
   rw [johnsonAct_add]
   ring
 
+/-- The shifted Johnson operator commutes with real scalar multiplication. -/
 theorem johnsonOp_smul {n k : ℕ} (c a : ℝ) (g : JohnsonVertex n k → ℝ) :
     johnsonOp c (fun S => a * g S) = fun S => a * johnsonOp c g S := by
   funext S
@@ -324,19 +374,24 @@ theorem johnsonOp_smul {n k : ℕ} (c a : ℝ) (g : JohnsonVertex n k → ℝ) :
   rw [johnsonAct_smul]
   ring
 
+/-- The shifted Johnson operator sends the zero function to zero. -/
 theorem johnsonOp_zero {n k : ℕ} (c : ℝ) :
     johnsonOp (n := n) (k := k) c (fun _ => (0 : ℝ)) = fun _ => (0 : ℝ) := by
   funext S
   unfold johnsonOp
   simp [johnsonAct]
 
+/-- The composite of the shifted Johnson operators with shifts `johnsonTheta n k j` for indices
+from zero through `m`. -/
 def johnsonAnn {n k : ℕ} : ℕ → (JohnsonVertex n k → ℝ) → (JohnsonVertex n k → ℝ)
   | 0, g => johnsonOp (johnsonTheta n k 0) g
   | (m+1), g => johnsonAnn m (johnsonOp (johnsonTheta n k (m+1)) g)
 
+/-- Unfolds the last shifted-operator factor in `johnsonAnn (m+1)`. -/
 theorem johnsonAnn_succ {n k : ℕ} (m : ℕ) (g : JohnsonVertex n k → ℝ) :
     johnsonAnn (m+1) g = johnsonAnn m (johnsonOp (johnsonTheta n k (m+1)) g) := rfl
 
+/-- Every Johnson annihilator operator preserves pointwise addition. -/
 theorem johnsonAnn_add {n k : ℕ} :
     ∀ (m : ℕ) (g h : JohnsonVertex n k → ℝ),
       johnsonAnn m (fun S => g S + h S)
@@ -346,6 +401,7 @@ theorem johnsonAnn_add {n k : ℕ} :
       rw [johnsonAnn_succ, johnsonAnn_succ, johnsonAnn_succ, johnsonOp_add]
       exact johnsonAnn_add m _ _
 
+/-- Every Johnson annihilator operator commutes with real scalar multiplication. -/
 theorem johnsonAnn_smul {n k : ℕ} :
     ∀ (m : ℕ) (a : ℝ) (g : JohnsonVertex n k → ℝ),
       johnsonAnn m (fun S => a * g S) = fun S => a * johnsonAnn m g S
@@ -354,6 +410,7 @@ theorem johnsonAnn_smul {n k : ℕ} :
       rw [johnsonAnn_succ, johnsonAnn_succ, johnsonOp_smul]
       exact johnsonAnn_smul m a _
 
+/-- Every Johnson annihilator operator sends the zero function to zero. -/
 theorem johnsonAnn_zero {n k : ℕ} :
     ∀ (m : ℕ), johnsonAnn (n := n) (k := k) m (fun _ => (0 : ℝ)) = fun _ => (0 : ℝ)
   | 0 => johnsonOp_zero _
@@ -361,6 +418,7 @@ theorem johnsonAnn_zero {n k : ℕ} :
       rw [johnsonAnn_succ, johnsonOp_zero]
       exact johnsonAnn_zero m
 
+/-- The Johnson annihilator operator commutes with finite sums of functions. -/
 theorem johnsonAnn_sum {n k : ℕ} {ι : Type*} (s : Finset ι) (m : ℕ)
     (f : ι → JohnsonVertex n k → ℝ) :
     johnsonAnn m (fun S => ∑ a ∈ s, f a S)
@@ -380,6 +438,8 @@ theorem johnsonAnn_sum {n k : ℕ} {ι : Type*} (s : Finset ι) (m : ℕ)
         funext S; rw [Finset.sum_insert ha]
       rw [hterm, hterm2, johnsonAnn_add, ih]
 
+/-- For `T.card ≤ m ≤ k ≤ n`, the operator `johnsonAnn m` annihilates the containment indicator
+of `T`. -/
 theorem johnsonAnn_ind {n k : ℕ} (hk : k ≤ n) :
     ∀ (m : ℕ) (T : Finset (Fin n)), T.card ≤ m → m ≤ k →
       johnsonAnn (n := n) (k := k) m (johnsonInd (n := n) (k := k) T) = fun _ => (0 : ℝ) := by
@@ -434,6 +494,8 @@ theorem johnsonAnn_ind {n k : ℕ} (hk : k ≤ n) :
         funext S
         simp
 
+/-- The elements of the original vertex absent from a swapped vertex form exactly the singleton
+of the removed element. -/
 theorem swap_sdiff_left {n k : ℕ} (S : JohnsonVertex n k) {i j : Fin n}
     (hi : i ∈ S.1) (hj : j ∉ S.1) :
     S.1 \ (johnsonSwap S i j hi hj).1 = {i} := by
@@ -449,6 +511,8 @@ theorem swap_sdiff_left {n k : ℕ} (S : JohnsonVertex n k) {i j : Fin n}
     · exact hj (h ▸ hi)
     · exact hxi rfl
 
+/-- The elements of a swapped vertex absent from the original vertex form exactly the singleton
+of the inserted element. -/
 theorem swap_sdiff_right {n k : ℕ} (S : JohnsonVertex n k) {i j : Fin n}
     (hi : i ∈ S.1) (hj : j ∉ S.1) :
     (johnsonSwap S i j hi hj).1 \ S.1 = {j} := by
@@ -462,6 +526,8 @@ theorem swap_sdiff_right {n k : ℕ} (S : JohnsonVertex n k) {i j : Fin n}
   · rintro rfl
     exact ⟨Or.inl rfl, hj⟩
 
+/-- Vertices whose two set differences are specified singletons are related by the corresponding
+single-element swap. -/
 theorem swap_of_sdiff_eq {n k : ℕ} (S S' : JohnsonVertex n k) {x y : Fin n}
     (hxS : x ∈ S.1) (hyS : y ∉ S.1)
     (hx : S.1 \ S'.1 = {x}) (hy : S'.1 \ S.1 = {y}) :
@@ -491,6 +557,8 @@ theorem swap_of_sdiff_eq {n k : ℕ} (S S' : JohnsonVertex n k) {x y : Fin n}
       rw [hy, Finset.mem_singleton] at hmem
       exact Or.inl hmem
 
+/-- Expresses the Johnson adjacency action as a sum over all vertices weighted by the adjacency
+indicator. -/
 theorem johnsonAct_eq_adj_sum {n k : ℕ} (g : JohnsonVertex n k → ℝ) (S : JohnsonVertex n k) :
     johnsonAct g S
       = ∑ S' : JohnsonVertex n k, (if (S.1 \ S'.1).card = 1 then (1 : ℝ) else 0) * g S' := by
@@ -553,6 +621,7 @@ theorem johnsonAct_eq_adj_sum {n k : ℕ} (g : JohnsonVertex n k → ℝ) (S : J
   · rw [if_pos h, if_pos h]; ring
   · rw [if_neg h, if_neg h]; ring
 
+/-- The Johnson adjacency operator is self-adjoint for the finite real dot product. -/
 theorem johnsonAct_inner_symm {n k : ℕ} (v w : JohnsonVertex n k → ℝ) :
     (∑ S, johnsonAct v S * w S) = ∑ S, v S * johnsonAct w S := by
   classical
@@ -584,6 +653,8 @@ theorem johnsonAct_inner_symm {n k : ℕ} (v w : JohnsonVertex n k → ℝ) :
       rw [if_neg h, if_neg hpq]
   rw [hs]
 
+/-- Pairing a Johnson annihilator applied to `g` with an eigenvector multiplies the original
+pairing by the product of the corresponding shifted eigenvalues. -/
 theorem johnsonAnn_pairing {n k : ℕ} (v : JohnsonVertex n k → ℝ) (lam : ℝ)
     (hv : johnsonAct v = fun S => lam * v S) :
     ∀ (m : ℕ) (g : JohnsonVertex n k → ℝ),
@@ -627,6 +698,8 @@ theorem johnsonAnn_pairing {n k : ℕ} (v : JohnsonVertex n k → ℝ) (lam : �
       rw [Finset.prod_range_succ (f := fun j => lam - johnsonTheta n k j) (n := m+1)]
       ring
 
+/-- Every real eigenvalue of the Johnson adjacency action with a nonzero eigenvector equals
+`johnsonTheta n k j` for some `j ≤ k`, when `k ≤ n`. -/
 theorem johnsonEigenvalue_mem {n k : ℕ} (hk : k ≤ n) (v : JohnsonVertex n k → ℝ)
     (lam : ℝ) (hv : johnsonAct v = fun S => lam * v S) (hv0 : v ≠ 0) :
     ∃ j ∈ Finset.range (k+1), lam = johnsonTheta n k j := by
@@ -661,24 +734,31 @@ theorem johnsonEigenvalue_mem {n k : ℕ} (hk : k ≤ n) (v : JohnsonVertex n k 
   obtain ⟨j, hj, hzero⟩ := Finset.prod_eq_zero_iff.mp hprod0
   exact ⟨j, hj, sub_eq_zero.mp hzero⟩
 
+/-- The real adjacency indicator of a Johnson vertex, equal to one on its neighbors and zero
+elsewhere. -/
 def johnsonW {n k : ℕ} (S : JohnsonVertex n k) : JohnsonVertex n k → ℝ :=
   fun T => if (S.1 \ T.1).card = 1 then (1 : ℝ) else 0
 
+/-- Expresses the Johnson adjacency action using the weights `johnsonW`. -/
 theorem johnsonAct_adjW {n k : ℕ} (g : JohnsonVertex n k → ℝ) (S : JohnsonVertex n k) :
     johnsonAct g S = ∑ T, johnsonW S T * g T := by
   rw [johnsonAct_eq_adj_sum]
   simp only [johnsonW]
 
+/-- The existence of a Johnson vertex implies `k ≤ n`. -/
 theorem johnsonCard_le {n k : ℕ} (S : JohnsonVertex n k) : k ≤ n := by
   have h := Finset.card_le_univ S.1
   rw [S.2, Fintype.card_fin] at h
   exact h
 
+/-- The unnormalized Johnson eigenvalue expression at index zero is `k*(n-k)`. -/
 theorem johnsonTheta_zero_eq {n k : ℕ} :
     johnsonTheta n k 0 = (k : ℝ) * ((n : ℝ) - k) := by
   unfold johnsonTheta
   norm_num
 
+/-- Applying the Johnson adjacency operator to the constant function one gives the degree
+`k*(n-k)`. -/
 theorem johnsonAct_one {n k : ℕ} (S : JohnsonVertex n k) :
     johnsonAct (fun _ => (1 : ℝ)) S = (k : ℝ) * ((n : ℝ) - k) := by
   have h : (fun _ : JohnsonVertex n k => (1 : ℝ)) = johnsonInd (∅ : Finset (Fin n)) := by
@@ -692,6 +772,7 @@ theorem johnsonAct_one {n k : ℕ} (S : JohnsonVertex n k) :
   rw [h1, h2, Nat.cast_sub (johnsonCard_le S)]
   ring
 
+/-- The sum of the adjacency weights at any Johnson vertex equals `k*(n-k)`. -/
 theorem johnsonadj_deg {n k : ℕ} (S : JohnsonVertex n k) :
     (∑ T : JohnsonVertex n k, johnsonW S T) = (k : ℝ) * ((n : ℝ) - k) := by
   have h := johnsonAct_adjW (n := n) (k := k) (fun _ => (1 : ℝ)) S
@@ -699,6 +780,8 @@ theorem johnsonadj_deg {n k : ℕ} (S : JohnsonVertex n k) :
   rw [johnsonAct_one S] at h
   exact h.symm
 
+/-- When the removed element lies outside `A`, the part of `A` absent from the swapped vertex is
+obtained by removing the inserted element from `A` outside the original vertex. -/
 theorem swap_sdiff_in {n k : ℕ} (A T : JohnsonVertex n k) {x y : Fin n}
     (hx : x ∈ T.1) (hy : y ∉ T.1) (hxA : x ∉ A.1) :
     A.1 \ (johnsonSwap T x y hx hy).1 = (A.1 \ T.1) \ {y} := by
@@ -720,6 +803,8 @@ theorem swap_sdiff_in {n k : ℕ} (A T : JohnsonVertex n k) {x y : Fin n}
     · exact hzy hzy'
     · exact hzT h
 
+/-- When the inserted element belongs to `A`, the part of the swapped vertex outside `A` is
+obtained by removing the deleted element from the original vertex outside `A`. -/
 theorem swap_sdiff_out {n k : ℕ} (T A : JohnsonVertex n k) {x y : Fin n}
     (hx : x ∈ T.1) (hy : y ∉ T.1) (hyA : y ∈ A.1) :
     (johnsonSwap T x y hx hy).1 \ A.1 = (T.1 \ A.1) \ {x} := by
@@ -742,6 +827,8 @@ theorem swap_sdiff_out {n k : ℕ} (T A : JohnsonVertex n k) {x y : Fin n}
     refine ⟨?_, hzA⟩
     exact Or.inr ⟨hzT, hzx⟩
 
+/-- A top-eigenvalue eigenfunction takes the same value at a global maximum and any adjacent
+vertex, assuming `k ≤ n`. -/
 theorem johnson_eq_of_max_adj {n k : ℕ} (hk : k ≤ n)
     (g : JohnsonVertex n k → ℝ)
     (hg : ∀ S, johnsonAct g S = johnsonTheta n k 0 * g S)
@@ -785,6 +872,8 @@ theorem johnson_eq_of_max_adj {n k : ℕ} (hk : k ≤ n)
   rw [hwS', one_mul] at hterm
   exact (sub_eq_zero.mp hterm).symm
 
+/-- For `k ≤ n`, every eigenfunction of the Johnson adjacency operator with eigenvalue
+`johnsonTheta n k 0` is constant. -/
 theorem johnson_const_of_eigen {n k : ℕ} (hk : k ≤ n) (g : JohnsonVertex n k → ℝ)
     (hg : ∀ S, johnsonAct g S = johnsonTheta n k 0 * g S) :
     ∃ c : ℝ, g = fun _ => c := by
@@ -845,12 +934,14 @@ theorem johnson_const_of_eigen {n k : ℕ} (hk : k ≤ n) (g : JohnsonVertex n k
           rw [johnson_eq_of_max_adj hk g hg hUT hmaxU, hU]
   exact key (S0.1 \ T.1).card T (le_refl _)
 
+/-- The difference between `johnsonTheta n k 0` and `johnsonTheta n k m` is `m*(n+1-m)`. -/
 theorem johnsonTheta_sub_zero {n k m : ℕ} :
     johnsonTheta n k 0 - johnsonTheta n k m
       = (m : ℝ) * ((n : ℝ) + 1 - m) := by
   unfold johnsonTheta
   ring
 
+/-- For `1 ≤ m ≤ k ≤ n`, the value `johnsonTheta n k m` is strictly below `johnsonTheta n k 0`. -/
 theorem johnsonTheta_pos_gap {n k m : ℕ} (hm : 1 ≤ m) (hmk : m ≤ k) (hk : k ≤ n) :
     johnsonTheta n k m < johnsonTheta n k 0 := by
   have hsub := johnsonTheta_sub_zero (n := n) (k := k) (m := m)
@@ -861,6 +952,8 @@ theorem johnsonTheta_pos_gap {n k m : ℕ} (hm : 1 ≤ m) (hmk : m ≤ k) (hk : 
   have hpos : (0 : ℝ) < (m : ℝ) * ((n : ℝ) + 1 - m) := mul_pos h1 h2
   linarith [hsub]
 
+/-- For `1 ≤ m ≤ k`, `k ≥ 2`, and `2*k ≤ n`, bounds the absolute unnormalized eigenvalue
+expression by `(k-1)*(n-k)`. -/
 theorem johnsonTheta_abs_le {n k m : ℕ} (hm : 1 ≤ m) (hmk : m ≤ k)
     (hk2 : 2 ≤ k) (hkn : 2 * k ≤ n) :
     |johnsonTheta n k m| ≤ ((k : ℝ) - 1) * ((n : ℝ) - k) := by
@@ -906,9 +999,11 @@ theorem johnsonTheta_abs_le {n k m : ℕ} (hm : 1 ≤ m) (hmk : m ≤ k)
       nlinarith
     linarith
 
+/-- The real adjacency matrix of the Johnson graph. -/
 def johnsonMat (n k : ℕ) : Matrix (JohnsonVertex n k) (JohnsonVertex n k) ℝ :=
   fun S T => johnsonW S T
 
+/-- The Johnson adjacency weights are symmetric. -/
 theorem johnsonW_symm {n k : ℕ} (S T : JohnsonVertex n k) :
     johnsonW S T = johnsonW T S := by
   unfold johnsonW
@@ -917,17 +1012,21 @@ theorem johnsonW_symm {n k : ℕ} (S T : JohnsonVertex n k) :
     rw [Finset.inter_comm (s₁ := S.1) (s₂ := T.1)]
   rw [h]
 
+/-- The real Johnson adjacency matrix is Hermitian. -/
 theorem johnsonMat_herm (n k : ℕ) : (johnsonMat n k).IsHermitian := by
   ext S T
   rw [Matrix.conjTranspose_apply]
   exact johnsonW_symm T S
 
+/-- Multiplication by the Johnson adjacency matrix agrees with `johnsonAct`. -/
 theorem johnsonMat_mulVec {n k : ℕ} (v : JohnsonVertex n k → ℝ) :
     (johnsonMat n k).mulVec v = johnsonAct v := by
   funext S
   rw [johnsonAct_adjW]
   rfl
 
+/-- The Hermitian eigenvector basis of the Johnson adjacency matrix satisfies the eigenvector
+equation for `johnsonAct`. -/
 theorem johnson_eigen_bridge {n k : ℕ} (j : JohnsonVertex n k) :
     johnsonAct ((johnsonMat_herm n k).eigenvectorBasis j).ofLp
       = fun S => (johnsonMat_herm n k).eigenvalues j
@@ -937,6 +1036,8 @@ theorem johnson_eigen_bridge {n k : ℕ} (j : JohnsonVertex n k) :
   rw [johnsonMat_mulVec] at h
   simpa using h
 
+/-- For `k ≤ n`, every eigenvalue in the Hermitian spectral decomposition equals `johnsonTheta n
+k i` for some `i ≤ k`. -/
 theorem johnson_eigenvalue_mem' {n k : ℕ} (hk : k ≤ n) (j : JohnsonVertex n k) :
     ∃ i ∈ Finset.range (k + 1),
       (johnsonMat_herm n k).eigenvalues j = johnsonTheta n k i := by
@@ -952,6 +1053,7 @@ theorem johnson_eigenvalue_mem' {n k : ℕ} (hk : k ≤ n) (j : JohnsonVertex n 
     simp at hone
   exact johnsonEigenvalue_mem hk _ _ hbridge hne
 
+/-- For `k ≤ n`, a spectral-basis eigenvector with eigenvalue `johnsonTheta n k 0` is constant. -/
 theorem johnson_eigen_const {n k : ℕ} (hk : k ≤ n) (j : JohnsonVertex n k)
     (h0 : (johnsonMat_herm n k).eigenvalues j = johnsonTheta n k 0) :
     ∃ c : ℝ, ((johnsonMat_herm n k).eigenvectorBasis j).ofLp = fun _ => c := by
@@ -960,6 +1062,8 @@ theorem johnson_eigen_const {n k : ℕ} (hk : k ≤ n) (j : JohnsonVertex n k)
   rw [h0] at hb
   exact congrFun hb S
 
+/-- Applying `johnsonAct` multiplies each coefficient in the Hermitian eigenvector basis by its
+associated eigenvalue. -/
 theorem johnson_coeff {n k : ℕ} (x : JohnsonVertex n k → ℝ) (i : JohnsonVertex n k) :
     inner ℝ ((johnsonMat_herm n k).eigenvectorBasis i)
         (WithLp.toLp 2 (johnsonAct x))
@@ -1020,6 +1124,8 @@ theorem johnson_coeff {n k : ℕ} (x : JohnsonVertex n k → ℝ) (i : JohnsonVe
   intro T _
   ring
 
+/-- For `k ≥ 2` and `2*k ≤ n`, the Johnson adjacency operator contracts the squared norm of
+vectors whose entries sum to zero by at most `((k-1)*(n-k))^2`. -/
 theorem johnson_contract {n k : ℕ} (hk2 : 2 ≤ k) (hkn : 2 * k ≤ n)
     (x : JohnsonVertex n k → ℝ) (hx : ∑ S, x S = 0) :
     (∑ S, (∑ T, johnsonW S T * x T)^2)
@@ -1104,14 +1210,17 @@ theorem johnson_contract {n k : ℕ} (hk2 : 2 ≤ k) (hkn : 2 * k ≤ n)
   rw [← hnormX, ← hnormY]
   exact hmain
 
+/-- The Johnson adjacency matrix divided by the degree `k*(n-k)`. -/
 def johnsonNorm (n k : ℕ) : Matrix (JohnsonVertex n k) (JohnsonVertex n k) ℝ :=
   fun S T => johnsonW S T / ((k : ℝ) * ((n : ℝ) - k))
 
+/-- The normalized Johnson matrix is symmetric. -/
 theorem johnsonNorm_symm {n k : ℕ} (S T : JohnsonVertex n k) :
     johnsonNorm n k S T = johnsonNorm n k T S := by
   unfold johnsonNorm
   rw [johnsonW_symm S T]
 
+/-- For `k ≤ n`, the normalized Johnson matrix has nonnegative entries. -/
 theorem johnsonNorm_nonneg {n k : ℕ} (hk : k ≤ n) (S T : JohnsonVertex n k) :
     0 ≤ johnsonNorm n k S T := by
   unfold johnsonNorm
@@ -1125,6 +1234,7 @@ theorem johnsonNorm_nonneg {n k : ℕ} (hk : k ≤ n) (S T : JohnsonVertex n k) 
   unfold johnsonW
   split_ifs <;> norm_num
 
+/-- For `0 < k < n`, each row of the normalized Johnson matrix sums to one. -/
 theorem johnsonNorm_rowsum {n k : ℕ} (hk1 : 0 < k) (hkn : k < n) (S : JohnsonVertex n k) :
     (∑ T, johnsonNorm n k S T) = 1 := by
   unfold johnsonNorm
@@ -1137,6 +1247,8 @@ theorem johnsonNorm_rowsum {n k : ℕ} (hk1 : 0 < k) (hkn : k < n) (S : JohnsonV
     exact ne_of_gt (mul_pos h1 h2)
   exact div_self hne
 
+/-- Expresses multiplication by the normalized Johnson matrix as adjacency action divided by
+`k*(n-k)`. -/
 theorem johnsonNorm_mulVec {n k : ℕ} (x : JohnsonVertex n k → ℝ) (S : JohnsonVertex n k) :
     (johnsonNorm n k).mulVec x S
       = (∑ T, johnsonW S T * x T) / ((k : ℝ) * ((n : ℝ) - k)) := by
@@ -1149,6 +1261,8 @@ theorem johnsonNorm_mulVec {n k : ℕ} (x : JohnsonVertex n k → ℝ) (S : John
     ring]
   rw [← Finset.sum_div]
 
+/-- For `k ≥ 2` and `2*k ≤ n`, the normalized Johnson matrix contracts squared norms on vectors
+whose entries sum to zero by at most `((k-1)/k)^2`. -/
 theorem johnsonNorm_contract {n k : ℕ} (hk2 : 2 ≤ k) (hkn : 2 * k ≤ n)
     (x : JohnsonVertex n k → ℝ) (hx : ∑ S, x S = 0) :
     (∑ S, (∑ T, johnsonNorm n k S T * x T)^2)
@@ -1197,6 +1311,8 @@ theorem johnsonNorm_contract {n k : ℕ} (hk2 : 2 ≤ k) (hkn : 2 * k ≤ n)
     _ = (((k : ℝ) - 1) / (k : ℝ))^2 * (∑ S, (x S)^2) := by
         rw [← mul_assoc, hkey]
 
+/-- For `k ≥ 2` and `2*k ≤ n`, expresses the normalized Johnson contraction bound with factor
+`(1-1/k)^2`. -/
 theorem johnsonNorm_contract' {n k : ℕ} (hk2 : 2 ≤ k) (hkn : 2 * k ≤ n)
     (x : JohnsonVertex n k → ℝ) (hx : ∑ S, x S = 0) :
     (∑ S, (∑ T, johnsonNorm n k S T * x T)^2)
@@ -1209,6 +1325,7 @@ theorem johnsonNorm_contract' {n k : ℕ} (hk2 : 2 ≤ k) (hkn : 2 * k ≤ n)
   rw [heq]
   exact h
 
+/-- The Johnson-chain matrix equals the normalized Johnson adjacency matrix; see [Tani2009]. -/
 theorem johnsonChain_eq_johnsonNorm {n k : ℕ} :
     johnsonChain n k = johnsonNorm n k := by
   funext a b
@@ -1216,6 +1333,8 @@ theorem johnsonChain_eq_johnsonNorm {n k : ℕ} :
   · simp [johnsonChain, johnsonNorm, johnsonW, johnsonAdj, h, one_div]
   · simp [johnsonChain, johnsonNorm, johnsonW, johnsonAdj, h]
 
+/-- For `k ≥ 2` and `2*k ≤ n`, the Johnson chain satisfies `SpectralGapAtLeast` with parameter
+`1/k`, providing the gap estimate used in [Tani2009]. -/
 theorem johnsonChain_spectralGap {n k : ℕ} (hk2 : 2 ≤ k) (hkn : 2 * k ≤ n) :
     SpectralGapAtLeast (johnsonChain n k) (1 / (k : ℝ)) := by
   have hkn' : k ≤ n := by omega

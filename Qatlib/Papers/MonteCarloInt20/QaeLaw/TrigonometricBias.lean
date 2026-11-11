@@ -86,6 +86,28 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Exact trigonometric QAE bias
+
+`innerQAEBias` is the finite sine-quotient sum for the sine-squared QAE readout bias. A finite
+cotangent identity yields its exact closed form, including resonant phases where the
+quotient-weighted bias vanishes.
+
+`inner_qae_error_bound` proves the stated `1/M` plus quadratic-remainder estimate for the
+Appendix A bias analysis. `innerQAELeading` separately records the displayed candidate leading
+expression. See [KanekoEtAl2020].
+
+## Main statements
+
+* `cot_sum_eq`: the shifted finite cotangent sum.
+* `innerQAEBias_closed`: the exact bias formula.
+* `inner_qae_error_bound`: the asymptotic error estimate.
+
+## References
+
+* [Kaneko et al., 2020][KanekoEtAl2020]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -93,18 +115,24 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.MonteCarloInt20.QaeLaw.TrigonometricBias
 
+/-- The squared-sine quotient kernel at an estimated phase, with division interpreted in the
+real numbers. -/
 def qaeQuotient (θtilde θ : ℝ) (M : ℕ) : ℝ :=
   Real.sin ((M : ℝ) * (θtilde - θ) * Real.pi) ^ 2 /
     ((M : ℝ) ^ 2 * Real.sin ((θtilde - θ) * Real.pi) ^ 2)
 
+/-- The finite quotient-weighted bias of the sine-squared QAE readout relative to the ideal
+amplitude. -/
 def innerQAEBias (θ : ℝ) (M : ℕ) : ℝ :=
   ∑ k ∈ Finset.range M,
     qaeQuotient ((k : ℝ) / (M : ℝ)) θ M *
       (Real.sin (((k : ℝ) / (M : ℝ)) * Real.pi) ^ 2 - Real.sin (θ * Real.pi) ^ 2)
 
+/-- The expression `sin (M*θ*π)^2*cos (2*θ*π)/M` used as a candidate leading bias term. -/
 def innerQAELeading (θ M : ℝ) : ℝ :=
   Real.sin (M * θ * Real.pi) ^ 2 * Real.cos (2 * θ * Real.pi) / M
 
+/-- For positive real `M`, the absolute candidate leading term is at most `1/M`. -/
 theorem inner_leading_bound (θ M : ℝ) (hM : 0 < M) :
     |innerQAELeading θ M| ≤ 1 / M := by
   unfold innerQAELeading
@@ -119,6 +147,8 @@ theorem inner_leading_bound (θ M : ℝ) (hM : 0 < M) :
     _ ≤ 1 * 1 := mul_le_mul hsin hcos (abs_nonneg _) (by norm_num)
     _ = 1 := by norm_num
 
+/-- The difference of two squared sines equals the product of their sum-angle and
+difference-angle sines. -/
 lemma sin_sq_sub_sin_sq (a b : ℝ) :
     Real.sin a ^ 2 - Real.sin b ^ 2 = Real.sin (a + b) * Real.sin (a - b) := by
   rw [Real.sin_sq_eq_half_sub, Real.sin_sq_eq_half_sub]
@@ -131,6 +161,7 @@ lemma sin_sq_sub_sin_sq (a b : ℝ) :
     ring
   linarith
 
+/-- Subtracting an angle from a natural multiple of `π` preserves its squared sine. -/
 lemma sin_sq_nat_mul_pi_sub (x : ℝ) (k : ℕ) :
     Real.sin ((k:ℝ) * Real.pi - x) ^ 2 = Real.sin x ^ 2 := by
   rw [Real.sin_nat_mul_pi_sub]
@@ -140,6 +171,8 @@ lemma sin_sq_nat_mul_pi_sub (x : ℝ) (k : ℕ) :
   calc (-((-1:ℝ)^k * Real.sin x))^2 = ((-1:ℝ)^k)^2 * Real.sin x^2 := by ring
     _ = Real.sin x^2 := by rw [h, one_mul]
 
+/-- At a Fourier grid point, the quotient kernel has the displayed common numerator and shifted
+sine denominator. -/
 lemma qaeQuotient_grid (θ : ℝ) (M : ℕ) (hM : 0 < M) (k : ℕ) :
     qaeQuotient ((k:ℝ)/(M:ℝ)) θ M =
       Real.sin ((M:ℝ)*θ*Real.pi)^2 /
@@ -152,6 +185,7 @@ lemma qaeQuotient_grid (θ : ℝ) (M : ℕ) (hM : 0 < M) (k : ℕ) :
     field_simp
   rw [hnum, hden, sin_sq_nat_mul_pi_sub]
 
+/-- If `sin (M*θ*π)` is nonzero, every shifted grid sine denominator is nonzero. -/
 lemma sin_y_ne_zero (θ : ℝ) (M : ℕ) (hM : 0 < M) (k : ℕ)
     (h : Real.sin ((M:ℝ)*θ*Real.pi) ≠ 0) :
     Real.sin (Real.pi * ((k:ℝ) - (M:ℝ)*θ) / (M:ℝ)) ≠ 0 := by
@@ -168,6 +202,8 @@ lemma sin_y_ne_zero (θ : ℝ) (M : ℕ) (hM : 0 < M) (k : ℕ)
   rw [h5]
   exact Real.sin_int_mul_pi _
 
+/-- For a nonresonant phase, a quotient-weighted bias summand equals the displayed sine-ratio
+expression. -/
 lemma term_eq (θ : ℝ) (M : ℕ) (hM : 0 < M) (k : ℕ)
     (h : Real.sin ((M:ℝ)*θ*Real.pi) ≠ 0) :
     qaeQuotient ((k:ℝ)/(M:ℝ)) θ M *
@@ -194,6 +230,7 @@ lemma term_eq (θ : ℝ) (M : ℕ) (hM : 0 < M) (k : ℕ)
   have hM' : (M:ℝ) ≠ 0 := by exact_mod_cast hM.ne'
   field_simp [hyne, hM']
 
+/-- The quotient-weighted bias vanishes when `sin (M*θ*π)` is zero and `M` is positive. -/
 lemma bias_eq_zero_of_sin (θ : ℝ) (M : ℕ) (hM : 0 < M)
     (h : Real.sin ((M:ℝ)*θ*Real.pi) = 0) :
     innerQAEBias θ M = 0 := by
@@ -206,6 +243,7 @@ lemma bias_eq_zero_of_sin (θ : ℝ) (M : ℕ) (hM : 0 < M)
     rw [h1, Real.sin_nat_mul_pi_sub, h, mul_zero, neg_zero]
   simp [qaeQuotient, hnum]
 
+/-- A nonzero `sin (π*φ)` ensures that the corresponding negative complex phase is not one. -/
 lemma exp_neg_two_pi_I_phi_ne_one (φ : ℝ) (h : Real.sin (Real.pi*φ) ≠ 0) :
     Complex.exp (2 * Complex.I * (-(Real.pi * φ))) ≠ 1 := by
   intro h1
@@ -230,6 +268,8 @@ lemma exp_neg_two_pi_I_phi_ne_one (φ : ℝ) (h : Real.sin (Real.pi*φ) ≠ 0) :
   rw [h5]
   exact Real.sin_int_mul_pi (-n)
 
+/-- The `M`th power of the shifted grid exponential equals the common negative phase for
+positive `M`. -/
 lemma exp_pow_eq_neg_exp (φ : ℝ) (M : ℕ) (hM : 0 < M) (k : ℕ) :
     (Complex.exp (2 * Complex.I * ((Real.pi:ℂ) * ((k:ℝ) - φ) / (M:ℝ)))) ^ M
       = Complex.exp (2 * Complex.I * (-(Real.pi * φ))) := by
@@ -242,6 +282,7 @@ lemma exp_pow_eq_neg_exp (φ : ℝ) (M : ℕ) (hM : 0 < M) (k : ℕ) :
     ring
   rw [harg, Complex.exp_add, Complex.exp_nat_mul_two_pi_mul_I, mul_one]
 
+/-- Powers of the shifted grid exponential factor into a phase offset and a root-of-unity power. -/
 lemma z_pow_eq (φ : ℝ) (M : ℕ) (hM : 0 < M) (k j : ℕ) :
     (Complex.exp (2 * Complex.I * ((Real.pi:ℂ) * ((k:ℝ) - φ) / (M:ℝ)))) ^ j
       = Complex.exp (-(2 * Real.pi * Complex.I * (j:ℂ) * (φ:ℂ) / (M:ℂ))) *
@@ -253,6 +294,7 @@ lemma z_pow_eq (φ : ℝ) (M : ℕ) (hM : 0 < M) (k j : ℕ) :
   field_simp
   ring
 
+/-- For positive `M` and nonzero `sin (π*φ)`, the shifted cotangent sum equals `-M*cot (π*φ)`. -/
 lemma cot_sum_eq (φ : ℝ) (M : ℕ) (hM : 0 < M) (h : Real.sin (Real.pi*φ) ≠ 0) :
     ∑ k ∈ Finset.range M, Real.cot (Real.pi * ((k:ℝ) - φ) / (M:ℝ))
       = -(M:ℝ) * Real.cot (Real.pi*φ) := by
@@ -378,6 +420,7 @@ lemma cot_sum_eq (φ : ℝ) (M : ℕ) (hM : 0 < M) (h : Real.sin (Real.pi*φ) �
     _ = (M:ℂ) * (-Complex.cot (Real.pi * φ)) := by rw [hexp_cot, hcot_odd]
     _ = (((-(M:ℝ) * Real.cot (Real.pi * φ)) : ℝ) : ℂ) := by push_cast; ring
 
+/-- For positive `M`, the finite bias equals `sin (M*θ*π)*sin ((M-2)*θ*π)/M`. -/
 lemma innerQAEBias_closed (θ : ℝ) (M : ℕ) (hM : 0 < M) :
     innerQAEBias θ M =
       Real.sin ((M:ℝ)*θ*Real.pi) * Real.sin (((M:ℝ) - 2)*θ*Real.pi) / (M:ℝ) := by
@@ -426,6 +469,8 @@ lemma innerQAEBias_closed (θ : ℝ) (M : ℕ) (hM : 0 < M) :
     field_simp [hsin_ne, hM']
     ring
 
+/-- For every phase there is a nonnegative constant `C` such that the bias is bounded by
+`1/M+C/M^2` for every positive natural `M`. -/
 theorem inner_qae_error_bound (θ : ℝ) :
     ∃ C : ℝ, 0 ≤ C ∧ ∀ M : ℕ, 1 ≤ M →
       |innerQAEBias θ M| ≤ 1 / (M : ℝ) + C / (M : ℝ) ^ 2 := by

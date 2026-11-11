@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.MomentRates
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhBudget
+
+/-!
+# Bounds for actual sinh quadrature moments
+
+This module bounds the actual Jacobian-weighted sinh quadrature moments associated with
+[AftabAnTrivisa2026]. Cell estimates compare noncentral samples with continuous moments and
+retain the explicit central contribution in `corrected_moments`.
+
+Positive moment order removes the central term, while a bounded sinh scale controls it for all
+nonnegative orders. The resulting estimates also apply to budget-selected rules.
+
+## Main statements
+
+* `corrected_moments`: the three-regime bound with an explicit central term.
+* `capped_scale_rates`: asymptotic moment rates for bounded sinh scale.
+* `kernel_corrected_moments`: budget accuracy together with the corrected moment bound.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -18,6 +40,8 @@ open Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhMoments
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Moments
 open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 
+/-- For nonnegative `η`, `t`, and `h ≤ 1`, the right-endpoint sinh Jacobian times `h` is at most
+`exp 1` times the physical cell length. -/
 theorem jacobian_cell {η h t : ℝ} (hη : 0 ≤ η) (hh : 0 ≤ h) (hh1 : h ≤ 1) (ht : 0 ≤ t) :
     h * η * Real.cosh (t + h) ≤ Real.exp 1 * (η * Real.sinh (t + h) - η * Real.sinh t) := by
   have hsh : 0 ≤ Real.sinh h := Real.sinh_nonneg_iff.mpr hh
@@ -37,6 +61,8 @@ theorem jacobian_cell {η h t : ℝ} (hη : 0 ≤ η) (hh : 0 ≤ h) (hh1 : h �
   have hs := mul_le_mul_of_nonneg_right he (mul_nonneg (mul_nonneg hh hη) hct)
   nlinarith
 
+/-- For `0 ≤ a ≤ b` and nonnegative `ν`, the cell length times `b^ν` is at most `ν + 1` times
+the integral of `x^ν` over the cell. -/
 theorem power_cell {a b ν : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) (hν : 0 ≤ ν) :
     (b - a) * b ^ ν ≤ (ν + 1) * ∫ x in a..b, x ^ ν := by
   have hb : 0 ≤ b := ha.trans hab
@@ -49,6 +75,8 @@ theorem power_cell {a b ν : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) (hν : 0 ≤ ν
     Real.rpow_add_of_nonneg ha hν (by norm_num : (0 : ℝ) ≤ 1), Real.rpow_one, Real.rpow_one]
   nlinarith
 
+/-- For a continuous nonnegative decreasing density, the weighted right-endpoint cell sample is
+bounded by `ν + 1` times the corresponding weighted cell integral. -/
 theorem weighted_cell (f : ℝ → ℝ) (hf : Continuous f) (hn : ∀ x, 0 ≤ f x)
     (hm : AntitoneOn f (Ici 0)) {a b ν : ℝ} (ha : 0 ≤ a) (hab : a ≤ b) (hν : 0 ≤ ν) :
     (b - a) * b ^ ν * f b ≤ (ν + 1) * ∫ x in a..b, f x * |x| ^ ν := by
@@ -67,6 +95,9 @@ theorem weighted_cell (f : ℝ → ℝ) (hf : Continuous f) (hn : ∀ x, 0 ≤ f
     nlinarith [mul_le_mul_of_nonneg_left hfb (Real.rpow_nonneg hx0 ν)]
   nlinarith [mul_le_mul_of_nonneg_left hi (by linarith : 0 ≤ ν + 1)]
 
+/-- For a continuous nonnegative even density decreasing on the positive half-line, the finite
+sinh moment is bounded by its central sample plus `2 * exp 1 * (ν + 1)` times its
+positive-half-line weighted integral. -/
 theorem finite_sinh_moment (f : ℝ → ℝ) (hf : Continuous f) (hn : ∀ x, 0 ≤ f x)
     (hm : AntitoneOn f (Ici 0)) (heven : ∀ x, f (-x) = f x) {ν η h : ℝ}
     (hν : 0 ≤ ν) (hη : 0 ≤ η) (hh : 0 ≤ h) (hh1 : h ≤ 1)
@@ -127,6 +158,7 @@ theorem finite_sinh_moment (f : ℝ → ℝ) (hf : Continuous f) (hn : ∀ x, 0 
   dsimp only [w] at *
   nlinarith
 
+/-- For positive `b`, the real-axis coefficient norm is continuous. -/
 theorem norm_coefficient_continuous (n : ℕ) (b c d : ℝ) (hb : 0 < b) :
     Continuous (fun x : ℝ => ‖coefficient n b c d (x : ℂ)‖) := by
   apply continuous_iff_continuousAt.mpr
@@ -135,11 +167,13 @@ theorem norm_coefficient_continuous (n : ℕ) (b c d : ℝ) (hb : 0 < b) :
     (x : ℂ) (by simp)).continuousAt
   exact (hc.comp (by fun_prop)).norm
 
+/-- The capped Gaussian density is continuous for every real exponent and scale. -/
 theorem capped_continuous (β c : ℝ) : Continuous (cappedDensity β c) := by
   have hp : Continuous (fun x : ℝ => (max 1 |x|) ^ β) :=
     (continuous_const.max continuous_abs).rpow_const (fun _ => Or.inl (by positivity))
   exact hp.mul (by fun_prop)
 
+/-- For positive Gaussian scale, the capped density is integrable for every real exponent. -/
 theorem capped_integrable (β : ℝ) {c : ℝ} (hc : 0 < c) : Integrable (cappedDensity β c) := by
   by_cases hβ : β ≤ 0
   · exact cappedDensity_integrable hβ hc
@@ -152,6 +186,8 @@ theorem capped_integrable (β : ℝ) {c : ℝ} (hc : 0 < c) : Integrable (capped
     rw [Real.norm_eq_abs, abs_of_nonneg (cappedDensity_nonneg β c x)]
     exact cappedDensity_positive_majorant hpeak hc x
 
+/-- For positive `b` and `c` and nonnegative moment order, the weighted real-axis coefficient
+norm is integrable. -/
 theorem weighted_integrable (n : ℕ) (b c d ν : ℝ) (hb : 0 < b) (hc : 0 < c) (hν : 0 ≤ ν) :
     Integrable (fun x : ℝ => ‖coefficient n b c d (x : ℂ)‖ * |x| ^ ν) := by
   have hw : Continuous (fun x : ℝ => ‖coefficient n b c d (x : ℂ)‖ * |x| ^ ν) :=
@@ -163,6 +199,8 @@ theorem weighted_integrable (n : ℕ) (b c d ν : ℝ) (hb : 0 < b) (hc : 0 < c)
   rw [Real.norm_eq_abs, abs_of_nonneg (by positivity : 0 ≤ ‖coefficient n b c d (x : ℂ)‖ * |x| ^ ν)]
   exact weighted_norm_majorant n b c d ν x hb hν
 
+/-- The positive-half-line capped-density integral is bounded by a fixed positive constant times
+`momentGrowth` for all positive Gaussian scales. -/
 theorem capped_half_three_regimes (n : ℕ) (ν : ℝ) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c →
       (∫ x in Ioi 0, cappedDensity (ν - (n + 1 : ℕ)) c x) ≤ C * momentGrowth n ν c := by
@@ -217,6 +255,9 @@ theorem capped_half_three_regimes (n : ℕ) (ν : ℝ) :
         change (∫ x in Ioi 0, cappedDensity β c x) ≤ _
         simpa only [momentGrowth, if_neg hn, if_neg he, hex] using! hbound
 
+/-- For positive `b` and nonnegative moment order, twice the continuous positive-half-line
+coefficient moment is bounded by `kernelScale * C * momentGrowth` with a fixed positive
+constant. -/
 theorem continuous_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ d : ℝ,
       2 * (∫ x in Ioi (0 : ℝ), ‖coefficient n b c d (x : ℂ)‖ * |x| ^ ν) ≤
@@ -242,6 +283,8 @@ theorem continuous_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) 
 
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp
 
+/-- For nonnegative sinh scale and mesh step, the finite sinh moment equals the explicit
+Jacobian-weighted sum of real-axis coefficient norms. -/
 theorem moment_eq_samples (n : ℕ) (b c d ν η h : ℝ) (N : ℕ) (hη : 0 ≤ η) (hh : 0 ≤ h) :
     SinhMoments.moment n b c d ν η h N =
       ∑ q ∈ Finset.Icc (-(N : ℤ)) N,
@@ -252,6 +295,8 @@ theorem moment_eq_samples (n : ℕ) (b c d ν η h : ℝ) (N : ℕ) (hη : 0 ≤
   intro q _
   rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (by positivity)]
 
+/-- The actual finite sinh moment is bounded by the explicit central contribution plus the
+continuous positive-half-line moment multiplied by `2 * exp 1 * (ν + 1)`. -/
 theorem actual_to_continuous (n : ℕ) (b c d ν η h : ℝ) (N : ℕ) (hb : 0 < b)
     (hc : 0 < c) (hν : 0 ≤ ν) (hη : 0 ≤ η) (hh : 0 ≤ h) (hh1 : h ≤ 1) :
     SinhMoments.moment n b c d ν η h N ≤
@@ -265,6 +310,8 @@ theorem actual_to_continuous (n : ℕ) (b c d ν η h : ℝ) (N : ℕ) (hb : 0 <
     hν hη hh hh1 (weighted_integrable n b c d ν hb hc hν).integrableOn N
   simpa only [Complex.ofReal_zero, norm_coefficient_zero n b c d hb] using! hm
 
+/-- Finite sinh moments satisfy a uniform three-regime bound after adding the explicit central
+contribution `h * η / bⁿ * 0^ν` inside the kernel prefactor. -/
 theorem corrected_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ d η h : ℝ, 0 ≤ η → 0 ≤ h → h ≤ 1 → ∀ N : ℕ,
       SinhMoments.moment n b c d ν η h N ≤ kernelScale n b c d *
@@ -283,6 +330,8 @@ theorem corrected_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) :
       _root_.add_le_add le_rfl hi
     _ = _ := by ring
 
+/-- For positive moment order, finite sinh moments satisfy the uniform `kernelScale * C *
+momentGrowth` bound without a central contribution; see [AftabAnTrivisa2026]. -/
 theorem positive_order_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 < ν) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ d η h : ℝ, 0 ≤ η → 0 ≤ h → h ≤ 1 → ∀ N : ℕ,
       SinhMoments.moment n b c d ν η h N ≤ kernelScale n b c d * C * momentGrowth n ν c := by
@@ -290,6 +339,7 @@ theorem positive_order_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 < ν
   refine ⟨C, hC, fun c hc d η h hη hh hh1 N => ?_⟩
   simpa only [Real.zero_rpow hν.ne', mul_zero, zero_add, mul_assoc] using! hm c hc d η h hη hh hh1 N
 
+/-- The growth factor `momentGrowth` is at least one for nonnegative Gaussian scale. -/
 theorem growth_ge_one (n : ℕ) (ν : ℝ) {c : ℝ} (hc : 0 ≤ c) : 1 ≤ momentGrowth n ν c := by
   unfold momentGrowth
   split_ifs
@@ -299,6 +349,8 @@ theorem growth_ge_one (n : ℕ) (ν : ℝ) {c : ℝ} (hc : 0 ≤ c) : 1 ≤ mome
   · have hp : 0 ≤ c ^ (ν - n) := Real.rpow_nonneg hc _
     linarith
 
+/-- A fixed nonnegative upper bound on the sinh scale gives a uniform `kernelScale * C *
+momentGrowth` bound for all nonnegative moment orders and mesh steps in `[0, 1]`. -/
 theorem capped_scale_moments (n : ℕ) (b ν E : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) (hE : 0 ≤ E) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ d η h : ℝ, 0 ≤ η → η ≤ E → 0 ≤ h → h ≤ 1 → ∀ N : ℕ,
       SinhMoments.moment n b c d ν η h N ≤ kernelScale n b c d * C * momentGrowth n ν c := by
@@ -324,12 +376,17 @@ theorem capped_scale_moments (n : ℕ) (b ν E : ℝ) (hb : 0 < b) (hν : 0 ≤ 
       mul_le_mul_of_nonneg_left (_root_.add_le_add hcg le_rfl) hks
     _ = _ := by ring
 
+/-- The scale restriction `0 ≤ η ≤ min 1 b` gives a uniform three-regime bound for finite sinh
+moments of every nonnegative order; see [AftabAnTrivisa2026]. -/
 theorem canonical_scale_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ d η h : ℝ,
       0 ≤ η → η ≤ min 1 b → 0 ≤ h → h ≤ 1 → ∀ N : ℕ,
         SinhMoments.moment n b c d ν η h N ≤ kernelScale n b c d * C * momentGrowth n ν c :=
   capped_scale_moments n b ν (min 1 b) hb hν (le_min (by norm_num) hb.le)
 
+/-- For an eventually bounded nonnegative sinh scale and mesh step in `[0, 1]`, finite sinh
+moments are `O(kernelScale * MomentRates.rate)` as the Gaussian scale tends to infinity; see
+[AftabAnTrivisa2026]. -/
 theorem capped_scale_rates (n : ℕ) (b ν E : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) (hE : 0 ≤ E)
     (d η h : ℝ → ℝ) (N : ℝ → ℕ)
     (ha : ∀ᶠ c : ℝ in atTop, 0 ≤ η c ∧ η c ≤ E ∧ 0 ≤ h c ∧ h c ≤ 1) :
@@ -363,6 +420,9 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 local instance : ContinuousENorm (Matrix ι ι ℂ) :=
   SeminormedAddGroup.toESeminormedAddMonoid.toContinuousENorm
 
+/-- The budget-selected sinh rule has positive step, error within the sum of the budgets, and
+the corrected moment bound including its central contribution under the stated
+analytic-width hypotheses. -/
 theorem kernel_corrected_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ d η β : ℝ,
       0 < η → 0 < β → β < Real.pi / 4 → ∀ T : ℝ, 0 ≤ T →

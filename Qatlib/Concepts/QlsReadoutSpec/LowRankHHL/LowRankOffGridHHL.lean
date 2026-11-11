@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.PseudoInverse
+
+/-!
+# Off-grid HHL for singular systems
+
+This module controls the full workspace error of uniform HHL when eigenvalues are zero or
+separated from zero. It identifies the successful branch with a scaled pseudoinverse solution
+and derives postselection, access-noise, and retry bounds, including deterministic timeout at
+zero least-squares overlap. Related mathematical background is given in
+[HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `uniform_hhl_exact_zero_mode`: Zero eigenmodes have no successful branch.
+* `low_rank_uniform_hhl_actual_ls_output`: Success probability and conditional least-squares
+  output bounds.
+* `low_rank_uniform_hhl_computed_budget_and_retry`: Explicit grid parameters and retry resource
+  bounds.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -38,23 +61,31 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- The finite set of workspace indices whose HHL success flag is true. -/
 noncomputable def flagSuccessSet (D M : ℕ) : Finset (Fin M × (Bool × (Bool × Fin D))) :=
   Finset.univ.filter (fun p => p.2.2.1 = true)
 
+/-- The accuracy parameter `min 1 (min (d * theta / 2) ((1/2)^k))` for low-rank HHL. -/
 noncomputable def lowRankAccuracy (d theta : ℝ) (k : ℕ) : ℝ :=
   min 1 (min (d*theta/2) ((1/2:ℝ)^k))
 
+/-- The phase-estimation grid size obtained by rounding the low-rank accuracy budget upward and
+taking the maximum with two. -/
 noncomputable def lowRankGrid (d theta : ℝ) (k : ℕ) : ℕ :=
   max 2 ⌈4096/(d^2*(lowRankAccuracy d theta k)^4)⌉₊
 
+/-- At zero phase, the QPE kernel is exactly the computational basis state at grid index zero. -/
 theorem lowRank_qpeKernel_zero (M : ℕ) (hM : 0 < M) (y : Fin M) :
     qpeKernel M 0 y = Ket (⟨0,hM⟩ : Fin M) y := by
   simpa using! (offgrid_phase_geometric_and_periodic M 0 y hM).2.2 (⟨0,hM⟩ : Fin M)
 
+/-- The uniform HHL rotation at eigenvalue zero is the identity matrix. -/
 theorem lowRank_rotation_zero (d : ℝ) : uniformHHLRotation d 0 = (1 : Matrix Bool Bool ℂ) := by
   ext b c
   cases b <;> cases c <;> simp [uniformHHLRotation, uniformHHLGamma]
 
+/-- Forward grid phase estimation fixes a zero-eigenvalue eigenvector with phase register zero
+and flag false. -/
 theorem lowRank_zero_forward {D M : ℕ} (hM : 0 < M) (eig : Fin D → ℝ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (i : Fin D) (hi : eig i=0) :
     Run 1 (gridHHLQPEBlock (M := M) (continuousHHLOracle eig V))
@@ -70,6 +101,7 @@ theorem lowRank_zero_forward {D M : ℕ} (hM : 0 < M) (eig : Fin D → ℝ) (V :
   simp only [gridHHLWorkspaceState_apply, TensorState]
   ring
 
+/-- The HHL flag operator fixes a state with phase register zero and flag false. -/
 theorem lowRank_zero_flag {D M : ℕ} (hM : 0 < M) (d : ℝ) (v : QState (Fin D)) :
     uniformHHLFlag (D := D) (M := M) d *ᵥ
       TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) v) =
@@ -83,6 +115,8 @@ theorem lowRank_zero_flag {D M : ℕ} (hM : 0 < M) (d : ℝ) (v : QState (Fin D)
     simp [uniformHHLDecode, lowRank_rotation_zero, TensorState, Ket]
   · simp [TensorState, Ket, hy]
 
+/-- Uniform HHL leaves a zero eigenmode in the all-false ancillary branch and gives it success
+probability zero. -/
 theorem uniform_hhl_exact_zero_mode : ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V : Operator D)
     (i : Fin D) (d : ℝ), V ∈ Matrix.unitaryGroup (Fin D) ℂ → 0 < d → eig i = 0 →
   uniformHHLRun M hM (continuousHHLOracle eig V) d V i =
@@ -133,6 +167,8 @@ theorem uniform_hhl_exact_zero_mode : ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin 
     have hf : p.2.2.1=true := (Finset.mem_filter.mp hp).2
     simp [TensorState, Ket, hf]
 
+/-- The QPE-weighted squared rotation error is at most `eta^2` for a zero or spectrally
+separated eigenvalue under the stated grid budget. -/
 theorem lowRank_spectral_window_error (M : ℕ) (lam d eta : ℝ) (hM : 2 ≤ M)
     (hd : 0 < d) (heta : 0 < eta) (heta1 : eta ≤ 1)
     (heig : lam=0 ∨ (d ≤ |lam| ∧ |lam| ≤ 1/4))
@@ -158,6 +194,8 @@ theorem lowRank_spectral_window_error (M : ℕ) (lam d eta : ℝ) (hM : 2 ≤ M)
     positivity
   · exact uniformHHL_spectral_window_error M lam d eta hM hd heta heta1 hgap.1 hgap.2 hbudget
 
+/-- The norm of the superposed spectral rotation error is at most `η` for normalized
+coefficients under the spectral-window and grid-budget hypotheses. -/
 theorem lowRank_spectral_error_bound {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V : Operator D) (β : QState (Fin D)) (d η : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d)
@@ -213,6 +251,8 @@ theorem lowRank_spectral_error_bound {D M : ℕ} (hM : 2 ≤ M)
   nlinarith [norm_nonneg (toEuclidean_fromVec (fun p : Fin M × (Bool × Fin D) =>
     (V *ᵥ (fun i => β i * qpeKernel M (eig i) p.1 * δ p.1 i p.2.1)) p.2.2))]
 
+/-- The actual uniform HHL output is within `η` of its ideal full-workspace state when nonzero
+eigenvalues lie in the stated spectral window and the grid budget holds. -/
 theorem low_rank_uniform_hhl_full_workspace_error :
     ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D)
       (j : Fin D) (d η : ℝ), V ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -313,6 +353,8 @@ theorem low_rank_uniform_hhl_full_workspace_error :
     norm_applyGate_of_mem_unitaryGroup (mem_unitaryGroup_adjoint hF), hdiff]
   exact hnorm
 
+/-- The HHL success amplitude equals `(d / 4) * x⁻¹` when `x` is zero or its absolute value is
+at least the positive cutoff `d`. -/
 theorem lowRank_gamma_reciprocal (d x : ℝ) (hd : 0 < d)
     (hx : x=0 ∨ d ≤ |x|) : uniformHHLGamma d x = (d/4)*x⁻¹ := by
   rcases hx with rfl | hx
@@ -321,6 +363,8 @@ theorem lowRank_gamma_reciprocal (d x : ℝ) (hd : 0 < d)
     simp only [div_eq_mul_inv, _root_.mul_inv_rev]
     ring
 
+/-- Collapsing the ideal HHL state onto the success flag gives the embedded pseudoinverse
+solution scaled by `d / 4`. -/
 theorem lowRank_ideal_collapse {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d)
@@ -352,6 +396,8 @@ theorem lowRank_ideal_collapse {D M : ℕ} (hM : 2 ≤ M)
     simp only [Pi.smul_apply, smul_eq_mul, Ket, if_true]
     ring
 
+/-- Postselection of the ideal HHL state onto the success flag equals the specified normalized
+solution target. -/
 theorem lowRank_ideal_postMeasure {D M : ℕ} (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d)
@@ -395,6 +441,8 @@ theorem lowRank_ideal_postMeasure {D M : ℕ} (hM : 2 ≤ M)
   have heq := he.trans htarget.symm
   exact (WithLp.equiv 2 _).symm.injective heq
 
+/-- The norm of the ideal successful branch is at least `d` times the least-squares overlap
+under the stated spectral-window hypotheses. -/
 theorem lowRank_ideal_norm_lower {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (j : Fin D) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d)
@@ -424,6 +472,9 @@ theorem lowRank_ideal_norm_lower {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ
   rw [norm_smul, hc, Complex.norm_real, Real.norm_eq_abs, abs_of_pos (by positivity : 0 < d/4)]
   nlinarith [mul_le_mul_of_nonneg_left ht hd.le]
 
+/-- A workspace error at most `E`, smaller than `d` times the least-squares overlap, gives
+positive success probability with lower bound `(d * tau - E)^2` and conditional-state error
+at most `2 * E / (d * tau)`, where `tau` is that overlap. -/
 theorem lowRank_output_from_error {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (j : Fin D) (d E : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d) (hE : 0 ≤ E)
@@ -465,6 +516,10 @@ theorem lowRank_output_from_error {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → �
   exact hp.2.trans (div_le_div_of_nonneg_left (by positivity) hdt
     (by rwa [← norm_toEuclidean_collapse_eq_sqrt_measureProb]))
 
+/-- Under the low-rank spectral and grid hypotheses, the ideal success branch is the scaled
+pseudoinverse solution. If `eta < d * tau`, the actual output has success probability at
+least `(d * tau - eta)^2` and conditional-state error at most `2 * eta / (d * tau)`, where
+`tau` is the least-squares overlap. -/
 theorem low_rank_uniform_hhl_actual_ls_output : ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D)
     (j : Fin D) (d eta : ℝ), V ∈ Matrix.unitaryGroup (Fin D) ℂ →
   B ∈ Matrix.unitaryGroup (Fin D) ℂ → 0 < d → 0 < eta → eta ≤ 1 →
@@ -492,6 +547,8 @@ theorem low_rank_uniform_hhl_actual_ls_output : ∀ (D M : ℕ) (hM : 2 ≤ M) (
     exact lowRank_output_from_error hM eig V B j d eta hV hd heta.le heig _
       (low_rank_uniform_hhl_full_workspace_error D M hM eig V B j d eta hV hB hd heta heta1 heig hbudget) hgap
 
+/-- The uniform HHL run equals forward grid phase estimation, flag rotation, inverse grid phase
+estimation, and phase-flag embedding applied to the prepared input. -/
 theorem lowRank_run_formula {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (d : ℝ) (B : Operator D) (j : Fin D) :
@@ -503,6 +560,8 @@ theorem lowRank_run_formula {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     run_append, run_append, run_gate, run_nil, run_qpeBlock_eq, run_qpeBlockInv_eq]
   rfl
 
+/-- The actual HHL output is the linear combination of eigenvector-input runs with coefficients
+given by the prepared input in the eigenbasis. -/
 theorem lowRank_actual_spectral {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (d : ℝ) (j : Fin D) :
     uniformHHLRun M hM (continuousHHLOracle eig V) d B j =
@@ -531,6 +590,7 @@ theorem lowRank_actual_spectral {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
   intro i h
   rw [lowRank_run_formula hM eig V hV d V i]
 
+/-- Zero least-squares overlap forces every coefficient at a nonzero eigenvalue to vanish. -/
 theorem lowRank_zero_overlap_coeff {D : ℕ} (eig : Fin D → ℝ) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (b : QState (Fin D))
     (hzero : leastSquaresOverlap (continuousHHLMatrix eig V) b = 0) :
@@ -556,6 +616,8 @@ theorem lowRank_zero_overlap_coeff {D : ℕ} (eig : Fin D → ℝ) (V : Operator
   have hh := congrFun he i
   simpa only [Matrix.mulVec_diagonal, if_neg hi, one_mul, Pi.zero_apply] using! hh.symm
 
+/-- An input with zero least-squares overlap has success probability zero in the actual uniform
+HHL run. -/
 theorem lowRank_zero_overlap_mass {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ)
     (V B : Operator D) (j : Fin D) (d : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d)
@@ -577,6 +639,8 @@ theorem lowRank_zero_overlap_mass {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → �
   rw [hout]
   simp
 
+/-- A normalized state with zero probability on the success event has deterministic false
+flag-trial law. -/
 theorem lowRank_trial_false {I : Type*} [Fintype I] [DecidableEq I]
     (out : QState I) (hn : Normalized out) (S : Finset I) (hm : MeasureProb out S=0) :
     uniformHHLFlagTrialLaw out hn S = PMF.pure false := by
@@ -587,12 +651,15 @@ theorem lowRank_trial_false {I : Type*} [Fintype I] [DecidableEq I]
   ext b
   cases b <;> simp [ht, hf, PMF.pure_apply]
 
+/-- Repeated trials with deterministic false outcomes return failure after exactly `R` trials. -/
 theorem lowRank_firstSuccess_false (R : ℕ) :
     uniformHHLFirstSuccess (PMF.pure false) R = PMF.pure (false,R) := by
   induction R with
   | zero => rfl
   | succ R ih => simp [uniformHHLFirstSuccess, ih, PMF.pure_map]
 
+/-- At zero least-squares overlap, uniform HHL has no successful branch and every bounded retry
+execution deterministically times out with the stated query, gate, and trial counts. -/
 theorem low_rank_uniform_hhl_zero_overlap_timeout : ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D)
     (j : Fin D) (d : ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d),
@@ -612,6 +679,9 @@ theorem low_rank_uniform_hhl_zero_overlap_timeout : ∀ (D M : ℕ) (hM : 2 ≤ 
   rw [lowRank_trial_false _ _ _ hm', lowRank_firstSuccess_false]
   simp [PMF.pure_map, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
 
+/-- Oracle error at most `delta` gives total workspace error at most `E = eta + 2 * (M - 1) *
+delta`. When `E < d * tau`, success probability and conditional-state error satisfy the
+stated bounds in terms of the least-squares overlap `tau`. -/
 theorem low_rank_uniform_hhl_actual_access_noise : ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B W : Operator D)
     (j : Fin D) (d eta delta : ℝ), V ∈ Matrix.unitaryGroup (Fin D) ℂ →
   B ∈ Matrix.unitaryGroup (Fin D) ℂ → W ∈ Matrix.unitaryGroup (Fin D) ℂ →
@@ -652,6 +722,9 @@ theorem low_rank_uniform_hhl_actual_access_noise : ∀ (D M : ℕ) (hM : 2 ≤ M
     heig _ he hgap
   exact ⟨ho.1, ho.2.2⟩
 
+/-- For positive `d` and `theta`, the computed accuracy is positive and at most one and `d *
+theta / 2`, and the computed grid has size at least two and satisfies the required error
+budget. -/
 theorem lowRank_parameter_budget (d theta : ℝ) (k : ℕ) (hd : 0 < d) (htheta : 0 < theta) :
     0 < lowRankAccuracy d theta k ∧ lowRankAccuracy d theta k ≤ 1 ∧
       lowRankAccuracy d theta k ≤ d*theta/2 ∧ 2 ≤ lowRankGrid d theta k ∧
@@ -663,6 +736,9 @@ theorem lowRank_parameter_budget (d theta : ℝ) (k : ℕ) (hd : 0 < d) (htheta 
   have hn : ⌈4096/(d^2*(lowRankAccuracy d theta k)^4)⌉₊ ≤ lowRankGrid d theta k := le_max_right _ _
   exact (Nat.le_ceil _).trans (by exact_mod_cast hn)
 
+/-- The computed parameters give success probability at least `d^2 * theta^2 / 4` and the stated
+conditional-state accuracy. Bounded retries satisfy geometric success, expected query-cost,
+and exact support-wise resource bounds under the overlap and spectral hypotheses. -/
 theorem low_rank_uniform_hhl_computed_budget_and_retry : ∀ (D : ℕ) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D)
     (d theta : ℝ) (k : ℕ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ) (hd : 0 < d),

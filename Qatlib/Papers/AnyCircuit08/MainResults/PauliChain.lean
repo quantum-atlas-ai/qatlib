@@ -6,22 +6,47 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AnyCircuit08.MainResults.Basic
 
+/-!
+# Reachability of Pauli strings
+
+The relation `PauliSupport` models the possible updates of a distinct coordinate pair, and
+`PauliReach` is its reflexive transitive closure. For at least two coordinates every nonzero
+Pauli string reaches every other nonzero string, while the zero string reaches only itself
+[HallgrenHarrow2008].
+
+## Main statements
+
+* `pauliSupport_self`: gives self-loops when there are at least two coordinates.
+* `pauliSupport_irreducible`: proves reachability between nonzero strings.
+* `pauliReach_zero_iff`: characterizes reachability from zero.
+
+## References
+
+* [Hallgren and Harrow, 2008][HallgrenHarrow2008]
+-/
+
 namespace Qatlib.Papers.AnyCircuit08.MainResults
 
 set_option autoImplicit false
 
+/-- The Pauli string whose labels are all zero. -/
 def pauliZero (n : ℕ) : PauliString n := 0
 
+/-- The Pauli string whose labels are all one. -/
 def pauliAllOnes (n : ℕ) : PauliString n := fun _ => 1
 
+/-- The relation allowing an unchanged string on a zero coordinate pair, or an update from a
+nonzero pair to a nonzero pair at two distinct coordinates [HallgrenHarrow2008]. -/
 def PauliSupport {n : ℕ} (p q : PauliString n) : Prop :=
   (∃ i j : Fin n, i ≠ j ∧ p i = 0 ∧ p j = 0 ∧ q = p) ∨
   (∃ (i j : Fin n) (a b : Fin 4), i ≠ j ∧ (p i ≠ 0 ∨ p j ≠ 0) ∧ (a ≠ 0 ∨ b ≠ 0) ∧
       q = Function.update (Function.update p i a) j b)
 
+/-- The reflexive transitive closure of `PauliSupport`. -/
 def PauliReach {n : ℕ} (p q : PauliString n) : Prop :=
   Relation.ReflTransGen PauliSupport p q
 
+/-- Updating a function at an argument with its existing value leaves the function unchanged. -/
 theorem update_self_eq {α : Type*} {β : Type*} [DecidableEq α] (f : α → β) (a : α) :
     Function.update f a (f a) = f := by
   funext x
@@ -29,6 +54,8 @@ theorem update_self_eq {α : Type*} {β : Type*} [DecidableEq α] (f : α → β
   · subst hx; rw [Function.update_self]
   · rw [Function.update_of_ne hx]
 
+/-- Changing one coordinate is supported when a distinct auxiliary coordinate makes both the
+source pair and target pair nonzero. -/
 theorem pauliSupport_set {n : ℕ} (p : PauliString n) (k m : Fin n) (hkm : k ≠ m)
     (v : Fin 4) (hsrc : p k ≠ 0 ∨ p m ≠ 0) (htgt : v ≠ 0 ∨ p m ≠ 0) :
     PauliSupport p (Function.update p k v) := by
@@ -38,6 +65,7 @@ theorem pauliSupport_set {n : ℕ} (p : PauliString n) (k m : Fin n) (hkm : k �
         rw [Function.update_of_ne hkm.symm]]
   exact (update_self_eq (Function.update p k v) m).symm
 
+/-- Every Pauli string has a supported self-loop when `n ≥ 2` [HallgrenHarrow2008]. -/
 theorem pauliSupport_self {n : ℕ} (hn : 2 ≤ n) (p : PauliString n) :
     PauliSupport p p := by
   by_cases hp : p = 0
@@ -69,6 +97,8 @@ theorem pauliSupport_self {n : ℕ} (hn : 2 ≤ n) (p : PauliString n) :
         rw [update_self_eq]
         exact update_self_eq p k]
 
+/-- For `n ≥ 2`, any two Pauli strings sharing a coordinate where both are nonzero are related
+by `PauliReach`. -/
 theorem pauliReach_of_anchor {n : ℕ} (hn : 2 ≤ n) (p q : PauliString n) (m : Fin n)
     (hp : p m ≠ 0) (hq : q m ≠ 0) : PauliReach p q := by
   obtain ⟨k₀, hk₀⟩ : ∃ k₀ : Fin n, k₀ ≠ m := by
@@ -136,6 +166,7 @@ theorem pauliReach_of_anchor {n : ℕ} (hn : 2 ≤ n) (p q : PauliString n) (m :
     rwa [heq] at hs
   exact Relation.ReflTransGen.tail hstep1 hstep2
 
+/-- For `n ≥ 2`, every nonzero Pauli string can reach the all-ones string. -/
 theorem pauliReach_allOnes {n : ℕ} (hn : 2 ≤ n) (p : PauliString n) (hp : p ≠ 0) :
     PauliReach p (pauliAllOnes n) := by
   obtain ⟨m, hm⟩ : ∃ m : Fin n, p m ≠ 0 := by
@@ -144,6 +175,7 @@ theorem pauliReach_allOnes {n : ℕ} (hn : 2 ≤ n) (p : PauliString n) (hp : p 
     exact hp (funext h)
   exact pauliReach_of_anchor hn p (pauliAllOnes n) m hm (by simp [pauliAllOnes])
 
+/-- For `n ≥ 2`, the all-ones string can reach every nonzero Pauli string. -/
 theorem pauliReach_from_allOnes {n : ℕ} (hn : 2 ≤ n) (q : PauliString n) (hq : q ≠ 0) :
     PauliReach (pauliAllOnes n) q := by
   obtain ⟨m, hm⟩ : ∃ m : Fin n, q m ≠ 0 := by
@@ -152,16 +184,21 @@ theorem pauliReach_from_allOnes {n : ℕ} (hn : 2 ≤ n) (q : PauliString n) (hq
     exact hq (funext h)
   exact pauliReach_of_anchor hn (pauliAllOnes n) q m (by simp [pauliAllOnes]) hm
 
+/-- For `n ≥ 2`, any nonzero Pauli string can reach any other nonzero Pauli string
+[HallgrenHarrow2008]. -/
 theorem pauliSupport_irreducible {n : ℕ} (hn : 2 ≤ n) (p q : PauliString n)
     (hp : p ≠ 0) (hq : q ≠ 0) : PauliReach p q :=
   Relation.ReflTransGen.trans (pauliReach_allOnes hn p hp) (pauliReach_from_allOnes hn q hq)
 
+/-- A supported transition from the zero Pauli string can only end at zero. -/
 theorem pauliSupport_zero {n : ℕ} (q : PauliString n) (h : PauliSupport (0 : PauliString n) q) :
     q = 0 := by
   rcases h with ⟨i, j, _, _, _, rfl⟩ | ⟨i, j, a, b, _, hsrc, _, rfl⟩
   · rfl
   · simp at hsrc
 
+/-- The stationary weight of a nonzero Pauli string is at most `(1 / 4) ^ n`
+[HallgrenHarrow2008]. -/
 theorem stationaryWeight_ne_zero_le {n : ℕ} {p : PauliString n} (hp : p ≠ 0) :
     stationaryWeight n p ≤ (1 / 4 : ℝ) ^ n := by
   rw [stationaryWeight, if_neg hp]
@@ -173,6 +210,7 @@ theorem stationaryWeight_ne_zero_le {n : ℕ} {p : PauliString n} (hp : p ≠ 0)
   refine le_trans h1 ?_
   rw [show (1 / 4 : ℝ) ^ n = 1 / (4:ℝ) ^ n by rw [div_pow]; norm_num]
 
+/-- A Pauli string is reachable from zero exactly when it is zero [HallgrenHarrow2008]. -/
 theorem pauliReach_zero_iff {n : ℕ} (q : PauliString n) :
     PauliReach (0 : PauliString n) q ↔ q = 0 := by
   constructor

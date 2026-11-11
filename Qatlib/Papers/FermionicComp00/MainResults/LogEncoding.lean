@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Mathlib.Data.Finset.Card
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Logarithmic fermion encoding
+
+`sourceLe` specifies the binary-block relation used to accumulate occupations in `sourceParity`;
+reducing these counts modulo two gives `sourceEncoding`. The module proves bijectivity and
+bounds the number of encoded bits changed by one occupation flip by `t + 1` on `2 ^ t` modes.
+
+These constructions belong to the formalization of [BravyiKitaev2002].
+
+## Main statements
+
+* `source_encode_diff_log_many`: a single input flip changes at most `t + 1` output bits.
+* `source_encoding_bijective`: the encoding is bijective.
+
+## References
+
+* [Bravyi and Kitaev, 2002][BravyiKitaev2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,12 +37,16 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Papers.FermionicComp00.MainResults.LogEncoding
 
+/-- The binary-block relation in which `b` is obtained from `a` by replacing its lowest `l0`
+bits by ones for some `l0 ≤ t`. -/
 def sourceLe (t a b : ℕ) : Prop :=
   ∃ l0, l0 ≤ t ∧ b = (a / 2 ^ l0) * 2 ^ l0 + (2 ^ l0 - 1)
 
+/-- The binary-block relation is reflexive. -/
 theorem sourceLe_refl (t a : ℕ) : sourceLe t a a :=
   ⟨0, Nat.zero_le t, by simp⟩
 
+/-- For fixed `a`, at most `t + 1` values below `2 ^ t` are related to `a` by `sourceLe`. -/
 theorem sourceLe_count (t a : ℕ) :
     ((Finset.range (2 ^ t)).filter (fun b => sourceLe t a b)).card ≤ t + 1 := by
   have hsub : (Finset.range (2 ^ t)).filter (fun b => sourceLe t a b) ⊆
@@ -39,6 +63,7 @@ theorem sourceLe_count (t a : ℕ) :
     _ ≤ (Finset.range (t + 1)).card := Finset.card_image_le
     _ = t + 1 := Finset.card_range (t + 1)
 
+/-- At most `t + 1` finite register indices are related to a fixed index by `sourceLe`. -/
 theorem sourceLe_fin_count {t : ℕ} (s : Fin (2 ^ t)) :
     ((Finset.univ : Finset (Fin (2 ^ t))).filter
         (fun j => sourceLe t s.val j.val)).card ≤ t + 1 := by
@@ -60,13 +85,16 @@ theorem sourceLe_fin_count {t : ℕ} (s : Fin (2 ^ t)) :
           Finset.card_le_card himg
     _ ≤ t + 1 := sourceLe_count t s.val
 
+/-- The number of occupied indices related to `j` by `sourceLe`. -/
 def sourceParity (t : ℕ) (n : Reg (2 ^ t)) (j : Fin (2 ^ t)) : ℕ :=
   ∑ s ∈ (Finset.univ.filter (fun s : Fin (2 ^ t) => sourceLe t s.val j.val)),
     (if n s then 1 else 0)
 
+/-- The register whose bit at `j` records whether `sourceParity t n j` is odd. -/
 def sourceEncoding (t : ℕ) (n : Reg (2 ^ t)) : Reg (2 ^ t) :=
   fun j => sourceParity t n j % 2 == 1
 
+/-- Distinct indices related by `sourceLe` are strictly increasing. -/
 theorem sourceLe_lt {t a b : ℕ} (h : sourceLe t a b) (hne : a ≠ b) : a < b := by
   obtain ⟨l0, -, hb⟩ := h
   have hdiv : a = (a / 2 ^ l0) * 2 ^ l0 + a % 2 ^ l0 := by
@@ -84,6 +112,8 @@ theorem sourceLe_lt {t a b : ℕ} (h : sourceLe t a b) (hne : a ≠ b) : a < b :
     omega
   exact lt_of_le_of_ne hle hne
 
+/-- If `s` contributes to the parity count at `j`, that count splits into the contribution of
+`s` and the sum over all remaining indices. -/
 private lemma sourceParity_split {t : ℕ} (n : Reg (2 ^ t)) (s j : Fin (2 ^ t))
     (hs : sourceLe t s.val j.val) :
     sourceParity t n j =
@@ -93,6 +123,8 @@ private lemma sourceParity_split {t : ℕ} (n : Reg (2 ^ t)) (s j : Fin (2 ^ t))
     ← Finset.add_sum_erase _ _ (Finset.mem_filter.mpr ⟨Finset.mem_univ s, hs⟩)]
   exact Nat.add_comm _ _
 
+/-- After flipping a contributing bit `s`, the parity count splits into the unchanged sum over
+other indices and the new contribution at `s`. -/
 private lemma sourceParity_update_split {t : ℕ} (n : Reg (2 ^ t)) (s j : Fin (2 ^ t))
     (hs : sourceLe t s.val j.val) :
     sourceParity t (Function.update n s (!(n s))) j =
@@ -111,6 +143,7 @@ private lemma sourceParity_update_split {t : ℕ} (n : Reg (2 ^ t)) (s j : Fin (
   rw [hsum, Function.update_self]
   exact Nat.add_comm _ _
 
+/-- Flipping an index unrelated to `j` leaves its parity count unchanged. -/
 private lemma sourceParity_update_of_notMem {t : ℕ} (n : Reg (2 ^ t)) (s j : Fin (2 ^ t))
     (h : ¬ sourceLe t s.val j.val) :
     sourceParity t (Function.update n s (!(n s))) j = sourceParity t n j := by
@@ -124,6 +157,8 @@ private lemma sourceParity_update_of_notMem {t : ℕ} (n : Reg (2 ^ t)) (s j : F
   subst hxs
   exact hnot hx
 
+/-- The Boolean tests for oddness of two natural numbers agree exactly when their residues
+modulo two agree. -/
 private lemma enc_eq_iff (a b : ℕ) : ((a % 2 == 1) = (b % 2 == 1)) ↔ a % 2 = b % 2 := by
   constructor
   · intro h
@@ -133,17 +168,21 @@ private lemma enc_eq_iff (a b : ℕ) : ((a % 2 == 1) = (b % 2 == 1)) ↔ a % 2 =
   · intro h
     rw [h]
 
+/-- Distinct residues modulo two give distinct Boolean oddness tests. -/
 private lemma enc_bit_ne_of_mod_ne {a b : ℕ} (h : a % 2 ≠ b % 2) :
     (a % 2 == 1) ≠ (b % 2 == 1) := by
   intro he
   exact h ((enc_eq_iff a b).mp he)
 
+/-- Adding one changes the residue of a natural number modulo two. -/
 private lemma mod_two_add_one_ne (a : ℕ) : (a + 1) % 2 ≠ a % 2 := by
   intro h
   have ha : a % 2 = 0 ∨ a % 2 = 1 := Nat.mod_two_eq_zero_or_one a
   rw [Nat.add_mod] at h
   omega
 
+/-- Flipping the occupation at `s` changes the encoded bit at `j` exactly when `sourceLe`
+relates their indices. -/
 private lemma update_flip_iff {t : ℕ} (n : Reg (2 ^ t)) (s j : Fin (2 ^ t)) :
     sourceEncoding t (Function.update n s (!(n s))) j ≠ sourceEncoding t n j ↔
       sourceLe t s.val j.val := by
@@ -164,6 +203,8 @@ private lemma update_flip_iff {t : ℕ} (n : Reg (2 ^ t)) (s j : Fin (2 ^ t)) :
     have hp := sourceParity_update_of_notMem n s j h
     simp only [sourceEncoding, hp]
 
+/-- Flipping one occupation in a register of size `2 ^ t` changes at most `t + 1` encoded bits.
+[BravyiKitaev2002] -/
 theorem source_encode_diff_log_many {t : ℕ} (n : Reg (2 ^ t)) (s : Fin (2 ^ t)) :
     ((Finset.univ : Finset (Fin (2 ^ t))).filter
         (fun j => sourceEncoding t (Function.update n s (!(n s))) j ≠ sourceEncoding t n j)).card
@@ -178,6 +219,8 @@ theorem source_encode_diff_log_many {t : ℕ} (n : Reg (2 ^ t)) (s : Fin (2 ^ t)
   rw [hset]
   exact sourceLe_fin_count s
 
+/-- The binary-block parity encoding is a bijection on registers of size `2 ^ t`.
+[BravyiKitaev2002] -/
 theorem source_encoding_bijective (t : ℕ) : Function.Bijective (sourceEncoding t) := by
   have hinj : Function.Injective (sourceEncoding t) := by
     intro n m h

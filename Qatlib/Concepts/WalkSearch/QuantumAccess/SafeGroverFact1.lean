@@ -8,6 +8,26 @@ import Qatlib.Concepts.WalkSearch.Primitives.TriangleContracts
 import Mathlib.Data.Finset.Card
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
+
+/-!
+# Safe Grover search interface guarantees
+
+`fact1_answer` bundles the soundness, empty-input rejection, finite-seed failure-count, and
+charge guarantees supplied by a `SafeGrover`. `fact1_failure_pow` gives a real-valued
+inverse-power consequence when the floor parameter is zero.
+
+These are interface-level forms of the search guarantees motivating [BoyerEtAl1998].
+
+## Main statements
+
+* `fact1_answer`: collect the four `SafeGrover` guarantees.
+* `fact1_failure_pow`: the real-valued failure-count bound with zero floor.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.WalkSearch.QuantumAccess
 
 open Qatlib.Concepts.WalkSearch.Primitives
 
+/-- Collects soundness, rejection on unmarked inputs, the inverse-power failure-count bound, and
+the logarithmic square-root charge bound of a supplied `SafeGrover` [BoyerEtAl1998]. -/
 theorem fact1_answer (sgs : SafeGrover) {N : ℕ} (marked : Fin N → Bool) (check floor : ℕ) :
     (∀ (ρ : sgs.seed) {x : Fin N}, sgs.run marked check floor ρ = some x → marked x = true) ∧
     (∀ (ρ : sgs.seed), (∀ x, marked x = false) → sgs.run marked check floor ρ = none) ∧
@@ -32,6 +54,8 @@ theorem fact1_answer (sgs : SafeGrover) {N : ℕ} (marked : Fin N → Bool) (che
     fun h => sgs.finds marked check floor h,
     fun ρ => sgs.charges marked check floor ρ⟩
 
+/-- If a marked element exists, the real failure count at floor zero multiplied by `N ^
+sgs.cExp` is at most the seed-space cardinality [BoyerEtAl1998]. -/
 theorem fact1_failure_pow (sgs : SafeGrover) {N : ℕ} (marked : Fin N → Bool) (check : ℕ)
     (h : ∃ x, marked x = true) :
     (((@Finset.univ sgs.seed sgs.seedFin).filter

@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary1ExpectedSearchStat
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Specification of the heuristic search average
+
+`Theorem4HeuristicSpeedup` defines the finite-distribution statement for Fourier-prepared
+search. It combines per-instance failure control and output soundness with a bound involving the
+square root of the average ratio of search-space size to marked-set size. For background, see
+[BrassardHoyerTapp1998Counting].
+
+## Main statements
+
+* `Theorem4HeuristicSpeedup`: The proposition asserting sound search schedules with arbitrary
+  positive failure tolerance and average expected phase-query count at most `50 * sqrt 2 * sqrt
+  (∑ F, P.prob F * (n / (marked F).card))`, under the nonempty sparse-marked-set hypotheses.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Counting]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -18,6 +38,9 @@ namespace Qatlib.Concepts.AEMeanReadout.RankOneSubspace
 open Qatlib
 open scoped ENNReal BigOperators
 
+/-- The proposition asserting sound search schedules with arbitrary positive failure tolerance
+and average expected phase-query count at most `50 * sqrt 2 * sqrt (∑ F, P.prob F * (n /
+(marked F).card))`, under the nonempty sparse-marked-set hypotheses. -/
 def Theorem4HeuristicSpeedup : Prop :=
   ∀ (ℱ : Type) [Fintype ℱ] [DecidableEq ℱ] (P : FinDist ℱ) (n : ℕ)
     (good : ℱ → Fin n → Bool),

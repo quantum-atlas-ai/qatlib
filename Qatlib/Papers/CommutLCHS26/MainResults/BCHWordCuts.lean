@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLie
+
+/-!
+# Word coefficients and prefix cuts
+
+`cutPair` and `cuts` enumerate all factorizations of a word into a prefix and a suffix. They
+give convolution formulas for word algebra coefficients and for the length matched series
+coefficient `wordCoefficient`.
+
+For graded series, these formulas describe positive powers and formal logarithms. For ordered
+exponential products of distinct letters, the coefficients become sublist indicators, providing
+the cut counting input for the BCH analysis in [AftabAnTrivisa2026].
+
+## Main statements
+
+* `wordCoeff_mul`: computes a product coefficient by summing over cuts.
+* `wordCoefficient_pow_succ`: computes powers using nonempty prefixes when the constant
+  coefficient vanishes.
+* `wordCoefficient_log`: gives the finite logarithm coefficient sum.
+* `wordCoefficient_word_sublist`: computes coefficients for lists without repetitions.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,9 +42,12 @@ open scoped BigOperators MonoidAlgebra
 open BCHDynkin BCHWordLie
 variable {α : Type}
 
+/-- The prefix and suffix word pair obtained by cutting a list at position `i`. -/
 def cutPair (w : List α) (i : ℕ) : FreeMonoid α × FreeMonoid α :=
   (FreeMonoid.ofList (w.take i), FreeMonoid.ofList (w.drop i))
 
+/-- Distinct cut positions between zero and the word length give distinct prefix and suffix
+pairs. -/
 theorem cutPair_injective (w : List α) :
     Set.InjOn (cutPair w) (↑(Finset.range (w.length + 1)) : Set ℕ) := by
   intro i hi j hj h
@@ -31,10 +59,12 @@ theorem cutPair_injective (w : List α) :
   simpa only [cutPair, FreeMonoid.toList_ofList, List.length_take, Nat.min_eq_left hi',
     Nat.min_eq_left hj'] using he
 
+/-- The finite set of all prefix and suffix pairs obtained by cutting a word. -/
 def cuts (w : List α) : Finset (FreeMonoid α × FreeMonoid α) := by
   classical
   exact (Finset.range (w.length + 1)).image (cutPair w)
 
+/-- A pair belongs to the cuts of a word exactly when its product is that word. -/
 theorem mem_cuts_iff (w : List α) (u v : FreeMonoid α) :
     (u, v) ∈ cuts w ↔ u * v = FreeMonoid.ofList w := by
   classical
@@ -55,6 +85,8 @@ theorem mem_cuts_iff (w : List α) (u v : FreeMonoid α) :
       omega
     · simp only [cutPair, ← hw, List.take_left, List.drop_left, FreeMonoid.ofList_toList]
 
+/-- A word coefficient in a product of word algebra elements is the sum of prefix and suffix
+coefficient products over all cuts. -/
 theorem wordCoeff_mul (p q : WordAlg α) (w : List α) :
     (p * q).coeff (FreeMonoid.ofList w) = ∑ i ∈ Finset.range (w.length + 1),
       p.coeff (FreeMonoid.ofList (w.take i)) * q.coeff (FreeMonoid.ofList (w.drop i)) := by
@@ -66,6 +98,8 @@ theorem wordCoeff_mul (p q : WordAlg α) (w : List α) :
   rw [Finset.sum_image (cutPair_injective w)]
   rfl
 
+/-- In a graded word power series, a word coefficient vanishes when its length differs from the
+series degree. -/
 theorem graded_coeff_eq_zero {f : PowerSeries (WordAlg α)} (hf : IsGraded f)
     (n : ℕ) (w : List α) (hn : w.length ≠ n) :
     (PowerSeries.coeff n f).coeff (FreeMonoid.ofList w) = 0 := by
@@ -74,9 +108,12 @@ theorem graded_coeff_eq_zero {f : PowerSeries (WordAlg α)} (hf : IsGraded f)
   exact hn (by simpa only [FreeMonoid.toList_ofList] using
     support_length_of_grading _ n (hf n) _ hw)
 
+/-- The coefficient of a word in the series degree equal to its length. -/
 def wordCoefficient (f : PowerSeries (WordAlg α)) (w : List α) : ℚ :=
   (PowerSeries.coeff w.length f).coeff (FreeMonoid.ofList w)
 
+/-- When the left factor is graded, the word coefficient of a series product is the sum of
+prefix and suffix word coefficient products over all cuts. -/
 theorem wordCoefficient_mul (f g : PowerSeries (WordAlg α)) (hf : IsGraded f)
     (w : List α) :
     wordCoefficient (f * g) w = ∑ i ∈ Finset.range (w.length + 1),
@@ -104,6 +141,7 @@ theorem wordCoefficient_mul (f g : PowerSeries (WordAlg α)) (hf : IsGraded f)
   · intro h
     exact (h (Finset.mem_antidiagonal.mpr (Nat.add_sub_of_le hi'))).elim
 
+/-- The unit series has word coefficient one on the empty word and zero on every nonempty word. -/
 theorem wordCoefficient_one (w : List α) :
     wordCoefficient (1 : PowerSeries (WordAlg α)) w = if w = [] then 1 else 0 := by
   classical
@@ -115,10 +153,14 @@ theorem wordCoefficient_one (w : List α) :
       List.cons_ne_nil]
     rfl
 
+/-- Word coefficients preserve subtraction. -/
 theorem wordCoefficient_sub (f g : PowerSeries (WordAlg α)) (w : List α) :
     wordCoefficient (f - g) w = wordCoefficient f w - wordCoefficient g w := by
   simp only [wordCoefficient, map_sub, MonoidAlgebra.coeff_sub, Finsupp.sub_apply]
 
+/-- For a graded series with zero constant coefficient, a coefficient in its positive power is
+the sum over nonempty prefixes of the first factor coefficient times the remaining power
+coefficient. -/
 theorem wordCoefficient_pow_succ (f : PowerSeries (WordAlg α)) (hf : IsGraded f)
     (hzero : f.constantCoeff = 0) (k : ℕ) (w : List α) :
     wordCoefficient (f ^ (k + 1)) w = ∑ i ∈ Finset.range w.length,
@@ -129,6 +171,8 @@ theorem wordCoefficient_pow_succ (f : PowerSeries (WordAlg α)) (hf : IsGraded f
     rfl
   simp only [List.take_zero, hz, zero_mul, add_zero]
 
+/-- The logarithm word coefficient is the finite alternating weighted sum of the word
+coefficients of positive powers of `f - 1`. -/
 theorem wordCoefficient_log (f : PowerSeries (WordAlg α)) (w : List α) :
     wordCoefficient (BCHWordLog.logSeries f) w = ∑ k ∈ Finset.range w.length,
       ((-1 : ℚ) ^ k / (k + 1)) * wordCoefficient ((f - 1) ^ (k + 1)) w := by
@@ -136,12 +180,15 @@ theorem wordCoefficient_log (f : PowerSeries (WordAlg α)) (w : List α) :
     BCHWordLog.logCoefficient_finite, MonoidAlgebra.coeff_sum, Finsupp.finsetSum_apply,
     MonoidAlgebra.coeff_smul, Finsupp.smul_apply, smul_eq_mul]
 
+/-- A power of a letter basis element is the word consisting of that many copies of the letter. -/
 theorem letter_pow (a : α) (n : ℕ) : letter a ^ n = word (List.replicate n a) := by
   rw [word_eq_prod, List.map_replicate, List.prod_replicate]
 
 section Discrete
 variable [DecidableEq α]
 
+/-- The formal exponential of one letter has coefficient the reciprocal word length factorial on
+words consisting only of that letter and zero otherwise. -/
 theorem wordCoefficient_generator (a : α) (w : List α) :
     wordCoefficient (generatorSeries (letter a)) w =
       if w = List.replicate w.length a then (w.length.factorial : ℚ)⁻¹ else 0 := by
@@ -161,12 +208,15 @@ theorem wordCoefficient_generator (a : α) (w : List α) :
 
 omit [DecidableEq α] in
 
+/-- Every ordered product of letter exponential series has empty word coefficient one. -/
 theorem wordCoefficient_word_empty (xs : List α) :
     wordCoefficient (wordSeries (xs.map letter)) [] = 1 := by
   simp only [wordCoefficient, List.length_nil, PowerSeries.coeff_zero_eq_constantCoeff,
     wordSeries_constant]
   simp [MonoidAlgebra.one_def]
 
+/-- For a target word without repetitions, adding a leading exponential letter contributes the
+old coefficient and a suffix coefficient when that letter matches the target's first letter. -/
 theorem wordCoefficient_word_cons (a : α) (xs : List α) (b : α) (w : List α)
     (hw : (b :: w).Nodup) :
     wordCoefficient (wordSeries ((a :: xs).map letter)) (b :: w) =
@@ -196,6 +246,8 @@ theorem wordCoefficient_word_cons (a : α) (xs : List α) (b : α) (w : List α)
   · simp only [List.length_cons, Finset.mem_range, Nat.zero_lt_succ, not_true_eq_false,
       IsEmpty.forall_iff]
 
+/-- For source and target lists without repetitions, the ordered exponential word coefficient is
+one exactly when the target is a sublist of the source, and zero otherwise. -/
 theorem wordCoefficient_word_sublist (xs w : List α) (hxs : xs.Nodup) (hw : w.Nodup) :
     wordCoefficient (wordSeries (xs.map letter)) w = if w.Sublist xs then 1 else 0 := by
   classical

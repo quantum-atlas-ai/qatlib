@@ -9,6 +9,27 @@ import Mathlib.Data.Matrix.Mul
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.Tactic
 
+/-!
+# Weighing matrices and column sparsity
+
+A `WeighingMatrix n k` is an integer matrix with entries in {-1, 0, 1} and row Gram matrix `k`
+times the identity. Passing to rational matrices gives the transpose Gram identity and exact
+column support counts; `problemFunction` exposes a selected row as an oracle.
+
+This development forms part of the formalization of [VanDam2002].
+
+## Main statements
+
+* `WeighingMatrix`: An `n` by `n` integer matrix with entries in {-1, 0, 1} whose row Gram
+  matrix is `k` times the identity.
+* `ratMat_transpose_gram`: The rational column Gram matrix is `k` times the identity.
+* `col_nonzero_card`: Each column contains exactly `k` nonzero entries.
+
+## References
+
+* [van Dam, 2002][VanDam2002]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +37,8 @@ namespace Qatlib.Papers.WeighMatrix00.MainResults
 
 open Matrix
 
+/-- An `n` by `n` integer matrix with entries in {-1, 0, 1} whose row Gram matrix is `k` times
+the identity. -/
 structure WeighingMatrix (n k : ℕ) where
 
   mat : Matrix (Fin n) (Fin n) ℤ
@@ -28,12 +51,14 @@ namespace WeighingMatrix
 
 variable {n k : ℕ} (M : WeighingMatrix n k)
 
+/-- The pairing of two rows is `k` when their indices agree and zero otherwise. -/
 theorem gram_apply (s r : Fin n) :
     ∑ i : Fin n, M.mat s i * M.mat r i = if s = r then (k : ℤ) else 0 := by
   have h := congrFun (congrFun M.gram s) r
   simpa [Matrix.mul_apply, Matrix.transpose_apply, Matrix.smul_apply, Matrix.one_apply,
     mul_ite, ite_mul] using h
 
+/-- The rational-valued row pairing is `k` on the diagonal and zero off the diagonal. -/
 theorem gram_apply_rat (s r : Fin n) :
     ∑ i : Fin n, ((M.mat s i : ℚ) * (M.mat r i : ℚ)) =
       if s = r then (k : ℚ) else 0 := by
@@ -44,17 +69,21 @@ theorem gram_apply_rat (s r : Fin n) :
   · rw [if_neg hsr] at h ⊢
     exact_mod_cast h
 
+/-- The weighing matrix with its entries cast to rational numbers. -/
 def ratMat : Matrix (Fin n) (Fin n) ℚ := M.mat.map (Int.castRingHom ℚ)
 
+/-- Each entry of `ratMat` is the rational cast of the corresponding integer entry. -/
 theorem ratMat_apply (i j : Fin n) : M.ratMat i j = (M.mat i j : ℚ) := by
   simp [ratMat]
 
+/-- The rational row Gram matrix is `k` times the identity. -/
 theorem ratMat_gram : M.ratMat * M.ratMatᵀ = (k : ℚ) • (1 : Matrix (Fin n) (Fin n) ℚ) := by
   ext s r
   simp only [Matrix.mul_apply, Matrix.transpose_apply, Matrix.smul_apply, Matrix.one_apply,
     ratMat_apply, M.gram_apply_rat s r]
   split_ifs <;> simp
 
+/-- The rational column Gram matrix is `k` times the identity. -/
 theorem ratMat_transpose_gram :
     M.ratMatᵀ * M.ratMat = (k : ℚ) • (1 : Matrix (Fin n) (Fin n) ℚ) := by
   by_cases hk : k = 0
@@ -88,6 +117,7 @@ theorem ratMat_transpose_gram :
         _ = (k : ℚ) • (1 : Matrix (Fin n) (Fin n) ℚ) := by rw [hAB]
     simpa [A] using hmain
 
+/-- Each column contains exactly `k` nonzero entries. -/
 theorem col_nonzero_card (i : Fin n) :
     (Finset.univ.filter (fun s : Fin n => M.mat s i ≠ 0)).card = k := by
   have hdiag : ∀ j : Fin n, ∑ s : Fin n, (M.ratMat s j) * (M.ratMat s j) = (k : ℚ) := by
@@ -110,6 +140,7 @@ theorem col_nonzero_card (i : Fin n) :
   rw [Finset.card_filter]
   simpa using hnat
 
+/-- Each column contains exactly `n - k` zero entries. -/
 theorem col_zero_card (i : Fin n) :
     (Finset.univ.filter (fun s : Fin n => M.mat s i = 0)).card = n - k := by
   have hsplit := Finset.card_filter_add_card_filter_not
@@ -126,6 +157,7 @@ theorem col_zero_card (i : Fin n) :
 
 end WeighingMatrix
 
+/-- The oracle function returning the entries of row `s` of the weighing matrix. -/
 def problemFunction {n k : ℕ} (M : WeighingMatrix n k) (s : Fin n) : Fin n → ℤ :=
   fun i => M.mat s i
 

@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+
+/-!
+# Causal Pauli corrections supplied by flow
+
+This module extracts flow witnesses for an MBQC graph and proves that `flowCorrection`, with
+output flow values masked, consists of Pauli wire corrections and is causal in the flow order.
+It also defines `PatternRealizesEmbedding` through equality of corrected density branches with a
+prescribed matrix action, within the one-way framework of [DanosKashefi2006].
+
+## Main statements
+
+* `flowPattern_corrections_pauli_causal`: An MBQC flow possesses strict-order witnesses whose
+  output-masked flow corrections are Pauli wire operators and depend causally on measurement
+  outcomes.
+* `PatternRealizesEmbedding`: The existence of a measurement order and Pauli wire corrections
+  making every XY-plane density branch equal to `U * ρ * Uᴴ`.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +39,8 @@ open scoped Classical BigOperators ComplexOrder
 
 namespace Qatlib.Papers.OneWayDanos05.MainResults
 
+/-- An MBQC flow possesses strict-order witnesses whose output-masked flow corrections are Pauli
+wire operators and depend causally on measurement outcomes [DanosKashefi2006]. -/
 theorem flowPattern_corrections_pauli_causal {n : ℕ} (G : MbqcGraph n)
     (I O : Finset (Fin n)) (h : MbqcHasFlow G I O) :
     ∃ (f : Fin n → Option (Fin n)) (prec : Fin n → Fin n → Prop),
@@ -52,6 +76,8 @@ theorem flowPattern_corrections_pauli_causal {n : ℕ} (G : MbqcGraph n)
       rw [hww] at hF3
       exact hF3 u hadj hne
 
+/-- The existence of a measurement order and Pauli wire corrections making every XY-plane
+density branch equal to `U * ρ * Uᴴ`. -/
 def PatternRealizesEmbedding {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (a : Fin n → ℝ) (U : Matrix (Fin (2 ^ O.card)) (Fin (2 ^ I.card)) ℂ) : Prop :=
   ∃ (r : Fin n → Fin n) (corr : (Fin n → Bool) → Fin n → Operator 2),

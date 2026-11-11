@@ -13,6 +13,29 @@ import Mathlib.Analysis.Complex.Norm
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+
+/-!
+# Classification of reduced parity weights
+
+This module studies the reduced two-component weights `redM`, `red0`, and `redP`. Under the
+nonvanishing condition `A ≠ 0`, the displayed unitarity constraints give the trigonometric
+parameterization of Equation (24), up to a common complex phase. See [Meyer1996a].
+
+## Main statements
+
+* `pair_normal_form`: A normalized complex pair with vanishing symmetric conjugate cross term
+  has the form of a common phase times `(i * sin φ, cos φ)`.
+* `eq24_classification`: For reduced weights with `A ≠ 0`, the normalization and mixed
+  constraints give real parameters `ψ`, `ρ`, and `θ` expressing all four coefficients in the
+  phase-weighted trigonometric form of Equation (24).
+* `eq24_classification_of_eq19`: If the reduced weights satisfy `Eq19` and `A ≠ 0`, they equal
+  the Equation (24) weights multiplied by a common phase.
+
+## References
+
+* [Meyer, 1996][Meyer1996a]
+-/
+
 set_option warningAsError false
 
 open Complex Matrix
@@ -27,12 +50,19 @@ noncomputable section
 
 namespace Qatlib.Papers.QCellAutomata96.MainResults
 
+/-- The reduced negative-direction weight matrix with second column `(A, B)` and zero first
+column. -/
 def redM (A B : ℂ) : Matrix (Fin 2) (Fin 2) ℂ := !![0, A; 0, B]
 
+/-- The reduced positive-direction weight matrix with first column `(B, A)` and zero second
+column. -/
 def redP (A B : ℂ) : Matrix (Fin 2) (Fin 2) ℂ := !![B, 0; A, 0]
 
+/-- The symmetric on-site matrix with diagonal entry `C` and off-diagonal entry `D`. -/
 def red0 (C D : ℂ) : Matrix (Fin 2) (Fin 2) ℂ := !![C, D; D, C]
 
+/-- The sum of the three reduced weights times their adjoints is a symmetric matrix with the
+displayed diagonal and off-diagonal coefficients. -/
 lemma red19m (A B C D : ℂ) :
     redM A B * (redM A B)ᴴ + red0 C D * (red0 C D)ᴴ + redP A B * (redP A B)ᴴ
       = par2 (A * star A + B * star B + C * star C + D * star D)
@@ -46,6 +76,8 @@ lemma red19m (A B C D : ℂ) :
       Fin.cons_zero, Fin.cons_succ, Fin.reduceFinMk, Fin.isValue, Fin.succ_zero_eq_one] <;>
     ring_nf
 
+/-- The mixed reduced-weight constraint expands to the displayed two-by-two matrix of scalar
+products. -/
 lemma red19z (A B C D : ℂ) :
     red0 C D * (redM A B)ᴴ + redP A B * (red0 C D)ᴴ =
       !![D * star A + B * star C, D * star B + B * star D;
@@ -59,23 +91,29 @@ lemma red19z (A B C D : ℂ) :
       Fin.cons_zero, Fin.cons_succ, Fin.reduceFinMk, Fin.isValue, Fin.succ_zero_eq_one] <;>
     ring_nf
 
+/-- The `(0, 0)` entry of the mixed reduced-weight expression is `D * star A + B * star C`. -/
 lemma red19z_00 (A B C D : ℂ) :
     (red0 C D * (redM A B)ᴴ + redP A B * (red0 C D)ᴴ) 0 0 = D * star A + B * star C := by
   rw [red19z]
   simp [Matrix.of_apply, Matrix.cons_val_zero]
 
+/-- The `(1, 0)` entry of the mixed reduced-weight expression is `C * star A + A * star C`. -/
 lemma red19z_10 (A B C D : ℂ) :
     (red0 C D * (redM A B)ᴴ + redP A B * (red0 C D)ᴴ) 1 0 = C * star A + A * star C := by
   rw [red19z]
   simp [Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.cons_val']
 
+/-- A complex number times its conjugate is the complex embedding of its squared norm. -/
 lemma mul_star_self_real (z : ℂ) : z * star z = ((Complex.normSq z : ℝ) : ℂ) := by
   simpa using Complex.mul_conj z
 
+/-- The real part of a complex number times its conjugate is its squared norm. -/
 lemma re_mul_star_self (z : ℂ) : (z * star z).re = Complex.normSq z := by
   rw [mul_star_self_real]
   simp
 
+/-- The real part of `z * star w` is half the difference between the squared norm of `z + w` and
+the two individual squared norms. -/
 lemma re_mul_star_eq_half (z w : ℂ) :
     (z * star w).re
       = (Complex.normSq (z + w) - Complex.normSq z - Complex.normSq w) / 2 := by
@@ -84,15 +122,18 @@ lemma re_mul_star_eq_half (z w : ℂ) :
   rw [h'] at h
   linarith
 
+/-- The real part of a conjugate product is unchanged when its two factors are interchanged. -/
 lemma re_mul_star_comm (z w : ℂ) : (z * star w).re = (w * star z).re := by
   rw [re_mul_star_eq_half, re_mul_star_eq_half, add_comm z w]
   ring
 
+/-- Multiplication by `w * i` scales a complex squared norm by `w²` for real `w`. -/
 lemma normSq_smul_I_mul (w : ℝ) (A : ℂ) :
     Complex.normSq (((w : ℝ) : ℂ) * Complex.I * A) = w * w * Complex.normSq A := by
   rw [Complex.normSq_mul, Complex.normSq_mul, Complex.normSq_ofReal, Complex.normSq_I]
   ring
 
+/-- Conjugating `w * i * A` for real `w` negates the imaginary factor and conjugates `A`. -/
 lemma star_smul_I (w : ℝ) (A : ℂ) :
     star (((w : ℝ) : ℂ) * Complex.I * A) = -(((w : ℝ) : ℂ) * Complex.I * star A) := by
   rw [star_mul, star_mul]
@@ -101,6 +142,8 @@ lemma star_smul_I (w : ℝ) (A : ℂ) :
   rw [hI, hw]
   ring
 
+/-- Multiplying both factors of a conjugate product by the same real multiple of `i` scales the
+product by the square of that real multiple. -/
 lemma mul_star_smul_I (w : ℝ) (A B : ℂ) :
     (((w : ℝ) : ℂ) * Complex.I * A) * star (((w : ℝ) : ℂ) * Complex.I * B)
       = ((w : ℝ) : ℂ) ^ 2 * (A * star B) := by
@@ -110,6 +153,7 @@ lemma mul_star_smul_I (w : ℝ) (A B : ℂ) :
       = -(((w : ℝ) : ℂ) * ((w : ℝ) : ℂ)) * (Complex.I * Complex.I) * (A * star B) := by ring
     _ = ((w : ℝ) : ℂ) ^ 2 * (A * star B) := by rw [hI]; ring
 
+/-- If `C * star A + A * star C = 0`, then the real part of `C * star A` vanishes. -/
 lemma re_mul_star_eq_zero {C A : ℂ} (h : C * star A + A * star C = 0) :
     (C * star A).re = 0 := by
   have hre := congrArg Complex.re h
@@ -118,6 +162,8 @@ lemma re_mul_star_eq_zero {C A : ℂ} (h : C * star A + A * star C = 0) :
   rw [hsym] at hre
   linarith
 
+/-- If `A` is nonzero and `C * star A` has zero real part, then `C` is a real multiple of `i *
+A`. -/
 lemma exists_smul_I {C A : ℂ} (hA : A ≠ 0) (h : (C * star A).re = 0) :
     ∃ w : ℝ, C = ((w : ℝ) : ℂ) * Complex.I * A := by
   have hns : Complex.normSq A ≠ 0 := by
@@ -146,6 +192,8 @@ lemma exists_smul_I {C A : ℂ} (hA : A ≠ 0) (h : (C * star A).re = 0) :
   push_cast
   field_simp
 
+/-- If `A ≠ 0`, `C = w * i * A`, and the displayed mixed constraint vanishes, then `D = w * i *
+B`. -/
 lemma eq_smul_I_of_add {C D B A : ℂ} (hA : A ≠ 0) {w : ℝ}
     (hC : C = ((w : ℝ) : ℂ) * Complex.I * A) (h : D * star A + B * star C = 0) :
     D = ((w : ℝ) : ℂ) * Complex.I * B := by
@@ -162,15 +210,20 @@ lemma eq_smul_I_of_add {C D B A : ℂ} (hA : A ≠ 0) {w : ℝ}
     simpa using this
   exact sub_eq_zero.mp ((mul_eq_zero.mp hzero).resolve_right hstarA)
 
+/-- Two factors of the complex imaginary unit, separated by a scalar product, contribute a minus
+sign. -/
 lemma I_mul_mul_I (a x : ℂ) : Complex.I * (a * (Complex.I * x)) = -(a * x) := by
   calc Complex.I * (a * (Complex.I * x)) = (Complex.I * Complex.I) * (a * x) := by ring
     _ = -(a * x) := by rw [Complex.I_mul_I]; ring
 
+/-- The product `c * i * (a * (i * x))` equals `-(c * (a * x))`. -/
 lemma smul_I_mul_mul_I (c a x : ℂ) :
     c * Complex.I * (a * (Complex.I * x)) = -(c * (a * x)) := by
   calc c * Complex.I * (a * (Complex.I * x)) = (Complex.I * Complex.I) * (c * a * x) := by ring
     _ = -(c * (a * x)) := by rw [Complex.I_mul_I]; ring
 
+/-- A normalized complex pair with vanishing symmetric conjugate cross term has the form of a
+common phase times `(i * sin φ, cos φ)`. See [Meyer1996a]. -/
 theorem pair_normal_form {x y : ℂ}
     (h1 : x * star x + y * star y = 1) (h2 : x * star y + y * star x = 0) :
     ∃ ψ φ : ℝ, x = Complex.exp ((ψ : ℂ) * Complex.I) * (Complex.I * (Real.sin φ : ℂ)) ∧
@@ -205,6 +258,9 @@ theorem pair_normal_form {x y : ℂ}
     rw [hy, hA', hB', exp_add_pi, sub_neg_eq_add]
     exact exp_cos_split ψ φ
 
+/-- For reduced weights with `A ≠ 0`, the normalization and mixed constraints give real
+parameters `ψ`, `ρ`, and `θ` expressing all four coefficients in the phase-weighted
+trigonometric form of Equation (24). See [Meyer1996a]. -/
 theorem eq24_classification {A B C D : ℂ} (hA : A ≠ 0)
     (h1 : redM A B * (redM A B)ᴴ + red0 C D * (red0 C D)ᴴ + redP A B * (redP A B)ᴴ = 1)
     (h2 : red0 C D * (redM A B)ᴴ + redP A B * (red0 C D)ᴴ = 0) :
@@ -351,6 +407,8 @@ theorem eq24_classification {A B C D : ℂ} (hA : A ≠ 0)
   · rw [hDw, hBs_inv, hBn, hsinρ']
     ring
 
+/-- If the reduced weights satisfy `Eq19` and `A ≠ 0`, they equal the Equation (24) weights
+multiplied by a common phase. See [Meyer1996a]. -/
 theorem eq24_classification_of_eq19 {A B C D : ℂ} (hA : A ≠ 0)
     (h19 : Eq19 (redM A B) (red0 C D) (redP A B)) :
     ∃ ψ ρ θ : ℝ,

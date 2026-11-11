@@ -8,6 +8,28 @@ import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
 import Qatlib.Concepts.ClassicalTape.TapeBoundary
 import Qatlib.Concepts.ClassicalTape.FairCoinTape
 import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilisticDefs
+
+/-!
+# Tape invariants for classical majority amplification
+
+This module describes the input and working tracks of a majority-vote tape machine. The cell
+functions `majInputCell` and `majRunCell` express the invariants used to copy an input, return
+the head to its origin, and simulate a component machine.
+
+The proofs account for the consumed coin prefix and transition count during copying. They
+provide implementation details for repetition and majority amplification in the computational
+setting of [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `maj_copy_run`: copying and returning to the origin use `3 * input.length + 2` transitions.
+* `maj_sim_step_some`: a component transition is simulated while preserving its working track.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClassicalTape.FairCoinTape
@@ -22,15 +44,20 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Turing
 open scoped Classical
 
+/-- The input tape cell at an integer position, with blank cells at negative positions and
+beyond the encoded input. -/
 def majInputCell (input : List Bool) (x : ℤ) : Option Bool :=
   if x < 0 then (none : Option Bool) else (standardBitEncode input).getI x.toNat
 
+/-- The standard bit encoding contains the input bit at each valid index and a blank at every
+later index. -/
 theorem standardBitEncode_getI (input : List Bool) (m : ℕ) :
     (standardBitEncode input).getI m = if m < input.length then some (input.getI m) else none := by
   unfold standardBitEncode
   rw [getI_map]
   split_ifs <;> rfl
 
+/-- The track encoding places the input on track zero and leaves all other tracks blank. -/
 theorem tracksEncode_getI (m : ℕ) (input : List Bool) (x : ℕ) :
     (tracksEncode m input).getI x =
       if x < input.length then (fun t : Fin m => if t.val = 0 then some (input.getI x) else none)
@@ -38,17 +65,22 @@ theorem tracksEncode_getI (m : ℕ) (input : List Bool) (x : ℕ) :
   unfold tracksEncode
   rw [getI_map]
 
+/-- At a natural-number position, `majInputCell` is the corresponding input bit when in range
+and is blank otherwise. -/
 theorem majInputCell_ofNat (input : List Bool) (m : ℕ) :
     majInputCell input m = if m < input.length then some (input.getI m) else none := by
   unfold majInputCell
   rw [if_neg (by omega : ¬((m : ℤ) < 0)), Int.toNat_natCast]
   rw [standardBitEncode_getI]
 
+/-- Every negative integer position of `majInputCell` is blank. -/
 theorem majInputCell_negSucc (input : List Bool) (m : ℕ) :
     majInputCell input (Int.negSucc m) = (none : Option Bool) := by
   unfold majInputCell
   rw [if_pos (Int.negSucc_lt_zero m)]
 
+/-- Evaluation of the track encoding at a given track yields an input bit only on track zero and
+within the input length. -/
 theorem tracksEncode_getI_apply (m : ℕ) (input : List Bool) (x : ℕ) (t : Fin m) :
     (tracksEncode m input).getI x t =
       if t.val = 0 then if x < input.length then some (input.getI x) else none
@@ -66,10 +98,14 @@ theorem tracksEncode_getI_apply (m : ℕ) (input : List Bool) (x : ℕ) (t : Fin
     · rw [if_pos ht, if_neg hx]
     · rw [if_neg ht]
 
+/-- At a nonnegative position, the majority input cell is the input bit precisely when the index
+lies within the input. -/
 theorem majInputCell_ofNat' (input : List Bool) (m : ℕ) :
     majInputCell input m = if m < input.length then some (input.getI m) else none :=
   majInputCell_ofNat input m
 
+/-- The initialized majority tape contains `majInputCell` on track zero and blank cells on all
+working tracks. -/
 theorem init_majorityEncode_nth {Q r : ℕ}
     (input : List Bool) (x : ℤ) (t : Fin (2 * r + 2)) :
     (((Turing.TM0.init (majorityEncode r input) :
@@ -93,6 +129,7 @@ theorem init_majorityEncode_nth {Q r : ℕ}
     · rw [if_pos ht, if_pos ht, hxc]
     · rw [if_neg ht, if_neg ht]
 
+/-- The majority machine starts in the first copy-write state with zero tally and zero position. -/
 theorem init_majorityEncode_zero {Q r : ℕ} (input : List Bool) :
     Turing.TM0.init (majorityEncode r input) =
       (⟨.copyW ⟨0, by omega⟩ 0 0,
@@ -101,9 +138,12 @@ theorem init_majorityEncode_zero {Q r : ℕ} (input : List Bool) :
         Turing.TM0.Cfg (Tracks (2 * r + 2)) (MajCtrl Q r)) := by
   rfl
 
+/-- The partially copied working-track cell, retaining the input strictly before `pos` and
+remaining blank from `pos` onward. -/
 def majRunCell (input : List Bool) (pos : ℕ) (x : ℤ) : Option Bool :=
   if x < (pos : ℤ) then majInputCell input x else (none : Option Bool)
 
+/-- The working track is blank before any input positions have been copied. -/
 theorem majRunCell_zero (input : List Bool) (x : ℤ) :
     majRunCell input 0 x = (none : Option Bool) := by
   unfold majRunCell
@@ -112,6 +152,8 @@ theorem majRunCell_zero (input : List Bool) (x : ℤ) :
   · rw [if_pos hx, majInputCell, if_pos hx]
   · rw [if_neg hx]
 
+/-- After copying the full input length, the working-track cell agrees with the input cell
+everywhere. -/
 theorem majRunCell_end (input : List Bool) (x : ℤ) :
     majRunCell input input.length x = majInputCell input x := by
   by_cases hx : x < (input.length : ℤ)
@@ -124,6 +166,8 @@ theorem majRunCell_end (input : List Bool) (x : ℤ) :
       rw [majInputCell, if_neg h0]
       rw [standardBitEncode_getI, if_neg (by omega)]
 
+/-- Advancing the copy boundary by one replaces exactly the cell at the old boundary with its
+input cell. -/
 theorem majRunCell_succ (input : List Bool) (pos : ℕ) (x : ℤ) :
     majRunCell input (pos + 1) x =
       if x = (pos : ℤ) then majInputCell input x else majRunCell input pos x := by
@@ -136,6 +180,7 @@ theorem majRunCell_succ (input : List Bool) (pos : ℕ) (x : ℤ) :
     · rw [majRunCell, majRunCell, if_pos h, if_pos (by omega)]
     · rw [majRunCell, majRunCell, if_neg h, if_neg (by omega)]
 
+/-- A simulation working track has an index distinct from the input track zero. -/
 theorem runTrackIdx_ne_zero {r : ℕ} (j : Fin (2 * r + 1)) :
     runTrackIdx r j ≠ (0 : Fin (2 * r + 2)) := by
   intro h
@@ -143,16 +188,20 @@ theorem runTrackIdx_ne_zero {r : ℕ} (j : Fin (2 * r + 1)) :
   simp only [runTrackIdx, Fin.val_zero] at h2
   omega
 
+/-- The input track zero is distinct from every simulation working track. -/
 theorem runTrackIdx_ne_zero' {r : ℕ} (j : Fin (2 * r + 1)) :
     (0 : Fin (2 * r + 2)) ≠ runTrackIdx r j :=
   Ne.symm (runTrackIdx_ne_zero j)
 
+/-- Successive additions to the transition-count component combine into addition by their sum. -/
 theorem prod_map_add (m n : ℕ) (p : Option Bool × ℕ) :
     Prod.map id (· + m) (Prod.map id (· + n) p) = Prod.map id (· + (n + m)) p := by
   rcases p with ⟨a, b⟩
   simp [Prod.map]
   omega
 
+/-- The input-track invariant identifies the head symbol on track zero with the input cell at
+the current position. -/
 theorem maj_sym_zero {input : List Bool} {pos : ℕ} {r : ℕ}
     {T : Turing.Tape (Tracks (2 * r + 2))}
     (h0 : ∀ i : ℤ, (T.nth i) 0 = majInputCell input ((pos : ℤ) + i)) :
@@ -161,6 +210,8 @@ theorem maj_sym_zero {input : List Bool} {pos : ℕ} {r : ℕ}
   have h := h0 0
   simpa using h
 
+/-- Within the input, the copy-write transition writes the current bit to the selected working
+track and enters the copy-move state. -/
 theorem maj_copyW_tab_write {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (input : List Bool) (j : Fin (2 * r + 1))
@@ -179,6 +230,8 @@ theorem maj_copyW_tab_write {Q r : ℕ}
     | none => some (MajCtrl.copyHome j tally pos, Turing.TM0.Stmt.write T.head)) = _
   rw [hsym]
 
+/-- At or beyond the input length, the copy-write transition preserves the head symbols and
+enters the return-home state. -/
 theorem maj_copyW_tab_blank {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (input : List Bool) (j : Fin (2 * r + 1))
@@ -197,6 +250,8 @@ theorem maj_copyW_tab_blank {Q r : ℕ}
     | none => some (MajCtrl.copyHome j tally pos, Turing.TM0.Stmt.write T.head)) = _
   rw [hsym]
 
+/-- Under the input and working-track invariants, a copy-write step writes the current input bit
+to the selected working track. -/
 theorem maj_copyW_write {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (input : List Bool) (j : Fin (2 * r + 1))
@@ -213,6 +268,8 @@ theorem maj_copyW_write {Q r : ℕ}
   exact TM0_step_eq_some (majorityTable Q r M acceptM c)
     (⟨.copyW j tally pos, T⟩ : Turing.TM0.Cfg (Tracks (2 * r + 2)) (MajCtrl Q r)) _ _ htab
 
+/-- Writing the next copied bit preserves the input track and advances the working-track copy
+boundary by one. -/
 theorem maj_write_inv {input : List Bool} {r : ℕ} {j : Fin (2 * r + 1)} {pos : ℕ}
     {T : Turing.Tape (Tracks (2 * r + 2))}
     (hpos : pos < input.length)
@@ -248,6 +305,7 @@ theorem maj_write_inv {input : List Bool} {r : ℕ} {j : Fin (2 * r + 1)} {pos :
         exact absurd this hi
       · rw [if_neg he]
 
+/-- The copy-move transition moves right and increments the input position. -/
 theorem maj_copyM_tab {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (j : Fin (2 * r + 1)) (tally pos : ℕ)
@@ -255,6 +313,8 @@ theorem maj_copyM_tab {Q r : ℕ}
     majorityTable Q r M acceptM c (.copyM j tally pos) T.head
       = some (.copyW j tally (pos + 1), .move Turing.Dir.right) := rfl
 
+/-- A copy-move machine step advances to the next copy-write state with the tape moved one cell
+right. -/
 theorem maj_copyM_run {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (j : Fin (2 * r + 1)) (tally pos : ℕ)
@@ -266,6 +326,8 @@ theorem maj_copyM_run {Q r : ℕ}
     (⟨.copyM j tally pos, T⟩ : Turing.TM0.Cfg (Tracks (2 * r + 2)) (MajCtrl Q r)) _ _
     (maj_copyM_tab M acceptM j tally pos T c)
 
+/-- A return-home transition at positive position moves left and decrements the position
+counter. -/
 theorem maj_copyHome_tab {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (j : Fin (2 * r + 1)) (tally pos : ℕ)
@@ -273,6 +335,8 @@ theorem maj_copyHome_tab {Q r : ℕ}
     majorityTable Q r M acceptM c (.copyHome j tally (pos + 1)) T.head
       = some (.copyHome j tally pos, .move Turing.Dir.left) := rfl
 
+/-- At position zero, the return-home transition preserves the tape and enters the initial
+component simulation state. -/
 theorem maj_copyHome0_tab {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (j : Fin (2 * r + 1)) (tally : ℕ)
@@ -280,6 +344,8 @@ theorem maj_copyHome0_tab {Q r : ℕ}
     majorityTable Q r M acceptM c (.copyHome j tally 0) T.head
       = some (.simQ j ⟨0, by omega⟩ tally 0, .write T.head) := rfl
 
+/-- With enough coins, returning home consumes `pos + 1` transitions and restores both track
+invariants relative to the origin. -/
 theorem maj_copyHome_run {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (input : List Bool) (j : Fin (2 * r + 1))
@@ -367,6 +433,8 @@ theorem maj_copyHome_run {Q r : ℕ}
     refine ⟨T', ?_, h0T', hjT'⟩
     rw [hr, hdrop, prod_map_add]
 
+/-- At the input length, a copy-write machine step preserves the tape contents and begins
+returning home. -/
 theorem maj_copyW_blank {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (input : List Bool) (j : Fin (2 * r + 1))
@@ -380,6 +448,8 @@ theorem maj_copyW_blank {Q r : ℕ}
   exact TM0_step_eq_some (majorityTable Q r M acceptM c)
     (⟨.copyW j tally input.length, T⟩ : Turing.TM0.Cfg (Tracks (2 * r + 2)) (MajCtrl Q r)) _ _ htab
 
+/-- Copying the remaining `d` input positions consumes `2 * d` transitions and establishes the
+completed-copy invariant. -/
 theorem maj_copyW_loop {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (input : List Bool) (j : Fin (2 * r + 1))
@@ -482,6 +552,8 @@ theorem maj_copyW_loop {Q r : ℕ}
       rw [List.drop_succ_cons, List.drop_succ_cons]
     rw [hr, hnum, hdrop, prod_map_add, prod_map_add]
 
+/-- Copying an initially blank working track and returning home consumes `3 * input.length + 2`
+transitions, leaving both selected tracks equal to the input. -/
 theorem maj_copy_run {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (input : List Bool) (j : Fin (2 * r + 1))
@@ -550,6 +622,8 @@ theorem maj_copy_run {Q r : ℕ}
   · intro i
     erw [hj' i, majRunCell_end]
 
+/-- The simulation transition cases can be combined into a single `some` value, including the
+transition to tallying when the component halts. -/
 theorem maj_sim_tab {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (j : Fin (2 * r + 1)) (q : Fin (Q + 1))
@@ -572,6 +646,8 @@ theorem maj_sim_tab {Q r : ℕ}
     rcases p with ⟨q', stmt⟩
     cases stmt <;> rfl
 
+/-- A successful component step has a corresponding majority-machine step preserving the
+selected working track; its offset stays fixed or changes by one tape move. -/
 theorem maj_sim_step_some {Q r : ℕ}
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (Q + 1)))
     (acceptM : Fin (Q + 1) → Bool) (j : Fin (2 * r + 1)) (q : Fin (Q + 1))

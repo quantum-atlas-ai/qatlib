@@ -6,32 +6,65 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.GaussianFFTDefs
 
+/-!
+# Binary arithmetic with explicit charges
+
+This module implements natural and signed binary multiplication and long division, recording
+rounds and explicit arithmetic charges. `gaussianBinaryComplexMul` combines four signed products
+and two signed divisions to compute the shared-denominator product of Gaussian dyadic scalars.
+Classical arithmetic as a computational building block is discussed in [KitaevShenVyalyi2002].
+
+Correctness theorems identify the returned values with integer arithmetic. The charge
+certificates give quadratic bounds in operand bit sizes, including a bound from a uniform width
+estimate on `gaussianMulWork`.
+
+## Main statements
+
+* `gaussian_signed_division_correct`: signed division returns integer quotient and remainder
+  with the stated round count.
+* `gaussian_signed_mul_certificate`: signed multiplication is correct and has a quadratic charge
+  bound.
+* `gaussian_binary_complex_certificate`: complex multiplication agrees with
+  `gaussianScalarMulShared` and has a quadratic work-width charge bound.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option autoImplicit false
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput
 open scoped BigOperators
 
+/-- Stores a natural-number quotient, remainder, and binary-division round count. -/
 structure GaussianNaturalDivisionRun where
   quotient : ℕ
   remainder : ℕ
   rounds : ℕ
   deriving Repr, DecidableEq
 
+/-- Processes one binary digit by doubling the current remainder, appending the digit,
+conditionally subtracting `D`, and updating the quotient and round count. -/
 def gaussianDivisionStep (D : ℕ) (bit : Bool) (r : GaussianNaturalDivisionRun) :
     GaussianNaturalDivisionRun :=
   let trial := Nat.bit bit r.remainder
   if D ≤ trial then ⟨Nat.bit true r.quotient, trial - D, r.rounds + 1⟩
   else ⟨Nat.bit false r.quotient, trial, r.rounds + 1⟩
 
+/-- Computes a natural-number division run by binary recursion over the dividend. -/
 def gaussianNaturalDivision (D n : ℕ) : GaussianNaturalDivisionRun :=
   Nat.binaryRec (motive := fun _ => GaussianNaturalDivisionRun) ⟨0, 0, 0⟩
     (fun bit _ r => gaussianDivisionStep D bit r) n
 
+/-- Stores an integer quotient and remainder together with the binary-division round count. -/
 structure GaussianSignedDivisionRun where
   quotient : ℤ
   remainder : ℤ
   rounds : ℕ
   deriving Repr, DecidableEq
 
+/-- Divides the absolute dividend by `D` and adjusts signs to integer quotient and remainder
+conventions, returning quotient zero and remainder `n` when `D = 0`. -/
 def gaussianSignedDivision (n : ℤ) (D : ℕ) : GaussianSignedDivisionRun :=
   if D = 0 then ⟨0, n, 0⟩ else
   let r := gaussianNaturalDivision D n.natAbs
@@ -39,27 +72,35 @@ def gaussianSignedDivision (n : ℤ) (D : ℕ) : GaussianSignedDivisionRun :=
   if r.remainder = 0 then ⟨-(r.quotient : ℤ), 0, r.rounds⟩ else
     ⟨-(r.quotient : ℤ) - 1, (D : ℤ) - r.remainder, r.rounds⟩
 
+/-- Assigns an explicit charge to one division step from the bit sizes of the tail input,
+quotient, remainder, divisor, and round counter. -/
 def gaussianDivisionStepCharge (D tailInput : ℕ) (bit : Bool) (r : GaussianNaturalDivisionRun) : ℕ :=
   let trial := Nat.bit bit r.remainder
   let width := max D.size trial.size + 1
   4 * (tailInput.size + 1) + 2 * (r.quotient.size + 1) + 2 * (r.remainder.size + 1) +
     2 * width + (if D ≤ trial then width else 0) + (r.rounds.size + 1) + 4
 
+/-- Pairs a natural-number division run with its accumulated arithmetic charge. -/
 structure GaussianNaturalDivisionCharged where
   value : GaussianNaturalDivisionRun
   charge : ℕ
   deriving Repr, DecidableEq
 
+/-- Runs natural binary division while accumulating the initial divisor charge and each
+`gaussianDivisionStepCharge`. -/
 def gaussianChargedNaturalDivision (D n : ℕ) : GaussianNaturalDivisionCharged :=
   Nat.binaryRec (motive := fun _ => GaussianNaturalDivisionCharged) ⟨⟨0, 0, 0⟩, D.size + 1⟩
     (fun bit tailInput r => ⟨gaussianDivisionStep D bit r.value,
       r.charge + gaussianDivisionStepCharge D tailInput bit r.value⟩) n
 
+/-- Pairs a signed division run with its accumulated arithmetic charge. -/
 structure GaussianSignedDivisionCharged where
   value : GaussianSignedDivisionRun
   charge : ℕ
   deriving Repr, DecidableEq
 
+/-- Runs signed division with charges for natural division and sign adjustment, handling a zero
+divisor separately. -/
 def gaussianChargedSignedDivision (n : ℤ) (D : ℕ) : GaussianSignedDivisionCharged :=
   if D = 0 then ⟨⟨0, n, 0⟩, n.natAbs.size + 1⟩ else
   let r := gaussianChargedNaturalDivision D n.natAbs
@@ -69,40 +110,51 @@ def gaussianChargedSignedDivision (n : ℤ) (D : ℕ) : GaussianSignedDivisionCh
       ⟨-(r.value.quotient : ℤ) - 1, (D : ℤ) - r.value.remainder, r.value.rounds⟩
   ⟨value, r.charge + 6 * (n.natAbs.size + D.size + 2)⟩
 
+/-- Stores a natural-number product accumulator, round count, and arithmetic charge. -/
 structure GaussianNaturalMulRun where
   value : ℕ
   rounds : ℕ
   charge : ℕ
   deriving Repr, DecidableEq
 
+/-- Assigns a binary multiplication step a charge based on operand and accumulator widths, the
+conditional addition, and the round counter. -/
 def gaussianMulStepCharge (y tailInput : ℕ) (bit : Bool) (r : GaussianNaturalMulRun) : ℕ :=
   4 * (tailInput.size + 1) + 2 * (r.value.size + 1) +
     (if bit then max (r.value + r.value).size y.size + 1 else 0) +
     (r.rounds.size + 1) + 4
 
+/-- Multiplies natural numbers by binary recursion on the first operand, recording the value,
+rounds, and accumulated charge. -/
 def gaussianNaturalMul (x y : ℕ) : GaussianNaturalMulRun :=
   Nat.binaryRec (motive := fun _ => GaussianNaturalMulRun) ⟨0, 0, y.size + 1⟩
     (fun bit tailInput r =>
       ⟨r.value + r.value + (if bit then y else 0), r.rounds + 1,
         r.charge + gaussianMulStepCharge y tailInput bit r⟩) x
 
+/-- Stores a signed binary multiplication value, round count, and arithmetic charge. -/
 structure GaussianBinaryMulRun where
   value : ℤ
   rounds : ℕ
   charge : ℕ
   deriving Repr, DecidableEq
 
+/-- Multiplies absolute values by `gaussianNaturalMul`, restores the product sign, and adds a
+sign-processing charge. -/
 def gaussianSignedMul (x y : ℤ) : GaussianBinaryMulRun :=
   let r := gaussianNaturalMul x.natAbs y.natAbs
   let value : ℤ := if x < 0 then (if y < 0 then r.value else -(r.value : ℤ))
     else (if y < 0 then -(r.value : ℤ) else r.value)
   ⟨value, r.rounds, r.charge + 6 * (x.natAbs.size + y.natAbs.size + 2)⟩
 
+/-- Stores a Gaussian dyadic scalar result together with its arithmetic charge. -/
 structure GaussianBinaryScalarRun where
   value : GaussianDyadicScalar
   charge : ℕ
   deriving Repr, DecidableEq
 
+/-- Computes a shared-denominator Gaussian scalar product using four charged signed
+multiplications, two component combinations, and two charged signed divisions. -/
 def gaussianBinaryComplexMul (D : ℕ) (x y : GaussianDyadicScalar) : GaussianBinaryScalarRun :=
   let ac := gaussianSignedMul x.1 y.1
   let bd := gaussianSignedMul x.2 y.2
@@ -115,6 +167,8 @@ def gaussianBinaryComplexMul (D : ℕ) (x y : GaussianDyadicScalar) : GaussianBi
   ⟨(re.value.quotient, im.value.quotient),
     ac.charge + bd.charge + ad.charge + bc.charge + adds + re.charge + im.charge⟩
 
+/-- If the absolute operand bit sizes are bounded by `a` and `b`, the absolute product bit size
+is at most `a + b`. -/
 theorem gaussian_integer_mul_bits (x y : ℤ) (a b : ℕ)
     (hx : x.natAbs.size ≤ a) (hy : y.natAbs.size ≤ b) : (x * y).natAbs.size ≤ a + b := by
   apply Nat.size_le.mpr
@@ -122,6 +176,8 @@ theorem gaussian_integer_mul_bits (x y : ℤ) (a b : ℕ)
   exact (Nat.mul_le_mul_right y.natAbs (Nat.size_le.mp hx).le).trans_lt
     (Nat.mul_lt_mul_of_pos_left (Nat.size_le.mp hy) (by positivity))
 
+/-- If the absolute operand bit sizes are bounded by `a` and `b`, the absolute sum bit size is
+at most `max a b + 1`. -/
 theorem gaussian_integer_add_bits (x y : ℤ) (a b : ℕ)
     (hx : x.natAbs.size ≤ a) (hy : y.natAbs.size ≤ b) :
     (x + y).natAbs.size ≤ max a b + 1 := by
@@ -134,12 +190,16 @@ theorem gaussian_integer_add_bits (x y : ℤ) (a b : ℕ)
   rw [pow_succ]
   omega
 
+/-- For a canonical nonzero binary constructor, natural division unfolds to one division step
+applied to the tail's run. -/
 private theorem natural_division_bit (D n : ℕ) (bit : Bool) (h : n = 0 → bit = true) :
     gaussianNaturalDivision D (Nat.bit bit n) =
       gaussianDivisionStep D bit (gaussianNaturalDivision D n) := by
   unfold gaussianNaturalDivision
   rw [Nat.binaryRec_eq bit n (.inr h)]
 
+/-- For a positive divisor, natural binary division returns a quotient and remainder satisfying
+the division identity and remainder bound, with rounds equal to the dividend bit size. -/
 theorem gaussian_natural_division_correct (D n : ℕ) (hD : 0 < D) :
     let r := gaussianNaturalDivision D n
     r.remainder + D * r.quotient = n ∧ r.remainder < D ∧ r.rounds = n.size := by
@@ -162,6 +222,8 @@ theorem gaussian_natural_division_correct (D n : ℕ) (hD : 0 < D) :
       · cases bit <;> simp [Nat.bit] at ⊢ <;> nlinarith only [hi]
       · rw [hs, Nat.size_bit hne]
 
+/-- Signed binary division returns the integer quotient and remainder, with zero rounds for a
+zero divisor and otherwise the absolute dividend's bit size. -/
 theorem gaussian_signed_division_correct (n : ℤ) (D : ℕ) :
     let r := gaussianSignedDivision n D
     r.quotient = n / (D : ℤ) ∧ r.remainder = n % (D : ℤ) ∧
@@ -199,6 +261,8 @@ theorem gaussian_signed_division_correct (n : ℤ) (D : ℕ) :
   simp only [if_neg hD]
   split_ifs <;> exact hc.2.2
 
+/-- For a canonical binary constructor, charged natural division unfolds to the tail run
+followed by one charged division step. -/
 private theorem charged_natural_bit (D n : ℕ) (bit : Bool) (hb : n = 0 → bit = true) :
     gaussianChargedNaturalDivision D (Nat.bit bit n) =
       ⟨gaussianDivisionStep D bit (gaussianChargedNaturalDivision D n).value,
@@ -207,6 +271,7 @@ private theorem charged_natural_bit (D n : ℕ) (bit : Bool) (hb : n = 0 → bit
   unfold gaussianChargedNaturalDivision
   rw [Nat.binaryRec_eq bit n (.inr hb)]
 
+/-- The value component of charged natural division equals the uncharged natural division run. -/
 theorem gaussian_charged_natural_value (D n : ℕ) :
     (gaussianChargedNaturalDivision D n).value = gaussianNaturalDivision D n := by
   induction n using Nat.binaryRec' with
@@ -218,6 +283,8 @@ theorem gaussian_charged_natural_value (D n : ℕ) :
     unfold gaussianNaturalDivision
     rw [Nat.binaryRec_eq bit n (.inr hb)]
 
+/-- For a positive divisor and canonical binary digit, the division-step charge is at most 16
+times the sum of the new dividend bit size, divisor bit size, and two. -/
 private theorem division_step_charge_bound (D n : ℕ) (bit : Bool) (hD : 0 < D)
     (hb : n = 0 → bit = true) :
     gaussianDivisionStepCharge D n bit (gaussianNaturalDivision D n) ≤
@@ -240,6 +307,8 @@ private theorem division_step_charge_bound (D n : ℕ) (bit : Bool) (hD : 0 < D)
   dsimp only [gaussianDivisionStepCharge]
   split_ifs <;> omega
 
+/-- For a positive divisor, the total natural division charge is at most `D.size + 1 + 16 *
+n.size * (n.size + D.size + 2)`. -/
 theorem gaussian_charged_natural_bound (D n : ℕ) (hD : 0 < D) :
     (gaussianChargedNaturalDivision D n).charge ≤
       D.size + 1 + 16 * n.size * (n.size + D.size + 2) := by
@@ -254,6 +323,8 @@ theorem gaussian_charged_natural_bound (D n : ℕ) (hD : 0 < D) :
     rw [hn] at hstep ⊢
     nlinarith only [ih, hstep]
 
+/-- Charged signed division returns the uncharged signed run and has charge at most `64 *
+(n.natAbs.size + D.size + 2) ^ 2`. -/
 theorem gaussian_charged_signed_certificate (n : ℤ) (D : ℕ) :
     let r := gaussianChargedSignedDivision n D
     r.value = gaussianSignedDivision n D ∧
@@ -281,6 +352,8 @@ theorem gaussian_charged_signed_certificate (n : ℤ) (D : ℕ) :
   change (gaussianChargedNaturalDivision D n.natAbs).charge ≤ D.size + 1 + 16 * n.natAbs.size * W at hcost
   nlinarith only [hcost, hm, hsq, hDsmall]
 
+/-- For a canonical binary constructor, natural multiplication doubles the tail product,
+conditionally adds the second operand, and updates rounds and charge. -/
 private theorem natural_mul_bit (x y : ℕ) (bit : Bool) (hb : x = 0 → bit = true) :
     gaussianNaturalMul (Nat.bit bit x) y =
       let r := gaussianNaturalMul x y
@@ -289,6 +362,7 @@ private theorem natural_mul_bit (x y : ℕ) (bit : Bool) (hb : x = 0 → bit = t
   unfold gaussianNaturalMul
   rw [Nat.binaryRec_eq bit x (.inr hb)]
 
+/-- Natural binary multiplication returns `x * y` with round count `x.size`. -/
 theorem gaussian_natural_mul_value (x y : ℕ) :
     (gaussianNaturalMul x y).value = x * y ∧ (gaussianNaturalMul x y).rounds = x.size := by
   induction x using Nat.binaryRec' with
@@ -301,11 +375,14 @@ theorem gaussian_natural_mul_value (x y : ℕ) :
     · cases bit <;> simp [Nat.bit] <;> ring
     · rfl
 
+/-- The bit size of a natural-number product is at most the sum of the operand bit sizes. -/
 private theorem natural_mul_bits (x y : ℕ) : (x * y).size ≤ x.size + y.size := by
   have h := gaussian_integer_mul_bits (x : ℤ) (y : ℤ) x.size y.size
     (by simp) (by simp)
   simpa only [← Nat.cast_mul, Int.natAbs_natCast] using h
 
+/-- For a canonical binary digit, the multiplication-step charge is at most 16 times the sum of
+the new first-operand bit size, second-operand bit size, and two. -/
 private theorem mul_step_charge_bound (x y : ℕ) (bit : Bool) (hb : x = 0 → bit = true) :
     gaussianMulStepCharge y x bit (gaussianNaturalMul x y) ≤
       16 * ((Nat.bit bit x).size + y.size + 2) := by
@@ -324,6 +401,8 @@ private theorem mul_step_charge_bound (x y : ℕ) (bit : Bool) (hb : x = 0 → b
   dsimp only [gaussianMulStepCharge]
   split_ifs <;> omega
 
+/-- The natural multiplication charge is at most `y.size + 1 + 16 * x.size * (x.size + y.size +
+2)`. -/
 private theorem natural_mul_charge_bound (x y : ℕ) :
     (gaussianNaturalMul x y).charge ≤ y.size + 1 + 16 * x.size * (x.size + y.size + 2) := by
   induction x using Nat.binaryRec' with
@@ -336,6 +415,8 @@ private theorem natural_mul_charge_bound (x y : ℕ) :
     rw [hn] at hs ⊢
     nlinarith only [ih, hs]
 
+/-- Signed binary multiplication returns the integer product in `x.natAbs.size` rounds, with
+charge at most `64 * (x.natAbs.size + y.natAbs.size + 2) ^ 2`. -/
 theorem gaussian_signed_mul_certificate (x y : ℤ) :
     let r := gaussianSignedMul x y
     r.value = x * y ∧ r.rounds = x.natAbs.size ∧
@@ -362,18 +443,24 @@ theorem gaussian_signed_mul_certificate (x y : ℤ) :
     change (gaussianNaturalMul x.natAbs y.natAbs).charge + 6 * W ≤ 64 * W ^ 2
     nlinarith only [hh, hm, hs, hy]
 
+/-- Bounds the signed multiplication charge by the natural multiplication charge expression plus
+the explicit sign-processing allowance. -/
 theorem gaussian_signed_mul_operand_charge (x y : ℤ) :
     (gaussianSignedMul x y).charge ≤ y.natAbs.size + 1 +
       16 * x.natAbs.size * (x.natAbs.size + y.natAbs.size + 2) +
       6 * (x.natAbs.size + y.natAbs.size + 2) := by
   exact Nat.add_le_add_right (natural_mul_charge_bound x.natAbs y.natAbs) _
 
+/-- The charged binary Gaussian product agrees with `gaussianScalarMulShared` at denominator
+`D`. -/
 theorem gaussian_binary_complex_value (D : ℕ) (x y : GaussianDyadicScalar) :
     (gaussianBinaryComplexMul D x y).value = gaussianScalarMulShared (D : ℤ) x y := by
   dsimp only [gaussianBinaryComplexMul, gaussianScalarMulShared]
   simp only [(gaussian_signed_mul_certificate _ _).1,
     (gaussian_charged_signed_certificate _ _).1, (gaussian_signed_division_correct _ _).1]
 
+/-- The binary Gaussian product agrees with shared-denominator multiplication, and a width bound
+`W` on all multiplication work values gives charge at most `2048 * (W + 1) ^ 2`. -/
 theorem gaussian_binary_complex_certificate (D : ℕ) (x y : GaussianDyadicScalar) :
     (gaussianBinaryComplexMul D x y).value = gaussianScalarMulShared (D : ℤ) x y ∧
     (∀ W : ℕ, (∀ z ∈ gaussianMulWork (D : ℤ) x y, z.natAbs.size ≤ W) →

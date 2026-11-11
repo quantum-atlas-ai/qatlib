@@ -2,8 +2,6 @@ name = "Qatlib"
 defaultTargets = ["Qatlib"]
 lintDriver = "lint"
 testDriver = "test"
-enableArtifactCache = true
-restoreAllArtifacts = true
 
 [leanOptions]
 autoImplicit = false

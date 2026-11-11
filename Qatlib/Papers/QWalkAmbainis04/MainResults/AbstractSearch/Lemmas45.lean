@@ -114,6 +114,36 @@ import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 import Qatlib.Papers.QWalkAmbainis04.MainResults.AbstractSearch.EigenEngine
 import Qatlib.Papers.QWalkAmbainis04.MainResults.AbstractSearch.Quantitative
+
+/-!
+# Abstract search norm and overlap estimates
+
+This module specializes the abstract search eigenvector construction to a zero-phase coordinate
+and paired coordinates with phases `θ j` and `-θ j`. It defines the scaled sum `wGood` and
+scaled difference `wStart`, computes their squared norms, and develops the overlap estimates
+associated with Lemmas 4 and 5 of [AmbainisKempeRivosh2004].
+
+The results retain explicit constants and phase separation hypotheses. The theorem
+`corollary2_rotation` gives an exact sine identity for the overlap after `t` steps, while
+`corollary2_lower` supplies the corresponding elementary bound near angle `π / 4`.
+
+## Main statements
+
+* `lemma5_overlap_sq` expresses `2 / normSq (wGood ...)` as a reciprocal spectral sum.
+* `lemma5_overlap_lower` bounds this ratio below by one ninth of a truncated reciprocal
+  cotangent sum.
+* `normSq_wStart_eq` and `lemma4_overlap_sq` compute the squared norm and
+  distinguished-coordinate overlap of `wStart`.
+* `lemma4_overlap_lower` bounds the norm of `wStart` in terms of its distinguished-coordinate
+  overlap and an explicit error term.
+* `corollary2_rotation` and `corollary2_lower` give the exact sine overlap and a bound at the
+  selected rotation time.
+
+## References
+
+* [Ambainis et al., 2004][AmbainisKempeRivosh2004]
+-/
+
 set_option warningAsError false
 
 open Matrix
@@ -129,10 +159,13 @@ open Eigen Quantitative
 
 variable {m : ℕ}
 
+/-- The real cotangent function is odd. -/
 lemma cot_neg' (x : ℝ) : Real.cot (-x) = -Real.cot x := by
   rw [Real.cot_eq_cos_div_sin, Real.cot_eq_cos_div_sin, Real.cos_neg, Real.sin_neg]
   exact div_neg _
 
+/-- When `sin x` and `sin y` are nonzero, the difference `cot x - cot y` equals `sin (y - x) /
+(sin x * sin y)`. -/
 lemma cot_sub_eq (x y : ℝ) (hx : Real.sin x ≠ 0) (hy : Real.sin y ≠ 0) :
     Real.cot x - Real.cot y = Real.sin (y - x) / (Real.sin x * Real.sin y) := by
   rw [Real.cot_eq_cos_div_sin, Real.cot_eq_cos_div_sin]
@@ -140,6 +173,8 @@ lemma cot_sub_eq (x y : ℝ) (hx : Real.sin x ≠ 0) (hy : Real.sin y ≠ 0) :
   rw [Real.sin_sub]
   ring
 
+/-- Under the stated nonvanishing hypotheses, the cotangent difference at `(α - θ) / 2` and `(α
++ θ) / 2` equals `2 * sin θ / (cos θ - cos α)`. -/
 lemma cot_pair_diff {α θ : ℝ}
     (h1 : Real.sin ((α - θ) / 2) ≠ 0) (h2 : Real.sin ((α + θ) / 2) ≠ 0)
     (_hcos : Real.cos θ ≠ Real.cos α) :
@@ -158,11 +193,13 @@ lemma cot_pair_diff {α θ : ℝ}
   rw [hprod]
   field_simp [h1, h2]
 
+/-- Real cotangent is positive on the interval `(0, π / 2)`. -/
 lemma cot_pos' {x : ℝ} (h0 : 0 < x) (hπ : x < Real.pi / 2) : 0 < Real.cot x := by
   rw [Real.cot_eq_cos_div_sin]
   exact div_pos (Real.cos_pos_of_mem_Ioo ⟨by linarith, hπ⟩)
     (Real.sin_pos_of_pos_of_lt_pi h0 (by linarith))
 
+/-- For `0 < x ≤ y < π`, one has `cot y ≤ cot x`. -/
 lemma cot_le_cot {x y : ℝ} (hx0 : 0 < x) (hxy : x ≤ y) (hyπ : y < Real.pi) :
     Real.cot y ≤ Real.cot x := by
   rcases lt_or_eq_of_le hxy with hlt | heq
@@ -177,6 +214,7 @@ lemma cot_le_cot {x y : ℝ} (hx0 : 0 < x) (hxy : x ≤ y) (hyπ : y < Real.pi) 
     linarith [h]
   · rw [heq]
 
+/-- For `0 < α ≤ 1`, the quantity `α^2 * cot (α / 2)^2` is at least one. -/
 lemma one_le_sq_cot {α : ℝ} (h0 : 0 < α) (h1 : α ≤ 1) :
     1 ≤ α ^ 2 * Real.cot (α / 2) ^ 2 := by
   have hα2 : 0 < α / 2 := by linarith
@@ -204,6 +242,7 @@ lemma one_le_sq_cot {α : ℝ} (h0 : 0 < α) (h1 : α ≤ 1) :
   rw [← hrew]
   exact hsq
 
+/-- For `0 < θ < π`, rewrites `(sin θ)^2 / (1 - cos θ)^2` as `cot (θ / 2)^2`. -/
 lemma sin_sq_div_one_sub_cos_sq {θ : ℝ} (h0 : 0 < θ) (hπ : θ < Real.pi) :
     Real.sin θ ^ 2 / (1 - Real.cos θ) ^ 2 = Real.cot (θ / 2) ^ 2 := by
   have hs : Real.sin θ = 2 * Real.sin (θ / 2) * Real.cos (θ / 2) := by
@@ -221,6 +260,7 @@ lemma sin_sq_div_one_sub_cos_sq {θ : ℝ} (h0 : 0 < θ) (hπ : θ < Real.pi) :
   field_simp
   ring
 
+/-- For `0 < θ < π`, the square of `cot (θ / 2)` is at most the square of `cot (θ / 4)`. -/
 lemma cot_sq_half_le_cot_sq_quarter {θ : ℝ} (h0 : 0 < θ) (hπ : θ < Real.pi) :
     Real.cot (θ / 2) ^ 2 ≤ Real.cot (θ / 4) ^ 2 := by
   have hq0 : 0 < θ / 4 := by linarith
@@ -231,19 +271,26 @@ lemma cot_sq_half_le_cot_sq_quarter {θ : ℝ} (h0 : 0 < θ) (hπ : θ < Real.pi
     cot_le_cot hq0 (by linarith) hqπ
   exact pow_le_pow_left₀ hc2 hle 2
 
+/-- The real amplitude function taking value `a0` at `none` and value `a j` at either coordinate
+of pair `j`. -/
 def amp (a0 : ℝ) (a : Fin m → ℝ) : SpecIdx m → ℝ
   | none => a0
   | some (j, _) => a j
 
+/-- Each coordinate of `goodVec a0 a` is the complex embedding of the corresponding real
+amplitude `amp a0 a`. -/
 lemma goodVec_eq_amp (a0 : ℝ) (a : Fin m → ℝ) (i : SpecIdx m) :
     goodVec a0 a i = ((amp a0 a i : ℝ) : ℂ) := by
   cases i with
   | none => rfl
   | some p => obtain ⟨j, b⟩ := p; rfl
 
+/-- The squared norm of `I` times a real scalar embedded in the complex numbers is the square of
+that scalar. -/
 lemma norm_I_mul_real (r : ℝ) : ‖Complex.I * ((r : ℝ) : ℂ)‖ ^ 2 = r ^ 2 := by
   rw [norm_mul, Complex.norm_I, one_mul, Complex.norm_real, Real.norm_eq_abs, sq_abs]
 
+/-- The squared complex norm of `r + I * s`, for real `r` and `s`, is `r^2 + s^2`. -/
 lemma normSq_real_add_I_mul (r s : ℝ) :
     ‖((r : ℂ) + Complex.I * ((s : ℂ)))‖ ^ 2 = r ^ 2 + s ^ 2 := by
   rw [Complex.sq_norm, Complex.normSq_apply]
@@ -251,6 +298,7 @@ lemma normSq_real_add_I_mul (r s : ℝ) :
     Complex.ofReal_re, Complex.ofReal_im, Complex.I_re, Complex.I_im]
   ring
 
+/-- Scaling a vector by a real scalar multiplies `normSq` by the square of that scalar. -/
 lemma normSq_smul_real (c : ℝ) (v : SpecIdx m → ℂ) :
     normSq (c • v) = c ^ 2 * normSq v := by
   unfold normSq
@@ -259,10 +307,14 @@ lemma normSq_smul_real (c : ℝ) (v : SpecIdx m → ℂ) :
   intro i _
   rw [Pi.smul_apply, norm_smul, mul_pow, Real.norm_eq_abs, sq_abs]
 
+/-- The real imaginary-coordinate function for the sum of the `omega` vectors at phases `α` and
+`-α`. -/
 def wSumIm (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) : SpecIdx m → ℝ :=
   fun i => amp a0 a i *
     (Real.cot ((α - phase θ i) / 2) + Real.cot ((-α - phase θ i) / 2))
 
+/-- Each coordinate of the opposite-phase `omega` sum has real part `2 * amp a0 a i` and
+imaginary part `wSumIm θ a0 a α i`. -/
 lemma wSum_apply (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) (i : SpecIdx m) :
     (omega (phase θ) (goodVec a0 a) α + omega (phase θ) (goodVec a0 a) (-α)) i
       = ((2 * amp a0 a i : ℝ) : ℂ) + Complex.I * ((wSumIm θ a0 a α i : ℝ) : ℂ) := by
@@ -270,6 +322,8 @@ lemma wSum_apply (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) 
   push_cast
   ring
 
+/-- Splits the squared norm of the opposite-phase `omega` sum into sums of squares of its real
+and imaginary coordinates. -/
 lemma normSq_wSum (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) :
     normSq (omega (phase θ) (goodVec a0 a) α + omega (phase θ) (goodVec a0 a) (-α))
       = (∑ i, (2 * amp a0 a i) ^ 2) + ∑ i, (wSumIm θ a0 a α i) ^ 2 := by
@@ -281,6 +335,8 @@ lemma normSq_wSum (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
   simp only [normSq_real_add_I_mul]
   rw [Finset.sum_add_distrib]
 
+/-- The sum of the squared doubled amplitudes over the zero coordinate and paired coordinates is
+`4 * a0^2 + 8 * ∑ j, (a j)^2`. -/
 lemma sum_amp_sq (a0 : ℝ) (a : Fin m → ℝ) :
     ∑ i, (2 * amp a0 a i) ^ 2 = 4 * a0 ^ 2 + 8 * ∑ j, (a j) ^ 2 := by
   rw [Fintype.sum_option]
@@ -293,6 +349,7 @@ lemma sum_amp_sq (a0 : ℝ) (a : Fin m → ℝ) :
   rw [← Finset.mul_sum]
   ring
 
+/-- The imaginary coordinate of the opposite-phase `omega` sum vanishes at `none`. -/
 lemma wSumIm_none (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) :
     wSumIm θ a0 a α none = 0 := by
   simp only [wSumIm, amp, phase]
@@ -300,6 +357,8 @@ lemma wSumIm_none (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     show (-α - 0) / 2 = -(α / 2) by ring, cot_neg']
   ring
 
+/-- Under the nonvanishing hypotheses, evaluates `wSumIm` at `(j, true)` as `a j * (2 * sin (θ
+j) / (cos (θ j) - cos α))`. -/
 lemma wSumIm_true (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -312,6 +371,8 @@ lemma wSumIm_true (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
       = Real.cot ((α - θ j) / 2) - Real.cot ((α + θ j) / 2) by ring,
     cot_pair_diff (hb1 j) (hb2 j) (hb3 j)]
 
+/-- Under the nonvanishing hypotheses, evaluates `wSumIm` at `(j, false)` as the negative of `a
+j * (2 * sin (θ j) / (cos (θ j) - cos α))`. -/
 lemma wSumIm_false (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -326,6 +387,8 @@ lemma wSumIm_false (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ
     cot_pair_diff (hb1 j) (hb2 j) (hb3 j)]
   ring
 
+/-- Under the nonvanishing hypotheses, the sum of squared `wSumIm` coordinates equals `8 * ∑ j,
+(a j)^2 * sin (θ j)^2 / (cos (θ j) - cos α)^2`. -/
 lemma sum_wSumIm_sq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -355,6 +418,8 @@ lemma sum_wSumIm_sq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : �
           / (Real.cos (θ j) - Real.cos α) ^ 2 := by
         rw [Finset.mul_sum]
 
+/-- Computes the squared norm of the opposite-phase `omega` sum as `4 * a0^2 + 8 * ∑ j, (a j)^2`
+plus the explicit sine-weighted spectral sum, under the nonvanishing hypotheses. -/
 lemma normSq_wSum_eq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -365,10 +430,13 @@ lemma normSq_wSum_eq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : �
             / (Real.cos (θ j) - Real.cos α) ^ 2 := by
   rw [normSq_wSum, sum_amp_sq, sum_wSumIm_sq θ a0 a α hb1 hb2 hb3]
 
+/-- The raw sum of the `omega` vectors at `α` and `-α`, scaled by `1 / sqrt 2`. -/
 def wGood (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) : SpecIdx m → ℂ :=
   ((Real.sqrt 2)⁻¹ : ℝ) •
     (omega (phase θ) (goodVec a0 a) α + omega (phase θ) (goodVec a0 a) (-α))
 
+/-- Under the nonvanishing hypotheses, `normSq (wGood ...)` equals `2 * a0^2 + 4 * ∑ j, (a j)^2
++ 4 * ∑ j, (a j)^2 * sin (θ j)^2 / (cos (θ j) - cos α)^2`. -/
 lemma normSq_wGood_eq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -384,6 +452,8 @@ lemma normSq_wGood_eq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : 
   rw [normSq_smul_real, hs, normSq_wSum_eq θ a0 a α hb1 hb2 hb3]
   ring
 
+/-- If `goodVec` has self-inner-product one and is orthogonal to both cotangent vectors, its
+inner product with the opposite-phase `omega` sum is two. -/
 lemma inner_goodVec_wSum (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hnorm : inner (goodVec a0 a) (goodVec a0 a) = 1)
     (horthα : inner (goodVec a0 a) (wPrime (phase θ) (goodVec a0 a) α) = 0)
@@ -395,6 +465,9 @@ lemma inner_goodVec_wSum (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α
     inner_omega _ _ _ hnorm horthm]
   norm_num
 
+/-- Assuming normalized amplitudes and the nonvanishing hypotheses, expresses `2 / normSq (wGood
+...)` as `1 / (1 + 2 * ∑ j, (a j)^2 * sin (θ j)^2 / (cos (θ j) - cos α)^2)`. This is the
+exact norm-ratio identity used for Lemma 5 in [AmbainisKempeRivosh2004]. -/
 theorem lemma5_overlap_sq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -417,6 +490,8 @@ theorem lemma5_overlap_sq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (�
   · simp [hz]
   · field_simp [hz]
 
+/-- For `0 < α < θ / 2` and `0 < θ < π`, bounds `(sin θ)^2 / (cos θ - cos α)^2` above by `4 *
+cot (θ / 4)^2`. -/
 lemma X_le_cot_sq {α θ : ℝ} (hαpos : 0 < α) (hαhalf : α < θ / 2)
     (hθpos : 0 < θ) (hθπ : θ < Real.pi) :
     Real.sin θ ^ 2 / (Real.cos θ - Real.cos α) ^ 2 ≤ 4 * Real.cot (θ / 4) ^ 2 := by
@@ -453,6 +528,10 @@ lemma X_le_cot_sq {α θ : ℝ} (hαpos : 0 < α) (hαhalf : α < θ / 2)
     _ = 4 * Real.cot (θ / 2) ^ 2 := by rw [hid]
     _ ≤ 4 * Real.cot (θ / 4) ^ 2 := by linarith [hquarter]
 
+/-- Under normalized amplitudes and the stated phase separation and nonvanishing hypotheses,
+bounds `2 / normSq (wGood ...)` below by `(1 / 9) * min 1 (1 / ∑ j, (a j)^2 * cot (θ j /
+4)^2)`. This gives an explicit lower estimate associated with Lemma 5 in
+[AmbainisKempeRivosh2004]. -/
 theorem lemma5_overlap_lower (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -550,10 +629,14 @@ theorem lemma5_overlap_lower (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ)
         nlinarith
       linarith
 
+/-- The real imaginary-coordinate function for the difference of the `omega` vectors at phases
+`α` and `-α`. -/
 def wDiffIm (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) : SpecIdx m → ℝ :=
   fun i => amp a0 a i *
     (Real.cot ((α - phase θ i) / 2) - Real.cot ((-α - phase θ i) / 2))
 
+/-- Each coordinate of the opposite-phase `omega` difference is `I` times the real value
+`wDiffIm θ a0 a α i`. -/
 lemma wDiff_apply (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) (i : SpecIdx m) :
     (omega (phase θ) (goodVec a0 a) α - omega (phase θ) (goodVec a0 a) (-α)) i
       = Complex.I * ((wDiffIm θ a0 a α i : ℝ) : ℂ) := by
@@ -561,6 +644,8 @@ lemma wDiff_apply (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
   push_cast
   ring
 
+/-- The squared norm of the opposite-phase `omega` difference is the sum of the squared
+`wDiffIm` coordinates. -/
 lemma normSq_wDiff (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) :
     normSq (omega (phase θ) (goodVec a0 a) α - omega (phase θ) (goodVec a0 a) (-α))
       = ∑ i, (wDiffIm θ a0 a α i) ^ 2 := by
@@ -571,6 +656,7 @@ lemma normSq_wDiff (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ
   unfold normSq
   simp only [norm_I_mul_real]
 
+/-- The value of `wDiffIm` at `none` is `2 * a0 * cot (α / 2)`. -/
 lemma wDiffIm_none (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) :
     wDiffIm θ a0 a α none = a0 * (2 * Real.cot (α / 2)) := by
   simp only [wDiffIm, amp, phase]
@@ -578,6 +664,8 @@ lemma wDiffIm_none (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ
     show (-α - 0) / 2 = -(α / 2) by ring, cot_neg']
   ring
 
+/-- Under the nonvanishing hypotheses, evaluates `wDiffIm` at `(j, true)` as `a j * (2 * sin α /
+(cos (θ j) - cos α))`. -/
 lemma wDiffIm_true (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -590,6 +678,8 @@ lemma wDiffIm_true (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ
       = Real.cot ((α - θ j) / 2) + Real.cot ((α + θ j) / 2) by ring,
     cot_pair_eq (hb1 j) (hb2 j) (hb3 j)]
 
+/-- Under the nonvanishing hypotheses, evaluates `wDiffIm` at `(j, false)` as `a j * (2 * sin α
+/ (cos (θ j) - cos α))`. -/
 lemma wDiffIm_false (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -603,6 +693,8 @@ lemma wDiffIm_false (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : �
       = Real.cot ((α - θ j) / 2) + Real.cot ((α + θ j) / 2) by ring,
     cot_pair_eq (hb1 j) (hb2 j) (hb3 j)]
 
+/-- Under the nonvanishing hypotheses, the sum of squared `wDiffIm` coordinates is `4 * a0^2 *
+cot (α / 2)^2 + 8 * ∑ j, (a j)^2 * (sin α)^2 / (cos (θ j) - cos α)^2`. -/
 lemma sum_wDiffIm_sq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -632,6 +724,8 @@ lemma sum_wDiffIm_sq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : �
     Finset.sum_congr rfl fun j _ => hpair j]
   rw [Finset.mul_sum]
 
+/-- Under the nonvanishing hypotheses, computes the squared norm of the opposite-phase `omega`
+difference as `4 * a0^2 * cot (α / 2)^2` plus the explicit sine-weighted spectral sum. -/
 lemma normSq_wDiff_eq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -642,10 +736,12 @@ lemma normSq_wDiff_eq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : 
             / (Real.cos (θ j) - Real.cos α) ^ 2 := by
   rw [normSq_wDiff, sum_wDiffIm_sq θ a0 a α hb1 hb2 hb3]
 
+/-- The raw difference of the `omega` vectors at `α` and `-α`, scaled by `1 / sqrt 2`. -/
 def wStart (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) : SpecIdx m → ℂ :=
   ((Real.sqrt 2)⁻¹ : ℝ) •
     (omega (phase θ) (goodVec a0 a) α - omega (phase θ) (goodVec a0 a) (-α))
 
+/-- Multiplying `2 * x` by the reciprocal of `sqrt 2` gives `sqrt 2 * x`. -/
 lemma sqrt2_inv_mul (x : ℝ) : (Real.sqrt 2)⁻¹ * (2 * x) = Real.sqrt 2 * x := by
   have h2 : Real.sqrt 2 * Real.sqrt 2 = (2 : ℝ) := Real.mul_self_sqrt (by norm_num)
   have hne : Real.sqrt 2 ≠ 0 :=
@@ -655,6 +751,9 @@ lemma sqrt2_inv_mul (x : ℝ) : (Real.sqrt 2)⁻¹ * (2 * x) = Real.sqrt 2 * x :
     field_simp
     linarith]
 
+/-- Under the nonvanishing hypotheses, computes `normSq (wStart ...)` as `2 * a0^2 * cot (α /
+2)^2 + 4 * ∑ j, (a j)^2 * (sin α)^2 / (cos (θ j) - cos α)^2`. This is the norm identity used
+in the Lemma 4 analysis of [AmbainisKempeRivosh2004]. -/
 lemma normSq_wStart_eq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)
@@ -670,18 +769,23 @@ lemma normSq_wStart_eq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α :
   rw [normSq_smul_real, hs, normSq_wDiff_eq θ a0 a α hb1 hb2 hb3]
   ring
 
+/-- The distinguished basis vector with value one at `none` and zero at all paired coordinates. -/
 def phi0 : SpecIdx m → ℂ
   | none => 1
   | some _ => 0
 
+/-- Taking the inner product with `phi0` extracts the coordinate at `none`. -/
 lemma inner_phi0_eq (v : SpecIdx m → ℂ) : inner phi0 v = v none := by
   rw [Eigen.inner, Fintype.sum_option]
   simp [phi0]
 
+/-- The inner product distributes over subtraction in its second argument. -/
 lemma inner_sub_right (u v w : SpecIdx m → ℂ) :
     inner u (v - w) = inner u v - inner u w := by
   simp only [Eigen.inner, Pi.sub_apply, mul_sub, Finset.sum_sub_distrib]
 
+/-- Scaling the second argument by a real scalar multiplies the inner product by its complex
+embedding. -/
 lemma inner_smul_right_real (u w : SpecIdx m → ℂ) (c : ℝ) :
     inner u (c • w) = (c : ℂ) * inner u w := by
   simp only [Eigen.inner, Pi.smul_apply, Finset.mul_sum]
@@ -690,6 +794,8 @@ lemma inner_smul_right_real (u w : SpecIdx m → ℂ) (c : ℝ) :
   rw [Complex.real_smul]
   ring
 
+/-- The inner product of `phi0` with the opposite-phase `omega` difference is `I * (2 * a0 * cot
+(α / 2))`. -/
 lemma inner_phi0_wDiff (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) :
     inner phi0 (omega (phase θ) (goodVec a0 a) α - omega (phase θ) (goodVec a0 a) (-α))
       = Complex.I * ((2 * a0 * Real.cot (α / 2) : ℝ) : ℂ) := by
@@ -697,6 +803,7 @@ lemma inner_phi0_wDiff (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α :
   push_cast
   ring
 
+/-- The inner product of `phi0` with `wStart` is `I * (sqrt 2 * a0 * cot (α / 2))`. -/
 lemma inner_phi0_wStart (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) :
     inner phi0 (wStart θ a0 a α)
       = Complex.I * ((Real.sqrt 2 * a0 * Real.cot (α / 2) : ℝ) : ℂ) := by
@@ -719,6 +826,8 @@ lemma inner_phi0_wStart (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α 
   rw [show 2 * a0 * Real.cot (α / 2) = 2 * (a0 * Real.cot (α / 2)) by ring,
     sqrt2_inv_mul]
 
+/-- The squared complex norm of `inner phi0 (wStart ...)` is exactly `2 * a0^2 * cot (α / 2)^2`.
+This computes the overlap numerator used for Lemma 4 in [AmbainisKempeRivosh2004]. -/
 theorem lemma4_overlap_sq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ) :
     Complex.normSq (inner phi0 (wStart θ a0 a α))
       = 2 * a0 ^ 2 * Real.cot (α / 2) ^ 2 := by
@@ -733,6 +842,7 @@ theorem lemma4_overlap_sq (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (�
   rw [Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   ring
 
+/-- The difference of the complex exponentials at opposite imaginary angles is `2 * I * sin x`. -/
 lemma exp_I_sub_exp_neg_I (x : ℝ) :
     Complex.exp (Complex.I * (x : ℂ)) - Complex.exp (-(Complex.I * (x : ℂ)))
       = 2 * Complex.I * ((Real.sin x : ℝ) : ℂ) := by
@@ -744,6 +854,8 @@ lemma exp_I_sub_exp_neg_I (x : ℝ) :
   push_cast
   ring
 
+/-- The difference of the `t`th powers of the exponentials at phases `α` and `-α` is `2 * I *
+sin (α * t)`. -/
 lemma exp_sub_eq_two_I_sin (α : ℝ) (t : ℕ) :
     Complex.exp (Complex.I * (α : ℂ)) ^ t
       - Complex.exp (Complex.I * ((-α : ℝ) : ℂ)) ^ t
@@ -758,6 +870,9 @@ lemma exp_sub_eq_two_I_sin (α : ℝ) (t : ℕ) :
     ring
   rw [h1, h2, exp_I_sub_exp_neg_I]
 
+/-- Under normalization, orthogonality at both phases, and the nonvanishing sine hypotheses, the
+overlap of `goodVec` with `wStart` after `t` walk steps is `I * (sqrt 2 * sin (α * t))`.
+This is the exact rotation identity used for Corollary 2 in [AmbainisKempeRivosh2004]. -/
 theorem corollary2_rotation (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hnorm : inner (goodVec a0 a) (goodVec a0 a) = 1)
     (horthα : inner (goodVec a0 a) (wPrime (phase θ) (goodVec a0 a) α) = 0)
@@ -793,6 +908,9 @@ theorem corollary2_rotation (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) 
     ring]
   rw [sqrt2_inv_mul]
 
+/-- If `t * α` lies between `π / 4` and `π / 4 + α`, then `sqrt 2 * sin (t * α)` is at least `1
+- sqrt 2 * α`. This supplies the elementary rotation-time estimate for Corollary 2 in
+[AmbainisKempeRivosh2004]. -/
 theorem corollary2_lower {t : ℕ} {α : ℝ}
     (hT1 : Real.pi / 4 ≤ t * α) (hT2 : t * α ≤ Real.pi / 4 + α) :
     1 - Real.sqrt 2 * α ≤ Real.sqrt 2 * Real.sin (t * α) := by
@@ -814,6 +932,9 @@ theorem corollary2_lower {t : ℕ} {α : ℝ}
   have hmul := mul_le_mul_of_nonneg_left hsin hpos.le
   nlinarith [hsq, hmul]
 
+/-- With `δ = 8 * α^4 * (∑ j, (a j)^2 / (1 - cos (θ j))^2) / a0^2`, bounds `(1 - δ)^2 * normSq
+(wStart ...)` above by `2 * (a0 * cot (α / 2))^2` under the stated hypotheses. This gives an
+explicit squared-overlap estimate associated with Lemma 4 in [AmbainisKempeRivosh2004]. -/
 theorem lemma4_overlap_lower (θ : Fin m → ℝ) (a0 : ℝ) (a : Fin m → ℝ) (α : ℝ)
     (hb1 : ∀ j, Real.sin ((α - θ j) / 2) ≠ 0)
     (hb2 : ∀ j, Real.sin ((α + θ j) / 2) ≠ 0)

@@ -8,12 +8,33 @@ import Mathlib.Algebra.Ring.GeomSum
 import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# Moment bounds on symmetric product grids
+
+This module proves covariance and even-moment inequalities for coordinate sums on finite
+symmetric grids. It also bounds the second moment of a tensor polynomial by the corresponding
+even moment of the coordinate sum, providing the concentration estimates used with
+[GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `tensorGrid_even_moment_bound`: the `2*k` moment sum is at most `|S|^d * (d*k/2)^k`.
+* `tensorGrid_tensor_second_moment`: bounded tensor coefficients give a second moment controlled
+  by the coordinate-sum moment.
+
+## References
+
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 noncomputable section
 namespace Qatlib.Concepts.GradientOracle.GradientAlgo
 open scoped Classical BigOperators
 
+/-- For `j ≤ 2*k`, the symmetric pair `a^j*b^(2*k-j) + a^(2*k-j)*b^j` is bounded by
+`a^(2*k)+b^(2*k)` for real `a` and `b`. -/
 private theorem tensorGrid_mixed_pair (a b : ℝ) (k j : ℕ) (hj : j≤2*k) :
     a^j*b^(2*k-j)+a^(2*k-j)*b^j≤a^(2*k)+b^(2*k) := by
   have hp : |a|^j*|b|^(2*k-j)+|a|^(2*k-j)*|b|^j≤|a|^(2*k)+|b|^(2*k) := by
@@ -41,6 +62,8 @@ private theorem tensorGrid_mixed_pair (a b : ℝ) (k j : ℕ) (hj : j≤2*k) :
   have hb : |b|^(2*k)=b^(2*k) := by rw [pow_mul,pow_mul,sq_abs]
   exact hleft.trans (by simpa only [ha,hb] using hp)
 
+/-- Twice the degree-`2*k` mixed-power sum is at most `(2*k+1)*(a^(2*k)+b^(2*k))` for real `a`
+and `b`. -/
 private theorem tensorGrid_geometric_sum_bound (a b : ℝ) (k : ℕ) :
     2*(∑ j∈Finset.range (2*k+1),a^j*b^(2*k-j))≤(2*k+1 : ℝ)*(a^(2*k)+b^(2*k)) := by
   have hr : (∑ j∈Finset.range (2*k+1),a^(2*k-j)*b^j)=
@@ -57,6 +80,8 @@ private theorem tensorGrid_geometric_sum_bound (a b : ℝ) (k : ℕ) :
   rw [Finset.sum_add_distrib,hr] at h
   simpa only [Finset.sum_const,Finset.card_range,nsmul_eq_mul,Nat.cast_add,Nat.cast_mul,Nat.cast_one,Nat.cast_ofNat,two_mul] using h
 
+/-- For `|x| ≤ 1/2`, bounds `x*((z+x)^(2*k+1)-(z-x)^(2*k+1))` by `(2*k+1)/4` times the sum of
+the adjacent even powers. -/
 theorem tensorGrid_covariance_pair (z x : ℝ) (k : ℕ) (hx : |x|≤1/2) :
     x*((z+x)^(2*k+1)-(z-x)^(2*k+1))≤
       ((2*k+1 : ℝ)/4)*((z+x)^(2*k)+(z-x)^(2*k)) := by
@@ -86,6 +111,8 @@ theorem tensorGrid_covariance_pair (z x : ℝ) (k : ℕ) (hx : |x|≤1/2) :
   dsimp [T] at *
   nlinarith
 
+/-- Negating the argument permutes the sum of any real-valued function over a finite set closed
+under negation. -/
 theorem tensorGrid_sum_neg (S : Finset ℝ) (hS : ∀ v∈S,-v∈S) (F : ℝ → ℝ) :
     (∑ v∈S,F (-v))=∑ v∈S,F v := by
   apply Finset.sum_bij (fun v _ => -v)
@@ -94,6 +121,8 @@ theorem tensorGrid_sum_neg (S : Finset ℝ) (hS : ∀ v∈S,-v∈S) (F : ℝ →
   · intro v hv; exact ⟨-v,hS v hv,neg_neg v⟩
   · intro v _; rfl
 
+/-- On a finite symmetric set in `[-1/2, 1/2]`, the sum of `v*(z+v)^(2*k+1)` is at most
+`(2*k+1)/4` times the sum of `(z+v)^(2*k)`. -/
 theorem tensorGrid_coordinate_covariance (S : Finset ℝ) (hS : ∀ v∈S,-v∈S)
     (hbound : ∀ v∈S,|v|≤1/2) (z : ℝ) (k : ℕ) :
     (∑ v∈S,v*(z+v)^(2*k+1))≤((2*k+1 : ℝ)/4)*(∑ v∈S,(z+v)^(2*k)) := by
@@ -109,6 +138,8 @@ theorem tensorGrid_coordinate_covariance (S : Finset ℝ) (hS : ∀ v∈S,-v∈S
   rw [← Finset.mul_sum,Finset.sum_add_distrib,hminus,heven] at hsum
   nlinarith
 
+/-- The involutive equivalence that exchanges coordinate `i` of a grid vector with an additional
+grid element. -/
 def tensorGridSwap {d : ℕ} (S : Finset ℝ) (i : Fin d) :
     ((Fin d → S)×S)≃((Fin d → S)×S) where
   toFun p := (Function.update p.1 i p.2,p.1 i)
@@ -128,6 +159,8 @@ def tensorGridSwap {d : ℕ} (S : Finset ℝ) (i : Fin d) :
       · simp [Function.update_of_ne h]
     · simp
 
+/-- Summing a function over every grid vector and every replacement of one fixed coordinate
+gives `S.card` times its sum over the grid. -/
 theorem tensorGrid_sum_update {d : ℕ} (S : Finset ℝ) (i : Fin d) (F : (Fin d → S) → ℝ) :
     (∑ y : Fin d → S,∑ v : S,F (Function.update y i v))=(S.card : ℝ)*(∑ y : Fin d → S,F y) := by
   have h := (tensorGridSwap S i).sum_comp (fun p : (Fin d → S)×S => F p.1)
@@ -135,6 +168,8 @@ theorem tensorGrid_sum_update {d : ℕ} (S : Finset ℝ) (i : Fin d) (F : (Fin d
     Finset.card_univ,Fintype.card_coe,nsmul_eq_mul] at h
   simpa only [Finset.mul_sum,mul_comm] using h
 
+/-- Replacing coordinate `i` changes the coordinate sum by subtracting the old entry and adding
+the replacement. -/
 theorem tensorGrid_coordinate_sum_update {d : ℕ} (S : Finset ℝ) (i : Fin d) (y : Fin d → S) (v : S) :
     (∑ j : Fin d,((Function.update y i v) j : ℝ))=
       (∑ j : Fin d,(y j : ℝ))-(y i : ℝ)+(v : ℝ) := by
@@ -150,6 +185,8 @@ theorem tensorGrid_coordinate_sum_update {d : ℕ} (S : Finset ℝ) (i : Fin d) 
   simp only [Function.update_self] at h2
   linarith
 
+/-- On a nonempty symmetric bounded product grid, the mixed moment of one coordinate with the
+odd power of the coordinate sum is at most `(2*k+1)/4` times the corresponding even moment. -/
 theorem tensorGrid_full_coordinate_covariance (d : ℕ) (S : Finset ℝ) (hS : ∀ v∈S,-v∈S)
     (hbound : ∀ v∈S,|v|≤1/2) (hne : S.Nonempty) (i : Fin d) (k : ℕ) :
     (∑ y : Fin d → S,(y i : ℝ)*(∑ j : Fin d,(y j : ℝ))^(2*k+1))≤
@@ -172,6 +209,8 @@ theorem tensorGrid_full_coordinate_covariance (d : ℕ) (S : Finset ℝ) (hS : �
   have hc : (0 : ℝ)<S.card := by exact_mod_cast hne.card_pos
   nlinarith
 
+/-- On a nonempty symmetric grid in `[-1/2, 1/2]`, the sum of the `2*k` powers of the coordinate
+sum is at most `|S|^d*(d*k/2)^k`. -/
 theorem tensorGrid_even_moment_bound (d k : ℕ) (S : Finset ℝ) (hS : ∀ v∈S,-v∈S)
     (hbound : ∀ v∈S,|v|≤1/2) (hne : S.Nonempty) :
     (∑ y : Fin d → S,(∑ j : Fin d,(y j : ℝ))^(2*k))≤
@@ -206,6 +245,7 @@ theorem tensorGrid_even_moment_bound (d k : ℕ) (S : Finset ℝ) (hS : ∀ v∈
         mul_le_mul_of_nonneg_right hnext (by positivity)
       _ = _ := by push_cast; rw [pow_succ]; ring
 
+/-- Every power sum over a finite real set closed under negation is nonnegative. -/
 theorem tensorGrid_scalar_moment_nonneg (S : Finset ℝ) (hS : ∀ v∈S,-v∈S) (n : ℕ) :
     0≤∑ v∈S,v^n := by
   rcases Nat.even_or_odd n with he|ho
@@ -214,6 +254,8 @@ theorem tensorGrid_scalar_moment_nonneg (S : Finset ℝ) (hS : ∀ v∈S,-v∈S)
     simp only [ho.neg_pow,Finset.sum_neg_distrib] at h
     linarith
 
+/-- The sum of a coordinate monomial over a finite symmetric product grid is nonnegative,
+including repeated coordinate indices. -/
 theorem tensorGrid_monomial_sum_nonneg {J : Type} [Fintype J] (d : ℕ) (S : Finset ℝ)
     (hS : ∀ v∈S,-v∈S) (a : J → Fin d) :
     0≤∑ y : Fin d → S,∏ i : J,(y (a i) : ℝ) := by
@@ -231,6 +273,8 @@ theorem tensorGrid_monomial_sum_nonneg {J : Type} [Fintype J] (d : ℕ) (S : Fin
   rw [← Finset.sum_coe_sort S (fun v : ℝ => v^(c j))] at h
   exact h
 
+/-- For tensor coefficients bounded in absolute value by one on a finite symmetric grid, the
+tensor polynomial's second-moment sum is at most the `2*k` moment sum of the coordinate sum. -/
 theorem tensorGrid_tensor_second_moment (d k : ℕ) (S : Finset ℝ) (hS : ∀ v∈S,-v∈S)
     (H : (Fin k → Fin d) → ℝ) (hH : ∀ a,|H a|≤1) :
     (∑ y : Fin d → S,(∑ a : Fin k → Fin d,H a*(∏ i : Fin k,(y (a i) : ℝ)))^2)≤

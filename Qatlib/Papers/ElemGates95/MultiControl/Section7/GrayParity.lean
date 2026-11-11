@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ElemGates95.MultiControl.Section7.MultibitNetworks
+
+/-!
+# Alternating parity identities for controlled gates
+
+This module develops the rational parity algebra used in the construction associated with Lemma
+7.1 of [BarencoEtAl1995]. `bitSign` and `subsetSign` encode Boolean values multiplicatively, and
+`xorVal` recovers subset parity as a rational number equal to zero or one. Product expansion and
+a sign-shift identity yield `altSum_identity`, which isolates the input with every control true.
+
+The module also counts the nonempty control subsets and proves `twoPow_root_exists`, providing a
+unitary `2^k`-th root of a two-dimensional unitary by repeated square roots. These identities
+and existence results form ingredients of the multi-control synthesis argument.
+
+## Main statements
+
+* `xorVal_eq_parity` identifies the rational parity expression with even or odd cardinality.
+* `altSum_identity` evaluates the alternating subset-parity sum for `m >= 1`.
+* `card_nonempty_subsets` gives `2^m - 1` subsets, and `twoPow_root_exists` supplies the
+  required unitary roots.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995], Section 7, Lemma 7.1.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,14 +43,18 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.ElemGates95.MultiControl.Section7
 
+/-- The rational sign encoding of a Boolean value, equal to `-1` for true and `1` for false. -/
 def bitSign (b : Bool) : ℚ := if b then -1 else 1
 
+/-- The product of the bit signs over a finite subset of control coordinates. -/
 def subsetSign {m : ℕ} (x : Fin m → Bool) (S : Finset (Fin m)) : ℚ :=
   ∏ i ∈ S, bitSign (x i)
 
+/-- The rational parity value `(1 - subsetSign x S) / 2` for the selected control subset. -/
 def xorVal {m : ℕ} (x : Fin m → Bool) (S : Finset (Fin m)) : ℚ :=
   (1 - subsetSign x S) / 2
 
+/-- The product of bit signs over `S` is `-1` raised to the number of true coordinates in `S`. -/
 theorem prod_bitSign_eq_pow {m : ℕ} (x : Fin m → Bool) (S : Finset (Fin m)) :
     ∏ i ∈ S, bitSign (x i) = (-1 : ℚ) ^ (S.filter (fun i => x i)).card := by
   classical
@@ -43,19 +72,25 @@ theorem prod_bitSign_eq_pow {m : ℕ} (x : Fin m → Bool) (S : Finset (Fin m)) 
     · rw [if_neg hxa]
       simp [bitSign, hxa]
 
+/-- The subset sign equals `-1` raised to the cardinality of the true coordinates in the subset. -/
 theorem subsetSign_eq_pow {m : ℕ} (x : Fin m → Bool) (S : Finset (Fin m)) :
     subsetSign x S = (-1 : ℚ) ^ (S.filter (fun i => x i)).card :=
   prod_bitSign_eq_pow x S
 
+/-- The rational parity value is zero when the number of selected true coordinates is even and
+one when it is odd. -/
 theorem xorVal_eq_parity {m : ℕ} (x : Fin m → Bool) (S : Finset (Fin m)) :
     xorVal x S = if Even (S.filter (fun i => x i)).card then 0 else 1 := by
   rw [xorVal, subsetSign_eq_pow, neg_one_pow_eq_ite]
   by_cases hE : Even (S.filter (fun i => x i)).card <;> simp [hE]
 
+/-- The rational parity value of every control subset is either zero or one. -/
 theorem xorVal_zero_or_one {m : ℕ} (x : Fin m → Bool) (S : Finset (Fin m)) :
     xorVal x S = 0 ∨ xorVal x S = 1 := by
   rw [xorVal_eq_parity]; split_ifs <;> simp
 
+/-- The product of `1 - bitSign (x i)` over all coordinates is `2^m` when every bit is true and
+zero otherwise. -/
 theorem prod_one_sub_bitSign {m : ℕ} (x : Fin m → Bool) :
     ∏ i, (1 - bitSign (x i)) =
       if (∀ i, x i = true) then (2 : ℚ) ^ m else 0 := by
@@ -71,6 +106,8 @@ theorem prod_one_sub_bitSign {m : ℕ} (x : Fin m → Bool) :
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     simp [bitSign, show x i = false from by simpa using! hi]
 
+/-- Expanding the product of `1 - bitSign (x i)` gives the sum of subset signs weighted by
+`(-1)^S.card`. -/
 theorem sum_neg_one_pow_card_mul_sign {m : ℕ} (x : Fin m → Bool) :
     ∑ S : Finset (Fin m), ((-1 : ℚ) ^ S.card) * subsetSign x S
       = ∏ i, (1 - bitSign (x i)) := by
@@ -88,6 +125,7 @@ theorem sum_neg_one_pow_card_mul_sign {m : ℕ} (x : Fin m → Bool) :
     apply Finset.prod_congr rfl; intro i _; ring
   rw [hstep, Finset.prod_mul_distrib, Finset.prod_const]
 
+/-- For `m >= 1`, the sum of `(-1)^S.card` over all subsets of `Fin m` is zero. -/
 theorem sum_neg_one_pow_card {m : ℕ} (hm : 1 ≤ m) :
     ∑ S : Finset (Fin m), (-1 : ℚ) ^ S.card = 0 := by
   classical
@@ -100,6 +138,8 @@ theorem sum_neg_one_pow_card {m : ℕ} (hm : 1 ≤ m) :
     simpa using! hz] at h
   simpa [Finset.prod_const] using! h.symm
 
+/-- Replaces the weight `(-1)^(S.card - 1)` by the negative of `(-1)^S.card`, with the
+correction `2 * g ∅` for the empty subset. -/
 theorem sum_shift {m : ℕ} (_hm : 1 ≤ m) (g : Finset (Fin m) → ℚ) :
     ∑ S : Finset (Fin m), (-1 : ℚ) ^ (S.card - 1) * g S
       = 2 * g ∅ - ∑ S : Finset (Fin m), (-1 : ℚ) ^ S.card * g S := by
@@ -135,6 +175,9 @@ theorem sum_shift {m : ℕ} (_hm : 1 ≤ m) (g : Finset (Fin m) → ℚ) :
   rw [hzero2] at hsplit2
   linarith
 
+/-- For `m >= 1`, the alternating sum of subset parity values equals `2^(m - 1)` times the
+indicator that all bits are true. This is the parity identity used in the multi-control
+construction of Lemma 7.1 in [BarencoEtAl1995]. -/
 theorem altSum_identity {m : ℕ} (hm : 1 ≤ m) (x : Fin m → Bool) :
     ∑ S : Finset (Fin m), (-1 : ℚ) ^ (S.card - 1) * xorVal x S
       = (2 : ℚ) ^ (m - 1) * (if (∀ i, x i = true) then 1 else 0) := by
@@ -169,6 +212,7 @@ theorem altSum_identity {m : ℕ} (hm : 1 ≤ m) (x : Fin m → Bool) :
     rw [hp]; ring
   · rw [if_neg hall, if_neg hall]; ring
 
+/-- There are exactly `2^m - 1` nonempty subsets of `Fin m`. -/
 theorem card_nonempty_subsets (m : ℕ) :
     ((Finset.univ : Finset (Finset (Fin m))).filter (fun S => S.Nonempty)).card
       = 2 ^ m - 1 := by
@@ -185,6 +229,8 @@ theorem card_nonempty_subsets (m : ℕ) :
   rw [hfilter, Finset.card_erase_of_mem hmem, Finset.card_univ,
     Fintype.card_finset, Fintype.card_fin]
 
+/-- Every two-dimensional unitary matrix has a unitary `2^k`-th root for every natural number
+`k`. Repeated unitary square roots provide the roots used in Lemma 7.1 of [BarencoEtAl1995]. -/
 theorem twoPow_root_exists (k : ℕ) (U : Matrix Bool Bool ℂ)
     (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :
     ∃ V : Matrix Bool Bool ℂ, V ∈ Matrix.unitaryGroup Bool ℂ ∧ V ^ (2 ^ k) = U := by

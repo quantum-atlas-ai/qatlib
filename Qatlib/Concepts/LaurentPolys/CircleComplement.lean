@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Polynomial complements on the unit circle
+
+`circle_complement_zero_margin_exists` constructs a polynomial `Q` of controlled degree with
+`‖P(z)‖² + ‖Q(z)‖² = 1` on the unit circle whenever `P` is bounded by one there. The proof
+factors a nonnegative real polynomial after a rational change of variables. Such polynomial
+complements occur in quantum signal processing [LowChuang2017].
+
+`circle_complement_coefficient_residual_certificate` turns coefficient error bounds into an
+explicit uniform bound for `circleResidual`.
+
+## Main statements
+
+* `circle_nonnegative_real_polynomial_factorization`: factorization as a polynomial times its
+  coefficientwise conjugate.
+* `circle_complement_zero_margin_exists`: complementation without a strict boundary margin.
+* `circle_complement_coefficient_residual_certificate`: residual control from coefficient
+  errors.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 set_option autoImplicit false
@@ -17,13 +42,18 @@ namespace Qatlib.Concepts.LaurentPolys.CircleComplement
 open Polynomial Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 open scoped ComplexOrder BigOperators
 
+/-- The absolute defect `|‖P.eval z‖^2 + ‖Q.eval z‖^2 - 1|` of a polynomial pair at `z`. -/
 noncomputable def circleResidual (P Q : Polynomial ℂ) (z : ℂ) : ℝ :=
   |‖P.eval z‖^2 + ‖Q.eval z‖^2 - 1|
 
+/-- The two-by-two matrix with rows `(P(z), -star Q(z))` and `(Q(z), star P(z))`, indexed by
+`Bool`. -/
 noncomputable def circleCompletion (P Q : Polynomial ℂ) (z : ℂ) : Matrix Bool Bool ℂ :=
   fun i j => if i then (if j then star (P.eval z) else Q.eval z)
     else (if j then -star (Q.eval z) else P.eval z)
 
+/-- Every real root of a polynomial nonnegative on the whole real line has its squared linear
+factor dividing the polynomial. -/
 private theorem circle_global_double_root {f : Polynomial ℝ}
     (hf : ∀ t : ℝ, 0 ≤ f.eval t) {r : ℝ} (hr : f.IsRoot r) :
     (X-C r)^2 ∣ f := by
@@ -45,6 +75,8 @@ private theorem circle_global_double_root {f : Polynomial ℝ}
   rw [hfg,hgq]
   ring
 
+/-- If a globally nonnegative real polynomial factors as `(X - C r)^2 * g`, then `g` is globally
+nonnegative. -/
 private theorem circle_global_square_quotient {f g : Polynomial ℝ} (r : ℝ)
     (hfg : f = (X-C r)^2*g) (hf : ∀ t, 0 ≤ f.eval t) : ∀ t, 0 ≤ g.eval t := by
   have hn : ∀ t ∈ ({r}ᶜ : Set ℝ), 0 ≤ g.eval t := by
@@ -57,6 +89,8 @@ private theorem circle_global_square_quotient {f g : Polynomial ℝ} (r : ℝ)
   exact le_on_closure hn continuous_const.continuousOn g.continuousOn
     (by rw [closure_compl_singleton]; trivial)
 
+/-- The real quadratic associated with a complex number factors over the complex numbers as its
+linear factor times the coefficientwise conjugate factor. -/
 private theorem circle_quadratic_factor (z : ℂ) :
     (X^2-C (2*z.re)*X+C (‖z‖^2) : Polynomial ℝ).map Complex.ofRealHom =
       (X-C z)*conjugatePolynomial (X-C z) := by
@@ -70,6 +104,8 @@ private theorem circle_quadratic_factor (z : ℂ) :
   rw [map_add, map_mul]
   ring
 
+/-- A real polynomial nonnegative everywhere factors over the complex numbers as `q *
+conjugatePolynomial q`, with twice the degree of `q` at most the original degree. -/
 theorem circle_nonnegative_real_polynomial_factorization (f : Polynomial ℝ) (hf : ∀ t, 0 ≤ f.eval t) :
     ∃ q : Polynomial ℂ, f.map Complex.ofRealHom = q*conjugatePolynomial q ∧
       2*q.natDegree ≤ f.natDegree := by
@@ -127,9 +163,12 @@ theorem circle_nonnegative_real_polynomial_factorization (f : Polynomial ℝ) (h
         rw [natDegree_X_sub_C] at hle
         omega
 
+/-- The degree-`d` polynomial transform `∑ j < d+1, C (P.coeff j) * a^j * b^(d-j)`. -/
 private def circleTransform (P : Polynomial ℂ) (d : ℕ) (a b : Polynomial ℂ) : Polynomial ℂ :=
   ∑ j ∈ Finset.range (d+1), C (P.coeff j)*a^j*b^(d-j)
 
+/-- If `a` and `b` have degree at most one, the transform `circleTransform P d a b` has degree
+at most `d`. -/
 private theorem circleTransform_degree (P : Polynomial ℂ) (d : ℕ) (a b : Polynomial ℂ)
     (ha : a.natDegree ≤ 1) (hb : b.natDegree ≤ 1) :
     (circleTransform P d a b).natDegree ≤ d := by
@@ -149,6 +188,8 @@ private theorem circleTransform_degree (P : Polynomial ℂ) (d : ℕ) (a b : Pol
   simp only [Nat.mul_one] at h1 h2
   omega
 
+/-- For `P` of degree at most `d` and nonzero `b.eval z`, evaluates the transform as `(b.eval
+z)^d * P.eval (a.eval z / b.eval z)`. -/
 private theorem circleTransform_eval (P : Polynomial ℂ) (d : ℕ) (hp : P.natDegree ≤ d)
     (a b : Polynomial ℂ) (z : ℂ) (hb : b.eval z ≠ 0) :
     (circleTransform P d a b).eval z = (b.eval z)^d*P.eval (a.eval z/b.eval z) := by
@@ -163,12 +204,17 @@ private theorem circleTransform_eval (P : Polynomial ℂ) (d : ℕ) (hp : P.natD
   field_simp
   rw [mul_assoc, ← pow_add, Nat.sub_add_cancel hjd]
 
+/-- The real polynomial obtained by taking the real part of every coefficient of a complex
+polynomial. -/
 private def circleRealCoeffs (P : Polynomial ℂ) : Polynomial ℝ :=
   ⟨⟨P.toFinsupp.coeff.mapRange Complex.re Complex.zero_re⟩⟩
 
+/-- The coefficient of `circleRealCoeffs P` is the real part of the corresponding coefficient of
+`P`. -/
 private theorem circleRealCoeffs_coeff (P : Polynomial ℂ) (j : ℕ) :
     (circleRealCoeffs P).coeff j = (P.coeff j).re := rfl
 
+/-- Taking real parts of coefficients cannot increase a polynomial's natural degree. -/
 private theorem circleRealCoeffs_degree (P : Polynomial ℂ) :
     (circleRealCoeffs P).natDegree ≤ P.natDegree := by
   apply natDegree_le_iff_coeff_eq_zero.mpr
@@ -176,6 +222,8 @@ private theorem circleRealCoeffs_degree (P : Polynomial ℂ) :
   rw [circleRealCoeffs_coeff, coeff_eq_zero_of_natDegree_lt hj]
   rfl
 
+/-- A complex polynomial with real coefficients is recovered by mapping `circleRealCoeffs P`
+back to the complex numbers. -/
 private theorem circleRealCoeffs_map (P : Polynomial ℂ)
     (hP : ∀ j, (P.coeff j).im = 0) :
     (circleRealCoeffs P).map Complex.ofRealHom = P := by
@@ -185,28 +233,36 @@ private theorem circleRealCoeffs_map (P : Polynomial ℂ)
   · simp
   · simpa using (hP j).symm
 
+/-- The rational circle parametrization `(x - i) / (x + i)` for real `x`. -/
 private def circleSignal (x : ℝ) : ℂ := ((x : ℂ)-Complex.I)/((x : ℂ)+Complex.I)
 
+/-- For real `x`, the denominator `x + i` of the circle parametrization is nonzero. -/
 private theorem circle_den_ne_zero (x : ℝ) : (x : ℂ)+Complex.I ≠ 0 := by
   intro he
   have hh := congrArg Complex.im he
   simp at hh
 
+/-- The rational circle parametrization has norm one for every real input. -/
 private theorem circleSignal_norm (x : ℝ) : ‖circleSignal x‖ = 1 := by
   have he : ‖(x : ℂ)-Complex.I‖ = ‖(x : ℂ)+Complex.I‖ := by
     apply Real.sqrt_inj (by positivity) (by positivity) |>.mp
     simp [Complex.norm_def, Complex.normSq_apply]
   rw [circleSignal, norm_div, he, div_self (norm_ne_zero_iff.mpr (circle_den_ne_zero x))]
 
+/-- The polynomial transform of `P` using `X - i` and `X + i` to clear the denominator of the
+circle parametrization. -/
 private def circleForward (P : Polynomial ℂ) (d : ℕ) : Polynomial ℂ :=
   circleTransform P d (X-C Complex.I) (X+C Complex.I)
 
+/-- The forward circle transform has degree at most `d`. -/
 private theorem circleForward_degree (P : Polynomial ℂ) (d : ℕ) :
     (circleForward P d).natDegree ≤ d := by
   apply circleTransform_degree
   · simp
   · simp
 
+/-- For `P` of degree at most `d`, the forward transform at real `x` equals `(x + i)^d * P.eval
+(circleSignal x)`. -/
 private theorem circleForward_eval (P : Polynomial ℂ) (d : ℕ) (hp : P.natDegree ≤ d) (x : ℝ) :
     (circleForward P d).eval (x : ℂ) = ((x : ℂ)+Complex.I)^d*P.eval (circleSignal x) := by
   have he := circleTransform_eval P d hp (X-C Complex.I) (X+C Complex.I) (x : ℂ)
@@ -214,9 +270,12 @@ private theorem circleForward_eval (P : Polynomial ℂ) (d : ℕ) (hp : P.natDeg
   simp only [eval_add, eval_sub, eval_X, eval_C] at he
   exact he
 
+/-- The polynomial `(X^2 + 1)^d` minus the forward transform times its coefficientwise
+conjugate. -/
 private def circleClearedResidual (P : Polynomial ℂ) (d : ℕ) : Polynomial ℂ :=
   (X^2+1)^d-circleForward P d*conjugatePolynomial (circleForward P d)
 
+/-- All coefficients of the cleared residual polynomial have zero imaginary part. -/
 private theorem circleClearedResidual_real (P : Polynomial ℂ) (d : ℕ) :
     ∀ j, ((circleClearedResidual P d).coeff j).im = 0 := by
   have he : conjugatePolynomial (circleClearedResidual P d) = circleClearedResidual P d := by
@@ -228,6 +287,7 @@ private theorem circleClearedResidual_real (P : Polynomial ℂ) (d : ℕ) :
   simp only [Complex.star_def, Complex.conj_im] at hi
   linarith
 
+/-- The cleared residual polynomial has natural degree at most `2*d`. -/
 private theorem circleClearedResidual_degree (P : Polynomial ℂ) (d : ℕ) :
     (circleClearedResidual P d).natDegree ≤ 2*d := by
   have hf := circleForward_degree P d
@@ -245,6 +305,8 @@ private theorem circleClearedResidual_degree (P : Polynomial ℂ) (d : ℕ) :
     exact hh.trans ((Nat.mul_le_mul_left d hb).trans_eq (Nat.mul_comm d 2))
   exact natDegree_sub_le _ _ |>.trans (max_le hx (by omega))
 
+/-- At real `x`, the real-coefficient cleared residual evaluates to `(x^2 + 1)^d` minus the
+squared norm of the forward transform. -/
 private theorem circleClearedResidual_eval (P : Polynomial ℂ) (d : ℕ) (x : ℝ) :
     (((circleRealCoeffs (circleClearedResidual P d)).eval x : ℝ) : ℂ) =
       ((x^2+1)^d-‖(circleForward P d).eval (x : ℂ)‖^2 : ℝ) := by
@@ -256,6 +318,8 @@ private theorem circleClearedResidual_eval (P : Polynomial ℂ) (d : ℕ) (x : �
   rw [Complex.normSq_eq_norm_sq] at hprod
   simpa [circleClearedResidual, conjugatePolynomial_eval_real, hprod] using hi
 
+/-- If `P` has degree at most `d` and norm at most one on the unit circle, its cleared real
+residual is nonnegative everywhere on the real line. -/
 private theorem circleClearedResidual_nonneg (P : Polynomial ℂ) (d : ℕ) (hp : P.natDegree ≤ d)
     (hP : ∀ z : ℂ, ‖z‖ = 1 → ‖P.eval z‖ ≤ 1) :
     ∀ x : ℝ, 0 ≤ (circleRealCoeffs (circleClearedResidual P d)).eval x := by
@@ -273,6 +337,9 @@ private theorem circleClearedResidual_nonneg (P : Polynomial ℂ) (d : ℕ) (hp 
   have hm := mul_le_mul_of_nonneg_left hb2 (show 0 ≤ (x^2+1)^d by positivity)
   linarith
 
+/-- For a degree-at-most-`d` polynomial bounded by one on the circle, constructs a
+degree-at-most-`d` polynomial whose squared norm completes the forward transform to `(x^2 +
+1)^d` on the real line. -/
 private theorem circleClearedResidual_factor (P : Polynomial ℂ) (d : ℕ) (hp : P.natDegree ≤ d)
     (hP : ∀ z : ℂ, ‖z‖ = 1 → ‖P.eval z‖ ≤ 1) :
     ∃ q : Polynomial ℂ, q.natDegree ≤ d ∧
@@ -300,8 +367,10 @@ private theorem circleClearedResidual_factor (P : Polynomial ℂ) (d : ℕ) (hp 
   simp only [Complex.ofReal_re] at hr
   linarith
 
+/-- The inverse rational expression `i * (1 + z) / (1 - z)` for the circle parametrization. -/
 private def circleInverse (z : ℂ) : ℂ := Complex.I*(1+z)/(1-z)
 
+/-- The inverse circle expression has zero imaginary part at every point of norm one. -/
 private theorem circleInverse_real (z : ℂ) (hz : ‖z‖ = 1) : (circleInverse z).im = 0 := by
   have hn : z.re^2+z.im^2 = 1 := by
     have hh := Complex.sq_norm z
@@ -317,38 +386,48 @@ private theorem circleInverse_real (z : ℂ) (hz : ‖z‖ = 1) : (circleInverse
   rw [show (1+z.re)*(1-z.re)-(-z.im)*(-z.im) = 0 by nlinarith]
   simp
 
+/-- At a point of norm one, the real part of `circleInverse z`, embedded in the complex numbers,
+equals `circleInverse z`. -/
 private theorem circleInverse_cast (z : ℂ) (hz : ‖z‖ = 1) :
     ((circleInverse z).re : ℂ) = circleInverse z := by
   apply Complex.ext
   · simp
   · simp [circleInverse_real z hz]
 
+/-- For `z ≠ 1`, the inverse expression satisfies `(circleInverse z + i) * (1 - z) = 2*i`. -/
 private theorem circleInverse_shift (z : ℂ) (hz : z ≠ 1) :
     (circleInverse z+Complex.I)*(1-z) = 2*Complex.I := by
   dsimp [circleInverse]
   field_simp [sub_ne_zero.mpr hz.symm]
   ring
 
+/-- At every unit-circle point other than one, applying `circleSignal` to the real part of the
+inverse expression recovers the point. -/
 private theorem circleSignal_inverse (z : ℂ) (hz : ‖z‖ = 1) (hz1 : z ≠ 1) :
     circleSignal (circleInverse z).re = z := by
   rw [circleSignal, div_eq_iff (circle_den_ne_zero _), circleInverse_cast z hz]
   have he := circleInverse_shift z hz1
   linear_combination he
 
+/-- The rational circle parametrization never takes the value one at a real input. -/
 private theorem circleSignal_ne_one (x : ℝ) : circleSignal x ≠ 1 := by
   intro he
   rw [circleSignal, div_eq_one_iff_eq (circle_den_ne_zero x)] at he
   have hh := congrArg Complex.im he
   norm_num at hh
 
+/-- Applying the inverse expression to `circleSignal x` recovers the real input `x` as a complex
+number. -/
 private theorem circleInverse_signal (x : ℝ) : circleInverse (circleSignal x) = x := by
   dsimp [circleInverse, circleSignal]
   field_simp [circle_den_ne_zero x]
   ring
 
+/-- The inverse polynomial transform using `i * (1 + X)` and `1 - X`, scaled by `(2*i)^(-d)`. -/
 private def circleReverse (q : Polynomial ℂ) (d : ℕ) : Polynomial ℂ :=
   C (((2*Complex.I)^d)⁻¹)*circleTransform q d (C Complex.I*(1+X)) (1-X)
 
+/-- The reverse circle transform has natural degree at most `d`. -/
 private theorem circleReverse_degree (q : Polynomial ℂ) (d : ℕ) :
     (circleReverse q d).natDegree ≤ d := by
   apply (natDegree_C_mul_le _ _).trans
@@ -356,6 +435,8 @@ private theorem circleReverse_degree (q : Polynomial ℂ) (d : ℕ) :
   · exact (natDegree_C_mul_le _ _).trans ((natDegree_add_le _ _).trans (by simp))
   · exact (natDegree_sub_le _ _).trans (by simp)
 
+/-- For `q` of degree at most `d`, evaluates the reverse transform at `circleSignal x` as
+`q.eval x / (x + i)^d`. -/
 private theorem circleReverse_eval (q : Polynomial ℂ) (d : ℕ) (hq : q.natDegree ≤ d) (x : ℝ) :
     (circleReverse q d).eval (circleSignal x) = q.eval (x : ℂ)/((x : ℂ)+Complex.I)^d := by
   have hb : (1-X : Polynomial ℂ).eval (circleSignal x) ≠ 0 := by
@@ -380,6 +461,8 @@ private theorem circleReverse_eval (q : Polynomial ℂ) (d : ℕ) (hq : q.natDeg
     _ = ((2*Complex.I)^d)⁻¹*(((x : ℂ)+Complex.I)^d*(1-circleSignal x)^d)*q.eval (x : ℂ) := by ring
     _ = _ := by rw [hsPow, inv_mul_cancel₀ hc, one_mul]
 
+/-- A squared-norm completion of the forward transform on the real line becomes a unit-circle
+completion after applying the reverse transform. -/
 private theorem circleSignal_completion (P q : Polynomial ℂ) (d : ℕ)
     (hp : P.natDegree ≤ d) (hq : q.natDegree ≤ d)
     (hcomp : ∀ x : ℝ, ‖(circleForward P d).eval (x : ℂ)‖^2+‖q.eval (x : ℂ)‖^2 = (x^2+1)^d)
@@ -394,6 +477,8 @@ private theorem circleSignal_completion (P q : Polynomial ℂ) (d : ℕ)
   field_simp
   nlinarith
 
+/-- A polynomial squared-norm completion holding at all unit-circle points except one also holds
+at one. -/
 private theorem circle_extend_one (P Q : Polynomial ℂ)
     (hf : ∀ z : ℂ, ‖z‖ = 1 → z ≠ 1 → ‖P.eval z‖^2+‖Q.eval z‖^2 = 1) :
     ‖P.eval 1‖^2+‖Q.eval 1‖^2 = 1 := by
@@ -418,6 +503,9 @@ private theorem circle_extend_one (P Q : Polynomial ℂ)
     continuous_const.continuousOn hFc.continuousOn hz
   simpa [F, phase] using le_antisymm hle hge
 
+/-- Every polynomial of degree at most `d` and norm at most one on the unit circle has a
+degree-at-most-`d` polynomial complement whose squared norm completes it to one on that
+circle. -/
 theorem circle_complement_zero_margin_exists (P : Polynomial ℂ) (d : ℕ) (hp : P.natDegree ≤ d)
     (hP : ∀ z : ℂ, ‖z‖ = 1 → ‖P.eval z‖ ≤ 1) :
     ∃ Q : Polynomial ℂ, Q.natDegree ≤ d ∧
@@ -435,12 +523,16 @@ theorem circle_complement_zero_margin_exists (P : Polynomial ℂ) (d : ℕ) (hp 
     exact circle_extend_one P (circleReverse q d) hall
   · exact hall z hz hz1
 
+/-- On the unit circle, a polynomial's evaluation norm is bounded by the sum of the norms of its
+coefficients. -/
 private theorem circle_eval_norm_le (P : Polynomial ℂ) (z : ℂ) (hz : ‖z‖ = 1) :
     ‖P.eval z‖ ≤ ∑ j ∈ P.support, ‖P.coeff j‖ := by
   rw [Polynomial.eval_eq_sum, Polynomial.sum]
   simpa only [norm_mul, norm_pow, hz, one_pow, mul_one] using
     norm_sum_le P.support (fun j => P.coeff j*z^j)
 
+/-- On the unit circle, the evaluation difference of two polynomials is bounded by the sum of
+their coefficient differences over the union of their supports. -/
 private theorem circle_eval_sub_error (P Q : Polynomial ℂ) (z : ℂ) (hz : ‖z‖ = 1) :
     ‖P.eval z-Q.eval z‖ ≤ ∑ j ∈ P.support ∪ Q.support, ‖P.coeff j-Q.coeff j‖ := by
   have hh := circle_eval_norm_le (P-Q) z hz
@@ -451,6 +543,8 @@ private theorem circle_eval_sub_error (P Q : Polynomial ℂ) (z : ℂ) (hz : ‖
   simp only [Polynomial.coeff_sub]
   exact Finset.sum_le_sum_of_subset_of_nonneg hs (fun _ _ _ => norm_nonneg _)
 
+/-- If `‖a‖ ≤ 1` and `‖a - b‖ ≤ δ` with `δ ≥ 0`, the squared norms differ by at most `2*δ +
+δ^2`. -/
 private theorem circle_square_error (a b : ℂ) (δ : ℝ) (hδ : 0 ≤ δ)
     (ha : ‖a‖ ≤ 1) (he : ‖a-b‖ ≤ δ) : |‖b‖^2-‖a‖^2| ≤ 2*δ+δ^2 := by
   have hdiff : |‖b‖-‖a‖| ≤ δ := by
@@ -467,6 +561,8 @@ private theorem circle_square_error (a b : ℂ) (δ : ℝ) (hδ : 0 ≤ δ)
     _ ≤ δ*(2+δ) := mul_le_mul_of_nonneg_left (by linarith) hδ
     _ = _ := by ring
 
+/-- If `P` and `Q` form an exact unit-circle complement and each coefficient error sum is at
+most `δ ≥ 0`, the perturbed pair has circle residual at most `4*δ + 2*δ^2`. -/
 theorem circle_complement_coefficient_residual_certificate (P Q P' Q' : Polynomial ℂ) (δ : ℝ) (hδ : 0 ≤ δ)
     (hP : (∑ j ∈ P.support ∪ P'.support, ‖P.coeff j-P'.coeff j‖) ≤ δ)
     (hQ : (∑ j ∈ Q.support ∪ Q'.support, ‖Q.coeff j-Q'.coeff j‖) ≤ δ)

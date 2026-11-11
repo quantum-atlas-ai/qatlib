@@ -27,6 +27,28 @@ import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminatio
 import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityStat
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+/-!
+# Specifications for copy-evolution completion
+
+This module defines the aggregate propositions used to assemble copy-evolution results.
+`StageACopyEvolutionPaidWalk` records QRAM legality, description costs, simulation precision,
+and exact channel identities; `StageACopyEvolutionClause16` records spectral self-tomography and
+discrimination guarantees.
+
+The mathematical background is described in [LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `copyEvolutionBasicGates`: the basic gate budget `3 * n * b`.
+* `StageACopyEvolutionPaidWalk`: loading, simulation, and resource requirements.
+* `StageACopyEvolutionClause16`: tomography, Gram-state, and discrimination requirements.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.CopyEvolution.GramReadout (gramColumn gramMatrix gramState)
@@ -90,8 +112,11 @@ open Qatlib.Concepts.WalkFind.UniqueCollision
 open Qatlib.Concepts.WalkFind.WalkSpectrum
 open scoped ComplexOrder BigOperators Classical Matrix.Norms.L2Operator
 
+/-- The basic gate budget `3 * n * b` for `n` copy-evolution steps on `b` bits. -/
 def copyEvolutionBasicGates (n b : ℕ) : ℕ := 3 * n * b
 
+/-- The aggregate specification for legal QRAM loading, finite-gate unitarity, copy-evolution
+precision and resource bounds, and exact partial-swap examples. -/
 def StageACopyEvolutionPaidWalk : Prop :=
 
   (∀ {b a aw t m ml : ℕ} (hg : sourceCodeLegal b (.qram a aw t m ml) = true) (ψ : Reg b),
@@ -163,6 +188,8 @@ def StageACopyEvolutionPaidWalk : Prop :=
     partialSwapOutput ρ 0 σ = σ ∧ partialSwapOutput ρ (Real.pi/2) σ = Matrix.trace σ • ρ ∧
     freshCopyRun ρ [] σ = σ ∧ freshCopyResourceCounts D [] = (0,0,0,0))
 
+/-- The aggregate specification for self-tomography, copy-QPE positivity and trace preservation,
+restricted low-rank evolution, Gram states, and finite-copy discrimination. -/
 def StageACopyEvolutionClause16 : Prop :=
 
   EpsilonCubedSelfTomography ∧

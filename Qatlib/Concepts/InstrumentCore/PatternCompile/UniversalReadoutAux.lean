@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawGraphAux
+
+/-!
+# Auxiliary laws for graph output readout
+
+This module describes the leaves of graph measurement programs with a final computational-basis
+readout. It proves well-formedness for legal graph words, identifies leaf operators and outcome
+records, and gives a bijection between leaves and pairs consisting of a graph history and an
+output label.
+
+The map `mbqcDiscard` extracts the logical output by discarding the other physical qubits. Its
+trace identities connect the physical output measurement to the logical branch probabilities in
+measurement-based computation [RaussendorfBriegel2000].
+
+## Main statements
+
+* `mbqcReadoutLeaf_fields`: exact operators, acceptance tests, resources, and records.
+* `mbqcReadoutIndex_bijective`: histories and output labels enumerate all readout leaves.
+* `mbqcOutputLabel_mass`: physical readout mass equals a diagonal entry of the discarded output.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.QspSimulation.Achievability
@@ -26,6 +50,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder Kronecker
 
+/-- Construct the readout-tail leaf for a fixed history and output label, ending with the
+corresponding output projector and decoded event test. -/
 def mbqcReadoutTailLeaf {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n)))
     (h : GraphHistory G) (y : Fin (2^n)) :
     List (Fin L) → PauliFrame n → ObservedKrausLeaf (2^(n+L))
@@ -42,6 +68,7 @@ def mbqcReadoutTailLeaf {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n)))
           (if F.1 i then star z else z)) 0 1 0 []
     | .inr _ => rest
 
+/-- The readout tail has `2^graphSlotCount G ts * 2^n` leaves. -/
 theorem mbqcReadoutTail_leafCount {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n)))
     (ts : List (Fin L)) (F : PauliFrame n) :
     observedLeafCount (mbqcReadoutTail G E ts F) = 2^(graphSlotCount G ts)*2^n := by
@@ -55,12 +82,15 @@ theorem mbqcReadoutTail_leafCount {n L : ℕ} (G : GraphWord n L) (E : Finset (F
         pow_succ,pow_add,two_mul,add_mul]
     | inr p => simp [mbqcReadoutTail,hg,ih,graphSlotCount,graphWireAt]
 
+/-- The full readout program has `2^graphWireCount G * 2^n` leaves. -/
 theorem mbqcReadoutProgram_leafCount {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n))) :
     observedLeafCount (mbqcReadoutProgram G E) = 2^(graphWireCount G)*2^n := by
   have hc : graphSlotCount G (List.ofFn (fun t : Fin L => t))=graphWireCount G := by
     simp [graphSlotCount,List.map_ofFn,List.sum_ofFn,graphWireCount_eq_sum]
   simp [mbqcReadoutProgram,graphPrepend_leafCount,mbqcReadoutTail_leafCount,hc]
 
+/-- The readout tail of a legal graph word is well formed for any event, slot list, and initial
+Pauli frame. -/
 theorem mbqcReadoutTail_wellFormed {n L : ℕ} (G : GraphWord n L)
     (hlegal : networkLegal (List.ofFn G)) (E : Finset (Fin (2^n)))
     (ts : List (Fin L)) (F : PauliFrame n) : observedWellFormed (mbqcReadoutTail G E ts F) := by
@@ -79,6 +109,7 @@ theorem mbqcReadoutTail_wellFormed {n L : ℕ} (G : GraphWord n L)
       obtain ⟨i,j⟩ := p
       simpa only [mbqcReadoutTail,hg] using! ih (graphCzFrame F i j)
 
+/-- The complete readout program of a legal graph word is well formed for every output event. -/
 theorem mbqcReadoutProgram_wellFormed {n L : ℕ} (G : GraphWord n L)
     (hlegal : networkLegal (List.ofFn G)) (E : Finset (Fin (2^n))) :
     observedWellFormed (mbqcReadoutProgram G E) := by
@@ -92,12 +123,15 @@ theorem mbqcReadoutProgram_wellFormed {n L : ℕ} (G : GraphWord n L)
       exact networkCzGate_unitary _ _
     · exact mbqcReadoutTail_wellFormed G hlegal E _ _
 
+/-- Flattening the list of singleton lists formed from `ls` returns `ls`. -/
 private theorem flatten_singletons {α : Type*} (ls : List α) :
     (ls.map (fun a => [a])).flatten=ls := by
   induction ls with
   | nil => rfl
   | cons a ls ih => simp [ih]
 
+/-- With no remaining graph slots, the readout leaves are exactly the output-label projectors
+with their decoded acceptance tests and single measurement records. -/
 private theorem mbqcReadoutBase_leaves {n L : ℕ} (G : GraphWord n L)
     (E : Finset (Fin (2^n))) (F : PauliFrame n) :
     observedKrausLeaves 1 (mbqcReadoutTail G E [] F)=
@@ -110,6 +144,8 @@ private theorem mbqcReadoutBase_leaves {n L : ℕ} (G : GraphWord n L)
     simpa only [List.map_ofFn,Function.comp_def] using! flatten_singletons (List.ofFn f)
   exact hf _
 
+/-- The readout-tail Kraus enumeration selects the history-and-output leaf at the tail-message
+index multiplied by `2^n` plus `y.val`. -/
 theorem mbqcReadoutTailLeaf_get {n L : ℕ} (G : GraphWord n L)
     (E : Finset (Fin (2^n))) (h : GraphHistory G) (y : Fin (2^n))
     (ts : List (Fin L)) (F : PauliFrame n) :
@@ -159,6 +195,8 @@ theorem mbqcReadoutTailLeaf_get {n L : ℕ} (G : GraphWord n L)
       simpa only [mbqcReadoutTail,mbqcReadoutTailLeaf,hg,graphFrameAdvance] using!
         ih (graphCzFrame F i j)
 
+/-- A full readout leaf is its recursive tail leaf with the fresh-qubit and graph-edge gates
+prepended. -/
 theorem mbqcReadoutLeaf_eq {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n)))
     (h : GraphHistory G) (y : Fin (2^n)) :
     mbqcReadoutLeaf G E h y = graphPrependLeaf (graphFreshGates n L)
@@ -173,6 +211,9 @@ theorem mbqcReadoutLeaf_eq {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n
   rw [he]
   rfl
 
+/-- A readout-tail leaf is the output projector times the raw tail operator, with acceptance
+determined by the final decoded label. It makes no queries, uses two gates per counted slot
+and one additional readout measurement, and appends the output to the raw record. -/
 theorem mbqcReadoutTailLeaf_fields {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n)))
     (h : GraphHistory G) (y : Fin (2^n)) (ts : List (Fin L)) (F : PauliFrame n) :
     (mbqcReadoutTailLeaf G E h y ts F).operator=
@@ -204,12 +245,16 @@ theorem mbqcReadoutTailLeaf_fields {n L : ℕ} (G : GraphWord n L) (E : Finset (
       simpa only [mbqcReadoutTailLeaf,mbqcRawTailLeaf,hg,graphFrameAdvance,hc,List.foldl_cons] using!
         ih (graphCzFrame F i j)
 
+/-- Prepending gates to a Kraus leaf preserves its outcome record. -/
 private theorem graphPrependLeaf_outcomes {D : ℕ} (Us : List (Operator D)) (leaf : ObservedKrausLeaf D) :
     (graphPrependLeaf Us leaf).outcomes=leaf.outcomes := by
   induction Us with
   | nil => rfl
   | cons U Us ih => simpa [graphPrependLeaf,ObservedKrausLeaf.prepend] using! ih
 
+/-- The history-and-output index is in range, and its leaf is the output projector times the raw
+leaf with the decoded acceptance test. It makes no queries, uses `2*L + 2*graphWireCount G`
+gates and `graphWireCount G + 1` measurements, and appends the output record. -/
 theorem mbqcReadoutLeaf_fields {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n)))
     (h : GraphHistory G) (y : Fin (2^n)) :
     graphHistoryIndex G h*2^n+y.val < observedLeafCount (mbqcReadoutProgram G E) ∧
@@ -239,10 +284,14 @@ theorem mbqcReadoutLeaf_fields {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin 
   simp only [true_and,and_true]
   omega
 
+/-- The finite index of a readout leaf corresponding to a graph history and a logical output
+label. -/
 def mbqcReadoutIndex {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n)))
     (hy : GraphHistory G × Fin (2^n)) : Fin (observedLeafCount (mbqcReadoutProgram G E)) :=
   ⟨graphHistoryIndex G hy.1*2^n+hy.2.val,(mbqcReadoutLeaf_fields G E hy.1 hy.2).1⟩
 
+/-- Graph histories paired with logical output labels are in bijection with the indices of all
+readout leaves. -/
 theorem mbqcReadoutIndex_bijective {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n))) :
     Function.Bijective (mbqcReadoutIndex G E) := by
   apply (Fintype.bijective_iff_injective_and_card _).mpr
@@ -258,6 +307,7 @@ theorem mbqcReadoutIndex_bijective {n L : ℕ} (G : GraphWord n L) (E : Finset (
     exact Prod.ext (graphHistoryIndex_injective G hi) (Fin.ext hi')
   · simp only [Fintype.card_prod,Fintype.card_fin,graphHistory_card,mbqcReadoutProgram_leafCount]
 
+/-- The observed leaf at `mbqcReadoutIndex G E (h,y)` is `mbqcReadoutLeaf G E h y`. -/
 theorem mbqcReadoutLeaf_observedLeaf {n L : ℕ} (G : GraphWord n L) (E : Finset (Fin (2^n)))
     (h : GraphHistory G) (y : Fin (2^n)) :
     observedLeaf 1 (mbqcReadoutProgram G E) (mbqcReadoutIndex G E (h,y))=mbqcReadoutLeaf G E h y := by
@@ -267,9 +317,13 @@ theorem mbqcReadoutLeaf_observedLeaf {n L : ℕ} (G : GraphWord n L) (E : Finset
     exact (mbqcReadoutLeaf_fields G E h y).1)]
   rfl
 
+/-- Discard the non-output physical qubits according to the final graph layout and extract the
+resulting logical operator. -/
 def mbqcDiscard {n L : ℕ} (G : GraphWord n L) (B : Operator (2^(n+L))) : Operator (2^n) :=
   fun i j => graphDiscardReference n L 1 (graphLayoutFinal G) (TensorGate B (1 : Operator 1)) (i,0) (j,0)
 
+/-- The raw logical branch is obtained by applying its physical Kraus operator to the embedded
+input and then applying `mbqcDiscard`. -/
 theorem mbqcRawBranch_discard {n L : ℕ} (G : GraphWord n L) (h : GraphHistory G)
     (ρ : Operator (2^n)) :
     mbqcRawBranch G h ρ = mbqcDiscard G
@@ -279,6 +333,8 @@ theorem mbqcRawBranch_discard {n L : ℕ} (G : GraphWord n L) (h : GraphHistory 
     Matrix.conjTranspose_kronecker,Matrix.conjTranspose_one,
     ← Matrix.mul_kronecker_mul,Matrix.one_mul]
 
+/-- For a legal graph word, the trace mass of the physical projector for output `y` equals the
+`y` diagonal entry after discarding non-output qubits. -/
 theorem mbqcOutputLabel_mass {n L : ℕ} (G : GraphWord n L)
     (hlegal : networkLegal (List.ofFn G)) (B : Operator (2^(n+L))) (y : Fin (2^n)) :
     Matrix.trace (Projector (Finset.univ.filter (fun r => mbqcOutputLabel G r=y))*B*
@@ -302,6 +358,8 @@ theorem mbqcOutputLabel_mass {n L : ℕ} (G : GraphWord n L)
   simp only [Equiv.apply_symm_apply,ite_mul,zero_mul,mul_ite,mul_zero,mul_one,one_mul]
   simp [coords]
 
+/-- Embedding a density operator with `mbqcPhysicalInput` produces a density operator on the
+physical register. -/
 theorem mbqcPhysicalInput_density {n L : ℕ} (G : GraphWord n L) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) : IsDensityOperator (mbqcPhysicalInput G ρ) := by
   refine ⟨hρ.1.mul_mul_conjTranspose_same (graphInputFrame n L),?_⟩

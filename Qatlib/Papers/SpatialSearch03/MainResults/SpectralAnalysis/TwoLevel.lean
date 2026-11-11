@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SpatialSearch03.MainResults.SpectralAnalysis.SpectralReduction
+
+/-!
+# Critical two-level amplitude
+
+This module defines the critical energy, slope, and time scales in terms of two lattice-sum
+parameters. It evaluates the explicit two-level amplitude at the critical time, as used in the
+analysis of [ChildsGoldstone2004].
+
+## Main statements
+
+* `critEnergy_mul_critTime`: the critical phase is `Real.pi / 2`.
+* `two_level_amplitude_optimum`: the amplitude norm at the critical time is `S₁ / Real.sqrt S₂`.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,24 +34,32 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Papers.SpatialSearch03.MainResults
 
+/-- The critical energy scale `S₁ / Real.sqrt (S₂ * N)`. -/
 noncomputable def critEnergy (S₁ S₂ : ℝ) (N : ℕ) : ℝ := S₁ / Real.sqrt (S₂ * (N : ℝ))
 
+/-- The critical slope scale `2 * S₂ / S₁ ^ 2`. -/
 noncomputable def critSlope (S₁ S₂ : ℝ) : ℝ := 2 * S₂ / S₁ ^ 2
 
+/-- The critical time scale `Real.pi * Real.sqrt (S₂ * N) / (2 * S₁)`. -/
 noncomputable def critTime (S₁ S₂ : ℝ) (N : ℕ) : ℝ :=
   Real.pi * Real.sqrt (S₂ * (N : ℝ)) / (2 * S₁)
 
+/-- The critical energy is positive when both lattice-sum parameters and the natural size `N`
+are positive. -/
 theorem critEnergy_pos {S₁ S₂ : ℝ} (h₁ : 0 < S₁) (h₂ : 0 < S₂) (N : ℕ) (hN : 0 < N) :
     0 < critEnergy S₁ S₂ N := by
   unfold critEnergy
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN
   exact div_pos h₁ (Real.sqrt_pos.mpr (mul_pos h₂ hNpos))
 
+/-- The critical slope is positive when both lattice-sum parameters are positive. -/
 theorem critSlope_pos {S₁ S₂ : ℝ} (h₁ : 0 < S₁) (h₂ : 0 < S₂) : 0 < critSlope S₁ S₂ := by
   unfold critSlope
   have hS1 : (0 : ℝ) < S₁ ^ 2 := by positivity
   positivity
 
+/-- For positive lattice-sum parameters and positive natural size, the product of critical
+energy and critical time is `Real.pi / 2`. -/
 theorem critEnergy_mul_critTime {S₁ S₂ : ℝ} (h₁ : 0 < S₁) (h₂ : 0 < S₂) (N : ℕ) (hN : 0 < N) :
     critEnergy S₁ S₂ N * critTime S₁ S₂ N = Real.pi / 2 := by
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN
@@ -44,6 +70,8 @@ theorem critEnergy_mul_critTime {S₁ S₂ : ℝ} (h₁ : 0 < S₁) (h₂ : 0 < 
   rw [div_mul_div_comm]
   field_simp [hA, hS1]
 
+/-- For positive `N`, `S₁`, and `S₂`, the displayed two-level amplitude at the critical energy,
+slope, and time has norm `S₁ / Real.sqrt S₂` [ChildsGoldstone2004]. -/
 theorem two_level_amplitude_optimum (N : ℕ) (hN : 0 < N) (S₁ S₂ : ℝ)
     (h₁ : 0 < S₁) (h₂ : 0 < S₂) :
     ‖-(((Real.sqrt (N : ℝ) : ℂ))⁻¹) *

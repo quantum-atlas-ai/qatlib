@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux2
+
+/-!
+# Closed formulas for Taylor blocks and exact evolution
+
+`taylorODESolution_eq_diag` expresses the reference solution through scalar exponential
+integrals in a diagonalizing basis. The identity `taylorV2_inBlockClosed` gives each
+within-block Taylor coordinate as a factorial-scaled matrix power with its forcing term. See
+[BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylorODESolution_eq_diag`: Under the stated diagonalization and inverse hypotheses, the
+  reference ODE solution is `V` applied to the coordinatewise exponential-integral solution with
+  transformed initial data and source.
+* `taylorV2_inBlockClosed`: Each history coordinate of a V2 Taylor-system solution equals the
+  factorial-scaled power of `M` applied to its boundary block, with the factorial-scaled forcing
+  contribution at positive orders.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +44,9 @@ section Duhamel
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 
+/-- Under the stated diagonalization and inverse hypotheses, the reference ODE solution is `V`
+applied to the coordinatewise exponential-integral solution with transformed initial data
+and source. -/
 theorem taylorODESolution_eq_diag (A V D : Matrix N N ℂ) (hA : A = V * D * V⁻¹)
     (hV1 : V * V⁻¹ = 1) (hV2 : V⁻¹ * V = 1)
     (hd : ∀ i j : N, i ≠ j → D i j = 0) (b x_in : QState N) (t : ℝ) :
@@ -112,6 +138,9 @@ section BlockConj
 
 variable {N : Type} [Fintype N] [DecidableEq N]
 
+/-- Each history coordinate of a V2 Taylor-system solution equals the factorial-scaled power of
+`M` applied to its boundary block, with the factorial-scaled forcing contribution at
+positive orders. -/
 theorem taylorV2_inBlockClosed (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ) (x_in b : QState N)
     (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hx : taylorStepMatrixV2 m k p M *ᵥ x = taylorRHS m k p h x_in b)

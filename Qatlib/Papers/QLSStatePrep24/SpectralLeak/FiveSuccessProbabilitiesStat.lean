@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLSStatePrep24.SpectralLeak.BandModels
+
+/-!
+# Specification of five spectral success weights
+
+The proposition `Clause31FiveSuccessProbabilities` states the quantitative comparison of the
+single-band, inverse-band, near-band, full-band, and perturbed state weights. Its hypotheses
+specify spectral band membership, legal normalized rows, total row error below one, and a norm
+perturbation bound. See [LowSu2026] for the paper context.
+
+## Main statements
+
+* `Clause31FiveSuccessProbabilities`: The proposition comparing five success weights under valid
+  spectral bands, normalized coefficients, legal rows, and a bounded state perturbation,
+  including factor-nine inverse-band bounds, leakage estimates, and a `4 * εbm` probability
+  error.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +50,9 @@ open Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Papers.QLSStatePrep24.S
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition comparing five success weights under valid spectral bands, normalized
+coefficients, legal rows, and a bounded state perturbation, including factor-nine
+inverse-band bounds, leakage estimates, and a `4 * εbm` probability error. -/
 def Clause31FiveSuccessProbabilities : Prop :=
   ∀ (I : Type) [Fintype I] (m : ℕ) (k : I → ℕ) (σ : I → ℝ) (γ : I → ℂ)
     (ξ : ℕ → I → QState (Fin 2)) (δ : ℕ → ℝ)

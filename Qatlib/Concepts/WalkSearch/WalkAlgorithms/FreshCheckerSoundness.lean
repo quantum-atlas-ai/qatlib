@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+
+/-!
+# Soundness of fresh graph checking
+
+This module proves that amplified extraction returns a witness satisfying its supplied relation.
+It then applies this to `triCheckFresh`, showing that a successful result is a distinct pair in
+the stored subset with an edge between them and a common adjacent witness.
+
+The result supplies the witness-validity component of graph checking used in quantum-walk search
+[MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `triCheckAmpExtract_sound`: validity of an extracted relation witness.
+* `triCheckFresh_sound`: the adjacency and subset properties of a successful pair.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -12,6 +33,7 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 open scoped Classical
 
+/-- Any witness returned by amplified extraction satisfies the supplied subset relation. -/
 theorem triCheckAmpExtract_sound {n m : ℕ}
     (adj : Fin n → Fin n → Bool) (e : Fin m → Fin n) (kcs : KCollisionSolver)
     (r' : ℕ) (subR : (Fin 2 → Fin m) → Bool) (v : Fin n) (c₀ : ℕ)
@@ -52,6 +74,8 @@ theorem triCheckAmpExtract_sound {n m : ℕ}
             cases h
   exact hscan (List.range c₀) (none,0) (by simp) t hout
 
+/-- A successful fresh checker returns two distinct vertices of `U` that are adjacent to each
+other and share a vertex adjacent to both. -/
 theorem triCheckFresh_sound {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (ntape : ncs.seed) :

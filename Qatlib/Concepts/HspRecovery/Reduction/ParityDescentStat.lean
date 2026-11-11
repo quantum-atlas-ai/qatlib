@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.Reduction.Reductions
+
+/-!
+# Specification of dihedral parity descent
+
+`SourceParityDescent` packages the algebraic requirements for descending from modulus `2 ^ (n +
+1)` to modulus `2 ^ n` after learning a hidden slope's parity. These requirements express the
+recursive restriction step used in [Kuperberg2005].
+
+## Main definitions
+
+* `SourceParityDescent`: injectivity of the parity embeddings, preservation of the hiding
+  promise under restriction, and unique reconstruction by parity lifting.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.HspRecovery.RecordExtract
@@ -12,6 +30,8 @@ open Qatlib.Concepts.HspRecovery.RecordExtract
 set_option autoImplicit false
 namespace Qatlib.Concepts.HspRecovery.ReductionCore
 
+/-- The conjunction of injectivity of parity embeddings, preservation of hidden reflections
+under restriction, and unique reconstruction of a slope from its parity and smaller slope. -/
 def SourceParityDescent : Prop := by
   classical
   exact

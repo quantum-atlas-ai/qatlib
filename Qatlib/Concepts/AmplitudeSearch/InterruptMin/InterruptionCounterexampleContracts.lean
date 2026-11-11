@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.InterruptedCall
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+
+/-!
+# Legacy interruption contracts for counterexamples
+
+This module records `InterruptedCallLawsLegacy` and `InterruptedSearchAttemptLegacy` as
+propositions for testing earlier interruption semantics. They use query truncation in the
+circuit and search-observation identities that later modules examine by counterexample.
+
+The contracts concern the interrupted search calls used in minimum finding [DurrHoyer1996].
+
+## Main statements
+
+* `InterruptedCallLawsLegacy`: The legacy circuit-interruption contract, including an identity
+  identifying query truncation with an always-accepting query prefix.
+* `InterruptedSearchAttemptLegacy`: The legacy search-attempt contract expressing observation,
+  query-count, normalization, success, and reconstruction claims through
+  `truncateObservedQueries`.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
@@ -21,6 +44,8 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
 open Qatlib
 
+/-- The legacy circuit-interruption contract, including an identity identifying query truncation
+with an always-accepting query prefix. -/
 def InterruptedCallLawsLegacy : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (C : Circuit I)
     (ψ : QState I) (r : ℕ),
@@ -41,6 +66,8 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin.AQuantumAlgorithmForFindi
 
 open Qatlib.Concepts.SearchStopping.GroverSuccess
 
+/-- The legacy search-attempt contract expressing observation, query-count, normalization,
+success, and reconstruction claims through `truncateObservedQueries`. -/
 def InterruptedSearchAttemptLegacy : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (_hN : 0 < Fintype.card I) (A : Finset I)
     (j r : ℕ),

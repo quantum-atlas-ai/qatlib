@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Mathlib.RingTheory.PowerSeries.Order
 
+/-!
+# Coefficients of powers of formal series
+
+This module gives coefficient identities for powers of formal power series over the ambient
+coefficient algebra. These identities support the repetition-count expansions used in the
+multi-product analysis of [AftabAnTrivisa2026].
+
+## Main statements
+
+* `power_coeff_vanish`: shows vanishing below the power for a series with zero constant
+  coefficient.
+* `power_coefficient_newton`: gives the finite binomial expansion for a series with constant
+  coefficient one.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -15,12 +34,16 @@ open scoped BigOperators
 
 variable {A : Type} [Ring A]
 
+/-- If a formal power series has zero constant coefficient, the coefficient of degree n in its
+j-th power vanishes whenever n < j. -/
 theorem power_coeff_vanish (f : PowerSeries A) (hf : f.constantCoeff = 0)
     (n j : ℕ) (hj : n < j) : PowerSeries.coeff n (f ^ j) = 0 := by
   apply PowerSeries.coeff_of_lt_order
   exact lt_of_lt_of_le (by exact_mod_cast hj)
       (PowerSeries.le_order_pow_of_constantCoeff_eq_zero j hf)
 
+/-- For a formal power series with constant coefficient one, the degree-n coefficient of its
+q-th power equals the binomially weighted sum of the coefficients of (f - 1)^j for j ≤ n. -/
 theorem power_coefficient_newton (f : PowerSeries A) (hf : f.constantCoeff = 1) (n q : ℕ) :
     PowerSeries.coeff n (f ^ q) =
       ∑ j ∈ Finset.range (n + 1), q.choose j • PowerSeries.coeff n ((f - 1) ^ j) := by

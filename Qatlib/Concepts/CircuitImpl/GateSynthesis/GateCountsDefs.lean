@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharp
 import Qatlib.Concepts.ResourceBounds.AsymBounds.GatesBitDefs
 import Mathlib.Topology.MetricSpace.HausdorffDimension
+
+/-!
+# Two-level synthesis counts and parameter arithmetic
+
+This module defines the two-level counts, per-instruction cost, and primitive budget used in the
+Section 8 gate-synthesis accounting [BarencoEtAl1995]. It proves elementary relations and
+exponential bounds between these numerical quantities.
+
+The module also defines unitary and special-unitary parameter counts and computes the real
+vector-space dimension of all complex operators on an `n`-qubit register.
+
+## Main statements
+
+* `section8TwoLevelCount_eq`: the upper count differs from the lower count by `2 ^ n` for
+  positive `n`.
+* `section8TwoLevelCount_bounds`: comparison of the two-level counts with `4 ^ n`.
+* `unitaryParamCount_two_pow`: the unitary parameter count is `4 ^ n`.
+* `qubitOperatorSpace_finrank`: the ambient real operator space has dimension `2 * 4 ^ n`.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CircuitImpl.MultiControl
@@ -19,34 +43,43 @@ namespace Qatlib.Concepts.CircuitImpl.GateSynthesis
 open Matrix
 open scoped Classical BigOperators
 
+/-- For positive `n`, the power `2 ^ n` is `2 ^ (n - 1) * 2`. -/
 theorem pow_two_mul_two (n : ℕ) (hn : 1 ≤ n) : 2 ^ n = 2 ^ (n - 1) * 2 := by
   calc 2 ^ n = 2 ^ (n - 1 + 1) := by congr 1; omega
     _ = 2 ^ (n - 1) * 2 := Nat.pow_succ 2 (n - 1)
 
+/-- The `n`-th power of `2 ^ 2` equals `2 ^ (2 * n)`. -/
 theorem pow_two_two (n : ℕ) : (2 ^ 2) ^ n = 2 ^ (2 * n) := by
   induction n with
   | zero => rfl
   | succ n ih =>
       rw [Nat.pow_succ, ih, show 2 * (n + 1) = 2 * n + 2 from by omega, Nat.pow_add]
 
+/-- The power `4 ^ n` equals `2 ^ (2 * n)`. -/
 theorem pow_four (n : ℕ) : 4 ^ n = 2 ^ (2 * n) := by
   rw [show (4 : ℕ) = 2 ^ 2 by norm_num, pow_two_two]
 
+/-- The numerical two-level count `2 ^ (n - 1) * (2 ^ n + 1)` used in the Section 8 accounting. -/
 def section8TwoLevelCount (n : ℕ) : ℕ := 2 ^ (n - 1) * (2 ^ n + 1)
 
+/-- The numerical lower count `2 ^ (n - 1) * (2 ^ n - 1)` for two-level synthesis accounting. -/
 def reckTwoLevelLower (n : ℕ) : ℕ := 2 ^ (n - 1) * (2 ^ n - 1)
 
+/-- The per-instruction cost `(2 * n - 1) * (48 * n * n + 2 * n + 3699)`. -/
 def section8InstructionCost (n : ℕ) : ℕ := (2 * n - 1) * (48 * n * n + 2 * n + 3699)
 
+/-- The product of the Section 8 two-level count and its per-instruction cost. -/
 def section8PrimitiveBudget (n : ℕ) : ℕ :=
   section8TwoLevelCount n * section8InstructionCost n
 
+/-- The lower two-level count is at most `section8TwoLevelCount n`. -/
 theorem reckTwoLevelLower_le (n : ℕ) :
     reckTwoLevelLower n ≤ section8TwoLevelCount n := by
   unfold reckTwoLevelLower section8TwoLevelCount
   exact Nat.mul_le_mul_left (2 ^ (n - 1))
     (Nat.le_trans (Nat.sub_le _ _) (Nat.le_add_right _ _))
 
+/-- For positive `n`, the Section 8 two-level count equals the lower count plus `2 ^ n`. -/
 theorem section8TwoLevelCount_eq (n : ℕ) (hn : 1 ≤ n) :
     section8TwoLevelCount n = reckTwoLevelLower n + 2 ^ n := by
   have hp : 2 ^ (n - 1) * 2 = 2 ^ n := by
@@ -61,6 +94,8 @@ theorem section8TwoLevelCount_eq (n : ℕ) (hn : 1 ≤ n) :
   unfold section8TwoLevelCount reckTwoLevelLower
   rw [hsplit, hp]
 
+/-- For positive `n`, the lower and upper two-level counts lie between the stated constant
+multiples of `4 ^ n`. -/
 theorem section8TwoLevelCount_bounds (n : ℕ) (hn : 1 ≤ n) :
     4 ^ n ≤ 4 * reckTwoLevelLower n ∧
     reckTwoLevelLower n ≤ section8TwoLevelCount n ∧
@@ -105,10 +140,13 @@ theorem section8TwoLevelCount_bounds (n : ℕ) (hn : 1 ≤ n) :
       _ = 2 ^ (n - 1) * 2 ^ (n - 1) * 4 := by ac_rfl
       _ = 4 ^ n := h4.symm
 
+/-- The numerical unitary parameter count `d * d` at matrix dimension `d`. -/
 def unitaryParamCount (d : ℕ) : ℕ := d * d
 
+/-- The numerical special-unitary parameter count `d * d - 1`, using natural-number subtraction. -/
 def suParamCount (d : ℕ) : ℕ := d * d - 1
 
+/-- For positive `d`, the unitary parameter count equals `d + d * (d - 1)`. -/
 theorem unitaryParamCount_eq (d : ℕ) (hd : 1 ≤ d) :
     unitaryParamCount d = d + d * (d - 1) := by
   have h : d + d * (d - 1) = d * d := by
@@ -118,6 +156,7 @@ theorem unitaryParamCount_eq (d : ℕ) (hd : 1 ≤ d) :
       _ = d * d := by rw [show 1 + (d - 1) = d from by omega]
   exact h.symm
 
+/-- At matrix dimension `2 ^ n`, the unitary parameter count equals `4 ^ n`. -/
 theorem unitaryParamCount_two_pow (n : ℕ) : unitaryParamCount (2 ^ n) = 4 ^ n := by
   unfold unitaryParamCount
   have h1 : 2 ^ n * 2 ^ n = 2 ^ (n + n) := (Nat.pow_add 2 n n).symm
@@ -125,20 +164,25 @@ theorem unitaryParamCount_two_pow (n : ℕ) : unitaryParamCount (2 ^ n) = 4 ^ n 
   congr 1
   omega
 
+/-- At matrix dimension `2 ^ n`, the special-unitary parameter count equals `4 ^ n - 1`. -/
 theorem suParamCount_two_pow (n : ℕ) : suParamCount (2 ^ n) = 4 ^ n - 1 := by
   have h := unitaryParamCount_two_pow n
   show 2 ^ n * 2 ^ n - 1 = 4 ^ n - 1
   rw [← h]
   rfl
 
+/-- At positive matrix dimension, the special-unitary parameter count is strictly smaller than
+the unitary parameter count. -/
 theorem suParamCount_lt (d : ℕ) (hd : 1 ≤ d) : suParamCount d < unitaryParamCount d := by
   unfold suParamCount unitaryParamCount
   exact Nat.sub_lt_of_pos_le (by norm_num : (0 : ℕ) < 1)
     (Nat.mul_le_mul (by omega) (by omega))
 
+/-- The space of complex matrices indexed by pairs of `n`-qubit computational basis labels. -/
 abbrev qubitOperatorSpace (n : ℕ) : Type :=
   (Fin n → Fin 2) → (Fin n → Fin 2) → ℂ
 
+/-- The real dimension of the complex operator space on `n` qubits is `2 * 4 ^ n`. -/
 theorem qubitOperatorSpace_finrank (n : ℕ) :
     Module.finrank ℝ (qubitOperatorSpace n) = 2 * 4 ^ n := by
   simp only [Module.finrank_pi_fintype, Fintype.card_fin, Finset.card_univ,

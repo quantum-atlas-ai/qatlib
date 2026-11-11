@@ -10,6 +10,25 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Dixon.De
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Dixon.H1Diff
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Dixon.H2.Diff
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.LocallyConstant
+
+/-!
+# Holomorphicity of the Dixon function
+
+This module combines the differentiability of the Dixon components with local vanishing of
+winding numbers to prove that `dixonFunction` is entire. The null-homology form applies to
+closed curves differentiable outside a countable set and supports the contour calculus for
+[WangEtAl2026].
+
+## Main statements
+
+* `cauchy_integrand_intervalIntegrable`: integrability away from the pole.
+* `differentiable_dixonFunction`: entirety under null-homology.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -26,6 +45,8 @@ section
 
 variable {f : ℂ → ℂ} {U : Set ℂ} {γ : ℝ → ℂ} {a b : ℝ} {P : Set ℝ} {w : ℂ}
 
+/-- The Cauchy contour integrand is interval integrable when the curve and function are
+continuous, the derivative is integrable, and the pole is avoided. -/
 theorem cauchy_integrand_intervalIntegrable (hf : ContinuousOn f U)
     (hγ_cont : ContinuousOn γ (uIcc a b)) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U)
     (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b)
@@ -34,6 +55,8 @@ theorem cauchy_integrand_intervalIntegrable (hf : ContinuousOn f U)
   hderiv_int.continuousOn_mul (((hf.comp hγ_cont hγU).div
     (hγ_cont.sub continuousOn_const) fun t ht ↦ sub_ne_zero.mpr (hoff t ht)))
 
+/-- At an avoided point with winding number zero, the Dixon function equals `dixonH2` under the
+stated continuity and integrability assumptions. -/
 theorem dixonFunction_eq_dixonH2_of_windingNumber_zero (hγ_cont : ContinuousOn γ (uIcc a b))
     (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b)
     (h_cauchy_int : IntervalIntegrable (fun t ↦ f (γ t) / (γ t - w) * deriv γ t) volume a b)
@@ -45,6 +68,8 @@ theorem dixonFunction_eq_dixonH2_of_windingNumber_zero (hγ_cont : ContinuousOn 
     ring
   · rw [dixonFunction_eq_dixonH2 hw]
 
+/-- The Dixon function is entire when every point outside the holomorphic domain has a
+neighborhood avoiding the curve with winding number zero. -/
 private theorem differentiable_dixonFunction_of_windingNumber_zero_near (hU : IsOpen U)
     (hf : DifferentiableOn ℂ f U) (hγ_cont : ContinuousOn γ (uIcc a b))
     (hγU : ∀ t ∈ uIcc a b, γ t ∈ U) (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b)
@@ -66,6 +91,8 @@ private theorem differentiable_dixonFunction_of_windingNumber_zero_near (hU : Is
     exact dixonFunction_eq_dixonH2_of_windingNumber_zero hγ_cont hderiv_int
       (cauchy_integrand_intervalIntegrable hf.continuousOn hγ_cont hγU hderiv_int hoff') hoff' hwz'
 
+/-- The Dixon function is entire for a closed curve null-homologous in the holomorphic domain,
+assuming an integrable derivative and differentiability outside a countable exceptional set. -/
 theorem differentiable_dixonFunction (hU : IsOpen U) (hf : DifferentiableOn ℂ f U)
     (hγ_cont : ContinuousOn γ (uIcc a b)) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U)
     (hderiv_int : IntervalIntegrable (fun t ↦ deriv γ t) volume a b) (hclosed : γ a = γ b)

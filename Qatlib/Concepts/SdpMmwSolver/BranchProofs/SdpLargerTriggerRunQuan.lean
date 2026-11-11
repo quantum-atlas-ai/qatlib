@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerTriggerRunStat
 import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerBranchPrimalWitnessQuan
+
+/-!
+# Primal witnesses from a failed oracle round
+
+`sdpLargerTriggerRun` applies the larger-branch witness theorem to the Gibbs state at a failed
+oracle round. The payoff history is Hermitian, so this iterate is a density operator and the
+failure condition supplies the required separation inequality.
+
+For the mathematical background, see [BrandaoSvore2017].
+
+## Main statements
+
+* `sdpLargerTriggerRun`: A failed oracle round along the specified Hermitian Gibbs history
+  yields a positive semidefinite primal feasible operator of trace at most R and objective at
+  least (1 − δ)α. See [BrandaoSvore2017].
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +41,9 @@ namespace Qatlib.Concepts.SdpMmwSolver.BranchProofs
 open Matrix
 open scoped Classical BigOperators
 
+/-- A failed oracle round along the specified Hermitian Gibbs history yields a positive
+semidefinite primal feasible operator of trace at most R and objective at least (1 − δ)α.
+See [BrandaoSvore2017]. -/
 theorem sdpLargerTriggerRun : SdpLargerTriggerRun := by
   intro D m A Cv b y j₀ α R δ ε η t₀ hD hα hR hδ hδ1 hε hεcap hA hCv hb hA0 hb0 _hprior hfail
   have hhistory (s : ℕ) : (sdpDualPayoff D m A Cv α y s).IsHermitian := by

@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutStat
 import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesSpectralReadoutQuan
+
+/-!
+# Finite two-species sign readout
+
+This module proves `FiniteTwoSpeciesSignReadout` for timed phase estimation of a
+density-operator difference. Under the spectral magnitude and gap assumptions, positive-label
+mass approximates the input's positive spectral weight within `twoSpeciesSignErrorBudget`,
+supporting the discrimination construction of [LloydMohseniRebentrost2014].
+
+The proof bounds the QPE kernel mass assigned to the wrong sign and combines this with
+finite-copy implementation error. Positive and negative masses sum to one, and nonzero
+eigenvectors have correct-sign probability at least one minus the budget, hence at least two
+thirds when the budget is at most one third.
+
+## Main statements
+
+* `sign_kernel_positive_error`: the ideal kernel sign-error bound.
+* `positive_mass_error`: the finite-copy positive spectral-weight bound.
+* `timedTwoSpecies_sign_masses_sum`: normalization of the two sign masses.
+* `finiteTwoSpeciesSignReadout`: the complete sign-readout specification.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +51,8 @@ open Matrix
 open scoped Classical BigOperators ComplexOrder
 set_option warningAsError false
 
+/-- A phase label with the wrong sign is at circular phase distance greater than `γ / 8` from
+`-x / 4` under the stated magnitude and gap bounds. -/
 private theorem sign_bad_label_distance (M : ℕ) (γ x : ℝ) (z : Fin M)
     (hM : 0 < M) (_hγ : 0 < γ) (hγ1 : γ ≤ 1) (hx : |x| ≤ 1)
     (hgap : γ ≤ |x|) (hbad : if 0 < x then z ∉ twoSpeciesPositiveLabels M
@@ -67,6 +95,8 @@ private theorem sign_bad_label_distance (M : ℕ) (γ x : ℝ) (z : Fin M)
     · have hc' : 0 ≤ (c : ℝ) := by exact_mod_cast (show 0 ≤ c by omega)
       exact lt_of_lt_of_le (by linarith) (neg_le_abs _)
 
+/-- The total QPE kernel weight on positive labels differs from the indicator of `0 < x` by at
+most `128 / (M * γ)` under the spectral gap assumptions. -/
 private theorem sign_kernel_positive_error (M : ℕ) (γ x : ℝ) (hM : 0 < M)
     (hγ : 0 < γ) (hγ1 : γ ≤ 1) (hx : |x| ≤ 1)
     (hgap : x ≠ 0 → γ ≤ |x|) :
@@ -124,6 +154,9 @@ private theorem sign_kernel_positive_error (M : ℕ) (γ x : ℝ) (hM : 0 < M)
       rw [sub_zero, abs_of_nonneg hp0]
       exact hb
 
+/-- For a gapped spectral decomposition of `ρ - σ`, the timed positive-label mass differs from
+the positive spectral weight of any density input by at most `twoSpeciesSignErrorBudget M n
+γ`. -/
 private theorem positive_mass_error (d M n : ℕ) (γ : ℝ) (ρ σ V : Operator d)
     (x : Fin d → ℝ) (hM : 2 ≤ M) (hn : 0 < n) (hγ : 0 < γ) (hγ1 : γ ≤ 1)
     (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ)
@@ -167,6 +200,8 @@ private theorem positive_mass_error (d M n : ℕ) (γ : ℝ) (ρ σ V : Operator
     _ ≤ 32*(M-1 : ℕ)*(Real.pi/2)^2/(n : ℝ) + 128/((M : ℝ)*γ) := add_le_add h hideal
     _ = twoSpeciesSignErrorBudget M n γ := by unfold twoSpeciesSignErrorBudget; ring
 
+/-- For positive `M` and density inputs, the timed positive and negative label masses sum to
+one. -/
 theorem timedTwoSpecies_sign_masses_sum (d M n : ℕ) (ρ σ χ : Operator d)
     (hM : 0 < M) (hρ : IsDensityOperator ρ) (hσ : IsDensityOperator σ)
     (hχ : IsDensityOperator χ) :
@@ -176,6 +211,9 @@ theorem timedTwoSpecies_sign_masses_sum (d M n : ℕ) (ρ σ χ : Operator d)
     (timedTwoSpeciesQPEOutput_density d M n (Real.pi/2) hM ρ σ χ hρ hσ hχ).2,
     Complex.one_re]
 
+/-- The finite two-species sign-readout specification holds, with spectral-weight error and
+nonzero-eigenvector sign success controlled by the stated budget. This formalizes the sign
+readout used for discrimination in [LloydMohseniRebentrost2014]. -/
 theorem finiteTwoSpeciesSignReadout : FiniteTwoSpeciesSignReadout := by
   intro d M n γ ρ σ V x hM hn hγ hγ1 hρ hσ hV hs hx hgap
   have hmain := positive_mass_error d M n γ ρ σ V x hM hn hγ hγ1 hρ hσ hV hs hx hgap

@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedDefinitions
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedHami
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Output fibers of the corrected two-unitary circuit
+
+This module identifies `lemma2CircuitCorrected` with the relabeled prepare-select-unprepare
+circuit of Figure 3 in [ChildsWiebe2012]. It proves unitarity of `vKappaSource` and computes
+both ancilla output fibers, including the failure fiber proportional to `Ub - Ua`.
+
+`lemma2FailureProbCorrected_formula` expresses failure mass through the squared norm of the
+unitary difference. `nearby_unitary_difference_sq` bounds this quantity by four on normalized
+inputs.
+
+## Main statements
+
+* `lemma2CircuitCorrected_fig3`: identifies the corrected circuit with the Figure 3
+  construction.
+* `lemma2OutputCorrected_formula`: computes the success and failure fibers.
+* `lemma2FailureProbCorrected_formula`: gives the exact failure-mass formula.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
@@ -26,6 +50,8 @@ open Matrix
 open scoped Classical Matrix.Norms.L2Operator
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Identifies a single Boolean ancilla together with a system index with a `Fin 2` ancilla and
+the same system index. -/
 def oneLCUBitEquiv : ((Fin 1→Bool)×I) ≃ (Fin 2×I) where
   toFun p := (boolEquivFin2 (p.1 0),p.2)
   invFun p := ((fun _=>boolEquivFin2.symm p.1),p.2)
@@ -42,6 +68,8 @@ def oneLCUBitEquiv : ((Fin 1→Bool)×I) ≃ (Fin 2×I) where
 
 omit [Fintype I] in
 
+/-- For one ancilla, the corrected rotation is the relabeled tensor product of `V` with the
+system identity. -/
 private theorem oneBit_rot_eq (V : Matrix (Fin 2) (Fin 2) ℂ) :
     rotGateCorrected (I := I) 1 0 V = relabelGate (oneLCUBitEquiv (I := I)).symm (TensorGate V 1) := by
   letI : IsEmpty {j : Fin 1 // j≠0} := ⟨by rintro ⟨j,hj⟩; exact hj (Subsingleton.elim _ _)⟩
@@ -55,6 +83,8 @@ private theorem oneBit_rot_eq (V : Matrix (Fin 2) (Fin 2) ℂ) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- For one ancilla, the corrected control of lifted system matrices is the relabeled selection
+matrix for `Ua` and `Ub`. -/
 private theorem oneBit_ctrl_eq (Ua Ub : Matrix I I ℂ) :
     ctrlGateCorrected 1 0 (liftSys 1 Ua) (liftSys 1 Ub) =
       relabelGate (oneLCUBitEquiv (I := I)).symm (Select (fun b : Fin 2=>if b=0 then Ua else Ub)) := by
@@ -67,12 +97,16 @@ private theorem oneBit_ctrl_eq (Ua Ub : Matrix I I ℂ) :
     simp [ctrlGateCorrected,liftSys,relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,
       oneLCUBitEquiv,Select,boolEquivFin2,he,hz,hw]
 
+/-- The corrected two-unitary circuit equals the relabeled Figure 3 circuit with preparation
+`vKappaSource κ` and its adjoint as unpreparation [ChildsWiebe2012]. -/
 theorem lemma2CircuitCorrected_fig3 (κ : ℝ) (Ua Ub : Matrix I I ℂ) :
     lemma2CircuitCorrected κ Ua Ub = relabelGate (oneLCUBitEquiv (I := I)).symm
       (Fig3Circuit (fun b : Fin 2=>if b=0 then Ua else Ub) (vKappaSource κ) (vKappaSource κ)ᴴ) := by
   simp only [lemma2CircuitCorrected,lcuLevelGateCorrected,oneBit_rot_eq,oneBit_ctrl_eq,
     Fig3Circuit,Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul]
 
+/-- The source-convention preparation matrix `vKappaSource κ` is unitary when `κ` is
+nonnegative. -/
 theorem vKappaSource_unitary (κ : ℝ) (hκ : 0≤κ) :
     vKappaSource κ ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   have hp : 0<κ+1 := by linarith
@@ -94,6 +128,8 @@ theorem vKappaSource_unitary (κ : ℝ) (hκ : 0≤κ) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- The constant false one-bit ancilla input is the relabeling of the `Fin 2` zero-ancilla
+input. -/
 private theorem oneBit_input (ψ : QState I) :
     TensorState (Ket (fun _=>false)) ψ =
       relabelState (oneLCUBitEquiv (I := I)).symm (TensorState (Ket (0 : Fin 2)) ψ) := by
@@ -104,6 +140,8 @@ private theorem oneBit_input (ψ : QState I) :
     · intro h; funext j; have hj : j=0 := Subsingleton.elim _ _; subst j; exact h
   cases hz : z 0 <;> simp [TensorState,Ket,relabelState,oneLCUBitEquiv,boolEquivFin2,he,hz]
 
+/-- Each corrected output fiber is the sum of the two selected system outputs weighted by the
+corresponding preparation and adjoint entries. -/
 theorem lemma2OutputCorrected_branches (κ : ℝ) (Ua Ub : Matrix I I ℂ) (ψ : QState I)
     (b : Bool) (x : I) :
     lemma2OutputCorrected κ Ua Ub ψ (fun _=>b,x) =
@@ -113,6 +151,9 @@ theorem lemma2OutputCorrected_branches (κ : ℝ) (Ua Ub : Matrix I I ℂ) (ψ :
   rw [lemma2CircuitCorrected_fig3,oneBit_input,applyGate_relabelGate]
   exact fig3Fiber _ _ _ _ _ _ _
 
+/-- For nonnegative `κ`, the false-ancilla fiber applies `(κ * Ua + Ub) / (κ + 1)`, and the
+true-ancilla fiber applies `sqrt κ / (κ + 1)` times `Ub - Ua`. These are the corrected Lemma
+2 fibers of [ChildsWiebe2012]. -/
 theorem lemma2OutputCorrected_formula (κ : ℝ) (hκ : 0≤κ) (Ua Ub : Matrix I I ℂ) (ψ : QState I) :
     (∀ x : I, lemma2OutputCorrected κ Ua Ub ψ (fun _=>false,x) =
       ((((κ:ℂ)/(κ+1)) • Ua+((1:ℂ)/(κ+1)) • Ub)*ᵥψ) x) ∧
@@ -145,6 +186,8 @@ theorem lemma2OutputCorrected_formula (κ : ℝ) (hκ : 0≤κ) (Ua Ub : Matrix 
       Matrix.sub_mulVec,Matrix.smul_mulVec]
     linear_combination (((Ub*ᵥψ) x)-((Ua*ᵥψ) x))*habC
 
+/-- For nonnegative `κ`, the corrected failure mass equals `κ / (κ + 1) ^ 2` times the sum of
+squared coordinate norms of `(Ua - Ub) *ᵥ ψ`. -/
 theorem lemma2FailureProbCorrected_formula (κ : ℝ) (hκ : 0≤κ)
     (Ua Ub : Matrix I I ℂ) (ψ : QState I) :
     lemma2FailureProbCorrected κ Ua Ub ψ =
@@ -163,6 +206,8 @@ theorem lemma2FailureProbCorrected_formula (κ : ℝ) (hκ : 0≤κ)
   simp_rw [he]
   rw [Finset.mul_sum]
 
+/-- The sum of squared coordinate norms of the difference of two unitary outputs is at most four
+for a normalized input. -/
 theorem nearby_unitary_difference_sq (Ua Ub : Matrix I I ℂ)
     (hUa : Ua∈Matrix.unitaryGroup I ℂ) (hUb : Ub∈Matrix.unitaryGroup I ℂ)
     (ψ : QState I) (hψ : Normalized ψ) :

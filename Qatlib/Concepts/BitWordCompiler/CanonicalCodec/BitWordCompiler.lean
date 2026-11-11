@@ -19,6 +19,37 @@ import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.DeriveFintype
 import Mathlib.Data.Fintype.Sum
 import Mathlib.Data.Fintype.Sigma
+
+/-!
+# Canonical bit codecs and uniform word emission
+
+This module constructs prefix codecs for natural numbers, opcodes, and finite quantum words.
+`PrefixCodec` packages encoding with complete and sound prefix parsing; `parseWord` enforces
+word legality, while `decodeWord` also requires the entire input to be consumed. The finite
+control and circuit-language viewpoint is standard in [KitaevShenVyalyi2002].
+
+The `TM` namespaces implement stack subroutines and their translation to finite-control
+Turing machines, tracking accumulated clocks and head excursions. The validator handles all
+bit strings, and the emitter evaluates encoded plans with a polynomial bound in encoded input
+length, output length, and semantic work.
+
+## Main statements
+
+* `readNat_eq_some_iff`: exact characterization of canonical natural-number prefix parsing.
+* `wordBits_length`: the fieldwise length formula for a word encoding.
+* `parseWord_eq_some_iff`: successful parsing characterizes legal words and their remaining
+  suffixes.
+* `decodeWord_eq_some_iff`: successful decoding characterizes complete legal word encodings.
+* `BitWordCompiler.canonical_codec_and_validator`: canonical codecs and a uniform validator
+  with eighth-degree time and space bounds in input length.
+* `BitWordCompiler.uniform_emitter_machine`: one machine emits every encoded plan with
+  twelfth-degree time and space bounds in the combined input, output, and work measure.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ClassicalTape.TapeCompilation
@@ -29,6 +60,7 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Interpreting the canonical binary digits of a natural number recovers that number. -/
 theorem binaryValue_bits (n : ℕ) : binaryValue n.bits = n := by
   induction n using Nat.binaryRec' with
   | zero => rfl
@@ -38,6 +70,8 @@ theorem binaryValue_bits (n : ℕ) : binaryValue n.bits = n := by
     rw [ih]
     cases b <;> simp [Nat.bit]
 
+/-- Parse a unary length prefix consisting of true bits terminated by a false bit, returning the
+length and unconsumed suffix. -/
 def readSize : Bits → Option (ℕ × Bits)
   | [] => none
   | false :: rest => some (0,rest)
@@ -45,12 +79,15 @@ def readSize : Bits → Option (ℕ × Bits)
       let (n,tail) ← readSize rest
       pure (n+1,tail)
 
+/-- Parsing a unary prefix of length `n` returns `n` and preserves the following suffix. -/
 theorem readSize_complete (n : ℕ) (rest : Bits) :
     readSize (List.replicate n true ++ false::rest) = some (n,rest) := by
   induction n with
   | zero => rfl
   | succ n ih => simp [List.replicate_succ, readSize, ih]
 
+/-- A successful unary parse identifies the input as exactly the parsed true-bit prefix, its
+false terminator, and the returned suffix. -/
 theorem readSize_sound (input : Bits) (n : ℕ) (rest : Bits)
     (h : readSize input = some (n,rest)) :
     input = List.replicate n true ++ false::rest := by
@@ -73,6 +110,8 @@ theorem readSize_sound (input : Bits) (n : ℕ) (rest : Bits)
         rw [ih k tail he]
         simp [List.replicate_succ]
 
+/-- Parse a length-prefixed natural number, rejecting truncated payloads and binary
+representations that are not canonical. -/
 def readNat (input : Bits) : Option (ℕ × Bits) := do
   let (n,rest) ← readSize input
   if n ≤ rest.length then
@@ -83,6 +122,7 @@ def readNat (input : Bits) : Option (ℕ × Bits) := do
     else none
   else none
 
+/-- Parsing `natBits n` followed by any suffix returns `n` and that suffix. -/
 theorem readNat_complete (n : ℕ) (tail : Bits) :
     readNat (natBits n ++ tail) = some (n,tail) := by
   have he : natBits n ++ tail = List.replicate n.bits.length true ++ false::(n.bits++tail) := by
@@ -90,6 +130,8 @@ theorem readNat_complete (n : ℕ) (tail : Bits) :
   rw [he, readNat, readSize_complete]
   simp [binaryValue_bits]
 
+/-- A successful natural-number parse consumes exactly `natBits n` and leaves the returned
+suffix. -/
 theorem readNat_sound (input : Bits) (n : ℕ) (tail : Bits)
     (h : readNat input = some (n,tail)) : input = natBits n ++ tail := by
   unfold readNat at h
@@ -106,6 +148,8 @@ theorem readNat_sound (input : Bits) (n : ℕ) (tail : Bits)
       rw [readSize_sound input k rest he, natBits, hk, hcanonical]
       simp only [List.append_assoc, List.cons_append, List.nil_append, List.take_append_drop]
 
+/-- Natural-number parsing succeeds with a given value and suffix exactly when the input is
+their canonical encoding followed by that suffix. -/
 theorem readNat_eq_some_iff (input : Bits) (n : ℕ) (tail : Bits) :
     readNat input = some (n,tail) ↔ input = natBits n ++ tail := by
   constructor
@@ -113,6 +157,8 @@ theorem readNat_eq_some_iff (input : Bits) (n : ℕ) (tail : Bits) :
   · rintro rfl
     exact readNat_complete n tail
 
+/-- The encoded word length is the sum of twice the binary length plus one for the width,
+operation count, and every opcode field. -/
 theorem wordBits_length (w : Word) :
     (wordBits w).length =
       (([w.width,w.ops.length] ++ w.ops.flatMap fields).map
@@ -124,15 +170,19 @@ theorem wordBits_length (w : Word) :
   simp only [natBits, List.length_append, List.length_replicate, List.length_singleton]
   omega
 
+/-- An encoder and prefix parser with completeness on every encoded value and suffix, and
+soundness identifying every successfully consumed prefix. -/
 structure PrefixCodec (α : Type) where
   encode : α → Bits
   parse : Bits → Option (α × Bits)
   complete : ∀ a tail, parse (encode a ++ tail) = some (a,tail)
   sound : ∀ input a tail, parse input = some (a,tail) → input = encode a ++ tail
 
+/-- The prefix codec for natural numbers using `natBits` and the canonical parser `readNat`. -/
 def natCodec : PrefixCodec ℕ :=
   ⟨natBits, readNat, readNat_complete, readNat_sound⟩
 
+/-- Combine two prefix codecs by encoding and parsing the two components consecutively. -/
 def PrefixCodec.prod {α β : Type} (C : PrefixCodec α) (D : PrefixCodec β) :
     PrefixCodec (α × β) where
   encode p := C.encode p.1 ++ D.encode p.2
@@ -159,6 +209,7 @@ def PrefixCodec.prod {α β : Type} (C : PrefixCodec α) (D : PrefixCodec β) :
         rw [C.sound input a' rest hc, D.sound rest b' tail' hd]
         exact (List.append_assoc _ _ _).symm
 
+/-- Transport a prefix codec along an equivalence, using the inverse equivalence for encoding. -/
 def PrefixCodec.map {α β : Type} (C : PrefixCodec α) (e : α ≃ β) : PrefixCodec β where
   encode b := C.encode (e.symm b)
   parse input := (C.parse input).map (fun p => (e p.1,p.2))
@@ -175,6 +226,8 @@ def PrefixCodec.map {α β : Type} (C : PrefixCodec α) (e : α ≃ β) : Prefix
       rcases h with ⟨rfl,rfl⟩
       simpa only [Equiv.symm_apply_apply] using C.sound input a rest hc
 
+/-- Parse a prescribed number of successive values with a prefix codec, returning the list and
+unconsumed suffix. -/
 def readMany {α : Type} (C : PrefixCodec α) : ℕ → Bits → Option (List α × Bits)
   | 0,input => some ([],input)
   | n+1,input => do
@@ -182,12 +235,16 @@ def readMany {α : Type} (C : PrefixCodec α) : ℕ → Bits → Option (List α
       let (xs,tail) ← readMany C n rest
       pure (a::xs,tail)
 
+/-- Parsing the concatenated encodings of a list with its length recovers the list and preserves
+the following suffix. -/
 theorem readMany_complete {α : Type} (C : PrefixCodec α) (xs : List α) (tail : Bits) :
     readMany C xs.length (xs.flatMap C.encode ++ tail) = some (xs,tail) := by
   induction xs with
   | nil => rfl
   | cons a xs ih => simp [readMany, List.append_assoc, C.complete, ih]
 
+/-- A successful counted parse returns a list of the requested length whose encodings
+concatenate to the consumed prefix. -/
 theorem readMany_sound {α : Type} (C : PrefixCodec α) (n : ℕ) (input : Bits)
     (xs : List α) (tail : Bits) (h : readMany C n input = some (xs,tail)) :
     xs.length = n ∧ input = xs.flatMap C.encode ++ tail := by
@@ -213,6 +270,8 @@ theorem readMany_sound {α : Type} (C : PrefixCodec α) (n : ℕ) (input : Bits)
         rw [C.sound input a rest hc, hbits]
         simp [List.append_assoc]
 
+/-- Encode a list by its canonical natural-number length followed by the encodings of its
+elements. -/
 def PrefixCodec.list {α : Type} (C : PrefixCodec α) : PrefixCodec (List α) where
   encode xs := natBits xs.length ++ xs.flatMap C.encode
   parse input := do
@@ -231,6 +290,7 @@ def PrefixCodec.list {α : Type} (C : PrefixCodec α) : PrefixCodec (List α) wh
       obtain ⟨hlen,hbits⟩ := readMany_sound C n rest xs tail h
       rw [readNat_sound input n rest hn, ← hlen, hbits, List.append_assoc]
 
+/-- The Boolean prefix codec using the natural-number encodings of zero and one. -/
 def boolCodec : PrefixCodec Bool where
   encode b := natBits (if b then 1 else 0)
   parse input := do
@@ -259,21 +319,30 @@ def boolCodec : PrefixCodec Bool where
         exact readNat_sound input 1 rest hn
       · simp at h
 
+/-- Identify natural numbers with optional natural numbers by sending zero to `none` and each
+successor to `some` of its predecessor. -/
 def optionNatEquiv : ℕ ≃ Option ℕ where
   toFun n := match n with | 0 => none | n+1 => some n
   invFun n := match n with | none => 0 | some n => n+1
   left_inv := by intro n; cases n <;> rfl
   right_inv := by intro n; cases n <;> rfl
 
+/-- The prefix codec for optional natural numbers induced by `optionNatEquiv`. -/
 def optionNatCodec : PrefixCodec (Option ℕ) := natCodec.map optionNatEquiv
 
+/-- Apply a function to the value returned by a prefix parser while preserving its unconsumed
+suffix. -/
 def parseMap {α β : Type} (C : PrefixCodec α) (f : α → β) (input : Bits) :
     Option (β × Bits) := (C.parse input).map (fun p => (f p.1,p.2))
 
+/-- Mapping a parser over an encoded value returns the mapped value and preserves the following
+suffix. -/
 theorem parseMap_complete {α β : Type} (C : PrefixCodec α) (f : α → β) (a : α) (tail : Bits) :
     parseMap C f (C.encode a ++ tail) = some (f a,tail) := by
   simp [parseMap, C.complete]
 
+/-- Every successful mapped parse comes from a successful original parse with the same suffix
+and a value mapped to the reported result. -/
 theorem parseMap_sound {α β : Type} (C : PrefixCodec α) (f : α → β)
     (input : Bits) (b : β) (tail : Bits) (h : parseMap C f input = some (b,tail)) :
     ∃ a, C.parse input = some (a,tail) ∧ f a = b := by
@@ -286,21 +355,31 @@ theorem parseMap_sound {α β : Type} (C : PrefixCodec α) (f : α → β)
     rcases h with ⟨rfl,rfl⟩
     exact ⟨a,rfl,rfl⟩
 
+/-- The product codec for the three natural-number fields and Boolean flag of a phase opcode. -/
 def phaseBody : PrefixCodec (ℕ × ℕ × ℕ × Bool) :=
   natCodec.prod (natCodec.prod (natCodec.prod boolCodec))
 
+/-- The product codec for the two addresses of a swap opcode. -/
 def swapBody : PrefixCodec (ℕ × ℕ) := natCodec.prod natCodec
 
+/-- The product codec for an oracle slot, optional control, adjoint flag, and list of wire
+addresses. -/
 def oracleBody : PrefixCodec (ℕ × Option ℕ × Bool × List ℕ) :=
   natCodec.prod (optionNatCodec.prod (boolCodec.prod natCodec.list))
 
+/-- Encode an opcode by concatenating the canonical natural-number encodings of its fields. -/
 def opBits (op : Opcode) : Bits := (fields op).flatMap natBits
 
+/-- Construct a phase opcode from its tuple of three natural-number fields and a Boolean flag. -/
 def phaseOf (p : ℕ × ℕ × ℕ × Bool) : Opcode := .phase p.1 p.2.1 p.2.2.1 p.2.2.2
+/-- Construct a swap opcode from its pair of addresses. -/
 def swapOf (p : ℕ × ℕ) : Opcode := .swap p.1 p.2
+/-- Construct an oracle opcode from its slot, optional control, adjoint flag, and wire list. -/
 def oracleOf (p : ℕ × Option ℕ × Bool × List ℕ) : Opcode :=
   .oracle p.1 p.2.1 p.2.2.1 p.2.2.2
 
+/-- Parse an opcode by reading its natural-number tag and then the corresponding body codec,
+rejecting unrecognized tags. -/
 def readOpcode (input : Bits) : Option (Opcode × Bits) := do
   let (tag,rest) ← readNat input
   match tag with
@@ -310,22 +389,27 @@ def readOpcode (input : Bits) : Option (Opcode × Bits) := do
   | 3 => parseMap oracleBody oracleOf rest
   | _ => none
 
+/-- A Hadamard opcode is encoded by tag zero followed by its address encoding. -/
 theorem opBits_hadamard (a : ℕ) : opBits (.hadamard a) = natBits 0 ++ natCodec.encode a := by
   simp [opBits, fields, natCodec]
 
+/-- A phase opcode is encoded by tag one followed by its body encoding. -/
 theorem opBits_phase (p : ℕ × ℕ × ℕ × Bool) :
     opBits (phaseOf p) = natBits 1 ++ phaseBody.encode p := by
   simp [opBits, phaseOf, fields, phaseBody, PrefixCodec.prod, natCodec, boolCodec]
 
+/-- A swap opcode is encoded by tag two followed by its body encoding. -/
 theorem opBits_swap (p : ℕ × ℕ) : opBits (swapOf p) = natBits 2 ++ swapBody.encode p := by
   simp [opBits, swapOf, fields, swapBody, PrefixCodec.prod, natCodec]
 
+/-- An oracle opcode is encoded by tag three followed by its body encoding. -/
 theorem opBits_oracle (p : ℕ × Option ℕ × Bool × List ℕ) :
     opBits (oracleOf p) = natBits 3 ++ oracleBody.encode p := by
   rcases p with ⟨slot, control, adj, ws⟩
   cases control <;> simp [opBits, oracleOf, fields, oracleBody, PrefixCodec.prod,
     PrefixCodec.list, PrefixCodec.map, optionNatCodec, optionNatEquiv, natCodec, boolCodec]
 
+/-- Parsing an encoded opcode recovers the opcode and preserves any following suffix. -/
 theorem readOpcode_complete (op : Opcode) (tail : Bits) :
     readOpcode (opBits op ++ tail) = some (op,tail) := by
   cases op with
@@ -349,6 +433,8 @@ theorem readOpcode_complete (op : Opcode) (tail : Bits) :
     simp only [readOpcode, readNat_complete, Option.bind_eq_bind, Option.bind_some]
     exact parseMap_complete oracleBody oracleOf (slot,control,adj,ws) tail
 
+/-- A successful tag parse followed by a successful mapped body parse reconstructs the full
+opcode encoding and suffix. -/
 theorem tagged_sound {α : Type} (C : PrefixCodec α) (f : α → Opcode) (tag : ℕ)
     (hencode : ∀ a, opBits (f a) = natBits tag ++ C.encode a)
     (input rest : Bits) (op : Opcode) (tail : Bits)
@@ -357,6 +443,7 @@ theorem tagged_sound {α : Type} (C : PrefixCodec α) (f : α → Opcode) (tag :
   obtain ⟨a,hC,rfl⟩ := parseMap_sound C f rest op tail h
   rw [readNat_sound input tag rest hn, C.sound rest a tail hC, hencode, List.append_assoc]
 
+/-- A successful opcode parse consumes exactly the encoding of the returned opcode. -/
 theorem readOpcode_sound (input : Bits) (op : Opcode) (tail : Bits)
     (h : readOpcode input = some (op,tail)) : input = opBits op ++ tail := by
   unfold readOpcode at h
@@ -372,21 +459,27 @@ theorem readOpcode_sound (input : Bits) (op : Opcode) (tail : Bits)
     · exact tagged_sound oracleBody oracleOf 3 opBits_oracle input rest op tail hn h
     · simp at h
 
+/-- The prefix codec for opcodes, pairing `opBits` with `readOpcode`. -/
 def opcodeCodec : PrefixCodec Opcode := ⟨opBits, readOpcode, readOpcode_complete, readOpcode_sound⟩
 
+/-- Identify a word with the pair consisting of its width and opcode list. -/
 def wordEquiv : (ℕ × List Opcode) ≃ Word where
   toFun p := ⟨p.1,p.2⟩
   invFun w := (w.width,w.ops)
   left_inv := by intro p; cases p; rfl
   right_inv := by intro w; cases w; rfl
 
+/-- The word prefix codec obtained from a width and a length-prefixed opcode list. -/
 def wordCodec : PrefixCodec Word := (natCodec.prod opcodeCodec.list).map wordEquiv
 
+/-- The product-based word codec produces the canonical encoding `wordBits`. -/
 theorem wordCodec_encode (w : Word) : wordCodec.encode w = wordBits w := by
   simp [wordCodec, PrefixCodec.map, wordEquiv, PrefixCodec.prod, PrefixCodec.list,
     natCodec, opcodeCodec, wordBits, List.flatMap_assoc]
   rfl
 
+/-- Check opcode address bounds and, for oracle opcodes, distinctness of wires and separation
+from the optional control. -/
 def legalOpcodeCheck (width : ℕ) : Opcode → Bool
   | .hadamard a => decide (a < width)
   | .phase a b _ _ => decide (a < width) && decide (b < width)
@@ -396,6 +489,8 @@ def legalOpcodeCheck (width : ℕ) : Opcode → Bool
         | none => true
         | some a => decide (a < width ∧ a ∉ ws))
 
+/-- The Boolean opcode check holds exactly when the opcode satisfies `legalOpcode` at the given
+width. -/
 theorem legalOpcodeCheck_spec (width : ℕ) (op : Opcode) :
     legalOpcodeCheck width op = true ↔ legalOpcode width op := by
   cases op with
@@ -405,20 +500,27 @@ theorem legalOpcodeCheck_spec (width : ℕ) (op : Opcode) :
   | oracle slot control adj ws =>
     cases control <;> simp [legalOpcodeCheck, legalOpcode, List.all_eq_true]
 
+/-- Check every opcode of a word against its declared width. -/
 def legalWordCheck (w : Word) : Bool := w.ops.all (legalOpcodeCheck w.width)
 
+/-- The Boolean word check holds exactly when the word satisfies `Legal`. -/
 theorem legalWordCheck_spec (w : Word) : legalWordCheck w = true ↔ Legal w := by
   simp only [legalWordCheck, List.all_eq_true, legalOpcodeCheck_spec, Legal]
 
+/-- Parse a word prefix and reject it if the decoded word fails the legality check. -/
 def parseWord (input : Bits) : Option (Word × Bits) := do
   let (w,tail) ← wordCodec.parse input
   if legalWordCheck w = true then pure (w,tail) else none
 
+/-- Parsing the canonical encoding of a legal word recovers the word and preserves the following
+suffix. -/
 theorem parseWord_complete (w : Word) (tail : Bits) (h : Legal w) :
     parseWord (wordBits w ++ tail) = some (w,tail) := by
   rw [← wordCodec_encode]
   simp [parseWord, wordCodec.complete, (legalWordCheck_spec w).mpr h]
 
+/-- A successful word parse returns a legal word and identifies the consumed prefix with its
+canonical encoding. -/
 theorem parseWord_sound (input : Bits) (w : Word) (tail : Bits)
     (h : parseWord input = some (w,tail)) : Legal w ∧ input = wordBits w ++ tail := by
   unfold parseWord at h
@@ -433,6 +535,8 @@ theorem parseWord_sound (input : Bits) (w : Word) (tail : Bits)
     exact ⟨(legalWordCheck_spec _).mp hlegal, by
       simpa only [wordCodec_encode] using wordCodec.sound input w' tail' hp⟩
 
+/-- Word-prefix parsing succeeds exactly on the canonical encoding of a legal word followed by
+the returned suffix. -/
 theorem parseWord_eq_some_iff (input : Bits) (w : Word) (tail : Bits) :
     parseWord input = some (w,tail) ↔ Legal w ∧ input = wordBits w ++ tail := by
   constructor
@@ -440,10 +544,13 @@ theorem parseWord_eq_some_iff (input : Bits) (w : Word) (tail : Bits) :
   · rintro ⟨hw,rfl⟩
     exact parseWord_complete w tail hw
 
+/-- Decode a complete legal word, rejecting parse failures and any unconsumed trailing bits. -/
 def decodeWord (input : Bits) : Option Word := do
   let (w,tail) ← parseWord input
   if tail = [] then pure w else none
 
+/-- Complete word decoding succeeds exactly when the input is the canonical encoding of the
+returned legal word. -/
 theorem decodeWord_eq_some_iff (input : Bits) (w : Word) :
     decodeWord input = some w ↔ Legal w ∧ input = wordBits w := by
   constructor
@@ -464,6 +571,8 @@ theorem decodeWord_eq_some_iff (input : Bits) (w : Word) :
       simpa only [List.append_nil] using parseWord_complete w [] hw
     simp [decodeWord, hp]
 
+/-- There exist prefix and complete-word decoders with canonical completeness and soundness,
+together with the exact fieldwise encoding-length formula. -/
 theorem canonical_codec_data :
     ∃ (parse : Bits → Option (Word × Bits)) (decode : Bits → Option Word),
       (∀ w suffix, Legal w → parse (wordBits w ++ suffix) = some (w,suffix)) ∧
@@ -473,10 +582,12 @@ theorem canonical_codec_data :
         (([w.width,w.ops.length] ++ w.ops.flatMap fields).map (fun n => 2*n.bits.length+1)).sum) :=
   ⟨parseWord,decodeWord,parseWord_complete,parseWord_eq_some_iff,decodeWord_eq_some_iff,wordBits_length⟩
 
+/-- A canonical natural-number encoding has length twice the number of binary digits plus one. -/
 theorem natBits_length (n : ℕ) : (natBits n).length = 2*n.bits.length+1 := by
   simp only [natBits, List.length_append, List.length_replicate, List.length_singleton]
   omega
 
+/-- Concatenating canonical natural-number encodings produces at least one bit per list element. -/
 theorem flatNatBits_length_ge (xs : List ℕ) : xs.length ≤ (xs.flatMap natBits).length := by
   induction xs with
   | nil => rfl
@@ -484,6 +595,7 @@ theorem flatNatBits_length_ge (xs : List ℕ) : xs.length ≤ (xs.flatMap natBit
     simp only [List.length_cons, List.flatMap_cons, List.length_append, natBits_length]
     omega
 
+/-- After `t` steps, the machine head lies between positions −t and t. -/
 theorem headPosition_bounds {q : ℕ}
     (M : Turing.TM0.Machine (Option Bool) (Fin (q+1))) (input : Bits) (t : ℕ) :
     -(t : ℤ) ≤ headPosition M input t ∧ headPosition M input t ≤ (t : ℤ) := by
@@ -506,28 +618,36 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
+/-- The tape alphabet consisting of Boolean symbols and a blank symbol. -/
 abbrev Symbol := Option Bool
 
+/-- The head displacement of a TM0 instruction: minus one for a left move, one for a right move,
+and zero for a write. -/
 def stmtOffset : TM0.Stmt Symbol → ℤ
   | .move .left => -1
   | .move .right => 1
   | .write _ => 0
 
+/-- The displacement of the next machine instruction, or zero if the current configuration
+halts. -/
 def nextOffset {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ) (cfg : TM0.Cfg Symbol Λ) : ℤ :=
   match M cfg.q cfg.Tape.head with
   | some (_,stmt) => stmtOffset stmt
   | none => 0
 
+/-- Iterate the optional TM0 transition function for the specified number of steps. -/
 def run {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (t : ℕ) (cfg : TM0.Cfg Symbol Λ) : Option (TM0.Cfg Symbol Λ) :=
   (fun c : Option (TM0.Cfg Symbol Λ) => c.bind (TM0.step M))^[t] (some cfg)
 
+/-- `run M (n+1) cfg` equals `(run M n cfg).bind (TM0.step M)`. -/
 theorem run_succ_last {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (n : ℕ) (cfg : TM0.Cfg Symbol Λ) :
     run M (n+1) cfg = (run M n cfg).bind (TM0.step M) := by
   unfold run
   rw [Function.iterate_succ_apply']
 
+/-- Under the stated hypotheses, `run M (n+1) cfg` equals `run M n cfg'`. -/
 theorem run_succ_first {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (n : ℕ) (cfg cfg' : TM0.Cfg Symbol Λ) (h : TM0.step M cfg = some cfg') :
     run M (n+1) cfg = run M n cfg' := by
@@ -536,16 +656,20 @@ theorem run_succ_first {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
   change (fun c : Option (TM0.Cfg Symbol Λ) => c.bind (TM0.step M))^[n] (TM0.step M cfg) = _
   rw [h]
 
+/-- Under the stated hypotheses, `run M (n+m) cfg` equals `run M m cfg'`. -/
 theorem run_add_some {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (n m : ℕ) (cfg cfg' : TM0.Cfg Symbol Λ) (h : run M n cfg = some cfg') :
     run M (n+m) cfg = run M m cfg' := by
   unfold run at h ⊢
   rw [Nat.add_comm n m, Function.iterate_add_apply, h]
 
+/-- Accumulate the head displacements during the first steps of a TM0 run, contributing zero
+after a failed transition. -/
 def offset {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ) (cfg : TM0.Cfg Symbol Λ) : ℕ → ℤ
   | 0 => 0
   | n+1 => offset M cfg n + (run M n cfg).elim 0 (nextOffset M)
 
+/-- Under the stated hypotheses, `offset M cfg (n+m)` equals `offset M cfg n + offset M cfg' m`. -/
 theorem offset_add_some {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (n m : ℕ) (cfg cfg' : TM0.Cfg Symbol Λ) (h : run M n cfg = some cfg') :
     offset M cfg (n+m) = offset M cfg n + offset M cfg' m := by
@@ -557,6 +681,8 @@ theorem offset_add_some {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     rw [ih, run_add_some M n m cfg cfg' h]
     omega
 
+/-- Under the stated hypotheses, `offset M cfg (n+1)` equals `nextOffset M cfg + offset M cfg'
+n`. -/
 theorem offset_succ_first {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (n : ℕ) (cfg cfg' : TM0.Cfg Symbol Λ) (h : TM0.step M cfg = some cfg') :
     offset M cfg (n+1) = nextOffset M cfg + offset M cfg' n := by
@@ -568,14 +694,17 @@ theorem offset_succ_first {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     rw [ih, run_succ_first M n cfg cfg' h]
     omega
 
+/-- A finite TM0 execution together with its exact step count and net head displacement. -/
 structure Trace {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (first last : TM0.Cfg Symbol Λ) (ticks : ℕ) (displacement : ℤ) : Prop where
   reached : run M ticks first = some last
   offset_eq : offset M first ticks = displacement
 
+/-- Every configuration has a zero-step trace to itself with zero displacement. -/
 theorem Trace.refl {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ) (cfg : TM0.Cfg Symbol Λ) :
     Trace M cfg cfg 0 0 := ⟨rfl,rfl⟩
 
+/-- Concatenate two consecutive TM0 traces, adding their step counts and displacements. -/
 theorem Trace.trans {Λ : Type} [Inhabited Λ] {M : TM0.Machine Symbol Λ}
     {a b c : TM0.Cfg Symbol Λ} {n m : ℕ} {s t : ℤ}
     (h : Trace M a b n s) (k : Trace M b c m t) : Trace M a c (n+m) (s+t) := by
@@ -584,6 +713,7 @@ theorem Trace.trans {Λ : Type} [Inhabited Λ] {M : TM0.Machine Symbol Λ}
     exact k.reached
   · rw [offset_add_some M n m a b h.reached, h.offset_eq, k.offset_eq]
 
+/-- A successful transition with the specified displacement forms a one-step trace. -/
 theorem Trace.one {Λ : Type} [Inhabited Λ] {M : TM0.Machine Symbol Λ}
     {a b : TM0.Cfg Symbol Λ} {s : ℤ} (h : TM0.step M a = some b)
     (hs : nextOffset M a = s) : Trace M a b 1 s := by
@@ -591,12 +721,14 @@ theorem Trace.one {Λ : Type} [Inhabited Λ] {M : TM0.Machine Symbol Λ}
   · simpa only [run, Function.iterate_one, Option.bind_some] using h
   · simpa only [offset, run, Function.iterate_zero_apply, Option.elim_some, zero_add] using hs
 
+/-- `run M t (TM0.init input)` equals `BitMachineAfter M input t`. -/
 theorem run_initial {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (input : List Symbol) (t : ℕ) : run M t (TM0.init input) = BitMachineAfter M input t := by
   induction t with
   | zero => rfl
   | succ t ih => rw [run_succ_last, ih]; rfl
 
+/-- `headPosition M input t` equals `offset M (TM0.init (input.map some)) t`. -/
 theorem headPosition_eq_offset {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1))) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (t : ℕ) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.headPosition M input t = offset M (TM0.init (input.map some)) t := by
   induction t with
@@ -615,6 +747,8 @@ theorem headPosition_eq_offset {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1))) (i
         | write value => simp only [nextOffset, hm, stmtOffset, Option.elim_some]
         | move dir => cases dir <;> simp only [nextOffset, hm, stmtOffset, Option.elim_some]
 
+/-- A halted zero-displacement trace with the required tape contents and bounded input length
+gives a `Runs` certificate with the supplied common time and space budget. -/
 theorem Trace.runs {q : ℕ} {M : TM0.Machine Symbol (Fin (q+1))}
     {input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits} {last : TM0.Cfg Symbol (Fin (q+1))} {t budget : ℕ}
     (h : Trace M (TM0.init (input.map some)) last t 0)
@@ -634,39 +768,47 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- Apply one TM0 move or write instruction to a tape. -/
 def applyStmt (stmt : TM0.Stmt Symbol) (tape : Tape Symbol) : Tape Symbol :=
   match stmt with
   | .move d => tape.move d
   | .write b => tape.write b
 
+/-- Execute a finite list of TM0 tape instructions in order. -/
 def evalScript : List (TM0.Stmt Symbol) → Tape Symbol → Tape Symbol
   | [],tape => tape
   | stmt::rest,tape => evalScript rest (applyStmt stmt tape)
 
+/-- Sum the head displacements of the instructions in a finite script. -/
 def scriptOffset : List (TM0.Stmt Symbol) → ℤ
   | [] => 0
   | stmt::rest => stmtOffset stmt + scriptOffset rest
 
+/-- `evalScript (a++b) tape` equals `evalScript b (evalScript a tape)`. -/
 theorem evalScript_append (a b : List (TM0.Stmt Symbol)) (tape : Tape Symbol) :
     evalScript (a++b) tape = evalScript b (evalScript a tape) := by
   induction a generalizing tape with
   | nil => rfl
   | cons stmt a ih => exact ih (applyStmt stmt tape)
 
+/-- `scriptOffset (a++b)` equals `scriptOffset a + scriptOffset b`. -/
 theorem scriptOffset_append (a b : List (TM0.Stmt Symbol)) :
     scriptOffset (a++b) = scriptOffset a + scriptOffset b := by
   induction a with
   | nil => simp [scriptOffset]
   | cons stmt a ih => simp only [List.cons_append, scriptOffset, ih]; omega
 
+/-- Build a script that writes the given bit word while moving right between consecutive bits. -/
 def writeWord : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits → List (TM0.Stmt Symbol)
   | [] => []
   | [b] => [.write (some b)]
   | b::c::rest => .write (some b) :: .move .right :: writeWord (c::rest)
 
+/-- Write the given bit word and move left to restore the head to its starting position. -/
 def printScript (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : List (TM0.Stmt Symbol) :=
   writeWord out ++ List.replicate (out.length-1) (.move .left)
 
+/-- `evalScript (List.replicate n (.move .left)) tape` equals `(Tape.move Dir.left)^[n] tape`. -/
 theorem eval_moves_left (n : ℕ) (tape : Tape Symbol) :
     evalScript (List.replicate n (.move .left)) tape = (Tape.move Dir.left)^[n] tape := by
   induction n generalizing tape with
@@ -674,6 +816,7 @@ theorem eval_moves_left (n : ℕ) (tape : Tape Symbol) :
   | succ n ih =>
     rw [List.replicate_succ, evalScript, applyStmt, ih, Function.iterate_succ_apply]
 
+/-- `(Tape.move Dir.left)^[n] ((Tape.move Dir.right)^[n] tape)` equals `tape`. -/
 theorem left_right_iterate (n : ℕ) (tape : Tape Symbol) :
     (Tape.move Dir.left)^[n] ((Tape.move Dir.right)^[n] tape) = tape := by
   induction n with
@@ -681,6 +824,8 @@ theorem left_right_iterate (n : ℕ) (tape : Tape Symbol) :
   | succ n ih =>
     rw [Function.iterate_succ_apply, Function.iterate_succ_apply', Tape.move_right_left, ih]
 
+/-- `evalScript (writeWord out) (Tape.mk₂ left [])` equals `(Tape.move Dir.right)^[out.length-1]
+(Tape.mk₂ left (out.map some))`. -/
 theorem eval_writeWord (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (left : List Symbol) :
     evalScript (writeWord out) (Tape.mk₂ left []) =
       (Tape.move Dir.right)^[out.length-1] (Tape.mk₂ left (out.map some)) := by
@@ -699,11 +844,13 @@ theorem eval_writeWord (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bit
       rw [hn, Function.iterate_succ_apply]
       congr 1
 
+/-- `evalScript (printScript out) (Tape.mk₁ [])` equals `Tape.mk₁ (out.map some)`. -/
 theorem eval_printScript (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     evalScript (printScript out) (Tape.mk₁ []) = Tape.mk₁ (out.map some) := by
   rw [printScript, evalScript_append, Tape.mk₁, eval_writeWord, eval_moves_left, left_right_iterate]
   rfl
 
+/-- `scriptOffset (writeWord out)` equals `(out.length-1 : ℕ)`. -/
 theorem writeWord_offset (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : scriptOffset (writeWord out) = (out.length-1 : ℕ) := by
   induction out with
   | nil => rfl
@@ -714,15 +861,18 @@ theorem writeWord_offset (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
       simp only [writeWord, scriptOffset, stmtOffset, ih, List.length_cons]
       omega
 
+/-- `scriptOffset (List.replicate n (.move .left))` equals `-(n : ℤ)`. -/
 theorem moves_left_offset (n : ℕ) : scriptOffset (List.replicate n (.move .left)) = -(n : ℤ) := by
   induction n with
   | zero => rfl
   | succ n ih => simp only [List.replicate_succ, scriptOffset, stmtOffset, ih]; omega
 
+/-- `scriptOffset (printScript out)` equals `0`. -/
 theorem printScript_offset (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : scriptOffset (printScript out) = 0 := by
   rw [printScript, scriptOffset_append, writeWord_offset, moves_left_offset]
   omega
 
+/-- `(writeWord out).length` is at most `2*out.length`. -/
 theorem writeWord_length (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (writeWord out).length ≤ 2*out.length := by
   induction out with
   | nil => rfl
@@ -733,11 +883,14 @@ theorem writeWord_length (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
       simp only [writeWord, List.length_cons] at ih ⊢
       omega
 
+/-- `(printScript out).length` is at most `3*out.length`. -/
 theorem printScript_length (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (printScript out).length ≤ 3*out.length := by
   simp only [printScript, List.length_append, List.length_replicate]
   have h := writeWord_length out
   omega
 
+/-- A finite-control machine that clears its input tape before executing the supplied
+instruction script. -/
 def cleanerMachine (code : List (TM0.Stmt Symbol)) : TM0.Machine Symbol (Fin (code.length+6)) :=
   fun state symbol => match state.val with
   | 0 => match symbol with
@@ -760,6 +913,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- A machine following the labels and instructions of a script executes its tape transformation
+in exactly the script length, with displacement `scriptOffset`. -/
 theorem script_trace {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (code : List (TM0.Stmt Symbol)) (label : ℕ → Λ)
     (hcode : ∀ i (hi : i < code.length) b,
@@ -786,28 +941,38 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- The bounded program-counter label for an instruction in the cleanup script, clamping the
+index at the script length. -/
 def pc (code : List (TM0.Stmt Symbol)) (i : ℕ) : Fin (code.length+6) :=
   ⟨min i code.length+5, by omega⟩
 
+/-- Under the stated hypotheses, `cleanerMachine code (pc code i) b` equals `some (pc code
+(i+1),code[i])`. -/
 theorem cleaner_script_control (code : List (TM0.Stmt Symbol)) (i : ℕ)
     (hi : i < code.length) (b : Symbol) :
     cleanerMachine code (pc code i) b = some (pc code (i+1),code[i]) := by
   simp [pc, Nat.min_eq_left (Nat.le_of_lt hi), Nat.min_eq_left hi, cleanerMachine, hi]
 
+/-- The script phase of `cleanerMachine` executes `evalScript` in exactly the script length and
+has displacement `scriptOffset`. -/
 theorem cleaner_script (code : List (TM0.Stmt Symbol)) (tape : Tape Symbol) :
     Trace (cleanerMachine code) ⟨pc code 0,tape⟩
       ⟨pc code code.length,evalScript code tape⟩ code.length (scriptOffset code) :=
   script_trace _ code (pc code) (cleaner_script_control code) tape
 
+/-- `Tape.mk₂ left [none]` equals `Tape.mk₂ left []`. -/
 theorem blank_cons (left : List Symbol) : Tape.mk₂ left [none] = Tape.mk₂ left [] := by
   have he : ListBlank.mk ([none] : List Symbol) = ListBlank.mk [] :=
     Quotient.sound (Or.inr ⟨1,rfl⟩)
   simp only [Tape.mk₂,he]
 
+/-- `(Tape.mk₂ (b::left) []).move .left` equals `Tape.mk₂ left [b]`. -/
 theorem move_blank_left (b : Symbol) (left : List Symbol) :
     (Tape.mk₂ (b::left) []).move .left = Tape.mk₂ left [b] := by
   simp [Tape.mk₂,Tape.move_left_mk',ListBlank.cons_mk]
 
+/-- The cleanup return phase crosses the blank prefix and marker to reach the script entry on a
+blank tape in `n+2` steps. -/
 theorem cleaner_return (code : List (TM0.Stmt Symbol)) (n : ℕ) :
     Trace (cleanerMachine code)
       ⟨⟨4,by omega⟩,Tape.mk₂ (List.replicate n none ++ [some false]) []⟩
@@ -850,6 +1015,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- The cleanup scan erases the remaining input and returns to the script entry on a blank tape
+in `3*rest.length+n+3` steps. -/
 theorem cleaner_scan (code : List (TM0.Stmt Symbol)) (rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (n : ℕ) :
     Trace (cleanerMachine code)
       ⟨⟨2,by omega⟩,Tape.mk₂ (List.replicate n none ++ [some false]) (rest.map some)⟩
@@ -885,6 +1052,8 @@ theorem cleaner_scan (code : List (TM0.Stmt Symbol)) (rest : Qatlib.Concepts.Bit
     simp only [List.length_cons]
     omega
 
+/-- The cleanup machine reaches its script entry on a blank tape within `3*input.length+3` steps
+and with zero net displacement. -/
 theorem cleaner_init (code : List (TM0.Stmt Symbol)) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     ∃ ticks, ticks ≤ 3*input.length+3 ∧
       Trace (cleanerMachine code) (TM0.init (input.map some))
@@ -904,10 +1073,13 @@ theorem cleaner_init (code : List (TM0.Stmt Symbol)) (input : Qatlib.Concepts.Bi
     refine ⟨1+(1+(3*rest.length+0+3)),by simp;omega,?_⟩
     exact hwrite.trans (hmove.trans (cleaner_scan code rest 0))
 
+/-- `TM0.step (cleanerMachine code) ⟨pc code code.length,tape⟩` equals `none`. -/
 theorem cleaner_halts (code : List (TM0.Stmt Symbol)) (tape : Tape Symbol) :
     TM0.step (cleanerMachine code) ⟨pc code code.length,tape⟩ = none := by
   simp [TM0.step,cleanerMachine,pc]
 
+/-- Every fixed bit word can be loaded by a finite-control machine with quadratic time and space
+bounds in the input and output lengths. -/
 theorem constant_loader (word : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     ∃ C : ℕ, 0<C ∧ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ComputesAt (fun _ => word)
       (fun x => C*(1+x.length+word.length)^2)
@@ -944,14 +1116,22 @@ open Turing
 
 variable {a b : ℕ}
 
+/-- Embed a state label in the first component of the control set for a composed machine. -/
 def firstLabel (q : Fin (a+1)) : Fin ((a+1)+(b+1)) := Fin.castAdd (b+1) q
+/-- Embed a state label in the second component of the control set for a composed machine. -/
 def secondLabel (q : Fin (b+1)) : Fin ((a+1)+(b+1)) := Fin.natAdd (a+1) q
 
+/-- Embed a configuration in the first control component of a composed machine without changing
+its tape. -/
 def firstCfg (cfg : TM0.Cfg Symbol (Fin (a+1))) : TM0.Cfg Symbol (Fin ((a+1)+(b+1))) :=
   ⟨firstLabel cfg.q,cfg.Tape⟩
+/-- Embed a configuration in the second control component of a composed machine without changing
+its tape. -/
 def secondCfg (cfg : TM0.Cfg Symbol (Fin (b+1))) : TM0.Cfg Symbol (Fin ((a+1)+(b+1))) :=
   ⟨secondLabel cfg.q,cfg.Tape⟩
 
+/-- Run the first machine and transfer control to the initial state of the second machine when
+the first halts. -/
 def composeMachine (M : TM0.Machine Symbol (Fin (a+1)))
     (N : TM0.Machine Symbol (Fin (b+1))) : TM0.Machine Symbol (Fin ((a+1)+(b+1))) :=
   Fin.addCases
@@ -960,6 +1140,8 @@ def composeMachine (M : TM0.Machine Symbol (Fin (a+1)))
       | some (q',stmt) => some (firstLabel q',stmt))
     (fun q symbol => (N q symbol).map (fun (q',stmt) => (secondLabel q',stmt)))
 
+/-- `TM0.step (composeMachine M N) (firstCfg cfg)` equals `match TM0.step M cfg with | none =>
+some (secondCfg ⟨0,cfg.Tape⟩) | some cfg' => some (firstCfg cfg')`. -/
 theorem compose_first (M : TM0.Machine Symbol (Fin (a+1)))
     (N : TM0.Machine Symbol (Fin (b+1))) (cfg : TM0.Cfg Symbol (Fin (a+1))) :
     TM0.step (composeMachine M N) (firstCfg cfg) =
@@ -972,6 +1154,7 @@ theorem compose_first (M : TM0.Machine Symbol (Fin (a+1)))
   | none => simp only [Option.map_none,Option.map_some,secondCfg,Tape.write_self]
   | some result => rcases result with ⟨q',stmt⟩; cases stmt <;> rfl
 
+/-- `TM0.step (composeMachine M N) (secondCfg cfg)` equals `(TM0.step N cfg).map secondCfg`. -/
 theorem compose_second (M : TM0.Machine Symbol (Fin (a+1)))
     (N : TM0.Machine Symbol (Fin (b+1))) (cfg : TM0.Cfg Symbol (Fin (b+1))) :
     TM0.step (composeMachine M N) (secondCfg cfg) = (TM0.step N cfg).map secondCfg := by
@@ -981,6 +1164,7 @@ theorem compose_second (M : TM0.Machine Symbol (Fin (a+1)))
   | none => rfl
   | some result => rcases result with ⟨q',stmt⟩; cases stmt <;> rfl
 
+/-- `nextOffset (composeMachine M N) (firstCfg cfg)` equals `nextOffset M cfg`. -/
 theorem compose_first_offset (M : TM0.Machine Symbol (Fin (a+1)))
     (N : TM0.Machine Symbol (Fin (b+1))) (cfg : TM0.Cfg Symbol (Fin (a+1))) :
     nextOffset (composeMachine M N) (firstCfg cfg) = nextOffset M cfg := by
@@ -990,6 +1174,7 @@ theorem compose_first_offset (M : TM0.Machine Symbol (Fin (a+1)))
   | none => rfl
   | some result => rcases result with ⟨q',stmt⟩; rfl
 
+/-- `nextOffset (composeMachine M N) (secondCfg cfg)` equals `nextOffset N cfg`. -/
 theorem compose_second_offset (M : TM0.Machine Symbol (Fin (a+1)))
     (N : TM0.Machine Symbol (Fin (b+1))) (cfg : TM0.Cfg Symbol (Fin (b+1))) :
     nextOffset (composeMachine M N) (secondCfg cfg) = nextOffset N cfg := by
@@ -999,6 +1184,7 @@ theorem compose_second_offset (M : TM0.Machine Symbol (Fin (a+1)))
   | none => rfl
   | some result => rcases result with ⟨q',stmt⟩; rfl
 
+/-- Every prefix of a successful finite execution also reaches a configuration. -/
 theorem run_prefix {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (cfg last : TM0.Cfg Symbol Λ) (n : ℕ) (h : run M n cfg = some last)
     (u : ℕ) (hu : u ≤ n) : ∃ mid, run M u cfg = some mid := by
@@ -1015,6 +1201,8 @@ theorem run_prefix {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
       | none => simp only [hm,Option.bind_none,reduceCtorEq] at h
       | some mid => exact ih mid hm (by omega)
 
+/-- Under the stated hypotheses, `run (composeMachine M N) n (firstCfg cfg)` equals `some
+(firstCfg last)`; `offset (composeMachine M N) (firstCfg cfg) n` equals `offset M cfg n`. -/
 theorem compose_first_run (M : TM0.Machine Symbol (Fin (a+1)))
     (N : TM0.Machine Symbol (Fin (b+1))) (cfg last : TM0.Cfg Symbol (Fin (a+1)))
     (n : ℕ) (h : run M n cfg = some last) :
@@ -1031,6 +1219,8 @@ theorem compose_first_run (M : TM0.Machine Symbol (Fin (a+1)))
     · rw [run_succ_last,hr,Option.bind_some,compose_first,hs]
     · rw [offset,hr,Option.elim_some,compose_first_offset,ho,offset,hm,Option.elim_some]
 
+/-- Under the stated hypotheses, `run (composeMachine M N) n (secondCfg cfg)` equals `some
+(secondCfg last)`; `offset (composeMachine M N) (secondCfg cfg) n` equals `offset N cfg n`. -/
 theorem compose_second_run (M : TM0.Machine Symbol (Fin (a+1)))
     (N : TM0.Machine Symbol (Fin (b+1))) (cfg last : TM0.Cfg Symbol (Fin (b+1)))
     (n : ℕ) (h : run N n cfg = some last) :
@@ -1052,6 +1242,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Under the stated hypotheses, `tape` equals `Tape.mk₁ (word.map some)`. -/
 theorem tape_eq_output (tape : Tape Symbol) (word : Bits)
     (hout : ∀ i, tape.right₀.nth i = (word.map some).getD i none)
     (hleft : ∀ i, tape.left.nth i = none) : tape = Tape.mk₁ (word.map some) := by
@@ -1060,6 +1251,8 @@ theorem tape_eq_output (tape : Tape Symbol) (word : Bits)
   · exact ListBlank.ext hleft
   · exact ListBlank.ext hout
 
+/-- Consecutive `Runs` certificates compose when the time budget covers both runs and their
+connecting step and the space budget bounds both component spaces. -/
 theorem compose_runs {a b : ℕ} (M : TM0.Machine Symbol (Fin (a+1)))
     (N : TM0.Machine Symbol (Fin (b+1))) (x y z : Bits)
     (tf sf tg sg time space : ℕ) (hf : Runs M x y tf sf) (hg : Runs N y z tg sg)
@@ -1121,6 +1314,8 @@ theorem compose_runs {a b : ℕ} (M : TM0.Machine Symbol (Fin (a+1)))
       have hb := hsvisited v hv
       omega
 
+/-- Composing two bit-string computations yields a computation with quadratic bounds in the
+intermediate lengths and the component time or space bounds. -/
 theorem computesAt_comp (f g : Bits → Bits) (tf sf tg sg : Bits → ℕ)
     (hf : ComputesAt f tf sf) (hg : ComputesAt g tg sg) :
     ∃ C : ℕ, 0<C ∧ ComputesAt (fun x => g (f x))
@@ -1150,16 +1345,20 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Scheduler
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- An emission job consisting of a counter context and a plan to evaluate in that context. -/
 structure Job where
   counters : List ℕ
   plan : Plan
 
+/-- Concatenate the semantic outputs of all queued emission jobs in queue order. -/
 def pendingOutput (params : List Bits) (k : ℕ) (jobs : List Job) : Bits :=
   jobs.flatMap (fun job => emit params k job.counters job.plan)
 
+/-- Sum the semantic work estimates of all queued emission jobs. -/
 def pendingWork (params : List Bits) (k : ℕ) (jobs : List Job) : ℕ :=
   (jobs.map (fun job => work params k job.counters job.plan)).sum
 
+/-- Expand an append or repeat job into child jobs, or emit the output of a leaf job directly. -/
 def stepOne (params : List Bits) (k : ℕ) (job : Job) : Bits × List Job :=
   match job.plan with
   | .append a b => ([],[⟨job.counters,a⟩,⟨job.counters,b⟩])
@@ -1167,12 +1366,14 @@ def stepOne (params : List Bits) (k : ℕ) (job : Job) : Bits × List Job :=
       (fun i => ⟨i::job.counters,body⟩))
   | p => (emit params k job.counters p,[])
 
+/-- `xs.foldl (fun sum i => sum+f i) acc` equals `acc+(xs.map f).sum`. -/
 theorem fold_add_sum {α : Type} (f : α → ℕ) (xs : List α) (acc : ℕ) :
     xs.foldl (fun sum i => sum+f i) acc = acc+(xs.map f).sum := by
   induction xs generalizing acc with
   | nil => simp
   | cons x xs ih => simp only [List.foldl_cons,List.map_cons,List.sum_cons,ih];omega
 
+/-- `((a.zip b).flatMap (fun p => [p.1,p.2])).length` is at most `a.length+b.length`. -/
 theorem pairScan_length (a b : Bits) :
     ((a.zip b).flatMap (fun p => [p.1,p.2])).length ≤ a.length+b.length := by
   induction a generalizing b with
@@ -1185,12 +1386,16 @@ theorem pairScan_length (a b : Bits) :
       have h := ih bs
       omega
 
+/-- `(stepOne params k job).1 ++ pendingOutput params k (stepOne params k job).2` equals `emit
+params k job.counters job.plan`. -/
 theorem stepOne_output (params : List Bits) (k : ℕ) (job : Job) :
     (stepOne params k job).1 ++ pendingOutput params k (stepOne params k job).2 =
       emit params k job.counters job.plan := by
   rcases job with ⟨cs,p⟩
   cases p <;> simp [stepOne,pendingOutput,emit,List.flatMap_map]
 
+/-- `(stepOne params k job).1.length + pendingWork params k (stepOne params k job).2 + 1` is at
+most `work params k job.counters job.plan`. -/
 theorem stepOne_work (params : List Bits) (k : ℕ) (job : Job) :
     (stepOne params k job).1.length + pendingWork params k (stepOne params k job).2 + 1 ≤
       work params k job.counters job.plan := by
@@ -1207,6 +1412,8 @@ theorem stepOne_work (params : List Bits) (k : ℕ) (job : Job) :
   | «repeat» bound body =>
     simp [stepOne,pendingWork,work,fold_add_sum,List.map_map,Function.comp_def,Nat.add_comm]
 
+/-- Evaluate an emission queue with explicit fuel, prepending newly generated jobs and
+concatenating the emitted pieces. -/
 def runJobs (params : List Bits) (k : ℕ) : ℕ → List Job → Option Bits
   | _,[] => some []
   | 0,_::_ => none
@@ -1215,6 +1422,8 @@ def runJobs (params : List Bits) (k : ℕ) : ℕ → List Job → Option Bits
       let tail ← runJobs params k fuel (step.2++rest)
       pure (step.1++tail)
 
+/-- Under the stated hypotheses, `runJobs params k fuel jobs` equals `some (pendingOutput params
+k jobs)`. -/
 theorem runJobs_complete (params : List Bits) (k fuel : ℕ) (jobs : List Job)
     (h : pendingWork params k jobs ≤ fuel) :
     runJobs params k fuel jobs = some (pendingOutput params k jobs) := by
@@ -1244,12 +1453,14 @@ theorem runJobs_complete (params : List Bits) (k fuel : ℕ) (jobs : List Job)
       rw [he,← List.append_assoc,stepOne_output]
       rfl
 
+/-- `runJobs params k (work params k cs p) [⟨cs,p⟩]` equals `some (emit params k cs p)`. -/
 theorem eval_with_work (params : List Bits) (k : ℕ) (cs : List ℕ) (p : Plan) :
     runJobs params k (work params k cs p) [⟨cs,p⟩] = some (emit params k cs p) := by
   simpa only [pendingWork,List.map_cons,List.map_nil,List.sum_cons,List.sum_nil,Nat.add_zero,
     pendingOutput,List.flatMap_cons,List.flatMap_nil,List.append_nil] using
     runJobs_complete params k (work params k cs p) [⟨cs,p⟩] (by simp [pendingWork])
 
+/-- Under the stated hypotheses, `output.length` is at most `pendingWork params k jobs`. -/
 theorem runJobs_output_bound (params : List Bits) (k fuel : ℕ) (jobs : List Job) (output : Bits)
     (h : runJobs params k fuel jobs = some output) : output.length ≤ pendingWork params k jobs := by
   induction fuel generalizing jobs output with
@@ -1273,6 +1484,7 @@ theorem runJobs_output_bound (params : List Bits) (k fuel : ℕ) (jobs : List Jo
         simp only [List.length_append,pendingWork,List.map_cons,List.sum_cons]
         omega
 
+/-- `(emit params k cs p).length` is at most `work params k cs p`. -/
 theorem emit_length_le_work (params : List Bits) (k : ℕ) (cs : List ℕ) (p : Plan) :
     (emit params k cs p).length ≤ work params k cs p := by
   have h := runJobs_output_bound params k (work params k cs p) [⟨cs,p⟩] _
@@ -1285,15 +1497,20 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Scheduler
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Sum a cost function over the first `n` points in the orbit of a bit string under iteration. -/
 def iterSum (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (x : Bits) : ℕ :=
   ((List.range n).map (fun j => cost ((f^[j]) x))).sum
 
+/-- `iterSum f cost (n+1) x` equals `iterSum f cost n x+cost ((f^[n]) x)`. -/
 theorem iterSum_succ (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (x : Bits) :
     iterSum f cost (n+1) x = iterSum f cost n x+cost ((f^[n]) x) := by
   simp [iterSum,List.range_succ,List.map_append,List.sum_append]
 
+/-- The one-state machine that halts immediately and leaves its input unchanged. -/
 def identityMachine : TM0.Machine Symbol (Fin 1) := fun _ _ => none
 
+/-- The identity machine returns its input with zero steps and space bounded by its input
+length. -/
 theorem identity_runs (input : Bits) : Runs identityMachine input input 0 input.length := by
   refine ⟨le_rfl,0,TM0.init (input.map some),le_rfl,rfl,rfl,rfl,?_,?_,?_⟩
   · intro i
@@ -1307,6 +1524,8 @@ theorem identity_runs (input : Bits) : Runs identityMachine input input 0 input.
     subst u
     simp [headPosition]
 
+/-- Every fixed iterate of a computable bit-string function is computable with time and space
+bounds obtained by summing the bounds along the orbit. -/
 theorem fixed_iterates (f : Bits → Bits) (tf sf : Bits → ℕ) (hf : ComputesAt f tf sf) :
     ∀ n, ComputesAt (f^[n]) (fun x => n+iterSum f tf n x)
       (fun x => x.length+iterSum f sf n x) := by
@@ -1333,12 +1552,14 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- Under the stated hypotheses, `run M (n+1) c` equals `run M (n+1) d`. -/
 theorem run_eq_of_step_eq {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (c d : TM0.Cfg Symbol Λ) (h : TM0.step M c = TM0.step M d) (n : ℕ) :
     run M (n+1) c = run M (n+1) d := by
   simp only [run,Function.iterate_succ_apply,Option.bind_some]
   rw [h]
 
+/-- Under the stated hypotheses, `offset M c n` equals `offset M d n`. -/
 theorem offset_eq_of_step_eq {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol Λ)
     (c d : TM0.Cfg Symbol Λ) (h : TM0.step M c = TM0.step M d)
     (ho : nextOffset M c = nextOffset M d) (n : ℕ) : offset M c n = offset M d n := by
@@ -1352,6 +1573,8 @@ theorem offset_eq_of_step_eq {Λ : Type} [Inhabited Λ] (M : TM0.Machine Symbol 
         offset M d (n+1) + (run M (n+1) d).elim 0 (nextOffset M)
       rw [ih,run_eq_of_step_eq M c d h n]
 
+/-- Transfer a positive-length trace to another starting configuration with the same next
+transition and next displacement. -/
 theorem Trace.transfer {Λ : Type} [Inhabited Λ] {M : TM0.Machine Symbol Λ}
     {c d last : TM0.Cfg Symbol Λ} {n : ℕ} {s : ℤ}
     (ht : Trace M d last n s) (hn : 0<n)
@@ -1364,6 +1587,7 @@ theorem Trace.transfer {Λ : Type} [Inhabited Λ] {M : TM0.Machine Symbol Λ}
 
 variable {Λ σ : Type} [Inhabited Λ] [Inhabited σ]
 
+/-- A structural bound on the TM0 steps needed to execute a translated TM1 statement. -/
 def stmtTicks {Γ : Type} : TM1.Stmt Γ Λ σ → ℕ
   | .move _ rest => 1+stmtTicks rest
   | .write _ rest => 1+stmtTicks rest
@@ -1372,6 +1596,7 @@ def stmtTicks {Γ : Type} : TM1.Stmt Γ Λ σ → ℕ
   | .goto _ => 1
   | .halt => 1
 
+/-- The net head displacement caused by a TM1 statement on the given local state and tape. -/
 def stmtShift {Γ : Type} [Inhabited Γ] : TM1.Stmt Γ Λ σ → σ → Tape Γ → ℤ
   | .move d rest,v,tape => stmtOffset (.move d)+stmtShift rest v (tape.move d)
   | .write f rest,v,tape => stmtShift rest v (tape.write (f tape.head v))
@@ -1380,6 +1605,8 @@ def stmtShift {Γ : Type} [Inhabited Γ] : TM1.Stmt Γ Λ σ → σ → Tape Γ 
   | .goto _,_,_ => 0
   | .halt,_,_ => 0
 
+/-- The TM0 translation of a TM1 statement reaches the translated result in a positive number of
+steps bounded by `stmtTicks`, with displacement `stmtShift`. -/
 theorem tm1_statement_trace (M : Λ → TM1.Stmt Symbol Λ σ)
     (stmt : TM1.Stmt Symbol Λ σ) (v : σ) (tape : Tape Symbol) :
     ∃ ticks, 0<ticks ∧ ticks≤stmtTicks stmt ∧
@@ -1438,11 +1665,14 @@ open Turing
 section FiniteTM1
 variable {Λ σ : Type} [Inhabited Λ] [Inhabited σ] [Fintype Λ] [Fintype σ]
 
+/-- Execute a TM1 program for a specified number of source steps, returning failure if a
+transition is unavailable. -/
 def tm1Run {Γ : Type} [Inhabited Γ] (M : Λ → TM1.Stmt Γ Λ σ) :
     ℕ → TM1.Cfg Γ Λ σ → Option (TM1.Cfg Γ Λ σ)
   | 0, c => some c
   | n+1, c => (TM1.step M c).bind (tm1Run M n)
 
+/-- Accumulate the head displacement of the successive TM1 statements in a finite run. -/
 def tm1Displacement {Γ : Type} [Inhabited Γ] (M : Λ → TM1.Stmt Γ Λ σ) :
     ℕ → TM1.Cfg Γ Λ σ → ℤ
   | 0, _ => 0
@@ -1451,17 +1681,21 @@ def tm1Displacement {Γ : Type} [Inhabited Γ] (M : Λ → TM1.Stmt Γ Λ σ) :
     | some c', some l => stmtShift (M l) c.var c.Tape + tm1Displacement M n c'
     | _, _ => 0
 
+/-- The maximum structural instruction cost over the finite control set of a TM1 program. -/
 def tm1TickBound {Γ : Type} (M : Λ → TM1.Stmt Γ Λ σ) : ℕ :=
   Finset.univ.sup (fun l => stmtTicks (M l))
 
 omit [Inhabited Λ] [Inhabited σ] [Fintype σ] in
 
+/-- `stmtTicks (M l)` is at most `tm1TickBound M`. -/
 theorem tm1TickBound_le {Γ : Type} (M : Λ → TM1.Stmt Γ Λ σ) (l : Λ) :
     stmtTicks (M l) ≤ tm1TickBound M := by
   exact Finset.le_sup (f := fun l => stmtTicks (M l)) (Finset.mem_univ l)
 
 omit [Fintype σ] in
 
+/-- A successful `n`-step TM1 execution translates to a TM0 trace using between `n` and `n *
+tm1TickBound M` steps and preserving total displacement. -/
 theorem tm1_execution_trace (M : Λ → TM1.Stmt Symbol Λ σ) (n : ℕ)
     (first last : TM1.Cfg Symbol Λ σ) (h : tm1Run M n first = some last) :
     ∃ ticks, n ≤ ticks ∧ ticks ≤ n * tm1TickBound M ∧
@@ -1500,17 +1734,22 @@ open Turing
 section FiniteControl
 variable {Λ : Type} [Inhabited Λ]
 
+/-- Encode labels from a finite support as bounded natural-number labels, reserving zero for the
+default label. -/
 noncomputable def controlCode (S : Finset Λ) (l : Λ) : Fin (S.card+1) := by
   classical
   exact if l=default then 0 else if h : l∈S then (S.equivFin ⟨l,h⟩).succ else 0
 
+/-- Decode a bounded control label, interpreting zero as the default label. -/
 noncomputable def controlLabel (S : Finset Λ) : Fin (S.card+1) → Λ :=
   Fin.cases default (fun i => (S.equivFin.symm i).val)
 
+/-- `controlCode S default` equals `0`. -/
 @[simp] theorem controlCode_default (S : Finset Λ) : controlCode S default = 0 := by
   classical
   simp [controlCode]
 
+/-- Under the stated hypotheses, `controlLabel S (controlCode S l)` equals `l`. -/
 theorem controlLabel_code (S : Finset Λ) (l : Λ) (hl : l∈S) :
     controlLabel S (controlCode S l) = l := by
   classical
@@ -1519,13 +1758,17 @@ theorem controlLabel_code (S : Finset Λ) (l : Λ) (hl : l∈S) :
     simp [controlCode,controlLabel]
   · simp [controlCode,h,hl,controlLabel]
 
+/-- Reindex a TM0 machine by a finite control support and a reserved default label. -/
 noncomputable def finiteMachine (S : Finset Λ) (M : TM0.Machine Symbol Λ) :
     TM0.Machine Symbol (Fin (S.card+1)) :=
   fun l a => (M (controlLabel S l) a).map (fun p => (controlCode S p.1,p.2))
 
+/-- Reindex the control label of a TM0 configuration by `controlCode`. -/
 noncomputable def finiteCfg (S : Finset Λ) (c : TM0.Cfg Symbol Λ) :
     TM0.Cfg Symbol (Fin (S.card+1)) := ⟨controlCode S c.q,c.Tape⟩
 
+/-- Under the stated hypotheses, `TM0.step (finiteMachine S M) (finiteCfg S c)` equals
+`(TM0.step M c).map (finiteCfg S)`. -/
 theorem finite_step (S : Finset Λ) (M : TM0.Machine Symbol Λ)
     (c : TM0.Cfg Symbol Λ) (hc : c.q∈S) :
     TM0.step (finiteMachine S M) (finiteCfg S c) = (TM0.step M c).map (finiteCfg S) := by
@@ -1534,12 +1777,15 @@ theorem finite_step (S : Finset Λ) (M : TM0.Machine Symbol Λ)
   | none => rfl
   | some p => cases p.2 <;> rfl
 
+/-- Under the stated hypotheses, `nextOffset (finiteMachine S M) (finiteCfg S c)` equals
+`nextOffset M c`. -/
 theorem finite_nextOffset (S : Finset Λ) (M : TM0.Machine Symbol Λ)
     (c : TM0.Cfg Symbol Λ) (hc : c.q∈S) :
     nextOffset (finiteMachine S M) (finiteCfg S c) = nextOffset M c := by
   simp only [nextOffset,finiteMachine,finiteCfg,controlLabel_code S c.q hc]
   cases M c.q c.Tape.head <;> rfl
 
+/-- Under the stated hypotheses, `last.q` belongs to `S`. -/
 theorem run_supports (M : TM0.Machine Symbol Λ) (S : Finset Λ)
     (hs : TM0.Supports M (S : Set Λ)) (n : ℕ) (first last : TM0.Cfg Symbol Λ)
     (hf : first.q∈S) (h : run M n first = some last) : last.q∈S := by
@@ -1556,6 +1802,8 @@ theorem run_supports (M : TM0.Machine Symbol Λ) (S : Finset Λ)
         simpa only [ht,Option.bind_some] using h
       exact TM0.step_supports M hs hn (ih first next hf ht)
 
+/-- Under the stated hypotheses, `run (finiteMachine S M) n (finiteCfg S c)` equals `(run M n
+c).map (finiteCfg S)`. -/
 theorem finite_run (S : Finset Λ) (M : TM0.Machine Symbol Λ)
     (hs : TM0.Supports M (S : Set Λ)) (n : ℕ) (c : TM0.Cfg Symbol Λ) (hc : c.q∈S) :
     run (finiteMachine S M) n (finiteCfg S c) = (run M n c).map (finiteCfg S) := by
@@ -1569,6 +1817,8 @@ theorem finite_run (S : Finset Λ) (M : TM0.Machine Symbol Λ)
       simp only [Option.map_some,Option.bind_some]
       exact finite_step S M next (run_supports M S hs n c next hc hr)
 
+/-- Under the stated hypotheses, `offset (finiteMachine S M) (finiteCfg S c) n` equals `offset M
+c n`. -/
 theorem finite_offset (S : Finset Λ) (M : TM0.Machine Symbol Λ)
     (hs : TM0.Supports M (S : Set Λ)) (n : ℕ) (c : TM0.Cfg Symbol Λ) (hc : c.q∈S) :
     offset (finiteMachine S M) (finiteCfg S c) n = offset M c n := by
@@ -1582,6 +1832,8 @@ theorem finite_offset (S : Finset Λ) (M : TM0.Machine Symbol Λ)
       simp only [Option.map_some,Option.elim_some]
       rw [finite_nextOffset S M next (run_supports M S hs n c next hc hr)]
 
+/-- A trace within a finite supported control set transfers to the reindexed finite machine with
+unchanged step count and displacement. -/
 theorem Trace.finite {S : Finset Λ} {M : TM0.Machine Symbol Λ}
     (hs : TM0.Supports M (S : Set Λ)) {first last : TM0.Cfg Symbol Λ}
     {n : ℕ} {d : ℤ} (h : Trace M first last n d) (hf : first.q∈S) :
@@ -1591,6 +1843,7 @@ theorem Trace.finite {S : Finset Λ} {M : TM0.Machine Symbol Λ}
     rfl
   · rw [finite_offset S M hs n first hf,h.offset_eq]
 
+/-- `finiteCfg S (TM0.init input)` equals `TM0.init input`. -/
 @[simp] theorem finiteCfg_init (S : Finset Λ) (input : List Symbol) :
     finiteCfg S (TM0.init input) = TM0.init input := by
   simp [finiteCfg,TM0.init]
@@ -1603,11 +1856,14 @@ open Turing
 section FiniteTM1Machine
 variable {Λ σ : Type} [Inhabited Λ] [Inhabited σ] [Fintype Λ] [Fintype σ]
 
+/-- The finite set of TM0 labels generated by translating all statements of a finite-control TM1
+program. -/
 noncomputable def tm1Support (M : Λ → TM1.Stmt Symbol Λ σ) : Finset (TM1to0.Λ' M) :=
   TM1to0.trStmts M Finset.univ
 
 omit [Inhabited σ] [Fintype σ] in
 
+/-- Every finite-control TM1 program is supported by the full finite label set. -/
 theorem tm1_univ_supports {Γ : Type} (M : Λ → TM1.Stmt Γ Λ σ) : TM1.Supports M Finset.univ := by
   refine ⟨Finset.mem_univ _,?_⟩
   intro l _
@@ -1617,12 +1873,14 @@ theorem tm1_univ_supports {Γ : Type} (M : Λ → TM1.Stmt Γ Λ σ) : TM1.Suppo
   | goto _ => intro a v; exact Finset.mem_univ _
   | halt => trivial
 
+/-- The generated control set `tm1Support` supports the TM0 translation of the program. -/
 theorem tm1Support_supports (M : Λ → TM1.Stmt Symbol Λ σ) :
     TM0.Supports (TM1to0.tr M) (tm1Support M : Set (TM1to0.Λ' M)) :=
   TM1to0.tr_supports M (tm1_univ_supports M)
 
 omit [Inhabited Λ] [Inhabited σ] in
 
+/-- `(TM1to0.trCfg M c).q` belongs to `tm1Support M`. -/
 theorem tm1Support_cfg (M : Λ → TM1.Stmt Symbol Λ σ) (c : TM1.Cfg Symbol Λ σ) :
     (TM1to0.trCfg M c).q∈tm1Support M := by
   classical
@@ -1637,14 +1895,19 @@ theorem tm1Support_cfg (M : Λ → TM1.Stmt Symbol Λ σ) (c : TM1.Cfg Symbol Λ
     simp only [Option.map_some,Option.mem_def,Option.some.injEq,forall_eq',Finset.mem_biUnion]
     exact ⟨l,Finset.mem_univ _,TM1.stmts₁_self⟩
 
+/-- Translate a finite-control TM1 program to a TM0 machine with control labels in a finite
+initial segment. -/
 noncomputable def tm1Machine (M : Λ → TM1.Stmt Symbol Λ σ) :
     TM0.Machine Symbol (Fin ((tm1Support M).card+1)) :=
   finiteMachine (tm1Support M) (TM1to0.tr M)
 
+/-- Translate a TM1 configuration to the finite-control TM0 representation. -/
 noncomputable def tm1Cfg (M : Λ → TM1.Stmt Symbol Λ σ) (c : TM1.Cfg Symbol Λ σ) :
     TM0.Cfg Symbol (Fin ((tm1Support M).card+1)) :=
   finiteCfg (tm1Support M) (TM1to0.trCfg M c)
 
+/-- A finite-control TM1 execution translates to a finite-control TM0 trace with the same
+displacement and the stated linear instruction-overhead bound. -/
 theorem tm1_finite_trace (M : Λ → TM1.Stmt Symbol Λ σ) (n : ℕ)
     (first last : TM1.Cfg Symbol Λ σ) (h : tm1Run M n first = some last) :
     ∃ ticks, n≤ticks ∧ ticks≤n*tm1TickBound M ∧
@@ -1653,11 +1916,13 @@ theorem tm1_finite_trace (M : Λ → TM1.Stmt Symbol Λ σ) (n : ℕ)
   obtain ⟨ticks,hlo,hhi,ht⟩ := tm1_execution_trace M n first last h
   exact ⟨ticks,hlo,hhi,ht.finite (tm1Support_supports M) (tm1Support_cfg M first)⟩
 
+/-- `tm1Cfg M (TM1.init input)` equals `TM0.init input`. -/
 @[simp] theorem tm1Cfg_init (M : Λ → TM1.Stmt Symbol Λ σ) (input : List Symbol) :
     tm1Cfg M (TM1.init input) = TM0.init input := by
   change finiteCfg (tm1Support M) (TM0.init input) = _
   exact finiteCfg_init _ _
 
+/-- Under the stated hypotheses, `TM0.step (tm1Machine M) (tm1Cfg M c)` equals `none`. -/
 theorem tm1_finite_halt (M : Λ → TM1.Stmt Symbol Λ σ) (c : TM1.Cfg Symbol Λ σ)
     (h : TM1.step M c=none) : TM0.step (tm1Machine M) (tm1Cfg M c)=none := by
   change TM0.step (finiteMachine _ _) (finiteCfg _ _)=none
@@ -1667,6 +1932,9 @@ theorem tm1_finite_halt (M : Λ → TM1.Stmt Symbol Λ σ) (c : TM1.Cfg Symbol �
   | none => rfl
   | some l => simp only [TM1.step,reduceCtorEq] at h
 
+/-- A halted TM1 execution with zero net displacement and the specified output tape yields a
+finite-control TM0 `Runs` certificate when the translated time and input length fit the
+budget. -/
 theorem tm1_finite_runs (M : Λ → TM1.Stmt Symbol Λ σ)
     (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (n budget : ℕ) (last : TM1.Cfg Symbol Λ σ)
     (h : tm1Run M n (TM1.init (input.map some))=some last)
@@ -1686,11 +1954,14 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- A finite TM1 execution recording its source-step count and total head displacement. -/
 structure SourceTrace {Γ Λ σ : Type} [Inhabited Γ] (M : Λ → TM1.Stmt Γ Λ σ)
     (first last : TM1.Cfg Γ Λ σ) (steps : ℕ) (displacement : ℤ) : Prop where
   reached : tm1Run M steps first=some last
   shift_eq : tm1Displacement M steps first=displacement
 
+/-- Prepend one successful TM1 step to a source trace, adding its displacement and one to the
+step count. -/
 theorem SourceTrace.prepend {Γ Λ σ : Type} [Inhabited Γ] {M : Λ → TM1.Stmt Γ Λ σ}
     {l : Λ} {v : σ} {tape : Tape Γ} {next last : TM1.Cfg Γ Λ σ}
     {n : ℕ} {d s : ℤ} (tail : SourceTrace M next last n d)
@@ -1701,6 +1972,7 @@ theorem SourceTrace.prepend {Γ Λ σ : Type} [Inhabited Γ] {M : Λ → TM1.Stm
   · simpa only [tm1Run,hs,Option.bind_some] using tail.reached
   · simp only [tm1Displacement,hs,hd,tail.shift_eq]
 
+/-- A successful TM1 transition with the specified shift forms a one-step source trace. -/
 theorem SourceTrace.one {Γ Λ σ : Type} [Inhabited Γ] {M : Λ → TM1.Stmt Γ Λ σ}
     {l : Λ} {v : σ} {tape : Tape Γ} {last : TM1.Cfg Γ Λ σ} {s : ℤ}
     (hs : TM1.step M ⟨some l,v,tape⟩=some last)
@@ -1710,6 +1982,8 @@ theorem SourceTrace.one {Γ Λ σ : Type} [Inhabited Γ] {M : Λ → TM1.Stmt Γ
   · simpa only [tm1Run,Option.bind_some] using! hs
   · simp only [tm1Displacement,hs,hd,add_zero]
 
+/-- Scan the input, apply a Boolean function to each bit, and return the head to the beginning
+of the word. -/
 def mapProgram (f : Bool → Bool) (l : Fin 2) : TM1.Stmt Symbol (Fin 2) Unit :=
   if l=0 then
     .branch (fun a _ => a.isSome)
@@ -1719,6 +1993,8 @@ def mapProgram (f : Bool → Bool) (l : Fin 2) : TM1.Stmt Symbol (Fin 2) Unit :=
     .move .left (.branch (fun a _ => a.isSome)
       (.goto (fun _ _ => 1)) (.move .right .halt))
 
+/-- The return phase of the bit-map program moves left to the start and halts, reconstructing
+`left.reverse++right` in `left.length+1` source steps. -/
 theorem mapProgram_return (f : Bool → Bool) (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     SourceTrace (mapProgram f) ⟨some 1,(),Tape.mk₂ (left.map some) (right.map some)⟩
       ⟨none,(),Tape.mk₁ ((left.reverse++right).map some)⟩ (left.length+1) (-(left.length : ℤ)) := by
@@ -1744,6 +2020,8 @@ theorem mapProgram_return (f : Bool → Bool) (left right : Qatlib.Concepts.BitW
         simp [mapProgram,stmtShift,stmtOffset,Tape.mk₂,Tape.move_left_mk'])
     convert! ht using 1 <;> simp [List.reverse_cons,List.append_assoc,Int.add_comm]
 
+/-- The bit-map scan transforms the remaining bits, returns to the start of the reconstructed
+word, and halts in `left.length+2*rest.length+2` source steps. -/
 theorem mapProgram_scan (f : Bool → Bool) (rest left : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     SourceTrace (mapProgram f) ⟨some 0,(),Tape.mk₂ (left.map some) (rest.map some)⟩
       ⟨none,(),Tape.mk₁ ((left.reverse++rest.map f).map some)⟩
@@ -1768,11 +2046,14 @@ theorem mapProgram_scan (f : Bool → Bool) (rest left : Qatlib.Concepts.BitWord
     convert! ht using 1 <;> simp [List.reverse_cons,List.append_assoc]
     omega
 
+/-- `tm1TickBound (mapProgram f)` is at most `3`. -/
 theorem mapProgram_tickBound (f : Bool → Bool) : tm1TickBound (mapProgram f)≤3 := by
   apply Finset.sup_le
   intro l _
   by_cases h : l=0 <;> simp [mapProgram,h,stmtTicks]
 
+/-- The compiled bit-map program computes `input.map f` with time and space bounded by
+`6*input.length+6`. -/
 theorem bit_map_runs (f : Bool → Bool) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Runs (tm1Machine (mapProgram f)) input (input.map f)
       (6*input.length+6) (6*input.length+6) := by
@@ -1799,6 +2080,7 @@ open Turing
 section SourceExecution
 variable {Γ Λ σ : Type} [Inhabited Γ]
 
+/-- Under the stated hypotheses, `tm1Run M (n+m) first` equals `tm1Run M m mid`. -/
 theorem tm1Run_add (M : Λ → TM1.Stmt Γ Λ σ) (n m : ℕ)
     (first mid : TM1.Cfg Γ Λ σ) (h : tm1Run M n first=some mid) :
     tm1Run M (n+m) first=tm1Run M m mid := by
@@ -1814,6 +2096,8 @@ theorem tm1Run_add (M : Λ → TM1.Stmt Γ Λ σ) (n m : ℕ)
       have hn : tm1Run M n next=some mid := by simpa only [tm1Run,hs,Option.bind_some] using h
       simpa only [Nat.succ_add,tm1Run,hs,Option.bind_some] using ih next hn
 
+/-- Under the stated hypotheses, `tm1Displacement M (n+m) first` equals `tm1Displacement M n
+first+tm1Displacement M m mid`. -/
 theorem tm1Displacement_add (M : Λ → TM1.Stmt Γ Λ σ) (n m : ℕ)
     (first mid : TM1.Cfg Γ Λ σ) (h : tm1Run M n first=some mid) :
     tm1Displacement M (n+m) first=tm1Displacement M n first+tm1Displacement M m mid := by
@@ -1837,6 +2121,7 @@ theorem tm1Displacement_add (M : Λ → TM1.Stmt Γ Λ σ) (n m : ℕ)
           (stmtShift (M l) v tape+tm1Displacement M n next)+tm1Displacement M m mid
         rw [ih next hn,add_assoc]
 
+/-- Concatenate consecutive TM1 source traces, adding their step counts and displacements. -/
 theorem SourceTrace.trans {M : Λ → TM1.Stmt Γ Λ σ} {first mid last : TM1.Cfg Γ Λ σ}
     {n m : ℕ} {d e : ℤ} (h : SourceTrace M first mid n d) (k : SourceTrace M mid last m e) :
     SourceTrace M first last (n+m) (d+e) := by
@@ -1845,6 +2130,7 @@ theorem SourceTrace.trans {M : Λ → TM1.Stmt Γ Λ σ} {first mid last : TM1.C
     exact k.reached
   · rw [tm1Displacement_add M n m first mid h.reached,h.shift_eq,k.shift_eq]
 
+/-- Every TM1 configuration has a zero-step source trace to itself with zero displacement. -/
 theorem SourceTrace.refl (M : Λ → TM1.Stmt Γ Λ σ) (c : TM1.Cfg Γ Λ σ) :
     SourceTrace M c c 0 0 := ⟨rfl,rfl⟩
 end SourceExecution
@@ -1855,6 +2141,8 @@ open Turing Turing.TM2to1
 variable {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
 variable (M : Λ → TM2.Stmt Γ Λ σ)
 
+/-- The stack-action scan moves right by `n` cells in `n` source steps when the scanned length
+is within the selected stack. -/
 theorem go_trace {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ) (v : σ)
     {S : List (Γ k)} {L : ListBlank (∀ k, Option (Γ k))}
     (hL : L.map (proj k)=ListBlank.mk (S.map some).reverse)
@@ -1876,6 +2164,8 @@ theorem go_trace {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ) (v : σ)
       · simp only [tr,stmtShift,hsome,Bool.false_eq_true,if_false,stmtOffset,add_zero]
     simpa only [Int.natCast_add,Int.natCast_one] using (ih (by omega)).trans hone
 
+/-- The stack-action return phase moves left by `n` cells in `n` source steps, restoring the
+head to the stack origin. -/
 theorem return_trace (q : TM2.Stmt Γ Λ σ) (v : σ)
     (L : ListBlank (∀ k, Option (Γ k))) (n : ℕ) :
     SourceTrace (tr M)
@@ -1897,6 +2187,8 @@ theorem return_trace (q : TM2.Stmt Γ Λ σ) (v : σ)
           addBottom_nth_succ_fst,Bool.false_eq_true,if_false,stmtOffset,add_zero])
     simpa only [Int.natCast_add,Int.natCast_one,neg_add_rev] using ht
 
+/-- `stmtShift (trStAct (.goto (fun _ _ => .ret q)) o) v ((Tape.move .right)^[S.length]
+(Tape.mk' ∅ (addBottom L)))` equals `((stWrite v S o).length : ℤ)-(S.length : ℤ)`. -/
 theorem action_shift {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ) (v : σ)
     (S : List (Γ k)) (L : ListBlank (∀ k, Option (Γ k))) :
     stmtShift (trStAct (.goto (fun _ _ => .ret q)) o) v
@@ -1924,6 +2216,8 @@ open Turing Turing.TM2to1
 variable {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
 variable (M : Λ → TM2.Stmt Γ Λ σ)
 
+/-- The exact TM1 simulation cost of a stack statement on the given local state and stack
+contents. -/
 def stackClock : TM2.Stmt Γ Λ σ → σ → (∀ k, List (Γ k)) → ℕ
   | .push k f q,v,S => 2*(S k).length+3+stackClock q v (Function.update S k (f v::S k))
   | .peek k f q,v,S => 2*(S k).length+2+stackClock q (f v (S k).head?) S
@@ -1934,6 +2228,8 @@ def stackClock : TM2.Stmt Γ Λ σ → σ → (∀ k, List (Γ k)) → ℕ
   | .goto _,_,_ => 0
   | .halt,_,_ => 0
 
+/-- `stackClock (stRun o q) v S` equals `(S k).length+(stWrite v (S k) o).length+2+ stackClock q
+(stVar v (S k) o) (Function.update S k (stWrite v (S k) o))`. -/
 theorem stackClock_run {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ)
     (v : σ) (S : ∀ k, List (Γ k)) :
     stackClock (stRun o q) v S = (S k).length+(stWrite v (S k) o).length+2+
@@ -1942,6 +2238,7 @@ theorem stackClock_run {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ)
 
 omit [DecidableEq K] in
 
+/-- `stmtShift (trNormal q) v tape` equals `0`. -/
 theorem trNormal_shift (q : TM2.Stmt Γ Λ σ) (v : σ) (tape : Tape (Γ' K Γ)) :
     stmtShift (trNormal q) v tape=0 := by
   induction q generalizing v with
@@ -1953,6 +2250,8 @@ theorem trNormal_shift (q : TM2.Stmt Γ Λ σ) (v : σ) (tape : Tape (Γ' K Γ))
     · exact iha v
     · exact ihb v
 
+/-- A translated stack action updates exactly its selected stack and local state in one source
+step, with displacement equal to the change in stack length. -/
 theorem action_trace {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ) (v : σ)
     (S : ∀ k, List (Γ k)) (L : ListBlank (∀ k, Option (Γ k)))
     (hL : ∀ k, L.map (proj k)=ListBlank.mk ((S k).map some).reverse) :
@@ -1978,6 +2277,8 @@ theorem action_trace {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ) (v : 
   · simp only [tr,stmtShift,hnone,if_true]
     exact action_shift o q v (S k) L
 
+/-- The translation of a stack statement reaches a configuration representing its result in
+exactly `stackClock` source steps and with zero net displacement. -/
 theorem stack_statement_trace (stmt : TM2.Stmt Γ Λ σ) (v : σ)
     (S : ∀ k, List (Γ k)) (L : ListBlank (∀ k, Option (Γ k)))
     (hL : ∀ k, L.map (proj k)=ListBlank.mk ((S k).map some).reverse) :
@@ -2018,6 +2319,7 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Turing Turing.TM2to1
 variable {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
 
+/-- The maximum number of stack operations along a branch of a stack statement. -/
 def stackNodes : TM2.Stmt Γ Λ σ → ℕ
   | .push _ _ q | .peek _ _ q | .pop _ _ q => stackNodes q+1
   | .load _ q => stackNodes q
@@ -2026,9 +2328,12 @@ def stackNodes : TM2.Stmt Γ Λ σ → ℕ
 
 omit [DecidableEq K] in
 
+/-- `stackNodes (stRun o q)` equals `stackNodes q+1`. -/
 theorem stackNodes_run {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ) :
     stackNodes (stRun o q)=stackNodes q+1 := by cases o <;> rfl
 
+/-- Under the stated hypotheses, `stackClock stmt v S` is at most `2*stackNodes
+stmt*(height+stackNodes stmt+1)`. -/
 theorem stackClock_bound (stmt : TM2.Stmt Γ Λ σ) (v : σ) (S : ∀ k, List (Γ k))
     (height : ℕ) (hS : ∀ k, (S k).length≤height) :
     stackClock stmt v S≤2*stackNodes stmt*(height+stackNodes stmt+1) := by
@@ -2061,16 +2366,21 @@ theorem stackClock_bound (stmt : TM2.Stmt Γ Λ σ) (v : σ) (S : ∀ k, List (�
           (Nat.add_le_add_right (Nat.add_le_add_left (Nat.le_max_right _ _) height) 1))
   | goto _ | halt => simp [stackClock,stackNodes]
 
+/-- Execute a stack program for a specified number of TM2 steps. -/
 def stackRun (M : Λ → TM2.Stmt Γ Λ σ) : ℕ → TM2.Cfg Γ Λ σ → Option (TM2.Cfg Γ Λ σ)
   | 0,c => some c
   | n+1,c => (TM2.step M c).bind (stackRun M n)
 
+/-- Accumulate one control step and the stack-statement simulation cost at each successful TM2
+step. -/
 def stackRunClock (M : Λ → TM2.Stmt Γ Λ σ) : ℕ → TM2.Cfg Γ Λ σ → ℕ
   | 0,_ => 0
   | n+1,c => match TM2.step M c,c.l with
     | some next,some l => 1+stackClock (M l) c.var c.stk+stackRunClock M n next
     | _,_ => 0
 
+/-- One successful stack-machine step is simulated by a source trace of length `stackRunClock M
+1 first` and zero net displacement. -/
 theorem stack_step_trace (M : Λ → TM2.Stmt Γ Λ σ)
     (first next : TM2.Cfg Γ Λ σ) (first' : TM1.Cfg (Γ' K Γ) (Λ' K Γ Λ σ) σ)
     (hf : TrCfg first first') (hs : TM2.step M first=some next) :
@@ -2092,6 +2402,8 @@ theorem stack_step_trace (M : Λ → TM2.Stmt Γ Λ σ)
     refine ⟨last,hl,?_⟩
     simpa only [stackRunClock,hs,Nat.add_zero,zero_add] using! hone.trans ht
 
+/-- A successful finite stack execution is simulated by a source trace of length `stackRunClock
+M n first` and zero net displacement. -/
 theorem stack_execution_trace (M : Λ → TM2.Stmt Γ Λ σ) (n : ℕ)
     (first last : TM2.Cfg Γ Λ σ) (first' : TM1.Cfg (Γ' K Γ) (Λ' K Γ Λ σ) σ)
     (hf : TrCfg first first') (h : stackRun M n first=some last) :
@@ -2121,20 +2433,27 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Turing Turing.TM2to1
 
+/-- Store input and output bit lists in the two stacks indexed by `Fin 2`. -/
 def stackPair (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 2 → List Bool :=
   fun i => if i=0 then input else output
 
+/-- Reading the first stack from `stackPair` recovers its corresponding list argument. -/
 @[simp] theorem stackPair_zero (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : stackPair input output 0=input := by
   simp [stackPair]
 
+/-- Reading the second stack from `stackPair` recovers its corresponding list argument. -/
 @[simp] theorem stackPair_one (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : stackPair input output 1=output := by
   simp [stackPair]
 
+/-- Updating the first stack in `stackPair` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem stackPair_update_zero (input output input' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (stackPair input output) 0 input'=stackPair input' output := by
   funext i
   by_cases h : i=0 <;> simp [stackPair,Function.update_apply,h]
 
+/-- Updating the second stack in `stackPair` replaces its corresponding list argument and
+retains the other stack contents. -/
 @[simp] theorem stackPair_update_one (input output output' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (stackPair input output) 1 output'=stackPair input output' := by
   funext i
@@ -2151,20 +2470,28 @@ def stackPair (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bit
     subst i
     simp [stackPair]
 
+/-- Transfer bits from the first stack to the second, reversing their order and halting when the
+first is empty. -/
 def transferProgram (_ : Fin 1) : TM2.Stmt (fun _ : Fin 2 => Bool) (Fin 1) (Option Bool) :=
   .pop 0 (fun _ bit => bit) (.branch (fun bit => bit.isSome)
     (.push 1 (fun bit => bit.getD false) (.goto (fun _ => 0))) .halt)
 
+/-- `TM2.step transferProgram ⟨some 0,v,stackPair (b::input) output⟩` equals `some ⟨some 0,some
+b,stackPair input (b::output)⟩`. -/
 theorem transfer_step (b : Bool) (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Option Bool) :
     TM2.step transferProgram ⟨some 0,v,stackPair (b::input) output⟩=
       some ⟨some 0,some b,stackPair input (b::output)⟩ := by
   simp [TM2.step,transferProgram,TM2.stepAux]
 
+/-- `TM2.step transferProgram ⟨some 0,v,stackPair [] output⟩` equals `some ⟨none,none,stackPair
+[] output⟩`. -/
 theorem transfer_empty_step (output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Option Bool) :
     TM2.step transferProgram ⟨some 0,v,stackPair [] output⟩=
       some ⟨none,none,stackPair [] output⟩ := by
   simp [TM2.step,transferProgram,TM2.stepAux]
 
+/-- A run of `transferProgram` from label `0` halts with stacks `stackPair []
+(input.reverse++output)` after `(input.length+1)` stack steps. -/
 theorem transfer_run (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Option Bool) :
     stackRun transferProgram (input.length+1) ⟨some 0,v,stackPair input output⟩=
       some ⟨none,none,stackPair [] (input.reverse++output)⟩ := by
@@ -2175,6 +2502,8 @@ theorem transfer_run (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCo
     simpa only [List.length_cons,stackRun,transfer_step,Option.bind_some,List.reverse_cons,
       List.append_assoc,List.singleton_append] using ih (b::output) (some b)
 
+/-- `stackRunClock transferProgram (input.length+1) ⟨some 0,v,stackPair input output⟩` equals
+`input.length*(2*(input.length+output.length)+5)+3`. -/
 theorem transfer_clock (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Option Bool) :
     stackRunClock transferProgram (input.length+1) ⟨some 0,v,stackPair input output⟩=
       input.length*(2*(input.length+output.length)+5)+3 := by
@@ -2189,6 +2518,8 @@ theorem transfer_clock (input output : Qatlib.Concepts.BitWordCompiler.Canonical
       List.head?_cons,List.tail_cons,Option.isSome_some,if_true,stackPair_one,List.length_cons]
     nlinarith
 
+/-- The translated transfer program empties the input stack and prepends its reversal to the
+output, with the exact accumulated source clock and zero net displacement. -/
 theorem transfer_emulated (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Option Bool)
     (first : TM1.Cfg (Γ' (Fin 2) (fun _ => Bool))
       (Λ' (Fin 2) (fun _ => Bool) (Fin 1) (Option Bool)) (Option Bool))
@@ -2206,6 +2537,7 @@ open Turing
 section LabelRestriction
 variable {Γ Λ σ : Type} [Inhabited Γ] [Inhabited Λ]
 
+/-- Replace every target label in a TM1 statement using the supplied label map. -/
 def relabelStmt {Λ' : Type} (code : Λ → Λ') : TM1.Stmt Γ Λ σ → TM1.Stmt Γ Λ' σ
   | .move d q => .move d (relabelStmt code q)
   | .write f q => .write f (relabelStmt code q)
@@ -2214,11 +2546,15 @@ def relabelStmt {Λ' : Type} (code : Λ → Λ') : TM1.Stmt Γ Λ σ → TM1.Stm
   | .goto f => .goto (fun a v => code (f a v))
   | .halt => .halt
 
+/-- Relabel the optional control state of a TM1 configuration without changing its variables or
+tape. -/
 def relabelCfg {Λ' : Type} (code : Λ → Λ') (c : TM1.Cfg Γ Λ σ) : TM1.Cfg Γ Λ' σ :=
   ⟨c.l.map code,c.var,c.Tape⟩
 
 omit [Inhabited Λ] in
 
+/-- `TM1.stepAux (relabelStmt code stmt) v tape` equals `relabelCfg code (TM1.stepAux stmt v
+tape)`. -/
 theorem relabel_stepAux {Λ' : Type} (code : Λ → Λ') (stmt : TM1.Stmt Γ Λ σ)
     (v : σ) (tape : Tape Γ) :
     TM1.stepAux (relabelStmt code stmt) v tape=relabelCfg code (TM1.stepAux stmt v tape) := by
@@ -2232,12 +2568,14 @@ theorem relabel_stepAux {Λ' : Type} (code : Λ → Λ') (stmt : TM1.Stmt Γ Λ 
 
 omit [Inhabited Γ] [Inhabited Λ] in
 
+/-- `stmtTicks (relabelStmt code stmt)` equals `stmtTicks stmt`. -/
 theorem relabel_ticks {Λ' : Type} (code : Λ → Λ') (stmt : TM1.Stmt Γ Λ σ) :
     stmtTicks (relabelStmt code stmt)=stmtTicks stmt := by
   induction stmt <;> simp_all only [relabelStmt,stmtTicks]
 
 omit [Inhabited Λ] in
 
+/-- `stmtShift (relabelStmt code stmt) v tape` equals `stmtShift stmt v tape`. -/
 theorem relabel_shift {Λ' : Type} (code : Λ → Λ') (stmt : TM1.Stmt Γ Λ σ)
     (v : σ) (tape : Tape Γ) : stmtShift (relabelStmt code stmt) v tape=stmtShift stmt v tape := by
   induction stmt generalizing v tape with
@@ -2250,13 +2588,17 @@ theorem relabel_shift {Λ' : Type} (code : Λ → Λ') (stmt : TM1.Stmt Γ Λ σ
     · exact ihb _ _
   | goto _ | halt => rfl
 
+/-- Reindex a TM1 program through a finite control support. -/
 noncomputable def restrictedProgram (S : Finset Λ) (M : Λ → TM1.Stmt Γ Λ σ) :
     Fin (S.card+1) → TM1.Stmt Γ (Fin (S.card+1)) σ :=
   fun l => relabelStmt (controlCode S) (M (controlLabel S l))
 
+/-- Reindex a TM1 configuration through a finite control support. -/
 noncomputable def restrictedCfg (S : Finset Λ) (c : TM1.Cfg Γ Λ σ) :
     TM1.Cfg Γ (Fin (S.card+1)) σ := relabelCfg (controlCode S) c
 
+/-- Under the stated hypotheses, `TM1.step (restrictedProgram S M) (restrictedCfg S c)` equals
+`(TM1.step M c).map (restrictedCfg S)`. -/
 theorem restricted_step (S : Finset Λ) (M : Λ → TM1.Stmt Γ Λ σ)
     (c : TM1.Cfg Γ Λ σ) (hc : c.l∈Finset.insertNone S) :
     TM1.step (restrictedProgram S M) (restrictedCfg S c)=
@@ -2270,6 +2612,8 @@ theorem restricted_step (S : Finset Λ) (M : Λ → TM1.Stmt Γ Λ σ)
       controlLabel_code S l hl,Option.map_some]
     exact congrArg some (relabel_stepAux _ _ _ _)
 
+/-- Under the stated hypotheses, `tm1Run (restrictedProgram S M) n (restrictedCfg S c)` equals
+`(tm1Run M n c).map (restrictedCfg S)`. -/
 theorem restricted_run (S : Finset Λ) (M : Λ → TM1.Stmt Γ Λ σ)
     (hs : TM1.Supports M S) (n : ℕ) (c : TM1.Cfg Γ Λ σ) (hc : c.l∈Finset.insertNone S) :
     tm1Run (restrictedProgram S M) n (restrictedCfg S c)=
@@ -2284,6 +2628,8 @@ theorem restricted_run (S : Finset Λ) (M : Λ → TM1.Stmt Γ Λ σ)
       simpa only [tm1Run,ht,Option.map_some,Option.bind_some] using
         ih next (TM1.step_supports M hs ht hc)
 
+/-- Under the stated hypotheses, `tm1Displacement (restrictedProgram S M) n (restrictedCfg S c)`
+equals `tm1Displacement M n c`. -/
 theorem restricted_displacement (S : Finset Λ) (M : Λ → TM1.Stmt Γ Λ σ)
     (hs : TM1.Supports M S) (n : ℕ) (c : TM1.Cfg Γ Λ σ) (hc : c.l∈Finset.insertNone S) :
     tm1Displacement (restrictedProgram S M) n (restrictedCfg S c)=tm1Displacement M n c := by
@@ -2312,6 +2658,8 @@ theorem restricted_displacement (S : Finset Λ) (M : Λ → TM1.Stmt Γ Λ σ)
         exact congrArg (fun z => stmtShift (M l) v tape+z)
           (ih next (TM1.step_supports M hs ht hc))
 
+/-- Restricting a source trace to a supporting finite control set preserves its step count and
+displacement. -/
 theorem SourceTrace.restrict {S : Finset Λ} {M : Λ → TM1.Stmt Γ Λ σ}
     (hs : TM1.Supports M S) {first last : TM1.Cfg Γ Λ σ} {n : ℕ} {d : ℤ}
     (h : SourceTrace M first last n d) (hf : first.l∈Finset.insertNone S) :
@@ -2321,6 +2669,7 @@ theorem SourceTrace.restrict {S : Finset Λ} {M : Λ → TM1.Stmt Γ Λ σ}
     rfl
   · rw [restricted_displacement S M hs n first hf,h.shift_eq]
 
+/-- `restrictedCfg S (TM1.init input)` equals `(TM1.init input : TM1.Cfg Γ (Fin (S.card+1)) σ)`. -/
 @[simp] theorem restrictedCfg_init [Inhabited σ] (S : Finset Λ) (input : List Γ) :
     restrictedCfg S (TM1.init input)= (TM1.init input : TM1.Cfg Γ (Fin (S.card+1)) σ) := by
   simp [restrictedCfg,relabelCfg,TM1.init]
@@ -2330,15 +2679,21 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- Embed a Boolean tape alphabet into optional Boolean symbols, mapping false to the blank
+symbol. -/
 def boolSymbol : PointedMap Bool Symbol := ⟨fun b => if b then some true else none,rfl⟩
+/-- Read an optional Boolean symbol as a Boolean, interpreting a blank as false. -/
 def symbolBool (a : Symbol) : Bool := a.getD false
 
+/-- `symbolBool (boolSymbol b)` equals `b`. -/
 @[simp] theorem symbolBool_boolSymbol (b : Bool) : symbolBool (boolSymbol b)=b := by
   cases b <;> rfl
 
 section BoolWorkAlphabet
 variable {Λ σ : Type}
 
+/-- Translate a Boolean-alphabet TM1 statement to the optional-Boolean alphabet using
+`boolSymbol`. -/
 def boolStmt : TM1.Stmt Bool Λ σ → TM1.Stmt Symbol Λ σ
   | .move d q => .move d (boolStmt q)
   | .write f q => .write (fun a v => boolSymbol (f (symbolBool a) v)) (boolStmt q)
@@ -2347,9 +2702,13 @@ def boolStmt : TM1.Stmt Bool Λ σ → TM1.Stmt Symbol Λ σ
   | .goto f => .goto (fun a v => f (symbolBool a) v)
   | .halt => .halt
 
+/-- Map the tape of a Boolean-alphabet configuration through `boolSymbol`. -/
 def boolCfg (c : TM1.Cfg Bool Λ σ) : TM1.Cfg Symbol Λ σ := ⟨c.l,c.var,c.Tape.map boolSymbol⟩
+/-- Translate every statement of a Boolean-alphabet TM1 program to optional Boolean symbols. -/
 def boolProgram (M : Λ → TM1.Stmt Bool Λ σ) : Λ → TM1.Stmt Symbol Λ σ := fun l => boolStmt (M l)
 
+/-- `TM1.stepAux (boolStmt stmt) v (tape.map boolSymbol)` equals `boolCfg (TM1.stepAux stmt v
+tape)`. -/
 theorem bool_stepAux (stmt : TM1.Stmt Bool Λ σ) (v : σ) (tape : Tape Bool) :
     TM1.stepAux (boolStmt stmt) v (tape.map boolSymbol)=boolCfg (TM1.stepAux stmt v tape) := by
   induction stmt generalizing v tape with
@@ -2369,9 +2728,11 @@ theorem bool_stepAux (stmt : TM1.Stmt Bool Λ σ) (v : σ) (tape : Tape Bool) :
   | goto f => simp only [boolStmt,TM1.stepAux,Tape.map_fst,symbolBool_boolSymbol]; rfl
   | halt => rfl
 
+/-- `stmtTicks (boolStmt stmt)` equals `stmtTicks stmt`. -/
 theorem bool_stmt_ticks (stmt : TM1.Stmt Bool Λ σ) : stmtTicks (boolStmt stmt)=stmtTicks stmt := by
   induction stmt <;> simp_all only [boolStmt,stmtTicks]
 
+/-- `stmtShift (boolStmt stmt) v (tape.map boolSymbol)` equals `stmtShift stmt v tape`. -/
 theorem bool_stmt_shift (stmt : TM1.Stmt Bool Λ σ) (v : σ) (tape : Tape Bool) :
     stmtShift (boolStmt stmt) v (tape.map boolSymbol)=stmtShift stmt v tape := by
   induction stmt generalizing v tape with
@@ -2389,6 +2750,7 @@ theorem bool_stmt_shift (stmt : TM1.Stmt Bool Λ σ) (v : σ) (tape : Tape Bool)
     · exact ihb v tape
   | goto _ | halt => rfl
 
+/-- `TM1.step (boolProgram M) (boolCfg c)` equals `(TM1.step M c).map boolCfg`. -/
 theorem bool_step (M : Λ → TM1.Stmt Bool Λ σ) (c : TM1.Cfg Bool Λ σ) :
     TM1.step (boolProgram M) (boolCfg c)=(TM1.step M c).map boolCfg := by
   rcases c with ⟨l,v,tape⟩
@@ -2396,6 +2758,7 @@ theorem bool_step (M : Λ → TM1.Stmt Bool Λ σ) (c : TM1.Cfg Bool Λ σ) :
   | none => rfl
   | some l => exact congrArg some (bool_stepAux (M l) v tape)
 
+/-- `tm1Run (boolProgram M) n (boolCfg c)` equals `(tm1Run M n c).map boolCfg`. -/
 theorem bool_run (M : Λ → TM1.Stmt Bool Λ σ) (n : ℕ) (c : TM1.Cfg Bool Λ σ) :
     tm1Run (boolProgram M) n (boolCfg c)=(tm1Run M n c).map boolCfg := by
   induction n generalizing c with
@@ -2406,6 +2769,7 @@ theorem bool_run (M : Λ → TM1.Stmt Bool Λ σ) (n : ℕ) (c : TM1.Cfg Bool Λ
     | none => simp only [tm1Run,hs,Option.map_none,Option.bind_none]
     | some next => simpa only [tm1Run,hs,Option.map_some,Option.bind_some] using ih next
 
+/-- `tm1Displacement (boolProgram M) n (boolCfg c)` equals `tm1Displacement M n c`. -/
 theorem bool_displacement (M : Λ → TM1.Stmt Bool Λ σ) (n : ℕ) (c : TM1.Cfg Bool Λ σ) :
     tm1Displacement (boolProgram M) n (boolCfg c)=tm1Displacement M n c := by
   induction n generalizing c with
@@ -2424,6 +2788,8 @@ theorem bool_displacement (M : Λ → TM1.Stmt Bool Λ σ) (n : ℕ) (c : TM1.Cf
       | none => rfl
       | some next => exact congrArg (fun z => stmtShift (M l) v tape+z) (ih next)
 
+/-- Translating a Boolean-alphabet source trace to optional Boolean symbols preserves its step
+count and displacement. -/
 theorem SourceTrace.bool {M : Λ → TM1.Stmt Bool Λ σ} {first last : TM1.Cfg Bool Λ σ}
     {n : ℕ} {d : ℤ} (h : SourceTrace M first last n d) :
     SourceTrace (boolProgram M) (boolCfg first) (boolCfg last) n d := by
@@ -2432,6 +2798,7 @@ theorem SourceTrace.bool {M : Λ → TM1.Stmt Bool Λ σ} {first last : TM1.Cfg 
     rfl
   · rw [bool_displacement,h.shift_eq]
 
+/-- Boolean-alphabet translation preserves the finite support of a statement. -/
 theorem bool_supports_stmt (S : Finset Λ) (stmt : TM1.Stmt Bool Λ σ)
     (h : TM1.SupportsStmt S stmt) : TM1.SupportsStmt S (boolStmt stmt) := by
   induction stmt with
@@ -2440,6 +2807,7 @@ theorem bool_supports_stmt (S : Finset Λ) (stmt : TM1.Stmt Bool Λ σ)
   | goto f => intro a v; exact h (symbolBool a) v
   | halt => trivial
 
+/-- Boolean-alphabet translation preserves the finite support of a program. -/
 theorem bool_supports [Inhabited Λ] (M : Λ → TM1.Stmt Bool Λ σ) (S : Finset Λ)
     (hs : TM1.Supports M S) : TM1.Supports (boolProgram M) S :=
   ⟨hs.1,fun l hl => bool_supports_stmt S (M l) (hs.2 l hl)⟩
@@ -2452,9 +2820,13 @@ open Turing
 section SupportedTM1
 variable {Λ σ : Type} [Inhabited Λ] [Inhabited σ] [Fintype σ]
 
+/-- Compile a TM1 program restricted to the given finite support into a finite-control TM0
+machine. -/
 noncomputable def supportedMachine (M : Λ → TM1.Stmt Symbol Λ σ) (S : Finset Λ) :=
   tm1Machine (restrictedProgram S M)
 
+/-- A supported zero-displacement source trace translates to a finite-control TM0 trace with the
+stated instruction-overhead bound. -/
 theorem supported_tm1_trace (M : Λ → TM1.Stmt Symbol Λ σ) (S : Finset Λ)
     (hs : TM1.Supports M S) (n : ℕ) (first last : TM1.Cfg Symbol Λ σ)
     (hf : first.l∈Finset.insertNone S) (h : SourceTrace M first last n 0) :
@@ -2467,6 +2839,8 @@ theorem supported_tm1_trace (M : Λ → TM1.Stmt Symbol Λ σ) (S : Finset Λ)
   rw [hr.shift_eq] at ht
   exact ⟨ticks,hlo,hhi,ht⟩
 
+/-- A supported halted source trace with the specified output tape yields a `Runs` certificate
+when its translated time and input length fit the budget. -/
 theorem supported_tm1_runs (M : Λ → TM1.Stmt Symbol Λ σ) (S : Finset Λ)
     (hs : TM1.Supports M S) (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (n budget : ℕ)
     (last : TM1.Cfg Symbol Λ σ)
@@ -2498,10 +2872,12 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Alphabet
 open Turing
 variable {Γ Λ σ : Type}
 
+/-- Write a list of bits to successive tape cells, moving right after each write. -/
 private def writeTape : List Bool → Tape Bool → Tape Bool
   | [],tape => tape
   | b::bits,tape => writeTape bits ((tape.write b).move .right)
 
+/-- `TM1.stepAux (TM1to1.write bits q) v tape` equals `TM1.stepAux q v (writeTape bits tape)`. -/
 theorem write_step (bits : List Bool) (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) σ)
     (v : σ) (tape : Tape Bool) :
     TM1.stepAux (TM1to1.write bits q) v tape=TM1.stepAux q v (writeTape bits tape) := by
@@ -2509,6 +2885,8 @@ theorem write_step (bits : List Bool) (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) �
   | nil => rfl
   | cons b bits ih => exact ih _
 
+/-- `stmtShift (TM1to1.write bits q) v tape` equals `(bits.length : ℤ)+stmtShift q v (writeTape
+bits tape)`. -/
 theorem write_shift (bits : List Bool) (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) σ)
     (v : σ) (tape : Tape Bool) :
     stmtShift (TM1to1.write bits q) v tape=(bits.length : ℤ)+stmtShift q v (writeTape bits tape) := by
@@ -2519,6 +2897,8 @@ theorem write_shift (bits : List Bool) (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) 
       Int.natCast_one]
     omega
 
+/-- `stmtShift (TM1to1.move n d q) v tape` equals `(n : ℤ)*stmtOffset (.move d)+stmtShift q v
+((Tape.move d)^[n] tape)`. -/
 theorem move_shift (n : ℕ) (d : Dir) (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) σ)
     (v : σ) (tape : Tape Bool) :
     stmtShift (TM1to1.move n d q) v tape=
@@ -2530,10 +2910,13 @@ theorem move_shift (n : ℕ) (d : Dir) (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) 
     rw [Function.iterate_succ_apply',stmtShift,ih,Function.iterate_succ_apply]
     cases d <;> simp only [stmtOffset,Int.natCast_add,Int.natCast_one,mul_neg,mul_one] <;> omega
 
+/-- Read a fixed-length vector of consecutive tape bits starting at the current head. -/
 private def readVector : (n : ℕ) → Tape Bool → List.Vector Bool n
   | 0,_ => List.Vector.nil
   | n+1,tape => tape.head ::ᵥ readVector n (tape.move .right)
 
+/-- `stmtShift (TM1to1.readAux n f) v tape` equals `(n : ℤ)+ stmtShift (f (readVector n tape)) v
+((Tape.move .right)^[n] tape)`. -/
 theorem readAux_shift (n : ℕ)
     (f : List.Vector Bool n → TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) σ) (v : σ) (tape : Tape Bool) :
     stmtShift (TM1to1.readAux n f) v tape=(n : ℤ)+
@@ -2546,6 +2929,7 @@ theorem readAux_shift (n : ℕ)
       stmtOffset,ih,readVector,Function.iterate_succ_apply,Int.natCast_add,Int.natCast_one]
     <;> omega
 
+/-- `readVector bits.length (Tape.mk' left (ListBlank.append bits right))` equals `⟨bits,rfl⟩`. -/
 theorem readVector_prefix (bits : List Bool) (left right : ListBlank Bool) :
     readVector bits.length (Tape.mk' left (ListBlank.append bits right))=⟨bits,rfl⟩ := by
   induction bits generalizing left with
@@ -2555,6 +2939,7 @@ theorem readVector_prefix (bits : List Bool) (left right : ListBlank Bool) :
       Tape.move_right_mk',ListBlank.tail_cons,ih]
     rfl
 
+/-- `(Tape.move .left)^[n] ((Tape.move .right)^[n] tape)` equals `tape`. -/
 theorem left_right (n : ℕ) (tape : Tape Bool) :
     (Tape.move .left)^[n] ((Tape.move .right)^[n] tape)=tape := by
   induction n with
@@ -2566,6 +2951,7 @@ variable [Inhabited Γ] {n : ℕ} (enc : Γ → List.Vector Bool n)
     (dec : List.Vector Bool n → Γ) (enc0 : enc default=List.Vector.replicate n false)
     (encdec : ∀ a, dec (enc a)=a)
 
+/-- `readVector n (TM1to1.trTape' enc0 L R)` equals `enc R.head`. -/
 theorem readVector_encoded (L R : ListBlank Γ) :
     readVector n (TM1to1.trTape' enc0 L R)=enc R.head := by
   obtain ⟨a,R,rfl⟩ := R.exists_cons
@@ -2580,6 +2966,8 @@ theorem readVector_encoded (L R : ListBlank Γ) :
 
 include encdec in
 
+/-- `stmtShift (TM1to1.read dec f) v (TM1to1.trTape' enc0 L R)` equals `stmtShift (f R.head) v
+(TM1to1.trTape' enc0 L R)`. -/
 theorem read_shift (f : Γ → TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) σ) (v : σ)
     (L R : ListBlank Γ) :
     stmtShift (TM1to1.read dec f) v (TM1to1.trTape' enc0 L R)=
@@ -2596,6 +2984,8 @@ variable {Γ Λ σ : Type} [Inhabited Γ] {n : ℕ}
     (enc : Γ → List.Vector Bool n) (dec : List.Vector Bool n → Γ)
     (enc0 : enc default=List.Vector.replicate n false) (encdec : ∀ a, dec (enc a)=a)
 
+/-- `stmtShift (TM1to1.write (enc a).toList q) v (TM1to1.trTape' enc0 L (ListBlank.cons b R))`
+equals `(n : ℤ)+stmtShift q v (TM1to1.trTape' enc0 (ListBlank.cons a L) R)`. -/
 theorem write_encoded_shift (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) σ)
     (v : σ) (a b : Γ) (L R : ListBlank Γ) :
     stmtShift (TM1to1.write (enc a).toList q) v (TM1to1.trTape' enc0 L (ListBlank.cons b R))=
@@ -2609,6 +2999,9 @@ theorem write_encoded_shift (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) σ)
 
 variable (M : Λ → TM1.Stmt Γ Λ σ)
 
+/-- `TM1.step (TM1to1.tr enc dec M) ⟨some (.write a q),v,TM1to1.trTape' enc0 L (ListBlank.cons b
+R)⟩` equals `some (TM1.stepAux (TM1to1.trNormal dec q) v (TM1to1.trTape' enc0 L
+(ListBlank.cons a R)))`. -/
 theorem write_label_step (a b : Γ) (q : TM1.Stmt Γ Λ σ) (v : σ) (L R : ListBlank Γ) :
     TM1.step (TM1to1.tr enc dec M)
       ⟨some (.write a q),v,TM1to1.trTape' enc0 L (ListBlank.cons b R)⟩=
@@ -2617,6 +3010,9 @@ theorem write_label_step (a b : Γ) (q : TM1.Stmt Γ Λ σ) (v : σ) (L R : List
     TM1to1.trTape'_move_left enc0]
   simp only [ListBlank.head_cons,ListBlank.tail_cons]
 
+/-- `stmtShift ((TM1to1.tr enc dec M) (.write a q)) v (TM1to1.trTape' enc0 L (ListBlank.cons b
+R))` equals `stmtShift (TM1to1.trNormal dec q) v (TM1to1.trTape' enc0 L (ListBlank.cons a
+R))`. -/
 theorem write_label_shift (a b : Γ) (q : TM1.Stmt Γ Λ σ) (v : σ) (L R : ListBlank Γ) :
     stmtShift ((TM1to1.tr enc dec M) (.write a q)) v
       (TM1to1.trTape' enc0 L (ListBlank.cons b R))=
@@ -2626,6 +3022,7 @@ theorem write_label_shift (a b : Γ) (q : TM1.Stmt Γ Λ σ) (v : σ) (L R : Lis
   simp only [ListBlank.head_cons,ListBlank.tail_cons]
   omega
 
+/-- The maximum number of write nodes along a branch of a TM1 statement. -/
 def writeNodes : TM1.Stmt Γ Λ σ → ℕ
   | .move _ q | .load _ q => writeNodes q
   | .write _ q => writeNodes q+1
@@ -2634,6 +3031,9 @@ def writeNodes : TM1.Stmt Γ Λ σ → ℕ
 
 include encdec in
 
+/-- The auxiliary alphabet translation executes a statement with extra steps bounded by its
+write-node count, and its combined displacement is the original shift multiplied by the code
+width. -/
 theorem statement_aux (stmt : TM1.Stmt Γ Λ σ) (v : σ) (tape : Tape Γ) :
     ∃ ticks displacement, ticks≤writeNodes stmt ∧
       SourceTrace (TM1to1.tr enc dec M)
@@ -2725,6 +3125,8 @@ variable {Γ Λ σ : Type} [Inhabited Γ] {n : ℕ}
 
 include encdec in
 
+/-- One source-program step is simulated after alphabet encoding in a positive number of steps
+bounded by one plus its write-node count, scaling displacement by the code width. -/
 theorem step_trace (l : Λ) (v : σ) (tape : Tape Γ) :
     ∃ ticks, 0<ticks ∧ ticks≤1+writeNodes (M l) ∧
       SourceTrace (TM1to1.tr enc dec M) (TM1to1.trCfg enc enc0 ⟨some l,v,tape⟩)
@@ -2740,10 +3142,14 @@ theorem step_trace (l : Λ) (v : σ) (tape : Tape Γ) :
   rw [hd] at hall
   exact ⟨1+ticks,by omega,by omega,hall⟩
 
+/-- One plus the maximum number of write nodes in a program statement, used to bound
+alphabet-translation overhead. -/
 noncomputable def tickFactor [Fintype Λ] : ℕ := 1+Finset.univ.sup (fun l => writeNodes (M l))
 
 include encdec in
 
+/-- A finite source execution is simulated after alphabet encoding with step count bounded by
+`tickFactor` and displacement multiplied by the code width. -/
 theorem execution_trace [Fintype Λ] (steps : ℕ) (first last : TM1.Cfg Γ Λ σ)
     (h : tm1Run M steps first=some last) :
     ∃ ticks, steps≤ticks ∧ ticks≤steps*tickFactor M ∧
@@ -2786,27 +3192,37 @@ variable {Γ Λ σ : Type} [Inhabited Γ] [Inhabited Λ] [Inhabited σ]
     (enc0 : enc default=List.Vector.replicate n false)
     (M : Λ → TM1.Stmt Γ Λ σ)
 
+/-- The finite control support generated by the fixed-width alphabet translation. -/
 noncomputable def controlSupport : Finset (TM1to1.Λ' Γ Λ σ) := TM1to1.trSupp M Finset.univ
 
+/-- Translate a fixed-width encoded alphabet program to optional Boolean tape symbols. -/
 def physicalProgram : TM1to1.Λ' Γ Λ σ → TM1.Stmt Symbol (TM1to1.Λ' Γ Λ σ) σ :=
   boolProgram (TM1to1.tr enc dec M)
 
+/-- Compile the encoded-alphabet program into a TM0 machine with a finite numbered control set. -/
 noncomputable def physicalMachine := supportedMachine (physicalProgram enc dec M) (controlSupport M)
 
+/-- Translate a configuration to the finite-control machine over encoded optional Boolean tape
+symbols. -/
 noncomputable def physicalCfg (c : TM1.Cfg Γ Λ σ) :=
   tm1Cfg (restrictedProgram (controlSupport M) (physicalProgram enc dec M))
     (restrictedCfg (controlSupport M) (boolCfg (TM1to1.trCfg enc enc0 c)))
 
+/-- The multiplicative overhead bound for translating source executions to the encoded-alphabet
+TM0 machine. -/
 noncomputable def physicalFactor : ℕ :=
   tickFactor M*tm1TickBound (restrictedProgram (controlSupport M) (physicalProgram enc dec M))+1
 
 omit [Inhabited Γ] [Inhabited σ] [Fintype σ] in
 
+/-- The generated control support contains every transition of the physical encoded-alphabet
+program. -/
 theorem physical_supports : TM1.Supports (physicalProgram enc dec M) (controlSupport M) :=
   bool_supports _ _ (TM1to1.tr_supports enc dec M (tm1_univ_supports M))
 
 omit [Inhabited Λ] [Inhabited σ] [Fintype σ] in
 
+/-- `(boolCfg (TM1to1.trCfg enc enc0 c)).l` belongs to `Finset.insertNone (controlSupport M)`. -/
 theorem physical_label_mem (c : TM1.Cfg Γ Λ σ) :
     (boolCfg (TM1to1.trCfg enc enc0 c)).l∈Finset.insertNone (controlSupport M) := by
   classical
@@ -2817,9 +3233,12 @@ theorem physical_label_mem (c : TM1.Cfg Γ Λ σ) :
     apply Finset.some_mem_insertNone.mpr
     exact Finset.mem_biUnion.mpr ⟨l,Finset.mem_univ _,Finset.mem_insert_self _ _⟩
 
+/-- `(physicalCfg enc dec enc0 M c).Tape` equals `(TM1to1.trTape enc0 c.Tape).map boolSymbol`. -/
 @[simp] theorem physicalCfg_tape (c : TM1.Cfg Γ Λ σ) :
     (physicalCfg enc dec enc0 M c).Tape=(TM1to1.trTape enc0 c.Tape).map boolSymbol := rfl
 
+/-- The physical finite-control machine simulates a source execution with the stated
+multiplicative time overhead and code-width-scaled displacement. -/
 theorem physical_execution (encdec : ∀ a, dec (enc a)=a) (steps : ℕ)
     (first last : TM1.Cfg Γ Λ σ) (h : tm1Run M steps first=some last) :
     ∃ ticks, steps≤ticks ∧ ticks≤steps*physicalFactor enc dec M ∧
@@ -2841,8 +3260,11 @@ theorem physical_execution (encdec : ∀ a, dec (enc a)=a) (steps : ℕ)
 
 omit [Inhabited Γ] [Inhabited σ] [Fintype σ] in
 
+/-- `0` is less than `physicalFactor enc dec M`. -/
 theorem physicalFactor_pos : 0<physicalFactor enc dec M := Nat.zero_lt_succ _
 
+/-- Under the stated hypotheses, `TM0.step (physicalMachine enc dec M) (physicalCfg enc dec enc0
+M c)` equals `none`. -/
 theorem physical_halt (c : TM1.Cfg Γ Λ σ) (h : TM1.step M c=none) :
     TM0.step (physicalMachine enc dec M) (physicalCfg enc dec enc0 M c)=none := by
   apply tm1_finite_halt
@@ -2863,15 +3285,22 @@ variable {K : Type} [DecidableEq K] [Fintype K] {Γ : K → Type} [∀ k, Fintyp
     (enc0 : enc default=List.Vector.replicate n false)
     (M : Λ → TM2.Stmt Γ Λ σ)
 
+/-- The finite TM1 control support generated by translating a finite stack program. -/
 noncomputable def programSupport : Finset (Λ' K Γ Λ σ) := TM2to1.trSupp M Finset.univ
+/-- Restrict the TM1 translation of a stack program to its generated finite control support. -/
 noncomputable def finiteSource := restrictedProgram (programSupport M) (tr M)
+/-- Compile a finite stack program to a finite-control TM0 machine over optional Boolean
+symbols. -/
 noncomputable def stackMachine := Alphabet.physicalMachine enc dec (finiteSource M)
+/-- Translate a stack-simulation TM1 configuration into the physical TM0 representation. -/
 noncomputable def stackCfg (c : TM1.Cfg (Γ' K Γ) (Λ' K Γ Λ σ) σ) :=
   Alphabet.physicalCfg enc dec enc0 (finiteSource M) (restrictedCfg (programSupport M) c)
+/-- The overhead factor for the finite-control encoded-alphabet simulation of a stack program. -/
 noncomputable def stackFactor : ℕ := Alphabet.physicalFactor enc dec (finiteSource M)
 
 omit [DecidableEq K] [Fintype K] [∀ k, Fintype (Γ k)] [Inhabited σ] [Fintype σ] in
 
+/-- Every finite-control stack program is supported by the full finite label set. -/
 theorem stack_univ_supports : TM2.Supports M Finset.univ := by
   refine ⟨Finset.mem_univ _,?_⟩
   intro l _
@@ -2883,11 +3312,13 @@ theorem stack_univ_supports : TM2.Supports M Finset.univ := by
 
 omit [Fintype K] [∀ k, Fintype (Γ k)] [Inhabited σ] [Fintype σ] in
 
+/-- The generated set `programSupport` supports the TM1 translation of the stack program. -/
 theorem programSupport_supports : TM1.Supports (tr M) (programSupport M) :=
   TM2to1.tr_supports M (stack_univ_supports M)
 
 omit [DecidableEq K] [Fintype K] [∀ k, Fintype (Γ k)] [Inhabited Λ] [Inhabited σ] [Fintype σ] in
 
+/-- Under the stated hypotheses, `first'.l` belongs to `Finset.insertNone (programSupport M)`. -/
 theorem programSupport_cfg (first : TM2.Cfg Γ Λ σ)
     (first' : TM1.Cfg (Γ' K Γ) (Λ' K Γ Λ σ) σ) (hf : TrCfg first first') :
     first'.l∈Finset.insertNone (programSupport M) := by
@@ -2899,6 +3330,8 @@ theorem programSupport_cfg (first : TM2.Cfg Γ Λ σ)
     apply Finset.some_mem_insertNone.mpr
     exact Finset.mem_biUnion.mpr ⟨l,Finset.mem_univ _,Finset.mem_insert_self _ _⟩
 
+/-- A successful stack execution is simulated by a zero-displacement physical-machine trace
+whose length is bounded by its stack clock times `stackFactor`. -/
 theorem stack_physical_execution (encdec : ∀ a, dec (enc a)=a) (steps : ℕ)
     (first last : TM2.Cfg Γ Λ σ) (first' : TM1.Cfg (Γ' K Γ) (Λ' K Γ Λ σ) σ)
     (hf : TrCfg first first') (h : stackRun M steps first=some last) :
@@ -2919,6 +3352,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Prefix
 open Turing
 
+/-- The TM1 program implementing fixed-prefix tape processing. -/
 def program (inserted : Symbol) (label : Fin 3) : TM1.Stmt Symbol (Fin 3) (Symbol×Symbol) :=
   if label=0 then
     .branch (fun a _ => a.isSome)
@@ -2933,6 +3367,8 @@ def program (inserted : Symbol) (label : Fin 3) : TM1.Stmt Symbol (Fin 3) (Symbo
     .move .left (.branch (fun a _ => a.isSome) (.goto (fun _ _ => 2))
       (.write (fun _ _ => inserted) .halt))
 
+/-- The prefix program returns to the initial tape region and halts with the inserted symbol
+before `left.reverse++right`, using `left.length+1` source steps. -/
 theorem return_trace (inserted : Symbol) (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Symbol×Symbol)
     (origin : ListBlank Symbol) :
     SourceTrace (program inserted)
@@ -2969,6 +3405,8 @@ theorem return_trace (inserted : Symbol) (left right : Qatlib.Concepts.BitWordCo
         rfl)
     convert! ht using 1 <;> simp [List.reverse_cons,List.append_assoc,Int.add_comm,Int.add_left_comm]
 
+/-- The prefix scan shifts the remaining word, restores the head, and halts with the inserted
+symbol before the reconstructed input. -/
 theorem scan_trace (inserted : Symbol) (carry : Bool) (rest left : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (old : Symbol)
     (origin : ListBlank Symbol) :
     SourceTrace (program inserted)
@@ -3008,6 +3446,8 @@ theorem scan_trace (inserted : Symbol) (carry : Bool) (rest left : Qatlib.Concep
     convert! ht using 1 <;> simp [List.reverse_cons,List.append_assoc]
     omega
 
+/-- The prefix program prepends the supplied tape symbol in `2*input.length+1` source steps,
+halting with zero net displacement. -/
 theorem source_trace (inserted : Symbol) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (origin : ListBlank Symbol)
     (v : Symbol×Symbol) :
     ∃ last, last.l=none ∧ last.Tape=Tape.mk' origin (ListBlank.mk (inserted::input.map some)) ∧
@@ -3035,6 +3475,7 @@ theorem source_trace (inserted : Symbol) (input : Qatlib.Concepts.BitWordCompile
     simp
     omega
 
+/-- `tm1TickBound (program inserted)` is at most `3`. -/
 theorem tick_bound (inserted : Symbol) : tm1TickBound (program inserted)≤3 := by
   apply Finset.sup_le
   intro l _
@@ -3042,6 +3483,8 @@ theorem tick_bound (inserted : Symbol) : tm1TickBound (program inserted)≤3 := 
   · simp [program,h0,stmtTicks]
   · by_cases h1 : l=1 <;> simp [program,h0,h1,stmtTicks]
 
+/-- The finite-control prefix machine prepends one Boolean bit with time and space bounded by
+`6*input.length+3`. -/
 theorem runs (inserted : Bool) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Runs (tm1Machine (program (some inserted))) input (inserted::input)
       (6*input.length+3) (6*input.length+3) := by
@@ -3068,6 +3511,8 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Call
 open Turing
 variable {Γ Λ Λ' σ τ : Type} [Inhabited Γ]
 
+/-- Embed a TM1 subroutine by relabeling its control states, saving an extra local component,
+and replacing halting with a return label. -/
 def stmt (code : Λ → Λ') (returnTo : Λ') : TM1.Stmt Γ Λ σ → TM1.Stmt Γ Λ' (σ×τ)
   | .move d q => .move d (stmt code returnTo q)
   | .write f q => .write (fun a v => f a v.1) (stmt code returnTo q)
@@ -3076,9 +3521,12 @@ def stmt (code : Λ → Λ') (returnTo : Λ') : TM1.Stmt Γ Λ σ → TM1.Stmt �
   | .goto f => .goto (fun a v => code (f a v.1))
   | .halt => .goto (fun _ _ => returnTo)
 
+/-- Embed a subroutine configuration with its saved local component and return continuation. -/
 def cfg (code : Λ → Λ') (returnTo : Λ') (saved : τ) (c : TM1.Cfg Γ Λ σ) : TM1.Cfg Γ Λ' (σ×τ) :=
   ⟨some (c.l.elim returnTo code),(c.var,saved),c.Tape⟩
 
+/-- `TM1.stepAux (stmt code returnTo s) (v,saved) tape` equals `cfg code returnTo saved
+(TM1.stepAux s v tape)`. -/
 theorem stmt_step (code : Λ → Λ') (returnTo : Λ') (saved : τ) (s : TM1.Stmt Γ Λ σ)
     (v : σ) (tape : Tape Γ) :
     TM1.stepAux (stmt code returnTo s) (v,saved) tape=cfg code returnTo saved (TM1.stepAux s v tape) := by
@@ -3091,6 +3539,7 @@ theorem stmt_step (code : Λ → Λ') (returnTo : Λ') (saved : τ) (s : TM1.Stm
     · exact iha _ _
   | goto _ | halt => rfl
 
+/-- `stmtShift (stmt code returnTo s) (v,saved) tape` equals `stmtShift s v tape`. -/
 theorem stmt_shift (code : Λ → Λ') (returnTo : Λ') (saved : τ) (s : TM1.Stmt Γ Λ σ)
     (v : σ) (tape : Tape Γ) : stmtShift (stmt code returnTo s) (v,saved) tape=stmtShift s v tape := by
   induction s generalizing v tape with
@@ -3103,6 +3552,9 @@ theorem stmt_shift (code : Λ → Λ') (returnTo : Λ') (saved : τ) (s : TM1.St
     · exact ihb _ _
   | goto _ | halt => rfl
 
+/-- Under the stated hypotheses, `tm1Run N steps (cfg code returnTo saved first)` equals `some
+(cfg code returnTo saved last)`; `tm1Displacement N steps (cfg code returnTo saved first)`
+equals `tm1Displacement M steps first`. -/
 theorem execution (M : Λ → TM1.Stmt Γ Λ σ) (N : Λ' → TM1.Stmt Γ Λ' (σ×τ))
     (code : Λ → Λ') (returnTo : Λ') (saved : τ)
     (hcode : ∀ l, N (code l)=stmt code returnTo (M l))
@@ -3135,6 +3587,8 @@ theorem execution (M : Λ → TM1.Stmt Γ Λ σ) (N : Λ' → TM1.Stmt Γ Λ' (�
           simp only [tm1Displacement,show TM1.step N ⟨some (code l),(v,saved),tape⟩=
             some (cfg code returnTo saved next) from hstep,hs,hcode,stmt_shift,hd]
 
+/-- A source trace embeds into a caller program with the saved local component, relabeled
+continuation, and unchanged step count and displacement. -/
 theorem trace (M : Λ → TM1.Stmt Γ Λ σ) (N : Λ' → TM1.Stmt Γ Λ' (σ×τ))
     (code : Λ → Λ') (returnTo : Λ') (saved : τ)
     (hcode : ∀ l, N (code l)=stmt code returnTo (M l))
@@ -3147,6 +3601,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Call
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Alphabet
 open Turing
 
+/-- Every finite inhabited alphabet has a fixed-width binary codec with a left inverse, an
+all-false default code, and a true leading bit for every nondefault symbol. -/
 theorem exists_marked_codec (Γ : Type) [Inhabited Γ] [Finite Γ] :
     ∃ (extra : ℕ) (enc : Γ → List.Vector Bool (extra+1))
       (dec : List.Vector Bool (extra+1) → Γ),
@@ -3171,20 +3627,26 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Alphabet
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Expansion
 open Turing
 
+/-- The finite control labels for fixed-width input expansion. -/
 inductive Label (extra : ℕ) where
   | boot | scan | sub (index : Fin extra) (label : Fin 3) | advance (index : Fin extra)
   | output | back
   deriving DecidableEq, Fintype
 instance {extra : ℕ} : Inhabited (Label extra) := ⟨.boot⟩
+/-- The local-state type for fixed-width input expansion, represented by
+`(Symbol×Symbol)×(Bool×Bool)`. -/
 abbrev Local := (Symbol×Symbol)×(Bool×Bool)
 
+/-- Prepend a specified number of tape moves to a TM1 continuation. -/
 def moves {Λ σ : Type} (n : ℕ) (d : Dir) (q : TM1.Stmt Symbol Λ σ) : TM1.Stmt Symbol Λ σ :=
   (TM1.Stmt.move d)^[n] q
 
+/-- Write a list of tape symbols while moving right, then execute the supplied continuation. -/
 def writeSymbols {Λ σ : Type} : List Symbol → TM1.Stmt Symbol Λ σ → TM1.Stmt Symbol Λ σ
   | [],q => q
   | a::bits,q => .write (fun _ _ => a) (.move .right (writeSymbols bits q))
 
+/-- Read a fixed-length vector of optional Boolean symbols and pass it to a continuation. -/
 def readAux {Λ σ : Type} : (n : ℕ) →
     (List.Vector Symbol n → TM1.Stmt Symbol Λ σ) → TM1.Stmt Symbol Λ σ
   | 0,f => f List.Vector.nil
@@ -3194,6 +3656,7 @@ def readAux {Λ σ : Type} : (n : ℕ) →
         (.move .right (readAux n (fun bits => f (some true ::ᵥ bits))))
         (.move .right (readAux n (fun bits => f (some false ::ᵥ bits)))))
 
+/-- Read one fixed-width encoded tape cell and pass its symbols to a continuation. -/
 def readCode {Λ σ : Type} (n : ℕ)
     (f : List.Vector Symbol n → TM1.Stmt Symbol Λ σ) : TM1.Stmt Symbol Λ σ :=
   readAux n (fun bits => moves n .left (f bits))
@@ -3202,6 +3665,7 @@ variable {extra : ℕ}
     (first0 first1 later0 later1 empty : List.Vector Symbol (extra+1))
     (bottom : List.Vector Symbol (extra+1) → Bool)
 
+/-- The TM1 program implementing fixed-width input expansion. -/
 def program : Label extra → TM1.Stmt Symbol (Label extra) Local
   | .boot => .load (fun _ _ => (default,(false,true))) (.goto (fun _ _ => .scan))
   | .scan => .branch (fun a _ => a.isSome)
@@ -3225,6 +3689,8 @@ def program : Label extra → TM1.Stmt Symbol (Label extra) Local
   | .back => moves (extra+1) .left (readCode (extra+1)
       (fun bits => if bottom bits then .halt else .goto (fun _ _ => .back)))
 
+/-- A gap-creation subroutine inserts a blank before the input, preserves the saved local
+component, and returns after `2*input.length+1` source steps with zero displacement. -/
 theorem gap_call (i : Fin extra) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (origin : ListBlank Symbol)
     (v : Symbol×Symbol) (saved : Bool×Bool) :
     ∃ last : TM1.Cfg Symbol (Label extra) Local,
@@ -3240,9 +3706,13 @@ theorem gap_call (i : Fin extra) (input : Qatlib.Concepts.BitWordCompiler.Canoni
   · simp [Call.cfg,hl]
   · exact Call.trace _ _ _ _ saved hc hs
 
+/-- Select the next gap-creation subroutine, or the output phase once every required gap is
+present. -/
 def gapEntry (i : ℕ) : Label extra :=
   if h : i<extra then .sub ⟨i,h⟩ 0 else .output
 
+/-- A chain of gap-creation calls reaches the output phase with the requested blanks before the
+input, with the stated exact source-step count and displacement. -/
 theorem gap_chain (count i : ℕ) (hi : i+count=extra) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (origin : ListBlank Symbol) (v : Symbol×Symbol) (saved : Bool×Bool) :
     ∃ last : TM1.Cfg Symbol (Label extra) Local,
@@ -3290,6 +3760,7 @@ theorem gap_chain (count i : ℕ) (hi : i+count=extra) (input : Qatlib.Concepts.
       · omega
       · omega
 
+/-- `TM1.stepAux (moves n d q) v tape` equals `TM1.stepAux q v ((Tape.move d)^[n] tape)`. -/
 theorem moves_step {Λ σ : Type} (n : ℕ) (d : Dir) (q : TM1.Stmt Symbol Λ σ)
     (v : σ) (tape : Tape Symbol) :
     TM1.stepAux (moves n d q) v tape=TM1.stepAux q v ((Tape.move d)^[n] tape) := by
@@ -3299,6 +3770,8 @@ theorem moves_step {Λ σ : Type} (n : ℕ) (d : Dir) (q : TM1.Stmt Symbol Λ σ
   | succ n ih =>
     rw [Function.iterate_succ_apply',TM1.stepAux,ih,Function.iterate_succ_apply]
 
+/-- `stmtShift (moves n d q) v tape` equals `(n : ℤ)*stmtOffset (.move d)+stmtShift q v
+((Tape.move d)^[n] tape)`. -/
 theorem moves_shift {Λ σ : Type} (n : ℕ) (d : Dir) (q : TM1.Stmt Symbol Λ σ)
     (v : σ) (tape : Tape Symbol) :
     stmtShift (moves n d q) v tape=
@@ -3310,6 +3783,8 @@ theorem moves_shift {Λ σ : Type} (n : ℕ) (d : Dir) (q : TM1.Stmt Symbol Λ �
     rw [Function.iterate_succ_apply',stmtShift,ih,Function.iterate_succ_apply]
     cases d <;> simp only [stmtOffset,Int.natCast_add,Int.natCast_one,mul_neg,mul_one] <;> omega
 
+/-- `(Tape.move .right)^[bits.length] (Tape.mk' origin (ListBlank.append bits right))` equals
+`Tape.mk' (ListBlank.append bits.reverse origin) right`. -/
 theorem right_move (bits : List Symbol) (origin right : ListBlank Symbol) :
     (Tape.move .right)^[bits.length] (Tape.mk' origin (ListBlank.append bits right))=
       Tape.mk' (ListBlank.append bits.reverse origin) right := by
@@ -3321,12 +3796,15 @@ theorem right_move (bits : List Symbol) (origin right : ListBlank Symbol) :
     rw [ih]
     simp [List.reverse_cons,ListBlank.append_assoc]
 
+/-- `(ListBlank.cons none)^[n] origin` equals `ListBlank.append (List.replicate n none) origin`. -/
 theorem cons_replicate (n : ℕ) (origin : ListBlank Symbol) :
     (ListBlank.cons none)^[n] origin=ListBlank.append (List.replicate n none) origin := by
   induction n with
   | zero => rfl
   | succ n ih => simp only [Function.iterate_succ_apply',ih,List.replicate_succ,ListBlank.append]
 
+/-- `(Tape.move .left)^[n] (Tape.mk' ((ListBlank.cons none)^[n] origin) right)` equals `Tape.mk'
+origin (ListBlank.append (List.replicate n none) right)`. -/
 theorem left_gap (n : ℕ) (origin right : ListBlank Symbol) :
     (Tape.move .left)^[n] (Tape.mk' ((ListBlank.cons none)^[n] origin) right)=
       Tape.mk' origin (ListBlank.append (List.replicate n none) right) := by
@@ -3334,6 +3812,8 @@ theorem left_gap (n : ℕ) (origin right : ListBlank Symbol) :
   simp only [List.length_replicate,List.reverse_replicate] at hr
   rw [cons_replicate,← hr,left_right_iterate]
 
+/-- Writing a symbol list overwrites an equally long tape prefix, leaves its reversed contents
+to the left of the head, and adds the list length to the continuation displacement. -/
 theorem write_semantics {Λ σ : Type} (bits old : List Symbol) (hlen : old.length=bits.length)
     (q : TM1.Stmt Symbol Λ σ) (v : σ) (origin right : ListBlank Symbol) :
     TM1.stepAux (writeSymbols bits q) v (Tape.mk' origin (ListBlank.append old right))=
@@ -3363,6 +3843,8 @@ theorem write_semantics {Λ σ : Type} (bits old : List Symbol) (hlen : old.leng
           ListBlank.append_assoc,ListBlank.append]
         omega
 
+/-- Moving left across a prepared blank gap and writing one encoded block yields the stated tape
+transformation with the same net displacement as the continuation. -/
 theorem overwrite_gap {Λ σ : Type} {n : ℕ} (bits : List.Vector Symbol n)
     (q : TM1.Stmt Symbol Λ σ) (v : σ) (origin right : ListBlank Symbol) :
     TM1.stepAux (moves n .left (writeSymbols bits.toList q)) v
@@ -3379,12 +3861,17 @@ theorem overwrite_gap {Λ σ : Type} {n : ℕ} (bits : List.Vector Symbol n)
     simp only [stmtOffset,mul_neg,mul_one,List.Vector.toList_length]
     omega
 
+/-- Choose the encoded cell for a bit according to whether it is the first input cell. -/
 def outputCode (saved : Bool×Bool) : List.Vector Symbol (extra+1) :=
   if saved.2 then (if saved.1 then first1 else first0) else (if saved.1 then later1 else later0)
 
+/-- Clear the expansion phase flag and return to the scanning phase. -/
 private def resume : TM1.Stmt Symbol (Label extra) Local :=
   .load (fun _ s => (s.1,(s.2.1,false))) (.goto (fun _ _ => .scan))
 
+/-- `TM1.stepAux (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin`
+equals `TM1.stepAux (moves (extra+1) .left (writeSymbols (outputCode first0 first1 later0
+later1 saved).toList (resume (extra:=extra)))) (v,saved) origin`. -/
 theorem output_eval (origin : Tape Symbol) (v : Symbol×Symbol) (saved : Bool×Bool) :
     TM1.stepAux (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin=
       TM1.stepAux (moves (extra+1) .left
@@ -3393,6 +3880,9 @@ theorem output_eval (origin : Tape Symbol) (v : Symbol×Symbol) (saved : Bool×B
   cases bit <;> cases phase <;> simp only [program,moves_step,TM1.stepAux,outputCode,
     Bool.false_eq_true,if_false,if_true,cond_false,cond_true,resume]
 
+/-- `stmtShift (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin`
+equals `stmtShift (moves (extra+1) .left (writeSymbols (outputCode first0 first1 later0
+later1 saved).toList (resume (extra:=extra)))) (v,saved) origin`. -/
 theorem output_shift (origin : Tape Symbol) (v : Symbol×Symbol) (saved : Bool×Bool) :
     stmtShift (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin=
       stmtShift (moves (extra+1) .left
@@ -3401,6 +3891,8 @@ theorem output_shift (origin : Tape Symbol) (v : Symbol×Symbol) (saved : Bool×
   cases bit <;> cases phase <;> simp only [program,moves_shift,stmtShift,outputCode,
     Bool.false_eq_true,if_false,if_true,resume]
 
+/-- The output phase writes one encoded cell into the prepared gap and returns to scanning in
+one source step with zero net displacement. -/
 theorem output_trace (origin right : ListBlank Symbol) (v : Symbol×Symbol) (saved : Bool×Bool) :
     SourceTrace (program first0 first1 later0 later1 empty bottom)
       ⟨some .output,(v,saved),Tape.mk' ((ListBlank.cons none)^[extra+1] origin) right⟩
@@ -3417,6 +3909,8 @@ theorem output_trace (origin right : ListBlank Symbol) (v : Symbol×Symbol) (sav
   · rw [output_shift,hd]
     rfl
 
+/-- The expansion scan consumes one bit and places its encoded cell to the left, preserving the
+remaining input and advancing by the code width. -/
 theorem one_cell (bit oldBit phase : Bool) (rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (origin : ListBlank Symbol)
     (v : Symbol×Symbol) :
     ∃ next : Symbol×Symbol,
@@ -3455,11 +3949,14 @@ theorem one_cell (bit oldBit phase : Bool) (rest : Qatlib.Concepts.BitWordCompil
   have hall := (hscan.trans hs).trans hout
   convert! hall using 1 <;> omega
 
+/-- Encode an input word as fixed-width cells, distinguishing its first cell from later cells. -/
 def cells (phase : Bool) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits → List Symbol
   | [] => []
   | bit::rest => (outputCode first0 first1 later0 later1 (bit,phase)).toList++
       cells false rest
 
+/-- The forward expansion scan encodes every input bit with the stated exact source-step count
+and advances by the encoded input length. -/
 theorem forward_trace (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (origin : ListBlank Symbol)
     (v : Symbol×Symbol) (oldBit phase : Bool) :
     ∃ next : Symbol×Symbol, ∃ lastBit : Bool,
@@ -3489,6 +3986,8 @@ theorem forward_trace (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bi
     · push_cast
       ring
 
+/-- `TM1.stepAux (readAux (n+1) f) v tape` equals `TM1.stepAux (readAux n (fun bits => f
+(tape.head ::ᵥ bits))) v (tape.move .right)`. -/
 theorem readAux_head_step {Λ σ : Type} (n : ℕ)
     (f : List.Vector Symbol (n+1) → TM1.Stmt Symbol Λ σ) (v : σ) (tape : Tape Symbol) :
     TM1.stepAux (readAux (n+1) f) v tape=
@@ -3498,6 +3997,8 @@ theorem readAux_head_step {Λ σ : Type} (n : ℕ)
   | some bit => cases bit <;> simp only [readAux,TM1.stepAux,hh,Option.isNone_some,
       cond_false,cond_true,Option.getD_some]
 
+/-- `stmtShift (readAux (n+1) f) v tape` equals `1+stmtShift (readAux n (fun bits => f
+(tape.head ::ᵥ bits))) v (tape.move .right)`. -/
 theorem readAux_head_shift {Λ σ : Type} (n : ℕ)
     (f : List.Vector Symbol (n+1) → TM1.Stmt Symbol Λ σ) (v : σ) (tape : Tape Symbol) :
     stmtShift (readAux (n+1) f) v tape=
@@ -3507,6 +4008,8 @@ theorem readAux_head_shift {Λ σ : Type} (n : ℕ)
   | some bit => cases bit <;> simp only [readAux,stmtShift,hh,Option.isNone_some,
       Bool.false_eq_true,if_false,if_true,Option.getD_some,stmtOffset]
 
+/-- The auxiliary reader passes the consecutive symbols to its continuation, moving them to the
+left of the head and adding their length to the continuation displacement. -/
 theorem readAux_semantics {Λ σ : Type} (bits : List Symbol)
     (f : List.Vector Symbol bits.length → TM1.Stmt Symbol Λ σ) (v : σ) (origin right : ListBlank Symbol) :
     TM1.stepAux (readAux bits.length f) v (Tape.mk' origin (ListBlank.append bits right))=
@@ -3535,11 +4038,15 @@ theorem readAux_semantics {Λ σ : Type} (bits : List Symbol)
         ListBlank.append_assoc,ListBlank.append]
       omega
 
+/-- `(Tape.move .left)^[bits.length] (Tape.mk' (ListBlank.append bits.reverse origin) right)`
+equals `Tape.mk' origin (ListBlank.append bits right)`. -/
 theorem left_block (bits : List Symbol) (origin right : ListBlank Symbol) :
     (Tape.move .left)^[bits.length] (Tape.mk' (ListBlank.append bits.reverse origin) right)=
       Tape.mk' origin (ListBlank.append bits right) := by
   rw [← right_move bits origin right,left_right_iterate]
 
+/-- Reading a fixed-width code passes that code to its continuation and restores the original
+tape and head position before the continuation executes. -/
 theorem readCode_semantics {Λ σ : Type} {n : ℕ} (bits : List.Vector Symbol n)
     (f : List.Vector Symbol n → TM1.Stmt Symbol Λ σ) (v : σ) (origin right : ListBlank Symbol) :
     TM1.stepAux (readCode n f) v (Tape.mk' origin (ListBlank.append bits.toList right))=
@@ -3558,6 +4065,8 @@ theorem readCode_semantics {Λ σ : Type} {n : ℕ} (bits : List.Vector Symbol n
         (Tape.mk' origin (ListBlank.append bits right)) from rfl,hd]
     omega
 
+/-- `(Tape.move .left)^[n] (Tape.mk' (ListBlank.append bits.toList.reverse origin) right)`
+equals `Tape.mk' origin (ListBlank.append bits.toList right)`. -/
 theorem left_vector {n : ℕ} (bits : List.Vector Symbol n) (origin right : ListBlank Symbol) :
     (Tape.move .left)^[n] (Tape.mk' (ListBlank.append bits.toList.reverse origin) right)=
       Tape.mk' origin (ListBlank.append bits.toList right) := by
@@ -3565,6 +4074,8 @@ theorem left_vector {n : ℕ} (bits : List.Vector Symbol n) (origin right : List
   rw [bits.toList_length] at h
   exact h
 
+/-- The expansion rewind moves left across one encoded cell in one source step, halting exactly
+when its bottom marker is set. -/
 theorem back_one (bits : List.Vector Symbol (extra+1)) (origin right : ListBlank Symbol) (v : Local) :
     SourceTrace (program first0 first1 later0 later1 empty bottom)
       ⟨some .back,v,Tape.mk' (ListBlank.append bits.toList.reverse origin) right⟩
@@ -3581,6 +4092,8 @@ theorem back_one (bits : List.Vector Symbol (extra+1)) (origin right : ListBlank
     rw [moves_shift,left_vector,hd]
     cases hb : bottom bits <;> simp [stop,stmtShift,stmtOffset,hb]
 
+/-- The expansion rewind traverses the encoded cell list and halts at its bottom-marked first
+cell, with the stated exact step count and displacement. -/
 theorem back_many (first : List.Vector Symbol (extra+1)) (rest : List (List.Vector Symbol (extra+1)))
     (hfirst : bottom first=true) (hrest : ∀ b∈rest, bottom b=false)
     (origin right : ListBlank Symbol) (v : Local) :
@@ -3605,6 +4118,8 @@ theorem back_many (first : List.Vector Symbol (extra+1)) (rest : List (List.Vect
     · push_cast
       ring
 
+/-- `cells first0 first1 later0 later1 false input` equals `(input.map (fun b => outputCode
+first0 first1 later0 later1 (b,false))).flatMap (fun b => b.toList)`. -/
 theorem cells_false (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     cells first0 first1 later0 later1 false input=
       (input.map (fun b => outputCode first0 first1 later0 later1 (b,false))).flatMap (fun b => b.toList) := by
@@ -3612,18 +4127,24 @@ theorem cells_false (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits
   | nil => rfl
   | cons b input ih => simp only [cells,List.map_cons,List.flatMap_cons,ih]
 
+/-- `(blocks.flatMap (fun b => b.toList)).reverse` equals `blocks.reverse.flatMap (fun b =>
+b.toList.reverse)`. -/
 theorem flat_reverse {n : ℕ} (blocks : List (List.Vector Symbol n)) :
     (blocks.flatMap (fun b => b.toList)).reverse=blocks.reverse.flatMap (fun b => b.toList.reverse) := by
   induction blocks with
   | nil => rfl
   | cons b blocks ih => simp [List.reverse_cons,List.flatMap_append,List.reverse_append,ih]
 
+/-- At the end of a nonempty input, one source step switches expansion from scanning to
+rewinding without moving the head. -/
 theorem eof_trace (origin : ListBlank Symbol) (v : Symbol×Symbol) (bit : Bool) :
     SourceTrace (program first0 first1 later0 later1 empty bottom)
       ⟨some .scan,(v,(bit,false)),Tape.mk' origin (ListBlank.mk [])⟩
       ⟨some .back,(v,(bit,false)),Tape.mk' origin (ListBlank.mk [])⟩ 1 0 := by
   apply SourceTrace.one <;> rfl
 
+/-- The expansion rewind restores the encoded cells to the right of the head and halts after one
+source step per cell. -/
 theorem rewind_cells (bit : Bool) (rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (hfirst : ∀ b, bottom (outputCode first0 first1 later0 later1 (b,true))=true)
     (hlater : ∀ b, bottom (outputCode first0 first1 later0 later1 (b,false))=false)
@@ -3644,6 +4165,8 @@ theorem rewind_cells (bit : Bool) (rest : Qatlib.Concepts.BitWordCompiler.Canoni
   simpa only [blocks,cells,cells_false,List.reverse_append,flat_reverse,List.reverse_reverse,
     List.length_reverse,List.length_map] using ht
 
+/-- An empty input is replaced by its empty-cell code in one source step, with immediate halting
+and zero displacement. -/
 theorem empty_trace (origin : ListBlank Symbol) (v : Symbol×Symbol) (bit : Bool) :
     SourceTrace (program first0 first1 later0 later1 empty bottom)
       ⟨some .scan,(v,(bit,true)),Tape.mk' origin (ListBlank.mk [])⟩
@@ -3665,6 +4188,8 @@ theorem empty_trace (origin : ListBlank Symbol) (v : Symbol×Symbol) (bit : Bool
     dsimp only [done]
     omega
 
+/-- The source expansion frontend halts with the encoded input tape, using the stated quadratic
+source-step count and zero net displacement. -/
 theorem source_frontend (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (hfirst : ∀ b, bottom (outputCode first0 first1 later0 later1 (b,true))=true)
     (hlater : ∀ b, bottom (outputCode first0 first1 later0 later1 (b,false))=false) :
@@ -3701,9 +4226,12 @@ theorem source_frontend (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.
       · push_cast
         ring
 
+/-- The source-to-physical execution overhead used for the expansion frontend. -/
 def budgetFactor : ℕ :=
   (extra+3)*tm1TickBound (program first0 first1 later0 later1 empty bottom)+1
 
+/-- The physical expansion frontend halts with the encoded input tape within `budgetFactor`
+times the square of one plus the input length. -/
 theorem physical_frontend (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (hfirst : ∀ b, bottom (outputCode first0 first1 later0 later1 (b,true))=true)
     (hlater : ∀ b, bottom (outputCode first0 first1 later0 later1 (b,false))=false) :
@@ -3739,17 +4267,22 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Expansion
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Cleanup
 open Turing
 
+/-- The finite control labels for encoded-tape cleanup. -/
 inductive Label where
   | boot | scan | left | seek | finish
   deriving DecidableEq, Fintype
 instance : Inhabited Label := ⟨.boot⟩
+/-- The local-state type for encoded-tape cleanup, represented by `Bool×Bool`. -/
 abbrev Local := Bool×Bool
 
 variable {extra : ℕ} (decode : List.Vector Symbol (extra+1) → Option Bool)
 
+/-- Record whether the next encoded cell contains an output bit and continue the cleanup scan. -/
 def nextBody (next : List.Vector Symbol (extra+1)) : TM1.Stmt Symbol Label Local :=
   .load (fun _ s => (s.1,(decode next).isSome)) (.goto (fun _ _ => .left))
 
+/-- Decode an encoded cell, append a recovered bit when present, and erase the encoded region on
+termination. -/
 def scanBody (bits : List.Vector Symbol (extra+1)) : TM1.Stmt Symbol Label Local :=
   match decode bits with
   | none => Expansion.writeSymbols (List.replicate (extra+1) none)
@@ -3758,6 +4291,7 @@ def scanBody (bits : List.Vector Symbol (extra+1)) : TM1.Stmt Symbol Label Local
       (Expansion.writeSymbols (List.replicate (extra+1) none)
         (Expansion.readCode (extra+1) (nextBody decode)))
 
+/-- The TM1 program implementing encoded-tape cleanup. -/
 def program : Label → TM1.Stmt Symbol Label Local
   | .boot => .move .left (.write (fun _ _ => some false) (.move .right (.goto (fun _ _ => .scan))))
   | .scan => Expansion.readCode (extra+1) (scanBody decode)
@@ -3770,6 +4304,8 @@ def program : Label → TM1.Stmt Symbol Label Local
   | .finish => .move .left (.branch (fun a _ => a.isSome) (.goto (fun _ _ => .finish))
       (.move .right (.write (fun _ _ => none) (.move .right .halt))))
 
+/-- The cleanup finish phase removes the marker and returns to the start of the recovered word
+in `left.length+2` source steps. -/
 theorem finish_trace (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     SourceTrace (program decode)
       ⟨some .finish,v,Tape.mk₂ (left.map some++[some false]) (right.map some)⟩
@@ -3807,6 +4343,8 @@ theorem finish_trace (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCode
       (s := -1) (by simp only [program,stmtShift,hm]; rfl)
     convert! ht using 1 <;> simp [List.reverse_cons,List.append_assoc,Int.add_comm]
 
+/-- The cleanup seek phase crosses a blank gap and enters scanning in `gap+1` source steps, with
+displacement `gap`. -/
 theorem seek_trace (gap : ℕ) (origin right : ListBlank Symbol) (v : Local)
     (h : right.head.isSome=true) :
     SourceTrace (program decode)
@@ -3825,6 +4363,8 @@ theorem seek_trace (gap : ℕ) (origin right : ListBlank Symbol) (v : Local)
       (s := 1) (by simp [program,stmtShift,stmtOffset,List.replicate_succ,ListBlank.append,Tape.mk'_head])
     simpa only [Function.iterate_succ_apply,Int.natCast_add,Int.natCast_one,Int.add_comm] using ht
 
+/-- The cleanup append phase writes the recovered bit to the left, removes the extra gap cell,
+and selects seeking or finishing according to the continuation flag. -/
 theorem append_trace (gap : ℕ) (origin right : ListBlank Symbol) (bit more : Bool)
     (h : origin.head.isSome=true) :
     SourceTrace (program decode)
@@ -3867,6 +4407,8 @@ theorem append_trace (gap : ℕ) (origin right : ListBlank Symbol) (bit more : B
     simp only [Int.natCast_add,Int.natCast_one]
     · omega
 
+/-- A decodable cleanup cell is erased in one source step, saving its bit and whether the
+following cell is decodable. -/
 theorem scan_some_trace (bits next : List.Vector Symbol (extra+1)) (bit : Bool)
     (h : decode bits=some bit) (origin right : ListBlank Symbol) (v : Local) :
     SourceTrace (program decode)
@@ -3895,31 +4437,40 @@ theorem scan_some_trace (bits next : List.Vector Symbol (extra+1)) (bit : Bool)
     rw [wd,show continuation=Expansion.readCode (extra+1) (nextBody decode) from rfl,rd]
     simp [nextBody,stmtShift]
 
+/-- `ListBlank.append (List.replicate n (none : Symbol)) (ListBlank.mk [])` equals `ListBlank.mk
+[]`. -/
 theorem blank_append (n : ℕ) :
     ListBlank.append (List.replicate n (none : Symbol)) (ListBlank.mk [])=ListBlank.mk [] := by
   rw [ListBlank.append_mk,List.append_nil]
   exact Quotient.sound (Or.inr ⟨n,rfl⟩)
 
+/-- The tape region containing the reversed recovered prefix and the false marker. -/
 def liveLeft (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : ListBlank Symbol :=
   ListBlank.mk (pre.reverse.map some++[some false])
 
+/-- `(liveLeft pre).head.isSome` equals `true`. -/
 theorem liveLeft_head (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (liveLeft pre).head.isSome=true := by
   cases h : pre.reverse with
   | nil => simp [liveLeft,h,ListBlank.head_mk]
   | cons b bs => simp [liveLeft,h,ListBlank.head_mk]
 
+/-- `liveLeft (pre++[bit])` equals `ListBlank.cons (some bit) (liveLeft pre)`. -/
 theorem liveLeft_append (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit : Bool) :
     liveLeft (pre++[bit])=ListBlank.cons (some bit) (liveLeft pre) := by
   simp [liveLeft,List.reverse_append,ListBlank.cons_mk]
 
 variable (later : Bool → List.Vector Symbol (extra+1))
 
+/-- Concatenate the fixed-width encodings of the given bits. -/
 def encoded (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : List Symbol :=
     bits.flatMap (fun b => (later b).toList)
 
+/-- `encoded later (b::bits)` equals `(later b).toList++encoded later bits`. -/
 theorem encoded_cons (b : Bool) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     encoded later (b::bits)=(later b).toList++encoded later bits := rfl
 
+/-- Appending a recovered bit and seeking the next encoded cell extends the live prefix and
+restores the scan position with zero net displacement. -/
 theorem append_seek_trace (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit : Bool)
     (next : List.Vector Symbol (extra+1)) (right : ListBlank Symbol)
     (hn : next.head.isSome=true) :
@@ -3942,6 +4493,8 @@ theorem append_seek_trace (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.
     (ListBlank.cons (some bit) (liveLeft pre)) (ListBlank.append next.toList right) (bit,true) hh
   simpa [liveLeft_append,Expansion.cons_replicate,Nat.two_mul,Nat.add_assoc,Nat.add_left_comm] using ha.trans hs
 
+/-- Cleanup processes one encoded cell, extends the recovered prefix, and resumes scanning the
+next cell with the stated exact source-step count. -/
 theorem cell_then_next (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit nextBit : Bool)
     (code : List.Vector Symbol (extra+1)) (tail : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local)
     (hc : decode code=some bit) (hd : decode (later nextBit)=some nextBit)
@@ -3966,6 +4519,8 @@ theorem cell_then_next (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bit
   rw [hn] at hall
   simpa only [encoded_cons,ListBlank.append_mk,List.append_assoc,Int.add_zero] using hall
 
+/-- Cleanup of the final encoded cell halts with the recovered prefix followed by its decoded
+bit and the stated exact step count and displacement. -/
 theorem cell_then_finish (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit : Bool)
     (code : List.Vector Symbol (extra+1)) (v : Local)
     (hc : decode code=some bit) (hb : decode (List.Vector.replicate (extra+1) none)=none) :
@@ -3999,6 +4554,8 @@ theorem cell_then_finish (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
     push_cast
     ring
 
+/-- Cleanup of a nonempty encoded suffix halts with the recovered raw word and satisfies the
+stated exact source-step and displacement formulas. -/
 theorem nonempty_trace (bit : Bool) (tail : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (code : List.Vector Symbol (extra+1)) (v : Local)
     (hc : decode code=some bit) (hb : decode (List.Vector.replicate (extra+1) none)=none)
@@ -4034,6 +4591,8 @@ theorem nonempty_trace (bit : Bool) (tail : Qatlib.Concepts.BitWordCompiler.Cano
       · push_cast
         ring
 
+/-- Cleanup of an empty-cell code halts in one source step with a blank output tape and zero
+displacement. -/
 theorem empty_trace (empty : List.Vector Symbol (extra+1)) (v : Local)
     (he : decode empty=none) :
     SourceTrace (program decode)
@@ -4079,11 +4638,15 @@ theorem empty_trace (empty : List.Vector Symbol (extra+1)) (v : Local)
 
 variable (first : Bool → List.Vector Symbol (extra+1)) (empty : List.Vector Symbol (extra+1))
 
+/-- Encode an empty input with its empty-cell code, or use a first-cell code followed by
+later-cell codes. -/
 def inputCells (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : List Symbol :=
   match input with
   | [] => empty.toList
   | bit::rest => (first bit).toList++encoded later rest
 
+/-- The source cleanup program recovers the raw input tape and halts in
+`extra*input.length^2+5*input.length+2` source steps with zero displacement. -/
 theorem source_cleanup (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (hb : decode (List.Vector.replicate (extra+1) none)=none)
     (he : decode empty=none) (hf : ∀ b, decode (first b)=some b)
@@ -4111,8 +4674,11 @@ theorem source_cleanup (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
     simp only [List.length_cons]
     ring
 
+/-- The source-to-physical execution overhead used for cleanup. -/
 noncomputable def budgetFactor : ℕ := (extra+5)*tm1TickBound (program decode)+1
 
+/-- The physical cleanup machine recovers the raw input tape and halts within `budgetFactor`
+times the square of one plus the input length. -/
 theorem physical_cleanup (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (hb : decode (List.Vector.replicate (extra+1) none)=none)
     (he : decode empty=none) (hf : ∀ b, decode (first b)=some b)
@@ -4144,6 +4710,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Cleanup
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 
+/-- An initial trace of the first machine and an initial trace of the second combine into a
+trace of the composite, adding their lengths and one connecting step. -/
 theorem Trace.then_init {a b : ℕ} {M : TM0.Machine Symbol (Fin (a+1))}
     {N : TM0.Machine Symbol (Fin (b+1))} {input middle : List Symbol}
     {cf : TM0.Cfg Symbol (Fin (a+1))} {cg : TM0.Cfg Symbol (Fin (b+1))}
@@ -4176,6 +4744,8 @@ variable {extra : ℕ} (decode : List.Vector Symbol (extra+1) → Option Bool)
     (later first : Bool → List.Vector Symbol (extra+1)) (empty : List.Vector Symbol (extra+1))
     (bottom : List.Vector Symbol (extra+1) → Bool)
 
+/-- `encoded later input` equals `Expansion.cells (first false) (first true) (later false)
+(later true) false input`. -/
 theorem encoded_cells (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     encoded later input=Expansion.cells (first false) (first true) (later false) (later true) false input := by
   induction input with
@@ -4184,6 +4754,8 @@ theorem encoded_cells (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bi
     simp only [encoded_cons,Expansion.cells,Expansion.outputCode,Bool.false_eq_true,if_false,← ih]
     cases bit <;> rfl
 
+/-- `inputCells later first empty input` equals `(if input=[] then empty.toList else
+Expansion.cells (first false) (first true) (later false) (later true) true input)`. -/
 theorem inputCells_expansion (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     inputCells later first empty input=(if input=[] then empty.toList else
       Expansion.cells (first false) (first true) (later false) (later true) true input) := by
@@ -4194,6 +4766,8 @@ theorem inputCells_expansion (input : Qatlib.Concepts.BitWordCompiler.CanonicalC
       ← encoded_cells later first rest]
     cases bit <;> rfl
 
+/-- Expansion followed by cleanup is implemented by a single finite-control machine that returns
+its input with quadratic time and space bounds. -/
 theorem raw_roundtrip
     (hb : decode (List.Vector.replicate (extra+1) none)=none) (he : decode empty=none)
     (hf : ∀ b, decode (first b)=some b) (hd : ∀ b, decode (later b)=some b)
@@ -4253,9 +4827,12 @@ variable {Γ Λ σ : Type} [Inhabited Γ] [Inhabited Λ] [Inhabited σ]
     {n : ℕ} (enc : Γ → List.Vector Bool n) (dec : List.Vector Bool n → Γ)
     (enc0 : enc default=List.Vector.replicate n false) (M : Λ → TM1.Stmt Γ Λ σ)
 
+/-- Flatten fixed-width alphabet codes and map their Boolean entries to optional Boolean tape
+symbols. -/
 def encodedSymbols (input : List Γ) : List Symbol :=
   input.flatMap (fun a => (enc a).toList.map boolSymbol)
 
+/-- `physicalCfg enc dec enc0 M (TM1.init input)` equals `TM0.init (encodedSymbols enc input)`. -/
 @[simp] theorem physicalCfg_init (input : List Γ) :
     physicalCfg enc dec enc0 M (TM1.init input)=TM0.init (encodedSymbols enc input) := by
   have htr : TM1to1.trCfg enc enc0 (TM1.init input : TM1.Cfg Γ Λ σ)=
@@ -4271,6 +4848,8 @@ def encodedSymbols (input : List Γ) : List Symbol :=
   simp [encodedSymbols,List.map_flatMap]
 omit [Fintype Γ] in
 
+/-- `(TM1to1.trTape enc0 (Tape.mk₁ input)).map boolSymbol` equals `Tape.mk₁ (encodedSymbols enc
+input)`. -/
 theorem encodedTape_mk₁ (input : List Γ) :
     (TM1to1.trTape enc0 (Tape.mk₁ input)).map boolSymbol=Tape.mk₁ (encodedSymbols enc input) := by
   simp only [Tape.mk₁,Tape.mk₂,TM1to1.trTape_mk',TM1to1.trTape',ListBlank.flatMap_mk,
@@ -4286,6 +4865,7 @@ variable {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
 
 omit [DecidableEq K] in
 
+/-- Under the stated hypotheses, `first` equals `last`. -/
 theorem trCfg_unique {c : TM2.Cfg Γ Λ σ} {first last : TM1.Cfg (Γ' K Γ) (Λ' K Γ Λ σ) σ}
     (hf : TrCfg c first) (hl : TrCfg c last) : first=last := by
   cases hf with
@@ -4303,26 +4883,35 @@ theorem trCfg_unique {c : TM2.Cfg Γ Λ σ} {first last : TM1.Cfg (Γ' K Γ) (Λ
 
 variable [Inhabited Λ] [Inhabited σ]
 
+/-- The marked cell alphabet used to represent a finite family of Boolean stacks on one tape. -/
 abbrev BitAlphabet (K : Type) := Γ' K (fun _ => Bool)
 
+/-- A marked stack-simulation cell containing one Boolean symbol in the selected stack
+component. -/
 def cell (k : K) (mark : Bool) (b : Bool) : BitAlphabet K :=
   (mark,Function.update (fun _ => none) k (some b))
 
+/-- A marked stack-simulation cell whose stack components are all empty. -/
 def emptyCell : BitAlphabet K := (true,fun _ => none)
 
 variable {extra : ℕ} (enc : BitAlphabet K → List.Vector Bool (extra+1))
     (dec : List.Vector Bool (extra+1) → BitAlphabet K)
     (enc0 : enc default=List.Vector.replicate (extra+1) false)
 
+/-- The optional-Boolean tape code of a marked simulation cell. -/
 def rawCode (a : BitAlphabet K) : List.Vector Symbol (extra+1) := (enc a).map boolSymbol
 
+/-- The fixed-width code of an input bit in the designated stack. -/
 def inputCode (k : K) (mark : Bool) (b : Bool) := rawCode enc (cell k mark b)
 
+/-- The fixed-width code for an empty marked stack cell. -/
 def emptyCode := rawCode enc (emptyCell : BitAlphabet K)
 
+/-- Decode a fixed-width tape block and read its selected output-stack component. -/
 def outputDecode (k : K) (v : List.Vector Symbol (extra+1)) : Option Bool :=
   (dec (v.map symbolBool)).2 k
 
+/-- Decode the bottom-marker flag of a fixed-width tape block. -/
 def bottomDecode (v : List.Vector Symbol (extra+1)) : Bool := (dec (v.map symbolBool)).1
 
 variable (encdec : ∀ a, dec (enc a)=a)
@@ -4330,6 +4919,7 @@ variable (encdec : ∀ a, dec (enc a)=a)
 omit [DecidableEq K] in
 include encdec in
 
+/-- `dec ((rawCode enc a).map symbolBool)` equals `a`. -/
 theorem decode_code (a : BitAlphabet K) :
     dec ((rawCode enc a).map symbolBool)=a := by
   have hv : (rawCode enc a).map symbolBool=enc a := by
@@ -4343,6 +4933,7 @@ theorem decode_code (a : BitAlphabet K) :
 omit [DecidableEq K] in
 include enc0 encdec in
 
+/-- `outputDecode dec k (List.Vector.replicate (extra+1) none)` equals `none`. -/
 theorem outputDecode_blank (k : K) :
     outputDecode dec k (List.Vector.replicate (extra+1) none)=none := by
   have hd := encdec default
@@ -4356,6 +4947,7 @@ theorem outputDecode_blank (k : K) :
 
 include encdec in
 
+/-- `outputDecode dec k (inputCode enc k mark bit)` equals `some bit`. -/
 theorem outputDecode_cell (k : K) (mark bit : Bool) :
     outputDecode dec k (inputCode enc k mark bit)=some bit := by
   simp only [outputDecode,inputCode,decode_code enc dec encdec,cell,Function.update_self]
@@ -4363,15 +4955,18 @@ theorem outputDecode_cell (k : K) (mark bit : Bool) :
 omit [DecidableEq K] in
 include encdec in
 
+/-- `outputDecode dec k (emptyCode enc)` equals `none`. -/
 theorem outputDecode_empty (k : K) : outputDecode dec k (emptyCode enc)=none := by
   simp only [outputDecode,emptyCode,decode_code enc dec encdec,emptyCell]
 
 include encdec in
 
+/-- `bottomDecode dec (inputCode enc k mark bit)` equals `mark`. -/
 theorem bottomDecode_cell (k : K) (mark bit : Bool) :
     bottomDecode dec (inputCode enc k mark bit)=mark := by
   simp only [bottomDecode,inputCode,decode_code enc dec encdec,cell]
 
+/-- `(inputCode enc k mark bit).head.isSome` equals `true`. -/
 theorem inputCode_head (marked : ∀ a, a≠default → (enc a).head=true)
     (k : K) (mark bit : Bool) : (inputCode enc k mark bit).head.isSome=true := by
   have hn : cell k mark bit≠(default : BitAlphabet K) := by
@@ -4382,9 +4977,12 @@ theorem inputCode_head (marked : ∀ a, a≠default → (enc a).head=true)
 
 omit [DecidableEq K] in
 
+/-- `(rawCode enc a).toList` equals `(enc a).toList.map boolSymbol`. -/
 theorem rawCode_toList (a : BitAlphabet K) : (rawCode enc a).toList=(enc a).toList.map boolSymbol :=
   List.Vector.toList_map _ _
 
+/-- `Alphabet.encodedSymbols enc (trInit k input.reverse)` equals `Cleanup.inputCells (inputCode
+enc k false) (inputCode enc k true) (emptyCode enc) input`. -/
 theorem encoded_trInit (k : K) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Alphabet.encodedSymbols enc (trInit k input.reverse)=
       Cleanup.inputCells (inputCode enc k false) (inputCode enc k true) (emptyCode enc) input := by
@@ -4398,12 +4996,15 @@ theorem encoded_trInit (k : K) (input : Qatlib.Concepts.BitWordCompiler.Canonica
 
 omit [DecidableEq K] [Inhabited Λ] [Inhabited σ] in
 
+/-- Relabeling related stack and source configurations preserves their translation relation. -/
 theorem trCfg_relabel {c : TM2.Cfg Γ Λ σ} {c' : TM1.Cfg (Γ' K Γ) (Λ' K Γ Λ σ) σ}
     (h : TrCfg c c') (q : Option Λ) (v : σ) :
     TrCfg ⟨q,v,c.stk⟩ ⟨q.map Λ'.normal,v,c'.Tape⟩ := by
   cases h with
   | mk L hL => exact TrCfg.mk L hL
 
+/-- A configuration with one nonempty stack is represented by its canonical `trInit` tape and
+translated control label. -/
 theorem trCfg_single (k : K) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (q : Option Λ) (v : σ) :
     TrCfg (Γ := fun _ : K => Bool) ⟨q,v,Function.update (fun _ => []) k input⟩
       ⟨q.map Λ'.normal,v,Tape.mk₁ (trInit k input)⟩ := by
@@ -4413,14 +5014,19 @@ theorem trCfg_single (k : K) (input : Qatlib.Concepts.BitWordCompiler.CanonicalC
 variable [Fintype K] [Fintype Λ] [Fintype σ]
     (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
 
+/-- `stackCfg enc dec enc0 M (TM1.init (trInit k input.reverse))` equals `TM0.init
+(Cleanup.inputCells (inputCode enc k false) (inputCode enc k true) (emptyCode enc) input)`. -/
 @[simp] theorem stackCfg_init (k : K) (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     stackCfg enc dec enc0 M (TM1.init (trInit k input.reverse))=
       TM0.init (Cleanup.inputCells (inputCode enc k false) (inputCode enc k true) (emptyCode enc) input) := by
   rw [stackCfg,restrictedCfg_init,Alphabet.physicalCfg_init,encoded_trInit]
 
+/-- `(stackCfg enc dec enc0 M c).Tape` equals `(TM1to1.trTape enc0 c.Tape).map boolSymbol`. -/
 @[simp] theorem stackCfg_tape (c : TM1.Cfg (BitAlphabet K) (Λ' K (fun _ => Bool) Λ σ) σ) :
     (stackCfg enc dec enc0 M c).Tape=(TM1to1.trTape enc0 c.Tape).map boolSymbol := rfl
 
+/-- Under the stated hypotheses, `TM0.step (stackMachine enc dec M) (stackCfg enc dec enc0 M c)`
+equals `none`. -/
 theorem stackCfg_halt (c : TM1.Cfg (BitAlphabet K) (Λ' K (fun _ => Bool) Λ σ) σ) (hl : c.l=none) :
     TM0.step (stackMachine enc dec M) (stackCfg enc dec enc0 M c)=none := by
   apply Alphabet.physical_halt
@@ -4431,6 +5037,8 @@ theorem stackCfg_halt (c : TM1.Cfg (BitAlphabet K) (Λ' K (fun _ => Bool) Λ σ)
 
 include enc0 encdec in
 
+/-- The physical stack compiler transforms the encoded input tape into the encoded output tape
+and halts with zero displacement, within the stack-clock bound times `stackFactor`. -/
 theorem physical_raw_tapes (inputStack outputStack : K) (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (steps : ℕ) (v : σ)
     (h : stackRun M steps (TM2.init inputStack input.reverse)=
@@ -4460,6 +5068,9 @@ variable {K Λ σ : Type} [DecidableEq K] [Fintype K] [Inhabited Λ] [Fintype Λ
 
 set_option maxHeartbeats 2000000 in
 
+/-- Every finite stack program has a finite-control TM0 implementation on raw bit strings. A
+successful stack run with cleared scratch stacks yields a `Runs` certificate bounded by a
+fixed positive constant times the total stack clock plus quadratic input and output lengths. -/
 theorem raw_compiler (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ) (inputStack outputStack : K) :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (steps : ℕ) (v : σ),
@@ -4554,6 +5165,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- A `Runs` certificate remains valid when its time and space budgets are increased. -/
 theorem runs_mono {q : ℕ} {M : TM0.Machine Symbol (Fin (q+1))}
     {input output : Bits} {time space time' space' : ℕ}
     (h : Runs M input output time space) (ht : time≤time') (hs : space≤space') :
@@ -4568,6 +5180,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Turing
 
+/-- `(TM2.init (0 : Fin 2) input : TM2.Cfg (fun _ => Bool) (Fin 1) (Option Bool))` equals `⟨some
+0,none,stackPair input []⟩`. -/
 theorem stackPair_init (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     (TM2.init (0 : Fin 2) input : TM2.Cfg (fun _ => Bool) (Fin 1) (Option Bool))=
       ⟨some 0,none,stackPair input []⟩ := by
@@ -4576,11 +5190,14 @@ theorem stackPair_init (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
   funext k
   by_cases hk : k=0 <;> simp [stackPair,Function.update_apply,hk]
 
+/-- `stackPair [] output` equals `Function.update (fun _ : Fin 2 => []) 1 output`. -/
 theorem stackPair_output (output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     stackPair [] output=Function.update (fun _ : Fin 2 => []) 1 output := by
   have h0 : stackPair [] []=(fun _ : Fin 2 => []) := by funext k; simp [stackPair]
   rw [← h0,stackPair_update_one]
 
+/-- Bit-string reversal is implemented by one finite-control machine with quadratic time and
+space bounds. -/
 theorem reverse_machine :
     ∃ (q : ℕ) (M : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧ ∀ input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Runs M input input.reverse (C*(1+input.length)^2) (C*(1+input.length)^2) := by
@@ -4612,9 +5229,12 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 variable {Λ : Type} [Inhabited Λ]
 
+/-- Every head position up to the given step count lies within the specified symmetric interval
+around the initial position. -/
 def Visits (M : TM0.Machine Symbol Λ) (first : TM0.Cfg Symbol Λ) (ticks space : ℕ) : Prop :=
   ∀ u, u≤ticks → -(space : ℤ)≤offset M first u ∧ offset M first u≤(space : ℤ)
 
+/-- `-1` is at most `nextOffset M first`; `nextOffset M first` is at most `1`. -/
 theorem nextOffset_bounds (M : TM0.Machine Symbol Λ) (first : TM0.Cfg Symbol Λ) :
     -1≤nextOffset M first ∧ nextOffset M first≤1 := by
   cases h : M first.q first.Tape.head with
@@ -4623,6 +5243,8 @@ theorem nextOffset_bounds (M : TM0.Machine Symbol Λ) (first : TM0.Cfg Symbol Λ
     | write b => simp [nextOffset,h,stmtOffset]
     | move d => cases d <;> simp [nextOffset,h,stmtOffset]
 
+/-- `-(ticks : ℤ)` is at most `offset M first ticks`; `offset M first ticks` is at most `(ticks
+: ℤ)`. -/
 theorem offset_bounds (M : TM0.Machine Symbol Λ) (first : TM0.Cfg Symbol Λ) (ticks : ℕ) :
     -(ticks : ℤ)≤offset M first ticks ∧ offset M first ticks≤(ticks : ℤ) := by
   induction ticks with
@@ -4636,18 +5258,22 @@ theorem offset_bounds (M : TM0.Machine Symbol Λ) (first : TM0.Cfg Symbol Λ) (t
       simp only [Option.elim_some]
       omega
 
+/-- A clock bound also bounds every head excursion during the corresponding run. -/
 theorem visits_of_clock (M : TM0.Machine Symbol Λ) (first : TM0.Cfg Symbol Λ) (ticks space : ℕ)
     (h : ticks≤space) : Visits M first ticks space := by
   intro u hu
   have hb := offset_bounds M first u
   omega
 
+/-- A head-visit bound remains valid when its permitted radius is increased. -/
 theorem Visits.mono {M : TM0.Machine Symbol Λ} {first : TM0.Cfg Symbol Λ} {ticks s s' : ℕ}
     (h : Visits M first ticks s) (hs : s≤s') : Visits M first ticks s' := by
   intro u hu
   have hb := h u hu
   omega
 
+/-- Two consecutive visit bounds compose using the larger radius when the first execution
+returns to its starting head position. -/
 theorem Visits.trans_zero {M : TM0.Machine Symbol Λ} {first middle last : TM0.Cfg Symbol Λ}
     {t s a b : ℕ} {d : ℤ} (hf : Trace M first middle t 0) (_hg : Trace M middle last s d)
     (hfv : Visits M first t a) (hgv : Visits M middle s b) : Visits M first (t+s) (max a b) := by
@@ -4665,6 +5291,8 @@ theorem Visits.trans_zero {M : TM0.Machine Symbol Λ} {first middle last : TM0.C
 
 omit [Inhabited Λ] in
 
+/-- A halted output trace and an independent head-visit bound give a `Runs` certificate with
+separate time and space budgets. -/
 theorem Trace.runs_visited {q : ℕ} {M : TM0.Machine Symbol (Fin (q+1))}
     {input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits} {last : TM0.Cfg Symbol (Fin (q+1))} {ticks time space : ℕ}
     (h : Trace M (TM0.init (input.map some)) last ticks 0)
@@ -4694,6 +5322,7 @@ variable {K : Type} [DecidableEq K] [Fintype K] {Γ : K → Type} [∀ k, Fintyp
     (enc0 : enc default=List.Vector.replicate width false)
     (M : Λ → TM2.Stmt Γ Λ σ)
 
+/-- The maximum single-step simulation clock encountered during a finite stack-machine run. -/
 def stackRunMaxClock (M : Λ → TM2.Stmt Γ Λ σ) : ℕ → TM2.Cfg Γ Λ σ → ℕ
   | 0,_ => 0
   | n+1,c => match TM2.step M c with
@@ -4702,6 +5331,8 @@ def stackRunMaxClock (M : Λ → TM2.Stmt Γ Λ σ) : ℕ → TM2.Cfg Γ Λ σ �
 
 omit [Fintype K] [∀ k, Fintype (Γ k)] [Inhabited Λ] [Fintype Λ] [Inhabited σ] [Fintype σ] in
 
+/-- Under the stated hypotheses, `stackRunClock M (n+1) first` equals `stackRunClock M 1
+first+stackRunClock M n next`. -/
 theorem stackRunClock_step (n : ℕ) (first next : TM2.Cfg Γ Λ σ) (h : TM2.step M first=some next) :
     stackRunClock M (n+1) first=stackRunClock M 1 first+stackRunClock M n next := by
   rcases first with ⟨l,v,S⟩
@@ -4709,6 +5340,8 @@ theorem stackRunClock_step (n : ℕ) (first next : TM2.Cfg Γ Λ σ) (h : TM2.st
   | none => simp only [TM2.step,reduceCtorEq] at h
   | some l => simp only [stackRunClock,h,Nat.add_zero]
 
+/-- The physical stack simulation has a total clock bound from `stackRunClock` and a head-visit
+bound from `stackRunMaxClock`, each multiplied by `stackFactor`. -/
 theorem stack_physical_visits (encdec : ∀ a, dec (enc a)=a) (steps : ℕ)
     (first last : TM2.Cfg Γ Λ σ) (first' : TM1.Cfg (Γ' K Γ) (Λ' K Γ Λ σ) σ)
     (hf : TrCfg first first') (h : stackRun M steps first=some last) :
@@ -4751,17 +5384,23 @@ open Turing
 variable {K : Type} [DecidableEq K] [Fintype K] {Γ : K → Type}
     {Λ σ : Type} [Fintype Λ]
 
+/-- The maximum length of a stack in a finite family. -/
 noncomputable def stackHeight (S : ∀ k, List (Γ k)) : ℕ := Finset.univ.sup (fun k => (S k).length)
+/-- The maximum structural stack-operation count over all program labels. -/
 noncomputable def programNodes (M : Λ → TM2.Stmt Γ Λ σ) : ℕ :=
     Finset.univ.sup (fun l => stackNodes (M l))
+/-- The structural factor bounding a simulated stack sweep in terms of stack height. -/
 noncomputable def sweepFactor (M : Λ → TM2.Stmt Γ Λ σ) : ℕ := 1+2*programNodes M*(programNodes M+1)
 
+/-- The maximum stack height encountered along a finite stack-machine run, including its
+starting configuration. -/
 noncomputable def stackRunMaxHeight (M : Λ → TM2.Stmt Γ Λ σ) : ℕ → TM2.Cfg Γ Λ σ → ℕ
   | 0,c => stackHeight c.stk
   | n+1,c => match TM2.step M c with
     | none => stackHeight c.stk
     | some next => max (stackHeight c.stk) (stackRunMaxHeight M n next)
 
+/-- `stackRunClock M 1 first` is at most `sweepFactor M*(stackHeight first.stk+1)`. -/
 theorem stepClock_height (M : Λ → TM2.Stmt Γ Λ σ) (first : TM2.Cfg Γ Λ σ) :
     stackRunClock M 1 first≤sweepFactor M*(stackHeight first.stk+1) := by
   rcases first with ⟨l,v,S⟩
@@ -4783,6 +5422,7 @@ theorem stepClock_height (M : Λ → TM2.Stmt Γ Λ σ) (first : TM2.Cfg Γ Λ �
     dsimp only [sweepFactor]
     nlinarith [Nat.zero_le (programNodes M*programNodes M*stackHeight S)]
 
+/-- `stackRunMaxClock M n first` is at most `sweepFactor M*(stackRunMaxHeight M n first+1)`. -/
 theorem maxClock_height (M : Λ → TM2.Stmt Γ Λ σ) (n : ℕ) (first : TM2.Cfg Γ Λ σ) :
     stackRunMaxClock M n first≤sweepFactor M*(stackRunMaxHeight M n first+1) := by
   induction n generalizing first with
@@ -4803,6 +5443,7 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing
 variable {a b : ℕ} {M : TM0.Machine Symbol (Fin (a+1))} {N : TM0.Machine Symbol (Fin (b+1))}
 
+/-- Embedding a run in the first component of a composed machine preserves its head-visit bound. -/
 theorem Visits.first {cfg last : TM0.Cfg Symbol (Fin (a+1))} {ticks space : ℕ} {d : ℤ}
     (hv : Visits M cfg ticks space) (ht : Trace M cfg last ticks d) :
     Visits (composeMachine M N) (firstCfg cfg) ticks space := by
@@ -4812,6 +5453,8 @@ theorem Visits.first {cfg last : TM0.Cfg Symbol (Fin (a+1))} {ticks space : ℕ}
   rw [ho]
   exact hv u hu
 
+/-- Embedding a run in the second component of a composed machine preserves its head-visit
+bound. -/
 theorem Visits.second {cfg last : TM0.Cfg Symbol (Fin (b+1))} {ticks space : ℕ} {d : ℤ}
     (hv : Visits N cfg ticks space) (ht : Trace N cfg last ticks d) :
     Visits (composeMachine M N) (secondCfg cfg) ticks space := by
@@ -4821,6 +5464,8 @@ theorem Visits.second {cfg last : TM0.Cfg Symbol (Fin (b+1))} {ticks space : ℕ
   rw [ho]
   exact hv u hu
 
+/-- Initial visit bounds for two composed machines combine with the connecting step using the
+maximum of their radii and one. -/
 theorem Visits.then_init {input middle : List Symbol}
     {cf : TM0.Cfg Symbol (Fin (a+1))} {cg : TM0.Cfg Symbol (Fin (b+1))} {t s sf sg : ℕ}
     (hf : Trace M (TM0.init input) cf t 0) (hstop : TM0.step M cf=none)
@@ -4861,6 +5506,8 @@ variable {K Λ σ : Type} [DecidableEq K] [Fintype K] [Inhabited Λ] [Fintype Λ
 
 include enc0 encdec in
 
+/-- The physical stack compiler transforms encoded input to encoded output with separate bounds
+for total time and head excursions, using the total and maximum single-step stack clocks. -/
 theorem physical_raw_tapes_visited (inputStack outputStack : K) (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (steps : ℕ) (v : σ)
     (h : stackRun M steps (TM2.init inputStack input.reverse)=
@@ -4892,6 +5539,10 @@ variable {K Λ σ : Type} [DecidableEq K] [Fintype K] [Inhabited Λ] [Fintype Λ
     [Inhabited σ] [Fintype σ]
 set_option maxHeartbeats 2000000 in
 
+/-- Every finite stack program has a finite-control TM0 implementation with separate resource
+bounds on raw bit strings. A successful run with cleared scratch stacks gives a time bound
+from the total stack clock and a space bound from the maximum single-step clock, each with
+quadratic input and output overhead. -/
 theorem raw_compiler_separate (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ) (inputStack outputStack : K) :
     ∃ (q : ℕ) (N : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ (input output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (steps : ℕ) (v : σ),
@@ -5000,6 +5651,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Counter
 open Turing
 
+/-- `n.bits.length` is at most `n`. -/
 theorem bits_length_le (n : ℕ) : n.bits.length≤n := by
   induction n using Nat.binaryRec' with
   | zero => rfl
@@ -5016,6 +5668,7 @@ theorem bits_length_le (n : ℕ) : n.bits.length≤n := by
       omega
     | true => simp only [Nat.bit_true]; omega
 
+/-- `n.bits.length^2` is at most `4*n`. -/
 theorem bits_length_sq_le (n : ℕ) : n.bits.length^2≤4*n := by
   induction n using Nat.binaryRec' with
   | zero => rfl
@@ -5033,10 +5686,13 @@ theorem bits_length_sq_le (n : ℕ) : n.bits.length^2≤4*n := by
       nlinarith
     | true => simp only [Nat.bit_true]; nlinarith
 
+/-- The finite control labels for binary decrement. -/
 inductive Label where | borrow | restore deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.borrow⟩
+/-- The local-state type for binary decrement, represented by `Bool×Option Bool`. -/
 abbrev Local := Bool×Option Bool
 
+/-- The TM2 program implementing binary decrement. -/
 def program : Label → TM2.Stmt (fun _ : Fin 2 => Bool) Label Local
   | .borrow => .pop 0 (fun s bit => (s.1,bit))
       (.branch (fun s => s.2.isSome)
@@ -5048,21 +5704,29 @@ def program : Label → TM2.Stmt (fun _ : Fin 2 => Bool) Label Local
       (.branch (fun s => s.2.isSome)
         (.push 0 (fun s => s.2.getD false) (.goto (fun _ => .restore))) .halt)
 
+/-- `TM2.step program ⟨some .borrow,v,Stacks.stackPair (false::rest) temp⟩` equals `some ⟨some
+.borrow,(v.1,some false),Stacks.stackPair rest (true::temp)⟩`. -/
 theorem borrow_false (rest temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     TM2.step program ⟨some .borrow,v,Stacks.stackPair (false::rest) temp⟩=
       some ⟨some .borrow,(v.1,some false),Stacks.stackPair rest (true::temp)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `TM2.step program ⟨some .borrow,v,Stacks.stackPair (true::rest) temp⟩` equals `some ⟨some
+.restore,(true,some true),Stacks.stackPair rest (false::temp)⟩`. -/
 theorem borrow_true (rest temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     TM2.step program ⟨some .borrow,v,Stacks.stackPair (true::rest) temp⟩=
       some ⟨some .restore,(true,some true),Stacks.stackPair rest (false::temp)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `TM2.step program ⟨some .borrow,v,Stacks.stackPair [] temp⟩` equals `some ⟨some
+.restore,(false,none),Stacks.stackPair [] temp⟩`. -/
 theorem borrow_empty (temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     TM2.step program ⟨some .borrow,v,Stacks.stackPair [] temp⟩=
       some ⟨some .restore,(false,none),Stacks.stackPair [] temp⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- A run of `program` from label `.restore` halts with stacks `Stacks.stackPair
+(temp.reverse++counter) []` after `(temp.length+1)` stack steps. -/
 theorem restore_run (counter temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (flag : Bool) (saved : Option Bool) :
     Stacks.stackRun program (temp.length+1) ⟨some .restore,(flag,saved),Stacks.stackPair counter temp⟩=
       some ⟨none,(flag,none),Stacks.stackPair (temp.reverse++counter) []⟩ := by
@@ -5075,6 +5739,9 @@ theorem restore_run (counter temp : Qatlib.Concepts.BitWordCompiler.CanonicalCod
     simpa only [List.length_cons,Stacks.stackRun,hs,Option.bind_some,List.reverse_cons,
       List.append_assoc,List.singleton_append] using ih (b::counter) (some b)
 
+/-- A run of `program` from label `.borrow` halts with stacks `Stacks.stackPair
+(temp.reverse++List.replicate zeros true++false::rest) []` after `(2*zeros+temp.length+3)`
+stack steps. -/
 theorem decrement_run (zeros : ℕ) (rest temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Stacks.stackRun program (2*zeros+temp.length+3)
       ⟨some .borrow,v,Stacks.stackPair (List.replicate zeros false++true::rest) temp⟩=
@@ -5092,6 +5759,8 @@ theorem decrement_run (zeros : ℕ) (rest temp : Qatlib.Concepts.BitWordCompiler
     convert! ht using 1
     simp [List.reverse_cons,List.append_assoc]
 
+/-- A run of `program` from label `.borrow` halts with stacks `Stacks.stackPair
+(temp.reverse++List.replicate zeros true) []` after `(2*zeros+temp.length+2)` stack steps. -/
 theorem underflow_run (zeros : ℕ) (temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Stacks.stackRun program (2*zeros+temp.length+2)
       ⟨some .borrow,v,Stacks.stackPair (List.replicate zeros false) temp⟩=
@@ -5109,6 +5778,8 @@ theorem underflow_run (zeros : ℕ) (temp : Qatlib.Concepts.BitWordCompiler.Cano
     convert! ht using 1
     simp [List.reverse_cons,List.append_assoc]
 
+/-- `binaryValue (List.replicate zeros false++true::rest)` equals `binaryValue (List.replicate
+zeros true++false::rest)+1`. -/
 theorem decrement_value (zeros : ℕ) (rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue (List.replicate zeros false++true::rest)=
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue (List.replicate zeros true++false::rest)+1 := by
@@ -5119,6 +5790,8 @@ theorem decrement_value (zeros : ℕ) (rest : Qatlib.Concepts.BitWordCompiler.Ca
       Bool.false_eq_true,if_false,if_true] at ih ⊢
     omega
 
+/-- `Stacks.stackRunClock program (temp.length+1) ⟨some .restore,(flag,saved),Stacks.stackPair
+counter temp⟩` equals `temp.length*(2*(temp.length+counter.length)+5)+3`. -/
 theorem restore_clock (counter temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (flag : Bool) (saved : Option Bool) :
     Stacks.stackRunClock program (temp.length+1) ⟨some .restore,(flag,saved),Stacks.stackPair counter temp⟩=
       temp.length*(2*(temp.length+counter.length)+5)+3 := by
@@ -5136,6 +5809,9 @@ theorem restore_clock (counter temp : Qatlib.Concepts.BitWordCompiler.CanonicalC
       List.head?_cons,List.tail_cons,Option.isSome_some,if_true,Stacks.stackPair_zero,List.length_cons]
     nlinarith
 
+/-- `Stacks.stackRunClock program (2*zeros+temp.length+3) ⟨some .borrow,v,Stacks.stackPair
+(List.replicate zeros false++true::rest) temp⟩` equals
+`(2*zeros+temp.length+2)*(2*(zeros+1+rest.length+temp.length)+5)+3`. -/
 theorem decrement_clock (zeros : ℕ) (rest temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Stacks.stackRunClock program (2*zeros+temp.length+3)
       ⟨some .borrow,v,Stacks.stackPair (List.replicate zeros false++true::rest) temp⟩=
@@ -5161,6 +5837,9 @@ theorem decrement_clock (zeros : ℕ) (rest temp : Qatlib.Concepts.BitWordCompil
     simp [program,Stacks.stackClock]
     ring
 
+/-- `Stacks.stackRunClock program (2*zeros+temp.length+2) ⟨some .borrow,v,Stacks.stackPair
+(List.replicate zeros false) temp⟩` equals
+`(2*zeros+temp.length)*(2*(zeros+temp.length)+5)+6`. -/
 theorem underflow_clock (zeros : ℕ) (temp : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) :
     Stacks.stackRunClock program (2*zeros+temp.length+2)
       ⟨some .borrow,v,Stacks.stackPair (List.replicate zeros false) temp⟩=
@@ -5185,6 +5864,7 @@ theorem underflow_clock (zeros : ℕ) (temp : Qatlib.Concepts.BitWordCompiler.Ca
     simp [program,Stacks.stackClock]
     ring
 
+/-- A bit list of positive binary value has a prefix of false bits followed by a true bit. -/
 theorem positive_split (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (hp : 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue bits) :
     ∃ zeros rest, bits=List.replicate zeros false++true::rest := by
   induction bits with
@@ -5198,6 +5878,7 @@ theorem positive_split (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bi
       obtain ⟨zeros,tail,he⟩ := ih hrest
       exact ⟨zeros+1,tail,by simp [List.replicate_succ,he]⟩
 
+/-- Under the stated hypotheses, `bits` equals `List.replicate bits.length false`. -/
 theorem zero_bits_shape (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (h : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue bits=0) :
     bits=List.replicate bits.length false := by
   induction bits with
@@ -5210,6 +5891,10 @@ theorem zero_bits_shape (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
         simpa [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue] using h
       simpa only [List.length_cons,List.replicate_succ] using congrArg (false::·) (ih hz)
 
+/-- Under the stated input conditions, a run of `program` from label `.borrow` halts with stacks
+`Stacks.stackPair output []`; its accumulated stack clock is at most `10*(1+input.length)^2`
+and the resulting counter has the same length and binary value one less than the starting
+counter. -/
 theorem decrement_positive (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) (hp : 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue input) :
     ∃ (ticks : ℕ) (output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits), ticks≤2*input.length+3 ∧ output.length=input.length ∧
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue output+1=Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue input ∧
@@ -5230,6 +5915,9 @@ theorem decrement_positive (input : Qatlib.Concepts.BitWordCompiler.CanonicalCod
     have hmul := Nat.mul_le_mul_right (2*(zeros+(rest.length+1))+5) hm
     nlinarith
 
+/-- Under the stated input conditions, a run of `program` from label `.borrow` halts with stacks
+`Stacks.stackPair (List.replicate input.length true) []` after `(2*input.length+2)` stack
+steps; its accumulated stack clock is at most `10*(1+input.length)^2`. -/
 theorem decrement_zero (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (v : Local) (hz : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue input=0) :
     Stacks.stackRun program (2*input.length+2) ⟨some .borrow,v,Stacks.stackPair input []⟩=
       some ⟨none,(false,none),Stacks.stackPair (List.replicate input.length true) []⟩ ∧
@@ -5243,16 +5931,20 @@ theorem decrement_zero (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
     rw [hc]
     nlinarith [Nat.zero_le (input.length*input.length)]
 
+/-- `n*(10*(1+n.bits.length)^2)` is at most `100*(1+n)^2`. -/
 theorem repeated_counter_budget (n : ℕ) : n*(10*(1+n.bits.length)^2)≤100*(1+n)^2 := by
   have hs := Nat.mul_le_mul_left n (bits_length_sq_le n)
   have hl := Nat.mul_le_mul_left n (bits_length_le n)
   nlinarith
 
+/-- `Stacks.stackPair bits []` equals `Function.update (fun _ : Fin 2 => []) 0 bits`. -/
 theorem counterStack (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Stacks.stackPair bits []=Function.update (fun _ : Fin 2 => []) 0 bits := by
   funext k
   simp [Stacks.stackPair,Function.update_apply]
 
+/-- A finite-control machine decrements a positive binary value supplied in reverse order,
+preserving its bit width and satisfying polynomial resource bounds. -/
 theorem raw_decrement_machine :
     ∃ (q : ℕ) (M : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits, 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue input.reverse →
@@ -5290,51 +5982,69 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Simulation
 open Turing
 variable {Λ : Type}
 
+/-- Encode each optional Boolean symbol by its presence bit followed by its Boolean value, using
+false for a blank value. -/
 def pack : List Symbol → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
     List.flatMap (fun a => [a.isSome,a.getD false])
 
+/-- Push the two-bit representation of the current optional symbol onto the selected stack. -/
 def pushSymbol (k : Fin 2) (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol) :
     TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol :=
   .push k (fun h => h.getD false) (.push k (fun h => h.isSome) q)
 
+/-- Pop two bits from the selected stack and reconstruct an optional Boolean symbol in the local
+state. -/
 def popSymbol (k : Fin 2) (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol) :
     TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol :=
   .pop k (fun _ tag => if tag.getD false then some false else none)
     (.pop k (fun h value => h.map (fun _ => value.getD false)) q)
 
+/-- Implement a TM0 write, move, or halt transition using two stacks and a local head symbol. -/
 def transition : Option (Λ×TM0.Stmt Symbol) → TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol
   | none => .halt
   | some (l,.write b) => .load (fun _ => b) (.goto (fun _ => l))
   | some (l,.move .left) => pushSymbol 1 (popSymbol 0 (.goto (fun _ => l)))
   | some (l,.move .right) => pushSymbol 0 (popSymbol 1 (.goto (fun _ => l)))
 
+/-- The TM2 program implementing two-stack tape simulation. -/
 def program [Inhabited Λ] (M : TM0.Machine Symbol Λ) (l : Λ) : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol :=
   .branch (fun h => h.isNone) (transition (M l none))
     (.branch (fun h => h.getD false) (transition (M l (some true))) (transition (M l (some false))))
 
+/-- Reconstruct a tape from its left cells, right cells, and current head symbol. -/
 def tape (left right : List Symbol) (head : Symbol) : Tape Symbol := Tape.mk₂ left (head::right)
 
+/-- Represent a machine label and tape by a stack configuration with two packed side lists and a
+local head symbol. -/
 def cfg (l : Λ) (left right : List Symbol) (head : Symbol) : TM2.Cfg (fun _ : Fin 2 => Bool) Λ Symbol :=
   ⟨some l,head,Stacks.stackPair (pack left) (pack right)⟩
 
+/-- Under the stated hypotheses, `TM2.stepAux (program M l) head S` equals `TM2.stepAux
+(transition (M l head)) head S`. -/
 theorem program_stepAux [Inhabited Λ] (M : TM0.Machine Symbol Λ) (l : Λ) (head : Symbol) (S : Fin 2 → List Bool) :
     TM2.stepAux (program M l) head S=TM2.stepAux (transition (M l head)) head S := by
   cases head with
   | none => rfl
   | some b => cases b <;> rfl
 
+/-- Under the stated hypotheses, `Stacks.stackClock (program M l) head S` equals
+`Stacks.stackClock (transition (M l head)) head S`. -/
 theorem program_clock [Inhabited Λ] (M : TM0.Machine Symbol Λ) (l : Λ) (head : Symbol) (S : Fin 2 → List Bool) :
     Stacks.stackClock (program M l) head S=Stacks.stackClock (transition (M l head)) head S := by
   cases head with
   | none => rfl
   | some b => cases b <;> rfl
 
+/-- Under the stated hypotheses, `TM2.stepAux (pushSymbol k q) head S` equals `TM2.stepAux q
+head (Function.update S k (head.isSome::head.getD false::S k))`. -/
 theorem pushSymbol_step (k : Fin 2) (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (head : Symbol) (S : Fin 2 → List Bool) :
     TM2.stepAux (pushSymbol k q) head S=
       TM2.stepAux q head (Function.update S k (head.isSome::head.getD false::S k)) := by
   simp [pushSymbol,TM2.stepAux]
 
+/-- Under the stated hypotheses, `TM2.stepAux (popSymbol k q) head S` equals `TM2.stepAux q a
+(Function.update S k (pack rest))`. -/
 theorem popSymbol_step (k : Fin 2) (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (head : Symbol) (S : Fin 2 → List Bool) (a : Symbol) (rest : List Symbol)
     (h : S k=pack (a::rest)) :
@@ -5345,6 +6055,8 @@ theorem popSymbol_step (k : Fin 2) (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symb
   | none => simp
   | some b => cases b <;> simp
 
+/-- Under the stated hypotheses, `TM2.stepAux (popSymbol k q) head S` equals `TM2.stepAux q none
+S`. -/
 theorem popSymbol_empty (k : Fin 2) (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (head : Symbol) (S : Fin 2 → List Bool) (h : S k=[]) :
     TM2.stepAux (popSymbol k q) head S=TM2.stepAux q none S := by
@@ -5352,6 +6064,9 @@ theorem popSymbol_empty (k : Fin 2) (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Sym
   rw [← h,Function.update_eq_self]
   simp
 
+/-- Under the stated hypotheses, `TM2.stepAux (pushSymbol 0 q) head (Stacks.stackPair (pack
+left) (pack right))` equals `TM2.stepAux q head (Stacks.stackPair (pack (head::left)) (pack
+right))`. -/
 theorem push_left (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (left right : List Symbol) (head : Symbol) :
     TM2.stepAux (pushSymbol 0 q) head (Stacks.stackPair (pack left) (pack right))=
@@ -5359,6 +6074,9 @@ theorem push_left (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
   rw [pushSymbol_step]
   simp [pack]
 
+/-- Under the stated hypotheses, `TM2.stepAux (pushSymbol 1 q) head (Stacks.stackPair (pack
+left) (pack right))` equals `TM2.stepAux q head (Stacks.stackPair (pack left) (pack
+(head::right)))`. -/
 theorem push_right (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (left right : List Symbol) (head : Symbol) :
     TM2.stepAux (pushSymbol 1 q) head (Stacks.stackPair (pack left) (pack right))=
@@ -5366,6 +6084,9 @@ theorem push_right (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
   rw [pushSymbol_step]
   simp [pack]
 
+/-- Under the stated hypotheses, `TM2.stepAux (popSymbol 0 q) head (Stacks.stackPair (pack left)
+(pack right))` equals `TM2.stepAux q left.headI (Stacks.stackPair (pack left.tail) (pack
+right))`. -/
 theorem pop_left (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (left right : List Symbol) (head : Symbol) :
     TM2.stepAux (popSymbol 0 q) head (Stacks.stackPair (pack left) (pack right))=
@@ -5376,6 +6097,9 @@ theorem pop_left (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     rw [popSymbol_step 0 q head _ a left (by simp)]
     simp
 
+/-- Under the stated hypotheses, `TM2.stepAux (popSymbol 1 q) head (Stacks.stackPair (pack left)
+(pack right))` equals `TM2.stepAux q right.headI (Stacks.stackPair (pack left) (pack
+right.tail))`. -/
 theorem pop_right (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (left right : List Symbol) (head : Symbol) :
     TM2.stepAux (popSymbol 1 q) head (Stacks.stackPair (pack left) (pack right))=
@@ -5386,10 +6110,14 @@ theorem pop_right (q : TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     rw [popSymbol_step 1 q head _ a right (by simp)]
     simp
 
+/-- Under the stated hypotheses, `(tape left right head).move .left` equals `tape left.tail
+(head::right) left.headI`. -/
 theorem tape_move_left (left right : List Symbol) (head : Symbol) :
     (tape left right head).move .left=tape left.tail (head::right) left.headI := by
   simp [tape,Tape.mk₂,Tape.move_left_mk',ListBlank.cons_mk]
 
+/-- Under the stated hypotheses, `(tape left right head).move .right` equals `tape (head::left)
+right.tail right.headI`. -/
 theorem tape_move_right (left right : List Symbol) (head : Symbol) :
     (tape left right head).move .right=tape (head::left) right.tail right.headI := by
   have hr : ListBlank.mk right=ListBlank.mk (right.headI::right.tail) := by
@@ -5399,10 +6127,13 @@ theorem tape_move_right (left right : List Symbol) (head : Symbol) :
     ListBlank.tail_mk,List.tail_cons,ListBlank.cons_mk]
   rw [hr]
 
+/-- `(tape left right head).write bit` equals `tape left right bit`. -/
 theorem tape_write (left right : List Symbol) (head bit : Symbol) :
     (tape left right head).write bit=tape left right bit := by
   simp [tape,Tape.mk₂,Tape.write_mk',ListBlank.cons_mk]
 
+/-- A successful TM0 transition is simulated by one stack-machine step with the same tape effect
+and at most one additional stored tape symbol. -/
 theorem machine_step [Inhabited Λ] (M : TM0.Machine Symbol Λ) (l next : Λ)
     (left right : List Symbol) (head : Symbol) (stmt : TM0.Stmt Symbol)
     (h : M l head=some (next,stmt)) :
@@ -5445,6 +6176,8 @@ theorem machine_step [Inhabited Λ] (M : TM0.Machine Symbol Λ) (l next : Λ)
       · simp only [List.length_tail,stmtOffset]
         omega
 
+/-- A run of `M` from `first` reaches `(Stacks.stackRun M n first).bind (Stacks.stackRun M m)`
+after `(n+m)` stack steps. -/
 theorem stackRun_add [Inhabited Λ] (M : Λ → TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (n m : ℕ) (first : TM2.Cfg (fun _ : Fin 2 => Bool) Λ Symbol) :
     Stacks.stackRun M (n+m) first=(Stacks.stackRun M n first).bind (Stacks.stackRun M m) := by
@@ -5456,6 +6189,8 @@ theorem stackRun_add [Inhabited Λ] (M : Λ → TM2.Stmt (fun _ : Fin 2 => Bool)
     | none => simp only [Option.bind_none,Stacks.stackRun,hs]
     | some next => simpa only [Option.bind_some,Stacks.stackRun,hs] using ih next
 
+/-- Under the stated input conditions, a run of `(program M)` from `(cfg first.q left right
+first.Tape.head)` reaches `(cfg last.q left' right' last.Tape.head)`. -/
 theorem execution [Inhabited Λ] (M : TM0.Machine Symbol Λ) (n : ℕ)
     (first last : TM0.Cfg Symbol Λ) (left right : List Symbol)
     (hf : first.Tape=tape left right first.Tape.head) (h : run M n first=some last) :
@@ -5490,6 +6225,7 @@ theorem execution [Inhabited Λ] (M : TM0.Machine Symbol Λ) (n : ℕ)
         change TM2.step (program M) (cfg mid.q ls rs mid.Tape.head)=_
         simpa only [hl,hh] using hstep
 
+/-- Under the stated hypotheses, `Stacks.stackRunMaxHeight M n first` is at most `height`. -/
 theorem maxHeight_le (M : Λ → TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (n : ℕ) (first : TM2.Cfg (fun _ : Fin 2 => Bool) Λ Symbol) (height : ℕ)
     (h : ∀ u, u≤n → ∀ c, Stacks.stackRun M u first=some c → Stacks.stackHeight c.stk≤height) :
@@ -5507,6 +6243,7 @@ theorem maxHeight_le (M : Λ → TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
       apply h (u+1) (by omega) c
       simpa only [Stacks.stackRun,hs,Option.bind_some] using hc
 
+/-- `Stacks.stackRunClock M n first` is at most `n*Stacks.stackRunMaxClock M n first`. -/
 theorem totalClock_le (M : Λ → TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (n : ℕ) (first : TM2.Cfg (fun _ : Fin 2 => Bool) Λ Symbol) :
     Stacks.stackRunClock M n first≤n*Stacks.stackRunMaxClock M n first := by
@@ -5523,17 +6260,21 @@ theorem totalClock_le (M : Λ → TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
       have hl := Nat.le_max_left (Stacks.stackRunClock M 1 first) (Stacks.stackRunMaxClock M n next)
       nlinarith
 
+/-- `(pack bits).length` equals `2*bits.length`. -/
 theorem pack_length (bits : List Symbol) : (pack bits).length=2*bits.length := by
   induction bits with
   | nil => rfl
   | cons a bits ih => simp [pack] at ih ⊢; omega
 
+/-- Under the stated hypotheses, `Stacks.stackHeight (cfg l left right head).stk` is at most
+`2*(left.length+right.length)`. -/
 theorem cfg_height (l : Λ) (left right : List Symbol) (head : Symbol) :
     Stacks.stackHeight (cfg l left right head).stk≤2*(left.length+right.length) := by
   apply Finset.sup_le
   intro k _
   by_cases h : k=0 <;> simp only [cfg,Stacks.stackPair,h,if_true,if_false,pack_length] <;> omega
 
+/-- `Stacks.stackNodes (transition e)` is at most `4`. -/
 theorem transition_nodes (e : Option (Λ×TM0.Stmt Symbol)) : Stacks.stackNodes (transition e)≤4 := by
   cases e with
   | none => simp [transition,Stacks.stackNodes]
@@ -5543,6 +6284,7 @@ theorem transition_nodes (e : Option (Λ×TM0.Stmt Symbol)) : Stacks.stackNodes 
     | write b => simp [transition,Stacks.stackNodes]
     | move d => cases d <;> simp [transition,pushSymbol,popSymbol,Stacks.stackNodes]
 
+/-- `Stacks.programNodes (program M)` is at most `4`. -/
 theorem program_nodes [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) :
     Stacks.programNodes (program M)≤4 := by
   apply Finset.sup_le
@@ -5550,12 +6292,15 @@ theorem program_nodes [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) :
   simp only [program,Stacks.stackNodes]
   exact max_le (transition_nodes _) (max_le (transition_nodes _) (transition_nodes _))
 
+/-- `Stacks.sweepFactor (program M)` is at most `41`. -/
 theorem program_sweepFactor [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) :
     Stacks.sweepFactor (program M)≤41 := by
   have hn := program_nodes M
   unfold Stacks.sweepFactor
   nlinarith
 
+/-- Under the stated hypotheses, `Stacks.stackRunMaxHeight (program M) n (cfg first.q left right
+first.Tape.head)` is at most `2*(left.length+right.length+n)`. -/
 theorem execution_height [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) (n : ℕ)
     (first last : TM0.Cfg Symbol Λ) (left right : List Symbol)
     (hf : first.Tape=tape left right first.Tape.head) (h : run M n first=some last) :
@@ -5569,6 +6314,8 @@ theorem execution_height [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ)
   cases Option.some.inj hc
   exact (cfg_height mid.q ls rs mid.Tape.head).trans (by omega)
 
+/-- Under the stated hypotheses, `Stacks.stackRunClock (program M) n (cfg first.q left right
+first.Tape.head)` is at most `n*(41*(2*(left.length+right.length+n)+1))`. -/
 theorem execution_clock [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) (n : ℕ)
     (first last : TM0.Cfg Symbol Λ) (left right : List Symbol)
     (hf : first.Tape=tape left right first.Tape.head) (h : run M n first=some last) :
@@ -5581,6 +6328,8 @@ theorem execution_clock [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) 
   exact htime.trans (Nat.mul_le_mul_left n (hmax.trans
     (Nat.mul_le_mul hs (Nat.succ_le_succ hh))))
 
+/-- Under the stated input conditions, a run of `(program M)` from `(cfg first.q left right
+first.Tape.head)` reaches `(cfg last.q left' right' last.Tape.head)`. -/
 theorem execution_region [Inhabited Λ] (M : TM0.Machine Symbol Λ) (n : ℕ)
     (first last : TM0.Cfg Symbol Λ) (left right : List Symbol) (radius : ℕ)
     (hf : first.Tape=tape left right first.Tape.head) (h : run M n first=some last)
@@ -5623,6 +6372,8 @@ theorem execution_region [Inhabited Λ] (M : TM0.Machine Symbol Λ) (n : ℕ)
       · rw [hoff] at hb ⊢
         omega
 
+/-- Under the stated hypotheses, `Stacks.stackRunMaxHeight (program M) n (cfg first.q left right
+first.Tape.head)` is at most `2*(2*radius+left.length+right.length)`. -/
 theorem execution_height_visited [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) (n : ℕ)
     (first last : TM0.Cfg Symbol Λ) (left right : List Symbol) (radius : ℕ)
     (hf : first.Tape=tape left right first.Tape.head) (h : run M n first=some last)
@@ -5638,12 +6389,16 @@ theorem execution_height_visited [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Sy
   cases Option.some.inj hc
   exact (cfg_height mid.q ls rs mid.Tape.head).trans (by omega)
 
+/-- Under the stated hypotheses, `TM2.step (program M) (cfg l left right head)` equals `some
+⟨none,head,Stacks.stackPair (pack left) (pack right)⟩`. -/
 theorem halt_step [Inhabited Λ] (M : TM0.Machine Symbol Λ) (l : Λ)
     (left right : List Symbol) (head : Symbol) (h : M l head=none) :
     TM2.step (program M) (cfg l left right head)=
       some ⟨none,head,Stacks.stackPair (pack left) (pack right)⟩ := by
   simp only [TM2.step,cfg,program_stepAux,h,transition,TM2.stepAux]
 
+/-- Under the stated hypotheses, `Stacks.stackRunClock (program M) 1 (cfg l left right head)`
+equals `1`. -/
 theorem halt_clock [Inhabited Λ] (M : TM0.Machine Symbol Λ) (l : Λ)
     (left right : List Symbol) (head : Symbol) (h : M l head=none) :
     Stacks.stackRunClock (program M) 1 (cfg l left right head)=1 := by
@@ -5652,6 +6407,8 @@ theorem halt_clock [Inhabited Λ] (M : TM0.Machine Symbol Λ) (l : Λ)
   rw [program_clock,h]
   rfl
 
+/-- Under the stated hypotheses, `Stacks.stackRunClock M (n+m) first` equals
+`Stacks.stackRunClock M n first+Stacks.stackRunClock M m mid`. -/
 theorem stackClock_add (M : Λ → TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
     (n m : ℕ) (first mid : TM2.Cfg (fun _ : Fin 2 => Bool) Λ Symbol)
     (h : Stacks.stackRun M n first=some mid) :
@@ -5670,6 +6427,9 @@ theorem stackClock_add (M : Λ → TM2.Stmt (fun _ : Fin 2 => Bool) Λ Symbol)
       rw [Nat.succ_add,Stacks.stackRunClock_step M (n+m) first next hs,
         Stacks.stackRunClock_step M n first next hs,ih next hn,Nat.add_assoc]
 
+/-- Under the stated input conditions, a run of `(program M)` from `(cfg first.q left right
+first.Tape.head)` reaches `⟨none,last.Tape.head,Stacks.stackPair (pack ls) (pack rs)⟩`; its
+accumulated stack clock is at most `n*(41*(2*(left.length+right.length+n)+1))+1`. -/
 theorem complete [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) (n : ℕ)
     (first last : TM0.Cfg Symbol Λ) (left right : List Symbol)
     (hf : first.Tape=tape left right first.Tape.head) (h : run M n first=some last)
@@ -5687,6 +6447,7 @@ theorem complete [Inhabited Λ] [Fintype Λ] (M : TM0.Machine Symbol Λ) (n : �
   · rw [stackClock_add (program M) n 1 _ _ hr,halt_clock M last.q ls rs last.Tape.head hhalt]
     exact Nat.succ_le_succ (execution_clock M n first last left right hf h)
 
+/-- `Tape.mk₁ input` equals `tape [] input.tail input.headI`. -/
 theorem initial_tape (input : List Symbol) : Tape.mk₁ input=tape [] input.tail input.headI := by
   have hr : ListBlank.mk input=ListBlank.mk (input.headI::input.tail) := by
     simpa only [ListBlank.head_mk,ListBlank.tail_mk,ListBlank.cons_mk] using
@@ -5700,6 +6461,8 @@ open Turing
 variable {K J Λ Λ' σ ρ : Type} [DecidableEq K] [DecidableEq J]
     (stackCode : K → J) (labelCode : Λ → Λ') (returnTo : Λ') (get : ρ → σ) (put : ρ → σ → ρ)
 
+/-- Embed a stack subroutine by translating stack indices, labels, and local variables,
+replacing halting with its return continuation. -/
 def stmt : TM2.Stmt (fun _ : K => Bool) Λ σ → TM2.Stmt (fun _ : J => Bool) Λ' ρ
   | .push k f q => .push (stackCode k) (fun s => f (get s)) (stmt q)
   | .peek k f q => .peek (stackCode k) (fun s bit => put s (f (get s) bit)) (stmt q)
@@ -5709,6 +6472,8 @@ def stmt : TM2.Stmt (fun _ : K => Bool) Λ σ → TM2.Stmt (fun _ : J => Bool) �
   | .goto f => .goto (fun s => labelCode (f (get s)))
   | .halt => .goto (fun _ => returnTo)
 
+/-- Embed a stack-subroutine configuration into the caller, restoring its framed stacks and
+updated local state. -/
 def cfg (E : (K → List Bool) → (J → List Bool)) (saved : ρ) (c : TM2.Cfg (fun _ : K => Bool) Λ σ) :
     TM2.Cfg (fun _ : J => Bool) Λ' ρ :=
   ⟨some ((c.l.map labelCode).getD returnTo),put saved c.var,E c.stk⟩
@@ -5721,6 +6486,8 @@ variable (E : (K → List Bool) → (J → List Bool))
 
 include hE hupdate hget hput in
 
+/-- `TM2.stepAux (stmt stackCode labelCode returnTo get put q) (put saved v) (E S)` equals `cfg
+labelCode returnTo put E saved (TM2.stepAux q v S)`. -/
 theorem stmt_step (q : TM2.Stmt (fun _ : K => Bool) Λ σ) (v : σ) (S : K → List Bool) (saved : ρ) :
     TM2.stepAux (stmt stackCode labelCode returnTo get put q) (put saved v) (E S)=
       cfg labelCode returnTo put E saved (TM2.stepAux q v S) := by
@@ -5744,6 +6511,8 @@ theorem stmt_step (q : TM2.Stmt (fun _ : K => Bool) Λ σ) (v : σ) (S : K → L
 
 include hE hupdate hget hput in
 
+/-- `Stacks.stackClock (stmt stackCode labelCode returnTo get put q) (put saved v) (E S)` equals
+`Stacks.stackClock q v S`. -/
 theorem stmt_clock (q : TM2.Stmt (fun _ : K => Bool) Λ σ) (v : σ) (S : K → List Bool) (saved : ρ) :
     Stacks.stackClock (stmt stackCode labelCode returnTo get put q) (put saved v) (E S)=
       Stacks.stackClock q v S := by
@@ -5767,6 +6536,9 @@ theorem stmt_clock (q : TM2.Stmt (fun _ : K => Bool) Λ σ) (v : σ) (S : K → 
   | halt => rfl
 include hE hupdate hget hput in
 
+/-- Under the stated input conditions, a run of `N` from `(cfg labelCode returnTo put E saved
+first)` reaches `(cfg labelCode returnTo put E saved last)` after `n` stack steps; its
+accumulated stack clock is equal to `Stacks.stackRunClock M n first`. -/
 theorem execution (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
     (N : Λ' → TM2.Stmt (fun _ : J => Bool) Λ' ρ)
     (hcode : ∀ l, N (labelCode l)=stmt stackCode labelCode returnTo get put (M l))
@@ -5811,13 +6583,19 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall
 open Turing
 variable {K J : Type} [DecidableEq K] [DecidableEq J]
 
+/-- Embed the left stacks for stack call while retaining the supplied contents of the other
+stack banks. -/
 def leftFrame (frame : J → List Bool) (S : K → List Bool) : K⊕J → List Bool := Sum.elim S frame
 
 omit [DecidableEq K] [DecidableEq J] in
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem leftFrame_at (frame : J → List Bool) (S : K → List Bool) (k : K) :
     leftFrame frame S (.inl k)=S k := rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem leftFrame_update (frame : J → List Bool) (S : K → List Bool) (k : K) (bits : List Bool) :
     leftFrame frame (Function.update S k bits)=Function.update (leftFrame frame S) (.inl k) bits := by
   funext j
@@ -5825,13 +6603,19 @@ theorem leftFrame_update (frame : J → List Bool) (S : K → List Bool) (k : K)
   | inl k' => by_cases h : k'=k <;> simp [leftFrame,Function.update_apply,h]
   | inr j => simp [leftFrame]
 
+/-- Embed the right stacks for stack call while retaining the supplied contents of the other
+stack banks. -/
 def rightFrame (frame : J → List Bool) (S : K → List Bool) : J⊕K → List Bool := Sum.elim frame S
 
 omit [DecidableEq K] [DecidableEq J] in
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem rightFrame_at (frame : J → List Bool) (S : K → List Bool) (k : K) :
     rightFrame frame S (.inr k)=S k := rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem rightFrame_update (frame : J → List Bool) (S : K → List Bool) (k : K) (bits : List Bool) :
     rightFrame frame (Function.update S k bits)=Function.update (rightFrame frame S) (.inr k) bits := by
   funext j
@@ -5844,6 +6628,8 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Turing
 variable {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
 
+/-- A run of `M` from `first` reaches `(stackRun M n first).bind (stackRun M m)` after `(n+m)`
+stack steps. -/
 theorem run_add (M : Λ → TM2.Stmt Γ Λ σ) (n m : ℕ) (first : TM2.Cfg Γ Λ σ) :
     stackRun M (n+m) first=(stackRun M n first).bind (stackRun M m) := by
   induction n generalizing first with
@@ -5854,6 +6640,8 @@ theorem run_add (M : Λ → TM2.Stmt Γ Λ σ) (n m : ℕ) (first : TM2.Cfg Γ �
     | none => simp only [Option.bind_none,stackRun,hs]
     | some next => simpa only [Option.bind_some,stackRun,hs] using ih next
 
+/-- Under the stated hypotheses, `stackRunClock M (n+m) first` equals `stackRunClock M n
+first+stackRunClock M m mid`. -/
 theorem clock_add (M : Λ → TM2.Stmt Γ Λ σ) (n m : ℕ) (first mid : TM2.Cfg Γ Λ σ)
     (h : stackRun M n first=some mid) :
     stackRunClock M (n+m) first=stackRunClock M n first+stackRunClock M m mid := by
@@ -5874,26 +6662,35 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Parsing
 open Turing
 
+/-- Consume a unary length prefix, moving its true markers to the second stack and stopping at
+the terminator. -/
 def unaryProgram (_ : Fin 1) : TM2.Stmt (fun _ : Fin 2 => Bool) (Fin 1) (Option Bool) :=
   .pop 0 (fun _ bit => bit) (.branch (fun bit => bit.getD false)
     (.push 1 (fun _ => true) (.goto (fun _ => 0))) .halt)
 
+/-- `TM2.step unaryProgram ⟨some 0,saved,Stacks.stackPair (true::rest) count⟩` equals `some
+⟨some 0,some true,Stacks.stackPair rest (true::count)⟩`. -/
 theorem unary_step (rest count : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     TM2.step unaryProgram ⟨some 0,saved,Stacks.stackPair (true::rest) count⟩=
       some ⟨some 0,some true,Stacks.stackPair rest (true::count)⟩ := by
   simp [TM2.step,unaryProgram,TM2.stepAux]
 
+/-- `TM2.step unaryProgram ⟨some 0,saved,Stacks.stackPair (false::rest) count⟩` equals `some
+⟨none,some false,Stacks.stackPair rest count⟩`. -/
 theorem unary_stop (rest count : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     TM2.step unaryProgram ⟨some 0,saved,Stacks.stackPair (false::rest) count⟩=
       some ⟨none,some false,Stacks.stackPair rest count⟩ := by
   simp [TM2.step,unaryProgram,TM2.stepAux]
 
+/-- `true::(List.replicate width true++count)` equals `List.replicate width true++true::count`. -/
 theorem marker_cons (width : ℕ) (count : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     true::(List.replicate width true++count)=List.replicate width true++true::count := by
   induction width with
   | zero => rfl
   | succ width ih => simpa only [List.replicate_succ,List.cons_append] using congrArg (true::·) ih
 
+/-- A run of `unaryProgram` from label `0` halts with stacks `Stacks.stackPair rest
+(List.replicate width true++count)` after `(width+1)` stack steps. -/
 theorem unary_run (width : ℕ) (rest count : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRun unaryProgram (width+1)
       ⟨some 0,saved,Stacks.stackPair (List.replicate width true++false::rest) count⟩=
@@ -5908,6 +6705,9 @@ theorem unary_run (width : ℕ) (rest count : Qatlib.Concepts.BitWordCompiler.Ca
     convert! ht using 1
     rw [marker_cons]
 
+/-- `Stacks.stackRunClock unaryProgram (width+1) ⟨some 0,saved,Stacks.stackPair (List.replicate
+width true++false::rest) count⟩` equals
+`width*(2*(width+1+rest.length+count.length)+5)+2*rest.length+4`. -/
 theorem unary_clock (width : ℕ) (rest count : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRunClock unaryProgram (width+1)
       ⟨some 0,saved,Stacks.stackPair (List.replicate width true++false::rest) count⟩=
@@ -5925,25 +6725,35 @@ theorem unary_clock (width : ℕ) (rest count : Qatlib.Concepts.BitWordCompiler.
     simp [unaryProgram,Stacks.stackClock]
     ring
 
+/-- Store reader bits, count markers, and output bits in the three stacks indexed by `Fin 3`. -/
 def triple (reader count output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 3 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   fun k => if k=0 then reader else if k=1 then count else output
 
+/-- Reading the first stack from `triple` recovers its corresponding list argument. -/
 @[simp] theorem triple_zero (r c o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : triple r c o 0=r := by simp [triple]
 
+/-- Reading the second stack from `triple` recovers its corresponding list argument. -/
 @[simp] theorem triple_one (r c o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : triple r c o 1=c := by simp [triple]
 
+/-- Reading the third stack from `triple` recovers its corresponding list argument. -/
 @[simp] theorem triple_two (r c o : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : triple r c o 2=o := by simp [triple]
 
+/-- Updating the first stack in `triple` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem triple_update_zero (r c o r' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Function.update (triple r c o) 0 r'=triple r' c o := by
   funext k
   by_cases h : k=0 <;> simp [triple,Function.update_apply,h]
 
+/-- Updating the second stack in `triple` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem triple_update_one (r c o c' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Function.update (triple r c o) 1 c'=triple r c' o := by
   funext k
   by_cases h : k=1
   · subst k; simp [triple]
   · by_cases h0 : k=0 <;> simp [triple,h,h0]
 
+/-- Updating the third stack in `triple` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem triple_update_two (r c o o' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Function.update (triple r c o) 2 o'=triple r c o' := by
   funext k
   by_cases h0 : k=0
@@ -5959,20 +6769,27 @@ def triple (reader count output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec
       subst k
       simp [triple]
 
+/-- Consume one input bit per count marker and prepend the consumed bits to the output stack. -/
 def fieldProgram (_ : Fin 1) : TM2.Stmt (fun _ : Fin 3 => Bool) (Fin 1) (Option Bool) :=
   .pop 1 (fun _ bit => bit) (.branch (fun bit => bit.isSome)
     (.pop 0 (fun _ bit => bit) (.push 2 (fun bit => bit.getD false) (.goto (fun _ => 0)))) .halt)
 
+/-- `TM2.step fieldProgram ⟨some 0,saved,triple (bit::rest) (true::count) output⟩` equals `some
+⟨some 0,some bit,triple rest count (bit::output)⟩`. -/
 theorem field_step (bit : Bool) (rest count output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     TM2.step fieldProgram ⟨some 0,saved,triple (bit::rest) (true::count) output⟩=
       some ⟨some 0,some bit,triple rest count (bit::output)⟩ := by
   simp [TM2.step,fieldProgram,TM2.stepAux]
 
+/-- `TM2.step fieldProgram ⟨some 0,saved,triple rest [] output⟩` equals `some ⟨none,none,triple
+rest [] output⟩`. -/
 theorem field_stop (rest output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     TM2.step fieldProgram ⟨some 0,saved,triple rest [] output⟩=
       some ⟨none,none,triple rest [] output⟩ := by
   simp [TM2.step,fieldProgram,TM2.stepAux]
 
+/-- A run of `fieldProgram` from label `0` halts with stacks `triple rest []
+(bits.reverse++output)` after `(bits.length+1)` stack steps. -/
 theorem field_run (bits rest output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRun fieldProgram (bits.length+1)
       ⟨some 0,saved,triple (bits++rest) (List.replicate bits.length true) output⟩=
@@ -5985,6 +6802,9 @@ theorem field_run (bits rest output : Qatlib.Concepts.BitWordCompiler.CanonicalC
     simpa only [List.length_cons,List.replicate_succ,List.cons_append,Stacks.stackRun,field_step,
       Option.bind_some,List.reverse_cons,List.append_assoc,List.singleton_append] using! ih (bit::output) (some bit)
 
+/-- `Stacks.stackRunClock fieldProgram (bits.length+1) ⟨some 0,saved,triple (bits++rest)
+(List.replicate bits.length true) output⟩` equals
+`bits.length*(3*bits.length+2*(rest.length+output.length)+7)+3`. -/
 theorem field_clock (bits rest output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRunClock fieldProgram (bits.length+1)
       ⟨some 0,saved,triple (bits++rest) (List.replicate bits.length true) output⟩=
@@ -6001,9 +6821,13 @@ theorem field_clock (bits rest output : Qatlib.Concepts.BitWordCompiler.Canonica
     rw [ih]
     simp [fieldProgram,Stacks.stackClock]
     ring
+/-- Embed the unary stacks for natural-field parsing while retaining the supplied contents of
+the other stack banks. -/
 def unaryFrame (output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 2 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 3 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   triple (S 0) (S 1) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem unaryFrame_at (output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 2 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 2) :
     unaryFrame output S k.castSucc=S k := by
   by_cases h : k=0
@@ -6016,6 +6840,8 @@ theorem unaryFrame_at (output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
     subst k
     rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem unaryFrame_update (output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 2 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 2) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     unaryFrame output (Function.update S k bits)=Function.update (unaryFrame output S) k.castSucc bits := by
   by_cases h : k=0
@@ -6028,11 +6854,17 @@ theorem unaryFrame_update (output : Qatlib.Concepts.BitWordCompiler.CanonicalCod
     subst k
     simp [unaryFrame]
 
+/-- Read a unary payload length and transfer that many natural-number payload bits to the output
+stack. -/
 def natProgram (l : Fin 3) : TM2.Stmt (fun _ : Fin 3 => Bool) (Fin 3) (Option Bool) :=
   if l=0 then StackCall.stmt Fin.castSucc (fun _ : Fin 1 => (0 : Fin 3)) 1 id (fun _ v => v) (unaryProgram 0)
   else if l=1 then StackCall.stmt id (fun _ : Fin 1 => (1 : Fin 3)) 2 id (fun _ v => v) (fieldProgram 0)
   else .halt
 
+/-- A run of `natProgram` from label `0` halts with stacks `triple rest []
+(n.bits.reverse++output)` after `(2*n.bits.length+3)` stack steps; its accumulated stack
+clock is equal to
+`n.bits.length*(7*n.bits.length+4*rest.length+2*output.length+16)+2*rest.length+8`. -/
 theorem nat_execution (n : ℕ) (rest output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRun natProgram (2*n.bits.length+3)
       ⟨some 0,saved,triple (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n++rest) [] output⟩=
@@ -6085,18 +6917,25 @@ theorem nat_execution (n : ℕ) (rest output : Qatlib.Concepts.BitWordCompiler.C
     simp only [List.length_append]
     ring
 
+/-- A run of `natProgram` from label `0` halts with stacks `triple rest []
+(n.bits.reverse++output)` after `(2*n.bits.length+3)` stack steps. -/
 theorem nat_run (n : ℕ) (rest output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRun natProgram (2*n.bits.length+3)
       ⟨some 0,saved,triple (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n++rest) [] output⟩=
       some ⟨none,none,triple rest [] (n.bits.reverse++output)⟩ :=
   (nat_execution n rest output saved).1
 
+/-- `Stacks.stackRunClock natProgram (2*n.bits.length+3) ⟨some 0,saved,triple (natBits n++rest)
+[] output⟩` equals
+`n.bits.length*(7*n.bits.length+4*rest.length+2*output.length+16)+2*rest.length+8`. -/
 theorem nat_clock (n : ℕ) (rest output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRunClock natProgram (2*n.bits.length+3)
       ⟨some 0,saved,triple (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n++rest) [] output⟩=
       n.bits.length*(7*n.bits.length+4*rest.length+2*output.length+16)+2*rest.length+8 :=
   (nat_execution n rest output saved).2
 
+/-- `Stacks.stackRunClock natProgram (2*n.bits.length+3) ⟨some 0,saved,triple (natBits n++rest)
+[] output⟩` is at most `40*(1+(natBits n++rest).length+output.length)^2`. -/
 theorem nat_clock_bound (n : ℕ) (rest output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRunClock natProgram (2*n.bits.length+3)
       ⟨some 0,saved,triple (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n++rest) [] output⟩≤
@@ -6117,15 +6956,20 @@ theorem nat_clock_bound (n : ℕ) (rest output : Qatlib.Concepts.BitWordCompiler
   change _≤40*B^2
   nlinarith
 
+/-- Discard one reader bit for each marker in the count stack. -/
 def skipProgram (_ : Fin 1) : TM2.Stmt (fun _ : Fin 2 => Bool) (Fin 1) (Option Bool) :=
   .pop 1 (fun _ bit => bit) (.branch (fun bit => bit.isSome)
     (.pop 0 (fun _ bit => bit) (.goto (fun _ => 0))) .halt)
 
+/-- `TM2.step skipProgram ⟨some 0,saved,Stacks.stackPair (bit::rest) (true::count)⟩` equals
+`some ⟨some 0,some bit,Stacks.stackPair rest count⟩`. -/
 theorem skip_step (bit : Bool) (rest count : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     TM2.step skipProgram ⟨some 0,saved,Stacks.stackPair (bit::rest) (true::count)⟩=
       some ⟨some 0,some bit,Stacks.stackPair rest count⟩ := by
   simp [TM2.step,skipProgram,TM2.stepAux]
 
+/-- A run of `skipProgram` from label `0` halts with stacks `Stacks.stackPair rest []` after
+`(bits.length+1)` stack steps. -/
 theorem skip_run (bits rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRun skipProgram (bits.length+1)
       ⟨some 0,saved,Stacks.stackPair (bits++rest) (List.replicate bits.length true)⟩=
@@ -6136,6 +6980,9 @@ theorem skip_run (bits rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bit
     simpa only [List.length_cons,List.replicate_succ,List.cons_append,Stacks.stackRun,skip_step,Option.bind_some]
       using ih (some bit)
 
+/-- `Stacks.stackRunClock skipProgram (bits.length+1) ⟨some 0,saved,Stacks.stackPair
+(bits++rest) (List.replicate bits.length true)⟩` equals
+`bits.length*(2*(bits.length+rest.length)+5)+3`. -/
 theorem skip_clock (bits rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRunClock skipProgram (bits.length+1)
       ⟨some 0,saved,Stacks.stackPair (bits++rest) (List.replicate bits.length true)⟩=
@@ -6152,11 +6999,15 @@ theorem skip_clock (bits rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
     rw [ih]
     simp [skipProgram,Stacks.stackClock]
     ring
+/-- Read a unary payload length and discard the corresponding payload bits. -/
 def skipNatProgram (l : Fin 3) : TM2.Stmt (fun _ : Fin 2 => Bool) (Fin 3) (Option Bool) :=
   if l=0 then StackCall.stmt id (fun _ : Fin 1 => (0 : Fin 3)) 1 id (fun _ v => v) (unaryProgram 0)
   else if l=1 then StackCall.stmt id (fun _ : Fin 1 => (1 : Fin 3)) 2 id (fun _ v => v) (skipProgram 0)
   else .halt
 
+/-- A run of `skipNatProgram` from label `0` halts with stacks `Stacks.stackPair rest []` after
+`(2*n.bits.length+3)` stack steps; its accumulated stack clock is equal to
+`n.bits.length*(6*n.bits.length+4*rest.length+14)+2*rest.length+8`. -/
 theorem skipNat_execution (n : ℕ) (rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRun skipNatProgram (2*n.bits.length+3)
       ⟨some 0,saved,Stacks.stackPair (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n++rest) []⟩=
@@ -6205,6 +7056,8 @@ theorem skipNat_execution (n : ℕ) (rest : Qatlib.Concepts.BitWordCompiler.Cano
     simp only [List.length_append]
     ring
 
+/-- `Stacks.stackRunClock skipNatProgram (2*n.bits.length+3) ⟨some 0,saved,Stacks.stackPair
+(natBits n++rest) []⟩` is at most `40*(1+(natBits n++rest).length)^2`. -/
 theorem skipNat_clock_bound (n : ℕ) (rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Option Bool) :
     Stacks.stackRunClock skipNatProgram (2*n.bits.length+3)
       ⟨some 0,saved,Stacks.stackPair (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n++rest) []⟩≤40*(1+(Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n++rest).length)^2 := by
@@ -6221,18 +7074,24 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall
 variable {K J : Type} [DecidableEq K] [DecidableEq J]
     (code : K → J) (saved : J → List Bool) (S : K → List Bool)
 
+/-- Insert subroutine stacks at indices in the image of the stack map and retain the saved
+stacks elsewhere. -/
 noncomputable def frame : J → List Bool := by
   classical
   exact fun j => if h : ∃ k, code k=j then S (Classical.choose h) else saved j
 
 omit [DecidableEq K] [DecidableEq J] in
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem frame_at (hinj : Function.Injective code) (k : K) : frame code saved S (code k)=S k := by
   classical
   have h : ∃ k', code k'=code k := ⟨k,rfl⟩
   rw [frame,dif_pos h]
   exact congrArg S (hinj (Classical.choose_spec h))
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem frame_update (hinj : Function.Injective code) (k : K) (bits : List Bool) :
     frame code saved (Function.update S k bits)=Function.update (frame code saved S) (code k) bits := by
   classical
@@ -6250,6 +7109,7 @@ theorem frame_update (hinj : Function.Injective code) (k : K) (bits : List Bool)
 
 omit [DecidableEq K] [DecidableEq J] in
 
+/-- Under the stated hypotheses, `frame code saved S` equals `saved`. -/
 theorem frame_same (hinj : Function.Injective code) (hS : ∀ k, saved (code k)=S k) :
     frame code saved S=saved := by
   classical
@@ -6264,10 +7124,13 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Turing
 variable {K : Type} [DecidableEq K] {Γ : K → Type} {Λ σ : Type}
 
+/-- A run of `M` from `first` reaches `TM2.step M first` after `1` stack step. -/
 theorem run_one (M : Λ → TM2.Stmt Γ Λ σ) (first : TM2.Cfg Γ Λ σ) : stackRun M 1 first=TM2.step M first := by
   simp only [stackRun]
   cases TM2.step M first <;> rfl
 
+/-- Under the stated hypotheses, `stackRunMaxClock M (n+m) first` equals `max (stackRunMaxClock
+M n first) (stackRunMaxClock M m mid)`. -/
 theorem maxClock_add (M : Λ → TM2.Stmt Γ Λ σ) (n m : ℕ) (first mid : TM2.Cfg Γ Λ σ)
     (h : stackRun M n first=some mid) :
     stackRunMaxClock M (n+m) first=max (stackRunMaxClock M n first) (stackRunMaxClock M m mid) := by
@@ -6285,6 +7148,7 @@ theorem maxClock_add (M : Λ → TM2.Stmt Γ Λ σ) (n m : ℕ) (first mid : TM2
       simp only [stackRunMaxClock,hs]
       rw [ih next hn,Nat.max_assoc]
 
+/-- `stackRunMaxClock M n first` is at most `stackRunClock M n first`. -/
 theorem maxClock_le_clock (M : Λ → TM2.Stmt Γ Λ σ) (n : ℕ) (first : TM2.Cfg Γ Λ σ) :
     stackRunMaxClock M n first≤stackRunClock M n first := by
   induction n generalizing first with
@@ -6311,6 +7175,8 @@ variable {K J Λ Λ' σ ρ : Type} [DecidableEq K] [DecidableEq J]
 
 include hE hupdate hget hput in
 
+/-- Under the stated hypotheses, `Stacks.stackRunMaxClock N n (cfg labelCode returnTo put E
+saved first)` equals `Stacks.stackRunMaxClock M n first`. -/
 theorem max_clock (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
     (N : Λ' → TM2.Stmt (fun _ : J => Bool) Λ' ρ)
     (hcode : ∀ l, N (labelCode l)=stmt stackCode labelCode returnTo get put (M l))
@@ -6336,11 +7202,14 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization
 open Turing
 
+/-- Store a bit list in the unique stack indexed by `Fin 1`. -/
 def singleStack (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 1 →
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits := fun _ => bits
 
+/-- `singleStack bits 0` equals `bits`. -/
 @[simp] theorem singleStack_zero (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : singleStack bits 0=bits := rfl
 
+/-- `Function.update (singleStack bits) 0 rest` equals `singleStack rest`. -/
 @[simp] theorem singleStack_update (bits rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (singleStack bits) 0 rest=singleStack rest := by
   funext k
@@ -6348,14 +7217,19 @@ def singleStack (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : F
   subst k
   simp [singleStack]
 
+/-- Pop and discard all bits in the unique stack, then halt. -/
 def drainProgram (_ : Fin 1) : TM2.Stmt (fun _ : Fin 1 => Bool) (Fin 1) Symbol :=
   .pop 0 (fun _ bit => bit) (.branch (fun bit => bit.isSome) (.goto (fun _ => 0)) .halt)
 
+/-- `TM2.step drainProgram ⟨some 0,saved,singleStack (bit::bits)⟩` equals `some ⟨some 0,some
+bit,singleStack bits⟩`. -/
 theorem drain_step (bit : Bool) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Symbol) :
     TM2.step drainProgram ⟨some 0,saved,singleStack (bit::bits)⟩=
       some ⟨some 0,some bit,singleStack bits⟩ := by
   simp [TM2.step,drainProgram,TM2.stepAux]
 
+/-- A run of `drainProgram` from label `0` halts with stacks `singleStack []` after
+`(bits.length+1)` stack steps. -/
 theorem drain_run (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Symbol) :
     Stacks.stackRun drainProgram (bits.length+1) ⟨some 0,saved,singleStack bits⟩=
       some ⟨none,none,singleStack []⟩ := by
@@ -6363,6 +7237,8 @@ theorem drain_run (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (
   | nil => simp [Stacks.stackRun,TM2.step,drainProgram,TM2.stepAux]
   | cons bit bits ih => simpa only [List.length_cons,Stacks.stackRun,drain_step,Option.bind_some] using ih (some bit)
 
+/-- `Stacks.stackRunClock drainProgram (bits.length+1) ⟨some 0,saved,singleStack bits⟩` equals
+`bits.length^2+3*bits.length+3`. -/
 theorem drain_clock (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Symbol) :
     Stacks.stackRunClock drainProgram (bits.length+1) ⟨some 0,saved,singleStack bits⟩=
       bits.length^2+3*bits.length+3 := by
@@ -6376,6 +7252,8 @@ theorem drain_clock (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     simp [drainProgram,Stacks.stackClock]
     ring
 
+/-- A tape-cell list representing a dense word consists of that word followed by a finite list
+of blank cells. -/
 theorem dense_padding (cells : List Symbol) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (h : ListBlank.mk cells=ListBlank.mk (bits.map some)) :
     ∃ padding, cells=bits.map some++List.replicate padding none := by
@@ -6391,9 +7269,11 @@ theorem dense_padding (cells : List Symbol) (bits : Qatlib.Concepts.BitWordCompi
     simpa only [hp,List.replicate_zero,List.append_nil] using he.symm
   · exact ⟨padding,he⟩
 
+/-- The finite control labels for packed-tape normalization. -/
 inductive Label where | emit | read | drainL | drainR | done deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.emit⟩
 
+/-- The TM2 program implementing packed-tape normalization. -/
 def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Symbol
   | .emit => .branch (fun head => head.isSome)
       (.push 2 (fun head => head.getD false) (.goto (fun _ => .read))) (.goto (fun _ => .drainL))
@@ -6405,15 +7285,22 @@ def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Symbol
       id (fun _ v => v) (drainProgram 0)
   | .done => .halt
 
+/-- `TM2.step program ⟨some .emit,some bit,Parsing.triple left right out⟩` equals `some ⟨some
+.read,some bit,Parsing.triple left right (bit::out)⟩`. -/
 theorem emit_some_step (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit : Bool) :
     TM2.step program ⟨some .emit,some bit,Parsing.triple left right out⟩=
       some ⟨some .read,some bit,Parsing.triple left right (bit::out)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `TM2.step program ⟨some .emit,none,Parsing.triple left right out⟩` equals `some ⟨some
+.drainL,none,Parsing.triple left right out⟩`. -/
 theorem emit_none_step (left right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     TM2.step program ⟨some .emit,none,Parsing.triple left right out⟩=
       some ⟨some .drainL,none,Parsing.triple left right out⟩ := rfl
 
+/-- Under the stated hypotheses, `TM2.step program ⟨some .read,head,Parsing.triple
+(Simulation.pack left) (Simulation.pack right) out⟩` equals `some ⟨some
+.emit,right.headI,Parsing.triple (Simulation.pack left) (Simulation.pack right.tail) out⟩`. -/
 theorem read_step (left right : List Symbol) (head : Symbol) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     TM2.step program ⟨some .read,head,Parsing.triple (Simulation.pack left) (Simulation.pack right) out⟩=
       some ⟨some .emit,right.headI,Parsing.triple (Simulation.pack left) (Simulation.pack right.tail) out⟩ := by
@@ -6424,11 +7311,16 @@ theorem read_step (left right : List Symbol) (head : Symbol) (out : Qatlib.Conce
   rw [Simulation.pop_right] at hs
   simpa only [TM2.step,program,StackCall.cfg,Parsing.unaryFrame,Stacks.stackPair_zero,Stacks.stackPair_one,TM2.stepAux] using! congrArg some hs
 
+/-- `Stacks.stackRunClock program 1 ⟨some .emit,some bit,Parsing.triple left right out⟩` equals
+`2*out.length+4`. -/
 theorem emit_clock (left right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit : Bool) :
     Stacks.stackRunClock program 1 ⟨some .emit,some bit,Parsing.triple left right out⟩=2*out.length+4 := by
   simp [Stacks.stackRunClock,program,Stacks.stackClock]
   omega
 
+/-- Under the stated hypotheses, `Stacks.stackRunClock program 1 ⟨some .read,head,Parsing.triple
+(Simulation.pack left) (Simulation.pack right) out⟩` equals `if right=[] then 5 else
+8*right.length+1`. -/
 theorem read_clock (left right : List Symbol) (head : Symbol) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Stacks.stackRunClock program 1
       ⟨some .read,head,Parsing.triple (Simulation.pack left) (Simulation.pack right) out⟩=
@@ -6449,12 +7341,17 @@ theorem read_clock (left right : List Symbol) (head : Symbol) (out : Qatlib.Conc
     simp [Simulation.popSymbol,Stacks.stackClock,Simulation.pack]
     ring
 
+/-- A run of `program` from label `.emit` reaches label `.emit` with stacks `Parsing.triple
+(Simulation.pack left) (Simulation.pack right.tail) (bit::out)` after `2` stack steps. -/
 theorem emit_read (left right : List Symbol) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit : Bool) :
     Stacks.stackRun program 2
       ⟨some .emit,some bit,Parsing.triple (Simulation.pack left) (Simulation.pack right) out⟩=
       some ⟨some .emit,right.headI,Parsing.triple (Simulation.pack left) (Simulation.pack right.tail) (bit::out)⟩ := by
   simp only [Stacks.stackRun,emit_some_step,Option.bind_some,read_step]
 
+/-- `Stacks.stackRunClock program 2 ⟨some .emit,some bit,Parsing.triple (Simulation.pack left)
+(Simulation.pack right) out⟩` equals `(2*out.length+4)+(if right=[] then 5 else
+8*right.length+1)`. -/
 theorem emit_read_clock (left right : List Symbol) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (bit : Bool) :
     Stacks.stackRunClock program 2
       ⟨some .emit,some bit,Parsing.triple (Simulation.pack left) (Simulation.pack right) out⟩=
@@ -6466,6 +7363,9 @@ theorem emit_read_clock (left right : List Symbol) (out : Qatlib.Concepts.BitWor
         emit_some_step (Simulation.pack left) (Simulation.pack right) out bit
   rw [show 2=1+1 from rfl,Stacks.clock_add program 1 1 _ _ hs,emit_clock,read_clock]
 
+/-- A run of `program` from label `.emit` reaches label `.emit` with stacks `Parsing.triple
+(Simulation.pack left) (Simulation.pack (List.replicate (padding-1) none))
+((bit::bits).reverse++out)` after `(2*(bit::bits).length)` stack steps. -/
 theorem emit_word (bit : Bool) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (left : List Symbol) (padding : ℕ) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Stacks.stackRun program (2*(bit::bits).length)
       ⟨some .emit,some bit,Parsing.triple (Simulation.pack left)
@@ -6487,6 +7387,10 @@ theorem emit_word (bit : Bool) (bits : Qatlib.Concepts.BitWordCompiler.Canonical
     rw [hs,Option.bind_some]
     simpa only [List.reverse_cons,List.append_assoc,List.singleton_append] using! ih next (bit::out)
 
+/-- `Stacks.stackRunClock program (2*(bit::bits).length) ⟨some .emit,some bit,Parsing.triple
+(Simulation.pack left) (Simulation.pack (bits.map some++List.replicate padding none)) out⟩`
+equals `(bit::bits).length*(2*out.length+5*(bit::bits).length+8*padding)+(if padding=0 then
+4 else 0)`. -/
 theorem emit_word_clock (bit : Bool) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (left : List Symbol) (padding : ℕ) (out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Stacks.stackRunClock program (2*(bit::bits).length)
       ⟨some .emit,some bit,Parsing.triple (Simulation.pack left)
@@ -6507,36 +7411,51 @@ theorem emit_word_clock (bit : Bool) (bits : Qatlib.Concepts.BitWordCompiler.Can
     simp only [List.cons_ne_nil,if_false,List.length_cons,
       List.length_append,List.length_map,List.length_replicate]
     ring
+/-- Embed the left stacks for packed-tape normalization while retaining the supplied contents of
+the other stack banks. -/
 def leftFrame (right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 1 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 3 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   Parsing.triple (S 0) right out
 
+/-- Embed the right stacks for packed-tape normalization while retaining the supplied contents
+of the other stack banks. -/
 def rightFrame (left out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 1 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 3 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   Parsing.triple left (S 0) out
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem leftFrame_at (right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 1 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 1) :
     leftFrame right out S 0=S k := by
   have hk : k=0 := by apply Fin.ext; have hb := k.isLt; omega
   subst k
   rfl
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem rightFrame_at (left out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 1 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 1) :
     rightFrame left out S 1=S k := by
   have hk : k=0 := by apply Fin.ext; have hb := k.isLt; omega
   subst k
   rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem leftFrame_update (right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 1 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 1) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     leftFrame right out (Function.update S k bits)=Function.update (leftFrame right out S) 0 bits := by
   have hk : k=0 := by apply Fin.ext; have hb := k.isLt; omega
   subst k
   simp [leftFrame]
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem rightFrame_update (left out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 1 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 1) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     rightFrame left out (Function.update S k bits)=Function.update (rightFrame left out S) 1 bits := by
   have hk : k=0 := by apply Fin.ext; have hb := k.isLt; omega
   subst k
   simp [rightFrame]
 
+/-- A run of `program` from label `.drainL` reaches label `.drainR` with stacks `Parsing.triple
+[] right out` after `(left.length+1)` stack steps; its accumulated stack clock is equal to
+`left.length^2+3*left.length+3`. -/
 theorem drain_left (left right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Symbol) :
     Stacks.stackRun program (left.length+1) ⟨some .drainL,saved,Parsing.triple left right out⟩=
       some ⟨some .drainR,none,Parsing.triple [] right out⟩ ∧
@@ -6552,6 +7471,9 @@ theorem drain_left (left right out : Qatlib.Concepts.BitWordCompiler.CanonicalCo
   · simpa only [StackCall.cfg,leftFrame,singleStack] using! hr
   · exact hc.trans (drain_clock left saved)
 
+/-- A run of `program` from label `.drainR` reaches label `.done` with stacks `Parsing.triple
+left [] out` after `(right.length+1)` stack steps; its accumulated stack clock is equal to
+`right.length^2+3*right.length+3`. -/
 theorem drain_right (left right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Symbol) :
     Stacks.stackRun program (right.length+1) ⟨some .drainR,saved,Parsing.triple left right out⟩=
       some ⟨some .done,none,Parsing.triple left [] out⟩ ∧
@@ -6567,6 +7489,9 @@ theorem drain_right (left right out : Qatlib.Concepts.BitWordCompiler.CanonicalC
   · simpa only [StackCall.cfg,rightFrame,singleStack] using! hr
   · exact hc.trans (drain_clock right saved)
 
+/-- A run of `program` from label `.emit` halts with stacks `Parsing.triple [] [] out` after
+`(left.length+right.length+4)` stack steps; its accumulated stack clock is equal to
+`left.length^2+3*left.length+right.length^2+3*right.length+8`. -/
 theorem cleanup (left right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Stacks.stackRun program (left.length+right.length+4) ⟨some .emit,none,Parsing.triple left right out⟩=
       some ⟨none,none,Parsing.triple [] [] out⟩ ∧
@@ -6595,6 +7520,9 @@ theorem cleanup (left right out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec
       Stacks.clock_add program _ _ _ _ hE,hEC,hLC]
     ring
 
+/-- Under the stated input conditions, a run of `program` from label `.emit` halts with stacks
+`Parsing.triple [] [] (word.reverse++out)`; its accumulated stack clock is at most
+`100*(1+(Simulation.pack left).length+(Simulation.pack right).length+out.length)^2`. -/
 theorem complete (left right : List Symbol) (head : Symbol) (word out : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits)
     (htape : Simulation.tape left right head=Tape.mk₁ (word.map some)) :
     ∃ ticks,
@@ -6670,22 +7598,31 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Preparation
 open Turing
 
+/-- Store reader, temporary, left, and right bit lists in four numbered stacks. -/
 def quad (reader temp left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 4 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   fun k => if k=0 then reader else if k=1 then temp else if k=2 then left else right
 
+/-- Reading the first stack from `quad` recovers its corresponding list argument. -/
 @[simp] theorem quad_zero (r t l d : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : quad r t l d 0=r := by simp [quad]
 
+/-- Reading the second stack from `quad` recovers its corresponding list argument. -/
 @[simp] theorem quad_one (r t l d : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : quad r t l d 1=t := by simp [quad]
 
+/-- Reading the third stack from `quad` recovers its corresponding list argument. -/
 @[simp] theorem quad_two (r t l d : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : quad r t l d 2=l := by simp [quad]
 
+/-- Reading the fourth stack from `quad` recovers its corresponding list argument. -/
 @[simp] theorem quad_three (r t l d : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : quad r t l d 3=d := by simp [quad]
 
+/-- Updating the first stack in `quad` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem quad_update_zero (r t l d r' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (quad r t l d) 0 r'=quad r' t l d := by
   funext k
   by_cases h : k=0 <;> simp [quad,Function.update_apply,h]
 
+/-- Updating the second stack in `quad` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem quad_update_one (r t l d t' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (quad r t l d) 1 t'=quad r t' l d := by
   funext k
@@ -6693,6 +7630,8 @@ def quad (reader temp left right : Qatlib.Concepts.BitWordCompiler.CanonicalCode
   · subst k; simp [quad]
   · by_cases h0 : k=0 <;> simp [quad,h,h0]
 
+/-- Updating the fourth stack in `quad` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem quad_update_three (r t l d d' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (quad r t l d) 3 d'=quad r t l d' := by
   funext k
@@ -6712,10 +7651,13 @@ def quad (reader temp left right : Qatlib.Concepts.BitWordCompiler.CanonicalCode
         subst k
         simp [quad]
 
+/-- The local-state type for simulation input preparation, represented by `Symbol×Symbol`. -/
 abbrev Local := Symbol×Symbol
+/-- The finite control labels for simulation input preparation. -/
 inductive Label where | head | transfer (l : Fin 1) | load deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.head⟩
 
+/-- The TM2 program implementing simulation input preparation. -/
 def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Local
   | .head => .pop 0 (fun _ bit => (bit,bit)) (.goto (fun _ => .transfer 0))
   | .transfer l => StackCall.stmt (Fin.castAdd 2) Label.transfer .load Prod.snd
@@ -6723,11 +7665,16 @@ def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Local
   | .load => .pop 1 (fun s bit => (s.1,bit)) (.branch (fun s => s.2.isSome)
       (.push 3 (fun s => s.2.getD false) (.push 3 (fun _ => true) (.goto (fun _ => .load)))) .halt)
 
+/-- `TM2.step program ⟨some .load,(head,saved),quad [] (bit::rest) left (Simulation.pack
+right)⟩` equals `some ⟨some .load,(head,some bit),quad [] rest left (Simulation.pack (some
+bit::right))⟩`. -/
 theorem load_step (bit : Bool) (rest : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (right : List Symbol) (left : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (head saved : Symbol) :
     TM2.step program ⟨some .load,(head,saved),quad [] (bit::rest) left (Simulation.pack right)⟩=
       some ⟨some .load,(head,some bit),quad [] rest left (Simulation.pack (some bit::right))⟩ := by
   simp [TM2.step,program,TM2.stepAux,Simulation.pack]
 
+/-- A run of `program` from label `.load` halts with stacks `quad [] [] left (Simulation.pack
+(bits.reverse.map some++right))` after `(bits.length+1)` stack steps. -/
 theorem load_run (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (right : List Symbol) (left : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (head saved : Symbol) :
     Stacks.stackRun program (bits.length+1) ⟨some .load,(head,saved),quad [] bits left (Simulation.pack right)⟩=
       some ⟨none,(head,none),quad [] [] left (Simulation.pack (bits.reverse.map some++right))⟩ := by
@@ -6737,6 +7684,8 @@ theorem load_run (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (r
     simpa only [List.length_cons,Stacks.stackRun,load_step,Option.bind_some,List.reverse_cons,List.map_append,
       List.map_cons,List.map_nil,List.append_assoc,List.singleton_append] using ih (some bit::right) (some bit)
 
+/-- `Stacks.stackRunClock program (bits.length+1) ⟨some .load,(head,saved),quad [] bits left
+(Simulation.pack right)⟩` equals `bits.length*(5*bits.length+8*right.length+7)+3`. -/
 theorem load_clock (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (right : List Symbol) (left : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (head saved : Symbol) :
     Stacks.stackRunClock program (bits.length+1) ⟨some .load,(head,saved),quad [] bits left (Simulation.pack right)⟩=
       bits.length*(5*bits.length+8*right.length+7)+3 := by
@@ -6750,9 +7699,13 @@ theorem load_clock (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) 
     rw [ih]
     simp [program,Stacks.stackClock,Simulation.pack_length]
     ring
+/-- Embed the transfer stacks for simulation input preparation while retaining the supplied
+contents of the other stack banks. -/
 def transferFrame (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 2 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Fin 4 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   quad (S 0) (S 1) left right
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem transferFrame_at (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 2 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 2) :
     transferFrame left right S (Fin.castAdd 2 k)=S k := by
   by_cases h : k=0
@@ -6765,6 +7718,8 @@ theorem transferFrame_at (left right : Qatlib.Concepts.BitWordCompiler.Canonical
     subst k
     rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem transferFrame_update (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (S : Fin 2 → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (k : Fin 2) (bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     transferFrame left right (Function.update S k bits)=Function.update (transferFrame left right S) (Fin.castAdd 2 k) bits := by
   by_cases h : k=0
@@ -6777,11 +7732,15 @@ theorem transferFrame_update (left right : Qatlib.Concepts.BitWordCompiler.Canon
     subst k
     simp [transferFrame]
 
+/-- `TM2.step program ⟨some .head,saved,quad input [] left right⟩` equals `some ⟨some (.transfer
+0),(input.head?,input.head?),quad input.tail [] left right⟩`. -/
 theorem head_step (input left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Local) :
     TM2.step program ⟨some .head,saved,quad input [] left right⟩=
       some ⟨some (.transfer 0),(input.head?,input.head?),quad input.tail [] left right⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `Stacks.stackRunClock program 1 ⟨some .head,saved,quad input [] left right⟩` equals
+`input.length+input.tail.length+3`. -/
 theorem head_clock (input left right : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Local) :
     Stacks.stackRunClock program 1 ⟨some .head,saved,quad input [] left right⟩=
       input.length+input.tail.length+3 := by
@@ -6789,6 +7748,10 @@ theorem head_clock (input left right : Qatlib.Concepts.BitWordCompiler.Canonical
   simp [Stacks.stackRunClock,program,Stacks.stackClock]
   omega
 
+/-- A run of `program` from label `.head` halts with stacks `quad [] [] left (Simulation.pack
+(input.tail.map some++right))` after `(2*input.tail.length+3)` stack steps; its accumulated
+stack clock is equal to
+`input.tail.length*(7*input.tail.length+8*right.length+13)+input.length+9`. -/
 theorem complete (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (right : List Symbol) (left : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Local) :
     Stacks.stackRun program (2*input.tail.length+3)
       ⟨some .head,saved,quad input [] left (Simulation.pack right)⟩=
@@ -6831,6 +7794,8 @@ theorem complete (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (
       Stacks.clock_add program _ _ _ _ hH,head_clock,hTC]
     ring
 
+/-- `Stacks.stackRunClock program (2*input.tail.length+3) ⟨some .head,saved,quad input [] left
+(Simulation.pack right)⟩` is at most `10*(1+input.length+right.length)^2`. -/
 theorem clock_bound (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (right : List Symbol) (left : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (saved : Local) :
     Stacks.stackRunClock program (2*input.tail.length+3)
       ⟨some .head,saved,quad input [] left (Simulation.pack right)⟩≤10*(1+input.length+right.length)^2 := by
@@ -6844,6 +7809,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Preparation
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Subroutine
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 variable {Λ : Type} [Inhabited Λ]
+/-- The finite control labels for machine simulation and output normalization. -/
 inductive Label (Λ : Type) where
   | simulate (l : Λ)
   | normalize (l : Normalization.Label)
@@ -6851,12 +7817,20 @@ inductive Label (Λ : Type) where
   deriving DecidableEq,Fintype
 instance : Inhabited (Label Λ) := ⟨.simulate default⟩
 
+/-- The TM2 program implementing machine simulation and output normalization. -/
 def program (M : TM0.Machine Symbol Λ) : Label Λ → TM2.Stmt (fun _ : Fin 3 => Bool) (Label Λ) Symbol
   | .simulate l => StackCall.stmt Fin.castSucc Label.simulate (.normalize .emit) id (fun _ v => v)
       (Simulation.program M l)
   | .normalize l => StackCall.stmt id Label.normalize .done id (fun _ v => v) (Normalization.program l)
   | .done => .halt
 
+/-- Under the stated input conditions, a run of `(program M)` from `⟨some (.simulate
+l),head,Parsing.triple (Simulation.pack left) (Simulation.pack right) out⟩` reaches
+`(StackCall.cfg Label.simulate (.normalize .emit) (fun _ v : Symbol => v)
+(Parsing.unaryFrame out) head last)` after `ticks` stack steps; its accumulated stack clock
+is equal to `Stacks.stackRunClock (Simulation.program M) ticks (Simulation.cfg l left right
+head)` and maximum single-step clock is equal to `Stacks.stackRunMaxClock
+(Simulation.program M) ticks (Simulation.cfg l left right head)`. -/
 theorem simulate (M : TM0.Machine Symbol Λ) (ticks : ℕ)
     (l : Λ) (left right : List Symbol) (head : Symbol)
     (last : TM2.Cfg (fun _ : Fin 2 => Bool) Λ Symbol) (out : Bits)
@@ -6881,6 +7855,12 @@ theorem simulate (M : TM0.Machine Symbol Λ) (ticks : ℕ)
     (fun _ _ => rfl) (fun _ _ _ => rfl) (Simulation.program M) (program M) hcode head ticks _ _ h
   exact ⟨hr,hc,hm⟩
 
+/-- Under the stated input conditions, a run of `(program M)` from `⟨some (.normalize
+.emit),head,S⟩` reaches `(StackCall.cfg Label.normalize .done (fun _ v : Symbol => v) id
+head last)` after `ticks` stack steps; its accumulated stack clock is equal to
+`Stacks.stackRunClock Normalization.program ticks ⟨some .emit,head,S⟩` and maximum
+single-step clock is equal to `Stacks.stackRunMaxClock Normalization.program ticks ⟨some
+.emit,head,S⟩`. -/
 theorem normalize (M : TM0.Machine Symbol Λ) (ticks : ℕ) (head : Symbol) (S : Fin 3 → Bits)
     (last : TM2.Cfg (fun _ : Fin 3 => Bool) Normalization.Label Symbol)
     (h : Stacks.stackRun Normalization.program ticks ⟨some .emit,head,S⟩=some last) :
@@ -6900,6 +7880,10 @@ theorem normalize (M : TM0.Machine Symbol Λ) (ticks : ℕ) (head : Symbol) (S :
     Normalization.program (program M) hcode head ticks _ _ h
   exact ⟨hr,hc,hm⟩
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.simulate default)`
+halts with stacks `Parsing.triple [] [] output.reverse`; its accumulated stack clock is at
+most `10000*(1+input.length+ticks)^2` and maximum single-step clock is at most
+`10000*(1+input.length+radius)^2`. -/
 theorem complete [Fintype Λ] (M : TM0.Machine Symbol Λ) (input output : Bits)
     (ticks radius : ℕ) (last : TM0.Cfg Symbol Λ)
     (hrun : run M ticks (TM0.init (input.map some))=some last)
@@ -7025,6 +8009,10 @@ theorem complete [Fintype Λ] (M : TM0.Machine Symbol Λ) (input output : Bits)
     have hp : 1+input.length+radius≤(1+input.length+radius)^2 := Nat.le_pow (by decide)
     omega
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.simulate 0)` halts
+with stacks `Parsing.triple [] [] output.reverse`; its accumulated stack clock is at most
+`10000*(1+input.length+time)^2` and maximum single-step clock is at most
+`10000*(1+input.length+space)^2`. -/
 theorem of_runs {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1)))
     (input output : Bits) (time space : ℕ) (h : Runs M input output time space) :
     ∃ steps,
@@ -7056,10 +8044,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Subroutine
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LoopCore
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 variable {Λ : Type} [Inhabited Λ]
+/-- The finite set of stack banks used by counter-controlled iteration. -/
 inductive Slot where
   | counter | temporary | left | right | output | reader
   deriving DecidableEq,Fintype
 
+/-- Assemble the named stack contents into the stack store for counter-controlled iteration. -/
 def store (counter temporary left right output reader : Bits) : Slot → Bits
   | .counter => counter
   | .temporary => temporary
@@ -7068,24 +8058,48 @@ def store (counter temporary left right output reader : Bits) : Slot → Bits
   | .output => output
   | .reader => reader
 
+/-- The local-state type for counter-controlled iteration, represented by
+`Symbol×Counter.Local×Symbol`. -/
 abbrev Local := Symbol×Counter.Local×Symbol
 
+/-- Extract the head component of the local state for counter-controlled iteration. -/
 def getHead (v : Local) : Symbol := v.1
+/-- Replace the head component of the local state for counter-controlled iteration, retaining
+its other components. -/
 def putHead (v : Local) (head : Symbol) : Local := (head,v.2)
+/-- Extract the counter component of the local state for counter-controlled iteration. -/
 def getCounter (v : Local) : Counter.Local := v.2.1
+/-- Replace the counter component of the local state for counter-controlled iteration, retaining
+its other components. -/
 def putCounter (v : Local) (c : Counter.Local) : Local := (v.1,c,v.2.2)
+/-- Extract the io component of the local state for counter-controlled iteration. -/
 def getIO (v : Local) : Symbol := v.2.2
+/-- Replace the io component of the local state for counter-controlled iteration, retaining its
+other components. -/
 def putIO (v : Local) (io : Symbol) : Local := (v.1,v.2.1,io)
+/-- Extract the prep component of the local state for counter-controlled iteration. -/
 def getPrep (v : Local) : Preparation.Local := (v.1,v.2.2)
+/-- Replace the prep component of the local state for counter-controlled iteration, retaining
+its other components. -/
 def putPrep (v : Local) (p : Preparation.Local) : Local := (p.1,v.2.1,p.2)
 
+/-- Map the counter subroutine stack indices into the stack banks for counter-controlled
+iteration. -/
 def counterCode (k : Fin 2) : Slot := if k=0 then .counter else .temporary
+/-- Map the machine subroutine stack indices into the stack banks for counter-controlled
+iteration. -/
 def machineCode (k : Fin 3) : Slot := if k=0 then .left else if k=1 then .right else .output
+/-- Map the transfer subroutine stack indices into the stack banks for counter-controlled
+iteration. -/
 def transferCode (k : Fin 2) : Slot := if k=0 then .output else .reader
+/-- Map the prep subroutine stack indices into the stack banks for counter-controlled iteration. -/
 def prepCode (k : Fin 4) : Slot :=
     if k=0 then .reader else if k=1 then .output else if k=2 then .left else .right
+/-- Map the drain subroutine stack indices into the stack banks for counter-controlled
+iteration. -/
 def drainCode (_ : Fin 1) : Slot := .counter
 
+/-- The finite control labels for counter-controlled iteration. -/
 inductive Label (Λ : Type) where
   | counter (l : Counter.Label)
   | branch
@@ -7098,6 +8112,7 @@ inductive Label (Λ : Type) where
   deriving DecidableEq,Fintype
 instance : Inhabited (Label Λ) := ⟨.counter .borrow⟩
 
+/-- The TM2 program implementing counter-controlled iteration. -/
 def program (M : TM0.Machine Symbol Λ) : Label Λ → TM2.Stmt (fun _ : Slot => Bool) (Label Λ) Local
   | .counter l => StackCall.stmt counterCode Label.counter .branch getCounter putCounter (Counter.program l)
   | .branch => .branch (fun v => (getCounter v).1)
@@ -7109,85 +8124,132 @@ def program (M : TM0.Machine Symbol Λ) : Label Λ → TM2.Stmt (fun _ : Slot =>
   | .drain l => StackCall.stmt drainCode Label.drain .done getIO putIO (Normalization.drainProgram l)
   | .done => .halt
 
+/-- `counterCode` is injective. -/
 theorem counterCode_injective : Function.Injective counterCode := by decide
 
+/-- `machineCode` is injective. -/
 theorem machineCode_injective : Function.Injective machineCode := by decide
 
+/-- `transferCode` is injective. -/
 theorem transferCode_injective : Function.Injective transferCode := by decide
 
+/-- `prepCode` is injective. -/
 theorem prepCode_injective : Function.Injective prepCode := by decide
 
+/-- `drainCode` is injective. -/
 theorem drainCode_injective : Function.Injective drainCode := by decide
 
+/-- Embed the counter stacks for counter-controlled iteration while retaining the supplied
+contents of the other stack banks. -/
 def counterFrame (left right output reader : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store (S 0) (S 1) left right output reader
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem counterFrame_at (left right output reader : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     counterFrame left right output reader S (counterCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem counterFrame_update (left right output reader : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     counterFrame left right output reader (Function.update S k bits)=Function.update (counterFrame left right output reader S) (counterCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [counterFrame,counterCode,store]
 
+/-- Embed the machine stacks for counter-controlled iteration while retaining the supplied
+contents of the other stack banks. -/
 def machineFrame (counter temporary reader : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store counter temporary (S 0) (S 1) (S 2) reader
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem machineFrame_at (counter temporary reader : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     machineFrame counter temporary reader S (machineCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem machineFrame_update (counter temporary reader : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     machineFrame counter temporary reader (Function.update S k bits)=Function.update (machineFrame counter temporary reader S) (machineCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [machineFrame,machineCode,store]
 
+/-- Embed the transfer stacks for counter-controlled iteration while retaining the supplied
+contents of the other stack banks. -/
 def transferFrame (counter temporary left right : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store counter temporary left right (S 0) (S 1)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem transferFrame_at (counter temporary left right : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     transferFrame counter temporary left right S (transferCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem transferFrame_update (counter temporary left right : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     transferFrame counter temporary left right (Function.update S k bits)=Function.update (transferFrame counter temporary left right S) (transferCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [transferFrame,transferCode,store]
 
+/-- Embed the prep stacks for counter-controlled iteration while retaining the supplied contents
+of the other stack banks. -/
 def prepFrame (counter temporary : Bits) (S : Fin 4 → Bits) : Slot → Bits :=
     store counter temporary (S 2) (S 3) (S 1) (S 0)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem prepFrame_at (counter temporary : Bits) (S : Fin 4 → Bits) (k : Fin 4) :
     prepFrame counter temporary S (prepCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem prepFrame_update (counter temporary : Bits) (S : Fin 4 → Bits) (k : Fin 4) (bits : Bits) :
     prepFrame counter temporary (Function.update S k bits)=Function.update (prepFrame counter temporary S) (prepCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [prepFrame,prepCode,store]
 
+/-- Embed the drain stacks for counter-controlled iteration while retaining the supplied
+contents of the other stack banks. -/
 def drainFrame (temporary left right output reader : Bits) (S : Fin 1 → Bits) : Slot → Bits :=
     store (S 0) temporary left right output reader
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainFrame_at (temporary left right output reader : Bits) (S : Fin 1 → Bits) (k : Fin 1) :
     drainFrame temporary left right output reader S (drainCode k)=S k := by
   fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainFrame_update (temporary left right output reader : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainFrame temporary left right output reader (Function.update S k bits)=Function.update (drainFrame temporary left right output reader S) (drainCode k) bits := by
   funext j
   fin_cases k
   cases j <;> simp [drainFrame,drainCode,store]
 
+/-- Replacing the counter local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putCounter_get (v : Local) : putCounter v (getCounter v)=v := rfl
 
+/-- Replacing the head local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putHead_get (v : Local) : putHead v (getHead v)=v := rfl
 
+/-- Replacing the io local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putIO_get (v : Local) : putIO v (getIO v)=v := rfl
 
+/-- Replacing the prep local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putPrep_get (v : Local) : putPrep v (getPrep v)=v := rfl
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.counter .borrow)`
+reaches label `.branch` with stacks `store next [] left right output reader`; its
+accumulated stack clock is at most `10*(1+counter.length)^2` and the resulting counter has
+the same length and binary value one less than the starting counter. -/
 theorem decrement_positive (M : TM0.Machine Symbol Λ) (counter left right output reader : Bits) (v : Local)
     (hp : 0<binaryValue counter) :
     ∃ ticks next, next.length=counter.length ∧ binaryValue next+1=binaryValue counter ∧
@@ -7204,6 +8266,10 @@ theorem decrement_positive (M : TM0.Machine Symbol Λ) (counter left right outpu
     putCounter_get,counterFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨ticks,next,hlen,hval,hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.counter .borrow)`
+reaches label `.branch` with stacks `store (List.replicate counter.length true) [] left
+right output reader` after `(2*counter.length+2)` stack steps; its accumulated stack clock
+is at most `10*(1+counter.length)^2`. -/
 theorem decrement_zero (M : TM0.Machine Symbol Λ) (counter left right output reader : Bits) (v : Local)
     (hz : binaryValue counter=0) :
     Stacks.stackRun (program M) (2*counter.length+2)
@@ -7220,6 +8286,10 @@ theorem decrement_zero (M : TM0.Machine Symbol Λ) (counter left right output re
     putCounter_get,counterFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.machine (.simulate
+0))` reaches label `(.transfer 0)` with stacks `store counter temporary [] [] output.reverse
+reader`; its accumulated stack clock is at most `10000*(1+input.length+time)^2` and maximum
+single-step clock is at most `10000*(1+input.length+space)^2`. -/
 theorem machine_call {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1)))
     (counter temporary reader input output : Bits) (v : Local) (time space : ℕ)
     (hhead : getHead v=(input.map some).headI) (h : Runs M input output time space) :
@@ -7246,6 +8316,9 @@ theorem machine_call {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1)))
     machineFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,← hhead,putHead_get] at hN hNC hNM
   exact ⟨ticks,hN,hNC.trans_le (by simpa only [← hhead] using hc),hNM.trans_le (by simpa only [← hhead] using hm)⟩
 
+/-- A run of `(program M)` from label `(.transfer 0)` reaches label `(.prepare .head)` with
+stacks `store counter temporary left right [] word` after `(word.length+1)` stack steps; its
+accumulated stack clock is equal to `word.length*(2*word.length+5)+3`. -/
 theorem transfer_call (M : TM0.Machine Symbol Λ) (counter temporary left right word : Bits) (v : Local) :
     Stacks.stackRun (program M) (word.length+1)
       ⟨some (.transfer 0),v,store counter temporary left right word.reverse []⟩=
@@ -7265,6 +8338,10 @@ theorem transfer_call (M : TM0.Machine Symbol Λ) (counter temporary left right 
   simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using
       Stacks.transfer_clock word.reverse [] (getIO v)
 
+/-- A run of `(program M)` from label `(.prepare .head)` reaches label `(.counter .borrow)` with
+stacks `store counter temporary [] (Simulation.pack (word.tail.map some)) [] []` after
+`(2*word.tail.length+3)` stack steps; its accumulated stack clock is at most
+`10*(1+word.length)^2`. -/
 theorem preparation_call (M : TM0.Machine Symbol Λ) (counter temporary word : Bits) (v : Local) :
     Stacks.stackRun (program M) (2*word.tail.length+3)
       ⟨some (.prepare .head),v,store counter temporary [] [] [] word⟩=
@@ -7284,9 +8361,15 @@ theorem preparation_call (M : TM0.Machine Symbol Λ) (counter temporary word : B
     Preparation.quad_three] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- `(word.map some).headI` equals `word.head?`. -/
 @[simp] theorem head_map_some (word : Bits) : (word.map some).headI=word.head? := by
   cases word <;> rfl
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.machine (.simulate
+0))` reaches label `(.counter .borrow)` with stacks `store counter [] [] (Simulation.pack
+(output.tail.map some)) [] []`; its accumulated stack clock is at most
+`20000*(1+input.length+output.length+time)^2` and maximum single-step clock is at most
+`20000*(1+input.length+output.length+space)^2`. -/
 theorem apply_call {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1)))
     (counter input output : Bits) (v : Local) (time space : ℕ)
     (hhead : getHead v=input.head?) (h : Runs M input output time space) :
@@ -7333,6 +8416,9 @@ theorem apply_call {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1)))
         (max_le (by nlinarith only [hMM,h1sq]) (by nlinarith only [hTM,h2sq,Nat.zero_le (output.length^2)]))
     nlinarith only [hPM,hPC,h2sq]
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.normalize .emit)`
+reaches label `(.drain 0)` with stacks `store counter [] [] [] input.reverse []`; its
+accumulated stack clock is at most `400*(1+input.length)^2`. -/
 theorem normalize_call (M : TM0.Machine Symbol Λ) (counter input : Bits) (v : Local)
     (hhead : getHead v=input.head?) :
     ∃ ticks,
@@ -7358,6 +8444,9 @@ theorem normalize_call (M : TM0.Machine Symbol Λ) (counter input : Bits) (v : L
   rw [Simulation.pack_length,List.length_map]
   nlinarith only [hlen,Nat.mul_le_mul hlen hlen,Nat.zero_le input.length]
 
+/-- A run of `(program M)` from label `(.drain 0)` reaches label `.done` with stacks `store []
+[] [] [] output []` after `(counter.length+1)` stack steps; its accumulated stack clock is
+equal to `counter.length^2+3*counter.length+3`. -/
 theorem drain_call (M : TM0.Machine Symbol Λ) (counter output : Bits) (v : Local) :
     Stacks.stackRun (program M) (counter.length+1)
       ⟨some (.drain 0),v,store counter [] [] [] output []⟩=
@@ -7374,6 +8463,9 @@ theorem drain_call (M : TM0.Machine Symbol Λ) (counter output : Bits) (v : Loca
     drainFrame,Normalization.singleStack_zero,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock counter (getIO v))⟩
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.normalize .emit)`
+halts with stacks `store [] [] [] [] input.reverse []`; its accumulated stack clock is at
+most `500*(1+input.length)^2+5*(1+counter.length)^2`. -/
 theorem finish_call (M : TM0.Machine Symbol Λ) (counter input : Bits) (v : Local)
     (hhead : getHead v=input.head?) :
     ∃ ticks,
@@ -7398,35 +8490,49 @@ theorem finish_call (M : TM0.Machine Symbol Λ) (counter input : Bits) (v : Loca
     rw [hd]
     nlinarith only [hNC,Nat.zero_le (input.length^2),Nat.zero_le (counter.length^2)]
 
+/-- A run of `(program M)` from label `.branch` reaches label `(.machine (.simulate default))`
+with stacks `S` after `1` stack step. -/
 theorem branch_positive (M : TM0.Machine Symbol Λ) (v : Local) (S : Slot → Bits) :
     Stacks.stackRun (program M) 1 ⟨some .branch,putCounter v (true,none),S⟩=
       some ⟨some (.machine (.simulate default)),putCounter v (true,none),S⟩ := rfl
 
+/-- A run of `(program M)` from label `.branch` reaches label `(.normalize .emit)` with stacks
+`S` after `1` stack step. -/
 theorem branch_zero (M : TM0.Machine Symbol Λ) (v : Local) (S : Slot → Bits) :
     Stacks.stackRun (program M) 1 ⟨some .branch,putCounter v (false,none),S⟩=
       some ⟨some (.normalize .emit),putCounter v (false,none),S⟩ := rfl
 
+/-- `Stacks.stackRunClock (program M) 1 ⟨some .branch,v,S⟩` equals `1`. -/
 theorem branch_clock (M : TM0.Machine Symbol Λ) (v : Local) (S : Slot → Bits) :
     Stacks.stackRunClock (program M) 1 ⟨some .branch,v,S⟩=1 := by
   simp [Stacks.stackRunClock,program,Stacks.stackClock]
 
+/-- `iterSum f cost (n+1) x` equals `cost x+iterSum f cost n (f x)`. -/
 theorem iterSum_succ_left (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (x : Bits) :
     iterSum f cost (n+1) x=cost x+iterSum f cost n (f x) := by
   induction n with
   | zero => simp [iterSum]
   | succ n ih => rw [iterSum_succ,ih,iterSum_succ,Function.iterate_succ_apply]; omega
 
+/-- A cumulative size-and-cost estimate for an iterate, including its output length and the
+accumulated intermediate costs. -/
 def charge (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (x : Bits) : ℕ :=
   1+((f^[n]) x).length+iterSum f (fun y => 1+y.length+(f y).length+cost y) n x
 
+/-- `charge f cost 0 x` equals `1+x.length`. -/
 @[simp] theorem charge_zero (f : Bits → Bits) (cost : Bits → ℕ) (x : Bits) :
     charge f cost 0 x=1+x.length := rfl
 
+/-- `charge f cost (n+1) x` equals `charge f cost n (f x)+(1+x.length+(f x).length+cost x)`. -/
 theorem charge_succ (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (x : Bits) :
     charge f cost (n+1) x=charge f cost n (f x)+(1+x.length+(f x).length+cost x) := by
   simp only [charge,iterSum_succ_left,Function.iterate_succ_apply]
   omega
 
+/-- Under the stated input conditions, a run of `(program M)` from label `(.counter .borrow)`
+halts with stacks `store [] [] [] [] ((f^[n]) input).reverse []`; its accumulated stack
+clock is at most `20*(n+1)*(1+counter.length)^2+20000*(charge f tf n input)^2` and maximum
+single-step clock is at most `20*(n+1)*(1+counter.length)^2+20000*(charge f sf n input)^2`. -/
 theorem complete {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1)))
     (f : Bits → Bits) (tf sf : Bits → ℕ) (h : ∀ x, Runs M x (f x) (tf x) (sf x))
     (n : ℕ) (counter input : Bits) (v : Local)
@@ -7535,6 +8641,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LoopCore
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LoopInput
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec LoopCore
 variable {Λ : Type} [Inhabited Λ]
+/-- The finite control labels for uniform iteration input parsing. -/
 inductive Label (Λ : Type) where
   | reader (l : Fin 1)
   | parse (l : Fin 3)
@@ -7546,10 +8653,17 @@ inductive Label (Λ : Type) where
   deriving DecidableEq,Fintype
 instance : Inhabited (Label Λ) := ⟨.reader 0⟩
 
+/-- Map the parse subroutine stack indices into the stack banks for uniform iteration input
+parsing. -/
 def parseCode (k : Fin 3) : Slot := if k=0 then .reader else if k=1 then .counter else .temporary
+/-- Map the count subroutine stack indices into the stack banks for uniform iteration input
+parsing. -/
 def countCode (k : Fin 2) : Slot := if k=0 then .temporary else .counter
+/-- Map the skip subroutine stack indices into the stack banks for uniform iteration input
+parsing. -/
 def skipCode (k : Fin 2) : Slot := if k=0 then .reader else .temporary
 
+/-- The TM2 program implementing uniform iteration input parsing. -/
 def program (M : TM0.Machine Symbol Λ) : Label Λ → TM2.Stmt (fun _ : Slot => Bool) (Label Λ) Local
   | .reader l => StackCall.stmt transferCode Label.reader (.parse 0) getIO putIO (Stacks.transferProgram l)
   | .parse l => StackCall.stmt parseCode Label.parse (.counter 0) getIO putIO (Parsing.natProgram l)
@@ -7559,37 +8673,58 @@ def program (M : TM0.Machine Symbol Λ) : Label Λ → TM2.Stmt (fun _ : Slot =>
   | .loop l => StackCall.stmt id Label.loop .done id (fun _ v => v) (LoopCore.program M l)
   | .done => .halt
 
+/-- Embed the parse stacks for uniform iteration input parsing while retaining the supplied
+contents of the other stack banks. -/
 def parseFrame (S : Fin 3 → Bits) : Slot → Bits := store (S 1) (S 2) [] [] [] (S 0)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem parseFrame_at (S : Fin 3 → Bits) (k : Fin 3) : parseFrame S (parseCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem parseFrame_update (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     parseFrame (Function.update S k bits)=Function.update (parseFrame S) (parseCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [parseFrame,parseCode,store]
 
+/-- Embed the count stacks for uniform iteration input parsing while retaining the supplied
+contents of the other stack banks. -/
 def countFrame (reader : Bits) (S : Fin 2 → Bits) : Slot → Bits := store (S 1) (S 0) [] [] [] reader
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem countFrame_at (reader : Bits) (S : Fin 2 → Bits) (k : Fin 2) : countFrame reader S (countCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem countFrame_update (reader : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     countFrame reader (Function.update S k bits)=Function.update (countFrame reader S) (countCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [countFrame,countCode,store]
 
+/-- Embed the skip stacks for uniform iteration input parsing while retaining the supplied
+contents of the other stack banks. -/
 def skipFrame (counter : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store counter (S 1) [] [] [] (S 0)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem skipFrame_at (counter : Bits) (S : Fin 2 → Bits) (k : Fin 2) : skipFrame counter S (skipCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem skipFrame_update (counter : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     skipFrame counter (Function.update S k bits)=Function.update (skipFrame counter S) (skipCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [skipFrame,skipCode,store]
 
+/-- A run of `(program M)` from label `(.reader 0)` reaches label `(.parse 0)` with stacks
+`store [] [] [] [] [] input` after `(input.length+1)` stack steps; its accumulated stack
+clock is equal to `input.length*(2*input.length+5)+3`. -/
 theorem reader_call (M : TM0.Machine Symbol Λ) (input : Bits) (v : Local) :
     Stacks.stackRun (program M) (input.length+1)
       ⟨some (.reader 0),v,store [] [] [] [] input.reverse []⟩=
@@ -7607,6 +8742,9 @@ theorem reader_call (M : TM0.Machine Symbol Λ) (input : Bits) (v : Local) :
     putIO_get,transferFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock input.reverse [] (getIO v))⟩
 
+/-- A run of `(program M)` from label `(.parse 0)` reaches label `(.counter 0)` with stacks
+`store [] n.bits.reverse [] [] [] rest` after `(2*n.bits.length+3)` stack steps; its
+accumulated stack clock is at most `40*(1+(natBits n++rest).length)^2`. -/
 theorem parse_call (M : TM0.Machine Symbol Λ) (n : ℕ) (rest : Bits) (v : Local) :
     Stacks.stackRun (program M) (2*n.bits.length+3)
       ⟨some (.parse 0),v,store [] [] [] [] [] (natBits n++rest)⟩=
@@ -7623,6 +8761,9 @@ theorem parse_call (M : TM0.Machine Symbol Λ) (n : ℕ) (rest : Bits) (v : Loca
     putIO_get,parseFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `(program M)` from label `(.counter 0)` reaches label `(.skip 0)` with stacks
+`store counter [] [] [] [] rest` after `(counter.length+1)` stack steps; its accumulated
+stack clock is equal to `counter.length*(2*counter.length+5)+3`. -/
 theorem counter_call (M : TM0.Machine Symbol Λ) (counter rest : Bits) (v : Local) :
     Stacks.stackRun (program M) (counter.length+1)
       ⟨some (.counter 0),v,store [] counter.reverse [] [] [] rest⟩=
@@ -7639,6 +8780,9 @@ theorem counter_call (M : TM0.Machine Symbol Λ) (counter rest : Bits) (v : Loca
     putIO_get,countFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock counter.reverse [] (getIO v))⟩
 
+/-- A run of `(program M)` from label `(.skip 0)` reaches label `(.prepare .head)` with stacks
+`store counter [] [] [] [] input` after `(2*input.length.bits.length+3)` stack steps; its
+accumulated stack clock is at most `40*(1+(framed input).length)^2`. -/
 theorem skip_call (M : TM0.Machine Symbol Λ) (counter input : Bits) (v : Local) :
     Stacks.stackRun (program M) (2*input.length.bits.length+3)
       ⟨some (.skip 0),v,store counter [] [] [] [] (framed input)⟩=
@@ -7654,6 +8798,10 @@ theorem skip_call (M : TM0.Machine Symbol Λ) (counter input : Bits) (v : Local)
     putIO_get,skipFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `(program M)` from label `(.prepare .head)` reaches label `(.loop (.counter
+.borrow))` with stacks `store counter [] [] (Simulation.pack (word.tail.map some)) [] []`
+after `(2*word.tail.length+3)` stack steps; its accumulated stack clock is at most
+`10*(1+word.length)^2`. -/
 theorem prepare_call (M : TM0.Machine Symbol Λ) (counter word : Bits) (v : Local) :
     Stacks.stackRun (program M) (2*word.tail.length+3)
       ⟨some (.prepare .head),v,store counter [] [] [] [] word⟩=
@@ -7673,6 +8821,9 @@ theorem prepare_call (M : TM0.Machine Symbol Λ) (counter word : Bits) (v : Loca
     Preparation.quad_three] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `(program M)` from label `(.reader 0)` reaches label `(.loop (.counter .borrow))`
+with stacks `store n.bits [] [] (Simulation.pack (input.tail.map some)) [] []`; its
+accumulated stack clock is at most `200*(1+(natBits n++framed input).length)^2`. -/
 theorem frontend (M : TM0.Machine Symbol Λ) (n : ℕ) (input : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun (program M) ticks
@@ -7727,6 +8878,8 @@ theorem frontend (M : TM0.Machine Symbol Λ) (n : ℕ) (input : Bits) (v : Local
     have hnsq := Nat.mul_le_mul hn hn
     nlinarith only [hNC,hSC,hPC,hxsq,hfsq,hnsq,hn,Nat.zero_le raw.length,Nat.zero_le (raw.length^2)]
 
+/-- `charge f cost n input` is at most `2*(1+n+((f^[n]) input).length+iterSum f cost n
+input+iterSum f List.length n input)`. -/
 theorem charge_bound (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (input : Bits) :
     charge f cost n input≤2*(1+n+((f^[n]) input).length+iterSum f cost n input+iterSum f List.length n input) := by
   have htel : charge f cost n input+input.length=
@@ -7739,6 +8892,7 @@ theorem charge_bound (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (input 
       omega
   omega
 
+/-- `20*(n+1)*(1+n.bits.length)^2` is at most `220*(1+n)^2`. -/
 theorem counter_budget (n : ℕ) : 20*(n+1)*(1+n.bits.length)^2≤220*(1+n)^2 := by
   have hrepeat := Counter.repeated_counter_budget n
   have hw := Counter.bits_length_le n
@@ -7746,10 +8900,14 @@ theorem counter_budget (n : ℕ) : 20*(n+1)*(1+n.bits.length)^2≤220*(1+n)^2 :=
   have hsq := Nat.mul_le_mul hw' hw'
   nlinarith only [hrepeat,hsq]
 
+/-- The aggregate input, iteration, output, intermediate-length, and cost parameter used to
+bound uniform iteration. -/
 def budgetBase (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (input : Bits) : ℕ :=
   1+(natBits n++framed input).length+n+((f^[n]) input).length+
     iterSum f cost n input+iterSum f List.length n input
 
+/-- `200*(1+(natBits n++framed input).length)^2+20*(n+1)*(1+n.bits.length)^2+ 20000*(charge f
+cost n input)^2+1` is at most `100000*(budgetBase f cost n input)^2`. -/
 theorem resource_bound (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (input : Bits) :
     200*(1+(natBits n++framed input).length)^2+20*(n+1)*(1+n.bits.length)^2+
         20000*(charge f cost n input)^2+1≤100000*(budgetBase f cost n input)^2 := by
@@ -7767,18 +8925,26 @@ theorem resource_bound (f : Bits → Bits) (cost : Bits → ℕ) (n : ℕ) (inpu
     omega
   nlinarith only [hc,hR2,hN2,hC2,hB]
 
+/-- `store [] [] [] [] word []` equals `Function.update (fun _ => []) Slot.output word`. -/
 theorem output_store (word : Bits) : store [] [] [] [] word []=Function.update (fun _ => []) Slot.output word := by
   funext k
   cases k <;> rfl
 
 omit [Inhabited Λ] in
 
+/-- `(TM2.init Slot.output word : TM2.Cfg (fun _ : Slot => Bool) (Label Λ) Local)` equals `⟨some
+(.reader 0),default,store [] [] [] [] word []⟩`. -/
 theorem init_eq (word : Bits) :
     (TM2.init Slot.output word : TM2.Cfg (fun _ : Slot => Bool) (Label Λ) Local)=
       ⟨some (.reader 0),default,store [] [] [] [] word []⟩ := by
   rw [output_store]
   rfl
 
+/-- Under the stated input conditions, a run of `(program M)` from `(TM2.init Slot.output
+(natBits n++framed input).reverse)` reaches `⟨none,(none,(false,none),none),Function.update
+(fun _ => []) Slot.output ((f^[n]) input).reverse⟩`; its accumulated stack clock is at most
+`100000*(budgetBase f tf n input)^2` and maximum single-step clock is at most
+`100000*(budgetBase f sf n input)^2`. -/
 theorem complete {q : ℕ} (M : TM0.Machine Symbol (Fin (q+1)))
     (f : Bits → Bits) (tf sf : Bits → ℕ) (h : ∀ x, Runs M x (f x) (tf x) (sf x))
     (n : ℕ) (input : Bits) :
@@ -7828,6 +8994,9 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LoopInput
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- One finite-control machine computes all iterates supplied with their iteration count, with
+polynomial bounds in the encoded input, iteration count, intermediate lengths, and
+accumulated component costs. -/
 theorem uniform_iterates (f : Bits → Bits) (tf sf : Bits → ℕ) (hf : ComputesAt f tf sf) :
     ∃ (q : ℕ) (M : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ n x, Runs M (natBits n++framed x) ((f^[n]) x)
@@ -7866,11 +9035,14 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Increment a little-endian binary bit list, propagating a carry and extending the list on
+overflow. -/
 def word : Bits → Bits
   | [] => [true]
   | false::rest => true::rest
   | true::rest => false::word rest
 
+/-- `binaryValue (word bits)` equals `binaryValue bits+1`. -/
 theorem word_value (bits : Bits) : binaryValue (word bits)=binaryValue bits+1 := by
   induction bits with
   | nil => rfl
@@ -7878,6 +9050,7 @@ theorem word_value (bits : Bits) : binaryValue (word bits)=binaryValue bits+1 :=
     cases bit <;> simp [word,binaryValue] at ih ⊢
     omega
 
+/-- `word n.bits` equals `(n+1).bits`. -/
 theorem word_bits (n : ℕ) : word n.bits=(n+1).bits := by
   induction n using Nat.binaryRec' with
   | zero => rfl
@@ -7893,8 +9066,10 @@ theorem word_bits (n : ℕ) : word n.bits=(n+1).bits := by
       rw [hn,Nat.bits_append_bit (n+1) false (by omega)]
       simp only [word,ih]
 
+/-- The finite control labels for binary increment. -/
 inductive Label where | carry | restore deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.carry⟩
+/-- The TM2 program implementing binary increment. -/
 def program : Label → TM2.Stmt (fun _ : Fin 2 => Bool) Label Symbol
   | .carry => .pop 0 (fun _ bit => bit) (.branch (fun bit => bit.getD false)
       (.push 1 (fun _ => false) (.goto (fun _ => .carry)))
@@ -7902,26 +9077,36 @@ def program : Label → TM2.Stmt (fun _ : Fin 2 => Bool) Label Symbol
   | .restore => .pop 1 (fun _ bit => bit) (.branch (fun bit => bit.isSome)
       (.push 0 (fun bit => bit.getD false) (.goto (fun _ => .restore))) .halt)
 
+/-- `TM2.step program ⟨some .carry,v,Stacks.stackPair (true::bits) temp⟩` equals `some ⟨some
+.carry,some true,Stacks.stackPair bits (false::temp)⟩`. -/
 theorem carry_true (bits temp : Bits) (v : Symbol) :
     TM2.step program ⟨some .carry,v,Stacks.stackPair (true::bits) temp⟩=
       some ⟨some .carry,some true,Stacks.stackPair bits (false::temp)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `TM2.step program ⟨some .carry,v,Stacks.stackPair (false::bits) temp⟩` equals `some ⟨some
+.restore,some false,Stacks.stackPair bits (true::temp)⟩`. -/
 theorem carry_false (bits temp : Bits) (v : Symbol) :
     TM2.step program ⟨some .carry,v,Stacks.stackPair (false::bits) temp⟩=
       some ⟨some .restore,some false,Stacks.stackPair bits (true::temp)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `TM2.step program ⟨some .carry,v,Stacks.stackPair [] temp⟩` equals `some ⟨some
+.restore,none,Stacks.stackPair [] (true::temp)⟩`. -/
 theorem carry_empty (temp : Bits) (v : Symbol) :
     TM2.step program ⟨some .carry,v,Stacks.stackPair [] temp⟩=
       some ⟨some .restore,none,Stacks.stackPair [] (true::temp)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `TM2.step program ⟨some .restore,v,Stacks.stackPair counter (bit::temp)⟩` equals `some ⟨some
+.restore,some bit,Stacks.stackPair (bit::counter) temp⟩`. -/
 theorem restore_step (counter temp : Bits) (bit : Bool) (v : Symbol) :
     TM2.step program ⟨some .restore,v,Stacks.stackPair counter (bit::temp)⟩=
       some ⟨some .restore,some bit,Stacks.stackPair (bit::counter) temp⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- A run of `program` from label `.restore` halts with stacks `Stacks.stackPair
+(temp.reverse++counter) []` after `(temp.length+1)` stack steps. -/
 theorem restore_run (counter temp : Bits) (v : Symbol) :
     Stacks.stackRun program (temp.length+1) ⟨some .restore,v,Stacks.stackPair counter temp⟩=
       some ⟨none,none,Stacks.stackPair (temp.reverse++counter) []⟩ := by
@@ -7931,6 +9116,8 @@ theorem restore_run (counter temp : Bits) (v : Symbol) :
     simpa only [List.length_cons,Stacks.stackRun,restore_step,Option.bind_some,List.reverse_cons,
       List.append_assoc,List.singleton_append] using ih (bit::counter) (some bit)
 
+/-- `Stacks.stackRunClock program (temp.length+1) ⟨some .restore,v,Stacks.stackPair counter
+temp⟩` equals `temp.length*(2*(temp.length+counter.length)+5)+3`. -/
 theorem restore_clock (counter temp : Bits) (v : Symbol) :
     Stacks.stackRunClock program (temp.length+1) ⟨some .restore,v,Stacks.stackPair counter temp⟩=
       temp.length*(2*(temp.length+counter.length)+5)+3 := by
@@ -7944,6 +9131,9 @@ theorem restore_clock (counter temp : Bits) (v : Symbol) :
     simp [program,Stacks.stackClock]
     ring
 
+/-- A run of `program` from label `.carry` halts with stacks `Stacks.stackPair
+(temp.reverse++List.replicate ones false++true::rest) []` after `(2*ones+temp.length+3)`
+stack steps. -/
 theorem finite_carry_run (ones : ℕ) (rest temp : Bits) (v : Symbol) :
     Stacks.stackRun program (2*ones+temp.length+3)
       ⟨some .carry,v,Stacks.stackPair (List.replicate ones true++false::rest) temp⟩=
@@ -7961,6 +9151,9 @@ theorem finite_carry_run (ones : ℕ) (rest temp : Bits) (v : Symbol) :
     convert! ht using 1
     simp [List.reverse_cons,List.append_assoc]
 
+/-- `Stacks.stackRunClock program (2*ones+temp.length+3) ⟨some .carry,v,Stacks.stackPair
+(List.replicate ones true++false::rest) temp⟩` equals
+`(2*ones+temp.length+2)*(2*(ones+1+rest.length+temp.length)+5)+3`. -/
 theorem finite_carry_clock (ones : ℕ) (rest temp : Bits) (v : Symbol) :
     Stacks.stackRunClock program (2*ones+temp.length+3)
       ⟨some .carry,v,Stacks.stackPair (List.replicate ones true++false::rest) temp⟩=
@@ -7986,6 +9179,9 @@ theorem finite_carry_clock (ones : ℕ) (rest temp : Bits) (v : Symbol) :
     simp [program,Stacks.stackClock]
     ring
 
+/-- A run of `program` from label `.carry` halts with stacks `Stacks.stackPair
+(temp.reverse++List.replicate ones false++[true]) []` after `(2*ones+temp.length+3)` stack
+steps. -/
 theorem overflow_run (ones : ℕ) (temp : Bits) (v : Symbol) :
     Stacks.stackRun program (2*ones+temp.length+3)
       ⟨some .carry,v,Stacks.stackPair (List.replicate ones true) temp⟩=
@@ -8003,6 +9199,9 @@ theorem overflow_run (ones : ℕ) (temp : Bits) (v : Symbol) :
     convert! ht using 1
     simp [List.reverse_cons,List.append_assoc]
 
+/-- `Stacks.stackRunClock program (2*ones+temp.length+3) ⟨some .carry,v,Stacks.stackPair
+(List.replicate ones true) temp⟩` equals
+`ones*(2*(ones+temp.length)+5)+(ones+temp.length+2)*(2*(ones+temp.length)+7)+2`. -/
 theorem overflow_clock (ones : ℕ) (temp : Bits) (v : Symbol) :
     Stacks.stackRunClock program (2*ones+temp.length+3)
       ⟨some .carry,v,Stacks.stackPair (List.replicate ones true) temp⟩=
@@ -8027,6 +9226,8 @@ theorem overflow_clock (ones : ℕ) (temp : Bits) (v : Symbol) :
     simp [program,Stacks.stackClock]
     ring
 
+/-- Either the condition `∃ (ones : ℕ) (rest : Bits),bits=List.replicate ones true++false::rest`
+holds or `bits` equals `List.replicate bits.length true`. -/
 theorem true_split (bits : Bits) :
     (∃ (ones : ℕ) (rest : Bits),bits=List.replicate ones true++false::rest) ∨
       bits=List.replicate bits.length true := by
@@ -8041,17 +9242,23 @@ theorem true_split (bits : Bits) :
       · exact Or.inr
           (by simpa only [List.length_cons,List.replicate_succ] using congrArg (true::·) hi)
 
+/-- `word (List.replicate ones true++false::rest)` equals `List.replicate ones
+false++true::rest`. -/
 theorem finite_word (ones : ℕ) (rest : Bits) :
     word (List.replicate ones true++false::rest)=List.replicate ones false++true::rest := by
   induction ones with
   | zero => rfl
   | succ ones ih => simpa only [List.replicate_succ,List.cons_append,word] using congrArg (false::·) ih
 
+/-- `word (List.replicate ones true)` equals `List.replicate ones false++[true]`. -/
 theorem overflow_word (ones : ℕ) : word (List.replicate ones true)=List.replicate ones false++[true] := by
   induction ones with
   | zero => rfl
   | succ ones ih => simpa only [List.replicate_succ,List.cons_append,word] using congrArg (false::·) ih
 
+/-- A run of `program` from label `.carry` halts with stacks `Stacks.stackPair
+(temp.reverse++word bits) []`; its accumulated stack clock is at most
+`50*(1+bits.length+temp.length)^2`. -/
 theorem complete (bits temp : Bits) (v : Symbol) :
     ∃ ticks, ticks≤2*bits.length+temp.length+3 ∧
       Stacks.stackRun program ticks ⟨some .carry,v,Stacks.stackPair bits temp⟩=
@@ -8093,6 +9300,7 @@ theorem complete (bits temp : Bits) (v : Symbol) :
       have hp : 1≤B^2 := (show 1≤B by dsimp [B]; omega).trans (Nat.le_pow (by decide))
       nlinarith only [hm1,hm2,hp]
 
+/-- `Nat.clog 2 (n+1)` equals `n.bits.length`. -/
 theorem clog_two_succ (n : ℕ) : Nat.clog 2 (n+1)=n.bits.length := by
   rw [Nat.size_eq_bits_len]
   apply Nat.le_antisymm
@@ -8106,10 +9314,13 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Increment
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatEmit
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite control labels for natural-number encoding and bit copying. -/
 inductive Label where | count | restore1 (l : Fin 1) | emit | restore2 (l : Fin 1) | done deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.count⟩
+/-- Embed the two transfer-stack indices into the first two of three stacks in reversed order. -/
 def swap (k : Fin 2) : Fin 3 := if k=0 then 1 else 0
 
+/-- The TM2 program implementing natural-number encoding and bit copying. -/
 def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Symbol
   | .count => .pop 0 (fun _ bit => bit) (.branch (fun bit => bit.isSome)
       (.push 1 (fun bit => bit.getD false) (.push 2 (fun _ => true) (.goto (fun _ => .count))))
@@ -8121,16 +9332,23 @@ def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Symbol
   | .restore2 l => StackCall.stmt swap Label.restore2 .done id (fun _ v => v) (Stacks.transferProgram l)
   | .done => .halt
 
+/-- `TM2.step program ⟨some .count,v,Parsing.triple (bit::bits) temp output⟩` equals `some ⟨some
+.count,some bit,Parsing.triple bits (bit::temp) (true::output)⟩`. -/
 theorem count_step (bit : Bool) (bits temp output : Bits) (v : Symbol) :
     TM2.step program ⟨some .count,v,Parsing.triple (bit::bits) temp output⟩=
       some ⟨some .count,some bit,Parsing.triple bits (bit::temp) (true::output)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `TM2.step program ⟨some .count,v,Parsing.triple [] temp output⟩` equals `some ⟨some
+(.restore1 0),none,Parsing.triple [] temp (false::output)⟩`. -/
 theorem count_stop (temp output : Bits) (v : Symbol) :
     TM2.step program ⟨some .count,v,Parsing.triple [] temp output⟩=
       some ⟨some (.restore1 0),none,Parsing.triple [] temp (false::output)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- A run of `program` from label `.count` reaches label `(.restore1 0)` with stacks
+`Parsing.triple [] (bits.reverse++temp) (false::(List.replicate bits.length true++output))`
+after `(bits.length+1)` stack steps. -/
 theorem count_run (bits temp output : Bits) (v : Symbol) :
     Stacks.stackRun program (bits.length+1) ⟨some .count,v,Parsing.triple bits temp output⟩=
       some ⟨some (.restore1 0),none,Parsing.triple [] (bits.reverse++temp)
@@ -8144,6 +9362,9 @@ theorem count_run (bits temp output : Bits) (v : Symbol) :
     simpa only [List.reverse_cons,List.append_assoc,List.singleton_append,List.replicate_succ,List.cons_append,
       Parsing.marker_cons] using! ht
 
+/-- `Stacks.stackRunClock program (bits.length+1) ⟨some .count,v,Parsing.triple bits temp
+output⟩` equals
+`bits.length*(3*bits.length+2*temp.length+2*output.length+9)+2*output.length+6`. -/
 theorem count_clock (bits temp output : Bits) (v : Symbol) :
     Stacks.stackRunClock program (bits.length+1) ⟨some .count,v,Parsing.triple bits temp output⟩=
       bits.length*(3*bits.length+2*temp.length+2*output.length+9)+2*output.length+6 := by
@@ -8157,15 +9378,23 @@ theorem count_clock (bits temp output : Bits) (v : Symbol) :
     simp [program,Stacks.stackClock]
     ring
 
+/-- Embed a two-stack transfer with its two stacks exchanged while retaining the output stack. -/
 def frame (output : Bits) (S : Fin 2 → Bits) : Fin 3 → Bits := Parsing.triple (S 1) (S 0) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem frame_at (output : Bits) (S : Fin 2 → Bits) (k : Fin 2) : frame output S (swap k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem frame_update (output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     frame output (Function.update S k bits)=Function.update (frame output S) (swap k) bits := by
   fin_cases k <;> simp [frame,swap]
 
+/-- A run of `program` from label `(.restore1 0)` reaches label `.emit` with stacks
+`Parsing.triple bits.reverse [] output` after `(bits.length+1)` stack steps; its accumulated
+stack clock is equal to `bits.length*(2*bits.length+5)+3`. -/
 theorem restore1 (bits output : Bits) (v : Symbol) :
     Stacks.stackRun program (bits.length+1) ⟨some (.restore1 0),v,Parsing.triple [] bits output⟩=
       some ⟨some .emit,none,Parsing.triple bits.reverse [] output⟩ ∧
@@ -8180,6 +9409,9 @@ theorem restore1 (bits output : Bits) (v : Symbol) :
     frame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_nil,Nat.add_zero] using Stacks.transfer_clock bits [] v)⟩
 
+/-- A run of `program` from label `(.restore2 0)` reaches label `.done` with stacks
+`Parsing.triple bits.reverse [] output` after `(bits.length+1)` stack steps; its accumulated
+stack clock is equal to `bits.length*(2*bits.length+5)+3`. -/
 theorem restore2 (bits output : Bits) (v : Symbol) :
     Stacks.stackRun program (bits.length+1) ⟨some (.restore2 0),v,Parsing.triple [] bits output⟩=
       some ⟨some .done,none,Parsing.triple bits.reverse [] output⟩ ∧
@@ -8194,16 +9426,23 @@ theorem restore2 (bits output : Bits) (v : Symbol) :
     frame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_nil,Nat.add_zero] using Stacks.transfer_clock bits [] v)⟩
 
+/-- `TM2.step program ⟨some .emit,v,Parsing.triple (bit::bits) temp output⟩` equals `some ⟨some
+.emit,some bit,Parsing.triple bits (bit::temp) (bit::output)⟩`. -/
 theorem emit_step (bit : Bool) (bits temp output : Bits) (v : Symbol) :
     TM2.step program ⟨some .emit,v,Parsing.triple (bit::bits) temp output⟩=
       some ⟨some .emit,some bit,Parsing.triple bits (bit::temp) (bit::output)⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- `TM2.step program ⟨some .emit,v,Parsing.triple [] temp output⟩` equals `some ⟨some
+(.restore2 0),none,Parsing.triple [] temp output⟩`. -/
 theorem emit_stop (temp output : Bits) (v : Symbol) :
     TM2.step program ⟨some .emit,v,Parsing.triple [] temp output⟩=
       some ⟨some (.restore2 0),none,Parsing.triple [] temp output⟩ := by
   simp [TM2.step,program,TM2.stepAux]
 
+/-- A run of `program` from label `.emit` reaches label `(.restore2 0)` with stacks
+`Parsing.triple [] (bits.reverse++temp) (bits.reverse++output)` after `(bits.length+1)`
+stack steps. -/
 theorem emit_run (bits temp output : Bits) (v : Symbol) :
     Stacks.stackRun program (bits.length+1) ⟨some .emit,v,Parsing.triple bits temp output⟩=
       some ⟨some (.restore2 0),none,Parsing.triple [] (bits.reverse++temp) (bits.reverse++output)⟩ := by
@@ -8213,6 +9452,8 @@ theorem emit_run (bits temp output : Bits) (v : Symbol) :
     simpa only [List.length_cons,Stacks.stackRun,emit_step,Option.bind_some,List.reverse_cons,
       List.append_assoc,List.singleton_append] using ih (bit::temp) (bit::output) (some bit)
 
+/-- `Stacks.stackRunClock program (bits.length+1) ⟨some .emit,v,Parsing.triple bits temp
+output⟩` equals `bits.length*(3*bits.length+2*temp.length+2*output.length+7)+3`. -/
 theorem emit_clock (bits temp output : Bits) (v : Symbol) :
     Stacks.stackRunClock program (bits.length+1) ⟨some .emit,v,Parsing.triple bits temp output⟩=
       bits.length*(3*bits.length+2*temp.length+2*output.length+7)+3 := by
@@ -8226,6 +9467,9 @@ theorem emit_clock (bits temp output : Bits) (v : Symbol) :
     simp [program,Stacks.stackClock]
     ring
 
+/-- A run of `program` from label `.count` halts with stacks `Parsing.triple n.bits [] ((natBits
+n).reverse++output)` after `(4*n.bits.length+5)` stack steps; its accumulated stack clock is
+equal to `n.bits.length*(12*n.bits.length+4*output.length+28)+2*output.length+16`. -/
 theorem complete (n : ℕ) (output : Bits) (v : Symbol) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some .count,v,Parsing.triple n.bits [] output⟩=
       some ⟨none,none,Parsing.triple n.bits [] ((natBits n).reverse++output)⟩ ∧
@@ -8270,12 +9514,17 @@ theorem complete (n : ℕ) (output : Bits) (v : Symbol) :
     simp only [header,List.length_cons,List.length_append,List.length_replicate]
     ring
 
+/-- `Stacks.stackRunClock program (4*n.bits.length+5) ⟨some .count,v,Parsing.triple n.bits []
+output⟩` is at most `100*(1+n.bits.length+output.length)^2`. -/
 theorem clock_bound (n : ℕ) (output : Bits) (v : Symbol) :
     Stacks.stackRunClock program (4*n.bits.length+5) ⟨some .count,v,Parsing.triple n.bits [] output⟩≤
       100*(1+n.bits.length+output.length)^2 := by
   rw [(complete n output v).2]
   nlinarith [Nat.zero_le (n.bits.length^2),Nat.zero_le (output.length^2),Nat.zero_le (n.bits.length*output.length)]
 
+/-- A run of `program` from label `.emit` halts with stacks `Parsing.triple bits []
+(bits.reverse++output)` after `(2*bits.length+3)` stack steps; its accumulated stack clock
+is equal to `bits.length*(5*bits.length+2*output.length+12)+7`. -/
 theorem copy_complete (bits output : Bits) (v : Symbol) :
     Stacks.stackRun program (2*bits.length+3) ⟨some .emit,v,Parsing.triple bits [] output⟩=
       some ⟨none,none,Parsing.triple bits [] (bits.reverse++output)⟩ ∧
@@ -8300,6 +9549,8 @@ theorem copy_complete (bits output : Bits) (v : Symbol) :
     rw [hd,Stacks.clock_add _ _ _ _ _ hE,hEC,hRC]
     ring
 
+/-- `Stacks.stackRunClock program (2*bits.length+3) ⟨some .emit,v,Parsing.triple bits []
+output⟩` is at most `25*(1+bits.length+output.length)^2`. -/
 theorem copy_clock_bound (bits output : Bits) (v : Symbol) :
     Stacks.stackRunClock program (2*bits.length+3) ⟨some .emit,v,Parsing.triple bits [] output⟩≤
       25*(1+bits.length+output.length)^2 := by
@@ -8311,9 +9562,13 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 variable {K Λ σ : Type} [DecidableEq K]
 
+/-- Prepend a sequence of constant pushes to a stack continuation, placing the reversed bit list
+on the selected stack. -/
 def pushBits (k : K) (bits : Bits) (after : TM2.Stmt (fun _ : K => Bool) Λ σ) : TM2.Stmt (fun _ : K => Bool) Λ σ :=
   bits.foldr (fun bit rest => .push k (fun _ => bit) rest) after
 
+/-- `TM2.stepAux (pushBits k bits after) v S` equals `TM2.stepAux after v (Function.update S k
+(bits.reverse++S k))`. -/
 theorem pushBits_step (k : K) (bits : Bits) (after : TM2.Stmt (fun _ : K => Bool) Λ σ) (v : σ) (S : K → Bits) :
     TM2.stepAux (pushBits k bits after) v S=
       TM2.stepAux after v (Function.update S k (bits.reverse++S k)) := by
@@ -8324,6 +9579,8 @@ theorem pushBits_step (k : K) (bits : Bits) (after : TM2.Stmt (fun _ : K => Bool
     rw [← pushBits,ih]
     simp only [Function.update_self,Function.update_idem,List.reverse_cons,List.append_assoc,List.singleton_append]
 
+/-- `stackClock (pushBits k bits after) v S` equals `bits.length*(2*(S
+k).length+bits.length+2)+stackClock after v (Function.update S k (bits.reverse++S k))`. -/
 theorem pushBits_clock (k : K) (bits : Bits) (after : TM2.Stmt (fun _ : K => Bool) Λ σ) (v : σ) (S : K → Bits) :
     stackClock (pushBits k bits after) v S=
       bits.length*(2*(S k).length+bits.length+2)+stackClock after v (Function.update S k (bits.reverse++S k)) := by
@@ -8339,27 +9596,44 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ReadonlyRepeat
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The local-state type for repeated bit-string copying, represented by `Counter.Local×Symbol`. -/
 abbrev Local := Counter.Local×Symbol
 
+/-- Extract the counter component of the local state for repeated bit-string copying. -/
 def getCounter (v : Local) : Counter.Local := v.1
+/-- Replace the counter component of the local state for repeated bit-string copying, retaining
+its other components. -/
 def putCounter (v : Local) (w : Counter.Local) : Local := (w,v.2)
+/-- Extract the io component of the local state for repeated bit-string copying. -/
 def getIO (v : Local) : Symbol := v.2
+/-- Replace the io component of the local state for repeated bit-string copying, retaining its
+other components. -/
 def putIO (v : Local) (w : Symbol) : Local := (v.1,w)
 
+/-- Map the copy subroutine stack indices into the stack banks for repeated bit-string copying. -/
 def copyCode (k : Fin 3) : Fin 4 := if k=0 then 2 else if k=1 then 1 else 3
 
+/-- Embed the counter stacks for repeated bit-string copying while retaining the supplied
+contents of the other stack banks. -/
 def counterFrame (block output : Bits) (S : Fin 2 → Bits) : Fin 4 → Bits :=
   Preparation.quad (S 0) (S 1) block output
 
+/-- Embed the copy stacks for repeated bit-string copying while retaining the supplied contents
+of the other stack banks. -/
 def copyFrame (counter : Bits) (S : Fin 3 → Bits) : Fin 4 → Bits :=
   Preparation.quad counter (S 1) (S 0) (S 2)
 
+/-- Embed the drain counter stacks for repeated bit-string copying while retaining the supplied
+contents of the other stack banks. -/
 def drainCounterFrame (block output : Bits) (S : Fin 1 → Bits) : Fin 4 → Bits :=
   Preparation.quad (S 0) [] block output
 
+/-- Embed the drain block stacks for repeated bit-string copying while retaining the supplied
+contents of the other stack banks. -/
 def drainBlockFrame (output : Bits) (S : Fin 1 → Bits) : Fin 4 → Bits :=
   Preparation.quad [] [] (S 0) output
 
+/-- The finite control labels for repeated bit-string copying. -/
 inductive Label where
   | counter (l : Counter.Label)
   | branch
@@ -8370,6 +9644,7 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.counter .borrow⟩
 
+/-- The TM2 program implementing repeated bit-string copying. -/
 def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Local
   | .counter l => StackCall.stmt (Fin.castAdd 2) Label.counter .branch getCounter putCounter (Counter.program l)
   | .branch => .branch (fun v => (getCounter v).1)
@@ -8379,42 +9654,66 @@ def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Local
   | .drainBlock l => StackCall.stmt (fun _ : Fin 1 => (2 : Fin 4)) Label.drainBlock .done getIO putIO (Normalization.drainProgram l)
   | .done => .halt
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem counterFrame_at (block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     counterFrame block output S (Fin.castAdd 2 k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem counterFrame_update (block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     counterFrame block output (Function.update S k bits)=Function.update (counterFrame block output S) (Fin.castAdd 2 k) bits := by
   fin_cases k <;> simp [counterFrame]
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem copyFrame_at (counter : Bits) (S : Fin 3 → Bits) (k : Fin 3) : copyFrame counter S (copyCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem copyFrame_update (counter : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     copyFrame counter (Function.update S k bits)=Function.update (copyFrame counter S) (copyCode k) bits := by
   funext j
   fin_cases k <;> fin_cases j <;> simp [copyFrame,copyCode,Preparation.quad]
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainCounterFrame_at (block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) :
     drainCounterFrame block output S (0 : Fin 4)=S k := by fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainCounterFrame_update (block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainCounterFrame block output (Function.update S k bits)=Function.update (drainCounterFrame block output S) (0 : Fin 4) bits := by
   fin_cases k
   simp [drainCounterFrame]
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainBlockFrame_at (output : Bits) (S : Fin 1 → Bits) (k : Fin 1) :
     drainBlockFrame output S (2 : Fin 4)=S k := by fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainBlockFrame_update (output : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainBlockFrame output (Function.update S k bits)=Function.update (drainBlockFrame output S) (2 : Fin 4) bits := by
   funext j
   fin_cases k
   fin_cases j <;> simp [drainBlockFrame,Preparation.quad]
 
+/-- Replacing the counter local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putCounter_get (v : Local) : putCounter v (getCounter v)=v := rfl
 
+/-- Replacing the io local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putIO_get (v : Local) : putIO v (getIO v)=v := rfl
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `.branch` with stacks `Preparation.quad next [] block output`; its accumulated
+stack clock is at most `10*(1+counter.length)^2` and the resulting counter has the same
+length and binary value one less than the starting counter. -/
 theorem decrement_positive (counter block output : Bits) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks next, next.length=counter.length ∧ binaryValue next+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,Preparation.quad counter [] block output⟩=
@@ -8429,6 +9728,10 @@ theorem decrement_positive (counter block output : Bits) (v : Local) (hp : 0<bin
     counterFrame,Stacks.stackPair_zero,Stacks.stackPair_one,putCounter_get] at hN hNC
   exact ⟨ticks,next,hlen,hval,hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `.branch` with stacks `Preparation.quad (List.replicate counter.length true)
+[] block output` after `(2*counter.length+2)` stack steps; its accumulated stack clock is at
+most `10*(1+counter.length)^2`. -/
 theorem decrement_zero (counter block output : Bits) (v : Local) (hz : binaryValue counter=0) :
     Stacks.stackRun program (2*counter.length+2) ⟨some (.counter .borrow),v,Preparation.quad counter [] block output⟩=
       some ⟨some .branch,putCounter v (false,none),Preparation.quad (List.replicate counter.length true) [] block output⟩ ∧
@@ -8442,6 +9745,9 @@ theorem decrement_zero (counter block output : Bits) (v : Local) (hz : binaryVal
     counterFrame,Stacks.stackPair_zero,Stacks.stackPair_one,putCounter_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.copy .emit)` reaches label `(.counter .borrow)` with stacks
+`Preparation.quad counter [] block (block.reverse++output)` after `(2*block.length+3)` stack
+steps; its accumulated stack clock is at most `25*(1+block.length+output.length)^2`. -/
 theorem copy (counter block output : Bits) (v : Local) :
     Stacks.stackRun program (2*block.length+3) ⟨some (.copy .emit),v,Preparation.quad counter [] block output⟩=
       some ⟨some (.counter .borrow),putIO v none,Preparation.quad counter [] block (block.reverse++output)⟩ ∧
@@ -8456,6 +9762,9 @@ theorem copy (counter block output : Bits) (v : Local) :
     copyFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.drainCounter 0)` reaches label `(.drainBlock 0)` with
+stacks `Preparation.quad [] [] block output` after `(counter.length+1)` stack steps; its
+accumulated stack clock is equal to `counter.length^2+3*counter.length+3`. -/
 theorem drain_counter (counter block output : Bits) (v : Local) :
     Stacks.stackRun program (counter.length+1) ⟨some (.drainCounter 0),v,Preparation.quad counter [] block output⟩=
       some ⟨some (.drainBlock 0),putIO v none,Preparation.quad [] [] block output⟩ ∧
@@ -8469,6 +9778,9 @@ theorem drain_counter (counter block output : Bits) (v : Local) :
     drainCounterFrame,Normalization.singleStack_zero,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock counter (getIO v))⟩
 
+/-- A run of `program` from label `(.drainBlock 0)` reaches label `.done` with stacks
+`Preparation.quad [] [] [] output` after `(block.length+1)` stack steps; its accumulated
+stack clock is equal to `block.length^2+3*block.length+3`. -/
 theorem drain_block (block output : Bits) (v : Local) :
     Stacks.stackRun program (block.length+1) ⟨some (.drainBlock 0),v,Preparation.quad [] [] block output⟩=
       some ⟨some .done,putIO v none,Preparation.quad [] [] [] output⟩ ∧
@@ -8482,6 +9794,9 @@ theorem drain_block (block output : Bits) (v : Local) :
     drainBlockFrame,Normalization.singleStack_zero,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock block (getIO v))⟩
 
+/-- A run of `program` from label `(.drainCounter 0)` halts with stacks `Preparation.quad [] []
+[] output` after `(counter.length+block.length+3)` stack steps; its accumulated stack clock
+is equal to `counter.length^2+3*counter.length+block.length^2+3*block.length+7`. -/
 theorem finish (counter block output : Bits) (v : Local) :
     Stacks.stackRun program (counter.length+block.length+3) ⟨some (.drainCounter 0),v,Preparation.quad counter [] block output⟩=
       some ⟨none,(getCounter v,none),Preparation.quad [] [] [] output⟩ ∧
@@ -8503,17 +9818,26 @@ theorem finish (counter block output : Bits) (v : Local) :
     rw [hd,Stacks.clock_add _ _ _ _ _ hC,hCC,hBC]
     ring
 
+/-- A run of `program` from label `.branch` reaches label `(.drainCounter 0)` with stacks `S`
+after `1` stack step. -/
 theorem branch_zero (v : Local) (S : Fin 4 → Bits) :
     Stacks.stackRun program 1 ⟨some .branch,putCounter v (false,none),S⟩=
       some ⟨some (.drainCounter 0),putCounter v (false,none),S⟩ := rfl
 
+/-- A run of `program` from label `.branch` reaches label `(.copy .emit)` with stacks `S` after
+`1` stack step. -/
 theorem branch_positive (v : Local) (S : Fin 4 → Bits) :
     Stacks.stackRun program 1 ⟨some .branch,putCounter v (true,none),S⟩=
       some ⟨some (.copy .emit),putCounter v (true,none),S⟩ := rfl
 
+/-- `Stacks.stackRunClock program 1 ⟨some .branch,v,S⟩` equals `1`. -/
 theorem branch_clock (v : Local) (S : Fin 4 → Bits) : Stacks.stackRunClock program 1 ⟨some .branch,v,S⟩=1 := by
   simp [Stacks.stackRunClock,program,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)` halts
+with stacks `Preparation.quad [] [] [] ((List.replicate n block).flatten.reverse++output)`;
+its accumulated stack clock is at most `20*(n+1)*(1+counter.length)^2+
+50*(n+1)*(1+block.length+output.length+n*block.length)^2`. -/
 theorem complete (n : ℕ) (counter block output : Bits) (v : Local) (hnum : binaryValue counter=n) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,Preparation.quad counter [] block output⟩=
@@ -8577,10 +9901,13 @@ namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 open Turing
 variable {K Λ σ : Type} [DecidableEq K]
 
+/-- A successful finite stack execution whose accumulated simulation clock is at most the
+supplied budget. -/
 def Execution (M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ)
     (first last : TM2.Cfg (fun _ : K => Bool) Λ σ) (budget : ℕ) : Prop :=
   ∃ ticks,stackRun M ticks first=some last ∧ stackRunClock M ticks first≤budget
 
+/-- Concatenate two bounded stack executions, adding their accumulated clock budgets. -/
 theorem Execution.trans {M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ}
     {first mid last : TM2.Cfg (fun _ : K => Bool) Λ σ} {a b : ℕ}
     (h : Execution M first mid a) (g : Execution M mid last b) : Execution M first last (a+b) := by
@@ -8591,6 +9918,7 @@ theorem Execution.trans {M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ}
   · rw [clock_add _ _ _ _ _ hr]
     exact Nat.add_le_add hc gc
 
+/-- A bounded stack execution remains valid when its clock budget is increased. -/
 theorem Execution.mono {M : Λ → TM2.Stmt (fun _ : K => Bool) Λ σ}
     {first last : TM2.Cfg (fun _ : K => Bool) Λ σ} {a b : ℕ}
     (h : Execution M first last a) (hab : a≤b) : Execution M first last b := by
@@ -8600,9 +9928,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NativeEcho
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The local-state type for native-echo emission, represented by `ReadonlyRepeat.Local`. -/
 abbrev Local := ReadonlyRepeat.Local
+/-- The finite set of stack banks used by native-echo emission. -/
 inductive Slot where | reader | counter | temp | wire | block | output deriving DecidableEq,Fintype
 
+/-- Assemble the named stack contents into the stack store for native-echo emission. -/
 def store (reader counter temp wire block output : Bits) : Slot → Bits
   | .reader => reader
   | .counter => counter
@@ -8611,17 +9942,29 @@ def store (reader counter temp wire block output : Bits) : Slot → Bits
   | .block => block
   | .output => output
 
+/-- Map the parse subroutine stack indices into the stack banks for native-echo emission. -/
 def parseCode (k : Fin 3) : Slot := if k=0 then .reader else if k=1 then .temp else .block
+/-- Map the start subroutine stack indices into the stack banks for native-echo emission. -/
 def startCode (k : Fin 2) : Slot := if k=0 then .block else .reader
+/-- Map the count transfer subroutine stack indices into the stack banks for native-echo
+emission. -/
 def countTransferCode (k : Fin 2) : Slot := if k=0 then .block else .counter
+/-- Map the wire transfer subroutine stack indices into the stack banks for native-echo
+emission. -/
 def wireTransferCode (k : Fin 2) : Slot := if k=0 then .block else .wire
+/-- Map the count subroutine stack indices into the stack banks for native-echo emission. -/
 def countCode (k : Fin 2) : Slot := if k=0 then .counter else .temp
+/-- Map the wire emit subroutine stack indices into the stack banks for native-echo emission. -/
 def wireEmitCode (k : Fin 3) : Slot := if k=0 then .wire else if k=1 then .temp else .output
+/-- Map the count emit subroutine stack indices into the stack banks for native-echo emission. -/
 def countEmitCode (k : Fin 3) : Slot := if k=0 then .counter else if k=1 then .temp else .output
+/-- Map the block emit subroutine stack indices into the stack banks for native-echo emission. -/
 def blockEmitCode (k : Fin 3) : Slot := if k=0 then .wire else if k=1 then .temp else .block
+/-- Map the repeat subroutine stack indices into the stack banks for native-echo emission. -/
 def repeatCode (k : Fin 4) : Slot :=
     if k=0 then .counter else if k=1 then .temp else if k=2 then .wire else .output
 
+/-- The finite control labels for native-echo emission. -/
 inductive Label where
   | start (l : Fin 1)
   | flag
@@ -8646,6 +9989,7 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.start 0⟩
 
+/-- The TM2 program implementing native-echo emission. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .start l => StackCall.stmt startCode Label.start .flag ReadonlyRepeat.getIO ReadonlyRepeat.putIO (Stacks.transferProgram l)
   | .flag => .pop .reader (fun v bit => ReadonlyRepeat.putIO v bit) (.goto (fun _ => .parseCount 0))
@@ -8671,143 +10015,216 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .repeat l => StackCall.stmt repeatCode Label.repeat .suffix id (fun _ v => v) (ReadonlyRepeat.program l)
   | .suffix => Stacks.pushBits Slot.output (natBits 1++[false]) .halt
 
+/-- The canonical natural-field encoding of the native-echo operation block at the given wire
+address. -/
 def block (wire : ℕ) : Bits := [0,wire,3,0,0,0,0].flatMap natBits
 
+/-- Concatenate the native-echo header, the prescribed repeated operation blocks, and the final
+suffix. -/
 def output (wire k : ℕ) : Bits := [wire,1,2*(k+1)].flatMap natBits++
   (List.replicate (k+1) (block wire)).flatten++natBits 1++[false]
 
+/-- Embed the start stacks for native-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def startFrame (counter temp wire output : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store (S 1) counter temp wire (S 0) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem startFrame_at (counter temp wire output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     startFrame counter temp wire output S (startCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem startFrame_update (counter temp wire output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     startFrame counter temp wire output (Function.update S k bits)=Function.update (startFrame counter temp wire output S) (startCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [startFrame,startCode,store]
 
+/-- Embed the parse stacks for native-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def parseFrame (counter wire output : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store (S 0) counter (S 1) wire (S 2) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem parseFrame_at (counter wire output : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     parseFrame counter wire output S (parseCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem parseFrame_update (counter wire output : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     parseFrame counter wire output (Function.update S k bits)=Function.update (parseFrame counter wire output S) (parseCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [parseFrame,parseCode,store]
 
+/-- Embed the count transfer stacks for native-echo emission while retaining the supplied
+contents of the other stack banks. -/
 def countTransferFrame (reader temp wire output : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store reader (S 1) temp wire (S 0) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem countTransferFrame_at (reader temp wire output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     countTransferFrame reader temp wire output S (countTransferCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem countTransferFrame_update (reader temp wire output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     countTransferFrame reader temp wire output (Function.update S k bits)=Function.update (countTransferFrame reader temp wire output S) (countTransferCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [countTransferFrame,countTransferCode,store]
 
+/-- Embed the wire transfer stacks for native-echo emission while retaining the supplied
+contents of the other stack banks. -/
 def wireTransferFrame (reader counter temp output : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store reader counter temp (S 1) (S 0) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem wireTransferFrame_at (reader counter temp output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     wireTransferFrame reader counter temp output S (wireTransferCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem wireTransferFrame_update (reader counter temp output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     wireTransferFrame reader counter temp output (Function.update S k bits)=Function.update (wireTransferFrame reader counter temp output S) (wireTransferCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [wireTransferFrame,wireTransferCode,store]
 
+/-- Embed the count stacks for native-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def countFrame (reader wire block output : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store reader (S 0) (S 1) wire block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem countFrame_at (reader wire block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     countFrame reader wire block output S (countCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem countFrame_update (reader wire block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     countFrame reader wire block output (Function.update S k bits)=Function.update (countFrame reader wire block output S) (countCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [countFrame,countCode,store]
 
+/-- Embed the wire emit stacks for native-echo emission while retaining the supplied contents of
+the other stack banks. -/
 def wireEmitFrame (reader counter block : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store reader counter (S 1) (S 0) block (S 2)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem wireEmitFrame_at (reader counter block : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     wireEmitFrame reader counter block S (wireEmitCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem wireEmitFrame_update (reader counter block : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     wireEmitFrame reader counter block (Function.update S k bits)=Function.update (wireEmitFrame reader counter block S) (wireEmitCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [wireEmitFrame,wireEmitCode,store]
 
+/-- Embed the count emit stacks for native-echo emission while retaining the supplied contents
+of the other stack banks. -/
 def countEmitFrame (reader wire block : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store reader (S 0) (S 1) wire block (S 2)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem countEmitFrame_at (reader wire block : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     countEmitFrame reader wire block S (countEmitCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem countEmitFrame_update (reader wire block : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     countEmitFrame reader wire block (Function.update S k bits)=Function.update (countEmitFrame reader wire block S) (countEmitCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [countEmitFrame,countEmitCode,store]
 
+/-- Embed the block emit stacks for native-echo emission while retaining the supplied contents
+of the other stack banks. -/
 def blockEmitFrame (reader counter output : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store reader counter (S 1) (S 0) (S 2) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem blockEmitFrame_at (reader counter output : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     blockEmitFrame reader counter output S (blockEmitCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem blockEmitFrame_update (reader counter output : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     blockEmitFrame reader counter output (Function.update S k bits)=Function.update (blockEmitFrame reader counter output S) (blockEmitCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [blockEmitFrame,blockEmitCode,store]
 
+/-- Embed the repeat stacks for native-echo emission while retaining the supplied contents of
+the other stack banks. -/
 def repeatFrame (reader block : Bits) (S : Fin 4 → Bits) : Slot → Bits :=
     store reader (S 0) (S 1) (S 2) block (S 3)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem repeatFrame_at (reader block : Bits) (S : Fin 4 → Bits) (k : Fin 4) :
     repeatFrame reader block S (repeatCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem repeatFrame_update (reader block : Bits) (S : Fin 4 → Bits) (k : Fin 4) (bits : Bits) :
     repeatFrame reader block (Function.update S k bits)=Function.update (repeatFrame reader block S) (repeatCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [repeatFrame,repeatCode,store]
 
+/-- Embed the drain reader stacks for native-echo emission while retaining the supplied contents
+of the other stack banks. -/
 def drainReaderFrame (counter temp wire block output : Bits) (S : Fin 1 → Bits) : Slot → Bits :=
     store (S 0) counter temp wire block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainReaderFrame_at (counter temp wire block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) : drainReaderFrame counter temp wire block output S Slot.reader=S k := by
   fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainReaderFrame_update (counter temp wire block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainReaderFrame counter temp wire block output (Function.update S k bits)=Function.update (drainReaderFrame counter temp wire block output S) Slot.reader bits := by
   funext j
   fin_cases k
   cases j <;> simp [drainReaderFrame,store]
 
+/-- Embed the drain wire stacks for native-echo emission while retaining the supplied contents
+of the other stack banks. -/
 def drainWireFrame (reader counter temp block output : Bits) (S : Fin 1 → Bits) : Slot → Bits :=
     store reader counter temp (S 0) block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainWireFrame_at (reader counter temp block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) : drainWireFrame reader counter temp block output S Slot.wire=S k := by
   fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainWireFrame_update (reader counter temp block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainWireFrame reader counter temp block output (Function.update S k bits)=Function.update (drainWireFrame reader counter temp block output S) Slot.wire bits := by
   funext j
   fin_cases k
   cases j <;> simp [drainWireFrame,store]
 
+/-- A run of `program` from label `(.start 0)` reaches label `.flag` with stacks `store input []
+[] [] [] []` after `(input.length+1)` stack steps; its accumulated stack clock is equal to
+`input.length*(2*input.length+5)+3`. -/
 theorem start (input : Bits) (v : Local) :
     Stacks.stackRun program (input.length+1) ⟨some (.start 0),v,store [] [] [] [] input.reverse []⟩=
       some ⟨some .flag,ReadonlyRepeat.putIO v none,store input [] [] [] [] []⟩ ∧
@@ -8822,48 +10239,69 @@ theorem start (input : Bits) (v : Local) :
     startFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock input.reverse [] (ReadonlyRepeat.getIO v))⟩
 
+/-- Reading the reader stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_reader (reader counter temp wire block output : Bits) : store reader counter temp wire block output Slot.reader=reader := rfl
 
+/-- Updating the reader stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_reader (reader counter temp wire block output bits : Bits) :
     Function.update (store reader counter temp wire block output) Slot.reader bits=store bits counter temp wire block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the counter stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_counter (reader counter temp wire block output : Bits) : store reader counter temp wire block output Slot.counter=counter := rfl
 
+/-- Updating the counter stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_counter (reader counter temp wire block output bits : Bits) :
     Function.update (store reader counter temp wire block output) Slot.counter bits=store reader bits temp wire block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the temp stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_temp (reader counter temp wire block output : Bits) : store reader counter temp wire block output Slot.temp=temp := rfl
 
+/-- Updating the temp stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_temp (reader counter temp wire block output bits : Bits) :
     Function.update (store reader counter temp wire block output) Slot.temp bits=store reader counter bits wire block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the wire stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_wire (reader counter temp wire block output : Bits) : store reader counter temp wire block output Slot.wire=wire := rfl
 
+/-- Updating the wire stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_wire (reader counter temp wire block output bits : Bits) :
     Function.update (store reader counter temp wire block output) Slot.wire bits=store reader counter temp bits block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the block stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_block (reader counter temp wire block output : Bits) : store reader counter temp wire block output Slot.block=block := rfl
 
+/-- Updating the block stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_block (reader counter temp wire block output bits : Bits) :
     Function.update (store reader counter temp wire block output) Slot.block bits=store reader counter temp wire bits output := by
   funext j
   cases j <;> rfl
 
+/-- `store reader counter temp wire block output Slot.output` equals `output`. -/
 @[simp] theorem store_output (reader counter temp wire block output : Bits) : store reader counter temp wire block output Slot.output=output := rfl
 
+/-- Updating the output stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_output (reader counter temp wire block output bits : Bits) :
     Function.update (store reader counter temp wire block output) Slot.output bits=store reader counter temp wire block bits := by
   funext j
   cases j <;> rfl
 
+/-- A run of `program` from label `.flag` reaches label `(.parseCount 0)` with stacks `store
+rest counter temp wire block output` after `1` stack step; its accumulated stack clock is
+equal to `2*rest.length+4`. -/
 theorem flag (bit : Bool) (rest counter temp wire block output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .flag,v,store (bit::rest) counter temp wire block output⟩=
       some ⟨some (.parseCount 0),ReadonlyRepeat.putIO v (some bit),store rest counter temp wire block output⟩ ∧
@@ -8874,6 +10312,10 @@ theorem flag (bit : Bool) (rest counter temp wire block output : Bits) (v : Loca
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- Under the stated input conditions, a run of `program` from label `(code 0)` reaches label
+`returnTo` with stacks `store rest counter [] wire n.bits.reverse output` after
+`(2*n.bits.length+3)` stack steps; its accumulated stack clock is at most `40*(1+(natBits
+n++rest).length)^2`. -/
 theorem parse_call (code : Fin 3 → Label) (returnTo : Label)
     (hcode : ∀ l, program (code l)=StackCall.stmt parseCode code returnTo ReadonlyRepeat.getIO ReadonlyRepeat.putIO (Parsing.natProgram l))
     (n : ℕ) (rest counter wire output : Bits) (v : Local) :
@@ -8891,6 +10333,9 @@ theorem parse_call (code : Fin 3 → Label) (returnTo : Label)
     parseFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transferCount 0)` reaches label `(.parseWire 0)` with
+stacks `store reader bits temp wire [] output` after `(bits.length+1)` stack steps; its
+accumulated stack clock is equal to `bits.length*(2*bits.length+5)+3`. -/
 theorem transfer_count (bits reader temp wire output : Bits) (v : Local) :
     Stacks.stackRun program (bits.length+1) ⟨some (.transferCount 0),v,store reader [] temp wire bits.reverse output⟩=
       some ⟨some (.parseWire 0),ReadonlyRepeat.putIO v none,store reader bits temp wire [] output⟩ ∧
@@ -8905,6 +10350,9 @@ theorem transfer_count (bits reader temp wire output : Bits) (v : Local) :
     countTransferFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock bits.reverse [] (ReadonlyRepeat.getIO v))⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(code 0)` reaches label
+`returnTo` with stacks `store reader counter temp bits [] output` after `(bits.length+1)`
+stack steps; its accumulated stack clock is equal to `bits.length*(2*bits.length+5)+3`. -/
 theorem transfer_wire (code : Fin 1 → Label) (returnTo : Label)
     (hcode : ∀ l, program (code l)=StackCall.stmt wireTransferCode code returnTo ReadonlyRepeat.getIO ReadonlyRepeat.putIO (Stacks.transferProgram l))
     (bits reader counter temp output : Bits) (v : Local) :
@@ -8921,6 +10369,9 @@ theorem transfer_wire (code : Fin 1 → Label) (returnTo : Label)
     wireTransferFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock bits.reverse [] (ReadonlyRepeat.getIO v))⟩
 
+/-- A run of `program` from label `(.drainReader 0)` reaches label `(.emitWire .count)` with
+stacks `store [] counter temp wire block output` after `(reader.length+1)` stack steps; its
+accumulated stack clock is equal to `reader.length^2+3*reader.length+3`. -/
 theorem drain_reader (reader counter temp wire block output : Bits) (v : Local) :
     Stacks.stackRun program (reader.length+1) ⟨some (.drainReader 0),v,store reader counter temp wire block output⟩=
       some ⟨some (.emitWire .count),ReadonlyRepeat.putIO v none,store [] counter temp wire block output⟩ ∧
@@ -8935,8 +10386,13 @@ theorem drain_reader (reader counter temp wire block output : Bits) (v : Local) 
     drainReaderFrame,Normalization.singleStack_zero,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock reader (ReadonlyRepeat.getIO v))⟩
 
+/-- The native-echo input consisting of a flag, encoded repetition parameter, encoded wire
+address, and suffix. -/
 def input (flag : Bool) (k wire : ℕ) (tail : Bits) : Bits := flag::(natBits k++(natBits wire++tail))
 
+/-- A run of `program` from label `(.start 0)` reaches label `(.emitWire .count)` with stacks
+`store [] k.bits [] wire.bits [] []`; its accumulated stack clock is at most `700*(1+(input
+bit k wire tail).length)^2`. -/
 theorem frontend (bit : Bool) (k wire : ℕ) (tail : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.start 0),v,store [] [] [] [] (input bit k wire tail).reverse []⟩=
@@ -9001,6 +10457,10 @@ theorem frontend (bit : Bool) (k wire : ℕ) (tail : Bits) (v : Local) :
   dsimp only [B]
   omega
 
+/-- A run of `program` from label `(.emitWire .count)` reaches label `.ancilla` with stacks
+`store reader counter [] n.bits block ((natBits n).reverse++output)` after
+`(4*n.bits.length+5)` stack steps; its accumulated stack clock is at most
+`100*(1+n.bits.length+output.length)^2`. -/
 theorem emit_wire (n : ℕ) (reader counter block output : Bits) (v : Local) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emitWire .count),v,store reader counter [] n.bits block output⟩=
       some ⟨some .ancilla,ReadonlyRepeat.putIO v none,store reader counter [] n.bits block ((natBits n).reverse++output)⟩ ∧
@@ -9015,6 +10475,10 @@ theorem emit_wire (n : ℕ) (reader counter block output : Bits) (v : Local) :
     wireEmitFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.emitCount .count)` reaches label `.unshift` with stacks
+`store reader n.bits [] wire block ((natBits n).reverse++output)` after
+`(4*n.bits.length+5)` stack steps; its accumulated stack clock is at most
+`100*(1+n.bits.length+output.length)^2`. -/
 theorem emit_count (n : ℕ) (reader wire block output : Bits) (v : Local) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emitCount .count),v,store reader n.bits [] wire block output⟩=
       some ⟨some .unshift,ReadonlyRepeat.putIO v none,store reader n.bits [] wire block ((natBits n).reverse++output)⟩ ∧
@@ -9029,6 +10493,10 @@ theorem emit_count (n : ℕ) (reader wire block output : Bits) (v : Local) :
     countEmitFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.emitBlockWire .count)` reaches label `.blockEnd` with
+stacks `store reader counter [] n.bits ((natBits n).reverse++block) output` after
+`(4*n.bits.length+5)` stack steps; its accumulated stack clock is at most
+`100*(1+n.bits.length+block.length)^2`. -/
 theorem emit_block_wire (n : ℕ) (reader counter output block : Bits) (v : Local) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emitBlockWire .count),v,store reader counter [] n.bits block output⟩=
       some ⟨some .blockEnd,ReadonlyRepeat.putIO v none,store reader counter [] n.bits ((natBits n).reverse++block) output⟩ ∧
@@ -9043,6 +10511,9 @@ theorem emit_block_wire (n : ℕ) (reader counter output block : Bits) (v : Loca
     blockEmitFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.increment .carry)` reaches label `.shift` with stacks
+`store reader (n+1).bits [] wire block output`; its accumulated stack clock is at most
+`50*(1+n.bits.length)^2`. -/
 theorem increment (n : ℕ) (reader wire block output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.increment .carry),v,store reader n.bits [] wire block output⟩=
@@ -9058,9 +10529,13 @@ theorem increment (n : ℕ) (reader wire block output : Bits) (v : Local) :
     countFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Under the stated hypotheses, `(2*n).bits` equals `false::n.bits`. -/
 theorem twice_bits (n : ℕ) (hn : 0<n) : (2*n).bits=false::n.bits := by
   simpa only [Nat.bit_false] using Nat.bits_append_bit n false (by omega)
 
+/-- Under the stated input conditions, a run of `program` from label `.shift` reaches label
+`(.emitCount .count)` with stacks `store reader (2*n).bits [] wire block output` after `1`
+stack step; its accumulated stack clock is equal to `2*n.bits.length+4`. -/
 theorem shift (n : ℕ) (hn : 0<n) (reader wire block output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .shift,v,store reader n.bits [] wire block output⟩=
       some ⟨some (.emitCount .count),v,store reader (2*n).bits [] wire block output⟩ ∧
@@ -9071,6 +10546,9 @@ theorem shift (n : ℕ) (hn : 0<n) (reader wire block output : Bits) (v : Local)
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- Under the stated input conditions, a run of `program` from label `.unshift` reaches label
+`.blockStart` with stacks `store reader n.bits [] wire block output` after `1` stack step;
+its accumulated stack clock is equal to `2*n.bits.length+4`. -/
 theorem unshift (n : ℕ) (hn : 0<n) (reader wire block output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .unshift,v,store reader (2*n).bits [] wire block output⟩=
       some ⟨some .blockStart,v,store reader n.bits [] wire block output⟩ ∧
@@ -9081,10 +10559,15 @@ theorem unshift (n : ℕ) (hn : 0<n) (reader wire block output : Bits) (v : Loca
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- Halt when no continuation label is supplied, and otherwise jump to that label in the
+NativeEcho program. -/
 def continuation : Option Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | none => .halt
   | some l => .goto (fun _ => l)
 
+/-- Under the stated input conditions, a run of `program` from label `state` reaches label
+`returnTo` with stacks `Function.update S bank (bits.reverse++S bank)` after `1` stack step;
+its accumulated stack clock is equal to `1+bits.length*(2*(S bank).length+bits.length+2)`. -/
 theorem push_constant (state : Label) (returnTo : Option Label) (bank : Slot) (bits : Bits)
     (hcode : program state=Stacks.pushBits bank bits (continuation returnTo)) (v : Local) (S : Slot → Bits) :
     Stacks.stackRun program 1 ⟨some state,v,S⟩=
@@ -9100,11 +10583,14 @@ theorem push_constant (state : Label) (returnTo : Option Label) (bank : Slot) (b
     rw [hcode,Stacks.pushBits_clock]
     cases returnTo <;> simp [continuation,Stacks.stackClock]
 
+/-- `(block wire).length` equals `2*wire.bits.length+11`. -/
 theorem block_length (wire : ℕ) : (block wire).length=2*wire.bits.length+11 := by
   simp only [block,List.flatMap_cons,List.flatMap_nil,List.length_append,List.length_nil,natBits_length]
   change (2*0+1)+((2*wire.bits.length+1)+((2*2+1)+((2*0+1)+((2*0+1)+((2*0+1)+((2*0+1)+0))))))=_
   omega
 
+/-- `([wire,1,2*(k+1)].flatMap natBits).length` equals
+`2*wire.bits.length+2*(k+1).bits.length+7`. -/
 theorem header_length (wire k : ℕ) : ([wire,1,2*(k+1)].flatMap natBits).length=
     2*wire.bits.length+2*(k+1).bits.length+7 := by
   simp only [List.flatMap_cons,List.flatMap_nil,List.length_append,List.length_nil,natBits_length,
@@ -9112,6 +10598,8 @@ theorem header_length (wire k : ℕ) : ([wire,1,2*(k+1)].flatMap natBits).length
   change (2*wire.bits.length+1)+((2*1+1)+(2*((k+1).bits.length+1)+1+0))=_
   omega
 
+/-- `(output wire k).length` equals
+`2*wire.bits.length+2*(k+1).bits.length+7+(k+1)*(2*wire.bits.length+11)+4`. -/
 theorem output_length (wire k : ℕ) : (output wire k).length=
     2*wire.bits.length+2*(k+1).bits.length+7+(k+1)*(2*wire.bits.length+11)+4 := by
   simp only [output,List.length_append,header_length,List.length_flatten,List.map_replicate,
@@ -9119,8 +10607,13 @@ theorem output_length (wire k : ℕ) : (output wire k).length=
   change _+(2*1+1)+1=_
   omega
 
+/-- Encode the native-echo width, ancilla field, and doubled operation count as natural-number
+fields. -/
 def header (wire k : ℕ) : Bits := [wire,1,2*(k+1)].flatMap natBits
 
+/-- A run of `program` from label `(.emitWire .count)` reaches label `.blockStart` with stacks
+`store [] (k+1).bits [] wire.bits [] (header wire k).reverse`; its accumulated stack clock
+is at most `60000*(1+wire.bits.length+k.bits.length+(k+1).bits.length)^2`. -/
 theorem emit_header (wire k : ℕ) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.emitWire .count),v,store [] k.bits [] wire.bits [] []⟩=
@@ -9179,6 +10672,9 @@ theorem emit_header (wire k : ℕ) (v : Local) :
     dsimp only [B]
     omega
 
+/-- A run of `program` from label `(.drainWire 0)` reaches label `(.transferBlock 0)` with
+stacks `store reader counter temp [] block output` after `(bits.length+1)` stack steps; its
+accumulated stack clock is equal to `bits.length^2+3*bits.length+3`. -/
 theorem drain_wire (bits reader counter temp block output : Bits) (v : Local) :
     Stacks.stackRun program (bits.length+1) ⟨some (.drainWire 0),v,store reader counter temp bits block output⟩=
       some ⟨some (.transferBlock 0),ReadonlyRepeat.putIO v none,store reader counter temp [] block output⟩ ∧
@@ -9193,6 +10689,9 @@ theorem drain_wire (bits reader counter temp block output : Bits) (v : Local) :
     drainWireFrame,Normalization.singleStack_zero,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock bits (ReadonlyRepeat.getIO v))⟩
 
+/-- A run of `program` from label `.blockStart` reaches label `(.repeat (.counter .borrow))`
+with stacks `store [] counter [] (block wire) [] output`; its accumulated stack clock is at
+most `50000*(1+wire.bits.length)^2`. -/
 theorem build_block (wire : ℕ) (counter output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .blockStart,v,store [] counter [] wire.bits [] output⟩=
@@ -9254,6 +10753,10 @@ theorem build_block (wire : ℕ) (counter output : Bits) (v : Local) :
   dsimp only [B]
   omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.repeat (.counter
+.borrow))` reaches label `.suffix` with stacks `store [] [] [] [] [] ((List.replicate n
+bits).flatten.reverse++output)`; its accumulated stack clock is at most
+`20*(n+1)*(1+counter.length)^2+50*(n+1)*(1+bits.length+output.length+n*bits.length)^2`. -/
 theorem repeat_call (n : ℕ) (counter bits output : Bits) (v : Local) (hnum : binaryValue counter=n) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.repeat (.counter .borrow)),v,store [] counter [] bits [] output⟩=
@@ -9268,16 +10771,20 @@ theorem repeat_call (n : ℕ) (counter bits output : Bits) (v : Local) (hnum : b
     repeatFrame,Preparation.quad_zero,Preparation.quad_one,Preparation.quad_two,Preparation.quad_three] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- The explicit accumulated clock budget for the repeat phase of native-echo emission. -/
 def repeatCost (wire k : ℕ) : ℕ :=
   20*(k+1+1)*(1+(k+1).bits.length)^2+
     50*(k+1+1)*(1+(block wire).length+(header wire k).length+(k+1)*(block wire).length)^2
 
+/-- The explicit accumulated clock budget for the execution phase of native-echo emission. -/
 def executionCost (bit : Bool) (k wire : ℕ) (tail : Bits) : ℕ :=
   700*(1+(input bit k wire tail).length)^2+
     60000*(1+wire.bits.length+k.bits.length+(k+1).bits.length)^2+
     50000*(1+wire.bits.length)^2+repeatCost wire k+
     (1+4*(2*(((List.replicate (k+1) (block wire)).flatten.reverse++(header wire k).reverse).length)+4+2))
 
+/-- A run of `program` from label `(.start 0)` halts with stacks `store [] [] [] [] [] (output
+wire k).reverse`; its accumulated stack clock is at most `executionCost bit k wire tail`. -/
 theorem execution (bit : Bool) (k wire : ℕ) (tail : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.start 0),v,store [] [] [] [] (input bit k wire tail).reverse []⟩=
@@ -9304,8 +10811,11 @@ theorem execution (bit : Bool) (k wire : ℕ) (tail : Bits) (v : Local) :
   · simpa only [output,header,List.reverse_append,List.append_assoc] using hr
   · simpa only [executionCost] using! hc
 
+/-- The size parameter `1+(input bit k wire tail).length+k` used to bound native-echo emission. -/
 def size (bit : Bool) (k wire : ℕ) (tail : Bits) : ℕ := 1+(input bit k wire tail).length+k
 
+/-- The native-echo size parameter bounds the binary parameters, encoded header and block,
+repeated block data, and total output length by the stated polynomials. -/
 theorem data_bounds (bit : Bool) (k wire : ℕ) (tail : Bits) :
     let B := size bit k wire tail
     1≤B ∧ 1+wire.bits.length≤B ∧ k.bits.length≤B ∧ (k+1).bits.length≤B ∧ k+1≤B ∧
@@ -9344,6 +10854,7 @@ theorem data_bounds (bit : Bool) (k wire : ℕ) (tail : Bits) :
     omega
   exact ⟨hB,hW,hK,hP,hn,hn1,hb,hh,hp,hz,hbefore,ho⟩
 
+/-- `executionCost bit k wire tail` is at most `2000000*(size bit k wire tail)^5`. -/
 theorem cost_bound (bit : Bool) (k wire : ℕ) (tail : Bits) :
     executionCost bit k wire tail≤2000000*(size bit k wire tail)^5 := by
   obtain ⟨hB,hW,hK,hP,_,hn1,_,_,_,hz,hbefore,_⟩ := data_bounds bit k wire tail
@@ -9382,16 +10893,21 @@ theorem cost_bound (bit : Bool) (k wire : ℕ) (tail : Bits) :
   dsimp only [Z] at hr
   nlinarith only [hfront,hhead,hblock,hc,hr,hs,h25,h35,Nat.zero_le (B^5)]
 
+/-- `store [] [] [] [] [] word` equals `Function.update (fun _ => []) Slot.output word`. -/
 theorem output_store (word : Bits) : store [] [] [] [] [] word=Function.update (fun _ => []) Slot.output word := by
   funext k
   cases k <;> rfl
 
+/-- `(TM2.init Slot.block word : TM2.Cfg (fun _ : Slot => Bool) Label Local)` equals `⟨some
+(.start 0),default,store [] [] [] [] word []⟩`. -/
 theorem init_eq (word : Bits) : (TM2.init Slot.block word : TM2.Cfg (fun _ : Slot => Bool) Label Local)=
     ⟨some (.start 0),default,store [] [] [] [] word []⟩ := by
   have he : (fun _ : Slot => ([] : Bits))=store [] [] [] [] [] [] := by funext k; cases k <;> rfl
   simp only [TM2.init,he,store_update_block]
   rfl
 
+/-- A single finite-control machine computes the native-echo output for all encoded parameters
+with fifth-degree time and space bounds in `size`. -/
 theorem raw_machine :
     ∃ (q : ℕ) (M : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ (bit : Bool) (k wire : ℕ) (tail : Bits), Runs M (input bit k wire tail) (output wire k)
@@ -9438,6 +10954,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NativeEcho
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Preparation
 
+/-- Updating the third stack in `quad` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem quad_update_two (reader temp markers source bits : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (quad reader temp markers source) 2 bits=quad reader temp bits source := by
   funext k
@@ -9446,25 +10964,34 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Preparation
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LengthCounter
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite control labels for binary length counting. -/
 inductive Label where | count | increment (l : Increment.Label) deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.count⟩
 
+/-- The TM2 program implementing binary length counting. -/
 def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Symbol
   | .count => .pop 3 (fun _ bit => bit) (.branch (fun bit => bit.isSome)
       (.push 2 (fun _ => true) (.goto (fun _ => .increment .carry))) .halt)
   | .increment l => StackCall.stmt (Fin.castAdd 2) Label.increment .count id (fun _ v => v) (Increment.program l)
 
+/-- A run of `program` from label `.count` reaches label `(.increment .carry)` with stacks
+`Preparation.quad n.bits [] (true::markers) bits` after `1` stack step. -/
 theorem count_step (n : ℕ) (bits markers : Bits) (bit : Bool) (v : Symbol) :
     Stacks.stackRun program 1 ⟨some .count,v,Preparation.quad n.bits [] markers (bit::bits)⟩=
       some ⟨some (.increment .carry),some bit,Preparation.quad n.bits [] (true::markers) bits⟩ := by
   simp [Stacks.run_one,TM2.step,program,TM2.stepAux]
 
+/-- `Stacks.stackRunClock program 1 ⟨some .count,v,Preparation.quad n.bits [] markers
+(bit::bits)⟩` equals `2*bits.length+2*markers.length+7`. -/
 theorem count_clock (n : ℕ) (bits markers : Bits) (bit : Bool) (v : Symbol) :
     Stacks.stackRunClock program 1 ⟨some .count,v,Preparation.quad n.bits [] markers (bit::bits)⟩=
       2*bits.length+2*markers.length+7 := by
   simp [Stacks.stackRunClock,program,Stacks.stackClock]
   omega
 
+/-- A run of `program` from label `(.increment .carry)` reaches label `.count` with stacks
+`Preparation.quad (n+1).bits [] markers bits`; its accumulated stack clock is at most
+`50*(1+n.bits.length)^2`. -/
 theorem increment (n : ℕ) (markers bits : Bits) (v : Symbol) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.increment .carry),v,Preparation.quad n.bits [] markers bits⟩=
@@ -9481,6 +11008,9 @@ theorem increment (n : ℕ) (markers bits : Bits) (v : Symbol) :
     Preparation.transferFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `.count` halts with stacks `Preparation.quad
+(n+bits.length).bits [] (List.replicate bits.length true++markers) []`; its accumulated
+stack clock is at most `100*(bits.length+1)*(1+n+2*bits.length+markers.length)^2`. -/
 theorem complete (n : ℕ) (bits markers : Bits) (v : Symbol) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .count,v,Preparation.quad n.bits [] markers bits⟩=
@@ -9526,31 +11056,46 @@ theorem complete (n : ℕ) (bits markers : Bits) (v : Symbol) :
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LengthCounter
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.RangeBuilder
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite control labels for consecutive natural-field emission. -/
 inductive Label where | next | emit (l : NatEmit.Label) | increment (l : Increment.Label) deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.next⟩
+/-- Map the emit subroutine stack indices into the stack banks for consecutive natural-field
+emission. -/
 def emitCode (k : Fin 3) : Fin 4 := if k=0 then 0 else if k=1 then 1 else 3
 
+/-- The TM2 program implementing consecutive natural-field emission. -/
 def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Symbol
   | .next => .pop 2 (fun _ bit => bit) (.branch (fun bit => bit.isSome) (.goto (fun _ => .emit .count)) .halt)
   | .emit l => StackCall.stmt emitCode Label.emit (.increment .carry) id (fun _ v => v) (NatEmit.program l)
   | .increment l => StackCall.stmt (Fin.castAdd 2) Label.increment .next id (fun _ v => v) (Increment.program l)
 
+/-- Concatenate the natural-number encodings of a consecutive range starting at `first`. -/
 def fields (first count : ℕ) : Bits := (List.range' first count).flatMap natBits
 
+/-- `fields first (count+1)` equals `natBits first++fields (first+1) count`. -/
 theorem fields_succ (first count : ℕ) : fields first (count+1)=natBits first++fields (first+1) count := by
   simp only [fields,List.range'_succ,List.flatMap_cons]
 
+/-- Embed the emit stacks for consecutive natural-field emission while retaining the supplied
+contents of the other stack banks. -/
 def emitFrame (markers : Bits) (S : Fin 3 → Bits) : Fin 4 → Bits :=
     Preparation.quad (S 0) (S 1) markers (S 2)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem emitFrame_at (markers : Bits) (S : Fin 3 → Bits) (k : Fin 3) : emitFrame markers S (emitCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem emitFrame_update (markers : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     emitFrame markers (Function.update S k bits)=Function.update (emitFrame markers S) (emitCode k) bits := by
   funext j
   fin_cases k <;> fin_cases j <;> simp [emitFrame,emitCode,Preparation.quad]
 
+/-- A run of `program` from label `.next` reaches label `(.emit .count)` with stacks
+`Preparation.quad first.bits [] markers output` after `1` stack step; its accumulated stack
+clock is equal to `2*markers.length+4`. -/
 theorem next_step (first : ℕ) (markers output : Bits) (v : Symbol) :
     Stacks.stackRun program 1 ⟨some .next,v,Preparation.quad first.bits [] (true::markers) output⟩=
       some ⟨some (.emit .count),some true,Preparation.quad first.bits [] markers output⟩ ∧
@@ -9561,6 +11106,10 @@ theorem next_step (first : ℕ) (markers output : Bits) (v : Symbol) :
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- A run of `program` from label `(.emit .count)` reaches label `(.increment .carry)` with
+stacks `Preparation.quad first.bits [] markers ((natBits first).reverse++output)` after
+`(4*first.bits.length+5)` stack steps; its accumulated stack clock is at most
+`100*(1+first.bits.length+output.length)^2`. -/
 theorem emit (first : ℕ) (markers output : Bits) (v : Symbol) :
     Stacks.stackRun program (4*first.bits.length+5) ⟨some (.emit .count),v,Preparation.quad first.bits [] markers output⟩=
       some ⟨some (.increment .carry),none,Preparation.quad first.bits [] markers ((natBits first).reverse++output)⟩ ∧
@@ -9575,6 +11124,9 @@ theorem emit (first : ℕ) (markers output : Bits) (v : Symbol) :
     emitFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.increment .carry)` reaches label `.next` with stacks
+`Preparation.quad (first+1).bits [] markers output`; its accumulated stack clock is at most
+`50*(1+first.bits.length)^2`. -/
 theorem increment (first : ℕ) (markers output : Bits) (v : Symbol) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.increment .carry),v,Preparation.quad first.bits [] markers output⟩=
@@ -9591,6 +11143,9 @@ theorem increment (first : ℕ) (markers output : Bits) (v : Symbol) :
     Preparation.transferFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `.next` halts with stacks `Preparation.quad (first+count).bits
+[] [] ((fields first count).reverse++output)`; its accumulated stack clock is at most
+`1000*(count+1)*(1+first+count+output.length+(fields first count).length)^2`. -/
 theorem complete (first count : ℕ) (output : Bits) (v : Symbol) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .next,v,Preparation.quad first.bits [] (List.replicate count true) output⟩=
@@ -9644,6 +11199,7 @@ theorem complete (first count : ℕ) (output : Bits) (v : Symbol) :
       change _≤1000*(count+1+1)*B^2
       nlinarith only [ha2,hi2,hl,hp,Nat.zero_le (B^2)]
 
+/-- `(fields first count).length` is at most `count*(2*(first+count)+1)`. -/
 theorem fields_length_bound (first count : ℕ) : (fields first count).length≤count*(2*(first+count)+1) := by
   induction count generalizing first with
   | zero => simp [fields]
@@ -9655,9 +11211,12 @@ theorem fields_length_bound (first count : ℕ) : (fields first count).length≤
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.RangeBuilder
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StateEcho
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The local-state type for state-echo emission, represented by `ReadonlyRepeat.Local`. -/
 abbrev Local := ReadonlyRepeat.Local
+/-- The finite set of stack banks used by state-echo emission. -/
 inductive Slot where | reader | counter | temp | width | markers | payload | block | output deriving DecidableEq,Fintype
 
+/-- Assemble the named stack contents into the stack store for state-echo emission. -/
 def store (reader counter temp width markers payload block output : Bits) : Slot → Bits
   | .reader => reader
   | .counter => counter
@@ -9668,25 +11227,45 @@ def store (reader counter temp width markers payload block output : Bits) : Slot
   | .block => block
   | .output => output
 
+/-- Map the start subroutine stack indices into the stack banks for state-echo emission. -/
 def startCode (k : Fin 2) : Slot := if k=0 then .payload else .reader
+/-- Map the parse subroutine stack indices into the stack banks for state-echo emission. -/
 def parseCode (k : Fin 3) : Slot := if k=0 then .reader else if k=1 then .temp else .payload
+/-- Map the precision transfer subroutine stack indices into the stack banks for state-echo
+emission. -/
 def precisionTransferCode (k : Fin 2) : Slot := if k=0 then .payload else .counter
+/-- Map the skip subroutine stack indices into the stack banks for state-echo emission. -/
 def skipCode (k : Fin 2) : Slot := if k=0 then .reader else .temp
+/-- Map the length subroutine stack indices into the stack banks for state-echo emission. -/
 def lengthCode (k : Fin 4) : Slot :=
     if k=0 then .width else if k=1 then .temp else if k=2 then .markers else .payload
+/-- Map the clone subroutine stack indices into the stack banks for state-echo emission. -/
 def cloneCode (k : Fin 3) : Slot := if k=0 then .width else if k=1 then .temp else .reader
+/-- Map the clone transfer subroutine stack indices into the stack banks for state-echo
+emission. -/
 def cloneTransferCode (k : Fin 2) : Slot := if k=0 then .reader else .payload
+/-- Map the width subroutine stack indices into the stack banks for state-echo emission. -/
 def widthCode (k : Fin 2) : Slot := if k=0 then .payload else .temp
+/-- Map the emit width subroutine stack indices into the stack banks for state-echo emission. -/
 def emitWidthCode (k : Fin 3) : Slot := if k=0 then .payload else if k=1 then .temp else .output
+/-- Map the precision subroutine stack indices into the stack banks for state-echo emission. -/
 def precisionCode (k : Fin 2) : Slot := if k=0 then .counter else .temp
+/-- Map the emit precision subroutine stack indices into the stack banks for state-echo
+emission. -/
 def emitPrecisionCode (k : Fin 3) : Slot := if k=0 then .counter else if k=1 then .temp else .output
+/-- Map the emit count subroutine stack indices into the stack banks for state-echo emission. -/
 def emitCountCode (k : Fin 3) : Slot := if k=0 then .width else if k=1 then .temp else .block
+/-- Map the range subroutine stack indices into the stack banks for state-echo emission. -/
 def rangeCode (k : Fin 4) : Slot :=
     if k=0 then .width else if k=1 then .temp else if k=2 then .markers else .block
+/-- Map the block transfer subroutine stack indices into the stack banks for state-echo
+emission. -/
 def blockTransferCode (k : Fin 2) : Slot := if k=0 then .block else .payload
+/-- Map the repeat subroutine stack indices into the stack banks for state-echo emission. -/
 def repeatCode (k : Fin 4) : Slot :=
     if k=0 then .counter else if k=1 then .temp else if k=2 then .payload else .output
 
+/-- The finite control labels for state-echo emission. -/
 inductive Label where
   | start (l : Fin 1)
   | parsePrecision (l : Fin 3)
@@ -9718,6 +11297,7 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.start 0⟩
 
+/-- The TM2 program implementing state-echo emission. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .start l => StackCall.stmt startCode Label.start (.parsePrecision 0) ReadonlyRepeat.getIO ReadonlyRepeat.putIO (Stacks.transferProgram l)
   | .parsePrecision l => StackCall.stmt parseCode Label.parsePrecision (.transferPrecision 0) ReadonlyRepeat.getIO ReadonlyRepeat.putIO (Parsing.natProgram l)
@@ -9747,270 +11327,414 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .repeat l => StackCall.stmt repeatCode Label.repeat .done id (fun _ v => v) (ReadonlyRepeat.program l)
   | .done => .halt
 
+/-- Encode the precision, count, dimension, address, and alphabet parameters followed by the
+supplied suffix. -/
 def input (k count dimension addresses alphabet : ℕ) (tail : Bits) : Bits :=
   natBits k++(natBits count++(natBits dimension++(natBits addresses++(natBits alphabet++tail))))
+/-- The derived width given by the sum of the binary lengths of the address and alphabet
+parameters. -/
 def width (addresses alphabet : ℕ) : ℕ := addresses.bits.length+alphabet.bits.length
+/-- Encode the state-echo width plus one and the doubled repetition count as natural-number
+fields. -/
 def header (m k : ℕ) : Bits := [m+1,2*(k+1)].flatMap natBits
+/-- Encode the state-echo operation block, including the consecutive wire addresses below its
+width. -/
 def block (m : ℕ) : Bits := ([0,0,3,0,m]++List.range m).flatMap natBits
+/-- Concatenate the state-echo header with the required repetitions of its operation block. -/
 def output (m k : ℕ) : Bits := header m k++(List.replicate (k+1) (block m)).flatten
 
+/-- Embed the start stacks for state-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def startFrame (counter temp width markers block output : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store (S 1) counter temp width markers (S 0) block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem startFrame_at (counter temp width markers block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     startFrame counter temp width markers block output S (startCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem startFrame_update (counter temp width markers block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     startFrame counter temp width markers block output (Function.update S k bits)=Function.update (startFrame counter temp width markers block output S) (startCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [startFrame,startCode,store]
 
+/-- Embed the parse stacks for state-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def parseFrame (counter width markers block output : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store (S 0) counter (S 1) width markers (S 2) block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem parseFrame_at (counter width markers block output : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     parseFrame counter width markers block output S (parseCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem parseFrame_update (counter width markers block output : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     parseFrame counter width markers block output (Function.update S k bits)=Function.update (parseFrame counter width markers block output S) (parseCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [parseFrame,parseCode,store]
 
+/-- Embed the precision transfer stacks for state-echo emission while retaining the supplied
+contents of the other stack banks. -/
 def precisionTransferFrame (reader temp width markers block output : Bits) (S : Fin 2 → Bits) :
     Slot → Bits := store reader (S 1) temp width markers (S 0) block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem precisionTransferFrame_at (reader temp width markers block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     precisionTransferFrame reader temp width markers block output S (precisionTransferCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem precisionTransferFrame_update (reader temp width markers block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     precisionTransferFrame reader temp width markers block output (Function.update S k bits)=Function.update (precisionTransferFrame reader temp width markers block output S) (precisionTransferCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [precisionTransferFrame,precisionTransferCode,store]
 
+/-- Embed the skip stacks for state-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def skipFrame (counter width markers payload block output : Bits) (S : Fin 2 → Bits) : Slot →
     Bits := store (S 0) counter (S 1) width markers payload block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem skipFrame_at (counter width markers payload block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     skipFrame counter width markers payload block output S (skipCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem skipFrame_update (counter width markers payload block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     skipFrame counter width markers payload block output (Function.update S k bits)=Function.update (skipFrame counter width markers payload block output S) (skipCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [skipFrame,skipCode,store]
 
+/-- Embed the length stacks for state-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def lengthFrame (reader counter block output : Bits) (S : Fin 4 → Bits) : Slot → Bits :=
     store reader counter (S 1) (S 0) (S 2) (S 3) block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem lengthFrame_at (reader counter block output : Bits) (S : Fin 4 → Bits) (k : Fin 4) :
     lengthFrame reader counter block output S (lengthCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem lengthFrame_update (reader counter block output : Bits) (S : Fin 4 → Bits) (k : Fin 4) (bits : Bits) :
     lengthFrame reader counter block output (Function.update S k bits)=Function.update (lengthFrame reader counter block output S) (lengthCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [lengthFrame,lengthCode,store]
 
+/-- Embed the clone stacks for state-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def cloneFrame (counter markers payload block output : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store (S 2) counter (S 1) (S 0) markers payload block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem cloneFrame_at (counter markers payload block output : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     cloneFrame counter markers payload block output S (cloneCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem cloneFrame_update (counter markers payload block output : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     cloneFrame counter markers payload block output (Function.update S k bits)=Function.update (cloneFrame counter markers payload block output S) (cloneCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [cloneFrame,cloneCode,store]
 
+/-- Embed the clone transfer stacks for state-echo emission while retaining the supplied
+contents of the other stack banks. -/
 def cloneTransferFrame (counter temp width markers block output : Bits) (S : Fin 2 → Bits) : Slot →
     Bits := store (S 0) counter temp width markers (S 1) block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem cloneTransferFrame_at (counter temp width markers block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     cloneTransferFrame counter temp width markers block output S (cloneTransferCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem cloneTransferFrame_update (counter temp width markers block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     cloneTransferFrame counter temp width markers block output (Function.update S k bits)=Function.update (cloneTransferFrame counter temp width markers block output S) (cloneTransferCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [cloneTransferFrame,cloneTransferCode,store]
 
+/-- Embed the width stacks for state-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def widthFrame (reader counter width markers block output : Bits) (S : Fin 2 → Bits) : Slot →
     Bits := store reader counter (S 1) width markers (S 0) block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem widthFrame_at (reader counter width markers block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     widthFrame reader counter width markers block output S (widthCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem widthFrame_update (reader counter width markers block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     widthFrame reader counter width markers block output (Function.update S k bits)=Function.update (widthFrame reader counter width markers block output S) (widthCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [widthFrame,widthCode,store]
 
+/-- Embed the emit width stacks for state-echo emission while retaining the supplied contents of
+the other stack banks. -/
 def emitWidthFrame (reader counter width markers block : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store reader counter (S 1) width markers (S 0) block (S 2)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem emitWidthFrame_at (reader counter width markers block : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     emitWidthFrame reader counter width markers block S (emitWidthCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem emitWidthFrame_update (reader counter width markers block : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     emitWidthFrame reader counter width markers block (Function.update S k bits)=Function.update (emitWidthFrame reader counter width markers block S) (emitWidthCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [emitWidthFrame,emitWidthCode,store]
 
+/-- Embed the precision stacks for state-echo emission while retaining the supplied contents of
+the other stack banks. -/
 def precisionFrame (reader width markers payload block output : Bits) (S : Fin 2 → Bits) : Slot →
     Bits := store reader (S 0) (S 1) width markers payload block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem precisionFrame_at (reader width markers payload block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     precisionFrame reader width markers payload block output S (precisionCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem precisionFrame_update (reader width markers payload block output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     precisionFrame reader width markers payload block output (Function.update S k bits)=Function.update (precisionFrame reader width markers payload block output S) (precisionCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [precisionFrame,precisionCode,store]
 
+/-- Embed the emit precision stacks for state-echo emission while retaining the supplied
+contents of the other stack banks. -/
 def emitPrecisionFrame (reader width markers payload block : Bits) (S : Fin 3 → Bits) : Slot →
     Bits := store reader (S 0) (S 1) width markers payload block (S 2)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem emitPrecisionFrame_at (reader width markers payload block : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     emitPrecisionFrame reader width markers payload block S (emitPrecisionCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem emitPrecisionFrame_update (reader width markers payload block : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     emitPrecisionFrame reader width markers payload block (Function.update S k bits)=Function.update (emitPrecisionFrame reader width markers payload block S) (emitPrecisionCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [emitPrecisionFrame,emitPrecisionCode,store]
 
+/-- Embed the emit count stacks for state-echo emission while retaining the supplied contents of
+the other stack banks. -/
 def emitCountFrame (reader counter markers payload output : Bits) (S : Fin 3 → Bits) : Slot →
     Bits := store reader counter (S 1) (S 0) markers payload (S 2) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem emitCountFrame_at (reader counter markers payload output : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     emitCountFrame reader counter markers payload output S (emitCountCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem emitCountFrame_update (reader counter markers payload output : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     emitCountFrame reader counter markers payload output (Function.update S k bits)=Function.update (emitCountFrame reader counter markers payload output S) (emitCountCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [emitCountFrame,emitCountCode,store]
 
+/-- Embed the range stacks for state-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def rangeFrame (reader counter payload output : Bits) (S : Fin 4 → Bits) : Slot → Bits :=
     store reader counter (S 1) (S 0) (S 2) payload (S 3) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem rangeFrame_at (reader counter payload output : Bits) (S : Fin 4 → Bits) (k : Fin 4) :
     rangeFrame reader counter payload output S (rangeCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem rangeFrame_update (reader counter payload output : Bits) (S : Fin 4 → Bits) (k : Fin 4) (bits : Bits) :
     rangeFrame reader counter payload output (Function.update S k bits)=Function.update (rangeFrame reader counter payload output S) (rangeCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [rangeFrame,rangeCode,store]
 
+/-- Embed the block transfer stacks for state-echo emission while retaining the supplied
+contents of the other stack banks. -/
 def blockTransferFrame (reader counter temp width markers output : Bits) (S : Fin 2 → Bits) :
     Slot → Bits := store reader counter temp width markers (S 1) (S 0) output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem blockTransferFrame_at (reader counter temp width markers output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     blockTransferFrame reader counter temp width markers output S (blockTransferCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem blockTransferFrame_update (reader counter temp width markers output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     blockTransferFrame reader counter temp width markers output (Function.update S k bits)=Function.update (blockTransferFrame reader counter temp width markers output S) (blockTransferCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [blockTransferFrame,blockTransferCode,store]
 
+/-- Embed the repeat stacks for state-echo emission while retaining the supplied contents of the
+other stack banks. -/
 def repeatFrame (reader width markers block : Bits) (S : Fin 4 → Bits) : Slot → Bits :=
     store reader (S 0) (S 1) width markers (S 2) block (S 3)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem repeatFrame_at (reader width markers block : Bits) (S : Fin 4 → Bits) (k : Fin 4) :
     repeatFrame reader width markers block S (repeatCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem repeatFrame_update (reader width markers block : Bits) (S : Fin 4 → Bits) (k : Fin 4) (bits : Bits) :
     repeatFrame reader width markers block (Function.update S k bits)=Function.update (repeatFrame reader width markers block S) (repeatCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [repeatFrame,repeatCode,store]
 
+/-- Embed the drain reader stacks for state-echo emission while retaining the supplied contents
+of the other stack banks. -/
 def drainReaderFrame (counter temp width markers payload block output : Bits) (S : Fin 1 → Bits) :
     Slot → Bits := store (S 0) counter temp width markers payload block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainReaderFrame_at (counter temp width markers payload block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) : drainReaderFrame counter temp width markers payload block output S Slot.reader=S k := by
   fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainReaderFrame_update (counter temp width markers payload block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainReaderFrame counter temp width markers payload block output (Function.update S k bits)=Function.update (drainReaderFrame counter temp width markers payload block output S) Slot.reader bits := by
   funext j
   fin_cases k
   cases j <;> simp [drainReaderFrame,store]
 
+/-- Embed the drain payload stacks for state-echo emission while retaining the supplied contents
+of the other stack banks. -/
 def drainPayloadFrame (reader counter temp width markers block output : Bits) (S : Fin 1 → Bits) :
     Slot → Bits := store reader counter temp width markers (S 0) block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainPayloadFrame_at (reader counter temp width markers block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) : drainPayloadFrame reader counter temp width markers block output S Slot.payload=S k := by
   fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainPayloadFrame_update (reader counter temp width markers block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainPayloadFrame reader counter temp width markers block output (Function.update S k bits)=Function.update (drainPayloadFrame reader counter temp width markers block output S) Slot.payload bits := by
   funext j
   fin_cases k
   cases j <;> simp [drainPayloadFrame,store]
 
+/-- Embed the drain width stacks for state-echo emission while retaining the supplied contents
+of the other stack banks. -/
 def drainWidthFrame (reader counter temp markers payload block output : Bits) (S : Fin 1 → Bits) :
     Slot → Bits := store reader counter temp (S 0) markers payload block output
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainWidthFrame_at (reader counter temp markers payload block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) : drainWidthFrame reader counter temp markers payload block output S Slot.width=S k := by
   fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainWidthFrame_update (reader counter temp markers payload block output : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainWidthFrame reader counter temp markers payload block output (Function.update S k bits)=Function.update (drainWidthFrame reader counter temp markers payload block output S) Slot.width bits := by
   funext j
   fin_cases k
   cases j <;> simp [drainWidthFrame,store]
 
+/-- Reading the reader stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_reader (reader counter temp width markers payload block output : Bits) : store reader counter temp width markers payload block output Slot.reader=reader := rfl
 
+/-- Updating the reader stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_reader (reader counter temp width markers payload block output bits : Bits) :
     Function.update (store reader counter temp width markers payload block output) Slot.reader bits=store bits counter temp width markers payload block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the counter stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_counter (reader counter temp width markers payload block output : Bits) : store reader counter temp width markers payload block output Slot.counter=counter := rfl
 
+/-- Updating the counter stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_counter (reader counter temp width markers payload block output bits : Bits) :
     Function.update (store reader counter temp width markers payload block output) Slot.counter bits=store reader bits temp width markers payload block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the temp stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_temp (reader counter temp width markers payload block output : Bits) : store reader counter temp width markers payload block output Slot.temp=temp := rfl
 
+/-- Updating the temp stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_temp (reader counter temp width markers payload block output bits : Bits) :
     Function.update (store reader counter temp width markers payload block output) Slot.temp bits=store reader counter bits width markers payload block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the width stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_width (reader counter temp width markers payload block output : Bits) : store reader counter temp width markers payload block output Slot.width=width := rfl
 
+/-- Updating the width stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_width (reader counter temp width markers payload block output bits : Bits) :
     Function.update (store reader counter temp width markers payload block output) Slot.width bits=store reader counter temp bits markers payload block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the markers stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_markers (reader counter temp width markers payload block output : Bits) : store reader counter temp width markers payload block output Slot.markers=markers := rfl
 
+/-- Updating the markers stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_markers (reader counter temp width markers payload block output bits : Bits) :
     Function.update (store reader counter temp width markers payload block output) Slot.markers bits=store reader counter temp width bits payload block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the payload stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_payload (reader counter temp width markers payload block output : Bits) : store reader counter temp width markers payload block output Slot.payload=payload := rfl
 
+/-- Updating the payload stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_payload (reader counter temp width markers payload block output bits : Bits) :
     Function.update (store reader counter temp width markers payload block output) Slot.payload bits=store reader counter temp width markers bits block output := by
   funext j
   cases j <;> rfl
 
+/-- Reading the block stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_block (reader counter temp width markers payload block output : Bits) : store reader counter temp width markers payload block output Slot.block=block := rfl
 
+/-- Updating the block stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_block (reader counter temp width markers payload block output bits : Bits) :
     Function.update (store reader counter temp width markers payload block output) Slot.block bits=store reader counter temp width markers payload bits output := by
   funext j
   cases j <;> rfl
 
+/-- `store reader counter temp width markers payload block output Slot.output` equals `output`. -/
 @[simp] theorem store_output (reader counter temp width markers payload block output : Bits) : store reader counter temp width markers payload block output Slot.output=output := rfl
 
+/-- Updating the output stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_output (reader counter temp width markers payload block output bits : Bits) :
     Function.update (store reader counter temp width markers payload block output) Slot.output bits=store reader counter temp width markers payload block bits := by
   funext j
   cases j <;> rfl
 
+/-- A run of `program` from label `(.start 0)` reaches label `(.parsePrecision 0)` with stacks
+`store raw [] [] [] [] [] [] []` after `(raw.length+1)` stack steps; its accumulated stack
+clock is equal to `raw.length*(2*raw.length+5)+3`. -/
 theorem start (raw : Bits) (v : Local) :
     Stacks.stackRun program (raw.length+1) ⟨some (.start 0),v,store [] [] [] [] [] raw.reverse [] []⟩=
       some ⟨some (.parsePrecision 0),ReadonlyRepeat.putIO v none,store raw [] [] [] [] [] [] []⟩ ∧
@@ -10025,6 +11749,10 @@ theorem start (raw : Bits) (v : Local) :
     startFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock raw.reverse [] (ReadonlyRepeat.getIO v))⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(code 0)` reaches label
+`returnTo` with stacks `store rest counter [] width markers n.bits.reverse block output`
+after `(2*n.bits.length+3)` stack steps; its accumulated stack clock is at most
+`40*(1+(natBits n++rest).length)^2`. -/
 theorem parse_call (code : Fin 3 → Label) (returnTo : Label)
     (hcode : ∀ l, program (code l)=StackCall.stmt parseCode code returnTo ReadonlyRepeat.getIO ReadonlyRepeat.putIO (Parsing.natProgram l))
     (n : ℕ) (rest counter width markers block output : Bits) (v : Local) :
@@ -10042,6 +11770,9 @@ theorem parse_call (code : Fin 3 → Label) (returnTo : Label)
     parseFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transferPrecision 0)` reaches label `(.skipCount 0)` with
+stacks `store reader bits [] width markers [] [] []` after `(bits.length+1)` stack steps;
+its accumulated stack clock is equal to `bits.length*(2*bits.length+5)+3`. -/
 theorem transfer_precision (bits reader width markers : Bits) (v : Local) :
     Stacks.stackRun program (bits.length+1) ⟨some (.transferPrecision 0),v,store reader [] [] width markers bits.reverse [] []⟩=
       some ⟨some (.skipCount 0),ReadonlyRepeat.putIO v none,store reader bits [] width markers [] [] []⟩ ∧
@@ -10057,6 +11788,10 @@ theorem transfer_precision (bits reader width markers : Bits) (v : Local) :
     precisionTransferFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock bits.reverse [] (ReadonlyRepeat.getIO v))⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(code 0)` reaches label
+`returnTo` with stacks `store rest counter [] width markers [] [] []` after
+`(2*n.bits.length+3)` stack steps; its accumulated stack clock is at most `40*(1+(natBits
+n++rest).length)^2`. -/
 theorem skip_call (code : Fin 3 → Label) (returnTo : Label)
     (hcode : ∀ l, program (code l)=StackCall.stmt skipCode code returnTo ReadonlyRepeat.getIO ReadonlyRepeat.putIO (Parsing.skipNatProgram l))
     (n : ℕ) (rest counter width markers : Bits) (v : Local) :
@@ -10073,6 +11808,10 @@ theorem skip_call (code : Fin 3 → Label) (returnTo : Label)
     skipFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(code .count)` reaches
+label `returnTo` with stacks `store reader counter [] (n+bits.length).bits (List.replicate
+bits.length true++markers) [] [] []`; its accumulated stack clock is at most
+`100*(bits.length+1)*(1+n+2*bits.length+markers.length)^2`. -/
 theorem length_call (code : LengthCounter.Label → Label) (returnTo : Label)
     (hcode : ∀ l, program (code l)=StackCall.stmt lengthCode code returnTo ReadonlyRepeat.getIO ReadonlyRepeat.putIO (LengthCounter.program l))
     (n : ℕ) (bits reader counter markers : Bits) (v : Local) :
@@ -10090,6 +11829,9 @@ theorem length_call (code : LengthCounter.Label → Label) (returnTo : Label)
     lengthFrame,Preparation.quad_zero,Preparation.quad_one,Preparation.quad_two,Preparation.quad_three,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.drainReader 0)` reaches label `(.cloneWidth .emit)` with
+stacks `store [] counter [] width markers [] [] []` after `(reader.length+1)` stack steps;
+its accumulated stack clock is equal to `reader.length^2+3*reader.length+3`. -/
 theorem drain_reader (reader counter width markers : Bits) (v : Local) :
     Stacks.stackRun program (reader.length+1) ⟨some (.drainReader 0),v,store reader counter [] width markers [] [] []⟩=
       some ⟨some (.cloneWidth .emit),ReadonlyRepeat.putIO v none,store [] counter [] width markers [] [] []⟩ ∧
@@ -10104,6 +11846,10 @@ theorem drain_reader (reader counter width markers : Bits) (v : Local) :
     drainReaderFrame,Normalization.singleStack_zero,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock reader (ReadonlyRepeat.getIO v))⟩
 
+/-- A run of `program` from label `(.start 0)` reaches label `(.cloneWidth .emit)` with stacks
+`store [] k.bits [] (width addresses alphabet).bits (List.replicate (width addresses
+alphabet) true) [] [] []`; its accumulated stack clock is at most `10000*(1+(input k count
+dimension addresses alphabet tail).length)^3`. -/
 theorem frontend (k count dimension addresses alphabet : ℕ) (tail : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks
@@ -10213,6 +11959,10 @@ theorem frontend (k count dimension addresses alphabet : ℕ) (tail : Bits) (v :
   dsimp only [Q]
   omega
 
+/-- A run of `program` from label `(.emitWidth .count)` reaches label `(.drainWidthClone 0)`
+with stacks `store reader counter [] width markers n.bits block ((natBits
+n).reverse++output)` after `(4*n.bits.length+5)` stack steps; its accumulated stack clock is
+at most `100*(1+n.bits.length+output.length)^2`. -/
 theorem emit_width (n : ℕ) (reader counter width markers block output : Bits) (v : Local) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emitWidth .count),v,store reader counter [] width markers n.bits block output⟩=
       some ⟨some (.drainWidthClone 0),ReadonlyRepeat.putIO v none,store reader counter [] width markers n.bits block ((natBits n).reverse++output)⟩ ∧
@@ -10227,6 +11977,10 @@ theorem emit_width (n : ℕ) (reader counter width markers block output : Bits) 
     emitWidthFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.emitPrecision .count)` reaches label `.unshiftPrecision`
+with stacks `store reader n.bits [] width markers payload block ((natBits
+n).reverse++output)` after `(4*n.bits.length+5)` stack steps; its accumulated stack clock is
+at most `100*(1+n.bits.length+output.length)^2`. -/
 theorem emit_precision (n : ℕ) (reader width markers payload block output : Bits) (v : Local) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emitPrecision .count),v,store reader n.bits [] width markers payload block output⟩=
       some ⟨some .unshiftPrecision,ReadonlyRepeat.putIO v none,store reader n.bits [] width markers payload block ((natBits n).reverse++output)⟩ ∧
@@ -10241,6 +11995,10 @@ theorem emit_precision (n : ℕ) (reader width markers payload block output : Bi
     emitPrecisionFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.emitWidthCount .count)` reaches label `(.drainWidth 0)`
+with stacks `store reader counter [] n.bits markers payload ((natBits n).reverse++block)
+output` after `(4*n.bits.length+5)` stack steps; its accumulated stack clock is at most
+`100*(1+n.bits.length+block.length)^2`. -/
 theorem emit_width_count (n : ℕ) (reader counter markers payload output block : Bits) (v : Local) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emitWidthCount .count),v,store reader counter [] n.bits markers payload block output⟩=
       some ⟨some (.drainWidth 0),ReadonlyRepeat.putIO v none,store reader counter [] n.bits markers payload ((natBits n).reverse++block) output⟩ ∧
@@ -10255,6 +12013,9 @@ theorem emit_width_count (n : ℕ) (reader counter markers payload output block 
     emitCountFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.cloneWidth .emit)` reaches label `(.transferWidthClone 0)`
+with stacks `store bits.reverse counter [] bits markers [] [] []` after `(2*bits.length+3)`
+stack steps; its accumulated stack clock is at most `25*(1+bits.length)^2`. -/
 theorem clone_width (bits counter markers : Bits) (v : Local) :
     Stacks.stackRun program (2*bits.length+3) ⟨some (.cloneWidth .emit),v,store [] counter [] bits markers [] [] []⟩=
       some ⟨some (.transferWidthClone 0),ReadonlyRepeat.putIO v none,store bits.reverse counter [] bits markers [] [] []⟩ ∧
@@ -10270,6 +12031,9 @@ theorem clone_width (bits counter markers : Bits) (v : Local) :
     cloneFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transferWidthClone 0)` reaches label `(.incrementWidth
+.carry)` with stacks `store [] counter [] width markers bits [] []` after `(bits.length+1)`
+stack steps; its accumulated stack clock is equal to `bits.length*(2*bits.length+5)+3`. -/
 theorem transfer_width_clone (bits counter width markers : Bits) (v : Local) :
     Stacks.stackRun program (bits.length+1) ⟨some (.transferWidthClone 0),v,store bits.reverse counter [] width markers [] [] []⟩=
       some ⟨some (.incrementWidth .carry),ReadonlyRepeat.putIO v none,store [] counter [] width markers bits [] []⟩ ∧
@@ -10284,6 +12048,9 @@ theorem transfer_width_clone (bits counter width markers : Bits) (v : Local) :
     cloneTransferFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock bits.reverse [] (ReadonlyRepeat.getIO v))⟩
 
+/-- A run of `program` from label `(.incrementWidth .carry)` reaches label `(.emitWidth .count)`
+with stacks `store reader counter [] width markers (n+1).bits block output`; its accumulated
+stack clock is at most `50*(1+n.bits.length)^2`. -/
 theorem increment_width (n : ℕ) (reader counter width markers block output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.incrementWidth .carry),v,store reader counter [] width markers n.bits block output⟩=
@@ -10298,6 +12065,9 @@ theorem increment_width (n : ℕ) (reader counter width markers block output : B
     widthFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.incrementPrecision .carry)` reaches label `.shiftPrecision`
+with stacks `store reader (n+1).bits [] width markers payload block output`; its accumulated
+stack clock is at most `50*(1+n.bits.length)^2`. -/
 theorem increment_precision (n : ℕ) (reader width markers payload block output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.incrementPrecision .carry),v,store reader n.bits [] width markers payload block output⟩=
@@ -10312,6 +12082,10 @@ theorem increment_precision (n : ℕ) (reader width markers payload block output
     precisionFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.drainWidthClone 0)` reaches label `(.incrementPrecision
+.carry)` with stacks `store [] counter [] width markers [] [] output` after
+`(bits.length+1)` stack steps; its accumulated stack clock is equal to
+`bits.length^2+3*bits.length+3`. -/
 theorem drain_payload (bits counter width markers output : Bits) (v : Local) :
     Stacks.stackRun program (bits.length+1) ⟨some (.drainWidthClone 0),v,store [] counter [] width markers bits [] output⟩=
       some ⟨some (.incrementPrecision .carry),ReadonlyRepeat.putIO v none,store [] counter [] width markers [] [] output⟩ ∧
@@ -10326,6 +12100,9 @@ theorem drain_payload (bits counter width markers output : Bits) (v : Local) :
     drainPayloadFrame,Normalization.singleStack_zero,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock bits (ReadonlyRepeat.getIO v))⟩
 
+/-- Under the stated input conditions, a run of `program` from label `.shiftPrecision` reaches
+label `(.emitPrecision .count)` with stacks `store [] (2*n).bits [] width markers [] []
+output` after `1` stack step; its accumulated stack clock is equal to `2*n.bits.length+4`. -/
 theorem shift_precision (n : ℕ) (hn : 0<n) (width markers output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .shiftPrecision,v,store [] n.bits [] width markers [] [] output⟩=
       some ⟨some (.emitPrecision .count),v,store [] (2*n).bits [] width markers [] [] output⟩ ∧
@@ -10336,6 +12113,9 @@ theorem shift_precision (n : ℕ) (hn : 0<n) (width markers output : Bits) (v : 
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- Under the stated input conditions, a run of `program` from label `.unshiftPrecision` reaches
+label `.blockStart` with stacks `store [] n.bits [] width markers [] [] output` after `1`
+stack step; its accumulated stack clock is equal to `2*n.bits.length+4`. -/
 theorem unshift_precision (n : ℕ) (hn : 0<n) (width markers output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .unshiftPrecision,v,store [] (2*n).bits [] width markers [] [] output⟩=
       some ⟨some .blockStart,v,store [] n.bits [] width markers [] [] output⟩ ∧
@@ -10346,10 +12126,15 @@ theorem unshift_precision (n : ℕ) (hn : 0<n) (width markers output : Bits) (v 
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- Halt when no continuation label is supplied, and otherwise jump to that label in the
+StateEcho program. -/
 def continuation : Option Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | none => .halt
   | some l => .goto (fun _ => l)
 
+/-- Under the stated input conditions, a run of `program` from label `state` reaches label
+`returnTo` with stacks `Function.update S bank (bits.reverse++S bank)` after `1` stack step;
+its accumulated stack clock is equal to `1+bits.length*(2*(S bank).length+bits.length+2)`. -/
 theorem push_constant (state : Label) (returnTo : Option Label) (bank : Slot) (bits : Bits)
     (hcode : program state=Stacks.pushBits bank bits (continuation returnTo)) (v : Local) (S : Slot → Bits) :
     Stacks.stackRun program 1 ⟨some state,v,S⟩=
@@ -10364,6 +12149,10 @@ theorem push_constant (state : Label) (returnTo : Option Label) (bank : Slot) (b
     rw [hcode,Stacks.pushBits_clock]
     cases returnTo <;> simp [continuation,Stacks.stackClock]
 
+/-- A run of `program` from label `(.cloneWidth .emit)` reaches label `.blockStart` with stacks
+`store [] (k+1).bits [] m.bits markers [] [] (header m k).reverse`; its accumulated stack
+clock is at most
+`90000*(1+m.bits.length+(m+1).bits.length+k.bits.length+(k+1).bits.length)^2`. -/
 theorem emit_header (m k : ℕ) (markers : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.cloneWidth .emit),v,store [] k.bits [] m.bits markers [] [] []⟩=
@@ -10427,6 +12216,10 @@ theorem emit_header (m k : ℕ) (markers : Bits) (v : Local) :
     dsimp only [Q]
     omega
 
+/-- Under the stated input conditions, a run of `program` from label `(code 0)` reaches label
+`returnTo` with stacks `store reader counter [] [] markers payload block output` after
+`(bits.length+1)` stack steps; its accumulated stack clock is equal to
+`bits.length^2+3*bits.length+3`. -/
 theorem drain_width (code : Fin 1 → Label) (returnTo : Label)
     (hcode : ∀ l,program (code l)=StackCall.stmt (fun _ : Fin 1 => Slot.width) code returnTo
       ReadonlyRepeat.getIO ReadonlyRepeat.putIO (Normalization.drainProgram l))
@@ -10444,6 +12237,10 @@ theorem drain_width (code : Fin 1 → Label) (returnTo : Label)
     drainWidthFrame,Normalization.singleStack_zero,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock bits (ReadonlyRepeat.getIO v))⟩
 
+/-- A run of `program` from label `(.range .next)` reaches label `(.drainIndex 0)` with stacks
+`store [] counter [] m.bits [] [] ((RangeBuilder.fields 0 m).reverse++block) output`; its
+accumulated stack clock is at most `1000*(m+1)*(1+m+block.length+(RangeBuilder.fields 0
+m).length)^2`. -/
 theorem range_call (m : ℕ) (counter block output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.range .next),v,store [] counter [] [] (List.replicate m true) [] block output⟩=
@@ -10459,6 +12256,9 @@ theorem range_call (m : ℕ) (counter block output : Bits) (v : Local) :
     rangeFrame,Preparation.quad_zero,Preparation.quad_one,Preparation.quad_two,Preparation.quad_three,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transferBlock 0)` reaches label `(.repeat (.counter
+.borrow))` with stacks `store [] counter [] [] [] bits [] output` after `(bits.length+1)`
+stack steps; its accumulated stack clock is equal to `bits.length*(2*bits.length+5)+3`. -/
 theorem transfer_block (bits counter output : Bits) (v : Local) :
     Stacks.stackRun program (bits.length+1) ⟨some (.transferBlock 0),v,store [] counter [] [] [] [] bits.reverse output⟩=
       some ⟨some (.repeat (.counter .borrow)),ReadonlyRepeat.putIO v none,store [] counter [] [] [] bits [] output⟩ ∧
@@ -10473,9 +12273,13 @@ theorem transfer_block (bits counter output : Bits) (v : Local) :
     blockTransferFrame,Stacks.stackPair_zero,Stacks.stackPair_one,ReadonlyRepeat.putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (by simpa only [List.length_reverse,List.length_nil,Nat.add_zero] using Stacks.transfer_clock bits.reverse [] (ReadonlyRepeat.getIO v))⟩
 
+/-- The explicit accumulated clock budget for the block phase of state-echo emission. -/
 def blockCost (m : ℕ) : ℕ :=
   100000*(m+1)*(1+m+(block m).length)^2
 
+/-- A run of `program` from label `.blockStart` reaches label `(.repeat (.counter .borrow))`
+with stacks `store [] counter [] [] [] (block m) [] output`; its accumulated stack clock is
+at most `blockCost m`. -/
 theorem build_block (m : ℕ) (counter output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .blockStart,v,store [] counter [] m.bits (List.replicate m true) [] [] output⟩=
@@ -10542,6 +12346,10 @@ theorem build_block (m : ℕ) (counter output : Bits) (v : Local) :
   change _≤100000*(m+1)*B^2
   nlinarith only [heArg2,hmB,hmB2,hblB,hblB2,hB1,hB2,hbig]
 
+/-- Under the stated input conditions, a run of `program` from label `(.repeat (.counter
+.borrow))` reaches label `.done` with stacks `store [] [] [] [] [] [] [] ((List.replicate n
+bits).flatten.reverse++output)`; its accumulated stack clock is at most
+`20*(n+1)*(1+counter.length)^2+50*(n+1)*(1+bits.length+output.length+n*bits.length)^2`. -/
 theorem repeat_call (n : ℕ) (counter bits output : Bits) (v : Local) (hnum : binaryValue counter=n) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.repeat (.counter .borrow)),v,store [] counter [] [] [] bits [] output⟩=
@@ -10556,15 +12364,20 @@ theorem repeat_call (n : ℕ) (counter bits output : Bits) (v : Local) (hnum : b
     repeatFrame,Preparation.quad_zero,Preparation.quad_one,Preparation.quad_two,Preparation.quad_three] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- The explicit accumulated clock budget for the repeat phase of state-echo emission. -/
 def repeatCost (m k : ℕ) : ℕ :=
   20*(k+1+1)*(1+(k+1).bits.length)^2+
     50*(k+1+1)*(1+(block m).length+(header m k).length+(k+1)*(block m).length)^2
 
+/-- The explicit accumulated clock budget for the execution phase of state-echo emission. -/
 def executionCost (k count dimension addresses alphabet : ℕ) (tail : Bits) : ℕ :=
   10000*(1+(input k count dimension addresses alphabet tail).length)^3+
     90000*(1+(width addresses alphabet).bits.length+(width addresses alphabet+1).bits.length+k.bits.length+(k+1).bits.length)^2+
     blockCost (width addresses alphabet)+repeatCost (width addresses alphabet) k+1
 
+/-- A run of `program` from label `(.start 0)` halts with stacks `store [] [] [] [] [] [] []
+(output (width addresses alphabet) k).reverse`; its accumulated stack clock is at most
+`executionCost k count dimension addresses alphabet tail`. -/
 theorem execution (k count dimension addresses alphabet : ℕ) (tail : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.start 0),v,store [] [] [] [] [] (input k count dimension addresses alphabet tail).reverse [] []⟩=
@@ -10595,9 +12408,12 @@ theorem execution (k count dimension addresses alphabet : ℕ) (tail : Bits) (v 
   · simpa only [output,List.reverse_append] using hr
   · simpa only [executionCost] using hc
 
+/-- The size parameter `1+(input k count dimension addresses alphabet tail).length+k` used to
+bound state-echo emission. -/
 def size (k count dimension addresses alphabet : ℕ) (tail : Bits) : ℕ :=
   1+(input k count dimension addresses alphabet tail).length+k
 
+/-- `(block m).length` is at most `2*m^2+3*m+9`. -/
 theorem block_length_bound (m : ℕ) : (block m).length≤2*m^2+3*m+9 := by
   have hf := RangeBuilder.fields_length_bound 0 m
   have hm := Counter.bits_length_le m
@@ -10609,11 +12425,14 @@ theorem block_length_bound (m : ℕ) : (block m).length≤2*m^2+3*m+9 := by
   rw [hc]
   nlinarith
 
+/-- `(header m k).length` equals `2*(m+1).bits.length+2*(k+1).bits.length+4`. -/
 theorem header_length (m k : ℕ) : (header m k).length=2*(m+1).bits.length+2*(k+1).bits.length+4 := by
   simp only [header,List.flatMap_cons,List.flatMap_nil,List.append_nil,List.length_append,natBits_length,
     NativeEcho.twice_bits (k+1) (by omega),List.length_cons]
   omega
 
+/-- The state-echo size parameter bounds the derived width, binary parameters, header, block,
+repeated data, and output length by the stated polynomials. -/
 theorem data_bounds (k count dimension addresses alphabet : ℕ) (tail : Bits) :
     let B := size k count dimension addresses alphabet tail
     let m := width addresses alphabet
@@ -10655,6 +12474,8 @@ theorem data_bounds (k count dimension addresses alphabet : ℕ) (tail : Bits) :
     omega
   exact ⟨hB,hm1,hmB,hmp,hk,hkp,hk1,hn,hblock,hhead,hz,hout⟩
 
+/-- `executionCost k count dimension addresses alphabet tail` is at most `30000000*(size k count
+dimension addresses alphabet tail)^7`. -/
 theorem cost_bound (k count dimension addresses alphabet : ℕ) (tail : Bits) :
     executionCost k count dimension addresses alphabet tail≤30000000*(size k count dimension addresses alphabet tail)^7 := by
   obtain ⟨hB,hm1,hm,hmp,hk,hkp,_,hn,hbl,_,hz,_⟩ :=
@@ -10700,10 +12521,13 @@ theorem cost_bound (k count dimension addresses alphabet : ℕ) (tail : Bits) :
   dsimp only [executionCost,repeatCost]
   nlinarith only [hf,hh,hb,hc,hr,h27,h37,h57,hB7]
 
+/-- `store [] [] [] [] [] [] [] word` equals `Function.update (fun _ => []) Slot.output word`. -/
 theorem output_store (word : Bits) : store [] [] [] [] [] [] [] word=Function.update (fun _ => []) Slot.output word := by
   funext k
   cases k <;> rfl
 
+/-- `(TM2.init Slot.payload word : TM2.Cfg (fun _ : Slot => Bool) Label Local)` equals `⟨some
+(.start 0),default,store [] [] [] [] [] word [] []⟩`. -/
 theorem init_eq (word : Bits) : (TM2.init Slot.payload word : TM2.Cfg (fun _ : Slot => Bool) Label Local)=
     ⟨some (.start 0),default,store [] [] [] [] [] word [] []⟩ := by
   have he : (fun _ : Slot => ([] : Bits))=store [] [] [] [] [] [] [] [] := by
@@ -10711,6 +12535,8 @@ theorem init_eq (word : Bits) : (TM2.init Slot.payload word : TM2.Cfg (fun _ : S
   simp only [TM2.init,he,store_update_payload]
   rfl
 
+/-- A single finite-control machine computes the state-echo output for all encoded parameters
+with seventh-degree time and space bounds in `size`. -/
 theorem raw_machine :
     ∃ (q : ℕ) (M : TM0.Machine Symbol (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ (k count dimension addresses alphabet : ℕ) (tail : Bits),
@@ -10761,9 +12587,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StateEcho
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CheckedNat
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The local-state type for canonical natural-number validation, represented by `Bool×Symbol`. -/
 abbrev Local := Bool×Symbol
+/-- The finite control labels for canonical natural-number validation. -/
 inductive Label where | unary | field | accept | reject deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.unary⟩
+/-- The TM2 program implementing canonical natural-number validation. -/
 def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Local
   | .unary => .pop 0 (fun _ bit => (false,bit))
       (.branch (fun v => v.2.isSome)
@@ -10782,26 +12611,35 @@ def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Local
   | .accept => .load (fun v => (true,v.2)) .halt
   | .reject => .load (fun v => (false,v.2)) .halt
 
+/-- The configuration after unary-length parsing, rejecting a missing terminator and otherwise
+preparing the payload phase. -/
 def unaryFinish (input markers output : Bits) : TM2.Cfg (fun _ : Fin 3 => Bool) Label Local :=
   match readSize input with
   | none => ⟨some .reject,(false,none),Parsing.triple [] (List.replicate input.length true++markers) output⟩
   | some (n,rest) => ⟨some .field,(false,none),Parsing.triple rest (List.replicate n true++markers) output⟩
 
+/-- A run of `program` from label `.unary` reaches label `.unary` with stacks `Parsing.triple
+bits (true::markers) output` after `1` stack step. -/
 theorem unary_step (bits markers output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .unary,v,Parsing.triple (true::bits) markers output⟩=
       some ⟨some .unary,(false,some true),Parsing.triple bits (true::markers) output⟩ := by
   simp [Stacks.run_one,TM2.step,program,TM2.stepAux]
 
+/-- A run of `program` from label `.unary` reaches label `.field` with stacks `Parsing.triple
+bits markers output` after `1` stack step. -/
 theorem unary_stop (bits markers output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .unary,v,Parsing.triple (false::bits) markers output⟩=
       some ⟨some .field,(false,none),Parsing.triple bits markers output⟩ := by
   simp [Stacks.run_one,TM2.step,program,TM2.stepAux]
 
+/-- A run of `program` from label `.unary` reaches label `.reject` with stacks `Parsing.triple
+[] markers output` after `1` stack step. -/
 theorem unary_empty (markers output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .unary,v,Parsing.triple [] markers output⟩=
       some ⟨some .reject,(false,none),Parsing.triple [] markers output⟩ := by
   simp [Stacks.run_one,TM2.step,program,TM2.stepAux]
 
+/-- `unaryFinish (true::bits) markers output` equals `unaryFinish bits (true::markers) output`. -/
 theorem unaryFinish_cons (bits markers output : Bits) :
     unaryFinish (true::bits) markers output=unaryFinish bits (true::markers) output := by
   unfold unaryFinish
@@ -10813,6 +12651,9 @@ theorem unaryFinish_cons (bits markers output : Bits) :
     simp only [readSize,h,Option.bind_eq_bind,Option.bind_some,pure,List.replicate_succ,List.cons_append]
     rw [Parsing.marker_cons]
 
+/-- A run of `program` from `⟨some .unary,v,Parsing.triple input markers output⟩` reaches
+`(unaryFinish input markers output)`; its accumulated stack clock is at most
+`20*(input.length+1)*(1+input.length+markers.length)`. -/
 theorem unary_complete (input markers output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .unary,v,Parsing.triple input markers output⟩=
@@ -10850,17 +12691,24 @@ theorem unary_complete (input markers output : Bits) (v : Local) :
       · simp only [List.length_cons]
         nlinarith
 
+/-- The recursive payload-processing result, rejecting a short payload or a nonempty binary
+representation ending in a false most-significant bit. -/
 def fieldFinish : ℕ → Bits → Bits → Symbol → TM2.Cfg (fun _ : Fin 3 => Bool) Label Local
   | 0,input,output,last =>
       ⟨some (if last ≠ some false then .accept else .reject),(false,last),Parsing.triple input [] output⟩
   | n+1,[],output,_ => ⟨some .reject,(true,none),Parsing.triple [] (List.replicate n true) output⟩
   | n+1,bit::rest,output,_ => fieldFinish n rest (bit::output) (some bit)
 
+/-- A run of `program` from label `.field` reaches label `.field` with stacks `Parsing.triple
+bits markers (bit::output)` after `1` stack step. -/
 theorem field_step (bit : Bool) (bits markers output : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .field,v,Parsing.triple (bit::bits) (true::markers) output⟩=
       some ⟨some .field,(true,some bit),Parsing.triple bits markers (bit::output)⟩ := by
   cases bit <;> simp [Stacks.run_one,TM2.step,program,TM2.stepAux]
 
+/-- A run of `program` from `⟨some .field,v,Parsing.triple input (List.replicate n true)
+output⟩` reaches `(fieldFinish n input output v.2)`; its accumulated stack clock is at most
+`20*(n+1)*(1+input.length+n+output.length)`. -/
 theorem field_complete (n : ℕ) (input output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .field,v,Parsing.triple input (List.replicate n true) output⟩=
@@ -10900,14 +12748,19 @@ theorem field_complete (n : ℕ) (input output : Bits) (v : Local) :
       simp only [List.length_cons]
       nlinarith
 
+/-- Return the last bit of the payload, using the saved symbol when the payload is empty. -/
 def lastField (bits : Bits) (saved : Symbol) : Symbol :=
     match bits.reverse.head? with | none => saved | some b => some b
 
+/-- `lastField (bit::bits) saved` equals `lastField bits (some bit)`. -/
 theorem lastField_cons (bit : Bool) (bits : Bits) (saved : Symbol) :
     lastField (bit::bits) saved=lastField bits (some bit) := by
   simp only [lastField,List.reverse_cons,List.head?_append,List.head?_cons]
   cases bits.reverse.head? <;> rfl
 
+/-- `fieldFinish bits.length (bits++rest) output saved` equals `⟨some (if lastField bits saved ≠
+some false then .accept else .reject), (false,lastField bits saved),Parsing.triple rest []
+(bits.reverse++output)⟩`. -/
 theorem field_data (bits rest output : Bits) (saved : Symbol) :
     fieldFinish bits.length (bits++rest) output saved=
       ⟨some (if lastField bits saved ≠ some false then .accept else .reject),
@@ -10919,6 +12772,8 @@ theorem field_data (bits rest output : Bits) (saved : Symbol) :
     rw [ih,lastField_cons]
     simp only [List.reverse_cons,List.append_assoc,List.singleton_append]
 
+/-- `fieldFinish (bits.length+extra+1) bits output saved` equals `⟨some
+.reject,(true,none),Parsing.triple [] (List.replicate extra true) (bits.reverse++output)⟩`. -/
 theorem field_short (extra : ℕ) (bits output : Bits) (saved : Symbol) :
     fieldFinish (bits.length+extra+1) bits output saved=
       ⟨some .reject,(true,none),Parsing.triple [] (List.replicate extra true) (bits.reverse++output)⟩ := by
@@ -10929,15 +12784,18 @@ theorem field_short (extra : ℕ) (bits output : Bits) (saved : Symbol) :
     rw [he,fieldFinish,ih]
     simp only [List.reverse_cons,List.append_assoc,List.singleton_append]
 
+/-- `binaryValue (b::bits)` equals `Nat.bit b (binaryValue bits)`. -/
 theorem binary_cons (b : Bool) (bits : Bits) : binaryValue (b::bits)=Nat.bit b (binaryValue bits) := by
   cases b <;> rfl
 
+/-- Under the stated hypotheses, `(binaryValue bits).bits` equals `bits`. -/
 theorem canonical_tail (b : Bool) (bits : Bits) (h : (binaryValue (b::bits)).bits=b::bits) :
     (binaryValue bits).bits=bits := by
   have ht := congrArg List.tail h
   rw [← Nat.div2_bits_eq_tail,binary_cons,Nat.div2_bit] at ht
   exact ht
 
+/-- `(binaryValue bits).bits=bits` holds if and only if `bits.reverse.head?≠some false`. -/
 theorem canonical_iff (bits : Bits) : (binaryValue bits).bits=bits ↔ bits.reverse.head?≠some false := by
   induction bits with
   | nil => simp [binaryValue]
@@ -10966,11 +12824,16 @@ theorem canonical_iff (bits : Bits) : (binaryValue bits).bits=bits ↔ bits.reve
           exact he ht.symm
         rw [binary_cons,Nat.bits_append_bit _ _ (fun hz => (hp hz).elim),ht]
 
+/-- The acceptance or rejection configuration obtained by unary-length parsing followed by
+payload validation. -/
 def parseResult (input output : Bits) : TM2.Cfg (fun _ : Fin 3 => Bool) Label Local :=
   match readSize input with
   | none => unaryFinish input [] output
   | some (n,rest) => fieldFinish n rest output none
 
+/-- A run of `program` from `⟨some .unary,v,Parsing.triple input [] output⟩` reaches
+`(parseResult input output)`; its accumulated stack clock is at most
+`40*(1+input.length+output.length)^2`. -/
 theorem to_result (input output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .unary,v,Parsing.triple input [] output⟩=
@@ -11010,10 +12873,12 @@ theorem to_result (input output : Bits) (v : Local) :
       change _≤40*B^2
       nlinarith only [hu,hp]
 
+/-- `lastField bits none` equals `bits.reverse.head?`. -/
 theorem lastField_none (bits : Bits) : lastField bits none=bits.reverse.head? := by
   unfold lastField
   cases bits.reverse.head? <;> rfl
 
+/-- `(parseResult input output).l=some .accept` holds if and only if `readNat input≠none`. -/
 theorem success_iff (input output : Bits) :
     (parseResult input output).l=some .accept ↔ readNat input≠none := by
   cases hs : readSize input with
@@ -11032,6 +12897,8 @@ theorem success_iff (input output : Bits) :
       simp only [parseResult,hs,hf,readNat,Option.bind_eq_bind,Option.bind_some,if_neg hlen]
       simp
 
+/-- Either `(fieldFinish n input output saved).l` equals `some .accept` or `(fieldFinish n input
+output saved).l` equals `some .reject`. -/
 theorem field_labels (n : ℕ) (input output : Bits) (saved : Symbol) :
     (fieldFinish n input output saved).l=some .accept ∨ (fieldFinish n input output saved).l=some .reject := by
   induction n generalizing input output saved with
@@ -11041,6 +12908,8 @@ theorem field_labels (n : ℕ) (input output : Bits) (saved : Symbol) :
     | nil => exact Or.inr rfl
     | cons bit bits => exact ih bits (bit::output) (some bit)
 
+/-- Either `(parseResult input output).l` equals `some .accept` or `(parseResult input
+output).l` equals `some .reject`. -/
 theorem result_labels (input output : Bits) :
     (parseResult input output).l=some .accept ∨ (parseResult input output).l=some .reject := by
   cases hs : readSize input with
@@ -11049,10 +12918,13 @@ theorem result_labels (input output : Bits) :
     rcases pair with ⟨n,rest⟩
     simpa only [parseResult,hs] using field_labels n rest output none
 
+/-- Halt after checked parsing, placing the acceptance flag in the first local component. -/
 def haltedResult (input output : Bits) : TM2.Cfg (fun _ : Fin 3 => Bool) Label Local :=
   let result := parseResult input output
   ⟨none,(decide (result.l=some .accept),result.var.2),result.stk⟩
 
+/-- A run of `program` from `(parseResult input output)` reaches `(haltedResult input output)`
+after `1` stack step; its accumulated stack clock is equal to `1`. -/
 theorem result_halt (input output : Bits) :
     Stacks.stackRun program 1 (parseResult input output)=some (haltedResult input output) ∧
       Stacks.stackRunClock program 1 (parseResult input output)=1 := by
@@ -11073,6 +12945,8 @@ theorem result_halt (input output : Bits) :
       rfl
     · rfl
 
+/-- The checked-natural parser halts at `haltedResult` on every input, with accumulated stack
+clock at most `50*(1+input.length+output.length)^2`. -/
 theorem complete (input output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .unary,v,Parsing.triple input [] output⟩=
@@ -11088,6 +12962,8 @@ theorem complete (input output : Bits) (v : Local) :
   have hp : 1≤(1+input.length+output.length)^2 := Nat.one_le_pow 2 _ (by omega)
   omega
 
+/-- `parseResult (natBits n++rest) output` equals `⟨some .accept,(false,lastField n.bits
+none),Parsing.triple rest [] (n.bits.reverse++output)⟩`. -/
 theorem result_valid (n : ℕ) (rest output : Bits) :
     parseResult (natBits n++rest) output=
       ⟨some .accept,(false,lastField n.bits none),Parsing.triple rest [] (n.bits.reverse++output)⟩ := by
@@ -11100,11 +12976,16 @@ theorem result_valid (n : ℕ) (rest output : Bits) :
     exact (canonical_iff n.bits).mp hcan
   simp only [parseResult,hsize,field_data,if_pos hlast]
 
+/-- `haltedResult (natBits n++rest) output` equals `⟨none,(true,lastField n.bits
+none),Parsing.triple rest [] (n.bits.reverse++output)⟩`. -/
 theorem halted_valid (n : ℕ) (rest output : Bits) :
     haltedResult (natBits n++rest) output=
       ⟨none,(true,lastField n.bits none),Parsing.triple rest [] (n.bits.reverse++output)⟩ := by
   simp only [haltedResult,result_valid,decide_true]
 
+/-- A run of `program` from label `.unary` halts with stacks `Parsing.triple rest []
+(n.bits.reverse++output)`; its accumulated stack clock is at most `50*(1+(natBits
+n++rest).length+output.length)^2`. -/
 theorem valid_execution (n : ℕ) (rest output : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .unary,v,Parsing.triple (natBits n++rest) [] output⟩=
@@ -11113,6 +12994,7 @@ theorem valid_execution (n : ℕ) (rest output : Bits) (v : Local) :
         50*(1+(natBits n++rest).length+output.length)^2 := by
   simpa only [halted_valid] using complete (natBits n++rest) output v
 
+/-- `(haltedResult input output).var.1=true` holds if and only if `readNat input≠none`. -/
 theorem success_flag (input output : Bits) :
     (haltedResult input output).var.1=true ↔ readNat input≠none := by
   simp only [haltedResult,decide_eq_true_eq,success_iff]
@@ -11120,24 +13002,33 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CheckedNat
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.BinaryCompare
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The tag choices for binary-value comparison: `lt`, `eq`, `gt`. -/
 inductive Tag where | lt | eq | gt deriving DecidableEq,Fintype
+/-- The local-state type for binary-value comparison, represented by `Tag×Symbol×Symbol`. -/
 abbrev Local := Tag×Symbol×Symbol
 
+/-- Update a comparison tag from two optional bits, treating missing bits as false and letting
+unequal bits override the prior tag. -/
 def update (order : Tag) (a b : Symbol) : Tag :=
   if a.getD false=b.getD false then order else if a.getD false then .gt else .lt
 
+/-- Compare two little-endian bit lists by scanning paired bits and updating the running
+comparison tag. -/
 def compareAux : Tag → Bits → Bits → Tag
   | order,[],[] => order
   | order,a::as,[] => compareAux (update order (some a) none) as []
   | order,[],b::bs => compareAux (update order none (some b)) [] bs
   | order,a::as,b::bs => compareAux (update order (some a) (some b)) as bs
 
+/-- The TM2 program implementing binary-value comparison. -/
 def program (_ : Fin 1) : TM2.Stmt (fun _ : Fin 2 => Bool) (Fin 1) Local :=
   .pop 0 (fun v bit => (v.1,bit,v.2.2))
     (.pop 1 (fun v bit => (v.1,v.2.1,bit))
       (.branch (fun v => v.2.1.isSome || v.2.2.isSome)
         (.load (fun v => (update v.1 v.2.1 v.2.2,v.2.1,v.2.2)) (.goto (fun _ => 0))) .halt))
 
+/-- `compareAux order a b` equals `if binaryValue a<binaryValue b then .lt else if binaryValue
+b<binaryValue a then .gt else order`. -/
 theorem numeric_aux (order : Tag) (a b : Bits) :
     compareAux order a b=if binaryValue a<binaryValue b then .lt else if binaryValue b<binaryValue a then .gt else order := by
   induction a generalizing b order with
@@ -11158,6 +13049,8 @@ theorem numeric_aux (order : Tag) (a b : Bits) :
         simp [binaryValue,update]
       all_goals split_ifs <;> first | rfl | omega
 
+/-- A run of `program` from label `0` reaches label `if a=[] ∧ b=[] then none else some 0` with
+stacks `Stacks.stackPair a.tail b.tail` after `1` stack step. -/
 theorem step (a b : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some 0,v,Stacks.stackPair a b⟩=
       some ⟨if a=[] ∧ b=[] then none else some 0,
@@ -11165,12 +13058,17 @@ theorem step (a b : Bits) (v : Local) :
   cases a <;> cases b <;> simp [Stacks.run_one,TM2.step,program,TM2.stepAux,update]
   all_goals rfl
 
+/-- `Stacks.stackRunClock program 1 ⟨some 0,v,Stacks.stackPair a b⟩` equals
+`a.length+a.tail.length+b.length+b.tail.length+5`. -/
 theorem clock (a b : Bits) (v : Local) :
     Stacks.stackRunClock program 1 ⟨some 0,v,Stacks.stackPair a b⟩=
       a.length+a.tail.length+b.length+b.tail.length+5 := by
   simp [Stacks.stackRunClock,program,Stacks.stackClock]
   omega
 
+/-- The binary comparator consumes both input stacks and halts with tag `compareAux v.1 a b`,
+using the initial tag to break equal-value ties. Its accumulated stack clock is at most
+`20*(1+a.length+b.length)^2`. -/
 theorem complete (a b : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some 0,v,Stacks.stackPair a b⟩=
@@ -11228,45 +13126,61 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.BinaryCompare
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ValidatorInput
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by validator input preparation. -/
 inductive Slot where | input | reader | original | fuel deriving DecidableEq,Fintype
 
+/-- Assemble the named stack contents into the stack store for validator input preparation. -/
 def store (input reader original fuel : Bits) : Slot → Bits
   | .input => input
   | .reader => reader
   | .original => original
   | .fuel => fuel
 
+/-- Reading the input stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_input (a b c d : Bits) : store a b c d Slot.input=a := rfl
 
+/-- Reading the reader stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_reader (a b c d : Bits) : store a b c d Slot.reader=b := rfl
 
+/-- Reading the original stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_original (a b c d : Bits) : store a b c d Slot.original=c := rfl
 
+/-- Reading the fuel stack from `store` recovers its corresponding list argument. -/
 @[simp] theorem store_fuel (a b c d : Bits) : store a b c d Slot.fuel=d := rfl
 
+/-- `Function.update (store a b c d) Slot.input x` equals `store x b c d`. -/
 @[simp] theorem update_input (a b c d x : Bits) : Function.update (store a b c d) Slot.input x=store x b c d := by
   funext k; cases k <;> rfl
 
+/-- `Function.update (store a b c d) Slot.reader x` equals `store a x c d`. -/
 @[simp] theorem update_reader (a b c d x : Bits) : Function.update (store a b c d) Slot.reader x=store a x c d := by
   funext k; cases k <;> rfl
 
+/-- `Function.update (store a b c d) Slot.original x` equals `store a b x d`. -/
 @[simp] theorem update_original (a b c d x : Bits) : Function.update (store a b c d) Slot.original x=store a b x d := by
   funext k; cases k <;> rfl
 
+/-- `Function.update (store a b c d) Slot.fuel x` equals `store a b c x`. -/
 @[simp] theorem update_fuel (a b c d x : Bits) : Function.update (store a b c d) Slot.fuel x=store a b c x := by
   funext k; cases k <;> rfl
 
+/-- The TM2 program implementing validator input preparation. -/
 def program (_ : Fin 1) : TM2.Stmt (fun _ : Slot => Bool) (Fin 1) Symbol :=
   .pop .input (fun _ bit => bit) (.branch (fun bit => bit.isSome)
     (.push .reader (fun bit => bit.getD false)
       (.push .original (fun bit => bit.getD false)
         (.push .fuel (fun _ => true) (.goto (fun _ => 0))))) .halt)
 
+/-- A run of `program` from label `0` reaches label `0` with stacks `store bits (bit::reader)
+(bit::original) (true::fuel)` after `1` stack step. -/
 theorem step (bit : Bool) (bits reader original fuel : Bits) (saved : Symbol) :
     Stacks.stackRun program 1 ⟨some 0,saved,store (bit::bits) reader original fuel⟩=
       some ⟨some 0,some bit,store bits (bit::reader) (bit::original) (true::fuel)⟩ := by
   simp [Stacks.run_one,TM2.step,program,TM2.stepAux]
 
+/-- A run of `program` from label `0` halts with stacks `store [] (bits.reverse++reader)
+(bits.reverse++original) (List.replicate bits.length true++fuel)` after `(bits.length+1)`
+stack steps. -/
 theorem complete (bits reader original fuel : Bits) (saved : Symbol) :
     Stacks.stackRun program (bits.length+1) ⟨some 0,saved,store bits reader original fuel⟩=
       some ⟨none,none,store [] (bits.reverse++reader) (bits.reverse++original) (List.replicate bits.length true++fuel)⟩ := by
@@ -11278,6 +13192,9 @@ theorem complete (bits reader original fuel : Bits) (saved : Symbol) :
     rw [show (bit::bits).length+1=1+(bits.length+1) by simp; omega,Stacks.run_add,hS,Option.bind_some]
     simpa only [List.reverse_cons,List.append_assoc,List.singleton_append,List.length_cons,List.replicate_succ,List.cons_append,Parsing.marker_cons] using! hr
 
+/-- `Stacks.stackRunClock program (bits.length+1) ⟨some 0,saved,store bits reader original
+fuel⟩` equals
+`bits.length*(4*bits.length+2*(reader.length+original.length+fuel.length)+9)+3`. -/
 theorem clock (bits reader original fuel : Bits) (saved : Symbol) :
     Stacks.stackRunClock program (bits.length+1) ⟨some 0,saved,store bits reader original fuel⟩=
       bits.length*(4*bits.length+2*(reader.length+original.length+fuel.length)+9)+3 := by
@@ -11292,9 +13209,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ValidatorInput
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatTag
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The local-state type for small natural-tag classification, represented by `Fin 5×Symbol`. -/
 abbrev Local := Fin 5×Symbol
+/-- The finite control labels for small natural-tag classification. -/
 inductive Label where | first | second | third deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.first⟩
+/-- The TM2 program implementing small natural-tag classification. -/
 def program : Label → TM2.Stmt (fun _ : Fin 1 => Bool) Label Local
   | .first => .pop 0 (fun _ bit => (0,bit))
       (.branch (fun v => v.2.isSome)
@@ -11307,12 +13227,15 @@ def program : Label → TM2.Stmt (fun _ : Fin 1 => Bool) Label Local
   | .third => .pop 0 (fun v bit => (v.1,bit))
       (.branch (fun v => v.2.isSome) (.load (fun v => (4,v.2)) .halt) .halt)
 
+/-- The number of steps used to classify a reversed binary payload into the small-tag cases. -/
 def ticks : Bits → ℕ
   | [] => 1
   | false::_ => 1
   | [true] => 2
   | true::_::_ => 3
 
+/-- Classify reversed bit lists representing zero through three by tags zero through three, and
+use tag four for every other list. -/
 def tag : Bits → Fin 5
   | [] => 0
   | [true] => 1
@@ -11320,10 +13243,14 @@ def tag : Bits → Fin 5
   | [true,true] => 3
   | _ => 4
 
+/-- The halted small-tag configuration with the classified tag, last inspected symbol, and
+unread payload suffix. -/
 def final (bits : Bits) : TM2.Cfg (fun _ : Fin 1 => Bool) Label Local :=
   let n := ticks bits
   ⟨none,(tag bits,bits[n-1]?),Normalization.singleStack (bits.drop n)⟩
 
+/-- The small-tag classifier reaches `final bits` in `ticks bits` stack steps, with accumulated
+clock at most `20*(1+bits.length)^2`. -/
 theorem complete (bits : Bits) (saved : Local) :
     Stacks.stackRun program (ticks bits) ⟨some .first,saved,Normalization.singleStack bits⟩=some (final bits) ∧
     Stacks.stackRunClock program (ticks bits) ⟨some .first,saved,Normalization.singleStack bits⟩≤20*(1+bits.length)^2 := by
@@ -11345,6 +13272,9 @@ theorem complete (bits : Bits) (saved : Local) :
             simp [Stacks.stackRun,Stacks.stackRunClock,TM2.step,program,TM2.stepAux,Stacks.stackClock,ticks,final,tag]
           all_goals nlinarith
 
+/-- `(tag bits).val=0` is equivalent to `bits=[]`; `(tag bits).val=1` is equivalent to
+`bits=[true]`; `(tag bits).val=2` is equivalent to `bits=[true,false]`; `(tag bits).val=3`
+is equivalent to `bits=[true,true]`. -/
 theorem tag_spec (bits : Bits) :
     ((tag bits).val=0 ↔ bits=[]) ∧ ((tag bits).val=1 ↔ bits=[true]) ∧
       ((tag bits).val=2 ↔ bits=[true,false]) ∧ ((tag bits).val=3 ↔ bits=[true,true]) := by
@@ -11365,9 +13295,11 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatTag
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CheckedNat
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- The sum of the lengths of the three stacks of a checked-natural configuration. -/
 def size (cfg : TM2.Cfg (fun _ : Fin 3 => Bool) Label Local) : ℕ :=
   (cfg.stk 0).length+(cfg.stk 1).length+(cfg.stk 2).length
 
+/-- `size (fieldFinish n input output saved)` is at most `n+input.length+output.length`. -/
 theorem field_size (n : ℕ) (input output : Bits) (saved : Symbol) :
     size (fieldFinish n input output saved)≤n+input.length+output.length := by
   induction n generalizing input output saved with
@@ -11380,6 +13312,7 @@ theorem field_size (n : ℕ) (input output : Bits) (saved : Symbol) :
       simp only [fieldFinish,List.length_cons] at hi ⊢
       omega
 
+/-- `size (haltedResult input output)` is at most `input.length+output.length`. -/
 theorem result_size (input output : Bits) : size (haltedResult input output)≤input.length+output.length := by
   change size (parseResult input output)≤input.length+output.length
   cases hs : readSize input with
@@ -11396,9 +13329,14 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CheckedNat
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ReadonlyCompare
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by comparison preserving its input stacks. -/
 inductive Slot where | first | second | temp | left | right deriving DecidableEq,Fintype
+/-- The local-state type for comparison preserving its input stacks, represented by
+`BinaryCompare.Local×Symbol`. -/
 abbrev Local := BinaryCompare.Local×Symbol
 
+/-- Assemble the named stack contents into the stack store for comparison preserving its input
+stacks. -/
 def store (first second temp left right : Bits) : Slot → Bits
   | .first => first
   | .second => second
@@ -11406,16 +13344,30 @@ def store (first second temp left right : Bits) : Slot → Bits
   | .left => left
   | .right => right
 
+/-- Extract the io component of the local state for comparison preserving its input stacks. -/
 def getIO (v : Local) : Symbol := v.2
+/-- Replace the io component of the local state for comparison preserving its input stacks,
+retaining its other components. -/
 def putIO (v : Local) (bit : Symbol) : Local := (v.1,bit)
+/-- Extract the cmp component of the local state for comparison preserving its input stacks. -/
 def getCmp (v : Local) : BinaryCompare.Local := v.1
+/-- Replace the cmp component of the local state for comparison preserving its input stacks,
+retaining its other components. -/
 def putCmp (v : Local) (order : BinaryCompare.Local) : Local := (order,v.2)
 
+/-- Map the first subroutine stack indices into the stack banks for comparison preserving its
+input stacks. -/
 def firstCode (k : Fin 3) : Slot := if k=0 then .first else if k=1 then .temp else .left
+/-- Map the second subroutine stack indices into the stack banks for comparison preserving its
+input stacks. -/
 def secondCode (k : Fin 3) : Slot := if k=0 then .second else if k=1 then .temp else .right
+/-- Map the compare subroutine stack indices into the stack banks for comparison preserving its
+input stacks. -/
 def compareCode (k : Fin 2) : Slot := if k=0 then .left else .right
+/-- The finite control labels for comparison preserving its input stacks. -/
 inductive Label where | start | copyFirst (l : NatEmit.Label) | copySecond (l : NatEmit.Label) | compare (l : Fin 1) | done deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.start⟩
+/-- The TM2 program implementing comparison preserving its input stacks. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .start => .load (fun v => ((.eq,none,none),v.2)) (.goto (fun _ => .copyFirst .emit))
   | .copyFirst l => StackCall.stmt firstCode Label.copyFirst (.copySecond .emit) getIO putIO (NatEmit.program l)
@@ -11423,39 +13375,62 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .compare l => StackCall.stmt compareCode Label.compare .done getCmp putCmp (BinaryCompare.program l)
   | .done => .halt
 
+/-- Embed the first stacks for comparison preserving its input stacks while retaining the
+supplied contents of the other stack banks. -/
 def firstFrame (second right : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store (S 0) second (S 1) (S 2) right
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem firstFrame_at (second right : Bits) (S : Fin 3 → Bits) (k : Fin 3) : firstFrame second right S (firstCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem firstFrame_update (second right : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     firstFrame second right (Function.update S k bits)=Function.update (firstFrame second right S) (firstCode k) bits := by
   funext j; fin_cases k <;> cases j <;> simp [firstFrame,firstCode,store]
 
+/-- Embed the second stacks for comparison preserving its input stacks while retaining the
+supplied contents of the other stack banks. -/
 def secondFrame (first left : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store first (S 0) (S 1) left (S 2)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem secondFrame_at (first left : Bits) (S : Fin 3 → Bits) (k : Fin 3) : secondFrame first left S (secondCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem secondFrame_update (first left : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     secondFrame first left (Function.update S k bits)=Function.update (secondFrame first left S) (secondCode k) bits := by
   funext j; fin_cases k <;> cases j <;> simp [secondFrame,secondCode,store]
 
+/-- Embed the compare stacks for comparison preserving its input stacks while retaining the
+supplied contents of the other stack banks. -/
 def compareFrame (first second temp : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
     store first second temp (S 0) (S 1)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem compareFrame_at (first second temp : Bits) (S : Fin 2 → Bits) (k : Fin 2) : compareFrame first second temp S (compareCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem compareFrame_update (first second temp : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     compareFrame first second temp (Function.update S k bits)=Function.update (compareFrame first second temp S) (compareCode k) bits := by
   funext j; fin_cases k <;> cases j <;> simp [compareFrame,compareCode,store]
 
+/-- Compare the binary values of two reversed bit lists, returning less than, equal, or greater
+than. -/
 def order (first second : Bits) : BinaryCompare.Tag :=
   if binaryValue first.reverse<binaryValue second.reverse then .lt else if binaryValue second.reverse<binaryValue first.reverse then .gt else .eq
 
+/-- The readonly comparator halts with tag `order first second`, preserves both input bit lists,
+and empties its scratch stacks. Its accumulated stack clock is at most
+`100*(1+first.length+second.length)^2`. -/
 theorem complete (first second : Bits) (saved : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some .start,saved,store first second [] [] []⟩=
@@ -11513,7 +13488,10 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ReadonlyCompare
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatListFind
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by encoded natural-list search. -/
 inductive Slot where | seen | target | reader | markers | payload | cmpTemp | cmpLeft | cmpRight deriving DecidableEq,Fintype
+/-- Finite local state for list search, storing the parsing, comparison, I/O, and search-result
+information. -/
 structure Local where
   found : Bool
   checked : CheckedNat.Local
@@ -11522,6 +13500,7 @@ structure Local where
   deriving DecidableEq,Fintype
 instance : Inhabited Local := ⟨⟨false,(false,none),((.eq,none,none),none),none⟩⟩
 
+/-- Assemble the named stack contents into the stack store for encoded natural-list search. -/
 def store (seen target reader markers payload cmpTemp cmpLeft cmpRight : Bits) : Slot → Bits
   | .seen => seen
   | .target => target
@@ -11532,21 +13511,37 @@ def store (seen target reader markers payload cmpTemp cmpLeft cmpRight : Bits) :
   | .cmpLeft => cmpLeft
   | .cmpRight => cmpRight
 
+/-- Extract the parse component of the local state for encoded natural-list search. -/
 def getParse (v : Local) : CheckedNat.Local := v.checked
+/-- Replace the parse component of the local state for encoded natural-list search, retaining
+its other components. -/
 def putParse (v : Local) (value : CheckedNat.Local) : Local := {v with checked:=value}
 
+/-- Replacing the parse local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putParse_get (v : Local) : putParse v (getParse v)=v := by cases v; rfl
 
+/-- Extract the compare component of the local state for encoded natural-list search. -/
 def getCompare (v : Local) : ReadonlyCompare.Local := v.compared
+/-- Replace the compare component of the local state for encoded natural-list search, retaining
+its other components. -/
 def putCompare (v : Local) (value : ReadonlyCompare.Local) : Local := {v with compared:=value}
 
+/-- Replacing the compare local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putCompare_get (v : Local) : putCompare v (getCompare v)=v := by cases v; rfl
 
+/-- Extract the io component of the local state for encoded natural-list search. -/
 def getIO (v : Local) : Symbol := v.io
+/-- Replace the io component of the local state for encoded natural-list search, retaining its
+other components. -/
 def putIO (v : Local) (value : Symbol) : Local := {v with io:=value}
 
+/-- Replacing the io local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putIO_get (v : Local) : putIO v (getIO v)=v := by cases v; rfl
 
+/-- The finite control labels for encoded natural-list search. -/
 inductive Label where
   | start
   | copy (l : NatEmit.Label)
@@ -11565,40 +13560,56 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.start⟩
 
+/-- Map the copy subroutine stack indices into the stack banks for encoded natural-list search. -/
 def copyCode : Fin 3 → Slot
   | 0 => .seen
   | 1 => .markers
   | 2 => .reader
 
+/-- Embed the copy stacks for encoded natural-list search while retaining the supplied contents
+of the other stack banks. -/
 def copyFrame (target payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store (S 0) target (S 2) (S 1) payload cmpTemp cmpLeft cmpRight
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem copyFrame_at (target payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     copyFrame target payload cmpTemp cmpLeft cmpRight S (copyCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem copyFrame_update (target payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     copyFrame target payload cmpTemp cmpLeft cmpRight (Function.update S k bits)=Function.update (copyFrame target payload cmpTemp cmpLeft cmpRight S) (copyCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [copyFrame,copyCode,store]
 
+/-- Map the parse subroutine stack indices into the stack banks for encoded natural-list search. -/
 def parseCode : Fin 3 → Slot
   | 0 => .reader
   | 1 => .markers
   | 2 => .payload
 
+/-- Embed the parse stacks for encoded natural-list search while retaining the supplied contents
+of the other stack banks. -/
 def parseFrame (seen target cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
     store seen target (S 0) (S 1) (S 2) cmpTemp cmpLeft cmpRight
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem parseFrame_at (seen target cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     parseFrame seen target cmpTemp cmpLeft cmpRight S (parseCode k)=S k := by
   fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem parseFrame_update (seen target cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     parseFrame seen target cmpTemp cmpLeft cmpRight (Function.update S k bits)=Function.update (parseFrame seen target cmpTemp cmpLeft cmpRight S) (parseCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> simp [parseFrame,parseCode,store]
 
+/-- Map the compare subroutine stack indices into the stack banks for encoded natural-list
+search. -/
 def compareCode : ReadonlyCompare.Slot → Slot
   | .first => .payload
   | .second => .target
@@ -11606,57 +13617,82 @@ def compareCode : ReadonlyCompare.Slot → Slot
   | .left => .cmpLeft
   | .right => .cmpRight
 
+/-- Embed the compare stacks for encoded natural-list search while retaining the supplied
+contents of the other stack banks. -/
 def compareFrame (seen reader markers : Bits) (S : ReadonlyCompare.Slot → Bits) : Slot → Bits :=
     store seen (S .second) reader markers (S .first) (S .temp) (S .left) (S .right)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem compareFrame_at (seen reader markers : Bits) (S : ReadonlyCompare.Slot → Bits) (k : ReadonlyCompare.Slot) :
     compareFrame seen reader markers S (compareCode k)=S k := by
   cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem compareFrame_update (seen reader markers : Bits) (S : ReadonlyCompare.Slot → Bits) (k : ReadonlyCompare.Slot) (bits : Bits) :
     compareFrame seen reader markers (Function.update S k bits)=Function.update (compareFrame seen reader markers S) (compareCode k) bits := by
   funext j
   cases k <;> cases j <;> simp [compareFrame,compareCode,store]
 
+/-- Embed the payload drain stacks for encoded natural-list search while retaining the supplied
+contents of the other stack banks. -/
 def payloadDrainFrame (seen target reader markers cmpTemp cmpLeft cmpRight : Bits)
     (S : Fin 1 → Bits) : Slot → Bits :=
     store seen target reader markers (S 0) cmpTemp cmpLeft cmpRight
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem payloadDrainFrame_at (seen target reader markers cmpTemp cmpLeft cmpRight : Bits) (S : Fin 1 → Bits) (k : Fin 1) :
     payloadDrainFrame seen target reader markers cmpTemp cmpLeft cmpRight S Slot.payload=S k := by fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem payloadDrainFrame_update (seen target reader markers cmpTemp cmpLeft cmpRight : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     payloadDrainFrame seen target reader markers cmpTemp cmpLeft cmpRight (Function.update S k bits)=Function.update (payloadDrainFrame seen target reader markers cmpTemp cmpLeft cmpRight S) Slot.payload bits := by
   funext j
   fin_cases k
   cases j <;> simp [payloadDrainFrame,store]
 
+/-- Embed the reader drain stacks for encoded natural-list search while retaining the supplied
+contents of the other stack banks. -/
 def readerDrainFrame (seen target markers payload cmpTemp cmpLeft cmpRight : Bits)
     (S : Fin 1 → Bits) : Slot → Bits :=
     store seen target (S 0) markers payload cmpTemp cmpLeft cmpRight
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem readerDrainFrame_at (seen target markers payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 1 → Bits) (k : Fin 1) :
     readerDrainFrame seen target markers payload cmpTemp cmpLeft cmpRight S Slot.reader=S k := by fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem readerDrainFrame_update (seen target markers payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     readerDrainFrame seen target markers payload cmpTemp cmpLeft cmpRight (Function.update S k bits)=Function.update (readerDrainFrame seen target markers payload cmpTemp cmpLeft cmpRight S) Slot.reader bits := by
   funext j
   fin_cases k
   cases j <;> simp [readerDrainFrame,store]
 
+/-- Embed the markers drain stacks for encoded natural-list search while retaining the supplied
+contents of the other stack banks. -/
 def markersDrainFrame (seen target reader payload cmpTemp cmpLeft cmpRight : Bits)
     (S : Fin 1 → Bits) : Slot → Bits :=
     store seen target reader (S 0) payload cmpTemp cmpLeft cmpRight
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem markersDrainFrame_at (seen target reader payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 1 → Bits) (k : Fin 1) :
     markersDrainFrame seen target reader payload cmpTemp cmpLeft cmpRight S Slot.markers=S k := by fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem markersDrainFrame_update (seen target reader payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     markersDrainFrame seen target reader payload cmpTemp cmpLeft cmpRight (Function.update S k bits)=Function.update (markersDrainFrame seen target reader payload cmpTemp cmpLeft cmpRight S) Slot.markers bits := by
   funext j
   fin_cases k
   cases j <;> simp [markersDrainFrame,store]
 
+/-- The TM2 program implementing encoded natural-list search. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .start => .load (fun v => {v with found:=false}) (.goto (fun _ => .copy .emit))
   | .copy l => StackCall.stmt copyCode Label.copy .peek getIO putIO (NatEmit.program l)
@@ -11674,6 +13710,9 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .finishMarkers l => StackCall.stmt (fun _ : Fin 1 => Slot.markers) Label.finishMarkers .done getIO putIO (Normalization.drainProgram l)
   | .done => .halt
 
+/-- A run of `program` from label `(.parse .unary)` reaches label `.branchParse` with stacks
+`store seen target rest [] n.bits.reverse [] [] []`; its accumulated stack clock is at most
+`50*(1+(natBits n++rest).length)^2`. -/
 theorem parse_valid (n : ℕ) (rest seen target : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.parse .unary),v,store seen target (natBits n++rest) [] [] [] [] []⟩=
@@ -11689,6 +13728,9 @@ theorem parse_valid (n : ℕ) (rest seen target : Bits) (v : Local) :
     parseFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,putParse_get] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.compare .start)` reaches label `.branchCompare` with stacks
+`store seen target reader [] payload [] [] []`; its accumulated stack clock is at most
+`100*(1+payload.length+target.length)^2`. -/
 theorem compare_call (payload target seen reader : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.compare .start),v,store seen target reader [] payload [] [] []⟩=
@@ -11703,6 +13745,10 @@ theorem compare_call (payload target seen reader : Bits) (v : Local) :
     compareFrame,ReadonlyCompare.store,putCompare_get] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(code 0)` reaches label
+`returnTo` with stacks `store seen target reader markers [] [] [] []` after
+`(payload.length+1)` stack steps; its accumulated stack clock is equal to
+`payload.length^2+3*payload.length+3`. -/
 theorem payload_drain (code : Fin 1 → Label) (returnTo : Label)
     (hcode : ∀ l,program (code l)=StackCall.stmt (fun _ : Fin 1 => Slot.payload) code returnTo getIO putIO (Normalization.drainProgram l))
     (seen target reader markers payload : Bits) (v : Local) :
@@ -11718,6 +13764,9 @@ theorem payload_drain (code : Fin 1 → Label) (returnTo : Label)
     payloadDrainFrame,Normalization.singleStack_zero,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock payload (getIO v))⟩
 
+/-- A run of `program` from label `(.finishReader 0)` reaches label `(.finishMarkers 0)` with
+stacks `store seen target [] markers [] [] [] []` after `(reader.length+1)` stack steps; its
+accumulated stack clock is equal to `reader.length^2+3*reader.length+3`. -/
 theorem reader_drain (seen target reader markers : Bits) (v : Local) :
     Stacks.stackRun program (reader.length+1) ⟨some (.finishReader 0),v,store seen target reader markers [] [] [] []⟩=
       some ⟨some (.finishMarkers 0),putIO v none,store seen target [] markers [] [] [] []⟩ ∧
@@ -11731,6 +13780,9 @@ theorem reader_drain (seen target reader markers : Bits) (v : Local) :
     readerDrainFrame,Normalization.singleStack_zero,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock reader (getIO v))⟩
 
+/-- A run of `program` from label `(.finishMarkers 0)` reaches label `.done` with stacks `store
+seen target [] [] [] [] [] []` after `(markers.length+1)` stack steps; its accumulated stack
+clock is equal to `markers.length^2+3*markers.length+3`. -/
 theorem markers_drain (seen target markers : Bits) (v : Local) :
     Stacks.stackRun program (markers.length+1) ⟨some (.finishMarkers 0),v,store seen target [] markers [] [] [] []⟩=
       some ⟨some .done,putIO v none,store seen target [] [] [] [] [] []⟩ ∧
@@ -11744,6 +13796,9 @@ theorem markers_drain (seen target markers : Bits) (v : Local) :
     markersDrainFrame,Normalization.singleStack_zero,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock markers (getIO v))⟩
 
+/-- A run of `program` from label `(.finishPayload 0)` halts with stacks `store seen target []
+[] [] [] [] []`; its accumulated stack clock is at most
+`40*(1+reader.length+markers.length+payload.length)^2`. -/
 theorem finish (seen target reader markers payload : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.finishPayload 0),v,store seen target reader markers payload [] [] []⟩=
@@ -11777,6 +13832,9 @@ theorem finish (seen target reader markers payload : Bits) (v : Local) :
   change _≤40*B^2
   nlinarith only [hp,hr,hm,hp2,hr2,hm2,hB,hB2]
 
+/-- A run of `program` from label `.peek` reaches label `(if reader=[] then .missing else .parse
+.unary)` with stacks `store seen target reader [] [] [] [] []` after `1` stack step; its
+accumulated stack clock is equal to `2*reader.length+3`. -/
 theorem peek (seen target reader : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .peek,v,store seen target reader [] [] [] [] []⟩=
       some ⟨some (if reader=[] then .missing else .parse .unary),putIO v reader.head?,store seen target reader [] [] [] [] []⟩ ∧
@@ -11785,11 +13843,17 @@ theorem peek (seen target reader : Bits) (v : Local) :
       [Stacks.run_one,Stacks.stackRunClock,TM2.step,program,TM2.stepAux,Stacks.stackClock,store,putIO]
   all_goals omega
 
+/-- Under the stated input conditions, a run of `program` from label `.branchParse` reaches
+label `(.compare .start)` with stacks `S` after `1` stack step; its accumulated stack clock
+is equal to `1`. -/
 theorem branch_parse (S : Slot → Bits) (v : Local) (hv : v.checked.1=true) :
     Stacks.stackRun program 1 ⟨some .branchParse,v,S⟩=some ⟨some (.compare .start),v,S⟩ ∧
       Stacks.stackRunClock program 1 ⟨some .branchParse,v,S⟩=1 := by
   constructor <;> simp [Stacks.run_one,Stacks.stackRunClock,TM2.step,program,TM2.stepAux,Stacks.stackClock,hv]
 
+/-- A run of `program` from label `.branchCompare` reaches label `(if v.compared.1.1=.eq then
+.found else .loopDrain 0)` with stacks `S` after `1` stack step; its accumulated stack clock
+is equal to `1`. -/
 theorem branch_compare (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .branchCompare,v,S⟩=
       some ⟨some (if v.compared.1.1=.eq then .found else .loopDrain 0),v,S⟩ ∧
@@ -11798,6 +13862,9 @@ theorem branch_compare (S : Slot → Bits) (v : Local) :
   · by_cases he : v.compared.1.1=.eq <;> simp [Stacks.run_one,TM2.step,program,TM2.stepAux,he]
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
 
+/-- A run of `program` from label `(if flag then .found else .missing)` halts with stacks `store
+seen target [] [] [] [] [] []`; its accumulated stack clock is at most
+`50*(1+reader.length+markers.length+payload.length)^2`. -/
 theorem finish_flag (flag : Bool) (seen target reader markers payload : Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (if flag then .found else .missing),v,store seen target reader markers payload [] [] []⟩=
@@ -11817,12 +13884,17 @@ theorem finish_flag (flag : Bool) (seen target reader markers payload : Bits) (v
   have hp : 1≤(1+reader.length+markers.length+payload.length)^2 := Nat.one_le_pow 2 _ (by omega)
   omega
 
+/-- `ReadonlyCompare.order m.bits.reverse n.bits.reverse=.eq` holds if and only if `m=n`. -/
 theorem compare_nat_eq (m n : ℕ) : ReadonlyCompare.order m.bits.reverse n.bits.reverse=.eq ↔ m=n := by
   simp only [ReadonlyCompare.order,List.reverse_reverse,binaryValue_bits]
   split_ifs <;> simp_all <;> omega
 
+/-- Concatenate the canonical natural-number encodings of a list. -/
 def stream (values : List ℕ) : Bits := values.flatMap natBits
 
+/-- A run of `program` from label `.peek` reaches label `.branchCompare` with stacks `store seen
+n.bits.reverse tail [] m.bits.reverse [] [] []`; its accumulated stack clock is at most
+`200*(1+(natBits m++tail).length+n.bits.length)^2`. -/
 theorem inspect_head (m n : ℕ) (tail seen : Bits) (v : Local) :
     let v0 := putIO v (natBits m++tail).head?
     let v1 := putParse v0 (true,CheckedNat.lastField m.bits none)
@@ -11864,6 +13936,9 @@ theorem inspect_head (m n : ℕ) (tail seen : Bits) (v : Local) :
   change _≤200*B^2
   nlinarith only [hB,hB2,hraw,hraw2,harg2]
 
+/-- The list-search loop consumes the encoded list and halts with its found flag equal to
+`decide (n∈values)`, retaining the saved list and target stacks and satisfying the stated
+clock bound. -/
 theorem loop_complete (values : List ℕ) (seen : Bits) (n : ℕ) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some .peek,v,store seen n.bits.reverse (stream values) [] [] [] [] []⟩=
@@ -11941,6 +14016,9 @@ theorem loop_complete (values : List ℕ) (seen : Bits) (n : ℕ) (v : Local) :
       · change 200*T^2+1+10*T^2+1000*(values.length+1)*T^2≤1000*(values.length+1+1)*T^2
         nlinarith only [hTpos]
 
+/-- A run of `program` from label `(.copy .emit)` reaches label `.peek` with stacks `store seen
+target seen.reverse [] [] [] [] []` after `(2*seen.length+3)` stack steps; its accumulated
+stack clock is at most `25*(1+seen.length)^2`. -/
 theorem copy_call (seen target : Bits) (v : Local) :
     Stacks.stackRun program (2*seen.length+3) ⟨some (.copy .emit),v,store seen target [] [] [] [] [] []⟩=
       some ⟨some .peek,putIO v none,store seen target seen.reverse [] [] [] [] []⟩ ∧
@@ -11955,6 +14033,9 @@ theorem copy_call (seen target : Bits) (v : Local) :
     copyFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- Encoded-list search halts with its found flag equal to `decide (n∈values)`, preserving the
+encoded list and target and clearing scratch stacks. Its accumulated stack clock is at most
+`2000*(1+(stream values).length+n.bits.length)^3`. -/
 theorem complete (values : List ℕ) (n : ℕ) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some .start,v,store (stream values).reverse n.bits.reverse [] [] [] [] [] []⟩=
@@ -11995,22 +14076,41 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatListFind
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatSetInsert
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The stack-index type for insertion into an encoded natural-number set, represented by
+`Option NatListFind.Slot`. -/
 abbrev Slot := Option NatListFind.Slot
+/-- The local-state type for insertion into an encoded natural-number set, represented by
+`NatListFind.Local×Symbol`. -/
 abbrev Local := NatListFind.Local×Symbol
 
+/-- Assemble the named stack contents into the stack store for insertion into an encoded
+natural-number set. -/
 def store (seen target value reader markers payload cmpTemp cmpLeft cmpRight : Bits) : Slot → Bits
   | none => value
   | some k => NatListFind.store seen target reader markers payload cmpTemp cmpLeft cmpRight k
 
+/-- Extract the find component of the local state for insertion into an encoded natural-number
+set. -/
 def getFind (v : Local) : NatListFind.Local := v.1
+/-- Replace the find component of the local state for insertion into an encoded natural-number
+set, retaining its other components. -/
 def putFind (v : Local) (value : NatListFind.Local) : Local := (value,v.2)
+/-- Extract the io component of the local state for insertion into an encoded natural-number
+set. -/
 def getIO (v : Local) : Symbol := v.2
+/-- Replace the io component of the local state for insertion into an encoded natural-number
+set, retaining its other components. -/
 def putIO (v : Local) (value : Symbol) : Local := (v.1,value)
 
+/-- Replacing the find local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putFind_get (v : Local) : putFind v (getFind v)=v := rfl
 
+/-- Replacing the io local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putIO_get (v : Local) : putIO v (getIO v)=v := rfl
 
+/-- The finite control labels for insertion into an encoded natural-number set. -/
 inductive Label where
   | find (l : NatListFind.Label)
   | branch
@@ -12021,16 +14121,21 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.find .start⟩
 
+/-- Map the copy subroutine stack indices into the stack banks for insertion into an encoded
+natural-number set. -/
 def copyCode : Fin 3 → Slot
   | 0 => some .target
   | 1 => some .markers
   | _ => none
 
+/-- Map the emit subroutine stack indices into the stack banks for insertion into an encoded
+natural-number set. -/
 def emitCode : Fin 3 → Slot
   | 0 => none
   | 1 => some .markers
   | _ => some .seen
 
+/-- The TM2 program implementing insertion into an encoded natural-number set. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .find l => StackCall.stmt some Label.find .branch getFind putFind (NatListFind.program l)
   | .branch => .branch (fun v => v.1.found) .halt (.goto (fun _ => .copy .emit))
@@ -12039,13 +14144,19 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .drain l => StackCall.stmt (fun _ : Fin 1 => (none : Slot)) Label.drain .done getIO putIO (Normalization.drainProgram l)
   | .done => .halt
 
+/-- Embed the find stacks for insertion into an encoded natural-number set while retaining the
+supplied contents of the other stack banks. -/
 def findFrame (value : Bits) (S : NatListFind.Slot → Bits) : Slot → Bits
   | none => value
   | some k => S k
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem findFrame_at (value : Bits) (S : NatListFind.Slot → Bits) (k : NatListFind.Slot) :
     findFrame value S (some k)=S k := rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem findFrame_update (value : Bits) (S : NatListFind.Slot → Bits) (k : NatListFind.Slot) (bits : Bits) :
     findFrame value (Function.update S k bits)=Function.update (findFrame value S) (some k) bits := by
   funext j
@@ -12053,12 +14164,18 @@ theorem findFrame_update (value : Bits) (S : NatListFind.Slot → Bits) (k : Nat
   | none => simp [findFrame]
   | some j => simp [findFrame,Function.update_apply]
 
+/-- Embed the copy stacks for insertion into an encoded natural-number set while retaining the
+supplied contents of the other stack banks. -/
 def copyFrame (seen reader payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) : Slot →
     Bits := store seen (S 0) (S 2) reader (S 1) payload cmpTemp cmpLeft cmpRight
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem copyFrame_at (seen reader payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     copyFrame seen reader payload cmpTemp cmpLeft cmpRight S (copyCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem copyFrame_update (seen reader payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     copyFrame seen reader payload cmpTemp cmpLeft cmpRight (Function.update S k bits)=Function.update (copyFrame seen reader payload cmpTemp cmpLeft cmpRight S) (copyCode k) bits := by
   funext j
@@ -12066,12 +14183,18 @@ theorem copyFrame_update (seen reader payload cmpTemp cmpLeft cmpRight : Bits) (
   | none => simp [copyFrame,copyCode,store]
   | some j => cases j <;> simp [copyFrame,copyCode,store,NatListFind.store]
 
+/-- Embed the emit stacks for insertion into an encoded natural-number set while retaining the
+supplied contents of the other stack banks. -/
 def emitFrame (target reader payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) : Slot →
     Bits := store (S 2) target (S 0) reader (S 1) payload cmpTemp cmpLeft cmpRight
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem emitFrame_at (target reader payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     emitFrame target reader payload cmpTemp cmpLeft cmpRight S (emitCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem emitFrame_update (target reader payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     emitFrame target reader payload cmpTemp cmpLeft cmpRight (Function.update S k bits)=Function.update (emitFrame target reader payload cmpTemp cmpLeft cmpRight S) (emitCode k) bits := by
   funext j
@@ -12079,13 +14202,19 @@ theorem emitFrame_update (target reader payload cmpTemp cmpLeft cmpRight : Bits)
   | none => simp [emitFrame,emitCode,store]
   | some j => cases j <;> simp [emitFrame,emitCode,store,NatListFind.store]
 
+/-- Embed the drain stacks for insertion into an encoded natural-number set while retaining the
+supplied contents of the other stack banks. -/
 def drainFrame (seen target reader markers payload cmpTemp cmpLeft cmpRight : Bits)
     (S : Fin 1 → Bits) : Slot → Bits :=
     store seen target (S 0) reader markers payload cmpTemp cmpLeft cmpRight
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem drainFrame_at (seen target reader markers payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 1 → Bits) (k : Fin 1) :
     drainFrame seen target reader markers payload cmpTemp cmpLeft cmpRight S none=S k := by fin_cases k; rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem drainFrame_update (seen target reader markers payload cmpTemp cmpLeft cmpRight : Bits) (S : Fin 1 → Bits) (k : Fin 1) (bits : Bits) :
     drainFrame seen target reader markers payload cmpTemp cmpLeft cmpRight (Function.update S k bits)=
       Function.update (drainFrame seen target reader markers payload cmpTemp cmpLeft cmpRight S) none bits := by
@@ -12093,6 +14222,9 @@ theorem drainFrame_update (seen target reader markers payload cmpTemp cmpLeft cm
   fin_cases k
   cases j <;> simp [drainFrame,store]
 
+/-- A run of `program` from label `(.find .start)` reaches label `.branch` with stacks `store
+(NatListFind.stream values).reverse n.bits.reverse [] [] [] [] [] [] []`; its accumulated
+stack clock is at most `2000*(1+(NatListFind.stream values).length+n.bits.length)^3`. -/
 theorem find_call (values : List ℕ) (n : ℕ) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.find .start),v,store (NatListFind.stream values).reverse n.bits.reverse [] [] [] [] [] [] []⟩=
@@ -12107,6 +14239,9 @@ theorem find_call (values : List ℕ) (n : ℕ) (v : Local) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putFind_get] at hN hNC
   exact ⟨ticks,last,hN,hfound,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.copy .emit)` reaches label `(.emit .count)` with stacks
+`store seen n.bits.reverse n.bits [] [] [] [] [] []` after `(2*n.bits.length+3)` stack
+steps; its accumulated stack clock is at most `25*(1+n.bits.length)^2`. -/
 theorem copy_call (n : ℕ) (seen : Bits) (v : Local) :
     Stacks.stackRun program (2*n.bits.length+3) ⟨some (.copy .emit),v,store seen n.bits.reverse [] [] [] [] [] [] []⟩=
       some ⟨some (.emit .count),putIO v none,store seen n.bits.reverse n.bits [] [] [] [] [] []⟩ ∧
@@ -12121,6 +14256,10 @@ theorem copy_call (n : ℕ) (seen : Bits) (v : Local) :
     copyFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.emit .count)` reaches label `(.drain 0)` with stacks `store
+((natBits n).reverse++seen) n.bits.reverse n.bits [] [] [] [] [] []` after
+`(4*n.bits.length+5)` stack steps; its accumulated stack clock is at most
+`100*(1+n.bits.length+seen.length)^2`. -/
 theorem emit_call (n : ℕ) (seen : Bits) (v : Local) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emit .count),v,store seen n.bits.reverse n.bits [] [] [] [] [] []⟩=
       some ⟨some (.drain 0),putIO v none,store ((natBits n).reverse++seen) n.bits.reverse n.bits [] [] [] [] [] []⟩ ∧
@@ -12134,6 +14273,9 @@ theorem emit_call (n : ℕ) (seen : Bits) (v : Local) :
     emitFrame,Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.drain 0)` reaches label `.done` with stacks `store seen
+n.bits.reverse [] [] [] [] [] [] []` after `(n.bits.length+1)` stack steps; its accumulated
+stack clock is equal to `n.bits.length^2+3*n.bits.length+3`. -/
 theorem drain_call (n : ℕ) (seen : Bits) (v : Local) :
     Stacks.stackRun program (n.bits.length+1) ⟨some (.drain 0),v,store seen n.bits.reverse n.bits [] [] [] [] [] []⟩=
       some ⟨some .done,putIO v none,store seen n.bits.reverse [] [] [] [] [] [] []⟩ ∧
@@ -12147,8 +14289,12 @@ theorem drain_call (n : ℕ) (seen : Bits) (v : Local) :
     drainFrame,Normalization.singleStack_zero,putIO_get] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock n.bits (getIO v))⟩
 
+/-- Retain a list when it already contains the given number, and otherwise append that number. -/
 def inserted (values : List ℕ) (n : ℕ) : List ℕ := if n∈values then values else values++[n]
 
+/-- Encoded-set insertion appends the target only when absent and records whether it was already
+present, preserving the target and clearing scratch stacks. Its accumulated stack clock is
+at most `5000*(1+(NatListFind.stream values).length+n.bits.length)^3`. -/
 theorem complete (values : List ℕ) (n : ℕ) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.find .start),v,store (NatListFind.stream values).reverse n.bits.reverse [] [] [] [] [] [] []⟩=
@@ -12208,6 +14354,7 @@ theorem complete (values : List ℕ) (n : ℕ) (v : Local) :
       change 2000*B^3+1+25*(1+n.bits.length)^2+100*B^2+(n.bits.length^2+3*n.bits.length+3)+1≤5000*B^3
       nlinarith only [hn,hn2,hnn,hB,hB2,h23,hB3]
 
+/-- Under the stated hypotheses, `(inserted values n)` has no duplicate entries. -/
 theorem inserted_nodup (values : List ℕ) (n : ℕ) (h : values.Nodup) : (inserted values n).Nodup := by
   by_cases hmem : n∈values
   · simpa only [inserted,if_pos hmem] using h
@@ -12218,15 +14365,25 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatSetInsert
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.GuardedCounter
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The status choices for binary decrement guarded by unary fuel: `zero`, `next`, `exhausted`. -/
 inductive Status where | zero | next | exhausted deriving DecidableEq,Fintype
+/-- The local-state type for binary decrement guarded by unary fuel, represented by
+`Status×Counter.Local×Symbol`. -/
 abbrev Local := Status×Counter.Local×Symbol
+/-- The finite control labels for binary decrement guarded by unary fuel. -/
 inductive Label where | counter (l : Counter.Label) | branch | fuel deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.counter .borrow⟩
+/-- Extract the counter component of the local state for binary decrement guarded by unary fuel. -/
 def getCounter (v : Local) : Counter.Local := v.2.1
+/-- Replace the counter component of the local state for binary decrement guarded by unary fuel,
+retaining its other components. -/
 def putCounter (v : Local) (value : Counter.Local) : Local := (v.1,value,v.2.2)
 
+/-- Replacing the counter local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putCounter_get (v : Local) : putCounter v (getCounter v)=v := rfl
 
+/-- The TM2 program implementing binary decrement guarded by unary fuel. -/
 def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Local
   | .counter l => StackCall.stmt Fin.castSucc Label.counter .branch getCounter putCounter (Counter.program l)
   | .branch => .branch (fun v => v.2.1.1) (.goto (fun _ => .fuel))
@@ -12235,16 +14392,25 @@ def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Local
       (.branch (fun v => v.2.2.isSome)
         (.load (fun v => (.next,v.2)) .halt) (.load (fun v => (.exhausted,v.2)) .halt))
 
+/-- Embed the subroutine stacks for binary decrement guarded by unary fuel while retaining the
+supplied contents of the other stack banks. -/
 def frame (fuel : Bits) (S : Fin 2 → Bits) : Fin 3 → Bits := Parsing.triple (S 0) (S 1) fuel
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem frame_at (fuel : Bits) (S : Fin 2 → Bits) (k : Fin 2) : frame fuel S k.castSucc=S k := by
     fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem frame_update (fuel : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     frame fuel (Function.update S k bits)=Function.update (frame fuel S) k.castSucc bits := by
   funext j
   fin_cases k <;> fin_cases j <;> simp [frame,Parsing.triple]
 
+/-- For a counter of binary value zero, guarded decrement halts with status `zero`, retains the
+unary fuel, and replaces the counter by true bits of the same length, within the stated
+quadratic clock bound. -/
 theorem zero (counter fuel : Bits) (v : Local) (hz : binaryValue counter=0) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,Parsing.triple counter [] fuel⟩=
@@ -12271,6 +14437,9 @@ theorem zero (counter fuel : Bits) (v : Local) (hz : binaryValue counter=0) :
   change _≤20*B^2
   omega
 
+/-- For a positive counter, guarded decrement preserves its width, decreases its value by one,
+and removes one fuel marker when available. It halts with status `exhausted` for empty fuel
+and `next` otherwise, within the stated quadratic clock bound. -/
 theorem positive (counter fuel : Bits) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks output,output.length=counter.length ∧ binaryValue output+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,Parsing.triple counter [] fuel⟩=
@@ -12313,18 +14482,24 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.GuardedCounter
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ValidatorSemantics
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- The number of wire entries in an oracle opcode, and zero for every other opcode. -/
 def opFuel : Opcode → ℕ
   | .oracle _ _ _ wires => wires.length
   | _ => 0
 
+/-- The total validation fuel for an opcode list, counting one unit per opcode and one per
+oracle wire. -/
 def cost (ops : List Opcode) : ℕ := (ops.map (fun op => 1+opFuel op)).sum
 
+/-- Parse one legal opcode with sufficient wire fuel and return its unconsumed suffix and
+remaining fuel. -/
 def readOp (fuel width : ℕ) (input : Bits) : Option (Opcode×Bits×ℕ) := do
   let (op,tail) ← readOpcode input
   if legalOpcodeCheck width op && decide (opFuel op≤fuel) then
     pure (op,tail,fuel-opFuel op)
   else none
 
+/-- Parse a prescribed number of legal opcodes while charging opcode and oracle-wire fuel. -/
 def readOps : ℕ → ℕ → ℕ → Bits → Option (List Opcode×Bits×ℕ)
   | fuel,0,_,input => some ([],input,fuel)
   | 0,_+1,_,_ => none
@@ -12333,14 +14508,18 @@ def readOps : ℕ → ℕ → ℕ → Bits → Option (List Opcode×Bits×ℕ)
       let (ops,rest,left) ← readOps remaining count width tail
       pure (op::ops,rest,left)
 
+/-- `cost []` equals `0`. -/
 @[simp] theorem cost_nil : cost []=0 := rfl
 
+/-- `cost (op::ops)` equals `1+opFuel op+cost ops`. -/
 @[simp] theorem cost_cons (op : Opcode) (ops : List Opcode) : cost (op::ops)=1+opFuel op+cost ops := rfl
 
+/-- `1+opFuel op` is at most `(fields op).length`. -/
 theorem opFuel_fields (op : Opcode) : 1+opFuel op≤(fields op).length := by
   cases op <;> simp [opFuel,fields]
   omega
 
+/-- `cost ops` is at most `(ops.flatMap opBits).length`. -/
 theorem cost_length (ops : List Opcode) : cost ops≤(ops.flatMap opBits).length := by
   induction ops with
   | nil => simp [cost]
@@ -12351,6 +14530,7 @@ theorem cost_length (ops : List Opcode) : cost ops≤(ops.flatMap opBits).length
     rw [cost_cons,List.flatMap_cons,List.length_append,he]
     omega
 
+/-- `cost w.ops` is at most `(wordBits w).length`. -/
 theorem cost_word (w : Word) : cost w.ops≤(wordBits w).length := by
   have hc := cost_length w.ops
   have he : wordBits w=natBits w.width++natBits w.ops.length++w.ops.flatMap opBits := by
@@ -12360,11 +14540,15 @@ theorem cost_word (w : Word) : cost w.ops≤(wordBits w).length := by
   rw [he,List.length_append,List.length_append]
   omega
 
+/-- Under the stated hypotheses, `readOp fuel width (opBits op++tail)` equals `some
+(op,tail,fuel-opFuel op)`. -/
 theorem readOp_complete (op : Opcode) (tail : Bits) (fuel width : ℕ)
     (hlegal : legalOpcode width op) (hfuel : opFuel op≤fuel) :
     readOp fuel width (opBits op++tail)=some (op,tail,fuel-opFuel op) := by
   simp [readOp,readOpcode_complete,(legalOpcodeCheck_spec width op).mpr hlegal,hfuel]
 
+/-- Under the stated hypotheses, `readOps fuel ops.length width (ops.flatMap opBits++tail)`
+equals `some (ops,tail,fuel-cost ops)`. -/
 theorem readOps_complete (ops : List Opcode) (tail : Bits) (fuel width : ℕ)
     (hlegal : ∀ op∈ops,legalOpcode width op) (hfuel : cost ops≤fuel) :
     readOps fuel ops.length width (ops.flatMap opBits++tail)=some (ops,tail,fuel-cost ops) := by
@@ -12388,6 +14572,8 @@ theorem readOps_complete (ops : List Opcode) (tail : Bits) (fuel width : ℕ)
       rw [cost_cons]
       omega
 
+/-- A successful semantic opcode parse returns a legal opcode, consumes its exact canonical
+encoding, and accounts for the wire fuel used. -/
 theorem readOp_sound (fuel width : ℕ) (input : Bits) (op : Opcode) (tail : Bits) (left : ℕ)
     (h : readOp fuel width input=some (op,tail,left)) :
     legalOpcode width op ∧ input=opBits op++tail ∧ opFuel op+left=fuel := by
@@ -12404,6 +14590,8 @@ theorem readOp_sound (fuel width : ℕ) (input : Bits) (op : Opcode) (tail : Bit
     refine ⟨(legalOpcodeCheck_spec width p).mp hc.1,readOpcode_sound input p rest hr,?_⟩
     omega
 
+/-- A successful counted opcode parse returns the requested number of legal opcodes, consumes
+their concatenated encodings, and accounts exactly for the validation fuel used. -/
 theorem readOps_sound (fuel count width : ℕ) (input : Bits) (ops : List Opcode) (rest : Bits) (left : ℕ)
     (h : readOps fuel count width input=some (ops,rest,left)) :
     ops.length=count ∧ (∀ op∈ops,legalOpcode width op) ∧
@@ -12441,20 +14629,25 @@ theorem readOps_sound (fuel count width : ℕ) (input : Bits) (ops : List Opcode
           · rw [cost_cons]
             omega
 
+/-- `wordBits w` equals `natBits w.width++natBits w.ops.length++w.ops.flatMap opBits`. -/
 theorem wordBits_parts (w : Word) :
     wordBits w=natBits w.width++natBits w.ops.length++w.ops.flatMap opBits := by
   simp only [wordBits,List.flatMap_append,List.flatMap_cons,List.flatMap_nil,List.append_nil]
   rw [List.flatMap_assoc]
   rfl
 
+/-- Decode a width, opcode count, and legal opcode list with explicit fuel, requiring the entire
+input to be consumed. -/
 def decodeAt (fuel : ℕ) (input : Bits) : Option Word := do
   let (width,afterWidth) ← readNat input
   let (count,opInput) ← readNat afterWidth
   let (ops,tail,_) ← readOps fuel count width opInput
   if tail=[] then pure ⟨width,ops⟩ else none
 
+/-- Decode a legal word using its input length as the validation-fuel budget. -/
 def decode (input : Bits) : Option Word := decodeAt input.length input
 
+/-- Under the stated hypotheses, `decodeAt fuel (wordBits w)` equals `some w`. -/
 theorem decodeAt_complete (fuel : ℕ) (w : Word) (hlegal : Legal w) (hfuel : cost w.ops≤fuel) :
     decodeAt fuel (wordBits w)=some w := by
   rw [decodeAt,wordBits_parts,List.append_assoc]
@@ -12464,9 +14657,12 @@ theorem decodeAt_complete (fuel : ℕ) (w : Word) (hlegal : Legal w) (hfuel : co
   rw [h]
   simp only [Option.bind_some,pure,if_true]
 
+/-- Under the stated hypotheses, `decode (wordBits w)` equals `some w`. -/
 theorem decode_complete (w : Word) (hlegal : Legal w) : decode (wordBits w)=some w :=
   decodeAt_complete (wordBits w).length w hlegal (cost_word w)
 
+/-- Successful decoding with explicit fuel returns a legal word whose canonical encoding is the
+entire input. -/
 theorem decodeAt_sound (fuel : ℕ) (input : Bits) (w : Word) (h : decodeAt fuel input=some w) :
     Legal w ∧ input=wordBits w := by
   unfold decodeAt at h
@@ -12494,9 +14690,12 @@ theorem decodeAt_sound (fuel : ℕ) (input : Bits) (w : Word) (h : decodeAt fuel
         rw [readNat_sound input width afterWidth hw,readNat_sound afterWidth count opInput hn,hinput,wordBits_parts]
         simp only [List.append_nil,hlen,List.append_assoc]
 
+/-- Successful semantic decoding returns a legal word whose canonical encoding is the entire
+input. -/
 theorem decode_sound (input : Bits) (w : Word) (h : decode input=some w) : Legal w ∧ input=wordBits w :=
   decodeAt_sound input.length input w h
 
+/-- `decode input` equals `decodeWord input`. -/
 theorem decode_eq (input : Bits) : decode input=decodeWord input := by
   cases hc : decode input with
   | none =>
@@ -12513,8 +14712,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ValidatorSemantics
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by legal-word validation. -/
 inductive Work where | input | reader | original | fuel | width | opCount | wireCount | seen | field | tempCount | value | target | workReader | workMarkers | workPayload | workCmpTemp | workCmpLeft | workCmpRight deriving DecidableEq,Fintype
+/-- The stack-index type for legal-word validation, represented by `Option Work`. -/
 abbrev Slot := Option Work
+/-- Finite local state combining the parser, tag classifier, guarded counter, comparison,
+insertion, and I/O subroutines of the word validator. -/
 structure Local where
   checked : CheckedNat.Local
   tagged : NatTag.Local
@@ -12532,41 +14735,77 @@ noncomputable instance : Fintype Local := Fintype.ofEquiv
 instance : Inhabited Local :=
     ⟨⟨(false,none),(4,none),(.zero,(false,none),none),((.eq,none,none),none),(default,none),none⟩⟩
 
+/-- Extract the parse component of the local state for legal-word validation. -/
 def getParse (v : Local) : CheckedNat.Local := v.checked
+/-- Replace the parse component of the local state for legal-word validation, retaining its
+other components. -/
 def putParse (v : Local) (value : CheckedNat.Local) : Local := {v with checked:=value}
 
+/-- Replacing the parse local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putParse_get (v : Local) : putParse v (getParse v)=v := by cases v; rfl
 
+/-- Extract the tag component of the local state for legal-word validation. -/
 def getTag (v : Local) : NatTag.Local := v.tagged
+/-- Replace the tag component of the local state for legal-word validation, retaining its other
+components. -/
 def putTag (v : Local) (value : NatTag.Local) : Local := {v with tagged:=value}
 
+/-- Replacing the tag local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putTag_get (v : Local) : putTag v (getTag v)=v := by cases v; rfl
 
+/-- Extract the guard component of the local state for legal-word validation. -/
 def getGuard (v : Local) : GuardedCounter.Local := v.guarded
+/-- Replace the guard component of the local state for legal-word validation, retaining its
+other components. -/
 def putGuard (v : Local) (value : GuardedCounter.Local) : Local := {v with guarded:=value}
 
+/-- Replacing the guard local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putGuard_get (v : Local) : putGuard v (getGuard v)=v := by cases v; rfl
 
+/-- Extract the compare component of the local state for legal-word validation. -/
 def getCompare (v : Local) : ReadonlyCompare.Local := v.compared
+/-- Replace the compare component of the local state for legal-word validation, retaining its
+other components. -/
 def putCompare (v : Local) (value : ReadonlyCompare.Local) : Local := {v with compared:=value}
 
+/-- Replacing the compare local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putCompare_get (v : Local) : putCompare v (getCompare v)=v := by cases v; rfl
 
+/-- Extract the insert component of the local state for legal-word validation. -/
 def getInsert (v : Local) : NatSetInsert.Local := v.inserted
+/-- Replace the insert component of the local state for legal-word validation, retaining its
+other components. -/
 def putInsert (v : Local) (value : NatSetInsert.Local) : Local := {v with inserted:=value}
 
+/-- Replacing the insert local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putInsert_get (v : Local) : putInsert v (getInsert v)=v := by cases v; rfl
 
+/-- Extract the io component of the local state for legal-word validation. -/
 def getIO (v : Local) : Symbol := v.io
+/-- Replace the io component of the local state for legal-word validation, retaining its other
+components. -/
 def putIO (v : Local) (value : Symbol) : Local := {v with io:=value}
 
+/-- Replacing the io local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putIO_get (v : Local) : putIO v (getIO v)=v := by cases v; rfl
 
+/-- The destination work banks for parsed natural fields: width, field, and target. -/
 inductive ReadDest where | width | field | target deriving DecidableEq,Fintype
+/-- The field or target bank whose binary value is compared with the width. -/
 inductive CompareFirst where | field | target deriving DecidableEq,Fintype
+/-- The supported source-to-destination transfers between validator work banks and the output
+stack. -/
 inductive Transfer where | fieldToOpCount | fieldToWireCount | fieldToValue | valueToTarget | originalToOutput deriving DecidableEq,Fintype
+/-- The control phases of legal-word validation. -/
 inductive Phase where | beginWidth | afterWidth | afterCount | root | rootResult | afterOpTag | dispatch | hAddress | hResult | hCompared | pFirst | pFirstResult | pFirstCompared | pSecond | pSecondResult | pSecondCompared | pPrecision | pPrecisionResult | pAdj | pAdjResult | pAdjCheck | sFirst | sFirstResult | sFirstCompared | sSecond | sSecondResult | sSecondCompared | qSlot | qSlotResult | qControl | qControlResult | qControlCompare | qControlInserted | qAdj | qAdjResult | qAdjCheck | qCount | qCountResult | qLoop | qLoopResult | qWireRead | qWireCompare | qWireIncrement | qWireIncremented | qWireInsert | qWireInserted | qFinish | checkEnd | success | failure | cleanupStart deriving DecidableEq,Fintype
 
+/-- The finite control labels for legal-word validation. -/
 inductive Label where
   | prepare (l : Fin 1)
   | read (dest : ReadDest) (ret : Phase) (l : CheckedNat.Label)
@@ -12583,27 +14822,32 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.prepare 0⟩
 
+/-- Map the prepare subroutine stack indices into the stack banks for legal-word validation. -/
 def prepareCode : ValidatorInput.Slot → Slot
   | .input => some .input
   | .reader => some .reader
   | .original => some .original
   | .fuel => some .fuel
 
+/-- Select the validator work bank receiving a parsed natural-number field. -/
 def readBank : ReadDest → Work
   | .width => .width
   | .field => .field
   | .target => .target
 
+/-- Map the read subroutine stack indices into the stack banks for legal-word validation. -/
 def readCode (dest : ReadDest) : Fin 3 → Slot
   | 0 => some .reader
   | 1 => some .tempCount
   | _ => some (readBank dest)
 
+/-- Map the guard subroutine stack indices into the stack banks for legal-word validation. -/
 def guardCode (wire : Bool) : Fin 3 → Slot
   | 0 => some (if wire then .wireCount else .opCount)
   | 1 => some .tempCount
   | _ => some .fuel
 
+/-- Map the compare subroutine stack indices into the stack banks for legal-word validation. -/
 def compareCode (first : CompareFirst) : ReadonlyCompare.Slot → Slot
   | .first => some (match first with | .field => .field | .target => .target)
   | .second => some .width
@@ -12611,6 +14855,7 @@ def compareCode (first : CompareFirst) : ReadonlyCompare.Slot → Slot
   | .left => some .workCmpLeft
   | .right => some .workCmpRight
 
+/-- Map the insert subroutine stack indices into the stack banks for legal-word validation. -/
 def insertCode : NatSetInsert.Slot → Slot
   | none => some .value
   | some .seen => some .seen
@@ -12622,6 +14867,7 @@ def insertCode : NatSetInsert.Slot → Slot
   | some .cmpLeft => some .workCmpLeft
   | some .cmpRight => some .workCmpRight
 
+/-- The source and destination stack indices of a validator transfer operation. -/
 def transferBanks : Transfer → Slot×Slot
   | .fieldToOpCount => (some .field,some .opCount)
   | .fieldToWireCount => (some .field,some .wireCount)
@@ -12629,11 +14875,15 @@ def transferBanks : Transfer → Slot×Slot
   | .valueToTarget => (some .value,some .target)
   | .originalToOutput => (some .original,none)
 
+/-- Map the transfer subroutine stack indices into the stack banks for legal-word validation. -/
 def transferCode (job : Transfer) (k : Fin 2) : Slot :=
     if k=0 then (transferBanks job).1 else (transferBanks job).2
 
+/-- Map the increment subroutine stack indices into the stack banks for legal-word validation. -/
 def incrementCode (k : Fin 2) : Slot := if k=0 then some .value else some .tempCount
 
+/-- The successor work bank in the validator cleanup order, with no successor after the final
+bank. -/
 def nextWork : Work → Option Work
   | .input => some .reader
   | .reader => some .original
@@ -12654,14 +14904,21 @@ def nextWork : Work → Option Work
   | .workCmpLeft => some .workCmpRight
   | .workCmpRight => none
 
+/-- Jump to the supplied validator phase. -/
 def go (phase : Phase) : TM2.Stmt (fun _ : Slot => Bool) Label Local := .goto (fun _ => .step phase)
+/-- Continue at the supplied label when checked parsing succeeded, and enter the failure phase
+otherwise. -/
 def parsed (after : Label) : TM2.Stmt (fun _ : Slot => Bool) Label Local :=
   .branch (fun v => v.checked.1) (.goto (fun _ => after)) (go .failure)
+/-- Continue at the supplied label when the comparison tag is strictly less, and enter failure
+otherwise. -/
 def less (after : Label) : TM2.Stmt (fun _ : Slot => Bool) Label Local :=
   .branch (fun v => decide (v.compared.1.1=.lt)) (.goto (fun _ => after)) (go .failure)
+/-- Accept tags zero and one as Boolean values and reject larger tags. -/
 def boolTag : TM2.Stmt (fun _ : Slot => Bool) Label Local :=
   .branch (fun v => decide (v.tagged.1.val≤1)) (go .root) (go .failure)
 
+/-- The stack instructions executed in each control phase of legal-word validation. -/
 def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .beginWidth => .goto (fun _ => .read .width .afterWidth .unary)
   | .afterWidth => parsed (.read .field .afterCount .unary)
@@ -12724,6 +14981,7 @@ def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .failure => .push none (fun _ => false) (.goto (fun _ => .clear .input 0))
   | .cleanupStart => .goto (fun _ => .clear .input 0)
 
+/-- The TM2 program implementing legal-word validation. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .prepare l => StackCall.stmt prepareCode Label.prepare (.step .beginWidth) getIO putIO (ValidatorInput.program l)
   | .read dest ret l => StackCall.stmt (readCode dest) (Label.read dest ret) (.step ret) getParse putParse (CheckedNat.program l)
@@ -12739,10 +14997,15 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .step phase => phaseProgram phase
   | .halt => .halt
 
+/-- `(readCode dest)` is injective. -/
 theorem readCode_injective (dest : ReadDest) : Function.Injective (readCode dest) := by
   intro a b he
   fin_cases a <;> fin_cases b <;> cases dest <;> simp [readCode,readBank] at he ⊢
 
+/-- Under the stated input conditions, a run of `program` from label `(.read dest ret .unary)`
+reaches label `(.step ret)` with stacks `StackCall.frame (readCode dest) S
+(CheckedNat.haltedResult (S (some .reader)) []).stk`; its accumulated stack clock is at most
+`50*(1+(S (some .reader)).length)^2`. -/
 theorem read_all (dest : ReadDest) (ret : Phase) (S : Slot → Bits) (v : Local)
     (hmarker : S (some .tempCount)=[]) (hvalue : S (some (readBank dest))=[]) :
     ∃ ticks,
@@ -12766,6 +15029,10 @@ theorem read_all (dest : ReadDest) (ret : Phase) (S : Slot → Bits) (v : Local)
     putParse_get,hsame] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.read dest ret .unary)`
+reaches label `(.step ret)` with stacks `StackCall.frame (readCode dest) S (Parsing.triple
+tail [] n.bits.reverse)`; its accumulated stack clock is at most `50*(1+(S (some
+.reader)).length)^2`. -/
 theorem read_valid (dest : ReadDest) (ret : Phase) (S : Slot → Bits) (v : Local) (n : ℕ) (tail : Bits)
     (hreader : S (some .reader)=natBits n++tail)
     (hmarker : S (some .tempCount)=[]) (hvalue : S (some (readBank dest))=[]) :
@@ -12779,10 +15046,15 @@ theorem read_valid (dest : ReadDest) (ret : Phase) (S : Slot → Bits) (v : Loca
   refine ⟨ticks,?_,hc⟩
   simpa only [List.append_nil] using hr
 
+/-- `(transferCode job)` is injective. -/
 theorem transferCode_injective (job : Transfer) : Function.Injective (transferCode job) := by
   intro a b he
   cases job <;> fin_cases a <;> fin_cases b <;> simp [transferCode,transferBanks] at he ⊢
 
+/-- A run of `program` from label `(.transfer job ret 0)` reaches label `(.step ret)` with
+stacks `StackCall.frame (transferCode job) S (Stacks.stackPair [] (input.reverse++output))`
+after `(input.length+1)` stack steps; its accumulated stack clock is equal to
+`input.length*(2*(input.length+output.length)+5)+3`. -/
 theorem transfer_all (job : Transfer) (ret : Phase) (S : Slot → Bits) (v : Local) :
     let input := S (transferBanks job).1
     let output := S (transferBanks job).2
@@ -12808,10 +15080,15 @@ theorem transfer_all (job : Transfer) (ret : Phase) (S : Slot → Bits) (v : Loc
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- `(guardCode wire)` is injective. -/
 theorem guardCode_injective (wire : Bool) : Function.Injective (guardCode wire) := by
   intro a b he
   cases wire <;> fin_cases a <;> fin_cases b <;> simp [guardCode] at he ⊢
 
+/-- Under the stated input conditions, a run of `program` from label `(.guard wire ret (.counter
+.borrow))` reaches label `(.step ret)` with stacks `StackCall.frame (guardCode wire) S
+(Parsing.triple (List.replicate counter.length true) [] fuel)`; its accumulated stack clock
+is at most `20*(1+counter.length+fuel.length)^2`. -/
 theorem guard_zero (wire : Bool) (ret : Phase) (S : Slot → Bits) (v : Local)
     (hmarker : S (some .tempCount)=[]) (hz : binaryValue (S (some (if wire then .wireCount else .opCount)))=0) :
     let counter := S (some (if wire then .wireCount else .opCount))
@@ -12837,6 +15114,11 @@ theorem guard_zero (wire : Bool) (ret : Phase) (S : Slot → Bits) (v : Local)
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putGuard_get,hsame] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.guard wire ret (.counter
+.borrow))` reaches label `(.step ret)` with stacks `StackCall.frame (guardCode wire) S
+(Parsing.triple output [] fuel.tail)`; its accumulated stack clock is at most
+`20*(1+counter.length+fuel.length)^2` and the resulting counter has the same length and
+binary value one less than the starting counter. -/
 theorem guard_positive (wire : Bool) (ret : Phase) (S : Slot → Bits) (v : Local)
     (hmarker : S (some .tempCount)=[]) (hp : 0<binaryValue (S (some (if wire then .wireCount else .opCount)))) :
     let counter := S (some (if wire then .wireCount else .opCount))
@@ -12862,10 +15144,14 @@ theorem guard_positive (wire : Bool) (ret : Phase) (S : Slot → Bits) (v : Loca
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putGuard_get,hsame] at hN hNC
   exact ⟨ticks,output,hlen,hvalue,hN,hNC.trans_le hc⟩
 
+/-- `(compareCode first)` is injective. -/
 theorem compareCode_injective (first : CompareFirst) : Function.Injective (compareCode first) := by
   intro a b he
   cases first <;> cases a <;> cases b <;> simp [compareCode] at he ⊢
 
+/-- Under the stated input conditions, a run of `program` from label `(.compare first ret
+.start)` reaches label `(.step ret)` with stacks `S`; its accumulated stack clock is at most
+`100*(1+field.length+width.length)^2`. -/
 theorem compare_all (first : CompareFirst) (ret : Phase) (S : Slot → Bits) (v : Local)
     (htemp : S (some .workCmpTemp)=[]) (hleft : S (some .workCmpLeft)=[]) (hright : S (some .workCmpRight)=[]) :
     let field := S (some (match first with | .field => .field | .target => .target))
@@ -12890,10 +15176,14 @@ theorem compare_all (first : CompareFirst) (ret : Phase) (S : Slot → Bits) (v 
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putCompare_get,hsame] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- `incrementCode` is injective. -/
 theorem incrementCode_injective : Function.Injective incrementCode := by
   intro a b he
   fin_cases a <;> fin_cases b <;> simp [incrementCode] at he ⊢
 
+/-- Under the stated input conditions, a run of `program` from label `(.increment ret .carry)`
+reaches label `(.step ret)` with stacks `StackCall.frame incrementCode S (Stacks.stackPair
+(n+1).bits [])`; its accumulated stack clock is at most `50*(1+n.bits.length)^2`. -/
 theorem increment_valid (ret : Phase) (S : Slot → Bits) (v : Local) (n : ℕ)
     (hinput : S (some .value)=n.bits) (hmarker : S (some .tempCount)=[]) :
     ∃ ticks,
@@ -12915,6 +15205,10 @@ theorem increment_valid (ret : Phase) (S : Slot → Bits) (v : Local) (n : ℕ)
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(code 0)` reaches label
+`returnTo` with stacks `Function.update S (some bank) []` after `((S (some bank)).length+1)`
+stack steps; its accumulated stack clock is equal to `(S (some bank)).length^2+3*(S (some
+bank)).length+3`. -/
 theorem drain_call (code : Fin 1 → Label) (returnTo : Label) (bank : Work)
     (hcode : ∀ l,program (code l)=StackCall.stmt (fun _ : Fin 1 => some bank) code returnTo getIO putIO (Normalization.drainProgram l))
     (S : Slot → Bits) (v : Local) :
@@ -12939,28 +15233,36 @@ theorem drain_call (code : Fin 1 → Label) (returnTo : Label) (bank : Work)
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock (S (some bank)) (getIO v))⟩
 
+/-- Enter cleanup at the first listed work bank, or halt when the list is empty. -/
 def clearStart : List Work → Label
   | [] => .halt
   | bank::_ => .clear bank 0
 
+/-- Clear the I/O local component when at least one work bank is being cleared. -/
 def clearVar (v : Local) (banks : List Work) : Local := if banks=[] then v else putIO v none
 
+/-- Empty the listed work banks while retaining all other stacks. -/
 def cleared : (Slot → Bits) → List Work → (Slot → Bits)
   | S,[] => S
   | S,bank::banks => cleared (Function.update S (some bank) []) banks
 
+/-- The recursively accumulated simulation cost of clearing a list of work banks. -/
 def clearCost : (Slot → Bits) → List Work → ℕ
   | _,[] => 1
   | S,bank::banks => (S (some bank)).length^2+3*(S (some bank)).length+3+
       clearCost (Function.update S (some bank) []) banks
 
+/-- The listed banks follow the successor relation `nextWork` used by cleanup. -/
 def clearRoute : List Work → Prop
   | [] => True
   | bank::banks => nextWork bank=banks.head? ∧ clearRoute banks
 
+/-- `clearVar (putIO v none) banks` equals `putIO v none`. -/
 theorem clearVar_after (v : Local) (banks : List Work) : clearVar (putIO v none) banks=putIO v none := by
   cases banks <;> rfl
 
+/-- Under the stated input conditions, a run of `program` from label `(clearStart banks)` halts
+with stacks `cleared S banks`; its accumulated stack clock is at most `clearCost S banks`. -/
 theorem clear_list (banks : List Work) (hroute : clearRoute banks) (S : Slot → Bits) (v : Local) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (clearStart banks),v,S⟩=
@@ -12983,17 +15285,22 @@ theorem clear_list (banks : List Work) (hroute : clearRoute banks) (S : Slot →
     refine ⟨ticks,?_,hc⟩
     simpa only [clearVar_after] using! hr
 
+/-- The full ordered list of validator work banks to be cleared before halting. -/
 def workList : List Work := [.input,.reader,.original,.fuel,.width,.opCount,.wireCount,.seen,.field,.tempCount,
   .value,.target,.workReader,.workMarkers,.workPayload,.workCmpTemp,.workCmpLeft,.workCmpRight]
 
+/-- The full work-bank list follows the validator cleanup successor route. -/
 theorem workList_route : clearRoute workList := by simp [clearRoute,workList,nextWork]
 
+/-- `cleared S workList` equals `Function.update (fun _ => []) none (S none)`. -/
 theorem cleared_workList (S : Slot → Bits) : cleared S workList=Function.update (fun _ => []) none (S none) := by
   funext k
   cases k with
   | none => simp [cleared,workList]
   | some bank => cases bank <;> simp [cleared,workList]
 
+/-- Under the stated hypotheses, `clearCost S banks` is at most
+`(banks.length+1)*(height^2+3*height+4)`. -/
 theorem clearCost_bound (banks : List Work) (S : Slot → Bits) (height : ℕ)
     (hS : ∀ bank,(S (some bank)).length≤height) :
     clearCost S banks≤(banks.length+1)*(height^2+3*height+4) := by
@@ -13013,6 +15320,9 @@ theorem clearCost_bound (banks : List Work) (S : Slot → Bits) (height : ℕ)
     simp only [clearCost,List.length_cons]
     nlinarith
 
+/-- Under the stated input conditions, a run of `program` from label `(.clear .input 0)` halts
+with stacks `Function.update (fun _ => []) none (S none)`; its accumulated stack clock is at
+most `200*(1+height)^2`. -/
 theorem cleanup (S : Slot → Bits) (v : Local) (height : ℕ) (hS : ∀ bank,(S (some bank)).length≤height) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.clear .input 0),v,S⟩=
@@ -13028,6 +15338,7 @@ theorem cleanup (S : Slot → Bits) (v : Local) (height : ℕ) (hS : ∀ bank,(S
     rw [hlen] at hb
     nlinarith only [hb,Nat.zero_le (height^2),Nat.zero_le height]
 
+/-- `insertCode` is injective. -/
 theorem insertCode_injective : Function.Injective insertCode := by
   intro a b he
   cases a with
@@ -13040,6 +15351,11 @@ theorem insertCode_injective : Function.Injective insertCode := by
     | none => cases a <;> simp [insertCode] at he
     | some b => cases a <;> cases b <;> simp [insertCode] at he ⊢
 
+/-- Under the stated input conditions, a run of `program` from label `(.insert ret (.find
+.start))` reaches label `(.step ret)` with stacks `StackCall.frame insertCode S
+(NatSetInsert.store (NatListFind.stream (NatSetInsert.inserted values n)).reverse
+n.bits.reverse [] [] [] [] [] [] [])`; its accumulated stack clock is at most
+`5000*(1+(NatListFind.stream values).length+n.bits.length)^3`. -/
 theorem insert_valid (ret : Phase) (S : Slot → Bits) (v : Local) (values : List ℕ) (n : ℕ)
     (hdata : ∀ k,S (insertCode k)=NatSetInsert.store (NatListFind.stream values).reverse n.bits.reverse [] [] [] [] [] [] [] k) :
     ∃ ticks last,
@@ -13060,6 +15376,10 @@ theorem insert_valid (ret : Phase) (S : Slot → Bits) (v : Local) (values : Lis
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putInsert_get,hsame] at hN hNC
   exact ⟨ticks,last,hN,hfound,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.tag ret .first)` reaches label `(.step ret)` with stacks
+`StackCall.frame (fun _ : Fin 1 => some Work.field) S (NatTag.final (S (some .field))).stk`
+after `(NatTag.ticks (S (some .field)))` stack steps; its accumulated stack clock is at most
+`20*(1+(S (some .field)).length)^2`. -/
 theorem tag_all (ret : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program (NatTag.ticks (S (some .field))) ⟨some (.tag ret .first),v,S⟩=
       some ⟨some (.step ret),putTag v (NatTag.final (S (some .field))).var,
@@ -13080,10 +15400,15 @@ theorem tag_all (ret : Phase) (S : Slot → Bits) (v : Local) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,NatTag.final,Option.map_none,Option.getD_none,putTag_get,hsame] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- `prepareCode` is injective. -/
 theorem prepareCode_injective : Function.Injective prepareCode := by
   intro a b he
   cases a <;> cases b <;> simp [prepareCode] at he ⊢
 
+/-- Under the stated input conditions, a run of `program` from label `(.prepare 0)` reaches
+label `(.step .beginWidth)` with stacks `StackCall.frame prepareCode S (ValidatorInput.store
+[] input input (List.replicate input.length true))` after `(input.length+1)` stack steps;
+its accumulated stack clock is equal to `input.length*(4*input.length+9)+3`. -/
 theorem prepare_all (input : Bits) (S : Slot → Bits) (v : Local)
     (hdata : ∀ k,S (prepareCode k)=ValidatorInput.store input.reverse [] [] [] k) :
     Stacks.stackRun program (input.length+1) ⟨some (.prepare 0),v,S⟩=
@@ -13104,11 +15429,15 @@ theorem prepare_all (input : Bits) (S : Slot → Bits) (v : Local)
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from `⟨some (.step phase),v,S⟩` reaches `(TM2.stepAux (phaseProgram
+phase) v S)` after `1` stack step. -/
 theorem phase_step (phase : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some (TM2.stepAux (phaseProgram phase) v S) := by
   rw [Stacks.run_one]
   rfl
 
+/-- `Stacks.stackRunClock program 1 ⟨some (.step phase),v,S⟩` is at most `2*(S (some
+.reader)).length+2*(S none).length+5`. -/
 theorem phase_clock (phase : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRunClock program 1 ⟨some (.step phase),v,S⟩≤
       2*(S (some .reader)).length+2*(S none).length+5 := by
@@ -13116,6 +15445,7 @@ theorem phase_clock (phase : Phase) (S : Slot → Bits) (v : Local) :
       [Stacks.stackRunClock,program,phaseProgram,go,parsed,less,boolTag,Stacks.stackClock]
   all_goals omega
 
+/-- Under the stated hypotheses, `StackCall.frame code S data j` equals `S j`. -/
 theorem frame_outside {K J : Type} [DecidableEq K] [DecidableEq J]
     (code : K → J) (S : J → Bits) (data : K → Bits) (j : J) (hj : ∀ k,code k≠j) :
     StackCall.frame code S data j=S j := by
@@ -13123,6 +15453,9 @@ theorem frame_outside {K J : Type} [DecidableEq K] [DecidableEq J]
   have hn : ¬∃ k,code k=j := by rintro ⟨k,hk⟩; exact hj k hk
   simp only [StackCall.frame,dif_neg hn]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .failure)` halts
+with stacks `Function.update (fun _ => []) none [false]`; its accumulated stack clock is at
+most `210*(1+height)^2`. -/
 theorem failure_output (S : Slot → Bits) (v : Local) (height : ℕ)
     (houtput : S none=[]) (hS : ∀ bank,(S (some bank)).length≤height) :
     ∃ ticks,
@@ -13148,6 +15481,9 @@ theorem failure_output (S : Slot → Bits) (v : Local) (height : ℕ)
   · have hp : 1≤(1+height)^2 := Nat.one_le_pow 2 _ (by omega)
     omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .success)` halts
+with stacks `Function.update (fun _ => []) none (true::input).reverse`; its accumulated
+stack clock is at most `300*(1+height)^2`. -/
 theorem success_output (input : Bits) (S : Slot → Bits) (v : Local) (height : ℕ)
     (houtput : S none=[]) (horiginal : S (some .original)=input)
     (hS : ∀ bank,(S (some bank)).length≤height) :
@@ -13210,8 +15546,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Every validator work stack has length at most the supplied height, without constraining the
+separate output stack. -/
 def Cap (S : Slot → Bits) (height : ℕ) : Prop := ∀ bank,(S (some bank)).length≤height
 
+/-- Framing bounded subroutine stacks into a bounded caller store preserves the validator
+work-stack height bound. -/
 theorem cap_frame {K : Type} [DecidableEq K] (code : K → Slot) (S : Slot → Bits) (data : K → Bits)
     (height : ℕ) (hS : Cap S height) (hdata : ∀ k,(data k).length≤height) :
     Cap (StackCall.frame code S data) height := by
@@ -13223,6 +15563,8 @@ theorem cap_frame {K : Type} [DecidableEq K] (code : K → Slot) (S : Slot → B
   · simp only [StackCall.frame,dif_neg hj]
     exact hS bank
 
+/-- Under the given input-length bound, every stack of the halted checked-natural parser has
+length at most `height`. -/
 theorem checked_cap (input : Bits) (height : ℕ) (hi : input.length≤height) :
     ∀ k,((CheckedNat.haltedResult input []).stk k).length≤height := by
   have hc := CheckedNat.result_size input []
@@ -13237,25 +15579,34 @@ theorem checked_cap (input : Bits) (height : ℕ) (hi : input.length≤height) :
   · change ((CheckedNat.haltedResult input []).stk 2).length≤height
     omega
 
+/-- A checked-natural parsing call preserves the validator work-stack height bound under the
+given input-size assumptions. -/
 theorem read_cap (dest : ReadDest) (S : Slot → Bits) (height : ℕ) (hS : Cap S height) :
     Cap (StackCall.frame (readCode dest) S (CheckedNat.haltedResult (S (some .reader)) []).stk) height :=
   cap_frame _ _ _ _ hS (checked_cap _ _ (hS .reader))
 
+/-- `(Increment.word bits).length` is at most `bits.length+1`. -/
 theorem word_increment_length (bits : Bits) : (Increment.word bits).length≤bits.length+1 := by
   induction bits with
   | nil => decide
   | cons bit bits ih => cases bit <;> simp only [Increment.word,List.length_cons] <;> omega
 
+/-- `(n+1).bits.length` is at most `n.bits.length+1`. -/
 theorem bits_succ_length (n : ℕ) : (n+1).bits.length≤n.bits.length+1 := by
   rw [← Increment.word_bits]
   exact word_increment_length n.bits
 
+/-- Under the stated hypotheses, `StackCall.frame code S data none` equals `S none`;
+`StackCall.frame code S data (some .original)` equals `S (some .original)`. -/
 theorem frame_preserves {K : Type} [DecidableEq K] (code : K → Slot) (S : Slot → Bits) (data : K → Bits)
     (hout : ∀ k,code k≠none) (horiginal : ∀ k,code k≠some .original) :
     StackCall.frame code S data none=S none ∧
       StackCall.frame code S data (some .original)=S (some .original) :=
   ⟨frame_outside code S data none hout,frame_outside code S data (some .original) horiginal⟩
 
+/-- Under the stated hypotheses, `StackCall.frame (readCode dest) S (Parsing.triple tail []
+field)` equals `Function.update (Function.update S (some .reader) tail) (some (readBank
+dest)) field`. -/
 theorem read_frame (dest : ReadDest) (S : Slot → Bits) (tail field : Bits)
     (hmarker : S (some .tempCount)=[]) (hvalue : S (some (readBank dest))=[]) :
     StackCall.frame (readCode dest) S (Parsing.triple tail [] field)=
@@ -13272,6 +15623,9 @@ theorem read_frame (dest : ReadDest) (S : Slot → Bits) (tail field : Bits)
   simp only [Parsing.triple_update_two,h0] at h2
   exact h2
 
+/-- Under the stated hypotheses, `StackCall.frame (guardCode wire) S (Parsing.triple counter []
+fuel)` equals `Function.update (Function.update S (some (if wire then .wireCount else
+.opCount)) counter) (some .fuel) fuel`. -/
 theorem guard_frame (wire : Bool) (S : Slot → Bits) (counter fuel : Bits) (hmarker : S (some .tempCount)=[]) :
     StackCall.frame (guardCode wire) S (Parsing.triple counter [] fuel)=
       Function.update (Function.update S (some (if wire then .wireCount else .opCount)) counter) (some .fuel) fuel := by
@@ -13291,6 +15645,8 @@ theorem guard_frame (wire : Bool) (S : Slot → Bits) (counter fuel : Bits) (hma
   simp only [Parsing.triple_update_two,h0] at h2
   exact h2
 
+/-- The validator stack store at the root opcode loop, with the original input, reader, width,
+count, fuel, and current field. -/
 def rootStore (raw reader width count fuel field : Bits) : Slot → Bits
   | none => []
   | some .original => raw
@@ -13301,6 +15657,8 @@ def rootStore (raw reader width count fuel field : Bits) : Slot → Bits
   | some .field => field
   | _ => []
 
+/-- Updating the reader stack in `rootStore` replaces its corresponding list argument and
+retains the other stack contents. -/
 theorem rootStore_update_reader (raw reader width count fuel field next : Bits) :
     Function.update (rootStore raw reader width count fuel field) (some .reader) next=rootStore raw next width count fuel field := by
   funext k
@@ -13308,6 +15666,8 @@ theorem rootStore_update_reader (raw reader width count fuel field next : Bits) 
   | none => rfl
   | some bank => cases bank <;> rfl
 
+/-- Updating the field stack in `rootStore` replaces its corresponding list argument and retains
+the other stack contents. -/
 theorem rootStore_update_field (raw reader width count fuel field next : Bits) :
     Function.update (rootStore raw reader width count fuel field) (some .field) next=rootStore raw reader width count fuel next := by
   funext k
@@ -13315,10 +15675,16 @@ theorem rootStore_update_field (raw reader width count fuel field next : Bits) :
   | none => rfl
   | some bank => cases bank <;> rfl
 
+/-- `ReadonlyCompare.order a.bits.reverse width.bits.reverse=.lt` holds if and only if
+`a<width`. -/
 theorem order_nat_lt (a width : ℕ) : ReadonlyCompare.order a.bits.reverse width.bits.reverse=.lt ↔ a<width := by
   simp only [ReadonlyCompare.order,List.reverse_reverse,binaryValue_bits]
   split_ifs <;> simp_all
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field readRet
+.unary)` reaches label `after` with stacks `rootStore raw tail width.bits.reverse count fuel
+a.bits.reverse`; its accumulated stack clock is at most `1000*(1+(natBits
+a++tail).length+width.bits.length)^2`. -/
 theorem address_valid (readRet compareRet : Phase) (after : Label)
     (hread : phaseProgram readRet=parsed (.compare .field compareRet .start))
     (hcompare : phaseProgram compareRet=less after)
@@ -13371,10 +15737,14 @@ theorem address_valid (readRet compareRet : Phase) (after : Label)
   simp only [List.length_reverse]
   nlinarith only [hB2,hraw2,hargs2]
 
+/-- Classifying the reversed canonical digits of a natural number below four halts with that
+exact tag and an empty payload stack. -/
 theorem small_tag_final (n : Fin 4) : NatTag.final n.val.bits.reverse=
     ⟨none,(⟨n.val,by omega⟩,none),Normalization.singleStack []⟩ := by
   fin_cases n <;> rfl
 
+/-- `StackCall.frame (fun _ : Fin 1 => some Work.field) S (Normalization.singleStack field)`
+equals `Function.update S (some .field) field`. -/
 theorem tag_frame (S : Slot → Bits) (field : Bits) :
     StackCall.frame (fun _ : Fin 1 => some Work.field) S (Normalization.singleStack field)=Function.update S (some .field) field := by
   let code : Fin 1 → Slot := fun _ => some .field
@@ -13387,6 +15757,9 @@ theorem tag_frame (S : Slot → Bits) (field : Bits) :
       StackCall.frame_update code S (Normalization.singleStack (S (some .field))) hinj 0 field
   simpa only [Normalization.singleStack_update,hsame] using hu
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field readRet
+.unary)` reaches label `(.step tagRet)` with stacks `rootStore raw tail width count fuel
+[]`; its accumulated stack clock is at most `100*(1+(natBits n.val++tail).length)^2`. -/
 theorem small_tag_valid (readRet tagRet : Phase)
     (hread : phaseProgram readRet=parsed (.tag tagRet .first))
     (raw tail width count fuel : Bits) (n : Fin 4) (v : Local) :
@@ -13429,6 +15802,9 @@ theorem small_tag_valid (readRet tagRet : Phase)
   simp only [List.length_reverse]
   nlinarith only [harg2,hB2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.read dest ret .unary)`
+reaches label `(.step .failure)` with stacks `T`; its accumulated stack clock is at most
+`60*(1+height)^2`. -/
 theorem parsed_failure (dest : ReadDest) (ret : Phase) (after : Label)
     (hret : phaseProgram ret=parsed after) (S : Slot → Bits) (v : Local) (height : ℕ)
     (hS : Cap S height) (hmarker : S (some .tempCount)=[]) (hvalue : S (some (readBank dest))=[])
@@ -13465,11 +15841,15 @@ theorem parsed_failure (dest : ReadDest) (ret : Phase) (after : Label)
     change _≤60*(1+height)^2
     nlinarith only [hp,hpos]
 
+/-- `(fun n : ℕ => n.bits.reverse)` is injective. -/
 theorem bits_reverse_injective : Function.Injective (fun n : ℕ => n.bits.reverse) := by
   intro m n he
   have hv := congrArg (fun bits : Bits => binaryValue bits.reverse) he
   simpa only [List.reverse_reverse,binaryValue_bits] using hv
 
+/-- `(NatTag.tag n.bits.reverse).val=0` is equivalent to `n=0`; `(NatTag.tag
+n.bits.reverse).val=1` is equivalent to `n=1`; `(NatTag.tag n.bits.reverse).val=2` is
+equivalent to `n=2`; `(NatTag.tag n.bits.reverse).val=3` is equivalent to `n=3`. -/
 theorem tag_nat_spec (n : ℕ) :
     ((NatTag.tag n.bits.reverse).val=0 ↔ n=0) ∧ ((NatTag.tag n.bits.reverse).val=1 ↔ n=1) ∧
       ((NatTag.tag n.bits.reverse).val=2 ↔ n=2) ∧ ((NatTag.tag n.bits.reverse).val=3 ↔ n=3) := by
@@ -13488,6 +15868,7 @@ theorem tag_nat_spec (n : ℕ) :
     exact bits_reverse_injective.eq_iff
   exact ⟨ht.1.trans h0,ht.2.1.trans h1,ht.2.2.1.trans h2,ht.2.2.2.trans h3⟩
 
+/-- Under the stated hypotheses, `NatTag.tag n.bits.reverse` equals `4`. -/
 theorem tag_nat_large (n : ℕ) (hn : 4≤n) : NatTag.tag n.bits.reverse=4 := by
   obtain ⟨h0,h1,h2,h3⟩ := tag_nat_spec n
   apply Fin.ext
@@ -13495,10 +15876,15 @@ theorem tag_nat_large (n : ℕ) (hn : 4≤n) : NatTag.tag n.bits.reverse=4 := by
   change (NatTag.tag n.bits.reverse).val=4
   omega
 
+/-- `(NatTag.tag n.bits.reverse).val≤1` holds if and only if `n≤1`. -/
 theorem bool_tag_spec (n : ℕ) : (NatTag.tag n.bits.reverse).val≤1 ↔ n≤1 := by
   obtain ⟨h0,h1,_,_⟩ := tag_nat_spec n
   omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field readRet
+.unary)` reaches label `(if a<width then after else .step .failure)` with stacks
+`Function.update (Function.update S (some .reader) tail) (some .field) a.bits.reverse`; its
+accumulated stack clock is at most `1000*(1+(S (some .reader)).length+width.bits.length)^2`. -/
 theorem address_canonical (readRet compareRet : Phase) (after : Label)
     (hread : phaseProgram readRet=parsed (.compare .field compareRet .start))
     (hcompare : phaseProgram compareRet=less after)
@@ -13557,11 +15943,16 @@ theorem address_canonical (readRet compareRet : Phase) (after : Label)
   simp only [List.length_reverse]
   nlinarith only [hB2,hraw2,harg2]
 
+/-- `Function.update (Function.update S key first) key second` equals `Function.update S key
+second`. -/
 theorem update_twice (S : Slot → Bits) (key : Slot) (first second : Bits) :
     Function.update (Function.update S key first) key second=Function.update S key second := by
   funext j
   by_cases he : j=key <;> simp [Function.update_apply,he]
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field ret .unary)`
+reaches label `(.step next)` with stacks `Function.update S (some .reader) tail`; its
+accumulated stack clock is at most `100*(1+(S (some .reader)).length)^2`. -/
 theorem skip_canonical (ret next : Phase)
     (hret : phaseProgram ret=parsed (.drain .field next 0))
     (S : Slot → Bits) (n : ℕ) (tail : Bits) (v : Local)
@@ -13603,6 +15994,10 @@ theorem skip_canonical (ret next : Phase)
   change 50*B^2+1+(n.bits.length^2+3*n.bits.length+3)≤100*B^2
   nlinarith only [hn,hn2,hB,hB2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field readRet
+.unary)` reaches label `(.step tagRet)` with stacks `Function.update (Function.update S
+(some .reader) tail) (some .field) (n.bits.reverse.drop (NatTag.ticks n.bits.reverse))`; its
+accumulated stack clock is at most `100*(1+(S (some .reader)).length)^2`. -/
 theorem classify_canonical (readRet tagRet : Phase)
     (hread : phaseProgram readRet=parsed (.tag tagRet .first))
     (S : Slot → Bits) (n : ℕ) (tail : Bits) (v : Local)
@@ -13645,6 +16040,11 @@ theorem classify_canonical (readRet tagRet : Phase)
   simp only [List.length_reverse]
   nlinarith only [harg2,hB2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field readRet
+.unary)` reaches label `(.step (if n≤1 then next else .failure))` with stacks
+`Function.update (Function.update S (some .reader) tail) (some .field) (n.bits.reverse.drop
+(NatTag.ticks n.bits.reverse))`; its accumulated stack clock is at most `110*(1+(S (some
+.reader)).length)^2`. -/
 theorem bool_canonical (readRet tagRet next : Phase)
     (hread : phaseProgram readRet=parsed (.tag tagRet .first))
     (hbool : phaseProgram tagRet=.branch (fun v => decide (v.tagged.1.val≤1)) (go next) (go .failure))
@@ -13677,6 +16077,9 @@ theorem bool_canonical (readRet tagRet next : Phase)
   have hp : 1≤(1+(S (some .reader)).length)^2 := Nat.one_le_pow 2 _ (by omega)
   omega
 
+/-- Under the stated hypotheses, `Function.update (Function.update (Function.update S (some
+.reader) tail) (some .field) field) (some .field) []` equals `Function.update S (some
+.reader) tail`. -/
 theorem restore_empty_field (S : Slot → Bits) (tail field : Bits) (hfield : S (some .field)=[]) :
     Function.update (Function.update (Function.update S (some .reader) tail) (some .field) field) (some .field) []=
       Function.update S (some .reader) tail := by
@@ -13684,6 +16087,10 @@ theorem restore_empty_field (S : Slot → Bits) (tail field : Bits) (hfield : S 
   have he : (Function.update S (some .reader) tail) (some .field)=[] := by simpa using hfield
   rw [← he,Function.update_eq_self]
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field readRet
+.unary)` reaches label `(.step next)` with stacks `Function.update S (some .reader) tail`;
+its accumulated stack clock is at most `2000*(1+(S (some
+.reader)).length+width.bits.length)^2`. -/
 theorem address_drained (readRet compareRet next : Phase)
     (hread : phaseProgram readRet=parsed (.compare .field compareRet .start))
     (hcompare : phaseProgram compareRet=less (.drain .field next 0))
@@ -13720,11 +16127,16 @@ theorem address_drained (readRet compareRet next : Phase)
   change 1000*B^2+(a.bits.length^2+3*a.bits.length+3)≤2000*B^2
   nlinarith only [hB,hB2,ha,ha2]
 
+/-- Under the stated hypotheses, `n.bits.reverse.drop (NatTag.ticks n.bits.reverse)` equals
+`[]`. -/
 theorem tag_drop_small (n : ℕ) (hn : n<4) : n.bits.reverse.drop (NatTag.ticks n.bits.reverse)=[] := by
   have hc := congrArg (fun cfg : TM2.Cfg (fun _ : Fin 1 => Bool) NatTag.Label NatTag.Local => cfg.stk 0)
     (small_tag_final ⟨n,hn⟩)
   exact hc
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field readRet
+.unary)` reaches label `(.step next)` with stacks `Function.update S (some .reader) tail`;
+its accumulated stack clock is at most `110*(1+(S (some .reader)).length)^2`. -/
 theorem bool_valid (readRet tagRet next : Phase)
     (hread : phaseProgram readRet=parsed (.tag tagRet .first))
     (hbool : phaseProgram tagRet=.branch (fun v => decide (v.tagged.1.val≤1)) (go next) (go .failure))
@@ -13744,6 +16156,8 @@ theorem bool_valid (readRet tagRet next : Phase)
   rw [hfinal] at hr
   exact ⟨ticks,last,hr,hc⟩
 
+/-- Dispatch tags zero through three to their opcode-validation phases and all other tags to
+failure. -/
 def opcodePhase : ℕ → Phase
   | 0 => .hAddress
   | 1 => .pFirst
@@ -13751,6 +16165,9 @@ def opcodePhase : ℕ → Phase
   | 3 => .qSlot
   | _ => .failure
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .dispatch)` reaches
+label `(.step (opcodePhase n))` with stacks `S` after `1` stack step; its accumulated stack
+clock is equal to `1`. -/
 theorem dispatch (S : Slot → Bits) (v : Local) (n : ℕ) (htag : v.tagged.1=NatTag.tag n.bits.reverse) :
     Stacks.stackRun program 1 ⟨some (.step .dispatch),v,S⟩=some ⟨some (.step (opcodePhase n)),v,S⟩ ∧
       Stacks.stackRunClock program 1 ⟨some (.step .dispatch),v,S⟩=1 := by
@@ -13769,6 +16186,11 @@ theorem dispatch (S : Slot → Bits) (v : Local) (n : ℕ) (htag : v.tagged.1=Na
       simp [phaseProgram,TM2.stepAux,go,opcodePhase,hv]
   · simp [Stacks.stackRunClock,program,phaseProgram,go,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field .afterOpTag
+.unary)` reaches label `(.step (opcodePhase n))` with stacks `Function.update
+(Function.update S (some .reader) tail) (some .field) (n.bits.reverse.drop (NatTag.ticks
+n.bits.reverse))`; its accumulated stack clock is at most `110*(1+(S (some
+.reader)).length)^2`. -/
 theorem opcode_canonical (S : Slot → Bits) (n : ℕ) (tail : Bits) (v : Local)
     (hreader : S (some .reader)=natBits n++tail) (hmarker : S (some .tempCount)=[]) (hfield : S (some .field)=[]) :
     ∃ ticks last,
@@ -13789,6 +16211,9 @@ theorem opcode_canonical (S : Slot → Bits) (n : ℕ) (tail : Bits) (v : Local)
   have hp : 1≤(1+(S (some .reader)).length)^2 := Nat.one_le_pow 2 _ (by omega)
   omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.step phase)` reaches
+label `after` with stacks `S` after `1` stack step; its accumulated stack clock is equal to
+`1`. -/
 theorem goto_phase (phase : Phase) (after : Label)
     (hcode : phaseProgram phase=.goto (fun _ => after)) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some ⟨some after,v,S⟩ ∧
@@ -13798,6 +16223,9 @@ theorem goto_phase (phase : Phase) (after : Label)
     rfl
   · simp [Stacks.stackRunClock,program,hcode,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step phase)` reaches
+label `after` with stacks `S` after `1` stack step; its accumulated stack clock is equal to
+`1`. -/
 theorem parsed_true (phase : Phase) (after : Label) (hcode : phaseProgram phase=parsed after)
     (S : Slot → Bits) (v : Local) (hv : v.checked.1=true) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some ⟨some after,v,S⟩ ∧
@@ -13807,6 +16235,9 @@ theorem parsed_true (phase : Phase) (after : Label) (hcode : phaseProgram phase=
     simp [parsed,TM2.stepAux,hv]
   · simp [Stacks.stackRunClock,program,hcode,parsed,go,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .rootResult)`
+reaches label `(.read .field .afterOpTag .unary)` with stacks `S` after `1` stack step; its
+accumulated stack clock is equal to `1`. -/
 theorem root_next (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.next) :
     Stacks.stackRun program 1 ⟨some (.step .rootResult),v,S⟩=some ⟨some (.read .field .afterOpTag .unary),v,S⟩ ∧
       Stacks.stackRunClock program 1 ⟨some (.step .rootResult),v,S⟩=1 := by
@@ -13815,6 +16246,9 @@ theorem root_next (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.next) :
     simp [phaseProgram,go,TM2.stepAux,hv]
   · simp [Stacks.stackRunClock,program,phaseProgram,go,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .rootResult)`
+reaches label `(.drain .opCount .checkEnd 0)` with stacks `S` after `1` stack step; its
+accumulated stack clock is equal to `1`. -/
 theorem root_zero (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.zero) :
     Stacks.stackRun program 1 ⟨some (.step .rootResult),v,S⟩=some ⟨some (.drain .opCount .checkEnd 0),v,S⟩ ∧
       Stacks.stackRunClock program 1 ⟨some (.step .rootResult),v,S⟩=1 := by
@@ -13823,6 +16257,9 @@ theorem root_zero (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.zero) :
     simp [phaseProgram,go,TM2.stepAux,hv]
   · simp [Stacks.stackRunClock,program,phaseProgram,go,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qLoopResult)`
+reaches label `(.read .field .qWireRead .unary)` with stacks `S` after `1` stack step; its
+accumulated stack clock is equal to `1`. -/
 theorem query_next (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.next) :
     Stacks.stackRun program 1 ⟨some (.step .qLoopResult),v,S⟩=some ⟨some (.read .field .qWireRead .unary),v,S⟩ ∧
       Stacks.stackRunClock program 1 ⟨some (.step .qLoopResult),v,S⟩=1 := by
@@ -13831,6 +16268,9 @@ theorem query_next (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.next) :
     simp [phaseProgram,go,TM2.stepAux,hv]
   · simp [Stacks.stackRunClock,program,phaseProgram,go,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qLoopResult)`
+reaches label `(.drain .wireCount .qFinish 0)` with stacks `S` after `1` stack step; its
+accumulated stack clock is equal to `1`. -/
 theorem query_zero (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.zero) :
     Stacks.stackRun program 1 ⟨some (.step .qLoopResult),v,S⟩=some ⟨some (.drain .wireCount .qFinish 0),v,S⟩ ∧
       Stacks.stackRunClock program 1 ⟨some (.step .qLoopResult),v,S⟩=1 := by
@@ -13839,6 +16279,9 @@ theorem query_zero (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.zero) :
     simp [phaseProgram,go,TM2.stepAux,hv]
   · simp [Stacks.stackRunClock,program,phaseProgram,go,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .rootResult)`
+reaches label `(.step .failure)` with stacks `S` after `1` stack step; its accumulated stack
+clock is equal to `1`. -/
 theorem root_exhausted (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.exhausted) :
     Stacks.stackRun program 1 ⟨some (.step .rootResult),v,S⟩=some ⟨some (.step .failure),v,S⟩ ∧
       Stacks.stackRunClock program 1 ⟨some (.step .rootResult),v,S⟩=1 := by
@@ -13847,6 +16290,9 @@ theorem root_exhausted (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.exhaus
     simp [phaseProgram,go,TM2.stepAux,hv]
   · simp [Stacks.stackRunClock,program,phaseProgram,go,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qLoopResult)`
+reaches label `(.step .failure)` with stacks `S` after `1` stack step; its accumulated stack
+clock is equal to `1`. -/
 theorem query_exhausted (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.exhausted) :
     Stacks.stackRun program 1 ⟨some (.step .qLoopResult),v,S⟩=some ⟨some (.step .failure),v,S⟩ ∧
       Stacks.stackRunClock program 1 ⟨some (.step .qLoopResult),v,S⟩=1 := by
@@ -13855,12 +16301,19 @@ theorem query_exhausted (S : Slot → Bits) (v : Local) (hv : v.guarded.1=.exhau
     simp [phaseProgram,go,TM2.stepAux,hv]
   · simp [Stacks.stackRunClock,program,phaseProgram,go,Stacks.stackClock]
 
+/-- The initial validator store with the reversed raw input in the input bank and all other
+stacks empty. -/
 def initialStore (input : Bits) : Slot → Bits :=
     Function.update (fun _ => []) (some .input) input.reverse
 
+/-- `(TM2.init (some Work.input) input.reverse : TM2.Cfg (fun _ : Slot => Bool) Label Local)`
+equals `⟨some (.prepare 0),default,initialStore input⟩`. -/
 theorem initial_eq (input : Bits) : (TM2.init (some Work.input) input.reverse : TM2.Cfg (fun _ : Slot => Bool) Label Local)=
     ⟨some (.prepare 0),default,initialStore input⟩ := rfl
 
+/-- `StackCall.frame prepareCode (initialStore input) (ValidatorInput.store [] input input
+(List.replicate input.length true))` equals `rootStore input input [] [] (List.replicate
+input.length true) []`. -/
 theorem prepare_initial_frame (input : Bits) :
     StackCall.frame prepareCode (initialStore input)
       (ValidatorInput.store [] input input (List.replicate input.length true))=
@@ -13882,6 +16335,9 @@ theorem prepare_initial_frame (input : Bits) :
     | (rw [frame_outside prepareCode (initialStore input) _ _ (by intro k; cases k <;> simp [prepareCode])]
        simp [initialStore,rootStore])
 
+/-- A run of `program` from label `(.prepare 0)` reaches label `(.step .beginWidth)` with stacks
+`rootStore input input [] [] (List.replicate input.length true) []` after `(input.length+1)`
+stack steps; its accumulated stack clock is equal to `input.length*(4*input.length+9)+3`. -/
 theorem prepare_initial (input : Bits) (v : Local) :
     Stacks.stackRun program (input.length+1) ⟨some (.prepare 0),v,initialStore input⟩=
       some ⟨some (.step .beginWidth),putIO v none,rootStore input input [] [] (List.replicate input.length true) []⟩ ∧
@@ -13893,6 +16349,8 @@ theorem prepare_initial (input : Bits) (v : Local) :
   rw [prepare_initial_frame] at hr
   exact ⟨hr,hc⟩
 
+/-- Updating the width stack in `rootStore` replaces its corresponding list argument and retains
+the other stack contents. -/
 theorem rootStore_update_width (raw reader width count fuel field next : Bits) :
     Function.update (rootStore raw reader width count fuel field) (some .width) next=rootStore raw reader next count fuel field := by
   funext k
@@ -13900,6 +16358,8 @@ theorem rootStore_update_width (raw reader width count fuel field next : Bits) :
   | none => rfl
   | some bank => cases bank <;> rfl
 
+/-- Updating the count stack in `rootStore` replaces its corresponding list argument and retains
+the other stack contents. -/
 theorem rootStore_update_count (raw reader width count fuel field next : Bits) :
     Function.update (rootStore raw reader width count fuel field) (some .opCount) next=rootStore raw reader width next fuel field := by
   funext k
@@ -13907,6 +16367,8 @@ theorem rootStore_update_count (raw reader width count fuel field next : Bits) :
   | none => rfl
   | some bank => cases bank <;> rfl
 
+/-- Updating the fuel stack in `rootStore` replaces its corresponding list argument and retains
+the other stack contents. -/
 theorem rootStore_update_fuel (raw reader width count fuel field next : Bits) :
     Function.update (rootStore raw reader width count fuel field) (some .fuel) next=rootStore raw reader width count next field := by
   funext k
@@ -13914,6 +16376,9 @@ theorem rootStore_update_fuel (raw reader width count fuel field next : Bits) :
   | none => rfl
   | some bank => cases bank <;> rfl
 
+/-- Under the stated hypotheses, `StackCall.frame (transferCode job) S (Stacks.stackPair [] (S
+(transferBanks job).1).reverse)` equals `Function.update (Function.update S (transferBanks
+job).1 []) (transferBanks job).2 (S (transferBanks job).1).reverse`. -/
 theorem transfer_frame_empty (job : Transfer) (S : Slot → Bits) (houtput : S (transferBanks job).2=[]) :
     StackCall.frame (transferCode job) S (Stacks.stackPair [] (S (transferBanks job).1).reverse)=
       Function.update (Function.update S (transferBanks job).1 []) (transferBanks job).2 (S (transferBanks job).1).reverse := by
@@ -13930,6 +16395,8 @@ theorem transfer_frame_empty (job : Transfer) (S : Slot → Bits) (houtput : S (
   simp only [Stacks.stackPair_update_one,h0] at h1
   exact h1
 
+/-- Under the stated hypotheses, `StackCall.frame incrementCode S (Stacks.stackPair next [])`
+equals `Function.update S (some .value) next`. -/
 theorem increment_frame (S : Slot → Bits) (old next : Bits)
     (hvalue : S (some .value)=old) (hmarker : S (some .tempCount)=[]) :
     StackCall.frame incrementCode S (Stacks.stackPair next [])=Function.update S (some .value) next := by
@@ -13941,6 +16408,8 @@ theorem increment_frame (S : Slot → Bits) (old next : Bits)
   have h0 := StackCall.frame_update incrementCode S (Stacks.stackPair old []) hinj 0 next
   simpa only [Stacks.stackPair_update_zero,hsame] using! h0
 
+/-- Under the stated hypotheses, `StackCall.frame insertCode S (NatSetInsert.store next target
+[] [] [] [] [] [] [])` equals `Function.update S (some .seen) next`. -/
 theorem insert_frame (S : Slot → Bits) (old next target : Bits)
     (hdata : ∀ k,S (insertCode k)=NatSetInsert.store old target [] [] [] [] [] [] [] k) :
     StackCall.frame insertCode S (NatSetInsert.store next target [] [] [] [] [] [] [])=Function.update S (some .seen) next := by
@@ -13955,6 +16424,10 @@ theorem insert_frame (S : Slot → Bits) (old next target : Bits)
   have hs := StackCall.frame_update insertCode S data hinj (some .seen) next
   simpa only [hstore,hsame] using! hs
 
+/-- Under the stated input conditions, a run of `program` from label `(.prepare 0)` reaches
+label `(.step .root)` with stacks `rootStore input tail width.bits.reverse count.bits
+(List.replicate input.length true) []`; its accumulated stack clock is at most
+`1000*(1+input.length)^2`. -/
 theorem header_valid (input : Bits) (width count : ℕ) (tail : Bits) (v : Local)
     (hinput : input=natBits width++(natBits count++tail)) :
     ∃ ticks last,
@@ -14011,6 +16484,9 @@ theorem header_valid (input : Bits) (width count : ℕ) (tail : Bits) (v : Local
     (count.bits.length*(2*count.bits.length+5)+3)≤1000*B^2
   nlinarith only [hB,hB2,hL,hL2,hcount,hcount2,hrest2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .root)` reaches
+label `(.step .checkEnd)` with stacks `rootStore raw reader width [] fuel []`; its
+accumulated stack clock is at most `100*(1+counter.length+fuel.length)^2`. -/
 theorem root_count_zero (raw reader width counter fuel : Bits) (v : Local) (hz : binaryValue counter=0) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.step .root),v,rootStore raw reader width counter fuel []⟩=
@@ -14049,6 +16525,9 @@ theorem root_count_zero (raw reader width counter fuel : Bits) (v : Local) (hz :
   change 1+20*B^2+1+(counter.length^2+3*counter.length+3)≤100*B^2
   nlinarith only [hB,hB2,hcounter,hcounter2]
 
+/-- Under the stated hypotheses, `Cap (rootStore raw reader width count fuel field) height`
+holds if and only if `raw.length≤height ∧ reader.length≤height ∧ width.length≤height ∧
+count.length≤height ∧ fuel.length≤height ∧ field.length≤height`. -/
 theorem rootStore_cap (raw reader width count fuel field : Bits) (height : ℕ) :
     Cap (rootStore raw reader width count fuel field) height ↔
       raw.length≤height ∧ reader.length≤height ∧ width.length≤height ∧ count.length≤height ∧
@@ -14059,6 +16538,9 @@ theorem rootStore_cap (raw reader width count fuel field : Bits) (height : ℕ) 
   · rintro ⟨hr,hi,hw,hc,hf,hp⟩ bank
     cases bank <;> simp [rootStore,hr,hi,hw,hc,hf,hp]
 
+/-- A run of `program` from label `(.step .checkEnd)` reaches label `(.step (if S (some
+.reader)=[] then .success else .failure))` with stacks `S` after `1` stack step; its
+accumulated stack clock is equal to `2*(S (some .reader)).length+3`. -/
 theorem check_end (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step .checkEnd),v,S⟩=
       some ⟨some (.step (if S (some .reader)=[] then .success else .failure)),putIO v (S (some .reader)).head?,S⟩ ∧
@@ -14069,21 +16551,28 @@ theorem check_end (S : Slot → Bits) (v : Local) :
     constructor <;> simp [Stacks.run_one,Stacks.stackRunClock,TM2.step,program,phaseProgram,go,TM2.stepAux,Stacks.stackClock,he,putIO]
     omega
 
+/-- Represent an absent control by zero and a control address by its successor. -/
 def controlKey : Option ℕ → ℕ
   | none => 0
   | some n => n+1
 
+/-- `controlKey control≤width` holds if and only if `∀ a∈control,a<width`. -/
 theorem control_key_range (control : Option ℕ) (width : ℕ) : controlKey control≤width ↔ ∀ a∈control,a<width := by
   cases control with
   | none => simp [controlKey]
   | some n => simpa [controlKey] using (show n+1≤width ↔ n<width by omega)
 
+/-- `(controlKey control::wires.map Nat.succ).Nodup` holds if and only if `wires.Nodup ∧ ∀
+a∈control,a∉wires`. -/
 theorem control_keys_nodup (control : Option ℕ) (wires : List ℕ) :
     (controlKey control::wires.map Nat.succ).Nodup ↔ wires.Nodup ∧ ∀ a∈control,a∉wires := by
   cases control with
   | none => simp [controlKey,List.nodup_cons,List.nodup_map_iff Nat.succ_injective]
   | some n => simp [controlKey,List.nodup_cons,List.nodup_map_iff Nat.succ_injective,and_comm]
 
+/-- `legalOpcode width (.oracle slot control adjoint wires)` holds if and only if `(∀
+a∈wires,a<width) ∧ controlKey control≤width ∧ (controlKey control::wires.map
+Nat.succ).Nodup`. -/
 theorem oracle_legal_keys (width slot : ℕ) (control : Option ℕ) (adjoint : Bool) (wires : List ℕ) :
     legalOpcode width (.oracle slot control adjoint wires) ↔
       (∀ a∈wires,a<width) ∧ controlKey control≤width ∧ (controlKey control::wires.map Nat.succ).Nodup := by
@@ -14094,6 +16583,9 @@ theorem oracle_legal_keys (width slot : ℕ) (control : Option ℕ) (adjoint : B
   · rintro ⟨hw,hc,hn,hd⟩
     exact ⟨hw,hn,fun a ha => ⟨hc a ha,hd a ha⟩⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.prepare 0)` halts with
+stacks `Function.update (fun _ => []) none [false]`; its accumulated stack clock is at most
+`1000*(1+input.length)^2`. -/
 theorem header_width_reject (input : Bits) (v : Local) (hbad : readNat input=none) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.prepare 0),v,initialStore input⟩=
@@ -14124,6 +16616,9 @@ theorem header_width_reject (input : Bits) (v : Local) (hbad : readNat input=non
   change input.length*(4*input.length+9)+3+1+60*B^2+210*B^2≤1000*B^2
   nlinarith only [hB,hB2,hL,hL2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.prepare 0)` halts with
+stacks `Function.update (fun _ => []) none [false]`; its accumulated stack clock is at most
+`1000*(1+input.length)^2`. -/
 theorem header_count_reject (input : Bits) (width : ℕ) (rest : Bits) (v : Local)
     (hinput : input=natBits width++rest) (hbad : readNat rest=none) :
     ∃ ticks last,
@@ -14168,6 +16663,10 @@ theorem header_count_reject (input : Bits) (width : ℕ) (rest : Bits) (v : Loca
   change input.length*(4*input.length+9)+3+1+50*B^2+1+60*B^2+210*B^2≤1000*B^2
   nlinarith only [hB,hB2,hL,hL2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .root)` reaches
+label `(.step .failure)` with stacks `rootStore raw reader width output [] []`; its
+accumulated stack clock is at most `100*(1+counter.length)^2` and the resulting counter has
+the same length and binary value one less than the starting counter. -/
 theorem root_fuel_empty (raw reader width counter : Bits) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks last output,output.length=counter.length ∧ binaryValue output+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.step .root),v,rootStore raw reader width counter [] []⟩=
@@ -14193,6 +16692,11 @@ theorem root_fuel_empty (raw reader width counter : Bits) (v : Local) (hp : 0<bi
   have hp : 1≤(1+counter.length)^2 := Nat.one_le_pow 2 _ (by omega)
   omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .root)` reaches
+label `(.read .field .afterOpTag .unary)` with stacks `rootStore raw reader width output
+(List.replicate fuel true) []`; its accumulated stack clock is at most
+`100*(1+counter.length+(fuel+1))^2` and the resulting counter has the same length and binary
+value one less than the starting counter. -/
 theorem root_count_positive (raw reader width counter : Bits) (fuel : ℕ) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks last output,output.length=counter.length ∧ binaryValue output+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.step .root),v,rootStore raw reader width counter (List.replicate (fuel+1) true) []⟩=
@@ -14225,6 +16729,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ValidatorSemantics
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Parse a counted wire list with fuel and address checks, rejecting keys already in the seen
+list and accumulating new keys. -/
 def readWires : ℕ → ℕ → ℕ → List ℕ → Bits → Option (List ℕ×Bits×ℕ×List ℕ)
   | fuel,0,_,seen,input => some ([],input,fuel,seen)
   | 0,_+1,_,_,_ => none
@@ -14235,6 +16741,8 @@ def readWires : ℕ → ℕ → ℕ → List ℕ → Bits → Option (List ℕ×
         pure (wire::wires,rest,left,last)
       else none
 
+/-- Under the stated hypotheses, `readWires fuel wires.length width seen (wires.flatMap
+natBits++tail)` equals `some (wires,tail,fuel-wires.length,seen++wires.map Nat.succ)`. -/
 theorem readWires_complete (wires seen : List ℕ) (tail : Bits) (fuel width : ℕ)
     (hlegal : ∀ a∈wires,a<width) (hkeys : (seen++wires.map Nat.succ).Nodup) (hfuel : wires.length≤fuel) :
     readWires fuel wires.length width seen (wires.flatMap natBits++tail)=
@@ -14263,6 +16771,10 @@ theorem readWires_complete (wires seen : List ℕ) (tail : Bits) (fuel width : �
       congr 4
       omega
 
+/-- Successful wire parsing returns the requested number of bounded addresses, consumes their
+exact encodings, and accounts for one fuel unit per wire. The resulting keys extend the
+initial seen list by the successor wire addresses and preserve absence of duplicates when
+the initial keys have no duplicates. -/
 theorem readWires_sound (fuel count width : ℕ) (seen : List ℕ) (input : Bits)
     (wires : List ℕ) (rest : Bits) (left : ℕ) (last : List ℕ)
     (h : readWires fuel count width seen input=some (wires,rest,left,last)) :
@@ -14313,6 +16825,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ValidatorSemantics
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Extend the root validator store with oracle-wire count, seen keys, target, and working value
+stacks. -/
 def queryStore (raw reader width count fuel wireCount seen target value field : Bits) : Slot → Bits
   | some .wireCount => wireCount
   | some .seen => seen
@@ -14320,6 +16834,8 @@ def queryStore (raw reader width count fuel wireCount seen target value field : 
   | some .value => value
   | k => rootStore raw reader width count fuel field k
 
+/-- Updating the reader stack in `queryStore` replaces its corresponding list argument and
+retains the other stack contents. -/
 theorem queryStore_update_reader (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .reader) next=queryStore raw next width count fuel wireCount seen target value field := by
   funext k
@@ -14327,6 +16843,8 @@ theorem queryStore_update_reader (raw reader width count fuel wireCount seen tar
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- Updating the width stack in `queryStore` replaces its corresponding list argument and
+retains the other stack contents. -/
 theorem queryStore_update_width (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .width) next=queryStore raw reader next count fuel wireCount seen target value field := by
   funext k
@@ -14334,6 +16852,8 @@ theorem queryStore_update_width (raw reader width count fuel wireCount seen targ
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- Updating the count stack in `queryStore` replaces its corresponding list argument and
+retains the other stack contents. -/
 theorem queryStore_update_count (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .opCount) next=queryStore raw reader width next fuel wireCount seen target value field := by
   funext k
@@ -14341,6 +16861,8 @@ theorem queryStore_update_count (raw reader width count fuel wireCount seen targ
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- Updating the fuel stack in `queryStore` replaces its corresponding list argument and retains
+the other stack contents. -/
 theorem queryStore_update_fuel (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .fuel) next=queryStore raw reader width count next wireCount seen target value field := by
   funext k
@@ -14348,6 +16870,8 @@ theorem queryStore_update_fuel (raw reader width count fuel wireCount seen targe
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- Updating the wire count stack in `queryStore` replaces its corresponding list argument and
+retains the other stack contents. -/
 theorem queryStore_update_wireCount (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .wireCount) next=queryStore raw reader width count fuel next seen target value field := by
   funext k
@@ -14355,6 +16879,8 @@ theorem queryStore_update_wireCount (raw reader width count fuel wireCount seen 
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- Updating the seen stack in `queryStore` replaces its corresponding list argument and retains
+the other stack contents. -/
 theorem queryStore_update_seen (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .seen) next=queryStore raw reader width count fuel wireCount next target value field := by
   funext k
@@ -14362,6 +16888,8 @@ theorem queryStore_update_seen (raw reader width count fuel wireCount seen targe
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- Updating the target stack in `queryStore` replaces its corresponding list argument and
+retains the other stack contents. -/
 theorem queryStore_update_target (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .target) next=queryStore raw reader width count fuel wireCount seen next value field := by
   funext k
@@ -14369,6 +16897,8 @@ theorem queryStore_update_target (raw reader width count fuel wireCount seen tar
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- Updating the value stack in `queryStore` replaces its corresponding list argument and
+retains the other stack contents. -/
 theorem queryStore_update_value (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .value) next=queryStore raw reader width count fuel wireCount seen target next field := by
   funext k
@@ -14376,6 +16906,8 @@ theorem queryStore_update_value (raw reader width count fuel wireCount seen targ
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- Updating the field stack in `queryStore` replaces its corresponding list argument and
+retains the other stack contents. -/
 theorem queryStore_update_field (raw reader width count fuel wireCount seen target value field next : Bits) :
     Function.update (queryStore raw reader width count fuel wireCount seen target value field) (some .field) next=queryStore raw reader width count fuel wireCount seen target value next := by
   funext k
@@ -14383,6 +16915,8 @@ theorem queryStore_update_field (raw reader width count fuel wireCount seen targ
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- `queryStore raw reader width count fuel [] [] [] [] field` equals `rootStore raw reader
+width count fuel field`. -/
 theorem queryStore_empty (raw reader width count fuel field : Bits) :
     queryStore raw reader width count fuel [] [] [] [] field=rootStore raw reader width count fuel field := by
   funext k
@@ -14390,6 +16924,10 @@ theorem queryStore_empty (raw reader width count fuel field : Bits) :
   | none => rfl
   | some key => cases key <;> rfl
 
+/-- A run of `program` from label `(.transfer .fieldToValue .qWireIncrement 0)` reaches label
+`(.step .qWireInsert)` with stacks `queryStore raw reader width count fuel wireCount seen
+(n+1).bits.reverse [] []`; its accumulated stack clock is at most
+`1000*(1+n.bits.length)^2`. -/
 theorem wire_key_prepare (raw reader width count fuel wireCount seen : Bits) (n : ℕ) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.transfer .fieldToValue .qWireIncrement 0),v,
@@ -14440,6 +16978,11 @@ theorem wire_key_prepare (raw reader width count fuel wireCount seen : Bits) (n 
     ((n+1).bits.length*(2*(n+1).bits.length+5)+3)≤1000*B^2
   nlinarith only [hB,hB2,hn,hn2,hp,hp2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.insert ret (.find
+.start))` reaches label `(.step (if n∈values then .failure else next))` with stacks
+`queryStore raw reader width count fuel wireCount (NatListFind.stream (NatSetInsert.inserted
+values n)).reverse (if n∈values then n.bits.reverse else []) [] []`; its accumulated stack
+clock is at most `6000*(1+(NatListFind.stream values).length+n.bits.length)^3`. -/
 theorem insert_candidate (ret next : Phase)
     (hret : phaseProgram ret=.branch (fun v => v.inserted.1.found) (go .failure) (.goto (fun _ => .drain .target next 0)))
     (raw reader width count fuel wireCount : Bits) (values : List ℕ) (n : ℕ) (v : Local) :
@@ -14506,12 +17049,18 @@ theorem insert_candidate (ret next : Phase)
       change 5000*B^3+1+(n.bits.length^2+3*n.bits.length+3)≤6000*B^3
       nlinarith only [hn,hn2,hB,hB2,h23,hB3]
 
+/-- The validator store after checking and inserting a wire key, branching on its address bound
+and prior membership. -/
 def wireStore (raw tail width count fuel counter : Bits) (seen : List ℕ) (a bound : ℕ) : Slot → Bits :=
   if a<bound then
     queryStore raw tail width count fuel counter (NatListFind.stream (NatSetInsert.inserted seen (a+1))).reverse
       (if a+1∈seen then (a+1).bits.reverse else []) [] []
   else queryStore raw tail width count fuel counter (NatListFind.stream seen).reverse [] [] a.bits.reverse
 
+/-- A run of `program` from label `(.read .field .qWireRead .unary)` reaches label `(.step (if
+a<width ∧ a+1∉seen then .qLoop else .failure))` with stacks `wireStore raw tail
+width.bits.reverse count fuel counter seen a width`; its accumulated stack clock is at most
+`10000*(1+(natBits a++tail).length+width.bits.length+(NatListFind.stream seen).length)^3`. -/
 theorem wire_canonical (raw tail count fuel counter : Bits) (seen : List ℕ) (a width : ℕ) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.read .field .qWireRead .unary),v,
@@ -14575,6 +17124,9 @@ theorem wire_canonical (raw tail count fuel counter : Bits) (seen : List ℕ) (a
     · change 1000*(1+(natBits a++tail).length+width.bits.length)^2≤10000*B^3
       nlinarith only [harg2,h23]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qLoop)` reaches
+label `(.step .qFinish)` with stacks `queryStore raw reader width count fuel [] seen [] []
+[]`; its accumulated stack clock is at most `100*(1+counter.length+fuel.length)^2`. -/
 theorem query_count_zero (raw reader width count counter fuel seen : Bits) (v : Local) (hz : binaryValue counter=0) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.step .qLoop),v,queryStore raw reader width count fuel counter seen [] [] []⟩=
@@ -14614,6 +17166,10 @@ theorem query_count_zero (raw reader width count counter fuel seen : Bits) (v : 
   change 1+20*B^2+1+(counter.length^2+3*counter.length+3)≤100*B^2
   nlinarith only [hB,hB2,hcounter,hcounter2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qLoop)` reaches
+label `(.step .failure)` with stacks `queryStore raw reader width count [] output seen [] []
+[]`; its accumulated stack clock is at most `100*(1+counter.length)^2` and the resulting
+counter has the same length and binary value one less than the starting counter. -/
 theorem query_fuel_empty (raw reader width count counter seen : Bits) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks last output,output.length=counter.length ∧ binaryValue output+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.step .qLoop),v,queryStore raw reader width count [] counter seen [] [] []⟩=
@@ -14640,6 +17196,11 @@ theorem query_fuel_empty (raw reader width count counter seen : Bits) (v : Local
   have hp : 1≤(1+counter.length)^2 := Nat.one_le_pow 2 _ (by omega)
   omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qLoop)` reaches
+label `(.read .field .qWireRead .unary)` with stacks `queryStore raw reader width count
+(List.replicate fuel true) output seen [] [] []`; its accumulated stack clock is at most
+`100*(1+counter.length+(fuel+1))^2` and the resulting counter has the same length and binary
+value one less than the starting counter. -/
 theorem query_count_positive (raw reader width count counter seen : Bits) (fuel : ℕ) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks last output,output.length=counter.length ∧ binaryValue output+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.step .qLoop),v,queryStore raw reader width count (List.replicate (fuel+1) true) counter seen [] [] []⟩=
@@ -14668,6 +17229,9 @@ theorem query_count_positive (raw reader width count counter seen : Bits) (fuel 
   have hp : 1≤(1+counter.length+(fuel+1))^2 := Nat.one_le_pow 2 _ (by omega)
   omega
 
+/-- A run of `program` from label `(.step .qFinish)` reaches label `(.step .root)` with stacks
+`rootStore raw reader width count fuel []`; its accumulated stack clock is at most
+`10*(1+seen.length)^2`. -/
 theorem query_finish (raw reader width count fuel seen : Bits) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.step .qFinish),v,queryStore raw reader width count fuel [] seen [] [] []⟩=
@@ -14685,15 +17249,19 @@ theorem query_finish (raw reader width count fuel seen : Bits) (v : Local) :
   obtain ⟨ticks,hr,hc⟩ := eB.trans eD
   exact ⟨ticks,_,hr,hc.trans (by nlinarith only [Nat.zero_le seen.length])⟩
 
+/-- `(natBits (n+1)).length` is at most `3*(natBits n).length`. -/
 theorem successor_code_length (n : ℕ) : (natBits (n+1)).length≤3*(natBits n).length := by
   have hs := bits_succ_length n
   simp only [natBits_length]
   omega
 
+/-- `NatListFind.stream (seen++[n])` equals `NatListFind.stream seen++natBits n`. -/
 theorem stream_append (seen : List ℕ) (n : ℕ) :
     NatListFind.stream (seen++[n])=NatListFind.stream seen++natBits n := by
   simp [NatListFind.stream]
 
+/-- Under the stated hypotheses, `(natBits n).length` is at most `(NatListFind.stream
+seen).length`. -/
 theorem stream_member_length (seen : List ℕ) (n : ℕ) (hn : n∈seen) :
     (natBits n).length≤(NatListFind.stream seen).length := by
   induction seen with
@@ -14706,6 +17274,8 @@ theorem stream_member_length (seen : List ℕ) (n : ℕ) (hn : n∈seen) :
       simp only [NatListFind.stream,List.flatMap_cons,List.length_append] at hh ⊢
       omega
 
+/-- The height bound for `queryStore` holds exactly when each of its ten supplied bit lists has
+length at most `height`. -/
 theorem queryStore_cap (raw reader width count fuel counter seen target value field : Bits) (height : ℕ) :
     Cap (queryStore raw reader width count fuel counter seen target value field) height ↔
       raw.length≤height ∧ reader.length≤height ∧ width.length≤height ∧ count.length≤height ∧
@@ -14717,6 +17287,8 @@ theorem queryStore_cap (raw reader width count fuel counter seen target value fi
   · rintro ⟨hr,hi,hw,hc,hf,hk,hs,ht,hv,hp⟩ bank
     cases bank <;> simp [queryStore,rootStore,hr,hi,hw,hc,hf,hk,hs,ht,hv,hp]
 
+/-- Under the stated hypotheses, `3*tail.length+(NatListFind.stream
+(seen++[a+1])).length+3*fuel` is at most `height`. -/
 theorem wire_budget (a : ℕ) (tail : Bits) (seen : List ℕ) (fuel height : ℕ)
     (h : 3*(natBits a++tail).length+(NatListFind.stream seen).length+3*(fuel+1)≤height) :
     3*tail.length+(NatListFind.stream (seen++[a+1])).length+3*fuel≤height := by
@@ -14725,6 +17297,8 @@ theorem wire_budget (a : ℕ) (tail : Bits) (seen : List ℕ) (fuel height : ℕ
   simp only [List.length_append] at h
   omega
 
+/-- The wire-processing result satisfies the validator work-stack height bound under the stated
+wire-budget assumptions. -/
 theorem wireStore_cap (raw tail count fuel counter : Bits) (seen : List ℕ) (a width height : ℕ)
     (hr : raw.length≤height) (hw : width.bits.length≤height) (hc : count.length≤height)
     (hk : counter.length≤height) (hf : fuel.length≤height)
@@ -14747,11 +17321,19 @@ theorem wireStore_cap (raw tail count fuel counter : Bits) (seen : List ℕ) (a 
     simp only [List.length_reverse,List.length_nil]
     omega
 
+/-- The optional result of wire-list parsing, containing wires, suffix, remaining fuel, and
+accumulated keys. -/
 abbrev WireResult := Option (List ℕ×Bits×ℕ×List ℕ)
+/-- Select the root phase for a successful wire-list result and the failure phase otherwise. -/
 def wireEnd (result : WireResult) : Label := if result.isSome then .step .root else .step .failure
+/-- A successful wire-list result determines the resulting root store and remaining unary fuel. -/
 def WirePost (result : WireResult) (raw width count : Bits) (S : Slot → Bits) : Prop :=
   ∀ wires rest left keys,result=some (wires,rest,left,keys) → S=rootStore raw rest width count (List.replicate left true) []
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qLoop)` reaches
+label `(wireEnd (ValidatorSemantics.readWires fuel (binaryValue counter) width seen
+reader))` with stacks `T`; its accumulated stack clock is at most
+`(fuel+1)*20000*(1+3*height)^3`. -/
 theorem query_loop (fuel width height : ℕ) (raw reader count counter : Bits) (seen : List ℕ) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hcounter : counter.length≤height)
@@ -14925,6 +17507,10 @@ theorem query_loop (fuel width height : ℕ) (raw reader count counter : Bits) (
             exact hb.trans
                 (by simpa only [Nat.mul_assoc] using Nat.le_mul_of_pos_left (20000*(1+3*height)^3) hp)
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qLoop)` reaches
+label `(.step .root)` with stacks `rootStore raw tail width.bits.reverse count
+(List.replicate (fuel-wires.length) true) []`; its accumulated stack clock is at most
+`(fuel+1)*20000*(1+3*height)^3`. -/
 theorem query_loop_valid (fuel width height : ℕ) (raw tail count counter : Bits) (seen wires : List ℕ) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hcounter : counter.length≤height) (hnum : binaryValue counter=wires.length)
@@ -14951,32 +17537,44 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- The validation rules for an unrestricted natural field, a bounded address, or a Boolean
+flag. -/
 inductive FieldRule where | ignore | address | flag
 
+/-- An unrestricted field is always accepted, an address must be below the width, and a flag
+must be at most one. -/
 def FieldRule.accepts (rule : FieldRule) (width n : ℕ) : Prop :=
   match rule with | .ignore => True | .address => n<width | .flag => n≤1
 instance (rule : FieldRule) (width n : ℕ) : Decidable (rule.accepts width n) := by
   cases rule <;> unfold FieldRule.accepts <;> infer_instance
 
+/-- Select the drain, address comparison, or small-tag subroutine required by a field rule. -/
 def fieldRead (rule : FieldRule) (middle next : Phase) : Label :=
   match rule with | .ignore => .drain .field next 0 | .address => .compare .field middle .start | .flag => .tag middle .first
 
+/-- The intermediate phase implements the comparison or tag test required by the field rule. -/
 def FieldMiddle (rule : FieldRule) (middle next : Phase) : Prop :=
   match rule with
   | .ignore => True
   | .address => phaseProgram middle=less (.drain .field next 0)
   | .flag => phaseProgram middle=.branch (fun v => decide (v.tagged.1.val≤1)) (go next) (go .failure)
 
+/-- Parse one canonical natural field, enforce its acceptance rule, and return the remaining
+bits. -/
 def fieldResult (rule : FieldRule) (width : ℕ) (input : Bits) : Option Bits := do
   let (n,tail) ← readNat input
   if rule.accepts width n then pure tail else none
 
+/-- Select the requested continuation on field success and the failure phase otherwise. -/
 def fieldEnd (next : Phase) (result : Option Bits) : Label :=
     if result.isSome then .step next else .step .failure
 
+/-- On a successful field result, the resulting store is the original store with only its reader
+suffix replaced. -/
 def FieldPost (result : Option Bits) (S T : Slot → Bits) : Prop :=
   ∀ tail,result=some tail → T=Function.update S (some .reader) tail
 
+/-- Updating a work stack with bits of bounded length preserves the work-stack height bound. -/
 theorem cap_update (S : Slot → Bits) (height : ℕ) (bank : Work) (bits : Bits)
     (hS : Cap S height) (hb : bits.length≤height) : Cap (Function.update S (some bank) bits) height := by
   intro k
@@ -14985,11 +17583,16 @@ theorem cap_update (S : Slot → Bits) (height : ℕ) (bank : Work) (bits : Bits
     simpa using hb
   · simpa [Function.update_of_ne (fun h => he (Option.some.inj h))] using hS k
 
+/-- Under the stated hypotheses, `tail.length` is at most `input.length`; `n.bits.length` is at
+most `input.length`. -/
 theorem parsed_lengths (input tail : Bits) (n : ℕ) (h : readNat input=some (n,tail)) :
     tail.length≤input.length ∧ n.bits.length≤input.length := by
   rw [readNat_sound input n tail h,List.length_append,natBits_length]
   omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field ret .unary)`
+reaches label `(fieldEnd next (fieldResult rule width (S (some .reader))))` with stacks `T`;
+its accumulated stack clock is at most `10000*(1+height)^2`. -/
 theorem field_all (rule : FieldRule) (ret middle next : Phase)
     (hread : phaseProgram ret=parsed (fieldRead rule middle next)) (hmiddle : FieldMiddle rule middle next)
     (S : Slot → Bits) (v : Local) (width height : ℕ) (hS : Cap S height)
@@ -15090,16 +17693,22 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- A field-validation stage with its acceptance rule and entry, return, and intermediate
+phases. -/
 structure FieldStage where
   rule : FieldRule
   entry : Phase
   ret : Phase
   middle : Phase
 
+/-- Select the entry phase of the first field stage, or the supplied final phase for an empty
+script. -/
 def scriptPhase (last : Phase) : List FieldStage → Phase
   | [] => last
   | stage::_ => stage.entry
 
+/-- The field stages are connected by the required reader, intermediate-check, and continuation
+instructions. -/
 def ScriptCode (last : Phase) : List FieldStage → Prop
   | [] => True
   | stage::rest =>
@@ -15107,10 +17716,14 @@ def ScriptCode (last : Phase) : List FieldStage → Prop
       phaseProgram stage.ret=parsed (fieldRead stage.rule stage.middle (scriptPhase last rest)) ∧
       FieldMiddle stage.rule stage.middle (scriptPhase last rest) ∧ ScriptCode last rest
 
+/-- Validate a sequence of field stages and return the suffix left after all stages succeed. -/
 def scriptResult (width : ℕ) : List FieldStage → Bits → Option Bits
   | [],input => some input
   | stage::rest,input => (fieldResult stage.rule width input).bind (scriptResult width rest)
 
+/-- Under the stated input conditions, a run of `program` from label `(.step (scriptPhase last
+stages))` reaches label `(fieldEnd last (scriptResult width stages (S (some .reader))))`
+with stacks `T`; its accumulated stack clock is at most `stages.length*10001*(1+height)^2`. -/
 theorem field_script (stages : List FieldStage) (last : Phase) (hcode : ScriptCode last stages)
     (S : Slot → Bits) (v : Local) (width height : ℕ) (hS : Cap S height)
     (hw : S (some .width)=width.bits.reverse)
@@ -15171,19 +17784,29 @@ theorem field_script (stages : List FieldStage) (last : Phase) (hcode : ScriptCo
         simp only [List.length_cons]
         nlinarith only [hp]
 
+/-- The single bounded-address field stage for a Hadamard opcode. -/
 def hStages : List FieldStage := [⟨.address,.hAddress,.hResult,.hCompared⟩]
+/-- The two address checks, unrestricted precision field, and Boolean adjoint check for a phase
+opcode. -/
 def phaseStages : List FieldStage :=
   [⟨.address,.pFirst,.pFirstResult,.pFirstCompared⟩,⟨.address,.pSecond,.pSecondResult,.pSecondCompared⟩,
     ⟨.ignore,.pPrecision,.pPrecisionResult,.pPrecisionResult⟩,⟨.flag,.pAdj,.pAdjResult,.pAdjCheck⟩]
+/-- The two bounded-address field stages for a swap opcode. -/
 def swapStages : List FieldStage :=
   [⟨.address,.sFirst,.sFirstResult,.sFirstCompared⟩,⟨.address,.sSecond,.sSecondResult,.sSecondCompared⟩]
 
+/-- The Hadamard field script implements the prescribed validation control flow and returns to
+the root phase. -/
 theorem hStages_code : ScriptCode .root hStages := by
   simp [ScriptCode,hStages,scriptPhase,fieldRead,FieldMiddle,phaseProgram]
 
+/-- The phase-opcode field script implements the prescribed validation control flow and returns
+to the root phase. -/
 theorem phaseStages_code : ScriptCode .root phaseStages := by
   simp [ScriptCode,phaseStages,scriptPhase,fieldRead,FieldMiddle,phaseProgram,boolTag]
 
+/-- The swap field script implements the prescribed validation control flow and returns to the
+root phase. -/
 theorem swapStages_code : ScriptCode .root swapStages := by
   simp [ScriptCode,swapStages,scriptPhase,fieldRead,FieldMiddle,phaseProgram]
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
@@ -15191,11 +17814,18 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- `ReadonlyCompare.order a.bits.reverse width.bits.reverse=.gt` holds if and only if
+`width<a`. -/
 theorem order_nat_gt (a width : ℕ) : ReadonlyCompare.order a.bits.reverse width.bits.reverse=.gt ↔ width<a := by
   simp only [ReadonlyCompare.order,List.reverse_reverse,binaryValue_bits]
   split_ifs <;> simp_all
   omega
 
+/-- A run of `program` from label `(.read .target .qControlResult .unary)` reaches label `(.step
+(if n≤width then .qAdj else .failure))` with stacks `queryStore raw tail width.bits.reverse
+count fuel [] (if n≤width then (NatListFind.stream [n]).reverse else []) (if n≤width then []
+else n.bits.reverse) [] []`; its accumulated stack clock is at most `10000*(1+(natBits
+n++tail).length+width.bits.length)^3`. -/
 theorem control_canonical (raw tail count fuel : Bits) (n width : ℕ) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.read .target .qControlResult .unary),v,
@@ -15275,17 +17905,25 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Parse a control key and require it to be at most the word width. -/
 def controlResult (width : ℕ) (input : Bits) : Option (ℕ×Bits) := do
   let (n,tail) ← readNat input
   if n≤width then pure (n,tail) else none
 
+/-- Continue to oracle-adjoint validation on a successful control parse and enter failure
+otherwise. -/
 def controlEnd (result : Option (ℕ×Bits)) : Label :=
     if result.isSome then .step .qAdj else .step .failure
 
+/-- A successful control parse leaves its suffix in the reader and initializes the seen-key
+stream with the control key. -/
 def ControlPost (result : Option (ℕ×Bits)) (raw width count fuel : Bits) (S : Slot → Bits) : Prop :=
   ∀ key tail,result=some (key,tail) →
     S=queryStore raw tail width count fuel [] (NatListFind.stream [key]).reverse [] [] []
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qControl)` reaches
+label `(controlEnd (controlResult width reader))` with stacks `T`; its accumulated stack
+clock is at most `20000*(1+3*height)^3`. -/
 theorem control_all (width height : ℕ) (raw reader count fuel : Bits) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hreader : reader.length≤height) (hfuel : fuel.length≤height) :
@@ -15354,6 +17992,9 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- A run of `program` from label `(.step .qCount)` reaches label `(.step .qLoop)` with stacks
+`queryStore raw tail width count fuel n.bits seen [] [] []`; its accumulated stack clock is
+at most `100*(1+(natBits n++tail).length)^2`. -/
 theorem query_count_canonical (raw tail width count fuel seen : Bits) (n : ℕ) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.step .qCount),v,
@@ -15390,16 +18031,25 @@ theorem query_count_canonical (raw tail width count fuel seen : Bits) (n : ℕ) 
   change 1+50*B^2+1+(n.bits.length*(2*n.bits.length+5)+3)≤100*B^2
   nlinarith only [hB,hn,hn2,hB2]
 
+/-- An optional suffix and remaining-fuel pair for opcode validation. -/
 abbrev QueryResult := Option (Bits×ℕ)
+/-- Return to the root loop on success and enter the failure phase otherwise. -/
 def queryEnd (result : QueryResult) : Label := if result.isSome then .step .root else .step .failure
+/-- A successful query result determines the reader suffix and unary fuel in the resulting root
+store. -/
 def QueryPost (result : QueryResult) (raw width count : Bits) (S : Slot → Bits) : Prop :=
   ∀ rest left,result=some (rest,left) → S=rootStore raw rest width count (List.replicate left true) []
 
+/-- Read an oracle wire count and validate that many wires against the width, seen keys, and
+available fuel. -/
 def countResult (fuel width : ℕ) (seen : List ℕ) (input : Bits) : QueryResult := do
   let (n,tail) ← readNat input
   let (_,rest,left,_) ← ValidatorSemantics.readWires fuel n width seen tail
   pure (rest,left)
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qCount)` reaches
+label `(queryEnd (countResult fuel width seen reader))` with stacks `T`; its accumulated
+stack clock is at most `(fuel+1)*40000*(1+3*height)^3`. -/
 theorem query_count_all (fuel width height : ℕ) (raw reader count : Bits) (seen : List ℕ) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hbudget : 3*reader.length+(NatListFind.stream seen).length+3*fuel≤height) :
@@ -15471,6 +18121,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Under the stated hypotheses, `tail.length` is at most `input.length`. -/
 theorem fieldResult_tail_le (rule : FieldRule) (width : ℕ) (input tail : Bits) (h : fieldResult rule width input=some tail) :
     tail.length≤input.length := by
   unfold fieldResult at h
@@ -15484,9 +18135,14 @@ theorem fieldResult_tail_le (rule : FieldRule) (width : ℕ) (input tail : Bits)
     subst tail
     exact (parsed_lengths input rest n hn).1
 
+/-- Validate the field script and apply a continuation to its remaining suffix. -/
 def scriptThen (stages : List FieldStage) (width : ℕ) (more : Bits → QueryResult) (input : Bits) : QueryResult :=
   (scriptResult width stages input).bind more
 
+/-- Under the stated input conditions, a run of `program` from label `(.step (scriptPhase next
+stages))` reaches label `(queryEnd (scriptThen stages width more (S (some .reader))))` with
+stacks `T`; its accumulated stack clock is at most
+`stages.length*10001*(1+height)^2+budget`. -/
 theorem continue_field_script (stages : List FieldStage) (next : Phase) (hcode : ScriptCode next stages)
     (S : Slot → Bits) (v : Local) (width height : ℕ) (hS : Cap S height) (hout : S none=[])
     (hw : S (some .width)=width.bits.reverse) (hm : S (some .tempCount)=[]) (hf : S (some .field)=[])
@@ -15522,14 +18178,21 @@ theorem continue_field_script (stages : List FieldStage) (next : Phase) (hcode :
     · simpa only [scriptThen,he,Option.bind_some] using hR
     · simpa only [scriptThen,he,Option.bind_some] using hpost2
 
+/-- The Boolean field stage checking an oracle adjoint flag. -/
 def adjStages : List FieldStage := [⟨.flag,.qAdj,.qAdjResult,.qAdjCheck⟩]
 
+/-- The oracle-adjoint field script implements the prescribed control flow and continues to the
+wire-count phase. -/
 theorem adjStages_code : ScriptCode .qCount adjStages := by
   simp [ScriptCode,adjStages,scriptPhase,fieldRead,FieldMiddle,phaseProgram]
 
+/-- Validate an oracle adjoint flag before parsing its wire count and wire list. -/
 def adjResult (fuel width : ℕ) (seen : List ℕ) (input : Bits) : QueryResult :=
   (fieldResult .flag width input).bind (countResult fuel width seen)
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qAdj)` reaches
+label `(queryEnd (adjResult fuel width seen reader))` with stacks `T`; its accumulated stack
+clock is at most `(fuel+1)*60000*(1+3*height)^3`. -/
 theorem query_adj_all (fuel width height : ℕ) (raw reader count : Bits) (seen : List ℕ) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hbudget : 3*reader.length+(NatListFind.stream seen).length+3*fuel≤height) :
@@ -15570,6 +18233,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Under the stated hypotheses, `readNat input` equals `some (n,tail)`; `n` is at most `width`. -/
 theorem controlResult_sound (width n : ℕ) (input tail : Bits) (h : controlResult width input=some (n,tail)) :
     readNat input=some (n,tail) ∧ n≤width := by
   unfold controlResult at h
@@ -15583,9 +18247,14 @@ theorem controlResult_sound (width n : ℕ) (input tail : Bits) (h : controlResu
     rcases h with ⟨rfl,rfl⟩
     exact ⟨rfl,hc⟩
 
+/-- Validate an oracle control key, then validate its adjoint flag and wires with that key
+initially marked as seen. -/
 def controlThenResult (fuel width : ℕ) (input : Bits) : QueryResult :=
   (controlResult width input).bind (fun q => adjResult fuel width [q.1] q.2)
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qControl)` reaches
+label `(queryEnd (controlThenResult fuel width reader))` with stacks `T`; its accumulated
+stack clock is at most `(fuel+1)*90000*(1+3*height)^3`. -/
 theorem query_control_all (fuel width height : ℕ) (raw reader count : Bits) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hbudget : 3*reader.length+3*fuel≤height) :
@@ -15627,14 +18296,21 @@ theorem query_control_all (fuel width height : ℕ) (raw reader count : Bits) (v
     · simpa only [controlThenResult,he,Option.bind_some] using hpost2
     · nlinarith only [Nat.zero_le (fuel*(30000*(1+3*height)^3)),Nat.zero_le ((1+3*height)^3)]
 
+/-- The unrestricted natural-number field stage for an oracle slot. -/
 def slotStages : List FieldStage := [⟨.ignore,.qSlot,.qSlotResult,.qSlotResult⟩]
 
+/-- The oracle-slot field script implements the prescribed control flow and continues to the
+control-key phase. -/
 theorem slotStages_code : ScriptCode .qControl slotStages := by
   simp [ScriptCode,slotStages,scriptPhase,fieldRead,FieldMiddle,phaseProgram]
 
+/-- Validate the slot, control key, adjoint flag, wire count, and wire list of an oracle body. -/
 def queryResult (fuel width : ℕ) (input : Bits) : QueryResult :=
   (fieldResult .ignore width input).bind (controlThenResult fuel width)
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .qSlot)` reaches
+label `(queryEnd (queryResult fuel width reader))` with stacks `T`; its accumulated stack
+clock is at most `(fuel+1)*110000*(1+3*height)^3`. -/
 theorem query_all (fuel width height : ℕ) (raw reader count : Bits) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hbudget : 3*reader.length+3*fuel≤height) :
@@ -15672,6 +18348,8 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- `fieldResult rule width input=some tail` holds if and only if `∃ n,readNat input=some
+(n,tail) ∧ rule.accepts width n`. -/
 theorem fieldResult_spec (rule : FieldRule) (width : ℕ) (input tail : Bits) :
     fieldResult rule width input=some tail ↔ ∃ n,readNat input=some (n,tail) ∧ rule.accepts width n := by
   unfold fieldResult
@@ -15682,13 +18360,19 @@ theorem fieldResult_spec (rule : FieldRule) (width : ℕ) (input tail : Bits) :
     simp only [Option.bind_eq_bind,Option.bind_some]
     by_cases hc : rule.accepts width n <;> simp [hc,Prod.mk.injEq]
 
+/-- Encode an oracle body as its slot, control key, adjoint flag, wire count, and wire
+addresses. -/
 def queryBody (slot : ℕ) (control : Option ℕ) (adjoint : Bool) (wires : List ℕ) : Bits :=
   [slot,controlKey control,if adjoint then 1 else 0,wires.length].flatMap natBits++wires.flatMap natBits
 
+/-- `opBits (.oracle slot control adjoint wires)` equals `natBits 3++queryBody slot control
+adjoint wires`. -/
 theorem query_body_bits (slot : ℕ) (control : Option ℕ) (adjoint : Bool) (wires : List ℕ) :
     opBits (.oracle slot control adjoint wires)=natBits 3++queryBody slot control adjoint wires := by
   cases control <;> simp [opBits,fields,queryBody,controlKey,List.append_assoc]
 
+/-- Under the stated hypotheses, `queryResult fuel width (queryBody slot control adjoint
+wires++tail)` equals `some (tail,fuel-wires.length)`. -/
 theorem queryResult_complete (slot : ℕ) (control : Option ℕ) (adjoint : Bool) (wires : List ℕ)
     (tail : Bits) (fuel width : ℕ) (hlegal : legalOpcode width (.oracle slot control adjoint wires)) (hfuel : wires.length≤fuel) :
     queryResult fuel width (queryBody slot control adjoint wires++tail)=some (tail,fuel-wires.length) := by
@@ -15702,8 +18386,11 @@ theorem queryResult_complete (slot : ℕ) (control : Option ℕ) (adjoint : Bool
     simp [queryBody,queryResult,fieldResult,FieldRule.accepts,controlThenResult,controlResult,
       adjResult,countResult,List.append_assoc,readNat_complete,hc,hW]
 
+/-- `controlKey (optionNatEquiv key)` equals `key`. -/
 theorem key_roundtrip (key : ℕ) : controlKey (optionNatEquiv key)=key := by cases key <;> rfl
 
+/-- A successful oracle-body result reconstructs a legal oracle opcode, its encoded body and
+remaining suffix, and the exact fuel consumed by its wire list. -/
 theorem queryResult_sound (fuel width : ℕ) (input tail : Bits) (left : ℕ)
     (h : queryResult fuel width input=some (tail,left)) :
     ∃ slot control adjoint wires,
@@ -15747,17 +18434,22 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- The natural-number tag distinguishing Hadamard, phase, swap, and oracle opcodes. -/
 def opcodeTag : Opcode → ℕ
   | .hadamard _ => 0
   | .phase _ _ _ _ => 1
   | .swap _ _ => 2
   | .oracle _ _ _ _ => 3
 
+/-- Encode the fields of an opcode after its initial tag. -/
 def bodyBits (op : Opcode) : Bits := (fields op).tail.flatMap natBits
 
+/-- `opBits op` equals `natBits (opcodeTag op)++bodyBits op`. -/
 theorem opBits_tag_body (op : Opcode) : opBits op=natBits (opcodeTag op)++bodyBits op := by
   cases op <;> rfl
 
+/-- Validate an opcode body according to its tag, returning the unread suffix and remaining
+fuel. -/
 def bodyResult (fuel width : ℕ) : ℕ → Bits → QueryResult
   | 0,input => (scriptResult width hStages input).map (fun rest => (rest,fuel))
   | 1,input => (scriptResult width phaseStages input).map (fun rest => (rest,fuel))
@@ -15765,6 +18457,8 @@ def bodyResult (fuel width : ℕ) : ℕ → Bits → QueryResult
   | 3,input => queryResult fuel width input
   | _,_ => none
 
+/-- Under the stated hypotheses, `bodyResult fuel width (opcodeTag op) (bodyBits op++tail)`
+equals `some (tail,fuel-ValidatorSemantics.opFuel op)`. -/
 theorem bodyResult_complete (op : Opcode) (tail : Bits) (fuel width : ℕ)
     (hlegal : legalOpcode width op) (hfuel : ValidatorSemantics.opFuel op≤fuel) :
     bodyResult fuel width (opcodeTag op) (bodyBits op++tail)=some (tail,fuel-ValidatorSemantics.opFuel op) := by
@@ -15787,6 +18481,8 @@ theorem bodyResult_complete (op : Opcode) (tail : Bits) (fuel width : ℕ)
     simpa only [opcodeTag,bodyResult,he,ValidatorSemantics.opFuel] using
       queryResult_complete slot control adjoint wires tail fuel width hlegal hfuel
 
+/-- A successful non-oracle body result reconstructs a legal opcode with the specified tag, the
+consumed body encoding, and zero additional wire fuel. -/
 theorem nonquery_sound (width tag : ℕ) (input tail : Bits) (htag : tag<3)
     (h : scriptResult width (if tag=0 then hStages else if tag=1 then phaseStages else swapStages) input=some tail) :
     ∃ op,opcodeTag op=tag ∧ legalOpcode width op ∧ input=bodyBits op++tail ∧ ValidatorSemantics.opFuel op=0 := by
@@ -15828,6 +18524,8 @@ theorem nonquery_sound (width tag : ℕ) (input tail : Bits) (htag : tag<3)
     rw [readNat_sound input a afterA ha,readNat_sound afterA b tail hb]
     simp only [bodyBits,fields,List.tail_cons,List.flatMap_cons,List.flatMap_nil,List.append_nil,List.append_assoc]
 
+/-- A successful opcode-body result reconstructs a legal opcode with the specified tag, its
+consumed body encoding, and the exact remaining fuel. -/
 theorem bodyResult_sound (fuel width tag : ℕ) (input tail : Bits) (left : ℕ)
     (h : bodyResult fuel width tag input=some (tail,left)) :
     ∃ op,opcodeTag op=tag ∧ legalOpcode width op ∧ input=bodyBits op++tail ∧ ValidatorSemantics.opFuel op+left=fuel := by
@@ -15856,10 +18554,13 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Read an opcode tag and validate the corresponding body. -/
 def opResult (fuel width : ℕ) (input : Bits) : QueryResult := do
   let (tag,tail) ← readNat input
   bodyResult fuel width tag tail
 
+/-- Under the stated hypotheses, `opResult fuel width (opBits op++tail)` equals `some
+(tail,fuel-ValidatorSemantics.opFuel op)`. -/
 theorem opResult_complete (op : Opcode) (tail : Bits) (fuel width : ℕ)
     (hlegal : legalOpcode width op) (hfuel : ValidatorSemantics.opFuel op≤fuel) :
     opResult fuel width (opBits op++tail)=some (tail,fuel-ValidatorSemantics.opFuel op) := by
@@ -15867,6 +18568,8 @@ theorem opResult_complete (op : Opcode) (tail : Bits) (fuel width : ℕ)
   simp only [opResult,readNat_complete,Option.bind_eq_bind,Option.bind_some]
   exact bodyResult_complete op tail fuel width hlegal hfuel
 
+/-- A successful opcode result reconstructs a legal opcode, its complete consumed encoding, and
+the exact remaining fuel. -/
 theorem opResult_sound (fuel width : ℕ) (input tail : Bits) (left : ℕ)
     (h : opResult fuel width input=some (tail,left)) :
     ∃ op,legalOpcode width op ∧ input=opBits op++tail ∧ ValidatorSemantics.opFuel op+left=fuel := by
@@ -15876,6 +18579,8 @@ theorem opResult_sound (fuel width : ℕ) (input tail : Bits) (left : ℕ)
   refine ⟨op,hlegal,?_,hfuel⟩
   rw [readNat_sound input tag rest htag,hinput,opBits_tag_body,hcode,List.append_assoc]
 
+/-- `opResult fuel width input` equals `(ValidatorSemantics.readOp fuel width input).map (fun q
+=> (q.2.1,q.2.2))`. -/
 theorem opResult_eq (fuel width : ℕ) (input : Bits) :
     opResult fuel width input=(ValidatorSemantics.readOp fuel width input).map (fun q => (q.2.1,q.2.2)) := by
   cases h : opResult fuel width input with
@@ -15905,9 +18610,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Select the Hadamard, phase, or swap field script from a non-oracle tag. -/
 def nonqueryStages (tag : ℕ) : List FieldStage :=
     if tag=0 then hStages else if tag=1 then phaseStages else swapStages
 
+/-- For a tag below three, the selected non-oracle field script implements the prescribed
+control flow and returns to the root phase. -/
 theorem nonqueryStages_code (tag : ℕ) (ht : tag<3) : ScriptCode .root (nonqueryStages tag) := by
   rcases tag with _|_|_|tag
   · exact hStages_code
@@ -15915,17 +18623,25 @@ theorem nonqueryStages_code (tag : ℕ) (ht : tag<3) : ScriptCode .root (nonquer
   · exact swapStages_code
   · omega
 
+/-- Under the stated hypotheses, `scriptPhase .root (nonqueryStages tag)` equals `opcodePhase
+tag`. -/
 theorem nonqueryStages_entry (tag : ℕ) (ht : tag<3) : scriptPhase .root (nonqueryStages tag)=opcodePhase tag := by
   rcases tag with _|_|_|tag <;> first | rfl | omega
 
+/-- `(nonqueryStages tag).length` is at most `4`. -/
 theorem nonqueryStages_length (tag : ℕ) : (nonqueryStages tag).length≤4 := by
   unfold nonqueryStages
   split_ifs <;> decide
 
+/-- Under the stated hypotheses, `bodyResult fuel width tag input` equals `(scriptResult width
+(nonqueryStages tag) input).map (fun tail => (tail,fuel))`. -/
 theorem nonqueryResult_eq (fuel width tag : ℕ) (ht : tag<3) (input : Bits) :
     bodyResult fuel width tag input=(scriptResult width (nonqueryStages tag) input).map (fun tail => (tail,fuel)) := by
   rcases tag with _|_|_|tag <;> first | rfl | omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.step (opcodePhase tag))`
+reaches label `(queryEnd (bodyResult fuel width tag reader))` with stacks `T`; its
+accumulated stack clock is at most `(fuel+1)*110000*(1+3*height)^3`. -/
 theorem body_all (fuel width height tag : ℕ) (raw reader count : Bits) (v : Local) (htag : tag<4)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hbudget : 3*reader.length+3*fuel≤height) :
@@ -15970,12 +18686,17 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Under the stated hypotheses, `bodyResult fuel width tag input` equals `none`. -/
 theorem bodyResult_large (fuel width tag : ℕ) (input : Bits) (htag : 4≤tag) : bodyResult fuel width tag input=none := by
   rcases tag with _|_|_|_|tag <;> first | rfl | omega
 
+/-- Under the stated hypotheses, `opcodePhase tag` equals `.failure`. -/
 theorem opcodePhase_large (tag : ℕ) (htag : 4≤tag) : opcodePhase tag=.failure := by
   rcases tag with _|_|_|_|tag <;> first | rfl | omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .field .afterOpTag
+.unary)` reaches label `(queryEnd (opResult fuel width reader))` with stacks `T`; its
+accumulated stack clock is at most `(fuel+1)*120000*(1+3*height)^3`. -/
 theorem op_all (fuel width height : ℕ) (raw reader count : Bits) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcount : count.length≤height)
     (hbudget : 3*reader.length+3*fuel≤height) :
@@ -16044,9 +18765,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Project counted semantic opcode parsing to its remaining suffix and fuel. -/
 def opsResult (fuel count width : ℕ) (input : Bits) : QueryResult :=
   (ValidatorSemantics.readOps fuel count width input).map (fun q => (q.2.1,q.2.2))
 
+/-- `opsResult (fuel+1) (count+1) width input` equals `(opResult fuel width input).bind (fun q
+=> opsResult q.2 count width q.1)`. -/
 theorem opsResult_step (fuel count width : ℕ) (input : Bits) :
     opsResult (fuel+1) (count+1) width input=
       (opResult fuel width input).bind (fun q => opsResult q.2 count width q.1) := by
@@ -16058,12 +18782,18 @@ theorem opsResult_step (fuel count width : ℕ) (input : Bits) :
     simp only [opsResult,ValidatorSemantics.readOps,hr,Option.bind_eq_bind,Option.bind_some,Option.map_some]
     cases ValidatorSemantics.readOps left count width tail <;> rfl
 
+/-- Continue to the final end-of-input check on success and enter failure otherwise. -/
 def rootEnd (result : QueryResult) : Label :=
     if result.isSome then .step .checkEnd else .step .failure
 
+/-- A successful opcode-list result determines the reader suffix, exhausted opcode count, and
+remaining unary fuel. -/
 def OpsPost (result : QueryResult) (raw width : Bits) (S : Slot → Bits) : Prop :=
   ∀ rest left,result=some (rest,left) → S=rootStore raw rest width [] (List.replicate left true) []
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .root)` reaches
+label `(rootEnd (opsResult fuel (binaryValue counter) width reader))` with stacks `T`; its
+accumulated stack clock is at most `250000*(fuel+1)^2*(1+3*height)^3`. -/
 theorem root_loop (fuel width height : ℕ) (raw reader counter : Bits) (v : Local)
     (hraw : raw.length≤height) (hwidth : width.bits.length≤height) (hcounter : counter.length≤height)
     (hbudget : 3*reader.length+3*fuel≤height) :
@@ -16166,9 +18896,15 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Return a single false bit on decoding failure, or a true bit followed by the canonical
+encoding of the decoded legal word. -/
 def output (input : Bits) : Bits :=
     match decodeWord input with | none => [false] | some w => true::wordBits w
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .checkEnd)` halts
+with stacks `Function.update (fun _ => []) none (if S (some .reader)=[] then
+(true::raw).reverse else [false])`; its accumulated stack clock is at most `2*(S (some
+.reader)).length+3+300*(1+height)^2`. -/
 theorem finish (raw : Bits) (S : Slot → Bits) (v : Local) (height : ℕ)
     (hout : S none=[]) (horiginal : S (some .original)=raw) (hcap : Cap S height) :
     ∃ ticks last,
@@ -16192,6 +18928,8 @@ theorem finish (raw : Bits) (S : Slot → Bits) (v : Local) (height : ℕ)
     obtain ⟨ticks,hr,hc⟩ := eE.trans eC
     exact ⟨ticks,_,by simpa only [if_neg he] using hr,hc.trans (by omega)⟩
 
+/-- `1000*(1+length)^2+250000*(length+1)^2*(1+18*length)^3+(12*length+3)+300*(1+6*length)^2` is
+at most `10000000000*(1+length)^5`. -/
 theorem source_cost_bound (length : ℕ) :
     1000*(1+length)^2+250000*(length+1)^2*(1+18*length)^3+(12*length+3)+300*(1+6*length)^2≤
       10000000000*(1+length)^5 := by
@@ -16217,6 +18955,8 @@ theorem source_cost_bound (length : ℕ) :
   change 1000*B^2+_+_+_≤10000000000*B^5
   nlinarith only [h25,hroot,hclean,heof,Nat.zero_le (B^5)]
 
+/-- The stack word validator halts on every bit string with only its reversed `output` in the
+output stack, within accumulated clock `10000000000*(1+input.length)^5`. -/
 theorem complete (input : Bits) (v : Local) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some (.prepare 0),v,initialStore input⟩=
@@ -16301,6 +19041,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- `(output input).length` is at most `1+input.length`. -/
 theorem output_length (input : Bits) : (output input).length≤1+input.length := by
   cases hd : decodeWord input with
   | none => simp [output,hd]
@@ -16310,6 +19051,8 @@ theorem output_length (input : Bits) : (output input).length≤1+input.length :=
     rw [← hi]
     omega
 
+/-- A single finite-control validator computes `output` on every bit string with time and space
+bounded by C(1 + input length)⁸ for some positive constant C. -/
 theorem raw_machine : ∃ (q : ℕ) (M : TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ),0<C ∧
     ∀ input,Runs M input (output input) (C*(1+input.length)^8) (C*(1+input.length)^8) := by
   obtain ⟨q,M,C,hC,hM⟩ := Stacks.raw_compiler program (some Work.input) none
@@ -16348,6 +19091,10 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Canonical prefix parsing and complete decoding characterize exactly the legal word encodings
+and satisfy the fieldwise length formula. A single finite-control validator returns a false
+bit on rejection or a true bit followed by the accepted encoding, within eighth-degree time
+and space bounds. -/
 theorem canonical_codec_and_validator :
   ∃ (parse : Bits → Option (Word×Bits)) (decode : Bits → Option Word),
     (∀ w suffix,Legal w → parse (wordBits w++suffix)=some (w,suffix)) ∧
@@ -16363,10 +19110,14 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CountedTake
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The local-state type for fixed-count bit extraction with false padding, represented by
+`Counter.Local×Symbol`. -/
 abbrev Local := Counter.Local×Symbol
+/-- The finite control labels for fixed-count bit extraction with false padding. -/
 inductive Label where | counter (l : Counter.Label) | branch | take | drain deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.counter .borrow⟩
 
+/-- The TM2 program implementing fixed-count bit extraction with false padding. -/
 def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Local
   | .counter l => StackCall.stmt (Fin.castAdd 2) Label.counter .branch Prod.fst (fun v s => (s,v.2)) (Counter.program l)
   | .branch => .branch (fun v => v.1.1) (.goto (fun _ => .take)) (.goto (fun _ => .drain))
@@ -16374,20 +19125,24 @@ def program : Label → TM2.Stmt (fun _ : Fin 4 => Bool) Label Local
       (.push 3 (fun v => v.2.getD false) (.goto (fun _ => .counter .borrow)))
   | .drain => .pop 0 (fun v bit => (v.1,bit)) (.branch (fun v => v.2.isSome) (.goto (fun _ => .drain)) .halt)
 
+/-- Take a fixed number of input bits, padding with false bits after the input is exhausted. -/
 def padded : ℕ → Bits → Bits
   | 0,_ => []
   | n+1,bits => bits.head?.getD false::padded n bits.tail
 
+/-- `(padded n bits).length` equals `n`. -/
 theorem padded_length (n : ℕ) (bits : Bits) : (padded n bits).length=n := by
   induction n generalizing bits with
   | zero => rfl
   | succ n ih => simp [padded,ih]
 
+/-- `padded bits.length (bits++tail)` equals `bits`. -/
 theorem padded_prefix (bits tail : Bits) : padded bits.length (bits++tail)=bits := by
   induction bits with
   | nil => rfl
   | cons bit bits ih => simpa only [List.length_cons,padded,List.head?_cons,Option.getD_some,List.tail_cons,List.cons_append] using congrArg (bit::·) ih
 
+/-- `padded width n.bits` equals `List.ofFn (fun i : Fin width => n.testBit i.val)`. -/
 theorem padded_testBit (n width : ℕ) : padded width n.bits=List.ofFn (fun i : Fin width => n.testBit i.val) := by
   apply List.ext_getElem
   · simp [padded_length]
@@ -16409,6 +19164,10 @@ theorem padded_testBit (n width : ℕ) : padded width n.bits=List.ofFn (fun i : 
     rw [hh]
     simpa only [List.getI_eq_getElem?_getD] using! (Nat.testBit_eq_inth n i).symm
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `.branch` with stacks `Preparation.quad (List.replicate counter.length true)
+[] reader out` after `(2*counter.length+2)` stack steps; its accumulated stack clock is at
+most `10*(1+counter.length)^2`. -/
 theorem counter_zero (counter reader out : Bits) (v : Local) (hz : binaryValue counter=0) :
     Stacks.stackRun program (2*counter.length+2) ⟨some (.counter .borrow),v,Preparation.quad counter [] reader out⟩=
       some ⟨some .branch,((false,none),v.2),Preparation.quad (List.replicate counter.length true) [] reader out⟩ ∧
@@ -16422,6 +19181,10 @@ theorem counter_zero (counter reader out : Bits) (v : Local) (hz : binaryValue c
     Preparation.transferFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `.branch` with stacks `Preparation.quad next [] reader out`; its accumulated
+stack clock is at most `10*(1+counter.length)^2` and the resulting counter has the same
+length and binary value one less than the starting counter. -/
 theorem counter_positive (counter reader out : Bits) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks next,next.length=counter.length ∧ binaryValue next+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,Preparation.quad counter [] reader out⟩=
@@ -16436,12 +19199,19 @@ theorem counter_positive (counter reader out : Bits) (v : Local) (hp : 0<binaryV
     Preparation.transferFrame,Stacks.stackPair_zero,Stacks.stackPair_one] at hN hNC
   exact ⟨ticks,next,hlen,hvalue,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `.branch` reaches label `(if flag then .take else .drain)`
+with stacks `Preparation.quad counter [] reader out` after `1` stack step; its accumulated
+stack clock is equal to `1`. -/
 theorem branch_step (counter reader out : Bits) (flag : Bool) (saved : Symbol) :
     Stacks.stackRun program 1 ⟨some .branch,((flag,none),saved),Preparation.quad counter [] reader out⟩=
       some ⟨some (if flag then .take else .drain),((flag,none),saved),Preparation.quad counter [] reader out⟩ ∧
     Stacks.stackRunClock program 1 ⟨some .branch,((flag,none),saved),Preparation.quad counter [] reader out⟩=1 := by
   cases flag <;> constructor <;> rfl
 
+/-- A run of `program` from label `.take` reaches label `(.counter .borrow)` with stacks
+`Preparation.quad counter [] reader.tail (reader.head?.getD false::out)` after `1` stack
+step; its accumulated stack clock is equal to
+`reader.length+reader.tail.length+2*out.length+6`. -/
 theorem take_step (counter reader out : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .take,v,Preparation.quad counter [] reader out⟩=
       some ⟨some (.counter .borrow),(v.1,reader.head?),Preparation.quad counter [] reader.tail (reader.head?.getD false::out)⟩ ∧
@@ -16451,6 +19221,9 @@ theorem take_step (counter reader out : Bits) (v : Local) :
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- A run of `program` from label `.drain` halts with stacks `Preparation.quad [] [] reader out`
+after `(counter.length+1)` stack steps; its accumulated stack clock is equal to
+`counter.length^2+3*counter.length+3`. -/
 theorem drain_all (counter reader out : Bits) (v : Local) :
     Stacks.stackRun program (counter.length+1) ⟨some .drain,v,Preparation.quad counter [] reader out⟩=
       some ⟨none,(v.1,none),Preparation.quad [] [] reader out⟩ ∧
@@ -16473,6 +19246,9 @@ theorem drain_all (counter reader out : Bits) (v : Local) :
       simp [program,Stacks.stackClock]
       ring
 
+/-- When the counter represents `n`, counted extraction consumes up to `n` reader bits and
+prepends their reversed, false-padded length-`n` prefix to the output, clearing the counter
+and temporary stacks within the stated clock bound. -/
 theorem complete (n : ℕ) (counter reader out : Bits) (v : Local) (hnum : binaryValue counter=n) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,Preparation.quad counter [] reader out⟩=
@@ -16533,6 +19309,10 @@ theorem complete (n : ℕ) (counter reader out : Bits) (v : Local) (hnum : binar
         150*(n+1)*(1+next.length+reader.tail.length+(reader.head?.getD false::out).length+n)^2≤150*(n+1+1)*B^2
       nlinarith only [hrec,hcp2,hrlen,htlen,holen,hB,hB2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)` halts
+with stacks `Preparation.quad [] [] tail (bits.reverse++out)`; its accumulated stack clock
+is at most
+`150*(bits.length+1)*(1+counter.length+(bits++tail).length+out.length+bits.length)^2`. -/
 theorem complete_prefix (bits tail out counter : Bits) (v : Local) (hnum : binaryValue counter=bits.length) :
     ∃ ticks,
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,Preparation.quad counter [] (bits++tail) out⟩=
@@ -16542,6 +19322,10 @@ theorem complete_prefix (bits tail out counter : Bits) (v : Local) (hnum : binar
   obtain ⟨ticks,hr,hc⟩ := complete bits.length counter (bits++tail) out v hnum
   exact ⟨ticks,by simpa only [padded_prefix,List.drop_left] using hr,hc⟩
 
+/-- A run of `program` from label `(.counter .borrow)` halts with stacks `Preparation.quad [] []
+(n.bits.drop width) ((List.ofFn (fun i : Fin width => n.testBit i.val)).reverse++out)`; its
+accumulated stack clock is at most
+`150*(width+1)*(1+width.bits.length+n.bits.length+out.length+width)^2`. -/
 theorem fixed_count (width n : ℕ) (out : Bits) (v : Local) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.counter .borrow),v,Preparation.quad width.bits [] n.bits out⟩=
       some ⟨none,((false,none),none),Preparation.quad [] [] (n.bits.drop width)
@@ -16555,20 +19339,24 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CountedTake
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.BinaryNormalize
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Remove the leading false bits of a reversed binary representation. -/
 def trim : Bits → Bits
   | [] => []
   | false::bits => trim bits
   | true::bits => true::bits
 
+/-- The TM2 program implementing binary representation normalization. -/
 def program (_ : Fin 1) : TM2.Stmt (fun _ : Fin 1 => Bool) (Fin 1) Symbol :=
   .pop 0 (fun _ bit => bit) (.branch (fun bit => decide (bit=some false)) (.goto (fun _ => 0))
     (.branch (fun bit => bit.isSome) (.push 0 (fun bit => bit.getD false) .halt) .halt))
 
+/-- `binaryValue (bits++[false])` equals `binaryValue bits`. -/
 theorem binary_append_zero (bits : Bits) : binaryValue (bits++[false])=binaryValue bits := by
   induction bits with
   | nil => rfl
   | cons bit bits ih => simp only [List.cons_append,CheckedNat.binary_cons,ih]
 
+/-- `binaryValue (trim bits).reverse` equals `binaryValue bits.reverse`. -/
 theorem trim_value (bits : Bits) : binaryValue (trim bits).reverse=binaryValue bits.reverse := by
   induction bits with
   | nil => rfl
@@ -16577,11 +19365,13 @@ theorem trim_value (bits : Bits) : binaryValue (trim bits).reverse=binaryValue b
     | false => simpa only [trim,List.reverse_cons,binary_append_zero] using ih
     | true => rfl
 
+/-- `(trim bits).head?` is different from `some false`. -/
 theorem trim_head (bits : Bits) : (trim bits).head?≠some false := by
   induction bits with
   | nil => decide
   | cons bit bits ih => cases bit <;> simp [trim,ih]
 
+/-- `trim bits` equals `(binaryValue bits.reverse).bits.reverse`. -/
 theorem trim_canonical (bits : Bits) : trim bits=(binaryValue bits.reverse).bits.reverse := by
   have hcanon : (binaryValue (trim bits).reverse).bits=(trim bits).reverse :=
     (CheckedNat.canonical_iff (trim bits).reverse).mpr (by simpa only [List.reverse_reverse] using trim_head bits)
@@ -16589,11 +19379,14 @@ theorem trim_canonical (bits : Bits) : trim bits=(binaryValue bits.reverse).bits
   have hh := congrArg List.reverse hcanon
   simpa only [List.reverse_reverse] using hh.symm
 
+/-- `(trim bits).length` is at most `bits.length`. -/
 theorem trim_length (bits : Bits) : (trim bits).length≤bits.length := by
   induction bits with
   | nil => rfl
   | cons bit bits ih => cases bit <;> simp [trim]; omega
 
+/-- Binary normalization halts with the reversed canonical digits of the original binary value,
+within accumulated clock `20*(1+bits.length)^2`. -/
 theorem complete (bits : Bits) (v : Symbol) :
     ∃ ticks last,
       Stacks.stackRun program ticks ⟨some 0,v,Normalization.singleStack bits⟩=
@@ -16636,11 +19429,17 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.BinaryNormalize
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by natural-field parsing and re-encoding. -/
 inductive Slot where | reader | markers | payload | value | temporary | output deriving DecidableEq,Fintype
+/-- The finite control labels for natural-field parsing and re-encoding. -/
 inductive Label where | read (l : CheckedNat.Label) | transfer (l : Fin 1) | emit (l : NatEmit.Label) | done deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.read .unary⟩
+/-- The local-state type for natural-field parsing and re-encoding, represented by
+`CheckedNat.Local×Symbol`. -/
 abbrev Local := CheckedNat.Local×Symbol
 
+/-- Assemble the named stack contents into the stack store for natural-field parsing and
+re-encoding. -/
 def store (reader markers payload value temporary output : Bits) : Slot → Bits
   | .reader => reader
   | .markers => markers
@@ -16649,49 +19448,77 @@ def store (reader markers payload value temporary output : Bits) : Slot → Bits
   | .temporary => temporary
   | .output => output
 
+/-- Map the read subroutine stack indices into the stack banks for natural-field parsing and
+re-encoding. -/
 def readCode : Fin 3 → Slot | 0 => .reader | 1 => .markers | _ => .payload
+/-- Map the transfer subroutine stack indices into the stack banks for natural-field parsing and
+re-encoding. -/
 def transferCode : Fin 2 → Slot | 0 => .payload | _ => .value
+/-- Map the emit subroutine stack indices into the stack banks for natural-field parsing and
+re-encoding. -/
 def emitCode : Fin 3 → Slot | 0 => .value | 1 => .temporary | _ => .output
 
+/-- The TM2 program implementing natural-field parsing and re-encoding. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .read l => StackCall.stmt readCode Label.read (.transfer 0) Prod.fst (fun v s => (s,v.2)) (CheckedNat.program l)
   | .transfer l => StackCall.stmt transferCode Label.transfer (.emit .count) Prod.snd (fun v s => (v.1,s)) (Stacks.transferProgram l)
   | .emit l => StackCall.stmt emitCode Label.emit .done Prod.snd (fun v s => (v.1,s)) (NatEmit.program l)
   | .done => .halt
 
+/-- Embed the read stacks for natural-field parsing and re-encoding while retaining the supplied
+contents of the other stack banks. -/
 def readFrame (value temporary output : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
   store (S 0) (S 1) (S 2) value temporary output
 
+/-- Embed the transfer stacks for natural-field parsing and re-encoding while retaining the
+supplied contents of the other stack banks. -/
 def transferFrame (reader markers temporary output : Bits) (S : Fin 2 → Bits) : Slot → Bits :=
   store reader markers (S 0) (S 1) temporary output
 
+/-- Embed the emit stacks for natural-field parsing and re-encoding while retaining the supplied
+contents of the other stack banks. -/
 def emitFrame (reader markers payload : Bits) (S : Fin 3 → Bits) : Slot → Bits :=
   store reader markers payload (S 0) (S 1) (S 2)
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem readFrame_at (value temporary output : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     readFrame value temporary output S (readCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem readFrame_update (value temporary output : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     readFrame value temporary output (Function.update S k bits)=Function.update (readFrame value temporary output S) (readCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> rfl
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem transferFrame_at (reader markers temporary output : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     transferFrame reader markers temporary output S (transferCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem transferFrame_update (reader markers temporary output : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     transferFrame reader markers temporary output (Function.update S k bits)=Function.update (transferFrame reader markers temporary output S) (transferCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> rfl
 
+/-- Reading the embedded subroutine stack through its index map recovers the original stack
+contents. -/
 theorem emitFrame_at (reader markers payload : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     emitFrame reader markers payload S (emitCode k)=S k := by fin_cases k <;> rfl
 
+/-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
+framing. -/
 theorem emitFrame_update (reader markers payload : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     emitFrame reader markers payload (Function.update S k bits)=Function.update (emitFrame reader markers payload S) (emitCode k) bits := by
   funext j
   fin_cases k <;> cases j <;> rfl
 
+/-- A run of `program` from label `(.read .unary)` reaches label `(.transfer 0)` with stacks
+`store tail [] n.bits.reverse [] [] out`; its accumulated stack clock is at most
+`50*(1+(natBits n++tail).length)^2`. -/
 theorem read_call (n : ℕ) (tail out : Bits) (v : Local) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.read .unary),v,store (natBits n++tail) [] [] [] [] out⟩=
       some ⟨some (.transfer 0),((true,CheckedNat.lastField n.bits none),v.2),store tail [] n.bits.reverse [] [] out⟩ ∧
@@ -16706,6 +19533,9 @@ theorem read_call (n : ℕ) (tail out : Bits) (v : Local) : ∃ ticks,
     Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transfer 0)` reaches label `(.emit .count)` with stacks
+`store tail [] [] n.bits [] out` after `(n.bits.length+1)` stack steps; its accumulated
+stack clock is equal to `n.bits.length*(2*n.bits.length+5)+3`. -/
 theorem transfer_call (n : ℕ) (tail out : Bits) (v : Local) :
     Stacks.stackRun program (n.bits.length+1) ⟨some (.transfer 0),v,store tail [] n.bits.reverse [] [] out⟩=
       some ⟨some (.emit .count),(v.1,none),store tail [] [] n.bits [] out⟩ ∧
@@ -16721,6 +19551,10 @@ theorem transfer_call (n : ℕ) (tail out : Bits) (v : Local) :
   simp only [List.length_reverse,List.length_nil,Nat.add_zero] at hc
   exact hNC.trans hc
 
+/-- A run of `program` from label `(.emit .count)` reaches label `.done` with stacks `store tail
+[] [] n.bits [] ((natBits n).reverse++out)` after `(4*n.bits.length+5)` stack steps; its
+accumulated stack clock is equal to
+`n.bits.length*(12*n.bits.length+4*out.length+28)+2*out.length+16`. -/
 theorem emit_call (n : ℕ) (tail out : Bits) (v : Local) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emit .count),v,store tail [] [] n.bits [] out⟩=
       some ⟨some .done,(v.1,none),store tail [] [] n.bits [] ((natBits n).reverse++out)⟩ ∧
@@ -16734,6 +19568,9 @@ theorem emit_call (n : ℕ) (tail out : Bits) (v : Local) :
     Parsing.triple_zero,Parsing.triple_one,Parsing.triple_two] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- On `natBits n++tail`, the read-and-emit subroutine preserves `tail`, stores the canonical
+digits of `n`, and prepends the reversed original natural encoding to the output, within the
+stated quadratic clock bound. -/
 theorem complete (n : ℕ) (tail out : Bits) (v : Local) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.read .unary),v,store (natBits n++tail) [] [] [] [] out⟩=
       some ⟨none,((true,CheckedNat.lastField n.bits none),none),store tail [] [] n.bits [] ((natBits n).reverse++out)⟩ ∧
@@ -16770,13 +19607,18 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatReadEmit
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.TinyTag
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The local-state type for bounded tag classification, represented by `Fin 8×Symbol`. -/
 abbrev Local := Fin 8×Symbol
+/-- The finite control labels for bounded tag classification. -/
 inductive Label where | start | read (k : Fin 4) deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.start⟩
 
+/-- Update a bounded tag accumulator by doubling, adding the next bit, and reducing modulo
+eight. -/
 def next (a : Fin 8) (bit : Bool) : Fin 8 :=
   ⟨(2*a.val+if bit then 1 else 0)%8,Nat.mod_lt _ (by decide)⟩
 
+/-- The TM2 program implementing bounded tag classification. -/
 def program : Label → TM2.Stmt (fun _ : Fin 1 => Bool) Label Local
   | .start => .load (fun v => (0,v.2)) (.goto (fun _ => .read 0))
   | .read k => .pop 0 (fun v bit => (v.1,bit))
@@ -16786,6 +19628,8 @@ def program : Label → TM2.Stmt (fun _ : Fin 1 => Bool) Label Local
             (.goto (fun _ => .read ⟨k.val+1,by omega⟩))) .halt
        else .load (fun v => (if v.2.isSome then 7 else v.1,v.2)) .halt)
 
+/-- The tiny-tag classifier consumes the reversed canonical digits of a value in `Fin 8` and
+halts with that value in its local state, within the stated quadratic clock bound. -/
 theorem complete (n : Fin 8) (v : Local) :
     Stacks.stackRun program (n.val.bits.length+2) ⟨some .start,v,Normalization.singleStack n.val.bits.reverse⟩=
       some ⟨none,(n,none),Normalization.singleStack []⟩ ∧
@@ -16802,22 +19646,39 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.TinyTag
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PlanCopy
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- The finite set of stack banks used by encoded-plan scanning and copying. -/
 inductive Slot where | reader | pending | markers | payload | value | temporary | output deriving DecidableEq,Fintype
+/-- The local-state type for encoded-plan scanning and copying, represented by
+`NatReadEmit.Local×TinyTag.Local×CountedTake.Local×Symbol`. -/
 abbrev Local := NatReadEmit.Local×TinyTag.Local×CountedTake.Local×Symbol
 
+/-- Extract the read component of the local state for encoded-plan scanning and copying. -/
 def getRead (v : Local) := v.1
+/-- Replace the read component of the local state for encoded-plan scanning and copying,
+retaining its other components. -/
 def putRead (v : Local) (s : NatReadEmit.Local) : Local := (s,v.2)
+/-- Extract the tag component of the local state for encoded-plan scanning and copying. -/
 def getTag (v : Local) := v.2.1
+/-- Replace the tag component of the local state for encoded-plan scanning and copying,
+retaining its other components. -/
 def putTag (v : Local) (s : TinyTag.Local) : Local := (v.1,s,v.2.2)
+/-- Extract the take component of the local state for encoded-plan scanning and copying. -/
 def getTake (v : Local) := v.2.2.1
+/-- Replace the take component of the local state for encoded-plan scanning and copying,
+retaining its other components. -/
 def putTake (v : Local) (s : CountedTake.Local) : Local := (v.1,v.2.1,s,v.2.2.2)
+/-- Extract the io component of the local state for encoded-plan scanning and copying. -/
 def getIO (v : Local) := v.2.2.2
+/-- Replace the io component of the local state for encoded-plan scanning and copying, retaining
+its other components. -/
 def putIO (v : Local) (s : Symbol) : Local := (v.1,v.2.1,v.2.2.1,s)
 
+/-- The control phases of encoded-plan scanning and copying. -/
 inductive Phase where
   | loop | planReady | dispatchPlan | literalReady | ignoredDone | readScalar | scalarReady | dispatchScalar
   | widthDone | pairFirstDone | readPairSecond
   deriving DecidableEq,Fintype
+/-- The finite control labels for encoded-plan scanning and copying. -/
 inductive Label where
   | read (ret : Phase) (l : NatReadEmit.Label)
   | transfer (ret : Phase) (l : Fin 1)
@@ -16828,19 +19689,32 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.step .loop⟩
 
+/-- Map the read subroutine stack indices into the stack banks for encoded-plan scanning and
+copying. -/
 def readCode : NatReadEmit.Slot → Slot
   | .reader => .reader | .markers => .markers | .payload => .payload
   | .value => .value | .temporary => .temporary | .output => .output
 
+/-- Map the transfer subroutine stack indices into the stack banks for encoded-plan scanning and
+copying. -/
 def transferCode : Fin 2 → Slot | 0 => .value | _ => .payload
+/-- Map the tag subroutine stack indices into the stack banks for encoded-plan scanning and
+copying. -/
 def tagCode (_ : Fin 1) : Slot := .payload
+/-- Map the take subroutine stack indices into the stack banks for encoded-plan scanning and
+copying. -/
 def takeCode : Fin 4 → Slot | 0 => .value | 1 => .temporary | 2 => .reader | _ => .output
+/-- Map the drain subroutine stack indices into the stack banks for encoded-plan scanning and
+copying. -/
 def drainCode (_ : Fin 1) : Slot := .value
 
+/-- Jump to the specified plan-copy phase. -/
 def go (phase : Phase) : TM2.Stmt (fun _ : Slot => Bool) Label Local := .goto (fun _ => .step phase)
+/-- Enter the natural-field reader with the supplied return phase. -/
 def readField (ret : Phase) : TM2.Stmt (fun _ : Slot => Bool) Label Local :=
     .goto (fun _ => .read ret (.read .unary))
 
+/-- The stack instructions executed in each control phase of encoded-plan scanning and copying. -/
 def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .loop => .pop .pending (fun v bit => putIO v bit) (.branch (fun v => (getIO v).isSome) (readField .planReady) .halt)
   | .planReady => .goto (fun _ => .transfer .dispatchPlan 0)
@@ -16863,6 +19737,7 @@ def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .pairFirstDone => .goto (fun _ => .drain .readPairSecond 0)
   | .readPairSecond => readField .ignoredDone
 
+/-- The TM2 program implementing encoded-plan scanning and copying. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .read ret l => StackCall.stmt readCode (Label.read ret) (.step ret) getRead putRead (NatReadEmit.program l)
   | .transfer ret l => StackCall.stmt transferCode (Label.transfer ret) (.tag ret .start) getIO putIO (Stacks.transferProgram l)
@@ -16871,18 +19746,26 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .drain ret l => StackCall.stmt drainCode (Label.drain ret) (.step ret) getIO putIO (Normalization.drainProgram l)
   | .step phase => phaseProgram phase
 
+/-- Assemble the named stack contents into the stack store for encoded-plan scanning and
+copying. -/
 def store (reader pending value payload out : Bits) : Slot → Bits
   | .reader => reader | .pending => pending | .value => value | .payload => payload | .output => out | _ => []
 
+/-- `readCode` is injective. -/
 theorem readCode_injective : Function.Injective readCode := by
     intro a b h; cases a <;> cases b <;> simp [readCode] at h ⊢
 
+/-- `transferCode` is injective. -/
 theorem transferCode_injective : Function.Injective transferCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [transferCode] at h ⊢
 
+/-- `takeCode` is injective. -/
 theorem takeCode_injective : Function.Injective takeCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [takeCode] at h ⊢
 
+/-- A run of `program` from label `(.read ret (.read .unary))` reaches label `(.step ret)` with
+stacks `store tail pending n.bits [] ((natBits n).reverse++out)`; its accumulated stack
+clock is at most `500*(1+(natBits n++tail).length+out.length)^2`. -/
 theorem read_call (ret : Phase) (n : ℕ) (tail pending out : Bits) (v : Local) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.read ret (.read .unary)),v,store (natBits n++tail) pending [] [] out⟩=
       some ⟨some (.step ret),putRead v ((true,CheckedNat.lastField n.bits none),none),
@@ -16918,6 +19801,9 @@ theorem read_call (ret : Phase) (n : ℕ) (tail pending out : Bits) (v : Local) 
     getRead,putRead,hsame,hfinal] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transfer ret 0)` reaches label `(.tag ret .start)` with
+stacks `store reader pending [] n.bits.reverse out` after `(n.bits.length+1)` stack steps;
+its accumulated stack clock is equal to `n.bits.length*(2*n.bits.length+5)+3`. -/
 theorem transfer_call (ret : Phase) (n : ℕ) (reader pending out : Bits) (v : Local) :
     Stacks.stackRun program (n.bits.length+1) ⟨some (.transfer ret 0),v,store reader pending n.bits [] out⟩=
       some ⟨some (.tag ret .start),putIO v none,store reader pending [] n.bits.reverse out⟩ ∧
@@ -16945,6 +19831,9 @@ theorem transfer_call (ret : Phase) (n : ℕ) (reader pending out : Bits) (v : L
   simp only [List.length_nil,Nat.add_zero] at hc
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.tag ret .start)` reaches label `(.step ret)` with stacks
+`store reader pending [] [] out` after `(n.val.bits.length+2)` stack steps; its accumulated
+stack clock is at most `30*(1+n.val.bits.length)^2`. -/
 theorem tag_call (ret : Phase) (n : Fin 8) (reader pending out : Bits) (v : Local) :
     Stacks.stackRun program (n.val.bits.length+2) ⟨some (.tag ret .start),v,store reader pending [] n.val.bits.reverse out⟩=
       some ⟨some (.step ret),putTag v (n,none),store reader pending [] [] out⟩ ∧
@@ -16971,6 +19860,9 @@ theorem tag_call (ret : Phase) (n : Fin 8) (reader pending out : Bits) (v : Loca
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getTag,putTag,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transfer ret 0)` reaches label `(.step ret)` with stacks
+`store reader pending [] [] out`; its accumulated stack clock is at most
+`100*(1+n.val.bits.length)^2`. -/
 theorem classify_call (ret : Phase) (n : Fin 8) (reader pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.transfer ret 0),v,store reader pending n.val.bits [] out⟩=
       some ⟨some (.step ret),last,store reader pending [] [] out⟩ ∧ (getTag last).1=n ∧
@@ -16983,6 +19875,9 @@ theorem classify_call (ret : Phase) (n : Fin 8) (reader pending out : Bits) (v :
   refine ⟨ticks,putTag (putIO v none) (n,none),hr,rfl,hc.trans ?_⟩
   nlinarith only [Nat.zero_le n.val.bits.length,Nat.zero_le (n.val.bits.length^2)]
 
+/-- A run of `program` from label `(.drain ret 0)` reaches label `(.step ret)` with stacks
+`store reader pending [] payload out` after `(value.length+1)` stack steps; its accumulated
+stack clock is equal to `value.length^2+3*value.length+3`. -/
 theorem drain_call (ret : Phase) (reader pending value payload out : Bits) (v : Local) :
     Stacks.stackRun program (value.length+1) ⟨some (.drain ret 0),v,store reader pending value payload out⟩=
       some ⟨some (.step ret),putIO v none,store reader pending [] payload out⟩ ∧
@@ -17009,6 +19904,10 @@ theorem drain_call (ret : Phase) (reader pending value payload out : Bits) (v : 
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getIO,putIO,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock value (getIO v))⟩
 
+/-- A run of `program` from label `(.take ret (.counter .borrow))` reaches label `(.step ret)`
+with stacks `store tail pending [] [] (bits.reverse++out)`; its accumulated stack clock is
+at most
+`150*(bits.length+1)*(1+bits.length.bits.length+(bits++tail).length+out.length+bits.length)^2`. -/
 theorem take_call (ret : Phase) (bits tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.take ret (.counter .borrow)),v,store (bits++tail) pending bits.length.bits [] out⟩=
       some ⟨some (.step ret),last,store tail pending [] [] (bits.reverse++out)⟩ ∧
@@ -17039,14 +19938,21 @@ theorem take_call (ret : Phase) (bits tail pending out : Bits) (v : Local) : ∃
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getTake,putTake,hsame,hfinal] at hN hNC
   exact ⟨ticks,putTake v ((false,none),none),hN,hNC.trans_le hc⟩
 
+/-- Updating the pending stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_pending (reader pending value payload out next : Bits) :
     Function.update (store reader pending value payload out) .pending next=store reader next value payload out := by
   funext bank
   cases bank <;> rfl
 
+/-- A run of `program` from `⟨some (.step phase),v,S⟩` reaches `(TM2.stepAux (phaseProgram
+phase) v S)` after `1` stack step. -/
 theorem phase_step (phase : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some (TM2.stepAux (phaseProgram phase) v S) := rfl
 
+/-- Under the stated input conditions, a run of `program` from label `(.step phase)` reaches
+label `after` with stacks `S` after `1` stack step; its accumulated stack clock is equal to
+`1`. -/
 theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.goto (fun _ => after))
     (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some ⟨some after,v,S⟩ ∧
@@ -17056,6 +19962,10 @@ theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.
     rfl
   · simp [Stacks.stackRunClock,program,hcode,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.read ret (.read
+.unary))` reaches label `(.step next)` with stacks `store tail pending [] [] ((natBits
+n).reverse++out)`; its accumulated stack clock is at most `1000*(1+(natBits
+n++tail).length+out.length)^2`. -/
 theorem ignored_field (ret next : Phase) (hcode : phaseProgram ret=.goto (fun _ => .drain next 0))
     (n : ℕ) (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read ret (.read .unary)),v,store (natBits n++tail) pending [] [] out⟩=
@@ -17080,6 +19990,10 @@ theorem ignored_field (ret next : Phase) (hcode : phaseProgram ret=.goto (fun _ 
   change 500*B^2+1+(n.bits.length^2+3*n.bits.length+3)≤1000*B^2
   nlinarith only [hB,hB2,hn,hn2]
 
+/-- Under the stated input conditions, a run of `program` from label `(.read ret (.read
+.unary))` reaches label `(.step next)` with stacks `store tail pending [] [] ((natBits
+n.val).reverse++out)`; its accumulated stack clock is at most `1000*(1+(natBits
+n.val++tail).length+out.length)^2`. -/
 theorem classified_field (ret next : Phase) (hcode : phaseProgram ret=.goto (fun _ => .transfer next 0))
     (n : Fin 8) (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read ret (.read .unary)),v,store (natBits n.val++tail) pending [] [] out⟩=
@@ -17106,6 +20020,7 @@ theorem classified_field (ret next : Phase) (hcode : phaseProgram ret=.goto (fun
   change 500*B^2+1+100*(1+n.val.bits.length)^2≤1000*B^2
   nlinarith only [hB2,hn2]
 
+/-- Select the plan-body entry label from its constructor tag. -/
 def planAfter (tag : Fin 7) : Label :=
   match tag.val with
   | 0 => .read .literalReady (.read .unary)
@@ -17116,8 +20031,14 @@ def planAfter (tag : Fin 7) : Label :=
   | 5 => .step .loop
   | _ => .read .scalarReady (.read .unary)
 
+/-- The number of immediate child plans for a constructor tag: two for append, one for repeat,
+and zero otherwise. -/
 def planExtra (tag : Fin 7) : ℕ := if tag.val=5 then 2 else if tag.val=6 then 1 else 0
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .dispatchPlan)`
+reaches label `(planAfter tag)` with stacks `store reader (List.replicate (planExtra tag)
+true++pending) [] [] out` after `1` stack step; its accumulated stack clock is at most
+`10*(1+pending.length)`. -/
 theorem dispatch_plan (tag : Fin 7) (reader pending out : Bits) (v : Local) (hval : (getTag v).1=tag.castSucc) :
     Stacks.stackRun program 1 ⟨some (.step .dispatchPlan),v,store reader pending [] [] out⟩=
       some ⟨some (planAfter tag),v,store reader (List.replicate (planExtra tag) true++pending) [] [] out⟩ ∧
@@ -17127,6 +20048,10 @@ theorem dispatch_plan (tag : Fin 7) (reader pending out : Bits) (v : Local) (hva
       Stacks.stackRunClock,program,Stacks.stackClock,store]
   all_goals omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .dispatchScalar)`
+reaches label `(if tag.val=2 then .step .loop else .read .ignoredDone (.read .unary))` with
+stacks `store reader pending [] [] out` after `1` stack step; its accumulated stack clock is
+equal to `1`. -/
 theorem dispatch_scalar (tag : Fin 4) (reader pending out : Bits) (v : Local)
     (hval : (getTag v).1=⟨tag.val,by omega⟩) :
     Stacks.stackRun program 1 ⟨some (.step .dispatchScalar),v,store reader pending [] [] out⟩=
@@ -17135,6 +20060,9 @@ theorem dispatch_scalar (tag : Fin 4) (reader pending out : Bits) (v : Local)
   fin_cases tag <;> constructor <;>
     simp [phase_step,phaseProgram,go,readField,TM2.stepAux,hval,Stacks.stackRunClock,program,Stacks.stackClock]
 
+/-- A run of `program` from label `(.step .loop)` reaches label `(.read .planReady (.read
+.unary))` with stacks `store reader pending [] [] out` after `1` stack step; its accumulated
+stack clock is equal to `2*pending.length+4`. -/
 theorem loop_enter (reader pending out : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step .loop),v,store reader (true::pending) [] [] out⟩=
       some ⟨some (.read .planReady (.read .unary)),putIO v (some true),store reader pending [] [] out⟩ ∧
@@ -17144,6 +20072,8 @@ theorem loop_enter (reader pending out : Bits) (v : Local) :
   · simp [Stacks.stackRunClock,program,phaseProgram,Stacks.stackClock,store,getIO,putIO,readField]
     omega
 
+/-- A run of `program` from label `(.step .loop)` halts with stacks `store reader [] [] [] out`
+after `1` stack step; its accumulated stack clock is equal to `3`. -/
 theorem loop_stop (reader out : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step .loop),v,store reader [] [] [] out⟩=
       some ⟨none,putIO v none,store reader [] [] [] out⟩ ∧
@@ -17157,8 +20087,13 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PlanCopy
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PlanCopy
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Embed a four-valued scalar tag in the eight-valued tag type. -/
 def scalarTag8 (tag : Fin 4) : Fin 8 := ⟨tag.val,by omega⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .scalarReady (.read
+.unary))` reaches label `(.step .loop)` with stacks `store tail pending [] [] ((natBits
+tag.val++natBits n).reverse++out)`; its accumulated stack clock is at most `3000*(1+(natBits
+tag.val++(natBits n++tail)).length+out.length)^2`. -/
 theorem scalar_operand (tag : Fin 4) (htag : tag.val≠2) (n : ℕ) (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .scalarReady (.read .unary)),v,
       store (natBits tag.val++(natBits n++tail)) pending [] [] out⟩=
@@ -17191,6 +20126,9 @@ theorem scalar_operand (tag : Fin 4) (htag : tag.val≠2) (n : ℕ) (tail pendin
     rw [he]
     omega
 
+/-- A run of `program` from label `(.read .scalarReady (.read .unary))` reaches label `(.step
+.loop)` with stacks `store tail pending [] [] ((natBits 2).reverse++out)`; its accumulated
+stack clock is at most `3000*(1+(natBits 2++tail).length+out.length)^2`. -/
 theorem scalar_precision (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .scalarReady (.read .unary)),v,store (natBits 2++tail) pending [] [] out⟩=
       some ⟨some (.step .loop),last,store tail pending [] [] ((natBits 2).reverse++out)⟩ ∧
@@ -17207,6 +20145,9 @@ theorem scalar_precision (tail pending out : Bits) (v : Local) : ∃ ticks last,
   change 1000*(1+(natBits 2++tail).length+out.length)^2+1≤3000*(1+(natBits 2++tail).length+out.length)^2
   omega
 
+/-- A run of `program` from label `(.read .scalarReady (.read .unary))` reaches label `(.step
+.loop)` with stacks `store tail pending [] [] ((scalarBits s).reverse++out)`; its
+accumulated stack clock is at most `3000*(1+(scalarBits s++tail).length+out.length)^2`. -/
 theorem scalar_complete (s : Scalar) (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .scalarReady (.read .unary)),v,store (scalarBits s++tail) pending [] [] out⟩=
       some ⟨some (.step .loop),last,store tail pending [] [] ((scalarBits s).reverse++out)⟩ ∧
@@ -17218,10 +20159,12 @@ theorem scalar_complete (s : Scalar) (tail pending out : Bits) (v : Local) : ∃
   | precision => exact scalar_precision tail pending out v
   | counter i => simpa only [scalarBits,List.append_assoc] using! scalar_operand 3 (by decide) i tail pending out v
 
+/-- The seven-valued constructor tag of an emission plan. -/
 def planTag : Plan → Fin 7
   | .literal _ => 0 | .copy _ => 1 | .emitNat _ => 2 | .fixedCount _ _ => 3
   | .pairScan _ _ => 4 | .append _ _ => 5 | .repeat _ _ => 6
 
+/-- The encoded nonrecursive fields of a plan, excluding its constructor tag and child plans. -/
 def bodyHead : Plan → Bits
   | .literal bits => framed bits
   | .copy i => natBits i
@@ -17231,14 +20174,22 @@ def bodyHead : Plan → Bits
   | .append _ _ => []
   | .repeat bound _ => scalarBits bound
 
+/-- The immediate child plans in encoding order, consisting of two append children, one repeat
+body, or no children. -/
 def children : Plan → List Plan
   | .append a b => [a,b] | .repeat _ body => [body] | _ => []
 
+/-- The constructor tag followed by the nonrecursive fields of an encoded plan. -/
 def headBits (p : Plan) : Bits := natBits (planTag p).val++bodyHead p
 
+/-- `planBits p` equals `headBits p++(children p).flatMap planBits`. -/
 theorem planBits_parts (p : Plan) : planBits p=headBits p++(children p).flatMap planBits := by
   cases p <;> simp [headBits,planTag,bodyHead,children,planBits,List.append_assoc]
 
+/-- A run of `program` from label `(planAfter (planTag (.copy i)))` reaches label `(.step
+.loop)` with stacks `store tail pending [] [] ((bodyHead (.copy i)).reverse++out)`; its
+accumulated stack clock is at most `10000*(1+(bodyHead (.copy i)).length)*(1+(bodyHead
+(.copy i)++tail).length+out.length)^2`. -/
 theorem body_copy (i : ℕ) (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (planAfter (planTag (.copy i))),v,store (bodyHead (.copy i)++tail) pending [] [] out⟩=
       some ⟨some (.step .loop),last,store tail pending [] [] ((bodyHead (.copy i)).reverse++out)⟩ ∧
@@ -17249,6 +20200,10 @@ theorem body_copy (i : ℕ) (tail pending out : Bits) (v : Local) : ∃ ticks la
   dsimp only [bodyHead]
   nlinarith only [Nat.zero_le ((natBits i).length*(1+(natBits i++tail).length+out.length)^2),Nat.zero_le ((1+(natBits i++tail).length+out.length)^2)]
 
+/-- A run of `program` from label `(.read .literalReady (.read .unary))` reaches label `(.step
+.loop)` with stacks `store tail pending [] [] ((framed bits).reverse++out)`; its accumulated
+stack clock is at most `10000*(1+(framed bits).length)*(1+(framed
+bits++tail).length+out.length)^2`. -/
 theorem body_literal (bits tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .literalReady (.read .unary)),v,store (framed bits++tail) pending [] [] out⟩=
       some ⟨some (.step .loop),last,store tail pending [] [] ((framed bits).reverse++out)⟩ ∧
@@ -17282,6 +20237,11 @@ theorem body_literal (bits tail pending out : Bits) (v : Local) : ∃ ticks last
     change 500*B^2+1+150*(bits.length+1)*_≤10000*(1+(framed bits).length)*B^2
     nlinarith only [hmul,hB2,Nat.mul_le_mul_right (B^2) hbit,Nat.zero_le (B^2)]
 
+/-- A run of `program` from label `(.read .widthDone (.read .unary))` reaches label `(.step
+.loop)` with stacks `store tail pending [] [] ((natBits width++scalarBits
+arg).reverse++out)`; its accumulated stack clock is at most `10000*(1+(natBits
+width++scalarBits arg).length)*(1+((natBits width++scalarBits
+arg)++tail).length+out.length)^2`. -/
 theorem body_fixed (width : ℕ) (arg : Scalar) (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .widthDone (.read .unary)),v,
       store ((natBits width++scalarBits arg)++tail) pending [] [] out⟩=
@@ -17314,6 +20274,10 @@ theorem body_fixed (width : ℕ) (arg : Scalar) (tail pending out : Bits) (v : L
       nlinarith only [hB,Nat.zero_le ((natBits width++scalarBits arg).length*B^2)]
     simpa only [B,List.append_assoc] using hc.trans hbound
 
+/-- A run of `program` from label `(.read .pairFirstDone (.read .unary))` reaches label `(.step
+.loop)` with stacks `store tail pending [] [] ((natBits i++natBits j).reverse++out)`; its
+accumulated stack clock is at most `10000*(1+(natBits i++natBits j).length)*(1+((natBits
+i++natBits j)++tail).length+out.length)^2`. -/
 theorem body_pair (i j : ℕ) (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .pairFirstDone (.read .unary)),v,
       store ((natBits i++natBits j)++tail) pending [] [] out⟩=
@@ -17346,6 +20310,9 @@ theorem body_pair (i j : ℕ) (tail pending out : Bits) (v : Local) : ∃ ticks 
       nlinarith only [hB,Nat.zero_le ((natBits i++natBits j).length*B^2)]
     simpa only [B,List.append_assoc] using hc.trans hbound
 
+/-- A run of `program` from label `(planAfter (planTag p))` reaches label `(.step .loop)` with
+stacks `store tail pending [] [] ((bodyHead p).reverse++out)`; its accumulated stack clock
+is at most `10000*(1+(bodyHead p).length)*(1+(bodyHead p++tail).length+out.length)^2`. -/
 theorem body_complete (p : Plan) (tail pending out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (planAfter (planTag p)),v,store (bodyHead p++tail) pending [] [] out⟩=
       some ⟨some (.step .loop),last,store tail pending [] [] ((bodyHead p).reverse++out)⟩ ∧
@@ -17370,19 +20337,29 @@ theorem body_complete (p : Plan) (tail pending out : Bits) (v : Local) : ∃ tic
       10000*(1+(scalarBits bound).length)*(1+(scalarBits bound++tail).length+out.length)^2
     nlinarith only [Nat.zero_le ((scalarBits bound).length*(1+(scalarBits bound++tail).length+out.length)^2),Nat.zero_le ((1+(scalarBits bound++tail).length+out.length)^2)]
 
+/-- The aggregate reader, output, and pending-node size parameter used for plan-copy cost
+bounds. -/
 def scanSize (reader out : Bits) (pending : ℕ) : ℕ := 1+3*reader.length+out.length+2*pending
 
+/-- `1` is at most `(headBits p).length`. -/
 theorem head_positive (p : Plan) : 1≤(headBits p).length := by
   simp only [headBits,List.length_append,natBits_length]
   omega
 
+/-- `planExtra (planTag p)` equals `(children p).length`. -/
 theorem extra_children (p : Plan) : planExtra (planTag p)=(children p).length := by cases p <;> rfl
 
+/-- `(children p).length` is at most `2`. -/
 theorem children_length (p : Plan) : (children p).length≤2 := by cases p <;> simp [children]
 
+/-- `List.replicate n true++List.replicate m true` equals `List.replicate (m+n) true`. -/
 theorem replicate_extra (n m : ℕ) : List.replicate n true++List.replicate m true=List.replicate (m+n) true := by
   rw [← List.replicate_add,Nat.add_comm n m]
 
+/-- A run of `program` from label `(.step .loop)` reaches label `(.step .loop)` with stacks
+`store ((children p).flatMap planBits++tail) (List.replicate (pending+(children p).length)
+true) [] [] ((headBits p).reverse++out)`; its accumulated stack clock is at most
+`20000*(headBits p).length*(scanSize (planBits p++tail) out (pending+1))^2`. -/
 theorem root_step (p : Plan) (tail out : Bits) (pending : ℕ) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store (planBits p++tail) (List.replicate (pending+1) true) [] [] out⟩=
       some ⟨some (.step .loop),last,store ((children p).flatMap planBits++tail)
@@ -17446,6 +20423,10 @@ theorem root_step (p : Plan) (tail out : Bits) (pending : ℕ) (v : Local) : ∃
     change (2*pending+4)+1000*A^2+10*(1+pending)+10000*(1+(bodyHead p).length)*A^2≤20000*(headBits p).length*B^2
     nlinarith only [hmulC,hmulB,hheadMul,hposMul,hsmall]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .loop)` reaches
+label `(.step .loop)` with stacks `store tail (List.replicate pending true) [] [] ((planBits
+p).reverse++out)`; its accumulated stack clock is at most `20000*(planBits
+p).length*(scanSize (planBits p++tail) out (pending+1))^2`. -/
 theorem one_leaf (p : Plan) (hleaf : children p=[]) (tail out : Bits) (pending : ℕ) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store (planBits p++tail) (List.replicate (pending+1) true) [] [] out⟩=
       some ⟨some (.step .loop),last,store tail (List.replicate pending true) [] [] ((planBits p).reverse++out)⟩ ∧
@@ -17456,6 +20437,10 @@ theorem one_leaf (p : Plan) (hleaf : children p=[]) (tail out : Bits) (pending :
   simpa only [hleaf,List.flatMap_nil,List.nil_append,List.length_nil,Nat.add_zero,← hp] using
       root_step p tail out pending v
 
+/-- A run of `program` from label `(.step .loop)` reaches label `(.step .loop)` with stacks
+`store tail (List.replicate pending true) [] [] ((planBits p).reverse++out)`; its
+accumulated stack clock is at most `20000*(planBits p).length*(scanSize (planBits p++tail)
+out (pending+1))^2`. -/
 theorem one (p : Plan) (tail out : Bits) (pending : ℕ) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store (planBits p++tail) (List.replicate (pending+1) true) [] [] out⟩=
       some ⟨some (.step .loop),last,store tail (List.replicate pending true) [] [] ((planBits p).reverse++out)⟩ ∧
@@ -17527,6 +20512,9 @@ theorem one (p : Plan) (tail out : Bits) (pending : ℕ) (v : Local) : ∃ ticks
       rw [hlen]
       nlinarith only [hA2]
 
+/-- Plan copying consumes exactly one `planBits p` prefix, prepends its reversal to the output,
+and clears pending and scratch stacks, with accumulated clock at most `30000*(1+(planBits
+p).length)*(scanSize (planBits p++tail) out 1)^2`. -/
 theorem complete (p : Plan) (tail out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store (planBits p++tail) [true] [] [] out⟩=
       some ⟨none,last,store tail [] [] [] ((planBits p).reverse++out)⟩ ∧
@@ -17546,38 +20534,62 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PlanCopy
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.FramedTake
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by length-framed bit extraction. -/
 inductive Slot where | reader | markers | payload | count | temporary | header | output deriving DecidableEq,Fintype
+/-- The local-state type for length-framed bit extraction, represented by
+`NatReadEmit.Local×CountedTake.Local×Symbol`. -/
 abbrev Local := NatReadEmit.Local×CountedTake.Local×Symbol
+/-- The finite control labels for length-framed bit extraction. -/
 inductive Label where | read (l : NatReadEmit.Label) | take (l : CountedTake.Label) | drain (l : Fin 1) | done deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.read (.read .unary)⟩
+/-- Extract the read component of the local state for length-framed bit extraction. -/
 def getRead (v : Local) := v.1
+/-- Replace the read component of the local state for length-framed bit extraction, retaining
+its other components. -/
 def putRead (v : Local) (s : NatReadEmit.Local) : Local := (s,v.2)
+/-- Extract the take component of the local state for length-framed bit extraction. -/
 def getTake (v : Local) := v.2.1
+/-- Replace the take component of the local state for length-framed bit extraction, retaining
+its other components. -/
 def putTake (v : Local) (s : CountedTake.Local) : Local := (v.1,s,v.2.2)
+/-- Extract the io component of the local state for length-framed bit extraction. -/
 def getIO (v : Local) := v.2.2
+/-- Replace the io component of the local state for length-framed bit extraction, retaining its
+other components. -/
 def putIO (v : Local) (s : Symbol) : Local := (v.1,v.2.1,s)
 
+/-- Map the read subroutine stack indices into the stack banks for length-framed bit extraction. -/
 def readCode : NatReadEmit.Slot → Slot
   | .reader => .reader | .markers => .markers | .payload => .payload
   | .value => .count | .temporary => .temporary | .output => .header
+/-- Map the take subroutine stack indices into the stack banks for length-framed bit extraction. -/
 def takeCode : Fin 4 → Slot | 0 => .count | 1 => .temporary | 2 => .reader | _ => .output
+/-- Map the drain subroutine stack indices into the stack banks for length-framed bit
+extraction. -/
 def drainCode (_ : Fin 1) : Slot := .header
 
+/-- The TM2 program implementing length-framed bit extraction. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .read l => StackCall.stmt readCode Label.read (.take (.counter .borrow)) getRead putRead (NatReadEmit.program l)
   | .take l => StackCall.stmt takeCode Label.take (.drain 0) getTake putTake (CountedTake.program l)
   | .drain l => StackCall.stmt drainCode Label.drain .done getIO putIO (Normalization.drainProgram l)
   | .done => .halt
 
+/-- Assemble the named stack contents into the stack store for length-framed bit extraction. -/
 def store (reader count header output : Bits) : Slot → Bits
   | .reader => reader | .count => count | .header => header | .output => output | _ => []
 
+/-- `readCode` is injective. -/
 theorem readCode_injective : Function.Injective readCode := by
     intro a b h; cases a <;> cases b <;> simp [readCode] at h ⊢
 
+/-- `takeCode` is injective. -/
 theorem takeCode_injective : Function.Injective takeCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [takeCode] at h ⊢
 
+/-- A run of `program` from label `(.read (.read .unary))` reaches label `(.take (.counter
+.borrow))` with stacks `store tail n.bits (natBits n).reverse out`; its accumulated stack
+clock is at most `500*(1+(natBits n++tail).length)^2`. -/
 theorem read_call (n : ℕ) (tail out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read (.read .unary)),v,store (natBits n++tail) [] [] out⟩=
       some ⟨some (.take (.counter .borrow)),last,store tail n.bits (natBits n).reverse out⟩ ∧
@@ -17609,6 +20621,9 @@ theorem read_call (n : ℕ) (tail out : Bits) (v : Local) : ∃ ticks last,
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getRead,putRead,hsame,hfinal] at hN hNC
   exact ⟨ticks,_,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.take (.counter .borrow))` reaches label `(.drain 0)` with
+stacks `store tail [] header (bits.reverse++out)`; its accumulated stack clock is at most
+`150*(bits.length+1)*(1+bits.length.bits.length+(bits++tail).length+out.length+bits.length)^2`. -/
 theorem take_call (bits tail header out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.take (.counter .borrow)),v,store (bits++tail) bits.length.bits header out⟩=
       some ⟨some (.drain 0),last,store tail [] header (bits.reverse++out)⟩ ∧
@@ -17639,6 +20654,9 @@ theorem take_call (bits tail header out : Bits) (v : Local) : ∃ ticks last,
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getTake,putTake,hsame,hfinal] at hN hNC
   exact ⟨ticks,_,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.drain 0)` reaches label `.done` with stacks `store reader
+[] [] out` after `(header.length+1)` stack steps; its accumulated stack clock is equal to
+`header.length^2+3*header.length+3`. -/
 theorem drain_call (reader header out : Bits) (v : Local) :
     Stacks.stackRun program (header.length+1) ⟨some (.drain 0),v,store reader [] header out⟩=
       some ⟨some .done,putIO v none,store reader [] [] out⟩ ∧
@@ -17665,6 +20683,9 @@ theorem drain_call (reader header out : Bits) (v : Local) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getIO,putIO,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock header (getIO v))⟩
 
+/-- Framed extraction consumes one `framed bits` prefix, preserves the following suffix, and
+prepends the reversed payload to the output, clearing its scratch stacks within the stated
+clock bound. -/
 theorem complete (bits tail out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read (.read .unary)),v,store (framed bits++tail) [] [] out⟩=
       some ⟨none,last,store tail [] [] (bits.reverse++out)⟩ ∧
@@ -17708,9 +20729,13 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.FramedTake
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.TableGet
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by indexed framed-table lookup. -/
 inductive Slot where | reader | index | indexTemp | markers | payload | count | temporary | header | scratch | output deriving DecidableEq,Fintype
+/-- The drain bank choices for indexed framed-table lookup: `reader`, `index`, `scratch`. -/
 inductive DrainBank where | reader | index | scratch deriving DecidableEq,Fintype
+/-- The control phases of indexed framed-table lookup. -/
 inductive Phase where | loop | decideIndex | selected | skip | clearIndex | done deriving DecidableEq,Fintype
+/-- The finite control labels for indexed framed-table lookup. -/
 inductive Label where
   | counter (l : Counter.Label)
   | frame (selected : Bool) (l : FramedTake.Label)
@@ -17718,24 +20743,41 @@ inductive Label where
   | step (phase : Phase)
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.step .loop⟩
+/-- The local-state type for indexed framed-table lookup, represented by
+`Counter.Local×FramedTake.Local×Symbol`. -/
 abbrev Local := Counter.Local×FramedTake.Local×Symbol
 
+/-- Extract the counter component of the local state for indexed framed-table lookup. -/
 def getCounter (v : Local) := v.1
+/-- Replace the counter component of the local state for indexed framed-table lookup, retaining
+its other components. -/
 def putCounter (v : Local) (s : Counter.Local) : Local := (s,v.2)
+/-- Extract the frame component of the local state for indexed framed-table lookup. -/
 def getFrame (v : Local) := v.2.1
+/-- Replace the frame component of the local state for indexed framed-table lookup, retaining
+its other components. -/
 def putFrame (v : Local) (s : FramedTake.Local) : Local := (v.1,s,v.2.2)
+/-- Extract the io component of the local state for indexed framed-table lookup. -/
 def getIO (v : Local) := v.2.2
+/-- Replace the io component of the local state for indexed framed-table lookup, retaining its
+other components. -/
 def putIO (v : Local) (s : Symbol) : Local := (v.1,v.2.1,s)
 
+/-- Map the counter subroutine stack indices into the stack banks for indexed framed-table
+lookup. -/
 def counterCode : Fin 2 → Slot | 0 => .index | _ => .indexTemp
 
+/-- Map the frame subroutine stack indices into the stack banks for indexed framed-table lookup. -/
 def frameCode (selected : Bool) : FramedTake.Slot → Slot
   | .reader => .reader | .markers => .markers | .payload => .payload | .count => .count
   | .temporary => .temporary | .header => .header | .output => if selected then .output else .scratch
 
+/-- Select the work-stack index for the given drain choice in indexed framed-table lookup. -/
 def drainKey : DrainBank → Slot | .reader => .reader | .index => .index | .scratch => .scratch
+/-- Map the drain subroutine stack indices into the stack banks for indexed framed-table lookup. -/
 def drainCode (bank : DrainBank) (_ : Fin 1) : Slot := drainKey bank
 
+/-- The stack instructions executed in each control phase of indexed framed-table lookup. -/
 def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .loop => .peek .reader (fun v bit => putIO v bit) (.branch (fun v => (getIO v).isSome)
       (.goto (fun _ => .counter .borrow)) (.goto (fun _ => .drain .index .done 0)))
@@ -17746,24 +20788,31 @@ def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .clearIndex => .goto (fun _ => .drain .index .done 0)
   | .done => .halt
 
+/-- The TM2 program implementing indexed framed-table lookup. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .counter l => StackCall.stmt counterCode Label.counter (.step .decideIndex) getCounter putCounter (Counter.program l)
   | .frame selected l => StackCall.stmt (frameCode selected) (Label.frame selected) (.step (if selected then .selected else .skip)) getFrame putFrame (FramedTake.program l)
   | .drain bank ret l => StackCall.stmt (drainCode bank) (Label.drain bank ret) (.step ret) getIO putIO (Normalization.drainProgram l)
   | .step phase => phaseProgram phase
 
+/-- Assemble the named stack contents into the stack store for indexed framed-table lookup. -/
 def store (reader index scratch out : Bits) : Slot → Bits
   | .reader => reader | .index => index | .scratch => scratch | .output => out | _ => []
 
+/-- Encode a table as the concatenation of its length-framed bit-string entries. -/
 def stream (values : List Bits) : Bits := values.flatMap framed
 
+/-- `counterCode` is injective. -/
 theorem counterCode_injective : Function.Injective counterCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [counterCode] at h ⊢
 
+/-- `(frameCode selected)` is injective. -/
 theorem frameCode_injective (selected : Bool) : Function.Injective (frameCode selected) := by
   intro a b h
   cases selected <;> cases a <;> cases b <;> simp [frameCode] at h ⊢
 
+/-- Under the stated hypotheses, `StackCall.frame counterCode S (Stacks.stackPair next [])`
+equals `Function.update S .index next`. -/
 theorem counter_frame (S : Slot → Bits) (counter next : Bits) (hc : S .index=counter) (ht : S .indexTemp=[]) :
     StackCall.frame counterCode S (Stacks.stackPair next [])=Function.update S .index next := by
   have hinj := counterCode_injective
@@ -17774,15 +20823,25 @@ theorem counter_frame (S : Slot → Bits) (counter next : Bits) (hc : S .index=c
   have h := StackCall.frame_update counterCode S (Stacks.stackPair counter []) hinj 0 next
   simpa only [Stacks.stackPair_update_zero,hsame] using! h
 
+/-- Updating the reader stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_reader (reader index scratch out next : Bits) :
     Function.update (store reader index scratch out) .reader next=store next index scratch out := by funext k; cases k <;> rfl
 
+/-- Updating the index stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_index (reader index scratch out next : Bits) :
     Function.update (store reader index scratch out) .index next=store reader next scratch out := by funext k; cases k <;> rfl
 
+/-- Updating the scratch stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_scratch (reader index scratch out next : Bits) :
     Function.update (store reader index scratch out) .scratch next=store reader index next out := by funext k; cases k <;> rfl
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `(.step .decideIndex)` with stacks `store reader (List.replicate
+counter.length true) [] out` after `(2*counter.length+2)` stack steps; its accumulated stack
+clock is at most `10*(1+counter.length)^2`. -/
 theorem counter_zero (counter reader out : Bits) (v : Local) (hz : binaryValue counter=0) :
     Stacks.stackRun program (2*counter.length+2) ⟨some (.counter .borrow),v,store reader counter [] out⟩=
       some ⟨some (.step .decideIndex),putCounter v (false,none),store reader (List.replicate counter.length true) [] out⟩ ∧
@@ -17801,6 +20860,10 @@ theorem counter_zero (counter reader out : Bits) (v : Local) (hz : binaryValue c
     hsame,counter_frame S counter _ rfl rfl,S,store_update_index] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `(.step .decideIndex)` with stacks `store reader next [] out`; its accumulated
+stack clock is at most `10*(1+counter.length)^2` and the resulting counter has the same
+length and binary value one less than the starting counter. -/
 theorem counter_positive (counter reader out : Bits) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks next,next.length=counter.length ∧ binaryValue next+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,store reader counter [] out⟩=
@@ -17820,6 +20883,11 @@ theorem counter_positive (counter reader out : Bits) (v : Local) (hp : 0<binaryV
     hsame,counter_frame S counter next rfl rfl,S,store_update_index] at hN hNC
   exact ⟨ticks,next,hlen,hvalue,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.frame selected (.read (.read .unary)))` reaches label
+`(.step (if selected then .selected else .skip))` with stacks `store tail counter (if
+selected then [] else bits.reverse) (if selected then bits.reverse++out else out)`; its
+accumulated stack clock is at most `5000*(bits.length+1)*(1+(framed bits++tail).length+(if
+selected then out.length else 0))^2`. -/
 theorem frame_call (selected : Bool) (bits tail counter out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.frame selected (.read (.read .unary))),v,store (framed bits++tail) counter [] out⟩=
       some ⟨some (.step (if selected then .selected else .skip)),last,
@@ -17878,6 +20946,10 @@ theorem frame_call (selected : Bool) (bits tail counter out : Bits) (v : Local) 
   rw [hlen] at hc
   exact hNC.trans_le hc
 
+/-- A run of `program` from label `(.drain bank ret 0)` reaches label `(.step ret)` with stacks
+`Function.update S (drainKey bank) []` after `((S (drainKey bank)).length+1)` stack steps;
+its accumulated stack clock is equal to `(S (drainKey bank)).length^2+3*(S (drainKey
+bank)).length+3`. -/
 theorem drain_call (bank : DrainBank) (ret : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program ((S (drainKey bank)).length+1) ⟨some (.drain bank ret 0),v,S⟩=
       some ⟨some (.step ret),putIO v none,Function.update S (drainKey bank) []⟩ ∧
@@ -17902,9 +20974,14 @@ theorem drain_call (bank : DrainBank) (ret : Phase) (S : Slot → Bits) (v : Loc
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getIO,putIO,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock (S (drainKey bank)) (getIO v))⟩
 
+/-- A run of `program` from `⟨some (.step phase),v,S⟩` reaches `(TM2.stepAux (phaseProgram
+phase) v S)` after `1` stack step. -/
 theorem phase_step (phase : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some (TM2.stepAux (phaseProgram phase) v S) := rfl
 
+/-- Under the stated input conditions, a run of `program` from label `(.step phase)` reaches
+label `after` with stacks `S` after `1` stack step; its accumulated stack clock is equal to
+`1`. -/
 theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.goto (fun _ => after)) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some ⟨some after,v,S⟩ ∧
     Stacks.stackRunClock program 1 ⟨some (.step phase),v,S⟩=1 := by
@@ -17913,6 +20990,9 @@ theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.
     rfl
   · simp [Stacks.stackRunClock,program,hcode,Stacks.stackClock]
 
+/-- A run of `program` from label `(.step .loop)` reaches label `(if S .reader=[] then .drain
+.index .done 0 else .counter .borrow)` with stacks `S` after `1` stack step; its accumulated
+stack clock is equal to `2*(S .reader).length+3`. -/
 theorem loop_peek (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step .loop),v,S⟩=
       some ⟨some (if S .reader=[] then .drain .index .done 0 else .counter .borrow),putIO v (S .reader).head?,S⟩ ∧
@@ -17923,6 +21003,9 @@ theorem loop_peek (S : Slot → Bits) (v : Local) :
     constructor <;> simp [phase_step,phaseProgram,TM2.stepAux,getIO,putIO,he,Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .decideIndex)`
+reaches label `(.frame (!flag) (.read (.read .unary)))` with stacks `S` after `1` stack
+step; its accumulated stack clock is equal to `1`. -/
 theorem index_branch (flag : Bool) (S : Slot → Bits) (v : Local) (hv : (getCounter v).1=flag) :
     Stacks.stackRun program 1 ⟨some (.step .decideIndex),v,S⟩=
       some ⟨some (.frame (!flag) (.read (.read .unary))),v,S⟩ ∧
@@ -17930,6 +21013,8 @@ theorem index_branch (flag : Bool) (S : Slot → Bits) (v : Local) (hv : (getCou
   cases flag <;> constructor <;> simp
       [phase_step,phaseProgram,TM2.stepAux,hv,Stacks.stackRunClock,program,Stacks.stackClock]
 
+/-- A run of `program` from label `(.drain .index .done 0)` halts with stacks `store [] [] []
+out`; its accumulated stack clock is at most `10*(1+counter.length)^2`. -/
 theorem index_finish (counter out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.drain .index .done 0),v,store [] counter [] out⟩=
       some ⟨none,last,store [] [] [] out⟩ ∧
@@ -17948,6 +21033,8 @@ theorem index_finish (counter out : Bits) (v : Local) : ∃ ticks last,
   obtain ⟨ticks,hr,hc⟩ := eD.trans eH
   exact ⟨ticks,_,hr,hc.trans (by nlinarith only [Nat.zero_le counter.length,Nat.zero_le (counter.length^2)])⟩
 
+/-- A run of `program` from label `(.step .selected)` halts with stacks `store [] [] [] out`;
+its accumulated stack clock is at most `20*(1+reader.length+counter.length)^2`. -/
 theorem selected_finish (reader counter out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .selected),v,store reader counter [] out⟩=
       some ⟨none,last,store [] [] [] out⟩ ∧
@@ -17969,6 +21056,9 @@ theorem selected_finish (reader counter out : Bits) (v : Local) : ∃ ticks last
   obtain ⟨ticks,hr,hc⟩ := ((eB.trans eD).trans eG).trans eC
   exact ⟨ticks,last,hr,hc.trans (by nlinarith only [Nat.zero_le reader.length,Nat.zero_le (reader.length^2),Nat.zero_le counter.length,Nat.zero_le (counter.length^2),Nat.zero_le (reader.length*counter.length)])⟩
 
+/-- A run of `program` from label `(.step .skip)` reaches label `(.step .loop)` with stacks
+`store reader counter [] out`; its accumulated stack clock is at most
+`10*(1+scratch.length)^2`. -/
 theorem skip_finish (reader counter scratch out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .skip),v,store reader counter scratch out⟩=
       some ⟨some (.step .loop),last,store reader counter [] out⟩ ∧
@@ -17985,6 +21075,8 @@ theorem skip_finish (reader counter scratch out : Bits) (v : Local) : ∃ ticks 
   obtain ⟨ticks,hr,hc⟩ := eB.trans eD
   exact ⟨ticks,_,hr,hc.trans (by nlinarith only [Nat.zero_le scratch.length,Nat.zero_le (scratch.length^2)])⟩
 
+/-- A run of `program` from label `(.step .loop)` halts with stacks `store [] [] [] out`; its
+accumulated stack clock is at most `20*(1+counter.length)^2`. -/
 theorem empty (counter out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store [] counter [] out⟩=
       some ⟨none,last,store [] [] [] out⟩ ∧
@@ -18000,10 +21092,12 @@ theorem empty (counter out : Bits) (v : Local) : ∃ ticks last,
   have hp : 1≤(1+counter.length)^2 := Nat.one_le_pow 2 _ (by omega)
   exact ⟨ticks,last,hr,hc.trans (by omega)⟩
 
+/-- `bits.length+1` is at most `(framed bits).length`. -/
 theorem framed_length_ge (bits : Bits) : bits.length+1≤(framed bits).length := by
   simp only [framed,List.length_append,natBits_length]
   omega
 
+/-- `framed bits++tail` is different from `[]`. -/
 theorem framed_nonempty (bits tail : Bits) : framed bits++tail≠[] := by
   have hh := framed_length_ge bits
   intro he
@@ -18011,6 +21105,8 @@ theorem framed_nonempty (bits tail : Bits) : framed bits++tail≠[] := by
   simp only [List.length_append,List.length_nil] at hl
   omega
 
+/-- Table lookup consumes the table and index, prepends the reversed indexed entry to the output
+using the empty list for an out-of-range index, and halts within the stated clock bound. -/
 theorem complete (values : List Bits) (counter out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store (stream values) counter [] out⟩=
       some ⟨none,last,store [] [] [] ((values.getD (binaryValue counter) []).reverse++out)⟩ ∧
@@ -18112,30 +21208,53 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.TableGet
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ReadonlyTableGet
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The stack-index type for table lookup preserving the source table, represented by `Sum (Fin
+2) TableGet.Slot`. -/
 abbrev Slot := Sum (Fin 2) TableGet.Slot
+/-- The local-state type for table lookup preserving the source table, represented by
+`Symbol×TableGet.Local`. -/
 abbrev Local := Symbol×TableGet.Local
+/-- The finite control labels for table lookup preserving the source table. -/
 inductive Label where | copy (l : NatEmit.Label) | get (l : TableGet.Label) | done deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.copy .emit⟩
+/-- Extract the copy component of the local state for table lookup preserving the source table. -/
 def getCopy (v : Local) := v.1
+/-- Replace the copy component of the local state for table lookup preserving the source table,
+retaining its other components. -/
 def putCopy (v : Local) (s : Symbol) : Local := (s,v.2)
+/-- Extract the table component of the local state for table lookup preserving the source table. -/
 def getTable (v : Local) := v.2
+/-- Replace the table component of the local state for table lookup preserving the source table,
+retaining its other components. -/
 def putTable (v : Local) (s : TableGet.Local) : Local := (v.1,s)
+/-- Map the copy subroutine stack indices into the stack banks for table lookup preserving the
+source table. -/
 def copyCode : Fin 3 → Slot | 0 => .inl 0 | 1 => .inl 1 | _ => .inr .reader
+/-- Map the table subroutine stack indices into the stack banks for table lookup preserving the
+source table. -/
 def tableCode (k : TableGet.Slot) : Slot := .inr k
 
+/-- The TM2 program implementing table lookup preserving the source table. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .copy l => StackCall.stmt copyCode Label.copy (.get (.step .loop)) getCopy putCopy (NatEmit.program l)
   | .get l => StackCall.stmt tableCode Label.get .done getTable putTable (TableGet.program l)
   | .done => .halt
 
+/-- Assemble the named stack contents into the stack store for table lookup preserving the
+source table. -/
 def store (table reader index out : Bits) : Slot → Bits
   | .inl 0 => table | .inl _ => [] | .inr k => TableGet.store reader index [] out k
 
+/-- `copyCode` is injective. -/
 theorem copyCode_injective : Function.Injective copyCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [copyCode] at h ⊢
 
+/-- `tableCode` is injective. -/
 theorem tableCode_injective : Function.Injective tableCode := by intro a b h; exact Sum.inr.inj h
 
+/-- A run of `program` from label `(.copy .emit)` reaches label `(.get (.step .loop))` with
+stacks `store table table.reverse index out` after `(2*table.length+3)` stack steps; its
+accumulated stack clock is at most `25*(1+table.length)^2`. -/
 theorem copy_call (table index out : Bits) (v : Local) :
     Stacks.stackRun program (2*table.length+3) ⟨some (.copy .emit),v,store table [] index out⟩=
       some ⟨some (.get (.step .loop)),putCopy v none,store table table.reverse index out⟩ ∧
@@ -18169,6 +21288,10 @@ theorem copy_call (table index out : Bits) (v : Local) :
   simp only [List.length_nil,Nat.add_zero] at hc
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.get (.step .loop))` reaches label `.done` with stacks
+`store (TableGet.stream values).reverse [] [] ((values.getD (binaryValue counter)
+[]).reverse++out)`; its accumulated stack clock is at most `20000*(1+(TableGet.stream
+values).length)*(1+(TableGet.stream values).length+counter.length+out.length)^2`. -/
 theorem get_call (values : List Bits) (counter out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.get (.step .loop)),v,store (TableGet.stream values).reverse (TableGet.stream values) counter out⟩=
       some ⟨some .done,last,store (TableGet.stream values).reverse [] [] ((values.getD (binaryValue counter) []).reverse++out)⟩ ∧
@@ -18196,6 +21319,9 @@ theorem get_call (values : List Bits) (counter out : Bits) (v : Local) : ∃ tic
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getTable,putTable,hsame,hfinal] at hN hNC
   exact ⟨ticks,putTable v last,hN,hNC.trans_le hc⟩
 
+/-- Readonly table lookup preserves the encoded source table, consumes the index, and prepends
+the reversed indexed entry to the output, using the empty list for an out-of-range index and
+satisfying the stated clock bound. -/
 theorem complete (values : List Bits) (counter out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.copy .emit),v,store (TableGet.stream values).reverse [] counter out⟩=
       some ⟨none,last,store (TableGet.stream values).reverse [] [] ((values.getD (binaryValue counter) []).reverse++out)⟩ ∧
@@ -18225,6 +21351,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ReadonlyTableGet
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.BinaryNormalize
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- `(binaryValue bits).bits.length` is at most `bits.length`. -/
 theorem canonical_length (bits : Bits) : (binaryValue bits).bits.length≤bits.length := by
   have hh := trim_length bits.reverse
   rw [trim_canonical,List.reverse_reverse,List.length_reverse,List.length_reverse] at hh
@@ -18234,6 +21361,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.BinaryNormalize
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ReadonlyTableGet
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- `(cs.map Nat.bits).getD depth []` equals `(cs.getD depth 0).bits`. -/
 theorem counter_table_value (cs : List ℕ) (depth : ℕ) :
     (cs.map Nat.bits).getD depth []=(cs.getD depth 0).bits := by
   induction cs generalizing depth with
@@ -18243,6 +21371,11 @@ theorem counter_table_value (cs : List ℕ) (depth : ℕ) :
     | zero => rfl
     | succ depth => simpa only [List.map_cons,List.getD_cons_succ] using ih depth
 
+/-- A run of `program` from label `(.copy .emit)` halts with stacks `store (TableGet.stream
+(cs.map Nat.bits)).reverse [] [] ((cs.getD depth 0).bits.reverse++out)`; its accumulated
+stack clock is at most `30000*(1+(TableGet.stream (cs.map
+Nat.bits)).length)*(1+(TableGet.stream (cs.map
+Nat.bits)).length+depth.bits.length+out.length)^2`. -/
 theorem counter_complete (cs : List ℕ) (depth : ℕ) (out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.copy .emit),v,store (TableGet.stream (cs.map Nat.bits)).reverse [] depth.bits out⟩=
       some ⟨none,last,store (TableGet.stream (cs.map Nat.bits)).reverse [] [] ((cs.getD depth 0).bits.reverse++out)⟩ ∧
@@ -18255,15 +21388,20 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ReadonlyTableGet
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Scheduler
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- `1` is at most `work params k cs p`. -/
 theorem work_positive (params : List Bits) (k : ℕ) (cs : List ℕ) (p : Plan) : 1≤work params k cs p := by
   cases p <;> simp only [work] <;> omega
 
+/-- `pendingWork params k (job::rest)` equals `work params k job.counters job.plan+pendingWork
+params k rest`. -/
 theorem pendingWork_cons (params : List Bits) (k : ℕ) (job : Job) (rest : List Job) :
     pendingWork params k (job::rest)=work params k job.counters job.plan+pendingWork params k rest := rfl
 
+/-- `pendingWork params k (a++b)` equals `pendingWork params k a+pendingWork params k b`. -/
 theorem pendingWork_append (params : List Bits) (k : ℕ) (a b : List Job) :
     pendingWork params k (a++b)=pendingWork params k a+pendingWork params k b := by simp [pendingWork]
 
+/-- `jobs.length` is at most `pendingWork params k jobs`. -/
 theorem pendingWork_length (params : List Bits) (k : ℕ) (jobs : List Job) : jobs.length≤pendingWork params k jobs := by
   induction jobs with
   | nil => rfl
@@ -18272,9 +21410,13 @@ theorem pendingWork_length (params : List Bits) (k : ℕ) (jobs : List Job) : jo
     rw [List.length_cons,pendingWork_cons]
     omega
 
+/-- Twice the remaining semantic work minus the number of queued jobs, used as a decreasing
+execution budget. -/
 def pendingBudget (params : List Bits) (k : ℕ) (jobs : List Job) : ℕ :=
   2*pendingWork params k jobs-jobs.length
 
+/-- `2*(stepOne params k job).1.length+(stepOne params k job).2.length+1+ pendingBudget params k
+((stepOne params k job).2++rest)` is at most `pendingBudget params k (job::rest)`. -/
 theorem pendingBudget_step (params : List Bits) (k : ℕ) (job : Job) (rest : List Job) :
     2*(stepOne params k job).1.length+(stepOne params k job).2.length+1+
       pendingBudget params k ((stepOne params k job).2++rest)≤pendingBudget params k (job::rest) := by
@@ -18284,10 +21426,12 @@ theorem pendingBudget_step (params : List Bits) (k : ℕ) (job : Job) (rest : Li
   simp only [pendingBudget,pendingWork_append,pendingWork_cons,List.length_append,List.length_cons] at ho hn ⊢
   omega
 
+/-- `pendingBudget params k [⟨cs,p⟩]` is at most `2*work params k cs p`. -/
 theorem pendingBudget_single (params : List Bits) (k : ℕ) (cs : List ℕ) (p : Plan) :
     pendingBudget params k [⟨cs,p⟩]≤2*work params k cs p := by
   simp [pendingBudget,pendingWork]
 
+/-- `(stepOne params k job).2.length` is at most `work params k job.counters job.plan`. -/
 theorem child_count_le_work (params : List Bits) (k : ℕ) (job : Job) :
     (stepOne params k job).2.length≤work params k job.counters job.plan := by
   have hl := pendingWork_length params k (stepOne params k job).2
@@ -18298,6 +21442,9 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Scheduler
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PlanCopy
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- A run of `program` from label `(.read .literalReady (.read .unary))` halts with stacks
+`store tail [] [] [] ((framed bits).reverse++out)`; its accumulated stack clock is at most
+`20000*(1+(framed bits).length)*(1+(framed bits++tail).length+out.length)^2`. -/
 theorem framed_complete (bits tail out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .literalReady (.read .unary)),v,store (framed bits++tail) [] [] [] out⟩=
       some ⟨none,last,store tail [] [] [] ((framed bits).reverse++out)⟩ ∧
@@ -18316,6 +21463,7 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PlanCopy
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.TableGet
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- `(values.getD index []).length` is at most `(stream values).length`. -/
 theorem entry_length (values : List Bits) (index : ℕ) : (values.getD index []).length≤(stream values).length := by
   induction values generalizing index with
   | nil => simp [stream]
@@ -18334,22 +21482,39 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.TableGet
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ScalarEval
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by encoded scalar evaluation. -/
 inductive Slot where
   | reader | params | counters | precision | value | result | markers | payload | temporary | discard
   | tableCopy | tableReader | tableIndexTemp | tableMarkers | tablePayload | tableCount | tableTemporary | tableHeader | tableScratch | precisionTemporary
   deriving DecidableEq,Fintype
+/-- The local-state type for encoded scalar evaluation, represented by
+`NatReadEmit.Local×TinyTag.Local×ReadonlyTableGet.Local×Symbol`. -/
 abbrev Local := NatReadEmit.Local×TinyTag.Local×ReadonlyTableGet.Local×Symbol
 
+/-- Extract the read component of the local state for encoded scalar evaluation. -/
 def getRead (v : Local) := v.1
+/-- Replace the read component of the local state for encoded scalar evaluation, retaining its
+other components. -/
 def putRead (v : Local) (s : NatReadEmit.Local) : Local := (s,v.2)
+/-- Extract the tag component of the local state for encoded scalar evaluation. -/
 def getTag (v : Local) := v.2.1
+/-- Replace the tag component of the local state for encoded scalar evaluation, retaining its
+other components. -/
 def putTag (v : Local) (s : TinyTag.Local) : Local := (v.1,s,v.2.2)
+/-- Extract the lookup component of the local state for encoded scalar evaluation. -/
 def getLookup (v : Local) := v.2.2.1
+/-- Replace the lookup component of the local state for encoded scalar evaluation, retaining its
+other components. -/
 def putLookup (v : Local) (s : ReadonlyTableGet.Local) : Local := (v.1,v.2.1,s,v.2.2.2)
+/-- Extract the io component of the local state for encoded scalar evaluation. -/
 def getIO (v : Local) := v.2.2.2
+/-- Replace the io component of the local state for encoded scalar evaluation, retaining its
+other components. -/
 def putIO (v : Local) (s : Symbol) : Local := (v.1,v.2.1,v.2.2.1,s)
 
+/-- The control phases of encoded scalar evaluation. -/
 inductive Phase where | afterTag | dispatch | literalDone | paramDone | counterDone | done deriving DecidableEq,Fintype
+/-- The finite control labels for encoded scalar evaluation. -/
 inductive Label where
   | read (ret : Phase) (l : NatReadEmit.Label)
   | transferTag (l : Fin 1)
@@ -18363,12 +21528,17 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.read .afterTag (.read .unary)⟩
 
+/-- Map the read subroutine stack indices into the stack banks for encoded scalar evaluation. -/
 def readCode : NatReadEmit.Slot → Slot
   | .reader => .reader | .markers => .markers | .payload => .payload | .value => .value | .temporary => .temporary | .output => .discard
 
+/-- Map the tag transfer subroutine stack indices into the stack banks for encoded scalar
+evaluation. -/
 def tagTransferCode : Fin 2 → Slot | 0 => .value | _ => .payload
+/-- Map the tag subroutine stack indices into the stack banks for encoded scalar evaluation. -/
 def tagCode (_ : Fin 1) : Slot := .payload
 
+/-- Map the lookup subroutine stack indices into the stack banks for encoded scalar evaluation. -/
 def lookupCode (context : Bool) : ReadonlyTableGet.Slot → Slot
   | .inl 0 => if context then .counters else .params
   | .inl _ => .tableCopy
@@ -18383,11 +21553,19 @@ def lookupCode (context : Bool) : ReadonlyTableGet.Slot → Slot
   | .inr .scratch => .tableScratch
   | .inr .output => .result
 
+/-- Map the normalize subroutine stack indices into the stack banks for encoded scalar
+evaluation. -/
 def normalizeCode (_ : Fin 1) : Slot := .result
+/-- Map the value transfer subroutine stack indices into the stack banks for encoded scalar
+evaluation. -/
 def valueTransferCode : Fin 2 → Slot | 0 => .result | _ => .value
+/-- Map the precision subroutine stack indices into the stack banks for encoded scalar
+evaluation. -/
 def precisionCode : Fin 3 → Slot | 0 => .precision | 1 => .precisionTemporary | _ => .value
+/-- Map the drain subroutine stack indices into the stack banks for encoded scalar evaluation. -/
 def drainCode (_ : Fin 1) : Slot := .discard
 
+/-- The stack instructions executed in each control phase of encoded scalar evaluation. -/
 def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .afterTag => .goto (fun _ => .transferTag 0)
   | .dispatch => .branch (fun v => decide ((getTag v).1.val=0)) (.goto (fun _ => .read .literalDone (.read .unary)))
@@ -18399,6 +21577,7 @@ def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .counterDone => .goto (fun _ => .lookup true (.copy .emit))
   | .done => .halt
 
+/-- The TM2 program implementing encoded scalar evaluation. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .read ret l => StackCall.stmt readCode (Label.read ret) (.step ret) getRead putRead (NatReadEmit.program l)
   | .transferTag l => StackCall.stmt tagTransferCode Label.transferTag (.tag .start) getIO putIO (Stacks.transferProgram l)
@@ -18410,22 +21589,28 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .drain l => StackCall.stmt drainCode Label.drain (.step .done) getIO putIO (Normalization.drainProgram l)
   | .step phase => phaseProgram phase
 
+/-- Assemble the named stack contents into the stack store for encoded scalar evaluation. -/
 def store (reader params counters precision value result discard payload : Bits) : Slot → Bits
   | .reader => reader | .params => params | .counters => counters | .precision => precision
   | .value => value | .result => result | .discard => discard | .payload => payload | _ => []
 
+/-- `readCode` is injective. -/
 theorem readCode_injective : Function.Injective readCode := by
     intro a b h; cases a <;> cases b <;> simp [readCode] at h ⊢
 
+/-- `tagTransferCode` is injective. -/
 theorem tagTransferCode_injective : Function.Injective tagTransferCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [tagTransferCode] at h ⊢
 
+/-- `valueTransferCode` is injective. -/
 theorem valueTransferCode_injective : Function.Injective valueTransferCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [valueTransferCode] at h ⊢
 
+/-- `precisionCode` is injective. -/
 theorem precisionCode_injective : Function.Injective precisionCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [precisionCode] at h ⊢
 
+/-- `(lookupCode context)` is injective. -/
 theorem lookupCode_injective (context : Bool) : Function.Injective (lookupCode context) := by
   intro a b h
   cases context <;> cases a with
@@ -18438,6 +21623,9 @@ theorem lookupCode_injective (context : Bool) : Function.Injective (lookupCode c
     | inl b => fin_cases b <;> simp [lookupCode] at h
     | inr b => cases b <;> simp [lookupCode] at h ⊢
 
+/-- A run of `program` from label `(.read ret (.read .unary))` reaches label `(.step ret)` with
+stacks `store tail params counters precision n.bits [] ((natBits n).reverse++discard) []`;
+its accumulated stack clock is at most `500*(1+(natBits n++tail).length+discard.length)^2`. -/
 theorem read_call (ret : Phase) (n : ℕ) (tail params counters precision discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read ret (.read .unary)),v,store (natBits n++tail) params counters precision [] [] discard []⟩=
       some ⟨some (.step ret),last,store tail params counters precision n.bits [] ((natBits n).reverse++discard) []⟩ ∧
@@ -18469,6 +21657,10 @@ theorem read_call (ret : Phase) (n : ℕ) (tail params counters precision discar
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getRead,putRead,hsame,hfinal] at hN hNC
   exact ⟨ticks,putRead v ((true,CheckedNat.lastField n.bits none),none),hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transferTag 0)` reaches label `(.tag .start)` with stacks
+`store reader params counters precision [] [] discard n.bits.reverse` after
+`(n.bits.length+1)` stack steps; its accumulated stack clock is equal to
+`n.bits.length*(2*n.bits.length+5)+3`. -/
 theorem transfer_tag_call (n : ℕ) (reader params counters precision discard : Bits) (v : Local) :
     Stacks.stackRun program (n.bits.length+1) ⟨some (.transferTag 0),v,store reader params counters precision n.bits [] discard []⟩=
       some ⟨some (.tag .start),putIO v none,store reader params counters precision [] [] discard n.bits.reverse⟩ ∧
@@ -18496,6 +21688,9 @@ theorem transfer_tag_call (n : ℕ) (reader params counters precision discard : 
   simp only [List.length_nil,Nat.add_zero] at hc
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.tag .start)` reaches label `(.step .dispatch)` with stacks
+`store reader params counters precision [] [] discard []` after `(n.val.bits.length+2)`
+stack steps; its accumulated stack clock is at most `30*(1+n.val.bits.length)^2`. -/
 theorem tag_call (n : Fin 8) (reader params counters precision discard : Bits) (v : Local) :
     Stacks.stackRun program (n.val.bits.length+2) ⟨some (.tag .start),v,store reader params counters precision [] [] discard n.val.bits.reverse⟩=
       some ⟨some (.step .dispatch),putTag v (n,none),store reader params counters precision [] [] discard []⟩ ∧
@@ -18522,6 +21717,9 @@ theorem tag_call (n : Fin 8) (reader params counters precision discard : Bits) (
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getTag,putTag,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transferTag 0)` reaches label `(.step .dispatch)` with
+stacks `store reader params counters precision [] [] discard []`; its accumulated stack
+clock is at most `100*(1+n.val.bits.length)^2`. -/
 theorem classify_call (n : Fin 8) (reader params counters precision discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.transferTag 0),v,store reader params counters precision n.val.bits [] discard []⟩=
       some ⟨some (.step .dispatch),last,store reader params counters precision [] [] discard []⟩ ∧ (getTag last).1=n ∧
@@ -18533,6 +21731,12 @@ theorem classify_call (n : Fin 8) (reader params counters precision discard : Bi
   obtain ⟨ticks,hr,hc⟩ := eT.trans eC
   exact ⟨ticks,putTag (putIO v none) (n,none),hr,rfl,hc.trans (by nlinarith only [Nat.zero_le n.val.bits.length,Nat.zero_le (n.val.bits.length^2)])⟩
 
+/-- A run of `program` from label `(.lookup context (.copy .emit))` reaches label `(.normalize
+0)` with stacks `store reader (if context then other else (TableGet.stream values).reverse)
+(if context then (TableGet.stream values).reverse else other) precision [] (values.getD
+(binaryValue counter) []).reverse discard []`; its accumulated stack clock is at most
+`30000*(1+(TableGet.stream values).length)*(1+(TableGet.stream
+values).length+counter.length)^2`. -/
 theorem lookup_call (context : Bool) (values : List Bits) (other reader precision counter discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.lookup context (.copy .emit)),v,
       store reader (if context then other else (TableGet.stream values).reverse)
@@ -18585,6 +21789,9 @@ theorem lookup_call (context : Bool) (values : List Bits) (other reader precisio
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getLookup,putLookup,hsame,hfinal] at hN hNC
   exact ⟨ticks,putLookup v last,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.normalize 0)` reaches label `(.transferValue 0)` with
+stacks `store reader params counters precision [] (binaryValue bits).bits.reverse discard
+[]`; its accumulated stack clock is at most `20*(1+bits.length)^2`. -/
 theorem normalize_call (bits reader params counters precision discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.normalize 0),v,store reader params counters precision [] bits.reverse discard []⟩=
       some ⟨some (.transferValue 0),last,store reader params counters precision [] (binaryValue bits).bits.reverse discard []⟩ ∧
@@ -18611,6 +21818,9 @@ theorem normalize_call (bits reader params counters precision discard : Bits) (v
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getIO,putIO,hsame,hfinal] at hN hNC
   exact ⟨ticks,putIO v last,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transferValue 0)` reaches label `(.drain 0)` with stacks
+`store reader params counters precision n.bits [] discard []` after `(n.bits.length+1)`
+stack steps; its accumulated stack clock is equal to `n.bits.length*(2*n.bits.length+5)+3`. -/
 theorem transfer_value_call (n : ℕ) (reader params counters precision discard : Bits) (v : Local) :
     Stacks.stackRun program (n.bits.length+1) ⟨some (.transferValue 0),v,store reader params counters precision [] n.bits.reverse discard []⟩=
       some ⟨some (.drain 0),putIO v none,store reader params counters precision n.bits [] discard []⟩ ∧
@@ -18638,6 +21848,10 @@ theorem transfer_value_call (n : ℕ) (reader params counters precision discard 
   simp only [List.length_reverse,List.length_nil,Nat.add_zero] at hc
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.precision .emit)` reaches label `(.drain 0)` with stacks
+`store reader params counters k.bits.reverse k.bits [] discard []` after
+`(2*k.bits.length+3)` stack steps; its accumulated stack clock is at most
+`25*(1+k.bits.length)^2`. -/
 theorem precision_call (k : ℕ) (reader params counters discard : Bits) (v : Local) :
     Stacks.stackRun program (2*k.bits.length+3) ⟨some (.precision .emit),v,store reader params counters k.bits.reverse [] [] discard []⟩=
       some ⟨some (.drain 0),putIO v none,store reader params counters k.bits.reverse k.bits [] discard []⟩ ∧
@@ -18667,6 +21881,8 @@ theorem precision_call (k : ℕ) (reader params counters discard : Bits) (v : Lo
   simp only [List.length_reverse,List.length_nil,Nat.add_zero] at hc
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.drain 0)` halts with stacks `store reader params counters
+precision value [] [] []`; its accumulated stack clock is at most `10*(1+discard.length)^2`. -/
 theorem finish (reader params counters precision value discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.drain 0),v,store reader params counters precision value [] discard []⟩=
       some ⟨none,last,store reader params counters precision value [] [] []⟩ ∧
@@ -18700,6 +21916,11 @@ theorem finish (reader params counters precision value discard : Bits) (v : Loca
   obtain ⟨ticks,hR,hC⟩ := eD.trans eH
   exact ⟨ticks,putIO v none,hR,hC.trans (by nlinarith only [Nat.zero_le discard.length,Nat.zero_le (discard.length^2)])⟩
 
+/-- A run of `program` from label `(.lookup context (.copy .emit))` halts with stacks `store
+reader (if context then other else (TableGet.stream values).reverse) (if context then
+(TableGet.stream values).reverse else other) precision (binaryValue (values.getD
+(binaryValue counter) [])).bits [] [] []`; its accumulated stack clock is at most
+`100000*(1+(TableGet.stream values).length+counter.length+discard.length)^3`. -/
 theorem lookup_complete (context : Bool) (values : List Bits) (other reader precision counter discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.lookup context (.copy .emit)),v,
       store reader (if context then other else (TableGet.stream values).reverse)
@@ -18744,9 +21965,14 @@ theorem lookup_complete (context : Bool) (values : List Bits) (other reader prec
     20*(1+bits.length)^2+(n.bits.length*(2*n.bits.length+5)+3)+10*(1+discard.length)^2≤100000*B^3
   nlinarith only [hB,hB2,h23,hnb,hnb2,hget,hn2,hf2]
 
+/-- A run of `program` from `⟨some (.step phase),v,S⟩` reaches `(TM2.stepAux (phaseProgram
+phase) v S)` after `1` stack step. -/
 theorem phase_step (phase : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some (TM2.stepAux (phaseProgram phase) v S) := rfl
 
+/-- Under the stated input conditions, a run of `program` from label `(.step phase)` reaches
+label `after` with stacks `S` after `1` stack step; its accumulated stack clock is equal to
+`1`. -/
 theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.goto (fun _ => after)) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some ⟨some after,v,S⟩ ∧
     Stacks.stackRunClock program 1 ⟨some (.step phase),v,S⟩=1 := by
@@ -18755,6 +21981,9 @@ theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.
     rfl
   · simp [Stacks.stackRunClock,program,hcode,Stacks.stackClock]
 
+/-- A run of `program` from label `(.read .literalDone (.read .unary))` halts with stacks `store
+tail params counters precision n.bits [] [] []`; its accumulated stack clock is at most
+`1000*(1+(natBits n++tail).length+discard.length)^2`. -/
 theorem literal_complete (n : ℕ) (tail params counters precision discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .literalDone (.read .unary)),v,store (natBits n++tail) params counters precision [] [] discard []⟩=
       some ⟨none,last,store tail params counters precision n.bits [] [] []⟩ ∧
@@ -18780,6 +22009,11 @@ theorem literal_complete (n : ℕ) (tail params counters precision discard : Bit
   change 500*B^2+1+10*(1+((natBits n).reverse++discard).length)^2≤1000*B^2
   nlinarith only [hB,hh2]
 
+/-- A run of `program` from label `(.read (if context then .counterDone else .paramDone) (.read
+.unary))` halts with stacks `store tail (if context then other else (TableGet.stream
+values).reverse) (if context then (TableGet.stream values).reverse else other) precision
+(binaryValue (values.getD i [])).bits [] [] []`; its accumulated stack clock is at most
+`1000000*(1+(natBits i++tail).length+discard.length+(TableGet.stream values).length)^3`. -/
 theorem indexed_complete (context : Bool) (values : List Bits) (other : Bits) (i : ℕ) (tail precision discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read (if context then .counterDone else .paramDone) (.read .unary)),v,
       store (natBits i++tail) (if context then other else (TableGet.stream values).reverse)
@@ -18821,6 +22055,9 @@ theorem indexed_complete (context : Bool) (values : List Bits) (other : Bits) (i
     100000*(1+(TableGet.stream values).length+i.bits.length+D.length)^3≤1000000*B^3
   nlinarith only [h23,hB3,hread,hgroup3]
 
+/-- A run of `program` from label `(.precision .emit)` halts with stacks `store tail params
+counters k.bits.reverse k.bits [] [] []`; its accumulated stack clock is at most
+`1000*(1+k.bits.length+discard.length)^2`. -/
 theorem precision_complete (k : ℕ) (tail params counters discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.precision .emit),v,store tail params counters k.bits.reverse [] [] discard []⟩=
       some ⟨none,last,store tail params counters k.bits.reverse k.bits [] [] []⟩ ∧
@@ -18837,35 +22074,48 @@ theorem precision_complete (k : ℕ) (tail params counters discard : Bits) (v : 
   have h2 := Nat.pow_le_pow_left (show 1+discard.length≤1+k.bits.length+discard.length by omega) 2
   nlinarith only [h1,h2]
 
+/-- Evaluate a scalar using binary-valued parameter and counter tables and the supplied
+precision. -/
 def tableValue (params counters : List Bits) (k : ℕ) : Scalar → ℕ
   | .literal n => n
   | .parameter i => binaryValue (params.getD i [])
   | .precision => k
   | .counter d => binaryValue (counters.getD d [])
 
+/-- The four-valued tag for a literal, parameter lookup, precision value, or counter lookup. -/
 def scalarTag : Scalar → Fin 4
   | .literal _ => 0 | .parameter _ => 1 | .precision => 2 | .counter _ => 3
 
+/-- Encode the scalar operand following its constructor tag, using an empty body for precision. -/
 def bodyBits : Scalar → Bits
   | .literal n => natBits n | .parameter i => natBits i | .precision => [] | .counter d => natBits d
 
+/-- Select the scalar-evaluation entry label for its constructor. -/
 def bodyLabel : Scalar → Label
   | .literal _ => .read .literalDone (.read .unary)
   | .parameter _ => .read .paramDone (.read .unary)
   | .precision => .precision .emit
   | .counter _ => .read .counterDone (.read .unary)
 
+/-- The aggregate reader, parameter-table, counter-table, precision, and discard size used for
+scalar-evaluation bounds. -/
 def size (reader : Bits) (params counters : List Bits) (k : ℕ) (discard : Bits) : ℕ :=
   1+reader.length+(TableGet.stream params).length+(TableGet.stream counters).length+k.bits.length+discard.length
 
+/-- `scalarBits s` equals `natBits (scalarTag s).val++bodyBits s`. -/
 theorem scalarBits_parts (s : Scalar) : scalarBits s=natBits (scalarTag s).val++bodyBits s := by
     cases s <;> rfl
 
+/-- Under the stated hypotheses, `1000*a^2` is at most `1000000*B^3`. -/
 theorem quad_budget {a B : ℕ} (h : a≤B) (hB : 1≤B) : 1000*a^2≤1000000*B^3 := by
   have ha := Nat.pow_le_pow_left h 2
   have h23 := Nat.pow_le_pow_right hB (show 2≤3 by decide)
   nlinarith only [ha,h23]
 
+/-- A run of `program` from label `(bodyLabel s)` halts with stacks `store tail (TableGet.stream
+params).reverse (TableGet.stream counters).reverse k.bits.reverse (tableValue params
+counters k s).bits [] [] []`; its accumulated stack clock is at most `1000000*(size
+(bodyBits s++tail) params counters k discard)^3`. -/
 theorem body_complete (s : Scalar) (params counters : List Bits) (k : ℕ) (tail discard : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (bodyLabel s),v,
       store (bodyBits s++tail) (TableGet.stream params).reverse (TableGet.stream counters).reverse k.bits.reverse [] [] discard []⟩=
@@ -18900,6 +22150,9 @@ theorem body_complete (s : Scalar) (params counters : List Bits) (k : ℕ) (tail
     refine ⟨ticks,last,hr,hc.trans ?_⟩
     exact Nat.mul_le_mul_left 1000000 (Nat.pow_le_pow_left (by dsimp [size,bodyBits]; omega) 3)
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .dispatch)` reaches
+label `(bodyLabel s)` with stacks `S` after `1` stack step; its accumulated stack clock is
+equal to `1`. -/
 theorem dispatch_call (s : Scalar) (S : Slot → Bits) (v : Local) (htag : (getTag v).1.val=(scalarTag s).val) :
     Stacks.stackRun program 1 ⟨some (.step .dispatch),v,S⟩=some ⟨some (bodyLabel s),v,S⟩ ∧
     Stacks.stackRunClock program 1 ⟨some (.step .dispatch),v,S⟩=1 := by
@@ -18909,6 +22162,10 @@ theorem dispatch_call (s : Scalar) (S : Slot → Bits) (v : Local) (htag : (getT
     cases s <;> simp [phaseProgram,scalarTag,bodyLabel,TM2.stepAux,heq]
   · simp [Stacks.stackRunClock,program,phaseProgram,Stacks.stackClock]
 
+/-- A run of `program` from label `(.read .afterTag (.read .unary))` halts with stacks `store
+tail (TableGet.stream params).reverse (TableGet.stream counters).reverse k.bits.reverse
+(tableValue params counters k s).bits [] [] []`; its accumulated stack clock is at most
+`2000000*(size (scalarBits s++tail) params counters k [])^3`. -/
 theorem complete_tables (s : Scalar) (params counters : List Bits) (k : ℕ) (tail : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .afterTag (.read .unary)),v,
       store (scalarBits s++tail) (TableGet.stream params).reverse (TableGet.stream counters).reverse k.bits.reverse [] [] [] []⟩=
@@ -18966,6 +22223,7 @@ theorem complete_tables (s : Scalar) (params counters : List Bits) (k : ℕ) (ta
       nlinarith only [h13,h23,hread2,htag2]
     simpa only [List.append_nil,hinput] using hc.trans hbound
 
+/-- `tableValue params (counters.map Nat.bits) k s` equals `value params k counters s`. -/
 theorem tableValue_counters (params : List Bits) (counters : List ℕ) (k : ℕ) (s : Scalar) :
     tableValue params (counters.map Nat.bits) k s=value params k counters s := by
   cases s with
@@ -18975,6 +22233,9 @@ theorem tableValue_counters (params : List Bits) (counters : List ℕ) (k : ℕ)
   | counter d =>
     simp only [tableValue,value,ReadonlyTableGet.counter_table_value,binaryValue_bits]
 
+/-- Scalar evaluation consumes exactly the encoded scalar, preserves the remaining input,
+parameter table, counter table, and precision, and stores the canonical digits of `value
+params k counters s`, within the stated cubic clock bound. -/
 theorem complete (s : Scalar) (params : List Bits) (counters : List ℕ) (k : ℕ) (tail : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .afterTag (.read .unary)),v,
       store (scalarBits s++tail) (TableGet.stream params).reverse (TableGet.stream (counters.map Nat.bits)).reverse k.bits.reverse [] [] [] []⟩=
@@ -18989,9 +22250,13 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.ScalarEval
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.TableCopy
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by counted framed-table copying. -/
 inductive Slot where | reader | count | countTemp | discard | markers | payload | value | temporary | pending | output deriving DecidableEq,Fintype
+/-- The drain bank choices for counted framed-table copying: `count`, `discard`. -/
 inductive DrainBank where | count | discard deriving DecidableEq,Fintype
+/-- The control phases of counted framed-table copying. -/
 inductive Phase where | countDone | decide | clearHeader | done deriving DecidableEq,Fintype
+/-- The finite control labels for counted framed-table copying. -/
 inductive Label where
   | read (l : NatReadEmit.Label)
   | counter (l : Counter.Label)
@@ -19000,28 +22265,51 @@ inductive Label where
   | step (phase : Phase)
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.read (.read .unary)⟩
+/-- The local-state type for counted framed-table copying, represented by
+`Counter.Local×NatReadEmit.Local×PlanCopy.Local×Symbol`. -/
 abbrev Local := Counter.Local×NatReadEmit.Local×PlanCopy.Local×Symbol
 
+/-- Extract the counter component of the local state for counted framed-table copying. -/
 def getCounter (v : Local) := v.1
+/-- Replace the counter component of the local state for counted framed-table copying, retaining
+its other components. -/
 def putCounter (v : Local) (s : Counter.Local) : Local := (s,v.2)
+/-- Extract the read component of the local state for counted framed-table copying. -/
 def getRead (v : Local) := v.2.1
+/-- Replace the read component of the local state for counted framed-table copying, retaining
+its other components. -/
 def putRead (v : Local) (s : NatReadEmit.Local) : Local := (v.1,s,v.2.2)
+/-- Extract the frame component of the local state for counted framed-table copying. -/
 def getFrame (v : Local) := v.2.2.1
+/-- Replace the frame component of the local state for counted framed-table copying, retaining
+its other components. -/
 def putFrame (v : Local) (s : PlanCopy.Local) : Local := (v.1,v.2.1,s,v.2.2.2)
+/-- Extract the io component of the local state for counted framed-table copying. -/
 def getIO (v : Local) := v.2.2.2
+/-- Replace the io component of the local state for counted framed-table copying, retaining its
+other components. -/
 def putIO (v : Local) (s : Symbol) : Local := (v.1,v.2.1,v.2.2.1,s)
+/-- Map the counter subroutine stack indices into the stack banks for counted framed-table
+copying. -/
 def counterCode : Fin 2 → Slot | 0 => .count | _ => .countTemp
 
+/-- Map the read subroutine stack indices into the stack banks for counted framed-table copying. -/
 def readCode : NatReadEmit.Slot → Slot
   | .reader => .reader | .markers => .markers | .payload => .payload | .value => .count | .temporary => .countTemp | .output => .discard
 
+/-- Map the frame subroutine stack indices into the stack banks for counted framed-table
+copying. -/
 def frameCode : PlanCopy.Slot → Slot
   | .reader => .reader | .pending => .pending | .markers => .markers | .payload => .payload
   | .value => .value | .temporary => .temporary | .output => .output
 
+/-- Select the work-stack index for the given drain choice in counted framed-table copying. -/
 def drainKey : DrainBank → Slot | .count => .count | .discard => .discard
+/-- Map the drain subroutine stack indices into the stack banks for counted framed-table
+copying. -/
 def drainCode (bank : DrainBank) (_ : Fin 1) : Slot := drainKey bank
 
+/-- The stack instructions executed in each control phase of counted framed-table copying. -/
 def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .countDone => .goto (fun _ => .counter .borrow)
   | .decide => .branch (fun v => (getCounter v).1)
@@ -19029,6 +22317,7 @@ def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .clearHeader => .goto (fun _ => .drain .discard .done 0)
   | .done => .halt
 
+/-- The TM2 program implementing counted framed-table copying. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .read l => StackCall.stmt readCode Label.read (.step .countDone) getRead putRead (NatReadEmit.program l)
   | .counter l => StackCall.stmt counterCode Label.counter (.step .decide) getCounter putCounter (Counter.program l)
@@ -19036,24 +22325,34 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .drain bank ret l => StackCall.stmt (drainCode bank) (Label.drain bank ret) (.step ret) getIO putIO (Normalization.drainProgram l)
   | .step phase => phaseProgram phase
 
+/-- Assemble the named stack contents into the stack store for counted framed-table copying. -/
 def store (reader count discard out : Bits) : Slot → Bits
   | .reader => reader | .count => count | .discard => discard | .output => out | _ => []
 
+/-- `counterCode` is injective. -/
 theorem counterCode_injective : Function.Injective counterCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [counterCode] at h ⊢
 
+/-- `readCode` is injective. -/
 theorem readCode_injective : Function.Injective readCode := by
     intro a b h; cases a <;> cases b <;> simp [readCode] at h ⊢
 
+/-- `frameCode` is injective. -/
 theorem frameCode_injective : Function.Injective frameCode := by
     intro a b h; cases a <;> cases b <;> simp [frameCode] at h ⊢
 
+/-- Updating the count stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_count (reader count discard out next : Bits) :
     Function.update (store reader count discard out) .count next=store reader next discard out := by funext k; cases k <;> rfl
 
+/-- Updating the discard stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_discard (reader count discard out next : Bits) :
     Function.update (store reader count discard out) .discard next=store reader count next out := by funext k; cases k <;> rfl
 
+/-- Under the stated hypotheses, `StackCall.frame counterCode S (Stacks.stackPair next [])`
+equals `Function.update S .count next`. -/
 theorem counter_frame (S : Slot → Bits) (counter next : Bits) (hc : S .count=counter) (ht : S .countTemp=[]) :
     StackCall.frame counterCode S (Stacks.stackPair next [])=Function.update S .count next := by
   have hinj := counterCode_injective
@@ -19064,6 +22363,10 @@ theorem counter_frame (S : Slot → Bits) (counter next : Bits) (hc : S .count=c
   have h := StackCall.frame_update counterCode S (Stacks.stackPair counter []) hinj 0 next
   simpa only [Stacks.stackPair_update_zero,hsame] using! h
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `(.step .decide)` with stacks `store reader (List.replicate counter.length
+true) discard out` after `(2*counter.length+2)` stack steps; its accumulated stack clock is
+at most `10*(1+counter.length)^2`. -/
 theorem counter_zero (counter reader discard out : Bits) (v : Local) (hz : binaryValue counter=0) :
     Stacks.stackRun program (2*counter.length+2) ⟨some (.counter .borrow),v,store reader counter discard out⟩=
       some ⟨some (.step .decide),putCounter v (false,none),store reader (List.replicate counter.length true) discard out⟩ ∧
@@ -19082,6 +22385,10 @@ theorem counter_zero (counter reader discard out : Bits) (v : Local) (hz : binar
     hsame,counter_frame S counter _ rfl rfl,S,store_update_count] at hN hNC
   exact ⟨hN,hNC.trans_le hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `(.step .decide)` with stacks `store reader next discard out`; its accumulated
+stack clock is at most `10*(1+counter.length)^2` and the resulting counter has the same
+length and binary value one less than the starting counter. -/
 theorem counter_positive (counter reader discard out : Bits) (v : Local) (hp : 0<binaryValue counter) :
     ∃ ticks next,next.length=counter.length ∧ binaryValue next+1=binaryValue counter ∧
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,store reader counter discard out⟩=
@@ -19101,6 +22408,10 @@ theorem counter_positive (counter reader discard out : Bits) (v : Local) (hp : 0
     hsame,counter_frame S counter next rfl rfl,S,store_update_count] at hN hNC
   exact ⟨ticks,next,hlen,hvalue,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.frame (.read .literalReady (.read .unary)))` reaches label
+`(.counter .borrow)` with stacks `store tail counter discard ((framed bits).reverse++out)`;
+its accumulated stack clock is at most `20000*(1+(framed bits).length)*(1+(framed
+bits++tail).length+out.length)^2`. -/
 theorem frame_call (bits tail counter discard out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.frame (.read .literalReady (.read .unary))),v,store (framed bits++tail) counter discard out⟩=
       some ⟨some (.counter .borrow),last,store tail counter discard ((framed bits).reverse++out)⟩ ∧
@@ -19133,6 +22444,9 @@ theorem frame_call (bits tail counter discard out : Bits) (v : Local) : ∃ tick
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getFrame,putFrame,hsame,hfinal] at hN hNC
   exact ⟨ticks,putFrame v last,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.read (.read .unary))` reaches label `(.step .countDone)`
+with stacks `store tail n.bits (natBits n).reverse out`; its accumulated stack clock is at
+most `500*(1+(natBits n++tail).length+0)^2`. -/
 theorem read_call (n : ℕ) (tail out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read (.read .unary)),v,store (natBits n++tail) [] [] out⟩=
       some ⟨some (.step .countDone),last,store tail n.bits (natBits n).reverse out⟩ ∧
@@ -19164,6 +22478,10 @@ theorem read_call (n : ℕ) (tail out : Bits) (v : Local) : ∃ ticks last,
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getRead,putRead,hsame,hfinal,List.append_nil] at hN hNC
   exact ⟨ticks,putRead v ((true,CheckedNat.lastField n.bits none),none),hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.drain bank ret 0)` reaches label `(.step ret)` with stacks
+`Function.update S (drainKey bank) []` after `((S (drainKey bank)).length+1)` stack steps;
+its accumulated stack clock is equal to `(S (drainKey bank)).length^2+3*(S (drainKey
+bank)).length+3`. -/
 theorem drain_call (bank : DrainBank) (ret : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program ((S (drainKey bank)).length+1) ⟨some (.drain bank ret 0),v,S⟩=
       some ⟨some (.step ret),putIO v none,Function.update S (drainKey bank) []⟩ ∧
@@ -19188,9 +22506,14 @@ theorem drain_call (bank : DrainBank) (ret : Phase) (S : Slot → Bits) (v : Loc
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,getIO,putIO,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock (S (drainKey bank)) (getIO v))⟩
 
+/-- A run of `program` from `⟨some (.step phase),v,S⟩` reaches `(TM2.stepAux (phaseProgram
+phase) v S)` after `1` stack step. -/
 theorem phase_step (phase : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some (TM2.stepAux (phaseProgram phase) v S) := rfl
 
+/-- Under the stated input conditions, a run of `program` from label `(.step phase)` reaches
+label `after` with stacks `S` after `1` stack step; its accumulated stack clock is equal to
+`1`. -/
 theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.goto (fun _ => after)) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some ⟨some after,v,S⟩ ∧
     Stacks.stackRunClock program 1 ⟨some (.step phase),v,S⟩=1 := by
@@ -19199,6 +22522,10 @@ theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.
     rfl
   · simp [Stacks.stackRunClock,program,hcode,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .decide)` reaches
+label `(if flag then .frame (.read .literalReady (.read .unary)) else .drain .count
+.clearHeader 0)` with stacks `S` after `1` stack step; its accumulated stack clock is equal
+to `1`. -/
 theorem count_branch (flag : Bool) (S : Slot → Bits) (v : Local) (hv : (getCounter v).1=flag) :
     Stacks.stackRun program 1 ⟨some (.step .decide),v,S⟩=
       some ⟨some (if flag then .frame (.read .literalReady (.read .unary)) else .drain .count .clearHeader 0),v,S⟩ ∧
@@ -19206,6 +22533,9 @@ theorem count_branch (flag : Bool) (S : Slot → Bits) (v : Local) (hv : (getCou
   cases flag <;> constructor <;> simp
       [phase_step,phaseProgram,TM2.stepAux,hv,Stacks.stackRunClock,program,Stacks.stackClock]
 
+/-- A run of `program` from label `(.drain .count .clearHeader 0)` halts with stacks `store
+reader [] [] out`; its accumulated stack clock is at most
+`30*(1+count.length+discard.length)^2`. -/
 theorem clear (reader count discard out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.drain .count .clearHeader 0),v,store reader count discard out⟩=
       some ⟨none,last,store reader [] [] out⟩ ∧
@@ -19235,8 +22565,14 @@ theorem clear (reader count discard out : Bits) (v : Local) : ∃ ticks last,
   obtain ⟨ticks,hr,hc⟩ := ((eC.trans eG).trans eD).trans eH
   exact ⟨ticks,_,hr,hc.trans (by nlinarith only [Nat.zero_le count.length,Nat.zero_le (count.length^2),Nat.zero_le discard.length,Nat.zero_le (discard.length^2),Nat.zero_le (count.length*discard.length)])⟩
 
+/-- The size parameter `1+reader.length+count.length+discard.length+out.length` used to bound
+counted framed-table copying. -/
 def size (reader count discard out : Bits) := 1+reader.length+count.length+discard.length+out.length
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)` halts
+with stacks `store tail [] [] ((TableGet.stream values).reverse++out)`; its accumulated
+stack clock is at most `50000*(1+(TableGet.stream values).length)*(size (TableGet.stream
+values++tail) count discard out)^2`. -/
 theorem loop (values : List Bits) (tail count discard out : Bits) (v : Local) (hcount : binaryValue count=values.length) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.counter .borrow),v,store (TableGet.stream values++tail) count discard out⟩=
       some ⟨none,last,store tail [] [] ((TableGet.stream values).reverse++out)⟩ ∧
@@ -19309,6 +22645,9 @@ theorem loop (values : List Bits) (tail count discard out : Bits) (v : Local) (h
         nlinarith only [hB,hcounter,hm,hframeLen,Nat.mul_le_mul_right (B^2) hframeLen]
       simpa only [B,heq] using hc.trans hh
 
+/-- Counted table copying consumes the encoded entry count and table, preserves the suffix, and
+prepends the reversed table stream to the output, clearing its scratch stacks within the
+stated cubic clock bound. -/
 theorem complete (values : List Bits) (tail out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read (.read .unary)),v,store (natBits values.length++TableGet.stream values++tail) [] [] out⟩=
       some ⟨none,last,store tail [] [] ((TableGet.stream values).reverse++out)⟩ ∧
@@ -19353,7 +22692,9 @@ theorem complete (values : List Bits) (tail out : Bits) (v : Local) : ∃ ticks 
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.TableCopy
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.FrameCopy
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by bit-string copying with a length frame. -/
 inductive Slot where | source | restore | copy | count | temporary | markers | header | output deriving DecidableEq,Fintype
+/-- The finite control labels for bit-string copying with a length frame. -/
 inductive Label where
   | copy (toOutput : Bool) (l : NatEmit.Label)
   | length (l : LengthCounter.Label)
@@ -19363,13 +22704,24 @@ inductive Label where
   | done
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.copy false .emit⟩
+/-- Map the copy subroutine stack indices into the stack banks for bit-string copying with a
+length frame. -/
 def copyCode (toOutput : Bool) : Fin 3 →
     Slot | 0 => .source | 1 => .restore | _ => if toOutput then .output else .copy
+/-- Map the length subroutine stack indices into the stack banks for bit-string copying with a
+length frame. -/
 def lengthCode : Fin 4 → Slot | 0 => .count | 1 => .temporary | 2 => .markers | _ => .copy
+/-- Map the header subroutine stack indices into the stack banks for bit-string copying with a
+length frame. -/
 def headerCode : Fin 3 → Slot | 0 => .count | 1 => .temporary | _ => .header
+/-- Map the drain subroutine stack indices into the stack banks for bit-string copying with a
+length frame. -/
 def drainCode (markers : Bool) (_ : Fin 1) : Slot := if markers then .markers else .count
+/-- Map the transfer subroutine stack indices into the stack banks for bit-string copying with a
+length frame. -/
 def transferCode : Fin 2 → Slot | 0 => .header | _ => .output
 
+/-- The TM2 program implementing bit-string copying with a length frame. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Symbol
   | .copy toOutput l => StackCall.stmt (copyCode toOutput) (Label.copy toOutput)
       (if toOutput then .transfer 0 else .length .count) id (fun _ s => s) (NatEmit.program l)
@@ -19380,21 +22732,32 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Symbol
   | .transfer l => StackCall.stmt transferCode Label.transfer .done id (fun _ s => s) (Stacks.transferProgram l)
   | .done => .halt
 
+/-- Assemble the named stack contents into the stack store for bit-string copying with a length
+frame. -/
 def store (source copy count markers header out : Bits) : Slot → Bits
   | .source => source | .copy => copy | .count => count | .markers => markers | .header => header | .output => out | _ => []
 
+/-- `(copyCode toOutput)` is injective. -/
 theorem copyCode_injective (toOutput : Bool) : Function.Injective (copyCode toOutput) := by
   intro a b h; cases toOutput <;> fin_cases a <;> fin_cases b <;> simp [copyCode] at h ⊢
 
+/-- `lengthCode` is injective. -/
 theorem lengthCode_injective : Function.Injective lengthCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [lengthCode] at h ⊢
 
+/-- `headerCode` is injective. -/
 theorem headerCode_injective : Function.Injective headerCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [headerCode] at h ⊢
 
+/-- `transferCode` is injective. -/
 theorem transferCode_injective : Function.Injective transferCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [transferCode] at h ⊢
 
+/-- A run of `program` from label `(.copy toOutput .emit)` reaches label `(if toOutput then
+.transfer 0 else .length .count)` with stacks `store bits.reverse (if toOutput then [] else
+bits) count markers header (if toOutput then bits++out else out)` after `(2*bits.length+3)`
+stack steps; its accumulated stack clock is equal to `bits.length*(5*bits.length+2*(if
+toOutput then out.length else 0)+12)+7`. -/
 theorem copy_call (toOutput : Bool) (bits count markers header out : Bits) (v : Symbol) : Stacks.stackRun program (2*bits.length+3) ⟨some (.copy toOutput .emit),v,store bits.reverse [] count markers header out⟩=
       some ⟨some (if toOutput then .transfer 0 else .length .count),none,store bits.reverse (if toOutput then [] else bits) count markers header (if toOutput then bits++out else out)⟩ ∧
     Stacks.stackRunClock program (2*bits.length+3) ⟨some (.copy toOutput .emit),v,store bits.reverse [] count markers header out⟩=bits.length*(5*bits.length+2*(if toOutput then out.length else 0)+12)+7 := by
@@ -19438,6 +22801,9 @@ theorem copy_call (toOutput : Bool) (bits count markers header out : Bits) (v : 
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.length .count)` reaches label `(.header .count)` with
+stacks `store source [] bits.length.bits (List.replicate bits.length true) header out`; its
+accumulated stack clock is at most `100*(bits.length+1)*(1+2*bits.length)^2`. -/
 theorem length_call (bits source header out : Bits) (v : Symbol) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.length .count),v,store source bits [] [] header out⟩=
       some ⟨some (.header .count),none,store source [] bits.length.bits (List.replicate bits.length true) header out⟩ ∧
@@ -19467,6 +22833,10 @@ theorem length_call (bits source header out : Bits) (v : Symbol) : ∃ ticks,
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   refine ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.header .count)` reaches label `(.drain false 0)` with
+stacks `store source [] n.bits markers (natBits n).reverse out` after `(4*n.bits.length+5)`
+stack steps; its accumulated stack clock is equal to
+`n.bits.length*(12*n.bits.length+28)+16`. -/
 theorem header_call (n : ℕ) (source markers out : Bits) (v : Symbol) : Stacks.stackRun program (4*n.bits.length+5) ⟨some (.header .count),v,store source [] n.bits markers [] out⟩=
       some ⟨some (.drain false 0),none,store source [] n.bits markers (natBits n).reverse out⟩ ∧
     Stacks.stackRunClock program (4*n.bits.length+5) ⟨some (.header .count),v,store source [] n.bits markers [] out⟩=n.bits.length*(12*n.bits.length+28)+16 := by
@@ -19494,6 +22864,9 @@ theorem header_call (n : ℕ) (source markers out : Bits) (v : Symbol) : Stacks.
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.transfer 0)` reaches label `(.done)` with stacks `store
+source [] [] [] [] (header++out)` after `(header.length+1)` stack steps; its accumulated
+stack clock is equal to `header.length*(2*(header.length+out.length)+5)+3`. -/
 theorem transfer_call (header source out : Bits) (v : Symbol) : Stacks.stackRun program (header.length+1) ⟨some (.transfer 0),v,store source [] [] [] header.reverse out⟩=
       some ⟨some (.done),none,store source [] [] [] [] (header++out)⟩ ∧
     Stacks.stackRunClock program (header.length+1) ⟨some (.transfer 0),v,store source [] [] [] header.reverse out⟩=header.length*(2*(header.length+out.length)+5)+3 := by
@@ -19522,8 +22895,14 @@ theorem transfer_call (header source out : Bits) (v : Symbol) : Stacks.stackRun 
   simp only [List.length_reverse] at hc
   exact ⟨hN,hNC.trans hc⟩
 
+/-- Select the work-stack index for the given drain choice in bit-string copying with a length
+frame. -/
 def drainKey (markers : Bool) : Slot := if markers then .markers else .count
 
+/-- A run of `program` from label `(.drain markers 0)` reaches label `(if markers then .copy
+true .emit else .drain true 0)` with stacks `Function.update S (drainKey markers) []` after
+`((S (drainKey markers)).length+1)` stack steps; its accumulated stack clock is equal to `(S
+(drainKey markers)).length^2+3*(S (drainKey markers)).length+3`. -/
 theorem drain_call (markers : Bool) (S : Slot → Bits) (v : Symbol) :
     Stacks.stackRun program ((S (drainKey markers)).length+1) ⟨some (.drain markers 0),v,S⟩=
       some ⟨some (if markers then .copy true .emit else .drain true 0),none,Function.update S (drainKey markers) []⟩ ∧
@@ -19548,12 +22927,19 @@ theorem drain_call (markers : Bool) (S : Slot → Bits) (v : Symbol) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock (S (drainKey markers)) v)⟩
 
+/-- Updating the count stack in `store` replaces its corresponding list argument and retains the
+other stack contents. -/
 @[simp] theorem store_update_count (source copy count markers header out next : Bits) :
     Function.update (store source copy count markers header out) .count next=store source copy next markers header out := by funext k; cases k <;> rfl
 
+/-- Updating the markers stack in `store` replaces its corresponding list argument and retains
+the other stack contents. -/
 @[simp] theorem store_update_markers (source copy count markers header out next : Bits) :
     Function.update (store source copy count markers header out) .markers next=store source copy count next header out := by funext k; cases k <;> rfl
 
+/-- A run of `program` from label `(.drain false 0)` reaches label `(.copy true .emit)` with
+stacks `store source [] [] [] header out`; its accumulated stack clock is at most
+`20*(1+count.length+markers.length)^2`. -/
 theorem drains (source count markers header out : Bits) (v : Symbol) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.drain false 0),v,store source [] count markers header out⟩=
       some ⟨some (.copy true .emit),none,store source [] [] [] header out⟩ ∧
@@ -19574,6 +22960,9 @@ theorem drains (source count markers header out : Bits) (v : Symbol) : ∃ ticks
   obtain ⟨ticks,hr,hc⟩ := eC.trans eM
   exact ⟨ticks,hr,hc.trans (by nlinarith only [Nat.zero_le count.length,Nat.zero_le (count.length^2),Nat.zero_le markers.length,Nat.zero_le (markers.length^2),Nat.zero_le (count.length*markers.length)])⟩
 
+/-- Frame copying preserves the source bits and prepends their length-framed representation to
+the output, clearing its scratch stacks within accumulated clock
+`10000*(1+bits.length+out.length)^3`. -/
 theorem complete (bits out : Bits) (v : Symbol) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.copy false .emit),v,store bits.reverse [] [] [] [] out⟩=
       some ⟨none,none,store bits.reverse [] [] [] [] (framed bits++out)⟩ ∧
@@ -19628,22 +23017,32 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.FrameCopy
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.JobPush
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The stack-index type for encoded job insertion, represented by `Fin 2 ⊕ FrameCopy.Slot`. -/
 abbrev Slot := Fin 2 ⊕ FrameCopy.Slot
+/-- The finite control labels for encoded job insertion. -/
 inductive Label where | plan (l : NatEmit.Label) | context (l : FrameCopy.Label) | done deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.plan .emit⟩
+/-- Map the plan subroutine stack indices into the stack banks for encoded job insertion. -/
 def planCode : Fin 3 → Slot | 0 => .inl 0 | 1 => .inl 1 | _ => .inr .output
 
+/-- The TM2 program implementing encoded job insertion. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Symbol
   | .plan l => StackCall.stmt planCode Label.plan (.context (.copy false .emit)) id (fun _ s => s) (NatEmit.program l)
   | .context l => StackCall.stmt Sum.inr Label.context .done id (fun _ s => s) (FrameCopy.program l)
   | .done => .halt
 
+/-- Assemble the named stack contents into the stack store for encoded job insertion. -/
 def store (plan context jobs : Bits) : Slot → Bits
   | .inl 0 => plan | .inl _ => [] | .inr k => FrameCopy.store context [] [] [] [] jobs k
 
+/-- `planCode` is injective. -/
 theorem planCode_injective : Function.Injective planCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [planCode] at h ⊢
 
+/-- A run of `program` from label `(.plan .emit)` reaches label `(.context (.copy false .emit))`
+with stacks `store plan.reverse context.reverse (plan++jobs)` after `(2*plan.length+3)`
+stack steps; its accumulated stack clock is equal to
+`plan.length*(5*plan.length+2*jobs.length+12)+7`. -/
 theorem plan_call (plan context jobs : Bits) (v : Symbol) :
     Stacks.stackRun program (2*plan.length+3) ⟨some (.plan .emit),v,store plan.reverse context.reverse jobs⟩=
       some ⟨some (.context (.copy false .emit)),none,store plan.reverse context.reverse (plan++jobs)⟩ ∧
@@ -19677,6 +23076,9 @@ theorem plan_call (plan context jobs : Bits) (v : Symbol) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.context (.copy false .emit))` reaches label `.done` with
+stacks `store plan context.reverse (framed context++jobs)`; its accumulated stack clock is
+at most `10000*(1+context.length+jobs.length)^3`. -/
 theorem context_call (plan context jobs : Bits) (v : Symbol) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.context (.copy false .emit)),v,store plan context.reverse jobs⟩=
       some ⟨some .done,none,store plan context.reverse (framed context++jobs)⟩ ∧
@@ -19702,6 +23104,9 @@ theorem context_call (plan context jobs : Bits) (v : Symbol) : ∃ ticks,
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- Job insertion preserves the plan and context and prepends their framed-context job encoding
+to the queue, within accumulated clock
+`100000*(1+plan.length+context.length+jobs.length)^3`. -/
 theorem complete (plan context jobs : Bits) (v : Symbol) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.plan .emit),v,store plan.reverse context.reverse jobs⟩=
       some ⟨none,none,store plan.reverse context.reverse (framed context++plan++jobs)⟩ ∧
@@ -19736,7 +23141,10 @@ theorem complete (plan context jobs : Bits) (v : Symbol) : ∃ ticks,
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.JobPush
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CounterContext
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The stack-index type for child counter-context construction, represented by `Fin 5 ⊕
+FrameCopy.Slot`. -/
 abbrev Slot := Fin 5 ⊕ FrameCopy.Slot
+/-- The finite control labels for child counter-context construction. -/
 inductive Label where
   | counter (l : NatEmit.Label)
   | normalize (l : Fin 1)
@@ -19747,11 +23155,20 @@ inductive Label where
   | done
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.counter .emit⟩
+/-- Map the counter subroutine stack indices into the stack banks for child counter-context
+construction. -/
 def counterCode : Fin 3 → Slot | 0 => .inl 0 | 1 => .inl 3 | _ => .inr .source
+/-- Map the parent subroutine stack indices into the stack banks for child counter-context
+construction. -/
 def parentCode : Fin 3 → Slot | 0 => .inl 1 | 1 => .inl 4 | _ => .inr .output
+/-- Map the norm subroutine stack indices into the stack banks for child counter-context
+construction. -/
 def normCode (_ : Fin 1) : Slot := .inr .source
+/-- Map the transfer subroutine stack indices into the stack banks for child counter-context
+construction. -/
 def transferCode : Fin 2 → Slot | 0 => .inr .output | _ => .inl 2
 
+/-- The TM2 program implementing child counter-context construction. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Symbol
   | .counter l => StackCall.stmt counterCode Label.counter (.normalize 0) id (fun _ s => s) (NatEmit.program l)
   | .normalize l => StackCall.stmt normCode Label.normalize (.parent .emit) id (fun _ s => s) (BinaryNormalize.program l)
@@ -19761,21 +23178,30 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Symbol
   | .drain l => StackCall.stmt normCode Label.drain .done id (fun _ s => s) (Normalization.drainProgram l)
   | .done => .halt
 
+/-- Assemble the named stack contents into the stack store for child counter-context
+construction. -/
 def store (counter context normal work child : Bits) : Slot → Bits
   | .inl 0 => counter | .inl 1 => context | .inl 2 => child | .inl _ => []
   | .inr k => FrameCopy.store normal [] [] [] [] work k
 
+/-- `counterCode` is injective. -/
 theorem counterCode_injective : Function.Injective counterCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [counterCode] at h ⊢
 
+/-- `parentCode` is injective. -/
 theorem parentCode_injective : Function.Injective parentCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [parentCode] at h ⊢
 
+/-- `transferCode` is injective. -/
 theorem transferCode_injective : Function.Injective transferCode := by
     intro a b h; fin_cases a <;> fin_cases b <;> simp [transferCode] at h ⊢
 
+/-- `normCode` is injective. -/
 theorem normCode_injective : Function.Injective normCode := fun _ _ _ => Subsingleton.elim _ _
 
+/-- A run of `program` from label `(.counter .emit)` reaches label `(.normalize 0)` with stacks
+`store counter context counter.reverse [] []` after `(2*counter.length+3)` stack steps; its
+accumulated stack clock is equal to `counter.length*(5*counter.length+12)+7`. -/
 theorem counter_call (counter context : Bits) (v : Symbol) : Stacks.stackRun program (2*counter.length+3) ⟨some (.counter .emit),v,store counter context [] [] []⟩=
       some ⟨some (.normalize 0),none,store counter context counter.reverse [] []⟩ ∧
     Stacks.stackRunClock program (2*counter.length+3) ⟨some (.counter .emit),v,store counter context [] [] []⟩=counter.length*(5*counter.length+12)+7 := by
@@ -19812,6 +23238,9 @@ theorem counter_call (counter context : Bits) (v : Symbol) : Stacks.stackRun pro
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.normalize 0)` reaches label `(.parent .emit)` with stacks
+`store counter context (binaryValue counter).bits.reverse [] []`; its accumulated stack
+clock is at most `20*(1+counter.length)^2`. -/
 theorem normalize_call (counter context : Bits) (v : Symbol) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.normalize 0),v,store counter context counter.reverse [] []⟩=
       some ⟨some (.parent .emit),last,store counter context (binaryValue counter).bits.reverse [] []⟩ ∧
@@ -19845,6 +23274,10 @@ theorem normalize_call (counter context : Bits) (v : Symbol) : ∃ ticks last,
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨ticks,last,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.parent .emit)` reaches label `(.frame (.copy false .emit))`
+with stacks `store counter context.reverse normal context []` after `(2*context.length+3)`
+stack steps; its accumulated stack clock is equal to
+`context.length*(5*context.length+12)+7`. -/
 theorem parent_call (counter context normal : Bits) (v : Symbol) : Stacks.stackRun program (2*context.length+3) ⟨some (.parent .emit),v,store counter context.reverse normal [] []⟩=
       some ⟨some (.frame (.copy false .emit)),none,store counter context.reverse normal context []⟩ ∧
     Stacks.stackRunClock program (2*context.length+3) ⟨some (.parent .emit),v,store counter context.reverse normal [] []⟩=context.length*(5*context.length+12)+7 := by
@@ -19881,6 +23314,9 @@ theorem parent_call (counter context normal : Bits) (v : Symbol) : Stacks.stackR
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.frame (.copy false .emit))` reaches label `(.transfer 0)`
+with stacks `store counter context.reverse n.bits.reverse (framed n.bits++context) []`; its
+accumulated stack clock is at most `10000*(1+n.bits.length+context.length)^3`. -/
 theorem frame_call (n : ℕ) (counter context : Bits) (v : Symbol) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.frame (.copy false .emit)),v,store counter context.reverse n.bits.reverse context []⟩=
       some ⟨some (.transfer 0),none,store counter context.reverse n.bits.reverse (framed n.bits++context) []⟩ ∧
@@ -19909,6 +23345,9 @@ theorem frame_call (n : ℕ) (counter context : Bits) (v : Symbol) : ∃ ticks,
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hc⟩
 
+/-- A run of `program` from label `(.transfer 0)` reaches label `(.drain 0)` with stacks `store
+counter context normal [] work.reverse` after `(work.length+1)` stack steps; its accumulated
+stack clock is equal to `work.length*(2*work.length+5)+3`. -/
 theorem transfer_call (counter context normal work : Bits) (v : Symbol) : Stacks.stackRun program (work.length+1) ⟨some (.transfer 0),v,store counter context normal work []⟩=
       some ⟨some (.drain 0),none,store counter context normal [] work.reverse⟩ ∧
     Stacks.stackRunClock program (work.length+1) ⟨some (.transfer 0),v,store counter context normal work []⟩=work.length*(2*work.length+5)+3 := by
@@ -19945,6 +23384,9 @@ theorem transfer_call (counter context normal work : Bits) (v : Symbol) : Stacks
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.drain 0)` reaches label `(.done)` with stacks `store
+counter context [] [] child` after `(normal.length+1)` stack steps; its accumulated stack
+clock is equal to `normal.length^2+3*normal.length+3`. -/
 theorem drain_call (counter context normal child : Bits) (v : Symbol) : Stacks.stackRun program (normal.length+1) ⟨some (.drain 0),v,store counter context normal [] child⟩=
       some ⟨some (.done),none,store counter context [] [] child⟩ ∧
     Stacks.stackRunClock program (normal.length+1) ⟨some (.drain 0),v,store counter context normal [] child⟩=normal.length^2+3*normal.length+3 := by
@@ -19977,6 +23419,9 @@ theorem drain_call (counter context normal child : Bits) (v : Symbol) : Stacks.s
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- Child-context construction preserves the counter and parent context and returns the reversed
+parent context extended by the framed canonical counter digits, within the stated cubic
+clock bound. -/
 theorem complete (counter context : Bits) (v : Symbol) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.counter .emit),v,store counter context.reverse [] [] []⟩=
       some ⟨none,none,store counter context.reverse [] [] (framed (binaryValue counter).bits++context).reverse⟩ ∧
@@ -20032,16 +23477,25 @@ theorem complete (counter context : Bits) (v : Symbol) : ∃ ticks,
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.CounterContext
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PairZip
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The local-state type for bit-string interleaving, represented by `Symbol×Symbol`. -/
 abbrev Local := Symbol×Symbol
+/-- The finite control labels for bit-string interleaving. -/
 inductive Label where | scan | drain (second : Bool) (l : Fin 1) | done deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.scan⟩
+/-- Extract the selected component of the local state for bit-string interleaving. -/
 def get (second : Bool) (v : Local) : Symbol := if second then v.2 else v.1
+/-- Replace the selected component of the local state for bit-string interleaving, retaining its
+other components. -/
 def put (second : Bool) (v : Local) (s : Symbol) : Local := if second then (v.1,s) else (s,v.2)
 
+/-- Replacing the selected local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem put_get (second : Bool) (v : Local) : put second v (get second v)=v := by cases second <;> rfl
 
+/-- Map the selected subroutine stack indices into the stack banks for bit-string interleaving. -/
 def code (second : Bool) (_ : Fin 1) : Fin 3 := if second then 1 else 0
 
+/-- The TM2 program implementing bit-string interleaving. -/
 def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Local
   | .scan => .pop 0 (fun v b => (b,v.2)) (.pop 1 (fun v b => (v.1,b))
       (.branch (fun v => v.1.isSome && v.2.isSome)
@@ -20051,6 +23505,11 @@ def program : Label → TM2.Stmt (fun _ : Fin 3 => Bool) Label Local
       (get second) (put second) (Normalization.drainProgram l)
   | .done => .halt
 
+/-- A run of `program` from label `(.drain second 0)` reaches label `(if second then .done else
+.drain true 0)` with stacks `Parsing.triple (if second then a else []) (if second then []
+else b) out` after `((if second then b.length else a.length)+1)` stack steps; its
+accumulated stack clock is equal to `(if second then b.length else a.length)^2+3*(if second
+then b.length else a.length)+3`. -/
 theorem drain_call (second : Bool) (a b out : Bits) (v : Local) :
     Stacks.stackRun program ((if second then b.length else a.length)+1)
       ⟨some (.drain second 0),v,Parsing.triple a b out⟩=
@@ -20088,6 +23547,8 @@ theorem drain_call (second : Bool) (a b out : Bits) (v : Local) :
   rw [hlen] at hc
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.drain false 0)` halts with stacks `Parsing.triple [] []
+out`; its accumulated stack clock is at most `20*(1+a.length+b.length)^2`. -/
 theorem sweep (a b out : Bits) (v : Local) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.drain false 0),v,Parsing.triple a b out⟩=
       some ⟨none,(none,none),Parsing.triple [] [] out⟩ ∧
@@ -20105,6 +23566,9 @@ theorem sweep (a b out : Bits) (v : Local) : ∃ ticks,
   simp only [Bool.false_eq_true,ite_false,ite_true] at hc
   exact ⟨ticks,hr,hc.trans (by nlinarith only [Nat.zero_le (a.length^2),Nat.zero_le (b.length^2),Nat.zero_le (a.length*b.length)])⟩
 
+/-- Under the stated input conditions, a run of `program` from label `.scan` reaches label
+`(.drain false 0)` with stacks `Parsing.triple a.tail b.tail out` after `1` stack step; its
+accumulated stack clock is at most `5*(1+a.length+b.length)`. -/
 theorem scan_stop (a b out : Bits) (v : Local) (he : a=[] ∨ b=[]) :
     Stacks.stackRun program 1 ⟨some .scan,v,Parsing.triple a b out⟩=
       some ⟨some (.drain false 0),(a.head?,b.head?),Parsing.triple a.tail b.tail out⟩ ∧
@@ -20119,6 +23583,9 @@ theorem scan_stop (a b out : Bits) (v : Local) (he : a=[] ∨ b=[]) :
         [Stacks.run_one,TM2.step,program,TM2.stepAux,Stacks.stackRunClock,Stacks.stackClock]
     all_goals omega
 
+/-- A run of `program` from label `.scan` reaches label `.scan` with stacks `Parsing.triple a b
+(y::x::out)` after `1` stack step; its accumulated stack clock is equal to
+`2*a.length+2*b.length+4*out.length+15`. -/
 theorem scan_pair (x y : Bool) (a b out : Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .scan,v,Parsing.triple (x::a) (y::b) out⟩=
       some ⟨some .scan,(some x,some y),Parsing.triple a b (y::x::out)⟩ ∧
@@ -20129,9 +23596,15 @@ theorem scan_pair (x y : Bool) (a b out : Bits) (v : Local) :
   · simp [Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- Interleave the paired entries of two bit lists, truncating when either list ends. -/
 def output (a b : Bits) : Bits := (a.zip b).flatMap (fun pair => [pair.1,pair.2])
+/-- The size parameter `1+2*a.length+2*b.length+out.length` used to bound bit-string
+interleaving. -/
 def size (a b out : Bits) := 1+2*a.length+2*b.length+out.length
 
+/-- Under the stated input conditions, a run of `program` from label `.scan` halts with stacks
+`Parsing.triple [] [] out`; its accumulated stack clock is at most
+`30*(1+a.length+b.length)^2`. -/
 theorem empty (a b out : Bits) (v : Local) (he : a=[] ∨ b=[]) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some .scan,v,Parsing.triple a b out⟩=
       some ⟨none,(none,none),Parsing.triple [] [] out⟩ ∧
@@ -20148,6 +23621,9 @@ theorem empty (a b out : Bits) (v : Local) (he : a=[] ∨ b=[]) : ∃ ticks,
   have hb : 1+a.length+b.length≤(1+a.length+b.length)^2 := Nat.le_pow (by decide)
   nlinarith only [ht2,hb]
 
+/-- The pair scanner consumes both input lists and prepends their reversed interleaving to the
+output, halting with cleared local symbols and accumulated clock at most `100*(size a b
+out)^2`. -/
 theorem complete (a b out : Bits) (v : Local) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some .scan,v,Parsing.triple a b out⟩=
       some ⟨none,(none,none),Parsing.triple [] [] ((output a b).reverse++out)⟩ ∧
@@ -20185,16 +23661,25 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.PairZip
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Scheduler
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Encode a counter context as a table of framed canonical binary digit lists. -/
 def counterStream (cs : List ℕ) : Bits := TM.TableGet.stream (cs.map Nat.bits)
+/-- Encode a job by a framed counter-context stream followed by its plan encoding. -/
 def jobBits (job : Job) : Bits := framed (counterStream job.counters)++planBits job.plan
+/-- Concatenate the encodings of queued jobs in queue order. -/
 def queueBits (jobs : List Job) : Bits := jobs.flatMap jobBits
 
+/-- The context depth plus encoded plan length is bounded by the syntax limit, and each counter
+is bounded by the counter limit. -/
 def WellFormed (syntaxBound counterBound : ℕ) (job : Job) : Prop :=
   job.counters.length+(planBits job.plan).length≤syntaxBound ∧ ∀ n∈job.counters,n≤counterBound
 
+/-- The initial job with empty counter context satisfies the syntax bound given by its encoded
+plan length and any counter bound. -/
 theorem wellFormed_initial (p : Plan) (counterBound : ℕ) :
     WellFormed (planBits p).length counterBound ⟨[],p⟩ := by simp [WellFormed]
 
+/-- Every child generated by a well-formed scheduler job remains well formed under the stated
+work bound. -/
 theorem wellFormed_child (params : List Bits) (k syntaxBound counterBound : ℕ) (job child : Job)
     (hw : WellFormed syntaxBound counterBound job) (hwork : work params k job.counters job.plan≤counterBound)
     (hchild : child∈(stepOne params k job).2) : WellFormed syntaxBound counterBound child := by
@@ -20229,11 +23714,13 @@ theorem wellFormed_child (params : List Bits) (k syntaxBound counterBound : ℕ)
       · omega
       · exact hn n hmem
 
+/-- `(framed bits).length` is at most `3*bits.length+1`. -/
 theorem framed_length_bound (bits : Bits) : (framed bits).length≤3*bits.length+1 := by
   have hh := TM.Counter.bits_length_le bits.length
   simp only [framed,List.length_append,natBits_length]
   omega
 
+/-- Under the stated hypotheses, `(counterStream cs).length` is at most `cs.length*(3*bound+1)`. -/
 theorem counterStream_length (cs : List ℕ) (bound : ℕ) (hb : ∀ n∈cs,n≤bound) :
     (counterStream cs).length≤cs.length*(3*bound+1) := by
   induction cs with
@@ -20246,6 +23733,7 @@ theorem counterStream_length (cs : List ℕ) (bound : ℕ) (hb : ∀ n∈cs,n≤
     simp only [counterStream,TM.TableGet.stream,List.map_cons,List.flatMap_cons,List.length_append,List.length_cons] at htail ⊢
     nlinarith only [hn,hnBits,hframe,htail]
 
+/-- Under the stated hypotheses, `(jobBits job).length` is at most `14*B^2`. -/
 theorem jobBits_length_bound (syntaxBound counterBound B : ℕ) (hB : 1≤B) (hs : syntaxBound≤B) (hc : counterBound≤B)
     (job : Job) (hw : WellFormed syntaxBound counterBound job) : (jobBits job).length≤14*B^2 := by
   obtain ⟨hsyntax,hcounter⟩ := hw
@@ -20259,6 +23747,7 @@ theorem jobBits_length_bound (syntaxBound counterBound B : ℕ) (hB : 1≤B) (hs
   simp only [jobBits,List.length_append]
   nlinarith only [hstream,hg,hframe,hplan,hB2,h12]
 
+/-- Under the stated hypotheses, `(queueBits jobs).length` is at most `jobs.length*(14*B^2)`. -/
 theorem queueBits_length (syntaxBound counterBound B : ℕ) (hB : 1≤B) (hs : syntaxBound≤B) (hc : counterBound≤B)
     (jobs : List Job) (hw : ∀ job∈jobs,WellFormed syntaxBound counterBound job) :
     (queueBits jobs).length≤jobs.length*(14*B^2) := by
@@ -20271,6 +23760,7 @@ theorem queueBits_length (syntaxBound counterBound B : ℕ) (hB : 1≤B) (hs : s
     simp only [queueBits,List.flatMap_cons,List.length_append,List.length_cons] at ht ⊢
     nlinarith only [hj,ht]
 
+/-- Under the stated hypotheses, `(queueBits jobs).length` is at most `14*B^3`. -/
 theorem queueBits_length_budget (params : List Bits) (k syntaxBound counterBound B : ℕ) (hB : 1≤B)
     (hs : syntaxBound≤B) (hc : counterBound≤B) (jobs : List Job)
     (hw : ∀ job∈jobs,WellFormed syntaxBound counterBound job) (hwork : pendingWork params k jobs≤B) :
@@ -20283,51 +23773,93 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Scheduler
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.EmitterCore
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The finite set of stack banks used by scheduled plan evaluation. -/
 inductive Work where
   | jobs | plan | eval | params | context | precision | output | value | width
   | first | second | firstNormal | secondNormal | firstPlan | secondPlan | loopCount | childContext | tag | discard | pending
   deriving DecidableEq,Fintype
+/-- The finite set of auxiliary stack banks used by scheduled plan evaluation. -/
 inductive Aux where
   | scalar (s : ScalarEval.Slot) | read (s : NatReadEmit.Slot) | scanner (s : PlanCopy.Slot)
   | frame (s : FramedTake.Slot) | lookup (s : ReadonlyTableGet.Slot)
   | push (s : JobPush.Slot) | context (s : CounterContext.Slot)
   | copyTemporary | emitTemporary | takeTemporary | counterTemporary
   deriving DecidableEq,Fintype
+/-- The stack-index type for scheduled plan evaluation, represented by `Work ⊕ Aux`. -/
 abbrev Slot := Work ⊕ Aux
+/-- The local-state type for scheduled plan evaluation, represented by
+`((ScalarEval.Local×PlanCopy.Local)×(NatReadEmit.Local×FramedTake.Local))×((TinyTag.Local×Counter.Local)×(PairZip.Local×Symbol))`. -/
 abbrev Local :=
     ((ScalarEval.Local×PlanCopy.Local)×(NatReadEmit.Local×FramedTake.Local))×((TinyTag.Local×Counter.Local)×(PairZip.Local×Symbol))
 
 set_option synthInstance.maxSize 1024 in
 instance localFintype : Fintype Local := inferInstance
 
+/-- Extract the scalar component of the local state for scheduled plan evaluation. -/
 def getScalar (v : Local) := v.1.1.1
+/-- Replace the scalar component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putScalar (v : Local) (s : ScalarEval.Local) : Local := (((s,v.1.1.2),v.1.2),v.2)
+/-- Extract the scan component of the local state for scheduled plan evaluation. -/
 def getScan (v : Local) := v.1.1.2
+/-- Replace the scan component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putScan (v : Local) (s : PlanCopy.Local) : Local := (((v.1.1.1,s),v.1.2),v.2)
+/-- Extract the read component of the local state for scheduled plan evaluation. -/
 def getRead (v : Local) := v.1.2.1
+/-- Replace the read component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putRead (v : Local) (s : NatReadEmit.Local) : Local := ((v.1.1,(s,v.1.2.2)),v.2)
+/-- Extract the frame component of the local state for scheduled plan evaluation. -/
 def getFrame (v : Local) := v.1.2.2
+/-- Replace the frame component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putFrame (v : Local) (s : FramedTake.Local) : Local := ((v.1.1,(v.1.2.1,s)),v.2)
+/-- Extract the tag component of the local state for scheduled plan evaluation. -/
 def getTag (v : Local) := v.2.1.1
+/-- Replace the tag component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putTag (v : Local) (s : TinyTag.Local) : Local := (v.1,((s,v.2.1.2),v.2.2))
+/-- Extract the counter component of the local state for scheduled plan evaluation. -/
 def getCounter (v : Local) := v.2.1.2
+/-- Replace the counter component of the local state for scheduled plan evaluation, retaining
+its other components. -/
 def putCounter (v : Local) (s : Counter.Local) : Local := (v.1,((v.2.1.1,s),v.2.2))
+/-- Extract the zip component of the local state for scheduled plan evaluation. -/
 def getZip (v : Local) := v.2.2.1
+/-- Replace the zip component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putZip (v : Local) (s : PairZip.Local) : Local := (v.1,(v.2.1,(s,v.2.2.2)))
+/-- Extract the io component of the local state for scheduled plan evaluation. -/
 def getIO (v : Local) := v.2.2.2
+/-- Replace the io component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putIO (v : Local) (s : Symbol) : Local := (v.1,(v.2.1,(v.2.2.1,s)))
+/-- Extract the lookup component of the local state for scheduled plan evaluation. -/
 def getLookup (v : Local) := ScalarEval.getLookup (getScalar v)
+/-- Replace the lookup component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putLookup (v : Local) (s : ReadonlyTableGet.Local) : Local :=
     putScalar v (ScalarEval.putLookup (getScalar v) s)
+/-- Extract the take component of the local state for scheduled plan evaluation. -/
 def getTake (v : Local) : CountedTake.Local := (getCounter v,getIO v)
+/-- Replace the take component of the local state for scheduled plan evaluation, retaining its
+other components. -/
 def putTake (v : Local) (s : CountedTake.Local) : Local := putIO (putCounter v s.1) s.2
 
+/-- The plan bank choices for scheduled plan evaluation: `original`, `first`, `second`. -/
 inductive PlanBank where | original | first | second deriving DecidableEq,Fintype
+/-- The reader bank choices for scheduled plan evaluation: `jobs`, `eval`. -/
 inductive ReaderBank where | jobs | eval deriving DecidableEq,Fintype
+/-- The context bank choices for scheduled plan evaluation: `parent`, `child`. -/
 inductive ContextBank where | parent | child deriving DecidableEq,Fintype
+/-- The frame kind choices for scheduled plan evaluation: `context`, `literal`. -/
 inductive FrameKind where | context | literal deriving DecidableEq,Fintype
+/-- The value bank choices for scheduled plan evaluation: `value`, `width`. -/
 inductive ValueBank where | value | width deriving DecidableEq,Fintype
+/-- The output bank choices for scheduled plan evaluation: `output`, `first`, `second`. -/
 inductive OutputBank where | output | first | second deriving DecidableEq,Fintype
+/-- The control phases of scheduled plan evaluation. -/
 inductive Phase where
   | loop | contextDecoded | planDecoded | planReady | rootRead | rootTag | dispatch
   | copyIndex | emitValue | widthRead | fixedValue | pairFirstIndex | pairFirstCopied | pairSecondIndex | pairSecondCopied | pairFirstNormal | pairSecondNormal
@@ -20335,16 +23867,24 @@ inductive Phase where
   | terminalParams | done
   deriving DecidableEq,Fintype
 
+/-- Select the work-stack index for the given plan choice in scheduled plan evaluation. -/
 def planKey : PlanBank → Work | .original => .plan | .first => .firstPlan | .second => .secondPlan
+/-- Select the work-stack index for the given reader choice in scheduled plan evaluation. -/
 def readerKey : ReaderBank → Work | .jobs => .jobs | .eval => .eval
+/-- Select the work-stack index for the given context choice in scheduled plan evaluation. -/
 def contextKey : ContextBank → Work | .parent => .context | .child => .childContext
+/-- Select the work-stack index for the given value choice in scheduled plan evaluation. -/
 def valueKey : ValueBank → Work | .value => .value | .width => .width
+/-- Select the work-stack index for the given output choice in scheduled plan evaluation. -/
 def outputKey : OutputBank → Work | .output => .output | .first => .first | .second => .second
 
+/-- The emitter work banks cleared between jobs, retaining the job queue, parameter table,
+precision, and output. -/
 def cleanList : List Work :=
     [.plan,.eval,.context,.value,.width,.first,.second,.firstNormal,.secondNormal,.firstPlan,.secondPlan,.loopCount,.childContext,.tag,.discard,.pending]
 
 set_option synthInstance.maxSize 512 in
+/-- The finite control labels for scheduled plan evaluation. -/
 inductive Label where
   | step (phase : Phase)
   | read (ret : Phase) (dest : ValueBank) (l : NatReadEmit.Label)
@@ -20367,48 +23907,68 @@ inductive Label where
   deriving DecidableEq,Fintype
 instance : Inhabited Label := ⟨.step .loop⟩
 
+/-- Map the read subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def readCode (dest : ValueBank) : NatReadEmit.Slot → Slot
   | .reader => .inl .eval | .value => .inl (valueKey dest) | .output => .inl .discard | k => .inr (.read k)
+/-- Map the scan subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def scanCode (reader : ReaderBank) (dest : PlanBank) : PlanCopy.Slot → Slot
   | .reader => .inl (readerKey reader) | .pending => .inl .pending | .output => .inl (planKey dest) | k => .inr (.scanner k)
+/-- Map the frame subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def frameCode : FrameKind → FramedTake.Slot → Slot
   | .context,.reader => .inl .jobs | .context,.output => .inl .context
   | .literal,.reader => .inl .eval | .literal,.output => .inl .output
   | _,k => .inr (.frame k)
+/-- Map the scalar subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def scalarCode (forRepeat : Bool) : ScalarEval.Slot → Slot
   | .reader => .inl .eval | .params => .inl .params | .counters => .inl .context | .precision => .inl .precision
   | .value => .inl (if forRepeat then .loopCount else .value) | k => .inr (.scalar k)
+/-- Map the lookup subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def lookupCode (dest : OutputBank) : ReadonlyTableGet.Slot → Slot
   | .inl 0 => .inl .params
   | .inr .index => .inl .value
   | .inr .output => .inl (outputKey dest)
   | k => .inr (.lookup k)
+/-- Map the copy subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def copyCode (source dest : Work) : Fin 3 → Slot
   | 0 => .inl source | 1 => .inr .copyTemporary | _ => .inl dest
+/-- Map the transfer subroutine stack indices into the stack banks for scheduled plan
+evaluation. -/
 def transferCode (source dest : Work) : Fin 2 → Slot | 0 => .inl source | _ => .inl dest
+/-- Map the tag subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def tagCode (_ : Fin 1) : Slot := .inl .tag
+/-- Map the emit subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def emitCode : Fin 3 → Slot | 0 => .inl .value | 1 => .inr .emitTemporary | _ => .inl .output
+/-- Map the take subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def takeCode : Fin 4 →
     Slot | 0 => .inl .width | 1 => .inr .takeTemporary | 2 => .inl .value | _ => .inl .output
+/-- Map the zip subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def zipCode : Fin 3 → Slot | 0 => .inl .firstNormal | 1 => .inl .secondNormal | _ => .inl .output
+/-- Map the push subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def pushCode (plan : PlanBank) (context : ContextBank) : JobPush.Slot → Slot
   | .inl 0 => .inl (planKey plan)
   | .inr .source => .inl (contextKey context)
   | .inr .output => .inl .jobs
   | k => .inr (.push k)
+/-- Map the context subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def contextCode : CounterContext.Slot → Slot
   | .inl 0 => .inl .loopCount | .inl 1 => .inl .context | .inl 2 => .inl .childContext
   | k => .inr (.context k)
+/-- Map the counter subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def counterCode : Fin 2 → Slot | 0 => .inl .loopCount | _ => .inr .counterTemporary
+/-- Map the drain subroutine stack indices into the stack banks for scheduled plan evaluation. -/
 def drainCode (bank : Work) (_ : Fin 1) : Slot := .inl bank
 
+/-- Enter the natural-field subroutine with the given return phase and destination bank. -/
 def readField (ret : Phase) (dest : ValueBank) : TM2.Stmt (fun _ : Slot => Bool) Label Local :=
     .goto (fun _ => .read ret dest (.read .unary))
+/-- Enter scalar evaluation with the supplied return phase and choice of result bank. -/
 def scalarField (ret : Phase) (forRepeat : Bool) : TM2.Stmt (fun _ : Slot => Bool) Label Local :=
     .goto (fun _ => .scalar ret forRepeat (.read .afterTag (.read .unary)))
+/-- Enter plan scanning with the supplied reader, destination, and return phase. -/
 def scanField (ret : Phase) (reader : ReaderBank) (dest : PlanBank) :
     TM2.Stmt (fun _ : Slot => Bool) Label Local := .goto (fun _ => .scanStart ret reader dest)
 
+/-- The stack instructions executed in each control phase of scheduled plan evaluation. -/
 def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .loop => .peek (.inl .jobs) (fun v b => putIO v b) (.branch (fun v => (getIO v).isSome)
       (.goto (fun _ => .frame .contextDecoded .context (.read (.read .unary))))
@@ -20449,6 +24009,7 @@ def phaseProgram : Phase → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .terminalParams => .goto (fun _ => .drain .done .precision 0)
   | .done => .halt
 
+/-- The TM2 program implementing scheduled plan evaluation. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .step phase => phaseProgram phase
   | .read ret dest l => StackCall.stmt (readCode dest) (Label.read ret dest) (.step ret) getRead putRead (NatReadEmit.program l)
@@ -20472,28 +24033,51 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
         (Label.clean i) (Label.clean ⟨i.val+1,by omega⟩ 0) getIO putIO (Normalization.drainProgram l)
       else .goto (fun _ => .step .loop)
 
+/-- Embed the work-bank contents in the full emitter stack store, leaving every auxiliary stack
+empty. -/
 def store (S : Work → Bits) : Slot → Bits | .inl w => S w | .inr _ => []
 
+/-- Replacing the io local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putIO_get (v : Local) : putIO v (getIO v)=v := rfl
 
+/-- Replacing the read local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putRead_get (v : Local) : putRead v (getRead v)=v := rfl
 
+/-- Replacing the scan local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putScan_get (v : Local) : putScan v (getScan v)=v := rfl
 
+/-- Replacing the frame local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putFrame_get (v : Local) : putFrame v (getFrame v)=v := rfl
 
+/-- Replacing the scalar local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putScalar_get (v : Local) : putScalar v (getScalar v)=v := rfl
 
+/-- Replacing the lookup local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putLookup_get (v : Local) : putLookup v (getLookup v)=v := rfl
 
+/-- Replacing the tag local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putTag_get (v : Local) : putTag v (getTag v)=v := rfl
 
+/-- Replacing the counter local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putCounter_get (v : Local) : putCounter v (getCounter v)=v := rfl
 
+/-- Replacing the zip local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putZip_get (v : Local) : putZip v (getZip v)=v := rfl
 
+/-- Replacing the take local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putTake_get (v : Local) : putTake v (getTake v)=v := rfl
 
+/-- Under the stated hypotheses, `StackCall.frame code saved data` equals `target`. -/
 theorem frame_target {K : Type} [DecidableEq K] (code : K → Slot) (saved target : Slot → Bits) (data : K → Bits)
     (hinj : Function.Injective code) (hm : ∀ k,target (code k)=data k)
     (ho : ∀ bank,(∀ k,code k≠bank) → target bank=saved bank) : StackCall.frame code saved data=target := by
@@ -20505,6 +24089,7 @@ theorem frame_target {K : Type} [DecidableEq K] (code : K → Slot) (saved targe
   · rw [WordValidator.frame_outside code saved data bank (fun k hk => he ⟨k,hk⟩)]
     exact (ho bank (fun k hk => he ⟨k,hk⟩)).symm
 
+/-- `Function.update (store S) (.inl bank) bits` equals `store (Function.update S bank bits)`. -/
 @[simp] theorem store_update (S : Work → Bits) (bank : Work) (bits : Bits) :
     Function.update (store S) (.inl bank) bits=store (Function.update S bank bits) := by
   funext k
@@ -20515,18 +24100,25 @@ theorem frame_target {K : Type} [DecidableEq K] (code : K → Slot) (saved targe
     · simp [store,Function.update_of_ne h]
   | inr a => rfl
 
+/-- `(copyCode source dest)` is injective. -/
 theorem copyCode_injective (source dest : Work) (hne : source≠dest) : Function.Injective (copyCode source dest) := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp_all [copyCode]
 
+/-- `(transferCode source dest)` is injective. -/
 theorem transferCode_injective (source dest : Work) (hne : source≠dest) : Function.Injective (transferCode source dest) := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp_all [transferCode]
 
+/-- `(readCode dest)` is injective. -/
 theorem readCode_injective (dest : ValueBank) : Function.Injective (readCode dest) := by
   intro a b h
   cases dest <;> cases a <;> cases b <;> simp [readCode,valueKey] at h ⊢
 
+/-- Under the stated input conditions, a run of `program` from label `(.copy ret source dest
+.emit)` reaches label `(.step ret)` with stacks `store (Function.update S dest ((S
+source).reverse++S dest))` after `(2*(S source).length+3)` stack steps; its accumulated
+stack clock is equal to `(S source).length*(5*(S source).length+2*(S dest).length+12)+7`. -/
 theorem copy_call (ret : Phase) (source dest : Work) (hne : source≠dest) (S : Work → Bits) (v : Local) :
     Stacks.stackRun program (2*(S source).length+3) ⟨some (.copy ret source dest .emit),v,store S⟩=
       some ⟨some (.step ret),putIO v none,store (Function.update S dest ((S source).reverse++S dest))⟩ ∧
@@ -20557,6 +24149,11 @@ theorem copy_call (ret : Phase) (source dest : Work) (hne : source≠dest) (S : 
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.transfer ret source dest
+0)` reaches label `(.step ret)` with stacks `store (Function.update (Function.update S
+source []) dest ((S source).reverse++S dest))` after `((S source).length+1)` stack steps;
+its accumulated stack clock is equal to `(S source).length*(2*((S source).length+(S
+dest).length)+5)+3`. -/
 theorem transfer_call (ret : Phase) (source dest : Work) (hne : source≠dest) (S : Work → Bits) (v : Local) :
     Stacks.stackRun program ((S source).length+1) ⟨some (.transfer ret source dest 0),v,store S⟩=
       some ⟨some (.step ret),putIO v none,store (Function.update (Function.update S source []) dest ((S source).reverse++S dest))⟩ ∧
@@ -20588,6 +24185,9 @@ theorem transfer_call (ret : Phase) (source dest : Work) (hne : source≠dest) (
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Stacks.transfer_clock (S source) (S dest) (getIO v))⟩
 
+/-- A run of `program` from label `(.drain ret bank 0)` reaches label `(.step ret)` with stacks
+`store (Function.update S bank [])` after `((S bank).length+1)` stack steps; its accumulated
+stack clock is equal to `(S bank).length^2+3*(S bank).length+3`. -/
 theorem drain_call (ret : Phase) (bank : Work) (S : Work → Bits) (v : Local) :
     Stacks.stackRun program ((S bank).length+1) ⟨some (.drain ret bank 0),v,store S⟩=
       some ⟨some (.step ret),putIO v none,store (Function.update S bank [])⟩ ∧
@@ -20612,9 +24212,14 @@ theorem drain_call (ret : Phase) (bank : Work) (S : Work → Bits) (v : Local) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock (S bank) (getIO v))⟩
 
+/-- Update the reader suffix and destination value after natural-field parsing, retaining the
+reversed encoding in the discard bank. -/
 def readResult (dest : ValueBank) (n : ℕ) (tail : Bits) (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update (Function.update S .eval tail) (valueKey dest) n.bits) .discard ((natBits n).reverse++S .discard)
 
+/-- Under the stated input conditions, a run of `program` from label `(.read ret dest (.read
+.unary))` reaches label `(.step ret)` with stacks `store (readResult dest n tail S)`; its
+accumulated stack clock is at most `500*(1+(S .eval).length+(S .discard).length)^2`. -/
 theorem read_call (ret : Phase) (dest : ValueBank) (n : ℕ) (tail : Bits) (S : Work → Bits) (v : Local)
     (hrd : S .eval=natBits n++tail) (hv : S (valueKey dest)=[]) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.read ret dest (.read .unary)),v,store S⟩=
@@ -20647,21 +24252,30 @@ theorem read_call (ret : Phase) (dest : ValueBank) (n : ℕ) (tail : Bits) (S : 
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putRead_get,hsame,hfinal] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le (by simpa only [hrd] using hc)⟩
 
+/-- `(scanCode reader dest)` is injective. -/
 theorem scanCode_injective (reader : ReaderBank) (dest : PlanBank) : Function.Injective (scanCode reader dest) := by
   intro a b h
   cases reader <;> cases dest <;> cases a <;> cases b <;> simp [scanCode,readerKey,planKey] at h ⊢
 
+/-- `(scalarCode forRepeat)` is injective. -/
 theorem scalarCode_injective (forRepeat : Bool) : Function.Injective (scalarCode forRepeat) := by
   intro a b h
   cases forRepeat <;> cases a <;> cases b <;> simp [scalarCode] at h ⊢
 
+/-- `(frameCode kind)` is injective. -/
 theorem frameCode_injective (kind : FrameKind) : Function.Injective (frameCode kind) := by
   intro a b h
   cases kind <;> cases a <;> cases b <;> simp [frameCode] at h ⊢
 
+/-- Consume one encoded plan from the selected reader and store its reversed encoding in the
+selected plan bank. -/
 def scanResult (reader : ReaderBank) (dest : PlanBank) (p : Plan) (tail : Bits) (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update S (readerKey reader) tail) (planKey dest) (planBits p).reverse
 
+/-- Under the stated input conditions, a run of `program` from label `(.scanStart ret reader
+dest)` reaches label `(.step ret)` with stacks `store (scanResult reader dest p tail S)`;
+its accumulated stack clock is at most `4+30000*(1+(planBits p).length)*(PlanCopy.scanSize
+(planBits p++tail) [] 1)^2`. -/
 theorem scan_call (ret : Phase) (reader : ReaderBank) (dest : PlanBank) (p : Plan) (tail : Bits) (S : Work → Bits) (v : Local)
     (hr : S (readerKey reader)=planBits p++tail) (hd : S (planKey dest)=[]) (hp : S .pending=[]) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.scanStart ret reader dest),v,store S⟩=
@@ -20707,10 +24321,17 @@ theorem scan_call (ret : Phase) (reader : ReaderBank) (dest : PlanBank) (p : Pla
   obtain ⟨total,hRun,hClock⟩ := eP.trans eN
   exact ⟨total,putScan v last,hRun,hClock⟩
 
+/-- Choose the loop-count bank for a repetition bound and the ordinary value bank otherwise. -/
 def scalarValueKey (forRepeat : Bool) : Work := if forRepeat then .loopCount else .value
+/-- Replace the evaluation reader by its suffix and store the evaluated scalar digits in the
+selected value bank. -/
 def scalarResult (forRepeat : Bool) (n : ℕ) (tail : Bits) (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update S .eval tail) (scalarValueKey forRepeat) n.bits
 
+/-- Under the stated input conditions, a run of `program` from label `(.scalar ret forRepeat
+(.read .afterTag (.read .unary)))` reaches label `(.step ret)` with stacks `store
+(scalarResult forRepeat (value params k cs s) tail S)`; its accumulated stack clock is at
+most `2000000*(ScalarEval.size (scalarBits s++tail) params (cs.map Nat.bits) k [])^3`. -/
 theorem scalar_call (ret : Phase) (forRepeat : Bool) (s : Scalar) (params : List Bits) (cs : List ℕ) (k : ℕ) (tail : Bits) (S : Work → Bits) (v : Local)
     (hr : S .eval=scalarBits s++tail) (hp : S .params=(TableGet.stream params).reverse)
     (hc : S .context=(TableGet.stream (cs.map Nat.bits)).reverse) (hk : S .precision=k.bits.reverse)
@@ -20750,11 +24371,18 @@ theorem scalar_call (ret : Phase) (forRepeat : Bool) (s : Scalar) (params : List
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putScalar_get,hsame,hfinal] at hN hNC
   exact ⟨ticks,putScalar v last,hN,hNC.trans_le hRC⟩
 
+/-- Select the jobs reader for a framed context and the evaluation reader for a framed literal. -/
 def frameReader : FrameKind → Work | .context => .jobs | .literal => .eval
+/-- Select the context bank for a framed context and the output bank for a framed literal. -/
 def frameOutput : FrameKind → Work | .context => .context | .literal => .output
+/-- Consume a framed bit string and prepend its reversal to the selected destination bank. -/
 def frameResult (kind : FrameKind) (bits tail : Bits) (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update S (frameReader kind) tail) (frameOutput kind) (bits.reverse++S (frameOutput kind))
 
+/-- Under the stated input conditions, a run of `program` from label `(.frame ret kind (.read
+(.read .unary)))` reaches label `(.step ret)` with stacks `store (frameResult kind bits tail
+S)`; its accumulated stack clock is at most `5000*(bits.length+1)*(1+(framed
+bits++tail).length+(S (frameOutput kind)).length)^2`. -/
 theorem frame_call (ret : Phase) (kind : FrameKind) (bits tail : Bits) (S : Work → Bits) (v : Local)
     (hr : S (frameReader kind)=framed bits++tail) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.frame ret kind (.read (.read .unary))),v,store S⟩=
@@ -20791,17 +24419,27 @@ theorem frame_call (ret : Phase) (kind : FrameKind) (bits tail : Bits) (S : Work
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putFrame_get,hsame,hfinal] at hN hNC
   exact ⟨ticks,putFrame v last,hN,hNC.trans_le hRC⟩
 
+/-- `(lookupCode dest)` is injective. -/
 theorem lookupCode_injective (dest : OutputBank) : Function.Injective (lookupCode dest) := by
     cases dest <;> decide
 
+/-- `(pushCode plan context)` is injective. -/
 theorem pushCode_injective (plan : PlanBank) (context : ContextBank) :
     Function.Injective (pushCode plan context) := by cases plan <;> cases context <;> decide
 
+/-- `contextCode` is injective. -/
 theorem contextCode_injective : Function.Injective contextCode := by decide
 
+/-- Look up a parameter by the binary index in the value bank, clear that index, and prepend the
+reversed entry to the selected output bank. -/
 def lookupResult (dest : OutputBank) (params : List Bits) (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update S .value []) (outputKey dest) ((params.getD (binaryValue (S .value)) []).reverse++S (outputKey dest))
 
+/-- Under the stated input conditions, a run of `program` from label `(.lookup ret dest (.copy
+.emit))` reaches label `(.step ret)` with stacks `store (lookupResult dest params S)`; its
+accumulated stack clock is at most `30000*(1+(TableGet.stream
+params).length)*(1+(TableGet.stream params).length+(S .value).length+(S (outputKey
+dest)).length)^2`. -/
 theorem lookup_call (ret : Phase) (dest : OutputBank) (params : List Bits) (S : Work → Bits) (v : Local)
     (hp : S .params=(TableGet.stream params).reverse) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.lookup ret dest (.copy .emit)),v,store S⟩=
@@ -20841,9 +24479,14 @@ theorem lookup_call (ret : Phase) (dest : OutputBank) (params : List Bits) (S : 
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putLookup_get,hsame,hfinal] at hN hNC
   exact ⟨ticks,putLookup v last,hN,hNC.trans_le hRC⟩
 
+/-- Prepend a job consisting of a framed context and encoded plan to the current job queue. -/
 def pushResult (plan context : Bits) (S : Work → Bits) : Work → Bits :=
     Function.update S .jobs (framed context++plan++S .jobs)
 
+/-- Under the stated input conditions, a run of `program` from label `(.push ret planBank
+contextBank (.plan .emit))` reaches label `(.step ret)` with stacks `store (pushResult plan
+context S)`; its accumulated stack clock is at most `100000*(1+plan.length+context.length+(S
+.jobs).length)^3`. -/
 theorem push_call (ret : Phase) (planBank : PlanBank) (contextBank : ContextBank) (plan context : Bits) (S : Work → Bits) (v : Local)
     (hp : S (planKey planBank)=plan.reverse) (hc : S (contextKey contextBank)=context.reverse) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.push ret planBank contextBank (.plan .emit)),v,store S⟩=
@@ -20885,9 +24528,15 @@ theorem push_call (ret : Phase) (planBank : PlanBank) (contextBank : ContextBank
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hRC⟩
 
+/-- Build a reversed child context by prepending the framed canonical loop-counter digits to the
+parent context. -/
 def contextResult (context : Bits) (S : Work → Bits) : Work → Bits :=
   Function.update S .childContext (framed (binaryValue (S .loopCount)).bits++context).reverse
 
+/-- Under the stated input conditions, a run of `program` from label `(.context (.counter
+.emit))` reaches label `(.step .repeatContext)` with stacks `store (contextResult context
+S)`; its accumulated stack clock is at most `1000000*(1+(S
+.loopCount).length+context.length)^3`. -/
 theorem context_call (context : Bits) (S : Work → Bits) (v : Local)
     (hc : S .context=context.reverse) (he : S .childContext=[]) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.context (.counter .emit)),v,store S⟩=
@@ -20923,14 +24572,22 @@ theorem context_call (context : Bits) (S : Work → Bits) (v : Local)
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hRC⟩
 
+/-- `emitCode` is injective. -/
 theorem emitCode_injective : Function.Injective emitCode := by decide
 
+/-- `zipCode` is injective. -/
 theorem zipCode_injective : Function.Injective zipCode := by decide
 
+/-- `takeCode` is injective. -/
 theorem takeCode_injective : Function.Injective takeCode := by decide
 
+/-- `counterCode` is injective. -/
 theorem counterCode_injective : Function.Injective counterCode := by decide
 
+/-- Under the stated input conditions, a run of `program` from label `(.emit .count)` reaches
+label `(.step .finish)` with stacks `store (Function.update S .output ((natBits
+n).reverse++S .output))` after `(4*n.bits.length+5)` stack steps; its accumulated stack
+clock is at most `100*(1+n.bits.length+(S .output).length)^2`. -/
 theorem emit_call (n : ℕ) (S : Work → Bits) (v : Local) (hv : S .value=n.bits) :
     Stacks.stackRun program (4*n.bits.length+5) ⟨some (.emit .count),v,store S⟩=
       some ⟨some (.step .finish),putIO v none,store (Function.update S .output ((natBits n).reverse++S .output))⟩ ∧
@@ -20961,6 +24618,10 @@ theorem emit_call (n : ℕ) (S : Work → Bits) (v : Local) (hv : S .value=n.bit
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans_le (NatEmit.clock_bound n (S .output) (getIO v))⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.tag .start)` reaches
+label `(.step .dispatch)` with stacks `store (Function.update S .tag [])` after
+`(n.val.bits.length+2)` stack steps; its accumulated stack clock is at most
+`30*(1+n.val.bits.length)^2`. -/
 theorem tag_call (n : Fin 8) (S : Work → Bits) (v : Local) (ht : S .tag=n.val.bits.reverse) :
     Stacks.stackRun program (n.val.bits.length+2) ⟨some (.tag .start),v,store S⟩=
       some ⟨some (.step .dispatch),putTag v (n,none),store (Function.update S .tag [])⟩ ∧
@@ -20984,10 +24645,15 @@ theorem tag_call (n : Fin 8) (S : Work → Bits) (v : Local) (ht : S .tag=n.val.
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putTag_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans_le hRC⟩
 
+/-- Clear the two normalized operand banks and prepend their reversed interleaving to the output
+bank. -/
 def zipResult (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update (Function.update S .firstNormal []) .secondNormal []) .output
     ((PairZip.output (S .firstNormal) (S .secondNormal)).reverse++S .output)
 
+/-- A run of `program` from label `(.zip .scan)` reaches label `(.step .finish)` with stacks
+`store (zipResult S)`; its accumulated stack clock is at most `100*(PairZip.size (S
+.firstNormal) (S .secondNormal) (S .output))^2`. -/
 theorem zip_call (S : Work → Bits) (v : Local) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.zip .scan),v,store S⟩=
       some ⟨some (.step .finish),putZip v (none,none),store (zipResult S)⟩ ∧
@@ -21020,10 +24686,16 @@ theorem zip_call (S : Work → Bits) (v : Local) : ∃ ticks,
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putZip_get,hsame,hfinal] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hRC⟩
 
+/-- Clear the width bank, retain unused value digits, and prepend the reversed fixed-width bit
+expansion to the output. -/
 def takeResult (width n : ℕ) (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update (Function.update S .width []) .value (n.bits.drop width)) .output
     ((List.ofFn (fun i : Fin width => n.testBit i.val)).reverse++S .output)
 
+/-- Under the stated input conditions, a run of `program` from label `(.take (.counter
+.borrow))` reaches label `(.step .finish)` with stacks `store (takeResult width n S)`; its
+accumulated stack clock is at most `150*(width+1)*(1+width.bits.length+n.bits.length+(S
+.output).length+width)^2`. -/
 theorem take_call (width n : ℕ) (S : Work → Bits) (v : Local) (hw : S .width=width.bits) (hv : S .value=n.bits) : ∃ ticks,
     Stacks.stackRun program ticks ⟨some (.take (.counter .borrow)),v,store S⟩=
       some ⟨some (.step .finish),putTake v ((false,none),none),store (takeResult width n S)⟩ ∧
@@ -21056,6 +24728,8 @@ theorem take_call (width n : ℕ) (S : Work → Bits) (v : Local) (hw : S .width
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putTake_get,hsame,hfinal] at hN hNC
   exact ⟨ticks,hN,hNC.trans_le hRC⟩
 
+/-- `StackCall.frame counterCode (store S) (Stacks.stackPair next [])` equals `store
+(Function.update S .loopCount next)`. -/
 theorem counter_frame (S : Work → Bits) (next : Bits) :
     StackCall.frame counterCode (store S) (Stacks.stackPair next [])=store (Function.update S .loopCount next) := by
   have hinj := counterCode_injective
@@ -21067,6 +24741,10 @@ theorem counter_frame (S : Work → Bits) (next : Bits) :
       StackCall.frame_update counterCode (store S) (Stacks.stackPair (S .loopCount) []) hinj 0 next
   simpa only [Stacks.stackPair_update_zero,hsame,counterCode,store_update] using hh
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `(.step .repeatDecide)` with stacks `store (Function.update S .loopCount
+next)`; its accumulated stack clock is at most `10*(1+(S .loopCount).length)^2` and the
+resulting counter has the same length and binary value one less than the starting counter. -/
 theorem counter_positive (S : Work → Bits) (v : Local) (hp : 0<binaryValue (S .loopCount)) :
     ∃ ticks next,next.length=(S .loopCount).length ∧ binaryValue next+1=binaryValue (S .loopCount) ∧
       Stacks.stackRun program ticks ⟨some (.counter .borrow),v,store S⟩=
@@ -21084,6 +24762,10 @@ theorem counter_positive (S : Work → Bits) (v : Local) (hp : 0<binaryValue (S 
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putCounter_get,counter_frame,hsame] at hN hNC
   exact ⟨ticks,next,hlen,hvalue,hN,hNC.trans_le hRC⟩
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `(.step .repeatDecide)` with stacks `store (Function.update S .loopCount
+(List.replicate (S .loopCount).length true))` after `(2*(S .loopCount).length+2)` stack
+steps; its accumulated stack clock is at most `10*(1+(S .loopCount).length)^2`. -/
 theorem counter_zero (S : Work → Bits) (v : Local) (hz : binaryValue (S .loopCount)=0) :
     Stacks.stackRun program (2*(S .loopCount).length+2) ⟨some (.counter .borrow),v,store S⟩=
       some ⟨some (.step .repeatDecide),putCounter v (false,none),store (Function.update S .loopCount (List.replicate (S .loopCount).length true))⟩ ∧
@@ -21099,13 +24781,17 @@ theorem counter_zero (S : Work → Bits) (v : Local) (hz : binaryValue (S .loopC
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putCounter_get,counter_frame,hsame] at hN hNC
   exact ⟨hN,hNC.trans_le hRC⟩
 
+/-- The emitter loop store retaining only the job queue, parameter table, precision digits, and
+accumulated output. -/
 def ready (jobs params precision out : Bits) : Work → Bits
   | .jobs => jobs | .params => params | .precision => precision | .output => out | _ => []
 
+/-- Empty each listed emitter work bank while retaining unlisted bank contents. -/
 def erase : List Work → (Work → Bits) → Work → Bits
   | [],S => S
   | bank::banks,S => erase banks (Function.update S bank [])
 
+/-- `erase banks S w` equals `if w∈banks then [] else S w`. -/
 theorem erase_apply (banks : List Work) (S : Work → Bits) (w : Work) :
     erase banks S w=if w∈banks then [] else S w := by
   induction banks generalizing S with
@@ -21117,10 +24803,13 @@ theorem erase_apply (banks : List Work) (S : Work → Bits) (w : Work) :
       by_cases hb : bank∈banks <;> simp [hb]
     · by_cases hb : w∈banks <;> simp [List.mem_cons,ha,hb]
 
+/-- `erase cleanList S` equals `ready (S .jobs) (S .params) (S .precision) (S .output)`. -/
 theorem erase_cleanList (S : Work → Bits) : erase cleanList S=ready (S .jobs) (S .params) (S .precision) (S .output) := by
   funext w
   cases w <;> simp [erase_apply,cleanList,ready]
 
+/-- For a valid cleanup index, clearing its selected bank advances to the next cleanup label in
+one more stack step than the bank length, with exact clock L² + 3L + 3 for bank length L. -/
 theorem clean_call (i : ℕ) (hi : i<16) (S : Work → Bits) (v : Local) :
     let bank := cleanList[i]'(by simpa [cleanList] using hi)
     Stacks.stackRun program ((S bank).length+1) ⟨some (.clean ⟨i,by omega⟩ 0),v,store S⟩=
@@ -21147,6 +24836,9 @@ theorem clean_call (i : ℕ) (hi : i<16) (S : Work → Bits) (v : Local) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock (S bank) (getIO v))⟩
 
+/-- Clearing the remaining `n` banks from cleanup index `i` returns to the loop with exactly
+those banks erased, within accumulated clock `10*(n+1)*(1+H)^2` when every work stack has
+length at most `H`. -/
 theorem clean_tail (n i : ℕ) (he : i+n=16) (S : Work → Bits) (v : Local) (H : ℕ) (hH : ∀ w,(S w).length≤H) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.clean ⟨i,by omega⟩ 0),v,store S⟩=
       some ⟨some (.step .loop),last,store (erase (cleanList.drop i) S)⟩ ∧
@@ -21185,15 +24877,22 @@ theorem clean_tail (n i : ℕ) (he : i+n=16) (S : Work → Bits) (v : Local) (H 
         nlinarith only [hb2,Nat.zero_le (S bank).length,Nat.zero_le ((S bank).length^2)]
       nlinarith only [hcost]
 
+/-- Emitter cleanup retains only the queue, parameters, precision, and output and returns to the
+loop, within accumulated clock `170*(1+H)^2` when every work stack has length at most `H`. -/
 theorem cleanup (S : Work → Bits) (v : Local) (H : ℕ) (hH : ∀ w,(S w).length≤H) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.clean 0 0),v,store S⟩=
       some ⟨some (.step .loop),last,store (ready (S .jobs) (S .params) (S .precision) (S .output))⟩ ∧
     Stacks.stackRunClock program ticks ⟨some (.clean 0 0),v,store S⟩≤170*(1+H)^2 := by
   simpa only [List.drop_zero,erase_cleanList] using! clean_tail 16 0 rfl S v H hH
 
+/-- A run of `program` from `⟨some (.step phase),v,S⟩` reaches `(TM2.stepAux (phaseProgram
+phase) v S)` after `1` stack step. -/
 theorem phase_step (phase : Phase) (S : Slot → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,S⟩=some (TM2.stepAux (phaseProgram phase) v S) := rfl
 
+/-- Under the stated input conditions, a run of `program` from label `(.step phase)` reaches
+label `after` with stacks `store S` after `1` stack step; its accumulated stack clock is
+equal to `1`. -/
 theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.goto (fun _ => after)) (S : Work → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step phase),v,store S⟩=some ⟨some after,v,store S⟩ ∧
     Stacks.stackRunClock program 1 ⟨some (.step phase),v,store S⟩=1 := by
@@ -21202,6 +24901,10 @@ theorem goto_phase (phase : Phase) (after : Label) (hcode : phaseProgram phase=.
     rfl
   · simp [Stacks.stackRunClock,program,hcode,Stacks.stackClock]
 
+/-- A run of `program` from label `(.step .loop)` reaches label `(if S .jobs=[] then .drain
+.terminalParams .params 0 else .frame .contextDecoded .context (.read (.read .unary)))` with
+stacks `store S` after `1` stack step; its accumulated stack clock is equal to `2*(S
+.jobs).length+3`. -/
 theorem loop_peek (S : Work → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some (.step .loop),v,store S⟩=
       some ⟨some (if S .jobs=[] then .drain .terminalParams .params 0 else .frame .contextDecoded .context (.read (.read .unary))),
@@ -21213,6 +24916,7 @@ theorem loop_peek (S : Work → Bits) (v : Local) :
     constructor <;> simp [phase_step,phaseProgram,TM2.stepAux,getIO,putIO,store,he,Stacks.stackRunClock,program,Stacks.stackClock]
     omega
 
+/-- Dispatch a seven-valued plan tag to the corresponding emitter node-body subroutine. -/
 def planEntry : Fin 7 → Label
   | 0 => .frame .finish .literal (.read (.read .unary))
   | 1 => .read .copyIndex .value (.read .unary)
@@ -21222,12 +24926,18 @@ def planEntry : Fin 7 → Label
   | 5 => .scanStart .appendFirst .eval .first
   | _ => .scalar .repeatBound true (.read .afterTag (.read .unary))
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .dispatch)` reaches
+label `(planEntry tag)` with stacks `store S` after `1` stack step; its accumulated stack
+clock is equal to `1`. -/
 theorem dispatch (tag : Fin 7) (S : Work → Bits) (v : Local) (ht : (getTag v).1=tag.castSucc) :
     Stacks.stackRun program 1 ⟨some (.step .dispatch),v,store S⟩=some ⟨some (planEntry tag),v,store S⟩ ∧
     Stacks.stackRunClock program 1 ⟨some (.step .dispatch),v,store S⟩=1 := by
   fin_cases tag <;> constructor <;>
     simp [phase_step,phaseProgram,planEntry,readField,scalarField,scanField,TM2.stepAux,ht,Stacks.stackRunClock,program,Stacks.stackClock]
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .repeatDecide)`
+reaches label `(if flag then .context (.counter .emit) else .step .finish)` with stacks
+`store S` after `1` stack step; its accumulated stack clock is equal to `1`. -/
 theorem repeat_branch (flag : Bool) (S : Work → Bits) (v : Local) (hf : (getCounter v).1=flag) :
     Stacks.stackRun program 1 ⟨some (.step .repeatDecide),v,store S⟩=
       some ⟨some (if flag then .context (.counter .emit) else .step .finish),v,store S⟩ ∧
@@ -21235,6 +24945,8 @@ theorem repeat_branch (flag : Bool) (S : Work → Bits) (v : Local) (hf : (getCo
   cases flag <;> constructor <;> simp
       [phase_step,phaseProgram,TM2.stepAux,hf,Stacks.stackRunClock,program,Stacks.stackClock]
 
+/-- With no pending jobs, the emitter clears the parameter and precision banks and halts
+preserving its output, within accumulated clock `100*(1+params.length+precision.length)^2`. -/
 theorem terminal (params precision out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store (ready [] params precision out)⟩=
       some ⟨none,last,store (ready [] [] [] out)⟩ ∧
@@ -21265,16 +24977,20 @@ theorem terminal (params precision out : Bits) (v : Local) : ∃ ticks last,
   · change 3+(params.length^2+3*params.length+3)+1+(precision.length^2+3*precision.length+3)+1≤_
     nlinarith only [Nat.zero_le (params.length^2),Nat.zero_le (precision.length^2),Nat.zero_le (params.length*precision.length)]
 
+/-- The encoded non-tag portion of a plan, including its immediate child encodings. -/
 def nodeBits (p : Plan) : Bits := PlanCopy.bodyHead p++(PlanCopy.children p).flatMap planBits
 
+/-- `planBits p` equals `natBits (PlanCopy.planTag p).val++nodeBits p`. -/
 theorem planBits_root (p : Plan) : planBits p=natBits (PlanCopy.planTag p).val++nodeBits p := by
   simp only [PlanCopy.planBits_parts,PlanCopy.headBits,nodeBits,List.append_assoc]
 
+/-- The complete work-bank state after decoding a queued job and before executing its plan body. -/
 def dispatchState (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) : Work → Bits
   | .jobs => rest | .plan => (planBits p).reverse | .eval => nodeBits p
   | .params => (TableGet.stream params).reverse | .context => (Scheduler.counterStream cs).reverse
   | .precision => k.bits.reverse | .output => out | .discard => (natBits (PlanCopy.planTag p).val).reverse | _ => []
 
+/-- The explicit accumulated clock budget for the decode phase of scheduled plan evaluation. -/
 def decodeCost (p : Plan) (context rest : Bits) : ℕ :=
   let q := framed context++(planBits p++rest)
   let tag := (PlanCopy.planTag p).val
@@ -21283,6 +24999,9 @@ def decodeCost (p : Plan) (context rest : Bits) : ℕ :=
     ((planBits p).length*(5*(planBits p).length+12)+7)+1+
     500*(1+(planBits p).length)^2+1+(tag.bits.length*(2*tag.bits.length+5)+3)+1+30*(1+tag.bits.length)^2
 
+/-- A run of `program` from label `(.step .loop)` reaches label `(.step .dispatch)` with stacks
+`store (dispatchState p cs params k rest out)`; its accumulated stack clock is at most
+`decodeCost p (Scheduler.counterStream cs) rest`. -/
 theorem decode_job (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks
       ⟨some (.step .loop),v,store (ready (Scheduler.jobBits ⟨cs,p⟩++rest) (TableGet.stream params).reverse k.bits.reverse out)⟩=
@@ -21357,6 +25076,7 @@ theorem decode_job (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (re
       simp [S4,S3,S2,S1,S0,readResult,valueKey,scanResult,frameResult,frameReader,frameOutput,readerKey,planKey,ready,decodeCost,tag,q])
     simpa only [hS0] using hc0
 
+/-- Under the stated hypotheses, `decodeCost p context rest` is at most `10000000*B^3`. -/
 theorem decodeCost_bound (p : Plan) (context rest : Bits) (B : ℕ) (hQ : 1+(framed context++(planBits p++rest)).length≤B) :
     decodeCost p context rest≤10000000*B^3 := by
   let q := framed context++(planBits p++rest)
@@ -21391,23 +25111,35 @@ theorem decodeCost_bound (p : Plan) (context rest : Bits) (B : ℕ) (hQ : 1+(fra
   change 1+q.length≤B at hQ
   nlinarith only [hQ,hB2,h23,h13,hframeCost,hscanCost,hreadCost,htagCost,hplan,htag,hplan2,htag2]
 
+/-- Construct the repetition jobs with ascending counter values prepended to the parent context. -/
 def repeatJobs (cs : List ℕ) (body : Plan) (n : ℕ) : List Scheduler.Job :=
   (List.range n).map (fun i => ⟨i::cs,body⟩)
+/-- Concatenate the encodings of the jobs generated by a repetition. -/
 def repeatBits (cs : List ℕ) (body : Plan) (n : ℕ) : Bits :=
     Scheduler.queueBits (repeatJobs cs body n)
 
+/-- `repeatBits cs body 0` equals `[]`. -/
 theorem repeatBits_zero (cs : List ℕ) (body : Plan) : repeatBits cs body 0=[] := rfl
 
+/-- `repeatBits cs body (n+1)` equals `repeatBits cs body n++Scheduler.jobBits ⟨n::cs,body⟩`. -/
 theorem repeatBits_succ (cs : List ℕ) (body : Plan) (n : ℕ) :
     repeatBits cs body (n+1)=repeatBits cs body n++Scheduler.jobBits ⟨n::cs,body⟩ := by
   simp [repeatBits,repeatJobs,List.range_succ,Scheduler.queueBits]
 
+/-- The size parameter `1+(S .loopCount).length+(Scheduler.counterStream cs).length+(planBits
+body).length+(repeatBits cs body n++S .jobs).length` used to bound scheduled plan
+evaluation. -/
 def repeatSize (cs : List ℕ) (body : Plan) (n : ℕ) (S : Work → Bits) : ℕ :=
   1+(S .loopCount).length+(Scheduler.counterStream cs).length+(planBits body).length+(repeatBits cs body n++S .jobs).length
 
+/-- The work-bank state after scheduling repeated jobs, with the exhausted counter overwritten
+by true bits. -/
 def repeatResult (cs : List ℕ) (body : Plan) (n : ℕ) (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update S .loopCount (List.replicate (S .loopCount).length true)) .jobs (repeatBits cs body n++S .jobs)
 
+/-- Under the stated input conditions, a run of `program` from label `(.counter .borrow)`
+reaches label `(.step .finish)` with stacks `store (repeatResult cs body n S)`; its
+accumulated stack clock is at most `10000000*(n+1)*(repeatSize cs body n S)^3`. -/
 theorem repeat_loop (cs : List ℕ) (body : Plan) (n : ℕ) (S : Work → Bits) (v : Local)
     (hn : binaryValue (S .loopCount)=n) (hp : S .firstPlan=(planBits body).reverse)
     (hc : S .context=(Scheduler.counterStream cs).reverse) (he : S .childContext=[]) : ∃ ticks last,
@@ -21517,6 +25249,8 @@ theorem repeat_loop (cs : List ℕ) (body : Plan) (n : ℕ) (S : Work → Bits) 
       change _≤10000000*(n+1+1)*B^3
       nlinarith only [h13,h23,hcounter,hcontext3,hpush3,hchildB,hchild2]
 
+/-- `(value params k cs s).bits.length` is at most `(scalarBits s).length+(TableGet.stream
+params).length+(Scheduler.counterStream cs).length+k.bits.length`. -/
 theorem scalar_value_bits (params : List Bits) (cs : List ℕ) (k : ℕ) (s : Scalar) :
     (value params k cs s).bits.length≤(scalarBits s).length+(TableGet.stream params).length+(Scheduler.counterStream cs).length+k.bits.length := by
   cases s with
@@ -21539,6 +25273,10 @@ theorem scalar_value_bits (params : List Bits) (cs : List ℕ) (k : ℕ) (s : Sc
     dsimp only [Scheduler.counterStream]
     omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.frame .finish .literal
+(.read (.read .unary)))` reaches label `(.step .finish)` with stacks `store (frameResult
+.literal bits [] S)`; its accumulated stack clock is at most
+`5000*(bits.length+1)*(1+(framed bits).length+(S .output).length)^2`. -/
 theorem literal_body (bits : Bits) (S : Work → Bits) (v : Local) (hr : S .eval=framed bits) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.frame .finish .literal (.read (.read .unary))),v,store S⟩=
       some ⟨some (.step .finish),last,store (frameResult .literal bits [] S)⟩ ∧
@@ -21547,12 +25285,17 @@ theorem literal_body (bits : Bits) (S : Work → Bits) (v : Local) (hr : S .eval
   simpa only [List.append_nil] using!
       frame_call .finish .literal bits [] S v (by simpa only [frameReader,List.append_nil] using hr)
 
+/-- The composed reader and parameter-lookup state transformation for a copy node. -/
 def copyBodyResult (params : List Bits) (i : ℕ) (S : Work → Bits) : Work → Bits :=
   lookupResult .output params (readResult .value i [] S)
+/-- The explicit accumulated clock budget for the copy body phase of scheduled plan evaluation. -/
 def copyBodyCost (params : List Bits) (i : ℕ) (S : Work → Bits) : ℕ :=
   500*(1+(natBits i).length+(S .discard).length)^2+1+
     30000*(1+(TableGet.stream params).length)*(1+(TableGet.stream params).length+i.bits.length+(S .output).length)^2
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .copyIndex .value
+(.read .unary))` reaches label `(.step .finish)` with stacks `store (copyBodyResult params i
+S)`; its accumulated stack clock is at most `copyBodyCost params i S`. -/
 theorem copy_body (params : List Bits) (i : ℕ) (S : Work → Bits) (v : Local)
     (hr : S .eval=natBits i) (hv : S .value=[]) (hp : S .params=(TableGet.stream params).reverse) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.read .copyIndex .value (.read .unary)),v,store S⟩=
@@ -21572,12 +25315,19 @@ theorem copy_body (params : List Bits) (i : ℕ) (S : Work → Bits) (v : Local)
   refine ⟨ticks,last,hRun,hClock.trans ?_⟩
   simp [copyBodyCost,S1,readResult,valueKey,outputKey,hr]
 
+/-- The state after evaluating a scalar and prepending its reversed canonical natural-number
+encoding to the output. -/
 def emitBodyResult (s : Scalar) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) : Work → Bits :=
   Function.update (scalarResult false (value params k cs s) [] S) .output ((natBits (value params k cs s)).reverse++S .output)
+/-- The explicit accumulated clock budget for the emit body phase of scheduled plan evaluation. -/
 def emitBodyCost (s : Scalar) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) : ℕ :=
   2000000*(ScalarEval.size (scalarBits s) params (cs.map Nat.bits) k [])^3+1+
     100*(1+(value params k cs s).bits.length+(S .output).length)^2
 
+/-- Under the stated input conditions, a run of `program` from label `(.scalar .emitValue false
+(.read .afterTag (.read .unary)))` reaches label `(.step .finish)` with stacks `store
+(emitBodyResult s params cs k S)`; its accumulated stack clock is at most `emitBodyCost s
+params cs k S`. -/
 theorem emitNat_body (s : Scalar) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) (v : Local)
     (hr : S .eval=scalarBits s) (hp : S .params=(TableGet.stream params).reverse)
     (hc : S .context=(Scheduler.counterStream cs).reverse) (hk : S .precision=k.bits.reverse) (hv : S .value=[]) : ∃ ticks last,
@@ -21600,13 +25350,19 @@ theorem emitNat_body (s : Scalar) (params : List Bits) (cs : List ℕ) (k : ℕ)
   simp only [emitBodyCost,List.append_nil,hOut,n]
   exact le_rfl
 
+/-- The composed width-reader, scalar-evaluator, and fixed-width output state transformation. -/
 def fixedBodyResult (width : ℕ) (s : Scalar) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) : Work → Bits :=
   takeResult width (value params k cs s) (scalarResult false (value params k cs s) [] (readResult .width width (scalarBits s) S))
+/-- The explicit accumulated clock budget for the fixed body phase of scheduled plan evaluation. -/
 def fixedBodyCost (width : ℕ) (s : Scalar) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) : ℕ :=
   500*(1+(natBits width++scalarBits s).length+(S .discard).length)^2+1+
     2000000*(ScalarEval.size (scalarBits s) params (cs.map Nat.bits) k [])^3+1+
     150*(width+1)*(1+width.bits.length+(value params k cs s).bits.length+(S .output).length+width)^2
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .widthRead .width
+(.read .unary))` reaches label `(.step .finish)` with stacks `store (fixedBodyResult width s
+params cs k S)`; its accumulated stack clock is at most `fixedBodyCost width s params cs k
+S`. -/
 theorem fixedCount_body (width : ℕ) (s : Scalar) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) (v : Local)
     (hr : S .eval=natBits width++scalarBits s) (hp : S .params=(TableGet.stream params).reverse)
     (hc : S .context=(Scheduler.counterStream cs).reverse) (hk : S .precision=k.bits.reverse) (hv : S .value=[]) (hw : S .width=[]) : ∃ ticks last,
@@ -21639,10 +25395,14 @@ theorem fixedCount_body (width : ℕ) (s : Scalar) (params : List Bits) (cs : Li
   refine ⟨ticks,putTake v2 ((false,none),none),hRun,hClock.trans ?_⟩
   simp [fixedBodyCost,S2,S1,scalarResult,scalarValueKey,readResult,valueKey,List.append_nil,hr,n]
 
+/-- Scan both append children and prepend their jobs in evaluation order with the inherited
+context. -/
 def appendBodyResult (a b : Plan) (cs : List ℕ) (S : Work → Bits) : Work → Bits :=
   let S1 := scanResult .eval .first a (planBits b) S
   let S2 := scanResult .eval .second b [] S1
   pushResult (planBits a) (Scheduler.counterStream cs) (pushResult (planBits b) (Scheduler.counterStream cs) S2)
+/-- The explicit accumulated clock budget for the append body phase of scheduled plan
+evaluation. -/
 def appendBodyCost (a b : Plan) (cs : List ℕ) (S : Work → Bits) : ℕ :=
   (4+30000*(1+(planBits a).length)*(PlanCopy.scanSize (planBits a++planBits b) [] 1)^2)+1+
     (4+30000*(1+(planBits b).length)*(PlanCopy.scanSize (planBits b) [] 1)^2)+1+
@@ -21650,6 +25410,9 @@ def appendBodyCost (a b : Plan) (cs : List ℕ) (S : Work → Bits) : ℕ :=
     100000*(1+(planBits a).length+(Scheduler.counterStream cs).length+
       (framed (Scheduler.counterStream cs)++planBits b++S .jobs).length)^3
 
+/-- Under the stated input conditions, a run of `program` from label `(.scanStart .appendFirst
+.eval .first)` reaches label `(.step .finish)` with stacks `store (appendBodyResult a b cs
+S)`; its accumulated stack clock is at most `appendBodyCost a b cs S`. -/
 theorem append_body (a b : Plan) (cs : List ℕ) (S : Work → Bits) (v : Local)
     (hr : S .eval=planBits a++planBits b) (ha : S .firstPlan=[]) (hb : S .secondPlan=[]) (hpend : S .pending=[])
     (hc : S .context=(Scheduler.counterStream cs).reverse) : ∃ ticks last,
@@ -21689,9 +25452,12 @@ theorem append_body (a b : Plan) (cs : List ℕ) (S : Work → Bits) (v : Local)
   refine ⟨ticks,putIO v3 none,hRun,hClock.trans ?_⟩
   simp [appendBodyCost,S3,S2,S1,pushResult,scanResult,readerKey,planKey]
 
+/-- Evaluate a repetition bound, scan its body, and prepend the resulting counter-indexed jobs. -/
 def repeatBodyResult (bound : Scalar) (body : Plan) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) : Work → Bits :=
   let n := value params k cs bound
   repeatResult cs body n (scanResult .eval .first body [] (scalarResult true n (planBits body) S))
+/-- The explicit accumulated clock budget for the repeat body phase of scheduled plan
+evaluation. -/
 def repeatBodyCost (bound : Scalar) (body : Plan) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) : ℕ :=
   let n := value params k cs bound
   let S2 := scanResult .eval .first body [] (scalarResult true n (planBits body) S)
@@ -21699,6 +25465,10 @@ def repeatBodyCost (bound : Scalar) (body : Plan) (params : List Bits) (cs : Lis
     (4+30000*(1+(planBits body).length)*(PlanCopy.scanSize (planBits body) [] 1)^2)+1+
     10000000*(n+1)*(repeatSize cs body n S2)^3
 
+/-- Under the stated input conditions, a run of `program` from label `(.scalar .repeatBound true
+(.read .afterTag (.read .unary)))` reaches label `(.step .finish)` with stacks `store
+(repeatBodyResult bound body params cs k S)`; its accumulated stack clock is at most
+`repeatBodyCost bound body params cs k S`. -/
 theorem repeat_body (bound : Scalar) (body : Plan) (params : List Bits) (cs : List ℕ) (k : ℕ) (S : Work → Bits) (v : Local)
     (hr : S .eval=scalarBits bound++planBits body) (hp : S .params=(TableGet.stream params).reverse)
     (hc : S .context=(Scheduler.counterStream cs).reverse) (hk : S .precision=k.bits.reverse)
@@ -21738,18 +25508,23 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.EmitterCore
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.EmitterCore
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- Empty a source bank and prepend its reversed contents to the destination bank. -/
 def transferResult (source dest : Work) (S : Work → Bits) : Work → Bits :=
   Function.update (Function.update S source []) dest ((S source).reverse++S dest)
 
+/-- Read two parameter indices, look up their bit strings, and prepare the two normalized
+operand banks for interleaving. -/
 def pairBeforeZip (params : List Bits) (i j : ℕ) (S : Work → Bits) : Work → Bits :=
   let S1 := readResult .value i (natBits j) S
   let S2 := lookupResult .first params S1
   let S3 := readResult .value j [] S2
   let S4 := lookupResult .second params S3
   transferResult .second .secondNormal (transferResult .first .firstNormal S4)
+/-- The state transformation for looking up and interleaving two parameter bit strings. -/
 def pairBodyResult (params : List Bits) (i j : ℕ) (S : Work → Bits) : Work → Bits :=
     zipResult (pairBeforeZip params i j S)
 
+/-- The explicit accumulated clock budget for the pair body phase of scheduled plan evaluation. -/
 def pairBodyCost (params : List Bits) (i j : ℕ) (S : Work → Bits) : ℕ :=
   let A := params.getD i []
   let B := params.getD j []
@@ -21761,6 +25536,9 @@ def pairBodyCost (params : List Bits) (i j : ℕ) (S : Work → Bits) : ℕ :=
     (A.length*(2*A.length+5)+3)+1+(B.length*(2*B.length+5)+3)+1+
     100*(PairZip.size A B (S .output))^2
 
+/-- Under the stated input conditions, a run of `program` from label `(.read .pairFirstIndex
+.value (.read .unary))` reaches label `(.step .finish)` with stacks `store (pairBodyResult
+params i j S)`; its accumulated stack clock is at most `pairBodyCost params i j S`. -/
 theorem pairScan_body (params : List Bits) (i j : ℕ) (S : Work → Bits) (v : Local)
     (hr : S .eval=natBits i++natBits j) (hp : S .params=(TableGet.stream params).reverse)
     (hv : S .value=[]) (hf : S .first=[]) (hs : S .second=[])
@@ -21818,6 +25596,7 @@ theorem pairScan_body (params : List Bits) (i j : ℕ) (S : Work → Bits) (v : 
   refine ⟨ticks,putZip v6 (none,none),hRun,hClock.trans ?_⟩
   simp [pairBodyCost,S6,S5,S4,S3,S2,S1,transferResult,lookupResult,readResult,valueKey,outputKey,hr,hf,hs,hfn,hsn,binaryValue_bits]
 
+/-- The work-bank state produced by the body subroutine of the selected plan node. -/
 def nodeResult (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) : Work → Bits :=
   let S := dispatchState p cs params k rest out
   match p with
@@ -21829,6 +25608,7 @@ def nodeResult (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest o
   | .append a b => appendBodyResult a b cs S
   | .repeat bound body => repeatBodyResult bound body params cs k S
 
+/-- The explicit accumulated clock budget for the node phase of scheduled plan evaluation. -/
 def nodeCost (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) : ℕ :=
   let S := dispatchState p cs params k rest out
   match p with
@@ -21840,6 +25620,9 @@ def nodeCost (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out
   | .append a b => appendBodyCost a b cs S
   | .repeat bound body => repeatBodyCost bound body params cs k S
 
+/-- A run of `program` from label `(planEntry (PlanCopy.planTag p))` reaches label `(.step
+.finish)` with stacks `store (nodeResult p cs params k rest out)`; its accumulated stack
+clock is at most `nodeCost p cs params k rest out`. -/
 theorem node_body (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (planEntry (PlanCopy.planTag p)),v,store (dispatchState p cs params k rest out)⟩=
       some ⟨some (.step .finish),last,store (nodeResult p cs params k rest out)⟩ ∧
@@ -21868,11 +25651,14 @@ theorem node_body (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (res
     exact repeat_body bound body params cs k _ v
         (by simp [dispatchState,nodeBits,PlanCopy.bodyHead,PlanCopy.children]) rfl rfl rfl rfl rfl rfl rfl
 
+/-- The job queue, parameters, precision, and output agree with one semantic scheduler step. -/
 def Outcome (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (S : Work → Bits) : Prop :=
   S .jobs=Scheduler.queueBits (Scheduler.stepOne params k ⟨cs,p⟩).2++rest ∧
   S .params=(TableGet.stream params).reverse ∧ S .precision=k.bits.reverse ∧
   S .output=(Scheduler.stepOne params k ⟨cs,p⟩).1.reverse++out
 
+/-- The concrete node-result state agrees with the queue, parameters, precision, and output of
+one semantic scheduler step. -/
 theorem nodeResult_outcome (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) :
     Outcome p cs params k rest out (nodeResult p cs params k rest out) := by
   cases p <;> simp [Outcome,nodeResult,dispatchState,frameResult,frameReader,frameOutput,
@@ -21886,14 +25672,19 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.EmitterCore
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.EmitterCore
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- The plan tag and natural-number fields consumed by reader subroutines during node
+evaluation. -/
 def spentFields (p : Plan) : Bits :=
   natBits (PlanCopy.planTag p).val++match p with
   | .copy i => natBits i | .fixedCount width _ => natBits width
   | .pairScan i j => natBits i++natBits j | _ => []
 
+/-- `(spentFields p).length` is at most `(planBits p).length`. -/
 theorem spentFields_length (p : Plan) : (spentFields p).length≤(planBits p).length := by
   cases p <;> simp [spentFields,PlanCopy.planTag,planBits,List.length_append]
 
+/-- A uniform description of the work-bank state after one semantic scheduler step, including
+retained and consumed fields. -/
 def normalResult (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) : Work → Bits
   | .jobs => Scheduler.queueBits (Scheduler.stepOne params k ⟨cs,p⟩).2++rest
   | .plan => (planBits p).reverse
@@ -21911,6 +25702,7 @@ def normalResult (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest
   | .discard => (spentFields p).reverse
   | _ => []
 
+/-- `nodeResult p cs params k rest out` equals `normalResult p cs params k rest out`. -/
 theorem nodeResult_eq (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) :
     nodeResult p cs params k rest out=normalResult p cs params k rest out := by
   obtain ⟨hJ,hP,hK,hO⟩ := nodeResult_outcome p cs params k rest out
@@ -21923,6 +25715,8 @@ theorem nodeResult_eq (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) 
     appendBodyResult,scanResult,readerKey,planKey,pushResult,repeatBodyResult,repeatResult,
     spentFields,PlanCopy.planTag,binaryValue_bits,List.reverse_append,List.append_assoc]
 
+/-- Size hypotheses controlling a plan node, parameter table, precision, counter context,
+pending queue, output, and semantic work by a common bound. -/
 structure NodeBounds (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ) : Prop where
   positive : 1≤B
   code : (planBits p).length≤B
@@ -21934,6 +25728,7 @@ structure NodeBounds (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (
   output : (Scheduler.stepOne params k ⟨cs,p⟩).1.length+out.length≤B
   work : work params k cs p≤B
 
+/-- Under `NodeBounds`, every work stack after evaluating a node has length at most 20B³. -/
 theorem nodeResult_height (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds p cs params k rest out B) : ∀ w,(nodeResult p cs params k rest out w).length≤20*B^3 := by
   rw [nodeResult_eq]
@@ -22009,14 +25804,18 @@ theorem nodeResult_height (p : Plan) (cs : List ℕ) (params : List Bits) (k : �
     | append a b => simp [normalResult]
   | eval | width | first | second | firstNormal | secondNormal | childContext | tag | pending => simp [normalResult]
 
+/-- `(natBits (PlanCopy.planTag p).val).length` is at most `(planBits p).length`. -/
 theorem root_length (p : Plan) : (natBits (PlanCopy.planTag p).val).length≤(planBits p).length := by
   have hh := congrArg List.length (planBits_root p)
   simp only [List.length_append] at hh
   omega
 
+/-- Under the stated hypotheses, `(natBits (PlanCopy.planTag p).val).length` is at most `B`. -/
 theorem NodeBounds.root {p : Plan} {cs : List ℕ} {params : List Bits} {k : ℕ} {rest out : Bits} {B : ℕ}
     (h : NodeBounds p cs params k rest out B) : (natBits (PlanCopy.planTag p).val).length≤B := (root_length p).trans h.code
 
+/-- Under the stated hypotheses, `ScalarEval.size reader params (cs.map Nat.bits) k []` is at
+most `8*B^2`. -/
 theorem NodeBounds.scalarSize {p : Plan} {cs : List ℕ} {params : List Bits} {k : ℕ} {rest out : Bits} {B : ℕ}
     (h : NodeBounds p cs params k rest out B) (reader : Bits) (hr : reader.length≤B) :
     ScalarEval.size reader params (cs.map Nat.bits) k []≤8*B^2 := by
@@ -22028,6 +25827,7 @@ theorem NodeBounds.scalarSize {p : Plan} {cs : List ℕ} {params : List Bits} {k
   change 1+reader.length+(TableGet.stream params).length+(Scheduler.counterStream cs).length+k.bits.length≤_
   nlinarith only [hr,hp,hc,hk,hB2,h12]
 
+/-- Under the stated hypotheses, `(value params k cs s).bits.length` is at most `7*B^2`. -/
 theorem NodeBounds.valueSize {p : Plan} {cs : List ℕ} {params : List Bits} {k : ℕ} {rest out : Bits} {B : ℕ}
     (h : NodeBounds p cs params k rest out B) (s : Scalar) (hs : (scalarBits s).length≤B) :
     (value params k cs s).bits.length≤7*B^2 := by
@@ -22038,9 +25838,12 @@ theorem NodeBounds.valueSize {p : Plan} {cs : List ℕ} {params : List Bits} {k 
   have hk := h.precision
   nlinarith only [hh,hs,hp,hc,hk,hB2]
 
+/-- Under the stated hypotheses, `PlanCopy.scanSize reader [] 1` is at most `6*B`. -/
 theorem scanSize_bound (reader : Bits) (B : ℕ) (hB : 1≤B) (hr : reader.length≤B) :
     PlanCopy.scanSize reader [] 1≤6*B := by dsimp [PlanCopy.scanSize]; omega
 
+/-- Under the stated hypotheses, `nodeCost (.literal bits) cs params k rest out` is at most
+`1000000000000000*B^11`. -/
 theorem cost_literal (bits : Bits) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds (.literal bits) cs params k rest out B) :
     nodeCost (.literal bits) cs params k rest out≤1000000000000000*B^11 := by
@@ -22056,6 +25859,8 @@ theorem cost_literal (bits : Bits) (cs : List ℕ) (params : List Bits) (k : ℕ
   change 5000*(bits.length+1)*(1+(framed bits).length+out.length)^2≤_
   nlinarith only [hm,h3]
 
+/-- Under the stated hypotheses, `nodeCost (.copy i) cs params k rest out` is at most
+`1000000000000000*B^11`. -/
 theorem cost_copy (i : ℕ) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds (.copy i) cs params k rest out B) :
     nodeCost (.copy i) cs params k rest out≤1000000000000000*B^11 := by
@@ -22079,6 +25884,8 @@ theorem cost_copy (i : ℕ) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest
   simp only [nodeCost,copyBodyCost,dispatchState,List.length_reverse]
   nlinarith only [h2,h3,h1,hr2,hg]
 
+/-- Under the stated hypotheses, `nodeCost (.emitNat s) cs params k rest out` is at most
+`1000000000000000*B^11`. -/
 theorem cost_emitNat (s : Scalar) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds (.emitNat s) cs params k rest out B) :
     nodeCost (.emitNat s) cs params k rest out≤1000000000000000*B^11 := by
@@ -22101,6 +25908,8 @@ theorem cost_emitNat (s : Scalar) (cs : List ℕ) (params : List Bits) (k : ℕ)
   simp only [nodeCost,emitBodyCost,dispatchState]
   nlinarith only [h4,h6,h1,hc,he]
 
+/-- Under the stated hypotheses, `nodeCost (.fixedCount width s) cs params k rest out` is at
+most `1000000000000000*B^11`. -/
 theorem cost_fixedCount (width : ℕ) (s : Scalar) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds (.fixedCount width s) cs params k rest out B) :
     nodeCost (.fixedCount width s) cs params k rest out≤1000000000000000*B^11 := by
@@ -22135,6 +25944,8 @@ theorem cost_fixedCount (width : ℕ) (s : Scalar) (cs : List ℕ) (params : Lis
   simp only [nodeCost,fixedBodyCost,dispatchState,List.length_reverse]
   nlinarith only [h2,h5,h6,h1,hr2,hs3,hc]
 
+/-- Under the stated hypotheses, `nodeCost (.pairScan i j) cs params k rest out` is at most
+`1000000000000000*B^11`. -/
 theorem cost_pairScan (i j : ℕ) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds (.pairScan i j) cs params k rest out B) :
     nodeCost (.pairScan i j) cs params k rest out≤1000000000000000*B^11 := by
@@ -22175,6 +25986,8 @@ theorem cost_pairScan (i j : ℕ) (cs : List ℕ) (params : List Bits) (k : ℕ)
   simp only [List.length_append] at hri
   nlinarith only [hB2,h2,h3,h1,hri,hrj,hgeti,hgetj,hzip,ha,hb,ha2,hb2]
 
+/-- Under the stated hypotheses, `nodeCost (.append a b) cs params k rest out` is at most
+`1000000000000000*B^11`. -/
 theorem cost_append (a b : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds (.append a b) cs params k rest out B) :
     nodeCost (.append a b) cs params k rest out≤1000000000000000*B^11 := by
@@ -22214,6 +26027,8 @@ theorem cost_append (a b : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) 
   simp only [nodeCost,appendBodyCost,dispatchState]
   nlinarith only [h3,h9,h1,hsca,hscb,hpushR,hpushL]
 
+/-- Under the stated hypotheses, `nodeCost (.repeat bound body) cs params k rest out` is at most
+`1000000000000000*B^11`. -/
 theorem cost_repeat (bound : Scalar) (body : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds (.repeat bound body) cs params k rest out B) :
     nodeCost (.repeat bound body) cs params k rest out≤1000000000000000*B^11 := by
@@ -22255,6 +26070,8 @@ theorem cost_repeat (bound : Scalar) (body : Plan) (cs : List ℕ) (params : Lis
   change _≤1000000000000000*B^11
   nlinarith only [h3,h6,h10,h1,hscalar,hsc,hl]
 
+/-- Under the stated hypotheses, `nodeCost p cs params k rest out` is at most
+`1000000000000000*B^11`. -/
 theorem nodeCost_bound (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (B : ℕ)
     (h : NodeBounds p cs params k rest out B) : nodeCost p cs params k rest out≤1000000000000000*B^11 := by
   cases p with
@@ -22266,6 +26083,11 @@ theorem nodeCost_bound (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ)
   | append a b => exact cost_append a b cs params k rest out B h
   | «repeat» bound body => exact cost_repeat bound body cs params k rest out B h
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .loop)` reaches
+label `(.step .loop)` with stacks `store (ready (Scheduler.queueBits (Scheduler.stepOne
+params k ⟨cs,p⟩).2++rest) (TableGet.stream params).reverse k.bits.reverse
+((Scheduler.stepOne params k ⟨cs,p⟩).1.reverse++out))`; its accumulated stack clock is at
+most `2000000000000000*B^11`. -/
 theorem job_step (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest out : Bits) (v : Local) (B : ℕ)
     (h : NodeBounds p cs params k rest out B) : ∃ ticks last,
     Stacks.stackRun program ticks
@@ -22324,15 +26146,20 @@ theorem job_step (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (rest
   have hClean := Nat.pow_le_pow_left hCleanGroup 2
   nlinarith only [h6,h9,h1,hDecode,hNode,hClean]
 
+/-- `Scheduler.queueBits (a++b)` equals `Scheduler.queueBits a++Scheduler.queueBits b`. -/
 theorem queueBits_append (a b : List Scheduler.Job) : Scheduler.queueBits (a++b)=Scheduler.queueBits a++Scheduler.queueBits b :=
   List.flatMap_append
 
+/-- `Scheduler.pendingWork params k ((Scheduler.stepOne params k job).2++rest)+1` is at most
+`Scheduler.pendingWork params k (job::rest)`. -/
 theorem work_drop (params : List Bits) (k : ℕ) (job : Scheduler.Job) (rest : List Scheduler.Job) :
     Scheduler.pendingWork params k ((Scheduler.stepOne params k job).2++rest)+1≤Scheduler.pendingWork params k (job::rest) := by
   have hh := Scheduler.stepOne_work params k job
   rw [Scheduler.pendingWork_append,Scheduler.pendingWork_cons]
   omega
 
+/-- `(Scheduler.stepOne params k job).1++Scheduler.pendingOutput params k ((Scheduler.stepOne
+params k job).2++rest)` equals `Scheduler.pendingOutput params k (job::rest)`. -/
 theorem output_step (params : List Bits) (k : ℕ) (job : Scheduler.Job) (rest : List Scheduler.Job) :
     (Scheduler.stepOne params k job).1++Scheduler.pendingOutput params k ((Scheduler.stepOne params k job).2++rest)=
       Scheduler.pendingOutput params k (job::rest) := by
@@ -22341,6 +26168,8 @@ theorem output_step (params : List Bits) (k : ℕ) (job : Scheduler.Job) (rest :
   exact congrArg (fun bits => bits++Scheduler.pendingOutput params k rest)
       (Scheduler.stepOne_output params k job)
 
+/-- Loop invariants bounding syntax, counters, parameters, precision, queued jobs, output, and
+remaining semantic work by a common size parameter. -/
 structure LoopBounds (params : List Bits) (k codeBound counterBound B : ℕ) (jobs : List Scheduler.Job) (out : Bits) : Prop where
   positive : 1≤B
   codeLimit : codeBound≤B
@@ -22351,12 +26180,16 @@ structure LoopBounds (params : List Bits) (k codeBound counterBound B : ℕ) (jo
   work : Scheduler.pendingWork params k jobs≤counterBound
   output : out.length+(Scheduler.pendingOutput params k jobs).length≤B
 
+/-- Under the stated hypotheses, `work params k job.counters job.plan` is at most
+`counterBound`. -/
 theorem LoopBounds.frontWork {params : List Bits} {k codeBound counterBound B : ℕ} {job : Scheduler.Job} {rest : List Scheduler.Job} {out : Bits}
     (h : LoopBounds params k codeBound counterBound B (job::rest) out) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.work params k job.counters job.plan≤counterBound := by
   have hh := h.work
   rw [Scheduler.pendingWork_cons] at hh
   omega
 
+/-- One scheduler step preserves the loop bounds while prepending the emitted bits to the output
+accumulator. -/
 theorem LoopBounds.step {params : List Bits} {k codeBound counterBound B : ℕ} {job : Scheduler.Job} {rest : List Scheduler.Job} {out : Bits}
     (h : LoopBounds params k codeBound counterBound B (job::rest) out) :
     LoopBounds params k codeBound counterBound B ((Scheduler.stepOne params k job).2++rest) ((Scheduler.stepOne params k job).1.reverse++out) := by
@@ -22374,6 +26207,8 @@ theorem LoopBounds.step {params : List Bits} {k codeBound counterBound B : ℕ} 
     simp only [List.length_append,List.length_reverse] at hh ⊢
     omega
 
+/-- The first job of a queue satisfying the loop bounds satisfies the node bounds with the
+encoded remainder of the queue. -/
 theorem LoopBounds.node {params : List Bits} {k codeBound counterBound B : ℕ} {job : Scheduler.Job} {rest : List Scheduler.Job} {out : Bits}
     (h : LoopBounds params k codeBound counterBound B (job::rest) out) :
     NodeBounds job.plan job.counters params k (Scheduler.queueBits rest) out B := by
@@ -22406,6 +26241,9 @@ theorem LoopBounds.node {params : List Bits} {k codeBound counterBound B : ℕ} 
     simp only [List.length_append] at hh
     omega
 
+/-- Under the stated input conditions, a run of `program` from label `(.step .loop)` halts with
+stacks `store (ready [] [] [] out)`; its accumulated stack clock is at most
+`2000000000000000*B^11`. -/
 theorem empty_loop (params : List Bits) (k codeBound counterBound B : ℕ) (out : Bits) (v : Local)
     (h : LoopBounds params k codeBound counterBound B [] out) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store (ready [] (TableGet.stream params).reverse k.bits.reverse out)⟩=
@@ -22423,6 +26261,10 @@ theorem empty_loop (params : List Bits) (k codeBound counterBound B : ℕ) (out 
   have h2 : B^2≤B^11 := Nat.pow_le_pow_right hB (by decide)
   nlinarith only [hg2,h2]
 
+/-- Under the loop invariants and sufficient semantic fuel, the emitter evaluates the queued
+jobs, prepends their reversed combined output to the accumulator, and clears the queue,
+parameters, and precision, within accumulated clock `2000000000000000*(Scheduler.pendingWork
+params k jobs+1)*B^11`. -/
 theorem loop_complete (params : List Bits) (k codeBound counterBound B fuel : ℕ) (jobs : List Scheduler.Job) (out : Bits) (v : Local)
     (h : LoopBounds params k codeBound counterBound B jobs out) (hfuel : Scheduler.pendingWork params k jobs≤fuel) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.step .loop),v,store (ready (Scheduler.queueBits jobs) (TableGet.stream params).reverse k.bits.reverse out)⟩=
@@ -22470,9 +26312,13 @@ theorem loop_complete (params : List Bits) (k codeBound counterBound B fuel : �
         dsimp [next]
         nlinarith only [hm]
 
+/-- One plus the encoded input length, emitted output length, and semantic work estimate. -/
 def inputBudget (p : Plan) (params : List Bits) (k : ℕ) : ℕ :=
   1+(emitterInput p params k).length+(emit params k [] p).length+work params k [] p
 
+/-- `(planBits p).length` is at most `(emitterInput p params k).length`; `(TableGet.stream
+params).length` is at most `(emitterInput p params k).length`; `k.bits.length` is at most
+`(emitterInput p params k).length`. -/
 theorem input_lengths (p : Plan) (params : List Bits) (k : ℕ) :
     (planBits p).length≤(emitterInput p params k).length ∧
     (TableGet.stream params).length≤(emitterInput p params k).length ∧
@@ -22481,6 +26327,8 @@ theorem input_lengths (p : Plan) (params : List Bits) (k : ℕ) :
   simp only [emitterInput,List.length_append,TableGet.stream]
   omega
 
+/-- The initial singleton job queue with empty output satisfies the loop bounds at
+`inputBudget`. -/
 theorem initial_bounds (p : Plan) (params : List Bits) (k : ℕ) :
     LoopBounds params k (planBits p).length (work params k [] p) (inputBudget p params k) [⟨[],p⟩] [] := by
   obtain ⟨hcode,hparams,hk⟩ := input_lengths p params k
@@ -22499,6 +26347,9 @@ theorem initial_bounds (p : Plan) (params : List Bits) (k : ℕ) :
     dsimp [inputBudget]
     omega
 
+/-- A run of `program` from label `(.step .loop)` halts with stacks `store (ready [] [] [] (emit
+params k [] p).reverse)`; its accumulated stack clock is at most
+`2000000000000000*(inputBudget p params k)^12`. -/
 theorem complete (p : Plan) (params : List Bits) (k : ℕ) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks
       ⟨some (.step .loop),v,store (ready (Scheduler.jobBits ⟨[],p⟩) (TableGet.stream params).reverse k.bits.reverse [])⟩=
@@ -22522,19 +26373,39 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.EmitterCore
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Emitter
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
+/-- The stack-index type for uniform plan-input preparation and emission, represented by
+`EmitterCore.Slot`. -/
 abbrev Slot := EmitterCore.Slot
+/-- The local-state type for uniform plan-input preparation and emission, represented by
+`EmitterCore.Local×TableCopy.Local×Symbol`. -/
 abbrev Local := EmitterCore.Local×TableCopy.Local×Symbol
 
+/-- Extract the core component of the local state for uniform plan-input preparation and
+emission. -/
 def getCore (v : Local) := v.1
+/-- Replace the core component of the local state for uniform plan-input preparation and
+emission, retaining its other components. -/
 def putCore (v : Local) (s : EmitterCore.Local) : Local := (s,v.2)
+/-- Extract the table component of the local state for uniform plan-input preparation and
+emission. -/
 def getTable (v : Local) := v.2.1
+/-- Replace the table component of the local state for uniform plan-input preparation and
+emission, retaining its other components. -/
 def putTable (v : Local) (s : TableCopy.Local) : Local := (v.1,s,v.2.2)
+/-- Extract the io component of the local state for uniform plan-input preparation and emission. -/
 def getIO (v : Local) := v.2.2
+/-- Replace the io component of the local state for uniform plan-input preparation and emission,
+retaining its other components. -/
 def putIO (v : Local) (s : Symbol) : Local := (v.1,v.2.1,s)
+/-- Extract the plan component of the local state for uniform plan-input preparation and
+emission. -/
 def getPlan (v : Local) := EmitterCore.getScan (getCore v)
+/-- Replace the plan component of the local state for uniform plan-input preparation and
+emission, retaining its other components. -/
 def putPlan (v : Local) (s : PlanCopy.Local) : Local :=
     putCore v (EmitterCore.putScan (getCore v) s)
 
+/-- The finite control labels for uniform plan-input preparation and emission. -/
 inductive Label where
   | start (l : Fin 1) | planStart | plan (l : PlanCopy.Label) | table (l : TableCopy.Label)
   | precision (l : Fin 3) | copy (l : NatEmit.Label) | emptyContext | clearPlan (l : Fin 1)
@@ -22545,15 +26416,20 @@ instance localFintype : Fintype Local := inferInstance
 set_option synthInstance.maxSize 1024 in
 instance localInhabited : Inhabited Local := inferInstance
 
+/-- Map the table subroutine stack indices into the stack banks for uniform plan-input
+preparation and emission. -/
 def tableCode : TableCopy.Slot → Slot
   | .reader => .inl .eval | .output => .inl .params
   | .count => .inr (.scalar .tableCount) | .countTemp => .inr (.scalar .tableTemporary)
   | .discard => .inr (.scalar .discard) | .markers => .inr (.scalar .markers)
   | .payload => .inr (.scalar .payload) | .value => .inr (.scalar .value)
   | .temporary => .inr (.scalar .temporary) | .pending => .inr (.scalar .tableIndexTemp)
+/-- Map the precision subroutine stack indices into the stack banks for uniform plan-input
+preparation and emission. -/
 def precisionCode : Fin 3 →
     Slot | 0 => .inl .eval | 1 => .inr (.scalar .markers) | _ => .inl .precision
 
+/-- The TM2 program implementing uniform plan-input preparation and emission. -/
 def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .start l => StackCall.stmt (EmitterCore.transferCode .tag .eval) Label.start .planStart getIO putIO (Stacks.transferProgram l)
   | .planStart => .push (.inl .pending) (fun _ => true) (.goto (fun _ => .plan (.step .loop)))
@@ -22566,18 +26442,32 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .core l => StackCall.stmt id Label.core .done getCore putCore (EmitterCore.program l)
   | .done => .halt
 
+/-- Replacing the io local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putIO_get (v : Local) : putIO v (getIO v)=v := rfl
 
+/-- Replacing the plan local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putPlan_get (v : Local) : putPlan v (getPlan v)=v := rfl
 
+/-- Replacing the table local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putTable_get (v : Local) : putTable v (getTable v)=v := rfl
 
+/-- Replacing the core local component by its extracted value leaves the full local state
+unchanged. -/
 @[simp] theorem putCore_get (v : Local) : putCore v (getCore v)=v := rfl
 
+/-- `tableCode` is injective. -/
 theorem tableCode_injective : Function.Injective tableCode := by decide
 
+/-- `precisionCode` is injective. -/
 theorem precisionCode_injective : Function.Injective precisionCode := by decide
 
+/-- A run of `program` from label `(.copy .emit)` reaches label `(.emptyContext)` with stacks
+`EmitterCore.store (Function.update S .jobs ((S .plan).reverse++S .jobs))` after `(2*(S
+.plan).length+3)` stack steps; its accumulated stack clock is equal to `(S
+.plan).length*(5*(S .plan).length+2*(S .jobs).length+12)+7`. -/
 theorem copy_call (S : EmitterCore.Work → Bits) (v : Local) :
     Stacks.stackRun program (2*(S .plan).length+3) ⟨some (.copy .emit),v,EmitterCore.store S⟩=
       some ⟨some (.emptyContext),putIO v none,EmitterCore.store (Function.update S .jobs ((S .plan).reverse++S .jobs))⟩ ∧
@@ -22608,6 +26498,10 @@ theorem copy_call (S : EmitterCore.Work → Bits) (v : Local) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans hc⟩
 
+/-- A run of `program` from label `(.start 0)` reaches label `(.planStart)` with stacks
+`EmitterCore.store (Function.update (Function.update S .tag []) EmitterCore.Work.eval ((S
+.tag).reverse++S .eval))` after `((S .tag).length+1)` stack steps; its accumulated stack
+clock is equal to `(S .tag).length*(2*((S .tag).length+(S .eval).length)+5)+3`. -/
 theorem start_call (S : EmitterCore.Work → Bits) (v : Local) :
     Stacks.stackRun program ((S .tag).length+1) ⟨some (.start 0),v,EmitterCore.store S⟩=
       some ⟨some (.planStart),putIO v none,EmitterCore.store (Function.update (Function.update S .tag []) EmitterCore.Work.eval ((S .tag).reverse++S .eval))⟩ ∧
@@ -22640,6 +26534,9 @@ theorem start_call (S : EmitterCore.Work → Bits) (v : Local) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Stacks.transfer_clock (S .tag) (S .eval) (getIO v))⟩
 
+/-- A run of `program` from label `(.clearPlan 0)` reaches label `(.core (.step .loop))` with
+stacks `EmitterCore.store (Function.update S .plan [])` after `((S .plan).length+1)` stack
+steps; its accumulated stack clock is equal to `(S .plan).length^2+3*(S .plan).length+3`. -/
 theorem clear_call (S : EmitterCore.Work → Bits) (v : Local) :
     Stacks.stackRun program ((S .plan).length+1) ⟨some (.clearPlan 0),v,EmitterCore.store S⟩=
       some ⟨some (.core (.step .loop)),putIO v none,EmitterCore.store (Function.update S .plan [])⟩ ∧
@@ -22664,6 +26561,10 @@ theorem clear_call (S : EmitterCore.Work → Bits) (v : Local) :
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putIO_get,hsame,hfinal] at hN hNC
   exact ⟨hN,hNC.trans (Normalization.drain_clock (S .plan) (getIO v))⟩
 
+/-- Under the stated input conditions, a run of `program` from label `.planStart` reaches label
+`(.table (.read (.read .unary)))` with stacks `EmitterCore.store (EmitterCore.scanResult
+.eval .original p tail S)`; its accumulated stack clock is at most `4+30000*(1+(planBits
+p).length)*(PlanCopy.scanSize (planBits p++tail) [] 1)^2`. -/
 theorem plan_call (p : Plan) (tail : Bits) (S : EmitterCore.Work → Bits) (v : Local)
     (hr : S .eval=planBits p++tail) (hd : S .plan=[]) (hp : S .pending=[]) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some .planStart,v,EmitterCore.store S⟩=
@@ -22709,9 +26610,14 @@ theorem plan_call (p : Plan) (tail : Bits) (S : EmitterCore.Work → Bits) (v : 
   obtain ⟨total,hRun,hClock⟩ := eP.trans eN
   exact ⟨total,putPlan v last,hRun,hClock⟩
 
+/-- Replace the evaluation reader by its suffix and install the reversed parameter-table stream. -/
 def tableResult (params : List Bits) (tail : Bits) (S : EmitterCore.Work → Bits) : EmitterCore.Work → Bits :=
   Function.update (Function.update S .eval tail) .params (TableGet.stream params).reverse
 
+/-- Under the stated input conditions, a run of `program` from label `(.table (.read (.read
+.unary)))` reaches label `(.precision 0)` with stacks `EmitterCore.store (tableResult params
+tail S)`; its accumulated stack clock is at most `300000*(1+(natBits
+params.length++TableGet.stream params++tail).length)^3`. -/
 theorem table_call (params : List Bits) (tail : Bits) (S : EmitterCore.Work → Bits) (v : Local)
     (hr : S .eval=natBits params.length++TableGet.stream params++tail) (hp : S .params=[]) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.table (.read (.read .unary))),v,EmitterCore.store S⟩=
@@ -22745,9 +26651,15 @@ theorem table_call (params : List Bits) (tail : Bits) (S : EmitterCore.Work → 
   simp only [List.length_nil,Nat.add_zero] at hRC
   exact ⟨ticks,putTable v last,hN,hNC.trans_le hRC⟩
 
+/-- Replace the evaluation reader by its suffix and install the reversed canonical precision
+digits. -/
 def precisionResult (k : ℕ) (tail : Bits) (S : EmitterCore.Work → Bits) : EmitterCore.Work → Bits :=
   Function.update (Function.update S .eval tail) .precision k.bits.reverse
 
+/-- Under the stated input conditions, a run of `program` from label `(.precision 0)` reaches
+label `(.copy .emit)` with stacks `EmitterCore.store (precisionResult k tail S)` after
+`(2*k.bits.length+3)` stack steps; its accumulated stack clock is at most `40*(1+(natBits
+k++tail).length)^2`. -/
 theorem precision_call (k : ℕ) (tail : Bits) (S : EmitterCore.Work → Bits) (v : Local)
     (hr : S .eval=natBits k++tail) (hk : S .precision=[]) :
     Stacks.stackRun program (2*k.bits.length+3) ⟨some (.precision 0),v,EmitterCore.store S⟩=
@@ -22782,10 +26694,15 @@ theorem precision_call (k : ℕ) (tail : Bits) (S : EmitterCore.Work → Bits) (
   simp only [List.length_nil,Nat.add_zero] at hRC
   exact ⟨hN,hNC.trans_le hRC⟩
 
+/-- `StackCall.frame id saved data` equals `data`. -/
 theorem frame_id (saved data : Slot → Bits) : StackCall.frame id saved data=data := by
   funext bank
   exact StackCall.frame_at id saved data Function.injective_id bank
 
+/-- A run of `program` from label `(.core (.step .loop))` reaches label `.done` with stacks
+`EmitterCore.store (EmitterCore.ready [] [] [] (emit params k [] p).reverse)`; its
+accumulated stack clock is at most `2000000000000000*(EmitterCore.inputBudget p params
+k)^12`. -/
 theorem core_call (p : Plan) (params : List Bits) (k : ℕ) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks
       ⟨some (.core (.step .loop)),v,EmitterCore.store (EmitterCore.ready (Scheduler.jobBits ⟨[],p⟩) (TableGet.stream params).reverse k.bits.reverse [])⟩=
@@ -22805,11 +26722,16 @@ theorem core_call (p : Plan) (params : List Bits) (k : ℕ) (v : Local) : ∃ ti
   simp only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,putCore_get,frame_id] at hN hNC
   exact ⟨ticks,putCore v last,hN,hNC.trans_le hRC⟩
 
+/-- Place the reversed raw emitter input in the tag bank and leave all other work banks empty. -/
 def initial (raw : Bits) : EmitterCore.Work → Bits := Function.update (fun _ => []) .tag raw.reverse
 
+/-- `Scheduler.jobBits ⟨[],p⟩` equals `false::planBits p`. -/
 theorem empty_job (p : Plan) : Scheduler.jobBits ⟨[],p⟩=false::planBits p := by
   simp [Scheduler.jobBits,Scheduler.counterStream,TableGet.stream,framed,natBits,Nat.zero_bits]
 
+/-- A run of `program` from label `.emptyContext` reaches label `(.clearPlan 0)` with stacks
+`EmitterCore.store (Function.update S .jobs (false::S .jobs))` after `1` stack step; its
+accumulated stack clock is equal to `2*(S .jobs).length+4`. -/
 theorem empty_context (S : EmitterCore.Work → Bits) (v : Local) :
     Stacks.stackRun program 1 ⟨some .emptyContext,v,EmitterCore.store S⟩=
       some ⟨some (.clearPlan 0),v,EmitterCore.store (Function.update S .jobs (false::S .jobs))⟩ ∧
@@ -22819,6 +26741,8 @@ theorem empty_context (S : EmitterCore.Work → Bits) (v : Local) :
   · simp [Stacks.stackRunClock,program,Stacks.stackClock,EmitterCore.store]
     omega
 
+/-- The explicit accumulated clock budget for the frontend phase of uniform plan-input
+preparation and emission. -/
 def frontendCost (p : Plan) (params : List Bits) (k : ℕ) : ℕ :=
   let raw := emitterInput p params k
   let tail := natBits params.length++TableGet.stream params++natBits k
@@ -22828,6 +26752,10 @@ def frontendCost (p : Plan) (params : List Bits) (k : ℕ) : ℕ :=
     ((planBits p).length*(5*(planBits p).length+12)+7)+(2*(planBits p).length+4)+
     ((planBits p).length^2+3*(planBits p).length+3)
 
+/-- A run of `program` from label `(.start 0)` reaches label `(.core (.step .loop))` with stacks
+`EmitterCore.store (EmitterCore.ready (Scheduler.jobBits ⟨[],p⟩) (TableGet.stream
+params).reverse k.bits.reverse [])`; its accumulated stack clock is at most `frontendCost p
+params k`. -/
 theorem frontend (p : Plan) (params : List Bits) (k : ℕ) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.start 0),v,EmitterCore.store (initial (emitterInput p params k))⟩=
       some ⟨some (.core (.step .loop)),last,EmitterCore.store (EmitterCore.ready
@@ -22882,6 +26810,7 @@ theorem frontend (p : Plan) (params : List Bits) (k : ℕ) (v : Local) : ∃ tic
   · simp [frontendCost,S6,S5,S4,S3,S2,S1,S0,initial,EmitterCore.transferResult,EmitterCore.scanResult,
       EmitterCore.readerKey,EmitterCore.planKey,tableResult,precisionResult,raw,hInput]
 
+/-- `frontendCost p params k` is at most `100000000*(1+(emitterInput p params k).length)^3`. -/
 theorem frontendCost_bound (p : Plan) (params : List Bits) (k : ℕ) :
     frontendCost p params k≤100000000*(1+(emitterInput p params k).length)^3 := by
   let raw := emitterInput p params k
@@ -22916,6 +26845,9 @@ theorem frontendCost_bound (p : Plan) (params : List Bits) (k : ℕ) :
     (P*(5*P+12)+7)+(2*P+4)+(P^2+3*P+3)≤100000000*B^3
   nlinarith only [h23,hB2,h13,hL,hPL,hL2,hP2,hplan,htable,hprec]
 
+/-- The complete stack emitter consumes an encoded plan input and halts with only the reversed
+semantic emission in the output bank, within accumulated clock
+`3000000000000000*(EmitterCore.inputBudget p params k)^12`. -/
 theorem complete (p : Plan) (params : List Bits) (k : ℕ) (v : Local) : ∃ ticks last,
     Stacks.stackRun program ticks ⟨some (.start 0),v,EmitterCore.store (initial (emitterInput p params k))⟩=
       some ⟨none,last,EmitterCore.store (EmitterCore.ready [] [] [] (emit params k [] p).reverse)⟩ ∧
@@ -22941,6 +26873,8 @@ theorem complete (p : Plan) (params : List Bits) (k : ℕ) (v : Local) : ∃ tic
   change frontendCost p params k+2000000000000000*B^12+1≤3000000000000000*B^12
   nlinarith only [h13,h3,hIn3,hfront]
 
+/-- `(TM2.init (.inl EmitterCore.Work.tag) raw.reverse : TM2.Cfg (fun _ : Slot => Bool) Label
+Local)` equals `⟨some (.start 0),default,EmitterCore.store (initial raw)⟩`. -/
 theorem initial_eq (raw : Bits) :
     (TM2.init (.inl EmitterCore.Work.tag) raw.reverse : TM2.Cfg (fun _ : Slot => Bool) Label Local)=
       ⟨some (.start 0),default,EmitterCore.store (initial raw)⟩ := by
@@ -22951,6 +26885,8 @@ theorem initial_eq (raw : Bits) :
   | inl w => cases w <;> rfl
   | inr a => rfl
 
+/-- `EmitterCore.store (EmitterCore.ready [] [] [] bits)` equals `Function.update (fun _ : Slot
+=> []) (.inl EmitterCore.Work.output) bits`. -/
 theorem output_store (bits : Bits) : EmitterCore.store (EmitterCore.ready [] [] [] bits)=
     Function.update (fun _ : Slot => []) (.inl EmitterCore.Work.output) bits := by
   funext bank
@@ -22958,6 +26894,9 @@ theorem output_store (bits : Bits) : EmitterCore.store (EmitterCore.ready [] [] 
   | inl w => cases w <;> rfl
   | inr a => rfl
 
+/-- One finite-control TM0 machine emits `emit params k [] p` from `emitterInput p params k`,
+with both time and space bounded by a positive constant times `EmitterCore.inputBudget` to
+the twelfth power. -/
 theorem raw_machine : ∃ (q : ℕ) (M : TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ),0<C ∧
     ∀ (p : Plan) (params : List Bits) (k : ℕ),
       Runs M (emitterInput p params k) (emit params k [] p)
@@ -22999,6 +26938,10 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Emitter
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/-- A single finite-control TM0 machine uniformly evaluates all encoded plans with time and
+space bounded by C(1 + input length + output length + work)¹² for some positive constant C.
+When the output encodes a legal word, a halted configuration within that budget contains
+exactly its encoded bits on the right tape. -/
 theorem uniform_emitter_machine :
   ∃ (q : ℕ) (M : Turing.TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ),0<C ∧
     ∀ (p : Plan) (params : List Bits) (k : ℕ),

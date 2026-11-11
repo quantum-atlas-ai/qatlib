@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.CStarAlgebra.Matrix
 import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzGily
+
+/-!
+# Lipschitz continuity of Hermitian matrix exponentials
+
+`exp_I_smul_lipschitz` controls the difference of two unitary exponentials by the difference of
+their Hermitian generators. This perturbation estimate supplies a matrix-exponential bound for
+the latent-circuit development. See [TranEtAl2026] for the paper context.
+
+## Main statements
+
+* `exp_I_smul_lipschitz`: For Hermitian complex matrices `A` and `B`, the norm of `exp (I • A) -
+  exp (I • B)` is at most `‖A - B‖`.
+
+## References
+
+* [Tran et al., 2026][TranEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +35,8 @@ open scoped Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.LatentPQCTran26.MainResults.ExpLipschitz
 
+/-- For Hermitian complex matrices `A` and `B`, the norm of `exp (I • A) - exp (I • B)` is at
+most `‖A - B‖` [TranEtAl2026]. -/
 theorem exp_I_smul_lipschitz {ι : Type} [Fintype ι] [DecidableEq ι]
     (A B : Matrix ι ι ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian) :
     ‖NormedSpace.exp (Complex.I • A) - NormedSpace.exp (Complex.I • B)‖ ≤ ‖A - B‖ := by

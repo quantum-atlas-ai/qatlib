@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacs
 import Mathlib.Topology.Order.DenselyOrdered
 import Mathlib.Topology.Order.OrderClosed
+
+/-!
+# Nonnegative polynomial representations
+
+This module proves that every real polynomial nonnegative on `[0, 1]` possesses a degree-bounded
+Markov–Lukács representation. The proof removes represented factors while preserving
+nonnegativity, using square divisibility at interior roots and continuity at endpoints. Such
+interval-positivity certificates support polynomial constructions in quantum singular value
+transformation [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `sq_X_sub_C_dvd_of_nonneg_on_unit_interval`: The square of an interior root factor divides a
+  nonnegative polynomial.
+* `exists_rep_of_nonneg_natDegree`: Construct a representation at the polynomial's natural
+  degree.
+* `exists_rep_of_nonneg`: Construct a representation at any prescribed degree bound.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +37,8 @@ namespace Qatlib.Concepts.QsvtCore.PolyApprox
 
 open Polynomial
 
+/-- Nonnegativity of a real polynomial on a nonempty open interval extends to its closed
+interval. -/
 theorem nonneg_on_Icc_of_nonneg_on_Ioo {p : Polynomial ℝ} {a b : ℝ}
     (hab : a < b) (hp : ∀ t ∈ Set.Ioo a b, 0 ≤ p.eval t) :
     ∀ t ∈ Set.Icc a b, 0 ≤ p.eval t := by
@@ -21,6 +46,8 @@ theorem nonneg_on_Icc_of_nonneg_on_Ioo {p : Polynomial ℝ} {a b : ℝ}
   exact le_on_closure hp continuous_const.continuousOn p.continuousOn
     (by rwa [closure_Ioo hab.ne])
 
+/-- Nonpositivity of a real polynomial on a nonempty open interval extends to its closed
+interval. -/
 theorem nonpos_on_Icc_of_nonpos_on_Ioo {p : Polynomial ℝ} {a b : ℝ}
     (hab : a < b) (hp : ∀ t ∈ Set.Ioo a b, p.eval t ≤ 0) :
     ∀ t ∈ Set.Icc a b, p.eval t ≤ 0 := by
@@ -28,6 +55,8 @@ theorem nonpos_on_Icc_of_nonpos_on_Ioo {p : Polynomial ℝ} {a b : ℝ}
   exact le_on_closure hp p.continuousOn continuous_const.continuousOn
     (by rwa [closure_Ioo hab.ne])
 
+/-- A polynomial nonnegative on `[0, 1]` except possibly at one interior point is nonnegative
+throughout the interval. -/
 theorem nonneg_on_Icc_of_nonneg_except {p : Polynomial ℝ} {r : ℝ}
     (hr0 : 0 < r) (hr1 : r < 1)
     (hp : ∀ t ∈ Set.Icc (0 : ℝ) 1, t ≠ r → 0 ≤ p.eval t) :
@@ -40,12 +69,16 @@ theorem nonneg_on_Icc_of_nonneg_except {p : Polynomial ℝ} {r : ℝ}
     exact hp x ⟨hx.1.le, hx.2.le.trans hr1.le⟩ hx.2.ne
   · exact hp t ht htr
 
+/-- If `f = a * g`, nonnegativity of `f` and strict positivity of `a` at `t` imply nonnegativity
+of `g` there. -/
 theorem quotient_nonneg_at {f a g : Polynomial ℝ} (hfg : f = a * g)
     (t : ℝ) (hf : 0 ≤ f.eval t) (ha : 0 < a.eval t) : 0 ≤ g.eval t := by
   rw [hfg, Polynomial.eval_mul] at hf
   by_contra! hg
   exact (not_lt_of_ge hf) (mul_neg_of_pos_of_neg ha hg)
 
+/-- Factoring out a polynomial strictly positive on `(0, 1)` preserves nonnegativity on `[0,
+1]`. -/
 theorem quotient_nonneg_on_unit_interval {f a g : Polynomial ℝ}
     (hfg : f = a * g)
     (hf : ∀ t ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f.eval t)
@@ -55,6 +88,8 @@ theorem quotient_nonneg_on_unit_interval {f a g : Polynomial ℝ}
   intro t ht
   exact quotient_nonneg_at hfg t (hf t ⟨ht.1.le, ht.2.le⟩) (ha t ht)
 
+/-- The square of the linear factor at an interior root divides a polynomial nonnegative on `[0,
+1]`. -/
 theorem sq_X_sub_C_dvd_of_nonneg_on_unit_interval {f : Polynomial ℝ}
     (hf : ∀ t ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f.eval t)
     {r : ℝ} (hr0 : 0 < r) (hr1 : r < 1) (hr : f.IsRoot r) :
@@ -79,6 +114,7 @@ theorem sq_X_sub_C_dvd_of_nonneg_on_unit_interval {f : Polynomial ℝ}
   rw [hfg, hgq]
   ring
 
+/-- Removing the square of an interior linear root factor preserves nonnegativity on `[0, 1]`. -/
 theorem quotient_nonneg_of_interior_square {f g : Polynomial ℝ} {r : ℝ}
     (hfg : f = (X - C r) ^ 2 * g)
     (hf : ∀ t ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f.eval t)
@@ -90,6 +126,7 @@ theorem quotient_nonneg_of_interior_square {f g : Polynomial ℝ} {r : ℝ}
   simp only [eval_pow, eval_sub, eval_X, eval_C]
   exact sq_pos_of_ne_zero (sub_ne_zero.mpr htr)
 
+/-- The even Markov–Lukács representation of `(X - C r) ^ 2` with components `X - C r` and zero. -/
 noncomputable def squareLinear (r : ℝ) : EvenRep 1 ((X - C r) ^ 2) where
   a := X - C r
   b := 0
@@ -97,9 +134,12 @@ noncomputable def squareLinear (r : ℝ) : EvenRep 1 ((X - C r) ^ 2) where
   degreeA := (degree_X_sub_C r).le
   degreeB := by simp
 
+/-- The degree-two Markov–Lukács representation of the square of a linear factor. -/
 noncomputable def repSquareLinear (r : ℝ) : Representation 2 ((X - C r) ^ 2) :=
   squareLinear r
 
+/-- A polynomial of positive natural degree that is nonnegative on `[0, 1]` factors into a
+represented factor and a nonnegative quotient of smaller natural degree. -/
 theorem exists_nonnegative_root_factor (f : Polynomial ℝ)
     (hf : ∀ t ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f.eval t)
     (hdegree : 0 < f.natDegree) :
@@ -171,6 +211,8 @@ theorem exists_nonnegative_root_factor (f : Polynomial ℝ)
     · rw [had]
       exact ⟨repQuadratic z⟩
 
+/-- Every polynomial nonnegative on `[0, 1]` possesses a Markov–Lukács representation at its
+natural degree. -/
 theorem exists_rep_of_nonneg_natDegree (f : Polynomial ℝ)
     (hf : ∀ t ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f.eval t) :
     Nonempty (Representation f.natDegree f) := by
@@ -214,6 +256,8 @@ theorem exists_rep_of_nonneg_natDegree (f : Polynomial ℝ)
           simpa only [hsum, ← hpg] using hrep
   exact main f.natDegree f rfl hf
 
+/-- A polynomial nonnegative on `[0, 1]` possesses a Markov–Lukács representation at any given
+degree bound. -/
 theorem exists_rep_of_nonneg (f : Polynomial ℝ)
     (hf : ∀ t ∈ Set.Icc (0 : ℝ) 1, 0 ≤ f.eval t)
     {d : ℕ} (hd : f.degree ≤ (d : WithBot ℕ)) :

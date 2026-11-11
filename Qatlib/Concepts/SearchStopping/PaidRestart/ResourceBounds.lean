@@ -12,6 +12,37 @@ import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartExpectedReceiptTigh
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+
+/-!
+# Circuit resource bounds and local allocation laws
+
+Develops local-program composition, allocation-stack invariants, matrix products, and
+accumulated gate-error bounds. Balanced fresh-copy and restart programs use peak space at most
+one, and `g1` through `g4` collect circuit budgets, query lower bounds, parity complexity, phase
+grids, and receipt laws.
+
+The circuit framework is described in [NielsenChuang2010], and the state-conversion bounds use
+the framework of [LeeEtAl2011].
+
+## Main statements
+
+* `g1`: Collects exact resource identities for circuit composition, parallel circuits,
+  compilation, adjoint and Hamiltonian programs, and several fresh-copy phase-estimation
+  constructions, together with their stated channel and error properties.
+* `g2`: Collects sufficient conditions for implementation within a resource budget, an exact
+  quarter-amplitude amplification example, adversary and state-conversion lower bounds, and
+  oracle independence of zero-query circuits.
+* `g3`: Collects the tight parity query bound, its linear asymptotic growth, and explicit
+  numerical phase-table correctness, covering, precision, and comparison-cost estimates. See
+  [BealsEtAl2001].
+* `g4`: Collects local-program composition and error bounds, balanced fresh-copy and restart
+  space bounds, fresh-copy ledger identities, and the expected paid-restart receipt law.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
@@ -55,42 +86,57 @@ set_option warningAsError false
 
 set_option autoImplicit false
 
+/-- Concatenates two local programs by placing the second after the operation list of the first. -/
 private def localOpAppend {I : Type} : LocalProgram I → LocalProgram I → LocalProgram I
   | .nil, q => q
   | .op o rest, q => .op o (localOpAppend rest q)
 
+/-- The sum of the allocation sizes `localOpSpace` over all operations in a local program. -/
 private def localAllocTotal {I : Type} : LocalProgram I → ℕ
   | .nil => 0
   | .op o rest => localOpSpace o + localAllocTotal rest
 
+/-- The matrix product obtained from a local program by replacing each unitary-operation matrix
+`U` with `r U` and ignoring other operations. -/
 private noncomputable def localProgramRefMatrix {I : Type} [Fintype I] [DecidableEq I]
     (r : Matrix I I ℂ → Matrix I I ℂ) : LocalProgram I → Matrix I I ℂ
   | .nil => 1
   | .op (.applyU U) rest => localProgramRefMatrix r rest * r U
   | .op _ rest => localProgramRefMatrix r rest
 
+/-- The sum of the matrix-norm errors `‖U - r U‖` over the unitary operations of a local
+program. -/
 private noncomputable def localProgramErrorSum {I : Type} [Fintype I] [DecidableEq I]
     (r : Matrix I I ℂ → Matrix I I ℂ) : LocalProgram I → ℝ
   | .nil => 0
   | .op (.applyU U) rest => localProgramErrorSum r rest + ‖U - r U‖
   | .op _ rest => localProgramErrorSum r rest
 
+/-- A local program that allocates one unit, applies the partial-swap matrix at angle `θ`, and
+discards the allocation. -/
 private noncomputable def freshCopyStepProgram (D : ℕ) (θ : ℝ) :
     LocalProgram (Fin D × Fin D) :=
   .op (.alloc 1) (.op (.applyU (partialSwapMatrix D θ)) (.op .discard .nil))
 
+/-- Concatenates one fresh-copy partial-swap step for each angle in the given list. -/
 private noncomputable def freshCopyScheduleProgram (D : ℕ) :
     List ℝ → LocalProgram (Fin D × Fin D)
   | [] => .nil
   | θ :: rest => localOpAppend (freshCopyStepProgram D θ) (freshCopyScheduleProgram D rest)
 
+/-- A local restart-round program that allocates one unit, applies `U`, and discards the
+allocation. -/
 private def restartRoundProgram {I : Type} (U : Matrix I I ℂ) : LocalProgram I :=
   .op (.alloc 1) (.op (.applyU U) (.op .discard .nil))
 
+/-- Repeats the allocate-apply-discard restart round `r` times. -/
 private def restartLoopProgram {I : Type} (U : Matrix I I ℂ) : ℕ → LocalProgram I
   | 0 => .nil
   | r + 1 => localOpAppend (restartRoundProgram U) (restartLoopProgram U r)
 
+/-- The predicate requiring every circuit selected by a matrix-indexed program family to be
+unitary and to achieve real input-to-target overlap at least `Real.sqrt (1 - ε)` for each
+input's workspace Boolean oracle. -/
 private def stateConversionFamilySpec {X : Type} [Fintype X] [DecidableEq X] {n R : ℕ}
     (input : X → Fin n → Bool) (ε : ℝ) (ρ σ : X → QState ((Fin n × Bool) × Fin R)) :
     (Matrix ((Fin n × Bool) × Fin R) ((Fin n × Bool) × Fin R) ℂ →
@@ -99,6 +145,9 @@ private def stateConversionFamilySpec {X : Type} [Fintype X] [DecidableEq X] {n 
     ∀ x : X, Real.sqrt (1 - ε) ≤ Complex.re
       (Qatlib.Foundations.PureStateMath.Inner (Run (workspaceBitOracle (W := Fin R) (input x)) (prog oracle) (ρ x)) (σ x))
 
+/-- For `0 < ε ≤ 1`, a unitary circuit using `T` queries and achieving the stated overlap on
+normalized input and target states bounds `stateConversionSDP` at tolerance `2 * Real.sqrt
+(2 * ε)` by `2 * T`. See [LeeEtAl2011]. -/
 private theorem stateConversionSDP_lower_bound_of_actual_circuit (X : Type) [Fintype X] [DecidableEq X]
     (n T R : ℕ) (input : X → Fin n → Bool) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (ρ σ : X → QState ((Fin n × Bool) × Fin R))
@@ -131,24 +180,28 @@ private theorem stateConversionSDP_lower_bound_of_actual_circuit (X : Type) [Fin
     rw [show 2 * (T : ℝ) = ((2 * T : ℕ) : ℝ) by push_cast; rfl, ENNReal.ofReal_natCast]
   rwa [heq] at h
 
+/-- Assigning the zero step profile to every gate gives a derived basic-gate cost of zero. -/
 private theorem zeroProfile_basicGates {I : Type} [Fintype I] [DecidableEq I]
     (C : Circuit I) : (derive (fun _ => StepProfile.zero) C).basicGates = 0 := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [derive, ih]
 
+/-- Assigning the zero step profile to every gate gives a derived peak-space cost of zero. -/
 private theorem zeroProfile_peakSpace {I : Type} [Fintype I] [DecidableEq I]
     (C : Circuit I) : (derive (fun _ => StepProfile.zero) C).peakSpace = 0 := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [derive, ih]
 
+/-- Assigning the zero step profile to every gate gives a derived Hamiltonian-time cost of zero. -/
 private theorem zeroProfile_hamiltonianTime {I : Type} [Fintype I] [DecidableEq I]
     (C : Circuit I) : (derive (fun _ => StepProfile.zero) C).hamiltonianTime = 0 := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [derive, ih]
 
+/-- The real-valued function given by natural division `(n + 1) / 2` has resource growth Θ(n). -/
 private theorem parity_query_growth_theta :
     IsResourceBigTheta (fun n : ℕ => (((n + 1) / 2 : ℕ) : ℝ)) (fun n : ℕ => (n : ℝ)) := by
   refine ⟨⟨1, 0, by norm_num, ?_⟩, ⟨1 / 2, 0, by norm_num, ?_⟩⟩
@@ -165,6 +218,8 @@ private theorem parity_query_growth_theta :
     rw [hE] at hR
     linarith
 
+/-- For `n ≥ 1`, the specified dyadic phase-grid error is at most `9 / (2 * n)` and the grid
+contains at most `4 * n` points. -/
 private theorem phase_grid_precision (n : ℕ) (hn : 1 ≤ n) :
     8 / ((2 : ℝ) ^ (Nat.log 2 n + 2)) +
         ((2 : ℝ) ^ (Nat.log 2 n + 2)) * ((2 : ℝ) ⁻¹) ^ (2 * (Nat.log 2 n + 2))
@@ -216,6 +271,7 @@ private theorem phase_grid_precision (n : ℕ) (hn : 1 ≤ n) :
     rw [hexp]
     omega
 
+/-- For fixed `d`, the function `(d + 1) * (Nat.log 2 n + 3)` is resource O((Nat.log 2 n + 2)³). -/
 private theorem comparison_word_bit_growth (d : ℕ) : IsResourceBigO
     (fun n : ℕ => ((d : ℝ) + 1) * ((Nat.log 2 n : ℝ) + 3))
     (fun n : ℕ => (((Nat.log 2 n + 2) ^ 3 : ℕ) : ℝ)) := by
@@ -233,6 +289,7 @@ private theorem comparison_word_bit_growth (d : ℕ) : IsResourceBigO
     linarith
   exact mul_le_mul_of_nonneg_left hkey (by positivity)
 
+/-- The sum of the tail of a list of natural numbers is at most the sum of the whole list. -/
 private theorem list_tail_sum_le (t : List ℕ) : t.tail.sum ≤ t.sum := by
   cases t with
   | nil => rfl
@@ -240,6 +297,8 @@ private theorem list_tail_sum_le (t : List ℕ) : t.tail.sum ≤ t.sum := by
     simp only [List.tail, List.sum_cons]
     omega
 
+/-- Running the concatenation of two local programs on an allocation state equals running the
+first and then the second. -/
 private theorem localProgramState_append {I : Type} (p q : LocalProgram I)
     (st : LocalAllocState) :
     localProgramState (localOpAppend p q) st = localProgramState q (localProgramState p st) := by
@@ -247,6 +306,7 @@ private theorem localProgramState_append {I : Type} (p q : LocalProgram I)
   | nil => rfl
   | op o rest ih => exact ih (localOpStep o st)
 
+/-- Executing a local program cannot decrease the recorded peak allocation. -/
 private theorem localProgramState_peak_ge {I : Type} (p : LocalProgram I)
     (st : LocalAllocState) : st.peak ≤ (localProgramState p st).peak := by
   induction p generalizing st with
@@ -261,6 +321,8 @@ private theorem localProgramState_peak_ge {I : Type} (p : LocalProgram I)
     | reset => exact ih ⟨st.allocs.tail, st.peak⟩
     | discard => exact ih ⟨st.allocs.tail, st.peak⟩
 
+/-- For a fixed initial allocation list, the final allocation list is independent of the initial
+recorded peak. -/
 private theorem localProgramState_allocs_irrelevant {I : Type} (p : LocalProgram I) :
     ∀ (l : List ℕ) (a b : ℕ),
       (localProgramState p ⟨l, a⟩).allocs = (localProgramState p ⟨l, b⟩).allocs := by
@@ -270,6 +332,8 @@ private theorem localProgramState_allocs_irrelevant {I : Type} (p : LocalProgram
     intro l a b
     cases o <;> exact ih _ _ _
 
+/-- Starting with recorded peak `max a b` gives final peak `max a` of the final peak obtained by
+starting with `b`. -/
 private theorem localProgramState_peak_max {I : Type} (p : LocalProgram I) :
     ∀ (l : List ℕ) (a b : ℕ),
       (localProgramState p ⟨l, max a b⟩).peak = max a (localProgramState p ⟨l, b⟩).peak := by
@@ -290,12 +354,16 @@ private theorem localProgramState_peak_max {I : Type} (p : LocalProgram I) :
       rw [hgoal]
       exact ih (w :: l) a (max b (w + l.sum))
 
+/-- Starting with an empty allocation list and recorded peak `a` gives final peak `max a
+(localPeakSpace p)`. -/
 private theorem localProgramState_peak_empty {I : Type} (p : LocalProgram I) (a : ℕ) :
     (localProgramState p ⟨[], a⟩).peak = max a (localPeakSpace p) := by
   have h := localProgramState_peak_max p [] a 0
   rw [Nat.max_zero] at h
   exact h
 
+/-- Appending a fixed allocation tail to the initial stack increases the final peak by at most
+the tail's total allocation, subject to the initial recorded peak. -/
 private theorem localProgramState_frame {I : Type} (p : LocalProgram I) :
     ∀ (l t : List ℕ) (a b : ℕ),
       (localProgramState p ⟨l ++ t, a⟩).peak
@@ -347,6 +415,8 @@ private theorem localProgramState_frame {I : Type} (p : LocalProgram I) :
       rw [List.sum_append]
       omega
 
+/-- The final peak is at most the maximum of the initial peak and the initial total allocation
+plus `localPeakSpace p`. -/
 private theorem localProgramState_peak_le {I : Type} (p : LocalProgram I)
     (l : List ℕ) (a : ℕ) :
     (localProgramState p ⟨l, a⟩).peak ≤ max a (l.sum + localPeakSpace p) := by
@@ -354,6 +424,8 @@ private theorem localProgramState_peak_le {I : Type} (p : LocalProgram I)
   rw [List.nil_append] at h
   exact h
 
+/-- If the initial allocation total is bounded by the recorded peak, this invariant remains true
+after executing a local program. -/
 private theorem localProgramState_sum_le_peak {I : Type} (p : LocalProgram I) :
     ∀ st : LocalAllocState, st.allocs.sum ≤ st.peak →
       (localProgramState p st).allocs.sum ≤ (localProgramState p st).peak := by
@@ -377,6 +449,8 @@ private theorem localProgramState_sum_le_peak {I : Type} (p : LocalProgram I) :
       refine ih ⟨st.allocs.tail, st.peak⟩ ?_
       exact (list_tail_sum_le st.allocs).trans h
 
+/-- The peak space of a concatenated local program is at most the sum of the component peak
+spaces. -/
 private theorem localPeakSpace_append_le {I : Type} (p q : LocalProgram I) :
     localPeakSpace (localOpAppend p q) ≤ localPeakSpace p + localPeakSpace q := by
   have hq' : localPeakSpace q = (localProgramState q ⟨[], 0⟩).peak := rfl
@@ -395,6 +469,8 @@ private theorem localPeakSpace_append_le {I : Type} (p q : LocalProgram I) :
     hp', hq', happ]
   omega
 
+/-- Concatenating balanced local programs preserves balance and gives peak space equal to the
+maximum of their peak spaces. -/
 private theorem localOpAppend_balanced {I : Type} (p q : LocalProgram I)
     (hp : localProgramBalanced p) (hq : localProgramBalanced q) :
     localProgramBalanced (localOpAppend p q) ∧
@@ -416,6 +492,7 @@ private theorem localOpAppend_balanced {I : Type} (p q : LocalProgram I)
     rw [happ, hst, localProgramState_peak_empty q ((localProgramState p ⟨[], 0⟩).peak)]
     rfl
 
+/-- The gate list of concatenated local programs is the concatenation of their gate lists. -/
 private theorem localProgramGates_append {I : Type} (p q : LocalProgram I) :
     localProgramGates (localOpAppend p q) = localProgramGates p ++ localProgramGates q := by
   induction p with
@@ -432,6 +509,8 @@ private theorem localProgramGates_append {I : Type} (p q : LocalProgram I) :
     | reset => exact ih
     | discard => exact ih
 
+/-- The matrix of concatenated local programs is the matrix of the second multiplied by that of
+the first. -/
 private theorem localProgramMatrix_append {I : Type} [Fintype I] [DecidableEq I]
     (p q : LocalProgram I) :
     localProgramMatrix (localOpAppend p q) = localProgramMatrix q * localProgramMatrix p := by
@@ -450,6 +529,7 @@ private theorem localProgramMatrix_append {I : Type} [Fintype I] [DecidableEq I]
     | reset => exact ih
     | discard => exact ih
 
+/-- The matrix of a local program is the product of its gate matrices in reverse list order. -/
 private theorem localProgramMatrix_eq_prod {I : Type} [Fintype I] [DecidableEq I]
     (p : LocalProgram I) :
     localProgramMatrix p = (localProgramGates p).reverse.prod := by
@@ -465,6 +545,8 @@ private theorem localProgramMatrix_eq_prod {I : Type} [Fintype I] [DecidableEq I
     | reset => exact ih
     | discard => exact ih
 
+/-- The reference matrix is the reverse-order product of the program's gate matrices after
+applying `r` to each gate. -/
 private theorem localProgramRefMatrix_eq_prod {I : Type} [Fintype I] [DecidableEq I]
     (r : Matrix I I ℂ → Matrix I I ℂ) (p : LocalProgram I) :
     localProgramRefMatrix r p = ((localProgramGates p).map r).reverse.prod := by
@@ -481,6 +563,7 @@ private theorem localProgramRefMatrix_eq_prod {I : Type} [Fintype I] [DecidableE
     | reset => exact ih
     | discard => exact ih
 
+/-- The reference-error sum equals the sum of `‖U - r U‖` over the extracted gate list. -/
 private theorem localProgramErrorSum_eq {I : Type} [Fintype I] [DecidableEq I]
     (r : Matrix I I ℂ → Matrix I I ℂ) (p : LocalProgram I) :
     localProgramErrorSum r p = ((localProgramGates p).map (fun U => ‖U - r U‖)).sum := by
@@ -498,6 +581,8 @@ private theorem localProgramErrorSum_eq {I : Type} [Fintype I] [DecidableEq I]
     | reset => exact ih
     | discard => exact ih
 
+/-- When every program gate and its reference replacement are unitary, the matrix error of the
+full program is at most the sum of the individual gate errors. -/
 private theorem localProgram_refError_le {I : Type} [Fintype I] [DecidableEq I]
     (p : LocalProgram I) (r : Matrix I I ℂ → Matrix I I ℂ)
     (hU : ∀ U ∈ localProgramGates p, U ∈ Matrix.unitaryGroup I ℂ
@@ -526,11 +611,13 @@ private theorem localProgram_refError_le {I : Type} [Fintype I] [DecidableEq I]
     localProgramErrorSum_eq]
   exact hmain
 
+/-- A fresh-copy partial-swap step is balanced and has peak space exactly one. -/
 private theorem freshCopyStepProgram_balanced (D : ℕ) (θ : ℝ) :
     localProgramBalanced (freshCopyStepProgram D θ) ∧
       localPeakSpace (freshCopyStepProgram D θ) = 1 :=
   ⟨rfl, rfl⟩
 
+/-- Every fresh-copy schedule program is balanced and has peak space at most one. -/
 private theorem freshCopyScheduleProgram_bal (D : ℕ) (angles : List ℝ) :
     localProgramBalanced (freshCopyScheduleProgram D angles) ∧
       localPeakSpace (freshCopyScheduleProgram D angles) ≤ 1 := by
@@ -547,6 +634,8 @@ private theorem freshCopyScheduleProgram_bal (D : ℕ) (angles : List ℝ) :
     rw [h.2]
     omega
 
+/-- The gate list of a fresh-copy schedule consists of the partial-swap matrices at its listed
+angles. -/
 private theorem freshCopyScheduleProgram_gates (D : ℕ) (angles : List ℝ) :
     localProgramGates (freshCopyScheduleProgram D angles)
       = angles.map (fun θ => partialSwapMatrix D θ) := by
@@ -556,6 +645,8 @@ private theorem freshCopyScheduleProgram_gates (D : ℕ) (angles : List ℝ) :
     rw [freshCopyScheduleProgram, localProgramGates_append, ih]
     rfl
 
+/-- The matrix of a fresh-copy schedule is the left fold that successively multiplies its
+partial-swap matrices onto the identity. -/
 private theorem freshCopyScheduleProgram_matrix (D : ℕ) (angles : List ℝ) :
     localProgramMatrix (freshCopyScheduleProgram D angles)
       = angles.foldl (fun M θ => partialSwapMatrix D θ * M)
@@ -578,11 +669,14 @@ private theorem freshCopyScheduleProgram_matrix (D : ℕ) (angles : List ℝ) :
   rw [Matrix.mul_one] at h
   exact h.symm
 
+/-- A single allocate-apply-discard restart round is balanced and has peak space exactly one. -/
 private theorem restartRoundProgram_balanced {I : Type} (U : Matrix I I ℂ) :
     localProgramBalanced (restartRoundProgram U) ∧
       localPeakSpace (restartRoundProgram U) = 1 :=
   ⟨rfl, rfl⟩
 
+/-- Every finite repetition of the restart-round program is balanced and has peak space at most
+one. -/
 private theorem restartLoopProgram_bal {I : Type} (U : Matrix I I ℂ) (r : ℕ) :
     localProgramBalanced (restartLoopProgram U r) ∧
       localPeakSpace (restartLoopProgram U r) ≤ 1 := by
@@ -598,6 +692,7 @@ private theorem restartLoopProgram_bal {I : Type} (U : Matrix I I ℂ) (r : ℕ)
     rw [h.2]
     omega
 
+/-- The peak space of a local program is at most the sum of its allocation sizes. -/
 private theorem localPeakSpace_le_allocTotal {I : Type} (p : LocalProgram I) :
     localPeakSpace p ≤ localAllocTotal p := by
   induction p with
@@ -631,6 +726,9 @@ private theorem localPeakSpace_le_allocTotal {I : Type} (p : LocalProgram I) :
           from by simp [localAllocTotal, localOpSpace]]
       exact ih
 
+/-- Collects exact resource identities for circuit composition, parallel circuits, compilation,
+adjoint and Hamiltonian programs, and several fresh-copy phase-estimation constructions,
+together with their stated channel and error properties. -/
 theorem g1 :
   (∀ (I : Type) [Fintype I] [DecidableEq I] (κ : Matrix I I ℂ → StepProfile)
       (C D : Circuit I) (k : ℕ),
@@ -745,6 +843,9 @@ theorem g1 :
     fun D angles => ⟨rfl, freshCopyResourceCounts_eq D angles⟩,
     fun D ρ σ xs ys => fresh_copy_schedule_composition_cost ρ σ xs ys⟩
 
+/-- Collects sufficient conditions for implementation within a resource budget, an exact
+quarter-amplitude amplification example, adversary and state-conversion lower bounds, and
+oracle independence of zero-query circuits. -/
 theorem g2 :
   (∀ (I : Type) [Fintype I] [DecidableEq I] (κ : Matrix I I ℂ → StepProfile)
       (oracle : Matrix I I ℂ) (C : Circuit I) (target : QState I → QState I)
@@ -833,6 +934,9 @@ theorem g2 :
     have hrun := run_eq_of_queryCount_eq_zero (1 : Matrix Bool Bool ℂ) PauliX C h ψ
     exact ⟨hrun, fun b => congrArg (fun φ => BornProb φ b) hrun⟩
 
+/-- Collects the tight parity query bound, its linear asymptotic growth, and explicit numerical
+phase-table correctness, covering, precision, and comparison-cost estimates. See
+[BealsEtAl2001]. -/
 theorem g3 :
   (∀ (N : ℕ) (hN : 0 < N),
     (∀ f : Fin N → Bool,
@@ -889,6 +993,8 @@ theorem g3 :
     phase_grid_precision,
     comparison_word_bit_growth⟩
 
+/-- Collects local-program composition and error bounds, balanced fresh-copy and restart space
+bounds, fresh-copy ledger identities, and the expected paid-restart receipt law. -/
 theorem g4 :
   (∀ (I : Type) (p q : LocalProgram I),
       localPeakSpace (localOpAppend p q) ≤ localPeakSpace p + localPeakSpace q) ∧

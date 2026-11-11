@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.EstimatorLaws.TvStability.Theorem8RelativeContracts
+
+/-!
+# Relative quantum trial contract
+
+States the relative-error guarantee for one nonnegative, pilot-scaled layered quantum mean
+trial. The proposition fixes the explicit size and accuracy assumptions used to realize the
+relative-estimation step of Theorem 6 in [Montanaro2015].
+
+## Main statements
+
+* `MontanaroTheorem6RelativeTrialSubgoal` requires failure probability at most `1 / 4` for
+  relative error greater than `ε`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +37,9 @@ namespace Qatlib.Concepts.EstimatorLaws.TvStability
 
 open Qatlib
 
+/-- The proposition requiring the Theorem 6 relative trial guarantee of [Montanaro2015] for the
+concrete trial law. It assumes positive mean, variance at most `B * μ²`, `N ≥ 32 * B`, `k ≥
+4`, and `3 * sqrt (B + 1) * 2⁻ᵏ ≤ ε`. -/
 def MontanaroTheorem6RelativeTrialSubgoal : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (f : I → ℝ) (B ε : ℝ) (N k : ℕ),

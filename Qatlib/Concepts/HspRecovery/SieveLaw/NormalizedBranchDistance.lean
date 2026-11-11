@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+
+/-!
+# Distance between normalized positive branches
+
+This module bounds the trace-norm distance between `normalizedPositiveBranch` outputs of
+positive semidefinite matrices with positive real traces. The symmetric estimate uses the larger
+output trace in the denominator, refining the normalization estimates for quantum operations
+discussed in [Watrous2018].
+
+## Main statements
+
+* `normalized_positive_branch_distance`: a symmetric normalization bound using the maximum
+  branch mass.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +35,9 @@ open scoped Classical ComplexOrder Matrix.Norms.L2Operator
 
 set_option autoImplicit false
 
+/-- For a positive semidefinite first matrix and positive real traces of both matrices,
+normalized trace-norm distance is bounded by the sum of unnormalized distance and trace
+difference divided by the second trace. -/
 private theorem normalized_branch_distance_right {I : Type} [Fintype I]
     [DecidableEq I] (σ τ : Matrix I I ℂ) (hσ : σ.PosSemidef)
     (hp : 0 < (Matrix.trace σ).re) (hq : 0 < (Matrix.trace τ).re) :
@@ -72,11 +94,15 @@ private theorem normalized_branch_distance_right {I : Type} [Fintype I]
         |(Matrix.trace σ).re - (Matrix.trace τ).re|) / (Matrix.trace τ).re := by
       ring
 
+/-- Exchanging the order of a matrix difference preserves its trace norm. -/
 private theorem trace_norm_sub_swap {I : Type} [Fintype I]
     (A B : Matrix I I ℂ) : Matrix.traceNorm (A - B) = Matrix.traceNorm (B - A) := by
   have hsub : A - B = -(B - A) := by abel
   rw [hsub, Matrix.traceNorm_neg]
 
+/-- For positive semidefinite matrices of positive real trace, normalized trace-norm distance is
+bounded by the sum of unnormalized distance and trace difference divided by the larger
+trace. -/
 theorem normalized_positive_branch_distance :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (σ τ : Matrix I I ℂ),
       σ.PosSemidef → τ.PosSemidef →

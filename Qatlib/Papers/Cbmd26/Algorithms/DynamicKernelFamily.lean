@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Foundations.CbmdAnalysis.Core.PiecewiseRepresentation
 import Qatlib.Papers.Cbmd26.Algorithms.StaticKernelFamily
+
+/-!
+# Finite kernel sums for time-dependent evolution
+
+Defines the real-frequency unitary samples `dynamicKernelSample` and their finite sum
+`dynamicKernelLCU` for a piecewise continuous time-dependent evolution. Hermitian component
+bounds give complex-parameter growth control, approximation of the dissipative target, and
+contraction of that target. These results support the contour-based algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `dynamicKernel_target_error`: bounds finite-kernel approximation error.
+* `dynamicKernel_sample_unitary`: establishes unitarity of each real-frequency sample.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,6 +56,7 @@ open Matrix MeasureTheory Set
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- For Hermitian `L` and `H`, the norm of `L` is at most the norm of `L + iH`. -/
 theorem hermitian_part_norm_le_original (L H : Matrix I I ℂ)
     (hL : L.IsHermitian) (hH : H.IsHermitian) : ‖L‖ ≤ ‖L + Complex.I • H‖ := by
   have he : (1/2 : ℝ) • ((L + Complex.I • H) + (L + Complex.I • H)ᴴ) = L := by
@@ -51,14 +72,19 @@ theorem hermitian_part_norm_le_original (L H : Matrix I I ℂ)
 
 variable {H L : ℝ → Matrix I I ℂ} {T : ℝ}
 
+/-- Evaluates the piecewise continuous evolution at a chosen real kernel frequency and terminal
+time. -/
 def dynamicKernelSample (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u,L u)) 0 T)
     (α δ : ℝ) (j : StaticKernelIndex α T δ) : Matrix I I ℂ :=
   P.evolution (staticKernelFrequency α T δ j : ℂ) T
 
+/-- Forms the finite weighted sum of the dynamic kernel samples. -/
 def dynamicKernelLCU (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u,L u)) 0 T)
     (α δ : ℝ) : Matrix I I ℂ :=
   ∑ j, staticKernelWeight α T δ j • dynamicKernelSample P α δ j
 
+/-- A pointwise norm bound `α` on `L` over `[0, T]` bounds its norm integral by `T * α` for
+nonnegative `T`. -/
 theorem dynamicKernel_norm_integral_bound
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u,L u)) 0 T)
     (ht : 0 ≤ T) {α : ℝ} (hbound : ∀ u ∈ Icc 0 T, ‖L u‖ ≤ α) :
@@ -67,6 +93,8 @@ theorem dynamicKernel_norm_integral_bound
     (intervalIntegrable_const : IntervalIntegrable (fun _ : ℝ => α) volume 0 T) hbound
   simpa only [intervalIntegral.integral_const, sub_zero, smul_eq_mul] using! hb
 
+/-- Under the stated Hermitian, positivity, and original-matrix norm bounds, the evolution norm
+is at most `exp (max (Im z) 0 * T * α)`. -/
 theorem dynamicKernel_growth
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u,L u)) 0 T)
     (ht : 0 ≤ T) (hH : ∀ u ∈ Icc 0 T, (H u).IsHermitian)
@@ -79,6 +107,8 @@ theorem dynamicKernel_growth
   exact (P.evolution_norm_le hH hL z).trans
     (Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hi (le_max_right _ _)))
 
+/-- The indexed dynamic kernel LCU equals the integer-indexed LCU sum with the chosen order,
+spacing, and cutoff. -/
 theorem dynamicKernelLCU_eq_integerLCU
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u,L u)) 0 T) (α δ : ℝ) :
     dynamicKernelLCU P α δ = _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.integerLCUSum (staticKernelOrder δ)
@@ -91,6 +121,8 @@ theorem dynamicKernelLCU_eq_integerLCU
       P.evolution (((k : ℝ) / staticKernelSpacing α T δ : ℝ) : ℂ) T)]
   rfl
 
+/-- The finite dynamic kernel LCU approximates the dissipative evolution within operator error
+`δ` under the stated regularity, positivity, and norm bounds [WangEtAl2026]. -/
 theorem dynamicKernel_target_error
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u,L u)) 0 T)
     (ht : 0 ≤ T) (hH : ∀ u ∈ Icc 0 T, (H u).IsHermitian)
@@ -103,6 +135,8 @@ theorem dynamicKernel_target_error
     (fun z => P.evolution z T) P.evolution_differentiable_parameter
     (dynamicKernel_growth P ht hH hL hbound)
 
+/-- Each real-frequency dynamic kernel sample is unitary under the stated Hermitian and positive
+semidefinite component assumptions. -/
 theorem dynamicKernel_sample_unitary
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u,L u)) 0 T)
     (hH : ∀ u ∈ Icc 0 T, (H u).IsHermitian)
@@ -110,6 +144,8 @@ theorem dynamicKernel_sample_unitary
     dynamicKernelSample P α δ j ∈ Matrix.unitaryGroup I ℂ :=
   P.evolution_real_unitary hH hL _
 
+/-- The dissipative target evolution has operator norm at most one under the stated component
+assumptions. -/
 theorem dynamicKernel_target_contraction
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun u => (H u,L u)) 0 T)
     (hH : ∀ u ∈ Icc 0 T, (H u).IsHermitian)

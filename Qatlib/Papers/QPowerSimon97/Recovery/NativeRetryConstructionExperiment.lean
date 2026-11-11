@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
 import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+
+/-!
+# Native circuits for Simon experiments and verification
+
+This module constructs native gate words for the sampling and verification stages of Simon's
+algorithm [Simon1997]. It develops the register layout `simonPack`, proves the action of copying
+and equality circuits, and assembles these components into `simonExperimentWord_exists` and
+`simonVerifyWord_realizes`.
+
+The final bridges `clause4_complete` and `clause4_complete_outputPriced` combine circuit
+realization with expected gate bounds for the verified retry process.
+
+## Main statements
+
+* `simonExperimentWord_exists`: A native word realizing a Simon query extends to a Simon
+  experiment word with exactly `2 * n` additional gates. This supplies a circuit component of
+  [Simon, Theorem 3.2][Simon1997].
+* `simonVerifyWord_realizes`: A query word of length at most `Tf` yields a realizing
+  verification word of length at most `4 * Tf + simonVerifyPadGates n m`.
+* `clause4_complete_outputPriced`: If the query budget also bounds the output width, native
+  experiment and verification words satisfy the explicit expected gate bound with query
+  coefficient `n + 37`.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -52,6 +80,7 @@ open scoped Classical BigOperators ENNReal
 namespace Qatlib.Papers.QPowerSimon97.Recovery
 noncomputable section
 
+/-- Circuit execution preserves finite linear combinations of states. -/
 private theorem experiment_run_sum {I J : Type} [Fintype I] [DecidableEq I] [Fintype J]
     (O : Matrix I I ℂ) (C : Circuit I) (z : J → ℂ) (v : J → QState I) :
     Run O C (∑ j, z j • v j) = ∑ j, z j • Run O C (v j) := by
@@ -63,12 +92,15 @@ private theorem experiment_run_sum {I J : Type} [Fintype I] [DecidableEq I] [Fin
 end
 noncomputable section
 
+/-- Encoding a basis state for a pair of Boolean vectors gives the basis state of the encoded
+pair. -/
 private theorem experiment_encode_ket {n m : ℕ} (x : BooleanVec n) (y : BooleanVec m) :
     simonEncodeState (Qatlib.Foundations.PureStateMath.Ket (x,y)) = Qatlib.Foundations.PureStateMath.Ket (simonEncodePair x y) := by
   simp [simonEncodeState, Qatlib.Foundations.PureStateMath.Ket]
 end
 noncomputable section
 
+/-- Simon state encoding preserves finite linear combinations. -/
 private theorem experiment_encode_sum {n m : ℕ} {J : Type} [Fintype J]
     (z : J → ℂ) (v : J → QState (BooleanVec n × BooleanVec m)) :
     simonEncodeState (∑ j, z j • v j) = ∑ j, z j • simonEncodeState (v j) := by
@@ -77,11 +109,13 @@ private theorem experiment_encode_sum {n m : ℕ} {J : Type} [Fintype J]
   exact Finset.sum_comm
 end
 noncomputable section
+/-- The list of single-wire Hadamard reflection gates on an `n`-wire register. -/
 private def experimentHadamards (n : ℕ) : List (ReflectionGate n) :=
   (List.finRange n).map (fun w => Sum.inl (w, Hadamard))
 end
 noncomputable section
 
+/-- Every gate in `experimentHadamards n` is legal. -/
 private theorem experimentHadamards_legal (n : ℕ) :
     reflectionLegal (experimentHadamards n) := by
   rintro g hg
@@ -90,6 +124,7 @@ private theorem experimentHadamards_legal (n : ℕ) :
 end
 noncomputable section
 
+/-- Executing the compiled Hadamard list applies `HadamardN n` to the input state. -/
 private theorem experimentHadamards_run (n : ℕ) (ψ : QState (Reg n)) :
     Run 1 (reflectionCompile (experimentHadamards n)) ψ = ApplyGate (HadamardN n) ψ := by
   have hc : reflectionCompile (experimentHadamards n) = localProgramCircuit (localHadamard n) := by
@@ -106,12 +141,15 @@ private theorem experimentHadamards_run (n : ℕ) (ψ : QState (Reg n)) :
     (congrArg (fun M => ApplyGate M ψ) (localProgramMatrix_localHadamard n))
 end
 noncomputable section
+/-- The embedding of the first `n` wires into the Simon wire layout. -/
 private def experimentFirstWires (n m : ℕ) : Fin n ↪ Fin (simonWireLayout n m) :=
   ⟨fun i => ⟨i.val, by have := i.isLt; unfold simonWireLayout; omega⟩,
     fun _ _ h => Fin.ext (congrArg (fun k : Fin (simonWireLayout n m) => k.val) h)⟩
 end
 noncomputable section
 
+/-- Replacing the first register in the encoding of `(0, y)` by `x` gives the encoding of `(x,
+y)`. -/
 private theorem experiment_extend_encoding {n m : ℕ} (x : BooleanVec n) (y : BooleanVec m) :
     qtmWireContextExtend (experimentFirstWires n m) (simonEncodePair 0 y)
       ((regBooleanEquiv n).symm x) = simonEncodePair x y := by
@@ -138,6 +176,8 @@ private theorem experiment_extend_encoding {n m : ℕ} (x : BooleanVec n) (y : B
 end
 noncomputable section
 
+/-- Relabeling the tensor Hadamard by Boolean vectors gives the Fourier gate for Boolean
+characters. -/
 private theorem experiment_booleanHadamard_eq_fourier (n : ℕ) :
     relabelGate (regBooleanEquiv n) (HadamardN n) =
       fourierGate (booleanCharacterEquiv n).toEquiv := by
@@ -148,6 +188,7 @@ private theorem experiment_booleanHadamard_eq_fourier (n : ℕ) :
 end
 noncomputable section
 
+/-- Applying a matrix to a basis ket returns the corresponding matrix column. -/
 private theorem experiment_apply_ket {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (a : I) : ApplyGate U (Qatlib.Foundations.PureStateMath.Ket a) = fun b => U b a := by
   funext b
@@ -155,6 +196,8 @@ private theorem experiment_apply_ket {I : Type} [Fintype I] [DecidableEq I]
 end
 noncomputable section
 
+/-- Embedding a Hadamard-transformed input ket agrees with encoding the tensor Hadamard action
+on the pair of registers. -/
 private theorem experiment_hadamard_encode {n m : ℕ} (x : BooleanVec n) (y : BooleanVec m) :
     qtmWireContextEmbed (experimentFirstWires n m) (simonEncodePair 0 y)
       (ApplyGate (HadamardN n) (Qatlib.Foundations.PureStateMath.Ket ((regBooleanEquiv n).symm x))) =
@@ -174,6 +217,8 @@ private theorem experiment_hadamard_encode {n m : ℕ} (x : BooleanVec n) (y : B
 end
 noncomputable section
 
+/-- There is a native gate word of length `n` that applies the Hadamard transform to the encoded
+first register. -/
 private theorem experiment_hadamard_word_exists (n m : ℕ) :
     ∃ H : List (Phi3Gate (simonWireLayout n m)), H.length = n ∧
       ∀ (x : BooleanVec n) (y : BooleanVec m),
@@ -207,6 +252,8 @@ private theorem experiment_hadamard_word_exists (n m : ℕ) :
 end
 noncomputable section
 
+/-- A native gate word that realizes a matrix on encoded basis states realizes it on every
+encoded state. -/
 private theorem experiment_word_encode {n m : ℕ}
     (G : List (Phi3Gate (simonWireLayout n m)))
     (U : Matrix (BooleanVec n × BooleanVec m) (BooleanVec n × BooleanVec m) ℂ)
@@ -230,6 +277,8 @@ private theorem experiment_word_encode {n m : ℕ}
 end
 noncomputable section
 
+/-- A native word realizing a Simon query extends to a Simon experiment word with exactly `2 *
+n` additional gates. This supplies a circuit component of [Simon, Theorem 3.2][Simon1997]. -/
 theorem simonExperimentWord_exists {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (Gq : List (Phi3Gate (simonWireLayout n m))) (hq : SimonQueryWordRealizes f Gq) :
     ∃ B, SimonExperimentWordRealizes f B ∧ B.length = Gq.length + 2*n := by
@@ -253,10 +302,12 @@ theorem simonExperimentWord_exists {n m : ℕ} (f : BooleanVec n → BooleanVec 
     run_nil, U, experiment_booleanHadamard_eq_fourier]
 end
 noncomputable section
+/-- The number `2 * (n + m) + 1` of data wires used by the Simon verification layout. -/
 abbrev simonDataWidth (n m : ℕ) : ℕ := 2*(n+m)+1
 end
 noncomputable section
 
+/-- Packs the input, output, copy, workspace, and decision registers into one data register. -/
 def simonPack {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n) (a : Reg m)
     (b : Bool) : Reg (simonDataWidth n m) := fun i =>
   if h : i.val< n then x ⟨i.val,h⟩
@@ -266,38 +317,46 @@ def simonPack {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n) (a : Reg m)
   else b
 end
 noncomputable section
+/-- The wire occupied by an input-register bit in the packed data layout. -/
 abbrev simonXWire (n m : ℕ) (i : Fin n) : Fin (simonDataWidth n m) :=
     ⟨i.val,by dsimp [simonDataWidth]; omega⟩
 end
 noncomputable section
+/-- The wire occupied by an output-register bit in the packed data layout. -/
 abbrev simonYWire (n m : ℕ) (i : Fin m) : Fin (simonDataWidth n m) :=
     ⟨n+i.val,by dsimp [simonDataWidth]; omega⟩
 end
 noncomputable section
+/-- The wire occupied by a copy-register bit in the packed data layout. -/
 abbrev simonCWire (n m : ℕ) (i : Fin n) : Fin (simonDataWidth n m) :=
     ⟨n+m+i.val,by dsimp [simonDataWidth]; omega⟩
 end
 noncomputable section
+/-- The wire occupied by a workspace-register bit in the packed data layout. -/
 abbrev simonAWire (n m : ℕ) (i : Fin m) : Fin (simonDataWidth n m) :=
     ⟨2*n+m+i.val,by dsimp [simonDataWidth]; omega⟩
 end
 noncomputable section
+/-- The decision-bit wire in the packed data layout. -/
 abbrev simonDWire (n m : ℕ) : Fin (simonDataWidth n m) := ⟨2*(n+m),by dsimp [simonDataWidth]; omega⟩
 end
 noncomputable section
 
+/-- Reading an input wire of `simonPack` returns the corresponding input bit. -/
 @[simp] theorem simonPack_x {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b : Bool) (i : Fin n) : simonPack x y c a b (simonXWire n m i)=x i := by
   simp [simonPack]
 end
 noncomputable section
 
+/-- Reading an output wire of `simonPack` returns the corresponding output bit. -/
 @[simp] theorem simonPack_y {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b : Bool) (i : Fin m) : simonPack x y c a b (simonYWire n m i)=y i := by
   simp [simonPack,show ¬n+i.val< n by omega,show n+i.val< n+m by omega]
 end
 noncomputable section
 
+/-- Reading a copy wire of `simonPack` returns the corresponding copy bit. -/
 @[simp] theorem simonPack_c {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b : Bool) (i : Fin n) : simonPack x y c a b (simonCWire n m i)=c i := by
   simp [simonPack,show ¬n+m+i.val< n by omega,
@@ -305,6 +364,7 @@ noncomputable section
 end
 noncomputable section
 
+/-- Reading a workspace wire of `simonPack` returns the corresponding workspace bit. -/
 @[simp] theorem simonPack_a {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b : Bool) (i : Fin m) : simonPack x y c a b (simonAWire n m i)=a i := by
   simp [simonPack,show ¬2*n+m+i.val< n by omega,
@@ -313,6 +373,7 @@ noncomputable section
 end
 noncomputable section
 
+/-- Reading the decision wire of `simonPack` returns the packed decision bit. -/
 @[simp] theorem simonPack_d {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b : Bool) : simonPack x y c a b (simonDWire n m)=b := by
   simp [simonPack,show ¬2*(n+m)< n by omega,
@@ -320,6 +381,8 @@ noncomputable section
 end
 noncomputable section
 
+/-- Two data registers are equal if they agree on every input, output, copy, workspace, and
+decision wire. -/
 theorem simonReg_ext {n m : ℕ} {r t : Reg (simonDataWidth n m)}
     (hx : ∀ i, r (simonXWire n m i)=t (simonXWire n m i))
     (hy : ∀ i, r (simonYWire n m i)=t (simonYWire n m i))
@@ -343,16 +406,20 @@ theorem simonReg_ext {n m : ℕ} {r t : Reg (simonDataWidth n m)}
 end
 noncomputable section
 
+/-- The controlled XOR gate between corresponding input and copy wires, with direction selected
+by `rev`. -/
 def simonCopyGate (n m : ℕ) (rev : Bool) (i : Fin n) : ReflectionGate (simonDataWidth n m) :=
   if rev then .inr (simonCWire n m i,simonXWire n m i)
   else .inr (simonXWire n m i,simonCWire n m i)
 end
 noncomputable section
+/-- The list of controlled XOR gates between all corresponding input and copy wires. -/
 def simonCopySteps (n m : ℕ) (rev : Bool) : List (ReflectionGate (simonDataWidth n m)) :=
   (List.finRange n).map (simonCopyGate n m rev)
 end
 noncomputable section
 
+/-- Every gate in the Simon copy list is legal in either direction. -/
 theorem simonCopySteps_legal (n m : ℕ) (rev : Bool) : reflectionLegal (simonCopySteps n m rev) := by
   rintro g hg
   obtain ⟨i,_,rfl⟩ := List.mem_map.mp hg
@@ -361,6 +428,8 @@ theorem simonCopySteps_legal (n m : ℕ) (rev : Bool) : reflectionLegal (simonCo
 end
 noncomputable section
 
+/-- The packed basis register after applying the selected copying direction at the indices in
+`is`. -/
 def simonCopyBasis {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n) (a : Reg m)
     (b rev : Bool) (is : List (Fin n)) : Reg (simonDataWidth n m) :=
   simonPack (fun j => if rev && decide (j∈is) then x j ^^ c j else x j) y
@@ -368,6 +437,8 @@ def simonCopyBasis {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n) (a : Reg m)
 end
 noncomputable section
 
+/-- Applying a copy gate at a previously unused index extends the partial copying action by that
+index. -/
 theorem simonCopyGate_action {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b rev : Bool) (is : List (Fin n)) (i : Fin n) (hi : i∉is) :
     ApplyGate (reflectionGateMatrix (simonCopyGate n m rev i))
@@ -389,6 +460,8 @@ theorem simonCopyGate_action {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
 end
 noncomputable section
 
+/-- Executing copy gates at distinct listed indices gives the corresponding partial-copy basis
+state. -/
 theorem simonCopyWord_action {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b rev : Bool) (is : List (Fin n)) (hi : is.Nodup) :
     Run 1 (reflectionCompile (is.map (simonCopyGate n m rev))) (Qatlib.Foundations.PureStateMath.Ket (simonPack x y c a b)) =
@@ -409,6 +482,8 @@ theorem simonCopyWord_action {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
 end
 noncomputable section
 
+/-- The full copy circuit XORs the source register into the target register in the direction
+selected by `rev`. -/
 theorem simonCopySteps_action {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b rev : Bool) :
     Run 1 (reflectionCompile (simonCopySteps n m rev)) (Qatlib.Foundations.PureStateMath.Ket (simonPack x y c a b)) =
@@ -419,12 +494,15 @@ theorem simonCopySteps_action {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
 end
 noncomputable section
 
+/-- Embeds a packed data register into the full Simon layout with three additional zero wires. -/
 def simonFullPack {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n) (a : Reg m) (b : Bool) :
     Reg (simonWireLayout n m) :=
   knownWireExtend (knownPrefixWires (simonDataWidth n m) 3) (simonPack x y c a b)
 end
 noncomputable section
 
+/-- A legal reflection-gate list has a native `Phi3Gate` translation of the same length that
+preserves execution under the known-wire embedding. -/
 theorem simonTranslate_exists {n m : ℕ} (gs : List (ReflectionGate (simonDataWidth n m)))
     (hg : reflectionLegal gs) :
     ∃ ws : List (Phi3Gate (simonWireLayout n m)), ws.length=gs.length ∧
@@ -440,6 +518,8 @@ theorem simonTranslate_exists {n m : ℕ} (gs : List (ReflectionGate (simonDataW
 end
 noncomputable section
 
+/-- There is a native copy word of length `n` with the prescribed XOR action on the input and
+copy registers. -/
 theorem simonCopyPhi3_exists (n m : ℕ) (rev : Bool) :
     ∃ ws : List (Phi3Gate (simonWireLayout n m)), ws.length=n ∧
       ∀ (x : Reg n) (y : Reg m) (c : Reg n) (a : Reg m) (b : Bool),
@@ -455,11 +535,14 @@ theorem simonCopyPhi3_exists (n m : ℕ) (rev : Bool) :
 end
 noncomputable section
 
+/-- The reflection-gate list that negates the equality-test control bits. -/
 noncomputable def simonEqualityFlips (m : ℕ) : List (ReflectionGate (m+1+(m-1))) :=
   knownFlipSteps ((List.finRange m).map (multiKnownControlWire m))
 end
 noncomputable section
 
+/-- Executing the equality-test flips complements the `y` register while preserving the target
+and work registers. -/
 theorem simonEqualityFlips_action (m : ℕ) (y : Reg m) (b : Bool) (a : Reg (m-1)) :
     Run 1 (reflectionCompile (simonEqualityFlips m))
       (Qatlib.Foundations.PureStateMath.Ket ((multiKnownSplit m).symm ((y,b),a))) =
@@ -505,6 +588,8 @@ theorem simonEqualityFlips_action (m : ℕ) (y : Reg m) (b : Bool) (a : Reg (m-1
 end
 noncomputable section
 
+/-- A legal local equality circuit toggles its target exactly when the control register is zero
+and restores its zero workspace, using `2 * m + multiKnownCost m` gates. -/
 theorem simonEqualityLocal_exists (m : ℕ) :
     ∃ gs : List (ReflectionGate (m+1+(m-1))), reflectionLegal gs ∧
       gs.length=2*m+multiKnownCost m ∧
@@ -535,6 +620,8 @@ theorem simonEqualityLocal_exists (m : ℕ) :
 end
 noncomputable section
 
+/-- Embeds the equality circuit's control, target, and workspace wires into the Simon data
+layout. -/
 def simonEqualityWires (n m : ℕ) : Fin (m+1+(m-1)) ↪ Fin (simonDataWidth n m) where
   toFun i := if h : i.val< m then simonYWire n m ⟨i.val,h⟩
     else if h : i.val=m then simonDWire n m
@@ -545,24 +632,28 @@ def simonEqualityWires (n m : ℕ) : Fin (m+1+(m-1)) ↪ Fin (simonDataWidth n m
 end
 noncomputable section
 
+/-- The equality circuit's control wires map to Simon output-register wires. -/
 @[simp] theorem simonEqualityWires_control (n m : ℕ) (i : Fin m) :
     simonEqualityWires n m (multiKnownControlWire m i)=simonYWire n m i := by
   simp [simonEqualityWires]
 end
 noncomputable section
 
+/-- The equality circuit's target maps to the Simon decision wire. -/
 @[simp] theorem simonEqualityWires_target (n m : ℕ) :
     simonEqualityWires n m (multiKnownTargetWire m)=simonDWire n m := by
   simp [simonEqualityWires]
 end
 noncomputable section
 
+/-- The equality circuit's work wires map to the corresponding Simon workspace wires. -/
 @[simp] theorem simonEqualityWires_work (n m : ℕ) (i : Fin (m-1)) :
     simonEqualityWires n m (multiKnownWorkWire m i)=simonAWire n m ⟨i.val,by omega⟩ := by
   simp [simonEqualityWires,show ¬ m+1+i.val< m by omega,show ¬ m+1+i.val=m by omega]
 end
 noncomputable section
 
+/-- No equality-circuit wire coincides with an input-register wire. -/
 theorem simonEqualityWires_not_x (n m : ℕ) (i : Fin (m+1+(m-1))) (j : Fin n) :
     simonEqualityWires n m i ≠ simonXWire n m j := by
   intro h
@@ -571,6 +662,7 @@ theorem simonEqualityWires_not_x (n m : ℕ) (i : Fin (m+1+(m-1))) (j : Fin n) :
 end
 noncomputable section
 
+/-- No equality-circuit wire coincides with a copy-register wire. -/
 theorem simonEqualityWires_not_c (n m : ℕ) (i : Fin (m+1+(m-1))) (j : Fin n) :
     simonEqualityWires n m i ≠ simonCWire n m j := by
   intro h
@@ -579,6 +671,8 @@ theorem simonEqualityWires_not_c (n m : ℕ) (i : Fin (m+1+(m-1))) (j : Fin n) :
 end
 noncomputable section
 
+/-- No equality-circuit wire coincides with a workspace wire outside the first `m - 1`
+positions. -/
 theorem simonEqualityWires_not_unused (n m : ℕ) (i : Fin (m+1+(m-1)))
     (j : Fin m) (hj : ¬j.val< m-1) : simonEqualityWires n m i≠simonAWire n m j := by
   intro h
@@ -587,6 +681,8 @@ theorem simonEqualityWires_not_unused (n m : ℕ) (i : Fin (m+1+(m-1)))
 end
 noncomputable section
 
+/-- Replacing the equality-circuit context updates only the output and decision registers when
+the workspace is zero. -/
 theorem simonEqualityContext {n m : ℕ} (x : Reg n) (y y' : Reg m) (c : Reg n)
     (b b' : Bool) :
     qtmWireContextExtend (simonEqualityWires n m) (simonPack x y c (fun _=>false) b)
@@ -619,6 +715,8 @@ theorem simonEqualityContext {n m : ℕ} (x : Reg n) (y y' : Reg m) (c : Reg n)
 end
 noncomputable section
 
+/-- There is a legal data-register equality circuit of length `2 * m + multiKnownCost m` that
+toggles the decision bit exactly when the output register is zero. -/
 theorem simonEqualityData_exists (n m : ℕ) :
     ∃ gs : List (ReflectionGate (simonDataWidth n m)), reflectionLegal gs ∧
       gs.length=2*m+multiKnownCost m ∧
@@ -636,6 +734,8 @@ theorem simonEqualityData_exists (n m : ℕ) :
 end
 noncomputable section
 
+/-- There is a native equality word of length `2 * m + multiKnownCost m` with the required
+zero-test action and restored workspace. -/
 theorem simonEqualityPhi3_exists (n m : ℕ) :
     ∃ ws : List (Phi3Gate (simonWireLayout n m)), ws.length=2*m+multiKnownCost m ∧
       ∀ (x : Reg n) (y : Reg m) (c : Reg n) (b : Bool),
@@ -650,6 +750,7 @@ theorem simonEqualityPhi3_exists (n m : ℕ) :
 end
 noncomputable section
 
+/-- Decoding an element of `ZMod 2` gives the Boolean test for equality to one. -/
 @[simp] theorem simonBoolDecode (a : ZMod 2) : boolZModEquiv.symm a = decide (a=1) := by
   obtain ⟨b,rfl⟩ := boolZModEquiv.surjective a
   rw [Equiv.symm_apply_apply]
@@ -657,11 +758,13 @@ noncomputable section
 end
 noncomputable section
 
+/-- The Boolean test that an encoded bit equals one recovers that bit. -/
 @[simp] theorem simonBoolEncode (b : Bool) : decide (boolZModEquiv b=1)=b := by
   cases b <;> simp
 end
 noncomputable section
 
+/-- Decoding addition in `ZMod 2` gives Boolean XOR. -/
 @[simp] theorem simonBoolDecodeAdd (a b : ZMod 2) :
     boolZModEquiv.symm (a+b) = (boolZModEquiv.symm a ^^ boolZModEquiv.symm b) := by
   obtain ⟨a,rfl⟩ := boolZModEquiv.surjective a
@@ -670,6 +773,8 @@ noncomputable section
 end
 noncomputable section
 
+/-- A fully packed register agrees with its data register on data wires and is false on the
+remaining wires. -/
 @[simp] theorem simonFullPack_apply {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     (a : Reg m) (b : Bool) (i : Fin (simonWireLayout n m)) :
     simonFullPack x y c a b i = if h : i.val<simonDataWidth n m then
@@ -694,6 +799,8 @@ noncomputable section
 end
 noncomputable section
 
+/-- Replacing the encoded input and output context of a fully packed register preserves its
+other registers. -/
 theorem simonEncodeContext_pack {n m : ℕ} (x x' : Reg n) (y y' : Reg m)
     (c : Reg n) (a : Reg m) (b : Bool) :
     simonEncodeContext (regBooleanEquiv n x') (regBooleanEquiv m y') (simonFullPack x y c a b) =
@@ -710,11 +817,14 @@ theorem simonEncodeContext_pack {n m : ℕ} (x x' : Reg n) (y y' : Reg m)
 end
 noncomputable section
 
+/-- The Boolean-register representation of `f` evaluated on an input register. -/
 def simonFBits {n m : ℕ} (f : BooleanVec n → BooleanVec m) (x : Reg n) : Reg m :=
   (regBooleanEquiv m).symm (f (regBooleanEquiv n x))
 end
 noncomputable section
 
+/-- A realizing Simon query word XORs `f` of the input into the output register and preserves
+the other packed registers. -/
 theorem simonQuery_pack {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (Gq : List (Phi3Gate (simonWireLayout n m))) (hq : SimonQueryWordRealizes f Gq)
     (x : Reg n) (y : Reg m) (c : Reg n) (a : Reg m) (b : Bool) :
@@ -735,16 +845,19 @@ theorem simonQuery_pack {n m : ℕ} (f : BooleanVec n → BooleanVec m)
 end
 noncomputable section
 
+/-- Native compilation preserves concatenation of gate words. -/
 @[simp] theorem simonPhi3Compile_append {L : ℕ} (xs ys : List (Phi3Gate L)) :
     phi3Compile (xs++ys)=phi3Compile xs++phi3Compile ys := List.map_append
 end
 noncomputable section
 
+/-- XORing twice with the same Boolean value recovers the other value. -/
 @[simp] theorem simonXor_cancel_left (a b : Bool) : (a ^^ (a ^^ b))=b := by
   cases a <;> cases b <;> rfl
 end
 noncomputable section
 
+/-- The pointwise XOR of two Boolean registers is zero exactly when the registers are equal. -/
 theorem simonXor_eq_false {m : ℕ} (y z : Reg m) :
     (fun i => y i ^^ z i) = (fun _=>false) ↔ y=z := by
   constructor
@@ -757,6 +870,8 @@ theorem simonXor_eq_false {m : ℕ} (y z : Reg m) :
 end
 noncomputable section
 
+/-- There is a native word of length `4 * Gq.length + 6 * n + (2 * m + multiKnownCost m)` that
+writes the test `f x = f 0` to the decision bit and restores the zero auxiliary registers. -/
 theorem simonVerifyWord_exists {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (Gq : List (Phi3Gate (simonWireLayout n m))) (hq : SimonQueryWordRealizes f Gq) :
     ∃ ws : List (Phi3Gate (simonWireLayout n m)),
@@ -791,6 +906,7 @@ theorem simonVerifyWord_exists {n m : ℕ} (f : BooleanVec n → BooleanVec m)
 end
 noncomputable section
 
+/-- Packing zero registers and a false decision bit gives the all-zero full register. -/
 @[simp] theorem simonFullPack_zero (n m : ℕ) :
     simonFullPack (fun _ : Fin n=>false) (fun _ : Fin m=>false)
       (fun _=>false) (fun _=>false) false = (fun _=>false) := by
@@ -799,6 +915,8 @@ noncomputable section
 end
 noncomputable section
 
+/-- Packing input and output registers with zero auxiliary registers agrees with
+`simonEncodePair`. -/
 theorem simonFullPack_canonical {n m : ℕ} (x : Reg n) (y : Reg m) :
     simonFullPack x y (fun _=>false) (fun _=>false) false =
       simonEncodePair (regBooleanEquiv n x) (regBooleanEquiv m y) := by
@@ -807,6 +925,8 @@ theorem simonFullPack_canonical {n m : ℕ} (x : Reg n) (y : Reg m) :
 end
 noncomputable section
 
+/-- A fully packed register with only input and decision data differs from the canonical
+encoding only at the decision wire. -/
 theorem simonFullPack_decision {n m : ℕ} (x : Reg n) (b : Bool) :
     simonFullPack x (fun _ : Fin m=>false) (fun _=>false) (fun _=>false) b =
       fun i => if i.val=2*(n+m) then b
@@ -827,6 +947,8 @@ theorem simonFullPack_decision {n m : ℕ} (x : Reg n) (b : Bool) :
 end
 noncomputable section
 
+/-- A query word of length at most `Tf` yields a realizing verification word of length at most
+`4 * Tf + simonVerifyPadGates n m`. -/
 theorem simonVerifyWord_realizes {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (Gq : List (Phi3Gate (simonWireLayout n m))) (Tf : ℕ)
     (hq : SimonQueryWordRealizes f Gq) (hlen : Gq.length≤Tf) :
@@ -846,6 +968,8 @@ theorem simonVerifyWord_realizes {n m : ℕ} (f : BooleanVec n → BooleanVec m)
 end
 noncomputable section
 
+/-- Under the Simon promise and the given experiment and verifier length bounds, the expected
+retry gate charge is at most twice the stated per-trial gate bound. -/
 theorem simonStandard_expected_gate_bound {n m : ℕ} (f : BooleanVec n → BooleanVec m)
     (s : Reg n) (hp : BooleanSimonPromise f (regBooleanEquiv n s))
     (B Wv : List (Phi3Gate (simonWireLayout n m))) (Tf : ℕ)
@@ -862,6 +986,8 @@ theorem simonStandard_expected_gate_bound {n m : ℕ} (f : BooleanVec n → Bool
 end
 noncomputable section
 
+/-- Establishes `Clause4StandardModelBridge` by constructing native experiment and verification
+words and proving their expected gate bound. -/
 theorem clause4_complete : Clause4StandardModelBridge := by
   intro n m f s hp Gq Tf hq hlen
   obtain ⟨B,hB,hBlen⟩ := simonExperimentWord_exists f Gq hq
@@ -873,6 +999,8 @@ theorem clause4_complete : Clause4StandardModelBridge := by
 end
 noncomputable section
 
+/-- If the query budget also bounds the output width, native experiment and verification words
+satisfy the explicit expected gate bound with query coefficient `n + 37`. -/
 theorem clause4_complete_outputPriced
     (n m : ℕ) (f : BooleanVec n → BooleanVec m) (s : Reg n)
     (hp : BooleanSimonPromise f (regBooleanEquiv n s))

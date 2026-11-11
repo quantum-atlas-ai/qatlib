@@ -14,6 +14,31 @@ import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
 import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
 import Mathlib.MeasureTheory.Constructions.Pi
 import Mathlib.Probability.Independence.Basic
+
+/-!
+# Finite probability and concentration interfaces
+
+The module identifies finite distributions with Mathlib PMFs and measures, proves product
+expectation and variance identities, and presents Chebyshev, Chernoff, Hoeffding, bounded
+differences, and median of means bounds. It also collects matrix sketch invariance and rounding
+estimates, decision tree degree and influence bounds, and Gaussian small ball statements.
+
+The finite concentration interface supports Monte Carlo estimation in the setting of
+[Montanaro2015]; the sketch results concern sampling based matrix arithmetic as in
+[ChiaEtAl2022].
+
+## Main statements
+
+* `part6_clause1`: finite probability, independence, transport, and scalar concentration
+  results.
+* `part7_clause1`: matrix moment, sketch, coordinate invariance, and rounding results.
+* `part8_clause1`: decision tree, circuit polynomial, influence, and Gaussian interfaces.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
@@ -35,6 +60,7 @@ universe u v w
 
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 
+/-- Finite distributions are equal when their point probabilities agree. -/
 @[ext] theorem FinDist.ext {X : Type*} [Fintype X] {p q : FinDist X}
     (h : ∀ x, p.prob x = q.prob x) : p = q := by
   cases p
@@ -49,20 +75,25 @@ namespace Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
 open MeasureTheory
 open scoped BigOperators
 
+/-- A PMF whose masses are the nonnegative real images of a finite distribution equals its
+`toPMF` conversion. -/
 theorem toPMF_unique {X : Type*} [Fintype X] (p : FinDist X) (μ : PMF X)
     (hμ : ∀ x, μ x = ENNReal.ofReal (p.prob x)) : toPMF p = μ := by
   ext x
   exact (hμ x).symm
 
+/-- Converting a finite distribution to a PMF and back preserves each point probability. -/
 @[simp] theorem ofPMF_toPMF_prob {X : Type*} [Fintype X] (p : FinDist X) (x : X) :
     (ofPMF (toPMF p)).prob x = p.prob x :=
   ENNReal.toReal_ofReal (p.nonneg x)
 
+/-- Converting a finite type PMF to a finite distribution and back recovers the PMF. -/
 @[simp] theorem toPMF_ofPMF {X : Type*} [Fintype X] (p : PMF X) :
     toPMF (ofPMF p) = p := by
   ext x
   exact ENNReal.ofReal_toReal (p.apply_ne_top x)
 
+/-- Integration against the measure of `toPMF p` equals finite expectation under `p`. -/
 theorem integral_eq_expect {X : Type*} [Fintype X] [DecidableEq X]
     [MeasurableSpace X] [MeasurableSingletonClass X] (p : FinDist X) (f : X → ℝ) :
     ∫ x, f x ∂(toPMF p).toMeasure = p.expect f := by
@@ -70,16 +101,20 @@ theorem integral_eq_expect {X : Type*} [Fintype X] [DecidableEq X]
   simp only [toPMF, PMF.ofFintype_apply, ENNReal.toReal_ofReal (p.nonneg _),
     smul_eq_mul, FinDist.expect]
 
+/-- The integral of a centered power equals the corresponding finite central moment. -/
 theorem integral_central_moment {X : Type*} [Fintype X] [DecidableEq X]
     [MeasurableSpace X] [MeasurableSingletonClass X] (p : FinDist X) (f : X → ℝ) (k : ℕ) :
     ∫ x, (f x - p.expect f) ^ k ∂(toPMF p).toMeasure =
       p.expect (fun x => (f x - p.expect f) ^ k) := integral_eq_expect _ _
 
+/-- The integral of the squared centered function equals its finite variance. -/
 theorem integral_variance {X : Type*} [Fintype X] [DecidableEq X]
     [MeasurableSpace X] [MeasurableSingletonClass X] (p : FinDist X) (f : X → ℝ) :
     ∫ x, (f x - p.expect f) ^ 2 ∂(toPMF p).toMeasure = p.variance f :=
   integral_central_moment p f 2
 
+/-- Under the finite product law, the expectation of a product of coordinate functions factors
+into their expectations. -/
 theorem independent_expect_product {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (f : ∀ i, X i → ℝ) :
@@ -90,9 +125,13 @@ theorem independent_expect_product {I : Type*} [Fintype I] [DecidableEq I]
     (Finset.prod_univ_sum (t := fun i => (Finset.univ : Finset (X i)))
       (f := fun i x => (p i).prob x * f i x)).symm
 
+/-- For finitely many identically typed coordinates, `independent` agrees with
+`independentSampleLaw`. -/
 theorem independent_fin_eq_sampleLaw {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (p : Fin n → FinDist X) : independent p = independentSampleLaw p := rfl
 
+/-- The measure associated with a finite product distribution is the product of its coordinate
+measures. -/
 theorem independent_toMeasure {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     [∀ i, MeasurableSpace (X i)] [∀ i, MeasurableSingletonClass (X i)]
@@ -105,6 +144,7 @@ theorem independent_toMeasure {I : Type*} [Fintype I] [DecidableEq I]
     PMF.toMeasure_apply_singleton _ _ (measurableSet_singleton _)]
   exact ENNReal.ofReal_prod_of_nonneg fun i _ => (p i).nonneg _
 
+/-- Coordinate projections are mutually independent under the measure of the finite product law. -/
 theorem independent_coordinates {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     [∀ i, MeasurableSpace (X i)] [∀ i, MeasurableSingletonClass (X i)]
@@ -113,10 +153,12 @@ theorem independent_coordinates {I : Type*} [Fintype I] [DecidableEq I]
   rw [independent_toMeasure]
   exact ProbabilityTheory.iIndepFun_pi (fun _ => measurable_id.aemeasurable)
 
+/-- The finite probability mass of any event is nonnegative. -/
 theorem eventMass_nonneg {X : Type*} [Fintype X] (p : FinDist X)
     (E : X → Prop) [DecidablePred E] : 0 ≤ eventMass p E :=
   Finset.sum_nonneg fun x _ => p.nonneg x
 
+/-- Implication of predicates gives an inequality between their finite event masses. -/
 theorem eventMass_mono {X : Type*} [Fintype X] (p : FinDist X)
     (E F : X → Prop) [DecidablePred E] [DecidablePred F] (h : ∀ x, E x → F x) :
     eventMass p E ≤ eventMass p F := by
@@ -126,6 +168,8 @@ theorem eventMass_mono {X : Type*} [Fintype X] (p : FinDist X)
   · intro x _ _
     exact p.nonneg x
 
+/-- For positive `ε`, the probability of absolute centered deviation at least `ε` is at most the
+variance divided by `ε²`. -/
 theorem chebyshev {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (ε : ℝ) (hε : 0 < ε) :
     eventMass p (fun x => ε ≤ |f x-p.expect f|) ≤ p.variance f / ε^2 := by
@@ -147,17 +191,23 @@ theorem chebyshev {X : Type*} [Fintype X] [DecidableEq X]
       exact Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
         (fun x _ _ => mul_nonneg (p.nonneg x) (sq_nonneg _))
 
+/-- For positive `ε`, the probability of absolute centered deviation greater than `ε` is at most
+the variance divided by `ε²`. -/
 theorem chebyshev_strict {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (ε : ℝ) (hε : 0 < ε) :
     eventMass p (fun x => ε < |f x-p.expect f|) ≤ p.variance f / ε^2 :=
   (eventMass_mono p _ _ (fun _ h => h.le)).trans (chebyshev p f ε hε)
 
+/-- Expectation under a relabeled finite law is expectation of the function composed with the
+relabeling. -/
 theorem relabel_expect {X : Type*} {Y : Type*} [Fintype X] [Fintype Y]
     [DecidableEq X] [DecidableEq Y] (e : X ≃ Y) (p : FinDist X) (f : Y → ℝ) :
     (relabel e p).expect f = p.expect (fun x => f (e x)) := by
   simpa only [FinDist.expect, relabel, Equiv.symm_apply_apply] using!
     (Equiv.sum_comp e (fun y => p.prob (e.symm y) * f y)).symm
 
+/-- For values in `[a, b]`, the centered exponential moment is at most `exp (t² * (b - a)² /
+8)`. -/
 theorem hoeffding_centered_mgf {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (a b t : ℝ) (hab : a ≤ b)
     (hf : ∀ x, f x ∈ Set.Icc a b) :
@@ -173,6 +223,8 @@ theorem hoeffding_centered_mgf {X : Type*} [Fintype X] [DecidableEq X]
   rw [hmean] at h
   simpa only [q, g, relabel_expect, Equiv.symm_apply_apply] using! h
 
+/-- For `t ≥ 0`, the upper tail at `a` is bounded by `exp (-t * a)` times the exponential moment
+at `t`. -/
 theorem chernoff_upper {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (a t : ℝ) (ht : 0 ≤ t) :
     eventMass p (fun x => a ≤ f x) ≤
@@ -192,6 +244,8 @@ theorem chernoff_upper {X : Type*} [Fintype X] [DecidableEq X]
   have hb := (le_div_iff₀ (Real.exp_pos (t*a))).mpr h
   simpa only [Real.exp_neg, div_eq_mul_inv, mul_comm] using! hb
 
+/-- The associated PMF measure of an event equals the nonnegative real image of its finite event
+mass. -/
 theorem eventMass_toMeasure {X : Type*} [Fintype X] [DecidableEq X]
     [MeasurableSpace X] [MeasurableSingletonClass X] (p : FinDist X)
     (E : X → Prop) [DecidablePred E] :
@@ -201,12 +255,15 @@ theorem eventMass_toMeasure {X : Type*} [Fintype X] [DecidableEq X]
   simp only [toPMF, PMF.ofFintype_apply]
   exact (ENNReal.ofReal_sum_of_nonneg (fun x _ => p.nonneg x)).symm
 
+/-- Mathlib variance under the associated PMF measure equals the finite distribution variance. -/
 theorem variance_eq_mathlib {X : Type*} [Fintype X] [DecidableEq X]
     [MeasurableSpace X] [MeasurableSingletonClass X] (p : FinDist X) (f : X → ℝ) :
     ProbabilityTheory.variance f (toPMF p).toMeasure = p.variance f := by
   rw [ProbabilityTheory.variance_eq_integral (measurable_of_countable f).aemeasurable,
     integral_eq_expect p f, integral_variance]
 
+/-- A coordinate function has the same expectation under the product law as under its marginal
+law. -/
 theorem independent_expect_coord {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (i : I) (f : X i → ℝ) :
@@ -215,6 +272,8 @@ theorem independent_expect_coord {I : Type*} [Fintype I] [DecidableEq I]
   rw [← integral_eq_expect, independent_toMeasure, ← integral_eq_expect]
   exact MeasureTheory.integral_comp_eval (measurable_of_countable f).aestronglyMeasurable
 
+/-- The variance of a weighted sum of independent coordinates is the sum of their variances
+multiplied by squared weights. -/
 theorem independent_weighted_variance {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (w : I → ℝ) (f : ∀ i, X i → ℝ) :
@@ -231,12 +290,14 @@ theorem independent_weighted_variance {I : Type*} [Fintype I] [DecidableEq I]
   intro i _
   rw [ProbabilityTheory.variance_const_mul, variance_eq_mathlib]
 
+/-- Finite expectation commutes with a finite sum of functions. -/
 theorem expect_sum {I : Type*} {X : Type*} [Fintype I] [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : I → X → ℝ) :
     p.expect (fun x => ∑ i, f i x) = ∑ i, p.expect (f i) := by
   simp only [FinDist.expect, Finset.mul_sum]
   exact Finset.sum_comm
 
+/-- A real constant factors out of finite expectation. -/
 theorem expect_const_mul {X : Type*} [Fintype X] [DecidableEq X]
     (p : FinDist X) (c : ℝ) (f : X → ℝ) :
     p.expect (fun x => c * f x) = c * p.expect f := by
@@ -245,6 +306,8 @@ theorem expect_const_mul {X : Type*} [Fintype X] [DecidableEq X]
   intro x _
   ring
 
+/-- The expectation of a weighted sum under the product law is the weighted sum of marginal
+expectations. -/
 theorem independent_weighted_expectation {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (w : I → ℝ) (f : ∀ i, X i → ℝ) :
@@ -254,6 +317,8 @@ theorem independent_weighted_expectation {I : Type*} [Fintype I] [DecidableEq I]
   intro i _
   rw [expect_const_mul, independent_expect_coord]
 
+/-- A weighted sum of independent coordinates satisfies Chebyshev's inequality with variance
+equal to the sum of squared weights times marginal variances. -/
 theorem independent_weighted_chebyshev {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (w : I → ℝ) (f : ∀ i, X i → ℝ) (ε : ℝ) (hε : 0 < ε) :
@@ -262,6 +327,8 @@ theorem independent_weighted_chebyshev {I : Type*} [Fintype I] [DecidableEq I]
   have h := chebyshev (independent p) (weightedSum w f) ε hε
   rwa [independent_weighted_expectation, independent_weighted_variance] at h
 
+/-- Bound the centered exponential moment of an independent weighted sum by `exp (t² * ∑ i, w i²
+* (b i - a i)² / 8)`. -/
 theorem independent_weighted_mgf {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (w : I → ℝ) (f : ∀ i, X i → ℝ)
@@ -300,6 +367,7 @@ theorem independent_weighted_mgf {I : Type*} [Fintype I] [DecidableEq I]
         _ = (t^2/8)*(∑ i, (w i)^2*(b i-a i)^2) := (Finset.mul_sum _ _ _).symm
         _ = _ := by ring
 
+/-- The mass of a union of two events is at most the sum of their masses. -/
 theorem eventMass_or_le {X : Type*} [Fintype X] (p : FinDist X)
     (E F : X → Prop) [DecidablePred E] [DecidablePred F] :
     eventMass p (fun x => E x ∨ F x) ≤ eventMass p E + eventMass p F := by
@@ -309,6 +377,9 @@ theorem eventMass_or_le {X : Type*} [Fintype X] (p : FinDist X)
   by_cases he : E x <;> by_cases hf : F x <;> simp [he, hf]
   linarith [p.nonneg x]
 
+/-- For either sign `σ` with `σ² = 1`, an independent bounded weighted sum has centered tail at
+most `exp (-2 * u² / ∑ i, w i² * (b i - a i)²)` when the denominator and `u` are positive.
+See [Bravyi et al., Lemma 8][BravyiHarrowHassidim2011] for the Bernoulli specialization. -/
 theorem independent_weighted_hoeffding_signed {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (w : I → ℝ) (f : ∀ i, X i → ℝ)
@@ -343,6 +414,8 @@ theorem independent_weighted_hoeffding_signed {I : Type*} [Fintype I] [Decidable
       field_simp [hS.ne']
       ring
 
+/-- An independent bounded weighted sum has absolute centered tail at most `2 * exp (-2 * u² / ∑
+i, w i² * (b i - a i)²)` for positive `u` and denominator. -/
 theorem independent_weighted_hoeffding {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (w : I → ℝ) (f : ∀ i, X i → ℝ)
@@ -369,10 +442,13 @@ theorem independent_weighted_hoeffding {I : Type*} [Fintype I] [DecidableEq I]
     (eventMass_or_le _ _ _).trans (by linarith)
   simpa only [he] using! hbound
 
+/-- The expectation of a constant equals that constant. -/
 theorem expect_const {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) (c : ℝ) :
     p.expect (fun _ => c) = c := by
   rw [FinDist.expect, ← Finset.sum_mul, p.sum_one, one_mul]
 
+/-- If the sum of squared weighted interval widths is zero, every positive absolute centered
+deviation event has zero mass. -/
 theorem independent_weighted_zero_width {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (w : I → ℝ) (f : ∀ i, X i → ℝ)
@@ -399,6 +475,7 @@ theorem independent_weighted_zero_width {I : Type*} [Fintype I] [DecidableEq I]
     exact Finset.sum_congr rfl fun i _ => hc i (ω i)
   simp [eventMass, hpoint, not_le_of_gt hu]
 
+/-- The event mass under a relabeled law equals the mass of its preimage under the relabeling. -/
 theorem relabel_eventMass {X : Type*} {Y : Type*} [Fintype X] [Fintype Y]
     [DecidableEq X] [DecidableEq Y] (e : X ≃ Y) (p : FinDist X)
     (E : Y → Prop) [DecidablePred E] :
@@ -407,6 +484,7 @@ theorem relabel_eventMass {X : Type*} {Y : Type*} [Fintype X] [Fintype Y]
   simpa only [Equiv.symm_apply_apply] using!
     (Equiv.sum_comp e (fun y => if E y then p.prob (e.symm y) else 0)).symm
 
+/-- Coordinatewise relabeling commutes with forming the finite product distribution. -/
 theorem independent_relabel {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} {Y : I → Type*} [∀ i, Fintype (X i)] [∀ i, Fintype (Y i)]
     (p : ∀ i, FinDist (X i)) (e : ∀ i, X i ≃ Y i) :
@@ -415,6 +493,8 @@ theorem independent_relabel {I : Type*} [Fintype I] [DecidableEq I]
   intro ω
   rfl
 
+/-- A function with coordinate difference bounds `c i` has absolute centered tail at most `2 *
+exp (-2 * u² / ∑ i, c i²)` under the product law, for positive `u` and denominator. -/
 theorem bounded_differences_tail {X : Type} [Fintype X] [DecidableEq X]
     (n : ℕ) (p : Fin n → FinDist X) (f : (Fin n → X) → ℝ) (c : Fin n → ℝ) (u : ℝ)
     (hc : ∀ i, 0 ≤ c i) (hS : 0 < ∑ i, (c i)^2) (hu : 0 < u)
@@ -423,6 +503,8 @@ theorem bounded_differences_tail {X : Type} [Fintype X] [DecidableEq X]
       2*Real.exp (-2*u^2/(∑ i, (c i)^2)) :=
   (finite_product_bounded_differences_tail X n p f c u hc hS hu hd).2
 
+/-- If `L * ε²` is at least four times the variance, the median of `M` independent block means
+of length `L` has error greater than `ε` with mass at most `3 ^ (M / 2) / 2 ^ M`. -/
 theorem median_of_means {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) (f : X → ℝ)
     (L M : ℕ) (hL : 0 < L) (hM : 0 < M) (ε : ℝ) (hε : 0 < ε)
     (hvar : 4*p.variance f ≤ (L : ℝ)*ε^2) :
@@ -430,6 +512,8 @@ theorem median_of_means {X : Type*} [Fintype X] [DecidableEq X] (p : FinDist X) 
       (fun ω => ε < |p.medianOfMeans f ω-p.expect f|) ≤ 3^(M/2)/2^M :=
   p.median_of_means_concentration f hL hM ε hε hvar
 
+/-- Collect the finite distribution and PMF correspondence, product independence identities,
+relabeling rules, and scalar concentration bounds, including median of means. -/
 theorem part6_clause1 :
   (∀ {X : Type u} [Fintype X] (p : FinDist X) (μ : PMF X)
     (_hμ : ∀ x, μ x = ENNReal.ofReal (p.prob x)),
@@ -594,12 +678,15 @@ open scoped Classical Matrix.Norms.L2Operator
 
 variable {K K' C C' : Type}
 
+/-- Reindexing matrix rows and columns transports each row's squared energy by the inverse row
+equivalence. -/
 theorem sketch_row_reindex [Fintype C] [Fintype C']
     (e : K ≃ K') (f : C ≃ C') (A : Matrix K C ℂ) (k : K') :
     sketchRowSquared (Matrix.reindex e f A) k = sketchRowSquared A (e.symm k) := by
   unfold sketchRowSquared
   exact f.symm.sum_comp (fun j : C => Complex.normSq (A (e.symm k) j))
 
+/-- The total squared sketch energy is invariant under row and column reindexing. -/
 theorem sketch_energy_reindex [Fintype K] [Fintype K'] [Fintype C] [Fintype C']
     (e : K ≃ K') (f : C ≃ C') (A : Matrix K C ℂ) :
     sketchSquared (Matrix.reindex e f A) = sketchSquared A := by
@@ -607,6 +694,7 @@ theorem sketch_energy_reindex [Fintype K] [Fintype K'] [Fintype C] [Fintype C']
   simp only [sketch_row_reindex]
   exact e.symm.sum_comp (fun k : K => sketchRowSquared A k)
 
+/-- The Gram matrix of a reindexed matrix is the relabeled original Gram matrix. -/
 theorem sketch_gram_reindex [Fintype K] [Fintype K']
     (e : K ≃ K') (f : C ≃ C') (A : Matrix K C ℂ) :
     (Matrix.reindex e f A)ᴴ * Matrix.reindex e f A = relabelGate f (Aᴴ * A) := by
@@ -615,6 +703,7 @@ theorem sketch_gram_reindex [Fintype K] [Fintype K']
     Matrix.submatrix_apply, relabelGate]
   exact e.symm.sum_comp (fun k : K => (starRingEnd ℂ) (A k (f.symm i)) * A k (f.symm j))
 
+/-- Row and column reindexing preserves the norm of a rectangular matrix. -/
 theorem sketch_rectangular_norm_reindex [Fintype K] [Fintype K'] [Fintype C] [DecidableEq C] [Fintype C'] [DecidableEq C']
     (e : K ≃ K') (f : C ≃ C') (A : Matrix K C ℂ) :
     ‖Matrix.reindex e f A‖ = ‖A‖ := by
@@ -622,6 +711,8 @@ theorem sketch_rectangular_norm_reindex [Fintype K] [Fintype K'] [Fintype C] [De
   rw [pow_two, pow_two, ← Matrix.l2_opNorm_conjTranspose_mul_self,
     ← Matrix.l2_opNorm_conjTranspose_mul_self, sketch_gram_reindex, l2_norm_relabelGate]
 
+/-- Relabeling sampled row indices, their law, and matrix coordinates relabels the resulting
+sketch product. -/
 theorem sketch_product_reindex [Fintype K] [Fintype K']
     (e : K ≃ K') (f : C ≃ C') (p : FinDist K)
     (A : Matrix K C ℂ) (r : ℕ) (ω : Fin r → K) :
@@ -632,12 +723,16 @@ theorem sketch_product_reindex [Fintype K] [Fintype K']
   simp only [sketchProduct_entry_average, sketchSampleMatrix, relabel,
     Matrix.reindex_apply, Matrix.submatrix_apply, Equiv.symm_apply_apply]
 
+/-- The product law of relabeled sample records is the coordinatewise relabeling of the original
+product law. -/
 theorem sketch_record_law_reindex [Fintype K] [Fintype K']
     (e : K ≃ K') (p : FinDist K) (r : ℕ) :
     independent (fun _ : Fin r => relabel e p) =
       relabel (Equiv.piCongrRight (fun _ : Fin r => e)) (independent (fun _ : Fin r => p)) :=
   (independent_relabel _ _).symm
 
+/-- The compact Gram operator failure mass is invariant under consistent row, column, and
+sampling law relabeling. -/
 theorem sketch_bad_mass_reindex [Fintype K] [DecidableEq K] [Fintype K'] [DecidableEq K'] [Fintype C] [DecidableEq C] [Fintype C'] [DecidableEq C']
     (e : K ≃ K') (f : C ≃ C') (p : FinDist K)
     (A : Matrix K C ℂ) (r : ℕ) (η : ℝ) :
@@ -655,12 +750,15 @@ theorem sketch_bad_mass_reindex [Fintype K] [DecidableEq K] [Fintype K'] [Decida
     (Matrix.reindex e f A) (fun t => e (ω t)) - (Matrix.reindex e f A)ᴴ * Matrix.reindex e f A‖) = _
   rw [sketch_product_reindex, sketch_gram_reindex, l2_norm_relabelGate_sub]
 
+/-- Matrix reindexing preserves rank and the cardinalities of the row and column types. -/
 theorem sketch_rank_dimension_reindex [Fintype K] [Fintype K'] [Fintype C] [Fintype C']
     (e : K ≃ K') (f : C ≃ C') (A : Matrix K C ℂ) :
     (Matrix.reindex e f A).rank = A.rank ∧ Fintype.card K' = Fintype.card K ∧
       Fintype.card C' = Fintype.card C :=
   ⟨Matrix.rank_reindex e f A, (Fintype.card_congr e).symm, (Fintype.card_congr f).symm⟩
 
+/-- Unitary conjugation preserves the norm of a matrix difference and the rank of the conjugated
+matrix. -/
 theorem matrix_unitary_coordinates [Fintype C] [DecidableEq C]
     (U A B : Matrix C C ℂ)
     (hU : U ∈ Matrix.unitaryGroup C ℂ) :
@@ -680,6 +778,9 @@ end MatrixTransport
 open scoped Matrix.Norms.L2Operator
 open Matrix
 
+/-- There is a positive universal constant giving failure mass at most `δ` for the dyadically
+rounded Gram sketch beyond `η + dyadicOpBudget C bits`, under the stated sampling domination
+and sample size bounds. -/
 theorem rounded_sketch_operator_tail :
     ∃ c₀ : ℝ, 0 < c₀ ∧ ∀ (K C : Type) [Fintype K] [DecidableEq K]
       [Fintype C] [DecidableEq C] (law : FinDist K) (r bits : ℕ)
@@ -699,6 +800,8 @@ theorem rounded_sketch_operator_tail :
 
 open scoped InnerProductSpace ComplexOrder
 
+/-- Collect matrix trace and norm moment bounds, compact sketch formulas and tails, Gaussian
+characteristic function comparisons, dyadic errors, and coordinate invariance results. -/
 theorem part7_clause1 :
   (∀ {C : Type} [Fintype C] [DecidableEq C] {r : ℕ}
     (B : Fin r → Matrix C C ℂ) (q : ℕ) (_hq : 1 ≤ q) (_hB : ∀ i, (B i).IsHermitian),
@@ -862,12 +965,15 @@ theorem part7_clause1 :
     (by intro C _ _; exact matrix_unitary_coordinates),
     rounded_sketch_operator_tail⟩
 
+/-- Integration under the PMF measure of a cube law equals weighted cube expectation. -/
 theorem cubeLaw_integral (n : ℕ) (w : (Fin n → Bool) → ℝ) (hw : CubeWeight n w)
     [MeasurableSpace (Fin n → Bool)] [MeasurableSingletonClass (Fin n → Bool)]
     (f : (Fin n → Bool) → ℝ) :
     (∫ x, f x ∂(toPMF (cubeLaw n w hw)).toMeasure) = cubeExpect n w f := by
   rw [integral_eq_expect, cubeLaw_expect]
 
+/-- Consistently relabeling a decision tree and its input law preserves expected acceptance and
+expected query count. -/
 theorem tree_law_relabel {n : ℕ} (e : Equiv.Perm (Fin n)) (t : FiniteDecisionTree n)
     (q : FinDist (Fin n → Bool)) :
     (relabel (Equiv.arrowCongr e (Equiv.refl Bool)) q).expect (t.relabel e).accept =
@@ -892,6 +998,9 @@ open ProbabilityTheory
 open scoped NNReal ENNReal
 set_option warningAsError false
 
+/-- Collect decision tree execution and polynomial guarantees, cube laws and influence bounds,
+circuit acceptance polynomial statements from the setting of [BealsEtAl2001], and Gaussian
+law and small ball results. -/
 theorem part8_clause1 :
   (∀ {n : ℕ} (i : Fin n) (l r : FiniteDecisionTree n) (x : Fin n → Bool),
     (FiniteDecisionTree.query i l r).output x = if x i then r.output x else l.output x) ∧

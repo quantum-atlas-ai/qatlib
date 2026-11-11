@@ -9,6 +9,26 @@ import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricte
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+
+/-!
+# Statement of bounded-error parity separation
+
+This module defines `ParityBoundedErrorSeparation`, packaging a randomized classical lower bound
+and an exact quantum recovery guarantee for the parity-secret problem of
+[BernsteinVazirani1997]. The classical requirement concerns query-tree distributions with
+success probability at least `2 / 3` on every secret, and the quantum requirement specifies the
+circuit, initial state, query count, and measurement event.
+
+## Main statements
+
+* `ParityBoundedErrorSeparation`: combines the classical bound `n ≤ T` with a normalized unitary
+  one-query circuit that measures the secret register correctly with probability `1`.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree
@@ -22,6 +42,9 @@ set_option autoImplicit false
 namespace Qatlib.Papers.QComplexity97.XorSeparation
 open Qatlib
 
+/-- The conjunction of an `n`-query lower bound for randomized classical parity-secret recovery
+with success at least `2 / 3` on every secret and a normalized unitary one-query circuit
+that recovers every secret with measurement probability `1` [BernsteinVazirani1997]. -/
 def ParityBoundedErrorSeparation : Prop :=
   (∀ (n T : ℕ) (P : PMF (BoolQueryTree (Reg n) (Reg n))),
     BoolQueryTree.BoundedQueries P T →

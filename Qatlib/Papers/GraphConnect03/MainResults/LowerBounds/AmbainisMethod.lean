@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.GraphConnect03.MainResults.Defs
+
+/-!
+# Relation data and adversary parameter estimates
+
+The structure `AmbainisRelation` records finite Boolean-input families, a relation, degree lower
+bounds, and a coordinate-count product bound. The two square-root identities simplify parameter
+expressions to the `n√k` and `n√n` scales used in graph-query lower-bound arguments. See
+[DurrMhallaLei2003].
+
+## Main statements
+
+* `AmbainisRelation`: Two finite families of Boolean inputs and a relation, together with lower
+  bounds on related-input counts and a uniform upper bound on products of coordinate-change
+  counts.
+* `sqrt_kclique_parameters`: For positive `k`, the square root of `(n*k²)²/k³` simplifies to
+  `n*√k`.
+* `sqrt_matrix_parameters`: For positive `n`, the square root of `(n²)²/n` simplifies to `n*√n`.
+
+## References
+
+* [Durr et al., 2003][DurrMhallaLei2003]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +42,9 @@ open Qatlib.Papers.GraphConnect03.MainResults.Defs
 
 attribute [local instance] Classical.propDecidable
 
+/-- Two finite families of Boolean inputs and a relation, together with lower bounds on
+related-input counts and a uniform upper bound on products of coordinate-change counts
+[DurrMhallaLei2003]. -/
 structure AmbainisRelation (n : ℕ) where
 
   X : Finset (Fin n → Bool)
@@ -38,6 +64,7 @@ structure AmbainisRelation (n : ℕ) where
     (Y.filter (fun y' => R x y' ∧ y' i ≠ y i)).card *
       (X.filter (fun x' => R x' y ∧ x' i ≠ x i)).card ≤ lmax
 
+/-- For positive `k`, the square root of `(n*k²)²/k³` simplifies to `n*√k` [DurrMhallaLei2003]. -/
 theorem sqrt_kclique_parameters (n k : ℕ) (hk : 0 < k) :
     Real.sqrt (((n : ℝ) * (k : ℝ) ^ 2) ^ 2 / (k : ℝ) ^ 3) =
       (n : ℝ) * Real.sqrt (k : ℝ) := by
@@ -48,6 +75,7 @@ theorem sqrt_kclique_parameters (n k : ℕ) (hk : 0 < k) :
     ring
   rw [h, Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq (Nat.cast_nonneg n)]
 
+/-- For positive `n`, the square root of `(n²)²/n` simplifies to `n*√n` [DurrMhallaLei2003]. -/
 theorem sqrt_matrix_parameters (n : ℕ) (hn : 0 < n) :
     Real.sqrt (((n : ℝ) ^ 2) ^ 2 / (n : ℝ)) =
       (n : ℝ) * Real.sqrt (n : ℝ) := by

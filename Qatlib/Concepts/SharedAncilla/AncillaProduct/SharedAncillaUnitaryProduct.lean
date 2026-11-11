@@ -15,6 +15,26 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
 import Qatlib.Concepts.BlockEncoding.Postselection
+
+/-!
+# Products of unitary block encodings with shared ancillas
+
+This module proves frame-defect, leakage, and product-error bounds for scale-one block encodings
+of unitary operators using a common isometry. Products retain the shared frame, with error
+bounded by the square of the sum of the individual square-root errors, following the product
+bounds of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `shared_ancilla_unitary_frame_and_leakage`: frame-defect and leakage estimates.
+* `shared_ancilla_unitary_pair_error`: the two-factor product error.
+* `shared_ancilla_heterogeneous_word_encoding`: the family product with heterogeneous errors.
+
+## References
+
+* [Gilyén, Su, Low, and Wiebe, 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -33,6 +53,7 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The norm of a finite-dimensional orthogonal projector is at most one. -/
 theorem shared_projector_norm_le_one {H : Type} [Fintype H] [DecidableEq H]
     {P : Matrix H H ℂ} (hP : IsOrthogonalProjector P) : ‖P‖ ≤ 1 := by
   have he : ‖P‖*‖P‖ = ‖P‖ := by
@@ -40,6 +61,8 @@ theorem shared_projector_norm_le_one {H : Type} [Fintype H] [DecidableEq H]
     rw [← Matrix.l2_opNorm_conjTranspose_mul_self,hh,hP.1]
   nlinarith [norm_nonneg P]
 
+/-- Taking conjugate transposes preserves a scale-one block encoding with the same input and
+output frame and the same error. -/
 theorem shared_encoding_adjoint {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     {A : Matrix I I ℂ} {U : Matrix H H ℂ} {F : Matrix H I ℂ} {δ : ℝ}
     (h : BlockEncoding A U F F 1 δ) : BlockEncoding Aᴴ Uᴴ F F 1 δ := by
@@ -48,6 +71,8 @@ theorem shared_encoding_adjoint {H I : Type} [Fintype H] [DecidableEq H] [Fintyp
     simp [compress,Matrix.conjTranspose_mul,Matrix.mul_assoc]
   simpa only [one_smul,he,Matrix.l2_opNorm_conjTranspose] using h.error_le
 
+/-- A scale-one shared-frame block encoding of a unitary `A` has frame defect `‖U * F - F * A‖`
+at most `sqrt (2 * δ)`. -/
 theorem shared_frame_defect {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ) (δ : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (h : BlockEncoding A U F F 1 δ) :
@@ -78,6 +103,8 @@ theorem shared_frame_defect {H I : Type} [Fintype H] [DecidableEq H] [Fintype I]
       _ = _ := by ring
   exact (Real.le_sqrt (norm_nonneg _) (mul_nonneg (by norm_num) h.error_nonneg)).mpr hs
 
+/-- A scale-one shared-frame block encoding of a unitary has frame defect and both displayed
+leakage norms at most `sqrt (2 * δ)`. -/
 theorem shared_ancilla_unitary_frame_and_leakage :
 ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
  (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ) (δ : ℝ),
@@ -105,6 +132,9 @@ theorem shared_ancilla_unitary_frame_and_leakage :
     simp [Matrix.conjTranspose_mul,Matrix.mul_assoc]
   rwa [he,Matrix.l2_opNorm_conjTranspose]
 
+/-- Multiplying shared-frame scale-one block encodings of unitaries with errors `δ` and `ε`
+yields a block encoding of their product with error `δ + ε + 2 * sqrt (δ * ε)`. See
+[GilyenSuLowWiebe2019]. -/
 theorem shared_ancilla_unitary_pair_error :
 ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
  (A B : Matrix I I ℂ) (U V : Matrix H H ℂ) (F : Matrix H I ℂ) (δ ε : ℝ),
@@ -156,15 +186,20 @@ theorem shared_ancilla_unitary_pair_error :
       · exact (Matrix.l2_opNorm_mul _ _).trans
           ((mul_le_mul hcu heV (norm_nonneg _) zero_le_one).trans_eq (one_mul _))
 
+/-- The ordered product of a matrix family along a list of indices, with the identity for the
+empty list. -/
 noncomputable def unitaryFamilyEvaluate {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
     (U : Fin m → Matrix H H ℂ) : List (Fin m) → Matrix H H ℂ
   | [] => 1
   | i :: cs => U i * unitaryFamilyEvaluate U cs
 
+/-- The list of all indices in `Fin m` in their natural order. -/
 def unitaryFamilyWord (m : ℕ) : List (Fin m) := List.ofFn id
 
+/-- The square of the sum of the square roots of the individual errors in a finite family. -/
 noncomputable def sharedAncillaWordError {m : ℕ} (e : Fin m → ℝ) : ℝ := (∑ i, Real.sqrt (e i))^2
 
+/-- Evaluating any index list in a family of unitary matrices gives a unitary matrix. -/
 theorem unitaryFamilyEvaluate_unitary {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
     (A : Fin m → Matrix H H ℂ) (ha : ∀ i,A i ∈ Matrix.unitaryGroup H ℂ) (cs : List (Fin m)) :
     unitaryFamilyEvaluate A cs ∈ Matrix.unitaryGroup H ℂ := by
@@ -172,6 +207,8 @@ theorem unitaryFamilyEvaluate_unitary {H : Type} [Fintype H] [DecidableEq H] {m 
   | nil => exact (Matrix.unitaryGroup H ℂ).one_mem
   | cons i cs ih => exact (Matrix.unitaryGroup H ℂ).mul_mem (ha i) ih
 
+/-- A list product of shared-frame scale-one block encodings of unitaries has error bounded by
+the square of the sum of the square roots of the errors along the list. -/
 theorem shared_word_encoding_list {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     {m : ℕ} (A : Fin m → Matrix I I ℂ) (U : Fin m → Matrix H H ℂ) (F : Matrix H I ℂ)
     (e : Fin m → ℝ) (hF : IsIsometry F)
@@ -195,6 +232,9 @@ theorem shared_word_encoding_list {H I : Type} [Fintype H] [DecidableEq H] [Fint
       nlinarith [Real.sq_sqrt (hs i).2.error_nonneg]
     simpa only [unitaryFamilyEvaluate,List.map_cons,List.sum_cons,he] using h
 
+/-- The natural-order product of a unitary family with shared-frame scale-one block encodings is
+block encoded by the corresponding implementation product with error bound
+`sharedAncillaWordError e`. See [GilyenSuLowWiebe2019]. -/
 theorem shared_ancilla_heterogeneous_word_encoding :
 ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
  (m : ℕ) (A : Fin m→Matrix I I ℂ) (U : Fin m→Matrix H H ℂ) (F : Matrix H I ℂ) (e : Fin m→ℝ),

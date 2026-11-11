@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GateTables.GrayUniversal.GrayCodeSynthesis
+
+/-!
+# Single-address phase synthesis
+
+`grayPhase_table` synthesizes a unit-modulus phase at one computational-basis address of a
+nonempty register. It embeds the phase in a diagonal two-level block on an adjacent address pair
+and applies the Gray adjacent-pair construction.
+
+The resulting word acts correctly on every state with an explicit quadratic length bound, using
+the controlled-gate synthesis framework of [BarencoEtAl1995].
+
+## Main statements
+
+* `grayPhase_table`: constructs a legal phase word of length at most `256 * (k + 1)^2 + 2 * k`.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +41,9 @@ namespace Qatlib.Concepts.GateTables.GrayUniversal
 open Matrix
 open scoped Classical BigOperators
 
+/-- A scalar `z` satisfying `star z * z = 1` can be applied at a single register address by a
+legal reflection word of length at most `256 * (k + 1)^2 + 2 * k`. The compiled word agrees
+with the single-address phase matrix on every state. -/
 theorem grayPhase_table {k : ℕ} (x : Reg (k+1)) (z : ℂ) (hz : star z*z = 1) :
     ∃ gs : List (ReflectionGate (k+1)), reflectionLegal gs ∧
       gs.length ≤ 256*(k+1)^2+2*k ∧ ∀ ψ : QState (Reg (k+1)),

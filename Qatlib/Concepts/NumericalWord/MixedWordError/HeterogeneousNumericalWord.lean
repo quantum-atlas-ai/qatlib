@@ -9,6 +9,27 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
 import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
 import Qatlib.Foundations.OperatorErrors.OperatorError
 import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+/-!
+# Errors for heterogeneous numerical gate words
+
+Numerical implementations of known gates can be combined with exact oracle calls when controls
+lie outside the oracle data register. The module proves unitarity and bounds the accumulated
+operator, state, and measurement errors by the sum of local dyadic tolerances, following
+standard circuit approximation principles described in [NielsenChuang2010]
+
+## Main statements
+
+* `g1`: proves unitarity of numerical steps and their word.
+* `g2`: bounds operator and normalized state errors by `budget`.
+* `g3`: preserves access bookkeeping and bounds event probability error by twice `budget`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.GateVocabulary.GateVocab
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -28,9 +49,12 @@ set_option autoImplicit false
 set_option maxHeartbeats 2000000
 noncomputable section
 
+/-- Combines a data register of width `w` and an auxiliary register of width `n - w` into an `n`
+bit register. -/
 def join {n w : ℕ} (hw : w≤n) (d : Reg w) (a : Reg (n-w)) : Reg n :=
   fun i => if hi : i.val<w then d ⟨i.val,hi⟩ else a ⟨i.val-w,by omega⟩
 
+/-- The equivalence separating an `n` bit register into its auxiliary suffix and data prefix. -/
 def split {n w : ℕ} (hw : w≤n) : Reg n ≃ Reg (n-w) × Reg w where
   toFun z := (auxBits w z, dataBits w hw z)
   invFun p := join hw p.2 p.1
@@ -55,6 +79,8 @@ def split {n w : ℕ} (hw : w≤n) : Reg n ≃ Reg (n-w) × Reg w where
     · funext i
       simp [dataBits, join, i.isLt]
 
+/-- Equality of all bits at indices at least `w` is equivalent to equality of the auxiliary
+suffixes. -/
 private theorem tail_iff {n w : ℕ} (hw : w≤n) (p q : Reg n) :
     (∀ i : Fin n, w ≤ i.val → p i=q i) ↔ auxBits w p=auxBits w q := by
   constructor
@@ -67,6 +93,8 @@ private theorem tail_iff {n w : ℕ} (hw : w≤n) (p q : Reg n) :
     have he := congrFun h (⟨i.val-w,by omega⟩ : Fin (n-w))
     simpa [auxBits, Nat.add_sub_of_le hi] using he
 
+/-- A call to a unitary oracle, optionally adjointed and controlled on an auxiliary bit, has a
+unitary mixed step matrix. -/
 private theorem call_unitary {n w : ℕ} (hw : w≤n) {S : Type}
     (O : S → Matrix (Reg w) (Reg w) ℂ) (s : S) (adj : Bool)
     (ctrl : Option (Fin n × Bool))
@@ -122,6 +150,7 @@ private theorem call_unitary {n w : ℕ} (hw : w≤n) {S : Type}
     rw [he]
     exact (relabelGate_mem_unitaryGroup _ _).2 (blockDiag_unitary B hB)
 
+/-- For unitary oracles and valid controls, every ideal step in the mixed word is unitary. -/
 private theorem ideal_step_unitary {n w : ℕ} (hw : w≤n) {S : Type}
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S))
     (hv : ValidControls W) (hO : ∀ s, O s ∈ Matrix.unitaryGroup (Reg w) ℂ) :
@@ -131,6 +160,7 @@ private theorem ideal_step_unitary {n w : ℕ} (hw : w≤n) {S : Type}
   | known g k => exact localGateMatrix_unitary g
   | call s a c => exact call_unitary hw O s a c (by cases c <;> exact hv _ hs) (hO s)
 
+/-- The reverse ordered product of a list of unitary matrices is unitary. -/
 private theorem product_unitary {I : Type} [Fintype I] [DecidableEq I]
     {A : Type} (W : List A) (F : A → Matrix I I ℂ)
     (hF : ∀ s ∈ W, F s ∈ Matrix.unitaryGroup I ℂ) :
@@ -140,6 +170,8 @@ private theorem product_unitary {I : Type} [Fintype I] [DecidableEq I]
   obtain ⟨s, hs, rfl⟩ := List.mem_map.mp (List.mem_reverse.mp hU)
   exact hF s hs
 
+/-- For a mixed word with valid controls and unitary oracles, every numerical step and the
+resulting numerical word are unitary. -/
 theorem g1 : ∀ (n w : ℕ) (hw : w≤n) (S : Type)
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S)),
     ValidControls W → (∀ s, O s ∈ Matrix.unitaryGroup (Reg w) ℂ) →
@@ -153,6 +185,8 @@ theorem g1 : ∀ (n w : ℕ) (hw : w≤n) (S : Type)
     | call s a c => exact call_unitary hw O s a c (by cases c <;> exact hv _ hmem) (hO s)
   exact ⟨hs, product_unitary W (step hw O) hs⟩
 
+/-- The sum of operator norm differences between numerical and ideal steps is at most the word's
+dyadic budget. -/
 private theorem defect_sum {n w : ℕ} (hw : w≤n) {S : Type}
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S)) :
     (W.map (fun s => ‖step hw O s-mixedStepMatrix hw O s‖)).sum ≤ budget W := by
@@ -166,6 +200,8 @@ private theorem defect_sum {n w : ℕ} (hw : w≤n) {S : Type}
       exact add_le_add (numericalGateMatrix_error k g) ih
     | call s a c => simpa [step, budget, knownPrecs] using ih
 
+/-- For valid controls and unitary oracles, numerical word operator error and the output error
+on every normalized state are at most the dyadic budget; see [Kitaev, Lemma 3][Kitaev1995]. -/
 theorem g2 : ∀ (n w : ℕ) (hw : w≤n) (S : Type)
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S)),
     ValidControls W → (∀ s, O s ∈ Matrix.unitaryGroup (Reg w) ℂ) →
@@ -194,6 +230,10 @@ theorem g2 : ∀ (n w : ℕ) (hw : w≤n) (S : Type)
   rw [(normalized_iff_norm_toEuclidean_fromVec ψ).1 hψ, mul_one] at hn
   exact hn.trans hm
 
+/-- For a legal word with valid controls and unitary oracles, mapping the identity over the word
+preserves access counts and legality. The numerical and ideal outputs have event probability
+difference at most twice the dyadic budget on every normalized input; see [Kitaev, Lemma
+5][Kitaev1995]. -/
 theorem g3 : ∀ (n w : ℕ) (hw : w≤n) (S : Type) [DecidableEq S]
     (O : S → Matrix (Reg w) (Reg w) ℂ) (W : List (MixedStep n w S))
     (paid : List (AccessForm S)), ValidControls W → mixedWordLegal W paid →

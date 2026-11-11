@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.StoppingJointDefs
+
+/-!
+# Joint first-stopping probabilities and quantum maps
+
+This module proves complete positivity and trace identities for joint stopping and event maps
+indexed by classical output, instrument label, and accumulated charge. Positive-probability
+posteriors are density operators, zero-probability branches have zero output, and reference
+extensions have traces determined by the memory marginal.
+
+Classical mass identities give charge support, positive-cost stabilization, truncation laws, and
+fair-bit retry bounds. These results are collected in `clause14_complete`, `walkGoal_complete`,
+and `clause16_complete`. The quantum instrument and reference-system background is developed in
+[Watrous2018].
+
+## Main statements
+
+* `jointProb_trace`: identifies stopping-map traces with joint probabilities.
+* `jointReferenceEventMap_trace`: relates reference events to marginal probabilities.
+* `jointTotalProb_truncation`: splits halted and pending mass.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -36,6 +61,7 @@ variable {S O X : Type} [Fintype S] [DecidableEq S] [Nonempty S] [Fintype O]
   [DecidableEq O] [Fintype X] [DecidableEq X]
 variable {D E : ℕ}
 
+/-- Embedding a finite real sum into ℂ equals summing the embedded terms. -/
 theorem ofReal_finset_sum {ι : Type} [DecidableEq ι] (s : Finset ι) (f : ι → ℝ) :
     ((∑ i ∈ s, f i : ℝ) : ℂ) = ∑ i ∈ s, (f i : ℂ) := by
   induction s using Finset.induction_on with
@@ -44,6 +70,7 @@ theorem ofReal_finset_sum {ι : Type} [DecidableEq ι] (s : Finset ι) (f : ι �
       rw [Finset.sum_insert hi, Finset.sum_insert hi, ← ih]
       exact Complex.ofReal_add _ _
 
+/-- Embedding the indicated triple finite real sum into ℂ commutes with all three sums. -/
 theorem ofReal_triple_sum {ι κ ν : Type} [Fintype ι] [DecidableEq ι] [Fintype κ]
     [DecidableEq κ] [DecidableEq ν]
     (s : Finset ν) (f : ι → κ → ν → ℝ) :
@@ -55,16 +82,20 @@ theorem ofReal_triple_sum {ι κ ν : Type} [Fintype ι] [DecidableEq ι] [Finty
   refine Finset.sum_congr rfl (fun j _ => ?_)
   rw [ofReal_finset_sum s]
 
+/-- Complex scalar multiplication of embedded real numbers equals the embedded real product. -/
 theorem smul_ofReal_mul (c p : ℝ) :
     ((c : ℝ) : ℂ) • ((p : ℝ) : ℂ) = ((c * p : ℝ) : ℂ) := by
   rw [smul_eq_mul, ← Complex.ofReal_mul]
 
+/-- For finite products in ℝ≥0∞, the real value of their sum is the sum of the products of their
+real values. -/
 theorem toReal_finset_sum_mul {ι : Type} [Fintype ι] [DecidableEq ι] (a b : ι → ℝ≥0∞)
     (h : ∀ i, a i * b i ≠ ∞) :
     (∑ i : ι, a i * b i).toReal = ∑ i : ι, (a i).toReal * (b i).toReal := by
   rw [ENNReal.toReal_sum (fun i _ => h i)]
   exact Finset.sum_congr rfl (fun i _ => ENNReal.toReal_mul)
 
+/-- The real value of a joint program's transition probability is at most one. -/
 theorem transitionProb_le_one (P : JointProgram S O X D E) (s : S) (d : O ⊕ S) :
     (P.next s d).toReal ≤ 1 := by
   have hle : P.next s d ≤ ∑' x, P.next s x := ENNReal.le_tsum (f := P.next s) d
@@ -72,12 +103,15 @@ theorem transitionProb_le_one (P : JointProgram S O X D E) (s : S) (d : O ⊕ S)
   have hne : P.next s d ≠ ∞ := ne_top_of_le_ne_top (by simp) hle
   exact (ENNReal.toReal_le_toReal hne (by simp)).mpr hle
 
+/-- Every transition probability of a joint program is finite. -/
 theorem transitionProb_ne_top (P : JointProgram S O X D E) (s : S) (d : O ⊕ S) :
     P.next s d ≠ ∞ := by
   have hle : P.next s d ≤ ∑' x, P.next s x := ENNReal.le_tsum (f := P.next s) d
   rw [PMF.tsum_coe] at hle
   exact ne_top_of_le_ne_top (by simp) hle
 
+/-- Taking the trace after applying a finite sum of linear maps equals summing their output
+traces. -/
 theorem trace_finset_sum_map {ι : Type} [Fintype ι] [DecidableEq ι]
     (T : ι → (Operator D →ₗ[ℂ] Operator E)) (ρ : Operator D) :
     Matrix.trace ((∑ d : ι, T d) ρ) = ∑ d : ι, Matrix.trace (T d ρ) := by
@@ -85,6 +119,8 @@ theorem trace_finset_sum_map {ι : Type} [Fintype ι] [DecidableEq ι]
   rw [h]
   exact Matrix.trace_sum Finset.univ (fun d => T d ρ)
 
+/-- Multiplying a completely positive map by an embedded nonnegative real scalar preserves
+complete positivity. -/
 theorem CompletelyPositive.smul {T : Operator D →ₗ[ℂ] Operator E}
     (hT : CompletelyPositive T) (c : ℝ) (hc : 0 ≤ c) :
     CompletelyPositive (((c : ℝ) : ℂ) • T) := by
@@ -96,11 +132,14 @@ theorem CompletelyPositive.smul {T : Operator D →ₗ[ℂ] Operator E}
   rw [hAmp]
   exact Matrix.PosSemidef.smul (hT r A hA) (RCLike.ofReal_nonneg.mpr hc)
 
+/-- The zero linear map between operator spaces is completely positive. -/
 theorem CompletelyPositive.zero' :
     CompletelyPositive (0 : Operator D →ₗ[ℂ] Operator E) := by
   rw [Qatlib.Concepts.ChannelTheory.Stinespring.completelyPositive_iff_physlib]
   exact MatrixMap.IsCompletelyPositive.zero (Fin D) (Fin E)
 
+/-- Every joint stopping map at fixed fuel, configuration, output, instrument label, and charge
+is completely positive. -/
 theorem jointStopMap_cp (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (x : X) (k : ℕ),
       CompletelyPositive (jointStopMap P fuel cfg o x k) := by
@@ -141,12 +180,15 @@ theorem jointStopMap_cp (P : JointProgram S O X D E) :
           · simp only [hk, if_false]
             exact CompletelyPositive.zero'
 
+/-- A quantum channel maps density operators to density operators. -/
 theorem isDensityOperator_channel {D E : ℕ} (C : QuantumChannel D E) {ρ : Operator D}
     (hρ : IsDensityOperator ρ) : IsDensityOperator (C.map ρ) := by
   refine ⟨C.completelyPositive.positive hρ.1, ?_⟩
   rw [C.tracePreserving]
   exact hρ.2
 
+/-- On a density operator, the trace of a joint stopping map equals the embedded real joint
+probability. -/
 theorem jointProb_trace (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (x : X) (k : ℕ) (ρ : Operator D),
       IsDensityOperator ρ →
@@ -211,6 +253,8 @@ theorem jointProb_trace (P : JointProgram S O X D E) :
           · simp only [hk, if_false]
             simp [Matrix.trace]
 
+/-- The joint classical mass at a fixed output and charge equals the corresponding cost-weighted
+finite execution mass. -/
 theorem jointClassicalMass_eq_weightedRunFor (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (k : ℕ),
       jointClassicalMass P fuel cfg o k =
@@ -241,6 +285,7 @@ theorem jointClassicalMass_eq_weightedRunFor (P : JointProgram S O X D E) :
             rw [ih d o (k - P.cost s)]
           · simp only [hk, if_false]
 
+/-- Every finite-fuel joint classical output and charge mass is finite. -/
 theorem jointClassicalMass_ne_top (P : JointProgram S O X D E) (fuel : ℕ) (cfg : O ⊕ S)
     (o : O) (k : ℕ) : jointClassicalMass P fuel cfg o k ≠ ∞ := by
   rw [jointClassicalMass_eq_weightedRunFor]
@@ -252,6 +297,8 @@ theorem jointClassicalMass_ne_top (P : JointProgram S O X D E) (fuel : ℕ) (cfg
     exact hle'
   exact ne_top_of_le_ne_top (by simp) hle
 
+/-- Summing joint probabilities over instrument labels gives the real value of the classical
+mass at that output and charge. -/
 theorem jointProb_charge_layer (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (k : ℕ) (ρ : Operator D), IsDensityOperator ρ →
       (∑ x : X, jointProb P ρ fuel cfg o x k) =
@@ -322,6 +369,7 @@ theorem jointProb_charge_layer (P : JointProgram S O X D E) :
           · simp only [hk, if_false]
             simp
 
+/-- A finite sum of completely positive linear maps is completely positive. -/
 theorem CompletelyPositive.finset_sum' {ι : Type} [DecidableEq ι]
     {T : ι → (Operator D →ₗ[ℂ] Operator E)} (s : Finset ι)
     (h : ∀ i ∈ s, CompletelyPositive (T i)) :
@@ -333,6 +381,8 @@ theorem CompletelyPositive.finset_sum' {ι : Type} [DecidableEq ι]
       exact CompletelyPositive.add (h i (Finset.mem_insert_self i s))
         (ih (fun j hj => h j (Finset.mem_insert_of_mem hj)))
 
+/-- The joint map associated with a decidable event on output, label, and charge is completely
+positive. -/
 theorem jointEventMap_cp (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (Ev : O × X × ℕ → Prop) [DecidablePred Ev],
       CompletelyPositive (jointEventMap P fuel cfg Ev) := by
@@ -347,18 +397,22 @@ theorem jointEventMap_cp (P : JointProgram S O X D E) :
   · simp only [h, if_false]
     exact CompletelyPositive.zero'
 
+/-- A positive semidefinite operator with trace zero is zero. -/
 theorem psd_eq_zero_of_trace_zero {n : ℕ} {A : Operator n} (hA : A.PosSemidef)
     (h : Matrix.trace A = 0) : A = 0 := by
   have hre : (Matrix.trace A).re = 0 := by rw [h]; simp
   have him : (Matrix.trace A).im = 0 := (RCLike.nonneg_iff.mp hA.trace_nonneg).2
   exact (Matrix.PosSemidef.trace_eq_zero_iff hA).mp (Complex.ext hre him)
 
+/-- The trace of a finite sum of linear-map outputs is the sum of their traces. -/
 theorem trace_finset_sum_map' {ι : Type} (s : Finset ι)
     (T : ι → (Operator D →ₗ[ℂ] Operator E)) (ρ : Operator D) :
     Matrix.trace ((∑ i ∈ s, T i) ρ) = ∑ i ∈ s, Matrix.trace (T i ρ) := by
   rw [LinearMap.sum_apply s (fun i => T i) ρ]
   exact Matrix.trace_sum s (fun i => T i ρ)
 
+/-- On a density operator, the trace of the joint event map equals the embedded event
+probability. -/
 theorem jointEventMap_trace (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (Ev : O × X × ℕ → Prop) [DecidablePred Ev] (ρ : Operator D),
       IsDensityOperator ρ →
@@ -383,6 +437,7 @@ theorem jointEventMap_trace (P : JointProgram S O X D E) :
   refine Finset.sum_congr rfl (fun x _ => ?_)
   exact Finset.sum_congr rfl (fun k _ => hleaf o x k)
 
+/-- A joint event of positive probability has a normalized posterior that is a density operator. -/
 theorem jointNormalizedPost_isDensity (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (Ev : O × X × ℕ → Prop) [DecidablePred Ev] (ρ : Operator D),
       IsDensityOperator ρ → 0 < jointEventProb P ρ fuel cfg Ev →
@@ -402,6 +457,7 @@ theorem jointNormalizedPost_isDensity (P : JointProgram S O X D E) :
   refine ⟨Matrix.PosSemidef.smul hpsd hinv, ?_⟩
   rw [Matrix.trace_smul, htr, smul_eq_mul, inv_mul_cancel₀ hne]
 
+/-- A zero-probability joint event has zero unnormalized output on a density operator. -/
 theorem jointEventMap_zero_of_prob_zero (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (Ev : O × X × ℕ → Prop) [DecidablePred Ev] (ρ : Operator D),
       IsDensityOperator ρ → jointEventProb P ρ fuel cfg Ev = 0 →
@@ -421,6 +477,8 @@ theorem jointEventMap_zero_of_prob_zero (P : JointProgram S O X D E) :
     exact this
   exact psd_eq_zero_of_trace_zero hpsd hz
 
+/-- The joint probability of a fixed output, instrument label, and charge is nonnegative on a
+density operator. -/
 theorem jointProb_nonneg (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (x : X) (k : ℕ) (ρ : Operator D),
       IsDensityOperator ρ → 0 ≤ jointProb P ρ fuel cfg o x k := by
@@ -431,6 +489,8 @@ theorem jointProb_nonneg (P : JointProgram S O X D E) :
   rw [jointProb_trace P fuel cfg o x k ρ hρ] at h
   simpa using! h
 
+/-- A joint stopping label with zero probability has zero unnormalized output on a density
+operator. -/
 theorem jointStopMap_zero_of_prob_zero (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (x : X) (k : ℕ) (ρ : Operator D),
       IsDensityOperator ρ → jointProb P ρ fuel cfg o x k = 0 →
@@ -450,6 +510,7 @@ theorem jointStopMap_zero_of_prob_zero (P : JointProgram S O X D E) :
     exact this
   exact psd_eq_zero_of_trace_zero hpsd hz
 
+/-- A joint stopping label of positive probability has a posterior that is a density operator. -/
 theorem jointLabelPost_isDensity (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (x : X) (k : ℕ) (ρ : Operator D),
       IsDensityOperator ρ → 0 < jointProb P ρ fuel cfg o x k →
@@ -469,6 +530,8 @@ theorem jointLabelPost_isDensity (P : JointProgram S O X D E) :
   refine ⟨Matrix.PosSemidef.smul hpsd hinv, ?_⟩
   rw [Matrix.trace_smul, htr, smul_eq_mul, inv_mul_cancel₀ hne]
 
+/-- The trace after applying a linear map to the left subsystem equals the trace after applying
+it to the partial trace over the reference subsystem. -/
 theorem tensorLeft_trace {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     Matrix.trace (tensorLeft T ρ) = Matrix.trace (T (PartialTrace ρ)) := by
@@ -500,6 +563,8 @@ theorem tensorLeft_trace {D E R : ℕ} (T : Operator D →ₗ[ℂ] Operator E)
     rw [h1, Finset.sum_comm]
   rw [hL, hR]
 
+/-- The trace of a reference-extended joint stopping map equals the stopping-map trace on the
+memory marginal. -/
 theorem jointReferenceStopMap_trace (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (x : X) (k : ℕ) (R : ℕ)
       (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ),
@@ -508,6 +573,8 @@ theorem jointReferenceStopMap_trace (P : JointProgram S O X D E) :
   intro fuel cfg o x k R ρ
   exact tensorLeft_trace _ _
 
+/-- When the memory marginal is a density operator, the trace of the reference-extended stopping
+map equals the embedded joint probability on that marginal. -/
 theorem jointReferenceStopMap_trace_prob (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (x : X) (k : ℕ) (R : ℕ)
       (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ),
@@ -518,6 +585,8 @@ theorem jointReferenceStopMap_trace_prob (P : JointProgram S O X D E) :
   rw [jointReferenceStopMap_trace]
   exact jointProb_trace P fuel cfg o x k (jointMemoryMarginal D R ρ) hρ
 
+/-- Applying the left tensor extension of a finite sum of maps equals the sum of their left
+tensor extensions. -/
 theorem tensorLeft_sum {D E R : ℕ} {ι : Type} (s : Finset ι)
     (T : ι → (Operator D →ₗ[ℂ] Operator E))
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
@@ -528,12 +597,15 @@ theorem tensorLeft_sum {D E R : ℕ} {ι : Type} (s : Finset ι)
   simp only [Matrix.sum_apply]
   rfl
 
+/-- The left tensor extension of the zero linear map sends every input to zero. -/
 theorem tensorLeft_zero {D E R : ℕ}
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (0 : Operator D →ₗ[ℂ] Operator E) ρ = 0 := by
   ext x y
   simp [tensorLeft]
 
+/-- When the memory marginal is a density operator, the reference-extended event map has trace
+equal to the embedded event probability on that marginal. -/
 theorem jointReferenceEventMap_trace (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (Ev : O × X × ℕ → Prop) [DecidablePred Ev] {R : ℕ}
       (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ),
@@ -563,6 +635,8 @@ theorem jointReferenceEventMap_trace (P : JointProgram S O X D E) :
   refine Finset.sum_congr rfl (fun x _ => ?_)
   exact Finset.sum_congr rfl (fun k _ => hleaf o x k)
 
+/-- The joint classical mass is zero if the requested charge exceeds fuel times the maximum
+branch charge. -/
 theorem jointClassicalMass_zero_of_charge_gt (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S) (o : O) (k : ℕ),
       fuel * maxCharge P < k → jointClassicalMass P fuel cfg o k = 0 := by
@@ -605,11 +679,15 @@ theorem jointClassicalMass_zero_of_charge_gt (P : JointProgram S O X D E) :
             simp
           · simp only [if_neg hk]
 
+/-- The non-Zeno Boolean check for the program cost succeeds exactly when that cost satisfies
+`positiveCharge`. -/
 theorem jointNonZenoCheck_iff (P : JointProgram S O X D E) :
     Qatlib.Concepts.StoppingCore.InterruptBridge.nonZenoCheck P.cost = true
       ↔ Qatlib.Concepts.StoppingCore.InterruptBridge.positiveCharge P.cost :=
   clause14_nonZenoCheck_iff S P.cost
 
+/-- With positive branch costs and fuel at least `k`, the classical mass at charge `k` equals
+`weightedHaltJoint`. -/
 theorem jointClassicalMass_stable_of_positive_charge (P : JointProgram S O X D E)
     (hc : ∀ s, 0 < P.cost s) (fuel : ℕ) (cfg : O ⊕ S) (o : O) (k : ℕ) (hk : k ≤ fuel) :
     jointClassicalMass P fuel cfg o k = weightedHaltJoint P.next P.cost cfg o k := by
@@ -617,6 +695,8 @@ theorem jointClassicalMass_stable_of_positive_charge (P : JointProgram S O X D E
   exact clause14_charge_stable S O P.next P.cost
       (fun s => by have hs := hc s; omega) cfg o k fuel hk
 
+/-- If the limiting first-hit mass at an output and charge is positive, the finite-fuel joint
+classical mass converges to it. -/
 theorem jointClassicalMass_tendsto (P : JointProgram S O X D E) (cfg : O ⊕ S)
     (o : O) (k : ℕ) (hpos : 0 < Qatlib.Concepts.ZeroCostLimit.FirstHitMass.haltMass P.next P.cost cfg o k) :
     Filter.Tendsto (fun fuel => jointClassicalMass P fuel cfg o k) Filter.atTop
@@ -628,10 +708,13 @@ theorem jointClassicalMass_tendsto (P : JointProgram S O X D E) (cfg : O ⊕ S)
   rw [hfun]
   exact (clause14_first_stop_joint S O P.next P.cost cfg o k).2.2 hpos
 
+/-- The maximum branch charge of a fair-bit program is its bit count `k`. -/
 theorem maxCharge_fairBit (k m : ℕ) (I : Instrument X D E) :
     maxCharge (fairBitProgram k m I) = k := by
   simp [maxCharge, Finset.sup_singleton, fairBitProgram]
 
+/-- A fair-bit program has zero classical mass at charges exceeding fuel times its per-attempt
+bit count. -/
 theorem fairBit_joint_charge_bound (k m : ℕ) (I : Instrument X D E) (fuel : ℕ)
     (cfg : Fin m ⊕ Unit) (o : Fin m) (c : ℕ) (hc : fuel * k < c) :
     jointClassicalMass (fairBitProgram k m I) fuel cfg o c = 0 := by
@@ -639,12 +722,16 @@ theorem fairBit_joint_charge_bound (k m : ℕ) (I : Instrument X D E) (fuel : �
   rw [maxCharge_fairBit k m I]
   exact hc
 
+/-- The transition law of `fairBitProgram` is `finiteCoinNext`. -/
 theorem fairBitProgram_next (k m : ℕ) (I : Instrument X D E) :
     (fairBitProgram k m I).next () = finiteCoinNext k m () := rfl
 
+/-- The branch cost of `fairBitProgram k m I` is `k`. -/
 theorem fairBitProgram_cost (k m : ℕ) (I : Instrument X D E) :
     (fairBitProgram k m I).cost () = k := rfl
 
+/-- When `m ≤ 2 ^ k`, the pending mass after `fuel` fair-bit attempts is `coinRejectMass k m ^
+fuel`. -/
 theorem jointPendingMass_fairBit (k m : ℕ) (hm : m ≤ 2 ^ k) (fuel : ℕ)
     (I : Instrument X D E) :
     jointPendingMass (fairBitProgram k m I) fuel (.inr ()) = coinRejectMass k m ^ fuel := by
@@ -668,6 +755,7 @@ theorem jointPendingMass_fairBit (k m : ℕ) (hm : m ≤ 2 ^ k) (fuel : ℕ)
   rw [hev]
   exact finiteCoinRun_pending k m fuel hm
 
+/-- The sum of all halted output and charge masses plus the pending mass equals one. -/
 theorem jointTruncationLaw (P : JointProgram S O X D E) :
     ∀ (fuel : ℕ) (cfg : O ⊕ S),
       (∑' o : O, ∑' k : ℕ, jointClassicalMass P fuel cfg o k) +
@@ -676,9 +764,13 @@ theorem jointTruncationLaw (P : JointProgram S O X D E) :
   simp only [jointClassicalMass_eq_weightedRunFor]
   exact weightedRunFor_partition P.next P.cost cfg fuel
 
+/-- The joint program's never-halting mass equals the nontermination mass of its classical
+transition law. -/
 theorem jointNeverMass_eq (P : JointProgram S O X D E) (cfg : O ⊕ S) :
     jointNeverMass P cfg = nonterminationMass P.next cfg := rfl
 
+/-- Summing the joint classical mass over the finite charge range equals summing it over all
+natural charges and outputs. -/
 theorem jointClassicalMass_range_eq_tsum (P : JointProgram S O X D E)
     (fuel : ℕ) (cfg : O ⊕ S) :
     (∑ o : O, ∑ k ∈ jointChargeRange P fuel, jointClassicalMass P fuel cfg o k)
@@ -701,12 +793,15 @@ theorem jointClassicalMass_range_eq_tsum (P : JointProgram S O X D E)
   · intro b hb
     exact (hb (Finset.mem_univ b)).elim
 
+/-- The finite sum of halted output and charge masses plus pending mass equals one. -/
 theorem jointTruncationLaw_range (P : JointProgram S O X D E) (fuel : ℕ) (cfg : O ⊕ S) :
     (∑ o : O, ∑ k ∈ jointChargeRange P fuel, jointClassicalMass P fuel cfg o k)
       + jointPendingMass P fuel cfg = 1 := by
   rw [jointClassicalMass_range_eq_tsum]
   exact jointTruncationLaw P fuel cfg
 
+/-- On a density operator, total joint probability equals the real value of the finite sum of
+classical output and charge masses. -/
 theorem jointTotalProb_eq_classical (P : JointProgram S O X D E) (ρ : Operator D)
     (fuel : ℕ) (cfg : O ⊕ S) (hρ : IsDensityOperator ρ) :
     jointTotalProb P ρ fuel cfg
@@ -735,6 +830,8 @@ theorem jointTotalProb_eq_classical (P : JointProgram S O X D E) (ρ : Operator 
   refine Finset.sum_congr rfl (fun o _ => ?_)
   rw [ENNReal.toReal_sum (fun k _ => jointClassicalMass_ne_top P fuel cfg o k)]
 
+/-- On a density operator, the total halted joint probability plus the real pending mass equals
+one. -/
 theorem jointTotalProb_truncation (P : JointProgram S O X D E) (ρ : Operator D)
     (fuel : ℕ) (cfg : O ⊕ S) (hρ : IsDensityOperator ρ) :
     jointTotalProb P ρ fuel cfg + (jointPendingMass P fuel cfg).toReal = 1 := by
@@ -764,6 +861,8 @@ theorem jointTotalProb_truncation (P : JointProgram S O X D E) (ρ : Operator D)
   rw [jointTruncationLaw_range P fuel cfg]
   simp
 
+/-- The missing total joint probability of finite fair-bit execution equals its real pending
+mass. -/
 theorem fairBit_effective_error (k m : ℕ) (I : Instrument X D E) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (fuel : ℕ) :
     1 - jointTotalProb (fairBitProgram k m I) ρ fuel (.inr ())
@@ -771,6 +870,8 @@ theorem fairBit_effective_error (k m : ℕ) (I : Instrument X D E) (ρ : Operato
   have h := jointTotalProb_truncation (fairBitProgram k m I) ρ fuel (.inr ()) hρ
   linarith
 
+/-- Establishes `Clause14JointFirstStop`, collecting complete positivity, trace and charge
+identities, truncation, stabilization, and convergence for joint first stopping. -/
 theorem clause14_complete : Clause14JointFirstStop := by
   intro S O X _ _ _ _ _ _ _ D E
   exact ⟨jointStopMap_cp, jointProb_trace, jointClassicalMass_eq_weightedRunFor,
@@ -778,6 +879,8 @@ theorem clause14_complete : Clause14JointFirstStop := by
     jointNonZenoCheck_iff, jointClassicalMass_stable_of_positive_charge,
     jointClassicalMass_tendsto, jointTotalProb_truncation⟩
 
+/-- Establishes `PaidWalkReferenceEvents`, collecting event positivity, posterior normalization,
+zero-probability outputs, and reference-system trace identities. -/
 theorem walkGoal_complete : PaidWalkReferenceEvents := by
   intro S O X _ _ _ _ _ _ _ D E
   exact ⟨jointEventMap_cp, jointEventMap_trace, jointNormalizedPost_isDensity,
@@ -785,6 +888,8 @@ theorem walkGoal_complete : PaidWalkReferenceEvents := by
     jointReferenceStopMap_trace, jointReferenceStopMap_trace_prob,
     jointLabelPost_isDensity, jointStopMap_zero_of_prob_zero⟩
 
+/-- Establishes `Clause16EffectiveSampling`, collecting the fair-bit transition, exact cost,
+pending mass, charge bound, and finite-execution probability deficit. -/
 theorem clause16_complete : Clause16EffectiveSampling := by
   intro X _ _ D E
   refine ⟨?_, ?_, ?_, ?_⟩

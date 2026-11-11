@@ -144,6 +144,30 @@ import Mathlib.Topology.Separation.Hausdorff
 import Mathlib.Topology.UniformSpace.Defs
 import Mathlib.Topology.UniformSpace.Matrix
 import Mathlib.Topology.UniformSpace.Real
+
+/-!
+# Normalization of exponential imaginary-time flow
+
+This module differentiates vector normalization along real inner-product-space curves satisfying
+a linear evolution equation. The normalized derivative includes the scalar correction that
+preserves unit norm.
+
+For complex finite-dimensional matrices, `rawState` is the actual matrix-exponential evolution.
+Nonzero initial states remain nonzero, so their normalized curves have unit norm and satisfy
+`actual_normalized_ode`, supporting the imaginary-time formulation in [McArdleTew2020].
+
+## Main statements
+
+* `normalized_ode`: the normalization rule for a curve satisfying a linear evolution equation.
+* `rawState_ne_zero`: nonvanishing of exponential evolution from a nonzero initial state.
+* `actual_normalized_ode`: the differential equation for normalized matrix-exponential
+  evolution.
+
+## References
+
+* [McArdle and Tew, 2020][McArdleTew2020]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -156,12 +180,16 @@ open scoped BigOperators InnerProductSpace RealInnerProductSpace
 section RealHilbertCurve
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
 
+/-- The vector scaled by the reciprocal of its norm. -/
 def normalized (v : E) : E := ‖v‖⁻¹ • v
 
+/-- Normalizing a nonzero vector gives a vector of norm one. -/
 theorem normalized_norm {v : E} (hv : v ≠ 0) : ‖normalized v‖ = 1 := by
   rw [normalized, norm_smul, Real.norm_eq_abs, abs_of_nonneg (inv_nonneg.mpr (norm_nonneg _))]
   exact inv_mul_cancel₀ (norm_ne_zero_iff.mpr hv)
 
+/-- At a nonzero point of a differentiable real inner-product-space curve, the norm derivative
+is the inner product of the state and its derivative divided by the state norm. -/
 theorem hasDerivAt_curve_norm {ψ : ℝ → E} {v : E} {t : ℝ}
     (hψ : HasDerivAt ψ v t) (h0 : ψ t ≠ 0) :
     HasDerivAt (fun s => ‖ψ s‖) (inner ℝ (ψ t) v / ‖ψ t‖) t := by
@@ -173,6 +201,8 @@ theorem hasDerivAt_curve_norm {ψ : ℝ → E} {v : E} {t : ℝ}
   convert! hsq using 1
   field_simp
 
+/-- At a nonzero point of a curve satisfying `ψ' = -H ψ`, its normalization has derivative `-H u
++ inner ℝ u (H u) • u`, where `u` is the normalized state. -/
 theorem normalized_ode {ψ : ℝ → E} (H : E →ₗ[ℝ] E) {t : ℝ}
     (hψ : HasDerivAt ψ (-H (ψ t)) t) (h0 : ψ t ≠ 0) :
     HasDerivAt (fun s => normalized (ψ s))
@@ -192,21 +222,30 @@ end RealHilbertCurve
 
 section ActualMatrixExponential
 open scoped Matrix.Norms.L2Operator
+/-- Complex square matrices indexed by `Fin d`. -/
 abbrev Op (d : ℕ) := Matrix (Fin d) (Fin d) ℂ
+/-- The complex Euclidean state space indexed by `Fin d`. -/
 abbrev State (d : ℕ) := EuclideanSpace ℂ (Fin d)
 
+/-- The continuous real-linear map sending a matrix to its action on the fixed state `ψ0`. -/
 def matrixApply {d : ℕ} (ψ0 : State d) : Op d →L[ℝ] State d :=
   (((LinearMap.applyₗ ψ0).comp
     (Matrix.toEuclideanLin (𝕜 := ℂ) (m := Fin d) (n := Fin d)).toLinearMap).restrictScalars ℝ).toContinuousLinearMap
 
+/-- The finite-dimensional exponential evolution `exp(-t • H)` applied to the initial state
+`ψ0`. -/
 def rawState {d : ℕ} (H : Op d) (ψ0 : State d) (t : ℝ) : State d :=
   WithLp.toLp 2 (NormedSpace.exp ((-t) • H) *ᵥ ψ0.ofLp)
 
+/-- The raw evolution can equivalently be written using the complex scalar `-(t : ℂ)` in its
+matrix exponential. -/
 theorem rawState_complex_scalar {d : ℕ} (H : Op d) (ψ0 : State d) (t : ℝ) :
     rawState H ψ0 t = WithLp.toLp 2 (NormedSpace.exp ((-(t : ℂ)) • H) *ᵥ ψ0.ofLp) := by
   simp only [rawState, RCLike.real_smul_eq_coe_smul (K := ℂ), RCLike.ofReal_neg]
   rfl
 
+/-- The derivative of the raw exponential evolution is minus the action of `H` on the current
+state. -/
 theorem rawState_hasDerivAt {d : ℕ} (H : Op d) (ψ0 : State d) (t : ℝ) :
     HasDerivAt (rawState H ψ0) (- Matrix.toEuclideanLin H (rawState H ψ0 t)) t := by
   letI : NormedAlgebra ℝ (Op d) := NormedAlgebra.restrictScalars ℝ ℂ _
@@ -221,6 +260,7 @@ theorem rawState_hasDerivAt {d : ℕ} (H : Op d) (ψ0 : State d) (t : ℝ) :
     ((-H) * NormedSpace.exp ((-t) • H)) *ᵥ ψ0.ofLp
   simp only [Matrix.neg_mul, Matrix.neg_mulVec, Matrix.mulVec_mulVec]
 
+/-- Exponential evolution of a nonzero initial state is nonzero at every real time. -/
 theorem rawState_ne_zero {d : ℕ} (H : Op d) (ψ0 : State d) (hψ0 : ψ0 ≠ 0) (t : ℝ) :
     rawState H ψ0 t ≠ 0 := by
   intro hz
@@ -236,10 +276,14 @@ theorem rawState_ne_zero {d : ℕ} (H : Op d) (ψ0 : State d) (hψ0 : ψ0 ≠ 0)
 local instance (d : ℕ) : InnerProductSpace ℝ (State d) :=
   InnerProductSpace.rclikeToReal ℂ (State d)
 
+/-- The normalized exponential evolution of a nonzero initial state has norm one at every real
+time. -/
 theorem actual_normalized_norm {d : ℕ} (H : Op d) (ψ0 : State d) (hψ0 : ψ0 ≠ 0) (t : ℝ) :
     ‖normalized (rawState H ψ0 t)‖ = 1 :=
   normalized_norm (rawState_ne_zero H ψ0 hψ0 t)
 
+/-- For a nonzero initial state and any complex matrix `H`, normalized exponential evolution has
+derivative `-H u + (inner ℂ u (H u)).re • u` [McArdleTew2020]. -/
 theorem actual_normalized_ode {d : ℕ} (H : Op d) (ψ0 : State d) (hψ0 : ψ0 ≠ 0) (t : ℝ) :
     HasDerivAt (fun s => normalized (rawState H ψ0 s))
       (- Matrix.toEuclideanLin H (normalized (rawState H ψ0 t)) +

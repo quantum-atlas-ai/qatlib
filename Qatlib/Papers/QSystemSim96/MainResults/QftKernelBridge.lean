@@ -8,6 +8,32 @@ import Qatlib.Concepts.QftPreparation.LocalQft
 import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
 import Mathlib.Tactic
 import Qatlib.Papers.QSystemSim96.MainResults.ShortTimeStepFactorization
+
+/-!
+# Bridging the local QFT and the lattice kernel
+
+This module connects the local QFT circuit to the cyclic-grid Fourier kernel used in
+[Zalka1998]. `zmodFourier`, `qftFinZmod`, and `latticeRegEquiv` relate Fourier matrices indexed
+by finite integers, bit registers, and residue classes.
+
+`diagonalQftSandwichRun` composes a local QFT with supplied pre- and post-circuits, and
+`source_basis_map_qft_sandwich` identifies the short-step matrix with a normalized Fourier
+sandwich when the lattice coefficient is `2 * Real.pi / N`.
+
+## Main statements
+
+* `qftFinZmod` identifies the relabeled finite QFT with `zmodFourier`.
+* `diagonalQftSandwichRun` and `diagonalQftSandwichCosts` give the composite action and exact
+  resources.
+* `localQFT_lattice_matrix` identifies the local implementation under `latticeRegEquiv`.
+* `source_basis_map_qft_sandwich` and `source_basis_map_unitary` specialize the short-step
+  construction to the ordinary Fourier kernel.
+
+## References
+
+* [Zalka, 1998][Zalka1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,15 +50,20 @@ open scoped BigOperators
 noncomputable section
 namespace Qatlib.Papers.QSystemSim96.MainResults
 
+/-- The normalized Fourier matrix on `ZMod M`, with entries `1 / sqrt M` times the standard
+additive character of the product of the indices. -/
 def zmodFourier (M : ℕ) [NeZero M] : Matrix (ZMod M) (ZMod M) ℂ :=
   fun a b => (Real.sqrt (M : ℝ) : ℂ)⁻¹ * ZMod.stdAddChar (a*b)
 
+/-- The inverse finite-residue equivalence preserves the natural representative value of a
+residue class. -/
 theorem finZmodValue (M : ℕ) [NeZero M] (a : ZMod M) :
     ((ZMod.finEquiv M).symm a).val = a.val := by
   cases M with
   | zero => exact (NeZero.ne 0 rfl).elim
   | succ M => rfl
 
+/-- Relabeling `QFTMatrix M` by the finite-residue equivalence gives `zmodFourier M`. -/
 theorem qftFinZmod (M : ℕ) [NeZero M] :
     relabelGate (ZMod.finEquiv M).toEquiv (QFTMatrix M) = zmodFourier M := by
   ext a b
@@ -49,6 +80,9 @@ theorem qftFinZmod (M : ℕ) [NeZero M] :
   push_cast
   ring
 
+/-- If the supplied pre- and post-circuits implement `Dpre` and `Dpost`, their composition
+around the local QFT implements `Dpost * QFT * Dpre`, as in the Fourier-sandwich
+construction of [Zalka1998]. -/
 theorem diagonalQftSandwichRun (n : ℕ) (Cpre Cpost : Circuit (Reg n))
     (Dpre Dpost : Matrix (Reg n) (Reg n) ℂ)
     (hpre : ∀ψ, Run 1 Cpre ψ = ApplyGate Dpre ψ)
@@ -58,6 +92,9 @@ theorem diagonalQftSandwichRun (n : ℕ) (Cpre Cpost : Circuit (Reg n))
   rw [run_append, run_append, hpre, (localDyadicProgram_run_adjoint_cost n (localQFT n) _).1,
     (localQFT_exact_positive_matrix n).1, hpost, applyGate_mul, applyGate_mul]
 
+/-- The pre-QFT-post circuit has the sum of the endpoint gate counts and the exact local QFT
+count, while its query count is the sum of the endpoint query counts, providing resource
+accounting for [Zalka1998]. -/
 theorem diagonalQftSandwichCosts (n : ℕ) (Cpre Cpost : Circuit (Reg n)) :
     GateCount (Cpre ++ localProgramCircuit (localQFT n) ++ Cpost) =
       GateCount Cpre + (n+n*(n-1)/2+n/2) + GateCount Cpost ∧
@@ -67,9 +104,13 @@ theorem diagonalQftSandwichCosts (n : ℕ) (Cpre Cpost : Circuit (Reg n)) :
     (aqLocalQFT_actual_matrix_and_cost n).2.1, (aqLocalQFT_actual_matrix_and_cost n).2.2]
   simp
 
+/-- The equivalence from an `n`-bit register to `ZMod (2 ^ n)`, composed from `bitVecEquiv` and
+the finite-residue equivalence. -/
 def latticeRegEquiv (n : ℕ) : Reg n ≃ ZMod (2 ^ n) :=
   (bitVecEquiv n).trans (ZMod.finEquiv (2 ^ n)).toEquiv
 
+/-- Relabeling the actual local QFT matrix by `latticeRegEquiv n` gives the normalized Fourier
+matrix on the dyadic lattice, identifying the Fourier implementation used for [Zalka1998]. -/
 theorem localQFT_lattice_matrix (n : ℕ) :
     relabelGate (latticeRegEquiv n) (localProgramMatrix (localQFT n)) =
       zmodFourier (2 ^ n) := by
@@ -81,6 +122,9 @@ theorem localQFT_lattice_matrix (n : ℕ) :
       simp [relabelGate, latticeRegEquiv]
     _ = zmodFourier (2 ^ n) := qftFinZmod _
 
+/-- When `m * Δx ^ 2 / Δt = 2 * Real.pi / N`, the source-oriented short-step matrix equals the
+output diagonal, normalized cyclic Fourier matrix, and input diagonal product of
+[Zalka1998]. -/
 theorem source_basis_map_qft_sandwich (N : ℕ) [NeZero N]
     (m Δx Δt : ℝ) (V : ZMod N → ℝ)
     (hcond : m * Δx ^ 2 / Δt = 2 * Real.pi / (N : ℝ)) :
@@ -94,6 +138,8 @@ theorem source_basis_map_qft_sandwich (N : ℕ) [NeZero N]
   rw [hnorm, Matrix.mul_smul, Matrix.smul_mul]
   simp only [Nat.cast_one]
 
+/-- The short-step matrix is unitary under the lattice relation `m * Δx ^ 2 / Δt = 2 * Real.pi /
+N`. -/
 theorem source_basis_map_unitary (N : ℕ) [NeZero N]
     (m Δx Δt : ℝ) (V : ZMod N → ℝ)
     (hcond : m * Δx ^ 2 / Δt = 2 * Real.pi / (N : ℝ)) :

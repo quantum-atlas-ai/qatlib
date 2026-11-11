@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.DihedralHSP04.MainResults.CombinationProbability
+
+/-!
+# Moments and success probability of mask matching
+
+`matchStat` counts matching nonzero masks as a real-valued statistic. Exact first and second
+moments yield an explicit variance and a Chebyshev bound; the failure event is contained in the
+corresponding deviation event, proving `combination_success_probability`.
+
+This development follows [Regev2004a].
+
+## Main statements
+
+* `first_moment`, `second_moment`, and `variance_eq`: exact moments of the nonzero-mask count.
+* `chebyshev_matchStat`: an explicit deviation bound at threshold fourteen.
+* `combination_success_probability`: the combination succeeds with probability at least one half
+  for positive `l`.
+
+## References
+
+* [Regev, 2004][Regev2004a]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,21 +38,26 @@ namespace Qatlib.Papers.DihedralHSP04.MainResults
 
 open scoped BigOperators
 
+/-- The finite set of all masks except `zeroMask`. -/
 def nonzeroMasks (l : ℕ) : Finset (Mask l) := Finset.univ.erase (zeroMask l)
 
+/-- There are `2 ^ (l + 4) - 1` nonzero masks. -/
 theorem card_nonzeroMasks (l : ℕ) :
     (nonzeroMasks l).card = 2 ^ (l + 4) - 1 := by
   unfold nonzeroMasks
   rw [Finset.card_erase_of_mem (Finset.mem_univ (zeroMask l)), Finset.card_univ]
   simp [Mask]
 
+/-- The real indicator that the mask `b` has modular label `z` on the sample `y`. -/
 def matchIndicator (l : ℕ) (z : ZMod (2 ^ l)) (b : Mask l)
     (y : SampleSpace l) : ℝ :=
   if dotMod l b y = z then 1 else 0
 
+/-- The sum of matching indicators over all nonzero masks. -/
 def matchStat (l : ℕ) (y : SampleSpace l) (z : ZMod (2 ^ l)) : ℝ :=
   ∑ b ∈ nonzeroMasks l, matchIndicator l z b y
 
+/-- For a nonzero mask, each modular label occurs with uniform probability `((2 : ℝ) ^ l)⁻¹`. -/
 theorem uniformProb_match {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l)
     (z : ZMod (2 ^ l)) :
     uniformProb (fun y : SampleSpace l => dotMod l b y = z) =
@@ -49,12 +76,14 @@ theorem uniformProb_match {l : ℕ} {b : Mask l} (hb : b ≠ zeroMask l)
   have hq3 : (((2 : ℝ) ^ l) ^ (l + 3)) ≠ 0 := by positivity
   field_simp
 
+/-- The sum of the real indicator of a predicate equals the cardinality of its satisfying set. -/
 theorem sum_indicator_gen {Ω : Type} [Fintype Ω] (p : Ω → Prop) [DecidablePred p] :
     (∑ y : Ω, (if p y then (1 : ℝ) else 0)) =
       ((Finset.univ.filter p).card : ℝ) := by
   rw [← Finset.sum_filter]
   simp
 
+/-- Uniform probability is monotone under pointwise implication of predicates. -/
 theorem uniformProb_mono {Ω : Type} [Fintype Ω] {p q : Ω → Prop}
     (h : ∀ x, p x → q x) : uniformProb p ≤ uniformProb q := by
   classical
@@ -64,6 +93,8 @@ theorem uniformProb_mono {Ω : Type} [Fintype Ω] {p q : Ω → Prop}
   have hN : (0 : ℝ) ≤ (Nat.card Ω : ℝ) := by positivity
   exact div_le_div_of_nonneg_right (by exact_mod_cast hc) hN
 
+/-- On a nonempty finite type, the uniform probability of a complement is one minus the original
+probability. -/
 theorem uniformProb_not {Ω : Type} [Fintype Ω] [Nonempty Ω] (p : Ω → Prop) :
     uniformProb (fun x => ¬ p x) = 1 - uniformProb p := by
   classical
@@ -81,6 +112,8 @@ theorem uniformProb_not {Ω : Type} [Fintype Ω] [Nonempty Ω] (p : Ω → Prop)
   field_simp
   linarith
 
+/-- Expanding the sum of squared deviations gives the sum of squares minus twice the center
+times the sum, plus the cardinality times the squared center. -/
 lemma sum_sq_sub {Ω : Type} [Fintype Ω] (f : Ω → ℝ) (μ : ℝ) :
     (∑ x, (f x - μ) ^ 2) =
       (∑ x, (f x) ^ 2) - 2 * μ * (∑ x, f x) + (Nat.card Ω : ℝ) * μ ^ 2 := by
@@ -96,6 +129,8 @@ lemma sum_sq_sub {Ω : Type} [Fintype Ω] (f : Ω → ℝ) (μ : ℝ) :
     _ = (∑ x, (f x) ^ 2) - 2 * μ * (∑ x, f x) + (Nat.card Ω : ℝ) * μ ^ 2 := by
         rw [hconst, Finset.mul_sum]
 
+/-- For a positive threshold, the uniform probability of deviation from the mean is bounded by
+the variance divided by the squared threshold. -/
 theorem finite_chebyshev {Ω : Type} [Fintype Ω] [Nonempty Ω]
     (f : Ω → ℝ) {μ t : ℝ} (ht : 0 < t)
     (hμ : μ = (∑ x, f x) / (Nat.card Ω : ℝ)) :
@@ -135,6 +170,7 @@ theorem finite_chebyshev {Ω : Type} [Fintype Ω] [Nonempty Ω]
     rw [← Finset.sum_div, h1, hvar]
   exact le_trans hdiv (le_of_eq heq)
 
+/-- If `p a` holds, erasing `a` from the universe decreases the filtered cardinality by one. -/
 lemma card_filter_erase_add {α : Type} [Fintype α] [DecidableEq α] (a : α)
     (p : α → Prop) [DecidablePred p] (ha : p a) :
     (Finset.univ.filter p).card = ((Finset.univ.erase a).filter p).card + 1 := by
@@ -152,6 +188,7 @@ lemma card_filter_erase_add {α : Type} [Fintype α] [DecidableEq α] (a : α)
       · exact hx
   rw [hset, Finset.card_insert_of_notMem (by simp)]
 
+/-- If `p a` fails, erasing `a` from the universe preserves the filtered cardinality. -/
 lemma card_filter_erase_eq {α : Type} [Fintype α] [DecidableEq α] (a : α)
     (p : α → Prop) [DecidablePred p] (ha : ¬ p a) :
     (Finset.univ.filter p).card = ((Finset.univ.erase a).filter p).card := by
@@ -164,6 +201,7 @@ lemma card_filter_erase_eq {α : Type} [Fintype α] [DecidableEq α] (a : α)
     · intro hx; exact hx.2
   rw [hset]
 
+/-- The mean of `matchStat` is `16 - ((2 : ℝ) ^ l)⁻¹`. See [Regev2004a]. -/
 theorem first_moment (l : ℕ) (z : ZMod (2 ^ l)) :
     (∑ y : SampleSpace l, matchStat l y z) / (Nat.card (SampleSpace l) : ℝ) =
       16 - ((2 : ℝ) ^ l)⁻¹ := by
@@ -193,6 +231,8 @@ theorem first_moment (l : ℕ) (z : ZMod (2 ^ l)) :
   field_simp
   ring
 
+/-- Summing the product of two matching indicators counts the samples where both matching
+conditions hold. -/
 theorem sum_indicator_mul (l : ℕ) (z : ZMod (2 ^ l)) (b b' : Mask l) :
     (∑ y : SampleSpace l, matchIndicator l z b y * matchIndicator l z b' y)
       = ((Finset.univ.filter
@@ -206,6 +246,8 @@ theorem sum_indicator_mul (l : ℕ) (z : ZMod (2 ^ l)) (b b' : Mask l) :
     by_cases hp : dotMod l b y = z <;> by_cases hq : dotMod l b' y = z <;> simp [hp, hq]
   rw [Finset.sum_congr rfl (fun y _ => h y), sum_indicator_gen]
 
+/-- The second moment of `matchStat` is `272 - 49 * ((2 : ℝ) ^ l)⁻¹ + 2 * (((2 : ℝ) ^ l)⁻¹) ^
+2`. See [Regev2004a]. -/
 theorem second_moment (l : ℕ) (z : ZMod (2 ^ l)) :
     (∑ y : SampleSpace l, (matchStat l y z) ^ 2) / (Nat.card (SampleSpace l) : ℝ) =
       272 - 49 * ((2 : ℝ) ^ l)⁻¹ + 2 * (((2 : ℝ) ^ l)⁻¹) ^ 2 := by
@@ -279,6 +321,8 @@ theorem second_moment (l : ℕ) (z : ZMod (2 ^ l)) :
   field_simp
   ring
 
+/-- The variance of `matchStat` is `16 - 17 * ((2 : ℝ) ^ l)⁻¹ + (((2 : ℝ) ^ l)⁻¹) ^ 2`. See
+[Regev2004a]. -/
 theorem variance_eq (l : ℕ) (z : ZMod (2 ^ l)) :
     (∑ y : SampleSpace l, (matchStat l y z) ^ 2) / (Nat.card (SampleSpace l) : ℝ) -
         ((∑ y : SampleSpace l, matchStat l y z) / (Nat.card (SampleSpace l) : ℝ)) ^ 2 =
@@ -286,6 +330,7 @@ theorem variance_eq (l : ℕ) (z : ZMod (2 ^ l)) :
   rw [second_moment, first_moment]
   ring
 
+/-- The statistic `matchStat` equals the real cardinality of the matching nonzero masks. -/
 theorem matchStat_eq_card (l : ℕ) (y : SampleSpace l) (z : ZMod (2 ^ l)) :
     matchStat l y z =
       (((nonzeroMasks l).filter (fun b => dotMod l b y = z)).card : ℝ) := by
@@ -294,6 +339,7 @@ theorem matchStat_eq_card (l : ℕ) (y : SampleSpace l) (z : ZMod (2 ^ l)) :
   rw [← Finset.sum_filter]
   simp
 
+/-- For label zero, the total matching count is the number of matching nonzero masks plus one. -/
 lemma matchCount_zero (l : ℕ) (y : SampleSpace l) :
     matchCount l y 0 =
       ((nonzeroMasks l).filter (fun b => dotMod l b y = 0)).card + 1 := by
@@ -301,6 +347,7 @@ lemma matchCount_zero (l : ℕ) (y : SampleSpace l) :
   exact card_filter_erase_add (zeroMask l) (fun b => dotMod l b y = 0)
     (by simpa using! dotMod_zero_mask l y)
 
+/-- For a nonzero label, the total matching count equals the number of matching nonzero masks. -/
 lemma matchCount_ne_zero {l : ℕ} (y : SampleSpace l) {z : ZMod (2 ^ l)} (hz : z ≠ 0) :
     matchCount l y z =
       ((nonzeroMasks l).filter (fun b => dotMod l b y = z)).card := by
@@ -309,6 +356,8 @@ lemma matchCount_ne_zero {l : ℕ} (y : SampleSpace l) {z : ZMod (2 ^ l)} (hz : 
     (by have h0 : dotMod l (zeroMask l) y = 0 := dotMod_zero_mask l y
         intro h; exact hz (h.symm.trans h0))
 
+/-- The probability that `matchStat` deviates from its mean by at least fourteen is at most its
+explicit variance divided by `196`. See [Regev2004a]. -/
 theorem chebyshev_matchStat (l : ℕ) (z : ZMod (2 ^ l)) :
     uniformProb (fun y : SampleSpace l =>
         14 ≤ |matchStat l y z - (16 - ((2 : ℝ) ^ l)⁻¹)|) ≤
@@ -325,6 +374,8 @@ theorem chebyshev_matchStat (l : ℕ) (z : ZMod (2 ^ l)) :
   rw [h14] at h
   exact h
 
+/-- Failure of the combination criterion forces `matchStat` to deviate from its mean by at least
+fourteen. -/
 lemma failure_imp_cheb (l : ℕ) (z : ZMod (2 ^ l)) (y : SampleSpace l)
     (hfail : ¬ combinationSucceeds l y z) :
     14 ≤ |matchStat l y z - (16 - ((2 : ℝ) ^ l)⁻¹)| := by
@@ -370,6 +421,8 @@ lemma failure_imp_cheb (l : ℕ) (z : ZMod (2 ^ l)) (y : SampleSpace l)
       rw [abs_of_pos (by linarith)]
       linarith
 
+/-- For positive `l`, the uniform probability of a successful combination is at least one half.
+See [Regev2004a]. -/
 theorem combination_success_probability (l : ℕ) (_hl : 0 < l)
     (z : ZMod (2 ^ l)) :
     (1 : ℝ) / 2 ≤ uniformProb (fun y : SampleSpace l => combinationSucceeds l y z) := by

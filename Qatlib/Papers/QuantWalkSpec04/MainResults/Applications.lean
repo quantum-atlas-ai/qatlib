@@ -11,6 +11,29 @@ import Qatlib.Papers.QuantWalkSpec04.MainResults.Detection
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Quantum walk search applications
+
+This module formulates relation search on fixed size subsets and transfers walk detection bounds
+to a `RelationSearchMachine`. Counting collision containing subsets gives explicit marked
+fraction and query budget estimates for element distinctness. See [Szegedy2004].
+
+## Main statements
+
+* `relationSearch_of_johnson_gap`: A Johnson walk with the stated gap and preparation data
+  yields a relation search model with budget at most `k + 2000 * √(k / ε) + 2`, zero acceptance
+  at hit probability zero, and acceptance at least `1 / 1000` above `ε`.
+* `edCollisionMarkedFraction_ge`: A collision in an input of size `N ≥ 8` gives marked fraction
+  at least `1 / (2 * ⌈N ^ (2 / 3)⌉)` for subsets of size `⌈N ^ (2 / 3)⌉`.
+* `elementDistinctness_ledger`: For `N ≥ 8`, the element distinctness budget with `k = ⌈N ^ (2 /
+  3)⌉` and `ε = 1 / (2 * k)` is at most `3001 * N ^ (2 / 3) + 3001`.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,24 +50,31 @@ open Qatlib.Papers.QuantWalkSpec04.MainResults.Detection
 
 namespace Qatlib.Papers.QuantWalkSpec04.MainResults.Applications
 
+/-- The finite image of `H` under `f`. -/
 def imageSet {X Y : Type} [DecidableEq Y] (f : X → Y) (H : Finset X) : Finset Y :=
   H.image f
 
+/-- The fixed size subsets containing elements `a` and `b` whose images under `f` satisfy `R`,
+without requiring `a ≠ b`. -/
 def relationMark {X Y : Type} [Fintype X] [DecidableEq X]
     (R : Y → Y → Prop) [DecidableRel R] (f : X → Y) (k : ℕ) :
     Finset (JohnsonVertex X k) :=
   Finset.univ.filter (fun s =>
     ∃ a ∈ s.1, ∃ b ∈ s.1, R (f a) (f b))
 
+/-- The fraction of fixed size subsets marked by the relation `R` under `f`. -/
 noncomputable def relationHitProb {X Y : Type} [Fintype X] [DecidableEq X]
     (R : Y → Y → Prop) [DecidableRel R]
     (f : X → Y) (k : ℕ) : ℝ :=
   ((relationMark R f k).card : ℝ) / (Fintype.card (JohnsonVertex X k) : ℝ)
 
+/-- The marked fraction of `relationMark` equals `relationHitProb`. See [Szegedy2004]. -/
 theorem markedFraction_relationMark {X Y : Type} [Fintype X] [DecidableEq X]
     (R : Y → Y → Prop) [DecidableRel R] (f : X → Y) (k : ℕ) :
     markedFraction (relationMark R f k) = relationHitProb R f k := rfl
 
+/-- If the relation hit probability is zero and the subset vertex type is nonempty, the marked
+subset collection is empty. See [Szegedy2004]. -/
 theorem relationMark_eq_empty_of_zero {X Y : Type} [Fintype X] [DecidableEq X]
     (R : Y → Y → Prop) [DecidableRel R] (f : X → Y) (k : ℕ)
     [Nonempty (JohnsonVertex X k)] (h : relationHitProb R f k = 0) :
@@ -60,17 +90,23 @@ theorem relationMark_eq_empty_of_zero {X Y : Type} [Fintype X] [DecidableEq X]
   have hcard : (relationMark R f k).card = 0 := by exact_mod_cast hnum
   exact Finset.card_eq_zero.mp hcard
 
+/-- A relation search model consisting of a real query budget and a real acceptance probability
+for each input function. -/
 structure RelationSearchMachine (X Y : Type) where
 
   queryBudget : ℝ
 
   acceptProbability : (X → Y) → ℝ
 
+/-- The Johnson subset transition weight is symmetric in its two vertices. See [Szegedy2004]. -/
 theorem johnsonSubsetStep_comm {X : Type} [Fintype X] [DecidableEq X] (k : ℕ)
     (s t : JohnsonVertex X k) :
     johnsonSubsetStep X k s t = johnsonSubsetStep X k t s := by
   simp only [johnsonSubsetStep, Finset.inter_comm]
 
+/-- Under the chain gap and preparation hypotheses, empty marked sets have zero detection
+probability and averaging through `⌈1000 * √(k / ε)⌉` steps gives detection probability at
+least `1 / 1000`. See [Szegedy2004]. -/
 theorem relationSearch_detection
     {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (k : ℕ) (δ ε : ℝ) (j : I)
@@ -117,6 +153,8 @@ theorem relationSearch_detection
   exact szegedyTheorem2_detection P S δ ε
     (Nat.ceil (1000 * Real.sqrt ((k : ℝ) / ε))) j U hδ hδ1 hgap hε hεS hL hscale hU hprep
 
+/-- For positive `k` and `ε`, the budget `k + 2 * ⌈1000 * √(k / ε)⌉` is at most `k + 2000 * √(k
+/ ε) + 2`. See [Szegedy2004]. -/
 theorem relationSearch_ledger (k : ℕ) (ε : ℝ) (hk : 0 < k) (hε : 0 < ε) :
     (k : ℝ) + 2 * (Nat.ceil (1000 * Real.sqrt ((k : ℝ) / ε)) : ℝ) ≤
       (k : ℝ) + 2000 * Real.sqrt ((k : ℝ) / ε) + 2 := by
@@ -128,6 +166,9 @@ theorem relationSearch_ledger (k : ℕ) (ε : ℝ) (hk : 0 < k) (hε : 0 < ε) :
   have hs : 0 ≤ Real.sqrt ((k : ℝ) / ε) := Real.sqrt_nonneg _
   nlinarith [hceil, hs]
 
+/-- A Johnson walk with the stated gap and preparation data yields a relation search model with
+budget at most `k + 2000 * √(k / ε) + 2`, zero acceptance at hit probability zero, and
+acceptance at least `1 / 1000` above `ε`. See [Szegedy2004]. -/
 theorem relationSearch_of_johnson_gap
     {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (R : Y → Y → Prop) [DecidableRel R]
@@ -174,6 +215,8 @@ theorem relationSearch_of_johnson_gap
     dsimp only [M]
     exact hdet.2
 
+/-- The number of subsets of `Fin N` of cardinality `k` containing two fixed distinct elements
+is `(N - 2).choose (k - 2)` when `2 ≤ k ≤ N`. See [Szegedy2004]. -/
 theorem card_collision_subsets {N k : ℕ} (hk : 2 ≤ k) (_hkN : k ≤ N)
     (a b : Fin N) (hab : a ≠ b) :
     (Finset.univ.filter (fun H : Finset (Fin N) =>
@@ -199,6 +242,8 @@ theorem card_collision_subsets {N k : ℕ} (hk : 2 ≤ k) (_hkN : k ≤ N)
   rw [hfilter, h]
   simp [hcard]
 
+/-- A collision at two distinct indices forces at least `(N - 2).choose (k - 2)` collision
+marked subsets of size `k`. See [Szegedy2004]. -/
 theorem edCollisionMarked_card_ge {N k : ℕ} (hk : 2 ≤ k) (hkN : k ≤ N)
     (x : Fin N → ℕ) {a b : Fin N} (hab : a ≠ b) (hfab : x a = x b) :
     (N - 2).choose (k - 2) ≤ (edCollisionMarked N x k).card := by
@@ -222,6 +267,8 @@ theorem edCollisionMarked_card_ge {N k : ℕ} (hk : 2 ≤ k) (hkN : k ≤ N)
   rw [Finset.card_image_of_injective _ hinj, Finset.card_attach, hT] at hle
   exact hle
 
+/-- For `2 ≤ k ≤ N`, the ratio of the collision subset count to `N.choose k` equals `k * (k - 1)
+/ (N * (N - 1))`. See [Szegedy2004]. -/
 theorem collisionMass_eq {N k : ℕ} (hk : 2 ≤ k) (hkN : k ≤ N) :
     ((N - 2).choose (k - 2) : ℝ) / (N.choose k : ℝ) =
       (k : ℝ) * ((k : ℝ) - 1) / ((N : ℝ) * ((N : ℝ) - 1)) := by
@@ -257,6 +304,7 @@ theorem collisionMass_eq {N k : ℕ} (hk : 2 ≤ k) (hkN : k ≤ N) :
   rw [div_eq_div_iff hC.ne' hden.ne']
   nlinarith [hcast]
 
+/-- For `N ≥ 8`, the real power `N ^ (2 / 3)` is at least four. -/
 theorem rpow_two_thirds_ge_four {N : ℕ} (hN : 8 ≤ N) :
     (4 : ℝ) ≤ (N : ℝ) ^ (2 / 3 : ℝ) := by
   have h8 : (8 : ℝ) ^ (2 / 3 : ℝ) = 4 := by
@@ -272,6 +320,8 @@ theorem rpow_two_thirds_ge_four {N : ℕ} (hN : 8 ≤ N) :
     Real.rpow_le_rpow (by norm_num) (by exact_mod_cast hN) (by norm_num)
   rwa [h8] at hle
 
+/-- For `N ≥ 8` and `k = ⌈N ^ (2 / 3)⌉`, the pair inclusion fraction is at least `1 / (2 * k)`.
+See [Szegedy2004]. -/
 theorem collisionMass_ge_inv_two_k {N : ℕ} (hN : 8 ≤ N) :
     (1 : ℝ) / (2 * (Nat.ceil ((N : ℝ) ^ (2 / 3 : ℝ)) : ℝ)) ≤
       ((Nat.ceil ((N : ℝ) ^ (2 / 3 : ℝ)) : ℝ) *
@@ -306,6 +356,8 @@ theorem collisionMass_ge_inv_two_k {N : ℕ} (hN : 8 ≤ N) :
   rw [div_le_div_iff₀ (by linarith : (0 : ℝ) < 2 * k) hden]
   nlinarith [hmass]
 
+/-- A collision in an input of size `N ≥ 8` gives marked fraction at least `1 / (2 * ⌈N ^ (2 /
+3)⌉)` for subsets of size `⌈N ^ (2 / 3)⌉`. See [Szegedy2004]. -/
 theorem edCollisionMarkedFraction_ge {N : ℕ} (hN : 8 ≤ N) (x : Fin N → ℕ)
     {a b : Fin N} (hab : a ≠ b) (hfab : x a = x b) :
     (1 : ℝ) / (2 * (Nat.ceil ((N : ℝ) ^ (2 / 3 : ℝ)) : ℝ)) ≤
@@ -344,6 +396,8 @@ theorem edCollisionMarkedFraction_ge {N : ℕ} (hN : 8 ≤ N) (x : Fin N → ℕ
     _ = ((N - 2).choose (k - 2) : ℝ) / (N.choose k : ℝ) := hmass.symm
     _ ≤ markedFraction (edCollisionMarked N x k) := hfrac
 
+/-- For `N ≥ 8`, the element distinctness budget with `k = ⌈N ^ (2 / 3)⌉` and `ε = 1 / (2 * k)`
+is at most `3001 * N ^ (2 / 3) + 3001`. See [Szegedy2004]. -/
 theorem elementDistinctness_ledger {N : ℕ} (hN : 8 ≤ N) :
     (Nat.ceil ((N : ℝ) ^ (2 / 3 : ℝ)) : ℝ) +
         2000 * Real.sqrt ((Nat.ceil ((N : ℝ) ^ (2 / 3 : ℝ)) : ℝ) /
@@ -372,6 +426,8 @@ theorem elementDistinctness_ledger {N : ℕ} (hN : 8 ≤ N) :
     exact ⟨by norm_num, by norm_num⟩
   nlinarith [h2, hk_pos, hk_lt]
 
+/-- The expander based Grover search statement `SzegedyTheorem4ExpanderGrover` holds. See
+[Szegedy2004]. -/
 theorem szegedyTheorem4_expander_grover :
     Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGrover :=
   Qatlib.Concepts.WalkSearch.Th4Expander.szegedyTheorem4ExpanderGrover

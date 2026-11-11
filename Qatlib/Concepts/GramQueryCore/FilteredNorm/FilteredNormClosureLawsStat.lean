@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Filtered norm closure specification
+
+The proposition `FilteredNormClosureLaws` states the behavior of the rectangular filtered value
+under submatrix restriction, surjective pullback, masked filter extension, contractive filter
+combinations, and disjoint merging. It packages closure properties of the filtered γ₂ framework
+[LeeEtAl2011].
+
+## Main statements
+
+* `FilteredNormClosureLaws`: The conjunction of submatrix monotonicity, invariance under
+  surjective pullback, redundant filter extension, and disjoint filter merging laws.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -17,6 +36,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The conjunction of submatrix monotonicity, invariance under surjective pullback, redundant
+filter extension, and disjoint filter merging laws. -/
 def FilteredNormClosureLaws : Prop :=
   (∀ (R S R' S' : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
       [Fintype R'] [DecidableEq R'] [Fintype S'] [DecidableEq S'] (n : ℕ)

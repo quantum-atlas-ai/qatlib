@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.PauliRealMoments
+
+/-!
+# Sharp variance bounds for Pauli pair shadows
+
+This module bounds the conditional and kernel variances of Pauli pair shadow estimators using
+their two support sizes and observable norm. It supplies the variance estimates used for
+quadratic classical-shadow sample budgets [HuangKuengPreskill2020].
+
+## Main statements
+
+* `pauli_pair_conditional_variance_sharp`: conditional variance controlled by the larger
+  support.
+* `pauli_pair_raw_second_moment_bound`: second-moment bound for the unsymmetrized kernel.
+* `pauli_pair_sharp_variances`: the combined bounds under the norm lower bound.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +48,8 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- Taking the state expectation in either register of a Pauli pair observable yields a real
+sparse Pauli observable whose norm is at most the original norm. -/
 theorem pauli_pair_partial_norm (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ) :
     ‖realSparsePauliObservable (fun j => (ww j).1)
@@ -78,6 +100,8 @@ theorem pauli_pair_partial_norm (n q : ℕ) (ww : Fin q → pauliPairWord n)
     rw [Qatlib.Foundations.PureStateMath.BornBridge.trace_tensorGate, hρ.2,
         (outerProduct_density hv).2, mul_one]
 
+/-- The conditional mean of the quadratic Pauli pair kernel is the average of the two sparse
+Pauli estimators obtained by contracting the opposite register with the state. -/
 theorem pauli_pair_conditional_value (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ)
     (a : Fin n → Fin 3 × Bool) :
@@ -97,12 +121,16 @@ theorem pauli_pair_conditional_value (n q : ℕ) (ww : Fin q → pauliPairWord n
   intro j _
   ring
 
+/-- The conditional variance of a pair kernel is at most the second moment of its conditional
+mean. -/
 theorem pair_conditional_variance_le_second {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → ℝ) :
     pairConditionalVariance p h ≤ ∑ a, p.prob a * (∑ b, p.prob b * h a b)^2 := by
   simpa only [pairConditionalVariance, pairKernelMean, Finset.mul_sum, mul_assoc] using!
     finite_pair_variance_le_second p (fun a => ∑ b, p.prob b * h a b)
 
+/-- For supported Pauli pairs, the conditional variance is at most four to the larger support
+size times the squared observable norm. -/
 theorem pauli_pair_conditional_variance_sharp (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (S₁ S₂ : Finset (Fin n)) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (hs : pauliPairSupported S₁ S₂ ww c) :
@@ -151,10 +179,14 @@ theorem pauli_pair_conditional_variance_sharp (n q : ℕ) (ww : Fin q → pauliP
       simp only [FinDist.expect, mul_add, Finset.sum_add_distrib, ← Finset.sum_div]
     _ ≤ B := by linarith
 
+/-- The coefficient-weighted sum of products of the first-word estimate on `a` and the
+second-word estimate on `b`. -/
 def pauliPairRawValue {n q : ℕ} (ww : Fin q → pauliPairWord n) (c : Fin q → ℚ)
     (a b : Fin n → Fin 3 × Bool) : ℝ :=
   ∑ j, (c j : ℝ) * tensorPauliValue (ww j).1 a * tensorPauliValue (ww j).2 b
 
+/-- The second moment of the unsymmetrized Pauli pair estimator is at most four to the sum of
+the support sizes times the squared observable norm. -/
 theorem pauli_pair_raw_second_moment_bound (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (S₁ S₂ : Finset (Fin n)) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (hs : pauliPairSupported S₁ S₂ ww c) :
@@ -223,6 +255,8 @@ theorem pauli_pair_raw_second_moment_bound (n q : ℕ) (ww : Fin q → pauliPair
       ring
     _ ≤ _ := mul_le_mul_of_nonneg_left (pauli_pair_coefficient_mass_le ww c) (by positivity)
 
+/-- The quadratic shadow kernel is the average of the raw Pauli pair estimator in the two record
+orders. -/
 theorem pauli_pair_kernel_raw_average (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (a b : Fin n → Fin 3 × Bool) :
     quadraticShadowKernel n (pauliPairObservable n q ww c) a b =
@@ -231,17 +265,22 @@ theorem pauli_pair_kernel_raw_average (n q : ℕ) (ww : Fin q → pauliPairWord 
   simp only [pauliPairRawValue, mul_add, Finset.sum_add_distrib, mul_assoc]
   ring
 
+/-- The law of two independent samples from the finite distribution `p`. -/
 noncomputable def shadowPairRecordLaw {X : Type} [Fintype X] (p : FinDist X) : FinDist (X × X) where
   prob z := p.prob z.1 * p.prob z.2
   nonneg z := mul_nonneg (p.nonneg _) (p.nonneg _)
   sum_one := by simp only [Fintype.sum_prod_type, ← Finset.mul_sum, p.sum_one, mul_one]
 
+/-- The kernel variance is at most the second moment of the kernel under two independent
+samples. -/
 theorem pair_kernel_variance_le_second {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → ℝ) :
     pairKernelVariance p h ≤ ∑ a, ∑ b, p.prob a * p.prob b * h a b ^ 2 := by
   simpa only [pairKernelVariance, pairKernelMean, Fintype.sum_prod_type, shadowPairRecordLaw] using!
     finite_pair_variance_le_second (shadowPairRecordLaw p) (fun z => h z.1 z.2)
 
+/-- Averaging a kernel with its argument-swapped version does not increase its second moment
+under identical independent sample laws. -/
 theorem pair_average_second_le {X : Type} [Fintype X] (p : FinDist X) (f : X → X → ℝ) :
     (∑ a, ∑ b, p.prob a * p.prob b * ((f a b + f b a) / 2)^2) ≤
       ∑ a, ∑ b, p.prob a * p.prob b * f a b ^ 2 := by
@@ -268,6 +307,9 @@ theorem pair_average_second_le {X : Type} [Fintype X] (p : FinDist X) (f : X →
       rw [hswap]
       ring
 
+/-- If the observable norm is at least one, both the conditional variance and the square root of
+the kernel variance are bounded by four to the larger support size times the squared
+observable norm. -/
 theorem pauli_pair_sharp_variances (n q : ℕ) (ww : Fin q → pauliPairWord n)
     (c : Fin q → ℚ) (S₁ S₂ : Finset (Fin n)) (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (hs : pauliPairSupported S₁ S₂ ww c)

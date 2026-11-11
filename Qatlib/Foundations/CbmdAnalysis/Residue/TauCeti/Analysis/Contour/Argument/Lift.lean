@@ -11,6 +11,26 @@ import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Analysis.SpecialFunctions.Complex.Circle
 import Mathlib.Topology.UnitInterval
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
+
+/-!
+# Continuous argument lifts along curves
+
+This module constructs continuous real argument lifts for curves avoiding a point by
+partitioning the parameter interval and summing logarithms of `segRatio`. It also lifts
+circle-valued curves and proves the one-turn monotonicity alternative for simple closed circle
+parametrizations, supporting contour arguments for [WangEtAl2026].
+
+## Main statements
+
+* `exists_continuousOn_arg_lift_with_partition`: an explicit partition-based argument lift.
+* `exists_continuousOn_circleMap_comp_eqOn`: a continuous angular parametrization of
+  circle-valued curves.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,6 +44,8 @@ open Set
 
 namespace TauCeti.Contour
 
+/-- A continuous curve on a compact interval avoiding `w` has a positive distance lower bound
+and a uniform modulus keeping nearby curve values within half that bound. -/
 private theorem exists_uniform_modulus_avoiding {γ : ℝ → ℂ} {w : ℂ} {a b : ℝ} (hab : a ≤ b)
     (hγ : ContinuousOn γ (Icc a b)) (h_avoid : ∀ t ∈ Icc a b, γ t ≠ w) :
     ∃ δ' > 0, ∃ ρ > 0, (∀ t ∈ Icc a b, ρ ≤ ‖γ t - w‖) ∧
@@ -43,13 +65,16 @@ private theorem exists_uniform_modulus_avoiding {γ : ℝ → ℂ} {w : ℂ} {a 
   rw [← Complex.dist_eq]
   exact h_unif t ht s hs (by rwa [Real.dist_eq])
 
+/-- The parameter clamped to the closed segment by `max s_j (min t s_jp1)`. -/
 private def segClamp (s_j s_jp1 t : ℝ) : ℝ := max s_j (min t s_jp1)
 
+/-- Clamping a real parameter to a fixed segment is continuous. -/
 @[fun_prop]
 private theorem segClamp_continuous (s_j s_jp1 : ℝ) :
     Continuous (segClamp s_j s_jp1) :=
   continuous_const.max (continuous_id.min continuous_const)
 
+/-- For ordered endpoints, the clamped parameter belongs to their closed interval. -/
 private theorem segClamp_mem_Icc (s_j s_jp1 t : ℝ) (h : s_j ≤ s_jp1) :
     segClamp s_j s_jp1 t ∈ Icc s_j s_jp1 := by
   refine ⟨le_max_left _ _, ?_⟩
@@ -58,36 +83,46 @@ private theorem segClamp_mem_Icc (s_j s_jp1 t : ℝ) (h : s_j ≤ s_jp1) :
   · simpa [min_eq_left ht] using max_le h ht
   · rw [min_eq_right ht, max_le_iff]; exact ⟨h, le_rfl⟩
 
+/-- A parameter at or below the left endpoint clamps to that endpoint. -/
 private theorem segClamp_eq_left {s_j s_jp1 t : ℝ} (ht : t ≤ s_j) :
     segClamp s_j s_jp1 t = s_j := by
   rw [segClamp, max_eq_left ((min_le_left t s_jp1).trans ht)]
 
+/-- A parameter between the endpoints is unchanged by clamping. -/
 private theorem segClamp_eq_self {s_j s_jp1 t : ℝ} (ht_lo : s_j ≤ t) (ht_hi : t ≤ s_jp1) :
     segClamp s_j s_jp1 t = t := by
   rw [segClamp, min_eq_left ht_hi, max_eq_right ht_lo]
 
+/-- For ordered endpoints, a parameter at or above the right endpoint clamps to that endpoint. -/
 private theorem segClamp_eq_right {s_j s_jp1 t : ℝ} (h : s_j ≤ s_jp1) (ht : s_jp1 ≤ t) :
     segClamp s_j s_jp1 t = s_jp1 := by
   rw [segClamp, min_eq_right ht, max_eq_right h]
 
+/-- The ratio of the curve displacement from `w` at the clamped parameter to its displacement at
+the segment's left endpoint. -/
 noncomputable def segRatio (γ : ℝ → ℂ) (w : ℂ) (s_j s_jp1 t : ℝ) : ℂ :=
   (γ (segClamp s_j s_jp1 t) - w) / (γ s_j - w)
 
+/-- The segment ratio is one before the left endpoint when its denominator is nonzero. -/
 theorem segRatio_eq_one_of_le {γ : ℝ → ℂ} {w : ℂ} {s_j s_jp1 t : ℝ}
     (ht : t ≤ s_j) (h_ne : γ s_j - w ≠ 0) :
     segRatio γ w s_j s_jp1 t = 1 := by
   rw [segRatio, segClamp_eq_left ht, div_self h_ne]
 
+/-- On the segment, `segRatio` equals `(γ t - w) / (γ s_j - w)`. -/
 theorem segRatio_eq_div_of_mem_Icc {γ : ℝ → ℂ} {w : ℂ} {s_j s_jp1 t : ℝ}
     (ht : t ∈ Set.Icc s_j s_jp1) :
     segRatio γ w s_j s_jp1 t = (γ t - w) / (γ s_j - w) := by
   rw [segRatio, segClamp_eq_self ht.1 ht.2]
 
+/-- After the right endpoint, the segment ratio equals the ratio of the endpoint displacements. -/
 theorem segRatio_eq_endpoint_div_of_le {γ : ℝ → ℂ} {w : ℂ} {s_j s_jp1 t : ℝ}
     (h : s_j ≤ s_jp1) (ht : s_jp1 ≤ t) :
     segRatio γ w s_j s_jp1 t = (γ s_jp1 - w) / (γ s_j - w) := by
   rw [segRatio, segClamp_eq_right h ht]
 
+/-- A sufficiently short segment has every clamped ratio within distance `1 / 2` of one under
+the uniform distance and continuity bounds. -/
 private theorem segRatio_mem_ball_one {γ : ℝ → ℂ} {w : ℂ} {a b δ' ρ : ℝ} (hρ_pos : 0 < ρ)
     (h_dist_lb : ∀ t ∈ Icc a b, ρ ≤ ‖γ t - w‖) (h_unif : ∀ t s : ℝ, t ∈ Icc a b → s ∈ Icc a b →
       |t - s| < δ' → ‖γ t - γ s‖ < ρ / 2)
@@ -114,6 +149,8 @@ private theorem segRatio_mem_ball_one {γ : ℝ → ℂ} {w : ℂ} {a b δ' ρ :
     _ ≤ ‖γ s_j - w‖ / 2 := by linarith
     _ = 1 / 2 * ‖γ s_j - w‖ := by ring
 
+/-- The clamped segment ratio is continuous on the ambient interval when the curve is continuous
+there. -/
 private theorem continuousOn_segRatio {γ : ℝ → ℂ} {a b : ℝ} (hγ : ContinuousOn γ (Icc a b))
     {w : ℂ} {s_j s_jp1 : ℝ} (hsj : s_j ∈ Icc a b) (hsjp1 : s_jp1 ∈ Icc a b) (h_le : s_j ≤ s_jp1) :
     ContinuousOn (fun t ↦ segRatio γ w s_j s_jp1 t) (Icc a b) := by
@@ -125,6 +162,8 @@ private theorem continuousOn_segRatio {γ : ℝ → ℂ} {a b : ℝ} (hγ : Cont
   exact ⟨hsj.1.trans (segClamp_mem_Icc s_j s_jp1 t h_le).1,
     (segClamp_mem_Icc s_j s_jp1 t h_le).2.trans hsjp1.2⟩
 
+/-- Under the uniform distance and mesh bounds, every clamped segment ratio lies in the complex
+slit plane. -/
 private theorem segRatio_mem_slitPlane {γ : ℝ → ℂ} {w : ℂ} {a b δ' ρ : ℝ} (hρ_pos : 0 < ρ)
     (h_dist_lb : ∀ t ∈ Icc a b, ρ ≤ ‖γ t - w‖) (h_unif : ∀ t s : ℝ, t ∈ Icc a b → s ∈ Icc a b →
       |t - s| < δ' → ‖γ t - γ s‖ < ρ / 2)
@@ -136,6 +175,8 @@ private theorem segRatio_mem_slitPlane {γ : ℝ → ℂ} {w : ℂ} {a b δ' ρ 
     exact (segRatio_mem_ball_one hρ_pos h_dist_lb h_unif hsj hsjp1 h_le h_mesh t).trans
       (by norm_num)
 
+/-- A finite product of successive ratios of nonzero complex values telescopes to the final
+value divided by the initial value. -/
 private lemma prod_range_div_complex (a : ℕ → ℂ) (k : ℕ) (ha : ∀ j ≤ k, a j ≠ 0) :
     ∏ j ∈ Finset.range k, (a (j + 1) / a j) = a k / a 0 := by
   classical
@@ -151,6 +192,8 @@ private lemma prod_range_div_complex (a : ℕ → ℂ) (k : ℕ) (ha : ∀ j ≤
   rw [hstep, Finset.prod_range_div u k, Units.val_div_eq_div_val, hu k le_rfl,
     hu 0 (Nat.zero_le k)]
 
+/-- The product of all clamped segment ratios equals the displacement ratio at a parameter lying
+in one of the partition segments. -/
 private theorem prod_segRatio_telescope {γ : ℝ → ℂ} {w : ℂ} {N : ℕ} {s : ℕ → ℝ}
     (hs_mono : Monotone s) (h_avoid : ∀ j < N, γ (s j) - w ≠ 0)
     {t : ℝ} {k : ℕ} (hk : k < N) (hk_lo : s k ≤ t) (hk_hi : t ≤ s (k + 1)) :
@@ -185,6 +228,8 @@ private theorem prod_segRatio_telescope {γ : ℝ → ℂ} {w : ℂ} {N : ℕ} {
   rw [div_mul_div_comm, mul_comm (γ (s k) - w) (γ t - w),
       mul_div_mul_right _ _ (h_avoid k hk)]
 
+/-- The imaginary part of the logarithm of a clamped segment ratio is continuous under the
+distance and mesh bounds. -/
 private theorem continuousOn_im_log_segRatio {γ : ℝ → ℂ} {a b : ℝ}
     (hγ : ContinuousOn γ (Icc a b)) {w : ℂ} {δ' ρ : ℝ} (hρ_pos : 0 < ρ)
     (h_dist_lb : ∀ t ∈ Icc a b, ρ ≤ ‖γ t - w‖) (h_unif : ∀ t s : ℝ, t ∈ Icc a b → s ∈ Icc a b →
@@ -197,20 +242,28 @@ private theorem continuousOn_im_log_segRatio {γ : ℝ → ℂ} {a b : ℝ}
   exact (continuousOn_segRatio hγ hsj hsjp1 h_le).clog
     fun t _ ↦ segRatio_mem_slitPlane hρ_pos h_dist_lb h_unif hsj hsjp1 h_le h_mesh t
 
+/-- A nonzero complex number divided by its norm is the exponential of its argument times
+`Complex.I`. -/
 theorem div_norm_eq_exp_arg_mul_I {w : ℂ} (hw : w ≠ 0) :
     w / (‖w‖ : ℂ) = Complex.exp ((Complex.arg w : ℂ) * Complex.I) := by
   rw [div_eq_iff (Complex.ofReal_ne_zero.mpr (norm_ne_zero_iff.mpr hw)), mul_comm]
   exact (Complex.norm_mul_exp_arg_mul_I w).symm
 
+/-- Real representatives of the same angle have equal complex exponentials after multiplication
+by `Complex.I`. -/
 theorem exp_mul_I_congr_angle {x y : ℝ} (h : (x : Real.Angle) = (y : Real.Angle)) :
     Complex.exp ((x : ℂ) * Complex.I) = Complex.exp ((y : ℂ) * Complex.I) := by
   have hcircle := congrArg (fun z : Circle => (z : ℂ)) (congrArg Real.Angle.toCircle h)
   simpa only [Real.Angle.toCircle_coe, Circle.coe_exp] using hcircle
 
+/-- For nonzero `z`, exponentiating `Complex.I` times the imaginary part of its logarithm gives
+`z / ‖z‖`. -/
 private lemma exp_I_log_im_eq_div_norm {z : ℂ} (hz : z ≠ 0) :
     Complex.exp (Complex.I * ((Complex.log z).im : ℂ)) = z / (‖z‖ : ℂ) := by
   rw [Complex.log_im, mul_comm, ← div_norm_eq_exp_arg_mul_I hz]
 
+/-- A product of nonzero complex factors has polar angle given by the initial argument plus the
+sum of the factors' logarithmic imaginary parts. -/
 private lemma polar_form_of_prod {N : ℕ} {z0 : ℂ} {zs : ℕ → ℂ} {z : ℂ}
     (hz0 : z0 ≠ 0) (hzs : ∀ j ∈ Finset.range N, zs j ≠ 0)
     (hprod : z0 * ∏ j ∈ Finset.range N, zs j = z) :
@@ -240,6 +293,8 @@ private lemma polar_form_of_prod {N : ℕ} {z0 : ℂ} {zs : ℕ → ℂ} {z : �
       div_mul_div_comm, ← Complex.ofReal_prod, ← Complex.ofReal_mul, h_norm_prod_real, hprod,
       mul_div_cancel₀ _ h_norm_ne]
 
+/-- Every point between the endpoints of a nonempty monotone partition lies in one of its
+consecutive closed segments. -/
 private lemma exists_covering_segment {N : ℕ} (hN : 0 < N) {s : ℕ → ℝ} (hmono : Monotone s)
     {t : ℝ} (h_lo : s 0 ≤ t) (h_hi : t ≤ s N) :
     ∃ k, k < N ∧ s k ≤ t ∧ t ≤ s (k + 1) := by
@@ -260,6 +315,8 @@ private lemma exists_covering_segment {N : ℕ} (hN : 0 < N) {s : ℕ → ℝ} (
     · have hMk : M ≤ k := by omega
       exact (hmono hMk).trans hk_spec
 
+/-- Every ordered compact interval has a finite nonempty monotone partition with mesh smaller
+than any prescribed positive bound. -/
 private theorem exists_monotone_partition_mesh_lt {a b δ : ℝ} (hab : a ≤ b) (hδ : 0 < δ) :
     ∃ (N : ℕ) (s : ℕ → ℝ), 0 < N ∧ s 0 = a ∧ s N = b ∧ Monotone s ∧
       (∀ j ≤ N, s j ∈ Icc a b) ∧ ∀ j, s (j + 1) - s j < δ := by
@@ -278,6 +335,8 @@ private theorem exists_monotone_partition_mesh_lt {a b δ : ℝ} (hab : a ≤ b)
     rw [abs_of_nonneg (by linarith)] at hbd
     linarith
 
+/-- Expresses a curve displacement in polar form using the initial argument and the logarithms
+of its clamped partition ratios. -/
 private theorem polar_form_of_partition {γ : ℝ → ℂ} {w : ℂ} {N : ℕ} {s : ℕ → ℝ}
     (hs_mono : Monotone s) (hs_avoid : ∀ j < N, γ (s j) - w ≠ 0) {t : ℝ}
     (h_cov_lo : s 0 ≤ t) (h_cov_hi : t ≤ s N) :
@@ -303,6 +362,8 @@ private theorem polar_form_of_partition {γ : ℝ → ℂ} {w : ℂ} {N : ℕ} {
   exact polar_form_of_prod (zs := fun j ↦ segRatio γ w (s j) (s (j + 1)) t)
     h_avoid_a (Finset.prod_ne_zero_iff.mp (right_ne_zero_of_mul hprod_ne)) h_prod_eq
 
+/-- A continuous curve avoiding `w` possesses a finite partition whose slit-plane ratios produce
+an explicit continuous real argument lift. -/
 theorem exists_continuousOn_arg_lift_with_partition {γ : ℝ → ℂ} {w : ℂ} {a b : ℝ} (hab : a ≤ b)
     (hγ : ContinuousOn γ (Icc a b)) (h_avoid : ∀ t ∈ Icc a b, γ t ≠ w) :
     ∃ (N : ℕ) (s : ℕ → ℝ),
@@ -352,6 +413,8 @@ namespace ContinuousOn
 open Metric Real
 open scoped Interval
 
+/-- A continuous curve lying on a complex circle over a closed interval has a continuous real
+angular parametrization. -/
 theorem exists_continuousOn_circleMap_comp_eqOn {γ : ℝ → ℂ} {a b : ℝ} {c : ℂ} {r : ℝ}
     (hγ : ContinuousOn γ (Icc a b)) (hmaps : MapsTo γ (Icc a b) (sphere c r)) :
     ∃ θ : ℝ → ℝ, ContinuousOn θ (Icc a b) ∧ EqOn (circleMap c r ∘ θ) γ (Icc a b) := by
@@ -374,6 +437,8 @@ theorem exists_continuousOn_circleMap_comp_eqOn {γ : ℝ → ℂ} {a b : ℝ} {
   rw [Function.comp_apply, circleMap, eq_comm, ← sub_eq_iff_eq_add', hlift t ht, hnorm,
     mul_comm Complex.I]
 
+/-- A continuous angle parametrizing a closed circle curve injectively on the half-open interval
+is monotone with increase `2π` or antitone with decrease `2π`. -/
 theorem monotoneOn_and_eq_add_two_pi_or_antitoneOn_and_eq_add_two_pi {θ : ℝ → ℝ} {a b : ℝ}
     {c : ℂ} {r : ℝ} (hθ : ContinuousOn θ (Icc a b)) (hr : r ≠ 0) (hab : a < b)
     (hinj : InjOn (circleMap c r ∘ θ) (Ico a b))

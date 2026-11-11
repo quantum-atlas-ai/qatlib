@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+
+/-!
+# Measurement plane observables and outcome reversal
+
+`mbqcPlaneObservable` combines the two plane axes with cosine and sine coefficients.
+`mbqcAnachronical` anticommutes with this observable, and `mbqcPlaneBasis_conj_anachronical`
+shows how multiplication on both sides reverses the Boolean outcome, including the
+plane-dependent square factor.
+
+Special angle identities relate the plane projectors to the Pauli eigenvalue equations. These
+identities support the measurement calculus of [BrowneEtAl2007].
+
+## Main statements
+
+* `mbqcPlaneBasis_conj_anachronical`: outcome reversal with the square factor.
+* `mbqcPlaneBasis_pauliY_mul_XZ`: phase for multiplying a Pauli `Y` projector by `X * Z`.
+
+## References
+
+* [Browne et al., 2007][BrowneEtAl2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -18,25 +40,34 @@ open Matrix
 
 namespace Qatlib.Papers.MeasFlowDet07.MainResults
 
+/-- The plane observable obtained as the cosine-weighted first axis plus the sine-weighted
+second axis. -/
 def mbqcPlaneObservable (lam : MbqcPlane) (a : ℝ) : Operator 2 :=
   (Complex.ofReal (Real.cos a)) • mbqcPlaneAxisA lam
     + (Complex.ofReal (Real.sin a)) • mbqcPlaneAxisB lam
 
+/-- Expresses each plane basis operator as half the identity plus its outcome sign times the
+plane observable. -/
 theorem mbqcPlaneBasis_eq_observable (lam : MbqcPlane) (a : ℝ) (b : Bool) :
     MbqcPlaneBasis lam a b
       = (2 : ℂ)⁻¹ • ((1 : Operator 2)
           + (if b then (-1 : ℂ) else 1) • mbqcPlaneObservable lam a) := rfl
 
+/-- The plane-dependent anachronical correction, equal to `Z` in `XY`, `X * Z` in `XZ`, and `X`
+in `YZ`. -/
 def mbqcAnachronical : MbqcPlane → Operator 2
   | .XY => pauliZ
   | .XZ => pauliX * pauliZ
   | .YZ => pauliX
 
+/-- The scalar square factor of the anachronical correction, equal to `-1` in `XZ` and `1` in
+the other planes. -/
 def mbqcAnachronicalSq : MbqcPlane → ℂ
   | .XY => 1
   | .XZ => -1
   | .YZ => 1
 
+/-- The anachronical correction anticommutes with every observable in its measurement plane. -/
 theorem mbqcAnachronical_anticomm (lam : MbqcPlane) (a : ℝ) :
     mbqcAnachronical lam * mbqcPlaneObservable lam a
       = -(mbqcPlaneObservable lam a * mbqcAnachronical lam) := by
@@ -45,6 +76,7 @@ theorem mbqcAnachronical_anticomm (lam : MbqcPlane) (a : ℝ) :
     ext i j <;> fin_cases i <;> fin_cases j <;>
     simp [pauliX, pauliY, pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The anachronical correction squares to `mbqcAnachronicalSq lam` times the identity. -/
 theorem mbqcAnachronical_sq (lam : MbqcPlane) :
     mbqcAnachronical lam * mbqcAnachronical lam
       = mbqcAnachronicalSq lam • (1 : Operator 2) := by
@@ -62,6 +94,7 @@ theorem mbqcAnachronical_sq (lam : MbqcPlane) :
     fin_cases i <;> fin_cases j <;>
       simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- If `C` anticommutes with `M` and `C * C = δ • 1`, then `C * (1 + M) * C = δ • (1 - M)`. -/
 theorem conj_core_plus {C M : Operator 2} {δ : ℂ}
     (hCM : C * M = -(M * C)) (hC2 : C * C = δ • (1 : Operator 2)) :
     C * ((1 : Operator 2) + (1 : ℂ) • M) * C
@@ -76,6 +109,7 @@ theorem conj_core_plus {C M : Operator 2} {δ : ℂ}
     _ = δ • ((1 : Operator 2) + (-1 : ℂ) • M) := by
         rw [smul_add, sub_eq_add_neg, smul_smul, mul_neg, mul_one, ← neg_smul]
 
+/-- If `C` anticommutes with `M` and `C * C = δ • 1`, then `C * (1 - M) * C = δ • (1 + M)`. -/
 theorem conj_core_minus {C M : Operator 2} {δ : ℂ}
     (hCM : C * M = -(M * C)) (hC2 : C * C = δ • (1 : Operator 2)) :
     C * ((1 : Operator 2) + (-1 : ℂ) • M) * C
@@ -90,6 +124,8 @@ theorem conj_core_minus {C M : Operator 2} {δ : ℂ}
     _ = δ • ((1 : Operator 2) + (1 : ℂ) • M) := by
         rw [smul_add, one_smul]
 
+/-- If `C` anticommutes with `M` and squares to `δ • 1`, multiplication on both sides by `C`
+sends `(1 + M) / 2` to `δ • ((1 - M) / 2)`. -/
 theorem conj_proj_plus {C M : Operator 2} {δ : ℂ}
     (hCM : C * M = -(M * C)) (hC2 : C * C = δ • (1 : Operator 2)) :
     C * ((2 : ℂ)⁻¹ • ((1 : Operator 2) + (1 : ℂ) • M)) * C
@@ -100,6 +136,8 @@ theorem conj_proj_plus {C M : Operator 2} {δ : ℂ}
     _ = (2 : ℂ)⁻¹ • (δ • ((1 : Operator 2) + (-1 : ℂ) • M)) := by rw [conj_core_plus hCM hC2]
     _ = δ • ((2 : ℂ)⁻¹ • ((1 : Operator 2) + (-1 : ℂ) • M)) := by rw [smul_comm]
 
+/-- If `C` anticommutes with `M` and squares to `δ • 1`, multiplication on both sides by `C`
+sends `(1 - M) / 2` to `δ • ((1 + M) / 2)`. -/
 theorem conj_proj_minus {C M : Operator 2} {δ : ℂ}
     (hCM : C * M = -(M * C)) (hC2 : C * C = δ • (1 : Operator 2)) :
     C * ((2 : ℂ)⁻¹ • ((1 : Operator 2) + (-1 : ℂ) • M)) * C
@@ -110,6 +148,8 @@ theorem conj_proj_minus {C M : Operator 2} {δ : ℂ}
     _ = (2 : ℂ)⁻¹ • (δ • ((1 : Operator 2) + (1 : ℂ) • M)) := by rw [conj_core_minus hCM hC2]
     _ = δ • ((2 : ℂ)⁻¹ • ((1 : Operator 2) + (1 : ℂ) • M)) := by rw [smul_comm]
 
+/-- Multiplying a plane basis operator on both sides by the anachronical correction reverses its
+outcome and introduces the scalar `mbqcAnachronicalSq lam`. See [BrowneEtAl2007]. -/
 theorem mbqcPlaneBasis_conj_anachronical (lam : MbqcPlane) (a : ℝ) (b : Bool) :
     mbqcAnachronical lam * MbqcPlaneBasis lam a b * mbqcAnachronical lam
       = mbqcAnachronicalSq lam • MbqcPlaneBasis lam a (!b) := by
@@ -125,6 +165,8 @@ theorem mbqcPlaneBasis_conj_anachronical (lam : MbqcPlane) (a : ℝ) (b : Bool) 
     simp only [Bool.false_eq_true, if_false, if_true]
     exact conj_proj_minus hcm hsq
 
+/-- If `M` and `s` square to their respective identities, right multiplication of `(1 + s • M) /
+2` by `M` scales that expression by `s`. -/
 theorem projection_mul_axis {M : Operator 2} (hM : M * M = 1) {s : ℂ} (hs : s * s = 1) :
     ((2 : ℂ)⁻¹ • ((1 : Operator 2) + s • M)) * M
       = s • ((2 : ℂ)⁻¹ • ((1 : Operator 2) + s • M)) := by
@@ -136,58 +178,73 @@ theorem projection_mul_axis {M : Operator 2} (hM : M * M = 1) {s : ℂ} (hs : s 
     rw [smul_comm, smul_add, smul_smul, hs, one_smul, add_comm]
   rw [hleft, hright]
 
+/-- The Pauli `Z` operator squares to the identity. -/
 theorem pauliZ_sq : pauliZ * pauliZ = (1 : Operator 2) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The Pauli `X` operator squares to the identity. -/
 theorem pauliX_sq : pauliX * pauliX = (1 : Operator 2) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The Pauli `Y` operator squares to the identity. -/
 theorem pauliY_sq : pauliY * pauliY = (1 : Operator 2) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliY, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- The `XZ` plane observable at angle zero is `pauliZ`. -/
 theorem mbqcPlaneObservable_XZ_zero :
     mbqcPlaneObservable .XZ 0 = pauliZ := by
   simp [mbqcPlaneObservable, mbqcPlaneAxisA, mbqcPlaneAxisB, Real.cos_zero, Real.sin_zero]
 
+/-- The `XZ` plane observable at angle `π / 2` is `pauliX`. -/
 theorem mbqcPlaneObservable_XZ_pi_div_two :
     mbqcPlaneObservable .XZ (Real.pi / 2) = pauliX := by
   simp [mbqcPlaneObservable, mbqcPlaneAxisA, mbqcPlaneAxisB, Real.cos_pi_div_two,
     Real.sin_pi_div_two]
 
+/-- The `XY` plane observable at angle `π / 2` is `pauliY`. -/
 theorem mbqcPlaneObservable_XY_pi_div_two :
     mbqcPlaneObservable .XY (Real.pi / 2) = pauliY := by
   simp [mbqcPlaneObservable, mbqcPlaneAxisA, mbqcPlaneAxisB, Real.cos_pi_div_two,
     Real.sin_pi_div_two]
 
+/-- The `XZ` plane basis operator at angle zero is a right eigenoperator of `pauliZ` with the
+outcome sign as eigenvalue. -/
 theorem mbqcPlaneBasis_pauliZ (b : Bool) :
     MbqcPlaneBasis .XZ 0 b * pauliZ
       = (if b then (-1 : ℂ) else 1) • MbqcPlaneBasis .XZ 0 b := by
   rw [mbqcPlaneBasis_eq_observable, mbqcPlaneObservable_XZ_zero]
   exact projection_mul_axis pauliZ_sq (s := if b then (-1 : ℂ) else 1) (by cases b <;> simp)
 
+/-- The `XZ` plane basis operator at angle `π / 2` is a right eigenoperator of `pauliX` with the
+outcome sign as eigenvalue. -/
 theorem mbqcPlaneBasis_pauliX (b : Bool) :
     MbqcPlaneBasis .XZ (Real.pi / 2) b * pauliX
       = (if b then (-1 : ℂ) else 1) • MbqcPlaneBasis .XZ (Real.pi / 2) b := by
   rw [mbqcPlaneBasis_eq_observable, mbqcPlaneObservable_XZ_pi_div_two]
   exact projection_mul_axis pauliX_sq (s := if b then (-1 : ℂ) else 1) (by cases b <;> simp)
 
+/-- The `XY` plane basis operator at angle `π / 2` is a right eigenoperator of `pauliY` with the
+outcome sign as eigenvalue. -/
 theorem mbqcPlaneBasis_pauliY (b : Bool) :
     MbqcPlaneBasis .XY (Real.pi / 2) b * pauliY
       = (if b then (-1 : ℂ) else 1) • MbqcPlaneBasis .XY (Real.pi / 2) b := by
   rw [mbqcPlaneBasis_eq_observable, mbqcPlaneObservable_XY_pi_div_two]
   exact projection_mul_axis pauliY_sq (s := if b then (-1 : ℂ) else 1) (by cases b <;> simp)
 
+/-- The product `pauliX * pauliZ` equals `-i` times `pauliY`. -/
 theorem pauliX_mul_pauliZ : pauliX * pauliZ = (-Complex.I) • pauliY := by
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [pauliX, pauliZ, pauliY, Matrix.mul_apply, Fin.sum_univ_two]
 
+/-- Right multiplication of the Pauli `Y` plane projector by `pauliX * pauliZ` scales it by `i`
+for outcome `true` and `-i` for outcome `false`. -/
 theorem mbqcPlaneBasis_pauliY_mul_XZ (b : Bool) :
     MbqcPlaneBasis .XY (Real.pi / 2) b * (pauliX * pauliZ)
       = (if b then Complex.I else -Complex.I) • MbqcPlaneBasis .XY (Real.pi / 2) b := by

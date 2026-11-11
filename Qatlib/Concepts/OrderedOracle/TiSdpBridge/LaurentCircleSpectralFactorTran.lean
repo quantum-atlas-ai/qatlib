@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleSpectralFactorStat
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCayleyTransport
+
+/-!
+# Laurent circle spectral factor proof
+
+The Lean theorem `laurentCircleSpectralFactor` proves `LaurentCircleSpectralFactor` by
+converting a polynomial circle factor into a finite coefficient vector. The resulting identities
+connect spectral factorization with Gram matrices as in [ChildsLandahlParrilo2007], including
+the empty coefficient family.
+
+## Main statements
+
+* `laurentCircleSpectralFactor`: establishes the factor degree bound, squared modulus identity,
+  Gram coefficient matching, coefficient norm sum, and closed disk root condition.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -15,6 +34,8 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge Polynomial Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- Proves the spectral factor proposition, including the degree bound, circle squared modulus
+identity, outer Gram identities, and closed unit disk root condition. -/
 theorem laurentCircleSpectralFactor : LaurentCircleSpectralFactor := by
   intro n a ha
   by_cases hn : 0<n

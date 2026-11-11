@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.SingleQuery97.MainResults.RandomHashLaw
+
+/-!
+# Random linear-code recovery error bounds
+
+This module defines a decoder and a randomized one-query recovery experiment for a finite
+candidate database family. It derives prime-alphabet and general-alphabet error bounds from
+pairwise collisions, then proves prior-weighted error at most `1/2^l` with `Nat.clog 2 k + l`
+rows, giving a sampling-specific recovery guarantee for [TerhalSmolin1998].
+
+## Main statements
+
+* `general_recovery_error_bound`: For an injective candidate family over any nonzero alphabet,
+  the recovery error is at most `(k - 1) / 2^m`.
+* `prior_redundancy_bound`: For any prior on an injective candidate family, `Nat.clog 2 k + l`
+  rows give average recovery error at most `1 / 2^l`, a corrected random-code guarantee in the
+  setting of [TerhalSmolin1998].
+
+## References
+
+* [Terhal and Smolin, 1998][TerhalSmolin1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +38,8 @@ open LinearCodeProgram RandomHashLaw
 
 variable {A m n k : ℕ} [NeZero A] [NeZero k]
 
+/-- The decoder selecting a candidate with response `z`, and returning label `0` when no such
+candidate exists. -/
 noncomputable def decoder (candidates : Fin k → Fin n → ZMod A)
     (g : Fin m → Fin n → ZMod A) (z : Fin m → ZMod A) : Fin k := by
   classical
@@ -23,6 +47,8 @@ noncomputable def decoder (candidates : Fin k → Fin n → ZMod A)
 
 omit [NeZero A] in
 
+/-- If decoding the response of the true candidate returns a different label, some other
+candidate has the same response. -/
 theorem error_implies_collision (candidates : Fin k → Fin n → ZMod A)
     (g : Fin m → Fin n → ZMod A) (t : Fin k)
     (herr : decoder candidates g (response g (candidates t)) ≠ t) :
@@ -34,6 +60,8 @@ theorem error_implies_collision (candidates : Fin k → Fin n → ZMod A)
 
 omit [NeZero k] in
 
+/-- For an injective candidate family over a prime alphabet, the probability of a collision with
+a fixed candidate is at most `(k - 1) / A^m`. -/
 theorem collision_union_bound [Fact (Nat.Prime A)]
     (candidates : Fin k → Fin n → ZMod A) (hinj : Function.Injective candidates) (t : Fin k) :
     (matrixLaw A m n).toOuterMeasure
@@ -60,10 +88,14 @@ theorem collision_union_bound [Fact (Nat.Prime A)]
       simp_rw [hp]
       simp only [tsum_fintype, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, hc]
 
+/-- The output-label distribution obtained by sampling a uniform generator matrix, running the
+linear-code circuit, and decoding its measured response. -/
 noncomputable def experiment (candidates : Fin k → Fin n → ZMod A) (t : Fin k) : PMF (Fin k) :=
   (matrixLaw A m n).bind fun g =>
     (outputLaw g (candidates t)).map (fun p => decoder candidates g p.1.1)
 
+/-- The quantum recovery experiment equals sampling the generator matrix and deterministically
+decoding its exact response. -/
 theorem experiment_eq (candidates : Fin k → Fin n → ZMod A) (t : Fin k) :
     experiment (m:=m) candidates t =
       (matrixLaw A m n).map (fun g => decoder candidates g (response g (candidates t))) := by
@@ -72,6 +104,8 @@ theorem experiment_eq (candidates : Fin k → Fin n → ZMod A) (t : Fin k) :
   funext g
   exact outputLaw_decoded g (candidates t) (decoder candidates g)
 
+/-- For an injective candidate family over a prime alphabet, the recovery error is at most `(k -
+1) / A^m`. -/
 theorem recovery_error_bound [Fact (Nat.Prime A)]
     (candidates : Fin k → Fin n → ZMod A) (hinj : Function.Injective candidates) (t : Fin k) :
     (experiment (m:=m) candidates t).toOuterMeasure {out | out ≠ t} ≤
@@ -83,6 +117,8 @@ theorem recovery_error_bound [Fact (Nat.Prime A)]
 
 omit [NeZero k] in
 
+/-- For an injective candidate family, the probability of a collision with a fixed candidate is
+at most `(k - 1) / 2^m`. -/
 theorem general_collision_union_bound
     (candidates : Fin k → Fin n → ZMod A) (hinj : Function.Injective candidates) (t : Fin k) :
     (matrixLaw A m n).toOuterMeasure
@@ -106,6 +142,8 @@ theorem general_collision_union_bound
       ENNReal.tsum_le_tsum (fun j => pair_collision_le_binary _ _ (hinj.ne j.property))
     _ = _ := by simp only [tsum_fintype, Finset.sum_const, Finset.card_univ, nsmul_eq_mul, hc]
 
+/-- For an injective candidate family over any nonzero alphabet, the recovery error is at most
+`(k - 1) / 2^m`. -/
 theorem general_recovery_error_bound
     (candidates : Fin k → Fin n → ZMod A) (hinj : Function.Injective candidates) (t : Fin k) :
     (experiment (m:=m) candidates t).toOuterMeasure {out | out ≠ t} ≤
@@ -115,9 +153,13 @@ theorem general_recovery_error_bound
     (fun _ herr => error_implies_collision candidates _ t herr)).trans
       (general_collision_union_bound candidates hinj t)
 
+/-- The joint law of the true candidate drawn from a prior and the output of the randomized
+recovery experiment. -/
 noncomputable def priorExperiment (candidates : Fin k → Fin n → ZMod A) (prior : PMF (Fin k)) :
     PMF (Fin k × Fin k) := prior.bind fun t => (experiment (m:=m) candidates t).map (fun out => (t,out))
 
+/-- For any prior on an injective candidate family, the average recovery error is at most `(k -
+1) / 2^m`. -/
 theorem prior_error_bound
     (candidates : Fin k → Fin n → ZMod A) (hinj : Function.Injective candidates) (prior : PMF (Fin k)) :
     (priorExperiment (m:=m) candidates prior).toOuterMeasure {p | p.2 ≠ p.1} ≤
@@ -132,6 +174,7 @@ theorem prior_error_bound
       exact general_recovery_error_bound candidates hinj t
     _ = _ := by rw [ENNReal.tsum_mul_right, prior.tsum_coe, one_mul]
 
+/-- Using `Nat.clog 2 k + l` rows makes the binary collision upper bound at most `1 / 2^l`. -/
 theorem integer_redundancy_bound (k l : ℕ) :
     ((k-1:ℕ):ENNReal) * ((1:ENNReal)/2^(Nat.clog 2 k+l)) ≤ (1:ENNReal)/2^l := by
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
@@ -145,6 +188,9 @@ theorem integer_redundancy_bound (k l : ℕ) :
   simpa only [pow_add, one_div, mul_inv_rev, div_eq_mul_inv, one_mul, mul_assoc,
     mul_comm ((2:ℝ)^l)⁻¹] using h
 
+/-- For any prior on an injective candidate family, `Nat.clog 2 k + l` rows give average
+recovery error at most `1 / 2^l`, a corrected random-code guarantee in the setting of
+[TerhalSmolin1998]. -/
 theorem prior_redundancy_bound
     (candidates : Fin k → Fin n → ZMod A) (hinj : Function.Injective candidates)
     (prior : PMF (Fin k)) (l : ℕ) :

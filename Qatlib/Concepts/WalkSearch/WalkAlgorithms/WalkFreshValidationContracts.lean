@@ -5,6 +5,23 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkCorrectedContracts
+
+/-!
+# Triangle checking with fresh validation seeds
+
+`triCheckFresh` separates the seed slots used during noisy search from those used for final
+candidate extraction. The propositions `triCheckSpecFreshValidation` and
+`theorem4WalkFreshValidation` state soundness, failure-count, and charge requirements for this
+checker and the surrounding triangle-search algorithm.
+
+The slot lemmas verify that the two seed ranges are disjoint and fit within the finite tape. The
+search setting follows the quantum graph algorithms surveyed in [Ambainis2005].
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -12,6 +29,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.WalkAlgorithms
 open scoped Classical
 
+/-- Uses noisy search with repeated collision tests, then extracts a candidate using seed slots
+shifted by `n * c₀`, returning a pair inside `U` and the accumulated charge. -/
 noncomputable def triCheckFresh {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ)
     (stape : ℕ → kcs.seed) (ntape : ncs.seed) :
@@ -40,6 +59,8 @@ noncomputable def triCheckFresh {n : ℕ} (adj : Fin n → Fin n → Bool) (U : 
       | none =>
           (none, ncs.cost marked test tcost n ntape + ex.2 + 2)
 
+/-- The soundness, finite-seed failure-count, and charge specification for `triCheckFresh` under
+positive solver constants, using a tape of length `2 * n * c₀ + 1`. -/
 def triCheckSpecFreshValidation {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fin n))
     (kcs : KCollisionSolver) (ncs : NoisySearch) (r' c₀ : ℕ) : Prop :=
   1 ≤ kcs.κ → 1 ≤ ncs.κ →
@@ -60,6 +81,9 @@ def triCheckSpecFreshValidation {n : ℕ} (adj : Fin n → Fin n → Bool) (U : 
     (triCheckFresh adj U kcs ncs r' c₀ stape ntape).2 ≤
       (2 * cCOf kcs ncs n U.card r' c₀ : ℕ))
 
+/-- The triangle-search contract for symmetric loopless adjacency with positive solver constants
+and least-power subset sizes, requiring `triCheckSpecFreshValidation`, sound output, a
+failure-count bound, and the explicit n^(13/10) cost estimate. -/
 def theorem4WalkFreshValidation : Prop :=
   ∀ (n : ℕ), (hn : 0 < n) →
     ∀ (adj : Fin n → Fin n → Bool),
@@ -88,11 +112,13 @@ def theorem4WalkFreshValidation : Prop :=
           (2 ^ 16 : ℕ) * (walkKappa kcs ncs sgs) ^ 3 * ((Nat.log 2 n + 2 : ℕ) ^ 3) *
             ((n : ℝ) ^ (13 / 10 : ℝ)))
 
+/-- A collision-test seed slot is distinct from every validation seed slot shifted by `n * c₀`. -/
 theorem triCheckFresh_validation_slots_disjoint (n c₀ : ℕ) (v w : Fin n) (i j : Fin c₀) :
     v.val * c₀ + i.val ≠ n * c₀ + (w.val * c₀ + j.val) := by
   have hpre : v.val * c₀ + i.val < n * c₀ := by nlinarith [v.isLt, i.isLt]
   omega
 
+/-- Every shifted validation seed slot is smaller than the finite tape length `2 * n * c₀ + 1`. -/
 theorem triCheckFresh_validation_slot_lt (n c₀ : ℕ) (v : Fin n) (i : Fin c₀) :
     n * c₀ + (v.val * c₀ + i.val) < 2 * n * c₀ + 1 := by
   have hpre : v.val * c₀ + i.val < n * c₀ := by nlinarith [v.isLt, i.isLt]

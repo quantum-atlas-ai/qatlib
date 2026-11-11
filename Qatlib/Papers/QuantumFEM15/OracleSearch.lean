@@ -8,6 +8,29 @@ import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchConsumers
 import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Tactic
+
+/-!
+# Oracle search reductions for finite elements
+
+This module states a threshold criterion for recovering a search decision from an approximate
+half integral. It also transfers the workspace oracle search lower bound to unitary circuits
+whose decoded marked output succeeds with probability at least two thirds. See
+[MontanaroPallister2016].
+
+## Main statements
+
+* `half_integral_decides_search`: If the half integral is at least `C` below `N / 2` and zero
+  above it, a uniform approximation with error `ε` and `2 * ε < C` decides `y₀ < N / 2` by
+  testing whether its value exceeds `ε`.
+* `oracular_fem_query_lower_bound`: For `n ≥ 3`, a normalized unitary workspace oracle circuit
+  that identifies every marked register with probability at least `2 / 3` uses at least `√(card
+  (Reg n)) / 8` queries.
+
+## References
+
+* [Montanaro and Pallister, 2016][MontanaroPallister2016]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +43,9 @@ open Qatlib.Concepts.QueryComplexity.AdversarySearch
 
 namespace Qatlib.Papers.QuantumFEM15.OracleSearch
 
+/-- If the half integral is at least `C` below `N / 2` and zero above it, a uniform
+approximation with error `ε` and `2 * ε < C` decides `y₀ < N / 2` by testing whether its
+value exceeds `ε`. See [MontanaroPallister2016]. -/
 theorem half_integral_decides_search
     (N : ℕ) (halfIntegral : ℕ → ℝ) (C ε : ℝ) (_hC : 0 < C) (_hε0 : 0 < ε)
     (hε : 2 * ε < C)
@@ -43,6 +69,9 @@ theorem half_integral_decides_search
 
     nlinarith
 
+/-- For `n ≥ 3`, a normalized unitary workspace oracle circuit that identifies every marked
+register with probability at least `2 / 3` uses at least `√(card (Reg n)) / 8` queries. See
+[MontanaroPallister2016]. -/
 theorem oracular_fem_query_lower_bound {W : Type} [Fintype W] [DecidableEq W]
     (n : ℕ) (w : W) (C : Circuit ((Reg n × Bool) × W))
     (ψ : QState ((Reg n × Bool) × W))

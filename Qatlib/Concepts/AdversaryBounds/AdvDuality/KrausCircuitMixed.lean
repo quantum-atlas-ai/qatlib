@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+
+/-!
+# Mixed-state correctness of Kraus circuit compilation
+
+This module proves that compiling a well-formed `KrausCircuit` preserves its mixed-state branch
+semantics. `embedKrausMixedTrace` tensors each branch operator with the initialized auxiliary
+state and transports it along a basis equivalence, as in the dilation description of quantum
+operations in [Kraus1971].
+
+`kraus_compiled_mixed_traces` identifies the complete trace lists. Preservation of branch mass
+then yields equality of decoded event masses and expected query counts, for arbitrary input
+operators.
+
+## Main statements
+
+* `kraus_compiled_mixed_traces`: compiled mixed traces are the embedded source traces.
+* `mixedMass_embedKrausMixedTrace`: embedding preserves branch mass.
+* `kraus_compiled_event` and `kraus_compiled_expected`: compilation preserves event masses and
+  expected query counts.
+
+## References
+
+* [Kraus, 1971][Kraus1971]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +48,8 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 open Matrix
 
+/-- Embed a mixed branch trace by tensoring its state with the projector onto `Ket zero` and
+relabeling the joint basis along `e`, preserving all trace metadata. -/
 noncomputable def embedKrausMixedTrace {d s n : ℕ}
     (e : (Fin d × Fin s) ≃ Fin n) (zero : Fin s)
     (t : MixedBranchTrace d) : MixedBranchTrace n where
@@ -33,12 +60,14 @@ noncomputable def embedKrausMixedTrace {d s n : ℕ}
   measurements := t.measurements
   outcomes := t.outcomes
 
+/-- Relabeling a matrix commutes with conjugate transpose. -/
 private theorem mixedCompiler_relabel_star {I J : Type*} (e : I ≃ J)
     (M : Matrix I I ℂ) :
     relabelGate e M.conjTranspose = (relabelGate e M).conjTranspose := by
   ext i j
   rfl
 
+/-- Relabeling commutes with conjugation of an operator by a matrix. -/
 private theorem mixedCompiler_relabel_sandwich {I J : Type*}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) (M X : Matrix I I ℂ) :
@@ -47,6 +76,8 @@ private theorem mixedCompiler_relabel_sandwich {I J : Type*}
   rw [Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul, Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel.relabelGate_mul,
     mixedCompiler_relabel_star]
 
+/-- The projector onto a transported label fiber is the relabeling of the original fiber
+projector. -/
 private theorem mixedCompiler_relabel_projector {I J : Type*}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (e : I ≃ J) {s : ℕ} (label : I → Fin s) (a : Fin s) :
@@ -61,6 +92,8 @@ private theorem mixedCompiler_relabel_projector {I J : Type*}
   · have h' : e.symm i ≠ e.symm j := fun hh => h (e.symm.injective hh)
     simp [h, h']
 
+/-- Conjugation by a relabeled system gate tensored with the identity acts only on the system
+factor of the embedded operator. -/
 private theorem mixedCompiler_gate {d s n : ℕ}
     (e : (Fin d × Fin s) ≃ Fin n) (zero : Fin s) (G rho : Operator d) :
     conjBranch (relabelGate e (TensorGate G (1 : Operator s)))
@@ -70,6 +103,8 @@ private theorem mixedCompiler_gate {d s n : ℕ}
     tensorGate_conjTranspose, tensorGate_mul, Matrix.conjTranspose_one,
     Matrix.one_mul, Matrix.mul_one]
 
+/-- A compiled dilation, auxiliary outcome projection, and reset realize conjugation by `K a` on
+the system while restoring the initialized auxiliary state, after relabeling. -/
 private theorem mixedCompiler_instrument {d s n : ℕ}
     (e : (Fin d × Fin s) ≃ Fin n) (K : Fin s → Operator d)
     (hK : ∑ a, (K a).conjTranspose * K a = 1) (zero a : Fin s)
@@ -88,6 +123,8 @@ private theorem mixedCompiler_instrument {d s n : ℕ}
       (kraus_memory_reset_mixed_branch K zero a (chosenKrausUnitary K hK zero)
         (chosenKrausUnitary_spec K hK zero).2 rho)
 
+/-- The relabeled compiled circuit's mixed-state traces are exactly the embedded source traces
+when the oracle and input operator are extended by the auxiliary register. -/
 theorem kraus_compiled_mixed_traces {d s n : ℕ}
     (e : (Fin d × Fin s) ≃ Fin n) (zero : Fin s)
     (O : Operator d) (P : KrausCircuit d s) (hP : krausCircuitWellFormed P)
@@ -114,6 +151,8 @@ theorem kraus_compiled_mixed_traces {d s n : ℕ}
         List.map_flatten, List.map_ofFn, List.map_map, Function.comp_def,
         embedKrausMixedTrace, Nat.add_assoc]
 
+/-- Tensoring with the initialized auxiliary state and relabeling preserve a mixed branch's
+mass. -/
 theorem mixedMass_embedKrausMixedTrace {d s n : ℕ}
     (e : (Fin d × Fin s) ≃ Fin n) (zero : Fin s) (t : MixedBranchTrace d) :
     mixedMass (embedKrausMixedTrace e zero t) = mixedMass t := by
@@ -129,6 +168,8 @@ theorem mixedMass_embedKrausMixedTrace {d s n : ℕ}
   rw [hrelabel]
   rw [TensorGate, Matrix.trace_kronecker, hket, mul_one]
 
+/-- Compilation, auxiliary initialization, and basis relabeling preserve the mass of every event
+determined by acceptance and recorded outcomes. -/
 theorem kraus_compiled_event {d s n : ℕ}
     (e : (Fin d × Fin s) ≃ Fin n) (zero : Fin s)
     (O : Operator d) (P : KrausCircuit d s) (hP : krausCircuitWellFormed P)
@@ -142,6 +183,8 @@ theorem kraus_compiled_event {d s n : ℕ}
     mixedMass_embedKrausMixedTrace]
   rfl
 
+/-- Compilation, auxiliary initialization, and basis relabeling preserve the expected query
+count computed from mixed traces. -/
 theorem kraus_compiled_expected {d s n : ℕ}
     (e : (Fin d × Fin s) ≃ Fin n) (zero : Fin s)
     (O : Operator d) (P : KrausCircuit d s) (hP : krausCircuitWellFormed P)

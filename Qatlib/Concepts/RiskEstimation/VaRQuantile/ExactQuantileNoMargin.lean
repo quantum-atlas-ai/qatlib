@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+
+/-!
+# Exact quantile bisection specification
+
+`ExactQuantileNoMargin` specifies deterministic bisection with exact evaluations of `riskCDF`.
+For a sorted finite list containing all loss values, the resulting index is the first one whose
+cumulative probability reaches the target, and its threshold is minimal among qualifying
+entries. This is the exact-evaluation counterpart of the risk search in [WoernerEgger2019].
+
+## Main statements
+
+* `ExactQuantileNoMargin`: in-range output, strict inequalities at earlier indices, and minimal
+  qualifying threshold.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,9 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The specification that exact CDF bisection returns the first index reaching the target
+probability on a sorted list containing every loss. Its selected threshold is minimal among
+entries whose cumulative probability reaches the target. -/
 def ExactQuantileNoMargin : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I)
     (loss : I → ℚ) (xs : List ℚ) (q : ℝ) (_hA : A ∈ Matrix.unitaryGroup I ℂ),

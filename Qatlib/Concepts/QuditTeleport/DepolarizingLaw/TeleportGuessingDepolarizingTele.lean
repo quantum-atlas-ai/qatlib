@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.TeleportGuessingDepolarizingStat
+
+/-!
+# Uncorrected teleportation is depolarizing
+
+The entry formulas for permutation and Weyl conjugations show that summing all uncorrected qudit
+branches removes off-diagonal entries and averages the diagonal. `teleportGuessingDepolarizing`
+packages this depolarizing law together with its qubit specialization. The law describes the
+receiver's information before the classical teleportation message arrives
+[BennettEtAl1993Teleportation].
+
+## Main statements
+
+* `qudit_guessing_depolarizing`: Summing all uncorrected qudit branches sends `ρ` to `(trace ρ /
+  n) • 1`.
+* `teleportGuessingDepolarizing`: The uncorrected qubit and qudit teleportation branches sum to
+  the completely depolarizing map. This expresses loss of the input without the classical
+  outcome [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +43,8 @@ namespace Qatlib.Concepts.QuditTeleport.DepolarizingLaw
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- Conjugating by a permutation matrix reindexes both matrix coordinates by the inverse
+permutation. -/
 private theorem perm_conj_entry {I : Type} [Fintype I] [DecidableEq I]
     (e : I ≃ I) (ρ : Matrix I I ℂ) (k l : I) :
     (permMatrix e*ρ*(permMatrix e)ᴴ) k l=ρ (e.symm k) (e.symm l) := by
@@ -29,6 +54,8 @@ private theorem perm_conj_entry {I : Type} [Fintype I] [DecidableEq I]
     exact e.apply_eq_iff_eq_symm_apply
   simp [Matrix.mul_apply,permMatrix,he]
 
+/-- Conjugation by `quditX n b * quditZ n a` shifts both indices and multiplies the entry by the
+additive character of their phase difference. -/
 private theorem weyl_conj_entry (n : ℕ) [NeZero n] (b a : ZMod n)
     (ρ : Operator n) (k l : Fin n) :
     ((quditX n b*quditZ n a)*ρ*(quditX n b*quditZ n a)ᴴ) k l=
@@ -49,6 +76,8 @@ private theorem weyl_conj_entry (n : ℕ) [NeZero n] (b a : ZMod n)
   rw [hp]
   ring
 
+/-- An uncorrected qudit branch has entries given by a shifted input entry times its outcome
+phase and the factor `1 / n²`. -/
 private theorem raw_branch_entry (n : ℕ) [NeZero n] (o : Fin n × Fin n)
     (ρ : Operator n) (k l : Fin n) :
     conjBranch (quditBranchKraus n o) ρ k l=
@@ -60,6 +89,7 @@ private theorem raw_branch_entry (n : ℕ) [NeZero n] (o : Fin n × Fin n)
     Matrix.smul_mul,Matrix.mul_smul,smul_smul,Matrix.smul_apply,weyl_conj_entry]
   simp [smul_eq_mul,pow_two]
 
+/-- Summing all uncorrected qudit branches sends `ρ` to `(trace ρ / n) • 1`. -/
 private theorem qudit_guessing_depolarizing (n : ℕ) [NeZero n] (ρ : Operator n) :
     (∑ o : Fin n × Fin n, conjBranch (quditBranchKraus n o) ρ)=
       (Matrix.trace ρ/(n : ℂ)) • (1 : Operator n) := by
@@ -99,6 +129,9 @@ private theorem qudit_guessing_depolarizing (n : ℕ) [NeZero n] (ρ : Operator 
     field_simp
   · simp [hkl,Matrix.smul_apply,Matrix.one_apply_ne hkl]
 
+/-- The uncorrected qubit and qudit teleportation branches sum to the completely depolarizing
+map. This expresses loss of the input without the classical outcome
+[BennettEtAl1993Teleportation]. -/
 theorem teleportGuessingDepolarizing : TeleportGuessingDepolarizing := by
   constructor
   · intro ρ

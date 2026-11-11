@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
 import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanSamplingProbability
+
+/-!
+# Recovery probabilities for character table decoding
+
+This module bounds the probability that an element outside a hidden subgroup survives
+`tableKernelDecode`. Uniform sampling from the annihilator gives survival probability at most
+`2⁻ᵐ` for each false candidate, and a union bound gives exact subgroup recovery probability at
+least `1 - card G * 2⁻ᵐ`. The budget `tableRecoverySamples` makes the failure bound at most
+`2⁻ᵏ`. [Lomont2004]
+
+## Main statements
+
+* `character_table_false_candidate_fresh_probability`: bounds survival of each element outside
+  the hidden subgroup.
+* `character_table_actual_subgroup_recovery_probability`: proves the subgroup recovery
+  probability bound.
+* `character_table_computed_sample_budget`: verifies the budget `k + Nat.clog 2 N`.
+
+## References
+
+* [Lomont, 2004][Lomont2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -26,6 +49,8 @@ variable {G R : Type}
   [AddCommGroup G] [Fintype G] [DecidableEq G]
   [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- A predicate holds for every element of `List.ofFn xs` exactly when it holds at every index
+of `xs`. -/
 private theorem forall_mem_ofFn {α : Type} {n : ℕ} (xs : Fin n → α) (P : α → Prop) :
     (∀ a ∈ List.ofFn xs, P a) ↔ ∀ i, P (xs i) := by
   constructor
@@ -41,11 +66,15 @@ private theorem forall_mem_ofFn {α : Type} {n : ℕ} (xs : Fin n → α) (P : �
     rw [← hi]
     exact h i
 
+/-- The cardinality of a filtered finite universe equals the cardinality of the corresponding
+subtype. -/
 private theorem card_filter_eq_card_subtype {X : Type} [Fintype X] [DecidableEq X]
     (Q : X → Prop) [DecidablePred Q] :
     (Finset.univ.filter Q).card = Fintype.card {x // Q x} :=
   (Fintype.card_subtype Q).symm
 
+/-- Summing a constant `c` on the elements satisfying a predicate and zero elsewhere gives the
+number of such elements times `c`. -/
 private theorem sum_ite_filter_card {X : Type} [Fintype X] [DecidableEq X]
     (Q : X → Prop) [DecidablePred Q] (c : ℝ) :
     (∑ x : X, if Q x then c else 0) = (Finset.univ.filter Q).card * c := by
@@ -55,6 +84,8 @@ private theorem sum_ite_filter_card {X : Type} [Fintype X] [DecidableEq X]
     _ = (Finset.univ.filter Q).sum (fun _ => c) := by rw [Finset.sum_filter]
     _ = (Finset.univ.filter Q).card * c := by rw [Finset.sum_const, nsmul_eq_mul]
 
+/-- For independent samples from a finite distribution, inclusion of events implies the
+corresponding probability inequality. -/
 theorem probEvent_mono {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
     (p : FinDist X) (E F : (Fin L → X) → Prop) [DecidablePred E] [DecidablePred F]
     (hEF : ∀ ω, E ω → F ω) : p.probEvent E ≤ p.probEvent F := by
@@ -66,6 +97,8 @@ theorem probEvent_mono {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
   · intro ω _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg (ω i)
 
+/-- The probability of the union of two independent sample events is at most the sum of their
+probabilities. -/
 theorem probEvent_union_le {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
     (p : FinDist X) (E F : (Fin L → X) → Prop) [DecidablePred E] [DecidablePred F] :
     p.probEvent (fun ω => E ω ∨ F ω) ≤ p.probEvent E + p.probEvent F := by
@@ -100,6 +133,8 @@ theorem probEvent_union_le {X : Type} [Fintype X] [DecidableEq X] {L : ℕ}
     _ = _ + _ := hsplit
     _ ≤ _ + _ := add_le_add_right hle _
 
+/-- The probability that some event in a finite indexed family occurs is at most the sum of the
+individual event probabilities. -/
 private theorem probEvent_exists_le {X I : Type} [Fintype X] [DecidableEq X] [Fintype I]
     {L : ℕ} (p : FinDist X) (Ev : I → (Fin L → X) → Prop) [∀ i, DecidablePred (Ev i)]
     [DecidablePred (fun ω : Fin L → X => ∃ i, Ev i ω)] :
@@ -131,6 +166,8 @@ private theorem probEvent_exists_le {X I : Type} [Fintype X] [DecidableEq X] [Fi
     _ = ∑ i : I, p.probEvent (Ev i) :=
       eqv.symm.sum_comp (fun i : I => p.probEvent (Ev i))
 
+/-- With a correct character kernel table, an element survives decoding exactly when every
+sampled character evaluates to one on it. -/
 theorem tableCandidate_mem_iff {m : ℕ} (tab : G → G → Bool) (e : G ≃ AddChar G ℂ)
     (htab : ∀ a y, tab a y = true ↔ e a y = 1) (xs : Fin m → G) (x : G) :
     x ∈ (tableKernelDecode tab (List.ofFn xs)).1 ↔ ∀ i, e (xs i) x = 1 := by
@@ -141,6 +178,8 @@ theorem tableCandidate_mem_iff {m : ℕ} (tab : G → G → Bool) (e : G ≃ Add
   · intro h i
     exact (htab (xs i) x).2 (h i)
 
+/-- If every sampled character annihilates `H`, every element of `H` survives decoding with a
+correct character kernel table. -/
 theorem tableCandidate_contains_of_supported {m : ℕ} (tab : G → G → Bool)
     (e : G ≃ AddChar G ℂ) (htab : ∀ a y, tab a y = true ↔ e a y = 1) (xs : Fin m → G)
     (H : AddSubgroup G) (hsupported : ∀ i, e (xs i) ∈ characterAnnihilator H) (x : G)
@@ -149,6 +188,8 @@ theorem tableCandidate_contains_of_supported {m : ℕ} (tab : G → G → Bool)
   intro i
   exact (mem_characterAnnihilator H (e (xs i))).1 (hsupported i) ⟨x, hx⟩
 
+/-- For an oracle hiding `H`, the probability that any independent Fourier record labels a
+character outside the annihilator of `H` is zero. -/
 theorem tableGroupRecordDist_unsupported_eq_zero {m : ℕ} (f : G → R) (e : G ≃ AddChar G ℂ)
     (H : AddSubgroup G) (hf : HidesSubgroup f H) :
     (tableGroupRecordDist f e).probEvent
@@ -168,6 +209,8 @@ theorem tableGroupRecordDist_unsupported_eq_zero {m : ℕ} (f : G → R) (e : G 
     rw [hiddenSubgroupSampleDist_prob f H hf e, if_neg hi]
   simp [hz]
 
+/-- Every element outside `H` is separated from `H` by a character that annihilates `H` but does
+not take value one on that element. -/
 private theorem exists_annihilator_not_killing (H : AddSubgroup G) (x : G) (hx : x ∉ H) :
     ∃ χ : AddChar G ℂ, χ ∈ characterAnnihilator H ∧ χ x ≠ 1 := by
   classical
@@ -182,6 +225,8 @@ private theorem exists_annihilator_not_killing (H : AddSubgroup G) (x : G) (hx :
   have h3 : ¬ ((χ : AddChar G ℂ) x ≠ 1) := fun h => hcon ⟨χ, χ.property, h⟩
   exact Classical.byContradiction fun h => h3 h
 
+/-- For an element outside `H`, at most half of the characters in the annihilator of `H` take
+value one on that element. -/
 private theorem card_killers_le_half (H : AddSubgroup G) (x : G) (hx : x ∉ H) :
     2 * (Finset.univ.filter fun χ : AddChar G ℂ =>
       χ ∈ characterAnnihilator H ∧ χ x = 1).card ≤ Fintype.card (characterAnnihilator H) := by
@@ -235,6 +280,8 @@ private theorem card_killers_le_half (H : AddSubgroup G) (x : G) (hx : x ∉ H) 
     exact Finset.card_le_card hsub
   omega
 
+/-- For an oracle hiding `H`, the probability that a sampled character takes value one on a
+fixed element outside `H` is at most one half. -/
 private theorem killer_mass_le_half (f : G → R) (e : G ≃ AddChar G ℂ) (H : AddSubgroup G)
     (hf : HidesSubgroup f H) (x : G) (hx : x ∉ H) :
     (∑ χ : AddChar G ℂ,
@@ -281,6 +328,8 @@ private theorem killer_mass_le_half (f : G → R) (e : G ≃ AddChar G ℂ) (H :
   rw [hone]
   exact hdiv
 
+/-- The sample budget `k + Nat.clog 2 N` for reducing the union bound over `N` candidates to
+`2⁻ᵏ`. -/
 def tableRecoverySamples (N k : ℕ) : ℕ := k + Nat.clog 2 N
 
 end Qatlib.Concepts.HspRecovery.BackendAudit
@@ -301,6 +350,8 @@ open scoped Classical
 variable {G R : Type} [AddCommGroup G] [Fintype G] [DecidableEq G]
   [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- For a correct character table and oracle hiding `H`, a fixed element outside `H` survives
+decoding `m` independent Fourier records with probability at most `2⁻ᵐ`. -/
 theorem character_table_false_candidate_fresh_probability (f : G → R) (e : G ≃ AddChar G ℂ)
     (tab : G → G → Bool) (H : AddSubgroup G) (m : ℕ) (x : G) (hf : HidesSubgroup f H)
     (htab : ∀ a y, tab a y = true ↔ e a y = 1) (hx : x ∉ H) :
@@ -347,6 +398,8 @@ theorem character_table_false_candidate_fresh_probability (f : G → R) (e : G �
         exact mul_nonneg ((hiddenSubgroupSampleDist f e).nonneg χ) (by norm_num)
   exact pow_le_pow_left₀ hnonneg (killer_mass_le_half f e H hf x hx) m
 
+/-- For a correct character kernel table and an oracle hiding `H`, decoding `m` independent
+Fourier records recovers `H` with probability at least `1 - card G * 2⁻ᵐ` [Lomont2004]. -/
 theorem character_table_actual_subgroup_recovery_probability (f : G → R)
     (e : G ≃ AddChar G ℂ) (tab : G → G → Bool) (H : AddSubgroup G) (m : ℕ)
     (hf : HidesSubgroup f H) (htab : ∀ a y, tab a y = true ↔ e a y = 1) :
@@ -462,6 +515,8 @@ theorem character_table_actual_subgroup_recovery_probability (f : G → R)
         ≤ 1 - p.probEvent (fun xs : Fin m → G => ¬ ok xs) := by linarith
     _ = p.probEvent ok := by linarith
 
+/-- The computed sample budget is `k + Nat.clog 2 N`; for positive `N`, it satisfies `(N : ℝ) *
+(1 / 2) ^ tableRecoverySamples N k ≤ (1 / 2) ^ k` [Lomont2004]. -/
 theorem character_table_computed_sample_budget (N k : ℕ) :
     tableRecoverySamples N k = k + Nat.clog 2 N ∧
       (0 < N → (N : ℝ) * ((2 : ℝ)⁻¹)^(tableRecoverySamples N k) ≤ ((2 : ℝ)⁻¹)^k) := by

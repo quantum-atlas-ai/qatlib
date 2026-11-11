@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+
+/-!
+# Frobenius stability of Hermitian matrix functions
+
+This module defines `hermitianFunction` by evaluating a scalar function in an ordered
+orthonormal eigenbasis. It proves a Frobenius perturbation bound from Lipschitz bounds on
+cross-pairs of eigenvalues and identifies polynomial spectral evaluation with matrix polynomial
+evaluation, in the setting of [Bhatia1997].
+
+## Main statements
+
+* `hermitian_spectral_function_frobenius_stability`: transfers cross-pair scalar bounds to a
+  matrix Frobenius bound.
+* `hermitian_spectral_polynomial_evaluation`: identifies spectral and algebraic polynomial
+  evaluation.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -17,10 +38,15 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The matrix obtained by applying `f` to the ordered eigenvalues of the Hermitian matrix `A`
+in its ordered orthonormal eigenbasis. -/
 noncomputable def hermitianFunction {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (f : ℝ→ℂ) : Matrix I I ℂ :=
   spectralDiagonal (orderedHermitianBasis hA) (fun i=> f (orderedHermitianValues hA i))
 
+/-- If `f` satisfies the stated Lipschitz bound with nonnegative constant `L` on every
+cross-pair of eigenvalues of Hermitian matrices `A` and `B`, then their spectral function
+values differ in Frobenius norm by at most `L * spectralFrobenius (A - B)`. -/
 theorem hermitian_spectral_function_frobenius_stability : ∀ (I : Type) [Fintype I]
     [DecidableEq I] (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHermitian)
     (f : ℝ→ℂ) (L : ℝ),0≤L →
@@ -58,6 +84,8 @@ theorem hermitian_spectral_function_frobenius_stability : ∀ (I : Type) [Fintyp
     _=L^2*(∑ i,∑ j,W i j*(a i-b j)^2) := by
       simp only [Finset.mul_sum,mul_left_comm,mul_assoc]
 
+/-- Applying a real polynomial through the Hermitian spectral decomposition equals algebraic
+evaluation of its complex coefficient embedding at the matrix. -/
 theorem hermitian_spectral_polynomial_evaluation : ∀ (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (p : Polynomial ℝ),
     hermitianFunction A hA (fun x=>((p.eval x:ℝ):ℂ))=aeval A (p.map Complex.ofRealHom) := by

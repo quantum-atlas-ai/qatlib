@@ -10,6 +10,30 @@ import Qatlib.Papers.CommutingLLL13.MainResults.FailureBound
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Data.Matrix.Mul
 import Mathlib.Tactic
+
+/-!
+# Conditional failure bounds and commuting sweeps
+
+This module assembles scalar natural-logarithm failure bounds and algebraic zero-postselection
+sweeps for commuting projector families in [SattathArad2015]. The parameters `naturalSlack`,
+`naturalEta`, and `naturalThreshold` determine the explicit failure-bound expression.
+
+Under the stated local-lemma inequality and positive target `δ`, `conditional_natural_and_sweep`
+bounds any failure value satisfying the scalar estimate and proves that a sweep covering all
+constraints produces a matrix annihilated by every constraint projector.
+
+## Main statements
+
+* `zeroSweep_covers_satisfies`: A covering sweep satisfies every projector constraint.
+* `kappa_pos_of_qlll`: The stated local-lemma inequality gives positive natural-logarithm slack.
+* `conditional_natural_and_sweep`: Combines the conditional scalar bound with the covering-sweep
+  property.
+
+## References
+
+* [Sattath and Arad, 2015][SattathArad2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,15 +45,22 @@ open Qatlib.Papers.CommutingLLL13.MainResults
 
 variable {D : Type} [Fintype D] [DecidableEq D]
 
+/-- The natural-logarithm slack `P.k - log(P.g * P.r * exp 1)` associated with the
+satisfiability parameters. -/
 noncomputable def naturalSlack (P : Defs.QSatParams) : ℝ :=
   (P.k : ℝ) - Real.log ((P.g : ℝ) * (P.r : ℝ) * Real.exp 1)
 
+/-- The reciprocal target-times-slack parameter obtained from `Defs.etaNatural` and the fields
+of `P`. -/
 noncomputable def naturalEta (P : Defs.QSatParams) (δ : ℝ) : ℝ :=
   Defs.etaNatural δ (P.k : ℝ) (P.r : ℝ) (P.g : ℝ)
 
+/-- The integer threshold obtained from `Defs.thresholdNatural P.m` and `naturalEta P δ`. -/
 noncomputable def naturalThreshold (P : Defs.QSatParams) (δ : ℝ) : ℕ :=
   Defs.thresholdNatural P.m (naturalEta P δ)
 
+/-- For a commuting projector family, a finite zero-postselection sweep makes every projector
+whose index occurs in the sweep annihilate the output matrix. -/
 theorem zeroSweep_satisfies_mem {m : ℕ} (F : Defs.QSatFamily D m)
     (hcomm : Defs.CommutingFamily F) (l : List (Fin m)) (M : Matrix D D ℂ) :
     ∀ i ∈ l, F.P i * (l.foldr (Defs.zeroPostselect F) M) = 0 := by
@@ -45,6 +76,8 @@ theorem zeroSweep_satisfies_mem {m : ℕ} (F : Defs.QSatFamily D m)
     · exact Defs.zeroPostselect_preserves F hcomm _ j
         (rest.foldr (Defs.zeroPostselect F) M) (ih j hmem)
 
+/-- For a commuting projector family, a zero-postselection sweep whose list contains every index
+produces a matrix satisfying all constraints. -/
 theorem zeroSweep_covers_satisfies {m : ℕ} (F : Defs.QSatFamily D m)
     (hcomm : Defs.CommutingFamily F) (l : List (Fin m))
     (M : Matrix D D ℂ) (hcov : ∀ i, i ∈ l) :
@@ -52,6 +85,8 @@ theorem zeroSweep_covers_satisfies {m : ℕ} (F : Defs.QSatFamily D m)
   intro i
   exact zeroSweep_satisfies_mem F hcomm l M i (hcov i)
 
+/-- For `P.k ≥ 1` and `P.g ≥ 1`, the stated inequality `P.g < 2 ^ P.k / (P.r * exp 1)` implies
+`naturalSlack P > 0`. -/
 theorem kappa_pos_of_qlll (P : Defs.QSatParams) (hk : 1 ≤ P.k) (hg : 1 ≤ P.g)
     (hcond : (P.g : ℝ) < 2 ^ (P.k : ℝ) / ((P.r : ℝ) * Real.exp 1)) :
     0 < naturalSlack P := by
@@ -80,6 +115,8 @@ theorem kappa_pos_of_qlll (P : Defs.QSatParams) (hk : 1 ≤ P.k) (hg : 1 ≤ P.g
   rw [naturalSlack, hlogger]
   nlinarith [hlg, hlog2lt, hkR]
 
+/-- For `P.m ≥ 2`, positive target `δ`, and positive `naturalSlack P`, the scalar failure
+expression at `naturalThreshold P δ` is at most `δ`. -/
 theorem conditional_natural_bound (P : Defs.QSatParams) (hm : 2 ≤ P.m)
     (δ : ℝ) (hδ : 0 < δ)
     (hκ : 0 < naturalSlack P) :
@@ -97,6 +134,10 @@ theorem conditional_natural_bound (P : Defs.QSatParams) (hm : 2 ≤ P.m)
     field_simp
   exact FailureBound.eq5_le_delta P.m hm (naturalEta P δ) (naturalSlack P) δ hηpos hκ hηδ
 
+/-- Under the stated local-lemma inequality and positivity conditions, every failure value
+bounded by the natural-threshold expression is at most `δ`, and every covering
+zero-postselection sweep satisfies all constraints of the commuting family. These are
+conditional scalar and algebraic conclusions for [SattathArad2015]. -/
 theorem conditional_natural_and_sweep (P : Defs.QSatParams) (hm : 2 ≤ P.m) (hk : 1 ≤ P.k)
     (hg : 1 ≤ P.g)
     (hcond : (P.g : ℝ) < 2 ^ (P.k : ℝ) / ((P.r : ℝ) * Real.exp 1))

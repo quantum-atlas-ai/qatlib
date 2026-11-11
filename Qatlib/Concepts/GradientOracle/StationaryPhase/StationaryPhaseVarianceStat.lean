@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Mathlib.MeasureTheory.Integral.Pi
 import Mathlib.Data.Matrix.Basic
 import Qatlib.Concepts.GradientOracle.StationaryPhase.StationaryPhaseVarianceDefs
+
+/-!
+# Specification of stationary-phase variance formulas
+
+`StationaryPhaseVariance` packages exact uniform-cube moment identities and their rescaling for
+a real matrix. It formalizes the variance calculation in the quadratic stationary-phase model
+associated with [Jordan2005Gradient].
+
+## Main statements
+
+* `StationaryPhaseVariance`: covariance `1/12` on equal coordinates, row-norm variance formulas,
+  and the resulting dimension-dependent bound.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +34,9 @@ namespace Qatlib.Concepts.GradientOracle.StationaryPhase
 
 open MeasureTheory
 
+/-- The conjunction of centered-cube mean and covariance identities, matrix-row second moments,
+physical-unit rescaling formulas, and the standard-deviation bound from entrywise matrix
+control. -/
 def StationaryPhaseVariance : Prop :=
   (∀ (d : ℕ) (i : Fin d), ∫ u, u i ∂stationaryPhaseCube d = 0) ∧
   (∀ (d : ℕ) (i j : Fin d),

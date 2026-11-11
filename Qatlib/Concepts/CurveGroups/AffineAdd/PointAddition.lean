@@ -7,18 +7,41 @@ Authors: Qatlib Contributors
 import Mathlib.Algebra.Field.Basic
 import Mathlib.Tactic
 
+/-!
+# Arithmetic schedule for affine point addition
+
+This module defines the secant formulas `slope`, `addX`, and `addY`, together with the
+controlled arithmetic register schedule `run`. It proves the coordinate outputs for both control
+values and auxiliary register cleanup under the second inversion condition. The schedule is
+based on the affine arithmetic setting of [RoettelerEtAl2017].
+
+## Main statements
+
+* `alg1_ctrl_true`: enabled coordinate correctness.
+* `alg1_ctrl_false`: disabled coordinate preservation.
+* `alg1_ancillas_cleared`: cleanup under both inversion conditions.
+
+## References
+
+* [Roetteler et al., 2017][RoettelerEtAl2017]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.CurveGroups.AffineAdd
 
 variable {K : Type*} [Field K]
 
+/-- The secant slope `(y1 - y2) / (x1 - x2)` in the field. -/
 def slope (x1 y1 x2 y2 : K) : K := (y1 - y2) / (x1 - x2)
 
+/-- The affine addition X coordinate `lam ^ 2 - x1 - x2`. -/
 def addX (x1 x2 : K) (lam : K) : K := lam ^ 2 - x1 - x2
 
+/-- The affine addition Y coordinate `(x1 - x3) * lam - y1`. -/
 def addY (x1 y1 x3 : K) (lam : K) : K := (x1 - x3) * lam - y1
 
+/-- Field registers for two affine coordinates, a slope, and a temporary value. -/
 structure Reg (K : Type*) [Field K] where
 
   x1 : K
@@ -29,6 +52,8 @@ structure Reg (K : Type*) [Field K] where
 
   t0 : K
 
+/-- Evaluate the controlled affine point addition arithmetic schedule with zero initial
+auxiliary registers. -/
 def run (ctrl : Bool) (x2 y2 x1 y1 : K) : Reg K :=
   let x1₁ := x1 - x2
   let y1₂ := if ctrl then y1 - y2 else y1
@@ -48,6 +73,7 @@ def run (ctrl : Bool) (x2 y2 x1 y1 : K) : Reg K :=
   let y1₁₆ := if ctrl then y1₁₁ - y2 else y1₁₁
   ⟨x1₁₅ + x2, y1₁₆, lam₁₃, t0₁₄⟩
 
+/-- When the X coordinates differ, the enabled schedule returns the secant addition coordinates. -/
 theorem alg1_ctrl_true {x1 y1 x2 y2 : K} (h : x1 ≠ x2) :
     (run true x2 y2 x1 y1).x1 = addX x1 x2 (slope x1 y1 x2 y2) ∧
     (run true x2 y2 x1 y1).y1 =
@@ -57,6 +83,7 @@ theorem alg1_ctrl_true {x1 y1 x2 y2 : K} (h : x1 ≠ x2) :
   have h' : x1 - x2 ≠ 0 := sub_ne_zero.mpr h
   constructor <;> field_simp <;> ring
 
+/-- When the X coordinates differ, the disabled schedule preserves both input coordinates. -/
 theorem alg1_ctrl_false {x1 y1 x2 y2 : K} (h : x1 ≠ x2) :
     (run false x2 y2 x1 y1).x1 = x1 ∧ (run false x2 y2 x1 y1).y1 = y1 := by
   unfold run
@@ -67,6 +94,8 @@ theorem alg1_ctrl_false {x1 y1 x2 y2 : K} (h : x1 ≠ x2) :
   · field_simp
     ring
 
+/-- The enabled schedule clears the slope and temporary registers when the X coordinates differ
+and the sum X coordinate differs from `x2`. -/
 theorem alg1_ancillas_cleared {x1 y1 x2 y2 : K} (h : x1 ≠ x2)
     (hx : x2 ≠ addX x1 x2 (slope x1 y1 x2 y2)) :
     (run true x2 y2 x1 y1).lam = 0 ∧ (run true x2 y2 x1 y1).t0 = 0 := by

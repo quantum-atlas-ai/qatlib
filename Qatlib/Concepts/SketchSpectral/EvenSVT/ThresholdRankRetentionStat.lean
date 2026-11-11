@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
 import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+
+/-!
+# Statement of threshold rank retention
+
+`ThresholdRankRetention` states a sufficient condition for two successive Gram approximations to
+retain the first `k` singular values above a given threshold. The condition compares `τ² + 2 *
+η₁ + 2 * η₂` with the squared source singular value, supporting the truncated sketch analysis of
+[ChiaEtAl2022].
+
+## Main statements
+
+* `ThresholdRankRetention`: The proposition that the stated dimension, positivity, Gram error,
+  and squared-gap hypotheses force all sketch singular values indexed below `k` to be at least
+  `τ`.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SpectralSketch.SpectrumPerturb
@@ -16,6 +36,8 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSVT
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/-- The proposition that the stated dimension, positivity, Gram error, and squared-gap
+hypotheses force all sketch singular values indexed below `k` to be at least `τ`. -/
 def ThresholdRankRetention : Prop :=
   ∀ (K C RS CT : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]

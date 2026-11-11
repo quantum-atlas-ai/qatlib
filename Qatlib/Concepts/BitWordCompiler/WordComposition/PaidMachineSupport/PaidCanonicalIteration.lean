@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+/-!
+# Uniform iteration of encoded computations
+
+`trajectorySum` and `trajectoryCharge` account for costs and encoding lengths along repeated
+applications of a state transformation. The loop-machine correctness lemmas combine these
+charges with counter and input-processing costs.
+
+`uniform_iterates` compiles all iteration counts into one binary Turing machine, with separate
+quadratic bounds derived from the supplied time and space costs.
+
+The computational background is described in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `budgetBase`: aggregates input size, iteration count, final output size, and trajectory costs.
+* `uniform_iterates`: realizes repeated encoded state transformations with a uniform machine.
+
+## References
+
+* [Kitaev et al., 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,15 +37,19 @@ open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM Turing
 namespace Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.CanonicalIteration
 
+/-- Sums `cost` over the first `n` states along the trajectory of `step` from `a`. -/
 def trajectorySum {α : Type} (step : α → α) (cost : α → ℕ) (n : ℕ) (a : α) : ℕ :=
   ((List.range n).map (fun j => cost ((step^[j]) a))).sum
 
+/-- The cost of a trajectory of length `n + 1` splits into the initial cost and the length-`n`
+trajectory from the next state. -/
 theorem trajectorySum_succ_left {α : Type} (step : α → α) (cost : α → ℕ) (n : ℕ) (a : α) :
     trajectorySum step cost (n + 1) a = cost a + trajectorySum step cost n (step a) := by
   simp only [trajectorySum, List.range_succ_eq_map, List.map_cons, List.sum_cons,
     List.map_map, Function.iterate_zero_apply, Function.comp_def, Nat.succ_eq_add_one,
     Function.iterate_succ_apply]
 
+/-- If each of the first `n` trajectory costs is at most `C`, their sum is at most `n * C`. -/
 theorem trajectorySum_le {α : Type} (step : α → α) (cost : α → ℕ) (n : ℕ) (a : α)
     (C : ℕ) (h : ∀ j < n, cost ((step^[j]) a) ≤ C) :
     trajectorySum step cost n a ≤ n * C := by
@@ -39,16 +66,21 @@ theorem trajectorySum_le {α : Type} (step : α → α) (cost : α → ℕ) (n :
     rw [Nat.add_mul, Nat.one_mul]
     omega
 
+/-- Recursively charges encoded state transitions for their input and output lengths, supplied
+cost, and constant overhead, with a final encoding-length charge. -/
 def trajectoryCharge {α : Type} (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α)
     (cost : α → ℕ) : ℕ → α → ℕ
   | 0, a => 1 + (encode a).length
   | n + 1, a => trajectoryCharge encode step cost n (step a) +
       (1 + (encode a).length + (encode (step a)).length + cost a)
 
+/-- The zero-step trajectory charge is one plus the initial encoding length. -/
 theorem trajectoryCharge_zero {α : Type} (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α)
     (cost : α → ℕ) (a : α) :
     trajectoryCharge encode step cost 0 a = 1 + (encode a).length := rfl
 
+/-- The successor trajectory charge is the remaining trajectory charge plus the initial
+transition's size and cost charge. -/
 theorem trajectoryCharge_succ {α : Type} (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α)
     (cost : α → ℕ) (n : ℕ) (a : α) :
     trajectoryCharge encode step cost (n + 1) a =
@@ -57,6 +89,8 @@ theorem trajectoryCharge_succ {α : Type} (encode : α → Qatlib.Concepts.BitWo
 
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LoopCore in
 
+/-- The loop core computes the encoded `n`th iterate and clears workspace, with total and
+maximum stack clocks bounded by counter costs and squared trajectory charges. -/
 private theorem core_complete {α : Type} {q : ℕ}
     (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1)))
     (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α) (tf sf : α → ℕ)
@@ -178,11 +212,15 @@ private theorem core_complete {α : Type} {q : ℕ}
       · nlinarith only [hAM,hsqa,Nat.zero_le ((n+1+1)*(1+counter.length)^2)]
       · nlinarith only [hIM,hsqi,Nat.zero_le ((1+counter.length)^2)]
 
+/-- Aggregates the framed iteration input length, iteration count, final encoding length,
+trajectory costs, and intermediate encoding lengths, plus one. -/
 def budgetBase {α : Type} (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α)
     (cost : α → ℕ) (n : ℕ) (a : α) : ℕ :=
   1 + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n ++ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.framed (encode a)).length + n + (encode ((step^[n]) a)).length +
     trajectorySum step cost n a + trajectorySum step (fun x => (encode x).length) n a
 
+/-- The trajectory charge is bounded by twice the sum of iteration count, final encoding length,
+trajectory costs, intermediate encoding lengths, and one. -/
 private theorem charge_bound {α : Type} (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α)
     (cost : α → ℕ) (n : ℕ) (a : α) :
     trajectoryCharge encode step cost n a ≤
@@ -201,6 +239,8 @@ private theorem charge_bound {α : Type} (encode : α → Qatlib.Concepts.BitWor
       omega
   omega
 
+/-- The input, counter, trajectory, and final-step charges are bounded by `100000` times the
+square of `budgetBase`. -/
 private theorem resource_bound {α : Type} (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α)
     (cost : α → ℕ) (n : ℕ) (a : α) :
     200 * (1 + (Qatlib.Concepts.BitWordCompiler.CanonicalCodec.natBits n ++ Qatlib.Concepts.BitWordCompiler.CanonicalCodec.framed (encode a)).length) ^ 2 +
@@ -226,6 +266,8 @@ private theorem resource_bound {α : Type} (encode : α → Qatlib.Concepts.BitW
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LoopInput in
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.LoopCore in
 
+/-- The complete loop-input program halts with the reversed encoded iterate on its output stack
+and blank remaining stacks, with separate quadratic total and maximum clock bounds. -/
 private theorem input_complete {α : Type} {q : ℕ}
     (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1)))
     (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α) (tf sf : α → ℕ)
@@ -285,6 +327,8 @@ private theorem input_complete {α : Type} {q : ℕ}
     have hb := resource_bound encode step sf n a
     omega
 
+/-- A machine realizing one encoded state transition yields one uniform binary machine for every
+iterate, with quadratic time and space bounds in the respective `budgetBase`. -/
 theorem uniform_iterates {α : Type} {q : ℕ}
     (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (q + 1)))
     (encode : α → Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) (step : α → α) (tf sf : α → ℕ)

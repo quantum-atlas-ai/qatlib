@@ -8,6 +8,28 @@ import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.PowerAccumulation
 import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.TrotterStep
 import Mathlib.Tactic.Abel
+
+/-!
+# Trotter error with a target-time remainder
+
+This module combines a single-step approximation estimate with a bound on the difference between
+the total step time and the target evolution time. The theorem
+`trotter_three_error_decomposition` separates the accumulated error and the time remainder;
+`trotter_corollary_three_of_step` substitutes the specified bounds for these two terms. The
+mathematical context is [AharonovTaShma2007].
+
+## Main statements
+
+* `trotter_three_error_decomposition`: Under contraction bounds, an assumed step error `B` and a
+  target-time remainder error `B₂` give total error at most `N * B + B₂`.
+* `trotter_corollary_three_of_step`: The supplied step and time-remainder estimates yield total
+  error at most `C₁ * N * M * Λ * δ + C₂ * M * Λ ^ 3 * t * δ ^ 2` under contraction bounds.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +40,8 @@ open scoped Matrix.Norms.L2Operator ComplexOrder InnerProductSpace BigOperators
 
 namespace Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries
 
+/-- Under contraction bounds, an assumed step error `B` and a target-time remainder error `B₂`
+give total error at most `N * B + B₂` [AharonovTaShma2007]. -/
 theorem trotter_three_error_decomposition {n M : ℕ} (Hs : Fin M → Ham n) (H : Ham n)
     (δ B B₂ : ℝ) (N : ℕ) (t : ℝ)
     (hstep : ‖trotterStep Hs δ - timeEvolution H (2 * δ)‖ ≤ B)
@@ -43,6 +67,8 @@ theorem trotter_three_error_decomposition {n M : ℕ} (Hs : Fin M → Ham n) (H 
           + ‖timeEvolution H (2 * δ) ^ N - timeEvolution H t‖ := norm_add_le _ _
     _ ≤ (N : ℝ) * B + B₂ := add_le_add h1 h2
 
+/-- The supplied step and time-remainder estimates yield total error at most `C₁ * N * M * Λ * δ
++ C₂ * M * Λ ^ 3 * t * δ ^ 2` under contraction bounds [AharonovTaShma2007]. -/
 theorem trotter_corollary_three_of_step {n M : ℕ} (Hs : Fin M → Ham n) (H : Ham n)
     (Λ δ t C₁ C₂ : ℝ) (N : ℕ)
     (hstep : ‖trotterStep Hs δ - timeEvolution H (2 * δ)‖ ≤ C₁ * (M : ℝ) * Λ * δ)

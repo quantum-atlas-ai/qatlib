@@ -16,6 +16,36 @@ import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
 import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
 import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+
+/-!
+# Search backend correctness and finite gate implementations
+
+This module proves correctness and comparison bounds for the rational median stages defined in
+`SearchDefs`, and collects amplitude-estimation and mean-estimation guarantees in `clause24`.
+These statistical guarantees use the amplitude-estimation framework of [BrassardEtAl2002].
+
+It also compiles reversible Boolean blocks into finite gate words, verifies table loading and
+resource ledgers, and records the numerical precision guarantees available for the local
+backend. `not_clause3` rules out the full conjunction that includes finite implementation of
+every unitary under the stated operator error requirement.
+
+## Main statements
+
+* `stageOutput_eq_nativeRationalMedian`: counted sorting computes the specified median.
+* `clause24`: combined estimation, median amplification, stage accounting, and stopping
+  properties.
+* `run_blocksWord_ket` and `hasTableLoad`: finite gate correctness for Boolean blocks and table
+  loading.
+* `tunableGoal_success_event`: counted amplitude-estimation circuit semantics and probability
+  guarantees.
+* `not_clause3`: failure of the conjunction containing universal finite implementation.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -45,6 +75,7 @@ namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend
 open Matrix
 open scoped BigOperators Classical
 
+/-- Inserting a rational value with `insertSortedRat` increases the output list length by one. -/
 theorem insertSortedRat_length (x : ℚ) (l : List ℚ) :
     (insertSortedRat x l).1.length = l.length + 1 := by
   induction l with
@@ -57,6 +88,7 @@ theorem insertSortedRat_length (x : ℚ) (l : List ℚ) :
       rw [ih]
       simp
 
+/-- The comparison count of `insertSortedRat` is at most the length of the input list. -/
 theorem insertSortedRat_cost_le (x : ℚ) (l : List ℚ) :
     (insertSortedRat x l).2 ≤ l.length := by
   induction l with
@@ -69,6 +101,8 @@ theorem insertSortedRat_cost_le (x : ℚ) (l : List ℚ) :
       have hlen : (y :: ys).length = ys.length + 1 := rfl
       omega
 
+/-- The output of `insertSortedRat` is a permutation of the inserted value followed by the input
+list. -/
 theorem insertSortedRat_perm (x : ℚ) (l : List ℚ) :
     (insertSortedRat x l).1.Perm (x :: l) := by
   induction l with
@@ -79,6 +113,7 @@ theorem insertSortedRat_perm (x : ℚ) (l : List ℚ) :
     · exact List.Perm.refl _
     · exact List.Perm.trans (List.Perm.cons y ih) (List.Perm.swap x y ys)
 
+/-- Inserting a rational value with `insertSortedRat` preserves nondecreasing order. -/
 theorem insertSortedRat_sorted {x : ℚ} {l : List ℚ} (hl : l.SortedLE) :
     (insertSortedRat x l).1.SortedLE := by
   induction l with
@@ -104,6 +139,7 @@ theorem insertSortedRat_sorted {x : ℚ} {l : List ℚ} (hl : l.SortedLE) :
       · exact hyx
       · exact hhead b hbys
 
+/-- Counted rational sorting preserves the length of its input list. -/
 theorem sortCountedRat_length (l : List ℚ) : (sortCountedRat l).1.length = l.length := by
   induction l with
   | nil => rfl
@@ -112,6 +148,7 @@ theorem sortCountedRat_length (l : List ℚ) : (sortCountedRat l).1.length = l.l
     rw [insertSortedRat_length, ih]
     simp
 
+/-- The list produced by `sortCountedRat` is a permutation of the input list. -/
 theorem sortCountedRat_perm (l : List ℚ) : (sortCountedRat l).1.Perm l := by
   induction l with
   | nil => exact List.Perm.refl _
@@ -119,6 +156,7 @@ theorem sortCountedRat_perm (l : List ℚ) : (sortCountedRat l).1.Perm l := by
     show ((insertSortedRat x (sortCountedRat xs).1).1).Perm (x :: xs)
     exact List.Perm.trans (insertSortedRat_perm x _) (List.Perm.cons x ih)
 
+/-- Counted rational sorting uses at most the square of the input length in comparisons. -/
 theorem sortCountedRat_cost_le (l : List ℚ) :
     (sortCountedRat l).2 ≤ l.length * l.length := by
   induction l with
@@ -135,6 +173,7 @@ theorem sortCountedRat_cost_le (l : List ℚ) :
       omega
     omega
 
+/-- The list produced by `sortCountedRat` is in nondecreasing order. -/
 theorem sortCountedRat_sorted (l : List ℚ) : (sortCountedRat l).1.SortedLE := by
   induction l with
   | nil => exact List.sortedLE_iff_pairwise.mpr List.Pairwise.nil
@@ -142,17 +181,21 @@ theorem sortCountedRat_sorted (l : List ℚ) : (sortCountedRat l).1.SortedLE := 
     show ((insertSortedRat x (sortCountedRat xs).1).1).SortedLE
     exact insertSortedRat_sorted ih
 
+/-- The list produced by counted rational sorting equals the result of merge sorting with the
+nondecreasing comparison. -/
 theorem sortCountedRat_eq_mergeSort (l : List ℚ) :
     (sortCountedRat l).1 = l.mergeSort (fun a b => a ≤ b) :=
   ((sortCountedRat_perm l).trans (List.mergeSort_perm l (fun a b => a ≤ b)).symm).eq_of_sortedLE
     (sortCountedRat_sorted l) (List.sortedLE_mergeSort (l := l))
 
+/-- The counted stage output equals `nativeRationalMedian` of its rational labels. -/
 theorem stageOutput_eq_nativeRationalMedian (p : StageParams) (ys : StageLabels p) :
     stageOutput p ys = nativeRationalMedian p.mid ys := by
   show (sortCountedRat (List.ofFn ys)).1.getD p.mid 0 =
     ((List.ofFn ys).mergeSort (fun a b => a ≤ b)).getD p.mid 0
   rw [sortCountedRat_eq_mergeSort]
 
+/-- A stage with 2m + 1 labels uses at most (2m + 1)² comparisons to compute its median. -/
 theorem stageComparisons_le (p : StageParams) (ys : StageLabels p) :
     stageComparisons p ys ≤ (2 * p.mid + 1) * (2 * p.mid + 1) := by
   show (sortCountedRat (List.ofFn ys)).2 ≤ (2 * p.mid + 1) * (2 * p.mid + 1)
@@ -161,6 +204,8 @@ theorem stageComparisons_le (p : StageParams) (ys : StageLabels p) :
   rw [hlen] at h
   exact h
 
+/-- The window stopping test is true exactly when the history contains a stage whose window is
+at most the target. -/
 theorem windowStops_iff (target : ℚ) (h : List (StageParams × ℚ)) :
     windowStops target h = true ↔ ∃ p y, (p, y) ∈ h ∧ p.win ≤ target := by
   induction h with
@@ -195,6 +240,10 @@ theorem windowStops_iff (target : ℚ) (h : List (StageParams × ℚ)) :
         exact Or.inl (by simpa using! hw)
       · exact Or.inr (ih.mpr ⟨p', y', hm, hw⟩)
 
+/-- Collects finite-precision amplitude and counting guarantees, bounded and relative mean
+estimates, median amplification, stage costs, layer composition, and history-based stopping
+identities. The amplitude-estimation guarantees include the success bound 8/π² from
+[BrassardEtAl2002]. -/
 theorem clause24 :
 
   (∀ (I : Type) [Fintype I] [DecidableEq I] (M k : ℕ) (hM : 2 ≤ M)
@@ -400,31 +449,40 @@ by
       rfl
     · rfl
 
+/-- The fifteen-gate H, T, inverse T, and CNOT word for a Toffoli gate on two control wires and
+a target wire. -/
 def toffoliWord {n : ℕ} (a b t : Fin n) : List FiniteGateCode :=
   [.h t.val, .cx b.val t.val, .tdg t.val, .cx a.val t.val, .t t.val, .cx b.val t.val,
     .tdg t.val, .cx a.val t.val, .t b.val, .t t.val, .h t.val, .cx a.val b.val,
     .t a.val, .tdg b.val, .cx a.val b.val]
 
+/-- Decoding a Hadamard gate code on an in-range wire gives the corresponding wire Hadamard
+matrix. -/
 theorem finiteCodeMatrix_h (n : ℕ) (w : Fin n) :
     finiteCodeMatrix n (FiniteGateCode.h w.val) = wireGate n w Hadamard := by
   show (if h : w.val < n then wireGate n ⟨w.val, h⟩ Hadamard else 1) = wireGate n w Hadamard
   rw [dif_pos w.isLt]
 
+/-- Decoding an X gate code on an in-range wire gives the corresponding wire Pauli X matrix. -/
 theorem finiteCodeMatrix_x (n : ℕ) (w : Fin n) :
     finiteCodeMatrix n (FiniteGateCode.x w.val) = wireGate n w PauliX := by
   show (if h : w.val < n then wireGate n ⟨w.val, h⟩ PauliX else 1) = wireGate n w PauliX
   rw [dif_pos w.isLt]
 
+/-- Decoding a T gate code on an in-range wire gives the corresponding wire T matrix. -/
 theorem finiteCodeMatrix_t (n : ℕ) (w : Fin n) :
     finiteCodeMatrix n (FiniteGateCode.t w.val) = wireGate n w tGate := by
   show (if h : w.val < n then wireGate n ⟨w.val, h⟩ tGate else 1) = wireGate n w tGate
   rw [dif_pos w.isLt]
 
+/-- Decoding an inverse T gate code on an in-range wire gives the corresponding wire adjoint T
+matrix. -/
 theorem finiteCodeMatrix_tdg (n : ℕ) (w : Fin n) :
     finiteCodeMatrix n (FiniteGateCode.tdg w.val) = wireGate n w tGateAdj := by
   show (if h : w.val < n then wireGate n ⟨w.val, h⟩ tGateAdj else 1) = wireGate n w tGateAdj
   rw [dif_pos w.isLt]
 
+/-- Decoding a controlled X code on distinct in-range wires gives the corresponding CNOT matrix. -/
 theorem finiteCodeMatrix_cx (n : ℕ) (c t : Fin n) (hct : c ≠ t) :
     finiteCodeMatrix n (FiniteGateCode.cx c.val t.val) = cnotGate n c t := by
   have hct' : ¬(c.val = t.val) := fun h => hct (Fin.ext h)
@@ -432,34 +490,43 @@ theorem finiteCodeMatrix_cx (n : ℕ) (c t : Fin n) (hct : c ≠ t) :
       cnotGate n ⟨c.val, h.1⟩ ⟨t.val, h.2.1⟩ else 1) = cnotGate n c t
   rw [dif_pos ⟨c.isLt, t.isLt, hct'⟩]
 
+/-- A Hadamard gate code on an in-range wire passes the legality test. -/
 theorem finiteCodeLegal_h (n : ℕ) (w : Fin n) : finiteCodeLegal n (FiniteGateCode.h w.val) = true := by
   show decide (w.val < n) = true
   simp [w.isLt]
 
+/-- An X gate code on an in-range wire passes the legality test. -/
 theorem finiteCodeLegal_x (n : ℕ) (w : Fin n) : finiteCodeLegal n (FiniteGateCode.x w.val) = true := by
   show decide (w.val < n) = true
   simp [w.isLt]
 
+/-- A T gate code on an in-range wire passes the legality test. -/
 theorem finiteCodeLegal_t (n : ℕ) (w : Fin n) : finiteCodeLegal n (FiniteGateCode.t w.val) = true := by
   show decide (w.val < n) = true
   simp [w.isLt]
 
+/-- An inverse T gate code on an in-range wire passes the legality test. -/
 theorem finiteCodeLegal_tdg (n : ℕ) (w : Fin n) :
     finiteCodeLegal n (FiniteGateCode.tdg w.val) = true := by
   show decide (w.val < n) = true
   simp [w.isLt]
 
+/-- A controlled X code with distinct in-range control and target wires passes the legality
+test. -/
 theorem finiteCodeLegal_cx (n : ℕ) (c t : Fin n) (h : c ≠ t) :
     finiteCodeLegal n (FiniteGateCode.cx c.val t.val) = true := by
   show decide (c.val < n ∧ t.val < n ∧ c.val ≠ t.val) = true
   simp only [decide_eq_true_eq]
   exact ⟨c.isLt, t.isLt, fun he => h (Fin.ext he)⟩
 
+/-- Applying a wire Pauli X gate to a computational basis state flips exactly that wire's bit. -/
 theorem wireGate_X_ket' (n : ℕ) (w : Fin n) (x : Reg n) :
     ApplyGate (wireGate n w PauliX) (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x w (!(x w))) := by
   rw [applyGate_wireGate_ket]
   cases hx : x w <;> simp [PauliX, permMatrix]
 
+/-- On pairwise distinct wires, decoding the compiled Toffoli word gives the same gate-step list
+as the local Toffoli construction. -/
 theorem toffoliWord_map (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) :
     (toffoliWord a b t).map (fun g => Step.gate (finiteCodeMatrix n g)) =
       (toffoliLocalSteps a b t).map (fun g => Step.gate (reflectionGateMatrix g)) := by
@@ -468,6 +535,8 @@ theorem toffoliWord_map (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t
     finiteCodeMatrix_cx n a t hat, finiteCodeMatrix_t n t, finiteCodeMatrix_t n b,
     finiteCodeMatrix_cx n a b hab, finiteCodeMatrix_t n a, finiteCodeMatrix_tdg n b]
 
+/-- On pairwise distinct wires, the compiled Toffoli word maps a basis register to the register
+with its target flipped exactly when both control bits are true. -/
 theorem toffoliWord_run_ket (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t)
     (x : Reg n) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (finiteCodeCircuit n (toffoliWord a b t)) (Qatlib.Foundations.PureStateMath.Ket x) =
@@ -479,6 +548,8 @@ theorem toffoliWord_run_ket (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (hat : a �
   rw [heq]
   exact (local_toffoli_fifteen_exact n a b t hab hat hbt).2.2 x
 
+/-- The compiled Toffoli word is legal when its two control wires and target wire are pairwise
+distinct. -/
 theorem toffoliWord_legal (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) :
     finiteWordLegal n (toffoliWord a b t) = true := by
   simp only [toffoliWord, finiteWordLegal, List.all_cons, List.all_nil,
@@ -487,26 +558,34 @@ theorem toffoliWord_legal (n : ℕ) (a b t : Fin n) (hab : a ≠ b) (hat : a ≠
     finiteCodeLegal_cx n a b hab, finiteCodeLegal_t n a, finiteCodeLegal_tdg n b]
   rfl
 
+/-- Reversible Boolean gate blocks consisting of X, controlled X, and Toffoli gates on a fixed
+register width. -/
 inductive GBlk (n : ℕ) where
   | x (w : Fin n)
   | cx (c t : Fin n)
   | tof (a b t : Fin n)
 
+/-- Compiles a reversible Boolean gate block to its finite gate-code word. -/
 def GBlk.word {n : ℕ} : GBlk n → List FiniteGateCode
   | .x w => [FiniteGateCode.x w.val]
   | .cx c t => [FiniteGateCode.cx c.val t.val]
   | .tof a b t => toffoliWord a b t
 
+/-- The Boolean register update specified by an X, controlled X, or Toffoli block. -/
 def GBlk.upd {n : ℕ} : GBlk n → Reg n → Reg n
   | .x w => fun r => Function.update r w (!r w)
   | .cx c t => fun r => Function.update r t (r t ^^ r c)
   | .tof a b t => fun r => Function.update r t (r t ^^ (r a && r b))
 
+/-- The wire-distinctness condition for a Boolean gate block: none for X, distinct control and
+target for controlled X, and pairwise distinct wires for Toffoli. -/
 def GBlk.ok {n : ℕ} : GBlk n → Prop
   | .x _ => True
   | .cx c t => c ≠ t
   | .tof a b t => a ≠ b ∧ a ≠ t ∧ b ≠ t
 
+/-- Executing the compiled word of a block satisfying `GBlk.ok` realizes its specified Boolean
+update on every computational basis state. -/
 theorem GBlk.word_run_ket {n : ℕ} (g : GBlk n) (hg : g.ok) (r : Reg n) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (finiteCodeCircuit n g.word) (Qatlib.Foundations.PureStateMath.Ket r) = Qatlib.Foundations.PureStateMath.Ket (g.upd r) := by
   cases g with
@@ -525,6 +604,7 @@ theorem GBlk.word_run_ket {n : ℕ} (g : GBlk n) (hg : g.ok) (r : Reg n) :
   | tof a b t =>
     exact toffoliWord_run_ket n a b t hg.1 hg.2.1 hg.2.2 r
 
+/-- The compiled finite word of a block satisfying `GBlk.ok` passes the legality test. -/
 theorem GBlk.word_legal {n : ℕ} (g : GBlk n) (hg : g.ok) : finiteWordLegal n g.word = true := by
   cases g with
   | x w =>
@@ -535,11 +615,15 @@ theorem GBlk.word_legal {n : ℕ} (g : GBlk n) (hg : g.ok) : finiteWordLegal n g
     rfl
   | tof a b t => exact toffoliWord_legal n a b t hg.1 hg.2.1 hg.2.2
 
+/-- Concatenates the finite gate-code words of a list of reversible Boolean blocks. -/
 def blocksWord {n : ℕ} (bs : List (GBlk n)) : List FiniteGateCode := bs.flatMap GBlk.word
 
+/-- Applies the Boolean updates of a list of gate blocks in list order. -/
 def blocksUpd {n : ℕ} (bs : List (GBlk n)) : Reg n → Reg n :=
   fun r => bs.foldl (fun y b => b.upd y) r
 
+/-- The compiled word of a block list is legal if every block satisfies its wire-distinctness
+condition. -/
 theorem blocksWord_legal {n : ℕ} (bs : List (GBlk n)) (hok : ∀ b ∈ bs, b.ok) :
     finiteWordLegal n (blocksWord bs) = true := by
   apply List.all_eq_true.mpr
@@ -547,6 +631,8 @@ theorem blocksWord_legal {n : ℕ} (bs : List (GBlk n)) (hok : ∀ b ∈ bs, b.o
   obtain ⟨b, hb, hgb⟩ := List.mem_flatMap.mp hg
   exact List.all_eq_true.mp (GBlk.word_legal b (hok b hb)) g hgb
 
+/-- Executing the compiled word of a valid block list realizes the successive Boolean register
+updates on every basis state. -/
 theorem run_blocksWord_ket {n : ℕ} (bs : List (GBlk n)) (hok : ∀ b ∈ bs, b.ok) (r : Reg n) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (finiteCodeCircuit n (blocksWord bs)) (Qatlib.Foundations.PureStateMath.Ket r) =
       Qatlib.Foundations.PureStateMath.Ket (blocksUpd bs r) := by
@@ -563,6 +649,8 @@ theorem run_blocksWord_ket {n : ℕ} (bs : List (GBlk n)) (hok : ∀ b ∈ bs, b
 
 open Qatlib
 
+/-- Builds a backend ledger with the supplied elementary gate count, classical bit-operation
+count, and peak live qubit count, setting all other fields to zero. -/
 def mkBackend (elementaryGates classicalBitOps peakLiveQubits : ℕ) :
     Qatlib.Concepts.LocalMachine.LocalTransport.BackendLedger :=
   { forwardCalls := 0, backwardCalls := 0, controlledCalls := 0, positionCalls := 0,
@@ -570,15 +658,19 @@ def mkBackend (elementaryGates classicalBitOps peakLiveQubits : ℕ) :
     classicalBitOps := classicalBitOps, readoutBitOps := 0,
     peakLiveQubits := peakLiveQubits }
 
+/-- Builds a data-access ledger from a table-read count and the gate, classical operation, and
+live-qubit counts used by `mkBackend`. -/
 def mkLedger (tableReads elementaryGates classicalBitOps peakLiveQubits : ℕ) :
     DataAccessLedger :=
   { backend := mkBackend elementaryGates classicalBitOps peakLiveQubits,
     tableReads := tableReads }
 
+/-- The list of X blocks at the true bit positions of a selected input-table row. -/
 def loadBlocks (t : InputTable) (i : Fin t.n) : List (GBlk t.w) :=
   (List.finRange t.w).filterMap fun b =>
     if t.cell i b = true then some (GBlk.x b) else none
 
+/-- Compiling the X blocks for a table row gives exactly that row's `InputTable.loadWord`. -/
 theorem loadBlocks_word (t : InputTable) (i : Fin t.n) :
     (loadBlocks t i).flatMap GBlk.word = t.loadWord i := by
   unfold loadBlocks InputTable.loadWord
@@ -596,6 +688,8 @@ theorem loadBlocks_word (t : InputTable) (i : Fin t.n) :
       · simp only [if_neg h, ih]
   exact key (List.finRange t.w)
 
+/-- The table-loading block updates flip precisely those register bits whose corresponding
+table-row entries are true. -/
 theorem loadBlocks_upd (t : InputTable) (i : Fin t.n) (r : Reg t.w) :
     blocksUpd (loadBlocks t i) r = fun k => if t.cell i k = true then !r k else r k := by
   unfold blocksUpd loadBlocks
@@ -638,6 +732,7 @@ theorem loadBlocks_upd (t : InputTable) (i : Fin t.n) (r : Reg t.w) :
   funext k
   simp [List.mem_finRange]
 
+/-- Every block in a table-row loading list satisfies its wire-distinctness condition. -/
 theorem loadBlocks_ok (t : InputTable) (i : Fin t.n) : ∀ b ∈ loadBlocks t i, b.ok := by
   intro b hb
   simp only [loadBlocks, List.mem_filterMap] at hb
@@ -647,16 +742,20 @@ theorem loadBlocks_ok (t : InputTable) (i : Fin t.n) : ∀ b ∈ loadBlocks t i,
     trivial
   · cases he
 
+/-- A row's loading word contains at most as many gates as there are bits in the row. -/
 theorem loadWord_length (t : InputTable) (i : Fin t.n) : (t.loadWord i).length ≤ t.w := by
   have := List.length_filterMap_le (fun b : Fin t.w =>
     if t.cell i b = true then some (FiniteGateCode.x b.val) else none) (List.finRange t.w)
   simpa [InputTable.loadWord, List.length_finRange] using! this
 
+/-- Every table-row loading word passes the finite-word legality test at the row width. -/
 theorem loadWord_legal (t : InputTable) (i : Fin t.n) :
     finiteWordLegal t.w (t.loadWord i) = true := by
   rw [← loadBlocks_word]
   exact blocksWord_legal (loadBlocks t i) (loadBlocks_ok t i)
 
+/-- Running a table-row loading word on a basis register flips exactly the bits marked true in
+that row. -/
 theorem loadWord_run (t : InputTable) (i : Fin t.n) (r : Reg t.w) :
     Run (1 : Matrix (Reg t.w) (Reg t.w) ℂ) (finiteCodeCircuit t.w (t.loadWord i)) (Qatlib.Foundations.PureStateMath.Ket r)
       = Qatlib.Foundations.PureStateMath.Ket (fun k => if t.cell i k = true then !r k else r k) := by
@@ -665,6 +764,8 @@ theorem loadWord_run (t : InputTable) (i : Fin t.n) (r : Reg t.w) :
   rw [← loadBlocks_word]
   exact h
 
+/-- Checked execution of a row's loading word on the all-false basis register returns the basis
+state of that table row. -/
 theorem loadWord_finiteRun (t : InputTable) (i : Fin t.n) :
     finiteWordRun t.w (t.loadWord i) (Qatlib.Foundations.PureStateMath.Ket fun _ : Fin t.w => false) = some (Qatlib.Foundations.PureStateMath.Ket (t.rowReg i)) := by
   have hleg := loadWord_legal t i
@@ -678,6 +779,7 @@ theorem loadWord_finiteRun (t : InputTable) (i : Fin t.n) :
       else (fun _ : Fin t.w => false) k) = t.cell i k
     cases t.cell i k <;> rfl)
 
+/-- Every input table has a data-access ledger satisfying `HasTableLoad`. -/
 theorem hasTableLoad (t : InputTable) : ∃ d : DataAccessLedger, HasTableLoad t d := by
   refine ⟨mkLedger (t.n * t.w) (t.n * t.w) (t.n * t.w) (t.n * t.w), ?_, rfl, ?_⟩
   · intro i
@@ -713,6 +815,9 @@ open Qatlib
 open scoped Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- Collects unitarity, zero-query and gate counts, and state error bounds for numerical dyadic
+circuits, together with local amplitude-estimation table counts and forward and adjoint QFT
+approximation bounds. -/
 theorem tunableGoal_macro_components :
     (∀ (n k : ℕ) (gs : List (LocalQFTGate n)),
       IsUnitaryCircuit (numericalDyadicCircuit k gs) ∧
@@ -737,6 +842,8 @@ theorem tunableGoal_macro_components :
     fun I _ _ n gs => localAETableCircuit_counts (I := I) n gs,
     fun I _ _ n b => localAEBackend_error (I := I) n b⟩
 
+/-- Native amplitude decoding lies in [0, 1], differs from the ideal estimate by at most 2^(−k),
+and agrees with the decoder of every finite program at its chosen precision. -/
 theorem tunableGoal_scalar_precision :
     (∀ (M k : ℕ) (z : Fin M),
       0 ≤ nativeAEDecode M k z ∧ nativeAEDecode M k z ≤ 1 ∧
@@ -744,6 +851,9 @@ theorem tunableGoal_scalar_precision :
     (∀ (P : AEFiniteProgram) (M : ℕ) (z : Fin M), P.decode M z = nativeAEDecode M P.prec z) :=
   ⟨native_ae_computed_scalar_precision, fun _ _ _ => rfl⟩
 
+/-- Collects counted amplitude-estimation circuit costs, output normalization and measurement
+semantics, the 8/π² success bound, and the stated exact endpoint properties
+[BrassardEtAl2002]. -/
 theorem tunableGoal_success_event :
     (∀ (I : Type) [Fintype I] [DecidableEq I] (M : ℕ) (hM : 2 ≤ M)
       (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ),
@@ -770,6 +880,8 @@ theorem tunableGoal_success_event :
   ⟨fun I _ _ => prepared_ae_expanded_access_and_output (I := I),
     fun I _ _ => prepared_ae_bhmt_error_and_endpoints (I := I)⟩
 
+/-- For nonnegative component windows, the unified error budget equals their stated sum with the
+dyadic readout term and is at least that term. -/
 theorem tunableGoal_error_budget :
     ∀ (initWin reflectWin qftWin : ℝ) (prec : ℕ),
       0 ≤ initWin → 0 ≤ reflectWin → 0 ≤ qftWin →
@@ -782,15 +894,21 @@ theorem tunableGoal_error_budget :
   have hnn : 0 ≤ initWin + reflectWin + 2 * qftWin := by positivity
   exact le_add_of_nonneg_left hnn
 
+/-- The reference amplitude-estimation encoding with zero data wires and zero phase wires,
+leaving only the flag wire. -/
 def tunableGoalRefEnc : AEEncoding := ⟨0, 0⟩
 
+/-- The constant matrix with entry `finiteGaussianScalar` on the unique zero-wire register. -/
 noncomputable def tunableGoalRefA : Matrix (Reg 0) (Reg 0) ℂ := fun _ _ => finiteGaussianScalar
 
+/-- The unique zero-wire register, represented by the constant false function. -/
 def tunableGoalRefj : Reg 0 := fun _ => false
 
+/-- Any two registers with zero wires are equal. -/
 theorem reg0_eq (x y : Reg 0) : x = y :=
   funext fun i => (Nat.not_lt_zero i.val i.isLt).elim
 
+/-- The reference scalar matrix on zero-wire registers is unitary. -/
 theorem tunableGoalRefA_mem : tunableGoalRefA ∈ Matrix.unitaryGroup (Reg 0) ℂ := by
   have hc : star finiteGaussianScalar * finiteGaussianScalar = 1 := by
     rw [RCLike.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq,
@@ -804,6 +922,8 @@ theorem tunableGoalRefA_mem : tunableGoalRefA ∈ Matrix.unitaryGroup (Reg 0) �
     Matrix.conjTranspose_one, smul_mul_assoc, mul_smul_comm, Matrix.one_mul, smul_smul, hc,
     one_smul]
 
+/-- Lifting the reference scalar matrix through the reference encoding gives
+`finiteGaussianScalarGate`. -/
 theorem tunableGoalRef_dataLift : tunableGoalRefEnc.dataLift tunableGoalRefA = finiteGaussianScalarGate := by
   have hphase : ∀ (r s : Reg 1), tunableGoalRefEnc.phaseBits r = tunableGoalRefEnc.phaseBits s := fun r s =>
     reg0_eq _ _
@@ -836,6 +956,9 @@ theorem tunableGoalRef_dataLift : tunableGoalRefEnc.dataLift tunableGoalRefA = f
   funext r s
   exact key r s
 
+/-- The displayed conjunction of backend guarantees is false because it includes finite
+implementation of every unitary at the stated operator error tolerance. The reference scalar
+gate supplies the obstruction. -/
 theorem not_clause3 : ¬ (
 
   (∀ (n k : ℕ) (gs : List (LocalQFTGate n)),
@@ -922,6 +1045,8 @@ theorem not_clause3 : ¬ (
     exact h
   exact absurd (le_trans hgap hle) (by norm_num)
 
+/-- Every input table has a data-access ledger satisfying the translation inequalities with the
+displayed loading, comparison, and extraction budgets. -/
 theorem hasDataAccessTranslation (t : InputTable) :
     ∃ d : DataAccessLedger,
       HasDataAccessTranslation t t.w (32 * (t.w + 1) * (t.w + 1))
@@ -946,9 +1071,12 @@ theorem hasDataAccessTranslation (t : InputTable) :
   · show 2 * t.w + 1 ≤ 2 * t.w + 1
     exact le_refl _
 
+/-- Selects the new index when its row value is strictly smaller than the current best row
+value, retaining the current best otherwise. -/
 def argminStep (t : InputTable) (best i : Fin t.n) : Fin t.n :=
   if regValue (t.rowReg i) < regValue (t.rowReg best) then i else best
 
+/-- An `argminStep` produces a row value no greater than that of the current best index. -/
 theorem argminStep_le_best (t : InputTable) (best i : Fin t.n) :
     regValue (t.rowReg (argminStep t best i)) ≤ regValue (t.rowReg best) := by
   unfold argminStep
@@ -956,6 +1084,7 @@ theorem argminStep_le_best (t : InputTable) (best i : Fin t.n) :
   · exact le_of_lt h
   · exact le_refl _
 
+/-- An `argminStep` produces a row value no greater than that of the candidate index. -/
 theorem argminStep_le_self (t : InputTable) (best i : Fin t.n) :
     regValue (t.rowReg (argminStep t best i)) ≤ regValue (t.rowReg i) := by
   unfold argminStep
@@ -963,6 +1092,8 @@ theorem argminStep_le_self (t : InputTable) (best i : Fin t.n) :
   · exact le_refl _
   · exact Nat.le_of_not_lt h
 
+/-- For a nonempty input table, the row selected by `InputTable.argmin` has value no greater
+than every table row. -/
 theorem argmin_min (t : InputTable) (hn : 0 < t.n) (i : Fin t.n) :
     regValue (t.rowReg (t.argmin hn)) ≤ regValue (t.rowReg i) := by
   have key : ∀ (l : List (Fin t.n)) (best : Fin t.n),

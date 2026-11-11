@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.JonesPoly06.MainResults.AmplitudeApprox
+
+/-!
+# Word evaluation and accumulated compilation error
+
+`wordEval` evaluates lists in an arbitrary monoid and respects concatenation. The module
+combines product approximation bounds with norm preservation to control squared amplitudes of
+compiled operator lists, and records that a unit-state return probability lies in [0, 1]. See
+[WocjanYard2006].
+
+## Main statements
+
+* `compile_total_error`: Two equal-length lists of contractions with pairwise errors at most
+  nonnegative ε' have product error at most mε', where m is their length.
+* `theorem71_reduction`: For equal-length lists of norm-preserving operators with total pairwise
+  error at most ε ≤ 1, the resulting squared transition amplitudes between unit vectors differ
+  by at most ε.
+
+## References
+
+* [Wocjan and Yard, 2006][WocjanYard2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,10 +36,12 @@ open scoped ComplexInnerProductSpace
 
 namespace Qatlib.Papers.JonesPoly06.MainResults
 
+/-- The ordered product of the images of a word under a map into a monoid. -/
 def wordEval {α M : Type*} [Monoid M] (g : α → M) : List α → M
   | [] => 1
   | a :: l => g a * wordEval g l
 
+/-- Evaluating a concatenation equals the product of the evaluations; see [WocjanYard2006]. -/
 theorem wordEval_append {α M : Type*} [Monoid M] (g : α → M) :
     ∀ l₁ l₂ : List α, wordEval g (l₁ ++ l₂) = wordEval g l₁ * wordEval g l₂
   | [], l₂ => by simp [wordEval]
@@ -25,9 +49,12 @@ theorem wordEval_append {α M : Type*} [Monoid M] (g : α → M) :
       simp only [List.cons_append, wordEval]
       rw [wordEval_append g l₁ l₂, mul_assoc]
 
+/-- Evaluating a singleton word gives the image of its sole letter. -/
 theorem wordEval_singleton {α M : Type*} [Monoid M] (g : α → M) (a : α) :
     wordEval g [a] = g a := by simp [wordEval]
 
+/-- A real list whose entries are bounded above by nonnegative c has sum at most its length
+times c. -/
 theorem list_sum_le_length_mul {l : List ℝ} {c : ℝ} (hc : 0 ≤ c)
     (h : ∀ x ∈ l, x ≤ c) : l.sum ≤ l.length * c := by
   induction l with
@@ -41,6 +68,8 @@ theorem list_sum_le_length_mul {l : List ℝ} {c : ℝ} (hc : 0 ≤ c)
       push_cast
       nlinarith
 
+/-- Two equal-length lists of contractions with pairwise errors at most nonnegative ε' have
+product error at most mε', where m is their length; see [WocjanYard2006]. -/
 theorem compile_total_error {A : Type*} [SeminormedRing A] [NormOneClass A]
     (L L' : List A) (hlen : L.length = L'.length) (m : ℕ)
     (hm : L.length = m) (ε' : ℝ) (hε' : 0 ≤ ε')
@@ -56,6 +85,8 @@ theorem compile_total_error {A : Type*} [SeminormedRing A] [NormOneClass A]
     _ ≤ ((L.zipWith (fun a b => ‖a - b‖) L').length : ℝ) * ε' := hsum
     _ = (m : ℝ) * ε' := by rw [hlen']
 
+/-- A norm-preserving operator has squared return amplitude at most one on a unit vector; see
+[WocjanYard2006]. -/
 theorem plat_amplitude_le_one {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℂ E] (U : E →L[ℂ] E) (hU : ∀ x, ‖U x‖ = ‖x‖)
     (t : E) (ht : ‖t‖ = 1) :
@@ -64,12 +95,16 @@ theorem plat_amplitude_le_one {E : Type*} [NormedAddCommGroup E]
   rw [hU t, ht, one_mul] at h1
   nlinarith [norm_nonneg (inner ℂ t (U t))]
 
+/-- The squared return amplitude of a norm-preserving operator on a unit vector lies in [0, 1]. -/
 theorem normalized_jones_mem {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℂ E] (U : E →L[ℂ] E) (hU : ∀ x, ‖U x‖ = ‖x‖)
     (t : E) (ht : ‖t‖ = 1) :
     ‖inner ℂ t (U t)‖ ^ 2 ∈ Set.Icc (0 : ℝ) 1 :=
   ⟨sq_nonneg _, plat_amplitude_le_one U hU t ht⟩
 
+/-- For equal-length lists of norm-preserving operators with total pairwise error at most ε ≤ 1,
+the resulting squared transition amplitudes between unit vectors differ by at most ε; see
+[WocjanYard2006]. -/
 theorem theorem71_reduction {E : Type*} [NormedAddCommGroup E]
     [InnerProductSpace ℂ E] [Nontrivial E] (L L' : List (E →L[ℂ] E))
     (hlen : L.length = L'.length)

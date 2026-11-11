@@ -12,6 +12,27 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Qatlib.Papers.QLearningGeom03.MainResults.Battleship
+
+/-!
+# Sine formulas for cyclic ship windows
+
+This module converts the finite geometric series for a symmetric cyclic ship window into a sine
+quotient. It relates the cyclic character `chiN` to complex exponentials and proves
+`bs_window_sine`, giving sin((2r + 1)θ)/sin θ for a nonzero frequency with nonvanishing
+denominator.
+
+These identities support the battleship spectral analysis in [HunzikerEtAl2003].
+
+## Main statements
+
+* `exp_window_sine`: The complex sine quotient for a symmetric exponential sum.
+* `bs_window_sine`: The corresponding cyclic character sum.
+
+## References
+
+* [Hunziker et al., 2003][HunzikerEtAl2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +45,7 @@ open scoped Matrix
 
 variable {N : ℕ} [NeZero N]
 
+/-- For complex z, exp(iz) - exp(-iz) equals 2i sin z. -/
 lemma exp_mul_I_sub_exp_neg (z : ℂ) :
     Complex.exp (z * Complex.I) - Complex.exp (-(z * Complex.I))
       = 2 * Complex.sin z * Complex.I := by
@@ -42,6 +64,7 @@ lemma exp_mul_I_sub_exp_neg (z : ℂ) :
         rw [div_eq_mul_inv, Complex.inv_I]
         ring
 
+/-- For complex z, exp(2iz) - 1 factors as exp(iz) times 2i sin z. -/
 lemma exp_two_mul_I_sub_one (z : ℂ) :
     Complex.exp (2 * z * Complex.I) - 1
       = Complex.exp (z * Complex.I) * (2 * Complex.sin z * Complex.I) := by
@@ -55,6 +78,7 @@ lemma exp_two_mul_I_sub_one (z : ℂ) :
     simp
   rw [hsplit, ← hone, ← mul_sub, exp_mul_I_sub_exp_neg]
 
+/-- If sin z is nonzero, then exp(2iz) is different from 1. -/
 lemma exp_two_mul_I_ne_one {z : ℂ} (hz : Complex.sin z ≠ 0) :
     Complex.exp (2 * z * Complex.I) ≠ 1 := by
   intro h
@@ -69,6 +93,8 @@ lemma exp_two_mul_I_ne_one {z : ℂ} (hz : Complex.sin z ≠ 0) :
       · exact hz h5
     · exact Complex.I_ne_zero h4
 
+/-- When sin z is nonzero, the phase-adjusted geometric quotient of length 2r + 1 equals sin((2r
++ 1)z)/sin z. -/
 lemma exp_window_sine {z : ℂ} (hz : Complex.sin z ≠ 0) (r : ℕ) :
     (Complex.exp (2 * z * Complex.I) ^ r)⁻¹
         * ((Complex.exp (2 * z * Complex.I) ^ (2 * r + 1) - 1)
@@ -113,6 +139,8 @@ lemma exp_window_sine {z : ℂ} (hz : Complex.sin z ≠ 0) (r : ℕ) :
   rw [div_eq_div_iff hden hsinz]
   ring
 
+/-- For real θ with nonzero sine, the phase-adjusted complex geometric quotient equals the
+complex embedding of sin((2r + 1)θ)/sin θ. -/
 lemma exp_window_sine_real {θ : ℝ} (hθ : Real.sin θ ≠ 0) (r : ℕ) :
     (Complex.exp (2 * (θ : ℂ) * Complex.I) ^ r)⁻¹
         * ((Complex.exp (2 * (θ : ℂ) * Complex.I) ^ (2 * r + 1) - 1)
@@ -131,6 +159,7 @@ lemma exp_window_sine_real {θ : ℝ} (hθ : Real.sin θ ≠ 0) (r : ℕ) :
   rw [show Complex.sin (θ : ℂ) = ((Real.sin θ : ℝ) : ℂ) from (Complex.ofReal_sin θ).symm]
   rw [← Complex.ofReal_div]
 
+/-- The cyclic character at 1 is exp(2iθ) for θ = π j.val/N. -/
 lemma chiN_one_eq_exp (j : ZMod N) :
     chiN (N := N) j 1
       = Complex.exp (2 * ((Real.pi * (j.val : ℝ) / (N : ℝ) : ℝ) : ℂ) * Complex.I) := by
@@ -140,12 +169,16 @@ lemma chiN_one_eq_exp (j : ZMod N) :
   push_cast
   ring
 
+/-- The cyclic character at -r is the inverse of the r-th power of its value at 1. -/
 lemma chiN_neg_natCast (j : ZMod N) (r : ℕ) :
     chiN (N := N) j (-((r : ℕ) : ZMod N)) = ((chiN (N := N) j 1) ^ r)⁻¹ := by
   have hmul : chiN (N := N) j (-((r : ℕ) : ZMod N)) * (chiN (N := N) j 1) ^ r = 1 := by
     rw [chiN_pow_natCast j r, ← chiN_add_right, neg_add_cancel, chiN_zero_right]
   exact eq_inv_of_mul_eq_one_left hmul
 
+/-- For 2r + 1 ≤ N and a nonzero frequency with nonvanishing sine, the character sum over the
+ship window is sin((2r + 1)θ)/sin θ with θ = π j.val/N. This is the sine formula used in
+[Hunziker et al., Theorem 6.1][HunzikerEtAl2003]. -/
 theorem bs_window_sine {r : ℕ} (h : 2 * r + 1 ≤ N) {j : ZMod N} (hj : j ≠ 0)
     (hsin : Real.sin (Real.pi * (j.val : ℝ) / (N : ℝ)) ≠ 0) :
     (∑ k ∈ shipWindow (N := N) r, chiN j k)

@@ -11,6 +11,29 @@ import Qatlib.Foundations.OperatorErrors.OperatorError
 import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Mathlib.Tactic
+
+/-!
+# Gate word covers and problem counts
+
+Local gate placement preserves operator norms and differences. A telescoping product estimate
+turns finite covers of the gate set into covers of fixed-length circuits and their basis-state
+outputs.
+
+The resulting covers bound the numbers of decision and guessing problems represented by these
+circuits, with a concrete decision bound obtained from a quantitative unitary net. See
+[Knill1995].
+
+## Main statements
+
+* `repBy_covered_by_words`: approximates a length-b circuit by a word in the gate cover.
+* `decision_net_count`: bounds the number of decision problems by the number of cover words.
+* `guess_net_count`: adds the output ambiguity factor for guessing problems.
+
+## References
+
+* [Knill, 1995][Knill1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +49,8 @@ open Qatlib.Foundations.PureStateMath.BornBridge
 
 namespace Qatlib.Papers.QCircApprox95.MainResults
 
+/-- Placing a local matrix difference on the selected wires equals the difference of the placed
+matrices. -/
 theorem placeLocalGate_sub {n : ℕ} (S : Finset (Fin n))
     (V W : Matrix (Reg S.card) (Reg S.card) ℂ) :
     placeLocalGate S (V - W) = placeLocalGate S V - placeLocalGate S W := by
@@ -37,6 +62,7 @@ theorem placeLocalGate_sub {n : ℕ} (S : Finset (Fin n))
   rw [Matrix.sub_apply, placeLocalGate_apply, placeLocalGate_apply, placeLocalGate_apply]
   by_cases h : outside S x = outside S y <;> simp [h, Matrix.sub_apply]
 
+/-- Placing a local gate on the selected wires preserves its operator norm. -/
 theorem placeLocalGate_l2_norm {n : ℕ} (S : Finset (Fin n))
     (V : Matrix (Reg S.card) (Reg S.card) ℂ) :
     ‖placeLocalGate S V‖ = ‖V‖ := by
@@ -49,11 +75,15 @@ theorem placeLocalGate_l2_norm {n : ℕ} (S : Finset (Fin n))
   rw [Qatlib.Concepts.ReferenceError.RefTraceError.l2_norm_kronecker,
     Qatlib.Concepts.ReferenceError.RefTraceError.l2_norm_one_eq, mul_one]
 
+/-- The operator-norm distance between two placed local matrices equals their original
+operator-norm distance. -/
 theorem placeLocalGate_l2_sub {n : ℕ} (S : Finset (Fin n))
     (V W : Matrix (Reg S.card) (Reg S.card) ℂ) :
     ‖placeLocalGate S V - placeLocalGate S W‖ = ‖V - W‖ := by
   rw [← placeLocalGate_sub, placeLocalGate_l2_norm]
 
+/-- For paired lists of unitary matrices with each pair at distance at most a nonnegative `ε`,
+the products are at distance at most the list length times `ε`. -/
 theorem pair_list_prod_close {N : ℕ} (l : List (Matrix (Fin N) (Fin N) ℂ ×
       Matrix (Fin N) (Fin N) ℂ))
     (hunit1 : ∀ p ∈ l, p.1 ∈ Matrix.unitaryGroup (Fin N) ℂ)
@@ -97,6 +127,9 @@ theorem pair_list_prod_close {N : ℕ} (l : List (Matrix (Fin N) (Fin N) ℂ ×
                   mul_le_mul_of_nonneg_left htail (by norm_num)
       _ = (l.length : ℝ) * ε + ε := by ring
 
+/-- A circuit in `repBy g n b` has a length-`b` approximation using the unitary cover `C`, with
+operator-norm error at most `b * δ`. This supplies the word cover used in Theorems 5.1 and
+5.3 of [Knill1995]. -/
 theorem repBy_covered_by_words {g n b : ℕ} {δ : ℝ} (hδ : 0 ≤ δ)
     (C : Finset (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ))
     (hgunit : ∀ G ∈ gateSet g n, G ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ)
@@ -161,6 +194,9 @@ theorem repBy_covered_by_words {g n b : ℕ} {δ : ℝ} (hδ : 0 ≤ δ)
     simpa [hplen] using
       pair_list_prod_close pairs hpairs_unitary1 hpairs_unitary2 hδ hpairs_close
 
+/-- The same length-`b` cover word approximates every basis-state output of a represented
+circuit within `b * δ` in Euclidean norm. This is the state cover used in the counting
+arguments of [Knill1995]. -/
 theorem repBy_states_covered {g n b : ℕ} {δ : ℝ} (hδ : 0 ≤ δ)
     (C : Finset (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ))
     (hgunit : ∀ G ∈ gateSet g n, G ∈ Matrix.unitaryGroup (Fin (2 ^ n)) ℂ)
@@ -185,6 +221,9 @@ theorem repBy_states_covered {g n b : ℕ} {δ : ℝ} (hδ : 0 ≤ δ)
     _ = ‖U - cs.prod‖ := by ring
     _ ≤ (b : ℝ) * δ := hclose
 
+/-- If `2 * (b * δ) < 1 / q`, a finite family of decision problems represented by length-`b`
+circuits has cardinality at most `C.card ^ b`, under the stated unitary covering
+assumptions. See Theorem 5.1 of [Knill1995]. -/
 theorem decision_net_count {g n b : ℕ} {q δ : ℝ}
     (hq : 0 < q) (hδ0 : 0 ≤ δ) (hsmall : 2 * ((b : ℝ) * δ) < 1 / q)
     (C : Finset (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ))
@@ -234,6 +273,9 @@ theorem decision_net_count {g n b : ℕ} {q δ : ℝ}
         push_cast
         ring
 
+/-- For `n ≥ 1` and `0 < δ ≤ 1 / 2`, the stated decision gap bounds the number of represented
+problems by `(2 / δ) ^ (b * 2 ^ (4 * n))`. This is a concrete net-based count associated
+with Theorem 5.1 of [Knill1995]. -/
 theorem decision_net_count_concrete (n g b : ℕ) (hn : 1 ≤ n) {q δ : ℝ}
     (hq : 0 < q) (hδ0 : 0 < δ) (hδ : δ ≤ 1 / 2)
     (hsmall : 2 * ((b : ℝ) * δ) < 1 / q)
@@ -259,6 +301,7 @@ theorem decision_net_count_concrete (n g b : ℕ) (hn : 1 ≤ n) {q δ : ℝ}
     _ = (2 / δ) ^ (b * 2 ^ (4 * n)) := by
         rw [← pow_mul, mul_comm]
 
+/-- The product of a list of unitary matrices is unitary. -/
 theorem list_prod_unitary {N : ℕ} (l : List (Matrix (Fin N) (Fin N) ℂ))
     (h : ∀ c ∈ l, c ∈ Matrix.unitaryGroup (Fin N) ℂ) :
     l.prod ∈ Matrix.unitaryGroup (Fin N) ℂ := by
@@ -269,6 +312,9 @@ theorem list_prod_unitary {N : ℕ} (l : List (Matrix (Fin N) (Fin N) ℂ))
     exact Submonoid.mul_mem _ (h a (by simp))
       (ih (fun c hc => h c (List.mem_cons_of_mem _ hc)))
 
+/-- If `b * δ < 1 / (2 * Real.sqrt q)`, the stated unitary gate cover bounds the number of
+represented guessing problems by `C.card ^ b * (4 * q) ^ (2 ^ n)`. See Theorem 5.3 of
+[Knill1995]. -/
 theorem guess_net_count {g n b A : ℕ} {q δ : ℝ}
     (hq : 0 < q) (hδ0 : 0 ≤ δ) (hsmall : (b : ℝ) * δ < 1 / (2 * Real.sqrt q))
     (C : Finset (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ))

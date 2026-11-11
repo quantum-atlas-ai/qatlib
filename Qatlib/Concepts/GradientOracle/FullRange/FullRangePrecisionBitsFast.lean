@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangePrecisionBitsStat
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientReadoutFast
 import Qatlib.Concepts.GradientOracle.FullRange.FullRangeBitLaws
+
+/-!
+# Precision bits for full-range readout
+
+This module proves `fullRangePrecisionBits` by choosing a guarded register width from the scaled
+rational value range. It connects logarithmic bit counts to decoding and measurement precision
+in the comparison studied in [Jordan2005Gradient].
+
+## Main statements
+
+* `fullRangePrecisionBits`: the chosen width satisfies the range guard, logarithmic bounds, and
+  one-query readout guarantees.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +34,9 @@ namespace Qatlib.Concepts.GradientOracle.FullRange
 open Matrix
 open scoped Classical
 
+/-- Proves that the selected range width satisfies the guard and logarithmic bit bounds,
+together with decoding precision and one-query readout guarantees. This supplies the dyadic
+bit comparison associated with [Jordan2005Gradient]. -/
 theorem fullRangePrecisionBits : FullRangePrecisionBits := by
   intro s R hs hR
   let K := fullRangeClassicalBits (s*R)

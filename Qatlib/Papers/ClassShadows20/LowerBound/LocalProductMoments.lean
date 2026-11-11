@@ -9,6 +9,27 @@ import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Positivity
 import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairRecords
+
+/-!
+# Product moments of local Pauli overlaps
+
+`localPauliOverlap` describes a rotated local Pauli expectation, with value one at identity
+labels. The module factors code-state shot values into affine functions of products of these
+overlaps. Single-site mean-zero and second-moment identities then give the exact product and
+affine moments.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `localPauliOverlap_product_moments`: gives product mean zero and second moment `1 / 3^k`.
+* `local_affine_moments`: transfers these moments to the affine shot expression.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,12 +47,16 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- The real trace pairing of a Pauli matrix with the rotated local operator, or one for an
+identity label. -/
 noncomputable def localPauliOverlap {J : Type} (Uf : J → Operator 2)
     (P : Operator 2) (a : Option (Fin 3)) (u : J) : ℝ :=
   match a with
   | none => 1
   | some b => (Matrix.trace (pauliMatrix b * (Uf u)ᴴ * P * Uf u)).re
 
+/-- With pure local factors and unitary rotations, a code-state shot value equals `w` times one
+plus `3 * ε` times the product of local Pauli overlaps. -/
 lemma localShotValue_factor {n : ℕ} {J : Type} (Uf : J → Operator 2)
     (w : ℝ) (ψ : Fin n → Operator 2) (uw : Fin n → J)
     (hψ : ∀ j, IsPureDensityOperator (ψ j))
@@ -85,6 +110,8 @@ lemma localShotValue_factor {n : ℕ} {J : Type} (Uf : J → Operator 2)
   have hd : (2 ^ n : ℝ) ≠ 0 := by positivity
   field_simp
 
+/-- For a positive-weight Pauli word, independent local overlaps with mean zero and second
+moment one third have product mean zero and product second moment `1 / 3^k`. -/
 lemma localPauliOverlap_product_moments {n k : ℕ} {J : Type} [Fintype J] [DecidableEq J]
     (κ : FinDist J) (Uf : J → Operator 2) (ψ : Fin n → Operator 2)
     (a : Fin n → Option (Fin 3)) (hk : 1 ≤ k) (hS : tensorPauliWeight a = k)
@@ -125,6 +152,8 @@ lemma localPauliOverlap_product_moments {n k : ℕ} {J : Type} [Fintype J] [Deci
     change (1 / 3 : ℝ)^tensorPauliWeight a = _
     rw [hS, div_pow, one_pow]
 
+/-- A normalized weighted sum with mean-zero `Z` and second moment `1 / 3^k` gives affine mean
+`w` and affine second moment `w² * (1 + 9ε² / 3^k)`. -/
 lemma local_affine_moments {U : Type} [Fintype U] (p Z : U → ℝ)
     (k : ℕ) (hp : ∑ u, p u = 1) (hZ : ∑ u, p u * Z u = 0)
     (hZ2 : ∑ u, p u * (Z u)^2 = 1 / (3 ^ k : ℝ))

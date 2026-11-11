@@ -8,6 +8,28 @@ import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubePolynomial
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSymmetry
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSlicePoincare
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+
+/-!
+# Degree bounds for Boolean cube influences
+
+The module bounds sums of coordinate flip differences for functions valued in `[0, 1]` with cube
+degree at most `d`. A noise expectation polynomial and its derivative give pointwise bounds,
+which imply a total influence estimate under any cube probability weight.
+
+It also exposes swap and large coordinate influence estimates for product and slice laws. The
+degree based analysis complements the polynomial method for query complexity in [BealsEtAl2001].
+
+## Main statements
+
+* `cube_flip_sum_le_two`: absolute sums of selected flip differences are at most `2 * d²`.
+* `cube_point_flip_square_sum_le`: the sum of squared flip differences is at most `4 * d²`.
+* `cube_total_inf_le`: total influence is at most `8 * d²` under any cube probability weight.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -21,6 +43,8 @@ namespace Qatlib.Concepts.ProbabilityCore.DistributionAA
 open Polynomial
 open scoped Classical BigOperators
 
+/-- For a function valued in `[0, 1]` with cube degree at most `d`, the absolute sum of flip
+differences over any coordinate subset is at most `2 * d²` at each input. -/
 theorem cube_flip_sum_le_two {n d : ℕ} {f : (Fin n → Bool) → ℝ}
     (hb : ∀ x, f x ∈ Set.Icc 0 1) (hd : CubeDegreeLE d f)
     (x : Fin n → Bool) (A : Finset (Fin n)) :
@@ -52,12 +76,16 @@ theorem cube_flip_sum_le_two {n d : ℕ} {f : (Fin n → Bool) → ℝ}
   change |P.derivative.eval 0| ≤ _
   nlinarith only [hM]
 
+/-- For a function valued in `[0, 1]` with cube degree at most `d`, the absolute sum of flip
+differences over any coordinate subset is at most `4 * d²`. -/
 theorem cube_flip_sum_le {n d : ℕ} {f : (Fin n → Bool) → ℝ}
     (hb : ∀ x, f x ∈ Set.Icc 0 1) (hd : CubeDegreeLE d f)
     (x : Fin n → Bool) (A : Finset (Fin n)) :
     |∑ i ∈ A, (f x-f (cubeFlip x i))| ≤ 4*(d : ℝ)^2 :=
   (cube_flip_sum_le_two hb hd x A).trans (by nlinarith [sq_nonneg (d : ℝ)])
 
+/-- For a function valued in `[0, 1]` with cube degree at most `d`, the sum of squared
+coordinate flip differences at any input is at most `4 * d²`. -/
 theorem cube_point_flip_square_sum_le {n d : ℕ} {f : (Fin n → Bool) → ℝ}
     (hb : ∀ x, f x ∈ Set.Icc 0 1) (hd : CubeDegreeLE d f) (x : Fin n → Bool) :
     (∑ i, (f x-f (cubeFlip x i))^2) ≤ 4*(d : ℝ)^2 := by
@@ -90,6 +118,8 @@ theorem cube_point_flip_square_sum_le {n d : ℕ} {f : (Fin n → Bool) → ℝ}
       nlinarith [sq_abs (a i), abs_nonneg (a i)]
     _ ≤ _ := hsum
 
+/-- A function valued in `[0, 1]` with cube degree at most `d` has total influence at most `8 *
+d²` under any cube probability weight. -/
 theorem cube_total_inf_le {n d : ℕ} {w : (Fin n → Bool) → ℝ} (hw : CubeWeight n w)
     {f : (Fin n → Bool) → ℝ} (hb : ∀ x, f x ∈ Set.Icc 0 1) (hd : CubeDegreeLE d f) :
     cubeTotalInf n w f ≤ 8*(d : ℝ)^2 := by
@@ -102,6 +132,8 @@ theorem cube_total_inf_le {n d : ℕ} {w : (Fin n → Bool) → ℝ} (hw : CubeW
     _ = 4*(d : ℝ)^2 := by rw [← Finset.sum_mul, hw.2, one_mul]
     _ ≤ _ := by nlinarith [sq_nonneg (d : ℝ)]
 
+/-- For `0 < p < 1`, slice expected squared swap differences are at most twice the sum of the
+two coordinate flip influences. -/
 theorem swap_inf_le_two_add {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     {f : (Fin n → Bool) → ℝ} (i j : Fin n) :
     cubeExpect n (nuWeight p n) (fun x => (f x-f (cubeSwap x i j))^2) ≤
@@ -124,6 +156,8 @@ theorem swap_inf_le_two_add {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
         cube_expect_swap p (fun x => (f x-f (cubeFlip x j))^2) i j]
       rfl
 
+/-- For `n > 0` and `0 < p < 1`, both product and slice variances are at most `2 * n²` times
+some coordinate flip influence, with possibly different coordinates. -/
 theorem exists_inf_ge_var_div_two_n_sq {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (hn : 0 < n) {f : (Fin n → Bool) → ℝ} :
     (∃ i : Fin n, cubeVar n (muWeight p n) f ≤ 2*(n : ℝ)^2*cubeInf n (muWeight p n) f i) ∧

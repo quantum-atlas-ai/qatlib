@@ -23,6 +23,27 @@ import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchLoop
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnknownSigmaMean
+
+/-!
+# Shared imports for population risk continuation
+
+This module gathers the native risk, amplitude readout, numerical preparation, phase,
+arithmetic, and search interfaces used by population risk continuation. It introduces no new
+declarations; the imported constructions support the quantum risk analysis setting of
+[WoernerEgger2019].
+
+## Available interfaces
+
+* `riskNativeVaR` and `riskNativeCVaR`: native probabilistic risk programs.
+* `clause11`: arithmetic, workspace, access, and loading accounting.
+* `euclid_gcd_fuel`: the fuel bound for Euclidean computation.
+* `SpaceSchedule`: live workspace schedule data.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 

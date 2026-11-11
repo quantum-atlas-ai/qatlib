@@ -13,6 +13,42 @@ import Qatlib.Concepts.AmplitudeCore.InvFreePhase.SubspaceUnitary
 import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
 import Mathlib.Logic.Equiv.Prod
 import Mathlib.Logic.Equiv.Bool
+
+/-!
+# Finite-window simulation of native quantum machines
+
+Develops basis-state evolution and finite propagation bounds for native quantum machine rules.
+`Rule.runBasis` describes repeated transitions, while `Rule.global_lightcone` bounds the
+reachable head positions and tape changes. Finite window configurations and `Rule.windowUnitary`
+give exact finite-dimensional evolution whenever the initial head has sufficient room.
+Background on quantum machine models and circuit simulation appears in [BernsteinVazirani1997]
+and [Yao1993].
+
+Binary encodings transport window operations to qubit registers and preserve their amplitudes
+and Born-weighted observable sums. `Rule.binaryCanonicalGate_continuous_table` supplies a
+bounded exact local-gate implementation of the canonical cell gate for globally well-formed
+rules. Explicit head swap words and polynomial resource counts describe the routing and
+cell-gate budgets. Standard quantum circuit conventions are discussed in [NielsenChuang2010].
+
+## Main statements
+
+* `Rule.global_lightcone`: unitary evolution with finite head and tape propagation.
+* `Rule.windowRun_embed`: agreement of window and global evolution with sufficient head room.
+* `Rule.windowUnitary_power`: realization of window evolution by a finite unitary matrix.
+* `Rule.qubitWord_initial_value`: agreement of global observable sums with decoded qubit
+  evolution.
+* `Rule.binaryCanonicalGate_continuous_table`: exact local synthesis with a bounded number of
+  gates and zero queries.
+* `NativeMachineCompletion.windowStepGateCount_poly_bound`: a polynomial bound for the
+  window-step resource count.
+
+## References
+
+* [Bernstein and Vazirani, 1997][BernsteinVazirani1997]
+* [Yao, 1993][Yao1993]
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,19 +62,25 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open scoped BigOperators ComplexConjugate Classical Matrix Kronecker
 
+/-- A transition changes the head position by at most one tape cell. -/
 theorem target_head_bounds {Q A : Type*} {blank : A} (c : Config Q A blank) (m : Move) (q : Q) (a : A) :
     c.head - 1 ≤ (target c m q a).head ∧ (target c m q a).head ≤ c.head + 1 := by
   cases m <;> dsimp [target, Move.offset] <;> omega
 
+/-- A transition leaves every tape cell other than the original head position unchanged. -/
 theorem target_tape_other {Q A : Type*} {blank : A} (c : Config Q A blank) (m : Move) (q : Q) (a : A)
     (i : ℤ) (hi : i ≠ c.head) : (target c m q a).tape i = c.tape i := Tape.write_other _ _ _ _ hi
 
+/-- The state obtained after a given number of transitions from a basis configuration, defined
+recursively from the rule amplitudes. -/
 noncomputable def Rule.runBasis {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A) :
     ℕ → Config Q A R.blank → State Q A R.blank
   | 0, c => ket c
   | t + 1, c => ∑ s : Move × Q × A,
       R.amplitude c.state (c.tape c.head) s.1 s.2.1 s.2.2 • R.runBasis t (target c s.1 s.2.1 s.2.2)
 
+/-- The recursive evolution from a basis configuration equals the corresponding power of any
+unitary realizing the rule columns. -/
 theorem Rule.runBasis_eq_unitary_power {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (U : State Q A R.blank ≃ₗᵢ[ℂ] State Q A R.blank) (hU : ∀ c, U (ket c) = R.column c)
     (t : ℕ) (c : Config Q A R.blank) :
@@ -51,11 +93,14 @@ theorem Rule.runBasis_eq_unitary_power {Q A : Type*} [Fintype Q] [Fintype A] (R 
     rw [hU, Rule.column, map_sum]
     simp only [map_smul, ih, Rule.runBasis]
 
+/-- A basis ket evaluates to one at its own configuration and to zero elsewhere. -/
 theorem ket_apply {Q A : Type*} {blank : A} (c d : Config Q A blank) :
     ket c d = if c = d then 1 else 0 := by
   classical
   simp [ket, lp.single_apply, Pi.single_apply, eq_comm]
 
+/-- An evolved basis state has zero amplitude at configurations whose head lies outside the
+radius-`t` interval around the initial head. -/
 theorem Rule.runBasis_head_zero {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (t : ℕ) (c d : Config Q A R.blank)
     (hfar : d.head < c.head - (t : ℤ) ∨ c.head + (t : ℤ) < d.head) : R.runBasis t c d = 0 := by
@@ -73,6 +118,8 @@ theorem Rule.runBasis_head_zero {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule 
         (target c s.1 s.2.1 s.2.2).head + (t : ℤ) < d.head := by omega
     rw [ih _ hnext, mul_zero]
 
+/-- An evolved basis state has zero amplitude at configurations that change a tape cell outside
+the radius-`t` interval around the initial head. -/
 theorem Rule.runBasis_tape_zero {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (t : ℕ) (c d : Config Q A R.blank) (i : ℤ)
     (hfar : i < c.head - (t : ℤ) ∨ c.head + (t : ℤ) < i) (hchange : d.tape i ≠ c.tape i) :
@@ -94,6 +141,8 @@ theorem Rule.runBasis_tape_zero {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule 
       rwa [target_tape_other c s.1 s.2.1 s.2.2 i hi]
     rw [ih _ hnext hneq, mul_zero]
 
+/-- A globally well-formed rule has a unitary realization whose iterates satisfy the head and
+tape light-cone bounds. -/
 theorem Rule.global_lightcone {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) :
     ∃ U : State Q A R.blank ≃ₗᵢ[ℂ] State Q A R.blank,
@@ -108,6 +157,8 @@ theorem Rule.global_lightcone {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q 
   rw [R.runBasis_eq_unitary_power U hU]
   exact ⟨R.runBasis_head_zero t c d, fun i => R.runBasis_tape_zero t c d i⟩
 
+/-- Iterating a pure shift rule translates the head by `t * move.offset` and leaves a basis
+state. -/
 theorem shiftRule_runBasis (Q A : Type*) [Fintype Q] [Fintype A] (blank : A) (move : Move)
     (t : ℕ) (c : Config Q A blank) :
     (shiftRule Q A blank move).runBasis t c = ket ((headTranslate ((t : ℤ) * move.offset)) c) := by
@@ -138,6 +189,7 @@ theorem shiftRule_runBasis (Q A : Type*) [Fintype Q] [Fintype A] (blank : A) (mo
     · intro h
       exact False.elim (h (Finset.mem_univ _))
 
+/-- Evolution from a basis configuration has norm one for a globally well-formed rule. -/
 theorem Rule.runBasis_norm {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) (t : ℕ) (c : Config Q A R.blank) : ‖R.runBasis t c‖ = 1 := by
   obtain ⟨U, hU⟩ := h
@@ -151,6 +203,7 @@ theorem Rule.runBasis_norm {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
   rw [← R.runBasis_eq_unitary_power U hU, hp]
   exact (ket_orthonormal R.blank).norm_eq_one c
 
+/-- The squared amplitudes of an evolved basis state sum to one for a globally well-formed rule. -/
 theorem Rule.runBasis_born_mass {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) (t : ℕ) (c : Config Q A R.blank) :
     ∑' d : Config Q A R.blank, ‖R.runBasis t c d‖ ^ 2 = 1 := by
@@ -159,35 +212,43 @@ theorem Rule.runBasis_born_mass {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule 
     simpa using! hn
   rw [← hs, R.runBasis_norm h, one_pow]
 
+/-- The integer tape position corresponding to an index in the window centered at `center` with
+radius `t`. -/
 def windowPos (center : ℤ) (t : ℕ) (j : Fin (2*t+1)) : ℤ := center - (t : ℤ) + (j.val : ℤ)
 
+/-- The finite window index of an integer position within the specified radius-`t` interval. -/
 def windowIndex (center : ℤ) (t : ℕ) (i : ℤ)
     (h : center - (t : ℤ) ≤ i ∧ i ≤ center + (t : ℤ)) : Fin (2*t+1) :=
   ⟨(i-center+(t : ℤ)).toNat, by omega⟩
 
+/-- Every position produced by `windowPos` lies in the specified window interval. -/
 theorem windowPos_bounds (center : ℤ) (t : ℕ) (j : Fin (2*t+1)) :
     center - (t : ℤ) ≤ windowPos center t j ∧ windowPos center t j ≤ center + (t : ℤ) := by
   dsimp [windowPos]
   omega
 
+/-- Converting a position in the window to an index and back recovers that position. -/
 theorem windowPos_index (center : ℤ) (t : ℕ) (i : ℤ)
     (h : center - (t : ℤ) ≤ i ∧ i ≤ center + (t : ℤ)) :
     windowPos center t (windowIndex center t i h) = i := by
   dsimp [windowPos, windowIndex]
   omega
 
+/-- Converting a window index to a position and back recovers that index. -/
 theorem windowIndex_pos (center : ℤ) (t : ℕ) (j : Fin (2*t+1)) :
     windowIndex center t (windowPos center t j) (windowPos_bounds center t j) = j := by
   apply Fin.ext
   dsimp [windowPos, windowIndex]
   omega
 
+/-- Distinct window indices correspond to distinct integer tape positions. -/
 theorem windowPos_injective (center : ℤ) (t : ℕ) : Function.Injective (windowPos center t) := by
   intro i j h
   apply Fin.ext
   dsimp [windowPos] at h
   omega
 
+/-- The tape obtained by replacing the cells in a finite window with the given symbols. -/
 def Tape.patchWindow {A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ)
     (a : Fin (2*t+1) → A) : Tape A blank where
   cell i := if h : center - (t : ℤ) ≤ i ∧ i ≤ center + (t : ℤ) then a (windowIndex center t i h) else T i
@@ -199,6 +260,7 @@ def Tape.patchWindow {A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (
       change (if h : center - (t : ℤ) ≤ i ∧ i ≤ center + (t : ℤ) then a (windowIndex center t i h) else T i) ≠ blank at hi
       simpa only [dif_neg h] using! hi)
 
+/-- A patched tape has the prescribed symbol at each indexed position of the window. -/
 theorem Tape.patchWindow_at {A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ)
     (a : Fin (2*t+1) → A) (j : Fin (2*t+1)) :
     T.patchWindow center t a (windowPos center t j) = a j := by
@@ -206,18 +268,24 @@ theorem Tape.patchWindow_at {A : Type*} {blank : A} (T : Tape A blank) (center :
     then a (windowIndex center t (windowPos center t j) h) else T (windowPos center t j)) = _
   rw [dif_pos (windowPos_bounds center t j), windowIndex_pos]
 
+/-- Patching a finite window leaves every tape cell outside that window unchanged. -/
 theorem Tape.patchWindow_outside {A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ)
     (a : Fin (2*t+1) → A) (i : ℤ)
     (h : i < center - (t : ℤ) ∨ center + (t : ℤ) < i) : T.patchWindow center t a i = T i := by
   change (if h : center - (t : ℤ) ≤ i ∧ i ≤ center + (t : ℤ) then a (windowIndex center t i h) else T i) = _
   rw [dif_neg (by omega)]
 
+/-- A finite window configuration consisting of an internal state, a head index, and the
+window's tape symbols. -/
 abbrev WindowConfig (Q A : Type*) (t : ℕ) := Q × Fin (2*t+1) × (Fin (2*t+1) → A)
 
+/-- The global configuration obtained by placing a window configuration into a background tape
+at the specified center. -/
 def encodeWindow {Q A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ)
     (w : WindowConfig Q A t) : Config Q A blank :=
   ⟨w.1, T.patchWindow center t w.2.2, windowPos center t w.2.1⟩
 
+/-- Encoding window configurations into a fixed background tape is injective. -/
 theorem encodeWindow_injective {Q A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ) :
     Function.Injective (encodeWindow (Q := Q) T center t) := by
   intro a b h
@@ -230,15 +298,19 @@ theorem encodeWindow_injective {Q A : Type*} {blank : A} (T : Tape A blank) (cen
         (hj.trans (Tape.patchWindow_at T center t b.2.2 j))
   exact Prod.ext hs (Prod.ext hh ht)
 
+/-- The number of window configurations is `card Q * (2*t+1) * card A ^ (2*t+1)`. -/
 theorem WindowConfig.card (Q A : Type*) [Fintype Q] [Fintype A] (t : ℕ) :
     Fintype.card (WindowConfig Q A t) = Fintype.card Q * (2*t+1) * Fintype.card A ^ (2*t+1) := by
   simp [WindowConfig, mul_assoc]
 
+/-- Extract the state, head index, and tape symbols of a global configuration when its head lies
+inside the window. -/
 def decodeWindow {Q A : Type*} {blank : A} (center : ℤ) (t : ℕ)
     (c : Config Q A blank) : Option (WindowConfig Q A t) :=
   if h : center - (t : ℤ) ≤ c.head ∧ c.head ≤ center + (t : ℤ) then
     some (c.state, windowIndex center t c.head h, fun j => c.tape (windowPos center t j)) else none
 
+/-- Decoding an encoded window configuration recovers the original window configuration. -/
 theorem decodeWindow_encode {Q A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ)
     (w : WindowConfig Q A t) : decodeWindow center t (encodeWindow T center t w) = some w := by
   unfold decodeWindow
@@ -252,6 +324,8 @@ theorem decodeWindow_encode {Q A : Type*} {blank : A} (T : Tape A blank) (center
     · funext j
       exact Tape.patchWindow_at T center t w.2.2 j
 
+/-- Encoding a configuration's window data recovers the configuration when its head is inside
+the window and its tape agrees with the background outside. -/
 theorem encodeWindow_of_compatible {Q A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (t : ℕ)
     (c : Config Q A blank) (hh : center - (t : ℤ) ≤ c.head ∧ c.head ≤ center + (t : ℤ))
     (ht : ∀ i, (i < center - (t : ℤ) ∨ center + (t : ℤ) < i) → c.tape i = T i) :
@@ -271,6 +345,8 @@ theorem encodeWindow_of_compatible {Q A : Type*} {blank : A} (T : Tape A blank) 
       rw [Tape.patchWindow_outside _ _ _ _ _ ho, ht i ho]
   · exact windowPos_index center t c.head hh
 
+/-- Every configuration with nonzero amplitude after `t` steps has a unique representation in
+the radius-`t` window around the initial head. -/
 theorem Rule.runBasis_window_witness {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (t : ℕ) (c d : Config Q A R.blank) (hn : R.runBasis t c d ≠ 0) :
     ∃! w : WindowConfig Q A t, encodeWindow c.tape c.head t w = d := by
@@ -289,6 +365,8 @@ theorem Rule.runBasis_window_witness {Q A : Type*} [Fintype Q] [Fintype A] (R : 
   intro v hv
   exact encodeWindow_injective c.tape c.head t (hv.trans hw.symm)
 
+/-- An evolved basis state equals the finite sum of its amplitudes over the encoded radius-`t`
+window configurations. -/
 theorem Rule.runBasis_eq_window_sum {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (t : ℕ) (c : Config Q A R.blank) :
     R.runBasis t c = ∑ w : WindowConfig Q A t,
@@ -313,6 +391,8 @@ theorem Rule.runBasis_eq_window_sum {Q A : Type*} [Fintype Q] [Fintype A] (R : R
     intro w _
     rw [if_neg (fun hh => he ⟨w, hh⟩), mul_zero]
 
+/-- The squared amplitudes over the encoded radius-`t` window sum to one for a globally
+well-formed rule. -/
 theorem Rule.window_born_mass {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) (t : ℕ) (c : Config Q A R.blank) :
     ∑ w : WindowConfig Q A t, ‖R.runBasis t c (encodeWindow c.tape c.head t w)‖ ^ 2 = 1 := by
@@ -333,11 +413,15 @@ theorem Rule.window_born_mass {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q 
     _ = ‖R.runBasis t c‖ ^ 2 := (norm_sq_eq_re_inner (𝕜 := ℂ) _).symm
     _ = 1 := by rw [R.runBasis_norm h, one_pow]
 
+/-- Perform a transition on a finite window configuration, returning `none` if the moved head
+would leave the window. -/
 def WindowConfig.step? {Q A : Type*} {B : ℕ} (w : WindowConfig Q A B) (m : Move) (q : Q) (a : A) :
     Option (WindowConfig Q A B) :=
   if h : 0 ≤ (w.2.1.val : ℤ) + m.offset ∧ (w.2.1.val : ℤ) + m.offset < ((2*B+1 : ℕ) : ℤ) then
     some (q, ⟨((w.2.1.val : ℤ) + m.offset).toNat, by omega⟩, Function.update w.2.2 w.2.1 a) else none
 
+/-- A successful window step updates the internal state, writes at the old head, and shifts the
+head by the specified move offset. -/
 theorem WindowConfig.step?_spec {Q A : Type*} {B : ℕ} (w v : WindowConfig Q A B) (m : Move) (q : Q) (a : A)
     (h : w.step? m q a = some v) :
     v.1 = q ∧ v.2.2 = Function.update w.2.2 w.2.1 a ∧ (v.2.1.val : ℤ) = (w.2.1.val : ℤ) + m.offset := by
@@ -348,6 +432,7 @@ theorem WindowConfig.step?_spec {Q A : Type*} {B : ℕ} (w v : WindowConfig Q A 
     dsimp
     omega
 
+/-- A window step succeeds whenever the shifted head index stays inside the window. -/
 theorem WindowConfig.step?_exists {Q A : Type*} {B : ℕ} (w : WindowConfig Q A B) (m : Move) (q : Q) (a : A)
     (hb : 0 ≤ (w.2.1.val : ℤ) + m.offset ∧ (w.2.1.val : ℤ) + m.offset < ((2*B+1 : ℕ) : ℤ)) :
     ∃ v, w.step? m q a = some v := by
@@ -355,6 +440,8 @@ theorem WindowConfig.step?_exists {Q A : Type*} {B : ℕ} (w : WindowConfig Q A 
   rw [dif_pos hb]
   exact ⟨_, rfl⟩
 
+/-- Writing a cell of a patched tape is equivalent to updating that cell in the window data
+before patching. -/
 theorem Tape.patchWindow_update {A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (B : ℕ)
     (cells : Fin (2*B+1) → A) (j : Fin (2*B+1)) (a : A) :
     (T.patchWindow center B cells).write (windowPos center B j) a =
@@ -375,6 +462,7 @@ theorem Tape.patchWindow_update {A : Type*} {blank : A} (T : Tape A blank) (cent
     · have hf : i < center - (B : ℤ) ∨ center + (B : ℤ) < i := by omega
       rw [Tape.patchWindow_outside _ _ _ _ _ hf, Tape.patchWindow_outside _ _ _ _ _ hf]
 
+/-- Encoding a successful window step agrees with applying the corresponding global transition. -/
 theorem encodeWindow_step {Q A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (B : ℕ)
     (w v : WindowConfig Q A B) (m : Move) (q : Q) (a : A) (h : w.step? m q a = some v) :
     encodeWindow T center B v = target (encodeWindow T center B w) m q a := by
@@ -386,12 +474,17 @@ theorem encodeWindow_step {Q A : Type*} {blank : A} (T : Tape A blank) (center :
   · dsimp [encodeWindow, target, windowPos]
     omega
 
+/-- The condition that the head has at least `s` cells of room toward either boundary of the
+window. -/
 def WindowConfig.Room {Q A : Type*} {B : ℕ} (w : WindowConfig Q A B) (s : ℕ) : Prop :=
   s ≤ w.2.1.val ∧ w.2.1.val + s < 2*B+1
 
+/-- Every move offset lies between minus one and one. -/
 theorem Move.offset_bounds (m : Move) : -1 ≤ m.offset ∧ m.offset ≤ 1 := by
   cases m <;> simp [Move.offset]
 
+/-- A window configuration with room for `s+1` steps can take any transition and retain room for
+`s` steps. -/
 theorem WindowConfig.step?_room {Q A : Type*} {B : ℕ} (w : WindowConfig Q A B) (s : ℕ)
     (hr : w.Room (s+1)) (m : Move) (q : Q) (a : A) :
     ∃ v, w.step? m q a = some v ∧ v.Room s := by
@@ -405,11 +498,14 @@ theorem WindowConfig.step?_room {Q A : Type*} {B : ℕ} (w : WindowConfig Q A B)
   dsimp [WindowConfig.Room] at hr ⊢
   omega
 
+/-- The symbol read under the head of an encoded window is the window symbol at its head index. -/
 theorem encodeWindow_read {Q A : Type*} {blank : A} (T : Tape A blank) (center : ℤ) (B : ℕ)
     (w : WindowConfig Q A B) :
     (encodeWindow T center B w).tape (encodeWindow T center B w).head = w.2.2 w.2.1 :=
   Tape.patchWindow_at T center B w.2.2 w.2.1
 
+/-- The linear embedding of window amplitudes into global states using the corresponding encoded
+basis configurations. -/
 noncomputable def windowEmbed {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
     (T : Tape A blank) (center : ℤ) (B : ℕ) :
     (WindowConfig Q A B → ℂ) →ₗ[ℂ] State Q A blank where
@@ -417,10 +513,12 @@ noncomputable def windowEmbed {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
   map_add' f g := by simp only [Pi.add_apply, add_smul, Finset.sum_add_distrib]
   map_smul' a f := by simp only [RingHom.id_apply, Pi.smul_apply, smul_eq_mul, mul_smul, Finset.smul_sum]
 
+/-- The window embedding is the sum of encoded basis kets weighted by the window amplitudes. -/
 theorem windowEmbed_apply {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
     (T : Tape A blank) (center : ℤ) (B : ℕ) (f : WindowConfig Q A B → ℂ) :
     windowEmbed T center B f = ∑ w : WindowConfig Q A B, f w • ket (encodeWindow T center B w) := rfl
 
+/-- Evaluating a window embedding at an encoded configuration recovers its window amplitude. -/
 theorem windowEmbed_eval {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
     (T : Tape A blank) (center : ℤ) (B : ℕ) (f : WindowConfig Q A B → ℂ) (w : WindowConfig Q A B) :
     windowEmbed T center B f (encodeWindow T center B w) = f w := by
@@ -433,6 +531,8 @@ theorem windowEmbed_eval {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
   · intro hh
     exact False.elim (hh (Finset.mem_univ _))
 
+/-- Embedding a single supported window amplitude gives the corresponding scalar multiple of an
+encoded basis ket. -/
 theorem windowEmbed_single {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
     (T : Tape A blank) (center : ℤ) (B : ℕ) (w : WindowConfig Q A B) (a : ℂ) :
     windowEmbed T center B (Pi.single w a) = a • ket (encodeWindow T center B w) := by
@@ -444,6 +544,8 @@ theorem windowEmbed_single {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
   · intro hh
     exact False.elim (hh (Finset.mem_univ _))
 
+/-- The recursive evolution on a finite window, with transitions leaving the window contributing
+zero. -/
 noncomputable def Rule.windowRun {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A) (B : ℕ) :
     ℕ → WindowConfig Q A B → (WindowConfig Q A B → ℂ)
   | 0, w => Pi.single w 1
@@ -452,6 +554,8 @@ noncomputable def Rule.windowRun {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule
       | none => 0
       | some v => R.windowRun B s v
 
+/-- Window evolution embeds into global evolution when the initial head has room for the
+specified number of steps. -/
 theorem Rule.windowRun_embed {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (T : Tape A R.blank) (center : ℤ) (B s : ℕ) (w : WindowConfig Q A B) (hr : w.Room s) :
     windowEmbed T center B (R.windowRun B s w) = R.runBasis s (encodeWindow T center B w) := by
@@ -467,11 +571,14 @@ theorem Rule.windowRun_embed {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A
     rw [encodeWindow_read]
     rfl
 
+/-- Window and global evolution have equal amplitudes between encoded configurations when the
+initial window has sufficient room. -/
 theorem Rule.windowRun_eq {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (T : Tape A R.blank) (center : ℤ) (B s : ℕ) (w v : WindowConfig Q A B) (hr : w.Room s) :
     R.windowRun B s w v = R.runBasis s (encodeWindow T center B w) (encodeWindow T center B v) := by
   rw [← windowEmbed_eval T center B (R.windowRun B s w) v, R.windowRun_embed T center B s w hr]
 
+/-- The inner product of embedded window states equals the finite coordinate inner product. -/
 theorem windowEmbed_inner {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
     (T : Tape A blank) (center : ℤ) (B : ℕ) (f g : WindowConfig Q A B → ℂ) :
     inner ℂ (windowEmbed T center B f) (windowEmbed T center B g) = ∑ w : WindowConfig Q A B, star (f w) * g w := by
@@ -480,6 +587,7 @@ theorem windowEmbed_inner {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
   rw [windowEmbed_apply, windowEmbed_apply]
   exact hv.inner_sum f g Finset.univ
 
+/-- The squared norm of an embedded window state equals the sum of its squared coordinate norms. -/
 theorem windowEmbed_norm_sq {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
     (T : Tape A blank) (center : ℤ) (B : ℕ) (f : WindowConfig Q A B → ℂ) :
     ‖windowEmbed T center B f‖ ^ 2 = ∑ w : WindowConfig Q A B, ‖f w‖ ^ 2 := by
@@ -489,40 +597,51 @@ theorem windowEmbed_norm_sq {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
     _ = (inner ℂ (windowEmbed T center B f) (windowEmbed T center B f)).re := norm_sq_eq_re_inner (𝕜 := ℂ) _
     _ = _ := by rw [windowEmbed_inner, Complex.re_sum]; simp only [hz]
 
+/-- Window evolution preserves total squared amplitude for a globally well-formed rule when the
+initial window has sufficient room. -/
 theorem Rule.windowRun_mass {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) (T : Tape A R.blank) (center : ℤ) (B s : ℕ)
     (w : WindowConfig Q A B) (hr : w.Room s) : ∑ v : WindowConfig Q A B, ‖R.windowRun B s w v‖ ^ 2 = 1 := by
   rw [← windowEmbed_norm_sq T center B, R.windowRun_embed T center B s w hr, R.runBasis_norm h,
       one_pow]
 
+/-- The window data of a global configuration centered at its current head position. -/
 def initialWindow {Q A : Type*} {blank : A} (B : ℕ) (c : Config Q A blank) : WindowConfig Q A B :=
   (c.state, windowIndex c.head B c.head (by omega), fun j => c.tape (windowPos c.head B j))
 
+/-- The head index in an initial window is its central index `B`. -/
 theorem initialWindow_head {Q A : Type*} {blank : A} (B : ℕ) (c : Config Q A blank) :
     (initialWindow B c).2.1.val = B := by
   dsimp [initialWindow, windowIndex]
   omega
 
+/-- An initial window of radius `B` has room for any number of steps at most `B`. -/
 theorem initialWindow_room {Q A : Type*} {blank : A} (B s : ℕ) (c : Config Q A blank) (hs : s ≤ B) :
     (initialWindow B c).Room s := by
   dsimp [WindowConfig.Room]
   rw [initialWindow_head]
   omega
 
+/-- Encoding the initial window in the original tape recovers the global configuration. -/
 theorem encodeWindow_initial {Q A : Type*} {blank : A} (B : ℕ) (c : Config Q A blank) :
     encodeWindow c.tape c.head B (initialWindow B c) = c :=
   encodeWindow_of_compatible c.tape c.head B c (by omega) (fun _ _ => rfl)
 
+/-- Evolution of the initial window embeds into global evolution for at most `B` steps. -/
 theorem Rule.windowRun_initial {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (B s : ℕ) (hs : s ≤ B) (c : Config Q A R.blank) :
     windowEmbed c.tape c.head B (R.windowRun B s (initialWindow B c)) = R.runBasis s c := by
   rw [R.windowRun_embed c.tape c.head B s _ (initialWindow_room B s c hs), encodeWindow_initial]
 
+/-- Evolution of the initial window has total squared amplitude one for at most `B` steps under
+a globally well-formed rule. -/
 theorem Rule.windowRun_initial_mass {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) (B s : ℕ) (hs : s ≤ B) (c : Config Q A R.blank) :
     ∑ v : WindowConfig Q A B, ‖R.windowRun B s (initialWindow B c) v‖ ^ 2 = 1 :=
   R.windowRun_mass h c.tape c.head B s _ (initialWindow_room B s c hs)
 
+/-- A window embedding has zero amplitude at any configuration outside the image of the window
+encoding. -/
 theorem windowEmbed_outside {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
     (T : Tape A blank) (center : ℤ) (B : ℕ) (f : WindowConfig Q A B → ℂ) (d : Config Q A blank)
     (hd : ¬ ∃ w : WindowConfig Q A B, encodeWindow T center B w = d) : windowEmbed T center B f d = 0 := by
@@ -532,6 +651,8 @@ theorem windowEmbed_outside {Q A : Type*} [Fintype Q] [Fintype A] {blank : A}
   intro w _
   rw [if_neg (fun he => hd ⟨w, he⟩), mul_zero]
 
+/-- A Born-weighted sum of a real observable after global evolution equals the corresponding
+finite window sum when sufficient room is available. -/
 theorem Rule.windowRun_born_value {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (T : Tape A R.blank) (center : ℤ) (B s : ℕ) (w : WindowConfig Q A B) (hr : w.Room s)
     (P : Config Q A R.blank → ℝ) :
@@ -559,6 +680,8 @@ theorem Rule.windowRun_born_value {Q A : Type*} [Fintype Q] [Fintype A] (R : Rul
         P (encodeWindow T center B v) = _
       rw [← R.windowRun_eq T center B s w v hr]
 
+/-- For at most `B` steps, a Born-weighted global observable sum equals the finite sum over
+evolution of the initial window. -/
 theorem Rule.windowRun_initial_value {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (B s : ℕ) (hs : s ≤ B) (c : Config Q A R.blank) (P : Config Q A R.blank → ℝ) :
     (∑' d : Config Q A R.blank, ‖R.runBasis s c d‖ ^ 2 * P d) =
@@ -566,6 +689,8 @@ theorem Rule.windowRun_initial_value {Q A : Type*} [Fintype Q] [Fintype A] (R : 
   simpa only [encodeWindow_initial] using! R.windowRun_born_value c.tape c.head B s (initialWindow B c)
     (initialWindow_room B s c hs) P
 
+/-- Five transitions of the five-phase rule per original step reproduce the original evolution
+embedded in phase zero. -/
 theorem fivePhase_runBasis {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) (b : OrthonormalBasis Q ℂ (EuclideanSpace ℂ Q)) (t : ℕ)
     (c : Config Q A R.blank) :
@@ -578,6 +703,8 @@ theorem fivePhase_runBasis {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
   exact (fivePhase_cycles R.blank b U t (ket c)).trans
     (congrArg (phaseEmbed (0 : Fin 5)) (R.runBasis_eq_unitary_power U hU t c))
 
+/-- After `5*t` five-phase transitions, phase-zero amplitudes equal the original `t`-step
+amplitudes and all other phases have zero amplitude. -/
 theorem fivePhase_runBasis_apply {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) (b : OrthonormalBasis Q ℂ (EuclideanSpace ℂ Q)) (t : ℕ)
     (c d : Config Q A R.blank) (p : Fin 5) :
@@ -586,19 +713,28 @@ theorem fivePhase_runBasis_apply {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule
   rw [fivePhase_runBasis R h b, phaseEmbed_apply]
   by_cases hp : p = 0 <;> simp [hp]
 
+/-- The tape symbols at all window positions except a distinguished cell. -/
 abbrev CellRest (A : Type*) {B : ℕ} (i : Fin (2*B+1)) := {j : Fin (2*B+1) // j ≠ i} → A
 
+/-- The sum of input state-symbol labels and output move-state-symbol labels for a local cell
+transition. -/
 abbrev CellView (Q A : Type*) := (Q × A) ⊕ (Move × Q × A)
 
+/-- Assemble the full window tape from a distinguished cell symbol and the symbols at all
+remaining cells. -/
 def cellAssemble {A : Type*} {B : ℕ} (i : Fin (2*B+1)) (a : A) (r : CellRest A i) : Fin (2*B+1) → A :=
   (Equiv.funSplitAt i A).symm (a,r)
 
+/-- The assembled tape has the supplied symbol at the distinguished cell. -/
 @[simp] theorem cellAssemble_same {A : Type*} {B : ℕ} (i : Fin (2*B+1)) (a : A) (r : CellRest A i) :
     cellAssemble i a r i = a := by simp [cellAssemble, Equiv.funSplitAt, Equiv.piSplitAt]
 
+/-- Away from the distinguished cell, the assembled tape agrees with the supplied remaining-cell
+data. -/
 theorem cellAssemble_other {A : Type*} {B : ℕ} (i j : Fin (2*B+1)) (a : A) (r : CellRest A i) (h : j ≠ i) :
     cellAssemble i a r j = r ⟨j,h⟩ := by simp [cellAssemble, Equiv.funSplitAt, Equiv.piSplitAt, h]
 
+/-- Updating the distinguished cell of an assembled tape replaces its distinguished symbol. -/
 theorem cellAssemble_update {A : Type*} {B : ℕ} (i : Fin (2*B+1)) (a b : A) (r : CellRest A i) :
     Function.update (cellAssemble i a r) i b = cellAssemble i b r := by
   ext j
@@ -606,19 +742,24 @@ theorem cellAssemble_update {A : Type*} {B : ℕ} (i : Fin (2*B+1)) (a b : A) (r
   · subst j; simp
   · simp [cellAssemble_other, h]
 
+/-- The distinguished symbol and remaining-cell data are uniquely determined by the assembled
+tape. -/
 theorem cellAssemble_injective {A : Type*} {B : ℕ} (i : Fin (2*B+1)) :
     Function.Injective (fun ar : A × CellRest A i => cellAssemble i ar.1 ar.2) :=
   (Equiv.funSplitAt i A).symm.injective
 
+/-- The neighboring window index reached by a move from an interior cell. -/
 def windowNeighbor {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) (m : Move) : Fin (2*B+1) :=
   ⟨((i.val : ℤ)+m.offset).toNat, by have hm := Move.offset_bounds m; omega⟩
 
+/-- The neighboring index differs from the original index by the move offset. -/
 theorem windowNeighbor_val {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) (m : Move) :
     ((windowNeighbor i hi m).val : ℤ) = (i.val : ℤ)+m.offset := by
   have hm := Move.offset_bounds m
   dsimp [windowNeighbor]
   omega
 
+/-- Distinct moves from an interior cell give distinct neighboring window indices. -/
 theorem windowNeighbor_injective {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) :
     Function.Injective (windowNeighbor i hi) := by
   intro m n h
@@ -627,12 +768,15 @@ theorem windowNeighbor_injective {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val �
   rw [windowNeighbor_val, windowNeighbor_val] at he
   cases m <;> cases n <;> simp_all [Move.offset]
 
+/-- Place a local input or output cell label and the remaining tape data into a window
+configuration with a Boolean processing mode. -/
 def cellPlace {Q A : Type*} {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (vr : CellView Q A × CellRest A i) : Bool × WindowConfig Q A B :=
   match vr.1 with
   | .inl qa => (false,qa.1,i,cellAssemble i qa.2 vr.2)
   | .inr mqa => (true,mqa.2.1,windowNeighbor i hi mqa.1,cellAssemble i mqa.2.2 vr.2)
 
+/-- Local cell placement into the mode-tagged window configurations is injective. -/
 theorem cellPlace_injective {Q A : Type*} {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) :
     Function.Injective (cellPlace (Q := Q) (A := A) i hi) := by
   rintro ⟨v,r⟩ ⟨v',r'⟩ h
@@ -661,9 +805,11 @@ theorem cellPlace_injective {Q A : Type*} {B : ℕ} (i : Fin (2*B+1)) (hi : 1 �
       exact Prod.ext
           (congrArg Sum.inr (Prod.ext hm (Prod.ext hq (congrArg (fun ar : A × CellRest A i => ar.1) ha)))) (congrArg (fun ar : A × CellRest A i => ar.2) ha)
 
+/-- The coordinate matrix whose column at `i` is the basis vector at `f i`. -/
 noncomputable def injectionFrame {ι κ : Type*} [DecidableEq κ] (f : ι → κ) : Matrix κ ι ℂ :=
   fun x i => if x = f i then 1 else 0
 
+/-- The coordinate matrix of an injective map is an isometry. -/
 theorem injectionFrame_isometry {ι κ : Type*} [Fintype ι] [Fintype κ] [DecidableEq ι] [DecidableEq κ]
     (f : ι → κ) (hf : Function.Injective f) : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (injectionFrame f) := by
   ext i j
@@ -674,21 +820,26 @@ theorem injectionFrame_isometry {ι κ : Type*} [Fintype ι] [Fintype κ] [Decid
   rw [Finset.sum_ite_eq']
   simp only [Finset.mem_univ, if_true, Matrix.one_apply, hf.eq_iff]
 
+/-- The coordinate frame embedding local cell labels and the remaining tape data into
+mode-tagged window configurations. -/
 noncomputable def cellLocalFrame {Q A : Type*} [DecidableEq Q] [DecidableEq A] {B : ℕ}
     (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) :
     Matrix (Bool × WindowConfig Q A B) (CellView Q A × CellRest A i) ℂ :=
   injectionFrame (cellPlace i hi)
 
+/-- The local cell coordinate frame is an isometry. -/
 theorem cellLocalFrame_isometry {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) :
     Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (cellLocalFrame (Q := Q) (A := A) i hi) :=
   injectionFrame_isometry _ (cellPlace_injective i hi)
 
+/-- The local cell gate obtained by extending the cell-swap operator through the local frame. -/
 noncomputable def Rule.cellLocalGate {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) :
     Matrix (Bool × WindowConfig Q A B) (Bool × WindowConfig Q A B) ℂ :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (cellLocalFrame i hi) (R.cellSwap ⊗ₖ (1 : Matrix (CellRest A i) (CellRest A i) ℂ))
 
+/-- The local cell gate is unitary for a globally well-formed rule. -/
 theorem Rule.cellLocalGate_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) :
     R.cellLocalGate i hi ∈ Matrix.unitaryGroup (Bool × WindowConfig Q A B) ℂ := by
@@ -696,12 +847,15 @@ theorem Rule.cellLocalGate_unitary {Q A : Type*} [Fintype Q] [Fintype A] [Decida
       (cellLocalFrame_isometry i hi)
   exact Matrix.kronecker_mem_unitary (R.cellSwap_unitary h) (one_mem _)
 
+/-- The local cell frame intertwines the local gate with the cell-swap operator tensored with
+the identity on remaining cells. -/
 theorem Rule.cellLocalGate_frame {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) :
     R.cellLocalGate i hi * cellLocalFrame i hi =
       cellLocalFrame i hi * (R.cellSwap ⊗ₖ (1 : Matrix (CellRest A i) (CellRest A i) ℂ)) :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary_frame _ (cellLocalFrame_isometry i hi) _
 
+/-- A successful local transition agrees with the output configuration specified by `cellPlace`. -/
 theorem cellPlace_step {Q A : Type*} {B : ℕ}
     (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (q : Q) (a : A) (r : CellRest A i) (m : Move) (q' : Q) (b : A) :
@@ -713,6 +867,8 @@ theorem cellPlace_step {Q A : Type*} {B : ℕ}
   rw [dif_pos hb, cellAssemble_update]
   rfl
 
+/-- A local gate column in the placement frame is the corresponding cell-swap column with the
+remaining tape data fixed. -/
 theorem Rule.cellLocalGate_column {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (vr : CellView Q A × CellRest A i) (x : Bool × WindowConfig Q A B) :
@@ -732,6 +888,8 @@ theorem Rule.cellLocalGate_column {Q A : Type*} [Fintype Q] [Fintype A] [Decidab
   intro v _
   split_ifs <;> simp
 
+/-- A local gate column at an input configuration is the sum of output placements weighted by
+transition amplitudes. -/
 theorem Rule.cellLocalGate_old_column {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (q : Q) (a : A) (r : CellRest A i) (x : Bool × WindowConfig Q A B) :
@@ -744,6 +902,8 @@ theorem Rule.cellLocalGate_old_column {Q A : Type*} [Fintype Q] [Fintype A] [Dec
   simp only [Rule.cellSwap, isometrySwap, Matrix.fromBlocks_apply₁₁, Matrix.zero_apply, zero_mul,
     Finset.sum_const_zero, zero_add, Matrix.fromBlocks_apply₂₁, Rule.cellIsometry]
 
+/-- The local gate column at an input configuration equals the one-step window amplitude in the
+true mode and vanishes in the false mode. -/
 theorem Rule.cellLocalGate_actual_step {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (q : Q) (a : A) (r : CellRest A i) (x : Bool × WindowConfig Q A B) :
@@ -764,12 +924,16 @@ theorem Rule.cellLocalGate_actual_step {Q A : Type*} [Fintype Q] [Fintype A] [De
     rw [cellPlace_step i hi q a r out.1 out.2.1 out.2.2]
     simp [cellPlace, Pi.single_apply]
 
+/-- The adjoint coordinate frame annihilates a basis vector outside the image of its defining
+map. -/
 theorem injectionFrame_adjoint_outside {ι κ : Type*} [Fintype κ] [DecidableEq ι] [DecidableEq κ]
     (f : ι → κ) (y : κ) (hy : ∀ j, y ≠ f j) :
     (injectionFrame f).conjTranspose *ᵥ Pi.single y 1 = 0 := by
   ext j
   simp [Matrix.conjTranspose_apply, injectionFrame, hy j]
 
+/-- The frame extension of an operator fixes basis vectors outside the image of the coordinate
+frame. -/
 theorem frameUnitary_outside {ι κ : Type*} [Fintype ι] [Fintype κ] [DecidableEq ι] [DecidableEq κ]
     (f : ι → κ) (T : Matrix ι ι ℂ) (y : κ) (hy : ∀ j, y ≠ f j) :
     Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (injectionFrame f) T *ᵥ Pi.single y 1 = Pi.single y 1 := by
@@ -778,6 +942,7 @@ theorem frameUnitary_outside {ι κ : Type*} [Fintype ι] [Fintype κ] [Decidabl
     Matrix.add_mulVec, Matrix.sub_mulVec, Matrix.one_mulVec, ← Matrix.mulVec_mulVec, he,
     Matrix.mulVec_zero, sub_zero, add_zero]
 
+/-- A local cell gate fixes an input-mode basis configuration whose head is at another cell. -/
 theorem Rule.cellLocalGate_other_old {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (w : WindowConfig Q A B) (hw : w.2.1 ≠ i) :
@@ -788,6 +953,8 @@ theorem Rule.cellLocalGate_other_old {Q A : Type*} [Fintype Q] [Fintype A] [Deci
   | inl qa => exact hw (congrArg (fun z : Bool × WindowConfig Q A B => z.2.2.1) h)
   | inr ma => exact Bool.false_ne_true (congrArg Prod.fst h)
 
+/-- For any window configuration headed at the chosen cell, the local gate produces its one-step
+amplitudes only in the true mode. -/
 theorem Rule.cellLocalGate_actual_step_all {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (w : WindowConfig Q A B) (hw : w.2.1 = i) (x : Bool × WindowConfig Q A B) :
@@ -798,6 +965,8 @@ theorem Rule.cellLocalGate_actual_step_all {Q A : Type*} [Fintype Q] [Fintype A]
   rw [← he]
   exact R.cellLocalGate_actual_step i hi w.1 (w.2.2 i) r x
 
+/-- A frame extension fixes a vector whenever the original operator fixes its coordinates under
+the adjoint frame. -/
 theorem frameUnitary_fixed {ι κ : Type*} [Fintype ι] [Fintype κ] [DecidableEq ι] [DecidableEq κ]
     (E : Matrix κ ι ℂ) (T : Matrix ι ι ℂ) (x : κ → ℂ)
     (hx : T *ᵥ (E.conjTranspose *ᵥ x) = E.conjTranspose *ᵥ x) :
@@ -806,28 +975,36 @@ theorem frameUnitary_fixed {ι κ : Type*} [Fintype ι] [Fintype κ] [DecidableE
     Matrix.add_mulVec, Matrix.sub_mulVec, Matrix.one_mulVec, ← Matrix.mulVec_mulVec, hx,
     sub_add_cancel]
 
+/-- A matrix tensored with an identity acts independently on each fixed second coordinate. -/
 theorem kronecker_one_mulVec_apply {ι κ : Type*} [Fintype ι] [Fintype κ] [DecidableEq κ]
     (M : Matrix ι ι ℂ) (f : ι × κ → ℂ) (i : ι) (k : κ) :
     ((M ⊗ₖ (1 : Matrix κ κ ℂ)) *ᵥ f) (i,k) = (M *ᵥ (fun j => f (j,k))) i := by
   simp [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, Matrix.one_apply,
     mul_ite]
 
+/-- The adjoint coordinate frame evaluates a vector at the image of each source index. -/
 theorem injectionFrame_adjoint_apply {ι κ : Type*} [Fintype κ] [DecidableEq κ]
     (f : ι → κ) (x : κ → ℂ) (j : ι) : ((injectionFrame f).conjTranspose *ᵥ x) j = x (f j) := by
   simp [Matrix.mulVec, dotProduct, Matrix.conjTranspose_apply, injectionFrame, ite_mul]
 
+/-- The linear embedding of window amplitudes into a chosen Boolean mode, with zero amplitudes
+in the other mode. -/
 def windowMode {Q A : Type*} {B : ℕ} (p : Bool) :
     (WindowConfig Q A B → ℂ) →ₗ[ℂ] (Bool × WindowConfig Q A B → ℂ) where
   toFun f x := if x.1 = p then f x.2 else 0
   map_add' f g := by ext x; split_ifs with h <;> simp [h]
   map_smul' a f := by ext x; split_ifs with h <;> simp [h]
 
+/-- Embedding a window basis vector into a mode gives the corresponding mode-tagged basis
+vector. -/
 theorem windowMode_single {Q A : Type*} [DecidableEq Q] [DecidableEq A] {B : ℕ}
     (p : Bool) (w : WindowConfig Q A B) :
     windowMode p (Pi.single w 1) = Pi.single (p,w) 1 := by
   ext x
   simp [windowMode, Pi.single_apply, Prod.ext_iff, ite_and]
 
+/-- The local cell gate fixes a true-mode state whose transition-weighted coordinates vanish at
+every local input. -/
 theorem Rule.cellLocalGate_fixed_new {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (y : WindowConfig Q A B → ℂ)
@@ -853,6 +1030,8 @@ theorem Rule.cellLocalGate_fixed_new {Q A : Type*} [Fintype Q] [Fintype A] [Deci
   exact (congrArg (fun f : CellView Q A → ℂ => f v) hfix).trans
     (congrArg (fun f : CellView Q A → ℂ => f v) hs.symm)
 
+/-- One-step window evolutions of distinct configurations are orthogonal when both have room for
+one step and the rule is globally well formed. -/
 theorem Rule.windowRun_one_inner_ne {Q A : Type*} [Fintype Q] [Fintype A] (R : Rule Q A)
     (h : R.GloballyWellformed) {B : ℕ} (u v : WindowConfig Q A B) (hu : u.Room 1) (hv : v.Room 1)
     (hne : u ≠ v) :
@@ -866,6 +1045,8 @@ theorem Rule.windowRun_one_inner_ne {Q A : Type*} [Fintype Q] [Fintype A] (R : R
   rw [U.inner_map_map, ket_inner]
   exact if_neg (fun he => hne (encodeWindow_injective T 0 B he))
 
+/-- The coordinate inner product with a one-step window evolution equals the local sum weighted
+by conjugate transition amplitudes. -/
 theorem Rule.windowRun_one_inner_local {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (q : Q) (a : A) (r : CellRest A i) (y : WindowConfig Q A B → ℂ) :
@@ -880,6 +1061,8 @@ theorem Rule.windowRun_one_inner_local {Q A : Type*} [Fintype Q] [Fintype A] [De
   intro out _
   simp [Pi.single_apply]
 
+/-- The local gate at another cell fixes the true-mode one-step evolution of a configuration
+with room for one step. -/
 theorem Rule.cellLocalGate_processed {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (i : Fin (2*B+1))
     (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1) (w : WindowConfig Q A B) (hw : w.Room 1) (hne : w.2.1 ≠ i) :
@@ -893,6 +1076,8 @@ theorem Rule.cellLocalGate_processed {Q A : Type*} [Fintype Q] [Fintype A] [Deci
   · intro he
     exact hne (congrArg (fun c : WindowConfig Q A B => c.2.1) he).symm
 
+/-- The local gate sends a basis configuration headed at its cell to its one-step window
+evolution in the true mode. -/
 theorem Rule.cellLocalGate_source {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : Fin (2*B+1)) (hi : 1 ≤ i.val ∧ i.val+1 < 2*B+1)
     (w : WindowConfig Q A B) (hw : w.2.1 = i) :
@@ -903,14 +1088,18 @@ theorem Rule.cellLocalGate_source {Q A : Type*} [Fintype Q] [Fintype A] [Decidab
   rw [R.cellLocalGate_actual_step_all i hi w hw]
   cases h : x.1 <;> simp [windowMode, h]
 
+/-- The interior window positions having both a left neighbor and a right neighbor. -/
 abbrev WindowCenter (B : ℕ) := {i : Fin (2*B+1) // 1 ≤ i.val ∧ i.val+1 < 2*B+1}
 
+/-- The matrix product of local cell gates in the order specified by a list of interior
+positions. -/
 noncomputable def Rule.cellSweep {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} : List (WindowCenter B) →
       Matrix (Bool × WindowConfig Q A B) (Bool × WindowConfig Q A B) ℂ
   | [] => 1
   | i :: l => R.cellSweep l * R.cellLocalGate i.val i.property
 
+/-- A sweep of local cell gates is unitary for a globally well-formed rule. -/
 theorem Rule.cellSweep_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (l : List (WindowCenter B)) :
     R.cellSweep l ∈ Matrix.unitaryGroup (Bool × WindowConfig Q A B) ℂ := by
@@ -918,6 +1107,8 @@ theorem Rule.cellSweep_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableE
   | nil => exact one_mem _
   | cons i l ih => exact mul_mem ih (R.cellLocalGate_unitary h i.val i.property)
 
+/-- A sweep fixes a processed one-step state when none of its cells is the original head
+position. -/
 theorem Rule.cellSweep_processed {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (l : List (WindowCenter B))
     (w : WindowConfig Q A B) (hw : w.Room 1) (hne : ∀ i ∈ l, w.2.1 ≠ i.val) :
@@ -929,6 +1120,8 @@ theorem Rule.cellSweep_processed {Q A : Type*} [Fintype Q] [Fintype A] [Decidabl
         R.cellLocalGate_processed h i.val i.property w hw (hne i (by simp))]
     exact ih (fun j hj => hne j (by simp [hj]))
 
+/-- A sweep over distinct cells processes an input basis configuration exactly when its head
+cell occurs in the list. -/
 theorem Rule.cellSweep_source {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (l : List (WindowCenter B)) (hl : l.Nodup)
     (w : WindowConfig Q A B) (hw : w.Room 1) :
@@ -952,13 +1145,17 @@ theorem Rule.cellSweep_source {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq
       have hcenter : (⟨w.2.1,hw⟩ : WindowCenter B) ≠ i := fun he => hiw (congrArg Subtype.val he)
       simp [hcenter]
 
+/-- The interior window position with index `j+1`. -/
 def windowCenterAt (B : ℕ) (j : Fin (2*B-1)) : WindowCenter B :=
   ⟨⟨j.val+1,by omega⟩,by dsimp; omega⟩
 
+/-- The ordered list of all interior window positions. -/
 def windowCenters (B : ℕ) : List (WindowCenter B) := List.ofFn (windowCenterAt B)
 
+/-- The list of interior window positions has length `2*B-1`. -/
 theorem windowCenters_length (B : ℕ) : (windowCenters B).length = 2*B-1 := List.length_ofFn
 
+/-- The list of interior window positions has no repetitions. -/
 theorem windowCenters_nodup (B : ℕ) : (windowCenters B).Nodup := by
   apply List.nodup_ofFn.mpr
   intro a b he
@@ -967,6 +1164,7 @@ theorem windowCenters_nodup (B : ℕ) : (windowCenters B).Nodup := by
   dsimp [windowCenterAt] at hv
   omega
 
+/-- Every interior window position occurs in `windowCenters`. -/
 theorem mem_windowCenters {B : ℕ} (i : WindowCenter B) : i ∈ windowCenters B := by
   apply List.mem_ofFn.mpr
   refine ⟨⟨i.val.val-1,by have hi := i.property; omega⟩, ?_⟩
@@ -976,11 +1174,15 @@ theorem mem_windowCenters {B : ℕ} (i : WindowCenter B) : i ∈ windowCenters B
   have hi := i.property
   omega
 
+/-- Sweeping all interior positions sends a basis configuration with room for one step to its
+true-mode one-step evolution. -/
 theorem Rule.cellSweep_complete {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (w : WindowConfig Q A B) (hw : w.Room 1) :
     R.cellSweep (windowCenters B) *ᵥ Pi.single (false,w) 1 = windowMode true (R.windowRun B 1 w) := by
   rw [R.cellSweep_source h _ (windowCenters_nodup B) w hw, if_pos (mem_windowCenters _)]
 
+/-- The coordinate matrix of a permutation acts on amplitudes by precomposition with its
+inverse. -/
 theorem injectionFrame_equiv_mulVec {κ : Type*} [Fintype κ] [DecidableEq κ]
     (e : κ ≃ κ) (x : κ → ℂ) (y : κ) : (injectionFrame e *ᵥ x) y = x (e.symm y) := by
   have he (j : κ) : y = e j ↔ j = e.symm y := by
@@ -991,15 +1193,19 @@ theorem injectionFrame_equiv_mulVec {κ : Type*} [Fintype κ] [DecidableEq κ]
       rw [h, e.apply_symm_apply]
   simp [Matrix.mulVec, dotProduct, injectionFrame, ite_mul, he]
 
+/-- The permutation matrix that flips the Boolean mode of a window configuration. -/
 noncomputable def windowFlip {Q A : Type*} [DecidableEq Q] [DecidableEq A] (B : ℕ) :
     Matrix (Bool × WindowConfig Q A B) (Bool × WindowConfig Q A B) ℂ :=
   injectionFrame (Equiv.prodCongr Equiv.boolNot (Equiv.refl (WindowConfig Q A B)))
 
+/-- The window mode-flip matrix is unitary. -/
 theorem windowFlip_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A] (B : ℕ) :
     windowFlip (Q := Q) (A := A) B ∈ Matrix.unitaryGroup (Bool × WindowConfig Q A B) ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
   exact injectionFrame_isometry _ (Equiv.prodCongr Equiv.boolNot (Equiv.refl _)).injective
 
+/-- The window mode-flip matrix changes the selected mode while preserving the window
+amplitudes. -/
 theorem windowFlip_mode {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (B : ℕ) (p : Bool) (x : WindowConfig Q A B → ℂ) :
     windowFlip B *ᵥ windowMode p x = windowMode (!p) x := by
@@ -1008,21 +1214,28 @@ theorem windowFlip_mode {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [D
   rcases y with ⟨b,w⟩
   cases b <;> cases p <;> simp [windowMode, Equiv.boolNot]
 
+/-- The finite-window evolution matrix given by a complete local sweep followed by a Boolean
+mode flip. -/
 noncomputable def Rule.windowUnitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (B : ℕ) : Matrix (Bool × WindowConfig Q A B) (Bool × WindowConfig Q A B) ℂ :=
   windowFlip B * R.cellSweep (windowCenters B)
 
+/-- The finite-window evolution matrix is unitary for a globally well-formed rule. -/
 theorem Rule.windowUnitary_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) (B : ℕ) :
     R.windowUnitary B ∈ Matrix.unitaryGroup (Bool × WindowConfig Q A B) ℂ :=
   mul_mem (windowFlip_unitary B) (R.cellSweep_unitary h _)
 
+/-- One application of the window unitary realizes one-step window evolution in the false mode
+when sufficient room is available. -/
 theorem Rule.windowUnitary_source {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (w : WindowConfig Q A B) (hw : w.Room 1) :
     R.windowUnitary B *ᵥ Pi.single (false,w) 1 = windowMode false (R.windowRun B 1 w) := by
   rw [Rule.windowUnitary, ← Matrix.mulVec_mulVec, R.cellSweep_complete h w hw, windowFlip_mode]
   rfl
 
+/-- A power of the window unitary realizes recursive window evolution in the false mode when the
+initial head has sufficient room. -/
 theorem Rule.windowUnitary_power {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) (B t : ℕ) (w : WindowConfig Q A B) (hw : w.Room t) :
     (R.windowUnitary B ^ t) *ᵥ Pi.single (false,w) 1 = windowMode false (R.windowRun B t w) := by
@@ -1047,6 +1260,8 @@ theorem Rule.windowUnitary_power {Q A : Type*} [Fintype Q] [Fintype A] [Decidabl
     rw [hs, map_smul]
     exact congrArg (fun y => R.amplitude w.1 (w.2.2 w.2.1) out.1 out.2.1 out.2.2 • y) (ih v hr)
 
+/-- The false-mode component of a window-unitary power embeds into the corresponding global
+evolution when sufficient room is available. -/
 theorem Rule.windowUnitary_global {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) (T : Tape A R.blank) (center : ℤ) (B t : ℕ)
     (w : WindowConfig Q A B) (hw : w.Room t) :
@@ -1056,12 +1271,16 @@ theorem Rule.windowUnitary_global {Q A : Type*} [Fintype Q] [Fintype A] [Decidab
   change windowEmbed T center B (R.windowRun B t w) = _
   exact R.windowRun_embed T center B t w hw
 
+/-- The true-mode component of a window-unitary power vanishes on a false-mode basis input with
+sufficient room. -/
 theorem Rule.windowUnitary_new_zero {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) (B t : ℕ) (w v : WindowConfig Q A B) (hw : w.Room t) :
     ((R.windowUnitary B ^ t) *ᵥ Pi.single (false,w) 1) (true,v) = 0 := by
   rw [R.windowUnitary_power h B t w hw]
   simp [windowMode]
 
+/-- For `t ≤ B`, the window unitary acting on an initial window embeds into the global `t`-step
+evolution. -/
 theorem Rule.windowUnitary_initial {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) (B t : ℕ) (ht : t ≤ B) (c : Config Q A R.blank) :
     windowEmbed c.tape c.head B (fun v =>
@@ -1069,6 +1288,8 @@ theorem Rule.windowUnitary_initial {Q A : Type*} [Fintype Q] [Fintype A] [Decida
   rw [R.windowUnitary_global h c.tape c.head B t _ (initialWindow_room B t c ht),
       encodeWindow_initial]
 
+/-- For `t ≤ B`, Born-weighted global observable sums equal the finite sums computed from the
+window-unitary evolution. -/
 theorem Rule.windowUnitary_initial_value {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) (B t : ℕ) (ht : t ≤ B) (c : Config Q A R.blank)
     (P : Config Q A R.blank → ℝ) :
@@ -1080,28 +1301,34 @@ theorem Rule.windowUnitary_initial_value {Q A : Type*} [Fintype Q] [Fintype A] [
       R.windowUnitary_power h B t _ (initialWindow_room B t c ht)]
   simp [Fintype.sum_prod_type, windowMode]
 
+/-- The elementary window operations: a local cell gate or a Boolean mode flip. -/
 inductive WindowOp (B : ℕ) where
   | cell : WindowCenter B → WindowOp B
   | flip : WindowOp B
   deriving DecidableEq
 
+/-- The operation list for a complete sweep of the interior cells followed by a mode flip. -/
 def windowStepOps (B : ℕ) : List (WindowOp B) :=
   (windowCenters B).map WindowOp.cell ++ [.flip]
 
+/-- The operation word consisting of the specified number of window steps. -/
 def windowWord (B : ℕ) : ℕ → List (WindowOp B)
   | 0 => []
   | t+1 => windowStepOps B ++ windowWord B t
 
+/-- The matrix interpretation of a local cell operation or mode-flip operation. -/
 noncomputable def WindowOp.matrix {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} : WindowOp B → Matrix (Bool × WindowConfig Q A B) (Bool × WindowConfig Q A B) ℂ
   | .cell i => R.cellLocalGate i.val i.property
   | .flip => windowFlip B
 
+/-- The matrix of a window operation word, with operations applied in list order. -/
 noncomputable def Rule.windowWordMatrix {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} : List (WindowOp B) → Matrix (Bool × WindowConfig Q A B) (Bool × WindowConfig Q A B) ℂ
   | [] => 1
   | g :: l => R.windowWordMatrix l * g.matrix R
 
+/-- Concatenating operation words gives the product of their matrices in reverse order. -/
 theorem Rule.windowWordMatrix_append {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (l r : List (WindowOp B)) :
     R.windowWordMatrix (l++r) = R.windowWordMatrix r * R.windowWordMatrix l := by
@@ -1109,6 +1336,7 @@ theorem Rule.windowWordMatrix_append {Q A : Type*} [Fintype Q] [Fintype A] [Deci
   | nil => simp [Rule.windowWordMatrix]
   | cons a l ih => simp only [List.cons_append, Rule.windowWordMatrix, ih, Matrix.mul_assoc]
 
+/-- The matrix of a list of cell operations equals the corresponding local cell sweep. -/
 theorem Rule.windowWordMatrix_cells {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (l : List (WindowCenter B)) :
     R.windowWordMatrix (l.map WindowOp.cell) = R.cellSweep l := by
@@ -1116,38 +1344,47 @@ theorem Rule.windowWordMatrix_cells {Q A : Type*} [Fintype Q] [Fintype A] [Decid
   | nil => rfl
   | cons i l ih => simp only [List.map_cons, Rule.windowWordMatrix, Rule.cellSweep, ih, WindowOp.matrix]
 
+/-- The matrix of the one-step operation list is the window unitary. -/
 theorem Rule.windowStepOps_matrix {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (B : ℕ) : R.windowWordMatrix (windowStepOps B) = R.windowUnitary B := by
   rw [windowStepOps, R.windowWordMatrix_append, R.windowWordMatrix_cells]
   simp [Rule.windowWordMatrix, WindowOp.matrix, Rule.windowUnitary]
 
+/-- The matrix of the `t`-step window word is the `t`th power of the window unitary. -/
 theorem Rule.windowWord_matrix {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (B t : ℕ) : R.windowWordMatrix (windowWord B t) = R.windowUnitary B ^ t := by
   induction t with
   | zero => rfl
   | succ t ih => rw [windowWord, R.windowWordMatrix_append, R.windowStepOps_matrix, ih, pow_succ]
 
+/-- The one-step window operation list has length `(2*B-1)+1`. -/
 theorem windowStepOps_length (B : ℕ) : (windowStepOps B).length = (2*B-1)+1 := by
   simp [windowStepOps, windowCenters_length]
 
+/-- The `t`-step window operation word has length `t*((2*B-1)+1)`. -/
 theorem windowWord_length (B t : ℕ) : (windowWord B t).length = t*((2*B-1)+1) := by
   induction t with
   | zero => simp [windowWord]
   | succ t ih => simp [windowWord, List.length_append, windowStepOps_length, ih, Nat.succ_mul, Nat.add_comm]
 
+/-- The `t`-step window operation word has length at most `t*(2*B+1)`. -/
 theorem windowWord_length_bound (B t : ℕ) : (windowWord B t).length ≤ t*(2*B+1) := by
   rw [windowWord_length]
   exact Nat.mul_le_mul_left t (by omega)
 
+/-- Encode a window operation as a natural number, using zero for the mode flip and the cell
+index plus one for a cell gate. -/
 def WindowOp.encode {B : ℕ} : WindowOp B → ℕ
   | .cell i => i.val.val+1
   | .flip => 0
 
+/-- Decode a natural-number operation code, returning `none` for an invalid cell code. -/
 def WindowOp.decode (B n : ℕ) : Option (WindowOp B) :=
   if n = 0 then some .flip else
   if h : n-1 < 2*B+1 ∧ 1 ≤ n-1 ∧ (n-1)+1 < 2*B+1 then
     some (.cell ⟨⟨n-1,h.1⟩,h.2⟩) else none
 
+/-- Decoding the code of a window operation recovers that operation. -/
 theorem WindowOp.decode_encode {B : ℕ} (g : WindowOp B) : decode B g.encode = some g := by
   cases g with
   | flip => simp [encode,decode]
@@ -1157,8 +1394,10 @@ theorem WindowOp.decode_encode {B : ℕ} (g : WindowOp B) : decode B g.encode = 
     rw [if_neg (by omega), dif_pos (by omega)]
     congr 3
 
+/-- The list of natural-number codes for the `t`-step window word. -/
 def windowWordCode (B t : ℕ) : List ℕ := (windowWord B t).map WindowOp.encode
 
+/-- Decoding every entry of the coded window word recovers the original operation word. -/
 theorem windowWordCode_decode (B t : ℕ) :
     (windowWordCode B t).mapM (WindowOp.decode B) = some (windowWord B t) := by
   simp only [windowWordCode, List.mapM_map, Function.comp_def, WindowOp.decode_encode]
@@ -1167,12 +1406,15 @@ theorem windowWordCode_decode (B t : ℕ) :
   | nil => rfl
   | cons g l ih => simp [List.mapM_cons, ih]
 
+/-- The permutation built by successively swapping each routed source slot into its target slot. -/
 def slotRoutePrefix {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k → α) : ℕ → Equiv.Perm α
   | 0 => Equiv.refl α
   | n+1 => if h : n < k then
       (slotRoutePrefix a b n).trans (Equiv.swap (slotRoutePrefix a b n (a ⟨n,h⟩)) (b ⟨n,h⟩))
     else slotRoutePrefix a b n
 
+/-- A routing prefix sends each of the first `n` source slots to its target when both slot
+families are injective. -/
 theorem slotRoutePrefix_spec {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k → α)
     (ha : Function.Injective a) (hb : Function.Injective b) (n : ℕ) (hn : n ≤ k) :
     ∀ j : Fin k, j.val < n → slotRoutePrefix a b n (a j) = b j := by
@@ -1196,17 +1438,22 @@ theorem slotRoutePrefix_spec {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin 
       · intro hbad
         exact he (congrArg Fin.val (hb hbad))
 
+/-- The permutation obtained by completing the slot-routing construction. -/
 def slotRoute {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k → α) : Equiv.Perm α :=
   slotRoutePrefix a b k
 
+/-- The completed route sends every source slot to its corresponding target for injective slot
+families. -/
 theorem slotRoute_spec {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k → α)
     (ha : Function.Injective a) (hb : Function.Injective b) (j : Fin k) :
     slotRoute a b (a j) = b j := slotRoutePrefix_spec a b ha hb k le_rfl j j.isLt
 
+/-- The permutation obtained by applying a list of transpositions in list order. -/
 def swapWordEval {α : Type*} [DecidableEq α] : List (α × α) → Equiv.Perm α
   | [] => Equiv.refl α
   | ab :: l => (Equiv.swap ab.1 ab.2).trans (swapWordEval l)
 
+/-- Evaluating concatenated swap words composes their permutations in list order. -/
 theorem swapWordEval_append {α : Type*} [DecidableEq α] (l r : List (α × α)) :
     swapWordEval (l++r) = (swapWordEval l).trans (swapWordEval r) := by
   induction l with
@@ -1215,12 +1462,14 @@ theorem swapWordEval_append {α : Type*} [DecidableEq α] (l r : List (α × α)
     simp only [List.cons_append, swapWordEval, ih]
     rfl
 
+/-- The swap list implementing the first `n` stages of slot routing. -/
 def slotRouteSwaps {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k → α) : ℕ → List (α × α)
   | 0 => []
   | n+1 => if h : n < k then
       slotRouteSwaps a b n ++ [(slotRoutePrefix a b n (a ⟨n,h⟩),b ⟨n,h⟩)]
     else slotRouteSwaps a b n
 
+/-- The routing swap list evaluates to the corresponding routing-prefix permutation. -/
 theorem slotRouteSwaps_eval {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k → α) (n : ℕ) :
     swapWordEval (slotRouteSwaps a b n) = slotRoutePrefix a b n := by
   induction n with
@@ -1231,6 +1480,7 @@ theorem slotRouteSwaps_eval {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k
       rfl
     · rw [slotRouteSwaps, dif_neg hn, slotRoutePrefix, dif_neg hn, ih]
 
+/-- For `n ≤ k`, the first `n` routing stages use exactly `n` swaps. -/
 theorem slotRouteSwaps_length {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin k → α)
     (n : ℕ) (hn : n ≤ k) : (slotRouteSwaps a b n).length = n := by
   induction n with
@@ -1239,14 +1489,17 @@ theorem slotRouteSwaps_length {α : Type*} [DecidableEq α] {k : ℕ} (a b : Fin
     rw [slotRouteSwaps, dif_pos (by omega), List.length_append]
     simp [ih (by omega)]
 
+/-- A Boolean processing mode paired with a finite window head position. -/
 abbrev WindowHead (B : ℕ) := Bool × Fin (2*B+1)
 
+/-- The four head slots for a cell input and its left, stationary, and right outputs. -/
 def cellHeadSlots {B : ℕ} (i : WindowCenter B) : Fin 4 → WindowHead B
   | 0 => (false,i.val)
   | 1 => (true,windowNeighbor i.val i.property .left)
   | 2 => (true,windowNeighbor i.val i.property .stay)
   | _ => (true,windowNeighbor i.val i.property .right)
 
+/-- The four local head slots are pairwise distinct. -/
 theorem cellHeadSlots_injective {B : ℕ} (i : WindowCenter B) : Function.Injective (cellHeadSlots i) := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp_all [cellHeadSlots]
@@ -1254,57 +1507,72 @@ theorem cellHeadSlots_injective {B : ℕ} (i : WindowCenter B) : Function.Inject
     have he := windowNeighbor_injective i.val i.property h
     cases he
 
+/-- The four canonical head slots given by the two modes at positions zero and one. -/
 def canonicalHeadSlots {B : ℕ} (i : WindowCenter B) : Fin 4 → WindowHead B
   | 0 => (false,⟨0,by omega⟩)
   | 1 => (true,⟨0,by omega⟩)
   | 2 => (false,⟨1,by have hi := i.property; omega⟩)
   | _ => (true,⟨1,by have hi := i.property; omega⟩)
 
+/-- The four canonical head slots are pairwise distinct. -/
 theorem canonicalHeadSlots_injective {B : ℕ} (i : WindowCenter B) :
     Function.Injective (canonicalHeadSlots i) := by
   intro a b h
   fin_cases a <;> fin_cases b <;> simp_all [canonicalHeadSlots]
 
+/-- The head permutation routing the four local cell slots to their canonical slots. -/
 def cellHeadRoute {B : ℕ} (i : WindowCenter B) : Equiv.Perm (WindowHead B) :=
   slotRoute (cellHeadSlots i) (canonicalHeadSlots i)
 
+/-- The cell-head route sends each local head slot to its corresponding canonical slot. -/
 theorem cellHeadRoute_spec {B : ℕ} (i : WindowCenter B) (j : Fin 4) :
     cellHeadRoute i (cellHeadSlots i j) = canonicalHeadSlots i j :=
   slotRoute_spec _ _ (cellHeadSlots_injective i) (canonicalHeadSlots_injective i) j
 
+/-- The list of four swaps implementing the cell-head route. -/
 def cellHeadRouteWord {B : ℕ} (i : WindowCenter B) : List (WindowHead B × WindowHead B) :=
   slotRouteSwaps (cellHeadSlots i) (canonicalHeadSlots i) 4
 
+/-- The cell-head swap word evaluates to the cell-head routing permutation. -/
 theorem cellHeadRouteWord_eval {B : ℕ} (i : WindowCenter B) :
     swapWordEval (cellHeadRouteWord i) = cellHeadRoute i := slotRouteSwaps_eval _ _ 4
 
+/-- The cell-head routing word has length four. -/
 theorem cellHeadRouteWord_length {B : ℕ} (i : WindowCenter B) : (cellHeadRouteWord i).length = 4 :=
   slotRouteSwaps_length _ _ 4 le_rfl
 
+/-- The equivalence encoding a mode and head position as an address below `2*(2*B+1)`. -/
 def headAddressEquiv (B : ℕ) : WindowHead B ≃ Fin ((2*B+1)*2) :=
   ((Equiv.prodComm Bool (Fin (2*B+1))).trans
     (Equiv.prodCongr (Equiv.refl (Fin (2*B+1))) finTwoEquiv.symm)).trans finProdFinEquiv
 
+/-- The head address is twice the position plus the Boolean mode bit. -/
 theorem headAddressEquiv_val (B : ℕ) (x : WindowHead B) :
     (headAddressEquiv B x).val = 2*x.2.val + (if x.1 then 1 else 0) := by
   rcases x with ⟨b,h⟩
   cases b <;> simp [headAddressEquiv, finProdFinEquiv, finTwoEquiv, Nat.add_comm]
 
+/-- The ceiling base-two logarithm of the number of mode-tagged head positions. -/
 def headQubits (B : ℕ) : ℕ := Nat.clog 2 ((2*B+1)*2)
 
+/-- The head register has enough binary addresses to encode every mode-tagged head position. -/
 theorem headQubits_capacity (B : ℕ) : (2*B+1)*2 ≤ 2 ^ headQubits B := Nat.le_pow_clog (by decide) _
 
+/-- The binary-register encoding of a mode-tagged head position. -/
 def headToBits (B : ℕ) (x : WindowHead B) : Qatlib.Foundations.PureStateMath.Reg (headQubits B) :=
   (Qatlib.Foundations.PureStateMath.bitVecEquiv (headQubits B)).symm (Fin.castLE (headQubits_capacity B) (headAddressEquiv B x))
 
+/-- Decode a head register, returning `none` when its address is outside the legal head range. -/
 def headFromBits (B : ℕ) (x : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) : Option (WindowHead B) :=
   if h : (Qatlib.Foundations.PureStateMath.bitVecEquiv (headQubits B) x).val < (2*B+1)*2 then
     some ((headAddressEquiv B).symm ⟨_,h⟩) else none
 
+/-- The numeric value of an encoded head register equals its head address. -/
 theorem headToBits_address (B : ℕ) (x : WindowHead B) :
     (Qatlib.Foundations.PureStateMath.bitVecEquiv (headQubits B) (headToBits B x)).val = (headAddressEquiv B x).val := by
   simp [headToBits]
 
+/-- The binary head encoding is injective. -/
 theorem headToBits_injective (B : ℕ) : Function.Injective (headToBits B) := by
   intro x y h
   apply (headAddressEquiv B).injective
@@ -1312,6 +1580,7 @@ theorem headToBits_injective (B : ℕ) : Function.Injective (headToBits B) := by
   exact (headToBits_address B x).symm.trans
       ((congrArg (fun b => (Qatlib.Foundations.PureStateMath.bitVecEquiv (headQubits B) b).val) h).trans (headToBits_address B y))
 
+/-- Decoding an encoded head register recovers the mode-tagged head position. -/
 theorem headFromBits_toBits (B : ℕ) (x : WindowHead B) : headFromBits B (headToBits B x) = some x := by
   unfold headFromBits
   rw [dif_pos (by rw [headToBits_address]; exact (headAddressEquiv B x).isLt)]
@@ -1320,17 +1589,21 @@ theorem headFromBits_toBits (B : ℕ) (x : WindowHead B) : headFromBits B (headT
   simp only [Equiv.apply_symm_apply]
   exact Fin.ext (headToBits_address B x)
 
+/-- The address of the `j`th canonical head slot is `j`. -/
 theorem canonicalHeadSlots_address {B : ℕ} (i : WindowCenter B) (j : Fin 4) :
     (headAddressEquiv B (canonicalHeadSlots i j)).val = j.val := by
   fin_cases j <;> rw [headAddressEquiv_val] <;> rfl
 
+/-- The cell-head routing swap word transported to binary head-register labels. -/
 def cellHeadBitRouteWord {B : ℕ} (i : WindowCenter B) :
     List (Qatlib.Foundations.PureStateMath.Reg (headQubits B) × Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :=
   (cellHeadRouteWord i).map (fun xy => (headToBits B xy.1,headToBits B xy.2))
 
+/-- The binary cell-head routing word has length four. -/
 theorem cellHeadBitRouteWord_length {B : ℕ} (i : WindowCenter B) : (cellHeadBitRouteWord i).length = 4 := by
   rw [cellHeadBitRouteWord, List.length_map, cellHeadRouteWord_length]
 
+/-- An injective map intertwines a transposition with the transposition of its images. -/
 theorem swap_injection {α β : Type*} [DecidableEq α] [DecidableEq β] (f : α → β)
     (hf : Function.Injective f) (a b x : α) : Equiv.swap (f a) (f b) (f x) = f (Equiv.swap a b x) := by
   by_cases hxa : x = a
@@ -1342,6 +1615,8 @@ theorem swap_injection {α β : Type*} [DecidableEq α] [DecidableEq β] (f : α
     · rw [Equiv.swap_apply_of_ne_of_ne (fun h => hxa (hf h)) (fun h => hxb (hf h)),
         Equiv.swap_apply_of_ne_of_ne hxa hxb]
 
+/-- Mapping the labels of a swap word through an injection commutes with evaluating that word on
+encoded labels. -/
 theorem swapWordEval_map {α β : Type*} [DecidableEq α] [DecidableEq β] (f : α → β)
     (hf : Function.Injective f) (l : List (α × α)) (x : α) :
     swapWordEval (l.map (fun xy => (f xy.1,f xy.2))) (f x) = f (swapWordEval l x) := by
@@ -1351,6 +1626,7 @@ theorem swapWordEval_map {α β : Type*} [DecidableEq α] [DecidableEq β] (f : 
     simp only [List.map_cons, swapWordEval, Equiv.trans_apply, swap_injection f hf]
     exact ih _
 
+/-- A swap word whose labels lie in the image of a map fixes every label outside that image. -/
 theorem swapWordEval_map_outside {α β : Type*} [DecidableEq β] (f : α → β)
     (l : List (α × α)) (y : β) (hy : ∀ x, y ≠ f x) :
     swapWordEval (l.map (fun xy => (f xy.1,f xy.2))) y = y := by
@@ -1361,26 +1637,33 @@ theorem swapWordEval_map_outside {α β : Type*} [DecidableEq β] (f : α → β
       Equiv.swap_apply_of_ne_of_ne (hy ab.1) (hy ab.2)]
     exact ih
 
+/-- The permutation of binary head registers implemented by the cell-head routing word. -/
 def cellHeadBitRoute {B : ℕ} (i : WindowCenter B) : Equiv.Perm (Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :=
   swapWordEval (cellHeadBitRouteWord i)
 
+/-- The binary head route agrees with the original head route on encoded head labels. -/
 theorem cellHeadBitRoute_encoded {B : ℕ} (i : WindowCenter B) (x : WindowHead B) :
     cellHeadBitRoute i (headToBits B x) = headToBits B (cellHeadRoute i x) := by
   rw [cellHeadBitRoute, cellHeadBitRouteWord, swapWordEval_map _ (headToBits_injective B),
       cellHeadRouteWord_eval]
 
+/-- The binary head route sends each encoded local slot to its encoded canonical slot. -/
 theorem cellHeadBitRoute_spec {B : ℕ} (i : WindowCenter B) (j : Fin 4) :
     cellHeadBitRoute i (headToBits B (cellHeadSlots i j)) = headToBits B (canonicalHeadSlots i j) := by
   rw [cellHeadBitRoute_encoded, cellHeadRoute_spec]
 
+/-- The binary head route sends the `j`th local slot to the binary address `j`. -/
 theorem cellHeadBitRoute_spec_address {B : ℕ} (i : WindowCenter B) (j : Fin 4) :
     (Qatlib.Foundations.PureStateMath.bitVecEquiv (headQubits B) (cellHeadBitRoute i (headToBits B (cellHeadSlots i j)))).val = j.val := by
   rw [cellHeadBitRoute_spec, headToBits_address, canonicalHeadSlots_address]
 
+/-- The inverse binary head route sends each encoded canonical slot back to its encoded local
+slot. -/
 theorem cellHeadBitRoute_inverse_spec {B : ℕ} (i : WindowCenter B) (j : Fin 4) :
     (cellHeadBitRoute i).symm (headToBits B (canonicalHeadSlots i j)) = headToBits B (cellHeadSlots i j) :=
   (cellHeadBitRoute i).symm_apply_eq.mpr (cellHeadBitRoute_spec i j).symm
 
+/-- The binary head route fixes registers that do not decode to legal head labels. -/
 theorem cellHeadBitRoute_illegal {B : ℕ} (i : WindowCenter B) (x : Qatlib.Foundations.PureStateMath.Reg (headQubits B))
     (hx : headFromBits B x = none) : cellHeadBitRoute i x = x := by
   apply swapWordEval_map_outside
@@ -1388,6 +1671,8 @@ theorem cellHeadBitRoute_illegal {B : ℕ} (i : WindowCenter B) (x : Qatlib.Foun
   rw [he, headFromBits_toBits] at hx
   contradiction
 
+/-- The coordinate matrix of composed permutations is the reverse-ordered product of their
+coordinate matrices. -/
 theorem injectionFrame_equiv_trans {κ : Type*} [Fintype κ] [DecidableEq κ] (e f : Equiv.Perm κ) :
     injectionFrame (e.trans f) = injectionFrame f * injectionFrame e := by
   ext x y
@@ -1395,45 +1680,56 @@ theorem injectionFrame_equiv_trans {κ : Type*} [Fintype κ] [DecidableEq κ] (e
     ∑ z : κ, (if x = f z then 1 else 0) * (if z = e y then 1 else 0)
   simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
 
+/-- The matrix product implementing a list of transpositions in list order. -/
 noncomputable def swapWordMatrix {κ : Type*} [Fintype κ] [DecidableEq κ] : List (κ × κ) → Matrix κ κ ℂ
   | [] => 1
   | ab :: l => swapWordMatrix l * injectionFrame (Equiv.swap ab.1 ab.2)
 
+/-- The matrix of a swap word is the coordinate matrix of its evaluated permutation. -/
 theorem swapWordMatrix_eval {κ : Type*} [Fintype κ] [DecidableEq κ] (l : List (κ × κ)) :
     swapWordMatrix l = injectionFrame (swapWordEval l) := by
   induction l with
   | nil => ext x y; simp [swapWordMatrix, swapWordEval, injectionFrame, Matrix.one_apply]
   | cons ab l ih => rw [swapWordMatrix, ih, swapWordEval, injectionFrame_equiv_trans]
 
+/-- Every swap-word matrix is unitary. -/
 theorem swapWordMatrix_unitary {κ : Type*} [Fintype κ] [DecidableEq κ] (l : List (κ × κ)) :
     swapWordMatrix l ∈ Matrix.unitaryGroup κ ℂ := by
   rw [swapWordMatrix_eval, Matrix.mem_unitaryGroup_iff']
   exact injectionFrame_isometry _ (swapWordEval l).injective
 
+/-- A swap-word matrix sends each basis vector to the basis vector at its permuted label. -/
 theorem swapWordMatrix_single {κ : Type*} [Fintype κ] [DecidableEq κ] (l : List (κ × κ)) (x : κ) :
     swapWordMatrix l *ᵥ Pi.single x 1 = Pi.single (swapWordEval l x) 1 := by
   rw [swapWordMatrix_eval]
   ext y
   simp [injectionFrame, Pi.single_apply]
 
+/-- The matrix implementing the binary cell-head routing word. -/
 noncomputable def cellHeadBitRouteMatrix {B : ℕ} (i : WindowCenter B) :
     Matrix (Qatlib.Foundations.PureStateMath.Reg (headQubits B)) (Qatlib.Foundations.PureStateMath.Reg (headQubits B)) ℂ :=
   swapWordMatrix (cellHeadBitRouteWord i)
 
+/-- The binary cell-head routing matrix is unitary. -/
 theorem cellHeadBitRouteMatrix_unitary {B : ℕ} (i : WindowCenter B) :
     cellHeadBitRouteMatrix i ∈ Matrix.unitaryGroup (Qatlib.Foundations.PureStateMath.Reg (headQubits B)) ℂ := swapWordMatrix_unitary _
 
+/-- The binary head routing matrix sends each encoded local-slot basis vector to its
+canonical-slot basis vector. -/
 theorem cellHeadBitRouteMatrix_source {B : ℕ} (i : WindowCenter B) (j : Fin 4) :
     cellHeadBitRouteMatrix i *ᵥ Pi.single (headToBits B (cellHeadSlots i j)) 1 =
       Pi.single (headToBits B (canonicalHeadSlots i j)) 1 := by
   rw [cellHeadBitRouteMatrix, swapWordMatrix_single]
   rw [← cellHeadBitRoute, cellHeadBitRoute_spec]
 
+/-- The binary head routing matrix fixes basis vectors at illegal head registers. -/
 theorem cellHeadBitRouteMatrix_illegal {B : ℕ} (i : WindowCenter B) (x : Qatlib.Foundations.PureStateMath.Reg (headQubits B))
     (hx : headFromBits B x = none) : cellHeadBitRouteMatrix i *ᵥ Pi.single x 1 = Pi.single x 1 := by
   rw [cellHeadBitRouteMatrix, swapWordMatrix_single]
   rw [← cellHeadBitRoute, cellHeadBitRoute_illegal i x hx]
 
+/-- Re-encoding a successfully decoded window operation recovers its original natural-number
+code. -/
 theorem WindowOp.encode_decode {B n : ℕ} {g : WindowOp B} (h : decode B n = some g) : g.encode = n := by
   unfold decode at h
   split_ifs at h with hz hb
@@ -1443,6 +1739,7 @@ theorem WindowOp.encode_decode {B n : ℕ} {g : WindowOp B} (h : decode B n = so
     dsimp [encode]
     omega
 
+/-- Re-encoding a successfully decoded head register recovers the original register. -/
 theorem headToBits_fromBits {B : ℕ} {x : Qatlib.Foundations.PureStateMath.Reg (headQubits B)} {y : WindowHead B}
     (h : headFromBits B x = some y) : headToBits B y = x := by
   unfold headFromBits at h
@@ -1452,6 +1749,7 @@ theorem headToBits_fromBits {B : ℕ} {x : Qatlib.Foundations.PureStateMath.Reg 
     apply Fin.ext
     rw [headToBits_address, Equiv.apply_symm_apply]
 
+/-- Each window operation has a unitary matrix for a globally well-formed rule. -/
 theorem WindowOp.matrix_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (g : WindowOp B) :
     g.matrix R ∈ Matrix.unitaryGroup (Bool × WindowConfig Q A B) ℂ := by
@@ -1459,6 +1757,7 @@ theorem WindowOp.matrix_unitary {Q A : Type*} [Fintype Q] [Fintype A] [Decidable
   | cell i => exact R.cellLocalGate_unitary h i.val i.property
   | flip => exact windowFlip_unitary B
 
+/-- Every window operation word has a unitary matrix for a globally well-formed rule. -/
 theorem Rule.windowWordMatrix_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (l : List (WindowOp B)) :
     R.windowWordMatrix l ∈ Matrix.unitaryGroup (Bool × WindowConfig Q A B) ℂ := by
@@ -1466,6 +1765,8 @@ theorem Rule.windowWordMatrix_unitary {Q A : Type*} [Fintype Q] [Fintype A] [Dec
   | nil => exact one_mem _
   | cons g l ih => exact mul_mem ih (g.matrix_unitary R h)
 
+/-- The equivalence representing a local cell label by one of four transition tags together with
+its state and symbol. -/
 def cellViewCoords {Q A : Type*} : CellView Q A ≃ Fin 4 × Q × A where
   toFun
     | .inl qa => (0,qa)
@@ -1482,6 +1783,8 @@ def cellViewCoords {Q A : Type*} : CellView Q A ≃ Fin 4 × Q × A where
     | inr ma => rcases ma with ⟨m,qa⟩; cases m <;> rfl
   right_inv x := by rcases x with ⟨j,qa⟩; fin_cases j <;> rfl
 
+/-- The equivalence separating the mode-tagged head coordinates from the state and tape
+coordinates of a window. -/
 def windowHeadCoords (Q A : Type*) (B : ℕ) :
     (Bool × WindowConfig Q A B) ≃ WindowHead B × Q × (Fin (2*B+1) → A) where
   toFun x := ((x.1,x.2.2.1),x.2.1,x.2.2.2)
@@ -1489,16 +1792,19 @@ def windowHeadCoords (Q A : Type*) (B : ℕ) :
   left_inv _ := rfl
   right_inv _ := rfl
 
+/-- The permutation applying the local head route while preserving the state and tape data. -/
 def headRouteWindow {Q A : Type*} {B : ℕ} (i : WindowCenter B) : Equiv.Perm (Bool × WindowConfig Q A B) :=
   ((windowHeadCoords Q A B).trans (Equiv.prodCongr (cellHeadRoute i) (Equiv.refl _))).trans
     (windowHeadCoords Q A B).symm
 
+/-- Place a local cell label and remaining tape data in a window using the canonical head slots. -/
 def canonicalCellPlace {Q A : Type*} {B : ℕ} (i : WindowCenter B)
     (vr : CellView Q A × CellRest A i.val) : Bool × WindowConfig Q A B :=
   let v := cellViewCoords vr.1
   let h := canonicalHeadSlots i v.1
   (h.1,v.2.1,h.2,cellAssemble i.val v.2.2 vr.2)
 
+/-- Routing the head of a local placement yields the corresponding canonical placement. -/
 theorem headRouteWindow_place {Q A : Type*} {B : ℕ} (i : WindowCenter B)
     (vr : CellView Q A × CellRest A i.val) :
     headRouteWindow i (cellPlace i.val i.property vr) = canonicalCellPlace i vr := by
@@ -1539,6 +1845,7 @@ theorem headRouteWindow_place {Q A : Type*} {B : ℕ} (i : WindowCenter B)
       rw [he]
       rfl
 
+/-- The coordinate matrix of a composite map equals the product of the coordinate matrices. -/
 theorem injectionFrame_comp {ι κ η : Type*} [Fintype κ] [DecidableEq κ] [DecidableEq η]
     (f : ι → κ) (g : κ → η) : injectionFrame (g ∘ f) = injectionFrame g * injectionFrame f := by
   ext x y
@@ -1546,6 +1853,8 @@ theorem injectionFrame_comp {ι κ η : Type*} [Fintype κ] [DecidableEq κ] [De
     ∑ z : κ, (if x = g z then 1 else 0) * (if z = f y then 1 else 0)
   simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
 
+/-- Changing a frame by a unitary matrix conjugates the corresponding frame extension by that
+matrix. -/
 theorem frameUnitary_conjugate {H I : Type*} [Fintype H] [Fintype I] [DecidableEq H] [DecidableEq I]
     (P : Matrix H H ℂ) (hP : P ∈ Matrix.unitaryGroup H ℂ) (E : Matrix H I ℂ) (T : Matrix I I ℂ) :
     Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (P*E) T = P * Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary E T * P.conjTranspose := by
@@ -1555,20 +1864,25 @@ theorem frameUnitary_conjugate {H I : Type*} [Fintype H] [Fintype I] [DecidableE
     Matrix.mul_one, Matrix.mul_assoc]
   rw [hPP]
 
+/-- The permutation matrix routing a window's head to the canonical local slots. -/
 noncomputable def headRouteWindowMatrix {Q A : Type*} [DecidableEq Q] [DecidableEq A] {B : ℕ}
     (i : WindowCenter B) : Matrix (Bool × WindowConfig Q A B) (Bool × WindowConfig Q A B) ℂ :=
   injectionFrame (headRouteWindow i)
 
+/-- The window head-routing matrix is unitary. -/
 theorem headRouteWindowMatrix_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     {B : ℕ} (i : WindowCenter B) :
     headRouteWindowMatrix (Q := Q) (A := A) i ∈ Matrix.unitaryGroup (Bool × WindowConfig Q A B) ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
   exact injectionFrame_isometry _ (headRouteWindow i).injective
 
+/-- The coordinate frame associated with canonical cell placement. -/
 noncomputable def canonicalCellFrame {Q A : Type*} [DecidableEq Q] [DecidableEq A] {B : ℕ}
     (i : WindowCenter B) : Matrix (Bool × WindowConfig Q A B) (CellView Q A × CellRest A i.val) ℂ :=
   injectionFrame (canonicalCellPlace i)
 
+/-- The canonical cell frame is obtained by applying the head-routing matrix to the local cell
+frame. -/
 theorem canonicalCellFrame_route {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     {B : ℕ} (i : WindowCenter B) :
     canonicalCellFrame (Q := Q) (A := A) i = headRouteWindowMatrix i * cellLocalFrame i.val i.property := by
@@ -1581,12 +1895,14 @@ theorem canonicalCellFrame_route {Q A : Type*} [Fintype Q] [Fintype A] [Decidabl
       exact (headRouteWindow_place i vr).symm
     _ = _ := he
 
+/-- The extension of the cell-swap operator through the canonical cell frame. -/
 noncomputable def Rule.canonicalCellGate {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : WindowCenter B) :
     Matrix (Bool × WindowConfig Q A B) (Bool × WindowConfig Q A B) ℂ :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (canonicalCellFrame i)
     (R.cellSwap ⊗ₖ (1 : Matrix (CellRest A i.val) (CellRest A i.val) ℂ))
 
+/-- The canonical cell gate is the local cell gate conjugated by the head-routing matrix. -/
 theorem Rule.canonicalCellGate_conjugate {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : WindowCenter B) :
     R.canonicalCellGate i = headRouteWindowMatrix i * R.cellLocalGate i.val i.property * (headRouteWindowMatrix i).conjTranspose := by
@@ -1595,6 +1911,7 @@ theorem Rule.canonicalCellGate_conjugate {Q A : Type*} [Fintype Q] [Fintype A] [
   exact frameUnitary_conjugate (headRouteWindowMatrix i) (headRouteWindowMatrix_unitary i)
     (cellLocalFrame i.val i.property) (R.cellSwap ⊗ₖ (1 : Matrix (CellRest A i.val) (CellRest A i.val) ℂ))
 
+/-- Canonical cell placement is injective. -/
 theorem canonicalCellPlace_injective {Q A : Type*} {B : ℕ} (i : WindowCenter B) :
     Function.Injective (canonicalCellPlace (Q := Q) (A := A) i) := by
   intro a b he
@@ -1603,10 +1920,12 @@ theorem canonicalCellPlace_injective {Q A : Type*} {B : ℕ} (i : WindowCenter B
   rw [headRouteWindow_place, headRouteWindow_place]
   exact he
 
+/-- The canonical cell frame is an isometry. -/
 theorem canonicalCellFrame_isometry {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     {B : ℕ} (i : WindowCenter B) : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (canonicalCellFrame (Q := Q) (A := A) i) :=
   injectionFrame_isometry _ (canonicalCellPlace_injective i)
 
+/-- The canonical cell gate is unitary for a globally well-formed rule. -/
 theorem Rule.canonicalCellGate_unitary {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (h : R.GloballyWellformed) {B : ℕ} (i : WindowCenter B) :
     R.canonicalCellGate i ∈ Matrix.unitaryGroup (Bool × WindowConfig Q A B) ℂ := by
@@ -1614,6 +1933,8 @@ theorem Rule.canonicalCellGate_unitary {Q A : Type*} [Fintype Q] [Fintype A] [De
       (canonicalCellFrame_isometry i)
   exact Matrix.kronecker_mem_unitary (R.cellSwap_unitary h) (one_mem _)
 
+/-- The local cell gate factors as head routing, the canonical cell gate, and inverse head
+routing. -/
 theorem Rule.cellLocalGate_routed {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) {B : ℕ} (i : WindowCenter B) :
     R.cellLocalGate i.val i.property = (headRouteWindowMatrix i).conjTranspose * R.canonicalCellGate i * headRouteWindowMatrix i := by
@@ -1623,14 +1944,18 @@ theorem Rule.cellLocalGate_routed {Q A : Type*} [Fintype Q] [Fintype A] [Decidab
   simp only [← Matrix.mul_assoc, hP, Matrix.one_mul]
   rw [Matrix.mul_assoc, hP, Matrix.mul_one]
 
+/-- The equivalence numbering local cell labels by addresses below `4*(q*a)`. -/
 def cellLabelEquiv (q a : ℕ) : CellView (Fin q) (Fin a) ≃ Fin (4*(q*a)) :=
   ((cellViewCoords).trans (Equiv.prodCongr (Equiv.refl (Fin 4)) finProdFinEquiv)).trans finProdFinEquiv
 
+/-- The ceiling base-two logarithm of the number of local cell labels. -/
 def cellQubits (q a : ℕ) : ℕ := Nat.clog 2 (4*(q*a))
 
+/-- The cell register has enough binary addresses to encode all local cell labels. -/
 theorem cellQubits_capacity (q a : ℕ) : 4*(q*a) ≤ 2 ^ cellQubits q a :=
     Nat.le_pow_clog (by decide) _
 
+/-- The cell-register size is at most two plus the ceiling base-two logarithms of `q` and `a`. -/
 theorem cellQubits_bound (q a : ℕ) : cellQubits q a ≤ 2 + Nat.clog 2 q + Nat.clog 2 a := by
   apply (Nat.clog_le_iff_le_pow (by decide)).mpr
   calc
@@ -1638,18 +1963,23 @@ theorem cellQubits_bound (q a : ℕ) : cellQubits q a ≤ 2 + Nat.clog 2 q + Nat
       Nat.mul_le_mul_left 4 (Nat.mul_le_mul (Nat.le_pow_clog (by decide) q) (Nat.le_pow_clog (by decide) a))
     _ = 2 ^ (2 + Nat.clog 2 q + Nat.clog 2 a) := by rw [pow_add, pow_add]; norm_num; ring
 
+/-- The binary-register encoding of a local cell label. -/
 def cellToBits (q a : ℕ) (x : CellView (Fin q) (Fin a)) : Qatlib.Foundations.PureStateMath.Reg (cellQubits q a) :=
   (Qatlib.Foundations.PureStateMath.bitVecEquiv (cellQubits q a)).symm
     (Fin.castLE (cellQubits_capacity q a) (cellLabelEquiv q a x))
 
+/-- Decode a cell register, returning `none` when its address is outside the legal cell-label
+range. -/
 def cellFromBits (q a : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg (cellQubits q a)) : Option (CellView (Fin q) (Fin a)) :=
   if h : (Qatlib.Foundations.PureStateMath.bitVecEquiv (cellQubits q a) b).val < 4*(q*a) then
     some ((cellLabelEquiv q a).symm ⟨_,h⟩) else none
 
+/-- The numeric value of an encoded cell register equals the address of its cell label. -/
 theorem cellToBits_address (q a : ℕ) (x : CellView (Fin q) (Fin a)) :
     (Qatlib.Foundations.PureStateMath.bitVecEquiv (cellQubits q a) (cellToBits q a x)).val = (cellLabelEquiv q a x).val := by
   simp [cellToBits]
 
+/-- The binary encoding of local cell labels is injective. -/
 theorem cellToBits_injective (q a : ℕ) : Function.Injective (cellToBits q a) := by
   intro x y h
   apply (cellLabelEquiv q a).injective
@@ -1657,6 +1987,7 @@ theorem cellToBits_injective (q a : ℕ) : Function.Injective (cellToBits q a) :
   exact (cellToBits_address q a x).symm.trans
     ((congrArg (fun b => (Qatlib.Foundations.PureStateMath.bitVecEquiv (cellQubits q a) b).val) h).trans (cellToBits_address q a y))
 
+/-- Decoding an encoded local cell label recovers that label. -/
 theorem cellFromBits_toBits (q a : ℕ) (x : CellView (Fin q) (Fin a)) :
     cellFromBits q a (cellToBits q a x) = some x := by
   unfold cellFromBits
@@ -1666,6 +1997,7 @@ theorem cellFromBits_toBits (q a : ℕ) (x : CellView (Fin q) (Fin a)) :
   simp only [Equiv.apply_symm_apply]
   exact Fin.ext (cellToBits_address q a x)
 
+/-- Re-encoding a successfully decoded cell register recovers the original register. -/
 theorem cellToBits_fromBits {q a : ℕ} {b : Qatlib.Foundations.PureStateMath.Reg (cellQubits q a)} {x : CellView (Fin q) (Fin a)}
     (h : cellFromBits q a b = some x) : cellToBits q a x = b := by
   unfold cellFromBits at h
@@ -1675,28 +2007,35 @@ theorem cellToBits_fromBits {q a : ℕ} {b : Qatlib.Foundations.PureStateMath.Re
   apply Fin.ext
   rw [cellToBits_address, Equiv.apply_symm_apply]
 
+/-- The coordinate frame embedding local cell labels into their binary registers. -/
 noncomputable def cellBinaryFrame (q a : ℕ) :
     Matrix (Qatlib.Foundations.PureStateMath.Reg (cellQubits q a)) (CellView (Fin q) (Fin a)) ℂ := injectionFrame (cellToBits q a)
 
+/-- The binary cell frame is an isometry. -/
 theorem cellBinaryFrame_isometry (q a : ℕ) : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (cellBinaryFrame q a) :=
   injectionFrame_isometry _ (cellToBits_injective q a)
 
+/-- The extension of the cell-swap matrix to the binary cell register. -/
 noncomputable def Rule.cellBinaryGate {q a : ℕ} (R : Rule (Fin q) (Fin a)) :
     Matrix (Qatlib.Foundations.PureStateMath.Reg (cellQubits q a)) (Qatlib.Foundations.PureStateMath.Reg (cellQubits q a)) ℂ :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (cellBinaryFrame q a) R.cellSwap
 
+/-- The binary cell gate is unitary for a globally well-formed rule. -/
 theorem Rule.cellBinaryGate_unitary {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.GloballyWellformed) :
     R.cellBinaryGate ∈ Matrix.unitaryGroup (Qatlib.Foundations.PureStateMath.Reg (cellQubits q a)) ℂ :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary_unitary _ (cellBinaryFrame_isometry q a) _ (R.cellSwap_unitary h)
 
+/-- The binary cell frame intertwines the binary cell gate with the cell-swap matrix. -/
 theorem Rule.cellBinaryGate_frame {q a : ℕ} (R : Rule (Fin q) (Fin a)) :
     R.cellBinaryGate * cellBinaryFrame q a = cellBinaryFrame q a * R.cellSwap :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary_frame _ (cellBinaryFrame_isometry q a) _
 
+/-- The binary cell gate acts on encoded states as the encoded cell-swap action. -/
 theorem Rule.cellBinaryGate_state {q a : ℕ} (R : Rule (Fin q) (Fin a)) (x : CellView (Fin q) (Fin a) → ℂ) :
     R.cellBinaryGate *ᵥ (cellBinaryFrame q a *ᵥ x) = cellBinaryFrame q a *ᵥ (R.cellSwap *ᵥ x) := by
   rw [Matrix.mulVec_mulVec, R.cellBinaryGate_frame, ← Matrix.mulVec_mulVec]
 
+/-- The binary cell gate fixes basis vectors whose registers fail to decode as cell labels. -/
 theorem Rule.cellBinaryGate_illegal {q a : ℕ} (R : Rule (Fin q) (Fin a))
     (b : Qatlib.Foundations.PureStateMath.Reg (cellQubits q a)) (hb : cellFromBits q a b = none) :
     R.cellBinaryGate *ᵥ Pi.single b 1 = Pi.single b 1 := by
@@ -1705,11 +2044,14 @@ theorem Rule.cellBinaryGate_illegal {q a : ℕ} (R : Rule (Fin q) (Fin a))
   rw [he, cellFromBits_toBits] at hb
   contradiction
 
+/-- A coordinate frame maps a source basis vector to the basis vector at its image. -/
 theorem injectionFrame_single {ι κ : Type*} [Fintype ι] [DecidableEq ι] [DecidableEq κ]
     (f : ι → κ) (x : ι) : injectionFrame f *ᵥ Pi.single x 1 = Pi.single (f x) 1 := by
   ext y
   simp [injectionFrame, Pi.single_apply]
 
+/-- The cell-swap matrix sends an input basis label to the sum of output basis labels weighted
+by transition amplitudes. -/
 theorem Rule.cellSwap_old_column {Q A : Type*} [Fintype Q] [Fintype A] [DecidableEq Q] [DecidableEq A]
     (R : Rule Q A) (inp : Q × A) :
     R.cellSwap *ᵥ Pi.single (.inl inp) 1 =
@@ -1720,6 +2062,8 @@ theorem Rule.cellSwap_old_column {Q A : Type*} [Fintype Q] [Fintype A] [Decidabl
   | inl qa => simp [Rule.cellSwap, isometrySwap, Matrix.col]
   | inr out => simp [Matrix.col, Rule.cellSwap_new_old, Pi.single_apply]
 
+/-- The binary cell gate sends an encoded input basis label to the encoded output superposition
+specified by the transition amplitudes. -/
 theorem Rule.cellBinaryGate_old_column {q a : ℕ} (R : Rule (Fin q) (Fin a)) (inp : Fin q × Fin a) :
     R.cellBinaryGate *ᵥ Pi.single (cellToBits q a (.inl inp)) 1 =
       ∑ out : Move × Fin q × Fin a, R.amplitude inp.1 inp.2 out.1 out.2.1 out.2.2 •
@@ -1732,6 +2076,7 @@ theorem Rule.cellBinaryGate_old_column {q a : ℕ} (R : Rule (Fin q) (Fin a)) (i
   rw [Matrix.mulVec_smul]
   rw [cellBinaryFrame, injectionFrame_single]
 
+/-- Reversing a swap word gives the inverse permutation. -/
 theorem swapWordEval_reverse {α : Type*} [DecidableEq α] (l : List (α × α)) :
     swapWordEval l.reverse = (swapWordEval l).symm := by
   induction l with
@@ -1740,6 +2085,8 @@ theorem swapWordEval_reverse {α : Type*} [DecidableEq α] (l : List (α × α))
     rw [List.reverse_cons, swapWordEval_append, ih, swapWordEval]
     rfl
 
+/-- The coordinate matrix of an inverse permutation is the conjugate transpose of the original
+coordinate matrix. -/
 theorem injectionFrame_equiv_symm {α : Type*} [DecidableEq α] (e : Equiv.Perm α) :
     injectionFrame e.symm = (injectionFrame e).conjTranspose := by
   ext x y
@@ -1749,31 +2096,42 @@ theorem injectionFrame_equiv_symm {α : Type*} [DecidableEq α] (e : Equiv.Perm 
     · intro h; rw [h,e.symm_apply_apply]
   simp [injectionFrame, Matrix.conjTranspose_apply, he]
 
+/-- The matrix of a reversed swap word is the conjugate transpose of the original word matrix. -/
 theorem swapWordMatrix_reverse {α : Type*} [Fintype α] [DecidableEq α] (l : List (α × α)) :
     swapWordMatrix l.reverse = (swapWordMatrix l).conjTranspose := by
   rw [swapWordMatrix_eval, swapWordEval_reverse, injectionFrame_equiv_symm, swapWordMatrix_eval]
 
+/-- The reversed binary head-routing swap word. -/
 def cellHeadBitRouteReverseWord {B : ℕ} (i : WindowCenter B) :
     List (Qatlib.Foundations.PureStateMath.Reg (headQubits B) × Qatlib.Foundations.PureStateMath.Reg (headQubits B)) := (cellHeadBitRouteWord i).reverse
 
+/-- The reversed binary head-routing word evaluates to the inverse routing permutation. -/
 theorem cellHeadBitRouteReverseWord_eval {B : ℕ} (i : WindowCenter B) :
     swapWordEval (cellHeadBitRouteReverseWord i) = (cellHeadBitRoute i).symm := swapWordEval_reverse _
 
+/-- The reversed binary head-routing word has length four. -/
 theorem cellHeadBitRouteReverseWord_length {B : ℕ} (i : WindowCenter B) :
     (cellHeadBitRouteReverseWord i).length = 4 := by
   rw [cellHeadBitRouteReverseWord, List.length_reverse, cellHeadBitRouteWord_length]
 
+/-- The reversed binary head-routing word has matrix equal to the adjoint of the forward routing
+matrix. -/
 theorem cellHeadBitRouteReverseWord_matrix {B : ℕ} (i : WindowCenter B) :
     swapWordMatrix (cellHeadBitRouteReverseWord i) = (cellHeadBitRouteMatrix i).conjTranspose := swapWordMatrix_reverse _
 
+/-- The ceiling base-two logarithm used as the register size for `Fin n`. -/
 def finiteQubits (n : ℕ) : ℕ := Nat.clog 2 n
 
+/-- The binary-register encoding of an element of `Fin n`. -/
 def finToBits (n : ℕ) (x : Fin n) : Qatlib.Foundations.PureStateMath.Reg (finiteQubits n) :=
   (Qatlib.Foundations.PureStateMath.bitVecEquiv (finiteQubits n)).symm (Fin.castLE (Nat.le_pow_clog (by decide) n) x)
 
+/-- Decode a binary register as an element of `Fin n`, returning `none` for an address at least
+`n`. -/
 def finFromBits (n : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg (finiteQubits n)) : Option (Fin n) :=
   if h : (Qatlib.Foundations.PureStateMath.bitVecEquiv (finiteQubits n) b).val < n then some ⟨_,h⟩ else none
 
+/-- The binary encoding of `Fin n` is injective. -/
 theorem finToBits_injective (n : ℕ) : Function.Injective (finToBits n) := by
   intro x y h
   apply Fin.ext
@@ -1781,11 +2139,13 @@ theorem finToBits_injective (n : ℕ) : Function.Injective (finToBits n) := by
       congrArg (fun b => (Qatlib.Foundations.PureStateMath.bitVecEquiv (finiteQubits n) b).val) h
   simpa [finToBits] using! he
 
+/-- Decoding the binary encoding of a finite index recovers that index. -/
 theorem finFromBits_toBits (n : ℕ) (x : Fin n) : finFromBits n (finToBits n x) = some x := by
   unfold finFromBits
   simp only [finToBits, Equiv.apply_symm_apply, Fin.val_castLE]
   rw [dif_pos x.isLt]
 
+/-- Re-encoding a successfully decoded finite-index register recovers the original register. -/
 theorem finToBits_fromBits {n : ℕ} {b : Qatlib.Foundations.PureStateMath.Reg (finiteQubits n)} {x : Fin n}
     (h : finFromBits n b = some x) : finToBits n x = b := by
   unfold finFromBits at h
@@ -1794,12 +2154,16 @@ theorem finToBits_fromBits {n : ℕ} {b : Qatlib.Foundations.PureStateMath.Reg (
   apply (Qatlib.Foundations.PureStateMath.bitVecEquiv (finiteQubits n)).injective
   simp [finToBits]
 
+/-- The product of binary registers for the mode-tagged head, internal state, and every tape
+cell in the window. -/
 abbrev BinaryWindow (q a B : ℕ) := Qatlib.Foundations.PureStateMath.Reg (headQubits B) ×
   Qatlib.Foundations.PureStateMath.Reg (finiteQubits q) × (Fin (2*B+1) → Qatlib.Foundations.PureStateMath.Reg (finiteQubits a))
 
+/-- Encode a mode-tagged window configuration into its head, state, and tape binary registers. -/
 def windowToBits (q a B : ℕ) (x : Bool × WindowConfig (Fin q) (Fin a) B) : BinaryWindow q a B :=
   (headToBits B (x.1,x.2.2.1),finToBits q x.2.1,fun j => finToBits a (x.2.2.2 j))
 
+/-- The binary encoding of mode-tagged window configurations is injective. -/
 theorem windowToBits_injective (q a B : ℕ) : Function.Injective (windowToBits q a B) := by
   intro x y he
   have hh := headToBits_injective B (congrArg (fun z : BinaryWindow q a B => z.1) he)
@@ -1810,21 +2174,27 @@ theorem windowToBits_injective (q a B : ℕ) : Function.Injective (windowToBits 
   exact Prod.ext (congrArg (fun h : WindowHead B => h.1) hh)
       (Prod.ext hq (Prod.ext (congrArg (fun h : WindowHead B => h.2) hh) ht))
 
+/-- The coordinate frame embedding mode-tagged window configurations into binary windows. -/
 noncomputable def windowBinaryFrame (q a B : ℕ) : Matrix (BinaryWindow q a B) (Bool × WindowConfig (Fin q) (Fin a) B) ℂ :=
   injectionFrame (windowToBits q a B)
 
+/-- The binary window frame is an isometry. -/
 theorem windowBinaryFrame_isometry (q a B : ℕ) : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (windowBinaryFrame q a B) :=
   injectionFrame_isometry _ (windowToBits_injective q a B)
 
+/-- Encode the symbols at all cells except a distinguished position into binary registers. -/
 def binaryRestEncode {a B : ℕ} (i : Fin (2*B+1)) (r : CellRest (Fin a) i) :
     CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i := fun j => finToBits a (r j)
 
+/-- Place a local cell label in canonical binary head coordinates together with binary registers
+for the remaining tape cells. -/
 def binaryCanonicalPlace {q a B : ℕ} (i : WindowCenter B)
     (vr : CellView (Fin q) (Fin a) × CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i.val) : BinaryWindow q a B :=
   let v := cellViewCoords vr.1
   (headToBits B (canonicalHeadSlots i v.1),finToBits q v.2.1,
     cellAssemble i.val (finToBits a v.2.2) vr.2)
 
+/-- Canonical placement into binary windows is injective. -/
 theorem binaryCanonicalPlace_injective {q a B : ℕ} (i : WindowCenter B) :
     Function.Injective (binaryCanonicalPlace (q := q) (a := a) i) := by
   rintro ⟨v,r⟩ ⟨v',r'⟩ he
@@ -1842,6 +2212,8 @@ theorem binaryCanonicalPlace_injective {q a B : ℕ} (i : WindowCenter B) :
   · exact congrArg
       (fun z : Qatlib.Foundations.PureStateMath.Reg (finiteQubits a) × CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i.val => z.2) ht
 
+/-- Encoding every symbol of an assembled tape equals assembling the encoded distinguished
+symbol and encoded remaining symbols. -/
 theorem finToBits_assemble {a B : ℕ} (i : Fin (2*B+1)) (c : Fin a) (r : CellRest (Fin a) i) :
     (fun j => finToBits a (cellAssemble i c r j)) = cellAssemble i (finToBits a c) (binaryRestEncode i r) := by
   funext j
@@ -1849,6 +2221,8 @@ theorem finToBits_assemble {a B : ℕ} (i : Fin (2*B+1)) (c : Fin a) (r : CellRe
   · subst j; simp
   · simp only [cellAssemble_other i j _ _ hj, binaryRestEncode]
 
+/-- Encoding a canonical window placement agrees with binary canonical placement of the encoded
+remaining tape. -/
 theorem binaryCanonicalPlace_encode {q a B : ℕ} (i : WindowCenter B)
     (vr : CellView (Fin q) (Fin a) × CellRest (Fin a) i.val) :
     windowToBits q a B (canonicalCellPlace i vr) = binaryCanonicalPlace i (vr.1,binaryRestEncode i.val vr.2) := by
@@ -1858,6 +2232,8 @@ theorem binaryCanonicalPlace_encode {q a B : ℕ} (i : WindowCenter B)
     · rfl
     · exact finToBits_assemble i.val _ _
 
+/-- A tensor-product operator extended through an injective coordinate frame acts on an encoded
+basis vector while preserving its second coordinate. -/
 theorem frameUnitary_tensor_single {K S H : Type*} [Fintype K] [Fintype S] [Fintype H]
     [DecidableEq K] [DecidableEq S] [DecidableEq H] (f : K × S → H) (hf : Function.Injective f)
     (T : Matrix K K ℂ) (v : K) (r : S) :
@@ -1881,6 +2257,8 @@ theorem frameUnitary_tensor_single {K S H : Type*} [Fintype K] [Fintype S] [Fint
   intro k _
   split_ifs <;> simp_all
 
+/-- Tensor-product frame extensions intertwine with a coordinate map that respects the active
+coordinate and maps points outside the source frame outside the target frame. -/
 theorem frameUnitary_tensor_natural {K R S I J : Type*} [Fintype K] [Fintype R] [Fintype S] [Fintype I] [Fintype J]
     [DecidableEq K] [DecidableEq R] [DecidableEq S] [DecidableEq I] [DecidableEq J]
     (e : K × R → I) (he : Function.Injective e) (g : K × S → J) (hg : Function.Injective g)
@@ -1899,6 +2277,8 @@ theorem frameUnitary_tensor_natural {K R S I J : Type*} [Fintype K] [Fintype R] 
   · rw [frameUnitary_outside e _ x (fun kr h => hx ⟨kr,h.symm⟩), injectionFrame_single,
       frameUnitary_outside g _ _ (hout x hx)]
 
+/-- A window configuration lies in the canonical placement image exactly when its mode-tagged
+head is one of the four canonical slots. -/
 theorem canonicalCellPlace_head_range {Q A : Type*} {B : ℕ} (i : WindowCenter B)
     (x : Bool × WindowConfig Q A B) :
     (∃ vr, canonicalCellPlace i vr = x) ↔ ∃ j : Fin 4, canonicalHeadSlots i j = (x.1,x.2.2.1) := by
@@ -1914,12 +2294,15 @@ theorem canonicalCellPlace_head_range {Q A : Type*} {B : ℕ} (i : WindowCenter 
     have hh := congrArg (fun h : WindowHead B => h.2) hj
     simp only [canonicalCellPlace, Equiv.apply_symm_apply, hm, hh, ht]
 
+/-- The extension of the cell-swap matrix through binary canonical placement, with the remaining
+tape registers unchanged. -/
 noncomputable def Rule.binaryCanonicalGate {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (injectionFrame (binaryCanonicalPlace i))
     (R.cellSwap ⊗ₖ (1 : Matrix (CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i.val)
       (CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i.val) ℂ))
 
+/-- The binary canonical cell gate is unitary for a globally well-formed rule. -/
 theorem Rule.binaryCanonicalGate_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (i : WindowCenter B) :
     R.binaryCanonicalGate i ∈ Matrix.unitaryGroup (BinaryWindow q a B) ℂ := by
@@ -1927,6 +2310,8 @@ theorem Rule.binaryCanonicalGate_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a)
       (injectionFrame_isometry _ (binaryCanonicalPlace_injective i))
   exact Matrix.kronecker_mem_unitary (R.cellSwap_unitary h) (one_mem _)
 
+/-- The binary window frame intertwines the binary canonical cell gate with the canonical cell
+gate. -/
 theorem Rule.binaryCanonicalGate_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     R.binaryCanonicalGate i * windowBinaryFrame q a B = windowBinaryFrame q a B * R.canonicalCellGate i := by
   apply frameUnitary_tensor_natural (canonicalCellPlace i) (canonicalCellPlace_injective i)
@@ -1940,17 +2325,22 @@ theorem Rule.binaryCanonicalGate_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin
     refine ⟨(cellViewCoords kr.1).1, ?_⟩
     exact (headToBits_injective B (congrArg (fun b : BinaryWindow q a B => b.1) hbad)).symm
 
+/-- The permutation applying the binary head route while preserving the state and tape
+registers. -/
 def binaryHeadRouteWindow (q a : ℕ) {B : ℕ} (i : WindowCenter B) : Equiv.Perm (BinaryWindow q a B) :=
   Equiv.prodCongr (cellHeadBitRoute i) (Equiv.refl _)
 
+/-- The permutation matrix implementing binary head routing on the entire binary window. -/
 noncomputable def binaryHeadRouteWindowMatrix (q a : ℕ) {B : ℕ} (i : WindowCenter B) :
     Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ := injectionFrame (binaryHeadRouteWindow q a i)
 
+/-- The binary window head-routing matrix is unitary. -/
 theorem binaryHeadRouteWindowMatrix_unitary (q a : ℕ) {B : ℕ} (i : WindowCenter B) :
     binaryHeadRouteWindowMatrix q a i ∈ Matrix.unitaryGroup (BinaryWindow q a B) ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
   exact injectionFrame_isometry _ (binaryHeadRouteWindow q a i).injective
 
+/-- Binary head routing commutes with encoding a mode-tagged window configuration. -/
 theorem binaryHeadRouteWindow_encode (q a : ℕ) {B : ℕ} (i : WindowCenter B)
     (x : Bool × WindowConfig (Fin q) (Fin a) B) :
     binaryHeadRouteWindow q a i (windowToBits q a B x) = windowToBits q a B (headRouteWindow i x) := by
@@ -1958,6 +2348,7 @@ theorem binaryHeadRouteWindow_encode (q a : ℕ) {B : ℕ} (i : WindowCenter B)
   · exact cellHeadBitRoute_encoded i (x.1,x.2.2.1)
   · rfl
 
+/-- The binary window frame intertwines the binary and original head-routing matrices. -/
 theorem binaryHeadRouteWindowMatrix_intertwine (q a : ℕ) {B : ℕ} (i : WindowCenter B) :
     binaryHeadRouteWindowMatrix q a i * windowBinaryFrame q a B =
       windowBinaryFrame q a B * headRouteWindowMatrix i := by
@@ -1971,6 +2362,7 @@ theorem binaryHeadRouteWindowMatrix_intertwine (q a : ℕ) {B : ℕ} (i : Window
       exact binaryHeadRouteWindow_encode q a i x
     _ = _ := injectionFrame_comp (headRouteWindow (Q := Fin q) (A := Fin a) i) (windowToBits q a B)
 
+/-- An intertwining relation between two unitary matrices also holds for their adjoints. -/
 theorem intertwine_adjoint {H I : Type*} [Fintype H] [Fintype I] [DecidableEq H] [DecidableEq I]
     (P : Matrix H H ℂ) (Q : Matrix I I ℂ) (E : Matrix H I ℂ)
     (hP : P ∈ Matrix.unitaryGroup H ℂ) (hQ : Q ∈ Matrix.unitaryGroup I ℂ) (h : P*E = E*Q) :
@@ -1984,10 +2376,14 @@ theorem intertwine_adjoint {H I : Type*} [Fintype H] [Fintype I] [DecidableEq H]
     _ = (P.conjTranspose*P)*E*Q.conjTranspose := by simp only [Matrix.mul_assoc]
     _ = _ := by rw [hPP, Matrix.one_mul]
 
+/-- The binary local cell gate obtained by head routing, applying the binary canonical gate, and
+reversing the routing. -/
 noncomputable def Rule.binaryCellGate {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ :=
   (binaryHeadRouteWindowMatrix q a i).conjTranspose * R.binaryCanonicalGate i * binaryHeadRouteWindowMatrix q a i
 
+/-- The binary window frame intertwines the binary local cell gate with the original local cell
+gate. -/
 theorem Rule.binaryCellGate_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     R.binaryCellGate i * windowBinaryFrame q a B = windowBinaryFrame q a B * R.cellLocalGate i.val i.property := by
   let P := binaryHeadRouteWindowMatrix q a i
@@ -2004,21 +2400,25 @@ theorem Rule.binaryCellGate_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a)) 
     _ = E*(Q.conjTranspose*R.canonicalCellGate i*Q) := by rw [hpinv]; simp only [Matrix.mul_assoc]
     _ = _ := by rw [← R.cellLocalGate_routed i]
 
+/-- The binary local cell gate is unitary for a globally well-formed rule. -/
 theorem Rule.binaryCellGate_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (i : WindowCenter B) :
     R.binaryCellGate i ∈ Matrix.unitaryGroup (BinaryWindow q a B) ℂ :=
   mul_mem (mul_mem (Unitary.star_mem (binaryHeadRouteWindowMatrix_unitary q a i))
     (R.binaryCanonicalGate_unitary h i)) (binaryHeadRouteWindowMatrix_unitary q a i)
 
+/-- Flip the mode of a legal binary head label and leave an illegal head register unchanged. -/
 def headFlipBits (B : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) : Qatlib.Foundations.PureStateMath.Reg (headQubits B) :=
   match headFromBits B b with
   | none => b
   | some h => headToBits B (!h.1,h.2)
 
+/-- Flipping an encoded head register negates its Boolean mode and preserves its position. -/
 theorem headFlipBits_encoded (B : ℕ) (h : WindowHead B) :
     headFlipBits B (headToBits B h) = headToBits B (!h.1,h.2) := by
   rw [headFlipBits, headFromBits_toBits]
 
+/-- Applying the binary head flip twice gives the original register. -/
 theorem headFlipBits_involutive (B : ℕ) : Function.Involutive (headFlipBits B) := by
   intro b
   cases hb : headFromBits B b with
@@ -2029,20 +2429,26 @@ theorem headFlipBits_involutive (B : ℕ) : Function.Involutive (headFlipBits B)
     rcases h with ⟨p,j⟩
     cases p <;> rfl
 
+/-- The permutation induced by the involutive binary head flip. -/
 def headFlipBitsEquiv (B : ℕ) : Equiv.Perm (Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :=
   (headFlipBits_involutive B).toPerm
 
+/-- The binary window permutation that flips the head mode and preserves the state and tape
+registers. -/
 def binaryWindowFlipEquiv (q a B : ℕ) : Equiv.Perm (BinaryWindow q a B) :=
   Equiv.prodCongr (headFlipBitsEquiv B) (Equiv.refl _)
 
+/-- The permutation matrix implementing the binary window mode flip. -/
 noncomputable def binaryWindowFlip (q a B : ℕ) : Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ :=
   injectionFrame (binaryWindowFlipEquiv q a B)
 
+/-- The binary window mode-flip matrix is unitary. -/
 theorem binaryWindowFlip_unitary (q a B : ℕ) :
     binaryWindowFlip q a B ∈ Matrix.unitaryGroup (BinaryWindow q a B) ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
   exact injectionFrame_isometry _ (binaryWindowFlipEquiv q a B).injective
 
+/-- The binary window frame intertwines the binary and original window mode flips. -/
 theorem binaryWindowFlip_intertwine (q a B : ℕ) :
     binaryWindowFlip q a B * windowBinaryFrame q a B = windowBinaryFrame q a B * windowFlip B := by
   unfold binaryWindowFlip windowBinaryFrame windowFlip
@@ -2059,17 +2465,21 @@ theorem binaryWindowFlip_intertwine (q a B : ℕ) :
     _ = _ := injectionFrame_comp
       (Equiv.prodCongr Equiv.boolNot (Equiv.refl (WindowConfig (Fin q) (Fin a) B))) (windowToBits q a B)
 
+/-- The binary-window matrix interpretation of a local cell operation or mode flip. -/
 noncomputable def WindowOp.binaryMatrix {q a : ℕ} (R : Rule (Fin q) (Fin a)) {B : ℕ} :
     WindowOp B → Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ
   | .cell i => R.binaryCellGate i
   | .flip => binaryWindowFlip q a B
 
+/-- The binary window frame intertwines the binary and original matrices of each window
+operation. -/
 theorem WindowOp.binaryMatrix_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (g : WindowOp B) :
     g.binaryMatrix R * windowBinaryFrame q a B = windowBinaryFrame q a B * g.matrix R := by
   cases g with
   | cell i => exact R.binaryCellGate_intertwine i
   | flip => exact binaryWindowFlip_intertwine q a B
 
+/-- Every binary window operation matrix is unitary for a globally well-formed rule. -/
 theorem WindowOp.binaryMatrix_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (g : WindowOp B) :
     g.binaryMatrix R ∈ Matrix.unitaryGroup (BinaryWindow q a B) ℂ := by
@@ -2077,11 +2487,14 @@ theorem WindowOp.binaryMatrix_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
   | cell i => exact R.binaryCellGate_unitary h i
   | flip => exact binaryWindowFlip_unitary q a B
 
+/-- The binary-window matrix of an operation word, applying operations in list order. -/
 noncomputable def Rule.binaryWordMatrix {q a B : ℕ} (R : Rule (Fin q) (Fin a)) :
     List (WindowOp B) → Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ
   | [] => 1
   | g :: l => R.binaryWordMatrix l * g.binaryMatrix R
 
+/-- The binary window frame intertwines the binary and original matrices of any window operation
+word. -/
 theorem Rule.binaryWordMatrix_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (l : List (WindowOp B)) :
     R.binaryWordMatrix l * windowBinaryFrame q a B = windowBinaryFrame q a B * R.windowWordMatrix l := by
   induction l with
@@ -2090,6 +2503,7 @@ theorem Rule.binaryWordMatrix_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a)
     rw [Rule.binaryWordMatrix, Matrix.mul_assoc, g.binaryMatrix_intertwine, ← Matrix.mul_assoc,
       ih, Matrix.mul_assoc, Rule.windowWordMatrix]
 
+/-- The binary matrix of any window operation word is unitary for a globally well-formed rule. -/
 theorem Rule.binaryWordMatrix_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (l : List (WindowOp B)) :
     R.binaryWordMatrix l ∈ Matrix.unitaryGroup (BinaryWindow q a B) ℂ := by
@@ -2097,40 +2511,53 @@ theorem Rule.binaryWordMatrix_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
   | nil => exact one_mem _
   | cons g l ih => exact mul_mem ih (g.binaryMatrix_unitary R h)
 
+/-- The equivalence flattening `N` registers of `k` bits into one register of `N*k` bits. -/
 def tapeBitsEquiv (N k : ℕ) : (Fin N → Qatlib.Foundations.PureStateMath.Reg k) ≃ Qatlib.Foundations.PureStateMath.Reg (N*k) :=
   (Equiv.curry (Fin N) (Fin k) Bool).symm.trans (Equiv.arrowCongr finProdFinEquiv (Equiv.refl Bool))
 
+/-- The total number of qubits used for the head, state, and tape registers of a binary window. -/
 def binaryWindowQubits (q a B : ℕ) : ℕ := headQubits B + finiteQubits q + (2*B+1)*finiteQubits a
 
+/-- The equivalence flattening the head, state, and tape registers of a binary window into one
+qubit register. -/
 def binaryWindowFlatten (q a B : ℕ) : BinaryWindow q a B ≃ Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B) :=
   (((Equiv.prodCongr (Equiv.refl _) (Equiv.prodCongr (Equiv.refl _) (tapeBitsEquiv (2*B+1) (finiteQubits a)))).trans
     (Equiv.prodAssoc _ _ _).symm).trans
       (Equiv.prodCongr (Qatlib.Foundations.PureStateMath.regAppendEquiv (headQubits B) (finiteQubits q)).symm (Equiv.refl _))).trans
         (Qatlib.Foundations.PureStateMath.regAppendEquiv (headQubits B + finiteQubits q) ((2*B+1)*finiteQubits a)).symm
 
+/-- The coordinate matrix of the binary-window flattening equivalence. -/
 noncomputable def binaryWindowFlattenMatrix (q a B : ℕ) :
     Matrix (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) (BinaryWindow q a B) ℂ :=
   injectionFrame (binaryWindowFlatten q a B)
 
+/-- The binary-window flattening matrix is an isometry. -/
 theorem binaryWindowFlattenMatrix_isometry (q a B : ℕ) :
     Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (binaryWindowFlattenMatrix q a B) :=
   injectionFrame_isometry _ (binaryWindowFlatten q a B).injective
 
+/-- The encoding of a mode-tagged window configuration into a single qubit register. -/
 def windowToQubits (q a B : ℕ) (x : Bool × WindowConfig (Fin q) (Fin a) B) :
     Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B) := binaryWindowFlatten q a B (windowToBits q a B x)
 
+/-- The coordinate frame embedding mode-tagged window configurations into the flattened qubit
+register. -/
 noncomputable def windowQubitFrame (q a B : ℕ) :
     Matrix (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) (Bool × WindowConfig (Fin q) (Fin a) B) ℂ :=
   injectionFrame (windowToQubits q a B)
 
+/-- The qubit window frame factors as binary window encoding followed by flattening. -/
 theorem windowQubitFrame_flatten (q a B : ℕ) :
     windowQubitFrame q a B = binaryWindowFlattenMatrix q a B * windowBinaryFrame q a B := by
   rw [windowQubitFrame, binaryWindowFlattenMatrix, windowBinaryFrame, ← injectionFrame_comp]
   rfl
 
+/-- The qubit window frame is an isometry. -/
 theorem windowQubitFrame_isometry (q a B : ℕ) : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (windowQubitFrame q a B) :=
   injectionFrame_isometry _ ((binaryWindowFlatten q a B).injective.comp (windowToBits_injective q a B))
 
+/-- The coordinate matrix of the inverse of an equivalence is the adjoint of its coordinate
+matrix. -/
 theorem injectionFrame_symm {I J : Type*} [DecidableEq I] [DecidableEq J] (e : I ≃ J) :
     injectionFrame e.symm = (injectionFrame e).conjTranspose := by
   ext x y
@@ -2140,6 +2567,7 @@ theorem injectionFrame_symm {I J : Type*} [DecidableEq I] [DecidableEq J] (e : I
     · intro h; rw [h,e.symm_apply_apply]
   simp [injectionFrame, Matrix.conjTranspose_apply, he]
 
+/-- The coordinate matrix of an equivalence multiplied by its adjoint is the identity. -/
 theorem injectionFrame_equiv_complete {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [DecidableEq J]
     (e : I ≃ J) : injectionFrame e * (injectionFrame e).conjTranspose = 1 := by
   have he := injectionFrame_isometry e.symm e.symm.injective
@@ -2147,10 +2575,14 @@ theorem injectionFrame_equiv_complete {I J : Type*} [Fintype I] [Fintype J] [Dec
   rw [injectionFrame_symm, Matrix.conjTranspose_conjTranspose] at he
   exact he
 
+/-- The matrix of a window operation on the flattened qubit register, obtained by conjugating
+its binary matrix by flattening. -/
 noncomputable def WindowOp.qubitMatrix {q a : ℕ} (R : Rule (Fin q) (Fin a)) {B : ℕ} (g : WindowOp B) :
     Matrix (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) ℂ :=
   binaryWindowFlattenMatrix q a B * g.binaryMatrix R * (binaryWindowFlattenMatrix q a B).conjTranspose
 
+/-- The qubit window frame intertwines each qubit operation matrix with its original window
+operation matrix. -/
 theorem WindowOp.qubitMatrix_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (g : WindowOp B) :
     g.qubitMatrix R * windowQubitFrame q a B = windowQubitFrame q a B * g.matrix R := by
   have hE : (binaryWindowFlattenMatrix q a B).conjTranspose * binaryWindowFlattenMatrix q a B = 1 :=
@@ -2160,6 +2592,7 @@ theorem WindowOp.qubitMatrix_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a))
   rw [← Matrix.mul_assoc (binaryWindowFlattenMatrix q a B).conjTranspose, hE, Matrix.one_mul,
     g.binaryMatrix_intertwine]
 
+/-- Each qubit window operation matrix is unitary for a globally well-formed rule. -/
 theorem WindowOp.qubitMatrix_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (g : WindowOp B) :
     g.qubitMatrix R ∈ Matrix.unitaryGroup (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) ℂ := by
@@ -2176,11 +2609,14 @@ theorem WindowOp.qubitMatrix_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
   rw [← Matrix.mul_assoc (binaryWindowFlattenMatrix q a B).conjTranspose, hE, Matrix.one_mul]
   rw [← Matrix.mul_assoc (g.binaryMatrix R).conjTranspose, hB, Matrix.one_mul, hEE]
 
+/-- The matrix of a window operation word on the flattened qubit register. -/
 noncomputable def Rule.qubitWordMatrix {q a B : ℕ} (R : Rule (Fin q) (Fin a)) :
     List (WindowOp B) → Matrix (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) ℂ
   | [] => 1
   | g :: l => R.qubitWordMatrix l * g.qubitMatrix R
 
+/-- The qubit window frame intertwines the qubit and original matrices of any window operation
+word. -/
 theorem Rule.qubitWordMatrix_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (l : List (WindowOp B)) :
     R.qubitWordMatrix l * windowQubitFrame q a B = windowQubitFrame q a B * R.windowWordMatrix l := by
   induction l with
@@ -2189,6 +2625,7 @@ theorem Rule.qubitWordMatrix_intertwine {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     rw [Rule.qubitWordMatrix, Matrix.mul_assoc, g.qubitMatrix_intertwine, ← Matrix.mul_assoc,
       ih, Matrix.mul_assoc, Rule.windowWordMatrix]
 
+/-- The qubit matrix of any window operation word is unitary for a globally well-formed rule. -/
 theorem Rule.qubitWordMatrix_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (l : List (WindowOp B)) :
     R.qubitWordMatrix l ∈ Matrix.unitaryGroup (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) ℂ := by
@@ -2196,6 +2633,8 @@ theorem Rule.qubitWordMatrix_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
   | nil => exact one_mem _
   | cons g l ih => exact mul_mem ih (g.qubitMatrix_unitary R h)
 
+/-- A vector embedded through an injective coordinate frame retains its value at each encoded
+index. -/
 theorem injectionFrame_eval {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [DecidableEq J]
     (f : I → J) (hf : Function.Injective f) (x : I → ℂ) (i : I) :
     (injectionFrame f *ᵥ x) (f i) = x i := by
@@ -2205,6 +2644,8 @@ theorem injectionFrame_eval {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I
   rw [← Matrix.mulVec_mulVec, injectionFrame_adjoint_apply, Matrix.one_mulVec] at he
   exact he
 
+/-- The qubit word realizes the encoded false-mode window evolution when the initial head has
+room for `t` steps and the rule is globally well formed. -/
 theorem Rule.qubitWord_source {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.GloballyWellformed)
     (B t : ℕ) (w : WindowConfig (Fin q) (Fin a) B) (hw : w.Room t) :
     R.qubitWordMatrix (windowWord B t) *ᵥ Pi.single (windowToQubits q a B (false,w)) 1 =
@@ -2214,6 +2655,8 @@ theorem Rule.qubitWord_source {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.Glob
   rw [Matrix.mulVec_mulVec, R.qubitWordMatrix_intertwine, ← Matrix.mulVec_mulVec,
     R.windowWord_matrix, R.windowUnitary_power h B t w hw]
 
+/-- The encoded amplitudes of the qubit word embed into global `t`-step evolution when
+sufficient room is available for a globally well-formed rule. -/
 theorem Rule.qubitWord_global {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.GloballyWellformed)
     (T : Tape (Fin a) R.blank) (center : ℤ) (B t : ℕ) (w : WindowConfig (Fin q) (Fin a) B) (hw : w.Room t) :
     windowEmbed T center B (fun v =>
@@ -2227,6 +2670,7 @@ theorem Rule.qubitWord_global {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.Glob
       (windowToQubits q a B (false,v)) = R.windowRun B t w v from fun v => he v]
   exact R.windowRun_embed T center B t w hw
 
+/-- A coordinate-frame embedding has zero coordinates outside the image of its defining map. -/
 theorem injectionFrame_outside {I J : Type*} [Fintype I] [DecidableEq J]
     (f : I → J) (x : I → ℂ) (j : J) (hj : ¬ ∃ i, f i = j) : (injectionFrame f *ᵥ x) j = 0 := by
   simp only [Matrix.mulVec, dotProduct, injectionFrame]
@@ -2234,6 +2678,8 @@ theorem injectionFrame_outside {I J : Type*} [Fintype I] [DecidableEq J]
   intro i _
   rw [if_neg (fun he => hj ⟨i,he.symm⟩), zero_mul]
 
+/-- An injective coordinate-frame embedding preserves Born-weighted sums after pulling the
+observable back along the encoding. -/
 theorem injectionFrame_born_value {I J : Type*} [Fintype I] [Fintype J] [DecidableEq I] [DecidableEq J]
     (f : I → J) (hf : Function.Injective f) (x : I → ℂ) (P : J → ℝ) :
     (∑ j : J, ‖(injectionFrame f *ᵥ x) j‖^2 * P j) = ∑ i : I, ‖x i‖^2 * P (f i) := by
@@ -2248,35 +2694,47 @@ theorem injectionFrame_born_value {I J : Type*} [Fintype I] [Fintype J] [Decidab
       simp
     _ = _ := by rw [Finset.sum_image (fun a _ b _ he => hf he)]; simp only [injectionFrame_eval f hf]
 
+/-- Decode every tape-cell register, returning `none` if any register has an address outside the
+alphabet range. -/
 def tapeBitsDecode (a B : ℕ) (b : Fin (2*B+1) → Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) :
     Option (Fin (2*B+1) → Fin a) :=
   if h : ∀ j, (Qatlib.Foundations.PureStateMath.bitVecEquiv (finiteQubits a) (b j)).val < a then
     some (fun j => ⟨_,h j⟩) else none
 
+/-- Decoding a tape whose symbols were all encoded recovers the original tape symbols. -/
 theorem tapeBitsDecode_encode (a B : ℕ) (x : Fin (2*B+1) → Fin a) :
     tapeBitsDecode a B (fun j => finToBits a (x j)) = some x := by
   unfold tapeBitsDecode
   simp only [finToBits, Equiv.apply_symm_apply, Fin.val_castLE]
   rw [dif_pos (fun j => (x j).isLt)]
 
+/-- Decode the head, state, and tape registers of a binary window, failing if any component is
+illegal. -/
 def windowFromBits (q a B : ℕ) (b : BinaryWindow q a B) : Option (Bool × WindowConfig (Fin q) (Fin a) B) := do
   let h ← headFromBits B b.1
   let c ← finFromBits q b.2.1
   let tape ← tapeBitsDecode a B b.2.2
   return (h.1,c,h.2,tape)
 
+/-- Decoding an encoded binary window recovers its mode-tagged window configuration. -/
 theorem windowFromBits_toBits (q a B : ℕ) (x : Bool × WindowConfig (Fin q) (Fin a) B) :
     windowFromBits q a B (windowToBits q a B x) = some x := by
   simp [windowFromBits, windowToBits, headFromBits_toBits, finFromBits_toBits,
       tapeBitsDecode_encode]
 
+/-- Decode a flattened qubit register by unflattening it and decoding the resulting binary
+window. -/
 def windowFromQubits (q a B : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) :
     Option (Bool × WindowConfig (Fin q) (Fin a) B) := windowFromBits q a B ((binaryWindowFlatten q a B).symm b)
 
+/-- Decoding the qubit encoding of a mode-tagged window configuration recovers that
+configuration. -/
 theorem windowFromQubits_toQubits (q a B : ℕ) (x : Bool × WindowConfig (Fin q) (Fin a) B) :
     windowFromQubits q a B (windowToQubits q a B x) = some x := by
   rw [windowFromQubits, windowToQubits, Equiv.symm_apply_apply, windowFromBits_toBits]
 
+/-- For a globally well-formed rule with sufficient head room, a Born-weighted qubit-word sum
+equals the corresponding window sum with the observable evaluated on encoded configurations. -/
 theorem Rule.qubitWord_born_value {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.GloballyWellformed)
     (B t : ℕ) (w : WindowConfig (Fin q) (Fin a) B) (hw : w.Room t)
     (P : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B) → ℝ) :
@@ -2289,12 +2747,16 @@ theorem Rule.qubitWord_born_value {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.
   simp only [Bool.true_eq_false, if_false, if_true, norm_zero, zero_pow (by decide : 2 ≠ 0), zero_mul,
     Finset.sum_const_zero, zero_add]
 
+/-- The payoff obtained by decoding a false-mode window register and evaluating the global
+observable, with value zero on decoding failure or true mode. -/
 def qubitDecodedPayoff {q a B : ℕ} {blank : Fin a} (T : Tape (Fin a) blank) (center : ℤ)
     (P : Config (Fin q) (Fin a) blank → ℝ) (b : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) : ℝ :=
   match windowFromQubits q a B b with
   | none => 0
   | some x => if x.1 then 0 else P (encodeWindow T center B x.2)
 
+/-- For a globally well-formed rule and `t ≤ B`, the global Born-weighted observable sum equals
+the qubit-word sum with the decoded payoff. -/
 theorem Rule.qubitWord_initial_value {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.GloballyWellformed)
     (B t : ℕ) (ht : t ≤ B) (c : Config (Fin q) (Fin a) R.blank) (P : Config (Fin q) (Fin a) R.blank → ℝ) :
     (∑' d : Config (Fin q) (Fin a) R.blank, ‖R.runBasis t c d‖^2 * P d) =
@@ -2307,6 +2769,7 @@ theorem Rule.qubitWord_initial_value {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h :
   intro v _
   simp [qubitDecodedPayoff, windowFromQubits_toQubits]
 
+/-- Re-encoding successfully decoded tape symbols recovers every original tape register. -/
 theorem tapeBitsDecode_fromBits {a B : ℕ} {b : Fin (2*B+1) → Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)}
     {x : Fin (2*B+1) → Fin a} (h : tapeBitsDecode a B b = some x) :
     (fun j => finToBits a (x j)) = b := by
@@ -2317,6 +2780,7 @@ theorem tapeBitsDecode_fromBits {a B : ℕ} {b : Fin (2*B+1) → Qatlib.Foundati
   apply (Qatlib.Foundations.PureStateMath.bitVecEquiv (finiteQubits a)).injective
   simp [finToBits]
 
+/-- Re-encoding a successfully decoded binary window recovers the original binary window. -/
 theorem windowToBits_fromBits {q a B : ℕ} {b : BinaryWindow q a B}
     {x : Bool × WindowConfig (Fin q) (Fin a) B} (h : windowFromBits q a B b = some x) : windowToBits q a B x = b := by
   unfold windowFromBits at h
@@ -2335,6 +2799,7 @@ theorem windowToBits_fromBits {q a B : ℕ} {b : BinaryWindow q a B}
         · exact headToBits_fromBits hh
         · exact Prod.ext (finToBits_fromBits hc) (tapeBitsDecode_fromBits ht)
 
+/-- Re-encoding a successfully decoded qubit window recovers the original qubit register. -/
 theorem windowToQubits_fromQubits {q a B : ℕ} {b : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)}
     {x : Bool × WindowConfig (Fin q) (Fin a) B} (h : windowFromQubits q a B b = some x) :
     windowToQubits q a B x = b := by
@@ -2342,15 +2807,19 @@ theorem windowToQubits_fromQubits {q a B : ℕ} {b : Qatlib.Foundations.PureStat
   exact (congrArg (binaryWindowFlatten q a B) he).trans
       ((binaryWindowFlatten q a B).apply_symm_apply b)
 
+/-- The finite-index register size is at most `n`. -/
 theorem finiteQubits_le (n : ℕ) : finiteQubits n ≤ n :=
   Nat.clog_le_of_le_pow (Nat.lt_pow_self (by decide) |>.le)
 
+/-- The window qubit count is at most `(2*B+1)*2 + q + (2*B+1)*a`. -/
 theorem binaryWindowQubits_bound (q a B : ℕ) : binaryWindowQubits q a B ≤ (2*B+1)*2 + q + (2*B+1)*a := by
   have hh : headQubits B ≤ (2*B+1)*2 := finiteQubits_le _
   have hq := finiteQubits_le q
   have ha := Nat.mul_le_mul_left (2*B+1) (finiteQubits_le a)
   exact Nat.add_le_add (Nat.add_le_add hh hq) ha
 
+/-- For a globally well-formed rule and `t ≤ B`, the encoded amplitudes of the qubit word on an
+initial window recover the global evolution. -/
 theorem Rule.qubitWord_initial {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.GloballyWellformed)
     (B t : ℕ) (ht : t ≤ B) (c : Config (Fin q) (Fin a) R.blank) :
     windowEmbed c.tape c.head B (fun v =>
@@ -2358,6 +2827,8 @@ theorem Rule.qubitWord_initial {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.Glo
         (windowToQubits q a B (false,v))) = R.runBasis t c := by
   rw [R.qubitWord_global h c.tape c.head B t _ (initialWindow_room B t c ht), encodeWindow_initial]
 
+/-- The qubit word has zero amplitude at registers that fail window decoding when started from a
+legal false-mode configuration with sufficient room under a globally well-formed rule. -/
 theorem Rule.qubitWord_illegal_zero {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.GloballyWellformed)
     (B t : ℕ) (w : WindowConfig (Fin q) (Fin a) B) (hw : w.Room t)
     (b : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) (hb : windowFromQubits q a B b = none) :
@@ -2368,6 +2839,8 @@ theorem Rule.qubitWord_illegal_zero {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : 
   rw [← hx, windowFromQubits_toQubits] at hb
   contradiction
 
+/-- The squared amplitudes of the qubit word sum to one for a globally well-formed rule and an
+initial window with sufficient room. -/
 theorem Rule.qubitWord_born_mass {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.GloballyWellformed)
     (B t : ℕ) (w : WindowConfig (Fin q) (Fin a) B) (hw : w.Room t) :
     (∑ b : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B),
@@ -2377,6 +2850,8 @@ theorem Rule.qubitWord_born_mass {q a : ℕ} (R : Rule (Fin q) (Fin a)) (h : R.G
   rw [hv]
   exact R.windowRun_mass h (Tape.empty R.blank) 0 B t w hw
 
+/-- The coordinate frame of a map acting on the first coordinate is its coordinate frame
+tensored with the identity on the second coordinate. -/
 theorem injectionFrame_prod_identity {K H S : Type*} [DecidableEq K] [DecidableEq H] [DecidableEq S]
     (f : K → H) :
     injectionFrame (fun kr : K × S => (f kr.1,kr.2)) =
@@ -2385,6 +2860,8 @@ theorem injectionFrame_prod_identity {K H S : Type*} [DecidableEq K] [DecidableE
   simp only [injectionFrame, Matrix.kronecker_apply, Matrix.one_apply, Prod.mk.injEq]
   split_ifs <;> simp_all
 
+/-- Tensoring both a frame and its operator with an identity tensors the frame extension with
+the same identity. -/
 theorem frameUnitary_tensor_identity {K H S : Type*} [Fintype K] [Fintype H] [Fintype S]
     [DecidableEq K] [DecidableEq H] [DecidableEq S] (E : Matrix H K ℂ) (T : Matrix K K ℂ) :
     Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (E ⊗ₖ (1 : Matrix S S ℂ)) (T ⊗ₖ (1 : Matrix S S ℂ)) =
@@ -2397,6 +2874,8 @@ theorem frameUnitary_tensor_identity {K H S : Type*} [Fintype K] [Fintype H] [Fi
     Prod.mk.injEq]
   split_ifs <;> simp_all
 
+/-- A change of ambient basis conjugates the frame extension by the coordinate matrix of the
+basis equivalence. -/
 theorem frameUnitary_basisEquiv {H J K : Type*} [Fintype H] [Fintype J] [Fintype K]
     [DecidableEq H] [DecidableEq J] [DecidableEq K]
     (e : H ≃ J) (E : Matrix H K ℂ) (T : Matrix K K ℂ) :
@@ -2408,9 +2887,12 @@ theorem frameUnitary_basisEquiv {H J K : Type*} [Fintype H] [Fintype J] [Fintype
     Matrix.mul_one, Matrix.mul_assoc]
   rw [he]
 
+/-- The binary registers for the head, internal state, and one distinguished tape symbol. -/
 abbrev SmallCellBits (q a B : ℕ) := Qatlib.Foundations.PureStateMath.Reg (headQubits B) ×
   Qatlib.Foundations.PureStateMath.Reg (finiteQubits q) × Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)
 
+/-- The equivalence splitting a binary window into the registers for one active cell and the
+registers for all remaining tape cells. -/
 def binaryCellSplit (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) :
     BinaryWindow q a B ≃ SmallCellBits q a B × CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i where
   toFun b := ((b.1,b.2.1,b.2.2 i),fun j => b.2.2 j)
@@ -2424,10 +2906,13 @@ def binaryCellSplit (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) :
     · funext j
       exact cellAssemble_other i j.val _ _ j.property
 
+/-- Place a local cell label into the head, state, and symbol registers using canonical head
+slots. -/
 def smallCellPlace {q a B : ℕ} (i : WindowCenter B) (v : CellView (Fin q) (Fin a)) : SmallCellBits q a B :=
   (headToBits B (canonicalHeadSlots i (cellViewCoords v).1),
     finToBits q (cellViewCoords v).2.1,finToBits a (cellViewCoords v).2.2)
 
+/-- Placement of local cell labels into the active binary registers is injective. -/
 theorem smallCellPlace_injective {q a B : ℕ} (i : WindowCenter B) :
     Function.Injective (smallCellPlace (q := q) (a := a) i) := by
   intro v w he
@@ -2439,6 +2924,8 @@ theorem smallCellPlace_injective {q a B : ℕ} (i : WindowCenter B) :
     · exact finToBits_injective q (congrArg (fun z : SmallCellBits q a B => z.2.1) he)
     · exact finToBits_injective a (congrArg (fun z : SmallCellBits q a B => z.2.2) he)
 
+/-- Splitting a binary canonical placement separates the active cell placement from the
+remaining tape registers. -/
 theorem binaryCellSplit_place {q a B : ℕ} (i : WindowCenter B)
     (vr : CellView (Fin q) (Fin a) × CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i.val) :
     binaryCellSplit q a i.val (binaryCanonicalPlace i vr) = (smallCellPlace i vr.1,vr.2) := by
@@ -2448,16 +2935,20 @@ theorem binaryCellSplit_place {q a B : ℕ} (i : WindowCenter B)
   · funext j
     exact cellAssemble_other i.val j.val _ _ j.property
 
+/-- The extension of the cell-swap matrix to the active head, state, and symbol registers. -/
 noncomputable def Rule.smallCellGate {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     Matrix (SmallCellBits q a B) (SmallCellBits q a B) ℂ :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary (injectionFrame (smallCellPlace i)) R.cellSwap
 
+/-- The active cell gate is unitary for a globally well-formed rule. -/
 theorem Rule.smallCellGate_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (i : WindowCenter B) :
     R.smallCellGate i ∈ Matrix.unitaryGroup (SmallCellBits q a B) ℂ :=
   Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary_unitary _ (injectionFrame_isometry _ (smallCellPlace_injective i))
     _ (R.cellSwap_unitary h)
 
+/-- In split coordinates, the binary canonical gate is the active cell gate tensored with the
+identity on remaining tape registers. -/
 theorem Rule.binaryCanonicalGate_local {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     injectionFrame (binaryCellSplit q a i.val) * R.binaryCanonicalGate i *
         (injectionFrame (binaryCellSplit q a i.val)).conjTranspose =
@@ -2472,22 +2963,29 @@ theorem Rule.binaryCanonicalGate_local {q a B : ℕ} (R : Rule (Fin q) (Fin a)) 
   rw [hp, injectionFrame_prod_identity, frameUnitary_tensor_identity]
   rfl
 
+/-- The total number of qubits in the head, state, and one symbol register. -/
 def smallCellQubits (q a B : ℕ) : ℕ := headQubits B + finiteQubits q + finiteQubits a
 
+/-- The equivalence flattening the active head, state, and symbol registers into one qubit
+register. -/
 def smallCellFlatten (q a B : ℕ) : SmallCellBits q a B ≃ Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B) :=
   ((Equiv.prodAssoc _ _ _).symm.trans
     (Equiv.prodCongr (Qatlib.Foundations.PureStateMath.regAppendEquiv (headQubits B) (finiteQubits q)).symm (Equiv.refl _))).trans
       (Qatlib.Foundations.PureStateMath.regAppendEquiv (headQubits B + finiteQubits q) (finiteQubits a)).symm
 
+/-- The wire embedding of one cell's `k` bits into an `N*k`-bit tape register. -/
 def tapeCellWires {N k : ℕ} (i : Fin N) : Fin k ↪ Fin (N*k) :=
   ⟨fun j => finProdFinEquiv (i,j),fun _ _ h => congrArg Prod.snd (finProdFinEquiv.injective h)⟩
 
+/-- The wire embedding selecting the head, state, and distinguished tape-symbol qubits from the
+full window register. -/
 def smallCellWires (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) :
     Fin (smallCellQubits q a B) ↪ Fin (binaryWindowQubits q a B) :=
   finSumFinEquiv.symm.toEmbedding.trans
     ((Function.Embedding.sumMap (Function.Embedding.refl _) (tapeCellWires (k := finiteQubits a) i)).trans
       finSumFinEquiv.toEmbedding)
 
+/-- The active-cell wire embedding preserves the head and state prefix positions. -/
 theorem smallCellWires_prefix (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     (j : Fin (headQubits B + finiteQubits q)) :
     smallCellWires q a i (Fin.castAdd (finiteQubits a) j) = Fin.castAdd ((2*B+1)*finiteQubits a) j := by
@@ -2495,6 +2993,8 @@ theorem smallCellWires_prefix (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     (finSumFinEquiv.symm (Fin.castAdd (finiteQubits a) j))) = _
   simp
 
+/-- The active-cell wire embedding sends each symbol bit to its position in the distinguished
+tape-cell register. -/
 theorem smallCellWires_symbol (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) (j : Fin (finiteQubits a)) :
     smallCellWires q a i (Fin.natAdd (headQubits B + finiteQubits q) j) =
       Fin.natAdd (headQubits B + finiteQubits q) (finProdFinEquiv (i,j)) := by
@@ -2502,16 +3002,22 @@ theorem smallCellWires_symbol (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) (j : Fin (
     (finSumFinEquiv.symm (Fin.natAdd (headQubits B + finiteQubits q) j))) = _
   simp [tapeCellWires]
 
+/-- Reading the prefix of a concatenated register recovers the corresponding bit of the first
+register. -/
 theorem regJoin_prefix (m n : ℕ) (x : Qatlib.Foundations.PureStateMath.Reg m) (y : Qatlib.Foundations.PureStateMath.Reg n) (j : Fin m) :
     (Qatlib.Foundations.PureStateMath.regAppendEquiv m n).symm (x,y) (Fin.castAdd n j) = x j :=
   congrArg (fun p : Qatlib.Foundations.PureStateMath.Reg m × Qatlib.Foundations.PureStateMath.Reg n => p.1 j)
     ((Qatlib.Foundations.PureStateMath.regAppendEquiv m n).apply_symm_apply (x,y))
 
+/-- Reading the suffix of a concatenated register recovers the corresponding bit of the second
+register. -/
 theorem regJoin_suffix (m n : ℕ) (x : Qatlib.Foundations.PureStateMath.Reg m) (y : Qatlib.Foundations.PureStateMath.Reg n) (j : Fin n) :
     (Qatlib.Foundations.PureStateMath.regAppendEquiv m n).symm (x,y) (Fin.natAdd m j) = y j :=
   congrArg (fun p : Qatlib.Foundations.PureStateMath.Reg m × Qatlib.Foundations.PureStateMath.Reg n => p.2 j)
     ((Qatlib.Foundations.PureStateMath.regAppendEquiv m n).apply_symm_apply (x,y))
 
+/-- Reading the flattened window along the active-cell wires agrees with flattening the active
+part of the split window. -/
 theorem smallCellWires_read (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) (b : BinaryWindow q a B)
     (j : Fin (smallCellQubits q a B)) :
     binaryWindowFlatten q a B b (smallCellWires q a i j) =
@@ -2533,10 +3039,12 @@ theorem smallCellWires_read (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) (b : BinaryW
     rw [Equiv.symm_apply_apply]
     rfl
 
+/-- The active cell gate expressed on a single flattened qubit register. -/
 noncomputable def Rule.smallCellQubitGate {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     Matrix (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) ℂ :=
   injectionFrame (smallCellFlatten q a B) * R.smallCellGate i * (injectionFrame (smallCellFlatten q a B)).conjTranspose
 
+/-- The flattened active cell gate is unitary for a globally well-formed rule. -/
 theorem Rule.smallCellQubitGate_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (i : WindowCenter B) :
     R.smallCellQubitGate i ∈ Matrix.unitaryGroup (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) ℂ := by
@@ -2547,6 +3055,7 @@ theorem Rule.smallCellQubitGate_unitary {q a B : ℕ} (R : Rule (Fin q) (Fin a))
         ((smallCellFlatten q a B).injective.comp (smallCellPlace_injective i))
   · exact R.cellSwap_unitary h
 
+/-- The number of binary addresses for `Fin n` is at most `2*(n+1)`. -/
 theorem finiteQubits_pow_bound (n : ℕ) : 2 ^ finiteQubits n ≤ 2*(n+1) := by
   by_cases hn : 1 < n
   · have hp := Nat.pow_pred_clog_lt_self (b := 2) (by decide) hn
@@ -2557,6 +3066,7 @@ theorem finiteQubits_pow_bound (n : ℕ) : 2 ^ finiteQubits n ≤ 2*(n+1) := by
     omega
   · interval_cases n <;> decide
 
+/-- The number of active-cell bit configurations is at most `8*(2*(2*B+1)+1)*(q+1)*(a+1)`. -/
 theorem smallCellBits_card_bound (q a B : ℕ) :
     Fintype.card (SmallCellBits q a B) ≤ 8*(2*(2*B+1)+1)*(q+1)*(a+1) := by
   simp only [SmallCellBits, Fintype.card_prod, Qatlib.Foundations.PureStateMath.card_reg]
@@ -2568,6 +3078,8 @@ theorem smallCellBits_card_bound (q a B : ℕ) :
     _ ≤ (2*(((2*B+1)*2)+1)) * ((2*(q+1))*(2*(a+1))) := Nat.mul_le_mul hh (Nat.mul_le_mul hq ha)
     _ = _ := by ring
 
+/-- Conjugating a matrix by a coordinate equivalence preserves its entries at the
+correspondingly relabeled indices. -/
 theorem injectionFrame_equiv_conjugate_apply {H J : Type*} [Fintype H] [Fintype J]
     [DecidableEq H] [DecidableEq J] (e : H ≃ J) (M : Matrix H H ℂ) (x y : H) :
     (injectionFrame e * M * (injectionFrame e).conjTranspose) (e x) (e y) = M x y := by
@@ -2577,6 +3089,8 @@ theorem injectionFrame_equiv_conjugate_apply {H J : Type*} [Fintype H] [Fintype 
     rfl
   simpa only [Matrix.mulVec_single_one] using! he
 
+/-- A binary canonical gate entry is the active-cell gate entry multiplied by the equality
+indicator for the remaining tape registers. -/
 theorem Rule.binaryCanonicalGate_entry {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B)
     (x y : BinaryWindow q a B) :
     R.binaryCanonicalGate i x y =
@@ -2588,12 +3102,16 @@ theorem Rule.binaryCanonicalGate_entry {q a B : ℕ} (R : Rule (Fin q) (Fin a)) 
   rw [injectionFrame_equiv_conjugate_apply] at he
   exact he
 
+/-- The equivalence splitting the full qubit register into active-cell qubits and remaining tape
+registers. -/
 def qubitCellSplit (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) :
     Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B) ≃
       Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B) × CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i :=
   ((binaryWindowFlatten q a B).symm.trans (binaryCellSplit q a i)).trans
     (Equiv.prodCongr (smallCellFlatten q a B) (Equiv.refl _))
 
+/-- Splitting a flattened binary window agrees with splitting the binary window and flattening
+its active part. -/
 theorem qubitCellSplit_flat (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) (b : BinaryWindow q a B) :
     qubitCellSplit q a i (binaryWindowFlatten q a B b) =
       (smallCellFlatten q a B (binaryCellSplit q a i b).1,(binaryCellSplit q a i b).2) := by
@@ -2602,6 +3120,7 @@ theorem qubitCellSplit_flat (q a : ℕ) {B : ℕ} (i : Fin (2*B+1)) (b : BinaryW
   rw [Equiv.symm_apply_apply]
   rfl
 
+/-- The active component of a split qubit register is obtained by reading the active-cell wires. -/
 theorem qubitCellSplit_read (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     (b : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) (j : Fin (smallCellQubits q a B)) :
     (qubitCellSplit q a i b).1 j = b (smallCellWires q a i j) := by
@@ -2609,6 +3128,8 @@ theorem qubitCellSplit_read (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
   rw [Equiv.apply_symm_apply] at he
   exact he.symm
 
+/-- The full-register operator applying a given matrix to the selected head, state, and
+tape-symbol qubits while preserving the remaining tape registers. -/
 noncomputable def selectedQubitGate {q a B : ℕ} (i : Fin (2*B+1))
     (T : Matrix (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) ℂ) :
     Matrix (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) ℂ :=
@@ -2616,6 +3137,8 @@ noncomputable def selectedQubitGate {q a B : ℕ} (i : Fin (2*B+1))
     (T ⊗ₖ (1 : Matrix (CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i)
       (CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i) ℂ)) * (injectionFrame (qubitCellSplit q a i).symm).conjTranspose
 
+/-- An entry of the selected-qubit operator is the active matrix entry multiplied by the
+equality indicator for the remaining tape registers. -/
 theorem selectedQubitGate_entry {q a B : ℕ} (i : Fin (2*B+1))
     (T : Matrix (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) ℂ)
     (x y : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) :
@@ -2628,6 +3151,8 @@ theorem selectedQubitGate_entry {q a B : ℕ} (i : Fin (2*B+1))
   rw [Equiv.symm_apply_apply, Equiv.symm_apply_apply] at he
   exact he
 
+/-- The selected-qubit form of the active cell gate has the same entries as the binary canonical
+gate at flattened indices. -/
 theorem Rule.binaryCanonicalGate_selected_entry {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B)
     (x y : BinaryWindow q a B) :
     selectedQubitGate i.val (R.smallCellQubitGate i) (binaryWindowFlatten q a B x) (binaryWindowFlatten q a B y) =
@@ -2636,6 +3161,8 @@ theorem Rule.binaryCanonicalGate_selected_entry {q a B : ℕ} (R : Rule (Fin q) 
   simp only [Rule.smallCellQubitGate, injectionFrame_equiv_conjugate_apply]
   exact (R.binaryCanonicalGate_entry i x y).symm
 
+/-- Flattening the binary canonical gate yields the active cell qubit gate applied on the
+selected wires. -/
 theorem Rule.binaryCanonicalGate_selected {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     binaryWindowFlattenMatrix q a B * R.binaryCanonicalGate i * (binaryWindowFlattenMatrix q a B).conjTranspose =
       selectedQubitGate i.val (R.smallCellQubitGate i) := by
@@ -2645,6 +3172,8 @@ theorem Rule.binaryCanonicalGate_selected {q a B : ℕ} (R : Rule (Fin q) (Fin a
   rw [binaryWindowFlattenMatrix, injectionFrame_equiv_conjugate_apply,
       R.binaryCanonicalGate_selected_entry]
 
+/-- The remaining-tape component of a split qubit register reads each bit at its original tape
+wire. -/
 theorem qubitCellSplit_rest_read (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     (b : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B))
     (r : {j : Fin (2*B+1) // j ≠ i}) (k : Fin (finiteQubits a)) :
@@ -2660,6 +3189,7 @@ theorem qubitCellSplit_rest_read (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
   rw [Equiv.symm_apply_apply]
   rfl
 
+/-- A bit belonging to a different tape cell is distinct from every selected active-cell wire. -/
 theorem smallCellWires_ne_rest (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     (r : {j : Fin (2*B+1) // j ≠ i}) (k : Fin (finiteQubits a)) (j : Fin (smallCellQubits q a B)) :
     Fin.natAdd (headQubits B + finiteQubits q) (finProdFinEquiv (r.val,k)) ≠ smallCellWires q a i j := by
@@ -2680,6 +3210,8 @@ theorem smallCellWires_ne_rest (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
       omega
     exact r.property (congrArg Prod.fst (finProdFinEquiv.injective hp))
 
+/-- Updating a selected wire updates the corresponding active-cell bit and preserves the
+remaining-tape component. -/
 theorem qubitCellSplit_update (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     (b : Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) (j : Fin (smallCellQubits q a B)) (v : Bool) :
     qubitCellSplit q a i (Function.update b (smallCellWires q a i j) v) =
@@ -2700,6 +3232,8 @@ theorem qubitCellSplit_update (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     have hn := smallCellWires_ne_rest q a i r k j
     exact (Function.update_of_ne hn v b).trans (qubitCellSplit_rest_read q a i b r k).symm
 
+/-- Updating an active-cell bit before joining the split register equals updating its selected
+wire after joining. -/
 theorem qubitCellJoin_update (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     (x : Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (r : CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i)
     (j : Fin (smallCellQubits q a B)) (v : Bool) :
@@ -2708,6 +3242,7 @@ theorem qubitCellJoin_update (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
   apply (qubitCellSplit q a i).injective
   rw [qubitCellSplit_update, Equiv.apply_symm_apply, Equiv.apply_symm_apply]
 
+/-- Reading a selected wire of a joined register recovers the corresponding active-cell bit. -/
 theorem qubitCellJoin_read (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
     (x : Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (r : CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i)
     (j : Fin (smallCellQubits q a B)) :
@@ -2716,17 +3251,21 @@ theorem qubitCellJoin_read (q a : ℕ) {B : ℕ} (i : Fin (2*B+1))
   rw [Equiv.apply_symm_apply] at he
   exact he.symm
 
+/-- A coordinate frame sends a source ket to the ket at the image of its label. -/
 theorem injectionFrame_ket {H K : Type*} [Fintype K] [DecidableEq H] [DecidableEq K]
     (f : K → H) (x : K) : injectionFrame f *ᵥ Qatlib.Foundations.PureStateMath.Ket x = Qatlib.Foundations.PureStateMath.Ket (f x) := by
   ext y
   simp [Qatlib.Foundations.PureStateMath.Ket, Matrix.mulVec, dotProduct, injectionFrame,
       mul_ite]
 
+/-- Embed a local reflection-vocabulary gate into the full window by mapping its wire indices
+through the active-cell wire embedding. -/
 def cellWireGate {q a B : ℕ} (i : Fin (2*B+1)) :
     Qatlib.Concepts.GateVocabulary.LocalReflectionGates.ReflectionGate (smallCellQubits q a B) → Qatlib.Concepts.GateVocabulary.LocalReflectionGates.ReflectionGate (binaryWindowQubits q a B)
   | .inl (j,U) => .inl (smallCellWires q a i j,U)
   | .inr (c,t) => .inr (smallCellWires q a i c,smallCellWires q a i t)
 
+/-- Embedding a legal local gate into the selected active-cell wires preserves gate legality. -/
 theorem cellWireGate_legal {q a B : ℕ} (i : Fin (2*B+1))
     (g : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.ReflectionGate (smallCellQubits q a B)) (hg : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionGateLegal g) :
     Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionGateLegal (cellWireGate i g) := by
@@ -2734,6 +3273,8 @@ theorem cellWireGate_legal {q a B : ℕ} (i : Fin (2*B+1))
   | inl ju => exact hg
   | inr ct => exact fun h => hg ((smallCellWires q a i).injective h)
 
+/-- The selected-qubit operator sends a basis state to the matrix-weighted sum over active-cell
+labels with the remaining tape fixed. -/
 theorem selectedQubitGate_single {q a B : ℕ} (i : Fin (2*B+1))
     (T : Matrix (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) ℂ)
     (x : Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (r : CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i) :
@@ -2745,12 +3286,16 @@ theorem selectedQubitGate_single {q a B : ℕ} (i : Fin (2*B+1))
   simpa only [Qatlib.Concepts.AmplitudeCore.InvFreePhase.frameUnitary, Qatlib.Concepts.Execution.WorkspaceCP.rangeProjector,
     hh, sub_self, zero_add] using! he
 
+/-- Embed an active-cell state into the full qubit register with the remaining tape registers
+fixed. -/
 noncomputable def cellSliceEmbed {q a B : ℕ} (i : Fin (2*B+1))
     (r : CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i)
     (ψ : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B))) :
     Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg (binaryWindowQubits q a B)) :=
   injectionFrame (fun x => (qubitCellSplit q a i).symm (x,r)) *ᵥ ψ
 
+/-- An embedded legal local gate acts on a basis state with fixed remaining tape as the slice
+embedding of the original gate action. -/
 theorem cellWireGate_slice {q a B : ℕ} (i : Fin (2*B+1))
     (g : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.ReflectionGate (smallCellQubits q a B)) (hg : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionGateLegal g)
     (r : CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i) (x : Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) :
@@ -2770,10 +3315,13 @@ theorem cellWireGate_slice {q a B : ℕ} (i : Fin (2*B+1))
       Qatlib.Concepts.GateVocabulary.LocalReflectionGates.applyGate_cnotGate_ket _ _ _ hg]
     simp only [qubitCellJoin_read, qubitCellJoin_update, cellSliceEmbed, injectionFrame_ket]
 
+/-- A basis ket is the coordinate function supported at its label with value one. -/
 theorem ket_eq_single {H : Type*} [DecidableEq H] (x : H) : Qatlib.Foundations.PureStateMath.Ket x = Pi.single x 1 := by
   ext y
   simp [Qatlib.Foundations.PureStateMath.Ket, Pi.single_apply, eq_comm]
 
+/-- The slice embedding is the sum of full-register basis kets weighted by the active-cell
+amplitudes. -/
 theorem cellSliceEmbed_sum {q a B : ℕ} (i : Fin (2*B+1))
     (r : CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i)
     (ψ : Qatlib.Foundations.PureStateMath.QState (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B))) :
@@ -2785,6 +3333,8 @@ theorem cellSliceEmbed_sum {q a B : ℕ} (i : Fin (2*B+1))
   intro x _
   split_ifs <;> simp
 
+/-- The selected-qubit operator acts on a basis ket as the slice embedding of the active matrix
+action. -/
 theorem selectedQubitGate_slice {q a B : ℕ} (i : Fin (2*B+1))
     (T : Matrix (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) ℂ)
     (x : Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (r : CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i) :
@@ -2794,6 +3344,8 @@ theorem selectedQubitGate_slice {q a B : ℕ} (i : Fin (2*B+1))
   simp only [ket_eq_single, Matrix.mulVec_single_one]
   rfl
 
+/-- The matrix of an embedded legal local gate equals its original matrix applied to the
+selected qubits. -/
 theorem cellWireGate_matrix {q a B : ℕ} (i : Fin (2*B+1))
     (g : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.ReflectionGate (smallCellQubits q a B)) (hg : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionGateLegal g) :
     Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionGateMatrix (cellWireGate i g) =
@@ -2806,6 +3358,8 @@ theorem cellWireGate_matrix {q a B : ℕ} (i : Fin (2*B+1))
   rw [← selectedQubitGate_slice i (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionGateMatrix g) x r] at he
   simpa only [ket_eq_single] using! he
 
+/-- Applying a product of matrices to selected qubits equals the product of their selected-qubit
+operators. -/
 theorem selectedQubitGate_mul {q a B : ℕ} (i : Fin (2*B+1))
     (S T : Matrix (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) (Qatlib.Foundations.PureStateMath.Reg (smallCellQubits q a B)) ℂ) :
     selectedQubitGate i (S*T) = selectedQubitGate i S * selectedQubitGate i T := by
@@ -2817,11 +3371,14 @@ theorem selectedQubitGate_mul {q a B : ℕ} (i : Fin (2*B+1))
   rw [← Matrix.mul_assoc (S ⊗ₖ (1 : Matrix (CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i)
     (CellRest (Qatlib.Foundations.PureStateMath.Reg (finiteQubits a)) i) ℂ)), ← Matrix.mul_kronecker_mul, Matrix.one_mul]
 
+/-- Applying the identity matrix to selected qubits gives the full-register identity. -/
 @[simp] theorem selectedQubitGate_one {q a B : ℕ} (i : Fin (2*B+1)) :
     selectedQubitGate (q := q) (a := a) i 1 = 1 := by
   rw [selectedQubitGate, Matrix.one_kronecker_one, Matrix.mul_one]
   exact injectionFrame_equiv_complete _
 
+/-- Embedding a legal local gate program into the selected wires applies its program matrix to
+those selected qubits. -/
 theorem cellWireProgram_matrix {q a B : ℕ} (i : Fin (2*B+1))
     (gs : List (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.ReflectionGate (smallCellQubits q a B))) (hgs : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionLegal gs) :
     Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionProgramMatrix (gs.map (cellWireGate i)) =
@@ -2833,6 +3390,8 @@ theorem cellWireProgram_matrix {q a B : ℕ} (i : Fin (2*B+1))
       ih (fun k hk => hgs k (List.mem_cons_of_mem g hk)), cellWireGate_matrix i g (hgs g List.mem_cons_self),
       selectedQubitGate_mul]
 
+/-- Embedding a legal local program preserves legality and length, and its compiled circuit has
+zero queries and gate count equal to that length. -/
 theorem cellWireProgram_resources {q a B : ℕ} (i : Fin (2*B+1))
     (gs : List (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.ReflectionGate (smallCellQubits q a B))) (hgs : Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionLegal gs) :
     Qatlib.Concepts.GateVocabulary.LocalReflectionGates.reflectionLegal (gs.map (cellWireGate i)) ∧
@@ -2845,22 +3404,30 @@ theorem cellWireProgram_resources {q a B : ℕ} (i : Fin (2*B+1))
     exact cellWireGate_legal i z (hgs z hz)
   · rw [Qatlib.Concepts.GateVocabulary.LocalReflectionGates.gateCount_reflectionCompile, List.length_map]
 
+/-- The active-cell qubit register contains at least one qubit. -/
 theorem smallCellQubits_pos (q a B : ℕ) : 1 ≤ smallCellQubits q a B := by
   have hh : 0 < Nat.clog 2 ((2*B+1)*2) := Nat.clog_pos (by decide) (by omega)
   change 1 ≤ Nat.clog 2 ((2*B+1)*2) + finiteQubits q + finiteQubits a
   omega
 
+/-- The number of active-cell bit configurations is two to the power of the active-cell qubit
+count. -/
 theorem smallCellBits_card (q a B : ℕ) : Fintype.card (SmallCellBits q a B) = 2 ^ smallCellQubits q a B :=
   (Fintype.card_congr (smallCellFlatten q a B)).trans (Qatlib.Foundations.PureStateMath.card_reg _)
 
+/-- The active-cell qubit count is at most `2*(2*B+1)+q+a`. -/
 theorem smallCellQubits_bound (q a B : ℕ) : smallCellQubits q a B ≤ 2*(2*B+1)+q+a := by
   have hh : headQubits B ≤ 2*(2*B+1) := by
     exact (finiteQubits_le ((2*B+1)*2)).trans (Nat.le_of_eq (Nat.mul_comm _ _))
   exact Nat.add_le_add (Nat.add_le_add hh (finiteQubits_le q)) (finiteQubits_le a)
 
+/-- The synthesis budget `768*(smallCellQubits q a B+1)^3*4^smallCellQubits q a B` for an active
+cell gate. -/
 def smallCellGateBudget (q a B : ℕ) : ℕ :=
   768*(smallCellQubits q a B+1)^3*4^smallCellQubits q a B
 
+/-- The active-cell synthesis budget is at most `768*(2*(2*B+1)+q+a+1)^3 *
+(8*(2*(2*B+1)+1)*(q+1)*(a+1))^2`. -/
 theorem smallCellGateBudget_bound (q a B : ℕ) : smallCellGateBudget q a B ≤
     768*(2*(2*B+1)+q+a+1)^3 * (8*(2*(2*B+1)+1)*(q+1)*(a+1))^2 := by
   have hd := smallCellBits_card_bound q a B
@@ -2874,6 +3441,9 @@ theorem smallCellGateBudget_bound (q a B : ℕ) : smallCellGateBudget q a B ≤
   exact Nat.mul_le_mul (Nat.mul_le_mul_left 768
     (Nat.pow_le_pow_left (Nat.add_le_add_right (smallCellQubits_bound q a B) 1) 3)) hb
 
+/-- For a globally well-formed rule, the flattened binary canonical gate has an exact legal
+local-gate implementation of length at most `smallCellGateBudget q a B`, with zero queries
+and compiled gate count equal to its length. -/
 theorem Rule.binaryCanonicalGate_continuous_table {q a B : ℕ} (R : Rule (Fin q) (Fin a))
     (h : R.GloballyWellformed) (i : WindowCenter B) :
     ∃ gs : List (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.ReflectionGate (binaryWindowQubits q a B)),
@@ -2906,14 +3476,19 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeMachineCompletion
 open Qatlib
 open scoped BigOperators ComplexConjugate Classical Matrix Kronecker
 
+/-- The pair of head labels having opposite modes at the same window position. -/
 def headFlipPair {B : ℕ} (j : Fin (2*B+1)) : WindowHead B × WindowHead B := ((false, j), (true, j))
 
+/-- The swap word exchanging the two modes at every window head position. -/
 def headFlipWord (B : ℕ) : List (WindowHead B × WindowHead B) :=
   (List.finRange (2*B+1)).map headFlipPair
 
+/-- The head mode-flip word has length `2*B+1`. -/
 theorem headFlipWord_length (B : ℕ) : (headFlipWord B).length = 2*B+1 := by
   simp [headFlipWord]
 
+/-- Swapping mode pairs at a list of distinct positions flips the mode exactly at positions
+occurring in the list. -/
 theorem swapWordEval_headFlipList {B : ℕ} (l : List (Fin (2*B+1))) (p : Bool) (k : Fin (2*B+1))
     (hnodup : l.Nodup) :
     swapWordEval (l.map headFlipPair) (p, k) =
@@ -2949,19 +3524,23 @@ theorem swapWordEval_headFlipList {B : ℕ} (l : List (Fin (2*B+1))) (p : Bool) 
       rw [hinner]
       simp [hkj]
 
+/-- The complete head mode-flip word negates the Boolean mode and preserves the head position. -/
 theorem headFlipWord_eval (B : ℕ) (h : WindowHead B) :
     swapWordEval (headFlipWord B) h = (!h.1, h.2) := by
   rcases h with ⟨p, k⟩
   rw [headFlipWord, swapWordEval_headFlipList (List.finRange (2*B+1)) p k
     (List.nodup_finRange (2*B+1)), if_pos (List.mem_finRange k)]
 
+/-- The head mode-flip swap word transported to binary head-register labels. -/
 def headFlipBitWord (B : ℕ) :
     List (Qatlib.Foundations.PureStateMath.Reg (headQubits B) × Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :=
   (headFlipWord B).map (fun xy => (headToBits B xy.1, headToBits B xy.2))
 
+/-- The binary head mode-flip word has length `2*B+1`. -/
 theorem headFlipBitWord_length (B : ℕ) : (headFlipBitWord B).length = 2*B+1 := by
   rw [headFlipBitWord, List.length_map, headFlipWord_length]
 
+/-- The binary head mode-flip word evaluates to `headFlipBits`. -/
 theorem headFlipBitWord_eval (B : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :
     swapWordEval (headFlipBitWord B) b = headFlipBits B b := by
   cases hb : headFromBits B b with
@@ -2979,9 +3558,11 @@ theorem headFlipBitWord_eval (B : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg
             swapWordEval_map (headToBits B) (headToBits_injective B) (headFlipWord B) h
       _ = headToBits B (!h.1, h.2) := by rw [headFlipWord_eval]
 
+/-- The binary head-flip permutation acts by `headFlipBits`. -/
 theorem headFlipBitsEquiv_apply (B : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :
     headFlipBitsEquiv B b = headFlipBits B b := rfl
 
+/-- The binary head mode-flip word matrix is the coordinate matrix of the head-flip permutation. -/
 theorem headFlipBitWord_matrix (B : ℕ) :
     swapWordMatrix (headFlipBitWord B) = injectionFrame (headFlipBitsEquiv B) := by
   rw [swapWordMatrix_eval]
@@ -2989,27 +3570,37 @@ theorem headFlipBitWord_matrix (B : ℕ) :
   funext b
   exact headFlipBitWord_eval B b
 
+/-- The binary head mode-flip word matrix is unitary. -/
 theorem headFlipBitWord_unitary (B : ℕ) :
     swapWordMatrix (headFlipBitWord B) ∈
       Matrix.unitaryGroup (Qatlib.Foundations.PureStateMath.Reg (headQubits B)) ℂ := swapWordMatrix_unitary _
 
+/-- The binary head mode-flip word matrix sends each basis vector to the basis vector labeled by
+its flipped head register. -/
 theorem headFlipBitWord_matrix_single (B : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :
     swapWordMatrix (headFlipBitWord B) *ᵥ Pi.single b 1 = Pi.single (headFlipBits B b) 1 := by
   rw [swapWordMatrix_single, headFlipBitWord_eval]
 
+/-- The binary head mode-flip word matrix fixes basis vectors at registers that fail head
+decoding. -/
 theorem headFlipBitWord_illegal (B : ℕ) (b : Qatlib.Foundations.PureStateMath.Reg (headQubits B))
     (hb : headFromBits B b = none) :
     swapWordMatrix (headFlipBitWord B) *ᵥ Pi.single b 1 = Pi.single b 1 := by
   rw [swapWordMatrix_single, headFlipBitWord_eval, headFlipBits, hb]
 
+/-- The state and tape binary registers unaffected by operations acting only on the head
+register. -/
 abbrev WindowSpectators (q a B : ℕ) :=
   Qatlib.Foundations.PureStateMath.Reg (finiteQubits q) × (Fin (2*B+1) → Qatlib.Foundations.PureStateMath.Reg (finiteQubits a))
 
+/-- The full binary-window permutation matrix of the head mode-flip swap word, preserving state
+and tape registers. -/
 noncomputable def binaryWindowFlipWordMatrix (q a B : ℕ) :
     Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ :=
   injectionFrame (Equiv.prodCongr (swapWordEval (headFlipBitWord B))
     (Equiv.refl (WindowSpectators q a B)))
 
+/-- The full-window matrix of the head mode-flip word equals the binary window mode-flip matrix. -/
 theorem binaryWindowFlipWordMatrix_eq (q a B : ℕ) :
     binaryWindowFlipWordMatrix q a B = binaryWindowFlip q a B := by
   unfold binaryWindowFlipWordMatrix binaryWindowFlip
@@ -3025,11 +3616,13 @@ theorem binaryWindowFlipWordMatrix_eq (q a B : ℕ) :
   rw [hprod]
   rfl
 
+/-- The full-window matrix of the head mode-flip word is unitary. -/
 theorem binaryWindowFlipWordMatrix_unitary (q a B : ℕ) :
     binaryWindowFlipWordMatrix q a B ∈ Matrix.unitaryGroup (BinaryWindow q a B) ℂ := by
   rw [binaryWindowFlipWordMatrix_eq]
   exact binaryWindowFlip_unitary q a B
 
+/-- The head mode-flip word changes only the head register of a binary-window basis vector. -/
 theorem binaryWindowFlipWordMatrix_spectators (q a B : ℕ)
     (h : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) (s : WindowSpectators q a B) :
     binaryWindowFlipWordMatrix q a B *ᵥ Pi.single (h, s) 1 =
@@ -3042,6 +3635,8 @@ theorem binaryWindowFlipWordMatrix_spectators (q a B : ℕ)
     · rfl
   rw [hprod]
 
+/-- The full-window mode-flip word matrix acts on amplitudes by precomposition with the inverse
+head permutation while preserving the other registers. -/
 theorem binaryWindowFlipWordMatrix_state (q a B : ℕ) (v : BinaryWindow q a B → ℂ)
     (y : BinaryWindow q a B) :
     (binaryWindowFlipWordMatrix q a B *ᵥ v) y =
@@ -3050,6 +3645,7 @@ theorem binaryWindowFlipWordMatrix_state (q a B : ℕ) (v : BinaryWindow q a B �
   rw [binaryWindowFlipWordMatrix]
   exact injectionFrame_equiv_mulVec _ v y
 
+/-- The full-window head mode-flip word matrix fixes basis states with an illegal head register. -/
 theorem binaryWindowFlipWordMatrix_illegal (q a B : ℕ)
     (h : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) (s : WindowSpectators q a B)
     (hh : headFromBits B h = none) :
@@ -3064,11 +3660,13 @@ theorem binaryWindowFlipWordMatrix_illegal (q a B : ℕ)
     · rfl
   rw [hprod]
 
+/-- The full binary-window permutation matrix of the forward binary head-routing word. -/
 noncomputable def binaryHeadRouteWordMatrix (q a B : ℕ) (i : WindowCenter B) :
     Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ :=
   injectionFrame (Equiv.prodCongr (swapWordEval (cellHeadBitRouteWord i))
     (Equiv.refl (WindowSpectators q a B)))
 
+/-- The full-window head-routing word matrix equals the binary window head-routing matrix. -/
 theorem binaryHeadRouteWordMatrix_eq (q a B : ℕ) (i : WindowCenter B) :
     binaryHeadRouteWordMatrix q a B i = binaryHeadRouteWindowMatrix q a i := by
   unfold binaryHeadRouteWordMatrix binaryHeadRouteWindowMatrix
@@ -3084,6 +3682,7 @@ theorem binaryHeadRouteWordMatrix_eq (q a B : ℕ) (i : WindowCenter B) :
   rw [hprod]
   rfl
 
+/-- The full binary-window permutation matrix of the reversed binary head-routing word. -/
 noncomputable def binaryHeadRouteReverseWordMatrix (q a B : ℕ) (i : WindowCenter B) :
     Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ :=
   injectionFrame (Equiv.prodCongr (swapWordEval (cellHeadBitRouteReverseWord i))
@@ -3091,6 +3690,8 @@ noncomputable def binaryHeadRouteReverseWordMatrix (q a B : ℕ) (i : WindowCent
 
 set_option maxHeartbeats 800000 in
 
+/-- The full-window reversed head-routing word matrix is the adjoint of the binary window
+head-routing matrix. -/
 theorem binaryHeadRouteReverseWordMatrix_eq (q a B : ℕ) (i : WindowCenter B) :
     binaryHeadRouteReverseWordMatrix q a B i = (binaryHeadRouteWindowMatrix q a i).conjTranspose := by
   unfold binaryHeadRouteReverseWordMatrix binaryHeadRouteWindowMatrix
@@ -3106,20 +3707,24 @@ theorem binaryHeadRouteReverseWordMatrix_eq (q a B : ℕ) (i : WindowCenter B) :
   rw [hsym, injectionFrame_equiv_symm]
   rfl
 
+/-- The concatenation of the forward and reverse binary cell-head routing swap words. -/
 def cellRouteWord (B : ℕ) (i : WindowCenter B) :
     List (Qatlib.Foundations.PureStateMath.Reg (headQubits B) × Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :=
   cellHeadBitRouteWord i ++ cellHeadBitRouteReverseWord i
 
+/-- The forward-and-reverse cell routing word has length eight. -/
 theorem cellRouteWord_length (B : ℕ) (i : WindowCenter B) : (cellRouteWord B i).length = 8 := by
   rw [cellRouteWord, List.length_append, cellHeadBitRouteWord_length,
     cellHeadBitRouteReverseWord_length]
 
+/-- The forward-and-reverse cell routing word fixes every binary head register. -/
 theorem cellRouteWord_eval (B : ℕ) (i : WindowCenter B) (b : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) :
     swapWordEval (cellRouteWord B i) b = b := by
   rw [cellRouteWord, swapWordEval_append, cellHeadBitRouteReverseWord_eval]
   show (cellHeadBitRoute i).symm ((cellHeadBitRoute i) b) = b
   exact Equiv.symm_apply_apply _ _
 
+/-- The forward-and-reverse cell routing word evaluates to the identity permutation. -/
 theorem cellRouteWord_eq_refl (B : ℕ) (i : WindowCenter B) :
     swapWordEval (cellRouteWord B i) = Equiv.refl (Qatlib.Foundations.PureStateMath.Reg (headQubits B)) := by
   rw [cellRouteWord, swapWordEval_append, cellHeadBitRouteReverseWord_eval]
@@ -3128,22 +3733,28 @@ theorem cellRouteWord_eq_refl (B : ℕ) (i : WindowCenter B) :
   show (cellHeadBitRoute i).symm ((cellHeadBitRoute i) b) = b
   exact Equiv.symm_apply_apply _ _
 
+/-- The matrix of the forward-and-reverse cell routing word is the identity. -/
 theorem cellRouteWord_matrix (B : ℕ) (i : WindowCenter B) :
     swapWordMatrix (cellRouteWord B i) = 1 := by
   rw [swapWordMatrix_eval, cellRouteWord_eq_refl]
   ext x y
   simp [injectionFrame, Matrix.one_apply]
 
+/-- The binary cell matrix formed by forward head routing, the binary canonical gate, and
+reverse head routing. -/
 noncomputable def binaryCellWordMatrix (q a B : ℕ) (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     Matrix (BinaryWindow q a B) (BinaryWindow q a B) ℂ :=
   (binaryHeadRouteReverseWordMatrix q a B i) * R.binaryCanonicalGate i *
     (binaryHeadRouteWordMatrix q a B i)
 
+/-- The routed binary cell-word matrix equals the binary local cell gate. -/
 theorem binaryCellWordMatrix_eq (q a B : ℕ) (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     binaryCellWordMatrix q a B R i = R.binaryCellGate i := by
   unfold binaryCellWordMatrix Rule.binaryCellGate
   rw [binaryHeadRouteReverseWordMatrix_eq, binaryHeadRouteWordMatrix_eq]
 
+/-- The full-window head-routing word matrix acts on amplitudes by precomposition with the
+inverse head route and preserves the other registers. -/
 theorem binaryHeadRouteWordMatrix_state (q a B : ℕ) (i : WindowCenter B)
     (v : BinaryWindow q a B → ℂ) (y : BinaryWindow q a B) :
     (binaryHeadRouteWordMatrix q a B i *ᵥ v) y =
@@ -3152,6 +3763,8 @@ theorem binaryHeadRouteWordMatrix_state (q a B : ℕ) (i : WindowCenter B)
   rw [binaryHeadRouteWordMatrix]
   exact injectionFrame_equiv_mulVec _ v y
 
+/-- The full-window head-routing word matrix routes the head of a basis vector while preserving
+its state and tape registers. -/
 theorem binaryHeadRouteWordMatrix_spectators (q a B : ℕ) (i : WindowCenter B)
     (h : Qatlib.Foundations.PureStateMath.Reg (headQubits B)) (s : WindowSpectators q a B) :
     binaryHeadRouteWordMatrix q a B i *ᵥ Pi.single (h, s) 1 =
@@ -3159,16 +3772,20 @@ theorem binaryHeadRouteWordMatrix_spectators (q a B : ℕ) (i : WindowCenter B)
   rw [binaryHeadRouteWordMatrix, injectionFrame_single]
   rfl
 
+/-- The binary matrix of a cell operation equals its routed binary cell-word matrix. -/
 theorem windowStepCell_eq_word (q a B : ℕ) (R : Rule (Fin q) (Fin a)) (i : WindowCenter B) :
     WindowOp.binaryMatrix R (.cell i : WindowOp B) = binaryCellWordMatrix q a B R i := by
   rw [binaryCellWordMatrix_eq]
   rfl
 
+/-- The binary matrix of a flip operation equals the full-window head mode-flip word matrix. -/
 theorem windowStepFlip_eq_word (q a B : ℕ) (R : Rule (Fin q) (Fin a)) :
     WindowOp.binaryMatrix R (.flip : WindowOp B) = binaryWindowFlipWordMatrix q a B := by
   rw [binaryWindowFlipWordMatrix_eq]
   rfl
 
+/-- The binary matrix of concatenated window words is the reverse-ordered product of their
+binary matrices. -/
 theorem binaryWordMatrix_append {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (l r : List (WindowOp B)) :
     R.binaryWordMatrix (l ++ r) = R.binaryWordMatrix r * R.binaryWordMatrix l := by
   induction l with
@@ -3176,36 +3793,51 @@ theorem binaryWordMatrix_append {q a B : ℕ} (R : Rule (Fin q) (Fin a)) (l r : 
   | cons a l ih =>
     simp only [List.cons_append, Rule.binaryWordMatrix, ih, Matrix.mul_assoc]
 
+/-- The binary matrix of a window step factors into the binary cell sweep followed by the head
+mode-flip word matrix. -/
 theorem binaryStepWordMatrix_eq (q a B : ℕ) (R : Rule (Fin q) (Fin a)) :
     R.binaryWordMatrix (windowStepOps B) =
       binaryWindowFlipWordMatrix q a B * R.binaryWordMatrix ((windowCenters B).map WindowOp.cell) := by
   rw [windowStepOps, binaryWordMatrix_append, Rule.binaryWordMatrix]
   simp [Rule.binaryWordMatrix, windowStepFlip_eq_word]
 
+/-- The binary matrix of two successive cell operations is the reverse-ordered product of their
+routed cell-word matrices. -/
 theorem binaryStepCells_two (q a B : ℕ) (R : Rule (Fin q) (Fin a)) (i j : WindowCenter B) :
     R.binaryWordMatrix [WindowOp.cell i, WindowOp.cell j] =
       binaryCellWordMatrix q a B R j * binaryCellWordMatrix q a B R i := by
   rw [Rule.binaryWordMatrix, Rule.binaryWordMatrix]
   simp [Rule.binaryWordMatrix, windowStepCell_eq_word]
 
+/-- The count of eight head swaps for forward and reverse routing around one canonical cell
+gate. -/
 def cellRouteSwapCount : ℕ := 8
 
+/-- The swap count for one window step: eight routing swaps per interior cell and one mode swap
+per head position. -/
 def windowStepSwapCount (B : ℕ) : ℕ :=
   (2*B-1) * cellRouteSwapCount + (2*B+1)
 
+/-- The window-step swap count is at most `18*B+1`. -/
 theorem windowStepSwapCount_bound (B : ℕ) : windowStepSwapCount B ≤ 18*B + 1 := by
   unfold windowStepSwapCount cellRouteSwapCount
   omega
 
+/-- The total swap count for `t` window steps. -/
 def windowWordSwapCount (B t : ℕ) : ℕ := t * windowStepSwapCount B
 
+/-- The swap count for `t` window steps is at most `t*(18*B+1)`. -/
 theorem windowWordSwapCount_bound (B t : ℕ) : windowWordSwapCount B t ≤ t * (18*B + 1) := by
   unfold windowWordSwapCount
   exact Nat.mul_le_mul (Nat.le_refl t) (windowStepSwapCount_bound B)
 
+/-- The window-step resource count combining routing and mode swaps with one active-cell
+synthesis budget per interior cell. -/
 def windowStepGateCount (q a B : ℕ) : ℕ :=
   windowStepSwapCount B + (2*B-1) * smallCellGateBudget q a B
 
+/-- The window-step resource count is at most `18*B+1` plus `(2*B+1)` active-cell synthesis
+budgets. -/
 theorem windowStepGateCount_bound (q a B : ℕ) :
     windowStepGateCount q a B ≤ (18*B+1) + (2*B+1) * smallCellGateBudget q a B := by
   have h1 : 2*B-1 ≤ 2*B+1 := by omega
@@ -3219,6 +3851,8 @@ theorem windowStepGateCount_bound (q a B : ℕ) :
   unfold windowStepGateCount
   exact Nat.add_le_add (Nat.le_trans (windowStepSwapCount_bound B) le_rfl) hcells
 
+/-- The window-step resource count is at most `18*B+1` plus `2*B+1` times the polynomial upper
+bound for the active-cell synthesis budget. -/
 theorem windowStepGateCount_poly_bound (q a B : ℕ) :
     windowStepGateCount q a B ≤ (18*B+1) + (2*B+1) *
       (768*(2*(2*B+1)+q+a+1)^3 * (8*(2*(2*B+1)+1)*(q+1)*(a+1))^2) := by

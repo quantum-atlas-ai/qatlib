@@ -8,6 +8,24 @@ import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroLemma18PhaseTVSubgoalS
 import Qatlib.Concepts.AEMeanReadout.AELawStability.MontanaroClaim17Mont
 import Qatlib.Concepts.EstimatorLaws.TvStability.Lemma18PhaseTVAux
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.PureStateTV
+
+/-!
+# Phase-readout total-variation stability
+
+Proves the phase-kernel stability contract underlying the Lemma 18 perturbation analysis in
+[Montanaro2015]. The proof combines a circular phase-distance estimate, the Dirichlet overlap
+formula, pure-state measurement stability, and the arcsine estimate for squared sine amplitudes.
+
+## Main statements
+
+* `montanaroLemma18PhaseTVSubgoal` bounds phase-label total variation by `π² * M / (2 * sqrt 3)`
+  times the square root of the squared-sine difference.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,6 +42,8 @@ namespace Qatlib.Concepts.EstimatorLaws.TvStability
 open Matrix
 open scoped Classical BigOperators
 
+/-- Proves the phase-kernel total-variation bound used in the Lemma 18 stability analysis of
+[Montanaro2015], for phases in `[0, π / 2]` and grid size at least one. -/
 theorem montanaroLemma18PhaseTVSubgoal : MontanaroLemma18PhaseTVSubgoal := by
   intro M hM ω₁ ω₂ hω₁0 hω₁1 hω₂0 hω₂1
   have hM0 : 0 < M := by omega

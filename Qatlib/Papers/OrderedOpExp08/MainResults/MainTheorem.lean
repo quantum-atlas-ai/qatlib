@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OrderedOpExp08.MainResults.SegmentSelection
+
+/-!
+# Finite Suzuki decompositions with prescribed error
+
+Constructs an exponential-word decomposition for a fixed skew-Hermitian generator list with any
+positive target error. `main_decomposition_theorem` records both the norm-error guarantee and
+the exact generator-list length, within the decomposition framework of [WiebeEtAl2010].
+
+## Main statements
+
+* `main_decomposition_theorem`: produces an approximating word with the selected segment count
+  and explicit length.
+
+## References
+
+* [Wiebe et al., 2010][WiebeEtAl2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -22,6 +40,9 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 namespace Qatlib.Papers.OrderedOpExp08.MainResults
 
+/-- For `k ≥ 1`, a skew-Hermitian generator list and sum, and `ε > 0`, constructs a word whose
+exponential product approximates `exp (t • hs.sum)` within `ε`. Its length is the selected
+segment count times `2 * hs.length * 5 ^ (k − 1)` [WiebeEtAl2010]. -/
 theorem main_decomposition_theorem {I : Type} [Fintype I] [DecidableEq I]
     (hs : List (Matrix I I ℂ)) (k : ℕ) (hk : 1 ≤ k) (t ε : ℝ)
     (hε : 0 < ε) (hhs : ∀ X ∈ hs, Xᴴ = -X) (hH : hs.sumᴴ = -hs.sum) :

@@ -9,6 +9,30 @@ import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Data.Real.Basic
 import Qatlib.Papers.AbelianStabil95.AbelianStabil.AspAlgorithm.SamplingParameters
 
+/-!
+# Subset masses under nearly correct measurement
+
+This module defines `measuredSubsetMass` for a measurement transition matrix acting on a uniform
+finite input. Column normalization, nonnegative entries, and diagonal success at least `1 - η`
+give lower and upper bounds on the output mass of any subset.
+
+The theorem `near_uniform_maximal_proper` specializes the upper bound to subsets containing at
+most half of the ambient finite type, as used in Abelian stabilizer sampling estimates.
+
+The mathematical background is discussed in [Kitaev1995].
+
+## Main statements
+
+* `near_uniform_subset_lower`: bounds subset mass below by its uniform mass times `1 - η`.
+* `near_uniform_subset_upper`: bounds subset mass above by its uniform mass plus `η`.
+* `near_uniform_maximal_proper`: gives the upper bound `1/2 + η` for subsets of at most half the
+  size.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open scoped BigOperators
@@ -17,9 +41,13 @@ namespace Qatlib.Papers.AbelianStabil95.AbelianStabil.AspAlgorithm
 
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
+/-- The output mass in `L` obtained by averaging the entries `M h' h` over a uniform input `h`
+and summing output indices `h'` in `L`. See [Kitaev1995]. -/
 def measuredSubsetMass (M : H → H → ℝ) (L : Finset H) : ℝ :=
   (Fintype.card H : ℝ)⁻¹ * ∑ h, ∑ h' ∈ L, M h' h
 
+/-- For a nonnegative column-normalized matrix with diagonal entries at least `1 - η`, the
+measured mass of `L` is at least its uniform mass times `1 - η`. See [Kitaev1995]. -/
 theorem near_uniform_subset_lower (M : H → H → ℝ) (η : ℝ) (L : Finset H)
     (hMsum : ∀ h, ∑ h', M h' h = 1)
     (hMnonneg : ∀ h h', 0 ≤ M h h')
@@ -47,6 +75,9 @@ theorem near_uniform_subset_lower (M : H → H → ℝ) (η : ℝ) (L : Finset H
       = (Fintype.card H : ℝ)⁻¹ * ((L.card : ℝ) * (1 - η)) by ring]
   exact mul_le_mul_of_nonneg_left hsum (inv_nonneg.mpr (Nat.cast_nonneg _))
 
+/-- On a nonempty finite type, a nonnegative column-normalized matrix with diagonal success at
+least `1 - η` and `η ≥ 0` assigns `L` mass at most its uniform mass plus `η`. See
+[Kitaev1995]. -/
 theorem near_uniform_subset_upper (M : H → H → ℝ) (η : ℝ) (L : Finset H)
     (hq : 0 < Fintype.card H) (hη : 0 ≤ η)
     (hMsum : ∀ h, ∑ h', M h' h = 1)
@@ -100,6 +131,8 @@ theorem near_uniform_subset_upper (M : H → H → ℝ) (η : ℝ) (L : Finset H
     field_simp
   linarith [hstep]
 
+/-- Under the stated measurement hypotheses on a nonempty finite type, every subset of at most
+half the ambient cardinality has measured mass at most `1/2 + η`. See [Kitaev1995]. -/
 theorem near_uniform_maximal_proper (M : H → H → ℝ) (η : ℝ) (L : Finset H)
     (hq : 0 < Fintype.card H) (hη : 0 ≤ η)
     (hMsum : ∀ h, ∑ h', M h' h = 1)

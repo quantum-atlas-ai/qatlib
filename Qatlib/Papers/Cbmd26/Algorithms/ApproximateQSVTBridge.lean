@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.Cbmd26.Algorithms.QSVTBridge
+
+/-!
+# Approximate polynomial transformations by QSVT
+
+`normalizedApproximation` rescales a polynomial bounded by `1 + η` into the unit disk, and
+`hermitian_complex_polynomial_error` transfers scalar approximation error on a Hermitian
+spectrum to operator norm error. `normalized_approximation_qsvt_uniform_phases` constructs four
+phase lists, uniformly over projected unitary encodings, with explicit query bounds and a block
+encoding of normalization `4` and error `2 * η`.
+
+These results connect scalar approximation to the CBMD implementations associated with
+[WangEtAl2026].
+
+## Main statements
+
+* `normalizedApproximation_bounded` proves the rescaled polynomial is bounded by `1`.
+* `hermitian_complex_polynomial_error` lifts scalar error bounds to operator norm bounds.
+* `normalized_approximation_qsvt_uniform_phases` supplies uniform phases and a costed
+  approximate block encoding.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -44,9 +69,12 @@ namespace CBMD
 open Matrix Polynomial
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Rescales the complex polynomial `P` by the real factor `(1 + η)⁻¹`. -/
 noncomputable def normalizedApproximation (P : Polynomial ℂ) (η : ℝ) : Polynomial ℂ :=
   ((1 + η)⁻¹ : ℝ) • P
 
+/-- If `η ≥ 0` and `P` has norm at most `1 + η` on `[-1, 1]`, its normalized approximation has
+norm at most `1` there. -/
 theorem normalizedApproximation_bounded (P : Polynomial ℂ) (η : ℝ) (hη : 0 ≤ η)
     (hP : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ‖P.eval (x : ℂ)‖ ≤ 1 + η) :
     ∀ x ∈ Set.Icc (-1 : ℝ) 1,
@@ -60,6 +88,8 @@ theorem normalizedApproximation_bounded (P : Polynomial ℂ) (η : ℝ) (hη : 0
       mul_le_mul_of_nonneg_left (hP x hx) (inv_nonneg.mpr hr.le)
     _ = 1 := inv_mul_cancel₀ hr.ne'
 
+/-- For `η ≥ 0`, if `z` approximates a scalar `w` of norm at most `1` within `η`, then rescaling
+`z` by `(1 + η)⁻¹` gives error at most `2 * η / (1 + η)`. -/
 theorem normalized_scalar_error (z w : ℂ) (η : ℝ) (hη : 0 ≤ η)
     (hw : ‖w‖ ≤ 1) (herr : ‖z - w‖ ≤ η) :
     ‖((1 + η)⁻¹ : ℝ) • z - w‖ ≤ 2 * η / (1 + η) := by
@@ -84,6 +114,8 @@ theorem normalized_scalar_error (z w : ℂ) (η : ℝ) (hη : 0 ≤ η)
       mul_le_mul_of_nonneg_left hn (inv_nonneg.mpr hr.le)
     _ = 2 * η / (1 + η) := by ring
 
+/-- For a finite Hermitian matrix, applying a complex polynomial through the spectral functional
+calculus agrees with algebraic polynomial evaluation. -/
 theorem hermitian_complex_polynomial_evaluation
     (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (P : Polynomial ℂ) :
@@ -92,6 +124,8 @@ theorem hermitian_complex_polynomial_evaluation
     (orderedHermitianBasis_action hA)]
   rfl
 
+/-- A nonnegative uniform bound on the scalar polynomial approximation error at every eigenvalue
+of a finite Hermitian matrix bounds the corresponding operator norm error. -/
 theorem hermitian_complex_polynomial_error
     (I : Type) [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (P : Polynomial ℂ)
@@ -102,6 +136,11 @@ theorem hermitian_complex_polynomial_error
   rw [← hermitian_complex_polynomial_evaluation I A hA P]
   exact spectralDiagonal_error_le (orderedHermitianBasis hA) _ _ hε herr
 
+/-- For `η ≥ 0`, a polynomial bounded by `1 + η` on `[-1, 1]` and approximating within `η` a
+function of norm at most `1` on `s` has four QSVT phase lists independent of the encoded
+matrix. For every projected unitary encoding of a Hermitian matrix with spectrum in `s`,
+each branch uses at most `2 * P.natDegree + 1` adjoint queries and their LCU block-encodes
+the target functional calculus with normalization `4` and error `2 * η`. -/
 theorem normalized_approximation_qsvt_uniform_phases
     (P : Polynomial ℂ) (g : ℝ → ℂ) (s : Set ℝ) (η : ℝ) (hη : 0 ≤ η)
     (hP : ∀ x ∈ Set.Icc (-1 : ℝ) 1, ‖P.eval (x : ℂ)‖ ≤ 1 + η)

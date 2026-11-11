@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SearchStopping.QueryLowerBound.SubsetQueryHybrid
 import Qatlib.Concepts.SearchStopping.QueryLowerBound.FamilyQueryLowerBound
+
+/-!
+# Statement of the corrected multiple-target query bound
+
+Defines `Theorem8Corrected` for query evolutions indexed by marked subsets of fixed positive
+cardinality `t`. Average success at least one half forces a floor lower bound involving the
+square root of the natural quotient `Fintype.card Y / t`. For the quantum-search analysis, see
+[BoyerEtAl1998].
+
+## Main statements
+
+* `Theorem8Corrected`: The proposition that normalized subset-indexed evolutions with off-subset
+  agreement and average success at least one half require `r ≥ ⌊Real.sin (Real.pi / 8) *
+  Real.sqrt (Fintype.card Y / t : ℕ)⌋` when `0 < t ≤ Fintype.card Y`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +34,9 @@ namespace Qatlib.Concepts.SearchStopping.QueryLowerBound
 open scoped BigOperators
 universe u v
 
+/-- The proposition that normalized subset-indexed evolutions with off-subset agreement and
+average success at least one half require `r ≥ ⌊Real.sin (Real.pi / 8) * Real.sqrt
+(Fintype.card Y / t : ℕ)⌋` when `0 < t ≤ Fintype.card Y`. -/
 def Theorem8Corrected : Prop :=
   ∀ {C : Type u} {Y : Type v} [Fintype C] [DecidableEq C] [Fintype Y] [DecidableEq Y]
     (t : ℕ), 0 < t → t ≤ Fintype.card Y →

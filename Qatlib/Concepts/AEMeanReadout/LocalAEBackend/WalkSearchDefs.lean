@@ -15,6 +15,28 @@ import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Proposition3
 import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
+
+/-!
+# Interfaces and cost accounts for quantum walk search
+
+This module defines reachable walk spaces, finite gate access contracts, search cost
+expressions, and reduction specifications for quantum walk search. The spectral and cost
+interfaces follow the settings of [Szegedy2004] and [MagniezNayakRolandSantha2011]; the module
+also formulates counterexample and endpoint statements as propositions.
+
+## Main statements
+
+* `walkReachableSpan`: the span of row and swapped row states.
+* `SatisfiesAbstractSearchInterface`: the recursive-amplification hypotheses and cost account.
+* `HasWalkFind`: a bounded-cost phase-search success contract.
+* `ElementDistinctnessWalkReduction`: the Johnson-walk collision-search reduction specification.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,25 +62,33 @@ open Qatlib
 open Qatlib.Concepts.WalkSearch.MnrsAmplify
 open scoped BigOperators Classical
 
+/-- The coordinatewise embedding of a real-valued vector into a complex quantum state. -/
 def complexLift {I : Type} (u : I → ℝ) : QState I := fun x => (u x : ℂ)
 
+/-- The row state obtained by applying the first Szegedy isometry to the basis vector at `x`. -/
 noncomputable def graphRowState {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (x : I) : QState (I × I) :=
   SzegedyIsometry P *ᵥ Qatlib.Foundations.PureStateMath.Ket x
 
+/-- The swapped row state obtained by applying the second Szegedy isometry to the basis vector
+at `x`. -/
 noncomputable def graphSwapRowState {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (x : I) : QState (I × I) :=
   SzegedyIsometryB P *ᵥ Qatlib.Foundations.PureStateMath.Ket x
 
+/-- The complex span of the row states and swapped row states of the transition function. -/
 noncomputable def walkReachableSpan {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) : Submodule ℂ (QState (I × I)) :=
   Submodule.span ℂ (Set.range (graphRowState P) ∪ Set.range (graphSwapRowState P))
 
+/-- The assertion that both the Szegedy walk and the register swap preserve the reachable span. -/
 def WalkPreservesReachableSpan {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) : Prop :=
   (∀ ψ ∈ walkReachableSpan P, SzegedyWalk P *ᵥ ψ ∈ walkReachableSpan P) ∧
     (∀ ψ ∈ walkReachableSpan P, SwapGate *ᵥ ψ ∈ walkReachableSpan P)
 
+/-- The two-plane action identities for the Szegedy walk on the two isometric lifts of each real
+discriminant eigenvector. -/
 def ReachableTwoPlaneLaw {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) : Prop :=
   ∀ (u : I → ℝ) (lam : ℝ),
@@ -70,6 +100,8 @@ def ReachableTwoPlaneLaw {I : Type} [Fintype I] [DecidableEq I]
           ((-(2 * lam) : ℝ) : ℂ) • (SzegedyIsometry P *ᵥ complexLift u) +
             ((4 * lam ^ 2 - 1 : ℝ) : ℂ) • (SzegedyIsometryB P *ᵥ complexLift u)
 
+/-- The setup contract requiring a unitary row-state preparation, preparation of the detection
+initial state from a uniform input, and the marked-fraction identity. -/
 def GraphSetupAccount {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) : Prop :=
   ∀ j : I, ∃ U ∈ Matrix.unitaryGroup (I × I) ℂ,
@@ -78,20 +110,29 @@ def GraphSetupAccount {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
       MeasureProb (detectionInitial P)
           (Finset.univ.filter (fun p => p.1 ∈ S)) = markedFraction S
 
+/-- Pads a bit register with false entries to width `w`, retaining only those original entries
+whose indices occur in the target register. -/
 def regPad (w a : ℕ) (r : Reg a) : Reg w :=
   fun i => if h : (i : ℕ) < a then r ⟨i, h⟩ else false
 
+/-- Concatenates two bit registers using the finite-sum equivalence. -/
 def regCat {a b : ℕ} (r : Reg a) (s : Reg b) : Reg (a + b) :=
   fun i => (finSumFinEquiv.symm i).elim r s
 
+/-- The assertion that a legal finite gate word sends every padded basis encoding of `r` to the
+padded basis encoding of `F r`. -/
 def FiniteWordComputes (w a : ℕ) (gs : List FiniteGateCode) (F : Reg a → Reg a) : Prop :=
   finiteWordLegal w gs = true ∧
     ∀ r : Reg a, finiteWordRun w gs (Qatlib.Foundations.PureStateMath.Ket (regPad w a r)) = some (Qatlib.Foundations.PureStateMath.Ket (regPad w a (F r)))
 
+/-- The neighbor at list index `k` in the finite enumeration of neighbors of `x`, with default
+value `x`. -/
 noncomputable def graphNeighborOf (n : ℕ) (adj : Fin n → Fin n → Bool)
     (x : Fin n) (k : ℕ) : Fin n :=
   ((Finset.univ.filter (fun j => adj x j)).toList.getD k) x
 
+/-- The finite-gate access contract for encoded neighbor lookup and marked-bit checking, with
+bounds on word lengths and workspace width. -/
 def HasGraphBitAccess (n d : ℕ) (hdn : d ≤ n) (adj : Fin n → Fin n → Bool)
     (M : Fin n → Bool) : Prop :=
   ∃ (a w gateRow gateCheck spaceBits : ℕ)
@@ -113,6 +154,8 @@ def HasGraphBitAccess (n d : ℕ) (hdn : d ≤ n) (adj : Fin n → Fin n → Boo
       checkWord.length ≤ gateCheck ∧
       w ≤ spaceBits
 
+/-- The contract for a legal finite gate word preparing the uniform superposition over the first
+`d` encoded neighbors of each vertex. -/
 def HasGraphRowGeneration (n d av w : ℕ) (adj : Fin n → Fin n → Bool)
     (enc : Fin n → Reg av) (gs : List FiniteGateCode) : Prop :=
   0 < d ∧
@@ -123,6 +166,8 @@ def HasGraphRowGeneration (n d av w : ℕ) (adj : Fin n → Fin n → Bool)
           Qatlib.Foundations.PureStateMath.Ket (regPad w (av + av)
             (regCat (enc x) (enc (graphNeighborOf n adj x k.val)))))
 
+/-- The existence of arbitrarily large regular symmetric graph chains with gap `δ` and a legal
+row-state generation word. -/
 def ExplicitGapExpanderFamily (δ : ℝ) : Prop :=
   ∀ N : ℕ, ∃ (n d av w : ℕ) (adj : Fin n → Fin n → Bool) (enc : Fin n → Reg av)
       (genWord : List FiniteGateCode),
@@ -133,21 +178,29 @@ def ExplicitGapExpanderFamily (δ : ℝ) : Prop :=
         (Qatlib.Concepts.WalkSearch.Th4Expander.expanderStep n d adj) δ ∧
       HasGraphRowGeneration n d av w adj enc genWord
 
+/-- The marked-output probability of a phase-search state with grid size `M`, repetition
+parameter `k`, and search parameter `t`. -/
 noncomputable def walkFindSuccessProb {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (ψ : QState I) (S : Finset I) (M k t : ℕ) : ℝ :=
   MeasureProb (phaseSearchState W ψ S M k t)
     (Finset.univ.filter (fun q => q.2.2 ∈ S))
 
+/-- The search cost expression `Sc + (1 / sqrt ε) * ((1 / sqrt δ) * log (1 / sqrt ε) * Uc +
+Cc)`. -/
 noncomputable def mnrsFindCostForm (Sc Uc Cc ε δ : ℝ) : ℝ :=
   Sc + (1 / Real.sqrt ε) * ((1 / Real.sqrt δ) * Real.log (1 / Real.sqrt ε) * Uc + Cc)
 
+/-- The detection cost expression `Sc + (1 / sqrt ε) * ((1 / sqrt δ) * Uc + Cc)`. -/
 noncomputable def szegedyDetectCostForm (Sc Uc Cc ε δ : ℝ) : ℝ :=
   Sc + (1 / Real.sqrt ε) * ((1 / Real.sqrt δ) * Uc + Cc)
 
+/-- The set of ordered vertex pairs whose first coordinate belongs to the marked vertex set. -/
 def edgeMarkedSet {I : Type} [Fintype I] [DecidableEq I] (M : Finset I) :
     Finset (I × I) :=
   Finset.univ.filter (fun p => p.1 ∈ M)
 
+/-- The existence of phase-search parameters with grid size at least two, success probability at
+least `1/24`, and total accounted cost at most `bound`. -/
 def HasWalkFind {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (M : Finset I) (Sc Uc Cc bound : ℝ) : Prop :=
   ∃ (k t Mq : ℕ), 2 ≤ Mq ∧
@@ -155,14 +208,19 @@ def HasWalkFind {I : Type} [Fintype I] [DecidableEq I]
         (edgeMarkedSet M) Mq k t ∧
       Sc + ((2 * k * t * (Mq - 1) : ℕ) : ℝ) * Uc + (t : ℝ) * Cc ≤ bound
 
+/-- The type of finite subsets of `X` with cardinality `k`. -/
 abbrev JohnsonVertex (X : Type) [Fintype X] [DecidableEq X] (k : ℕ) :=
   {s : Finset X // s.card = k}
 
+/-- The subset-walk transition weight, equal to `1 / (k * (card X - k))` when the intersection
+has cardinality `k - 1`, and zero otherwise. -/
 noncomputable def johnsonSubsetStep (X : Type) [Fintype X] [DecidableEq X] (k : ℕ) :
     JohnsonVertex X k → JohnsonVertex X k → ℝ :=
   fun s t =>
     if (s.1 ∩ t.1).card = k - 1 then ((k * (Fintype.card X - k) : ℕ) : ℝ)⁻¹ else 0
 
+/-- The reduction contract requiring a positive gap for the Johnson subset walk and a uniform
+constant-factor bound in terms of `szegedyDetectCostForm`. -/
 def JohnsonRelationDetectionReduction : Prop :=
   ∃ c : ℝ, 0 < c ∧
     ∀ (X : Type) [Fintype X] [DecidableEq X] (k : ℕ)
@@ -176,11 +234,14 @@ def JohnsonRelationDetectionReduction : Prop :=
             HasWalkFind (johnsonSubsetStep X k) Mset Sc Uc Cc
               (c * szegedyDetectCostForm Sc Uc Cc ε δ)
 
+/-- The marked Johnson vertices containing two distinct indices with equal input values. -/
 def edCollisionMarked (n : ℕ) (x : Fin n → ℕ) (r : ℕ) :
     Finset (JohnsonVertex (Fin n) r) :=
   Finset.univ.filter (fun s =>
     ∃ a b : Fin n, a ∈ s.1 ∧ b ∈ s.1 ∧ a ≠ b ∧ x a = x b)
 
+/-- The reduction contract requiring a Johnson-subset search for any input collision with
+accounted cost bounded by a constant times `n^(2/3) + 1`. -/
 def ElementDistinctnessWalkReduction : Prop :=
   ∃ c : ℝ, 0 < c ∧
     ∀ n : ℕ, 0 < n → ∀ x : Fin n → ℕ,
@@ -190,6 +251,8 @@ def ElementDistinctnessWalkReduction : Prop :=
           HasWalkFind (johnsonSubsetStep (Fin n) r) (edCollisionMarked n x r)
             (r : ℝ) 1 0 (c * ((n : ℝ) ^ (2 / 3 : ℝ) + 1))
 
+/-- The reduction contract requiring a walk search with marked vertices decoding to triangles
+and accounted cost bounded by a constant times `n^(13/10) + 1`. -/
 def TriangleWalkReduction : Prop :=
   ∃ c : ℝ, 0 < c ∧
     ∀ (n : ℕ) (adj : Fin n → Fin n → Bool), 0 < n →
@@ -203,6 +266,8 @@ def TriangleWalkReduction : Prop :=
             adj (decode v).2.1 (decode v).2.2 ∧ adj (decode v).2.2 (decode v).1) ∧
         HasWalkFind P S Sc Uc Cc (c * ((n : ℝ) ^ (13 / 10 : ℝ) + 1))
 
+/-- The existence of reflections, an invariant subspace, stopping scale, and cost bounds
+satisfying the abstract recursive-amplification search hypotheses. -/
 def SatisfiesAbstractSearchInterface {W : Type} [NormedAddCommGroup W]
     [InnerProductSpace ℂ W] [FiniteDimensional ℂ W]
     (Mr : Submodule ℂ W) (x₀ : W) (ε Uc Cc δ : ℝ) : Prop :=
@@ -232,6 +297,8 @@ def SatisfiesAbstractSearchInterface {W : Type} [NormedAddCommGroup W]
       c₁ ≤ 2 * Uc / Real.sqrt δ ∧
       c₂ ≤ Cc
 
+/-- The bridge contract from a symmetric transition chain with a positive gap to an abstract
+search interface whose initial marked mass equals the marked fraction. -/
 def FreshSliceApplicabilityBridge : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
       (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ),
@@ -244,6 +311,9 @@ def FreshSliceApplicabilityBridge : Prop :=
           markedMass Mr x₀ = markedFraction S ∧
           (S = ∅ → markedMass Mr x₀ = 0)
 
+/-- The bridge contract from an irreducible stochastic chain with positive diagonal and
+stationary distribution to an abstract search interface, conditional on a stated
+singular-value gap. -/
 def NonreversibleSearchBridge : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] [Nonempty X]
       (P : Matrix X X ℝ) (π : X → ℝ) (S : Finset X) (ε : ℝ),
@@ -265,6 +335,9 @@ def NonreversibleSearchBridge : Prop :=
             markedMass Mr x₀ = ∑ x ∈ S, π x ∧
             (S = ∅ → markedMass Mr x₀ = 0)
 
+/-- The spectral account requiring an orthonormal family of walk eigenvectors spanning the
+reachable space, separation from one of eigenvalues unequal to one, and the marked-fraction
+identity. -/
 def WalkEigenGapAccount {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ) : Prop :=
   ∃ (n' : ℕ) (v : Fin n' → QState (I × I)) (μ : Fin n' → ℂ),
@@ -275,6 +348,8 @@ def WalkEigenGapAccount {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
       MeasureProb (detectionInitial P)
           (Finset.univ.filter (fun p => p.1 ∈ S)) = markedFraction S
 
+/-- The synthesis contract requiring legal finite gate words that approximate every basis-column
+action of a unitary within squared error `ε^2`, with the stated length bound. -/
 def HasLocalGateSynthesis : Prop :=
   ∃ C : ℕ → ℕ,
     ∀ (w : ℕ) (U : Matrix (Reg w) (Reg w) ℂ),
@@ -287,6 +362,8 @@ def HasLocalGateSynthesis : Prop :=
               finiteWordRun w gs (Qatlib.Foundations.PureStateMath.Ket r) = some φ ∧
                 ∑ i, ‖φ i - (U *ᵥ Qatlib.Foundations.PureStateMath.Ket r) i‖ ^ 2 ≤ ε ^ 2
 
+/-- The sampling contract requiring a finite fair-bit map with equally many preimages for every
+output label and acceptance on at least half the bit strings. -/
 def HasFairBitUniformLengthSampler : Prop :=
   ∀ L : ℕ, 0 < L →
     ∃ (b : ℕ) (draw : Reg b → Option (Fin L)),
@@ -297,9 +374,12 @@ def HasFairBitUniformLengthSampler : Prop :=
         (2 * (∑ K : Fin L, ∑ r : Reg b, if draw r = some K then (1 : ℝ) else 0)
             ≥ (2 ^ b : ℝ))
 
+/-- The deterministic transition function advancing one step around the directed three-cycle. -/
 def threeCycleStep : Fin 3 → Fin 3 → ℝ :=
   fun x y => if (x.val + 1) % 3 = y.val then 1 else 0
 
+/-- The assertion that the directed three-cycle is irreducible and has a nonzero fixed vector
+for its Szegedy walk, while no nonzero fixed vector lies in the reachable span. -/
 def IrreducibleIdleCounterexample : Prop :=
   IsTransitionMatrix threeCycleStep ∧
     Matrix.IsIrreducible threeCycleStep ∧
@@ -307,25 +387,35 @@ def IrreducibleIdleCounterexample : Prop :=
     (∀ v ∈ walkReachableSpan threeCycleStep,
       SzegedyWalk threeCycleStep *ᵥ v = v → v = 0)
 
+/-- The row-preparation, marker, and inverse-row-preparation instruction word used in the
+plus-identity detection variant. -/
 noncomputable def plusIReflectionWord {I : Type} [DecidableEq I] (j : I) :
     List (DetectionStep I) :=
   [.rowForward, .marker, .rowBackward]
 
+/-- The plus-identity walk instruction word formed from two controlled swaps and two reflection
+words. -/
 noncomputable def plusIWalkWord {I : Type} [DecidableEq I] (j : I) :
     List (DetectionStep I) :=
   [.fixed detectionControlledSwap] ++ plusIReflectionWord j ++
     [.fixed detectionControlledSwap] ++ plusIReflectionWord j
 
+/-- The detection instruction program with initial marker and Hadamard, `K` plus-identity walk
+words, and final Hadamard and row initialization. -/
 noncomputable def plusIProgram {I : Type} [DecidableEq I] (j : I) (K : ℕ) :
     List (DetectionStep I) :=
   [.marker, .fixed detectionHadamard] ++ (List.replicate K (plusIWalkWord j)).flatten ++
     [.fixed detectionHadamard, .rowInitial]
 
+/-- The acceptance probability obtained by evaluating the plus-identity detection program from
+its initial state. -/
 noncomputable def plusIDetectionProbability {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix (I × I) (I × I) ℂ) (S : Finset I) (j : I) (K : ℕ) : ℝ :=
   MeasureProb (detectionEvaluate U S (plusIProgram j K) *ᵥ detectionStart j)
     detectionAccept
 
+/-- The existence of a symmetric gapped chain, a nonempty small marked set, valid row
+preparation, and some length `K` with detection probability below `1/32`. -/
 def PerKDetectionCounterexample : Prop :=
   ∃ (I : Type) (hi : Fintype I) (hd : DecidableEq I) (hn : Nonempty I)
       (P : I → I → ℝ) (S : Finset I) (δ : ℝ) (j : I)
@@ -336,6 +426,9 @@ def PerKDetectionCounterexample : Prop :=
       (∀ i, U *ᵥ TensorState (Qatlib.Foundations.PureStateMath.Ket i) (Qatlib.Foundations.PureStateMath.Ket j) = SzegedyIsometry P *ᵥ Qatlib.Foundations.PureStateMath.Ket i) ∧
       ∃ K : ℕ, detectionProbability U S j K < 1 / 32
 
+/-- The existence of a symmetric gapped chain, a nonempty small marked set, and valid row
+preparation for which the plus-identity detection variant has probability below `1/32` at
+some length. -/
 def PlusIVariantCounterexample : Prop :=
   ∃ (I : Type) (hi : Fintype I) (hd : DecidableEq I) (hn : Nonempty I)
       (P : I → I → ℝ) (S : Finset I) (δ : ℝ) (j : I)
@@ -346,6 +439,8 @@ def PlusIVariantCounterexample : Prop :=
       (∀ i, U *ᵥ TensorState (Qatlib.Foundations.PureStateMath.Ket i) (Qatlib.Foundations.PureStateMath.Ket j) = SzegedyIsometry P *ᵥ Qatlib.Foundations.PureStateMath.Ket i) ∧
       plusIDetectionProbability U S j K < 1 / 32
 
+/-- The assertion that both bipartite tau maps at parameter one vanish on every eigenvector of
+the bipartite discriminant with eigenvalue one. -/
 def BipartiteTauEndpointVanishes : Prop :=
   ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),
@@ -354,6 +449,8 @@ def BipartiteTauEndpointVanishes : Prop :=
         bipartiteDiscriminant A B *ᵥ u = ((1 : ℝ) : ℂ) • u →
           ∀ s : Bool, bipartiteTauLinear A B 1 s u = 0
 
+/-- The attainment contract asserting that a nonempty set of feasible source dual witnesses
+contains a witness with minimal objective value. -/
 def SourceDualWitnessAttained : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (n m : ℕ)
       (input : X → Fin n → Bool) (f : X → Bool),

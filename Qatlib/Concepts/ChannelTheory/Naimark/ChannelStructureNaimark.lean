@@ -11,6 +11,29 @@ import Mathlib.Logic.Equiv.Fin.Basic
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.Matrix.PosDef
 import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
+
+/-!
+# Finite POVM dilations and measurement branches
+
+`naimarkV` stacks the positive square roots of POVM effects, and `naimarkP` projects onto their
+outcome labels. These matrices form a finite Naimark dilation that preserves pure-state Born
+weights and effect statistics in the presence of an arbitrary reference system. Partial trace
+recovers the Lüders branch, with explicit treatment of zero effects and zero event mass.
+
+The mathematical background is described in [Watrous2018].
+
+## Main statements
+
+* `naimark_dilation`: the square-root construction is a Naimark dilation.
+* `naimark_reference`: effect trace identities with a reference system.
+* `naimark_ptrace`: partial trace of a projected dilation gives the Lüders branch.
+* `g3`: the combined dilation, branch, and measurement update statements.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
@@ -29,16 +52,20 @@ variable {D E : ℕ}
 
 namespace Qatlib.Concepts.ChannelTheory.Naimark
 
+/-- The dilation matrix stacking the positive square roots of POVM effects, with outcome labels
+enumerated by `e`. -/
 noncomputable def naimarkV {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (e : O ≃ Fin (Fintype.card O)) :
     Matrix (Fin D × Fin (Fintype.card O)) (Fin D) ℂ :=
   fun x j => (Λ.mats (e.symm x.2) ^ (1 / 2 : ℝ)).mat x.1 j
 
+/-- The coordinate projector onto the dilation block labelled by outcome `o`. -/
 noncomputable def naimarkP {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (e : O ≃ Fin (Fintype.card O)) (o : O) :
     Matrix (Fin D × Fin (Fintype.card O)) (Fin D × Fin (Fintype.card O)) ℂ :=
   fun x y => if x.2 = e o ∧ y.2 = e o ∧ x.1 = y.1 then (1 : ℂ) else 0
 
+/-- Each outcome projector in the Naimark construction is Hermitian. -/
 theorem naimarkP_self (D : ℕ) {O : Type} [Fintype O] [DecidableEq O]
     (e : O ≃ Fin (Fintype.card O)) (o : O) :
     (naimarkP (D := D) e o).conjTranspose = naimarkP e o := by
@@ -49,12 +76,14 @@ theorem naimarkP_self (D : ℕ) {O : Type} [Fintype O] [DecidableEq O]
   by_cases h1 : xk = e o <;> by_cases h2 : yk = e o <;> by_cases h3 : xi = yi <;>
     simp [naimarkP, h1, h2, h3, eq_comm, and_comm, and_left_comm, and_assoc]
 
+/-- Summing a constant supported at a single index over a finite type gives that constant. -/
 theorem sum_ite_const {α : Type} [Fintype α] [DecidableEq α] (a : α) (c : ℂ) :
     (∑ k : α, (if k = a then c else 0)) = c := by
   rw [Finset.sum_ite_eq' Finset.univ a (fun _ => c)]
   simp
 set_option maxHeartbeats 800000
 
+/-- Each Naimark outcome projector is idempotent. -/
 theorem naimarkP_mul_self {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (e : O ≃ Fin (Fintype.card O)) (o : O) :
     (naimarkP (D := D) e o) * naimarkP e o = naimarkP e o := by
@@ -104,6 +133,7 @@ theorem naimarkP_mul_self {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
       · simp [c1, c2]
   exact hsum
 
+/-- Naimark projectors for distinct outcomes have zero product. -/
 theorem naimarkP_mul_of_ne {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (e : O ≃ Fin (Fintype.card O)) {o p : O} (h : o ≠ p) :
     (naimarkP (D := D) e o) * naimarkP e p = 0 := by
@@ -119,6 +149,7 @@ theorem naimarkP_mul_of_ne {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
   · have hk' : ¬ zk = e o := hk
     simp [naimarkP, hk']
 
+/-- The Naimark outcome projectors sum to the identity. -/
 theorem naimarkP_sum {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (e : O ≃ Fin (Fintype.card O)) :
     (∑ o : O, naimarkP (D := D) e o) = 1 := by
@@ -152,6 +183,7 @@ theorem naimarkP_sum {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
+/-- The square-root Naimark matrix has adjoint product equal to the identity. -/
 theorem naimarkV_isometry {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (e : O ≃ Fin (Fintype.card O)) :
     Matrix.conjTranspose (naimarkV Λ e) * naimarkV Λ e = 1 := by
@@ -184,6 +216,8 @@ theorem naimarkV_isometry {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
+/-- Compressing a Naimark outcome projector through the dilation matrix recovers the
+corresponding POVM effect. -/
 theorem naimarkV_P_V {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (e : O ≃ Fin (Fintype.card O)) (o : O) :
     ((Matrix.conjTranspose (naimarkV Λ e) : Matrix (Fin D) (Fin D × Fin (Fintype.card O)) ℂ)
@@ -248,6 +282,8 @@ theorem naimarkV_P_V {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     simp only [Matrix.mul_apply, Matrix.conjTranspose_apply]
   rw [h1, HermitianMat.conjTranspose_mat, HermitianMat.pow_half_mul (Λ.nonneg o)]
 
+/-- The square-root matrix and coordinate outcome projectors form a Naimark dilation with
+environment size equal to the number of outcomes. -/
 theorem naimark_dilation {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (e : O ≃ Fin (Fintype.card O)) :
     NaimarkDilation Λ (Fintype.card O) (naimarkV Λ e) (naimarkP e) := by
@@ -259,12 +295,15 @@ theorem naimark_dilation {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     rw [Matrix.mul_assoc]
     exact naimarkV_P_V Λ e o
 
+/-- The outcome probability functional of the instrument associated with a POVM equals the
+corresponding effect statistic. -/
 theorem instrumentProb_eq_effectStat {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (ρ : Operator D) (o : O) :
     instrumentProb (Instrument.ofPOVM Λ) ρ o = EffectStat ((Λ.mats o).mat) ρ := by
   rw [instrumentProb_ofPOVM]
   rfl
 
+/-- An outcome projector retains exactly the coordinates whose outcome label is `e o`. -/
 theorem naimarkP_mulVec {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (e : O ≃ Fin (Fintype.card O)) (o : O) (w : Fin D × Fin (Fintype.card O) → ℂ) :
     naimarkP e o *ᵥ w = fun x => if x.2 = e o then w (x.1, e o) else 0 := by
@@ -297,6 +336,8 @@ theorem naimarkP_mulVec {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     rw [if_neg (fun ⟨_, hh⟩ => hb hh.symm)]
   · intro habs; exact absurd (Finset.mem_univ _) habs
 
+/-- A zero POVM effect gives zero squared norm for its projected dilation output on every input
+vector. -/
 theorem naimarkP_V_zero_of_effect {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (e : O ≃ Fin (Fintype.card O)) {o : O}
     (ho : (Λ.mats o).mat = 0) (ψ : Fin D → ℂ) :
@@ -328,12 +369,14 @@ theorem naimarkP_V_zero_of_effect {D : ℕ} {O : Type} [Fintype O] [DecidableEq 
   rw [hzero]
   simp [normSqVec]
 
+/-- The squared norm of a complex number equals the real part of its conjugate product. -/
 theorem normSq_eq_re_conj_mul (z : ℂ) : ‖z‖ ^ (2 : ℕ) = (star z * z).re := by
   rw [Complex.sq_norm]
   have h := congrArg Complex.re (Complex.normSq_eq_conj_mul_self (z := z))
   simp only [Complex.ofReal_re] at h
   exact h
 
+/-- The squared norm sum of a finite vector equals the real trace of its outer product. -/
 theorem normSqVec_eq_re_trace_outerProduct {n : ℕ} (φ : Fin n → ℂ) :
     normSqVec φ = (Matrix.trace (outerProduct φ)).re := by
   classical
@@ -350,6 +393,7 @@ theorem normSqVec_eq_re_trace_outerProduct {n : ℕ} (φ : Fin n → ℂ) :
   intro s _
   exact normSq_eq_re_conj_mul (φ s)
 
+/-- Embedding a vector into a single labelled block preserves its squared norm sum. -/
 theorem normSqVec_block_ite {n m : ℕ} (b : Fin m) (w : Fin n → ℂ) :
     normSqVec (fun x : Fin n × Fin m => if x.2 = b then w x.1 else 0) = normSqVec w := by
   classical
@@ -367,6 +411,8 @@ theorem normSqVec_block_ite {n m : ℕ} (b : Fin m) (w : Fin n → ℂ) :
       exact absurd (Finset.mem_univ _) habs
   exact Finset.sum_congr rfl fun a _ => hk a
 
+/-- The squared norm of a projected Naimark output equals the POVM effect statistic on the input
+outer product. -/
 theorem naimark_born {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (e : O ≃ Fin (Fintype.card O)) (ψ : Fin D → ℂ) (o : O) :
     normSqVec (naimarkP e o *ᵥ (naimarkV Λ e *ᵥ ψ))
@@ -400,6 +446,7 @@ theorem naimark_born {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
   rw [normSqVec_eq_re_trace_outerProduct, outerProduct_mulVec, Matrix.trace_mul_cycle, hS]
   rfl
 
+/-- Four finite sums may be reordered by exchanging their first and second pairs of indices. -/
 theorem sum4_swap {α β γ δ ε : Type} [Fintype α] [Fintype β] [Fintype γ] [Fintype δ]
     [AddCommMonoid ε] (f : α → β → γ → δ → ε) :
     ∑ a : α, ∑ b : β, ∑ c : γ, ∑ d : δ, f a b c d
@@ -412,6 +459,8 @@ theorem sum4_swap {α β γ δ ε : Type} [Fintype α] [Fintype β] [Fintype γ]
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
+/-- The trace pairing of a lifted operator with an isometric image equals the trace pairing with
+its compression, including an arbitrary reference factor. -/
 theorem trace_refLeft_refIsometryImage {D E env R : ℕ}
     (V : Matrix (Fin E × Fin env) (Fin D) ℂ)
     (A : Matrix (Fin E × Fin env) (Fin E × Fin env) ℂ)
@@ -577,6 +626,8 @@ theorem trace_refLeft_refIsometryImage {D E env R : ℕ}
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
+/-- With an arbitrary reference system, the Naimark outcome trace equals the original POVM
+effect trace. -/
 theorem naimark_reference {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (e : O ≃ Fin (Fintype.card O)) (R : ℕ)
     (X : Matrix (Fin R × Fin D) (Fin R × Fin D) ℂ) (o : O) :
@@ -594,6 +645,7 @@ theorem naimark_reference {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
+/-- Left multiplication by a Naimark projector retains only rows in its outcome block. -/
 theorem naimarkP_mul_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     {ι : Type} (e : O ≃ Fin (Fintype.card O)) (o : O)
     (B : Matrix (Fin D × Fin (Fintype.card O)) ι ℂ)
@@ -630,6 +682,7 @@ theorem naimarkP_mul_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
+/-- Right multiplication by a Naimark projector retains only columns in its outcome block. -/
 theorem naimarkP_mul_right_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     {ι : Type} (e : O ≃ Fin (Fintype.card O)) (o : O)
     (B : Matrix ι (Fin D × Fin (Fintype.card O)) ℂ)
@@ -666,6 +719,8 @@ theorem naimarkP_mul_right_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
+/-- Sandwiching a matrix by an outcome projector retains exactly its corresponding diagonal
+outcome block. -/
 theorem naimarkP_sandwich_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (e : O ≃ Fin (Fintype.card O)) (o : O)
     (T : Matrix (Fin D × Fin (Fintype.card O)) (Fin D × Fin (Fintype.card O)) ℂ)
@@ -698,6 +753,8 @@ theorem naimarkP_sandwich_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
+/-- Partial trace of the projected dilation state equals the input operator sandwiched by the
+positive square root of the outcome effect. -/
 theorem naimark_ptrace {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) (e : O ≃ Fin (Fintype.card O)) (ρ : Operator D) (o : O) :
     PartialTrace (naimarkP e o * (naimarkV Λ e * ρ * Matrix.conjTranspose (naimarkV Λ e)) * naimarkP e o)
@@ -740,6 +797,7 @@ theorem naimark_ptrace {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     rw [hV i w, hV j z]
   rw [hT, hSc]
 
+/-- A zero POVM effect gives the zero branch map in the associated instrument. -/
 theorem naimark_zero_effect_map {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     (Λ : POVM O (Fin D)) {o : O} (ho : (Λ.mats o).mat = 0) :
     (Instrument.ofPOVM Λ).branch o = 0 := by
@@ -747,6 +805,10 @@ theorem naimark_zero_effect_map {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
   apply HermitianMat.ext
   rw [ho, HermitianMat.mat_zero]
 
+/-- Every finite POVM possesses a Naimark dilation with at most as many environment coordinates
+as outcomes, preserving Born weights, reference-system statistics, and Lüders branches,
+including zero effects. The theorem also collects positive- and zero-mass pure-state update
+formulas and an example of equal instrument statistics with different branches. -/
 theorem g3 :
   (∀ (D : ℕ) (O : Type) (_ : Fintype O) (_ : DecidableEq O) (Λ : POVM O (Fin D)),
     ∃ (m : ℕ) (V : Matrix (Fin D × Fin m) (Fin D) ℂ)

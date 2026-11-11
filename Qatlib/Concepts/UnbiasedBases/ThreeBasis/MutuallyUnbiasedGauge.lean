@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.MutuallyUnbiased
+
+/-!
+# Phase gauges for mutually unbiased bases
+
+This module defines column and coordinate rephasing and proves that phases of unit modulus
+preserve mutually unbiased families. The normalizations `normalize_first_row` and
+`normalize_phase_gauge` choose constant positive entries while retaining a distinguished
+computational basis, in the setting of [Sun2026].
+
+## Main statements
+
+* `isFamily_rephaseColumns`: independent unit phases on columns preserve mutual unbiasedness.
+* `isFamily_rephaseCoordinates`: a common coordinate rephasing preserves mutual unbiasedness.
+* `normalize_phase_gauge`: normalizes a selected row in every other basis and a selected column
+  in one of them.
+
+## References
+
+* [Sun, 2026][Sun2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -14,10 +35,12 @@ namespace Qatlib.Concepts.UnbiasedBases.ThreeBasis
 
 variable {d k : ℕ}
 
+/-- Multiplies column `j` of basis `r` by the complex scalar `c r j`. -/
 noncomputable def rephaseColumns (c : Fin k → Fin d → ℂ)
     (B : Fin k → Fin d → QState (Fin d)) : Fin k → Fin d → QState (Fin d) :=
   fun r j i => c r j * B r j i
 
+/-- Scaling two vectors by `a` and `b` multiplies their inner product by `conj a * b`. -/
 theorem inner_rephase (a b : ℂ) (ψ φ : QState (Fin d)) :
     Qatlib.Foundations.PureStateMath.Inner (fun i => a * ψ i) (fun i => b * φ i) =
       ((starRingEnd ℂ) a * b) * Qatlib.Foundations.PureStateMath.Inner ψ φ := by
@@ -27,6 +50,8 @@ theorem inner_rephase (a b : ℂ) (ψ φ : QState (Fin d)) :
   rw [map_mul]
   ring
 
+/-- Multiplying each column by a scalar of squared modulus one preserves a mutually unbiased
+family. -/
 theorem isFamily_rephaseColumns (c : Fin k → Fin d → ℂ)
     (hc : ∀ r j, Complex.normSq (c r j) = 1)
     (B : Fin k → Fin d → QState (Fin d)) (hB : IsFamily B) :
@@ -47,10 +72,13 @@ theorem isFamily_rephaseColumns (c : Fin k → Fin d → ℂ)
       Complex.normSq_conj, hc, hc, one_mul, one_mul]
     exact hB.2 r s hrs i j
 
+/-- Multiplies coordinate `i` of every column by the common scalar `ρ i`. -/
 noncomputable def rephaseCoordinates (ρ : Fin d → ℂ)
     (B : Fin k → Fin d → QState (Fin d)) : Fin k → Fin d → QState (Fin d) :=
   fun r j i => ρ i * B r j i
 
+/-- Multiplying both vectors coordinatewise by the same scalars of squared modulus one preserves
+their inner product. -/
 theorem inner_rephaseCoordinates (ρ : Fin d → ℂ)
     (hρ : ∀ i, Complex.normSq (ρ i) = 1) (ψ φ : QState (Fin d)) :
     Qatlib.Foundations.PureStateMath.Inner (fun i => ρ i * ψ i) (fun i => ρ i * φ i) = Qatlib.Foundations.PureStateMath.Inner ψ φ := by
@@ -64,6 +92,8 @@ theorem inner_rephaseCoordinates (ρ : Fin d → ℂ)
           ((starRingEnd ℂ) (ψ i) * φ i) := by ring
     _ = _ := by rw [← Complex.normSq_eq_conj_mul_self, hρ]; simp
 
+/-- A common coordinatewise rephasing by scalars of squared modulus one preserves a mutually
+unbiased family. -/
 theorem isFamily_rephaseCoordinates (ρ : Fin d → ℂ)
     (hρ : ∀ i, Complex.normSq (ρ i) = 1)
     (B : Fin k → Fin d → QState (Fin d)) (hB : IsFamily B) :
@@ -80,15 +110,21 @@ theorem isFamily_rephaseCoordinates (ρ : Fin d → ℂ)
     rw [inner_rephaseCoordinates ρ hρ]
     exact hB.2 r s hrs i j
 
+/-- The scalar `conj z / q` used to align a complex number of modulus `q` with the positive real
+axis. -/
 noncomputable def alignPhase (q : ℝ) (z : ℂ) : ℂ :=
   (starRingEnd ℂ) z / (q : ℂ)
 
+/-- If `q > 0` and `z` has squared modulus `q ^ 2`, then `alignPhase q z` has squared modulus
+one. -/
 theorem alignPhase_normSq {q : ℝ} (hq : 0 < q) {z : ℂ}
     (hz : Complex.normSq z = q ^ 2) : Complex.normSq (alignPhase q z) = 1 := by
   rw [alignPhase, Complex.normSq_div, Complex.normSq_conj,
     Complex.normSq_ofReal, hz]
   simp [pow_two, ne_of_gt hq]
 
+/-- If `q > 0` and `z` has squared modulus `q ^ 2`, multiplying `z` by `alignPhase q z` gives
+`q`. -/
 theorem alignPhase_mul {q : ℝ} (hq : 0 < q) {z : ℂ}
     (hz : Complex.normSq z = q ^ 2) : alignPhase q z * z = (q : ℂ) := by
   have hqC : (q : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr (ne_of_gt hq)
@@ -96,6 +132,7 @@ theorem alignPhase_mul {q : ℝ} (hq : 0 < q) {z : ℂ}
     hz, Complex.ofReal_pow]
   simp [pow_two, hqC]
 
+/-- For positive `q`, the alignment phase of the real complex number `q` is one. -/
 theorem alignPhase_ofReal {q : ℝ} (hq : 0 < q) :
     alignPhase q (q : ℂ) = 1 := by
   simp [alignPhase, ne_of_gt hq]
@@ -105,6 +142,9 @@ end Qatlib.Concepts.UnbiasedBases.ThreeBasis
 namespace Qatlib.Concepts.UnbiasedBases.ThreeBasis.MUB
 variable {d k : ℕ}
 
+/-- For a mutually unbiased family containing the computational basis and positive `q` with `q ^
+2 = 1 / d`, there exists such a family retaining that basis with coordinate `a` of every
+other column equal to `q`. -/
 theorem normalize_first_row
     (B : Fin k → Fin d → QState (Fin d)) (hB : IsFamily B)
     (r₀ : Fin k) (a : Fin d) (hzero : ∀ j, B r₀ j = Qatlib.Foundations.PureStateMath.Ket j)
@@ -139,6 +179,9 @@ end Qatlib.Concepts.UnbiasedBases.ThreeBasis.MUB
 namespace Qatlib.Concepts.UnbiasedBases.ThreeBasis.MUB
 variable {d k : ℕ}
 
+/-- For positive `q` with `q ^ 2 = 1 / d`, there exists a mutually unbiased family retaining the
+distinguished computational basis, with coordinate `a` of all other columns and every
+coordinate of column `a` in basis `r₁` equal to `q`. -/
 theorem normalize_phase_gauge
     (B : Fin k → Fin d → QState (Fin d)) (hB : IsFamily B)
     (r₀ r₁ : Fin k) (hne : r₁ ≠ r₀) (a : Fin d)

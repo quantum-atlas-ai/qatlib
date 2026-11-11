@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.PaidHistoryWord
+
+/-!
+# Amplitude estimation of a physical projector integral
+
+This module applies scheduled rational amplitude estimation to the paid physical
+projector-history word. `preparation` chooses the clock and simulation precision, `output` is
+the resulting three-source amplitude estimation state, and `decode` returns a rational integral
+estimate.
+
+Under the stated encoding and integral-cap assumptions, the decoded value approximates the
+physical integral within `7*eps/8` with probability at least `8/π²`. The guarantee uses
+amplitude estimation [BrassardEtAl2002] and accounts for each source separately.
+
+## Main statements
+
+* `success`: the rational estimate has error at most `7*eps/8` with probability at least `8/π²`.
+* `resources`: the complete circuit has exact preparation, projector, Hamiltonian, and gate
+  counts.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 noncomputable section
@@ -60,22 +84,30 @@ noncomputable local instance executionDecidableEq (q a : ℕ) :
     DecidableEq (BinaryClockSingleCU.New q (Reg a × I)) :=
   BinaryClockSingleCU.newDecidableEq q (Reg a × I)
 
+/-- The paid history preparation word at the clock size and simulation precision selected by the
+physical error budget. -/
 def preparation (α T eps : ℚ) (a m : ℕ) : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step
     (Whole (ProjectorPhysicalBudget.clockBits α T eps) a m I E)) :=
   PaidHistoryWord.instructions (ProjectorPhysicalBudget.clockBits α T eps) a m α T
     (ProjectorPhysicalBudget.precisionBits α T eps)
 
+/-- The scheduled rational amplitude estimation word for the paid history preparation and
+zero-projector-ancilla event. -/
 def instructions (α T eps Jbar : ℚ) (a m : ℕ) (s : E × I) :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalMultiSourceAE.instructions T (ProjectorPhysicalBudget.massCap Jbar eps) eps
     (preparation (I := I) (E := E) α T eps a m)
     (seed (ProjectorPhysicalBudget.clockBits α T eps) a m s)
     (PaidHistoryWord.event (ProjectorPhysicalBudget.clockBits α T eps) a m)
 
+/-- The rational integral decoder using time scale `T`, tolerance `eps`, and the scheduled mass
+cap derived from `Jbar`. -/
 def decode (T eps Jbar : ℚ)
     (z : Fin (Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule.grid
       T (ProjectorPhysicalBudget.massCap Jbar eps) eps)) : ℚ :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalMultiSourceAE.decode T (ProjectorPhysicalBudget.massCap Jbar eps) eps z
 
+/-- The actual scheduled amplitude estimation output using the supplied Hamiltonian,
+preparation, and projector sources. -/
 def output (α T eps Jbar : ℚ) (a m : ℕ)
     (UH : Matrix (Reg a × I) (Reg a × I) ℂ) (P : Matrix (E × I) (E × I) ℂ)
     (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) (s : E × I) :=
@@ -85,6 +117,9 @@ def output (α T eps Jbar : ℚ) (a m : ℕ)
     (seed (ProjectorPhysicalBudget.clockBits α T eps) a m s)
     (PaidHistoryWord.event (ProjectorPhysicalBudget.clockBits α T eps) a m)
 
+/-- Under the stated positive-parameter, encoding, projector, and integral-cap assumptions, the
+decoded physical integral has error at most `7*eps/8` with probability at least `8/π²`
+[BrassardEtAl2002]. -/
 theorem success (α T eps Jbar : ℚ) (hα : 0 < α) (hT : 0 < T) (heps : 0 < eps)
     (a m : ℕ) (H Pi : Matrix I I ℂ) (hH : H.IsHermitian)
     (UH : Matrix (Reg a × I) (Reg a × I) ℂ)
@@ -123,6 +158,8 @@ theorem success (α T eps Jbar : ℚ) (hα : 0 < α) (hT : 0 < T) (heps : 0 < ep
     (PaidHistoryWord.instructions_wellFormed q a m α T k H hH UH hHenc)
     hm _ (by simpa only [abs_sub_comm] using! hb)
 
+/-- The scheduled word is well formed, uses `2*M-1` preparation and projector calls, and has the
+stated scaled Hamiltonian query ledger and explicit gate count. -/
 theorem resources (α T eps Jbar : ℚ) (a m : ℕ) (s : E × I)
     (H : Matrix I I ℂ) (hH : H.IsHermitian)
     (UH : Matrix (Reg a × I) (Reg a × I) ℂ)

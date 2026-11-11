@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ProbabilityCore.Concentration.CountingComplexity
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+
+/-!
+# Hash seed tapes and counting costs
+
+`ecSeedTapeEquiv` identifies affine Boolean hash seeds with fixed length bit tapes. Collision
+counts and counting failure probabilities are transported across this equivalence, while
+explicit programs account for random bits, oracle queries, and seed storage.
+
+These constructions supply concrete sampling and cost data for approximate counting, a setting
+also studied through amplitude estimation in [BrassardEtAl2002].
+
+## Main statements
+
+* `ecCollProb_eq`: the exact average count of distinct pairs in the zero fiber.
+* `ecTapeFailureProb_le_eps`: transport of the counting failure budget to random tapes.
+* `frontier2`: polynomial time, random bit, time charge, and stored seed guarantees.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ProbabilityCore.Concentration
@@ -22,6 +44,7 @@ open Qatlib
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCounting
 open Qatlib
 
+/-- The row major index of a hash matrix entry lies within the seed tape. -/
 private theorem ecTapeMat_lt (L ℓ : ℕ) (i : Fin ℓ) (j : Fin L) :
     i.val * L + j.val < ℓ * L + ℓ := by
   have h1 : i.val * L + j.val < i.val * L + L := by
@@ -36,15 +59,18 @@ private theorem ecTapeMat_lt (L ℓ : ℕ) (i : Fin ℓ) (j : Fin L) :
       omega)
   omega
 
+/-- The index of an affine offset bit lies within the seed tape. -/
 private theorem ecTapeOff_lt (L ℓ : ℕ) (i : Fin ℓ) :
     ℓ * L + i.val < ℓ * L + ℓ := by
   have := Fin.is_lt i
   omega
 
+/-- Read an affine Boolean hash seed from its matrix and offset bits on a tape. -/
 def ecSeedOfTape (L ℓ : ℕ) (t : Fin (EcHashSeedBits L ℓ) → Bool) : EcHashSeed L ℓ :=
   ((fun (i : Fin ℓ) (j : Fin L) => t ⟨i.val * L + j.val, ecTapeMat_lt L ℓ i j⟩),
    fun (i : Fin ℓ) => t ⟨ℓ * L + i.val, ecTapeOff_lt L ℓ i⟩)
 
+/-- Serialize the matrix and offset bits of an affine Boolean hash seed. -/
 def ecTapeOfSeed (L ℓ : ℕ) (s : EcHashSeed L ℓ) : Fin (EcHashSeedBits L ℓ) → Bool :=
   fun k =>
     if h : k.val < ℓ * L then
@@ -57,6 +83,7 @@ def ecTapeOfSeed (L ℓ : ℕ) (s : EcHashSeed L ℓ) : Fin (EcHashSeedBits L �
         simp only [EcHashSeedBits] at hk
         omega⟩
 
+/-- Serializing the seed read from a tape recovers that tape. -/
 theorem ecTapeOfSeed_seedOfTape (L ℓ : ℕ) (t : Fin (EcHashSeedBits L ℓ) → Bool) :
     ecTapeOfSeed L ℓ (ecSeedOfTape L ℓ t) = t := by
   funext k
@@ -77,6 +104,7 @@ theorem ecTapeOfSeed_seedOfTape (L ℓ : ℕ) (t : Fin (EcHashSeedBits L ℓ) �
     simp only [ecTapeOfSeed, dif_neg h, ecSeedOfTape]
     exact congrArg t hfin
 
+/-- Reading a serialized seed recovers the original seed. -/
 theorem ecSeedOfTape_tapeOfSeed (L ℓ : ℕ) (s : EcHashSeed L ℓ) :
     ecSeedOfTape L ℓ (ecTapeOfSeed L ℓ s) = s := by
   have hmat : (ecSeedOfTape L ℓ (ecTapeOfSeed L ℓ s)).1 = s.1 := by
@@ -116,16 +144,20 @@ theorem ecSeedOfTape_tapeOfSeed (L ℓ : ℕ) (s : EcHashSeed L ℓ) :
     exact congrArg s.2 (Fin.val_injective (Nat.add_sub_cancel_left _ _))
   exact Prod.ext_iff.mpr ⟨hmat, hoff⟩
 
+/-- The equivalence between fixed length Boolean seed tapes and affine hash seeds. -/
 def ecSeedTapeEquiv (L ℓ : ℕ) : (Fin (EcHashSeedBits L ℓ) → Bool) ≃ EcHashSeed L ℓ where
   toFun := ecSeedOfTape L ℓ
   invFun := ecTapeOfSeed L ℓ
   left_inv := ecTapeOfSeed_seedOfTape L ℓ
   right_inv := ecSeedOfTape_tapeOfSeed L ℓ
 
+/-- The number of ordered distinct pairs in the relation that both lie in the zero hash fiber. -/
 noncomputable def ecCollCount {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s : EcHashSeed L ℓ) : ℕ :=
   ∑ w : Fin L → Bool, ∑ w' : Fin L → Bool,
     if R w ∧ R w' ∧ w ≠ w' ∧ CcHashJointZero s w w' then 1 else 0
 
+/-- The square of the zero fiber size splits into its diagonal count and its distinct pair
+count. -/
 theorem ecFiberSq_eq_fiber_add_coll {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s : EcHashSeed L ℓ) :
     EcRelFiberCount R s ^ 2 = EcRelFiberCount R s + ecCollCount R s := by
   classical
@@ -176,6 +208,8 @@ theorem ecFiberSq_eq_fiber_add_coll {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s 
   rw [Finset.sum_congr rfl (fun w _ => hrow w), Finset.sum_add_distrib, hfib]
   rfl
 
+/-- Summing distinct pair counts over all seeds gives `(EcRelCount R ^ 2 - EcRelCount R) * 2 ^
+(ℓ * (L - 1))`. -/
 theorem ecCollCount_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     (∑ s : EcHashSeed L ℓ, ecCollCount R s)
       = (EcRelCount R ^ 2 - EcRelCount R) * 2 ^ (ℓ * (L - 1)) := by
@@ -188,6 +222,8 @@ theorem ecCollCount_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
   rw [h3] at h1
   omega
 
+/-- The uniform seed average of the distinct pair count is `m * (m - 1) / 2 ^ (2 * ℓ)`, where `m
+= EcRelCount R` is viewed as real. -/
 theorem ecCollProb_eq {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ((∑ s : EcHashSeed L ℓ, ecCollCount R s : ℝ) / (2 : ℝ) ^ (ℓ * L + ℓ))
       = (EcRelCount R : ℝ) * ((EcRelCount R : ℝ) - 1) / (2 : ℝ) ^ (2 * ℓ) := by
@@ -242,42 +278,54 @@ theorem ecCollProb_eq {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     have hB : ((2 : ℝ) ^ (2 * ℓ)) ≠ 0 := by positivity
     field_simp
 
+/-- The sampler random bit budget is the input length plus the hash seed length. -/
 theorem ccSamplerRandomBits_eq (L ℓ : ℕ) :
     CcSamplerRandomBits L ℓ = L + EcHashSeedBits L ℓ := by
   unfold CcSamplerRandomBits EcHashSeedBits
   omega
 
+/-- Express the sampler bit time as random bit generation, query charges, and output bits. -/
 theorem ccSamplerBitTime_seedBits (L ℓ addrBits queries outputBits : ℕ) :
     CcSamplerBitTime L ℓ addrBits queries outputBits
       = (L + EcHashSeedBits L ℓ) + queries * (2 * addrBits + 2) + outputBits := by
   unfold CcSamplerBitTime
   rw [ccSamplerRandomBits_eq]
 
+/-- Count seed tapes whose counting estimate differs from the relation size by more than half
+that size. -/
 noncomputable def ecTapeFailureCount (L ℓ : ℕ) (R : Set (Fin L → Bool)) : ℕ :=
   ∑ t : Fin (EcHashSeedBits L ℓ) → Bool,
     if |(CcEstimate R (ecSeedOfTape L ℓ t) : ℝ) - (EcRelCount R : ℝ)|
       > (EcRelCount R : ℝ) / 2 then 1 else 0
 
+/-- The fraction of seed tapes for which the counting estimate has relative error greater than
+one half. -/
 noncomputable def ecTapeFailureProb (L ℓ : ℕ) (R : Set (Fin L → Bool)) : ℝ :=
   (ecTapeFailureCount L ℓ R : ℝ) / ((2 : ℝ) ^ (EcHashSeedBits L ℓ))
 
+/-- Tape based and seed based counting failure counts agree. -/
 theorem ecTapeFailureCount_eq {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ecTapeFailureCount L ℓ R = CcFailureCount ℓ R := by
   unfold ecTapeFailureCount CcFailureCount
   exact Fintype.sum_equiv (ecSeedTapeEquiv L ℓ) _ _ (fun _ => rfl)
 
+/-- Tape based and seed based counting failure probabilities agree. -/
 theorem ecTapeFailureProb_eq {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ecTapeFailureProb L ℓ R = CcFailureProb ℓ R := by
   unfold ecTapeFailureProb CcFailureProb
   rw [ecTapeFailureCount_eq]
   rfl
 
+/-- For a nonempty relation, the tape failure probability is at most the prescribed counting
+failure budget. -/
 theorem ecTapeFailureProb_le_eps {L ℓ : ℕ} (R : Set (Fin L → Bool))
     (hm : 0 < EcRelCount R) {ε : ℝ} (hb : CcFailureBudget (ℓ := ℓ) (EcRelCount R) ε) :
     ecTapeFailureProb L ℓ R ≤ ε := by
   rw [ecTapeFailureProb_eq]
   exact ccFailureProb_le_eps R hm hb
 
+/-- Combine the tape failure bound, exact collision sum and average, and sampler random bit
+identity. -/
 theorem frontier1 {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < EcRelCount R)
     {ε : ℝ} (hb : CcFailureBudget (ℓ := ℓ) (EcRelCount R) ε) :
     ecTapeFailureProb L ℓ R ≤ ε
@@ -289,26 +337,31 @@ theorem frontier1 {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < EcRelCount 
   ⟨ecTapeFailureProb_le_eps R hm hb, ecCollCount_sum R, ecCollProb_eq R,
     ccSamplerRandomBits_eq L ℓ⟩
 
+/-- Count Boolean tapes whose decoded hash seed satisfies a given predicate. -/
 noncomputable def ecTapeSeedCount {L ℓ : ℕ} (P : EcHashSeed L ℓ → Prop) : ℕ :=
   ∑ t : Fin (EcHashSeedBits L ℓ) → Bool, if P (ecSeedOfTape L ℓ t) then 1 else 0
 
+/-- Counting tapes with a seed predicate equals counting the seeds satisfying that predicate. -/
 theorem ecTapeSeedCount_eq {L ℓ : ℕ} (P : EcHashSeed L ℓ → Prop) :
     ecTapeSeedCount P = ∑ s : EcHashSeed L ℓ, if P s then 1 else 0 := by
   unfold ecTapeSeedCount
   exact Fintype.sum_equiv (ecSeedTapeEquiv L ℓ) _ _ (fun _ => rfl)
 
+/-- Tape enumeration recovers the count of good counting seeds. -/
 theorem ecTapeGoodSeedCount_eq {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ecTapeSeedCount (L := L) (ℓ := ℓ) (fun s => CcGoodSeed (L := L) (ℓ := ℓ) R s)
       = CcGoodSeedCount (L := L) (ℓ := ℓ) R := by
   rw [ecTapeSeedCount_eq]
   rfl
 
+/-- Tape enumeration recovers the count of bad counting seeds. -/
 theorem ecTapeBadSeedCount_eq {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
     ecTapeSeedCount (L := L) (ℓ := ℓ) (fun s => CcBadSeed (L := L) (ℓ := ℓ) R s)
       = CcBadSeedCount (L := L) (ℓ := ℓ) R := by
   rw [ecTapeSeedCount_eq]
   rfl
 
+/-- Tape enumeration recovers the number of seeds whose counting error exceeds `τ`. -/
 theorem ecTapeThresholdBadSeedCount_eq {L : ℕ} (ℓ : ℕ) (τ : ℝ)
     (R : Set (Fin L → Bool)) :
     ecTapeSeedCount (L := L) (ℓ := ℓ)
@@ -317,9 +370,13 @@ theorem ecTapeThresholdBadSeedCount_eq {L : ℕ} (ℓ : ℕ) (τ : ℝ)
   rw [ecTapeSeedCount_eq]
   rfl
 
+/-- The time charge for generating random bits, performing the query blocks, and writing and
+moving past output bits. -/
 def ecChargeMachineTime (L ℓ addrBits queries outputBits : ℕ) : ℕ :=
   L + EcHashSeedBits L ℓ + queries * (2 * addrBits + 2) + 2 * outputBits
 
+/-- A program that generates the budgeted random bits, performs fixed query blocks, writes zero
+output bits, and accepts. -/
 def ecSamplerChargeMachine (L ℓ addrBits queries outputBits : ℕ) :
     CcProgram (L + EcHashSeedBits L ℓ + queries * (addrBits + 1) + 2 * outputBits) where
   states := fun i =>
@@ -340,6 +397,7 @@ def ecSamplerChargeMachine (L ℓ addrBits queries outputBits : ℕ) :
         CcAct.moveR ⟨(i : ℕ) + 1, by omega⟩
     else CcAct.accept
 
+/-- A state in the random bit phase performs a coin flip and advances to the next state. -/
 private theorem ecChargeMachine_coinAct (L ℓ addrBits queries outputBits : ℕ)
     {i : ℕ} (hi : i < L + EcHashSeedBits L ℓ) :
     (ecSamplerChargeMachine L ℓ addrBits queries outputBits).states
@@ -349,6 +407,7 @@ private theorem ecChargeMachine_coinAct (L ℓ addrBits queries outputBits : ℕ
   · rw [dif_pos hL]
   · rw [dif_neg hL, dif_pos (by omega)]
 
+/-- A state in the address portion of a query block pushes a query bit. -/
 private theorem ecChargeMachine_pushAct (L ℓ addrBits queries outputBits : ℕ)
     {i : ℕ} (h1 : ¬ i < L) (h2 : ¬ i < L + EcHashSeedBits L ℓ)
     (h3 : i < L + EcHashSeedBits L ℓ + queries * (addrBits + 1))
@@ -358,6 +417,7 @@ private theorem ecChargeMachine_pushAct (L ℓ addrBits queries outputBits : ℕ
   simp only [ecSamplerChargeMachine]
   rw [dif_neg h1, dif_neg h2, dif_pos h3, if_pos hm]
 
+/-- The last state of a query block makes an oracle call. -/
 private theorem ecChargeMachine_callAct (L ℓ addrBits queries outputBits : ℕ)
     {i : ℕ} (h1 : ¬ i < L) (h2 : ¬ i < L + EcHashSeedBits L ℓ)
     (h3 : i < L + EcHashSeedBits L ℓ + queries * (addrBits + 1))
@@ -367,6 +427,7 @@ private theorem ecChargeMachine_callAct (L ℓ addrBits queries outputBits : ℕ
   simp only [ecSamplerChargeMachine]
   rw [dif_neg h1, dif_neg h2, dif_pos h3, if_neg hm]
 
+/-- An even offset in the output phase writes a false bit. -/
 private theorem ecChargeMachine_writeAct (L ℓ addrBits queries outputBits : ℕ)
     {i : ℕ} (h1 : ¬ i < L) (h2 : ¬ i < L + EcHashSeedBits L ℓ)
     (h3 : ¬ i < L + EcHashSeedBits L ℓ + queries * (addrBits + 1))
@@ -377,6 +438,7 @@ private theorem ecChargeMachine_writeAct (L ℓ addrBits queries outputBits : �
   simp only [ecSamplerChargeMachine]
   rw [dif_neg h1, dif_neg h2, dif_neg h3, dif_pos h4, if_pos hm]
 
+/-- An odd offset in the output phase moves the tape head to the right. -/
 private theorem ecChargeMachine_moveAct (L ℓ addrBits queries outputBits : ℕ)
     {i : ℕ} (h1 : ¬ i < L) (h2 : ¬ i < L + EcHashSeedBits L ℓ)
     (h3 : ¬ i < L + EcHashSeedBits L ℓ + queries * (addrBits + 1))
@@ -387,6 +449,7 @@ private theorem ecChargeMachine_moveAct (L ℓ addrBits queries outputBits : ℕ
   simp only [ecSamplerChargeMachine]
   rw [dif_neg h1, dif_neg h2, dif_neg h3, dif_pos h4, if_neg hm]
 
+/-- The final state of the charge program accepts. -/
 private theorem ecChargeMachine_acceptAct (L ℓ addrBits queries outputBits : ℕ)
     {i : ℕ} (hi : i ≤ L + EcHashSeedBits L ℓ + queries * (addrBits + 1)
       + 2 * outputBits)
@@ -399,6 +462,8 @@ private theorem ecChargeMachine_acceptAct (L ℓ addrBits queries outputBits : �
   simp only [ecSamplerChargeMachine]
   rw [dif_neg h1, dif_neg h2, dif_neg h3, dif_neg h4]
 
+/-- During random bit generation, the state, time, coin count, and coin index equal the number
+of steps, with no head movement or queries. -/
 private theorem ecChargeMachine_afterCoins (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ∀ t ≤ L + EcHashSeedBits L ℓ,
@@ -434,6 +499,8 @@ private theorem ecChargeMachine_afterCoins (L ℓ addrBits queries outputBits : 
     simp only [h2, h3, h4, h5, h6, h7, h8]
     split_ifs <;> exact ⟨rfl, trivial, trivial, trivial, trivial, trivial, trivial, trivial⟩
 
+/-- After `n` query blocks, the state, time, head position, coin usage, and query counters have
+their prescribed values, and the query buffer is empty. -/
 private theorem ecChargeMachine_blocks (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ∀ n ≤ queries,
@@ -609,6 +676,8 @@ private theorem ecChargeMachine_blocks (L ℓ addrBits queries outputBits : ℕ)
     · exact ⟨hs2, by omega, trivial, trivial, hqb, trivial, hqb, trivial⟩
     · exact ⟨hs2, by omega, trivial, trivial, hqb, trivial, hqb, trivial⟩
 
+/-- After `j` output write and move pairs, the state, time, head position, and resource counters
+have their prescribed values. -/
 private theorem ecChargeMachine_output (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ∀ j ≤ outputBits,
@@ -718,6 +787,7 @@ private theorem ecChargeMachine_output (L ℓ addrBits queries outputBits : ℕ)
         = L + EcHashSeedBits L ℓ + queries * (addrBits + 1) + 2 * (i + 1) := by omega
     refine ⟨hs2o, by omega, ?_, ?_, by omega, ?_, ?_, ?_⟩ <;> first | rfl | trivial
 
+/-- The charge program configuration remains fixed after its final accepting state is reached. -/
 private theorem ecChargeMachine_frozen (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ∀ t ≥ L + EcHashSeedBits L ℓ + queries * (addrBits + 1) + 2 * outputBits,
@@ -758,6 +828,7 @@ private theorem ecChargeMachine_frozen (L ℓ addrBits queries outputBits : ℕ)
       exact congrArg (ccRun (ecSamplerChargeMachine L ℓ addrBits queries outputBits) A ρ x)
         heq.symm
 
+/-- The charge program accepts after its random bit, query, and output phases. -/
 theorem ecSamplerChargeMachine_halts (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccResult (ecSamplerChargeMachine L ℓ addrBits queries outputBits) A ρ x
@@ -778,6 +849,7 @@ theorem ecSamplerChargeMachine_halts (L ℓ addrBits queries outputBits : ℕ)
   simp only [ccResult]
   rw [hacc]
 
+/-- Compute the complete time, query, query bit, coin, and head charge of the finished program. -/
 theorem ecSamplerChargeMachine_charge (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     (EcChargeOf (ecSamplerChargeMachine L ℓ addrBits queries outputBits) A ρ x
@@ -800,6 +872,8 @@ theorem ecSamplerChargeMachine_charge (L ℓ addrBits queries outputBits : ℕ)
   simp only [EcChargeOf, ccTime, ccQueries, ccQueryBits, ccCoinsRead]
   rw [o2, hT, o6, o7, o3, ccSamplerRandomBits_eq, hO]
 
+/-- The charge program satisfies `CcPolyTime` with the displayed constant bound and exponent
+zero. -/
 theorem ecSamplerChargeMachine_polytime (L ℓ addrBits queries outputBits : ℕ) :
     CcPolyTime (ecSamplerChargeMachine L ℓ addrBits queries outputBits)
       (L + EcHashSeedBits L ℓ + queries * (addrBits + 1) + 2 * outputBits + 1) 0 := by
@@ -837,6 +911,7 @@ theorem ecSamplerChargeMachine_polytime (L ℓ addrBits queries outputBits : ℕ
     simp only [ccTime, hout.2.1]
     omega
 
+/-- The finished charge program uses exactly `CcSamplerRandomBits L ℓ` coins. -/
 theorem ecSamplerChargeMachine_coins (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     (EcChargeOf (ecSamplerChargeMachine L ℓ addrBits queries outputBits) A ρ x
@@ -844,6 +919,7 @@ theorem ecSamplerChargeMachine_coins (L ℓ addrBits queries outputBits : ℕ)
       = CcSamplerRandomBits L ℓ := by
   rw [ecSamplerChargeMachine_charge L ℓ addrBits queries outputBits A ρ x]
 
+/-- The finished program time charge is at least the sampler bit time budget. -/
 theorem ecSamplerChargeMachine_time_ge (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     CcSamplerBitTime L ℓ addrBits queries outputBits
@@ -852,6 +928,7 @@ theorem ecSamplerChargeMachine_time_ge (L ℓ addrBits queries outputBits : ℕ)
   rw [ecSamplerChargeMachine_charge L ℓ addrBits queries outputBits A ρ x]
   exact Nat.le_add_right _ _
 
+/-- The sampler bit time budget is bounded by the program's `CcBitTime` at completion. -/
 theorem ecSamplerChargeMachine_bitTime_ge (L ℓ addrBits queries outputBits : ℕ)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     CcSamplerBitTime L ℓ addrBits queries outputBits
@@ -864,6 +941,8 @@ theorem ecSamplerChargeMachine_bitTime_ge (L ℓ addrBits queries outputBits : �
           + (queries * addrBits + outputBits)
   omega
 
+/-- A program that writes each random seed bit to the tape, advances the head, and finally
+accepts. -/
 def ecSeedStoreMachine (L ℓ : ℕ) : CcProgram (4 * EcHashSeedBits L ℓ) where
   states := fun i =>
     if h : (i : ℕ) < 4 * EcHashSeedBits L ℓ then
@@ -877,12 +956,15 @@ def ecSeedStoreMachine (L ℓ : ℕ) : CcProgram (4 * EcHashSeedBits L ℓ) wher
         CcAct.moveR ⟨(i : ℕ) + 1, by omega⟩
     else CcAct.accept
 
+/-- The final seed storage state accepts. -/
 private theorem ecSeedStoreMachine_acceptAct (L ℓ : ℕ) {i : ℕ}
     (hi : i ≤ 4 * EcHashSeedBits L ℓ) (h : ¬ i < 4 * EcHashSeedBits L ℓ) :
     (ecSeedStoreMachine L ℓ).states ⟨i, by omega⟩ = CcAct.accept := by
   simp only [ecSeedStoreMachine]
   rw [dif_neg h]
 
+/-- After storing `i` seed bits, the first `i` tape cells contain those random bits and all
+counters and remaining tape cells have the stated values. -/
 private theorem ecSeedStoreMachine_run (L ℓ : ℕ) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) :
     ∀ i ≤ EcHashSeedBits L ℓ,
@@ -1070,6 +1152,7 @@ private theorem ecSeedStoreMachine_run (L ℓ : ℕ) (A : List Bool → Bool) (�
         have h2 : ¬(k < n + 1) := by omega
         simp [hne, h1, h2]
 
+/-- The seed storage configuration remains fixed after all seed bits have been stored. -/
 private theorem ecSeedStoreMachine_frozen (L ℓ : ℕ) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) :
     ∀ t ≥ 3 * EcHashSeedBits L ℓ,
@@ -1100,6 +1183,7 @@ private theorem ecSeedStoreMachine_frozen (L ℓ : ℕ) (A : List Bool → Bool)
     · have heq : 3 * EcHashSeedBits L ℓ = n + 1 := by omega
       exact congrArg (ccRun (ecSeedStoreMachine L ℓ) A ρ x) heq.symm
 
+/-- The seed storage program accepts after three steps per seed bit. -/
 theorem ecSeedStoreMachine_halts (L ℓ : ℕ) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) :
     ccResult (ecSeedStoreMachine L ℓ) A ρ x (3 * EcHashSeedBits L ℓ) = some true := by
@@ -1114,6 +1198,7 @@ theorem ecSeedStoreMachine_halts (L ℓ : ℕ) (A : List Bool → Bool) (ρ : �
   simp only [ccResult]
   rw [hacc]
 
+/-- The seed storage program consumes exactly the hash seed length in coins. -/
 theorem ecSeedStoreMachine_coins (L ℓ : ℕ) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) :
     (EcChargeOf (ecSeedStoreMachine L ℓ) A ρ x (3 * EcHashSeedBits L ℓ)).coins
@@ -1121,6 +1206,8 @@ theorem ecSeedStoreMachine_coins (L ℓ : ℕ) (A : List Bool → Bool) (ρ : �
   have hrun := ecSeedStoreMachine_run L ℓ A ρ x (EcHashSeedBits L ℓ) (Nat.le_refl _)
   simp only [EcChargeOf, ccCoinsRead, hrun.2.2.1]
 
+/-- The finished seed storage tape contains the supplied seed bits followed by the original
+input tape. -/
 theorem ecSeedStoreMachine_tape (L ℓ : ℕ) (A : List Bool → Bool) (x : List Bool)
     (t : Fin (EcHashSeedBits L ℓ) → Bool) (k : ℕ) :
     (ccRun (ecSeedStoreMachine L ℓ) A (ccCoinString t) x
@@ -1134,6 +1221,7 @@ theorem ecSeedStoreMachine_tape (L ℓ : ℕ) (A : List Bool → Bool) (x : List
     simp only [ccCoinString, dif_pos hk]
   · rw [if_neg hk, dif_neg hk]
 
+/-- Decoding the stored tape recovers the seed decoded from the supplied coin string. -/
 theorem ecSeedStoreMachine_seed (L ℓ : ℕ) (A : List Bool → Bool) (x : List Bool)
     (t : Fin (EcHashSeedBits L ℓ) → Bool) :
     ecSeedOfTape L ℓ (fun k : Fin (EcHashSeedBits L ℓ) =>
@@ -1147,6 +1235,8 @@ theorem ecSeedStoreMachine_seed (L ℓ : ℕ) (A : List Bool → Bool) (x : List
     rw [ecSeedStoreMachine_tape L ℓ A x t k.val, dif_pos (Fin.is_lt k)]
   rw [hfun]
 
+/-- The seed storage program satisfies `CcPolyTime` with bound `3 * EcHashSeedBits L ℓ + 1` and
+exponent zero. -/
 theorem ecSeedStoreMachine_polytime (L ℓ : ℕ) :
     CcPolyTime (ecSeedStoreMachine L ℓ) (3 * EcHashSeedBits L ℓ + 1) 0 := by
   intro A ρ x
@@ -1173,6 +1263,8 @@ theorem ecSeedStoreMachine_polytime (L ℓ : ℕ) :
     simp only [ccTime, hrun.2.1]
     omega
 
+/-- Combine the charge program's polynomial time, exact coin usage, and time lower bound with
+correctness of stored seed decoding. -/
 theorem frontier2 (L ℓ addrBits queries outputBits : ℕ) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) :
     CcPolyTime (ecSamplerChargeMachine L ℓ addrBits queries outputBits)

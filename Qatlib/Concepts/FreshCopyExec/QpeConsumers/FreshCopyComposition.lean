@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
 import Qatlib.Foundations.QueryWordCore.Circuit
+
+/-!
+# Composition of Fresh-Copy Schedules
+
+This module composes partial swap interactions with fresh copies along finite angle schedules,
+following the density matrix evolution setting of [LloydMohseniRebentrost2014]. The operator
+runs `freshCopyRun` and `freshCopyReferenceRun` are related to the channel composition
+`freshCopyProtocolChannel`.
+
+## Main statements
+
+* `fresh_copy_protocol_cptp_reference` identifies the reference-extended channel and proves
+  positivity and trace preservation.
+* `freshCopyResourceCounts_eq` counts one copy, partial swap gate, and discard per scheduled
+  angle, with zero oracle queries.
+* `fresh_copy_schedule_composition_cost` gives sequential composition and the corresponding
+  resource counts.
+
+## References
+
+- [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,9 +46,13 @@ open scoped ComplexOrder
 
 set_option linter.unusedSectionVars false
 
+/-- The one-gate circuit applying the partial swap matrix at angle `θ` to two registers of
+dimension `D`. -/
 noncomputable def partialSwapStepCircuit (D : ℕ) (θ : ℝ) : Circuit (Fin D × Fin D) :=
   [Step.gate (partialSwapMatrix D θ)]
 
+/-- The partial swap step circuit is unitary, has zero queries and one gate, and acts by the
+partial swap matrix. -/
 theorem partial_swap_step_actual_cost (D : ℕ) (θ : ℝ) (ψ : QState (Fin D × Fin D)) :
     IsUnitaryCircuit (partialSwapStepCircuit D θ) ∧ QueryCount (partialSwapStepCircuit D θ) = 0 ∧
     GateCount (partialSwapStepCircuit D θ) = 1 ∧
@@ -33,19 +60,27 @@ theorem partial_swap_step_actual_cost (D : ℕ) (θ : ℝ) (ψ : QState (Fin D �
   refine ⟨(isUnitaryCircuit_gate _ _).mpr ⟨partialSwapMatrix_unitary D θ,
     isUnitaryCircuit_nil⟩, rfl, rfl, rfl⟩
 
+/-- The output of sequential partial swap steps with fresh copies of `ρ`, applied in the order
+of the angle list. -/
 noncomputable def freshCopyRun {D : ℕ} (ρ : Operator D) (angles : List ℝ)
     (σ : Operator D) : Operator D :=
   angles.foldl (fun σ θ => partialSwapOutput ρ θ σ) σ
 
+/-- The sequential fresh copy partial swap output on a system with an untouched reference
+register of dimension `r`. -/
 noncomputable def freshCopyReferenceRun {D : ℕ} (ρ : Operator D) (angles : List ℝ) (r : ℕ)
     (σ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
     Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ :=
   angles.foldl (fun σ θ => partialSwapReferenceOutput ρ θ r σ) σ
 
+/-- The quantum channel obtained by composing the fresh copy partial swap channels in schedule
+order, starting from the identity channel. -/
 noncomputable def freshCopyProtocolChannel {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (angles : List ℝ) : QuantumChannel D D :=
   angles.foldl (fun ch θ => (partialSwapChannel ρ hρ θ).comp ch) (QuantumChannel.id D)
 
+/-- Starting the channel fold at an arbitrary channel composes the scheduled protocol map after
+that initial channel map. -/
 private theorem foldl_channel_map_init {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (angles : List ℝ) (b : QuantumChannel D D) :
     (angles.foldl (fun ch θ => (partialSwapChannel ρ hρ θ).comp ch) b).map
@@ -65,6 +100,8 @@ private theorem foldl_channel_map_init {D : ℕ} (ρ : Operator D)
         show (QuantumChannel.id D).map = LinearMap.id from rfl,
         LinearMap.comp_id, ← LinearMap.comp_assoc]
 
+/-- The channel map for an appended schedule applies the first schedule's map followed by the
+second schedule's map. -/
 theorem freshCopyProtocolChannel_map_append {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (xs ys : List ℝ) :
     (freshCopyProtocolChannel ρ hρ (xs ++ ys)).map
@@ -75,6 +112,8 @@ theorem freshCopyProtocolChannel_map_append {D : ℕ} (ρ : Operator D)
   rw [List.foldl_append, foldl_channel_map_init]
   rfl
 
+/-- Applying a scheduled channel fold to an operator equals folding the partial swap outputs
+after the initial channel's action. -/
 private theorem foldl_channel_apply {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (angles : List ℝ) (b : QuantumChannel D D)
     (σ : Operator D) :
@@ -87,11 +126,14 @@ private theorem foldl_channel_apply {D : ℕ} (ρ : Operator D)
       exact congrArg (fun z => rest.foldl (fun σ θ => partialSwapOutput ρ θ σ) z)
         (partialSwapChannel_map ρ hρ t (b.map σ))
 
+/-- The composed fresh copy protocol channel acts on every operator as `freshCopyRun`. -/
 theorem freshCopyProtocolChannel_apply {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (angles : List ℝ) (σ : Operator D) :
     (freshCopyProtocolChannel ρ hρ angles).map σ = freshCopyRun ρ angles σ :=
   foldl_channel_apply ρ hρ angles (QuantumChannel.id D) σ
 
+/-- For density-operator copies, tensoring the protocol channel with an identity reference gives
+`freshCopyReferenceRun`. This reference run preserves positive semidefiniteness and trace. -/
 theorem fresh_copy_protocol_cptp_reference {D : ℕ} (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (angles : List ℝ) (r : ℕ)
     (σ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -127,10 +169,14 @@ theorem fresh_copy_protocol_cptp_reference {D : ℕ} (ρ : Operator D)
         exact ih2 ((partial_swap_reference_output_formula ρ hρ θ r σ).2.1 hσ)
       · exact ih3.trans (partial_swap_reference_output_formula ρ hρ θ r σ).2.2
 
+/-- The scheduled counts of fresh copies, partial swap gates, discards, and oracle queries,
+respectively. -/
 noncomputable def freshCopyResourceCounts (D : ℕ) (angles : List ℝ) : ℕ × ℕ × ℕ × ℕ :=
   (angles.length, (angles.map (fun θ => GateCount (partialSwapStepCircuit D θ))).sum,
     angles.length, (angles.map (fun θ => QueryCount (partialSwapStepCircuit D θ))).sum)
 
+/-- A schedule uses one fresh copy, one partial swap gate, and one discard per angle, and has
+zero oracle queries. -/
 theorem freshCopyResourceCounts_eq (D : ℕ) (angles : List ℝ) :
     freshCopyResourceCounts D angles = (angles.length, angles.length, angles.length, 0) := by
   have hsum1 : ∀ l : List ℝ, (l.map (fun _ => (1 : ℕ))).sum = l.length := by
@@ -159,6 +205,9 @@ theorem freshCopyResourceCounts_eq (D : ℕ) (angles : List ℝ) :
     rfl
   simp only [freshCopyResourceCounts, hmap1, hmap0, hsum1, hsum0]
 
+/-- Appending two schedules composes their fresh copy runs in order and adds their copy, partial
+swap gate, and discard counts. Both the combined and initial schedules have zero oracle
+queries. -/
 theorem fresh_copy_schedule_composition_cost {D : ℕ} (ρ σ : Operator D) (xs ys : List ℝ) :
     freshCopyRun ρ (xs++ys) σ = freshCopyRun ρ ys (freshCopyRun ρ xs σ) ∧
     freshCopyResourceCounts D (xs++ys) =

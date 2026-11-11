@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ZetaCurve04.MainResults.Defs
+
+/-!
+# Polynomial cost bounds for zeta reconstruction
+
+The predicates `PolyBoundedTwo` and `PolyBoundedThree` are closed under the cost combinations
+used here. Substituting the extension-degree bound `max 18 (2 * g)` into a three-variable cost
+and multiplying by the number of stages preserves a polynomial bound in genus and logarithmic
+field size.
+
+This development forms part of the formalization of [Kedlaya2006].
+
+## Main statements
+
+* `polyBoundedTwo_mul`: The pointwise product of two polynomially bounded two-variable costs is
+  polynomially bounded.
+* `polyBoundedThree_eval_max_stage`: Multiplying the substituted cost by `max 18 (2 * g)` still
+  gives a polynomial bound in `g` and `lq`.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,10 +40,13 @@ namespace Qatlib.Papers.ZetaCurve04.MainResults.Cost
 
 open Qatlib.Papers.ZetaCurve04.MainResults.Defs
 
+/-- A constant multiple of a fixed power of `a + b + 1` is polynomially bounded in two
+variables. -/
 theorem polyBoundedTwo_const_mul (c k : ℕ) :
     PolyBoundedTwo (fun a b => c * (a + b + 1) ^ k) :=
   ⟨c, k, fun _ _ => le_refl _⟩
 
+/-- The pointwise sum of two polynomially bounded two-variable costs is polynomially bounded. -/
 theorem polyBoundedTwo_add {f g : ℕ → ℕ → ℕ}
     (hf : PolyBoundedTwo f) (hg : PolyBoundedTwo g) :
     PolyBoundedTwo (fun a b => f a b + g a b) := by
@@ -40,6 +66,8 @@ theorem polyBoundedTwo_add {f g : ℕ → ℕ → ℕ}
         Nat.add_le_add b1 b2
     _ = (c1 + c2) * (a + b + 1) ^ (k1 + k2) := by rw [Nat.add_mul]
 
+/-- The pointwise product of two polynomially bounded two-variable costs is polynomially
+bounded. -/
 theorem polyBoundedTwo_mul {f g : ℕ → ℕ → ℕ}
     (hf : PolyBoundedTwo f) (hg : PolyBoundedTwo g) :
     PolyBoundedTwo (fun a b => f a b * g a b) := by
@@ -55,6 +83,8 @@ theorem polyBoundedTwo_mul {f g : ℕ → ℕ → ℕ}
             = c1 * c2 * ((a + b + 1) ^ k1 * (a + b + 1) ^ k2) := by ring
         rw [hregroup, ← pow_add]
 
+/-- Multiplication by the repetition factor `19 * (a + b + 1)` preserves a two-variable
+polynomial cost bound. -/
 theorem polyBoundedTwo_linear_rep (f : ℕ → ℕ → ℕ) (hf : PolyBoundedTwo f) :
     PolyBoundedTwo (fun a b => (19 * (a + b + 1)) * f a b) := by
   obtain ⟨c, k, h⟩ := hf
@@ -68,6 +98,8 @@ theorem polyBoundedTwo_linear_rep (f : ℕ → ℕ → ℕ) (hf : PolyBoundedTwo
         rw [pow_succ]; ring
     _ = (19 * c) * (a + b + 1) ^ (k + 1) := by ring
 
+/-- Substituting `max 18 (2 * g)` for the third argument of a polynomially bounded cost gives a
+two-variable polynomial bound. -/
 theorem polyBoundedThree_eval_max (f : ℕ → ℕ → ℕ → ℕ)
     (hf : PolyBoundedThree f) :
     PolyBoundedTwo (fun g lq => f g lq (max 18 (2 * g))) := by
@@ -84,6 +116,8 @@ theorem polyBoundedThree_eval_max (f : ℕ → ℕ → ℕ → ℕ)
     _ = c * (19 ^ e * (g + lq + 1) ^ e) := by rw [Nat.mul_pow]
     _ = (c * 19 ^ e) * (g + lq + 1) ^ e := by ring
 
+/-- Multiplying the substituted cost by `max 18 (2 * g)` still gives a polynomial bound in `g`
+and `lq`. See [Kedlaya2006]. -/
 theorem polyBoundedThree_eval_max_stage (f : ℕ → ℕ → ℕ → ℕ)
     (hf : PolyBoundedThree f) :
     PolyBoundedTwo (fun g lq => (max 18 (2 * g)) * f g lq (max 18 (2 * g))) := by

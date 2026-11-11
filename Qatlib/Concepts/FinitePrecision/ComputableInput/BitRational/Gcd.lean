@@ -5,12 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Division
+
+/-!
+# Correctness and cost of bitwise Euclidean GCD
+
+This module proves correctness of the bounded Euclidean computation `binomialBitGcd`. The proof
+controls truncated remainders, uses two Euclidean divisions per recursive round, and bounds the
+output width, number of divisions, and gate count in terms of the larger input length.
+
+For background on classical computation and its resource models, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `binomial_bit_any`: detects a nonzero bit value with a linear gate count.
+* `binomial_bit_take_exact`: truncation preserves values that fit in the chosen width.
+* `binomial_bit_gcd`: proves GCD correctness and explicit resource bounds.
+
+## References
+
+* [Kitaev, Shen and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- The bit disjunction is `true` exactly when the represented natural is nonzero, and its gate
+count equals the input length. -/
 theorem binomial_bit_any (xs : List Bool) :
     ((binomialBitAny xs).1 = true ↔ binomialBitValue xs ≠ 0) ∧
     (binomialBitAny xs).2 = xs.length := by
@@ -22,6 +45,7 @@ end Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational
 
+/-- The value represented by a Boolean list is strictly less than two raised to its length. -/
 private theorem value_lt (xs : List Bool) : binomialBitValue xs < 2^xs.length := by
   induction xs with
   | nil => simp [binomialBitValue]
@@ -29,6 +53,8 @@ private theorem value_lt (xs : List Bool) : binomialBitValue xs < 2^xs.length :=
     cases b <;> simp only [binomialBitValue,List.length_cons,pow_succ,
       Bool.toNat_true,Bool.toNat_false] <;> omega
 
+/-- Splits a bit-list value into its low `w` bits plus `2 ^ w` times the value of the remaining
+bits. -/
 private theorem value_split (xs : List Bool) (w : ℕ) :
     binomialBitValue xs = binomialBitValue (xs.take w)+2^w*binomialBitValue (xs.drop w) := by
   induction w generalizing xs with
@@ -41,6 +67,7 @@ private theorem value_split (xs : List Bool) (w : ℕ) :
       have h := ih xs
       nlinarith
 
+/-- Taking the first `w` bits preserves the value of a bit list whose value is below `2 ^ w`. -/
 theorem binomial_bit_take_exact (xs : List Bool) (w : ℕ) (h : binomialBitValue xs < 2^w) :
     binomialBitValue (xs.take w) = binomialBitValue xs := by
   have he := value_split xs w
@@ -51,6 +78,7 @@ theorem binomial_bit_take_exact (xs : List Bool) (w : ℕ) (h : binomialBitValue
     nlinarith
   simpa only [hz,mul_zero,add_zero] using he.symm
 
+/-- For `0 < r < b`, twice the remainder of `b` modulo `r` is strictly less than `b`. -/
 private theorem mod_half (b r : ℕ) (hr : 0 < r) (hb : r < b) : 2*(b%r) < b := by
   have hm := Nat.mod_lt b hr
   by_cases h : 2*r ≤ b
@@ -60,9 +88,12 @@ private theorem mod_half (b r : ℕ) (hr : 0 < r) (hb : r < b) : 2*(b%r) < b := 
     have hp := Nat.mul_le_mul_left r hq
     nlinarith
 
+/-- A Euclidean remainder step preserves the natural-number GCD. -/
 private theorem gcd_step (a b : ℕ) : Nat.gcd b (a%b) = Nat.gcd a b := by
   rw [Nat.gcd_comm b (a%b),← Nat.gcd_rec b a,Nat.gcd_comm b a]
 
+/-- For inputs of length at most `w` and a positive divisor, the truncated remainder has the
+correct value and length at most `w`, with at most `22 * w ^ 2` gates. -/
 private theorem division_step (xs ys : List Bool) (w : ℕ)
     (hx : xs.length ≤ w) (hy : ys.length ≤ w) (hp : 0 < binomialBitValue ys) :
     let d := binomialBitDivmod ys xs
@@ -76,6 +107,9 @@ private theorem division_step (xs ys : List Bool) (w : ℕ)
   have hm := Nat.mul_le_mul hx (Nat.add_le_add hx hy)
   exact ⟨(binomial_bit_take_exact _ w hb).trans hv,by simp,by nlinarith⟩
 
+/-- If both inputs fit in `w` bits and the second value is below `2 ^ k`, the bounded GCD run
+returns their GCD in at most `w` bits, using at most `2 * k` divisions and `k * (44 * w ^ 2
++ 2 * w)` gates. -/
 private theorem run_spec (w k : ℕ) (xs ys : List Bool)
     (hx : xs.length ≤ w) (hy : ys.length ≤ w) (hb : binomialBitValue ys < 2^k) :
     let r := binomialGcdRun w k xs ys
@@ -152,6 +186,8 @@ private theorem run_spec (w k : ℕ) (xs ys : List Bool)
       simp only [heq,hy0,Nat.gcd_zero_right]
       exact ⟨trivial,hx,by omega,by nlinarith⟩
 
+/-- For `w` the larger input length, `binomialBitGcd` returns the natural GCD in at most `w`
+bits, using at most `2 * w` divisions and `w * (44 * w ^ 2 + 2 * w)` gates. -/
 theorem binomial_bit_gcd (xs ys : List Bool) :
     let w := max xs.length ys.length
     let r := binomialBitGcd xs ys

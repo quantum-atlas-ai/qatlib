@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.EffectiveNearOptimalSignWindow
 import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtSignMaterials
+
+/-!
+# Constructive sign and rectangle approximation
+
+This module composes a Chebyshev-kernel separator with a polynomial amplifier to obtain bounded
+odd sign approximations with degree proportional to 1 + δ⁻¹ log(ε⁻¹). It supplies rational
+coefficient implementations, even rectangle approximations, and normalized rounding bounds.
+Background and related constructions are discussed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `nearOptimalPolynomial_spec`: the sign approximation with degree constant 12000.
+* `nativeSignCoefficients_spec`: the corresponding rational coefficient guarantee.
+* `nearOptimalRectangle_degree`: the rectangle degree bound with constant 36000.
+* `nativeRoundedSign_bounds`: boundedness and error after rounding and normalization.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -17,19 +38,25 @@ open Polynomial
 open scoped Classical BigOperators
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
 
+/-- The natural ceiling of 128/δ used to obtain a constant-error separator. -/
 def separationLevel (δ : ℝ) : ℕ := ⌈128/δ⌉₊
 
+/-- The natural ceiling of 8 log(1/ε) used to amplify the separator accuracy. -/
 def amplificationLevel (ε : ℝ) : ℕ := ⌈8*Real.log (1/ε)⌉₊
 
+/-- The polynomial obtained by composing `spoly` at the amplification level with the separator
+at the separation level. -/
 def nearOptimalPolynomial (δ ε : ℝ) : Polynomial ℝ :=
   (spoly (amplificationLevel ε)).comp (Qatlib.Concepts.QsvtCore.ApproxToolkit.separator (separationLevel δ))
 
+/-- For 0 < ε < 1/2, log(1/ε) is at least one half. -/
 theorem log_error_lower {ε : ℝ} (hε : 0 < ε) (hε2 : ε < 1/2) :
     1/2 ≤ Real.log (1/ε) := by
   have h := Real.log_le_sub_one_of_pos hε
   simp only [one_div,Real.log_inv]
   linarith
 
+/-- For 0 < ε < 1/2, the chosen amplification level makes 2(3/4)^(k + 1) at most `ε`. -/
 theorem amplification_error {ε : ℝ} (hε : 0 < ε) (hε2 : ε < 1/2) :
     2*(3/4:ℝ)^(amplificationLevel ε+1) ≤ ε := by
   have hL := log_error_lower hε hε2
@@ -49,6 +76,7 @@ theorem amplification_error {ε : ℝ} (hε : 0 < ε) (hε2 : ε < 1/2) :
   have hpow := hp.trans he
   nlinarith
 
+/-- For a positive gap, the chosen separation level satisfies (n + 1)δ ≥ 128. -/
 theorem separation_level {δ : ℝ} (hδ : 0 < δ) :
     128 ≤ ((separationLevel δ:ℝ)+1)*δ := by
   have h := Nat.le_ceil (128/δ)
@@ -56,15 +84,19 @@ theorem separation_level {δ : ℝ} (hδ : 0 < δ) :
     (div_le_iff₀ hδ).mp h
   nlinarith
 
+/-- The constructed near-optimal sign polynomial is odd. -/
 theorem nearOptimalPolynomial_odd (δ ε x : ℝ) :
     (nearOptimalPolynomial δ ε).eval (-x) = -(nearOptimalPolynomial δ ε).eval x := by
   simp only [nearOptimalPolynomial,Polynomial.eval_comp,Qatlib.Concepts.QsvtCore.ApproxToolkit.separator_odd,spoly_odd]
 
+/-- The constructed near-optimal sign polynomial has absolute value at most one on [−2, 2]. -/
 theorem nearOptimalPolynomial_abs_le (δ ε : ℝ) {x : ℝ} (hx : |x| ≤ 2) :
     |(nearOptimalPolynomial δ ε).eval x| ≤ 1 := by
   simp only [nearOptimalPolynomial,Polynomial.eval_comp]
   exact spoly_abs_le _ _ (abs_le.mp (Qatlib.Concepts.QsvtCore.ApproxToolkit.separator_abs_le _ hx))
 
+/-- Composing a separator satisfying the constant-error level condition with an amplifier
+meeting the geometric error budget gives sign error at most `ε` outside the gap on [−2, 2]. -/
 theorem amplifiedSeparator_error {δ ε : ℝ} (hδ : 0 < δ) (n k : ℕ)
     (hlevel : 128 ≤ ((n:ℝ)+1)*δ) (herr : 2*(3/4:ℝ)^(k+1) ≤ ε)
     {x : ℝ} (hx : |x| ≤ 2) (hgap : δ ≤ |x|) :
@@ -95,11 +127,15 @@ theorem amplifiedSeparator_error {δ ε : ℝ} (hδ : 0 < δ) (n k : ℕ)
     exact hpos (-x) (by linarith) (by simpa only [abs_neg] using! hx)
       (by simpa only [abs_neg] using! hgap)
 
+/-- For positive gap and 0 < ε < 1/2, the constructed polynomial approximates the sign function
+within `ε` on [−2, 2] outside the gap. -/
 theorem nearOptimalPolynomial_error {δ ε : ℝ} (hδ : 0 < δ) (hε : 0 < ε)
     (hε2 : ε < 1/2) {x : ℝ} (hx : |x| ≤ 2) (hgap : δ ≤ |x|) :
     |(nearOptimalPolynomial δ ε).eval x-Real.sign x| ≤ ε :=
   amplifiedSeparator_error hδ _ _ (separation_level hδ) (amplification_error hε hε2) hx hgap
 
+/-- When the separator and amplifier levels do not exceed the selected levels, their composition
+has degree at most 12000(1 + δ⁻¹ log(ε⁻¹)) under the stated gap and error assumptions. -/
 theorem amplifiedSeparator_degree {δ ε : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) (n k : ℕ)
     (hnBound : n ≤ separationLevel δ) (hkBound : k ≤ amplificationLevel ε) :
@@ -135,11 +171,15 @@ theorem amplifiedSeparator_degree {δ ε : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
       have hn : 0 ≤ (1/δ)*Real.log (1/ε) := by positivity
       nlinarith
 
+/-- For 0 < δ ≤ 2 and 0 < ε < 1/2, the constructed sign polynomial has degree at most 12000(1 +
+δ⁻¹ log(ε⁻¹)). -/
 theorem nearOptimalPolynomial_degree {δ ε : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) :
     ((nearOptimalPolynomial δ ε).natDegree:ℝ) ≤ 12000*(1+(1/δ)*Real.log (1/ε)) :=
   amplifiedSeparator_degree hδ hδ2 hε hε2 _ _ le_rfl le_rfl
 
+/-- For 0 < δ ≤ 2 and 0 < ε < 1/2, the constructed polynomial satisfies
+`NearOptimalSignApproximation` with constant 12000 [GilyenSuLowWiebe2019]. -/
 theorem nearOptimalPolynomial_spec {δ ε : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) :
     NearOptimalSignApproximation 12000 δ ε (nearOptimalPolynomial δ ε) := by
@@ -164,54 +204,74 @@ open Qatlib.Concepts.NonNormalSpec.ResolventWord
 open Qatlib.Concepts.QsvtCore.ApproxToolkit
 open scoped BigOperators
 
+/-- Computes the rational coefficient list of a natural power by repeated polynomial-list
+multiplication. -/
 def nativePower (xs : List ℚ) : ℕ → List ℚ
   | 0 => [1]
   | k+1 => ratMulList (nativePower xs k) xs
 
+/-- The rational central-binomial coefficient (2i choose i)/4ⁱ. -/
 def nativeCentralCoefficient (i : ℕ) : ℚ := (2*i).choose i/(4:ℚ)^i
 
+/-- Computes the rational coefficient list for the truncated sum of central-binomial weights
+times powers of 1 − X². -/
 def nativeAmplifierSeries : ℕ → List ℚ
   | 0 => [1]
   | k+1 => ratAddList (nativeAmplifierSeries k)
       ((nativePower [1,0,-1] (k+1)).map (fun a => nativeCentralCoefficient (k+1)*a))
 
+/-- The rational coefficient list obtained by multiplying the amplifier series by X. -/
 def nativeAmplifier (k : ℕ) : List ℚ := ratMulList [0,1] (nativeAmplifierSeries k)
 
+/-- The natural ceiling of the rational number 128/δ used for the rational separator. -/
 def nativeSeparationLevel (δ : ℚ) : ℕ := ⌈128/δ⌉₊
 
+/-- A rational number less than one half remains less than one half after casting to the reals. -/
 theorem rational_half_lt {ε : ℚ} (h : ε < 1/2) : (ε:ℝ) < 1/2 := by
   have hc : (ε:ℝ) < ((1/2:ℚ):ℝ) := Rat.cast_lt.mpr h
   norm_num at hc
   exact hc
 
+/-- The rational and real forms of the geometric amplification error inequality are equivalent. -/
 theorem geometric_rat_cast (ε : ℚ) (k : ℕ) :
     (2*(3/4:ℝ)^(k+1) ≤ (ε:ℝ)) ↔ (2*(3/4:ℚ)^(k+1) ≤ ε) := by
   rw [← Rat.cast_le (K := ℝ)]
   norm_num
 
+/-- For rational 0 < ε < 1/2, some natural amplification level makes the rational geometric
+error bound at most `ε`. -/
 theorem nativeAmplification_witness (ε : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2) :
     ∃ k : ℕ, 2*(3/4:ℚ)^(k+1) ≤ ε := by
   refine ⟨amplificationLevel (ε:ℝ),?_⟩
   have h := amplification_error (ε := (ε:ℝ)) (by exact_mod_cast hε) (rational_half_lt hε2)
   exact (geometric_rat_cast ε _).mp h
 
+/-- The least natural amplification level for which the rational geometric error bound is at
+most `ε`. -/
 def nativeAmplificationLevel (ε : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2) : ℕ :=
   Nat.find (nativeAmplification_witness ε hε hε2)
 
+/-- Computes sign-polynomial coefficients by composing the rational amplifier with the rational
+kernel separator at their selected levels. -/
 def nativeSignCoefficients (δ ε : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2) : List ℚ :=
   rationalPolynomialCompose (nativeAmplifier (nativeAmplificationLevel ε hε hε2))
     (Kernel.nativeSeparator (nativeSeparationLevel δ))
 
+/-- The list produced by `nativePower xs k` represents the `k`th power of the polynomial
+represented by `xs`. -/
 theorem nativePower_semantics (xs : List ℚ) (k : ℕ) :
     realTarget (nativePower xs k) = (realTarget xs)^k := by
   induction k with
   | zero => simp [nativePower,realTarget_cons]
   | succ k ih => rw [nativePower,realTarget_mul,ih,pow_succ]
 
+/-- The rational central-binomial coefficient casts to the real coefficient `cReal i`. -/
 theorem nativeCentralCoefficient_semantics (i : ℕ) :
     ((nativeCentralCoefficient i:ℚ):ℝ) = cReal i := by
   simp [nativeCentralCoefficient,cReal]
 
+/-- The rational amplifier series represents the sum of `cReal i` times (1 − X²)ⁱ from i = 0
+through `k`. -/
 theorem nativeAmplifierSeries_semantics (k : ℕ) :
     realTarget (nativeAmplifierSeries k) =
       ∑ i ∈ Finset.range (k+1),C (cReal i)*(1-X^2)^i := by
@@ -225,10 +285,13 @@ theorem nativeAmplifierSeries_semantics (k : ℕ) :
       hb,nativeCentralCoefficient_semantics]
     simp only [Finset.sum_range_succ]
 
+/-- The rational amplifier coefficient list represents `spoly k`. -/
 theorem nativeAmplifier_semantics (k : ℕ) : realTarget (nativeAmplifier k) = spoly k := by
   rw [nativeAmplifier,realTarget_mul,nativeAmplifierSeries_semantics]
   simp [realTarget_cons,spoly]
 
+/-- The rational sign coefficients represent the composition of `spoly` at the native
+amplification level with the separator at the native separation level. -/
 theorem nativeSignCoefficients_semantics (δ ε : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2) :
     realTarget (nativeSignCoefficients δ ε hε hε2) =
       (spoly (nativeAmplificationLevel ε hε hε2)).comp
@@ -236,6 +299,8 @@ theorem nativeSignCoefficients_semantics (δ ε : ℚ) (hε : 0 < ε) (hε2 : ε
   rw [nativeSignCoefficients,rationalPolynomialCompose_semantics,
     nativeAmplifier_semantics,Kernel.nativeSeparator_semantics]
 
+/-- For a positive rational gap, the native separation level satisfies (n + 1)δ ≥ 128 after
+casting to the reals. -/
 theorem nativeSeparation_level {δ : ℚ} (hδ : 0 < δ) :
     128 ≤ ((nativeSeparationLevel δ:ℝ)+1)*(δ:ℝ) := by
   have hq := Nat.le_ceil (128/δ)
@@ -244,6 +309,8 @@ theorem nativeSeparation_level {δ : ℚ} (hδ : 0 < δ) :
   have hp : (0:ℝ)<(δ:ℝ) := by exact_mod_cast hδ
   nlinarith
 
+/-- The rationally computed separation level is at most the separation level of the real-cast
+gap. -/
 theorem nativeSeparation_le (δ : ℚ) : nativeSeparationLevel δ ≤ separationLevel (δ:ℝ) := by
   apply Nat.ceil_le.mpr
   have h := Nat.le_ceil (128/(δ:ℝ))
@@ -252,17 +319,23 @@ theorem nativeSeparation_le (δ : ℚ) : nativeSeparationLevel δ ≤ separation
     exact h
   exact Rat.cast_le.mp (by simpa only [Rat.cast_natCast] using! hc)
 
+/-- The native amplification level satisfies the real geometric error bound with tolerance equal
+to the real cast of `ε`. -/
 theorem nativeAmplification_error (ε : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2) :
     2*(3/4:ℝ)^(nativeAmplificationLevel ε hε hε2+1) ≤ (ε:ℝ) := by
   have h := Nat.find_spec (nativeAmplification_witness ε hε hε2)
   exact (geometric_rat_cast ε _).mpr h
 
+/-- The native amplification level is at most the real-logarithm amplification level for the
+real-cast tolerance. -/
 theorem nativeAmplification_le (ε : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2) :
     nativeAmplificationLevel ε hε hε2 ≤ amplificationLevel (ε:ℝ) := by
   apply Nat.find_min'
   have h := amplification_error (ε := (ε:ℝ)) (by exact_mod_cast hε) (rational_half_lt hε2)
   exact (geometric_rat_cast ε _).mp h
 
+/-- For rational 0 < δ ≤ 2 and 0 < ε < 1/2, the native coefficients represent a near-optimal
+sign approximation with degree constant 12000. -/
 theorem nativeSignCoefficients_spec {δ ε : ℚ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) :
     NearOptimalSignApproximation 12000 (δ:ℝ) (ε:ℝ)
@@ -290,6 +363,8 @@ namespace Qatlib.Concepts.QsvtCore.ApproxToolkit.NearoptimalSignWindow
 open Polynomial
 open scoped BigOperators
 
+/-- A near-optimal sign approximation of error ε/2 yields `PrintedRectangleBand` for the source
+rectangle at every threshold `t ≤ 1`, including its negative-threshold zero branch. -/
 theorem nearOptimalSign_allThresholdRectangle {C δ ε t : ℝ} {S : Polynomial ℝ}
     (hS : NearOptimalSignApproximation C δ (ε/2) S)
     (hε : 0 < ε) (hε2 : ε < 1/2) (ht1 : t ≤ 1) :
@@ -303,21 +378,28 @@ theorem nearOptimalSign_allThresholdRectangle {C δ ε t : ℝ} {S : Polynomial 
       (by nlinarith [sq_nonneg ε]) (by nlinarith [sq_nonneg ε]) ht0 ht1
       (nearOptimalSign_approximation hS)
 
+/-- The source rectangle formed from the near-optimal sign polynomial at error ε/2, with offset
+ε/2. -/
 def nearOptimalRectangle (δ ε t : ℝ) : Polynomial ℝ :=
   sourceRectanglePolynomial (nearOptimalPolynomial δ (ε/2)) (ε/2) t
 
+/-- For 0 < δ ≤ 2, 0 < ε < 1/2, and t ≤ 1, the constructed rectangle satisfies
+`PrintedRectangleBand`. -/
 theorem nearOptimalRectangle_spec {δ ε t : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) (ht1 : t ≤ 1) :
     PrintedRectangleBand (nearOptimalRectangle δ ε t) ε δ t :=
   nearOptimalSign_allThresholdRectangle
     (nearOptimalPolynomial_spec hδ hδ2 (by linarith) (by linarith)) hε hε2 ht1
 
+/-- The constructed rectangle polynomial has an even response for every choice of parameters. -/
 theorem nearOptimalRectangle_even (δ ε t x : ℝ) :
     (nearOptimalRectangle δ ε t).eval (-x) = (nearOptimalRectangle δ ε t).eval x := by
   by_cases ht : t < 0
   · simp [nearOptimalRectangle,sourceRectanglePolynomial,ht]
   · exact sourceRectanglePolynomial_even (le_of_not_gt ht)
 
+/-- For 0 < δ ≤ 2 and 0 < ε < 1/2, the rectangle degree is at most 36000(1 + δ⁻¹ log(ε⁻¹)) for
+every threshold. -/
 theorem nearOptimalRectangle_degree {δ ε : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) (t : ℝ) :
     ((nearOptimalRectangle δ ε t).natDegree:ℝ) ≤
@@ -336,6 +418,8 @@ theorem nearOptimalRectangle_degree {δ ε : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 
   have hm := mul_le_mul_of_nonneg_left hlog (show 0 ≤ 1/δ by positivity)
   nlinarith [hle.trans hd]
 
+/-- Combines the sign approximation with constant 12000 and the rectangle band, evenness, and
+degree bound with constant 36000 for the stated gap, error, and threshold ranges. -/
 theorem frontier1 {δ ε t : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) (ht1 : t ≤ 1) :
     NearOptimalSignApproximation 12000 δ ε (nearOptimalPolynomial δ ε) ∧
@@ -357,12 +441,16 @@ open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 open Qatlib
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
+/-- Computes rational rectangle coefficients by adding two translated native sign polynomials
+with the prescribed scaling and offset, returning an empty list for negative thresholds. -/
 def nativeRectangleCoefficients (δ ε t : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2) : List ℚ :=
   if t < 0 then [] else
     let xs := nativeSignCoefficients δ (ε/2) (by linarith) (by linarith)
     ratAddList ((ratAddList (rationalPolynomialCompose xs [t,1])
       (rationalPolynomialCompose xs [t,-1])).map (fun a => ((1-ε/2)/2)*a)) [ε/2]
 
+/-- The native rectangle coefficients represent the source rectangle built from native sign
+coefficients at tolerance ε/2. -/
 theorem nativeRectangleCoefficients_semantics (δ ε t : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2) :
     realTarget (nativeRectangleCoefficients δ ε t hε hε2) =
       sourceRectanglePolynomial
@@ -382,6 +470,8 @@ theorem nativeRectangleCoefficients_semantics (δ ε t : ℚ) (hε : 0 < ε) (h�
     push_cast
     ring
 
+/-- For rational parameters in the stated ranges and t ≤ 1, the native rectangle coefficients
+represent a polynomial satisfying the printed rectangle bands. -/
 theorem nativeRectangleCoefficients_spec {δ ε t : ℚ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) (ht1 : t ≤ 1) :
     PrintedRectangleBand (realTarget (nativeRectangleCoefficients δ ε t hε hε2))
@@ -405,6 +495,8 @@ open Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Concepts.QspSimulation.WordModel
 open Qatlib
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 
+/-- For δ > 2 and 0 < ε < 1/2, the zero polynomial satisfies the near-optimal sign specification
+because the approximation region in [−2, 2] is empty. -/
 theorem sign_vacuous {δ ε : ℝ} (hδ : 2 < δ) (hε : 0 < ε) (hε2 : ε < 1/2) :
     NearOptimalSignApproximation 12000 δ ε (0:Polynomial ℝ) := by
   refine ⟨by norm_num,by linarith,hε,?_,?_,?_,?_⟩
@@ -419,6 +511,8 @@ theorem sign_vacuous {δ ε : ℝ} (hδ : 2 < δ) (hε : 0 < ε) (hε2 : ε < 1/
     simp only [Polynomial.natDegree_zero,Nat.cast_zero]
     positivity
 
+/-- If `w` is within `η` of a bounded value `v` approximating `s` within `ε`, dividing `w` by 1
++ η bounds its absolute value by one and its error from `s` by ε + 2η. -/
 theorem normalized_value_bounds {v w s ε η : ℝ} (hε : 0 ≤ ε) (hη : 0 ≤ η)
     (hv : |v| ≤ 1) (hvs : |v-s| ≤ ε) (hwv : |w-v| ≤ η) (hs : |s| ≤ 1) :
     |w/(1+η)| ≤ 1 ∧ |w/(1+η)-s| ≤ ε+2*η := by
@@ -446,9 +540,12 @@ theorem normalized_value_bounds {v w s ε η : ℝ} (hε : 0 ≤ ε) (hη : 0 �
       apply (div_le_iff₀ hp).mpr
       nlinarith
 
+/-- Rounds the rational coefficients dyadically and then divides each by 1 + η. -/
 def nativeRoundedNormalized (xs : List ℚ) (b : ℕ) (η : ℚ) : List ℚ :=
   (Kernel.nativeRounded b xs).map (fun a => a/(1+η))
 
+/-- The normalized rounded polynomial evaluates to the rounded polynomial value divided by 1 +
+η. -/
 theorem nativeRoundedNormalized_eval (xs : List ℚ) (b : ℕ) (η : ℚ) (x : ℝ) :
     (realTarget (nativeRoundedNormalized xs b η)).eval x =
       (realTarget (Kernel.nativeRounded b xs)).eval x/(1+(η:ℝ)) := by
@@ -457,6 +554,8 @@ theorem nativeRoundedNormalized_eval (xs : List ℚ) (b : ℕ) (η : ℚ) (x : �
   push_cast
   ring
 
+/-- When the dyadic precision budget is at most `η`, the rounded and normalized native sign
+polynomial remains bounded by one on [−2, 2] and has gap error at most ε + 2η. -/
 theorem nativeRoundedSign_bounds {δ ε η : ℚ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) (hη : 0 ≤ η) (b : ℕ)
     (hprecision : ((2:ℝ)^(nativeSignCoefficients δ ε hε hε2).length-1)/(2:ℝ)^(b+1) ≤ (η:ℝ)) :
@@ -500,6 +599,8 @@ open Qatlib
 open Qatlib.Concepts.NonNormalSpec.ResolventWord
 set_option warningAsError false
 
+/-- A source rectangle built from a sign approximation with constant 12000 and error ε/2 has
+degree at most 36000(1 + δ⁻¹ log(ε⁻¹)). -/
 theorem sourceRectangle_degree_of_sign {δ ε : ℝ} {S : Polynomial ℝ}
     (hS : NearOptimalSignApproximation 12000 δ (ε/2) S)
     (hε : 0 < ε) (hε2 : ε < 1/2) (t : ℝ) :
@@ -517,6 +618,7 @@ theorem sourceRectangle_degree_of_sign {δ ε : ℝ} {S : Polynomial ℝ}
   have hm := mul_le_mul_of_nonneg_left hlog (show 0 ≤ 1/δ by have := hS.2.1; positivity)
   nlinarith [hle.trans hd]
 
+/-- The real polynomial represented by the native rectangle coefficients has an even response. -/
 theorem nativeRectangleCoefficients_even (δ ε t : ℚ) (hε : 0 < ε) (hε2 : ε < 1/2)
     (x : ℝ) :
     (realTarget (nativeRectangleCoefficients δ ε t hε hε2)).eval (-x) =
@@ -526,6 +628,8 @@ theorem nativeRectangleCoefficients_even (δ ε t : ℚ) (hε : 0 < ε) (hε2 : 
   · simp [sourceRectanglePolynomial,ht]
   · exact sourceRectanglePolynomial_even (le_of_not_gt ht)
 
+/-- For rational gap and error in the stated ranges, the native rectangle polynomial has degree
+at most 36000(1 + δ⁻¹ log(ε⁻¹)) for every rational threshold. -/
 theorem nativeRectangleCoefficients_degree {δ ε : ℚ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) (t : ℚ) :
     ((realTarget (nativeRectangleCoefficients δ ε t hε hε2)).natDegree:ℝ) ≤

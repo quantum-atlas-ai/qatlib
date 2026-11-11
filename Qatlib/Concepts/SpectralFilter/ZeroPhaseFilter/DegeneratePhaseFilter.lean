@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
 import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+/-!
+# Filtering degenerate zero-phase subspaces
+
+This module describes repeated phase detection on finite spectral combinations, allowing several
+eigenvectors to share phase zero. The product-kernel formulas provide zero-event probability and
+branch error estimates for the phase-estimation method of [Kitaev1995].
+
+`spectralTargetState` retains the chosen zero-phase components. A phase gap outside the target
+bounds leakage, and a positive target mass gives an error bound after normalization of the
+selected branch.
+
+## Main statements
+
+* `degenerate_phase_actual_spectral_packet`: exact detection and zero-branch spectral
+  expansions.
+* `degenerate_phase_zero_event_and_full_branch_error`: target-mass bounds and unnormalized
+  branch error.
+* `degenerate_phase_conditional_target_state_error`: normalized branch error for positive target
+  mass.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -30,30 +57,40 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option autoImplicit false
 
+/-- The state produced by evaluating repeated phase detection on the zero-ancilla embedding of
+the input. -/
 noncomputable def degenerateDetectionState {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (M k : ℕ) (ψ : QState I) : QState (PhaseReflectionSpace I M k) :=
   ApplyGate (evaluate (parallelOracle (controlOracle W)) (phaseDetectionWord M k))
     (phaseReflectionEmbed M k ψ)
 
+/-- Extract the data amplitudes of the detection state at all-zero phase labels and a false
+control bit. -/
 noncomputable def degenerateZeroBranch {I : Type} [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 0 < M) (ψ : QState I) : QState I :=
   fun i => degenerateDetectionState W M k ψ (phaseZeroIndex M k hM, (false, i))
 
+/-- The partial spectral sum retaining exactly the indices in the target set. -/
 noncomputable def spectralTargetState {I J : Type} [Fintype J]
     (v : J → QState I) (c : J → ℂ) (T : Finset J) : QState I := ∑ j ∈ T, c j • v j
 
+/-- The zero-ancilla embedding as a complex linear map. -/
 noncomputable def degenerateEmbedLinear {I : Type} (M k : ℕ) :
     QState I →ₗ[ℂ] QState (PhaseReflectionSpace I M k) where
   toFun := phaseReflectionEmbed M k
   map_add' := phaseReflectionEmbed_add M k
   map_smul' := phaseReflectionEmbed_smul M k
 
+/-- Matrix application as a complex linear map on data states. -/
 noncomputable def degenerateApplyLinear {I : Type} [Fintype I]
     (U : Matrix I I ℂ) : QState I →ₗ[ℂ] QState I where
   toFun := ApplyGate U
   map_add' := Matrix.mulVec_add U
   map_smul' := Matrix.mulVec_smul U
 
+/-- Expand repeated phase detection of a finite eigenvector combination into kernel packets, and
+express its zero branch by multiplying each coefficient by the kth zero-label kernel
+amplitude. -/
 theorem degenerate_phase_actual_spectral_packet
     (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 0 < M)
@@ -78,6 +115,8 @@ theorem degenerate_phase_actual_spectral_packet
   simp [degenerateZeroBranch, hd, phaseKernelPacket, phaseZeroIndex,
     Finset.sum_apply, Pi.smul_apply, smul_eq_mul, mul_assoc]
 
+/-- For a spectral combination, collapse onto the all-zero phase event equals the zero-ancilla
+embedding of the extracted zero branch. -/
 theorem degenerate_detection_collapse_spectral
     {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 0 < M)
@@ -94,6 +133,8 @@ theorem degenerate_detection_collapse_spectral
       phaseZeroIndex, degenerateZeroBranch, hd, phaseKernelPacket]
   · cases b <;> simp [collapse_apply, phaseZeroEvent, phaseReflectionEmbed, hx]
 
+/-- For a spectral combination, the all-zero phase-event probability equals the squared
+Euclidean norm of the extracted zero branch. -/
 theorem degenerate_detection_mass
     {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 0 < M)
@@ -105,6 +146,8 @@ theorem degenerate_detection_mass
     degenerate_detection_collapse_spectral W M k hM v c φ he,
     phaseReflectionEmbed_norm M k hM]
 
+/-- The squared norm of a finite combination of orthonormal states equals the sum of the squared
+coefficient norms. -/
 theorem degenerate_packet_norm_sq {I J : Type} [Fintype I] [Fintype J] [DecidableEq J]
     (v : J → QState I) (c : J → ℂ)
     (hv : ∀ j l, Inner (v j) (v l) = if j = l then 1 else 0) :
@@ -112,6 +155,7 @@ theorem degenerate_packet_norm_sq {I J : Type} [Fintype I] [Fintype J] [Decidabl
   rw [norm_toEuclidean_fromVec_sq]
   exact sum_norm_sq_orthonormal v c (fun j l => by by_cases h : j = l <;> simpa [h] using hv j l)
 
+/-- The squared norm of the target spectral sum equals its total squared coefficient mass. -/
 theorem spectralTargetState_norm_sq {I J : Type} [Fintype I] [Fintype J] [DecidableEq J]
     (v : J → QState I) (c : J → ℂ) (T : Finset J)
     (hv : ∀ j l, Inner (v j) (v l) = if j = l then 1 else 0) :
@@ -122,6 +166,9 @@ theorem spectralTargetState_norm_sq {I J : Type} [Fintype I] [Fintype J] [Decida
   simp_rw [apply_ite norm, norm_zero, ite_pow]
   simp [Finset.sum_ite_mem]
 
+/-- For a unit coefficient mass and a diagonal filter equal to one on the target and bounded by
+`C` elsewhere, bound the filtered squared norm between `a` and `a+C^2*(1-a)` and its target
+error by `C*sqrt(1-a)`. -/
 theorem degenerate_diagonal_filter_bounds
     {I J : Type} [Fintype I] [Fintype J] [DecidableEq J]
     (v : J → QState I) (c α : J → ℂ) (T : Finset J) (C : ℝ)
@@ -189,6 +236,9 @@ theorem degenerate_diagonal_filter_bounds
   nlinarith [norm_nonneg (toEuclidean_fromVec (z - spectralTargetState v c T)),
     mul_nonneg hC (Real.sqrt_nonneg (1 - a))]
 
+/-- For a normalized orthonormal spectral combination with zero target phases and gap `η`
+elsewhere, the zero-event probability lies between `a` and `a+(1/(2*M*η))^(2*k)*(1-a)`. The
+zero-branch error is at most `(1/(2*M*η))^k*sqrt(1-a)`. -/
 theorem degenerate_phase_zero_event_and_full_branch_error
     (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)
@@ -222,6 +272,7 @@ theorem degenerate_phase_zero_event_and_full_branch_error
     ((1 / (2 * (M : ℝ) * η)) ^ k) hv hc (by positivity) hf hb
   simpa only [← pow_mul, Nat.mul_comm k 2] using h
 
+/-- The Euclidean norm of a postmeasurement state is at most one. -/
 theorem degenerate_postMeasure_norm_le_one {I : Type} [Fintype I] [DecidableEq I]
     (ψ : QState I) (S : Finset I) : ‖toEuclidean_fromVec (PostMeasure ψ S)‖ ≤ 1 := by
   rw [toEuclidean_postMeasure_eq_normalize]
@@ -229,6 +280,8 @@ theorem degenerate_postMeasure_norm_le_one {I : Type} [Fintype I] [DecidableEq I
   · simp [h]
   · rw [NormedSpace.norm_normalize h]
 
+/-- With positive target mass `a` and the stated zero-phase gap, the normalized zero branch
+differs from the normalized target by at most `2*(1/(2*M*η))^k*sqrt(1-a)/sqrt(a)`. -/
 theorem degenerate_phase_conditional_target_state_error
     (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)

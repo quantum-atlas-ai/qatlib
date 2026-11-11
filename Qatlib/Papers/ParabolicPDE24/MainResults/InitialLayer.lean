@@ -12,6 +12,26 @@ import Mathlib.Analysis.Normed.Operator.Basic
 import Mathlib.Analysis.Normed.MulAction
 import Mathlib.Analysis.Normed.Group.Basic
 import Mathlib.Tactic
+
+/-!
+# Initial-layer correctors for relaxation
+
+`GoldsteinTaylor` and `SolvesHeat` specify the one-direction relaxation and heat equations. The
+explicit exponentially decaying `initialLayerCorrector` becomes quadratically small after a
+logarithmic waiting time; an assumed remainder decomposition then gives the conditional
+heat-error bound used for [JinLiu2024].
+
+## Main statements
+
+* `initialLayerCorrector_norm_le_exp_neg_two`: the rescaled layer is bounded by a decaying
+  multiple of `ε²`.
+* `conditional_corrector_bound`: a remainder assumption yields a full signal error estimate.
+
+## References
+
+* [Jin and Liu, 2024][JinLiu2024]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -24,18 +44,24 @@ open scoped Real
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 
+/-- The coupled Goldstein–Taylor derivative equations for signal `u` and flux `v` with linear
+operator `D`, scale `ε`, and relaxation parameter `k`. -/
 structure GoldsteinTaylor (k ε : ℝ) (D : E →L[ℝ] E) (u v : ℝ → E) : Prop where
 
   u_deriv : ∀ t, HasDerivAt u (-(1 / ε) • D (v t)) t
 
   v_deriv : ∀ t, HasDerivAt v (-(1 / ε) • D (u t) - (1 / (k * ε ^ 2)) • v t) t
 
+/-- The condition that `ũ` has derivative `k • D (D (ũ t))` at every real time. -/
 def SolvesHeat (k : ℝ) (D : E →L[ℝ] E) (ũ : ℝ → E) : Prop :=
   ∀ t, HasDerivAt ũ (k • D (D (ũ t))) t
 
+/-- The initial-layer corrector `(ε * k * exp (−τ / k)) • v0`. -/
 def initialLayerCorrector (k ε : ℝ) (v0 : E) (τ : ℝ) : E :=
   (ε * k * Real.exp (-τ / k)) • v0
 
+/-- For nonzero `k`, the initial-layer corrector has derivative `−(1 / k)` times itself with
+respect to the fast time. See [JinLiu2024]. -/
 theorem initialLayerCorrector_hasDerivAt (k ε : ℝ) (_hk : k ≠ 0) (v0 : E) (τ : ℝ) :
     HasDerivAt (initialLayerCorrector k ε v0)
       ((-(1 / k)) • initialLayerCorrector k ε v0 τ) τ := by
@@ -57,18 +83,22 @@ theorem initialLayerCorrector_hasDerivAt (k ε : ℝ) (_hk : k ≠ 0) (v0 : E) (
   rw [hder]
   exact h2
 
+/-- The corrector norm equals `|ε * k| * exp (−τ / k) * ‖v0‖`. -/
 theorem norm_initialLayerCorrector (k ε : ℝ) (v0 : E) (τ : ℝ) :
     ‖initialLayerCorrector k ε v0 τ‖ =
       |ε * k| * Real.exp (-τ / k) * ‖v0‖ := by
   rw [initialLayerCorrector, norm_smul, Real.norm_eq_abs, abs_mul, abs_mul,
     abs_of_pos (Real.exp_pos _)]
 
+/-- For nonnegative `ε` and `k`, the corrector norm equals `ε * k * exp (−τ / k) * ‖v0‖`. -/
 theorem norm_initialLayerCorrector_of_nonneg (k ε : ℝ) (hε : 0 ≤ ε) (hk : 0 ≤ k)
     (v0 : E) (τ : ℝ) :
     ‖initialLayerCorrector k ε v0 τ‖ =
       ε * k * Real.exp (-τ / k) * ‖v0‖ := by
   rw [norm_initialLayerCorrector, abs_of_nonneg (mul_nonneg hε hk)]
 
+/-- For positive `ε` and `k`, the corrector norm is at most `ε² * k * ‖v0‖` once `τ ≥ k * log (1
+/ ε)`. -/
 theorem initialLayerCorrector_norm_le_sq (k ε : ℝ) (hε : 0 < ε) (hk : 0 < k)
     (v0 : E) {τ : ℝ} (hτ : k * Real.log (1 / ε) ≤ τ) :
     ‖initialLayerCorrector k ε v0 τ‖ ≤ ε ^ 2 * k * ‖v0‖ := by
@@ -91,6 +121,8 @@ theorem initialLayerCorrector_norm_le_sq (k ε : ℝ) (hε : 0 < ε) (hk : 0 < k
         mul_le_mul_of_nonneg_right hmul (norm_nonneg _)
     _ = ε ^ 2 * k * ‖v0‖ := by ring
 
+/-- For `0 < ε ≤ 1`, positive `k`, and the stated smallness condition, the logarithmic
+waiting-time bound implies `exp (−t / (k * ε²)) ≤ ε * exp (−2 * k * t)`. -/
 theorem exp_neg_div_le_epsilon_mul_exp (k ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hk : 0 < k) (hsmall : 2 * k ^ 2 * ε ^ 2 ≤ 1 / 2) {t : ℝ}
     (ht : 2 * (ε ^ 2 * k) * Real.log (1 / ε) ≤ t) :
@@ -121,6 +153,8 @@ theorem exp_neg_div_le_epsilon_mul_exp (k ε : ℝ) (hε : 0 < ε) (hε1 : ε �
     _ ≤ -(2 * k * t + Real.log (1 / ε)) := neg_le_neg hdiv
     _ = -Real.log (1 / ε) + -2 * k * t := by ring
 
+/-- Under the stated positivity, smallness, and waiting-time assumptions, the corrector at fast
+time `t / ε²` has norm at most `ε² * k * ‖v0‖ * exp (−2 * k * t)`. See [JinLiu2024]. -/
 theorem initialLayerCorrector_norm_le_exp_neg_two (k ε : ℝ) (hε : 0 < ε)
     (hε1 : ε ≤ 1) (hk : 0 < k) (hsmall : 2 * k ^ 2 * ε ^ 2 ≤ 1 / 2)
     (v0 : E) {t : ℝ} (ht : 2 * (ε ^ 2 * k) * Real.log (1 / ε) ≤ t) :
@@ -140,6 +174,8 @@ theorem initialLayerCorrector_norm_le_exp_neg_two (k ε : ℝ) (hε : 0 < ε)
         mul_le_mul_of_nonneg_right hmul (norm_nonneg _)
     _ = ε ^ 2 * k * ‖v0‖ * Real.exp (-2 * k * t) := by ring
 
+/-- Given the stated corrector-plus-remainder decomposition, parameter conditions, and waiting
+time, the signal error is at most `(C + k * ‖D (v 0)‖) * ε² * exp (−2 * k * t)`. -/
 theorem conditional_corrector_bound
     (k ε C : ℝ) (hk : 0 < k) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hsmall : 2 * k ^ 2 * ε ^ 2 ≤ 1 / 2) (_hC : 0 ≤ C)

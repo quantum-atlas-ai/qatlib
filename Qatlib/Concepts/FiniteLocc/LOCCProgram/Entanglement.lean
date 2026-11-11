@@ -17,6 +17,35 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.LinearAlgebra.Matrix.Kronecker
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.LinearAlgebra.Matrix.Rank
+
+/-!
+# Finite bipartite entanglement and local protocols
+
+This module develops finite-dimensional bipartite entanglement through coefficient matrices,
+Gram spectra, and Schmidt decompositions. It proves the product-state rank criterion,
+establishes the Bell-state properties, and relates separability defined by product vectors to
+separability defined by product density operators; see [Wilde2017] and [Nielsen1999].
+
+Nonnegative combinations of product density operators are preserved by local Kraus branches and
+complete finite local protocols. The module also proves preservation of trace and the unaffected
+marginal, positivity of the partial transpose for separable states, and nonseparability of the
+singlet projector.
+
+## Main statements
+
+* `exists_schmidtData`: construct a Schmidt expansion with norm, marginal, and rank identities.
+* `g1`: collect Schmidt, product-state, Bell-state, and dimension-boundary results.
+* `g3`: collect local-protocol preservation, messaging, and communication-charge results.
+* `isSeparableState_iff_isSeparableMixed`: equate the two finite convex-decomposition
+  definitions.
+* `bell_singlet_not_isSeparableState`: the singlet projector is not separable.
+
+## References
+
+* [Wilde, 2017][Wilde2017]
+* [Nielsen, 1999][Nielsen1999]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,16 +64,20 @@ open scoped ComplexOrder Kronecker
 
 variable {D E : ℕ}
 
+/-- The property of being a finite nonnegative linear combination of tensor products of density
+operators, without a normalization condition on the weights. -/
 def IsSeparableSub (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) : Prop :=
   ∃ (n : ℕ) (p : Fin n → ℝ) (σ : Fin n → Operator D) (τ : Fin n → Operator E),
     (∀ i, 0 ≤ p i) ∧ (∀ i, IsDensityOperator (σ i)) ∧ (∀ i, IsDensityOperator (τ i)) ∧
       ρ = ∑ i, (p i : ℂ) • TensorGate (σ i) (τ i)
 
+/-- The zero bipartite operator is a nonnegative combination of product density operators. -/
 theorem isSeparableSub_zero :
     IsSeparableSub (0 : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) := by
   refine ⟨0, 0, 0, 0, by simp, by simp, by simp, ?_⟩
   simp
 
+/-- The sum of two nonnegative combinations of product density operators has the same property. -/
 theorem isSeparableSub_add {ρ σ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ}
     (hρ : IsSeparableSub ρ) (hσ : IsSeparableSub σ) : IsSeparableSub (ρ + σ) := by
   obtain ⟨n, p, a, b, hp, ha, hb, he⟩ := hρ
@@ -80,6 +113,7 @@ theorem isSeparableSub_add {ρ σ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ
     refine congrArg₂ _ ?_ ?_ <;>
       refine Finset.sum_congr rfl fun i _ => by simp [Sum.elim_inl, Sum.elim_inr]
 
+/-- A finite sum of nonnegative combinations of product density operators has the same property. -/
 theorem isSeparableSub_sum : ∀ (n : ℕ) (ρs : Fin n → Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ),
     (∀ i, IsSeparableSub (ρs i)) → IsSeparableSub (∑ i, ρs i) := by
   intro n
@@ -92,11 +126,14 @@ theorem isSeparableSub_sum : ∀ (n : ℕ) (ρs : Fin n → Matrix (Fin D × Fin
       rw [Fin.sum_univ_succ]
       exact isSeparableSub_add (h 0) (ih (fun i => ρs i.succ) (fun i => h i.succ))
 
+/-- A separable mixed state is a nonnegative combination of product density operators. -/
 theorem isSeparableSub_of_isSeparableMixed {ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ}
     (h : IsSeparableMixed ρ) : IsSeparableSub ρ := by
   obtain ⟨n, p, σ, τ, hp, _, hσ, hτ, he⟩ := h
   exact ⟨n, p, σ, τ, hp, hσ, hτ, he⟩
 
+/-- The trace of a real scalar multiple of a tensor product of density operators equals that
+scalar, viewed in `ℂ`. -/
 private theorem trace_smul_tensorGate (p : ℝ) (σ : Operator D) (τ : Operator E)
     (hσ : IsDensityOperator σ) (hτ : IsDensityOperator τ) :
     Matrix.trace ((p : ℂ) • TensorGate σ τ) = (p : ℂ) := by
@@ -106,6 +143,7 @@ private theorem trace_smul_tensorGate (p : ℝ) (σ : Operator D) (τ : Operator
   have h2 : Matrix.trace τ = 1 := hτ.2
   simp [h1, h2]
 
+/-- A separable mixed state has trace one. -/
 theorem trace_of_isSeparableMixed {ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ}
     (h : IsSeparableMixed ρ) : Matrix.trace ρ = 1 := by
   obtain ⟨n, p, σ, τ, _, hsum, hσ, hτ, he⟩ := h
@@ -115,6 +153,8 @@ theorem trace_of_isSeparableMixed {ρ : Matrix (Fin D × Fin E) (Fin D × Fin E)
   rw [← Complex.ofReal_sum, hsum]
   simp
 
+/-- A nonnegative combination of product density operators with trace one is a separable mixed
+state. -/
 theorem isSeparableMixed_of_isSeparableSub {ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ}
     (h : IsSeparableSub ρ) (htr : Matrix.trace ρ = 1) : IsSeparableMixed ρ := by
   obtain ⟨n, p, σ, τ, hp, hσ, hτ, he⟩ := h
@@ -127,6 +167,8 @@ theorem isSeparableMixed_of_isSeparableSub {ρ : Matrix (Fin D × Fin E) (Fin D 
   rw [← Complex.ofReal_sum] at hcomplex
   exact_mod_cast hcomplex
 
+/-- A Kraus conjugation of a density operator is a nonnegative scalar multiple of a density
+operator, given a density operator to use when the branch is zero. -/
 theorem exists_density_smul (K σ : Operator D) (hσ : IsDensityOperator σ)
     (placeholder : Operator D) (hph : IsDensityOperator placeholder) :
     ∃ (c : ℝ) (σ' : Operator D),
@@ -164,6 +206,8 @@ theorem exists_density_smul (K σ : Operator D) (hσ : IsDensityOperator σ)
       exact inv_mul_cancel₀ hre0
     · rw [smul_smul, mul_inv_cancel₀ hre0, one_smul]
 
+/-- Conjugation by a Kraus operator on the first subsystem preserves nonnegative combinations of
+product density operators. -/
 theorem isSeparableSub_tensorLeft_kraus (K : Operator D)
     {ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ} (h : IsSeparableSub ρ) :
     IsSeparableSub
@@ -207,6 +251,8 @@ theorem isSeparableSub_tensorLeft_kraus (K : Operator D)
       exact mul_nonneg (hp i) (hc i)
     · simp_rw [Complex.ofReal_mul]
 
+/-- Conjugation by a Kraus operator on the second subsystem preserves nonnegative combinations
+of product density operators. -/
 theorem isSeparableSub_tensorRight_kraus (K : Operator E)
     {ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ} (h : IsSeparableSub ρ) :
     IsSeparableSub
@@ -250,16 +296,20 @@ theorem isSeparableSub_tensorRight_kraus (K : Operator E)
       exact mul_nonneg (hp i) (hc i)
     · simp_rw [Complex.ofReal_mul]
 
+/-- A finite sum in the first argument of `TensorGate` can be moved outside the tensor product. -/
 theorem sum_tensorLeft {n : ℕ} (a : Fin n → Operator D) (B : Operator E) :
     (∑ i, TensorGate (a i) B) = TensorGate (∑ i, a i) B := by
   ext ⟨i₁, j₁⟩ ⟨i₂, j₂⟩
   simp [Matrix.sum_apply, tensorGate_apply, Finset.sum_mul]
 
+/-- A finite sum in the second argument of `TensorGate` can be moved outside the tensor product. -/
 theorem sum_tensorRight {n : ℕ} (A : Operator D) (b : Fin n → Operator E) :
     (∑ i, TensorGate A (b i)) = TensorGate A (∑ i, b i) := by
   ext ⟨i₁, j₁⟩ ⟨i₂, j₂⟩
   simp [Matrix.sum_apply, tensorGate_apply, Finset.mul_sum]
 
+/-- The trace of a first-subsystem Kraus conjugation equals the trace of multiplication by its
+local effect operator. -/
 theorem trace_tensorLeft_sandwich (K : Operator D)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     Matrix.trace (TensorGate K (1 : Operator E) * ρ * (TensorGate K (1 : Operator E))ᴴ)
@@ -268,6 +318,8 @@ theorem trace_tensorLeft_sandwich (K : Operator D)
   congr 1
   rw [tensorGate_conjTranspose, Matrix.conjTranspose_one, tensorGate_mul, Matrix.mul_one]
 
+/-- The trace of a second-subsystem Kraus conjugation equals the trace of multiplication by its
+local effect operator. -/
 theorem trace_tensorRight_sandwich (K : Operator E)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     Matrix.trace (TensorGate (1 : Operator D) K * ρ * (TensorGate (1 : Operator D) K)ᴴ)
@@ -276,6 +328,7 @@ theorem trace_tensorRight_sandwich (K : Operator E)
   congr 1
   rw [tensorGate_conjTranspose, Matrix.conjTranspose_one, tensorGate_mul, Matrix.one_mul]
 
+/-- The sum of branch traces of a complete first-subsystem Kraus family equals the input trace. -/
 theorem trace_tensorLeft_instrument {n : ℕ} (ks : Fin n → Operator D)
     (hks : ∑ i, (ks i)ᴴ * ks i = 1)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
@@ -293,6 +346,7 @@ theorem trace_tensorLeft_instrument {n : ℕ} (ks : Fin n → Operator D)
     _ = Matrix.trace (TensorGate (1 : Operator D) (1 : Operator E) * ρ) := by rw [hsum]
     _ = Matrix.trace ρ := by rw [tensorGate_one, one_mul]
 
+/-- The sum of branch traces of a complete second-subsystem Kraus family equals the input trace. -/
 theorem trace_tensorRight_instrument {n : ℕ} (ks : Fin n → Operator E)
     (hks : ∑ i, (ks i)ᴴ * ks i = 1)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
@@ -310,6 +364,7 @@ theorem trace_tensorRight_instrument {n : ℕ} (ks : Fin n → Operator E)
     _ = Matrix.trace (TensorGate (1 : Operator D) (1 : Operator E) * ρ) := by rw [hsum]
     _ = Matrix.trace ρ := by rw [tensorGate_one, one_mul]
 
+/-- The channel of a complete finite local protocol preserves trace. -/
 theorem trace_loccChannel (P : LoccProtocol D E) :
     LoccComplete P → ∀ ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ,
       Matrix.trace (LoccChannel P ρ) = Matrix.trace ρ := by
@@ -332,6 +387,8 @@ theorem trace_loccChannel (P : LoccProtocol D E) :
       conv_rhs => rw [← trace_tensorRight_instrument ks hks ρ]
       exact Finset.sum_congr rfl fun i _ => ih i (hnext i) _
 
+/-- The channel of a complete finite local protocol preserves nonnegative combinations of
+product density operators. -/
 theorem isSeparableSub_loccChannel (P : LoccProtocol D E) :
     LoccComplete P → ∀ ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ,
       IsSeparableSub ρ → IsSeparableSub (LoccChannel P ρ) := by
@@ -352,6 +409,8 @@ theorem isSeparableSub_loccChannel (P : LoccProtocol D E) :
       intro i
       exact ih i (hnext i) _ (isSeparableSub_tensorRight_kraus (ks i) h)
 
+/-- Summing a complete instrument on the second subsystem leaves the first reduced operator
+unchanged. -/
 theorem partialTrace_right_instrument {n : ℕ} (ks : Fin n → Operator E)
     (hks : ∑ i, (ks i)ᴴ * ks i = 1)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
@@ -371,6 +430,10 @@ theorem partialTrace_right_instrument {n : ℕ} (ks : Fin n → Operator E)
       partialTrace_sum]
   rw [← key]
 
+/-- Complete finite local protocols preserve separable mixed states and trace, and complete
+second-subsystem instruments preserve the first marginal. This also bundles the two
+message-guessing properties and the two-bit charge of a four-outcome first-party step; see
+[Wilde2017] for quantum instruments. -/
 theorem g3 :
 
   (∀ (D E : ℕ) (P : LoccProtocol D E), LoccComplete P →
@@ -418,40 +481,51 @@ theorem g3 :
     rw [hdiv]
     simp
 
+/-- The product of a bipartite coefficient matrix with its conjugate transpose. -/
 noncomputable def gramMatrix (ψ : QState (Fin D × Fin E)) : Matrix (Fin D) (Fin D) ℂ :=
   bipartiteMatrix ψ * (bipartiteMatrix ψ).conjTranspose
 
+/-- The Gram matrix of a bipartite pure state is positive semidefinite. -/
 theorem gramMatrix_posSemidef (ψ : QState (Fin D × Fin E)) : (gramMatrix ψ).PosSemidef :=
   Matrix.posSemidef_self_mul_conjTranspose (bipartiteMatrix ψ)
 
+/-- The Gram matrix of a bipartite pure state is Hermitian. -/
 theorem gramMatrix_isHermitian (ψ : QState (Fin D × Fin E)) : (gramMatrix ψ).IsHermitian :=
   (gramMatrix_posSemidef ψ).isHermitian
 
+/-- The indexed vector of the orthonormal eigenvector basis of the Gram matrix. -/
 noncomputable def schmidtU (ψ : QState (Fin D × Fin E)) (j : Fin D) : QState (Fin D) :=
   ⇑((gramMatrix_isHermitian ψ).eigenvectorBasis j)
 
+/-- The indexed real eigenvalue of the Gram matrix. -/
 noncomputable def schmidtΛ (ψ : QState (Fin D × Fin E)) (j : Fin D) : ℝ :=
   (gramMatrix_isHermitian ψ).eigenvalues j
 
+/-- The unitary matrix whose columns are the chosen Gram eigenvectors. -/
 private noncomputable def gramUnitary (ψ : QState (Fin D × Fin E)) : Matrix (Fin D) (Fin D) ℂ :=
   (gramMatrix_isHermitian ψ).eigenvectorUnitary
 
+/-- The coordinates of a chosen Schmidt eigenvector form the corresponding column of
+`gramUnitary`. -/
 theorem schmidtU_eq_gramUnitary (ψ : QState (Fin D × Fin E)) (i j : Fin D) :
     schmidtU ψ j i = gramUnitary ψ i j := by
   rfl
 
+/-- Multiplying `gramUnitary` on the left by its conjugate transpose gives the identity. -/
 private theorem gramUnitary_star_mul (ψ : QState (Fin D × Fin E)) :
     (gramUnitary ψ).conjTranspose * gramUnitary ψ = 1 := by
   have h := (gramMatrix_isHermitian ψ).eigenvectorUnitary.property
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] at h
   exact h
 
+/-- Multiplying `gramUnitary` on the right by its conjugate transpose gives the identity. -/
 private theorem gramUnitary_mul_star (ψ : QState (Fin D × Fin E)) :
     gramUnitary ψ * (gramUnitary ψ).conjTranspose = 1 := by
   have h := (gramMatrix_isHermitian ψ).eigenvectorUnitary.property
   rw [Matrix.mem_unitaryGroup_iff, Matrix.star_eq_conjTranspose] at h
   exact h
 
+/-- The chosen Gram eigenvectors are orthonormal. -/
 theorem schmidtU_inner (ψ : QState (Fin D × Fin E)) (j j' : Fin D) :
     Qatlib.Foundations.PureStateMath.Inner (schmidtU ψ j) (schmidtU ψ j') = if j = j' then 1 else 0 := by
   rw [inner_apply]
@@ -463,6 +537,7 @@ theorem schmidtU_inner (ψ : QState (Fin D × Fin E)) (j j' : Fin D) :
     rfl
   rw [hsum, gramUnitary_star_mul, Matrix.one_apply]
 
+/-- The sum of the outer products of the chosen Gram eigenvectors is the identity. -/
 theorem sum_outerProduct_schmidtU (ψ : QState (Fin D × Fin E)) :
     ∑ j, outerProduct (schmidtU ψ j) = 1 := by
   ext a b
@@ -475,14 +550,18 @@ theorem sum_outerProduct_schmidtU (ψ : QState (Fin D × Fin E)) :
     rfl
   rw [hsum, gramUnitary_mul_star, Matrix.one_apply]
 
+/-- Each chosen Gram eigenvector has eigenvalue `schmidtΛ`. -/
 theorem schmidtU_mulVec (ψ : QState (Fin D × Fin E)) (j : Fin D) :
     gramMatrix ψ *ᵥ schmidtU ψ j = ((schmidtΛ ψ j : ℝ) : ℂ) • schmidtU ψ j := by
   simpa only [RCLike.real_smul_eq_coe_smul, schmidtΛ, schmidtU] using!
     (gramMatrix_isHermitian ψ).mulVec_eigenvectorBasis j
 
+/-- Every Gram eigenvalue is nonnegative. -/
 theorem schmidtΛ_nonneg (ψ : QState (Fin D × Fin E)) (j : Fin D) : 0 ≤ schmidtΛ ψ j := by
   exact (gramMatrix_posSemidef ψ).eigenvalues_nonneg j
 
+/-- The Gram matrix equals the sum of its eigenvalues times the outer products of its chosen
+eigenvectors. -/
 theorem gramMatrix_eq_sum (ψ : QState (Fin D × Fin E)) :
     gramMatrix ψ = ∑ j, ((schmidtΛ ψ j : ℝ) : ℂ) • outerProduct (schmidtU ψ j) := by
   have h1 : gramMatrix ψ = gramMatrix ψ * (∑ j, outerProduct (schmidtU ψ j)) := by
@@ -504,6 +583,7 @@ theorem gramMatrix_eq_sum (ψ : QState (Fin D × Fin E)) :
     = ((schmidtΛ ψ j : ℝ) : ℂ) * (schmidtU ψ j a * (starRingEnd ℂ) (schmidtU ψ j b))
   ring
 
+/-- The trace of the Gram matrix equals the squared norm sum of the bipartite vector. -/
 theorem trace_gramMatrix (ψ : QState (Fin D × Fin E)) :
     Matrix.trace (gramMatrix ψ) = ((∑ i, ‖ψ i‖ ^ 2 : ℝ) : ℂ) := by
   have h : Matrix.trace (gramMatrix ψ)
@@ -528,9 +608,11 @@ theorem trace_gramMatrix (ψ : QState (Fin D × Fin E)) :
     exact hz _
   rw [h2]
 
+/-- The finite set of indices with nonzero Gram eigenvalue. -/
 noncomputable def schmidtSupport (ψ : QState (Fin D × Fin E)) : Finset (Fin D) :=
   Finset.univ.filter fun j => schmidtΛ ψ j ≠ 0
 
+/-- The number of nonzero Gram eigenvalues equals the Schmidt rank. -/
 theorem card_schmidtSupport (ψ : QState (Fin D × Fin E)) :
     (schmidtSupport ψ).card = schmidtRank ψ := by
   have hrank : (gramMatrix ψ).rank = schmidtRank ψ := by
@@ -544,6 +626,7 @@ theorem card_schmidtSupport (ψ : QState (Fin D × Fin E)) :
     _ = (gramMatrix ψ).rank := heig.symm
     _ = schmidtRank ψ := hrank
 
+/-- A scalar multiplying a tensor state can be absorbed into its first factor. -/
 theorem schmidtU_smul_tensor (c : ℂ) (u : QState (Fin D)) (v : QState (Fin E)) :
     c • TensorState u v = TensorState (c • u) v := by
   funext p
@@ -551,6 +634,8 @@ theorem schmidtU_smul_tensor (c : ℂ) (u : QState (Fin D)) (v : QState (Fin E))
   simp [TensorState, smul_eq_mul]
   ring
 
+/-- The inner product of a finite complex vector with itself is zero exactly when the vector is
+zero. -/
 theorem inner_self_eq_zero_iff {I : Type*} [Fintype I] (φ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner φ φ = 0 ↔ φ = 0 := by
   classical
@@ -569,6 +654,7 @@ theorem inner_self_eq_zero_iff {I : Type*} [Fintype I] (φ : QState I) :
     subst h
     simp [Qatlib.Foundations.PureStateMath.Inner, dotProduct]
 
+/-- The inner product is complex linear in its second argument. -/
 theorem inner_smul_right {I : Type*} [Fintype I] (φ ψ : QState I) (c : ℂ) :
     Qatlib.Foundations.PureStateMath.Inner φ (c • ψ) = c * Qatlib.Foundations.PureStateMath.Inner φ ψ := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.smul_apply, smul_eq_mul]
@@ -576,15 +662,20 @@ theorem inner_smul_right {I : Type*} [Fintype I] (φ ψ : QState I) (c : ℂ) :
     Finset.sum_congr rfl fun i _ => by ring
   rw [h, ← Finset.mul_sum]
 
+/-- The vector obtained by applying the adjoint coefficient matrix to a chosen Gram eigenvector. -/
 noncomputable def schmidtW (ψ : QState (Fin D × Fin E)) (j : Fin D) : QState (Fin E) :=
   (bipartiteMatrix ψ).conjTranspose *ᵥ schmidtU ψ j
 
+/-- The inner product of two adjoint matrix images equals the inner product with the
+corresponding Gram action. -/
 theorem inner_conjTranspose_mulVec (A : Matrix (Fin D) (Fin E) ℂ) (φ ψ : QState (Fin D)) :
     Qatlib.Foundations.PureStateMath.Inner (A.conjTranspose *ᵥ φ) (A.conjTranspose *ᵥ ψ) = Qatlib.Foundations.PureStateMath.Inner φ ((A * A.conjTranspose) *ᵥ ψ) := by
   simp only [Qatlib.Foundations.PureStateMath.Inner, Matrix.star_mulVec,
       Matrix.conjTranspose_conjTranspose]
   rw [← Matrix.dotProduct_mulVec, Matrix.mulVec_mulVec]
 
+/-- The adjoint images of distinct Gram eigenvectors are orthogonal, and each squared norm
+equals its Gram eigenvalue. -/
 theorem schmidtW_inner (ψ : QState (Fin D × Fin E)) (j j' : Fin D) :
     Qatlib.Foundations.PureStateMath.Inner (schmidtW ψ j) (schmidtW ψ j')
       = if j = j' then ((schmidtΛ ψ j : ℝ) : ℂ) else 0 := by
@@ -597,6 +688,8 @@ theorem schmidtW_inner (ψ : QState (Fin D × Fin E)) (j j' : Fin D) :
     rw [if_pos rfl, schmidtU_inner, if_pos rfl, mul_one]
   · rw [if_neg h, schmidtU_inner, if_neg h, mul_zero]
 
+/-- Conjugating a coordinate of an adjoint matrix-vector product gives the sum of matrix entries
+times conjugated vector entries. -/
 private theorem starRingEnd_conjTranspose_mulVec {I J : Type*} [Fintype I] [Fintype J]
     (M : Matrix I J ℂ) (v : I → ℂ) (j : J) :
     (starRingEnd ℂ) ((M.conjTranspose *ᵥ v) j)
@@ -608,6 +701,9 @@ private theorem starRingEnd_conjTranspose_mulVec {I J : Type*} [Fintype I] [Fint
   refine Finset.sum_congr rfl fun b _ => ?_
   simp only [map_mul, starRingEnd_apply, star_star]
 
+/-- Every finite bipartite vector has a Schmidt expansion with nonnegative coefficients and
+orthonormal factors. The expansion recovers its squared norm, first reduced operator, and
+Schmidt rank. -/
 theorem exists_schmidtData (ψ : QState (Fin D × Fin E)) :
     ∃ (r : ℕ) (c : Fin r → ℝ) (u : Fin r → QState (Fin D)) (v : Fin r → QState (Fin E)),
       (∀ i, 0 ≤ c i) ∧
@@ -902,6 +998,7 @@ theorem exists_schmidtData (ψ : QState (Fin D × Fin E)) :
     rw [heq, Set.ncard_univ]
     simp
 
+/-- A bipartite vector is a product state exactly when its Schmidt rank is at most one. -/
 private theorem isProductState_iff_schmidtRank {D E : ℕ} (ψ : QState (Fin D × Fin E)) :
     IsProductState ψ ↔ schmidtRank ψ ≤ 1 := by
   constructor
@@ -945,6 +1042,7 @@ private theorem isProductState_iff_schmidtRank {D E : ℕ} (ψ : QState (Fin D �
       obtain ⟨i, j⟩ := p
       simp [TensorState]
 
+/-- Every vector in the Boolean-indexed Bell family is normalized. -/
 private theorem bell_norm (s : Bool × Bool) : Normalized (bell s) := by
   fin_cases s
   all_goals
@@ -956,6 +1054,7 @@ private theorem bell_norm (s : Bool × Bool) : Normalized (bell s) := by
   all_goals simp
   all_goals norm_num
 
+/-- The first reduced operator of each Bell vector is one half of the identity. -/
 private theorem bell_marginal (s : Bool × Bool) :
     PartialTrace (outerProduct (bell s)) = (1 / 2 : ℂ) • (1 : Operator 2) := by
   ext i j
@@ -972,6 +1071,7 @@ private theorem bell_marginal (s : Bool × Bool) :
     rw [← Complex.ofReal_inv, ← Complex.ofReal_mul, ← mul_inv, h2]
     norm_num
 
+/-- The coefficient matrix of each Bell vector has nonzero determinant. -/
 private theorem bell_det (s : Bool × Bool) : (bipartiteMatrix (bell s)).det ≠ 0 := by
   fin_cases s
   all_goals
@@ -981,12 +1081,14 @@ private theorem bell_det (s : Bool × Bool) : (bipartiteMatrix (bell s)).det ≠
       one_smul, neg_smul, Pi.add_apply, Pi.neg_apply, ket_apply]
   all_goals simp
 
+/-- Each Bell vector has Schmidt rank two. -/
 private theorem bell_schmidtRank (s : Bool × Bool) : schmidtRank (bell s) = 2 := by
   have hunit : IsUnit (bipartiteMatrix (bell s)) :=
     (Matrix.isUnit_iff_isUnit_det _).mpr (isUnit_iff_ne_zero.mpr (bell_det s))
   rw [schmidtRank, Matrix.rank_of_isUnit _ hunit]
   norm_num
 
+/-- Each Bell vector is normalized and entangled. -/
 private theorem bell_entangled (s : Bool × Bool) : IsEntangled (bell s) := by
   refine ⟨bell_norm s, ?_⟩
   intro h
@@ -994,6 +1096,10 @@ private theorem bell_entangled (s : Bool × Bool) : IsEntangled (bell s) := by
   rw [bell_schmidtRank s] at hle
   norm_num at hle
 
+/-- Normalized bipartite vectors possess Schmidt decompositions with normalized squared
+coefficients, the stated marginal, and the stated rank count, as in [Wilde, Theorem
+3.8.1][Wilde2017]. This also establishes the product-state rank criterion, the Bell-state
+properties, and the zero- and one-dimensional boundary cases; see [Nielsen1999]. -/
 theorem g1 :
 
   (∀ (D E : ℕ) (ψ : QState (Fin D × Fin E)), Normalized ψ →
@@ -1045,6 +1151,7 @@ theorem g1 :
     rw [Subsingleton.elim i (0 : Fin 1), Subsingleton.elim j (0 : Fin 1)]
     simp [TensorState]
 
+/-- The outer product of a tensor state is the tensor product of the two outer products. -/
 theorem outerProduct_tensorState (a : QState (Fin D)) (b : QState (Fin E)) :
     outerProduct (TensorState a b) = TensorGate (outerProduct a) (outerProduct b) := by
   ext p q
@@ -1053,6 +1160,7 @@ theorem outerProduct_tensorState (a : QState (Fin D)) (b : QState (Fin E)) :
   simp only [outerProduct_apply, tensorGate_apply, tensorState_apply, map_mul]
   ring
 
+/-- Complex conjugation of an inner product interchanges its arguments. -/
 theorem star_inner {I : Type*} [Fintype I] [DecidableEq I] (a b : QState I) :
     (starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Inner a b) = Qatlib.Foundations.PureStateMath.Inner b a := by
   rw [inner_apply, inner_apply, map_sum]
@@ -1060,6 +1168,7 @@ theorem star_inner {I : Type*} [Fintype I] [DecidableEq I] (a b : QState I) :
   simp only [map_mul, starRingEnd_apply, star_star]
   ring
 
+/-- The outer product of a normalized vector is a density operator. -/
 theorem isDensityOperator_outerProduct {d : ℕ} (ψ : QState (Fin d)) (hψ : Normalized ψ) :
     IsDensityOperator (outerProduct ψ) := by
   refine ⟨?_, ?_⟩
@@ -1082,6 +1191,8 @@ theorem isDensityOperator_outerProduct {d : ℕ} (ψ : QState (Fin d)) (hψ : No
     rw [htr, ← inner_self]
     exact (normalized_iff_inner_self ψ).mp hψ
 
+/-- The outer products of a Hermitian matrix's orthonormal eigenvector basis sum to the
+identity. -/
 theorem sum_outerProduct_eigenvectorBasis {d : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
     (hA : A.IsHermitian) : ∑ j, outerProduct ⇑(hA.eigenvectorBasis j) = 1 := by
   set u : Matrix.unitaryGroup (Fin d) ℂ := hA.eigenvectorUnitary with hudecl
@@ -1099,6 +1210,7 @@ theorem sum_outerProduct_eigenvectorBasis {d : ℕ} (A : Matrix (Fin d) (Fin d) 
     rfl
   rw [hsum, huu, Matrix.one_apply]
 
+/-- The eigenvalues of a positive semidefinite trace-one matrix sum to one. -/
 theorem sum_eigenvalues_eq_one {d : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
     (hA : A.PosSemidef) (htr : Matrix.trace A = 1) : ∑ j, hA.1.eigenvalues j = 1 := by
   have h := hA.1.trace_eq_sum_eigenvalues
@@ -1108,6 +1220,7 @@ theorem sum_eigenvalues_eq_one {d : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
     exact h.symm
   exact_mod_cast hre
 
+/-- Each vector in the chosen eigenvector basis of a Hermitian matrix is normalized. -/
 theorem normalized_eigenvectorBasis {d : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
     (hA : A.IsHermitian) (j : Fin d) : Normalized ⇑(hA.eigenvectorBasis j) := by
   have hnorm : ‖(hA.eigenvectorBasis j : EuclideanSpace ℂ (Fin d))‖ = 1 :=
@@ -1116,6 +1229,8 @@ theorem normalized_eigenvectorBasis {d : ℕ} (A : Matrix (Fin d) (Fin d) ℂ)
   rw [hnorm] at hsq
   simpa [Normalized] using hsq.symm
 
+/-- Every finite-dimensional density operator is a convex combination of normalized pure-state
+projectors. -/
 theorem exists_pure_decomposition {d : ℕ} (σ : Matrix (Fin d) (Fin d) ℂ)
     (hσ : IsDensityOperator σ) :
     ∃ (c : Fin d → ℝ) (u : Fin d → QState (Fin d)),
@@ -1155,24 +1270,29 @@ theorem exists_pure_decomposition {d : ℕ} (σ : Matrix (Fin d) (Fin d) ℂ)
     rw [hvec, hmul j, Pi.smul_apply, smul_eq_mul]
     ring
 
+/-- Partial transpose swaps the second subsystem indices of a matrix entry. -/
 theorem partialTranspose_apply (A : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ)
     (p q : Fin D × Fin E) : PartialTranspose A p q = A (p.1, q.2) (q.1, p.2) := rfl
 
+/-- Partial transpose preserves addition. -/
 theorem partialTranspose_add (A B : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     PartialTranspose (A + B) = PartialTranspose A + PartialTranspose B := by
   ext p q
   simp [partialTranspose_apply]
 
+/-- Partial transpose commutes with complex scalar multiplication. -/
 theorem partialTranspose_smul (c : ℂ) (A : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     PartialTranspose (c • A) = c • PartialTranspose A := by
   ext p q
   simp [partialTranspose_apply]
 
+/-- Partial transpose commutes with a finite sum. -/
 theorem partialTranspose_sum {n : ℕ} (f : Fin n → Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     PartialTranspose (∑ i, f i) = ∑ i, PartialTranspose (f i) := by
   ext p q
   simp only [partialTranspose_apply, Matrix.sum_apply]
 
+/-- Applying partial transpose twice recovers the original operator. -/
 theorem partialTranspose_partialTranspose (A : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     PartialTranspose (PartialTranspose A) = A := by
   ext p q
@@ -1180,6 +1300,7 @@ theorem partialTranspose_partialTranspose (A : Matrix (Fin D × Fin E) (Fin D ×
   obtain ⟨i₂, j₂⟩ := q
   simp only [partialTranspose_apply]
 
+/-- Partial transpose of a tensor product transposes its second factor. -/
 theorem partialTranspose_tensorGate (σ : Operator D) (τ : Operator E) :
     PartialTranspose (TensorGate σ τ) = TensorGate σ τ.transpose := by
   ext p q
@@ -1187,6 +1308,7 @@ theorem partialTranspose_tensorGate (σ : Operator D) (τ : Operator E) :
   obtain ⟨i₂, j₂⟩ := q
   simp [partialTranspose_apply, tensorGate_apply, Matrix.transpose_apply]
 
+/-- A finite sum of positive semidefinite matrices is positive semidefinite. -/
 theorem posSemidef_sum {n : ℕ} {ι : Type*} [Fintype ι] (f : Fin n → Matrix ι ι ℂ)
     (h : ∀ i, (f i).PosSemidef) : (∑ i, f i).PosSemidef := by
   classical
@@ -1197,21 +1319,26 @@ theorem posSemidef_sum {n : ℕ} {ι : Type*} [Fintype ι] (f : Fin n → Matrix
   · intro i _
     exact h i
 
+/-- The tensor product of two positive semidefinite operators is positive semidefinite. -/
 theorem tensorGate_posSemidef {σ : Operator D} {τ : Operator E}
     (hσ : σ.PosSemidef) (hτ : τ.PosSemidef) : (TensorGate σ τ).PosSemidef := by
   show (σ ⊗ₖ τ).PosSemidef
   exact hσ.kronecker hτ
 
+/-- Scalars in both tensor factors combine into their product. -/
 theorem tensorGate_smul_smul (c d : ℂ) (A : Operator D) (B : Operator E) :
     TensorGate (c • A) (d • B) = (c * d) • TensorGate A B := by
   show (c • A) ⊗ₖ (d • B) = _
   rw [smul_kronecker, kronecker_smul, smul_smul]
   rfl
 
+/-- Multiplication by a nonnegative real scalar preserves positive semidefiniteness. -/
 theorem posSemidef_smul_ofReal {ι : Type*} [Fintype ι] (c : ℝ) (hc : 0 ≤ c)
     (A : Matrix ι ι ℂ) (hA : A.PosSemidef) : (((c : ℝ) : ℂ) • A).PosSemidef :=
   hA.smul (Complex.zero_le_real.mpr hc)
 
+/-- Convex decompositions into normalized product projectors and into product density operators
+define the same separability property. -/
 theorem isSeparableState_iff_isSeparableMixed
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     IsSeparableState ρ ↔ IsSeparableMixed ρ := by
@@ -1310,6 +1437,7 @@ theorem isSeparableState_iff_isSeparableMixed
         rw [hre3, hre]
       exact hgoal.symm
 
+/-- The partial transpose of a separable state is positive semidefinite. -/
 theorem partialTranspose_posSemidef_of_isSeparableState
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) (hρ : IsSeparableState ρ) :
     (PartialTranspose ρ).PosSemidef := by
@@ -1325,6 +1453,7 @@ theorem partialTranspose_posSemidef_of_isSeparableState
     posSemidef_smul_ofReal _ (hp i) _
       (tensorGate_posSemidef (hσ i).1 (hτ i).1.transpose)
 
+/-- A scalar in the first argument of the inner product is conjugated when moved outside. -/
 theorem inner_smul_left {I : Type*} [Fintype I] (φ ψ : QState I) (c : ℂ) :
     Qatlib.Foundations.PureStateMath.Inner (c • φ) ψ = (starRingEnd ℂ) c * Qatlib.Foundations.PureStateMath.Inner φ ψ := by
   classical
@@ -1332,6 +1461,7 @@ theorem inner_smul_left {I : Type*} [Fintype I] (φ ψ : QState I) (c : ℂ) :
   simp only [Pi.smul_apply, smul_eq_mul, map_mul, starRingEnd_apply, mul_assoc]
   exact (Finset.mul_sum _ _ _).symm
 
+/-- The inner product preserves addition in its first argument. -/
 theorem inner_add_left {I : Type*} [Fintype I] (φ χ ψ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (φ + χ) ψ = Qatlib.Foundations.PureStateMath.Inner φ ψ + Qatlib.Foundations.PureStateMath.Inner χ ψ := by
   classical
@@ -1339,6 +1469,7 @@ theorem inner_add_left {I : Type*} [Fintype I] (φ χ ψ : QState I) :
   simp only [Pi.add_apply, map_add, add_mul, starRingEnd_apply]
   exact Finset.sum_add_distrib
 
+/-- The inner product preserves addition in its second argument. -/
 theorem inner_add_right {I : Type*} [Fintype I] (φ ψ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner φ (ψ + χ) = Qatlib.Foundations.PureStateMath.Inner φ ψ + Qatlib.Foundations.PureStateMath.Inner φ χ := by
   classical
@@ -1346,6 +1477,7 @@ theorem inner_add_right {I : Type*} [Fintype I] (φ ψ χ : QState I) :
   simp only [Pi.add_apply, mul_add, starRingEnd_apply]
   exact Finset.sum_add_distrib
 
+/-- The inner product preserves subtraction in its second argument. -/
 theorem inner_sub_right {I : Type*} [Fintype I] (φ ψ χ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner φ (ψ - χ) = Qatlib.Foundations.PureStateMath.Inner φ ψ - Qatlib.Foundations.PureStateMath.Inner φ χ := by
   classical
@@ -1353,6 +1485,7 @@ theorem inner_sub_right {I : Type*} [Fintype I] (φ ψ χ : QState I) :
   simp only [Pi.sub_apply, mul_sub, starRingEnd_apply]
   exact Finset.sum_sub_distrib (s := (Finset.univ : Finset I)) _ _
 
+/-- The inner product preserves subtraction in its first argument. -/
 theorem inner_sub_left {I : Type*} [Fintype I] (φ χ ψ : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (φ - χ) ψ = Qatlib.Foundations.PureStateMath.Inner φ ψ - Qatlib.Foundations.PureStateMath.Inner χ ψ := by
   classical
@@ -1360,6 +1493,8 @@ theorem inner_sub_left {I : Type*} [Fintype I] (φ χ ψ : QState I) :
   simp only [Pi.sub_apply, map_sub, sub_mul, starRingEnd_apply]
   exact Finset.sum_sub_distrib (s := (Finset.univ : Finset I)) _ _
 
+/-- A normalized tensor product can be represented by two normalized factors with the same
+tensor product. -/
 theorem exists_normalized_tensor_factors {D E : ℕ} (a : QState (Fin D)) (b : QState (Fin E))
     (h : Normalized (TensorState a b)) :
     ∃ (a' : QState (Fin D)) (b' : QState (Fin E)),
@@ -1429,6 +1564,7 @@ theorem exists_normalized_tensor_factors {D E : ℕ} (a : QState (Fin D)) (b : Q
         = (((((Real.sqrt ra)⁻¹ : ℝ) : ℂ)) * ((((Real.sqrt rb)⁻¹ : ℝ) : ℂ))) * (a i * b j) by ring,
       hscal, one_mul]
 
+/-- Matrix-vector multiplication commutes with a finite sum of matrices. -/
 theorem sum_mulVec {n : Type*} [Fintype n] {ι : Type*} [Fintype ι]
     (A : ι → Matrix n n ℂ) (v : n → ℂ) : ((∑ i, A i) *ᵥ v) = ∑ i, A i *ᵥ v := by
   funext p
@@ -1441,6 +1577,8 @@ theorem sum_mulVec {n : Type*} [Fintype n] {ι : Type*} [Fintype ι]
   simp_rw [hAP, Finset.sum_mul]
   exact Finset.sum_comm
 
+/-- The projector onto a normalized bipartite vector is separable exactly when the vector is a
+product state. -/
 theorem isSeparableState_outerProduct_iff_isProductState
     (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) :
     IsSeparableState (outerProduct ψ) ↔ IsProductState ψ := by
@@ -1545,12 +1683,15 @@ theorem isSeparableState_outerProduct_iff_isProductState
     · rw [← he]
       simp
 
+/-- The tensor product distributes over addition in its first argument. -/
 theorem tensorGate_add_left (A A' : Operator D) (B : Operator E) :
     TensorGate (A + A') B = TensorGate A B + TensorGate A' B := by
   show (A + A') ⊗ₖ B = _
   rw [add_kronecker]
   rfl
 
+/-- Summing a list of first-subsystem Kraus conjugations preserves nonnegative combinations of
+product density operators. -/
 theorem isSeparableSub_listSum_kraus (ks : List (Operator D))
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) (h : IsSeparableSub ρ) :
     IsSeparableSub ((ks.map fun K => TensorGate K (1 : Operator E) * ρ *
@@ -1561,6 +1702,8 @@ theorem isSeparableSub_listSum_kraus (ks : List (Operator D))
     rw [List.map_cons, List.sum_cons]
     exact isSeparableSub_add (isSeparableSub_tensorLeft_kraus K h) ih
 
+/-- The trace of a list sum of first-subsystem Kraus branches equals the trace against the sum
+of their effect operators. -/
 theorem trace_tensorLeft_listSum (ks : List (Operator D))
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     Matrix.trace ((ks.map fun K => TensorGate K (1 : Operator E) * ρ *
@@ -1579,6 +1722,8 @@ theorem trace_tensorLeft_listSum (ks : List (Operator D))
     rw [← Matrix.trace_add, ← Matrix.add_mul]
     rw [← tensorGate_add_left]
 
+/-- A complete list of first-subsystem Kraus operators preserves trace after summing its
+branches. -/
 theorem trace_listSum_kraus (ks : List (Operator D)) (hks : IsKrausList ks)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) :
     Matrix.trace ((ks.map fun K => TensorGate K (1 : Operator E) * ρ *
@@ -1586,6 +1731,7 @@ theorem trace_listSum_kraus (ks : List (Operator D)) (hks : IsKrausList ks)
   have hks' : (ks.map fun K => K.conjTranspose * K).sum = 1 := hks
   rw [trace_tensorLeft_listSum, hks', tensorGate_one, one_mul]
 
+/-- Applying a complete list of first-subsystem Kraus operators preserves separable states. -/
 theorem isSeparableState_applyFirstKraus (ks : List (Operator D)) (hks : IsKrausList ks)
     (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) ℂ) (hρ : IsSeparableState ρ) :
     IsSeparableState (ApplyFirstKraus ks ρ) := by
@@ -1602,11 +1748,14 @@ theorem isSeparableState_applyFirstKraus (ks : List (Operator D)) (hks : IsKraus
   exact (isSeparableState_iff_isSeparableMixed (ApplyFirstKraus ks ρ)).mpr
     (isSeparableMixed_of_isSeparableSub hsub' htr)
 
+/-- The entries of the singlet projector's partial transpose are products of singlet amplitudes
+with the second indices exchanged. -/
 theorem singlet_partialTranspose_apply (p q : Fin 2 × Fin 2) :
     PartialTranspose (outerProduct (bell (true, true))) p q
       = (bell (true, true)) (p.1, q.2) * (starRingEnd ℂ) ((bell (true, true)) (q.1, p.2)) := by
   rw [partialTranspose_apply, outerProduct_apply]
 
+/-- The singlet has amplitudes `1 / √2` at `(0, 1)`, `-1 / √2` at `(1, 0)`, and zero elsewhere. -/
 theorem bell_singlet_amplitude (x y : Fin 2) :
     (bell (true, true)) (x, y)
       = ((Real.sqrt 2 : ℝ)⁻¹ : ℂ) *
@@ -1614,6 +1763,8 @@ theorem bell_singlet_amplitude (x y : Fin 2) :
            else if (x, y) = ((1 : Fin 2), (0 : Fin 2)) then -1 else 0) := by
   fin_cases x <;> fin_cases y <;> simp [bell, ket_apply]
 
+/-- On the basis indices `(0, 0)` and `(1, 1)`, the singlet's partial transpose has zero
+diagonal entries and off-diagonal entries `-1 / 2`. -/
 theorem singlet_partialTranspose_corners :
     PartialTranspose (outerProduct (bell (true, true))) (0, 0) (0, 0) = (0 : ℂ) ∧
     PartialTranspose (outerProduct (bell (true, true))) (0, 0) (1, 1) = (-1 / 2 : ℂ) ∧
@@ -1627,6 +1778,7 @@ theorem singlet_partialTranspose_corners :
   refine ⟨?_, ?_, ?_, ?_⟩ <;>
     norm_num [singlet_partialTranspose_apply, bell_singlet_amplitude, hinv]
 
+/-- The sesquilinear pairing of basis vectors through a matrix extracts its corresponding entry. -/
 theorem star_ket_dotProduct_mulVec_ket {ι : Type*} [Fintype ι] [DecidableEq ι]
     (M : Matrix ι ι ℂ) (i j : ι) : star (Qatlib.Foundations.PureStateMath.Ket i) ⬝ᵥ (M *ᵥ Qatlib.Foundations.PureStateMath.Ket j) = M i j := by
   have hv : ∀ p, (M *ᵥ Qatlib.Foundations.PureStateMath.Ket j) p = M p j := by
@@ -1650,6 +1802,8 @@ theorem star_ket_dotProduct_mulVec_ket {ι : Type*} [Fintype ι] [DecidableEq ι
   · intro hi
     exact absurd (Finset.mem_univ i) hi
 
+/-- The quadratic form of the singlet's partial transpose on the sum of the `(0, 0)` and `(1,
+1)` basis vectors equals `-1`. -/
 theorem singlet_partialTranspose_form :
     star (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2 × Fin 2) + Qatlib.Foundations.PureStateMath.Ket (1, 1)) ⬝ᵥ
         (PartialTranspose (outerProduct (bell (true, true))) *ᵥ
@@ -1662,6 +1816,7 @@ theorem singlet_partialTranspose_form :
   rw [hM.1, hM.2.1, hM.2.2.1, hM.2.2.2]
   ring
 
+/-- The singlet projector has a partial transpose that is not positive semidefinite. -/
 theorem bell_singlet_partialTranspose_not_posSemidef :
     ¬ (PartialTranspose (outerProduct (bell (true, true)))).PosSemidef := by
   intro h
@@ -1671,6 +1826,7 @@ theorem bell_singlet_partialTranspose_not_posSemidef :
   have hreal : (0 : ℝ) ≤ -1 := (Complex.nonneg_iff.mp hnn).1
   linarith
 
+/-- The singlet projector is not separable. -/
 theorem bell_singlet_not_isSeparableState :
     ¬ IsSeparableState (outerProduct (bell (true, true))) := by
   intro h

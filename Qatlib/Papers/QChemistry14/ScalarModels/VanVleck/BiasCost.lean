@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+/-!
+# Gaussian bias probability and reciprocal cost
+
+`erf` is defined by its Gaussian integral, and `biasProbability` integrates a Gaussian density
+over the interval from zero to a cutoff. The module evaluates this integral in terms of error
+functions and verifies the reciprocal identity for `repetitionCost`. See [McCleanEtAl2014].
+
+## Main statements
+
+* `erf_neg`: proves oddness of the error function.
+* `bias_probability_erf`: evaluates the cutoff integral for positive standard deviation.
+* `repetition_cost_mul`: cancels the reciprocal cost against a positive probability parameter.
+
+## References
+
+* [McClean et al., 2014][McCleanEtAl2014]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,15 +35,21 @@ open MeasureTheory
 
 namespace Qatlib.Papers.QChemistry14.ScalarModels.VanVleck
 
+/-- The error function defined as `2 / Real.sqrt Real.pi` times the integral of `Real.exp (-(t ^
+2))` from zero to `x`. -/
 noncomputable def erf (x : ℝ) : ℝ :=
   (2 / Real.sqrt Real.pi) * ∫ t in (0 : ℝ)..x, Real.exp (-(t ^ 2))
 
+/-- The integral from zero to `M` of the Gaussian density with center `Nbar` and scale parameter
+`σ`. -/
 noncomputable def biasProbability (Nbar σ M : ℝ) : ℝ :=
   (1 / Real.sqrt (2 * Real.pi * σ ^ 2)) *
     ∫ x in (0 : ℝ)..M, Real.exp (-(1 / 2) * ((x - Nbar) / σ) ^ 2)
 
+/-- The reciprocal `1 / P`, used as the scalar repetition cost. -/
 noncomputable def repetitionCost (P : ℝ) : ℝ := 1 / P
 
+/-- The error function is odd: `erf (-x) = -erf x`. -/
 theorem erf_neg (x : ℝ) : erf (-x) = -erf x := by
   unfold erf
   have h : ∫ u in (0:ℝ)..(-x), Real.exp (-(u^2))
@@ -41,6 +66,9 @@ theorem erf_neg (x : ℝ) : erf (-x) = -erf x := by
   rw [h]
   ring
 
+/-- For positive `σ`, the Gaussian cutoff integral equals half the sum of the error functions at
+`(M - Nbar) / Real.sqrt (2 * σ ^ 2)` and `Nbar / Real.sqrt (2 * σ ^ 2)`. This evaluates the
+scalar probability in Eqs. (59)–(60) of [McCleanEtAl2014]. -/
 theorem bias_probability_erf (Nbar σ M : ℝ) (hσ : 0 < σ) :
     biasProbability Nbar σ M
       = (1 / 2) * (erf ((M - Nbar) / Real.sqrt (2 * σ ^ 2))
@@ -92,6 +120,7 @@ theorem bias_probability_erf (Nbar σ M : ℝ) (hσ : 0 < σ) :
   simp only [smul_eq_mul]
   ring
 
+/-- For positive `P`, multiplying `repetitionCost P` by `P` gives one. -/
 theorem repetition_cost_mul (P : ℝ) (hP : 0 < P) :
     repetitionCost P * P = 1 := by
   unfold repetitionCost

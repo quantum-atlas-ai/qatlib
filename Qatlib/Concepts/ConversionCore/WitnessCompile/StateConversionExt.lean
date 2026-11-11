@@ -11,6 +11,23 @@ import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemantic
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
 import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
 import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+
+/-!
+# Analytic instances for continuous state conversion
+
+This module imports continuous and optimized state-conversion interfaces and supplies local
+analytic instances for finite complex matrix spaces. The instances make the L2 operator norm
+compatible with extended norms and provide pseudometrizability for the continuous-conversion
+setting.
+
+The state-conversion background is [LeeEtAl2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 

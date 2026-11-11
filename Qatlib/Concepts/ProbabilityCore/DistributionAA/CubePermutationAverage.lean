@@ -13,6 +13,29 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.SimpRw
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSymmetry
 import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+
+/-!
+# Permutation averages on Hamming slices
+
+The module defines coordinate permutations of Boolean inputs and averages real functions over
+those permutations. Inputs of equal Hamming weight lie in the same permutation orbit, so the
+permutation average on the selected slice equals its uniform expectation.
+
+The average squared difference from a random permutation is twice the slice variance. These
+symmetry identities provide variance tools for Boolean cube polynomial analysis in the setting
+of [BealsEtAl2001].
+
+## Main statements
+
+* `cube_same_hamming_permutation`: transitivity of coordinate permutations on a Hamming slice.
+* `cube_permutation_mean_eq_expect`: permutation averaging equals slice expectation.
+* `cube_permutation_pair_energy`: average permutation energy equals twice the variance.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ProbabilityCore.DistributionAA
@@ -23,15 +46,18 @@ noncomputable section
 namespace Qatlib.Concepts.ProbabilityCore.DistributionAA
 open scoped Classical BigOperators
 
+/-- Permute a Boolean input by precomposing its coordinates with `e`. -/
 def cubePermute {n : ℕ} (e : Equiv.Perm (Fin n)) (x : Fin n → Bool) : Fin n → Bool :=
   fun i => x (e i)
 
+/-- The equivalence of Boolean inputs induced by a coordinate permutation. -/
 def cubePermuteEquiv {n : ℕ} (e : Equiv.Perm (Fin n)) : (Fin n → Bool) ≃ (Fin n → Bool) where
   toFun := cubePermute e
   invFun := cubePermute e.symm
   left_inv x := by ext i; simp [cubePermute]
   right_inv x := by ext i; simp [cubePermute]
 
+/-- The uniform slice weighted expectation is invariant under coordinate permutations. -/
 theorem cube_expect_permutation {n : ℕ} (p : ℝ) (e : Equiv.Perm (Fin n)) (f : (Fin n → Bool) → ℝ) :
     cubeExpect n (nuWeight p n) (fun x => f (cubePermute e x)) = cubeExpect n (nuWeight p n) f := by
   have hw (x : Fin n → Bool) : nuWeight p n (cubePermute e x) = nuWeight p n x := by
@@ -40,6 +66,7 @@ theorem cube_expect_permutation {n : ℕ} (p : ℝ) (e : Equiv.Perm (Fin n)) (f 
   have he := Equiv.sum_comp (cubePermuteEquiv e) (fun x => nuWeight p n x*f x)
   simpa only [cubeExpect,cubePermuteEquiv,Equiv.coe_fn_mk,hw] using he
 
+/-- Boolean inputs with the same Hamming weight are related by a coordinate permutation. -/
 theorem cube_same_hamming_permutation {n : ℕ} (x y : Fin n → Bool) (h : cubeHamming x=cubeHamming y) :
     ∃ e : Equiv.Perm (Fin n), cubePermute e x=y := by
   have hc : Fintype.card {i : Fin n // y i=true} = Fintype.card {i : Fin n // x i=true} := by
@@ -56,9 +83,11 @@ theorem cube_same_hamming_permutation {n : ℕ} (x y : Fin n → Bool) (h : cube
     change x (e i)=y i
     cases hx : x (e i) <;> cases hy : y i <;> simp_all
 
+/-- The uniform average of a function over all coordinate permutations of an input. -/
 def cubePermutationMean {n : ℕ} (f : (Fin n → Bool) → ℝ) (x : Fin n → Bool) : ℝ :=
   (Fintype.card (Equiv.Perm (Fin n)) : ℝ)⁻¹ * ∑ e : Equiv.Perm (Fin n), f (cubePermute e x)
 
+/-- The permutation mean is unchanged by applying a coordinate permutation to the input. -/
 theorem cube_permutation_mean_invariant {n : ℕ} (f : (Fin n → Bool) → ℝ)
     (e : Equiv.Perm (Fin n)) (x : Fin n → Bool) :
     cubePermutationMean f (cubePermute e x)=cubePermutationMean f x := by
@@ -67,6 +96,8 @@ theorem cube_permutation_mean_invariant {n : ℕ} (f : (Fin n → Bool) → ℝ)
   have he := Equiv.sum_comp (Equiv.mulLeft e) (fun r : Equiv.Perm (Fin n) => f (cubePermute r x))
   simpa only [Equiv.coe_mulLeft,Equiv.Perm.mul_apply,cubePermute] using! he
 
+/-- On the Hamming slice selected by `p`, the permutation mean equals expectation under
+`nuWeight p n` for `0 < p < 1`. -/
 theorem cube_permutation_mean_eq_expect {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (f : (Fin n → Bool) → ℝ) (x : Fin n → Bool) (hx : cubeHamming x=Nat.floor (p*n)) :
     cubePermutationMean f x=cubeExpect n (nuWeight p n) f := by
@@ -93,6 +124,8 @@ theorem cube_permutation_mean_eq_expect {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 :
       · simp [nuWeight,sliceWeight,hy]
     _ = cubePermutationMean f x := by simp [cubeExpect,← Finset.sum_mul,hw.2]
 
+/-- For `0 < p < 1`, the uniform permutation average of the expected squared difference is twice
+the slice variance. -/
 theorem cube_permutation_pair_energy {n : ℕ} {p : ℝ} (hp0 : 0 < p) (hp1 : p < 1)
     (f : (Fin n → Bool) → ℝ) :
     (Fintype.card (Equiv.Perm (Fin n)) : ℝ)⁻¹ *

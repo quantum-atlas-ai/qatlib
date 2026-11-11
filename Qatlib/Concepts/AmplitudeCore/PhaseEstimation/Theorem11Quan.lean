@@ -12,6 +12,31 @@ import Mathlib.Data.Real.Sqrt
 import Mathlib.Data.Real.Basic
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.Complex.Trigonometric
+
+/-!
+# Phase estimation distributions and concentration
+
+`bhmt_phase_estimation_theorem11` establishes normalization, exact recovery of grid phases, the
+off-grid sine formula, and circular window probability bounds. Supporting lemmas control integer
+lifts of outcome labels and the two nearest grid points to prove the tail and `8 / π^2`
+guarantees. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `bhmt_phase_estimation_theorem11_tail`: For positive `M` and `k > 1`, the circular window of
+  radius `k / M` has mass at least `1 - 1 / (2 * (k - 1))`.
+* `bhmt_phase_estimation_theorem11_nearest`: For `M > 2` and phase in `[0, 1)`, the circular
+  window of radius `1 / M` has mass at least `8 / π^2`.
+* `bhmt_phase_estimation_theorem11`: For positive `M` and phase in `[0, 1)`, the outcome masses
+  are normalized, recover grid phases exactly, and satisfy the off-grid sine formula and inverse
+  square bound. The circular window bounds are `1 - 1 / (2 * (k - 1))` for `k > 1` and `8 / π^2`
+  at radius `1 / M` when `M > 2`, as in [Brassard et al., Theorem 11][BrassardEtAl2002].
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +44,7 @@ namespace Qatlib.Concepts.AmplitudeCore.PhaseEstimation
 
 open scoped BigOperators Classical
 
+/-- The circular distance equals the absolute difference after subtracting its nearest integer. -/
 lemma bhmt_phase_estimation_theorem11_distance_round (u v : ℝ) :
     bhmt11CircleDist u v = |v - u - (round (v - u) : ℝ)| := by
   unfold bhmt11CircleDist
@@ -33,16 +59,19 @@ lemma bhmt_phase_estimation_theorem11_distance_round (u v : ℝ) :
     simpa only [Int.cast_neg, sub_neg_eq_add, sub_add_eq_add_sub, add_comm v] using
       round_le (v - u) (-z)
 
+/-- Circular phase distance lies in `[0, 1 / 2]`. -/
 lemma bhmt_phase_estimation_theorem11_distance_bounds (u v : ℝ) :
     0 ≤ bhmt11CircleDist u v ∧ bhmt11CircleDist u v ≤ 1 / 2 := by
   rw [bhmt_phase_estimation_theorem11_distance_round]
   exact ⟨abs_nonneg _, abs_sub_round _⟩
 
+/-- Circular distance is at most the absolute difference obtained from any integer shift. -/
 lemma bhmt_phase_estimation_theorem11_distance_le (u v : ℝ) (z : ℤ) :
     bhmt11CircleDist u v ≤ |(z : ℝ) + v - u| := by
   apply csInf_le ⟨0, by rintro a ⟨j, rfl⟩; exact abs_nonneg _⟩
   exact ⟨z, rfl⟩
 
+/-- Circular phase distance is symmetric. -/
 lemma bhmt_phase_estimation_theorem11_distance_symm (u v : ℝ) :
     bhmt11CircleDist u v = bhmt11CircleDist v u := by
   have h (u v : ℝ) : bhmt11CircleDist u v ≤ bhmt11CircleDist v u := by
@@ -53,9 +82,11 @@ lemma bhmt_phase_estimation_theorem11_distance_symm (u v : ℝ) :
     ring
   exact le_antisymm (h u v) (h v u)
 
+/-- The length `M` exponential sum with phase increment `2 * π * t`. -/
 noncomputable def bhmt_phase_estimation_theorem11_expSum (M : ℕ) (t : ℝ) : ℂ :=
   ∑ y : Fin M, Complex.exp (((2 * Real.pi * t * (y.val : ℝ) : ℝ) : ℂ) * Complex.I)
 
+/-- Complex conjugation negates the real phase of a complex exponential. -/
 lemma bhmt_phase_estimation_theorem11_conj_exp (t : ℝ) :
     star (Complex.exp ((t : ℂ) * Complex.I)) =
       Complex.exp (((-t : ℝ) : ℂ) * Complex.I) := by
@@ -63,6 +94,8 @@ lemma bhmt_phase_estimation_theorem11_conj_exp (t : ℝ) :
   rw [← Complex.exp_conj]
   simp
 
+/-- For positive `M`, the inverse Fourier outcome amplitude is the phase difference exponential
+sum divided by `M`. -/
 lemma bhmt_phase_estimation_theorem11_amplitude (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (x : Fin M) :
     ((bhmt11QFT M).conjTranspose.mulVec (bhmt11PhaseState M ω)) x =
@@ -91,6 +124,8 @@ lemma bhmt_phase_estimation_theorem11_amplitude (M : ℕ) (ω : ℝ) (hM : 0 < M
       push_cast
       ring
 
+/-- For positive `M`, the outcome mass is the squared norm of the phase difference exponential
+sum divided by `M^2`. -/
 lemma bhmt_phase_estimation_theorem11_mass_expSum (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (x : Fin M) :
     bhmt11OutcomeMass M ω x =
@@ -99,6 +134,7 @@ lemma bhmt_phase_estimation_theorem11_mass_expSum (M : ℕ) (ω : ℝ) (hM : 0 <
     norm_mul, norm_inv, Complex.norm_natCast, mul_pow]
   simp [div_eq_mul_inv, mul_comm]
 
+/-- Subtracting an integer from the phase leaves the exponential sum unchanged. -/
 lemma bhmt_phase_estimation_theorem11_expSum_shift (M : ℕ) (t : ℝ) (j : ℤ) :
     bhmt_phase_estimation_theorem11_expSum M (t - j) =
       bhmt_phase_estimation_theorem11_expSum M t := by
@@ -111,6 +147,7 @@ lemma bhmt_phase_estimation_theorem11_expSum_shift (M : ℕ) (t : ℝ) (j : ℤ)
     ring
   rw [he, Complex.exp_add, Complex.exp_int_mul_two_pi_mul_I, mul_one]
 
+/-- Replacing the phase by its absolute value preserves the squared exponential sum norm. -/
 lemma bhmt_phase_estimation_theorem11_expSum_abs (M : ℕ) (t : ℝ) :
     ‖bhmt_phase_estimation_theorem11_expSum M t‖ ^ 2 =
       ‖bhmt_phase_estimation_theorem11_expSum M |t|‖ ^ 2 := by
@@ -128,6 +165,8 @@ lemma bhmt_phase_estimation_theorem11_expSum_abs (M : ℕ) (t : ℝ) :
     ring
   rw [he, norm_star]
 
+/-- When the phase ratio differs from one, the finite exponential sum is the corresponding
+geometric quotient. -/
 lemma bhmt_phase_estimation_theorem11_expSum_geometric (M : ℕ) (t : ℝ)
     (hne : Complex.exp (((2 * Real.pi * t : ℝ) : ℂ) * Complex.I) ≠ 1) : bhmt_phase_estimation_theorem11_expSum M t =
       (1 - Complex.exp (((2 * Real.pi * t : ℝ) : ℂ) * Complex.I) ^ M) /
@@ -145,6 +184,8 @@ lemma bhmt_phase_estimation_theorem11_expSum_geometric (M : ℕ) (t : ℝ)
           -(Complex.exp (((2 * Real.pi * t : ℝ) : ℂ) * Complex.I) - 1) := by ring
       rw [h1, h2, neg_div_neg_eq]
 
+/-- For `0 < t ≤ 1 / 2`, the squared exponential sum norm equals `sin (M * t * π)^2 / sin (t *
+π)^2`. -/
 lemma bhmt_phase_estimation_theorem11_expSum_sine (M : ℕ) (t : ℝ)
     (ht : 0 < t) (ht' : t ≤ 1 / 2) :
     ‖bhmt_phase_estimation_theorem11_expSum M t‖ ^ 2 =
@@ -165,6 +206,8 @@ lemma bhmt_phase_estimation_theorem11_expSum_sine (M : ℕ) (t : ℝ)
   have h2 : 2 * Real.pi * t / 2 = t * Real.pi := by ring
   rw [h1, h2, mul_div_mul_left _ _ (by norm_num : (4 : ℝ) ≠ 0)]
 
+/-- For values at least `k > 1` with pairwise spacing at least one, the sum of their reciprocal
+squares is at most `1 / (k - 1)`. -/
 lemma bhmt_phase_estimation_theorem11_spaced_tail {α : Type*} (s : Finset α)
     (f : α → ℝ) (k : ℝ) (hk : 1 < k)
     (hlo : ∀ a ∈ s, k ≤ f a)
@@ -200,6 +243,8 @@ lemma bhmt_phase_estimation_theorem11_spaced_tail {α : Type*} (s : Finset α)
       nlinarith
     _ ≤ 1 / (k - 1) := one_div_le_one_div_of_le (by linarith) (by linarith [hlo a ha])
 
+/-- For `0 < t ≤ 1 / 5`, the product `sin (π * t)^2 * (t^2 + (1 - t)^2)` is at least `8 * t^2 *
+(1 - t)^2`. -/
 lemma bhmt_phase_estimation_theorem11_scalar_endpoint (t : ℝ)
     (ht : 0 < t) (ht' : t ≤ 1 / 5) :
     8 * t ^ 2 * (1 - t) ^ 2 ≤
@@ -239,6 +284,8 @@ lemma bhmt_phase_estimation_theorem11_scalar_endpoint (t : ℝ)
         (t ^ 2 + (1 - t) ^ 2) := by gcongr
     _ ≤ Real.sin (Real.pi * t) ^ 2 * (t ^ 2 + (1 - t) ^ 2) := by gcongr
 
+/-- For `1 / 5 ≤ t ≤ 4 / 5`, the product `sin (π * t)^2 * (t^2 + (1 - t)^2)` is at least `8 *
+t^2 * (1 - t)^2`. -/
 lemma bhmt_phase_estimation_theorem11_scalar_middle (t : ℝ)
     (ht : 1 / 5 ≤ t) (ht' : t ≤ 4 / 5) :
     8 * t ^ 2 * (1 - t) ^ 2 ≤
@@ -266,6 +313,8 @@ lemma bhmt_phase_estimation_theorem11_scalar_middle (t : ℝ)
   dsimp [s] at hfinal ⊢
   nlinarith
 
+/-- For `0 < t < 1`, the product `sin (π * t)^2 * (t^2 + (1 - t)^2)` is at least `8 * t^2 * (1 -
+t)^2`. -/
 lemma bhmt_phase_estimation_theorem11_scalar (t : ℝ) (ht : 0 < t) (ht' : t < 1) :
     8 * t ^ 2 * (1 - t) ^ 2 ≤
       Real.sin (Real.pi * t) ^ 2 * (t ^ 2 + (1 - t) ^ 2) := by
@@ -277,6 +326,7 @@ lemma bhmt_phase_estimation_theorem11_scalar (t : ℝ) (ht : 0 < t) (ht' : t < 1
   rw [show Real.pi * (1 - t) = Real.pi - Real.pi * t by ring, Real.sin_pi_sub] at h
   nlinarith
 
+/-- If a grid phase has zero circular distance from `ω` and `M > 0`, then `M * ω` is an integer. -/
 lemma bhmt_phase_estimation_theorem11_integral_of_distance_zero
     (M : ℕ) (ω : ℝ) (hM : 0 < M) (x : Fin M)
     (h : bhmt11CircleDist ω (x.val / (M : ℝ)) = 0) :
@@ -290,6 +340,8 @@ lemma bhmt_phase_estimation_theorem11_integral_of_distance_zero
   simp only [sub_mul, div_mul_cancel₀ _ hm, zero_mul] at hh
   nlinarith
 
+/-- The squared exponential sum norm at the phase difference equals its value at the circular
+distance. -/
 lemma bhmt_phase_estimation_theorem11_expSum_distance (M : ℕ) (u v : ℝ) :
     ‖bhmt_phase_estimation_theorem11_expSum M (v - u)‖ ^ 2 =
       ‖bhmt_phase_estimation_theorem11_expSum M (bhmt11CircleDist u v)‖ ^ 2 := by
@@ -297,6 +349,8 @@ lemma bhmt_phase_estimation_theorem11_expSum_distance (M : ℕ) (u v : ℝ) :
     ← bhmt_phase_estimation_theorem11_expSum_shift M (v - u) (round (v - u))]
   exact bhmt_phase_estimation_theorem11_expSum_abs M _
 
+/-- For positive `M` and nonzero circular distance, the outcome mass equals the normalized sine
+quotient. -/
 lemma bhmt_phase_estimation_theorem11_mass_formula (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (x : Fin M) (hd : 0 < bhmt11CircleDist ω (x.val / (M : ℝ))) :
     bhmt11OutcomeMass M ω x =
@@ -309,6 +363,7 @@ lemma bhmt_phase_estimation_theorem11_mass_formula (M : ℕ) (ω : ℝ) (hM : 0 
       (bhmt_phase_estimation_theorem11_distance_bounds _ _).2]
   ring
 
+/-- At positive circular distance `Δ`, the outcome mass is at most `1 / (2 * M * Δ)^2`. -/
 lemma bhmt_phase_estimation_theorem11_mass_bound (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (x : Fin M) (hd : 0 < bhmt11CircleDist ω (x.val / (M : ℝ))) :
     bhmt11OutcomeMass M ω x ≤
@@ -327,13 +382,16 @@ lemma bhmt_phase_estimation_theorem11_mass_bound (M : ℕ) (ω : ℝ) (hM : 0 < 
   rw [bhmt_phase_estimation_theorem11_mass_formula M ω hM x hd]
   exact div_le_div₀ (by norm_num : (0 : ℝ) ≤ 1) (Real.sin_sq_le_one _) (by positivity) hden
 
+/-- Every phase estimation outcome mass is nonnegative. -/
 lemma bhmt_phase_estimation_theorem11_mass_nonneg (M : ℕ) (ω : ℝ) (x : Fin M) :
     0 ≤ bhmt11OutcomeMass M ω x := sq_nonneg _
 
+/-- The exponential sum at phase zero equals `M`. -/
 lemma bhmt_phase_estimation_theorem11_expSum_zero (M : ℕ) :
     bhmt_phase_estimation_theorem11_expSum M 0 = M := by
   simp [bhmt_phase_estimation_theorem11_expSum]
 
+/-- For positive `M`, the exponential sum at `j / M` vanishes if `j` is not divisible by `M`. -/
 lemma bhmt_phase_estimation_theorem11_expSum_grid (M : ℕ) (hM : 0 < M) (j : ℤ)
     (hj : ¬ (M : ℤ) ∣ j) :
     bhmt_phase_estimation_theorem11_expSum M ((j : ℝ) / M) = 0 := by
@@ -357,6 +415,7 @@ lemma bhmt_phase_estimation_theorem11_expSum_grid (M : ℕ) (hM : 0 < M) (j : �
     field_simp [hmc]
   rw [he, Complex.exp_int_mul_two_pi_mul_I, sub_self, zero_div]
 
+/-- A Fourier matrix column is the finite phase vector at its grid phase. -/
 lemma bhmt_phase_estimation_theorem11_column (M : ℕ) (x y : Fin M) :
     bhmt11QFT M y x = bhmt11PhaseState M (x.val / (M : ℝ)) y := by
   unfold bhmt11QFT bhmt11PhaseState
@@ -364,12 +423,14 @@ lemma bhmt_phase_estimation_theorem11_column (M : ℕ) (x y : Fin M) :
   push_cast
   ring
 
+/-- The finite Fourier matrix is symmetric in its two indices. -/
 lemma bhmt_phase_estimation_theorem11_qft_symm (M : ℕ) (x y : Fin M) :
     bhmt11QFT M x y = bhmt11QFT M y x := by
   unfold bhmt11QFT
   congr 2
   ring
 
+/-- For positive `M`, the Fourier matrix multiplied by its conjugate transpose is the identity. -/
 lemma bhmt_phase_estimation_theorem11_unitary (M : ℕ) (hM : 0 < M) :
     bhmt11QFT M * (bhmt11QFT M).conjTranspose = 1 := by
   ext x y
@@ -401,6 +462,8 @@ lemma bhmt_phase_estimation_theorem11_unitary (M : ℕ) (hM : 0 < M) :
     rw [ht, bhmt_phase_estimation_theorem11_expSum_grid M hM _ hdiv]
     simp [hxy]
 
+/-- The complex embedding of the sum of coordinate squared norms is the conjugate dot product of
+the vector with itself. -/
 lemma bhmt_phase_estimation_theorem11_sum_norm (M : ℕ) (v : Fin M → ℂ) :
     ((∑ x, ‖v x‖ ^ 2 : ℝ) : ℂ) = star v ⬝ᵥ v := by
   simp only [dotProduct, ← Complex.normSq_eq_norm_sq, Complex.ofReal_sum]
@@ -408,6 +471,7 @@ lemma bhmt_phase_estimation_theorem11_sum_norm (M : ℕ) (v : Fin M → ℂ) :
   intro x _
   exact Complex.normSq_eq_conj_mul_self
 
+/-- For positive `M`, the finite phase vector has total squared coordinate norm one. -/
 lemma bhmt_phase_estimation_theorem11_state_normalized (M : ℕ) (ω : ℝ) (hM : 0 < M) :
     ∑ y : Fin M, ‖bhmt11PhaseState M ω y‖ ^ 2 = 1 := by
   have hn (y : Fin M) : ‖bhmt11PhaseState M ω y‖ ^ 2 = 1 / (M : ℝ) := by
@@ -423,6 +487,7 @@ lemma bhmt_phase_estimation_theorem11_state_normalized (M : ℕ) (ω : ℝ) (hM 
   simp_rw [hn]
   simp [ne_of_gt hM]
 
+/-- For positive `M`, the phase estimation outcome masses sum to one. -/
 lemma bhmt_phase_estimation_theorem11_normalization (M : ℕ) (ω : ℝ) (hM : 0 < M) :
     ∑ x : Fin M, bhmt11OutcomeMass M ω x = 1 := by
   have he : star ((bhmt11QFT M).conjTranspose.mulVec (bhmt11PhaseState M ω)) ⬝ᵥ
@@ -436,6 +501,8 @@ lemma bhmt_phase_estimation_theorem11_normalization (M : ℕ) (ω : ℝ) (hM : 0
     bhmt_phase_estimation_theorem11_state_normalized M ω hM] at he
   exact_mod_cast he
 
+/-- For a phase in `[0, 1)` with integer `M * ω`, there is a grid outcome equal to `M * ω` with
+mass one. -/
 lemma bhmt_phase_estimation_theorem11_grid (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (hω0 : 0 ≤ ω) (hω1 : ω < 1) (h : ∃ j : ℤ, (M : ℝ) * ω = (j : ℝ)) :
     ∃ x : Fin M, (x.val : ℝ) = (M : ℝ) * ω ∧ bhmt11OutcomeMass M ω x = 1 := by
@@ -459,6 +526,8 @@ lemma bhmt_phase_estimation_theorem11_grid (M : ℕ) (ω : ℝ) (hM : 0 < M)
     bhmt_phase_estimation_theorem11_expSum_zero, Complex.norm_natCast,
     div_self (by positivity : (M : ℝ) ^ 2 ≠ 0)]
 
+/-- An integer shifted phase difference of absolute value at most `1 / 2` realizes the circular
+distance. -/
 lemma bhmt_phase_estimation_theorem11_distance_small (u v : ℝ) (z : ℤ)
     (hz : |(z : ℝ) + v - u| ≤ 1 / 2) :
     bhmt11CircleDist u v = |(z : ℝ) + v - u| := by
@@ -477,6 +546,7 @@ lemma bhmt_phase_estimation_theorem11_distance_small (u v : ℝ) (z : ℤ)
   rw [he, sub_zero, zero_sub, abs_neg] at htri
   linarith
 
+/-- The mass of an outcome inside a circular window is at most the total window mass. -/
 lemma bhmt_phase_estimation_theorem11_window_single (M : ℕ) (ω r : ℝ) (x : Fin M)
     (hx : bhmt11CircleDist (x.val / (M : ℝ)) ω ≤ r) :
     bhmt11OutcomeMass M ω x ≤ bhmt11WindowMass M ω r := by
@@ -488,6 +558,8 @@ lemma bhmt_phase_estimation_theorem11_window_single (M : ℕ) (ω r : ℝ) (x : 
     (Finset.mem_univ x)
   simpa [hx] using h
 
+/-- The sum of the masses of two distinct outcomes inside a circular window is at most the
+window mass. -/
 lemma bhmt_phase_estimation_theorem11_window_pair (M : ℕ) (ω r : ℝ) (x y : Fin M)
     (hxy : x ≠ y) (hx : bhmt11CircleDist (x.val / (M : ℝ)) ω ≤ r)
     (hy : bhmt11CircleDist (y.val / (M : ℝ)) ω ≤ r) :
@@ -501,6 +573,8 @@ lemma bhmt_phase_estimation_theorem11_window_pair (M : ℕ) (ω r : ℝ) (x y : 
       first | exact bhmt_phase_estimation_theorem11_mass_nonneg M ω z | rfl)
   simpa [f, Finset.sum_pair hxy, hx, hy, bhmt11WindowMass] using h
 
+/-- For an off-grid phase in `[0, 1)` and `M > 2`, two distinct grid labels have distances `t /
+M` and `(1 - t) / M` for some `0 < t < 1`. -/
 lemma bhmt_phase_estimation_theorem11_nearest_labels (M : ℕ) (ω : ℝ) (hM : 2 < M)
     (hω0 : 0 ≤ ω) (hω1 : ω < 1) (hi : ¬ ∃ j : ℤ, (M : ℝ) * ω = (j : ℝ)) :
     ∃ t : ℝ, 0 < t ∧ t < 1 ∧ ∃ x y : Fin M, x ≠ y ∧
@@ -565,15 +639,19 @@ lemma bhmt_phase_estimation_theorem11_nearest_labels (M : ℕ) (ω : ℝ) (hM : 
       bhmt_phase_estimation_theorem11_distance_small (y.val / (M : ℝ)) ω (-1)
         (by simpa only [Int.cast_neg, Int.cast_one, hz] using hd2)
 
+/-- The integer representative of an outcome label obtained by subtracting `M` times the rounded
+grid phase displacement from `ω`. -/
 noncomputable def bhmt_phase_estimation_theorem11_lift (M : ℕ) (ω : ℝ) (x : Fin M) : ℤ :=
   (x.val : ℤ) - (M : ℤ) * round (x.val / (M : ℝ) - ω)
 
+/-- The lifted integer label reduces modulo `M` to the original outcome label. -/
 lemma bhmt_phase_estimation_theorem11_lift_mod (M : ℕ) (ω : ℝ) (x : Fin M) :
     bhmt_phase_estimation_theorem11_lift M ω x % M = x.val := by
   have hx : (x.val : ℤ) % M = x.val :=
     Int.emod_eq_of_lt (by positivity) (by exact_mod_cast x.isLt)
   simp [bhmt_phase_estimation_theorem11_lift, Int.sub_emod, hx]
 
+/-- The integer lift is injective on outcome labels. -/
 lemma bhmt_phase_estimation_theorem11_lift_injective (M : ℕ) (ω : ℝ) :
     Function.Injective (bhmt_phase_estimation_theorem11_lift M ω) := by
   intro x y h
@@ -582,6 +660,7 @@ lemma bhmt_phase_estimation_theorem11_lift_injective (M : ℕ) (ω : ℝ) :
   rw [bhmt_phase_estimation_theorem11_lift_mod, bhmt_phase_estimation_theorem11_lift_mod] at he
   exact Fin.ext (by exact_mod_cast he)
 
+/-- Distinct lifted labels have absolute difference at least one. -/
 lemma bhmt_phase_estimation_theorem11_lift_spacing (M : ℕ) (ω : ℝ) (x y : Fin M)
     (hxy : x ≠ y) :
     (1 : ℝ) ≤ |(bhmt_phase_estimation_theorem11_lift M ω x : ℝ) -
@@ -591,6 +670,8 @@ lemma bhmt_phase_estimation_theorem11_lift_spacing (M : ℕ) (ω : ℝ) (x y : F
     fun h => hxy (bhmt_phase_estimation_theorem11_lift_injective M ω h)
   exact_mod_cast (show (1 : ℤ) ≤ |bhmt_phase_estimation_theorem11_lift M ω x - bhmt_phase_estimation_theorem11_lift M ω y| by have := abs_pos.mpr (sub_ne_zero.mpr h); omega)
 
+/-- For positive `M`, the circular distance multiplied by `M` equals the absolute displacement
+of the lifted label from `M * ω`. -/
 lemma bhmt_phase_estimation_theorem11_scaled_distance (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (x : Fin M) :
     (M : ℝ) * bhmt11CircleDist (x.val / (M : ℝ)) ω =
@@ -608,6 +689,8 @@ lemma bhmt_phase_estimation_theorem11_scaled_distance (M : ℕ) (ω : ℝ) (hM :
       field_simp
       ring
 
+/-- For positive `M` and `k > 1`, the circular window of radius `k / M` has mass at least `1 - 1
+/ (2 * (k - 1))`. -/
 lemma bhmt_phase_estimation_theorem11_tail (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (k : ℝ) (hk : 1 < k) :
     1 - 1 / (2 * (k - 1)) ≤ bhmt11WindowMass M ω (k / (M : ℝ)) := by
@@ -684,6 +767,8 @@ lemma bhmt_phase_estimation_theorem11_tail (M : ℕ) (ω : ℝ) (hM : 0 < M)
     by_cases h : bhmt11CircleDist (x.val / (M : ℝ)) ω ≤ k / M <;> simp [h]
   linarith
 
+/-- An outcome at circular distance `t / M` with positive `M` and `t` has mass at least `sin (π
+* t)^2 / (π^2 * t^2)`. -/
 lemma bhmt_phase_estimation_theorem11_mass_lower (M : ℕ) (ω : ℝ) (hM : 0 < M)
     (x : Fin M) (t : ℝ) (ht : 0 < t)
     (hx : bhmt11CircleDist (x.val / (M : ℝ)) ω = t / M) :
@@ -709,6 +794,7 @@ lemma bhmt_phase_estimation_theorem11_mass_lower (M : ℕ) (ω : ℝ) (hM : 0 < 
   rw [he]
   exact div_le_div_of_nonneg_left (sq_nonneg _) (by positivity) hden
 
+/-- For `0 < t < 1`, the two complementary squared sinc expressions sum to at least `8 / π^2`. -/
 lemma bhmt_phase_estimation_theorem11_scalar_quotient (t : ℝ) (ht : 0 < t) (ht' : t < 1) :
     8 / Real.pi ^ 2 ≤
       Real.sin (Real.pi * t) ^ 2 / (Real.pi ^ 2 * t ^ 2) +
@@ -721,6 +807,8 @@ lemma bhmt_phase_estimation_theorem11_scalar_quotient (t : ℝ) (ht : 0 < t) (ht
     (show 0 ≤ Real.pi ^ 2 * t ^ 2 * (1 - t) ^ 2 by positivity) using 1 <;>
     (try field_simp) <;> ring
 
+/-- For `M > 2` and phase in `[0, 1)`, the circular window of radius `1 / M` has mass at least
+`8 / π^2`. -/
 lemma bhmt_phase_estimation_theorem11_nearest (M : ℕ) (ω : ℝ) (hM : 2 < M)
     (hω0 : 0 ≤ ω) (hω1 : ω < 1) :
     8 / Real.pi ^ 2 ≤ bhmt11WindowMass M ω (1 / (M : ℝ)) := by
@@ -748,6 +836,10 @@ lemma bhmt_phase_estimation_theorem11_nearest (M : ℕ) (ω : ℝ) (hM : 2 < M)
       (by rw [hy]; exact div_le_div_of_nonneg_right (by linarith) hm.le)
     linarith
 
+/-- For positive `M` and phase in `[0, 1)`, the outcome masses are normalized, recover grid
+phases exactly, and satisfy the off-grid sine formula and inverse square bound. The circular
+window bounds are `1 - 1 / (2 * (k - 1))` for `k > 1` and `8 / π^2` at radius `1 / M` when
+`M > 2`, as in [Brassard et al., Theorem 11][BrassardEtAl2002]. -/
 theorem bhmt_phase_estimation_theorem11 :
   ∀ (M : ℕ) (ω : ℝ),
   0 < M → 0 ≤ ω → ω < 1 →

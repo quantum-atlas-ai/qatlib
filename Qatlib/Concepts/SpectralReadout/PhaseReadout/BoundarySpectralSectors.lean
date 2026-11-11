@@ -8,6 +8,31 @@ import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
 import Mathlib.LinearAlgebra.Matrix.DotProduct
 import Qatlib.Foundations.InstrumentCore.Measurement.MeasurementLaws
+
+/-!
+# Endpoint and idle spectral sectors
+
+This module identifies fixed sectors of a product of two reflections about isometry ranges.
+Shared range vectors, extreme ±1 cross-Gram eigenvectors, and vectors orthogonal to both ranges
+yield the endpoint and idle behavior described in [Szegedy2004].
+
+The counted phase-detection and reflection constructions act exactly on normalized fixed
+vectors: detection retains the embedded state, the all-zero phase event has probability one, and
+phase reflection fixes the embedding.
+
+## Main statements
+
+* `two_isometry_intersection_gram_and_fixed`: range intersection characterized by paired Gram
+  equations.
+* `two_isometry_extreme_gram_endpoint`: fixed walk states from extreme cross-Gram eigenvalues.
+* `two_isometry_idle_sector_fixed`: negation by each reflection and fixation by their product.
+* `boundary_actual_zero_phase_readout_and_reflection`: exact counted behavior on fixed states.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 open Qatlib.Foundations.InstrumentCore.Measurement
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -32,32 +57,43 @@ open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators ComplexOrder
 
+/-- The complex inner product distributes over subtraction in its first argument. -/
 private theorem boundary_inner_sub_left {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner (u-v) w=Qatlib.Foundations.PureStateMath.Inner u w-Qatlib.Foundations.PureStateMath.Inner v w := by simp only [Qatlib.Foundations.PureStateMath.Inner,star_sub,sub_dotProduct]
 
+/-- The complex inner product distributes over subtraction in its second argument. -/
 private theorem boundary_inner_sub_right {K : Type} [Fintype K] (u v w : QState K) :
     Qatlib.Foundations.PureStateMath.Inner u (v-w)=Qatlib.Foundations.PureStateMath.Inner u v-Qatlib.Foundations.PureStateMath.Inner u w := by simp only [Qatlib.Foundations.PureStateMath.Inner,dotProduct_sub]
 
+/-- Scaling the first argument of the complex inner product multiplies it by the conjugate
+scalar. -/
 private theorem boundary_inner_smul_left {K : Type} [Fintype K] (c : ℂ) (u v : QState K) :
     Qatlib.Foundations.PureStateMath.Inner (c • u) v=star c*Qatlib.Foundations.PureStateMath.Inner u v := by simp only [Qatlib.Foundations.PureStateMath.Inner,star_smul,smul_dotProduct,smul_eq_mul]
 
+/-- Scaling the second argument of the complex inner product multiplies it by that scalar. -/
 private theorem boundary_inner_smul_right {K : Type} [Fintype K] (c : ℂ) (u v : QState K) :
     Qatlib.Foundations.PureStateMath.Inner u (c • v)=c*Qatlib.Foundations.PureStateMath.Inner u v := by simp only [Qatlib.Foundations.PureStateMath.Inner,dotProduct_smul,smul_eq_mul]
 
+/-- The complex conjugate of an inner product equals the inner product with reversed arguments. -/
 private theorem boundary_inner_star {K : Type} [Fintype K] (u v : QState K) :
     star (Qatlib.Foundations.PureStateMath.Inner u v)=Qatlib.Foundations.PureStateMath.Inner v u := (star_dotProduct (v:=v) (w:=u)).symm
 
+/-- A matrix with `Aᴴ*A = 1` preserves the complex inner product of amplitude vectors. -/
 private theorem boundary_isometry_inner {I K : Type} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (A : Matrix K I ℂ) (hA : Aᴴ*A=1) (u v : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (A*ᵥu) (A*ᵥv)=Qatlib.Foundations.PureStateMath.Inner u v := by
   rw [inner_mulVec_left_rect,Matrix.mulVec_mulVec,hA,Matrix.one_mulVec]
 
+/-- Reflection about the range projector of an isometry fixes every vector in its image. -/
 private theorem boundary_reflection_range {I K : Type} [Fintype I] [DecidableEq I]
     [Fintype K] [DecidableEq K] (A : Matrix K I ℂ) (hA : Aᴴ*A=1) (v : QState I) :
     ReflectionAbout (A*Aᴴ)*ᵥ(A*ᵥv)=A*ᵥv := by
   rw [reflectionAbout_mulVec,Matrix.mulVec_mulVec,Matrix.mul_assoc,hA,Matrix.mul_one]
   module
 
+/-- For two isometries, equality of their image vectors is equivalent to the paired cross-Gram
+equations, and a common image vector is fixed by the product of range reflections. See
+[Szegedy2004]. -/
 theorem two_isometry_intersection_gram_and_fixed : ∀ (I J K : Type) [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] [Fintype K] [DecidableEq K]
     (A : Matrix K I ℂ) (B : Matrix K J ℂ) (a : QState I) (b : QState J),
@@ -83,6 +119,9 @@ theorem two_isometry_intersection_gram_and_fixed : ∀ (I J K : Type) [Fintype I
   · intro he
     rw [← Matrix.mulVec_mulVec,boundary_reflection_range A hA,he,boundary_reflection_range B hB]
 
+/-- A cross-Gram eigenvector with eigenvalue `ε = ±1` has image vectors related by `ε`, and its
+image under the first isometry is fixed by the reflection product. This is an endpoint case
+of [Szegedy2004]. -/
 theorem two_isometry_extreme_gram_endpoint : ∀ (I K : Type) [Fintype I] [DecidableEq I] [Fintype K]
     [DecidableEq K] (A B : Matrix K I ℂ) (v : QState I) (ε : ℂ),
     Aᴴ*A=1 → Bᴴ*B=1 → (ε=1 ∨ ε=-1) → (Aᴴ*B)*ᵥv=ε•v →
@@ -114,6 +153,8 @@ theorem two_isometry_extreme_gram_endpoint : ∀ (I K : Type) [Fintype I] [Decid
     _ = B*ᵥ(ε • v) := boundary_reflection_range B hB _
     _ = A*ᵥv := hrange.symm
 
+/-- A vector annihilated by both isometry adjoints is negated by each range reflection and fixed
+by their product. This is the idle-sector behavior in [Szegedy2004]. -/
 theorem two_isometry_idle_sector_fixed : ∀ (I J K : Type) [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] [Fintype K] [DecidableEq K]
     (A : Matrix K I ℂ) (B : Matrix K J ℂ) (w : QState K),
@@ -128,6 +169,7 @@ theorem two_isometry_idle_sector_fixed : ∀ (I J K : Type) [Fintype I] [Decidab
   refine ⟨hA,hB,?_⟩
   rw [← Matrix.mulVec_mulVec,hA,Matrix.mulVec_neg,hB,neg_neg]
 
+/-- At phase zero, the product kernel packet equals the zero-ancilla embedding. -/
 private theorem boundary_phase_packet_zero {I : Type} (M k : ℕ) (hM : 0<M) (v : QState I) :
     phaseKernelPacket M k 0 v=phaseReflectionEmbed M k v := by
   have hz := qpeKernel_zero_distance M hM 0 (by norm_num [phaseDistance])
@@ -145,6 +187,9 @@ private theorem boundary_phase_packet_zero {I : Type} (M k : ℕ) (hM : 0<M) (v 
         Finset.prod_eq_zero (Finset.mem_univ j) (by rw [hz]; simp [Qatlib.Foundations.PureStateMath.Ket,hne])
       simp [phaseKernelPacket,phaseReflectionEmbed,hx,hp]
 
+/-- For a normalized fixed vector of a unitary and `M ≥ 2`, counted phase detection leaves its
+embedding unchanged, the all-zero event has probability one, and the counted phase
+reflection fixes the embedding. -/
 theorem boundary_actual_zero_phase_readout_and_reflection : ∀ (I : Type) [Fintype I] [DecidableEq I]
     (W : Matrix I I ℂ) (w : QState I) (M k : ℕ),
     W ∈ Matrix.unitaryGroup I ℂ → Normalized w → ApplyGate W w=w → 2 ≤ M →

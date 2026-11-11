@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Corollary14Stat
+
+/-!
+# Probability guarantee for rounded counting
+
+This module proves the rounded counting guarantee corresponding to Corollary 14 of
+[BrassardEtAl2002]. At grid size `⌈√N⌉`, the integer output has error strictly below
+`2π√(t(N-t)/N) + 11` with probability at least `8/π²`, under the stated size and grid
+hypotheses.
+
+## Main statements
+
+* `bhmt_corollary14_rounded_count`: the rounded error and success-probability bound.
+* `bhmt_corollary14_rounded_count_contract`: satisfaction of `Corollary14Spec.expected`.
+
+## References
+
+* [Brassard et al., Corollary 14][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,9 @@ open Matrix
 open scoped Classical
 set_option autoImplicit false
 
+/-- At grid size `⌈√N⌉`, the rounded estimate differs from `t = S.card` by strictly less than
+`2π√(t(N-t)/N) + 11` with probability at least `8/π²`, under the stated grid hypotheses
+[Brassard et al., Corollary 14][BrassardEtAl2002]. -/
 theorem bhmt_corollary14_rounded_count :
     ∀ (N : ℕ) (S : Finset (Fin N)) (hN : 0 < N), 2 ≤ N →
       ∀ (hM : 2 ≤ approxCountCor14Grid N),
@@ -69,6 +91,8 @@ theorem bhmt_corollary14_rounded_count :
   · intro z _ _
     exact (aeLaw (approxCountCor14Grid N) (QFTMatrix N) ⟨0,hN⟩ S (qftMatrix_unitary hN) hM).nonneg z
 
+/-- The rounded counting theorem satisfies the probability and error requirements of
+`Corollary14Spec.expected` [Brassard et al., Corollary 14][BrassardEtAl2002]. -/
 theorem bhmt_corollary14_rounded_count_contract :
     Corollary14Spec.expected :=
   bhmt_corollary14_rounded_count

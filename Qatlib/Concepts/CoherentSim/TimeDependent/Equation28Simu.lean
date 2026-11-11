@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Stat
 import Mathlib.Data.Nat.Choose.Bounds
 
+/-!
+# Error bounds for a discrete ordered segment
+
+This module bounds layers of sublist products by binomial weights and then by factorial weights.
+`equation28` combines the resulting truncation estimate with a time-grid discretization estimate
+for continuous Lipschitz Hamiltonians, in the time-dependent simulation setting
+[BerryEtAl2015Taylor].
+
+## Main statements
+
+* `equation28_choose_weight_bound`: A factorial upper bound for the binomial layer weight.
+* `equation28`: The combined truncation and time-grid error bound.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 
 open Qatlib.Concepts.InteractionEvo.DysonGrid
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
@@ -19,16 +37,21 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option warningAsError false
 
+/-- The sum of products of all length-`k` sublists of a matrix list. -/
 private noncomputable def layer {I : Type} [Fintype I] [DecidableEq I]
     (l : List (Matrix I I ℂ)) (k : ℕ) : Matrix I I ℂ :=
   ((l.sublistsLen k).map List.prod).sum
 
+/-- The sum of a function mapped over `List.range n` equals its finite sum over `Finset.range
+n`. -/
 private theorem map_range_sum {G : Type*} [AddCommMonoid G] (f : ℕ → G) (n : ℕ) :
     ((List.range n).map f).sum = ∑ k ∈ Finset.range n, f k := by
   induction n with
   | zero => simp
   | succ n ih => simp [List.range_succ, ih, Finset.sum_range_succ]
 
+/-- The sum of products over all sublists equals the sum of its fixed-length layers from zero
+through the list length. -/
 private theorem layers_full {I : Type} [Fintype I] [DecidableEq I]
     (l : List (Matrix I I ℂ)) :
     (l.sublists.map List.prod).sum = ∑ k ∈ Finset.range (l.length + 1), layer l k := by
@@ -41,6 +64,8 @@ private theorem layers_full {I : Type} [Fintype I] [DecidableEq I]
   have hp := (List.range_bind_sublistsLen_perm l).trans (List.sublists_perm_sublists' l).symm
   rw [← (hp.map List.prod).sum_eq, hf, map_range_sum]
 
+/-- If every matrix in a list has norm at most a nonnegative `q`, the product norm is at most
+`q` to the list length. -/
 private theorem norm_prod_bound {I : Type} [Fintype I] [DecidableEq I]
     (l : List (Matrix I I ℂ)) (q : ℝ) (hq : 0 ≤ q)
     (h : ∀ A ∈ l, ‖A‖ ≤ q) : ‖l.prod‖ ≤ q ^ l.length := by
@@ -54,6 +79,8 @@ private theorem norm_prod_bound {I : Type} [Fintype I] [DecidableEq I]
       _ ≤ q * q ^ l.length := mul_le_mul ha hl (norm_nonneg _) hq
       _ = _ := by simp only [List.length_cons, pow_succ]; ring
 
+/-- A uniform norm bound `C` on the matrices in a list bounds their sum norm by the list length
+times `C`. -/
 private theorem norm_sum_length {I : Type} [Fintype I] [DecidableEq I]
     (l : List (Matrix I I ℂ)) (C : ℝ) (h : ∀ A ∈ l, ‖A‖ ≤ C) :
     ‖l.sum‖ ≤ (l.length : ℝ) * C := by
@@ -67,6 +94,8 @@ private theorem norm_sum_length {I : Type} [Fintype I] [DecidableEq I]
       _ ≤ C + (l.length : ℝ) * C := add_le_add ha hl
       _ = _ := by simp only [List.length_cons, Nat.cast_add, Nat.cast_one]; ring
 
+/-- If each matrix has norm at most nonnegative `q`, the order-`k` sublist-product layer has
+norm at most `choose l.length k * q^k`. -/
 private theorem layer_bound {I : Type} [Fintype I] [DecidableEq I]
     (l : List (Matrix I I ℂ)) (q : ℝ) (hq : 0 ≤ q)
     (h : ∀ A ∈ l, ‖A‖ ≤ q) (k : ℕ) :
@@ -78,6 +107,8 @@ private theorem layer_bound {I : Type} [Fintype I] [DecidableEq I]
     simpa [hlen] using! norm_prod_bound w q hq (fun B hB => h B (hsub.subset hB)))
   simpa [List.length_sublistsLen] using! he
 
+/-- For positive `M` and nonnegative `a`, the binomial weight `choose M k * (a / M)^k` is at
+most `a^k / k!`. -/
 theorem equation28_choose_weight_bound (M k : ℕ) (a : ℝ) (hM : 0 < M) (ha : 0 ≤ a) :
     (M.choose k : ℝ) * (a / M) ^ k ≤ a ^ k / (k.factorial : ℝ) := by
   have hn : (M : ℝ) ≠ 0 := by exact_mod_cast hM.ne'
@@ -86,6 +117,9 @@ theorem equation28_choose_weight_bound (M k : ℕ) (a : ℝ) (hM : 0 < M) (ha : 
       mul_le_mul_of_nonneg_right (Nat.choose_le_pow_div k M) (pow_nonneg (by positivity) _)
     _ = _ := by rw [div_pow]; field_simp
 
+/-- For the stated continuous Hermitian Hamiltonian with norm bound `Λ` and Lipschitz constant
+`L`, the discrete ordered segment differs from ordered evolution by at most `exp (Λ * τ) *
+((Λ * τ)^(K + 1) / (K + 1)! + (Λ² + L) * τ² / (2 * M))`. See [BerryEtAl2015Taylor]. -/
 theorem equation28 : Equation28 := by
   intro I _ _ H τ Λ L M K hH ht hΛ hL hM hbound hLip
   let l := gridIncrements H τ M

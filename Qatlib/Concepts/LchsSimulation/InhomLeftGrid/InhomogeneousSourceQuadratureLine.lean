@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureStat
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+/-!
+# Error estimates for left-grid source quadrature
+
+A Banach-space left-grid estimate and Lipschitz bounds for the propagated source establish
+`inhomogeneousSourceQuadrature`. The module also controls the sampled source mass by its
+integral and an explicit derivative-dependent slack. See [AnLiuLin2023] for the mathematical
+setting.
+
+## Main statements
+
+* `inh_left_grid_error`: For a continuous Banach-space-valued function with Lipschitz constant
+  `C` on `[s, t]`, the left-grid integration error is at most `(t - s) * inhStep Mt s t * C / 2`
+  when `Mt > 0`.
+* `inhomogeneousSourceQuadrature`: The left-grid source approximation has error bounded by the
+  sum of the time-discretization term and the static LCHS tail and grid terms under the stated
+  regularity hypotheses.
+* `inh_source_mass_quadrature`: The left-grid sum of source norms is at most their integral plus
+  `β * (t - s)^2 / (2 * Mt)` when the source derivative has Euclidean norm at most `β`.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -32,9 +57,11 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The uniform step size is nonnegative when `s ≤ t`. -/
 theorem inh_step_nonneg (Mt : ℕ) (s t : ℝ) (hst : s ≤ t) :
     0 ≤ inhStep Mt s t := div_nonneg (sub_nonneg.mpr hst) (Nat.cast_nonneg _)
 
+/-- Every left-grid node belongs to the closed interval from `s` to `t` when `s ≤ t`. -/
 theorem inh_node_mem (Mt : ℕ) (s t : ℝ) (hst : s ≤ t) (l : Fin Mt) :
     inhNode Mt s t l ∈ Set.Icc s t := by
   have hm : 0 < (Mt : ℝ) := by exact_mod_cast (Nat.zero_lt_of_lt l.isLt)
@@ -47,6 +74,8 @@ theorem inh_node_mem (Mt : ℕ) (s t : ℝ) (hst : s ≤ t) (l : Fin Mt) :
   · have := mul_le_mul_of_nonneg_right hl hh
     dsimp [inhNode]; linarith
 
+/-- For a continuous Banach-space-valued function with Lipschitz constant `C` on `[s, t]`, the
+left-grid integration error is at most `(t - s) * inhStep Mt s t * C / 2` when `Mt > 0`. -/
 theorem inh_left_grid_error {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E]
     [CompleteSpace E] (F : ℝ → E) (hF : Continuous F) (s t C : ℝ) (Mt : ℕ)
     (hst : s ≤ t) (hm : 0 < Mt)
@@ -108,6 +137,8 @@ theorem inh_left_grid_error {E : Type} [NormedAddCommGroup E] [NormedSpace ℝ E
       have he' : (Mt : ℝ)*h = t-s := by dsimp [h, inhStep]; field_simp
       rw [← he']; ring
 
+/-- The prescribed window cutoff and node count are positive, have grid spacing at most `1 / 2`,
+and bound the combined tail and grid budget by `ε` when `T ≤ Λ`. -/
 theorem inh_schedule_raw_bound (ε Λ T : ℝ) (hε : 0 < ε) (hΛ : T ≤ Λ) :
     let K := timeDependentLchsWindowCutoff ε
     let N := timeDependentLchsWindowNodes ε Λ
@@ -145,11 +176,15 @@ theorem inh_schedule_raw_bound (ε Λ T : ℝ) (hε : 0 < ε) (hΛ : T ≤ Λ) :
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The continuous real-linear map sending a coordinate state to its Euclidean-space
+representation. -/
 private def inhEuclideanMap : QState I →L[ℝ] EuclideanSpace ℂ I :=
   (PiLp.continuousLinearEquiv 2 ℝ (fun _ : I => ℂ)).symm.toContinuousLinearMap
 
 omit [DecidableEq I] in
 
+/-- The derivative of a matrix-vector product is the sum of the matrix derivative acting on the
+vector and the matrix acting on the vector derivative. -/
 private theorem inh_mulVec_deriv {M : ℝ → Matrix I I ℂ} {v : ℝ → QState I}
     {M' : Matrix I I ℂ} {v' : QState I} {u : ℝ}
     (hM : HasDerivAt M M' u) (hv : HasDerivAt v v' u) :
@@ -163,6 +198,8 @@ private theorem inh_mulVec_deriv {M : ℝ → Matrix I I ℂ} {v : ℝ → QStat
 
 omit [DecidableEq I] in
 
+/-- A bound `β` on the Euclidean norm of the source derivative gives the Lipschitz estimate `β *
+|a - z|` on `[s, t]`. -/
 private theorem inh_derivative_lipschitz (b b' : ℝ → QState I) (s t β : ℝ)
     (hd : ∀ u, s ≤ u → u ≤ t → HasDerivAt b (b' u) u)
     (hn : ∀ u, s ≤ u → u ≤ t → ‖toEuclidean_fromVec (b' u)‖ ≤ β) :
@@ -178,6 +215,8 @@ private theorem inh_derivative_lipschitz (b b' : ℝ → QState I) (s t β : ℝ
     (convex_Icc s t) hz ha
   simpa only [Real.norm_eq_abs] using! hl
 
+/-- The propagated source on `[s, t]` satisfies a Lipschitz bound with constant `(lamL + lamH) *
+bmax + β` under the stated continuity, positivity, and norm bounds. -/
 private theorem inh_source_lipschitz (L H : ℝ → Matrix I I ℂ) (b b' : ℝ → QState I)
     (s t β lamL lamH bmax : ℝ) (hL : Continuous L) (hH : Continuous H)
     (hPSD : ∀ u, (L u).PosSemidef) (hHerm : ∀ u, (H u).IsHermitian)
@@ -219,6 +258,9 @@ private theorem inh_source_lipschitz (L H : ℝ → Matrix I I ℂ) (b b' : ℝ 
         ((mul_le_mul hE (hβ u hus hut) (norm_nonneg _) zero_le_one).trans_eq (one_mul _))
   exact inh_derivative_lipschitz v v' s t _ hdv hnv
 
+/-- The left-grid source approximation has error bounded by the sum of the time-discretization
+term and the static LCHS tail and grid terms under the stated regularity hypotheses. See
+[AnLiuLin2023]. -/
 theorem inhomogeneousSourceQuadrature : InhomogeneousSourceQuadrature := by
   intro I _ _ L H b b' s t K N Mt β lamL lamH bmax hL hH hb hPSD hHerm hst
     hK hN hMt hd hβ hbmax hlL hlH
@@ -282,6 +324,8 @@ theorem inhomogeneousSourceQuadrature : InhomogeneousSourceQuadrature := by
 
 omit [DecidableEq I] in
 
+/-- The left-grid sum of source norms is at most their integral plus `β * (t - s)^2 / (2 * Mt)`
+when the source derivative has Euclidean norm at most `β`. -/
 theorem inh_source_mass_quadrature (b b' : ℝ → QState I) (s t β : ℝ) (Mt : ℕ)
     (hb : Continuous b) (hst : s ≤ t) (hMt : 0 < Mt)
     (hd : ∀ u, s ≤ u → u ≤ t → HasDerivAt b (b' u) u)

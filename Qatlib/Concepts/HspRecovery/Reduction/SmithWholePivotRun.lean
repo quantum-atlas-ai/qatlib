@@ -8,6 +8,30 @@ import Qatlib.Concepts.QueryComplexity.DegreeMethod.SmithIntermediateBitGrowth
 import Mathlib.Data.Nat.Size
 import Mathlib.Tactic.FinCases
 import Mathlib.Tactic.Ring
+
+/-!
+# Entry and bit bounds for Smith reduction runs
+
+This module tracks integer entry bounds for Smith reduction matrices and their changes of basis.
+The recursive bounds `isolatePivotLoopSup` and `rectangularSup` follow the branches taken by the
+counted Euclidean routines, providing arithmetic bookkeeping relevant to finite abelian group
+decomposition as in [CheungMosca2001].
+
+The final results bound the reduction entries and peak Euclidean-pair input sizes, and combine
+these estimates with the counted division bound and correctness of the resulting Smith form.
+
+## Main statements
+
+* `smithIsolatePivotEuclidLoop_entryBound`: entry and peak-bit bounds for a pivot loop with
+  specified fuel.
+* `smithRectangularEuclid_entryBound`: bounds for the complete rectangular reduction.
+* `output1.frontier1`: the bounds together with encoding correctness and Smith form.
+
+## References
+
+* [Cheung and Mosca, 2001][CheungMosca2001]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -25,37 +49,50 @@ open Qatlib.Concepts.IntWordFraming.WordFraming
 open Qatlib
 set_option warningAsError false
 
+/-- The condition that the natural absolute value of every integer matrix entry is at most `b`. -/
 def MatrixEntryBound {ι κ : Type*} (A : Matrix ι κ ℤ) (b : ℕ) : Prop :=
   ∀ i j, (A i j).natAbs ≤ b
 
+/-- A common entry bound for a presentation reduction's value matrix, left and right
+change-of-basis matrices, and both inverse matrices. -/
 def ReductionEntryBound {m n : ℕ} (s : PresentationReduction m n) (b : ℕ) : Prop :=
   MatrixEntryBound s.value b ∧ MatrixEntryBound s.left b ∧
     MatrixEntryBound s.leftInverse b ∧ MatrixEntryBound s.right b ∧
     MatrixEntryBound s.rightInverse b
 
+/-- A common entry bound for a column elimination state's value, left transformation, and
+inverse matrices. -/
 def ColumnEntryBound {m n : ℕ} (s : ColumnEliminationState m n) (b : ℕ) : Prop :=
   MatrixEntryBound s.value b ∧ MatrixEntryBound s.left b ∧ MatrixEntryBound s.inverse b
 
+/-- A common entry bound for a row elimination state's value, right transformation, and inverse
+matrices. -/
 def RowEntryBound {m n : ℕ} (s : RowEliminationState m n) (b : ℕ) : Prop :=
   MatrixEntryBound s.value b ∧ MatrixEntryBound s.right b ∧ MatrixEntryBound s.inverse b
 
+/-- An integer matrix entry bound remains valid when the bound is increased. -/
 theorem MatrixEntryBound.mono {ι κ : Type*} {A : Matrix ι κ ℤ} {b c : ℕ}
     (h : MatrixEntryBound A b) (hbc : b ≤ c) : MatrixEntryBound A c :=
   fun i j => (h i j).trans hbc
 
+/-- A presentation reduction's common entry bound remains valid when the bound is increased. -/
 theorem ReductionEntryBound.mono {m n : ℕ} {s : PresentationReduction m n} {b c : ℕ}
     (h : ReductionEntryBound s b) (hbc : b ≤ c) : ReductionEntryBound s c :=
   ⟨h.1.mono hbc, h.2.1.mono hbc, h.2.2.1.mono hbc, h.2.2.2.1.mono hbc,
     h.2.2.2.2.mono hbc⟩
 
+/-- A column elimination state's common entry bound remains valid when the bound is increased. -/
 theorem ColumnEntryBound.mono {m n : ℕ} {s : ColumnEliminationState m n} {b c : ℕ}
     (h : ColumnEntryBound s b) (hbc : b ≤ c) : ColumnEntryBound s c :=
   ⟨h.1.mono hbc, h.2.1.mono hbc, h.2.2.mono hbc⟩
 
+/-- A row elimination state's common entry bound remains valid when the bound is increased. -/
 theorem RowEntryBound.mono {m n : ℕ} {s : RowEliminationState m n} {b c : ℕ}
     (h : RowEntryBound s b) (hbc : b ≤ c) : RowEntryBound s c :=
   ⟨h.1.mono hbc, h.2.1.mono hbc, h.2.2.mono hbc⟩
 
+/-- The natural absolute value of a finite integer sum is bounded by the sum of pointwise
+natural absolute-value bounds. -/
 private theorem natAbs_sum_le {ι : Type*} (s : Finset ι) (f : ι → ℤ) (B : ι → ℕ)
     (h : ∀ x ∈ s, (f x).natAbs ≤ B x) :
     (∑ x ∈ s, f x).natAbs ≤ ∑ x ∈ s, B x := by
@@ -68,17 +105,21 @@ private theorem natAbs_sum_le {ι : Type*} (s : Finset ι) (f : ι → ℤ) (B :
         (Nat.add_le_add (h x (Finset.mem_insert_self x s))
           (ih fun y hy => h y (Finset.mem_insert_of_mem hy)))
 
+/-- An integer identity matrix has entry bound `b` whenever `1 ≤ b`. -/
 theorem matrix_one_entryBound {m b : ℕ} (hb : 1 ≤ b) :
     MatrixEntryBound (1 : Matrix (Fin m) (Fin m) ℤ) b := by
   intro i j
   simp only [Matrix.one_apply]
   split <;> simp_all
 
+/-- Selecting or reindexing rows and columns preserves an integer matrix entry bound. -/
 theorem matrix_submatrix_entryBound {ι κ ι' κ' : Type*} {A : Matrix ι κ ℤ}
     (r : ι' → ι) (c : κ' → κ) {b : ℕ} (h : MatrixEntryBound A b) :
     MatrixEntryBound (A.submatrix r c) b :=
   fun i j => h (r i) (c j)
 
+/-- If the factors have entry bounds `c` and `b` and inner dimension `m`, every product entry
+has natural absolute value at most `m * (c * b)`. -/
 private theorem matrix_mul_entry_le {l m n : ℕ} {A : Matrix (Fin l) (Fin m) ℤ}
     {B : Matrix (Fin m) (Fin n) ℤ} {c b : ℕ}
     (hA : MatrixEntryBound A c) (hB : MatrixEntryBound B b) (i : Fin l) (j : Fin n) :
@@ -93,6 +134,8 @@ private theorem matrix_mul_entry_le {l m n : ℕ} {A : Matrix (Fin l) (Fin m) �
   rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin] at hsum
   exact hsum
 
+/-- Two matrices with entry bound `b` have product entry bound `elimSupStep dim b` when their
+inner dimension is at most `dim`. -/
 theorem matrix_mul_entry_elimSup {dim l m n : ℕ} (hm : m ≤ dim)
     {A : Matrix (Fin l) (Fin m) ℤ} {B : Matrix (Fin m) (Fin n) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hB : MatrixEntryBound B b) :
@@ -104,6 +147,8 @@ theorem matrix_mul_entry_elimSup {dim l m n : ℕ} (hm : m ≤ dim)
       Nat.mul_le_mul hm (Nat.mul_le_mul (Nat.le_succ b) (Nat.le_succ b))
     _ = elimSupStep dim b := by rw [elimSupStep, Nat.pow_two]
 
+/-- A product has entry bound `elimSupStep dim b` when its inner dimension is at most `dim` and
+its factors have entry bounds at most `b + 1` and `b`, respectively. -/
 theorem matrix_mul_entry_elimSup_of_le_succ {dim l m n : ℕ} (hm : m ≤ dim)
     {A : Matrix (Fin l) (Fin m) ℤ} {B : Matrix (Fin m) (Fin n) ℤ} {c b : ℕ}
     (hc : c ≤ b + 1) (hA : MatrixEntryBound A c) (hB : MatrixEntryBound B b) :
@@ -115,11 +160,13 @@ theorem matrix_mul_entry_elimSup_of_le_succ {dim l m n : ℕ} (hm : m ≤ dim)
       Nat.mul_le_mul hm (Nat.mul_le_mul hc (Nat.le_succ b))
     _ = elimSupStep dim b := by rw [elimSupStep, Nat.pow_two]
 
+/-- The elimination bound after one step is at least one when `dim ≥ 1`. -/
 theorem one_le_elimSupStep {dim b : ℕ} (hd : 1 ≤ dim) : 1 ≤ elimSupStep dim b := by
   rw [elimSupStep]
   have hp : 0 < (b + 1) ^ 2 := by positivity
   exact Nat.one_le_iff_ne_zero.mpr (Nat.mul_ne_zero (by omega) (by omega))
 
+/-- One elimination-bound step does not decrease its input when `dim ≥ 1`. -/
 theorem le_elimSupStep {dim b : ℕ} (hd : 1 ≤ dim) : b ≤ elimSupStep dim b := by
   rw [elimSupStep, Nat.pow_two]
   calc
@@ -127,12 +174,14 @@ theorem le_elimSupStep {dim b : ℕ} (hd : 1 ≤ dim) : b ≤ elimSupStep dim b 
     _ ≤ (b + 1) * (b + 1) := Nat.le_mul_of_pos_right (b + 1) (by omega)
     _ ≤ dim * ((b + 1) * (b + 1)) := Nat.le_mul_of_pos_left _ hd
 
+/-- One elimination-bound step is at least `b + 1` when `dim ≥ 1`. -/
 theorem succ_le_elimSupStep {dim b : ℕ} (hd : 1 ≤ dim) : b + 1 ≤ elimSupStep dim b := by
   rw [elimSupStep, Nat.pow_two]
   calc
     b + 1 ≤ (b + 1) * (b + 1) := Nat.le_mul_of_pos_right (b + 1) (by omega)
     _ ≤ dim * ((b + 1) * (b + 1)) := Nat.le_mul_of_pos_left _ hd
 
+/-- One elimination-bound step is at least `2 * b` when `dim ≥ 2`. -/
 theorem two_mul_le_elimSupStep {dim b : ℕ} (hd : 2 ≤ dim) : 2 * b ≤ elimSupStep dim b := by
   rw [elimSupStep, Nat.pow_two]
   calc
@@ -140,14 +189,17 @@ theorem two_mul_le_elimSupStep {dim b : ℕ} (hd : 2 ≤ dim) : 2 * b ≤ elimSu
       ((Nat.le_succ b).trans (Nat.le_mul_of_pos_right (b + 1) (by omega)))
     _ ≤ dim * ((b + 1) * (b + 1)) := Nat.mul_le_mul_right _ hd
 
+/-- The elimination-bound step is monotone in its input bound. -/
 theorem elimSupStep_mono {dim b c : ℕ} (h : b ≤ c) :
     elimSupStep dim b ≤ elimSupStep dim c := by
   exact Nat.mul_le_mul_left dim (Nat.pow_le_pow_left (Nat.add_le_add_right h 1) 2)
 
+/-- The elimination-bound step is monotone in the dimension parameter. -/
 theorem elimSupStep_dim_mono {d D b : ℕ} (h : d ≤ D) :
     elimSupStep d b ≤ elimSupStep D b :=
   Nat.mul_le_mul_right ((b + 1) ^ 2) h
 
+/-- Every fixed iterate of the elimination-bound step is monotone in the initial bound. -/
 theorem elimSup_iterate_mono {dim : ℕ} : ∀ (k : ℕ) {b c : ℕ}, b ≤ c →
     (elimSupStep dim)^[k] b ≤ (elimSupStep dim)^[k] c := by
   intro k
@@ -158,6 +210,8 @@ theorem elimSup_iterate_mono {dim : ℕ} : ∀ (k : ℕ) {b c : ℕ}, b ≤ c �
       rw [Function.iterate_succ_apply, Function.iterate_succ_apply]
       exact ih (elimSupStep_mono h)
 
+/-- Increasing the dimension parameter increases or preserves every iterate of the
+elimination-bound step at a fixed initial bound. -/
 theorem elimSup_iterate_dim_mono {d D : ℕ} (h : d ≤ D) : ∀ (k : ℕ) (b : ℕ),
     (elimSupStep d)^[k] b ≤ (elimSupStep D)^[k] b := by
   intro k
@@ -169,6 +223,7 @@ theorem elimSup_iterate_dim_mono {d D : ℕ} (h : d ≤ D) : ∀ (k : ℕ) (b : 
       exact (ih (elimSupStep d b)).trans
         (elimSup_iterate_mono k (elimSupStep_dim_mono h))
 
+/-- Every iterate of the elimination-bound step is at least its initial bound when `dim ≥ 1`. -/
 theorem le_elimSup_iterate {dim : ℕ} (hd : 1 ≤ dim) : ∀ (k : ℕ) (b : ℕ),
     b ≤ (elimSupStep dim)^[k] b := by
   intro k
@@ -179,30 +234,41 @@ theorem le_elimSup_iterate {dim : ℕ} (hd : 1 ≤ dim) : ∀ (k : ℕ) (b : ℕ
       rw [Function.iterate_succ_apply]
       exact (le_elimSupStep hd).trans (ih (elimSupStep dim b))
 
+/-- Iterating the elimination-bound step preserves a lower bound of one when `dim ≥ 1`. -/
 theorem one_le_elimSup_iterate {dim : ℕ} (hd : 1 ≤ dim) (k : ℕ) {b : ℕ} (hb : 1 ≤ b) :
     1 ≤ (elimSupStep dim)^[k] b :=
   hb.trans (le_elimSup_iterate hd k b)
 
+/-- The bit size after one additional elimination-bound step is at most twice the preceding bit
+size plus `dim + 2`. -/
 theorem elimSup_iterate_step_size {dim : ℕ} (k : ℕ) (b : ℕ) :
     ((elimSupStep dim)^[k+1] b).size ≤
       2 * ((elimSupStep dim)^[k] b).size + dim + 2 := by
   rw [Function.iterate_succ_apply']
   exact elimSupStep_size dim _
 
+/-- The identity presentation reduction inherits the input matrix's entry bound whenever that
+bound is at least one. -/
 theorem reduction_identity_entryBound {m n : ℕ} {A : Matrix (Fin m) (Fin n) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hb : 1 ≤ b) :
     ReductionEntryBound (PresentationReduction.identity A) b :=
   ⟨hA, matrix_one_entryBound hb, matrix_one_entryBound hb,
     matrix_one_entryBound hb, matrix_one_entryBound hb⟩
 
+/-- Converting a bounded column elimination state to a presentation reduction preserves its
+entry bound when the bound is at least one. -/
 theorem column_toReduction_entryBound {m n : ℕ} {s : ColumnEliminationState m n} {b : ℕ}
     (hs : ColumnEntryBound s b) (hb : 1 ≤ b) : ReductionEntryBound s.toReduction b :=
   ⟨hs.1, hs.2.1, hs.2.2, matrix_one_entryBound hb, matrix_one_entryBound hb⟩
 
+/-- Converting a bounded row elimination state to a presentation reduction preserves its entry
+bound when the bound is at least one. -/
 theorem row_toReduction_entryBound {m n : ℕ} {s : RowEliminationState m n} {b : ℕ}
     (hs : RowEntryBound s b) (hb : 1 ≤ b) : ReductionEntryBound s.toReduction b :=
   ⟨hs.1, matrix_one_entryBound hb, matrix_one_entryBound hb, hs.2.1, hs.2.2⟩
 
+/-- Composing two presentation reductions with common entry bound `b` gives bound `elimSupStep
+dim b`, provided both dimensions are at most `dim` and `dim ≥ 1`. -/
 theorem reduction_then_entryBound {m n dim : ℕ} (hm : m ≤ dim) (hn : n ≤ dim)
     (hd : 1 ≤ dim) {s t : PresentationReduction m n} {b : ℕ}
     (hs : ReductionEntryBound s b) (ht : ReductionEntryBound t b) :
@@ -213,6 +279,8 @@ theorem reduction_then_entryBound {m n dim : ℕ} (hm : m ≤ dim) (hn : n ≤ d
   · exact matrix_mul_entry_elimSup hn hs.2.2.2.1 ht.2.2.2.1
   · exact matrix_mul_entry_elimSup hn ht.2.2.2.2 hs.2.2.2.2
 
+/-- A block matrix formed from pivot `a` and matrix `B` has entry bound `b` when both the
+pivot's natural absolute value and the entries of `B` are bounded by `b`. -/
 private theorem pivotBlock_entryBound {m n : ℕ} {a : ℤ} {B : Matrix (Fin m) (Fin n) ℤ}
     {b : ℕ} (ha : a.natAbs ≤ b) (hB : MatrixEntryBound B b) :
     MatrixEntryBound (pivotBlock a B) b := by
@@ -225,10 +293,13 @@ private theorem pivotBlock_entryBound {m n : ℕ} {a : ℤ} {B : Matrix (Fin m) 
     · simp [pivotBlock]
     · simpa [pivotBlock] using! hB r c
 
+/-- The natural absolute value of the pivot sign is at most one. -/
 private theorem pivotSign_natAbs_le (a : ℤ) : (pivotSign a).natAbs ≤ 1 := by
   simp [pivotSign]
   split <;> simp
 
+/-- Lifting a presentation reduction around a pivot preserves bound `b` when the original
+reduction and pivot satisfy that bound and `b ≥ 1`. -/
 theorem reduction_lift_entryBound {m n : ℕ} {a : ℤ} {s : PresentationReduction m n}
     {b : ℕ} (ha : a.natAbs ≤ b) (hs : ReductionEntryBound s b) (hb : 1 ≤ b) :
     ReductionEntryBound (s.lift a) b := by
@@ -238,6 +309,8 @@ theorem reduction_lift_entryBound {m n : ℕ} {a : ℤ} {s : PresentationReducti
   · exact pivotBlock_entryBound hb hs.2.2.2.1
   · exact pivotBlock_entryBound hb hs.2.2.2.2
 
+/-- Every column-clearing coefficient has natural absolute value at most the input matrix's
+entry bound. -/
 private theorem columnClearCoefficients_natAbs {m n : ℕ} (p : Fin n)
     (A : Matrix (Fin (m+1)) (Fin n) ℤ) {b : ℕ} (hA : MatrixEntryBound A b) :
     ∀ r, (columnClearCoefficients p A r).natAbs ≤ b := by
@@ -251,6 +324,8 @@ private theorem columnClearCoefficients_natAbs {m n : ℕ} (p : Fin n)
     have h' : (A r p / A 0 p).natAbs ≤ (A r p).natAbs := by exact_mod_cast h
     exact h'.trans (hA r p)
 
+/-- The first-row shear matrix has entry bound `b + 1` when all its coefficient magnitudes are
+bounded by `b`. -/
 private theorem firstRowShear_entryBound {m : ℕ} {v : Fin (m+1) → ℤ} {b : ℕ}
     (hv : ∀ r, (v r).natAbs ≤ b) : MatrixEntryBound (firstRowShear v) (b+1) := by
   intro r c
@@ -262,6 +337,8 @@ private theorem firstRowShear_entryBound {m : ℕ} {v : Fin (m+1) → ℤ} {b : 
     · simp
   exact h.trans (by omega)
 
+/-- Column clearing produces an elimination state bounded by `elimSupStep dim b` when the input
+is bounded by `b` and its row count is at most `dim`. -/
 theorem columnClear_entryBound {m n dim : ℕ} (hm : m+1 ≤ dim) (p : Fin n)
     {A : Matrix (Fin (m+1)) (Fin n) ℤ} {b : ℕ} (hA : MatrixEntryBound A b) :
     ColumnEntryBound (columnClear p A) (elimSupStep dim b) := by
@@ -279,12 +356,16 @@ theorem columnClear_entryBound {m n dim : ℕ} (hm : m+1 ≤ dim) (p : Fin n)
   · exact hs.mono (succ_le_elimSupStep hd)
   · exact hsn.mono (succ_le_elimSupStep hd)
 
+/-- Row clearing produces an elimination state bounded by `elimSupStep dim b` when the input is
+bounded by `b` and its column count is at most `dim`. -/
 theorem rowClear_entryBound {m n dim : ℕ} (hn : n+1 ≤ dim) (p : Fin m)
     {A : Matrix (Fin m) (Fin (n+1)) ℤ} {b : ℕ} (hA : MatrixEntryBound A b) :
     RowEntryBound (rowClear p A) (elimSupStep dim b) := by
   have h := columnClear_entryBound hn p (A := A.transpose) (fun i j => hA j i)
   exact ⟨fun i j => h.1 j i, fun i j => h.2.1 j i, fun i j => h.2.2 j i⟩
 
+/-- Clearing a pivot yields a presentation reduction bounded by three iterates of `elimSupStep
+dim`, provided both matrix dimensions are at most `dim`. -/
 theorem clearPivot_entryBound {m n dim : ℕ} (hm : m+1 ≤ dim) (hn : n+1 ≤ dim)
     {A : Matrix (Fin (m+1)) (Fin (n+1)) ℤ} {b : ℕ} (hA : MatrixEntryBound A b) :
     ReductionEntryBound (clearPivot A) ((elimSupStep dim)^[3] b) := by
@@ -300,6 +381,8 @@ theorem clearPivot_entryBound {m n dim : ℕ} (hm : m+1 ≤ dim) (hn : n+1 ≤ d
   have h := reduction_then_entryBound hm hn hd hcR hrR
   simpa [clearPivot, c, r, Function.iterate_succ_apply] using! h
 
+/-- Mixing two rows with a 2-by-2 coefficient matrix bounded by `c` sends entry bound `b` to
+`max b (2 * (c * b))`. -/
 private theorem rowMix_entry_le {m n : ℕ} (i j : Fin m) {C : Matrix (Fin 2) (Fin 2) ℤ}
     {A : Matrix (Fin m) (Fin n) ℤ} {c b : ℕ}
     (hC : MatrixEntryBound C c) (hA : MatrixEntryBound A b) :
@@ -317,12 +400,15 @@ private theorem rowMix_entry_le {m n : ℕ} (i j : Fin m) {C : Matrix (Fin 2) (F
       (Nat.mul_le_mul (hC 1 1) (hA j k))).trans (by omega)
   · exact (hA r k).trans (Nat.le_max_left _ _)
 
+/-- The integer 2-by-2 matrix with rows `(1, 1)` and `(0, 1)` has entry bound one. -/
 private theorem mix_one_entryBound (C : Matrix (Fin 2) (Fin 2) ℤ)
     (h0 : C 0 0 = 1) (h1 : C 0 1 = 1) (h2 : C 1 0 = 0) (h3 : C 1 1 = 1) :
     MatrixEntryBound C 1 := by
   intro i j
   fin_cases i <;> fin_cases j <;> simp_all
 
+/-- Exposing a row produces a column elimination state bounded by `elimSupStep dim b` when the
+input bound satisfies `b ≥ 1` and `dim ≥ 2`. -/
 theorem exposeRow_entryBound {m n dim : ℕ} (hd : 2 ≤ dim) (r : Fin (m+1))
     {A : Matrix (Fin (m+1)) (Fin n) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hb : 1 ≤ b) :
@@ -346,6 +432,8 @@ theorem exposeRow_entryBound {m n dim : ℕ} (hd : 2 ≤ dim) (r : Fin (m+1))
       (rowMix_entry_le 0 r hC (matrix_one_entryBound hb)).mono htwo,
       (rowMix_entry_le 0 r hCi (matrix_one_entryBound hb)).mono htwo⟩
 
+/-- The counted column reduction has common entry bound given by `m` elimination-bound iterates,
+assuming the input bound is at least one and the row count is at most `dim`. -/
 theorem smithColumnReduceCounted_entryBound {m n dim : ℕ} (hm : m+1 ≤ dim) (p : Fin n)
     {A : Matrix (Fin (m+1)) (Fin n) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hb : 1 ≤ b) :
@@ -356,6 +444,8 @@ theorem smithColumnReduceCounted_entryBound {m n dim : ℕ} (hm : m+1 ≤ dim) (
   exact ⟨fun i j => (h.1 i j).trans he, fun i j => (h.2.1 i j).trans he,
     fun i j => (h.2.2 i j).trans he⟩
 
+/-- The counted row reduction has common entry bound given by `n` elimination-bound iterates,
+assuming the input bound is at least one and the column count is at most `dim`. -/
 theorem smithRowReduceCounted_entryBound {m n dim : ℕ} (hn : n+1 ≤ dim) (p : Fin m)
     {A : Matrix (Fin m) (Fin (n+1)) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hb : 1 ≤ b) :
@@ -366,6 +456,9 @@ theorem smithRowReduceCounted_entryBound {m n dim : ℕ} (hn : n+1 ≤ dim) (p :
   exact ⟨fun i j => (h.1 i j).trans he, fun i j => (h.2.1 i j).trans he,
     fun i j => (h.2.2 i j).trans he⟩
 
+/-- The peak Euclidean-pair input size after a counted column fold is bounded by the maximum of
+the incoming peak and the bit size of the entry bound iterated once per listed row, when the
+row count is at most `dim`. -/
 theorem smithColumnFoldCounted_peak_le {m n dim : ℕ} (hm : m+1 ≤ dim) (p : Fin n) :
     ∀ (ks : List (Fin m)) (s : ColumnEliminationState (m+1) n)
       (w : SmithEuclidWork) (b : ℕ), ColumnEntryBound s b →
@@ -395,6 +488,9 @@ theorem smithColumnFoldCounted_peak_le {m n dim : ℕ} (hm : m+1 ≤ dim) (p : F
         Function.iterate_succ_apply, SmithEuclidWork.append] at htail ⊢
       omega
 
+/-- The counted column reduction's peak pair-input bit size is at most the bit size of the entry
+bound after `m` elimination-bound iterates, under the stated dimension and initial-bound
+assumptions. -/
 theorem smithColumnReduceCounted_peak_le {m n dim : ℕ} (hm : m+1 ≤ dim) (p : Fin n)
     {A : Matrix (Fin (m+1)) (Fin n) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hb : 1 ≤ b) :
@@ -404,6 +500,9 @@ theorem smithColumnReduceCounted_peak_le {m n dim : ℕ} (hm : m+1 ≤ dim) (p :
     SmithEuclidWork.zero b ⟨hA, matrix_one_entryBound hb, matrix_one_entryBound hb⟩
   simpa [smithColumnReduceCounted, List.length_finRange, SmithEuclidWork.zero] using! h
 
+/-- The counted row reduction's peak pair-input bit size is at most the bit size of the entry
+bound after `n` elimination-bound iterates, under the stated dimension and initial-bound
+assumptions. -/
 theorem smithRowReduceCounted_peak_le {m n dim : ℕ} (hn : n+1 ≤ dim) (p : Fin m)
     {A : Matrix (Fin m) (Fin (n+1)) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hb : 1 ≤ b) :
@@ -412,6 +511,8 @@ theorem smithRowReduceCounted_peak_le {m n dim : ℕ} (hn : n+1 ≤ dim) (p : Fi
   simpa [smithRowReduceCounted] using!
     (smithColumnReduceCounted_peak_le hn p (A := A.transpose) (fun i j => hA j i) hb)
 
+/-- Swapping the selected row with the first row preserves the common entry bound when that
+bound is at least one. -/
 private theorem swapRows_entryBound {m n : ℕ} (r : Fin (m+1))
     {A : Matrix (Fin (m+1)) (Fin n) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hb : 1 ≤ b) : ColumnEntryBound (swapRows r A) b := by
@@ -420,12 +521,16 @@ private theorem swapRows_entryBound {m n : ℕ} (r : Fin (m+1))
     matrix_submatrix_entryBound _ _ (matrix_one_entryBound hb),
     matrix_submatrix_entryBound _ _ (matrix_one_entryBound hb)⟩
 
+/-- Swapping the selected column with the first column preserves the common entry bound when
+that bound is at least one. -/
 private theorem swapColumns_entryBound {m n : ℕ} (c : Fin (n+1))
     {A : Matrix (Fin m) (Fin (n+1)) ℤ} {b : ℕ}
     (hA : MatrixEntryBound A b) (hb : 1 ≤ b) : RowEntryBound (swapColumns c A) b := by
   have h := swapRows_entryBound c (A := A.transpose) (fun i j => hA j i) hb
   exact ⟨fun i j => h.1 j i, fun i j => h.2.1 j i, fun i j => h.2.2 j i⟩
 
+/-- Moving a selected entry to the pivot position gives a presentation reduction bounded by
+`elimSupStep dim b` under the stated dimension bounds and `b ≥ 1`. -/
 theorem movePivot_entryBound {m n dim : ℕ} (hm : m+1 ≤ dim) (hn : n+1 ≤ dim)
     (hd : 1 ≤ dim) (rc : Fin (m+1) × Fin (n+1))
     {A : Matrix (Fin (m+1)) (Fin (n+1)) ℤ} {b : ℕ}
@@ -437,12 +542,16 @@ theorem movePivot_entryBound {m n dim : ℕ} (hm : m+1 ≤ dim) (hn : n+1 ≤ di
   simpa only [movePivot, s] using! reduction_then_entryBound hm hn hd
     (column_toReduction_entryBound hs hb) (row_toReduction_entryBound ht hb)
 
+/-- Two presentation reductions whose entry bounds are both at most `b` compose with bound
+`elimSupStep dim b`, under the stated dimension assumptions. -/
 theorem reduction_then_entryBound_of_le {m n dim : ℕ} (hm : m ≤ dim) (hn : n ≤ dim)
     (hd : 1 ≤ dim) {s t : PresentationReduction m n} {bs bt b : ℕ}
     (hs : ReductionEntryBound s bs) (ht : ReductionEntryBound t bt)
     (hbs : bs ≤ b) (hbt : bt ≤ b) : ReductionEntryBound (s.then t) (elimSupStep dim b) :=
   reduction_then_entryBound hm hn hd (hs.mono hbs) (ht.mono hbt)
 
+/-- The recursive entry-bound expression following the same divisibility tests and reduction
+branches as the pivot-isolation loop for a specified fuel value. -/
 def isolatePivotLoopSup (dim : ℕ) {m n : ℕ} :
     ℕ → Matrix (Fin (m+1)) (Fin (n+1)) ℤ → ℕ → ℕ
   | 0, _, b => b
@@ -470,9 +579,13 @@ def isolatePivotLoopSup (dim : ℕ) {m n : ℕ} :
       let s := smithColumnReduceCounted 0 A
       elimSupStep dim (isolatePivotLoopSup dim fuel s.1.value ((elimSupStep dim)^[m] b))
 
+/-- The pivot-isolation bound obtained by initializing `isolatePivotLoopSup` with fuel `(A 0
+0).natAbs + 1`. -/
 def isolatePivotSup (dim : ℕ) {m n : ℕ} (A : Matrix (Fin (m+1)) (Fin (n+1)) ℤ)
     (b : ℕ) : ℕ := isolatePivotLoopSup dim ((A 0 0).natAbs+1) A b
 
+/-- The recursive entry-bound expression following pivot search, pivot isolation, and reduction
+of the remaining submatrix in rectangular Smith reduction. -/
 def rectangularSup (dim : ℕ) : {m n : ℕ} → Matrix (Fin m) (Fin n) ℤ → ℕ → ℕ
   | 0, _, _, b => b
   | _+1, 0, _, b => b
@@ -489,6 +602,8 @@ def rectangularSup (dim : ℕ) : {m n : ℕ} → Matrix (Fin m) (Fin n) ℤ → 
         (rectangularSup dim (t.1.1.value.submatrix Fin.succ Fin.succ)
           (isolatePivotSup dim s.value (elimSupStep dim b)))
 
+/-- The pivot-loop bound is at least its initial bound for every fuel and input matrix when `dim
+≥ 1` and the initial bound is at least one. -/
 theorem le_isolatePivotLoopSup {m n dim : ℕ} (hd : 1 ≤ dim) :
     ∀ (fuel : ℕ) (A : Matrix (Fin (m+1)) (Fin (n+1)) ℤ) {b : ℕ}, 1 ≤ b →
       b ≤ isolatePivotLoopSup dim fuel A b := by
@@ -522,11 +637,15 @@ theorem le_isolatePivotLoopSup {m n dim : ℕ} (hd : 1 ≤ dim) :
         have hrec : bs ≤ isolatePivotLoopSup dim fuel s.1.value bs := ih s.1.value hbs
         exact (le_elimSup_iterate hd m b).trans (hrec.trans (le_elimSupStep hd))
 
+/-- The full pivot-isolation bound is at least its initial bound when `dim ≥ 1` and the initial
+bound is at least one. -/
 theorem le_isolatePivotSup {m n dim : ℕ} (hd : 1 ≤ dim)
     (A : Matrix (Fin (m+1)) (Fin (n+1)) ℤ) {b : ℕ} (hb : 1 ≤ b) :
     b ≤ isolatePivotSup dim A b :=
   le_isolatePivotLoopSup hd ((A 0 0).natAbs+1) A hb
 
+/-- The rectangular reduction bound is at least its initial bound when `dim ≥ 1` and the initial
+bound is at least one. -/
 theorem le_rectangularSup {dim : ℕ} (hd : 1 ≤ dim) :
     ∀ {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℤ) {b : ℕ}, 1 ≤ b →
       b ≤ rectangularSup dim A b := by
@@ -551,6 +670,9 @@ theorem le_rectangularSup {dim : ℕ} (hd : 1 ≤ dim) :
             have hU : bB ≤ rectangularSup dim U bB := ih U hbB
             exact (le_elimSupStep hd).trans (hB.trans (hU.trans (le_elimSup_iterate hd 2 _)))
 
+/-- Under the stated dimension and initial-bound assumptions, the counted pivot loop's reduction
+entries are bounded by `isolatePivotLoopSup`. Its peak Euclidean-pair input size is at most
+the bit size of that bound. -/
 theorem smithIsolatePivotEuclidLoop_entryBound {m n dim : ℕ}
     (hm : m+1 ≤ dim) (hn : n+1 ≤ dim) (hd : 2 ≤ dim) :
     ∀ (fuel : ℕ) (A : Matrix (Fin (m+1)) (Fin (n+1)) ℤ) (b : ℕ),
@@ -687,6 +809,9 @@ theorem smithIsolatePivotEuclidLoop_entryBound {m n dim : ℕ}
               (elimSupStep dim B).size := max_le hsf htf
           simpa [s, tail, B, bs] using! hp
 
+/-- The complete counted pivot-isolation routine has reduction entries bounded by
+`isolatePivotSup` and peak pair-input size bounded by its bit size, under the stated
+dimension and input-bound assumptions. -/
 theorem smithIsolatePivotEuclid_entryBound {m n dim : ℕ}
     (hm : m+1 ≤ dim) (hn : n+1 ≤ dim) (hd : 2 ≤ dim)
     (A : Matrix (Fin (m+1)) (Fin (n+1)) ℤ) (b : ℕ)
@@ -696,6 +821,8 @@ theorem smithIsolatePivotEuclid_entryBound {m n dim : ℕ}
   simpa [smithIsolatePivotEuclid, isolatePivotSup] using!
     smithIsolatePivotEuclidLoop_entryBound hm hn hd ((A 0 0).natAbs+1) A b hA hb
 
+/-- For `dim ≥ m + n + 2` and input bound `b ≥ 1`, the counted rectangular Smith reduction has
+entries bounded by `rectangularSup dim A b` and peak pair-input size at most its bit size. -/
 theorem smithRectangularEuclid_entryBound {dim : ℕ} (hd : 2 ≤ dim) :
     ∀ {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℤ) (b : ℕ),
       m+n+2 ≤ dim → MatrixEntryBound A b → 1 ≤ b →
@@ -767,6 +894,9 @@ theorem smithRectangularEuclid_entryBound {dim : ℕ} (hd : 2 ≤ dim) :
 
 namespace output1
 
+/-- The counted rectangular routine satisfies the entry and peak-bit bounds defined by
+`rectangularSup (m + n + 2) A (max b 1)` and the stated quotient-remainder count bound. Its
+reduction equals `rectangularSmith A`, encodes `A`, and has value in Smith form. -/
 theorem frontier1 {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℤ) (b : ℕ)
     (hA : ∀ i j, (A i j).natAbs ≤ b) :
     let dim := m+n+2

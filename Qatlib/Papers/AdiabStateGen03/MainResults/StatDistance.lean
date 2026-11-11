@@ -9,6 +9,27 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Algebra.Order.Module.Basic
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 
+/-!
+# Total variation and square-root overlap
+
+This module compares total variation distance with the overlap and Euclidean distance of
+square-root probability amplitudes. The identities `sum_sq_sub_sqrt` and `sum_sq_add_sqrt`
+express squared amplitude sums through overlap, and `tv_le_sqrt_sum_sq_sub_sqrt` gives the
+converse distance estimate used in statistical reductions. The mathematical context is
+[AharonovTaShma2007].
+
+## Main statements
+
+* `one_sub_tv_le_overlap`: The square-root overlap of two probability distributions is at least
+  one minus their total variation distance.
+* `tv_le_sqrt_sum_sq_sub_sqrt`: The total variation distance of two probability distributions is
+  at most the Euclidean distance of their square-root amplitude vectors.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,6 +40,7 @@ namespace Qatlib.Papers.AdiabStateGen03.MainResults.StatDistance
 
 variable {ι : Type*} [Fintype ι]
 
+/-- For nonnegative real numbers, the minimum is at most the square root of their product. -/
 lemma min_le_sqrt_mul {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
     min a b ≤ Real.sqrt (a * b) := by
   have h0 : 0 ≤ min a b := le_min ha hb
@@ -27,11 +49,15 @@ lemma min_le_sqrt_mul {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) :
   have hs : (min a b) ^ 2 ≤ a * b := by nlinarith
   exact Real.le_sqrt_of_sq_le hs
 
+/-- The minimum of two real numbers is half their sum minus half the absolute value of their
+difference. -/
 lemma min_eq_half (a b : ℝ) : min a b = (a + b - |b - a|) / 2 := by
   have h := inf_eq_half_smul_add_sub_abs_sub' ℝ (M := ℝ) a b
   rw [div_eq_inv_mul]
   simpa [min_def, smul_eq_mul] using h
 
+/-- The square-root overlap of two probability distributions is at least one minus their total
+variation distance [AharonovTaShma2007]. -/
 theorem one_sub_tv_le_overlap (p q : ι → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 0 ≤ q i)
     (hp1 : ∑ i, p i = 1) (hq1 : ∑ i, q i = 1) :
@@ -56,6 +82,7 @@ theorem one_sub_tv_le_overlap (p q : ι → ℝ)
   rw [hsum_min, hp1, hq1] at hstep
   linarith
 
+/-- The square-root overlap of two probability distributions is at most one. -/
 theorem overlap_le_one (p q : ι → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 0 ≤ q i)
     (hp1 : ∑ i, p i = 1) (hq1 : ∑ i, q i = 1) :
@@ -78,6 +105,8 @@ theorem overlap_le_one (p q : ι → ℝ)
     Finset.sum_nonneg fun i _ => Real.sqrt_nonneg _
   nlinarith [hp1, hq1, hcs, hnn]
 
+/-- For probability distributions, the sum of squared square-root amplitude differences is twice
+one minus their square-root overlap [AharonovTaShma2007]. -/
 theorem sum_sq_sub_sqrt (p q : ι → ℝ) (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 0 ≤ q i)
     (hp1 : ∑ i, p i = 1) (hq1 : ∑ i, q i = 1) :
     ∑ i, (Real.sqrt (p i) - Real.sqrt (q i)) ^ 2
@@ -101,6 +130,8 @@ theorem sum_sq_sub_sqrt (p q : ι → ℝ) (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 
             hp1, hq1]
         ring
 
+/-- For probability distributions, the sum of squared square-root amplitude sums is two plus
+twice their square-root overlap. -/
 theorem sum_sq_add_sqrt (p q : ι → ℝ) (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 0 ≤ q i)
     (hp1 : ∑ i, p i = 1) (hq1 : ∑ i, q i = 1) :
     ∑ i, (Real.sqrt (p i) + Real.sqrt (q i)) ^ 2
@@ -123,6 +154,8 @@ theorem sum_sq_add_sqrt (p q : ι → ℝ) (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 
         rw [Finset.sum_add_distrib, Finset.sum_add_distrib, ← Finset.mul_sum, hp1, hq1]
         ring
 
+/-- The total variation distance of two probability distributions is at most the Euclidean
+distance of their square-root amplitude vectors [AharonovTaShma2007]. -/
 theorem tv_le_sqrt_sum_sq_sub_sqrt (p q : ι → ℝ)
     (hp : ∀ i, 0 ≤ p i) (hq : ∀ i, 0 ≤ q i)
     (hp1 : ∑ i, p i = 1) (hq1 : ∑ i, q i = 1) :

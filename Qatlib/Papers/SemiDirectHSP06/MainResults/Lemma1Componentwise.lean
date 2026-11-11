@@ -8,11 +8,32 @@ import Mathlib.Data.ZMod.Basic
 import Mathlib.Data.ZMod.Units
 import Mathlib.Tactic
 
+/-!
+# Automorphisms preserve coprime prime-power factors
+
+Additive automorphisms of the product of cyclic groups of orders `q ^ s` and `p ^ r` preserve
+each factor when `p` and `q` are distinct primes. `lemma1_componentwise` expresses this by
+showing that the off-factor coordinates vanish. See [ChiKimLee2006] for the mathematical
+setting.
+
+## Main statements
+
+* `zmod_eq_zero_of_nsmul_eq_zero`: eliminates torsion killed by an integer coprime to the
+  modulus.
+* `lemma1_componentwise`: proves vanishing of the off-factor coordinates under an additive
+  automorphism.
+
+## References
+
+* [Chi et al., 2006][ChiKimLee2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.SemiDirectHSP06.MainResults
 
+/-- If `k` is coprime to `n`, a residue modulo `n` annihilated by `k` is zero. -/
 lemma zmod_eq_zero_of_nsmul_eq_zero {n k : ℕ} (hcop : Nat.Coprime k n) {x : ZMod n}
     (h : k • x = 0) : x = 0 := by
   have hunit : IsUnit ((k : ℕ) : ZMod n) := (ZMod.isUnit_iff_coprime k n).2 hcop
@@ -23,6 +44,7 @@ lemma zmod_eq_zero_of_nsmul_eq_zero {n k : ℕ} (hcop : Nat.Coprime k n) {x : ZM
   rw [hk, mul_zero] at this
   exact this
 
+/-- Powers of distinct primes are coprime. -/
 lemma coprime_prime_powers {p q s r : ℕ} (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q) :
     Nat.Coprime (q ^ s) (p ^ r) := by
   have hqnp : ¬ q ∣ p := by
@@ -31,6 +53,9 @@ lemma coprime_prime_powers {p q s r : ℕ} (hp : p.Prime) (hq : q.Prime) (hpq : 
   have hcqp : Nat.Coprime q p := (Nat.Prime.coprime_iff_not_dvd hq).2 hqnp
   exact hcqp.pow s r
 
+/-- For distinct primes `p` and `q` and positive exponents, an additive automorphism of `ZMod (q
+^ s) × ZMod (p ^ r)` maps each coordinate factor into itself. See [Chi et al., 2006, Lemma
+1][ChiKimLee2006]. -/
 theorem lemma1_componentwise {p q s r : ℕ} (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
     (hs : 0 < s) (hr : 0 < r)
     (F : ZMod (q ^ s) × ZMod (p ^ r) ≃+ ZMod (q ^ s) × ZMod (p ^ r))

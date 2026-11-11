@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.KrausCompile.BinaryTree.AdaptiveCompiler
+
+/-!
+# Single-qubit realizations of compiled Kraus programs
+
+`SingleQubit` certifies programs with unitary terminal channels and binary measurement nodes
+realized by unitaries on the data space and one auxiliary qubit. The module proves this property
+for the binary compiler and identifies the channel obtained by forgetting all records. The
+constructions relate to finite Kraus implementations in [CaiEtAl2026].
+
+## Main statements
+
+* `compileFamily_singleQubit`: the physical realization certificate.
+* `compileFamily_forget`: the original Kraus sum after discarding records.
+* `compileFamily_extra`: zero branches for padding indices.
+
+## References
+
+* [Cai et al., 2026][CaiEtAl2026]
+* [Kraus, 1983][Kraus1983]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +41,9 @@ open scoped BigOperators ComplexOrder
 
 namespace Qatlib.Concepts.KrausCompile.BinaryTree
 
+/-- Certifies a program whose terminal channels are unitary conjugations and whose binary
+measurement nodes possess unitary realizations on the data space with one clean auxiliary
+qubit. -/
 inductive SingleQubit (d : ℕ) : Program d d → Prop where
 
   | halt (T : QuantumChannel d d) (U : Operator d)
@@ -33,11 +57,13 @@ inductive SingleQubit (d : ℕ) : Program d d → Prop where
       (hbranch : ∀ b ρ, (Instrument.ofKraus K hK).branch b ρ = measuredQubitBranch W b ρ) :
       SingleQubit d (.measure (Instrument.ofKraus K hK) next)
 
+/-- The sole operator in a complete singleton square Kraus family is unitary. -/
 theorem singleton_unitary {d : ℕ} (K : Fin 1 → Operator d) (hK : KrausComplete K) :
     K 0 ∈ Matrix.unitaryGroup (Fin d) ℂ := by
   apply Matrix.mem_unitaryGroup_iff'.mpr
   simpa only [KrausComplete, Fin.sum_univ_one] using! hK
 
+/-- The binary compilation of a complete power-of-two Kraus family satisfies `SingleQubit`. -/
 theorem compileTree_singleQubit {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     (hK : KrausComplete K) : SingleQubit d (compileTree n K hK) := by
   induction n with
@@ -46,9 +72,13 @@ theorem compileTree_singleQubit {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operato
     obtain ⟨W, hW, hb⟩ := actual_binary_instrument_implementation (nodeB n K) (node_complete n K hK)
     exact .measure _ _ _ (fun b => ih _ _) W hW hb
 
+/-- The padded binary compilation of any complete finite square Kraus family satisfies
+`SingleQubit`. -/
 theorem compileFamily_singleQubit {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K) :
     SingleQubit d (compileFamily K hK) := compileTree_singleQubit _ _ _
 
+/-- Forgetting the measurement records of a compiled tree yields the sum of the original Kraus
+conjugation branches. -/
 theorem compileTree_forget {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     (hK : KrausComplete K) (ρ : Operator d) :
     forget (compileTree n K hK) ρ = ∑ i, K i * ρ * (K i).conjTranspose := by
@@ -71,6 +101,8 @@ theorem compileTree_forget {d : ℕ} (n : ℕ) (K : Fin (2 ^ n) → Operator d)
     simpa only [Fintype.sum_prod_type] using!
       (splitEquiv n).sum_comp (fun i => K i * ρ * (K i).conjTranspose)
 
+/-- Forgetting the measurement records of a padded compiled family yields its original Kraus
+channel. -/
 theorem compileFamily_forget {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (ρ : Operator d) : forget (compileFamily K hK) ρ = ∑ i, K i * ρ * (K i).conjTranspose := by
   rw [compileFamily, compileTree_forget]
@@ -79,6 +111,8 @@ theorem compileFamily_forget {d s : ℕ} (K : Fin s → Operator d) (hK : KrausC
     Fin.addCases_left, Fin.addCases_right, Matrix.conjTranspose_zero, zero_mul, mul_zero,
     Finset.sum_const_zero, add_zero]
 
+/-- Each padding index in the compiled family corresponds to a leaf whose map is zero on every
+input matrix. -/
 theorem compileFamily_extra {d s : ℕ} (K : Fin s → Operator d) (hK : KrausComplete K)
     (i : Fin (2^(Nat.clog 2 s)-s)) :
     ∃ t ∈ leaves (compileFamily K hK), ∀ ρ, t.map ρ = 0 := by

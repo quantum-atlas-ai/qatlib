@@ -16,6 +16,28 @@ import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundL
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.AmplificationProductEventBounds
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAmpCounterexamples
+
+/-!
+# Refutations of unrestricted variable-time clauses
+
+This module uses explicit finite-dimensional inputs and cost counterexamples to refute four
+unrestricted conjunctions of variable-time specifications. The conclusions concern the displayed
+formal clauses, including their missing restrictions, within the framework motivated by the
+cited paper.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `not_clause64`: refutation using negative cost data.
+* `not_clause67`: refutation of a compiler depending only on the interface.
+* `not_clause68` and `not_clause89`: refutations of the displayed gain and recurrence clauses.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -87,13 +109,18 @@ open Qatlib.Papers.VarTimeAmpAmp10.Estimate
 open Qatlib.Papers.VarTimeAmpAmp10.StopModel
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
+/-- The four-dimensional state with every amplitude equal to one half. -/
 private noncomputable abbrev fourUniform : QState (Fin 4) := fun _ => 1 / 2
+/-- The two-projector family consisting of zero at index zero and the identity at index one. -/
 private noncomputable abbrev stopProjectors : Fin 2 → Matrix (Fin 4) (Fin 4) ℂ :=
   fun j => if j = 0 then 0 else 1
 
+/-- The state with four amplitudes equal to one half is normalized. -/
 private theorem fourUniform_normalized : Normalized fourUniform := by
   norm_num [Normalized, fourUniform]
 
+/-- The zero-then-identity stopping projectors with identity stage matrices satisfy
+`nestedStopLegal` for one stage. -/
 private theorem stopProjectors_legal : nestedStopLegal 1 stopProjectors (fun _ => 1) := by
   refine ⟨?_, by simp [stopProjectors], by simp [stopProjectors], ?_, ?_, ?_⟩
   · intro j
@@ -108,6 +135,7 @@ private theorem stopProjectors_legal : nestedStopLegal 1 stopProjectors (fun _ =
   · intro j
     simp
 
+/-- The empty plain prefix with identity stage matrices leaves `fourUniform` unchanged. -/
 private theorem fourUniform_clock :
     clockState (fun _ => (1 : Matrix (Fin 4) (Fin 4) ℂ)) (plainPrefix 0) fourUniform =
       fourUniform := by
@@ -115,6 +143,8 @@ private theorem fourUniform_clock :
   simp [clockState, plainPrefix, run, wordMatrix, controlled, clean, Matrix.mulVec,
     dotProduct, Fintype.sum_prod_type, fourUniform, Matrix.one_apply]
 
+/-- The singleton good set `{0}` in `fourUniform` has the good-component specification with
+target `Ket 0` and success mass one quarter. -/
 private theorem fourUniform_good : goodComponentData {0} fourUniform (Qatlib.Foundations.PureStateMath.Ket 0) (1 / 4) := by
   refine ⟨fourUniform_normalized, normalized_ket 0, by norm_num, ?_, ?_⟩
   · norm_num [MeasureProb, BornProb, fourUniform]
@@ -131,6 +161,8 @@ private theorem fourUniform_good : goodComponentData {0} fourUniform (Qatlib.Fou
     simp [stateVector, collapse_apply, fourUniform, Qatlib.Foundations.PureStateMath.Ket]
 noncomputable section
 
+/-- The displayed conjunction of variable-time specifications and a universal `tightAccessCost`
+amplification bound is false. -/
 theorem not_clause64 : ¬ (
 
   VariableTimeAlgorithm ∧
@@ -173,6 +205,8 @@ theorem not_clause64 : ¬ (
 end
 noncomputable section
 
+/-- The displayed universal conjunction of local gain assumptions, gain-product bounds, and a
+stopping-time cost bound is false. -/
 theorem not_clause68 : ¬ (
 
   AverageStopTailBound ∧
@@ -209,6 +243,8 @@ theorem not_clause68 : ¬ (
 end
 noncomputable section
 
+/-- The displayed universal compiler specification, whose compiled circuit depends only on the
+interface, is false even when paired with `VariableTimeAlgorithm`. -/
 theorem not_clause67 : ¬ (
 
   VariableTimeAlgorithm ∧
@@ -273,6 +309,8 @@ theorem not_clause67 : ¬ (
 end
 noncomputable section
 
+/-- The displayed universal conjunction of gain assumptions, a stage-time recurrence, and its
+proposed bounds is false. -/
 theorem not_clause89 : ¬ (
 
   CascadePrefixTransport ∧
@@ -300,6 +338,8 @@ theorem not_clause89 : ¬ (
 end
 noncomputable section
 
+/-- There is a normalized four-dimensional input with a good component of mass one quarter for
+which `tightAccessCost 1 (-1) (1 / 4)` equals negative one. -/
 theorem negative_cost_quantum_input :
     ∃ (ω ψ : QState (Fin 4)) (good : Finset (Fin 4)),
       Normalized ω ∧ goodComponentData good ω ψ (1 / 4) ∧

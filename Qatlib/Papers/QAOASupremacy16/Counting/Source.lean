@@ -8,6 +8,29 @@ import Qatlib.Papers.QAOASupremacy16.GapModels
 import Mathlib.Algebra.Order.Group.Unbundled.Int
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+
+/-!
+# Fourier inversion of bounded cost counts
+
+`dftChar` provides finite Fourier characters and their orthogonality relation. For a bounded
+natural-valued cost, Fourier inversion of `cspAmplitude` recovers `countVec` and hence
+`satisfyingCount`; the final conditional implication to equality of the supplied classes uses
+the assumptions packaged in `ConditionalCountingData`.
+
+This development accompanies the study of QAOA sampling and postselection in [FarhiHarrow2016].
+
+## Main statements
+
+* `countVec_eq_inverse_transform`: For costs bounded by `m`, the count at `v < m + 1` is `2^n /
+  (m + 1)` times the inverse Fourier transform of the sampled cost amplitudes.
+* `supplied_counting_implication`: Within the supplied conditional counting data,
+  `ExactMatrixElementsInP` implies equality of the specified classes `P` and `NP`.
+
+## References
+
+* [Farhi and Harrow, 2016][FarhiHarrow2016]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -23,14 +46,18 @@ open scoped BigOperators
 
 variable {n : ℕ}
 
+/-- The complex character `exp (2 * π * i * k * r / S)` for integer frequency `k` and natural
+sample index `r`. -/
 noncomputable def dftChar (S : ℕ) (k : ℤ) (r : ℕ) : ℂ :=
   Complex.exp (((k * (r : ℤ) : ℝ) / (S : ℝ)) * (2 * Real.pi * Complex.I))
 
+/-- The complex exponential of an integer multiple of `2 * π * i` is one. -/
 theorem exp_two_pi_int (k : ℤ) :
     Complex.exp ((k : ℂ) * (2 * Real.pi * Complex.I)) = 1 := by
   rw [Complex.exp_eq_one_iff]
   exact ⟨k, rfl⟩
 
+/-- A Fourier character at sample `r` is the `r`th power of its one-step exponential. -/
 theorem dftChar_eq_pow (S : ℕ) (k : ℤ) (r : ℕ) :
     dftChar S k r
       = (Complex.exp (((k : ℝ) / (S : ℝ)) * (2 * Real.pi * Complex.I))) ^ r := by
@@ -40,6 +67,7 @@ theorem dftChar_eq_pow (S : ℕ) (k : ℤ) (r : ℕ) :
   push_cast
   ring
 
+/-- Multiplying Fourier characters adds their integer frequencies. -/
 theorem dftChar_add (S : ℕ) (a b : ℤ) (r : ℕ) :
     dftChar S a r * dftChar S b r = dftChar S (a + b) r := by
   unfold dftChar
@@ -48,6 +76,8 @@ theorem dftChar_add (S : ℕ) (a b : ℤ) (r : ℕ) :
   push_cast
   ring
 
+/-- For positive `S`, the sum of a Fourier character over `Fin S` is `S` when `S` divides its
+frequency and zero otherwise. -/
 theorem sum_dftChar (S : ℕ) (hS : 0 < S) (k : ℤ) :
     ∑ r : Fin S, dftChar S k r.val
       = if (S : ℤ) ∣ k then (S : ℂ) else 0 := by
@@ -113,6 +143,8 @@ theorem sum_dftChar (S : ℕ) (hS : 0 < S) (k : ℤ) :
           exact Finset.sum_congr rfl fun r _ => hterm r
       _ = 0 := hsum0
 
+/-- For natural `a,b < S`, divisibility of their integer difference by `S` is equivalent to `a =
+b`. -/
 theorem dvd_iff_eq_of_bounds {S a b : ℕ} (ha : a < S) (hb : b < S) :
     (S : ℤ) ∣ ((a : ℤ) - (b : ℤ)) ↔ a = b := by
   constructor
@@ -131,12 +163,16 @@ theorem dvd_iff_eq_of_bounds {S a b : ℕ} (ha : a < S) (hb : b < S) :
     subst h
     simp
 
+/-- The number of `n`-bit registers at which the cost equals `v`. -/
 def countVec (C : Reg n → ℕ) (v : ℕ) : ℕ :=
   (Finset.univ.filter fun z => C z = v).card
 
+/-- The number of registers whose cost equals the specified value `m`. -/
 def satisfyingCount (C : Reg n → ℕ) (m : ℕ) : ℕ :=
   countVec C m
 
+/-- At a Fourier sampling angle, the cost phase sum is `2^(-n)` times the sum of Fourier
+characters with frequencies given by the negative costs. -/
 theorem cspAmplitude_eq_dft (n m : ℕ) (C : Reg n → ℕ) (r : ℕ) :
     cspAmplitude (phaseAngle m r) C
       = ((2 : ℂ) ^ n)⁻¹ *
@@ -150,6 +186,8 @@ theorem cspAmplitude_eq_dft (n m : ℕ) (C : Reg n → ℕ) (r : ℕ) :
   push_cast
   field_simp [hm1]
 
+/-- For costs bounded by `m`, Fourier orthogonality recovers `(m + 1)` times the number of
+registers with cost `v` from the double character sum. -/
 theorem dft_inversion_sum (n m : ℕ) (C : Reg n → ℕ) (hC : ∀ z, C z ≤ m)
     (v : Fin (m + 1)) :
     ∑ r : Fin (m + 1),
@@ -195,6 +233,8 @@ theorem dft_inversion_sum (n m : ℕ) (C : Reg n → ℕ) (hC : ∀ z, C z ≤ m
     _ = ((m + 1 : ℕ) : ℂ) * (countVec C v.val : ℂ) := by
         rw [← hind, Finset.mul_sum]
 
+/-- For costs bounded by `m`, the count at `v < m + 1` is `2^n / (m + 1)` times the inverse
+Fourier transform of the sampled cost amplitudes. -/
 theorem countVec_eq_inverse_transform (n m : ℕ) (C : Reg n → ℕ)
     (hC : ∀ z, C z ≤ m) (v : Fin (m + 1)) :
     (countVec C v.val : ℂ)
@@ -220,6 +260,8 @@ theorem countVec_eq_inverse_transform (n m : ℕ) (C : Reg n → ℕ)
   rw [hsum, hcore]
   field_simp [h2n, hSne]
 
+/-- Two costs bounded by `m` with equal sampled phase amplitudes have equal counts at every
+value below `m + 1`. -/
 theorem countVec_eq_of_matrix_elements (n m : ℕ) (C C' : Reg n → ℕ)
     (hC : ∀ z, C z ≤ m) (hC' : ∀ z, C' z ≤ m)
     (h : ∀ r : Fin (m + 1),
@@ -239,6 +281,7 @@ theorem countVec_eq_of_matrix_elements (n m : ℕ) (C C' : Reg n → ℕ)
   have hc : (countVec C v.val : ℂ) = (countVec C' v.val : ℂ) := h1.trans h2.symm
   exact_mod_cast hc
 
+/-- Two costs bounded by `m` with equal sampled phase amplitudes have equal counts at value `m`. -/
 theorem satisfyingCount_eq_of_matrix_elements (n m : ℕ) (C C' : Reg n → ℕ)
     (hC : ∀ z, C z ≤ m) (hC' : ∀ z, C' z ≤ m)
     (h : ∀ r : Fin (m + 1),
@@ -246,6 +289,8 @@ theorem satisfyingCount_eq_of_matrix_elements (n m : ℕ) (C C' : Reg n → ℕ)
     satisfyingCount C m = satisfyingCount C' m :=
   countVec_eq_of_matrix_elements n m C C' hC hC' h ⟨m, Nat.lt_succ_self m⟩
 
+/-- A package of propositions and supplied implications from exact matrix-element computation to
+exact counting and then to equality of the specified language classes `P` and `NP`. -/
 structure ConditionalCountingData (P NP : Set Language) where
 
   ExactMatrixElementsInP : Prop
@@ -256,6 +301,8 @@ structure ConditionalCountingData (P NP : Set Language) where
 
   exact_counting_yields_P_eq_NP : ExactCountingInP → P = NP
 
+/-- Within the supplied conditional counting data, `ExactMatrixElementsInP` implies equality of
+the specified classes `P` and `NP`. -/
 theorem supplied_counting_implication {P NP : Set Language}
     (I : ConditionalCountingData P NP)
     (h : I.ExactMatrixElementsInP) : P = NP :=

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GraphConnect03.ParityReduce
 import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.Theorem4StrongConnectivity
+
+/-!
+# Connectivity of the parity-clique gadget
+
+This module proves that the neighbor-list gadget is strongly connected exactly when its
+underlying Boolean input has odd parity, assuming a nonzero layer count and clique size greater
+than one. The predicate `OrbitOrClique` tracks vertices reachable from the base point and
+connects gadget reachability to the parity permutation orbit. See [DurrMhallaLei2003].
+
+## Main statements
+
+* `gadget_reach_parity_iff`: A parity vertex is reachable from the base vertex in the gadget
+  exactly when it occurs in the base parity-permutation orbit.
+* `gadget_reach_to_v0`: For clique size greater than one, every gadget vertex reaches the base
+  parity vertex.
+* `gadget_strong_iff`: For nonzero layer count and clique size greater than one, all-pairs
+  gadget reachability is equivalent to odd input parity.
+
+## References
+
+* [Durr et al., 2003][DurrMhallaLei2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,29 +40,36 @@ namespace Qatlib.Papers.GraphConnect03.MainResults.LowerBounds
 open Qatlib.Papers.GraphConnect03.MainResults.Defs
 open Qatlib.Papers.GraphConnect03.ParityReduce
 
+/-- The edge relation induced by the gadget neighbor function, with an edge when some port
+selects the target vertex. -/
 def gadgetEdge {p k : ℕ} (b : ZMod p → Bool) (jf : ZMod p → Bool → ZMod k)
     (u v : GadgetVertex p k) : Prop :=
   ∃ j : ZMod k, gadgetNbr b jf u j = v
 
+/-- The reflexive transitive closure of the gadget edge relation. -/
 def gadgetReach {p k : ℕ} (b : ZMod p → Bool) (jf : ZMod p → Bool → ZMod k) :
     GadgetVertex p k → GadgetVertex p k → Prop :=
   Relation.ReflTransGen (gadgetEdge b jf)
 
 variable {p k : ℕ} {b : ZMod p → Bool} {jf : ZMod p → Bool → ZMod k}
 
+/-- A single gadget edge gives gadget reachability. -/
 theorem gadgetReach.single {u v : GadgetVertex p k} (h : gadgetEdge b jf u v) :
     gadgetReach b jf u v :=
   Relation.ReflTransGen.single h
 
+/-- Gadget reachability is transitive. -/
 theorem gadgetReach.trans {a c d : GadgetVertex p k}
     (h1 : gadgetReach b jf a c) (h2 : gadgetReach b jf c d) :
     gadgetReach b jf a d :=
   Relation.ReflTransGen.trans h1 h2
 
+/-- Every clique vertex has a gadget edge to the base parity vertex `(0, false)`. -/
 theorem gadget_clique_v0 (jf : ZMod p → Bool → ZMod k) (u : ZMod k) :
     gadgetEdge b jf (Sum.inr u) (Sum.inl ((0 : ZMod p), false)) :=
   ⟨0, by simp [gadgetNbr]⟩
 
+/-- Any clique vertex can reach any other clique vertex [DurrMhallaLei2003]. -/
 theorem gadget_clique_reach (jf : ZMod p → Bool → ZMod k) (u m : ZMod k) :
     gadgetReach b jf (Sum.inr u) (Sum.inr m) := by
   by_cases h : u = m
@@ -51,10 +81,13 @@ theorem gadget_clique_reach (jf : ZMod p → Bool → ZMod k) (u m : ZMod k) :
     rw [add_sub_cancel] at hstep
     exact gadgetReach.single hstep
 
+/-- Every parity vertex has a gadget edge to its successor under the parity step. -/
 theorem gadget_parity_forward (jf : ZMod p → Bool → ZMod k) (i : ZMod p) (l : Bool) :
     gadgetEdge b jf (Sum.inl (i, l)) (Sum.inl (i + 1, Bool.xor l (b i))) :=
   ⟨jf i l, by simp [gadgetNbr]⟩
 
+/-- When the clique size is greater than one, every parity vertex has an edge to some clique
+vertex. -/
 theorem gadget_parity_back [NeZero k] (jf : ZMod p → Bool → ZMod k) (hk : 1 < k)
     (i : ZMod p) (l : Bool) :
     ∃ u : ZMod k, gadgetEdge b jf (Sum.inl (i, l)) (Sum.inr u) := by
@@ -64,6 +97,8 @@ theorem gadget_parity_back [NeZero k] (jf : ZMod p → Bool → ZMod k) (hk : 1 
   obtain ⟨j, hj⟩ := Fintype.exists_ne_of_one_lt_card hcard (jf i l)
   exact ⟨j, j, by simp [gadgetNbr, hj]⟩
 
+/-- A vertex is either in the forward parity-permutation orbit of `(0, false)` or is a clique
+vertex. -/
 def OrbitOrClique (p k : ℕ) [NeZero p] (b : ZMod p → Bool)
     (s : GadgetVertex p k) : Prop :=
   (∃ t : ℕ, Sum.inl ((parityEquiv b)^[t] ((0 : ZMod p), false)) = s) ∨
@@ -71,11 +106,13 @@ def OrbitOrClique (p k : ℕ) [NeZero p] (b : ZMod p → Bool)
 
 namespace OrbitOrClique
 
+/-- The base parity vertex satisfies `OrbitOrClique`. -/
 theorem base [NeZero p] :
     OrbitOrClique p k b (Sum.inl ((0 : ZMod p), false)) := by
   left
   exact ⟨0, by simp⟩
 
+/-- The predicate `OrbitOrClique` is preserved by a gadget edge. -/
 theorem step [NeZero p] {s s' : GadgetVertex p k}
     (hs : OrbitOrClique p k b s) (he : gadgetEdge b jf s s') :
     OrbitOrClique p k b s' := by
@@ -108,6 +145,7 @@ theorem step [NeZero p] {s s' : GadgetVertex p k}
 
 end OrbitOrClique
 
+/-- Every gadget vertex reachable from the base parity vertex satisfies `OrbitOrClique`. -/
 theorem gadget_reach_orbit_aux [NeZero p] {s : GadgetVertex p k}
     (h : gadgetReach b jf (Sum.inl ((0 : ZMod p), false)) s) :
     OrbitOrClique p k b s := by
@@ -115,6 +153,8 @@ theorem gadget_reach_orbit_aux [NeZero p] {s : GadgetVertex p k}
   | refl => exact OrbitOrClique.base
   | tail _ hbc ih => exact OrbitOrClique.step ih hbc
 
+/-- Every iterate of the base parity vertex under the parity permutation is reachable in the
+gadget. -/
 theorem gadget_orbit_reach [NeZero p] (jf : ZMod p → Bool → ZMod k) :
     ∀ (t : ℕ) (q : ParityVertex p),
       (parityEquiv b)^[t] ((0 : ZMod p), false) = q →
@@ -140,6 +180,8 @@ theorem gadget_orbit_reach [NeZero p] (jf : ZMod p → Bool → ZMod k) :
           exact gadget_parity_forward jf i l
         exact (ih (i, l) hq').tail hstep
 
+/-- A parity vertex is reachable from the base vertex in the gadget exactly when it occurs in
+the base parity-permutation orbit [DurrMhallaLei2003]. -/
 theorem gadget_reach_parity_iff [NeZero p] (jf : ZMod p → Bool → ZMod k)
     (q : ParityVertex p) :
     gadgetReach b jf (Sum.inl ((0 : ZMod p), false)) (Sum.inl q) ↔
@@ -152,6 +194,8 @@ theorem gadget_reach_parity_iff [NeZero p] (jf : ZMod p → Bool → ZMod k)
   · rintro ⟨t, rfl⟩
     exact gadget_orbit_reach jf t _ rfl
 
+/-- For odd input parity and clique size greater than one, the base vertex reaches every gadget
+vertex. -/
 theorem gadget_reach_from_v0 [NeZero p] [NeZero k] (jf : ZMod p → Bool → ZMod k)
     (hk : 1 < k) (hp : parityOf b = true) (s : GadgetVertex p k) :
     gadgetReach b jf (Sum.inl ((0 : ZMod p), false)) s := by
@@ -163,6 +207,7 @@ theorem gadget_reach_from_v0 [NeZero p] [NeZero k] (jf : ZMod p → Bool → ZMo
       obtain ⟨u₀, hedge⟩ := gadget_parity_back jf hk (0 : ZMod p) false
       exact (gadgetReach.single hedge).trans (gadget_clique_reach jf u₀ u)
 
+/-- For clique size greater than one, every gadget vertex reaches the base parity vertex. -/
 theorem gadget_reach_to_v0 [NeZero k] (jf : ZMod p → Bool → ZMod k) (hk : 1 < k)
     (s : GadgetVertex p k) :
     gadgetReach b jf s (Sum.inl ((0 : ZMod p), false)) := by
@@ -175,6 +220,8 @@ theorem gadget_reach_to_v0 [NeZero k] (jf : ZMod p → Bool → ZMod k) (hk : 1 
   | inr u =>
       exact gadgetReach.single (gadget_clique_v0 jf u)
 
+/-- For even input parity, no iterate of `(0, false)` under the parity permutation equals `(0,
+true)`. -/
 theorem parity_no_mixed_orbit [NeZero p] (hp : parityOf b = false) (t : ℕ) :
     (parityEquiv b)^[t] ((0 : ZMod p), false) ≠ ((0 : ZMod p), true) := by
   intro ht
@@ -193,6 +240,8 @@ theorem parity_no_mixed_orbit [NeZero p] (hp : parityOf b = false) (t : ℕ) :
   rw [hzero] at hlev
   exact Bool.false_ne_true hlev
 
+/-- For nonzero layer count and clique size greater than one, all-pairs gadget reachability is
+equivalent to odd input parity [DurrMhallaLei2003]. -/
 theorem gadget_strong_iff [NeZero p] [NeZero k] (jf : ZMod p → Bool → ZMod k)
     (hk : 1 < k) :
     (∀ a c : GadgetVertex p k, gadgetReach b jf a c) ↔ parityOf b = true := by

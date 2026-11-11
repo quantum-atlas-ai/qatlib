@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+
+/-!
+# Odd singular transforms and approximation bounds
+
+This module defines `oddSingularTransform` using right singular basis columns and left singular
+vectors, with zero singular sectors contributing zero. Scalar bounds on the positive singular
+values therefore give operator norm bounds without a condition on the function at zero.
+
+The QSVT approximation theorems turn response polynomial estimates into block encodings of these
+transforms, including spectral-gap variants and exact instruction counts. This is the
+approximation framework of [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `oddSingularTransform_error_le_positive`: approximation on positive singular values controls
+  the operator error.
+* `qsvt_odd_gapped_approximation`: approximation on a spectral interval gives a block encoding.
+* `qsvt_odd_annihilates_kernel`: the compressed odd sequence annihilates the kernel.
+* `qsvt_odd_counted_positive_approximation`: a counted realization needs one query per phase and
+  one additional fixed gate.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.Execution.WorkspaceCP
@@ -30,11 +56,14 @@ open scoped Matrix.Norms.L2Operator
 section Singular
 variable {I O : Type*} [Fintype I] [Fintype O] [DecidableEq I] [DecidableEq O]
 
+/-- The matrix whose columns are the left singular vectors indexed by the input dimension. -/
 noncomputable def leftSingularColumns (A : Matrix O I ℂ) :
     Matrix O (Fin (Fintype.card I)) ℂ := fun o i => leftSingularVector A i o
 
 omit [DecidableEq O] in
 
+/-- The Gram matrix of the left singular columns is diagonal, with entry zero at zero singular
+values and one elsewhere. -/
 theorem leftSingularColumns_gram (A : Matrix O I ℂ) :
     (leftSingularColumns A)ᴴ * leftSingularColumns A =
       diagonal (fun i : Fin (Fintype.card I) =>
@@ -62,6 +91,7 @@ theorem leftSingularColumns_gram (A : Matrix O I ℂ) :
 
 omit [DecidableEq O] in
 
+/-- The matrix of left singular columns has operator norm at most one. -/
 theorem leftSingularColumns_norm_le (A : Matrix O I ℂ) :
     ‖leftSingularColumns A‖ ≤ 1 := by
   rw [← sq_le_one_iff₀ (norm_nonneg _), pow_two,
@@ -73,6 +103,8 @@ theorem leftSingularColumns_norm_le (A : Matrix O I ℂ) :
 
 omit [DecidableEq O] in
 
+/-- Multiplying `A` by the right singular basis columns gives the left singular columns weighted
+by the singular values. -/
 theorem mul_rightSingularBasis_columns (A : Matrix O I ℂ) :
     A * basisColumns (rightSingularBasis A) = leftSingularColumns A *
       diagonal (fun i : Fin (Fintype.card I) => (matrixSingularValues A i : ℂ)) := by
@@ -83,12 +115,16 @@ theorem mul_rightSingularBasis_columns (A : Matrix O I ℂ) :
     (apply_rightSingularBasis_eq_smul_leftSingularVector A i)
   simpa only [leftSingularColumns, PiLp.smul_apply, smul_eq_mul, mul_comm] using he
 
+/-- The transform obtained by weighting the left and right singular vector pairs by `f`
+evaluated at their singular values. See [Gilyén et al., Definition
+16][GilyenSuLowWiebe2019]. -/
 noncomputable def oddSingularTransform (A : Matrix O I ℂ) (f : ℝ → ℂ) : Matrix O I ℂ :=
   leftSingularColumns A * diagonal (fun i : Fin (Fintype.card I) => f (matrixSingularValues A i)) *
     (basisColumns (rightSingularBasis A))ᴴ
 
 omit [DecidableEq O] in
 
+/-- The difference of two odd singular transforms is the transform of the pointwise difference. -/
 theorem oddSingularTransform_sub (A : Matrix O I ℂ) (f g : ℝ → ℂ) :
     oddSingularTransform A f - oddSingularTransform A g =
       oddSingularTransform A (fun x => f x - g x) := by
@@ -97,6 +133,8 @@ theorem oddSingularTransform_sub (A : Matrix O I ℂ) (f g : ℝ → ℂ) :
 
 omit [DecidableEq O] in
 
+/-- A nonnegative uniform bound on `f` at the singular values bounds the operator norm of its
+odd singular transform. -/
 theorem oddSingularTransform_norm_le (A : Matrix O I ℂ) (f : ℝ → ℂ)
     {ε : ℝ} (hε : 0 ≤ ε)
     (hf : ∀ i : Fin (Fintype.card I), ‖f (matrixSingularValues A i)‖ ≤ ε) :
@@ -117,6 +155,8 @@ theorem oddSingularTransform_norm_le (A : Matrix O I ℂ) (f : ℝ → ℂ)
 
 omit [DecidableEq O] in
 
+/-- A nonnegative uniform bound on the difference of two functions at the singular values bounds
+the difference of their odd singular transforms. -/
 theorem oddSingularTransform_error_le (A : Matrix O I ℂ) (f g : ℝ → ℂ)
     {ε : ℝ} (hε : 0 ≤ ε)
     (hfg : ∀ i : Fin (Fintype.card I), ‖f (matrixSingularValues A i) -
@@ -127,6 +167,7 @@ theorem oddSingularTransform_error_le (A : Matrix O I ℂ) (f g : ℝ → ℂ)
 
 omit [DecidableEq O] in
 
+/-- Functions agreeing at every positive singular value produce the same odd singular transform. -/
 theorem oddSingularTransform_congr_positive (A : Matrix O I ℂ) (f g : ℝ → ℂ)
     (hfg : ∀ i : Fin (Fintype.card I), 0 < matrixSingularValues A i →
       f (matrixSingularValues A i) = g (matrixSingularValues A i)) :
@@ -142,6 +183,8 @@ theorem oddSingularTransform_congr_positive (A : Matrix O I ℂ) (f g : ℝ → 
 
 omit [DecidableEq O] in
 
+/-- A nonnegative bound on `f` at the positive singular values bounds its odd singular
+transform, without a condition at zero. -/
 theorem oddSingularTransform_norm_le_positive (A : Matrix O I ℂ) (f : ℝ → ℂ)
     {ε : ℝ} (hε : 0 ≤ ε)
     (hf : ∀ i : Fin (Fintype.card I), 0 < matrixSingularValues A i →
@@ -164,6 +207,8 @@ theorem oddSingularTransform_norm_le_positive (A : Matrix O I ℂ) (f : ℝ → 
 
 omit [DecidableEq O] in
 
+/-- Approximation at the positive singular values controls the operator norm error between odd
+singular transforms. -/
 theorem oddSingularTransform_error_le_positive (A : Matrix O I ℂ) (f g : ℝ → ℂ)
     {ε : ℝ} (hε : 0 ≤ ε)
     (hfg : ∀ i : Fin (Fintype.card I), 0 < matrixSingularValues A i →
@@ -174,12 +219,14 @@ theorem oddSingularTransform_error_le_positive (A : Matrix O I ℂ) (f g : ℝ �
 
 omit [DecidableEq O] in
 
+/-- The odd singular transform of the zero function is the zero matrix. -/
 theorem oddSingularTransform_zero_function (A : Matrix O I ℂ) :
     oddSingularTransform A (fun _ => 0) = 0 := by
   simp [oddSingularTransform]
 
 omit [DecidableEq O] in
 
+/-- The odd singular transform of the real identity function recovers `A`. -/
 theorem oddSingularTransform_id (A : Matrix O I ℂ) :
     oddSingularTransform A (fun x => (x : ℂ)) = A := by
   rw [oddSingularTransform, ← mul_rightSingularBasis_columns, Matrix.mul_assoc,
@@ -187,6 +234,7 @@ theorem oddSingularTransform_id (A : Matrix O I ℂ) :
 
 omit [DecidableEq O] in
 
+/-- Every odd singular transform of the zero matrix is zero. -/
 theorem oddSingularTransform_zero (f : ℝ → ℂ) :
     oddSingularTransform (0 : Matrix O I ℂ) f = 0 := by
   have hc : leftSingularColumns (0 : Matrix O I ℂ) = 0 := by
@@ -196,6 +244,8 @@ theorem oddSingularTransform_zero (f : ℝ → ℂ) :
     simp [leftSingularColumns, leftSingularVector_eq_zero _ _ hz]
   simp [oddSingularTransform, hc]
 
+/-- The product `A * aeval (Aᴴ * A) p` is the odd singular transform with scalar response `x *
+p.eval (x ^ 2)`. -/
 theorem mul_gram_aeval_eq_oddSingularTransform (A : Matrix O I ℂ) (p : Polynomial ℂ) :
     A * aeval (Aᴴ * A) p =
       oddSingularTransform A (fun x => (x : ℂ) * p.eval ((x : ℂ) ^ 2)) := by
@@ -210,6 +260,8 @@ section QSVT
 variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
   [DecidableEq H] [DecidableEq I] [DecidableEq O]
 
+/-- The compressed odd QSVT sequence equals the odd singular transform of its response
+polynomial. -/
 theorem qsvt_odd_eq_oddSingularTransform
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) (base : ℂ) (zs : List ℂ)
@@ -221,6 +273,8 @@ theorem qsvt_odd_eq_oddSingularTransform
   simp only [oddSingularPolynomial, evenSingularPolynomial, Polynomial.eval_mul, Polynomial.eval_comp,
     Polynomial.eval_pow, Polynomial.eval_X]
 
+/-- An odd sequence with unit phases block-encodes the target singular transform at scale one
+when its response approximates the target function at all singular values. -/
 theorem qsvt_odd_approximation
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -238,6 +292,8 @@ theorem qsvt_odd_approximation
   exact oddSingularTransform_error_le A _ _ hε
     (fun i => by simpa only [norm_sub_rev] using happrox i)
 
+/-- An odd sequence with unit phases block-encodes the target transform when its response
+approximates the target function at positive singular values. -/
 theorem qsvt_odd_positive_approximation
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -255,6 +311,8 @@ theorem qsvt_odd_positive_approximation
   exact oddSingularTransform_error_le_positive A _ _ hε
     (fun i hi => by simpa only [norm_sub_rev] using happrox i hi)
 
+/-- If all positive singular values are at least `δ`, uniform response approximation on `[δ, 1]`
+yields a scale-one block encoding of the target transform. -/
 theorem qsvt_odd_gapped_approximation
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -268,6 +326,7 @@ theorem qsvt_odd_gapped_approximation
   qsvt_odd_positive_approximation h hb zs hzs hodd f hε
     (fun i hi => happrox _ ⟨hgap i hi, (encoded_singularValues_mem_unitInterval h i).2⟩)
 
+/-- The compressed odd QSVT sequence annihilates any matrix of columns annihilated by `A`. -/
 theorem qsvt_odd_annihilates_kernel
     {K : Type*} {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ}
@@ -278,6 +337,8 @@ theorem qsvt_odd_annihilates_kernel
   have hb : Aᴴ * (0 : Matrix O K ℂ) = (0 : ℂ) • v := by simp
   simpa using qsvt_odd h hf hb base zs hodd
 
+/-- Uniform approximation of the target function on `[0, 1]` yields a scale-one block encoding
+of its odd singular transform. -/
 theorem qsvt_odd_uniform_approximation
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -289,6 +350,8 @@ theorem qsvt_odd_uniform_approximation
   qsvt_odd_approximation h hb zs hzs hodd f hε
     (fun i => happrox _ (encoded_singularValues_mem_unitInterval h i))
 
+/-- Approximation at all singular values yields a circuit encoding the target transform with
+`zs.length` queries and `zs.length + 1` fixed gates. -/
 theorem qsvt_odd_counted_approximation
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)
@@ -304,6 +367,8 @@ theorem qsvt_odd_counted_approximation
   rw [evaluate_compileQSVT]
   exact qsvt_odd_approximation h hb zs hzs hodd f hε happrox
 
+/-- Approximation at positive singular values yields a circuit encoding the target transform
+with `zs.length` queries and `zs.length + 1` fixed gates. -/
 theorem qsvt_odd_counted_positive_approximation
     {A : Matrix O I ℂ} {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ}
     (h : ProjectedUnitaryEncoding A U L R) {base : ℂ} (hb : IsPhase base)

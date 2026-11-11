@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
 import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition3
+
+/-!
+# Parity mixtures and their trace distance
+
+The operators `bmsPhoton`, `bmsState`, and `bmsMixture` describe the single-system encoding, its
+finite product, and parity-selected sums studied in [FuchsVanDeGraaf1999]. A signed-product
+calculation reduces the difference of the parity mixtures to a scalar multiple of the
+bit-complement matrix.
+
+## Main statements
+
+* `bmsMixture_diff_eq`: the mixture difference is a scaled complement matrix.
+* `parityBit_kolmogorov`: for positive length, the trace distance is `|sin (2 * α)| ^ n`.
+
+## References
+
+* [Fuchs and van de Graaf, 1999][FuchsVanDeGraaf1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -19,6 +38,8 @@ open MatrixOrder
 open Matrix
 set_option warningAsError false
 
+/-- Defines the two-dimensional encoding operator with diagonal entries `cos α ^ 2` and `sin α ^
+2` and off-diagonal sign determined by `z`. -/
 def bmsPhoton (α : ℝ) (z : Bool) : Operator 2 :=
   fun i j =>
     if i = j then
@@ -26,42 +47,56 @@ def bmsPhoton (α : ℝ) (z : Bool) : Operator 2 :=
     else
       (if z then ((-(Real.cos α * Real.sin α)) : ℂ) else ((Real.cos α * Real.sin α) : ℂ))
 
+/-- Defines the product encoding matrix with entries equal to the product of the single-system
+matrix entries selected by the bit string. -/
 noncomputable def bmsState (α : ℝ) (n : ℕ) (z : Fin n → Bool) :
     Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ :=
   fun u v => ∏ i, bmsPhoton α (z i) (u i) (v i)
 
+/-- Defines the parity bit by testing whether the number of true entries is odd. -/
 def parity (n : ℕ) (z : Fin n → Bool) : Bool :=
   decide ((∑ i : Fin n, (if z i then 1 else 0)) % 2 = 1)
 
+/-- Defines the sum of product encoding matrices of parity `j`, scaled by `1 / 2 ^ (n - 1)`. -/
 noncomputable def bmsMixture (α : ℝ) (n : ℕ) (j : Bool) :
     Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ :=
   ((1 : ℂ) / (2 : ℂ) ^ (n - 1)) •
     ∑ z ∈ (Finset.univ.filter (fun z : Fin n → Bool => parity n z = j)), bmsState α n z
 
+/-- Defines half the trace norm of the difference of two matrices on a finite index type. -/
 noncomputable def traceDistanceOn {I : Type} [Fintype I] (A B : Matrix I I ℂ) : ℝ :=
   Matrix.traceNorm (A - B) / 2
 
+/-- Defines complementation on `Fin 2`, exchanging zero and one. -/
 def bc2 (b : Fin 2) : Fin 2 := if b = 0 then 1 else 0
 
+/-- If two elements of `Fin 2` differ, the first is the complement of the second. -/
 lemma bc2_eq_of_ne {a b : Fin 2} (h : a ≠ b) : a = bc2 b := by
   fin_cases a <;> fin_cases b <;> simp_all [bc2]
 
+/-- The complement of an element of `Fin 2` differs from that element. -/
 lemma bc2_ne (b : Fin 2) : bc2 b ≠ b := by
   fin_cases b <;> simp [bc2]
 
+/-- Complementing an element of `Fin 2` twice returns it. -/
 lemma bc2_involutive (b : Fin 2) : bc2 (bc2 b) = b := by
   fin_cases b <;> simp [bc2]
 
+/-- Defines coordinatewise complementation of a binary-valued function. -/
 def bcFun (n : ℕ) : (Fin n → Fin 2) → (Fin n → Fin 2) := fun v i => bc2 (v i)
 
+/-- Coordinatewise complementation is involutive. -/
 lemma bcFun_involutive (n : ℕ) : Function.Involutive (bcFun n) := by
   intro v
   funext i
   exact bc2_involutive (v i)
 
+/-- Coordinatewise complementation is injective. -/
 lemma bcFun_injective (n : ℕ) : Function.Injective (bcFun n) :=
   (bcFun_involutive n).injective
 
+/-- Two binary-valued functions differ at every coordinate exactly when the first is the
+coordinatewise complement of the second. -/
 lemma forall_ne_iff_eq_bcFun {n : ℕ} (u v : Fin n → Fin 2) :
     (∀ i, u i ≠ v i) ↔ u = bcFun n v := by
   constructor
@@ -73,8 +108,10 @@ lemma forall_ne_iff_eq_bcFun {n : ℕ} (u v : Fin n → Fin 2) :
     show bc2 (v i) ≠ v i
     exact bc2_ne (v i)
 
+/-- Defines the complex sign that is negative one for true and one for false. -/
 def bsign (b : Bool) : ℂ := if b then -1 else 1
 
+/-- The product of the bit signs is negative one for odd parity and one for even parity. -/
 lemma prod_bsign_eq (n : ℕ) (z : Fin n → Bool) :
     (∏ i, bsign (z i)) = if parity n z then -1 else 1 := by
   have h1 : (∏ i, bsign (z i)) = ∏ i, (-1 : ℂ) ^ (if z i then 1 else 0) := by
@@ -88,6 +125,8 @@ lemma prod_bsign_eq (n : ℕ) (z : Fin n → Bool) :
   unfold parity
   interval_cases h : m % 2 <;> simp
 
+/-- Expands a product of differences into a sum over Boolean choices with the corresponding
+product signs. -/
 lemma prod_sub_eq_sum_sign {n : ℕ} (A B : Fin n → ℂ) :
     (∏ i, (A i - B i)) =
       ∑ z : Fin n → Bool, (∏ i, bsign (z i)) * ∏ i, (if z i then B i else A i) := by
@@ -113,6 +152,8 @@ lemma prod_sub_eq_sum_sign {n : ℕ} (A B : Fin n → ℂ) :
     _ = (∏ i, bsign (z i)) * ∏ i, (if z i then B i else A i) := by
         rw [Finset.prod_mul_distrib]
 
+/-- The difference between the false-filtered and true-filtered sums equals the sum with signs
+determined by the Boolean predicate. -/
 lemma sum_filter_false_sub_true {ι M : Type*} [Fintype ι] [AddCommGroup M]
     (p : ι → Bool) (f : ι → M) :
     (∑ x ∈ (Finset.univ.filter (fun x => p x = false)), f x) -
@@ -123,6 +164,7 @@ lemma sum_filter_false_sub_true {ι M : Type*} [Fintype ι] [AddCommGroup M]
   intro x _
   by_cases h : p x <;> simp [h]
 
+/-- Expresses a Boolean signed sum as a sum of scalar multiples by `bsign`. -/
 lemma sum_bsign_smul {ι M : Type*} [Fintype ι] [AddCommGroup M] [Module ℂ M]
     (p : ι → Bool) (f : ι → M) :
     (∑ x, (if p x then - f x else f x)) = ∑ x, bsign (p x) • f x := by
@@ -130,6 +172,8 @@ lemma sum_bsign_smul {ι M : Type*} [Fintype ι] [AddCommGroup M] [Module ℂ M]
   intro x _
   by_cases h : p x <;> simp [bsign, h]
 
+/-- The difference between the two single-system encodings is zero on the diagonal and `2 * cos
+α * sin α` off the diagonal. -/
 lemma bmsPhoton_false_sub_true (α : ℝ) (a b : Fin 2) :
     bmsPhoton α false a b - bmsPhoton α true a b =
       if a = b then 0 else ((2 * (Real.cos α * Real.sin α) : ℝ) : ℂ) := by
@@ -138,6 +182,8 @@ lemma bmsPhoton_false_sub_true (α : ℝ) (a b : Fin 2) :
   · subst hab; simp
   · fin_cases a <;> fin_cases b <;> simp_all <;> ring
 
+/-- Computes each entry of the parity-signed product-state sum as the product of the
+single-system off-diagonal differences. -/
 lemma signed_entry (α : ℝ) (n : ℕ) (u v : Fin n → Fin 2) :
     (∑ z : Fin n → Bool, bsign (parity n z) • bmsState α n z) u v =
       ∏ i, (if u i = v i then (0 : ℂ) else ((2 * (Real.cos α * Real.sin α) : ℝ) : ℂ)) := by
@@ -165,9 +211,11 @@ lemma signed_entry (α : ℝ) (n : ℕ) (u v : Fin n → Fin 2) :
         intro i _
         rw [hA, hB, bmsPhoton_false_sub_true]
 
+/-- Defines the matrix obtained by complementing the column index of the identity matrix. -/
 def complMat (n : ℕ) : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ :=
   Matrix.submatrix (1 : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ) id (bcFun n)
 
+/-- The trace norm of the identity on length-`n` binary strings is `2 ^ n`. -/
 lemma traceNorm_one_fin (n : ℕ) :
     Matrix.traceNorm (1 : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ) = 2 ^ n := by
   have h := Matrix.PosSemidef.traceNorm_eq_trace
@@ -180,6 +228,7 @@ lemma traceNorm_one_fin (n : ℕ) :
   rw [hreal]
   simp
 
+/-- The trace norm of the bit-complement matrix on length-`n` binary strings is `2 ^ n`. -/
 lemma traceNorm_complMat (n : ℕ) : Matrix.traceNorm (complMat n) = 2 ^ n := by
   have hiso : (complMat n)ᴴ * complMat n = 1 := by
     unfold complMat
@@ -199,6 +248,8 @@ lemma traceNorm_complMat (n : ℕ) : Matrix.traceNorm (complMat n) = 2 ^ n := by
   rw [← Complex.ofReal_pow]
   exact RCLike.ofReal_re ((2:ℝ)^n)
 
+/-- Each entry of the parity-signed product-state sum equals `(2 * cos α * sin α) ^ n` times the
+corresponding complement-matrix entry. -/
 lemma signed_entry_compl (α : ℝ) (n : ℕ) (u v : Fin n → Fin 2) :
     (∑ z : Fin n → Bool, bsign (parity n z) • bmsState α n z) u v =
       ((((2 * (Real.cos α * Real.sin α)) ^ n : ℝ) : ℂ)) * complMat n u v := by
@@ -216,6 +267,8 @@ lemma signed_entry_compl (α : ℝ) (n : ℕ) (u v : Fin n → Fin 2) :
     obtain ⟨i, hi⟩ := h
     exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi])
 
+/-- The difference of the even and odd mixtures is the parity-signed sum of product encoding
+matrices scaled by `1 / 2 ^ (n - 1)`. -/
 lemma bmsMixture_sub (α : ℝ) (n : ℕ) :
     bmsMixture α n false - bmsMixture α n true
       = ((1:ℂ) / (2:ℂ)^(n-1)) • (∑ z, bsign (parity n z) • bmsState α n z) := by
@@ -225,6 +278,8 @@ lemma bmsMixture_sub (α : ℝ) (n : ℕ) :
   rw [sum_filter_false_sub_true]
   exact sum_bsign_smul (parity n) (bmsState α n)
 
+/-- The difference of the parity mixtures is the complement matrix scaled by `(2 * cos α * sin
+α) ^ n / 2 ^ (n - 1)`. -/
 lemma bmsMixture_diff_eq (α : ℝ) (n : ℕ) :
     bmsMixture α n false - bmsMixture α n true
       = ((1:ℂ) / (2:ℂ)^(n-1)) •
@@ -237,6 +292,8 @@ lemma bmsMixture_diff_eq (α : ℝ) (n : ℕ) :
     simp [smul_eq_mul]
   rw [hS]
 
+/-- For `n ≥ 1`, the trace distance between the even and odd parity mixtures is `|sin (2 * α)| ^
+n`. This is the parity-bit distinguishability formula in [FuchsVanDeGraaf1999]. -/
 theorem parityBit_kolmogorov (α : ℝ) {n : ℕ} (hn : 1 ≤ n) :
     traceDistanceOn (bmsMixture α n false) (bmsMixture α n true)
       = |Real.sin (2 * α)| ^ n := by

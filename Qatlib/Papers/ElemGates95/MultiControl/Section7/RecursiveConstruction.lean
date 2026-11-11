@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ElemGates95.MultiControl.Section7.MultibitNetworks
+
+/-!
+# Recursive construction of multicontrolled gates
+
+This module realizes the five-block recursion of Lemma 7.5 of [BarencoEtAl1995] as an equality
+between actual local gate lists. A unitary square root `V` of `U`, a controlled prefix-AND
+toggle, and a smaller circuit with target operation `V` combine to implement `U` with one
+additional control.
+
+The theorem `lemma7_5_step` accepts the two smaller circuits as hypotheses. The existence
+theorem `lemma7_5_actual` supplies them and records the exact concatenation and length formula;
+`noWorkPrefixAnd_update_ne` ensures that changing a distinct wire leaves the control predicate
+unchanged.
+
+## Main statements
+
+* `lemma7_5_step`: the list `vs ++ xs ++ ds ++ xs ++ rs` implements the additional control and
+  has length `12 + 2 * xs.length + rs.length`.
+* `lemma7_5_actual`: a unitary square root and all five legal component lists exist.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +45,8 @@ open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 
 namespace Qatlib.Papers.ElemGates95.MultiControl.Section7
 
+/-- Updating a wire distinct from each of the first `r` control wires leaves their prefix
+conjunction unchanged. -/
 theorem noWorkPrefixAnd_update_ne {N : ℕ} (c : ℕ → Fin N) (r : ℕ) (s : Fin N)
     (h : ∀ i < r, c i ≠ s) (x : Reg N) (v : Bool) :
     noWorkPrefixAnd (fun i => Function.update x s v (c i)) r =
@@ -29,6 +56,10 @@ theorem noWorkPrefixAnd_update_ne {N : ℕ} (c : ℕ → Fin N) (r : ℕ) (s : F
   exact ⟨fun hh i hi => by simpa [Function.update_of_ne (h i hi)] using! hh i hi,
     fun hh i hi => by simpa [Function.update_of_ne (h i hi)] using! hh i hi⟩
 
+/-- Implements the five-block recursion of Lemma 7.5 of [BarencoEtAl1995] from a unitary square
+root, a prefix-AND toggle circuit, and a smaller controlled-root circuit. The constructed
+list has the exact form `vs ++ xs ++ ds ++ xs ++ rs` and length `12 + 2 * xs.length +
+rs.length`. -/
 theorem lemma7_5_step {N m : ℕ} (c : ℕ → Fin N) (t : Fin N)
     (hctm : ∀ i < m, c i ≠ t) (hclast : ∀ i < m, c i ≠ c m) (hlast : c m ≠ t)
     (U V : Matrix Bool Bool ℂ) (hV : V ∈ Matrix.unitaryGroup Bool ℂ) (hVV : V * V = U)
@@ -97,6 +128,10 @@ theorem lemma7_5_step {N m : ℕ} (c : ℕ → Fin N) (t : Fin N)
     · rw [← applyGate_mul, show V * Vᴴ = 1 from hV.2, applyGate_one]
     · rw [← applyGate_mul, hVV]
 
+/-- Supplies the unitary square root and actual legal component lists for Lemma 7.5 of
+[BarencoEtAl1995]. It records the two six-gate controlled-root blocks, the prefix toggle and
+smaller controlled-root actions, the exact concatenation, and its multicontrolled-`U`
+semantics. -/
 theorem lemma7_5_actual (N m : ℕ) (c : ℕ → Fin N) (t : Fin N)
     (hc : Set.InjOn c (Set.Iio (m + 1))) (hct : ∀ i < m + 1, c i ≠ t)
     (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup Bool ℂ) :

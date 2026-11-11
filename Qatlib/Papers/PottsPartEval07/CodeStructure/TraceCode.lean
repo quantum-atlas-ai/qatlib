@@ -55,6 +55,25 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Finite-field trace codes
+
+The map `traceWord` associates to a field element the word of traces against a prescribed family
+of field elements. Nondegeneracy of the trace pairing gives injectivity when that family spans
+the field over its prime field, yielding the linear equivalence `traceWordEquiv` with the image
+code [GeraciLidar2008].
+
+## Main statements
+
+* `traceWord_injective`: A spanning coordinate family gives an injective trace representation.
+* `traceWord_mul_eq_comp`: Multiplication of the trace parameter implements a compatible
+  reindexing of coordinates.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.CodeStructure
@@ -63,6 +82,8 @@ open scoped BigOperators
 
 variable {F : Type*} [Field F] [Finite F] [Algebra (ZMod (ringChar F)) F]
 
+/-- An element of the finite field is zero if and only if its trace pairing with every field
+element vanishes. -/
 theorem trace_mul_eq_zero_iff (x : F) :
     (∀ y : F, Algebra.trace (ZMod (ringChar F)) F (x * y) = 0) ↔ x = 0 := by
   constructor
@@ -73,13 +94,17 @@ theorem trace_mul_eq_zero_iff (x : F) :
   · rintro rfl y
     simp
 
+/-- An element whose trace pairing with every field element vanishes is zero. -/
 theorem trace_mul_eq_zero_imp_eq_zero {x : F}
     (h : ∀ y : F, Algebra.trace (ZMod (ringChar F)) F (x * y) = 0) : x = 0 :=
   (trace_mul_eq_zero_iff x).mp h
 
+/-- The word with coordinates given by the field traces of `x * g i` to the prime field. -/
 noncomputable def traceWord {ι : Type*} (g : ι → F) (x : F) : ι → ZMod (ringChar F) :=
   fun i => Algebra.trace (ZMod (ringChar F)) F (x * g i)
 
+/-- The trace-word map is injective when the coordinate family spans the field over its prime
+field [GeraciLidar2008]. -/
 theorem traceWord_injective {ι : Type*} (g : ι → F)
     (hspan : Submodule.span (ZMod (ringChar F)) (Set.range g) = ⊤) :
     Function.Injective (traceWord (F := F) g) := by
@@ -117,6 +142,7 @@ theorem traceWord_injective {ι : Type*} (g : ι → F)
     exact hle hmem
   exact sub_eq_zero.mp ((trace_mul_eq_zero_iff (x - x')).mp hall)
 
+/-- The trace-word map bundled as a linear map over the prime field [GeraciLidar2008]. -/
 noncomputable def traceWordLinear {ι : Type*} (g : ι → F) :
     F →ₗ[ZMod (ringChar F)] (ι → ZMod (ringChar F)) where
   toFun := traceWord g
@@ -136,23 +162,29 @@ noncomputable def traceWordLinear {ι : Type*} (g : ι → F) :
       rw [Algebra.smul_def, Algebra.smul_def, mul_assoc]
     rw [h1, (Algebra.trace (ZMod (ringChar F)) F).map_smul]
 
+/-- The bundled trace-word map is injective for a spanning coordinate family. -/
 theorem traceWordLinear_injective {ι : Type*} (g : ι → F)
     (hspan : Submodule.span (ZMod (ringChar F)) (Set.range g) = ⊤) :
     Function.Injective (traceWordLinear (F := F) g) :=
   traceWord_injective g hspan
 
+/-- The linear code given by the range of `traceWordLinear`. -/
 noncomputable def traceCode {ι : Type*} (g : ι → F) :
     Submodule (ZMod (ringChar F)) (ι → ZMod (ringChar F)) :=
   LinearMap.range (traceWordLinear g)
 
+/-- A word belongs to the trace code exactly when it is the trace word of some field element. -/
 theorem mem_traceCode_iff {ι : Type*} (g : ι → F) (v : ι → ZMod (ringChar F)) :
     v ∈ traceCode g ↔ ∃ x : F, traceWord g x = v := Iff.rfl
 
+/-- The linear equivalence between the field and its trace code induced by a spanning coordinate
+family [GeraciLidar2008]. -/
 noncomputable def traceWordEquiv {ι : Type*} (g : ι → F)
     (hspan : Submodule.span (ZMod (ringChar F)) (Set.range g) = ⊤) :
     F ≃ₗ[ZMod (ringChar F)] traceCode g :=
   LinearEquiv.ofInjective (traceWordLinear g) (traceWordLinear_injective g hspan)
 
+/-- The underlying word of `traceWordEquiv g hspan x` is `traceWord g x`. -/
 @[simp]
 theorem traceWordEquiv_apply {ι : Type*} (g : ι → F)
     (hspan : Submodule.span (ZMod (ringChar F)) (Set.range g) = ⊤) (x : F) :
@@ -160,6 +192,8 @@ theorem traceWordEquiv_apply {ι : Type*} (g : ι → F)
 
 omit [Finite F] in
 
+/-- Multiplying a trace parameter by `γN` reindexes its trace word by `s` when `g (s i) = g i *
+γN` [GeraciLidar2008]. -/
 theorem traceWord_mul_eq_comp {ι : Type*} (g : ι → F) (s : ι → ι) (γN : F)
     (hs : ∀ i, g (s i) = g i * γN) (x : F) :
     traceWord g (x * γN) = fun i => traceWord g x (s i) := by

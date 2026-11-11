@@ -10,20 +10,48 @@ import Mathlib.Analysis.SpecialFunctions.Sqrt
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Linarith
 
+/-!
+# Rounding and normalizing finite weights
+
+`FiniteWeights` rounds clipped rational weights to integer counts on a common scale. The module
+bounds rounding error and the effect of renormalization, then controls the squared distance
+between the square roots of normalized rounded weights and a target probability distribution.
+
+For background on probability distributions and square-root amplitudes in quantum information,
+see [NielsenChuang2010].
+
+## Main statements
+
+* `rounded_bounds`: rounding is downward with error below the reciprocal scale.
+* `normalized_l1`: normalization increases the stated absolute error bound by at most a factor
+  of two.
+* `normalized_counts_endpoint`: normalization and square-root error for rounded counts.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 open scoped BigOperators
 namespace Qatlib.Concepts.FinitePrecision.ComputableInput.FiniteWeights
 
+/-- The integer count obtained by scaling the clipped numerator `min numerator denominator` and
+dividing by the denominator. -/
 def count (scale numerator denominator : ℕ) : ℕ :=
   scale * min numerator denominator / denominator
 
+/-- The real ratio of the clipped natural numerator to the denominator. -/
 noncomputable def finiteValue (numerator denominator : ℕ) : ℝ :=
   (min numerator denominator : ℕ) / (denominator : ℝ)
 
+/-- The real weight obtained by dividing the integer `count` by the scale. -/
 noncomputable def rounded (scale numerator denominator : ℕ) : ℝ :=
   (count scale numerator denominator : ℝ) / (scale : ℝ)
 
+/-- For positive scale and denominator, the rounded weight is at most the clipped rational value
+and differs from it by less than the reciprocal scale. -/
 theorem rounded_bounds (scale numerator denominator : ℕ)
     (hscale : 0 < scale) (hden : 0 < denominator) :
     rounded scale numerator denominator ≤ finiteValue numerator denominator ∧
@@ -48,6 +76,7 @@ theorem rounded_bounds (scale numerator denominator : ℕ)
     apply (div_lt_div_iff₀ hd hs).mpr
     nlinarith
 
+/-- For a positive denominator, the clipped integer count is at most the scale. -/
 theorem count_le (scale numerator denominator : ℕ) (hden : 0 < denominator) :
     count scale numerator denominator ≤ scale := by
   by_cases hz : scale = 0
@@ -64,11 +93,15 @@ theorem count_le (scale numerator denominator : ℕ) (hden : 0 < denominator) :
 
 variable {I : Type*} [Fintype I]
 
+/-- If the target weights sum to one, the absolute error in total mass is bounded by the sum of
+pointwise absolute errors. -/
 theorem mass_error (t q : I → ℝ) (hq : ∑ i, q i = 1) :
     |(∑ i, t i)-1| ≤ ∑ i, |t i-q i| := by
   rw [← hq, ← Finset.sum_sub_distrib]
   exact Finset.abs_sum_le_sum_abs _ _
 
+/-- For nonnegative weights with positive total mass and target weights summing to one,
+normalization yields an absolute-error sum at most twice the original error sum. -/
 theorem normalized_l1 (t q : I → ℝ) (ht : ∀ i, 0 ≤ t i)
     (hq : ∑ i, q i = 1) (hZ : 0 < ∑ i, t i) :
     (∑ i, |t i/(∑ j, t j)-q i|) ≤ 2*(∑ i, |t i-q i|) := by
@@ -94,6 +127,8 @@ theorem normalized_l1 (t q : I → ℝ) (ht : ∀ i, 0 ≤ t i)
       rw [hflip]
       linarith
 
+/-- For nonnegative reals, the squared difference of their square roots is at most their
+absolute difference. -/
 theorem sqrt_sq_le_abs (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) :
     (Real.sqrt u-Real.sqrt v)^2 ≤ |u-v| := by
   have hsu := Real.sqrt_nonneg u
@@ -108,6 +143,9 @@ theorem sqrt_sq_le_abs (u v : ℝ) (hu : 0 ≤ u) (hv : 0 ≤ v) :
     have hh := Real.sqrt_le_sqrt h
     nlinarith [mul_nonneg hsv (sub_nonneg.mpr hh)]
 
+/-- If the total rounding and approximation bound is below one, the rounded counts have positive
+mass and normalize to nonnegative weights summing to one. Their square-root squared error is
+at most twice the cardinality times `alpha + 1 / scale`. -/
 theorem normalized_counts_endpoint (numerator denominator : I → ℕ)
     (scale : ℕ) (hs : 0 < scale) (hd : ∀ i, 0 < denominator i)
     (q : I → ℝ) (hq0 : ∀ i, 0 ≤ q i) (hq1 : ∑ i, q i = 1)

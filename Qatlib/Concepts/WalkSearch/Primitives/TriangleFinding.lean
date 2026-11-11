@@ -9,6 +9,26 @@ import Qatlib.Concepts.WalkSearch.WalkAlgorithms.StoredSubgraphSUCSourceCorrecte
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
+
+/-!
+# Verified clauses for triangle-search specifications
+
+This module proves the stored-checker specification, the real-exponent subgraph charge
+specification, and the finite small-branch specification. The proofs establish the precise
+contracts `StoredCheckerNativeSpec`, `RealExponentTh5Spec`, and `FiniteSmallBranchSpec` used in
+the quantum-walk search setting [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `clause21`: stored setup, update, replay, and fresh-checker cost guarantees.
+* `clause22`: the real-exponent numerical and supported-trace guarantees.
+* `clause24`: sound and complete finite scanning for the small branch.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -34,6 +54,8 @@ open Qatlib.Concepts.WalkSearch.Primitives
 open Qatlib.Concepts.WalkSearch.QuantumAccess.Walk
 open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
+/-- Establishes `StoredCheckerNativeSpec`, including one-query setup and update words, replay
+identities, and the fresh-validation checker charge bound. -/
 theorem clause21 : Qatlib.Concepts.WalkSearch.Primitives.StoredCheckerNativeSpec := by
   intro n adj hs hl U
   refine ⟨⟨[Step.query], [Step.query], by simp, rfl, by simp, rfl, ?_, ?_⟩,
@@ -47,6 +69,8 @@ theorem clause21 : Qatlib.Concepts.WalkSearch.Primitives.StoredCheckerNativeSpec
   · intro kcs ncs r' c₀ hk hn stape ntape
     exact (freshValidationChecker_answer n adj U kcs ncs r' c₀ hk hn).2.2 stape ntape
 
+/-- Establishes `RealExponentTh5Spec`, including least-power subset windows, sound bounded
+checker traces, and the stated real-exponent charge bound. -/
 theorem clause22 : Qatlib.Concepts.WalkSearch.Primitives.RealExponentTh5Spec := by
   refine ⟨realExponentTransport_answer, ?_⟩
   intro kcs hκ
@@ -97,6 +121,7 @@ theorem clause22 : Qatlib.Concepts.WalkSearch.Primitives.RealExponentTh5Spec := 
           hnum (by positivity) (by positivity)
       _ = _ := by ring
 
+/-- If the optional head of a list is `some t`, then `t` belongs to the list. -/
 private theorem list_head?_mem {α : Type} {l : List α} {t : α} (ht : l.head? = some t) :
     t ∈ l := by
   cases l with
@@ -106,12 +131,15 @@ private theorem list_head?_mem {α : Type} {l : List α} {t : α} (ht : l.head? 
     subst ht
     simp
 
+/-- A list containing an element has an optional head different from `none`. -/
 private theorem list_head?_ne_none_of_mem {α : Type} {l : List α} {t : α} (hmem : t ∈ l) :
     l.head? ≠ none := by
   cases l with
   | nil => simp at hmem
   | cons a as => simp
 
+/-- Establishes `FiniteSmallBranchSpec`: the finite triangle scan satisfies its charge, output
+soundness, and witness-existence guarantees. -/
 theorem clause24 : Qatlib.Concepts.WalkSearch.Primitives.FiniteSmallBranchSpec := by
   intro _ _ _
   refine ⟨1, ?_⟩

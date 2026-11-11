@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefTwoDiscriminantStat
+
+/-!
+# Bipartite discriminant identities
+
+This module proves the discriminant formulation of Definition 2 in [Szegedy2004]. Normalized
+nonnegative kernels yield isometric frames, whose cross Gram matrix has entries given by square
+roots of products of kernel entries. `szegedyDefTwoDiscriminant` combines these facts with the
+tilde Gram identity and the block discriminant of a transition matrix.
+
+## Main statements
+
+* `szegedyDefTwoDiscriminant`: the frame, Gram, and transition-matrix discriminant identities.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.BlockEncoding
@@ -20,6 +38,8 @@ open Qatlib.Concepts.WalkSearch.TwoLevelLower
 
 namespace Qatlib.Papers.QWalkSpectra04.WalkDefinition
 
+/-- The frame `paperFrameA c` is isometric when `c` has nonnegative entries and every row sums
+to one. -/
 private theorem frameA_isometry {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (c : I → J → ℝ)
     (hn : ∀ i j, 0 ≤ c i j) (hs : ∀ i, ∑ j, c i j = 1) :
@@ -57,6 +77,8 @@ private theorem frameA_isometry {I J : Type} [Fintype I] [DecidableEq I]
       · simp only [if_neg hp, map_zero, zero_mul]
     rw [Finset.sum_eq_zero (fun p _ => hzero p), if_neg hxx']
 
+/-- The frame `paperFrameB r` is isometric when `r` has nonnegative entries and every row sums
+to one. -/
 private theorem frameB_isometry {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (r : J → I → ℝ)
     (hn : ∀ j i, 0 ≤ r j i) (hs : ∀ j, ∑ i, r j i = 1) :
@@ -70,6 +92,9 @@ private theorem frameB_isometry {I J : Type} [Fintype I] [DecidableEq I]
   rw [Finset.sum_comm]
   exact hh
 
+/-- Establishes `SzegedyDefTwoDiscriminant`, including frame isometry, cross Gram entries, the
+tilde Gram identity, and the transition-matrix block discriminant. See [Szegedy, Definition
+2][Szegedy2004]. -/
 theorem szegedyDefTwoDiscriminant : SzegedyDefTwoDiscriminant := by
   intro I J _ _ _ _ c r h
   have ha := frameA_isometry c h.1 h.2.1

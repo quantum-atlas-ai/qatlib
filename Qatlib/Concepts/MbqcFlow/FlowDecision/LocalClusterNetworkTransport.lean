@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
 import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
 import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+
+/-!
+# Lifting observed circuits to network registers
+
+`networkStepLiftGate` extends a local operator by an identity tensor factor and transports it
+through a basis equivalence. `networkStepLift` applies this construction to observed circuits,
+including their measurement labels and projectors, as needed for local patterns in the
+measurement calculus [DanosKashefiPanangaden2007].
+
+The lifting preserves well-formedness and acts leaf by leaf on the Kraus enumeration.
+`networkStepLiftLeaf` retains the resource counts and outcome records of each original leaf.
+
+## Main statements
+
+* `networkStepLiftGate_isOrthogonalProjector`: preservation of orthogonal projectors.
+* `networkStepLift_wellFormed`: preservation of circuit well-formedness.
+* `observedKrausLeaves_networkStepLift`: compatibility of lifting with Kraus-leaf enumeration.
+
+## References
+
+* [Danos, Kashefi, and Panangaden, 2007][DanosKashefiPanangaden2007]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -31,14 +54,20 @@ open Qatlib.Concepts.ShadowModels.ShadowChannel
 
 namespace Qatlib.Concepts.MbqcFlow.FlowDecision
 
+/-- Extends a local operator by the identity on a complementary system and relabels the tensor
+product along `e`. -/
 noncomputable def networkStepLiftGate {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
     (U : Operator s) : Operator D :=
   relabelGate e (TensorGate U (1 : Operator t))
 
+/-- Lifts a local measurement label by reading the first component of the inverse layout
+equivalence. -/
 def networkStepLiftLabel {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D) {k : ℕ}
     (l : Fin s → Fin k) : Fin D → Fin k :=
   fun r => l (e.symm r).1
 
+/-- Lifts an observed circuit to a larger register by extending its gates and projectors and
+transporting its measurement labels. -/
 noncomputable def networkStepLift {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D) :
     ObservedCircuit (Fin s) → ObservedCircuit (Fin D)
   | .halt b => .halt b
@@ -51,6 +80,8 @@ noncomputable def networkStepLift {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
       .project (networkStepLiftGate e P) (networkStepLift e onFalse)
         (networkStepLift e onTrue)
 
+/-- Lifts the operator of an observed Kraus leaf while retaining its acceptance flag, resource
+counts, and recorded outcomes. -/
 noncomputable def networkStepLiftLeaf {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
     (L : ObservedKrausLeaf s) : ObservedKrausLeaf D where
   operator := networkStepLiftGate e L.operator
@@ -60,29 +91,34 @@ noncomputable def networkStepLiftLeaf {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fi
   measurements := L.measurements
   outcomes := L.outcomes
 
+/-- Lifting operators preserves multiplication. -/
 theorem networkStepLiftGate_mul {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
     (A B : Operator s) :
     networkStepLiftGate e (A * B) = networkStepLiftGate e A * networkStepLiftGate e B := by
   unfold networkStepLiftGate
   rw [← teleportRelabelGate_mul, tensorGate_mul, Matrix.mul_one]
 
+/-- Lifting the local identity gives the identity on the larger register. -/
 theorem networkStepLiftGate_one {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D) :
     networkStepLiftGate e (1 : Operator s) = 1 := by
   unfold networkStepLiftGate
   rw [tensorGate_one, teleportRelabelGate_one]
 
+/-- Lifting a unitary local operator gives a unitary operator on the larger register. -/
 theorem networkStepLiftGate_unitary {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
     {U : Operator s} (hU : U ∈ Matrix.unitaryGroup (Fin s) ℂ) :
     networkStepLiftGate e U ∈ Matrix.unitaryGroup (Fin D) ℂ :=
   teleportRelabelGate_mem_unitaryGroup
     (tensorGate_unitary hU (Submonoid.one_mem _)) _
 
+/-- Gate relabeling preserves subtraction. -/
 theorem networkRelabelGate_sub {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (A B : Matrix I I ℂ) :
     relabelGate e (A - B) = relabelGate e A - relabelGate e B := by
   ext i j
   simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.sub_apply]
 
+/-- Lifting operators preserves subtraction. -/
 theorem networkStepLiftGate_sub {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
     (A B : Operator s) :
     networkStepLiftGate e (A - B) = networkStepLiftGate e A - networkStepLiftGate e B := by
@@ -95,6 +131,8 @@ theorem networkStepLiftGate_sub {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
   rw [networkStepLiftGate, networkStepLiftGate, networkStepLiftGate, hT,
     networkRelabelGate_sub]
 
+/-- A basis projector tensored with the identity projects onto pairs whose first component lies
+in the selected set. -/
 theorem tensorGate_projector_one {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (S : Finset I) :
     TensorGate (Projector S) (1 : Matrix J J ℂ)
@@ -113,6 +151,8 @@ theorem tensorGate_projector_one {I J : Type*} [Fintype I] [DecidableEq I] [Fint
       rw [if_neg h2, mul_zero]
     · rw [if_neg h1, zero_mul]
 
+/-- Relabeling a basis projector selects precisely those new indices whose inverse images belong
+to the original set. -/
 theorem networkRelabelGate_projector {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     [DecidableEq J] (e : I ≃ J) (S : Finset I) :
     relabelGate e (Projector S)
@@ -126,6 +166,8 @@ theorem networkRelabelGate_projector {I J : Type*} [Fintype I] [DecidableEq I] [
   · have hne : e.symm r ≠ e.symm r' := fun h => hrr' (e.symm.injective h)
     rw [if_neg hrr', if_neg hne]
 
+/-- Lifting a projector onto a measurement outcome gives the projector onto that outcome for the
+lifted measurement label. -/
 theorem networkStepLiftGate_projector {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D) {k : ℕ}
     (l : Fin s → Fin k) (o : Fin k) :
     networkStepLiftGate e (Projector (Finset.univ.filter (fun i => l i = o)))
@@ -135,6 +177,7 @@ theorem networkStepLiftGate_projector {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fi
   ext r
   simp [Finset.mem_filter, networkStepLiftLabel]
 
+/-- Relabeling an orthogonal projector preserves the orthogonal-projector property. -/
 theorem networkRelabelGate_isOrthogonalProjector {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) {P : Matrix I I ℂ}
     (hP : IsOrthogonalProjector P) : IsOrthogonalProjector (relabelGate e P) := by
@@ -147,6 +190,8 @@ theorem networkRelabelGate_isOrthogonalProjector {I J : Type*} [Fintype I] [Deci
       ← Matrix.star_eq_conjTranspose]
     exact congrArg (relabelGate e) h2
 
+/-- Lifting an orthogonal projector by an identity tensor factor preserves the
+orthogonal-projector property. -/
 theorem networkStepLiftGate_isOrthogonalProjector {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
     {P : Operator s} (hP : IsOrthogonalProjector P) :
     IsOrthogonalProjector (networkStepLiftGate e P) := by
@@ -164,6 +209,7 @@ theorem networkStepLiftGate_isOrthogonalProjector {s t D : ℕ} (e : (Fin s × F
       exact congrArg (fun X => TensorGate X (1 : Operator t)) h2
   exact networkRelabelGate_isOrthogonalProjector e hT
 
+/-- Lifting an observed circuit preserves well-formedness. -/
 theorem networkStepLift_wellFormed {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D) :
     ∀ P : ObservedCircuit (Fin s), observedWellFormed P →
       observedWellFormed (networkStepLift e P) := by
@@ -179,17 +225,22 @@ theorem networkStepLift_wellFormed {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D
     intro h
     exact ⟨networkStepLiftGate_isOrthogonalProjector e h.1, ihFalse h.2.1, ihTrue h.2.2⟩
 
+/-- Prepending a lifted operation to a lifted leaf equals lifting the leaf obtained by
+prepending the original operation. -/
 theorem networkStepLiftLeaf_prepend {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
     (U : Operator s) (q g c : ℕ) (outcomes : List (ℕ × ℕ)) (L : ObservedKrausLeaf s) :
     ObservedKrausLeaf.prepend (networkStepLiftGate e U) q g c outcomes (networkStepLiftLeaf e L)
       = networkStepLiftLeaf e (ObservedKrausLeaf.prepend U q g c outcomes L) := by
   simp only [ObservedKrausLeaf.prepend, networkStepLiftLeaf, networkStepLiftGate_mul]
 
+/-- Pointwise equal finite functions produce equal lists under `List.ofFn`. -/
 private theorem networkOfFn_congr {α : Type*} {n : ℕ} {f g : Fin n → α} (h : ∀ i, f i = g i) :
     List.ofFn f = List.ofFn g := by
   rw [List.ofFn_eq_map, List.ofFn_eq_map]
   exact List.map_congr_left (fun a _ => h a)
 
+/-- The Kraus leaves of a lifted circuit with a lifted oracle are exactly the lifts of the
+original circuit's Kraus leaves. -/
 theorem observedKrausLeaves_networkStepLift {s t D : ℕ} (e : (Fin s × Fin t) ≃ Fin D)
     (oracle : Operator s) :
     ∀ P : ObservedCircuit (Fin s),

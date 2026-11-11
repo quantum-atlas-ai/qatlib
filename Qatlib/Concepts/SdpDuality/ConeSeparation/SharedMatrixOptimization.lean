@@ -9,6 +9,36 @@ import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefu
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationS1ContractEvidence
 import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
 import Qatlib.Concepts.SdpDuality.StrongDuality.PsdConeGeometry
+
+/-!
+# Matrix optimization bounds and approximate cone separation
+
+This module proves Golden–Thompson trace inequalities and equality criteria, regularization
+limits, measurement payoff identities, and error transport bounds for matrix multiplicative
+weights. It also connects Step 2 search budgets, corrected separator predicates, dual mixtures,
+rescaling, and compiled resource ledgers in the quantum SDP setting of [BrandaoSvore2017].
+Several combined statements include explicit counterexamples or finite sampling obstructions.
+
+In `SdpDuality`, `ApproxFeasible` expresses arbitrarily small PSD constraint residuals. The
+approximate Farkas alternative identifies this condition with membership in the closed cone
+image, while `cornerMap` exhibits an infeasible but approximately feasible system whose cone
+image is not closed. Matrix and SDP background can be found in [Bhatia1997] and [Watrous2018].
+
+## Main statements
+
+* `clause21_endpoint`: trace inequalities, equality, and regularization conclusions.
+* `clause24_endpoint`: Step 2 bounds and a separator counterexample.
+* `clause26_endpoint`: dual mixture identities and a finite sampling obstruction.
+* `clause28_endpoint`: compiled resource accounting.
+* `SdpDuality.frontier1`: approximate separation and the corner example.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+* [Bhatia, 1997][Bhatia1997]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option synthInstance.maxHeartbeats 400000
 set_option maxHeartbeats 2000000
@@ -49,6 +79,8 @@ noncomputable section
 
 open Classical
 
+/-- The Golden–Thompson gap vanishes exactly when the two real trace expressions in
+`gtEqualityBoundary` are equal. -/
 theorem gtEqualityBoundary_iff {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ) :
     gtHermitianGap H K = 0 ↔ gtEqualityBoundary H K := by
   unfold gtHermitianGap gtEqualityBoundary
@@ -58,17 +90,22 @@ theorem gtEqualityBoundary_iff {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ) :
   · intro h
     linarith
 
+/-- Positive definite Hermitian inputs satisfy the logarithmic Golden–Thompson trace inequality. -/
 theorem gt_logInput_boundary {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosDef) (hB : B.mat.PosDef) :
     gtLogInputBoundary A B :=
   log_input_gt_le A B hA hB
 
+/-- For Hermitian `H` and `K`, the Golden–Thompson gap is nonnegative, and equality holds
+exactly when `H` and `K` commute. -/
 theorem gt_hermitian_equality_boundary {n : ℕ} (H K : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) (hK : K.IsHermitian) :
     0 ≤ gtHermitianGap H K ∧ (gtEqualityBoundary H K ↔ Commute H K) :=
   ⟨gt_gap_nonneg H K hH hK,
     (gtEqualityBoundary_iff H K).symm.trans (gt_gap_zero_iff_commute H K hH hK)⟩
 
+/-- For positive semidefinite inputs, the regularized logarithmic trace infimum is at most Re
+tr(AB). -/
 theorem gt_psd_infimum_le_product {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) :
     psdRegularizedInfimum A B ≤ (Matrix.trace (A.mat * B.mat)).re := by
@@ -85,6 +122,8 @@ theorem gt_psd_infimum_le_product {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     exact h1.trans (regularized_gt_le A B hA hB (Set.mem_Ioi.mp hε))
   exact ge_of_tendsto (regularized_product_trace_tendsto A B) hle
 
+/-- The subtype-indexed regularized logarithmic trace infimum is nonnegative for all Hermitian
+inputs. -/
 theorem gt_psd_infimum_nonneg {n : ℕ} (A B : HermitianMat (Fin n) ℂ) :
     0 ≤ psdRegularizedInfimum A B := by
   have hzero : psdGTInfimum A B = psdRegularizedInfimum A B ⊓ sInf (∅ : Set ℝ) := by
@@ -95,6 +134,8 @@ theorem gt_psd_infimum_nonneg {n : ℕ} (A B : HermitianMat (Fin n) ℂ) :
   rw [hzero, hempty] at hnonneg
   exact (le_inf_iff.mp hnonneg).1
 
+/-- For positive semidefinite inputs, the regularized logarithmic trace expression tends to
+`psdRegularizedInfimum` as the regularization parameter tends to zero from above. -/
 theorem gt_psd_regularization_limit {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) :
     Filter.Tendsto (fun ε : ℝ => psdRegularizedGT A B ε)
@@ -104,12 +145,16 @@ theorem gt_psd_regularization_limit {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (nhds (⨅ ε : Set.Ioi (0:ℝ), psdRegularizedGT A B ε))
   exact psd_regularized_gt_tendsto_trueInf A B hA hB
 
+/-- For commuting positive semidefinite inputs, the regularized logarithmic trace infimum equals
+Re tr(AB). -/
 theorem gt_psd_commuting_infimum {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) (hcomm : Commute A.mat B.mat) :
     psdRegularizedInfimum A B = (Matrix.trace (A.mat * B.mat)).re := by
   show (⨅ ε : Set.Ioi (0:ℝ), psdRegularizedGT A B ε) = (Matrix.trace (A.mat * B.mat)).re
   exact psd_inf_commuting_trueInf A B hA hB hcomm
 
+/-- Commuting positive definite inputs satisfy the logarithmic trace inequality and equality in
+Golden–Thompson for their spectral logarithms. -/
 theorem gt_logInput_commuting {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosDef) (hB : B.mat.PosDef) (hcomm : Commute A.mat B.mat) :
     gtLogInputBoundary A B ∧ gtEqualityBoundary (spectralLog A) (spectralLog B) := by
@@ -122,6 +167,8 @@ theorem gt_logInput_commuting {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
       (HermitianMat.log A).H (HermitianMat.log B).H).2 hlog
   exact (gtEqualityBoundary_iff _ _).1 hgap
 
+/-- Zero-dimensional Hermitian matrices commute and satisfy equality in the Golden–Thompson
+trace expression. -/
 theorem gt_zero_dimensional (H K : Matrix (Fin 0) (Fin 0) ℂ)
     (_hH : H.IsHermitian) (_hK : K.IsHermitian) :
     gtEqualityBoundary H K ∧ Commute H K := by
@@ -147,6 +194,8 @@ theorem gt_zero_dimensional (H K : Matrix (Fin 0) (Fin 0) ℂ)
     intro i j
     exact (Nat.not_lt_zero i.val i.isLt).elim
 
+/-- Collects logarithmic Golden–Thompson inequalities, equality characterized by commutation,
+regularization limits and infimum bounds, and the zero-dimensional equality case. -/
 theorem clause21_endpoint :
 
     (∀ (n : ℕ) (A B : HermitianMat (Fin n) ℂ),
@@ -198,18 +247,22 @@ theorem clause21_endpoint :
   · intro H K hH hK
     exact gt_zero_dimensional H K hH hK
 
+/-- Transcript event mass is monotone under inclusion of finite events. -/
 theorem eventMass_mono {O D T : ℕ} (R : MmwRun O D T)
     {E F : Finset (MmwTranscript T O)} (hEF : E ⊆ F) :
     R.eventMass E ≤ R.eventMass F := by
   unfold MmwRun.eventMass
   refine Finset.sum_le_sum_of_subset_of_nonneg hEF (fun ω _ _ => R.support.prob_nonneg ω)
 
+/-- The mass of a disjoint union of transcript events is the sum of their masses. -/
 theorem eventMass_union_disjoint {O D T : ℕ} (R : MmwRun O D T)
     {E F : Finset (MmwTranscript T O)} (hEF : Disjoint E F) :
     R.eventMass (E ∪ F) = R.eventMass E + R.eventMass F := by
   unfold MmwRun.eventMass
   rw [Finset.sum_union hEF]
 
+/-- A coordinate statistic under a product weight factors to its coordinate-weighted sum when
+every other coordinate's weights sum to one. -/
 theorem transcript_expect_coord {T O : ℕ} (p : Fin T → Fin O → ℝ) (t : Fin T)
     (f : Fin O → ℝ) (hnorm : ∀ s, s ≠ t → (∑ o, p s o) = 1) :
     (∑ ω : Fin T → Fin O, (∏ s, p s (ω s)) * f (ω t)) = ∑ o, p t o * f o := by
@@ -274,16 +327,21 @@ theorem transcript_expect_coord {T O : ℕ} (p : Fin T → Fin O → ℝ) (t : F
           exact h.symm
     _ = ∑ o, p t o * f o := hprod
 
+/-- The expected recorded payoff of a measurement round equals its actual trace payoff. -/
 theorem mmwRound_record_mean {O D : ℕ} (r : MmwRound O D) :
     (r.law).expect r.f = r.actualPayoff := by
   unfold MmwRound.actualPayoff MmwRound.observable
   exact povm_payoff_mean r.Λ r.ρ r.hρ r.f
 
+/-- The payoff observable of a measurement round is positive semidefinite and has operator norm
+at most one. -/
 theorem mmwRound_record_psd_unit {O D : ℕ} (r : MmwRound O D) :
     r.observable.PosSemidef ∧ ‖r.observable‖ ≤ 1 := by
   unfold MmwRound.observable
   exact payoffObservable_psd_unit r.Λ r.f r.hf
 
+/-- The expected record at any fixed round under the transcript law equals that round's actual
+payoff. -/
 theorem mmwRun_record_mean {O D T : ℕ} (R : MmwRun O D T) (t : Fin T) :
     (∑ ω : MmwTranscript T O, R.transcriptProb ω * (R.rounds t).record (ω t))
       = (R.rounds t).actualPayoff := by
@@ -294,6 +352,7 @@ theorem mmwRun_record_mean {O D T : ℕ} (R : MmwRun O D T) (t : Fin T) :
   rw [h]
   exact mmwRound_record_mean (R.rounds t)
 
+/-- The expected cumulative recorded payoff equals the sum of the actual round payoffs. -/
 theorem mmwRun_expected_recorded_payoff {O D T : ℕ} (R : MmwRun O D T) :
     (∑ ω : MmwTranscript T O, R.transcriptProb ω * R.recordedPayoff ω)
       = ∑ t : Fin T, (R.rounds t).actualPayoff := by
@@ -307,6 +366,8 @@ theorem mmwRun_expected_recorded_payoff {O D T : ℕ} (R : MmwRun O D T) :
   rw [hdistrib, Finset.sum_comm]
   exact Finset.sum_congr rfl fun t _ => mmwRun_record_mean R t
 
+/-- Nonnegative round allowances and disjoint stop and timeout events contained in the failure
+set yield a disciplined run ledger. -/
 theorem mmwRun_ledger_discipline {O D T : ℕ} (R : MmwRun O D T) (ζ : Fin T → ℝ)
     (stopped timedOut : Finset (MmwTranscript T O))
     (hζ : ∀ t, 0 ≤ ζ t)
@@ -329,6 +390,9 @@ theorem mmwRun_ledger_discipline {O D T : ℕ} (R : MmwRun O D T) (ζ : Fin T �
         ≤ R.eventMass (R.failureSet ζ) := eventMass_mono R hsub
     linarith
 
+/-- For Hermitian contraction losses and `0 < η ≤ 1`, state trace-distance errors bounded by `ξ`
+and record errors bounded by `ζ` give expected recorded regret at most `η * T + log D / η +
+∑ s < T, (2 * ξ s + ζ s)` against a density comparator. -/
 theorem clause23_clause22_transport
     (D T : ℕ) (M : ℕ → Operator D) (η : ℝ) (σ : Operator D)
     (approx : ℕ → Operator D) (_z ξ ζ : ℕ → ℝ) (O : ℕ)
@@ -362,6 +426,8 @@ theorem clause23_clause22_transport
     (inferInstance : Fintype (MmwTranscript T O)) (R.support) R.recordAt hhyp
   exact hconc
 
+/-- Combines round unbiasedness, positive semidefinite contraction observables, the expected
+cumulative payoff identity, and ledger discipline for disjoint events charged to failure. -/
 theorem clause23_endpoint :
     (∀ (O D : ℕ) (r : MmwRound O D),
       (r.law).expect r.f = r.actualPayoff) ∧
@@ -385,6 +451,9 @@ theorem clause23_endpoint :
   · intro O D T R ζ stopped timedOut hζ hdisj hsub
     exact mmwRun_ledger_discipline R ζ stopped timedOut hζ hdisj hsub
 
+/-- The sampled width budget equals the source budget at error `κ + ν`, and the sampled
+separation slack equals `2 * α * (κ + ν)`; both are bounded by their `ε` counterparts under
+the stated nonnegativity and error assumptions. -/
 theorem step2_budget_identities (α R κ ν ε : ℝ) (hα : 0 ≤ α) (hR : 0 ≤ R)
     (hκν' : κ + ν ≤ ε) :
     sdpSampledWidthBudget α R κ ν = sourceWidthBudget α R (κ + ν) ∧
@@ -403,17 +472,23 @@ theorem step2_budget_identities (α R κ ν ε : ℝ) (hα : 0 ≤ α) (hR : 0 �
   · unfold sdpSampledSeparationSlack
     exact mul_le_mul_of_nonneg_left hκν' (mul_nonneg (by norm_num) hα)
 
+/-- Expands `eq75Threshold` and `noCheapWidth` into their explicit payoff and cost threshold
+formulas. -/
 theorem step2_threshold_identities {D : ℕ} (Cv ρ : Operator D) (α R ε : ℝ) :
     eq75Threshold Cv ρ α ε = (Matrix.trace (Cv * ρ)).re - 3 * α * ε ∧
     Qatlib.Concepts.SdpDuality.ConeSeparation.noCheapWidth α R ε = α * (1 - 3 * R * ε) := by
   refine ⟨rfl, rfl⟩
 
+/-- Expands the grid mass and identifies each coordinate of the round vector as grid mass times
+candidate probability. -/
 theorem step2_grid_identities {m γ Nmax M L Q : ℕ} (S : Step2Search m γ Nmax M L Q)
     (κ : ℝ) (k : Fin γ) (N : Fin Nmax) :
     Step2Search.gridMass κ N = κ * ((N : ℕ) + 1) ∧
     (∀ i, S.roundVector κ k N i = Step2Search.gridMass κ N * S.law k i) := by
   refine ⟨rfl, fun i => rfl⟩
 
+/-- The corrected no-cheap separator predicate is equivalent to the strict payoff bound for
+every nonnegative vector below the cost threshold. -/
 theorem clause16_corrected_direction :
     ∀ {D m : ℕ} (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
       (ρ : Operator D) (α R ε : ℝ),
@@ -426,6 +501,8 @@ theorem clause16_corrected_direction :
   · intro h z hz hsep hcheap
     exact absurd (h z hz hcheap) (not_lt_of_ge hsep)
 
+/-- On the Step 2 good event, the law-weighted empirical constraint mean is at most its exact
+trace mean plus `κ + ν`. -/
 theorem clause16_law_mean_bound :
     ∀ {m γ Nmax M L Q D : ℕ} (S : Step2Search m γ Nmax M L Q) (b : Fin m → ℝ)
       (A : Fin m → Operator D) (Cv ρ : Operator D) (α κ R ν : ℝ)
@@ -466,6 +543,9 @@ theorem clause16_law_mean_bound :
                 rw [hlaw1]
                 ring
 
+/-- An accepted candidate on the good event has round-vector cost at most
+`sdpSampledWidthBudget` when its grid mass is positive and at most `α`, with nonnegative `R`
+and total error. -/
 theorem clause16_width_side :
     ∀ {m γ Nmax M L Q D : ℕ} (S : Step2Search m γ Nmax M L Q) (b : Fin m → ℝ)
       (A : Fin m → Operator D) (Cv ρ : Operator D) (α κ R ν : ℝ)
@@ -510,6 +590,8 @@ theorem clause16_width_side :
         unfold sdpSampledWidthBudget
         ring
 
+/-- An accepted candidate on the good event has exact round-vector payoff at least `S.estC k N -
+3 * α * (κ + ν)` under the stated grid-mass and nonnegativity assumptions. -/
 theorem clause16_separation_side :
     ∀ {m γ Nmax M L Q D : ℕ} (S : Step2Search m γ Nmax M L Q) (b : Fin m → ℝ)
       (A : Fin m → Operator D) (Cv ρ : Operator D) (α κ R ν : ℝ)
@@ -558,6 +640,9 @@ theorem clause16_separation_side :
     rwa [hcan, ← hsum] at h
   linarith [hsc, hgm]
 
+/-- Under the good-event, acceptance, concentration, ideal-acceptance, and grid assumptions, the
+round vector satisfies both the sampled width bound and the payoff bound with
+`sdpSampledSeparationSlack`. -/
 theorem clause16_idealised_transport :
     ∀ {m γ Nmax M L Q D : ℕ} (S : Step2Search m γ Nmax M L Q) (b : Fin m → ℝ)
       (A : Fin m → Operator D) (Cv ρ : Operator D) (α κ R ν : ℝ)
@@ -592,6 +677,8 @@ theorem clause16_idealised_transport :
   · simpa only [Step2Search.roundVector, Step2Search.gridMass, Nat.cast_add, Nat.cast_one]
       using! hbridge.2
 
+/-- Under the stated Step 2 assumptions, both the `3 * α * (κ + ν)` and `2 * α * (κ + ν)` payoff
+slack bounds hold, and their difference is `α * (κ + ν)`. -/
 theorem clause16_deviation_gap :
     ∀ {m γ Nmax M L Q D : ℕ} (S : Step2Search m γ Nmax M L Q) (b : Fin m → ℝ)
       (A : Fin m → Operator D) (Cv ρ : Operator D) (α κ R ν : ℝ)
@@ -616,6 +703,8 @@ theorem clause16_deviation_gap :
     linarith [hideal'.2]
   · ring
 
+/-- On the good event, if the search produces no output, every grid point satisfying the
+empirical payoff test has law-averaged cost strictly greater than `α / gridMass κ N`. -/
 theorem clause16_no_output_cost :
     ∀ {m γ Nmax M L Q D : ℕ} (S : Step2Search m γ Nmax M L Q) (b : Fin m → ℝ)
       (A : Fin m → Operator D) (Cv ρ : Operator D) (α κ R ν : ℝ),
@@ -638,6 +727,8 @@ theorem clause16_no_output_cost :
     linarith
   linarith
 
+/-- The specified `G8` matrix and state data violate `correctedNoCheapSeparator` at `α = 3`, `R
+= 1`, and `ε = 1/6`. -/
 theorem clause16_refuted_boundary :
     ¬ Qatlib.Concepts.SdpDuality.ConeSeparation.correctedNoCheapSeparator
         Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations.G8.A0 Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations.G8.Cv0 Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations.G8.b0 Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations.G8.ρ8 (3:ℝ) (1:ℝ) (1/6:ℝ) := by
@@ -653,6 +744,9 @@ theorem clause16_refuted_boundary :
   exact absurd habs (by
     norm_num [Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations.G8.b0, Qatlib.Concepts.SdpDuality.ConeSeparation.noCheapWidth])
 
+/-- Collects the corrected separator equivalence, accepted-candidate width and payoff bounds,
+idealized transport, slack comparison, and no-output cost bound, together with the specified
+separator counterexample. -/
 theorem clause24_endpoint :
 
     (∀ {D m : ℕ} (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
@@ -715,6 +809,8 @@ theorem clause24_endpoint :
     clause16_idealised_transport, clause16_deviation_gap, clause16_no_output_cost,
     clause16_refuted_boundary⟩
 
+/-- The sampled width is the exact width plus `exactWidthSlack`, and the separation slack and
+source payoff target expand to their explicit `2 * α * ε` formulas. -/
 theorem width_bridge_identity {D : ℕ} (Cv ρ : Operator D) (α R ε : ℝ) :
     widthSampled α R ε = widthExact α + widthBridgeSlack α R ε ∧
     widthBridgeSlack α R ε = exactWidthSlack α R ε ∧
@@ -726,6 +822,8 @@ theorem width_bridge_identity {D : ℕ} (Cv ρ : Operator D) (α R ε : ℝ) :
   · unfold widthBridgeSlack exactWidthSlack
     ring
 
+/-- For positive `1 + 2 * R * ε`, dividing the certificate vector by this factor converts the
+sampled-width objective bound into the exact-width bound. -/
 theorem width_rescale_transport {m : ℕ} (b : Fin m → ℝ) (y : Fin m → ℝ)
     (α R ε : ℝ) (hc : 0 < 1 + 2 * R * ε) :
     certificateObjective m b (fun i => y i / (1 + 2 * R * ε)) ≤ widthExact α ↔
@@ -761,6 +859,8 @@ theorem width_rescale_transport {m : ℕ} (b : Fin m → ℝ) (y : Fin m → ℝ
       exact h'
     exact le_of_mul_le_mul_right hX hc
 
+/-- Identifies sampled width and separation budgets with the source expressions at total error
+`κ + ν`, including the exact-width plus bridge-slack decomposition. -/
 theorem clause17_source_budget_bridge (α R κ ν : ℝ) :
     sdpSampledWidthBudget α R κ ν = widthSampled α R (κ + ν) ∧
     sdpSampledSeparationSlack α κ ν = separationSlack α (κ + ν) ∧
@@ -769,6 +869,8 @@ theorem clause17_source_budget_bridge (α R κ ν : ℝ) :
   unfold widthSampled widthExact widthBridgeSlack
   ring
 
+/-- Combines the width and payoff identities, equivalence of sampled and rescaled exact
+objective bounds, and identification of source budgets at error `κ + ν`. -/
 theorem clause25_endpoint :
     (∀ {D : ℕ} (Cv ρ : Operator D) (α R ε : ℝ),
       widthSampled α R ε = widthExact α + widthBridgeSlack α R ε ∧
@@ -791,26 +893,33 @@ theorem clause25_endpoint :
   · intro α R κ ν
     exact clause17_source_budget_bridge α R κ ν
 
+/-- The first dual mixture weight is the correction mass divided by the total mixture scale. -/
 theorem dualMixtureWeights_zero {T : ℕ} (a : ℝ) (μ : Fin T → ℝ) :
     dualMixtureWeights a μ 0 = a / dualMixtureScale a μ := by
   rfl
 
+/-- The mixture weight of round `t` is `μ t / (T * dualMixtureScale a μ)`. -/
 theorem dualMixtureWeights_succ {T : ℕ} (a : ℝ) (μ : Fin T → ℝ) (t : Fin T) :
     dualMixtureWeights a μ t.succ = μ t / (T * dualMixtureScale a μ) := by
   rfl
 
+/-- The zeroth component of the augmented mixture is the point mass at `j₀`. -/
 theorem mixtureComponent_zero {m T : ℕ} (j₀ : Fin m) (q : Fin T → Fin m → ℝ) (j : Fin m) :
     (Fin.cases (motive := fun _ : Fin (T + 1) => Fin m → ℝ)
       (fun i => if i = j₀ then (1 : ℝ) else 0) q) 0 j
       = if j = j₀ then 1 else 0 := by
   rfl
 
+/-- The successor component indexed by `t` of the augmented mixture is the round function `q t`. -/
 theorem mixtureComponent_succ {m T : ℕ} (j₀ : Fin m) (q : Fin T → Fin m → ℝ) (t : Fin T)
     (j : Fin m) :
     (Fin.cases (motive := fun _ : Fin (T + 1) => Fin m → ℝ)
       (fun i => if i = j₀ then (1 : ℝ) else 0) q) t.succ j = q t j := by
   rfl
 
+/-- For positive correction mass, nonnegative round masses, and positive round count, the
+mixture scale is positive, the vector is scale times law, and the weights form a probability
+vector realizing the augmented mixture identity. -/
 theorem dual_mixture_identity :
     ∀ {m T : ℕ} (j₀ : Fin m) (a : ℝ) (μ : Fin T → ℝ) (q : Fin T → Fin m → ℝ),
     (∀ t, 0 ≤ μ t) → 0 < a → 0 < T →
@@ -917,6 +1026,9 @@ theorem dual_mixture_identity :
     · simp [hj]
       field_simp [ne_of_gt hscale, ne_of_gt hT]
 
+/-- For a receipt with positive correction mass and round count and nonnegative round masses,
+its law and vector have the defining dual mixture formulas, and the canonical weights form a
+probability vector expressing its law as an augmented mixture. -/
 theorem clause18_receipt_transport :
     ∀ {m T : ℕ} (S : DualMixtureReceipt m T),
       0 < S.a → (∀ t, 0 ≤ S.μ t) → 0 < T →
@@ -931,6 +1043,8 @@ theorem clause18_receipt_transport :
   have h := dual_mixture_identity S.j₀ S.a S.μ S.q hμ ha hT
   exact ⟨rfl, rfl, h.2.2.1, h.2.2.2⟩
 
+/-- No finite fair-bit sampling tree exactly realizes the specified two-outcome dual mixture
+law. -/
 theorem dual_mixture_finite_tree_obstruction :
     ¬ ∃ (choose : SamplerTree (Fin 2)),
         treeRealizes (dualMixtureLaw (0 : Fin 2) (1:ℝ) Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations.G9.mu0 Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations.G9.q0) choose := by
@@ -943,6 +1057,8 @@ theorem dual_mixture_finite_tree_obstruction :
     exact hd
   exact Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations.G9.not_isDyadic_one_div_three h13
 
+/-- Combines the dual mixture identities and their receipt formulation with the obstruction to
+finite fair-bit realization of the specified two-outcome law. -/
 theorem clause26_endpoint :
     (∀ {m T : ℕ} (j₀ : Fin m) (a : ℝ) (μ : Fin T → ℝ) (q : Fin T → Fin m → ℝ),
       (∀ t, 0 ≤ μ t) → 0 < a → 0 < T →
@@ -969,6 +1085,9 @@ theorem clause26_endpoint :
   refine ⟨dual_mixture_identity, clause18_receipt_transport,
     dual_mixture_finite_tree_obstruction⟩
 
+/-- Under the stated positive parameter, Hermitian contraction, and constraint lower-bound
+assumptions, legal rescaling data exist that transport density-state feasibility in both
+directions and preserve objective values up to the recorded error allowance. -/
 theorem clause27_rescale_transport :
     ∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
       (α R δ : ℝ),
@@ -995,6 +1114,9 @@ theorem clause27_rescale_transport :
             (Matrix.trace (Cv * σ)).re ≤ (Matrix.trace (Cv * σ')).re + S.valueError)) :=
   clause4_lemma2_part
 
+/-- For a positive number of calls, per-call failure and error budgets bounded by equal shares
+of the ledger totals sum to at most those totals, and the extracted budget has the recorded
+call count. -/
 theorem clause19_bisection_ledger :
     ∀ {N : ℕ} (spend : Fin N → BisectionBudget) (L : rescaleLedger),
       0 < N → L.calls = N →
@@ -1024,6 +1146,8 @@ theorem clause19_bisection_ledger :
   · unfold rescaleLedger.budget
     rw [hcalls]
 
+/-- Equal per-call failure and error allowances do not imply the stated universal conjunction
+that also bounds the number of calls by a logarithmic expression. -/
 theorem clause27_bisection_boundary :
     ¬ (∀ (R δ : ℝ) (N : ℕ) (guess : Fin N → ℝ) (spend : Fin N → BisectionBudget)
         (totalFail totalError : ℝ),
@@ -1035,6 +1159,8 @@ theorem clause27_bisection_boundary :
       N ≤ 2 * Nat.ceil (Real.log (4 * R / δ) / Real.log 2) + 2) :=
   clause4_conj3_refuted
 
+/-- Combines feasibility and objective transport through legal rescaling, aggregate bisection
+budget bounds, and refutation of the unrestricted logarithmic call-count conjunction. -/
 theorem clause27_endpoint :
     (∀ (D m : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
       (α R δ : ℝ),
@@ -1075,6 +1201,8 @@ theorem clause27_endpoint :
       N ≤ 2 * Nat.ceil (Real.log (4 * R / δ) / Real.log 2) + 2)) := by
   refine ⟨clause27_rescale_transport, clause19_bisection_ledger, clause27_bisection_boundary⟩
 
+/-- Concatenation of compiled steps adds bit time, query, and gate costs and takes the maximum
+of the two peak space costs. -/
 theorem clause28_compiled_cost :
     ∀ (steps₁ steps₂ : List MmwCompiledStep),
     (MmwCompiledRun.cost (steps₁ ++ steps₂)).bitTime
@@ -1114,6 +1242,8 @@ theorem clause28_compiled_cost :
     rw [List.foldl_append]
     exact hfold steps₂ (steps₁.foldl (fun a s => max a s.cost.peakSpace) 0)
 
+/-- The query access list of concatenated compiled runs is the concatenation of their query
+access lists. -/
 theorem clause28_compiled_accesses :
     ∀ (steps₁ steps₂ : List MmwCompiledStep),
     MmwCompiledRun.accesses (steps₁ ++ steps₂)
@@ -1121,11 +1251,14 @@ theorem clause28_compiled_accesses :
   intro steps₁ steps₂
   simp [MmwCompiledRun.accesses, List.flatMap_append]
 
+/-- Every compiled run uses only the operation kinds listed in `MmwGateSet.all`. -/
 theorem clause28_fixed_gates :
     ∀ (steps : List MmwCompiledStep), MmwCompiledRun.usesFixedGates steps := by
   intro steps s hs
   cases s <;> simp [MmwGateSet.all, MmwCompiledStep.gateKind]
 
+/-- The compiled fair-bit count equals the number of rejection-tagged steps and is at most the
+total number of steps. -/
 theorem clause28_fair_bits :
     ∀ (steps : List MmwCompiledStep),
     MmwCompiledRun.fairBits steps
@@ -1138,6 +1271,8 @@ theorem clause28_fair_bits :
   simp only [MmwCompiledRun.fairBits]
   exact List.length_filter_le _ _
 
+/-- The compiled backend ledger agrees with the run's bit time and peak space, retains the
+supplied fair-bit count, and has one call entry per step. -/
 theorem clause28_ledger_agreement :
     ∀ (steps : List MmwCompiledStep) (fairBits : ℕ),
     (MmwCompiledRun.ledger steps fairBits).bitTime = (MmwCompiledRun.cost steps).bitTime ∧
@@ -1155,6 +1290,8 @@ theorem clause28_ledger_agreement :
   · unfold MmwCompiledRun.ledger
     simp
 
+/-- Collects compiled cost and access composition, fixed operation-kind membership,
+rejection-step counting, and agreement of backend ledgers with compiled resource costs. -/
 theorem clause28_endpoint :
     (∀ (steps₁ steps₂ : List MmwCompiledStep),
       (MmwCompiledRun.cost (steps₁ ++ steps₂)).bitTime
@@ -1194,11 +1331,15 @@ open scoped InnerProductSpace ComplexOrder BigOperators
 set_option warningAsError false
 noncomputable section
 
+/-- States that for every positive tolerance there is a positive semidefinite matrix whose
+linear-constraint residual has smaller norm. -/
 def ApproxFeasible {𝕜 : Type} [RCLike 𝕜] {D m : ℕ}
     (A : HermitianMat (Fin D) 𝕜 →L[ℝ] EuclideanSpace ℝ (Fin m))
     (b : EuclideanSpace ℝ (Fin m)) : Prop :=
   ∀ ε : ℝ, 0 < ε → ∃ X : HermitianMat (Fin D) 𝕜, 0 ≤ X ∧ ‖A X-b‖ < ε
 
+/-- Approximate feasibility is equivalent to membership of `b` in the closure of the linear
+image of the PSD cone. -/
 theorem approximate_iff_closed_image {𝕜 : Type} [RCLike 𝕜] {D m : ℕ}
     (A : HermitianMat (Fin D) 𝕜 →L[ℝ] EuclideanSpace ℝ (Fin m))
     (b : EuclideanSpace ℝ (Fin m)) :
@@ -1213,6 +1354,8 @@ theorem approximate_iff_closed_image {𝕜 : Type} [RCLike 𝕜] {D m : ℕ}
     obtain ⟨y,⟨X,hX,rfl⟩,he⟩ := h ε hε
     exact ⟨X,hX,by simpa only [dist_eq_norm, norm_sub_rev] using! he⟩
 
+/-- Approximate feasibility holds exactly when every `y` with positive semidefinite adjoint
+image satisfies `0 ≤ ⟪b, y⟫_ℝ`. -/
 theorem approximate_farkas {𝕜 : Type} [RCLike 𝕜] {D m : ℕ}
     (A : HermitianMat (Fin D) 𝕜 →L[ℝ] EuclideanSpace ℝ (Fin m))
     (b : EuclideanSpace ℝ (Fin m)) :
@@ -1220,6 +1363,8 @@ theorem approximate_farkas {𝕜 : Type} [RCLike 𝕜] {D m : ℕ}
   rw [approximate_iff_closed_image]
   exact ((finitePsdGeometry 𝕜 D).2.2.2.2 m A b).1
 
+/-- A vector with positive semidefinite adjoint image and strictly negative pairing with `b`
+exists exactly when approximate feasibility fails. -/
 theorem strict_separator_iff_not_approximate {𝕜 : Type} [RCLike 𝕜] {D m : ℕ}
     (A : HermitianMat (Fin D) 𝕜 →L[ℝ] EuclideanSpace ℝ (Fin m))
     (b : EuclideanSpace ℝ (Fin m)) :
@@ -1227,6 +1372,8 @@ theorem strict_separator_iff_not_approximate {𝕜 : Type} [RCLike 𝕜] {D m : 
   rw [approximate_iff_closed_image]
   exact ((finitePsdGeometry 𝕜 D).2.2.2.2 m A b).2.symm
 
+/-- For a positive semidefinite candidate and a vector with positive semidefinite adjoint image,
+`-⟪b, y⟫_ℝ` is bounded by the residual norm times `‖y‖`. -/
 theorem separator_residual_lower_bound {𝕜 : Type} [RCLike 𝕜] {D m : ℕ}
     (A : HermitianMat (Fin D) 𝕜 →L[ℝ] EuclideanSpace ℝ (Fin m))
     (b y : EuclideanSpace ℝ (Fin m)) (hy : 0 ≤ A.adjoint y)
@@ -1239,6 +1386,8 @@ theorem separator_residual_lower_bound {𝕜 : Type} [RCLike 𝕜] {D m : ℕ}
   rw [inner_sub_left] at hb
   linarith
 
+/-- The real continuous linear map extracting the real parts of entries `(0, 0)` and `(0, 1)` of
+a two-dimensional Hermitian matrix. -/
 def cornerMap : HermitianMat (Fin 2) ℂ →L[ℝ] EuclideanSpace ℝ (Fin 2) :=
   LinearMap.toContinuousLinearMap
     { toFun := fun X => WithLp.toLp 2 ![(X.mat 0 0).re, (X.mat 0 1).re]
@@ -1255,17 +1404,23 @@ def cornerMap : HermitianMat (Fin 2) ℂ →L[ℝ] EuclideanSpace ℝ (Fin 2) :=
         ext i
         fin_cases i <;> simp }
 
+/-- The two-dimensional real target vector with coordinates zero and one. -/
 def cornerTarget : EuclideanSpace ℝ (Fin 2) := WithLp.toLp 2 ![0,1]
 
+/-- The first coordinate of `cornerMap X` is the real part of the `(0, 0)` entry of `X`. -/
 @[simp] theorem cornerMap_zero (X : HermitianMat (Fin 2) ℂ) : cornerMap X 0 = (X.mat 0 0).re := rfl
 
+/-- The second coordinate of `cornerMap X` is the real part of the `(0, 1)` entry of `X`. -/
 @[simp] theorem cornerMap_one (X : HermitianMat (Fin 2) ℂ) : cornerMap X 1 = (X.mat 0 1).re := rfl
 
+/-- No positive semidefinite Hermitian matrix maps to `cornerTarget` under `cornerMap`. -/
 theorem corner_infeasible : ¬ ∃ X : HermitianMat (Fin 2) ℂ, 0 ≤ X ∧ cornerMap X = cornerTarget := by
   rintro ⟨X,hX,h⟩
   exact weak_corner_infeasible ⟨X,hX,congrArg (fun v : EuclideanSpace ℝ (Fin 2) => v 0) h,
     congrArg (fun v : EuclideanSpace ℝ (Fin 2) => v 1) h⟩
 
+/-- For every positive `ε`, a positive semidefinite Hermitian matrix exists whose
+corner-constraint residual has norm exactly `ε`. -/
 theorem corner_residual_family (ε : ℝ) (hε : 0 < ε) :
     ∃ X : HermitianMat (Fin 2) ℂ, 0 ≤ X ∧ ‖cornerMap X-cornerTarget‖ = ε := by
   obtain ⟨X,hX,h0,h1⟩ := weak_corner_approximate ε hε
@@ -1275,15 +1430,19 @@ theorem corner_residual_family (ε : ℝ) (hε : 0 < ε) :
     cornerTarget, Matrix.cons_val_zero, Matrix.cons_val_one]
   norm_num [Real.norm_eq_abs, sq_abs, Real.sqrt_sq_eq_abs, abs_of_pos hε]
 
+/-- The corner system is approximately feasible despite having no exact positive semidefinite
+solution. -/
 theorem corner_approximately_feasible : ApproxFeasible cornerMap cornerTarget := by
   intro ε hε
   obtain ⟨X,hX,hres⟩ := corner_residual_family (ε/2) (by positivity)
   exact ⟨X,hX,by rw [hres]; linarith⟩
 
+/-- The corner target has no strictly negative adjoint-positive separation certificate. -/
 theorem corner_no_strict_separator : ¬ ∃ y, 0 ≤ cornerMap.adjoint y ∧ ⟪cornerTarget,y⟫_ℝ < 0 := by
   rw [strict_separator_iff_not_approximate]
   exact not_not.mpr corner_approximately_feasible
 
+/-- The linear image of the positive semidefinite cone under `cornerMap` is not closed. -/
 theorem corner_image_not_closed : ¬ IsClosed (cornerMap '' {X : HermitianMat (Fin 2) ℂ | 0 ≤ X}) := by
   intro hc
   have ht := (approximate_iff_closed_image cornerMap cornerTarget).mp corner_approximately_feasible
@@ -1292,6 +1451,9 @@ theorem corner_image_not_closed : ¬ IsClosed (cornerMap '' {X : HermitianMat (F
   obtain ⟨X,hX,hEq⟩ := ht
   exact corner_infeasible ⟨X,hX,hEq⟩
 
+/-- Combines finite real and complex PSD geometry and the approximate Farkas alternative with
+the infeasible but approximately feasible corner system, its lack of a strict separator, and
+its nonclosed cone image. -/
 theorem frontier1 : FinitePsdGeometry ℝ ∧ FinitePsdGeometry ℂ ∧
     (∀ (𝕜 : Type) [RCLike 𝕜] (D m : ℕ)
       (A : HermitianMat (Fin D) 𝕜 →L[ℝ] EuclideanSpace ℝ (Fin m)) (b : EuclideanSpace ℝ (Fin m)),

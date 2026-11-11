@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.SecularAlgebra
+
+/-!
+# Excluding a unique diagonal pole
+
+The module treats a real value occurring at exactly one diagonal position of
+`diagonalMinusRankOne`. If the perturbation coefficient and the corresponding coordinate of `u`
+are nonzero, the eigenvector equation forces every vector at that value to vanish.
+
+This excludes a unique diagonal pole from the perturbed spectrum, complementing the secular
+analysis away from poles [Bhatia1997].
+
+## Main statements
+
+* `unique_pole_eigenvector_zero`: an eigenvector at the unique coupled pole must be zero.
+* `unique_pole_not_eigenvalue`: no nonzero eigenvector exists at that pole.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1400000
 noncomputable section
@@ -13,6 +34,9 @@ open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixAlgebra.RankOneSecular
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- If `z` occurs at exactly one diagonal coordinate, and both the perturbation coefficient and
+that coordinate of `u` are nonzero, every vector satisfying the eigenvector equation at `z`
+is zero. -/
 theorem unique_pole_eigenvector_zero (d : I→ℝ) (u x : I→ℂ) (a z : ℝ) (i0 : I)
     (hdiag : d i0=z) (hother : ∀j,j≠i0→d j≠z) (ha : a≠0) (hu : u i0≠0)
     (heig : diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x) : x=0 := by
@@ -47,6 +71,8 @@ theorem unique_pole_eigenvector_zero (d : I→ℝ) (u x : I→ℂ) (a z : ℝ) (
     exact hzero
   · exact hx i hi0
 
+/-- A diagonal value occurring at a unique coordinate is not an eigenvalue of the rank-one
+perturbation when its coupling coordinate and the perturbation coefficient are nonzero. -/
 theorem unique_pole_not_eigenvalue (d : I→ℝ) (u : I→ℂ) (a z : ℝ) (i0 : I)
     (hdiag : d i0=z) (hother : ∀j,j≠i0→d j≠z) (ha : a≠0) (hu : u i0≠0) :
     ¬∃x:I→ℂ,x≠0 ∧diagonalMinusRankOne d u a *ᵥ x=(z:ℂ)•x := by

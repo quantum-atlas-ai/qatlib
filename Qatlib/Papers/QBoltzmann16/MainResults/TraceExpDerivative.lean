@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QBoltzmann16.MainResults.BoltzmannDefs
+
+/-!
+# Differentiating finite trace exponentials
+
+This module proves cyclic trace identities for matrix powers and the derivative of the trace
+exponential for a real-parameter matrix family with a continuous derivative at the evaluation
+point. The finite Gibbs partition derivative follows by substituting `-H`, providing the
+noncommuting trace calculation used in [AminEtAl2018].
+
+## Main statements
+
+* `trace_pow_hasDerivAt`: the derivative of the trace of a matrix power.
+* `trace_exp_hasDerivAt`: the trace-exponential derivative.
+* `gibbsPartition_hasDerivAt`: the finite Gibbs partition derivative.
+
+## References
+
+* [Amin et al., 2018][AminEtAl2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -16,12 +36,17 @@ open Matrix Filter
 open scoped BigOperators ComplexOrder Matrix.Norms.L2Operator Topology
 set_option warningAsError false
 
+/-- The matrix trace regarded as a continuous real-linear map from finite complex operators to
+the complex numbers. -/
 def traceCLM (D : ℕ) : Operator D →L[ℝ] ℂ :=
   (Matrix.traceLinearMap (Fin D) ℝ ℂ).toContinuousLinearMap
 
+/-- The continuous-linear trace map evaluates to the ordinary matrix trace. -/
 @[simp]
 theorem traceCLM_apply (D : ℕ) (A : Operator D) : traceCLM D A = Matrix.trace A := rfl
 
+/-- Cyclicity of the trace collapses the sum of the `n` matrix-power derivative terms to `n`
+times `trace (A ^ n.pred * Y)`. -/
 theorem trace_pow_deriv_sum (D : ℕ) (A Y : Operator D) (n : ℕ) :
     (∑ i ∈ Finset.range n, Matrix.trace (A ^ (n.pred - i) * Y * A ^ i))
       = (n : ℂ) * Matrix.trace (A ^ n.pred * Y) := by
@@ -36,6 +61,8 @@ theorem trace_pow_deriv_sum (D : ℕ) (A Y : Operator D) (n : ℕ) :
     rw [show i + (n.pred - i) = n.pred by omega]
   rw [Finset.sum_congr rfl hterm, Finset.sum_const, Finset.card_range, nsmul_eq_mul]
 
+/-- For a differentiable matrix family, the derivative of `trace (A t ^ n)` is `n * trace (A θ ^
+n.pred * A' θ)`. -/
 theorem trace_pow_hasDerivAt (D : ℕ) (A A' : ℝ → Operator D) (n : ℕ) (θ : ℝ)
     (hA : HasDerivAt A (A' θ) θ) :
     HasDerivAt (fun t : ℝ => Matrix.trace (A t ^ n))
@@ -55,6 +82,7 @@ theorem trace_pow_hasDerivAt (D : ℕ) (A A' : ℝ → Operator D) (n : ℕ) (θ
     exact trace_pow_deriv_sum D (A θ) (A' θ) n
   rwa [hval] at htr
 
+/-- The complex norm of each matrix entry is bounded by the matrix's ℓ² operator norm. -/
 lemma norm_entry_le_opNorm (D : ℕ) (B : Operator D) (i j : Fin D) : ‖B i j‖ ≤ ‖B‖ := by
   let x : EuclideanSpace ℂ (Fin D) := EuclideanSpace.single j 1
   have hx : ‖x‖ = 1 := by simp [x]
@@ -66,6 +94,7 @@ lemma norm_entry_le_opNorm (D : ℕ) (B : Operator D) (i j : Fin D) : ‖B i j�
     _ ≤ ‖B‖ * ‖x‖ := h
     _ = ‖B‖ := by rw [hx, mul_one]
 
+/-- The norm of the trace is at most the dimension times the matrix's ℓ² operator norm. -/
 lemma norm_trace_le (D : ℕ) (B : Operator D) : ‖Matrix.trace B‖ ≤ (D : ℝ) * ‖B‖ := by
   calc ‖Matrix.trace B‖ = ‖∑ i, B i i‖ := by simp [Matrix.trace]
     _ ≤ ∑ i, ‖B i i‖ := norm_sum_le _ _
@@ -73,6 +102,7 @@ lemma norm_trace_le (D : ℕ) (B : Operator D) : ‖Matrix.trace B‖ ≤ (D : �
     _ = (D : ℝ) * ‖B‖ := by
         simp [Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
 
+/-- In positive dimension, the ℓ² operator norm of `B ^ n` is at most `‖B‖ ^ n`. -/
 lemma l2_opNorm_pow_le (D : ℕ) (hD : 0 < D) (B : Operator D) (n : ℕ) : ‖B ^ n‖ ≤ ‖B‖ ^ n := by
   letI : Nonempty (Fin D) := ⟨⟨0, hD⟩⟩
   induction n with
@@ -82,6 +112,9 @@ lemma l2_opNorm_pow_le (D : ℕ) (hD : 0 < D) (B : Operator D) (n : ℕ) : ‖B 
       rw [pow_succ, pow_succ]
       exact (Matrix.l2_opNorm_mul _ _).trans (mul_le_mul_of_nonneg_right ih (norm_nonneg _))
 
+/-- For a differentiable matrix family in positive dimension whose derivative is continuous at
+`θ`, the trace-exponential derivative is `trace (exp (A θ) * A' θ)` without a commutation
+hypothesis. -/
 theorem trace_exp_hasDerivAt (D : ℕ) (hD : 0 < D)
     (A A' : ℝ → Operator D) (θ : ℝ)
     (hA : ∀ t, HasDerivAt A (A' t) t) (hA' : ContinuousAt A' θ) :
@@ -237,6 +270,9 @@ theorem trace_exp_hasDerivAt (D : ℕ) (hD : 0 < D)
   rw [hfun, hderivval] at hmain
   simpa using! hmain
 
+/-- For a differentiable Hamiltonian family in positive dimension with derivative continuous at
+`θ`, the partition derivative is the negative real trace of `exp (-(H θ)) * H' θ`
+[AminEtAl2018]. -/
 theorem gibbsPartition_hasDerivAt (D : ℕ) (hD : 0 < D)
     (H H' : ℝ → Operator D) (θ : ℝ)
     (hH : ∀ t, HasDerivAt H (H' t) t) (hH' : ContinuousAt H' θ) :

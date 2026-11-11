@@ -6,8 +6,30 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.Complex.Basic
 
+/-!
+# Error budgets for complex quotients
+
+Proves `quotient_error_of_third_budgets`, a stability bound for approximating a complex
+numerator divided by a real normalization factor. When `0 ≤ θ ≤ 1` and `‖a‖ ≤ Z`, allocating `(θ
+/ 3) * Z` to each of the numerator and denominator errors bounds the quotient error by `θ`; the
+statement also covers `Z = 0` with Lean's division convention. See [Watrous2018] for related
+background.
+
+## Main statements
+
+* `quotient_error_of_third_budgets`: If `0 ≤ θ ≤ 1`, `‖a‖ ≤ Z`, and the numerator and
+  denominator approximations each have error at most `(θ / 3) * Z`, then `‖a_tilde / Z_tilde - a
+  / (Z : ℂ)‖ ≤ θ`.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 namespace Qatlib.Foundations.NumericError.RatioError
 
+/-- If `0 ≤ θ ≤ 1`, `‖a‖ ≤ Z`, and the numerator and denominator approximations each have error
+at most `(θ / 3) * Z`, then `‖a_tilde / Z_tilde - a / (Z : ℂ)‖ ≤ θ`. -/
 theorem quotient_error_of_third_budgets :
     ∀ (θ : ℝ) (a a_tilde : ℂ) (Z : ℝ) (Z_tilde : ℂ),
     0 ≤ θ →

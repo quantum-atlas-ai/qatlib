@@ -19,6 +19,32 @@ import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryFourBitWitness
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySdpDuality
+
+/-!
+# Iterated adversary witnesses and certificate separations
+
+Constructs and analyzes adversary witnesses for iterated total and partial Boolean functions.
+Spectral embeddings preserve matrix norms and transport coordinate filters, allowing witness
+norms to multiply under iteration in the composition framework of [HoyerLeeSpalek2007].
+
+The six-bit examples combine adversary lower bounds with certificate and Hamming-distance
+estimates. The module proves exact certificate complexities for `iterateTotal monotoneSixBitG d`
+and bounds for the partial iterates of `sixBitF`.
+
+## Main statements
+
+* `advPmValue_iterateTotal`: the adversary value of an iterate is at least the corresponding
+  power of the base value.
+* `partialAdversaryGamma_facts`: feasibility and norm formula for partial iterated witnesses.
+* `certComplexity_monotoneSixBit_iterate`: exact certificate complexity `3^d` for either output.
+* `sixBit_partial_iterated_property_rate`: compare the partial adversary value with inverse
+  relative Hamming distance.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -57,6 +83,8 @@ variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 noncomputable section
 omit [Fintype X] in
 
+/-- The spectral embedding associated with an injective map has Gram matrix equal to the
+identity. -/
 theorem spectralDomainEmbedding_gram (e : X → Y) (he : Function.Injective e) :
     (spectralDomainEmbedding e)ᴴ * spectralDomainEmbedding e = 1 := by
   classical
@@ -65,6 +93,7 @@ theorem spectralDomainEmbedding_gram (e : X → Y) (he : Function.Injective e) :
 end
 noncomputable section
 
+/-- The operator norm of the spectral embedding of an injective map is at most one. -/
 theorem spectralDomainEmbedding_norm_le (e : X → Y) (he : Function.Injective e) :
     ‖spectralDomainEmbedding e‖ ≤ 1 := by
   have hh := Matrix.l2_opNorm_conjTranspose_mul_self (spectralDomainEmbedding e)
@@ -74,6 +103,8 @@ theorem spectralDomainEmbedding_norm_le (e : X → Y) (he : Function.Injective e
 end
 noncomputable section
 
+/-- Conjugating a matrix by the spectral embedding of an injective map preserves its operator
+norm. -/
 theorem spectralDomainEmbedding_norm (e : X → Y) (he : Function.Injective e) (G : Matrix X X ℂ) :
     ‖spectralDomainEmbedding e*G*(spectralDomainEmbedding e)ᴴ‖ = ‖G‖ := by
   have hn := spectralDomainEmbedding_norm_le e he
@@ -103,6 +134,8 @@ end
 noncomputable section
 omit [DecidableEq X] [Fintype Y] in
 
+/-- If an embedding preserves encoded inputs, adversary filtering commutes with conjugation by
+its spectral embedding. -/
 theorem spectralDomainEmbedding_filter {K : Type} (e : X → Y)
     (inputX : X → K → Bool) (inputY : Y → K → Bool) (hi : ∀ x, inputY (e x)=inputX x)
     (G : Matrix X X ℂ) (i : K) :
@@ -137,6 +170,7 @@ theorem spectralDomainEmbedding_filter {K : Type} (e : X → Y)
 end
 noncomputable section
 
+/-- Reindexing both indices of a complex matrix by an equivalence preserves its operator norm. -/
 theorem norm_submatrix_equiv (e : X ≃ Y) (G : Matrix Y Y ℂ) : ‖G.submatrix e e‖ = ‖G‖ := by
   have he : spectralDomainEmbedding e.symm*G*(spectralDomainEmbedding e.symm)ᴴ = G.submatrix e e := by
     ext x z
@@ -146,11 +180,15 @@ theorem norm_submatrix_equiv (e : X ≃ Y) (G : Matrix Y Y ℂ) : ‖G.submatrix
 end
 noncomputable section
 
+/-- Applying `forceAll` to a family of present Boolean values returns the corresponding Boolean
+word. -/
 theorem forceAll_some {n : ℕ} (b : Fin n → Bool) : forceAll (fun i => some (b i)) = some b := by
   simp [forceAll]
 end
 noncomputable section
 
+/-- Iterating a total Boolean function through its `Option` lift agrees with `iterateTotal`
+wrapped in `some`. -/
 theorem iterateFlat_total {n : ℕ} (f : (Fin n → Bool) → Bool) (d : ℕ) (w : Fin (n^d) → Bool) :
     iterateFlat (fun u => some (f u)) d w = some (iterateTotal f d w) := by
   induction d with
@@ -170,6 +208,8 @@ theorem iterateFlat_total {n : ℕ} (f : (Fin n → Bool) → Bool) (d : ℕ) (w
 end
 noncomputable section
 
+/-- The next total iterate applies the base function to the depth-`d` values of the input
+blocks. -/
 theorem iterateTotal_succ {n : ℕ} (f : (Fin n → Bool) → Bool) (d : ℕ) (w : Fin (n^(d+1)) → Bool) :
     iterateTotal f (d+1) w = f (fun i => iterateTotal f d (iteratedWordSplit n d w i)) := by
   unfold iterateTotal
@@ -180,6 +220,7 @@ theorem iterateTotal_succ {n : ℕ} (f : (Fin n → Bool) → Bool) (d : ℕ) (w
 end
 noncomputable section
 
+/-- The base Boolean query witness is Hermitian. -/
 theorem booleanQueryGamma_hermitian : booleanQueryGamma.IsHermitian := by
   apply Matrix.IsHermitian.ext
   intro x y
@@ -187,6 +228,7 @@ theorem booleanQueryGamma_hermitian : booleanQueryGamma.IsHermitian := by
 end
 noncomputable section
 
+/-- The base Boolean query witness has operator norm one. -/
 theorem booleanQueryGamma_norm : ‖booleanQueryGamma‖ = 1 := by
   have hu : booleanQueryGammaᴴ * booleanQueryGamma = 1 := by
     ext x y
@@ -198,6 +240,8 @@ theorem booleanQueryGamma_norm : ‖booleanQueryGamma‖ = 1 := by
 end
 noncomputable section
 
+/-- The depth-zero witness is Hermitian, has norm one, vanishes on equal depth-zero outputs, and
+has all coordinate filter norms at most one. -/
 theorem zeroDepthGamma_facts {n : ℕ} (f : (Fin n → Bool) → Bool) :
     (zeroDepthGamma n).IsHermitian ∧ ‖zeroDepthGamma n‖ = 1 ∧
     (∀ x y, iterateTotal f 0 x = iterateTotal f 0 y → zeroDepthGamma n x y = 0) ∧
@@ -220,6 +264,7 @@ theorem zeroDepthGamma_facts {n : ℕ} (f : (Fin n → Bool) → Bool) :
 end
 noncomputable section
 
+/-- Adversary filtering of a complex matrix commutes with real scalar multiplication. -/
 theorem genAdvFilter_complex_real_smul {X K : Type} (input : X → K → Bool)
     (G : Matrix X X ℂ) (t : ℝ) (i : K) :
     genAdvFilter input (t • G) i = t • genAdvFilter input G i := by
@@ -230,6 +275,8 @@ theorem genAdvFilter_complex_real_smul {X K : Type} (input : X → K → Bool)
 end
 noncomputable section
 
+/-- Filtering a matrix pulled back along `iteratedWordSplit` agrees with pulling back the
+corresponding block-coordinate weighted filter. -/
 theorem iteratedWordSplit_filter {n d : ℕ}
     (G : Matrix (Fin n → (Fin (n^d) → Bool)) (Fin n → (Fin (n^d) → Bool)) ℂ)
     (q : Fin (n^(d+1))) :
@@ -247,6 +294,9 @@ theorem iteratedWordSplit_filter {n d : ℕ}
 end
 noncomputable section
 
+/-- For feasible Hermitian outer and inner witnesses with positive inner norm, one iteration
+produces a Hermitian witness supported on different outputs, with norm `‖A‖ * ‖B‖` and
+filter norms at most one. -/
 theorem iteratedAdversaryStep_facts {n : ℕ} (hn : 0 < n) (f : (Fin n → Bool) → Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ)
     (hA : A.IsHermitian) (hzA : ∀ x y, f x=f y → A x y=0)
@@ -309,6 +359,8 @@ theorem iteratedAdversaryStep_facts {n : ℕ} (hn : 0 < n) (f : (Fin n → Bool)
 end
 noncomputable section
 
+/-- A feasible Hermitian base witness of positive norm yields a feasible depth-`d` witness with
+norm `‖A‖^d`. -/
 theorem iteratedAdversaryGamma_facts {n : ℕ} (hn : 0 < n) (f : (Fin n → Bool) → Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ)
     (hA : A.IsHermitian) (hzA : ∀ x y, f x=f y → A x y=0)
@@ -332,6 +384,8 @@ theorem iteratedAdversaryGamma_facts {n : ℕ} (hn : 0 < n) (f : (Fin n → Bool
 end
 noncomputable section
 
+/-- A positive-norm Hermitian witness vanishing on equal outputs and with filter norms at most
+one provides its norm as a lower bound on `advPmValue`. -/
 theorem normalized_adversary_le_source {X K : Type} [Fintype X] [DecidableEq X]
     [Fintype K] [Nonempty K] (input : X → K → Bool) (f : X → Bool)
     (G : Matrix X X ℂ) (hG : G.IsHermitian) (hz : ∀ x y, f x=f y → G x y=0)
@@ -351,6 +405,8 @@ theorem normalized_adversary_le_source {X K : Type} [Fintype X] [DecidableEq X]
 end
 noncomputable section
 
+/-- A feasible positive-norm Hermitian base witness gives the lower bound `ENNReal.ofReal
+(‖A‖^d)` for the adversary value of the depth-`d` total iterate. -/
 theorem iteratedAdversaryGamma_source_bound {n : ℕ} (hn : 0 < n) (f : (Fin n → Bool) → Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ)
     (hA : A.IsHermitian) (hzA : ∀ x y, f x=f y → A x y=0)
@@ -366,6 +422,8 @@ theorem iteratedAdversaryGamma_source_bound {n : ℕ} (hn : 0 < n) (f : (Fin n �
 end
 noncomputable section
 
+/-- A nonzero matrix on Boolean words that vanishes on equal outputs has strictly positive
+maximum filter norm. -/
 theorem word_adversary_maxFilter_pos {n : ℕ} (f : (Fin n → Bool) → Bool)
     (G : Matrix (Fin n → Bool) (Fin n → Bool) ℂ)
     (hz : ∀ x y, f x=f y → G x y=0) (hne : G≠0) : 0 < maxFilterNorm (fun w : Fin n → Bool => w) G := by
@@ -388,6 +446,8 @@ theorem word_adversary_maxFilter_pos {n : ℕ} (f : (Fin n → Bool) → Bool)
 end
 noncomputable section
 
+/-- Normalizing a nonzero Hermitian word witness preserves its support, gives positive norm and
+filter norms at most one, and expresses the original witness value as the normalized norm. -/
 theorem normalizeWordAdversary_facts {n : ℕ} (f : (Fin n → Bool) → Bool)
     (G : Matrix (Fin n → Bool) (Fin n → Bool) ℂ)
     (hG : G.IsHermitian) (hz : ∀ x y, f x=f y → G x y=0) (hne : G≠0) :
@@ -422,6 +482,9 @@ theorem normalizeWordAdversary_facts {n : ℕ} (f : (Fin n → Bool) → Bool)
 end
 noncomputable section
 
+/-- For positive arity, the negative-weight adversary value of the depth-`d` total iterate is at
+least the `d`th power of the base value, in the composition framework of
+[HoyerLeeSpalek2007]. -/
 theorem advPmValue_iterateTotal {n : ℕ} (hn : 0 < n) (f : (Fin n → Bool) → Bool) (d : ℕ) :
     advPmValue (fun w : Fin n → Bool => w) f ^ d ≤
       advPmValue (fun w : Fin (n^d) → Bool => w) (iterateTotal f d) := by
@@ -445,6 +508,8 @@ theorem advPmValue_iterateTotal {n : ℕ} (hn : 0 < n) (f : (Fin n → Bool) →
 end
 noncomputable section
 
+/-- An injective map preserving inputs and Boolean outputs can only increase the negative-weight
+adversary value. -/
 theorem advPmValue_mono_of_injective {X Y K : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] [Fintype K]
     (e : X → Y) (he : Function.Injective e)
@@ -489,6 +554,8 @@ noncomputable section
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 0 in
 
+/-- The twenty-input six-bit encoding is injective and intertwines `kushilevitzFunW` with
+`monotoneSixBitG`. -/
 theorem sixBit_source_embedding : Function.Injective kushilevitzInputW ∧
     ∀ x : Fin 20, monotoneSixBitG (kushilevitzInputW x)=kushilevitzFunW x := by
   decide +kernel
@@ -515,6 +582,8 @@ variable {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 set_option maxRecDepth 100000 in
 noncomputable section
 
+/-- The negative-weight adversary value of `monotoneSixBitG` is at least `2 + 3 * Real.sqrt 5 /
+5`. -/
 theorem monotoneSixBit_source_base :
     ENNReal.ofReal (2+3*Real.sqrt 5/5) ≤ advPmValue (fun w : Fin 6 → Bool => w) monotoneSixBitG := by
   apply advPmValue_kushilevitz_ge.trans
@@ -524,6 +593,8 @@ theorem monotoneSixBit_source_base :
 end
 noncomputable section
 
+/-- The depth-`d` total iterate of `monotoneSixBitG` has negative-weight adversary value at
+least `(2 + 3 * Real.sqrt 5 / 5)^d`. -/
 theorem monotoneSixBit_iterated_source_bound (d : ℕ) :
     ENNReal.ofReal ((2+3*Real.sqrt 5/5)^d) ≤
       advPmValue (fun w : Fin (6^d) → Bool => w) (iterateTotal monotoneSixBitG d) := by
@@ -533,6 +604,8 @@ theorem monotoneSixBit_iterated_source_bound (d : ℕ) :
 end
 noncomputable section
 
+/-- The negative-weight adversary value of the depth-`d` six-bit total iterate is at least the
+`d`th power of its base adversary value. -/
 theorem monotoneSixBit_iterated_optimized_bound (d : ℕ) :
     advPmValue (fun w : Fin 6 → Bool => w) monotoneSixBitG ^ d ≤
       advPmValue (fun w : Fin (6^d) → Bool => w) (iterateTotal monotoneSixBitG d) :=
@@ -540,6 +613,8 @@ theorem monotoneSixBit_iterated_optimized_bound (d : ℕ) :
 end
 noncomputable section
 
+/-- The depth-`d` total iterate of `ambainisSorted4` has negative-weight adversary value at
+least `2.5135^d`. -/
 theorem ambainis_four_bit_iterated_bound (d : ℕ) :
     ENNReal.ofReal ((2.5135 : ℝ)^d) ≤
       advPmValue (fun w : Fin (4^d) → Bool => w) (iterateTotal ambainisSorted4 d) := by
@@ -551,6 +626,8 @@ theorem ambainis_four_bit_iterated_bound (d : ℕ) :
 end
 noncomputable section
 
+/-- Combining an outer certificate with valid inner certificates on its selected blocks yields a
+certificate for the flattened composition. -/
 theorem flatCertificateUnion_valid {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
     (f : (Fin n → Bool) → Bool) (g : (Fin m → Bool) → Bool) (w : Fin l → Bool)
     (S : Finset (Fin n)) (T : Fin n → Finset (Fin m))
@@ -566,6 +643,8 @@ theorem flatCertificateUnion_valid {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
 end
 noncomputable section
 
+/-- If the outer certificate has size at most `a` and each selected inner set has size at most
+`c`, their flattened union has size at most `a * c`. -/
 theorem flatCertificateUnion_card {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
     (S : Finset (Fin n)) (T : Fin n → Finset (Fin m)) (a c : ℕ)
     (hS : S.card ≤ a) (hT : ∀ i ∈ S, (T i).card ≤ c) :
@@ -580,6 +659,8 @@ theorem flatCertificateUnion_card {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
 end
 noncomputable section
 
+/-- The cardinalities of the block restrictions of a flattened certificate sum to its total
+cardinality. -/
 theorem flatCertificateBlock_sum {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n) (T : Finset (Fin l)) :
     (∑ i, (flatCertificateBlock e T i).card) = T.card := by
   have hcard (i : Fin n) : (flatCertificateBlock e T i).card = (T.filter (fun q => (e q).2=i)).card := by
@@ -617,6 +698,8 @@ theorem flatCertificateBlock_sum {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n) (T
 end
 noncomputable section
 
+/-- A certificate for a flattened composition induces an outer certificate consisting of the
+blocks whose inner outputs it forces. -/
 theorem forcedOuterCertificate_valid {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
     (f : (Fin n → Bool) → Bool) (g : (Fin m → Bool) → Bool) (w : Fin l → Bool)
     (T : Finset (Fin l)) (hT : IsCertificate (flatBooleanCompose e f g) w T) :
@@ -658,6 +741,9 @@ theorem forcedOuterCertificate_valid {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n
 end
 noncomputable section
 
+/-- If every relevant outer certificate has size at least `a` and every inner certificate has
+size at least `c`, then every certificate for the flattened composition has size at least `a
+* c`. -/
 theorem flatCertificate_product_lower {n m l : ℕ} (e : Fin l ≃ Fin m × Fin n)
     (f : (Fin n → Bool) → Bool) (g : (Fin m → Bool) → Bool) (w : Fin l → Bool)
     (a c : ℕ)
@@ -679,6 +765,8 @@ theorem flatCertificate_product_lower {n m l : ℕ} (e : Fin l ≃ Fin m × Fin 
 end
 noncomputable section
 
+/-- The successor total iterate equals the flattened composition of the base function with its
+previous iterate. -/
 theorem iterateTotal_succ_eq_flat {n : ℕ} (f : (Fin n → Bool) → Bool) (d : ℕ) :
     iterateTotal f (d+1) = flatBooleanCompose (powIndexSplit n d) f (iterateTotal f d) := by
   funext w
@@ -686,6 +774,7 @@ theorem iterateTotal_succ_eq_flat {n : ℕ} (f : (Fin n → Bool) → Bool) (d :
 end
 noncomputable section
 
+/-- Every iterate of `monotoneSixBitG` sends a constant Boolean word to that same Boolean value. -/
 theorem monotoneSixBit_iterate_const (b : Bool) (d : ℕ) :
     iterateTotal monotoneSixBitG d (fun _ => b) = b := by
   induction d with
@@ -700,6 +789,8 @@ theorem monotoneSixBit_iterate_const (b : Bool) (d : ℕ) :
 end
 noncomputable section
 
+/-- Every input to the depth-`d` six-bit total iterate possesses a certificate with at most
+`3^d` coordinates. -/
 theorem monotoneSixBit_iterated_certificates (d : ℕ) : ∀ w : Fin (6^d) → Bool,
     ∃ S : Finset (Fin (6^d)), S.card ≤ 3^d ∧ IsCertificate (iterateTotal monotoneSixBitG d) w S := by
   induction d with
@@ -724,6 +815,8 @@ theorem monotoneSixBit_iterated_certificates (d : ℕ) : ∀ w : Fin (6^d) → B
 end
 noncomputable section
 
+/-- Every certificate for a constant input to the depth-`d` six-bit total iterate has at least
+`3^d` coordinates. -/
 theorem monotoneSixBit_iterated_certificate_lower (b : Bool) (d : ℕ) :
     ∀ S : Finset (Fin (6^d)), IsCertificate (iterateTotal monotoneSixBitG d) (fun _ => b) S → 3^d ≤ S.card := by
   induction d with
@@ -759,6 +852,8 @@ theorem monotoneSixBit_iterated_certificate_lower (b : Bool) (d : ℕ) :
 end
 noncomputable section
 
+/-- For either Boolean output, the certificate complexity of the depth-`d` iterate of
+`monotoneSixBitG` equals `3^d`. -/
 theorem certComplexity_monotoneSixBit_iterate (d : ℕ) (b : Bool) :
     certComplexity (iterateTotal monotoneSixBitG d) b = (3^d : WithTop ℕ) := by
   apply le_antisymm
@@ -777,6 +872,8 @@ theorem certComplexity_monotoneSixBit_iterate (d : ℕ) (b : Bool) :
 end
 noncomputable section
 
+/-- Certificates for inputs with different outputs share a coordinate at which the inputs
+differ. -/
 theorem certificates_cross_intersection {n : ℕ} (f : (Fin n → Bool) → Bool)
     (x y : Fin n → Bool) (S T : Finset (Fin n))
     (hS : IsCertificate f x S) (hT : IsCertificate f y T) (hxy : f x≠f y) :
@@ -796,6 +893,8 @@ theorem certificates_cross_intersection {n : ℕ} (f : (Fin n → Bool) → Bool
 end
 noncomputable section
 
+/-- A nonconstant total Boolean function with a chosen certificate of size at most `C` for every
+input has nonnegative adversary value at most `C`. -/
 theorem advValue_le_of_source_certificates {n C : ℕ} (f : (Fin n → Bool) → Bool)
     (hnc : ∃ x y, f x≠f y) (c : (Fin n → Bool) → Finset (Fin n))
     (hcard : ∀ x, (c x).card ≤ C) (hc : ∀ x, IsCertificate f x (c x)) :
@@ -846,6 +945,7 @@ theorem advValue_le_of_source_certificates {n C : ℕ} (f : (Fin n → Bool) →
 end
 noncomputable section
 
+/-- The nonnegative adversary value of the depth-`d` six-bit total iterate is at most `3^d`. -/
 theorem monotoneSixBit_iterated_advValue_upper (d : ℕ) :
     advValue (fun w : Fin (6^d) → Bool => w) (iterateTotal monotoneSixBitG d) ≤
       ENNReal.ofReal ((3 : ℝ)^d) := by
@@ -860,6 +960,7 @@ theorem monotoneSixBit_iterated_advValue_upper (d : ℕ) :
 end
 noncomputable section
 
+/-- The real power `(3^d * 3^d)^0.549` equals `(3^1.098)^d`. -/
 theorem certificate_rate_identity (d : ℕ) :
     (((3^d*3^d : ℕ) : ℝ)) ^ (0.549 : ℝ) = ((3 : ℝ) ^ (1.098 : ℝ))^d := by
   push_cast
@@ -869,6 +970,8 @@ theorem certificate_rate_identity (d : ℕ) :
 end
 noncomputable section
 
+/-- The negative-weight adversary value of the depth-`d` six-bit total iterate is at least `(3^d
+* 3^d)^0.549`. -/
 theorem monotoneSixBit_iterated_certificate_rate (d : ℕ) :
     ENNReal.ofReal ((((3^d*3^d : ℕ) : ℝ)) ^ (0.549 : ℝ)) ≤
       advPmValue (fun w : Fin (6^d) → Bool => w) (iterateTotal monotoneSixBitG d) := by
@@ -879,6 +982,8 @@ theorem monotoneSixBit_iterated_certificate_rate (d : ℕ) :
 end
 noncomputable section
 
+/-- For positive depth, the negative-weight adversary value of the six-bit total iterate is at
+least `(3 * 3)^0.549`. -/
 theorem monotoneSixBit_iterated_fixed_certificate_rate (d : ℕ) (hd : 1≤d) :
     ENNReal.ofReal ((((3*3 : ℕ) : ℝ)) ^ (0.549 : ℝ)) ≤
       advPmValue (fun w : Fin (6^d) → Bool => w) (iterateTotal monotoneSixBitG d) := by
@@ -891,6 +996,8 @@ theorem monotoneSixBit_iterated_fixed_certificate_rate (d : ℕ) (hd : 1≤d) :
 end
 noncomputable section
 
+/-- The negative-weight adversary value of the six-bit total iterate is at least the `1.098`
+power of the real conversion of its nonnegative adversary value. -/
 theorem monotoneSixBit_iterated_adversary_rate (d : ℕ) :
     ENNReal.ofReal ((advValue (fun w : Fin (6^d) → Bool => w)
       (iterateTotal monotoneSixBitG d)).toReal ^ (1.098 : ℝ)) ≤
@@ -906,6 +1013,8 @@ end
 noncomputable section
 omit [Fintype Y] in
 
+/-- For an injective embedding, the conjugated matrix agrees with the original matrix on
+embedded index pairs. -/
 theorem spectralDomainEmbedding_apply_image (e : X → Y) (he : Function.Injective e)
     (G : Matrix X X ℂ) (x z : X) :
     (spectralDomainEmbedding e*G*(spectralDomainEmbedding e)ᴴ) (e x) (e z)=G x z := by
@@ -914,6 +1023,8 @@ end
 noncomputable section
 omit [DecidableEq X] [Fintype Y] in
 
+/-- The matrix conjugated by a spectral embedding has zero rows outside the image of the
+embedding. -/
 theorem spectralDomainEmbedding_row_zero (e : X → Y) (G : Matrix X X ℂ)
     (y : Y) (hy : ¬∃ x,e x=y) (z : Y) :
     (spectralDomainEmbedding e*G*(spectralDomainEmbedding e)ᴴ) y z=0 := by
@@ -923,6 +1034,8 @@ end
 noncomputable section
 omit [Fintype X] [DecidableEq X] in
 
+/-- Compression by a spectral embedding equals taking the submatrix on the corresponding index
+map. -/
 theorem spectralDomainEmbedding_compress (e : X → Y)
     (G : Matrix Y Y ℂ) :
     (spectralDomainEmbedding e)ᴴ * G * spectralDomainEmbedding e=G.submatrix e e := by
@@ -931,6 +1044,7 @@ theorem spectralDomainEmbedding_compress (e : X → Y)
 end
 noncomputable section
 
+/-- Restricting both matrix indices along an injective map cannot increase the operator norm. -/
 theorem norm_submatrix_injective_le (e : X → Y) (he : Function.Injective e)
     (G : Matrix Y Y ℂ) : ‖G.submatrix e e‖ ≤ ‖G‖ := by
   rw [← spectralDomainEmbedding_compress e]
@@ -943,6 +1057,8 @@ theorem norm_submatrix_injective_le (e : X → Y) (he : Function.Injective e)
 end
 noncomputable section
 
+/-- For a Hermitian matrix with zero rows outside the image of an injective map, restriction to
+that image preserves its operator norm. -/
 theorem norm_submatrix_supported (e : X → Y) (he : Function.Injective e)
     (G : Matrix Y Y ℂ) (hG : G.IsHermitian)
     (hz : ∀ y, (¬∃ x,e x=y) → ∀ z,G y z=0) : ‖G.submatrix e e‖=‖G‖ := by
@@ -966,11 +1082,14 @@ theorem norm_submatrix_supported (e : X → Y) (he : Function.Injective e)
     _ = ‖G‖ := congrArg norm hid
 end
 noncomputable section
+/-- The subtype of Boolean words on which the depth-`d` partial iterate is defined. -/
 abbrev PartialIterateDomain {n : ℕ} (f : (Fin n → Bool) → Option Bool) (d : ℕ) :=
   {w : Fin (n^d) → Bool // iterateFlat f d w ≠ none}
 end
 noncomputable section
 
+/-- A Boolean option different from `none` equals `some` of its value obtained with default
+`false`. -/
 theorem option_some_getD {a : Option Bool} (h : a≠none) : a=some (a.getD false) := by
   cases a with
   | none => exact (h rfl).elim
@@ -978,6 +1097,8 @@ theorem option_some_getD {a : Option Bool} (h : a≠none) : a=some (a.getD false
 end
 noncomputable section
 
+/-- A family of Boolean options can be collected by `forceAll` exactly when every option is
+defined. -/
 theorem forceAll_valid {n : ℕ} (bs : Fin n → Option Bool) :
     forceAll bs≠none ↔ ∀ i, bs i≠none := by
   unfold forceAll
@@ -997,6 +1118,8 @@ theorem forceAll_valid {n : ℕ} (bs : Fin n → Option Bool) :
 end
 noncomputable section
 
+/-- For a family of defined Boolean options, `forceAll` returns their pointwise values obtained
+with default `false`. -/
 theorem forceAll_getD {n : ℕ} (bs : Fin n → Option Bool) (h : ∀ i, bs i≠none) :
     forceAll bs=some (fun i => (bs i).getD false) := by
   have he : bs=(fun i => some ((bs i).getD false)) := funext (fun i => option_some_getD (h i))
@@ -1005,6 +1128,7 @@ theorem forceAll_getD {n : ℕ} (bs : Fin n → Option Bool) (h : ∀ i, bs i≠
 end
 noncomputable section
 
+/-- If a successor partial iterate is defined, all its child iterates are defined. -/
 theorem iterateFlat_children_valid {n : ℕ} (f : (Fin n → Bool) → Option Bool)
     (d : ℕ) (w : Fin (n^(d+1)) → Bool) (h : iterateFlat f (d+1) w≠none) :
     ∀ i,iterateFlat f d (iteratedWordSplit n d w i)≠none := by
@@ -1017,6 +1141,8 @@ theorem iterateFlat_children_valid {n : ℕ} (f : (Fin n → Bool) → Option Bo
 end
 noncomputable section
 
+/-- When every child iterate is defined, the successor partial iterate applies the base partial
+function to their Boolean values. -/
 theorem iterateFlat_succ_of_children {n : ℕ} (f : (Fin n → Bool) → Option Bool)
     (d : ℕ) (w : Fin (n^(d+1)) → Bool)
     (h : ∀ i,iterateFlat f d (iteratedWordSplit n d w i)≠none) :
@@ -1026,12 +1152,14 @@ theorem iterateFlat_succ_of_children {n : ℕ} (f : (Fin n → Bool) → Option 
   rfl
 end
 noncomputable section
+/-- Splits a valid input of the successor partial iterate into its valid depth-`d` input blocks. -/
 def iteratedPartialSplit {n : ℕ} (f : (Fin n → Bool) → Option Bool) (d : ℕ)
     (w : PartialIterateDomain f (d+1)) : Fin n → PartialIterateDomain f d :=
   fun i => ⟨iteratedWordSplit n d w.val i,iterateFlat_children_valid f d w.val w.property i⟩
 end
 noncomputable section
 
+/-- Splitting a valid partial-iteration input into its blocks is injective. -/
 theorem iteratedPartialSplit_injective {n : ℕ} (f : (Fin n → Bool) → Option Bool) (d : ℕ) :
     Function.Injective (iteratedPartialSplit f d) := by
   intro x y he
@@ -1042,6 +1170,8 @@ theorem iteratedPartialSplit_injective {n : ℕ} (f : (Fin n → Bool) → Optio
 end
 noncomputable section
 
+/-- Applying the base partial function to the values of the valid child blocks recovers the
+successor partial iterate. -/
 theorem iteratedPartialSplit_value {n : ℕ} (f : (Fin n → Bool) → Option Bool) (d : ℕ)
     (w : PartialIterateDomain f (d+1)) :
     f (fun i => domValue (iterateFlat f d) (iteratedPartialSplit f d w i))=
@@ -1050,6 +1180,8 @@ theorem iteratedPartialSplit_value {n : ℕ} (f : (Fin n → Bool) → Option Bo
 end
 noncomputable section
 
+/-- A family of valid child blocks comes from a valid successor input exactly when the base
+partial function is defined on their output word. -/
 theorem iteratedPartialSplit_range {n : ℕ} (f : (Fin n → Bool) → Option Bool) (d : ℕ)
     (x : Fin n → PartialIterateDomain f d) :
     (∃ w,iteratedPartialSplit f d w=x) ↔ f (fun i => domValue (iterateFlat f d) (x i))≠none := by
@@ -1071,6 +1203,8 @@ theorem iteratedPartialSplit_range {n : ℕ} (f : (Fin n → Bool) → Option Bo
 end
 noncomputable section
 
+/-- The rescaled weighted composition of an outer witness and a partial-iteration witness,
+restricted to valid successor inputs. -/
 def partialAdversaryStep {n : ℕ} (f : (Fin n → Bool) → Option Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ) (d : ℕ)
     (B : Matrix (PartialIterateDomain f d) (PartialIterateDomain f d) ℂ) :
@@ -1082,6 +1216,8 @@ def partialAdversaryStep {n : ℕ} (f : (Fin n → Bool) → Option Bool)
 end
 noncomputable section
 
+/-- Adversary filtering after restriction along `iteratedPartialSplit` equals restriction of the
+corresponding weighted block-coordinate filter. -/
 theorem iteratedPartialSplit_filter {n d : ℕ} (f : (Fin n → Bool) → Option Bool)
     (G : Matrix (Fin n → PartialIterateDomain f d) (Fin n → PartialIterateDomain f d) ℂ)
     (q : Fin (n^(d+1))) :
@@ -1099,6 +1235,9 @@ theorem iteratedPartialSplit_filter {n d : ℕ} (f : (Fin n → Bool) → Option
 end
 noncomputable section
 
+/-- Under Hermitian, support, and filter constraints, including zero outer rows on undefined
+inputs and positive inner norm, partial composition preserves feasibility and multiplies the
+witness norms. -/
 theorem partialAdversaryStep_facts {n : ℕ} (hn : 0<n) (f : (Fin n → Bool) → Option Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ)
     (hA : A.IsHermitian) (hzA : ∀ x y, (f x).getD false=(f y).getD false → A x y=0)
@@ -1183,6 +1322,8 @@ theorem partialAdversaryStep_facts {n : ℕ} (hn : 0<n) (f : (Fin n → Bool) �
 end
 noncomputable section
 
+/-- The equivalence identifying a valid depth-zero partial-iteration word with its single
+Boolean entry. -/
 def partialZeroWordEquiv {n : ℕ} (f : (Fin n → Bool) → Option Bool) : PartialIterateDomain f 0 ≃ Bool where
   toFun := fun w => w.val 0
   invFun := fun b => ⟨fun _ => b,by simp [iterateFlat]⟩
@@ -1196,12 +1337,15 @@ def partialZeroWordEquiv {n : ℕ} (f : (Fin n → Bool) → Option Bool) : Part
   right_inv := by intro b; rfl
 end
 noncomputable section
+/-- The Boolean query witness reindexed to the domain of the depth-zero partial iterate. -/
 def partialZeroGamma {n : ℕ} (f : (Fin n → Bool) → Option Bool) :
     Matrix (PartialIterateDomain f 0) (PartialIterateDomain f 0) ℂ :=
   booleanQueryGamma.submatrix (partialZeroWordEquiv f) (partialZeroWordEquiv f)
 end
 noncomputable section
 
+/-- The depth-zero partial witness is Hermitian, has norm one, vanishes on equal outputs, and
+has filter norms at most one. -/
 theorem partialZeroGamma_facts {n : ℕ} (f : (Fin n → Bool) → Option Bool) :
     (partialZeroGamma f).IsHermitian ∧ ‖partialZeroGamma f‖=1 ∧
     (∀ x y, domValue (iterateFlat f 0) x=domValue (iterateFlat f 0) y → partialZeroGamma f x y=0) ∧
@@ -1224,6 +1368,8 @@ theorem partialZeroGamma_facts {n : ℕ} (f : (Fin n → Bool) → Option Bool) 
 end
 noncomputable section
 
+/-- The recursively composed witness for valid inputs of each depth of a partial Boolean
+iterate. -/
 def partialAdversaryGamma {n : ℕ} (f : (Fin n → Bool) → Option Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ) :
     (d : ℕ) → Matrix (PartialIterateDomain f d) (PartialIterateDomain f d) ℂ
@@ -1232,6 +1378,8 @@ def partialAdversaryGamma {n : ℕ} (f : (Fin n → Bool) → Option Bool)
 end
 noncomputable section
 
+/-- A feasible positive-norm Hermitian base witness with zero rows on undefined inputs yields
+feasible partial iterated witnesses of norm `‖A‖^d`. -/
 theorem partialAdversaryGamma_facts {n : ℕ} (hn : 0<n) (f : (Fin n → Bool) → Option Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ)
     (hA : A.IsHermitian) (hzA : ∀ x y, (f x).getD false=(f y).getD false → A x y=0)
@@ -1256,6 +1404,8 @@ theorem partialAdversaryGamma_facts {n : ℕ} (hn : 0<n) (f : (Fin n → Bool) �
 end
 noncomputable section
 
+/-- A feasible positive-norm base witness supported on defined inputs gives the lower bound
+`ENNReal.ofReal (‖A‖^d)` on the adversary value of the partial iterate. -/
 theorem partialAdversaryGamma_source_bound {n : ℕ} (hn : 0<n) (f : (Fin n → Bool) → Option Bool)
     (A : Matrix (Fin n → Bool) (Fin n → Bool) ℂ)
     (hA : A.IsHermitian) (hzA : ∀ x y, (f x).getD false=(f y).getD false → A x y=0)
@@ -1272,16 +1422,22 @@ theorem partialAdversaryGamma_source_bound {n : ℕ} (hn : 0<n) (f : (Fin n → 
 end
 noncomputable section
 
+/-- The twenty-input six-bit encoding maps each source input to a defined `sixBitF` value equal
+to `kushilevitzFunW`. -/
 theorem sixBit_partial_source_embedding : ∀ x : Fin 20,
     sixBitF (kushilevitzInputW x)=some (kushilevitzFunW x) := by decide
 end
 noncomputable section
 
+/-- The source witness `kushilevitzGammaW` embedded spectrally into the space of all six-bit
+words. -/
 def sixBitPartialBaseGamma : Matrix (Fin 6 → Bool) (Fin 6 → Bool) ℂ :=
   spectralDomainEmbedding kushilevitzInputW*kushilevitzGammaW*(spectralDomainEmbedding kushilevitzInputW)ᴴ
 end
 noncomputable section
 
+/-- The embedded six-bit witness is Hermitian, vanishes on equal outputs and undefined rows, has
+filter norms at most one, and has norm at least `2 + 3 * Real.sqrt 5 / 5`. -/
 theorem sixBitPartialBaseGamma_facts :
     sixBitPartialBaseGamma.IsHermitian ∧
     (∀ x y, (sixBitF x).getD false=(sixBitF y).getD false → sixBitPartialBaseGamma x y=0) ∧
@@ -1323,6 +1479,8 @@ theorem sixBitPartialBaseGamma_facts :
 end
 noncomputable section
 
+/-- The negative-weight adversary value on the valid domain of the depth-`d` partial iterate of
+`sixBitF` is at least `(2 + 3 * Real.sqrt 5 / 5)^d`. -/
 theorem sixBit_partial_iterated_source_bound (d : ℕ) :
     ENNReal.ofReal ((2+3*Real.sqrt 5/5)^d) ≤
       advPmValue (fun w : PartialIterateDomain sixBitF d => w.val) (domValue (iterateFlat sixBitF d)) := by
@@ -1335,6 +1493,8 @@ theorem sixBit_partial_iterated_source_bound (d : ℕ) :
 end
 noncomputable section
 
+/-- If a partial Boolean function attains both defined Boolean outputs, every depth of its
+partial iteration also attains both outputs. -/
 theorem iterateFlat_outputs {n : ℕ} (f : (Fin n → Bool) → Option Bool)
     (hf : ∀ b,∃ w,f w=some b) (d : ℕ) (b : Bool) :
     ∃ w : Fin (n^d) → Bool,iterateFlat f d w=some b := by
@@ -1357,6 +1517,7 @@ theorem iterateFlat_outputs {n : ℕ} (f : (Fin n → Bool) → Option Bool)
 end
 noncomputable section
 
+/-- The partial function `sixBitF` attains each Boolean output. -/
 theorem sixBitF_outputs (b : Bool) : ∃ w,sixBitF w=some b := by
   cases b
   · exact ⟨kushilevitzInputW 0,by decide⟩
@@ -1364,6 +1525,8 @@ theorem sixBitF_outputs (b : Bool) : ∃ w,sixBitF w=some b := by
 end
 noncomputable section
 
+/-- The Hamming distance of two flattened words is the sum of the Hamming distances between
+their corresponding blocks. -/
 theorem hamming_iterated_split {n d : ℕ} (x y : Fin (n^(d+1)) → Bool) :
     hamming x y=∑ i,hamming (iteratedWordSplit n d x i) (iteratedWordSplit n d y i) := by
   have hh := flatCertificateBlock_sum (powIndexSplit n d) (Finset.univ.filter (fun q => x q≠y q))
@@ -1371,6 +1534,8 @@ theorem hamming_iterated_split {n d : ℕ} (x y : Fin (n^(d+1)) → Bool) :
 end
 noncomputable section
 
+/-- Valid inputs with different depth-`d` partial six-bit outputs have Hamming distance at least
+`2^d`. -/
 theorem sixBit_iterate_hamming_lower (d : ℕ) (x y : Fin (6^d) → Bool)
     (hx : iterateFlat sixBitF d x≠none) (hy : iterateFlat sixBitF d y≠none)
     (hxy : (iterateFlat sixBitF d x).getD false≠(iterateFlat sixBitF d y).getD false) :
@@ -1416,6 +1581,8 @@ theorem sixBit_iterate_hamming_lower (d : ℕ) (x y : Fin (6^d) → Bool)
 end
 noncomputable section
 
+/-- The relative Hamming distance of the depth-`d` partial six-bit iterate is at least `(1 /
+3)^d`. -/
 theorem relativeHamming_iterate_sixBitF_lower (d : ℕ) :
     (1/3 : ℝ)^d≤relativeHamming (iterateFlat sixBitF d) := by
   obtain ⟨x,hx⟩ := iterateFlat_outputs sixBitF sixBitF_outputs d false
@@ -1442,6 +1609,8 @@ theorem relativeHamming_iterate_sixBitF_lower (d : ℕ) :
 end
 noncomputable section
 
+/-- The negative-weight adversary value of the partial six-bit iterate is at least the `1.098`
+power of its inverse relative Hamming distance. -/
 theorem sixBit_partial_iterated_property_rate (d : ℕ) :
     ENNReal.ofReal ((1/relativeHamming (iterateFlat sixBitF d))^(1.098 : ℝ)) ≤
       advPmValue (fun w : PartialIterateDomain sixBitF d => w.val) (domValue (iterateFlat sixBitF d)) := by
@@ -1459,6 +1628,7 @@ theorem sixBit_partial_iterated_property_rate (d : ℕ) :
 end
 noncomputable section
 
+/-- Establishes the iterated six-bit separation proposition `clause19Prop`. -/
 theorem stageA_general_adversary_clause19_full_endpoint_v2 : Qatlib.Concepts.AdversaryBounds.AdvDuality.clause19Prop := by
   refine ⟨?_,relativeHamming_sixBitF,advPmValue_kushilevitz_rate,?_,?_,?_,
     certComplexity_monotoneSixBitG_eq_three.1,certComplexity_monotoneSixBitG_eq_three.2,?_,?_,?_,?_⟩

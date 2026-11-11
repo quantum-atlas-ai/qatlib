@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
+
+/-!
+# Nondisturbing retry instruments and execution costs
+
+This module constructs `nondisturbingRetryInstrument`, whose success branch applies a unitary
+and whose failure branch preserves the conditional state. `mixedRetryEvent_exact` gives its
+finite geometric cost distribution, with separate results for success probabilities zero and one
+and for sequential unitary outputs. Quantum instruments provide the measurement framework
+described in [Watrous2018].
+
+## Main statements
+
+* `nondisturbingRetryInstrument`: The Boolean instrument with success branch `p` times unitary
+  conjugation by `U` and failure branch `1 - p` times the identity, for `0 ≤ p ≤ 1`.
+* `mixedRetryEvent_exact`: With positive success and failure costs, the halting mass after `n`
+  steps is the sum of geometric weights `p * (1 - p) ^ h` at costs `good + h * bad` for `h < n`.
+* `mixedRetry_zero_never`: At zero success probability and positive branch costs, the never
+  halting mass is one and the unbounded execution time is infinite.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
@@ -22,6 +46,8 @@ namespace Qatlib.Concepts.MixedInstrument.RetryConsumers
 open Matrix
 open scoped ComplexOrder Classical BigOperators ENNReal
 
+/-- For strictly positive branch prices, the joint halting mass at cost `k` equals the mass at
+the same output and clock value after `k` clock steps. -/
 theorem mixed_instrument_same_path_cost_cutoff :
     ∀ (C L O : Type) [Fintype L] (D : ℕ)
       (I : C → Instrument L D D) (dest : C → L → O ⊕ C) (price : C → L → ℕ),
@@ -34,6 +60,8 @@ theorem mixed_instrument_same_path_cost_cutoff :
   exact (branchClock_bridge (mixedNext I dest price)
     (mixedNext_positive I dest price hp) (.inr s) o k).symm
 
+/-- Multiplying a completely positive complex linear map by a nonnegative real scalar preserves
+complete positivity. -/
 private theorem mixed_cp_scale {D : ℕ} (T : Operator D →ₗ[ℂ] Operator D)
     (hT : CompletelyPositive T) (a : ℝ) (ha : 0 ≤ a) :
     CompletelyPositive ((a : ℂ) • T) := by
@@ -45,6 +73,8 @@ private theorem mixed_cp_scale {D : ℕ} (T : Operator D →ₗ[ℂ] Operator D)
   rw [he]
   exact (hT r A hA).smul (RCLike.nonneg_iff.mpr ⟨ha, rfl⟩)
 
+/-- The Boolean instrument with success branch `p` times unitary conjugation by `U` and failure
+branch `1 - p` times the identity, for `0 ≤ p ≤ 1`. -/
 noncomputable def nondisturbingRetryInstrument {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1) :
     Instrument Bool D D :=
@@ -64,6 +94,8 @@ noncomputable def nondisturbingRetryInstrument {D : ℕ} (U : Operator D)
       push_cast
       ring)
 
+/-- The success and failure branches of the retry instrument are respectively `p` times unitary
+conjugation and `1 - p` times the input operator. -/
 theorem nondisturbingRetryInstrument_branch {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (X : Operator D) :
@@ -71,6 +103,8 @@ theorem nondisturbingRetryInstrument_branch {D : ℕ} (U : Operator D)
     (nondisturbingRetryInstrument U hU p hp hp1).branch false X = ((1-p : ℝ) : ℂ) • X := by
   constructor <;> rfl
 
+/-- On a density input, the retry instrument assigns probabilities `p` and `1 - p` to success
+and failure. -/
 theorem nondisturbingRetryInstrument_prob {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (ρ : ClockDensity D) (b : Bool) :
@@ -81,6 +115,7 @@ theorem nondisturbingRetryInstrument_prob {D : ℕ} (U : Operator D)
   cases b <;> simp [htr, instrumentProb, nondisturbingRetryInstrument, Instrument.ofBranches,
     Matrix.trace_smul, ρ.property.2]
 
+/-- Conditioning on failure in the retry instrument leaves the density state unchanged. -/
 theorem nondisturbingRetryInstrument_failure_state {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (ρ : ClockDensity D) :
@@ -97,6 +132,8 @@ theorem nondisturbingRetryInstrument_failure_state {D : ℕ} (U : Operator D)
     exact_mod_cast ne_of_gt hpq
   · rfl
 
+/-- For positive success probability, the conditional success state is the unitary conjugate of
+the input density state. -/
 theorem nondisturbingRetryInstrument_success_state {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 < p) (hp1 : p ≤ 1)
     (ρ : ClockDensity D) :
@@ -110,6 +147,8 @@ theorem nondisturbingRetryInstrument_success_state {D : ℕ} (U : Operator D)
   change (p : ℂ)⁻¹ • ((p : ℂ) • (U * ρ.val * Uᴴ)) = _
   rw [smul_smul, inv_mul_cancel₀ (by exact_mod_cast ne_of_gt hp), one_smul]
 
+/-- The mixed execution step that halts on success, retries on failure, and charges the
+respective costs `good` and `bad`. -/
 noncomputable def mixedRetryNext {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (good bad : ℕ) :=
@@ -117,12 +156,16 @@ noncomputable def mixedRetryNext {D : ℕ} (U : Operator D)
     (fun _ b => if b then Sum.inl () else Sum.inr ())
     (fun _ b => if b then good else bad)
 
+/-- The probability of having halted at total cost `k` after `n` retry steps from the density
+state `ρ`. -/
 noncomputable def mixedRetryEvent {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (good bad n : ℕ) (ρ : ClockDensity D) (k : ℕ) : ℝ≥0∞ :=
   Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (branchCostRun (mixedRetryNext U hU p hp hp1 good bad) n (.inr ((),ρ)))
     (fun z => z.2=k ∧ ∃ ρ' : ClockDensity D, z.1=.inl ((),ρ'))
 
+/-- The next retry event splits into a failed attempt followed by the remaining run and an
+immediate success at cost `good`. -/
 theorem mixedRetryEvent_succ {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (good bad n : ℕ) (ρ : ClockDensity D) (k : ℕ) :
@@ -146,6 +189,8 @@ theorem mixedRetryEvent_succ {D : ℕ} (U : Operator D)
   · have he : k ≠ good := by omega
     simp [h, he]
 
+/-- With positive success and failure costs, the halting mass after `n` steps is the sum of
+geometric weights `p * (1 - p) ^ h` at costs `good + h * bad` for `h < n`. -/
 theorem mixedRetryEvent_exact {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 ≤ p) (hp1 : p ≤ 1)
     (good bad : ℕ) (hg : 0 < good) (_hb : 0 < bad) (n : ℕ) (ρ : ClockDensity D) (k : ℕ) :
@@ -177,6 +222,9 @@ theorem mixedRetryEvent_exact {D : ℕ} (U : Operator D)
       intro h _
       rw [if_neg (by rw [Nat.add_mul, Nat.one_mul]; omega)]
 
+/-- For positive success probability and branch costs, there exists a nondisturbing retry
+instrument with the stated unitary branches and exact finite geometric distribution of
+halting costs. -/
 theorem mixed_instrument_nondisturbing_retry_consumer :
     ∀ (D : ℕ) (U : Operator D) (p : ℝ) (good bad : ℕ),
       U ∈ Matrix.unitaryGroup (Fin D) ℂ → 0 < p → p ≤ 1 → 0 < good → 0 < bad →
@@ -197,6 +245,8 @@ theorem mixed_instrument_nondisturbing_retry_consumer :
   intro ρ j k
   exact mixedRetryEvent_exact U hU p hp.le hp1 good bad hg hb (j+1) ρ k
 
+/-- Every supported halted state is the unitary conjugate of the initial state, and every
+supported pending state equals the initial state, when `p > 0`. -/
 theorem mixedRetry_supported_state {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (p : ℝ) (hp : 0 < p) (hp1 : p ≤ 1)
     (good bad n : ℕ) (ρ : ClockDensity D)
@@ -236,6 +286,8 @@ theorem mixedRetry_supported_state {D : ℕ} (U : Operator D)
       subst w
       exact nondisturbingRetryInstrument_success_state U hU p hp hp1 ρ
 
+/-- When success has probability one and both branch costs are positive, every nonempty retry
+run halts with unit mass at cost `good`. -/
 theorem mixedRetry_one_success {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (good bad : ℕ)
     (hg : 0 < good) (hb : 0 < bad) (ρ : ClockDensity D) (j k : ℕ) :
@@ -249,6 +301,8 @@ theorem mixedRetry_one_success {D : ℕ} (U : Operator D)
     simp [zero_pow hne]
   · simp
 
+/-- When success has probability zero and both branch costs are positive, every halting cost
+event has zero mass. -/
 theorem mixedRetry_zero_success {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (good bad : ℕ)
     (hg : 0 < good) (hb : 0 < bad) (ρ : ClockDensity D) (n k : ℕ) :
@@ -256,6 +310,8 @@ theorem mixedRetry_zero_success {D : ℕ} (U : Operator D)
   rw [mixedRetryEvent_exact U hU 0 le_rfl (by norm_num) good bad hg hb]
   simp
 
+/-- At zero success probability, `n` steps deterministically remain pending in the initial
+density state with cost `n * bad`. -/
 theorem mixedRetry_zero_run {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (good bad n : ℕ) (ρ : ClockDensity D) :
     branchCostRun (mixedRetryNext U hU 0 le_rfl (by norm_num) good bad) n (.inr ((),ρ)) =
@@ -281,6 +337,8 @@ theorem mixedRetry_zero_run {D : ℕ} (U : Operator D)
     · rw [Nat.add_mul, Nat.one_mul]
       omega
 
+/-- At zero success probability and positive branch costs, the never halting mass is one and the
+unbounded execution time is infinite. -/
 theorem mixedRetry_zero_never {D : ℕ} (U : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (good bad : ℕ)
     (hg : 0 < good) (hb : 0 < bad) (ρ : ClockDensity D) :
@@ -304,6 +362,8 @@ theorem mixedRetry_zero_never {D : ℕ} (U : Operator D)
   rw [hn, mul_one, add_top] at he
   exact he
 
+/-- Two certain success stages apply the combined unitary `V * U`, and each stage has unit
+halting mass at its specified success cost. -/
 theorem mixedRetry_sequential_unitary_output {D : ℕ} (U V : Operator D)
     (hU : U ∈ Matrix.unitaryGroup (Fin D) ℂ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (ρ : ClockDensity D) (good₁ bad₁ good₂ bad₂ : ℕ)

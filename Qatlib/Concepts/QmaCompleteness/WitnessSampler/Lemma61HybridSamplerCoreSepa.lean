@@ -21,6 +21,28 @@ import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Lemma61HybridSamplerCoreSt
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.PureStateTV
 import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
+
+/-!
+# Hybrid bound for witness sampling
+
+This module proves `lemma6_1HybridSamplerCore` for circuits with two controlled phase oracles.
+Replacing the predicate `S` by a subpredicate `Δ` changes the final state by at most a sum of
+square roots of the query-state mass on the differing controlled fibers.
+
+Unitary norm preservation, the hybrid bound, and Cauchy-Schwarz convert a
+measurement-probability gap into the quantitative query-mass lower bound. The hybrid method is
+standard in quantum query lower bounds; see [BennettEtAl1997].
+
+## Main statements
+
+* `lemma6_1HybridSamplerCore`: average controlled query mass is at least `1 / (36 * (t : ℝ) ^
+  2)` under the stated distinguishing gap.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,11 +60,15 @@ set_option linter.unusedSectionVars false
 
 open Matrix
 
+/-- The controlled phase oracle `forrPhaseOracleS n S W` belongs to the unitary group on
+`ForrSpace n W`. -/
 private theorem forrPhaseOracleS_unitary (n : ℕ) (S : Reg n → Bool) (W : Type)
     [Fintype W] [DecidableEq W] :
     forrPhaseOracleS n S W ∈ Matrix.unitaryGroup (ForrSpace n W) ℂ :=
   tensorGate_unitary (phaseOracle_unitary _) (Submonoid.one_mem _)
 
+/-- The controlled phase oracle `forrPhaseOracleU n U W` belongs to the unitary group on
+`ForrSpace n W`. -/
 private theorem forrPhaseOracleU_unitary (n : ℕ) (U : Reg n → Bool) (W : Type)
     [Fintype W] [DecidableEq W] :
     forrPhaseOracleU n U W ∈ Matrix.unitaryGroup (ForrSpace n W) ℂ := by
@@ -50,6 +76,8 @@ private theorem forrPhaseOracleU_unitary (n : ℕ) (U : Reg n → Bool) (W : Typ
   exact tensorGate_unitary (Submonoid.one_mem _)
     (tensorGate_unitary (phaseOracle_unitary _) (Submonoid.one_mem _))
 
+/-- Applying `forrPhaseOracleS n S W` multiplies the amplitude at `p` by negative one when both
+the `S` control bit and `S` evaluated on its address are true, and by one otherwise. -/
 private theorem applyGate_forrPhaseOracleS (n : ℕ) (S : Reg n → Bool) (W : Type)
     [Fintype W] [DecidableEq W] (φ : QState (ForrSpace n W)) (p : ForrSpace n W) :
     ApplyGate (forrPhaseOracleS n S W) φ p
@@ -61,6 +89,8 @@ private theorem applyGate_forrPhaseOracleS (n : ℕ) (S : Reg n → Bool) (W : T
       ApplyGate (PhaseOracle (fun q => q.2 && S q.1)) (fun q => φ (q, p.2)) p.1 from rfl,
     applyGate_phaseOracle]
 
+/-- Multiplication by a unitary matrix `U` preserves the Euclidean norm of every vector `v`
+represented by `toEuclidean_fromVec`. -/
 private theorem norm_applyGate_sq_eq {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I ℂ) (v : QState I) :
     ‖toEuclidean_fromVec (U *ᵥ v)‖ = ‖toEuclidean_fromVec v‖ := by
@@ -68,6 +98,8 @@ private theorem norm_applyGate_sq_eq {I : Type} [Fintype I] [DecidableEq I]
   rw [← toEuclideanCLM_applyGate]
   exact norm_toEuclideanCLM_of_mem_unitaryGroup hU (toEuclidean_fromVec v)
 
+/-- Executing `TORun` with unitary oracle matrices and a circuit satisfying `IsUnitaryTOCircuit`
+preserves `Normalized` states. -/
 private theorem normalized_torun {I : Type} [Fintype I] [DecidableEq I]
     (oS oU : Matrix I I ℂ) (hS : oS ∈ Matrix.unitaryGroup I ℂ)
     (hU : oU ∈ Matrix.unitaryGroup I ℂ) (C : TOCircuit I) (hC : IsUnitaryTOCircuit C)
@@ -90,6 +122,8 @@ private theorem normalized_torun {I : Type} [Fintype I] [DecidableEq I]
       exact ih (fun V hV => hC V (List.mem_cons_of_mem _ hV))
         (ApplyGate oU ψ) (normalized_applyGate hU hψ)
 
+/-- Executing the same circuit with unitary gates and unitary oracle matrices on two initial
+vectors preserves the Euclidean norm of their difference under `TORun`. -/
 private theorem norm_torun_sub {I : Type} [Fintype I] [DecidableEq I]
     (oS oU : Matrix I I ℂ) (hS : oS ∈ Matrix.unitaryGroup I ℂ)
     (hU : oU ∈ Matrix.unitaryGroup I ℂ) (C : TOCircuit I) (hC : IsUnitaryTOCircuit C)
@@ -125,6 +159,8 @@ private theorem norm_torun_sub {I : Type} [Fintype I] [DecidableEq I]
       rw [← Matrix.mulVec_sub]
       exact norm_applyGate_sq_eq oU hU (φ - χ)
 
+/-- For a circuit with `TOQueryCountS C = 0`, replacing the `S` oracle matrix leaves `TORun`
+unchanged for every initial vector. -/
 private theorem torun_noS {I : Type} [Fintype I] [DecidableEq I]
     (oS oS' oU : Matrix I I ℂ) (C : TOCircuit I) (hC : TOQueryCountS C = 0)
     (ψ : QState I) : TORun oS oU C ψ = TORun oS' oU C ψ := by
@@ -153,6 +189,8 @@ private theorem torun_noS {I : Type} [Fintype I] [DecidableEq I]
       show TORun oS oU C (ApplyGate oU ψ) = TORun oS' oU C (ApplyGate oU ψ)
       exact ih h1 (ApplyGate oU ψ)
 
+/-- For real functions `a` and `b` on a finite type, their dot product is at most the product of
+the square roots of their sums of squares. -/
 private theorem sum_mul_le_sqrt_mul_sqrt {ι : Type} [Fintype ι] (a b : ι → ℝ) :
     ∑ i, a i * b i ≤ Real.sqrt (∑ i, a i ^ 2) * Real.sqrt (∑ i, b i ^ 2) := by
   classical
@@ -173,6 +211,8 @@ private theorem sum_mul_le_sqrt_mul_sqrt {ι : Type} [Fintype ι] (a b : ι → 
     show ‖B‖ = Real.sqrt (∑ i, b i ^ 2) from by rw [hB]; exact hn b] at hcs
   exact (le_abs_self _).trans hcs
 
+/-- The sum of `f` mapped over a list `L` equals the finite sum of `f L[i]` over indices `i :
+Fin L.length`, in any additive commutative monoid. -/
 private theorem list_sum_map_eq_fin {α : Type} {β : Type} [AddCommMonoid β]
     (f : α → β) (L : List α) :
     (L.map f).sum = ∑ i : Fin L.length, f L[i] := by
@@ -186,6 +226,8 @@ private theorem list_sum_map_eq_fin {α : Type} {β : Type} [AddCommMonoid β]
     have hs : ∀ i : Fin (List.length L), f ((a :: L)[i.succ]) = f L[i] := fun _ => rfl
     rw [h0, Finset.sum_congr rfl (fun i _ => hs i)]
 
+/-- For a nonnegative real function `f`, the square of its sum over a list `L` is at most the
+length of `L` times the sum of its squared values. -/
 private theorem list_cs {α : Type} (f : α → ℝ) (hf : ∀ x, 0 ≤ f x) (L : List α) :
     ((L.map f).sum) ^ 2 ≤ (L.length : ℝ) * (L.map (fun x => f x ^ 2)).sum := by
   rw [list_sum_map_eq_fin, list_sum_map_eq_fin (fun x => f x ^ 2)]
@@ -204,12 +246,15 @@ private theorem list_cs {α : Type} (f : α → ℝ) (hf : ∀ x, 0 ≤ f x) (L 
     show (∑ i : Fin L.length, (1 : ℝ) ^ 2) = L.length from h2] at h1
   nlinarith [h1, h3, h4, hA, hk2]
 
+/-- The sum of `f` mapped over any list `L` is nonnegative when `f` is pointwise nonnegative. -/
 private theorem list_map_sum_nonneg {α : Type} (f : α → ℝ) (hf : ∀ x, 0 ≤ f x)
     (L : List α) : (0 : ℝ) ≤ (L.map f).sum := by
   induction L with
   | nil => simp
   | cons a L ih => simp only [List.map_cons, List.sum_cons]; linarith [hf a, ih]
 
+/-- Pointwise equal functions `f` and `g` have equal mapped sums over every list `L` in an
+additive commutative monoid. -/
 private theorem list_map_sum_congr {α : Type} {β : Type} [AddCommMonoid β]
     (f g : α → β) (L : List α) (h : ∀ x, f x = g x) :
     (L.map f).sum = (L.map g).sum := by
@@ -221,6 +266,9 @@ section Diff
 
 variable {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
 
+/-- When `Δ` is contained in `S`, the difference between applying their `S` phase oracles has
+amplitude `(-2 : ℂ) * φ p` on the controlled address fiber in `S` outside `Δ`, and zero
+elsewhere. -/
 private theorem oracle_diff_apply (S Δ : Reg n → Bool) (hΔ : ∀ x, Δ x → S x)
     (φ : QState (ForrSpace n W)) (p : ForrSpace n W) :
     (forrPhaseOracleS n S W *ᵥ φ - forrPhaseOracleS n Δ W *ᵥ φ) p
@@ -249,11 +297,15 @@ private theorem oracle_diff_apply (S Δ : Reg n → Bool) (hΔ : ∀ x, Δ x →
     rw [if_neg e1, if_neg e2, if_neg (fun h => hbs ⟨h.1, h.2.1⟩)]
     ring
 
+/-- The controlled fiber measurement mass `controlFiberMass n S Δ W φ` is nonnegative for every
+vector `φ`. -/
 private theorem controlFiberMass_nonneg (S Δ : Reg n → Bool)
     (φ : QState (ForrSpace n W)) : (0 : ℝ) ≤ controlFiberMass n S Δ W φ := by
   unfold controlFiberMass MeasureProb
   exact Finset.sum_nonneg fun p _ => sq_nonneg (‖φ p‖)
 
+/-- When `Δ` is contained in `S`, the squared Euclidean norm of the difference between their
+phase oracle outputs on `φ` equals four times `controlFiberMass n S Δ W φ`. -/
 private theorem oracle_diff_norm_sq (S Δ : Reg n → Bool) (hΔ : ∀ x, Δ x → S x)
     (φ : QState (ForrSpace n W)) :
     ‖toEuclidean_fromVec (forrPhaseOracleS n S W *ᵥ φ - forrPhaseOracleS n Δ W *ᵥ φ)‖ ^ 2
@@ -278,6 +330,8 @@ private theorem oracle_diff_norm_sq (S Δ : Reg n → Bool) (hΔ : ∀ x, Δ x �
   rw [Finset.mul_sum, Finset.sum_filter]
   exact Finset.sum_congr rfl (fun p _ => hpt p)
 
+/-- When `Δ` is contained in `S`, the Euclidean norm of the difference between their phase
+oracle outputs on `φ` equals twice the square root of `controlFiberMass n S Δ W φ`. -/
 private theorem oracle_diff_norm (S Δ : Reg n → Bool) (hΔ : ∀ x, Δ x → S x)
     (φ : QState (ForrSpace n W)) :
     ‖toEuclidean_fromVec (forrPhaseOracleS n S W *ᵥ φ - forrPhaseOracleS n Δ W *ᵥ φ)‖
@@ -289,6 +343,9 @@ private theorem oracle_diff_norm (S Δ : Reg n → Bool) (hΔ : ∀ x, Δ x → 
   rw [← Real.sqrt_sq h1, h, Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 4),
     show Real.sqrt 4 = 2 from by norm_num]
 
+/-- For a circuit with unitary gates and `Δ` contained in `S`, replacing the `S` phase oracle by
+the `Δ` phase oracle changes the final vector by at most twice the sum of square roots of
+`controlFiberMass` over the `S` query states of the `Δ` execution. -/
 private theorem hybrid_bound (S Δ U : Reg n → Bool) (hΔ : ∀ x, Δ x → S x)
     (C : TOCircuit (ForrSpace n W)) (hC : IsUnitaryTOCircuit C)
     (ψ : QState (ForrSpace n W)) :
@@ -357,6 +414,9 @@ private theorem hybrid_bound (S Δ U : Reg n → Bool) (hΔ : ∀ x, Δ x → S 
             + ((traj).map (fun φ => Real.sqrt (controlFiberMass n S Δ W φ))).sum) := by
               ring
 
+/-- For a normalized initial state and a circuit with unitary gates, the squared Euclidean
+distance between the executions using `S` and `Δ` phase oracles equals two minus twice the
+real part of their final states' `Inner` product. -/
 private theorem final_diff_norm_sq (S Δ U : Reg n → Bool)
     (C : TOCircuit (ForrSpace n W)) (hC : IsUnitaryTOCircuit C)
     (ψ : QState (ForrSpace n W)) (hψ : Normalized ψ) :
@@ -402,6 +462,10 @@ private theorem final_diff_norm_sq (S Δ U : Reg n → Bool)
 
 set_option maxHeartbeats 1000000 in
 
+/-- Establishes `Lemma6_1HybridSamplerCore`: for unitary circuit gates and a normalized initial
+state, a `2 / 3` versus `1 / 3` acceptance gap between `S` and a subset `Δ`, with at most
+`t` queries to the first oracle, forces the `Δ` execution's summed controlled fiber mass
+divided by `t` to be at least `1 / (36 * t ^ 2)`. -/
 theorem lemma6_1HybridSamplerCore : Lemma6_1HybridSamplerCore := by
   intro n W _ _ S Δ U t C ψ E hC hψ hΔ hcount haccS haccΔ
   classical

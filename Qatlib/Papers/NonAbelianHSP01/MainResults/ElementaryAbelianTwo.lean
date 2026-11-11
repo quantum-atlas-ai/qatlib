@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
 import Mathlib.Algebra.Group.Subgroup.Basic
 import Mathlib.Tactic
+
+/-!
+# Elementary abelian two groups and coset intersections
+
+Defines `IsElementaryAbelianTwo` by commutativity and the exponent-two condition, and derives
+the self-inverse property. The independent coset result describes the intersection of any left
+coset with a subgroup as empty or a coset of the intersection subgroup. See
+[IvanyosMagniezSantha2003] for the surrounding analysis.
+
+## Main statements
+
+* `inv_eq_self`: Every element of a group satisfying `IsElementaryAbelianTwo` is its own
+  inverse.
+* `coset_inter_normal_eq_empty_or_coset`: The intersection of a left coset of `H` with `N` is
+  empty or is a left coset of `H ⊓ N` represented by an element of the intersection.
+
+## References
+
+* [Ivanyos et al., 2003][IvanyosMagniezSantha2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +35,8 @@ set_option linter.unusedVariables false
 
 namespace Qatlib.Papers.NonAbelianHSP01.MainResults
 
+/-- The predicate that a group is commutative and every element has square equal to the
+identity. -/
 structure IsElementaryAbelianTwo (N : Type*) [Group N] : Prop where
 
   comm : ∀ x y : N, x * y = y * x
@@ -24,10 +47,12 @@ namespace IsElementaryAbelianTwo
 
 variable {N : Type*} [Group N]
 
+/-- Every element of a group satisfying `IsElementaryAbelianTwo` is its own inverse. -/
 theorem inv_eq_self (h : IsElementaryAbelianTwo N) (x : N) : x⁻¹ = x := by
   have hx : x * x = 1 := by simpa [pow_two] using h.exp_two x
   exact inv_eq_of_mul_eq_one_right hx
 
+/-- Multiplication commutes in a group satisfying `IsElementaryAbelianTwo`. -/
 theorem mul_comm' (h : IsElementaryAbelianTwo N) (x y : N) : x * y = y * x :=
   h.comm x y
 
@@ -37,9 +62,13 @@ section InterCoset
 
 variable {G : Type*} [Group G] {H N : Subgroup G}
 
+/-- The left coset of `H` with representative `z`, as the image of `H` under multiplication by
+`z`. -/
 def leftCoset (z : G) (H : Subgroup G) : Set G :=
   (fun h : G => z * h) '' (H : Set G)
 
+/-- The intersection of a left coset of `H` with `N` is empty or is a left coset of `H ⊓ N`
+represented by an element of the intersection [IvanyosMagniezSantha2003]. -/
 theorem coset_inter_normal_eq_empty_or_coset (z : G) :
     leftCoset z H ∩ (N : Set G) = ∅ ∨
       ∃ u : G, u ∈ leftCoset z H ∩ (N : Set G) ∧

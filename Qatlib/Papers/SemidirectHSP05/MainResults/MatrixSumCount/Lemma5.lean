@@ -81,6 +81,25 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Matrix sum instances and a concentration criterion
+
+This module defines the binomial matrices, matrix sums, and finite solution sets used for Lemma
+5 of [BaconChildsVanDam2005]. The solution count has mean one, and a second-moment hypothesis
+implies that at least one quarter of instances have one or two solutions.
+
+## Main statements
+
+* `solutions_sum_card`: Solution sets partition the space of coefficient vectors.
+* `mean_eq_one`: The total solution count equals the number of instances.
+* `concentration_one_two`: A mean-one natural-valued function with the stated second-moment
+  bound takes values one or two on at least one quarter of its domain.
+
+## References
+
+* [Bacon et al., 2005][BaconChildsVanDam2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -90,22 +109,32 @@ open scoped Classical BigOperators
 
 variable (p r : ℕ)
 
+/-- The binomial coefficient formed from the canonical natural representative of `b`, reduced to
+`ZMod p`. -/
 def binomMod (b : ZMod p) (l : ℕ) : ZMod p :=
   ((b.val).choose l : ZMod p)
 
+/-- The upper triangular matrix whose `(i, j)` entry is `binomMod p b (j - i + 1)` when `i ≤ j`
+and zero otherwise. -/
 def matEntry (b : ZMod p) (i j : Fin r) : ZMod p :=
   if (i : ℕ) ≤ (j : ℕ) then binomMod p b ((j : ℕ) - (i : ℕ) + 1) else 0
 
+/-- The product of the binomial matrix `matEntry p r b` with a vector over `ZMod p`. -/
 def matVec (b : ZMod p) (v : Fin r → ZMod p) : Fin r → ZMod p :=
   fun i => ∑ j : Fin r, matEntry p r b i j * v j
 
+/-- The sum, over the coefficient coordinates, of the corresponding binomial matrix actions on
+the input vectors. -/
 def matSum (x : Fin r → Fin r → ZMod p) (b : Fin r → ZMod p) : Fin r → ZMod p :=
   fun i => ∑ j : Fin r, matVec p r (b j) (x j) i
 
+/-- The finite set of coefficient vectors `b` for which the matrix sum of `x` equals the target
+`w`. -/
 def solutions [NeZero p] (x : Fin r → Fin r → ZMod p) (w : Fin r → ZMod p) :
     Finset (Fin r → ZMod p) :=
   Finset.univ.filter (fun b => matSum p r x b = w)
 
+/-- The binomial matrix action with parameter zero sends every vector to zero. -/
 lemma matVec_zero (v : Fin r → ZMod p) : matVec p r (0 : ZMod p) v = 0 := by
   funext i
   simp only [matVec]
@@ -120,6 +149,8 @@ lemma matVec_zero (v : Fin r → ZMod p) : matVec p r (0 : ZMod p) v = 0 := by
   · rw [matEntry, if_neg h]
     simp
 
+/-- Summing the cardinalities of the solution sets over all targets gives the number of
+coefficient vectors [BaconChildsVanDam2005]. -/
 lemma solutions_sum_card [NeZero p] (x : Fin r → Fin r → ZMod p) :
     ∑ w, (solutions p r x w).card = Fintype.card (Fin r → ZMod p) := by
   have h := Finset.card_eq_sum_card_fiberwise
@@ -129,6 +160,8 @@ lemma solutions_sum_card [NeZero p] (x : Fin r → Fin r → ZMod p) :
   rw [Finset.card_univ] at h
   simpa [solutions] using h.symm
 
+/-- The sum of solution counts over all input-target pairs equals the number of such pairs, so
+the uniform mean solution count is one [BaconChildsVanDam2005]. -/
 theorem mean_eq_one [NeZero p] :
     (∑ xw : (Fin r → Fin r → ZMod p) × (Fin r → ZMod p),
         ((solutions p r xw.1 xw.2).card : ℝ))
@@ -147,6 +180,9 @@ theorem mean_eq_one [NeZero p] :
     _ = (Fintype.card ((Fin r → Fin r → ZMod p) × (Fin r → ZMod p)) : ℝ) := by
         rw [Fintype.card_prod, Nat.cast_mul]
 
+/-- A natural-valued function with mean one and second moment at most `2 - δ`, where `0 ≤ δ ≤
+1`, takes the value one or two on at least one quarter of a finite domain
+[BaconChildsVanDam2005]. -/
 theorem concentration_one_two {S : Type*} [Fintype S] (η : S → ℕ) (δ : ℝ)
     (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1)
     (hmean : (∑ s, (η s : ℝ)) = (Fintype.card S : ℝ))
@@ -280,6 +316,9 @@ theorem concentration_one_two {S : Type*} [Fintype S] (η : S → ℕ) (δ : ℝ
     nlinarith [hcardR, hA0, hA3, hN0, hδ0]
   simpa [hN] using hfinal
 
+/-- A second-moment bound of the stated form implies that at least one quarter of matrix sum
+instances have one or two solutions. This isolates the concentration step in Lemma 5 of
+[BaconChildsVanDam2005]. -/
 theorem lemma5_of_second_moment [NeZero p] (δ : ℝ) (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1)
     (hsec : (∑ xw : (Fin r → Fin r → ZMod p) × (Fin r → ZMod p),
         (((solutions p r xw.1 xw.2).card : ℝ)) ^ 2)

@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
 import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.DysonMeanDerivativeGrid
 
+/-!
+# Dyson Error on Supplied Piecewise Grids
+
+This module compares a discrete Dyson expansion with sampled Hamiltonian evolution for bounded
+Hermitian fields, allowing discontinuities. `dyson_grid_euler_error_discontinuous` controls the
+finite-grid Euler error, and `dyson_grid_truncation_sample_error_discontinuous` adds the
+factorial truncation tail when the norm-time product is at most `Real.log 2`.
+
+For a monotone supplied breakpoint grid, the sampled evolution is identified with the frozen
+table from `suppliedFrozenTable`. `suppliedGrid_dyson_error_budget` combines the freezing and
+Euler errors into `suppliedGridErrorConstant / M` and retains the explicit truncation tail. See
+[WangEtAl2026].
+
+## Main statements
+
+* `dyson_grid_euler_error_discontinuous` gives an error bounded by `exp (Λ*t) * Λ^2 * t^2 /
+  (2*M)`.
+* `suppliedGrid_dyson_truncation_error` combines freezing, Euler discretization, and Dyson
+  truncation errors.
+* `suppliedGrid_dyson_error_budget` packages the grid-dependent terms using
+  `suppliedGridErrorConstant`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 open Qatlib.Concepts.CoherentSim.CoherentOAA
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
 open Qatlib.Foundations.OperatorErrors.OperatorError
@@ -45,6 +72,8 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Bounds the error between one Euler factor for `B` and its exact Hamiltonian evolution by
+`exp (Λ * h) * (Λ * h)^2 / 2`, for nonnegative step and norm bound. -/
 private theorem dyson_euler_factor_error
     (B : Matrix I I ℂ) (h Λ : ℝ) (hh : 0 ≤ h) (hΛ : 0 ≤ Λ) (hB : ‖B‖ ≤ Λ) :
     ‖(1 - (h : ℂ) • (Complex.I • B)) - HamiltonianEvolution B h‖ ≤
@@ -62,6 +91,8 @@ private theorem dyson_euler_factor_error
   rw [hp, orderedEvolution_constant_hamiltonian, sub_zero, norm_sub_rev] at ht
   simpa [abs_of_nonneg hh, Nat.factorial] using! ht
 
+/-- Bounds the norm of the Euler factor for `B` by `exp (Λ * h)` when the step is nonnegative
+and `‖B‖ ≤ Λ`. -/
 private theorem dyson_euler_factor_norm
     (B : Matrix I I ℂ) (h Λ : ℝ) (hh : 0 ≤ h) (hB : ‖B‖ ≤ Λ) :
     ‖1 - (h : ℂ) • (Complex.I • B)‖ ≤ Real.exp (Λ * h) := by
@@ -74,11 +105,15 @@ private theorem dyson_euler_factor_norm
       exact add_le_add l2_norm_one_le (mul_le_mul_of_nonneg_left hB hh)
     _ ≤ _ := by simpa [add_comm, mul_comm] using! Real.add_one_le_exp (Λ * h)
 
+/-- The chronological matrix product defined by starting at the identity and multiplying each
+new factor on the left. -/
 private noncomputable def dysonLeftProduct
     (f : ℕ → Matrix I I ℂ) : ℕ → Matrix I I ℂ
   | 0 => 1
   | n + 1 => f n * dysonLeftProduct f n
 
+/-- Expresses the chronological product as the product of the reversed finite list of its first
+`n` factors. -/
 private theorem dysonLeftProduct_eq_reverse_prod
     (f : ℕ → Matrix I I ℂ) (n : ℕ) :
     dysonLeftProduct f n = ((List.ofFn (fun j : Fin n => f j.val)).reverse).prod := by
@@ -91,6 +126,8 @@ private theorem dysonLeftProduct_eq_reverse_prod
     simp only [Fin.val_last, Fin.val_castSucc]
     rw [dysonLeftProduct, ih]
 
+/-- Bounds the difference of two chronological products by `M * B^M * d` when one factor family
+is bounded by `B ≥ 1`, the other by one, and each factor error is at most `B * d`. -/
 private theorem dysonLeftProduct_perturbation
     (f g : ℕ → Matrix I I ℂ) (B d : ℝ) (M : ℕ) (hB : 1 ≤ B) (hd : 0 ≤ d)
     (hf : ∀ j < M, ‖f j‖ ≤ B) (hg : ∀ j < M, ‖g j‖ ≤ 1)
@@ -139,6 +176,9 @@ private theorem dysonLeftProduct_perturbation
         _ = ((n + 1 : ℕ) : ℝ) * B ^ (n + 1) * d := by push_cast; ring
   exact herr M le_rfl
 
+/-- For a bounded Hermitian field on `[0,t]`, bounds the difference between the grid Dyson run
+and the sampled exact evolution product by `exp (Λ*t) * Λ^2 * t^2 / (2*M)`. No continuity
+assumption on the field is required. -/
 theorem dyson_grid_euler_error_discontinuous (H : ℝ → Matrix I I ℂ)
     (t Λ : ℝ) (M : ℕ) (ht : 0 ≤ t) (hΛ : 0 ≤ Λ) (hM : 0 < M)
     (hbound : ∀ u ∈ Set.Icc 0 t, (H u).IsHermitian ∧ ‖H u‖ ≤ Λ) :
@@ -192,6 +232,9 @@ theorem dyson_grid_euler_error_discontinuous (H : ℝ → Matrix I I ℂ)
   rw [hrun, hsample]
   exact hp.trans_eq hpoly
 
+/-- Bounds the truncated grid Dyson sum's error against the sampled exact evolution by the Euler
+grid error plus `2 * (Λ*t)^(K+1) / (K+1)!`. The field is bounded Hermitian and the norm-time
+product is at most `Real.log 2`. -/
 theorem dyson_grid_truncation_sample_error_discontinuous (H : ℝ → Matrix I I ℂ)
     (t Λ : ℝ) (M K : ℕ) (ht : 0 ≤ t) (hΛ : 0 ≤ Λ) (hM : 0 < M)
     (hbound : ∀ u ∈ Set.Icc 0 t, (H u).IsHermitian ∧ ‖H u‖ ≤ Λ)
@@ -205,6 +248,8 @@ theorem dyson_grid_truncation_sample_error_discontinuous (H : ℝ → Matrix I I
     (by linarith : ‖dysonGridTruncatedSum H t M K-dysonGridRun H t M‖ +
       ‖dysonGridRun H t M-sampledEvolutionProduct H t M‖ ≤ _)
 
+/-- Identifies the uniform sampled evolution product of the supplied piecewise field with the
+reversed product of exact evolutions of its frozen table entries. -/
 theorem suppliedGrid_sampledEvolutionProduct {τ : ℕ → ℝ} (hτ : Monotone τ)
     (hτ0 : τ 0 = 0) (B : ℕ → Matrix I I ℂ) (N M : ℕ) {T : ℝ}
     (hτN : τ N = T) (hT : 0 < T) (hM : 0 < M) :
@@ -216,6 +261,8 @@ theorem suppliedGrid_sampledEvolutionProduct {τ : ℕ → ℝ} (hτ : Monotone 
   rw [← hs, List.map_ofFn]
   rfl
 
+/-- For a monotone supplied grid with bounded Hermitian interval matrices, the uniform sampled
+evolution differs from the supplied-grid evolution by at most `2 * Λ * N * (T/M)`. -/
 theorem suppliedGrid_sampled_freezing_error {τ : ℕ → ℝ} (hτ : Monotone τ)
     (hτ0 : τ 0 = 0) (B : ℕ → Matrix I I ℂ) (N M : ℕ) {T Λ : ℝ}
     (hτN : τ N = T) (hT : 0 < T) (hM : 0 < M) (hΛ : 0 ≤ Λ)
@@ -226,6 +273,9 @@ theorem suppliedGrid_sampled_freezing_error {τ : ℕ → ℝ} (hτ : Monotone �
   exact suppliedGridEvolution_freezing_error hτ hτ0 B N
     (div_pos hT (by exact_mod_cast hM)) hΛ hB
 
+/-- Bounds the error between supplied-grid evolution and its truncated uniform-grid Dyson sum by
+the sum of the freezing error, Euler discretization error, and factorial truncation tail.
+The estimate assumes bounded Hermitian interval matrices and `Λ*T ≤ Real.log 2`. -/
 theorem suppliedGrid_dyson_truncation_error {τ : ℕ → ℝ} (hτ : Monotone τ)
     (hτ0 : τ 0 = 0) (B : ℕ → Matrix I I ℂ) (N M K : ℕ) {T Λ : ℝ}
     (hτN : τ N = T) (hT : 0 < T) (hM : 0 < M) (hΛ : 0 ≤ Λ)
@@ -250,14 +300,21 @@ theorem suppliedGrid_dyson_truncation_error {τ : ℕ → ℝ} (hτ : Monotone �
       add_le_add le_rfl (norm_sub_le_norm_sub_add_norm_sub _ _ _)
     _ ≤ _ := by linarith
 
+/-- Collects the freezing and Euler error coefficients as `2*Λ*N*T + exp (Λ*T)*Λ^2*T^2/2`, so
+both grid errors are bounded by this constant divided by the grid size. -/
 def suppliedGridErrorConstant (Λ T : ℝ) (N : ℕ) : ℝ :=
   2*Λ*N*T + Real.exp (Λ*T)*Λ^2*T^2/2
 
+/-- The supplied-grid error constant is nonnegative when the Hamiltonian norm bound and time
+horizon are nonnegative. -/
 theorem suppliedGridErrorConstant_nonneg {Λ T : ℝ} (hΛ : 0 ≤ Λ) (hT : 0 ≤ T)
     (N : ℕ) : 0 ≤ suppliedGridErrorConstant Λ T N := by
   unfold suppliedGridErrorConstant
   positivity
 
+/-- Packages the supplied-grid Dyson error as `suppliedGridErrorConstant Λ T N / M` plus the
+factorial truncation tail, under the monotone-grid, bounded-Hermitian, and norm-time
+assumptions. -/
 theorem suppliedGrid_dyson_error_budget {τ : ℕ → ℝ} (hτ : Monotone τ)
     (hτ0 : τ 0 = 0) (B : ℕ → Matrix I I ℂ) (N M K : ℕ) {T Λ : ℝ}
     (hτN : τ N = T) (hT : 0 < T) (hM : 0 < M) (hΛ : 0 ≤ Λ)

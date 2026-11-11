@@ -66,12 +66,33 @@ import Mathlib.RingTheory.Coalgebra.IsFrobenius
 import Mathlib.RingTheory.HopfAlgebra.Basic
 import Mathlib.Tactic
 
+/-!
+# Extending orthonormal columns to a unitary matrix
+
+Proves `exists_unitary_extend_cols`, which completes a complex matrix with orthonormal columns
+to a square unitary matrix. An injective map specifies the positions of the prescribed columns,
+and the completion satisfies both unitary matrix identities. See [NielsenChuang2010] for related
+background.
+
+## Main statements
+
+* `exists_unitary_extend_cols`: A complex matrix `W` with `W.conjTranspose * W = 1` extends to a
+  square unitary matrix whose columns at the injectively specified positions `emb j` agree with
+  the columns of `W`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option autoImplicit false
 noncomputable section
 open Matrix
 open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.State
 
+/-- A complex matrix `W` with `W.conjTranspose * W = 1` extends to a square unitary matrix whose
+columns at the injectively specified positions `emb j` agree with the columns of `W`. -/
 theorem exists_unitary_extend_cols {ι : Type} [Fintype ι] [DecidableEq ι] {d : ℕ}
     (W : Matrix ι (Fin d) ℂ) (emb : Fin d → ι) (hemb : Function.Injective emb)
     (hW : W.conjTranspose * W = 1) :

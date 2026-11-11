@@ -12,6 +12,32 @@ import Mathlib.Analysis.Complex.ExponentialBounds
 import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.AmplitudeAmplification
+
+/-!
+# Analytic bounds for fixed-point search
+
+This module develops the Chebyshev and hyperbolic-function estimates underlying the fixed-point
+search construction of [YoderLowChuang2014]. It proves width identities, a common successful
+length, access-count bounds, polynomial suppression bounds, and the response composition
+identity.
+
+It also establishes normalization and unitarity for the two-level word and formulates the two
+recurrence bridges used by `ylc_master_response_of_bridges`. Explicit examples with phase π/3
+and endpoint lemmas supplement these interfaces.
+
+## Main statements
+
+* `unifiedChoice`: a positive odd length with a uniform response bound.
+* `accessCountOBound`: a universal logarithmic access-count estimate.
+* `chebyshev_suppression_optimal`: the maximal polynomial suppression interval.
+* `nestedResponseIdentity`: response composition under multiplication of lengths.
+* `ylc_master_response_of_bridges`: the response formula from the two bridges.
+
+## References
+
+* [Yoder et al., 2014][YoderLowChuang2014]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
@@ -26,31 +52,39 @@ open Matrix
 open Polynomial
 open Polynomial.Chebyshev
 
+/-- Unfolds `cheb` as evaluation of the first-kind Chebyshev polynomial. -/
 theorem cheb_eq (n : ℕ) (x : ℝ) : cheb n x = (T ℝ (n : ℤ)).eval x := rfl
 
+/-- The degree-one Chebyshev polynomial evaluates to its argument. -/
 theorem cheb_one (x : ℝ) : cheb 1 x = x := by
   simp [cheb_eq, T_one]
 
+/-- If `0 < delta < 1`, then `1 < 1 / delta`. -/
 theorem one_lt_one_div_of_lt {delta : ℝ} (hd : 0 < delta) (hd' : delta < 1) :
     1 < 1 / delta := by
   have h := one_div_lt_one_div_of_lt hd hd'
   rwa [one_div_one] at h
 
+/-- If `0 < delta ≤ 1`, then `1 ≤ 1 / delta`. -/
 theorem one_le_one_div_of_le {delta : ℝ} (hd : 0 < delta) (hd' : delta ≤ 1) :
     1 ≤ 1 / delta := by
   have h := one_div_le_one_div_of_le hd hd'
   rwa [one_div_one] at h
 
+/-- A Chebyshev polynomial of odd degree vanishes at zero. -/
 theorem cheb_zero_of_odd {n : ℕ} (hn : Odd n) : cheb n 0 = 0 := by
   have hn' : Odd (n : ℤ) := by exact_mod_cast hn
   have h := T_eval_zero_of_odd (R := ℝ) (n := (n : ℤ)) hn'
   simpa [cheb_eq] using h
 
+/-- Negating the argument of a Chebyshev polynomial multiplies its value by the sign determined
+by the degree. -/
 theorem cheb_T_eval_neg (n : ℕ) (x : ℝ) :
     cheb n (-x) = ((n : ℤ).negOnePow : ℝ) * cheb n x := by
   have h := T_eval_neg (R := ℝ) (n := (n : ℤ)) x
   simpa [cheb_eq] using h
 
+/-- The square of the real coercion of the integer sign `negOnePow` is one. -/
 theorem negOnePow_sq (n : ℕ) : (((n : ℤ).negOnePow : ℝ)) ^ 2 = 1 := by
   have h : (((n : ℤ).negOnePow : ℝ)) = (-1 : ℝ) ^ (n : ℤ).natAbs :=
     Int.coe_negOnePow ℝ _
@@ -58,36 +92,43 @@ theorem negOnePow_sq (n : ℕ) : (((n : ℤ).negOnePow : ℝ)) ^ 2 = 1 := by
   have h2 : (n : ℤ).natAbs * 2 = 2 * (n : ℤ).natAbs := by ring
   rw [h2, pow_mul, neg_one_sq, one_pow]
 
+/-- The squared Chebyshev value is invariant under negating its argument. -/
 theorem cheb_sq_neg (n : ℕ) (x : ℝ) : cheb n (-x) ^ 2 = cheb n x ^ 2 := by
   rw [cheb_T_eval_neg, mul_pow, negOnePow_sq, one_mul]
 
+/-- Replacing an argument by its absolute value leaves the squared Chebyshev value unchanged. -/
 theorem cheb_abs_sq (n : ℕ) (x : ℝ) : cheb n (|x|) ^ 2 = cheb n x ^ 2 := by
   rcases le_or_gt 0 x with hx | hx
   · rw [abs_of_nonneg hx]
   · rw [abs_of_neg hx, cheb_sq_neg]
 
+/-- Composition of Chebyshev polynomials multiplies their degrees. -/
 theorem cheb_comp (m n : ℕ) (x : ℝ) : cheb m (cheb n x) = cheb (m * n) x := by
   have h := T_mul (R := ℝ) (m : ℤ) (n : ℤ)
   have hcast : ((m * n : ℕ) : ℤ) = (m : ℤ) * (n : ℤ) := by norm_cast
   simp only [cheb_eq, hcast]
   rw [h, eval_comp]
 
+/-- A Chebyshev polynomial has absolute value at most one on `[-1, 1]`. -/
 theorem cheb_le_one {n : ℕ} {y : ℝ} (hy : y ∈ Set.Icc (-1) 1) : |cheb n y| ≤ 1 := by
   have hy' : y = Real.cos (Real.arccos y) := by
     rw [Real.cos_arccos hy.1 hy.2]
   rw [hy', cheb_eq, T_real_cos]
   exact Real.abs_cos_le_one _
 
+/-- Evaluating `cheb n` at `cosh t` gives `cosh (n * t)`. -/
 theorem cheb_one_div_cosh {n : ℕ} (t : ℝ) :
     cheb n (Real.cosh t) = Real.cosh ((n : ℝ) * t) := by
   have h := T_real_cosh (n := (n : ℤ)) t
   simpa [cheb_eq] using h
 
+/-- A Chebyshev polynomial has value at least one at every argument at least one. -/
 theorem cheb_one_le_of_one_le {L : ℕ} {y : ℝ} (hy : 1 ≤ y) : 1 ≤ cheb L y := by
   conv_rhs => rw [show y = Real.cosh (Real.arcosh y) by rw [Real.cosh_arcosh hy]]
   rw [cheb_one_div_cosh]
   exact Real.one_le_cosh _
 
+/-- For positive degree, the Chebyshev evaluation function is strictly increasing on `[1, ∞)`. -/
 theorem cheb_strictMonoOn_one_le (L : ℕ) (hL : 1 ≤ L) :
     StrictMonoOn (cheb L) (Set.Ici 1) := by
   intro x hx y hy hxy
@@ -113,12 +154,14 @@ theorem cheb_strictMonoOn_one_le (L : ℕ) (hL : 1 ≤ L) :
     abs_of_nonneg (mul_nonneg (Nat.cast_nonneg _) hy0)]
   exact hmul
 
+/-- The width parameter is positive for positive length and `0 < delta < 1`. -/
 theorem ylcGamma_pos {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta) (hd' : delta < 1) :
     0 < ylcGamma L delta := by
   have hcos : 0 < Real.cosh (Real.arcosh (1 / delta) / (L : ℝ)) := Real.cosh_pos _
   rw [ylcGamma]
   exact one_div_pos.mpr hcos
 
+/-- The width parameter is less than one for positive length and `0 < delta < 1`. -/
 theorem ylcGamma_lt_one {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta) (hd' : delta < 1) :
     ylcGamma L delta < 1 := by
   have h1 : 1 < 1 / delta := one_lt_one_div_of_lt hd hd'
@@ -129,6 +172,8 @@ theorem ylcGamma_lt_one {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta) (h
   rw [ylcGamma, div_lt_one (lt_trans (by norm_num) hcos)]
   linarith
 
+/-- For positive length and `0 < delta < 1`, evaluating `cheb L` at the reciprocal width gives
+`1 / delta`. -/
 theorem cheb_one_div_gamma {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta)
     (hd' : delta < 1) : cheb L (1 / ylcGamma L delta) = 1 / delta := by
   have hcos : 0 < Real.cosh (Real.arcosh (1 / delta) / (L : ℝ)) := Real.cosh_pos _
@@ -139,6 +184,8 @@ theorem cheb_one_div_gamma {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta)
   have hL0 : (L : ℝ) ≠ 0 := by exact_mod_cast ne_of_gt hL
   rw [mul_div_cancel₀ _ hL0, Real.cosh_arcosh h1]
 
+/-- For positive length and `0 < delta < 1`, increasing the length by one does not decrease the
+width. -/
 theorem ylcGamma_mono_le {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta) (hd' : delta < 1) :
     ylcGamma L delta ≤ ylcGamma (L + 1) delta := by
   have h1 : 1 < 1 / delta := one_lt_one_div_of_lt hd hd'
@@ -163,11 +210,14 @@ theorem ylcGamma_mono_le {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta) (
   rw [ylcGamma, ylcGamma]
   exact one_div_le_one_div_of_le hpos (le_of_lt hcos)
 
+/-- For positive length and `0 < delta < 1`, the displayed hyperbolic cosine is the reciprocal
+of `ylcGamma L delta`. -/
 theorem one_div_ylcGamma_cosh {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta)
     (hd' : delta < 1) :
     Real.cosh (Real.arcosh (1 / delta) / (L : ℝ)) = 1 / ylcGamma L delta := by
   rw [ylcGamma, one_div_one_div]
 
+/-- For positive lengths and `0 < delta < 1`, nesting width parameters multiplies the lengths. -/
 theorem ylcGamma_nested {L1 L2 : ℕ} {delta : ℝ} (h1 : 1 ≤ L1) (h2 : 1 ≤ L2)
     (hd : 0 < delta) (hd' : delta < 1) :
     ylcGamma L1 (ylcGamma L2 delta) = ylcGamma (L1 * L2) delta := by
@@ -191,6 +241,7 @@ theorem ylcGamma_nested {L1 L2 : ℕ} {delta : ℝ} (h1 : 1 ≤ L1) (h2 : 1 ≤ 
   have hcomm : (L2 * L1 : ℕ) = L1 * L2 := by ring
   rw [ylcGamma, hstep, hcast, hcomm, ylcGamma]
 
+/-- For nonnegative `u`, `sinh u ≤ u * cosh u`. -/
 theorem sinh_le_mul_cosh {u : ℝ} (hu : 0 ≤ u) : Real.sinh u ≤ u * Real.cosh u := by
   have hd : ∀ y : ℝ, HasDerivAt (fun z : ℝ => z * Real.cosh z - Real.sinh z)
       (y * Real.sinh y) y := by
@@ -214,6 +265,7 @@ theorem sinh_le_mul_cosh {u : ℝ} (hu : 0 ≤ u) : Real.sinh u ≤ u * Real.cos
   have hge := hmono hu
   linarith
 
+/-- For nonnegative `u`, `(1 - u ^ 2 / 2) * cosh u ≤ 1`. -/
 theorem cosh_mul_one_sub_half_sq_le_one {u : ℝ} (hu : 0 ≤ u) :
     (1 - u ^ 2 / 2) * Real.cosh u ≤ 1 := by
   have hdf : ∀ y : ℝ, HasDerivAt (fun w : ℝ => (1 - w ^ 2 / 2) * Real.cosh w)
@@ -259,6 +311,7 @@ theorem cosh_mul_one_sub_half_sq_le_one {u : ℝ} (hu : 0 ≤ u) :
   rw [hH0] at hH
   exact hH
 
+/-- For `0 ≤ u < 1`, `cosh u ≤ 1 / √(1 - u ^ 2)`. -/
 theorem cosh_le_one_div_sqrt_one_sub_sq {u : ℝ} (hu : 0 ≤ u) (hu' : u < 1) :
     Real.cosh u ≤ 1 / Real.sqrt (1 - u ^ 2) := by
   have hsq : 0 ≤ 1 - u ^ 2 := by nlinarith
@@ -277,6 +330,7 @@ theorem cosh_le_one_div_sqrt_one_sub_sq {u : ℝ} (hu : 0 ≤ u) (hu' : u < 1) :
     exact one_div_le_one_div_of_le hsp hs
   exact le_trans h1 h2
 
+/-- For `0 < x < 1`, `√x ≤ arcosh (1 / √(1 - x))`. -/
 theorem sqrt_le_arcosh_one_div_sqrt {x : ℝ} (hx : 0 < x) (hx' : x < 1) :
     Real.sqrt x ≤ Real.arcosh (1 / Real.sqrt (1 - x)) := by
   have hu0 : 0 < Real.sqrt x := Real.sqrt_pos.mpr hx
@@ -300,6 +354,7 @@ theorem sqrt_le_arcosh_one_div_sqrt {x : ℝ} (hx : 0 < x) (hx' : x < 1) :
   rw [hx2]
   refine (Real.arcosh_le_arcosh (Real.cosh_pos _) (by positivity)).mpr hcos_le
 
+/-- For `0 < delta < 1`, `arcosh (1 / delta) ≤ log (2 / delta)`. -/
 theorem arcosh_inv_delta_le_log {delta : ℝ} (hd : 0 < delta) (hd' : delta < 1) :
     Real.arcosh (1 / delta) ≤ Real.log (2 / delta) := by
   have h1 : 1 ≤ 1 / delta := one_le_one_div_of_le hd (le_of_lt hd')
@@ -336,30 +391,37 @@ theorem arcosh_inv_delta_le_log {delta : ℝ} (hd : 0 < delta) (hd' : delta < 1)
   rw [hdef]
   exact hlog
 
+/-- Unfolds the Chebyshev expression defining `responseProb`. -/
 theorem responseProb_eq (L : ℕ) (delta lam : ℝ) :
     responseProb L delta lam =
       1 - (delta * cheb L (Real.sqrt (1 - lam) / ylcGamma L delta)) ^ 2 := rfl
 
+/-- When `lam0 ≠ 1`, the chosen length is twice the ceiling of the displayed
+inverse-hyperbolic-cosine ratio, plus one. -/
 theorem ylcLength_eq (lam0 delta : ℝ) (h : lam0 ≠ 1) :
     ylcLength lam0 delta =
       2 * Nat.ceil (Real.arcosh (1 / delta) /
         Real.arcosh (1 / Real.sqrt (1 - lam0))) + 1 := by
   rw [ylcLength, if_neg h]
 
+/-- For unit lower bound on the good mass, the chosen length is one. -/
 theorem ylcLength_one (delta : ℝ) : ylcLength 1 delta = 1 := by
   rw [ylcLength, if_pos rfl]
 
+/-- For `0 < lam0 < 1`, the chosen length is odd. -/
 theorem ylcLength_odd {lam0 delta : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1) :
     Odd (ylcLength lam0 delta) := by
   rw [ylcLength_eq _ _ (ne_of_lt hl0')]
   exact ⟨Nat.ceil (Real.arcosh (1 / delta) /
     Real.arcosh (1 / Real.sqrt (1 - lam0))), by omega⟩
 
+/-- For `0 < lam0 < 1`, the chosen length is at least one. -/
 theorem ylcLength_one_le {lam0 delta : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1) :
     1 ≤ ylcLength lam0 delta := by
   rw [ylcLength_eq _ _ (ne_of_lt hl0')]
   exact Nat.le_add_left _ _
 
+/-- For `0 < lam0 < 1`, `arcosh (1 / √(1 - lam0))` is positive. -/
 private theorem arcosh_bound_pos {lam0 : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1) :
     0 < Real.arcosh (1 / Real.sqrt (1 - lam0)) := by
   have h : 1 < 1 / Real.sqrt (1 - lam0) := by
@@ -371,10 +433,13 @@ private theorem arcosh_bound_pos {lam0 : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1)
     exact one_lt_one_div_of_lt hs hs1
   exact Real.arcosh_pos h
 
+/-- For `0 < delta < 1`, `arcosh (1 / delta)` is nonnegative. -/
 private theorem arcosh_delta_nonneg {delta : ℝ} (hd : 0 < delta) (hd' : delta < 1) :
     0 ≤ Real.arcosh (1 / delta) :=
   Real.arcosh_nonneg (one_le_one_div_of_le hd (le_of_lt hd'))
 
+/-- For `lam0` and `delta` in `(0, 1)`, the chosen length makes `arcosh (1 / delta)` divided by
+that length at most `arcosh (1 / √(1 - lam0))`. -/
 theorem ylcLength_meets_bound {lam0 delta : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1)
     (hd : 0 < delta) (hd' : delta < 1) :
     Real.arcosh (1 / delta) / ((ylcLength lam0 delta : ℝ)) ≤
@@ -410,6 +475,8 @@ theorem ylcLength_meets_bound {lam0 delta : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 <
   rw [div_le_iff₀ hLpos, mul_comm]
   exact hmain
 
+/-- For `lam0` and `delta` in `(0, 1)`, the chosen length gives Chebyshev response at least `1 -
+delta ^ 2` for every `lam ∈ [lam0, 1]` [YoderLowChuang2014]. -/
 theorem responseProb_succ_le {lam0 delta lam : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1)
     (hd : 0 < delta) (hd' : delta < 1) (hlam : lam0 ≤ lam) (hlam' : lam ≤ 1) :
     1 - delta ^ 2 ≤ responseProb (ylcLength lam0 delta) delta lam := by
@@ -470,6 +537,8 @@ theorem responseProb_succ_le {lam0 delta lam : ℝ} (hl0 : 0 < lam0) (hl0' : lam
     linarith
   linarith
 
+/-- For positive odd length and `0 < delta < 1`, the Chebyshev response at zero good mass is
+zero. -/
 theorem responseProb_zero {L : ℕ} {delta : ℝ} (hL : Odd L) (hL' : 1 ≤ L)
     (hd : 0 < delta) (hd' : delta < 1) : responseProb L delta 0 = 0 := by
   have hL0 : 0 < L := lt_of_lt_of_le (by norm_num) hL'
@@ -481,6 +550,8 @@ theorem responseProb_zero {L : ℕ} {delta : ℝ} (hL : Odd L) (hL' : 1 ≤ L)
   have hdd : delta * (1 / delta) = 1 := mul_one_div_cancel hd.ne'
   rw [hdd, one_pow, sub_self]
 
+/-- For positive odd length and `0 < delta < 1`, the Chebyshev response at unit good mass is
+one. -/
 theorem responseProb_one {L : ℕ} {delta : ℝ} (hL : Odd L) (hL' : 1 ≤ L)
     (hd : 0 < delta) (hd' : delta < 1) : responseProb L delta 1 = 1 := by
   rw [responseProb_eq]
@@ -488,6 +559,7 @@ theorem responseProb_one {L : ℕ} {delta : ℝ} (hL : Odd L) (hL' : 1 ≤ L)
   rw [hsqrt, zero_div, cheb_zero_of_odd hL, mul_zero, zero_pow (by norm_num : (2:ℕ) ≠ 0),
     sub_zero]
 
+/-- For `0 < delta < 1`, the length-one response is one for every `lam ≥ 1`. -/
 theorem responseProb_one_of_one_le (delta : ℝ) (hd : 0 < delta) (hd' : delta < 1) :
     ∀ lam, 1 ≤ lam → responseProb 1 delta lam = 1 := by
   intro lam hlam
@@ -495,10 +567,13 @@ theorem responseProb_one_of_one_le (delta : ℝ) (hd : 0 < delta) (hd' : delta <
   rw [responseProb_eq, hsqrt, zero_div, cheb_one, mul_zero,
     zero_pow (by norm_num : (2:ℕ) ≠ 0), sub_zero]
 
+/-- A word with `l` iterates has query count `2 * l`. -/
 theorem wordQueryCount_eq (l : ℕ) : wordQueryCount l = 2 * l := rfl
 
+/-- A word with `l` iterates has preparation-access count `2 * l`. -/
 theorem wordPreparationCount_eq (l : ℕ) : wordPreparationCount l = 2 * l := rfl
 
+/-- Concatenating `l` lists of length two gives a list of length `2 * l`. -/
 private theorem flatMap_constTwo_length (l : ℕ) (f : ℕ → List ℝ) (hf : ∀ i, (f i).length = 2) :
     ((List.range l).flatMap f).length = 2 * l := by
   induction l with
@@ -509,12 +584,15 @@ private theorem flatMap_constTwo_length (l : ℕ) (f : ℕ → List ℝ) (hf : �
     rw [List.range_succ, List.flatMap_append, List.length_append, ih, h2]
     ring
 
+/-- The displayed analytic phase list contains `2 * l` angles. -/
 theorem wordPhaseList_length (l L : ℕ) (g : ℝ) :
     ((List.range l).flatMap fun i =>
       [ylcAlpha L (i + 1) g, -(ylcAlpha L (l - i) g)]).length = 2 * l := by
   refine flatMap_constTwo_length l _ (fun i => ?_)
   simp
 
+/-- For a positive bit count `b`, every real angle has an integer multiple of `2 * π / 2 ^ b`
+within `π / 2 ^ b`. -/
 theorem exists_dyadic_phase (b : ℕ) (hb : 0 < b) (theta : ℝ) :
     ∃ q : ℤ, |theta - (2 * Real.pi * (q : ℝ)) / (2:ℝ) ^ b| ≤ Real.pi / (2:ℝ) ^ b := by
   have hTpos : 0 < (2:ℝ) ^ b := by positivity
@@ -556,6 +634,9 @@ theorem exists_dyadic_phase (b : ℕ) (hb : 0 < b) (theta : ℝ) :
         mul_le_mul_of_nonneg_left hq (le_of_lt (div_pos h2pi hTpos))
     _ = Real.pi / (2:ℝ) ^ b := hhalf
 
+/-- For `L ≥ 1` and `0 < delta < 1`, a real polynomial of degree at most `L`, normalized at one
+and bounded by `delta` on `[-a, a]` with `a > 0`, satisfies `a ≤ ylcGamma L delta`
+[YoderLowChuang2014]. -/
 theorem chebyshev_suppression_optimal {L : ℕ} {delta : ℝ} {q : ℝ[X]} {a : ℝ}
     (hL : 1 ≤ L) (hd : 0 < delta) (hd' : delta < 1) (hqdeg : q.degree ≤ (L : ℕ))
     (hq1 : q.eval 1 = 1) (ha : 0 < a) (hbound : ∀ y ∈ Set.Icc (-a) a, |q.eval y| ≤ delta) :
@@ -624,6 +705,9 @@ theorem chebyshev_suppression_optimal {L : ℕ} {delta : ℝ} {q : ℝ[X]} {a : 
     (hmono.le_iff_le (Set.mem_Ici.mpr hγ1) (Set.mem_Ici.mpr hinv1)).mp hcomp
   exact le_of_one_div_le_one_div (ylcGamma_pos hLpos hd hd') hle'
 
+/-- For `L ≥ 1` and `lam0, delta ∈ (0, 1)`, a real polynomial of degree at most `L`, normalized
+at one and bounded by `delta` on the displayed interval, satisfies the stated
+inverse-hyperbolic-cosine degree bound [YoderLowChuang2014]. -/
 theorem chebyshev_degree_lower_bound {L : ℕ} {lam0 delta : ℝ} {q : ℝ[X]}
     (hL : 1 ≤ L) (hl0 : 0 < lam0) (hl0' : lam0 < 1) (hd : 0 < delta) (hd' : delta < 1)
     (hqdeg : q.degree ≤ (L : ℕ)) (hq1 : q.eval 1 = 1)
@@ -649,6 +733,9 @@ theorem chebyshev_degree_lower_bound {L : ℕ} {lam0 delta : ℝ} {q : ℝ[X]}
   rw [abs_of_nonneg harg, abs_of_nonneg hB0] at habs
   exact habs
 
+/-- A positive universal constant bounds the chosen iterate, preparation, and query counts by `C
+* log (2 / delta) / √lam0` for `lam0, delta ∈ (0, 1)`. For `delta ≤ 1 / 2`, it also gives
+the displayed comparison with `log (1 / delta)` [YoderLowChuang2014]. -/
 theorem accessCountOBound :
     ∃ C : ℝ, 0 < C ∧
     ∀ (lam0 delta : ℝ), 0 < lam0 → lam0 < 1 → 0 < delta → delta < 1 →
@@ -761,6 +848,8 @@ theorem accessCountOBound :
     linarith
   exact ⟨hmain, hprep, hquery, hbridge⟩
 
+/-- The preparation count is `l + l`, the query count is `2 * l`, and the query count plus one
+is `2 * l + 1`. -/
 theorem paidLedgerCompleteness :
     ∀ l : ℕ,
     wordPreparationCount l = l + l ∧ wordQueryCount l = 2 * l ∧
@@ -769,6 +858,8 @@ theorem paidLedgerCompleteness :
   refine ⟨?_, rfl, rfl⟩
   rw [wordPreparationCount_eq, two_mul]
 
+/-- For `0 < delta < 1`, the analytic phase list for `l` iterates contains exactly `2 * l`
+angles. -/
 theorem phaseAngleCount :
     ∀ (l : ℕ) (delta : ℝ), 0 < delta → delta < 1 →
     let L := 2 * l + 1
@@ -778,11 +869,16 @@ theorem phaseAngleCount :
   intro l delta _ _
   exact wordPhaseList_length l (2 * l + 1) (ylcGamma (2 * l + 1) delta)
 
+/-- For positive `b`, every phase angle can be approximated by a dyadic multiple of `2 * π` with
+error at most `π / 2 ^ b`. -/
 theorem phaseCompilationInterface :
     ∀ (b : ℕ) (theta : ℝ), 0 < b →
     ∃ q : ℤ, |theta - (2 * Real.pi * (q : ℝ)) / (2:ℝ) ^ b| ≤ Real.pi / (2:ℝ) ^ b :=
   fun b theta hb => exists_dyadic_phase b hb theta
 
+/-- For positive length and `0 < delta < 1`, a degree-bounded real polynomial normalized at one
+cannot be bounded by `delta` on a positive symmetric interval wider than `ylcGamma L delta`
+[YoderLowChuang2014]. -/
 theorem chebyshevOptimalSuppression :
     ∀ (L : ℕ) (delta : ℝ) (q : ℝ[X]) (a : ℝ),
     1 ≤ L → 0 < delta → delta < 1 → q.degree ≤ (L : ℕ) → q.eval 1 = 1 →
@@ -790,6 +886,9 @@ theorem chebyshevOptimalSuppression :
   fun L delta q a hL hd hd' hqdeg hq1 ha hbound =>
     chebyshev_suppression_optimal hL hd hd' hqdeg hq1 ha hbound
 
+/-- For the stated positive length and parameters in `(0, 1)`, uniform polynomial suppression on
+the good-mass interval implies the displayed inverse-hyperbolic-cosine degree bound
+[YoderLowChuang2014]. -/
 theorem chebyshevDegreeLowerBound :
     ∀ (L : ℕ) (lam0 delta : ℝ) (q : ℝ[X]),
     1 ≤ L → 0 < lam0 → lam0 < 1 → 0 < delta → delta < 1 →
@@ -801,17 +900,24 @@ theorem chebyshevDegreeLowerBound :
   fun L lam0 delta q hL hl0 hl0' hd hd' hqdeg hq1 hbound =>
     chebyshev_degree_lower_bound hL hl0 hl0' hd hd' hqdeg hq1 hbound
 
+/-- For `lam0, delta ∈ (0, 1)`, the chosen common length satisfies the displayed
+inverse-hyperbolic-cosine bound. -/
 theorem unifiedLengthMeetsLowerBound :
     ∀ (lam0 delta : ℝ), 0 < lam0 → lam0 < 1 → 0 < delta → delta < 1 →
     Real.arcosh (1 / delta) / ((ylcLength lam0 delta : ℝ)) ≤
       Real.arcosh (1 / Real.sqrt (1 - lam0)) :=
   fun lam0 delta hl0 hl0' hd hd' => ylcLength_meets_bound hl0 hl0' hd hd'
 
+/-- For positive length and `0 < delta < 1`, the width parameter does not decrease when the
+length increases by one. -/
 theorem widthWidening :
     ∀ (L : ℕ) (delta : ℝ), 0 < L → 0 < delta → delta < 1 →
     ylcGamma L delta ≤ ylcGamma (L + 1) delta :=
   fun L delta hL hd hd' => ylcGamma_mono_le hL hd hd'
 
+/-- Combines the universal access-count bound, exact ledgers, phase counts, and dyadic phase
+approximation with Chebyshev suppression and degree bounds, the chosen-length inequality,
+and width monotonicity [YoderLowChuang2014]. -/
 theorem g2 :
     (∃ C : ℝ, 0 < C ∧
     ∀ (lam0 delta : ℝ), 0 < lam0 → lam0 < 1 → 0 < delta → delta < 1 →
@@ -851,6 +957,8 @@ theorem g2 :
     chebyshevOptimalSuppression, chebyshevDegreeLowerBound, unifiedLengthMeetsLowerBound,
     widthWidening⟩
 
+/-- For positive length and `0 < delta < 1`, the width lies in `(0, 1)` and its reciprocal has
+Chebyshev value `1 / delta`. -/
 theorem widthIdentity :
     (∀ (L : ℕ) (delta : ℝ), 0 < L → 0 < delta ∧ delta < 1 →
       0 < ylcGamma L delta ∧ ylcGamma L delta < 1 ∧
@@ -859,6 +967,8 @@ theorem widthIdentity :
   exact ⟨ylcGamma_pos hL hd.1 hd.2, ylcGamma_lt_one hL hd.1 hd.2,
     cheb_one_div_gamma hL hd.1 hd.2⟩
 
+/-- For `lam0, delta ∈ (0, 1)`, the chosen length is positive and odd and gives response at
+least `1 - delta ^ 2` uniformly for `lam ∈ [lam0, 1]` [YoderLowChuang2014]. -/
 theorem unifiedChoice :
     (∀ (lam0 delta : ℝ), 0 < lam0 ∧ lam0 < 1 → 0 < delta ∧ delta < 1 →
       Odd (ylcLength lam0 delta) ∧ 1 ≤ ylcLength lam0 delta ∧
@@ -868,24 +978,32 @@ theorem unifiedChoice :
   exact ⟨ylcLength_odd hl.1 hl.2, ylcLength_one_le hl.1 hl.2,
     fun lam hl' => responseProb_succ_le hl.1 hl.2 hd.1 hd.2 hl'.1 hl'.2⟩
 
+/-- For `0 < delta < 1`, a unit good-mass lower bound selects length one, whose response is one
+for every `lam ≥ 1`. -/
 theorem trivialBoundCompletion :
     (∀ delta : ℝ, 0 < delta ∧ delta < 1 →
       ylcLength 1 delta = 1 ∧ ∀ lam, 1 ≤ lam → responseProb 1 delta lam = 1) := by
   intro delta hd
   exact ⟨ylcLength_one delta, responseProb_one_of_one_le delta hd.1 hd.2⟩
 
+/-- For positive odd length and `0 < delta < 1`, the response equals zero at good mass zero and
+one at good mass one. -/
 theorem responseEndpoints :
     (∀ (L : ℕ) (delta : ℝ), Odd L → 1 ≤ L → 0 < delta ∧ delta < 1 →
       responseProb L delta 0 = 0 ∧ responseProb L delta 1 = 1) := by
   intro L delta hL hL' hd
   exact ⟨responseProb_zero hL hL' hd.1 hd.2, responseProb_one hL hL' hd.1 hd.2⟩
 
+/-- The query and preparation counts both equal `2 * l`, and the query count plus one equals `2
+* l + 1`. -/
 theorem accessLedger :
     (∀ l : ℕ, wordQueryCount l = 2 * l ∧ wordPreparationCount l = 2 * l ∧
       wordQueryCount l + 1 = 2 * l + 1) := by
   intro l
   exact ⟨rfl, rfl, rfl⟩
 
+/-- For normalized source and target with unit good mass and `0 < delta < 1`, the full-register
+length-one success probability is one. -/
 theorem degenerateAligned :
     (∀ (I : Type) [Fintype I] [DecidableEq I] (s T : QState I) (delta : ℝ),
       Normalized s → Normalized T → 0 < delta ∧ delta < 1 →
@@ -902,6 +1020,7 @@ theorem degenerateAligned :
   rw [hW, Matrix.one_mulVec]
   exact hgood
 
+/-- A full source reflection multiplies its normalized defining state by `exp(-i * alpha)`. -/
 theorem fullStateReflection_mulVec_self {I : Type} [Fintype I] [DecidableEq I]
     {s : QState I} (hs : Normalized s) (alpha : ℝ) :
     fullStateReflection s alpha *ᵥ s = (Complex.exp (-(Complex.I * alpha))) • s := by
@@ -919,12 +1038,16 @@ theorem fullStateReflection_mulVec_self {I : Type} [Fintype I] [DecidableEq I]
   rw [h, show (1:ℂ) - (1 - Complex.exp (-(Complex.I * alpha))) =
     Complex.exp (-(Complex.I * alpha)) by ring]
 
+/-- Multiplying the second state by a complex scalar multiplies the inner product by that
+scalar. -/
 theorem inner_smul_right {I : Type} [Fintype I] [DecidableEq I]
     (psi phi : QState I) (c : ℂ) : Qatlib.Foundations.PureStateMath.Inner psi (c • phi) = c * Qatlib.Foundations.PureStateMath.Inner psi phi := by
   simp only [inner_apply, Pi.smul_apply, smul_eq_mul]
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun i _ => by ring
 
+/-- If each matrix in a list sends a state to a scalar multiple of itself, their product also
+sends that state to a scalar multiple of itself. -/
 private theorem listProd_smul_self {I : Type} [Fintype I] [DecidableEq I]
     {s : QState I} {xs : List (Matrix I I ℂ)} (hxs : ∀ x ∈ xs, ∃ c : ℂ, x *ᵥ s = c • s) :
     ∃ c : ℂ, xs.prod *ᵥ s = c • s := by
@@ -937,6 +1060,8 @@ private theorem listProd_smul_self {I : Type} [Fintype I] [DecidableEq I]
     rw [List.prod_cons, ← Matrix.mulVec_mulVec, hc2, Matrix.mulVec_smul, hc1, ← mul_smul,
       mul_comm c2 c1]
 
+/-- For positive `L2` and `0 < delta < 1`, the inner width lies in `(0, 1)` and its reciprocal
+is the displayed hyperbolic cosine. -/
 theorem innerErrorParameter :
     (∀ (L2 : ℕ) (delta : ℝ), 1 ≤ L2 → 0 < delta → delta < 1 →
       0 < ylcGamma L2 delta ∧ ylcGamma L2 delta < 1 ∧
@@ -946,11 +1071,14 @@ theorem innerErrorParameter :
   exact ⟨ylcGamma_pos hL2p hd hd', ylcGamma_lt_one hL2p hd hd',
     one_div_ylcGamma_cosh hL2p hd hd'⟩
 
+/-- Composing Chebyshev evaluations of degrees `L1` and `L2` gives degree `L1 * L2`. -/
 theorem chebyshevSemigroup :
     (∀ (L1 L2 : ℕ) (x : ℝ), cheb L2 (cheb L1 x) = cheb (L1 * L2) x) := by
   intro L1 L2 x
   rw [cheb_comp, Nat.mul_comm L2 L1]
 
+/-- For positive lengths, `0 < delta < 1`, and `lam ∈ [0, 1]`, composing the responses with the
+prescribed inner error parameter multiplies their lengths [YoderLowChuang2014]. -/
 theorem nestedResponseIdentity :
     (∀ (L1 L2 : ℕ) (delta lam : ℝ), 1 ≤ L1 → 1 ≤ L2 → 0 < delta → delta < 1 →
       0 ≤ lam → lam ≤ 1 →
@@ -1006,6 +1134,8 @@ theorem nestedResponseIdentity :
   rw [responseProb_eq L2 delta (responseProb L1 (ylcGamma L2 delta) lam),
     responseProb_eq (L1 * L2) delta lam, hsq]
 
+/-- The nested odd length has iterate count `l1 + 2 * l1 * l2 + l2`, and its query count
+satisfies the displayed nesting identity. -/
 theorem nestedComplexity :
     (∀ l1 l2 : ℕ,
       (2 * l1 + 1) * (2 * l2 + 1) = 2 * (l1 + 2 * l1 * l2 + l2) + 1 ∧
@@ -1017,6 +1147,8 @@ theorem nestedComplexity :
   · simp only [wordQueryCount_eq]
     ring
 
+/-- For normalized source and target, `0 < delta < 1`, and zero initial good mass, the
+full-register word has zero success probability. -/
 theorem zeroMassFails :
     (∀ (I : Type) [Fintype I] [DecidableEq I] (s T : QState I) (L : ℕ) (delta : ℝ),
       Normalized s → Normalized T → 0 < delta → delta < 1 →
@@ -1058,6 +1190,7 @@ theorem zeroMassFails :
   rw [hc, inner_smul_right, hinner, mul_zero]
   simp
 
+/-- Both query and preparation counts are additive in the iterate count. -/
 theorem resourceTransport :
     (∀ (l1 l2 : ℕ),
       wordQueryCount (l1 + l2) = wordQueryCount l1 + wordQueryCount l2 ∧
@@ -1066,6 +1199,7 @@ theorem resourceTransport :
   intro l1 l2
   simp [wordQueryCount_eq, wordPreparationCount_eq, mul_add]
 
+/-- The inner product with the two-level target basis vector extracts the coordinate at one. -/
 private theorem inner_target_two (v : QState (Fin 2)) :
     Qatlib.Foundations.PureStateMath.Inner (fun i : Fin 2 => if i = 0 then (0:ℂ) else 1) v = v 1 := by
   rw [inner_apply, Fin.sum_univ_two]
@@ -1073,37 +1207,45 @@ private theorem inner_target_two (v : QState (Fin 2)) :
       show (if (1 : Fin 2) = 0 then (0:ℂ) else 1) = 1 from if_neg (by decide)]
   simp
 
+/-- The coordinate at zero of `ampState lam` is the complex coercion of `√(1 - lam)`. -/
 private theorem ampState_apply_zero (lam : ℝ) :
     ampState lam 0 = ((Real.sqrt (1 - lam) : ℝ) : ℂ) := by
   show (if (0 : Fin 2) = 0 then ((Real.sqrt (1 - lam) : ℝ) : ℂ)
     else ((Real.sqrt lam : ℝ) : ℂ)) = _
   exact if_pos rfl
 
+/-- The coordinate at one of `ampState lam` is the complex coercion of `√lam`. -/
 private theorem ampState_apply_one (lam : ℝ) :
     ampState lam 1 = ((Real.sqrt lam : ℝ) : ℂ) := by
   show (if (1 : Fin 2) = 0 then ((Real.sqrt (1 - lam) : ℝ) : ℂ)
     else ((Real.sqrt lam : ℝ) : ℂ)) = _
   exact if_neg (by decide)
 
+/-- The inner product with `ampState lam` is the displayed linear combination of the two
+coordinates with square-root coefficients. -/
 private theorem inner_ampState (lam : ℝ) (u : QState (Fin 2)) :
     Qatlib.Foundations.PureStateMath.Inner (ampState lam) u
       = ((Real.sqrt (1 - lam) : ℝ) : ℂ) * u 0 + ((Real.sqrt lam : ℝ) : ℂ) * u 1 := by
   rw [inner_apply, Fin.sum_univ_two, ampState_apply_zero, ampState_apply_one]
   simp only [Complex.conj_ofReal]
 
+/-- The complex phase `exp(i * π / 3)`. -/
 private noncomputable def pi3Phase : ℂ :=
   Complex.exp (Complex.I * ((Real.pi / 3 : ℝ) : ℂ))
 
+/-- The complex exponential at angle `π / 3` is `1 / 2 + i * √3 / 2`. -/
 private theorem exp_I_pi_div_three :
     Complex.exp (Complex.I * ((Real.pi / 3 : ℝ) : ℂ))
       = ((1 / 2 : ℝ) : ℂ) + ((Real.sqrt 3 / 2 : ℝ) : ℂ) * Complex.I := by
   rw [show Complex.I * ((Real.pi / 3 : ℝ) : ℂ) = ((Real.pi / 3 : ℝ) : ℂ) * Complex.I
       from mul_comm _ _, Complex.exp_ofReal_mul_I, Real.cos_pi_div_three, Real.sin_pi_div_three]
 
+/-- The phase `pi3Phase` has real part `1 / 2` and imaginary part `√3 / 2`. -/
 private theorem pi3Phase_val :
     pi3Phase = ((1 / 2 : ℝ) : ℂ) + ((Real.sqrt 3 / 2 : ℝ) : ℂ) * Complex.I :=
   exp_I_pi_div_three
 
+/-- The exponential of `(-π / 3) * i` is `1 / 2 - i * √3 / 2`. -/
 private theorem exp_mul_I_neg_pi_div_three :
     Complex.exp (((-(Real.pi / 3) : ℝ) : ℂ) * Complex.I)
       = ((1 / 2 : ℝ) : ℂ) - ((Real.sqrt 3 / 2 : ℝ) : ℂ) * Complex.I := by
@@ -1112,6 +1254,7 @@ private theorem exp_mul_I_neg_pi_div_three :
   push_cast
   ring
 
+/-- The exponential `exp(-(i * (π / 3)))` is `1 / 2 - i * √3 / 2`. -/
 private theorem exp_neg_I_pi_div_three :
     Complex.exp (-(Complex.I * ((Real.pi / 3 : ℝ) : ℂ)))
       = ((1 / 2 : ℝ) : ℂ) - ((Real.sqrt 3 / 2 : ℝ) : ℂ) * Complex.I := by
@@ -1119,6 +1262,7 @@ private theorem exp_neg_I_pi_div_three :
         by push_cast; ring]
   exact exp_mul_I_neg_pi_div_three
 
+/-- The exponential `exp(i * (-π / 3))` is `1 / 2 - i * √3 / 2`. -/
 private theorem exp_I_pi_div_three_neg :
     Complex.exp (Complex.I * (((-Real.pi / 3 : ℝ)) : ℂ))
       = ((1 / 2 : ℝ) : ℂ) - ((Real.sqrt 3 / 2 : ℝ) : ℂ) * Complex.I := by
@@ -1126,6 +1270,7 @@ private theorem exp_I_pi_div_three_neg :
         by push_cast; ring]
   exact exp_mul_I_neg_pi_div_three
 
+/-- The phase `pi3Phase` satisfies the quadratic relation `z ^ 2 - z + 1 = 0`. -/
 private theorem pi3Phase_key : pi3Phase * pi3Phase - pi3Phase + 1 = 0 := by
   rw [pi3Phase_val]
   have h3 : (Real.sqrt 3 / 2 : ℝ) ^ 2 = 3 / 4 := by
@@ -1139,24 +1284,28 @@ private theorem pi3Phase_key : pi3Phase * pi3Phase - pi3Phase + 1 = 0 := by
       Complex.ofReal_im, Complex.I_re, Complex.I_im]
     ring
 
+/-- The negative-angle exponential at `π / 3` equals `1 - pi3Phase`. -/
 private theorem pi3Phase_conj :
     Complex.exp (-(Complex.I * ((Real.pi / 3 : ℝ) : ℂ))) = 1 - pi3Phase := by
   rw [exp_neg_I_pi_div_three, pi3Phase_val]
   push_cast
   ring
 
+/-- The exponential `exp(i * (-π / 3))` equals `1 - pi3Phase`. -/
 private theorem exp_I_pi_div_three_neg' :
     Complex.exp (Complex.I * (((-Real.pi / 3 : ℝ)) : ℂ)) = 1 - pi3Phase := by
   rw [exp_I_pi_div_three_neg, pi3Phase_val]
   push_cast
   ring
 
+/-- The exponential `exp(-(i * (-π / 3)))` equals `pi3Phase`. -/
 private theorem exp_neg_I_pi_div_three_neg :
     Complex.exp (-(Complex.I * (((-Real.pi / 3 : ℝ)) : ℂ))) = pi3Phase := by
   rw [show -(Complex.I * (((-Real.pi / 3 : ℝ)) : ℂ)) = Complex.I * ((Real.pi / 3 : ℝ) : ℂ)
         by push_cast; ring]
   rfl
 
+/-- For real `a` and `b`, the squared modulus of `a + b * pi3Phase` is `a ^ 2 + a * b + b ^ 2`. -/
 private theorem normSq_add_mul_pi3Phase (a b : ℝ) :
     Complex.normSq (((a : ℝ) : ℂ) + ((b : ℝ) : ℂ) * pi3Phase) = a * a + a * b + b * b := by
   rw [pi3Phase_val]
@@ -1172,11 +1321,14 @@ private theorem normSq_add_mul_pi3Phase (a b : ℝ) :
   rw [hsq]
   ring_nf
 
+/-- If `z - w` is a multiple of the vanishing quadratic expression in `pi3Phase`, then `z = w`. -/
 private theorem eq_of_pi3Phase_key {z w : ℂ} (q : ℂ)
     (h : z - w = (pi3Phase * pi3Phase - pi3Phase + 1) * q) : z = w := by
   rw [pi3Phase_key, zero_mul, sub_eq_zero] at h
   exact h
 
+/-- For `lam ∈ [0, 1]` and a vector with the stated square-root-scaled coordinates, the failure
+coordinate after a Grover iterate is the displayed phase-dependent expression. -/
 private theorem groverIterate_apply_zero {lam : ℝ} (hl : 0 ≤ lam) (hl' : 0 ≤ 1 - lam)
     (alpha beta : ℝ) (v : QState (Fin 2)) (X Y : ℂ)
     (hv0 : v 0 = ((Real.sqrt (1 - lam) : ℝ) : ℂ) * X)
@@ -1232,6 +1384,8 @@ private theorem groverIterate_apply_zero {lam : ℝ} (hl : 0 ≤ lam) (hl' : 0 �
     ampState_apply_zero]
   ring
 
+/-- For `lam ∈ [0, 1]` and a vector with the stated square-root-scaled coordinates, the success
+coordinate after a Grover iterate is the displayed phase-dependent expression. -/
 private theorem groverIterate_apply_one {lam : ℝ} (hl : 0 ≤ lam) (hl' : 0 ≤ 1 - lam)
     (alpha beta : ℝ) (v : QState (Fin 2)) (X Y : ℂ)
     (hv0 : v 0 = ((Real.sqrt (1 - lam) : ℝ) : ℂ) * X)
@@ -1289,9 +1443,12 @@ private theorem groverIterate_apply_one {lam : ℝ} (hl : 0 ≤ lam) (hl' : 0 �
     ampState_apply_one]
   ring
 
+/-- The positive-angle exponential at `π / 3` equals the defined phase `pi3Phase`. -/
 private theorem exp_I_pi_div_three_eq :
     Complex.exp (Complex.I * ((Real.pi / 3 : ℝ) : ℂ)) = pi3Phase := rfl
 
+/-- For `lam ∈ [0, 1]`, one Grover iterate with phases `-π / 3` and `π / 3` has target
+probability `1 - (1 - lam) ^ 3`. -/
 theorem pi3_step_response (lam : ℝ) (hlam : 0 ≤ lam) (hlam' : lam ≤ 1) :
     ‖Qatlib.Foundations.PureStateMath.Inner (fun i : Fin 2 => if i = 0 then (0:ℂ) else 1)
       (groverIterate lam (-Real.pi / 3) (Real.pi / 3) *ᵥ ampState lam)‖ ^ 2 =
@@ -1312,6 +1469,8 @@ theorem pi3_step_response (lam : ℝ) (hlam : 0 ≤ lam) (hlam' : lam ≤ 1) :
     Complex.normSq_ofReal, Real.mul_self_sqrt hlam, normSq_add_mul_pi3Phase]
   ring
 
+/-- For `lam ∈ [0, 1]`, the displayed nesting of the constant `-π / 3` phase schedules has
+target probability `1 - (1 - lam) ^ 9`. -/
 theorem pi3_nested_response (lam : ℝ) (hlam : 0 ≤ lam) (hlam' : lam ≤ 1) :
     ‖Qatlib.Foundations.PureStateMath.Inner (fun i : Fin 2 => if i = 0 then (0:ℂ) else 1)
       (nestedWordMatrix (fun _ => -Real.pi / 3) (fun _ => -Real.pi / 3) 1 1 lam
@@ -1436,39 +1595,50 @@ theorem pi3_nested_response (lam : ℝ) (hlam : 0 ≤ lam) (hlam' : lam ≤ 1) :
     normSq_add_mul_pi3Phase]
   ring
 
+/-- The two-level target basis vector with coordinates zero and one. -/
 def ylcTargetVec : QState (Fin 2) := fun i => if i = 0 then (0:ℂ) else 1
 
+/-- The two-level failure basis vector with coordinates one and zero. -/
 def ylcFailVec : QState (Fin 2) := fun i => if i = 0 then (1:ℂ) else 0
 
+/-- The target basis vector has coordinate zero at index zero. -/
 @[simp] theorem ylcTargetVec_zero : ylcTargetVec 0 = 0 := by
   show (if (0 : Fin 2) = 0 then (0:ℂ) else 1) = 0
   simp
 
+/-- The target basis vector has coordinate one at index one. -/
 @[simp] theorem ylcTargetVec_one : ylcTargetVec 1 = 1 := by
   show (if (1 : Fin 2) = 0 then (0:ℂ) else 1) = 1
   simp
 
+/-- The failure basis vector has coordinate one at index zero. -/
 @[simp] theorem ylcFailVec_zero : ylcFailVec 0 = 1 := by
   show (if (0 : Fin 2) = 0 then (1:ℂ) else 0) = 1
   simp
 
+/-- The failure basis vector has coordinate zero at index one. -/
 @[simp] theorem ylcFailVec_one : ylcFailVec 1 = 0 := by
   show (if (1 : Fin 2) = 0 then (1:ℂ) else 0) = 0
   simp
 
+/-- The inner product with `ylcTargetVec` extracts the coordinate at one. -/
 theorem inner_ylcTargetVec (ψ : QState (Fin 2)) : Qatlib.Foundations.PureStateMath.Inner ylcTargetVec ψ = ψ 1 := by
   rw [inner_apply, Fin.sum_univ_two, ylcTargetVec_zero, ylcTargetVec_one]
   simp
 
+/-- The inner product with `ylcFailVec` extracts the coordinate at zero. -/
 theorem inner_ylcFailVec (ψ : QState (Fin 2)) : Qatlib.Foundations.PureStateMath.Inner ylcFailVec ψ = ψ 0 := by
   rw [inner_apply, Fin.sum_univ_two, ylcFailVec_zero, ylcFailVec_one]
   simp
 
+/-- The squared target and failure overlaps sum to the sum of squared coordinate norms of a
+two-component state. -/
 theorem two_component_normSq (ψ : QState (Fin 2)) :
     ‖Qatlib.Foundations.PureStateMath.Inner ylcTargetVec ψ‖ ^ 2 + ‖Qatlib.Foundations.PureStateMath.Inner ylcFailVec ψ‖ ^ 2 = ∑ i, ‖ψ i‖ ^ 2 := by
   rw [inner_ylcTargetVec, inner_ylcFailVec, Fin.sum_univ_two]
   exact add_comm _ _
 
+/-- For `lam ∈ [0, 1]`, the amplitude state is normalized. -/
 theorem ampState_normalized {lam : ℝ} (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     Normalized (ampState lam) := by
   have h0 : ampState lam 0 = (Real.sqrt (1 - lam) : ℂ) := by
@@ -1487,17 +1657,21 @@ theorem ampState_normalized {lam : ℝ} (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
   rw [Fin.sum_univ_two, h0n, h1n]
   linarith
 
+/-- A complex number of norm one multiplied by its complex conjugate is one. -/
 theorem star_mul_self_eq_one {z : ℂ} (hz : ‖z‖ = 1) :
     (starRingEnd ℂ) z * z = 1 := by
   rw [← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq, hz]
   simp
 
+/-- For a real phase `alpha`, the exponential `exp(-i * alpha)` has norm one. -/
 theorem norm_exp_neg_I_mul (alpha : ℝ) :
     ‖Complex.exp (-(Complex.I * (alpha : ℂ)))‖ = 1 := by
   have h : -(Complex.I * (alpha : ℂ)) = (((-alpha : ℝ) : ℝ) : ℂ) * Complex.I := by
     push_cast; ring
   rw [h, Complex.norm_exp_ofReal_mul_I]
 
+/-- The phase difference `1 - exp(-i * alpha)` plus its conjugate equals its squared modulus
+expressed as a conjugate product. -/
 theorem ylcPhase_key (alpha : ℝ) :
     (1 - Complex.exp (-(Complex.I * (alpha : ℂ)))) +
       (starRingEnd ℂ) (1 - Complex.exp (-(Complex.I * (alpha : ℂ)))) =
@@ -1515,6 +1689,7 @@ theorem ylcPhase_key (alpha : ℝ) :
   rw [mul_sub, mul_one, sub_mul, one_mul, hme]
   ring
 
+/-- Every real target phase defines a unitary target reflection. -/
 theorem targetReflection_unitary (beta : ℝ) :
     targetReflection beta ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -1545,6 +1720,7 @@ theorem targetReflection_unitary (beta : ℝ) :
     exact Matrix.diagonal_one
   exact hdiag
 
+/-- For `lam ∈ [0, 1]`, the source reflection is unitary for every real phase. -/
 theorem stateReflection_unitary {lam alpha : ℝ} (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     stateReflection lam alpha ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -1592,24 +1768,28 @@ theorem stateReflection_unitary {lam alpha : ℝ} (hl : 0 ≤ lam) (hl' : lam �
     exact h3
   rw [hscal, zero_smul, sub_zero]
 
+/-- The negative of a unitary two-by-two matrix is unitary. -/
 theorem neg_mem_unitary {M : Matrix (Fin 2) (Fin 2) ℂ}
     (hM : M ∈ Matrix.unitaryGroup (Fin 2) ℂ) : -M ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] at hM ⊢
   rw [Matrix.conjTranspose_neg, neg_mul_neg]
   exact hM
 
+/-- The product of two unitary two-by-two matrices is unitary. -/
 theorem mul_mem_unitary {A B : Matrix (Fin 2) (Fin 2) ℂ}
     (hA : A ∈ Matrix.unitaryGroup (Fin 2) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     A * B ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose] at hA hB ⊢
   rw [Matrix.conjTranspose_mul, mul_assoc, ← mul_assoc Aᴴ, hA, one_mul, hB]
 
+/-- For `lam ∈ [0, 1]`, every generalized Grover iterate with real phases is unitary. -/
 theorem groverIterate_unitary {lam alpha beta : ℝ} (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     groverIterate lam alpha beta ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   show -(stateReflection lam alpha * targetReflection beta) ∈ Matrix.unitaryGroup (Fin 2) ℂ
   exact neg_mem_unitary (mul_mem_unitary (stateReflection_unitary hl hl')
     (targetReflection_unitary beta))
 
+/-- The product of a list of unitary two-by-two matrices is unitary. -/
 private theorem list_prod_unitary {xs : List (Matrix (Fin 2) (Fin 2) ℂ)}
     (h : ∀ x ∈ xs, x ∈ Matrix.unitaryGroup (Fin 2) ℂ) :
     xs.prod ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
@@ -1622,6 +1802,7 @@ private theorem list_prod_unitary {xs : List (Matrix (Fin 2) (Fin 2) ℂ)}
     rw [List.prod_cons]
     exact mul_mem_unitary (h x (by simp)) (ih fun y hy => h y (by simp [hy]))
 
+/-- For `lam ∈ [0, 1]`, the analytic fixed-point word matrix is unitary. -/
 theorem ylcWordMatrix_unitary (l : ℕ) (delta lam : ℝ) (hl : 0 ≤ lam) (hl' : lam ≤ 1) :
     ylcWordMatrix l delta lam ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   show (((List.range l).map fun i =>
@@ -1633,17 +1814,23 @@ theorem ylcWordMatrix_unitary (l : ℕ) (delta lam : ℝ) (hl : 0 ≤ lam) (hl' 
   obtain ⟨i, _, rfl⟩ := List.mem_map.mp hx
   exact groverIterate_unitary hl hl'
 
+/-- The complex recurrence coefficient given by the ratio of conjugate cosine-sine expressions
+at angle `(h - 1) * π / L`. -/
 noncomputable def ylcRecW (L : ℕ) (mu : ℝ) (h : ℕ) : ℂ :=
   let phi : ℝ := ((h - 1 : ℕ) : ℝ) * Real.pi / (L : ℝ)
   (((Real.cos phi : ℝ) : ℂ) - Complex.I * (mu : ℂ) * ((Real.sin phi : ℝ) : ℂ)) /
     (((Real.cos phi : ℝ) : ℂ) + Complex.I * (mu : ℂ) * ((Real.sin phi : ℝ) : ℂ))
 
+/-- The second-order amplitude recurrence with initial values one and `x`, weighted by
+`ylcRecW`, corresponding to the recurrence in [YoderLowChuang2014]. -/
 noncomputable def ylcRecA (L : ℕ) (mu x : ℝ) : ℕ → ℂ
   | 0 => 1
   | 1 => (x : ℂ)
   | h + 2 => (x : ℂ) * (1 + ylcRecW L mu (h + 2)) * ylcRecA L mu x (h + 1)
       - ylcRecW L mu (h + 2) * ylcRecA L mu x h
 
+/-- The proposition that, for positive odd length and valid probability parameters, the word's
+failure amplitude is a unit-modulus scalar times the final recurrence value. -/
 def ylcBridgeRec_rearrangement : Prop :=
   ∀ (L : ℕ) (delta lam : ℝ), Odd L → 1 ≤ L → 0 < delta → delta < 1 →
     0 ≤ lam → lam ≤ 1 →
@@ -1652,12 +1839,17 @@ def ylcBridgeRec_rearrangement : Prop :=
           (ylcWordMatrix ((L - 1) / 2) delta lam *ᵥ ampState lam) =
         c * ylcRecA L (Real.sqrt (1 - ylcGamma L delta ^ 2)) (Real.sqrt (1 - lam)) L
 
+/-- The proposition that, for positive odd length and valid probability parameters, the final
+recurrence value equals the scaled Chebyshev evaluation of [YoderLowChuang2014]. -/
 def ylcBridgeRec_miracle : Prop :=
   ∀ (L : ℕ) (delta lam : ℝ), Odd L → 1 ≤ L → 0 < delta → delta < 1 →
     0 ≤ lam → lam ≤ 1 →
     ylcRecA L (Real.sqrt (1 - ylcGamma L delta ^ 2)) (Real.sqrt (1 - lam)) L =
       (delta * cheb L (Real.sqrt (1 - lam) / ylcGamma L delta) : ℂ)
 
+/-- Assuming the rearrangement and Chebyshev recurrence bridges, the word's target probability
+equals `responseProb (2 * l + 1) delta lam` for `0 < delta < 1` and `lam ∈ [0, 1]`
+[YoderLowChuang2014]. -/
 theorem ylc_master_response_of_bridges
     (hre : ylcBridgeRec_rearrangement) (hmi : ylcBridgeRec_miracle) :
     ∀ (l : ℕ) (delta lam : ℝ), 0 < delta → delta < 1 → 0 ≤ lam → lam ≤ 1 →
@@ -1696,6 +1888,8 @@ theorem ylc_master_response_of_bridges
   rw [responseProb_eq]
   exact hfin
 
+/-- For `0 < delta < 1` and `lam ∈ [0, 1]`, the zero-iterate word's target probability equals
+the length-one Chebyshev response. -/
 theorem ylc_master_response_zero (delta lam : ℝ) (hd : 0 < delta) (hd' : delta < 1)
     (hlam : 0 ≤ lam) (hlam' : lam ≤ 1) :
     ‖Qatlib.Foundations.PureStateMath.Inner (fun i : Fin 2 => if i = 0 then (0:ℂ) else 1)

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.RobustDysonSegmentBridge
 import Qatlib.Foundations.CbmdAnalysis.Core.PiecewiseRepresentation
+
+/-!
+# Exact segments of piecewise Dyson evolution
+
+`piecewiseEvolutionSegment` forms the relative propagator by multiplying an evolution matrix by
+the adjoint at its starting time. For Hermitian `H` and positive semidefinite `L`, real sample
+parameters give unitary segments satisfying a cocycle identity, an almost-everywhere evolution
+equation, and absolute continuity.
+
+`piecewiseEvolutionSegment_product` telescopes a finite sequence of segments to the full
+propagator. These identities supply exact segment targets for the time-dependent algorithms of
+[WangEtAl2026].
+
+## Main statements
+
+* `piecewiseEvolutionSegment_cocycle`: composes adjacent relative propagators.
+* `piecewiseEvolutionSegment_product`: identifies the segment circuit with the full evolution.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,6 +71,8 @@ namespace CBMD
 open Matrix Set MeasureTheory Filter
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
+/-- For continuous Hermitian coefficient families, the assembled Dyson evolution is unitary at
+every real sample parameter and time. -/
 theorem assembledDyson_real_unitary_all {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j))
@@ -69,6 +94,8 @@ section Piecewise
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {H L : ℝ → Matrix I I ℂ} {a b : ℝ}
 
+/-- If `H` is Hermitian and `L` is positive semidefinite on the defining interval, the piecewise
+evolution is unitary for every real parameter and time. -/
 theorem piecewise_evolution_real_unitary_all
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian)
@@ -78,10 +105,14 @@ theorem piecewise_evolution_real_unitary_all
     (P.hPiece_hermitian hH) (fun j u => (P.lPiece_positive hL j u).isHermitian)
     P.time P.count x t
 
+/-- The relative evolution from `s` to `t`, defined as the evolution at `t` times the adjoint of
+the evolution at `s`. -/
 def piecewiseEvolutionSegment
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (x s t : ℝ) : Matrix I I ℂ := P.evolution (x : ℂ) t * (P.evolution (x : ℂ) s)ᴴ
 
+/-- The relative evolution is unitary for real sample parameters when `H` is Hermitian and `L`
+is positive semidefinite on the defining interval. -/
 theorem piecewiseEvolutionSegment_unitary
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian)
@@ -90,6 +121,8 @@ theorem piecewiseEvolutionSegment_unitary
   (Matrix.unitaryGroup I ℂ).mul_mem (piecewise_evolution_real_unitary_all P hH hL x t)
     (adjoint_unitary (piecewise_evolution_real_unitary_all P hH hL x s))
 
+/-- A relative evolution segment with equal endpoints is the identity under the Hermiticity and
+positivity hypotheses. -/
 theorem piecewiseEvolutionSegment_self
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian)
@@ -98,6 +131,8 @@ theorem piecewiseEvolutionSegment_self
   simpa only [piecewiseEvolutionSegment, Matrix.star_eq_conjTranspose] using!
     (piecewise_evolution_real_unitary_all P hH hL x s).2
 
+/-- Almost everywhere on the defining interval, the segment satisfies the evolution equation
+with derivative `-i (H(t) + x L(t))` times the segment. -/
 theorem piecewiseEvolutionSegment_hasDerivAt_ae
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (x s : ℝ) :
@@ -107,12 +142,16 @@ theorem piecewiseEvolutionSegment_hasDerivAt_ae
   convert! (ht hmem).mul_const (P.evolution (x : ℂ) s)ᴴ using 1
   simp only [piecewiseEvolutionSegment, neg_mul, mul_assoc]
 
+/-- The relative evolution, as a function of its final time, is absolutely continuous on the
+defining interval. -/
 theorem piecewiseEvolutionSegment_absolutelyContinuous
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (x s : ℝ) : AbsolutelyContinuousOnInterval (piecewiseEvolutionSegment P x s) a b :=
   _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.absolutelyContinuous_mul (P.evolution_absolutelyContinuous (x : ℂ))
     ((show ContDiff ℝ 1 (fun _ : ℝ => (P.evolution (x : ℂ) s)ᴴ) from contDiff_const).contDiffOn.absolutelyContinuousOnInterval)
 
+/-- Under the Hermiticity and positivity hypotheses, multiplying the segment from `s` to `t` by
+the segment from `r` to `s` gives the segment from `r` to `t`. -/
 theorem piecewiseEvolutionSegment_cocycle
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian)
@@ -130,12 +169,15 @@ end Piecewise
 section Telescoping
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Evaluating a unitary-family word equals the list product of its selected matrices. -/
 theorem unitaryFamilyEvaluate_eq_list_prod {m : ℕ} (V : Fin m → Matrix I I ℂ)
     (is : List (Fin m)) : unitaryFamilyEvaluate V is = (is.map V).prod := by
   induction is with
   | nil => rfl
   | cons i is ih => simp only [unitaryFamilyEvaluate, List.map_cons, List.prod_cons, ih]
 
+/-- The ordered product of adjacent matrices `W i * (W (i + 1))ᴴ` telescopes to the first matrix
+times the adjoint of the last when every `W i` is unitary. -/
 theorem unitary_adjacent_product (m : ℕ) (W : Fin (m + 1) → Matrix I I ℂ)
     (hW : ∀ i, W i ∈ Matrix.unitaryGroup I ℂ) :
     (List.ofFn (fun i : Fin m => W i.castSucc * (W i.succ)ᴴ)).prod =
@@ -155,6 +197,9 @@ theorem unitary_adjacent_product (m : ℕ) (W : Fin (m + 1) → Matrix I I ℂ)
     rw [mul_assoc, ← mul_assoc ((W (0 : Fin (m + 1)).succ)ᴴ), hu, one_mul]
     rfl
 
+/-- A circuit of relative evolution segments whose first node is `b` and last node is `a`
+evaluates to the piecewise propagator at `b`, under the stated Hermiticity and positivity
+hypotheses. -/
 theorem piecewiseEvolutionSegment_product {H L : ℝ → Matrix I I ℂ} {a b : ℝ}
     (P : _root_.Qatlib.Foundations.CbmdAnalysis.Core.CBMD.FinitePiecewiseContinuousOn (fun t => (H t, L t)) a b)
     (hH : ∀ t ∈ Icc a b, (H t).IsHermitian)

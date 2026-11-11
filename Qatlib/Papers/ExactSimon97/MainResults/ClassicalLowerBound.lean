@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ExactSimon97.MainResults.Defs
+
+/-!
+# Collision counts and classical probability bounds
+
+The finite set `xorDiff` records possible differences among queried binary vectors, and the
+hiding promise relates these differences to oracle collisions. Explicit inequalities bound the
+event and success expressions used in the classical lower-bound argument. These constructions
+support the results of [BrassardHoyer1997].
+
+## Main statements
+
+* `xorDiff_card_le`: bounds the number of query differences by the square of the query-set size.
+* `collision_iff_secret`: characterizes collisions for a subgroup spanned by a single secret.
+* `theorem9_probability_bounds`: collects the numerical event and success bounds.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,20 +37,26 @@ open Finset
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- The finite set of differences `x - y` with both `x` and `y` in `X`. -/
 def xorDiff {n : ℕ} (X : Finset (BoolVec n)) : Finset (BoolVec n) :=
   (X.product X).image (fun p => p.1 - p.2)
 
+/-- The number of differences between elements of `X` is at most `X.card * X.card`. See
+[BrassardHoyer1997]. -/
 theorem xorDiff_card_le {n : ℕ} (X : Finset (BoolVec n)) :
     (xorDiff X).card ≤ X.card * X.card := by
   classical
   calc (xorDiff X).card ≤ (X.product X).card := Finset.card_image_le
     _ = X.card * X.card := Finset.card_product X X
 
+/-- Under the hiding promise, two oracle outputs coincide exactly when the difference of their
+inputs belongs to the hidden submodule. -/
 theorem collision_iff_mem {n : ℕ} {R : Type} {ρ : BoolVec n → R}
     {H0 : Submodule (ZMod 2) (BoolVec n)} (hρ : FulfillsPromise ρ H0)
     (x y : BoolVec n) :
     ρ x = ρ y ↔ x - y ∈ H0 := hρ x y
 
+/-- The span of a single binary vector consists exactly of zero and that vector. -/
 theorem mem_span_singleton_two {n : ℕ} {s x : BoolVec n} :
     x ∈ spanFinset ({s} : Finset (BoolVec n)) ↔ x = 0 ∨ x = s := by
   classical
@@ -53,12 +79,16 @@ theorem mem_span_singleton_two {n : ℕ} {s x : BoolVec n} :
     · simp [spanFinset]
     · exact Submodule.subset_span (by simp)
 
+/-- For a hidden submodule spanned by `s`, two oracle outputs coincide exactly when the input
+difference is zero or `s`. -/
 theorem collision_iff_secret {n : ℕ} {R : Type} (ρ : BoolVec n → R) (s : BoolVec n)
     (hρ : FulfillsPromise ρ (spanFinset ({s} : Finset (BoolVec n)))) :
     ∀ x y : BoolVec n, ρ x = ρ y ↔ x - y = 0 ∨ x - y = s := by
   intro x y
   rw [hρ x y, mem_span_singleton_two]
 
+/-- If `n ≥ 1`, `k ^ 3 ≤ 2 ^ n`, and `m + 1 ≤ k ^ 2`, then `m / (2 ^ n - 1) < 2 ^ (-n / 3)`. See
+[BrassardHoyer1997]. -/
 theorem theorem9_event_probability_bound (n k m : ℕ) (hn : 1 ≤ n)
     (hk : k ^ 3 ≤ 2 ^ n) (hm : m + 1 ≤ k * k) :
     (m : ℝ) / ((2 : ℝ) ^ n - 1) < ((2 : ℝ) ^ ((n : ℝ) / 3))⁻¹ := by
@@ -121,6 +151,8 @@ theorem theorem9_event_probability_bound (n k m : ℕ) (hn : 1 ≤ n)
   calc (m : ℝ) / ((2 : ℝ) ^ n - 1) < ((k : ℝ) ^ 2) / (2 : ℝ) ^ n := hm_bound
     _ ≤ t⁻¹ := hk_bound
 
+/-- If `n ≥ 4`, `k ^ 3 ≤ 2 ^ n`, and `m + 1 ≤ k ^ 2`, the stated event-weighted success
+expression is less than `1 / 2 + 2 * 2 ^ (-n / 3)`. See [BrassardHoyer1997]. -/
 theorem theorem9_success_probability_bound (n k m : ℕ) (hn : 4 ≤ n)
     (hk : k ^ 3 ≤ 2 ^ n) (hm : m + 1 ≤ k * k) :
     (m : ℝ) / ((2 : ℝ) ^ n - 1) +
@@ -174,6 +206,8 @@ theorem theorem9_success_probability_bound (n k m : ℕ) (hn : 4 ≤ n)
   have h2 : eps * (1 / 2 - eps) < eps := by nlinarith [heps_pos, heps_lt_half]
   linarith
 
+/-- Under the stated size hypotheses, both the event ratio and the event-weighted success
+expression satisfy their exponential bounds. See [BrassardHoyer1997]. -/
 theorem theorem9_probability_bounds (n k m : ℕ) (hn : 4 ≤ n)
     (hk : k ^ 3 ≤ 2 ^ n) (hm : m + 1 ≤ k * k) :
     ((m : ℝ) / ((2 : ℝ) ^ n - 1) < ((2 : ℝ) ^ ((n : ℝ) / 3))⁻¹) ∧

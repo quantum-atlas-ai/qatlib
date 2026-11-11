@@ -10,6 +10,28 @@ import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Tactic
 
+/-!
+# Integrated distance and overlap-sum estimates
+
+This module proves the real-variable integration step `lemma1_permutation_distance` from an
+assumed derivative bound and zero initial value. It also proves `sum_norm_inner_le`, a finite
+Cauchy–Schwarz estimate for sums of absolute inner products used in the permutation-distance
+argument. The mathematical context is [FarhiGoldstoneGutmannNagaj2008].
+
+## Main statements
+
+* `lemma1_permutation_distance`: For nonnegative `T`, a function continuous on `[0, T]`,
+  differentiable in its interior, zero at zero, and with derivative at most `4 * hstar *
+  Real.sqrt (Nat.factorial N) * Real.sqrt (N - 1)` satisfies the corresponding bound multiplied
+  by `T` at its endpoint.
+* `sum_norm_inner_le`: The sum of the norms of inner products over a finite set is at most the
+  product of the square roots of the two sums of squared vector norms.
+
+## References
+
+* [Farhi et al., 2008][FarhiGoldstoneGutmannNagaj2008]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,6 +40,10 @@ namespace Qatlib.Papers.AdiabaticFail05.MainResults
 open scoped BigOperators ComplexInnerProductSpace
 open Finset
 
+/-- For nonnegative `T`, a function continuous on `[0, T]`, differentiable in its interior, zero
+at zero, and with derivative at most `4 * hstar * Real.sqrt (Nat.factorial N) * Real.sqrt (N
+- 1)` satisfies the corresponding bound multiplied by `T` at its endpoint
+[FarhiGoldstoneGutmannNagaj2008]. -/
 theorem lemma1_permutation_distance
     (F : ℝ → ℝ) (N : ℕ) (T hstar : ℝ) (_hN : 1 ≤ N) (hT : 0 ≤ T)
     (hcont : ContinuousOn F (Set.Icc 0 T))
@@ -32,6 +58,8 @@ theorem lemma1_permutation_distance
 
   nlinarith [key, hF0]
 
+/-- The sum of the norms of inner products over a finite set is at most the product of the
+square roots of the two sums of squared vector norms [FarhiGoldstoneGutmannNagaj2008]. -/
 theorem sum_norm_inner_le
     {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℂ V]
     {ι : Type*} (s : Finset ι) (u v : ι → V) :

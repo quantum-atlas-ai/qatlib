@@ -9,6 +9,30 @@ import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
 import Mathlib.Probability.ProbabilityMassFunction.Constructions
 import Mathlib.Probability.Distributions.Uniform
 import Mathlib.LinearAlgebra.Semisimple
+
+/-!
+# Dimensions and reflection fixed spaces of dihedral representations
+
+This module derives matrix identities and dimension restrictions from `DihedralIrrep`. It proves
+that these representations have dimension at most two and computes reflection fixed-space
+dimensions in dimensions one and two.
+
+For an `IrrepFamily`, the weighted sum of reflection fixed-space dimensions is the modulus,
+giving the normalization identity needed for representation records. See [Kuperberg2005] for the
+mathematical background.
+
+## Main statements
+
+* `irrep_dim_le_two`: dimension is at most two.
+* `irrep_two_dim_dimFixed`: a two-dimensional representation has a one-dimensional reflection
+  fixed space.
+* `dimFixedCount_identity`: the weighted fixed-space count equals `N`.
+
+## References
+
+* [Kuperberg, 2005][Kuperberg2005]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -22,22 +46,27 @@ open scoped BigOperators
 namespace Qatlib.Concepts.HspRecovery.RecordExtract
 open scoped Classical
 
+/-- The reflection generator squares to the identity matrix. -/
 theorem irrep_rhoY_sq {N : ℕ} {V : DihedralIrrep N} : V.rhoY * V.rhoY = 1 := by
   have h := V.orderY
   rwa [pow_two] at h
 
+/-- The conjugate transpose of the rotation generator is its left inverse. -/
 theorem irrep_rhoXt_mul {N : ℕ} {V : DihedralIrrep N} :
     V.rhoX.conjTranspose * V.rhoX = 1 := by
   have h := V.unitaryX
   rw [Matrix.mem_unitaryGroup_iff'] at h
   simpa [Matrix.star_eq_conjTranspose] using! h
 
+/-- The conjugate transpose of the rotation generator is its right inverse. -/
 theorem irrep_rhoX_mul_rhoXt {N : ℕ} {V : DihedralIrrep N} :
     V.rhoX * V.rhoX.conjTranspose = 1 := by
   have h := V.unitaryX
   rw [Matrix.mem_unitaryGroup_iff] at h
   simpa [Matrix.star_eq_conjTranspose] using! h
 
+/-- Moving the reflection generator past the rotation generator replaces the latter by its
+conjugate transpose. -/
 theorem irrep_rhoY_mul_rhoX {N : ℕ} {V : DihedralIrrep N} :
     V.rhoY * V.rhoX = V.rhoX.conjTranspose * V.rhoY := by
   calc V.rhoY * V.rhoX = V.rhoY * V.rhoX * 1 := (mul_one _).symm
@@ -45,6 +74,8 @@ theorem irrep_rhoY_mul_rhoX {N : ℕ} {V : DihedralIrrep N} :
     _ = (V.rhoY * V.rhoX * V.rhoY) * V.rhoY := by noncomm_ring
     _ = V.rhoX.conjTranspose * V.rhoY := by rw [V.relation]
 
+/-- Moving the reflection generator past a power of the rotation generator conjugate-transposes
+that power. -/
 theorem irrep_rhoY_mul_rhoX_pow {N : ℕ} {V : DihedralIrrep N} (k : ℕ) :
     V.rhoY * V.rhoX ^ k = V.rhoX.conjTranspose ^ k * V.rhoY := by
   induction k with
@@ -58,12 +89,15 @@ theorem irrep_rhoY_mul_rhoX_pow {N : ℕ} {V : DihedralIrrep N} (k : ℕ) :
         by rw [irrep_rhoY_mul_rhoX]
       _ = V.rhoX.conjTranspose ^ (k + 1) * V.rhoY := by rw [← mul_assoc, ← pow_succ]
 
+/-- Matching powers of the conjugate-transposed rotation and the rotation multiply to the
+identity. -/
 theorem irrep_rhoXt_pow_mul {N : ℕ} {V : DihedralIrrep N} (k : ℕ) :
     V.rhoX.conjTranspose ^ k * V.rhoX ^ k = 1 := by
   have h : V.rhoX ^ k ∈ Matrix.unitaryGroup (Fin V.dim) ℂ := pow_mem V.unitaryX k
   rw [Matrix.mem_unitaryGroup_iff'] at h
   simpa [Matrix.star_eq_conjTranspose, ← Matrix.conjTranspose_pow] using! h
 
+/-- Every slope-dependent reflection matrix squares to the identity. -/
 theorem irrep_reflection_sq {N : ℕ} [NeZero N] {V : DihedralIrrep N} (s : ZMod N) :
     reflectionElem V s * reflectionElem V s = 1 := by
   simp only [reflectionElem]
@@ -81,6 +115,7 @@ theorem irrep_reflection_sq {N : ℕ} [NeZero N] {V : DihedralIrrep N} (s : ZMod
     _ = V.rhoX.conjTranspose ^ s.val * V.rhoX ^ s.val := by rw [hYXsY]
     _ = 1 := irrep_rhoXt_pow_mul s.val
 
+/-- The complex trace of an idempotent matrix equals its rank cast to `ℂ`. -/
 theorem irrep_rank_eq_trace_idem {n : Type} [Fintype n] [DecidableEq n]
     (P : Matrix n n ℂ) (h : P * P = P) : (P.rank : ℂ) = P.trace := by
   have hlin : IsIdempotentElem P.toLin' := by
@@ -98,6 +133,8 @@ theorem irrep_rank_eq_trace_idem {n : Type} [Fintype n] [DecidableEq n]
   rw [← hrank0] at htr
   exact htr.symm.trans htr2
 
+/-- The reflection fixed-space dimension equals half the sum of the representation dimension and
+the reflection trace. -/
 theorem irrep_dimFixed_eq_trace {N : ℕ} [NeZero N] (V : DihedralIrrep N) (s : ZMod N) :
     (dimFixed V s : ℂ) = ((V.dim : ℂ) + Matrix.trace (reflectionElem V s)) / 2 := by
   have hR2 : reflectionElem V s * reflectionElem V s = 1 := irrep_reflection_sq s
@@ -125,6 +162,7 @@ theorem irrep_dimFixed_eq_trace {N : ℕ} [NeZero N] (V : DihedralIrrep N) (s : 
 open scoped Classical
 open Matrix
 
+/-- The Hermitian self-pairing of a nonzero finite complex vector is nonzero. -/
 theorem pair_self_ne_zero {n : Type} [Fintype n] {u : n → ℂ} (hu : u ≠ 0) :
     star u ⬝ᵥ u ≠ 0 := by
   intro h
@@ -148,21 +186,27 @@ theorem pair_self_ne_zero {n : Type} [Fintype n] {u : n → ℂ} (hu : u ≠ 0) 
     · intro j _; exact hnn j
   exact Complex.normSq_eq_zero.mp (hterm i)
 
+/-- Conjugating a scalar multiple of a vector conjugates both the scalar and the vector. -/
 theorem star_smul_vec {n : Type} (r : ℂ) (v : n → ℂ) : star (r • v) = star r • star v := by
   ext i; simp [Pi.smul_apply, Pi.star_apply]
 
+/-- A matrix satisfying `A.conjTranspose * A = 1` preserves Hermitian pairings of vectors. -/
 theorem pair_mulVec {n : Type} [Fintype n] [DecidableEq n] (A : Matrix n n ℂ)
     (hA : A.conjTranspose * A = 1) (u w : n → ℂ) :
     (star (A *ᵥ u)) ⬝ᵥ (A *ᵥ w) = (star u) ⬝ᵥ w := by
   rw [Matrix.star_mulVec, ← Matrix.dotProduct_mulVec, Matrix.mulVec_mulVec, hA,
     Matrix.one_mulVec]
 
+/-- The dot product of two scalar multiples is the product of the scalars times the original dot
+product. -/
 theorem pair_smul_smul {n : Type} [Fintype n] (a b : ℂ) (x y : n → ℂ) :
     (a • x) ⬝ᵥ (b • y) = (a * b) * (x ⬝ᵥ y) := by
   simp only [dotProduct, Pi.smul_apply, Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => ?_
   ring
 
+/-- An eigenvalue with a nonzero eigenvector of an isometric square matrix satisfies `star μ * μ
+= 1`. -/
 theorem star_mul_self_of_eigen {n : Type} [Fintype n] [DecidableEq n]
     (A : Matrix n n ℂ) (hA : A.conjTranspose * A = 1) {μ : ℂ} {u : n → ℂ}
     (hu : u ≠ 0) (hAu : A *ᵥ u = μ • u) : star μ * μ = 1 := by
@@ -184,12 +228,14 @@ theorem star_mul_self_of_eigen {n : Type} [Fintype n] [DecidableEq n]
   have hz := mul_eq_zero.mp hsub
   exact sub_eq_zero.mp (hz.resolve_right hnn)
 
+/-- Applying the outer product of `u` and `v` to `z` gives `(v ⬝ᵥ z) • u`. -/
 theorem vecMulVec_mulVec_apply {n : Type} [Fintype n] (u v z : n → ℂ) :
     vecMulVec u v *ᵥ z = (v ⬝ᵥ z) • u := by
   ext i
   simp [Matrix.vecMulVec_apply, Matrix.mulVec, dotProduct, mul_comm, mul_left_comm,
     Finset.mul_sum]
 
+/-- A nonscalar matrix annihilated by `(X - μ I)(X - ν I)` has a nonzero eigenvector for `μ`. -/
 theorem exists_eigen_of_factor {n : Type} [Fintype n] [DecidableEq n]
     (X : Matrix n n ℂ) (μ ν : ℂ)
     (hfac : (X - μ • 1) * (X - ν • 1) = 0)
@@ -220,6 +266,8 @@ theorem exists_eigen_of_factor {n : Type} [Fintype n] [DecidableEq n]
     simp only [Matrix.sub_mulVec, Matrix.smul_mulVec, Matrix.one_mulVec] at this
     exact sub_eq_zero.mp this
 
+/-- An eigenvector of an isometric matrix with nonzero eigenvalue `μ` is an eigenvector of its
+conjugate transpose with eigenvalue `μ⁻¹`. -/
 theorem adjoint_eigen {n : Type} [Fintype n] [DecidableEq n] (X : Matrix n n ℂ)
     (hXtX : X.conjTranspose * X = 1) {μ : ℂ} {u : n → ℂ} (hμ : μ ≠ 0) (hXu : X *ᵥ u = μ • u) :
     X.conjTranspose *ᵥ u = μ⁻¹ • u := by
@@ -230,6 +278,8 @@ theorem adjoint_eigen {n : Type} [Fintype n] [DecidableEq n] (X : Matrix n n ℂ
   simp only [smul_smul, inv_mul_cancel₀ hμ, one_smul] at h2
   exact h2
 
+/-- Conjugating a nonzero eigenvector of an isometric matrix gives a left eigenvector with the
+same eigenvalue. -/
 theorem star_vecMul_of_eigen {n : Type} [Fintype n] [DecidableEq n] (X : Matrix n n ℂ)
     (hXtX : X.conjTranspose * X = 1) {μ : ℂ} {u : n → ℂ} (hu : u ≠ 0) (hXu : X *ᵥ u = μ • u) :
     star u ᵥ* X = μ • star u := by
@@ -251,6 +301,8 @@ theorem star_vecMul_of_eigen {n : Type} [Fintype n] [DecidableEq n] (X : Matrix 
   rw [hinv, hconj, inv_inv] at hstar
   exact hstar
 
+/-- A nonscalar dihedral rotation with distinct reciprocal roots in the stated quadratic
+factorization forces representation dimension two. -/
 theorem aux_dim_two {N : ℕ} (V : DihedralIrrep N) (μ ν : ℂ)
     (hμν : μ * ν = 1) (hne : μ ≠ ν)
     (hfac : (V.rhoX - μ • 1) * (V.rhoX - ν • 1) = 0)
@@ -439,6 +491,8 @@ theorem aux_dim_two {N : ℕ} (V : DihedralIrrep N) (μ ν : ℂ)
   have hfin : (V.dim : ℂ) = 2 := (mul_left_cancel₀ hnn) hcalc
   exact_mod_cast hfin
 
+/-- The reflection generator commutes with the sum of the rotation generator and its conjugate
+transpose. -/
 theorem irrep_rhoY_comm_conjSum {N : ℕ} (V : DihedralIrrep N) :
     V.rhoY * (V.rhoX + V.rhoX.conjTranspose) = (V.rhoX + V.rhoX.conjTranspose) * V.rhoY := by
   have hYXtY : V.rhoY * V.rhoX.conjTranspose * V.rhoY = V.rhoX := by
@@ -460,6 +514,7 @@ theorem irrep_rhoY_comm_conjSum {N : ℕ} (V : DihedralIrrep N) :
     _ = (V.rhoY * (V.rhoX + V.rhoX.conjTranspose) * V.rhoY) * V.rhoY := by noncomm_ring
     _ = (V.rhoX + V.rhoX.conjTranspose) * V.rhoY := by rw [h1]
 
+/-- The sum of the rotation generator and its conjugate transpose is a scalar matrix. -/
 theorem irrep_sum_conjTranspose {N : ℕ} (V : DihedralIrrep N) :
     ∃ c : ℂ, V.rhoX + V.rhoX.conjTranspose = c • 1 := by
   set M := V.rhoX + V.rhoX.conjTranspose
@@ -473,6 +528,8 @@ theorem irrep_sum_conjTranspose {N : ℕ} (V : DihedralIrrep N) :
   show ∃ c, V.rhoX + V.rhoX.conjTranspose = c • 1
   exact hex
 
+/-- A scalar identity for the rotation plus its conjugate transpose yields the quadratic
+relation `rhoX ^ 2 = c • rhoX - 1`. -/
 theorem irrep_rhoX_sq {N : ℕ} (V : DihedralIrrep N) (c : ℂ)
     (hc : V.rhoX + V.rhoX.conjTranspose = c • 1) :
     V.rhoX ^ 2 = c • V.rhoX - 1 := by
@@ -481,6 +538,8 @@ theorem irrep_rhoX_sq {N : ℕ} (V : DihedralIrrep N) (c : ℂ)
   rw [pow_two, eq_sub_iff_add_eq]
   exact h
 
+/-- If both dihedral generators are scalar matrices, the representation dimension is at most
+one. -/
 theorem irrep_dim_le_one_of_scalars {N : ℕ} (V : DihedralIrrep N) (μ δ : ℂ)
     (hX : V.rhoX = μ • 1) (hY : V.rhoY = δ • 1) : V.dim ≤ 1 := by
   by_contra h
@@ -506,6 +565,7 @@ theorem irrep_dim_le_one_of_scalars {N : ℕ} (V : DihedralIrrep N) (μ δ : ℂ
     hentry.symm.trans (hcomp.trans hentry2)
   simp at contra
 
+/-- The displayed complex quadratic roots have sum `c` and product one. -/
 theorem quad_roots (c : ℂ) :
     ((c + (c ^ 2 - 4) ^ (2⁻¹ : ℂ)) / 2) + ((c - (c ^ 2 - 4) ^ (2⁻¹ : ℂ)) / 2) = c ∧
     ((c + (c ^ 2 - 4) ^ (2⁻¹ : ℂ)) / 2) * ((c - (c ^ 2 - 4) ^ (2⁻¹ : ℂ)) / 2) = 1 := by
@@ -522,6 +582,8 @@ theorem quad_roots (c : ℂ) :
       _ = (4 : ℂ) / 4 := by rw [h1]
       _ = 1 := by norm_num
 
+/-- A matrix satisfying `X ^ 2 = c • X - 1` is annihilated by the factors associated with roots
+of sum `c` and product one. -/
 theorem factor_quadratic {n : Type} [Fintype n] [DecidableEq n] (X : Matrix n n ℂ) (c μ ν : ℂ)
     (hsum : μ + ν = c) (hprod : μ * ν = 1) (hsq : X ^ 2 = c • X - 1) :
     (X - μ • 1) * (X - ν • 1) = 0 := by
@@ -534,12 +596,15 @@ theorem factor_quadratic {n : Type} [Fintype n] [DecidableEq n] (X : Matrix n n 
   rw [hexp, hsum, hprod, show (X * X = X ^ 2) from (pow_two X).symm, hsq, one_smul]
   abel
 
+/-- A scalar rotation generator forces the reflection generator to be scalar. -/
 theorem rhoY_scalar_of_rhoX_scalar {N : ℕ} (V : DihedralIrrep N) (μ : ℂ)
     (hX : V.rhoX = μ • 1) : ∃ δ : ℂ, V.rhoY = δ • 1 := by
   refine V.irreducible V.rhoY ?_ ?_
   · rw [hX, Matrix.mul_smul, Matrix.mul_one, Matrix.smul_mul, Matrix.one_mul]
   · rfl
 
+/-- A matrix of finite positive order whose difference from a scalar matrix has square zero is
+scalar. -/
 theorem eq_scalar_of_double_root {d : ℕ} (X : Matrix (Fin d) (Fin d) ℂ) (μ : ℂ)
     {N : ℕ} [NeZero N] (hXN : X ^ N = 1) (hsq : (X - μ • 1) ^ 2 = 0) :
     ∃ κ : ℂ, X = κ • 1 := by
@@ -574,6 +639,7 @@ theorem eq_scalar_of_double_root {d : ℕ} (X : Matrix (Fin d) (Fin d) ℂ) (μ 
   have hcongr := congrArg LinearMap.toMatrix' (hf0'.trans hμ.symm)
   simpa [LinearMap.toMatrix'_toLin'] using! hcongr
 
+/-- The rotation generator is scalar or the dihedral representation has dimension two. -/
 theorem irrep_rhoX_scalar_or_dim_two {N : ℕ} [NeZero N] (V : DihedralIrrep N) :
     (∃ κ : ℂ, V.rhoX = κ • 1) ∨ V.dim = 2 := by
   obtain ⟨c, hc⟩ := irrep_sum_conjTranspose V
@@ -599,6 +665,7 @@ theorem irrep_rhoX_scalar_or_dim_two {N : ℕ} [NeZero N] (V : DihedralIrrep N) 
   · simp only [not_forall, not_ne_iff] at hnot
     exact Or.inl hnot
 
+/-- A dihedral representation with nonzero modulus has dimension at most two. -/
 theorem irrep_dim_le_two {N : ℕ} [NeZero N] (V : DihedralIrrep N) : V.dim ≤ 2 := by
   rcases irrep_rhoX_scalar_or_dim_two V with h | h
   · obtain ⟨δ, hδ⟩ := rhoY_scalar_of_rhoX_scalar V _ h.choose_spec
@@ -606,6 +673,7 @@ theorem irrep_dim_le_two {N : ℕ} [NeZero N] (V : DihedralIrrep N) : V.dim ≤ 
     omega
   · omega
 
+/-- A dihedral representation with nonzero modulus has dimension zero, one, or two. -/
 theorem irrep_dim_cases {N : ℕ} [NeZero N] (V : DihedralIrrep N) :
     V.dim = 0 ∨ V.dim = 1 ∨ V.dim = 2 := by
   have h := irrep_dim_le_two V
@@ -617,6 +685,7 @@ open scoped Classical
 open Matrix
 open scoped ComplexConjugate
 
+/-- A one-dimensional square matrix is its trace times the identity. -/
 theorem matrix_eq_smul_one_of_dim_one {d : ℕ} (hd : d = 1) (M : Matrix (Fin d) (Fin d) ℂ) :
     M = (Matrix.trace M) • 1 := by
   subst hd
@@ -627,14 +696,19 @@ theorem matrix_eq_smul_one_of_dim_one {d : ℕ} (hd : d = 1) (M : Matrix (Fin d)
   subst hj
   rw [Matrix.trace_fin_one, Matrix.smul_apply, Matrix.one_apply_eq, smul_eq_mul, mul_one]
 
+/-- A natural power of a scalar identity matrix is the corresponding scalar power times the
+identity. -/
 theorem smul_one_pow {d : ℕ} (a : ℂ) (k : ℕ) :
     ((a • (1 : Matrix (Fin d) (Fin d) ℂ)) ^ k) = a ^ k • 1 := by
   rw [smul_pow, one_pow]
 
+/-- The trace of a scalar identity matrix is the scalar times the dimension. -/
 theorem trace_smul_one {d : ℕ} (a : ℂ) :
     Matrix.trace (a • (1 : Matrix (Fin d) (Fin d) ℂ)) = a * (d : ℂ) := by
   rw [Matrix.trace_smul, Matrix.trace_one, Fintype.card_fin, smul_eq_mul]
 
+/-- In nonzero dimension, equality of traces of scalar identity matrices implies equality of
+their scalars. -/
 theorem trace_smul_one_cancel {d : ℕ} (hd : d ≠ 0) {a b : ℂ}
     (h : Matrix.trace (a • (1 : Matrix (Fin d) (Fin d) ℂ))
         = Matrix.trace (b • (1 : Matrix (Fin d) (Fin d) ℂ))) : a = b := by
@@ -642,6 +716,7 @@ theorem trace_smul_one_cancel {d : ℕ} (hd : d ≠ 0) {a b : ℂ}
   have hne : (d : ℂ) ≠ 0 := by exact_mod_cast hd
   exact mul_right_cancel₀ hne h
 
+/-- In nonzero dimension, a scalar identity matrix with the identity trace has scalar one. -/
 theorem trace_smul_one_eq_one_cancel {d : ℕ} (hd : d ≠ 0) {a : ℂ}
     (h : Matrix.trace (a • (1 : Matrix (Fin d) (Fin d) ℂ))
         = Matrix.trace (1 : Matrix (Fin d) (Fin d) ℂ)) : a = 1 := by
@@ -649,11 +724,14 @@ theorem trace_smul_one_eq_one_cancel {d : ℕ} (hd : d ≠ 0) {a : ℂ}
   rw [one_smul]
   exact h
 
+/-- The squared complex norm of a natural power is the same power of the squared norm. -/
 theorem normSq_pow (z : ℂ) (k : ℕ) : Complex.normSq (z ^ k) = Complex.normSq z ^ k := by
   induction k with
   | zero => simp
   | succ k ih => rw [pow_succ, pow_succ, Complex.normSq_mul, ih]
 
+/-- In dimension one, both generators are scalar signs, their traces are those signs, and the
+rotation sign has `N`th power one. -/
 theorem irrep_one_dim_data {N : ℕ} [NeZero N] (V : DihedralIrrep N) (hd : V.dim = 1) :
     ∃ ε δ : ℂ, V.rhoX = ε • 1 ∧ V.rhoY = δ • 1 ∧
       Matrix.trace V.rhoX = ε ∧ Matrix.trace V.rhoY = δ ∧
@@ -712,6 +790,7 @@ theorem irrep_one_dim_data {N : ℕ} [NeZero N] (V : DihedralIrrep N) (hd : V.di
     exact mul_self_eq_one_iff.mp h7
   exact ⟨ε, δ, hX, hY, htrX, htrY, hε, hδ, hεN⟩
 
+/-- Every natural power of a complex sign is again one or negative one. -/
 theorem one_or_neg_one_pow {k : ℕ} {z : ℂ} (hz : z = 1 ∨ z = -1) :
     z ^ k = 1 ∨ z ^ k = -1 := by
   rcases hz with h | h
@@ -725,6 +804,7 @@ theorem one_or_neg_one_pow {k : ℕ} {z : ℂ} (hz : z = 1 ∨ z = -1) :
       · rw [ih, one_mul]; exact Or.inr rfl
       · rw [ih]; exact Or.inl (neg_mul_neg 1 1 |>.trans (one_mul 1))
 
+/-- The product of two complex signs is again one or negative one. -/
 theorem mul_one_or_neg_one {a b : ℂ} (ha : a = 1 ∨ a = -1) (hb : b = 1 ∨ b = -1) :
     a * b = 1 ∨ a * b = -1 := by
   rcases ha with ha | ha <;> rcases hb with hb | hb <;> rw [ha, hb]
@@ -733,6 +813,8 @@ theorem mul_one_or_neg_one {a b : ℂ} (ha : a = 1 ∨ a = -1) (hb : b = 1 ∨ b
   · exact Or.inr (by norm_num)
   · exact Or.inl (by norm_num)
 
+/-- In dimension one, the reflection fixed-space dimension is one exactly when its scalar
+reflection value is one, and zero otherwise. -/
 theorem irrep_one_dim_dimFixed {N : ℕ} [NeZero N] (V : DihedralIrrep N) (hd : V.dim = 1)
     (s : ZMod N) : dimFixed V s =
       if Matrix.trace V.rhoY * (Matrix.trace V.rhoX) ^ s.val = 1 then 1 else 0 := by
@@ -763,6 +845,7 @@ theorem irrep_one_dim_dimFixed {N : ℕ} [NeZero N] (V : DihedralIrrep N) (hd : 
     have : ((dimFixed V s : ℂ)) = 0 := by rw [hexp, hneg]; norm_num
     exact_mod_cast this
 
+/-- A two-dimensional involution has trace zero or equals the identity or its negative. -/
 theorem trace_zero_or_eq_pm_one {d : ℕ} (hd : d = 2) (R : Matrix (Fin d) (Fin d) ℂ)
     (h : R * R = 1) : Matrix.trace R = 0 ∨ R = 1 ∨ R = -1 := by
   classical
@@ -818,6 +901,7 @@ theorem trace_zero_or_eq_pm_one {d : ℕ} (hd : d = 2) (R : Matrix (Fin d) (Fin 
     · rw [hmat, h0, one_smul]; exact Or.inl rfl
     · rw [hmat, h0, neg_one_smul]; exact Or.inr rfl
 
+/-- A reflection matrix in a two-dimensional dihedral representation cannot be scalar. -/
 theorem irrep_reflection_ne_pm_one_of_dim_two {N : ℕ} [NeZero N] (V : DihedralIrrep N)
     (hd : V.dim = 2) (s : ZMod N) (ε : ℂ) (hr : reflectionElem V s = ε • 1) : False := by
   classical
@@ -875,6 +959,7 @@ theorem irrep_reflection_ne_pm_one_of_dim_two {N : ℕ} [NeZero N] (V : Dihedral
   have hle := irrep_dim_le_one_of_scalars V _ _ hsc hysc
   omega
 
+/-- The reflection fixed-space dimension of a two-dimensional dihedral representation is one. -/
 theorem irrep_two_dim_dimFixed {N : ℕ} [NeZero N] (V : DihedralIrrep N) (hd : V.dim = 2)
     (s : ZMod N) : dimFixed V s = 1 := by
   classical
@@ -892,10 +977,13 @@ theorem irrep_two_dim_dimFixed {N : ℕ} [NeZero N] (V : DihedralIrrep N) (hd : 
   have : ((dimFixed V s : ℂ)) = 1 := by rw [hexp]; norm_num
   exact_mod_cast this
 
+/-- An odd natural power of negative one in `ℂ` equals negative one. -/
 theorem neg_one_pow_odd_eq {n : ℕ} (h : n % 2 = 1) : (-1 : ℂ) ^ n = -1 := by
   have hk : n = 2 * ((n - 1) / 2) + 1 := by omega
   rw [hk, pow_succ, pow_mul, show ((-1 : ℂ) ^ 2) = 1 by norm_num, one_pow, one_mul]
 
+/-- One-dimensional members of an `IrrepFamily` with equal rotation and reflection traces have
+the same label. -/
 theorem irrep_one_dim_pair_injective {N : ℕ} [NeZero N] {Label : Type} [Fintype Label]
     [DecidableEq Label] (family : IrrepFamily N Label) (l₁ l₂ : Label)
     (hd₁ : (family.irrep l₁).dim = 1) (hd₂ : (family.irrep l₂).dim = 1)
@@ -923,6 +1011,8 @@ theorem irrep_one_dim_pair_injective {N : ℕ} [NeZero N] {Label : Type} [Fintyp
     rw [hY₂, hY₁, Matrix.mul_smul, Matrix.mul_one, Matrix.smul_mul, Matrix.one_mul, hδe]
   exact hM (family.inequivalent l₁ l₂ hne M hMX hMY)
 
+/-- Under the stated dimension count, exactly half of the one-dimensional labels have reflection
+value one. -/
 theorem dimFixed_half_count (N : ℕ) [NeZero N] (Label : Type) [Fintype Label]
     [DecidableEq Label] (family : IrrepFamily N Label) (s : ZMod N)
     (hdim : (Finset.univ.filter (fun l : Label => (family.irrep l).dim = 1)).card
@@ -1274,6 +1364,8 @@ theorem dimFixed_half_count (N : ℕ) [NeZero N] (Label : Type) [Fintype Label]
       omega
     rw [hGcard, hL1card]
 
+/-- The sum of each representation dimension times its reflection fixed-space dimension equals
+`N`, giving the dihedral fixed-space count used in representation sampling [Kuperberg2005]. -/
 theorem dimFixedCount_identity (N : ℕ) [NeZero N] (Label : Type) [Fintype Label]
     [DecidableEq Label] (family : IrrepFamily N Label) (s : ZMod N) :
     ∑ l : Label, (family.irrep l).dim * dimFixed (family.irrep l) s = N := by

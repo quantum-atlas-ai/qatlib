@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabBounds06.MainResults.Twiddle
+
+/-!
+# Operator norm estimates for the twiddle transform
+
+`isProj_norm_le_one` bounds the operator norm of a Hermitian projection. Applying this estimate
+term by term to the reduced-resolvent expression for the twiddle transform gives
+`twiddle_norm_bound`, with explicit bound `2 * m * ‖X‖ / g` for the supplied band data. The
+development follows [JansenRuskaiSeiler2007].
+
+## Main statements
+
+* `isProj_norm_le_one`: bounds the norm of an orthogonal projection by one.
+* `twiddle_norm_bound`: bounds the twiddle transform by `2 * m * ‖X‖ / g`.
+
+## References
+
+* [Jansen et al., 2007][JansenRuskaiSeiler2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +37,7 @@ namespace Qatlib.Papers.AdiabBounds06.MainResults
 
 variable {n : ℕ}
 
+/-- The operator norm of a Hermitian idempotent matrix is at most one. -/
 theorem isProj_norm_le_one {P : Matrix (Fin n) (Fin n) ℂ} (h : IsProj P) : ‖P‖ ≤ 1 := by
   obtain ⟨hPP, hPstar⟩ := h
   have hsq : ‖P‖ * ‖P‖ = ‖P‖ := by
@@ -25,6 +45,9 @@ theorem isProj_norm_le_one {P : Matrix (Fin n) (Fin n) ℂ} (h : IsProj P) : ‖
     rw [show star P = P from hPstar, hPP]
   nlinarith [sq_nonneg (‖P‖ - 1)]
 
+/-- For the band data `D`, the twiddle transform satisfies `‖D.twiddle X‖ ≤ 2 * D.m * ‖X‖ /
+D.g`. This termwise reduced-resolvent estimate is related to the sharper bound in [Jansen et
+al., 2007, Lemma 7][JansenRuskaiSeiler2007]. -/
 theorem twiddle_norm_bound {H : Matrix (Fin n) (Fin n) ℂ} (D : BandData H)
     (X : Matrix (Fin n) (Fin n) ℂ) :
     ‖D.twiddle X‖ ≤ 2 * (D.m : ℝ) * ‖X‖ / D.g := by

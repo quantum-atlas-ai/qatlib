@@ -71,6 +71,29 @@ import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.Basic
 import Qatlib.Papers.QQueryGraph04.MainResults.Model.SupportBounds
 import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
+
+/-!
+# Cost bounds for greedy minima finding
+
+This module proves the numerical contraction and phase-sum estimates used in greedy selection of
+minima of different types. The expressions `phaseGeomSum` and `greedyPhaseCost` yield explicit
+√(dN) cost bounds, while `theorem6_solution` extracts the cardinality and replacement property
+of a supplied solution.
+
+The source paper is [DurrEtAl2006].
+
+## Main statements
+
+* `lemma4`: For positive d, the contraction factor after 32d steps is at most 3/4 and the
+  corresponding iteration expression equals 1024d.
+* `corollary5_cost`: For positive d, the total greedy phase cost is at most 128√(dN).
+* `theorem6_query_cost`: For positive d, three times the greedy phase cost is at most 384√(dN).
+
+## References
+
+* [Dürr et al., 2006][DurrEtAl2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -80,6 +103,8 @@ namespace Qatlib.Papers.QQueryGraph04.MainResults.MinimaFinding
 open Finset
 open Qatlib.Papers.QQueryGraph04.MainResults.Model
 
+/-- For positive d, 32d repetitions of the factor 1 − 1/(32d) give a value at most 3/4
+[DurrEtAl2006]. -/
 theorem lemma4_decay (d : ℕ) (hd : 0 < d) :
     (1 - 1 / (32 * (d : ℝ))) ^ (32 * d) ≤ 3 / 4 := by
   have hdR : (0 : ℝ) < (d : ℝ) := by exact_mod_cast hd
@@ -94,6 +119,8 @@ theorem lemma4_decay (d : ℕ) (hd : 0 < d) :
     nlinarith [Real.exp_one_gt_two]
   exact hexp.trans hquarter
 
+/-- For positive d, the iteration expression (1/(1/32))·32d equals 1024d, which is positive
+[DurrEtAl2006]. -/
 theorem lemma4_expected_iterations (d : ℕ) (hd : 0 < d) :
     (1 / (1 / 32 : ℝ)) * (32 * (d : ℝ)) = 1024 * (d : ℝ) ∧
       0 < (1024 : ℝ) * (d : ℝ) := by
@@ -102,14 +129,18 @@ theorem lemma4_expected_iterations (d : ℕ) (hd : 0 < d) :
   · have hdR : (0 : ℝ) < (d : ℝ) := by exact_mod_cast hd
     positivity
 
+/-- For positive d, the contraction factor after 32d steps is at most 3/4 and the corresponding
+iteration expression equals 1024d [DurrEtAl2006]. -/
 theorem lemma4 (d : ℕ) (hd : 0 < d) :
     (1 - 1 / (32 * (d : ℝ))) ^ (32 * d) ≤ 3 / 4 ∧
       (1 / (1 / 32 : ℝ)) * (32 * (d : ℝ)) = 1024 * (d : ℝ) :=
   ⟨lemma4_decay d hd, (lemma4_expected_iterations d hd).1⟩
 
+/-- The finite geometric sum of powers of 1/√2 over the first K phases. -/
 noncomputable def phaseGeomSum (K : ℕ) : ℝ :=
   ∑ k ∈ Finset.range K, (1 / Real.sqrt 2 : ℝ) ^ k
 
+/-- The finite phase geometric sum is at most 4 [DurrEtAl2006]. -/
 theorem phaseGeomSum_le (K : ℕ) : phaseGeomSum K ≤ 4 := by
   have h2 : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.mpr (by norm_num)
   have hlt : (1 / Real.sqrt 2 : ℝ) < 1 := by
@@ -137,9 +168,11 @@ theorem phaseGeomSum_le (K : ℕ) : phaseGeomSum K ≤ 4 := by
     linarith
   exact hle1.trans hle4
 
+/-- The sum of the phase costs 32d√(N/(d·2ᵏ)) over k < K. -/
 noncomputable def greedyPhaseCost (d N K : ℕ) : ℝ :=
   ∑ k ∈ Finset.range K, 32 * (d : ℝ) * Real.sqrt ((N : ℝ) / ((d : ℝ) * 2 ^ k))
 
+/-- For positive d, each greedy phase cost factors as 32d√(N/d) times (1/√2)ᵏ [DurrEtAl2006]. -/
 theorem greedyPhaseCost_term (d N : ℕ) (hd : 0 < d) (k : ℕ) :
     32 * (d : ℝ) * Real.sqrt ((N : ℝ) / ((d : ℝ) * 2 ^ k)) =
       32 * (d : ℝ) * Real.sqrt ((N : ℝ) / (d : ℝ)) * (1 / Real.sqrt 2 : ℝ) ^ k := by
@@ -160,6 +193,7 @@ theorem greedyPhaseCost_term (d N : ℕ) (hd : 0 < d) (k : ℕ) :
   rw [hroot k]
   ring
 
+/-- For positive d, the total greedy phase cost is at most 128√(dN) [DurrEtAl2006]. -/
 theorem corollary5_cost (d N K : ℕ) (hd : 0 < d) :
     greedyPhaseCost d N K ≤ 128 * Real.sqrt ((d : ℝ) * (N : ℝ)) := by
   have hdR : (0 : ℝ) < (d : ℝ) := by exact_mod_cast hd
@@ -191,11 +225,15 @@ theorem corollary5_cost (d N K : ℕ) (hd : 0 < d) :
       _ = 128 * (Real.sqrt (d : ℝ) * Real.sqrt (N : ℝ)) := by rw [h1]
   exact hstep.trans (le_of_eq heq)
 
+/-- For positive d, three times the greedy phase cost is at most 384√(dN) [DurrEtAl2006]. -/
 theorem theorem6_query_cost (d N K : ℕ) (hd : 0 < d) :
     3 * greedyPhaseCost d N K ≤ 384 * Real.sqrt ((d : ℝ) * (N : ℝ)) := by
   have h := corollary5_cost d N K hd
   linarith
 
+/-- A supplied minimum different-type solution has cardinality d, and every smaller unselected
+value is represented by a selected element of the same type with no larger value
+[DurrEtAl2006]. -/
 theorem theorem6_solution {N : ℕ} (f g : Fin N → ℕ) (d : ℕ) (I : Finset (Fin N))
     (h : Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs.IsMinDifferentTypeSolution
       f g d I) :

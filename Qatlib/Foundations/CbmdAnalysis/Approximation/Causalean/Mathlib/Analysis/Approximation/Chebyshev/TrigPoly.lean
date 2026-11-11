@@ -15,6 +15,26 @@ import Mathlib.Data.Real.StarOrdered
 import Mathlib.RingTheory.SimpleRing.Principal
 import Mathlib.Topology.Algebra.Module.ModuleTopology
 
+/-!
+# Degree bounds and zeros of trigonometric polynomials
+
+This module defines `IsTrigPolyLE` using finite real sine and cosine expansions. An associated
+complex polynomial on the unit circle gives bounds on finite sets of zeros, including a bound
+that counts one zero with vanishing derivative twice. These elementary degree estimates underlie
+approximation arguments relevant to [WangEtAl2026].
+
+## Main statements
+
+* `IsTrigPolyLE.card_zeros_le`: a nonzero trigonometric polynomial of degree at most `n` has at
+  most `2 * n` distinct zeros in a half-open period.
+* `IsTrigPolyLE.card_simple_add_double_le`: an additional zero with vanishing derivative
+  contributes two to the bound.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Approximation
 
 section
@@ -23,16 +43,20 @@ open Real
 
 namespace Causalean.Mathlib.Analysis.BernsteinSzegoTrig
 
+/-- The predicate that a real function is a finite sine and cosine sum with integer frequencies
+from zero through `n`. -/
 def IsTrigPolyLE (n : ℕ) (f : ℝ → ℝ) : Prop :=
   ∃ a b : ℕ → ℝ, ∀ t, f t
     = ∑ k ∈ Finset.range (n + 1),
         (a k * Real.cos ((k : ℝ) * t) + b k * Real.sin ((k : ℝ) * t))
 
+/-- Every constant function is a trigonometric polynomial of degree at most `n`. -/
 theorem isTrigPolyLE_const (n : ℕ) (c : ℝ) : IsTrigPolyLE n (fun _ => c) := by
   refine ⟨fun k => if k = 0 then c else 0, fun _ => 0, ?_⟩
   intro t
   simp
 
+/-- A trigonometric degree bound remains valid when the bound is increased. -/
 theorem IsTrigPolyLE.mono {n m : ℕ} {f : ℝ → ℝ} (hf : IsTrigPolyLE n f)
     (hnm : n ≤ m) : IsTrigPolyLE m f := by
   rcases hf with ⟨a, b, hf⟩
@@ -61,6 +85,8 @@ theorem IsTrigPolyLE.mono {n m : ℕ} {f : ℝ → ℝ} (hf : IsTrigPolyLE n f)
               exact hkn (Finset.mem_range.mpr (Nat.lt_succ_of_le hk))
             simp [hle]
 
+/-- The difference of two trigonometric polynomials of degree at most `n` has the same degree
+bound. -/
 theorem IsTrigPolyLE.sub {n : ℕ} {f g : ℝ → ℝ} (hf : IsTrigPolyLE n f)
     (hg : IsTrigPolyLE n g) : IsTrigPolyLE n (fun t => f t - g t) := by
   rcases hf with ⟨af, bf, hf⟩
@@ -74,6 +100,8 @@ theorem IsTrigPolyLE.sub {n : ℕ} {f g : ℝ → ℝ} (hf : IsTrigPolyLE n f)
   intro k _
   ring
 
+/-- The complex polynomial obtained by shifting the positive and negative exponential
+frequencies of a degree-`n` trigonometric expansion by `n`. -/
 private noncomputable def trigPolyComplexPoly (n : ℕ) (a b : ℕ → ℝ) : Polynomial ℂ :=
   ∑ k ∈ Finset.range (n + 1),
     (Polynomial.C ((a k : ℂ) / 2 - (b k : ℂ) * Complex.I / 2)
@@ -81,6 +109,7 @@ private noncomputable def trigPolyComplexPoly (n : ℕ) (a b : ℕ → ℝ) : Po
       + Polynomial.C ((a k : ℂ) / 2 + (b k : ℂ) * Complex.I / 2)
         * Polynomial.X ^ (n - k))
 
+/-- The `k`th power of the unit-circle exponential at `t` is the exponential at `k * t`. -/
 private lemma exp_mul_I_pow (k : ℕ) (t : ℝ) :
     (Complex.exp ((t : ℂ) * Complex.I)) ^ k =
       Complex.exp ((((k : ℝ) * t : ℝ) : ℂ) * Complex.I) := by
@@ -89,6 +118,8 @@ private lemma exp_mul_I_pow (k : ℕ) (t : ℝ) :
   norm_num
   ring
 
+/-- For `k ≤ n`, the power with exponent `n - k` equals the `n`th power times the inverse of the
+`k`th power of the unit-circle exponential. -/
 private lemma exp_mul_I_pow_sub (n k : ℕ) (t : ℝ) (hk : k ≤ n) :
     (Complex.exp ((t : ℂ) * Complex.I)) ^ (n - k) =
       (Complex.exp ((t : ℂ) * Complex.I)) ^ n *
@@ -102,6 +133,8 @@ private lemma exp_mul_I_pow_sub (n k : ℕ) (t : ℝ) (hk : k ≤ n) :
     _ = z ^ n * (z ^ k)⁻¹ := by
       rw [← mul_assoc, ← pow_add, Nat.sub_add_cancel hk]
 
+/-- Evaluating the pair of polynomial terms associated with frequency `k ≤ n` on the unit circle
+recovers the sine and cosine term multiplied by the `n`th exponential power. -/
 private lemma trigPolyComplexPoly_term_eval (n k : ℕ) (a b t : ℝ) (hk : k ≤ n) :
     Polynomial.eval (Complex.exp ((t : ℂ) * Complex.I))
       (Polynomial.C ((a : ℂ) / 2 - (b : ℂ) * Complex.I / 2) * Polynomial.X ^ (n + k)
@@ -135,6 +168,8 @@ private lemma trigPolyComplexPoly_term_eval (n k : ℕ) (a b t : ℝ) (hk : k �
   ring_nf
   norm_num [Complex.I_sq]
 
+/-- The associated complex polynomial evaluated at `exp (t * I)` equals the trigonometric
+expansion multiplied by `exp (t * I) ^ n`. -/
 private lemma trigPolyComplexPoly_eval (n : ℕ) (a b : ℕ → ℝ) (f : ℝ → ℝ)
     (hf : ∀ t, f t = ∑ k ∈ Finset.range (n + 1),
         (a k * Real.cos ((k : ℝ) * t) + b k * Real.sin ((k : ℝ) * t)))
@@ -169,6 +204,8 @@ private lemma trigPolyComplexPoly_eval (n : ℕ) (a b : ℕ → ℝ) (f : ℝ �
           rw [hf t]
           simp only [Complex.ofReal_sum]
 
+/-- The complex polynomial associated with a degree-`n` trigonometric expansion has natural
+degree at most `2 * n`. -/
 private lemma trigPolyComplexPoly_natDegree_le (n : ℕ) (a b : ℕ → ℝ) :
     (trigPolyComplexPoly n a b).natDegree ≤ 2 * n := by
   unfold trigPolyComplexPoly
@@ -183,6 +220,7 @@ private lemma trigPolyComplexPoly_natDegree_le (n : ℕ) (a b : ℕ → ℝ) :
   · exact (Polynomial.natDegree_C_mul_X_pow_le
       ((a k : ℂ) / 2 + (b k : ℂ) * Complex.I / 2) (n - k)).trans (by omega)
 
+/-- The unit-circle exponential is injective on every half-open interval of length `2π`. -/
 lemma exp_mul_I_injOn_Ico {c s t : ℝ}
     (hs : s ∈ Set.Ico c (c + 2 * Real.pi)) (ht : t ∈ Set.Ico c (c + 2 * Real.pi))
     (h : Complex.exp ((s : ℂ) * Complex.I) = Complex.exp ((t : ℂ) * Complex.I)) :
@@ -210,6 +248,8 @@ lemma exp_mul_I_injOn_Ico {c s t : ℝ}
   subst hm0
   simpa using him
 
+/-- A finite set of zeros of a nonzero degree-`n` trigonometric polynomial in a half-open period
+has cardinality at most `2 * n`. -/
 theorem IsTrigPolyLE.card_zeros_le {n : ℕ} {f : ℝ → ℝ} (hf : IsTrigPolyLE n f)
     (hne : ∃ t, f t ≠ 0) {c : ℝ} {S : Finset ℝ}
     (hS : ↑S ⊆ Set.Ico c (c + 2 * Real.pi)) (hzero : ∀ t ∈ S, f t = 0) :
@@ -247,6 +287,8 @@ theorem IsTrigPolyLE.card_zeros_le {n : ℕ} {f : ℝ → ℝ} (hf : IsTrigPolyL
     _ ≤ P.natDegree := Polynomial.card_roots' P
     _ ≤ 2 * n := trigPolyComplexPoly_natDegree_le n a b
 
+/-- For a nonzero degree-`n` trigonometric polynomial, a finite set of zeros and one further
+zero with vanishing derivative in the same half-open period satisfy `S.card + 2 ≤ 2 * n`. -/
 theorem IsTrigPolyLE.card_simple_add_double_le {n : ℕ} {f : ℝ → ℝ}
     (hf : IsTrigPolyLE n f) (hne : ∃ t, f t ≠ 0) {c : ℝ} {S : Finset ℝ}
     (hS : ↑S ⊆ Set.Ico c (c + 2 * Real.pi)) (hzero : ∀ t ∈ S, f t = 0)

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Tactic
+
+/-!
+# Diagonal powers as spectral moments
+
+This module expands a diagonal entry of a power of a real symmetric matrix in an orthonormal
+eigenbasis. The squared entries of the eigenvector row are nonnegative and sum to one, giving a
+finite probability-weighted spectral moment.
+
+These constructions accompany the results of [JanzingWocjan2006a].
+
+## Main statements
+
+* `hermitian_pow_diagonal_eq`: expands a diagonal power entry as a weighted eigenvalue moment.
+* `spectral_moment_probability_form`: packages the moment identity and probability-weight
+  conditions.
+
+## References
+
+* [Janzing and Wocjan, 2006][JanzingWocjan2006a]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,6 +40,9 @@ namespace Qatlib.Papers.DiagPowerBQP06.MainResults.SpectralMoment
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- A diagonal entry of a natural power of a real symmetric matrix is the sum of the eigenvalue
+powers weighted by squared entries of the corresponding eigenvector row. See
+[JanzingWocjan2006a]. -/
 theorem hermitian_pow_diagonal_eq
     (A : Matrix I I ℝ) (hA : A.IsHermitian) (m : ℕ) (j : I) :
     (A ^ m) j j = ∑ k, (hA.eigenvectorUnitary j k) ^ 2 * (hA.eigenvalues k) ^ m := by
@@ -74,10 +98,12 @@ theorem hermitian_pow_diagonal_eq
     _ = ∑ a, (U j a) ^ 2 * (hA.eigenvalues a) ^ m := by
           apply Finset.sum_congr rfl; intro a _; ring
 
+/-- Each squared entry of a real eigenvector row is nonnegative. -/
 theorem eigenvector_row_weights_nonneg
     (A : Matrix I I ℝ) (hA : A.IsHermitian) (j k : I) :
     0 ≤ (hA.eigenvectorUnitary j k) ^ 2 := sq_nonneg _
 
+/-- The squared entries of each row of the orthonormal eigenvector matrix sum to one. -/
 theorem eigenvector_row_weights_sum_one
     (A : Matrix I I ℝ) (hA : A.IsHermitian) (j : I) :
     ∑ k, (hA.eigenvectorUnitary j k) ^ 2 = 1 := by
@@ -94,6 +120,8 @@ theorem eigenvector_row_weights_sum_one
   simp only [hUsj, Matrix.one_apply_eq] at hentry
   simpa [hUdef, pow_two] using hentry
 
+/-- The diagonal power entry equals the eigenvalue moment with squared eigenvector-row weights,
+and these weights are nonnegative and sum to one. See [JanzingWocjan2006a]. -/
 theorem spectral_moment_probability_form
     (A : Matrix I I ℝ) (hA : A.IsHermitian) (m : ℕ) (j : I) :
     (A ^ m) j j = ∑ k, (hA.eigenvectorUnitary j k) ^ 2 * (hA.eigenvalues k) ^ m ∧

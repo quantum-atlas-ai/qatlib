@@ -5,6 +5,33 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+
+/-!
+# Bipartite spectral symmetry and endpoint multiplicities
+
+For two finite complex isometric frames, this module relates the discriminant eigenspaces at λ
+and −λ by changing the sign of the second source component. It identifies the kernel of the
+combined frame with the −1 source eigenspace and computes the source and walk endpoint
+multiplicities.
+
+The interior correspondence is extended to negative source eigenvalues through
+`bipartite_tau_negative_interior_pair_equivalence`; `bipartite_full_space_endpoint_multiplicity`
+includes the orthogonal complement of the combined frame range. The quantum walk spectral
+framework is developed in [Szegedy2004].
+
+## Main statements
+
+* `bipartite_discriminant_spectrum_symmetry`: An explicit linear equivalence between opposite
+  discriminant eigenspaces.
+* `bipartite_frame_kernel_and_endpoint_source_dimensions`: Kernel identification and dimensions
+  of the two endpoint source spaces.
+* `bipartite_full_space_endpoint_multiplicity`: Dimensions of the full walk eigenspaces at ±1.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
@@ -34,14 +61,18 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The source transformation `(a, b) ↦ (a, −b)` on the direct sum of the two frame index
+spaces. -/
 private def sourceFlip {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (v : QState (I⊕J)) : QState (I⊕J) :=
   Sum.elim (fun i => v (.inl i)) (fun j => -(v (.inr j)))
 
+/-- The source sign flip maps the zero state to zero. -/
 private theorem sourceFlip_zero {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] : sourceFlip (0 : QState (I⊕J)) = 0 := by
   ext (i | j) <;> simp [sourceFlip]
 
+/-- The source sign flip preserves addition of states. -/
 private theorem sourceFlip_add {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (u v : QState (I⊕J)) :
     sourceFlip (u+v) = sourceFlip u+sourceFlip v := by
@@ -49,27 +80,32 @@ private theorem sourceFlip_add {I J : Type} [Fintype I] [DecidableEq I]
   · simp [sourceFlip]
   · simp [sourceFlip]; ring
 
+/-- The source sign flip commutes with complex scalar multiplication. -/
 private theorem sourceFlip_smul {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (c : ℂ) (v : QState (I⊕J)) :
     sourceFlip (c•v) = c•sourceFlip v := by
   ext (i | j) <;> simp [sourceFlip]
 
+/-- The source sign flip commutes with negation. -/
 private theorem sourceFlip_neg {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (v : QState (I⊕J)) :
     sourceFlip (-v) = -(sourceFlip v) := by
   ext (i | j) <;> simp [sourceFlip]
 
+/-- Applying the source sign flip twice returns the original state. -/
 private theorem sourceFlip_sourceFlip {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (v : QState (I⊕J)) :
     sourceFlip (sourceFlip v) = v := by
   ext (i | j) <;> simp [sourceFlip]
 
+/-- Matrix multiplication sends the pointwise negative of a vector to the negative of its image. -/
 private theorem mulVec_neg_right {K L : Type} [Fintype L] [DecidableEq L] [Fintype K]
     [DecidableEq K] (M : Matrix K L ℂ) (w : QState L) :
     M *ᵥ (fun j => -(w j)) = -(M *ᵥ w) := by
   rw [show (fun j : L => -(w j)) = (-w : QState L) from rfl]
   exact Matrix.mulVec_neg w M
 
+/-- The bipartite discriminant anticommutes with the source sign flip. -/
 private theorem disc_sourceFlip {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (v : QState (I⊕J)) :
@@ -89,6 +125,9 @@ private theorem disc_sourceFlip {H I J : Type} [Fintype H] [DecidableEq H]
   rw [hd1, hd2, sourceFlip_neg]
   ext (i | j) <;> simp [sourceFlip]
 
+/-- For two isometric frames, the source sign flip gives a complex linear equivalence between
+the discriminant eigenspaces at λ and −λ, which therefore have equal dimensions
+[Szegedy2004]. -/
 theorem bipartite_discriminant_spectrum_symmetry :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ) (lam : ℝ),
@@ -174,6 +213,9 @@ theorem bipartite_discriminant_spectrum_symmetry :
   refine ⟨⟨LinearEquiv.ofBijective f ⟨hinj, hsurj⟩, fun u => rfl⟩, ?_⟩
   exact (LinearEquiv.ofBijective f ⟨hinj, hsurj⟩).finrank_eq
 
+/-- For isometric frames, the combined frame kernel is exactly the discriminant eigenspace at
+−1, and both endpoint source eigenspaces have dimension equal to the total source dimension
+minus the combined frame rank [Szegedy2004]. -/
 theorem bipartite_frame_kernel_and_endpoint_source_dimensions :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),
@@ -232,6 +274,8 @@ theorem bipartite_frame_kernel_and_endpoint_source_dimensions :
   rw [hone, hone'] at hG1
   exact hG1.trans hdimplus
 
+/-- For `0 < lam < 1`, each associated walk eigenspace within the combined frame range has the
+same dimension as either discriminant eigenspace at `lam` or `-lam` [Szegedy2004]. -/
 theorem bipartite_busy_phase_fold_multiplicity :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ) (lam : ℝ),
@@ -251,12 +295,15 @@ theorem bipartite_busy_phase_fold_multiplicity :
   exact ⟨e.finrank_eq.symm,
     e.finrank_eq.symm.trans (bipartite_discriminant_spectrum_symmetry H I J A B lam hA hB).2⟩
 
+/-- Negating the source eigenvalue exchanges the two Boolean branches of `bipartitePhase`. -/
 private theorem phase_neg (lam : ℝ) (s : Bool) :
     bipartitePhase (-lam) s = bipartitePhase lam (!s) := by
   have hsq : (-lam)^2 = lam^2 := by ring
   simp only [bipartitePhase, hsq]
   cases s <;> simp
 
+/-- Simultaneously negating the source eigenvalue, exchanging the phase branch, and flipping the
+second source component leaves the tau image unchanged. -/
 private theorem tau_linear_sourceFlip {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (lam : ℝ) (s : Bool) (v : QState (I⊕J)) :
@@ -279,6 +326,8 @@ private theorem tau_linear_sourceFlip {H I J : Type} [Fintype H] [DecidableEq H]
   rw [hn, smul_neg, hc]
   module
 
+/-- The complex linear equivalence between kernels induced by equality of their defining
+matrices. -/
 private def kerCast {n : Type} [Fintype n] [DecidableEq n]
     {M M' : Matrix n n ℂ} (hM : M = M') :
     LinearMap.ker M.toLin' ≃ₗ[ℂ] LinearMap.ker M'.toLin' where
@@ -301,10 +350,14 @@ private def kerCast {n : Type} [Fintype n] [DecidableEq n]
     apply Subtype.ext
     rfl
 
+/-- Transporting a kernel element along matrix equality preserves its underlying vector. -/
 private theorem kerCast_val {n : Type} [Fintype n] [DecidableEq n]
     {M M' : Matrix n n ℂ} (hM : M = M') (x : LinearMap.ker M.toLin') :
     (kerCast hM x).1 = x.1 := rfl
 
+/-- For `-1 < lam < 0`, the two walk phases are distinct and the tau maps identify the source
+eigenspace with each corresponding walk eigenspace in the combined frame range. The sum of
+these two walk spaces has twice the source dimension [Szegedy2004]. -/
 theorem bipartite_tau_negative_interior_pair_equivalence :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ) (lam : ℝ),
@@ -359,6 +412,8 @@ theorem bipartite_tau_negative_interior_pair_equivalence :
       (bipartite_discriminant_spectrum_symmetry H I J A B (-lam) hA hB).2]
     rw [Complex.ofReal_neg, neg_smul, sub_eq_add_neg]
 
+/-- A vector lies in the kernel of the adjoint combined frame exactly when both frame adjoints
+annihilate it. -/
 private theorem tilde_conj_kernel {H I J : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix H I ℂ) (B : Matrix H J ℂ) (w : QState H) :
@@ -373,6 +428,9 @@ private theorem tilde_conj_kernel {H I J : Type} [Fintype H] [DecidableEq H]
     · exact congrFun ha i
     · exact congrFun hb j
 
+/-- For isometric frames, the full walk eigenspace at +1 has the sum of the source kernel and
+idle dimensions, while the −1 multiplicity is the total source dimension minus twice the
+overlap rank [Szegedy2004]. -/
 theorem bipartite_full_space_endpoint_multiplicity :
     ∀ (H I J : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
       [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ),

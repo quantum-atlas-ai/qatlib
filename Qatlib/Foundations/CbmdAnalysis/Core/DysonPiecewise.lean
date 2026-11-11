@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonPropagator
+
+/-!
+# Piecewise Dyson propagators
+
+`dysonPiecewise` composes continuous Dyson propagators along a finite sequence of time
+intervals, and `dysonPiecewiseBudget` sums the corresponding integrals of the norm of `L`. The
+module proves complex differentiability, an exponential norm estimate for Hermitian `H` and
+positive semidefinite `L`, and unitarity at real parameter values.
+
+`dysonPiecewisePath` extends a completed product through the next interval and satisfies the
+matrix evolution equation with matching endpoint values. These constructions support the
+contour-based matrix decomposition of [WangEtAl2026].
+
+## Main statements
+
+* `dysonPiecewise_norm_le`: bounds the product by its accumulated norm budget.
+* `dysonPiecewisePath_join`: identifies adjacent paths at their common endpoint.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,16 +40,22 @@ namespace CBMD
 open MeasureTheory
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- The ordered product of the first `n` Dyson propagators, with each successive interval factor
+multiplied on the left. -/
 noncomputable def dysonPiecewise {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) : ℕ → ℂ → Matrix I I ℂ
   | 0, _ => 1
   | n + 1, z => dysonPropagator (H n) (L n) (τ n) (τ (n + 1)) z *
       dysonPiecewise H L τ n z
 
+/-- The sum, over the first `n` intervals, of the integrals of the norm of the corresponding
+field `L`. -/
 noncomputable def dysonPiecewiseBudget {I : Type} [Fintype I] [DecidableEq I]
     (L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (n : ℕ) : ℝ :=
   ∑ j ∈ Finset.range n, ∫ u in τ j..τ (j + 1), ‖L j u‖
 
+/-- The finite product of Dyson propagators is complex differentiable in its parameter when each
+field is continuous. -/
 theorem dysonPiecewise_differentiable {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j)) (τ : ℕ → ℝ) (n : ℕ) :
@@ -36,6 +65,8 @@ theorem dysonPiecewise_differentiable {I : Type} [Fintype I] [DecidableEq I]
   | succ n ih =>
     exact (dysonPropagator_differentiable (H n) (L n) (hH n) (hL n) _ _).mul ih
 
+/-- For continuous Hermitian `H`, positive semidefinite `L`, and a monotone partition, the
+product norm is at most `exp (max z.im 0 * dysonPiecewiseBudget L τ n)`. -/
 theorem dysonPiecewise_norm_le {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j))
@@ -65,6 +96,8 @@ theorem dysonPiecewise_norm_le {I : Type} [Fintype I] [DecidableEq I]
         simp only [dysonPiecewiseBudget, Finset.sum_range_succ]
         ring
 
+/-- For continuous Hermitian fields `H` and `L`, the piecewise Dyson product is unitary at every
+real parameter. -/
 theorem dysonPiecewise_real_unitary {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j))
@@ -78,11 +111,15 @@ theorem dysonPiecewise_real_unitary {I : Type} [Fintype I] [DecidableEq I]
       (dysonPropagator_real_unitary (H n) (L n) (hH n) (hL n)
         (hHherm n) (hLherm n) _ _ x) ih
 
+/-- The Dyson path on interval `n`, multiplied on the right by the product of all preceding
+interval propagators. -/
 noncomputable def dysonPiecewisePath {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (n : ℕ) (z : ℂ)
     (t : ℝ) : Matrix I I ℂ :=
   dysonPropagator (H n) (L n) (τ n) t z * dysonPiecewise H L τ n z
 
+/-- For continuous fields on interval `n`, the extended path satisfies the differential equation
+`U' = -i (H + z L) U` at every time. -/
 theorem dysonPiecewisePath_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (n : ℕ)
     (hH : Continuous (H n)) (hL : Continuous (L n)) (z : ℂ) (t : ℝ) :
@@ -92,12 +129,14 @@ theorem dysonPiecewisePath_hasDerivAt {I : Type} [Fintype I] [DecidableEq I]
     (dysonPiecewise H L τ n z) using 1
   simp only [dysonPiecewisePath, neg_mul, mul_assoc]
 
+/-- Successive extended Dyson paths agree at the shared partition time `τ (n + 1)`. -/
 theorem dysonPiecewisePath_join {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (n : ℕ) (z : ℂ) :
     dysonPiecewisePath H L τ (n + 1) z (τ (n + 1)) =
       dysonPiecewisePath H L τ n z (τ (n + 1)) := by
   simp only [dysonPiecewisePath, dysonPropagator_self, one_mul, dysonPiecewise]
 
+/-- The first extended Dyson path equals the identity at the initial partition time. -/
 @[simp] theorem dysonPiecewisePath_initial {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (τ : ℕ → ℝ) (z : ℂ) :
     dysonPiecewisePath H L τ 0 z (τ 0) = 1 := by

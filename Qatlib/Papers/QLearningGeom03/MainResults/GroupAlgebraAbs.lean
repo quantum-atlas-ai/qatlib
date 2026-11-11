@@ -13,6 +13,29 @@ import Mathlib.LinearAlgebra.Matrix.Trace
 import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebraZN
 import Qatlib.Papers.QLearningGeom03.MainResults.Battleship
 import Qatlib.Papers.QLearningGeom03.MainResults.CriticalMax
+
+/-!
+# Spectral absolute values in the cyclic group algebra
+
+This module constructs `absGroupAlgebra v` by replacing the Fourier eigenvalues of a cyclic
+group-algebra matrix with their complex norms. It proves Fourier diagonalization, a
+factorization as `Cᴴ * C`, and the constant-diagonal property.
+
+The module also gives the common diagonal entry as the mean absolute eigenvalue and proves
+maximality of `diagNormSqZ` under the stated unitary and constant-diagonal constraints. These
+results implement the cyclic case of Proposition 5.4 in [HunzikerEtAl2003].
+
+## Main statements
+
+* `fourier_absGroupAlgebra`: Fourier diagonalization with nonnegative eigenvalues.
+* `absGroupAlgebra_psd`: A factorization proving positivity.
+* `absGroupAlgebra_max`: Constrained maximality of the diagonal squared norm.
+
+## References
+
+* [Hunziker et al., 2003][HunzikerEtAl2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -25,9 +48,12 @@ open scoped Matrix
 
 variable {N : ℕ} [NeZero N]
 
+/-- The inverse cyclic Fourier transform of the prescribed eigenvalues `g`, using normalization
+1/N. -/
 noncomputable def invFourierVec (g : ZMod N → ℂ) (k : ZMod N) : ℂ :=
   ((N : ℂ))⁻¹ * ∑ j, g j * chiN k (-j)
 
+/-- The Fourier coefficient of `invFourierVec g` at `j` is `g j`. -/
 lemma eigen_invFourierVec (g : ZMod N → ℂ) (j : ZMod N) :
     (∑ x, invFourierVec g x * chiN j x) = g j := by
   have h1 : (∑ x, invFourierVec g x * chiN j x)
@@ -66,6 +92,7 @@ lemma eigen_invFourierVec (g : ZMod N → ℂ) (j : ZMod N) :
   · intro hmem
     exact absurd (Finset.mem_univ j) hmem
 
+/-- Every complex diagonal matrix is the Fourier conjugate of some cyclic group-algebra matrix. -/
 theorem fourier_surjective_diagonal (g : ZMod N → ℂ) :
     ∃ w, fourier N * groupAlgebraElem w * (fourier N)ᴴ = Matrix.diagonal g := by
   refine ⟨invFourierVec g, ?_⟩
@@ -74,6 +101,7 @@ theorem fourier_surjective_diagonal (g : ZMod N → ℂ) :
   funext j
   exact eigen_invFourierVec g j
 
+/-- For positive N, the conjugate transpose of the normalized Fourier matrix is a left inverse. -/
 lemma fourier_conjTranspose_mul (hN : 0 < N) : (fourier N)ᴴ * fourier N = 1 := by
   ext j k
   rw [Matrix.mul_apply, Matrix.one_apply]
@@ -109,17 +137,24 @@ lemma fourier_conjTranspose_mul (hN : 0 < N) : (fourier N)ᴴ * fourier N = 1 :=
     rw [if_neg hjk, if_neg hjk']
     simp
 
+/-- The Fourier eigenvalue of the cyclic group-algebra matrix with coefficient vector `v` at
+frequency `j`. -/
 noncomputable def eigen (v : ZMod N → ℂ) (j : ZMod N) : ℂ :=
   ∑ x, v x * chiN j x
 
+/-- The complex norm of the Fourier eigenvalue at frequency `j`. -/
 noncomputable def absEigen (v : ZMod N → ℂ) (j : ZMod N) : ℝ := ‖eigen v j‖
 
+/-- Every absolute Fourier eigenvalue is nonnegative. -/
 lemma absEigen_nonneg (v : ZMod N → ℂ) (j : ZMod N) : 0 ≤ absEigen v j :=
   norm_nonneg (eigen v j)
 
+/-- The cyclic group-algebra matrix whose Fourier eigenvalues are `absEigen v`. -/
 noncomputable def absGroupAlgebra (v : ZMod N → ℂ) : Matrix (ZMod N) (ZMod N) ℂ :=
   groupAlgebraElem (invFourierVec (fun j => ((absEigen v j : ℝ) : ℂ)))
 
+/-- Fourier conjugation diagonalizes `absGroupAlgebra v` with diagonal entries `absEigen v`, as
+in [Hunziker et al., Proposition 5.4][HunzikerEtAl2003]. -/
 theorem fourier_absGroupAlgebra (v : ZMod N → ℂ) :
     fourier N * absGroupAlgebra v * (fourier N)ᴴ
       = Matrix.diagonal (fun j => ((absEigen v j : ℝ) : ℂ)) := by
@@ -129,15 +164,21 @@ theorem fourier_absGroupAlgebra (v : ZMod N → ℂ) :
   funext j
   exact eigen_invFourierVec (fun j => ((absEigen v j : ℝ) : ℂ)) j
 
+/-- The spectral absolute-value matrix belongs to the cyclic group algebra, as in [Hunziker et
+al., Proposition 5.4][HunzikerEtAl2003]. -/
 theorem absGroupAlgebra_mem (v : ZMod N → ℂ) :
     ∃ w, absGroupAlgebra v = groupAlgebraElem w :=
   ⟨_, rfl⟩
 
+/-- Every diagonal entry of `absGroupAlgebra v` equals its entry at (0, 0), as in [Hunziker et
+al., Proposition 5.4][HunzikerEtAl2003]. -/
 theorem absGroupAlgebra_constant_diag (v : ZMod N → ℂ) (i : ZMod N) :
     absGroupAlgebra v i i = absGroupAlgebra v 0 0 := by
   unfold absGroupAlgebra
   rw [cyclic_diag, cyclic_diag]
 
+/-- The spectral absolute-value matrix has a factorization `Cᴴ * C`, proving its positivity as
+in [Hunziker et al., Proposition 5.4][HunzikerEtAl2003]. -/
 theorem absGroupAlgebra_psd (v : ZMod N → ℂ) :
     ∃ C, absGroupAlgebra v = Cᴴ * C := by
   have hN : 0 < N := Nat.pos_of_neZero N
@@ -191,6 +232,8 @@ theorem absGroupAlgebra_psd (v : ZMod N → ℂ) :
           (Matrix.mul_assoc _ _ _).symm
   exact hspec.trans hCC.symm
 
+/-- The common diagonal entry of `absGroupAlgebra v` is 1/N times the sum of the absolute
+Fourier eigenvalues. This is used in the learning bounds of [HunzikerEtAl2003]. -/
 theorem absGroupAlgebra_diag (v : ZMod N → ℂ) :
     absGroupAlgebra v 0 0
       = ((N : ℂ))⁻¹ * ((∑ j, absEigen v j : ℝ) : ℂ) := by
@@ -203,9 +246,12 @@ theorem absGroupAlgebra_diag (v : ZMod N → ℂ) :
     rw [chiN_comm (0 : ZMod N) (-j), chiN_zero_right, mul_one]
   rw [hsum]
 
+/-- The sum of the squared complex norms of the diagonal entries of a matrix indexed by `ZMod
+N`. -/
 noncomputable def diagNormSqZ (B : Matrix (ZMod N) (ZMod N) ℂ) : ℝ :=
   ∑ i, Complex.normSq (B i i)
 
+/-- Reindexing a cyclic matrix by `Fin N` identifies `diagNormSqZ` with `diagNormSq`. -/
 lemma diagNormSqZ_eq (B : Matrix (ZMod N) (ZMod N) ℂ) :
     diagNormSqZ (N := N) B
       = diagNormSq (Matrix.reindex (ZMod.finEquiv N).toEquiv.symm
@@ -214,6 +260,9 @@ lemma diagNormSqZ_eq (B : Matrix (ZMod N) (ZMod N) ℂ) :
   exact (Equiv.sum_comp (ZMod.finEquiv N).toEquiv
     (fun j : ZMod N => Complex.normSq (B j j))).symm
 
+/-- For `U * Uᴴ = 1`, if `U * absGroupAlgebra v` has constant diagonal, its diagonal squared
+norm is at most that of `absGroupAlgebra v`, as in [Hunziker et al., Proposition
+5.4][HunzikerEtAl2003]. -/
 theorem absGroupAlgebra_max (v : ZMod N → ℂ) {U : Matrix (ZMod N) (ZMod N) ℂ}
     (hU : U * Uᴴ = 1)
     (hdiagU : ∀ i, (U * absGroupAlgebra v) i i = (U * absGroupAlgebra v) 0 0) :

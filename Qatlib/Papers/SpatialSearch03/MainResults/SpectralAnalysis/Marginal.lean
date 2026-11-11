@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSum2Log
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Low-dimensional secular rescaling
+
+This module expands the secular function at negative energies and introduces the dimension-two
+and dimension-three energy rescalings used in [ChildsGoldstone2004]. It proves existence and
+uniqueness of the corresponding negative rescaled roots.
+
+The remaining results evaluate rescaled amplitude expressions and derive repetition-time lower
+bounds from explicit amplitude and time hypotheses.
+
+## Main statements
+
+* `secular_taylor2`: expansion through the second lattice sum with an exact remainder.
+* `existsUnique_rescaled_root_d3` and `existsUnique_rescaled_root_d2`: unique negative rescaled
+  roots.
+* `repetition_time_ge_d3` and `repetition_time_ge_d2`: conditional lower bounds on repetition
+  time.
+
+## References
+
+* [Childs and Goldstone, 2004][ChildsGoldstone2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +42,9 @@ open ThetaSums
 
 variable {d : ℕ}
 
+/-- For positive coupling and side length and negative energy, split the secular function into
+its zero-mode pole, nonzero-mode inverse-energy sum, and exact linear-in-energy correction
+[ChildsGoldstone2004]. -/
 theorem secular_expansion {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     {E : ℝ} (hE : E < 0) :
     secular γ n d E
@@ -74,6 +101,9 @@ theorem secular_expansion {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0
   field_simp [hNpos.ne', hE0]
   ring
 
+/-- For negative energy, expand the secular function as the zero-mode pole plus `latSum1 n d /
+γ`, `E * latSum2 n d / γ ^ 2`, and an explicit quadratic remainder, assuming positive
+coupling and side length [ChildsGoldstone2004]. -/
 theorem secular_taylor2 {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     {E : ℝ} (hE : E < 0) :
     secular γ n d E
@@ -148,12 +178,16 @@ theorem secular_taylor2 {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 <
   field_simp [hNpos.ne', hE0]
   ring
 
+/-- The dimension-three rescaled energy `4 * Real.pi ^ 2 * I * x / n ^ (2 / 3 : ℝ)`. -/
 def rescaledEnergy3 (I x : ℝ) (n : ℕ) : ℝ :=
   4 * Real.pi ^ 2 * I * x / ((n : ℝ) ^ (2 / 3 : ℝ))
 
+/-- The dimension-two rescaled energy `2 * Real.pi * Real.log n / n * x`. -/
 def rescaledEnergy2 (x : ℝ) (n : ℕ) : ℝ :=
   2 * Real.pi * Real.log (n : ℝ) / (n : ℝ) * x
 
+/-- For positive `I` and side length, the dimension-three rescaled energy is strictly increasing
+in `x`. -/
 theorem rescaledEnergy3_strictMono {I : ℝ} {n : ℕ} (hI : 0 < I) (hn : 0 < n) :
     StrictMono (fun x : ℝ => rescaledEnergy3 I x n) := by
   intro x y hxy
@@ -168,6 +202,8 @@ theorem rescaledEnergy3_strictMono {I : ℝ} {n : ℕ} (hI : 0 < I) (hn : 0 < n)
   rw [e1, e2]
   exact mul_lt_mul_of_pos_left hxy hc
 
+/-- For positive coupling, side length, and `I`, there is a negative rescaled parameter solving
+the dimension-three secular equation. -/
 theorem exists_rescaled_root_d3 {γ I : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 0 < n)
     (hI : 0 < I) :
     ∃ x : ℝ, x < 0 ∧ secular γ n 3 (rescaledEnergy3 I x n) = 1 := by
@@ -186,6 +222,8 @@ theorem exists_rescaled_root_d3 {γ I : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ)
     rw [hEq]
     exact hFE
 
+/-- For positive coupling, side length, and `I`, there is exactly one negative rescaled
+parameter solving the dimension-three secular equation [ChildsGoldstone2004]. -/
 theorem existsUnique_rescaled_root_d3 {γ I : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ)
     (hn : 0 < n) (hI : 0 < I) :
     ∃! x : ℝ, x < 0 ∧ secular γ n 3 (rescaledEnergy3 I x n) = 1 := by
@@ -212,6 +250,8 @@ theorem existsUnique_rescaled_root_d3 {γ I : ℝ} {n : ℕ} [NeZero n] (hγ : 0
     rw [hyF, hx0F] at hs
     exact lt_irrefl _ hs
 
+/-- For side length greater than one, the dimension-two rescaled energy is strictly increasing
+in `x`. -/
 theorem rescaledEnergy2_strictMono {n : ℕ} (hn : 1 < n) :
     StrictMono (fun x : ℝ => rescaledEnergy2 x n) := by
   intro x y hxy
@@ -225,6 +265,8 @@ theorem rescaledEnergy2_strictMono {n : ℕ} (hn : 1 < n) :
       = (2 * Real.pi * Real.log (n : ℝ) / (n : ℝ)) * y := rfl
   exact mul_lt_mul_of_pos_left hxy hc
 
+/-- For positive coupling and side length greater than one, there is a negative rescaled
+parameter solving the dimension-two secular equation. -/
 theorem exists_rescaled_root_d2 {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 1 < n) :
     ∃ x : ℝ, x < 0 ∧ secular γ n 2 (rescaledEnergy2 x n) = 1 := by
   obtain ⟨E, hEneg, hFE⟩ := exists_secular_eq_one (d := 2) hγ (Nat.lt_trans Nat.zero_lt_one hn)
@@ -240,6 +282,8 @@ theorem exists_rescaled_root_d2 {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (
     rw [hEq]
     exact hFE
 
+/-- For positive coupling and side length greater than one, there is exactly one negative
+rescaled parameter solving the dimension-two secular equation [ChildsGoldstone2004]. -/
 theorem existsUnique_rescaled_root_d2 {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 < γ) (hn : 1 < n) :
     ∃! x : ℝ, x < 0 ∧ secular γ n 2 (rescaledEnergy2 x n) = 1 := by
   obtain ⟨x0, hx0neg, hx0F⟩ := exists_rescaled_root_d2 hγ hn
@@ -267,6 +311,8 @@ theorem existsUnique_rescaled_root_d2 {γ : ℝ} {n : ℕ} [NeZero n] (hγ : 0 <
     rw [hyF, hx0F] at hs
     exact lt_irrefl _ hs
 
+/-- For positive natural `n`, dividing `Real.sqrt n` by `n ^ (2 / 3 : ℝ)` gives the reciprocal
+of `n ^ (1 / 6 : ℝ)`. -/
 theorem sqrt_div_rpow_two_thirds {n : ℕ} (hn : 0 < n) :
     Real.sqrt (n : ℝ) / (n : ℝ) ^ (2 / 3 : ℝ) = ((n : ℝ) ^ (1 / 6 : ℝ))⁻¹ := by
   have hnpos : (0:ℝ) < (n:ℝ) := by exact_mod_cast hn
@@ -274,12 +320,17 @@ theorem sqrt_div_rpow_two_thirds {n : ℕ} (hn : 0 < n) :
   have hexp : (1 / 2 : ℝ) - 2 / 3 = -(1 / 6 : ℝ) := by norm_num
   rw [hexp, Real.rpow_neg hnpos.le (1 / 6)]
 
+/-- For positive natural `n`, the product of `Real.sqrt n` and `n ^ (1 / 6 : ℝ)` is `n ^ (2 / 3
+: ℝ)`. -/
 theorem sqrt_mul_rpow_one_sixth {n : ℕ} (hn : 0 < n) :
     Real.sqrt (n : ℝ) * (n : ℝ) ^ (1 / 6 : ℝ) = (n : ℝ) ^ (2 / 3 : ℝ) := by
   have hnpos : (0:ℝ) < (n:ℝ) := by exact_mod_cast hn
   rw [Real.sqrt_eq_rpow, ← Real.rpow_add hnpos]
   norm_num
 
+/-- For positive `n` and nonnegative `I`, the expression `2 * Real.sqrt n * |rescaledEnergy3 I x
+n|` equals `8 * Real.pi ^ 2 * I * |x| / n ^ (1 / 6 : ℝ)`, the rescaled amplitude expression
+in [ChildsGoldstone2004]. -/
 theorem amplitude_bound_d3 {I x : ℝ} {n : ℕ} (hn : 0 < n) (hI : 0 ≤ I) :
     2 * Real.sqrt (n : ℝ) * |rescaledEnergy3 I x n|
       = 8 * Real.pi ^ 2 * I * |x| / ((n : ℝ) ^ (1 / 6 : ℝ)) := by
@@ -302,6 +353,9 @@ theorem amplitude_bound_d3 {I x : ℝ} {n : ℕ} (hn : 0 < n) (hI : 0 ≤ I) :
   rw [h2, sqrt_div_rpow_two_thirds hn]
   field_simp [hub]
 
+/-- For positive `n`, the expression `2 * Real.sqrt n * |rescaledEnergy2 x n|` equals `4 *
+Real.pi * |x| * Real.log n / Real.sqrt n`, the dimension-two rescaled expression in
+[ChildsGoldstone2004]. -/
 theorem amplitude_bound_d2 {x : ℝ} {n : ℕ} (hn : 0 < n) :
     2 * Real.sqrt (n : ℝ) * |rescaledEnergy2 x n|
       = 4 * Real.pi * |x| * Real.log (n : ℝ) / Real.sqrt (n : ℝ) := by
@@ -321,6 +375,9 @@ theorem amplitude_bound_d2 {x : ℝ} {n : ℕ} (hn : 0 < n) :
   rw [Real.sq_sqrt hnpos.le]
   ring
 
+/-- For positive `N`, `I`, and `A` and nonzero `x`, the stated lower bound on `t` and
+dimension-three upper bound on `A` imply `N ^ (2 / 3 : ℝ) / (8 * Real.pi ^ 2 * I * |x|) ≤ t
+/ A ^ 2` [ChildsGoldstone2004]. -/
 theorem repetition_time_ge_d3 {N I x A t : ℝ} (hN : 0 < N) (hI : 0 < I) (hx : x ≠ 0)
     (hA : 0 < A) (htA : Real.sqrt N * A ≤ t)
     (hAupper : A ≤ 8 * Real.pi ^ 2 * I * |x| / N ^ (1 / 6 : ℝ)) :
@@ -352,6 +409,9 @@ theorem repetition_time_ge_d3 {N I x A t : ℝ} (hN : 0 < N) (hI : 0 < I) (hx : 
     _ = Real.sqrt N * A / A ^ 2 := h2.symm
     _ ≤ t / A ^ 2 := h1
 
+/-- For positive `N`, `Real.log N`, and `A` and nonzero `x`, the stated lower bound on `t` and
+dimension-two upper bound on `A` imply `N / (4 * Real.pi * |x| * Real.log N) ≤ t / A ^ 2`
+[ChildsGoldstone2004]. -/
 theorem repetition_time_ge_d2 {N x A t : ℝ} (hN : 0 < N) (hx : x ≠ 0)
     (hlog : 0 < Real.log N) (hA : 0 < A) (htA : Real.sqrt N * A ≤ t)
     (hAupper : A ≤ 4 * Real.pi * |x| * Real.log N / Real.sqrt N) :

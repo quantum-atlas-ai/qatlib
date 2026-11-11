@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.SolovayKitaevStep
+
+/-!
+# Perturbation bounds for unitary commutators
+
+This module bounds the distance between unitaries in a C*-ring and proves
+`lemma1_commutator_perturbation`, an explicit polynomial bound for perturbing both factors of a
+group commutator. The estimate retains the dependence on the original factors' distances from
+the identity, following the commutator analysis of [DawsonNielsen2006].
+
+## Main statements
+
+* `lemma1_commutator_perturbation`: If the original unitary factors are within `δ` of the
+  identity and each perturbation is smaller than `Δ`, their commutators differ by less than
+  `8*Δ*δ + 4*Δ*δ^2 + 8*Δ^2 + 4*Δ^3 + Δ^4`, as in [DawsonNielsen2006].
+
+## References
+
+* [Dawson and Nielsen, 2006][DawsonNielsen2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +34,7 @@ open Qatlib.Concepts.UnbiasedBases.ThreeBasis.CSD.SolovayKitaev
 
 set_option autoImplicit false
 
+/-- The distance between two unitary elements of a C*-ring is at most `2`. -/
 theorem unitary_norm_sub_le_two {E : Type*} [NormedRing E] [StarRing E] [CStarRing E]
     {K K' : E} (hK : K ∈ unitary E) (hK' : K' ∈ unitary E) : ‖K - K'‖ ≤ 2 := by
   by_cases hN : Nontrivial E
@@ -26,6 +47,9 @@ theorem unitary_norm_sub_le_two {E : Type*} [NormedRing E] [StarRing E] [CStarRi
     rw [Subsingleton.elim K K', sub_self, norm_zero]
     norm_num
 
+/-- If the original unitary factors are within `δ` of the identity and each perturbation is
+smaller than `Δ`, their commutators differ by less than `8*Δ*δ + 4*Δ*δ^2 + 8*Δ^2 + 4*Δ^3 +
+Δ^4`, as in [DawsonNielsen2006]. -/
 theorem lemma1_commutator_perturbation {E : Type*} [NormedRing E] [StarRing E] [CStarRing E]
     {V W V' W' : E} (hV : V ∈ unitary E) (hW : W ∈ unitary E)
     (hV' : V' ∈ unitary E) (hW' : W' ∈ unitary E)

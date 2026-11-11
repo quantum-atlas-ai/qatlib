@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionReader
+
+/-!
+# Multiplication calls in rational division
+
+This module embeds either multiplication call into the division stack machine using `callCode`
+and `returnCode`. The theorem `call_execution` transports both the exact execution result and
+its stack clock, leaving the surrounding operand stacks fixed. The finite machine model has the
+computational background described in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `callCode`: embeds multiplication labels into the first or second call.
+* `call_execution`: identifies the returned product stack and preserves the multiplication
+  clock.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,13 +40,20 @@ open Qatlib
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
 
+/-- Embeds a multiplication label into the second division call when `which` is true and into
+the first call otherwise. -/
 def callCode (which : Bool) (l : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.Label) : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.Label :=
   if which then .second l else .first l
 
+/-- Selects the return label for the chosen multiplication call: output initialization for the
+second call and numerator saving for the first. -/
 def returnCode (which : Bool) :
     Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.Label :=
     if which then .startOutput else .saveNumerator
 
+/-- Either embedded multiplication call returns the reversed product in work stack `2` after
+`sourceSteps x y` steps, preserving the surrounding stacks and resetting the multiplication
+state. Its stack clock equals that of the standalone multiplication run. -/
 theorem call_execution (which : Bool) (x y A D B C raw : Bits) (v : Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs.Local) :
     let start := (⟨some (callCode which .parse),v.putMul MulVar.init,
       Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionReader.store (Function.update (fun _ => []) (5 : Fin 6) (Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExtDefs.frame x++y)) A D B C raw⟩ :

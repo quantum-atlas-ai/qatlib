@@ -9,6 +9,25 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 
+/-!
+# Annealing norm recurrences
+
+This module develops the finite weighted-square and recurrence estimates used in Appendix A of
+[SommaBoixoBarnum2007]. The annealing-rate and remainder hypotheses turn the stated
+norm-increment inequality into a contractive recurrence, yielding the uniform bounds `b k ≤ 2`
+and `sqrt (b k) ≤ sqrt 2`.
+
+## Main statements
+
+* `one_le_sum_sq_div`: a weighted-square lower bound for normalized weights.
+* `eqA18_norm_sq_bound`: an explicit solution bound for the scalar recurrence.
+* `a7_implies_norm_le_sqrt_two`: the uniform square-root norm bound.
+
+## References
+
+* [Somma et al., 2007][SommaBoixoBarnum2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +35,8 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Papers.QAnnealing07.MainResults.NormConvergence
 
+/-- For two normalized finite weight functions with strictly positive `π`, the weighted square
+sum `∑ i, μ i ^ 2 / π i` is at least one [SommaBoixoBarnum2007]. -/
 theorem one_le_sum_sq_div
     {ι : Type*} [Fintype ι] (μ π : ι → ℝ)
     (hπ : ∀ i, 0 < π i) (_hμ : ∀ i, 0 ≤ μ i)
@@ -25,12 +46,16 @@ theorem one_le_sum_sq_div
     (fun i _ => hπ i)
   simpa [hsumμ, hsumπ] using h
 
+/-- In a real inner-product space, the squared-norm increment from adding `d` to `h` is `2 *
+inner ℝ h d + ‖d‖ ^ 2` [SommaBoixoBarnum2007]. -/
 theorem norm_sq_increment_identity
     {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E] (h d : E) :
     ‖h + d‖ ^ 2 - ‖h‖ ^ 2 = 2 * inner ℝ h d + ‖d‖ ^ 2 := by
   rw [norm_add_sq_real]
   ring
 
+/-- The stated annealing-rate, remainder, and lower-norm assumptions strengthen the increment
+bound to `n2next - n2 ≤ -δ * n2 + 2δ` [SommaBoixoBarnum2007]. -/
 theorem a15_implies_a16
     (δ Δβ EM τ C n2 n2next : ℝ)
     (hδ : 0 < δ) (hτ1 : τ ≤ 1 / 2)
@@ -54,6 +79,8 @@ theorem a15_implies_a16
     linarith
   linarith [hA15, hkey]
 
+/-- A sequence starting at one and satisfying the stated affine recurrence with `δ ≤ 1` obeys `b
+k ≤ 2 - (1 - δ) ^ k` [SommaBoixoBarnum2007]. -/
 theorem eqA18_norm_sq_bound
     (δ : ℝ) (b : ℕ → ℝ) (hδ1 : δ ≤ 1)
     (hb0 : b 0 = 1) (hrec : ∀ k, b (k + 1) ≤ (1 - δ) * b k + 2 * δ) :
@@ -70,6 +97,8 @@ theorem eqA18_norm_sq_bound
       rw [hpow]
       nlinarith [hmul]
 
+/-- Under the annealing-rate and increment hypotheses with `0 < δ ≤ 1`, every `b k` is at most
+two and its square root is at most `sqrt 2` [SommaBoixoBarnum2007]. -/
 theorem a7_implies_norm_le_sqrt_two
     (δ Δβ EM τ C : ℝ) (b : ℕ → ℝ)
     (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hτ1 : τ ≤ 1 / 2)

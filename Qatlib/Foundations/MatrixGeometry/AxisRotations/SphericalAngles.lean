@@ -73,22 +73,51 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
+
+/-!
+# Recursive spherical angle coordinates
+
+`coefficients` defines real spherical coordinates recursively using sine and cosine of doubled
+angles. The head and tail lemmas expose the recursion, and `circle_angle` supplies the
+two-dimensional base parametrization.
+
+`exists_angles` proves that every real unit vector with at least two coordinates has such an
+angle representation. This finite parametrization is useful for the rotation constructions
+associated with [VonBurgEtAl2021].
+
+## Main statements
+
+* `circle_angle`: every point on the unit circle has a doubled-angle representation.
+* `exists_angles`: the recursive coefficients represent every unit vector in dimension at least
+  two.
+
+## References
+
+* [von Burg et al., 2021][VonBurgEtAl2021]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 1600000
 noncomputable section
 open scoped Classical BigOperators
 namespace Qatlib.Foundations.MatrixGeometry.AxisRotations.SphericalAngles
 
+/-- The recursive spherical-coordinate vector formed from doubled angles, with initial
+one-coordinate vector equal to one. -/
 def coefficients : (n : ℕ)→(Fin n→ℝ)→Fin (n+1)→ℝ
   | 0,_=>fun _=>1
   | n+1,θ=>Fin.cons (Real.cos (2*θ 0)) (fun i=>Real.sin (2*θ 0)*coefficients n (fun j=>θ j.succ) i)
 
+/-- The first spherical coefficient is the cosine of twice the first angle. -/
 theorem coefficients_head (n : ℕ) (θ : Fin (n+1)→ℝ) :
     coefficients (n+1) θ 0=Real.cos (2*θ 0) := rfl
 
+/-- Each remaining spherical coefficient is the sine of twice the first angle times the
+corresponding coefficient from the remaining angles. -/
 theorem coefficients_tail (n : ℕ) (θ : Fin (n+1)→ℝ) (i : Fin (n+1)) :
     coefficients (n+1) θ i.succ=Real.sin (2*θ 0)*coefficients n (fun j=>θ j.succ) i := rfl
 
+/-- Every real pair satisfying `x^2 + y^2 = 1` is the cosine-sine pair of a doubled real angle. -/
 theorem circle_angle (x y : ℝ) (h : x^2+y^2=1) :
     ∃θ : ℝ,Real.cos (2*θ)=x ∧Real.sin (2*θ)=y := by
   let z : ℂ := ⟨x,y⟩
@@ -102,6 +131,8 @@ theorem circle_angle (x y : ℝ) (h : x^2+y^2=1) :
   · rw [show 2*(z.arg/2)=z.arg by ring,Complex.cos_arg hz,hn,div_one]
   · rw [show 2*(z.arg/2)=z.arg by ring,Complex.sin_arg,hn,div_one]
 
+/-- Every real unit vector with `n + 2` coordinates is represented by `coefficients (n + 1)` for
+some vector of `n + 1` real angles. -/
 theorem exists_angles (n : ℕ) (u : Fin (n+2)→ℝ) (hu : ∑i,u i^2=1) :
     ∃θ : Fin (n+1)→ℝ,coefficients (n+1) θ=u := by
   induction n with

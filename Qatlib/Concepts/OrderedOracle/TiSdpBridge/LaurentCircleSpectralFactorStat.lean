@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchSDP
+
+/-!
+# Laurent circle spectral factor statement
+
+The Lean proposition `LaurentCircleSpectralFactor` packages a polynomial factor for a
+nonnegative complex Laurent polynomial on the unit circle. Its degree, Gram coefficients,
+coefficient norm sum, and root location requirements refine the spectral factorization used in
+[ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `LaurentCircleSpectralFactor`: existence of a factor of degree at most `n - 1`, with squared
+  modulus equal to the Laurent evaluation and roots in the closed unit disk when nonzero.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +33,10 @@ namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge Polynomial Matrix
 open scoped BigOperators Classical ComplexOrder
 
+/-- The proposition that every finite complex Laurent polynomial that is nonnegative on the unit
+circle has a polynomial factor of degree at most `n - 1` whose squared modulus agrees there.
+It also requires matching outer Gram coefficients, positive semidefiniteness, the
+coefficient norm sum identity, and closed unit disk roots for a nonzero factor. -/
 def LaurentCircleSpectralFactor : Prop :=
   ∀ (n : ℕ) (a : Fin n → ℂ), complexLaurentNonnegative a →
     ∃ p : Fin n → ℂ,

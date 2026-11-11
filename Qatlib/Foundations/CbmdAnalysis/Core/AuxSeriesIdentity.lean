@@ -9,6 +9,29 @@ import Qatlib.Foundations.CbmdAnalysis.Core.AuxWeightBounds
 import Qatlib.Foundations.CbmdAnalysis.Core.AuxCircleBounds
 import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewiseInput
 import Mathlib.Order.Filter.AtTopBot.Interval
+
+/-!
+# Auxiliary-pole sampling series
+
+This module passes from finite auxiliary-regulator circle identities to an infinite
+integer-indexed sampling series. The identity reconstructs the value at `-I` from real samples
+and a finite auxiliary-pole correction under an exponential growth budget. It also specializes
+the construction to assembled piecewise Dyson evolutions, as used in [WangEtAl2026].
+
+## Main statements
+
+* `aux_kernel_series_identity`: the target value equals the infinite sample sum minus the
+  auxiliary correction.
+* `aux_kernel_series_identity_paper`: expands the auxiliary correction into the paper
+  coefficient formula.
+* `matrix_series_piecewise_dyson`: proves absolute summability and the identity for assembled
+  matrix evolutions.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -23,11 +46,16 @@ open scoped Topology BigOperators Matrix.Norms.L2Operator ComplexOrder
 section Banach
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- For a nonempty auxiliary set and positive `a`, symmetric finite sample sums converge to the
+integer-indexed series whenever `U` has norm at most one on the real axis. -/
 theorem auxLCUSum_tendsto (s : Finset ℂ) (hs : s.Nonempty) {a : ℝ} (ha : 0 < a)
     (U : ℂ → E) (hUreal : ∀ x : ℝ, ‖U (x : ℂ)‖ ≤ 1) :
     Tendsto (fun n : ℕ => auxLCUSum s a n U) atTop (𝓝 (∑' k : ℤ, auxSample s a U k)) := by
   exact (auxWeight_smul_summable s hs ha U hUreal).hasSum.comp Finset.tendsto_Icc_neg
 
+/-- For a complex differentiable numerator with growth rate `ρ ≤ 2 * π * a`, the value at `-I`
+equals the real lattice sample series minus the auxiliary correction, assuming a nonempty
+auxiliary set separated from the target and lattice. -/
 theorem aux_kernel_series_identity (s : Finset ℂ) (hs : s.Nonempty)
     (hsTarget : -Complex.I ∉ s) {a ρ : ℝ} (ha : 0 < a)
     (hsLattice : ∀ p ∈ s, ∀ k : ℤ, p ≠ (((k : ℝ) / a : ℝ) : ℂ))
@@ -53,6 +81,9 @@ theorem aux_kernel_series_identity (s : Finset ℂ) (hs : s.Nonempty)
         auxiliaryCorrection s a U) + (∑' k : ℤ, auxSample s a U k) - auxiliaryCorrection s a U := by abel
     _ = _ := by rw [hz, zero_add]
 
+/-- Under the separated-pole, analyticity, and growth hypotheses, the target value minus the
+real sample series minus the explicitly expanded auxiliary-pole sum is zero. This is the
+coefficient form used in [WangEtAl2026]. -/
 theorem aux_kernel_series_identity_paper (s : Finset ℂ) (hs : s.Nonempty)
     (hsTarget : -Complex.I ∉ s) {a ρ : ℝ} (ha : 0 < a)
     (hsLattice : ∀ p ∈ s, ∀ k : ℤ, p ≠ (((k : ℝ) / a : ℝ) : ℂ))
@@ -77,6 +108,10 @@ theorem aux_kernel_series_identity_paper (s : Finset ℂ) (hs : s.Nonempty)
 
 end Banach
 
+/-- For continuous Hermitian and positive semidefinite matrix pieces on a strictly increasing
+time grid, an integrated norm budget at most `2 * π * a` gives absolute summability of the
+auxiliary samples and the expanded auxiliary-pole sampling identity for the terminal
+assembled Dyson evolution [WangEtAl2026]. -/
 theorem matrix_series_piecewise_dyson {I : Type} [Fintype I] [DecidableEq I]
     (H L : ℕ → ℝ → Matrix I I ℂ) (hH : ∀ j, Continuous (H j))
     (hL : ∀ j, Continuous (L j))

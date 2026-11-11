@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
 import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.AlgorithmicInterface
+
+/-!
+# Transport of hidden-subgroup solvers along group isomorphisms
+
+`proposition10_reduction` transfers a hidden-subgroup solver across a group isomorphism using
+compatible encodings. Its hypotheses provide subgroup transport, oracle periodicity, and a token
+map with polynomial cardinality growth, yielding a polynomial token-cardinality query bound for
+the source encoding. See [InuiLeGall2007] for the mathematical setting.
+
+## Main statements
+
+* `proposition10_reduction`: transports the solver and its query bound through the supplied
+  isomorphism and token map.
+
+## References
+
+* [Inui and Le Gall, 2007][InuiLeGall2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +34,9 @@ namespace Qatlib.Papers.SemiDirectHSP04.MainResults.Proposition10
 
 open Qatlib.Papers.SemiDirectHSP04.MainResults.Model
 
+/-- Under the subgroup, oracle-transport, and polynomial encoding-size hypotheses, an isomorphic
+target group's polynomial-query solver yields a polynomial-query solver for the source
+encoding. See [Inui and Le Gall, 2007, Proposition 10][InuiLeGall2007]. -/
 theorem proposition10_reduction
     {G G' : Type*} [Group G] [Group G'] [DecidableEq G]
     (e : BlackBoxEncoding G) (e' : BlackBoxEncoding G')

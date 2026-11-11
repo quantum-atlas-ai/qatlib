@@ -11,6 +11,32 @@ import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
 import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
 import Qatlib.Concepts.QuantumGibbs.RejectionRewind.RejectionBudgetQuan
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+
+/-!
+# Quantum Metropolis contracts and finite examples
+
+This module studies explicit contracts for quantum Metropolis sampling [TemmeEtAl2011]. It
+proves rational and dyadic Gibbs approximation estimates, a two projector rejection formula and
+asymptotic lower bound, and conditional Gibbs stationarity. It also constructs finite
+counterexamples to `clause41Body`, `clause42Body`, `clause44Body`, and `clause45Body` under
+their stated hypotheses.
+
+## Main statements
+
+* `clause28_block3_dyadicWindow`: For positive inverse temperature and scaled energies in `[0,
+  1]`, the dyadic rational heat bath approximates the diagonal Gibbs density with the stated sum
+  of energy shift and integer weight errors.
+* `rejectFailProb_twoProjector`: For `0 ≤ d ≤ 1`, the two projector rejection failure
+  probability after `n` rounds equals `d * (1 - d) * (d ^ 2 + (1 - d) ^ 2) ^ n`.
+* `duplicate_detailed_balance_impossible`: No complex linear realization of the duplicate
+  example Temme map satisfies quantum detailed balance with its Gibbs state.
+* `clause42_contract_false`: The universal detailed balance contract `clause42Body` is false.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.RiskEstimation.PopulationGap
 
@@ -73,6 +99,9 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- The contract combining unknown Hamiltonian branch maps, normalized joint probabilities,
+eigenbasis independence, dyadic acceptance, energy readout estimates, and a clean phase
+estimation implementation. -/
 def clause41Body : Prop :=
   ∀ (D : ℕ) (A : Operator D), A.IsHermitian →
     ∀ (t : ℝ) (M : ℕ) (hM : 2 ≤ M) (ht : t ≠ 0),
@@ -180,6 +209,8 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- The contract combining variational gap mixing, a rejection budget, phase estimation circuit
+counts, and run ledger identities with strictly positive step queries. -/
 def clause44Body : Prop :=
 
   (∀ (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D)),
@@ -229,6 +260,8 @@ end ContractBodies
 
 section ContractBodies
 
+/-- The contract combining rational Gibbs approximation, a variational gap mixing estimate, a
+sharp rejection budget, and an asymptotically matching two projector lower bound. -/
 def clause45Body : Prop :=
 
   (∀ (N : ℕ) (hN : 0 < N) (E : Fin N → ℝ) (β : ℝ), 0 < β →
@@ -279,6 +312,9 @@ end ContractBodies
 
 section ContractBodies
 
+/-- The universal contract asserting that every legal symmetric proposal ensemble in an
+orthonormal energy basis has a completely positive trace preserving realization satisfying
+quantum detailed balance. -/
 def clause42Body : Prop :=
   ∀ (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D)),
     (∀ i j : Fin D, Qatlib.Foundations.PureStateMath.Inner (ψ i) (ψ j) = if i = j then 1 else 0) →
@@ -293,6 +329,8 @@ def clause42Body : Prop :=
           TracePreserving T ∧
           QuantumDetailedBalance T (temmeGibbsState D hD E β ψ)
 
+/-- The contract combining detailed balance stationarity, conditional irreducibility and fixed
+point uniqueness, and a strictly contractive two dimensional instance. -/
 def clause43Body : Prop :=
 
   QuantumDetailedBalanceFixedPoint ∧
@@ -359,6 +397,7 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- The universal unknown Hamiltonian contract `clause41Body` is false. -/
 theorem clause41_contract_false : ¬ clause41Body := by
   intro h
   have hA : ((0 : Operator 1)).IsHermitian := by
@@ -404,6 +443,7 @@ end Clause41Counterexample
 
 section Clause44Counterexample
 
+/-- The combined mixing and cost contract `clause44Body` is false. -/
 theorem clause44_contract_false : ¬ clause44Body := by
   intro h
   have hled := h.2.2.2
@@ -414,6 +454,7 @@ end Clause44Counterexample
 
 section Clause45Counterexample
 
+/-- The combined approximation, mixing, and rejection contract `clause45Body` is false. -/
 theorem clause45_contract_false : ¬ clause45Body := by
   intro h
   have hmix := h.2.2.2.1
@@ -480,6 +521,9 @@ end Clause45Counterexample
 
 section Clause45BlockB
 
+/-- For rational energies in `[0, 1]` on a nonempty finite space, positive integer Boltzmann
+weights give a heat bath density within trace norm `4 * (1 / 2) ^ K` of the rational energy
+Gibbs density. -/
 theorem clause28_block2_rationalWindow :
     ∀ (N K : ℕ) (E : Fin N → ℚ), 0 < N → (∀ i, 0 ≤ E i ∧ E i ≤ 1) →
       ∃ hW : 0 < weightTotal (boltzmannIntegerWeights K E),
@@ -496,6 +540,8 @@ end Clause45BlockB
 
 section Clause45BlockE
 
+/-- The stated sharp tail bound and budget inequality ensure that `m` independent success
+factors have product at least `c`. -/
 theorem clause28_block4_sharpBudget :
     ∀ pfail : ℕ → ℝ,
       (∀ n, 0 ≤ pfail n ∧ pfail n ≤ sharpTailBound n) →
@@ -548,21 +594,25 @@ end Clause45BlockE
 
 section DyadicRounding
 
+/-- The real value of `dyadicRat k x` is the natural floor of `2 ^ k * x`, divided by `2 ^ k`. -/
 theorem dyadicRat_num (k : ℕ) (x : ℝ) :
     ((dyadicRat k x : ℚ) : ℝ) = (Nat.floor ((2 : ℝ) ^ k * x) : ℝ) / (2 : ℝ) ^ k := by
   unfold dyadicRat
   push_cast
   ring_nf
 
+/-- The dyadic rational formed using the natural floor is nonnegative for every real input. -/
 theorem dyadicRat_nonneg {k : ℕ} (x : ℝ) : 0 ≤ dyadicRat k x := by
   unfold dyadicRat
   apply div_nonneg
   · exact_mod_cast Nat.zero_le _
   · exact_mod_cast (pow_pos (by norm_num : 0 < (2:ℕ)) k).le
 
+/-- The real coercion of `dyadicRat k x` is nonnegative. -/
 theorem dyadicRat_nonneg_real (k : ℕ) (x : ℝ) : 0 ≤ ((dyadicRat k x : ℚ) : ℝ) := by
   exact_mod_cast dyadicRat_nonneg x
 
+/-- For nonnegative `x`, its dyadic rational approximation has real value at most `x`. -/
 theorem dyadicRat_le_self {k : ℕ} {x : ℝ} (hx : 0 ≤ x) : ((dyadicRat k x : ℚ) : ℝ) ≤ x := by
   rw [dyadicRat_num]
   have h2k : (0 : ℝ) < 2 ^ k := by positivity
@@ -571,6 +621,7 @@ theorem dyadicRat_le_self {k : ℕ} {x : ℝ} (hx : 0 ≤ x) : ((dyadicRat k x :
   apply (div_le_iff₀ h2k).2
   nlinarith
 
+/-- For nonnegative `x`, the downward dyadic rounding error is at most `(1 / 2) ^ k`. -/
 theorem dyadicRat_sub_le {k : ℕ} {x : ℝ} (_hx : 0 ≤ x) :
     x - ((dyadicRat k x : ℚ) : ℝ) ≤ (1 / 2 : ℝ) ^ k := by
   rw [dyadicRat_num]
@@ -588,6 +639,7 @@ theorem dyadicRat_sub_le {k : ℕ} {x : ℝ} (_hx : 0 ≤ x) :
         apply (div_le_div_iff₀ h2k h2k).2
         nlinarith
 
+/-- Dyadic rounding of a real number in `[0, 1]` is at most one. -/
 theorem dyadicRat_le_one {k : ℕ} {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
     (dyadicRat k x : ℚ) ≤ 1 := by
   have h : ((dyadicRat k x : ℚ) : ℝ) ≤ 1 := le_trans (dyadicRat_le_self hx0) hx1
@@ -595,6 +647,7 @@ theorem dyadicRat_le_one {k : ℕ} {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
     simpa using! h
   exact Rat.cast_le.mp h1
 
+/-- Dyadic rounding preserves membership in the interval `[0, 1]`. -/
 theorem dyadicRat_mem {k : ℕ} {x : ℝ} (hx0 : 0 ≤ x) (hx1 : x ≤ 1) :
     0 ≤ dyadicRat k x ∧ dyadicRat k x ≤ 1 :=
   ⟨dyadicRat_nonneg x, dyadicRat_le_one hx0 hx1⟩
@@ -603,6 +656,8 @@ end DyadicRounding
 
 section GibbsL1
 
+/-- For entries in `[0, 1]` on a nonempty finite space, dyadic rounding changes the normalized
+exponential weights by at most `4 * exp 1 * (1 / 2) ^ k` in L1 distance. -/
 theorem normalized_exp_l1_rounding {N : ℕ} (hN : 0 < N) (u : Fin N → ℝ)
     (hu : ∀ i, 0 ≤ u i ∧ u i ≤ 1) (k : ℕ) :
     (∑ i, |Real.exp (-u i) / ∑ j, Real.exp (-u j)
@@ -687,6 +742,9 @@ end GibbsL1
 
 section Clause45BlockC
 
+/-- For positive inverse temperature and scaled energies in `[0, 1]`, the dyadic rational heat
+bath approximates the diagonal Gibbs density with the stated sum of energy shift and integer
+weight errors. -/
 theorem clause28_block3_dyadicWindow :
     ∀ (N k K : ℕ) (hN : 0 < N) (E : Fin N → ℝ) (β : ℝ), 0 < β →
       (∀ i, 0 ≤ β * E i ∧ β * E i ≤ 1) →
@@ -788,20 +846,24 @@ open Qatlib
 open Qatlib
 open Qatlib
 
+/-- The two dimensional vector with coordinates `sqrt d` and `sqrt (1 - d)`. -/
 noncomputable def twoProjectorVec (d : ℝ) : QState (Fin 2) :=
   fun i => if i = 0 then Complex.ofReal (Real.sqrt d)
     else Complex.ofReal (Real.sqrt (1 - d))
 
+/-- The matrix `twoProjectorQ d` is the outer product of `twoProjectorVec d` with itself. -/
 theorem twoProjectorQ_eq (d : ℝ) :
     twoProjectorQ d = outerProduct (twoProjectorVec d) := by
   unfold twoProjectorQ outerProduct twoProjectorVec
   rfl
 
+/-- The matrix `twoProjectorP` is the projector onto the zeroth computational basis vector. -/
 theorem twoProjectorP_eq :
     twoProjectorP = outerProduct (Qatlib.Foundations.PureStateMath.Ket 0 : QState (Fin 2)) := by
   unfold twoProjectorP outerProduct ketbra
   rfl
 
+/-- The vector `twoProjectorVec d` is normalized when `0 ≤ d ≤ 1`. -/
 theorem twoProjectorVec_normalized (d : ℝ) (hd0 : 0 ≤ d) (hd1 : d ≤ 1) :
     Normalized (twoProjectorVec d) := by
   have h1d : (0 : ℝ) ≤ 1 - d := by linarith
@@ -812,20 +874,24 @@ theorem twoProjectorVec_normalized (d : ℝ) (hd0 : 0 ≤ d) (hd1 : d ≤ 1) :
   simp [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg d),
     abs_of_nonneg (Real.sqrt_nonneg (1 - d)), Real.sq_sqrt hd0, Real.sq_sqrt h1d]
 
+/-- The matrix `twoProjectorQ d` is an orthogonal projector when `0 ≤ d ≤ 1`. -/
 theorem twoProjectorQ_isOrthogonal (d : ℝ) (hd0 : 0 ≤ d) (hd1 : d ≤ 1) :
     IsOrthogonalProjector (twoProjectorQ d) := by
   rw [twoProjectorQ_eq]
   exact isOrthogonalProjector_outerProduct (twoProjectorVec_normalized d hd0 hd1)
 
+/-- The one column frame embedding the zeroth basis direction into the two dimensional space. -/
 noncomputable def twoProjectorFrame : Matrix (Fin 2) (Fin 1) ℂ :=
   fun i _ => if i = (0 : Fin 2) then 1 else 0
 
+/-- The one column frame `twoProjectorFrame` is an isometry. -/
 theorem twoProjectorFrame_isometry : IsIsometry twoProjectorFrame := by
   show twoProjectorFrameᴴ * twoProjectorFrame = 1
   ext i j
   fin_cases i; fin_cases j
   simp [twoProjectorFrame, Matrix.mul_apply, Matrix.conjTranspose_apply]
 
+/-- The range projector of `twoProjectorFrame` equals `twoProjectorP`. -/
 theorem twoProjectorFrame_span :
     twoProjectorFrame * twoProjectorFrameᴴ = twoProjectorP := by
   ext i j
@@ -833,6 +899,8 @@ theorem twoProjectorFrame_span :
     simp [twoProjectorFrame, Matrix.mul_apply, Matrix.conjTranspose_apply,
       twoProjectorP, ketbra, Qatlib.Foundations.PureStateMath.Ket]
 
+/-- For nonnegative `d`, compression of `twoProjectorQ d` to `twoProjectorFrame` is the one
+dimensional diagonal matrix with entry `d`. -/
 theorem twoProjectorFrame_braKet (d : ℝ) (hd0 : 0 ≤ d) :
     twoProjectorFrameᴴ * twoProjectorQ d * twoProjectorFrame
       = Matrix.diagonal (fun _ => (d : ℂ)) := by
@@ -842,6 +910,7 @@ theorem twoProjectorFrame_braKet (d : ℝ) (hd0 : 0 ≤ d) :
     Matrix.mul_apply, Matrix.conjTranspose_apply,
     Complex.conj_ofReal, ← Complex.ofReal_mul, Real.mul_self_sqrt hd0]
 
+/-- The projector `twoProjectorP` fixes the state `twoProjectorPsi`. -/
 theorem twoProjectorP_fix : twoProjectorP *ᵥ (twoProjectorPsi : QState (Fin 2))
     = twoProjectorPsi := by
   have hket : twoProjectorP *ᵥ (Qatlib.Foundations.PureStateMath.Ket 0 : QState (Fin 2))
@@ -856,6 +925,8 @@ theorem twoProjectorP_fix : twoProjectorP *ᵥ (twoProjectorPsi : QState (Fin 2)
       (Qatlib.Foundations.PureStateMath.Ket 0 : QState (Fin 2)) := rfl
   rw [heq, hket, inner_ket_ket, if_pos rfl, one_smul]
 
+/-- For `0 ≤ d ≤ 1`, the two projector rejection failure probability after `n` rounds equals `d
+* (1 - d) * (d ^ 2 + (1 - d) ^ 2) ^ n`. -/
 theorem rejectFailProb_twoProjector (d : ℝ) (hd0 : 0 ≤ d) (hd1 : d ≤ 1) (n : ℕ) :
     rejectFailProb twoProjectorP (twoProjectorQ d) twoProjectorPsi n
       = d * (1 - d) * (d ^ 2 + (1 - d) ^ 2) ^ n := by
@@ -879,6 +950,7 @@ end TwoProjectorFormula
 
 section Clause45BlockF
 
+/-- For natural `n ≥ 2`, the quantity `(1 - 1 / n) ^ n` is at least `exp (-1) * (1 - 1 / n)`. -/
 theorem one_sub_pow_lower {n : ℕ} (hn : 2 ≤ n) :
     Real.exp (-1) * (1 - 1 / (n : ℝ)) ≤ (1 - 1 / (n : ℝ)) ^ n := by
   have hn1 : (1 : ℝ) ≤ n := by
@@ -918,6 +990,8 @@ theorem one_sub_pow_lower {n : ℕ} (hn : 2 ≤ n) :
   rw [hpow]
   exact mul_le_mul_of_nonneg_right hexp (le_of_lt hx)
 
+/-- For every positive `ε`, all sufficiently large `n` have a parameter `0 < d < 1` with scaled
+rejection failure `n * rejectFailProb` at least `1 / (2 * exp 1) - ε`. -/
 theorem clause28_block5_twoProjectorSharp :
     ∀ ε : ℝ, 0 < ε →
       ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
@@ -1013,6 +1087,7 @@ section Clause43Blocks
 
 open scoped ComplexOrder
 
+/-- The trace of `ketbra u v` equals the inner product of `v` with `u`. -/
 private theorem clause26_trace_ketbra {D : ℕ} (u v : QState (Fin D)) :
     Matrix.trace (ketbra u v) = Qatlib.Foundations.PureStateMath.Inner v u := by
   simp only [Matrix.trace, Matrix.diag_apply, ketbra, Matrix.of_apply, Qatlib.Foundations.PureStateMath.Inner, dotProduct,
@@ -1021,11 +1096,14 @@ private theorem clause26_trace_ketbra {D : ℕ} (u v : QState (Fin D)) :
   intro k _
   ring
 
+/-- Real scalar multiplication of an operator agrees with multiplication by the corresponding
+complex scalar. -/
 private theorem clause26_real_smul {D : ℕ} (r : ℝ) (A : Operator D) : r • A = (r : ℂ) • A := by
   ext i j
   simp only [Matrix.smul_apply, RCLike.real_smul_eq_coe_mul, smul_eq_mul]
   rfl
 
+/-- The rank one operator `ketbra u u` is positive semidefinite. -/
 private theorem clause26_ketbra_psd {D : ℕ} (u : QState (Fin D)) :
     (ketbra u u).PosSemidef := by
   have he : ketbra u u = outerProduct u := by
@@ -1034,6 +1112,8 @@ private theorem clause26_ketbra_psd {D : ℕ} (u : QState (Fin D)) :
   rw [he]
   exact outerProduct_posSemidef u
 
+/-- Nonnegative weights summing to one in an orthonormal basis define a density operator through
+`gibbsBasis`. -/
 theorem gibbsBasis_isDensity {D : ℕ} (ψ : Fin D → QState (Fin D)) (p : Fin D → ℝ)
     (horth : ∀ i j : Fin D, Qatlib.Foundations.PureStateMath.Inner (ψ i) (ψ j) = if i = j then 1 else 0)
     (hp : ∀ i, 0 ≤ p i) (hsum : ∑ i, p i = 1) :
@@ -1058,6 +1138,8 @@ theorem gibbsBasis_isDensity {D : ℕ} (ψ : Fin D → QState (Fin D)) (p : Fin 
       Complex.ofReal_one]
   exact ⟨hpsd, htr⟩
 
+/-- The Temme Gibbs state built from an orthonormal energy basis in positive dimension is a
+density operator. -/
 theorem temmeGibbsState_isDensity {D : ℕ} (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (ψ : Fin D → QState (Fin D))
     (horth : ∀ i j : Fin D, Qatlib.Foundations.PureStateMath.Inner (ψ i) (ψ j) = if i = j then 1 else 0) :
@@ -1066,9 +1148,13 @@ theorem temmeGibbsState_isDensity {D : ℕ} (hD : 0 < D) (E : Fin D → ℝ) (β
     (fun i => (diagonalGibbsDist D hD E β).nonneg i)
     (diagonalGibbsDist D hD E β).sum_one
 
+/-- Quantum detailed balance gives the fixed point property specified by
+`QuantumDetailedBalanceFixedPoint`. -/
 theorem clause26_anchor_fixedPoint : QuantumDetailedBalanceFixedPoint :=
   quantumDetailedBalanceFixedPoint
 
+/-- A completely positive trace preserving realization of the Temme map fixes its Gibbs state
+whenever it satisfies the stated quantum detailed balance hypothesis. -/
 theorem clause26_block2_stationarity :
     ∀ (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D)),
       (∀ i j : Fin D, Qatlib.Foundations.PureStateMath.Inner (ψ i) (ψ j) = if i = j then 1 else 0) →
@@ -1087,10 +1173,12 @@ theorem clause26_block2_stationarity :
   exact quantumDetailedBalanceFixedPoint D ⟨T, hcp, htp⟩ (temmeGibbsState D hD E β ψ)
     (temmeGibbsState_isDensity hD E β ψ horth) hdb
 
+/-- The contraction parameter `instanceEta` equals `(1 - exp (-1)) / 2`. -/
 theorem instanceEta_eq : instanceEta = (1 - Real.exp (-1)) / 2 := by
   unfold instanceEta
   ring
 
+/-- The instance contraction parameter is strictly positive. -/
 theorem instanceEta_pos : 0 < instanceEta := by
   rw [instanceEta_eq]
   have he : Real.exp (-1) < 1 := by
@@ -1099,6 +1187,7 @@ theorem instanceEta_pos : 0 < instanceEta := by
   have h : (0:ℝ) < 1 - Real.exp (-1) := by linarith
   exact div_pos h two_pos
 
+/-- The instance contraction parameter is strictly less than one. -/
 theorem instanceEta_lt_one : instanceEta < 1 := by
   have he : 0 < Real.exp (-1) := Real.exp_pos (-1)
   have h : (0:ℝ) < (1 + Real.exp (-1)) / 2 := by positivity
@@ -1107,26 +1196,32 @@ theorem instanceEta_lt_one : instanceEta < 1 := by
 
 end Clause43Blocks
 
+/-- Left and right multiplication by fixed operators distributes over addition of the middle
+operator. -/
 theorem mul_mul_add {D : ℕ} (A B : Operator D) :
     ∀ ρ σ : Operator D, A * (ρ + σ) * B = A * ρ * B + A * σ * B := by
   intro ρ σ
   rw [Matrix.mul_add, Matrix.add_mul]
 
+/-- A complex scalar multiplying the middle operator can be pulled outside a matrix sandwich. -/
 theorem mul_mul_smul {D : ℕ} (A B : Operator D) :
     ∀ (c : ℂ) (ρ : Operator D), A * (c • ρ) * B = c • (A * ρ * B) := by
   intro c ρ
   rw [Matrix.mul_smul, Matrix.smul_mul]
 
+/-- A scalar multiple of a matrix sandwich distributes over addition of the middle operator. -/
 theorem smul_mul_mul_add {D : ℕ} (A B : Operator D) (c : ℂ) :
     ∀ ρ σ : Operator D, c • (A * (ρ + σ) * B) = c • (A * ρ * B) + c • (A * σ * B) := by
   intro ρ σ
   rw [mul_mul_add, smul_add]
 
+/-- Nested complex scalars in a matrix sandwich combine into their product. -/
 theorem smul_mul_mul_smul {D : ℕ} (A B : Operator D) (c d : ℂ) :
     ∀ ρ : Operator D, c • (A * (d • ρ) * B) = (c * d) • (A * ρ * B) := by
   intro ρ
   rw [mul_mul_smul, smul_smul]
 
+/-- The Temme acceptance map preserves addition of input operators. -/
 theorem temmeAcceptMap_add {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (ens : ProposalEnsemble D) (β : ℝ) :
     ∀ ρ σ : Operator D,
@@ -1136,6 +1231,7 @@ theorem temmeAcceptMap_add {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState 
   unfold temmeAcceptMap
   simp only [Matrix.mul_add, Matrix.add_mul, smul_add, Finset.sum_add_distrib]
 
+/-- The Temme acceptance map preserves complex scalar multiplication. -/
 theorem temmeAcceptMap_smul {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (ens : ProposalEnsemble D) (β : ℝ) :
     ∀ (c : ℂ) (ρ : Operator D),
@@ -1151,6 +1247,7 @@ theorem temmeAcceptMap_smul {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState
   refine Finset.sum_congr rfl fun x_2 _ => ?_
   ring
 
+/-- Each fixed rejection history map `temmeBnMap` preserves addition of input operators. -/
 theorem temmeBnMap_add {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (C : Operator D) (β : ℝ) (n : ℕ) (s : Fin n → Bool) :
     ∀ ρ σ : Operator D,
@@ -1160,6 +1257,7 @@ theorem temmeBnMap_add {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin
   unfold temmeBnMap
   simp only [Matrix.mul_add, Matrix.add_mul, smul_add, Finset.sum_add_distrib]
 
+/-- Each fixed rejection history map `temmeBnMap` preserves complex scalar multiplication. -/
 theorem temmeBnMap_smul {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (C : Operator D) (β : ℝ) (n : ℕ) (s : Fin n → Bool) :
     ∀ (c : ℂ) (ρ : Operator D),
@@ -1179,12 +1277,15 @@ section Clause43Instance
 
 open scoped ComplexOrder
 
+/-- The energy of the zeroth level in the two dimensional instance is zero. -/
 private theorem instanceEnergy_of_zero : instanceEnergy 0 = 0 := by
   simp [instanceEnergy]
 
+/-- The energy of the first level in the two dimensional instance is one. -/
 private theorem instanceEnergy_of_one : instanceEnergy 1 = 1 := by
   simp [instanceEnergy]
 
+/-- The two dimensional instance assigns distinct energies to distinct indices. -/
 private theorem instanceEnergy_inj : Function.Injective instanceEnergy := by
   intro a b h
   fin_cases a <;> fin_cases b
@@ -1193,10 +1294,12 @@ private theorem instanceEnergy_inj : Function.Injective instanceEnergy := by
   · simp [instanceEnergy] at h
   · rfl
 
+/-- A computational basis ket has coordinate one at its own index and zero elsewhere. -/
 private theorem ket_eq_ite {D : ℕ} (i a : Fin D) :
     Qatlib.Foundations.PureStateMath.Ket i a = if i = a then (1 : ℂ) else 0 := by
   by_cases h : i = a <;> simp [Qatlib.Foundations.PureStateMath.Ket, h, eq_comm]
 
+/-- The outer operator between two computational basis kets is the corresponding matrix unit. -/
 private theorem ketbra_ket_eq_single {D : ℕ} (i j : Fin D) :
     ketbra (Qatlib.Foundations.PureStateMath.Ket i) (Qatlib.Foundations.PureStateMath.Ket j) = Matrix.single i j 1 := by
   ext a b
@@ -1206,6 +1309,7 @@ private theorem ketbra_ket_eq_single {D : ℕ} (i j : Fin D) :
   simp only [ketbra, Matrix.of_apply, Matrix.single, ket_eq_ite]
   by_cases ha : i = a <;> by_cases hb : j = b <;> simp [ha, hb]
 
+/-- Each energy projector of the two dimensional instance is its diagonal matrix unit. -/
 private theorem energyPi_instance (i : Fin 2) :
     energyPi instanceEnergy instanceBasis i = Matrix.single i i 1 := by
   have hfil : (Finset.univ.filter (fun j : Fin 2 => instanceEnergy j = instanceEnergy i))
@@ -1220,6 +1324,7 @@ private theorem energyPi_instance (i : Fin 2) :
   unfold energyPi instanceBasis
   rw [hfil, Finset.sum_singleton, ketbra_ket_eq_single]
 
+/-- Every index in the two dimensional instance represents its own energy level. -/
 private theorem isEnergyRep_instance (i : Fin 2) : isEnergyRep instanceEnergy i := by
   intro hex
   obtain ⟨j, hj, hlt⟩ := hex
@@ -1227,10 +1332,13 @@ private theorem isEnergyRep_instance (i : Fin 2) : isEnergyRep instanceEnergy i 
   subst hj
   omega
 
+/-- The thermal acceptance from level zero to itself at inverse temperature one is one. -/
 private theorem thermalAcceptance_instance_00 :
     thermalAcceptance instanceEnergy 1 0 0 = 1 := by
   simp [thermalAcceptance, instanceEnergy]
 
+/-- The thermal acceptance from level zero to level one at inverse temperature one is `exp
+(-1)`. -/
 private theorem thermalAcceptance_instance_01 :
     thermalAcceptance instanceEnergy 1 0 1 = Real.exp (-1) := by
   have h : (Real.exp (-(1:ℝ) * (instanceEnergy 1 - instanceEnergy 0)) : ℝ)
@@ -1243,6 +1351,7 @@ private theorem thermalAcceptance_instance_01 :
   rw [h]
   exact min_eq_right hlt.le
 
+/-- The thermal acceptance from level one to level zero at inverse temperature one is one. -/
 private theorem thermalAcceptance_instance_10 :
     thermalAcceptance instanceEnergy 1 1 0 = 1 := by
   have h : (Real.exp (-(1:ℝ) * (instanceEnergy 0 - instanceEnergy 1)) : ℝ)
@@ -1254,15 +1363,18 @@ private theorem thermalAcceptance_instance_10 :
   rw [h]
   exact min_eq_left hlt
 
+/-- The thermal acceptance from level one to itself at inverse temperature one is one. -/
 private theorem thermalAcceptance_instance_11 :
     thermalAcceptance instanceEnergy 1 1 1 = 1 := by
   simp [thermalAcceptance, instanceEnergy]
 
+/-- The product of two real inverse square roots of two equals one half. -/
 private theorem real_inv_sqrt_two_mul :
     (Real.sqrt 2 : ℝ)⁻¹ * (Real.sqrt 2 : ℝ)⁻¹ = 1 / 2 := by
   rw [← pow_two, inv_pow, Real.sq_sqrt (by norm_num)]
   norm_num
 
+/-- The product of two complex inverses of the real square root of two equals one half. -/
 private theorem coe_inv_sqrt_two_mul :
     ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ * ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ = 1 / 2 := by
   have h := congrArg ((↑) : ℝ → ℂ) real_inv_sqrt_two_mul
@@ -1270,11 +1382,13 @@ private theorem coe_inv_sqrt_two_mul :
   norm_num at h
   exact h
 
+/-- The square of the complex inverse of the real square root of two equals one half. -/
 private theorem coe_inv_sqrt_two_sq :
     ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ ^ 2 = 1 / 2 := by
   rw [pow_two]
   exact coe_inv_sqrt_two_mul
 
+/-- Oppositely indexed entries of `instanceProposal` have product one half. -/
 private theorem instanceProposal_mul_rev (i j : Fin 2) :
     instanceProposal j i * instanceProposal i j = (1 / 2 : ℂ) := by
   fin_cases i <;> fin_cases j <;>
@@ -1282,6 +1396,7 @@ private theorem instanceProposal_mul_rev (i j : Fin 2) :
     norm_num [mul_comm, RCLike.real_smul_eq_coe_mul] <;> ring_nf
   all_goals exact coe_inv_sqrt_two_sq
 
+/-- A sum over the singleton proposal ensemble equals its unique term. -/
 private theorem sum_ens_one {α : Type*} [AddCommMonoid α] (f : Fin instanceEnsemble.count → α) :
     ∑ c, f c = f ⟨0, by simp [instanceEnsemble]⟩ := by
   rw [Finset.sum_eq_single (⟨0, by simp [instanceEnsemble]⟩ : Fin instanceEnsemble.count)]
@@ -1296,11 +1411,14 @@ private theorem sum_ens_one {α : Type*} [AddCommMonoid α] (f : Fin instanceEns
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-- The singleton ensemble index can be removed from the stated triple sum. -/
 private theorem sum3_ens {α : Type*} [AddCommMonoid α] (g : Fin 2 → Fin 2 → α) :
     (∑ i : Fin 2, ∑ j : Fin 2, ∑ _c : Fin instanceEnsemble.count, g i j)
       = ∑ i : Fin 2, ∑ j : Fin 2, g i j := by
   simp only [sum_ens_one]
 
+/-- Sandwiching the input with instance proposal entries and diagonal matrix units yields half
+its selected diagonal entry times the output matrix unit. -/
 private theorem instance_sandwich (i j : Fin 2) (ρ : Operator 2) :
     (Matrix.single j j 1 : Operator 2) * instanceProposal * Matrix.single i i 1 * ρ *
       Matrix.single i i 1 * instanceProposal * Matrix.single j j 1
@@ -1325,6 +1443,7 @@ private theorem instance_sandwich (i j : Fin 2) (ρ : Operator 2) :
   congr 1
   field_simp
 
+/-- The instance proposal matrix equals its conjugate transpose. -/
 private theorem instanceProposal_hermitian :
     instanceProposal.conjTranspose = instanceProposal := by
   ext i j
@@ -1333,6 +1452,8 @@ private theorem instanceProposal_hermitian :
       Matrix.smul_apply] <;>
     norm_num [RCLike.real_smul_eq_coe_mul, Complex.conj_ofReal]
 
+/-- The acceptance map of the two dimensional instance is the stated diagonal operator
+determined by the two input diagonal entries and `exp (-1)`. -/
 private theorem temmeAcceptMap_instance (ρ : Operator 2) :
     temmeAcceptMap instanceEnergy instanceBasis instanceEnsemble 1 ρ =
       Matrix.diagonal fun j : Fin 2 =>
@@ -1378,18 +1499,22 @@ private theorem temmeAcceptMap_instance (ρ : Operator 2) :
   conv_lhs => rw [← Finset.sum_smul]
   rw [hcoeff, smul_single, smul_eq_mul, mul_one]
 
+/-- The Metropolis coin at acceptance parameter one is the two dimensional flip matrix. -/
 private theorem metropolisCoin_one : MetropolisCoin 1 = !![(0 : ℂ), 1; 1, 0] := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [MetropolisCoin, Real.sqrt_zero, Real.sqrt_one]
 
+/-- The two dimensional flip matrix equals its conjugate transpose. -/
 private theorem flip_lit_hermitian : (!![(0 : ℂ), 1; 1, 0])ᴴ = !![(0 : ℂ), 1; 1, 0] := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [Matrix.conjTranspose_apply]
 
+/-- The flip matrix is the sum of its two off diagonal matrix units. -/
 private theorem flip_lit_eq : !![(0 : ℂ), 1; 1, 0] = Matrix.single 0 1 1 + Matrix.single 1 0 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> simp [Matrix.single]
 
+/-- Conjugating a diagonal matrix unit by the flip matrix exchanges the two basis indices. -/
 private theorem flip_conj_single (k : Fin 2) :
     (!![(0 : ℂ), 1; 1, 0]) * Matrix.single k k 1 * (!![(0 : ℂ), 1; 1, 0])
       = Matrix.single (if k = 0 then (1 : Fin 2) else 0) (if k = 0 then (1 : Fin 2) else 0) 1 := by
@@ -1398,6 +1523,8 @@ private theorem flip_conj_single (k : Fin 2) :
     simp [Matrix.mul_add, Matrix.add_mul, Matrix.single_mul_single_same,
       Matrix.single_mul_single_of_ne]
 
+/-- The instance rejection factor from level one is the diagonal matrix unit selected by the
+Boolean outcome. -/
 private theorem temmeR_inst_one (σ : Bool) (j : Fin 2) :
     temmeR instanceEnergy 1 σ 1 j
       = Matrix.single (if σ then (0 : Fin 2) else 1) (if σ then (0 : Fin 2) else 1) 1 := by
@@ -1413,6 +1540,8 @@ private theorem temmeR_inst_one (σ : Bool) (j : Fin 2) :
   rw [ha, metropolisCoin_one, flip_lit_hermitian, hcoin, flip_conj_single]
   fin_cases σ <;> rfl
 
+/-- The product of two ketbra operators is the inner product of their middle vectors times the
+outer ketbra operator. -/
 private theorem ketbra_mul_ketbra {D : ℕ} (u v w x : QState (Fin D)) :
     ketbra u v * ketbra w x = Qatlib.Foundations.PureStateMath.Inner v w • ketbra u x := by
   have hinner : Qatlib.Foundations.PureStateMath.Inner v w = ∑ k : Fin D, star (v k) * w k := by
@@ -1425,6 +1554,7 @@ private theorem ketbra_mul_ketbra {D : ℕ} (u v w x : QState (Fin D)) :
   refine Finset.sum_congr rfl (fun k _ => ?_)
   ring
 
+/-- Left multiplication of a ketbra operator applies the matrix to its ket vector. -/
 private theorem mul_ketbra {D : ℕ} (C : Operator D) (u v : QState (Fin D)) :
     C * ketbra u v = ketbra (C *ᵥ u) v := by
   ext a b
@@ -1433,6 +1563,8 @@ private theorem mul_ketbra {D : ℕ} (C : Operator D) (u v : QState (Fin D)) :
   refine Finset.sum_congr rfl (fun k _ => ?_)
   ring
 
+/-- Right multiplication of a ketbra operator by a Hermitian matrix applies that matrix to its
+bra vector. -/
 private theorem ketbra_mul_herm {D : ℕ} (C : Operator D) (u v : QState (Fin D))
     (hC : C.conjTranspose = C) :
     ketbra u v * C = ketbra u (C *ᵥ v) := by
@@ -1450,14 +1582,20 @@ private theorem ketbra_mul_herm {D : ℕ} (C : Operator D) (u v : QState (Fin D)
   refine Finset.sum_congr rfl (fun k _ => ?_)
   ring
 
+/-- Left multiplication by a diagonal matrix unit extracts the corresponding overlap of the ket
+vector. -/
 private theorem single_ketbra {D : ℕ} (i : Fin D) (u v : QState (Fin D)) :
     Matrix.single i i 1 * ketbra u v = Qatlib.Foundations.PureStateMath.Inner (Qatlib.Foundations.PureStateMath.Ket i) u • ketbra (Qatlib.Foundations.PureStateMath.Ket i) v := by
   rw [← ketbra_ket_eq_single, ketbra_mul_ketbra]
 
+/-- Right multiplication by a diagonal matrix unit extracts the corresponding overlap of the bra
+vector. -/
 private theorem ketbra_single {D : ℕ} (j : Fin D) (u v : QState (Fin D)) :
     ketbra u v * Matrix.single j j 1 = Qatlib.Foundations.PureStateMath.Inner v (Qatlib.Foundations.PureStateMath.Ket j) • ketbra u (Qatlib.Foundations.PureStateMath.Ket j) := by
   rw [← ketbra_ket_eq_single, ketbra_mul_ketbra]
 
+/-- Sandwiching a diagonal matrix unit by a Hermitian operator gives the rank one operator of
+the transformed basis ket. -/
 private theorem herm_single_herm {D : ℕ} (C : Operator D) (j : Fin D)
     (hC : C.conjTranspose = C) :
     C * Matrix.single j j 1 * C = ketbra (C *ᵥ Qatlib.Foundations.PureStateMath.Ket j) (C *ᵥ Qatlib.Foundations.PureStateMath.Ket j) := by
@@ -1465,6 +1603,8 @@ private theorem herm_single_herm {D : ℕ} (C : Operator D) (j : Fin D)
       ketbra_mul_herm C (C *ᵥ Qatlib.Foundations.PureStateMath.Ket j)
       (Qatlib.Foundations.PureStateMath.Ket j) hC]
 
+/-- Every coefficient `temmeG` starting at level one of the instance vanishes at inverse
+temperature one. -/
 private theorem temmeG_instance_one (n : ℕ) (s : Fin n → Bool)
     (l r : Fin (n + 1) → Fin 2) :
     temmeG instanceEnergy 1 1 n s l r = 0 := by
@@ -1496,6 +1636,8 @@ set_option maxHeartbeats 2000000
 set_option maxRecDepth 4096
 set_option backward.isDefEq.respectTransparency false
 
+/-- At zero inverse temperature, the false rejection factor is the diagonal matrix unit at index
+one. -/
 theorem temmeR_zero_beta_false {D : ℕ} (E : Fin D → ℝ) (i j : Fin D) :
     temmeR E 0 false i j = Matrix.single 1 1 1 := by
   ext a b
@@ -1503,6 +1645,7 @@ theorem temmeR_zero_beta_false {D : ℕ} (E : Fin D → ℝ) (i j : Fin D) :
     norm_num [temmeR,thermalAcceptance,MetropolisCoin,coinProjector,ketbra,Qatlib.Foundations.PureStateMath.Ket,
       Matrix.mul_apply,Fin.sum_univ_two]
 
+/-- At zero inverse temperature, every coefficient `temmeG` vanishes. -/
 theorem temmeG_zero_beta {D : ℕ} (E : Fin D → ℝ) (i : Fin D) (n : ℕ)
     (s : Fin n → Bool) (l r : Fin (n+1) → Fin D) : temmeG E 0 i n s l r = 0 := by
   have hword : ∃ tail : List (Operator 2),
@@ -1516,22 +1659,29 @@ theorem temmeG_zero_beta {D : ℕ} (E : Fin D → ℝ) (i : Fin D) (n : ℕ)
     Matrix.single_mulVec]
   simp
 
+/-- The total Temme rejection map is zero at zero inverse temperature. -/
 theorem temme_rejection_zero_beta {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QState (Fin D))
     (ens : ProposalEnsemble D) (ρ : Operator D) : temmeBtotal E ψ ens 0 ρ = 0 := by
   have hb (C : Operator D) (n : ℕ) (s : Fin n → Bool) : temmeBnMap E ψ C 0 n s ρ = 0 := by
     simp [temmeBnMap,temmeG_zero_beta]
   simp [temmeBtotal,hb]
 
+/-- The four dimensional permutation matrix cycling the first three basis vectors and fixing the
+fourth. -/
 def duplicateCycle : Operator 4 := !![0,0,1,0;1,0,0,0;0,1,0,0;0,0,0,1]
 
+/-- The permutation matrix `duplicateCycle` is unitary. -/
 theorem duplicateCycle_unitary : duplicateCycle ∈ Matrix.unitaryGroup _ ℂ := by
   rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose]
   ext i j
   fin_cases i <;> fin_cases j <;> norm_num [duplicateCycle,Matrix.mul_apply,Fin.sum_univ_succ]
 
+/-- The equally weighted three entry proposal ensemble containing two copies of `duplicateCycle`
+and one copy of its adjoint. -/
 noncomputable abbrev duplicateEnsemble : ProposalEnsemble 4 :=
   ⟨3,fun _ => 1/3,fun i => if i=2 then duplicateCycleᴴ else duplicateCycle⟩
 
+/-- The duplicate proposal ensemble satisfies `proposalEnsembleLegal`. -/
 theorem duplicateEnsemble_legal : proposalEnsembleLegal duplicateEnsemble := by
   refine ⟨fun _ => by norm_num [duplicateEnsemble],?_,?_⟩
   · norm_num [duplicateEnsemble,Fin.sum_univ_succ]
@@ -1541,6 +1691,7 @@ theorem duplicateEnsemble_legal : proposalEnsembleLegal duplicateEnsemble := by
         Qatlib.Concepts.Execution.WorkspaceCP.adjoint_unitary duplicateCycle_unitary
     · simpa [duplicateEnsemble,hi] using! duplicateCycle_unitary
 
+/-- The duplicate proposal ensemble satisfies the predicate `proposalSymmetric`. -/
 theorem duplicateEnsemble_symmetric : proposalSymmetric duplicateEnsemble := by
   intro j
   by_cases hj : j=2
@@ -1549,6 +1700,8 @@ theorem duplicateEnsemble_symmetric : proposalSymmetric duplicateEnsemble := by
   · refine ⟨2,rfl,?_⟩
     simp [hj]
 
+/-- For the constant zero energy function on four indices, only index zero is an energy
+representative. -/
 theorem zero_energy_rep (i : Fin 4) : isEnergyRep (fun _ : Fin 4 => (0:ℝ)) i ↔ i=0 := by
   constructor
   · intro h
@@ -1558,6 +1711,8 @@ theorem zero_energy_rep (i : Fin 4) : isEnergyRep (fun _ : Fin 4 => (0:ℝ)) i �
   · rintro rfl ⟨j,_,hj⟩
     exact Nat.not_lt_zero _ hj
 
+/-- Every energy projector for the constant zero energy function in the computational basis is
+the identity. -/
 theorem zero_energy_projector (i : Fin 4) : energyPi (fun _ : Fin 4 => (0:ℝ)) Qatlib.Foundations.PureStateMath.Ket i = 1 := by
   have hket (j a : Fin 4) : Qatlib.Foundations.PureStateMath.Ket j a = if j=a then (1:ℂ) else 0 := by
     by_cases h : j=a <;> simp [Qatlib.Foundations.PureStateMath.Ket,h,eq_comm]
@@ -1569,6 +1724,8 @@ theorem zero_energy_projector (i : Fin 4) : energyPi (fun _ : Fin 4 => (0:ℝ)) 
   simp_rw [hk]
   exact Matrix.sum_single_one
 
+/-- For the duplicate ensemble at zero energy and inverse temperature zero, the Temme map is the
+mixture of forward and reverse cycle conjugations with weights two thirds and one third. -/
 theorem duplicate_temmemap (ρ : Operator 4) :
     temmeMapFun (fun _ : Fin 4 => (0:ℝ)) Qatlib.Foundations.PureStateMath.Ket duplicateEnsemble 0 ρ =
       (2/3:ℝ) • (duplicateCycle*ρ*duplicateCycleᴴ) +
@@ -1579,6 +1736,7 @@ theorem duplicate_temmemap (ρ : Operator 4) :
   simp [Fin.sum_univ_succ]
   module
 
+/-- The Gibbs state of the four dimensional zero energy example is one quarter of the identity. -/
 theorem duplicate_gibbs : temmeGibbsState 4 (by decide) (fun _ => 0) 0 Qatlib.Foundations.PureStateMath.Ket =
     (1/4:ℝ) • (1 : Operator 4) := by
   have hp (i : Fin 4) : (diagonalGibbsDist 4 (by decide) (fun _ => 0) 0).prob i = 1/4 := by
@@ -1590,6 +1748,8 @@ theorem duplicate_gibbs : temmeGibbsState 4 (by decide) (fun _ => 0) 0 Qatlib.Fo
     simpa [energyPi] using! zero_energy_projector 0
   rw [hpi]
 
+/-- The positive square root of the Gibbs state in the duplicate example is one half of the
+identity. -/
 theorem duplicate_gibbs_sqrt : densSqrt (temmeGibbsState 4 (by decide) (fun _ => 0) 0 Qatlib.Foundations.PureStateMath.Ket) =
     (1/2:ℝ) • (1 : Operator 4) := by
   rw [densSqrt,duplicate_gibbs,← Algebra.algebraMap_eq_smul_one,cfc_algebraMap,
@@ -1597,6 +1757,8 @@ theorem duplicate_gibbs_sqrt : densSqrt (temmeGibbsState 4 (by decide) (fun _ =>
   congr 1
   rw [show (1/4:ℝ) = (1/2)^2 by norm_num,Real.sqrt_sq (by norm_num : (0:ℝ) ≤ 1/2)]
 
+/-- No complex linear realization of the duplicate example Temme map satisfies quantum detailed
+balance with its Gibbs state. -/
 theorem duplicate_detailed_balance_impossible (T : Operator 4 →ₗ[ℂ] Operator 4)
     (hT : ∀ ρ, T ρ = temmeMapFun (fun _ : Fin 4 => (0:ℝ)) Qatlib.Foundations.PureStateMath.Ket duplicateEnsemble 0 ρ) :
     ¬ QuantumDetailedBalance T (temmeGibbsState 4 (by decide) (fun _ => 0) 0 Qatlib.Foundations.PureStateMath.Ket) := by
@@ -1610,6 +1772,7 @@ theorem duplicate_detailed_balance_impossible (T : Operator 4 →ₗ[ℂ] Operat
     Matrix.conjTranspose_apply] at h
   norm_num [Fin.sum_univ_succ, Matrix.single, duplicateCycle, MulOpposite.op_one] at h
 
+/-- The universal detailed balance contract `clause42Body` is false. -/
 theorem clause42_contract_false : ¬ clause42Body := by
   intro h
   have hb (x : QState (Fin 4)) : ∑ i, Qatlib.Foundations.PureStateMath.Inner (Qatlib.Foundations.PureStateMath.Ket i) x • Qatlib.Foundations.PureStateMath.Ket i = x := by

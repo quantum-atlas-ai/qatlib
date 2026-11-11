@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LocalHam06.MainResults.OperatorDefs
+
+/-!
+# The projection lemma for ground energy
+
+The theorem `projection_lemma` gives the two-sided ground-energy estimate of Lemma 1 in
+[KempeKitaevRegev2006]. A symmetric penalty vanishing on a nonzero subspace and bounded below by
+`J` on its orthogonal complement confines the total ground energy to an interval around the
+section energy of the other summand.
+
+## Main statements
+
+* `projection_lemma`: Bounds the ground energy between the section energy and that energy minus
+  `‖H1‖^2 / (J - 2 * ‖H1‖)`.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option warningAsError false
 
 noncomputable section
@@ -21,6 +40,9 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
 set_option maxHeartbeats 400000 in
 
+/-- Under the stated symmetry, kernel, and penalty-gap hypotheses with `J > 2 * ‖H1‖`, the
+ground energy of `H1 + H2` lies between `sectionEnergy S H1 - ‖H1‖^2 / (J - 2 * ‖H1‖)` and
+`sectionEnergy S H1`. This is the projection lemma of [KempeKitaevRegev2006]. -/
 theorem projection_lemma
     (S : Submodule ℂ E) (H1 H2 : E →L[ℂ] E) (J : ℝ)
     (hH1 : (H1 : E →ₗ[ℂ] E).IsSymmetric)

@@ -16,6 +16,24 @@ import Mathlib.Tactic.NormNum.RealSqrt
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawStat
 import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
 import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogFourierLaw
+
+/-!
+# Corrected two-dimensional sampling law
+
+Proves `dlogTwoDimSamplingLaw`, including normalization and the correctly scaled fiber
+probability formula. It also refutes the legacy formula, identifying the missing reciprocal
+Fourier-modulus factor in the discrete-logarithm sampling analysis associated with [Shor1997].
+
+## Main statements
+
+* `dlogTwoDimSamplingLaw`: Establishes the corrected sampling law.
+* `dlogTwoDimSamplingLaw_false`: Refutes the legacy sampling-law contract.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +47,7 @@ open Qatlib
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- The legacy two-dimensional sampling-law contract is false. -/
 theorem dlogTwoDimSamplingLaw_false : ¬ DlogTwoDimSamplingLawLegacy := by
   intro h
   letI : Fact (Nat.Prime 2) := ⟨by decide⟩
@@ -42,6 +61,9 @@ theorem dlogTwoDimSamplingLaw_false : ¬ DlogTwoDimSamplingLawLegacy := by
   have hn : (2 : ZMod 3) ≠ 1 := by decide
   norm_num [offGridPhase, hn] at hh
 
+/-- Establishes normalization and the full and single-fiber Born-probability formulas, including
+the reciprocal Fourier-modulus factor, for the discrete-logarithm construction associated
+with [Shor1997]. -/
 theorem dlogTwoDimSamplingLaw : DlogTwoDimSamplingLaw := by
   intro p q _ g x _hprime hp _hx0 hpq ho r hx
   refine ⟨dlog_state_normalized p q g x (by omega) hpq, ?_, ?_⟩

@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
 import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
 import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
+
+/-!
+# Positive filters for T-transforms
+
+This module proves that a T-transform with mixing parameter in the unit interval preserves
+strict positivity. For a strictly positive spectrum of sum one, `exists_admissible_filter`
+chooses a positive parameter making every filter value lie in the unit interval.
+
+The theorem `exists_tTransformCriterion` packages these estimates into `TTransformCriterion`,
+supplying a filter-existence ingredient for the transformations studied in [Nielsen1999].
+
+## Main statements
+
+* `tTransformSpectrum_pos`: proves strict positivity after mixing.
+* `exists_admissible_filter`: constructs a positive parameter with bounded filter values.
+* `exists_tTransformCriterion`: establishes the packaged T-transform criterion.
+
+## References
+
+* [Nielsen, 1999][Nielsen1999]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +42,8 @@ open Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
 open Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
 open scoped BigOperators
 
+/-- A T-transform with mixing parameter in `[0, 1]` preserves strict positivity of all
+coordinates [Nielsen1999]. -/
 theorem tTransformSpectrum_pos {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D)
     (hpos : ∀ j, 0 < spec j) (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) (j : Fin D) :
     0 < tTransformSpectrum spec θ k l j := by
@@ -44,6 +68,8 @@ theorem tTransformSpectrum_pos {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (k l 
     · rw [tTransformSpectrum_of_ne spec θ k l j hjk hjl]
       exact hpos j
 
+/-- For a strictly positive spectrum with sum one and a mixing parameter in `[0, 1]`, there is a
+positive `p` making every T-transform filter value lie in `[0, 1]` [Nielsen1999]. -/
 theorem exists_admissible_filter {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D)
     (hpos : ∀ j, 0 < spec j) (hsum : (∑ j, spec j) = 1)
     (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) :
@@ -82,6 +108,8 @@ theorem exists_admissible_filter {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (k 
           mul_le_mul_of_nonneg_right (hp_le j) (le_of_lt (hApos j))
       _ = spec j := div_mul_cancel₀ _ (ne_of_gt (hApos j))
 
+/-- For a strictly positive spectrum with sum one and a mixing parameter in `[0, 1]`, there is a
+positive `p` satisfying `TTransformCriterion D E spec p θ k l` [Nielsen1999]. -/
 theorem exists_tTransformCriterion {D E : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D)
     (hpos : ∀ j, 0 < spec j) (hsum : (∑ j, spec j) = 1)
     (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) :

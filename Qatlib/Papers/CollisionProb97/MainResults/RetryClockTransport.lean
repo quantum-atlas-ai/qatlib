@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
 import Mathlib.Tactic
+
+/-!
+# Transporting retry executions and clocks
+
+This module transports probabilistic retry executions along maps of output and state types.
+These identities connect record-returning retries with simpler projections in the collision
+framework of [BrassardHoyerTapp1998Collision].
+
+The results preserve finite execution laws, pending mass, nontermination mass, and expected
+time, including the branch clocks that account for variable query costs.
+
+## Main statements
+
+* `runFor_transport`: Finite retry execution commutes with compatible maps of outputs and
+  continuing states, preserving recorded costs.
+* `never_mean_transport`: Compatible configuration maps preserve nontermination mass and
+  unbounded expected execution time.
+* `branch_never_mean_transport`: Compatible relabeling of costed branch outputs preserves the
+  clocked nontermination mass and unbounded expected time.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
@@ -17,11 +42,14 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline
 namespace Qatlib.Papers.CollisionProb97.MainResults.RetryClockTransport
 variable {S1 S2 O1 O2 : Type}
 
+/-- Maps terminal outputs and continuing states separately in a retry configuration. -/
 def mapConfig (f : O1 → O2) (h : S1 → S2) : O1 ⊕ S1 → O2 ⊕ S2 := Sum.map f h
 
+/-- Maps a retry configuration while leaving its recorded natural-number cost unchanged. -/
 def mapReceipt (f : O1 → O2) (h : S1 → S2) (z : (O1 ⊕ S1) × ℕ) : (O2 ⊕ S2) × ℕ :=
  (mapConfig f h z.1, z.2)
 
+/-- A single retry tick commutes with compatible maps of outputs and continuing states. -/
 theorem tick_transport (f : O1 → O2) (h : S1 → S2)
  (n1 : S1 → PMF (O1 ⊕ S1)) (n2 : S2 → PMF (O2 ⊕ S2))
  (hn : ∀ s, n2 (h s) = (n1 s).map (mapConfig f h)) (cfg : O1 ⊕ S1) :
@@ -30,6 +58,8 @@ theorem tick_transport (f : O1 → O2) (h : S1 → S2)
  | inl o => simp [tick, mapReceipt, mapConfig, CostedLaw.ret, PMF.pure_map]
  | inr s => simp [tick, mapReceipt, mapConfig, hn, PMF.map_comp, Function.comp_def]
 
+/-- Finite retry execution commutes with compatible maps of outputs and continuing states,
+preserving recorded costs. -/
 theorem runFor_transport (f : O1 → O2) (h : S1 → S2)
  (n1 : S1 → PMF (O1 ⊕ S1)) (n2 : S2 → PMF (O2 ⊕ S2))
  (hn : ∀ s, n2 (h s) = (n1 s).map (mapConfig f h))
@@ -48,6 +78,8 @@ theorem runFor_transport (f : O1 → O2) (h : S1 → S2)
    rw [← tick_transport f h n1 n2 hn cfg, CostedLaw.bind, PMF.bind_map]
    rfl
 
+/-- Compatible configuration maps preserve the probability mass of pending executions after any
+finite fuel. -/
 theorem pending_transport (f : O1 → O2) (h : S1 → S2)
  (n1 : S1 → PMF (O1 ⊕ S1)) (n2 : S2 → PMF (O2 ⊕ S2))
  (hn : ∀ s, n2 (h s) = (n1 s).map (mapConfig f h))
@@ -60,6 +92,8 @@ theorem pending_transport (f : O1 → O2) (h : S1 → S2)
  rintro ⟨c,k⟩
  cases c <;> simp [mapReceipt, mapConfig]
 
+/-- Compatible configuration maps preserve nontermination mass and unbounded expected execution
+time. -/
 theorem never_mean_transport (f : O1 → O2) (h : S1 → S2)
  (n1 : S1 → PMF (O1 ⊕ S1)) (n2 : S2 → PMF (O2 ⊕ S2))
  (hn : ∀ s, n2 (h s) = (n1 s).map (mapConfig f h)) (cfg : O1 ⊕ S1) :
@@ -71,19 +105,25 @@ theorem never_mean_transport (f : O1 → O2) (h : S1 → S2)
  · unfold generalUnboundedTime
    simp_rw [pending_transport f h n1 n2 hn]
 
+/-- Relabels terminal outputs within a branch-clock state while preserving continuing states and
+clock values. -/
 def mapClockState {S : Type} (f : O1 → O2) : BranchClock S O1 → BranchClock S O2
  | .inl s => .inl s
  | .inr z => .inr (mapConfig f id z.1, z.2)
 
+/-- Relabeling commutes with embedding a configuration into its branch clock. -/
 theorem mapClock_embed {S : Type} (f : O1 → O2) (cfg : O1 ⊕ S) :
  mapConfig f (mapClockState f) (branchClockEmbed cfg) = branchClockEmbed (mapConfig f id cfg) := by
  cases cfg <;> rfl
 
+/-- Relabeling commutes with inserting a branch-clock delay of `k` steps. -/
 theorem mapClock_delay {S : Type} (f : O1 → O2) (cfg : O1 ⊕ S) (k : ℕ) :
  mapConfig f (mapClockState f) (branchClockDelay cfg k) = branchClockDelay (mapConfig f id cfg) k := by
  cases cfg <;> by_cases hk : k=0 <;>
   simp [branchClockDelay, hk, mapClockState, mapConfig, branchClockEmbed]
 
+/-- Branch-clock transitions commute with output relabeling when the underlying costed branch
+laws do. -/
 theorem clock_next_transport {S : Type} (f : O1 → O2)
  (n1 : S → PMF ((O1 ⊕ S) × ℕ)) (n2 : S → PMF ((O2 ⊕ S) × ℕ))
  (hn : ∀ s, n2 s = (n1 s).map (mapReceipt f id)) (s : BranchClock S O1) :
@@ -99,6 +139,8 @@ theorem clock_next_transport {S : Type} (f : O1 → O2)
    simp only [mapClockState, branchClockNext, PMF.pure_map]
    exact congrArg PMF.pure (mapClock_delay f z.1 (z.2-1)).symm
 
+/-- Compatible relabeling of costed branch outputs preserves the clocked nontermination mass and
+unbounded expected time. -/
 theorem branch_never_mean_transport {S : Type} (f : O1 → O2)
  (n1 : S → PMF ((O1 ⊕ S) × ℕ)) (n2 : S → PMF ((O2 ⊕ S) × ℕ))
  (hn : ∀ s, n2 s = (n1 s).map (mapReceipt f id)) (cfg : O1 ⊕ S) :

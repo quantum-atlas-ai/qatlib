@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary62Stat
 import Qatlib.Concepts.CircuitImpl.SqrtApprox.UnitarySqrtChain
+
+/-!
+# Elementary synthesis of doubly controlled unitaries
+
+The word `sourceDoubleSteps` implements a doubly controlled square of a known qubit unitary on a
+target fibre. Its legality and action establish `corollary6_2`, the elementary-gate formulation
+of Corollary 6.2 in [BarencoEtAl1995], with at most eight single-qubit gates and eight CNOTs.
+
+## Main statements
+
+* `sourceDoubleSteps_action`: Exact target-fibre semantics of the sixteen-gate word.
+* `corollary6_2`: Query-free synthesis of any doubly controlled qubit unitary.
+
+## References
+
+* [Barenco et al., 1995][BarencoEtAl1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,6 +43,8 @@ namespace Qatlib.Concepts.CircuitImpl.MultiControl
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- A CNOT on two wires distinct from the fibre target updates its background target bit and
+leaves the fibre state unchanged. -/
 private theorem fibre_other_cnot {N : ℕ} (a b t : Fin N)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) (x : Reg N) (φ : QState Bool) :
     ApplyGate (cnotGate N a b) (multiWireState t x φ) =
@@ -34,6 +54,7 @@ private theorem fibre_other_cnot {N : ℕ} (a b t : Fin N)
     Function.update_of_ne hbt]
   rw [Function.update_comm hbt, Function.update_comm hbt]
 
+/-- The sixteen-gate word for a doubly controlled square of the qubit unitary specified by `p`. -/
 private def sourceDoubleSteps {N : ℕ} (a b t : Fin N) (p : KnownQubitAngles) :
     List (ReflectionGate N) :=
   let A : Matrix Bool Bool ℂ := knownQubitUnitary (knownControlA p)
@@ -44,6 +65,8 @@ private def sourceDoubleSteps {N : ℕ} (a b t : Fin N) (p : KnownQubitAngles) :
    .inr (b,a), .inr (a,t), .inl (t,Bᴴ), .inr (a,t), .inl (a,Eᴴ),
    .inr (b,a), .inl (b,E), .inr (b,t), .inl (t,B), .inr (b,t), .inl (t,A)]
 
+/-- The doubly controlled gate word is legal when its two controls and target are pairwise
+distinct. -/
 private theorem sourceDoubleSteps_legal {N : ℕ} (a b t : Fin N)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) (p : KnownQubitAngles) :
     reflectionLegal (sourceDoubleSteps a b t p) := by
@@ -70,6 +93,8 @@ private theorem sourceDoubleSteps_legal {N : ℕ} (a b t : Fin N)
   · exact hbt
   · exact knownQubitUnitary_unitary (knownControlA p)
 
+/-- The doubly controlled word applies the square of `knownQubitUnitary p` exactly when both
+control bits are true. -/
 private theorem sourceDoubleSteps_action {N : ℕ} (a b t : Fin N)
     (hab : a ≠ b) (hat : a ≠ t) (hbt : b ≠ t) (p : KnownQubitAngles)
     (x : Reg N) (φ : QState Bool) :
@@ -141,6 +166,8 @@ private theorem sourceDoubleSteps_action {N : ℕ} (a b t : Fin N)
   rw [← multiWireState_smul, ← applyGate_smul, ← hV]
   simp only [Matrix.smul_mul, Matrix.mul_smul, smul_smul, Matrix.mul_assoc, hCA']
 
+/-- Every doubly controlled qubit unitary has a legal, query-free implementation with at most
+eight single-qubit gates and eight CNOTs [Barenco et al., Corollary 6.2][BarencoEtAl1995]. -/
 theorem corollary6_2 : Corollary6_2 := by
   intro N c t hc hct U hU
   have hab : c 0 ≠ c 1 := fun he => by

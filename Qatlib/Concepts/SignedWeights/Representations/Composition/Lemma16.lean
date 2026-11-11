@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
 import Qatlib.Foundations.PureStateMath.Qubit
+
+/-!
+# Norms and Eigenvectors of Composed Witnesses
+
+This module exposes the matrix norm and eigenvector calculations underlying the adversary
+composition construction in [HoyerLeeSpalek2007]. For Hermitian outer and inner matrices whose
+inner entries vanish on equal-output pairs, the operator norm of `weightedAdvGamma` is the outer
+norm times the product of the inner norms.
+
+The explicit product vector evaluates the outer vector on the inner output word and multiplies
+it by the inner vector coordinates. The eigenvector statements retain their respective
+nonzero-vector and positive-inner-norm hypotheses.
+
+## Main statements
+
+- `lemma16_norm_eq` gives the product formula for the operator norm.
+* `lemma16_product_eigenvector` verifies the explicit product eigenvector and its extremal
+  eigenvalue magnitude.
+* `lemma16_principal_eigenvector_exists` supplies a nonzero norm-attaining eigenvector when all
+  inner norms are positive.
+
+## References
+
+* [Hoyer, Lee, and Spalek, 2007][HoyerLeeSpalek2007], Negative weights make adversaries
+  stronger, Lemma 16.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +47,9 @@ open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
 
 noncomputable section
 
+/-- For Hermitian factors whose inner entries vanish on equal-output pairs, the norm of
+`weightedAdvGamma` is the outer norm times the product of the inner norms, as in Lemma 16 of
+[HoyerLeeSpalek2007]. -/
 theorem lemma16_norm_eq
     {k : ℕ} {X : Fin k → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
@@ -32,6 +62,10 @@ theorem lemma16_norm_eq
     ‖weightedAdvGamma g f Gf Gg‖ = ‖Gf‖ * ∏ i, ‖Gg i‖ :=
   weightedAdvGamma_norm_eq g f Gf Gg hGf hGg hzg
 
+/-- Given an extremal outer eigenvector and inner eigenvectors with eigenvalues equal to the
+inner norms, their nonzero product vector is an eigenvector of `weightedAdvGamma`. Its
+eigenvalue is the outer eigenvalue times the product of inner norms and has magnitude equal
+to the composed norm, as in [HoyerLeeSpalek2007]. -/
 theorem lemma16_product_eigenvector
     {k : ℕ} {X : Fin k → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
@@ -90,6 +124,9 @@ theorem lemma16_product_eigenvector
   · rw [abs_mul, abs_of_nonneg (Finset.prod_nonneg (fun i _ => norm_nonneg (Gg i))),
       habsf, weightedAdvGamma_norm_eq g f Gf Gg hGf hGg hzg]
 
+/-- When the Hermitian inner factors have positive norms and vanish on equal-output pairs, the
+composed matrix has a nonzero eigenvector whose eigenvalue magnitude is the outer norm times
+the product of inner norms, as in [HoyerLeeSpalek2007]. -/
 theorem lemma16_principal_eigenvector_exists
     {k : ℕ} {X : Fin k → Type}
     [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]

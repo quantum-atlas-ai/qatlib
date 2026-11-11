@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportStat
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportAux
+
+/-!
+# Cascade prefix transport theorem
+
+This module establishes `CascadePrefixTransport` for legal growing-history runs. The proof
+propagates the live component and a reached bad remainder through stage execution and
+amplification, while retaining legality, normalization, and the time recurrence.
+
+This development concerns variable-time amplitude amplification in [Ambainis2012].
+
+## Main statements
+
+* `cascadePrefixTransport_answer`: proof of the cascade transport contract.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +40,9 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.StopModel
 open Matrix
 open scoped Classical
 
+/-- Scheduled cascades satisfy the prefix invariants, time recurrence, and final good-component
+proportionality in `CascadePrefixTransport`, corresponding to Algorithms 1–2 and equations
+(4)–(6) of [Ambainis2012]. -/
 theorem cascadePrefixTransport_answer : CascadePrefixTransport := by
   intro C _ _ stages history hl j₀ hj hs schedule
   have hinv : ∀ i, i ≤ stages.length →

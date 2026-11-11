@@ -6,6 +6,23 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem4QCharacterizationStat
 import Qatlib.Concepts.QsvtCore.PhaseExistence.PairCompletionDuality
+
+/-!
+# Characterization of the lower response polynomial
+
+`theorem4QCharacterization` proves the criterion for a complex polynomial to be the lower
+component of a `CompletedPair`. Its interval bound is weighted by `1 - x^2`, and odd length
+additionally requires a weighted lower bound on the imaginary axis. See [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `theorem4QCharacterization`: characterize existence of a completed upper partner.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
@@ -18,6 +35,9 @@ namespace Qatlib.Concepts.QsvtCore.PhaseExistence
 open Polynomial Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
 
+/-- A polynomial has a completed upper partner exactly when it satisfies the prescribed degree,
+parity, weighted interval bound, and odd-length imaginary-axis bound. This is the
+lower-polynomial criterion of [Gilyén et al., Theorem 4][GilyenSuLowWiebe2019]. -/
 theorem theorem4QCharacterization : Theorem4QCharacterization := by
   intro k Q
   refine ⟨?_, ?_⟩

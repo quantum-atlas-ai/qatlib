@@ -63,6 +63,30 @@ import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2Finite
+
+/-!
+# Signal matrices and polynomial QSP form
+
+`SignalMatrix`, `PhaseRotation`, and `QSPWord` fix a two-dimensional quantum signal-processing
+convention and establish unitarity on `[-1, 1]`. Entrywise formulas identify each signal-phase
+factor explicitly.
+
+`EvalParity` tracks parity under evaluation. `qsp_function_form` represents diagonal word
+entries by polynomials and off-diagonal entries by `i * √(1 - x^2)` times polynomials, with
+degree and parity bounds determined by word length, as in [LowChuang2017].
+
+## Main statements
+
+* `qspWord_unitary`: prove unitarity of the signal word.
+* `qsp_function_form_aux`: construct response polynomials with parity and empty-word
+  information.
+* `qsp_function_form`: expose polynomial entry formulas and degree bounds.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -74,18 +98,22 @@ open Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit
 
 namespace Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs
 
+/-- The two-dimensional signal matrix with diagonal `x` and off-diagonal `i * √(1 - x^2)`. -/
 noncomputable def SignalMatrix (x : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   Matrix.of fun a b => if a = b then ((x : ℂ))
     else ((Real.sqrt (1 - x ^ 2) : ℂ)) * Complex.I
 
+/-- The entrywise formula for `SignalMatrix`. -/
 theorem signalMatrix_apply (x : ℝ) (a b : Fin 2) :
     SignalMatrix x a b = if a = b then ((x : ℂ))
       else ((Real.sqrt (1 - x ^ 2) : ℂ)) * Complex.I := rfl
 
+/-- The diagonal phase rotation with entries `exp(i * φ)` and `exp(-i * φ)`. -/
 noncomputable def PhaseRotation (φ : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   Matrix.diagonal fun a => if a = 0 then Complex.exp ((φ : ℂ) * Complex.I)
     else Complex.exp ((-φ : ℂ) * Complex.I)
 
+/-- The signal matrix is unitary for `-1 ≤ x ≤ 1`. -/
 theorem signalMatrix_unitary {x : ℝ} (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
     SignalMatrix x ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -119,6 +147,7 @@ theorem signalMatrix_unitary {x : ℝ} (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
   · rw [h2, neg_neg, add_comm]
     exact hd
 
+/-- Every real-angle phase rotation is unitary. -/
 theorem phaseRotation_unitary (φ : ℝ) :
     PhaseRotation φ ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -139,9 +168,11 @@ theorem phaseRotation_unitary (φ : ℝ) :
       rw [h1]
       simp [Complex.norm_exp_ofReal_mul_I])
 
+/-- The product of signal matrices followed by the phase rotations listed in `phis`. -/
 noncomputable def QSPWord (phis : List ℝ) (x : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
   (phis.map (fun φ => SignalMatrix x * PhaseRotation φ)).foldl (· * ·) 1
 
+/-- A multiplicative left fold starting at `a` factors as `a` times the fold starting at one. -/
 private theorem foldl_mul_prefix {M : Type*} [Monoid M] (l : List M) (a : M) :
     List.foldl (· * ·) a l = a * List.foldl (· * ·) 1 l := by
   induction l generalizing a with
@@ -149,6 +180,7 @@ private theorem foldl_mul_prefix {M : Type*} [Monoid M] (l : List M) (a : M) :
   | cons x xs ih =>
     rw [List.foldl_cons, ih, List.foldl_cons, ih (1 * x), one_mul, mul_assoc]
 
+/-- A QSP word is unitary for signals in `[-1, 1]`. -/
 theorem qspWord_unitary (phis : List ℝ) {x : ℝ} (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
     QSPWord phis x ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
   induction phis with
@@ -166,18 +198,23 @@ theorem qspWord_unitary (phis : List ℝ) {x : ℝ} (hx1 : -1 ≤ x) (hx2 : x �
       ih
 open Polynomial
 
+/-- The empty QSP word is the identity matrix. -/
 theorem qspWord_nil (x : ℝ) : QSPWord [] x = 1 := rfl
 
+/-- A nonempty QSP word factors into its first signal-phase matrix and the remaining word. -/
 theorem qspWord_cons (φ : ℝ) (rest : List ℝ) (x : ℝ) :
     QSPWord (φ :: rest) x = (SignalMatrix x * PhaseRotation φ) * QSPWord rest x := by
   simp only [QSPWord, List.map_cons, List.foldl_cons, one_mul]
   exact foldl_mul_prefix _ _
 
+/-- The entrywise formula for a diagonal phase rotation. -/
 theorem phaseRotation_apply (φ : ℝ) (a b : Fin 2) :
     PhaseRotation φ a b = if a = b then
       (if a = 0 then Complex.exp ((φ : ℂ) * Complex.I)
         else Complex.exp ((-φ : ℂ) * Complex.I)) else 0 := rfl
 
+/-- Each entry of a signal-phase product is the signal entry times the phase rotation's
+corresponding diagonal entry. -/
 theorem signalMatrix_mul_phaseRotation_apply (x φ : ℝ) (a b : Fin 2) :
     (SignalMatrix x * PhaseRotation φ) a b
       = SignalMatrix x a b * PhaseRotation φ b b := by
@@ -186,12 +223,14 @@ theorem signalMatrix_mul_phaseRotation_apply (x φ : ℝ) (a b : Fin 2) :
         else Complex.exp ((-φ : ℂ) * Complex.I)) := rfl
   rw [hPR, Matrix.mul_diagonal, Matrix.diagonal_apply, if_pos rfl]
 
+/-- The upper-left entry of a signal-phase factor is `x * exp(i * φ)`. -/
 theorem signalMatrix_mul_phaseRotation_zero_zero (x φ : ℝ) :
     (SignalMatrix x * PhaseRotation φ) 0 0
       = (x : ℂ) * Complex.exp ((φ : ℂ) * Complex.I) := by
   rw [signalMatrix_mul_phaseRotation_apply, signalMatrix_apply, phaseRotation_apply,
     if_pos rfl, if_pos rfl, if_pos rfl]
 
+/-- The upper-right entry of a signal-phase factor is `i * √(1 - x^2) * exp(-i * φ)`. -/
 theorem signalMatrix_mul_phaseRotation_zero_one (x φ : ℝ) :
     (SignalMatrix x * PhaseRotation φ) 0 1
       = (Real.sqrt (1 - x ^ 2) : ℂ) * Complex.I * Complex.exp ((-φ : ℂ) * Complex.I) := by
@@ -199,18 +238,22 @@ theorem signalMatrix_mul_phaseRotation_zero_one (x φ : ℝ) :
     if_neg (by decide : ¬((0 : Fin 2) = 1)), if_pos rfl,
     if_neg (by decide : ¬((1 : Fin 2) = 0))]
 
+/-- The lower-left entry of a signal-phase factor is `i * √(1 - x^2) * exp(i * φ)`. -/
 theorem signalMatrix_mul_phaseRotation_one_zero (x φ : ℝ) :
     (SignalMatrix x * PhaseRotation φ) 1 0
       = (Real.sqrt (1 - x ^ 2) : ℂ) * Complex.I * Complex.exp ((φ : ℂ) * Complex.I) := by
   rw [signalMatrix_mul_phaseRotation_apply, signalMatrix_apply, phaseRotation_apply,
     if_neg (by decide : ¬((1 : Fin 2) = 0)), if_pos rfl, if_pos rfl]
 
+/-- The lower-right entry of a signal-phase factor is `x * exp(-i * φ)`. -/
 theorem signalMatrix_mul_phaseRotation_one_one (x φ : ℝ) :
     (SignalMatrix x * PhaseRotation φ) 1 1
       = (x : ℂ) * Complex.exp ((-φ : ℂ) * Complex.I) := by
   rw [signalMatrix_mul_phaseRotation_apply, signalMatrix_apply, phaseRotation_apply,
     if_pos rfl, if_pos rfl, if_neg (by decide : ¬((1 : Fin 2) = 0))]
 
+/-- For `x` in `[-1, 1]`, the square of the complex-cast square root of `1 - x^2` equals `1 - (x
+: ℂ)^2`. -/
 theorem qsp_sqrt_mul_self {x : ℝ} (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
     ((Real.sqrt (1 - x ^ 2) : ℂ)) * ((Real.sqrt (1 - x ^ 2) : ℂ))
       = 1 - (x : ℂ) ^ 2 := by
@@ -218,43 +261,53 @@ theorem qsp_sqrt_mul_self {x : ℝ} (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
   rw [← Complex.ofReal_mul, Real.mul_self_sqrt hs, Complex.ofReal_sub,
     Complex.ofReal_pow, Complex.ofReal_one]
 
+/-- Evaluation parity `k` means that replacing the argument by its negative multiplies every
+polynomial value by `(-1)^k`. -/
 def EvalParity (P : Polynomial ℂ) (k : ℕ) : Prop :=
   ∀ t : ℂ, P.eval (-t) = ((-1 : ℂ) ^ k) * P.eval t
 
+/-- The zero polynomial has every evaluation parity. -/
 theorem evalParity_zero (k : ℕ) : EvalParity (0 : Polynomial ℂ) k := fun t => by simp
 
+/-- The constant polynomial one has even evaluation parity. -/
 theorem evalParity_one : EvalParity (1 : Polynomial ℂ) 0 := fun t => by simp
 
+/-- Multiplication by a constant polynomial preserves evaluation parity. -/
 theorem evalParity_C_mul (c : ℂ) {P : Polynomial ℂ} {k : ℕ} (h : EvalParity P k) :
     EvalParity (C c * P) k := fun t => by
   simp only [Polynomial.eval_mul, Polynomial.eval_C]
   rw [h t]
   ring
 
+/-- Multiplication by `X` increases the evaluation parity index by one. -/
 theorem evalParity_X_mul {P : Polynomial ℂ} {k : ℕ} (h : EvalParity P k) :
     EvalParity (X * P) (k + 1) := fun t => by
   simp only [Polynomial.eval_mul, Polynomial.eval_X]
   rw [h t, pow_add]
   ring
 
+/-- Multiplication by `X^2` preserves evaluation parity. -/
 theorem evalParity_X_sq_mul {P : Polynomial ℂ} {k : ℕ} (h : EvalParity P k) :
     EvalParity (X ^ 2 * P) k := fun t => by
   simp only [Polynomial.eval_mul, Polynomial.eval_pow, Polynomial.eval_X]
   rw [h t]
   ring
 
+/-- Adding polynomials with the same evaluation parity preserves that parity. -/
 theorem evalParity_add {P Q : Polynomial ℂ} {k : ℕ} (hP : EvalParity P k)
     (hQ : EvalParity Q k) : EvalParity (P + Q) k := fun t => by
   simp only [Polynomial.eval_add]
   rw [hP t, hQ t]
   ring
 
+/-- Subtracting polynomials with the same evaluation parity preserves that parity. -/
 theorem evalParity_sub {P Q : Polynomial ℂ} {k : ℕ} (hP : EvalParity P k)
     (hQ : EvalParity Q k) : EvalParity (P - Q) k := fun t => by
   simp only [Polynomial.eval_sub]
   rw [hP t, hQ t]
   ring
 
+/-- An evaluation parity index may be increased by two. -/
 theorem evalParity_add_two {P : Polynomial ℂ} {k : ℕ} (h : EvalParity P k) :
     EvalParity P (k + 2) := fun t => by
   have h2 : ((-1 : ℂ) ^ 2) = 1 := by ring
@@ -263,6 +316,8 @@ theorem evalParity_add_two {P : Polynomial ℂ} {k : ℕ} (h : EvalParity P k) :
   rw [hpow]
   exact h t
 
+/-- Constructs polynomial formulas for all QSP word entries with degree and evaluation-parity
+bounds, and zero off-diagonal response polynomials for the empty word. -/
 theorem qsp_function_form_aux (phis : List ℝ) :
     ∃ P Q₁ Q₂ S : Polynomial ℂ,
       P.natDegree ≤ phis.length ∧
@@ -447,6 +502,8 @@ theorem qsp_function_form_aux (phis : List ℝ) :
         Polynomial.eval_X]
       ring
 
+/-- Every QSP word has polynomial diagonal entries and off-diagonal entries of the form `i * √(1
+- x^2)` times a polynomial, with the stated degree and parity bounds [LowChuang2017]. -/
 theorem qsp_function_form (phis : List ℝ) :
     ∃ P Q₁ Q₂ S : Polynomial ℂ,
       P.natDegree ≤ phis.length ∧

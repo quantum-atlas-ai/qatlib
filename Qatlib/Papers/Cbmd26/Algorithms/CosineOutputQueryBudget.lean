@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.CosineQueryBudget
 import Qatlib.Papers.Cbmd26.Algorithms.OutputNormEstimateBudget
+
+/-!
+# Output-estimate comparisons for cosine query budgets
+
+Measures the effect of replacing the output-norm parameter in `cosineRelativeEnvelope`. A factor
+comparison of envelopes yields the explicit factor `cosineOutputDegreeFactor` for the displayed
+polynomial degree and a corresponding source-query factor. These results support the
+contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `cosineDisplayedDegreeBound_ratio_compare`: bounds the change in displayed degree.
+* `cosineDisplayedSourceBound_ratio_compare`: bounds the change in the source-query expression.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -32,13 +51,17 @@ set_option autoImplicit false
 noncomputable section
 namespace CBMD
 
+/-- Defines the output-estimate degree factor as `c + outputEstimateLogFactor c`. -/
 def cosineOutputDegreeFactor (c : ℝ) : ℝ := c + outputEstimateLogFactor c
 
+/-- The output-estimate degree factor is at least one when `c ≥ 1`. -/
 theorem cosineOutputDegreeFactor_ge_one {c : ℝ} (hc : 1 ≤ c) :
     1 ≤ cosineOutputDegreeFactor c := by
   unfold cosineOutputDegreeFactor
   linarith [outputEstimateLogFactor_pos hc]
 
+/-- An envelope ratio at most `c` bounds the displayed degree ratio by `cosineOutputDegreeFactor
+c` under the stated positivity conditions. -/
 theorem cosineDisplayedDegreeBound_ratio_compare
     {L H γ τ ε η ν κ c : ℝ}
     (hL : 0 ≤ L) (hH : 0 ≤ H) (hγ : 0 ≤ γ) (hτ : 0 ≤ τ)
@@ -117,6 +140,8 @@ theorem cosineDisplayedDegreeBound_ratio_compare
   convert! mul_le_mul_of_nonneg_right hbr (show 0 ≤ 5+2048*κ by positivity) using 1
   ring
 
+/-- An envelope ratio at most `c` bounds the displayed source-query ratio by `c *
+cosineOutputDegreeFactor c`. -/
 theorem cosineDisplayedSourceBound_ratio_compare
     {L H γ τ ε η ν κ c : ℝ}
     (hL : 0 ≤ L) (hH : 0 ≤ H) (hγ : 0 ≤ γ) (hτ : 0 ≤ τ)

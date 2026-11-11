@@ -8,6 +8,32 @@ import Qatlib.Concepts.HhlAlgorithms.Postselection.HHLUnknownSuccessContract
 import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
 import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
 import Qatlib.Concepts.QlsReadoutSpec.LowRankHHL.LowRankHHLConsumers
+
+/-!
+# Rational HHL retries and unknown-success amplification
+
+`numericRetry` records first-success trials and their query, gate, and preparation costs for
+rational HHL. The consumer theorems combine computed precision and oracle-noise budgets with
+least-squares postselection and fresh-trial state selection in the setting of
+[HarrowHassidimLloyd2009].
+
+The unknown-success construction verifies finite seed sampling, a mixed amplification window,
+sixteen-trial success, and explicit resource counts, using the amplitude-amplification framework
+of [BrassardEtAl2002].
+
+## Main statements
+
+* `rational_hhl_parameter_selected_consumer`: computed parameters give postselection error at
+  most `(1 / 2)^k` and quantitative retry guarantees.
+* `mixed_window_avg`: the sampled amplification depths have average success at least `1 / 8`.
+* `rational_hhl_unknown_success_schedule`: the finite computed unknown-success contract holds.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,12 +79,17 @@ open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
+/-- The first-success retry law, recording success, trial count, fixed gates, preparations, and
+data-query cost for the rational HHL program. -/
 noncomputable def numericRetry {I : Type} [Fintype I] [DecidableEq I]
     (ψ : QState I) (hψ : Normalized ψ) (S : Finset I) (M R : ℕ) :
     CostedLaw (Bool×ℕ×ℕ×ℕ) :=
   (uniformHHLFirstSuccess (uniformHHLFlagTrialLaw ψ hψ S) R).map
     (fun z => ((z.1,z.2,z.2*(4*(M-1)+6),z.2),z.2*(2*(M-1))))
 
+/-- If each trial succeeds with probability at least `p > 0`, at most `R` fresh trials succeed
+with probability at least `1 - (1 - p)^R` and expected data-query cost at most `2 * (M - 1)
+/ p`. Every supported outcome records the stated gate, preparation, and query counts. -/
 theorem rational_hhl_actual_noisy_retry_resources : ∀ (I : Type) [Fintype I] [DecidableEq I] (ψ : QState I)
   (hψ : Normalized ψ) (S : Finset I) (M R : ℕ) (p : ℝ),
   0 < p → p≤MeasureProb ψ S →
@@ -107,6 +138,8 @@ theorem rational_hhl_actual_noisy_retry_resources : ∀ (I : Type) [Fintype I] [
     obtain ⟨w, hw, rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp hz
     exact ⟨uniformHHLFirstSuccess_attempts _ R w hw, rfl, rfl, rfl⟩
 
+/-- A fresh-trial history of positive mass containing a success selects exactly the
+postmeasurement state `PostMeasure ψ S`. -/
 theorem rational_hhl_fresh_selected_quantum_output : ∀ (I : Type) [Fintype I] [DecidableEq I] (ψ : QState I)
   (S : Finset I) (R : ℕ) (os : FreshOutcomes R), Normalized ψ →
   0 < freshHistoryMass (Projector S) ψ R os → firstFreshSuccess R os≠none →
@@ -133,6 +166,10 @@ theorem rational_hhl_fresh_selected_quantum_output : ∀ (I : Type) [Fintype I] 
     rw [projectiveBranch_projector]
     exact conditionalState_collapse hm
 
+/-- The computed grid, precision, and noise budget give a normalized rational HHL output with
+success probability at least `(d * theta / 2)^2` and postselection error at most `(1 /
+2)^k`. The same output satisfies the fresh-retry probability, expected-query, and
+selected-state guarantees. -/
 theorem rational_hhl_parameter_selected_consumer
     (D : ℕ) (eig : Fin D → ℝ) (V B W : Operator D) (j : Fin D) (d theta : ℚ) (k : ℕ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -209,6 +246,10 @@ theorem rational_hhl_parameter_selected_consumer
   · intro R os hm hs
     exact rational_hhl_fresh_selected_quantum_output _ out S R os hg1.1 hm hs
 
+/-- For the three-dimensional signed, inconsistent example, the computed parameters give success
+probability at least `1 / 4096` and postselection error at most `(1 / 2)^k`. The resulting
+retry law satisfies the stated probability and expected-query bounds and selects the same
+postmeasurement state. -/
 theorem rational_hhl_signed_inconsistent_noisy_example (k : ℕ) (W : Operator 3)
     (hW : W ∈ Matrix.unitaryGroup (Fin 3) ℂ)
     (hnoise : ‖W-continuousHHLOracle lowRankExampleSpectrum (1 : Operator 3)‖ ≤
@@ -246,6 +287,8 @@ theorem rational_hhl_signed_inconsistent_noisy_example (k : ℕ) (W : Operator 3
     _ ≤ ENNReal.ofReal (2*((numericHHLGrid (1/16) (1/2) k-1 : ℕ) : ℝ)/(1/4096 : ℝ)) := (hretry R).2
     _ = _ := by congr 1; ring
 
+/-- For an input supported on zero eigenvalues, oracle error at most `δ` bounds the rational HHL
+success probability by `4 * (M - 1) * δ`. -/
 theorem rational_hhl_noisy_kernel_upper_bound (D M bits : ℕ) (hM : 2 ≤ M)
     (eig : Fin D → ℝ) (V B W : Operator D) (j : Fin D) (d : ℚ) (δ : ℝ)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -268,6 +311,8 @@ theorem rational_hhl_noisy_kernel_upper_bound (D M bits : ℕ) (hM : 2 ≤ M)
     hn.trans (mul_le_mul_of_nonneg_left hnoise (by positivity))
   linarith
 
+/-- The rational HHL table contains `M` entries, and its two square-root computations per entry
+use exactly `2 * M * bits` bracket iterations in total. -/
 theorem rational_hhl_numeric_table_work (M bits : ℕ) (d : ℚ) (hd : 0 < d) :
     (rationalHHLTable M d bits).size = M ∧
     (∑ y : Fin M,
@@ -298,15 +343,18 @@ open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Twice the sampling window equals `2^(seedBits d theta + 1)`. -/
 private theorem two_mul_window (d theta : ℚ) :
     2 * window d theta = 2 ^ (seedBits d theta + 1) := by
   simp only [window, pow_succ]
   ring
 
+/-- The binary encoding equivalence between `b` Boolean bits and `Fin (2^b)`. -/
 private def seedEquiv (b : ℕ) : (Fin b → Bool) ≃ Fin (2 ^ b) :=
   (Equiv.piCongrRight fun _ : Fin b => finTwoEquiv.symm).trans
     (finFunctionFinEquiv (m := 2) (n := b))
 
+/-- The value of `seedEquiv` is the sum of the input bits weighted by powers of two. -/
 private theorem seedEquiv_val (b : ℕ) (x : Fin b → Bool) :
     ((seedEquiv b x : Fin (2 ^ b)) : ℕ) =
       ∑ i : Fin b, (if x i then 1 else 0) * 2 ^ i.val := by
@@ -317,6 +365,8 @@ private theorem seedEquiv_val (b : ℕ) (x : Fin b → Bool) :
   congr 1
   cases x i <;> rfl
 
+/-- The seed obtained from Boolean bits is their binary encoding transported to the window index
+type. -/
 private theorem seedOfBits_eq (d theta : ℚ) (x : Fin (seedBits d theta + 1) → Bool) :
     seedOfBits d theta x =
       finCongr (two_mul_window d theta).symm (seedEquiv (seedBits d theta + 1) x) := by
@@ -337,6 +387,7 @@ private theorem seedOfBits_eq (d theta : ℚ) (x : Fin (seedBits d theta + 1) �
     rwa [seedEquiv_val] at h
   rw [Nat.mod_eq_of_lt hlt]
 
+/-- The map from seed bits to indices in the doubled sampling window is bijective. -/
 theorem seedOfBits_bijective (d theta : ℚ) :
     Function.Bijective (seedOfBits d theta) := by
   have h : (seedOfBits d theta) =
@@ -347,10 +398,12 @@ theorem seedOfBits_bijective (d theta : ℚ) :
   exact ((seedEquiv (seedBits d theta + 1)).trans
     (finCongr (two_mul_window d theta).symm)).bijective
 
+/-- The sampling window is at least one. -/
 theorem one_le_window (d theta : ℚ) : 1 ≤ window d theta := by
   simp only [window]
   exact Nat.one_le_two_pow
 
+/-- The sampling window is at most twice `max 1 ⌈4 / (d * theta)⌉₊`. -/
 theorem window_le (d theta : ℚ) :
     window d theta ≤ 2 * max 1 ⌈4/(d*theta)⌉₊ := by
   simp only [window, seedBits]
@@ -372,6 +425,7 @@ theorem window_le (d theta : ℚ) :
           (Nat.mul_lt_mul_of_pos_right h (by norm_num)).le
       _ = 2 * C := by ring
 
+/-- For positive `d` and `theta`, the sampling window is at least `4 / (d * theta)`. -/
 theorem four_div_le_window (d theta : ℚ) (hd : 0 < d) (ht : 0 < theta) :
     (4/(d*theta) : ℚ) ≤ window d theta := by
   have hdθ : 0 < d*theta := mul_pos hd ht
@@ -384,10 +438,13 @@ theorem four_div_le_window (d theta : ℚ) (hd : 0 < d) (ht : 0 < theta) :
     exact_mod_cast h2.trans h3
   exact hceil.trans hle
 
+/-- The rational HHL rotation table has exactly `M` entries. -/
 private theorem table_size (M bits : ℕ) (d : ℚ) (hd : 0 < d) :
     (rationalHHLTable M d bits).size = M :=
   (rational_hhl_numeric_table_work M bits d hd).1
 
+/-- Looking up a valid phase index in the rational HHL table returns its computed rational
+rotation parameters. -/
 private theorem table_getElem (M bits : ℕ) (d : ℚ) (y : Fin M) :
     (rationalHHLTable M d bits)[y.val]? = some (rationalHHLCS d (rationalHHLDecode M y) bits) := by
   simp only [rationalHHLTable, List.getElem?_toArray, List.getElem?_ofFn]
@@ -406,10 +463,14 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 
 omit [Fintype I] [DecidableEq I] in
 
+/-- Evaluating the inverse of a prepared instruction gives the conjugate transpose of its
+evaluation. -/
 theorem preparedInstruction_inverseStep (U B : Matrix I I ℂ) (c : PreparedStep I) :
     preparedInstruction U B (inverseStep c) = (preparedInstruction U B c)ᴴ := by
   cases c <;> simp [inverseStep, preparedInstruction]
 
+/-- Evaluating an inverse prepared word gives the conjugate transpose of the original word's
+evaluation. -/
 theorem evaluatePrepared_inverseWord (U B : Matrix I I ℂ) (cs : List (PreparedStep I)) :
     evaluatePrepared U B (inverseWord cs) = (evaluatePrepared U B cs)ᴴ := by
   induction cs with
@@ -422,6 +483,8 @@ theorem evaluatePrepared_inverseWord (U B : Matrix I I ℂ) (cs : List (Prepared
         simp only [evaluatePrepared, preparedInstruction, mul_one, inverseStep,
           Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose]
 
+/-- Evaluating `k` concatenated copies of a prepared block gives the `k`th power of its
+evaluation. -/
 theorem evaluatePrepared_flatten_replicate (U B : Matrix I I ℂ)
     (block : List (PreparedStep I)) (k : ℕ) :
     evaluatePrepared U B (List.replicate k block |>.flatten)
@@ -431,6 +494,8 @@ theorem evaluatePrepared_flatten_replicate (U B : Matrix I I ℂ)
   | succ k ih =>
       rw [List.replicate_succ, List.flatten_cons, evaluatePrepared_append, ih, pow_succ']
 
+/-- The preparation, initial-state reflection, inverse preparation, and marking word evaluates
+to `preparedAAIterate`. -/
 theorem evaluatePrepared_amplifiedBlock (U B : Matrix I I ℂ) (cs : List (PreparedStep I))
     (j : I) (S : Finset I) :
     evaluatePrepared U B (cs ++ [.gate (ReflectionAbout (outerProduct (Qatlib.Foundations.PureStateMath.Ket j)))] ++
@@ -439,6 +504,8 @@ theorem evaluatePrepared_amplifiedBlock (U B : Matrix I I ℂ) (cs : List (Prepa
   simp only [List.append_assoc, evaluatePrepared_append, evaluatePrepared_inverseWord,
     evaluatePrepared, preparedInstruction, mul_one, preparedAAIterate, Matrix.mul_assoc]
 
+/-- An amplified prepared word evaluates to the `k`th power of its amplification iterate
+followed by the preparation. -/
 theorem evaluatePrepared_amplified (U B : Matrix I I ℂ) (cs : List (PreparedStep I))
     (j : I) (S : Finset I) (k : ℕ) :
     evaluatePrepared U B (amplified cs j S k) =
@@ -458,33 +525,45 @@ open Qatlib
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The number of forward data-oracle instructions in an adjoint circuit. -/
 def fwdCount {I : Type} (cs : List (AdjointStep I)) : ℕ :=
   cs.countP (fun s => match s with | .forward => true | _ => false)
 
+/-- The number of backward data-oracle instructions in an adjoint circuit. -/
 def bwdCount {I : Type} (cs : List (AdjointStep I)) : ℕ :=
   cs.countP (fun s => match s with | .backward => true | _ => false)
 
+/-- The Boolean predicate recognizing a forward data-oracle instruction. -/
 def isDataFwd {I : Type} : PreparedStep I → Bool
   | .dataForward => true | _ => false
+/-- The Boolean predicate recognizing a backward data-oracle instruction. -/
 def isDataBwd {I : Type} : PreparedStep I → Bool
   | .dataBackward => true | _ => false
+/-- The Boolean predicate recognizing a forward input-preparation instruction. -/
 def isInpFwd {I : Type} : PreparedStep I → Bool
   | .prepareForward => true | _ => false
+/-- The Boolean predicate recognizing a backward input-preparation instruction. -/
 def isInpBwd {I : Type} : PreparedStep I → Bool
   | .prepareBackward => true | _ => false
 
+/-- The forward data-oracle count equals the number of instructions satisfying `isDataFwd`. -/
 theorem dataForwardCalls_eq_countP (cs : List (PreparedStep I)) :
     dataForwardCalls cs = cs.countP (isDataFwd (I := I)) := rfl
 
+/-- The backward data-oracle count equals the number of instructions satisfying `isDataBwd`. -/
 theorem dataBackwardCalls_eq_countP (cs : List (PreparedStep I)) :
     dataBackwardCalls cs = cs.countP (isDataBwd (I := I)) := rfl
 
+/-- The forward input-preparation count equals the number of instructions satisfying `isInpFwd`. -/
 theorem inputForwardCalls_eq_countP (cs : List (PreparedStep I)) :
     inputForwardCalls cs = cs.countP (isInpFwd (I := I)) := rfl
 
+/-- The backward input-preparation count equals the number of instructions satisfying
+`isInpBwd`. -/
 theorem inputBackwardCalls_eq_countP (cs : List (PreparedStep I)) :
     inputBackwardCalls cs = cs.countP (isInpBwd (I := I)) := rfl
 
+/-- The adjoint query count is the sum of its forward and backward query counts. -/
 theorem adjointQueryCount_eq (cs : List (AdjointStep I)) :
     adjointQueryCount cs = fwdCount cs + bwdCount cs := by
   induction cs with
@@ -492,6 +571,7 @@ theorem adjointQueryCount_eq (cs : List (AdjointStep I)) :
   | cons c cs ih =>
       cases c <;> simp [adjointQueryCount, fwdCount, bwdCount, ih] <;> omega
 
+/-- Taking the adjoint circuit exchanges its backward query count with the forward count. -/
 theorem fwdCount_adjointCircuit (cs : List (AdjointStep I)) :
     fwdCount (Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit cs) = bwdCount cs := by
   induction cs with
@@ -504,6 +584,7 @@ theorem fwdCount_adjointCircuit (cs : List (AdjointStep I)) :
       cases c <;>
         simp [adjointInstruction, fwdCount, bwdCount]
 
+/-- Taking the adjoint circuit exchanges its forward query count with the backward count. -/
 theorem bwdCount_adjointCircuit (cs : List (AdjointStep I)) :
     bwdCount (Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit cs) = fwdCount cs := by
   induction cs with
@@ -516,6 +597,8 @@ theorem bwdCount_adjointCircuit (cs : List (AdjointStep I)) :
       cases c <;>
         simp [adjointInstruction, fwdCount, bwdCount]
 
+/-- Counting a predicate after embedding adjoint instructions into prepared instructions equals
+counting its pullback on the original circuit. -/
 theorem countP_map_preparedOfAdjoint (p : PreparedStep I → Bool) (cs : List (AdjointStep I)) :
     (cs.map preparedOfAdjoint).countP p =
       cs.countP (fun s => match s with
@@ -525,6 +608,7 @@ theorem countP_map_preparedOfAdjoint (p : PreparedStep I → Bool) (cs : List (A
   intro c _
   cases c <;> rfl
 
+/-- Embedding an adjoint circuit as a prepared word preserves its forward data-oracle count. -/
 theorem dataForwardCalls_map (cs : List (AdjointStep I)) :
     dataForwardCalls (cs.map preparedOfAdjoint) = fwdCount cs := by
   rw [dataForwardCalls, countP_map_preparedOfAdjoint, fwdCount]
@@ -532,6 +616,7 @@ theorem dataForwardCalls_map (cs : List (AdjointStep I)) :
   intro c _
   cases c <;> simp
 
+/-- Embedding an adjoint circuit as a prepared word preserves its backward data-oracle count. -/
 theorem dataBackwardCalls_map (cs : List (AdjointStep I)) :
     dataBackwardCalls (cs.map preparedOfAdjoint) = bwdCount cs := by
   rw [dataBackwardCalls, countP_map_preparedOfAdjoint, bwdCount]
@@ -539,32 +624,43 @@ theorem dataBackwardCalls_map (cs : List (AdjointStep I)) :
   intro c _
   cases c <;> simp
 
+/-- Counting a predicate on an inverse word equals counting its pullback under `inverseStep` on
+the original word. -/
 theorem countP_inverseWord (p q : PreparedStep I → Bool)
     (h : ∀ x, p (inverseStep x) = q x) (cs : List (PreparedStep I)) :
     (inverseWord cs).countP p = cs.countP q := by
   rw [inverseWord, List.countP_map, show (p ∘ inverseStep) = q from funext h]
   exact List.countP_reverse
 
+/-- The inverse word has as many forward data calls as the original word has backward data
+calls. -/
 theorem dataForwardCalls_inverseWord (cs : List (PreparedStep I)) :
     dataForwardCalls (inverseWord cs) = dataBackwardCalls cs := by
   rw [dataForwardCalls_eq_countP, dataBackwardCalls_eq_countP,
     countP_inverseWord isDataFwd isDataBwd (by intro x; cases x <;> rfl)]
 
+/-- The inverse word has as many backward data calls as the original word has forward data
+calls. -/
 theorem dataBackwardCalls_inverseWord (cs : List (PreparedStep I)) :
     dataBackwardCalls (inverseWord cs) = dataForwardCalls cs := by
   rw [dataBackwardCalls_eq_countP, dataForwardCalls_eq_countP,
     countP_inverseWord isDataBwd isDataFwd (by intro x; cases x <;> rfl)]
 
+/-- The inverse word has as many forward preparation calls as the original word has backward
+preparation calls. -/
 theorem inputForwardCalls_inverseWord (cs : List (PreparedStep I)) :
     inputForwardCalls (inverseWord cs) = inputBackwardCalls cs := by
   rw [inputForwardCalls_eq_countP, inputBackwardCalls_eq_countP,
     countP_inverseWord isInpFwd isInpBwd (by intro x; cases x <;> rfl)]
 
+/-- The inverse word has as many backward preparation calls as the original word has forward
+preparation calls. -/
 theorem inputBackwardCalls_inverseWord (cs : List (PreparedStep I)) :
     inputBackwardCalls (inverseWord cs) = inputForwardCalls cs := by
   rw [inputBackwardCalls_eq_countP, inputForwardCalls_eq_countP,
     countP_inverseWord isInpBwd isInpFwd (by intro x; cases x <;> rfl)]
 
+/-- Each forward and backward data and input call count is additive under word concatenation. -/
 theorem piecewise_counts_append (cs ds : List (PreparedStep I)) :
     dataForwardCalls (cs ++ ds) = dataForwardCalls cs + dataForwardCalls ds ∧
     dataBackwardCalls (cs ++ ds) = dataBackwardCalls cs + dataBackwardCalls ds ∧
@@ -572,6 +668,7 @@ theorem piecewise_counts_append (cs ds : List (PreparedStep I)) :
     inputBackwardCalls (cs ++ ds) = inputBackwardCalls cs + inputBackwardCalls ds :=
   ⟨List.countP_append, List.countP_append, List.countP_append, List.countP_append⟩
 
+/-- The prepared data-query count is the sum of forward and backward data calls. -/
 theorem dataQueries_split (cs : List (PreparedStep I)) :
     preparedDataQueries cs = dataForwardCalls cs + dataBackwardCalls cs := by
   induction cs with
@@ -579,6 +676,7 @@ theorem dataQueries_split (cs : List (PreparedStep I)) :
   | cons c cs ih =>
       cases c <;> simp [preparedDataQueries, dataForwardCalls, dataBackwardCalls, ih] <;> omega
 
+/-- The prepared input-query count is the sum of forward and backward preparation calls. -/
 theorem inputQueries_split (cs : List (PreparedStep I)) :
     preparedInputQueries cs = inputForwardCalls cs + inputBackwardCalls cs := by
   induction cs with
@@ -600,11 +698,14 @@ open Qatlib
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- At amplification depth zero, the success probability equals that of the prepared state. -/
 private theorem successMass_depth_zero (A : Matrix I I ℂ) (j : I) (S : Finset I) :
     MeasureProb (Run (preparedMark S) (preparedAACircuit A j 0) (Qatlib.Foundations.PureStateMath.Ket j)) S =
       MeasureProb (preparedAAState A j) S := by
   simp [preparedAACircuit, RepeatCircuit, preparedAAState]
 
+/-- If `sin θ = sqrt a`, `α^2 ≤ a < 1 / 2`, and the angle lies in the first quadrant, then `α ≤
+sin (2 * θ)`. -/
 private theorem sin_two_ge_alpha (a α θ : ℝ) (ha0 : α^2 ≤ a) (hα : 0 < α)
     (ha1 : a < 1/2) (hθ0 : 0 < θ) (hθ1 : θ < Real.pi/2)
     (hsin : Real.sin θ = Real.sqrt a) : α ≤ Real.sin (2*θ) := by
@@ -622,6 +723,8 @@ private theorem sin_two_ge_alpha (a α θ : ℝ) (ha0 : α^2 ≤ a) (hα : 0 < �
   have hαsqrt : α ≤ Real.sqrt a := (Real.le_sqrt hα.le ha0le).mpr ha0
   exact hαsqrt.trans hsin2
 
+/-- Uniformly sampling the mixed amplification window gives average success probability at least
+`1 / 8` when the window times the positive amplitude lower bound is at least one. -/
 theorem mixed_window_avg {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (j : I) (S : Finset I) (m : ℕ) (α : ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hm : 0 < m) (hα : 0 < α)
@@ -714,6 +817,8 @@ open Qatlib
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Applying the evaluated amplified word to the initial basis state agrees with the prepared
+amplitude-amplification run. -/
 theorem amplified_run {I : Type} [Fintype I] [DecidableEq I] (U B : Matrix I I ℂ)
     (cs : List (PreparedStep I)) (j : I) (S : Finset I) (k : ℕ)
     (hA : evaluatePrepared U B cs ∈ Matrix.unitaryGroup I ℂ) :
@@ -723,6 +828,8 @@ theorem amplified_run {I : Type} [Fintype I] [DecidableEq I] (U B : Matrix I I �
     (prepared_aa_actual_circuit (evaluatePrepared U B cs) j S k hA).2.2.2]
   rw [applyGate_mul, preparedAAState]
 
+/-- Every state selected by a retry trace is the postmeasurement state of one of its candidate
+outputs. -/
 theorem selected_is_postMeasure {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
     (out : Fin (2*m) → QState I) (S : Finset I) (r : ℕ) (tr : Trace m r) (φ : QState I)
     (h : selected out S r tr = some φ) :
@@ -737,6 +844,8 @@ theorem selected_is_postMeasure {I : Type} [Fintype I] [DecidableEq I] {m : ℕ}
           exact ⟨s, (Option.some.inj h).symm⟩
       | some tail => exact ih tail φ h
 
+/-- The true-branch mass of the coordinate projector is the measurement probability of its index
+set. -/
 theorem projectiveBranchMass_projector_true {I : Type} [Fintype I] [DecidableEq I]
     (S : Finset I) (ψ : QState I) :
     ProjectiveBranchMass (Projector S) true ψ = MeasureProb ψ S := by
@@ -744,6 +853,7 @@ theorem projectiveBranchMass_projector_true {I : Type} [Fintype I] [DecidableEq 
   rw [projectiveBranch_projector]
   simpa only [MeasureProb, BornProb] using! sum_normSq_collapse ψ S
 
+/-- Every retry trace has nonnegative weight. -/
 theorem weight_nonneg {I : Type} [Fintype I] [DecidableEq I] (m : ℕ)
     (out : Fin (2*m) → QState I) (S : Finset I) :
     ∀ (r : ℕ) (tr : Trace m r), 0 ≤ weight m out S r tr := by
@@ -761,6 +871,8 @@ theorem weight_nonneg {I : Type} [Fintype I] [DecidableEq I] (m : ℕ)
         | some tail =>
             exact mul_nonneg (projectiveBranchMass_nonneg (Projector S) false (out s)) (ih tail)
 
+/-- A selected state on a trace of positive weight is the postmeasurement state of a candidate
+with positive success probability. -/
 theorem weight_pos_selected {I : Type} [Fintype I] [DecidableEq I] (m : ℕ) (hm : 0 < m)
     (out : Fin (2*m) → QState I) (S : Finset I) :
     ∀ (r : ℕ) (tr : Trace m r) (φ : QState I), selected out S r tr = some φ →
@@ -789,6 +901,7 @@ theorem weight_pos_selected {I : Type} [Fintype I] [DecidableEq I] (m : ℕ) (hm
             exact pos_of_mul_pos_right h1 (projectiveBranchMass_nonneg (Projector S) false (out s))
           exact ih tail φ hsel hw
 
+/-- A state selected by a trace of positive weight is normalized. -/
 theorem selected_normalized_of_weight_pos {I : Type} [Fintype I] [DecidableEq I]
     (m : ℕ) (hm : 0 < m) (out : Fin (2*m) → QState I) (S : Finset I) (r : ℕ) (tr : Trace m r)
     (φ : QState I) (hpos : 0 < weight m out S r tr)
@@ -798,6 +911,7 @@ theorem selected_normalized_of_weight_pos {I : Type} [Fintype I] [DecidableEq I]
   rw [hφ]
   exact normalized_postMeasure hmass
 
+/-- A state selected by a sixteen-trial trace of positive weight is normalized. -/
 theorem selected_normalized_sixteen {I : Type} [Fintype I] [DecidableEq I]
     (m : ℕ) (hm : 0 < m) (out : Fin (2*m) → QState I) (S : Finset I) (tr : Trace m 16)
     (φ : QState I) (hpos : 0 < weight m out S 16 tr)
@@ -822,6 +936,8 @@ open Qatlib
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Counting a predicate on `k` concatenated copies of a block multiplies the block's count by
+`k`. -/
 theorem countP_flatten_replicate {α : Type} (p : α → Bool) (block : List α) (k : ℕ) :
     (List.replicate k block).flatten.countP p = k * block.countP p := by
   induction k with
@@ -830,10 +946,12 @@ theorem countP_flatten_replicate {α : Type} (p : α → Bool) (block : List α)
       rw [List.replicate_succ, List.flatten_cons, List.countP_append, ih]
       ring
 
+/-- The Boolean predicate recognizing a fixed-gate instruction in a prepared word. -/
 def isGate {I : Type} : PreparedStep I → Bool
   | .gate _ => true
   | _ => false
 
+/-- The prepared fixed-gate count equals the number of instructions satisfying `isGate`. -/
 theorem preparedFixedGates_eq_countP (cs : List (PreparedStep I)) :
     preparedFixedGates cs = cs.countP (isGate (I := I)) := by
   induction cs with
@@ -841,18 +959,25 @@ theorem preparedFixedGates_eq_countP (cs : List (PreparedStep I)) :
   | cons c cs ih =>
       cases c <;> simp [preparedFixedGates, isGate, ih]
 
+/-- Inverting a prepared word preserves its fixed-gate count. -/
 theorem preparedFixedGates_inverseWord (cs : List (PreparedStep I)) :
     preparedFixedGates (inverseWord cs) = preparedFixedGates cs := by
   rw [preparedFixedGates_eq_countP, preparedFixedGates_eq_countP]
   exact countP_inverseWord isGate isGate (by intro x; cases x <;> rfl) cs
 
+/-- One amplification block consisting of preparation, the initial-state reflection, inverse
+preparation, and marking. -/
 def aaBlock (cs : List (PreparedStep I)) (j : I) (S : Finset I) : List (PreparedStep I) :=
   cs ++ [.gate (ReflectionAbout (outerProduct (Qatlib.Foundations.PureStateMath.Ket j)))] ++ inverseWord cs ++
     [.gate (preparedMark S)]
 
+/-- The amplified word consists of `k` copies of `aaBlock` followed by the original preparation
+word. -/
 theorem amplified_eq (cs : List (PreparedStep I)) (j : I) (S : Finset I) (k : ℕ) :
     amplified cs j S k = (List.replicate k (aaBlock cs j S)).flatten ++ cs := rfl
 
+/-- The predicate count in an amplification block is the sum of counts from the preparation and
+its inverse plus contributions from the two reflections. -/
 theorem aaBlock_countP_raw (p : PreparedStep I → Bool) (cs : List (PreparedStep I))
     (j : I) (S : Finset I) :
     (aaBlock cs j S).countP p =
@@ -862,6 +987,8 @@ theorem aaBlock_countP_raw (p : PreparedStep I → Bool) (cs : List (PreparedSte
   simp only [aaBlock, List.countP_append, List.countP_singleton]
   omega
 
+/-- A predicate that rejects both reflections counts only the preparation and inverse
+preparation in an amplification block. -/
 theorem aaBlock_countP (p : PreparedStep I → Bool) (cs : List (PreparedStep I))
     (j : I) (S : Finset I)
     (hR : p (.gate (ReflectionAbout (outerProduct (Qatlib.Foundations.PureStateMath.Ket j)))) = false)
@@ -870,6 +997,8 @@ theorem aaBlock_countP (p : PreparedStep I → Bool) (cs : List (PreparedStep I)
   rw [aaBlock_countP_raw, hR, hM]
   simp
 
+/-- One amplification block combines forward and backward calls in each direction and contains
+twice the preparation's fixed gates plus two reflections. -/
 theorem aaBlock_counts (cs : List (PreparedStep I)) (j : I) (S : Finset I) :
     dataForwardCalls (aaBlock cs j S) = dataForwardCalls cs + dataBackwardCalls cs ∧
     dataBackwardCalls (aaBlock cs j S) = dataBackwardCalls cs + dataForwardCalls cs ∧
@@ -931,11 +1060,15 @@ theorem aaBlock_counts (cs : List (PreparedStep I)) (j : I) (S : Finset I) :
     ring
   exact ⟨hDF, hDB, hIF, hIB, hF⟩
 
+/-- The predicate count of an amplified word is `k` times the block count plus the original
+word's count. -/
 theorem amplified_countP (p : PreparedStep I → Bool) (cs : List (PreparedStep I))
     (j : I) (S : Finset I) (k : ℕ) :
     (amplified cs j S k).countP p = k * (aaBlock cs j S).countP p + cs.countP p := by
   rw [amplified_eq, List.countP_append, countP_flatten_replicate]
 
+/-- The forward and backward data and preparation counts, and the fixed-gate count, of an
+amplified word are given by the explicit linear formulas in `k`. -/
 theorem amplified_counts (cs : List (PreparedStep I)) (j : I) (S : Finset I) (k : ℕ) :
     dataForwardCalls (amplified cs j S k) =
       k * (dataForwardCalls cs + dataBackwardCalls cs) + dataForwardCalls cs ∧
@@ -997,6 +1130,7 @@ theorem amplified_counts (cs : List (PreparedStep I)) (j : I) (S : Finset I) (k 
         (preparedFixedGates_eq_countP cs).symm]
   exact ⟨hDF, hDB, hIF, hIB, hF⟩
 
+/-- Inverting a valid prepared circuit preserves validity. -/
 theorem preparedCircuitValid_inverseWord (cs : List (PreparedStep I))
     (hcs : PreparedCircuitValid cs) : PreparedCircuitValid (inverseWord cs) := by
   intro c hc
@@ -1010,6 +1144,7 @@ theorem preparedCircuitValid_inverseWord (cs : List (PreparedStep I))
   | prepareForward => trivial
   | prepareBackward => trivial
 
+/-- Concatenating two valid prepared circuits gives a valid prepared circuit. -/
 theorem preparedCircuitValid_append (cs ds : List (PreparedStep I))
     (hcs : PreparedCircuitValid cs) (hds : PreparedCircuitValid ds) :
     PreparedCircuitValid (cs ++ ds) := by
@@ -1018,6 +1153,7 @@ theorem preparedCircuitValid_append (cs ds : List (PreparedStep I))
   · exact hcs c h
   · exact hds c h
 
+/-- Concatenating any number of copies of a valid prepared block preserves validity. -/
 theorem preparedCircuitValid_flatten_replicate (block : List (PreparedStep I)) (k : ℕ)
     (hblock : PreparedCircuitValid block) :
     PreparedCircuitValid (List.replicate k block).flatten := by
@@ -1026,6 +1162,8 @@ theorem preparedCircuitValid_flatten_replicate (block : List (PreparedStep I)) (
   rw [(List.mem_replicate.mp ht).2] at hct
   exact hblock c hct
 
+/-- An instruction belongs to an amplification block exactly when it belongs to the preparation
+or its inverse, or is one of the two reflections. -/
 theorem mem_aaBlock (cs : List (PreparedStep I)) (j : I) (S : Finset I)
     (c : PreparedStep I) :
     c ∈ aaBlock cs j S ↔
@@ -1034,6 +1172,7 @@ theorem mem_aaBlock (cs : List (PreparedStep I)) (j : I) (S : Finset I)
   simp only [aaBlock, List.mem_append, List.mem_singleton]
   tauto
 
+/-- An amplification block built from a valid prepared circuit is valid. -/
 theorem preparedCircuitValid_amplifiedBlock (cs : List (PreparedStep I))
     (hcs : PreparedCircuitValid cs) (j : I) (S : Finset I) :
     PreparedCircuitValid (aaBlock cs j S) := by
@@ -1047,6 +1186,7 @@ theorem preparedCircuitValid_amplifiedBlock (cs : List (PreparedStep I))
     exact (prepared_aa_reflection_and_access (1 : Matrix I I ℂ) j S
       (Matrix.unitaryGroup I ℂ).one_mem).1
 
+/-- Amplifying a valid prepared circuit preserves validity. -/
 theorem preparedCircuitValid_amplified (cs : List (PreparedStep I))
     (hcs : PreparedCircuitValid cs) (j : I) (S : Finset I) (k : ℕ) :
     PreparedCircuitValid (amplified cs j S k) := by
@@ -1055,6 +1195,8 @@ theorem preparedCircuitValid_amplified (cs : List (PreparedStep I))
     (preparedCircuitValid_flatten_replicate _ _ (preparedCircuitValid_amplifiedBlock cs hcs j S))
     hcs
 
+/-- An amplified circuit built from the stated HHL base counts is valid and satisfies the
+explicit data, input, fixed-gate, and directional-call formulas. -/
 theorem amplified_resources (cs : List (PreparedStep I)) (hcs : PreparedCircuitValid cs)
     (j₀ : I) (S : Finset I) (k M : ℕ)
     (hD : preparedDataQueries cs = 2 * (M - 1)) (hI : preparedInputQueries cs = 1)
@@ -1106,27 +1248,33 @@ open Qatlib
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The true-branch mass of a coordinate projector equals the corresponding measurement
+probability. -/
 private theorem tl_pbm_true (ψ : QState I) (S : Finset I) :
     ProjectiveBranchMass (Projector S) true ψ = MeasureProb ψ S := by
   unfold ProjectiveBranchMass
   rw [projectiveBranch_projector]
   simpa only [MeasureProb, BornProb] using! sum_normSq_collapse ψ S
 
+/-- For a normalized state, the false-branch mass is one minus the measurement probability. -/
 private theorem tl_pbm_false {ψ : QState I} (hψ : Normalized ψ) (S : Finset I) :
     ProjectiveBranchMass (Projector S) false ψ = 1 - MeasureProb ψ S := by
   have h := projectiveBranchMass_add (projector_isOrthogonalProjector S) ψ
   rw [measureProb_univ hψ, tl_pbm_true ψ S] at h
   linarith
 
+/-- If `m > 0`, then the real number `2 * m` is positive. -/
 private theorem tl_two_m_pos {m : ℕ} (hm : 0 < m) : (0:ℝ) < 2*(m:ℝ) := by
   have : (0:ℝ) < (m:ℝ) := by exact_mod_cast hm
   linarith
 
+/-- Summing values with uniform weight `1 / (2 * m)` equals their sum divided by `2 * m`. -/
 private theorem tl_scalar_some (m : ℕ) (f : Fin (2*m) → ℝ) :
     (∑ s : Fin (2*m), (1/(2*(m:ℝ))) * f s) = (∑ s, f s) / (2*(m:ℝ)) := by
   rw [← Finset.mul_sum]
   ring
 
+/-- For `m > 0`, the uniform average of `1 - f` is one minus the uniform average of `f`. -/
 private theorem tl_scalar_none {m : ℕ} (hm : 0 < m) (f : Fin (2*m) → ℝ) :
     (∑ s : Fin (2*m), (1/(2*(m:ℝ))) * (1 - f s)) = 1 - (∑ s, f s) / (2*(m:ℝ)) := by
   rw [← Finset.mul_sum, Finset.sum_sub_distrib]
@@ -1141,21 +1289,28 @@ private theorem tl_scalar_none {m : ℕ} (hm : 0 < m) (f : Fin (2*m) → ℝ) :
   rw [mul_sub, hcN]
   ring
 
+/-- The total weight of all retry traces of length at most `r`. -/
 private def Total (m : ℕ) (out : Fin (2*m) → QState I) (S : Finset I) (r : ℕ) : ℝ :=
   ∑ tr : Trace m r, weight m out S r tr
 
+/-- The total weight of retry traces that select no output state. -/
 private def NoneMass (m : ℕ) (out : Fin (2*m) → QState I) (S : Finset I) (r : ℕ) : ℝ :=
   ∑ tr : Trace m r, if (selected out S r tr).isNone then weight m out S r tr else 0
 
+/-- The total weight of retry traces that select an output state. -/
 private def SomeMass (m : ℕ) (out : Fin (2*m) → QState I) (S : Finset I) (r : ℕ) : ℝ :=
   ∑ tr : Trace m r, if (selected out S r tr).isSome then weight m out S r tr else 0
 
+/-- A trace stopping successfully at its first seed has weight equal to the seed's success
+probability divided by `2 * m`. -/
 private theorem tl_weight_none_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (r : ℕ) (s : Fin (2*m)) :
     weight m out S (r+1) (s, none) = (1/(2*(m:ℝ))) * MeasureProb (out s) S := by
   simp only [weight]
   rw [tl_pbm_true]
 
+/-- A trace continuing after its first seed has weight equal to the uniform seed weight times
+its failure probability times the tail weight. -/
 private theorem tl_weight_some_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (h1 : ∀ s : Fin (2*m), Normalized (out s)) (r : ℕ) (s : Fin (2*m)) (tail : Trace m r) :
     weight m out S (r+1) (s, some tail) =
@@ -1163,28 +1318,34 @@ private theorem tl_weight_some_avg {m : ℕ} {out : Fin (2*m) → QState I} {S :
   simp only [weight]
   rw [tl_pbm_false (h1 s) S]
 
+/-- A trace stopping at the first seed selects that seed's postmeasurement state. -/
 private theorem tl_selected_none {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (r : ℕ) (s : Fin (2*m)) :
     selected out S (r+1) (s, none) = some (PostMeasure (out s) S) := by
   rw [selected]
 
+/-- A trace continuing past the first seed selects the same state as its tail. -/
 private theorem tl_selected_some {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (r : ℕ) (s : Fin (2*m)) (tail : Trace m r) :
     selected out S (r+1) (s, some tail) = selected out S r tail := by
   rw [selected]
 
+/-- The total weight of zero-trial traces is one. -/
 private theorem tl_total_zero {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I} :
     Total m out S 0 = 1 := by
   unfold Total
   change (∑ _ : PUnit, (1:ℝ)) = 1
   simp
 
+/-- The failure mass of zero-trial traces is one. -/
 private theorem tl_none_zero {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I} :
     NoneMass m out S 0 = 1 := by
   unfold NoneMass
   change (∑ _ : PUnit, (if (none : Option (QState I)).isNone then (1:ℝ) else 0)) = 1
   simp
 
+/-- The total trace weight after one more trial is the average success probability plus the
+average failure probability times the previous total weight. -/
 private theorem tl_total_succ_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (hm : 0 < m) (h1 : ∀ s : Fin (2*m), Normalized (out s)) (r : ℕ) :
     Total m out S (r+1) =
@@ -1216,6 +1377,7 @@ private theorem tl_total_succ_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : 
       tl_scalar_some m (fun s => MeasureProb (out s) S),
       tl_scalar_none hm (fun s => MeasureProb (out s) S)]
 
+/-- Each additional trial multiplies the no-output mass by the average failure probability. -/
 private theorem tl_none_succ_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (hm : 0 < m) (h1 : ∀ s : Fin (2*m), Normalized (out s)) (r : ℕ) :
     NoneMass m out S (r+1) =
@@ -1245,6 +1407,8 @@ private theorem tl_none_succ_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : F
     · rw [Finset.mul_sum]
   · rw [← Finset.sum_mul, tl_scalar_none hm (fun s => MeasureProb (out s) S)]
 
+/-- For normalized candidate states and a nonempty seed window, the total trace weight is one at
+every trial count. -/
 private theorem tl_total_eq_one_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (hm : 0 < m) (h1 : ∀ s : Fin (2*m), Normalized (out s)) :
     ∀ r : ℕ, Total m out S r = 1 := by
@@ -1255,6 +1419,8 @@ private theorem tl_total_eq_one_avg {m : ℕ} {out : Fin (2*m) → QState I} {S 
       rw [tl_total_succ_avg hm h1 r, ih]
       ring
 
+/-- For normalized candidates, the no-output mass after `r` trials is the `r`th power of one
+minus their average success probability. -/
 private theorem tl_noneMass_eq_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (hm : 0 < m) (h1 : ∀ s : Fin (2*m), Normalized (out s)) :
     ∀ r : ℕ, NoneMass m out S r =
@@ -1266,6 +1432,7 @@ private theorem tl_noneMass_eq_avg {m : ℕ} {out : Fin (2*m) → QState I} {S :
       rw [tl_none_succ_avg hm h1 r, ih, pow_succ]
       ring
 
+/-- Every trace weight is nonnegative when all candidate output states are normalized. -/
 private theorem tl_weight_nonneg_avg {m : ℕ} {out : Fin (2*m) → QState I} {S : Finset I}
     (h1 : ∀ s : Fin (2*m), Normalized (out s)) :
     ∀ (r : ℕ) (tr : Trace m r), 0 ≤ weight m out S r tr := by
@@ -1284,6 +1451,7 @@ private theorem tl_weight_nonneg_avg {m : ℕ} {out : Fin (2*m) → QState I} {S
           exact mul_nonneg (by positivity)
             (mul_nonneg (sub_nonneg.mpr (measureProb_le_one (h1 s) S)) (ih tail))
 
+/-- The selected-output mass and no-output mass sum to the total trace weight. -/
 private theorem tl_some_add_none (m : ℕ) (out : Fin (2*m) → QState I) (S : Finset I) (r : ℕ) :
     SomeMass m out S r + NoneMass m out S r = Total m out S r := by
   unfold SomeMass NoneMass Total
@@ -1294,6 +1462,9 @@ private theorem tl_some_add_none (m : ℕ) (out : Fin (2*m) → QState I) (S : F
   | none => simp
   | some φ => simp
 
+/-- Sixteen fresh trials with average success probability at least `1 / 8` form a normalized
+nonnegative trace law with failure mass `(1 - pbar)^16`. Their success mass is at least `1 -
+(7 / 8)^16 ≥ 2 / 3`. -/
 theorem trace_law_avg {I : Type} [Fintype I] [DecidableEq I] (m : ℕ)
     (out : Fin (2*m) → QState I) (S : Finset I) (hm : 0 < m)
     (h1 : ∀ s : Fin (2*m), Normalized (out s))
@@ -1362,35 +1533,43 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Collapsing a state to an index set commutes with complex scalar multiplication. -/
 private theorem collapse_smul (c : ℂ) (v : QState I) (S : Finset I) :
     Collapse (c • v) S = c • Collapse v S := by
   show (Projector S : Matrix I I ℂ) *ᵥ (c • v) = c • ((Projector S : Matrix I I ℂ) *ᵥ v)
   rw [Matrix.mulVec_smul]
 
+/-- Collapsing a sum to an index set equals the sum of the collapsed states. -/
 private theorem collapse_add (u v : QState I) (S : Finset I) :
     Collapse (u + v) S = Collapse u S + Collapse v S := by
   show (Projector S : Matrix I I ℂ) *ᵥ (u + v) =
     (Projector S : Matrix I I ℂ) *ᵥ u + (Projector S : Matrix I I ℂ) *ᵥ v
   rw [Matrix.mulVec_add]
 
+/-- Collapsing a difference to an index set equals the difference of the collapsed states. -/
 private theorem collapse_sub (u v : QState I) (S : Finset I) :
     Collapse (u - v) S = Collapse u S - Collapse v S := by
   show (Projector S : Matrix I I ℂ) *ᵥ (u - v) =
     (Projector S : Matrix I I ℂ) *ᵥ u - (Projector S : Matrix I I ℂ) *ᵥ v
   rw [Matrix.mulVec_sub]
 
+/-- Collapsing twice to the same index set equals collapsing once. -/
 private theorem collapse_idem (v : QState I) (S : Finset I) :
     Collapse (Collapse v S) S = Collapse v S := by
   show (Projector S : Matrix I I ℂ) *ᵥ ((Projector S : Matrix I I ℂ) *ᵥ v) =
     (Projector S : Matrix I I ℂ) *ᵥ v
   rw [Matrix.mulVec_mulVec, projector_mul_self]
 
+/-- Applying a matrix gate distributes over addition of states. -/
 private theorem gate_add (U : Matrix I I ℂ) (x y : QState I) :
     ApplyGate U (x + y) = ApplyGate U x + ApplyGate U y := Matrix.mulVec_add U x y
 
+/-- Applying a matrix gate commutes with complex scalar multiplication. -/
 private theorem gate_smul (U : Matrix I I ℂ) (c : ℂ) (x : QState I) :
     ApplyGate U (c • x) = c • ApplyGate U x := Matrix.mulVec_smul U c x
 
+/-- A linear combination of two combinations of `bad` and `good` collects into the stated
+coefficients of those vectors. -/
 private theorem comb {V : Type} [AddCommMonoid V] [Module ℂ V] (bad good : V)
     (r1 r2 c1 c2 c3 c4 : ℂ) :
     r1 • (c1 • bad + c2 • good) + r2 • (c3 • bad + c4 • good)
@@ -1402,6 +1581,8 @@ private theorem comb {V : Type} [AddCommMonoid V] [Module ℂ V] (bad good : V)
   rw [e1, e2, add_smul, add_smul]
   ac_rfl
 
+/-- The successful component of an amplified state is a complex scalar multiple of the original
+prepared state's successful component. -/
 theorem amplified_collapse_smul (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) :
     ∃ r : ℂ, Collapse (Run (preparedMark S) (preparedAACircuit A j₀ k) (Qatlib.Foundations.PureStateMath.Ket j₀)) S
@@ -1430,6 +1611,8 @@ theorem amplified_collapse_smul (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (
 
 set_option maxHeartbeats 2000000 in
 
+/-- Whenever the amplified success probability is positive, its postmeasurement state differs
+from the original postmeasurement state by a scalar of norm one. -/
 theorem amplified_postMeasure_phase (A : Matrix I I ℂ) (j₀ : I) (S : Finset I) (k : ℕ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (hpos : 0 < MeasureProb (Run (preparedMark S) (preparedAACircuit A j₀ k) (Qatlib.Foundations.PureStateMath.Ket j₀)) S) :
@@ -1527,6 +1710,7 @@ namespace Qatlib.Concepts.HhlAlgorithms.Postselection.HHLUnknown.Probe
 
 open Qatlib
 
+/-- A retry trace with trial bound `r` records at most `r` history entries. -/
 private theorem history_length_le (m : ℕ) :
     ∀ (r : ℕ) (tr : Trace m r), (history (m := m) r tr).length ≤ r := by
   intro r
@@ -1541,12 +1725,15 @@ private theorem history_length_le (m : ℕ) :
           simp only [history, List.length_cons]
           exact Nat.succ_le_succ (ih tail)
 
+/-- Every depth encoded by a seed in the doubled window is at most `m - 1`. -/
 private theorem depth_le (m : ℕ) (s : Fin (2*m)) : depth m s ≤ m - 1 := by
   simp only [depth]
   split_ifs with h
   · omega
   · have := s.isLt; omega
 
+/-- If every mapped natural number is at most `C`, their list sum is at most the list length
+times `C`. -/
 private theorem sum_map_le {β : Type} (l : List β) (f : β → ℕ) (C : ℕ)
     (h : ∀ b, f b ≤ C) : (l.map f).sum ≤ l.length * C := by
   induction l with
@@ -1556,6 +1743,7 @@ private theorem sum_map_le {β : Type} (l : List β) (f : β → ℕ) (C : ℕ)
       calc f b + (l.map f).sum ≤ C + l.length * C := Nat.add_le_add (h b) ih
         _ = (l.length + 1) * C := by ring
 
+/-- A constant natural factor can be taken outside a sum over a mapped list. -/
 private theorem sum_map_mul_const {β : Type} (l : List β) (g : β → ℕ) (K : ℕ) :
     (l.map (fun b => g b * K)).sum = K * (l.map g).sum := by
   induction l with
@@ -1564,10 +1752,12 @@ private theorem sum_map_mul_const {β : Type} (l : List β) (g : β → ℕ) (K 
       simp only [List.map_cons, List.sum_cons, ih]
       ring
 
+/-- Pointwise equal natural-valued functions give equal maps of any list. -/
 private theorem map_eq_of_pointwise {β : Type} (l : List β) (f g : β → ℕ)
     (h : ∀ b, f b = g b) : l.map f = l.map g :=
   List.map_congr_left (fun b _ => h b)
 
+/-- The fixed-gate cost at any sampled depth is bounded by the cost expression at depth `m - 1`. -/
 private theorem fixed_term_le (m M : ℕ) (hm : 0 < m) (s : Fin (2*m)) :
     (2*depth m s+1)*(4*(M-1)+5) + 2*depth m s ≤
       (2*m-1)*(4*(M-1)+5) + 2*(m-1) := by
@@ -1576,6 +1766,8 @@ private theorem fixed_term_le (m M : ℕ) (hm : 0 < m) (s : Fin (2*m)) :
   have h2 : 2*depth m s ≤ 2*(m-1) := Nat.mul_le_mul_left 2 hd
   exact Nat.add_le_add (Nat.mul_le_mul_right _ h1) h2
 
+/-- Every sixteen-trial trace satisfies the stated history-length, input-query, data-query,
+fixed-gate, and seed-bit bounds under the per-seed resource formulas. -/
 theorem trace_resources {I : Type} [Fintype I] [DecidableEq I]
     (m M : ℕ) (words : Fin (2*m) → List (PreparedStep I)) (hm : 0 < m)
     (seedExtra : ℕ)
@@ -1648,12 +1840,14 @@ open Qatlib
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Counting query instructions with `countP` equals `QueryCount`. -/
 private theorem queryCount_eq_countP {I : Type} (C : Circuit I) :
     C.countP (fun s => match s with | .query => true | _ => false) = QueryCount C := by
   induction C with
   | nil => rfl
   | cons s C ih => cases s <;> simp [QueryCount, ih]
 
+/-- For a nonempty phase grid, the counted QPE word uses exactly `M - 1` forward queries. -/
 private theorem qpe_fwd (D M : ℕ) (hM : 0 < M) :
     fwdCount (countedQPEWord D M) = M - 1 := by
   have hqc : QueryCount (countedPhaseCircuit (I := Bool × Fin D) M) = M - 1 :=
@@ -1673,6 +1867,7 @@ private theorem qpe_fwd (D M : ℕ) (hM : 0 < M) :
   rw [e1, e2]
   exact hqc
 
+/-- The counted QPE word contains no backward queries. -/
 private theorem qpe_bwd (D M : ℕ) :
     bwdCount (countedQPEWord D M) = 0 := by
   have e1 : bwdCount (countedQPEWord D M) =
@@ -1687,14 +1882,18 @@ private theorem qpe_bwd (D M : ℕ) :
     cases s <;> simp [stepToAdjoint]
   rw [e1, e2]
 
+/-- The number of forward queries is additive under circuit concatenation. -/
 private theorem fwdCount_append {I : Type} (cs ds : List (AdjointStep I)) :
     fwdCount (cs ++ ds) = fwdCount cs + fwdCount ds := by
   simp only [fwdCount, List.countP_append]
 
+/-- The number of backward queries is additive under circuit concatenation. -/
 private theorem bwdCount_append {I : Type} (cs ds : List (AdjointStep I)) :
     bwdCount (cs ++ ds) = bwdCount cs + bwdCount ds := by
   simp only [bwdCount, List.countP_append]
 
+/-- The rational HHL core has `2 * (M - 1)` queries, `4 * (M - 1) + 5` fixed gates, and `M - 1`
+queries in each direction. -/
 private theorem core_counts (D M bits : ℕ) (d : ℚ) (hM : 0 < M) :
     adjointQueryCount (core D M bits d) = 2*(M-1) ∧
     adjointGateCount (core D M bits d) = 4*(M-1)+5 ∧
@@ -1725,6 +1924,8 @@ private theorem core_counts (D M bits : ℕ) (d : ℚ) (hM : 0 < M) :
         List (AdjointStep (Space D M))) = 0 from rfl, hbA, hbw]
     omega
 
+/-- The rational HHL base word has the stated data, preparation, and fixed-gate counts, with `M
+- 1` data calls in each direction and one forward preparation. -/
 private theorem base_counts (D M bits : ℕ) (d : ℚ) (hM : 0 < M) :
     preparedDataQueries (base D M bits d) = 2*(M-1) ∧
     preparedInputQueries (base D M bits d) = 1 ∧
@@ -1780,6 +1981,9 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 set_option maxHeartbeats 1000000 in
 
+/-- Establishes `FiniteComputedUnknownSuccess` for the rational HHL schedule, including finite
+seed sampling, amplification, retry selection, and resource accounting; see
+[BrassardEtAl2002]. -/
 theorem rational_hhl_unknown_success_schedule :
     Qatlib.Concepts.HhlAlgorithms.Postselection.FiniteComputedUnknownSuccess := by
   intro D eig V B W j d theta k hV hB hW hd0 hd14 ht0 ht1 heig hover hnoise

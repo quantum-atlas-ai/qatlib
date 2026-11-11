@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzDefs
 import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+
+/-!
+# Two-site counterexamples for the encoded Petz generator
+
+This module computes the two-site qubit instance at inverse temperature zero for the encoded
+maps associated with [Kim2026]. The block maps scale diagonal operators by one half, so
+`twoSite_ideal_diagonal` gives exponential decay of diagonal inputs.
+
+The resulting distance and trace-preservation obstructions concern the construction in
+`RapidMixingPetzDefs`. They yield `not_clause4` and `not_clause5`, which refute the displayed
+universal simulation and preparation claims for these encoded maps.
+
+## Main statements
+
+* `twoSite_mixing_gap`: the evolved basis input stays at distance at least one eighth from the
+  maximally mixed reference.
+* `twoSite_simulation_gap`: no trace-preserving map meets the stated diamond-distance tolerance
+  at time `Real.log 2`.
+* `not_clause4` and `not_clause5`: the encoded universal claims are false.
+
+## References
+
+* [Kim, 2026][Kim2026]
+-/
+
 set_option warningAsError false
 
 
@@ -23,16 +48,21 @@ set_option maxHeartbeats 2000000
 namespace Qatlib.Papers.SpinChainMix26.RapidMixing
 open Matrix
 open scoped Classical BigOperators MatrixOrder ComplexOrder Matrix.Norms.L2Operator ENNReal
+/-- The maximally mixed operator `(1 / 4) • 1` on the two-site qubit system. -/
 noncomputable def twoSiteGibbs : Operator (2^2) := (1/4 : ℝ) • 1
 
+/-- At inverse temperature zero, `chainGibbs H 0` equals `twoSiteGibbs` for every two-site
+Hamiltonian. -/
 lemma twoSite_gibbs_zero (H : Operator (2^2)) : chainGibbs (n:=2) (d:=2) H 0 = twoSiteGibbs := by
   norm_num [chainGibbs, chainGibbsPartition, chainGibbsKernel, twoSiteGibbs, Matrix.trace_one]
 
+/-- The square root of `twoSiteGibbs` is `(1 / 2) • 1`. -/
 lemma twoSite_sqrt_gibbs : CFC.sqrt twoSiteGibbs = (1/2 : ℝ) • (1 : Operator 4) := by
   apply CFC.sqrt_unique
   · norm_num [twoSiteGibbs, smul_mul_smul, smul_smul]
   · exact smul_nonneg (by norm_num : (0:ℝ) ≤ 1/2) zero_le_one
 
+/-- Every one-site block reduction of `twoSiteGibbs` is `(1 / 2) • 1`. -/
 lemma twoSite_block_reduced (s : Fin 2) :
     blockReduced (n:=2) (d:=2) twoSiteGibbs s.val 1 (by decide) (by decide) = (1/2 : ℝ) • 1 := by
   ext i j
@@ -40,6 +70,7 @@ lemma twoSite_block_reduced (s : Fin 2) :
     norm_num [blockReduced, twoSiteGibbs, Fin.sum_univ_two, mergeLabel, chainOfDigits,
       chainLabel, finPiFinEquiv, Matrix.one_apply]
 
+/-- The square root of the two-dimensional operator `(1 / 2) • 1` is `(Real.sqrt 2 / 2) • 1`. -/
 lemma twoSite_sqrt_half : CFC.sqrt ((1/2 : ℝ) • (1 : Operator 2)) =
     (Real.sqrt 2 / 2) • (1 : Operator 2) := by
   apply CFC.sqrt_unique
@@ -48,6 +79,8 @@ lemma twoSite_sqrt_half : CFC.sqrt ((1/2 : ℝ) • (1 : Operator 2)) =
     nlinarith [Real.sq_sqrt (by norm_num : (0:ℝ) ≤ 2)]
   · exact smul_nonneg (by positivity : (0:ℝ) ≤ Real.sqrt 2 / 2) zero_le_one
 
+/-- The inverse of the square root of the two-dimensional operator `(1 / 2) • 1` is `Real.sqrt 2
+• 1`. -/
 lemma twoSite_inverse_sqrt_half :
     (CFC.sqrt ((1/2 : ℝ) • (1 : Operator 2)))⁻¹ = Real.sqrt 2 • (1 : Operator 2) := by
   rw [twoSite_sqrt_half]
@@ -57,6 +90,8 @@ lemma twoSite_inverse_sqrt_half :
     nlinarith [Real.sq_sqrt (by norm_num : (0:ℝ) ≤ 2)]
   rw [hr, one_smul]
 
+/-- For a one-site block in the two-site qubit system, equality of both block and complementary
+labels implies equality of the full basis labels. -/
 lemma twoSite_split_label_injective (s : Fin 2) (u v : Fin 4) :
     blockLabel (n:=2) (d:=2) s.val 1 (by decide) (by decide) u =
       blockLabel (n:=2) (d:=2) s.val 1 (by decide) (by decide) v →
@@ -65,6 +100,8 @@ lemma twoSite_split_label_injective (s : Fin 2) (u v : Fin 4) :
   revert u v
   fin_cases s <;> decide
 
+/-- Each encoded one-site Petz Kraus operator for `twoSiteGibbs` is diagonal, with value
+`Real.sqrt 2 / 2` on its selected complementary label and zero elsewhere. -/
 lemma twoSite_kraus_diagonal (s : Fin 2) (k : Fin 2) :
     petzKraus (n:=2) (d:=2) twoSiteGibbs s.val 1 (by decide) (by decide) k =
       Matrix.diagonal (fun u : Fin 4 =>
@@ -88,6 +125,7 @@ lemma twoSite_kraus_diagonal (s : Fin 2) (k : Fin 2) :
       simp [blockCompEmbed, hc, hb, hij]
     · simp [blockCompEmbed, hc, hij]
 
+/-- If `L X = z • X`, then `idealChannel L t X = Complex.exp ((t : ℂ) * z) • X`. -/
 lemma ideal_channel_of_eigen {n d : ℕ} (L : Operator (d^n) →ₗ[ℂ] Operator (d^n))
     (X : Operator (d^n)) (z : ℂ) (hX : L X = z • X) (t : ℝ) :
     idealChannel L t X = Complex.exp ((t:ℂ)*z) • X := by
@@ -105,6 +143,8 @@ lemma ideal_channel_of_eigen {n d : ℕ} (L : Operator (d^n) →ₗ[ℂ] Operato
   rw [matrix_exp_mulVec_of_eigen _ _ _ he]
   simp
 
+/-- Each encoded one-site Petz block map for `twoSiteGibbs` multiplies every diagonal operator
+by `1 / 2`. -/
 lemma twoSite_block_diagonal_action (s : Fin 2) (v : Fin 4 → ℂ) :
     petzBlockChannel (n:=2) (d:=2) twoSiteGibbs s.val 1 (by decide) (by decide) (Matrix.diagonal v) =
       (1/2 : ℂ) • Matrix.diagonal v := by
@@ -124,6 +164,7 @@ lemma twoSite_block_diagonal_action (s : Fin 2) (v : Fin 4 → ℂ) :
     simpa [apply_ite, mul_ite, ite_mul] using hr
   · simp [Matrix.sum_apply, hij]
 
+/-- The encoded two-site Petz generator with block length one negates every diagonal operator. -/
 lemma twoSite_generator_diagonal (v : Fin 4 → ℂ) :
     petzGenerator (n:=2) (d:=2) twoSiteGibbs 1 (by decide) (by decide) (Matrix.diagonal v) =
       (-1 : ℂ) • Matrix.diagonal v := by
@@ -135,13 +176,17 @@ lemma twoSite_generator_diagonal (v : Fin 4 → ℂ) :
   norm_num
   ring
 
+/-- The ideal evolution of a diagonal operator under the encoded two-site generator is
+multiplication by `Complex.exp (-(t : ℂ))`. -/
 lemma twoSite_ideal_diagonal (v : Fin 4 → ℂ) (t : ℝ) :
     idealChannel (petzGenerator (n:=2) (d:=2) twoSiteGibbs 1 (by decide) (by decide)) t (Matrix.diagonal v) =
       Complex.exp (-(t:ℂ)) • Matrix.diagonal v := by
   simpa using ideal_channel_of_eigen _ _ (-1) (twoSite_generator_diagonal v) t
+/-- The diagonal two-site basis operator supported at basis label zero. -/
 noncomputable def twoSiteBasisState : Operator 4 :=
     Matrix.diagonal (fun i : Fin 4 => if i=0 then 1 else 0)
 
+/-- The two-site basis operator `twoSiteBasisState` is a density operator. -/
 lemma twoSite_basis_density : IsDensityOperator twoSiteBasisState := by
   constructor
   · apply Matrix.posSemidef_diagonal_iff.mpr
@@ -149,15 +194,20 @@ lemma twoSite_basis_density : IsDensityOperator twoSiteBasisState := by
     split_ifs <;> positivity
   · simp [twoSiteBasisState, Matrix.trace_diagonal]
 
+/-- The trace norm of `twoSiteBasisState` is one. -/
 lemma twoSite_basis_traceNorm : Matrix.traceNorm twoSiteBasisState = 1 := by
   have h := twoSite_basis_density.1.traceNorm_eq_trace
   have h1 := congrArg Complex.re (h.trans twoSite_basis_density.2)
   simpa using h1
 
+/-- The ideal evolution sends `twoSiteBasisState` to `Complex.exp (-(t : ℂ)) •
+twoSiteBasisState`. -/
 lemma twoSite_ideal_basis (t : ℝ) :
     idealChannel (petzGenerator (n:=2) (d:=2) twoSiteGibbs 1 (by decide) (by decide)) t twoSiteBasisState =
       Complex.exp (-(t:ℂ)) • twoSiteBasisState := twoSite_ideal_diagonal _ t
 
+/-- At every real time, the ideal evolution of `twoSiteBasisState` stays at half trace distance
+at least `1 / 8` from `twoSiteGibbs`. -/
 lemma twoSite_mixing_gap (t : ℝ) : (1/8 : ℝ) ≤
     halfTraceDist (idealChannel (petzGenerator (n:=2) (d:=2) twoSiteGibbs 1 (by decide) (by decide)) t twoSiteBasisState) twoSiteGibbs := by
   rw [twoSite_ideal_basis]
@@ -180,6 +230,8 @@ lemma twoSite_mixing_gap (t : ℝ) : (1/8 : ℝ) ≤
   unfold halfTraceDist
   linarith
 
+/-- Finite diamond distance at most `1 / 16` bounds `traceNorm (T X - S X)` by `(1 / 8) *
+traceNorm X` for every input operator. -/
 lemma trace_bound_of_diamond_sixteenth {D E : ℕ} (T S : Operator D →ₗ[ℂ] Operator E)
     (h : finiteDiamondDistance T S ≤ ENNReal.ofReal (1/16 : ℝ)) (X : Operator D) :
     Matrix.traceNorm (T X - S X) ≤ (1/8 : ℝ) * Matrix.traceNorm X := by
@@ -204,6 +256,8 @@ lemma trace_bound_of_diamond_sixteenth {D E : ℕ} (T S : Operator D →ₗ[ℂ]
   rw [ht, diamond_traceNorm_reindex, diamond_traceNorm_reindex] at hb
   exact hb
 
+/-- No trace-preserving linear map is within finite diamond distance `1 / 16` of the encoded
+two-site ideal evolution at time `Real.log 2`. -/
 lemma twoSite_simulation_gap (T : Operator 4 →ₗ[ℂ] Operator 4) (hT : TracePreserving T) :
     ¬ finiteDiamondDistance T
       (idealChannel (petzGenerator (n:=2) (d:=2) twoSiteGibbs 1 (by decide) (by decide)) (Real.log 2)) ≤
@@ -223,20 +277,29 @@ lemma twoSite_simulation_gap (T : Operator 4 →ₗ[ℂ] Operator 4) (hT : Trace
   norm_num at hl he
   linarith
 
+/-- The length-zero local-term description whose rational evaluations and evaluation costs are
+all zero. -/
 def zeroTermDescription : LocalTermDesc 4 := ⟨0, fun _ _ _ => 0, fun _ => 0⟩
 
+/-- The zero local-term description represents the zero operator to every required dyadic
+precision. -/
 lemma zeroTermDescription_admits : zeroTermDescription.Admits 0 := by
   intro p i j
   refine ⟨⟨0, by simp [zeroTermDescription]⟩, ?_⟩
   simp [zeroTermDescription]
 
+/-- The zero local-term description has polynomially bounded evaluation cost. -/
 lemma zeroTermDescription_poly : zeroTermDescription.PolyEvaluable := by
   exact ⟨1, 1, by intro p; simp [zeroTermDescription]⟩
 
+/-- The two-site family of zero local interactions satisfies `BoundedChain`. -/
 lemma twoSite_bounded_zero : BoundedChain (n:=2) (d:=2) (fun _ => 0) := by
   intro i
   simp [OperatorSpectralNorm]
 
+/-- The displayed universal simulation claim for the encoded Petz generator is false, including
+its trace-preserving approximation requirement; the two-site zero-interaction instance
+supplies a counterexample. See [Kim2026] for the source setting. -/
 theorem not_clause4 : ¬ (
 ∀ (β : ℝ) (d ℓ : ℕ), 0 ≤ β → 2 ≤ d → 0 < ℓ →
     ∃ (c e : ℕ),
@@ -283,6 +346,9 @@ theorem not_clause4 : ¬ (
   rcases hp with ⟨_, _, _, htp, hd, _⟩
   exact twoSite_simulation_gap _ htp hd
 
+/-- The displayed universal preparation claim for the encoded Petz generator is false, including
+its uniform mixing and error-budget requirements; the two-site zero-interaction instance
+supplies a counterexample. See [Kim2026] for the source setting. -/
 theorem not_clause5 : ¬ (
 ∀ (β : ℝ) (d ℓ : ℕ), 0 ≤ β → 2 ≤ d → 0 < ℓ →
     ∃ (c e : ℕ),

@@ -6,10 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ErrorExpectationMinimizedAtMinLStat
 
+/-!
+# Minimizer of the expected-noise envelope
+
+`errorExpectationMinimizedAtMinL` proves that the stated square-root expression minimizes the
+rational noise envelope over its open real domain. This is the algebraic minimization step used
+in the expected-noise analysis of [Cornwell2014].
+
+## Main statements
+
+* `errorExpectationMinimizedAtMinL`: For M ≥ 2 and N > 0, the stated square-root value of MinL
+  minimizes (L+M²)/((N−L−M)(L+M)) over −M < L < N−M; see [Cornwell2014].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Concepts.AmpTransform.NoiseEnvelope
 
+/-- For M ≥ 2 and N > 0, the stated square-root value of MinL minimizes (L+M²)/((N−L−M)(L+M))
+over −M < L < N−M; see [Cornwell2014]. -/
 theorem errorExpectationMinimizedAtMinL : ErrorExpectationMinimizedAtMinL := by
   intro M N hM hN
   let m : ℝ := M

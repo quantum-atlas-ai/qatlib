@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Core.PartialFraction
 import Mathlib.Analysis.Complex.CauchyIntegral
 
+/-!
+# Circle integrals with finitely many simple poles
+
+This module evaluates vector-valued circle integrals whose denominators are products of distinct
+linear factors. `circleIntegral_finite_simple_poles` expresses the integral as a finite sum of
+function values weighted by reciprocal pole-separation products.
+
+`cbmd_finite_polynomial_regulator_circle` normalizes one distinguished pole contribution,
+separating its value from the remaining terms. This finite residue identity underlies the
+contour decomposition in [WangEtAl2026].
+
+## Main statements
+
+* `circleIntegral_finite_simple_poles`: evaluates the circle integral by a finite residue sum.
+* `cbmd_finite_polynomial_regulator_circle`: isolates a distinguished pole.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false
@@ -19,6 +40,9 @@ open Complex Metric Set
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- For distinct poles inside a circle and `F` differentiable in the disk and continuous on its
+closure, the integral of the reciprocal pole product times `F` equals `2πi` times the
+corresponding finite residue sum. -/
 theorem circleIntegral_finite_simple_poles {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℂ) (hs : s.Nonempty) (hp : Set.InjOn p s)
     {F : ℂ → E} {c : ℂ} {R : ℝ}
@@ -59,6 +83,8 @@ theorem circleIntegral_finite_simple_poles {ι : Type*} [DecidableEq ι]
   rw [circleIntegral.integral_smul,
     hF.circleIntegral_sub_inv_smul (hinside i hi), smul_comm]
 
+/-- Normalizing the finite pole-product circle integral at a distinguished pole gives its value
+of `F` plus the explicitly weighted contributions from the other poles [WangEtAl2026]. -/
 theorem cbmd_finite_polynomial_regulator_circle {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℂ) (hp : Set.InjOn p s)
     (i₀ : ι) (hi₀ : i₀ ∈ s)

@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.StringRewrite07.MainResults.LineGraphSpectrum.Basic
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Concrete bounds for path spectral sums
+
+The file bounds endpoint spectral weights using the stated sine-vector orthogonality identity
+and controls every eigenvalue by `lineEigenvalue ℓ 0`. It gives a cubic lower bound on the first
+endpoint weight and an upper bound on the absolute spectral power sum, then propagates the
+latter through a `sqrt 2` scaling. See [JanzingWocjan2010].
+
+## Main statements
+
+* `lineWeight_zero_ge`: the first weight is at least `8 / (ℓ + 1) ^ 3`.
+* `lineEigenvalue_abs_le_first`: the first eigenvalue bounds all spectral absolute values.
+* `lineGraph_growth_bound`: the absolute weighted power sum is at most the first eigenvalue
+  power under the orthogonality hypothesis.
+* `delta_growth_of_entry`: the growth bound scales by a factor `sqrt 2` in the base.
+
+## References
+
+* [Janzing and Wocjan, 2010][JanzingWocjan2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -13,6 +35,8 @@ noncomputable section
 
 namespace Qatlib.Papers.StringRewrite07.MainResults
 
+/-- If the coordinate columns of `e` have the stated orthonormality sums, then the sum of `|e j
+a * e j b|` over `j` is at most one. See [JanzingWocjan2010]. -/
 theorem sum_abs_weight_le_one {κ ι : Type} [Fintype κ] [Fintype ι] [DecidableEq ι]
     (e : κ → ι → ℝ)
     (horth : ∀ a b : ι, ∑ j, e j a * e j b = if a = b then 1 else 0) (a b : ι) :
@@ -45,6 +69,7 @@ theorem sum_abs_weight_le_one {κ ι : Type} [Fintype κ] [Fintype ι] [Decidabl
         rw [abs_mul]
     _ ≤ 1 := hmain
 
+/-- If `0 ≤ x ≤ y ≤ π - x`, then `|cos y| ≤ cos x`. -/
 theorem abs_cos_le_cos {x y : ℝ} (hx0 : 0 ≤ x)
     (hxy : x ≤ y) (hyle : y ≤ Real.pi - x) : |Real.cos y| ≤ Real.cos x := by
   have hpi := Real.pi_pos
@@ -69,6 +94,7 @@ theorem abs_cos_le_cos {x y : ℝ} (hx0 : 0 ≤ x)
     rw [abs_of_nonpos hnonpos, ← Real.cos_pi_sub y]
     exact hmono
 
+/-- The first path spectral value is nonnegative when `ℓ > 0`. -/
 theorem lineEigenvalue_zero_nonneg {ℓ : ℕ} (hℓ : 0 < ℓ) : 0 ≤ lineEigenvalue ℓ 0 := by
   unfold lineEigenvalue
   have hden : (0:ℝ) < (ℓ:ℝ) + 1 := by positivity
@@ -87,6 +113,8 @@ theorem lineEigenvalue_zero_nonneg {ℓ : ℕ} (hℓ : 0 < ℓ) : 0 ≤ lineEige
   rw [harg]
   nlinarith
 
+/-- For `ℓ > 0` and `j < ℓ`, the absolute value of `lineEigenvalue ℓ j` is at most
+`lineEigenvalue ℓ 0`. See [JanzingWocjan2010]. -/
 theorem lineEigenvalue_abs_le_first {ℓ j : ℕ} (hℓ : 0 < ℓ) (hj : j < ℓ) :
     |lineEigenvalue ℓ j| ≤ lineEigenvalue ℓ 0 := by
   have hden : (0:ℝ) < (ℓ:ℝ) + 1 := by positivity
@@ -121,6 +149,8 @@ theorem lineEigenvalue_abs_le_first {ℓ j : ℕ} (hℓ : 0 < ℓ) (hj : j < ℓ
   rw [habs]
   linarith
 
+/-- The sine-form vector entry with spectral index zero and coordinate zero is `sqrt (2 / (ℓ +
+1)) * sin (π / (ℓ + 1))`. -/
 theorem lineEigvecEntry_zero_zero {ℓ : ℕ} :
     lineEigvecEntry ℓ 0 0 =
       Real.sqrt (2 / ((ℓ:ℝ) + 1)) * Real.sin (Real.pi / ((ℓ:ℝ) + 1)) := by
@@ -129,6 +159,8 @@ theorem lineEigvecEntry_zero_zero {ℓ : ℕ} :
       = Real.pi / ((ℓ:ℝ) + 1) := by push_cast; ring
   rw [harg]
 
+/-- For positive `ℓ`, the last coordinate of the spectral-index-zero sine vector equals `sqrt (2
+/ (ℓ + 1)) * sin (π / (ℓ + 1))`. -/
 theorem lineEigvecEntry_zero_last {ℓ : ℕ} (hℓ : 0 < ℓ) :
     lineEigvecEntry ℓ 0 (ℓ - 1) =
       Real.sqrt (2 / ((ℓ:ℝ) + 1)) * Real.sin (Real.pi / ((ℓ:ℝ) + 1)) := by
@@ -141,6 +173,7 @@ theorem lineEigvecEntry_zero_last {ℓ : ℕ} (hℓ : 0 < ℓ) :
     ring
   rw [harg, Real.sin_pi_sub]
 
+/-- For positive `ℓ`, the first endpoint weight is `2 / (ℓ + 1) * sin² (π / (ℓ + 1))`. -/
 theorem lineWeight_zero_eq {ℓ : ℕ} (hℓ : 0 < ℓ) :
     lineWeight ℓ 0 = 2 / ((ℓ:ℝ) + 1) * (Real.sin (Real.pi / ((ℓ:ℝ) + 1))) ^ 2 := by
   unfold lineWeight
@@ -152,6 +185,7 @@ theorem lineWeight_zero_eq {ℓ : ℕ} (hℓ : 0 < ℓ) :
   calc s * t * (s * t) = (s * s) * (t * t) := by ring
     _ = 2 / ((ℓ:ℝ) + 1) * t ^ 2 := by rw [hsq]; ring
 
+/-- For positive `ℓ`, the first endpoint weight is at least `(2 / (ℓ + 1)) ^ 3`. -/
 theorem lineWeight_zero_ge_cube {ℓ : ℕ} (hℓ : 0 < ℓ) :
     (2 / ((ℓ:ℝ) + 1)) ^ 3 ≤ lineWeight ℓ 0 := by
   rw [lineWeight_zero_eq hℓ]
@@ -175,6 +209,8 @@ theorem lineWeight_zero_ge_cube {ℓ : ℕ} (hℓ : 0 < ℓ) :
   have heq : 2 / ((ℓ:ℝ) + 1) * (2 / ((ℓ:ℝ) + 1)) ^ 2 = (2 / ((ℓ:ℝ) + 1)) ^ 3 := by ring
   rwa [heq] at hstep
 
+/-- For positive `ℓ`, the first endpoint weight is at least `8 / (ℓ + 1) ^ 3`. See
+[JanzingWocjan2010]. -/
 theorem lineWeight_zero_ge {ℓ : ℕ} (hℓ : 0 < ℓ) :
     8 / ((ℓ:ℝ) + 1) ^ 3 ≤ lineWeight ℓ 0 := by
   have hle := lineWeight_zero_ge_cube hℓ
@@ -183,11 +219,15 @@ theorem lineWeight_zero_ge {ℓ : ℕ} (hℓ : 0 < ℓ) :
     ring
   rwa [heq] at hle
 
+/-- The first endpoint weight is strictly positive when `ℓ > 0`. -/
 theorem lineWeight_zero_pos {ℓ : ℕ} (hℓ : 0 < ℓ) : 0 < lineWeight ℓ 0 := by
   have h := lineWeight_zero_ge hℓ
   have : (0:ℝ) < 8 / ((ℓ:ℝ) + 1) ^ 3 := by positivity
   linarith
 
+/-- For positive `ℓ`, the stated orthogonality identity for the sine-vector entries implies that
+the absolute endpoint spectral sum of `m`th powers is at most `(lineEigenvalue ℓ 0) ^ m`.
+See [JanzingWocjan2010]. -/
 theorem lineGraph_growth_bound {ℓ : ℕ} (hℓ : 0 < ℓ) (m : ℕ)
     (horth : ∀ a b : Fin ℓ,
       ∑ j : Fin ℓ, lineEigvecEntry ℓ (j:ℕ) (a:ℕ) * lineEigvecEntry ℓ (j:ℕ) (b:ℕ)
@@ -205,6 +245,8 @@ theorem lineGraph_growth_bound {ℓ : ℕ} (hℓ : 0 < ℓ) (m : ℕ)
   exact spectral_sum_growth_bound (fun j : Fin ℓ => lineEigenvalue ℓ (j:ℕ))
     (fun j : Fin ℓ => lineWeight ℓ (j:ℕ)) hlam0 hlam hw m
 
+/-- If `|P| ≤ lam0 ^ m`, `|k| ≤ 1`, and `Δ = k * (sqrt 2) ^ m * P`, then `|Δ| ≤ (sqrt 2 * lam0)
+^ m`. -/
 theorem delta_growth_of_entry {Δ k P : ℝ} {m : ℕ} {lam0 : ℝ}
     (hP : |P| ≤ lam0 ^ m) (hk : |k| ≤ 1)
     (hΔ : Δ = k * ((Real.sqrt 2) ^ m * P)) :

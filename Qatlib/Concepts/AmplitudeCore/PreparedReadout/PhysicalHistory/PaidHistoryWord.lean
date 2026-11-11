@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.PaidHistoryPreparation
+
+/-!
+# Three-source words for a paid physical history
+
+`sources` supplies separate Hamiltonian, purification preparation, and projector ports on a
+common history register. `instructions` combines a single paid preparation call, seven
+initialization gates, physical-time simulation, and a single projector call.
+
+The output and event identities connect this explicit word to the actual projector-history
+probability used by amplitude estimation [BrassardEtAl2002].
+
+## Main statements
+
+* `instructions_counts`: preparation and projector each cost one call, with seven initialization
+  gates.
+* `actual_output`: the evaluated word gives the physical projector-history state after
+  relabeling.
+* `actual_probability`: the word amplitude equals the physical zero-projector-ancilla
+  probability.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 set_option backward.isDefEq.respectTransparency false
@@ -60,6 +85,8 @@ noncomputable local instance executionDecidableEq (q a : ℕ) :
     DecidableEq (BinaryClockSingleCU.New q (Reg a × I)) :=
   BinaryClockSingleCU.newDecidableEq q (Reg a × I)
 
+/-- The Hamiltonian simulation, paid purification preparation, and projector matrices acting on
+the common full history register. -/
 def sources (q a m : ℕ) (UH : Matrix (Reg a × I) (Reg a × I) ℂ)
     (P : Matrix (E × I) (E × I) ℂ) (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source →
@@ -68,18 +95,24 @@ def sources (q a m : ℕ) (UH : Matrix (Reg a × I) (Reg a × I) ℂ)
   | .preparation => preparationPort q a m P
   | .projector => BinaryClockProjectorReadout.projectorPort q a m UPi
 
+/-- The purified physical-time simulation word extended by the projector ancilla, concatenated
+with the known-register initialization. -/
 def body (q a m : ℕ) (α T : ℚ) (k : ℕ) :
     List (AdjointStep (Whole q a m I E)) :=
   phaseLiftWord (parallelOracle (J := Reg m))
     (BinaryClockPurifier.instructions (E := E) q (encodingFiber (I := I) (ZeroStr a)) α T k) ++
       initialization q a m
 
+/-- The three-source history word combining paid preparation, initialization and simulation, and
+projector access. -/
 def instructions (q a m : ℕ) (α T : ℚ) (k : ℕ) :
     List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step
       (Whole q a m I E)) :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.projectorHistoryWord
     (body q a m α T k)
 
+/-- Evaluating the simulation word extended by the projector ancilla equals the identity
+extension of the purified simulation matrix. -/
 theorem simulation_evaluate (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (UH : Matrix (Reg a × I) (Reg a × I) ℂ) :
     evaluate (parallelOracle (J := Reg m) (BinaryClockPurifier.oracle (E := E) q UH))
@@ -90,6 +123,8 @@ theorem simulation_evaluate (q a m : ℕ) (α T : ℚ) (k : ℕ)
   phaseLiftWord_evaluate _ parallel_select_one (fun _ _ => (parallel_select_mul _ _).symm)
     (fun U => (parallelOracle_adjoint U).symm) _ _
 
+/-- All three full-register source matrices are unitary when the supplied Hamiltonian,
+preparation, and projector matrices are unitary. -/
 theorem sources_unitary (q a m : ℕ)
     (UH : Matrix (Reg a × I) (Reg a × I) ℂ) (hH : UH ∈ Matrix.unitaryGroup _ ℂ)
     (P : Matrix (E × I) (E × I) ℂ) (hP : P ∈ Matrix.unitaryGroup _ ℂ)
@@ -108,6 +143,8 @@ theorem sources_unitary (q a m : ℕ)
   | preparation => exact preparationPort_unitary q a m P hP
   | projector => exact BinaryClockProjectorReadout.projectorPort_unitary q a m UPi hPi
 
+/-- The paid history instruction word is well formed for the stated projected encoding of the
+normalized Hermitian Hamiltonian. -/
 theorem instructions_wellFormed (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (H : Matrix I I ℂ) (hH : H.IsHermitian)
     (UH : Matrix (Reg a × I) (Reg a × I) ℂ)
@@ -124,6 +161,8 @@ theorem instructions_wellFormed (q a m : ℕ) (α T : ℚ) (k : ℕ)
         (encodingFiber (I := I) (ZeroStr a)) hH henc).1
   · exact (initialization_resources q a m).1
 
+/-- The history word uses one preparation call, one projector call, the physical-time
+simulator's Hamiltonian queries, and its gate count plus seven. -/
 theorem instructions_counts (q a m : ℕ) (α T : ℚ) (k : ℕ) :
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.queryCount .hamiltonian
       (instructions (I := I) (E := E) q a m α T k) =
@@ -144,6 +183,8 @@ theorem instructions_counts (q a m : ℕ) (α T : ℚ) (k : ℕ) :
     (initialization_resources (I := I) (E := E) q a m).2.1,
     (initialization_resources (I := I) (E := E) q a m).2.2, add_zero] using h
 
+/-- An identity-extended matrix acts on an embedded basis fiber by applying the original matrix
+inside that fiber. -/
 theorem parallel_fiber {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (M : Matrix Y Y ℂ) (a : X) (v : QState Y) :
     parallelOracle (J := X) M *ᵥ (encodingFiber a *ᵥ v) = encodingFiber a *ᵥ (M *ᵥ v) := by
@@ -159,6 +200,8 @@ theorem parallel_fiber {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [Dec
     rw [Matrix.mulVec_zero]
     rfl
 
+/-- Relabeling the evaluated paid history word on its basis seed gives the actual
+projector-history output for the supplied prepared purification. -/
 theorem actual_output (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (UH : Matrix (Reg a × I) (Reg a × I) ℂ) (P : Matrix (E × I) (E × I) ℂ)
     (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) (s : E × I) :
@@ -179,8 +222,11 @@ theorem actual_output (q a m : ℕ) (α T : ℚ) (k : ℕ)
   rw [preparation_on_seed, initialization_on_state, simulation_evaluate, parallel_fiber]
   rfl
 
+/-- The full-history measurement event in which the projector ancilla equals the zero string. -/
 def event (q a m : ℕ) : Finset (Whole q a m I E) := {x | x.1 = ZeroStr m}
 
+/-- The three-source word's event amplitude equals the actual projector-history probability of a
+zero projector ancilla. -/
 theorem actual_probability (q a m : ℕ) (α T : ℚ) (k : ℕ)
     (UH : Matrix (Reg a × I) (Reg a × I) ℂ) (P : Matrix (E × I) (E × I) ℂ)
     (UPi : Matrix (Reg m × I) (Reg m × I) ℂ) (s : E × I) :

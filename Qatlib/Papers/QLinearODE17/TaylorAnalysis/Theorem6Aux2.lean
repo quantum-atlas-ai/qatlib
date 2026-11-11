@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6AltAux
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
+
+/-!
+# Source remainder and diagonal matrix identities
+
+This module relates `taylorSrcPoly` to `taylorPoly` and bounds its error against `(exp z - 1) /
+z`. Matrix identities for diagonal powers, similarity, scaling, and finite sums support
+coordinatewise Taylor evolution. See [BerryEtAl2017ODE] for the paper's setting.
+
+## Main statements
+
+* `taylorSrcPoly_mul`: Multiplying `taylorSrcPoly k z` by `z` gives `taylorPoly k z - 1`.
+* `sum_mulVec`: Matrix-vector multiplication distributes over a finite sum of matrices.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -16,6 +34,7 @@ namespace Qatlib.Papers.QLinearODE17.TaylorAnalysis
 
 open Matrix
 
+/-- Multiplying `taylorSrcPoly k z` by `z` gives `taylorPoly k z - 1`. -/
 theorem taylorSrcPoly_mul (k : ℕ) (z : ℂ) :
     z * taylorSrcPoly k z = taylorPoly k z - 1 := by
   have hsplit : taylorPoly k z =
@@ -27,6 +46,8 @@ theorem taylorSrcPoly_mul (k : ℕ) (z : ℂ) :
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [mul_div_assoc', pow_succ, mul_comm]
 
+/-- For nonzero `z` with `‖z‖ ≤ 1` and `k ≥ 5`, the source-polynomial error is at most `(7/6) *
+‖z‖^k / (k+1)!`. -/
 theorem exp_src_defect (k : ℕ) (z : ℂ) (hk : 5 ≤ k) (hz1 : ‖z‖ ≤ 1) (hz0 : z ≠ 0) :
     ‖(Complex.exp z - 1) / z - taylorSrcPoly k z‖ ≤
       (7 / 6 : ℝ) * ‖z‖ ^ k / ((Nat.factorial (k + 1) : ℕ) : ℝ) := by
@@ -51,6 +72,7 @@ theorem exp_src_defect (k : ℕ) (z : ℂ) (hk : 5 ≤ k) (hz1 : ‖z‖ ≤ 1) 
   field_simp
   norm_num
 
+/-- If `Re z ≤ 0`, then `‖exp z‖ ≤ 1`. -/
 theorem complex_norm_exp_le_one (z : ℂ) (hz : z.re ≤ 0) : ‖Complex.exp z‖ ≤ 1 := by
   rw [Complex.norm_exp]
   exact Real.exp_le_one_iff.mpr hz
@@ -61,12 +83,15 @@ variable {N : Type} [Fintype N] [DecidableEq N]
 
 omit [DecidableEq N] in
 
+/-- Multiplication by a diagonal matrix acts coordinatewise by its diagonal entries. -/
 theorem diag_mulVec (D : Matrix N N ℂ) (hd : ∀ i j : N, i ≠ j → D i j = 0)
     (v : QState N) (n : N) : (D *ᵥ v) n = D n n * v n := by
   simp only [Matrix.mulVec, dotProduct]
   rw [Finset.sum_eq_single_of_mem n (Finset.mem_univ n) (fun j _ hj => by
     rw [hd n j (Ne.symm hj), zero_mul])]
 
+/-- Every natural power of a diagonal matrix has the corresponding powers on its diagonal and
+zero off the diagonal. -/
 theorem diag_pow (D : Matrix N N ℂ) (hd : ∀ i j : N, i ≠ j → D i j = 0) (r : ℕ) :
     ∀ (i j : N), (D ^ r) i j = if i = j then (D i i) ^ r else 0 := by
   induction r with
@@ -95,6 +120,8 @@ theorem diag_pow (D : Matrix N N ℂ) (hd : ∀ i j : N, i ≠ j → D i j = 0) 
       · rw [ih i c, if_neg h1]
         ring
 
+/-- Under the stated two-sided inverse hypotheses, similarity by `V` commutes with natural
+matrix powers. -/
 theorem simil_pow (A V D : Matrix N N ℂ) (hA : A = V * D * V⁻¹)
     (hV1 : V * V⁻¹ = 1) (hV2 : V⁻¹ * V = 1) (r : ℕ) : A ^ r = V * (D ^ r) * V⁻¹ := by
   induction r with
@@ -106,11 +133,13 @@ theorem simil_pow (A V D : Matrix N N ℂ) (hA : A = V * D * V⁻¹)
     simp only [Matrix.mul_assoc]
     rw [hmid2]
 
+/-- Real scalar multiplication of `V * D * V⁻¹` can be applied to the middle factor `D`. -/
 theorem smul_simil (h : ℝ) (V D : Matrix N N ℂ) : h • (V * D * V⁻¹) = V * (h • D) * V⁻¹ := by
   rw [← Algebra.smul_mul_assoc, ← Algebra.mul_smul_comm]
 
 omit [DecidableEq N] in
 
+/-- Matrix-vector multiplication distributes over a finite sum of matrices. -/
 theorem sum_mulVec {ι : Type} (s : Finset ι) (Ms : ι → Matrix N N ℂ) (v : QState N) :
     (∑ i ∈ s, Ms i) *ᵥ v = ∑ i ∈ s, (Ms i *ᵥ v) := by
   classical

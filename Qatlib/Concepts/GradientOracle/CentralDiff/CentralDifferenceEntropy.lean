@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
+
+/-!
+# Entropy estimates for central-difference weights
+
+`centralDiffBinaryEntropy` is the logarithmic expression used to control central-difference
+binomial ratios. Polynomial lower bounds for it and an upper bound for the logarithm imply
+`centralDiff_entropy_exponent`, the uniform negative exponent estimate. See
+[GilyenArunachalamWiebe2019] for background.
+
+## Main statements
+
+* `centralDiff_entropy_lower`: For `0 ≤ y < 1`, `cdEven y` is a lower bound for
+  `centralDiffBinaryEntropy y`.
+* `centralDiff_entropy_exponent`: For `0 < y < 1`, `2 * log y - centralDiffBinaryEntropy y` is
+  at most negative seven sixths.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -14,6 +35,8 @@ set_option maxHeartbeats 1600000
 noncomputable section
 namespace Qatlib.Concepts.GradientOracle.CentralDiff
 
+/-- A function with the specified nonnegative derivative throughout a closed interval has its
+value at the left endpoint at most its value at the right endpoint. -/
 private theorem cd_increasing_endpoints (f f' : ℝ → ℝ) (a b : ℝ) (hab : a≤b)
     (hd : ∀ u∈Set.Icc a b,HasDerivAt f (f' u) u)
     (hs : ∀ u∈Set.Icc a b,0≤f' u) : f a≤f b := by
@@ -23,10 +46,14 @@ private theorem cd_increasing_endpoints (f f' : ℝ → ℝ) (a b : ℝ) (hab : 
     (fun u hu => hs u (interior_subset hu))
   exact hm ⟨le_rfl,hab⟩ ⟨hab,le_rfl⟩ hab
 
+/-- The odd polynomial `2 * y + (2 / 3) * y ^ 3 + (2 / 5) * y ^ 5 + (2 / 7) * y ^ 7`. -/
 private def cdOdd (y : ℝ) : ℝ := 2*y+(2/3)*y^3+(2/5)*y^5+(2/7)*y^7
+/-- The even polynomial `y ^ 2 + y ^ 4 / 6 + y ^ 6 / 15 + y ^ 8 / 28`. -/
 private def cdEven (y : ℝ) : ℝ := y^2+y^4/6+y^6/15+y^8/28
+/-- The logarithmic expression `(1 + y) * log (1 + y) + (1 - y) * log (1 - y)`. -/
 def centralDiffBinaryEntropy (y : ℝ) : ℝ := (1+y)*Real.log (1+y)+(1-y)*Real.log (1-y)
 
+/-- The derivative of `cdOdd` is `2 + 2 * y ^ 2 + 2 * y ^ 4 + 2 * y ^ 6`. -/
 private theorem cdOdd_deriv (y : ℝ) :
     HasDerivAt cdOdd (2+2*y^2+2*y^4+2*y^6) y := by
   have h := ((((hasDerivAt_id y).const_mul 2).add (((hasDerivAt_id y).pow 3).const_mul (2/3))).add
@@ -35,6 +62,7 @@ private theorem cdOdd_deriv (y : ℝ) :
   try simp only [id_eq]
   ring
 
+/-- The derivative of `cdEven` is `cdOdd`. -/
 private theorem cdEven_deriv (y : ℝ) : HasDerivAt cdEven (cdOdd y) y := by
   have h := (((((hasDerivAt_id y).pow 2).add (((hasDerivAt_id y).pow 4).const_mul (1/6))).add
     (((hasDerivAt_id y).pow 6).const_mul (1/15))).add (((hasDerivAt_id y).pow 8).const_mul (1/28)))
@@ -42,6 +70,7 @@ private theorem cdEven_deriv (y : ℝ) : HasDerivAt cdEven (cdOdd y) y := by
   · ext u; dsimp [cdEven]; ring
   · (try dsimp [cdOdd]); ring
 
+/-- For `0 ≤ y < 1`, the polynomial `cdOdd y` bounds `log (1 + y) - log (1 - y)` from below. -/
 theorem centralDiff_log_ratio_lower (y : ℝ) (hy : 0≤y) (hy1 : y<1) :
     cdOdd y≤Real.log (1+y)-Real.log (1-y) := by
   let F := fun u : ℝ => Real.log (1+u)-Real.log (1-u)-cdOdd u
@@ -65,6 +94,7 @@ theorem centralDiff_log_ratio_lower (y : ℝ) (hy : 0≤y) (hy1 : y<1) :
   dsimp [F] at h
   linarith
 
+/-- For `0 ≤ y < 1`, `cdEven y` is a lower bound for `centralDiffBinaryEntropy y`. -/
 theorem centralDiff_entropy_lower (y : ℝ) (hy : 0≤y) (hy1 : y<1) :
     cdEven y≤centralDiffBinaryEntropy y := by
   let F := fun u : ℝ => centralDiffBinaryEntropy u-cdEven u
@@ -89,6 +119,8 @@ theorem centralDiff_entropy_lower (y : ℝ) (hy : 0≤y) (hy1 : y<1) :
   dsimp [F] at h
   linarith
 
+/-- For `0 < z ≤ 1`, the logarithm is at most the negative sum of the first four powers of `1 -
+z` divided by their degrees. -/
 theorem centralDiff_log_upper (z : ℝ) (hz : 0<z) (hz1 : z≤1) :
     Real.log z≤-((1-z)+(1-z)^2/2+(1-z)^3/3+(1-z)^4/4) := by
   let F := fun u : ℝ => Real.log u+(1-u)+(1-u)^2/2+(1-u)^3/3+(1-u)^4/4
@@ -110,6 +142,8 @@ theorem centralDiff_log_upper (z : ℝ) (hz : 0<z) (hz1 : z≤1) :
   dsimp [F] at h
   linarith
 
+/-- For `0 ≤ z ≤ 1`, the stated polynomial combining powers of `z` and `1 - z` is at least one
+sixth. -/
 private theorem centralDiff_entropy_polynomial (z : ℝ) (_hz : 0≤z) (hz1 : z≤1) :
     (1-z)^2/2+(1-z)^3/3+(1-z)^4/4+z^2/6+z^3/15+z^4/28≥(1/6 : ℝ) := by
   let t := z-2/3
@@ -120,6 +154,7 @@ private theorem centralDiff_entropy_polynomial (z : ℝ) (_hz : 0≤z) (hz1 : z�
   have hp := mul_nonneg (sq_nonneg t) hB
   nlinarith [sq_nonneg (t-121/1890)]
 
+/-- For `0 < y < 1`, `2 * log y - centralDiffBinaryEntropy y` is at most negative seven sixths. -/
 theorem centralDiff_entropy_exponent (y : ℝ) (hy : 0<y) (hy1 : y<1) :
     2*Real.log y-centralDiffBinaryEntropy y≤-(7/6 : ℝ) := by
   have hz : 0<y^2 := sq_pos_of_pos hy
@@ -132,6 +167,7 @@ theorem centralDiff_entropy_exponent (y : ℝ) (hy : 0<y) (hy1 : y<1) :
   dsimp [cdEven] at he
   nlinarith
 
+/-- The natural logarithm of two is at least two thirds. -/
 theorem centralDiff_log_two_lower : (2/3 : ℝ)≤Real.log 2 := by
   have h := centralDiff_log_ratio_lower (1/3 : ℝ) (by norm_num) (by norm_num)
   have he : Real.log (1+(1/3 : ℝ))-Real.log (1-(1/3 : ℝ))=Real.log 2 := by

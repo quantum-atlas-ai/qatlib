@@ -8,6 +8,27 @@ import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
 import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentDefs
+
+/-!
+# Local Pauli shot moment contract
+
+`LocalShotPauliMomentSubgoal` specifies the first and second moments of product-measurement shot
+values on a positive-weight Pauli code. Its ensemble premises require unitary rotations on the
+probability support, an exact first moment, and a second-moment identity for Hermitian test
+operators.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `LocalShotPauliMomentSubgoal`: states the shot mean and second-moment bound under explicit
+  ensemble assumptions.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,9 @@ namespace Qatlib.Papers.ClassShadows20.LowerBound
 open Matrix
 open scoped Classical BigOperators
 
+/-- The proposition asserting shot mean `w` and second moment at most `w² * (1 + 9ε² / 3^k)` for
+the specified local Pauli codes and ensembles. Its second-moment premise is restricted to
+Hermitian test operators. -/
 def LocalShotPauliMomentSubgoal : Prop :=
   ∀ (n k : ℕ) (J : Type) [Fintype J] [DecidableEq J]
     (κ : FinDist J) (Uf : J → Operator 2)

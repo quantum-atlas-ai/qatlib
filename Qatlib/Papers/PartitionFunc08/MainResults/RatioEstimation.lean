@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+
+/-!
+# Ratio estimation from phase accuracy
+
+A phase estimate is converted into a ratio estimate by `(1 + cos θ') / 2` when `cos θ = 2 * α -
+1`. The deterministic error bound `cos_phase_rel_error` transfers a phase-accuracy event of
+probability at least seven eighths to relative ratio accuracy. These estimates form part of the
+partition-function scheme in [WocjanEtAl2009a].
+
+## Main statements
+
+* `cos_phase_rel_error`: If `α ≥ 0`, `cos θ = 2 * α - 1`, and `|θ' - θ| ≤ 2 * ε * α`, then the
+  ratio estimate `(1 + cos θ') / 2` differs from `α` by at most `ε * α`.
+* `lemma1_ratio_estimation`: For nonnegative `α` and positive `ε`, a measurable phase estimate
+  accurate within `2 * ε * α` with probability at least seven eighths yields a ratio estimate of
+  relative error `ε` with at least the same probability.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009a]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +37,9 @@ open scoped BigOperators ENNReal
 
 namespace Qatlib.Papers.PartitionFunc08.MainResults.RatioEstimation
 
+/-- If `α ≥ 0`, `cos θ = 2 * α - 1`, and `|θ' - θ| ≤ 2 * ε * α`, then the ratio estimate `(1 +
+cos θ') / 2` differs from `α` by at most `ε * α`. See [Wocjan et al.,
+2009][WocjanEtAl2009a]. -/
 theorem cos_phase_rel_error {α ε θ θ' : ℝ} (hα0 : 0 ≤ α)
     (hcos : Real.cos θ = 2 * α - 1)
     (h : |θ' - θ| ≤ 2 * ε * α) :
@@ -31,6 +56,9 @@ theorem cos_phase_rel_error {α ε θ θ' : ℝ} (hα0 : 0 ≤ α)
     _ = |θ' - θ| / 2 := by rw [abs_sub_comm]
     _ ≤ ε * α := by linarith
 
+/-- For nonnegative `α` and positive `ε`, a measurable phase estimate accurate within `2 * ε *
+α` with probability at least seven eighths yields a ratio estimate of relative error `ε`
+with at least the same probability. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem lemma1_ratio_estimation
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     {α ε θ : ℝ} (hα0 : 0 ≤ α) (hcos : Real.cos θ = 2 * α - 1) (hε0 : 0 < ε)

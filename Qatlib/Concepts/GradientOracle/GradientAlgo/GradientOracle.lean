@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.Reduction.GradientOracleDefs
 import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineVectorMedianOpti
+
+/-!
+# Fourier gradient readout and implementation guarantees
+
+`g8` collects finite-grid Fourier readout, value-oracle precision, full-range encoding, median
+amplification, and QFT implementation bounds. The conjunction connects the value-oracle gradient
+construction of [Jordan2005Gradient] with robust repeated readout associated with
+[GilyenArunachalamWiebe2019].
+
+## Main statements
+
+* `g8`: exact and off-grid readout identities, error budgets, circuit resources, dyadic records,
+  median costs, and QFT approximation guarantees.
+
+## References
+
+* [Jordan, 2005][Jordan2005Gradient]
+* [Gilyen, Arunachalam and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,6 +70,10 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- Collects exact and off-grid Fourier readout, value-oracle precision and full-range encoding,
+median amplification and comparison costs, QFT resource and approximation bounds, and
+register-bit identities. These are finite-grid implementation guarantees associated with
+[Jordan2005Gradient] and [GilyenArunachalamWiebe2019]. -/
 theorem g8 :
 
   (∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (c : ℝ),

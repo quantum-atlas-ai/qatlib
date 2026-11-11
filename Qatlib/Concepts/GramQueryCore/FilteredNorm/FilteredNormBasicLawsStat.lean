@@ -7,6 +7,25 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Basic filtered norm specification
+
+The proposition `FilteredNormBasicLaws` packages the basic properties of the rectangular
+filtered value: normalization by a nonzero self-filter, definiteness, support, scalar
+multiplication, addition, and Hadamard bounds. These are the norm laws relevant to filtered γ₂
+methods [LeeEtAl2011].
+
+## Main statements
+
+* `FilteredNormBasicLaws`: The conjunction of the basic rectangular filtered norm laws,
+  including definiteness, support, scaling, addition, and Hadamard product bounds.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -17,6 +36,8 @@ namespace Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The conjunction of the basic rectangular filtered norm laws, including definiteness,
+support, scaling, addition, and Hadamard product bounds. -/
 def FilteredNormBasicLaws : Prop :=
   ∀ (R S : Type) [Fintype R] [DecidableEq R] [Fintype S] [DecidableEq S]
     (n : ℕ) (A B : Matrix R S ℂ) (Z : Fin n → Matrix R S ℂ),

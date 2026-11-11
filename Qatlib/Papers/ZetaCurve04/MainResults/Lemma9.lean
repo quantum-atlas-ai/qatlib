@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ZetaCurve04.MainResults.Defs
+
+/-!
+# Uniformization and amplification of finite samplers
+
+A bounded-ratio distribution has a positive lower bound on every point mass. Reweighting by the
+minimum point mass yields equal accepted masses, and the record `amplifiedSampler` combines a
+uniform output distribution with a repeated-success expression bounded below by three quarters.
+
+This development forms part of the formalization of [Kedlaya2006].
+
+## Main statements
+
+* `conditional_uniform`: Reweighting nonzero point masses by their minimum and normalizing gives
+  the constant mass `(card V)⁻¹`.
+* `lemma9_amplification`: Every sampler on a nonempty finite type yields a one-uniform sampler
+  with constant output masses and success value at least `3 / 4`.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +39,8 @@ namespace Qatlib.Papers.ZetaCurve04.MainResults.Lemma9
 
 open Qatlib.Papers.ZetaCurve04.MainResults.Defs
 
+/-- A normalized distribution with point-mass ratio at most `b ≥ 1` has each point mass at least
+`1 / (b * card V)`. -/
 theorem min_prob_lower_bound {V : Type} [Fintype V] [Nonempty V]
     {p : V → ℝ} {b : ℝ} (hb : 1 ≤ b) (hsum : (∑ x : V, p x) = 1)
     (huni : ∀ x y, p x ≤ b * p y) :
@@ -41,6 +65,8 @@ theorem min_prob_lower_bound {V : Type} [Fintype V] [Nonempty V]
     rw [div_le_iff₀ hbN]
     nlinarith [hone]
 
+/-- Multiplying any point mass by the cardinality gives a value at least `1 / b` under the
+normalization and bounded-ratio hypotheses. -/
 theorem min_prob_times_card {V : Type} [Fintype V] [Nonempty V]
     {p : V → ℝ} {b : ℝ} (hb : 1 ≤ b) (hsum : (∑ x : V, p x) = 1)
     (huni : ∀ x y, p x ≤ b * p y) (x : V) :
@@ -53,10 +79,13 @@ theorem min_prob_times_card {V : Type} [Fintype V] [Nonempty V]
   rw [div_le_iff₀ hbpos]
   nlinarith [hx]
 
+/-- Reweighting a nonzero point mass `p x` by `p₀ / p x` gives the constant mass `p₀`. -/
 theorem uniform_acceptance {V : Type} (p : V → ℝ) (p₀ : ℝ) {x : V}
     (hx : p x ≠ 0) : p x * (p₀ / p x) = p₀ := by
   field_simp
 
+/-- Reweighting nonzero point masses by their minimum and normalizing gives the constant mass
+`(card V)⁻¹`. See [Kedlaya2006]. -/
 theorem conditional_uniform {V : Type} [Fintype V] [Nonempty V]
     (p : V → ℝ) (_hsum : (∑ x : V, p x) = 1) (hpos : ∀ x, p x ≠ 0) :
     ∀ x : V,
@@ -78,6 +107,7 @@ theorem conditional_uniform {V : Type} [Fintype V] [Nonempty V]
     exact_mod_cast (ne_of_gt Fintype.card_pos)
   field_simp
 
+/-- The sampler record with uniform distribution, uniformity factor one, and success value one. -/
 def oneUniformSampler (V : Type) [Fintype V] [Nonempty V] : UniformSampler V where
   b := 1
   hb := le_refl 1
@@ -93,17 +123,21 @@ def oneUniformSampler (V : Type) [Fintype V] [Nonempty V] : UniformSampler V whe
   success_le_one := le_refl 1
   uniform := fun _ _ => by rw [one_mul]
 
+/-- The canonical uniform sampler has uniformity factor at most one. -/
 theorem oneUniformSampler_isOneUniform (V : Type) [Fintype V] [Nonempty V] :
     IsOneUniform (oneUniformSampler V) := by
   unfold IsOneUniform oneUniformSampler
   norm_num
 
+/-- The minimum point mass of a sampler is nonnegative. -/
 theorem minProb_nonneg {V : Type} [Fintype V] [Nonempty V] (O : UniformSampler V) :
     0 ≤ minProb O.dist := by
   obtain ⟨x, hx⟩ := exists_minProb_eq O.dist
   rw [hx]
   exact O.dist_nonneg x
 
+/-- The minimum point mass times the cardinality is at least the reciprocal of the uniformity
+factor. -/
 theorem p0_times_card_ge {V : Type} [Fintype V] [Nonempty V] (O : UniformSampler V) :
     1 / O.b ≤ minProb O.dist * (Fintype.card V : ℝ) := by
   have hNpos : (0 : ℝ) < (Fintype.card V : ℝ) := by
@@ -116,6 +150,7 @@ theorem p0_times_card_ge {V : Type} [Fintype V] [Nonempty V] (O : UniformSampler
   rw [hx, div_le_iff₀ hbpos]
   nlinarith [hx']
 
+/-- The minimum point mass times the cardinality is at most one. -/
 theorem p0_times_card_le_one {V : Type} [Fintype V] [Nonempty V] (O : UniformSampler V) :
     minProb O.dist * (Fintype.card V : ℝ) ≤ 1 := by
   have h1 : minProb O.dist * (Fintype.card V : ℝ) = ∑ _x : V, minProb O.dist := by
@@ -126,6 +161,8 @@ theorem p0_times_card_le_one {V : Type} [Fintype V] [Nonempty V] (O : UniformSam
         Finset.sum_le_sum (fun x _ => minProb_le O.dist x)
     _ = 1 := O.dist_sum
 
+/-- For `b ≥ 1` and `1 / b ≤ s ≤ 1`, the repeated-success expression after `ceil (16 * b ^ 2)`
+trials is at least `3 / 4`. See [Kedlaya2006]. -/
 theorem boost_general (b s : ℝ) (hb : 1 ≤ b) (hs0 : 0 ≤ s) (hs1 : s ≤ 1)
     (hs : 1 / b ≤ s) :
     1 - (1 - s) ^ (Nat.ceil (16 * b ^ 2)) ≥ 3 / 4 := by
@@ -171,10 +208,14 @@ theorem boost_general (b s : ℝ) (hb : 1 ≤ b) (hs0 : 0 ≤ s) (hs1 : s ≤ 1)
     le_trans (le_trans hexp1 hexp2) hexp3
   linarith [hchain]
 
+/-- The natural ceiling of `16 * O.b ^ 2`, cast to the reals, is at least `16 * O.b ^ 2`. See
+[Kedlaya2006]. -/
 theorem lemma9_invocation_bound {V : Type} [Fintype V] [Nonempty V] (O : UniformSampler V) :
     16 * O.b ^ 2 ≤ ((Nat.ceil (16 * O.b ^ 2) : ℕ) : ℝ) :=
   Nat.le_ceil _
 
+/-- A uniform sampler record with success value `1 - (1 - minProb O.dist * card V) ^ ceil (16 *
+O.b ^ 2)`. -/
 def amplifiedSampler {V : Type} [Fintype V] [Nonempty V]
     (O : UniformSampler V) : UniformSampler V where
   b := 1
@@ -202,6 +243,8 @@ def amplifiedSampler {V : Type} [Fintype V] [Nonempty V]
     linarith
   uniform := fun _ _ => by rw [one_mul]
 
+/-- Every sampler on a nonempty finite type yields a one-uniform sampler with constant output
+masses and success value at least `3 / 4`. See [Kedlaya2006]. -/
 theorem lemma9_amplification {V : Type} [Fintype V] [Nonempty V]
     (O : UniformSampler V) :
     ∃ O' : UniformSampler V,

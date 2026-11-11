@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Mathlib.Tactic
 import Qatlib.Papers.ProjectorQAOA26.StageStability.OpNormBridge
 import Qatlib.Papers.ProjectorQAOA26.StageStability.RankOneOpNorm
+
+/-!
+# EC3 feasible counting and inverse-cost moments
+
+This module encodes assignments satisfying disjoint exact-one-in-three clauses and counts them
+via `ec3FeasibleEquiv`. It defines inverse-cost moments and the prefactor `ec3QN`, proves
+deterministic bounds on that prefactor, and bounds the distance of an interpolation from its
+initial complementary projector, supplying ingredients for [ZhouAnLiu2026].
+
+## Main statements
+
+* `card_EC3Feasible`: The number of feasible assignments for `m` disjoint triples and `f` free
+  bits is `3 ^ m * 2 ^ f`, as used in [ZhouAnLiu2026].
+* `ec3A1_sq_le`: For cardinality `L ≥ 1`, the square of the first inverse-cost moment is at most
+  `(L - 1) / L` times the second moment. This is the moment comparison used in [ZhouAnLiu2026].
+* `ec3_deterministic_core`: For at least two indices and costs in `[1, R]` away from `xstar`,
+  the prefactor `ec3QN` lies between `(L - 1) / (L * R)` and two. These are deterministic
+  prefactor bounds used in [ZhouAnLiu2026].
+* `opNorm_interpHF_sub_le`: For a normalized reference, nonnegative `s`, and diagonal entries
+  bounded by `R ≥ 0`, the interpolation displacement has norm at most `s * (R + 1)`.
+
+## References
+
+* [Zhou et al., 2026][ZhouAnLiu2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +43,8 @@ namespace Qatlib.Papers.ProjectorQAOA26.StageStability
 
 open scoped Matrix Matrix.Norms.L2Operator BigOperators
 
+/-- The square of a finite sum of real numbers is at most the cardinality times the sum of their
+squares. -/
 theorem sum_sq_le_card_mul_sum_sq {ι : Type} [DecidableEq ι] (s : Finset ι)
     (f : ι → ℝ) :
     (∑ i ∈ s, f i) ^ 2 ≤ (s.card : ℝ) * ∑ i ∈ s, f i ^ 2 := by
@@ -50,24 +78,32 @@ theorem sum_sq_le_card_mul_sum_sq {ι : Type} [DecidableEq ι] (s : Finset ι)
         rw [hsplit, half1, half2]
         ring
 
+/-- The sum of a real constant over a finite set is its cardinality times that constant. -/
 private theorem sum_const_real {ι : Type} [DecidableEq ι] (s : Finset ι) (c : ℝ) :
     ∑ _ ∈ s, c = (s.card : ℝ) * c := by
   rw [Finset.sum_const]
   norm_num
 
+/-- The Boolean test that exactly one of the three entries is true. -/
 def ec3SatB (v : Fin 3 → Bool) : Bool :=
   (v 0 && !v 1 && !v 2) || (!v 0 && v 1 && !v 2) || (!v 0 && !v 1 && v 2)
 
+/-- An index selector returning one if the second entry is true, otherwise two if the third is
+true, and otherwise zero. -/
 def ec3TrueIndex (v : Fin 3 → Bool) : Fin 3 := if v 1 then 1 else if v 2 then 2 else 0
 
+/-- The index selector recovers the distinguished index of a one-hot Boolean triple. -/
 theorem ec3TrueIndex_decide_self (i : Fin 3) :
     ec3TrueIndex (fun j => decide (j = i)) = i := by
   fin_cases i <;> simp [ec3TrueIndex]
 
+/-- Every one-hot Boolean triple satisfies the exact-one-in-three test. -/
 theorem ec3SatB_decide_true (i : Fin 3) :
     ec3SatB (fun j => decide (j = i)) = true := by
   fin_cases i <;> simp [ec3SatB]
 
+/-- A triple satisfying the exact-one-in-three test equals the one-hot triple selected by
+`ec3TrueIndex`. -/
 theorem ec3SatB_spec {v : Fin 3 → Bool} (h : ec3SatB v = true) (j : Fin 3) :
     v j = decide (j = ec3TrueIndex v) := by
   by_cases h0 : v 0 = true <;> by_cases h1 : v 1 = true <;>
@@ -75,6 +111,8 @@ theorem ec3SatB_spec {v : Fin 3 → Bool} (h : ec3SatB v = true) (j : Fin 3) :
     simp [ec3SatB, ec3TrueIndex, h0, h1, h2] at h ⊢ <;>
     fin_cases j <;> simp [h0, h1, h2]
 
+/-- Assignments to `m` disjoint triples and `f` free bits satisfying exactly one true bit in
+each triple. -/
 def EC3Feasible (m f : ℕ) : Type :=
   {g : (Fin m × Fin 3) ⊕ Fin f → Bool //
     ∀ c : Fin m, ec3SatB (fun j => g (Sum.inl (c, j))) = true}
@@ -83,6 +121,8 @@ instance ec3FeasibleFintype (m f : ℕ) : Fintype (EC3Feasible m f) := by
   unfold EC3Feasible
   infer_instance
 
+/-- The equivalence between feasible assignments and a choice of one true position per triple
+together with the free bits. -/
 def ec3FeasibleEquiv (m f : ℕ) :
     EC3Feasible m f ≃ ((Fin m → Fin 3) × (Fin f → Bool)) where
   toFun g := (fun c => ec3TrueIndex (fun j => g.1 (Sum.inl (c, j))),
@@ -107,12 +147,15 @@ def ec3FeasibleEquiv (m f : ℕ) :
     · funext k
       rfl
 
+/-- The number of feasible assignments for `m` disjoint triples and `f` free bits is `3 ^ m * 2
+^ f`, as used in [ZhouAnLiu2026]. -/
 theorem card_EC3Feasible (m f : ℕ) :
     Fintype.card (EC3Feasible m f) = 3 ^ m * 2 ^ f := by
   have h := Fintype.card_congr (ec3FeasibleEquiv m f)
   simp only [Fintype.card_prod, Fintype.card_fun, Fintype.card_fin] at h
   exact h
 
+/-- The real-valued feasible cardinality equals `2 ^ (3 * m + f) * (3 / 8) ^ m`. -/
 theorem ec3L_real (m f : ℕ) :
     (Fintype.card (EC3Feasible m f) : ℝ)
       = (2 : ℝ) ^ (3 * m + f) * ((3 : ℝ) / 8) ^ m := by
@@ -128,24 +171,31 @@ section Moments
 
 variable {C : Type} [Fintype C] [DecidableEq C]
 
+/-- The cardinality-normalized sum of reciprocal costs over all indices except `xstar`. -/
 def ec3A1 (xstar : C) (E : C → ℝ) : ℝ :=
   (Fintype.card C : ℝ)⁻¹ * ∑ x ∈ Finset.univ.erase xstar, (E x)⁻¹
 
+/-- The cardinality-normalized sum of squared reciprocal costs over all indices except `xstar`. -/
 def ec3A2 (xstar : C) (E : C → ℝ) : ℝ :=
   (Fintype.card C : ℝ)⁻¹ * ∑ x ∈ Finset.univ.erase xstar, ((E x)⁻¹ ^ 2)
 
 variable {xstar : C} {E : C → ℝ} {R : ℝ}
 
+/-- The first inverse-cost moment is nonnegative when all costs away from `xstar` are at least
+one. -/
 theorem ec3A1_nonneg (hx : ∀ x ≠ xstar, 1 ≤ E x) : 0 ≤ ec3A1 xstar E := by
   refine mul_nonneg (inv_nonneg.mpr (by positivity)) (Finset.sum_nonneg ?_)
   intro x hx'
   exact inv_nonneg.mpr (le_trans zero_le_one (hx x (Finset.ne_of_mem_erase hx')))
 
+/-- The second inverse-cost moment is nonnegative under the stated cost hypothesis. -/
 theorem ec3A2_nonneg (_hx : ∀ x ≠ xstar, 1 ≤ E x) : 0 ≤ ec3A2 xstar E := by
   refine mul_nonneg (inv_nonneg.mpr (by positivity)) (Finset.sum_nonneg ?_)
   intro x hx'
   exact sq_nonneg ((E x)⁻¹)
 
+/-- If the other costs lie in `[1, R]` and the cardinality is `L ≥ 1`, then the first
+inverse-cost moment is at least `(L - 1) / (L * R)`, as in [ZhouAnLiu2026]. -/
 theorem ec3A1_ge (hR : 1 ≤ R) (hER : ∀ x ≠ xstar, E x ≤ R)
     (hE1 : ∀ x ≠ xstar, 1 ≤ E x) (hL : 1 ≤ Fintype.card C) :
     ((Fintype.card C : ℝ) - 1) / ((Fintype.card C : ℝ) * R) ≤ ec3A1 xstar E := by
@@ -174,6 +224,8 @@ theorem ec3A1_ge (hR : 1 ≤ R) (hER : ∀ x ≠ xstar, E x ≤ R)
         mul_le_mul_of_nonneg_left hsum (inv_nonneg.mpr hLp.le)
     _ = ec3A1 xstar E := rfl
 
+/-- If all other costs are at least one and the index type is nonempty, the first inverse-cost
+moment is at most one, as in [ZhouAnLiu2026]. -/
 theorem ec3A1_le_one (hE1 : ∀ x ≠ xstar, 1 ≤ E x) (hL : 1 ≤ Fintype.card C) :
     ec3A1 xstar E ≤ 1 := by
   have hLn : 1 ≤ Fintype.card C := hL
@@ -199,6 +251,8 @@ theorem ec3A1_le_one (hE1 : ∀ x ≠ xstar, 1 ≤ E x) (hL : 1 ≤ Fintype.card
         rw [hcard, mul_one, inv_mul_eq_div, div_le_one hLp]
         linarith
 
+/-- If the other costs lie in `[1, R]` and the cardinality is `L ≥ 1`, then the second
+inverse-cost moment is at least `(L - 1) / (L * R ^ 2)`, as in [ZhouAnLiu2026]. -/
 theorem ec3A2_ge (hR : 1 ≤ R) (hER : ∀ x ≠ xstar, E x ≤ R)
     (hE1 : ∀ x ≠ xstar, 1 ≤ E x) (hL : 1 ≤ Fintype.card C) :
     ((Fintype.card C : ℝ) - 1) / ((Fintype.card C : ℝ) * R ^ 2) ≤ ec3A2 xstar E := by
@@ -235,6 +289,8 @@ theorem ec3A2_ge (hR : 1 ≤ R) (hER : ∀ x ≠ xstar, E x ≤ R)
         mul_le_mul_of_nonneg_left hsum (inv_nonneg.mpr hLp.le)
     _ = ec3A2 xstar E := rfl
 
+/-- With at least two indices and all other costs in `[1, R]`, the second inverse-cost moment is
+strictly positive. -/
 theorem ec3A2_pos (hR : 1 ≤ R) (hER : ∀ x ≠ xstar, E x ≤ R)
     (hE1 : ∀ x ≠ xstar, 1 ≤ E x) (hL2 : 2 ≤ Fintype.card C) :
     0 < ec3A2 xstar E := by
@@ -251,6 +307,8 @@ theorem ec3A2_pos (hR : 1 ≤ R) (hER : ∀ x ≠ xstar, E x ≤ R)
       / ((Fintype.card C : ℝ) * R ^ 2) := div_pos hnum hden
   linarith
 
+/-- If all other costs are at least one and the index type is nonempty, the second inverse-cost
+moment is at most one, as in [ZhouAnLiu2026]. -/
 theorem ec3A2_le_one (hE1 : ∀ x ≠ xstar, 1 ≤ E x) (hL : 1 ≤ Fintype.card C) :
     ec3A2 xstar E ≤ 1 := by
   have hLn : 1 ≤ Fintype.card C := hL
@@ -280,6 +338,8 @@ theorem ec3A2_le_one (hE1 : ∀ x ≠ xstar, 1 ≤ E x) (hL : 1 ≤ Fintype.card
         rw [hcard, mul_one, inv_mul_eq_div, div_le_one hLp]
         linarith
 
+/-- For cardinality `L ≥ 1`, the square of the first inverse-cost moment is at most `(L - 1) /
+L` times the second moment. This is the moment comparison used in [ZhouAnLiu2026]. -/
 theorem ec3A1_sq_le (hL : 1 ≤ Fintype.card C) :
     (ec3A1 xstar E) ^ 2 ≤ ((Fintype.card C : ℝ) - 1) / (Fintype.card C : ℝ)
       * ec3A2 xstar E := by
@@ -317,11 +377,14 @@ section Prefactor
 
 variable {C : Type} [Fintype C] [DecidableEq C]
 
+/-- The inverse-moment prefactor `2 * ec3A1 / ((1 + ec3A1) * sqrt ec3A2)`. -/
 def ec3QN (xstar : C) (E : C → ℝ) : ℝ :=
   2 * ec3A1 xstar E / ((1 + ec3A1 xstar E) * Real.sqrt (ec3A2 xstar E))
 
 variable {xstar : C} {E : C → ℝ} {R : ℝ}
 
+/-- The prefactor `ec3QN` is at most two under the stated positivity and moment comparison
+hypotheses. -/
 theorem ec3QN_le_two (hA1 : 0 ≤ ec3A1 xstar E) (hA2pos : 0 < ec3A2 xstar E)
     (_hA2le : ec3A2 xstar E ≤ 1) (hcs : (ec3A1 xstar E) ^ 2 ≤ ec3A2 xstar E) :
     ec3QN xstar E ≤ 2 := by
@@ -341,6 +404,8 @@ theorem ec3QN_le_two (hA1 : 0 ≤ ec3A1 xstar E) (hA2pos : 0 < ec3A2 xstar E)
   rw [ec3QN, div_le_iff₀ hd]
   exact mul_le_mul_of_nonneg_left hkey zero_le_two
 
+/-- The prefactor `ec3QN` inherits the lower bound `(L - 1) / (L * R)` from the first moment
+under the stated moment bounds. -/
 theorem le_ec3QN (hA1ge : ((Fintype.card C : ℝ) - 1)
       / ((Fintype.card C : ℝ) * R) ≤ ec3A1 xstar E)
     (hA1 : 0 ≤ ec3A1 xstar E) (hA1le : ec3A1 xstar E ≤ 1)
@@ -373,6 +438,8 @@ section Interpolation
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- A diagonal matrix has operator norm at most any nonnegative common bound on the magnitudes
+of its diagonal entries. -/
 theorem opNorm_diagonal_le {d : I → ℂ} {r : ℝ} (hr : 0 ≤ r)
     (h : ∀ i, ‖d i‖ ≤ r) : ‖Matrix.diagonal d‖ ≤ r := by
   refine opNorm_le_of_l2 hr ?_
@@ -396,6 +463,7 @@ theorem opNorm_diagonal_le {d : I → ℂ} {r : ℝ} (hr : 0 ≤ r)
         rw [← Finset.mul_sum, l2norm_sq]
     _ = (r * l2norm x) ^ 2 := by rw [mul_pow]
 
+/-- The complementary projector of a normalized vector has operator norm at most one. -/
 theorem opNorm_one_sub_rankOne_le_one {ω : I → ℂ} (hω : l2norm ω = 1) :
     ‖(1 : Matrix I I ℂ) - rankOne ω‖ ≤ 1 := by
   refine opNorm_le_of_l2 zero_le_one ?_
@@ -420,17 +488,23 @@ theorem opNorm_one_sub_rankOne_le_one {ω : I → ℂ} (hω : l2norm ω = 1) :
         linarith
     _ = (1 * l2norm x) ^ 2 := by rw [one_mul]
 
+/-- The interpolation between the complementary rank-one operator of `ω` and the diagonal
+complex cost matrix. -/
 def interpHF (E : I → ℂ) (ω : I → ℂ) (s : ℝ) : Matrix I I ℂ :=
   (1 - s) • ((1 : Matrix I I ℂ) - rankOne ω) + s • Matrix.diagonal E
 
 omit [Fintype I] in
 
+/-- The displacement of `interpHF` from its initial complementary rank-one operator is `s` times
+the cost-minus-mixer difference. -/
 theorem interpHF_sub (E : I → ℂ) (ω : I → ℂ) (s : ℝ) :
     interpHF E ω s - ((1 : Matrix I I ℂ) - rankOne ω)
       = s • (Matrix.diagonal E - ((1 : Matrix I I ℂ) - rankOne ω)) := by
   unfold interpHF
   module
 
+/-- Multiplication of a matrix by a nonnegative real scalar gives operator norm at most that
+scalar times the original norm. -/
 theorem opNorm_real_smul_le (M : Matrix I I ℂ) (s : ℝ) (hs : 0 ≤ s) :
     ‖s • M‖ ≤ s * ‖M‖ := by
   refine opNorm_le_of_l2 (mul_nonneg hs (norm_nonneg M)) ?_
@@ -464,6 +538,8 @@ theorem opNorm_real_smul_le (M : Matrix I I ℂ) (s : ℝ) (hs : 0 ≤ s) :
         rw [mul_assoc]
         exact mul_le_mul_of_nonneg_left (l2norm_mulVec_le M x) hs
 
+/-- For a normalized reference, nonnegative `s`, and diagonal entries bounded by `R ≥ 0`, the
+interpolation displacement has norm at most `s * (R + 1)`. -/
 theorem opNorm_interpHF_sub_le {E : I → ℂ} {ω : I → ℂ} {R s : ℝ}
     (hω : l2norm ω = 1) (hR : 0 ≤ R) (hs : 0 ≤ s)
     (hE : ∀ i, ‖E i‖ ≤ R) :
@@ -486,6 +562,9 @@ section Core
 
 variable {C : Type} [Fintype C] [DecidableEq C]
 
+/-- For at least two indices and costs in `[1, R]` away from `xstar`, the prefactor `ec3QN` lies
+between `(L - 1) / (L * R)` and two. These are deterministic prefactor bounds used in
+[ZhouAnLiu2026]. -/
 theorem ec3_deterministic_core {xstar : C} {E : C → ℝ} {R : ℝ}
     (hR : 1 ≤ R) (hE : ∀ x ≠ xstar, 1 ≤ E x ∧ E x ≤ R)
     (hL2 : 2 ≤ Fintype.card C) :

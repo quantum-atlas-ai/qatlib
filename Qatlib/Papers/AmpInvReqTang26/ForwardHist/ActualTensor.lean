@@ -8,6 +8,26 @@ import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualPaths
 import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.ActualGram
 import Qatlib.Foundations.MatrixAlgebra.FrameProject.TensorErrors
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.PurificationErrors
+
+/-!
+# Histogram purifications and positive semidefinite domination
+
+The matrices `histogramPurification0` and `histogramPurification1` combine actual circuit
+coefficients with histogram basis vectors and transformed biased Fourier columns. Their reduced
+matrices satisfy a positive semidefinite comparison in the regime `n < q`. This development
+supports the treatment in [TangWright2025].
+
+## Main statements
+
+* `histogramPurification0`: the histogram basis purification.
+* `histogramPurification1`: the transformed biased purification.
+* `actual_histogram_domination`: domination with coefficient `1 - 4 * n * eps^2`.
+
+## References
+
+* [Tang and Wright, 2025][TangWright2025]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -21,14 +41,21 @@ open Qatlib.Foundations.MatrixAlgebra.FrameProject.Tensor
 open Qatlib.Concepts.MixedFidelity.FidelityMetric.Purification
 set_option warningAsError false
 
+/-- The purification obtained by multiplying the actual path-coefficient matrix by the histogram
+basis matrix. -/
 def histogramPurification0 {d a : ℕ} (Alg : ForwardQueryAlgorithm d a)
     (n q : ℕ) (hn : n<q) : Matrix (Fin d × Fin a) (Fin d → Fin q) ℂ :=
   pathCoefficient Alg n * histogramBasis (pathHistogram Alg n q hn)
 
+/-- The purification obtained by combining the actual path coefficients with the transformed
+biased Fourier columns. -/
 def histogramPurification1 {d a : ℕ} (eps : ℝ) (Alg : ForwardQueryAlgorithm d a)
     (n q : ℕ) (hn : n<q) : Matrix (Fin d × Fin a) (Fin d → Fin q) ℂ :=
   pathCoefficient Alg n * columns (transformedColumn eps q) (pathHistogram Alg n q hn)
 
+/-- For `0 < eps < 1/2`, `q > 1`, and `n < q`, the biased reduced histogram matrix dominates `1
+- 4 * n * eps^2` times the unbiased reduced matrix in the positive semidefinite order
+[TangWright2025]. -/
 theorem actual_histogram_domination {d a : ℕ} (eps : ℝ) (q : ℕ) (hq : 1<q)
     (he0 : 0<eps) (he1 : eps<1/2) (Alg : ForwardQueryAlgorithm d a)
     (n : ℕ) (hn : n<q) :

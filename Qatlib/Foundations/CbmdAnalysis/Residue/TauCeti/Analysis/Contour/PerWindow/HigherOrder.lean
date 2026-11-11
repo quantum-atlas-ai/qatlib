@@ -17,6 +17,25 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.HigherOr
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.SectorCancellation
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.WindowSplitting
 import Mathlib.MeasureTheory.Integral.DivergenceTheorem
+
+/-!
+# Higher-order poles on crossing windows
+
+This module evaluates inverse-power contour integrals by endpoint primitives and proves their
+vanishing on closed curves avoiding the pole. It then treats a distance-truncated crossing
+window: flatness and a power-matching condition on the one-sided tangents cancel the singular
+endpoint terms, supporting the residue analysis for [WangEtAl2026].
+
+## Main statements
+
+* `integral_pow_inv_mul_deriv_eq_zero_of_closed`: vanishing for closed avoiding curves.
+* `perWindow_higherOrder_truncated_integral_tendsto`: the local truncated-integral limit.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -29,6 +48,8 @@ namespace TauCeti.Contour
 
 open Filter MeasureTheory Set Topology
 
+/-- An inverse-power pole times the curve derivative is interval integrable along a continuous
+curve avoiding the pole when its derivative is interval integrable. -/
 private theorem intervalIntegrable_pow_inv_mul_deriv {γ : ℝ → ℂ} {s : ℂ} {l u : ℝ}
     (c : ℂ) (k : ℕ) (hlu : l ≤ u) (hγ_cont : ContinuousOn γ (Icc l u))
     (h_ne : ∀ t ∈ Icc l u, γ t ≠ s)
@@ -40,6 +61,9 @@ private theorem intervalIntegrable_pow_inv_mul_deriv {γ : ℝ → ℂ} {s : ℂ
   exact continuousOn_const.div ((hγ_cont.sub continuousOn_const).pow k)
     fun t ht => pow_ne_zero k (sub_ne_zero.mpr (h_ne t ht))
 
+/-- For `k ≥ 2`, the inverse-power contour integral along an avoiding curve equals the
+difference of its primitive at the endpoints, with differentiability allowed to fail on a
+countable set. -/
 theorem integral_pow_inv_mul_deriv_eq_sub {γ : ℝ → ℂ} {s : ℂ} {k : ℕ} (hk : 2 ≤ k) (c : ℂ)
     {l u : ℝ} (hlu : l ≤ u) {P : Set ℝ} (hP : P.Countable) (h_ne : ∀ t ∈ Icc l u, γ t ≠ s)
     (h_diff : ∀ t ∈ Ioo l u \ P, DifferentiableAt ℝ γ t) (hγ_cont : ContinuousOn γ (Icc l u))
@@ -63,6 +87,8 @@ theorem integral_pow_inv_mul_deriv_eq_sub {γ : ℝ → ℂ} {s : ℂ} {k : ℕ}
   exact MeasureTheory.integral_eq_of_hasDerivAt_off_countable_of_le _ _ hlu hP h_G_cont
     h_G_deriv (intervalIntegrable_pow_inv_mul_deriv c k hlu hγ_cont h_ne hderiv_int)
 
+/-- For ordered endpoints, the integral of an inverse-power pole of order at least two along a
+closed piecewise C¹ curve avoiding the pole is zero. -/
 private theorem integral_pow_inv_mul_deriv_eq_zero_of_closed_of_le {γ : ℝ → ℂ} {s : ℂ} {k : ℕ}
     (hk : 2 ≤ k) (c : ℂ) {a b : ℝ} (hab : a ≤ b) (hγ : IsPiecewiseC1On γ a b)
     (hclosed : γ a = γ b) (h_ne : ∀ t ∈ Icc a b, γ t ≠ s) :
@@ -74,6 +100,8 @@ private theorem integral_pow_inv_mul_deriv_eq_zero_of_closed_of_le {γ : ℝ →
   rw [integral_pow_inv_mul_deriv_eq_sub hk c hab hP h_ne hdiff hcont
     hγ.intervalIntegrable_deriv, hclosed, sub_self]
 
+/-- The integral of an inverse-power pole of order at least two along a closed piecewise C¹
+curve avoiding the pole is zero. -/
 theorem integral_pow_inv_mul_deriv_eq_zero_of_closed {γ : ℝ → ℂ} {s : ℂ} {k : ℕ}
     (hk : 2 ≤ k) (c : ℂ) {a b : ℝ} (hγ : IsPiecewiseC1On γ a b) (hclosed : γ a = γ b)
     (h_ne : ∀ t ∈ uIcc a b, γ t ≠ s) :
@@ -86,6 +114,8 @@ theorem integral_pow_inv_mul_deriv_eq_zero_of_closed {γ : ℝ → ℂ} {s : ℂ
         (fun t ht => h_ne t (by rw [Set.uIcc_comm, Set.uIcc_of_le hba]; exact ht)),
       neg_zero]
 
+/-- Evaluates an inverse-power contour integral on a subinterval of a crossing window that
+excludes its unique crossing parameter by the endpoint primitive difference. -/
 private lemma integral_pow_inv_mul_deriv_eq_sub_of_subinterval {γ : ℝ → ℂ} {s : ℂ} {t_i r : ℝ}
     {k : ℕ} (hk : 2 ≤ k) (c : ℂ) {P : Set ℝ} (hP : P.Countable)
     (hγ_cont : ContinuousOn γ (Icc (t_i - r) (t_i + r)))
@@ -105,6 +135,9 @@ private lemma integral_pow_inv_mul_deriv_eq_sub_of_subinterval {γ : ℝ → ℂ
       rw [uIcc_of_le hlu, uIcc_of_le (by linarith : t_i - r ≤ t_i + r)]
       exact Icc_subset_Icc hl hu))
 
+/-- For an isolated flat crossing of order `n`, the distance-truncated integral of a pole of
+order `2 ≤ k ≤ n` tends to the endpoint primitive difference when the normalized one-sided
+tangents satisfy the stated power-matching condition. -/
 theorem perWindow_higherOrder_truncated_integral_tendsto {γ : ℝ → ℂ} {s : ℂ} {t_i r : ℝ}
     {L_R L_L : ℂ} {n k : ℕ} {P : Set ℝ} (hr_pos : 0 < r) (h_at : γ t_i = s)
     (hγ_cont : ContinuousOn γ (Icc (t_i - r) (t_i + r))) (hL_R : L_R ≠ 0) (hL_L : L_L ≠ 0)

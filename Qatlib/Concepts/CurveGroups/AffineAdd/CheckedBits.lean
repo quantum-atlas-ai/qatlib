@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CurveGroups.AffineAdd.FiniteCurve
+
+/-!
+# Checked elliptic curve execution on bit registers
+
+This module relates reversible execution on `BitRegisters` to checked point addition on a short
+Weierstrass curve. `pointBitStep_safe` proves correctness outside the exceptional inputs, and
+`bitRun_checked` lifts successful checked words to bit execution. The addition schedules are
+motivated by [RoettelerEtAl2017].
+
+## Main statements
+
+* `bitWordPermutation_apply`: the word permutation agrees with sequential execution.
+* `bitRun_checked`: successful checked point execution gives the encoded output.
+
+## References
+
+* [Roetteler et al., 2017][RoettelerEtAl2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,10 +36,14 @@ open Qatlib.Concepts.FiniteCounts.OffsetWord
 
 variable {K : Type*} [Field K] [DecidableEq K] {w : ℕ} {a b : K}
 
+/-- Encode an affine point into its two coordinate registers with zero auxiliary registers, and
+encode the point at infinity by four zero registers. -/
 def pointBits (E : FieldEncoding K w) : (shortCurve a b).Point → BitRegisters w
   | .zero => ⟨0,0,0,0⟩
   | .some x y _ => ⟨E.encode x,E.encode y,0,0⟩
 
+/-- The reversible register permutation for one controlled point addition instruction, acting as
+the identity for a false control or the zero point. -/
 noncomputable def pointBitStep (E : FieldEncoding K w)
     (s : Instruction (shortCurve a b).Point) : Equiv.Perm (BitRegisters w) :=
   if s.1 then match s.2 with
@@ -28,6 +51,8 @@ noncomputable def pointBitStep (E : FieldEncoding K w)
     | .some x y _ => sourcePermutation E x y
   else Equiv.refl _
 
+/-- Avoiding `badInputs` for two affine points implies distinct X coordinates and excludes the
+negative double of the added point. -/
 theorem safe_affine_domain {x1 y1 x2 y2 : K}
     (h1 : (shortCurve a b).Nonsingular x1 y1)
     (h2 : (shortCurve a b).Nonsingular x2 y2)
@@ -40,6 +65,8 @@ theorem safe_affine_domain {x1 y1 x2 y2 : K}
     simpa [badInputs, Point.some_ne_zero] using h
   exact ⟨fun hx => (Point.X_eq_iff.mp hx).elim hh.1 hh.2.1, hh.2.2⟩
 
+/-- Outside the exceptional input set, the enabled bit step maps the encoding of `P` to the
+encoding of `P + B`. -/
 theorem pointBitStep_safe (E : FieldEncoding K w) (P B : (shortCurve a b).Point)
     (h : P ∉ badInputs B) :
     pointBitStep E (true,B) (pointBits E P) = pointBits E (P+B) := by
@@ -56,11 +83,13 @@ theorem pointBitStep_safe (E : FieldEncoding K w) (P B : (shortCurve a b).Point)
       rw [he]
       exact hbit
 
+/-- Execute a list of controlled point addition instructions on bit registers. -/
 noncomputable def bitRun (E : FieldEncoding K w) (r : BitRegisters w) :
     List (Instruction (shortCurve a b).Point) → BitRegisters w
   | [] => r
   | s :: ss => bitRun E (pointBitStep E s r) ss
 
+/-- Compose the reversible bit steps of an instruction list in execution order. -/
 noncomputable def bitWordPermutation (E : FieldEncoding K w) :
     List (Instruction (shortCurve a b).Point) → Equiv.Perm (BitRegisters w)
   | [] => Equiv.refl _
@@ -68,6 +97,7 @@ noncomputable def bitWordPermutation (E : FieldEncoding K w) :
 
 omit [DecidableEq K] in
 
+/-- Applying the composed word permutation agrees with the recursive bit execution. -/
 theorem bitWordPermutation_apply (E : FieldEncoding K w)
     (ss : List (Instruction (shortCurve a b).Point)) (r : BitRegisters w) :
     bitWordPermutation E ss r = bitRun E r ss := by
@@ -75,6 +105,8 @@ theorem bitWordPermutation_apply (E : FieldEncoding K w)
   | nil => rfl
   | cons s ss ih => exact ih _
 
+/-- A successful checked point execution is reproduced by bit execution on the encoded initial
+point. -/
 theorem bitRun_checked (E : FieldEncoding K w)
     (ss : List (Instruction (shortCurve a b).Point)) (P Q : (shortCurve a b).Point)
     (h : checkedRun P ss = some Q) :

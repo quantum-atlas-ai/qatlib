@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 
+/-!
+# Hermiticity and sparsity of the Markov Hamiltonian
+
+Expands the square-root-weight matrix `HM` and uses positive detailed balance to prove
+Hermiticity. Under `StronglySamplable`, the square-root weight vector lies in its kernel, and
+its row support contains at most the original matrix support plus a diagonal entry. See
+[AharonovTaShma2007].
+
+## Main statements
+
+* `hm_isHermitian`: Positive detailed balance makes the associated Hamiltonian Hermitian.
+* `hm_mulVec_sqrt`: The square-root weight vector is annihilated.
+* `hm_rowSparse`: The row-sparsity bound increases by at most one.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -18,6 +37,8 @@ open Qatlib.Papers.AdiabStateGen03.MainResults
 
 variable {n : ℕ}
 
+/-- For positive weights satisfying `a * pi = b * pj`, the square-root-weighted coefficients
+`sqrt pi / sqrt pj * a` and `sqrt pj / sqrt pi * b` are equal. -/
 lemma sqrt_ratio_mul_symm {pi pj a b : ℝ} (hi : 0 < pi) (hj : 0 < pj)
     (hab : a * pi = b * pj) :
     Real.sqrt pi / Real.sqrt pj * a = Real.sqrt pj / Real.sqrt pi * b := by
@@ -31,6 +52,8 @@ lemma sqrt_ratio_mul_symm {pi pj a b : ℝ} (hi : 0 < pi) (hj : 0 < pj)
   rw [Real.sq_sqrt hi.le, Real.sq_sqrt hj.le]
   ring
 
+/-- An entry of `HM M π` is the identity entry minus the complex coercion of `sqrt (π i) / sqrt
+(π j) * M i j` [AharonovTaShma2007]. -/
 lemma HM_apply (M : MC n) (π : Dim n → ℝ) (i j : Dim n) :
     HM M π i j = (if i = j then (1 : ℂ) else 0) -
       ((Real.sqrt (π i) / Real.sqrt (π j) * M i j : ℝ) : ℂ) := by
@@ -42,6 +65,8 @@ lemma HM_apply (M : MC n) (π : Dim n → ℝ) (i j : Dim n) :
   rw [h]
   ring
 
+/-- The Hamiltonian associated with a `StronglySamplable` matrix and its weight function is
+Hermitian [AharonovTaShma2007]. -/
 theorem hm_isHermitian (M : MC n) (π : Dim n → ℝ) (h : StronglySamplable M π) :
     IsHermitian (HM M π) := by
   refine IsHermitian.ext ?_
@@ -59,6 +84,8 @@ theorem hm_isHermitian (M : MC n) (π : Dim n → ℝ) (h : StronglySamplable M 
     rw [Complex.star_def, Complex.conj_ofReal]
     rw [hsymm]
 
+/-- Under `StronglySamplable`, the vector with coordinates `sqrt (π i)` lies in the kernel of
+`HM M π` [AharonovTaShma2007]. -/
 theorem hm_mulVec_sqrt (M : MC n) (π : Dim n → ℝ) (h : StronglySamplable M π) :
     (HM M π).mulVec (fun i => (Real.sqrt (π i) : ℂ)) = 0 := by
   have hπ : ∀ i, 0 < π i := h.positive
@@ -98,6 +125,8 @@ theorem hm_mulVec_sqrt (M : MC n) (π : Dim n → ℝ) (h : StronglySamplable M 
         rw [hcast, hM i]
         norm_num
 
+/-- A nonzero entry of `HM M π` is either supported by a nonzero entry of `M` or lies on the
+diagonal [AharonovTaShma2007]. -/
 theorem hm_support (M : MC n) (π : Dim n → ℝ) (i j : Dim n)
     (hij : HM M π i j ≠ 0) : M i j ≠ 0 ∨ i = j := by
   by_contra hcon
@@ -109,6 +138,8 @@ theorem hm_support (M : MC n) (π : Dim n → ℝ) (i j : Dim n)
   rw [HM_apply, if_neg hne0, hM0]
   simp
 
+/-- The Hamiltonian associated with a `StronglySamplable` matrix with row bound `D` has at most
+`D + 1` nonzero entries per row [AharonovTaShma2007]. -/
 theorem hm_rowSparse (M : MC n) (π : Dim n → ℝ) (h : StronglySamplable M π) :
     RowSparse (HM M π) (h.D + 1) := by
   intro i

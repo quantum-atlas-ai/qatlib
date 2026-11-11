@@ -6,6 +6,34 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
 
+/-!
+# Reliable discrimination by repeated binary observations
+
+The theorem `redundantCodingReliability` separates two finite probability laws whose
+expectations differ on a binary statistic. A sufficiently large independent sample makes both
+errors of the midpoint-threshold test arbitrarily small.
+
+The auxiliary lemmas compute the sample-sum expectation and bound its change when one sample
+coordinate varies. The communication setting is teleportation [BennettEtAl1993Teleportation];
+see also [Wilde2017] for the information-theoretic background.
+
+## Main statements
+
+* `sample_sum_expect`: The expected sum of `k` independent observations of `A` under `q` equals
+  `k * q.expect A`.
+* `sample_sum_diameter`: For a binary-valued statistic, changing only one sample coordinate
+  changes the sample sum by at most one.
+* `redundantCodingReliability`: If a binary statistic has larger expectation under `qr` than
+  under `qs`, a positive sample size makes both midpoint-threshold error probabilities at most
+  any prescribed positive `ε`. This supports the repeated-coding argument in
+  [BennettEtAl1993Teleportation].
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+* [Wilde, 2017][Wilde2017]
+-/
+
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.QuditTeleport.QdLoccModel
 
@@ -17,6 +45,7 @@ namespace Qatlib.Concepts.QuditTeleport.MessagingBounds
 open Qatlib
 open scoped Classical BigOperators
 
+/-- The expected sum of `k` independent observations of `A` under `q` equals `k * q.expect A`. -/
 private theorem sample_sum_expect {X : Type} [Fintype X] [DecidableEq X]
     (q : FinDist X) (A : X → ℝ) (k : ℕ) :
     (independentSampleLaw (fun _ : Fin k => q)).expect (fun ω => ∑ i, A (ω i))=
@@ -29,6 +58,8 @@ private theorem sample_sum_expect {X : Type} [Fintype X] [DecidableEq X]
   rw [hf] at hm
   simpa using hm
 
+/-- For a binary-valued statistic, changing only one sample coordinate changes the sample sum by
+at most one. -/
 private theorem sample_sum_diameter {X : Type} (A : X → ℝ)
     (hA : ∀ x, A x=0 ∨ A x=1) (k : ℕ) (i : Fin k) (ω τ : Fin k → X)
     (hω : ∀ j, j ≠ i → ω j=τ j) : |(∑ j, A (ω j))-(∑ j, A (τ j))| ≤ 1 := by
@@ -39,6 +70,9 @@ private theorem sample_sum_diameter {X : Type} (A : X → ℝ)
     rw [hω j hj,sub_self]
   · simp
 
+/-- If a binary statistic has larger expectation under `qr` than under `qs`, a positive sample
+size makes both midpoint-threshold error probabilities at most any prescribed positive `ε`.
+This supports the repeated-coding argument in [BennettEtAl1993Teleportation]. -/
 theorem redundantCodingReliability : RedundantCodingReliability := by
   intro X _ _ qr qs A hA hgap ε hε
   let δ := qr.expect A-qs.expect A

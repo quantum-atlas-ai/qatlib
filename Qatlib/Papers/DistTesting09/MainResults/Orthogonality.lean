@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.DistTesting09.MainResults.Defs
 import Qatlib.Papers.DistTesting09.MainResults.Concentration
+
+/-!
+# Orthogonality testing estimates
+
+This module studies the sample score `sampleScore` for testing orthogonality of finite
+distributions. It partitions outcomes using `smallQ` and `smallP`, proves tail and score bounds,
+and derives a rejection probability estimate under a pointwise relative approximation hypothesis
+on the score estimator. The final parameter theorem supplies positive integer query scales with
+cubic root bounds.
+
+The mathematical setting follows [BravyiHarrowHassidim2011].
+
+## Main statements
+
+* `lemma6_collision_lower`: a sample score lower bound with probability at least one half.
+* `lemma7_otest`: a rejection probability of at least one quarter under the estimator
+  hypothesis.
+* `theorem3_orthogonality`: existence of bounded positive integer parameters.
+
+## References
+
+* [Bravyi et al., 2011][BravyiHarrowHassidim2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -24,22 +48,29 @@ namespace Qatlib.Papers.DistTesting09.MainResults.Orthogonality
 
 variable {N M : ℕ}
 
+/-- The sum of the `q` probabilities of the sampled outcomes, counting repeated samples. -/
 def sampleScore (q : Dist N) (S : Fin M → Fin N) : ℝ := ∑ a, q.prob (S a)
 
+/-- The outcomes where the `q` probability is less than `ε / 4` times the `p` probability. -/
 def smallQ (p q : Dist N) (ε : ℝ) : Finset (Fin N) :=
   Finset.univ.filter fun i => q.prob i < ε / 4 * p.prob i
 
+/-- The outcomes whose `p` probability is at most `ε / (32 * N)`. -/
 def smallP (p : Dist N) (ε : ℝ) : Finset (Fin N) :=
   Finset.univ.filter fun i => p.prob i ≤ ε / (32 * (N : ℝ))
 
+/-- The outcomes outside both `smallQ p q ε` and `smallP p ε`. -/
 def goodIdx (p q : Dist N) (ε : ℝ) : Finset (Fin N) :=
   Finset.univ.filter fun i => i ∉ smallQ p q ε ∧ i ∉ smallP p ε
 
+/-- The average, over the two Boolean estimator branches, of the probability that the estimated
+score reaches `thr`. -/
 def rejectProb (p : Dist N) (M : ℕ) (thr : ℝ)
     (qhat : (Fin M → Fin N) → Bool → ℝ) : ℝ :=
   (p.probEvent (L := M) (fun S => thr ≤ qhat S false)
     + p.probEvent (L := M) (fun S => thr ≤ qhat S true)) / 2
 
+/-- The probability of the union of two sample events is at most the sum of their probabilities. -/
 theorem probEvent_union_le (p : Dist N) (M : ℕ)
     (E F : (Fin M → Fin N) → Prop) [DecidablePred E] [DecidablePred F] :
     p.probEvent (L := M) (fun S => E S ∨ F S)
@@ -52,6 +83,8 @@ theorem probEvent_union_le (p : Dist N) (M : ℕ)
   have hprob : 0 ≤ p.probOf S := Finset.prod_nonneg fun i _ => p.nonneg _
   by_cases hE : E S <;> by_cases hF : F S <;> simp [hE, hF] <;> linarith
 
+/-- The excess of the `p` mass over the `q` mass on any finite set is at most half their L1
+distance. -/
 theorem mass_sub_le_half_l1 (p q : Dist N) (U : Finset (Fin N)) :
     (∑ i ∈ U, p.prob i) - (∑ i ∈ U, q.prob i) ≤ (1 / 2) * l1 p q := by
   have h1 : (∑ i ∈ U, p.prob i) - (∑ i ∈ U, q.prob i)
@@ -90,6 +123,7 @@ theorem mass_sub_le_half_l1 (p q : Dist N) (U : Finset (Fin N)) :
           ring
   linarith
 
+/-- The sum `exp (-16) + exp (-1)` is at most one half. -/
 theorem exp_neg_sixteen_add_exp_neg_one_le_half :
     Real.exp (-(16 : ℝ)) + Real.exp (-1 : ℝ) ≤ (1 : ℝ) / 2 := by
   have h1 : Real.exp (-1 : ℝ) < 0.3678794412 := Real.exp_neg_one_lt_d9
@@ -109,6 +143,8 @@ theorem exp_neg_sixteen_add_exp_neg_one_le_half :
       _ = 1 / 65536 := by norm_num
   nlinarith [h1, h2]
 
+/-- If `l1 p q ≤ 2 - ε` with `0 < ε ≤ 1`, the probability of at least `(1 - ε / 8) * M` hits in
+`smallQ` is at most `exp (-M * ε² / 32)`. -/
 theorem hitCount_smallQ_tail [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < ε)
     (hε1 : ε ≤ 1) (hM : 0 < M) (hl1 : l1 p q ≤ 2 - ε) :
     p.probEvent (L := M)
@@ -156,6 +192,8 @@ theorem hitCount_smallQ_tail [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < ε)
   rw [hexp_eq] at hcher
   exact hcher
 
+/-- For positive `ε` and `M`, the probability of at least `ε * M / 16` hits in `smallP` is at
+most `exp (-M * ε² / 512)`. -/
 theorem hitCount_smallP_tail [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε)
     (hM : 0 < M) :
     p.probEvent (L := M)
@@ -207,6 +245,9 @@ theorem hitCount_smallP_tail [NeZero N] (p : Dist N) (ε : ℝ) (hε : 0 < ε)
   rw [hexp_eq] at hcher
   exact hcher
 
+/-- If `l1 p q ≤ 2 - ε` and the stated sample size conditions hold, the score is at least `ε³ *
+M / (2^11 * N)` with probability at least one half. See [Bravyi et al., 2011, Lemma
+6][BravyiHarrowHassidim2011]. -/
 theorem lemma6_collision_lower [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < ε)
     (hε1 : ε ≤ 1) (hM : (2 : ℝ) ^ 9 / ε ^ 2 ≤ (M : ℝ))
     (hl1 : l1 p q ≤ 2 - ε) :
@@ -384,12 +425,16 @@ theorem lemma6_collision_lower [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < �
     linarith [hstep1, hpoint]
   exact le_trans hgood_ge (probEvent_mono p good _ (fun S hS => hgood_imp S hS))
 
+/-- A relative error bound `|qhat - qA| ≤ qA / 2` and `thr ≤ qA` imply `thr / 2 ≤ qhat`. -/
 theorem otest_threshold_arith (qA qhat thr : ℝ)
     (hclose : |qhat - qA| ≤ qA / 2) (hthr : thr ≤ qA) :
     thr / 2 ≤ qhat := by
   have h1 := (abs_le.mp hclose).1
   linarith
 
+/-- Under the sample size and overlap hypotheses, a score estimator with relative error at most
+one half gives rejection probability at least one quarter at the stated threshold. See
+[Bravyi et al., 2011, Lemma 7][BravyiHarrowHassidim2011]. -/
 theorem lemma7_otest [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < ε)
     (hε1 : ε ≤ 1) (hM : (2 : ℝ) ^ 9 / ε ^ 2 ≤ (M : ℝ))
     (hl1 : l1 p q ≤ 2 - ε)
@@ -428,9 +473,13 @@ theorem lemma7_otest [NeZero N] (p q : Dist N) (ε : ℝ) (hε : 0 < ε)
   unfold rejectProb
   linarith
 
+/-- Four repetitions of an event with success probability one quarter give success probability
+at least two thirds. -/
 theorem four_runs_suffice : (2 : ℝ) / 3 ≤ 1 - (1 - 1 / 4) ^ 4 := by
   norm_num
 
+/-- For `0 < ε ≤ 1`, there exist positive integers `M` and `K`, each at most `4 * (N /
+ε)^(1/3)`. See [Bravyi et al., 2011, Theorem 3][BravyiHarrowHassidim2011]. -/
 theorem theorem3_orthogonality [NeZero N] (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
     ∃ (M K : ℕ), 0 < M ∧ 0 < K ∧
       (M : ℝ) ≤ 4 * ((N : ℝ) / ε) ^ ((1 : ℝ) / 3) ∧

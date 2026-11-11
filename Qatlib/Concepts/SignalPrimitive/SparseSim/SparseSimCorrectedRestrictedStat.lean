@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationStat
 import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedStat
+
+/-!
+# Sparse Simulation Eigenvector Contract
+
+`SparseSimulationCorrectedRestricted` specifies a compressed-walk simulation guarantee for a
+Hermitian matrix with at most `d` nonzero entries per row and column and entry norms at most
+`b`. It assumes supplied isometries `L`, `R` encoding `H / (d * b)` and a Hermitian unitary swap
+`S` carrying `L` to `R`, in the sparse simulation setting of [LowChuang2017].
+
+For nonnegative time and `0 < ε ≤ 1 / 2`, the contract requests one phase list of length `2 *
+(lcCorrectedQ (t * d * b) (ε / 8) - 1)`. On every normalized eigenvector, the compressed word
+must have squared error at most `ε ^ 2` from the target phase evolution and output mass at least
+`1 - 2 * ε`.
+
+## Main statements
+
+* `SparseSimulationCorrectedRestricted` defines the supplied-frame eigenvector approximation and
+  output-mass guarantee.
+
+## References
+
+- [Low and Chuang, 2017][LowChuang2017], Theorem 3.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +52,10 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 
 open scoped Matrix.Norms.L2Operator
 
+/-- The supplied-frame sparse simulation contract requiring a single corrected-degree phase list
+to approximate the target phase on every normalized Hamiltonian eigenvector. Under the
+stated encoding and swap hypotheses, it requires squared error at most `ε ^ 2` and output
+mass at least `1 - 2 * ε` for nonnegative time and `0 < ε ≤ 1 / 2`. -/
 def SparseSimulationCorrectedRestricted : Prop :=
   ∀ (I W : Type) [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (H : Matrix I I ℂ) (d : ℕ) (b : ℝ),

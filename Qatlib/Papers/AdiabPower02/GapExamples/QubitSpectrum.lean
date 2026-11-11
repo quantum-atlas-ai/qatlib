@@ -89,6 +89,29 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# One-qubit eigenvalues and tensor energy gaps
+
+Defines the real matrix `qubitH`, explicit eigenvectors `v0` and `v1`, and eigenvalues `lam0`
+and `lam1` separated by `gapFun`. The gap is bounded below by `sqrt (1 / 2)`, and the normalized
+second component of the lower eigenvector satisfies an amplitude bound on the interpolation
+interval.
+
+The scalar tensor energy `tensorEigen` is expressed through Hamming weight. For a nonempty
+register, the lowest and first excited energy levels are attained explicitly and their
+difference is `gapFun`. See [VanDamMoscaVazirani2001].
+
+## Main statements
+
+* `qubitH_mulVec_v0`: The explicit lower vector satisfies the eigenvector equation.
+* `amp_pow_le`: Tensor powers of the lower-state amplitude obey a uniform bound.
+* `tensor_gap`: Identifies the two lowest scalar tensor energy levels and their gap.
+
+## References
+
+* [van Dam et al., 2001][VanDamMoscaVazirani2001]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 800000
 
@@ -98,30 +121,43 @@ open Matrix
 
 namespace Qatlib.Papers.AdiabPower02.GapExamples
 
+/-- The positive square root of `2 * s ^ 2 - 2 * s + 1`. -/
 def gapFun (s : ℝ) : ℝ := Real.sqrt (2 * s ^ 2 - 2 * s + 1)
 
+/-- The lower eigenvalue `(1 - gapFun s) / 2` of the one-qubit matrix. -/
 def lam0 (s : ℝ) : ℝ := (1 - gapFun s) / 2
 
+/-- The upper eigenvalue `(1 + gapFun s) / 2` of the one-qubit matrix. -/
 def lam1 (s : ℝ) : ℝ := (1 + gapFun s) / 2
 
+/-- The real two-by-two matrix with rows `![(1 - s) / 2, (s - 1) / 2]` and `![(s - 1) / 2, (1 +
+s) / 2]`. -/
 def qubitH (s : ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
   !![(1 - s) / 2, (s - 1) / 2; (s - 1) / 2, (1 + s) / 2]
 
+/-- The explicit lower eigenvector `![gapFun s + s, 1 - s]`. -/
 def v0 (s : ℝ) : Fin 2 → ℝ := ![gapFun s + s, 1 - s]
 
+/-- The explicit upper eigenvector `![1 - s, -(gapFun s + s)]`. -/
 def v1 (s : ℝ) : Fin 2 → ℝ := ![1 - s, -(gapFun s + s)]
 
+/-- The square of the gap function is `2 * s ^ 2 - 2 * s + 1`. -/
 lemma gapFun_sq (s : ℝ) : gapFun s ^ 2 = 2 * s ^ 2 - 2 * s + 1 :=
   Real.sq_sqrt (by nlinarith [sq_nonneg (s - 1 / 2)])
 
+/-- The gap function is nonnegative for every real parameter. -/
 lemma gapFun_nonneg (s : ℝ) : 0 ≤ gapFun s := Real.sqrt_nonneg _
 
+/-- The quadratic defining the gap equals `2 * (s - 1 / 2) ^ 2 + 1 / 2`. -/
 lemma gap_quad (s : ℝ) : 2 * s ^ 2 - 2 * s + 1 = 2 * (s - 1 / 2) ^ 2 + 1 / 2 := by
   ring
 
+/-- The upper eigenvalue minus the lower eigenvalue equals the gap function. -/
 lemma lam1_sub_lam0 (s : ℝ) : lam1 s - lam0 s = gapFun s := by
   simp [lam1, lam0]; ring
 
+/-- The vector `v0 s` satisfies the eigenvector equation for `qubitH s` with eigenvalue `lam0
+s`. -/
 theorem qubitH_mulVec_v0 (s : ℝ) :
     qubitH s *ᵥ v0 s = lam0 s • v0 s := by
   have hg : gapFun s ^ 2 = 2 * s ^ 2 - 2 * s + 1 := gapFun_sq s
@@ -130,6 +166,8 @@ theorem qubitH_mulVec_v0 (s : ℝ) :
     simp [qubitH, v0, lam0, Matrix.mulVec, dotProduct, Fin.sum_univ_two] <;>
     nlinarith [hg]
 
+/-- The vector `v1 s` satisfies the eigenvector equation for `qubitH s` with eigenvalue `lam1
+s`. -/
 theorem qubitH_mulVec_v1 (s : ℝ) :
     qubitH s *ᵥ v1 s = lam1 s • v1 s := by
   have hg : gapFun s ^ 2 = 2 * s ^ 2 - 2 * s + 1 := gapFun_sq s
@@ -138,6 +176,7 @@ theorem qubitH_mulVec_v1 (s : ℝ) :
     simp [qubitH, v1, lam1, Matrix.mulVec, dotProduct, Fin.sum_univ_two] <;>
     nlinarith [hg]
 
+/-- The sum `gapFun s + s` is strictly positive for every real `s`. -/
 lemma gap_plus_s_pos (s : ℝ) : 0 < gapFun s + s := by
   have hg : 0 ≤ gapFun s := gapFun_nonneg s
   rcases le_total 0 s with hs | hs
@@ -157,6 +196,7 @@ lemma gap_plus_s_pos (s : ℝ) : 0 < gapFun s + s := by
       rwa [abs_of_nonneg hg] at h
     linarith [neg_abs_le s, hlt]
 
+/-- The two explicit eigenvectors form a linearly independent pair. -/
 theorem v0_v1_linearIndependent (s : ℝ) :
     LinearIndependent ℝ ![v0 s, v1 s] := by
   rw [Fintype.linearIndependent_iff]
@@ -193,28 +233,36 @@ theorem v0_v1_linearIndependent (s : ℝ) :
   · exact hg0
   · exact hg1
 
+/-- The gap function is strictly positive for every real parameter. -/
 lemma gapFun_pos (s : ℝ) : 0 < gapFun s := by
   apply Real.sqrt_pos.mpr
   nlinarith [sq_nonneg (s - 1 / 2)]
 
+/-- The gap function is bounded below by `sqrt (1 / 2)`. -/
 theorem gapFun_min (s : ℝ) : Real.sqrt (1 / 2) ≤ gapFun s := by
   rw [gapFun]
   apply Real.sqrt_le_sqrt
   nlinarith [sq_nonneg (s - 1 / 2)]
 
+/-- The square of `sqrt (1 / 2)` is `1 / 2`. -/
 lemma sqrt_half_sq : (Real.sqrt (1 / 2)) ^ 2 = 1 / 2 := by
   rw [Real.sq_sqrt (by norm_num)]
 
+/-- The squared Euclidean norm of the explicit lower eigenvector. -/
 def v0NormSq (s : ℝ) : ℝ := (gapFun s + s) ^ 2 + (1 - s) ^ 2
 
+/-- The second component `1 - s` of the lower eigenvector divided by the square root of
+`v0NormSq s`. -/
 def amp1 (s : ℝ) : ℝ := (1 - s) / Real.sqrt (v0NormSq s)
 
+/-- The squared norm of the lower eigenvector is strictly positive. -/
 lemma v0NormSq_pos (s : ℝ) : 0 < v0NormSq s := by
   have hgs : 0 < gapFun s + s := gap_plus_s_pos s
   have h : 0 < (gapFun s + s) ^ 2 := pow_pos hgs 2
   have h2 : (0 : ℝ) ≤ (1 - s) ^ 2 := sq_nonneg _
   simp only [v0NormSq]; linarith
 
+/-- For `0 ≤ s ≤ 1`, the square of the normalized second component is at most `1 / 2`. -/
 theorem amp1_sq_le_half {s : ℝ} (hs0 : 0 ≤ s) (_hs1 : s ≤ 1) :
     amp1 s ^ 2 ≤ 1 / 2 := by
   have hden : 0 < v0NormSq s := v0NormSq_pos s
@@ -228,11 +276,14 @@ theorem amp1_sq_le_half {s : ℝ} (hs0 : 0 ≤ s) (_hs1 : s ≤ 1) :
   rw [div_le_iff₀ (by have h := hden; simp only [v0NormSq] at h; linarith)]
   nlinarith [hkey]
 
+/-- The normalized second component is nonnegative when `s ≤ 1`. -/
 lemma amp1_nonneg {s : ℝ} (hs1 : s ≤ 1) : 0 ≤ amp1 s := by
   have hden : 0 < Real.sqrt (v0NormSq s) :=
     Real.sqrt_pos.mpr (v0NormSq_pos s)
   exact div_nonneg (by linarith) (le_of_lt hden)
 
+/-- For `0 ≤ s ≤ 1`, the `n`th power of the normalized second component is at most `(sqrt (1 /
+2)) ^ n`. -/
 theorem amp_pow_le {s : ℝ} (hs0 : 0 ≤ s) (hs1 : s ≤ 1) (n : ℕ) :
     amp1 s ^ n ≤ (Real.sqrt (1 / 2)) ^ n := by
   have hβ0 : 0 ≤ amp1 s := amp1_nonneg hs1
@@ -242,13 +293,16 @@ theorem amp_pow_le {s : ℝ} (hs0 : 0 ≤ s) (hs1 : s ≤ 1) (n : ℕ) :
     nlinarith [hsq, hβ0, Real.sqrt_nonneg (1 / 2 : ℝ)]
   exact pow_le_pow_left₀ hβ0 hβ n
 
+/-- The sum of the scalar energies `b` at true bits and `a` at false bits. -/
 def tensorEigen (a b : ℝ) {n : ℕ} (y : Fin n → Bool) : ℝ :=
   ∑ i, if y i = true then b else a
 
+/-- The all-false string has tensor energy `n * a`. -/
 lemma tensorEigen_zero (a b : ℝ) (n : ℕ) :
     tensorEigen (n := n) a b (fun _ => false) = (n : ℝ) * a := by
   simp [tensorEigen]
 
+/-- If `a ≤ b`, every tensor energy is at least `n * a`. -/
 lemma tensorEigen_ge (a b : ℝ) (hab : a ≤ b) {n : ℕ} (y : Fin n → Bool) :
     (n : ℝ) * a ≤ tensorEigen a b y := by
   have h : ∀ i, a ≤ (if y i = true then b else a) := by
@@ -260,9 +314,11 @@ lemma tensorEigen_ge (a b : ℝ) (hab : a ≤ b) {n : ℕ} (y : Fin n → Bool) 
     _ ≤ ∑ i, (if y i = true then b else a) := Finset.sum_le_sum fun i _ => h i
     _ = tensorEigen a b y := rfl
 
+/-- The number of true coordinates of a Boolean string. -/
 def boolWeight {n : ℕ} (y : Fin n → Bool) : ℕ :=
   (Finset.univ.filter (fun i => y i = true)).card
 
+/-- The tensor energy of a string of weight `k` is `(n - k) * a + k * b`. -/
 lemma tensorEigen_eq_weight (a b : ℝ) {n : ℕ} (y : Fin n → Bool) :
     tensorEigen a b y = ((n : ℝ) - (boolWeight y : ℝ)) * a + (boolWeight y : ℝ) * b := by
   have h1 : tensorEigen a b y
@@ -280,6 +336,8 @@ lemma tensorEigen_eq_weight (a b : ℝ) {n : ℕ} (y : Fin n → Bool) :
     Fintype.card_fin, nsmul_eq_mul]
   ring
 
+/-- If `a ≤ b`, any string other than the all-false string has tensor energy at least `(n - 1) *
+a + b`. -/
 lemma tensorEigen_ge_of_ne_zero (a b : ℝ) (hab : a ≤ b) {n : ℕ}
     {y : Fin n → Bool} (hy : y ≠ fun _ => false) :
     ((n : ℝ) - 1) * a + b ≤ tensorEigen a b y := by
@@ -307,6 +365,8 @@ lemma tensorEigen_ge_of_ne_zero (a b : ℝ) (hab : a ≤ b) {n : ℕ}
   nlinarith [mul_nonneg (by linarith : (0:ℝ) ≤ (boolWeight y : ℝ) - 1)
     (by linarith : (0:ℝ) ≤ b - a)]
 
+/-- For positive `n`, the string whose only true bit is at index zero has tensor energy `(n - 1)
+* a + b`. -/
 lemma tensorEigen_weight_one (a b : ℝ) {n : ℕ} (hn : 0 < n) :
     tensorEigen a b (fun i : Fin n => decide (i = ⟨0, hn⟩)) = ((n : ℝ) - 1) * a + b := by
   rw [tensorEigen_eq_weight]
@@ -321,6 +381,7 @@ lemma tensorEigen_weight_one (a b : ℝ) {n : ℕ} (hn : 0 < n) :
   push_cast
   ring
 
+/-- The gap function is at least the real parameter `s`. -/
 lemma le_gapFun (s : ℝ) : s ≤ gapFun s := by
   rcases le_total 0 s with hs | hs
   · have hsq : s ^ 2 ≤ gapFun s ^ 2 := by
@@ -329,6 +390,9 @@ lemma le_gapFun (s : ℝ) : s ≤ gapFun s := by
     rwa [abs_of_nonneg (gapFun_nonneg s), abs_of_nonneg hs] at h
   · linarith [gapFun_nonneg s]
 
+/-- For positive `n`, the all-false string attains the lowest scalar tensor energy, a weight-one
+string attains the first excited level, and these levels differ by `gapFun s`
+[VanDamMoscaVazirani2001]. -/
 theorem tensor_gap (s : ℝ) {n : ℕ} (hn : 0 < n) :
     (∀ y : Fin n → Bool, (n : ℝ) * lam0 s ≤ tensorEigen (lam0 s) (lam1 s) y) ∧
     tensorEigen (n := n) (lam0 s) (lam1 s) (fun _ => false) = (n : ℝ) * lam0 s ∧

@@ -8,6 +8,34 @@ import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
 import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
+
+/-!
+# The two-output cluster-chain isometry
+
+This module calculates the branch semantics of `mpTwoOutputPattern`, the four-vertex chain with
+one input, two measured vertices, and two outputs. Following the cluster measurement setting of
+[RaussendorfBriegel2000], it constructs an explicit matrix from one qubit to two qubits and
+proves that its columns are orthonormal.
+
+The calculation expands the entangler, evaluates the two measured coordinates, and tracks the
+Pauli corrections. Every measurement outcome gives one quarter of the same isometric conjugation
+map; the outcome-dependent sign in the core disappears under conjugation.
+
+## Main statements
+
+* `cnotAux_W` is the explicit one-input, two-output matrix, and `cnotAux_W_isometry` proves its
+  isometry identity.
+* `cnotAux_two_ent_diag` gives the chain entangler entrywise.
+* `cnotAux_two_core` expresses each corrected core as a signed half multiple of `cnotAux_W`.
+* `cnotAux_clause3_channel` proves the common branch formula.
+* `cnotAux_clause3` packages the isometry and all branch identities into an existence statement.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000], *Quantum computing via measurements
+  only*.
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
@@ -46,6 +74,9 @@ open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Infra
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire
 open Qatlib.Concepts.ClusterPatterns.CnotPatterns.Clause18Wire1a
 
+/-- The one-input, two-output matrix whose first output bit is the complement of the input bit.
+Its nonzero entries have magnitude `1 / sqrt 2` and phase `bitPhase (input &&
+!secondOutput)`. -/
 noncomputable def cnotAux_W : Matrix (Fin 4) (Fin 2) ℂ := Matrix.of fun xp y =>
   if ((bitVecEquiv 2).symm xp) 0 = !((bitVecEquiv 1).symm y) 0 then
     Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (((bitVecEquiv 1).symm y) 0
@@ -53,6 +84,8 @@ noncomputable def cnotAux_W : Matrix (Fin 4) (Fin 2) ℂ := Matrix.of fun xp y =
       * ((Real.sqrt 2 : ℝ) : ℂ)⁻¹
   else 0
 
+/-- An entry of `cnotAux_W` vanishes unless the first decoded output bit complements the decoded
+input bit; otherwise it is `bitPhase (input && !secondOutput) / sqrt 2`. -/
 theorem cnotAux_W_apply (xp : Fin 4) (y : Fin 2) :
     cnotAux_W xp y
       = if ((bitVecEquiv 2).symm xp) 0 = !((bitVecEquiv 1).symm y) 0 then
@@ -62,6 +95,9 @@ theorem cnotAux_W_apply (xp : Fin 4) (y : Fin 2) :
         else 0 :=
   rfl
 
+/-- The matrix `cnotAux_W` is an isometry: its conjugate transpose multiplied by itself is the
+one-qubit identity. It supplies the common output map for the two-output cluster pattern in
+the setting of [RaussendorfBriegel2000]. -/
 theorem cnotAux_W_isometry : cnotAux_W.conjTranspose * cnotAux_W = 1 := by
   have hreal : ∀ k i, star (cnotAux_W k i) = cnotAux_W k i := by
     intro k i
@@ -79,19 +115,25 @@ theorem cnotAux_W_isometry : cnotAux_W.conjTranspose * cnotAux_W = 1 := by
       Matrix.one_apply] <;>
     norm_num [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase, cnotAux_inv_sqrt2_mul_self, cnotAux_sqrt2_sq]
 
+/-- The three successive directed edges of the four-vertex path from zero to three. -/
 def cnotAux_twoE : Finset (Fin 4 × Fin 4) :=
   {(⟨0, by omega⟩, ⟨1, by omega⟩), (⟨1, by omega⟩, ⟨2, by omega⟩), (⟨2, by omega⟩, ⟨3, by omega⟩)}
 
+/-- The two-output pattern's entangler is the product of the frame matrix and the controlled-Z
+matrix for `cnotAux_twoE`. -/
 theorem cnotAux_two_entangler :
     mpTwoOutputPattern.entangler
       = Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix cnotAux_twoE * Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix cnotAux_twoE := by
   simp only [mpTwoOutputPattern]
   exact Qatlib.Concepts.MbqcFlow.FlowDecision.sourcePulse_eq_frame_cz _
 
+/-- A product over `Fin 4` equals the product of its values at zero, one, two, and three. -/
 theorem cnotAux_prod_fin4 (g : Fin 4 → ℂ) :
     (∏ v : Fin 4, g v) = g 0 * g 1 * g 2 * g 3 := by
   rw [Fin.prod_univ_four]
 
+/-- The diagonal frame entry on the four-vertex path is the product of the bit phases at
+vertices one, two, and three. -/
 theorem cnotAux_two_frame (x : Reg 4) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix cnotAux_twoE x x
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2)
@@ -106,6 +148,8 @@ theorem cnotAux_two_frame (x : Reg 4) :
   rw [h0, h1, h2, h3]
   simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- The diagonal controlled-Z entry on the four-vertex path is the product of the bit phases for
+the adjacent pairs `(0,1)`, `(1,2)`, and `(2,3)`. -/
 theorem cnotAux_two_cz (x : Reg 4) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix cnotAux_twoE x x
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1 && x 2)
@@ -117,12 +161,16 @@ theorem cnotAux_two_cz (x : Reg 4) :
     Finset.prod_singleton]
   simp [Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase]
 
+/-- The four-vertex path phase obtained by multiplying its three local frame signs and its three
+adjacent-pair controlled-Z signs. -/
 def cnotAux_twoPhase (x : Reg 4) : ℂ :=
   (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2)
       * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 3))
     * (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1 && x 2)
       * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2 && x 3))
 
+/-- The two-output pattern's entangler has diagonal entries `cnotAux_twoPhase x` and zero
+off-diagonal entries. -/
 theorem cnotAux_two_ent_diag (x y : Reg 4) :
     mpTwoOutputPattern.entangler x y = if x = y then cnotAux_twoPhase x else 0 := by
   rw [cnotAux_two_entangler]
@@ -146,11 +194,14 @@ theorem cnotAux_two_ent_diag (x y : Reg 4) :
     · rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, if_neg (Ne.symm hk),
         zero_mul]
 
+/-- Every amplitude of the uniform three-qubit vector is `1 / sqrt 8`. -/
 theorem cnotAux_uniform3 (x : Reg 3) : Uniform (Reg 3) x = ((Real.sqrt 8 : ℝ) : ℂ)⁻¹ := by
   show ((Real.sqrt (Fintype.card (Reg 3)) : ℝ) : ℂ)⁻¹ = _
   rw [card_reg]
   norm_num
 
+/-- The two-output pattern's loading entry is `1 / sqrt 8` when the zeroth register bit matches
+the input bit, and zero otherwise. -/
 theorem cnotAux_two_load (d : Reg 4) (y : Reg 1) :
     mpLoadMatrix mpTwoOutputPattern (Uniform (Reg 3)) d y
       = if d 0 = y 0 then ((Real.sqrt 8 : ℝ) : ℂ)⁻¹ else 0 := by
@@ -172,6 +223,8 @@ theorem cnotAux_two_load (d : Reg 4) (y : Reg 1) :
       exact hh
     rw [if_neg h0]
 
+/-- Entangling the loaded three-qubit uniform resource gives `cnotAux_twoPhase d / sqrt 8` when
+the input bit matches register coordinate zero, and zero otherwise. -/
 theorem cnotAux_two_EL (d : Reg 4) (y : Reg 1) :
     (mpTwoOutputPattern.entangler
         * mpLoadMatrix mpTwoOutputPattern (Uniform (Reg 3))) d y
@@ -190,11 +243,15 @@ theorem cnotAux_two_EL (d : Reg 4) (y : Reg 1) :
     rw [cnotAux_two_ent_diag, if_neg (Ne.symm hdne), zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 
+/-- Every adaptive measurement angle of the two-output pattern is zero, for every outcome
+string. -/
 theorem cnotAux_two_sv (s : Fin 2 → Bool) (j : Fin 2) :
     mpAdaptiveAngle mpTwoOutputPattern s j = 0 := by
   simp only [mpAdaptiveAngle, mpTwoOutputPattern, mpParity_empty]
   norm_num
 
+/-- The two-output register constraint is equivalent to the two coordinate equalities at
+vertices two and three. -/
 theorem cnotAux_two_delta_iff (s : Fin 2 → Bool) (xp : Fin 4) (c : Reg 4) :
     (∀ v : Fin 2, c (Fin.natAdd 2 v) = mpOutBit mpTwoOutputPattern s xp v)
       ↔ (c 2 = mpOutBit mpTwoOutputPattern s xp 0
@@ -211,6 +268,9 @@ theorem cnotAux_two_delta_iff (s : Fin 2 → Bool) (xp : Fin 4) (c : Reg 4) :
     · simpa using h.1
     · simpa using h.2
 
+/-- The register summand for the two-output core before the final correction phase, combining
+conjugate measurement amplitudes, corrected output constraints, and the entangled loading
+entry. -/
 noncomputable def cnotAux_twoSummand (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) : Reg 4 → ℂ :=
   fun c =>
     (∏ j : Fin 2, star (mpSVector (mpAdaptiveAngle mpTwoOutputPattern s j) (s j)
@@ -220,6 +280,8 @@ noncomputable def cnotAux_twoSummand (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 
       * (mpTwoOutputPattern.entangler
           * mpLoadMatrix mpTwoOutputPattern (Uniform (Reg 3))) c y
 
+/-- The `corePre` entry of the two-output pattern is its output `Z`-correction sign multiplied
+by the sum of `cnotAux_twoSummand` over four-bit registers. -/
 theorem cnotAux_two_corePre_eq (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) :
     corePre mpTwoOutputPattern (Uniform (Reg 3)) s xp y
       = (∏ k : Fin 2,
@@ -228,6 +290,9 @@ theorem cnotAux_two_corePre_eq (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) :
           * ∑ c : Reg 4, cnotAux_twoSummand s xp y c := by
   simp only [corePre, Matrix.of_apply, cnotAux_twoSummand]
 
+/-- The two-output core summand factors into zero-angle conjugate measurement amplitudes,
+constraints on coordinates two and three, and the input-matching entangler phase divided by
+`sqrt 8`. -/
 theorem cnotAux_two_summand_eq (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) (c : Reg 4) :
     cnotAux_twoSummand s xp y c
       = (∏ j : Fin 2, star (mpSVector 0 (s j) (c (Fin.castLE (by omega : 2 ≤ 2 + 2) j))))
@@ -239,12 +304,16 @@ theorem cnotAux_two_summand_eq (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) (c 
   simp only [cnotAux_two_sv]
   simp only [cnotAux_two_delta_iff]
 
+/-- The two-factor product of conjugate measurement amplitudes is the product of the terms at
+register coordinates zero and one. -/
 theorem cnotAux_two_prod_star (s : Fin 2 → Bool) (c : Reg 4) :
     (∏ j : Fin 2, star (mpSVector 0 (s j) (c (Fin.castLE (by omega : 2 ≤ 2 + 2) j))))
       = star (mpSVector 0 (s 0) (c 0)) * star (mpSVector 0 (s 1) (c 1)) := by
   rw [Fin.prod_univ_two]
   rfl
 
+/-- The full four-bit summand sum reduces to the two choices for coordinate one after fixing
+coordinate zero to the input and coordinates two and three to the corrected output bits. -/
 theorem cnotAux_two_sum_eq (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) :
     ∑ c : Reg 4, cnotAux_twoSummand s xp y c
       = cnotAux_twoSummand s xp y
@@ -269,31 +338,39 @@ theorem cnotAux_two_sum_eq (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) :
       · rw [if_neg (fun hh => h2 hh.1), mul_zero, zero_mul]
     · rw [if_neg h0, mul_zero]
 
+/-- The first output's `X` correction is controlled by the second measurement outcome `s 1`. -/
 theorem cnotAux_two_xCorr0 (s : Fin 2 → Bool) : mpTwoOutputPattern.xCorr 0 s = s 1 := by
   simp only [mpTwoOutputPattern]
   rfl
 
+/-- The second output has no `X` correction. -/
 theorem cnotAux_two_xCorr1 (s : Fin 2 → Bool) : mpTwoOutputPattern.xCorr 1 s = false := by
   simp only [mpTwoOutputPattern]
   rfl
 
+/-- The first output's `Z` correction is controlled by the first measurement outcome `s 0`. -/
 theorem cnotAux_two_zCorr0 (s : Fin 2 → Bool) : mpTwoOutputPattern.zCorr 0 s = s 0 := by
   simp only [mpTwoOutputPattern]
   rfl
 
+/-- The second output's `Z` correction is controlled by the second measurement outcome `s 1`. -/
 theorem cnotAux_two_zCorr1 (s : Fin 2 → Bool) : mpTwoOutputPattern.zCorr 1 s = s 1 := by
   simp only [mpTwoOutputPattern]
   rfl
 
+/-- The first corrected output bit is the XOR of `s 1` with the first bit decoded from `xp`. -/
 theorem cnotAux_two_outBit0 (s : Fin 2 → Bool) (xp : Fin 4) :
     mpOutBit mpTwoOutputPattern s xp 0 = xor (s 1) ((bitVecEquiv 2).symm xp 0) := by
   rw [mpOutBit, cnotAux_two_xCorr0]
 
+/-- The second corrected output bit is the second bit decoded from `xp`. -/
 theorem cnotAux_two_outBit1 (s : Fin 2 → Bool) (xp : Fin 4) :
     mpOutBit mpTwoOutputPattern s xp 1 = ((bitVecEquiv 2).symm xp 1) := by
   rw [mpOutBit, cnotAux_two_xCorr1]
   simp [Bool.xor]
 
+/-- The `corePre` entry at output index zero is the corresponding `cnotAux_W` entry times
+`bitPhase (!(s 0 || s 1)) / 2`. -/
 theorem cnotAux_two_corePre_0 (s : Fin 2 → Bool) (y : Reg 1) :
     corePre mpTwoOutputPattern (Uniform (Reg 3)) s 0 y
       = (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (!(s 0 || s 1)) / 2 : ℂ)
@@ -313,6 +390,8 @@ theorem cnotAux_two_corePre_0 (s : Fin 2 → Bool) (y : Reg 1) :
   all_goals (try rw [cnotAux_inv_sqrt2_mul_self]) <;>
     field_simp [cnotAux_inv_sqrt2_mul_self, cnotAux_inv_sqrt2_cube, cnotAux_inv_sqrt2_cube'] <;> ring
 
+/-- The `corePre` entry at output index one is the corresponding `cnotAux_W` entry times
+`bitPhase (!(s 0 || s 1)) / 2`. -/
 theorem cnotAux_two_corePre_1 (s : Fin 2 → Bool) (y : Reg 1) :
     corePre mpTwoOutputPattern (Uniform (Reg 3)) s 1 y
       = (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (!(s 0 || s 1)) / 2 : ℂ)
@@ -332,6 +411,8 @@ theorem cnotAux_two_corePre_1 (s : Fin 2 → Bool) (y : Reg 1) :
   all_goals (try rw [cnotAux_inv_sqrt2_mul_self]) <;>
     field_simp [cnotAux_inv_sqrt2_mul_self, cnotAux_inv_sqrt2_cube, cnotAux_inv_sqrt2_cube'] <;> ring
 
+/-- The `corePre` entry at output index two is the corresponding `cnotAux_W` entry times
+`bitPhase (!(s 0 || s 1)) / 2`. -/
 theorem cnotAux_two_corePre_2 (s : Fin 2 → Bool) (y : Reg 1) :
     corePre mpTwoOutputPattern (Uniform (Reg 3)) s 2 y
       = (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (!(s 0 || s 1)) / 2 : ℂ)
@@ -351,6 +432,8 @@ theorem cnotAux_two_corePre_2 (s : Fin 2 → Bool) (y : Reg 1) :
   all_goals (try rw [cnotAux_inv_sqrt2_mul_self]) <;>
     field_simp [cnotAux_inv_sqrt2_mul_self, cnotAux_inv_sqrt2_cube, cnotAux_inv_sqrt2_cube'] <;> ring
 
+/-- The `corePre` entry at output index three is the corresponding `cnotAux_W` entry times
+`bitPhase (!(s 0 || s 1)) / 2`. -/
 theorem cnotAux_two_corePre_3 (s : Fin 2 → Bool) (y : Reg 1) :
     corePre mpTwoOutputPattern (Uniform (Reg 3)) s 3 y
       = (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (!(s 0 || s 1)) / 2 : ℂ)
@@ -370,6 +453,8 @@ theorem cnotAux_two_corePre_3 (s : Fin 2 → Bool) (y : Reg 1) :
   all_goals (try rw [cnotAux_inv_sqrt2_mul_self]) <;>
     field_simp [cnotAux_inv_sqrt2_mul_self, cnotAux_inv_sqrt2_cube, cnotAux_inv_sqrt2_cube'] <;> ring
 
+/-- Every two-output `corePre` entry is `bitPhase (!(s 0 || s 1)) / 2` times the corresponding
+entry of `cnotAux_W`, with the input register encoded by `bitVecEquiv 1`. -/
 theorem cnotAux_two_corePre (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) :
     corePre mpTwoOutputPattern (Uniform (Reg 3)) s xp y
       = (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (!(s 0 || s 1)) / 2 : ℂ)
@@ -380,6 +465,8 @@ theorem cnotAux_two_corePre (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) :
   · exact cnotAux_two_corePre_2 s y
   · exact cnotAux_two_corePre_3 s y
 
+/-- The corrected core of every two-output outcome branch is the matrix `cnotAux_W` scaled by
+`bitPhase (!(s 0 || s 1)) / 2`. -/
 theorem cnotAux_two_core (s : Fin 2 → Bool) :
     core mpTwoOutputPattern (Uniform (Reg 3)) s
       = (Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (!(s 0 || s 1)) / 2 : ℂ) • cnotAux_W := by
@@ -388,6 +475,8 @@ theorem cnotAux_two_core (s : Fin 2 → Bool) :
     smul_eq_mul, Equiv.refl_symm, Equiv.refl_apply]
   rw [cnotAux_two_corePre, Equiv.apply_symm_apply]
 
+/-- Conjugation by the two-output core is one quarter of conjugation by `cnotAux_W`, since the
+outcome-dependent phase cancels. -/
 theorem cnotAux_two_core_conj (s : Fin 2 → Bool) (ρ : Operator 2) :
     core mpTwoOutputPattern (Uniform (Reg 3)) s * ρ
         * (core mpTwoOutputPattern (Uniform (Reg 3)) s).conjTranspose
@@ -409,6 +498,8 @@ theorem cnotAux_two_core_conj (s : Fin 2 → Bool) (ρ : Operator 2) :
     norm_num
   rw [h3]
 
+/-- The squared magnitudes of the two-output measurement-amplitude products sum to one over all
+discarded-register strings. -/
 theorem cnotAux_two_sv_sum (s : Fin 2 → Bool) :
     ∑ z : Fin 2 → Bool,
       (∏ j : Fin 2, mpSVector (mpAdaptiveAngle mpTwoOutputPattern s j) (s j) (z j))
@@ -428,6 +519,9 @@ theorem cnotAux_two_sv_sum (s : Fin 2 → Bool) :
   rw [card_reg]
   norm_num
 
+/-- For every measurement outcome, the two-output branch equals `1 / 4` times conjugation by
+`cnotAux_W`. This is the explicit branch formula for the cluster-chain construction in the
+setting of [RaussendorfBriegel2000]. -/
 theorem cnotAux_clause3_channel : ∀ (s : Fin 2 → Bool) (ρ : Operator 2),
     ∑ z : Fin 2 → Bool,
         (mpPatternKraus mpTwoOutputPattern (Uniform (Reg 3)) s z) * ρ
@@ -447,6 +541,9 @@ theorem cnotAux_clause3_channel : ∀ (s : Fin 2 → Bool) (ρ : Operator 2),
   rw [← Finset.sum_smul, cnotAux_two_sv_sum, one_smul]
   exact cnotAux_two_core_conj s ρ
 
+/-- There exists an isometry from one qubit to two qubits such that every outcome branch of
+`mpTwoOutputPattern` is `1 / 4` times conjugation by that isometry. The witness `cnotAux_W`
+realizes this cluster measurement construction motivated by [RaussendorfBriegel2000]. -/
 theorem cnotAux_clause3 :
     ∃ W : Matrix (Fin 4) (Fin 2) ℂ,
       W.conjTranspose * W = 1 ∧

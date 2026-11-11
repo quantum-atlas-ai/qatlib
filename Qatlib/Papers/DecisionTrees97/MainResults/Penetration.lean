@@ -11,6 +11,27 @@ import Mathlib.Order.Filter.AtTopBot.Basic
 import Mathlib.Topology.Order.Compact
 import Mathlib.Tactic
 
+/-!
+# Scalar penetrability from an assumed bound
+
+This module defines eventual polynomial-time penetrability conditions for classical signals and
+amplitudes, together with a scalar comparison predicate. Assuming that comparison,
+nonnegativity, and continuity, it transfers classical penetrability to amplitude penetrability
+using decay estimates and an attained maximum.
+
+These constructions accompany the results of [FarhiGutmann1998].
+
+## Main statements
+
+* `eventually_decay_le_half`: makes the tail term smaller than half the signal threshold.
+* `penetration_amplitude_step`: extracts an inverse-polynomial amplitude bound.
+* `penetrability_of_assumed_scalar_bound`: proves the conditional penetrability transfer.
+
+## References
+
+* [Farhi and Gutmann, 1998][FarhiGutmann1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -19,22 +40,35 @@ open scoped Topology BigOperators Real
 
 namespace Qatlib.Papers.DecisionTrees97.MainResults
 
+/-- The existence of positive polynomial exponents such that, for all sufficiently large sizes,
+the classical signal exceeds an inverse-power threshold at some time at least one and below
+the polynomial time bound. -/
 def ScalarClassicalPenetrable (p : ℕ → ℝ → ℝ) : Prop :=
   ∃ A B : ℝ, 0 < A ∧ 0 < B ∧ ∀ᶠ n : ℕ in Filter.atTop,
     ∃ t : ℝ, 1 ≤ t ∧ t < (n : ℝ) ^ A ∧ (1 / (n : ℝ)) ^ B < p n t
 
+/-- The existence of positive polynomial exponents such that, for all sufficiently large sizes,
+the amplitude exceeds an inverse-power threshold at some nonnegative time below the
+polynomial time bound. -/
 def ScalarAmplitudePenetrable (a : ℕ → ℝ → ℝ) : Prop :=
   ∃ A B : ℝ, 0 < A ∧ 0 < B ∧ ∀ᶠ n : ℕ in Filter.atTop,
     ∃ t : ℝ, 0 ≤ t ∧ t < (n : ℝ) ^ A ∧ (1 / (n : ℝ)) ^ B < a n t
 
+/-- The condition that `ε` is attained by the amplitude on `[0, T]` and bounds its values
+throughout that interval. -/
 def IsMaxAmplitudeOn (a : ℕ → ℝ → ℝ) (n : ℕ) (T ε : ℝ) : Prop :=
   (∃ t : ℝ, 0 ≤ t ∧ t ≤ T ∧ a n t = ε) ∧ ∀ t : ℝ, 0 ≤ t → t ≤ T → a n t ≤ ε
 
+/-- The scalar comparison condition bounding the classical signal by a logarithmic multiple of
+an attained amplitude maximum plus an inverse-power remainder, for the specified parameter
+ranges. -/
 def AssumedScalarBound (p a : ℕ → ℝ → ℝ) (C : ℝ) : Prop :=
   ∀ (B D : ℝ), 0 < B → 4 * B < D →
     ∀ (n : ℕ) (t : ℝ) (ε : ℝ), 1 ≤ n → 1 ≤ t → IsMaxAmplitudeOn a n ((n : ℝ) ^ D) ε →
       p n t ≤ (ε / π) * ((D + 1) * Real.log (n : ℝ)) + C * (n : ℝ) ^ (-D / 4)
 
+/-- When `D > 4 * B`, the remainder `C * n ^ (-D / 4)` is eventually at most half of `(1 / n) ^
+B`. -/
 theorem eventually_decay_le_half (B D C : ℝ) (hD : 4 * B < D) :
     ∀ᶠ n : ℕ in Filter.atTop,
       C * (n : ℝ) ^ (-D / 4) ≤ (1 / 2 : ℝ) * (1 / (n : ℝ)) ^ B := by
@@ -67,6 +101,8 @@ theorem eventually_decay_le_half (B D C : ℝ) (hD : 4 * B < D) :
     _ = (1 / 2 : ℝ) * (n : ℝ) ^ (-B) := by rw [hprod]
     _ = (1 / 2 : ℝ) * (1 / (n : ℝ)) ^ B := by rw [hinv]
 
+/-- If the scalar signal bound holds and its remainder is at most half the signal threshold, the
+maximum amplitude is at least `π / (2 * (D + 1)) * (1 / n) ^ (B + 1)`. -/
 theorem penetration_amplitude_step
     (B D : ℝ) (hDpos : 0 < D) (n : ℕ) (hn : 2 ≤ n)
     (ε C : ℝ) (hε : 0 ≤ ε)
@@ -107,6 +143,8 @@ theorem penetration_amplitude_step
   rw [hmul]
   exact hstep'
 
+/-- A nonnegative amplitude continuous on every nonnegative compact time interval is penetrable
+if the classical signal is penetrable and the assumed scalar comparison bound holds. -/
 theorem penetrability_of_assumed_scalar_bound
     (p a : ℕ → ℝ → ℝ) (C : ℝ)
     (hnonneg : ∀ (n : ℕ) (t : ℝ), 0 ≤ a n t)

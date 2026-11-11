@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Grouped remainders and support-chain counting
+
+This module proves Taylor integral identities for single-generator conjugation and relates them
+to the grouped remainder definitions. It also develops finite-support counting estimates used to
+organize local product-formula costs in commutator-scaling analyses [ChildsEtAl2021Trotter].
+
+Double counting bounds packed support families, while successive overlap choices bound
+`supportChainCount`. The result `finiteRangeLedger_witness` packages segment, depth, and routing
+bounds into a resource record.
+
+## Main statements
+
+* `clause17_identity_singleton`: grouped remainder identity for a singleton generator.
+* `packing_card_bound`: bound on the size of a packed family of nonempty supports.
+* `supportChainCount_le`: factorial overlap-degree bound for support chains.
+* `finiteRangeLedger_witness`: finite-range resource ledger with explicit bounds.
+
+## References
+
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 
@@ -24,6 +48,8 @@ open scoped ComplexOrder
 open Set
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Expresses the error of exponential conjugation after truncation before degree `n+1` as the
+weighted integral of the conjugated `(n+1)`st iterated commutator. -/
 theorem pfConjExp_taylor_integral_remainder (X C : Matrix I I ℂ) (n : ℕ) (t : ℝ) :
     pfConjExp X C t - pfTaylorBefore (pfConjExp X C) (n + 1) t =
       ∫ τ in 0..t, (((t - τ) ^ n / (n.factorial : ℝ)) •
@@ -56,10 +82,13 @@ theorem pfConjExp_taylor_integral_remainder (X C : Matrix I I ℂ) (n : ℕ) (t 
     rw [pfTaylorBefore_succ, ← hpoly, hrem, intervalIntegral.integral_congr hcongr]
 omit [DecidableEq I] in
 
+/-- The grouped integral remainder of an empty generator list is zero. -/
 theorem groupedIntegralRemainder_nil (B : Matrix I I ℂ) (p : ℕ) (t : ℝ) :
     groupedIntegralRemainder [] B p t = 0 := by
   simp [groupedIntegralRemainder]
 
+/-- For positive `p`, the only grouped composition of length one is the singleton list
+containing `p`. -/
 theorem groupedCompositions_one {p : ℕ} (hp : 0 < p) :
     groupedCompositions p 1 = ({List.replicate 1 p} : Finset (List ℕ)) := by
   classical
@@ -85,6 +114,8 @@ open Set
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {I : Type} [Fintype I]
 
+/-- For a singleton generator list, the grouped integral term is the Taylor-weighted integral of
+the conjugated order-`p` commutator. -/
 theorem groupedIntegralTerm_singleton (X B : Matrix I I ℂ) (p : ℕ) (t : ℝ) :
     groupedIntegralTerm [X] B p (List.replicate 1 p) t =
       ∫ τ in 0..t, (((t - τ) ^ (p - 1) / ((p - 1).factorial : ℝ)) •
@@ -136,6 +167,8 @@ theorem groupedIntegralTerm_singleton (X B : Matrix I I ℂ) (p : ℕ) (t : ℝ)
   rw [htake, hbody]
   rfl
 
+/-- For a singleton generator list and positive order, the grouped remainder is the integral of
+the conjugated order-`p` commutator with the Taylor remainder weight. -/
 theorem groupedIntegralRemainder_singleton (X B : Matrix I I ℂ) (p : ℕ)
     (hp : 0 < p) (t : ℝ) :
     groupedIntegralRemainder [X] B p t =
@@ -148,6 +181,8 @@ theorem groupedIntegralRemainder_singleton (X B : Matrix I I ℂ) (p : ℕ)
     Finset.sum_singleton]
   exact groupedIntegralTerm_singleton X B p t
 
+/-- For a singleton generator and positive order, the difference between conjugation and its
+truncation equals the grouped integral remainder. -/
 theorem clause17_identity_singleton (X B : Matrix I I ℂ) (p : ℕ) (hp : 0 < p) (t : ℝ) :
     pfConjWord [X] B t - pfConjTrunc [X] B p t = groupedIntegralRemainder [X] B p t := by
   have hpp : p - 1 + 1 = p := by omega
@@ -160,6 +195,8 @@ theorem clause17_identity_singleton (X B : Matrix I I ℂ) (p : ℕ) (hp : 0 < p
   rw [hfun, htrunc, groupedIntegralRemainder_singleton X B p hp t]
   exact w1
 
+/-- The cardinality of a finite subset is the sum of its membership indicator over the ambient
+finite type. -/
 theorem card_eq_sum_ite {α : Type} [Fintype α] (t : Finset α) :
     t.card = ∑ a : α, (if a ∈ t then (1 : ℕ) else 0) := by
   have h : t = Finset.univ.filter (fun a => a ∈ t) := by
@@ -168,6 +205,8 @@ theorem card_eq_sum_ite {α : Type} [Fintype α] (t : Finset α) :
   conv_lhs => rw [h]
   rw [Finset.card_eq_sum_ones, Finset.sum_filter]
 
+/-- The sum of support cardinalities equals the sum, over sites, of the number of supports
+containing each site. -/
 theorem sum_card_support_eq_sum_card_fiber {S ι : Type} [Fintype S] [Fintype ι]
     (supp : ι → Finset S) :
     (∑ i : ι, (supp i).card) =
@@ -186,6 +225,8 @@ theorem sum_card_support_eq_sum_card_fiber {S ι : Type} [Fintype S] [Fintype ι
       rw [card_eq_sum_ite (Finset.univ.filter (fun i : ι => x ∈ supp i))]
       simp
 
+/-- A family of nonempty supports with at most `τ` terms per site has at most `τ * Fintype.card
+S` terms. -/
 theorem packing_card_bound {S : Type} [Fintype S] {m : ℕ} (supp : Fin m → Finset S)
     (τ : ℕ) (hτ : IsTermPacking supp τ) (hne : ∀ i : Fin m, (supp i).Nonempty) :
     m ≤ τ * Fintype.card S := by
@@ -205,6 +246,9 @@ theorem packing_card_bound {S : Type} [Fintype S] {m : ℕ} (supp : Fin m → Fi
     ring
   linarith
 
+/-- Constructs a finite-range resource ledger with the specified segment and gate counts, depth
+bounded by the maximal overlap degree plus one, and routing swaps bounded by the sum of
+support swap budgets. -/
 theorem finiteRangeLedger_witness {S : Type} [Fintype S] {m : ℕ}
     (supp : Fin m → Finset S) (dist : S → S → ℝ) (τ : ℕ)
     (hτ : IsTermPacking supp τ) (hne : ∀ i : Fin m, (supp i).Nonempty)
@@ -233,6 +277,8 @@ variable {I : Type} [Fintype I] [DecidableEq I]
 variable {I : Type} [Fintype I]
 variable {S ι : Type} [Fintype S] [Fintype ι]
 
+/-- The value of `f` at any member of a list is bounded by the fold taking the maximum of all
+values and zero. -/
 theorem le_list_foldl_max {α : Type} (f : α → ℕ) (l : List α) (x : α) (hx : x ∈ l) :
     f x ≤ l.foldl (fun acc b => max acc (f b)) 0 := by
   have key : ∀ (z : ℕ) (l : List α), f x ≤ z ∨ x ∈ l →
@@ -255,6 +301,7 @@ theorem le_list_foldl_max {α : Type} (f : α → ℕ) (l : List α) (x : α) (h
         · exact Or.inr h
   exact key 0 l (Or.inr hx)
 
+/-- Each support overlap degree is bounded by the maximum overlap degree. -/
 theorem overlapDegree_le_maxOverlapDegree (supp : ι → Finset S) (a : ι) :
     overlapDegree supp a ≤ maxOverlapDegree supp := by
   set f : Fin (Fintype.card ι) → ℕ :=
@@ -266,6 +313,8 @@ theorem overlapDegree_le_maxOverlapDegree (supp : ι → Finset S) (a : ι) :
   rw [hfeq] at h
   exact h
 
+/-- The number of supports intersecting a given support, including itself when nonempty, is at
+most the maximum overlap degree plus one. -/
 theorem card_overlap_neighbors_le (supp : ι → Finset S) (a : ι) :
     (Finset.univ.filter (fun b : ι => (supp a ∩ supp b).Nonempty)).card ≤
       maxOverlapDegree supp + 1 := by
@@ -292,6 +341,7 @@ theorem card_overlap_neighbors_le (supp : ι → Finset S) (a : ι) :
   omega
 omit [Fintype S] in
 
+/-- Removing the last entry from a support chain preserves the support-chain property. -/
 theorem supportChain_snoc {ℓ : ℕ} (supp : ι → Finset S) (p : Fin ℓ → ι) (b : ι)
     (h : SupportChain supp (Fin.snoc p b)) : SupportChain supp p := by
   intro j
@@ -309,6 +359,8 @@ theorem supportChain_snoc {ℓ : ℕ} (supp : ι → Finset S) (p : Fin ℓ → 
       omega
 omit [Fintype S] in
 
+/-- The last entry of a support chain with a nonempty prefix intersects the support of some
+earlier entry. -/
 theorem supportChain_snoc_last {ℓ : ℕ} (hℓ : 0 < ℓ) (supp : ι → Finset S)
     (p : Fin ℓ → ι) (b : ι) (h : SupportChain supp (Fin.snoc p b)) :
     ∃ i : Fin ℓ, ((supp (p i)) ∩ (supp b)).Nonempty := by
@@ -323,6 +375,7 @@ theorem supportChain_snoc_last {ℓ : ℕ} (hℓ : 0 < ℓ) (supp : ι → Finse
     · rw [hlast, Fin.val_last] at hilt
       omega
 
+/-- The number of support chains of length one equals the number of term labels. -/
 theorem supportChainCount_one (m : ℕ) (supp : Fin m → Finset S) :
     supportChainCount supp 1 = m := by
   classical
@@ -341,6 +394,8 @@ theorem supportChainCount_one (m : ℕ) (supp : Fin m → Finset S) :
   rw [hfilter, Finset.card_univ]
   exact hcard
 
+/-- For positive chain length `ℓ`, bounds the number of one-step extensions by the current chain
+count times `ℓ * (maxOverlapDegree supp + 1)`. -/
 theorem supportChainCount_succ_le (m : ℕ) (supp : Fin m → Finset S) {ℓ : ℕ}
     (hℓ : 0 < ℓ) :
     supportChainCount supp (ℓ + 1) ≤
@@ -442,6 +497,8 @@ theorem supportChainCount_succ_le (m : ℕ) (supp : Fin m → Finset S) {ℓ : �
       ring
     _ = supportChainCount supp ℓ * (ℓ * Δ1) := by ring
 
+/-- The number of support chains of length `p+1` is at most `m * p! * (maxOverlapDegree supp +
+1)^p`. -/
 theorem supportChainCount_le (m : ℕ) (supp : Fin m → Finset S) (p : ℕ) :
     supportChainCount supp (p + 1) ≤
       m * p.factorial * (maxOverlapDegree supp + 1) ^ p := by

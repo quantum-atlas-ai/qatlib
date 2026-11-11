@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.CollisionProb97.MainResults.SearchReceipt
 import Qatlib.Papers.CollisionProb97.MainResults.TableRecords
 import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+
+/-!
+# Executing the regular collision algorithm
+
+This module assembles table preparation, an internal collision check, and verified quantum
+search into `run`, a law carrying the returned pair and its query cost. This realizes the
+regular collision construction of [BrassardHoyerTapp1998Collision].
+
+The results `run_correct` and `run_expected` establish collision validity on the support and the
+expected query bound, including table initialization.
+
+## Main statements
+
+* `initialization_count`: Preparing the table indexed by `K` uses exactly `K.card` oracle
+  queries [BrassardHoyerTapp1998Collision].
+* `run_correct`: Every supported output of `run` is a pair of distinct inputs with equal
+  `F`-values [BrassardHoyerTapp1998Collision].
+* `run_expected`: The expected query cost of `run` is at most `K.card` plus the stated search
+  coefficient times `sqrt (|X| / ((r - 1) * K.card))`, supporting Theorem 2 of
+  [BrassardHoyerTapp1998Collision].
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,12 +46,16 @@ namespace Qatlib.Papers.CollisionProb97.MainResults.CollisionExecution
 variable {X R : Type} [Fintype X] [DecidableEq X] [Nonempty X]
     [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- The evaluated read-only table obtained from the selected input set `K`. -/
 def table (F : X → R) (K : Finset X) := TablePreparation.loaded F (TablePreparation.inputs K)
 
+/-- The optional collision found by checking pairs of records within the prepared table. -/
 def early (F : X → R) (K : Finset X) := TableLookup.internal (TableRecords.rows (table F K))
 
 omit [Nonempty X] [AddCommGroup R] [Fintype R] in
 
+/-- If the internal collision check returns `none`, the marked set has cardinality `(r - 1) *
+K.card` [BrassardHoyerTapp1998Collision]. -/
 theorem marked_card (F : X → R) (r : ℕ) (hF : RToOne F r) (K : Finset X)
     (he : early F K = none) :
     (ActualSearch.marked F K (ReadOnlyTable.values (table F K))).card = (r-1)*K.card := by
@@ -37,12 +67,15 @@ theorem marked_card (F : X → R) (r : ℕ) (hF : RToOne F r) (K : Finset X)
 
 omit [Nonempty X] [AddCommGroup R] [Fintype R] in
 
+/-- For `r ≥ 2` and a nonempty table with no internal collision, the marked set is nonempty. -/
 theorem marked_pos (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
     (K : Finset X) (hK : K.Nonempty) (he : early F K = none) :
     0 < (ActualSearch.marked F K (ReadOnlyTable.values (table F K))).card := by
   rw [marked_card F r hF K he]
   exact Nat.mul_pos (by omega) (Finset.card_pos.mpr hK)
 
+/-- The costed collision algorithm that prepares a table, returns an internal collision if
+present, and otherwise performs verified search. -/
 def run (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
     (K : Finset X) (hK : K.Nonempty) (l : ℝ) (hl : 1 < l) (hl4 : l < 4/3) :
     CostedLaw (Option (X × X)) :=
@@ -55,12 +88,16 @@ def run (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
 
 omit [Nonempty X] [AddCommGroup R] in
 
+/-- Preparing the table indexed by `K` uses exactly `K.card` oracle queries
+[BrassardHoyerTapp1998Collision]. -/
 theorem initialization_count (K : Finset X) :
     Qatlib.Foundations.QueryWordCore.Circuit.QueryCount
       (TablePreparation.buildWord (X := X) (R := R) (List.finRange (Fintype.card K))) = K.card := by
   simpa using
     (TablePreparation.buildWord_resources (X := X) (R := R) (List.finRange (Fintype.card K))).1
 
+/-- Every supported output of `run` is a pair of distinct inputs with equal `F`-values
+[BrassardHoyerTapp1998Collision]. -/
 theorem run_correct (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
     (K : Finset X) (hK : K.Nonempty) (l : ℝ) (hl : 1 < l) (hl4 : l < 4/3)
     (out : Option (X × X)) (c : ℕ) (hm : run F r hr hF K hK l hl hl4 (out,c) ≠ 0) :
@@ -96,6 +133,9 @@ theorem run_correct (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
       obtain ⟨_,_,hst,hval⟩ := TableRecords.early_correct F K s t hv
       exact ⟨s,t,hout.symm.trans (hz'.trans hv),hst,hval⟩
 
+/-- The expected query cost of `run` is at most `K.card` plus the stated search coefficient
+times `sqrt (|X| / ((r - 1) * K.card))`, supporting Theorem 2 of
+[BrassardHoyerTapp1998Collision]. -/
 theorem run_expected (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
     (K : Finset X) (hK : K.Nonempty) (l : ℝ) (hl : 1 < l) (hl4 : l < 4/3) :
     expectedCost (run F r hr hF K hK l hl hl4) ≤ (K.card : ℝ≥0∞) +

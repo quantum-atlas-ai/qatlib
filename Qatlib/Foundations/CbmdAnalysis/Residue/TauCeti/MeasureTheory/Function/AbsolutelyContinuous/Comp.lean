@@ -10,6 +10,31 @@ import Mathlib.Analysis.Calculus.ContDiff.Defs
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Function.AbsolutelyContinuous.Basic
 import Mathlib.Analysis.Calculus.ContDiff.RCLike
 import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+
+/-!
+# Composition of absolutely continuous curves
+
+Establishes composition rules for `AbsolutelyContinuousOnInterval` under Lipschitz, locally
+Lipschitz, and continuously differentiable maps. Isometries preserve and reflect absolute
+continuity, and the real logarithm preserves it for nonvanishing functions.
+
+These rules support changes of functions along contours in the framework associated with
+[WangEtAl2026].
+
+## Main statements
+
+* `LipschitzOnWith.comp_absolutelyContinuousOnInterval`: Composition with a function Lipschitz
+  on a set preserves absolute continuity when the curve stays in that set.
+* `comp_of_contDiffAt`: Composition with a map continuously differentiable at every point of the
+  curve's image preserves absolute continuity.
+* `log`: The real logarithm of an absolutely continuous function that never vanishes on the
+  interval is absolutely continuous.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -20,6 +45,8 @@ open Set
 
 set_option maxHeartbeats 800000
 
+/-- Composition with a function Lipschitz on a set preserves absolute continuity when the curve
+stays in that set. -/
 theorem LipschitzOnWith.comp_absolutelyContinuousOnInterval
     {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y] {φ : X → Y} {γ : ℝ → X}
     {s : Set X} {a b : ℝ} {K : NNReal} (hφ : LipschitzOnWith K φ s)
@@ -41,6 +68,7 @@ theorem LipschitzOnWith.comp_absolutelyContinuousOnInterval
     _ < (K + 1) * (ε / (K + 1)) := by gcongr; linarith
     _ = ε := by field_simp
 
+/-- Composition with a globally Lipschitz function preserves absolute continuity on an interval. -/
 theorem LipschitzWith.comp_absolutelyContinuousOnInterval
     {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y] {φ : X → Y} {γ : ℝ → X}
     {a b : ℝ} {K : NNReal} (hφ : LipschitzWith K φ)
@@ -48,6 +76,8 @@ theorem LipschitzWith.comp_absolutelyContinuousOnInterval
     AbsolutelyContinuousOnInterval (φ ∘ γ) a b :=
   LipschitzOnWith.comp_absolutelyContinuousOnInterval hφ.lipschitzOnWith (Set.mapsTo_univ _ _) hγ
 
+/-- Absolute continuity on an interval is preserved by equality on the unordered closed
+interval. -/
 theorem AbsolutelyContinuousOnInterval.congr
     {X : Type*} [PseudoMetricSpace X] {f g : ℝ → X} {a b : ℝ}
     (hf : AbsolutelyContinuousOnInterval f a b) (hfg : EqOn f g (uIcc a b)) :
@@ -64,6 +94,8 @@ theorem AbsolutelyContinuousOnInterval.congr
   rw [heq]
   exact hgood E hE hlen
 
+/-- Composition with a locally Lipschitz function preserves absolute continuity when the curve
+stays in its domain set. -/
 theorem LocallyLipschitzOn.comp_absolutelyContinuousOnInterval
     {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y] {φ : X → Y} {γ : ℝ → X}
     {s : Set X} {a b : ℝ} (hφ : LocallyLipschitzOn s φ)
@@ -73,6 +105,7 @@ theorem LocallyLipschitzOn.comp_absolutelyContinuousOnInterval
     (isCompact_uIcc.image_of_continuousOn (AbsolutelyContinuousOnInterval.continuousOn' hγ))
   exact LipschitzOnWith.comp_absolutelyContinuousOnInterval hK (mapsTo_image _ _) hγ
 
+/-- Composition with an isometry preserves and reflects absolute continuity on an interval. -/
 theorem Isometry.absolutelyContinuousOnInterval_comp_iff
     {X Y : Type*} [PseudoMetricSpace X] [PseudoMetricSpace Y] {f : X → Y} (hf : Isometry f)
     {γ : ℝ → X} {a b : ℝ} :
@@ -81,6 +114,8 @@ theorem Isometry.absolutelyContinuousOnInterval_comp_iff
 
 namespace AbsolutelyContinuousOnInterval
 
+/-- Composition with a map continuously differentiable at every point of the curve's image
+preserves absolute continuity. -/
 theorem comp_of_contDiffAt {F G : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
     [NormedAddCommGroup G] [NormedSpace ℝ G] {γ : ℝ → F} {φ : F → G} {a b : ℝ}
     (hγ : AbsolutelyContinuousOnInterval γ a b)
@@ -92,6 +127,8 @@ theorem comp_of_contDiffAt {F G : Type*} [NormedAddCommGroup F] [NormedSpace ℝ
     exact ⟨K, U, mem_nhdsWithin_of_mem_nhds hU, hLip⟩
   exact LocallyLipschitzOn.comp_absolutelyContinuousOnInterval hloc (mapsTo_image _ _) hγ
 
+/-- The real logarithm of an absolutely continuous function that never vanishes on the interval
+is absolutely continuous. -/
 protected theorem log {f : ℝ → ℝ} {a b : ℝ} (hf : AbsolutelyContinuousOnInterval f a b)
     (h0 : ∀ t ∈ uIcc a b, f t ≠ 0) :
     AbsolutelyContinuousOnInterval (fun t ↦ Real.log (f t)) a b :=

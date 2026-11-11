@@ -7,6 +7,35 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ShadowModels.FairBitRecords.SparsePauliEnergyConsumers
 import Qatlib.Concepts.ShadowModels.SampleBudget.RationalLinearSelection
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+/-!
+# Support bounds and counted estimators for local Pauli shadows
+
+Defines rational sparse-Pauli sample, mean, and median computations with explicit operation
+counters. `local_pauli_native_means_median_and_work` identifies the computed median with the
+real block-mean median and bounds the recorded work.
+
+Pauli trace orthogonality and a support-restricted pair-weight kernel yield
+`local_pauli_shadow_sharp_support_moments`: unbiasedness and second-moment bounds with factor `4
+^ S.card` times the squared observable norm. For the local Pauli measurement framework, see
+[HuangKuengPreskill2020].
+
+## Main statements
+
+* `local_pauli_native_means_median_and_work`: The counted median's real value is the sorted
+  median of the `2 * r + 1` block means, its evaluation count is `(2 * r + 1) * m * q * (n +
+  1)`, and its selection-work count is at most `10000 * (2 * r + 1)`.
+* `localShadowPauli_trace_orthogonal`: The trace of the product of two `n`-qubit Pauli words is
+  `2 ^ n` when the words agree and zero otherwise.
+* `local_pauli_shadow_sharp_support_moments`: For a sparse Pauli observable supported in `S`,
+  the local Pauli sample is unbiased for its expectation in the density operator, and both its
+  second moment and centered second moment are at most `4 ^ S.card * ‖O‖ ^ 2`.
+
+## References
+
+* [Huang, Kueng, and Preskill, 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,13 +58,19 @@ namespace Qatlib.Concepts.ShadowModels.FairBitRecords
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The predicate that every Pauli word with nonzero coefficient is the identity at each
+coordinate outside `S`. -/
 def localShadowSupported {n q : ℕ} (S : Finset (Fin n))
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ) : Prop :=
   ∀ j, c j ≠ 0 → ∀ i, i ∉ S → w j i = none
 
+/-- The rational local Pauli shadow value `sparseLocalRat a o` for a word factor `a` and
+measurement record `o`. -/
 def localPauliValueQ (a : Option (Fin 3)) (o : Fin 3 × Bool) : ℚ :=
   sparseLocalRat a o
 
+/-- Evaluates a rational sparse-Pauli sample by multiplying local factors, weighting by
+coefficients, and summing, while recording `q * (n + 1)` counted operations. -/
 def localSparseSampleCounted {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℚ) (o : Fin n → Fin 3 × Bool) : ℚ × ℕ :=
   (List.ofFn (fun j : Fin q =>
@@ -43,6 +78,8 @@ def localSparseSampleCounted {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3)
       (fun (z : ℚ × ℕ) x => (z.1*x,z.2+1)) (1,0)
     (c j*p.1,p.2+1))).foldl (fun z x => (z.1+x.1,z.2+x.2)) (0,0)
 
+/-- The rational mean of the supplied counted sparse-Pauli samples, paired with the sum of their
+operation counters. -/
 def localSparseMeanCounted {n q m : ℕ} (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℚ) (ω : Fin m → Fin n → Fin 3 × Bool) : ℚ × ℕ :=
   let z := (List.ofFn ω).foldl (fun z o =>
@@ -50,6 +87,8 @@ def localSparseMeanCounted {n q m : ℕ} (w : Fin q → Fin n → Option (Fin 3)
     (z.1+v.1,z.2+v.2)) (0,0)
   (z.1/m,z.2)
 
+/-- Computes the rational block means and selects their median with `qSelect`, returning the
+median, total sample-evaluation count, and selection-work count. -/
 def localSparseMedianCounted {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℚ) (m r : ℕ) (ω : Fin (2*r+1) → Fin m → Fin n → Fin 3 × Bool) :
     ℚ × ℕ × ℕ :=
@@ -57,6 +96,8 @@ def localSparseMedianCounted {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3)
   let z := qSelect (groups.map Prod.fst) r
   (z.1,(groups.map Prod.snd).sum,z.2)
 
+/-- The counted product fold returns the initial scalar times the list product and increases the
+counter by the list length. -/
 private theorem local_counted_product (xs : List ℚ) (r : ℚ) (k : ℕ) :
     xs.foldl (fun (z : ℚ × ℕ) x => (z.1*x,z.2+1)) (r,k) =
       (r*xs.prod,k+xs.length) := by
@@ -64,6 +105,8 @@ private theorem local_counted_product (xs : List ℚ) (r : ℚ) (k : ℕ) :
   | nil => simp
   | cons x xs ih => simp [ih, mul_assoc, Nat.add_comm, Nat.add_left_comm]
 
+/-- The counted sum fold adds the sum of first components to the initial scalar and the sum of
+second components to the initial counter. -/
 private theorem local_counted_sum (xs : List (ℚ × ℕ)) (r : ℚ) (k : ℕ) :
     xs.foldl (fun z x => (z.1+x.1,z.2+x.2)) (r,k) =
       (r+(xs.map Prod.fst).sum,k+(xs.map Prod.snd).sum) := by
@@ -71,6 +114,8 @@ private theorem local_counted_sum (xs : List (ℚ × ℕ)) (r : ℚ) (k : ℕ) :
   | nil => simp
   | cons x xs ih => simp [ih, add_assoc]
 
+/-- The counted sample equals the rational sum of coefficient-weighted local-factor products,
+paired with the exact count `q * (n + 1)`. -/
 theorem localSparseSampleCounted_spec {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ)
     (o : Fin n → Fin 3 × Bool) :
@@ -81,6 +126,7 @@ theorem localSparseSampleCounted_spec {n q : ℕ}
   rw [local_counted_sum]
   simp [localPauliValueQ, List.map_ofFn, Function.comp_def, Fin.sum_ofFn, Fin.prod_ofFn]
 
+/-- Casting the rational local Pauli value to the reals gives `tensorPauliLocalValue`. -/
 theorem localPauliValueQ_cast (a : Option (Fin 3)) (o : Fin 3 × Bool) :
     (localPauliValueQ a o : ℝ) = tensorPauliLocalValue a o := by
   cases a with
@@ -90,6 +136,8 @@ theorem localPauliValueQ_cast (a : Option (Fin 3)) (o : Fin 3 × Bool) :
     by_cases h : b=a <;> cases s <;>
       norm_num [localPauliValueQ, sparseLocalRat, tensorPauliLocalValue,h]
 
+/-- The real value of the counted mean is the average of `sparsePauliValue` over the records,
+and its operation count is `m * q * (n + 1)`. -/
 theorem localSparseMeanCounted_spec {n q m : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ)
     (ω : Fin m → Fin n → Fin 3 × Bool) :
@@ -115,6 +163,9 @@ theorem localSparseMeanCounted_spec {n q m : ℕ}
   simp_rw [← localPauliValueQ_cast, localPauliValueQ]
   rw [div_eq_mul_inv, mul_comm]
 
+/-- The counted median's real value is the sorted median of the `2 * r + 1` block means, its
+evaluation count is `(2 * r + 1) * m * q * (n + 1)`, and its selection-work count is at most
+`10000 * (2 * r + 1)`. See [HuangKuengPreskill2020]. -/
 theorem local_pauli_native_means_median_and_work
     (n q m r : ℕ) (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ)
     (ω : Fin (2*r+1) → Fin m → Fin n → Fin 3 × Bool) :
@@ -135,6 +186,8 @@ theorem local_pauli_native_means_median_and_work
   · simp [hc, mul_assoc]
     ring
 
+/-- The trace of the product of two single-qubit Pauli word factors is two when their optional
+axis labels agree and zero otherwise. -/
 private theorem local_word_trace (a b : Option (Fin 3)) :
     Matrix.trace (tensorPauliWordFactor a * tensorPauliWordFactor b) =
       if a=b then (2:ℂ) else 0 := by
@@ -152,6 +205,8 @@ private theorem local_word_trace (a b : Option (Fin 3)) :
         norm_num [tensorPauliWordFactor, Matrix.trace, Matrix.mul_apply,
           Fin.sum_univ_two, pauliMatrix, pauliX, pauliY, pauliZ]
 
+/-- The trace of the product of two `n`-qubit Pauli words is `2 ^ n` when the words agree and
+zero otherwise. -/
 theorem localShadowPauli_trace_orthogonal {n : ℕ}
     (u v : Fin n → Option (Fin 3)) :
     Matrix.trace (tensorPauliWord n u * tensorPauliWord n v) =
@@ -165,10 +220,14 @@ theorem localShadowPauli_trace_orthogonal {n : ℕ}
     obtain ⟨i,hi⟩ := Function.ne_iff.mp h
     exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi])
 
+/-- The real coefficient of the Pauli word `u` after summing all rational coefficients whose
+indexed word equals `u`. -/
 def localShadowCoefficient {n q : ℕ} (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℚ) (u : Fin n → Option (Fin 3)) : ℝ :=
   ∑ j, if w j=u then (c j:ℝ) else 0
 
+/-- A weighted sum over grouped Pauli-word coefficients equals the original indexed
+coefficient-weighted sum. -/
 private theorem localShadowCoefficient_sum {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ)
     (f : (Fin n → Option (Fin 3)) → ℝ) :
@@ -179,6 +238,8 @@ private theorem localShadowCoefficient_sum {n q : ℕ}
   intro j _
   simp [ite_mul]
 
+/-- The real trace of the square of a sparse Pauli observable equals `2 ^ n` times the sum of
+its squared grouped Pauli coefficients. -/
 private theorem localShadow_parseval {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ) :
     (Matrix.trace (sparsePauliObservable w c * sparsePauliObservable w c)).re =
@@ -211,6 +272,7 @@ private theorem localShadow_parseval {n q : ℕ}
     ring
   · simp [h, Ne.symm h]
 
+/-- The norm of each matrix entry is at most the norm of the operator. -/
 private theorem localShadow_entry_norm {N : ℕ} (A : Operator N) (i j : Fin N) :
     ‖A i j‖ ≤ ‖A‖ := by
   have hk : ‖toEuclidean_fromVec (Qatlib.Foundations.PureStateMath.Ket j)‖ = 1 := by
@@ -228,6 +290,7 @@ private theorem localShadow_entry_norm {N : ℕ} (A : Operator N) (i j : Fin N) 
   rw [he] at hi
   exact hi.trans hn
 
+/-- The sum of squared grouped Pauli coefficients is at most `‖sparsePauliObservable w c‖ ^ 2`. -/
 theorem localShadowCoefficient_sq_sum_le {n q : ℕ}
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ) :
     ∑ u, (localShadowCoefficient w c u)^2 ≤ ‖sparsePauliObservable w c‖^2 := by
@@ -252,25 +315,33 @@ theorem localShadowCoefficient_sq_sum_le {n q : ℕ}
   have hp : (0:ℝ)<2^n := by positivity
   nlinarith [ht]
 
+/-- The local pair weight, equal to one when either label is the identity, three for equal
+nonidentity axes, and zero for distinct nonidentity axes. -/
 def localShadowWeight : Option (Fin 3) → Option (Fin 3) → ℝ
   | none, _ => 1
   | some _, none => 1
   | some a, some b => if a=b then 3 else 0
 
+/-- The local Pauli pair weight is symmetric in its two labels. -/
 private theorem localShadowWeight_symm (a b : Option (Fin 3)) :
     localShadowWeight a b = localShadowWeight b a := by
   cases a <;> cases b <;> simp [localShadowWeight, eq_comm]
 
+/-- Every local Pauli pair weight is nonnegative. -/
 private theorem localShadowWeight_nonneg (a b : Option (Fin 3)) :
     0 ≤ localShadowWeight a b := by
   cases a <;> cases b <;> simp [localShadowWeight]
   positivity
 
+/-- For any fixed optional axis label, the local pair weights summed over the second label equal
+four. -/
 private theorem localShadowWeight_sum (a : Option (Fin 3)) :
     ∑ b, localShadowWeight a b = 4 := by
   cases a <;> simp [Fintype.sum_option, localShadowWeight]
   norm_num
 
+/-- The product of local pair weights equals `3 ^ pauliWordOverlap u v` for compatible words and
+zero for incompatible words. -/
 private theorem localShadowWeight_prod {n : ℕ} (u v : Fin n → Option (Fin 3)) :
     ∏ i, localShadowWeight (u i) (v i) =
       if pauliWordsCompatible u v then (3:ℝ)^pauliWordOverlap u v else 0 := by
@@ -288,6 +359,8 @@ private theorem localShadowWeight_prod {n : ℕ} (u v : Fin n → Option (Fin 3)
     apply Finset.prod_eq_zero (Finset.mem_univ i)
     simp [hu,hv,localShadowWeight,hab]
 
+/-- For a density operator, the absolute sparse-Pauli pair moment is at most the product of the
+local pair weights. -/
 private theorem localShadowMoment_bound {n : ℕ} (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (u v : Fin n → Option (Fin 3)) :
     |sparsePauliMoment ρ u v| ≤ ∏ i, localShadowWeight (u i) (v i) := by
@@ -299,6 +372,8 @@ private theorem localShadowMoment_bound {n : ℕ} (ρ : Operator (2^n))
       (sparsePauliWord_expectation_abs_le_one n ρ hρ _)
   · simp [sparsePauliMoment,h]
 
+/-- If every nonzero indexed word is supported in `S`, the grouped coefficient of a word that is
+nonidentity outside `S` is zero. -/
 private theorem localShadowCoefficient_outside {n q : ℕ} (S : Finset (Fin n))
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ)
     (hs : localShadowSupported S w c) (u : Fin n → Option (Fin 3))
@@ -314,11 +389,14 @@ private theorem localShadowCoefficient_outside {n q : ℕ} (S : Finset (Fin n))
     simp [hz]
   · simp [hj]
 
+/-- The product of the local pair weights when both words are identity outside `S`, and zero
+otherwise. -/
 noncomputable def localShadowSupportWeight {n : ℕ} (S : Finset (Fin n))
     (u v : Fin n → Option (Fin 3)) : ℝ :=
   if (∀ i, i ∉ S → u i=none) ∧ (∀ i, i ∉ S → v i=none) then
     ∏ i, localShadowWeight (u i) (v i) else 0
 
+/-- The support-restricted Pauli pair weight is symmetric in its two words. -/
 private theorem localShadowSupportWeight_symm {n : ℕ} (S : Finset (Fin n))
     (u v : Fin n → Option (Fin 3)) :
     localShadowSupportWeight S u v = localShadowSupportWeight S v u := by
@@ -328,6 +406,7 @@ private theorem localShadowSupportWeight_symm {n : ℕ} (S : Finset (Fin n))
   intro i _
   exact localShadowWeight_symm _ _
 
+/-- Every support-restricted Pauli pair weight is nonnegative. -/
 private theorem localShadowSupportWeight_nonneg {n : ℕ} (S : Finset (Fin n))
     (u v : Fin n → Option (Fin 3)) : 0 ≤ localShadowSupportWeight S u v := by
   unfold localShadowSupportWeight
@@ -335,6 +414,7 @@ private theorem localShadowSupportWeight_nonneg {n : ℕ} (S : Finset (Fin n))
   · exact Finset.prod_nonneg (fun _ _ => localShadowWeight_nonneg _ _)
   · exact le_rfl
 
+/-- The sum of a row of the support-restricted pair-weight kernel is at most `4 ^ S.card`. -/
 private theorem localShadowSupportWeight_row {n : ℕ} (S : Finset (Fin n))
     (u : Fin n → Option (Fin 3)) : ∑ v, localShadowSupportWeight S u v ≤ (4:ℝ)^S.card := by
   by_cases hu : ∀ i, i ∉ S → u i=none
@@ -368,6 +448,8 @@ private theorem localShadowSupportWeight_row {n : ℕ} (S : Finset (Fin n))
     simp
   · simp [localShadowSupportWeight,hu]
 
+/-- The second moment of the sparse-Pauli sample equals the double sum of grouped coefficient
+products weighted by the sparse-Pauli pair moments. -/
 private theorem localShadow_grouped_second {n q : ℕ} (ρ : Operator (2^n))
     (hρ : IsDensityOperator ρ) (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ) :
     (tensorPauliLaw n ρ hρ).expect (fun o => sparsePauliValue w c o ^ 2) =
@@ -390,6 +472,9 @@ private theorem localShadow_grouped_second {n q : ℕ} (ρ : Operator (2^n))
   intro o _
   ring
 
+/-- For a density operator and words supported in `S` whenever their coefficients are nonzero,
+the sample's second moment is at most `4 ^ S.card` times the sum of squared grouped
+coefficients. -/
 theorem localShadow_second_le_coefficient {n q : ℕ} (S : Finset (Fin n))
     (w : Fin q → Fin n → Option (Fin 3)) (c : Fin q → ℚ)
     (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ) (hs : localShadowSupported S w c) :
@@ -441,6 +526,9 @@ theorem localShadow_second_le_coefficient {n q : ℕ} (S : Finset (Fin n))
         (localShadowSupportWeight_row S u) (sq_nonneg _))
     _ = _ := by rw [← Finset.sum_mul]; ring
 
+/-- For a sparse Pauli observable supported in `S`, the local Pauli sample is unbiased for its
+expectation in the density operator, and both its second moment and centered second moment
+are at most `4 ^ S.card * ‖O‖ ^ 2`. See [HuangKuengPreskill2020]. -/
 theorem local_pauli_shadow_sharp_support_moments
     (n q : ℕ) (S : Finset (Fin n)) (w : Fin q → Fin n → Option (Fin 3))
     (c : Fin q → ℚ) (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ)

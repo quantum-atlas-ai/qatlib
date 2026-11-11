@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourBounds
+
+/-!
+# Zeros and derivatives of integer-kernel regulators
+
+`integerLatticeExponential` produces the real sampling lattice as its zero set, while
+`integerContourDenominator` also includes the target and polynomial regulator factors. The
+module locates all zeros and computes derivatives at the target, lattice, top, and row poles.
+
+For positive spacing, every denominator zero has nonzero derivative. These simple-zero
+calculations justify the residue coefficients used in the contour decomposition of
+[WangEtAl2026].
+
+## Main statements
+
+* `integerContourDenominator_eq_zero_iff`: classifies all denominator zeros.
+* `integerContourDenominator_deriv_ne_zero_of_eq_zero`: proves that all zeros are simple.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -13,19 +35,24 @@ set_option autoImplicit false
 namespace CBMD
 open scoped BigOperators
 
+/-- The lattice exponential factor `exp (-2πiaz) - 1`. -/
 noncomputable def integerLatticeExponential (a : ℝ) (z : ℂ) : ℂ :=
   Complex.exp (-2 * (Real.pi : ℂ) * Complex.I * (a : ℂ) * z) - 1
 
+/-- The product `(z + i) * integerRegulator m z * integerLatticeExponential a z`. -/
 noncomputable def integerContourDenominator (m : ℕ) (a : ℝ) (z : ℂ) : ℂ :=
   (z + Complex.I) * integerRegulator m z * integerLatticeExponential a z
 
+/-- The row normalization factor `-r - 2i` is nonzero for every integer `r`. -/
 private theorem row_normalization_ne_zero (r : ℤ) : -(r : ℂ) - 2 * Complex.I ≠ 0 := by
   intro h
   have hi := congrArg Complex.im h
   norm_num at hi
 
+/-- The top normalization factor `-3i` is nonzero. -/
 private theorem top_normalization_ne_zero : (-3 : ℂ) * Complex.I ≠ 0 := by simp
 
+/-- The integer regulator is complex differentiable everywhere. -/
 theorem integerRegulator_differentiable (m : ℕ) : Differentiable ℂ (integerRegulator m) := by
   unfold integerRegulator
   apply Differentiable.mul
@@ -34,6 +61,8 @@ theorem integerRegulator_differentiable (m : ℕ) : Differentiable ℂ (integerR
     intro r _
     fun_prop
 
+/-- The integer regulator vanishes exactly at `2i` and at the row poles `r + i` with `-m ≤ r ≤
+m`. -/
 theorem integerRegulator_eq_zero_iff (m : ℕ) (z : ℂ) :
     integerRegulator m z = 0 ↔ z = 2 * Complex.I ∨
       ∃ r ∈ Finset.Icc (-(m : ℤ)) m, z = (r : ℂ) + Complex.I := by
@@ -42,6 +71,7 @@ theorem integerRegulator_eq_zero_iff (m : ℕ) (z : ℂ) :
     or_false, Finset.prod_eq_zero_iff]
   simp [sub_eq_iff_eq_add, add_comm]
 
+/-- The integer regulator is nonzero at every real argument. -/
 theorem integerRegulator_real_ne_zero (m : ℕ) (x : ℝ) : integerRegulator m (x : ℂ) ≠ 0 := by
   intro h
   rcases (integerRegulator_eq_zero_iff m x).mp h with htop | ⟨r, _, hr⟩
@@ -50,6 +80,7 @@ theorem integerRegulator_real_ne_zero (m : ℕ) (x : ℝ) : integerRegulator m (
   · have hi := congrArg Complex.im hr
     norm_num at hi
 
+/-- The top pole product is nonzero for every order. -/
 theorem integerTopPoleProduct_ne_zero (m : ℕ) : integerTopPoleProduct m ≠ 0 := by
   unfold integerTopPoleProduct
   apply Finset.prod_ne_zero_iff.mpr
@@ -59,6 +90,7 @@ theorem integerTopPoleProduct_ne_zero (m : ℕ) : integerTopPoleProduct m ≠ 0 
   have hi := congrArg Complex.im h
   norm_num at hi
 
+/-- The row pole product is nonzero for every index in `[-m, m]`. -/
 theorem integerRowPoleProduct_ne_zero (m : ℕ) (r : ℤ)
     (_hr : r ∈ Finset.Icc (-(m : ℤ)) m) : integerRowPoleProduct m r ≠ 0 := by
   unfold integerRowPoleProduct
@@ -77,6 +109,7 @@ theorem integerRowPoleProduct_ne_zero (m : ℕ) (r : ℤ)
     have he : r = j := by exact_mod_cast (sub_eq_zero.mp hreal)
     exact (Finset.mem_erase.mp hj).1 he.symm
 
+/-- The regulator derivative at `2i` is `integerTopPoleProduct m / (-3i)`. -/
 theorem integerRegulator_hasDerivAt_top (m : ℕ) :
     HasDerivAt (integerRegulator m)
       (integerTopPoleProduct m / (-3 * Complex.I)) (2 * Complex.I) := by
@@ -92,6 +125,8 @@ theorem integerRegulator_hasDerivAt_top (m : ℕ) :
   simp only [id_eq, sub_self, zero_div, zero_mul, add_zero, G, integerTopPoleProduct]
   ring
 
+/-- For `-m ≤ r ≤ m`, the regulator derivative at `r + i` is `integerRowPoleProduct m r / (-r -
+2i)`. -/
 theorem integerRegulator_hasDerivAt_row (m : ℕ) (r : ℤ)
     (hr : r ∈ Finset.Icc (-(m : ℤ)) m) :
     HasDerivAt (integerRegulator m)
@@ -121,11 +156,14 @@ theorem integerRegulator_hasDerivAt_row (m : ℕ) (r : ℤ)
       integerRowPoleProduct]
   ring
 
+/-- The lattice exponential factor is complex differentiable everywhere. -/
 theorem integerLatticeExponential_differentiable (a : ℝ) :
     Differentiable ℂ (integerLatticeExponential a) := by
   unfold integerLatticeExponential
   fun_prop
 
+/-- For positive spacing, the lattice exponential vanishes exactly at the real points `k / a`
+with integer `k`. -/
 theorem integerLatticeExponential_eq_zero_iff {a : ℝ} (ha : 0 < a) (z : ℂ) :
     integerLatticeExponential a z = 0 ↔ ∃ k : ℤ, z = (((k : ℝ) / a : ℝ) : ℂ) := by
   have ha' : (a : ℂ) ≠ 0 := by exact_mod_cast ha.ne'
@@ -145,11 +183,14 @@ theorem integerLatticeExponential_eq_zero_iff {a : ℝ} (ha : 0 < a) (z : ℂ) :
     push_cast
     field_simp
 
+/-- The contour denominator is complex differentiable everywhere. -/
 theorem integerContourDenominator_differentiable (m : ℕ) (a : ℝ) :
     Differentiable ℂ (integerContourDenominator m a) := by
   exact ((differentiable_id.add_const Complex.I).mul
     (integerRegulator_differentiable m)).mul (integerLatticeExponential_differentiable a)
 
+/-- For positive spacing, the contour denominator vanishes exactly at `-i`, `2i`, the finite row
+poles, and the real integer lattice points. -/
 theorem integerContourDenominator_eq_zero_iff (m : ℕ) {a : ℝ} (ha : 0 < a) (z : ℂ) :
     integerContourDenominator m a z = 0 ↔
       z = -Complex.I ∨ z = 2 * Complex.I ∨
@@ -159,6 +200,8 @@ theorem integerContourDenominator_eq_zero_iff (m : ℕ) {a : ℝ} (ha : 0 < a) (
     integerRegulator_eq_zero_iff, integerLatticeExponential_eq_zero_iff ha,
     add_eq_zero_iff_eq_neg, or_assoc]
 
+/-- For positive spacing, the lattice exponential factor is nonzero at every point with nonzero
+imaginary part. -/
 theorem integerLatticeExponential_ne_zero_of_im_ne_zero {a : ℝ} (ha : 0 < a)
     (z : ℂ) (hz : z.im ≠ 0) : integerLatticeExponential a z ≠ 0 := by
   intro he
@@ -167,6 +210,7 @@ theorem integerLatticeExponential_ne_zero_of_im_ne_zero {a : ℝ} (ha : 0 < a)
   rw [hk]
   simp
 
+/-- At `-i`, the lattice exponential factor equals `exp (-2πa) - 1`. -/
 theorem integerLatticeExponential_at_neg_I (a : ℝ) :
     integerLatticeExponential a (-Complex.I) =
       ((Real.exp (-2 * Real.pi * a) - 1 : ℝ) : ℂ) := by
@@ -180,10 +224,13 @@ theorem integerLatticeExponential_at_neg_I (a : ℝ) :
   push_cast
   rfl
 
+/-- For positive spacing, the lattice exponential factor vanishes at every integer lattice point
+`k / a`. -/
 theorem integerLatticeExponential_at_lattice {a : ℝ} (ha : 0 < a) (k : ℤ) :
     integerLatticeExponential a (((k : ℝ) / a : ℝ) : ℂ) = 0 :=
   (integerLatticeExponential_eq_zero_iff ha _).mpr ⟨k, rfl⟩
 
+/-- The derivative of the lattice exponential factor is `exp (-2πiaz)` multiplied by `-2πia`. -/
 theorem integerLatticeExponential_hasDerivAt (a : ℝ) (z : ℂ) :
     HasDerivAt (integerLatticeExponential a)
       (Complex.exp (-2 * (Real.pi : ℂ) * Complex.I * (a : ℂ) * z) *
@@ -191,6 +238,8 @@ theorem integerLatticeExponential_hasDerivAt (a : ℝ) (z : ℂ) :
   simpa only [mul_one] using!
     (((hasDerivAt_id z).const_mul (-2 * (Real.pi : ℂ) * Complex.I * (a : ℂ))).cexp.sub_const 1)
 
+/-- The contour denominator has the derivative obtained by applying the product rule to its
+target, regulator, and lattice exponential factors. -/
 theorem integerContourDenominator_hasDerivAt (m : ℕ) (a : ℝ) (z : ℂ) :
     HasDerivAt (integerContourDenominator m a)
       ((integerRegulator m z + (z + Complex.I) * deriv (integerRegulator m) z) *
@@ -203,6 +252,7 @@ theorem integerContourDenominator_hasDerivAt (m : ℕ) (a : ℝ) (z : ℂ) :
       ((integerRegulator_differentiable m) z).hasDerivAt).mul
       (integerLatticeExponential_hasDerivAt a z)
 
+/-- The contour denominator derivative at `-i` equals `exp (-2πa) - 1`. -/
 theorem integerContourDenominator_hasDerivAt_neg_I (m : ℕ) {a : ℝ} (_ha : 0 < a) :
     HasDerivAt (integerContourDenominator m a)
       (((Real.exp (-2 * Real.pi * a) - 1 : ℝ) : ℂ)) (-Complex.I) := by
@@ -210,6 +260,8 @@ theorem integerContourDenominator_hasDerivAt_neg_I (m : ℕ) {a : ℝ} (_ha : 0 
     integerRegulator_at_neg_I, one_mul, integerLatticeExponential_at_neg_I] using!
     integerContourDenominator_hasDerivAt m a (-Complex.I)
 
+/-- For positive spacing and `x = k / a`, the contour denominator derivative at `x` is `(-2πia)
+* (x + i) * integerRegulator m x`. -/
 theorem integerContourDenominator_hasDerivAt_lattice (m : ℕ) {a : ℝ} (ha : 0 < a) (k : ℤ) :
     let x : ℂ := (((k : ℝ) / a : ℝ) : ℂ)
     HasDerivAt (integerContourDenominator m a)
@@ -223,6 +275,8 @@ theorem integerContourDenominator_hasDerivAt_lattice (m : ℕ) {a : ℝ} (ha : 0
   convert! h using 1
   ring
 
+/-- The contour denominator derivative at `2i` is the negative top pole product multiplied by
+the lattice exponential factor there. -/
 theorem integerContourDenominator_hasDerivAt_top (m : ℕ) {a : ℝ} (_ha : 0 < a) :
     HasDerivAt (integerContourDenominator m a)
       (-(integerTopPoleProduct m) * integerLatticeExponential a (2 * Complex.I))
@@ -236,6 +290,8 @@ theorem integerContourDenominator_hasDerivAt_top (m : ℕ) {a : ℝ} (_ha : 0 < 
   field_simp
   ring
 
+/-- For `-m ≤ r ≤ m`, the contour denominator derivative at `r + i` is the negative row pole
+product multiplied by the lattice exponential factor there. -/
 theorem integerContourDenominator_hasDerivAt_row (m : ℕ) {a : ℝ} (_ha : 0 < a) (r : ℤ)
     (hr : r ∈ Finset.Icc (-(m : ℤ)) m) :
     HasDerivAt (integerContourDenominator m a)
@@ -251,6 +307,7 @@ theorem integerContourDenominator_hasDerivAt_row (m : ℕ) {a : ℝ} (_ha : 0 < 
   rw [show (r : ℂ) + Complex.I + Complex.I = -(-(r : ℂ) - 2 * Complex.I) by ring]
   simp only [neg_mul, mul_div_cancel₀ _ hd]
 
+/-- For positive spacing, every zero of the contour denominator has nonzero derivative. -/
 theorem integerContourDenominator_deriv_ne_zero_of_eq_zero (m : ℕ) {a : ℝ} (ha : 0 < a)
     (z : ℂ) (hz : integerContourDenominator m a z = 0) :
     deriv (integerContourDenominator m a) z ≠ 0 := by

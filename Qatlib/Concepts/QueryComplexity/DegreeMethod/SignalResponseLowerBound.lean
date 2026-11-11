@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseLowerBoundDefs
+
+/-!
+# Hybrid signal-response lower bounds
+
+This module derives scalar signal-response query lower bounds from a hybrid estimate
+for well-formed words with contractive instruction matrices. Isometric compression
+transfers oracle separation to approximate scalar targets, using the method of
+[BennettEtAl1997].
+
+Pathwise bounds extend to worst-case and branch-law expected counts, with examples
+distinguishing expected from worst-case queries and showing the failure of comparing
+different oracle-dependent words. Machine realizations then transfer query lower
+bounds to gate, read-bit, and depth charges with explicit ledger identities.
+
+## Main statements
+
+* `clause2_general_hybrid_bound`: word output distance is at most query count times oracle
+  distance.
+* `clause1_adaptive_worst_case_and_expected_lower_bound`: scalar response bounds for adaptive
+  trees.
+* `clause1_oracle_dependent_branch_counterexample`: a failure when the compared words differ.
+* `clause3_endpoint`: machine cost bounds, zero peak ledger fields, and realization semantics.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -49,6 +78,7 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 variable {H I W : Type}
 
+/-- An isometric matrix has operator norm at most one. -/
 private theorem isometry_norm_le_one {H O : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] {L : Matrix H O ℂ} (h : IsIsometry L) :
     ‖L‖ ≤ 1 := by
@@ -59,6 +89,7 @@ private theorem isometry_norm_le_one {H O : Type} [Fintype H] [DecidableEq H]
     nlinarith [hsq, h1, sq_nonneg (‖L‖), norm_nonneg L]
   exact (sq_le_one_iff₀ (norm_nonneg L)).mp h2
 
+/-- The difference of compressed matrices equals `Lᴴ * (A - B) * R`. -/
 private theorem compress_sub {H O I : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (A B : Matrix H H ℂ) :
@@ -66,6 +97,7 @@ private theorem compress_sub {H O I : Type} [Fintype H] [DecidableEq H]
   show Lᴴ * A * R - Lᴴ * B * R = Lᴴ * (A - B) * R
   rw [← Matrix.sub_mul, ← Matrix.mul_sub]
 
+/-- Compression by two isometries does not increase the operator-norm distance between matrices. -/
 private theorem compress_contract {H O I : Type} [Fintype H] [DecidableEq H]
     [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
     (L : Matrix H O ℂ) (R : Matrix H I ℂ) (A B : Matrix H H ℂ)
@@ -85,6 +117,8 @@ private theorem compress_contract {H O I : Type} [Fintype H] [DecidableEq H]
   rw [mul_one]
   exact step1
 
+/-- A word whose instruction matrices all have norm at most one evaluates to a matrix of norm at
+most one. -/
 private theorem norm_evaluate_le_one : ∀ (I : Type) [Fintype I] [DecidableEq I]
     (O : Matrix I I ℂ) (cs : List (AdjointStep I)),
     (∀ c ∈ cs, ‖instructionMatrix O c‖ ≤ 1) → ‖evaluate O cs‖ ≤ 1 := by
@@ -107,6 +141,8 @@ private theorem norm_evaluate_le_one : ∀ (I : Type) [Fintype I] [DecidableEq I
       mul_le_mul hc (ih hg') (norm_nonneg _) (by norm_num)
     rwa [one_mul] at hmul
 
+/-- A pointwise comparison of real functions on a list gives the corresponding comparison of
+mapped sums, under the stated nonnegativity hypothesis. -/
 private theorem list_sum_le_sum_pointwise {α : Type} (l : List α) (f g : α → ℝ)
     (h : ∀ x ∈ l, g x ≤ f x) (hg : ∀ x ∈ l, 0 ≤ g x) :
     (l.map g).sum ≤ (l.map f).sum := by
@@ -120,6 +156,7 @@ private theorem list_sum_le_sum_pointwise {α : Type} (l : List α) (f g : α �
     simp only [List.map_cons, List.sum_cons]
     linarith
 
+/-- A fixed right multiplicative factor can be moved outside a mapped real sum. -/
 private theorem list_sum_const_mul {α : Type} (l : List α) (f : α → ℝ) (c : ℝ) :
     (l.map (fun a => f a * c)).sum = (l.map f).sum * c := by
   induction l with
@@ -129,6 +166,7 @@ private theorem list_sum_const_mul {α : Type} (l : List α) (f : α → ℝ) (c
     rw [ih]
     ring
 
+/-- A mapped real sum splits into the sums over a Boolean filter and its complement. -/
 private theorem list_sum_split {α : Type} (l : List α) (P : α → Bool) (f : α → ℝ) :
     (l.map f).sum =
       ((l.filter P).map f).sum + ((l.filter (fun a => ! P a)).map f).sum := by
@@ -147,6 +185,7 @@ private theorem list_sum_split {α : Type} (l : List α) (P : α → Bool) (f : 
       simp only [List.map_cons, List.sum_cons]
       linarith
 
+/-- A mapped real sum is nonnegative if each summand on the list is nonnegative. -/
 private theorem list_sum_nonneg_of {α : Type} (l : List α) (f : α → ℝ)
     (h : ∀ x ∈ l, 0 ≤ f x) : 0 ≤ (l.map f).sum := by
   induction l with
@@ -157,6 +196,7 @@ private theorem list_sum_nonneg_of {α : Type} (l : List α) (f : α → ℝ)
     have hrest := ih (fun x hx => h x (List.mem_cons_of_mem a hx))
     linarith
 
+/-- Folding maximum over a natural-number list gives a result at least its initial accumulator. -/
 private theorem foldl_max_ge_base : ∀ (l : List ℕ) (m : ℕ), m ≤ l.foldl max m := by
   intro l
   induction l with
@@ -169,6 +209,7 @@ private theorem foldl_max_ge_base : ∀ (l : List ℕ) (m : ℕ), m ≤ l.foldl 
     rw [h3]
     exact le_trans h1 h2
 
+/-- Folding maximum over a natural-number list is monotone in its initial accumulator. -/
 private theorem foldl_max_monotone : ∀ (l : List ℕ) (m n : ℕ), m ≤ n →
     l.foldl max m ≤ l.foldl max n := by
   intro l
@@ -182,6 +223,7 @@ private theorem foldl_max_monotone : ∀ (l : List ℕ) (m n : ℕ), m ≤ n →
     rw [h2, h3]
     exact ih (max m a) (max n a) h1
 
+/-- Every member of a natural-number list is at most its maximum obtained by folding from zero. -/
 private theorem foldl_max_ge_mem : ∀ (l : List ℕ) (x : ℕ), x ∈ l →
     x ≤ l.foldl max 0 := by
   intro l
@@ -202,6 +244,7 @@ private theorem foldl_max_ge_mem : ∀ (l : List ℕ) (x : ℕ), x ∈ l →
       rw [h3]
       exact le_trans (ih x hx) hmono
 
+/-- Every adaptive signal tree has a nonempty list of paths. -/
 private theorem paths_ne_nil : ∀ (tree : AdaptiveSignalTree H), tree.paths ≠ [] := by
   intro tree
   induction tree with
@@ -222,6 +265,9 @@ private theorem paths_ne_nil : ∀ (tree : AdaptiveSignalTree H), tree.paths ≠
       exact List.ne_nil_of_mem (List.mem_append_left _ hmem)
     exact absurd hcat h2
 
+/-- For a well-formed adjoint word whose instructions are contractive under both oracles, the
+evaluated matrices differ in norm by at most query count times oracle distance. This is a
+word-level hybrid estimate in the spirit of [BennettEtAl1997]. -/
 theorem clause2_general_hybrid_bound :
     ∀ (H : Type) [Fintype H] [DecidableEq H] (O₁ O₂ : Matrix H H ℂ)
       (word : List (AdjointStep H)),
@@ -299,6 +345,8 @@ theorem clause2_general_hybrid_bound :
       rw [mul_one] at hm2
       nlinarith [norm_nonneg (O₁ - O₂), hm1, hm2]
 
+/-- With isometric compression, contractive instructions, and scalar-target approximation error
+`eps ≥ 0`, `max 0 (|a - b| - 2 * eps)` is at most query count times oracle distance. -/
 theorem clause2_general_response_lower_bound :
     ∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix H I ℂ) (O₁ O₂ : Matrix H H ℂ)
@@ -343,6 +391,8 @@ theorem clause2_general_response_lower_bound :
   · exact mul_nonneg (Nat.cast_nonneg _) (norm_nonneg _)
   · linarith
 
+/-- For `x` and `y` in `[-1, 1]`, the norm distance of their lifted scalar signals is at most
+`scalarSignalDistance x y`. -/
 theorem clause2_scalar_family_distance_le :
     ∀ (W : Type) [Fintype W] [DecidableEq W] (x y : ℝ),
     x ∈ Set.Icc (-1) 1 → y ∈ Set.Icc (-1) 1 →
@@ -365,6 +415,8 @@ theorem clause2_scalar_family_distance_le :
           mul_le_mul_of_nonneg_left hone hnn
     _ = scalarSignalDistance x y := by rw [hdist, mul_one]
 
+/-- On a nonempty workspace and for `x, y ∈ [-1, 1]`, the lifted scalar-signal norm distance
+equals `scalarSignalDistance x y`. -/
 theorem clause2_scalar_family_isometric_embedding :
     ∀ (W : Type) [Fintype W] [DecidableEq W] [Nonempty W] (x y : ℝ),
     x ∈ Set.Icc (-1) 1 → y ∈ Set.Icc (-1) 1 →
@@ -384,6 +436,9 @@ theorem clause2_scalar_family_isometric_embedding :
           rw [hsub, l2_norm_tensorGate, hone, mul_one]
     _ = scalarSignalDistance x y := hdist
 
+/-- For distinct scalar parameters in `[-1, 1]`, a well-formed word approximating scalar targets
+through isometric compression needs at least the nonnegative target gap after two errors
+divided by scalar signal distance. -/
 theorem clause2_general_bound_implies_scalar_bound :
     ∀ (W I : Type) [Fintype W] [DecidableEq W] [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix (Bool × W) I ℂ) (word : List (AdjointStep (Bool × W)))
@@ -428,6 +483,8 @@ theorem clause2_general_bound_implies_scalar_bound :
   have hnn : 0 ≤ (adjointQueryCount word : ℝ) := Nat.cast_nonneg _
   exact le_trans hstep (mul_le_mul_of_nonneg_left hdist hnn)
 
+/-- For controlled unitary oracles and a well-formed word with the stated contraction bounds,
+evaluated-word distance is at most query count times controlled-oracle distance. -/
 theorem clause2_controlled_access_covered :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (O₁ O₂ : Matrix I I ℂ)
       (word : List (AdjointStep (Bool × I))),
@@ -441,6 +498,8 @@ theorem clause2_controlled_access_covered :
   exact clause2_general_hybrid_bound (Bool × I) (controlOracle O₁)
       (controlOracle O₂) word hWF hguard
 
+/-- Each fixed path of a well-formed adaptive tree satisfies the hybrid norm estimate when its
+instruction matrices are contractive for both oracles. -/
 theorem clause2_measurement_feedback_covered :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (O₁ O₂ : Matrix I I ℂ)
       (tree : AdaptiveSignalTree I) (p : List Bool),
@@ -453,6 +512,9 @@ theorem clause2_measurement_feedback_covered :
   have hw : WellFormedAdjointCircuit (tree.pathWord p) := tree.pathWord_wellFormed p hWF
   exact clause2_general_hybrid_bound I O₁ O₂ (tree.pathWord p) hw hguard
 
+/-- If every path of a well-formed adaptive tree approximates the two scalar targets through
+isometric compression, every path meets the target-gap-to-scalar-distance query lower bound
+under the stated parameter and error assumptions. -/
 theorem clause1_adaptive_pathwise_response_lower_bound :
     ∀ (W : Type) [Fintype W] [DecidableEq W] (tree : AdaptiveSignalTree (Bool × W))
       (L R : Matrix (Bool × W) Unit ℂ) (x y a b eps : ℝ),
@@ -474,6 +536,9 @@ theorem clause1_adaptive_pathwise_response_lower_bound :
   rw [hq]
   exact hbound
 
+/-- Under the scalar approximation hypotheses on every path, both worst-case queries and
+expected queries under every branch law are bounded below by the nonnegative target gap
+after two errors divided by scalar signal distance. -/
 theorem clause1_adaptive_worst_case_and_expected_lower_bound :
     ∀ (W : Type) [Fintype W] [DecidableEq W] (tree : AdaptiveSignalTree (Bool × W))
       (L R : Matrix (Bool × W) Unit ℂ) (x y a b eps : ℝ),
@@ -533,6 +598,8 @@ theorem clause1_adaptive_worst_case_and_expected_lower_bound :
       _ = 1 * (max 0 (|a - b| - 2 * eps) / scalarSignalDistance x y) := by rw [htotal]
       _ = max 0 (|a - b| - 2 * eps) / scalarSignalDistance x y := by ring
 
+/-- For a path in the tree's path list, queries already used plus its remaining query budget
+equal worst-case queries. -/
 theorem clause1_remaining_budget :
     ∀ (W : Type) [Fintype W] [DecidableEq W] (tree : AdaptiveSignalTree (Bool × W))
       (p : List Bool),
@@ -547,6 +614,8 @@ theorem clause1_remaining_budget :
   simp only [AdaptiveSignalTree.remainingQueries, AdaptiveSignalTree.worstCaseQueries]
   omega
 
+/-- If every path in `S` uses at least `c ≥ 0` queries, expected queries are at least `c` times
+the branch-law mass of `S`. -/
 theorem clause1_structural_tail_transport :
     ∀ (W : Type) [Fintype W] [DecidableEq W] (tree : AdaptiveSignalTree (Bool × W))
       (S : List (List Bool)) (law : SignalBranchLaw) (c : ℝ),
@@ -593,12 +662,17 @@ theorem clause1_structural_tail_transport :
     _ = law.mass S * c := by linarith [hconst]
     _ = c * law.mass S := mul_comm _ _
 
+/-- An adaptive tree with one forward query on false-root paths and two forward queries on
+true-root paths. -/
 def clause1_variableQueryTree : AdaptiveSignalTree (Bool × Unit) :=
   .node [] (.node [.forward] .leaf .leaf) (.node [.forward, .forward] .leaf .leaf)
 
+/-- The one-query path `[false, false]` and the two-query path `[true, false]`, each with weight
+`1 / 2`. -/
 noncomputable def clause1_variableQuerySupport : List (List Bool × ℝ) :=
   [([false, false], 1 / 2), ([true, false], 1 / 2)]
 
+/-- The branch law giving equal weight to the specified one-query and two-query paths. -/
 noncomputable def clause1_variableQueryLaw : SignalBranchLaw where
   support := clause1_variableQuerySupport
   nonneg := by
@@ -611,6 +685,8 @@ noncomputable def clause1_variableQueryLaw : SignalBranchLaw where
     simp [clause1_variableQuerySupport]
     norm_num
 
+/-- The example has path counts one and two, worst-case count two, and expected count `3 / 2`,
+strictly below its worst-case count. -/
 theorem clause1_adaptive_vs_fixed_gap :
     clause1_variableQueryTree.pathQueries [false, false] = 1 ∧
     clause1_variableQueryTree.pathQueries [true, false] = 2 ∧
@@ -636,6 +712,7 @@ theorem clause1_adaptive_vs_fixed_gap :
   rw [h4, h3]
   norm_num
 
+/-- The scalar signal distance between `1` and `7 / 8` equals `1 / 2`. -/
 theorem clause1_scalarSignalDistance_one_seven_eighth : scalarSignalDistance 1 (7 / 8) = 1 / 2 := by
   have hsq : ((1 : ℝ) - 7 / 8) ^ 2 +
       (Real.sqrt (1 - (1 : ℝ) ^ 2) - Real.sqrt (1 - (7 / 8 : ℝ) ^ 2)) ^ 2 = (1 / 2) ^ 2 := by
@@ -671,6 +748,8 @@ theorem clause1_scalarSignalDistance_one_seven_eighth : scalarSignalDistance 1 (
     exact h1
   exact hsqrt
 
+/-- There exist different words and scalar parameters whose response difference exceeds the
+first word's query count times scalar signal distance. -/
 theorem clause1_oracle_dependent_branch_counterexample :
     ∃ (wₓ w_y : List (AdjointStep (Bool × Unit))) (x y : ℝ),
       wₓ ≠ w_y ∧
@@ -713,6 +792,7 @@ theorem clause1_oracle_dependent_branch_counterexample :
 open Qatlib
 set_option warningAsError false
 
+/-- The query counter of a dynamic-step list equals the sum of its step query counters. -/
 private theorem counters_queries : ∀ (l : List DynStep),
     (counters l).queries = (l.map (fun s => s.stepAccount.queries)).sum := by
   intro l
@@ -721,6 +801,8 @@ private theorem counters_queries : ∀ (l : List DynStep),
   | cons s rest ih =>
     simp only [counters, Account.seq, List.map_cons, List.sum_cons, ih]
 
+/-- The adjoint-query counter of a dynamic-step list equals the sum of its step adjoint-query
+counters. -/
 private theorem counters_adjoint_queries : ∀ (l : List DynStep),
     (counters l).adjointQueries = (l.map (fun s => s.stepAccount.adjointQueries)).sum := by
   intro l
@@ -729,6 +811,8 @@ private theorem counters_adjoint_queries : ∀ (l : List DynStep),
   | cons s rest ih =>
     simp only [counters, Account.seq, List.map_cons, List.sum_cons, ih]
 
+/-- The macro-gate counter of a dynamic-step list equals the sum of its step macro-gate
+counters. -/
 private theorem counters_macro_gates : ∀ (l : List DynStep),
     (counters l).macroGates = (l.map (fun s => s.stepAccount.macroGates)).sum := by
   intro l
@@ -737,6 +821,8 @@ private theorem counters_macro_gates : ∀ (l : List DynStep),
   | cons s rest ih =>
     simp only [counters, Account.seq, List.map_cons, List.sum_cons, ih]
 
+/-- The classical-bit counter of a dynamic-step list equals the sum of its step classical-bit
+counters. -/
 private theorem counters_classical_bits : ∀ (l : List DynStep),
     (counters l).classicalBits = (l.map (fun s => s.stepAccount.classicalBits)).sum := by
   intro l
@@ -745,6 +831,8 @@ private theorem counters_classical_bits : ∀ (l : List DynStep),
   | cons s rest ih =>
     simp only [counters, Account.seq, List.map_cons, List.sum_cons, ih]
 
+/-- The sum of forward-query step charges in a realized signal word equals the sum of
+forward-access indicators in the source word. -/
 private theorem word_forward_steps [Fintype I] [DecidableEq I]
     (M : OracleAccessModel I) (O : Matrix I I ℂ) (word : List (AdjointStep I)) :
     ((M.signalWordSteps O word).map (fun s => s.stepAccount.queries)).sum =
@@ -763,6 +851,8 @@ private theorem word_forward_steps [Fintype I] [DecidableEq I]
     rw [hstep, ih]
     simp [List.map_cons, List.sum_cons, OracleAccessModel.forwardAccessCount]
 
+/-- The sum of adjoint-query step charges in a realized signal word equals the sum of
+backward-access indicators in the source word. -/
 private theorem word_backward_steps [Fintype I] [DecidableEq I]
     (M : OracleAccessModel I) (O : Matrix I I ℂ) (word : List (AdjointStep I)) :
     ((M.signalWordSteps O word).map (fun s => s.stepAccount.adjointQueries)).sum =
@@ -781,6 +871,8 @@ private theorem word_backward_steps [Fintype I] [DecidableEq I]
     rw [hstep, ih]
     simp [List.map_cons, List.sum_cons, OracleAccessModel.backwardAccessCount]
 
+/-- The sum of macro-gate step charges in a realized signal word equals the sum of source
+gate-step indicators. -/
 private theorem word_gate_steps [Fintype I] [DecidableEq I]
     (M : OracleAccessModel I) (O : Matrix I I ℂ) (word : List (AdjointStep I)) :
     ((M.signalWordSteps O word).map (fun s => s.stepAccount.macroGates)).sum =
@@ -799,6 +891,8 @@ private theorem word_gate_steps [Fintype I] [DecidableEq I]
     rw [hstep, ih]
     simp [List.map_cons, List.sum_cons, OracleAccessModel.gateStepCount]
 
+/-- The sum of classical-bit step charges in a realized signal word equals its realized word bit
+cost. -/
 private theorem word_bit_steps [Fintype I] [DecidableEq I]
     (M : OracleAccessModel I) (O : Matrix I I ℂ) (word : List (AdjointStep I)) :
     ((M.signalWordSteps O word).map (fun s => s.stepAccount.classicalBits)).sum =
@@ -818,6 +912,7 @@ private theorem word_bit_steps [Fintype I] [DecidableEq I]
     simp [OracleAccessModel.realizedWordBitCost, List.map_cons, List.sum_cons,
       OracleAccessModel.instructionBitCost]
 
+/-- The sums of forward- and backward-access indicators together equal the adjoint query count. -/
 private theorem word_access_count : ∀ (word : List (AdjointStep I)),
     (word.map OracleAccessModel.forwardAccessCount).sum +
         (word.map OracleAccessModel.backwardAccessCount).sum = adjointQueryCount word := by
@@ -830,6 +925,7 @@ private theorem word_access_count : ∀ (word : List (AdjointStep I)),
         OracleAccessModel.backwardAccessCount, ih] <;>
       omega
 
+/-- The sum of gate-step indicators equals the adjoint gate count. -/
 private theorem word_gate_count : ∀ (word : List (AdjointStep I)),
     (word.map OracleAccessModel.gateStepCount).sum = adjointGateCount word := by
   intro word
@@ -839,6 +935,8 @@ private theorem word_gate_count : ∀ (word : List (AdjointStep I)),
     cases c <;>
       simp [adjointGateCount, OracleAccessModel.gateStepCount, ih]; omega
 
+/-- The signal-word ledger counts total forward and adjoint queries as the word query count,
+macro gates as the word gate count, and classical bits as the realized word bit cost. -/
 theorem clause3_account_ledgers :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -858,6 +956,7 @@ theorem clause3_account_ledgers :
   · rw [OracleAccessModel.signalWordAccount, counters_classical_bits (M.signalWordSteps O word),
       word_bit_steps M O word]
 
+/-- The realized signal-word circuit contains zero primitive circuit queries. -/
 theorem clause3_signal_word_circuit_query_free :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -876,6 +975,8 @@ theorem clause3_signal_word_circuit_query_free :
       | backward => exact M.queryFree O true
     rw [hstep, ih]
 
+/-- The realized signal-word circuit's gate count equals source gate count plus realized
+oracle-access gate count. -/
 theorem clause3_signal_word_circuit_gate_count :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -899,6 +1000,8 @@ theorem clause3_signal_word_circuit_gate_count :
         List.map_cons, List.sum_cons] <;>
       ring
 
+/-- Running the realized signal-word circuit with the identity oracle acts on every input as the
+evaluated word matrix. -/
 theorem clause3_signal_word_circuit_run :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)) (ψ : QState I),
@@ -938,6 +1041,8 @@ theorem clause3_signal_word_circuit_run :
       have hE : evaluate O (AdjointStep.backward :: cs) = Oᴴ * evaluate O cs := rfl
       rw [hE, Matrix.mulVec_mulVec]
 
+/-- If `k * g x ≤ f x` for every member of a list, then `k` times the sum of mapped `g` is at
+most the sum of mapped `f`. -/
 private theorem sum_map_ge_map_mul {α : Type} (l : List α) (f g : α → ℕ) (k : ℕ)
     (h : ∀ x ∈ l, k * g x ≤ f x) : k * (l.map g).sum ≤ (l.map f).sum := by
   induction l with
@@ -949,6 +1054,7 @@ private theorem sum_map_ge_map_mul {α : Type} (l : List α) (f g : α → ℕ) 
     rw [Nat.mul_add]
     exact Nat.add_le_add ha hrest
 
+/-- The sum of instruction-access indicators equals the adjoint word's query count. -/
 private theorem word_access_sum : ∀ (word : List (AdjointStep I)),
     (word.map OracleAccessModel.instructionAccessCount).sum = adjointQueryCount word := by
   intro word
@@ -961,6 +1067,8 @@ private theorem word_access_sum : ∀ (word : List (AdjointStep I)),
         OracleAccessModel.backwardAccessCount] at * <;>
       omega
 
+/-- The realized circuit gate count is at least minimum access gate cost times the word's query
+count. -/
 theorem clause3_gate_cost_lower_bound :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -1013,6 +1121,8 @@ theorem clause3_gate_cost_lower_bound :
   have hnn : 0 ≤ (adjointGateCount word : ℝ) := Nat.cast_nonneg _
   linarith
 
+/-- The signal-word ledger's classical-bit charge is at least minimum access bit cost times the
+word's query count. -/
 theorem clause3_bit_cost_lower_bound :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -1058,6 +1168,7 @@ theorem clause3_bit_cost_lower_bound :
   rw [hsum]
   exact_mod_cast hcount
 
+/-- The depth counter of a dynamic-step list equals the sum of its step depth counters. -/
 private theorem counters_depth : ∀ (l : List DynStep),
     (counters l).depth = (l.map (fun s => s.stepAccount.depth)).sum := by
   intro l
@@ -1066,6 +1177,8 @@ private theorem counters_depth : ∀ (l : List DynStep),
   | cons s rest ih =>
     simp only [counters, Account.seq, List.map_cons, List.sum_cons, ih]
 
+/-- The sum of depth charges in the realized signal steps equals twice the total access
+indicator count plus the source gate-step count. -/
 private theorem word_depth_steps [Fintype I] [DecidableEq I]
     (M : OracleAccessModel I) (O : Matrix I I ℂ) (word : List (AdjointStep I)) :
     ((M.signalWordSteps O word).map (fun s => s.stepAccount.depth)).sum =
@@ -1086,6 +1199,7 @@ private theorem word_depth_steps [Fintype I] [DecidableEq I]
       OracleAccessModel.gateStepCount]
     ring
 
+/-- The signal-word account depth is at least the adjoint word's query count. -/
 theorem clause3_bit_time_lower_bound :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -1095,6 +1209,7 @@ theorem clause3_bit_time_lower_bound :
   have h1 : 0 ≤ (word.map OracleAccessModel.gateStepCount).sum := Nat.cast_nonneg _
   omega
 
+/-- Each dynamic step has zero live-peak and peak-workspace ledger fields. -/
 private theorem stepAccount_peak_zero (s : DynStep) :
     s.stepAccount.livePeak = 0 ∧ s.stepAccount.peakWorkspace = 0 := by
   cases s with
@@ -1108,6 +1223,8 @@ private theorem stepAccount_peak_zero (s : DynStep) :
   | reset w => simp [DynStep.stepAccount, Account.zero]
   | uncompute w => simp [DynStep.stepAccount, Account.zero]
 
+/-- If every step in a list has zero live-peak charge, the combined counter has zero live-peak
+charge. -/
 private theorem counters_livePeak_zero : ∀ (l : List DynStep),
     (∀ s ∈ l, s.stepAccount.livePeak = 0) → (counters l).livePeak = 0 := by
   intro l
@@ -1121,6 +1238,8 @@ private theorem counters_livePeak_zero : ∀ (l : List DynStep),
     rw [hs, hr]
     simp [Account.zero]
 
+/-- If every step in a list has zero peak-workspace charge, the combined counter has zero
+peak-workspace charge. -/
 private theorem counters_peakWorkspace_zero : ∀ (l : List DynStep),
     (∀ s ∈ l, s.stepAccount.peakWorkspace = 0) → (counters l).peakWorkspace = 0 := by
   intro l
@@ -1134,6 +1253,7 @@ private theorem counters_peakWorkspace_zero : ∀ (l : List DynStep),
     rw [hs, hr]
     simp [Account.zero]
 
+/-- The signal-word account has zero live-peak and peak-workspace fields. -/
 theorem clause3_account_peak_ledgers :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)),
@@ -1143,6 +1263,9 @@ theorem clause3_account_peak_ledgers :
   refine ⟨counters_livePeak_zero _ (fun s _ => (stepAccount_peak_zero s).1),
     counters_peakWorkspace_zero _ (fun s _ => (stepAccount_peak_zero s).2)⟩
 
+/-- A nonnegative lower bound on word queries forces minimum-access gate and bit charges, while
+account depth bounds queries and both peak fields vanish. The realized circuit also acts
+exactly as the evaluated word on every input. -/
 theorem clause3_endpoint :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M : OracleAccessModel I) (O : Matrix I I ℂ)
       (word : List (AdjointStep I)) (c : ℝ),
@@ -1176,6 +1299,9 @@ theorem clause3_endpoint :
   · intro ψ
     exact clause3_signal_word_circuit_run I M O word ψ
 
+/-- Collect scalar adaptive pathwise, worst-case, and expected query bounds under the
+approximation hypotheses, together with remaining-budget and mass-transport identities, the
+variable-query example, and the differing-word counterexample. -/
 theorem clause1_endpoint :
     (∀ (W : Type) [Fintype W] [DecidableEq W] (tree : AdaptiveSignalTree (Bool × W))
       (L R : Matrix (Bool × W) Unit ℂ) (x y a b eps : ℝ),
@@ -1221,6 +1347,9 @@ theorem clause1_endpoint :
   · exact clause1_adaptive_vs_fixed_gap
   · exact clause1_oracle_dependent_branch_counterexample
 
+/-- Collect scalar-target response bounds, the lifted scalar-signal distance identity, and
+hybrid estimates for controlled access and fixed adaptive paths under their stated
+hypotheses. -/
 theorem clause2_endpoint :
     (∀ (H I : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] [Nonempty I]
       (L R : Matrix H I ℂ) (O₁ O₂ : Matrix H H ℂ)

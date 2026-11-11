@@ -9,6 +9,34 @@ import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
 import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
 import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
 import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+/-!
+# Measured Metropolis instruments and mixing
+
+This module realizes a finite thermal Metropolis update as an instrument with explicit rank-one
+`thermalKraus` operators and as an observed data-and-coin circuit `thermalProgram`. It
+identifies the realized branches, proves Kraus completeness, and tracks gates, measurements, and
+queries for individual leaves and complete histories. The sampling motivation is the quantum
+Metropolis framework of [TemmeEtAl2011].
+
+Forgetting outcomes produces a diagonal channel governed by `thermalKernel`. Kernel powers and a
+stationary reset decomposition give `measured_gibbs_reference_mixing`, a trace-norm convergence
+estimate that also retains an arbitrary reference register.
+
+## Main statements
+
+* `measured_metropolis_kraus_and_actual_branch`: equality of Kraus, instrument, and realized
+  branches.
+* `measured_metropolis_leaf_resources`: exact leaf enumeration and resource counts.
+* `measured_metropolis_channel_stationary`: the induced classical kernel and Gibbs fixed point.
+* `measured_gibbs_reference_mixing`: convergence with an unchanged reference marginal.
+* `measured_metropolis_history_three_counts`: history branches and total resource counts.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,26 +63,32 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option linter.unusedTactic false
 
+/-- The acceptance or rejection weight for a proposed transition, divided by the dimension. -/
 noncomputable def thermalKrausWeight (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D)
     (b : Bool) : ℝ :=
   if b then thermalAcceptance E β i j / (D : ℝ)
   else (1 - thermalAcceptance E β i j) / (D : ℝ)
 
+/-- The output index of a transition: the proposal on acceptance and the source on rejection. -/
 def thermalKrausRow (D : ℕ) (i j : Fin D) (b : Bool) : Fin D :=
   if b then j else i
 
+/-- The rank-one Kraus operator for a source, proposal, and Boolean acceptance outcome. -/
 noncomputable def thermalKraus (D : ℕ) (E : Fin D → ℝ) (β : ℝ)
     (o : Fin D × Fin D × Bool) : Operator D :=
   Matrix.of fun r p : Fin D =>
     if p = o.1 ∧ r = thermalKrausRow D o.1 o.2.1 o.2.2 then
       (Real.sqrt (thermalKrausWeight D E β o.1 o.2.1 o.2.2) : ℂ) else 0
 
+/-- A thermal Kraus operator has its square-root weight at its designated output row and source
+column, with all other entries zero. -/
 @[simp] theorem thermalKraus_apply (D : ℕ) (E : Fin D → ℝ) (β : ℝ)
     (o : Fin D × Fin D × Bool) (r p : Fin D) :
     thermalKraus D E β o r p =
       if p = o.1 ∧ r = thermalKrausRow D o.1 o.2.1 o.2.2 then
         (Real.sqrt (thermalKrausWeight D E β o.1 o.2.1 o.2.2) : ℂ) else 0 := rfl
 
+/-- Thermal Kraus weights are nonnegative in positive dimension. -/
 theorem thermalKrausWeight_nonneg (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i j : Fin D) (b : Bool) : 0 ≤ thermalKrausWeight D E β i j b := by
   by_cases hb : b
@@ -64,6 +98,8 @@ theorem thermalKrausWeight_nonneg (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β
     exact div_nonneg (by linarith [thermalAcceptance_le_one E β i j])
       (by exact_mod_cast hD.le)
 
+/-- The product of the adjoint of a thermal Kraus operator with itself is supported on its
+source diagonal entry and has value equal to its weight. -/
 private theorem thermalKraus_mul_conjTranspose_entry (D : ℕ) (hD : 0 < D)
     (E : Fin D → ℝ) (β : ℝ) (o : Fin D × Fin D × Bool) (p q : Fin D) :
     ((thermalKraus D E β o)ᴴ*thermalKraus D E β o) p q
@@ -90,6 +126,7 @@ private theorem thermalKraus_mul_conjTranspose_entry (D : ℕ) (hD : 0 < D)
         simp only [if_neg (fun h : p = o.1 ∧ r = _ => hp h.1), star_zero, zero_mul]),
       if_neg (fun h => hp h.1)]
 
+/-- The thermal Kraus operators satisfy the completeness relation in positive dimension. -/
 theorem thermalKraus_complete (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     ∑ o : Fin D × Fin D × Bool, (thermalKraus D E β o)ᴴ*thermalKraus D E β o = 1 := by
   ext p q
@@ -150,10 +187,13 @@ theorem thermalKraus_complete (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : �
       _ = (0:ℂ) := by simp
       _ = (1 : Operator D) p q := by simp [Matrix.one_apply, hpq]
 
+/-- The instrument whose outcomes record the source index, proposed index, and acceptance bit,
+built from the thermal Kraus operators. -/
 noncomputable def thermalInstrument (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     Instrument (Fin D × Fin D × Bool) D D :=
   Instrument.ofKraus (thermalKraus D E β) (thermalKraus_complete D hD E β)
 
+/-- Each thermal instrument branch acts by conjugation with its corresponding Kraus operator. -/
 @[simp] theorem thermalInstrument_branch (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i j : Fin D) (b : Bool) (ρ : Operator D) :
     (thermalInstrument D hD E β).branch (i, j, b) ρ
@@ -162,47 +202,62 @@ noncomputable def thermalInstrument (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (
 
 variable (D : ℕ) (E : Fin D → ℝ) (β : ℝ)
 
+/-- The data-register coordinate of a flattened data-and-coin index. -/
 def thermalDataLabel (D : ℕ) : Fin (D*2) → Fin D := fun k => (finProdFinEquiv.symm k).1
 
+/-- The coin-register coordinate of a flattened data-and-coin index. -/
 def thermalCoinLabel (D : ℕ) : Fin (D*2) → Fin 2 := fun k => (finProdFinEquiv.symm k).2
 
+/-- The Metropolis coin gate acting on the coin register and trivially on the data register. -/
 noncomputable def thermalCoinGate (D : ℕ) (a : ℝ) : Operator (D*2) :=
   (TensorGate (1 : Operator D) (MetropolisCoin a)).submatrix finProdFinEquiv.symm finProdFinEquiv.symm
 
+/-- The gate swapping two data indices and acting trivially on the coin register. -/
 noncomputable def thermalSwapGate (D : ℕ) (i j : Fin D) : Operator (D*2) :=
   (TensorGate (permMatrix (Equiv.swap i j)) (1 : Operator 2)).submatrix
     finProdFinEquiv.symm finProdFinEquiv.symm
 
+/-- The data swap on acceptance, or the identity on rejection. -/
 noncomputable def thermalFeedbackGate (D : ℕ) (i j : Fin D) (b : Bool) : Operator (D*2) :=
   if b then thermalSwapGate D i j else 1
 
+/-- Encodes a Boolean outcome as coin index one for acceptance and zero for rejection. -/
 def thermalCoinIdx (b : Bool) : Fin 2 := if b then 1 else 0
 
+/-- The set of joint basis indices with a fixed data-register coordinate. -/
 def thermalDataSet (D : ℕ) (i : Fin D) : Finset (Fin (D*2)) :=
   Finset.univ.filter (fun k => (finProdFinEquiv.symm k).1 = i)
 
+/-- The set of joint basis indices with a fixed coin-register coordinate. -/
 def thermalCoinSet (D : ℕ) (c : Fin 2) : Finset (Fin (D*2)) :=
   Finset.univ.filter (fun k => (finProdFinEquiv.symm k).2 = c)
 
+/-- Applies the feedback gate selected by the measured coin outcome and then halts with
+acceptance. -/
 noncomputable def thermalFeedbackStep (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D)
     (c : Fin 2) : ObservedCircuit (Fin (D*2)) :=
   .step (.gate (thermalFeedbackGate D i j (c = 1))) (.halt true)
 
+/-- Measures the coin register and selects the corresponding feedback step. -/
 noncomputable def thermalCoinMeasure (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D) :
     ObservedCircuit (Fin (D*2)) :=
   .measure 2 (thermalCoinLabel D) (fun c => thermalFeedbackStep D E β j i c)
 
+/-- Applies the thermal acceptance coin gate and then measures the coin with feedback. -/
 noncomputable def thermalDataStep (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D) :
     ObservedCircuit (Fin (D*2)) :=
   .step (.gate (thermalCoinGate D (thermalAcceptance E β i j)))
     (thermalCoinMeasure D E β j i)
 
+/-- The observed circuit that measures the data index, applies its acceptance coin, measures the
+coin, and applies feedback for a fixed proposal. -/
 noncomputable def thermalProgram (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j : Fin D) :
     ObservedCircuit (Fin (D*2)) :=
   .measure D (thermalDataLabel D) (fun i => thermalDataStep D E β j i)
 
 variable {D E β}
 
+/-- Reindexing both coordinates of a unitary matrix by an equivalence preserves unitarity. -/
 private theorem unitary_submatrix_equiv {I J : Type*} [Fintype I] [Fintype J]
     [DecidableEq I] [DecidableEq J] {A : Matrix I I ℂ} (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (e : I ≃ J) : (A.submatrix e.symm e.symm) ∈ Matrix.unitaryGroup J ℂ := by
@@ -220,16 +275,19 @@ private theorem unitary_submatrix_equiv {I J : Type*} [Fintype I] [Fintype J]
     simp only [Matrix.submatrix_apply, Matrix.one_apply, e.symm.injective.eq_iff]
   rw [h1, h2, h3]
 
+/-- The identity matrix on a finite index type is unitary. -/
 private theorem one_unitary (I : Type*) [Fintype I] [DecidableEq I] :
     (1 : Matrix I I ℂ) ∈ Matrix.unitaryGroup I ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, conjTranspose_one, one_mul]
 
+/-- The thermal coin gate is unitary for an acceptance parameter in `[0, 1]`. -/
 theorem thermalCoinGate_unitary (D : ℕ) (a : ℝ) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
     thermalCoinGate D a ∈ Matrix.unitaryGroup (Fin (D*2)) ℂ :=
   unitary_submatrix_equiv
     (tensorGate_unitary (one_unitary (Fin D))
       (metropolisCoin_unitary ha0 ha1)) finProdFinEquiv
 
+/-- The thermal data-swap gate is unitary. -/
 theorem thermalSwapGate_unitary (D : ℕ) (i j : Fin D) :
     thermalSwapGate D i j ∈ Matrix.unitaryGroup (Fin (D*2)) ℂ :=
   unitary_submatrix_equiv
@@ -238,6 +296,7 @@ theorem thermalSwapGate_unitary (D : ℕ) (i j : Fin D) :
 
 set_option maxHeartbeats 1000000 in
 
+/-- The thermal observed program is well formed. -/
 theorem thermalProgram_wellFormed (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j : Fin D) :
     observedWellFormed (thermalProgram D E β j) := by
   intro i
@@ -247,10 +306,14 @@ theorem thermalProgram_wellFormed (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j : 
   · exact ⟨one_unitary _, trivial⟩
   · exact ⟨thermalSwapGate_unitary D i j, trivial⟩
 
+/-- The accepting halt leaf with identity operator and zero queries, gates, measurements, and
+recorded outcomes. -/
 noncomputable def thermalHaltLeaf {D : ℕ} : ObservedKrausLeaf (D*2) :=
   { operator := 1, accepted := true, queries := 0, gates := 0, measurements := 0,
     outcomes := [] }
 
+/-- The leaf recording a data measurement, coin gate, coin measurement, and feedback gate for
+specified outcomes. -/
 noncomputable def thermalFinalLeaf (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D)
     (c : Fin 2) : ObservedKrausLeaf (D*2) :=
   ObservedKrausLeaf.prepend (Projector (thermalDataSet D i)) 0 0 1 [(D, i.val)]
@@ -259,23 +322,28 @@ noncomputable def thermalFinalLeaf (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i
         (ObservedKrausLeaf.prepend (thermalFeedbackGate D i j (c = 1)) 0 1 0 []
           thermalHaltLeaf)))
 
+/-- The thermal program has `D * 2` observed leaves. -/
 theorem thermalProgram_leafCount (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j : Fin D) :
     observedLeafCount (thermalProgram D E β j) = D*2 := by
   unfold thermalProgram thermalDataStep thermalCoinMeasure thermalFeedbackStep
   simp only [observedLeafCount]
   simp
 
+/-- Flattening the list of singleton lists formed from a list returns the original list. -/
 private theorem flatten_map_singleton {α : Type*} (l : List α) :
     List.flatten (List.map (fun a => [a]) l) = l := by
   induction l with
   | nil => rfl
   | cons a l ih => rw [List.map_cons, List.flatten_cons, ih, List.singleton_append]
 
+/-- Flattening singleton lists indexed by `Fin 2` returns the list of the indexed values. -/
 private theorem flatten_ofFn_two {α : Type*} (F : Fin 2 → α) :
     List.flatten (List.ofFn (fun c : Fin 2 => [F c])) = List.ofFn F := by
   rw [show (fun c : Fin 2 => [F c]) = (fun a => [a]) ∘ F from rfl,
     ← List.map_ofFn, flatten_map_singleton]
 
+/-- The Kraus leaves of the thermal program are enumerated by data outcomes followed by the two
+coin outcomes. -/
 theorem observedKrausLeaves_thermalProgram (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j : Fin D) :
     observedKrausLeaves 1 (thermalProgram D E β j)
       = List.flatten (List.ofFn (fun i : Fin D =>
@@ -320,12 +388,16 @@ theorem observedKrausLeaves_thermalProgram (D : ℕ) (E : Fin D → ℝ) (β : �
   simp only [observedKrausLeaves, hinner, hblock, hmapD]
   rfl
 
+/-- Equal natural-number indices select equal elements of a list, independently of the proofs of
+their bounds. -/
 private theorem getElem_index_eq {α : Type*} (l : List α) (k1 k2 : ℕ)
     (h1 : k1 < l.length) (h2 : k2 < l.length) (h : k1 = k2) :
     l[k1]'h1 = l[k2]'h2 := by
   subst h
   rfl
 
+/-- In a flattened list of blocks of length two, position `2 * i.val + c.val` selects entry
+`c.val` of block `i`. -/
 private theorem getElem_flatten_ofFn_two {α : Type*} : ∀ {D : ℕ} (g : Fin D → List α),
     ∀ hlen : (∀ i, (g i).length = 2), ∀ (i : Fin D) (c : Fin 2) (L : List α)
     (hL : L = List.flatten (List.ofFn g)) (k : ℕ)
@@ -358,16 +430,20 @@ private theorem getElem_flatten_ofFn_two {α : Type*} : ∀ {D : ℕ} (g : Fin D
         (show 2*((i'.succ : Fin (D+1)).val) + c.val - (g 0).length = 2*i'.val + c.val from by
           rw [hlen 0, Fin.val_succ]; omega)
 
+/-- The observed-leaf index corresponding to a data outcome and Boolean coin outcome. -/
 noncomputable def thermalLeaf (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D)
     (b : Bool) : Fin (observedLeafCount (thermalProgram D E β j)) :=
   Fin.cast (thermalProgram_leafCount D E β j).symm
     (finProdFinEquiv (i, thermalCoinIdx b))
 
+/-- Equal lists have equal entries at corresponding finite indices after transporting the length
+bound. -/
 private theorem get_of_eq_list {α : Type*} {l l' : List α} (h : l = l') (i : Fin l.length) :
     l.get i = l'.get (Fin.cast (by rw [h]) i) := by
   subst h
   rfl
 
+/-- The observed leaf at the encoded thermal index is the specified final leaf. -/
 theorem observedLeaf_thermalLeaf (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (j i : Fin D) (b : Bool) :
     observedLeaf 1 (thermalProgram D E β j) (thermalLeaf D hD E β j i b)
@@ -396,6 +472,8 @@ theorem observedLeaf_thermalLeaf (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β 
   show (thermalCoinIdx b).val + 2*i.val = 2*i.val + (thermalCoinIdx b).val
   omega
 
+/-- Data indices paired with Boolean outcomes bijectively enumerate the thermal program's leaves
+in positive dimension. -/
 theorem thermalLeaf_bijective (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (j : Fin D) :
     Function.Bijective (fun o : Fin D × Bool => thermalLeaf D hD E β j o.1 o.2) := by
   have hidx : Function.Bijective
@@ -442,10 +520,14 @@ theorem thermalLeaf_bijective (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : �
       exact ⟨Fin.cast (thermalProgram_leafCount D E β j) b, by simp⟩
   exact Function.Bijective.comp hcastbij hidx
 
+/-- The joint data-and-coin operator of the final leaf for specified data and acceptance
+outcomes. -/
 noncomputable def thermalLeafOperator (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D)
     (b : Bool) : Operator (D*2) :=
   (thermalFinalLeaf D E β j i (thermalCoinIdx b)).operator
 
+/-- The thermal leaf operator is the product of feedback, coin projection, coin gate, and data
+projection in execution order. -/
 theorem thermalLeafOperator_eq (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D) (b : Bool) :
     thermalLeafOperator D E β j i b
       = thermalFeedbackGate D i j b * Projector (thermalCoinSet D (thermalCoinIdx b))
@@ -454,6 +536,7 @@ theorem thermalLeafOperator_eq (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : F
     simp [thermalLeafOperator, thermalFinalLeaf, thermalHaltLeaf, ObservedKrausLeaf.prepend,
       one_mul, thermalCoinIdx, thermalFeedbackGate]
 
+/-- Embeds a data operator into the joint register by adjoining the coin basis state zero. -/
 noncomputable def thermalEmbed (D : ℕ) : Operator D →ₗ[ℂ] Operator (D*2) where
   toFun ρ := (TensorGate ρ (outerProduct (Qatlib.Foundations.PureStateMath.Ket 0))).submatrix
     finProdFinEquiv.symm finProdFinEquiv.symm
@@ -470,6 +553,7 @@ noncomputable def thermalEmbed (D : ℕ) : Operator D →ₗ[ℂ] Operator (D*2)
       ← Equiv.apply_symm_apply finProdFinEquiv l]
     simp [tensorGate_apply, mul_assoc]
 
+/-- The partial trace over the coin register, bundled as a complex linear map. -/
 noncomputable def thermalDiscard (D : ℕ) : Operator (D*2) →ₗ[ℂ] Operator D where
   toFun A x y := ∑ c : Fin 2, A (finProdFinEquiv (x, c)) (finProdFinEquiv (y, c))
   map_add' := by
@@ -481,11 +565,15 @@ noncomputable def thermalDiscard (D : ℕ) : Operator (D*2) →ₗ[ℂ] Operator
     ext x y
     simp [Finset.mul_sum, RingHom.id_apply, add_mul, mul_add]
 
+/-- The data-register branch obtained by embedding, applying the thermal leaf, discarding the
+coin, and scaling by the uniform proposal weight `1 / D`. -/
 noncomputable def thermalActualBranch (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (j i : Fin D) (b : Bool) : Operator D →ₗ[ℂ] Operator D :=
   ((1/(D:ℝ) : ℂ)) • ((thermalDiscard D).comp
     ((conjBranch (thermalLeafOperator D E β j i b)).comp (thermalEmbed D)))
 
+/-- The embedded operator agrees with the data operator when both coin indices are zero and
+vanishes otherwise. -/
 theorem thermalEmbed_apply (D : ℕ) (ρ : Operator D) (p q : Fin D × Fin 2) :
     thermalEmbed D ρ (finProdFinEquiv p) (finProdFinEquiv q)
       = if p.2 = 0 ∧ q.2 = 0 then ρ p.1 q.1 else 0 := by
@@ -496,6 +584,8 @@ theorem thermalEmbed_apply (D : ℕ) (ρ : Operator D) (p q : Fin D × Fin 2) :
   by_cases hp : c = 0 <;> by_cases hq : c' = 0 <;>
     simp [Qatlib.Foundations.PureStateMath.Ket, Matrix.of_apply, hp, hq, star_one, star_zero]
 
+/-- In product coordinates, the thermal coin gate is the Metropolis coin matrix when the data
+coordinates agree and zero otherwise. -/
 theorem thermalCoinGate_apply (D : ℕ) (a : ℝ) (p q : Fin D × Fin 2) :
     thermalCoinGate D a (finProdFinEquiv p) (finProdFinEquiv q)
       = if p.1 = q.1 then MetropolisCoin a p.2 q.2 else 0 := by
@@ -507,6 +597,8 @@ theorem thermalCoinGate_apply (D : ℕ) (a : ℝ) (p q : Fin D × Fin 2) :
     simp [h, Qatlib.Foundations.PureStateMath.Ket, Matrix.of_apply, mul_ite, mul_one,
         mul_zero, Matrix.one_apply]
 
+/-- The data projector is diagonal and selects joint indices whose data coordinate is the
+specified index. -/
 theorem thermalDataProjector_apply (D : ℕ) (i : Fin D) (p q : Fin D × Fin 2) :
     Projector (thermalDataSet D i) (finProdFinEquiv p) (finProdFinEquiv q)
       = if p = q ∧ p.1 = i then (1:ℂ) else 0 := by
@@ -515,6 +607,8 @@ theorem thermalDataProjector_apply (D : ℕ) (i : Fin D) (p q : Fin D × Fin 2) 
   by_cases hpq : p = q <;> by_cases hp : p.1 = i <;>
     simp [hpq, hp, Equiv.symm_apply_apply]
 
+/-- The coin projector is diagonal and selects joint indices whose coin coordinate is the
+specified index. -/
 theorem thermalCoinProjector_apply (D : ℕ) (c : Fin 2) (p q : Fin D × Fin 2) :
     Projector (thermalCoinSet D c) (finProdFinEquiv p) (finProdFinEquiv q)
       = if p = q ∧ p.2 = c then (1:ℂ) else 0 := by
@@ -523,6 +617,8 @@ theorem thermalCoinProjector_apply (D : ℕ) (c : Fin 2) (p q : Fin D × Fin 2) 
   by_cases hpq : p = q <;> by_cases hp : p.2 = c <;>
     simp [hpq, hp, Equiv.symm_apply_apply]
 
+/-- The coin gate followed on the right by a data projector is supported on the selected data
+block and equals the coin matrix there. -/
 private theorem coinGate_mul_dataProjector (D : ℕ) (a : ℝ) (i : Fin D)
     (p q : Fin D × Fin 2) :
     (thermalCoinGate D a * Projector (thermalDataSet D i)) (finProdFinEquiv p)
@@ -551,6 +647,8 @@ private theorem coinGate_mul_dataProjector (D : ℕ) (a : ℝ) (i : Fin D)
     rw [Finset.sum_congr rfl (fun w _ => hz w)]
     simp [hq]
 
+/-- Left multiplication by a coin projector keeps exactly the rows with the specified coin
+coordinate. -/
 private theorem coinProjector_mul (D : ℕ) (c : Fin 2) (X : Operator (D*2))
     (p q : Fin D × Fin 2) :
     (Projector (thermalCoinSet D c) * X) (finProdFinEquiv p) (finProdFinEquiv q)
@@ -577,13 +675,18 @@ private theorem coinProjector_mul (D : ℕ) (c : Fin 2) (X : Operator (D*2))
     rw [Finset.sum_congr rfl (fun w _ => hz w)]
     simp [hp]
 
+/-- The permutation of data indices given by swapping source and proposal on acceptance and by
+the identity on rejection. -/
 def thermalDataMap (D : ℕ) (i j : Fin D) (b : Bool) (x : Fin D) : Fin D :=
   if b then Equiv.swap i j x else x
 
+/-- Applying the thermal data permutation twice returns the original index. -/
 theorem thermalDataMap_self (D : ℕ) (i j : Fin D) (b : Bool) (x : Fin D) :
     thermalDataMap D i j b (thermalDataMap D i j b x) = x := by
   by_cases hb : b <;> simp [thermalDataMap, hb, Equiv.swap_apply_self]
 
+/-- The thermal data permutation maps an index to the source exactly when that index is the
+designated Kraus output row. -/
 theorem thermalDataMap_eq_iff (D : ℕ) (i j : Fin D) (b : Bool) (x : Fin D) :
     thermalDataMap D i j b x = i ↔ x = thermalKrausRow D i j b := by
   cases b
@@ -597,6 +700,8 @@ theorem thermalDataMap_eq_iff (D : ℕ) (i j : Fin D) (b : Bool) (x : Fin D) :
       rw [h]
       exact Equiv.swap_apply_right i j
 
+/-- Left multiplication by the feedback gate permutes the data row coordinate according to
+`thermalDataMap`. -/
 private theorem feedbackGate_mul (D : ℕ) (i j : Fin D) (b : Bool) (X : Operator (D*2))
     (p q : Fin D × Fin 2) :
     (thermalFeedbackGate D i j b * X) (finProdFinEquiv p) (finProdFinEquiv q)
@@ -635,6 +740,8 @@ private theorem feedbackGate_mul (D : ℕ) (i j : Fin D) (b : Bool) (X : Operato
       · rw [if_neg (fun h => h1 h.1)]
         simp
 
+/-- The thermal leaf operator is supported on its designated data-and-coin output row and source
+data column, with entries given by the Metropolis coin. -/
 theorem thermalLeafOperator_apply (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D) (b : Bool)
     (p q : Fin D × Fin 2) :
     thermalLeafOperator D E β j i b (finProdFinEquiv p) (finProdFinEquiv q)
@@ -667,12 +774,16 @@ theorem thermalLeafOperator_apply (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i 
       rw [if_pos hp2, if_neg hneg, if_neg (fun h => hp h.1)]
     · rw [if_neg hp2, if_neg (fun h => hp h.1)]
 
+/-- The zero-to-zero Metropolis coin entry is `sqrt (1 - a)`. -/
 private theorem metropolisCoin_00 (a : ℝ) :
     MetropolisCoin a 0 0 = ((Real.sqrt (1-a) : ℝ) : ℂ) := rfl
 
+/-- The zero-to-one Metropolis coin entry is `sqrt a`. -/
 private theorem metropolisCoin_10 (a : ℝ) :
     MetropolisCoin a 1 0 = ((Real.sqrt a : ℝ) : ℂ) := rfl
 
+/-- For `0 ≤ a ≤ 1`, the squared modulus of the coin amplitude from zero is `a` on acceptance
+and `1 - a` on rejection. -/
 private theorem metropolisCoin_sq (a : ℝ) (ha : 0 ≤ a) (ha1 : a ≤ 1) (b : Bool) :
     MetropolisCoin a (thermalCoinIdx b) 0 * (starRingEnd ℂ)
       (MetropolisCoin a (thermalCoinIdx b) 0)
@@ -688,6 +799,8 @@ private theorem metropolisCoin_sq (a : ℝ) (ha : 0 ≤ a) (ha1 : a ≤ 1) (b : 
   · show MetropolisCoin a 1 0 * (starRingEnd ℂ) (MetropolisCoin a 1 0) = (a : ℂ)
     rw [metropolisCoin_10, hconj, ← Complex.ofReal_mul, ← sq, Real.sq_sqrt ha]
 
+/-- Multiplying a thermal leaf operator by an embedded input leaves only its designated output
+row and coin-zero input columns, weighted by the coin amplitude. -/
 private theorem leafOp_mul_embed (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D) (b : Bool)
     (ρ : Operator D) (u w' : Fin D × Fin 2) :
     (thermalLeafOperator D E β j i b * thermalEmbed D ρ) (finProdFinEquiv u)
@@ -725,6 +838,8 @@ private theorem leafOp_mul_embed (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i :
     rw [Finset.sum_congr rfl (fun w _ => hz w), if_neg (fun h => hu h.1)]
     simp
 
+/-- Conjugating an embedded input by a thermal leaf leaves only the designated output diagonal
+entry, weighted by the squared coin amplitude and source population. -/
 private theorem leafOp_sandwich (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : Fin D) (b : Bool)
     (ρ : Operator D) (u v : Fin D × Fin 2) :
     (thermalLeafOperator D E β j i b * thermalEmbed D ρ
@@ -776,6 +891,8 @@ private theorem leafOp_sandwich (D : ℕ) (E : Fin D → ℝ) (β : ℝ) (j i : 
     rw [Finset.sum_congr rfl (fun w' _ => hz w'), if_neg huv]
     simp
 
+/-- Each actual thermal branch outputs a single diagonal entry equal to its thermal Kraus weight
+times the source population. -/
 theorem thermalActualBranch_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (j i : Fin D) (b : Bool) (ρ : Operator D) (x y : Fin D) :
     thermalActualBranch D hD E β j i b ρ x y
@@ -847,16 +964,22 @@ theorem thermalActualBranch_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β
     rw [hzero, if_neg hx]
     simp
 
+/-- The quantum channel obtained by iterating the thermal instrument's outcome-forgetting
+channel. -/
 noncomputable def thermalPowerChannel (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (n : ℕ) : QuantumChannel D D :=
   match n with
   | 0 => QuantumChannel.id D
   | n + 1 => (thermalPowerChannel D hD E β n).comp (thermalInstrument D hD E β).forget
 
+/-- The complex conjugate of the real square root of a thermal Kraus weight equals that square
+root. -/
 private theorem hreal' (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) (b : Bool) :
     star ((Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ))
       = ((Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ)) := by simp
 
+/-- The square of the complex-valued square root of a thermal Kraus weight equals the weight in
+positive dimension. -/
 private theorem hsqr' (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i j : Fin D) (b : Bool) :
     (Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ)
       * (Real.sqrt (thermalKrausWeight D E β i j b : ℝ) : ℂ)
@@ -864,6 +987,8 @@ private theorem hsqr' (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) (i j
   rw [← Complex.ofReal_mul, ← sq,
     Real.sq_sqrt (thermalKrausWeight_nonneg D hD E β i j b)]
 
+/-- Conjugation by a thermal Kraus operator yields its weight times the source population at the
+designated output diagonal entry, and zero elsewhere. -/
 private theorem thermalKraus_conj_entry (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (i j : Fin D) (b : Bool) (ρ : Operator D) (x y : Fin D) :
     (thermalKraus D E β (i, j, b)*ρ*(thermalKraus D E β (i, j, b))ᴴ) x y
@@ -935,6 +1060,8 @@ private theorem thermalKraus_conj_entry (D : ℕ) (hD : 0 < D) (E : Fin D → �
     simp only [hterm]
     rw [Finset.sum_const_zero, if_neg (fun h => hx h.1), mul_zero]
 
+/-- The thermal Kraus operators are complete, and both the instrument branches and the realized
+circuit branches agree with their Kraus conjugation maps. -/
 theorem measured_metropolis_kraus_and_actual_branch (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     (β : ℝ) :
     (∑ o : Fin D × Fin D × Bool, (thermalKraus D E β o)ᴴ*thermalKraus D E β o)=1 ∧
@@ -949,6 +1076,9 @@ theorem measured_metropolis_kraus_and_actual_branch (D : ℕ) (hD : 0 < D) (E : 
     thermalInstrument_branch D hD E β i j b ρ,
     thermalKraus_conj_entry D hD E β i j b ρ x y]
 
+/-- The thermal program is well formed with `2 * D` leaves bijectively indexed by data and
+Boolean outcomes; each leaf is accepting and uses zero queries, two gates, and two
+measurements. -/
 theorem measured_metropolis_leaf_resources (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (j : Fin D) :
     observedWellFormed (thermalProgram D E β j) ∧
@@ -963,10 +1093,13 @@ theorem measured_metropolis_leaf_resources (D : ℕ) (hD : 0 < D) (E : Fin D →
   unfold thermalFinalLeaf ObservedKrausLeaf.prepend thermalHaltLeaf
   simp
 
+/-- A thermal proposal from an index to itself has acceptance one. -/
 private theorem thermalAcceptance_self {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (p : Fin D) :
     thermalAcceptance E β p p = 1 := by
   simp [thermalAcceptance]
 
+/-- In positive dimension, summing `1 / D` over all indices gives one, viewed as a complex
+number. -/
 private theorem sum_one_div (D : ℕ) (hD : 0 < D) :
     ∑ j : Fin D, ((1:ℝ)/(D:ℝ) : ℂ) = 1 := by
   have h : ∑ j : Fin D, ((1:ℝ)/(D:ℝ)) = 1 := by
@@ -976,6 +1109,8 @@ private theorem sum_one_div (D : ℕ) (hD : 0 < D) :
     field_simp
   exact_mod_cast h
 
+/-- In positive dimension, the sum of `(1 - a j) / D` equals one minus the sum of `a j / D`,
+viewed as complex numbers. -/
 private theorem sum_one_sub (D : ℕ) (hD : 0 < D) (a : Fin D → ℝ) :
     ∑ j : Fin D, ((1 - a j) / (D:ℝ) : ℂ)
       = 1 - ∑ j : Fin D, (a j / (D:ℝ) : ℂ) := by
@@ -989,6 +1124,8 @@ private theorem sum_one_sub (D : ℕ) (hD : 0 < D) (a : Fin D → ℝ) :
       ring
   rw [hsum1, hone]
 
+/-- The sum of accepted inflow and rejected mass at an index equals the corresponding
+thermal-kernel weighted population sum. -/
 private theorem forget_diag_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (ρ : Operator D) (x : Fin D) :
     (∑ i : Fin D, (thermalAcceptance E β i x / (D:ℝ) : ℂ) * ρ i i)
@@ -1053,6 +1190,8 @@ private theorem forget_diag_sum (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β :
     rw [hself]]
   ring
 
+/-- Forgetting thermal measurement outcomes gives a diagonal operator whose populations are
+obtained from the thermal transition kernel. -/
 theorem thermalInstrument_forget_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (ρ : Operator D) :
     (thermalInstrument D hD E β).forget.map ρ
@@ -1152,6 +1291,8 @@ theorem thermalInstrument_forget_apply (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ
     simp only [hzero]
     simp
 
+/-- The power channel acts by the corresponding function iterate of the thermal
+outcome-forgetting map. -/
 theorem thermalPowerChannel_iterate (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (n : ℕ) (ρ : Operator D) :
     (thermalPowerChannel D hD E β n).map ρ
@@ -1164,6 +1305,8 @@ theorem thermalPowerChannel_iterate (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (
     rw [Function.iterate_succ, ih]
     rfl
 
+/-- The thermal outcome-forgetting channel acts by its classical transition kernel on diagonal
+populations, fixes the Gibbs density, and its power channel realizes repeated application. -/
 theorem measured_metropolis_channel_stationary (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     (β : ℝ) :
     (∀ ρ : Operator D, (thermalInstrument D hD E β).forget.map ρ =
@@ -1202,10 +1345,14 @@ theorem measured_metropolis_channel_stationary (D : ℕ) (hD : 0 < D) (E : Fin D
     rw [diagonalGibbsDensity]
     rw [Matrix.diagonal_apply, if_neg hxy]
 
+/-- The complex linear map that reads the input diagonal and forms a diagonal output using a
+real kernel. -/
 noncomputable def kernelDiagMap {D : ℕ} (w : Fin D → Fin D → ℝ) :
     Operator D →ₗ[ℂ] Operator D :=
   ∑ i : Fin D, ∑ x : Fin D, ((w i x : ℂ) • conjBranch (Matrix.single x i (1:ℂ)))
 
+/-- Conjugation by the matrix unit from `i` to `x` places the input entry `σ i i` at output
+entry `(x, x)` and vanishes elsewhere. -/
 private theorem conjBranch_single_apply {D : ℕ} (i x : Fin D) (σ : Operator D) (u v : Fin D) :
     conjBranch (Matrix.single x i (1:ℂ)) σ u v = if x = u ∧ x = v then σ i i else 0 := by
   by_cases h1 : x = u
@@ -1220,6 +1367,8 @@ private theorem conjBranch_single_apply {D : ℕ} (i x : Fin D) (σ : Operator D
       simp [h1, h2, huv, conjBranch_apply]
   · simp [h1, conjBranch_apply]
 
+/-- The diagonal-kernel map outputs the diagonal matrix of kernel-weighted input diagonal
+entries. -/
 theorem kernelDiagMap_apply {D : ℕ} (w : Fin D → Fin D → ℝ) (σ : Operator D) :
     kernelDiagMap w σ = Matrix.diagonal (fun x => ∑ i, (w i x : ℂ) * σ i i) := by
   ext u v
@@ -1235,6 +1384,7 @@ theorem kernelDiagMap_apply {D : ℕ} (w : Fin D → Fin D → ℝ) (σ : Operat
   · have hfalse : ∀ a : Fin D, ¬(a = u ∧ a = v) := fun a hh => huv (hh.1.symm.trans hh.2)
     simp [huv, hfalse, Matrix.diagonal_apply]
 
+/-- A kernel with nonnegative entries defines a completely positive diagonal-kernel map. -/
 theorem kernelDiagMap_cp {D : ℕ} {w : Fin D → Fin D → ℝ} (hw : ∀ i x, 0 ≤ w i x) :
     CompletelyPositive (kernelDiagMap w) := by
   refine CompletelyPositive.sum (fun i _ => CompletelyPositive.sum (fun x _ => ?_))
@@ -1247,6 +1397,7 @@ theorem kernelDiagMap_cp {D : ℕ} {w : Fin D → Fin D → ℝ} (hw : ∀ i x, 
   exact Matrix.PosSemidef.smul (completelyPositive_conjBranch _ r A hA)
     (by exact_mod_cast hw i x)
 
+/-- A kernel whose rows sum to one defines a trace-preserving diagonal-kernel map. -/
 theorem kernelDiagMap_tp {D : ℕ} {w : Fin D → Fin D → ℝ} (hw : ∀ i, ∑ x, w i x = 1) :
     TracePreserving (kernelDiagMap w) := by
   intro σ
@@ -1257,12 +1408,15 @@ theorem kernelDiagMap_tp {D : ℕ} {w : Fin D → Fin D → ℝ} (hw : ∀ i, �
   rw [← Finset.sum_mul, ← Complex.ofReal_sum, hw i, Complex.ofReal_one, one_mul]
   rfl
 
+/-- Tensor extension on the left distributes over addition of linear maps. -/
 private theorem tensorLeft_add' {D E R : ℕ} (S T : Operator D →ₗ[ℂ] Operator E)
     (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) :
     tensorLeft (S + T) ρ = tensorLeft S ρ + tensorLeft T ρ := by
   ext x y
   simp [tensorLeft]
 
+/-- The trace-scaled diagonal reset map is the diagonal-kernel map with identical rows given by
+the reset populations. -/
 theorem traceSmulLeft_eq_kernelDiagMap {D : ℕ} (p : Fin D → ℝ) (σ : Operator D) :
     traceSmulLeft (Matrix.diagonal (fun x => ((p x : ℝ) : ℂ))) σ
       = kernelDiagMap (fun _ x => p x) σ := by
@@ -1275,13 +1429,18 @@ theorem traceSmulLeft_eq_kernelDiagMap {D : ℕ} (p : Fin D → ℝ) (σ : Opera
     exact mul_comm _ _
   · simp [huv, Matrix.diagonal_apply]
 
+/-- The natural powers of a real kernel, starting with the identity kernel and multiplying by
+the kernel recursively. -/
 noncomputable def kernelPow {D : ℕ} (k : Fin D → Fin D → ℝ) : ℕ → Fin D → Fin D → ℝ
   | 0 => fun i x => if i = x then 1 else 0
   | n + 1 => fun i x => ∑ m, k i m * kernelPow k n m x
 
+/-- The zeroth kernel power is one on equal indices and zero elsewhere. -/
 theorem kernelPow_zero {D : ℕ} (k : Fin D → Fin D → ℝ) (i x : Fin D) :
     kernelPow k 0 i x = if i = x then (1:ℝ) else 0 := rfl
 
+/-- Composition of two diagonal-kernel maps corresponds to multiplication of their kernels in
+the order of application. -/
 private theorem kernelDiagMap_comp_apply {D : ℕ} (w v : Fin D → Fin D → ℝ) (σ : Operator D) :
     kernelDiagMap w (kernelDiagMap v σ)
       = kernelDiagMap (fun i x => ∑ m, v i m * w m x) σ := by
@@ -1303,6 +1462,8 @@ private theorem kernelDiagMap_comp_apply {D : ℕ} (w v : Fin D → Fin D → �
           simp only [← Finset.sum_mul, ← Complex.ofReal_sum]
   · rw [if_neg huv, if_neg huv]
 
+/-- Every positive power of the thermal channel is the diagonal-kernel map of the corresponding
+thermal kernel power. -/
 theorem thermalPowerChannel_eq_kernelDiagMap (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     ∀ m : ℕ, (thermalPowerChannel D hD E β (m+1)).map
       = kernelDiagMap (kernelPow (thermalKernel D E β) (m+1)) := by
@@ -1337,6 +1498,7 @@ theorem thermalPowerChannel_eq_kernelDiagMap (D : ℕ) (hD : 0 < D) (E : Fin D �
     rw [hstep, ih, hforget, kernelDiagMap_comp_apply]
     congr 1
 
+/-- Every natural power of a kernel with nonnegative entries has nonnegative entries. -/
 private theorem kernelPow_nonneg {D : ℕ} {k : Fin D → Fin D → ℝ} (hk : ∀ i x, 0 ≤ k i x) :
     ∀ (n : ℕ) (i x : Fin D), 0 ≤ kernelPow k n i x := by
   intro n
@@ -1352,6 +1514,7 @@ private theorem kernelPow_nonneg {D : ℕ} {k : Fin D → Fin D → ℝ} (hk : �
     refine Finset.sum_nonneg fun m _ => ?_
     exact mul_nonneg (hk i m) (ih m x)
 
+/-- Every natural power of a kernel whose rows sum to one also has row sums one. -/
 private theorem kernelPow_row {D : ℕ} {k : Fin D → Fin D → ℝ} (hk : ∀ i, ∑ x, k i x = 1) :
     ∀ (n : ℕ) (i : Fin D), ∑ x, kernelPow k n i x = 1 := by
   intro n
@@ -1373,6 +1536,8 @@ private theorem kernelPow_row {D : ℕ} {k : Fin D → Fin D → ℝ} (hk : ∀ 
       _ = 1 := by
           rw [← Finset.sum_mul, hk i, mul_one]
 
+/-- A stationary population vector for a kernel whose rows sum to one remains stationary for all
+natural kernel powers. -/
 private theorem kernelPow_stat {D : ℕ} {q : Fin D → Fin D → ℝ} {p : Fin D → ℝ}
     (hqrow : ∀ i, ∑ x, q i x = 1) (hpstat : ∀ x, ∑ i, p i * q i x = p x) :
     ∀ (n : ℕ) (x : Fin D), ∑ i, p i * kernelPow q n i x = p x := by
@@ -1398,6 +1563,8 @@ private theorem kernelPow_stat {D : ℕ} {q : Fin D → Fin D → ℝ} {p : Fin 
           simp only [hpstat]
       _ = p x := ih x
 
+/-- A kernel split into a stationary reset part of weight `η` and a residual stochastic part of
+weight `c = 1 - η > 0` has powers split with weights `1 - c ^ n` and `c ^ n`. -/
 private theorem kernelPow_split {D : ℕ} {k q : Fin D → Fin D → ℝ} {p : Fin D → ℝ} {η c : ℝ}
     (hc : 0 < c) (hcη : c + η = 1)
     (hqmul : ∀ i x, c * q i x = k i x - η * p x)
@@ -1500,6 +1667,8 @@ private theorem kernelPow_split {D : ℕ} {k q : Fin D → Fin D → ℝ} {p : F
             linear_combination hcη * p x
           exact key
 
+/-- A real linear combination of kernels induces the same linear combination of their
+diagonal-kernel maps, with scalars viewed in `ℂ`. -/
 private theorem kernelDiagMap_two_term {D : ℕ} (u v : Fin D → Fin D → ℝ) (t s : ℝ)
     (σ : Operator D) :
     kernelDiagMap (fun i x => t * u i x + s * v i x) σ
@@ -1518,6 +1687,9 @@ private theorem kernelDiagMap_two_term {D : ℕ} (u v : Fin D → Fin D → ℝ)
   · rw [if_neg hxy, if_neg hxy, if_neg hxy]
     simp
 
+/-- For nonnegative inverse temperature and energies in `[0, R]`, a positive number `n` of
+thermal steps brings any joint density within trace norm `2 * (1 - exp (-β * R)) ^ n` of the
+Gibbs density tensored with its reference marginal. -/
 theorem measured_gibbs_reference_mixing (D : ℕ) (hD : 0 < D) (r : ℕ) (E : Fin D → ℝ) (β R : ℝ)
     (n : ℕ) (hβ : 0 ≤ β) (hR : 0 ≤ R) (hn : 0 < n)
     (hE : ∀ i, 0 ≤ E i ∧ E i ≤ R)
@@ -1699,6 +1871,8 @@ theorem measured_gibbs_reference_mixing (D : ℕ) (hD : 0 < D) (r : ℕ) (E : Fi
           mul_le_mul_of_nonneg_left (le_trans htri (by rw [h1, h2])) (pow_nonneg hc.le (m+1))
       _ = 2 * (1 - Real.exp (-β * R)) ^ (m+1) := by ring
 
+/-- If each row of the thermal kernel is the Gibbs distribution, every positive power of the
+thermal channel is the Gibbs reset map. -/
 theorem thermalPowerChannel_eq_reset {D : ℕ} (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (hkπ : ∀ i x : Fin D, thermalKernel D E β i x = (diagonalGibbsDist D hD E β).prob x)
     (m : ℕ) :
@@ -1744,6 +1918,8 @@ theorem thermalPowerChannel_eq_reset {D : ℕ} (hD : 0 < D) (E : Fin D → ℝ) 
         = Matrix.trace σ := kernelDiagMap_tp (fun _ => hpsum) σ
     rw [hstep, ih, hkdiag, traceSmulLeft_apply, traceSmulLeft_apply, htp]
 
+/-- The equivalence between an initial outcome paired with a length-`n` history and a length-`n
++ 1` history. -/
 private def consEquiv' {O : Type*} (n : ℕ) :
     O × (Fin n → O) ≃ (Fin (n + 1) → O) where
   toFun p := Fin.cons p.1 p.2
@@ -1762,6 +1938,8 @@ private def consEquiv' {O : Type*} (n : ℕ) :
     · subst h
       exact Fin.cons_succ (α := fun _ => O) (f 0) (fun j => f j.succ) k'
 
+/-- A sum over histories of length `n + 1` can be split into sums over the initial outcome and
+the remaining length-`n` history. -/
 private theorem sum_cons {O : Type*} {M : Type*} [Fintype O] [AddCommMonoid M] (n : ℕ)
     (F : (Fin (n + 1) → O) → M) :
     ∑ hist : Fin (n + 1) → O, F hist
@@ -1769,11 +1947,13 @@ private theorem sum_cons {O : Type*} {M : Type*} [Fintype O] [AddCommMonoid M] (
   rw [← Fintype.sum_equiv (consEquiv' n) (fun p => F (Fin.cons p.1 p.2)) F
     (fun x => rfl), Fintype.sum_prod_type]
 
+/-- Conjugation by the identity operator is the identity linear map. -/
 private theorem conjBranch_one (D : ℕ) :
     conjBranch ((1 : Operator D)) = LinearMap.id := by
   refine LinearMap.ext fun ρ => ?_
   simp
 
+/-- Each thermal instrument branch equals the conjugation map of its thermal Kraus operator. -/
 private theorem thermalInstrument_branch' (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ)
     (o : Fin D × Fin D × Bool) :
     (thermalInstrument D hD E β).branch o = conjBranch (thermalKraus D E β o) := by
@@ -1781,10 +1961,13 @@ private theorem thermalInstrument_branch' (D : ℕ) (hD : 0 < D) (E : Fin D → 
   refine LinearMap.ext fun ρ => ?_
   rw [thermalInstrument_branch, conjBranch_apply]
 
+/-- The ordered product of thermal Kraus operators along a finite outcome history. -/
 noncomputable def thermalHistoryKraus (D : ℕ) (E : Fin D → ℝ) (β : ℝ) {n : ℕ}
     (hist : Fin n → Fin D × Fin D × Bool) : Operator D :=
   (List.ofFn hist).foldl (fun acc o => thermalKraus D E β o * acc) 1
 
+/-- Accumulating thermal Kraus operators by left multiplication from `A` equals the product
+accumulated from the identity, multiplied by `A` on the right. -/
 private theorem thermalKraus_foldl_mul (D : ℕ) (E : Fin D → ℝ) (β : ℝ)
     (xs : List (Fin D × Fin D × Bool)) (A : Operator D) :
     xs.foldl (fun acc o => thermalKraus D E β o * acc) A =
@@ -1796,6 +1979,8 @@ private theorem thermalKraus_foldl_mul (D : ℕ) (E : Fin D → ℝ) (β : ℝ)
     rw [ih (thermalKraus D E β o * A), ih (thermalKraus D E β o * 1),
       Matrix.mul_one, Matrix.mul_assoc]
 
+/-- The Kraus product of a nonempty history is the product for its tail multiplied on the right
+by the first Kraus operator. -/
 theorem thermalHistoryKraus_succ (D : ℕ) (E : Fin D → ℝ) (β : ℝ) {n : ℕ}
     (hist : Fin (n + 1) → Fin D × Fin D × Bool) :
     thermalHistoryKraus D E β hist =
@@ -1804,6 +1989,7 @@ theorem thermalHistoryKraus_succ (D : ℕ) (E : Fin D → ℝ) (β : ℝ) {n : �
     thermalKraus_foldl_mul D E β (List.ofFn (fun k : Fin n => hist k.succ))
       (thermalKraus D E β (hist 0))
 
+/-- The instrument recording a complete history of repeated thermal measurement outcomes. -/
 noncomputable def thermalHistoryInstrument (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ) (β : ℝ) :
     (n : ℕ) → Instrument (Fin n → Fin D × Fin D × Bool) D D
   | 0 => Instrument.ofBranches (fun _ => LinearMap.id)
@@ -1821,6 +2007,7 @@ noncomputable def thermalHistoryInstrument (D : ℕ) (hD : 0 < D) (E : Fin D →
           exact (congrArg Matrix.trace
             (e.symm.sum_comp (fun op => chain.branch op A))).trans (chain.total A) }
 
+/-- Forgetting a thermal history gives the corresponding thermal power channel. -/
 private theorem thermalHistoryInstrument_forget (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     (β : ℝ) : ∀ (n : ℕ) (A : Operator D),
     (thermalHistoryInstrument D hD E β n).forget.map A
@@ -1847,6 +2034,9 @@ private theorem thermalHistoryInstrument_forget (D : ℕ) (hD : 0 < D) (E : Fin 
     rw [hsum, ih]
     rfl
 
+/-- The history instrument has the power channel as its outcome-forgetting map and the history
+Kraus conjugation as each branch; along a length-`n` history the totals are `2 * n` gates,
+`2 * n` measurements, and zero queries. -/
 theorem measured_metropolis_history_three_counts (D : ℕ) (hD : 0 < D) (E : Fin D → ℝ)
     (β : ℝ) (n : ℕ) (hist : Fin n → Fin D × Fin D × Bool) :
     (thermalHistoryInstrument D hD E β n).forget.map = (thermalPowerChannel D hD E β n).map ∧

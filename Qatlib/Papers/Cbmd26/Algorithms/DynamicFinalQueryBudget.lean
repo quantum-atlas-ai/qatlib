@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.Cbmd26.Algorithms.DynamicCBMDParameters
 import Qatlib.Papers.Cbmd26.Algorithms.OutputNormEstimateBudget
+
+/-!
+# Final logarithmic dynamic query bounds
+
+Combines the chosen segment and Dyson-degree bounds into an explicit product estimate using
+`dynamicDegreeConstant`. The bound `dynamicChosen_amplified_query_bound` includes amplification,
+while `dynamic_true_output_query_bound` compares estimated and true output norms. These results
+support the contour-based algorithms of [WangEtAl2026].
+
+## Main statements
+
+* `dynamicChosen_amplified_query_bound`: bounds amplified segment-degree costs.
+* `dynamic_true_output_query_bound`: replaces an output estimate by a comparable true norm.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,9 +54,11 @@ set_option autoImplicit false
 noncomputable section
 namespace CBMD
 
+/-- Defines the positive logarithmic constant used to bound the chosen dynamic degree. -/
 def dynamicDegreeConstant : ℝ :=
   (Real.log 20 + 2 * Real.log 15 + 6) / Real.log 2 + 1
 
+/-- The dynamic degree constant is positive. -/
 theorem dynamicDegreeConstant_pos : 0 < dynamicDegreeConstant := by
   have hd : 0 < Real.log 2 := Real.log_pos (by norm_num)
   have h20 : 0 < Real.log 20 := Real.log_pos (by norm_num)
@@ -45,6 +66,8 @@ theorem dynamicDegreeConstant_pos : 0 < dynamicDegreeConstant := by
   unfold dynamicDegreeConstant
   positivity
 
+/-- The logarithm of the reciprocal simulation accuracy is bounded by `log
+(staticQueryLogConstant / (ε * η))`. -/
 theorem dynamic_inverse_precision_log_le {ε η : ℝ}
     (hε : 0 < ε) (hη : 0 < η) :
     Real.log (dynamicSimulationAccuracy ε η)⁻¹ ≤
@@ -59,6 +82,8 @@ theorem dynamic_inverse_precision_log_le {ε η : ℝ}
     unfold dynamicSimulationAccuracy; field_simp]
   exact Real.log_le_log (by positivity) (div_le_div_of_nonneg_right hbound (by positivity))
 
+/-- The chosen Dyson degree is bounded by the dynamic degree constant times the sum of the
+time-scale and accuracy logarithms. -/
 theorem dynamicChosen_degree_bound {α T ε η : ℝ}
     (hα : 0 ≤ α) (hT : 0 ≤ T) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hη1 : η ≤ 1) :
@@ -126,6 +151,8 @@ theorem dynamicChosen_degree_bound {α T ε η : ℝ}
             (Real.log (2 + α*T) + ℓ)) / Real.log 2 + (Real.log (2 + α*T) + ℓ) := by linarith
         _ = _ := by ring
 
+/-- The product of the chosen segment count and Dyson degree satisfies the displayed bound
+involving `1 + α * T` and two logarithmic factors. -/
 theorem dynamicChosen_segment_degree_product_bound {α T ε η : ℝ}
     (hα : 0 ≤ α) (hT : 0 ≤ T) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hη1 : η ≤ 1) :
@@ -145,6 +172,8 @@ theorem dynamicChosen_segment_degree_product_bound {α T ε η : ℝ}
   convert! h using 1
   ring
 
+/-- The chosen segment-degree product satisfies the displayed bound with accuracy logarithm `log
+(2 / (ε * η))`. -/
 theorem dynamicChosen_paper_product_bound {α T ε η : ℝ}
     (hα : 0 ≤ α) (hT : 0 ≤ T) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hη1 : η ≤ 1) :
@@ -184,9 +213,12 @@ theorem dynamicChosen_paper_product_bound {α T ε η : ℝ}
   apply h.trans
   convert! hb using 1 <;> dsimp only [ℓ,l,y] <;> ring
 
+/-- Defines the dynamic paper query constant by combining segment, amplification, degree, and
+logarithm comparison factors. -/
 def dynamicPaperQueryConstant : ℝ :=
   15 * (4 * staticMassBudget + 1) * dynamicDegreeConstant * staticPaperLogFactor ^ 2
 
+/-- The dynamic paper query constant is positive. -/
 theorem dynamicPaperQueryConstant_pos : 0 < dynamicPaperQueryConstant := by
   have hC := staticMassBudget_ge_one
   have hD := dynamicDegreeConstant_pos
@@ -197,6 +229,8 @@ theorem dynamicPaperQueryConstant_pos : 0 < dynamicPaperQueryConstant := by
   unfold dynamicPaperQueryConstant
   positivity
 
+/-- The amplified segment-degree cost, scaled by any nonnegative `q`, is bounded by the
+displayed dynamic query expression [WangEtAl2026]. -/
 theorem dynamicChosen_amplified_query_bound {α T ε η q : ℝ}
     (hα : 0 ≤ α) (hT : 0 ≤ T) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hη1 : η ≤ 1) (hq : 0 ≤ q) :
@@ -215,6 +249,8 @@ theorem dynamicChosen_amplified_query_bound {α T ε η q : ℝ}
   unfold dynamicPaperQueryConstant
   ring
 
+/-- If the true output norm `ν` lies between `η` and `c * η`, the query expression based on `η`
+is bounded by the one based on `ν` with factor `c * (outputEstimateLogFactor c)^2`. -/
 theorem dynamic_true_output_query_bound {α T ε η ν c Q : ℝ}
     (hα : 0 ≤ α) (hT : 0 ≤ T) (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hη : 0 < η) (hην : η ≤ ν) (hνc : ν ≤ c * η) (hc : 1 ≤ c)

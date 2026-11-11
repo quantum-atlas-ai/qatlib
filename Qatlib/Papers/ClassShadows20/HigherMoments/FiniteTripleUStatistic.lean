@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Finite triple U-statistics
+
+`tripleIndexList` enumerates increasing triples of record indices, and `tripleUStatistic`
+averages a real kernel over them. The module proves exact evaluation counts and unbiasedness for
+independent finite records. For symmetric kernels, it computes the variance from one-, two-, and
+three-coordinate overlap moments and bounds it by `9 * C² / m` for a kernel bounded by `C`.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `triple_u_enumeration_and_actual_cost`: verifies enumeration and the counted evaluator.
+* `triple_u_exact_overlap_variance`: gives the exact overlap variance formula.
+* `triple_u_variance_le_bound`: gives a uniform bounded-kernel variance estimate.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -17,47 +39,60 @@ open scoped BigOperators
 set_option autoImplicit false
 set_option maxHeartbeats 4000000
 
+/-- A triple of indices in a record of length `m`, without an ordering constraint in the type. -/
 abbrev TripleIndex (m : ℕ) := Fin m × Fin m × Fin m
 
+/-- The recursive list of strictly increasing triples of indices in a record of length `m`. -/
 def tripleIndexList : (m : ℕ) → List (TripleIndex m)
   | 0 => []
   | m+1 => (tripleIndexList m).map (fun t =>
       (t.1.castSucc,t.2.1.castSucc,t.2.2.castSucc)) ++
       (pairIndexList m).map (fun q => (q.1.castSucc,q.2.castSucc,Fin.last m))
 
+/-- The expectation of a real three-variable kernel under three independent draws from `p`. -/
 noncomputable def tripleKernelMean {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → X → ℝ) : ℝ :=
   ∑ x, ∑ y, ∑ z, p.prob x*p.prob y*p.prob z*h x y z
 
+/-- The condition that a three-variable kernel is invariant under swapping its first two or last
+two arguments. -/
 def tripleKernelSymmetric {X : Type} (h : X → X → X → ℝ) : Prop :=
   ∀ x y z, h x y z = h y x z ∧ h x y z = h x z y
 
+/-- The variance of the conditional kernel mean obtained by fixing its first argument. -/
 noncomputable def tripleOverlapOne {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → X → ℝ) : ℝ :=
   ∑ x, p.prob x*((∑ y, ∑ z, p.prob y*p.prob z*h x y z)-tripleKernelMean p h)^2
+/-- The variance of the conditional kernel mean obtained by fixing its first two arguments. -/
 noncomputable def tripleOverlapTwo {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → X → ℝ) : ℝ :=
   ∑ x, ∑ y, p.prob x*p.prob y*((∑ z, p.prob z*h x y z)-tripleKernelMean p h)^2
+/-- The variance of the kernel under three independent draws from `p`. -/
 noncomputable def tripleOverlapThree {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → X → ℝ) : ℝ :=
   ∑ x, ∑ y, ∑ z, p.prob x*p.prob y*p.prob z*(h x y z-tripleKernelMean p h)^2
 
+/-- The weighted sum of overlap moments with the combinatorial coefficients for a triple
+U-statistic of sample size `m`. -/
 noncomputable def tripleVarianceBudget {X : Type} [Fintype X] (p : FinDist X)
     (m : ℕ) (h : X → X → X → ℝ) : ℝ :=
   (3*((m-3).choose 2):ℝ)/(m.choose 3:ℝ)*tripleOverlapOne p h +
   (3*(m-3):ℝ)/(m.choose 3:ℝ)*tripleOverlapTwo p h +
   (1:ℝ)/(m.choose 3:ℝ)*tripleOverlapThree p h
 
+/-- The sum of the kernel over increasing record triples divided by `m.choose 3`. -/
 noncomputable def tripleUStatistic {X : Type} {m : ℕ} (h : X → X → X → ℝ)
     (ω : Fin m → X) : ℝ :=
   ((tripleIndexList m).map (fun t => h (ω t.1) (ω t.2.1) (ω t.2.2))).sum/(m.choose 3:ℝ)
 
+/-- The triple U-statistic computed by a fold together with its kernel evaluation count. -/
 noncomputable def tripleUCounted {X : Type} {m : ℕ} (h : X → X → X → ℝ)
     (ω : Fin m → X) : ℝ × ℕ :=
   let a := (tripleIndexList m).foldl
     (fun a t => (a.1+h (ω t.1) (ω t.2.1) (ω t.2.2),a.2+1)) (0,0)
   (a.1/(m.choose 3:ℝ),a.2)
 
+/-- Every triple in `tripleIndexList m` has strictly increasing coordinates. -/
 theorem tripleIndexList_ordered (m : ℕ) (t : TripleIndex m)
     (ht : t ∈ tripleIndexList m) : t.1 < t.2.1 ∧ t.2.1 < t.2.2 := by
   induction m with
@@ -68,6 +103,7 @@ theorem tripleIndexList_ordered (m : ℕ) (t : TripleIndex m)
     · exact ih q hq
     · exact ⟨pairIndexList_ordered m q hq, q.2.isLt⟩
 
+/-- The number of enumerated triples is `m.choose 3`. -/
 theorem tripleIndexList_length (m : ℕ) : (tripleIndexList m).length = m.choose 3 := by
   induction m with
   | zero => rfl
@@ -76,6 +112,7 @@ theorem tripleIndexList_length (m : ℕ) : (tripleIndexList m).length = m.choose
     rw [Nat.choose_succ_succ]
     exact Nat.add_comm _ _
 
+/-- The increasing triple enumeration contains no duplicates. -/
 theorem tripleIndexList_nodup (m : ℕ) : (tripleIndexList m).Nodup := by
   induction m with
   | zero => simp [tripleIndexList]
@@ -96,6 +133,7 @@ theorem tripleIndexList_nodup (m : ℕ) : (tripleIndexList m).Nodup := by
       obtain ⟨y,_,rfl⟩ := List.mem_map.mp hb
       exact Fin.castSucc_ne_last _ (congrArg (fun t => t.2.2) hab)
 
+/-- Every strictly increasing pair of indices occurs in `pairIndexList m`. -/
 private theorem pair_mem_of_ordered (m : ℕ) (i j : Fin m) (hij : i < j) :
     (i,j) ∈ pairIndexList m := by
   induction m with
@@ -111,6 +149,8 @@ private theorem pair_mem_of_ordered (m : ℕ) (i j : Fin m) (hij : i < j) :
       · apply List.mem_append_left
         exact List.mem_map.mpr ⟨(i,j),ih i j hij,rfl⟩
 
+/-- A triple belongs to `tripleIndexList m` exactly when its coordinates are strictly
+increasing. -/
 theorem tripleIndexList_mem_iff (m : ℕ) (t : TripleIndex m) :
     t ∈ tripleIndexList m ↔ t.1 < t.2.1 ∧ t.2.1 < t.2.2 := by
   refine ⟨tripleIndexList_ordered m t, ?_⟩
@@ -133,6 +173,8 @@ theorem tripleIndexList_mem_iff (m : ℕ) (t : TripleIndex m) :
         · have := j.isLt; simp only [Fin.lt_def, Fin.val_last, Fin.val_castSucc] at ht; omega
         · exact List.mem_append_left _ (List.mem_map.mpr ⟨(i,j,k),ih i j k ht,rfl⟩)
 
+/-- Folding additions with a counter adds the mapped values to the initial sum and the list
+length to the initial count. -/
 private theorem triple_fold_value_count {T : Type} (f : T → ℝ)
     (ts : List T) (a : ℝ × ℕ) :
     ts.foldl (fun a t => (a.1+f t,a.2+1)) a =
@@ -141,6 +183,8 @@ private theorem triple_fold_value_count {T : Type} (f : T → ℝ)
   | nil => simp
   | cons t ts ih => simp [ih, add_assoc, Nat.add_comm]
 
+/-- The enumeration contains each increasing triple exactly once and has length `m.choose 3`.
+The counted evaluator returns the U-statistic and exactly that many kernel evaluations. -/
 theorem triple_u_enumeration_and_actual_cost (m : ℕ) :
     (tripleIndexList m).Nodup ∧ (tripleIndexList m).length=m.choose 3 ∧
     (∀ t, t ∈ tripleIndexList m ↔ t.1<t.2.1 ∧ t.2.1<t.2.2) ∧
@@ -150,6 +194,8 @@ theorem triple_u_enumeration_and_actual_cost (m : ℕ) :
   intro X h ω
   simp [tripleUCounted,triple_fold_value_count,tripleUStatistic,tripleIndexList_length]
 
+/-- Evaluating a kernel at three distinct coordinates of an independent record has expectation
+`tripleKernelMean p h`. -/
 private theorem triple_expect_three {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (i j k : Fin m) (hij : i ≠ j) (hik : i ≠ k) (hjk : j ≠ k)
     (h : X → X → X → ℝ) :
@@ -169,6 +215,7 @@ private theorem triple_expect_three {X : Type} [Fintype X] (p : FinDist X) {m : 
   rw [← (finTwoArrowEquiv X).symm.sum_comp, Fintype.sum_prod_type]
   simp [finTwoArrowEquiv,mul_assoc]
 
+/-- A finite weighted expectation commutes with the sum of a list of functions. -/
 private theorem triple_expect_list {Ω T : Type} [Fintype Ω] (w : Ω → ℝ)
     (ts : List T) (f : Ω → T → ℝ) :
     ∑ ω, w ω*(ts.map (f ω)).sum = (ts.map (fun t => ∑ ω, w ω*f ω t)).sum := by
@@ -177,6 +224,8 @@ private theorem triple_expect_list {Ω T : Type} [Fintype Ω] (w : Ω → ℝ)
   | cons t ts ih =>
     simp only [List.map_cons,List.sum_cons,mul_add,Finset.sum_add_distrib,ih]
 
+/-- For `m ≥ 3`, the triple U-statistic has expectation equal to the independent three-variable
+kernel mean. -/
 theorem triple_u_actual_unbiased (X : Type) [Fintype X] (p : FinDist X) (m : ℕ)
     (h : X → X → X → ℝ) (hm : 3 ≤ m) :
     (∑ ω : Fin m → X, p.probOf ω*tripleUStatistic h ω)=tripleKernelMean p h := by
@@ -194,6 +243,8 @@ theorem triple_u_actual_unbiased (X : Type) [Fintype X] (p : FinDist X) (m : ℕ
   simp only [List.map_const',List.sum_replicate,nsmul_eq_mul,tripleIndexList_length]
   exact mul_div_cancel_left₀ _ (by exact_mod_cast (Nat.choose_pos hm).ne')
 
+/-- Four distinct coordinates of an independent finite record have the fourfold
+product-distribution expectation. -/
 private theorem triple_expect_4 {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (f : Fin 4 → Fin m) (hf : Function.Injective f) (g : X → X → X → X → ℝ) :
     ∑ ω : Fin m → X, p.probOf ω*g (ω (f 0)) (ω (f 1)) (ω (f 2)) (ω (f 3)) =
@@ -214,6 +265,8 @@ private theorem triple_expect_4 {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
   simp [finTwoArrowEquiv, Fin.consEquiv, Fin.cons, Fin.cases, mul_assoc]
   rfl
 
+/-- Five distinct coordinates of an independent finite record have the fivefold
+product-distribution expectation. -/
 private theorem triple_expect_5 {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (f : Fin 5 → Fin m) (hf : Function.Injective f) (g : X → X → X → X → X → ℝ) :
     ∑ ω : Fin m → X, p.probOf ω*g (ω (f 0)) (ω (f 1)) (ω (f 2)) (ω (f 3)) (ω (f 4)) =
@@ -238,6 +291,8 @@ private theorem triple_expect_5 {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
   simp [finTwoArrowEquiv, Fin.consEquiv, Fin.cons, Fin.cases, mul_assoc]
   rfl
 
+/-- Six distinct coordinates of an independent finite record have the sixfold
+product-distribution expectation. -/
 private theorem triple_expect_6 {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (f : Fin 6 → Fin m) (hf : Function.Injective f) (g : X → X → X → X → X → X → ℝ) :
     ∑ ω : Fin m → X, p.probOf ω*g (ω (f 0)) (ω (f 1)) (ω (f 2)) (ω (f 3)) (ω (f 4)) (ω (f 5)) =
@@ -267,6 +322,8 @@ private theorem triple_expect_6 {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
   simp [finTwoArrowEquiv, Fin.consEquiv, Fin.cons, Fin.cases, mul_assoc]
   rfl
 
+/-- Two centered kernel evaluations sharing their first two coordinates have covariance
+`tripleOverlapTwo p h` when the four record indices are distinct. -/
 theorem triple_shared_two_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (h : X → X → X → ℝ) (f : Fin 4 → Fin m) (hf : Function.Injective f) :
     (∑ ω : Fin m → X, p.probOf ω*
@@ -294,6 +351,8 @@ theorem triple_shared_two_covariance {X : Type} [Fintype X] (p : FinDist X) {m :
       ring
     _ = _ := by rw [hm]
 
+/-- Two centered kernel evaluations sharing their first coordinate have covariance
+`tripleOverlapOne p h` when the five record indices are distinct. -/
 theorem triple_shared_one_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (h : X → X → X → ℝ) (f : Fin 5 → Fin m) (hf : Function.Injective f) :
     (∑ ω : Fin m → X, p.probOf ω*
@@ -325,6 +384,7 @@ theorem triple_shared_one_covariance {X : Type} [Fintype X] (p : FinDist X) {m :
       ring
     _ = _ := by rw [hm]
 
+/-- Subtracting the independent kernel mean produces a kernel of mean zero. -/
 private theorem triple_center_mean {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → X → ℝ) :
     tripleKernelMean p (fun x y z => h x y z-tripleKernelMean p h) = 0 := by
@@ -333,6 +393,7 @@ private theorem triple_center_mean {X : Type} [Fintype X] (p : FinDist X)
   simp only [mul_sub,Finset.sum_sub_distrib,← Finset.mul_sum,← Finset.sum_mul,
     p.sum_one,one_mul,mul_one,sub_self]
 
+/-- Centered kernel evaluations on two disjoint triples of record indices have covariance zero. -/
 theorem triple_disjoint_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (h : X → X → X → ℝ) (f : Fin 6 → Fin m) (hf : Function.Injective f) :
     (∑ ω : Fin m → X, p.probOf ω*
@@ -363,6 +424,7 @@ theorem triple_disjoint_covariance {X : Type} [Fintype X] (p : FinDist X) {m : �
       ring
     _ = 0 := by rw [triple_center_mean,mul_zero]
 
+/-- The centered second moment at an enumerated triple equals `tripleOverlapThree p h`. -/
 theorem triple_same_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (h : X → X → X → ℝ) (t : TripleIndex m) (ht : t ∈ tripleIndexList m) :
     (∑ ω : Fin m → X, p.probOf ω*(h (ω t.1) (ω t.2.1) (ω t.2.2)-tripleKernelMean p h)^2) =
@@ -371,14 +433,17 @@ theorem triple_same_covariance {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
   exact triple_expect_three p _ _ _ (ne_of_lt hij) (ne_of_lt (hij.trans hjk)) (ne_of_lt hjk)
     (fun x y z => (h x y z-tripleKernelMean p h)^2)
 
+/-- The finite set consisting of the three coordinates of a triple. -/
 private def tripleCoordinates {m : ℕ} (t : TripleIndex m) : Finset (Fin m) :=
   {t.1,t.2.1,t.2.2}
 
+/-- The coordinate set of an enumerated increasing triple has cardinality three. -/
 private theorem tripleCoordinates_card {m : ℕ} (t : TripleIndex m)
     (ht : t ∈ tripleIndexList m) : (tripleCoordinates t).card = 3 := by
   obtain ⟨hij,hjk⟩ := tripleIndexList_ordered m t ht
   simp [tripleCoordinates, ne_of_lt hij, ne_of_lt hjk, ne_of_lt (hij.trans hjk)]
 
+/-- Sorting the coordinate set of an enumerated triple returns its three coordinates in order. -/
 private theorem tripleCoordinates_sort {m : ℕ} (t : TripleIndex m)
     (ht : t ∈ tripleIndexList m) :
     (tripleCoordinates t).sort (· ≤ ·) = [t.1,t.2.1,t.2.2] := by
@@ -389,6 +454,7 @@ private theorem tripleCoordinates_sort {m : ℕ} (t : TripleIndex m)
     simp [hij.le,hjk.le,(hij.trans hjk).le]
   simpa [tripleCoordinates] using (List.toFinset_sort (r := (· ≤ ·)) hn).mpr hp
 
+/-- The coordinate-set map is injective on the increasing triple enumeration. -/
 private theorem tripleCoordinates_injective {m : ℕ} :
     Set.InjOn (@tripleCoordinates m) ↑(tripleIndexList m).toFinset := by
   intro a ha b hb hab
@@ -399,6 +465,8 @@ private theorem tripleCoordinates_injective {m : ℕ} :
   have he' : a.1 = b.1 ∧ a.2.1 = b.2.1 ∧ a.2.2 = b.2.2 := by simpa using he
   exact Prod.ext he'.1 (Prod.ext he'.2.1 he'.2.2)
 
+/-- The coordinate sets of enumerated triples are exactly the three-element subsets of the
+record index set. -/
 private theorem tripleCoordinates_image (m : ℕ) :
     (tripleIndexList m).toFinset.image tripleCoordinates =
       (Finset.univ : Finset (Fin m)).powersetCard 3 := by
@@ -419,6 +487,8 @@ private theorem tripleCoordinates_image (m : ℕ) :
     have he := s.image_orderEmbOfFin_univ hcard
     simpa [tripleCoordinates,Fin.univ_succ,f] using he
 
+/-- For a set `s` of at most three indices, the number of increasing triples containing `s` is
+`(m - s.card).choose (3 - s.card)`. -/
 private theorem triple_incidence_count (m : ℕ) (s : Finset (Fin m)) (hs : s.card ≤ 3) :
     ((tripleIndexList m).toFinset.filter (fun t => s ⊆ tripleCoordinates t)).card =
       (m-s.card).choose (3-s.card) := by
@@ -436,6 +506,8 @@ private theorem triple_incidence_count (m : ℕ) (s : Finset (Fin m)) (hs : s.ca
   rw [← Finset.card_image_of_injOn (tripleCoordinates_injective.mono (Finset.filter_subset _ _)),he]
   simpa using Finset.card_filter_powersetCard_subset s Finset.univ 3 (Finset.subset_univ _) hs
 
+/-- For a symmetric kernel, the covariance between two triples is the stated combination of
+overlap moments and indicators of shared coordinates, pairs, and triples. -/
 private theorem triple_covariance_incidence {X : Type} [Fintype X] (p : FinDist X) {m : ℕ}
     (h : X → X → X → ℝ) (hsym : tripleKernelSymmetric h)
     (i j k u v w : Fin m) (hij : i ≠ j) (hik : i ≠ k) (hjk : j ≠ k)
@@ -1267,12 +1339,16 @@ private theorem triple_covariance_incidence {X : Type} [Fintype X] (p : FinDist 
                     simp only [Finset.mem_insert, Finset.mem_singleton, hn03, hn04, hn05, hn13,
                         hn14, hn15, hn23, hn24, hn25, or_false, and_false, ite_false, mul_zero, add_zero]
 
+/-- The sum of indicators that an increasing triple contains `s` equals `(m - s.card).choose (3
+- s.card)` when `s.card ≤ 3`. -/
 private theorem triple_incidence_sum (m : ℕ) (s : Finset (Fin m)) (hs : s.card ≤ 3) :
     (∑ t ∈ (tripleIndexList m).toFinset, if s ⊆ tripleCoordinates t then (1:ℝ) else 0) =
       ((m-s.card).choose (3-s.card):ℝ) := by
   simpa only [Finset.card_filter,Nat.cast_sum,Nat.cast_ite,Nat.cast_one,Nat.cast_zero] using
       congrArg (fun a : ℕ => (a:ℝ)) (triple_incidence_count m s hs)
 
+/-- For a symmetric kernel and `m ≥ 3`, the centered triple sum has second moment `m.choose 3`
+times the stated overlap-moment combination. -/
 private theorem triple_centered_sum_variance {X : Type} [Fintype X] (p : FinDist X)
     (m : ℕ) (h : X → X → X → ℝ) (hm : 3 ≤ m) (hsym : tripleKernelSymmetric h) :
     (∑ ω : Fin m → X, p.probOf ω *
@@ -1360,6 +1436,8 @@ private theorem triple_centered_sum_variance {X : Type} [Fintype X] (p : FinDist
       rw [Finset.sum_comm]
     _ = _ := by rw [Finset.sum_congr rfl hcov,Finset.sum_const,nsmul_eq_mul,hP]
 
+/-- For a symmetric kernel and `m ≥ 3`, the triple U-statistic mean-square error equals
+`tripleVarianceBudget p m h`. -/
 theorem triple_u_exact_overlap_variance (X : Type) [Fintype X] (p : FinDist X) (m : ℕ)
     (h : X → X → X → ℝ) (hm : 3 ≤ m) (hsym : tripleKernelSymmetric h) :
     (∑ ω : Fin m → X, p.probOf ω*(tripleUStatistic h ω-tripleKernelMean p h)^2) =
@@ -1384,6 +1462,8 @@ theorem triple_u_exact_overlap_variance (X : Type) [Fintype X] (p : FinDist X) (
   push_cast
   field_simp
 
+/-- A finite probability-weighted mean of values bounded in absolute value by `C` is itself
+bounded in absolute value by `C`. -/
 private theorem triple_mean_abs_bound {X : Type} [Fintype X] (p : FinDist X)
     (f : X → ℝ) (C : ℝ) (hf : ∀ x, |f x| ≤ C) :
     |∑ x, p.prob x*f x| ≤ C := by
@@ -1398,6 +1478,8 @@ private theorem triple_mean_abs_bound {X : Type} [Fintype X] (p : FinDist X)
       Finset.sum_le_sum fun x _ => mul_le_mul_of_nonneg_left (hf x) (p.nonneg x)
     _ = C := by rw [← Finset.sum_mul,p.sum_one,one_mul]
 
+/-- A real function bounded in absolute value by a nonnegative `C` has variance at most `C²`
+under a finite distribution. -/
 private theorem triple_variance_of_bound {X : Type} [Fintype X] (p : FinDist X)
     (f : X → ℝ) (C : ℝ) (hC : 0 ≤ C) (hf : ∀ x, |f x| ≤ C) :
     (∑ x, p.prob x*(f x-∑ y, p.prob y*f y)^2) ≤ C^2 := by
@@ -1410,6 +1492,8 @@ private theorem triple_variance_of_bound {X : Type} [Fintype X] (p : FinDist X)
       nlinarith [hf x,sq_abs (f x),abs_nonneg (f x)]
     _ = _ := by rw [← Finset.sum_mul,p.sum_one,one_mul]
 
+/-- If the kernel is bounded in absolute value by a nonnegative `C`, each of its three overlap
+moments is at most `C²`. -/
 theorem triple_overlap_moments_le_bound {X : Type} [Fintype X] (p : FinDist X)
     (h : X → X → X → ℝ) (C : ℝ) (hC : 0 ≤ C) (hh : ∀ x y z, |h x y z| ≤ C) :
     tripleOverlapOne p h ≤ C^2 ∧ tripleOverlapTwo p h ≤ C^2 ∧ tripleOverlapThree p h ≤ C^2 := by
@@ -1446,6 +1530,8 @@ theorem triple_overlap_moments_le_bound {X : Type} [Fintype X] (p : FinDist X)
     rw [hμ₃] at he
     simpa only [v,Fintype.sum_prod_type,tripleOverlapThree] using he
 
+/-- For a symmetric kernel bounded by a nonnegative `C` and `m ≥ 3`, the triple U-statistic
+mean-square error is at most `9 * C² / m`. -/
 theorem triple_u_variance_le_bound (X : Type) [Fintype X] (p : FinDist X) (m : ℕ)
     (h : X → X → X → ℝ) (hm : 3 ≤ m) (hsym : tripleKernelSymmetric h)
     (C : ℝ) (hC : 0 ≤ C) (hh : ∀ x y z, |h x y z| ≤ C) :

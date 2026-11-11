@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LinearSystems09.InputModel.QlsHhlDefs
+
+/-!
+# HHL input-model interface statements
+
+This module collects interface statements for the HHL input model in [HarrowHassidimLloyd2009].
+The `clause55_endpoint` and `clause60_endpoint` theorems package dilation and signed-filter
+properties, while the remaining endpoints record preparation, storage, error-budget,
+runtime-scale, and Simon-exponent facts.
+
+## Main statements
+
+* `clause55_endpoint`: Collects the scaled dilation and least-squares reduction properties.
+* `clause60_endpoint`: Collects symmetry, mass bounds, and normalization for consistent signed
+  filters.
+* `clause53_endpoint`: Packages envelope symmetry and preparation bit bounds.
+
+## References
+
+* [Harrow et al., 2009][HarrowHassidimLloyd2009]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.LocalMachine.LocalTransport
@@ -23,6 +44,9 @@ open Qatlib
 open Qatlib.Concepts.QlsReadoutSpec.RectDilation
 open Qatlib.Concepts.HhlErrorBridge.FilterStability
 
+/-- Collects the Hermitianity, quarter-scaling, and block entries of the scaled dilation,
+existence of a rectangular reduction, and absence of a direction when the least-squares
+vector vanishes. -/
 theorem clause55_endpoint :
     (∀ (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ),
       (qlsScaledDilation A).IsHermitian) ∧
@@ -54,6 +78,8 @@ theorem clause55_endpoint :
   · intro O I _ _ _ _ A b h
     exact leastSquaresDirection_none_of_zero_vector A b h
 
+/-- Collects evenness, agreement with the unsigned mass on nonnegative inputs, the unit mass
+bound, zero-mode flags, and normalization of consistent signed filters at positive `d`. -/
 theorem clause60_endpoint :
     (∀ (F : SignedSinEnvelopeFilter) (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d),
       signedKernelMass F d θ = signedKernelMass F d (-θ)) ∧
@@ -79,6 +105,8 @@ theorem clause60_endpoint :
   · intro F hF d θ hd
     exact signed_hVector_normalized F hF d θ hd
 
+/-- Collects the denominator bit bound, monotonicity of table storage, and the sum and
+first-argument monotonicity of the total error budget. -/
 theorem clause57_endpoint :
     (∀ q : ℕ, q < 2 ^ denominatorBits q) ∧
     (∀ M M' q q' : ℕ, M ≤ M' → q ≤ q' →
@@ -96,6 +124,8 @@ theorem clause57_endpoint :
   · intro a a' b c d h
     exact qlsErrorBudget_mono a a' b c d h
 
+/-- Collects reflection symmetry of the sine envelope, the pointwise-to-Euclidean error bound,
+and the preparation angle-bit and stage-count bounds. -/
 theorem clause53_endpoint :
     (∀ (M : ℕ) (hM : 0 < M) (τ : Fin M),
       envelopeAmplitude M τ =
@@ -116,6 +146,8 @@ theorem clause53_endpoint :
   · intro M
     exact emitter_stage_count M
 
+/-- Collects monotonicity of the source runtime scale in preparation cost and inverse precision,
+together with the lower bound one for the synthesis access factor. -/
 theorem clause4_endpoint :
     (∀ (κ T_B T_B' s logN epsInv : ℕ), T_B ≤ T_B' →
       qlsSourceScale κ T_B s logN epsInv ≤ qlsSourceScale κ T_B' s logN epsInv) ∧
@@ -130,6 +162,8 @@ theorem clause4_endpoint :
   · intro M k
     exact qlsSynthAccessCorrection_bound M k
 
+/-- Combines the lower bound one for the synthesis access factor with the explicit formula for
+the source runtime scale. -/
 theorem clause54_endpoint :
     (∀ (M k : ℕ), qlsSynthAccessFactor M k ≥ 1) ∧
     (∀ (κ T_B s logN epsInv : ℕ),
@@ -140,6 +174,8 @@ theorem clause54_endpoint :
   · intro κ T_B s logN epsInv
     rfl
 
+/-- Collects the birthday-scale bound, the reduced Simon exponent identity, and the strict
+exponential comparison when `3 * α + 4 * β < 1 / 2`. -/
 theorem clause6_endpoint :
     (∀ n : ℕ, 2 ^ (n / 2) ≤ simonBirthdayBound n) ∧
     (∀ α β n : ℝ, simonReducedExponent α β n = (3 * α + 4 * β) * n) ∧

@@ -16,6 +16,25 @@ import Mathlib.Tactic.LinearCombination
 import Qatlib.Papers.AnyonicSpin06.MainResults.TemperleyLieb
 import Qatlib.Papers.AnyonicSpin06.MainResults.FibonacciDensity
 
+/-!
+# Fibonacci generators from Temperley–Lieb matrices
+
+This module relates the explicit Fibonacci matrices to the two-dimensional Temperley–Lieb
+matrices at the golden-ratio parameter. Scalar identities for `A5`, `goldenRatio`, and `tau`
+identify `S1` and `S2` with scalar multiples of `phi1` and `phi2` and establish their braid
+relation [KauffmanLomonaco2006].
+
+## Main statements
+
+* `Rmat_eq_smul_phi1`: identifies the first generator with a scalar multiple of `phi1`.
+* `S2_eq_smul_phi2`: identifies the second generator with a scalar multiple of `phi2`.
+* `S1_S2_braid`: proves the braid relation for the Fibonacci generators.
+
+## References
+
+* [Kauffman and Lomonaco, 2006][KauffmanLomonaco2006]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -27,6 +46,7 @@ namespace Qatlib.Papers.AnyonicSpin06.MainResults.FibonacciTL
 open Qatlib.Papers.AnyonicSpin06.MainResults.TemperleyLieb
 open Qatlib.Papers.AnyonicSpin06.MainResults.FibonacciDensity
 
+/-- For real `θ`, the sum `exp (I * θ) + exp (-I * θ)` equals `2 * cos θ`. -/
 lemma exp_I_add_exp_neg_I (θ : ℝ) :
     Complex.exp (Complex.I * (θ : ℂ)) + Complex.exp (-(Complex.I * (θ : ℂ)))
       = 2 * (Real.cos θ : ℂ) := by
@@ -44,6 +64,8 @@ lemma exp_I_add_exp_neg_I (θ : ℝ) :
   rw [h1, h2]
   ring
 
+/-- The sum of `A5 ^ 2` and its inverse equals minus the golden ratio, embedded in the complex
+numbers. -/
 theorem A5_sq_add_inv :
     A5 ^ 2 + (A5 ^ 2)⁻¹ = -(goldenRatio : ℂ) := by
   have hsq : A5 ^ 2 = Complex.exp (Complex.I * ((6 * Real.pi / 5 : ℝ) : ℂ)) := by
@@ -63,6 +85,7 @@ theorem A5_sq_add_inv :
   push_cast
   ring
 
+/-- The phase `A5` satisfies `A5 ^ 4 + goldenRatio * A5 ^ 2 + 1 = 0` over the complex numbers. -/
 theorem A5_fib_rel : A5 ^ 4 + (goldenRatio : ℂ) * A5 ^ 2 + 1 = 0 := by
   have h := A5_sq_add_inv
   have hA5 : A5 ≠ 0 := by
@@ -76,6 +99,8 @@ theorem A5_fib_rel : A5 ^ 4 + (goldenRatio : ℂ) * A5 ^ 2 + 1 = 0 := by
   rw [hsimp] at hmul
   linear_combination hmul
 
+/-- The Fibonacci matrix `Rmat` equals `A5 ^ 7` times the Temperley–Lieb matrix `phi1` at the
+golden-ratio parameter [KauffmanLomonaco2006]. -/
 theorem Rmat_eq_smul_phi1 : Rmat = (A5 ^ 7) • phi1 A5 (goldenRatio : ℂ) := by
   have hA5 : A5 ≠ 0 := by unfold A5; exact Complex.exp_ne_zero _
   have hkey : A5 ^ 7 * (A5 + A5⁻¹ * (goldenRatio : ℂ)) = -(A5 ^ 4) := by
@@ -90,11 +115,13 @@ theorem Rmat_eq_smul_phi1 : Rmat = (A5 ^ 7) • phi1 A5 (goldenRatio : ℂ) := b
   fin_cases i <;> fin_cases j <;> simp [Rmat, phi1, TLgen1, Matrix.smul_apply, hkey]
   ring
 
+/-- The product of the golden ratio and `tau` equals one. -/
 lemma goldenRatio_mul_tau : goldenRatio * tau = 1 := by
   unfold goldenRatio tau
   have h5 : (Real.sqrt 5) ^ 2 = (5 : ℝ) := Real.sq_sqrt (by norm_num)
   nlinarith
 
+/-- Conjugating `TLgen1` by `Fmat` gives `TLgen2` at parameters `goldenRatio` and `sqrt tau`. -/
 theorem Fmat_mul_TLgen1_mul_Fmat :
     Fmat * TLgen1 (goldenRatio : ℂ) * Fmat
       = TLgen2 (goldenRatio : ℂ) (Real.sqrt tau : ℂ) := by
@@ -115,10 +142,13 @@ theorem Fmat_mul_TLgen1_mul_Fmat :
   · rw [mul_assoc, hdt, mul_one]
   · ring
 
+/-- Multiplying two scalar multiples of complex matrices multiplies their scalars and their
+matrix factors. -/
 lemma smul_mul_smul (a b : ℂ) (M N : Matrix (Fin 2) (Fin 2) ℂ) :
     (a • M) * (b • N) = (a * b) • (M * N) := by
   rw [Matrix.smul_mul, Matrix.mul_smul, smul_smul]
 
+/-- Conjugating `phi1` by `Fmat` gives `phi2` at the Fibonacci parameters. -/
 theorem Fmat_conj_phi1 :
     Fmat * phi1 A5 (goldenRatio : ℂ) * Fmat
       = phi2 A5 (goldenRatio : ℂ) (Real.sqrt tau : ℂ) := by
@@ -128,11 +158,14 @@ theorem Fmat_conj_phi1 :
     Matrix.mul_smul, Matrix.smul_mul, Matrix.mul_one]
   rw [Fmat_mul_TLgen1_mul_Fmat, hF]
 
+/-- The Fibonacci generator `S2` equals `A5 ^ 7` times `phi2` at parameters `A5`, `goldenRatio`,
+and `sqrt tau` [KauffmanLomonaco2006]. -/
 theorem S2_eq_smul_phi2 :
     S2 = (A5 ^ 7) • phi2 A5 (goldenRatio : ℂ) (Real.sqrt tau : ℂ) := by
   unfold S2
   rw [Rmat_eq_smul_phi1, Matrix.mul_smul, Matrix.smul_mul, Fmat_conj_phi1]
 
+/-- The Fibonacci generators satisfy `S1 * S2 * S1 = S2 * S1 * S2` [KauffmanLomonaco2006]. -/
 theorem S1_S2_braid : S1 * S2 * S1 = S2 * S1 * S2 := by
   have hA : A5 ≠ 0 := by unfold A5; exact Complex.exp_ne_zero _
   have hd : (goldenRatio : ℂ) ≠ 0 := by

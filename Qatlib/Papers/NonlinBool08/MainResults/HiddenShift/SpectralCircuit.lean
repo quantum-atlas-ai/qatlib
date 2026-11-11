@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.NonlinBool08.MainResults.QuantumDefs
 import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+
+/-!
+# Two-query spectral hidden-shift circuit
+
+Defines `progA1`, the circuit alternating three Hadamard layers with phase queries to the
+shifted function and the dual function. For even dimension and the dual and hidden-shift
+promises, its evaluated state is exactly the basis state of the hidden shift. See
+[Roetteler2008].
+
+## Main statements
+
+* `progA1_oracleCount`: the circuit contains exactly two oracle gates.
+* `progA1_correct`: the output is the basis state of the hidden shift.
+* `theorem6_twoQuery_zeroError`: the circuit family has two queries and exact recovery.
+
+## References
+
+* [Roetteler, 2008][Roetteler2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,10 +40,13 @@ namespace Qatlib.Papers.NonlinBool08.MainResults.HiddenShift
 open Qatlib.Papers.NonlinBool08.MainResults.BentCore
 open Qatlib.Papers.NonlinBool08.MainResults.QuantumDefs
 
+/-- For even `n`, the product of two complex powers `2 ^ (n / 2)` equals `2 ^ n`. -/
 lemma pow_half_mul_c {n : ℕ} (hn : Even n) :
     (2 : ℂ) ^ (n / 2) * (2 : ℂ) ^ (n / 2) = (2 : ℂ) ^ n :=
   QuantumDefs.pow_half_mul_c hn
 
+/-- For even `n`, three Hadamard normalization factors cancel the powers `2 ^ (n / 2)` and `2 ^
+n`. -/
 lemma hnorm_cube_mul {n : ℕ} (hn : Even n) :
     hnorm n * hnorm n * hnorm n * (2 : ℂ) ^ (n / 2) * (2 : ℂ) ^ n = 1 := by
   have h2 : (2 : ℂ) ^ (n / 2) ≠ 0 := pow_ne_zero _ (by norm_num)
@@ -39,6 +62,8 @@ lemma hnorm_cube_mul {n : ℕ} (hn : Even n) :
   rw [inv_mul_cancel₀ h2]
   norm_num
 
+/-- Applying a phase oracle to a constant amplitude and then a Hadamard transform yields the
+Walsh spectrum scaled by `hnorm n * c`. -/
 theorem hadamard_phaseOracle_const {n : ℕ} (f : BVec n → ZMod 2) (c : ℂ) :
     hadamard (phaseOracle f (fun _ => c))
       = fun y => hnorm n * c * (walsh f y : ℂ) := by
@@ -51,6 +76,8 @@ theorem hadamard_phaseOracle_const {n : ℕ} (f : BVec n → ZMod 2) (c : ℂ) :
   rw [← walsh_cast]
   ring
 
+/-- Applying the phase oracle for `ft` to a scaled Walsh spectrum gives the correspondingly
+scaled corrected spectrum `phaseVec`. -/
 theorem phaseOracle_phaseVec {n : ℕ} (ft g : BVec n → ZMod 2) (c : ℂ) :
     phaseOracle ft (fun y => c * (walsh g y : ℂ))
       = fun y => c * ((phaseVec ft g y : ℤ) : ℂ) := by
@@ -59,6 +86,8 @@ theorem phaseOracle_phaseVec {n : ℕ} (ft g : BVec n → ZMod 2) (c : ℂ) :
   rw [Int.cast_mul]
   ring
 
+/-- The Hadamard transform of a scaled corrected spectrum equals the scaled final amplitude
+function. -/
 theorem hadamard_phaseVec {n : ℕ} (ft g : BVec n → ZMod 2) (c : ℂ) :
     hadamard (fun y => c * ((phaseVec ft g y : ℤ) : ℂ))
       = fun z => hnorm n * c * (finalAmp ft g z : ℂ) := by
@@ -77,13 +106,18 @@ theorem hadamard_phaseVec {n : ℕ} (ft g : BVec n → ZMod 2) (c : ℂ) :
     exact Finset.sum_congr rfl (fun y _ => by ring)]
   ring
 
+/-- The five-gate hidden-shift program with Hadamard layers before, between, and after phase
+queries to `g` and `ft`. -/
 def progA1 {n : ℕ} (g ft : BVec n → ZMod 2) : Program n :=
   [Gate.had, Gate.orcl g, Gate.had, Gate.orcl ft, Gate.had]
 
+/-- The program `progA1` contains exactly two oracle gates. -/
 theorem progA1_oracleCount {n : ℕ} (g ft : BVec n → ZMod 2) :
     (progA1 g ft).oracleCount = 2 := by
   simp [Program.oracleCount, progA1, Gate.isOracle]
 
+/-- Evaluation of `progA1` on the initial state yields `finalAmp` scaled by three factors of
+`hnorm n`. -/
 theorem progA1_eval_eq {n : ℕ} (g ft : BVec n → ZMod 2) :
     (progA1 g ft).eval (initState n)
       = fun z => hnorm n * (hnorm n * hnorm n) * (finalAmp ft g z : ℂ) := by
@@ -95,6 +129,8 @@ theorem progA1_eval_eq {n : ℕ} (g ft : BVec n → ZMod 2) :
   rw [phaseOracle_phaseVec ft g (hnorm n * hnorm n)]
   rw [hadamard_phaseVec ft g (hnorm n * hnorm n)]
 
+/-- In even dimension, the dual and hidden-shift promises make `progA1` output exactly the basis
+state at the hidden shift. -/
 theorem progA1_correct {n : ℕ} (hn : Even n) {f g ft : BVec n → ZMod 2} {s : BVec n}
     (hd : IsDual f ft) (hg : HidesShiftOn f g s) :
     (progA1 g ft).eval (initState n) = basisState (n := n) s := by
@@ -112,6 +148,8 @@ theorem progA1_correct {n : ℕ} (hn : Even n) {f g ft : BVec n → ZMod 2} {s :
   · rw [if_neg hz, if_neg hz]
     simp
 
+/-- In even dimension and under the dual and hidden-shift promises, the output has probability
+one at the hidden shift and zero at every other vector. -/
 theorem progA1_born {n : ℕ} (hn : Even n) {f g ft : BVec n → ZMod 2} {s : BVec n}
     (hd : IsDual f ft) (hg : HidesShiftOn f g s) :
     prob ((progA1 g ft).eval (initState n)) s = 1 ∧
@@ -122,6 +160,9 @@ theorem progA1_born {n : ℕ} (hn : Even n) {f g ft : BVec n → ZMod 2} {s : BV
   · intro z hz
     simp [prob, basisState, hz]
 
+/-- In even dimension, a family of programs with exactly two phase queries recovers every hidden
+shift satisfying the dual promise with probability one. See [Roetteler, Theorem
+6][Roetteler2008]. -/
 theorem theorem6_twoQuery_zeroError (n : ℕ) (hn : Even n) :
     ∃ prog : (BVec n → ZMod 2) → (BVec n → ZMod 2) → Program n,
       (∀ g ft, (prog g ft).oracleCount = 2) ∧

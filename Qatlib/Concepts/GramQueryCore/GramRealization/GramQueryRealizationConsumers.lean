@@ -5,6 +5,35 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+
+/-!
+# Transporting Gram-query circuits to bit queries
+
+This module extends unitary gates along isometries, transports circuit execution through
+intertwining oracles, and preserves readout probabilities under basis embeddings. The theorem
+`gram_witness_same_count_exact_bit_query_consumer` uses these constructions to realize a
+separating Gram witness by an exact bit-query algorithm with the same query count, in the
+framework of [LeeEtAl2011].
+
+## Main statements
+
+* `gramLiftCircuit_run`: For intertwining oracles and a circuit with unitary gates, running the
+  lifted circuit on an embedded state equals embedding the original circuit output.
+
+* `gramBasisFrame_measureProb`: Embedding basis coordinates and extending the readout preserves
+  every output measurement weight.
+
+* `gram_witness_same_count_exact_bit_query_consumer`: For a nonempty query register, a Gram
+  witness separating output labels yields an exact bit-query algorithm with positive finite
+  workspace, unitary gates, and the same `T` queries [LeeEtAl2011].
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
@@ -29,6 +58,8 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- A unitary gate on the domain of an isometry extends to a unitary gate on its codomain that
+intertwines with the isometry. -/
 theorem gram_isometry_gate_transport {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L)
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
@@ -44,12 +75,15 @@ theorem gram_isometry_gate_transport {H K : Type} [Fintype H] [DecidableEq H]
     _ = Uᴴ * (Lᴴ * L) * U := by rw [hL, Matrix.mul_one]
     _ = _ := by simp only [Matrix.mul_assoc]
 
+/-- A chosen unitary extension of `U` along `L` when `U` is unitary, and the identity matrix
+otherwise. -/
 noncomputable def gramLiftGate {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L)
     (U : Matrix H H ℂ) : Matrix K K ℂ :=
   if hU : U ∈ Matrix.unitaryGroup H ℂ then
     Classical.choose (gram_isometry_gate_transport L hL U hU) else 1
 
+/-- The chosen lifted gate is unitary for every input matrix `U`. -/
 theorem gramLiftGate_unitary {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L)
     (U : Matrix H H ℂ) : gramLiftGate L hL U ∈ Matrix.unitaryGroup K ℂ := by
@@ -58,6 +92,7 @@ theorem gramLiftGate_unitary {H K : Type} [Fintype H] [DecidableEq H]
   · exact (Classical.choose_spec (gram_isometry_gate_transport L hL U hU)).1
   · exact (Matrix.unitaryGroup K ℂ).one_mem
 
+/-- For unitary `U`, the chosen lifted gate intertwines with the embedding `L`. -/
 theorem gramLiftGate_intertwining {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L)
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
@@ -65,12 +100,15 @@ theorem gramLiftGate_intertwining {H K : Type} [Fintype H] [DecidableEq H]
   rw [gramLiftGate, dif_pos hU]
   exact (Classical.choose_spec (gram_isometry_gate_transport L hL U hU)).2
 
+/-- The circuit obtained by replacing each gate with its chosen unitary lift along `L` and
+retaining each query step. -/
 noncomputable def gramLiftCircuit {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L) : Circuit H → Circuit K
   | [] => []
   | Step.gate U :: C => Step.gate (gramLiftGate L hL U) :: gramLiftCircuit L hL C
   | Step.query :: C => Step.query :: gramLiftCircuit L hL C
 
+/-- Lifting a circuit along an isometry preserves its query count. -/
 theorem gramLiftCircuit_queryCount {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L) (C : Circuit H) :
     QueryCount (gramLiftCircuit L hL C) = QueryCount C := by
@@ -78,6 +116,7 @@ theorem gramLiftCircuit_queryCount {H K : Type} [Fintype H] [DecidableEq H]
   | nil => rfl
   | cons s C ih => cases s <;> simp [gramLiftCircuit, ih]
 
+/-- Every gate in a lifted circuit is unitary. -/
 theorem gramLiftCircuit_unitary {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L) (C : Circuit H) :
     IsUnitaryCircuit (gramLiftCircuit L hL C) := by
@@ -88,6 +127,8 @@ theorem gramLiftCircuit_unitary {H K : Type} [Fintype H] [DecidableEq H]
     | gate U => simpa only [gramLiftCircuit, isUnitaryCircuit_gate] using ⟨gramLiftGate_unitary L hL U, ih⟩
     | query => simpa only [gramLiftCircuit, isUnitaryCircuit_query] using ih
 
+/-- For intertwining oracles and a circuit with unitary gates, running the lifted circuit on an
+embedded state equals embedding the original circuit output. -/
 theorem gramLiftCircuit_run {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L)
     (O : Matrix H H ℂ) (P : Matrix K K ℂ) (hO : P * L = L * O)
@@ -108,6 +149,7 @@ theorem gramLiftCircuit_run {H K : Type} [Fintype H] [DecidableEq H]
       rw [Matrix.mulVec_mulVec, hO, ← Matrix.mulVec_mulVec]
       exact ih hC' _
 
+/-- An isometry preserves the Hermitian inner product of state vectors. -/
 theorem gram_isometry_inner {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L)
     (ψ φ : QState H) : Qatlib.Foundations.PureStateMath.Inner (L *ᵥ ψ) (L *ᵥ φ) = Qatlib.Foundations.PureStateMath.Inner ψ φ := by
@@ -115,9 +157,12 @@ theorem gram_isometry_inner {H K : Type} [Fintype H] [DecidableEq H]
       Matrix.dotProduct_mulVec, Matrix.vecMul_vecMul]
   rw [hL, Matrix.vecMul_one]
 
+/-- The matrix embedding basis coordinate `h` into coordinate `e h` and setting other
+coordinates to zero. -/
 noncomputable def gramBasisFrame {H K : Type} [DecidableEq K] (e : H ↪ K) : Matrix K H ℂ :=
   fun k h => if k = e h then 1 else 0
 
+/-- The basis-coordinate embedding associated with an injective map is an isometry. -/
 theorem gramBasisFrame_isIsometry {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (e : H ↪ K) : IsIsometry (gramBasisFrame e) := by
   unfold IsIsometry
@@ -125,19 +170,24 @@ theorem gramBasisFrame_isIsometry {H K : Type} [Fintype H] [DecidableEq H]
   simp [gramBasisFrame, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.one_apply,
     mul_ite, eq_comm, e.injective.eq_iff]
 
+/-- A basis-frame embedding preserves each amplitude at the corresponding image coordinate. -/
 theorem gramBasisFrame_apply_image {H K : Type} [Fintype H] [DecidableEq H] [DecidableEq K]
     (e : H ↪ K) (ψ : QState H) (h : H) : (gramBasisFrame e *ᵥ ψ) (e h) = ψ h := by
   simp [gramBasisFrame, Matrix.mulVec, dotProduct, e.injective.eq_iff]
 
+/-- A basis-frame embedding has zero amplitude outside the image of the coordinate map. -/
 theorem gramBasisFrame_apply_outside {H K : Type} [Fintype H] [DecidableEq K]
     (e : H ↪ K) (ψ : QState H) (k : K) (hk : ¬∃ h, e h = k) :
     (gramBasisFrame e *ᵥ ψ) k = 0 := by
   have hn (h : H) : k ≠ e h := fun he => hk ⟨h, he.symm⟩
   simp [gramBasisFrame, Matrix.mulVec, dotProduct, hn]
 
+/-- The readout extending `r` along the embedding `e` and using a fallback value outside its
+image. -/
 noncomputable def gramBasisReadout {H K Z : Type} (e : H ↪ K) (r : H → Z) (fallback : Z) : K → Z :=
   fun k => if hk : ∃ h, e h = k then r (Classical.choose hk) else fallback
 
+/-- The extended basis readout agrees with the original readout on every embedded coordinate. -/
 theorem gramBasisReadout_image {H K Z : Type} (e : H ↪ K) (r : H → Z) (fallback : Z) (h : H) :
     gramBasisReadout e r fallback (e h) = r h := by
   rw [gramBasisReadout, dif_pos (show ∃ a, e a = e h from ⟨h, rfl⟩)]
@@ -145,6 +195,8 @@ theorem gramBasisReadout_image {H K Z : Type} (e : H ↪ K) (r : H → Z) (fallb
   apply e.injective
   exact Classical.choose_spec (show ∃ a, e a = e h from ⟨h, rfl⟩)
 
+/-- Embedding basis coordinates and extending the readout preserves every output measurement
+weight. -/
 theorem gramBasisFrame_measureProb {H K Z : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] [DecidableEq Z] (e : H ↪ K) (ψ : QState H)
     (r : H → Z) (fallback z : Z) :
@@ -174,6 +226,9 @@ theorem gramBasisFrame_measureProb {H K Z : Type} [Fintype H] [DecidableEq H]
   intro h _
   simp only [BornProb, gramBasisFrame_apply_image]
 
+/-- For a nonempty query register, a Gram witness separating output labels yields an exact
+bit-query algorithm with positive finite workspace, unitary gates, and the same `T` queries
+[LeeEtAl2011]. -/
 theorem gram_witness_same_count_exact_bit_query_consumer :
     ∀ (X Z : Type) [Fintype X] [DecidableEq X] [Nonempty X]
       [Fintype Z] [DecidableEq Z] (n T : ℕ) [NeZero n] (input : X → Fin n → Bool)

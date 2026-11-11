@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SignalPrimitive.LCUConsumers.InvariantSubspaceSubgoal
 import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+
+/-!
+# LCU Invariant Plane Construction
+
+This module proves `invariantSubspaceSubgoal` by applying the general qubitization
+invariant-subspace theorem to `LCUWorkspace U P`. A nonnegative prepared combination of
+Hermitian unitaries supplies a Hermitian encoded operator in the setting of [LowChuang2019].
+
+For each normalized eigenvector with `|x| < 1`, the result supplies an orthonormal pair on which
+the walk acts with coefficients `2 * x ^ 2 - 1` and `2 * x * y`, where `y > 0` and `x ^ 2 + y ^
+2 = 1`.
+
+## Main statements
+
+* `invariantSubspaceSubgoal` proves the LCU invariant-plane contract from the concrete block
+  encoding.
+
+## References
+
+- [Low and Chuang, 2019][LowChuang2019].
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.AmplitudeCore.InvFreePhase
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding Qatlib.Concepts.SignalPrimitive.LCUConsumers
@@ -16,6 +38,8 @@ namespace Qatlib.Concepts.SignalPrimitive.MainResults
 open Qatlib
 open Matrix
 
+/-- Proves the LCU invariant-plane contract by applying the general qubitization
+invariant-subspace theorem to the prepared linear combination of Hermitian unitaries. -/
 theorem invariantSubspaceSubgoal : InvariantSubspaceSubgoal := by
   intro J I _ _ _ _ U hU hUherm w hw P j₀ hP ψ hψ x hx1 hx
   have hUje : ∀ (j : J) (a b : I), (starRingEnd ℂ) ((U j) b a) = (U j) a b := by

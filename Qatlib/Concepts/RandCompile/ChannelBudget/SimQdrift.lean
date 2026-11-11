@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.RandCompile.ChannelBudget.SimQdriftDefs
 import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftRefined
+
+/-!
+# qDRIFT input programs and compiled simulation resources
+
+This module verifies dyadic coefficient programs, parameter-read bounds, and explicit classical
+resource ledgers for qDRIFT simulation as studied in [Campbell2019]. A successful parameter scan
+yields a finite-diamond simulation guarantee, while reflection-gate synthesis supplies a
+concrete circuit for each Hermitian evolution step.
+
+The postselection results compare source and actual sample counts, bound rejection fuel, and
+retain the control-cross-block obstruction for the blockwise lifted map.
+
+## Main statements
+
+* `simScanReachesSimulation`: turns a successful dyadic scan into a simulation error bound.
+* `simStep_synthesis`: realizes one Hermitian evolution using legal reflection gates.
+* `clause27_endpoint`: collects coefficient, program, ledger, and simulation guarantees.
+* `clause29_endpoint`: collects postselection and gate-count comparisons.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
@@ -31,9 +55,13 @@ namespace Qatlib.Concepts.RandCompile.ChannelBudget.SimQdrift
 open Matrix Qatlib
 open scoped BigOperators Classical ENNReal Matrix.Norms.L2Operator
 
+/-- A dyadic read approximates its real parameter at precision `k` with absolute error at most
+`(1/2)^k`. -/
 theorem dyadicRead_relParamRead {x : ℝ} {q : ℕ → ℚ} (h : DyadicRead x q) :
     ∀ k, |x - (q k : ℝ)| ≤ (1 / 2 : ℝ) ^ k := fun k => h.accuracy k
 
+/-- A dyadic lower read lies below its real parameter and approximates it with absolute error at
+most `(1/2)^k`. -/
 theorem dyadicLowerRead_relLowerParamRead {x : ℝ} {q : ℕ → ℚ} (h : DyadicLowerRead x q) :
     ∀ k, (q k : ℝ) ≤ x ∧ |x - (q k : ℝ)| ≤ (1 / 2 : ℝ) ^ k := by
   intro k
@@ -41,6 +69,8 @@ theorem dyadicLowerRead_relLowerParamRead {x : ℝ} {q : ℕ → ℚ} (h : Dyadi
   rw [abs_of_nonneg (by linarith [h.lower k])]
   exact h.deficit k
 
+/-- Evaluating the coefficient-digit program and multiplying by `2^b` recovers the signed
+integer digit. -/
 theorem simDigitProgram_eval {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L) :
     ratEval (simDigitProgram b (a j)) * (2 : ℚ) ^ b = (simDigit b a j : ℚ) := by
   have hfloor : (⌊(a j) * (2 : ℚ) ^ b + 1 / 2⌋ : ℤ) = dyadicCoefficient b (a j) := by
@@ -57,6 +87,8 @@ theorem simDigitProgram_eval {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L)
   unfold simDigit
   field_simp
 
+/-- Decoding a rounded precision-`b` coefficient digit approximates the original rational
+coefficient with error at most `(1/2)^(b + 1)`. -/
 theorem simDigit_roundtrip {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L) :
     |(simDigitValue b (simDigit b a j) : ℝ) - (a j : ℝ)| ≤ (1 / 2 : ℝ) ^ (b + 1) := by
   have h := dyadicCoefficient_error b (a j)
@@ -71,12 +103,15 @@ theorem simDigit_roundtrip {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L) :
   rw [← hcast]
   exact h'
 
+/-- Each quantized sampling weight is at most the total weight. -/
 theorem simDigit_le_weightTotal {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L) :
     SimQdriftDefs.simWeights b a j ≤ weightTotal (SimQdriftDefs.simWeights b a) := by
   have h2 : SimQdriftDefs.simWeights b a j ≤ ∑ j' : Fin L, SimQdriftDefs.simWeights b a j' :=
     Finset.single_le_sum (fun i _ => Nat.zero_le _) (Finset.mem_univ j)
   simpa [weightTotal] using! h2
 
+/-- The absolute value of a signed coefficient digit equals its natural sampling weight, viewed
+as an integer. -/
 theorem simDigit_abs_eq_weight {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L) :
     |simDigit b a j| = (SimQdriftDefs.simWeights b a j : ℤ) := by
   have hz := Int.abs_eq_natAbs (dyadicCoefficient b (a j))
@@ -85,6 +120,8 @@ theorem simDigit_abs_eq_weight {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin 
   unfold simDigit
   rw [hz, hz']
 
+/-- Every signed coefficient digit has absolute value strictly below `2` raised to the assigned
+digit width. -/
 theorem simDigit_fits_width {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L) :
     |simDigit b a j| < (2 ^ (simDigitWidth b a) : ℤ) := by
   have hlt : SimQdriftDefs.simWeights b a j < 2 ^ (simDigitWidth b a) := by
@@ -106,9 +143,12 @@ theorem simDigit_fits_width {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L) 
   rw [simDigit_abs_eq_weight b a j]
   exact_mod_cast hlt
 
+/-- The coefficient digit table occupies `L` times the assigned digit width. -/
 theorem simDigitTableSpace_eq {L : ℕ} (b : ℕ) (a : Fin L → ℚ) :
     simDigitTableSpace b a = L * simDigitWidth b a := rfl
 
+/-- The count program evaluates to the integer ceiling of `2 * W^2 * T^2 / eQ`, viewed as a
+rational number. -/
 theorem simCountProgram_eval (W T : ℕ) (eQ : ℚ) :
     ratEval (simCountProgram W T eQ)
       = ↑(Rat.ceil (2 * (W : ℚ) ^ 2 * (T : ℚ) ^ 2 / eQ)) := by
@@ -120,6 +160,7 @@ theorem simCountProgram_eval (W T : ℕ) (eQ : ℚ) :
   congr 1
   ring
 
+/-- The rejection-fuel program evaluates to `s + Nat.clog 2 n + 2`. -/
 theorem simFuelProgram_eval (n s : ℕ) :
     ratEval (simFuelProgram n s) = (s + Nat.clog 2 n + 2 : ℚ) := by
   have hnum : ((n : ℚ)).num.natAbs = n := by simp
@@ -131,6 +172,8 @@ theorem simFuelProgram_eval (n s : ℕ) :
   push_cast
   ring
 
+/-- The simulation-run ledger records the exact operation, digit-read, parameter-read, scan,
+bit-time, and bit-space formulas. -/
 theorem simRunLedger_ledger (L : ℕ) (k : ℕ) (prog : RatProgram) (digitSpace B : ℕ) :
     (simRunLedger L k prog digitSpace B).ops = (ratCost prog).total ∧
     (simRunLedger L k prog digitSpace B).digitReads = L * (k + 1) ∧
@@ -143,11 +186,14 @@ theorem simRunLedger_ledger (L : ℕ) (k : ℕ) (prog : RatProgram) (digitSpace 
   refine ⟨rfl, rfl, rfl, rfl, ?_, rfl⟩
   rfl
 
+/-- The simulation-run bit-length bound dominates the supplied digit-table space. -/
 theorem simRunBitLength_digit (k : ℕ) (tq eq : ℕ → ℚ) (digitSpace : ℕ) :
     digitSpace ≤ simRunBitLength k tq eq digitSpace := by
   unfold simRunBitLength
   omega
 
+/-- Every time-parameter rational read at precision at most `k` fits within the simulation-run
+bit-length bound. -/
 theorem simRunBitLength_read (k : ℕ) (tq eq : ℕ → ℚ) (digitSpace : ℕ) (k' : ℕ)
     (hk' : k' ≤ k) :
     simRatBits (tq k') ≤ simRunBitLength k tq eq digitSpace := by
@@ -162,6 +208,9 @@ theorem simRunBitLength_read (k : ℕ) (tq eq : ℕ → ℚ) (digitSpace : ℕ) 
   unfold simRunBitLength
   omega
 
+/-- Valid dyadic reads and a successful bounded scan yield time and accuracy levels achieving
+finite diamond error at most `ε` for positive quantized mass and Hermitian contraction
+terms. -/
 theorem simScanReachesSimulation : ∀ (L D : ℕ) (a : Fin L → ℚ) (b : ℕ) (j0 : Fin L)
     (K : Fin L → Operator D) (t ε : ℝ) (tq eq : ℕ → ℚ) (fuel T : ℕ),
     DyadicRead t tq → DyadicLowerRead ε eq →
@@ -195,18 +244,26 @@ theorem simScanReachesSimulation : ∀ (L D : ℕ) (a : Fin L → ℚ) (b : ℕ)
       hW hK ⟨k, hk, hc'⟩
   exact ⟨T', s, h1, h2, h3⟩
 
+/-- The simulation tight count equals the source tight-count definition. -/
 theorem simTightCount_eq_source (W T : ℕ) (eQ : ℚ) :
     simTightCount W T eQ = SimQdriftDefs.sourceTightCount W T eQ := rfl
 
+/-- The total gate budget is the step count times the per-step synthesis budget. -/
 theorem simGateBudget_eq (m n : ℕ) :
     simGateBudget m n = n * SimQdriftDefs.synthGateBudget m := rfl
 
+/-- The quantum-space budget for an `m`-bit data register is `m + (m + 1)`. -/
 theorem simQuantumSpace_eq (m : ℕ) :
     simQuantumSpace m = m + (m + 1) := rfl
 
+/-- The classical-space budget is the sum of binary ceiling logarithms of the positive-clamped
+step and label counts. -/
 theorem simClassicalSpace_eq (n L : ℕ) :
     simClassicalSpace n L = Nat.clog 2 (max 1 n) + Nat.clog 2 (max 1 L) := rfl
 
+/-- A Hermitian evolution on an `m`-bit register has a legal reflection-gate implementation
+within the synthesis budget and with zero oracle queries. Its action on embedded states
+equals the embedded Hamiltonian evolution. -/
 theorem simStep_synthesis (m : ℕ) (K : Matrix (Reg m) (Reg m) ℂ) (θ : ℝ)
     (hK : K.IsHermitian) :
     ∃ gs : List (ReflectionGate (m + (m + 1))),
@@ -220,6 +277,7 @@ theorem simStep_synthesis (m : ℕ) (K : Matrix (Reg m) (Reg m) ℂ) (θ : ℝ)
   Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdrift.hermitian_exponential_circuit_synthesis
     m K θ hK
 
+/-- For positive `eQ`, the source tight count is at most `2 * W^2 * T^2 / eQ + 1`. -/
 theorem simSourceCount_le_budget (W T : ℕ) (eQ : ℚ) (he : 0 < eQ) :
     (SimQdriftDefs.sourceTightCount W T eQ : ℝ) ≤ 2 * (W : ℝ) ^ 2 * (T : ℝ) ^ 2 / (eQ : ℝ) + 1 := by
   have h1 := Nat.ceil_lt_add_one (a := 2 * (W : ℚ) ^ 2 * (T : ℚ) ^ 2 / eQ)
@@ -239,6 +297,8 @@ theorem simSourceCount_le_budget (W T : ℕ) (eQ : ℚ) (he : 0 < eQ) :
   rw [h3] at h1'
   linarith
 
+/-- For positive `W`, `T`, and `eQ`, the actual count is at least `simOversizeFactor eQ s` times
+`2 * W^2 * T^2 / eQ`. -/
 theorem simActualCount_oversize (W T : ℕ) (eQ : ℚ) (s : ℕ)
     (hW : 0 < W) (hT : 0 < T) (he : 0 < eQ) :
     (simActualCount W T s : ℝ) ≥
@@ -280,6 +340,8 @@ theorem simActualCount_oversize (W T : ℕ) (eQ : ℚ) (s : ℕ)
   rw [hmul]
   exact hcnt
 
+/-- The blockwise lifted postselected map has zero control cross block on `coherentWitness`,
+whose own control cross block is nonzero. -/
 theorem simPostSelect_no_free_lunch (L : ℕ) (w : Fin L → ℕ) (hW : 0 < weightTotal w)
     (K : Fin L → Operator 2) (n : ℕ) (t : ℝ) :
     SimQdriftDefs.ctrlCrossBlock
@@ -294,6 +356,8 @@ theorem simPostSelect_no_free_lunch (L : ℕ) (w : Fin L → ℕ) (hW : 0 < weig
   exact ⟨Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdrift.ctrlBlockMapIdx_cross_zero
       (SimQdriftDefs.postSelectedQdriftMap w hW n K t) SimQdriftDefs.coherentWitness, hne⟩
 
+/-- For positive weight mass, time bound, and error tolerance, a positive postselected qDRIFT
+step count achieves the requested finite diamond error for Hermitian contraction terms. -/
 theorem simPostSelect_tight_count (L D : ℕ) (w : Fin L → ℕ)
     (K : Fin L → Operator D) (t : ℝ) (T : ℕ) (eQ : ℝ)
     (hW : 0 < weightTotal w) (ht : |t| ≤ T)
@@ -305,6 +369,7 @@ theorem simPostSelect_tight_count (L D : ℕ) (w : Fin L → ℕ)
   Qatlib.Concepts.RandCompile.ChannelBudget.QdriftSimulation.clause28_post_select_tight_count
     L D w K t T eQ hW ht hK hT he
 
+/-- For positive `eQ`, the chosen postselection fuel makes `n * (1/2)^R` at most `eQ`. -/
 theorem simPostSelect_fuel (n : ℕ) (eQ : ℚ) (he : 0 < eQ) :
     (n : ℝ) * ((2 : ℝ)⁻¹) ^ (simPostSelectFuel n eQ) ≤ (eQ : ℝ) := by
   have hclog : Nat.ceil ((n : ℚ) / eQ) ≤ 2 ^ (Nat.clog 2 (Nat.ceil ((n : ℚ) / eQ))) := by
@@ -346,6 +411,8 @@ theorem simPostSelect_fuel (n : ℕ) (eQ : ℚ) (he : 0 < eQ) :
       have h9 : (eQ : ℝ) * ((n : ℝ) / (eQ : ℝ)) = n := by field_simp
       linarith
 
+/-- Under the stated positivity, error-budget, time, and lower-bound assumptions, the Table I
+simulation gate count is at most the phase-estimation gate count. -/
 theorem simTableI_gate_comparison (m : ℕ) (lam t eps deltaE pf : ℝ)
     (hlam : 0 < lam) (hdelta : 0 < deltaE) (hpf : 0 < pf)
     (hbudget : eps = deltaE ^ 2 * pf ^ 2) (hcmp : 2 * t ^ 2 * pf ≤ 133)
@@ -357,6 +424,9 @@ theorem simTableI_gate_comparison (m : ℕ) (lam t eps deltaE pf : ℝ)
   unfold simGateBudget
   exact Nat.mul_le_mul_right (SimQdriftDefs.synthGateBudget m) h1
 
+/-- Collects dyadic-read accuracy, coefficient-digit evaluation and storage bounds, count and
+fuel program evaluation, rational-program cost identities, and scan-to-simulation
+correctness. -/
 theorem clause27_endpoint :
     (∀ (x : ℝ) (q : ℕ → ℚ), DyadicRead x q →
       ∀ k, |x - (q k : ℝ)| ≤ (1 / 2 : ℝ) ^ k) ∧
@@ -423,6 +493,8 @@ theorem clause27_endpoint :
   · intro L D a b j0 K t ε tq eq fuel T htq heq hW hK hex
     exact simScanReachesSimulation L D a b j0 K t ε tq eq fuel T htq heq hW hK hex
 
+/-- Collects legal reflection-gate synthesis, the source tight-count identity and count bounds,
+and the total gate and space budget formulas. -/
 theorem clause28_endpoint : ∀ (m : ℕ) (K : Matrix (Reg m) (Reg m) ℂ) (θ : ℝ), K.IsHermitian →
     (∃ gs : List (ReflectionGate (m + (m + 1))),
       reflectionLegal gs ∧
@@ -451,6 +523,8 @@ theorem clause28_endpoint : ∀ (m : ℕ) (K : Matrix (Reg m) (Reg m) ℂ) (θ :
   · intro m n
     exact ⟨simGateBudget_eq m n, simQuantumSpace_eq m, simClassicalSpace_eq n m⟩
 
+/-- Collects the postselected control-cross-block obstruction, existence of accurate
+postselected simulations, the rejection-fuel bound, and the Table I gate comparison. -/
 theorem clause29_endpoint : ∀ (L : ℕ) (w : Fin L → ℕ) (hW : 0 < weightTotal w)
     (K : Fin L → Operator 2) (n : ℕ) (t : ℝ),
     SimQdriftDefs.ctrlCrossBlock

@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+/-!
+# Instruments from unitary ancilla readout
+
+Constructs `readoutInstrument` from a unitary acting on an ancilla and a system, with a fixed
+ancilla input basis label. It proves Kraus completeness and identifies pure-input outcome
+probabilities with sums of squared output amplitudes.
+
+The module also treats reference extensions, coarse outcome labels, and readout after a
+well-formed compiled adjoint circuit through `compiledReadout`. The measurement construction
+follows the standard unitary-and-ancilla framework of [NielsenChuang2010].
+
+## Main statements
+
+* `readoutKraus_complete`: completeness of the unitary block Kraus operators.
+* `readout_reference_laws`: positivity and trace laws with a reference system.
+* `compiled_readout_probability`: Born probabilities for compiled circuits.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.PureStateMath
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -30,6 +53,8 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped BigOperators ComplexOrder
 
+/-- For a unitary joint matrix and fixed input ancilla label, the readout Kraus adjoint-products
+sum to the identity. -/
 theorem readoutKraus_complete {D M : ℕ}
     (U : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ) (a : Fin M) :
@@ -41,11 +66,15 @@ theorem readoutKraus_complete {D M : ℕ}
     Matrix.conjTranspose_apply, Fintype.sum_prod_type, readoutKraus,
     Matrix.one_apply, Prod.mk.injEq, true_and] using he
 
+/-- The instrument obtained from the Kraus blocks of a unitary joint ancilla-system matrix with
+fixed ancilla input. -/
 def readoutInstrument {D M : ℕ}
     (U : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ) (a : Fin M) : Instrument (Fin M) D D :=
   Instrument.ofKraus (readoutKraus U a) (readoutKraus_complete U hU a)
 
+/-- The joint output amplitude at ancilla label `o` equals the corresponding component of the
+readout Kraus operator applied to the system vector. -/
 theorem readoutKraus_actual_vector {D M : ℕ}
     (U : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ) (a o : Fin M)
     (ψ : QState (Fin D)) (i : Fin D) :
@@ -53,6 +82,8 @@ theorem readoutKraus_actual_vector {D M : ℕ}
   simp [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, TensorState,
     Qatlib.Foundations.PureStateMath.Ket, readoutKraus, mul_ite, ite_mul]
 
+/-- The instrument probability on a pure outer product equals the sum of squared joint output
+amplitudes at the selected ancilla label. -/
 theorem readout_pure_probability {D M : ℕ}
     (U : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ) (a o : Fin M)
@@ -64,6 +95,8 @@ theorem readout_pure_probability {D M : ℕ}
   rw [conjBranch_outerProduct, trace_outerProduct]
   rfl
 
+/-- Extending a readout branch by a reference identity gives conjugation by the Kraus operator
+tensored with that identity. -/
 theorem readout_reference_branch {D M R : ℕ}
     (U : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ) (a o : Fin M)
@@ -73,6 +106,9 @@ theorem readout_reference_branch {D M R : ℕ}
         (TensorGate (readoutKraus U a o) (1 : Operator R))ᴴ :=
   tensorLeft_conjBranch _ ρ
 
+/-- On a positive semidefinite joint input, each reference-extended branch is positive
+semidefinite and has no larger real trace, while the sum of branch traces equals the input
+trace. -/
 theorem readout_reference_laws {D M R : ℕ}
     (U : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ) (a o : Fin M)
@@ -86,6 +122,8 @@ theorem readout_reference_laws {D M R : ℕ}
     (readoutInstrument U hU a).tensorLeft_tni hρ o,
     (readoutInstrument U hU a).tensorLeft_total ρ⟩
 
+/-- A coarse-grained pure-input readout probability is the sum of squared joint output
+amplitudes over all ancilla labels in the selected coarse class. -/
 theorem readout_coarse_probability {D M K : ℕ}
     (U : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ)
     (hU : U ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ) (a : Fin M)
@@ -96,6 +134,8 @@ theorem readout_coarse_probability {D M K : ℕ}
   rw [instrumentProb_coarsen]
   simp_rw [readout_pure_probability]
 
+/-- The readout instrument formed by evaluating a well-formed adjoint circuit with a unitary
+oracle. -/
 def compiledReadout {D M : ℕ}
     (O : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ)
     (hO : O ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ)
@@ -103,6 +143,8 @@ def compiledReadout {D M : ℕ}
     (a : Fin M) : Instrument (Fin M) D D :=
   readoutInstrument (evaluate O cs) (hcs.evaluate_unitary hO) a
 
+/-- The pure-input probability of a compiled readout outcome equals the sum of squared
+evaluated-circuit amplitudes at that ancilla label. -/
 theorem compiled_readout_probability {D M : ℕ}
     (O : Matrix (Fin M × Fin D) (Fin M × Fin D) ℂ)
     (hO : O ∈ Matrix.unitaryGroup (Fin M × Fin D) ℂ)

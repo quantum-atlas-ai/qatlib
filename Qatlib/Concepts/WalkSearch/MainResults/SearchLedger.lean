@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.MainResults.PhaseGap
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.Complex.ExponentialBounds
+
+/-!
+# Explicit quantum search cost ledgers
+
+`searchWalkCalls` and `searchTotalCost` record update and total charges for search with repeated
+phase estimation. The module proves explicit bounds in the marked mass and spectral gaps and
+provides parallel estimates for `searchTotalCostLogFree`, whose update term has no extra
+logarithm. For background on search via quantum walks, see [MagniezNayakRolandSantha2011].
+
+## Main statements
+
+* `fiveSample_failure_lt_quarter`: The five sample failure factor `(3 / 4)^5` is strictly less
+  than `1 / 4`; see [Magniez et al., Quantum Search][MagniezNayakRolandSantha2011].
+* `singularPhaseGap_ge_two_sqrt_gap`: For `0 < δ ≤ 1`, the phase gap at `1 - δ` is at least `2 *
+  sqrt δ`, as used in [Magniez et al., Theorem 8][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,11 +37,17 @@ namespace Qatlib.Concepts.WalkSearch.MainResults.SearchLedger
 
 open Qatlib.Concepts.WalkSearch.MainResults.PhaseGap
 
+/-- The five sample failure factor `(3 / 4)^5` is strictly less than `1 / 4`; see [Magniez et
+al., Quantum Search][MagniezNayakRolandSantha2011]. -/
 theorem fiveSample_failure_lt_quarter : ((3 : ℝ) / 4) ^ 5 < 1 / 4 := by
   norm_num
 
+/-- The real update call ledger `T * k * 2^(s + 1)` for `T` iterations and `k` phase estimation
+repetitions. -/
 def searchWalkCalls (T k s : ℕ) : ℝ := (T : ℝ) * ((k : ℝ) * (2 : ℝ) ^ (s + 1))
 
+/-- The iteration, precision, gap, and repetition bounds imply `searchWalkCalls T k s ≤ 16 * π /
+sqrt ε * log (1 / sqrt ε) / sqrt δ`. -/
 theorem search_calls_le {ε δ Δ : ℝ} {T k s : ℕ}
     (hε : 0 < ε) (hε4 : ε ≤ 1 / 4) (hδ : 0 < δ)
     (hT : (T : ℝ) ≤ 1 / Real.sqrt ε)
@@ -74,9 +101,14 @@ theorem search_calls_le {ε δ Δ : ℝ} {T k s : ℕ}
     _ ≤ _ := h3
     _ = _ := h4
 
+/-- The cost ledger `5 * (S + C) + searchWalkCalls T k s * U + C` for sampling, walk updates,
+and the final check; see [Magniez et al., Quantum Search][MagniezNayakRolandSantha2011]. -/
 def searchTotalCost (S U C : ℝ) (T k s : ℕ) : ℝ :=
   5 * (S + C) + searchWalkCalls T k s * U + C
 
+/-- Under the stated nonnegativity and parameter bounds, total search cost is at most `(16 * π +
+6) * (S + (U * log (1 / sqrt ε) / sqrt δ + C) / sqrt ε)`; see [Magniez et al., Theorem
+7][MagniezNayakRolandSantha2011]. -/
 theorem search_total_cost_le {ε δ Δ : ℝ} {T k s : ℕ} {S U C : ℝ}
     (hS : 0 ≤ S) (hU : 0 ≤ U) (hC : 0 ≤ C)
     (hε : 0 < ε) (hε4 : ε ≤ 1 / 4) (hδ : 0 < δ)
@@ -150,8 +182,11 @@ theorem search_total_cost_le {ε δ Δ : ℝ} {T k s : ℕ} {S U C : ℝ}
   have := add_le_add hSC hmain
   linarith only [this, hEq]
 
+/-- The real update call ledger `T * 2^(s + 1)` without a phase estimation repetition factor. -/
 def searchWalkCallsLogFree (T s : ℕ) : ℝ := (T : ℝ) * (2 : ℝ) ^ (s + 1)
 
+/-- The iteration, precision, and gap bounds imply `searchWalkCallsLogFree T s ≤ 4 * π / (sqrt ε
+* sqrt δ)`. -/
 theorem search_calls_logfree_le {ε δ Δ : ℝ} {T s : ℕ}
     (hε : 0 < ε) (hδ : 0 < δ)
     (hT : (T : ℝ) ≤ 1 / Real.sqrt ε)
@@ -176,9 +211,13 @@ theorem search_calls_logfree_le {ε δ Δ : ℝ} {T s : ℕ}
     _ ≤ _ := h3
     _ = 4 * Real.pi * (1 / Real.sqrt ε) * (1 / Real.sqrt δ) := by ring
 
+/-- The cost ledger `5 * (S + C) + searchWalkCallsLogFree T s * U + C` using the update count
+without the repetition factor. -/
 def searchTotalCostLogFree (S U C : ℝ) (T s : ℕ) : ℝ :=
   5 * (S + C) + searchWalkCallsLogFree T s * U + C
 
+/-- Under the stated bounds, total cost is at most `(4 * π + 6) * (S + (U / sqrt δ + C) / sqrt
+ε)`; see [Magniez et al., Theorem 8][MagniezNayakRolandSantha2011]. -/
 theorem search_total_cost_logfree_le {ε δ Δ : ℝ} {T s : ℕ} {S U C : ℝ}
     (hS : 0 ≤ S) (hU : 0 ≤ U) (hC : 0 ≤ C)
     (hε : 0 < ε) (hε4 : ε ≤ 1 / 4) (hδ : 0 < δ)
@@ -234,6 +273,8 @@ theorem search_total_cost_logfree_le {ε δ Δ : ℝ} {T s : ℕ} {S U C : ℝ}
   have := add_le_add hSC hcallsU
   linarith only [this, hEq]
 
+/-- For `0 < δ ≤ 1`, the phase gap at `1 - δ` is at least `2 * sqrt δ`, as used in [Magniez et
+al., Theorem 8][MagniezNayakRolandSantha2011]. -/
 theorem singularPhaseGap_ge_two_sqrt_gap {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
     2 * Real.sqrt δ ≤ phaseGap (1 - δ) :=
   phaseGap_ge_two_sqrt_gap hδ0 hδ1

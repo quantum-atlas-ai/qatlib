@@ -11,6 +11,24 @@ import Mathlib.Algebra.Group.Pointwise.Set.Basic
 import Mathlib.Data.Set.Basic
 import Mathlib.Tactic
 
+/-!
+# Coset identities for self-reduction
+
+This module proves the correction and coset identities used in the translating-coset
+self-reduction of [FriedlEtAl2014]. The set `normalTranslatingSet` records translations inside a
+chosen subgroup, and the results identify it with a translate of an intersection of subgroups.
+
+## Main statements
+
+* `biUnion_correction_eq`: recovers `H` as a union of corrected translates of `H ⊓ N`.
+* `normalTranslatingSet_eq_coset`: identifies the constrained translating set with a coset of `H
+  ⊓ N`.
+
+## References
+
+* [Friedl et al., 2014][FriedlEtAl2014]
+-/
+
 set_option autoImplicit false
 
 open scoped Pointwise
@@ -23,6 +41,8 @@ section NormalCorrection
 
 variable [Group G]
 
+/-- If `z * n = u * h` and `z * n' = u * h'` with the corrections in `N` and the targets in `H`,
+then `h'` lies in the left translate of `H ⊓ N` by `h`. -/
 theorem correction_mem_smul_inter (N H : Subgroup G) {z u h h' n n' : G}
     (hn : n ∈ N) (hn' : n' ∈ N) (hh : h ∈ H) (hh' : h' ∈ H)
     (hz : z * n = u * h) (hz' : z * n' = u * h') :
@@ -34,6 +54,8 @@ theorem correction_mem_smul_inter (N H : Subgroup G) {z u h h' n n' : G}
   rw [hcalc]
   exact N.mul_mem (N.inv_mem hn) hn'
 
+/-- Given correction maps into `N` and `H` satisfying the stated factorization on `u * H * N`,
+the union of the corrected translates of `H ⊓ N` is `H`. -/
 theorem biUnion_correction_eq (N H : Subgroup G) (u : G) (σ τ : G → G)
     (hσ : ∀ z, σ z ∈ N) (hτ : ∀ z, τ z ∈ H)
     (hpair : ∀ z, z ∈ ({u} : Set G) * (H : Set G) * (N : Set G) →
@@ -67,9 +89,13 @@ section TranslatingCoset
 
 variable [Group G] [MulAction G Γ]
 
+/-- The set of elements `v ∈ N` sending `φ₁` to `z⁻¹ • φ₀`. -/
 def normalTranslatingSet (N : Subgroup G) (φ₀ φ₁ : Γ) (z : G) : Set G :=
   {v : G | v ∈ N ∧ v • φ₁ = z⁻¹ • φ₀}
 
+/-- If `H` is the stabilizer of `φ₁`, `u` sends `φ₁` to `φ₀`, and `z * n = u * h` with `n ∈ N`
+and `h ∈ H`, then `normalTranslatingSet N φ₀ φ₁ z` is the left translate of `H ⊓ N` by `n`.
+This is a coset identity used in the self-reduction of [FriedlEtAl2014]. -/
 theorem normalTranslatingSet_eq_coset (N H : Subgroup G) {φ₀ φ₁ : Γ} {u z n h : G}
     (hH : H = MulAction.stabilizer G φ₁)
     (hu : u • φ₁ = φ₀) (hz : z * n = u * h) (hn : n ∈ N) (hh : h ∈ H) :

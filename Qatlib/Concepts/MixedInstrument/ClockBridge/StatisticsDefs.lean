@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.MixedInstrument.ClockBridge.StatisticalConfidence
+
+/-!
+# Space quantities for confidence budgets
+
+This module defines `confidencePeakSpace` as the maximum of the pilot record count and one main
+block size. It defines `nativeSelectorCells` as the product of block size and block count for
+comparison with that space quantity. See [Montanaro2015] for the Monte Carlo context.
+
+## Main statements
+
+* `confidencePeakSpace`: records the maximum phase size.
+* `nativeSelectorCells`: counts all main-phase selector cells.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ShadowModels.ShadowChannel
@@ -19,9 +37,11 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 set_option linter.unusedVariables false
 
+/-- The maximum of the pilot record count and the main block size in a confidence budget. -/
 def confidencePeakSpace (b : ConfidenceBudget) : ℕ :=
   max b.pilotRecords b.blockSize
 
+/-- The total number of main-phase selector cells, given by block size times block count. -/
 def nativeSelectorCells (b : ConfidenceBudget) : ℕ :=
   b.blockSize * b.blockCount
 

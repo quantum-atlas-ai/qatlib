@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 import Qatlib.Foundations.BornMetrics.EventProbability
+
+/-!
+# Finite gate words for initialization and parity
+
+This module connects legal finite gate words to normalized output states and Born acceptance
+probabilities. It gives an explicit CNOT word that computes classical parity into a clean extra
+wire while preserving the input bits, using the standard circuit semantics of
+[NielsenChuang2010].
+
+## Main statements
+
+* `finite_gate_initialized_run_born_acceptance`: legal words on initialized basis inputs produce
+  normalized states and acceptance probabilities in `[0, 1]`.
+* `finite_gate_parity_actual_clean_output_and_basic_cost`: the parity word uses `n` gates and
+  zero queries, with exact output and deterministic parity readout.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 open Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -20,14 +41,19 @@ open Matrix
 open scoped Classical
 set_option maxHeartbeats 1000000
 
+/-- Extends the `n` input bits `x` by `m` false ancillary bits. -/
 def finiteInitializedBasis (n m : ℕ) (x : Reg n) : Reg (n + m) :=
   fun i => if h : i.val < n then x ⟨i.val, h⟩ else false
 
+/-- The list of CNOT gates from each of the first `n` wires to the extra wire numbered `n`. -/
 def finiteParityWord (n : ℕ) : List FiniteGateCode :=
   List.ofFn (fun i : Fin n => FiniteGateCode.cx i.val n)
 
+/-- The Boolean XOR of all `n` input bits, starting from false. -/
 def finiteParityValue (n : ℕ) (x : Reg n) : Bool := (List.ofFn x).foldl (· ^^ ·) false
 
+/-- Running a legal finite gate word on the input basis state with false ancillas gives a
+normalized state whose probability of observing true on wire `j` lies between zero and one. -/
 theorem finite_gate_initialized_run_born_acceptance (n m : ℕ) (x : Reg n)
     (gs : List FiniteGateCode) (j : Fin (n + m)) (hg : finiteWordLegal (n + m) gs = true) :
     let ψ := Run (1 : Matrix (Reg (n + m)) (Reg (n + m)) ℂ)
@@ -41,9 +67,12 @@ theorem finite_gate_initialized_run_born_acceptance (n m : ℕ) (x : Reg n)
     (Matrix.unitaryGroup (Reg (n + m)) ℂ).one_mem _ hu (normalized_ket (finiteInitializedBasis n m x))
   exact ⟨hn, measureProb_nonneg _ _, measureProb_le_one hn _⟩
 
+/-- The basis label consisting of the `n` input bits `x` followed by the bit `b`. -/
 private def finiteParityState (n : ℕ) (x : Reg n) (b : Bool) : Reg (n + 1) :=
   fun j => if h : j.val < n then x ⟨j.val, h⟩ else b
 
+/-- A CNOT from input wire `i` to the parity wire replaces `b` by `b ^^ x i` while preserving
+the input bits. -/
 private theorem finiteParity_step (n : ℕ) (x : Reg n) (b : Bool) (i : Fin n) :
     ApplyGate (finiteCodeMatrix (n + 1) (.cx i.val n)) (Ket (finiteParityState n x b)) =
       Ket (finiteParityState n x (b ^^ x i)) := by
@@ -63,6 +92,8 @@ private theorem finiteParity_step (n : ℕ) (x : Reg n) (b : Bool) (i : Fin n) :
       omega
     simp [Function.update_of_ne hj, finiteParityState, hjn]
 
+/-- Running the CNOTs indexed by `is` on `finiteParityState n x b` accumulates the XOR of the
+selected input bits into `b`. -/
 private theorem finiteParity_list_run (n : ℕ) (x : Reg n) (is : List (Fin n)) (b : Bool) :
     Run (1 : Matrix (Reg (n + 1)) (Reg (n + 1)) ℂ)
       (finiteCodeCircuit (n + 1) (is.map (fun i => FiniteGateCode.cx i.val n)))
@@ -75,11 +106,16 @@ private theorem finiteParity_list_run (n : ℕ) (x : Reg n) (is : List (Fin n)) 
     rw [finiteParity_step]
     exact ih (b ^^ x i)
 
+/-- The probability of a finite event in basis state `Ket x` is one when `x` belongs to the
+event and zero otherwise. -/
 private theorem finiteMeasureProb_ket {I : Type*} [Fintype I] [DecidableEq I]
     (x : I) (S : Finset I) : MeasureProb (Ket x) S = if x ∈ S then 1 else 0 := by
   simp only [MeasureProb, bornProb_ket]
   simp
 
+/-- The parity word is legal, uses zero queries and exactly `n` gates, and maps the initialized
+input to the basis state containing `x` and its parity. Measuring true on the last wire has
+probability one or zero according to that parity. -/
 theorem finite_gate_parity_actual_clean_output_and_basic_cost (n : ℕ) (x : Reg n) :
     finiteWordLegal (n + 1) (finiteParityWord n) = true ∧
     QueryCount (finiteCodeCircuit (n + 1) (finiteParityWord n)) = 0 ∧

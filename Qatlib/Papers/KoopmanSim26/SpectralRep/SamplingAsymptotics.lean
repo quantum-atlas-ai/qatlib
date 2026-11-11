@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.KoopmanSim26.SpectralRep.QuadratureNormalization
+
+/-!
+# Sampling rates with cubic cutoff growth
+
+Normalized right-grid weights combine the expected mixture-estimation bound with convergence of
+the raw quadrature mass. When the cutoff is `kappa h^(1/3)` and the mass is at least one half,
+`sampling_bound_from_mass_half` gives expected Euclidean error at most `sqrt(4 kappa/pi)
+M^(-1/2) h^(-1/3)`.
+
+The eventual bound is uniform over finite outcome spaces, circuit distributions, and positive
+shot counts. The result `source_sampling_scaling` packages the resulting joint asymptotic
+estimate for the normalized-quadrature sampling regime of [ZhangEtAl2026].
+
+## Main statements
+
+* `source_rate_sq` identifies the square of the explicit sampling rate with the cubic-cutoff
+  expression.
+- `sampling_bound_from_mass_half` gives the rate under a mass lower bound.
+- `eventually_uniform_sampling_bound` obtains that rate for all sufficiently large node counts.
+- `source_sampling_scaling` proves the corresponding joint big-O statement.
+
+## References
+
+- [Zhang et al., 2026][ZhangEtAl2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +42,8 @@ open Qatlib.Concepts.KoopmanFlow.Sampling Qatlib.Papers.KoopmanSim26.SpectralRep
 noncomputable section
 namespace Qatlib.Papers.KoopmanSim26.SpectralRep
 
+/-- For positive `kappa`, node count `h`, and shot count `M`, the square of `sqrt(4 kappa/pi)
+M^(-1/2) h^(-1/3)` equals `4 cubicCutoff(kappa,h)/(pi h M)`. -/
 theorem source_rate_sq (κ : ℝ) (hκ : 0 < κ) (h M : ℕ) (hh : 0 < h) (hM : 0 < M) :
     (Real.sqrt (4*κ/Real.pi) * (M:ℝ)^(-(1/2:ℝ)) * (h:ℝ)^(-(1/3:ℝ)))^2 =
       4*cubicCutoff κ h/(Real.pi*(h:ℝ)*(M:ℝ)) := by
@@ -33,6 +61,9 @@ theorem source_rate_sq (κ : ℝ) (hκ : 0 < κ) (h M : ℕ) (hh : 0 < h) (hM : 
   have hm : (M:ℝ) ≠ 0 := by positivity
   field_simp
 
+/-- For positive `kappa`, node count, and shot count, quadrature mass at least one half bounds
+the expected normalized-mixture Euclidean sampling error by `sqrt(4 kappa/pi) M^(-1/2)
+h^(-1/3)`. -/
 theorem sampling_bound_from_mass_half {h N M : ℕ} (p : Fin h → FinDist (Fin N))
     (κ : ℝ) (hκ : 0 < κ) (hh : 0 < h) (hM : 0 < M)
     (hz : 1/2 ≤ quadratureMass (cubicCutoff κ h) (uniformRightNodes (cubicCutoff κ h) h)) :
@@ -54,6 +85,10 @@ theorem sampling_bound_from_mass_half {h N M : ℕ} (p : Fin h → FinDist (Fin 
       div_le_div_of_nonneg_left (by positivity) (by norm_num) hz
     _ = _ := by ring
 
+/-- For positive `kappa` and all sufficiently large node counts `h`, the expected sampling error
+obeys the explicit `M^(-1/2) h^(-1/3)` bound uniformly over outcome dimensions, circuit
+distributions, and positive shot counts. This gives the normalized-quadrature sampling
+improvement associated with [ZhangEtAl2026]. -/
 theorem eventually_uniform_sampling_bound (κ : ℝ) (hκ : 0 < κ) :
     ∀ᶠ h : ℕ in atTop, ∀ (N M : ℕ) (p : Fin h → FinDist (Fin N)), 0 < M →
     (recordsLaw p M).expect (l2Error p (normalizedWeight (cubicCutoff κ h)
@@ -63,6 +98,10 @@ theorem eventually_uniform_sampling_bound (κ : ℝ) (hκ : 0 < κ) :
   intro N M p hM
   exact sampling_bound_from_mass_half p κ hκ hh hM hz
 
+/-- For any family of finite circuit distributions and positive `kappa`, the expected
+normalized-quadrature Euclidean sampling error is jointly `O(M^(-1/2) h^(-1/3))` as the node
+and shot counts tend to infinity. This formalizes the corresponding normalized-weight
+sampling rate associated with [ZhangEtAl2026]. -/
 theorem source_sampling_scaling {N : ℕ} (κ : ℝ) (hκ : 0 < κ)
     (p : (h : ℕ) → Fin h → FinDist (Fin N)) : SourceSamplingScaling κ p := by
   unfold SourceSamplingScaling

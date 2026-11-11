@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonQuan
 import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalAbsorbingMassDecayQuan
 import Qatlib.Concepts.WalkSearch.ProjectorCS
+
+/-!
+# Classical stopping bounds for marked chains
+
+The module exposes the classical detection and absorbing-mass estimates for a symmetric chain
+with gap parameter `δ` and marked fraction at least `ε`. It also translates a bound on the
+number of steps into a weighted setup, update, and checking cost. See [Szegedy2004] for the
+mathematical background.
+
+## Main statements
+
+* `source_expression_ten_classical_stop`: constant success after the prescribed number of steps.
+* `source_classical_absorbing_mass_decay`: geometric decay of unmarked mass.
+* `source_expression_ten_cost`: the weighted cost estimate.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +38,8 @@ open Qatlib.Concepts.WalkSearch.ClassicalStop
 
 namespace Qatlib.Concepts.WalkSearch.ClassicalStop.Basic
 
+/-- Under the stated gap and marked-fraction assumptions, packages zero success for an empty
+marked set and success at least `1 / 32` for every `K ≥ 1000 / (δ * ε)`. See [Szegedy2004]. -/
 theorem source_expression_ten_classical_stop
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ)
@@ -27,6 +49,8 @@ theorem source_expression_ten_classical_stop
     ∀ K : ℕ, 1000 / (δ * ε) ≤ (K : ℝ) → (1 / 32 : ℝ) ≤ classicalDetectSuccess P S K :=
   szegedyClassicalStopComparison I P S δ ε hδ hδ1 hgap hε hεp
 
+/-- For a law starting uniformly and evolving by the marked absorbing kernel, the unmarked mass
+after `K` steps is at most `(1 - δ * ε / 2) ^ K` under the stated gap assumptions. -/
 theorem source_classical_absorbing_mass_decay
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ) (K : ℕ)
@@ -38,6 +62,8 @@ theorem source_classical_absorbing_mass_decay
     (∑ i : {x : I // x ∉ S}, law K i) ≤ (1 - δ * ε / 2) ^ K :=
   szegedyClassicalAbsorbingMassDecay I P S δ ε K hδ hδ1 hgap hε hεp law h0 hstep
 
+/-- A step bound `K ≤ 1000 / (δ * ε) + 1` yields the displayed setup, update, and checking cost
+bound when the update and checking weights are nonnegative. -/
 theorem source_expression_ten_cost
     (K : ℕ) (δ ε : ℝ) (_hδ : 0 < δ) (_hε : 0 < ε)
     (hK : (K : ℝ) ≤ 1000 / (δ * ε) + 1)

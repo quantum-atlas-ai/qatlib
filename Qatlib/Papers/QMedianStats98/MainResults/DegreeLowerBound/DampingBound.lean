@@ -7,11 +7,34 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 
+/-!
+# Exponential estimates for algebraic damping
+
+This module supplies the elementary exponential estimates behind the algebraic damping step in
+Claim 2.3 of [NayakWu1998]. On `C ≤ |x| ≤ 1`, the factor `(1 - x²)^d1` is at most `exp(-C² *
+d1)`.
+
+When `C² * d1 ≥ 6 * d` and `d ≥ 1`, this decay absorbs the growth factor `(4/3) * 2^d`, giving a
+unit bound for shifted polynomial values with the corresponding uniform norm bound.
+
+## Main statements
+
+- `source_damping_factor`: bounds the damping factor by an exponential.
+- `source_shifted_algebraic_bound`: absorbs the polynomial growth factor.
+- `source_claim_2_3_of_grid_norm`: applies the scalar estimate to a shifted polynomial.
+
+## References
+
+[Nayak and Wu, 1998][NayakWu1998]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound
 
+/-- For `C > 0` and `C ≤ |x| ≤ 1`, the algebraic damping factor satisfies `(1 - x²)^d1 ≤ exp(-C²
+* d1)`. -/
 theorem source_damping_factor {C x : ℝ} (hC : 0 < C) (hxC : C ≤ |x|)
     (hx1 : |x| ≤ 1) (d1 : ℕ) :
     (1 - x ^ 2) ^ d1 ≤ Real.exp (-(C ^ 2 * (d1 : ℝ))) := by
@@ -35,12 +58,15 @@ theorem source_damping_factor {C x : ℝ} (hC : 0 < C) (hxC : C ≤ |x|)
     ring
   rwa [h5] at h4
 
+/-- If `6 * d ≤ C² * d1`, then `exp(-C² * d1) ≤ exp(-6 * d)`. -/
 theorem source_damping_exp_of_six {C : ℝ} {d1 d : ℕ}
     (h : 6 * (d : ℝ) ≤ C ^ 2 * (d1 : ℝ)) :
     Real.exp (-(C ^ 2 * (d1 : ℝ))) ≤ Real.exp (-(6 * (d : ℝ))) := by
   apply Real.exp_le_exp.mpr
   linarith
 
+/-- For `d ≥ 1`, `C > 0`, and `C ≤ |x| ≤ 1`, the condition `6 * d ≤ C² * d1` implies `(4/3) *
+2^d * (1 - x²)^d1 ≤ 1`. -/
 theorem source_shifted_algebraic_bound {C x : ℝ} {d1 d : ℕ}
     (hC : 0 < C) (hxC : C ≤ |x|) (hx1 : |x| ≤ 1)
     (hd1 : 6 * (d : ℝ) ≤ C ^ 2 * (d1 : ℝ)) (hd : 1 ≤ d) :
@@ -95,6 +121,9 @@ theorem source_shifted_algebraic_bound {C x : ℝ} {d1 d : ℕ}
       _ ≤ 1 := h4
   linarith [hstep, hexp_le]
 
+/-- If `|q(y)| ≤ (4/3) * 2^d` for every real `y`, `d ≥ 1`, and `6 * d ≤ C² * d1`, then `|q(x +
+c) * (1 - x²)^d1| ≤ 1` whenever `0 < C ≤ |x| ≤ 1`. This supplies the norm-based damping step
+for Claim 2.3 of [NayakWu1998]. -/
 theorem source_claim_2_3_of_grid_norm {q : Polynomial ℝ} {c C : ℝ} {d d1 : ℕ}
     (hC : 0 < C) (hd : 1 ≤ d) (hd1 : 6 * (d : ℝ) ≤ C ^ 2 * (d1 : ℝ))
     (hnorm : ∀ y : ℝ, |q.eval y| ≤ (4 / 3 : ℝ) * (2 : ℝ) ^ d)

@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QMAAmplify09.MainResults.Defs
 import Qatlib.Papers.QMAAmplify09.MainResults.MedianLemma
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+/-!
+# Phase separation and fast QMA amplification
+
+This module proves the acceptance-to-phase gap estimate and explicit real-valued resource bounds
+for the fast QMA amplification analysis of [NagajWocjanZhang2009]. The reciprocal phase gap
+controls `phaseEstimationDepth`, while `amplificationCost` combines the constant-confidence cost
+with repeated estimates.
+
+The final result `theorem1_fast_amplification` packages the resource bound with the binomial
+failure and complementary acceptance bounds; it is an inequality statement about these
+quantities.
+
+## Main statements
+
+* `phaseGap_ge`: lower bound on phase separation in terms of the acceptance gap.
+* `phaseEstimationCost_le`: constant-confidence phase-estimation cost bound.
+* `theorem1_fast_amplification`: combined cost, failure, and acceptance estimates.
+
+## References
+
+* [Nagaj et al., 2009][NagajWocjanZhang2009]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +42,7 @@ open Qatlib.Papers.QMAAmplify09.MainResults.MedianLemma
 
 namespace Qatlib.Papers.QMAAmplify09.MainResults.FastAmplification
 
+/-- For `0 ≤ y ≤ x ≤ 1`, the difference of inverse sines is at least `x - y`. -/
 theorem arcsin_sub_ge {x y : ℝ} (hy0 : 0 ≤ y) (hyx : y ≤ x) (hx1 : x ≤ 1) :
     x - y ≤ Real.arcsin x - Real.arcsin y := by
   have hx0 : 0 ≤ x := le_trans hy0 hyx
@@ -103,6 +128,8 @@ theorem arcsin_sub_ge {x y : ℝ} (hy0 : 0 ≤ y) (hyx : y ≤ x) (hx1 : x ≤ 1
     exact (Real.le_arcsin_iff_sin_le hmem hmem2).mpr hsinD
   linarith
 
+/-- For nonnegative `b < a`, rationalizing the difference of square roots gives `(a - b) / (√a +
+√b)`. -/
 theorem sqrt_sub_eq_div {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (h : b < a) :
     Real.sqrt a - Real.sqrt b = (a - b) / (Real.sqrt a + Real.sqrt b) := by
   have hsa : 0 < Real.sqrt a := Real.sqrt_pos.2 (lt_of_le_of_lt hb h)
@@ -113,6 +140,8 @@ theorem sqrt_sub_eq_div {a b : ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b) (h : b < a) :
   have h2 : Real.sqrt b ^ 2 = b := Real.sq_sqrt hb
   nlinarith [h1, h2]
 
+/-- The phase gap of promise bounds is at least `(a - b) / (π * (√a + √b))`. See
+[NagajWocjanZhang2009]. -/
 theorem phaseGap_ge (P : PromiseBounds) :
     (P.a - P.b) / (Real.pi * (Real.sqrt P.a + Real.sqrt P.b)) ≤ P.phaseGap := by
   have hx1 : Real.sqrt P.a ≤ 1 := Real.sqrt_le_one.mpr P.a_le_one
@@ -136,6 +165,7 @@ theorem phaseGap_ge (P : PromiseBounds) :
   rw [hrewrite]
   exact div_le_div_of_nonneg_right harc Real.pi_pos.le
 
+/-- The phase gap of any `PromiseBounds` is strictly positive. -/
 theorem phaseGap_pos (P : PromiseBounds) : 0 < P.phaseGap := by
   have h := phaseGap_ge P
   have hpos : 0 < (P.a - P.b) / (Real.pi * (Real.sqrt P.a + Real.sqrt P.b)) := by
@@ -145,8 +175,11 @@ theorem phaseGap_pos (P : PromiseBounds) : 0 < P.phaseGap := by
     exact mul_pos Real.pi_pos (by linarith)
   linarith
 
+/-- The real-valued phase-estimation depth parameter, defined as the reciprocal of the phase
+gap. -/
 noncomputable def phaseEstimationDepth (P : PromiseBounds) : ℝ := 1 / P.phaseGap
 
+/-- The phase-estimation depth is at most `π * (√a + √b) / (a - b)`. See [NagajWocjanZhang2009]. -/
 theorem phaseEstimationDepth_le (P : PromiseBounds) :
     phaseEstimationDepth P ≤ Real.pi * (Real.sqrt P.a + Real.sqrt P.b) / (P.a - P.b) := by
   have hg := phaseGap_ge P
@@ -164,9 +197,12 @@ theorem phaseEstimationDepth_le (P : PromiseBounds) :
     field_simp
   linarith [h1, h2.le, h2.ge]
 
+/-- The real-valued phase-estimation cost `(2 + 1 / (2 * ε)) * phaseEstimationDepth P - 1`. -/
 noncomputable def phaseEstimationCost (P : PromiseBounds) (ε : ℝ) : ℝ :=
   (2 + 1 / (2 * ε)) * phaseEstimationDepth P - 1
 
+/-- At error parameter `1 / 16`, the phase-estimation cost is at most `10 * π * (√a + √b) / (a -
+b)`. See [NagajWocjanZhang2009]. -/
 theorem phaseEstimationCost_le (P : PromiseBounds) :
     phaseEstimationCost P (1 / 16) ≤
       10 * Real.pi * (Real.sqrt P.a + Real.sqrt P.b) / (P.a - P.b) := by
@@ -187,9 +223,11 @@ theorem phaseEstimationCost_le (P : PromiseBounds) :
     ring
   linarith [h1, h2, h3.le, h3.ge]
 
+/-- The cost of `r` repetitions of phase estimation with error parameter `1 / 16`. -/
 noncomputable def amplificationCost (P : PromiseBounds) (r : ℕ) : ℝ :=
   (r : ℝ) * phaseEstimationCost P (1 / 16)
 
+/-- The amplification cost is at most `10 * π * (√a + √b) * r / (a - b)`. -/
 theorem amplificationCost_le (P : PromiseBounds) (r : ℕ) :
     amplificationCost P r ≤
       10 * Real.pi * (Real.sqrt P.a + Real.sqrt P.b) * (r : ℝ) / (P.a - P.b) := by
@@ -204,15 +242,21 @@ theorem amplificationCost_le (P : PromiseBounds) (r : ℕ) :
     ring
   linarith [h1, h2.le, h2.ge]
 
+/-- The strict-majority bad mass at error parameter `1 / 16` is at most `2 ^ (-r)`. See
+[NagajWocjanZhang2009]. -/
 theorem theorem1_yes_failure (r : ℕ) :
     badMass (1 / 16) r ≤ (2 : ℝ) ^ (-(r : ℤ)) :=
   le_trans (median_failure_bound (by norm_num) (by norm_num) r)
     (median_failure_bound_eps16 r)
 
+/-- The complement of the bad mass at error parameter `1 / 16` is at least `1 - 2 ^ (-r)`. See
+[NagajWocjanZhang2009]. -/
 theorem theorem1_yes_acceptance (r : ℕ) :
     1 - (2 : ℝ) ^ (-(r : ℤ)) ≤ 1 - badMass (1 / 16) r := by
   linarith [theorem1_yes_failure r]
 
+/-- The amplification cost bound and the complementary failure and acceptance bounds hold
+simultaneously. See [NagajWocjanZhang2009]. -/
 theorem theorem1_fast_amplification (P : PromiseBounds) (r : ℕ) :
     amplificationCost P r ≤
         10 * Real.pi * (Real.sqrt P.a + Real.sqrt P.b) * (r : ℝ) / (P.a - P.b) ∧

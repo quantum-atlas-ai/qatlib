@@ -14,6 +14,25 @@ import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+/-!
+# Fourier window symmetries and square completion
+
+This module proves periodicity and parity identities for finite Fourier cosine and sine sums.
+These analytic helpers extend a window bound to all real angles and construct complementary
+periodic functions, in support of the variable-time development associated with [Ambainis2012].
+
+## Main statements
+
+* `clause78_window_global`: extension of a principal-window bound to all angles.
+* `clause78_square_completion`: even and odd periodic functions completing the squared sum to
+  one.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.ProbabilityCore.Concentration
@@ -63,6 +82,7 @@ open Qatlib
 set_option warningAsError false
 noncomputable section
 
+/-- The finite Fourier cosine sum is invariant under adding `2 * π` to its angle. -/
 lemma clause78_fourierCos_periodic (n : ℕ) (ac : Fin (n + 1) → ℝ) (θ : ℝ) :
     fourierCos n ac (θ + 2 * Real.pi) = fourierCos n ac θ := by
   simp only [fourierCos]
@@ -76,6 +96,7 @@ lemma clause78_fourierCos_periodic (n : ℕ) (ac : Fin (n + 1) → ℝ) (θ : �
 end
 noncomputable section
 
+/-- The finite Fourier sine sum is invariant under adding `2 * π` to its angle. -/
 lemma clause78_fourierSin_periodic (n : ℕ) (as : Fin (n + 1) → ℝ) (θ : ℝ) :
     fourierSin n as (θ + 2 * Real.pi) = fourierSin n as θ := by
   simp only [fourierSin]
@@ -89,6 +110,7 @@ lemma clause78_fourierSin_periodic (n : ℕ) (as : Fin (n + 1) → ℝ) (θ : �
 end
 noncomputable section
 
+/-- The finite Fourier cosine sum is an even function of its angle. -/
 lemma clause78_fourierCos_neg (n : ℕ) (ac : Fin (n + 1) → ℝ) (θ : ℝ) :
     fourierCos n ac (-θ) = fourierCos n ac θ := by
   simp only [fourierCos]
@@ -98,6 +120,7 @@ lemma clause78_fourierCos_neg (n : ℕ) (ac : Fin (n + 1) → ℝ) (θ : ℝ) :
 end
 noncomputable section
 
+/-- The finite Fourier sine sum is an odd function of its angle. -/
 lemma clause78_fourierSin_neg (n : ℕ) (as : Fin (n + 1) → ℝ) (θ : ℝ) :
     fourierSin n as (-θ) = - fourierSin n as θ := by
   simp only [fourierSin]
@@ -108,6 +131,7 @@ lemma clause78_fourierSin_neg (n : ℕ) (as : Fin (n + 1) → ℝ) (θ : ℝ) :
 end
 noncomputable section
 
+/-- Replacing an angle by `2 * π - θ` leaves the finite Fourier cosine sum unchanged. -/
 lemma clause78_fourierCos_two_pi_sub (n : ℕ) (ac : Fin (n + 1) → ℝ) (θ : ℝ) :
     fourierCos n ac (2 * Real.pi - θ) = fourierCos n ac θ := by
   simp only [fourierCos]
@@ -121,6 +145,7 @@ lemma clause78_fourierCos_two_pi_sub (n : ℕ) (ac : Fin (n + 1) → ℝ) (θ : 
 end
 noncomputable section
 
+/-- Replacing an angle by `2 * π - θ` negates the finite Fourier sine sum. -/
 lemma clause78_fourierSin_two_pi_sub (n : ℕ) (as : Fin (n + 1) → ℝ) (θ : ℝ) :
     fourierSin n as (2 * Real.pi - θ) = - fourierSin n as θ := by
   simp only [fourierSin]
@@ -135,6 +160,7 @@ lemma clause78_fourierSin_two_pi_sub (n : ℕ) (as : Fin (n + 1) → ℝ) (θ : 
 end
 noncomputable section
 
+/-- Subtracting any integer multiple of `2 * π` leaves the finite Fourier cosine sum unchanged. -/
 lemma clause78_fourierCos_sub_int (n : ℕ) (ac : Fin (n + 1) → ℝ) (θ : ℝ) (m : ℤ) :
     fourierCos n ac (θ - m * (2 * Real.pi)) = fourierCos n ac θ := by
   simp only [fourierCos]
@@ -148,6 +174,7 @@ lemma clause78_fourierCos_sub_int (n : ℕ) (ac : Fin (n + 1) → ℝ) (θ : ℝ
 end
 noncomputable section
 
+/-- Subtracting any integer multiple of `2 * π` leaves the finite Fourier sine sum unchanged. -/
 lemma clause78_fourierSin_sub_int (n : ℕ) (as : Fin (n + 1) → ℝ) (θ : ℝ) (m : ℤ) :
     fourierSin n as (θ - m * (2 * Real.pi)) = fourierSin n as θ := by
   simp only [fourierSin]
@@ -161,6 +188,8 @@ lemma clause78_fourierSin_sub_int (n : ℕ) (as : Fin (n + 1) → ℝ) (θ : ℝ
 end
 noncomputable section
 
+/-- A bound by one on the sum of squared Fourier cosine and sine sums for `|θ| ≤ π` extends to
+every real angle. -/
 lemma clause78_window_global (n : ℕ) (ac as : Fin (n + 1) → ℝ)
     (hwin : ∀ θ : ℝ, abs θ ≤ Real.pi →
       (fourierCos n ac θ) ^ 2 + (fourierSin n as θ) ^ 2 ≤ 1) :
@@ -200,6 +229,8 @@ lemma clause78_window_global (n : ℕ) (ac as : Fin (n + 1) → ℝ)
 end
 noncomputable section
 
+/-- A principal-window bound yields an even periodic function `b` and an odd periodic function
+`d` whose squared values complete the two Fourier squares to one. -/
 lemma clause78_square_completion (n : ℕ) (ac as : Fin (n + 1) → ℝ)
     (hwin : ∀ θ : ℝ, abs θ ≤ Real.pi →
       (fourierCos n ac θ) ^ 2 + (fourierSin n as θ) ^ 2 ≤ 1) :

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3WireTransport
+
+/-!
+# Transport of local QTM cell operations
+
+This module encodes finite cell blocks into bit registers and transports local gates through
+that encoding while retaining a fixed exterior context. It builds legal reflection tables for
+unitary local cell operations, supporting the QTM-to-circuit simulation program of [Yao1993].
+
+## Main statements
+
+* `qtmBlock_context`: Block encoding commutes with replacement in a fixed context.
+* `qtmCellGate_ket`: The action of a local cell gate on a basis state.
+* `qtmCell_local_table`: A bounded reflection table implementing a local cell gate.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,10 +44,13 @@ namespace Qatlib.Concepts.QtmSimulation.Phi3Compilation
 open Matrix
 open scoped Classical BigOperators
 
+/-- Encode a `c`-cell configuration by concatenating the `b`-bit code of each cell. -/
 def qtmBlockBasisCode {C : Type} (c b : ℕ) (e : C → Reg b) (r : Fin c → C) : Reg (c*b) :=
   fun w => let i := (finProdFinEquiv (m := c) (n := b)).symm w
            e (r i.1) i.2
 
+/-- Lift an embedding of cell positions to the corresponding embedding of all `b` wires per
+cell. -/
 def qtmBlockWires {m c : ℕ} (p : Fin m ↪ Fin c) (b : ℕ) : Fin (m*b) ↪ Fin (c*b) :=
   { toFun := fun w =>
       let i := (finProdFinEquiv (m := m) (n := b)).symm w
@@ -41,13 +63,18 @@ def qtmBlockWires {m c : ℕ} (p : Fin m ↪ Fin c) (b : ℕ) : Fin (m*b) ↪ Fi
       · exact p.injective (congrArg Prod.fst hh)
       · exact congrArg (fun z : Fin c × Fin b => z.2) hh }
 
+/-- Replace the cells selected by `p` with the local configuration `r`, keeping the exterior
+context. -/
 def qtmCellContextExtend {C : Type} {m c : ℕ} (p : Fin m ↪ Fin c)
     (ctx : Fin c → C) (r : Fin m → C) : Fin c → C := Function.extend p r ctx
 
+/-- At a selected cell `p i`, context extension returns the local value `r i`. -/
 @[simp] theorem qtmCellContextExtend_at {C : Type} {m c : ℕ} (p : Fin m ↪ Fin c)
     (ctx : Fin c → C) (r : Fin m → C) (i : Fin m) :
     qtmCellContextExtend p ctx r (p i) = r i := p.injective.extend_apply _ _ _
 
+/-- Encoding a cell configuration after local replacement equals replacing its selected encoded
+wire blocks in the encoded context. -/
 theorem qtmBlock_context {C : Type} {m c : ℕ} (p : Fin m ↪ Fin c) (b : ℕ)
     (e : C → Reg b) (ctx : Fin c → C) (r : Fin m → C) :
     qtmWireContextExtend (qtmBlockWires p b) (qtmBlockBasisCode c b e ctx)
@@ -77,6 +104,8 @@ theorem qtmBlock_context {C : Type} {m c : ℕ} (p : Fin m ↪ Fin c) (b : ℕ)
     simp only [qtmBlockBasisCode, Equiv.symm_apply_apply]
     rw [qtmCellContextExtend, Function.extend_apply' _ _ _ hj]
 
+/-- Embedding a padded local state in an encoded block context expands as the corresponding sum
+of encoded context-extended basis states. -/
 theorem qtmBlock_context_frame {C : Type} [Fintype C] [DecidableEq C]
     {m c : ℕ} (p : Fin m ↪ Fin c) (b : ℕ) (e : C → Reg b)
     (ctx : Fin c → C) (ψ : QState (Fin m → C)) :
@@ -88,11 +117,15 @@ theorem qtmBlock_context_frame {C : Type} [Fintype C] [DecidableEq C]
     qtmWireContextEmbed_sum, qtmWireContextEmbed_smul, qtmWireContextEmbed_ket,
     qtmBlock_context]
 
+/-- Extend a matrix on selected cells to all cells by requiring the exterior configurations to
+agree. -/
 def qtmCellGate {C : Type} {m c : ℕ} (p : Fin m ↪ Fin c)
     (U : Matrix (Fin m → C) (Fin m → C) ℂ) : Matrix (Fin c → C) (Fin c → C) ℂ :=
   fun x y => if ∀ j, (∀ i, p i ≠ j) → x j = y j
     then U (fun i => x (p i)) (fun i => y (p i)) else 0
 
+/-- If two configurations agree outside the selected cells, replacing one configuration's
+selected cells by the other's values reconstructs the other. -/
 theorem qtmCellContextExtend_reconstruct {C : Type} {m c : ℕ} (p : Fin m ↪ Fin c)
     (x y : Fin c → C) (h : ∀ j, (∀ i, p i ≠ j) → x j = y j) :
     qtmCellContextExtend p y (fun i => x (p i)) = x := by
@@ -103,6 +136,8 @@ theorem qtmCellContextExtend_reconstruct {C : Type} {m c : ℕ} (p : Fin m ↪ F
   · rw [qtmCellContextExtend, Function.extend_apply' _ _ _ hj]
     exact (h j (fun i hi => hj ⟨i,hi⟩)).symm
 
+/-- A local cell gate maps a basis configuration to the sum of context-extended configurations
+weighted by its local matrix entries. -/
 theorem qtmCellGate_ket {C : Type} [Fintype C] [DecidableEq C] {m c : ℕ}
     (p : Fin m ↪ Fin c) (U : Matrix (Fin m → C) (Fin m → C) ℂ) (r : Fin c → C) :
     ApplyGate (qtmCellGate p U) (Qatlib.Foundations.PureStateMath.Ket r) =
@@ -134,6 +169,7 @@ theorem qtmCellGate_ket {C : Type} [Fintype C] [DecidableEq C] {m c : ℕ}
   · intro hx
     exact (hx (Finset.mem_univ _)).elim
 
+/-- Concatenated block encoding is injective whenever the individual cell code is injective. -/
 theorem qtmBlockBasisCode_injective {C : Type} (c b : ℕ) (e : C → Reg b)
     (he : Function.Injective e) : Function.Injective (qtmBlockBasisCode c b e) := by
   intro r s h
@@ -143,6 +179,9 @@ theorem qtmBlockBasisCode_injective {C : Type} (c b : ℕ) (e : C → Reg b)
   have hh := congrFun h ((finProdFinEquiv (m := c) (n := b)) (i,u))
   simpa only [qtmBlockBasisCode, Equiv.symm_apply_apply] using! hh
 
+/-- For positive local cell count and code width, an injectively encoded unitary local cell
+matrix is implemented on encoded states by a legal reflection table of length at most
+`phi3PaddingBudget (m * b)`. -/
 theorem qtmCell_local_table {C : Type} [Fintype C] [DecidableEq C]
     {m c : ℕ} (p : Fin m ↪ Fin c) (b : ℕ) (hm : 0 < m) (hb : 0 < b)
     (e : C → Reg b) (he : Function.Injective e)

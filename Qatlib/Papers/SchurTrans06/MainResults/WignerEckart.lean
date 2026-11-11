@@ -70,6 +70,28 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Invariant tensors and the Wigner–Eckart expansion
+
+`IsTensorOperator` expresses covariance of a matrix-valued family, and `assocTensor` rearranges
+its indices into a three-index tensor. Under the stated right-unitarity condition on `ρn`, this
+tensor belongs to `invariantSubmodule`; a finite spanning family then yields a Wigner–Eckart
+coefficient expansion through `cgCoeff`. See [BaconChuangHarrow2005] for the mathematical
+setting.
+
+## Main statements
+
+* `assocTensor_invariant`: turns a covariant tensor operator into an invariant tensor.
+* `exists_spanning_invariant`: constructs a spanning family indexed by the invariant submodule
+  dimension.
+* `source_wigner_eckart_unconditional`: constructs a spanning family and reduced coefficients
+  under covariance and right-unitarity.
+
+## References
+
+* [Bacon et al., 2005][BaconChuangHarrow2005]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -82,15 +104,19 @@ variable {G QM QN QL : Type*}
   [Fintype QM] [Fintype QN] [DecidableEq QN]
   [Fintype QL]
 
+/-- The covariance identity relating the matrix family `T` to the three given matrix actions. -/
 def IsTensorOperator (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ)
     (ρl : G → Matrix QL QL ℂ) (T : QN → Matrix QL QM ℂ) : Prop :=
   ∀ (U : G) (qn : QN) (ql : QL) (qm : QM),
     (∑ ql', ∑ qm', (ρl U) ql ql' * (T qn) ql' qm' * star (ρm U) qm' qm)
       = ∑ qn', (ρn U) qn' qn * (T qn') ql qm
 
+/-- Reorders a matrix-valued family's entries as a tensor with indices `ql`, `qm`, and `qn`. -/
 def assocTensor (T : QN → Matrix QL QM ℂ) : QL → QM → QN → ℂ :=
   fun ql qm qn => T qn ql qm
 
+/-- The tensor is fixed by the componentwise action of `ρl`, the adjoint of `ρm`, and the
+adjoint of `ρn`. -/
 def IsInvariantOperator (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ)
     (ρl : G → Matrix QL QL ℂ) (A : QL → QM → QN → ℂ) : Prop :=
   ∀ (U : G) (ql : QL) (qm : QM) (qn : QN),
@@ -98,12 +124,16 @@ def IsInvariantOperator (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN
       = ∑ ql', ∑ qm', ∑ qn', (ρl U) ql ql' * star (ρm U) qm' qm *
           star (ρn U) qn' qn * A ql' qm' qn'
 
+/-- Moves the innermost of three finite complex sums to the outside while preserving the other
+index order. -/
 private lemma sum_comm_three {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
     (f : α → β → γ → ℂ) :
     (∑ a, ∑ b, ∑ c, f a b c) = ∑ c, ∑ a, ∑ b, f a b c := by
   rw [Finset.sum_congr rfl (fun a _ => Finset.sum_comm)]
   rw [Finset.sum_comm]
 
+/-- Moves the innermost of four finite complex sums to the outside while preserving the other
+index order. -/
 private lemma sum_comm_four {α β γ δ : Type*} [Fintype α] [Fintype β] [Fintype γ]
     [Fintype δ] (f : α → β → γ → δ → ℂ) :
     (∑ a, ∑ b, ∑ c, ∑ d, f a b c d) = ∑ d, ∑ a, ∑ b, ∑ c, f a b c d := by
@@ -112,6 +142,9 @@ private lemma sum_comm_four {α β γ δ : Type*} [Fintype α] [Fintype β] [Fin
   rw [Finset.sum_congr rfl (fun a _ => Finset.sum_comm)]
   rw [Finset.sum_comm]
 
+/-- A covariant tensor operator yields an invariant associated tensor when each `ρn U` times its
+adjoint is the identity. See [Bacon et al., 2005, Theorem 1
+(Wigner-Eckart)][BaconChuangHarrow2005]. -/
 theorem assocTensor_invariant
     (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ) (ρl : G → Matrix QL QL ℂ)
     (T : QN → Matrix QL QM ℂ) (hT : IsTensorOperator ρm ρn ρl T)
@@ -169,6 +202,8 @@ theorem assocTensor_invariant
   simp only [assocTensor]
   exact (hperm.trans (hstep2.trans (hstep3.trans hstep4))).symm
 
+/-- The complex submodule of tensors satisfying `IsInvariantOperator` for the three matrix
+actions. See [Bacon et al., 2005, Theorem 1 (Wigner-Eckart)][BaconChuangHarrow2005]. -/
 def invariantSubmodule (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ)
     (ρl : G → Matrix QL QL ℂ) : Submodule ℂ (QL → QM → QN → ℂ) where
   carrier := {A | IsInvariantOperator ρm ρn ρl A}
@@ -194,6 +229,7 @@ def invariantSubmodule (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN 
     refine Finset.sum_congr rfl (fun qn' _ => ?_)
     ring
 
+/-- Every invariant tensor is a finite linear combination of the specified tensor family. -/
 def SpansInvariant (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ)
     (ρl : G → Matrix QL QL ℂ) {Alpha : Type*}
     (B : Alpha → QL → QM → QN → ℂ) [Fintype Alpha] : Prop :=
@@ -203,6 +239,8 @@ def SpansInvariant (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ)
 
 omit [DecidableEq QN] in
 
+/-- There is a spanning tensor family indexed by the finite dimension of the invariant
+submodule. See [Bacon et al., 2005, Theorem 1 (Wigner-Eckart)][BaconChuangHarrow2005]. -/
 theorem exists_spanning_invariant
     (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ) (ρl : G → Matrix QL QL ℂ) :
     ∃ B : Fin (Module.finrank ℂ (invariantSubmodule ρm ρn ρl)) →
@@ -226,10 +264,15 @@ theorem exists_spanning_invariant
     simpa [Pi.smul_apply, smul_eq_mul] using hc
   exact hpt.symm
 
+/-- The entry of the specified tensor family with the indices arranged as a Clebsch–Gordan
+coefficient. -/
 def cgCoeff {Alpha : Type*} (B : Alpha → QL → QM → QN → ℂ)
     (ql : QL) (α : Alpha) (qm : QM) (qn : QN) : ℂ :=
   B α ql qm qn
 
+/-- Under covariance and right-unitarity of `ρn`, each entry of `T` expands in a specified
+invariant-spanning family with reduced coefficients. See [BaconChuangHarrow2005] for the
+mathematical setting. -/
 theorem source_wigner_eckart
     (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ) (ρl : G → Matrix QL QL ℂ)
     (T : QN → Matrix QL QM ℂ) {Alpha : Type*} [Fintype Alpha]
@@ -243,6 +286,9 @@ theorem source_wigner_eckart
   refine ⟨c, fun ql qm qn => ?_⟩
   simpa only [cgCoeff, assocTensor] using hc ql qm qn
 
+/-- Under covariance and right-unitarity of `ρn`, there exist a finite invariant-spanning family
+and reduced coefficients giving the Wigner–Eckart expansion. See [Bacon et al., 2005,
+Theorem 1 (Wigner-Eckart)][BaconChuangHarrow2005]. -/
 theorem source_wigner_eckart_unconditional
     (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN ℂ) (ρl : G → Matrix QL QL ℂ)
     (T : QN → Matrix QL QM ℂ)

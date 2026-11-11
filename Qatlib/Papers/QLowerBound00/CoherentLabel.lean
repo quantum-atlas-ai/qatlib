@@ -47,6 +47,27 @@ import Mathlib.Tactic.NormNum.Result
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
+
+/-!
+# Coherent input labels in the adversary method
+
+This module tracks input-dependent amplitudes through `phaseQuery` and `rhoEntry`, and proves
+invariance of overlaps under a common workspace unitary. The normalized distance identity
+`dist_sq_eq` and the complementary mass bound `error_mass_le` support the interpretation of
+adversary progress. See [Ambainis2002] for the paper's setting.
+
+## Main statements
+
+* `phaseQuery_jointState`: A phase query commutes with multiplication by an amplitude depending
+  only on the input label.
+* `error_mass_le`: For a normalized vector, mass at least `1-ε` on `P` implies mass at most `ε`
+  on its complement.
+
+## References
+
+* [Ambainis, 2002][Ambainis2002]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QLowerBound00.CoherentLabel
@@ -58,6 +79,8 @@ open Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
 
 variable {ι : Type*}
 
+/-- A phase query commutes with multiplication by an amplitude depending only on the input
+label. See [Ambainis2002]. -/
 theorem phaseQuery_jointState {n : ℕ} (i : Fin n)
     (α : Input n → ℂ) (ψ : ι → Input n → ℂ) :
     phaseQuery i (fun iw z => α z * ψ iw z) =
@@ -68,6 +91,8 @@ theorem phaseQuery_jointState {n : ℕ} (i : Fin n)
   · rw [if_pos h, if_pos h]; ring
   · rw [if_neg h, if_neg h]
 
+/-- Weighting each input column by `α` multiplies `rhoEntry` at `x, y` by `star (α x) * α y`.
+See [Ambainis2002]. -/
 theorem rhoEntry_jointState {ι : Type*} [Fintype ι] {n : ℕ}
     (α : Input n → ℂ) (ψ : ι → Input n → ℂ) (x y : Input n) :
     rhoEntry (fun iw z => α z * ψ iw z) x y =
@@ -78,6 +103,8 @@ theorem rhoEntry_jointState {ι : Type*} [Fintype ι] {n : ℕ}
   rw [star_mul]
   ring
 
+/-- Applying the same matrix with orthonormal columns to every workspace column preserves each
+`rhoEntry`. See [Ambainis2002]. -/
 theorem rhoEntry_workspace_unitary {ι : Type*} [Fintype ι] [DecidableEq ι] {α : Type*}
     (U : ι → ι → ℂ)
     (hU : ∀ a b : ι, (∑ c, star (U c a) * U c b) = if a = b then 1 else 0)
@@ -126,6 +153,8 @@ theorem rhoEntry_workspace_unitary {ι : Type*} [Fintype ι] [DecidableEq ι] {�
     rw [h1]; simp
   exact hsingle
 
+/-- For two vectors of squared norm one, their squared distance is `2 - 2` times the real part
+of their inner product. See [Ambainis2002]. -/
 theorem dist_sq_eq {ι : Type*} [Fintype ι] (u v : ι → ℂ)
     (hu : ∑ iw, ‖u iw‖ ^ 2 = 1) (hv : ∑ iw, ‖v iw‖ ^ 2 = 1) :
     ∑ iw, ‖u iw - v iw‖ ^ 2 =
@@ -145,6 +174,8 @@ theorem dist_sq_eq {ι : Type*} [Fintype ι] (u v : ι → ℂ)
           rw [Finset.sum_sub_distrib, Finset.sum_add_distrib, ← Finset.mul_sum]
     _ = 2 - 2 * (∑ iw, (star (u iw) * v iw).re) := by rw [hu, hv]; ring
 
+/-- For a normalized vector, mass at least `1-ε` on `P` implies mass at most `ε` on its
+complement. See [Ambainis2002]. -/
 theorem error_mass_le {ι : Type*} [Fintype ι] (w : ι → ℂ) (P : ι → Prop) [DecidablePred P] (ε : ℝ)
     (hn : ∑ iw, ‖w iw‖ ^ 2 = 1)
     (hok : 1 - ε ≤ ∑ iw ∈ (Finset.univ.filter P), ‖w iw‖ ^ 2) :

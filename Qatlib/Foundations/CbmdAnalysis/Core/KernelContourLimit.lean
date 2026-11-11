@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourBounds
+
+/-!
+# Vanishing square boundary integrals
+
+`halfGridRadius` specifies expanding squares whose vertical sides avoid the sampling lattice,
+and `squareBoundaryIntegral` sums their four oriented edge integrals. A quadratic majorant
+controls the vertical edges even as their lengths grow.
+
+Together with the horizontal estimates, this proves that the square boundary integrals vanish
+for functions with compatible half-plane growth, as required by the contour method in
+[WangEtAl2026].
+
+## Main statements
+
+* `integerContour_square_vertical_tendsto_zero`: handles the growing vertical edges.
+* `integerContour_square_tendsto_zero`: proves vanishing of the full boundary integral.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -16,13 +38,17 @@ namespace CBMD
 open Filter MeasureTheory
 open scoped Topology
 
+/-- The half-grid radius `(n + 1/2) / a`. -/
 def halfGridRadius (a : ℝ) (n : ℕ) : ℝ := ((n : ℝ) + 1 / 2) / a
 
+/-- For positive spacing, the half-grid radii tend to infinity. -/
 theorem halfGridRadius_tendsto {a : ℝ} (ha : 0 < a) :
     Tendsto (halfGridRadius a) atTop atTop :=
   (tendsto_atTop_add_const_right atTop (1 / 2 : ℝ)
     (tendsto_natCast_atTop_atTop (R := ℝ))).atTop_div_const ha
 
+/-- If `R ≥ 2m + 2`, the vertical edge bound with length `2R` is at most `4 *
+kernelNormalization m / (R - m)²`. -/
 private theorem vertical_square_majorant (m : ℕ) {R : ℝ}
     (hR : 2 * m + 2 ≤ R) :
     kernelNormalization m / (R - m) ^ (2 * m + 3) * (2 * R) ≤
@@ -39,6 +65,8 @@ private theorem vertical_square_majorant (m : ℕ) {R : ℝ}
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [NormedSpace ℝ E]
 
+/-- Under the stated growth and spacing bounds, both vertical edge integrals of the expanding
+half-grid squares tend to zero. -/
 theorem integerContour_square_vertical_tendsto_zero (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) :
@@ -80,12 +108,16 @@ theorem integerContour_square_vertical_tendsto_zero (m : ℕ) {a ρ : ℝ} (ha :
     rw [he, abs_neg, abs_of_nonneg (hRpos n), he'] at hb
     exact hb.trans (vertical_square_majorant m hn)
 
+/-- The counterclockwise boundary integral around the square with corners `±R ± iR`, expressed
+as four real interval integrals. -/
 def squareBoundaryIntegral (f : ℂ → E) (R : ℝ) : E :=
   (∫ x in -R..R, f ((x : ℂ) + (-R : ℂ) * Complex.I)) +
   (∫ y in -R..R, Complex.I • f ((R : ℂ) + (y : ℂ) * Complex.I)) -
   (∫ x in -R..R, f ((x : ℂ) + (R : ℂ) * Complex.I)) -
   (∫ y in -R..R, Complex.I • f ((-R : ℂ) + (y : ℂ) * Complex.I))
 
+/-- Under the stated growth and spacing bounds, the integer contour integrand has boundary
+integrals tending to zero on expanding half-grid squares. -/
 theorem integerContour_square_tendsto_zero (m : ℕ) {a ρ : ℝ} (ha : 0 < a)
     (hρ : ρ ≤ 2 * Real.pi * a) (U : ℂ → E)
     (hU : ∀ z, ‖U z‖ ≤ Real.exp (max z.im 0 * ρ)) :

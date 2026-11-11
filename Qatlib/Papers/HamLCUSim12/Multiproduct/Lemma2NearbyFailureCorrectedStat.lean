@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedDefinitions
+
+/-!
+# Corrected nearby-unitary failure statement
+
+The proposition `Lemma2NearbyFailureCorrected` records the proximity-dependent failure bound for
+`lemma2FailureProbCorrected`. It uses a uniform bound on the action of `Ua - Ub` on normalized
+states and concludes the same bound for every normalized input to the circuit. See
+[ChildsWiebe2012] for the multiproduct and linear-combination simulation framework.
+
+## Main statements
+
+* `Lemma2NearbyFailureCorrected`: The proposition bounding corrected LCU failure by κΔ²/(κ + 1)²
+  for κ, Δ ≥ 0 and unitary inputs satisfying the uniform squared-norm difference bound Δ².
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Foundations.PureStateMath
@@ -14,6 +33,8 @@ set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open Matrix
 
+/-- The proposition bounding corrected LCU failure by κΔ²/(κ + 1)² for κ, Δ ≥ 0 and unitary
+inputs satisfying the uniform squared-norm difference bound Δ². -/
 def Lemma2NearbyFailureCorrected : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (κ : ℝ), 0 ≤ κ →
     ∀ (Ua Ub : Matrix I I ℂ), Ua ∈ Matrix.unitaryGroup I ℂ → Ub ∈ Matrix.unitaryGroup I ℂ →

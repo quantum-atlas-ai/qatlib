@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.Primitives.ClassificationPartitionHelpers
+
+/-!
+# Partition invariant of classification
+
+Proves that `classifyScan` partitions its original pair set into the remaining pairs, the
+triangle-removal trace, and the edge bucket. The invariant includes pairwise disjointness and
+absence of repetitions in the trace, providing combinatorial infrastructure for graph search as
+surveyed in [Ambainis2005].
+
+## Main statements
+
+* `classifyScan_partition`: Every classification scan satisfies `partitionPayload`: its
+  remaining pairs, triangle-removal trace, and edge bucket form a disjoint partition of the
+  original pairs, and the trace has no repetitions.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +36,9 @@ namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 variable {n : ℕ}
 
+/-- Every classification scan satisfies `partitionPayload`: its remaining pairs,
+triangle-removal trace, and edge bucket form a disjoint partition of the original pairs, and
+the trace has no repetitions. -/
 theorem classifyScan_partition (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ)
     (ttape : Fin n→Fin K→Fin c→Fin n) (stape : Fin n→sgs.seed)
     (vs : List (Fin n)) (S : SymmetricPairSet n) :

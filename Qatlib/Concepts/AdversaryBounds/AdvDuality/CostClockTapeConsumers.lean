@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralCostClock
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedTapeConsumers
 import Mathlib.Analysis.SpecificLimits.Normed
+
+/-!
+# Increasing transition charges on a geometric tape process
+
+This module augments a fair-coin tape process with a step counter and charges the next
+transition its counter plus one. `movingPriceBlock` sums consecutive charges, so a halt after
+`j` transitions carries triangular charge `movingPriceTriangle j`.
+
+The module identifies the joint output-charge law and evaluates its expected charge. The
+underlying randomized computation fits the computational framework of [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `moving_price_actual_joint_triangular_charge`: the clocked halting law has geometric masses at
+  triangular charges.
+* `movingPrice_triangle_series`: the triangular-charge series equals four.
+* `moving_price_native_tape_expected_charge_consumer`: the native clocked process terminates
+  with expected charge four.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
@@ -22,24 +46,31 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- The transition price equal to the current step counter plus one. -/
 def movingPrice (s : ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2)) : ℕ := s.1 + 1
 
+/-- The coin-selected tape successor, incrementing the counter when computation continues. -/
 def movingPriceSelect (s : ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2))
     (b : Bool) : Bool ⊕ (ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2)) :=
   match coinTapeSelected 1 movingGeometricTape movingTapeAccept s.2 b with
   | .inl o => .inl o
   | .inr t => .inr (s.1+1,t)
 
+/-- The next-state probability mass function obtained from a fair coin and `movingPriceSelect`. -/
 noncomputable def movingPriceNext (s : ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2)) :
     PMF (Bool ⊕ (ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2))) :=
   (PMF.bernoulli (1/2) (by norm_num)).map (movingPriceSelect s)
 
+/-- The active initial tape configuration with its transition counter set to zero. -/
 def movingPriceInit (input : List Bool) :
     Bool ⊕ (ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2)) :=
   .inr (0,Turing.TM0.init (input.map some))
 
+/-- The triangular number `j * (j + 1) / 2`. -/
 def movingPriceTriangle (j : ℕ) : ℕ := j*(j+1)/2
 
+/-- In control state zero, a true coin halts with output true and a false coin moves the tape
+right. -/
 theorem movingPrice_selected (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     (hq : cfg.q = 0) (b : Bool) :
     coinTapeSelected 1 movingGeometricTape movingTapeAccept cfg b =
@@ -47,6 +78,8 @@ theorem movingPrice_selected (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
   cases b <;> simp [coinTapeSelected, TM0_step_apply, movingGeometricTape, hq,
     TM0StmtApply, coinTapeNormalize, coinHalt, movingTapeAccept, movingTapeRight]
 
+/-- The expectation of the next-state law is the half-weighted sum of halting true and
+continuing with incremented counter. -/
 theorem movingPrice_expectation (m : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
     (hq : cfg.q = 0) (f : (Bool ⊕ (ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2))) → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (movingPriceNext (m,cfg)) f =
@@ -57,14 +90,19 @@ theorem movingPrice_expectation (m : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (F
       Fintype.sum_bool]
   norm_num [movingPriceSelect, movingPrice_selected cfg hq, PMF.bernoulli_apply]
 
+/-- The sum of `n` consecutive transition prices starting at counter `m`. -/
 def movingPriceBlock (m n : ℕ) : ℕ := ∑ i ∈ Finset.range n, (m+i+1)
 
+/-- A block of zero transitions has zero charge. -/
 @[simp] theorem movingPriceBlock_zero (m : ℕ) : movingPriceBlock m 0 = 0 := by
   simp [movingPriceBlock]
 
+/-- A block of one transition starting at counter `m` has charge `m + 1`. -/
 @[simp] theorem movingPriceBlock_one (m : ℕ) : movingPriceBlock m 1 = m+1 := by
   simp [movingPriceBlock]
 
+/-- A nonempty charge block splits into its first price and the remaining block at the
+incremented counter. -/
 theorem movingPriceBlock_succ (m n : ℕ) :
     movingPriceBlock m (n+1) = (m+1) + movingPriceBlock (m+1) n := by
   simp only [movingPriceBlock, Finset.sum_range_succ']
@@ -74,11 +112,13 @@ theorem movingPriceBlock_succ (m n : ℕ) :
   rw [he]
   omega
 
+/-- The charge of a block is at least its number of transitions. -/
 theorem movingPriceBlock_lower (m n : ℕ) : n ≤ movingPriceBlock m n := by
   calc
     n = ∑ i ∈ Finset.range n, (1:ℕ) := by simp
     _ ≤ movingPriceBlock m n := Finset.sum_le_sum fun i hi => by omega
 
+/-- A charge block starting at counter zero equals the corresponding triangular number. -/
 theorem movingPriceBlock_triangle (n : ℕ) : movingPriceBlock 0 n = movingPriceTriangle n := by
   have ht : movingPriceBlock 0 n = (∑ i ∈ Finset.range n, i) + n := by
     simp [movingPriceBlock, Finset.sum_add_distrib]
@@ -91,6 +131,8 @@ theorem movingPriceBlock_triangle (n : ℕ) : movingPriceBlock 0 n = movingPrice
   unfold movingPriceTriangle
   rw [← htwo, Nat.mul_div_cancel _ (by decide : 0 < 2)]
 
+/-- The weighted halting mass satisfies a one-step recurrence after deducting the current
+transition price. -/
 theorem movingPrice_weighted_point (m n k : ℕ)
     (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2)) (hq : cfg.q = 0) (o : Bool) :
     weightedRunFor movingPriceNext movingPrice (n+1) (.inr (m,cfg)) (.inl o,k) =
@@ -112,6 +154,8 @@ theorem movingPrice_weighted_point (m n k : ℕ)
     simp only [he]
   · simp only [if_neg hfit]
 
+/-- The weighted process has zero mass at output false from a configuration in control state
+zero. -/
 theorem movingPrice_weighted_false (m n k : ℕ)
     (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2)) (hq : cfg.q = 0) :
     weightedRunFor movingPriceNext movingPrice n (.inr (m,cfg)) (.inl false,k) = 0 := by
@@ -123,6 +167,8 @@ theorem movingPrice_weighted_false (m n k : ℕ)
     simp only [hi, Bool.false_eq_true, false_and, if_false, mul_zero, zero_add]
     split_ifs <;> rfl
 
+/-- The weighted mass at output true is the finite sum of geometric weights whose block charges
+equal the specified charge. -/
 theorem movingPrice_weighted_true (m n k : ℕ)
     (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2)) (hq : cfg.q = 0) :
     weightedRunFor movingPriceNext movingPrice n (.inr (m,cfg)) (.inl true,k) =
@@ -158,6 +204,8 @@ theorem movingPrice_weighted_true (m n k : ℕ)
       have hl : m+1 ≤ movingPriceBlock m (j+1) := by rw [movingPriceBlock_succ]; omega
       omega
 
+/-- The clocked process halts true with geometric masses at triangular charges and has zero
+halting mass at output false. -/
 theorem moving_price_actual_joint_triangular_charge : ∀ (input : List Bool) (k : ℕ),
     haltJoint (costClockNext movingPriceNext movingPrice)
       (costClockEmbed movingPrice (movingPriceInit input)) true k =
@@ -187,6 +235,7 @@ theorem moving_price_actual_joint_triangular_charge : ∀ (input : List Bool) (k
   have hjk : k ≤ j := by have := Finset.mem_range.not.mp hj; omega
   omega
 
+/-- After `n` transitions from control state zero, the pending mass equals `(1 / 2) ^ n`. -/
 theorem movingPrice_pending (m n : ℕ)
     (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2)) (hq : cfg.q = 0) :
     generalPendingMass movingPriceNext (.inr (m,cfg)) n = (1/2:ℝ≥0∞)^n := by
@@ -200,6 +249,8 @@ theorem movingPrice_pending (m n : ℕ)
     rw [hi]
     simp [pow_succ, mul_comm]
 
+/-- The infinite sum of triangular charges weighted by their geometric halting probabilities
+equals four. -/
 theorem movingPrice_triangle_series :
     (∑' j : ℕ, (movingPriceTriangle (j+1) : ℝ≥0∞)*(1/2:ℝ≥0∞)^(j+1)) = 4 := by
   have ht (j : ℕ) : movingPriceTriangle (j+1) = (j+2).choose 2 := by
@@ -226,6 +277,9 @@ theorem movingPrice_triangle_series :
   simp_rw [hm] at he
   simpa using he.symm
 
+/-- The native clocked tape process has zero nontermination mass and expected time four. At
+cutoff `B`, its pending mass is at most `4 / (B + 1)`, and its probability of having halted
+true is at least one minus this bound. -/
 theorem moving_price_native_tape_expected_charge_consumer : ∀ (input : List Bool),
     let next := costClockNext movingPriceNext movingPrice
     let cfg := costClockEmbed movingPrice (movingPriceInit input)

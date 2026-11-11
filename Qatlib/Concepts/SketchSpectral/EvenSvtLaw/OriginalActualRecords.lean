@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
 import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+
+/-!
+# Legacy statement of actual-record SVT accuracy
+
+`evenSVTFrobeniusActualRecordsLegacy` records the version of the exact-record Frobenius
+guarantee that lacks positive row and column sample-size assumptions. This proposition is
+retained for comparison with the corrected record statement and its zero-record counterexample
+in the formal treatment of [ChiaEtAl2022].
+
+## Main statements
+
+* `evenSVTFrobeniusActualRecordsLegacy`: The legacy exact-record even-SVT Frobenius guarantee,
+  formulated without assumptions that the row and column sample counts are positive.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.SketchArith.SketchBuild
@@ -15,6 +34,8 @@ namespace Qatlib.Concepts.SketchSpectral.EvenSvtLaw
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The legacy exact-record even-SVT Frobenius guarantee, formulated without assumptions that
+the row and column sample counts are positive. -/
 def evenSVTFrobeniusActualRecordsLegacy : Prop :=
   ∀ (K C : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     (A : Matrix K C ℂ) (r c : ℕ) (f fbar : ℝ → ℂ) (L Lbar d ε δ η₁ η₂ : ℝ)

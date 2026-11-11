@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeAmplifiedDefinitions
+
+/-!
+# Specification of corrected HHL amplification bounds
+
+`SectionIIAmplifiedRuntimeCorrected` uses the well-conditioned label of the three-state filter
+as its selected event. Under the stated spectral gap and grid assumptions, it requires unitary
+preparation and an amplification depth at most `⌈1 / (5 * d)⌉₊ + 1` with success probability at
+least `1 / 4` and an explicit cost bound, in the setting of [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `SectionIIAmplifiedRuntimeCorrected`: the corrected event, amplification, and cost
+  specification.
+
+## References
+
+* [Harrow et al., 2009, Section II][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,6 +56,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Real
 
+/-- The corrected sine-envelope amplification specification using `sinEnvelopeWellSetCorrected`,
+with success probability at least `1 / 4`, depth at most `⌈1 / (5 * d)⌉₊ + 1`, and an
+explicit cost bound. See [Harrow et al., Section II][HarrowHassidimLloyd2009]. -/
 def SectionIIAmplifiedRuntimeCorrected : Prop :=
   ∀ (D M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D)
       (d η : ℝ),

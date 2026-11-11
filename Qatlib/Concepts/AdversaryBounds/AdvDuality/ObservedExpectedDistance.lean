@@ -9,6 +9,31 @@ import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
 import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Data.List.OfFn
 import Mathlib.Tactic.Linarith
+
+/-!
+# Expected query bounds for paired branch distance
+
+`observed_paired_expected_distance` bounds the sum of squared distances between paired terminal
+states for two unitary oracles. Its right side uses the operator norm of the oracle difference
+and the geometric mean of their expected query counts. The proof develops the hybrid argument
+approach associated with [BennettEtAl1997] for the observed circuit semantics.
+
+The supporting lemmas express branch mass as squared Euclidean norm, expand paired state
+distance through inner products, and bound the change caused by a single query. A list
+Cauchy--Schwarz estimate combines the query visit contributions.
+
+## Main statements
+
+* `query_inner_change_le` controls a single query's change in inner product.
+* `paired_distance_identity` expands total paired distance using terminal inner products.
+* `observed_paired_expected_distance` proves the expected query distance estimate for a
+  well-formed circuit and normalized input.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -24,6 +49,8 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
 open Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
+/-- The square of a list sum of products of real values is at most the product of the two sums
+of squares. -/
 private theorem list_cauchy_sq {α : Type*} (xs : List α) (f g : α → ℝ) :
     ((xs.map fun x => f x * g x).sum) ^ 2 ≤
       (xs.map fun x => f x ^ 2).sum * (xs.map fun x => g x ^ 2).sum := by
@@ -34,6 +61,7 @@ private theorem list_cauchy_sq {α : Type*} (xs : List α) (f g : α → ℝ) :
     List.ofFn_getElem_eq_map xs (fun x => f x ^ 2),
     List.ofFn_getElem_eq_map xs (fun x => g x ^ 2)] using h
 
+/-- Taking the real part commutes with summing a finite list of complex numbers. -/
 private theorem re_list_sum (xs : List ℂ) :
     xs.sum.re = (xs.map Complex.re).sum := by
   induction xs with
@@ -43,10 +71,13 @@ private theorem re_list_sum (xs : List ℂ) :
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The mass of a pure branch is the squared Euclidean norm of its vector representation. -/
 private theorem mass_eq_euclidean_sq (v : QState I) :
     branchMass v = ‖toEuclidean_fromVec v‖ ^ 2 := by
   simp only [branchMass, MeasureProb, BornProb, norm_toEuclidean_fromVec_sq]
 
+/-- Expands the squared Euclidean distance of two states as the sum of their squared norms minus
+twice the real part of their inner product. -/
 private theorem euclidean_sub_sq (v w : QState I) :
     ‖toEuclidean_fromVec (v - w)‖ ^ 2 =
       ‖toEuclidean_fromVec v‖ ^ 2 + ‖toEuclidean_fromVec w‖ ^ 2 -
@@ -58,6 +89,8 @@ private theorem euclidean_sub_sq (v w : QState I) :
     ‖toEuclidean_fromVec w‖ ^ 2 = _
   ring
 
+/-- The total squared distance across a list of paired branch states equals their two total
+squared norms minus twice their total real inner product. -/
 private theorem paired_distance_identity (ts : List (BranchTrace I × BranchTrace I)) :
     (ts.map fun t => ‖toEuclidean_fromVec (t.1.state - t.2.state)‖ ^ 2).sum =
       (ts.map fun t => ‖toEuclidean_fromVec t.1.state‖ ^ 2).sum +
@@ -70,6 +103,8 @@ private theorem paired_distance_identity (ts : List (BranchTrace I × BranchTrac
     rw [ih, euclidean_sub_sq]
     ring
 
+/-- When `B` is unitary, the change in inner product from applying `A` and `B` is bounded by the
+operator norm of their difference times the two input norms. -/
 private theorem query_inner_change_le (A B : Matrix I I ℂ)
     (hB : B ∈ Matrix.unitaryGroup I ℂ) (v w : QState I) :
     ‖Inner (ApplyGate A v) (ApplyGate B w) - Inner v w‖ ≤
@@ -92,6 +127,9 @@ private theorem query_inner_change_le (A B : Matrix I I ℂ)
       exact mul_le_mul_of_nonneg_right (norm_applyGate_le (A - B) v) (norm_nonneg _)
     _ = _ := rfl
 
+/-- For unitary oracles, a well-formed observed circuit, and a normalized common input, total
+paired squared terminal distance is at most twice the oracle difference norm times the
+geometric mean of expected query counts. -/
 theorem observed_paired_expected_distance
     (A B : Matrix I I ℂ) (P : ObservedCircuit I) (ψ : QState I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hB : B ∈ Matrix.unitaryGroup I ℂ)

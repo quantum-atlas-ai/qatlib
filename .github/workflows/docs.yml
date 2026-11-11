@@ -1,28 +1,36 @@
 name: Docs
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Cache"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   build-docs:
     name: Build API Docs (doc-gen4)
+    concurrency:
+      group: docs-build
+      cancel-in-progress: true
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.repository == 'quantum-atlas-ai/qatlib' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     env:
       LAKE_CACHE_DIR: ${{ github.workspace }}/.lake/cache
+      LEAN_NUM_THREADS: ${{ vars.QATLIB_DOCS_THREADS || '2' }}
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
 
       - name: Install elan
@@ -31,14 +39,46 @@ jobs:
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
-      - name: Free runner disk space
+      - name: Free runner disk space and configure swap
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          if [ ! -f /ci-swapfile ]; then
+            sudo fallocate -l 16G /ci-swapfile || sudo dd if=/dev/zero of=/ci-swapfile bs=1M count=16384
+            sudo chmod 600 /ci-swapfile
+            sudo mkswap /ci-swapfile
+            sudo swapon /ci-swapfile
+          fi
           df -h
+          free -h
 
       - name: Fetch precompiled cache (Mathlib, Physlib, Qatlib)
         run: |
           lake exe get_cache
+
+      - name: Verify prebuilt Qatlib cache is complete (never compile Qatlib in Docs)
+        run: |
+          set -euo pipefail
+          if ! lake --no-build build -KCI Qatlib > "$RUNNER_TEMP/nobuild.log" 2>&1; then
+            tail -n 100 "$RUNNER_TEMP/nobuild.log"
+            exit 1
+          fi
+
+      - name: Restore cached doc-gen4 database and markers
+        uses: actions/cache@v4
+        with:
+          path: |
+            docbuild/.lake/build/api-docs.db
+            docbuild/.lake/build/doc-data
+            .lake/packages/doc-gen4/.lake/build
+            .lake/packages/MD4Lean/.lake/build
+            .lake/packages/BibtexQuery/.lake/build
+            .lake/packages/UnicodeBasic/.lake/build
+            .lake/packages/leansqlite/.lake/build
+            .lake/packages/Cli/.lake/build
+          key: docgen4-db-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-${{ hashFiles('lake-manifest.json', 'docs/references.bib') }}-${{ env.TARGET_SHA }}
+          restore-keys: |
+            docgen4-db-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-${{ hashFiles('lake-manifest.json', 'docs/references.bib') }}-
+            docgen4-db-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}-
 
       - name: Configure docbuild subproject and build Qatlib:docs
         run: |
@@ -61,9 +101,46 @@ jobs:
           path = ".."
           EOF
           cp lean-toolchain docbuild/lean-toolchain
+          if [ -f docs/references.bib ]; then
+            mkdir -p docbuild/docs
+            cp docs/references.bib docbuild/docs/references.bib
+          fi
           cd docbuild
           MATHLIB_NO_CACHE_ON_UPDATE=1 lake update doc-gen4
-          DISABLE_EQUATIONS=1 DOCGEN_SRC="github" lake build Qatlib:docs
+          rm -rf .lake/build/doc .lake/build/doc-data/*.docs_built* .lake/build/doc-data/*docsHeader_built* \
+            .lake/build/doc-data/references.json* .lake/build/doc-data/declaration-data-*.bmp* .lake/build/doc-data/backrefs-*.json*
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          core, live = {"Init", "Std", "Lake", "Lean"}, set()
+          for d in [Path("../.lake/build/lib/lean"), *Path("../.lake/packages").glob("*/.lake/build/lib/lean")]:
+              if d.is_dir():
+                  live |= {".".join(p.relative_to(d).with_suffix("").parts) for p in d.rglob("*.olean")}
+          ok = lambda m: m.split(".", 1)[0] in core or m in live
+          doc_data, db = Path(".lake/build/doc-data"), Path(".lake/build/api-docs.db")
+          for p in (doc_data.glob("*.doc") if doc_data.is_dir() else []):
+              if not p.stem.startswith("core-") and not ok(p.stem):
+                  for q in doc_data.glob(f"{p.stem}.doc*"): q.unlink(missing_ok=True)
+          if db.is_file():
+              with sqlite3.connect(db) as c:
+                  c.execute("PRAGMA foreign_keys = ON")
+                  stale = [(n,) for (n,) in c.execute("SELECT name FROM modules") if not ok(n)]
+                  if stale: c.executemany("DELETE FROM modules WHERE name = ?", stale)
+                  c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+          PY
+          if ! DISABLE_EQUATIONS=1 DOCGEN_SRC="github" lake build Qatlib:docs > "$RUNNER_TEMP/docgen.log" 2>&1; then
+            if grep -q "Database schema is outdated" "$RUNNER_TEMP/docgen.log"; then
+              echo "Detected doc-gen4 schema update; resetting api-docs.db and rebuilding cleanly..."
+              rm -rf .lake/build/api-docs.db* .lake/build/doc-data .lake/build/doc
+              if ! DISABLE_EQUATIONS=1 DOCGEN_SRC="github" lake build Qatlib:docs > "$RUNNER_TEMP/docgen.log" 2>&1; then
+                tail -n 100 "$RUNNER_TEMP/docgen.log"
+                exit 1
+              fi
+            else
+              tail -n 100 "$RUNNER_TEMP/docgen.log"
+              exit 1
+            fi
+          fi
 
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -73,6 +150,12 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build-docs
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

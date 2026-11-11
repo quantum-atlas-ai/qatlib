@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+
+/-!
+# Entrywise bounds relative to a pure state
+
+The difference between a pure outer product and a positive semidefinite matrix has at most one
+positive eigenvalue. This observation reduces a trace-distance estimate to a quadratic-form
+bound, which `halfTraceDistance_outerProduct_sub_le_of_entrywise` obtains from real, nonnegative
+entrywise error bounds. See [Bhatia1997].
+
+## Main statements
+
+* `pureTarget_sub_positive_eigenvalue_unique`: uniqueness of a positive eigenvalue index.
+* `quadratic_re_le_of_entrywise_norm`: an entrywise estimate implies a quadratic-form bound.
+* `halfTraceDistance_outerProduct_sub_le_of_entrywise`: the resulting pure-target trace-distance
+  estimate.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -20,6 +41,8 @@ open scoped BigOperators ComplexOrder
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The quadratic form of a pure outer product minus a positive semidefinite matrix is
+nonpositive on vectors orthogonal to the pure vector. -/
 theorem pureTarget_sub_quadratic_nonpos
     (v : Qatlib.Foundations.PureStateMath.QState I) (σ : Matrix I I ℂ) (hσ : σ.PosSemidef)
     (x : Qatlib.Foundations.PureStateMath.QState I) (hx : Qatlib.Foundations.PureStateMath.Inner v x = 0) :
@@ -35,6 +58,8 @@ theorem pureTarget_sub_quadratic_nonpos
   rw [hz, zero_sub, Complex.neg_re]
   linarith
 
+/-- For a pure outer product minus a positive semidefinite matrix, any two indices carrying
+positive eigenvalues coincide. -/
 theorem pureTarget_sub_positive_eigenvalue_unique
     (v : Qatlib.Foundations.PureStateMath.QState I) (σ : Matrix I I ℂ) (hσ : σ.PosSemidef)
     (hE : (Qatlib.Foundations.PureStateMath.Reflection.outerProduct v - σ).IsHermitian)
@@ -102,6 +127,8 @@ theorem pureTarget_sub_positive_eigenvalue_unique
   have hsecond : 0 < hE.eigenvalues j * Complex.normSq a := mul_pos hj ha_pos
   linarith
 
+/-- For a traceless Hermitian matrix with at most one positive eigenvalue index, half its trace
+norm is zero or equals that positive eigenvalue. -/
 theorem halfTraceNorm_eq_positive_eigenvalue_or_zero
     (E : Matrix I I ℂ) (hE : E.IsHermitian) (htr : E.trace = 0)
     (hunique : ∀ i j, 0 < hE.eigenvalues i → 0 < hE.eigenvalues j → i = j) :
@@ -140,6 +167,8 @@ theorem halfTraceNorm_eq_positive_eigenvalue_or_zero
 
 omit [DecidableEq I] in
 
+/-- If the entry norms of `A` are bounded by `s * ‖v i‖ * ‖v j‖` for normalized `v` and
+nonnegative `s`, every normalized quadratic form has real part at most `s`. -/
 theorem quadratic_re_le_of_entrywise_norm
     (A : Matrix I I ℂ) (v : Qatlib.Foundations.PureStateMath.QState I) (s : ℝ)
     (hv : Qatlib.Foundations.PureStateMath.Normalized v) (hs : 0 ≤ s)
@@ -182,6 +211,8 @@ theorem quadratic_re_le_of_entrywise_norm
     _ = s * (∑ i, ‖v i‖ * ‖x i‖) ^ 2 := hfactor
     _ ≤ s := by simpa only [mul_one] using mul_le_mul_of_nonneg_left hc hs
 
+/-- For a normalized pure vector and a density matrix, real nonnegative entries of their
+difference bounded by `s * ‖v i‖ * ‖v j‖` imply trace distance at most `s`. -/
 theorem halfTraceDistance_outerProduct_sub_le_of_entrywise
     (v : Qatlib.Foundations.PureStateMath.QState I) (σ : Matrix I I ℂ) (s : ℝ)
     (hv : Qatlib.Foundations.PureStateMath.Normalized v) (hσ : σ.PosSemidef)

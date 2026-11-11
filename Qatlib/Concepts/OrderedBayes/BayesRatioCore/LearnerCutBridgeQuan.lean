@@ -10,6 +10,25 @@ import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 import Mathlib.Tactic.Linarith
 import Lean.Elab.Tactic.Omega
 import Mathlib.Tactic.Positivity
+
+/-!
+# Balanced cuts for the Bayesian learner
+
+This module proves `learnerCutBridge_answer`, connecting the prefix threshold lemma with the
+learner's chosen cut in the ordered search framework of [BenOrHassidim2007]. For a strictly
+positive normalized prior with no mass reaching ε, the cut set is nonempty, `stageTwoCut` has
+prefix mass in [1/2 - ε, 1/2), and both posterior updates sum to one under the contract's
+parameter bounds.
+
+## Main statements
+
+* `learnerCutBridge_answer`: the learner satisfies `LearnerCutBridge`.
+
+## References
+
+* [Ben-Or and Hassidim, Lemma 2.1][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +36,9 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 
+/-- Proves `LearnerCutBridge`: under its prior and parameter hypotheses, the selected cut has
+prefix mass in [1/2 - ε, 1/2), the cut set is nonempty, and both posterior updates are
+normalized [BenOrHassidim2007]. -/
 theorem learnerCutBridge_answer : LearnerCutBridge := by
   intro n hn a p ε hp hp1 hε hcap ha hsum hrun
   classical

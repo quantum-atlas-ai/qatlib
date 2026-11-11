@@ -6,6 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.Reduction.ReductionDefs
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Bounds for modular Fourier records
+
+This module proves rounding bounds and the triangle inequality for `phaseDistance`, and uses
+them to show that labels in two phase windows pass `recordDecode`. The normalization and
+measurement laws for `qpeKernel` and `recordRun` describe phase estimation on eigenstates and
+superpositions with a common eigenphase, following the phase estimation framework of
+[Kitaev1995].
+
+It also relates the effective record resources to circuit counts, constructs dyadic
+approximations of real numbers, and evaluates oracle words implementing powers of two with their
+exact query costs.
+
+## Main statements
+
+* `recordDecode_of_window`: two labels in the prescribed windows decode successfully.
+* `recordRun_window_law_repeated`: the joint window mass factors for a common eigenphase.
+* `recordRun_joint_window_conditional`: the joint window mass is at least `8 / Real.pi^2` times
+  the first window mass.
+* `powerTwoOracleWord_costs`: the power word uses `2 ^ j` queries and no ordinary gates.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.QueryWordCore.Circuit
@@ -27,12 +54,14 @@ open scoped Classical BigOperators
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- Rounding a real number `t` to `⌊t + 1 / 2⌋` gives an absolute error at most `1 / 2`. -/
 theorem abs_sub_round_le_half (t : ℝ) : |t - (⌊t + 1 / 2⌋ : ℝ)| ≤ 1 / 2 := by
   have hl := Int.floor_le (t + 1 / 2)
   have hu := Int.lt_floor_add_one (t + 1 / 2)
   apply abs_le.mpr
   constructor <;> linarith
 
+/-- The integer `⌊t + 1 / 2⌋` is at least as close to `t` as any integer `m`. -/
 theorem abs_sub_round_le (t : ℝ) (m : ℤ) :
     |t - (⌊t + 1 / 2⌋ : ℝ)| ≤ |t - (m : ℝ)| := by
   have hhalf := abs_sub_round_le_half t
@@ -63,20 +92,24 @@ theorem abs_sub_round_le (t : ℝ) (m : ℤ) :
       simpa [abs_sub_comm] using h2
     linarith
 
+/-- The circular phase distance between two real phases is nonnegative. -/
 theorem phaseDistance_nonneg (x y : ℝ) : 0 ≤ phaseDistance x y := by
   unfold phaseDistance
   positivity
 
+/-- The circular phase distance between two real phases is at most `1 / 2`. -/
 theorem phaseDistance_le_half (x y : ℝ) : phaseDistance x y ≤ 1 / 2 := by
   unfold phaseDistance
   exact abs_sub_round_le_half (x - y)
 
+/-- The circular phase distance from a phase to itself is zero. -/
 theorem phaseDistance_self (x : ℝ) : phaseDistance x x = 0 := by
   unfold phaseDistance
   have h1 : x - x + 1 / 2 = (1 / 2 : ℝ) := by ring
   rw [h1, show (⌊(1 / 2 : ℝ)⌋ : ℤ) = 0 by norm_num]
   simp
 
+/-- The circular phase distance is symmetric in its two arguments. -/
 theorem phaseDistance_symm (x y : ℝ) : phaseDistance x y = phaseDistance y x := by
   unfold phaseDistance
   have h1 : |x - y - (⌊x - y + 1 / 2⌋ : ℝ)| ≤
@@ -101,11 +134,14 @@ theorem phaseDistance_symm (x y : ℝ) : phaseDistance x y = phaseDistance y x :
     exact h
   exact le_antisymm h1 h2
 
+/-- The circular phase distance is bounded by the absolute phase difference after subtracting
+any integer. -/
 theorem phaseDistance_le_abs_sub_int (x y : ℝ) (m : ℤ) :
     phaseDistance x y ≤ |x - y - (m : ℝ)| := by
   unfold phaseDistance
   exact abs_sub_round_le (x - y) m
 
+/-- The circular phase distance satisfies the triangle inequality. -/
 theorem phaseDistance_tri (x y z : ℝ) :
     phaseDistance x z ≤ phaseDistance x y + phaseDistance y z := by
   have h := phaseDistance_le_abs_sub_int x z
@@ -121,6 +157,8 @@ theorem phaseDistance_tri (x y z : ℝ) :
   unfold phaseDistance at h ⊢
   linarith
 
+/-- Labels within `1 / M` and `1 / N` of a common phase are consistent when both register sizes
+are positive. -/
 theorem recordConsistent_of_windows (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (x : Fin M) (y : Fin N) (φ : ℝ)
     (hx : phaseDistance φ (labelPosition M x) ≤ 1 / (M : ℝ))
@@ -131,10 +169,13 @@ theorem recordConsistent_of_windows (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
   rw [phaseDistance_symm] at hx
   linarith
 
+/-- The record decoder returns `some y` exactly when the two labels are consistent. -/
 theorem recordDecode_eq_some_iff (M N : ℕ) (x : Fin M) (y : Fin N) :
     recordDecode M N x y = some y ↔ recordConsistent M N x y := by
   simp [recordDecode]
 
+/-- For positive register sizes, the record decoder returns `y` when both labels lie in their
+prescribed windows around a common phase. -/
 theorem recordDecode_of_window (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (x : Fin M) (y : Fin N) (φ : ℝ)
     (hx : phaseDistance φ (labelPosition M x) ≤ 1 / (M : ℝ))
@@ -143,6 +184,8 @@ theorem recordDecode_of_window (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
   rw [recordDecode_eq_some_iff]
   exact recordConsistent_of_windows M N hM hN x y φ hx hy
 
+/-- For positive register sizes, a failed record decode rules out simultaneous membership of
+both labels in the prescribed windows around any given phase. -/
 theorem recordDecode_failure_certifies (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (x : Fin M) (y : Fin N) (φ : ℝ)
     (hfail : recordDecode M N x y = none) :
@@ -154,6 +197,8 @@ theorem recordDecode_failure_certifies (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
   rw [hfail] at this
   cases this
 
+/-- For positive register sizes, a record whose two labels lie in the prescribed phase windows
+belongs to the decode event. -/
 theorem recordWindowEvent_subset_decodeEvent (M N : ℕ) (hM : 0 < M) (hN : 0 < N)
     (φ : ℝ) :
     ∀ p : RecordSpace M N I,
@@ -164,6 +209,7 @@ theorem recordWindowEvent_subset_decodeEvent (M N : ℕ) (hM : 0 < M) (hN : 0 < 
   simp only [recordDecodeEvent, Finset.mem_filter, Finset.mem_univ, true_and]
   exact recordConsistent_of_windows M N hM hN p.1 p.2.2.1 φ hp.1 hp.2
 
+/-- The joint record window consists exactly of label pairs in the two individual phase windows. -/
 theorem recordWindowEvent_eq (M N : ℕ) (φ : ℝ) :
     recordWindowEvent M N φ =
       (Finset.univ : Finset (Fin M × Fin N)).filter
@@ -176,6 +222,8 @@ theorem recordWindowEvent_eq (M N : ℕ) (φ : ℝ) :
   · intro h
     exact ⟨h.1, h.2⟩
 
+/-- The phase estimation kernel is normalized for every phase when the register size is
+positive. -/
 theorem normalized_qpeKernel (M : ℕ) (hM : 0 < M) (φ : ℝ) : Normalized (qpeKernel M φ) := by
   have hfun : qpeKernel M φ = ApplyGate (QFTMatrix M)ᴴ (offGridPhase M φ) := by
     funext z; exact qpeKernel_apply M φ z
@@ -183,6 +231,8 @@ theorem normalized_qpeKernel (M : ℕ) (hM : 0 < M) (φ : ℝ) : Normalized (qpe
   exact normalized_applyGate (conjTranspose_mem_unitaryGroup (qftMatrix_unitary hM))
     (offgrid_phase_kernel_formula M φ ⟨0, hM⟩ hM).2.2
 
+/-- The measurement mass of a rectangular record event is the sum of the masses for its
+individual label pairs. -/
 theorem measureProb_recordEvent_sum {M N : ℕ} (ψ : QState (RecordSpace M N I))
     (S : Finset (Fin M)) (T : Finset (Fin N)) :
     MeasureProb ψ (recordEvent M N S T) =
@@ -226,6 +276,8 @@ theorem measureProb_recordEvent_sum {M N : ℕ} (ψ : QState (RecordSpace M N I)
   intro x hx
   rw [Finset.sum_comm]
 
+/-- For an orthonormal family with a common eigenphase, the joint label mass of `recordRun` is
+the total squared coefficient norm times the product of the two kernel masses. -/
 theorem recordRun_label_law_repeated {J : Type} [Fintype J]
     (M N : ℕ) (hM : 0 < M) (hN : 0 < N) (U : Matrix I I ℂ)
     (v : J → QState I) (c : J → ℂ) (φ₀ : ℝ)
@@ -243,6 +295,8 @@ theorem recordRun_label_law_repeated {J : Type} [Fintype J]
   rw [← Finset.sum_mul] at h
   exact h
 
+/-- For an orthonormal family with a common eigenphase, the joint record window mass factors as
+the total squared coefficient norm times the two kernel window masses. -/
 theorem recordRun_window_law_repeated {J : Type} [Fintype J]
     (M N : ℕ) (hM : 0 < M) (hN : 0 < N) (U : Matrix I I ℂ)
     (v : J → QState I) (c : J → ℂ) (φ₀ : ℝ)
@@ -296,6 +350,8 @@ theorem recordRun_window_law_repeated {J : Type} [Fintype J]
           rw [hinner]
           ring
 
+/-- For a normalized eigenstate and register sizes at least two, the joint phase window
+probability is at least `8 / Real.pi^2` times the probability of the first window. -/
 theorem recordRun_joint_window_conditional (M N : ℕ) (hM : 2 ≤ M) (hN : 2 ≤ N)
     (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ)
     (hψ : ApplyGate U ψ = Complex.exp (2 * Real.pi * Complex.I * φ) • ψ)
@@ -318,20 +374,29 @@ theorem recordRun_joint_window_conditional (M N : ℕ) (hM : 2 ≤ M) (hN : 2 �
     measureProb_nonneg _ _
   nlinarith [mul_le_mul_of_nonneg_left hN hpos]
 
+/-- For positive register sizes, the effective query count equals the query count of
+`recordCircuit`. -/
 theorem recordEffectiveQueries_eq (M N : ℕ) (hM : 0 < M) (hN : 0 < N) :
     recordEffectiveQueries M N = QueryCount (recordCircuit (I := I) M N) := by
   unfold recordEffectiveQueries
   exact (recordCircuit_resources (I := I) M N hM hN).1.symm
 
+/-- For positive register sizes, the effective gate count equals the gate count of
+`recordCircuit`. -/
 theorem recordEffectiveGates_eq (M N : ℕ) (hM : 0 < M) (hN : 0 < N) :
     recordEffectiveGates M N = GateCount (recordCircuit (I := I) M N) := by
   unfold recordEffectiveGates
   exact (recordCircuit_resources (I := I) M N hM hN).2.1.symm
 
+/-- The effective confidence is the square of `8 / Real.pi^2`. -/
 theorem recordEffectiveConfidence_eq : recordEffectiveConfidence = (8 / Real.pi^2)^2 := rfl
 
+/-- The effective radius is the minimum of the two supplied radii. -/
 theorem recordEffective_radius (ε δ : ℝ) : recordEffectiveRadius ε δ = min ε δ := rfl
 
+/-- For positive register sizes, the effective record uses at least `N - 1` queries and has
+confidence at most `8 / Real.pi^2`; the counted phase circuit of size `N` uses exactly `N -
+1` queries. -/
 theorem recordEffective_dominated_by_fine_record (M N : ℕ) (hM : 0 < M) (hN : 0 < N) :
     (N - 1) ≤ recordEffectiveQueries M N ∧
       recordEffectiveConfidence ≤ 8 / Real.pi^2 ∧
@@ -351,6 +416,8 @@ theorem recordEffective_dominated_by_fine_record (M N : ℕ) (hM : 0 < M) (hN : 
   · exact (counted_offgrid_qpe_clean_flag N hN
       (1 : Matrix (Fin N × I) (Fin N × I) ℂ) (0 : QState (Fin N × I))).2.1
 
+/-- The absolute value of the integer floor of a real number is bounded by its absolute value
+plus one. -/
 theorem abs_intFloor_le (t : ℝ) : |((Int.floor t : ℤ) : ℝ)| ≤ |t| + 1 := by
   by_cases h : (0 : ℤ) ≤ Int.floor t
   · rw [abs_of_nonneg (by exact_mod_cast h)]
@@ -366,6 +433,7 @@ theorem abs_intFloor_le (t : ℝ) : |((Int.floor t : ℤ) : ℝ)| ≤ |t| + 1 :=
     have h3 : 1 - t ≤ |t| + 1 := by linarith [hneg]
     exact le_of_lt (lt_of_lt_of_le h2 h3)
 
+/-- Every natural number `n` is bounded above by `2 ^ n`. -/
 theorem two_pow_ge_self (n : ℕ) : n ≤ 2 ^ n := by
   induction n with
   | zero => simp
@@ -376,6 +444,8 @@ theorem two_pow_ge_self (n : ℕ) : n ≤ 2 ^ n := by
         _ ≥ n * 2 := Nat.mul_le_mul_right 2 ih
         _ ≥ n + 1 := by omega
 
+/-- Every real number `x` has an integer dyadic approximation within each positive tolerance
+`ε`, with `2 ^ r ≥ 1 / ε` and numerator magnitude at most `(|x| + 1) * 2 ^ r`. -/
 theorem hasGeneralRealQuantization : HasGeneralRealQuantization := by
   intro x eps hε
   obtain ⟨r₀, hr₀⟩ := exists_nat_ge (1 / eps : ℝ)
@@ -439,6 +509,7 @@ theorem hasGeneralRealQuantization : HasGeneralRealQuantization := by
   refine ⟨r, c, herr, hpow, ?_, hwit⟩
   rw [dyadicCode]
 
+/-- A square complex matrix commutes with each of its natural powers. -/
 theorem mul_upow_comm {H : Type} [Fintype H] [DecidableEq H] (U : Matrix H H ℂ) :
     ∀ n : ℕ, U * U ^ n = U ^ n * U := by
   intro n
@@ -450,6 +521,7 @@ theorem mul_upow_comm {H : Type} [Fintype H] [DecidableEq H] (U : Matrix H H ℂ
       _ = (U ^ n * U) * U := congrArg (fun M => M * U) ih
       _ = U ^ (n + 1) * U := by rw [pow_succ]
 
+/-- Evaluating the oracle word for exponent `j` gives the oracle iterate with exponent `2 ^ j`. -/
 theorem powerTwoOracleWord_eval {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (j : ℕ) :
     evaluate U (powerTwoOracleWord j) = oraclePowerIterate U (2 ^ j) := by
@@ -470,6 +542,7 @@ theorem powerTwoOracleWord_eval {H : Type} [Fintype H] [DecidableEq H]
   show evaluate U (List.replicate (2 ^ j) AdjointStep.forward) = oraclePowerIterate U (2 ^ j)
   rw [key, key2]
 
+/-- The oracle word for exponent `j` uses exactly `2 ^ j` queries and zero ordinary gates. -/
 theorem powerTwoOracleWord_costs {H : Type} [Fintype H] [DecidableEq H] (j : ℕ) :
     adjointQueryCount (powerTwoOracleWord (H := H) j) = 2 ^ j ∧
       adjointGateCount (powerTwoOracleWord (H := H) j) = 0 := by
@@ -493,6 +566,7 @@ theorem powerTwoOracleWord_costs {H : Type} [Fintype H] [DecidableEq H] (j : ℕ
         (List.replicate (2 ^ j) (AdjointStep.forward : AdjointStep H)) = 0
     exact key _
 
+/-- An adjoint oracle word containing zero queries evaluates independently of the chosen oracle. -/
 theorem zeroQueryWordOracleIndependent : zeroQueryWordOracleIndependent := by
   intro H _ _ word U V hq
   induction word generalizing U V with

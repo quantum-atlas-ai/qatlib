@@ -95,6 +95,29 @@ import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
 import Mathlib.Topology.Order.IntermediateValue
 import Mathlib.Topology.UniformSpace.Defs
 
+/-!
+# Cubic roots near the critical walk energy
+
+This module defines the critical coupling `gammaC`, the scalar energy `Er`, the reduced matrix
+`Hred0`, and its signed characteristic expression `charPoly`. Explicit polynomial evaluations
+and sign bounds produce a real root within `54 / n ^ 2` of `-1 - 1 / (2 * n)` for `n ≥ 6`.
+
+The theorem `critical_degeneracy` pairs this nearby-root estimate with the exact formula for
+`Er` at the critical coupling.
+
+The mathematical background is discussed in [Wong2016].
+
+## Main statements
+
+* `charPoly_eq_det`: relates the cubic expression to the matrix determinant.
+* `lambda_u_exists`: proves existence of the nearby real root.
+* `critical_degeneracy`: combines the critical scalar energy and cubic-root estimates.
+
+## References
+
+* [Wong, 2016][Wong2016]
+-/
+
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 noncomputable section
@@ -104,30 +127,40 @@ open scoped BigOperators
 
 namespace Qatlib.Foundations.WalkReduction.CubicSpectrum
 
+/-- The critical coupling `1 / (3 * n) + 7 / (6 * n ^ 2)`. -/
 def gammaC (n : ℝ) : ℝ := 1 / (3 * n) + 7 / (6 * n ^ 2)
 
+/-- The scalar energy `-γ * (3 * n - 9)`. -/
 def Er (γ n : ℝ) : ℝ := -γ * (3 * n - 9)
 
+/-- For nonzero `n`, the critical scalar energy equals `-1 - 1 / (2 * n) + 21 / (2 * n ^ 2)`.
+See [Wong2016]. -/
 theorem Er_at_critical {n : ℝ} (hn : n ≠ 0) :
     Er (gammaC n) n = -1 - 1 / (2 * n) + 21 / (2 * n ^ 2) := by
   unfold Er gammaC
   field_simp [hn]
   ring
 
+/-- The critical coupling at `n = 100` equals `69 / 20000`. See [Wong2016]. -/
 theorem gammaC_100 : gammaC 100 = 69 / 20000 := by
   unfold gammaC
   norm_num
 
+/-- The explicit symmetric three-dimensional reduced Hamiltonian with diagonal entries `-1`, `-γ
+* (2 * n - 17)`, and `-γ * (n - 2)` and the specified square-root couplings. -/
 def Hred0 (γ n : ℝ) : Matrix (Fin 3) (Fin 3) ℝ :=
   !![ -1, 0, -(γ * Real.sqrt (3 * n));
       0, -(γ * (2 * n - 17)), -(γ * (-2 * Real.sqrt (2 * n)));
       -(γ * Real.sqrt (3 * n)), -(γ * (-2 * Real.sqrt (2 * n))), -(γ * (n - 2)) ]
 
+/-- The explicit real cubic expression in `lam` used to locate eigenvalues of `Hred0`. -/
 def charPoly (γ lam n : ℝ) : ℝ :=
   -lam ^ 3 - (3 * γ * n - 19 * γ + 1) * lam ^ 2
     + γ * (19 - 34 * γ - 2 * γ * n ^ 2 + n * (32 * γ - 3)) * lam
     + γ ^ 2 * (-34 + n * (29 - 51 * γ) + n ^ 2 * (-2 + 6 * γ))
 
+/-- For nonnegative `n`, the determinant of `lam * 1 - Hred0 γ n` equals the negative of
+`charPoly γ lam n`. See [Wong2016]. -/
 theorem charPoly_eq_det {γ lam n : ℝ} (hn : 0 ≤ n) :
     (Matrix.scalar (Fin 3) lam - Hred0 γ n).det = -charPoly γ lam n := by
   rw [Matrix.det_fin_three]
@@ -138,6 +171,8 @@ theorem charPoly_eq_det {γ lam n : ℝ} (hn : 0 ≤ n) :
     Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2), Real.sq_sqrt hn]
   ring
 
+/-- For positive `n`, evaluate the cubic at the critical coupling and center `-1 - 1 / (2 * n)`
+as the displayed negative rational function of `n`. -/
 theorem charPoly_at_critical_closed {n : ℝ} (hn : 0 < n) :
     charPoly (gammaC n) (-1 - 1 / (2 * n)) n =
       -(4729798656 * n ^ 3 + 50415353856 * n ^ 2 + 243423387648 * n + 223859220480)
@@ -146,6 +181,8 @@ theorem charPoly_at_critical_closed {n : ℝ} (hn : 0 < n) :
   field_simp [hn.ne']
   ring
 
+/-- For `n ≥ 6`, the absolute cubic residual at the critical coupling and center `-1 - 1 / (2 *
+n)` is at most `135 / n ^ 2`. -/
 theorem residual_bound {n : ℝ} (hn : 6 ≤ n) :
     |charPoly (gammaC n) (-1 - 1 / (2 * n)) n| ≤ 135 / n ^ 2 := by
   have hn0 : 0 < n := by linarith
@@ -169,6 +206,8 @@ theorem residual_bound {n : ℝ} (hn : 6 ≤ n) :
     nlinarith [this]
   nlinarith [hstep]
 
+/-- For positive `n`, evaluate the cubic at the critical coupling and `10 / n ^ 2` below the
+center as the displayed rational function with positive coefficients. -/
 lemma charPoly_at_minus_ten_closed {n : ℝ} (hn : 0 < n) :
     charPoly (gammaC n) (-1 - 1 / (2 * n) - 10 / n ^ 2) n =
       (72 * n ^ 4 + 382 * n ^ 3 + 7971 * n ^ 2 + 30675 * n + 264920) / (72 * n ^ 6) := by
@@ -176,6 +215,8 @@ lemma charPoly_at_minus_ten_closed {n : ℝ} (hn : 0 < n) :
   field_simp [hn.ne']
   ring
 
+/-- For positive `n`, evaluate the cubic at the critical coupling and `10 / n ^ 2` above the
+center as the negative of the displayed quartic divided by `72 * n ^ 6`. -/
 lemma charPoly_at_plus_ten_closed {n : ℝ} (hn : 0 < n) :
     charPoly (gammaC n) (-1 - 1 / (2 * n) + 10 / n ^ 2) n =
       -(248 * n ^ 4 + 2258 * n ^ 3 + 2629 * n ^ 2 - 23395 * n - 54280) / (72 * n ^ 6) := by
@@ -183,6 +224,8 @@ lemma charPoly_at_plus_ten_closed {n : ℝ} (hn : 0 < n) :
   field_simp [hn.ne']
   ring
 
+/-- For `n ≥ 6`, the quartic `248 * n ^ 4 + 2258 * n ^ 3 + 2629 * n ^ 2 - 23395 * n - 54280` is
+positive. -/
 lemma quartic_ten_pos {n : ℝ} (hn : 6 ≤ n) :
     0 < 248 * n ^ 4 + 2258 * n ^ 3 + 2629 * n ^ 2 - 23395 * n - 54280 := by
   nlinarith [hn, sq_nonneg (n - 6),
@@ -190,6 +233,8 @@ lemma quartic_ten_pos {n : ℝ} (hn : 6 ≤ n) :
     mul_nonneg (mul_nonneg (sq_nonneg (n - 6)) (by linarith : (0 : ℝ) ≤ n - 6))
       (by linarith : (0 : ℝ) ≤ n - 6)]
 
+/-- For `n ≥ 6`, the cubic at `gammaC n` has a real zero within `54 / n ^ 2` of `-1 - 1 / (2 *
+n)`. -/
 theorem lambda_u_exists {n : ℝ} (hn : 6 ≤ n) :
     ∃ lam : ℝ, charPoly (gammaC n) lam n = 0 ∧ |lam - (-1 - 1 / (2 * n))| ≤ 54 / n ^ 2 := by
   have hn0 : 0 < n := by linarith
@@ -229,6 +274,8 @@ theorem lambda_u_exists {n : ℝ} (hn : 6 ≤ n) :
     apply div_le_div_of_nonneg_right (by norm_num : (10 : ℝ) ≤ 54) (by positivity)
   exact le_trans hdist hten
 
+/-- For `n ≥ 6`, the critical scalar energy is `-1 - 1 / (2 * n) + 21 / (2 * n ^ 2)` and the
+cubic has a real zero within `54 / n ^ 2` of `-1 - 1 / (2 * n)`. -/
 theorem critical_degeneracy {n : ℝ} (hn : 6 ≤ n) :
     Er (gammaC n) n = -1 - 1 / (2 * n) + 21 / (2 * n ^ 2) ∧
       ∃ lam : ℝ, charPoly (gammaC n) lam n = 0 ∧ |lam - (-1 - 1 / (2 * n))| ≤ 54 / n ^ 2 :=

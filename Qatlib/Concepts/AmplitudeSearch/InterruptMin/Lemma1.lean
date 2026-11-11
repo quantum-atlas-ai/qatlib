@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.VisitLaw
+
+/-!
+# The minimum-search rank visit contract
+
+This module defines `Lemma1`, collecting normalization and rank-visit statements for the BBHT
+law associated with a sorted table. It records reciprocal-rank visit probabilities for distinct
+values and upper bounds that allow ties.
+
+The contract packages the visit analysis underlying minimum finding [DurrHoyer1996].
+
+## Main statements
+
+* `Lemma1`: The minimum-search rank-visit contract: normalization of run laws, reciprocal-rank
+  visit formulas for distinct values, and nonnegative reciprocal-rank upper bounds when ties are
+  allowed [DurrHoyer1996].
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +43,9 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
 universe u
 
+/-- The minimum-search rank-visit contract: normalization of run laws, reciprocal-rank visit
+formulas for distinct values, and nonnegative reciprocal-rank upper bounds when ties are
+allowed [DurrHoyer1996]. -/
 def Lemma1 : Prop :=
   ∀ (N : ℕ) (hN : 0 < N) (α : Type u) [LinearOrder α] (T : Fin N → α),
     let ranked := SortedRankedTable.ofTable T

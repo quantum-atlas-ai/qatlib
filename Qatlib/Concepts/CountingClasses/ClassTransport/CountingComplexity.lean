@@ -8,6 +8,34 @@ import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
 import Qatlib.Concepts.CountingClasses.ClassTransport.LinearOpticsComplexityModelsDefs
 import Qatlib.Concepts.BosonFock.PermAnalysis.BosonDistributionNormalizationThec
 import Mathlib.Data.List.GetD
+
+/-!
+# Class transport in the counting bit-machine model
+
+This module proves class inclusions, witness-count identities, affine-hash collision counts, and
+linear-optics sampling estimates in the `CcProgram` model. `clause1Aux_clause6` constructs a
+one-bit output function in `InFBPPNP` from an `InBPP` language by wrapping a decision program.
+
+The model uses tapes filled with false bits beyond the input, so `[]` and `[false]` initialize
+identically. The file also proves counterexamples to several proposed transport and
+approximate-counting specifications that are sensitive to this input representation.
+
+The mathematical background is described in [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `clause1_clause1`, `clause1_clause3`, and `clause1_clause5`: class inclusions and witness
+  counts.
+* `clause2_clause2`: the exact collision count for distinct inputs to affine Boolean hashes.
+* `clause3_clause4`: sampler witness counts and total-variation estimates.
+* `clause1_counter`, `clause2_counter`, and `clause3_counter`: model-specific counterexamples.
+* `clause1Aux_clause6`: decision-to-function transport for `InBPP`.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BosonFock.BosonOperators
@@ -21,10 +49,12 @@ open scoped Classical BigOperators Matrix
 open Qatlib.Concepts.CountingClasses.ClassTransport
 open Qatlib
 
+/-- Running for `t + 1` steps is one machine step applied to the configuration after `t` steps. -/
 private lemma ccRun_succ {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) :
     ccRun P A ρ x (t + 1) = ccStep P A ρ (ccRun P A ρ x t) := rfl
 
+/-- The coin-stream index after `t` machine steps is at most `t`. -/
 private lemma ccRun_coinIdx_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) : (ccRun P A ρ x t).coinIdx ≤ t := by
   induction t with
@@ -33,11 +63,14 @@ private lemma ccRun_coinIdx_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bo
     rw [ccRun_succ]
     cases h : P.states (ccRun P A ρ x n).state <;> simp [ccStep, h] <;> omega
 
+/-- An accepting or rejecting configuration is fixed by `ccStep`. -/
 private lemma ccStep_halt {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (c : CcConfig q) (h : P.states c.state = CcAct.accept ∨ P.states c.state = CcAct.reject) :
     ccStep P A ρ c = c := by
   rcases h with h | h <;> simp [ccStep, h]
 
+/-- If the machine is accepting or rejecting after `t` steps, its configuration after `t + k`
+steps is unchanged. -/
 private lemma ccRun_absorb {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t k : ℕ)
     (h : P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -48,6 +81,8 @@ private lemma ccRun_absorb {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) 
   | succ n ih =>
     rw [show t + (n + 1) = (t + n) + 1 from rfl, ccRun_succ, ih, ccStep_halt P A ρ _ h]
 
+/-- A machine result different from `none` implies that the current action is accepting or
+rejecting. -/
 private lemma result_state {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) (h : ccResult P A ρ x t ≠ none) :
     P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -63,12 +98,16 @@ private lemma result_state {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) 
   | queryPush q' => simp [ccResult, hs] at h
   | oracleCall qt qf => simp [ccResult, hs] at h
 
+/-- A polynomial-time program is in an accepting or rejecting state at its prescribed polynomial
+step bound. -/
 private lemma polyTime_haltState {q : ℕ} (P : CcProgram q) (c k : ℕ) (hp : CcPolyTime P c k)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     P.states (ccRun P A ρ x (c * x.length ^ k + c)).state = CcAct.accept ∨
     P.states (ccRun P A ρ x (c * x.length ^ k + c)).state = CcAct.reject :=
   result_state P A ρ x (c * x.length ^ k + c) (hp A ρ x).1
 
+/-- Coin streams agreeing at every index below `t` produce the same configuration after `t`
+machine steps. -/
 private lemma ccRun_coinPrefix {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ1 ρ2 : ℕ → Bool) (x : List Bool) :
     ∀ t : ℕ, (∀ i, i < t → ρ1 i = ρ2 i) → ccRun P A ρ1 x t = ccRun P A ρ2 x t := by
@@ -85,6 +124,8 @@ private lemma ccRun_coinPrefix {q : ℕ} (P : CcProgram q) (A : List Bool → Bo
       hagr _ (by omega)
     cases h : P.states (ccRun P A ρ2 x n).state <;> simp [ccStep, h, hcoin]
 
+/-- The empty input and the singleton input `[false]` initialize the same configuration in the
+tape model. -/
 private lemma ccInit_nil_eq {q : ℕ} : ccInit q [] = ccInit q [false] := by
   have htape : (fun i => ([] : List Bool).getD i false) = (fun i => [false].getD i false) := by
     funext i
@@ -94,6 +135,8 @@ private lemma ccInit_nil_eq {q : ℕ} : ccInit q [] = ccInit q [false] := by
   simp only [ccInit]
   rw [htape]
 
+/-- The empty input and `[false]` give identical runs for every step count, oracle, and coin
+stream. -/
 private lemma ccRun_nil_false {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool) :
     ∀ t : ℕ, ccRun P A ρ [] t = ccRun P A ρ [false] t := by
   intro t
@@ -101,16 +144,22 @@ private lemma ccRun_nil_false {q : ℕ} (P : CcProgram q) (A : List Bool → Boo
   | zero => exact ccInit_nil_eq (q := q)
   | succ n ih => rw [ccRun_succ, ccRun_succ, ih]
 
+/-- Restricts a finite bit string to its initial segment of the specified shorter length. -/
 private def cutCoins {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) : Fin T0 → Bool :=
   fun i => ω ⟨(i : ℕ), lt_of_lt_of_le i.isLt h⟩
 
+/-- Extracts the suffix remaining after the specified initial segment of a finite bit string. -/
 private def tailCoins {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) : Fin (T1 - T0) → Bool :=
   fun j => ω ⟨T0 + (j : ℕ), by omega⟩
 
+/-- Concatenates a finite bit prefix with a suffix to obtain a bit string of the specified total
+length. -/
 private def padCoins {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : Fin (T1 - T0) → Bool) :
     Fin T1 → Bool :=
   fun j => if hj : (j : ℕ) < T0 then b ⟨(j : ℕ), hj⟩ else u ⟨(j : ℕ) - T0, by omega⟩
 
+/-- Concatenating the extracted prefix and suffix of a finite bit string recovers the original
+string. -/
 private lemma pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) :
     padCoins h (cutCoins h ω) (tailCoins h ω) = ω := by
   funext j
@@ -125,6 +174,7 @@ private lemma pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) 
     show ω (⟨T0 + ((j : ℕ) - T0), hval⟩ : Fin T1) = ω j
     exact congrArg ω (Fin.ext hval2)
 
+/-- Extracting the prefix of a concatenated finite bit string recovers its given prefix. -/
 private lemma cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : Fin (T1 - T0) → Bool) :
     cutCoins h (padCoins h b u) = b := by
   funext i
@@ -135,6 +185,7 @@ private lemma cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : F
   show padCoins h b u ⟨(i : ℕ), hi1⟩ = b i
   rw [hd2, dif_pos hi]
 
+/-- Extracting the suffix of a concatenated finite bit string recovers its given suffix. -/
 private lemma tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : Fin (T1 - T0) → Bool) :
     tailCoins h (padCoins h b u) = u := by
   funext j
@@ -149,9 +200,12 @@ private lemma tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : 
   rw [hd2, dif_neg (by omega)]
   exact congrArg u (Fin.ext hval2)
 
+/-- The number of Boolean words of a fixed finite length is two raised to that length. -/
 private lemma card_pi_bool (d : ℕ) : Fintype.card (Fin d → Bool) = 2 ^ d := by
   simp [Fintype.card_pi, Finset.prod_const]
 
+/-- The number of longer bit strings satisfying a condition on their prefix is the number of
+valid prefixes times `2 ^ (T1 - T0)`. -/
 private lemma card_cut_fiber (T0 T1 : ℕ) (h : T0 ≤ T1) (G : (Fin T0 → Bool) → Bool) :
     (Finset.univ.filter (fun ω : Fin T1 → Bool => G (cutCoins h ω))).card =
       (Finset.univ.filter (fun b : Fin T0 → Bool => G b)).card * 2 ^ (T1 - T0) := by
@@ -181,6 +235,8 @@ private lemma card_cut_fiber (T0 T1 : ℕ) (h : T0 ≤ T1) (G : (Fin T0 → Bool
     obtain ⟨b, u⟩ := p
     exact Prod.ext (cut_pad h b u) (tail_pad h b u)
 
+/-- If `n` is within a Boolean list, its prefix of length `n + 1` is its prefix of length `n`
+followed by the bit at `n`. -/
 private lemma take_succ_getD : ∀ {l : List Bool} {n : ℕ}, n < l.length →
     l.take (n + 1) = l.take n ++ [l.getD n false] := by
   intro l
@@ -197,6 +253,8 @@ private lemma take_succ_getD : ∀ {l : List Bool} {n : ℕ}, n < l.length →
       rw [ih hm]
       rfl
 
+/-- Every language in `InP` is in `InNP` for the counting bit-machine definitions
+[KitaevShenVyalyi2002]. -/
 theorem clause1_clause1 : ∀ L : List Bool → Prop, InP L → InNP L := by
   intro L hP
   obtain ⟨q, c, k, M, hpoly, hres⟩ := hP
@@ -228,6 +286,8 @@ theorem clause1_clause1 : ∀ L : List Bool → Prop, InP L → InNP L := by
     · exact hL
     · simp [hL] at hw
 
+/-- The first level `InPHLevel 1` and `InNP` contain the same languages in this model
+[KitaevShenVyalyi2002]. -/
 theorem clause1_clause3 : ∀ L : List Bool → Prop,
     (InPHLevel 1 L → InNP L) ∧ (InNP L → InPHLevel 1 L) := by
   intro L
@@ -237,6 +297,8 @@ theorem clause1_clause3 : ∀ L : List Bool → Prop,
   · rintro ⟨q, c, k, p, V, hpoly, hiff⟩
     exact ⟨q, c, k, p, V, hpoly, fun x => hiff x⟩
 
+/-- Every `InNP` language is the positivity set of a function in `InSharpP`
+[KitaevShenVyalyi2002]. -/
 theorem clause1_clause5 : ∀ L : List Bool → Prop, InNP L → ∃ f : List Bool → ℕ,
     InSharpP f ∧ ∀ x : List Bool, (L x ↔ 0 < f x) := by
   intro L hNP
@@ -251,6 +313,8 @@ theorem clause1_clause5 : ∀ L : List Bool → Prop, InNP L → ∃ f : List Bo
     obtain ⟨w, hw⟩ := (Finset.card_pos).mp hpos
     exact ⟨w, (Finset.mem_filter.mp hw).2⟩
 
+/-- Twice the oracle-call count plus the total queried bit count is bounded by the charged
+machine time. -/
 theorem clause1_clause7 : ∀ (q : ℕ) (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ),
     2 * ccQueries P A ρ x t + ccQueryBits P A ρ x t ≤ ccTime P A ρ x t := by
@@ -267,18 +331,25 @@ theorem clause1_clause7 : ∀ (q : ℕ) (P : CcProgram q) (A : List Bool → Boo
         ≤ (ccStep P A ρ (ccRun P A ρ x n)).time
     cases h : P.states (ccRun P A ρ x n).state <;> simp [ccStep, h] <;> omega
 
+/-- Before state `ℓ`, `ccCallMachine ℓ` pushes the current tape bit to the query and advances to
+the next state. -/
 private lemma ccCallMachine_states_lt (ℓ : ℕ) (i : Fin (ℓ + 2)) (hi : (i : ℕ) < ℓ) :
     (ccCallMachine ℓ).states i = CcAct.queryPush ⟨(i : ℕ) + 1, by omega⟩ := by
   simp [ccCallMachine, hi]
 
+/-- At state `ℓ`, `ccCallMachine ℓ` calls the oracle and continues to state `ℓ + 1` for either
+answer. -/
 private lemma ccCallMachine_states_eq (ℓ : ℕ) (i : Fin (ℓ + 2)) (hi : (i : ℕ) = ℓ) :
     (ccCallMachine ℓ).states i = CcAct.oracleCall ⟨ℓ + 1, by omega⟩ ⟨ℓ + 1, by omega⟩ := by
   simp [ccCallMachine, hi]
 
+/-- State `ℓ + 1` of `ccCallMachine ℓ` is accepting. -/
 private lemma ccCallMachine_states_top (ℓ : ℕ) :
     (ccCallMachine ℓ).states (⟨ℓ + 1, by omega⟩ : Fin (ℓ + 2)) = CcAct.accept := by
   simp [ccCallMachine]
 
+/-- For an input of length `ℓ` and `t ≤ ℓ`, the call machine is at state and head position `t`,
+with query `x.take t`, time `t`, and no oracle calls or coin reads. -/
 private lemma ccCallMachine_run (ℓ : ℕ) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (hx : x.length = ℓ) :
     ∀ t, (ht : t ≤ ℓ) →
@@ -309,6 +380,8 @@ private lemma ccCallMachine_run (ℓ : ℕ) (A : List Bool → Bool) (ρ : ℕ �
       take_succ_getD (l := x) (by omega)
     simp [ccStep, hs, htake]
 
+/-- On a length-`ℓ` input, the call machine accepts after `ℓ + 1` steps with charged time `2 * ℓ
++ 2`, one oracle call, `ℓ` query bits, and no coin reads. -/
 theorem clause1_clause8 : ∀ (ℓ : ℕ) (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool),
     x.length = ℓ →
     ccResult (ccCallMachine ℓ) A ρ x (ℓ + 1) = some true
@@ -351,6 +424,7 @@ theorem clause1_clause8 : ∀ (ℓ : ℕ) (A : List Bool → Bool) (ρ : ℕ →
   · show (ccRun (ccCallMachine ℓ) A ρ x (ℓ + 1)).coins = _
     rw [hstep]
 
+/-- Every `InSharpP` function belongs to `InSharpPOracle A` for some Boolean oracle `A`. -/
 theorem clause1_clause9 : ∀ f : List Bool → ℕ, InSharpP f → ∃ A : List Bool → Bool,
     InSharpPOracle A f := by
   intro f hf
@@ -360,6 +434,8 @@ theorem clause1_clause9 : ∀ f : List Bool → ℕ, InSharpP f → ∃ A : List
   show ccRelCount V c k p x = ccOracleRelCount (fun z => ccAccepts V c k z) p x
   simp [ccRelCount, ccOracleRelCount, ccVerifies, ccAccepts]
 
+/-- The sum of the real indicator of a decidable predicate equals the real-valued cardinality of
+its finite truth set. -/
 private lemma sum_boole_card {α : Type*} [Fintype α] (P : α → Prop) [DecidablePred P] :
     (∑ a : α, if P a then (1 : ℝ) else 0)
       = ((Finset.univ.filter (fun a => P a)).card : ℝ) := by
@@ -369,6 +445,8 @@ private lemma sum_boole_card {α : Type*} [Fintype α] (P : α → Prop) [Decida
     _ = ((Finset.univ.filter (fun a => P a)).card : ℝ) := by
       simp [Finset.sum_const]
 
+/-- A sampler outcome's preimage count equals its probability under `loSamplerDist` multiplied
+by `2 ^ Sam.L`. -/
 theorem clause3_clause1 : ∀ (m n : ℕ) (Sam : LoSampler m n) (S : FockOccupation m n),
     ((Finset.univ.filter (fun r : Fin Sam.L → Bool => Sam.O r = S)).card : ℝ)
       = loSamplerDist Sam S * ((2 : ℕ) ^ Sam.L : ℝ) := by
@@ -378,6 +456,8 @@ theorem clause3_clause1 : ∀ (m n : ℕ) (Sam : LoSampler m n) (S : FockOccupat
   rw [div_mul_cancel₀ _ (ne_of_gt h2)]
   exact (sum_boole_card (fun r : Fin Sam.L → Bool => Sam.O r = S)).symm
 
+/-- The real cast of the natural absolute value of an integer difference equals the absolute
+difference of the real casts. -/
 private lemma cast_natAbs_eq_abs (y N : ℕ) :
     (((y : ℤ) - (N : ℤ)).natAbs : ℝ) = |((y : ℕ) : ℝ) - ((N : ℕ) : ℝ)| := by
   rcases le_total y N with h | h
@@ -388,6 +468,8 @@ private lemma cast_natAbs_eq_abs (y N : ℕ) :
     have hy' : (N : ℝ) ≤ (y : ℝ) := by exact_mod_cast h
     rw [hz, Nat.cast_sub h, abs_of_nonneg (sub_nonneg.2 hy')]
 
+/-- Under the stated relative-error and precision assumptions, dividing the approximate count
+`ŷ` by `2 ^ L` approximates `p` within relative error `δ`. -/
 theorem clause3_clause2 : ∀ (L N ŷ d : ℕ) (p δ : ℝ), 0 < δ → δ < 1 → 4 ≤ (d + 1) * δ →
     |((N : ℝ) / ((2 : ℕ) ^ L : ℝ)) - p| ≤ δ / 2 * p →
     (d + 1) * ((ŷ : ℤ) - (N : ℤ)).natAbs ≤ N →
@@ -450,6 +532,8 @@ theorem clause3_clause2 : ∀ (L N ŷ d : ℕ) (p δ : ℝ), 0 < δ → δ < 1 �
     linarith
   linarith
 
+/-- For an isometry and a matching completed-unitary interferometer, the Fock and physical
+output distributions agree with the isometry distribution. -/
 theorem clause3_clause5 : ∀ (m n : ℕ) (hmn : n ≤ m) (A : Matrix (Fin m) (Fin n) ℂ), Aᴴ * A = 1 →
     ∀ (W : LoCompletedUnitary m n hmn A) (G : loInterferometer m),
       loInterferometerMatrix m G = W.U →
@@ -462,6 +546,7 @@ theorem clause3_clause5 : ∀ (m n : ℕ) (hmn : n ≤ m) (A : Matrix (Fin m) (F
   · rw [loPhysicalDist_eq_loFockDist, hG]
     exact loFockDist_eq_of_extendCols W S₀
 
+/-- The probabilities of all outcomes of a finite linear-optics sampler sum to one. -/
 private lemma sum_loSamplerDist (m n : ℕ) (Sam : LoSampler m n) :
     ∑ S : FockOccupation m n, loSamplerDist Sam S = 1 := by
   have hinner : ∀ r : Fin Sam.L → Bool,
@@ -479,11 +564,16 @@ private lemma sum_loSamplerDist (m n : ℕ) (Sam : LoSampler m n) :
   field_simp
   rw [nsmul_eq_mul, mul_one, Nat.cast_pow]
 
+/-- The linear-optics distribution associated with an isometry has total mass one. -/
 private lemma sum_loIsometryDist (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ) (hA : Aᴴ * A = 1) :
     ∑ S : FockOccupation m n, loIsometryDist m n A S = 1 :=
   show ∑ S : FockOccupation m n, bosonWeight A S = 1 from
     Qatlib.Concepts.BosonFock.PermAnalysis.bosonDistributionNormalization m n A hA
 
+/-- A polynomial-time machine recognizing a sampler outcome yields an `InSharpP` witness count
+equal to that outcome's scaled probability at empty input. Pointwise and eventwise
+differences from an isometry distribution are bounded by twice the total variation and by
+the total variation, respectively. -/
 theorem clause3_clause4 : ∀ (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ), Aᴴ * A = 1 →
     ∀ (qM cM kM : ℕ) (M : CcProgram qM), CcPolyTime M cM kM →
       ∀ (Sam : LoSampler m n), 0 < Sam.L →
@@ -578,24 +668,32 @@ theorem clause3_clause4 : ∀ (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ), Aᴴ
     rw [le_div_iff₀ (by norm_num : (0:ℝ) < 2)]
     nlinarith
 
+/-- The exclusive-or of a Boolean value with itself is false. -/
 private theorem xor_self_f (a : Bool) : (a ^^ a) = false := by cases a <;> rfl
 
+/-- Exclusive-or with false on the right leaves a Boolean value unchanged. -/
 private theorem xor_false_r (a : Bool) : (a ^^ false) = a := by cases a <;> rfl
 
+/-- Boolean conjunction on the right distributes over exclusive-or. -/
 private theorem and_xor_right (a b c : Bool) : ((a ^^ b) && c) = ((a && c) ^^ (b && c)) := by
   cases a <;> cases b <;> cases c <;> rfl
 
+/-- Equal exclusive-ors with the same right operand have equal left operands. -/
 private theorem xor_right_cancel (a b c : Bool) (h : (a ^^ c) = (b ^^ c)) : a = b := by
   cases a <;> cases b <;> cases c <;> simp_all
 
+/-- The condition that a Boolean hash row has equal parity on `w` and `w'`. -/
 private def rowCond {m : ℕ} (w w' : Fin m → Bool) (row : Fin m → Bool) : Prop :=
   (∑ j : Fin m, (row j && w j : Bool)) = (∑ j : Fin m, (row j && w' j : Bool))
 
+/-- The coordinatewise exclusive-or of two Boolean words. -/
 private def wdiff {m : ℕ} (w w' : Fin m → Bool) : Fin m → Bool := fun j => (w j ^^ w' j)
 
+/-- The Boolean parity pairing of a row with the word `d`. -/
 private def rowT {m : ℕ} (d : Fin m → Bool) (row : Fin m → Bool) : Bool :=
   ∑ j : Fin m, (row j && d j : Bool)
 
+/-- The parity pairing with a fixed word preserves coordinatewise exclusive-or of rows. -/
 private theorem rowT_add {m : ℕ} (d : Fin m → Bool) (r1 r2 : Fin m → Bool) :
     rowT d (fun j => (r1 j ^^ r2 j)) = ((rowT d r1) ^^ (rowT d r2)) := by
   unfold rowT
@@ -604,6 +702,8 @@ private theorem rowT_add {m : ℕ} (d : Fin m → Bool) (r1 r2 : Fin m → Bool)
   rw [← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl (fun j _ => and_xor_right (r1 j) (r2 j) (d j))
 
+/-- Equality of a row's parities on two words is equivalent to false parity on their
+exclusive-or difference. -/
 private theorem rowCond_iff {m : ℕ} (w w' : Fin m → Bool) (row : Fin m → Bool) :
     rowCond w w' row ↔ rowT (wdiff w w') row = false := by
   have key : ∀ j : Fin m, (((row j && w j) + (row j && w' j)) : Bool) = (row j && (w j ^^ w' j)) := by
@@ -624,6 +724,8 @@ private theorem rowCond_iff {m : ℕ} (w w' : Fin m → Bool) (row : Fin m → B
       xor_self_f _
     exact add_right_cancel (hAB.trans hBB.symm)
 
+/-- For a nonzero Boolean word of length `m`, exactly `2 ^ (m - 1)` rows have false parity
+pairing with it. -/
 private theorem card_rowT_false {m : ℕ} (d : Fin m → Bool) (hd : ∃ j : Fin m, d j = true) :
     Fintype.card {row : Fin m → Bool // rowT d row = false} = 2 ^ (m - 1) := by
   obtain ⟨j₀, hj₀⟩ := hd
@@ -700,6 +802,8 @@ private theorem card_rowT_false {m : ℕ} (d : Fin m → Bool) (hd : ∃ j : Fin
       omega
     omega
 
+/-- For distinct Boolean words of length `m`, exactly `2 ^ m` pairs of a row and an offset bit
+satisfy the equal-parity row condition. -/
 private theorem card_row_pair {m : ℕ} (w w' : Fin m → Bool)
     (hd : ∃ j : Fin m, wdiff w w' j = true) :
     Fintype.card {p : (Fin m → Bool) × Bool // rowCond w w' p.1} = 2 ^ m := by
@@ -730,6 +834,8 @@ private theorem card_row_pair {m : ℕ} (w w' : Fin m → Bool)
     conv_rhs => rw [mul_comm, ← Nat.pow_succ, Nat.succ_eq_add_one, ← hm1]
   omega
 
+/-- For distinct inputs of width `m`, exactly `2 ^ (ℓ * m)` affine Boolean hash parameter pairs
+with `ℓ` output bits give equal hash outputs. -/
 theorem clause2_clause2 : ∀ (ℓ m : ℕ) (w w' : Fin m → Bool), w ≠ w' →
     (Finset.univ.filter
         (fun Pr : Matrix (Fin ℓ) (Fin m) Bool × (Fin ℓ → Bool) =>
@@ -811,10 +917,13 @@ theorem clause2_clause2 : ∀ (ℓ m : ℕ) (w w' : Fin m → Bool), w ≠ w' �
   rw [hprod, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
   rw [← Nat.pow_mul, Nat.mul_comm]
 
+/-- Running for `t + 1` steps is one machine step applied to the configuration after `t` steps. -/
 private lemma ccRun_succ' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) :
     ccRun P A ρ x (t + 1) = ccStep P A ρ (ccRun P A ρ x t) := rfl
 
+/-- The empty input and the singleton input `[false]` initialize the same configuration in the
+tape model. -/
 private lemma ccInit_nil_eq' {q : ℕ} : ccInit q [] = ccInit q [false] := by
   have htape : (fun i => ([] : List Bool).getD i false) = (fun i => [false].getD i false) := by
     funext i
@@ -824,6 +933,8 @@ private lemma ccInit_nil_eq' {q : ℕ} : ccInit q [] = ccInit q [false] := by
   simp only [ccInit]
   rw [htape]
 
+/-- The empty input and `[false]` give identical runs for every step count, oracle, and coin
+stream. -/
 private lemma ccRun_nil_false' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool) :
     ∀ t : ℕ, ccRun P A ρ [] t = ccRun P A ρ [false] t := by
   intro t
@@ -831,6 +942,7 @@ private lemma ccRun_nil_false' {q : ℕ} (P : CcProgram q) (A : List Bool → Bo
   | zero => exact ccInit_nil_eq' (q := q)
   | succ n ih => rw [ccRun_succ', ccRun_succ', ih]
 
+/-- The coin-stream index after `t` machine steps is at most `t`. -/
 private lemma ccRun_coinIdx_le' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) : (ccRun P A ρ x t).coinIdx ≤ t := by
   induction t with
@@ -839,6 +951,8 @@ private lemma ccRun_coinIdx_le' {q : ℕ} (P : CcProgram q) (A : List Bool → B
     rw [ccRun_succ']
     cases h : P.states (ccRun P A ρ x n).state <;> simp [ccStep, h] <;> omega
 
+/-- Coin streams agreeing at every index below `t` produce the same configuration after `t`
+machine steps. -/
 private lemma ccRun_coinPrefix' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ1 ρ2 : ℕ → Bool) (x : List Bool) :
     ∀ t : ℕ, (∀ i, i < t → ρ1 i = ρ2 i) → ccRun P A ρ1 x t = ccRun P A ρ2 x t := by
@@ -855,6 +969,8 @@ private lemma ccRun_coinPrefix' {q : ℕ} (P : CcProgram q) (A : List Bool → B
       hagr _ (by omega)
     cases h : P.states (ccRun P A ρ2 x n).state <;> simp [ccStep, h, hcoin]
 
+/-- A machine result different from `none` implies that the current action is accepting or
+rejecting. -/
 private lemma result_state' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) (h : ccResult P A ρ x t ≠ none) :
     P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -870,11 +986,14 @@ private lemma result_state' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
   | queryPush q' => simp [ccResult, hs] at h
   | oracleCall qt qf => simp [ccResult, hs] at h
 
+/-- An accepting or rejecting configuration is fixed by `ccStep`. -/
 private lemma ccStep_halt' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (c : CcConfig q) (h : P.states c.state = CcAct.accept ∨ P.states c.state = CcAct.reject) :
     ccStep P A ρ c = c := by
   rcases h with h | h <;> simp [ccStep, h]
 
+/-- If the machine is accepting or rejecting after `t` steps, its configuration after `t + k`
+steps is unchanged. -/
 private lemma ccRun_absorb' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t k : ℕ)
     (h : P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -885,9 +1004,12 @@ private lemma ccRun_absorb' {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
   | succ n ih =>
     rw [show t + (n + 1) = (t + n) + 1 from rfl, ccRun_succ', ih, ccStep_halt' P A ρ _ h]
 
+/-- The number of Boolean words of a fixed finite length is two raised to that length. -/
 private lemma card_pi_bool' (d : ℕ) : Fintype.card (Fin d → Bool) = 2 ^ d := by
   simp [Fintype.card_pi, Finset.prod_const]
 
+/-- Once a run reaches an accepting or rejecting state at time `t`, every later step bound gives
+the same configuration. -/
 private lemma ccRun_halt_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t t' : ℕ)
     (hhalt : P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -897,12 +1019,15 @@ private lemma ccRun_halt_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
   rw [Nat.add_sub_cancel' hle] at h
   exact h
 
+/-- Equal run configurations give equal optional machine results for the same program. -/
 private lemma ccResult_congr {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ1 ρ2 : ℕ → Bool) (x1 x2 : List Bool) (t1 t2 : ℕ)
     (h : ccRun P A ρ1 x1 t1 = ccRun P A ρ2 x2 t2) :
     ccResult P A ρ1 x1 t1 = ccResult P A ρ2 x2 t2 := by
   simp only [ccResult, h]
 
+/-- Inputs with the same values under `getD` with default `false` initialize identical machine
+configurations. -/
 theorem ccInit_tape_eq {q : ℕ} (x x' : List Bool) (h : ∀ i, x.getD i false = x'.getD i false) :
     ccInit q x = ccInit q x' := by
   have ht : (fun i => x.getD i false) = (fun i => x'.getD i false) := by
@@ -911,6 +1036,8 @@ theorem ccInit_tape_eq {q : ℕ} (x x' : List Bool) (h : ∀ i, x.getD i false =
   simp only [ccInit]
   rw [ht]
 
+/-- Inputs representing the same tape under `getD` with default `false` produce identical runs
+at every step count. -/
 theorem ccRun_tape_eq {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x x' : List Bool) (h : ∀ i, x.getD i false = x'.getD i false) :
     ∀ t, ccRun P A ρ x t = ccRun P A ρ x' t := by
@@ -919,6 +1046,8 @@ theorem ccRun_tape_eq {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ :
   | zero => exact ccInit_tape_eq x x' h
   | succ n ih => rw [ccRun_succ', ccRun_succ', ih]
 
+/-- A polynomial-time program has the same acceptance value on inputs representing the same
+tape, even when their list lengths differ. -/
 theorem ccAccepts_tape_eq {q : ℕ} (V : CcProgram q) (c k : ℕ) (hpoly : CcPolyTime V c k)
     (x x' : List Bool) (h : ∀ i, x.getD i false = x'.getD i false) :
     ccAccepts V c k x = ccAccepts V c k x' := by
@@ -947,16 +1076,22 @@ theorem ccAccepts_tape_eq {q : ℕ} (V : CcProgram q) (c k : ℕ) (hpoly : CcPol
       exact hresX.trans hres
   simp only [ccAccepts, ccOracleAccepts, hall]
 
+/-- Restricts a finite bit string to its initial segment of the specified shorter length. -/
 private def cutBits {t1 t2 : ℕ} (h : t1 ≤ t2) (ω : Fin t2 → Bool) : Fin t1 → Bool :=
   fun i => ω ⟨(i : ℕ), lt_of_lt_of_le i.isLt h⟩
 
+/-- Extracts the suffix remaining after the specified initial segment of a finite bit string. -/
 private def tailBits {t1 t2 : ℕ} (h : t1 ≤ t2) (ω : Fin t2 → Bool) : Fin (t2 - t1) → Bool :=
   fun j => ω ⟨t1 + (j : ℕ), by omega⟩
 
+/-- Concatenates a finite bit prefix with a suffix to obtain a bit string of the specified total
+length. -/
 private def padBits {t1 t2 : ℕ} (h : t1 ≤ t2) (b : Fin t1 → Bool) (u : Fin (t2 - t1) → Bool) :
     Fin t2 → Bool :=
   fun j => if hj : (j : ℕ) < t1 then b ⟨(j : ℕ), hj⟩ else u ⟨(j : ℕ) - t1, by omega⟩
 
+/-- Concatenating the extracted prefix and suffix of a finite bit string recovers the original
+string. -/
 private lemma pad_cut_tail' {t1 t2 : ℕ} (h : t1 ≤ t2) (ω : Fin t2 → Bool) :
     padBits h (cutBits h ω) (tailBits h ω) = ω := by
   funext j
@@ -969,6 +1104,7 @@ private lemma pad_cut_tail' {t1 t2 : ℕ} (h : t1 ≤ t2) (ω : Fin t2 → Bool)
     show ω (⟨t1 + ((j : ℕ) - t1), _⟩ : Fin t2) = ω j
     exact congrArg ω (Fin.ext hval2)
 
+/-- Extracting the prefix of a concatenated finite bit string recovers its given prefix. -/
 private lemma cut_pad' {t1 t2 : ℕ} (h : t1 ≤ t2) (b : Fin t1 → Bool) (u : Fin (t2 - t1) → Bool) :
     cutBits h (padBits h b u) = b := by
   funext i
@@ -979,6 +1115,7 @@ private lemma cut_pad' {t1 t2 : ℕ} (h : t1 ≤ t2) (b : Fin t1 → Bool) (u : 
   show padBits h b u ⟨(i : ℕ), hi1⟩ = b i
   rw [hd2, dif_pos hi]
 
+/-- Extracting the suffix of a concatenated finite bit string recovers its given suffix. -/
 private lemma tail_pad' {t1 t2 : ℕ} (h : t1 ≤ t2) (b : Fin t1 → Bool) (u : Fin (t2 - t1) → Bool) :
     tailBits h (padBits h b u) = u := by
   funext j
@@ -993,6 +1130,8 @@ private lemma tail_pad' {t1 t2 : ℕ} (h : t1 ≤ t2) (b : Fin t1 → Bool) (u :
   rw [hd2, dif_neg (by omega)]
   exact congrArg u (Fin.ext hval2)
 
+/-- A program that branches on the initial tape bit and then accepts if it is true or rejects if
+it is false. -/
 def clause1BadV : CcProgram 2 where
   states := fun i =>
     match (i : ℕ) with
@@ -1000,6 +1139,8 @@ def clause1BadV : CcProgram 2 where
     | 1 => CcAct.accept
     | _ => CcAct.reject
 
+/-- After one step, `clause1BadV` has branched according to the initial tape bit, leaving the
+tape and head unchanged and charging one time unit. -/
 private lemma ccRun_clause1BadV_one (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccRun clause1BadV A ρ x 1 =
       ({ state := if x.getD 0 false then (⟨1, by omega⟩ : Fin 3) else ⟨2, by omega⟩
@@ -1012,16 +1153,20 @@ private lemma ccRun_clause1BadV_one (A : List Bool → Bool) (ρ : ℕ → Bool)
          queryBits := 0
          coins := 0 } : CcConfig 2) := rfl
 
+/-- The run of `clause1BadV` is unchanged between one and two steps. -/
 private lemma ccRun_clause1BadV_two (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccRun clause1BadV A ρ x 2 = ccRun clause1BadV A ρ x 1 := by
   rw [ccRun_succ', ccRun_clause1BadV_one]
   cases x.getD 0 false <;> simp [ccStep, clause1BadV]
 
+/-- After one step, the result of `clause1BadV` is the input's first bit, with default `false`. -/
 private lemma clause1BadV_result_one (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccResult clause1BadV A ρ x 1 = some (x.getD 0 false) := by
   simp only [ccResult, ccRun_clause1BadV_one]
   cases x.getD 0 false <;> simp [clause1BadV]
 
+/-- At every step bound at least two, the result of `clause1BadV` is the input's first bit, with
+default `false`. -/
 lemma clause1BadV_result (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) (t : ℕ)
     (ht : 2 ≤ t) : ccResult clause1BadV A ρ x t = some (x.getD 0 false) := by
   have h2 : ccResult clause1BadV A ρ x 2 = some (x.getD 0 false) := by
@@ -1033,6 +1178,8 @@ lemma clause1BadV_result (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List 
   rw [h2] at hres
   exact hres
 
+/-- The first-bit branching program satisfies `CcPolyTime` with coefficient one and exponent
+zero. -/
 lemma clause1BadV_poly : CcPolyTime clause1BadV 1 0 := by
   intro A ρ x
   have h2 : (1 : ℕ) * x.length ^ 0 + 1 = 2 := by simp
@@ -1047,8 +1194,10 @@ lemma clause1BadV_poly : CcPolyTime clause1BadV 1 0 := by
     rw [ccRun_clause1BadV_two, ccRun_clause1BadV_one]
     simp
 
+/-- The language consisting of the empty list and all Boolean lists whose first bit is true. -/
 def clause1BadL : List Bool → Prop := fun x => x = [] ∨ x.getD 0 false = true
 
+/-- The language `clause1BadL` belongs to `InNP` in the specified tape and witness model. -/
 theorem clause1BadL_inNP : InNP clause1BadL := by
   refine ⟨2, 1, 0, 1, clause1BadV, clause1BadV_poly, fun x => ?_⟩
   have hver : ∀ (y : List Bool) (w : Fin (1 * y.length ^ 1 + 1) → Bool),
@@ -1080,6 +1229,8 @@ theorem clause1BadL_inNP : InNP clause1BadL := by
       rw [hver] at hw
       exact hw
 
+/-- The acceptance count on `[false]` at its polynomial budget equals the acceptance count on
+`[]` multiplied by the number of additional coin suffixes. -/
 private lemma clause1_accScale {q : ℕ} (M : CcProgram q) (c k : ℕ)
     (hpoly : CcPolyTime M c k) :
     ccAcceptCount M ccZeroOracle [false] (c * 1 ^ k + c)
@@ -1164,6 +1315,8 @@ private lemma clause1_accScale {q : ℕ} (M : CcProgram q) (c k : ℕ)
       exact Prod.ext (cut_pad' hle b u) (tail_pad' hle b u)
   exact hcount
 
+/-- Strict majority acceptance at the polynomial budget is equivalent on the inputs `[]` and
+`[false]`. -/
 private lemma clause1_majority_tailFalse {q : ℕ} (M : CcProgram q) (c k : ℕ)
     (hpoly : CcPolyTime M c k) :
     (2 * ccAcceptCount M ccZeroOracle [] (c * 0 ^ k + c) > 2 ^ (c * 0 ^ k + c)) ↔
@@ -1199,6 +1352,8 @@ private lemma clause1_majority_tailFalse {q : ℕ} (M : CcProgram q) (c k : ℕ)
       Nat.mul_lt_mul_right hpos |>.mp h
     exact h2
 
+/-- The language `clause1BadL` is outside `InPP` in this tape model, whose runs cannot
+distinguish `[]` from `[false]`. -/
 theorem clause1BadL_notInPP : ¬ InPP clause1BadL := by
   rintro ⟨q, c, k, M, hpoly, hiff⟩
   have h0 : 2 * ccAcceptCount M ccZeroOracle [] (c * ([] : List Bool).length ^ k + c)
@@ -1214,6 +1369,8 @@ theorem clause1BadL_notInPP : ¬ InPP clause1BadL := by
   have hkey := clause1_majority_tailFalse M c k hpoly
   exact hf (hkey.mp h0)
 
+/-- The language `clause1BadL` is outside `InBPP` in this tape model, whose runs cannot
+distinguish `[]` from `[false]`. -/
 theorem clause1BadL_notInBPP : ¬ InBPP clause1BadL := by
   rintro ⟨q, c, k, M, hpoly, hiff⟩
   have h1 : 3 * ccAcceptCount M ccZeroOracle [] (c * 0 ^ k + c)
@@ -1254,6 +1411,8 @@ theorem clause1BadL_notInBPP : ¬ InBPP clause1BadL := by
   have h7 : 0 < 2 ^ t1 := Nat.pow_pos (by norm_num)
   omega
 
+/-- The stated conjunction of class-transport and machine-accounting claims is false in this
+model, as witnessed by the failure of the proposed `InNP` to `InPP` inclusion. -/
 theorem clause1_counter : ¬ (
 
   (∀ L : List Bool → Prop, InP L → InNP L)
@@ -1287,10 +1446,12 @@ theorem clause1_counter : ¬ (
   ) :=
   fun H => clause1BadL_notInPP (H.2.1 clause1BadL clause1BadL_inNP)
 
+/-- Running for `t + 1` steps is one machine step applied to the configuration after `t` steps. -/
 private theorem clause11Aux_ccRun_succ {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) :
     ccRun P A ρ x (t + 1) = ccStep P A ρ (ccRun P A ρ x t) := rfl
 
+/-- The coin-stream index after `t` machine steps is at most `t`. -/
 private theorem clause11Aux_ccRun_coinIdx_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t : ℕ) : (ccRun P A ρ x t).coinIdx ≤ t := by
   induction t with
@@ -1299,11 +1460,14 @@ private theorem clause11Aux_ccRun_coinIdx_le {q : ℕ} (P : CcProgram q) (A : Li
     rw [clause11Aux_ccRun_succ]
     cases h : P.states (ccRun P A ρ x n).state <;> simp [ccStep, h] <;> omega
 
+/-- An accepting or rejecting configuration is fixed by `ccStep`. -/
 private theorem clause11Aux_ccStep_halt {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (c : CcConfig q) (h : P.states c.state = CcAct.accept ∨ P.states c.state = CcAct.reject) :
     ccStep P A ρ c = c := by
   rcases h with h | h <;> simp [ccStep, h]
 
+/-- If the machine is accepting or rejecting after `t` steps, its configuration after `t + k`
+steps is unchanged. -/
 private theorem clause11Aux_ccRun_absorb {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t k : ℕ)
     (h : P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -1315,6 +1479,8 @@ private theorem clause11Aux_ccRun_absorb {q : ℕ} (P : CcProgram q) (A : List B
     rw [show t + (n + 1) = (t + n) + 1 from rfl, clause11Aux_ccRun_succ, ih,
       clause11Aux_ccStep_halt P A ρ _ h]
 
+/-- A machine result different from `none` implies that the current action is accepting or
+rejecting. -/
 private theorem clause11Aux_result_state {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) (h : ccResult P A ρ x t ≠ none) :
     P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -1330,12 +1496,16 @@ private theorem clause11Aux_result_state {q : ℕ} (P : CcProgram q) (A : List B
   | queryPush q' => simp [ccResult, hs] at h
   | oracleCall qt qf => simp [ccResult, hs] at h
 
+/-- A polynomial-time program is in an accepting or rejecting state at its prescribed polynomial
+step bound. -/
 private theorem clause11Aux_polyTime_haltState {q : ℕ} (P : CcProgram q) (c k : ℕ)
     (hp : CcPolyTime P c k) (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     P.states (ccRun P A ρ x (c * x.length ^ k + c)).state = CcAct.accept ∨
       P.states (ccRun P A ρ x (c * x.length ^ k + c)).state = CcAct.reject :=
   clause11Aux_result_state P A ρ x (c * x.length ^ k + c) (hp A ρ x).1
 
+/-- Coin streams agreeing at every index below `t` produce the same configuration after `t`
+machine steps. -/
 private theorem clause11Aux_ccRun_coinPrefix {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ1 ρ2 : ℕ → Bool) (x : List Bool) :
     ∀ t : ℕ, (∀ i, i < t → ρ1 i = ρ2 i) → ccRun P A ρ1 x t = ccRun P A ρ2 x t := by
@@ -1352,6 +1522,8 @@ private theorem clause11Aux_ccRun_coinPrefix {q : ℕ} (P : CcProgram q) (A : Li
       hagr _ (by omega)
     cases h : P.states (ccRun P A ρ2 x n).state <;> simp [ccStep, h, hcoin]
 
+/-- The empty input and the singleton input `[false]` initialize the same configuration in the
+tape model. -/
 private theorem clause11Aux_ccInit_nil_eq {q : ℕ} : ccInit q [] = ccInit q [false] := by
   have htape : (fun i => ([] : List Bool).getD i false) = (fun i => [false].getD i false) := by
     funext i
@@ -1361,6 +1533,8 @@ private theorem clause11Aux_ccInit_nil_eq {q : ℕ} : ccInit q [] = ccInit q [fa
   simp only [ccInit]
   rw [htape]
 
+/-- The empty input and `[false]` give identical runs for every step count, oracle, and coin
+stream. -/
 private theorem clause11Aux_ccRun_nil_false {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) : ∀ t : ℕ, ccRun P A ρ [] t = ccRun P A ρ [false] t := by
   intro t
@@ -1368,6 +1542,7 @@ private theorem clause11Aux_ccRun_nil_false {q : ℕ} (P : CcProgram q) (A : Lis
   | zero => exact clause11Aux_ccInit_nil_eq (q := q)
   | succ n ih => rw [clause11Aux_ccRun_succ, clause11Aux_ccRun_succ, ih]
 
+/-- Equal run configurations give equal output bit lists for the same program. -/
 private theorem clause11Aux_ccOutput_congr {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ1 ρ2 : ℕ → Bool) (x1 x2 : List Bool) (t1 t2 : ℕ)
     (h : ccRun P A ρ1 x1 t1 = ccRun P A ρ2 x2 t2) :
@@ -1375,6 +1550,7 @@ private theorem clause11Aux_ccOutput_congr {q : ℕ} (P : CcProgram q) (A : List
   simp only [ccOutput]
   rw [h]
 
+/-- A verifier that accepts exactly when the initial tape bit is true and otherwise rejects. -/
 def clause11Aux_badV : CcProgram 2 where
   states := fun i =>
     match (i : ℕ) with
@@ -1382,6 +1558,8 @@ def clause11Aux_badV : CcProgram 2 where
     | 1 => CcAct.accept
     | _ => CcAct.reject
 
+/-- After one step, `clause11Aux_badV` has selected its accepting or rejecting state from the
+first input bit and charged one time unit. -/
 private theorem clause11Aux_ccRun_badV_one (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccRun clause11Aux_badV A ρ x 1 =
       ({ state := if x.getD 0 false then (⟨1, by omega⟩ : Fin 3) else ⟨2, by omega⟩
@@ -1394,16 +1572,19 @@ private theorem clause11Aux_ccRun_badV_one (A : List Bool → Bool) (ρ : ℕ �
          queryBits := 0
          coins := 0 } : CcConfig 2) := rfl
 
+/-- The run of `clause11Aux_badV` is unchanged between one and two steps. -/
 private theorem clause11Aux_ccRun_badV_two (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccRun clause11Aux_badV A ρ x 2 = ccRun clause11Aux_badV A ρ x 1 := by
   rw [clause11Aux_ccRun_succ, clause11Aux_ccRun_badV_one]
   cases x.getD 0 false <;> simp [ccStep, clause11Aux_badV]
 
+/-- After one step, `clause11Aux_badV` returns the first input bit with default `false`. -/
 private theorem clause11Aux_badV_result_one (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccResult clause11Aux_badV A ρ x 1 = some (x.getD 0 false) := by
   simp only [ccResult, clause11Aux_ccRun_badV_one]
   cases x.getD 0 false <;> simp [clause11Aux_badV]
 
+/-- After two steps, `clause11Aux_badV` returns the first input bit with default `false`. -/
 private theorem clause11Aux_badV_result_two (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccResult clause11Aux_badV A ρ x 2 = some (x.getD 0 false) := by
   have h := clause11Aux_badV_result_one A ρ x
@@ -1413,6 +1594,7 @@ private theorem clause11Aux_badV_result_two (A : List Bool → Bool) (ρ : ℕ �
   rw [hs]
   exact h
 
+/-- The auxiliary first-bit verifier is polynomial-time with coefficient one and exponent zero. -/
 theorem clause11Aux_badV_poly : CcPolyTime clause11Aux_badV 1 0 := by
   intro A ρ x
   have h2 : (1 : ℕ) * x.length ^ 0 + 1 = 2 := by simp
@@ -1427,6 +1609,8 @@ theorem clause11Aux_badV_poly : CcPolyTime clause11Aux_badV 1 0 := by
     rw [clause11Aux_ccRun_badV_two, clause11Aux_ccRun_badV_one]
     simp
 
+/-- Verification by `clause11Aux_badV` reads the first bit of the concatenation of input and
+witness, with default `false`. -/
 private theorem clause11Aux_badV_verifies (x w : List Bool) :
     ccVerifies clause11Aux_badV 1 0 x w = (x ++ w).getD 0 false := by
   simp only [ccVerifies, ccAccepts, ccOracleAccepts]
@@ -1434,16 +1618,22 @@ private theorem clause11Aux_badV_verifies (x w : List Bool) :
   rw [h2, clause11Aux_badV_result_two]
   simp
 
+/-- Restricts a finite bit string to its initial segment of the specified shorter length. -/
 private def clause11Aux_cutCoins {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) : Fin T0 → Bool :=
   fun i => ω ⟨(i : ℕ), lt_of_lt_of_le i.isLt h⟩
 
+/-- Extracts the suffix remaining after the specified initial segment of a finite bit string. -/
 private def clause11Aux_tailCoins {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) : Fin (T1 - T0) → Bool :=
   fun j => ω ⟨T0 + (j : ℕ), by omega⟩
 
+/-- Concatenates a finite bit prefix with a suffix to obtain a bit string of the specified total
+length. -/
 private def clause11Aux_padCoins {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : Fin (T1 - T0) → Bool) :
     Fin T1 → Bool :=
   fun j => if hj : (j : ℕ) < T0 then b ⟨(j : ℕ), hj⟩ else u ⟨(j : ℕ) - T0, by omega⟩
 
+/-- Concatenating the extracted prefix and suffix of a finite bit string recovers the original
+string. -/
 private theorem clause11Aux_pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) :
     clause11Aux_padCoins h (clause11Aux_cutCoins h ω) (clause11Aux_tailCoins h ω) = ω := by
   funext j
@@ -1457,6 +1647,7 @@ private theorem clause11Aux_pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin
     show ω (⟨T0 + ((j : ℕ) - T0), hval⟩ : Fin T1) = ω j
     exact congrArg ω (Fin.ext hval2)
 
+/-- Extracting the prefix of a concatenated finite bit string recovers its given prefix. -/
 private theorem clause11Aux_cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool)
     (u : Fin (T1 - T0) → Bool) : clause11Aux_cutCoins h (clause11Aux_padCoins h b u) = b := by
   funext i
@@ -1467,6 +1658,7 @@ private theorem clause11Aux_cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 �
   show clause11Aux_padCoins h b u ⟨(i : ℕ), hi1⟩ = b i
   rw [hd2, dif_pos hi]
 
+/-- Extracting the suffix of a concatenated finite bit string recovers its given suffix. -/
 private theorem clause11Aux_tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool)
     (u : Fin (T1 - T0) → Bool) : clause11Aux_tailCoins h (clause11Aux_padCoins h b u) = u := by
   funext j
@@ -1480,9 +1672,12 @@ private theorem clause11Aux_tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 �
   rw [hd2, dif_neg (by omega)]
   exact congrArg u (Fin.ext hval2)
 
+/-- The number of Boolean words of a fixed finite length is two raised to that length. -/
 private theorem clause11Aux_card_pi_bool (d : ℕ) : Fintype.card (Fin d → Bool) = 2 ^ d := by
   simp [Fintype.card_pi, Finset.prod_const]
 
+/-- The number of longer bit strings satisfying a condition on their prefix is the number of
+valid prefixes times `2 ^ (T1 - T0)`. -/
 private theorem clause11Aux_card_cut_fiber (T0 T1 : ℕ) (h : T0 ≤ T1) (G : (Fin T0 → Bool) → Bool) :
     (Finset.univ.filter (fun ω : Fin T1 → Bool => G (clause11Aux_cutCoins h ω))).card =
       (Finset.univ.filter (fun b : Fin T0 → Bool => G b)).card * 2 ^ (T1 - T0) := by
@@ -1513,29 +1708,43 @@ private theorem clause11Aux_card_cut_fiber (T0 T1 : ℕ) (h : T0 ≤ T1) (G : (F
     obtain ⟨b, u⟩ := p
     exact Prod.ext (clause11Aux_cut_pad h b u) (clause11Aux_tail_pad h b u)
 
+/-- With precision parameter one and target count one, `ccApproxOK` holds exactly for output
+count one. -/
 theorem clause11Aux_approxOK_one (y : ℕ) : ccApproxOK 1 y 1 = true ↔ y = 1 := by
   simp [ccApproxOK]
   constructor <;> intro h <;> omega
 
+/-- With precision parameter one and target count zero, `ccApproxOK` holds exactly for output
+count zero. -/
 theorem clause11Aux_approxOK_zero (y : ℕ) : ccApproxOK 1 y 0 = true ↔ y = 0 := by
   simp [ccApproxOK]
 
+/-- The auxiliary verifier's relation count with witness parameter one is one on empty input. -/
 theorem clause11Aux_relCount_nil : ccRelCount clause11Aux_badV 1 0 1 [] = 1 := by decide
 
+/-- The auxiliary verifier's relation count with witness parameter one is zero on `[false]`. -/
 theorem clause11Aux_relCount_false : ccRelCount clause11Aux_badV 1 0 1 [false] = 0 := by decide
 
+/-- The Boolean predicate reading the first list bit with default `false`. -/
 def clause11Aux_predA : List Bool → Bool := fun z => z.getD 0 false
 
+/-- The oracle relation count for `clause11Aux_predA` with witness parameter one is one on empty
+input. -/
 theorem clause11Aux_oracleRelCount_nil : ccOracleRelCount clause11Aux_predA 1 [] = 1 := by decide
 
+/-- The oracle relation count for `clause11Aux_predA` with witness parameter one is zero on
+`[false]`. -/
 theorem clause11Aux_oracleRelCount_false : ccOracleRelCount clause11Aux_predA 1 [false] = 0 := by
     decide
 
+/-- The polynomial budget on the empty input is at most the budget on a singleton input. -/
 private theorem clause11Aux_budget_le (cE kE : ℕ) : cE * 0 ^ kE + cE ≤ cE * 1 ^ kE + cE := by
   by_cases hk : kE = 0
   · subst hk; norm_num
   · rw [Nat.zero_pow (by omega), Nat.one_pow kE]; omega
 
+/-- For targets with disjoint acceptable estimates, the padded good-estimate count on `[]` plus
+the good-estimate count on `[false]` is at most the total number of longer coin strings. -/
 private theorem clause11Aux_good_conflict {qE : ℕ} (E : CcProgram qE) (cE kE d N0 N1 : ℕ)
     (hpoly : CcPolyTime E cE kE) (A : List Bool → Bool)
     (hdis : ∀ y : ℕ, ccApproxOK d y N0 = true → ccApproxOK d y N1 = true → False) :
@@ -1669,6 +1878,8 @@ private theorem clause11Aux_good_conflict {qE : ℕ} (E : CcProgram qE) (cE kE d
   rw [hgood0, hgood1, hfib, ← Nat.add_mul, hpow]
   exact Nat.mul_le_mul_right _ hsum
 
+/-- Two success counts each at least three quarters of their coin spaces cannot satisfy the
+stated disjointness bound after padding to a common length. -/
 private theorem clause11Aux_impossible (t0 t1 good0 good1 : ℕ) (hle : t0 ≤ t1)
     (h0 : 4 * good0 ≥ 3 * 2 ^ t0) (h1 : 4 * good1 ≥ 3 * 2 ^ t1)
     (hb : good0 * 2 ^ (t1 - t0) + good1 ≤ 2 ^ t1) : False := by
@@ -1693,6 +1904,8 @@ private theorem clause11Aux_impossible (t0 t1 good0 good1 : ℕ) (hle : t0 ≤ t
   have hpos : 0 < 2 ^ t1 := Nat.pow_pos (by norm_num)
   omega
 
+/-- The stated uniform relation-count estimator specification with its hash-witness NP
+condition, success bounds, and resource bounds is false in this tape model. -/
 theorem clause2_clause1_counter :
     ¬ (∀ (q c k p : ℕ) (V : CcProgram q), CcPolyTime V c k → ∀ (d s : ℕ),
         ∃ (qE cE kE : ℕ) (E : CcProgram qE),
@@ -1741,6 +1954,8 @@ theorem clause2_clause1_counter :
     (ccEstGoodCount E A [false] (cE * 1 ^ kE + cE) 1 0)
     (clause11Aux_budget_le cE kE) hg0 hg1 hconf
 
+/-- The stated uniform oracle relation-count estimator specification, including the relative NP
+hash-witness condition and resource bounds, is false in this tape model. -/
 theorem clause2_clause3_counter :
     ¬ (∀ (A : List Bool → Bool) (p d s : ℕ),
         ∃ (qE cE kE : ℕ) (E : CcProgram qE),
@@ -1789,6 +2004,8 @@ theorem clause2_clause3_counter :
     (ccEstGoodCount E A [false] (cE * 1 ^ kE + cE) 1 0)
     (clause11Aux_budget_le cE kE) hg0 hg1 hconf
 
+/-- Existential quantification over a Boolean word of length zero is equivalent to the predicate
+at the unique empty word. -/
 theorem exists_fin0_bool {Q : (Fin 0 → Bool) → Prop} :
     (∃ w : Fin 0 → Bool, Q w) ↔ Q (fun i => absurd i.isLt (by omega)) := by
   constructor
@@ -1802,6 +2019,7 @@ theorem exists_fin0_bool {Q : (Fin 0 → Bool) → Prop} :
   · intro h
     exact ⟨fun i => absurd i.isLt (by omega), h⟩
 
+/-- Every language in level zero of `InPHLevel` is in level one. -/
 theorem clause1_clause4_k0 : ∀ L : List Bool → Prop, InPHLevel 0 L → InPHLevel 1 L := by
   intro L h
   obtain ⟨q, c, k, p, V, hpoly, hL⟩ := h
@@ -1824,9 +2042,13 @@ theorem clause1_clause4_k0 : ∀ L : List Bool → Prop, InPHLevel 0 L → InPHL
   rw [hplen, halt]
   exact hL x
 
+/-- Invariance of a language predicate under appending an arbitrary Boolean block of length
+`plen`. -/
 def RobustAlt (plen : ℕ) (D : List Bool → Prop) : Prop :=
   ∀ (z : List Bool) (w : Fin plen → Bool), D (z ++ List.ofFn w) ↔ D z
 
+/-- For a predicate invariant under appending blocks of width `plen`, adding one alternation
+level leaves `ccAlt` unchanged. -/
 theorem ccAlt_succ_robust {plen : ℕ} {D : List Bool → Prop} (h : RobustAlt plen D) :
     ∀ (lev : ℕ) (ex : Bool) (z : List Bool),
       ccAlt ex plen D (lev + 1) z ↔ ccAlt ex plen D lev z := by
@@ -1878,16 +2100,21 @@ theorem ccAlt_succ_robust {plen : ℕ} {D : List Bool → Prop} (h : RobustAlt p
       · intro hx w
         exact (ih true (z ++ List.ofFn w)).mpr (hx w)
 
+/-- Running for `t + 1` steps is one machine step applied to the configuration after `t` steps. -/
 private lemma clause19Aux_ccRun_succ {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) :
     ccRun P A ρ x (t + 1) = ccStep P A ρ (ccRun P A ρ x t) := rfl
 
+/-- Inputs with the same values under `getD` with default `false` initialize identical machine
+configurations. -/
 private lemma clause19Aux_ccInit_tape {q : ℕ} (x y : List Bool)
     (h : ∀ i, x.getD i false = y.getD i false) : ccInit q x = ccInit q y := by
   have ht : (fun i => x.getD i false) = (fun i => y.getD i false) := funext h
   simp only [ccInit]
   rw [ht]
 
+/-- Inputs representing the same tape under `getD` with default `false` produce identical runs
+at every step count. -/
 private lemma clause19Aux_ccRun_tape {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x y : List Bool) (h : ∀ i, x.getD i false = y.getD i false) :
     ∀ t, ccRun P A ρ x t = ccRun P A ρ y t := by
@@ -1896,6 +2123,8 @@ private lemma clause19Aux_ccRun_tape {q : ℕ} (P : CcProgram q) (A : List Bool 
   | zero => exact clause19Aux_ccInit_tape x y h
   | succ n ih => rw [clause19Aux_ccRun_succ, clause19Aux_ccRun_succ, ih]
 
+/-- A machine result different from `none` implies that the current action is accepting or
+rejecting. -/
 private lemma clause19Aux_result_state {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) (h : ccResult P A ρ x t ≠ none) :
     P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -1911,11 +2140,14 @@ private lemma clause19Aux_result_state {q : ℕ} (P : CcProgram q) (A : List Boo
   | queryPush q' => simp [ccResult, hs] at h
   | oracleCall qt qf => simp [ccResult, hs] at h
 
+/-- An accepting or rejecting configuration is fixed by `ccStep`. -/
 private lemma clause19Aux_ccStep_halt {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (c : CcConfig q) (h : P.states c.state = CcAct.accept ∨ P.states c.state = CcAct.reject) :
     ccStep P A ρ c = c := by
   rcases h with h | h <;> simp [ccStep, h]
 
+/-- If the machine is accepting or rejecting after `t` steps, its configuration after `t + k`
+steps is unchanged. -/
 private lemma clause19Aux_ccRun_absorb {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t k : ℕ)
     (h : P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -1926,6 +2158,8 @@ private lemma clause19Aux_ccRun_absorb {q : ℕ} (P : CcProgram q) (A : List Boo
   | succ n ih =>
     rw [show t + (n + 1) = (t + n) + 1 from rfl, clause19Aux_ccRun_succ, ih, clause19Aux_ccStep_halt P A ρ _ h]
 
+/-- Once a run reaches an accepting or rejecting state at time `t`, every later step bound gives
+the same configuration. -/
 private lemma clause19Aux_ccRun_halt_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t t' : ℕ)
     (hhalt : P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -1935,6 +2169,7 @@ private lemma clause19Aux_ccRun_halt_le {q : ℕ} (P : CcProgram q) (A : List Bo
   rw [Nat.add_sub_cancel' hle] at h
   exact h
 
+/-- Raising natural numbers to the same natural exponent preserves their order. -/
 private lemma clause19Aux_pow_mono {a b k : ℕ} (h : a ≤ b) : a ^ k ≤ b ^ k := by
   induction k with
   | zero => exact Nat.le_refl _
@@ -1944,6 +2179,8 @@ private lemma clause19Aux_pow_mono {a b k : ℕ} (h : a ≤ b) : a ^ k ≤ b ^ k
     rw [ha, hb]
     exact Nat.mul_le_mul ih h
 
+/-- A polynomial-time program has equal acceptance values on two identical represented tapes
+when the first input is no longer than the second. -/
 private lemma clause19Aux_accepts_mono {q : ℕ} (P : CcProgram q) (c k : ℕ) (hp : CcPolyTime P c k)
     (x y : List Bool) (hgetD : ∀ i, x.getD i false = y.getD i false)
     (hlen : x.length ≤ y.length) : ccAccepts P c k x = ccAccepts P c k y := by
@@ -1968,6 +2205,7 @@ private lemma clause19Aux_accepts_mono {q : ℕ} (P : CcProgram q) (c k : ℕ) (
     simp only [ccResult, hy]
   simp only [ccAccepts, ccOracleAccepts, key]
 
+/-- Appending any number of false bits leaves every list lookup with default `false` unchanged. -/
 private lemma clause19Aux_getD_replicate_tail (a : List Bool) (n i : ℕ) :
     (a ++ List.replicate n false).getD i false = a.getD i false := by
   by_cases h : i < a.length
@@ -1983,15 +2221,18 @@ private lemma clause19Aux_getD_replicate_tail (a : List Bool) (n i : ℕ) :
     · exact List.getD_eq_default (l := List.replicate n false) (d := false)
         (by simp only [List.length_replicate]; omega)
 
+/-- The program whose sole state is accepting. -/
 def clause19Aux_Macc : CcProgram 0 where
   states := fun _ => CcAct.accept
 
+/-- The always-accepting program remains in its initial configuration at every step bound. -/
 lemma clause19Aux_Macc_run {A : List Bool → Bool} {ρ : ℕ → Bool} {x : List Bool} {t : ℕ} :
     ccRun clause19Aux_Macc A ρ x t = ccInit 0 x := by
   induction t with
   | zero => rfl
   | succ n ih => rw [clause19Aux_ccRun_succ, ih]; rfl
 
+/-- The always-accepting program is polynomial-time with coefficient one and exponent zero. -/
 lemma clause19Aux_Macc_poly : CcPolyTime clause19Aux_Macc 1 0 := by
   intro A ρ x
   constructor
@@ -2002,8 +2243,10 @@ lemma clause19Aux_Macc_poly : CcPolyTime clause19Aux_Macc 1 0 := by
     rw [clause19Aux_Macc_run]
     simp [ccInit]
 
+/-- The one-mode, one-particle occupation with occupation number one. -/
 def g19r_S₀ : FockOccupation 1 1 := ⟨fun _ => ⟨1, by omega⟩, by simp⟩
 
+/-- Every one-mode, one-particle Fock occupation equals `g19r_S₀`. -/
 lemma g19r_S₀_unique : ∀ S : FockOccupation 1 1, S = g19r_S₀ := by
   intro S
   apply Subtype.ext
@@ -2023,21 +2266,29 @@ lemma g19r_S₀_unique : ∀ S : FockOccupation 1 1, S = g19r_S₀ := by
   have h0 : (g19r_S₀.1 i : Fin 2) = ⟨1, by omega⟩ := rfl
   rw [hfin, h0]
 
+/-- The type of one-mode, one-particle Fock occupations has cardinality one. -/
 lemma clause19Aux_card : Fintype.card (FockOccupation 1 1) = 1 :=
   Fintype.card_eq_one_of_forall_eq g19r_S₀_unique
 
+/-- A one-bit sampler that always outputs the unique one-mode, one-particle occupation. -/
 def clause19Aux_Sam : LoSampler 1 1 := ⟨1, fun _ => g19r_S₀⟩
 
+/-- The auxiliary sampler uses a positive number of random bits. -/
 lemma clause19Aux_Sam_L : 0 < clause19Aux_Sam.L := by decide
 
+/-- Every occupation in the one-mode, one-particle space has probability one under the auxiliary
+sampler. -/
 lemma clause19Aux_samplerDist_all (S : FockOccupation 1 1) : loSamplerDist clause19Aux_Sam S = 1 := by
   rw [g19r_S₀_unique S]
   have h : ∀ r : Fin clause19Aux_Sam.L → Bool, clause19Aux_Sam.O r = g19r_S₀ := fun _ => rfl
   simp [loSamplerDist, h]
 
+/-- The one-dimensional identity matrix satisfies the isometry identity `Aᴴ * A = 1`. -/
 lemma clause19Aux_hA : ((1 : Matrix (Fin 1) (Fin 1) ℂ))ᴴ * 1 = 1 := by
   rw [Matrix.conjTranspose_one, one_mul]
 
+/-- Every one-mode, one-particle occupation has probability one under the identity-isometry
+distribution. -/
 lemma clause19Aux_isometry_all (S : FockOccupation 1 1) :
     loIsometryDist 1 1 (1 : Matrix (Fin 1) (Fin 1) ℂ) S = 1 := by
   have hnorm : ∑ T : FockOccupation 1 1,
@@ -2053,12 +2304,16 @@ lemma clause19Aux_isometry_all (S : FockOccupation 1 1) :
     simp
   exact hsum.symm.trans hnorm
 
+/-- The auxiliary sampler and the one-dimensional identity-isometry distribution have total
+variation distance zero. -/
 lemma clause19Aux_tvd : loTvDist (loSamplerDist clause19Aux_Sam)
     (loIsometryDist 1 1 (1 : Matrix (Fin 1) (Fin 1) ℂ)) = 0 := by
   simp only [loTvDist]
   simp_rw [clause19Aux_samplerDist_all, clause19Aux_isometry_all]
   simp
 
+/-- The always-accepting program recognizes the auxiliary sampler's event of outputting
+`g19r_S₀` on every one-bit seed. -/
 lemma clause19Aux_hacc : ∀ r : Fin 1 → Bool,
     ccAccepts clause19Aux_Macc 1 0 (List.ofFn r) = decide (clause19Aux_Sam.O r = g19r_S₀) := by
   intro r
@@ -2066,14 +2321,19 @@ lemma clause19Aux_hacc : ∀ r : Fin 1 → Bool,
   have h2 : clause19Aux_Sam.O r = g19r_S₀ := rfl
   rw [h1, decide_eq_true h2]
 
+/-- The three-bit string `[false, false, false]` decodes as the hash query `(0, 0, [], [])`. -/
 lemma clause19Aux_decode_z0 :
     ccDecodeHashQuery [false, false, false] = some (0, 0, [], []) := rfl
 
+/-- Appending any bit word and a final false bit to `[false, false, false]` makes the hash-query
+decoder return `none`. -/
 lemma clause19Aux_decode_ext (w : List Bool) :
     ccDecodeHashQuery ([false, false, false] ++ w ++ [false]) = none := by
   simp [ccDecodeHashQuery, ccReadUnary, ccReadUnaryAux, List.length_append,
     List.cons_append, List.nil_append]
 
+/-- The three-bit zero string belongs to the auxiliary always-accepting program's hash-witness
+set. -/
 lemma clause19Aux_z0_mem : ccHashWitnessSet clause19Aux_Macc 1 0 1 [false, false, false] := by
   have hd0 := clause19Aux_decode_z0
   show (match ccDecodeHashQuery [false, false, false] with
@@ -2092,6 +2352,8 @@ lemma clause19Aux_z0_mem : ccHashWitnessSet clause19Aux_Macc 1 0 1 [false, false
           (ccVectorFromList 0 (1 * 0 ^ 1 + 1) ([] : List Bool)) w i = false
   exact ⟨rfl, fun _ => true, rfl, fun i => Fin.elim0 i⟩
 
+/-- No extension of the three-bit zero string by a word and a final false bit belongs to the
+auxiliary hash-witness set. -/
 lemma clause19Aux_z0_ext_not (w : List Bool) :
     ¬ ccHashWitnessSet clause19Aux_Macc 1 0 1 ([false, false, false] ++ w ++ [false]) := by
   have hd := clause19Aux_decode_ext w
@@ -2107,6 +2369,8 @@ lemma clause19Aux_z0_ext_not (w : List Bool) :
   rw [hd] at hmem
   exact hmem
 
+/-- Appending a false bit and the specified all-false witness block to `a` leaves its
+represented tape unchanged. -/
 private lemma clause19Aux_attack_getD (p : ℕ) (a : List Bool) :
     ∀ i, ((a ++ [false]) ++ List.ofFn (fun _ => false :
         Fin (p * (a ++ [false]).length ^ p + p) → Bool)).getD i false
@@ -2120,12 +2384,16 @@ private lemma clause19Aux_attack_getD (p : ℕ) (a : List Bool) :
   rw [key]
   exact clause19Aux_getD_replicate_tail a _ i
 
+/-- The list obtained by appending a false bit and the specified witness block is at least as
+long as the original list. -/
 private lemma clause19Aux_attack_len (p : ℕ) (a : List Bool) :
     a.length ≤ ((a ++ [false]) ++ List.ofFn (fun _ => false :
       Fin (p * (a ++ [false]).length ^ p + p) → Bool)).length := by
   simp only [List.length_append, List.length_ofFn, List.length_cons, List.length_nil]
   omega
 
+/-- The auxiliary always-accepting program's hash-witness set is outside `InNP` in the specified
+tape model. -/
 lemma clause19Aux_hashWitnessSet_notInNP :
     ¬ InNP (ccHashWitnessSet clause19Aux_Macc 1 0 1) := by
   rintro ⟨q, c, k, p, V, hpoly, hiff⟩
@@ -2153,6 +2421,8 @@ lemma clause19Aux_hashWitnessSet_notInNP :
   exact hz_not ((hiff (a ++ [false])).2
     ⟨fun _ => false, hver⟩)
 
+/-- The stated linear-optics probability-estimation specification is false in this model, even
+with its sampling, relative-error, confidence, and resource assumptions. -/
 theorem clause3_clause3_counter :
     ¬ (∀ (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ), Aᴴ * A = 1 →
       ∀ (qM cM kM : ℕ) (M : CcProgram qM), CcPolyTime M cM kM →
@@ -2217,37 +2487,48 @@ set_option maxHeartbeats 800000
 
 open scoped Classical
 
+/-- Running for `t + 1` steps is one machine step applied to the configuration after `t` steps. -/
 private theorem clause1Aux_run_succ {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) :
     ccRun P A ρ x (t + 1) = ccStep P A ρ (ccRun P A ρ x t) := rfl
 
+/-- Looking up a list generated from a finite function returns that function's value within its
+domain and `false` beyond its length. -/
 theorem clause1Aux_getD_ofFn {m : ℕ} (f : Fin m → Bool) (j : ℕ) :
     (List.ofFn f).getD j false = if h : j < m then f ⟨j, h⟩ else false := by
   simp only [List.getD, List.getElem?_ofFn]
   by_cases h : j < m <;> simp [h]
 
+/-- Within the domain, lookup in `List.ofFn f` returns the corresponding value of `f`. -/
 theorem clause1Aux_getD_ofFn_lt {m : ℕ} (f : Fin m → Bool) (j : ℕ) (hj : j < m) :
     (List.ofFn f).getD j false = f ⟨j, hj⟩ := by
   rw [clause1Aux_getD_ofFn f, dif_pos hj]
 
+/-- At or beyond its length, lookup in `List.ofFn f` with default `false` returns `false`. -/
 theorem clause1Aux_getD_ofFn_ge {m : ℕ} (f : Fin m → Bool) (j : ℕ) (hj : m ≤ j) :
     (List.ofFn f).getD j false = false := by
   rw [clause1Aux_getD_ofFn f, dif_neg (by omega)]
 
+/-- Every lookup with default `false` in a list of false bits returns `false`. -/
 theorem clause1Aux_getD_replicate_false (n j : ℕ) :
     (List.replicate n false).getD j false = (false : Bool) := by
   simp only [List.getD, List.getElem?_replicate]
   by_cases h : j < n <;> simp [h]
 
+/-- Before the end of the left list, lookup in a concatenation equals lookup in the left list. -/
 theorem clause1Aux_getD_append_left {z r : List Bool} (i : ℕ) (hi : i < z.length) :
     (z ++ r).getD i false = z.getD i false :=
   List.getD_append z r false i hi
 
+/-- At or beyond the end of the left list, lookup in a concatenation equals lookup in the right
+list at the shifted index. -/
 theorem clause1Aux_getD_append_right {z r : List Bool} (i : ℕ) (hi : z.length ≤ i) :
     (z ++ r).getD i false = r.getD (i - z.length) false := by
   simp only [List.getD, List.getElem?_append]
   rw [if_neg (by omega : ¬i < z.length)]
 
+/-- Appending a list whose default-false lookups are all false preserves every default-false
+lookup in the original list. -/
 theorem clause1Aux_getD_append_false {z r : List Bool} (hr : ∀ j, r.getD j false = false) (i : ℕ) :
     (z ++ r).getD i false = z.getD i false := by
   by_cases hi : i < z.length
@@ -2256,6 +2537,8 @@ theorem clause1Aux_getD_append_false {z r : List Bool} (hr : ∀ j, r.getD j fal
     have hz : z[i]? = none := List.getElem?_eq_none (by omega)
     simp [List.getD, hz]
 
+/-- Appending a block of false bits does not change the acceptance value of a polynomial-time
+program in this tape model. -/
 theorem clause1Aux_accepts_append_false {q : ℕ} (V : CcProgram q) (c k : ℕ) (hpoly : CcPolyTime V c k)
     (z : List Bool) (d : ℕ) :
     ccAccepts V c k (z ++ List.replicate d false) = ccAccepts V c k z := by
@@ -2263,6 +2546,8 @@ theorem clause1Aux_accepts_append_false {q : ℕ} (V : CcProgram q) (c k : ℕ) 
   intro i
   exact clause1Aux_getD_append_false (fun j => clause1Aux_getD_replicate_false d j) i
 
+/-- A polynomial-time program accepts an input with an appended all-false block exactly when it
+accepts the original input. -/
 theorem clause1Aux_accepts_zeroBlock {q : ℕ} (V : CcProgram q) (c k : ℕ) (hpoly : CcPolyTime V c k)
     (z : List Bool) (plen : ℕ) :
     (ccAccepts V c k (z ++ List.ofFn (fun _ : Fin plen => false)) = true) ↔
@@ -2273,14 +2558,19 @@ theorem clause1Aux_accepts_zeroBlock {q : ℕ} (V : CcProgram q) (c k : ℕ) (hp
   exact ⟨fun h => by rw [← clause1Aux_accepts_append_false V c k hpoly z plen]; exact h,
     fun h => by rw [clause1Aux_accepts_append_false V c k hpoly z plen]; exact h⟩
 
+/-- Unfolds one level of `ccAlt` into an existential or universal Boolean witness block
+according to `ex`. -/
 theorem clause1Aux_alt_succ {ex : Bool} {plen : ℕ} {D : List Bool → Prop} (m : ℕ) (z : List Bool) :
     ccAlt ex plen D (m + 1) z =
       if ex then ∃ w : Fin plen → Bool, ccAlt false plen D m (z ++ List.ofFn w)
       else ∀ w : Fin plen → Bool, ccAlt true plen D m (z ++ List.ofFn w) := rfl
 
+/-- Zero alternation levels evaluate the underlying predicate directly. -/
 theorem clause1Aux_alt_zero {ex : Bool} {plen : ℕ} {D : List Bool → Prop} (z : List Bool) :
     ccAlt ex plen D 0 z = D z := rfl
 
+/-- Extending a finite Boolean word by false entries leaves all lookups in its generated list
+unchanged. -/
 theorem clause1Aux_getD_ofFn_pad {m d : ℕ} (f : Fin m → Bool) (j : ℕ) :
     (List.ofFn f).getD j false
       = (List.ofFn (fun k : Fin (m + d) =>
@@ -2299,6 +2589,8 @@ theorem clause1Aux_getD_ofFn_pad {m d : ℕ} (f : Fin m → Bool) (j : ℕ) :
     · rw [clause1Aux_getD_ofFn_ge (fun k : Fin (m + d) => if h : (k : ℕ) < m then f ⟨k, h⟩ else false) j
         (by omega)]
 
+/-- Appending a finite Boolean word or its extension by false entries gives the same represented
+tape. -/
 theorem clause1Aux_tape_ofFn_pad {m d : ℕ} (f : Fin m → Bool) (z : List Bool) :
     ∀ i, (z ++ List.ofFn f).getD i false
       = (z ++ List.ofFn (fun k : Fin (m + d) =>
@@ -2309,6 +2601,8 @@ theorem clause1Aux_tape_ofFn_pad {m d : ℕ} (f : Fin m → Bool) (z : List Bool
   · rw [clause1Aux_getD_append_right i (by omega), clause1Aux_getD_append_right i (by omega)]
     exact clause1Aux_getD_ofFn_pad f (i - z.length)
 
+/-- For a predicate depending only on the represented tape, invariance under appending blocks of
+length `plen + d` implies invariance for blocks of length `plen`. -/
 theorem clause1Aux_robust_amplified {plen d : ℕ} {D : List Bool → Prop}
     (htape : ∀ z z' : List Bool, (∀ i, z.getD i false = z'.getD i false) → (D z ↔ D z'))
     (h : RobustAlt (plen + d) D) : RobustAlt plen D := by
@@ -2321,6 +2615,8 @@ theorem clause1Aux_robust_amplified {plen d : ℕ} {D : List Bool → Prop}
     h z (fun k : Fin (plen + d) => if hlt : (k : ℕ) < plen then w ⟨k, hlt⟩ else false)
   exact h1.trans h2
 
+/-- Tape invariance and robustness for width `plen + d` imply that adding an alternation level
+at width `plen` leaves `ccAlt` unchanged. -/
 theorem clause1Aux_alt_succ_robust_add {plen d : ℕ} {D : List Bool → Prop}
     (htape : ∀ z z' : List Bool, (∀ i, z.getD i false = z'.getD i false) → (D z ↔ D z'))
     (h : RobustAlt (plen + d) D) :
@@ -2328,6 +2624,8 @@ theorem clause1Aux_alt_succ_robust_add {plen d : ℕ} {D : List Bool → Prop}
       ccAlt ex plen D (lev + 1) z ↔ ccAlt ex plen D lev z :=
   ccAlt_succ_robust (clause1Aux_robust_amplified htape h)
 
+/-- If appending an all-false block preserves `D`, truth at `2 * n` alternation levels beginning
+existentially implies truth at `2 * n + 1` levels. -/
 theorem clause1Aux_alt_zero_exists {plen : ℕ} {D : List Bool → Prop}
     (hz : ∀ z : List Bool, D (z ++ List.ofFn (fun _ : Fin plen => false)) ↔ D z) :
     ∀ (n : ℕ) (z : List Bool), ccAlt true plen D (2 * n) z → ccAlt true plen D (2 * n + 1) z := by
@@ -2356,6 +2654,8 @@ theorem clause1Aux_alt_zero_exists {plen : ℕ} {D : List Bool → Prop}
     intro w'
     exact ih ((z ++ List.ofFn w) ++ List.ofFn w') (hw w')
 
+/-- If appending an all-false block preserves `D`, truth at `2 * n + 2` alternation levels
+beginning existentially implies truth at `2 * n + 1` levels. -/
 theorem clause1Aux_alt_zero_forall {plen : ℕ} {D : List Bool → Prop}
     (hz : ∀ z : List Bool, D (z ++ List.ofFn (fun _ : Fin plen => false)) ↔ D z) :
     ∀ (n : ℕ) (z : List Bool), ccAlt true plen D (2 * n + 2) z → ccAlt true plen D (2 * n + 1) z := by
@@ -2395,16 +2695,20 @@ set_option maxHeartbeats 800000
 
 open scoped Classical
 
+/-- Running for `t + 1` steps is one machine step applied to the configuration after `t` steps. -/
 private theorem clause1Aux_priv_run_succ {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t : ℕ) :
     ccRun P A ρ x (t + 1) = ccStep P A ρ (ccRun P A ρ x t) := rfl
 
+/-- An accepting or rejecting configuration is fixed by `ccStep`. -/
 private theorem clause1Aux_priv_step_halt {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig q)
     (h : P.states c.state = CcAct.accept ∨ P.states c.state = CcAct.reject) :
     ccStep P A ρ c = c := by
   rcases h with h | h <;> simp [ccStep, h]
 
+/-- Once a run reaches an accepting or rejecting state at time `t`, every later step bound gives
+the same configuration. -/
 private theorem clause1Aux_priv_run_halt_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t t' : ℕ)
     (hh : P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -2421,6 +2725,8 @@ private theorem clause1Aux_priv_run_halt_le {q : ℕ} (P : CcProgram q) (A : Lis
   rw [← h2]
   exact h1 (t' - t)
 
+/-- A machine result different from `none` implies that the current action is accepting or
+rejecting. -/
 private theorem clause1Aux_priv_result_halt {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t : ℕ) (h : ccResult P A ρ x t ≠ none) :
     P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -2436,6 +2742,7 @@ private theorem clause1Aux_priv_result_halt {q : ℕ} (P : CcProgram q) (A : Lis
   | queryPush q' => simp [ccResult, hs] at h
   | oracleCall qt qf => simp [ccResult, hs] at h
 
+/-- The tape head position after `t` machine steps is at most `t`. -/
 theorem clause1Aux_head_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) : (ccRun P A ρ x t).head ≤ t := by
   induction t with
@@ -2444,9 +2751,12 @@ theorem clause1Aux_head_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) 
     rw [clause1Aux_priv_run_succ]
     cases hs : P.states (ccRun P A ρ x n).state <;> simp [ccStep, hs] <;> omega
 
+/-- The number of Boolean words of a fixed finite length is two raised to that length. -/
 theorem clause1Aux_card_fin_bool (n : ℕ) : Fintype.card (Fin n → Bool) = 2 ^ n := by
   simp [Fintype.card_pi, Finset.prod_const]
 
+/-- With witness width zero, any number of alternation levels is equivalent to the underlying
+predicate. -/
 theorem clause1Aux_alt_width0 {D : List Bool → Prop} :
     ∀ (lev : ℕ) (ex : Bool) (z : List Bool), ccAlt ex 0 D lev z ↔ D z := by
   intro lev
@@ -2482,6 +2792,7 @@ theorem clause1Aux_alt_width0 {D : List Bool → Prop} :
         have hD' : D (z ++ List.ofFn w) := by rw [hnil w]; exact hD
         exact (ih true (z ++ List.ofFn w)).mpr hD'
 
+/-- Every language at level zero of `InPHLevel` belongs to every level of `InPHLevel`. -/
 theorem clause1Aux_clause4_from0 : ∀ (k : ℕ) (L : List Bool → Prop), InPHLevel 0 L → InPHLevel k L := by
   intro k L h
   obtain ⟨q, c, κ, p, V, hpoly, hL⟩ := h
@@ -2491,6 +2802,8 @@ theorem clause1Aux_clause4_from0 : ∀ (k : ℕ) (L : List Bool → Prop), InPHL
   rw [hplen, hL x, clause1Aux_alt_zero]
   exact (clause1Aux_alt_width0 (D := fun z => ccAccepts V c κ z = true) k true x).symm
 
+/-- A polynomial-time alternating characterization at level `k` yields membership at level `k +
+1` when its acceptance predicate is robust under appending witness blocks. -/
 theorem clause1Aux_inPH_succ_robust {k q c κ p : ℕ} {L : List Bool → Prop} (V : CcProgram q)
     (hpoly : CcPolyTime V c κ)
     (hL : ∀ x : List Bool,
@@ -2503,6 +2816,8 @@ theorem clause1Aux_inPH_succ_robust {k q c κ p : ℕ} {L : List Bool → Prop} 
   rw [hL x]
   exact (ccAlt_succ_robust (hrob x) k true x).symm
 
+/-- A singleton output `[b]` implies that the final head is at position one and tape position
+zero contains `b`. -/
 theorem clause1Aux_output_shape {q : ℕ} (M : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) (b : Bool) (h : ccOutput M A ρ x t = [b]) :
     (ccRun M A ρ x t).head = 1 ∧ (ccRun M A ρ x t).tape 0 = b := by
@@ -2515,11 +2830,15 @@ theorem clause1Aux_output_shape {q : ℕ} (M : CcProgram q) (A : List Bool → B
   simp at h
   exact ⟨hlen, h⟩
 
+/-- Agreement of all non-tape configuration fields together with agreement of tape cells at
+indices below `n`. -/
 private def clause1Aux_priv_agree {q : ℕ} (n : ℕ) (c₁ c₂ : CcConfig q) : Prop :=
   c₁.state = c₂.state ∧ c₁.head = c₂.head ∧ c₁.query = c₂.query ∧
     c₁.coinIdx = c₂.coinIdx ∧ c₁.time = c₂.time ∧ c₁.queries = c₂.queries ∧
     c₁.queryBits = c₂.queryBits ∧ c₁.coins = c₂.coins ∧ ∀ i < n, c₁.tape i = c₂.tape i
 
+/-- Inputs agreeing below `n` initialize configurations that agree in every non-tape field and
+on tape cells below `n`. -/
 private theorem clause1Aux_priv_agree_init {q : ℕ} (x y : List Bool) (n : ℕ)
     (h : ∀ i < n, x.getD i false = y.getD i false) :
     clause1Aux_priv_agree n (ccInit q x) (ccInit q y) := by
@@ -2527,6 +2846,8 @@ private theorem clause1Aux_priv_agree_init {q : ℕ} (x y : List Bool) (n : ℕ)
   intro i hi
   exact h i hi
 
+/-- Configuration agreement below `n` is preserved by one machine step when the common head
+position is below `n`. -/
 private theorem clause1Aux_priv_agree_step {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) {n : ℕ} {c₁ c₂ : CcConfig q} (ha : clause1Aux_priv_agree n c₁ c₂) (hh : c₁.head < n) :
     clause1Aux_priv_agree n (ccStep P A ρ c₁) (ccStep P A ρ c₂) := by
@@ -2627,6 +2948,8 @@ private theorem clause1Aux_priv_agree_step {q : ℕ} (P : CcProgram q) (A : List
     simp only [ccStep, hs, hst]
     exact ⟨hstate, hhead, hquery, hcoin, htime, hqueries, hqbits, hcoins, htape⟩
 
+/-- For a polynomial-time program, placing a true bit beyond the empty-input polynomial budget
+in an otherwise false tape gives the same result as empty input at every step bound. -/
 theorem clause1Aux_result_farTrue {q : ℕ} (P : CcProgram q) (c k : ℕ) (hpoly : CcPolyTime P c k)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (N : ℕ) (hN : c * 0 ^ k + c < N) (t : ℕ) :
     ccResult P A ρ (List.replicate N false ++ [true]) t = ccResult P A ρ [] t := by
@@ -2673,6 +2996,8 @@ theorem clause1Aux_result_farTrue {q : ℕ} (P : CcProgram q) (c k : ℕ) (hpoly
       (c * 0 ^ k + c) t hhalt' hlt
     simp only [ccResult, h1, h2, hbg.1]
 
+/-- A polynomial-time program has the same acceptance value on empty input and on an otherwise
+false input whose final true bit lies beyond the empty-input polynomial budget. -/
 theorem clause1Aux_accepts_farTrue {q : ℕ} (V : CcProgram q) (c k : ℕ) (hpoly : CcPolyTime V c k)
     (N : ℕ) (hN : c * 0 ^ k + c < N) :
     ccAccepts V c k (List.replicate N false ++ [true]) = ccAccepts V c k [] := by
@@ -2698,16 +3023,21 @@ theorem clause1Aux_accepts_farTrue {q : ℕ} (V : CcProgram q) (c k : ℕ) (hpol
   simp only [ccResult, hrun]
   rfl
 
+/-- A program that writes true and then repeatedly moves left, with the head position truncated
+at zero. -/
 def clause1Aux_clampProbe : CcProgram 1 where
   states := fun i =>
     match (i : ℕ) with
     | 0 => CcAct.write true ⟨1, by omega⟩
     | _ => CcAct.moveL ⟨1, by omega⟩
 
+/-- Executes two steps of `clause1Aux_clampProbe` with the zero oracle and default coin stream. -/
 def clause1Aux_clampRun2 (c : CcConfig 1) : CcConfig 1 :=
   ccStep clause1Aux_clampProbe ccZeroOracle ccDefaultCoin
     (ccStep clause1Aux_clampProbe ccZeroOracle ccDefaultCoin c)
 
+/-- The initial probe configuration with head zero, an all-false tape, and all resource counters
+zero. -/
 def clause1Aux_clampCfgA : CcConfig 1 where
   state := ⟨0, by omega⟩
   tape := fun _ => false
@@ -2719,6 +3049,8 @@ def clause1Aux_clampCfgA : CcConfig 1 where
   queryBits := 0
   coins := 0
 
+/-- The initial probe configuration with head one, a true bit at position zero, and all resource
+counters zero. -/
 def clause1Aux_clampCfgB : CcConfig 1 where
   state := ⟨0, by omega⟩
   tape := fun i => if i = 0 then true else false
@@ -2730,29 +3062,38 @@ def clause1Aux_clampCfgB : CcConfig 1 where
   queryBits := 0
   coins := 0
 
+/-- After two probe steps from either specified configuration, the head is at zero and the bit
+under it is true. -/
 theorem clause1Aux_clamp_falsePos :
     (clause1Aux_clampRun2 clause1Aux_clampCfgA).tape ((clause1Aux_clampRun2 clause1Aux_clampCfgA).head) = true ∧
       (clause1Aux_clampRun2 clause1Aux_clampCfgB).tape ((clause1Aux_clampRun2 clause1Aux_clampCfgB).head) = true ∧
       (clause1Aux_clampRun2 clause1Aux_clampCfgA).head = 0 ∧ (clause1Aux_clampRun2 clause1Aux_clampCfgB).head = 0 :=
   ⟨rfl, rfl, rfl, rfl⟩
 
+/-- A program that moves right once and then accepts, leaving the input's first bit as its
+singleton output. -/
 def clause1Aux_outM : CcProgram 1 where
   states := fun i =>
     match (i : ℕ) with
     | 0 => CcAct.moveR ⟨1, by omega⟩
     | _ => CcAct.accept
 
+/-- After one step, `clause1Aux_outM` has head position one and time one, with its original tape
+and no queries or coin reads. -/
 theorem clause1Aux_outM_run_one (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccRun clause1Aux_outM A ρ x 1 =
       ({ state := (⟨1, by omega⟩ : Fin 2), tape := fun i => x.getD i false,
          head := 1, query := [], coinIdx := 0, time := 1, queries := 0, queryBits := 0,
          coins := 0 } : CcConfig 1) := rfl
 
+/-- The run of `clause1Aux_outM` is unchanged between one and two steps. -/
 theorem clause1Aux_outM_run_two (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) :
     ccRun clause1Aux_outM A ρ x 2 = ccRun clause1Aux_outM A ρ x 1 := by
   rw [clause1Aux_priv_run_succ, clause1Aux_outM_run_one]
   rfl
 
+/-- At every step bound at least two, `clause1Aux_outM` has the same configuration as after two
+steps. -/
 theorem clause1Aux_outM_halt (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) (t : ℕ)
     (ht : 2 ≤ t) : ccRun clause1Aux_outM A ρ x t = ccRun clause1Aux_outM A ρ x 2 := by
   have hh : clause1Aux_outM.states (ccRun clause1Aux_outM A ρ x 2).state = CcAct.accept := by
@@ -2760,12 +3101,15 @@ theorem clause1Aux_outM_halt (A : List Bool → Bool) (ρ : ℕ → Bool) (x : L
     rfl
   exact clause1Aux_priv_run_halt_le clause1Aux_outM A ρ x 2 t (Or.inl hh) ht
 
+/-- At every step bound at least two, `clause1Aux_outM` outputs the singleton containing the
+first input bit, with default `false`. -/
 theorem clause1Aux_outM_output (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) (t : ℕ)
     (ht : 2 ≤ t) : ccOutput clause1Aux_outM A ρ x t = [x.getD 0 false] := by
   simp only [ccOutput, clause1Aux_outM_halt A ρ x t ht, clause1Aux_outM_run_two,
       clause1Aux_outM_run_one]
   rfl
 
+/-- The singleton-output program is polynomial-time with coefficient two and exponent zero. -/
 theorem clause1Aux_outM_poly : CcPolyTime clause1Aux_outM 2 0 := by
   intro A ρ x
   have hb : (2 : ℕ) * x.length ^ 0 + 2 = 4 := by simp
@@ -2783,6 +3127,8 @@ theorem clause1Aux_outM_poly : CcPolyTime clause1Aux_outM 2 0 := by
     rw [clause1Aux_outM_halt A ρ x 4 (by omega), clause1Aux_outM_run_two, clause1Aux_outM_run_one]
     simp
 
+/-- At step bound `t ≥ 2`, all `2 ^ t` coin strings produce the singleton output determined by
+the first input bit. -/
 theorem clause1Aux_outM_exactCount (A : List Bool → Bool) (x : List Bool) (t : ℕ) (ht : 2 ≤ t) :
     ccExactOutputCount clause1Aux_outM A x t (if x.getD 0 false then [true] else [false]) = 2 ^ t := by
   show (Finset.univ.filter (fun ω : Fin t → Bool =>
@@ -2801,12 +3147,15 @@ theorem clause1Aux_outM_exactCount (A : List Bool → Bool) (x : List Bool) (t :
   rw [hfilter, Finset.card_univ]
   exact clause1Aux_card_fin_bool t
 
+/-- The program whose sole state is rejecting. -/
 def clause1Aux_rejV : CcProgram 0 where
   states := fun _ => CcAct.reject
 
+/-- The always-rejecting program returns `some false` on every input at every step bound. -/
 theorem clause1Aux_rejV_result (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) (t : ℕ) :
     ccResult clause1Aux_rejV A ρ x t = some false := rfl
 
+/-- The always-rejecting program is polynomial-time with coefficient one and exponent zero. -/
 theorem clause1Aux_rejV_poly : CcPolyTime clause1Aux_rejV 1 0 := by
   intro A ρ x
   have hb : (1 : ℕ) * x.length ^ 0 + 1 = 2 := by simp
@@ -2826,9 +3175,11 @@ theorem clause1Aux_rejV_poly : CcPolyTime clause1Aux_rejV 1 0 := by
     show (0 : ℕ) ≤ 2
     decide
 
+/-- The always-rejecting program rejects every input-witness pair. -/
 theorem clause1Aux_rejV_verifies (z w : List Bool) :
     ccVerifies clause1Aux_rejV 1 0 z w = false := rfl
 
+/-- The empty language belongs to `InNP` in the counting bit-machine model. -/
 theorem clause1Aux_empty_inNP : InNP (fun _ : List Bool => False) := by
   refine ⟨0, 1, 0, 0, clause1Aux_rejV, clause1Aux_rejV_poly, ?_⟩
   intro x
@@ -2839,6 +3190,7 @@ theorem clause1Aux_empty_inNP : InNP (fun _ : List Bool => False) := by
     rw [clause1Aux_rejV_verifies x (List.ofFn w)] at hw
     simp at hw
 
+/-- The function returning the first input bit as a singleton list belongs to `InFBPPNP`. -/
 theorem clause1Aux_clause6_firstBit :
     InFBPPNP (fun x : List Bool => if x.getD 0 false then [true] else [false]) := by
   refine ⟨1, 2, 0, clause1Aux_outM, fun _ => False, clause1Aux_empty_inNP, clause1Aux_outM_poly, ?_⟩
@@ -2849,6 +3201,7 @@ theorem clause1Aux_clause6_firstBit :
   rw [hcount]
   norm_num
 
+/-- The language of inputs with true first bit belongs to `InBPP`. -/
 theorem clause1Aux_firstBit_inBPP : InBPP (fun x : List Bool => x.getD 0 false = true) := by
   refine ⟨2, 1, 0, clause1BadV, clause1BadV_poly, ?_⟩
   intro x
@@ -2886,6 +3239,8 @@ theorem clause1Aux_firstBit_inBPP : InBPP (fun x : List Bool => x.getD 0 false =
     rw [hb, hcount, if_neg hx]
     norm_num
 
+/-- The conjunction of the stated relation-count estimator, affine-hash collision, and
+oracle-estimator specifications is false in this tape model. -/
 theorem clause2_counter : ¬
     (  (∀ (q c k p : ℕ) (V : CcProgram q), CcPolyTime V c k → ∀ (d s : ℕ),
     ∃ (qE cE kE : ℕ) (E : CcProgram qE),
@@ -2945,6 +3300,8 @@ theorem clause2_counter : ¬
   intro h
   exact clause2_clause1_counter h.1
 
+/-- The conjunction of the stated linear-optics sampler, approximate-counting, and
+distribution-transport specifications is false in this tape model. -/
 theorem clause3_counter : ¬
     (  (∀ (m n : ℕ) (Sam : LoSampler m n) (S : FockOccupation m n),
     ((Finset.univ.filter (fun r : Fin Sam.L → Bool => Sam.O r = S)).card : ℝ)
@@ -3030,6 +3387,8 @@ theorem clause3_counter : ¬
 
 open Qatlib.Concepts.CountingClasses.ClassTransport
 
+/-- The tape-and-head transformation that writes a local marker pattern to distinguish head
+position zero from a positive head position. -/
 def clause1Aux_probeCore (tape : ℕ → Bool) (head : ℕ) : (ℕ → Bool) × ℕ :=
   let h1 := head + 1
   let t1 : ℕ → Bool := fun i => if i = h1 then false else tape i
@@ -3040,6 +3399,8 @@ def clause1Aux_probeCore (tape : ℕ → Bool) (head : ℕ) : (ℕ → Bool) × 
   let h4 := h3 + 1
   (t3, h4)
 
+/-- The probe core returns head position one from zero and otherwise preserves the original head
+position. -/
 theorem clause1Aux_probeCore_head (tape : ℕ → Bool) (head : ℕ) :
     (clause1Aux_probeCore tape head).2 = if head = 0 then 1 else head := by
   simp only [clause1Aux_probeCore]
@@ -3050,6 +3411,8 @@ theorem clause1Aux_probeCore_head (tape : ℕ → Bool) (head : ℕ) :
     have e3 : head - 1 + 1 = head := by omega
     simp [e1, e3, h]
 
+/-- The bit under the head returned by the probe core is true exactly when the original head
+position was nonzero. -/
 theorem clause1Aux_probeCore_read (tape : ℕ → Bool) (head : ℕ) :
     (clause1Aux_probeCore tape head).1 ((clause1Aux_probeCore tape head).2) = true ↔ head ≠ 0 := by
   simp only [clause1Aux_probeCore]
@@ -3064,6 +3427,8 @@ theorem clause1Aux_probeCore_read (tape : ℕ → Bool) (head : ℕ) :
     simp only [e4, e5]
     simp [h]
 
+/-- A finite program implementing the marker probe and branching to acceptance for positive
+initial head position or rejection for initial head position zero. -/
 def clause1Aux_zeroProbe : CcProgram 9 where
   states := fun i =>
     match (i : ℕ) with
@@ -3078,11 +3443,15 @@ def clause1Aux_zeroProbe : CcProgram 9 where
     | 8 => CcAct.accept
     | _ => CcAct.reject
 
+/-- Executes eight successive machine steps from the given configuration. -/
 private def clause1Aux_step8 {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (c : CcConfig q) : CcConfig q :=
   ccStep P A ρ (ccStep P A ρ (ccStep P A ρ (ccStep P A ρ
     (ccStep P A ρ (ccStep P A ρ (ccStep P A ρ (ccStep P A ρ c)))))))
 
+/-- Starting in state zero, eight probe steps move a zero head to one and otherwise preserve its
+position. The resulting bit and branch state distinguish zero from positive initial head
+position. -/
 theorem clause1Aux_zeroProbe_steps (A : List Bool → Bool) (ρ : ℕ → Bool) (c : CcConfig 9)
     (hs : (c.state : ℕ) = 0) :
     let c8 := clause1Aux_step8 clause1Aux_zeroProbe A ρ c
@@ -3101,12 +3470,15 @@ theorem clause1Aux_zeroProbe_steps (A : List Bool → Bool) (ρ : ℕ → Bool) 
     rw [e1, e3, if_neg e4, if_neg e5, if_pos rfl, if_pos rfl]
     simp [h]
 
+/-- A final head at position one and tape bit `b` at position zero imply singleton output `[b]`. -/
 theorem clause1Aux_output_of_head {q : ℕ} (P : CcProgram q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (x : List Bool) (t : ℕ) (b : Bool) (hhead : (ccRun P A ρ x t).head = 1)
     (htape : (ccRun P A ρ x t).tape 0 = b) :
     ccOutput P A ρ x t = [b] := by
   simp [ccOutput, hhead, htape]
 
+/-- An acceptance fraction at least two thirds remains at least two thirds after extending every
+coin string by all possible suffixes. -/
 theorem clause1Aux_count_transfer_pos {acc t t' : ℕ} (hle : t ≤ t')
     (h : 2 * 2 ^ t ≤ 3 * acc) : 2 * 2 ^ t' ≤ 3 * (acc * 2 ^ (t' - t)) := by
   have hmul : 2 ^ t * 2 ^ (t' - t) = 2 ^ t' := by
@@ -3116,6 +3488,8 @@ theorem clause1Aux_count_transfer_pos {acc t t' : ℕ} (hle : t ≤ t')
     _ ≤ (3 * acc) * 2 ^ (t' - t) := Nat.mul_le_mul_right _ h
     _ = 3 * (acc * 2 ^ (t' - t)) := by ring
 
+/-- If the acceptance fraction is at most one third, the rejection count remains at least two
+thirds of the coin space after padding to a longer length. -/
 theorem clause1Aux_count_transfer_neg {acc t t' : ℕ} (hle : t ≤ t')
     (h : 3 * acc ≤ 2 ^ t) : 2 * 2 ^ t' ≤ 3 * ((2 ^ t - acc) * 2 ^ (t' - t)) := by
   have hmul : 2 ^ t * 2 ^ (t' - t) = 2 ^ t' := by
@@ -3131,6 +3505,8 @@ theorem clause1Aux_count_transfer_neg {acc t t' : ℕ} (hle : t ≤ t')
     _ ≤ (3 * (2 ^ t - acc)) * 2 ^ (t' - t) := Nat.mul_le_mul_right _ hcore
     _ = 3 * ((2 ^ t - acc) * 2 ^ (t' - t)) := by ring
 
+/-- A wrapper preserving accepting and rejecting branch counts up to coin-padding factors
+transports an `InBPP` language's singleton decision-bit function into `InFBPPNP`. -/
 theorem clause1Aux_clause6_of_wrap (L : List Bool → Prop) (hin : InBPP L)
     (hwrap : ∀ (q c k : ℕ) (M : CcProgram q), CcPolyTime M c k →
       (∀ x : List Bool,
@@ -3167,20 +3543,26 @@ theorem clause1Aux_clause6_of_wrap (L : List Bool → Prop) (hin : InBPP L)
 
 open scoped Classical BigOperators
 
+/-- The Boolean oracle of the empty language is `ccZeroOracle`. -/
 theorem clause1Aux_wrap_oracle_empty :
     (ccOracleOf (fun _ : List Bool => False)) = ccZeroOracle := by
   funext z
   simp [ccOracleOf, ccZeroOracle]
 
+/-- Tests whether a machine action is accepting or rejecting. -/
 private def clause1Aux_wrap_isHalt {q : ℕ} (a : CcAct q) : Bool :=
   match a with
   | CcAct.accept => true
   | CcAct.reject => true
   | _ => false
 
+/-- Embeds an original state index into the wrapper's larger state space without changing its
+numeric value. -/
 private def clause1Aux_wrap_upFin {q : ℕ} (i : Fin (q + 1)) : Fin ((q + 26) + 1) :=
   ⟨(i : ℕ), by omega⟩
 
+/-- Lifts machine actions to the wrapper state space, redirecting acceptance and rejection to
+the corresponding output gadgets. -/
 private def clause1Aux_wrap_liftAct {q : ℕ} (a : CcAct (q + 1)) : CcAct ((q + 26) + 1) :=
   match a with
   | CcAct.moveL j => CcAct.moveL (clause1Aux_wrap_upFin j)
@@ -3193,6 +3575,8 @@ private def clause1Aux_wrap_liftAct {q : ℕ} (a : CcAct (q + 1)) : CcAct ((q + 
   | CcAct.accept => CcAct.branch ⟨q + 14, by omega⟩ ⟨q + 14, by omega⟩
   | CcAct.reject => CcAct.branch ⟨q + 1, by omega⟩ ⟨q + 1, by omega⟩
 
+/-- The state table for a gadget that locates the tape boundary, writes the prescribed Boolean
+output, and accepts. -/
 private def clause1Aux_gadStates {Q : ℕ} (base : ℕ) (b : Bool) (hbase : base + 12 < Q) :
     ℕ → CcAct Q
   | 0 => CcAct.moveR ⟨base + 1, by omega⟩
@@ -3209,6 +3593,8 @@ private def clause1Aux_gadStates {Q : ℕ} (base : ℕ) (b : Bool) (hbase : base
   | 11 => CcAct.moveR ⟨base + 12, by omega⟩
   | _ => CcAct.accept
 
+/-- The wrapper state table combining lifted original actions with separate false-output and
+true-output gadgets. -/
 private def clause1Aux_wrapStates {q : ℕ} (M : CcProgram q) (i : Fin ((q + 26) + 1)) :
     CcAct ((q + 26) + 1) :=
   if h : (i : ℕ) ≤ q then
@@ -3218,9 +3604,13 @@ private def clause1Aux_wrapStates {q : ℕ} (M : CcProgram q) (i : Fin ((q + 26)
   else
     clause1Aux_gadStates (base := q + 14) (b := true) (by omega) ((i : ℕ) - (q + 14))
 
+/-- The program obtained by adding two output gadgets to `M`, converting its decision into a
+singleton Boolean output. -/
 def clause1Aux_wrapProg {q : ℕ} (M : CcProgram q) : CcProgram (q + 26) where
   states := clause1Aux_wrapStates M
 
+/-- Embeds a configuration into the wrapper state space while preserving its tape, head, query,
+coin index, and resource counters. -/
 private def clause1Aux_wrap_upCfg {q : ℕ} (c : CcConfig q) : CcConfig (q + 26) where
   state := clause1Aux_wrap_upFin c.state
   tape := c.tape
@@ -3232,19 +3622,24 @@ private def clause1Aux_wrap_upCfg {q : ℕ} (c : CcConfig q) : CcConfig (q + 26)
   queryBits := c.queryBits
   coins := c.coins
 
+/-- Running for `t + 1` steps is one machine step applied to the configuration after `t` steps. -/
 private lemma clause1Aux_wrap_run_succ {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t : ℕ) :
     ccRun P A ρ x (t + 1) = ccStep P A ρ (ccRun P A ρ x t) := rfl
 
+/-- Executes a specified number of machine steps starting from an arbitrary configuration. -/
 private def clause1Aux_wrap_runN {Q : ℕ} (P : CcProgram Q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (c : CcConfig Q) : ℕ → CcConfig Q
   | 0 => c
   | n + 1 => ccStep P A ρ (clause1Aux_wrap_runN P A ρ c n)
 
+/-- Executing `n + 1` steps from a configuration is one machine step after executing `n` steps. -/
 private lemma clause1Aux_wrap_runN_succ {Q : ℕ} (P : CcProgram Q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig Q) (n : ℕ) :
     clause1Aux_wrap_runN P A ρ c (n + 1) = ccStep P A ρ (clause1Aux_wrap_runN P A ρ c n) := rfl
 
+/-- Execution for `m + n` steps factors into execution for `m` steps followed by execution for
+`n` steps. -/
 private lemma clause1Aux_wrap_runN_add {Q : ℕ} (P : CcProgram Q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig Q) (m n : ℕ) :
     clause1Aux_wrap_runN P A ρ c (m + n) = clause1Aux_wrap_runN P A ρ (clause1Aux_wrap_runN P A ρ c m) n := by
@@ -3253,6 +3648,8 @@ private lemma clause1Aux_wrap_runN_add {Q : ℕ} (P : CcProgram Q) (A : List Boo
   | succ n ih => rw [show m + (n + 1) = (m + n) + 1 from rfl, clause1Aux_wrap_runN_succ, ih,
       clause1Aux_wrap_runN_succ]
 
+/-- A run for `s + n` steps is obtained by executing `n` further steps from the configuration
+after `s` steps. -/
 private lemma clause1Aux_wrap_runN_run {Q : ℕ} (P : CcProgram Q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (s n : ℕ) :
     ccRun P A ρ x (s + n) = clause1Aux_wrap_runN P A ρ (ccRun P A ρ x s) n := by
@@ -3261,6 +3658,8 @@ private lemma clause1Aux_wrap_runN_run {Q : ℕ} (P : CcProgram Q) (A : List Boo
   | succ n ih => rw [show s + (n + 1) = (s + n) + 1 from rfl, clause1Aux_wrap_run_succ, ih,
       clause1Aux_wrap_runN_succ]
 
+/-- At an embedded original state, the wrapper's action is the lifted action of the original
+program. -/
 private lemma clause1Aux_wrap_states_sim {q : ℕ} (M : CcProgram q) (i : Fin (q + 1)) :
     (clause1Aux_wrapProg M).states (clause1Aux_wrap_upFin i) = clause1Aux_wrap_liftAct (M.states i) := by
   have hlt : (i : ℕ) < q + 1 := i.isLt
@@ -3272,9 +3671,13 @@ private lemma clause1Aux_wrap_states_sim {q : ℕ} (M : CcProgram q) (i : Fin (q
   rw [dif_pos hle]
   rfl
 
+/-- Embedding an original initial configuration gives the wrapper's initial configuration on the
+same input. -/
 private lemma clause1Aux_wrap_upCfg_init {q : ℕ} (x : List Bool) :
     clause1Aux_wrap_upCfg (ccInit q x) = ccInit (q + 26) x := rfl
 
+/-- One wrapper step from an embedded configuration simulates an original step whenever the
+original action is nonhalting. -/
 private lemma clause1Aux_wrap_sim_step {q : ℕ} (M : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig q) (hn : clause1Aux_wrap_isHalt (M.states c.state) = false) :
     ccStep (clause1Aux_wrapProg M) A ρ (clause1Aux_wrap_upCfg c) = clause1Aux_wrap_upCfg (ccStep M A ρ c) := by
@@ -3310,6 +3713,8 @@ private lemma clause1Aux_wrap_sim_step {q : ℕ} (M : CcProgram q) (A : List Boo
     simp only [clause1Aux_wrap_liftAct, clause1Aux_wrap_upCfg, clause1Aux_wrap_upFin]
     split_ifs <;> rfl
 
+/-- The wrapper run equals the embedded original run through step `j` if the original run has no
+halting action at any earlier step. -/
 private lemma clause1Aux_wrap_sim_run {q : ℕ} (M : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) :
     ∀ j : ℕ, (∀ i < j, clause1Aux_wrap_isHalt (M.states (ccRun M A ρ x i).state) = false) →
@@ -3325,12 +3730,15 @@ private lemma clause1Aux_wrap_sim_run {q : ℕ} (M : CcProgram q) (A : List Bool
     rw [clause1Aux_wrap_run_succ, clause1Aux_wrap_run_succ, ih hn',
       clause1Aux_wrap_sim_step M A ρ (ccRun M A ρ x n) hnn]
 
+/-- An accepting or rejecting configuration is fixed by `ccStep`. -/
 private lemma clause1Aux_wrap_step_halt {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig q)
     (h : P.states c.state = CcAct.accept ∨ P.states c.state = CcAct.reject) :
     ccStep P A ρ c = c := by
   rcases h with h | h <;> simp [ccStep, h]
 
+/-- Once a run reaches an accepting or rejecting state at time `t`, every later step bound gives
+the same configuration. -/
 private lemma clause1Aux_wrap_run_halt_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t t' : ℕ)
     (hh : P.states (ccRun P A ρ x t).state = CcAct.accept ∨
@@ -3347,15 +3755,19 @@ private lemma clause1Aux_wrap_run_halt_le {q : ℕ} (P : CcProgram q) (A : List 
   rw [← h2]
   exact h1 (t' - t)
 
+/-- Executes eight successive steps from an arbitrary configuration for the wrapper analysis. -/
 private def clause1Aux_wrap_step8 {Q : ℕ} (P : CcProgram Q) (A : List Bool → Bool) (ρ : ℕ → Bool)
     (c : CcConfig Q) : CcConfig Q :=
   ccStep P A ρ (ccStep P A ρ (ccStep P A ρ (ccStep P A ρ
     (ccStep P A ρ (ccStep P A ρ (ccStep P A ρ (ccStep P A ρ c)))))))
 
+/-- Iterating the machine step eight times agrees with the explicit eight-step expression. -/
 private lemma clause1Aux_wrap_runN_8 {Q : ℕ} (P : CcProgram Q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig Q) :
     clause1Aux_wrap_runN P A ρ c 8 = clause1Aux_wrap_step8 P A ρ c := rfl
 
+/-- The wrapper states at offsets zero through twelve from `q + 1` implement the false-output
+gadget. -/
 private lemma clause1Aux_wrap_gadStates_false {q : ℕ} (M : CcProgram q) (d : ℕ) (hd : d ≤ 12) :
     (clause1Aux_wrapProg M).states (⟨q + 1 + d, by omega⟩ : Fin (q + 27))
       = clause1Aux_gadStates (base := q + 1) (b := false) (by omega) d := by
@@ -3365,6 +3777,8 @@ private lemma clause1Aux_wrap_gadStates_false {q : ℕ} (M : CcProgram q) (d : �
   have hsub : q + 1 + d - (q + 1) = d := by omega
   rw [hsub]
 
+/-- The wrapper states at offsets zero through twelve from `q + 14` implement the true-output
+gadget. -/
 private lemma clause1Aux_wrap_gadStates_true {q : ℕ} (M : CcProgram q) (d : ℕ) (hd : d ≤ 12) :
     (clause1Aux_wrapProg M).states (⟨q + 14 + d, by omega⟩ : Fin (q + 27))
       = clause1Aux_gadStates (base := q + 14) (b := true) (by omega) d := by
@@ -3375,6 +3789,8 @@ private lemma clause1Aux_wrap_gadStates_true {q : ℕ} (M : CcProgram q) (d : �
   have hsub : q + 14 + d - (q + 14) = d := by omega
   rw [hsub]
 
+/-- After eight steps in a matching output gadget, the head and branch state distinguish zero
+from positive initial head position, and the charged time increases by eight. -/
 private lemma clause1Aux_wrap_probeCore {Q : ℕ} (P : CcProgram Q) (base : ℕ) (b : Bool)
     (hbase : base + 12 < Q + 1)
     (hact : ∀ (d : ℕ) (_hd : d ≤ 12),
@@ -3439,6 +3855,9 @@ private lemma clause1Aux_wrap_probeCore {Q : ℕ} (P : CcProgram Q) (base : ℕ)
     rw [e1, e3, if_neg e4, if_neg e5, if_pos rfl, if_pos rfl]
     simp [h]
 
+/-- A matching output gadget starting at head position `h` reaches its final state after `9 * h
++ 12` steps, with head one, output bit `b` at position zero, and charged-time increase at
+most that bound. -/
 private lemma clause1Aux_wrap_gadCore {Q : ℕ} (P : CcProgram Q) (base : ℕ) (b : Bool)
     (hbase : base + 12 < Q + 1)
     (hact : ∀ (d : ℕ) (_hd : d ≤ 12),
@@ -3583,6 +4002,7 @@ private lemma clause1Aux_wrap_gadCore {Q : ℕ} (P : CcProgram Q) (base : ℕ) (
           ≤ (clause1Aux_wrap_runN P A ρ c 9).time + (9 * n + 12) := htle
         _ ≤ c.time + (9 * n.succ + 12) := by rw [h9time]; omega
 
+/-- The coin-stream index after `t` machine steps is at most `t`. -/
 private lemma clause1Aux_wrap_coinIdx_le {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t : ℕ) : (ccRun P A ρ x t).coinIdx ≤ t := by
   induction t with
@@ -3591,6 +4011,8 @@ private lemma clause1Aux_wrap_coinIdx_le {q : ℕ} (P : CcProgram q) (A : List B
     rw [clause1Aux_wrap_run_succ]
     cases h : P.states (ccRun P A ρ x n).state <;> simp [ccStep, h] <;> omega
 
+/-- Coin streams agreeing at every index below `t` produce the same configuration after `t`
+machine steps. -/
 private lemma clause1Aux_wrap_coinPrefix {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ1 ρ2 : ℕ → Bool) (x : List Bool) :
     ∀ t : ℕ, (∀ i, i < t → ρ1 i = ρ2 i) → ccRun P A ρ1 x t = ccRun P A ρ2 x t := by
@@ -3607,14 +4029,19 @@ private lemma clause1Aux_wrap_coinPrefix {q : ℕ} (P : CcProgram q) (A : List B
       hagr _ (by omega)
     cases h : P.states (ccRun P A ρ2 x n).state <;> simp [ccStep, h, hcoin]
 
+/-- The halting test is true exactly for accepting or rejecting actions. -/
 private lemma clause1Aux_wrap_isHalt_iff {q : ℕ} (a : CcAct q) :
     clause1Aux_wrap_isHalt a = true ↔ (a = CcAct.accept ∨ a = CcAct.reject) := by
   cases a <;> simp [clause1Aux_wrap_isHalt]
 
+/-- The proposition that the original program's action after `j` steps is accepting or
+rejecting. -/
 private def clause1Aux_wrap_haltPred {q : ℕ} (M : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (j : ℕ) : Prop :=
   clause1Aux_wrap_isHalt (M.states (ccRun M A ρ x j).state) = true
 
+/-- A machine result different from `none` implies that the current action is accepting or
+rejecting. -/
 private lemma clause1Aux_wrap_result_halt {q : ℕ} (P : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) (t : ℕ) (h : ccResult P A ρ x t ≠ none) :
     clause1Aux_wrap_haltPred P A ρ x t := by
@@ -3629,6 +4056,8 @@ private lemma clause1Aux_wrap_result_halt {q : ℕ} (P : CcProgram q) (A : List 
   | queryPush j => simp [ccResult, hs] at h
   | oracleCall jt jf => simp [ccResult, hs] at h
 
+/-- From an embedded accepting configuration, the wrapper enters the true-output gadget at state
+`q + 14`, preserving tape and head and increasing charged time by one. -/
 private lemma clause1Aux_wrap_intercept_true {q : ℕ} (M : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig q) (hacc : M.states c.state = CcAct.accept) :
     ((ccStep (clause1Aux_wrapProg M) A ρ (clause1Aux_wrap_upCfg c)).state : ℕ) = q + 14 ∧
@@ -3643,6 +4072,8 @@ private lemma clause1Aux_wrap_intercept_true {q : ℕ} (M : CcProgram q) (A : Li
   rw [hst, hacc]
   simp [clause1Aux_wrap_liftAct, clause1Aux_wrap_upCfg, clause1Aux_wrap_upFin]
 
+/-- From an embedded rejecting configuration, the wrapper enters the false-output gadget at
+state `q + 1`, preserving tape and head and increasing charged time by one. -/
 private lemma clause1Aux_wrap_intercept_false {q : ℕ} (M : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig q) (hrej : M.states c.state = CcAct.reject) :
     ((ccStep (clause1Aux_wrapProg M) A ρ (clause1Aux_wrap_upCfg c)).state : ℕ) = q + 1 ∧
@@ -3657,6 +4088,9 @@ private lemma clause1Aux_wrap_intercept_false {q : ℕ} (M : CcProgram q) (A : L
   rw [hst, hrej]
   simp [clause1Aux_wrap_liftAct, clause1Aux_wrap_upCfg, clause1Aux_wrap_upFin]
 
+/-- Starting at the false-output gadget with head `h`, after `9 * h + 12` steps the wrapper is
+accepting at state `q + 13`, has head one and false at tape position zero, and satisfies the
+stated time bound. -/
 private lemma clause1Aux_wrap_gadW_false {q : ℕ} (M : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig (q + 26)) (h : ℕ)
     (hstate : c.state = (⟨q + 1, by omega⟩ : Fin (q + 27))) (hhead : c.head = h) :
@@ -3681,6 +4115,9 @@ private lemma clause1Aux_wrap_gadW_false {q : ℕ} (M : CcProgram q) (A : List B
   · rw [hst, clause1Aux_wrap_gadStates_false M 12 (by omega)]
     rfl
 
+/-- Starting at the true-output gadget with head `h`, after `9 * h + 12` steps the wrapper is
+accepting at state `q + 26`, has head one and true at tape position zero, and satisfies the
+stated time bound. -/
 private lemma clause1Aux_wrap_gadW_true {q : ℕ} (M : CcProgram q) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (c : CcConfig (q + 26)) (h : ℕ)
     (hstate : c.state = (⟨q + 14, by omega⟩ : Fin (q + 27))) (hhead : c.head = h) :
@@ -3705,6 +4142,9 @@ private lemma clause1Aux_wrap_gadW_true {q : ℕ} (M : CcProgram q) (A : List Bo
   · rw [hst, clause1Aux_wrap_gadStates_true M 12 (by omega)]
     rfl
 
+/-- At any step bound `t' ≥ 10 * t + 13`, where `t` is the original polynomial budget, the
+wrapper accepts and outputs the original decision as a singleton bit, with charged time at
+most `t'`. -/
 private lemma clause1Aux_wrap_main {q c k : ℕ} (M : CcProgram q) (hp : CcPolyTime M c k)
     (A : List Bool → Bool) (ρ : ℕ → Bool) (x : List Bool) (t t' : ℕ)
     (ht : t = c * x.length ^ k + c) (hgap : 10 * t + 13 ≤ t') :
@@ -3858,16 +4298,22 @@ private lemma clause1Aux_wrap_main {q c k : ℕ} (M : CcProgram q) (hp : CcPolyT
       rw [habs, hrun]
       exact htimeS
 
+/-- Restricts a finite bit string to its initial segment of the specified shorter length. -/
 private def clause1Aux_wrap_cut {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) : Fin T0 → Bool :=
   fun i => ω ⟨(i : ℕ), lt_of_lt_of_le i.isLt h⟩
 
+/-- Extracts the suffix remaining after the specified initial segment of a finite bit string. -/
 private def clause1Aux_wrap_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) : Fin (T1 - T0) → Bool :=
   fun j => ω ⟨T0 + (j : ℕ), by omega⟩
 
+/-- Concatenates a finite bit prefix with a suffix to obtain a bit string of the specified total
+length. -/
 private def clause1Aux_wrap_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool)
     (u : Fin (T1 - T0) → Bool) : Fin T1 → Bool :=
   fun j => if hj : (j : ℕ) < T0 then b ⟨(j : ℕ), hj⟩ else u ⟨(j : ℕ) - T0, by omega⟩
 
+/-- Concatenating the extracted prefix and suffix of a finite bit string recovers the original
+string. -/
 private lemma clause1Aux_wrap_pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) :
     clause1Aux_wrap_pad h (clause1Aux_wrap_cut h ω) (clause1Aux_wrap_tail h ω) = ω := by
   funext j
@@ -3882,6 +4328,7 @@ private lemma clause1Aux_wrap_pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : F
     show ω (⟨T0 + ((j : ℕ) - T0), hval⟩ : Fin T1) = ω j
     exact congrArg ω (Fin.ext hval2)
 
+/-- Extracting the prefix of a concatenated finite bit string recovers its given prefix. -/
 private lemma clause1Aux_wrap_cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool)
     (u : Fin (T1 - T0) → Bool) : clause1Aux_wrap_cut h (clause1Aux_wrap_pad h b u) = b := by
   funext i
@@ -3892,6 +4339,7 @@ private lemma clause1Aux_wrap_cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 
   show clause1Aux_wrap_pad h b u ⟨(i : ℕ), hi1⟩ = b i
   rw [hd2, dif_pos hi]
 
+/-- Extracting the suffix of a concatenated finite bit string recovers its given suffix. -/
 private lemma clause1Aux_wrap_tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool)
     (u : Fin (T1 - T0) → Bool) : clause1Aux_wrap_tail h (clause1Aux_wrap_pad h b u) = u := by
   funext j
@@ -3906,6 +4354,8 @@ private lemma clause1Aux_wrap_tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0
   rw [hd2, dif_neg (by omega)]
   exact congrArg u (Fin.ext hval2)
 
+/-- The number of longer bit strings satisfying a condition on their prefix is the number of
+valid prefixes times `2 ^ (T1 - T0)`. -/
 private lemma clause1Aux_wrap_card_fiber {T0 T1 : ℕ} (h : T0 ≤ T1)
     (P : (Fin T0 → Bool) → Prop) [DecidablePred P]
     [DecidablePred (fun ω : Fin T1 → Bool => P (clause1Aux_wrap_cut h ω))] :
@@ -3936,10 +4386,14 @@ private lemma clause1Aux_wrap_card_fiber {T0 T1 : ℕ} (h : T0 ≤ T1)
     obtain ⟨b, u⟩ := p
     exact Prod.ext (clause1Aux_wrap_cut_pad h b u) (clause1Aux_wrap_tail_pad h b u)
 
+/-- A finite coin string and its prefix induce equal infinite coin-stream values at indices
+within the prefix. -/
 private lemma clause1Aux_wrap_coinString_cut {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool)
     (i : ℕ) (hi : i < T0) : ccCoinString ω i = ccCoinString (clause1Aux_wrap_cut h ω) i := by
   simp [ccCoinString, clause1Aux_wrap_cut, hi, lt_of_lt_of_le hi h]
 
+/-- A run for `T0` steps is unchanged when a length-`T1` finite coin string is replaced by its
+length-`T0` prefix. -/
 private lemma clause1Aux_wrap_run_cut {q : ℕ} (M : CcProgram q) (A : List Bool → Bool)
     (x : List Bool) {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) :
     ccRun M A (ccCoinString ω) x T0 = ccRun M A (ccCoinString (clause1Aux_wrap_cut h ω)) x T0 := by
@@ -3947,6 +4401,8 @@ private lemma clause1Aux_wrap_run_cut {q : ℕ} (M : CcProgram q) (A : List Bool
   intro i hi
   exact clause1Aux_wrap_coinString_cut h ω i hi
 
+/-- The polynomial budget with coefficient `10 * c + 13` bounds ten times the original budget
+plus thirteen. -/
 private lemma clause1Aux_wrap_budget_gap (c m : ℕ) :
     10 * (c * m + c) + 13 ≤ (10 * c + 13) * m + (10 * c + 13) := by
   have h1 : 10 * (c * m + c) + 13 + 13 * m = (10 * c + 13) * m + (10 * c + 13) := by ring
@@ -3954,6 +4410,7 @@ private lemma clause1Aux_wrap_budget_gap (c m : ℕ) :
   rw [← h1]
   exact h2
 
+/-- Replacing coefficient `c` by `10 * c + 13` increases the polynomial budget. -/
 private lemma clause1Aux_wrap_budget_mono (c m : ℕ) :
     c * m + c ≤ (10 * c + 13) * m + (10 * c + 13) := by
   have h1 : c * m + c + (9 * (c * m) + 13 * m + 9 * c + 13)
@@ -3963,6 +4420,9 @@ private lemma clause1Aux_wrap_budget_mono (c m : ℕ) :
   rw [← h1]
   exact h2
 
+/-- A polynomial-time bounded-error decision program has a polynomial-time output wrapper with
+an NP oracle language, a larger budget, and exact true- and false-output counts equal to the
+original branch counts times the coin-padding factor. -/
 theorem clause1Aux_hwrap (L : List Bool → Prop) :
     ∀ (q c k : ℕ) (M : CcProgram q), CcPolyTime M c k →
       (∀ x : List Bool,
@@ -4066,6 +4526,8 @@ theorem clause1Aux_hwrap (L : List Bool → Prop) :
       refine hfib.trans ?_
       rw [hcomp]
 
+/-- Every `InBPP` language has its singleton decision-bit function in `InFBPPNP` for the
+counting bit-machine definitions [KitaevShenVyalyi2002]. -/
 theorem clause1Aux_clause6 : ∀ L : List Bool → Prop, InBPP L →
     InFBPPNP (fun x => if L x then [true] else [false]) := by
   intro L hin

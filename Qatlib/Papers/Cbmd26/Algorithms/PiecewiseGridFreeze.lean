@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.Cbmd26.Algorithms.InputBridge
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Exponential
+
+/-!
+# Freezing Supplied Piecewise Hamiltonians
+
+This module represents piecewise constant Hamiltonian evolution using `suppliedGridEvolution`, a
+chronological product over supplied breakpoints. `suppliedGridTick` rounds breakpoints upward to
+a uniform time grid, and `suppliedFrozenTable` repeats each interval's Hamiltonian according to
+its rounded duration.
+
+The product perturbation and Hamiltonian time-Lipschitz estimates yield
+`suppliedGridEvolution_freezing_error`, whose error is at most `2 * Λ * N * h` for Hermitian
+interval matrices bounded by `Λ`. The piecewise field `suppliedGridField` is also related
+exactly to frozen-table entries and to its full uniform sample list. See [WangEtAl2026].
+
+## Main statements
+
+* `piecewiseLeftProduct_error` bounds product error by the sum of factor errors for
+  contractions.
+* `suppliedFrozenTable_evolution` identifies the frozen-table evolution with evolution over
+  rounded breakpoints.
+* `suppliedGridEvolution_freezing_error` bounds the effect of rounding the supplied grid.
+* `suppliedGridField_sample_list` identifies all uniform samples with the frozen table.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA
@@ -42,16 +70,21 @@ open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 section Matrices
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The chronological matrix product that starts with the identity and multiplies each
+successive factor on the left. -/
 def piecewiseLeftProduct (f : ℕ → Matrix I I ℂ) : ℕ → Matrix I I ℂ
   | 0 => 1
   | n + 1 => f n * piecewiseLeftProduct f n
 
+/-- Expresses the chronological product of the first `n` factors as the product of the reversed
+list obtained from `List.range n`. -/
 theorem piecewiseLeftProduct_eq_reverse_prod (f : ℕ → Matrix I I ℂ) (n : ℕ) :
     piecewiseLeftProduct f n = (((List.range n).map f).reverse).prod := by
   induction n with
   | zero => simp [piecewiseLeftProduct]
   | succ n ih => simp [List.range_succ, piecewiseLeftProduct, ih]
 
+/-- A chronological product of factors with norm at most one also has norm at most one. -/
 theorem piecewiseLeftProduct_norm_le_one (f : ℕ → Matrix I I ℂ) (n : ℕ)
     (hf : ∀ j < n, ‖f j‖ ≤ 1) : ‖piecewiseLeftProduct f n‖ ≤ 1 := by
   induction n with
@@ -60,6 +93,8 @@ theorem piecewiseLeftProduct_norm_le_one (f : ℕ → Matrix I I ℂ) (n : ℕ)
     exact (norm_mul_le _ _).trans ((mul_le_mul (hf n (by omega))
       (ih (fun j hj => hf j (by omega))) (norm_nonneg _) (by norm_num)).trans_eq (by ring))
 
+/-- For two families of contraction factors, bounds the difference of their chronological
+products by the sum of the corresponding factor errors. -/
 theorem piecewiseLeftProduct_error (f g : ℕ → Matrix I I ℂ) (n : ℕ)
     (hf : ∀ j < n, ‖f j‖ ≤ 1) (hg : ∀ j < n, ‖g j‖ ≤ 1) :
     ‖piecewiseLeftProduct f n - piecewiseLeftProduct g n‖ ≤
@@ -84,6 +119,8 @@ theorem piecewiseLeftProduct_error (f g : ℕ → Matrix I I ℂ) (n : ℕ)
           (mul_le_mul_of_nonneg_left hn (norm_nonneg _))
       _ = _ := by ring
 
+/-- The derivative of `HamiltonianEvolution B` at time `t` is `-(Complex.I • B *
+HamiltonianEvolution B t)`. -/
 private theorem piecewise_hamiltonian_deriv (B : Matrix I I ℂ) (t : ℝ) :
     HasDerivAt (HamiltonianEvolution B) (-(Complex.I • B * HamiltonianEvolution B t)) t := by
   have he : (fun u : ℝ => NormedSpace.exp (u • (-Complex.I • B))) = HamiltonianEvolution B := by
@@ -97,6 +134,8 @@ private theorem piecewise_hamiltonian_deriv (B : Matrix I I ℂ) (t : ℝ) :
   rw [congrFun he t, he] at hd
   simpa only [neg_smul, neg_mul] using hd
 
+/-- For Hermitian `B`, its Hamiltonian evolution is Lipschitz in time with constant `‖B‖` in
+operator norm. -/
 theorem piecewise_hamiltonian_time_lipschitz (B : Matrix I I ℂ) (hB : B.IsHermitian)
     (s t : ℝ) : ‖HamiltonianEvolution B t - HamiltonianEvolution B s‖ ≤ ‖B‖ * |t-s| := by
   have hb (u : ℝ) : ‖-(Complex.I • B * HamiltonianEvolution B u)‖ ≤ ‖B‖ := by
@@ -115,26 +154,38 @@ theorem piecewise_hamiltonian_time_lipschitz (B : Matrix I I ℂ) (hB : B.IsHerm
   · rw [norm_sub_rev, abs_of_nonpos (sub_nonpos.mpr h)]
     simpa only [neg_sub] using hst t s h
 
+/-- The chronological product of exact Hamiltonian evolutions for the first `N` supplied
+intervals, using matrix `B j` for duration `τ (j+1) - τ j`. -/
 def suppliedGridEvolution (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ) (N : ℕ) : Matrix I I ℂ :=
   piecewiseLeftProduct (fun j => HamiltonianEvolution (B j) (τ (j+1)-τ j)) N
 
+/-- The natural-number ceiling of the supplied breakpoint `τ j` divided by the uniform grid step
+`h`. -/
 def suppliedGridTick (τ : ℕ → ℝ) (h : ℝ) (j : ℕ) : ℕ := ⌈τ j / h⌉₊
 
+/-- The list that repeats each interval matrix `B j` according to the difference between its
+consecutive rounded grid ticks. -/
 def suppliedFrozenTable (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ) (h : ℝ) (N : ℕ) :
     List (Matrix I I ℂ) :=
   (List.range N).flatMap (fun j => List.replicate
     (suppliedGridTick τ h (j+1)-suppliedGridTick τ h j) (B j))
 
+/-- Rounding supplied breakpoints to grid ticks preserves monotonicity when the grid step is
+positive. -/
 private theorem suppliedGridTick_mono {τ : ℕ → ℝ} (hτ : Monotone τ) {h : ℝ} (hh : 0 < h) :
     Monotone (suppliedGridTick τ h) := by
   intro i j hij
   exact Nat.ceil_mono (div_le_div_of_nonneg_right (hτ hij) hh.le)
 
+/-- Extending the frozen table by one supplied interval appends the corresponding number of
+copies of its matrix `B N`. -/
 private theorem suppliedFrozenTable_succ (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ) (h : ℝ) (N : ℕ) :
     suppliedFrozenTable τ B h (N+1) = suppliedFrozenTable τ B h N ++
       List.replicate (suppliedGridTick τ h (N+1)-suppliedGridTick τ h N) (B N) := by
   simp [suppliedFrozenTable, List.range_succ]
 
+/-- For a monotone breakpoint grid starting at zero and a positive step, the frozen table length
+is the final rounded grid tick. -/
 theorem suppliedFrozenTable_length {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
     (B : ℕ → Matrix I I ℂ) {h : ℝ} (hh : 0 < h) (N : ℕ) :
     (suppliedFrozenTable τ B h N).length = suppliedGridTick τ h N := by
@@ -144,6 +195,8 @@ theorem suppliedFrozenTable_length {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 
     rw [suppliedFrozenTable_succ, List.length_append, List.length_replicate, ih]
     exact Nat.add_sub_of_le (suppliedGridTick_mono hτ hh (Nat.le_succ N))
 
+/-- Repeating the same Hamiltonian evolution `n` times equals evolution for the total time `n *
+h`. -/
 private theorem piecewise_evolution_pow (B : Matrix I I ℂ) (h : ℝ) (n : ℕ) :
     HamiltonianEvolution B h ^ n = HamiltonianEvolution B ((n : ℝ)*h) := by
   induction n with
@@ -154,6 +207,8 @@ private theorem piecewise_evolution_pow (B : Matrix I I ℂ) (h : ℝ) (n : ℕ)
     push_cast
     ring
 
+/-- The reversed product of step-`h` evolutions of the frozen table equals supplied-grid
+evolution with every breakpoint rounded up to its grid tick. -/
 theorem suppliedFrozenTable_evolution {τ : ℕ → ℝ} (hτ : Monotone τ)
     (B : ℕ → Matrix I I ℂ) {h : ℝ} (hh : 0 < h) (N : ℕ) :
     (((suppliedFrozenTable τ B h N).map (fun X => HamiltonianEvolution X h)).reverse).prod =
@@ -169,6 +224,8 @@ theorem suppliedFrozenTable_evolution {τ : ℕ → ℝ} (hτ : Monotone τ)
     rw [Nat.cast_sub (suppliedGridTick_mono hτ hh (Nat.le_succ N))]
     ring
 
+/-- For a monotone grid starting at zero and Hermitian interval matrices bounded by `Λ`,
+rounding to a positive uniform step `h` changes the evolution by at most `2 * Λ * N * h`. -/
 theorem suppliedGridEvolution_freezing_error {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
     (B : ℕ → Matrix I I ℂ) (N : ℕ) {h Λ : ℝ} (hh : 0 < h) (hΛ : 0 ≤ Λ)
     (hB : ∀ j < N, (B j).IsHermitian ∧ ‖B j‖ ≤ Λ) :
@@ -208,12 +265,15 @@ theorem suppliedGridEvolution_freezing_error {τ : ℕ → ℝ} (hτ : Monotone 
       exact ht.trans (mul_le_mul (hB j hjN).2 hd (abs_nonneg _) hΛ)
     _ = _ := by simp; ring
 
+/-- The piecewise constant matrix field equal to the first `B j` whose supplied half-open
+interval contains the time, and zero if no interval contains it. -/
 def suppliedGridField (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ) (N : ℕ) (u : ℝ) :
     Matrix I I ℂ := by
   classical
   exact if h : ∃ j : ℕ, j < N ∧ τ j ≤ u ∧ u < τ (j+1)
     then B (Nat.find h) else 0
 
+/-- A time belongs to at most one half-open interval of a monotone supplied breakpoint sequence. -/
 private theorem suppliedGrid_interval_unique {τ : ℕ → ℝ} (hτ : Monotone τ)
     {u : ℝ} {i j : ℕ} (hi : τ i ≤ u ∧ u < τ (i+1))
     (hj : τ j ≤ u ∧ u < τ (j+1)) : i = j := by
@@ -224,6 +284,8 @@ private theorem suppliedGrid_interval_unique {τ : ℕ → ℝ} (hτ : Monotone 
   · have := hτ (show j+1 ≤ i by omega)
     linarith [hj.2, hi.1]
 
+/-- On the half-open interval from `τ j` to `τ (j+1)`, the supplied field equals `B j` when `j <
+N` and the breakpoints are monotone. -/
 theorem suppliedGridField_on_interval {τ : ℕ → ℝ} (hτ : Monotone τ)
     (B : ℕ → Matrix I I ℂ) {N j : ℕ} {u : ℝ}
     (hj : j < N) (hu : τ j ≤ u ∧ u < τ (j+1)) :
@@ -234,6 +296,8 @@ theorem suppliedGridField_on_interval {τ : ℕ → ℝ} (hτ : Monotone τ)
   have he := suppliedGrid_interval_unique hτ hi.2 hu
   simp only [suppliedGridField, dif_pos hex, he]
 
+/-- If the first `N` interval matrices are Hermitian with norm at most a nonnegative `Λ`, then
+the supplied field has these properties at every time. -/
 theorem suppliedGridField_bound (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
     (N : ℕ) {Λ : ℝ} (hΛ : 0 ≤ Λ)
     (hB : ∀ j < N, (B j).IsHermitian ∧ ‖B j‖ ≤ Λ) (u : ℝ) :
@@ -244,6 +308,8 @@ theorem suppliedGridField_bound (τ : ℕ → ℝ) (B : ℕ → Matrix I I ℂ)
   · exact hB (Nat.find h) (Nat.find_spec h).1
   · simpa using And.intro (Matrix.isHermitian_zero : (0 : Matrix I I ℂ).IsHermitian) hΛ
 
+/-- Every natural tick before the final supplied tick lies between two consecutive supplied
+ticks, provided the breakpoint sequence starts at zero. -/
 private theorem suppliedGridTick_block {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
     (h : ℝ) (N j : ℕ) (hj : j < suppliedGridTick τ h N) :
     ∃ i < N, suppliedGridTick τ h i ≤ j ∧ j < suppliedGridTick τ h (i+1) := by
@@ -255,6 +321,8 @@ private theorem suppliedGridTick_block {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
       exact ⟨i,by omega,hil,hir⟩
     · exact ⟨N,by omega,by omega,hj⟩
 
+/-- A frozen-table entry whose index lies between the rounded endpoints of interval `i` is
+exactly `B i`, under the monotone-grid and positive-step assumptions. -/
 private theorem suppliedFrozenTable_lookup {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
     (B : ℕ → Matrix I I ℂ) {h : ℝ} (hh : 0 < h) (N i j : ℕ)
     (hi : i < N) (hjl : suppliedGridTick τ h i ≤ j)
@@ -277,6 +345,8 @@ private theorem suppliedFrozenTable_lookup {τ : ℕ → ℝ} (hτ : Monotone τ
       apply List.getElem?_replicate_of_lt
       omega
 
+/-- At a uniform-grid time before the final rounded tick, the supplied field equals the
+corresponding entry of the frozen table. -/
 theorem suppliedGridField_sample {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
     (B : ℕ → Matrix I I ℂ) {h : ℝ} (hh : 0 < h) (N j : ℕ)
     (hj : j < suppliedGridTick τ h N) :
@@ -288,6 +358,8 @@ theorem suppliedGridField_sample {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : 
     List.getD_eq_getElem?_getD, suppliedFrozenTable_lookup hτ hτ0 B hh N i j hi hil hir]
   rfl
 
+/-- If `τ N = T > 0`, a uniform step `T/M` with positive `M` places the final supplied
+breakpoint at exactly tick `M`. -/
 theorem suppliedGridTick_horizon {τ : ℕ → ℝ} {N M : ℕ} {T : ℝ}
     (hτN : τ N = T) (hT : 0 < T) (hM : 0 < M) :
     suppliedGridTick τ (T/M) N = M := by
@@ -295,6 +367,8 @@ theorem suppliedGridTick_horizon {τ : ℕ → ℝ} {N M : ℕ} {T : ℝ}
   have he : τ N / (T/M) = (M:ℝ) := by rw [hτN]; field_simp
   simp [suppliedGridTick, he]
 
+/-- For a monotone supplied grid starting at zero and ending at `T > 0`, the list of its `M`
+uniform left-endpoint samples is exactly the frozen table for step `T/M`. -/
 theorem suppliedGridField_sample_list {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
     (B : ℕ → Matrix I I ℂ) (N M : ℕ) {T : ℝ}
     (hτN : τ N = T) (hT : 0 < T) (hM : 0 < M) :

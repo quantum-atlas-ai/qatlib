@@ -66,33 +66,55 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Resource formulas for elliptic-curve discrete logarithms
+
+The qubit formulas with and without register sharing have linear upper bounds
+under the stated overhead assumptions. Their concrete estimates bound the
+160-bit elliptic-curve formula by one thousand qubits and put it below the
+1024-bit RSA formula. Addition counts yield cubic modeled running-time bounds,
+and the Euclidean-cycle formula has a quadratic bound.
+
+These are resource formulas from [ProosZalka2003]. They describe the paper's
+circuit model rather than present-day fault-tolerant hardware costs.
+-/
+
 set_option autoImplicit false
 set_option linter.unusedVariables false
 noncomputable section
 
 namespace Qatlib.Papers.ShorElliptic03.MainResults.ResourceBounds
 
+/-- The real logarithm to base two used in the qubit estimates. -/
 def paperLog2 (x : ℝ) : ℝ := Real.logb 2 x
 
+/-- The qubit estimate `7 * n + 4 * log₂ n + ε` without register sharing. -/
 def dlogQubitsNoSharing (n : ℕ) (ε : ℝ) : ℝ :=
   7 * (n : ℝ) + 4 * paperLog2 (n : ℝ) + ε
 
+/-- The qubit estimate `5 * n + 8 * sqrt n + 4 * log₂ n + ε` with register sharing. -/
 def dlogQubitsWithSharing (n : ℕ) (ε : ℝ) : ℝ :=
   5 * (n : ℝ) + 8 * Real.sqrt (n : ℝ) + 4 * paperLog2 (n : ℝ) + ε
 
+/-- The RSA qubit estimate `2 * n` for an `n`-bit input. -/
 def rsaQubits (n : ℕ) : ℝ := 2 * (n : ℝ)
 
+/-- The square root of `160` is at most `13`. -/
 theorem sqrt160_le_thirteen : Real.sqrt (160 : ℝ) ≤ 13 := by
   have h := Real.sqrt_le_sqrt (show (160 : ℝ) ≤ 169 by norm_num)
   have h169 : Real.sqrt (169 : ℝ) = 13 := by
     rw [show (169 : ℝ) = 13 ^ 2 by norm_num, Real.sqrt_sq (by norm_num)]
   linarith
 
+/-- The base-two logarithm of `160` is at most `8`. -/
 theorem logb160_le_eight : paperLog2 (160 : ℝ) ≤ 8 := by
   unfold paperLog2
   rw [Real.logb_le_iff_le_rpow (by norm_num) (by norm_num)]
   norm_num
 
+/-- The shared-register 160-bit formula is at most one thousand qubits when
+the modeled overhead lies in `[0, 10]`; compare
+[Proos & Zalka, resource estimates][ProosZalka2003]. -/
 theorem ecc160_qubits_le_1000 (ε : ℝ) (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
     dlogQubitsWithSharing 160 ε ≤ 1000 := by
   unfold dlogQubitsWithSharing
@@ -101,16 +123,21 @@ theorem ecc160_qubits_le_1000 (ε : ℝ) (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
   norm_num at h1 h2 ⊢
   linarith
 
+/-- The modeled RSA qubit count for a 1024-bit input is `2048`. See [ProosZalka2003]. -/
 theorem rsa1024_qubits : rsaQubits 1024 = 2048 := by
   unfold rsaQubits
   norm_num
 
+/-- For overhead `0 ≤ ε ≤ 10`, the shared-register 160-bit discrete-logarithm estimate is
+smaller than the 1024-bit RSA estimate. See [ProosZalka2003]. -/
 theorem ecc160_beats_rsa1024 (ε : ℝ) (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
     dlogQubitsWithSharing 160 ε < rsaQubits 1024 := by
   have h := ecc160_qubits_le_1000 ε hε0 hε
   rw [rsa1024_qubits]
   linarith
 
+/-- For `n ≥ 1` and `0 ≤ ε ≤ 10`, the qubit estimate without sharing is at most `21 * n`. See
+[ProosZalka2003]. -/
 theorem dlogQubitsNoSharing_le_linear (n : ℕ) (hn : 1 ≤ n) (ε : ℝ)
     (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
     dlogQubitsNoSharing n ε ≤ 21 * (n : ℝ) := by
@@ -126,6 +153,8 @@ theorem dlogQubitsNoSharing_le_linear (n : ℕ) (hn : 1 ≤ n) (ε : ℝ)
   have hn' : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
   nlinarith
 
+/-- For `n ≥ 1` and `0 ≤ ε ≤ 10`, the qubit estimate with sharing is at most `27 * n`. See
+[ProosZalka2003]. -/
 theorem dlogQubitsWithSharing_le_linear (n : ℕ) (hn : 1 ≤ n) (ε : ℝ)
     (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
     dlogQubitsWithSharing n ε ≤ 27 * (n : ℝ) := by
@@ -147,6 +176,8 @@ theorem dlogQubitsWithSharing_le_linear (n : ℕ) (hn : 1 ≤ n) (ε : ℝ)
   have hn' : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
   nlinarith
 
+/-- For overhead `0 ≤ ε ≤ 10`, one positive constant bounds both qubit estimates by that
+constant times `n` for all `n ≥ 1`. See [ProosZalka2003]. -/
 theorem dlogQubits_isO_linear (ε : ℝ) (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
     ∃ C : ℝ, 0 < C ∧ ∀ n : ℕ, 1 ≤ n →
       dlogQubitsNoSharing n ε ≤ C * (n : ℝ) ∧
@@ -158,22 +189,30 @@ theorem dlogQubits_isO_linear (ε : ℝ) (hε0 : 0 ≤ ε) (hε : ε ≤ 10) :
   have hn0 : (0 : ℝ) ≤ (n : ℝ) := by positivity
   nlinarith
 
+/-- The real-valued addition-count estimate without register sharing, including the factor `1.7`
+for the modeled overhead. -/
 def totalAdditionsNoSharing (n : ℕ) : ℝ :=
   2 * (n : ℝ) *
     (5 + 3 * (n : ℝ) +
       2 * (6 * (n : ℝ) + 2 * (4.5 * (5 * (n : ℝ))))) * 1.7
 
+/-- The real-valued addition-count estimate with register sharing and Euclidean register width
+`n / 2 + 2 * sqrt n`. -/
 def totalAdditionsWithSharing (n : ℕ) : ℝ :=
   2 * (n : ℝ) *
     (5 + 3 * (n : ℝ) +
       2 * (6 * (n : ℝ) +
         2 * (4.5 * 5 * ((n : ℝ) / 2 + 2 * Real.sqrt (n : ℝ))))) * 1.7
 
+/-- The addition-count estimate without sharing equals `357 * n ^ 2 + 17 * n`. See
+[ProosZalka2003]. -/
 theorem totalAdditionsNoSharing_eq (n : ℕ) :
     totalAdditionsNoSharing n = 357 * (n : ℝ) ^ 2 + 17 * (n : ℝ) := by
   unfold totalAdditionsNoSharing
   ring
 
+/-- For `n ≥ 6`, the addition-count estimate without sharing is at most `360 * n ^ 2`. See
+[ProosZalka2003]. -/
 theorem totalAdditionsNoSharing_le (n : ℕ) (hn : 6 ≤ n) :
     totalAdditionsNoSharing n ≤ 360 * (n : ℝ) ^ 2 := by
   rw [totalAdditionsNoSharing_eq]
@@ -181,12 +220,16 @@ theorem totalAdditionsNoSharing_le (n : ℕ) (hn : 6 ≤ n) :
   nlinarith [mul_nonneg (by positivity : (0 : ℝ) ≤ (n : ℝ))
     (by linarith : (0 : ℝ) ≤ 3 * (n : ℝ) - 17)]
 
+/-- The addition-count estimate with sharing equals `204 * n ^ 2 + 612 * n * sqrt n + 17 * n`.
+See [ProosZalka2003]. -/
 theorem totalAdditionsWithSharing_eq (n : ℕ) :
     totalAdditionsWithSharing n =
       204 * (n : ℝ) ^ 2 + 612 * (n : ℝ) * Real.sqrt (n : ℝ) + 17 * (n : ℝ) := by
   unfold totalAdditionsWithSharing
   ring
 
+/-- For `n ≥ 9`, the addition-count estimate with sharing is at most `205 * n ^ 2 + 615 * n *
+sqrt n`. See [ProosZalka2003]. -/
 theorem totalAdditionsWithSharing_le (n : ℕ) (hn : 9 ≤ n) :
     totalAdditionsWithSharing n ≤
       205 * (n : ℝ) ^ 2 + 615 * (n : ℝ) * Real.sqrt (n : ℝ) := by
@@ -200,6 +243,8 @@ theorem totalAdditionsWithSharing_le (n : ℕ) (hn : 9 ≤ n) :
   nlinarith [mul_nonneg (by positivity : (0 : ℝ) ≤ (n : ℝ))
     (by linarith : (0 : ℝ) ≤ (n : ℝ) + 3 * Real.sqrt (n : ℝ) - 17)]
 
+/-- For positive per-bit cost `k` and `n ≥ 6`, multiplying the addition count without sharing by
+`k * n` gives a cost at most `360 * k * n ^ 3`. See [ProosZalka2003]. -/
 theorem dlog_running_time_cubic_noSharing (k : ℝ) (hk : 0 < k) (n : ℕ)
     (hn : 6 ≤ n) :
     k * (n : ℝ) * totalAdditionsNoSharing n ≤
@@ -210,6 +255,8 @@ theorem dlog_running_time_cubic_noSharing (k : ℝ) (hk : 0 < k) (n : ℕ)
   nlinarith [mul_nonneg (mul_nonneg hk0 (sq_nonneg (n : ℝ)))
     (by linarith : (0 : ℝ) ≤ 3 * (n : ℝ) - 17)]
 
+/-- For positive per-bit cost `k` and `n ≥ 9`, the shared-register cost is at most `205 * k * n
+^ 3 + 615 * k * n ^ 2 * sqrt n`. See [ProosZalka2003]. -/
 theorem dlog_running_time_cubic_withSharing (k : ℝ) (hk : 0 < k) (n : ℕ)
     (hn : 9 ≤ n) :
     k * (n : ℝ) * totalAdditionsWithSharing n ≤
@@ -225,8 +272,12 @@ theorem dlog_running_time_cubic_withSharing (k : ℝ) (hk : 0 < k) (n : ℕ)
   nlinarith [mul_nonneg (mul_nonneg hk0 (sq_nonneg (n : ℝ)))
     (by linarith : (0 : ℝ) ≤ (n : ℝ) + 3 * Real.sqrt (n : ℝ) - 17)]
 
+/-- The Euclidean cycle-cost estimate `4.5 * n * (5 * w)` for input length `n` and register
+width `w`. -/
 def euclidCycleCost (n w : ℕ) : ℝ := 4.5 * (n : ℝ) * (5 * (w : ℝ))
 
+/-- When `w ≤ n`, the modeled Euclidean cycle cost is at most `22.5 * n ^ 2`. See
+[ProosZalka2003]. -/
 theorem euclidCycleCost_le_sq (n w : ℕ) (hw : w ≤ n) :
     euclidCycleCost n w ≤ 22.5 * (n : ℝ) ^ 2 := by
   unfold euclidCycleCost
@@ -234,6 +285,8 @@ theorem euclidCycleCost_le_sq (n w : ℕ) (hw : w ≤ n) :
   have hn0 : (0 : ℝ) ≤ (n : ℝ) := by positivity
   nlinarith
 
+/-- A positive constant uniformly bounds the modeled Euclidean cycle cost by that constant times
+`n ^ 2` whenever `w ≤ n`. See [ProosZalka2003]. -/
 theorem euclid_runtime_isO_quadratic :
     ∃ C : ℝ, 0 < C ∧ ∀ n w : ℕ, w ≤ n →
       euclidCycleCost n w ≤ C * (n : ℝ) ^ 2 :=

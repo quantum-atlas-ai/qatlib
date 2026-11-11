@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.Analysis.Calculus.Deriv.Pow
 import Mathlib.Tactic
+
+/-!
+# A polynomial-rate growth estimate
+
+The theorem `polynomial_growth` integrates a norm differential inequality with polynomial rate
+on a real interval. It supplies an exponential estimate with exponent `C * t^(p + 1) / (p + 1)`,
+used to control weighted evolution in the low-energy product-formula analysis. See
+[HejaziZiniArrazola2024].
+
+## Main statements
+
+* `polynomial_growth`: If `f` is continuous on `[0, b]`, has the stated right derivatives with
+  `‖f' t‖ ≤ C * t^p * ‖f t‖`, and satisfies `‖f 0‖ ≤ δ` with `δ ≥ 0`, then `‖f t‖ ≤ δ * exp(C *
+  t^(p + 1) / (p + 1))` throughout the interval.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -17,6 +37,9 @@ open Set Filter
 open scoped Topology
 namespace Qatlib.Papers.LowEnergyProd24.ImaginaryLeak
 
+/-- If `f` is continuous on `[0, b]`, has the stated right derivatives with `‖f' t‖ ≤ C * t^p *
+‖f t‖`, and satisfies `‖f 0‖ ≤ δ` with `δ ≥ 0`, then `‖f t‖ ≤ δ * exp(C * t^(p + 1) / (p +
+1))` throughout the interval. -/
 theorem polynomial_growth {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f f' : ℝ→E) (C δ b : ℝ) (p : ℕ) (hδ : 0 ≤ δ)
     (hf : ContinuousOn f (Icc 0 b))

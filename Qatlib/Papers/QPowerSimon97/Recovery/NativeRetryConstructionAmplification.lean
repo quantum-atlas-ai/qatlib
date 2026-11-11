@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
 import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+
+/-!
+# Amplification bounds for Simon experiments
+
+Analyzes independent decoded Simon runs and the decision rule that rejects if any output differs
+from the decoded zero register. Injective functions have a union-bound error estimate, while a
+nonzero near-period gives geometric decay of the opposite error, supporting the bounded-error
+extension in [Simon1997].
+
+## Main statements
+
+* `amplified_true_le`: For an injective function, the amplified rejection law assigns mass at
+  most `r * (1 / 2)^k` to `true`.
+* `amplified_false_le`: Under the stated nonzero near-period and sample-count assumptions, the
+  amplified rejection law assigns mass at most `(3 / 4)^r` to `false`.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,6 +59,8 @@ open scoped Classical BigOperators ENNReal
 namespace Qatlib.Papers.QPowerSimon97.Recovery
 noncomputable section
 
+/-- The first two recorded cost fields of a decoded run with `n + k` samples are `n + k` and `2
+* (n + k)`. -/
 theorem simonDecodedRun_ledger {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) :
     (simonDecodedRun f (n + k)).2.1 = n + k ∧
@@ -48,6 +71,8 @@ theorem simonDecodedRun_ledger {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype 
 end
 noncomputable section
 
+/-- The mass at `true` in a Boolean probability mass function equals the event mass of equality
+to `true`. -/
 lemma pmf_bool_true (p : PMF Bool) : p true = event p (fun b => b = true) := by
   classical
   unfold event expectation
@@ -56,6 +81,8 @@ lemma pmf_bool_true (p : PMF Bool) : p true = event p (fun b => b = true) := by
 end
 noncomputable section
 
+/-- The mass at `false` in a Boolean probability mass function equals the event mass of equality
+to `false`. -/
 lemma pmf_bool_false (p : PMF Bool) : p false = event p (fun b => b = false) := by
   classical
   unfold event expectation
@@ -64,6 +91,7 @@ lemma pmf_bool_false (p : PMF Bool) : p false = event p (fun b => b = false) := 
 end
 noncomputable section
 
+/-- An event and its complement have masses summing to one. -/
 lemma event_partition {α : Type*} (p : PMF α) (E : α → Prop) :
     event p E + event p (fun a => ¬ E a) = 1 := by
   classical
@@ -85,6 +113,8 @@ lemma event_partition {α : Type*} (p : PMF α) (E : α → Prop) :
 end
 noncomputable section
 
+/-- Some entry of a vector formed by `Fin.cons` differs from the decoded zero result exactly
+when its head does or some tail entry does. -/
 lemma cons_reject {n r : ℕ} (a : Option (Reg n)) (v : Fin r → Option (Reg n)) :
     (∃ i : Fin (r + 1), (Fin.cons a v : Fin (r + 1) → Option (Reg n)) i ≠ some (ZeroStr n)) ↔
       a ≠ some (ZeroStr n) ∨ ∃ j : Fin r, v j ≠ some (ZeroStr n) := by
@@ -99,6 +129,8 @@ lemma cons_reject {n r : ℕ} (a : Option (Reg n)) (v : Fin r → Option (Reg n)
 end
 noncomputable section
 
+/-- For `k ≥ 2`, the expression `((k - 1) / k)^k` is at most `(k / (k + 1))^(k + 1)` over the
+reals. -/
 lemma quarter_step (k : ℕ) (hk : 2 ≤ k) :
     (((k - 1 : ℝ) / k) ^ k) ≤ ((k : ℝ) / (k + 1)) ^ (k + 1) := by
   have hk0 : (0 : ℝ) < k := by exact_mod_cast (lt_of_lt_of_le (by decide : (0 : ℕ) < 2) hk)
@@ -140,6 +172,7 @@ lemma quarter_step (k : ℕ) (hk : 2 ≤ k) :
 end
 noncomputable section
 
+/-- For an integer `m ≥ 2`, the real expression `(1 - 1 / m)^m` is at least `1 / 4`. -/
 lemma one_sub_inv_pow_ge_quarter (m : ℕ) (hm : 2 ≤ m) :
     (1 / 4 : ℝ) ≤ (1 - 1 / (m : ℝ)) ^ m := by
   induction m, hm using Nat.le_induction with
@@ -174,6 +207,8 @@ lemma one_sub_inv_pow_ge_quarter (m : ℕ) (hm : 2 ≤ m) :
 end
 noncomputable section
 
+/-- For an injective function, a decoded Simon run with `n + k` samples differs from the decoded
+zero result with mass at most `(1 / 2)^k`. -/
 lemma single_reject_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     {f : BooleanVec n → R} (hf : Function.Injective f) :
     event (simonDecodedRun f (n + k)).1 (fun out => out ≠ some (ZeroStr n)) ≤
@@ -182,6 +217,8 @@ lemma single_reject_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Deci
 end
 noncomputable section
 
+/-- For an injective function, the mass that any of `r` fresh decoded runs differs from the zero
+result is at most `r * (1 / 2)^k`. -/
 lemma fresh_reject_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     {f : BooleanVec n → R} (hf : Function.Injective f) (r : ℕ) :
     event (simonFreshRuns f (n + k) r) (fun v => ∃ i, v i ≠ some (ZeroStr n)) ≤
@@ -281,6 +318,8 @@ lemma fresh_reject_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
 end
 noncomputable section
 
+/-- For an injective function, the amplified rejection law assigns mass at most `r * (1 / 2)^k`
+to `true`. -/
 lemma amplified_true_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     {f : BooleanVec n → R} (hf : Function.Injective f) (r : ℕ) :
     (simonAmplifiedReject f (n + k) r) true ≤
@@ -292,6 +331,8 @@ lemma amplified_true_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Dec
 end
 noncomputable section
 
+/-- If a nonzero shift violates periodicity on at most the stated fraction of inputs and `n + k
+≥ 2`, the decoded zero result has mass at most `3 / 4` in one run. -/
 lemma single_accept_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     {f : BooleanVec n → R} (hm : 2 ≤ n + k) {s : BooleanVec n} (hs : s ≠ 0)
     (hcard : Nat.card {x : BooleanVec n | f x ≠ f (x + s)} * (n + k) ≤ 2 ^ n) :
@@ -333,6 +374,8 @@ lemma single_accept_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Deci
 end
 noncomputable section
 
+/-- If each single-run decoded zero event has mass at most `3 / 4`, the mass that all `r` fresh
+runs return the zero result is at most `(3 / 4)^r`. -/
 lemma fresh_accept_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     (f : BooleanVec n → R)
     (hacc : event (simonDecodedRun f (n + k)).1 (fun out => out = some (ZeroStr n)) ≤
@@ -408,6 +451,8 @@ lemma fresh_accept_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [Decid
 end
 noncomputable section
 
+/-- Under the stated nonzero near-period and sample-count assumptions, the amplified rejection
+law assigns mass at most `(3 / 4)^r` to `false`. -/
 lemma amplified_false_le {n k : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
     {f : BooleanVec n → R} (hm : 2 ≤ n + k) {s : BooleanVec n} (hs : s ≠ 0)
     (hcard : Nat.card {x : BooleanVec n | f x ≠ f (x + s)} * (n + k) ≤ 2 ^ n)

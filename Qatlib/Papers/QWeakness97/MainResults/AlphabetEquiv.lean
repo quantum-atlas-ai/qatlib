@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
 import Mathlib.Logic.Equiv.Basic
+
+/-!
+# Alphabet equivalences for finite-window quantum machines
+
+This module transports a finite-window quantum Turing machine along an alphabet equivalence.
+`reindexRule` relabels the symbols read and written by the transition rule, while `reindexCfg`
+and `reindexState` transport configurations and their amplitudes without changing the internal
+state or head position.
+
+The transition, evolution, and finite-run identities provide an alphabet-equivalence form of the
+track-permutation principle in Lemma 4.7 of [BennettEtAl1997]. The transport also preserves the
+local wellformedness conditions.
+
+## Main statements
+
+* `reindex_stepAmplitude` preserves every transition amplitude between transported
+  configurations.
+* `reindexRule_localWellformed` preserves local wellformedness.
+* `reindex_evolve_fun` and `reindex_runSteps` show that state transport commutes with one step
+  and any finite number of steps.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -24,14 +50,21 @@ variable {Q A C : Type*} [Fintype Q] [DecidableEq Q]
   [Fintype A] [DecidableEq A] [Fintype C] [DecidableEq C]
 variable {w : ℕ}
 
+/-- Transport a quantum machine rule along an alphabet equivalence, relabelling its blank symbol
+and both the read and written symbols of every transition. The internal states and head
+moves are unchanged. -/
 def reindexRule (R : QtmRule Q A) (e : A ≃ C) : QtmRule Q C where
   blank := e R.blank
   start := R.start
   step q c d q' c' := R.step q (e.symm c) d q' (e.symm c')
 
+/-- Relabel every tape symbol of a finite-window configuration by an alphabet equivalence while
+preserving the internal state and head position. -/
 def reindexCfg (e : A ≃ C) (c : QtmCfg Q A w) : QtmCfg Q C w :=
   (c.1, c.2.1, fun i => e (c.2.2 i))
 
+/-- Relabelling configurations by an alphabet equivalence is injective, so distinct original
+configurations remain distinct after transport. -/
 theorem reindexCfg_injective (e : A ≃ C) :
     Function.Injective (reindexCfg (Q := Q) (A := A) (C := C) (w := w) e) := by
   intro c d h
@@ -42,6 +75,8 @@ theorem reindexCfg_injective (e : A ≃ C) :
   funext i
   exact e.injective (congrFun htp i)
 
+/-- Relabelling a tape commutes with updating one cell when the replacement symbol is relabelled
+by the same equivalence. -/
 theorem update_reindex (e : A ≃ C) (f : Fin w → A) (i : Fin w) (a : A) :
     Function.update (fun j => e (f j)) i (e a)
       = fun j => e (Function.update f i a j) := by
@@ -51,6 +86,8 @@ theorem update_reindex (e : A ≃ C) (f : Fin w → A) (i : Fin w) (a : A) :
     simp [Function.update]
   · simp [Function.update, h]
 
+/-- Computing a transition target after relabelling gives the relabelled original target. The
+optional target also preserves failure when the head move leaves the finite window. -/
 theorem stepTarget_reindex (e : A ≃ C) (c : QtmCfg Q A w) (d : QtmMove)
     (q' : Q) (a : A) :
     QtmRule.stepTarget (reindexCfg e c) d q' (e a)
@@ -61,6 +98,8 @@ theorem stepTarget_reindex (e : A ≃ C) (c : QtmCfg Q A w) (d : QtmMove)
   · simp
     rw [update_reindex]
 
+/-- A move and symbol write reach a specified relabelled configuration exactly when the original
+move and write reach the corresponding original configuration. -/
 theorem stepTarget_reindex_eq_some (e : A ≃ C) (c c' : QtmCfg Q A w)
     (d : QtmMove) (q' : Q) (a : A) :
     QtmRule.stepTarget (reindexCfg e c) d q' (e a) = some (reindexCfg e c') ↔
@@ -76,6 +115,9 @@ theorem stepTarget_reindex_eq_some (e : A ≃ C) (c c' : QtmCfg Q A w)
   · intro h
     simp [h]
 
+/-- Alphabet transport preserves the one-step amplitude between any two transported
+configurations. This is the transition-amplitude form of the relabelling principle
+underlying Lemma 4.7 of [BennettEtAl1997]. -/
 theorem reindex_stepAmplitude (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     (c c' : QtmCfg Q A w) :
     (reindexRule R e).stepAmplitude w (reindexCfg e c) (reindexCfg e c')
@@ -103,6 +145,9 @@ theorem reindex_stepAmplitude (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     · rw [if_pos h]
     · rw [if_neg h]
 
+/-- Transport by an alphabet equivalence preserves all local wellformedness conditions of the
+machine rule. This supplies the wellformedness part of the finite-window relabelling
+construction associated with Lemma 4.7 of [BennettEtAl1997]. -/
 theorem reindexRule_localWellformed (R : QtmRule Q A) (h : R.LocalWellformed)
     (e : A ≃ C) : (reindexRule R e).LocalWellformed := by
   obtain ⟨hn, hsc, hrs, hsl, hrl⟩ := h
@@ -133,9 +178,13 @@ theorem reindexRule_localWellformed (R : QtmRule Q A) (h : R.LocalWellformed)
     simpa only [reindexRule] using
       hrl q₁ (e.symm c₁) q₂ (e.symm c₂) (e.symm c) (e.symm d)
 
+/-- Transport a state by summing the original amplitudes over configurations that relabel to
+each target configuration. Injectivity makes each transported amplitude equal to its unique
+original amplitude on the image. -/
 def reindexState (e : A ≃ C) (ψ : QState (QtmCfg Q A w)) : QState (QtmCfg Q C w) :=
   fun d => ∑ c, if reindexCfg e c = d then ψ c else 0
 
+/-- The transported state has the original amplitude at every relabelled configuration. -/
 theorem reindexState_apply (e : A ≃ C) (ψ : QState (QtmCfg Q A w))
     (c : QtmCfg Q A w) : reindexState e ψ (reindexCfg e c) = ψ c := by
   unfold reindexState
@@ -148,12 +197,16 @@ theorem reindexState_apply (e : A ≃ C) (ψ : QState (QtmCfg Q A w))
   · intro h
     exact absurd (Finset.mem_univ c) h
 
+/-- The transported state has zero amplitude at any configuration outside the image of
+configuration relabelling. -/
 theorem reindexState_eq_zero (e : A ≃ C) (ψ : QState (QtmCfg Q A w))
     (d : QtmCfg Q C w) (hd : ∀ c, reindexCfg e c ≠ d) :
     reindexState e ψ d = 0 := by
   unfold reindexState
   exact Finset.sum_eq_zero fun c _ => by simp [hd c]
 
+/-- A transition from a relabelled configuration has zero amplitude to any configuration outside
+the relabelling image. -/
 theorem reindex_stepAmplitude_eq_zero (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     (c : QtmCfg Q A w) (d : QtmCfg Q C w)
     (hd : ∀ c', reindexCfg e c' ≠ d) :
@@ -178,6 +231,8 @@ theorem reindex_stepAmplitude_eq_zero (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     exact absurd hz (hd z)
   · simp [h]
 
+/-- One step of the transported rule preserves support in the image of configuration
+relabelling. Thus a state vanishing outside that image still vanishes there after evolution. -/
 theorem reindex_evolve_support (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     (ψ : QState (QtmCfg Q C w))
     (hψ : ∀ d, (∀ c, reindexCfg e c ≠ d) → ψ d = 0)
@@ -192,6 +247,9 @@ theorem reindex_evolve_support (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
   · rw [hψ c (fun c' h => hc ⟨c', h⟩)]
     simp
 
+/-- Evolving the transported state and evaluating it at a relabelled configuration gives the
+amplitude obtained by evolving the original state at the corresponding original
+configuration. -/
 theorem reindex_evolve (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     (ψ : QState (QtmCfg Q A w)) (c' : QtmCfg Q A w) :
     (reindexRule R e).evolve w (reindexState e ψ) (reindexCfg e c')
@@ -219,6 +277,8 @@ theorem reindex_evolve (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
   intro c _
   rw [reindexState_apply, reindex_stepAmplitude]
 
+/-- Alphabet transport commutes with one complete evolution step as an equality of states. This
+gives the one-step behavioral identity associated with Lemma 4.7 of [BennettEtAl1997]. -/
 theorem reindex_evolve_fun (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     (ψ : QState (QtmCfg Q A w)) :
     (reindexRule R e).evolve w (reindexState e ψ)
@@ -231,6 +291,9 @@ theorem reindex_evolve_fun (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     exact reindex_evolve_support R e w (reindexState e ψ)
       (fun d h => reindexState_eq_zero e ψ d h) d (fun c h => hd ⟨c, h⟩)
 
+/-- Running the relabelled rule for any finite number of steps on the transported initial state
+gives the transport of the original run. This is the finite-run behavioral form of Lemma 4.7
+of [BennettEtAl1997]. -/
 theorem reindex_runSteps (R : QtmRule Q A) (e : A ≃ C) (w : ℕ) (t : ℕ)
     (ψ : QState (QtmCfg Q A w)) :
     (reindexRule R e).runSteps w t (reindexState e ψ)
@@ -245,6 +308,9 @@ theorem reindex_runSteps (R : QtmRule Q A) (e : A ≃ C) (w : ℕ) (t : ℕ)
       = reindexState e (R.evolve w (R.runSteps w t ψ))
     rw [ih, reindex_evolve_fun]
 
+/-- After any finite run, the amplitude at a relabelled configuration equals the original run's
+amplitude at the corresponding configuration. This is the pointwise run identity for the
+relabelling construction of Lemma 4.7 of [BennettEtAl1997]. -/
 theorem reindex_runSteps_apply (R : QtmRule Q A) (e : A ≃ C) (w : ℕ) (t : ℕ)
     (ψ : QState (QtmCfg Q A w)) (c' : QtmCfg Q A w) :
     (reindexRule R e).runSteps w t (reindexState e ψ) (reindexCfg e c')

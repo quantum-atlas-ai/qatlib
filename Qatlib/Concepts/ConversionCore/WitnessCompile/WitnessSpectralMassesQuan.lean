@@ -9,6 +9,29 @@ import Qatlib.Concepts.ConversionCore.WitnessCompile.EffectiveSpectralGapQuan
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetWitnessGeometryQuan
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.Tactic.NoncommRing
+
+/-!
+# Spectral mass bounds for conversion witnesses
+
+The module establishes orthogonality and norm identities for `sourcePhaseProjector`, then bounds
+the spectral masses of products of two reflections. The zero-phase estimate uses a nearby common
+fixed vector, and the low-phase estimate uses a vector in one projector kernel.
+
+`witnessSpectralMasses` applies these estimates to filtered witness geometry, following the
+spectral approach of [Reichardt2011] and [LeeEtAl2011].
+
+## Main statements
+
+* `source_walk_zero_mass`: bounds zero-phase mass from below by 1 - ε².
+* `source_walk_low_mass`: bounds low-phase mass by Θ²C/4.
+* `witnessSpectralMasses`: proves the witness spectral-mass specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding
@@ -32,6 +55,7 @@ open Qatlib.Concepts.BlockEncoding.Encoding
 open Qatlib.Concepts.BlockEncoding.Postselection.Encoding
 open scoped Classical BigOperators ComplexOrder
 
+/-- A phase-window matrix defined using a unitary basis is an orthogonal projector. -/
 theorem sourcePhaseProjector_isOrthogonalProjector {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ) (angles : H → ℝ) (Θ : ℝ) :
     IsOrthogonalProjector (sourcePhaseProjector V angles Θ) := by
@@ -57,6 +81,8 @@ theorem sourcePhaseProjector_isOrthogonalProjector {H : Type} [Fintype H] [Decid
   · change (V*D*Vᴴ)ᴴ=V*D*Vᴴ
     simp only [Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose,hDH,Matrix.mul_assoc]
 
+/-- The norm of the phase projection equals the norm of the selected coordinates in the unitary
+basis. -/
 theorem sourcePhaseProjector_basis_norm {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ) (angles : H → ℝ) (Θ : ℝ)
     (ψ : QState H) :
@@ -67,6 +93,8 @@ theorem sourcePhaseProjector_basis_norm {H : Type} [Fintype H] [DecidableEq H]
   simp only [sourcePhaseProjector,← Matrix.mulVec_mulVec]
   exact isometry_mulVec_norm hi _
 
+/-- Expresses the complementary phase projection by keeping exactly the basis coordinates
+outside the phase window. -/
 theorem sourcePhaseProjector_complement_vec {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ) (angles : H → ℝ) (Θ : ℝ)
     (ψ : QState H) :
@@ -86,6 +114,7 @@ theorem sourcePhaseProjector_complement_vec {H : Type} [Fintype H] [DecidableEq 
       simp only [Pi.sub_apply,Matrix.mulVec_diagonal]
       split_ifs <;> simp [z]
 
+/-- The complementary phase projection does not increase the Euclidean norm. -/
 theorem sourcePhaseProjector_complement_norm_le {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ) (angles : H → ℝ) (Θ : ℝ)
     (ψ : QState H) :
@@ -100,6 +129,8 @@ theorem sourcePhaseProjector_complement_norm_le {H : Type} [Fintype H] [Decidabl
     (by intro h; (try dsimp only); split_ifs <;> norm_num) (Vᴴ *ᵥ ψ)
   simpa only [one_mul,isometry_mulVec_norm hi'] using! hb
 
+/-- The squared norms of the phase projection and its complement sum to the original squared
+norm. -/
 theorem sourcePhaseProjector_pythagoras {H : Type} [Fintype H] [DecidableEq H]
     (V : Matrix H H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ) (angles : H → ℝ) (Θ : ℝ)
     (ψ : QState H) :
@@ -119,6 +150,7 @@ theorem sourcePhaseProjector_pythagoras {H : Type} [Fintype H] [DecidableEq H]
   simp only [Matrix.mulVec_diagonal]
   split_ifs <;> simp
 
+/-- On the branch `-π < θ ≤ π`, the phase `exp (iθ)` equals one exactly when `θ = 0`. -/
 theorem source_branch_exp_eq_one {θ : ℝ} (hθ : -Real.pi < θ ∧ θ ≤ Real.pi) :
     Complex.exp (Complex.I*θ)=1 ↔ θ=0 := by
   constructor
@@ -131,6 +163,8 @@ theorem source_branch_exp_eq_one {θ : ℝ} (hθ : -Real.pi < θ ∧ θ ≤ Real
   · intro h
     simp [h]
 
+/-- A vector fixed by a unitary lies in its zero-phase projector for the stated principal-branch
+spectral decomposition. -/
 theorem sourcePhaseProjector_zero_fixed {H : Type} [Fintype H] [DecidableEq H]
     (U V : Matrix H H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ) (angles : H → ℝ)
     (ha : ∀ h, -Real.pi < angles h ∧ angles h ≤ Real.pi)
@@ -160,6 +194,7 @@ theorem sourcePhaseProjector_zero_fixed {H : Type} [Fintype H] [DecidableEq H]
   simp only [sourcePhaseProjector,← Matrix.mulVec_mulVec]
   rw [hcut,hw]
 
+/-- A vector fixed by `P` is also fixed by the reflection about `P`. -/
 private theorem source_reflection_fixed {H : Type} [Fintype H] [DecidableEq H]
     (P : Matrix H H ℂ) (ψ : QState H) (h : P *ᵥ ψ=ψ) : ReflectionAbout P *ᵥ ψ=ψ := by
   unfold ReflectionAbout
@@ -167,6 +202,9 @@ private theorem source_reflection_fixed {H : Type} [Fintype H] [DecidableEq H]
   simp only [two_smul]
   abel
 
+/-- A unit vector within squared distance `ε²` of a common fixed vector of two matrices has
+zero-phase mass at least `1 - ε²` for their reflection product under the stated spectral
+decomposition. -/
 theorem source_walk_zero_mass {H : Type} [Fintype H] [DecidableEq H]
     (P L V : Matrix H H ℂ) (hV : V ∈ Matrix.unitaryGroup H ℂ)
     (angles : H → ℝ) (ha : ∀ h, -Real.pi < angles h ∧ angles h ≤ Real.pi)
@@ -199,6 +237,8 @@ theorem source_walk_zero_mass {H : Type} [Fintype H] [DecidableEq H]
   rw [hψ] at hpyth
   nlinarith [norm_nonneg (toEuclidean_fromVec ((1-sourcePhaseProjector V angles 0) *ᵥ ψ))]
 
+/-- If `L *ᵥ w = 0`, `P *ᵥ w = ψ`, and the squared norm of `w` is at most `C`, then the
+phase-window mass of `ψ` is at most `Θ²C/4` for `Θ ≥ 0`. -/
 theorem source_walk_low_mass {H : Type} [Fintype H] [DecidableEq H]
     (P L V : Matrix H H ℂ) (hP : IsOrthogonalProjector P) (hL : IsOrthogonalProjector L)
     (hV : V ∈ Matrix.unitaryGroup H ℂ) (angles : H → ℝ)
@@ -215,6 +255,8 @@ theorem source_walk_low_mass {H : Type} [Fintype H] [DecidableEq H]
   rw [hcoef] at hb2
   exact le_trans hb2 (mul_le_mul_of_nonneg_left hC (by positivity))
 
+/-- Proves the zero-phase lower bound for the witness plus state and the low-phase upper bound
+for the minus state, corresponding to [Lee et al., Claims 4.4 and 4.5][LeeEtAl2011]. -/
 theorem witnessSpectralMasses : WitnessSpectralMasses := by
   intro X H _ _ _ _ n q m input ρ σ u v W ε hnorm hq hW hε hEq hbudget x V angles hV ha hU
   obtain ⟨hL,hgeometry⟩ := sourceGeometry_of_witness input ρ σ u v W ε hnorm hq hW hε hEq hbudget

@@ -9,6 +9,27 @@ import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascadeAux
 import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
 import Mathlib.Tactic.NormNum.RealSqrt
+
+/-!
+# Sector transport through growing-stop cascades
+
+This module develops measurement-mass identities for the good, bad, running, and live sectors of
+a growing variable-time pipeline. It proves monotonicity and comparison bounds for the original
+evolution, then transports sector masses through amplification cascades used in the analysis of
+[Ambainis2012].
+
+## Main statements
+
+* `rdvt_sector_step`: one-step mass conservation and bad-sector growth bounds.
+* `rdvt_sector_bridge`: comparison of prefix live mass with final good mass.
+* `rdvt_cascade_input_live`: a common scaling factor for consecutive live-sector masses.
+* `rdvt_cascade_good_eq_live`: equality of final good and live mass after complete stopping.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum
@@ -33,6 +54,7 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 noncomputable section
 omit [DecidableEq C] in
 
+/-- States agreeing at every index in `S` have equal measurement mass on `S`. -/
 theorem rdvt_prob_congr {ψ χ : QState (VtSpace C)} (S : Finset (VtSpace C))
     (h : ∀ p ∈ S, ψ p = χ p) : MeasureProb ψ S = MeasureProb χ S := by
   unfold MeasureProb BornProb
@@ -41,24 +63,28 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Every index in the bad sector has flag `vtBadFlag`. -/
 theorem rdvt_bad_flag (p : VtSpace C) (hp : p ∈ badSet C) : p.1 = vtBadFlag :=
   (Finset.mem_filter.mp hp).2
 end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Every index in the good sector has flag `vtGoodFlag`. -/
 theorem rdvt_good_flag (p : VtSpace C) (hp : p ∈ goodSet C) : p.1 = vtGoodFlag :=
   (Finset.mem_filter.mp hp).2
 end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Every index in the running sector has flag `vtRunningFlag`. -/
 theorem rdvt_running_flag (p : VtSpace C) (hp : p ∈ runningSet C) : p.1 = vtRunningFlag :=
   (Finset.mem_filter.mp hp).2
 end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- The good and bad sectors are disjoint. -/
 theorem rdvt_good_bad_disjoint : Disjoint (goodSet C) (badSet C) :=
   Finset.disjoint_left.mpr fun p hp hq =>
     (by decide : vtGoodFlag ≠ vtBadFlag) ((rdvt_good_flag p hp).symm.trans (rdvt_bad_flag p hq))
@@ -66,6 +92,7 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- The good and running sectors are disjoint. -/
 theorem rdvt_good_running_disjoint : Disjoint (goodSet C) (runningSet C) :=
   Finset.disjoint_left.mpr fun p hp hq =>
     (by decide : vtGoodFlag ≠ vtRunningFlag)
@@ -74,6 +101,7 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- The bad and running sectors are disjoint. -/
 theorem rdvt_bad_running_disjoint : Disjoint (badSet C) (runningSet C) :=
   Finset.disjoint_left.mpr fun p hp hq =>
     (by decide : vtBadFlag ≠ vtRunningFlag)
@@ -81,11 +109,13 @@ theorem rdvt_bad_running_disjoint : Disjoint (badSet C) (runningSet C) :=
 end
 noncomputable section
 
+/-- The live and bad sectors are disjoint. -/
 theorem rdvt_live_bad_disjoint : Disjoint (liveSet C) (badSet C) :=
   Finset.disjoint_left.mpr fun p hp hq => (nonlive_iff_bad p).mpr (rdvt_bad_flag p hq) hp
 end
 noncomputable section
 
+/-- The live and bad sectors together cover the full basis index set. -/
 theorem rdvt_live_bad_union : liveSet C ∪ badSet C = Finset.univ := by
   ext p
   obtain ⟨f, x⟩ := p
@@ -95,12 +125,14 @@ theorem rdvt_live_bad_union : liveSet C ∪ badSet C = Finset.univ := by
 end
 noncomputable section
 
+/-- For a normalized state, the live and bad sector masses sum to one. -/
 theorem rdvt_live_bad_univ (ψ : QState (VtSpace C)) (hnorm : Normalized ψ) :
     MeasureProb ψ (liveSet C) + MeasureProb ψ (badSet C) = 1 := by
   rw [← measureProb_union ψ rdvt_live_bad_disjoint, rdvt_live_bad_union, measureProb_univ hnorm]
 end
 noncomputable section
 
+/-- A unitary matrix preserves the total measurement mass of any state. -/
 theorem rdvt_unitary_mass {U : Matrix (VtSpace C) (VtSpace C) ℂ}
     (hU : U ∈ Matrix.unitaryGroup (VtSpace C) ℂ) (x : QState (VtSpace C)) :
     MeasureProb (ApplyGate U x) Finset.univ = MeasureProb x Finset.univ := by
@@ -113,6 +145,8 @@ theorem rdvt_unitary_mass {U : Matrix (VtSpace C) (VtSpace C) ℂ}
 end
 noncomputable section
 
+/-- The total measurement mass of a state collapsed to `S` equals its original measurement mass
+on `S`. -/
 theorem rdvt_collapse_mass (ψ : QState (VtSpace C)) (S : Finset (VtSpace C)) :
     MeasureProb (Collapse ψ S) Finset.univ = MeasureProb ψ S := by
   unfold MeasureProb
@@ -122,12 +156,15 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Gate application distributes over addition of states. -/
 theorem rdvt_apply_add (U : Matrix (VtSpace C) (VtSpace C) ℂ) (a b : QState (VtSpace C)) :
     ApplyGate U (a+b) = ApplyGate U a+ApplyGate U b := by
   simp only [ApplyGate, Matrix.mulVec_add]
 end
 noncomputable section
 
+/-- For disjoint sets `S` and `T`, the sum of the two collapsed states equals collapse onto
+their union. -/
 theorem rdvt_collapse_union (ψ : QState (VtSpace C)) (S T : Finset (VtSpace C))
     (h : Disjoint S T) : Collapse ψ S+Collapse ψ T = Collapse ψ (S∪T) := by
   funext p
@@ -141,6 +178,8 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Adding a state that vanishes on `S` does not change the other state's measurement mass on
+`S`. -/
 theorem rdvt_sector_add_zero_left (a b : QState (VtSpace C)) (S : Finset (VtSpace C))
     (h : ∀ p ∈ S, a p = 0) : MeasureProb (a+b) S = MeasureProb b S :=
   rdvt_prob_congr S fun p hp => by rw [Pi.add_apply, h p hp, _root_.zero_add]
@@ -148,6 +187,8 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Adding a state that vanishes on `S` to the right does not change the left state's
+measurement mass on `S`. -/
 theorem rdvt_sector_add_zero_right (a b : QState (VtSpace C)) (S : Finset (VtSpace C))
     (h : ∀ p ∈ S, b p = 0) : MeasureProb (a+b) S = MeasureProb a S :=
   rdvt_prob_congr S fun p hp => by rw [Pi.add_apply, h p hp, _root_.add_zero]
@@ -155,6 +196,8 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- If at least one of two states vanishes at every index of `S`, their sum's measurement mass
+on `S` is the sum of their masses. -/
 theorem rdvt_sector_add (a b : QState (VtSpace C)) (S : Finset (VtSpace C))
     (h : ∀ p ∈ S, a p = 0 ∨ b p = 0) :
     MeasureProb (a+b) S = MeasureProb a S+MeasureProb b S := by
@@ -168,6 +211,7 @@ theorem rdvt_sector_add (a b : QState (VtSpace C)) (S : Finset (VtSpace C))
 end
 noncomputable section
 
+/-- A growing stage fixes any state supported on its previously reached stopped set. -/
 theorem rdvt_fixes_reached {history : ℕ → Finset C} {k : ℕ}
     {U : Matrix (VtSpace C) (VtSpace C) ℂ} (hU : IsGrowingVtStage history k U)
     (x : QState (VtSpace C)) (hx : ∀ p, x p ≠ 0 → p ∈ reachedStoppedSet history k) :
@@ -184,6 +228,7 @@ theorem rdvt_fixes_reached {history : ℕ → Finset C} {k : ℕ}
 end
 noncomputable section
 
+/-- A growing stage preserves each coordinate indexed by its previously reached stopped set. -/
 theorem rdvt_stage_row {history : ℕ → Finset C} {k : ℕ}
     {U : Matrix (VtSpace C) (VtSpace C) ℂ} (hU : IsGrowingVtStage history k U)
     (q : VtSpace C) (hq : q ∈ reachedStoppedSet history k) (x : QState (VtSpace C)) :
@@ -195,6 +240,8 @@ theorem rdvt_stage_row {history : ℕ → Finset C} {k : ℕ}
 end
 noncomputable section
 
+/-- For a legal supported growing pipeline, one stage preserves combined live and bad mass,
+increases bad mass monotonically, and bounds that increase by the decrease in running mass. -/
 theorem rdvt_sector_step (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (hl : GrowingVtLegal stages history)
     (j₀ : VtSpace C) (hs : GrowingVtSupported stages history j₀) (k : ℕ)
@@ -320,6 +367,8 @@ theorem rdvt_sector_step (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
 end
 noncomputable section
 
+/-- If a legal supported pipeline has no final running mass, each prefix live mass lies between
+the final good mass and that mass plus the prefix running mass. -/
 theorem rdvt_sector_bridge (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (hl : GrowingVtLegal stages history)
     (j₀ : VtSpace C) (hs : GrowingVtSupported stages history j₀)
@@ -383,6 +432,7 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Gate application commutes with complex scalar multiplication. -/
 theorem rdvt_apply_smul (U : Matrix (VtSpace C) (VtSpace C) ℂ) (a : ℂ) (ψ : QState (VtSpace C)) :
     ApplyGate U (a • ψ) = a • ApplyGate U ψ := by
   simp only [ApplyGate, Matrix.mulVec_smul]
@@ -390,6 +440,7 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Gate application distributes over subtraction of states. -/
 theorem rdvt_apply_sub (U : Matrix (VtSpace C) (VtSpace C) ℂ) (a b : QState (VtSpace C)) :
     ApplyGate U (a-b) = ApplyGate U a-ApplyGate U b := by
   simp only [ApplyGate, Matrix.mulVec_sub]
@@ -397,6 +448,7 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- Scaling a state by `a` multiplies its sector mass by `Complex.normSq a`. -/
 theorem rdvt_smul_sector (a : ℂ) (ψ : QState (VtSpace C)) (S : Finset (VtSpace C)) :
     MeasureProb (a • ψ) S = Complex.normSq a*MeasureProb ψ S := by
   unfold MeasureProb BornProb
@@ -408,6 +460,7 @@ theorem rdvt_smul_sector (a : ℂ) (ψ : QState (VtSpace C)) (S : Finset (VtSpac
 end
 noncomputable section
 
+/-- Collapsing a state to `S` preserves its measurement mass on `S`. -/
 theorem rdvt_collapse_sector (ψ : QState (VtSpace C)) (S : Finset (VtSpace C)) :
     MeasureProb (Collapse ψ S) S = MeasureProb ψ S := by
   unfold MeasureProb
@@ -417,6 +470,8 @@ theorem rdvt_collapse_sector (ψ : QState (VtSpace C)) (S : Finset (VtSpace C)) 
 end
 noncomputable section
 
+/-- For a legal supported pipeline starting in the running sector, the live mass of any valid
+cascade prefix is a squared scalar multiple of the corresponding original prefix live mass. -/
 theorem rdvt_cascade_live (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (hl : GrowingVtLegal stages history) (j₀ : VtSpace C)
     (hj : j₀.1 = vtRunningFlag) (hs : GrowingVtSupported stages history j₀)
@@ -434,6 +489,8 @@ theorem rdvt_cascade_live (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
 end
 noncomputable section
 
+/-- For a legal supported pipeline starting in the running sector, the full cascade's good mass
+is a squared scalar multiple of the original final good mass. -/
 theorem rdvt_cascade_good (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (hl : GrowingVtLegal stages history) (j₀ : VtSpace C)
     (hj : j₀.1 = vtRunningFlag) (hs : GrowingVtSupported stages history j₀)
@@ -453,6 +510,9 @@ theorem rdvt_cascade_good (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
 end
 noncomputable section
 
+/-- For a legal supported pipeline starting in the running sector, appending the next forward
+stage to a cascade prefix gives live mass proportional to the original next-stage live mass
+by a squared scalar factor. -/
 theorem rdvt_input_live (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (hl : GrowingVtLegal stages history) (j₀ : VtSpace C)
     (hj : j₀.1 = vtRunningFlag) (hs : GrowingVtSupported stages history j₀)
@@ -510,6 +570,7 @@ end
 noncomputable section
 omit [DecidableEq C] in
 
+/-- A state vanishing at every index in `S` has zero measurement mass on `S`. -/
 theorem rdvt_zero_sector {ψ : QState (VtSpace C)} (S : Finset (VtSpace C))
     (h : ∀ p ∈ S, ψ p = 0) : MeasureProb ψ S = 0 := by
   unfold MeasureProb BornProb
@@ -517,6 +578,7 @@ theorem rdvt_zero_sector {ψ : QState (VtSpace C)} (S : Finset (VtSpace C))
 end
 noncomputable section
 
+/-- A basis state with running flag has running-sector measurement mass one. -/
 theorem rdvt_ket_running (j₀ : VtSpace C) (hj : j₀.1 = vtRunningFlag) :
     MeasureProb (Qatlib.Foundations.PureStateMath.Ket j₀) (runningSet C) = 1 := by
   have hmem : j₀ ∈ runningSet C := Finset.mem_filter.mpr ⟨Finset.mem_univ _, hj⟩
@@ -526,6 +588,9 @@ theorem rdvt_ket_running (j₀ : VtSpace C) (hj : j₀.1 = vtRunningFlag) :
 end
 noncomputable section
 
+/-- For a legal supported pipeline starting in the running sector, one squared scalar factor
+relates both a cascade prefix's live mass and, when available, its next-stage input live
+mass to the corresponding original masses. -/
 theorem rdvt_cascade_input_live (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (hl : GrowingVtLegal stages history)
     (j₀ : VtSpace C) (hj : j₀.1 = vtRunningFlag) (hs : GrowingVtSupported stages history j₀)
@@ -588,6 +653,8 @@ theorem rdvt_cascade_input_live (stages : List (Matrix (VtSpace C) (VtSpace C) �
 end
 noncomputable section
 
+/-- For a legal supported pipeline starting in the running sector, zero final running mass is
+preserved by the full amplification cascade. -/
 theorem rdvt_cascade_running_zero (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (hl : GrowingVtLegal stages history)
     (j₀ : VtSpace C) (hj : j₀.1 = vtRunningFlag) (hs : GrowingVtSupported stages history j₀)
@@ -624,6 +691,8 @@ theorem rdvt_cascade_running_zero (stages : List (Matrix (VtSpace C) (VtSpace C)
 end
 noncomputable section
 
+/-- For a legal supported pipeline starting in the running sector and ending with zero running
+mass, the full cascade has equal good and live masses. -/
 theorem rdvt_cascade_good_eq_live (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     (history : ℕ → Finset C) (hl : GrowingVtLegal stages history)
     (j₀ : VtSpace C) (hj : j₀.1 = vtRunningFlag) (hs : GrowingVtSupported stages history j₀)

@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorNormProbability
+
+/-!
+# Normalized Gaussian tensor norms
+
+`normalizedNorm` rescales the operator norm of `tensorForm` by `(√N)^(r-1)`. The module proves
+continuity, nonnegativity, and a dimension independent upper tail bound, using
+`normalization_identity` to cancel the Gaussian tensor scale. These estimates support the
+bounded norm regions in the Gaussian analysis associated with [GohMuller2026].
+
+## Main statements
+
+* `normalizedNorm`: The operator norm of `tensorForm A`, multiplied by `(√N)^(r-1)`.
+* `normalized_tail`: For positive `r` and `N` and `t ≥ 0`, the probability that `normalizedNorm`
+  exceeds `t` is at most `2(1+8(r+1))^(r+1) exp(-t²/8)`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 set_option maxHeartbeats 1000000
@@ -17,6 +37,7 @@ open Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
 open Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorNormProbability
 namespace Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorMoments
 
+/-- For positive `r` and `N`, the product `√(N/N^r) * (√N)^(r-1)` equals one. -/
 theorem normalization_identity {r N : ℕ} (hr : 0<r) (hN : 0<N) :
     Real.sqrt ((N:ℝ)/(N:ℝ)^r)*(Real.sqrt (N:ℝ))^(r-1)=1 := by
   obtain ⟨k,rfl⟩ := Nat.exists_eq_succ_of_ne_zero hr.ne'
@@ -30,17 +51,22 @@ theorem normalization_identity {r N : ℕ} (hr : 0<r) (hN : 0<N) :
   have hpos : 0≤Real.sqrt ((N:ℝ)/(N:ℝ)^(k+1))*(Real.sqrt (N:ℝ))^k := by positivity
   nlinarith
 
+/-- The operator norm of `tensorForm A`, multiplied by `(√N)^(r-1)`. -/
 def normalizedNorm {r N : ℕ} (A : Tensor (r+1) N) : ℝ :=
   ‖tensorForm A‖*(Real.sqrt (N:ℝ))^(r-1)
 
+/-- The normalized tensor norm is nonnegative. -/
 theorem normalizedNorm_nonneg {r N : ℕ} (A : Tensor (r+1) N) : 0≤normalizedNorm A := by
   unfold normalizedNorm
   positivity
 
+/-- The normalized tensor norm is a continuous function of its tensor coefficients. -/
 theorem normalizedNorm_continuous (r N : ℕ) : Continuous (normalizedNorm (r:=r) (N:=N)) := by
   unfold normalizedNorm tensorForm
   fun_prop
 
+/-- For positive `r` and `N` and `t ≥ 0`, the probability that `normalizedNorm` exceeds `t` is
+at most `2(1+8(r+1))^(r+1) exp(-t²/8)`. -/
 theorem normalized_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) (t : ℝ) (ht : 0≤t) :
     (gaussianTensorLaw r N).real {A | t<normalizedNorm A} ≤
       (2*(1+8*(r+1):ℝ)^(r+1))*Real.exp (-t^2/8) := by

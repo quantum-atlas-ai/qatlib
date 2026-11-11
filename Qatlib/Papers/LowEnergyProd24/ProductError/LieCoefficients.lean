@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.LowEnergyProd24.ProductError.LieTerms
 import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.FactorialWeights
 import Mathlib.Algebra.Order.Antidiag.Prod
+
+/-!
+# Finite Lie coefficients and their absolute mass
+
+The recursive expansion `lieTerms` constructs degree-indexed nested commutator terms for a
+real-weighted stage list. The quantity `lieMass` sums their coefficient norms, and
+`lieMass_bound` controls it using the total absolute stage weight `timeBudget` and a factorial
+denominator. See [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `lieTerms_degree`: Every Lie term generated at degree `n` has an outer commutator list of
+  length `n`.
+* `lieMass_cons`: Prepending a stage adds its absolute weight at degree zero and convolves the
+  remaining masses with powers of its absolute weight divided by factorials.
+* `lieMass_bound`: The degree-`n` Lie coefficient mass is at most `timeBudget stages *
+  (timeBudget stages)^n / n!`.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,13 +44,17 @@ open Qatlib.Foundations.MatrixAlgebra.CommutatorExp
 open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- The sum of the absolute values of the real stage weights. -/
 def timeBudget (stages : List (ℝ × Fin M)) : ℝ := (stages.map (fun stage => |stage.1|)).sum
 
+/-- The total absolute stage weight is nonnegative. -/
 theorem timeBudget_nonneg (stages : List (ℝ × Fin M)) : 0 ≤ timeBudget stages := by
   induction stages with
   | nil => simp only [timeBudget, List.map_nil, List.sum_nil, le_refl]
   | cons stage stages ih => simpa only [timeBudget, List.map_cons, List.sum_cons] using add_nonneg (abs_nonneg stage.1) ih
 
+/-- The finite Lie terms of each degree, built recursively from stage generators and their
+repeated commutators with reciprocal factorial weights. -/
 def lieTerms : List (ℝ × Fin M) → ℕ → List (LieTerm M)
   | [], _ => []
   | stage :: stages, n =>
@@ -35,9 +62,11 @@ def lieTerms : List (ℝ × Fin M) → ℕ → List (LieTerm M)
       (Finset.HasAntidiagonal.antidiagonal n).toList.flatMap (fun ij =>
         (lieTerms stages ij.2).map (fun term => (term.raise stage ij.1).scale (1/(ij.1.factorial : ℝ))))
 
+/-- The sum of the complex coefficient norms of all Lie terms at degree `n`. -/
 def lieMass (stages : List (ℝ × Fin M)) (n : ℕ) : ℝ :=
   ((lieTerms stages n).map (fun term => ‖term.coefficient‖)).sum
 
+/-- Every Lie term generated at degree `n` has an outer commutator list of length `n`. -/
 theorem lieTerms_degree (stages : List (ℝ × Fin M)) (n : ℕ) (term : LieTerm M)
     (ht : term ∈ lieTerms stages n) : term.outer.length = n := by
   induction stages generalizing n term with
@@ -59,6 +88,8 @@ theorem lieTerms_degree (stages : List (ℝ × Fin M)) (n : ℕ) (term : LieTerm
       simpa only [LieTerm.scale, LieTerm.raise, List.length_append, List.length_replicate,
         ih ij.2 base hb] using hsum
 
+/-- Prepending a stage adds its absolute weight at degree zero and convolves the remaining
+masses with powers of its absolute weight divided by factorials. -/
 theorem lieMass_cons (stage : ℝ × Fin M) (stages : List (ℝ × Fin M)) (n : ℕ) :
     lieMass (stage::stages) n = (if n=0 then |stage.1| else 0) +
       ∑ ij ∈ Finset.HasAntidiagonal.antidiagonal n, (|stage.1|^ij.1/(ij.1.factorial : ℝ))*lieMass stages ij.2 := by
@@ -76,6 +107,8 @@ theorem lieMass_cons (stage : ℝ × Fin M) (stages : List (ℝ × Fin M)) (n : 
         (|stage.1|^ij.1/(ij.1.factorial : ℝ))*lieMass stages ij.2)
         (Finset.nodup_toList (Finset.HasAntidiagonal.antidiagonal n))).symm
 
+/-- The degree-`n` Lie coefficient mass is at most `timeBudget stages * (timeBudget stages)^n /
+n!`. -/
 theorem lieMass_bound (stages : List (ℝ × Fin M)) (n : ℕ) :
     lieMass stages n ≤ timeBudget stages * timeBudget stages^n/(n.factorial : ℝ) := by
   induction stages generalizing n with

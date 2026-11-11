@@ -19,6 +19,38 @@ import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
 import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
 import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
 import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+
+/-!
+# Positivity and marginal identities for teleportation resources
+
+The results derive no-signalling and the maximally mixed receiver marginal from completeness,
+positivity, and perfect recovery with unitary corrections. They also show that such a resource
+has trace one.
+
+Square-root columns decompose positive semidefinite resources into outer products. Parallelism
+lemmas for vectors and operators supply the linear algebra used in the resource-purity argument.
+These results develop resource and communication properties of teleportation
+[BennettEtAl1993Teleportation]. Matrix positivity and finite-dimensional operator methods are
+treated in [Watrous2018].
+
+## Main statements
+
+* `g8p_noSignalling`: Summing branch marginals over a complete Alice-side Kraus family gives
+  `trace ρ` times the resource's receiver marginal.
+* `g8p_bobMarginal`: A positive semidefinite resource enabling perfect teleportation with
+  unitary corrections in nonzero dimension has receiver marginal `(1 / n) • 1`
+  [BennettEtAl1993Teleportation].
+* `g8p_omega_sum_outerProduct`: A positive semidefinite resource is the sum of the outer
+  products of its square-root columns `g8pCol ω s`.
+* `g8p_eq_smul_of_forall_smul`: In nonzero dimension, an operator sending every vector to some
+  scalar multiple of itself is a scalar multiple of the identity.
+
+## References
+
+* [Bennett et al., 1993][BennettEtAl1993Teleportation]
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -51,6 +83,8 @@ open Qatlib.Concepts.QuditTeleport.MessagingBounds Qatlib.Concepts.QuditTeleport
 open Qatlib.Concepts.QuditTeleport.ResourceIff
 open scoped BigOperators ComplexOrder MatrixOrder
 
+/-- A positive semidefinite matrix possesses a positive semidefinite Hermitian square root `S`
+satisfying `S * S = ω`. -/
 theorem g8p_psdSqrt {ι : Type} [Fintype ι] [DecidableEq ι] (ω : Matrix ι ι ℂ)
     (hω : ω.PosSemidef) :
     ∃ S : Matrix ι ι ℂ, S * S = ω ∧ S.conjTranspose = S ∧ S.PosSemidef :=
@@ -58,11 +92,15 @@ theorem g8p_psdSqrt {ι : Type} [Fintype ι] [DecidableEq ι] (ω : Matrix ι ι
     (IsSelfAdjoint.of_nonneg (CFC.sqrt_nonneg ω) : IsSelfAdjoint (CFC.sqrt ω)).star_eq,
     (CFC.sqrt_nonneg ω).posSemidef⟩
 
+/-- Moving Bob's register first turns Alice's local operator `A` into the second tensor factor,
+relabeled by `finProdFinEquiv`. -/
 theorem g8p_local_gate {n : ℕ} (A : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     relabelGate (qdBobFirstEquiv n) (TensorGate A (1 : Operator n)) =
       TensorGate (1 : Operator n) (relabelGate finProdFinEquiv A) :=
   quditBobFirst_local_gate A
 
+/-- The branch marginal can be computed after moving Bob's register first, with Alice's Kraus
+operator acting on the second tensor factor. -/
 theorem g8p_branch_bobFirst {n : ℕ}
     (K : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (ρ : Operator n) :
@@ -74,6 +112,8 @@ theorem g8p_branch_bobFirst {n : ℕ}
   unfold qdBranchMarginal
   rw [converse_relabel_mul, converse_relabel_mul, converse_relabel_adjoint, g8p_local_gate]
 
+/-- Summing branch marginals over a complete Alice-side Kraus family gives `trace ρ` times the
+resource's receiver marginal. -/
 theorem g8p_noSignalling {n : ℕ} {κ : Type} [Fintype κ]
     (K : κ → Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (hK : ∑ k, (K k).conjTranspose * K k = 1)
@@ -166,6 +206,8 @@ theorem g8p_noSignalling {n : ℕ} {κ : Type} [Fintype κ]
         Matrix.diag_apply, Finset.mul_sum, Finset.sum_mul]
       exact Finset.sum_comm
 
+/-- For a positive semidefinite resource in a perfect protocol with unitary corrections, each
+corrected branch evaluated at the identity is a scalar multiple of the identity. -/
 theorem g8p_corrBranch_one_scalar {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -202,6 +244,8 @@ theorem g8p_corrBranch_one_scalar {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
   intro k
   simpa only [Equiv.symm_apply_apply] using! h (e k)
 
+/-- For a positive semidefinite resource in a perfect protocol with unitary corrections, each
+branch evaluated at the identity is unchanged by its correction. -/
 theorem g8p_branchOne_eq {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -226,6 +270,8 @@ theorem g8p_branchOne_eq {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
   rw [hc] at hundo
   exact hundo.symm.trans ha.symm
 
+/-- A positive semidefinite resource enabling perfect teleportation with unitary corrections in
+nonzero dimension has receiver marginal `(1 / n) • 1` [BennettEtAl1993Teleportation]. -/
 theorem g8p_bobMarginal {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -255,6 +301,7 @@ theorem g8p_bobMarginal {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
   rw [← mul_assoc, mul_one_div_cancel hn0, one_mul]
   exact he.symm
 
+/-- Relabeling the indices of a square matrix by an equivalence preserves its trace. -/
 theorem g8p_trace_relabelGate {I J : Type} [Fintype I] [Fintype J]
     (e : I ≃ J) (A : Matrix I I ℂ) :
     Matrix.trace (relabelGate e A) = Matrix.trace A := by
@@ -263,6 +310,8 @@ theorem g8p_trace_relabelGate {I J : Type} [Fintype I] [Fintype J]
   rw [← e.sum_comp]
   simp only [Equiv.symm_apply_apply]
 
+/-- A positive semidefinite resource enabling perfect teleportation with unitary corrections in
+nonzero dimension has trace one. -/
 theorem g8p_trace_one {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     (P : QdLoccTeleport n κ) (U : κ → Operator n) (hU : QdLoccUnitaryCorr P U)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef)
@@ -277,10 +326,13 @@ theorem g8p_trace_one {n : ℕ} [NeZero n] {κ : Type} [Fintype κ]
     field_simp
   exact h1 ▸ htr
 
+/-- The column of `CFC.sqrt ω` selected by `s` through the product-index equivalence, viewed as
+a bipartite vector. -/
 noncomputable def g8pCol {n : ℕ} (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ)
     (s : Fin (n * n)) : QState (Fin n × Fin n) :=
   fun p => CFC.sqrt ω p ((finProdFinEquiv (m := n) (n := n)).symm s)
 
+/-- Conjugating an entry of `CFC.sqrt ω` exchanges its two indices. -/
 theorem g8p_sqrt_star {n : ℕ} (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     ∀ a b : Fin n × Fin n, star (CFC.sqrt ω a b) = CFC.sqrt ω b a := by
   intro a b
@@ -288,10 +340,13 @@ theorem g8p_sqrt_star {n : ℕ} (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) �
     (IsSelfAdjoint.of_nonneg (CFC.sqrt_nonneg ω) : star (CFC.sqrt ω) = CFC.sqrt ω)
   exact h
 
+/-- Applying `starRingEnd ℂ` to an entry of `CFC.sqrt ω` exchanges its two indices. -/
 theorem g8p_sqrt_starRing {n : ℕ} (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
     ∀ a b : Fin n × Fin n, (starRingEnd ℂ) (CFC.sqrt ω a b) = CFC.sqrt ω b a :=
   fun a b => g8p_sqrt_star ω a b
 
+/-- A positive semidefinite resource is the sum of the outer products of its square-root columns
+`g8pCol ω s`. -/
 theorem g8p_omega_sum_outerProduct {n : ℕ}
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) (hω : ω.PosSemidef) :
     (∑ s : Fin (n * n), outerProduct (g8pCol ω s)) = ω := by
@@ -308,6 +363,7 @@ theorem g8p_omega_sum_outerProduct {n : ℕ}
       = ∑ a : Fin n × Fin n, CFC.sqrt ω p a * CFC.sqrt ω a q := rfl
   rw [← hsq, CFC.sqrt_mul_sqrt_self ω hω.nonneg]
 
+/-- A vector whose outer product is zero is itself zero. -/
 theorem g8p_outerProduct_zero {I : Type} [Fintype I] [DecidableEq I] (φ : QState I)
     (h : outerProduct φ = 0) : φ = 0 := by
   ext p
@@ -318,6 +374,8 @@ theorem g8p_outerProduct_zero {I : Type} [Fintype I] [DecidableEq I] (φ : QStat
   · exact h1
   · exact star_eq_zero.mp h2
 
+/-- If the outer product of `φ` is a scalar multiple of the outer product of `ψ`, then `φ` is a
+scalar multiple of `ψ`. -/
 theorem g8p_outerProduct_eq_smul {I : Type} [Fintype I] [DecidableEq I]
     (φ ψ : QState I) (d : ℂ) (h : outerProduct φ = d • outerProduct ψ) :
     ∃ z : ℂ, φ = z • ψ := by
@@ -369,6 +427,8 @@ theorem g8p_outerProduct_eq_smul {I : Type} [Fintype I] [DecidableEq I]
         exact this
       exact hgoal
 
+/-- If a finite sum of vector outer products is a nonnegative multiple of `outerProduct ψ`, each
+vector in the sum is a scalar multiple of `ψ`. -/
 theorem g8p_outerProduct_sum_parallel {I : Type} [Fintype I] [DecidableEq I] {κ : Type} [Fintype κ]
     (φ : κ → QState I) (ψ : QState I) (c : ℝ) (hc : 0 ≤ c)
     (h : (∑ k : κ, outerProduct (φ k)) = (c : ℂ) • outerProduct ψ) :
@@ -408,6 +468,8 @@ theorem g8p_outerProduct_sum_parallel {I : Type} [Fintype I] [DecidableEq I] {κ
   refine ⟨w * z, ?_⟩
   rw [hw, smul_smul]
 
+/-- In nonzero dimension, an operator sending every vector to some scalar multiple of itself is
+a scalar multiple of the identity. -/
 theorem g8p_eq_smul_of_forall_smul {n : ℕ} [NeZero n] (A : Operator n)
     (h : ∀ v : Fin n → ℂ, ∃ c : ℂ, A *ᵥ v = c • v) : ∃ c : ℂ, A = c • 1 := by
   classical

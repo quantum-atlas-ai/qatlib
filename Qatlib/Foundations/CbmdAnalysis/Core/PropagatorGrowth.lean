@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.CbmdAnalysis.Core.BesselMixture
+
+/-!
+# Exponential growth bounds for wave and Bessel series
+
+Termwise comparison with the hyperbolic cosine series bounds the wave and Bessel propagators in
+a complex normed algebra with unit norm. Both obey the exponential estimate `exp (‖t‖ * sqrt
+‖A‖)`.
+
+These bounds require no positivity condition on `A` and provide general growth control for the
+special-function contour constructions of [WangEtAl2026].
+
+## Main statements
+
+* `wavePropagator_norm_le_exp`: bounds the wave propagator for complex time.
+* `besselPropagator_norm_le_exp`: gives the same exponential bound for the Bessel propagator.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Core
@@ -14,6 +35,7 @@ noncomputable section
 namespace CBMD
 open MeasureTheory
 
+/-- For nonnegative real `x`, `cosh x ≤ exp x`. -/
 private theorem cosh_le_exp_of_nonneg {x : ℝ} (hx : 0 ≤ x) :
     Real.cosh x ≤ Real.exp x := by
   rw [Real.cosh_eq]
@@ -25,6 +47,8 @@ variable {E : Type*} [NormedRing E] [NormedAlgebra ℂ E] [CompleteSpace E] [Nor
 
 omit [NormedAlgebra ℂ E] [CompleteSpace E] [NormOneClass E] in
 
+/-- If each term has norm at most `r ^ (2 * n) / (2 * n)!`, the norm of the total sum is at most
+`cosh r`. -/
 private theorem norm_tsum_le_cosh (f : ℕ → E) (r : ℝ)
     (hf : ∀ n, ‖f n‖ ≤ r ^ (2 * n) / ((2 * n).factorial : ℝ)) :
     ‖∑' n, f n‖ ≤ Real.cosh r := by
@@ -36,6 +60,8 @@ private theorem norm_tsum_le_cosh (f : ℕ → E) (r : ℝ)
 
 omit [CompleteSpace E] in
 
+/-- The wave propagator norm is at most `exp (‖t‖ * sqrt ‖A‖)` for every algebra element and
+complex time. -/
 theorem wavePropagator_norm_le_exp (A : E) (t : ℂ) :
     ‖wavePropagator A t‖ ≤ Real.exp (‖t‖ * Real.sqrt ‖A‖) := by
   apply le_trans (norm_tsum_le_cosh _ (‖t‖ * Real.sqrt ‖A‖) ?_)
@@ -50,6 +76,8 @@ theorem wavePropagator_norm_le_exp (A : E) (t : ℂ) :
         Real.sq_sqrt (norm_nonneg A), div_eq_mul_inv]
       ring
 
+/-- The Bessel propagator norm is at most `exp (‖t‖ * sqrt ‖A‖)` for every algebra element and
+complex time. -/
 theorem besselPropagator_norm_le_exp (A : E) (t : ℂ) :
     ‖besselPropagator A t‖ ≤ Real.exp (‖t‖ * Real.sqrt ‖A‖) := by
   rw [besselPropagator_wave_mixture, norm_smul, Real.norm_eq_abs,

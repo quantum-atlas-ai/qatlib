@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+
+/-!
+# Statement of the prime-case exact query bound
+
+This module defines `Theorem46PrimeCaseRestricted`, a lower-bound proposition for exact
+observed-circuit computation of nonconstant symmetric Boolean functions. Under positive input
+length and primality of the input length plus one, it requires the input length to be at most
+twice the circuit's observed query depth, matching the prime case in [BealsEtAl2001].
+
+## Main definitions
+
+* `Theorem46PrimeCaseRestricted`: the exact query lower-bound statement, with well-formedness,
+  normalization, symmetry, and exact acceptance hypotheses.
+
+## References
+
+* [Beals et al., 2001, Corollary 4.7][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,6 +38,9 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 
 open Qatlib
 
+/-- The assertion that exact computation of a nonconstant symmetric Boolean function by a
+well-formed observed circuit requires `n ≤ 2 * observedQueryDepth P` when `n > 0` and `n +
+1` is prime, as in [Beals et al., Corollary 4.7][BealsEtAl2001]. -/
 def Theorem46PrimeCaseRestricted : Prop :=
   ∀ (n : ℕ) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W))

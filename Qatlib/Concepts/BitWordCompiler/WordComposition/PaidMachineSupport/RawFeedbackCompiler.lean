@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.RawFeedback
+
+/-!
+# A uniform binary feedback machine
+
+`pendingRequest` and `pendingResponse` specialize raw feedback transactions to addressed
+controller variables. Their lengths are bounded linearly in the controller bank size.
+
+`raw_feedback_machine` compiles the stack transaction into one binary Turing machine, providing
+cubic time and space bounds for valid feedback and quadratic rejection bounds for the specified
+inactive or incomplete inputs.
+
+For background, see [KitaevShenVyalyi2002].
+
+## Main statements
+
+* `pending_transaction_execution`: updates an addressed controller variable through the
+  transaction program.
+* `raw_feedback_machine`: packages the uniform binary implementation and rejection cases.
+
+## References
+
+* [Kitaev et al., 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,14 +38,19 @@ set_option maxHeartbeats 3000000
 open Turing Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM
 
+/-- Encodes a feedback request for a pending controller variable using its packed bank and
+binary address. -/
 def pendingRequest {q : ℕ} (bank : ControllerFeedback.Bank q)
     (pending : ControllerFeedback.Variable q) (b : Bool) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   request (ControllerFeedback.packed bank) (ControllerFeedback.address pending).val.bits b
 
+/-- Encodes a successful response containing the packed bank after supplying the pending
+feedback value. -/
 def pendingResponse {q : ℕ} (bank : ControllerFeedback.Bank q)
     (pending : ControllerFeedback.Variable q) (b : Bool) : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits :=
   response (ControllerFeedback.packed (ControllerFeedback.supply bank pending b))
 
+/-- Enumerating a bank after updating an entry equals setting that entry in the enumerated list. -/
 private theorem ofFn_update {V : ℕ} (bank : Fin V → Option Bool) (i : Fin V) (b : Bool) :
     List.ofFn (Function.update bank i (some b))=(List.ofFn bank).set i (some b) := by
   apply List.ext_getElem
@@ -34,6 +63,8 @@ private theorem ofFn_update {V : ℕ} (bank : Fin V → Option Bool) (i : Fin V)
         intro he; exact h (congrArg Fin.val he).symm
       simp [Function.update_of_ne hn]
 
+/-- The transaction program processes a pending-variable request to its updated-bank response,
+leaving clean workspace within the stated address-dependent budget. -/
 theorem pending_transaction_execution {q : ℕ} (bank : ControllerFeedback.Bank q)
     (pending : ControllerFeedback.Variable q) (b : Bool) :
     ∃ last : Local, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks.Execution program (TM2.init .reader (pendingRequest bank pending b).reverse)
@@ -56,6 +87,7 @@ theorem pending_transaction_execution {q : ℕ} (bank : ControllerFeedback.Bank 
   rw [hs,← hu,ht] at he
   exact ⟨last,by simpa only [slots,i,pendingRequest,pendingResponse,ControllerFeedback.packed] using! he⟩
 
+/-- One plus the pending request length is at most `6 * (2 * q + 6)`. -/
 theorem pendingRequest_length_bound {q : ℕ} (bank : ControllerFeedback.Bank q)
     (pending : ControllerFeedback.Variable q) (b : Bool) :
     1+(pendingRequest bank pending b).length≤6*(2*q+6) := by
@@ -71,12 +103,16 @@ theorem pendingRequest_length_bound {q : ℕ} (bank : ControllerFeedback.Bank q)
     ControllerFeedback.packed_length]
   omega
 
+/-- One plus the pending response length is at most `6 * (2 * q + 6)`. -/
 theorem pendingResponse_length_bound {q : ℕ} (bank : ControllerFeedback.Bank q)
     (pending : ControllerFeedback.Variable q) (b : Bool) :
     1+(pendingResponse bank pending b).length≤6*(2*q+6) := by
   simp only [pendingResponse,response,List.length_cons,ControllerFeedback.packed_length]
   omega
 
+/-- One binary Turing machine processes all pending feedback requests with cubic time and space
+bounds in `2 * q + 6`, and rejects the specified inactive or incomplete inputs with
+quadratic bounds. -/
 theorem raw_feedback_machine :
     ∃ (r : ℕ) (N : TM0.Machine Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Symbol (Fin (r+1))) (C : ℕ), 0<C ∧
       (∀ (q : ℕ) (bank : ControllerFeedback.Bank q) (pending : ControllerFeedback.Variable q) (b : Bool),

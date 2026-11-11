@@ -8,6 +8,28 @@ import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Rotation
 import Mathlib.Analysis.Calculus.ContDiff.Basic
 import Mathlib.MeasureTheory.Integral.Prod
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+/-!
+# Gaussian directional derivatives along rotations
+
+This module computes second moments of real continuous linear functionals under the standard
+Gaussian on a finite-dimensional real inner product space. It combines these moments with
+pair-rotation invariance and the fundamental theorem of calculus for C¹ observables, supplying
+directional estimates for Gaussian interpolation arguments [GohMuller2026].
+
+## Main statements
+
+* `dual_square_integral`: A linear functional's Gaussian second moment equals its squared
+  operator norm.
+* `rotated_gradient_square_integral`: Rotated directional energy equals the Gaussian integral of
+  the squared derivative norm.
+* `rotation_path_integral`: The angular derivative integrates to the endpoint increment.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -19,6 +41,8 @@ namespace Qatlib.Foundations.ProbabilityCore.GaussPoincare.Directional
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
   [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]
 
+/-- The second moment of a real continuous linear functional under the standard Gaussian is the
+square of its operator norm. -/
 theorem dual_square_integral (L : E→L[ℝ]ℝ) :
     (∫ y,(L y)^2 ∂stdGaussian E)=‖L‖^2 := by
   have hm : (∫ y,L y ∂stdGaussian E)=0 := by
@@ -30,6 +54,8 @@ theorem dual_square_integral (L : E→L[ℝ]ℝ) :
   rw [variance_dual_stdGaussian,hm] at h
   simpa only [zero_pow (by norm_num : (2:ℕ)≠0),sub_zero,Pi.pow_apply] using h.symm
 
+/-- For a C¹ function that is `L`-Lipschitz, the squared derivative evaluated on an independent
+Gaussian direction is integrable under the Gaussian product measure. -/
 theorem gradient_pair_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (L : ℝ≥0) (hLip : LipschitzWith L f) :
     Integrable (fun z:E×E => ((fderiv ℝ f z.1) z.2)^2)
@@ -49,6 +75,8 @@ theorem gradient_pair_integrable (f : E→ℝ) (hf : ContDiff ℝ 1 f)
   have := sq_le_sq₀ (abs_nonneg _) (by positivity) |>.mpr hb
   simpa only [sq_abs,mul_pow,Function.comp_apply] using! this
 
+/-- For a C¹ function that is `L`-Lipschitz, the Gaussian pair integral of the rotated squared
+directional derivative equals the Gaussian integral of the squared derivative norm. -/
 theorem rotated_gradient_square_integral (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (L : ℝ≥0) (hLip : LipschitzWith L f) (θ : ℝ) :
     (∫ z:E×E,((fderiv ℝ f (ContinuousLinearMap.rotation θ z).1)
@@ -60,6 +88,8 @@ theorem rotated_gradient_square_integral (f : E→ℝ) (hf : ContDiff ℝ 1 f)
   apply integral_congr_ae
   exact Filter.Eventually.of_forall fun x=>dual_square_integral (fderiv ℝ f x)
 
+/-- For a C¹ function that is `L`-Lipschitz, the Gaussian pair integral of the rotated squared
+directional derivative is at most `L ^ 2`. -/
 theorem rotated_gradient_square_le (f : E→ℝ) (hf : ContDiff ℝ 1 f)
     (L : ℝ≥0) (hLip : LipschitzWith L f) (θ : ℝ) :
     (∫ z:E×E,((fderiv ℝ f (ContinuousLinearMap.rotation θ z).1)
@@ -74,6 +104,8 @@ theorem rotated_gradient_square_le (f : E→ℝ) (hf : ContDiff ℝ 1 f)
   exact (le_abs_self _).trans h
 omit [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E] in
 
+/-- For a C¹ observable, integrating the derivative along the quarter-circle rotation path gives
+`f z.2 - f z.1`. -/
 theorem rotation_path_integral (f : E→ℝ) (hf : ContDiff ℝ 1 f) (z : E×E) :
     (∫ θ in (0:ℝ)..Real.pi/2, (fderiv ℝ f (ContinuousLinearMap.rotation θ z).1)
       (ContinuousLinearMap.rotation θ z).2)=f z.2-f z.1 := by

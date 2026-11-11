@@ -19,6 +19,29 @@ import Mathlib.Tactic.SimpRw
 import Mathlib.Tactic.SplitIfs
 import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
 import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+
+/-!
+# Native weighted coefficient selection
+
+`ClosureNativeRandom` specifies uniform index draws and clipped Bernoulli coins.
+`closureChoiceRun` implements bounded rejection sampling of a coefficient index, while
+`closureChoiceUnbounded` records its eventual index and stopping time; `closureDraw` and
+`closureUnboundedDraw` then invoke the selected native sampler and retain resource counts. For
+background, see [ChiaEtAl2022].
+
+## Main statements
+
+* `native_coefficient_choice_actual_step`: gives the exact single-attempt output and
+  continuation probabilities.
+* `native_coefficient_choice_joint_halt_and_cost`: computes bounded and unbounded output laws
+  and bounds attempts and random calls.
+* `closureDrawMass_formula`: expresses the bounded output mass as a weighted mixture.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -33,6 +56,8 @@ open Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw
 
 namespace Qatlib.Concepts.SqEstimation.HierarchicalSQ
 
+/-- Uniform finite-index samplers, with an explicit empty-index outcome, and Bernoulli samplers
+whose parameters are clipped to the unit interval. -/
 structure ClosureNativeRandom where
   uniform : (n : ℕ) → FinDist (Option (Fin n))
   uniform_some : ∀ n (j : Fin n), (uniform n).prob (some j)=1/(n:ℝ)
@@ -40,48 +65,74 @@ structure ClosureNativeRandom where
   coin : ℝ → FinDist Bool
   coin_true : ∀ r, (coin r).prob true=max 0 (min 1 r)
 
+/-- The probability mass function associated with a finite distribution. -/
 noncomputable def closurePMF {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) : PMF X :=
   Classical.choose (Qatlib.Concepts.SketchArith.TransposeAccess.FinDist.exists_pmf p)
+/-- The sum of the squared complex norms of the entries of a finite vector. -/
 noncomputable def closureNormSq {X : Type} [Fintype X] (v : X → ℂ) : ℝ := ∑ i, Complex.normSq (v i)
+/-- The maximum of zero and the finitely many coefficient weights. -/
 noncomputable def closureMax {τ : ℕ} (q : Fin τ → ℝ) : ℝ := (List.ofFn q).foldl max 0
+/-- The sum of the coefficient weights. -/
 noncomputable def closureSum {τ : ℕ} (q : Fin τ → ℝ) : ℝ := ∑ t, q t
+/-- The ratio of a coefficient weight to `closureMax`, with value zero when that maximum is
+zero. -/
 noncomputable def closureAccept {τ : ℕ} (q : Fin τ → ℝ) (t : Fin τ) : ℝ :=
   if closureMax q=0 then 0 else q t/closureMax q
+/-- The total weight divided by the number of indices times the maximum weight. -/
 noncomputable def closureRate {τ : ℕ} (q : Fin τ → ℝ) : ℝ := closureSum q/((τ:ℝ)*closureMax q)
+/-- The geometric success expression for `T` coefficient-choice attempts, set to zero when the
+maximum weight is zero. -/
 noncomputable def closureSuccess {τ : ℕ} (q : Fin τ → ℝ) (T : ℕ) : ℝ :=
   if closureMax q=0 then 0 else 1-(1-closureRate q)^T
 
+/-- One coefficient-choice attempt: draw a uniform index and accept it using a coin with
+parameter `q t / C`, continuing on rejection or an empty index draw. -/
 noncomputable def closureChoiceNext {τ : ℕ} (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (C : ℝ) :
     Unit → PMF (RandomizedExecution.Configuration Unit (Fin τ)) := fun _ =>
   (closurePMF (rand.uniform τ)).bind (fun o => match o with
     | none => PMF.pure (.inr ())
     | some t => (closurePMF (rand.coin (if C=0 then 0 else q t/C))).map (fun b => if b then .inl t else .inr ()))
 
+/-- Run at most `T` coefficient-choice attempts, recording their cost; a zero maximum weight
+returns the pending configuration at zero cost. -/
 noncomputable def closureChoiceRun {τ : ℕ} (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (T : ℕ) :
     CostedLaw (RandomizedExecution.Configuration Unit (Fin τ)) :=
   if closureMax q=0 then Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (.inr ()) else
     RandomizedExecution.runFor (closureChoiceNext rand q (closureMax q)) T (.inr ())
 
+/-- The diagnostic outcomes of coefficient selection: empty weights, timeout, or a chosen index. -/
 inductive ClosureChoiceStatus (τ : ℕ) where
   | emptyWeights | timeout | chosen (t : Fin τ)
   deriving DecidableEq
+/-- Classify a coefficient-choice configuration, giving the empty-weight diagnostic precedence
+when the maximum weight is zero. -/
 noncomputable def closureChoiceStatus {τ : ℕ} (q : Fin τ → ℝ)
     (cfg : RandomizedExecution.Configuration Unit (Fin τ)) : ClosureChoiceStatus τ :=
   if closureMax q=0 then .emptyWeights else match cfg with
     | .inr _ => .timeout
     | .inl t => .chosen t
 
+/-- An optional sample together with counts of coefficient attempts, native sampling calls, and
+norm queries. -/
 abbrev ClosureDrawResult (X : Type) := Option X × ℕ × ℕ × ℕ
+/-- The random-call count assigned to a draw result, equal to twice its coefficient-attempt
+count. -/
 def closureDrawRandomCalls {X : Type} (z : ClosureDrawResult X) : ℕ := 2*z.2.1
+/-- Choose a coefficient within the attempt budget and invoke its native sampler once on
+success, retaining the attempt and call counts. -/
 noncomputable def closureDraw {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (T : ℕ) (native : Fin τ → FinDist X) :
     PMF (ClosureDrawResult X) :=
   PMF.bind (closureChoiceRun rand q T) (fun z => match z.1 with
     | .inr _ => PMF.pure (none,z.2,0,0)
     | .inl t => (closurePMF (native t)).map (fun x => (some x,z.2,1,0)))
+/-- The unbounded coefficient-choice law on an optional pair of the selected index and stopping
+time, with `none` representing nontermination. -/
 noncomputable def closureChoiceUnbounded {τ : ℕ} (rand : ClosureNativeRandom) (q : Fin τ → ℝ) :
     PMF (Option (Fin τ × ℕ)) :=
   generalUnboundedLaw (closureChoiceNext rand q (closureMax q)) (.inr ())
+/-- Invoke the native sampler selected by unbounded coefficient choice and retain its attempt
+count; nontermination is mapped to an empty result with zero recorded counts. -/
 noncomputable def closureUnboundedDraw {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (native : Fin τ → FinDist X) :
     PMF (ClosureDrawResult X) :=
@@ -89,17 +140,24 @@ noncomputable def closureUnboundedDraw {τ : ℕ} {X : Type} [Fintype X] [Decida
     | none => PMF.pure (none,0,0,0)
     | some (t,k) => (closurePMF (native t)).map (fun x => (some x,k,1,0)))
 
+/-- The real probability that the bounded mixture sampler returns the specified sample. -/
 noncomputable def closureDrawMass {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (T : ℕ) (native : Fin τ → FinDist X) (x : X) : ℝ :=
   (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (closureDraw rand q T native) (fun z => z.1=some x)).toReal
 
+/-- Converting a finite distribution to a PMF gives the nonnegative extended-real embedding of
+each probability. -/
 theorem closurePMF_apply {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) (x : X) :
     closurePMF p x = ENNReal.ofReal (p.prob x) := Classical.choose_spec (Qatlib.Concepts.SketchArith.TransposeAccess.FinDist.exists_pmf p) x
 
+/-- Taking the real value of the converted PMF recovers the original finite-distribution
+probability. -/
 theorem closurePMF_toReal {X : Type} [Fintype X] [DecidableEq X] (p : FinDist X) (x : X) :
     (closurePMF p x).toReal = p.prob x := by
   rw [closurePMF_apply, ENNReal.toReal_ofReal (p.nonneg x)]
 
+/-- For nonnegative entries and initial value, a left fold by maximum dominates the initial
+value and every entry and is bounded by the initial value plus the sum. -/
 private theorem closure_max_fold_bounds (xs : List ℝ) (c : ℝ) (hc : 0 ≤ c)
     (hnn : ∀ x ∈ xs, 0 ≤ x) :
     c ≤ xs.foldl max c ∧ (∀ x ∈ xs, x ≤ xs.foldl max c) ∧
@@ -121,6 +179,8 @@ private theorem closure_max_fold_bounds (xs : List ℝ) (c : ℝ) (hc : 0 ≤ c)
       simp only [List.sum_cons]
       linarith
 
+/-- For nonnegative weights, the maximum is nonnegative and dominates each weight, and the sum
+lies between the maximum and the number of indices times the maximum. -/
 theorem closureMax_bounds {τ : ℕ} (q : Fin τ → ℝ) (hnn : ∀ t, 0 ≤ q t) :
     0 ≤ closureMax q ∧ (∀ t, q t ≤ closureMax q) ∧
     closureMax q ≤ closureSum q ∧ closureSum q ≤ (τ : ℝ)*closureMax q := by
@@ -133,6 +193,9 @@ theorem closureMax_bounds {τ : ℕ} (q : Fin τ → ℝ) (hnn : ∀ t, 0 ≤ q 
   · exact (Finset.sum_le_sum (fun t _ => hpoint t)).trans_eq (by
       simp only [Finset.sum_const, nsmul_eq_mul, Finset.card_univ, Fintype.card_fin])
 
+/-- Nonnegative weights with positive sum have a positive maximum and a nonempty index set.
+Their acceptance rate lies between the reciprocal index count and one, and every acceptance
+parameter lies in the unit interval. -/
 theorem closure_positive_rate {τ : ℕ} (q : Fin τ → ℝ) (hnn : ∀ t, 0 ≤ q t)
     (hs : 0 < closureSum q) :
     0 < closureMax q ∧ 0 < τ ∧
@@ -160,6 +223,8 @@ theorem closure_positive_rate {τ : ℕ} (q : Fin τ → ℝ) (hnn : ∀ t, 0 �
     simp only [closureAccept, if_neg hC.ne']
     exact ⟨div_nonneg (hnn t) hC.le, (div_le_one hC).mpr (hb.2.1 t)⟩
 
+/-- For nonzero scale `C`, the probability of selecting `t` in one attempt is the uniform
+proposal probability times the acceptance-coin probability. -/
 private theorem closureChoiceNext_inl {τ : ℕ} (rand : ClosureNativeRandom)
     (q : Fin τ → ℝ) (C : ℝ) (hC : C ≠ 0) (t : Fin τ) :
     closureChoiceNext rand q C () (.inl t) =
@@ -167,12 +232,16 @@ private theorem closureChoiceNext_inl {τ : ℕ} (rand : ClosureNativeRandom)
   simp [closureChoiceNext, if_neg hC, PMF.bind_apply, PMF.map_apply,
     tsum_fintype, Fintype.sum_option, eq_comm]
 
+/-- The real values of a PMF on a finite type sum to one. -/
 private theorem closure_pmf_sum_real {X : Type} [Fintype X] (p : PMF X) :
     ∑ x, (p x).toReal = 1 := by
   have h := congrArg ENNReal.toReal p.tsum_coe
   rw [tsum_fintype, ENNReal.toReal_sum (fun x _ => p.apply_ne_top x)] at h
   simpa only [ENNReal.toReal_one] using h
 
+/-- For nonnegative weights with positive sum, one attempt selects `t` with probability `q t /
+(τ * closureMax q)` and continues with probability `1 - closureRate q`. The acceptance
+parameters and total rate satisfy their unit-interval bounds. -/
 theorem native_coefficient_choice_actual_step (τ : ℕ) (rand : ClosureNativeRandom)
     (q : Fin τ → ℝ) (hnn : ∀ t, 0 ≤ q t) (hs : 0 < closureSum q) :
     0 < closureMax q ∧ (1/(τ : ℝ) ≤ closureRate q ∧ closureRate q ≤ 1) ∧
@@ -200,6 +269,9 @@ theorem native_coefficient_choice_actual_step (τ : ℕ) (rand : ClosureNativeRa
   change closureRate q + _ = 1 at htotal
   linarith
 
+/-- If every weight is zero, bounded coefficient choice returns the pending configuration at
+zero cost, every supported result has the empty-weight diagnostic, and its expected cost is
+zero. -/
 theorem native_coefficient_choice_empty_weight_diagnostic (τ : ℕ) (rand : ClosureNativeRandom)
     (q : Fin τ → ℝ) (T : ℕ) (hz : ∀ t, q t = 0) :
     closureChoiceRun rand q T = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (.inr ()) ∧
@@ -217,6 +289,8 @@ theorem native_coefficient_choice_empty_weight_diagnostic (τ : ℕ) (rand : Clo
   have heq : z = (.inr (),0) := (PMF.mem_support_pure_iff _ _).mp hz'
   simp [heq, closureChoiceStatus, hmax]
 
+/-- An expectation over a finite-output, single-continuation transition splits into the sum over
+halting outputs and the continuation contribution. -/
 private theorem closure_next_expectation {O : Type} [Fintype O]
     (next : Unit → PMF (O ⊕ Unit)) (W : O ⊕ Unit → ℝ≥0∞) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (next ()) W =
@@ -225,6 +299,8 @@ private theorem closure_next_expectation {O : Type} [Fintype O]
   rw [tsum_sum_type']
   simp only [tsum_fintype, Fintype.sum_unique]
 
+/-- The event probability after one additional attempt splits into immediate halting
+contributions and the continuation probability times the remaining-run event probability. -/
 private theorem closure_run_event_step {O : Type} [Fintype O]
     (next : Unit → PMF (O ⊕ Unit)) (T : ℕ) (E : O ⊕ Unit → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (RandomizedExecution.runFor next (T+1) (.inr ())) (fun z => E z.1) =
@@ -249,6 +325,8 @@ private theorem closure_run_event_step {O : Type} [Fintype O]
   (try dsimp only)
   simp_rw [hhalt, hrun]
 
+/-- The probability of remaining pending after `T` single-state attempts is the one-step
+continuation probability raised to `T`. -/
 private theorem closure_run_pending {O : Type} [Fintype O]
     (next : Unit → PMF (O ⊕ Unit)) (T : ℕ) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (RandomizedExecution.runFor next T (.inr ()))
@@ -260,6 +338,8 @@ private theorem closure_run_pending {O : Type} [Fintype O]
     simp only [Sum.inl_ne_inr, if_false, mul_zero, Finset.sum_const_zero, zero_add, ih]
     rw [pow_succ']
 
+/-- The probability of output `o` within `T` single-state attempts is its one-step halting
+probability times the first `T` terms of the continuation geometric series. -/
 private theorem closure_run_halt {O : Type} [Fintype O] [DecidableEq O]
     (next : Unit → PMF (O ⊕ Unit)) (T : ℕ) (o : O) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (RandomizedExecution.runFor next T (.inr ()))
@@ -273,6 +353,8 @@ private theorem closure_run_halt {O : Type} [Fintype O] [DecidableEq O]
       Finset.sum_ite_eq', Finset.mem_univ, if_true]
     ring
 
+/-- The general pending mass for a single-state transition equals the `T`th power of its
+continuation probability. -/
 private theorem closure_general_pending {O : Type} [Fintype O]
     (next : Unit → PMF (O ⊕ Unit)) (T : ℕ) :
     generalPendingMass next (.inr ()) T = (next () (.inr ()))^T := by
@@ -285,10 +367,13 @@ private theorem closure_general_pending {O : Type} [Fintype O]
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_congr hiff]
   exact closure_run_pending next T
 
+/-- A run starting in the pending state has zero joint halting mass at time zero. -/
 private theorem closure_haltJoint_zero {O : Type} (next : Unit → PMF (O ⊕ Unit)) (o : O) :
     haltJoint next (.inr ()) o 0 = 0 := by
   exact GeneralExecution.runFor_point_halt_zero next 0 () o
 
+/-- For a single-state transition, the joint mass of output `o` at time `T + 1` is its one-step
+halting probability times the `T`th power of the continuation probability. -/
 private theorem closure_haltJoint_succ {O : Type} [Fintype O] [DecidableEq O]
     (next : Unit → PMF (O ⊕ Unit)) (T : ℕ) (o : O) :
     haltJoint next (.inr ()) o (T+1) = next () (.inl o)*(next () (.inr ()))^T := by
@@ -312,6 +397,8 @@ private theorem closure_haltJoint_succ {O : Type} [Fintype O] [DecidableEq O]
       _ = _ := by rw [← closure_run_halt next T o, h0]
   exact (WithTop.add_left_inj hfin).mp heq
 
+/-- Summing the joint halting masses over all times gives the one-step output mass times the
+inverse of one minus the continuation probability. -/
 private theorem closure_halt_marginal {O : Type} [Fintype O] [DecidableEq O]
     (next : Unit → PMF (O ⊕ Unit)) (o : O) :
     (∑' k, haltJoint next (.inr ()) o k) =
@@ -320,6 +407,8 @@ private theorem closure_halt_marginal {O : Type} [Fintype O] [DecidableEq O]
   simp_rw [closure_haltJoint_succ]
   rw [ENNReal.tsum_mul_left, ENNReal.tsum_geometric]
 
+/-- The equivalence identifying an optional value with either a unit-valued empty case or a
+value of the underlying type. -/
 private def closureOptionEquiv (α : Type) : Option α ≃ Unit ⊕ α where
   toFun
     | none => Sum.inl ()
@@ -334,6 +423,8 @@ private def closureOptionEquiv (α : Type) : Option α ≃ Unit ⊕ α where
     | Sum.inl () => rfl
     | Sum.inr _ => rfl
 
+/-- An extended nonnegative sum over an option type splits into the `none` contribution and the
+sum over `some` values. -/
 private theorem closure_tsum_option_split {α : Type} (F : Option α → ℝ≥0∞) :
     ∑' z : Option α, F z = F none + ∑' a : α, F (some a) := by
   have hsum := (ENNReal.summable
@@ -345,6 +436,8 @@ private theorem closure_tsum_option_split {α : Type} (F : Option α → ℝ≥0
   rw [hunit, tsum_congr (fun a : α => rfl)] at hsum
   exact ((Equiv.hasSum_iff (closureOptionEquiv α).symm).mp hsum).tsum_eq
 
+/-- The unbounded event probability of output `o` is the sum of its joint halting masses over
+all stopping times. -/
 private theorem closure_unbounded_event {O : Type} [Fintype O] [DecidableEq O]
     (next : Unit → PMF (O ⊕ Unit)) (o : O) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (generalUnboundedLaw next (.inr ()))
@@ -364,6 +457,8 @@ private theorem closure_unbounded_event {O : Type} [Fintype O] [DecidableEq O]
     intro k
     rw [if_neg (fun h => hj ((hsome j k).mp h)), mul_zero]
 
+/-- When nontermination has zero mass, the expected recorded stopping time of the unbounded law
+equals `generalUnboundedTime`. -/
 private theorem closure_unbounded_cost {O : Type}
     (next : Unit → PMF (O ⊕ Unit)) (hne : generalNeverMass next (.inr ()) = 0) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (generalUnboundedLaw next (.inr ()))
@@ -383,6 +478,9 @@ private theorem closure_unbounded_cost {O : Type}
   simp only [generalUnboundedLaw_apply, generalUnboundedMass_some]
   exact mul_comm _ _
 
+/-- Nonnegative weights with positive sum yield zero nontermination probability and expected
+coefficient-choice time `1 / closureRate q`, both for the tail-sum time and for the recorded
+stopping time. -/
 theorem closure_choice_unbounded_time {τ : ℕ} (rand : ClosureNativeRandom)
     (q : Fin τ → ℝ) (hnn : ∀ t, 0 ≤ q t) (hs : 0 < closureSum q) :
     generalUnboundedTime (closureChoiceNext rand q (closureMax q)) (.inr ()) =
@@ -417,6 +515,10 @@ theorem closure_choice_unbounded_time {τ : ℕ} (rand : ClosureNativeRandom)
   apply Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr
   rintro (_ | ⟨t,k⟩) <;> rfl
 
+/-- For nonnegative weights with positive sum, bounded choice has geometric timeout probability
+and success-scaled normalized output weights, with expected attempts at most `τ` and cost
+bounded by the fuel. Unbounded choice terminates almost surely with normalized weights,
+expected attempts at most `τ`, and expected random calls at most `2 * τ`. -/
 theorem native_coefficient_choice_joint_halt_and_cost (τ : ℕ) (rand : ClosureNativeRandom)
     (q : Fin τ → ℝ) (T : ℕ) (hnn : ∀ t, 0 ≤ q t) (hs : 0 < closureSum q) :
     (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (closureChoiceRun rand q T) (fun z => z.1 = .inr ())).toReal =
@@ -511,6 +613,9 @@ theorem native_coefficient_choice_joint_halt_and_cost (τ : ℕ) (rand : Closure
     rw [hdouble, ht.2.2]
     exact (mul_le_mul' (le_refl 2) (ENNReal.ofReal_le_ofReal hinv)).trans_eq (by simp)
 
+/-- If each continuation event mass depends only on an optional finite index of the original
+record, the resulting event mass is the sum of the index-event probabilities times those
+continuation masses. -/
 theorem closure_record_mixture_event {Ω Y : Type} {τ : ℕ}
     (p : PMF Ω) (index : Ω → Option (Fin τ)) (after : Ω → PMF Y) (E : Y → Prop)
     (mass : Fin τ → ℝ≥0∞)
@@ -537,6 +642,8 @@ theorem closure_record_mixture_event {Ω Y : Type} {τ : ℕ}
   intro ω
   by_cases h : index ω = some t <;> simp [h]
 
+/-- The bounded draw probability of `x` is the sum, over indices, of the coefficient-choice
+output probability times the corresponding native probability of `x`. -/
 theorem closureDraw_event {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (T : ℕ)
     (native : Fin τ → FinDist X) (x : X) :
@@ -563,6 +670,8 @@ theorem closureDraw_event {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
       rw [GeneralExecution.event_point_mass]
       simp [index]
 
+/-- The unbounded draw probability of `x` is the sum of eventual index probabilities times the
+corresponding native probabilities of `x`. -/
 theorem closureUnboundedDraw_event {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (native : Fin τ → FinDist X) (x : X) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (closureUnboundedDraw rand q native) (fun z => z.1 = some x) =
@@ -593,6 +702,8 @@ theorem closureUnboundedDraw_event {τ : ℕ} {X : Type} [Fintype X] [DecidableE
       rw [GeneralExecution.event_point_mass]
       simp [index]
 
+/-- Invoking the selected native sampler preserves the expected coefficient-attempt count of the
+unbounded choice record. -/
 theorem closureUnboundedDraw_attempts {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (native : Fin τ → FinDist X) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (closureUnboundedDraw rand q native) (fun z => (z.2.1 : ℝ≥0∞)) =
@@ -605,6 +716,8 @@ theorem closureUnboundedDraw_attempts {τ : ℕ} {X : Type} [Fintype X] [Decidab
   | none => simp
   | some p => rcases p with ⟨t,k⟩; simp
 
+/-- For nonnegative weights with positive sum, the unbounded draw makes one native sampling call
+in expectation. -/
 theorem closureUnboundedDraw_native_calls {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (native : Fin τ → FinDist X)
     (hnn : ∀ t, 0 ≤ q t) (hs : 0 < closureSum q) :
@@ -628,6 +741,7 @@ theorem closureUnboundedDraw_native_calls {τ : ℕ} {X : Type} [Fintype X] [Dec
   simp only [if_true, mul_zero, Option.some_ne_none, if_false, mul_one, zero_add]
   exact hsum
 
+/-- The product of an event probability and a converted native sample probability is finite. -/
 private theorem closure_event_product_ne_top {Ω X : Type} [Fintype X] [DecidableEq X]
     (p : PMF Ω) (E : Ω → Prop) (q : FinDist X) (x : X) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p E*closurePMF q x ≠ ⊤ := by
@@ -635,6 +749,8 @@ private theorem closure_event_product_ne_top {Ω X : Type} [Fintype X] [Decidabl
     ((mul_le_mul' (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_le_one p E) ((closurePMF q).coe_le_one x)).trans_eq (one_mul _))
     ENNReal.one_lt_top)
 
+/-- For nonnegative weights with positive sum, bounded draw mass equals the weighted native
+mixture divided by the total weight and multiplied by the bounded success probability. -/
 theorem closureDrawMass_formula {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (T : ℕ) (native : Fin τ → FinDist X)
     (hnn : ∀ t, 0 ≤ q t) (hs : 0 < closureSum q) (x : X) :
@@ -648,6 +764,8 @@ theorem closureDrawMass_formula {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X
       (closureSuccess q T/closureSum q)*(q t*(native t).prob x) by intro t; ring]
   rw [← Finset.mul_sum]
 
+/-- For nonnegative weights with positive sum, unbounded draw mass is the native mixture
+weighted by the normalized coefficient weights. -/
 theorem closureUnboundedDrawMass_formula {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (native : Fin τ → FinDist X)
     (hnn : ∀ t, 0 ≤ q t) (hs : 0 < closureSum q) (x : X) :
@@ -662,12 +780,16 @@ theorem closureUnboundedDrawMass_formula {τ : ℕ} {X : Type} [Fintype X] [Deci
       (1/closureSum q)*(q t*(native t).prob x) by intro t; ring]
   rw [← Finset.mul_sum]
 
+/-- If every coefficient weight is zero, the bounded draw is concentrated on an empty result
+with all counts zero. -/
 theorem closureDraw_zero {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (T : ℕ) (native : Fin τ → FinDist X)
     (hz : ∀ t, q t = 0) : closureDraw rand q T native = PMF.pure (none,0,0,0) := by
   rw [closureDraw, (native_coefficient_choice_empty_weight_diagnostic τ rand q T hz).1]
   simp [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret]
 
+/-- For nonnegative weights with positive sum, the unbounded draw has zero probability of an
+empty sample. -/
 theorem closureUnboundedDraw_none {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (native : Fin τ → FinDist X)
     (hnn : ∀ t, 0 ≤ q t) (hs : 0 < closureSum q) :
@@ -683,6 +805,7 @@ theorem closureUnboundedDraw_none {τ : ℕ} {X : Type} [Fintype X] [DecidableEq
         | some p => rcases p with ⟨t,k⟩; simp
     _ = 0 := by rw [GeneralExecution.event_point_mass, hnone]
 
+/-- The unbounded draw has expected norm-query count zero. -/
 theorem closureUnboundedDraw_norm_queries {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (native : Fin τ → FinDist X) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (closureUnboundedDraw rand q native) (fun z => (z.2.2.2 : ℝ≥0∞)) = 0 := by
@@ -695,6 +818,8 @@ theorem closureUnboundedDraw_norm_queries {τ : ℕ} {X : Type} [Fintype X] [Dec
         | some p => rcases p with ⟨t,k⟩; simp
     _ = 0 := by simp
 
+/-- The bounded draw returns an empty sample exactly with the probability that coefficient
+choice remains pending. -/
 theorem closureDraw_none {τ : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (rand : ClosureNativeRandom) (q : Fin τ → ℝ) (T : ℕ) (native : Fin τ → FinDist X) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (closureDraw rand q T native) (fun z => z.1 = none) =

@@ -22,6 +22,28 @@ import Mathlib.Analysis.CStarAlgebra.Matrix
 import Mathlib.LinearAlgebra.Matrix.PosDef
 import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
 import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared
+
+/-!
+# Jacobi-Anger truncation and finite phase recovery
+
+`g5` combines corrected Jacobi-Anger degree and tail estimates with a counted truncation
+evaluator, exact finite inverse nonlinear Fourier recovery, and a source-word approximation
+theorem. The inverse recovery conclusions require `LayerStripExact`; the source compilation
+conclusions retain their parity, degree, symmetry, and approximation hypotheses.
+
+These components support the quantum signal-processing approximation framework of
+[LowChuang2017].
+
+## Main statements
+
+* `g5`: combine truncation accuracy, degree bounds, finite phase-recovery identities and costs,
+  and source-word approximation.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -75,6 +97,10 @@ open Qatlib.Concepts.QspSimulation.WordModel in
 open Qatlib.Concepts.SignalPrimitive.SparseSim in
 open Matrix Polynomial in
 
+/-- Combines corrected Jacobi-Anger truncation with error at most `ε / 8`, explicit degree and
+evaluation-count bounds, exact finite inverse nonlinear Fourier recovery under
+`LayerStripExact`, and length-`N` source compilation with error at most `8 * ε` under the
+stated polynomial hypotheses [LowChuang2017]. -/
 theorem g5 :
 
   (∀ (τ ε : ℝ), 0 ≤ τ → 0 < ε → ε ≤ 1 →

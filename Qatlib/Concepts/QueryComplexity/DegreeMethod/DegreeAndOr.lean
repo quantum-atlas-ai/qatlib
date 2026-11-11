@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+/-!
+# Exact polynomial degree bounds for AND and OR
+
+This module recovers the full-variable coefficient of a multilinear polynomial from an
+alternating sum over the Boolean cube, expressed as a subset sum by `mobius_top_coefficient`. It
+then uses the nonzero coefficient to prove exact degree lower bounds for AND and OR, as in the
+polynomial method [BealsEtAl2001].
+
+The final bounds apply to arbitrary real polynomials agreeing with the Boolean functions on the
+cube; the OR bound assumes a nonempty coordinate type.
+
+## Main statements
+
+* `mobius_top_coefficient`: the full-variable coefficient is an alternating subset sum.
+* `boolean_multilinear_and_totalDegree`: an exact AND representation has degree at least the
+  number of variables.
+* `boolean_multilinear_or_totalDegree`: an exact OR representation on a nonempty coordinate type
+  has the same lower bound.
+
+## References
+
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 
@@ -14,9 +39,13 @@ namespace Qatlib.Concepts.QueryComplexity.DegreeMethod
 open MvPolynomial
 open scoped BigOperators
 
+/-- The product of one for each true coordinate and minus one for each false coordinate of a
+Boolean input. -/
 private noncomputable def cubeComplementSign {I : Type} [Fintype I] (g : I → Bool) : ℝ :=
   ∏ i, if g i then 1 else -1
 
+/-- The complement-signed Boolean cube sum of a monomial is one if every variable has positive
+exponent, and zero otherwise. -/
 private theorem cube_monomial_top_sum {I : Type} [Fintype I] [DecidableEq I]
     (d : I →₀ ℕ) :
     (∑ g : I → Bool, cubeComplementSign g * ∏ i, (boolPoint g i)^d i)=
@@ -39,6 +68,8 @@ private theorem cube_monomial_top_sum {I : Type} [Fintype I] [DecidableEq I]
     have hdi : d i=0 := not_ne_iff.mp hi
     exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hdi])
 
+/-- For a multilinear polynomial, the coefficient of the product of all variables equals its
+complement-signed sum of Boolean cube values. -/
 private theorem cube_top_coefficient {I : Type} [Fintype I] [DecidableEq I]
     (q : MvPolynomial I ℝ)
     (hml : ∀ d : I →₀ ℕ, q.coeff d ≠ 0 → ∀ i, d i ≤ 1) :
@@ -74,6 +105,8 @@ private theorem cube_top_coefficient {I : Type} [Fintype I] [DecidableEq I]
     simp [top,mem_support_iff] at hn ⊢
     exact hn
 
+/-- The equivalence between Boolean inputs and finite subsets of coordinates, given by the set
+of true coordinates. -/
 private noncomputable def cubeFinsetEquiv {I : Type} [Fintype I] [DecidableEq I] :
     (I → Bool) ≃ Finset I where
   toFun := boolSupp
@@ -84,11 +117,15 @@ private noncomputable def cubeFinsetEquiv {I : Type} [Fintype I] [DecidableEq I]
     cases g i <;> rfl
   right_inv S := boolSupp_decide S
 
+/-- The complement sign of a Boolean input is minus one raised to the number of coordinates
+outside its true support. -/
 private theorem complementSign_support {I : Type} [Fintype I] [DecidableEq I] (g : I → Bool) :
     cubeComplementSign g=(-1 : ℝ)^((Finset.univ \ boolSupp g).card) := by
   classical
   simp [cubeComplementSign,Finset.prod_ite,boolSupp,Finset.sdiff_eq_filter]
 
+/-- The complement-signed sum over Boolean inputs equals the alternating sum over coordinate
+subsets evaluated at their indicator points. -/
 private theorem cube_subset_sum {I : Type} [Fintype I] [DecidableEq I]
     (q : MvPolynomial I ℝ) :
     (∑ g : I → Bool, cubeComplementSign g * eval (boolPoint g) q)=
@@ -110,6 +147,8 @@ private theorem cube_subset_sum {I : Type} [Fintype I] [DecidableEq I]
     (fun S : Finset I => (-1 : ℝ)^((Finset.univ \ S).card)*
       eval (fun i => if i ∈ S then (1 : ℝ) else 0) q)
 
+/-- The full-variable coefficient of a multilinear polynomial is the alternating subset sum of
+its evaluations at Boolean indicator points. -/
 theorem mobius_top_coefficient {I : Type} [Fintype I] [DecidableEq I]
     (q : MvPolynomial I ℝ)
     (hml : ∀ d : I →₀ ℕ, q.coeff d ≠ 0 → ∀ i : I, d i ≤ 1) :
@@ -119,6 +158,8 @@ theorem mobius_top_coefficient {I : Type} [Fintype I] [DecidableEq I]
             * MvPolynomial.eval (fun i => if i ∈ S then (1 : ℝ) else 0) q :=
   (cube_top_coefficient q hml).trans (cube_subset_sum q)
 
+/-- A nonzero coefficient of the product of all variables forces total degree at least the
+number of variables. -/
 private theorem full_coefficient_degree {I : Type} [Fintype I] [DecidableEq I]
     (q : MvPolynomial I ℝ) (hq : q.coeff (Finsupp.equivFunOnFinite.symm fun _ => 1) ≠ 0) :
     Fintype.card I ≤ q.totalDegree := by
@@ -128,6 +169,8 @@ private theorem full_coefficient_degree {I : Type} [Fintype I] [DecidableEq I]
     simp
   simpa only [ht] using h
 
+/-- Every real polynomial representing AND exactly on the Boolean cube has total degree at least
+the number of coordinates [BealsEtAl2001]. -/
 theorem boolean_multilinear_and_totalDegree {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℝ)
     (hp : ∀ g : I → Bool,
@@ -155,6 +198,8 @@ theorem boolean_multilinear_and_totalDegree {I : Type} [Fintype I] [DecidableEq 
     norm_num
   exact (full_coefficient_degree q hcoef).trans (multilinearize_totalDegree_le p)
 
+/-- On a nonempty finite coordinate type, every real polynomial representing OR exactly on the
+Boolean cube has total degree at least the number of coordinates [BealsEtAl2001]. -/
 theorem boolean_multilinear_or_totalDegree {I : Type} [Fintype I] [DecidableEq I]
     (p : MvPolynomial I ℝ) (hn : 0 < Fintype.card I)
     (hp : ∀ g : I → Bool, eval (fun i => if g i then (1 : ℝ) else 0) p=

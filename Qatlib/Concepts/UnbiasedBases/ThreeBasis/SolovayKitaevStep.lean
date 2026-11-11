@@ -6,6 +6,26 @@ Authors: Zayn Blore, Qatlib Contributors
 
 import Qatlib.Concepts.UnbiasedBases.ThreeBasis.GroupCommutator
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+/-!
+# Perturbation bounds for the Solovay–Kitaev step
+
+This module refines the stability estimate for group commutators whose factors are close to the
+identity. The bounds retain the small radius factor needed for a `3 / 2` error recurrence, and
+`skError_le_rpow` solves the resulting recursive inequality used in Solovay–Kitaev analysis
+[DawsonNielsen2006].
+
+## Main statements
+
+* `norm_groupCommutator_sub_le`: bounds the change of a commutator by `4 * a * δ * (1 + a)`.
+* `norm_groupCommutator_sub_le_sqrt`: specializes the radius to `√2 * √ε`.
+* `skError_le_rpow`: bounds a nonnegative sequence satisfying the recursive error inequality.
+
+## References
+
+* [Dawson and Nielsen, 2006][DawsonNielsen2006]
+-/
+
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis
 open Qatlib.Concepts.UnbiasedBases.ThreeBasis.CStarRing
 
@@ -15,6 +35,8 @@ namespace Qatlib.Concepts.UnbiasedBases.ThreeBasis.CSD.SolovayKitaev
 
 variable {E : Type*}
 
+/-- In a normed ring, the distance between two products is at most `‖A - A'‖ * ‖B‖ + ‖A'‖ * ‖B -
+B'‖`. -/
 theorem norm_mul_sub_mul_le' [NormedRing E] (A B A' B' : E) :
     ‖A * B - A' * B'‖ ≤ ‖A - A'‖ * ‖B‖ + ‖A'‖ * ‖B - B'‖ := by
   have key : A * B - A' * B' = (A - A') * B + A' * (B - B') := by noncomm_ring
@@ -27,6 +49,8 @@ variable [NormedRing E] [StarRing E] [CStarRing E]
 
 omit [StarRing E] [CStarRing E] in
 
+/-- If all four factors are within `a` of the identity and corresponding factors differ by at
+most `δ`, their additive commutators differ by at most `4 * a * δ`. -/
 theorem norm_mul_sub_mul_comm_sub_le {V W V' W' : E} {a δ : ℝ}
     (haW : ‖W - 1‖ ≤ a) (haV' : ‖V' - 1‖ ≤ a) (haV : ‖V - 1‖ ≤ a) (haW' : ‖W' - 1‖ ≤ a)
     (hδV : ‖V - V'‖ ≤ δ) (hδW : ‖W - W'‖ ≤ δ) :
@@ -60,6 +84,8 @@ theorem norm_mul_sub_mul_comm_sub_le {V W V' W' : E} {a δ : ℝ}
     _ ≤ 2 * a * δ + 2 * a * δ := add_le_add h1 h2
     _ = 4 * a * δ := by ring
 
+/-- If four unitary factors are within `a` of the identity and corresponding factors differ by
+at most `δ`, their group commutators differ by at most `4 * a * δ * (1 + a)`. -/
 theorem norm_groupCommutator_sub_le {V W V' W' : E} (hV : V ∈ unitary E) (hW : W ∈ unitary E)
     (hV' : V' ∈ unitary E) (hW' : W' ∈ unitary E) {a δ : ℝ}
     (haV : ‖V - 1‖ ≤ a) (haW : ‖W - 1‖ ≤ a) (haV' : ‖V' - 1‖ ≤ a) (haW' : ‖W' - 1‖ ≤ a)
@@ -105,6 +131,8 @@ theorem norm_groupCommutator_sub_le {V W V' W' : E} (hV : V ∈ unitary E) (hW :
         exact mul_le_mul hP' hQ (norm_nonneg _) (by positivity)
     _ = 4 * a * δ * (1 + a) := by ring
 
+/-- For unitary factors within `√2 * √ε` of the identity and corresponding perturbations at most
+`δ`, the commutator error is at most `4 * (√2 * √ε) * δ * (1 + √2 * √ε)`. -/
 theorem norm_groupCommutator_sub_le_sqrt {V W V' W' : E} (hV : V ∈ unitary E) (hW : W ∈ unitary E)
     (hV' : V' ∈ unitary E) (hW' : W' ∈ unitary E) {ε δ : ℝ}
     (haV : ‖V - 1‖ ≤ Real.sqrt 2 * Real.sqrt ε) (haW : ‖W - 1‖ ≤ Real.sqrt 2 * Real.sqrt ε)
@@ -117,6 +145,8 @@ theorem norm_groupCommutator_sub_le_sqrt {V W V' W' : E} (hV : V ∈ unitary E) 
 
 end CStar
 
+/-- If `C > 0` and a nonnegative sequence satisfies `ε (n + 1) ≤ C * ε n ^ (3 / 2)`, then `C ^ 2
+* ε n ≤ (C ^ 2 * ε 0) ^ ((3 / 2) ^ n)`. -/
 theorem skError_le_rpow {C : ℝ} (hC : 0 < C) {ε : ℕ → ℝ} (hε : ∀ n, 0 ≤ ε n)
     (hrec : ∀ n, ε (n + 1) ≤ C * ε n ^ ((3 : ℝ) / 2)) (n : ℕ) :
     C ^ 2 * ε n ≤ (C ^ 2 * ε 0) ^ ((3 : ℝ) / 2) ^ n := by

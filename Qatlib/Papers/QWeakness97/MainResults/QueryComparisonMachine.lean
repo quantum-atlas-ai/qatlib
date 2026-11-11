@@ -5,6 +5,32 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QWeakness97.MainResults.QueryComparisonMachineDefs
+
+/-!
+# Sequential oracle copies and tidy amplification
+
+This module packages concrete finite oracle-circuit constructions as results about
+`MachineProgram`. `clause79_complete` executes any number of independent copies through a shared
+Boolean query port, with exact query and matrix-gate counts and a tensor-product execution
+identity.
+
+`clause80_complete` gives the finite-circuit amplification mechanism associated with Theorem
+4.14 of [BennettEtAl1997]. Starting from success probability at least `2/3`, it obtains success
+at least `1 - ε` on the desired output bit while restoring the query port and all copied work
+registers to their specified basis states.
+
+## Main statements
+
+* `clause79_complete` constructs `k` sequential copies with `k * Q` queries and `k * G + 2 * k *
+  Q` matrix gates.
+* `clause80_complete` constructs a unitary tidy amplification circuit with a logarithmic bound
+  on its repetition parameter and explicit query and gate bounds.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.PureStateMath
@@ -24,6 +50,10 @@ open scoped Classical BigOperators ENNReal
 
 variable {W X : Type} [Fintype W] [DecidableEq W] [Fintype X] [DecidableEq X]
 
+/-- For a unitary machine circuit and a nonempty address space and workspace, construct `k`
+independent sequential copies using `k * Q` queries and `k * G + 2 * k * Q` matrix gates. On
+arbitrary product input states, the run applies the original circuit to each copy and
+restores the shared query port to its fixed basis state. -/
 theorem clause79_complete (k : ℕ) (n : ℕ) (hn : 0 < n) (W : Type) [Fintype W] [DecidableEq W]
     [Nonempty W] (P : MachineProgram n W) (hU : IsUnitaryCircuit P.circuit) :
     ∃ (D : MachineProgram n (Fin k → (Fin n × Bool) × W)),
@@ -45,6 +75,12 @@ theorem clause79_complete (k : ℕ) (n : ℕ) (hn : 0 < n) (W : Type) [Fintype W
   · intro x ψ
     exact hrun x ψ
 
+/-- From a unitary oracle circuit whose designated Boolean output is correct with probability at
+least `2/3`, construct a unitary tidy circuit succeeding with probability at least `1 - ε`
+for every positive `ε`, with explicit query and gate bounds and a repetition parameter
+bounded logarithmically in `2 / ε`. The final success event restores all copied seeds and
+the query port while retaining the correct output bit, giving the finite-circuit
+amplification mechanism associated with Theorem 4.14 of [BennettEtAl1997]. -/
 theorem clause80_complete (n : ℕ) (hn : 0 < n) (W : Type) [Fintype W] [DecidableEq W] [Nonempty W]
     (P : MachineProgram n W) (hU : IsUnitaryCircuit P.circuit)
     (seed : (Fin n × Bool) × W) (v : ((Fin n × Bool) × W) → Bool) (input : X → Fin n → Bool)

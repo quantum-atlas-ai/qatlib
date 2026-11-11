@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OneWayDanos05.MainResults.FlowRewrite
 import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+
+/-!
+# Input-frame identities for MBQC flow rewrites
+
+The register-indexed frame `inputFrame` prepares noninput qubits in the plus state. Local X
+invariance and controlled-Z conjugation identities move corrections across the entangler, and
+relabeling transfers these identities to `mbqcInputFrame`. These matrix equalities support the
+flow correction arguments of [DanosKashefi2006].
+
+## Main statements
+
+* `localXGate_mul_mbqcInputFrame`: A native local X gate on a noninput wire leaves the MBQC
+  input frame unchanged.
+* `localZpow_mul_cz_mul_localX`: For adjacent distinct vertices in a canonical graph, a
+  Boolean-controlled local Z can be moved across the entangler using the corresponding local X
+  and dependent Z corrections.
+* `localZ_mul_entangler_mul_mbqcInputFrame`: For adjacent distinct vertices in a canonical graph
+  with noninput successor, the local Z entangler identity transfers to native MBQC operators and
+  input frames.
+
+## References
+
+* [Danos and Kashefi, 2006][DanosKashefi2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -23,6 +48,8 @@ namespace Qatlib.Papers.OneWayDanos05.MainResults
 
 variable {n : ℕ}
 
+/-- Left multiplication by the permutation matrix of an involution selects the matrix row
+indexed by that involution. -/
 theorem permMatrix_mul_apply {α β : Type*} [Fintype α] [DecidableEq α]
     (σ : α → α) (hσ : Function.Involutive σ) (M : Matrix α β ℂ) (x : α) (y : β) :
     (permMatrix σ * M) x y = M (σ x) y := by
@@ -38,6 +65,8 @@ theorem permMatrix_mul_apply {α β : Type*} [Fintype α] [DecidableEq α]
   rw [hsingle]
   simp [permMatrix, hσ x]
 
+/-- The input embedding on bit registers, retaining input bits and assigning the normalized plus
+amplitude to each noninput bit. -/
 noncomputable def inputFrame (I : Finset (Fin n)) :
     Matrix (Reg n) (Fin (2 ^ I.card)) ℂ :=
   Matrix.of fun x y => ∏ v : Fin n,
@@ -45,11 +74,14 @@ noncomputable def inputFrame (I : Finset (Fin n)) :
       if x v = (bitVecEquiv I.card).symm y (I.equivFin ⟨v, h⟩) then (1 : ℂ) else 0
     else (Real.sqrt 2 : ℂ)⁻¹
 
+/-- The native MBQC input frame is the row relabeling of the register-indexed input frame by
+`bitVecEquiv`. -/
 theorem mbqcInputFrame_eq_submatrix (I : Finset (Fin n)) :
     mbqcInputFrame I = (inputFrame I).submatrix (bitVecEquiv n).symm id := by
   ext x y
   simp [mbqcInputFrame, inputFrame]
 
+/-- Flipping a noninput bit leaves every input-frame entry unchanged. -/
 theorem inputFrame_flip (I : Finset (Fin n)) {v : Fin n} (hv : v ∉ I)
     (x : Reg n) (y : Fin (2 ^ I.card)) :
     inputFrame I (flipBit v x) y = inputFrame I x y := by
@@ -64,6 +96,7 @@ theorem inputFrame_flip (I : Finset (Fin n)) {v : Fin n} (hv : v ∉ I)
     simp [hw, hupd]
   · simp [hw]
 
+/-- A local X operator on a noninput wire leaves the register-indexed input frame unchanged. -/
 theorem localX_mul_inputFrame (I : Finset (Fin n)) {v : Fin n} (hv : v ∉ I) :
     localX v * inputFrame I = inputFrame I := by
   ext x y
@@ -71,9 +104,13 @@ theorem localX_mul_inputFrame (I : Finset (Fin n)) {v : Fin n} (hv : v ∉ I) :
     permMatrix_mul_apply (flipBit v) (flipBit_involutive v)]
   exact inputFrame_flip I hv x y
 
+/-- The local X matrix relabeled from bit-register indices to the native finite-dimensional
+operator indices. -/
 noncomputable def localXGate (v : Fin n) : Operator (2 ^ n) :=
   relabelGate (bitVecEquiv n) (localX v)
 
+/-- A native local X gate on a noninput wire leaves the MBQC input frame unchanged
+[DanosKashefi2006]. -/
 theorem localXGate_mul_mbqcInputFrame (I : Finset (Fin n)) {v : Fin n} (hv : v ∉ I) :
     localXGate v * mbqcInputFrame I = mbqcInputFrame I := by
   unfold localXGate
@@ -84,6 +121,7 @@ theorem localXGate_mul_mbqcInputFrame (I : Finset (Fin n)) {v : Fin n} (hv : v �
     (bitVecEquiv n).symm (bitVecEquiv n).symm id]
   rw [localX_mul_inputFrame I hv]
 
+/-- The dependent Z correction matrix squares to the identity. -/
 theorem depZMatrix_mul_self (G : MbqcGraph n) (w v : Fin n) :
     depZMatrix G w v * depZMatrix G w v = 1 := by
   rw [depZMatrix, Matrix.diagonal_mul_diagonal]
@@ -92,6 +130,7 @@ theorem depZMatrix_mul_self (G : MbqcGraph n) (w v : Fin n) :
     exact depZVal_sq G w v x
   rw [h, Matrix.diagonal_one]
 
+/-- A local Z matrix squares to the identity. -/
 theorem localZ_mul_self (v : Fin n) : localZ v * localZ v = 1 := by
   rw [localZ, Matrix.diagonal_mul_diagonal]
   have h : (fun x : Reg n => (if x v then (-1 : ℂ) else 1) * (if x v then (-1 : ℂ) else 1))
@@ -100,10 +139,13 @@ theorem localZ_mul_self (v : Fin n) : localZ v * localZ v = 1 := by
     split_ifs <;> norm_num
   rw [h, Matrix.diagonal_one]
 
+/-- A local X matrix squares to the identity. -/
 theorem localX_mul_self (v : Fin n) : localX v * localX v = 1 := by
   rw [show localX v = permMatrix (flipBit v) from rfl]
   exact permMatrix_mul_self (flipBit_involutive v)
 
+/-- For adjacent distinct vertices in a canonical graph, with the successor outside the inputs,
+local Z after entangling the input frame equals local X times the dependent Z correction. -/
 theorem localZ_mul_cz_mul_inputFrame (G : MbqcGraph n) (hcanon : mbqcCanonical G)
     (I : Finset (Fin n)) {v w : Fin n} (hvw : mbqcAdj G v w = true) (hne : v ≠ w)
     (hwI : w ∉ I) :
@@ -115,6 +157,9 @@ theorem localZ_mul_cz_mul_inputFrame (G : MbqcGraph n) (hcanon : mbqcCanonical G
     _ = localX w * depZMatrix G w v * czMatrix G.edges * inputFrame I := by
         rw [Matrix.mul_assoc, localX_mul_inputFrame I hwI]
 
+/-- For adjacent distinct vertices in a canonical graph, a Boolean-controlled local Z can be
+moved across the entangler using the corresponding local X and dependent Z corrections
+[DanosKashefi2006]. -/
 theorem localZpow_mul_cz_mul_localX (G : MbqcGraph n) (hcanon : mbqcCanonical G)
     {v w : Fin n} (hvw : mbqcAdj G v w = true) (hne : v ≠ w) (s : Bool) :
     (if s then localZ v else 1) * czMatrix G.edges
@@ -124,6 +169,8 @@ theorem localZpow_mul_cz_mul_localX (G : MbqcGraph n) (hcanon : mbqcCanonical G)
   · simp
   · simpa [Matrix.mul_assoc] using localZ_mul_cz_mul_localX G hcanon hvw hne
 
+/-- Multiplying a relabeled gate by the native input frame equals relabeling its product with
+the register-indexed input frame. -/
 theorem relabelGate_mul_mbqcInputFrame (I : Finset (Fin n))
     (M : Matrix (Reg n) (Reg n) ℂ) :
     relabelGate (bitVecEquiv n) M * mbqcInputFrame I
@@ -134,6 +181,8 @@ theorem relabelGate_mul_mbqcInputFrame (I : Finset (Fin n))
   rw [submatrix_mul_equiv M (inputFrame I)
     (bitVecEquiv n).symm (bitVecEquiv n).symm id]
 
+/-- For adjacent distinct vertices in a canonical graph with noninput successor, the local Z
+entangler identity transfers to native MBQC operators and input frames [DanosKashefi2006]. -/
 theorem localZ_mul_entangler_mul_mbqcInputFrame (G : MbqcGraph n)
     (hcanon : mbqcCanonical G) (I : Finset (Fin n)) {v w : Fin n}
     (hvw : mbqcAdj G v w = true) (hne : v ≠ w) (hwI : w ∉ I) :

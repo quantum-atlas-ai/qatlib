@@ -14,6 +14,27 @@ import Mathlib.LinearAlgebra.Matrix.ConjTranspose
 import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
 import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgramGraph
+
+/-!
+# Two-reflection construction contract
+
+Defines `TwoReflectionConstruction`, the conjunction of Hermitian graph adjacency, orthogonal
+input projectors, phase-oracle descriptions of their reflections, and existence of an orthogonal
+projector onto the adjacency kernel.
+
+The contract separates this finite-matrix construction from its proof in the reflection-query
+setting of [Reichardt2011].
+
+## Main statements
+
+* `TwoReflectionConstruction`: specifies the graph and projector data needed to form the
+  reflection product.
+
+## References
+
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
@@ -23,6 +44,9 @@ namespace Qatlib.Concepts.QueryComplexity.Reflections
 open Matrix
 open scoped BigOperators
 
+/-- The construction contract asserting Hermitian graph adjacency, orthogonal input projections
+with phase-oracle reflections, and existence of an orthogonal projector onto the adjacency
+kernel. -/
 def TwoReflectionConstruction : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (n m : ℕ)
     (input : X → Fin n → Bool) (f : X → Bool) (v : X → Fin n → Fin m → ℂ) (W : ℝ),

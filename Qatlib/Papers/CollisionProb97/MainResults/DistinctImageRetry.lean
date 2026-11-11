@@ -8,6 +8,29 @@ import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.FairRandomBits.GeometricRetry
 import Mathlib.Probability.Distributions.Uniform
 import Mathlib.Tactic
+
+/-!
+# Retrying for a new image value
+
+This module models uniform input sampling with one paid function evaluation per attempt,
+accepting when the image value lies outside `T`. It supplies the retry calculation used to build
+distinct-image tables in [BrassardHoyerTapp1998Collision].
+
+The theorem `new_image_retry_receipt` proves zero nontermination mass and the exact expected
+query count, bounded by two while at most half the image has been collected.
+
+## Main statements
+
+* `newImageCoin_exact`: For positive regular fiber size, the acceptance probability is the
+  fraction of image values outside `T`.
+* `new_image_retry_receipt`: If `T` occupies at most half the image, the paid retry has zero
+  nontermination mass and expected time `|image F| / (|image F| - T.card)`, at most two.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
@@ -18,20 +41,27 @@ open Qatlib.Concepts.FairRandomBits.GeometricRetry
 namespace Qatlib.Papers.CollisionProb97.MainResults.DistinctImageRetry
 variable {X R : Type} [Fintype X] [Nonempty X] [DecidableEq R]
 
+/-- The Boolean law indicating whether a uniformly sampled input has an `F`-value outside `T`. -/
 def newImageCoin (F : X → R) (T : Finset R) : PMF Bool :=
  (PMF.uniformOfFintype' X).map (fun x => decide (F x ∉ T))
 
+/-- A retry transition that samples an input, evaluates `F` once, and accepts exactly when its
+value lies outside `T`. -/
 def paidFetchNext (F : X → R) (T : Finset R) : Unit → PMF ((Bool ⊕ Unit) × ℕ) :=
  fun _ => (PMF.uniformOfFintype' X).map (fun x =>
    let value := F x
    (if value ∉ T then Sum.inl true else Sum.inr (), 1))
 
+/-- Identifies `paidFetchNext` with the geometric retry transition for `newImageCoin`, charging
+one query on either branch. -/
 theorem paidFetchNext_eq (F : X → R) (T : Finset R) :
  paidFetchNext F T = branchRetryNext (newImageCoin F T) 1 1 := by
  funext u
  simp [paidFetchNext, branchRetryNext, newImageCoin, PMF.map_comp, Function.comp_def]
 omit [Nonempty X] in
 
+/-- A subset `T` of the image has `T.card * r` preimages when every image fiber has cardinality
+`r`. -/
 theorem count_fiber_set (F : X → R) (r : ℕ)
  (hF : ∀ y ∈ Finset.univ.image F,
     (Finset.univ.filter (fun x => F x = y)).card = r)
@@ -42,6 +72,7 @@ theorem count_fiber_set (F : X → R) (r : ℕ)
  exact Finset.sum_const_nat (fun _ _ => rfl)
 omit [Nonempty X] in
 
+/-- The domain cardinality equals the image cardinality times the common fiber size. -/
 theorem domain_card (F : X → R) (r : ℕ)
  (hF : ∀ y ∈ Finset.univ.image F,
     (Finset.univ.filter (fun x => F x = y)).card = r) :
@@ -53,6 +84,8 @@ theorem domain_card (F : X → R) (r : ℕ)
  simpa only [he, Finset.card_univ] using h
 omit [Nonempty X] in
 
+/-- The number of inputs whose values lie outside `T` is the number of unused image values times
+the common fiber size. -/
 theorem new_input_card (F : X → R) (r : ℕ)
  (hF : ∀ y ∈ Finset.univ.image F,
     (Finset.univ.filter (fun x => F x = y)).card = r)
@@ -65,6 +98,8 @@ theorem new_input_card (F : X → R) (r : ℕ)
   simp
  rw [he, count_fiber_set F r hF _ (Finset.sdiff_subset), Finset.card_sdiff_of_subset hT]
 
+/-- The probability of a new image value is the fraction of domain inputs whose `F`-values lie
+outside `T`. -/
 theorem newImageCoin_card (F : X → R) (T : Finset R) :
  newImageCoin F T true = ENNReal.ofReal
   (((Finset.univ.filter (fun x => F x ∉ T)).card : ℝ) / Fintype.card X) := by
@@ -76,6 +111,8 @@ theorem newImageCoin_card (F : X → R) (T : Finset R) :
    ENNReal.ofReal_natCast, ENNReal.ofReal_natCast]
  rfl
 
+/-- For positive regular fiber size, the acceptance probability is the fraction of image values
+outside `T`. -/
 theorem newImageCoin_exact (F : X → R) (r : ℕ) (hr : 0 < r)
  (hF : ∀ y ∈ Finset.univ.image F,
     (Finset.univ.filter (fun x => F x = y)).card = r)
@@ -89,6 +126,8 @@ theorem newImageCoin_exact (F : X → R) (r : ℕ) (hr : 0 < r)
  have hrR : (r : ℝ) ≠ 0 := by exact_mod_cast hr.ne'
  field_simp
 
+/-- If `T` occupies at most half the image, the paid retry has zero nontermination mass and
+expected time `|image F| / (|image F| - T.card)`, at most two. -/
 theorem new_image_retry_receipt (F : X → R) (r : ℕ) (hr : 0 < r)
  (hF : ∀ y ∈ Finset.univ.image F,
     (Finset.univ.filter (fun x => F x = y)).card = r)

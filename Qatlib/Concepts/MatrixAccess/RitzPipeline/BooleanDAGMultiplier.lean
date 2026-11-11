@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplierData
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
 import Mathlib.Algebra.BigOperators.Fin
+
+/-!
+# Unsigned multiplication by Boolean DAGs
+
+`boolean_word_mul_value` proves that the width `2*w` output represents the exact product of two
+unsigned width `w` words. Prefix invariants describe shift-and-add accumulation of the low bits
+of the second operand.
+
+The module also proves polynomial resource bounds and the compute-copy-uncompute circuit action
+on basis states and arbitrary embedded states. The circuit background is described in
+[NielsenChuang2010].
+
+## Main statements
+
+* `boolean_word_mul_prefix`: value and zero-wire invariants for partial products.
+* `boolean_word_mul_value`: exact unsigned multiplication.
+* `boolean_word_mul_resources`: node, gate, and register bounds.
+* `boolean_word_mul_basis`, `boolean_word_mul_coherent`: compiled circuit semantics.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +44,8 @@ open Matrix
 open scoped Classical BigOperators
 set_option autoImplicit false
 
+/-- Appending one Boolean node preserves earlier wire values and evaluates the new final wire
+using that node on the previous graph values. -/
 private theorem mul_snoc_value {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+(n+1))) :
     booleanDAGValue (g.snoc node) x j =
@@ -29,6 +55,7 @@ private theorem mul_snoc_value {m n : ℕ} (g : BooleanDAG m n)
   · simp [booleanDAGValue]
   · simp [booleanDAGValue]
 
+/-- Every original input wire of a Boolean graph evaluates to the corresponding input bit. -/
 private theorem mul_input_value {m n : ℕ} (g : BooleanDAG m n)
     (x : Reg m) (j : Fin m) :
     booleanDAGValue g x (Fin.castLE (by omega) j) = x j := by
@@ -39,6 +66,8 @@ private theorem mul_input_value {m n : ℕ} (g : BooleanDAG m n)
     have hj : j.val < m+n := by have := j.isLt; omega
     simpa only [Fin.val_castLE,dif_pos hj] using! ih
 
+/-- Each computed prefix bit is the conjunction of the corresponding word bit and the common
+control bit. -/
 private theorem mul_and_prefix (w n : ℕ) (hn : n ≤ w) (x : Reg (w+1)) (j : Fin n) :
     booleanDAGValue (booleanWordAndPrefix w n hn) x ⟨w+1+j.val,by have := j.isLt; omega⟩ =
       (x ⟨j.val,by have := j.isLt; omega⟩ && x (Fin.last w)) := by
@@ -60,29 +89,38 @@ private theorem mul_and_prefix (w n : ℕ) (hn : n ≤ w) (x : Reg (w+1)) (j : F
       simp only [Fin.val_castSucc,dif_pos hk]
       exact ih (by omega) k
 
+/-- Route the first operand and bit `i` of the second operand into the partial-product masking
+graph. -/
 private def mulRoundInputs (w i : ℕ) (hi : i < w)
     (p : BooleanDAGWord (2*w) (w+i)) : Fin (w+1) → Fin (2*w+p.nodes) := fun j =>
   if hj : j.val < w then ⟨j.val,by omega⟩ else ⟨w+i,by omega⟩
 
+/-- Append the bitwise conjunction graph for the next controlled partial product. -/
 private def mulRoundAnd (w i : ℕ) (hi : i < w)
     (p : BooleanDAGWord (2*w) (w+i)) : BooleanDAG (2*w) (p.nodes+w) :=
   booleanDAGSplice p.graph (mulRoundInputs w i hi p) (booleanWordAndDAG w)
 
+/-- Select the previous accumulator word as the left input of the round's appended adder. -/
 private def mulRoundLeft (w i : ℕ) (p : BooleanDAGWord (2*w) (w+i)) :
     Fin (w+i) → Fin (2*w+(p.nodes+w)) :=
   fun j => Fin.castLE (by omega) (p.output j)
 
+/-- Select the shifted partial-product wires, filling the low `i` positions with the
+distinguished zero wire. -/
 private def mulRoundRight (w i : ℕ) (p : BooleanDAGWord (2*w) (w+i)) :
     Fin (w+i) → Fin (2*w+(p.nodes+w)) := fun j =>
   if hj : j.val < i then Fin.castLE (by omega) p.zero
   else ⟨2*w+p.nodes+(j.val-i),by have := j.isLt; omega⟩
 
+/-- Appending the partial-product conjunction graph preserves the values of all previous wires. -/
 private theorem mul_and_old (w i : ℕ) (hi : i < w)
     (p : BooleanDAGWord (2*w) (w+i)) (x : Reg (2*w)) (j : Fin (2*w+p.nodes)) :
     booleanDAGValue (mulRoundAnd w i hi p) x (Fin.castLE (by omega) j) =
       booleanDAGValue p.graph x j :=
   boolean_dag_splice_prefix _ _ _ _ _
 
+/-- Each appended partial-product bit is the first operand bit conjoined with bit `i` of the
+second operand. -/
 private theorem mul_and_bit (w i : ℕ) (hi : i < w)
     (p : BooleanDAGWord (2*w) (w+i)) (x : Reg (2*w)) (j : Fin w) :
     booleanDAGValue (mulRoundAnd w i hi p) x
@@ -115,6 +153,7 @@ private theorem mul_and_bit (w i : ℕ) (hi : i < w)
       mul_and_prefix w w (Nat.le_refl w) _ j
     _ = _ := congrArg₂ (fun a b : Bool => a && b) ha hb
 
+/-- A multiplication round preserves the values of every pre-existing graph wire. -/
 private theorem mul_round_old (w i : ℕ) (hi : i < w)
     (p : BooleanDAGWord (2*w) (w+i)) (x : Reg (2*w)) (j : Fin (2*w+p.nodes)) :
     booleanDAGValue (booleanWordMulRound w i hi p).graph x (Fin.castLE (by
@@ -128,6 +167,8 @@ private theorem mul_round_old (w i : ℕ) (hi : i < w)
     (Fin.castLE (by omega) j)
   exact h.trans (mul_and_old w i hi p x j)
 
+/-- If the zero wire is false, the adder's right operand is the controlled partial product
+shifted left by `i` bits. -/
 private theorem mul_right_value (w i : ℕ) (hi : i < w)
     (p : BooleanDAGWord (2*w) (w+i)) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) (j : Fin (w+i)) :
@@ -141,9 +182,13 @@ private theorem mul_right_value (w i : ℕ) (hi : i < w)
   · rw [mulRoundRight,dif_neg hj,dif_neg hj]
     exact mul_and_bit w i hi p x ⟨j.val-i,by have := j.isLt; omega⟩
 
+/-- Form the word obtained by masking `a` with a Boolean control and shifting it left by `i`
+bits. -/
 private def mulShift (w i : ℕ) (a : Reg w) (bit : Bool) : Reg (w+i) := fun j =>
   if hj : j.val < i then false else a ⟨j.val-i,by have := j.isLt; omega⟩ && bit
 
+/-- The shifted masked word has value `2^i` times the input value when its control is true, and
+zero otherwise. -/
 private theorem mul_shift_value (w i : ℕ) (a : Reg w) (bit : Bool) :
     booleanWordLSBValue (w+i) (mulShift w i a bit) =
       if bit then booleanWordLSBValue w a * (2 : ℕ)^i else 0 := by
@@ -180,6 +225,8 @@ private theorem mul_shift_value (w i : ℕ) (a : Reg w) (bit : Bool) :
     rw [he,pow_add]
     ring
 
+/-- If the zero wire is false, a multiplication round adds the next shifted controlled partial
+product to the accumulator value. -/
 private theorem mul_round_value (w i : ℕ) (hi : i < w)
     (p : BooleanDAGWord (2*w) (w+i)) (x : Reg (2*w))
     (hz : booleanDAGValue p.graph x p.zero = false) :
@@ -206,6 +253,8 @@ private theorem mul_round_value (w i : ℕ) (hi : i < w)
       boolean_dag_append_adder_value g (w+i) a b x
     _ = _ := by rw [ha,hb,mul_shift_value]
 
+/-- A multiplication prefix has a false zero wire, and its output equals the first operand times
+the value of the first `i` bits of the second operand. -/
 theorem boolean_word_mul_prefix (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
     let p := booleanWordMulPrefix w i hi
     booleanDAGValue p.graph x p.zero = false ∧
@@ -233,17 +282,21 @@ theorem boolean_word_mul_prefix (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
       simp only [Fin.val_castSucc,Fin.val_last]
       by_cases hb : booleanWordAdderRight w x ⟨i,hi'⟩ <;> simp [hb,Nat.mul_add]
 
+/-- The left view of a packed operand pair recovers the first word. -/
 private theorem mul_left_input (w : ℕ) (a b : Reg w) :
     booleanWordAdderLeft w (booleanWordAdderInput w a b) = a := by
   funext j
   simp [booleanWordAdderLeft,booleanWordAdderInput,j.isLt]
 
+/-- The right view of a packed operand pair recovers the second word. -/
 private theorem mul_right_input (w : ℕ) (a b : Reg w) :
     booleanWordAdderRight w (booleanWordAdderInput w a b) = b := by
   funext j
   have hnot : ¬w+j.val < w := by omega
   simp [booleanWordAdderRight,booleanWordAdderInput,hnot]
 
+/-- The width `2*w` multiplication result has unsigned value equal to the product of the two
+input values. -/
 theorem boolean_word_mul_value (w : ℕ) (a b : Reg w) :
     booleanWordLSBValue (2*w) (booleanWordMulResult w a b) =
       booleanWordLSBValue w a * booleanWordLSBValue w b := by
@@ -261,6 +314,7 @@ theorem boolean_word_mul_value (w : ℕ) (a b : Reg w) :
     rfl
   exact he.trans h
 
+/-- The multiplication prefix after `i` rounds has at most `1+(11*w+1)*i` nodes. -/
 private theorem mul_prefix_nodes (w i : ℕ) (hi : i ≤ w) :
     (booleanWordMulPrefix w i hi).nodes ≤ 1+(11*w+1)*i := by
   induction i with
@@ -271,6 +325,9 @@ private theorem mul_prefix_nodes (w i : ℕ) (hi : i ≤ w) :
     have hiw : i ≤ w := by omega
     nlinarith
 
+/-- The unsigned multiplier is legal and uses no oracle queries, with at most `330*w^2+32*w+30`
+compiled gates and `11*w^2+5*w+1` total wires. Its graph has at most `11*w^2+w+1` nodes, and
+its gate count equals its reflection-step count. -/
 theorem boolean_word_mul_resources (w : ℕ) :
     let p := booleanWordMulProgram w
     let gs := booleanDAGSteps p.graph (booleanWordMulSelect w)
@@ -290,6 +347,8 @@ theorem boolean_word_mul_resources (w : ℕ) :
   · change 2*w+p.nodes+2*w ≤ _
     omega
 
+/-- On a basis state with initialized workspace, the compiled multiplier XORs its result into
+the target word and restores the workspace. -/
 theorem boolean_word_mul_basis (w : ℕ) (a b : Reg w) (y : Reg (2*w)) :
     let p := booleanWordMulProgram w
     Run (1 : Matrix (Reg (2*w+p.nodes+2*w)) (Reg (2*w+p.nodes+2*w)) ℂ)
@@ -299,6 +358,7 @@ theorem boolean_word_mul_basis (w : ℕ) (a b : Reg w) (y : Reg (2*w)) :
         (fun j => y j ^^ booleanWordMulResult w a b j)) :=
   boolean_dag_basis _ _ _ _
 
+/-- Packing the two operand views reconstructs the original multiplication input. -/
 private theorem mul_input_views (w : ℕ) (x : Reg (2*w)) :
     booleanWordAdderInput w (booleanWordAdderLeft w x) (booleanWordAdderRight w x) = x := by
   funext i
@@ -307,6 +367,8 @@ private theorem mul_input_views (w : ℕ) (x : Reg (2*w)) :
   · have hle : w ≤ i.val := by omega
     simp [booleanWordAdderInput,booleanWordAdderRight,hi,Nat.add_sub_of_le hle]
 
+/-- On an arbitrary embedded state, the compiled multiplier coherently XORs the product word
+into each target and restores the workspace. -/
 theorem boolean_word_mul_coherent (w : ℕ) (ψ : QState (Reg (2*w) × Reg (2*w))) :
     let p := booleanWordMulProgram w
     Run (1 : Matrix (Reg (2*w+p.nodes+2*w)) (Reg (2*w+p.nodes+2*w)) ℂ)

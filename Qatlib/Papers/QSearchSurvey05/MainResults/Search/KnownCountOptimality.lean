@@ -11,6 +11,25 @@ import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Analysis.Real.Pi.Bounds
+
+/-!
+# Known count Grover budgets
+
+This module defines the Grover angle and integer query count used in the known marked count
+discussion of [Ambainis2005]. The theorems `fact2_known_count_upper` and
+`fact2_quarter_density_exact` give a general ceiling budget upper bound and establish that one
+query is the least exact budget at marked density one quarter.
+
+## Main statements
+
+* `fact2_known_count_upper`: Exhibits a known count search upper bound with error one half.
+* `fact2_quarter_density_exact`: Proves exact one query optimality at quarter density.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,15 +45,20 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 
 namespace Qatlib.Papers.QSearchSurvey05.MainResults
 
+/-- The Grover angle arcsin(√(k/N)) for k marked items among N addresses. -/
 noncomputable def groverAngle (N k : ℕ) : ℝ :=
   Real.arcsin (Real.sqrt ((k : ℝ) / (N : ℝ)))
 
+/-- The integer candidate query count ⌈π/(4θ) − 1/2⌉ determined by `groverAngle`. -/
 noncomputable def exactOptimalQueryCount (N k : ℕ) : ℕ :=
   Nat.ceil (Real.pi / (4 * groverAngle N k) - 1 / 2)
 
+/-- The real Grover budget π/(4√(k/N)). -/
 noncomputable def groverOptimalBudget (N k : ℕ) : ℝ :=
   Real.pi / (4 * Real.sqrt ((k : ℝ) / (N : ℝ)))
 
+/-- For 0 < k ≤ N, the integer candidate count is at most the ceiling of the real Grover budget.
+See [Ambainis2005]. -/
 theorem fact2_ceiling_budget_witness {N k : ℕ} (hN : 0 < N) (hk : 0 < k) (hkN : k ≤ N) :
     exactOptimalQueryCount N k ≤ Nat.ceil (groverOptimalBudget N k) := by
   unfold exactOptimalQueryCount groverOptimalBudget groverAngle
@@ -64,6 +88,8 @@ theorem fact2_ceiling_budget_witness {N k : ℕ} (hN : 0 < N) (hk : 0 < k) (hkN 
       (by linarith)
   linarith
 
+/-- For 0 < k and 2k ≤ N, known count search has a fixed space upper bound with error one half
+and query count at most the ceiling of the Grover budget. See [Ambainis2005]. -/
 theorem fact2_known_count_upper {N k : ℕ} (hk : 0 < k) (hkN : 2 * k ≤ N) :
     ∃ t : ℕ,
       FixedSpaceQueryUpperBound
@@ -77,6 +103,8 @@ theorem fact2_known_count_upper {N k : ℕ} (hk : 0 < k) (hkN : 2 * k ≤ N) :
     simpa only [groverOptimalBudget, Fintype.card_fin] using hbudget
   exact hbud.trans (Nat.le_ceil _)
 
+/-- For positive m, the candidate exact query count for m marked items among 4m addresses is
+one. See [Ambainis2005]. -/
 theorem exactOptimalQueryCount_quarter (m : ℕ) (hm : 0 < m) :
     exactOptimalQueryCount (4 * m) m = 1 := by
   unfold exactOptimalQueryCount groverAngle
@@ -99,6 +127,8 @@ theorem exactOptimalQueryCount_quarter (m : ℕ) (hm : 0 < m) :
   rw [hval]
   exact Nat.ceil_one
 
+/-- For positive m, no zero query fixed space algorithm finds a marked item with zero error for
+every m element subset of 4m addresses. -/
 theorem quarterDensity_no_zero_query (m : ℕ) (hm : 0 < m) :
     ¬ FixedSpaceQueryUpperBound
       (fun A : KnownMarkedSets (Fin (4 * m)) m => SetOracle A.val)
@@ -143,6 +173,8 @@ theorem quarterDensity_no_zero_query (m : ℕ) (hm : 0 < m) :
       (fun i _ _ => bornProb_nonneg ψ i)
   linarith
 
+/-- At marked density one quarter, `exactOptimalQueryCount` is the least query budget for a zero
+error fixed space search upper bound. See [Ambainis2005]. -/
 theorem fact2_quarter_density_exact (m : ℕ) (hm : 0 < m) :
     IsLeast
       { t : ℕ |

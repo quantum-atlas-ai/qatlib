@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Compression
+
+/-!
+# Commutators under a spectral cutoff
+
+Decomposes a compressed commutator into the commutator of compressed factors and two terms
+passing through the complementary spectral subspace. The norm estimates in
+`compressed_commutator_norm` and `psd_compressed_commutator_norm` separate the compressed
+contribution from these leakage terms. See [HejaziZiniArrazola2024] for related background.
+
+## Main statements
+
+* `compressed_commutator`: Compression of `A * B - B * A` equals the commutator of the
+  compressed factors plus the two signed products passing through the complementary projector.
+* `compressed_commutator_norm`: The norm of a compressed commutator is bounded by twice the
+  product of the compressed factor norms plus the two products of cross-subspace norms.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +36,8 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator MatrixOrder ComplexOr
 namespace Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- Compression of `A * B - B * A` equals the commutator of the compressed factors plus the two
+signed products passing through the complementary projector. -/
 theorem compressed_commutator (H : Matrix I I ℂ) (hH : H.IsHermitian) (Λ : ℝ)
     (A B : Matrix I I ℂ) :
     low H hH Λ*(A*B-B*A)*low H hH Λ=
@@ -29,6 +52,8 @@ theorem compressed_commutator (H : Matrix I I ℂ) (hH : H.IsHermitian) (Λ : �
   simp only [hr]
   abel
 
+/-- The norm of a compressed commutator is bounded by twice the product of the compressed factor
+norms plus the two products of cross-subspace norms. -/
 theorem compressed_commutator_norm (H : Matrix I I ℂ) (hH : H.IsHermitian) (Λ : ℝ)
     (A B : Matrix I I ℂ) :
     ‖low H hH Λ*(A*B-B*A)*low H hH Λ‖ ≤
@@ -60,6 +85,9 @@ theorem compressed_commutator_norm (H : Matrix I I ℂ) (hH : H.IsHermitian) (Λ
       ‖P*B*Q‖*‖Q*A*P‖ := by gcongr <;> exact norm_mul_le _ _
     _=_ := by dsimp [P,Q]; ring
 
+/-- If `0 ≤ A ≤ H` in the positive semidefinite order and `Λ ≥ 0`, the compressed commutator
+bound has leading term `2 * Λ * ‖low H hH.isHermitian Λ * B * low H hH.isHermitian Λ‖` and
+two leakage terms. -/
 theorem psd_compressed_commutator_norm (H A B : Matrix I I ℂ) (hH : H.PosSemidef)
     (hA : A.PosSemidef) (hHA : (H-A).PosSemidef) (Λ : ℝ) (hΛ : 0 ≤ Λ) :
     ‖low H hH.isHermitian Λ*(A*B-B*A)*low H hH.isHermitian Λ‖ ≤

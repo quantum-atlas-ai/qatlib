@@ -8,10 +8,34 @@ import Mathlib.Analysis.Matrix.Spectrum
 import Mathlib.Analysis.Complex.ExponentialBounds
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition1Stat
 
+/-!
+# Classical search from a spectral gap
+
+Proves the classical search comparison in [MagniezNayakRolandSantha2011] using weighted finite
+paths. Spectral contraction of a primitive symmetric stochastic matrix gives a geometric failure
+bound; the prescribed stride and number of checks yield success at least `1 / 2` and explicit
+setup, update, and check costs.
+
+## Main statements
+
+* `mnrs_classical_search_proposition_one`: For a primitive symmetric stochastic chain with
+  positive absolute gap and a lower bound on nonzero marked density, proves success at least `1
+  / 2` for the prescribed strided and every-step scans, together with the explicit update,
+  check, and trace-cost bounds [Magniez et al., Proposition 1][MagniezNayakRolandSantha2011].
+* `mnrs_classical_search_proposition_one_failure_geometric`: Under symmetry and mean-zero
+  contraction of `P ^ a`, bounds failure after `r + 1` checks by `(1 - μ) * (1 - μ / 2) ^ r`,
+  where `μ` is the marked fraction.
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
 
 open scoped BigOperators
 
+/-- Every state returned by `mnrsRun` belongs to the marked set. -/
 lemma mnrs_classical_search_proposition_one_run_support
     {X : Type*} [DecidableEq X] (M : Finset X) (a : ℕ)
     (xs : List X) (x : X) (h : (mnrsRun M a xs).1 = some x) : x ∈ M := by
@@ -23,6 +47,8 @@ lemma mnrs_classical_search_proposition_one_run_support
       simpa [← he] using hy
     · exact ih (by simpa [mnrsRun, hy] using h)
 
+/-- The marked-state scan returns `none` exactly when every vertex in the input list is
+unmarked. -/
 lemma mnrs_classical_search_proposition_one_run_none
     {X : Type*} [DecidableEq X] (M : Finset X) (a : ℕ) (xs : List X) :
     (mnrsRun M a xs).1 = none ↔ ∀ x ∈ xs, x ∉ M := by
@@ -31,6 +57,8 @@ lemma mnrs_classical_search_proposition_one_run_none
   | cons x xs ih =>
     by_cases hx : x ∈ M <;> simp [mnrsRun, hx, ih]
 
+/-- The update counter is at most `a` times the list length, and the check counter is at most
+the list length. -/
 lemma mnrs_classical_search_proposition_one_run_counters
     {X : Type*} [DecidableEq X] (M : Finset X) (a : ℕ) (xs : List X) :
     (mnrsRun M a xs).2.1 ≤ a * xs.length ∧
@@ -43,6 +71,8 @@ lemma mnrs_classical_search_proposition_one_run_counters
     · simpa [mnrsRun, hx, Nat.mul_add, Nat.add_comm] using
         And.intro (Nat.add_le_add_left ih.1 a) (Nat.add_le_add_left ih.2 1)
 
+/-- With nonnegative update and check costs, every length-`r` search trace costs at most `S + r
+* (a * U + C)`. -/
 lemma mnrs_classical_search_proposition_one_trace_cost
     {X : Type*} [DecidableEq X] (M : Finset X) (a r : ℕ)
     (path : Fin (r + 1) → X) (S U C : ℝ) (hU : 0 ≤ U) (hC : 0 ≤ C) :
@@ -57,12 +87,14 @@ lemma mnrs_classical_search_proposition_one_trace_cost
   dsimp [mnrsTraceCost]
   nlinarith [mul_le_mul_of_nonneg_right hu hU, mul_le_mul_of_nonneg_right hc hC]
 
+/-- The absolute spectral-gap condition `mnrsAbsoluteGap P δ` implies `δ ≤ 1`. -/
 lemma mnrs_classical_search_proposition_one_gap_le_one
     {X : Type*} [Fintype X] (P : Matrix X X ℝ) (δ : ℝ)
     (hgap : mnrsAbsoluteGap P δ) : δ ≤ 1 := by
   have h : (0 : ℝ) ≤ 1 - δ := hgap.1 (Or.inl rfl)
   linarith
 
+/-- Every sampled-path weight is nonnegative when `P` is row stochastic. -/
 lemma mnrs_classical_search_proposition_one_weight_nonneg
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (hP : P ∈ Matrix.rowStochastic ℝ X) (a r : ℕ)
@@ -72,6 +104,8 @@ lemma mnrs_classical_search_proposition_one_weight_nonneg
   intro i _
   exact Matrix.nonneg_of_mem_rowStochastic ((Matrix.rowStochastic ℝ X).pow_mem hP a)
 
+/-- Appending a vertex to a path multiplies its weight by the corresponding final entry of `P ^
+a`. -/
 lemma mnrs_classical_search_proposition_one_weight_snoc
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (a r : ℕ) (path : Fin (r + 1) → X) (x : X) :
@@ -82,6 +116,8 @@ lemma mnrs_classical_search_proposition_one_weight_snoc
     Fin.succ_castSucc, Fin.succ_last]
   ring
 
+/-- Reindexes a sum over paths of length `r + 1` as a sum over a length-`r` path and its last
+vertex. -/
 lemma mnrs_classical_search_proposition_one_sum_snoc
     {X : Type*} [Fintype X] (r : ℕ) (f : (Fin (r + 1) → X) → ℝ) :
     ∑ path, f path = ∑ path : Fin r → X, ∑ x : X, f (Fin.snoc path x) := by
@@ -89,6 +125,8 @@ lemma mnrs_classical_search_proposition_one_sum_snoc
   rw [Fintype.sum_prod_type, Finset.sum_comm]
   rfl
 
+/-- For a nonempty finite state space and row-stochastic `P`, the sampled-path weights sum to
+one. -/
 lemma mnrs_classical_search_proposition_one_weight_sum
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X) (a r : ℕ) :
@@ -105,6 +143,8 @@ lemma mnrs_classical_search_proposition_one_weight_sum
       mul_one]
     exact ih
 
+/-- The mass assigned to each optional search output is nonnegative for a row-stochastic
+transition matrix. -/
 lemma mnrs_classical_search_proposition_one_output_nonneg
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (hP : P ∈ Matrix.rowStochastic ℝ X) (M : Finset X) (a r : ℕ) (o : Option X) :
@@ -115,6 +155,7 @@ lemma mnrs_classical_search_proposition_one_output_nonneg
   · exact mnrs_classical_search_proposition_one_weight_nonneg P hP a r path
   · exact le_rfl
 
+/-- On a nonempty finite state space, the output masses of the sampled-walk search sum to one. -/
 lemma mnrs_classical_search_proposition_one_output_sum
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X)
@@ -125,6 +166,7 @@ lemma mnrs_classical_search_proposition_one_output_sum
   simp only [Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   exact mnrs_classical_search_proposition_one_weight_sum P hP a r
 
+/-- An unmarked state has zero search output mass. -/
 lemma mnrs_classical_search_proposition_one_output_support
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (M : Finset X) (a r : ℕ) (x : X) (hx : x ∉ M) :
@@ -135,6 +177,8 @@ lemma mnrs_classical_search_proposition_one_output_support
   intro h
   exact hx (mnrs_classical_search_proposition_one_run_support M a _ x h)
 
+/-- The absolute value of a real eigenvalue different from one is at most `1 - δ` under
+`mnrsAbsoluteGap P δ`. -/
 lemma mnrs_classical_search_proposition_one_eigenvalue_bound
     {X : Type*} [Fintype X] (P : Matrix X X ℝ) (δ ν : ℝ)
     (hgap : mnrsAbsoluteGap P δ) (v : X → ℝ)
@@ -142,6 +186,8 @@ lemma mnrs_classical_search_proposition_one_eigenvalue_bound
     |ν| ≤ 1 - δ :=
   hgap.1 (Or.inr ⟨ν, v, hν, hv, he, rfl⟩)
 
+/-- For `0 < δ ≤ 1`, the stride `Nat.ceil (1 / δ)` is at least one and at most `2 / δ` after
+coercion to `ℝ`. -/
 lemma mnrs_classical_search_proposition_one_stride_bounds
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     1 ≤ Nat.ceil (1 / δ) ∧ (Nat.ceil (1 / δ) : ℝ) ≤ 2 / δ := by
@@ -152,6 +198,8 @@ lemma mnrs_classical_search_proposition_one_stride_bounds
     simp only [div_eq_mul_inv] at *
     linarith
 
+/-- For positive `ε`, the prescribed number of checks, `Nat.ceil (4 / ε)` when `ε ≤ 1` and zero
+otherwise, is at most `5 / ε`. -/
 lemma mnrs_classical_search_proposition_one_check_bounds
     (ε : ℝ) (hε : 0 < ε) :
     ((if ε ≤ 1 then Nat.ceil (4 / ε) else 0 : ℕ) : ℝ) ≤ 5 / ε := by
@@ -163,12 +211,14 @@ lemma mnrs_classical_search_proposition_one_check_bounds
   · simp only [Nat.cast_zero]
     positivity
 
+/-- The marked fraction of a nonempty finite state space is at most one. -/
 lemma mnrs_classical_search_proposition_one_density_le_one
     {X : Type*} [Fintype X] [Nonempty X] (M : Finset X) :
     (M.card : ℝ) / Fintype.card X ≤ 1 := by
   apply (div_le_one (by exact_mod_cast Fintype.card_pos)).mpr
   exact_mod_cast Finset.card_le_univ M
 
+/-- If a nonempty marked set would have density at least `ε > 1`, then the marked set is empty. -/
 lemma mnrs_classical_search_proposition_one_empty_of_large_density
     {X : Type*} [Fintype X] [Nonempty X] (M : Finset X) (ε : ℝ)
     (hε : 1 < ε) (hM : M.Nonempty → ε ≤ (M.card : ℝ) / Fintype.card X) :
@@ -178,6 +228,7 @@ lemma mnrs_classical_search_proposition_one_empty_of_large_density
   have := mnrs_classical_search_proposition_one_density_le_one M
   linarith
 
+/-- Every vector fixed by `P` is fixed by each natural power of `P`. -/
 lemma mnrs_classical_search_proposition_one_fixed_pow
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (v : X → ℝ) (hv : P.mulVec v = v) (k : ℕ) : (P ^ k).mulVec v = v := by
@@ -185,6 +236,8 @@ lemma mnrs_classical_search_proposition_one_fixed_pow
   | zero => simp
   | succ k ih => rw [pow_succ, ← Matrix.mulVec_mulVec, hv, ih]
 
+/-- Every real vector fixed by a primitive row-stochastic matrix on a nonempty finite state
+space is constant. -/
 lemma mnrs_classical_search_proposition_one_fixed_constant
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X)
@@ -207,6 +260,8 @@ lemma mnrs_classical_search_proposition_one_fixed_constant
   have hd := (mul_eq_zero.mp h0).resolve_left (ne_of_gt (hk z x))
   exact (sub_eq_zero.mp hd).symm
 
+/-- For a row-stochastic chain on a nonempty finite state space, an empty marked set gives
+failure mass one. -/
 lemma mnrs_classical_search_proposition_one_output_empty
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X) (a r : ℕ) :
@@ -217,6 +272,7 @@ lemma mnrs_classical_search_proposition_one_output_empty
   simp only [mnrsOutputMass, hr, ite_true]
   exact mnrs_classical_search_proposition_one_weight_sum P hP a r
 
+/-- The total marked-state output mass equals one minus the failure mass. -/
 lemma mnrs_classical_search_proposition_one_success_mass
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X)
@@ -233,6 +289,8 @@ lemma mnrs_classical_search_proposition_one_success_mass
   rw [he] at hs
   linarith
 
+/-- A failure-mass upper bound of `1 - p` for nonempty marked sets yields the full search
+guarantee with success threshold `p`. -/
 lemma mnrs_classical_search_proposition_one_guarantee_of_failure
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X)
@@ -249,6 +307,8 @@ lemma mnrs_classical_search_proposition_one_guarantee_of_failure
     rw [mnrs_classical_search_proposition_one_success_mass P hP M a r]
     linarith [hf hM]
 
+/-- Bounds both the strided and every-step search trace costs by their stated expressions with
+factor `10`, using stride at most `2 / δ` and check count at most `5 / ε`. -/
 lemma mnrs_classical_search_proposition_one_cost_bounds
     {X : Type*} [DecidableEq X] (M : Finset X) (δ ε : ℝ)
     (hδ : 0 < δ) (_hε : 0 < ε) (a r : ℕ)
@@ -283,6 +343,8 @@ lemma mnrs_classical_search_proposition_one_cost_bounds
     rw [he]
     linarith
 
+/-- An eigenvector of `A` with eigenvalue `ν` is an eigenvector of `A ^ k` with eigenvalue `ν ^
+k`. -/
 lemma mnrs_classical_search_proposition_one_eigen_pow
     {X : Type*} [Fintype X] [DecidableEq X] (A : Matrix X X ℝ)
     (v : X → ℝ) (ν : ℝ) (hv : A.mulVec v = ν • v) (k : ℕ) :
@@ -293,6 +355,8 @@ lemma mnrs_classical_search_proposition_one_eigen_pow
     rw [pow_succ, ← Matrix.mulVec_mulVec, hv, Matrix.mulVec_smul, ih,
       smul_smul, pow_succ, mul_comm ν]
 
+/-- The coordinate of `A ^ k v` along a Hermitian eigenbasis vector equals its original
+coordinate multiplied by the corresponding eigenvalue to the power `k`. -/
 lemma mnrs_classical_search_proposition_one_spectral_coordinate
     {X : Type*} [Fintype X] [DecidableEq X] (A : Matrix X X ℝ)
     (hA : A.IsHermitian) (k : ℕ) (v : EuclideanSpace ℝ X) (i : X) :
@@ -309,6 +373,8 @@ lemma mnrs_classical_search_proposition_one_spectral_coordinate
   rw [← (Matrix.isSymmetric_toEuclideanLin_iff.mpr (hA.pow k))
     (hA.eigenvectorBasis i) v, he, real_inner_smul_left]
 
+/-- If all eigenbasis coordinates present in `v` correspond to eigenvalues of absolute value at
+most `ρ`, then `|⟪v, A ^ k v⟫| ≤ ρ ^ k * ‖v‖ ^ 2`. -/
 lemma mnrs_classical_search_proposition_one_spectral_quadratic
     {X : Type*} [Fintype X] [DecidableEq X] (A : Matrix X X ℝ)
     (hA : A.IsHermitian) (ρ : ℝ) (_hρ : 0 ≤ ρ)
@@ -348,6 +414,8 @@ lemma mnrs_classical_search_proposition_one_spectral_quadratic
     _ = ρ ^ k * ‖v‖ ^ 2 := by
       rw [← Finset.mul_sum, hA.eigenvectorBasis.sum_sq_inner_right]
 
+/-- For a primitive symmetric stochastic matrix with absolute gap `δ`, the quadratic form of `P
+^ k` on a mean-zero vector is bounded in absolute value by `(1 - δ) ^ k * ‖v‖ ^ 2`. -/
 lemma mnrs_classical_search_proposition_one_mean_zero_quadratic
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X)
@@ -373,6 +441,8 @@ lemma mnrs_classical_search_proposition_one_mean_zero_quadratic
     have hn := hh.eigenvectorBasis.orthonormal.1 i
     simp [h0] at hn
 
+/-- For `0 < δ ≤ 1`, taking `Nat.ceil (1 / δ)` steps reduces `(1 - δ)` to a power at most `1 /
+2`. -/
 lemma mnrs_classical_search_proposition_one_amplification
     (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) :
     (1 - δ) ^ Nat.ceil (1 / δ) ≤ (1 / 2 : ℝ) := by
@@ -386,6 +456,8 @@ lemma mnrs_classical_search_proposition_one_amplification
     _ ≤ Real.exp (-1) := Real.exp_le_exp.mpr (by nlinarith)
     _ ≤ 1 / 2 := Real.exp_neg_one_lt_half.le
 
+/-- If `v` vanishes on `M`, its squared coordinate sum is at most the number of unmarked states
+times `‖v‖ ^ 2`. -/
 lemma mnrs_classical_search_proposition_one_supported_sum_sq
     {X : Type*} [Fintype X] [DecidableEq X] (M : Finset X)
     (v : EuclideanSpace ℝ X) (hv : ∀ x ∈ M, v x = 0) :
@@ -408,6 +480,9 @@ lemma mnrs_classical_search_proposition_one_supported_sum_sq
     _ = ((Fintype.card X : ℝ) - M.card) * ‖v‖ ^ 2 := by
       rw [Finset.card_compl, Nat.cast_sub (Finset.card_le_univ M)]
 
+/-- If a symmetric stochastic matrix contracts mean-zero quadratic forms by `1 / 2`, then its
+quadratic form on a vector vanishing on `M` is bounded in absolute value by `(1 - M.card /
+Fintype.card X / 2) * ‖v‖ ^ 2`. -/
 lemma mnrs_classical_search_proposition_one_supported_quadratic
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (Q : Matrix X X ℝ) (hQ : Q ∈ Matrix.rowStochastic ℝ X) (hQsym : Q.IsSymm)
@@ -468,14 +543,18 @@ lemma mnrs_classical_search_proposition_one_supported_quadratic
   change _ ≤ (1 - (M.card : ℝ) / n / 2) * ‖v‖ ^ 2
   nlinarith
 
+/-- The coordinate mask that replaces entries on the marked set by zero. -/
 noncomputable def mnrs_classical_search_proposition_one_mask
     {X : Type*} [DecidableEq X] (M : Finset X) (v : EuclideanSpace ℝ X) :
     EuclideanSpace ℝ X := WithLp.toLp 2 (fun x => if x ∈ M then 0 else v x)
 
+/-- The matrix obtained from `Q` by setting every row and column indexed by the marked set to
+zero. -/
 noncomputable def mnrs_classical_search_proposition_one_compression
     {X : Type*} [DecidableEq X] (Q : Matrix X X ℝ) (M : Finset X) : Matrix X X ℝ :=
   fun x y => if x ∈ M then 0 else if y ∈ M then 0 else Q x y
 
+/-- The marked-coordinate mask is self-adjoint with respect to the real Euclidean inner product. -/
 lemma mnrs_classical_search_proposition_one_mask_inner
     {X : Type*} [Fintype X] [DecidableEq X] (M : Finset X)
     (v w : EuclideanSpace ℝ X) :
@@ -486,6 +565,7 @@ lemma mnrs_classical_search_proposition_one_mask_inner
   intro x _
   by_cases hx : x ∈ M <;> simp [mnrs_classical_search_proposition_one_mask, hx]
 
+/-- Masking marked coordinates cannot increase the squared Euclidean norm. -/
 lemma mnrs_classical_search_proposition_one_mask_norm
     {X : Type*} [Fintype X] [DecidableEq X] (M : Finset X)
     (v : EuclideanSpace ℝ X) :
@@ -495,6 +575,7 @@ lemma mnrs_classical_search_proposition_one_mask_norm
   intro x _
   by_cases hx : x ∈ M <;> simp [mnrs_classical_search_proposition_one_mask, hx, sq_nonneg]
 
+/-- Applying the compressed matrix is the same as masking, applying `Q`, and masking again. -/
 lemma mnrs_classical_search_proposition_one_compression_apply
     {X : Type*} [Fintype X] [DecidableEq X] (Q : Matrix X X ℝ) (M : Finset X)
     (v : EuclideanSpace ℝ X) :
@@ -515,6 +596,7 @@ lemma mnrs_classical_search_proposition_one_compression_apply
     intro y _
     by_cases hy : y ∈ M <;> simp [hy]
 
+/-- The marked-coordinate compression of a real symmetric matrix is Hermitian. -/
 lemma mnrs_classical_search_proposition_one_compression_hermitian
     {X : Type*} [DecidableEq X] (Q : Matrix X X ℝ) (hQ : Q.IsSymm) (M : Finset X) :
     (mnrs_classical_search_proposition_one_compression Q M).IsHermitian := by
@@ -523,6 +605,8 @@ lemma mnrs_classical_search_proposition_one_compression_hermitian
   by_cases hx : x ∈ M <;> by_cases hy : y ∈ M <;>
     simp [mnrs_classical_search_proposition_one_compression, hx, hy, hQ.apply]
 
+/-- Under the mean-zero contraction hypothesis, the compressed quadratic form is bounded in
+absolute value by `(1 - M.card / Fintype.card X / 2) * ‖v‖ ^ 2`. -/
 lemma mnrs_classical_search_proposition_one_compression_quadratic
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (Q : Matrix X X ℝ) (hQ : Q ∈ Matrix.rowStochastic ℝ X) (hQsym : Q.IsSymm)
@@ -540,6 +624,8 @@ lemma mnrs_classical_search_proposition_one_compression_quadratic
     (by intro x hx; simp [mnrs_classical_search_proposition_one_mask, hx])).trans
       (mul_le_mul_of_nonneg_left (mnrs_classical_search_proposition_one_mask_norm M v) hρ)
 
+/-- Under the mean-zero contraction hypothesis, the quadratic form of the `k`th compressed power
+is bounded by `(1 - M.card / Fintype.card X / 2) ^ k * ‖v‖ ^ 2`. -/
 lemma mnrs_classical_search_proposition_one_compression_power
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (Q : Matrix X X ℝ) (hQ : Q ∈ Matrix.rowStochastic ℝ X) (hQsym : Q.IsSymm)
@@ -565,12 +651,16 @@ lemma mnrs_classical_search_proposition_one_compression_power
   change |inner ℝ (hB.eigenvectorBasis i) (B.toEuclideanLin (hB.eigenvectorBasis i))| ≤ _ at hi
   simpa [he, hB.eigenvectorBasis.orthonormal.1 i] using hi
 
+/-- The recursively defined weight of avoiding `M` for `r` checks starting at a specified
+vertex, with zero checks assigned weight one. -/
 noncomputable def mnrs_classical_search_proposition_one_avoid
     {X : Type*} [Fintype X] [DecidableEq X] (Q : Matrix X X ℝ) (M : Finset X) :
     ℕ → X → ℝ
   | 0, _ => 1
   | r + 1, x => if x ∈ M then 0 else ∑ y, Q x y * mnrs_classical_search_proposition_one_avoid Q M r y
 
+/-- Reindexes a sum over paths of length `r + 1` as a sum over their first vertex and length-`r`
+tail. -/
 lemma mnrs_classical_search_proposition_one_sum_cons
     {X : Type*} [Fintype X] (r : ℕ) (f : (Fin (r + 1) → X) → ℝ) :
     ∑ path, f path = ∑ x : X, ∑ path : Fin r → X, f (Fin.cons x path) := by
@@ -578,6 +668,8 @@ lemma mnrs_classical_search_proposition_one_sum_cons
     Fintype.sum_prod_type]
   rfl
 
+/-- Expands the avoidance recursion as a sum of transition products over tails whose checked
+vertices are all unmarked. -/
 lemma mnrs_classical_search_proposition_one_avoid_expansion
     {X : Type*} [Fintype X] [DecidableEq X] (Q : Matrix X X ℝ) (M : Finset X)
     (r : ℕ) (x : X) :
@@ -602,6 +694,8 @@ lemma mnrs_classical_search_proposition_one_avoid_expansion
       intro tail _
       split_ifs <;> simp_all
 
+/-- The failure output mass equals the uniform average of the avoidance weights for transition
+matrix `P ^ a`. -/
 lemma mnrs_classical_search_proposition_one_failure_eq_avoid
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ) (M : Finset X)
     (a r : ℕ) : mnrsOutputMass P M a r none =
@@ -620,6 +714,7 @@ lemma mnrs_classical_search_proposition_one_failure_eq_avoid
   intro tail _
   split_ifs <;> simp
 
+/-- Avoidance weights are nonnegative for a row-stochastic transition matrix. -/
 lemma mnrs_classical_search_proposition_one_avoid_nonneg
     {X : Type*} [Fintype X] [DecidableEq X] (Q : Matrix X X ℝ)
     (hQ : Q ∈ Matrix.rowStochastic ℝ X) (M : Finset X) (r : ℕ) (x : X) :
@@ -632,6 +727,8 @@ lemma mnrs_classical_search_proposition_one_avoid_nonneg
     · exact le_rfl
     · exact Finset.sum_nonneg (fun y _ => mul_nonneg (hQ.1 x y) (ih y))
 
+/-- For a row-stochastic transition matrix, the avoidance weight at a fixed starting vertex is
+nonincreasing in the number of checks. -/
 lemma mnrs_classical_search_proposition_one_avoid_antitone
     {X : Type*} [Fintype X] [DecidableEq X] (Q : Matrix X X ℝ)
     (hQ : Q ∈ Matrix.rowStochastic ℝ X) (M : Finset X) (x : X) :
@@ -648,6 +745,8 @@ lemma mnrs_classical_search_proposition_one_avoid_antitone
     · simp only [mnrs_classical_search_proposition_one_avoid, hx, ite_false]
       exact Finset.sum_le_sum (fun y _ => mul_le_mul_of_nonneg_left (ih y) (hQ.1 x y))
 
+/-- The avoidance vector after `r + 1` checks equals the `r`th power of the compressed matrix
+applied to the indicator of the unmarked set. -/
 lemma mnrs_classical_search_proposition_one_avoid_compression
     {X : Type*} [Fintype X] [DecidableEq X] (Q : Matrix X X ℝ)
     (hQ : Q ∈ Matrix.rowStochastic ℝ X) (M : Finset X) (r : ℕ) :
@@ -684,6 +783,8 @@ lemma mnrs_classical_search_proposition_one_avoid_compression
       intro y _
       by_cases hy : y ∈ M <;> simp [hy]
 
+/-- Discarding the first `k` avoidance checks bounds the weight after `k + r` checks by `P ^ k`
+applied to the `r`-check avoidance vector. -/
 lemma mnrs_classical_search_proposition_one_drop_checks
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (hP : P ∈ Matrix.rowStochastic ℝ X) (M : Finset X) (k r : ℕ) (x : X) :
@@ -701,6 +802,8 @@ lemma mnrs_classical_search_proposition_one_drop_checks
         pow_succ', ← Matrix.mulVec_mulVec]
       exact Finset.sum_le_sum (fun y _ => mul_le_mul_of_nonneg_left (ih y) (hP.1 x y))
 
+/-- Checking every step for `a * r` checks has avoidance weight at most that of `r` checks under
+`P ^ a`, for stride `a ≥ 1`. -/
 lemma mnrs_classical_search_proposition_one_avoid_stride_comparison
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (hP : P ∈ Matrix.rowStochastic ℝ X) (M : Finset X) (a : ℕ) (ha : 1 ≤ a)
@@ -724,6 +827,8 @@ lemma mnrs_classical_search_proposition_one_avoid_stride_comparison
           exact Finset.sum_le_sum (fun y _ => mul_le_mul_of_nonneg_left (ih y)
             (Matrix.nonneg_of_mem_rowStochastic ((Matrix.rowStochastic ℝ X).pow_mem hP a)))
 
+/-- Failure mass with every-step checks through `a * r` is at most failure mass with `r` checks
+at stride `a ≥ 1`. -/
 lemma mnrs_classical_search_proposition_one_failure_stride_comparison
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (hP : P ∈ Matrix.rowStochastic ℝ X) (M : Finset X) (a : ℕ) (ha : 1 ≤ a) (r : ℕ) :
@@ -734,6 +839,8 @@ lemma mnrs_classical_search_proposition_one_failure_stride_comparison
   exact Finset.sum_le_sum (fun x _ =>
     mnrs_classical_search_proposition_one_avoid_stride_comparison P hP M a ha r x)
 
+/-- For a fixed stochastic transition matrix and stride, failure output mass is nonincreasing in
+the number of checks. -/
 lemma mnrs_classical_search_proposition_one_failure_antitone
     {X : Type*} [Fintype X] [DecidableEq X] (P : Matrix X X ℝ)
     (hP : P ∈ Matrix.rowStochastic ℝ X) (M : Finset X) (a : ℕ) :
@@ -744,6 +851,8 @@ lemma mnrs_classical_search_proposition_one_failure_antitone
   exact Finset.sum_le_sum (fun x _ => mnrs_classical_search_proposition_one_avoid_antitone
     (P ^ a) ((Matrix.rowStochastic ℝ X).pow_mem hP a) M x hrs)
 
+/-- Under symmetry and mean-zero contraction of `P ^ a`, bounds failure after `r + 1` checks by
+`(1 - μ) * (1 - μ / 2) ^ r`, where `μ` is the marked fraction. -/
 lemma mnrs_classical_search_proposition_one_failure_geometric
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X) (a : ℕ)
@@ -779,6 +888,8 @@ lemma mnrs_classical_search_proposition_one_failure_geometric
   have hn : (Fintype.card X : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   try field_simp
 
+/-- For a nonempty marked set and the stated contraction hypothesis, every finite sum of
+positive-check failure masses is at most `2` divided by the marked fraction. -/
 lemma mnrs_classical_search_proposition_one_hitting_tail
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X) (a : ℕ)
@@ -808,6 +919,8 @@ lemma mnrs_classical_search_proposition_one_hitting_tail
       have hp := pow_nonneg hρ r
       nlinarith
 
+/-- If the marked fraction is at least positive `ε` and the strided chain satisfies the stated
+contraction bound, `Nat.ceil (4 / ε)` checks have failure mass at most `1 / 2`. -/
 lemma mnrs_classical_search_proposition_one_failure_half
     {X : Type*} [Fintype X] [Nonempty X] [DecidableEq X]
     (P : Matrix X X ℝ) (hP : P ∈ Matrix.rowStochastic ℝ X) (a : ℕ)
@@ -839,6 +952,10 @@ lemma mnrs_classical_search_proposition_one_failure_half
   change F ≤ _
   linarith
 
+/-- For a primitive symmetric stochastic chain with positive absolute gap and a lower bound on
+nonzero marked density, proves success at least `1 / 2` for the prescribed strided and
+every-step scans, together with the explicit update, check, and trace-cost bounds [Magniez
+et al., Proposition 1][MagniezNayakRolandSantha2011]. -/
 theorem mnrs_classical_search_proposition_one :
   ∀ (δ ε : ℝ),
   0 < δ → 0 < ε →

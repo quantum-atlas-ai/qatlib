@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+/-!
+# Sampling law perturbations of mixture powers
+
+This module controls changes in unitary mixture maps when their finite sampling law changes.
+`referenceMixture_law_perturbation` bounds one step by the L1 law difference times the input
+trace norm, and `referenceMixturePower_law_perturbation` multiplies this bound by the number of
+steps. The reference system is retained throughout, in the channel framework of [Watrous2018].
+
+## Main statements
+
+* `referenceMixture_law_perturbation`: For unitary branches, the trace norm difference between
+  reference extended mixtures with laws `d` and `e` is at most their L1 distance times the input
+  trace norm.
+* `referenceMixturePower_law_perturbation`: For unitary branches, changing the sampling law in
+  an `n` step mixture power costs at most `n` times the L1 law distance times the input trace
+  norm.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ReferenceError.RefTraceError
@@ -18,6 +41,8 @@ namespace Qatlib.Concepts.MixtureLaw.ScheduleLaw
 open Matrix
 open scoped Classical BigOperators
 
+/-- The trace norm of a finite sum of complex square matrices is at most the sum of their trace
+norms. -/
 private theorem law_traceNorm_sum_le {J N : Type} [Fintype J] [DecidableEq J] [Fintype N]
     (s : Finset J) (f : J → Matrix N N ℂ) :
     Matrix.traceNorm (∑ j ∈ s, f j) ≤ ∑ j ∈ s, Matrix.traceNorm (f j) := by
@@ -27,6 +52,8 @@ private theorem law_traceNorm_sum_le {J N : Type} [Fintype J] [DecidableEq J] [F
     rw [Finset.sum_insert hj, Finset.sum_insert hj]
     exact (Matrix.traceNorm_add_le _ _).trans (add_le_add le_rfl ih)
 
+/-- For unitary branches, the trace norm difference between reference extended mixtures with
+laws `d` and `e` is at most their L1 distance times the input trace norm. -/
 theorem referenceMixture_law_perturbation {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d e : FinDist J) (U : J → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (r : ℕ) (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :
@@ -43,6 +70,8 @@ theorem referenceMixture_law_perturbation {J : Type} [Fintype J] [DecidableEq J]
   simp_rw [he]
   rw [← Finset.sum_mul]
 
+/-- For unitary branches, changing the sampling law in an `n` step mixture power costs at most
+`n` times the L1 law distance times the input trace norm. -/
 theorem referenceMixturePower_law_perturbation {J : Type} [Fintype J] [DecidableEq J] {D : ℕ}
     (d e : FinDist J) (U : J → Operator D) (hU : ∀ j, U j ∈ Matrix.unitaryGroup (Fin D) ℂ)
     (r n : ℕ) (ρ : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :

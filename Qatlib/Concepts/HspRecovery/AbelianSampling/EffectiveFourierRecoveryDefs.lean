@@ -21,6 +21,30 @@ import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerGenerationSu
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
 import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.OrderShor
+
+/-!
+# Specifications for effective Fourier recovery
+
+The three `stageA_fourier_recovery_clause` specifications collect presentation normalization,
+arithmetic and Fourier circuit properties, and hidden subgroup sampling and decoding statements.
+The module also defines controlled modular multiplication schedules and words, with
+`StageAFourierRecoveryClause2ModeExpEndpoint` specifying their observable arithmetic behavior.
+[Kitaev1995]
+
+## Main statements
+
+* `stageA_fourier_recovery_clause1_spec`: presentation, Smith normalization, and exact phase
+  readout requirements.
+* `stageA_fourier_recovery_clause2_spec`: arithmetic circuit and Fourier implementation
+  requirements.
+* `stageA_fourier_recovery_clause3_spec`: sampling, generation, and rational scan requirements.
+* `StageAFourierRecoveryClause2ModeExpEndpoint`: modular exponentiation word requirements.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -63,6 +87,9 @@ open Qatlib.Concepts.StabilizerAlg.NearUniformGen
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder Classical
 
+/-- The conjunction of finite abelian presentation invariance, normalized recovery coordinates
+and word equality, Smith computation bounds, and exact eigenphase readout with measurement
+probability one. -/
 def stageA_fourier_recovery_clause1_spec : Prop :=
   (∀ {C : Type} [AddCommGroup C] {m n m' n' : ℕ}
     (p : CompactAbelianPresentation C m n) (q : CompactAbelianPresentation C m' n'),
@@ -100,6 +127,9 @@ def stageA_fourier_recovery_clause1_spec : Prop :=
         ((ControlledPowers U M).mulVec (TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) ψ)))
         ({j} ×ˢ (Finset.univ : Finset I)) = 1)
 
+/-- The conjunction of reversible arithmetic circuit properties, division semantics, workspace
+and finite gate laws, exact and approximate local Fourier resource and error bounds, and
+exact eigenphase readout. -/
 def stageA_fourier_recovery_clause2_spec : Prop :=
   (∀ (w : ℕ),
     reflectionLegal (booleanDAGSteps (booleanWordAdderDAG w) (booleanWordAdderSelect w)) ∧
@@ -158,6 +188,9 @@ def stageA_fourier_recovery_clause2_spec : Prop :=
         ((ControlledPowers U M).mulVec (TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) ψ)))
         ({j} ×ˢ (Finset.univ : Finset I)) = 1)
 
+/-- The conjunction of cyclic and hidden subgroup sampling resource and distribution laws, an
+oracle perturbation bound, stabilizer generation, bounded rational scan guarantees, and
+exact eigenphase readout. -/
 def stageA_fourier_recovery_clause3_spec : Prop :=
   (∀ {R : Type} [Fintype R] [DecidableEq R] [AddCommGroup R]
     (N : ℕ) (hN : 0 < N) (f : Fin N → R),
@@ -200,19 +233,28 @@ def stageA_fourier_recovery_clause3_spec : Prop :=
         ((ControlledPowers U M).mulVec (TensorState (fun _ : Fin M => (Real.sqrt (M : ℝ) : ℂ)⁻¹) ψ)))
         ({j} ×ˢ (Finset.univ : Finset I)) = 1)
 
+/-- Multiply by `c` when the Boolean control is true, and otherwise act as the identity on `ZMod
+n`. -/
 def modMulGate {n : ℕ} (c : ZMod n) (b : Bool) : ZMod n → ZMod n :=
   fun x => if b then c * x else x
 
+/-- Pair successive repeated squares `a ^ (2 ^ k)` with the input control bits, starting at bit
+position `k`. -/
 def modeExpSchedule {n : ℕ} (a : ZMod n) : List Bool → ℕ → List (ZMod n × Bool)
   | [], _ => []
   | b :: bs, k => (a ^ 2 ^ k, b) :: modeExpSchedule a bs (k + 1)
 
+/-- The word of controlled modular multiplication maps obtained from the bit expansion of
+exponent `e`. -/
 def modeExpWord {n : ℕ} (a : ZMod n) (e : ℕ) : List (ZMod n → ZMod n) :=
   (modeExpSchedule a (modExpBits e) 0).map (fun p => modMulGate p.1 p.2)
 
+/-- Apply a list of modular maps from left to right, starting at `x`. -/
 def applyModWord {n : ℕ} (w : List (ZMod n → ZMod n)) (x : ZMod n) : ZMod n :=
   w.foldl (fun acc g => g acc) x
 
+/-- The conjunction of modular exponentiation word semantics, bijectivity for unit bases, length
+and true control count identities, and agreement with `modExpResult` for positive moduli. -/
 def StageAFourierRecoveryClause2ModeExpEndpoint : Prop :=
   (∀ (n a e : ℕ) (x : ZMod n),
     applyModWord (modeExpWord (a : ZMod n) e) x = x * (a : ZMod n) ^ e) ∧

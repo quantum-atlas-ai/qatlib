@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.CollisionProb97.MainResults.CollisionDefs
+
+/-!
+# Counting collision and claw candidates
+
+This module counts fibers and marked candidates for the collision and claw constructions in
+[BrassardHoyerTapp1998Collision]. The predicate `RToOne` gives exact fiber sizes on the image,
+yielding domain cardinality identities and candidate counts.
+
+The results `collisionCandidates_spec` and `clawCandidates_spec` recover witnesses from marked
+inputs.
+
+## Main statements
+
+* `collisionCandidates_card`: If `F` is injective on the table inputs `K`, the number of
+  external collision candidates is `(r - 1) * K.card`.
+* `clawCandidates_card`: For an `r`-to-one function `G`, the number of claw candidates over a
+  subset `T` of its image is `T.card * r`.
+* `collisionCandidates_spec`: Every collision candidate has a distinct table input with the same
+  function value.
+
+## References
+
+* [Brassard et al., 1998][BrassardHoyerTapp1998Collision]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +42,8 @@ open scoped BigOperators
 
 universe u
 
+/-- For an `r`-to-one function, the preimage of a finite subset of its image has cardinality
+`T.card * r`. -/
 theorem card_univ_filter_fiber_mem {X Y : Type u} [Fintype X] [DecidableEq X]
     [DecidableEq Y] (F : X → Y) (r : ℕ) (hF : RToOne F r) {T : Finset Y}
     (hT : T ⊆ Finset.image F (Finset.univ : Finset X)) :
@@ -26,6 +53,8 @@ theorem card_univ_filter_fiber_mem {X Y : Type u} [Fintype X] [DecidableEq X]
   rw [Finset.sum_congr rfl (fun y hy => hF y (hT hy))]
   exact Finset.sum_const_nat (fun _ _ => rfl)
 
+/-- The domain cardinality of an `r`-to-one function equals its image cardinality multiplied by
+`r`. -/
 theorem card_eq_image_card_mul {X Y : Type u} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] (F : X → Y) (r : ℕ) (hF : RToOne F r) :
     Fintype.card X = (Finset.image F (Finset.univ : Finset X)).card * r := by
@@ -36,6 +65,8 @@ theorem card_eq_image_card_mul {X Y : Type u} [Fintype X] [DecidableEq X]
   rw [Finset.sum_congr rfl (fun y hy => hF y hy)]
   exact Finset.sum_const_nat (fun _ _ => rfl)
 
+/-- An `r`-to-one function with positive `r` is surjective when its domain cardinality is `r`
+times its codomain cardinality. -/
 theorem image_eq_univ_of_rToOne {X Y : Type u} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] (F : X → Y) (r : ℕ) (hr : 0 < r)
     (hF : RToOne F r) (hcard : Fintype.card X = r * Fintype.card Y) :
@@ -51,6 +82,8 @@ theorem image_eq_univ_of_rToOne {X Y : Type u} [Fintype X] [DecidableEq X]
     exact Nat.eq_of_mul_eq_mul_right hr hmul
   exact Finset.eq_univ_of_card _ hcardImg
 
+/-- If `F` is injective on the table inputs `K`, the number of external collision candidates is
+`(r - 1) * K.card`. -/
 theorem collisionCandidates_card {X Y : Type u} [Fintype X] [DecidableEq X]
     [DecidableEq Y] (F : X → Y) (r : ℕ) (hF : RToOne F r) (K : Finset X)
     (hinj : Set.InjOn F (K : Set X)) :
@@ -78,12 +111,15 @@ theorem collisionCandidates_card {X Y : Type u} [Fintype X] [DecidableEq X]
     rw [h1, Nat.one_mul, Nat.mul_comm r K.card]
   exact harith
 
+/-- For an `r`-to-one function `G`, the number of claw candidates over a subset `T` of its image
+is `T.card * r`. -/
 theorem clawCandidates_card {Y Z : Type u} [Fintype Y] [DecidableEq Y] [DecidableEq Z]
     (G : Y → Z) (r : ℕ) (hG : RToOne G r) (T : Finset Z)
     (hT : T ⊆ Finset.image G (Finset.univ : Finset Y)) :
     (clawCandidates G T).card = T.card * r :=
   card_univ_filter_fiber_mem G r hG hT
 
+/-- Every collision candidate has a distinct table input with the same function value. -/
 theorem collisionCandidates_spec {X Y : Type u} [Fintype X] [DecidableEq X]
     [DecidableEq Y] (F : X → Y) (K : Finset X) {x1 : X}
     (hx : x1 ∈ collisionCandidates F K) :
@@ -96,6 +132,7 @@ theorem collisionCandidates_spec {X Y : Type u} [Fintype X] [DecidableEq X]
   intro h
   exact hxK (h ▸ hx0)
 
+/-- Every claw candidate for the table image `K.image F` has a matching input in `K`. -/
 theorem clawCandidates_spec {X Y Z : Type u} [Fintype Y] [DecidableEq Y]
     [DecidableEq X] [DecidableEq Z]
     (F : X → Z) (G : Y → Z) (K : Finset X) {y : Y}

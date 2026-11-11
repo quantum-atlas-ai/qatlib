@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.CfOrder.CountedContinuedFractionDecoder
 import Qatlib.Concepts.PeriodSampling.OrderRecovery.PairLCMOrderRecovery
+
+/-!
+# Continued-fraction consumers for order finding
+
+This module connects continued-fraction rational decoding to recovery of modular orders from two
+phase samples. `cfPairLCMOrderDecode` takes the least common multiple of two decoded
+denominators and verifies the resulting exponent, following the order-finding method of
+[Shor1997].
+
+The results transfer correctness and probability bounds from `pairLCMOrderDecode`, while
+retaining the continued-fraction step counts and soundness of subsequent factor extraction.
+
+## Main statements
+
+* `continued_fraction_actual_pair_order_and_factor_consumer`: exact order recovery from two good
+  phase samples with explicit work bounds.
+* `continued_fraction_actual_fresh_order_probability_and_factor_soundness`: a uniform success
+  probability bound for independent samples and sound factor output.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,9 +40,13 @@ namespace Qatlib.Concepts.PeriodSampling.OrderRecovery
 open scoped Classical
 set_option maxHeartbeats 2000000
 
+/-- Applies continued-fraction rational decoding to the endpoint-adjusted phase numerator,
+retaining both work counters. -/
 def cfReducedOrderDecode (N M : ℕ) (y : Fin M) : Option (ℕ × ℕ) × ℕ × ℕ :=
   cfRationalDecode N M (reducedOrderNumerator M y)
 
+/-- Combines two continued-fraction decoded denominators by least common multiple and verifies
+the exponent, recording the two decoding work totals and verification exponent. -/
 def cfPairLCMOrderDecode (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (yz : Fin M × Fin M) :
     Option ℕ × ℕ × ℕ × ℕ :=
   let x := cfReducedOrderDecode N M yz.1
@@ -30,12 +58,16 @@ def cfPairLCMOrderDecode (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (yz : Fin M × 
       x.2.1 + y.2.1, x.2.2 + y.2.2, r)
   | _, _ => (none, x.2.1 + y.2.1, x.2.2 + y.2.2, 0)
 
+/-- When `2 * N ^ 2 < M`, the continued-fraction and bounded-scan reduced decoders return the
+same optional rational pair. -/
 private theorem cfReducedOrderDecode_eq (N M : ℕ) (y : Fin M) (hs : 2 * N ^ 2 < M) :
     (cfReducedOrderDecode N M y).1 = (reducedOrderDecode N M y).1 := by
   apply cfRationalDecode_eq_bounded N M _ hs
   unfold reducedOrderNumerator
   split <;> omega
 
+/-- When `2 * N ^ 2 < M`, the continued-fraction and bounded-scan pair decoders return the same
+optional exponent. -/
 theorem cfPairLCMOrderDecode_eq (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (yz : Fin M × Fin M) (hs : 2 * N ^ 2 < M) :
     (cfPairLCMOrderDecode N M a yz).1 = (pairLCMOrderDecode N M a yz).1 := by
@@ -44,6 +76,10 @@ theorem cfPairLCMOrderDecode_eq (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ)
   rw [cfReducedOrderDecode_eq N M yz.1 hs, cfReducedOrderDecode_eq N M yz.2 hs]
   cases (reducedOrderDecode N M yz.1).1 <;> cases (reducedOrderDecode N M yz.2).1 <;> rfl
 
+/-- For two good phase samples whose spectral indices have gcd coprime to the order, the
+continued-fraction pair decoder recovers the exact order under the stated size hypotheses.
+Its work counters are bounded by `2 * (cfDepth M + 1)` and `(cfDepth M + 1) * (cfDepth M +
+2)`, and its verification exponent equals the order [Shor1997]. -/
 theorem continued_fraction_actual_pair_order_and_factor_consumer
     (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (s t : Fin (orderOf a)) (y z : Fin M)
     (hN : 1 < N) (hr : 1 < orderOf a) (hsize : 2 * N ^ 2 < M)
@@ -69,6 +105,9 @@ theorem continued_fraction_actual_pair_order_and_factor_consumer
   have htri := Nat.div_mul_le_self ((cfDepth M + 1) * (cfDepth M + 2)) 2
   refine ⟨trivial, ?_, ?_, trivial⟩ <;> omega
 
+/-- Under the nontriviality and clock-size hypotheses, two independent modular-order samples
+recover the exact order with probability at least `(8 / π²)² / 4`. Every divisor returned by
+subsequent `orderFactor` processing is a nontrivial divisor of `N` [Shor1997]. -/
 theorem continued_fraction_actual_fresh_order_probability_and_factor_soundness
     (N M : ℕ) [NeZero N] (a : (ZMod N)ˣ) (hM : 0 < M)
     (hN : 1 < N) (hr : 1 < orderOf a) (hsize : 2 * N ^ 2 < M) :

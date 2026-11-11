@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QuadChar00.MainResults.Lemma4JacobiSum
+
+/-!
+# Jacobi Fourier amplitudes at zero and unit frequencies
+
+This module proves the shifted Jacobi Fourier identity at zero frequency and at unit
+frequencies. The unit-frequency argument uses multiplication by a unit to reindex the sum and
+the fact that the Jacobi character is unchanged by inversion of that unit.
+
+The result `lemma1_amplitude_unit_or_zero` combines these two cases of the unnormalized
+amplitude formula in Lemma 1 of [VanDamHallgren2000]. The zero-frequency theorem also handles
+the modulus-one case directly, while the unit-frequency reindexing argument applies to every
+nonzero modulus under its stated interface.
+
+## Main statements
+
+* `jacobiCharZMod_unit_eq_one_or_neg_one`: Jacobi values on units are signs.
+* `jacobiCharZMod_unit_inv_eq`: inversion preserves a unit's Jacobi value.
+* `lemma1_amplitude_zero`: the shifted Fourier identity at frequency zero.
+* `lemma1_amplitude_unit_or_zero`: the identity at either a unit or zero frequency.
+
+## References
+
+* [van Dam and Hallgren, 2000][VanDamHallgren2000]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,11 +39,13 @@ namespace Qatlib.Papers.QuadChar00.MainResults
 
 open scoped BigOperators
 
+/-- The Jacobi character of the residue one equals one for every modulus. -/
 lemma jacobiCharZMod_one (n : ℕ) : jacobiCharZMod n (1 : ZMod n) = 1 := by
   rw [show (1 : ZMod n) = ((1 : ℕ) : ZMod n) from by push_cast; rfl,
     jacobiCharZMod_natCast]
   exact jacobiSym.one_left n
 
+/-- For a nonzero modulus, the Jacobi character of a unit is either one or minus one. -/
 lemma jacobiCharZMod_unit_eq_one_or_neg_one (n : ℕ) [NeZero n] (y : (ZMod n)ˣ) :
     jacobiCharZMod n (y : ZMod n) = 1 ∨ jacobiCharZMod n (y : ZMod n) = -1 := by
   have hu : IsUnit (((((y : ZMod n)).val : ℕ)) : ZMod n) := by
@@ -32,6 +59,7 @@ lemma jacobiCharZMod_unit_eq_one_or_neg_one (n : ℕ) [NeZero n] (y : (ZMod n)ˣ
   have h := jacobiSym.eq_one_or_neg_one hgcd
   rwa [← jacobiCharZMod_natCast, ZMod.natCast_zmod_val] at h
 
+/-- For a nonzero modulus, a unit and its inverse have the same Jacobi-character value. -/
 lemma jacobiCharZMod_unit_inv_eq (n : ℕ) [NeZero n] (y : (ZMod n)ˣ) :
     jacobiCharZMod n ((y⁻¹ : (ZMod n)ˣ) : ZMod n) = jacobiCharZMod n (y : ZMod n) := by
   have hprod : jacobiCharZMod n (y : ZMod n) * jacobiCharZMod n ((y⁻¹ : (ZMod n)ˣ) : ZMod n) = 1 := by
@@ -43,6 +71,9 @@ lemma jacobiCharZMod_unit_inv_eq (n : ℕ) [NeZero n] (y : (ZMod n)ˣ) :
   · rw [one_mul] at hprod; exact hprod
   · omega
 
+/-- For odd squarefree nonzero modulus, the shifted Jacobi Fourier sum at frequency zero equals
+the Gauss sum times the zero-frequency phase and Jacobi factors. This zero-frequency case of
+Lemma 1 of [VanDamHallgren2000] includes modulus one. -/
 theorem lemma1_amplitude_zero (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n)
     (s : ZMod n) :
     ∑ x : ZMod n, ((jacobiCharZMod n (x + s) : ℤ) : ℂ) * ZMod.stdAddChar (x * (0 : ZMod n))
@@ -84,6 +115,9 @@ theorem lemma1_amplitude_zero (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefre
     rw [hsum, hJ0]
     simp
 
+/-- At a unit frequency, the shifted Jacobi Fourier sum equals `jacobiGaussSum n` times the
+shift phase at `-(s * y)` and the Jacobi value at `y`. This unit-frequency case of Lemma 1
+of [VanDamHallgren2000] is proved by translation and multiplicative reindexing. -/
 theorem lemma1_amplitude_unit (n : ℕ) [NeZero n] (_hn : Odd n) (_hsq : Squarefree n)
     (s y : ZMod n) (hy : IsUnit y) :
     ∑ x : ZMod n, ((jacobiCharZMod n (x + s) : ℤ) : ℂ) * ZMod.stdAddChar (x * y)
@@ -157,6 +191,9 @@ theorem lemma1_amplitude_unit (n : ℕ) [NeZero n] (_hn : Odd n) (_hsq : Squaref
   rw [hshift, hS]
   ring
 
+/-- For odd squarefree nonzero modulus, the shifted Jacobi Fourier identity holds whenever the
+frequency is a unit or zero. This combines the two corresponding cases of Lemma 1 of
+[VanDamHallgren2000]. -/
 theorem lemma1_amplitude_unit_or_zero (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n)
     (s y : ZMod n) (hy : IsUnit y ∨ y = 0) :
     ∑ x : ZMod n, ((jacobiCharZMod n (x + s) : ℤ) : ℂ) * ZMod.stdAddChar (x * y)

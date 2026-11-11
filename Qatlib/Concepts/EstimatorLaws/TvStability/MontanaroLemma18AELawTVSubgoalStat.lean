@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+/-!
+# Amplitude-estimation stability contract
+
+States the total-variation stability property for the output laws of amplitude estimation on two
+unitary preparations. The square-root dependence on the difference of good-event probabilities
+is the law-level ingredient for Lemma 18 of [Montanaro2015].
+
+## Main statements
+
+* `MontanaroLemma18AELawTVSubgoal` requires the label-law distance to be at most `π² * M / (2 *
+  sqrt 3) * sqrt |μ₁ - μ₂|` for `M ≥ 2`.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +36,9 @@ namespace Qatlib.Concepts.EstimatorLaws.TvStability
 
 open Qatlib
 
+/-- The proposition specifying the amplitude-estimation output-law stability bound used in Lemma
+18 of [Montanaro2015]. It compares two unitary preparations through their respective
+good-event probabilities and requires `M ≥ 2`. -/
 def MontanaroLemma18AELawTVSubgoal : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (M : ℕ) (hM : 2 ≤ M),
     ∀ (A₁ A₂ : Matrix I I ℂ) (j₁ j₂ : I) (S₁ S₂ : Finset I),

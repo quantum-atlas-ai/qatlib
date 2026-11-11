@@ -8,6 +8,26 @@ import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
 import Mathlib.Analysis.Normed.Ring.Basic
 import Mathlib.Tactic.NoncommRing
 
+/-!
+# Norm estimates for Hamiltonian simulation
+
+This module proves basic error estimates for sums and ordered products used in sparse
+Hamiltonian simulation. In particular, `list_prod_sub_prod_le` bounds product error by the sum
+of factor errors for lists of contractions, and `timeEvolution_zero` identifies evolution at
+time zero. The mathematical context is [AharonovTaShma2007].
+
+## Main statements
+
+* `norm_sum_sub_sum_le`: Uniform error at most `ε` for each term of a finite operator sum gives
+  total error at most the number of terms times `ε`.
+* `list_prod_sub_prod_le`: For equal-length lists of contractions, the norm of the difference of
+  their ordered products is bounded by the sum of the norms of corresponding factor differences.
+
+## References
+
+* [Aharonov and Ta‐Shma, 2007][AharonovTaShma2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -20,6 +40,8 @@ open Qatlib.Papers.AdiabStateGen03.MainResults
 
 variable {n : ℕ}
 
+/-- The time-evolution operator at time zero is the identity for every Hamiltonian
+[AharonovTaShma2007]. -/
 theorem timeEvolution_zero (H : Ham n) : timeEvolution H 0 = 1 := by
   unfold timeEvolution
   have h : (-(0 : ℝ)) • (Complex.I • toOp H) = 0 := by
@@ -27,6 +49,8 @@ theorem timeEvolution_zero (H : Ham n) : timeEvolution H 0 = 1 := by
     simp
   rw [h, NormedSpace.exp_zero]
 
+/-- Uniform error at most `ε` for each term of a finite operator sum gives total error at most
+the number of terms times `ε` [AharonovTaShma2007]. -/
 theorem norm_sum_sub_sum_le {ι : Type*} [Fintype ι] (f g : ι → Op n) (ε : ℝ)
     (h : ∀ i, ‖f i - g i‖ ≤ ε) :
     ‖∑ i, f i - ∑ i, g i‖ ≤ (Fintype.card ι : ℝ) * ε := by
@@ -36,6 +60,8 @@ theorem norm_sum_sub_sum_le {ι : Type*} [Fintype ι] (f g : ι → Op n) (ε : 
     _ = (Fintype.card ι : ℝ) * ε := by
         rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
 
+/-- A finite ordered product of elements of norm at most one has norm at most one
+[AharonovTaShma2007]. -/
 lemma norm_list_prod_le_one {R : Type*} [SeminormedRing R] [NormOneClass R]
     {l : List R} (h : ∀ a ∈ l, ‖a‖ ≤ 1) : ‖l.prod‖ ≤ 1 := by
   induction l with
@@ -49,6 +75,8 @@ lemma norm_list_prod_le_one {R : Type*} [SeminormedRing R] [NormOneClass R]
             · exact ih (fun x hx => h x (by simp [hx]))
         _ = 1 := by ring
 
+/-- For equal-length lists of contractions, the norm of the difference of their ordered products
+is bounded by the sum of the norms of corresponding factor differences [AharonovTaShma2007]. -/
 theorem list_prod_sub_prod_le {R : Type*} [SeminormedRing R] [NormOneClass R]
     (l₁ : List R) :
     ∀ (l₂ : List R), l₁.length = l₂.length →

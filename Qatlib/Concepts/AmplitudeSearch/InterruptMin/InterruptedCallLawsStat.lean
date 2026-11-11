@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.InterruptedCall
 import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+
+/-!
+# The interrupted-call contract
+
+This module defines `InterruptedCallLaws`, a proposition collecting trace semantics and
+prefix-suffix identities for a circuit interrupted after a query budget. The contract records
+the exact minimum query count and reconstruction of the full execution.
+
+It supplies a circuit-level interface for interrupted minimum-search procedures [DurrHoyer1996].
+
+## Main statements
+
+* `InterruptedCallLaws`: The contract asserting full-circuit and query-prefix trace formulas,
+  the prefix representation of interruption, and prefix-suffix reconstruction of circuits and
+  their execution.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery
@@ -20,6 +41,9 @@ namespace Qatlib.Concepts.AmplitudeSearch.InterruptMin
 
 open Qatlib
 
+/-- The contract asserting full-circuit and query-prefix trace formulas, the prefix
+representation of interruption, and prefix-suffix reconstruction of circuits and their
+execution. -/
 def InterruptedCallLaws : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (O : Matrix I I ℂ) (C : Circuit I)
     (ψ : QState I) (r : ℕ),

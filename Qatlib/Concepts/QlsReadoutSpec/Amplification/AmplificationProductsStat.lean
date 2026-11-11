@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+/-!
+# Nested amplification product contract
+
+Defines `Clause9AmplificationProducts`, which specifies exact initial-oracle counts and weighted
+query costs for nested amplification. Under the clock, stage, tuning, and positivity hypotheses,
+the product of the odd amplification factors equals the final amplified amplitude divided by the
+plain amplitude and total loss, as in [LowSu2026].
+
+## Main statements
+
+* `Clause9AmplificationProducts`: states the call product, weighted cost recurrence, and final
+  amplitude identity.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,6 +45,9 @@ open Qatlib.Concepts.BlockEncoding.Postselection.Encoding Matrix
 open Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The nested amplification contract giving slot-zero call products, the stagewise weighted
+cost recurrence, and the final amplitude-ratio identity under clock legality, stage
+legality, normalized seed, positive plain amplitude, and tuning hypotheses. -/
 def Clause9AmplificationProducts : Prop :=
   ∀ (H : Type) [Fintype H] [DecidableEq H] (m : ℕ)
     (P : Fin (m+1) → Matrix H H ℂ) (bad : Matrix H H ℂ)

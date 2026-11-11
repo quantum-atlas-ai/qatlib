@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseStat
 import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
 import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+/-!
+# Near optimal QSVT pseudoinverse theorem
+
+This module proves `NearOptimalPseudoinverse`, combining the reciprocal polynomial construction
+with a source phase word and postselection estimates. The theorem supplies a degree bound
+proportional to `κ * log (κ / ε)` together with encoding, circuit count, minimum norm, and least
+squares guarantees. The mathematical background is developed in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `nearOptimalPseudoinverse`: the combined pseudoinverse implementation and output theorem.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +48,9 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.Ph
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The near optimal pseudoinverse specification holds, including the phase length bound, scaled
+encoding, counts, and minimum norm and least squares postselection guarantees; see [Gilyén
+et al., Theorem 41][GilyenSuLowWiebe2019]. -/
 theorem nearOptimalPseudoinverse : NearOptimalPseudoinverse := by
   intro H I O _ _ _ _ _ _ A U L R κ ε hκ hε hε1 henc hgap
   let J := nearOptimalReciprocalJ κ ε

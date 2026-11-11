@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.HspRecovery.AbelianSampling.EigenbasisReadoutSamplingSubgoalStat
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+/-!
+# Born probabilities for exact eigenbasis readout
+
+`eigenbasisReadoutSamplingSubgoal` derives the phase label distribution of exact phase
+estimation from an orthonormal eigenvector superposition. The probability of a set of labels is
+the sum of squared coefficient norms over all eigenvectors with labels in that set, including
+coincident labels. [Kitaev1995]
+
+## Main statements
+
+* `eigenbasisReadoutSamplingSubgoal`: proves the coefficient weight formula for phase label
+  events.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,9 @@ namespace Qatlib.Concepts.HspRecovery.AbelianSampling
 open Matrix
 open scoped BigOperators Classical
 
+/-- For an orthonormal eigenvector superposition whose squared coefficient norms sum to one,
+exact phase readout assigns each label event the sum of squared coefficient norms of the
+terms with labels in that event [Kitaev1995]. -/
 theorem eigenbasisReadoutSamplingSubgoal : EigenbasisReadoutSamplingSubgoal := by
   intro M hM Idx I _ _ _ _ U ψ k c S horth heig _hnorm
   rw [qpe_exact_readout_linear M hM U c ψ k heig]

@@ -9,32 +9,60 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Mathlib.Data.Real.Sqrt
 
+/-!
+# Trial counts and amplified transform work
+
+The scalar model defines geometric trial expectation and variance, QFT and QHS success bounds,
+and the amplified work factor. Explicit success and failure assumptions yield lower bounds on
+expected trials and variance, together with comparisons to amplification work. This development
+supports the treatment in [Cornwell2014].
+
+## Main statements
+
+* `hasSum_geometric_firstSuccess`: the geometric first-success expectation.
+* `qft_trialsVariance_ge` and `qhs_trialsVariance_ge`: conditional variance bounds.
+* `qft_speedup_of_successBound` and `qhs_speedup_of_successBound`: expected-work comparisons.
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.AmpTransform14.TrialModels
 
 noncomputable section
 
+/-- The scalar geometric trial expectation `1/p`. -/
 def expectedTrials (p : ℝ) : ℝ := 1 / p
 
+/-- The scalar geometric trial variance `(1 - p)/p^2`. -/
 def trialsVariance (p : ℝ) : ℝ := (1 - p) / p ^ 2
 
+/-- The scalar QFT success bound `4 * M/N * (1 - M/N)`. -/
 def qftSuccessBound (M N : ℝ) : ℝ := 4 * M / N * (1 - M / N)
 
+/-- The scalar QHS success bound `2 * M/N * (1 - M/N)`. -/
 def qhsSuccessBound (M N : ℝ) : ℝ := 2 * M / N * (1 - M / N)
 
+/-- The amplified transform work factor `sqrt(N/M)`. -/
 def amplifiedWorkFactor (M N : ℝ) : ℝ := Real.sqrt (N / M)
 
+/-- The trial expectation `expectedTrials p` equals the reciprocal `p⁻¹`. -/
 @[simp]
 theorem expectedTrials_eq_inv (p : ℝ) : expectedTrials p = p⁻¹ := by
   unfold expectedTrials; rw [one_div]
 
+/-- For positive `M` and nonnegative `N`, the squared amplified work factor equals `N/M`. -/
 @[simp]
 theorem amplifiedWorkFactor_sq {M N : ℝ} (hM : 0 < M) (hN : 0 ≤ N) :
     amplifiedWorkFactor M N ^ 2 = N / M := by
   unfold amplifiedWorkFactor
   rw [Real.sq_sqrt (by positivity)]
 
+/-- For `0 < p ≤ 1`, the geometric first-success distribution has expectation `expectedTrials
+p`, expressed as the sum of `(k + 1) * (1 - p)^k * p`. -/
 theorem hasSum_geometric_firstSuccess {p : ℝ} (hp : 0 < p) (hp1 : p ≤ 1) :
     HasSum (fun k : ℕ => ((k : ℝ) + 1) * (1 - p) ^ k * p) (expectedTrials p) := by
   have hr : ‖1 - p‖ < 1 := by
@@ -66,11 +94,13 @@ theorem hasSum_geometric_firstSuccess {p : ℝ} (hp : 0 < p) (hp1 : p ≤ 1) :
   rw [hfun₂]
   rwa [hval] at hscaled
 
+/-- If `0 < p ≤ B` with `B > 0`, the trial expectation at `p` is at least that at `B`. -/
 theorem expectedTrials_ge_of_le {p B : ℝ} (hp : 0 < p) (hpB : p ≤ B) (hB : 0 < B) :
     expectedTrials B ≤ expectedTrials p := by
   rw [expectedTrials_eq_inv, expectedTrials_eq_inv]
   exact (inv_le_inv₀ hB hp).2 hpB
 
+/-- The QFT scalar success bound is positive when `0 < M < N`. -/
 theorem qftSuccessBound_pos {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
     0 < qftSuccessBound M N := by
   have hN : 0 < N := lt_trans hM hMN
@@ -80,6 +110,7 @@ theorem qftSuccessBound_pos {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
     try ring_nf
   rw [h1]; positivity
 
+/-- The QHS scalar success bound is positive when `0 < M < N`. -/
 theorem qhsSuccessBound_pos {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
     0 < qhsSuccessBound M N := by
   have hN : 0 < N := lt_trans hM hMN
@@ -89,6 +120,8 @@ theorem qhsSuccessBound_pos {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
     try ring_nf
   rw [h1]; positivity
 
+/-- For `0 < M < N` and positive success probability at most the QFT bound, the expected trial
+count is at least `N/(4 * M)`. -/
 theorem qft_expectedTrials_ge {M N p : ℝ} (hM : 0 < M) (hMN : M < N) (hp : 0 < p)
     (hpB : p ≤ qftSuccessBound M N) : N / (4 * M) ≤ expectedTrials p := by
   have hN : 0 < N := lt_trans hM hMN
@@ -112,6 +145,8 @@ theorem qft_expectedTrials_ge {M N p : ℝ} (hM : 0 < M) (hMN : M < N) (hp : 0 <
   rw [expectedTrials_eq_inv]
   linarith
 
+/-- For `0 < M < N` and positive success probability at most the QHS bound, the expected trial
+count is at least `N/(2 * M)`. -/
 theorem qhs_expectedTrials_ge {M N p : ℝ} (hM : 0 < M) (hMN : M < N) (hp : 0 < p)
     (hpB : p ≤ qhsSuccessBound M N) : N / (2 * M) ≤ expectedTrials p := by
   have hN : 0 < N := lt_trans hM hMN
@@ -135,6 +170,8 @@ theorem qhs_expectedTrials_ge {M N p : ℝ} (hM : 0 < M) (hMN : M < N) (hp : 0 <
   rw [expectedTrials_eq_inv]
   linarith
 
+/-- If `0 < p ≤ B` and the failure probability is at least a positive `f`, then the trial
+variance is at least `f/B^2`. -/
 theorem trialsVariance_ge_bound {p B f : ℝ} (hp : 0 < p) (hpB : p ≤ B)
     (hf : 0 < f) (hfail : f ≤ 1 - p) :
     f / B ^ 2 ≤ trialsVariance p := by
@@ -148,6 +185,9 @@ theorem trialsVariance_ge_bound {p B f : ℝ} (hp : 0 < p) (hpB : p ≤ B)
   unfold trialsVariance
   linarith
 
+/-- For `M > 0`, `4 * M ≤ N`, and `2 * M^2 < N`, the expression `(N/(N - M))^2 * (N - 2 *
+M^2)/(4 * M)` is bounded by the stated failure bound divided by the squared QFT success
+bound. -/
 theorem qft_variance_algebra {M N : ℝ} (hM : 0 < M) (hMN : 4 * M ≤ N)
     (h2M : 2 * M ^ 2 < N) :
     (N / (N - M)) ^ 2 * ((N - 2 * M ^ 2) / (4 * M))
@@ -168,6 +208,9 @@ theorem qft_variance_algebra {M N : ℝ} (hM : 0 < M) (hMN : 4 * M ≤ N)
     _ ≤ (N / (N - M)) ^ 2 * ((N - 2 * M ^ 2) / (4 * M)) * (N / (4 * M)) :=
         mul_le_mul_of_nonneg_left hfac hA
 
+/-- Under the stated size assumptions, QFT success upper bound, and explicit failure lower
+bound, the trial variance is at least `(N/(N - M))^2 * (N - 2 * M^2)/(4 * M)`
+[Cornwell2014]. -/
 theorem qft_trialsVariance_ge {M N p : ℝ} (hM : 0 < M) (hMN : 4 * M ≤ N)
     (h2M : 2 * M ^ 2 < N) (hp : 0 < p) (hpB : p ≤ qftSuccessBound M N)
     (hfail : (N - 2 * M ^ 2) / N ≤ 1 - p) :
@@ -179,6 +222,8 @@ theorem qft_trialsVariance_ge {M N p : ℝ} (hM : 0 < M) (hMN : 4 * M ≤ N)
   have h2 := qft_variance_algebra (M := M) (N := N) hM hMN h2M
   linarith
 
+/-- For `0 < M < N`, the expression `(N/(N - M))^2 * ((N - M)^2 + M^2)/(4 * M^2)` equals the QHS
+failure expression divided by its squared success bound. -/
 theorem qhs_variance_algebra {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
     (N / (N - M)) ^ 2 * (((N - M) ^ 2 + M ^ 2) / (4 * M ^ 2))
       = (1 - 2 * M * (N - M) / N ^ 2) / (qhsSuccessBound M N) ^ 2 := by
@@ -188,6 +233,8 @@ theorem qhs_variance_algebra {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
   field_simp
   ring
 
+/-- Under `0 < M < N`, the QHS success upper bound, and the stated failure lower bound, the
+trial variance is at least `(N/(N - M))^2 * ((N - M)^2 + M^2)/(4 * M^2)`. -/
 theorem qhs_trialsVariance_ge {M N p : ℝ} (hM : 0 < M) (hMN : M < N) (hp : 0 < p)
     (hpB : p ≤ qhsSuccessBound M N)
     (hfail : 1 - 2 * M * (N - M) / N ^ 2 ≤ 1 - p) :
@@ -203,6 +250,7 @@ theorem qhs_trialsVariance_ge {M N p : ℝ} (hM : 0 < M) (hMN : M < N) (hp : 0 <
   have h2 := qhs_variance_algebra (M := M) (N := N) hM hMN
   linarith
 
+/-- For `0 < M < N`, dividing `N/(4 * M)` by the amplified work factor gives `sqrt(N/M)/4`. -/
 theorem qft_trials_over_workFactor {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
     N / (4 * M) / amplifiedWorkFactor M N = Real.sqrt (N / M) / 4 := by
   have hN : 0 < N := lt_trans hM hMN
@@ -219,6 +267,8 @@ theorem qft_trials_over_workFactor {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
         ring
   rw [amplifiedWorkFactor, div_eq_iff (ne_of_gt hs), hkey]
 
+/-- For `0 < M < N` and positive success probability at most the QFT bound, expected trials
+divided by amplified work are at least `sqrt(N/M)/4`. -/
 theorem qft_speedup_of_successBound {M N p : ℝ} (hM : 0 < M) (hMN : M < N)
     (hp : 0 < p) (hpB : p ≤ qftSuccessBound M N) :
     Real.sqrt (N / M) / 4 ≤ expectedTrials p / amplifiedWorkFactor M N := by
@@ -227,6 +277,7 @@ theorem qft_speedup_of_successBound {M N p : ℝ} (hM : 0 < M) (hMN : M < N)
   rw [← h2]
   exact div_le_div_of_nonneg_right h1 (Real.sqrt_nonneg (N / M))
 
+/-- For `0 < M < N`, dividing `N/(2 * M)` by the amplified work factor gives `sqrt(N/M)/2`. -/
 theorem qhs_trials_over_workFactor {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
     N / (2 * M) / amplifiedWorkFactor M N = Real.sqrt (N / M) / 2 := by
   have hN : 0 < N := lt_trans hM hMN
@@ -243,6 +294,8 @@ theorem qhs_trials_over_workFactor {M N : ℝ} (hM : 0 < M) (hMN : M < N) :
         ring
   rw [amplifiedWorkFactor, div_eq_iff (ne_of_gt hs), hkey]
 
+/-- For `0 < M < N` and positive success probability at most the QHS bound, expected trials
+divided by amplified work are at least `sqrt(N/M)/2`. -/
 theorem qhs_speedup_of_successBound {M N p : ℝ} (hM : 0 < M) (hMN : M < N)
     (hp : 0 < p) (hpB : p ≤ qhsSuccessBound M N) :
     Real.sqrt (N / M) / 2 ≤ expectedTrials p / amplifiedWorkFactor M N := by
@@ -251,6 +304,8 @@ theorem qhs_speedup_of_successBound {M N p : ℝ} (hM : 0 < M) (hMN : M < N)
   rw [← h2]
   exact div_le_div_of_nonneg_right h1 (Real.sqrt_nonneg (N / M))
 
+/-- If positive `θ` satisfies `sin θ = sqrt(M/N)` with positive `M` and `N`, then `floor(π/(4 *
+θ))` is at most `π/(4 * sqrt(M/N))`. -/
 theorem groverIterations_le_workFactor {θ M N : ℝ} (hθ : 0 < θ)
     (hsin : Real.sin θ = Real.sqrt (M / N)) (hM : 0 < M) (hN : 0 < N) :
     (⌊Real.pi / (4 * θ)⌋₊ : ℝ) ≤ Real.pi / (4 * Real.sqrt (M / N)) := by
@@ -264,6 +319,7 @@ theorem groverIterations_le_workFactor {θ M N : ℝ} (hθ : 0 < θ)
     gcongr
   linarith
 
+/-- For positive `M` and `16 * M ≤ N`, the scalar ratio `sqrt(N/M)/4` is at least one. -/
 theorem one_le_speedup_of_sparse {M N : ℝ} (hM : 0 < M) (hMN : 16 * M ≤ N) :
     1 ≤ Real.sqrt (N / M) / 4 := by
   have hratio : 16 ≤ N / M := by

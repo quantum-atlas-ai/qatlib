@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+
+/-!
+# Specification of finite CDF preparation
+
+This module states `CDFActualFiniteSubgoal`, the finite-dimensional CDF preparation identity and
+threshold monotonicity property for unitary data preparation.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `CDFActualFiniteSubgoal`: The proposition that unitary CDF payoff preparation has flag
+  probability `riskCDF` and that the resulting CDF is monotone in its threshold.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +40,8 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition that unitary CDF payoff preparation has flag probability `riskCDF` and that
+the resulting CDF is monotone in its threshold. -/
 def CDFActualFiniteSubgoal : Prop :=
 ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (loss : I  → ℚ) (t : ℚ),
   A∈Matrix.unitaryGroup I ℂ  →

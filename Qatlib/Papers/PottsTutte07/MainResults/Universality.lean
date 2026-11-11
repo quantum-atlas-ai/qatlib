@@ -8,6 +8,28 @@ import Qatlib.Papers.PottsTutte07.MainResults.Definitions
 import Qatlib.Papers.PottsTutte07.MainResults.Scales
 import Qatlib.Papers.PottsTutte07.MainResults.ComplexityDefs
 import Qatlib.Papers.PottsTutte07.MainResults.Basic
+
+/-!
+# Algebraic identities and finite approximation witnesses
+
+The local operator identities describe odd and even inverse-weight relations and scalar
+preservation of unitarity. The density statements extract words from explicit density
+hypotheses, while the remaining existence statements specify Tutte-instance promises, finite
+parameter lists, rescaling factors, and length bounds [AharonovEtAl2007].
+
+## Main statements
+
+* `claim7_1`: The local inverse-weight relations give the odd scalar product and the even
+  identity product.
+* `theorem7_2_density_unitary`: The assumed density gives finite approximating words in
+  dimension fourteen.
+* `claim7_3_reduction_bound`: The vertex-count relation simplifies the hardness scale.
+
+## References
+
+* [Aharonov et al., 2007][AharonovEtAl2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +39,9 @@ namespace Qatlib.Papers.PottsTutte07.MainResults
 
 open scoped BigOperators
 
+/-- For the stated weight types, there exists a Tutte instance with the prescribed `q`,
+vertex-count relation, window bound, and high-or-low squared-norm promise for every estimate
+within that window [AharonovEtAl2007]. -/
 theorem theorem7_1_bqp_hard
     (n : ℕ) (U : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ) (_hU : IsUnitary U)
     (q : ℂ) (Wodd Weven : Set ℂ)
@@ -40,6 +65,8 @@ theorem theorem7_1_bqp_hard
     rw [hest0]
     norm_num
 
+/-- If `Φ² = dΦ` and `u + u' + d = 0`, the product of the two odd operators is `u * u'` times
+the identity. -/
 theorem sigmaOdd_mul {A : Type*} [CommRing A] [Algebra ℂ A]
     (u u' d : ℂ) (Φ : A)
     (hPhi : Φ * Φ = algebraMap ℂ A d * Φ)
@@ -59,6 +86,8 @@ theorem sigmaOdd_mul {A : Type*} [CommRing A] [Algebra ℂ A]
     _ = algebraMap ℂ A (u * u') * 1 := by
         rw [hconst, hlin]; ring
 
+/-- If `Φ² = dΦ` and `u + u' + u * u' * d = 0`, the product of the two even operators is the
+identity. -/
 theorem sigmaEven_mul {A : Type*} [CommRing A] [Algebra ℂ A]
     (u u' d : ℂ) (Φ : A)
     (hPhi : Φ * Φ = algebraMap ℂ A d * Φ)
@@ -78,6 +107,8 @@ theorem sigmaEven_mul {A : Type*} [CommRing A] [Algebra ℂ A]
           algebraMap ℂ A u * algebraMap ℂ A u' * algebraMap ℂ A d) * Φ := by ring
     _ = 1 := by rw [hlin]; ring
 
+/-- The odd inverse-weight relation and `d ^ 2 = q` give an odd-operator product equal to `(v *
+w / q)` times the identity [AharonovEtAl2007]. -/
 theorem claim7_1_odd {A : Type*} [CommRing A] [Algebra ℂ A]
     (v w q d : ℂ) (hd : d ≠ 0) (hdq : d ^ 2 = q)
     (hvw : w + v + q = 0) (Φ : A)
@@ -96,6 +127,8 @@ theorem claim7_1_odd {A : Type*} [CommRing A] [Algebra ℂ A]
       = algebraMap ℂ A (v / d * (w / d)) * 1 := sigmaOdd_mul (v / d) (w / d) d Φ hPhi hsum
     _ = algebraMap ℂ A (v * w / q) * 1 := by rw [hcoef]
 
+/-- The even inverse-weight relation gives an even-operator product equal to the identity
+[AharonovEtAl2007]. -/
 theorem claim7_1_even {A : Type*} [CommRing A] [Algebra ℂ A]
     (v w q d : ℂ) (hd : d ≠ 0) (_hdq : d ^ 2 = q)
     (hvw : v + w + w * v = 0) (Φ : A)
@@ -108,6 +141,8 @@ theorem claim7_1_even {A : Type*} [CommRing A] [Algebra ℂ A]
     exact (mul_eq_zero.mp hzero).resolve_right hd
   exact sigmaEven_mul (v / d) (w / d) d Φ hPhi hsum
 
+/-- The stated odd and even inverse-weight relations simultaneously give the odd scalar product
+and the even identity product [AharonovEtAl2007]. -/
 theorem claim7_1 {A : Type*} [CommRing A] [Algebra ℂ A]
     (v w q d : ℂ) (hd : d ≠ 0) (hdq : d ^ 2 = q)
     (hvwo : w + v + q = 0) (hvwe : v + w + w * v = 0) (Φ : A)
@@ -117,6 +152,8 @@ theorem claim7_1 {A : Type*} [CommRing A] [Algebra ℂ A]
   ⟨claim7_1_odd v w q d hd hdq hvwo Φ hPhi,
    claim7_1_even v w q d hd hdq hvwe Φ hPhi⟩
 
+/-- Multiplying a unitary matrix by `v / d` preserves unitarity when that scalar has squared
+norm one [AharonovEtAl2007]. -/
 theorem claim7_2_unitary_weights
     {K : ℕ} (v d : ℂ) (U : Matrix (Fin K) (Fin K) ℂ)
     (hU : IsUnitary U) (hc : (Complex.normSq (v / d) : ℂ) = 1) :
@@ -126,6 +163,8 @@ theorem claim7_2_unitary_weights
   · rw [h2, hc, one_smul]
   · rw [h1, hc, one_smul]
 
+/-- The assumed density in the fourteen-dimensional special unitary set yields arbitrarily
+accurate finite words in the range of `σhat` [AharonovEtAl2007]. -/
 theorem theorem7_2_density_unitary
     (q : ℂ) (Wodd Weven : Set ℂ) (_h : IsUnitaryType q Wodd Weven)
     (σhat : ℂ → Matrix (Fin 14) (Fin 14) ℂ)
@@ -142,6 +181,8 @@ theorem theorem7_2_density_unitary
   obtain ⟨t, ht⟩ := hword g hg
   exact ⟨t, ht.symm⟩
 
+/-- The assumed density in the fourteen-dimensional complex special linear set yields
+arbitrarily accurate finite words in the range of `σhat` [AharonovEtAl2007]. -/
 theorem theorem7_3_density_complex_nonunitary
     (q : ℂ) (Wodd Weven : Set ℂ) (_h : IsComplexNonUnitaryType q Wodd Weven)
     (σhat : ℂ → Matrix (Fin 14) (Fin 14) ℂ)
@@ -158,6 +199,8 @@ theorem theorem7_3_density_complex_nonunitary
   obtain ⟨t, ht⟩ := hword g hg
   exact ⟨t, ht.symm⟩
 
+/-- The assumed density in the fourteen-dimensional real special linear set yields arbitrarily
+accurate finite words in the range of `σhat` [AharonovEtAl2007]. -/
 theorem theorem7_4_density_real_nonunitary
     (q : ℂ) (Wodd Weven : Set ℂ) (_h : IsRealNonUnitaryType q Wodd Weven)
     (σhat : ℂ → Matrix (Fin 14) (Fin 14) ℂ)
@@ -174,6 +217,9 @@ theorem theorem7_4_density_real_nonunitary
   obtain ⟨t, ht⟩ := hword g hg
   exact ⟨t, ht.symm⟩
 
+/-- Each generator has an approximating generator word bounded by `polyLogBound`, and
+concatenating generator words preserves generator membership and adds their lengths
+[AharonovEtAl2007]. -/
 theorem theorem7_6_nonunitary_solovay_kitaev
     (K : ℕ) (gens : Set (Matrix (Fin K) (Fin K) ℂ))
     (_hgen : ∀ g ∈ gens, Matrix.det g = 1) :
@@ -204,6 +250,9 @@ theorem theorem7_6_nonunitary_solovay_kitaev
       · exact h2 g hg
     · rw [List.length_append]
 
+/-- For the stated weight types, there exist an allowed parameter list, a matrix, and a nonzero
+scalar whose rescaled matrix approximates `V` within `ε`, with the prescribed list-length
+bound [AharonovEtAl2007]. -/
 theorem theorem7_7_su4_efficient_density
     (q : ℂ) (Wodd Weven : Set ℂ)
     (_h : IsUnitaryType q Wodd Weven ∨ IsComplexNonUnitaryType q Wodd Weven ∨
@@ -220,6 +269,9 @@ theorem theorem7_7_su4_efficient_density
   · rw [one_div_one, one_smul, entryDist_self]
     exact hε
 
+/-- The relation `numV = 2 * n + card Eodd` simplifies the hardness scale to `q ^ (2 * n)` times
+the odd-edge weight product and gives the corresponding quotient identity
+[AharonovEtAl2007]. -/
 theorem claim7_3_reduction_bound
     {E : Type*} [Fintype E]
     (k : Finset E → ℕ) (q d : ℂ) (v : E → ℂ) (Eodd : Finset E)
@@ -233,6 +285,8 @@ theorem claim7_3_reduction_bound
     rw [show numV - Eodd.card = 2 * n by omega]
   exact ⟨hscale, by rw [hscale]⟩
 
+/-- There exists a list of real-entry determinant-one matrices of size four whose length is at
+most `polyLogBound (1 / 2)` [AharonovEtAl2007]. -/
 theorem claim7_4_real_universality
     (n : ℕ) (U : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ) (_hU : IsUnitary U) :
     ∃ gates : List (Matrix (Fin 4) (Fin 4) ℂ),

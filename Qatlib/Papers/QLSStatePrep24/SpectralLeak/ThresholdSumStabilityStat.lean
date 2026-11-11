@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLSStatePrep24.SpectralLeak.BandModels
+
+/-!
+# Specification of threshold sum stability
+
+`Clause32ThresholdSumStability` states that a nonempty threshold sum lies between one and 5/4
+times `9^l` times the weighted state mass. It also specifies an explicit stability bound for
+geometric sums of squared norms of nearby vectors. See [LowSu2026] for the paper context.
+
+## Main statements
+
+* `Clause32ThresholdSumStability`: The proposition giving zero at `l = 0`, factor-5/4 bounds for
+  positive threshold sums, and an absolute perturbation bound `(9/8) * 4 * εbm * 9^l` for the
+  associated weighted squared norm sums.
+
+## References
+
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,6 +48,9 @@ open Qatlib.Concepts.QlsReadoutSpec.Amplification Qatlib.Papers.QLSStatePrep24.S
 open Qatlib.Concepts.QlsReadoutSpec.WalkQSVT
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- The proposition giving zero at `l = 0`, factor-5/4 bounds for positive threshold sums, and
+an absolute perturbation bound `(9/8) * 4 * εbm * 9^l` for the associated weighted squared
+norm sums. -/
 def Clause32ThresholdSumStability : Prop :=
   (∀ (I : Type) [Fintype I] (m l : ℕ) (γ : I → ℂ) (ζ : ℕ → I → ℂ), l ≤ m →
     let p := (normVec (weightedBandState m γ ζ))^2

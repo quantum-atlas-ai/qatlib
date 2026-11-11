@@ -6,6 +6,20 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RectangularPureDistance
 import Qatlib.Concepts.Execution.KrausRefinement
+
+/-!
+# Instrument outcome distance for pure inputs
+
+Stacking an instrument's Kraus operators gives an isometry whose grouped Born
+probabilities recover the instrument's outcome law. For normalized pure input
+vectors, the total variation distance between outcome laws is at most
+`sqrt (1 - |⟨ψ, φ⟩|²)`. The final result transports the estimate through a
+finite-index Euclidean-space representation.
+
+The distinguishability bound is the pure-state form associated with
+[FuchsVanDeGraaf1999]; instruments have their operational foundation in
+[Davies & Lewis][DaviesLewis1970].
+-/
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,10 +31,13 @@ open Matrix Qatlib
 open scoped BigOperators InnerProductSpace
 section InstrumentPureTV
 
+/-- The rectangular matrix obtained by stacking all Kraus-refinement matrices of a finite
+instrument. -/
 def krausStackMatrix {O : Type} [Fintype O] {D E : ℕ} (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O D E) :
     Matrix ((O × (Fin E × Fin D)) × Fin E) (Fin D) ℂ :=
   fun ae j => Qatlib.Concepts.Execution.KrausRefinement.Instrument.krausFamily I ae.1 ae.2 j
 
+/-- The stacked Kraus matrix has Gram matrix equal to the identity. -/
 theorem krausStackMatrix_gram {O : Type} [Fintype O] {D E : ℕ}
     (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O D E) :
     (Qatlib.Concepts.MixedFidelity.FidelityMetric.InstrumentPureDistance.krausStackMatrix I)ᴴ * Qatlib.Concepts.MixedFidelity.FidelityMetric.InstrumentPureDistance.krausStackMatrix I = 1 := by
@@ -32,6 +49,8 @@ theorem krausStackMatrix_gram {O : Type} [Fintype O] {D E : ℕ}
       Qatlib.Concepts.MixedFidelity.FidelityMetric.InstrumentPureDistance.krausStackMatrix, Fintype.sum_prod_type]
   rw [hentry, hcomp]
 
+/-- A Kraus-refinement outcome probability on a pure outer product equals the sum of the Born
+weights of the corresponding Kraus-transformed vector. -/
 theorem instrumentProb_krausRefinement_outerProduct
     {O : Type} [Fintype O] {D E : ℕ}
     (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O D E) (ψ : Qatlib.Foundations.PureStateMath.QState (Fin D)) (a : O × (Fin E × Fin D)) :
@@ -42,6 +61,8 @@ theorem instrumentProb_krausRefinement_outerProduct
     Complex.ofReal_re]
   rfl
 
+/-- An instrument outcome probability on a pure outer product is the sum of the stacked-vector
+Born weights over Kraus labels and output coordinates. -/
 theorem instrumentProb_outerProduct_eq_sum_bornProb
     {O : Type} [Fintype O] {D E : ℕ}
     (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O D E) (ψ : Qatlib.Foundations.PureStateMath.QState (Fin D)) (o : O) :
@@ -53,6 +74,8 @@ theorem instrumentProb_outerProduct_eq_sum_bornProb
   rw [Qatlib.Concepts.MixedFidelity.FidelityMetric.InstrumentPureDistance.instrumentProb_krausRefinement_outerProduct]
   rfl
 
+/-- An instrument's pure-input outcome probability is the sum of the stacked-vector Born weights
+indexed by paired Kraus labels and output coordinates. -/
 theorem instrumentProb_outerProduct_eq_sum_prod
     {O : Type} [Fintype O] {D E : ℕ}
     (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O D E) (ψ : Qatlib.Foundations.PureStateMath.QState (Fin D)) (o : O) :
@@ -63,6 +86,9 @@ theorem instrumentProb_outerProduct_eq_sum_prod
   exact (Fintype.sum_prod_type (fun ke : (Fin E × Fin D) × Fin E =>
     Qatlib.Foundations.PureStateMath.BornProb (Qatlib.Concepts.MixedFidelity.FidelityMetric.InstrumentPureDistance.krausStackMatrix I *ᵥ ψ) ((o, ke.1), ke.2))).symm
 
+/-- Any finite instrument's outcome laws on normalized pure states have total
+variation distance at most `sqrt (1 - |⟨ψ, φ⟩|²)`; compare
+[Fuchs & van de Graaf, distinguishability measures][FuchsVanDeGraaf1999]. -/
 theorem instrument_pure_tv_le_sqrt_fidelity
     {O : Type} [Fintype O] [DecidableEq O] {D E : ℕ}
     (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O D E) (ψ φ : Qatlib.Foundations.PureStateMath.QState (Fin D))
@@ -118,6 +144,8 @@ theorem instrument_pure_tv_le_sqrt_fidelity
   rw [Qatlib.Foundations.PureStateMath.BornBridge.inner_euclidean_fromVec] at hfine
   exact hcoarse.trans hfine
 
+/-- For normalized Euclidean vectors relabeled by `e`, the instrument outcome laws have total
+variation at most `Real.sqrt (1 - ‖inner ℂ x y‖ ^ 2)`. -/
 theorem instrument_euclidean_tv_le_sqrt_fidelity
     {Idx O : Type} [Fintype Idx] [DecidableEq Idx] [Fintype O] [DecidableEq O]
     {D E : ℕ} (e : Idx ≃ Fin D) (I : Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument O D E)

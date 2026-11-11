@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
 import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+
+/-!
+# Counterexamples for truncated Hamiltonian encodings
+
+This module constructs two local Hermitian Hamiltonian encodings with identical serialized bits
+but different energies. Their common bit string satisfies both the YES and NO predicates,
+disproving QMA membership for these predicates; the separately stated reduction-existence
+condition still holds without an algorithmic requirement on the reduction. Related mathematical
+background is given in [KempeKitaevRegev2006].
+
+## Main statements
+
+* `clause3_bits_eq`: Collision of the two serialized encodings.
+* `clause3_overlap`: A common YES and NO bit string.
+* `clause3_counter_clause1`: Failure of the proposed QMA membership condition.
+* `clause3_clause2`: Existence of maps satisfying the stated size and implication conditions.
+
+## References
+
+* [Kempe et al., 2006][KempeKitaevRegev2006]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +41,7 @@ open Qatlib.Foundations.PureStateMath
 
 namespace Qatlib.Concepts.QmaCompleteness.HistoryHam
 
+/-- Adding `2^len` to a natural number leaves its length-`len` bit representation unchanged. -/
 theorem natToBits_add_pow (len v : ℕ) : natToBits len (v + 2 ^ len) = natToBits len v := by
   have key : ∀ i < len, decide ((v + 2 ^ len) / 2 ^ i % 2 = 1) = decide (v / 2 ^ i % 2 = 1) := by
     intro i hi
@@ -42,6 +65,8 @@ theorem natToBits_add_pow (len v : ℕ) : natToBits len (v + 2 ^ len) = natToBit
   have hi' : i < len := by simpa [List.mem_range] using hi
   exact key i hi'
 
+/-- Adding `2^len` to a natural number leaves its length-`len` integer bit representation
+unchanged after casting to integers. -/
 theorem intToBits_add_pow (len v : ℕ) :
     intToBits len ((v + 2 ^ len : ℕ) : ℤ) = intToBits len (v : ℤ) := by
   simp only [intToBits]
@@ -56,42 +81,54 @@ theorem intToBits_add_pow (len v : ℕ) :
     positivity
   rw [h1, h2]
 
+/-- The zero local Hamiltonian term on one qubit with an empty wire list. -/
 def clause3T1 : LhTerm 1 where
   wires := []
   re := 0
   im := 0
 
+/-- The local Hamiltonian term on one qubit with an empty wire list and constant real entry
+`2^65`. -/
 def clause3T2 : LhTerm 1 where
   wires := []
   re := Matrix.of fun _ _ => (2 ^ 65 : ℤ)
   im := 0
 
+/-- The one-qubit, width-zero encoding consisting of the zero term `clause3T1`. -/
 def clause3E1 : LhEncoding where
   qubitCount := 1
   width := 0
   terms := [clause3T1]
 
+/-- The one-qubit, width-zero encoding consisting of the scalar term `clause3T2`. -/
 def clause3E2 : LhEncoding where
   qubitCount := 1
   width := 0
   terms := [clause3T2]
 
+/-- The coefficient bit length for the empty-wire term `clause3T1` at width zero is 65. -/
 private theorem clause3_len : (0 + 2 ^ clause3T1.wires.length + 64 : ℕ) = 65 := rfl
 
+/-- Every real entry of `clause3T1` is zero. -/
 private theorem clause3T1_re (p q : Fin 1) : clause3T1.re p q = 0 := rfl
 
+/-- Every real entry of `clause3T2` is `2^65`. -/
 private theorem clause3T2_re (p q : Fin 1) : clause3T2.re p q = (2 ^ 65 : ℤ) := rfl
 
+/-- The two distinct counterexample terms have identical serialized bits at width zero. -/
 theorem clause3_term_bits_eq : lhTermToBits 0 clause3T1 = lhTermToBits 0 clause3T2 := by decide
 
+/-- The two counterexample Hamiltonian encodings have identical serialized bits. -/
 theorem clause3_bits_eq : lhToBits clause3E1 = lhToBits clause3E2 := by decide
 
+/-- Membership in a singleton list forces equality with its sole element. -/
 private theorem list_mem_singleton_eq {α : Type} (a b : α) (h : a ∈ ([b] : List α)) :
     a = b := by
   cases h with
   | head => rfl
   | tail _ hh => cases hh
 
+/-- The first counterexample encoding satisfies the three-locality predicate. -/
 theorem clause3E1_local : lhLocal 3 clause3E1 := by
   intro t ht
   have hmem : t = clause3T1 := list_mem_singleton_eq t clause3T1 ht
@@ -99,6 +136,7 @@ theorem clause3E1_local : lhLocal 3 clause3E1 := by
   show clause3T1.wires.length ≤ 3
   decide
 
+/-- The second counterexample encoding satisfies the three-locality predicate. -/
 theorem clause3E2_local : lhLocal 3 clause3E2 := by
   intro t ht
   have hmem : t = clause3T2 := list_mem_singleton_eq t clause3T2 ht
@@ -106,6 +144,7 @@ theorem clause3E2_local : lhLocal 3 clause3E2 := by
   show clause3T2.wires.length ≤ 3
   decide
 
+/-- The first counterexample encoding satisfies the Hermitian-term predicate. -/
 theorem clause3E1_herm : lhHermitian clause3E1 := by
   intro t ht p q
   have hmem : t = clause3T1 := list_mem_singleton_eq t clause3T1 ht
@@ -113,6 +152,7 @@ theorem clause3E1_herm : lhHermitian clause3E1 := by
   show (0 : ℤ) = 0 ∧ (0 : ℤ) = -(0 : ℤ)
   simp
 
+/-- The second counterexample encoding satisfies the Hermitian-term predicate. -/
 theorem clause3E2_herm : lhHermitian clause3E2 := by
   intro t ht p q
   have hmem : t = clause3T2 := list_mem_singleton_eq t clause3T2 ht
@@ -120,6 +160,7 @@ theorem clause3E2_herm : lhHermitian clause3E2 := by
   show ((2 ^ 65 : ℤ)) = (2 ^ 65 : ℤ) ∧ (0 : ℤ) = -(0 : ℤ)
   simp
 
+/-- The Hamiltonian of the first counterexample encoding is zero. -/
 theorem clause3E1_ham_zero : lhHamiltonian clause3E1 = 0 := by
   show lhEmbedTerm 0 clause3T1 + 0 = 0
   have hz : lhEmbedTerm 0 clause3T1 = 0 := by
@@ -133,6 +174,7 @@ theorem clause3E1_ham_zero : lhHamiltonian clause3E1 = 0 := by
   rw [hz]
   simp
 
+/-- The first counterexample encoding is a YES instance at energy threshold zero. -/
 theorem clause3E1_yes : LhYesInst clause3E1 0 := by
   refine ⟨Qatlib.Foundations.PureStateMath.Ket (ZeroStr 1), normalized_ket _, ?_⟩
   rw [clause3E1_ham_zero]
@@ -141,6 +183,7 @@ theorem clause3E1_yes : LhYesInst clause3E1 0 := by
   unfold qmaEnergy
   simp [Qatlib.Foundations.PureStateMath.Inner]
 
+/-- Agreement outside the empty wire list is equivalent to equality of the full registers. -/
 private theorem lhAgreeOutside_nil {N : ℕ} (x y : Reg N) :
     lhAgreeOutside ([] : List (Fin N)) x y = true ↔ x = y := by
   have hall : lhAgreeOutside ([] : List (Fin N)) x y
@@ -161,6 +204,7 @@ private theorem lhAgreeOutside_nil {N : ℕ} (x y : Reg N) :
     intro j _
     simp
 
+/-- The Hamiltonian of the second counterexample encoding is the identity scaled by `2^65`. -/
 theorem clause3E2_ham : lhHamiltonian clause3E2 = ((2 ^ 65 : ℂ) • (1 : Matrix (Reg 1) (Reg 1) ℂ)) := by
   show lhEmbedTerm 0 clause3T2 + 0 = _
   have hz : lhEmbedTerm 0 clause3T2 = ((2 ^ 65 : ℂ) • (1 : Matrix (Reg 1) (Reg 1) ℂ)) := by
@@ -183,6 +227,8 @@ theorem clause3E2_ham : lhHamiltonian clause3E2 = ((2 ^ 65 : ℂ) • (1 : Matri
   rw [hz]
   simp
 
+/-- The energy of a scalar identity matrix in a state is the real part of the scalar times the
+state's self-inner-product. -/
 private theorem energy_smul_one {I : Type} [Fintype I] [DecidableEq I] (c : ℂ) (ζ : QState I) :
     qmaEnergy (c • (1 : Matrix I I ℂ)) ζ = (c * Qatlib.Foundations.PureStateMath.Inner ζ ζ).re := by
   unfold qmaEnergy
@@ -199,6 +245,8 @@ private theorem energy_smul_one {I : Type} [Fintype I] [DecidableEq I] (c : ℂ)
     rw [← Finset.mul_sum, ← inner_apply]
   rw [hinner]
 
+/-- The second counterexample encoding is a NO instance at the specified inverse-polynomial
+energy threshold. -/
 theorem clause3E2_no : LhNoInst clause3E2 (1 / (2 ^ 20 * (clause3E2.qubitCount + 1) ^ 4)) := by
   intro η hη
   have henergy : qmaEnergy (lhHamiltonian clause3E2) η = (((2 ^ 65 : ℂ)) * Qatlib.Foundations.PureStateMath.Inner η η).re := by
@@ -208,11 +256,15 @@ theorem clause3E2_no : LhNoInst clause3E2 (1 / (2 ^ 20 * (clause3E2.qubitCount +
   conv_lhs => rw [show clause3E2.qubitCount = 1 from rfl]
   norm_num
 
+/-- The bit string of the first encoding satisfies both the three-local Hamiltonian YES
+predicate and its NO predicate. -/
 theorem clause3_overlap : LhYesBits 3 (lhToBits clause3E1) ∧ LhNoBits 3 (lhToBits clause3E1) := by
   refine ⟨⟨clause3E1, rfl, clause3E1_local, clause3E1_herm, clause3E1_yes⟩,
       ⟨clause3E2, ?_, clause3E2_local, clause3E2_herm, clause3E2_no⟩⟩
   exact clause3_bits_eq.symm
 
+/-- The overlapping three-local Hamiltonian bit predicates fail the stated promise-QMA
+membership condition. -/
 theorem clause3_counter_clause1 : ¬ InPromiseQMA (LhYesBits 3) (LhNoBits 3) := by
   intro h
   obtain ⟨V, hyes, hno⟩ := h
@@ -222,6 +274,9 @@ theorem clause3_counter_clause1 : ¬ InPromiseQMA (LhYesBits 3) (LhNoBits 3) := 
   have : (2 : ℝ) / 3 ≤ 1 / 3 := le_trans hacc hacc'
   norm_num at this
 
+/-- Every promise-QMA pair possesses a map to three-local Hermitian encodings satisfying the
+stated polynomial term-count and width bounds and YES/NO implications. The statement imposes
+no computational requirement on this map. -/
 theorem clause3_clause2 :
     ∀ (Lyes Lno : List Bool → Prop), InPromiseQMA Lyes Lno →
       ∃ (red : List Bool → LhEncoding) (c : ℕ),
@@ -274,6 +329,8 @@ theorem clause3_clause2 :
     rw [if_neg hne]
     exact ⟨clause3E2, rfl, clause3E2_local, clause3E2_herm, clause3E2_no⟩
 
+/-- The conjunction of the proposed three-local Hamiltonian promise-QMA membership and
+reduction-existence conditions is false. -/
 theorem clause3_counter : ¬
     (InPromiseQMA (LhYesBits 3) (LhNoBits 3)
     ∧ (∀ (Lyes Lno : List Bool → Prop), InPromiseQMA Lyes Lno →

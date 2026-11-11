@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Concepts.StoppingCore.InterruptBridge.WeightedStoppingBudget
 import Mathlib.Probability.Distributions.Uniform
+
+/-!
+# Exact costs for alternating randomized retries
+
+This module defines a two-state retry process with transition costs two and three. It computes
+its occupation weights, expected total cost, and exact halting and pending masses at selected
+resource budgets using `alternatingRetryKernel` and `alternatingRetryCost`.
+
+This explicit randomized cost example complements the algorithmic resource analysis used in
+quantum Monte Carlo methods [Montanaro2015].
+
+## Main statements
+
+* `alternatingRetry_expectedCost`: The expected total transition cost of the retry process
+  started at `false` is ten.
+* `weighted_alternating_retry_exact_consumer`: The alternating retry process has expected cost
+  ten and zero nontermination mass, with halting masses one half and one quarter at costs five
+  and ten. Its pending masses at budgets four and five are one and one half.
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw
@@ -20,30 +44,40 @@ namespace Qatlib.Concepts.ResourceBounds.AsymBounds
 
 open scoped Classical BigOperators ENNReal
 
+/-- The retry kernel that moves from `false` to `true` deterministically, then either halts or
+returns to `false` with equal probability. -/
 noncomputable def alternatingRetryKernel : Bool → PMF (Unit ⊕ Bool)
   | false => PMF.pure (.inr true)
   | true => (PMF.uniformOfFintype' Bool).map (fun b => if b then .inl () else .inr false)
 
+/-- The transition cost, equal to three in state `true` and two in state `false`. -/
 def alternatingRetryCost (b : Bool) : ℕ := if b then 3 else 2
 
+/-- Every transition of the alternating retry process costs at least one. -/
 @[simp] theorem alternatingRetryCost_positive (b : Bool) : 1 ≤ alternatingRetryCost b := by
   cases b <;> decide
 
+/-- From state `true`, the retry kernel halts with probability one half. -/
 @[simp] theorem alternatingRetryKernel_true_halt : alternatingRetryKernel true (.inl ()) = 1/2 := by
   simp [alternatingRetryKernel, PMF.map_apply, tsum_fintype,
     PMF.uniformOfFintype'_apply]
 
+/-- From state `true`, the retry kernel returns to `false` with probability one half. -/
 @[simp] theorem alternatingRetryKernel_true_false : alternatingRetryKernel true (.inr false) = 1/2 := by
   simp [alternatingRetryKernel, PMF.map_apply, tsum_fintype,
     PMF.uniformOfFintype'_apply]
 
+/-- From state `true`, the retry kernel assigns zero mass to continuation in state `true`. -/
 @[simp] theorem alternatingRetryKernel_true_true : alternatingRetryKernel true (.inr true) = 0 := by
   simp [alternatingRetryKernel, PMF.map_apply, tsum_fintype,
     PMF.uniformOfFintype'_apply]
 
+/-- The state marginal after `n` steps of the retry process started at `false`. -/
 noncomputable def alternatingRetryMarginal (n : ℕ) : PMF (Unit ⊕ Bool) :=
   (RandomizedExecution.runFor alternatingRetryKernel n (.inr false)).map Prod.fst
 
+/-- The continuation masses satisfy the one-step recurrence: the next `false` mass is half the
+current `true` mass, and the next `true` mass is the current `false` mass. -/
 theorem alternatingRetryMarginal_succ (n : ℕ) :
     alternatingRetryMarginal (n+1) (.inr false) = (1/2 : ℝ≥0∞) * alternatingRetryMarginal n (.inr true) ∧
     alternatingRetryMarginal (n+1) (.inr true) = alternatingRetryMarginal n (.inr false) := by
@@ -68,6 +102,7 @@ theorem alternatingRetryMarginal_succ (n : ℕ) :
     simp [PMF.bind_apply, tsum_fintype,
       alternatingRetryKernel, PMF.map_apply, PMF.uniformOfFintype'_apply, PMF.pure_apply, mul_comm]
 
+/-- After `2 * m` steps, the mass at `false` is `2⁻ᵐ` and the mass at `true` is zero. -/
 theorem alternatingRetryMarginal_even (m : ℕ) :
     alternatingRetryMarginal (2*m) (.inr false) = (1/2 : ℝ≥0∞)^m ∧
     alternatingRetryMarginal (2*m) (.inr true) = 0 := by
@@ -80,6 +115,8 @@ theorem alternatingRetryMarginal_even (m : ℕ) :
     rw [h2.1, h2.2, h1.1, h1.2, ih.1, ih.2]
     simp [pow_succ, mul_comm]
 
+/-- The weighted occupation at steps `2 * m` and `2 * m + 1` is respectively `2 * 2⁻ᵐ` and `3 *
+2⁻ᵐ`. -/
 theorem alternatingRetryOccupation (m : ℕ) :
     Qatlib.Concepts.StoppingCore.InterruptBridge.weightedOccupation alternatingRetryKernel alternatingRetryCost (.inr false) (2*m) =
       2 * (1/2 : ℝ≥0∞)^m ∧
@@ -95,6 +132,7 @@ theorem alternatingRetryOccupation (m : ℕ) :
   rw [ho.1, ho.2, he.1, he.2]
   simp [alternatingRetryCost, mul_comm]
 
+/-- The expected total transition cost of the retry process started at `false` is ten. -/
 theorem alternatingRetry_expectedCost :
     Qatlib.Concepts.StoppingCore.InterruptBridge.weightedExpectedCost alternatingRetryKernel alternatingRetryCost (.inr false) = 10 := by
   unfold Qatlib.Concepts.StoppingCore.InterruptBridge.weightedExpectedCost
@@ -103,6 +141,7 @@ theorem alternatingRetry_expectedCost :
   rw [ENNReal.tsum_mul_left, ENNReal.tsum_mul_left, ENNReal.tsum_geometric]
   norm_num
 
+/-- With budget four, execution ends pending in state `true` after spending two. -/
 theorem alternatingRetry_budget_four :
     Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun alternatingRetryKernel alternatingRetryCost 4 (.inr false) =
       PMF.pure (.inr true,2) := by
@@ -112,6 +151,7 @@ theorem alternatingRetry_budget_four :
   rw [weightedBudgetRun_pending _ _ 2 true (by decide),
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
 
+/-- With budget five, execution performs one full retry cycle and records total cost five. -/
 theorem alternatingRetry_budget_five :
     Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun alternatingRetryKernel alternatingRetryCost 5 (.inr false) =
       (alternatingRetryKernel true).map (fun d => (d,5)) := by
@@ -124,12 +164,14 @@ theorem alternatingRetry_budget_five :
   change CostedLaw.charge 2 ((alternatingRetryKernel true).map (fun d => (d,3))) = _
   simp only [CostedLaw.charge, alternatingRetryKernel, PMF.map_comp, Function.comp_def]
 
+/-- The joint mass of halting with total cost five is one half. -/
 theorem alternatingRetry_halt_five :
     Qatlib.Concepts.StoppingCore.BranchCostCore.weightedHaltJoint alternatingRetryKernel alternatingRetryCost (.inr false) () 5 = 1/2 := by
   rw [← Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun_halt_point _ _ alternatingRetryCost_positive _ _ 5 5 le_rfl,
     alternatingRetry_budget_five]
   simp [PMF.map_apply, tsum_fintype]
 
+/-- With budget ten, the mass of halting with recorded cost ten is one quarter. -/
 theorem alternatingRetry_budget_ten_halt :
     Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun alternatingRetryKernel alternatingRetryCost 10 (.inr false) (.inl (),10) = 1/4 := by
   rw [Qatlib.Concepts.StoppingCore.InterruptBridge.weightedBudgetRun_paid _ _ 10 false (by decide)]
@@ -146,6 +188,9 @@ theorem alternatingRetry_budget_ten_halt :
   rw [← ENNReal.mul_inv (by simp) (by simp)]
   norm_num
 
+/-- The alternating retry process has expected cost ten and zero nontermination mass, with
+halting masses one half and one quarter at costs five and ten. Its pending masses at budgets
+four and five are one and one half. -/
 theorem weighted_alternating_retry_exact_consumer :
     let c : Bool → ℕ := fun b => if b then 3 else 2
     Qatlib.Concepts.StoppingCore.InterruptBridge.weightedExpectedCost alternatingRetryKernel c (.inr false) = 10 ∧

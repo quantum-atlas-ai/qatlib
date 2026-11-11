@@ -5,6 +5,31 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphCompiler
+
+/-!
+# Resource counts and Bell-state graph consumers
+
+This module applies the preentangled graph compiler to resource accounting, the empty word, and
+a five-vertex Bell-state preparation. It supplies explicit input and output vectors and verifies
+the resulting density operators and logical channel action.
+
+The examples connect the branch semantics to the measurement-based graph-resource construction
+in [RaussendorfBriegel2000].
+
+## Main statements
+
+* `preentangled_graph_actual_leaf_and_message_resources`: exact branch counts, messages, and
+  physical resource costs.
+* `preentangled_graph_empty_word_reference_consumer`: the empty word preserves any reference
+  extension.
+* `preentangled_graph_five_vertex_bell_consumer`: Bell-state output, uniform branches, and
+  feedback costs.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -26,6 +51,9 @@ open Matrix
 open scoped Classical BigOperators ComplexOrder Kronecker
 namespace Qatlib.Concepts.ClusterPatterns.Preentangled
 
+/-- A preentangled graph program has `2^(graphWireCount gs)` accepting, query-free leaves, with
+exact gate and measurement counts and injective measurement messages. See
+[RaussendorfBriegel2000]. -/
 theorem preentangled_graph_actual_leaf_and_message_resources :
     ∀ (n L : ℕ) (gs : GraphWord n L) (h : GraphHistory gs),
     observedLeafCount (graphProgram true gs)=2^(graphWireCount gs) ∧
@@ -49,6 +77,8 @@ theorem preentangled_graph_actual_leaf_and_message_resources :
     omega
   · simpa only [graphProgramLeaf_eq, if_true, graphPrependLeaf_measurements] using! hm
 
+/-- The Bell graph has the stated two-bit message and gate count equal to ten plus its two
+outcome-dependent correction costs. -/
 theorem graphBell_leaf_resources (h : GraphHistory graphBellWord) :
     graphMessage graphBellWord h=[h.1 0,h.1 2] ∧
     (graphProgramLeaf true graphBellWord h).gates=
@@ -60,6 +90,8 @@ theorem graphBell_leaf_resources (h : GraphHistory graphBellWord) :
   simp [networkCounts, graphFrameAdvance, graphWireFrame, graphCzFrame, zeroPauliFrame,
     Nat.add_assoc]
 
+/-- The empty graph word preserves every input with an arbitrary reference system, uses no
+gates, and produces an empty message. See [RaussendorfBriegel2000]. -/
 theorem preentangled_graph_empty_word_reference_consumer :
     ∀ (n R : ℕ) (X : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ),
     let gs : GraphWord n 0 := Fin.elim0
@@ -77,11 +109,15 @@ theorem preentangled_graph_empty_word_reference_consumer :
     exact graphDiscardReference_empty n R X
   · rw [hl]
 
+/-- The inverse two-bit register equivalence lists the four Boolean registers in the displayed
+order. -/
 private theorem graphBits2 : (bitVecEquiv 2).symm=
     ![![false,false],![false,true],![true,false],![true,true]] := by
   funext r
   fin_cases r <;> decide
 
+/-- The logical wire gate with parameter one on the first wire has the displayed scaled Hadamard
+matrix. -/
 private theorem graphBellH0_matrix : networkWireGate (0 : Fin 2) 1 =
     ((Real.sqrt 2 : ℂ)⁻¹) • (!![1,0,1,0;0,1,0,1;1,0,-1,0;0,1,0,-1] : Operator 4) := by
   ext r c
@@ -90,6 +126,8 @@ private theorem graphBellH0_matrix : networkWireGate (0 : Fin 2) 1 =
       relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,Fin.prod_univ_two,clusterJ_entry,
       Matrix.smul_apply,Matrix.one_apply,smul_eq_mul,graphBits2,boolEquivFin2]
 
+/-- The logical wire gate with parameter one on the second wire has the displayed scaled
+Hadamard matrix. -/
 private theorem graphBellH1_matrix : networkWireGate (1 : Fin 2) 1 =
     ((Real.sqrt 2 : ℂ)⁻¹) • (!![1,1,0,0;1,-1,0,0;0,0,1,1;0,0,1,-1] : Operator 4) := by
   ext r c
@@ -98,20 +136,24 @@ private theorem graphBellH1_matrix : networkWireGate (1 : Fin 2) 1 =
       relabelGate,Matrix.reindex_apply,Matrix.submatrix_apply,Fin.prod_univ_two,clusterJ_entry,
       Matrix.smul_apply,Matrix.one_apply,smul_eq_mul,graphBits2,boolEquivFin2]
 
+/-- The two-wire CZ gate is diagonal with entries one, one, one, and minus one. -/
 private theorem graphBellCZ_matrix : networkCzGate (0 : Fin 2) 1=
     (!![1,0,0,0;0,1,0,0;0,0,1,0;0,0,0,-1] : Operator 4) := by
   rw [graph_cz_numeric_diagonal]
   ext r c
   fin_cases r <;> fin_cases c <;> norm_num [Matrix.diagonal_apply,graphBits2]
 
+/-- The two-qubit product vector consisting of a zero basis state and a plus state. -/
 noncomputable def graphBellInputState : QState (Fin 4) :=
   relabelState finProdFinEquiv (TensorState (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))
     (relabelState boolEquivFin2 (ApplyGate Hadamard (Qatlib.Foundations.PureStateMath.Ket false))))
 
+/-- The Bell resource vector relabeled to `Fin 4`. -/
 noncomputable def graphBellOutputState : QState (Fin 4) :=
   relabelState ((Equiv.prodCongr boolEquivFin2 boolEquivFin2).trans finProdFinEquiv)
     teleportBellResource
 
+/-- The Bell example input has amplitudes `1 / √2`, `1 / √2`, zero, and zero. -/
 private theorem graphBellInputState_entries : graphBellInputState=
     ![(Real.sqrt 2 : ℂ)⁻¹,(Real.sqrt 2 : ℂ)⁻¹,0,0] := by
   have hp : ((finProdFinEquiv : Fin 2 × Fin 2 ≃ Fin 4).symm : Fin 4 → Fin 2 × Fin 2)=
@@ -122,6 +164,7 @@ private theorem graphBellInputState_entries : graphBellInputState=
   funext r
   fin_cases r <;> simp [relabelState,TensorState,hp,Qatlib.Foundations.PureStateMath.Ket,Plus,hadamard_apply_false,boolEquivFin2]
 
+/-- The Bell example output has amplitudes `1 / √2`, zero, zero, and `1 / √2`. -/
 private theorem graphBellOutputState_entries : graphBellOutputState=
     ![(Real.sqrt 2 : ℂ)⁻¹,0,0,(Real.sqrt 2 : ℂ)⁻¹] := by
   have hp : (((Equiv.prodCongr boolEquivFin2 boolEquivFin2).trans finProdFinEquiv).symm :
@@ -132,6 +175,7 @@ private theorem graphBellOutputState_entries : graphBellOutputState=
   rw [graphBellOutputState, relabelState, Function.comp_def,
       hp]; fin_cases r <;> simp [teleportBellResource_apply']
 
+/-- Both the input and output matrices of the Bell example are density operators. -/
 theorem graphBell_states_density : IsDensityOperator graphBellInput ∧
     IsDensityOperator graphBellOutput := by
   refine ⟨isDensityOperator_outerProduct ?_,isDensityOperator_outerProduct ?_⟩
@@ -139,9 +183,12 @@ theorem graphBell_states_density : IsDensityOperator graphBellInput ∧
       (normalized_relabelState _ (normalized_applyGate hadamard_unitary (normalized_ket false))))
   · exact normalized_relabelState _ teleportBellResource_normalized
 
+/-- The Bell-state graph word satisfies `networkLegal`. -/
 theorem graphBellWord_legal : networkLegal (List.ofFn graphBellWord) := by
   simp [networkLegal,graphBellWord,List.ofFn_succ]
 
+/-- Conjugation by the Bell word's logical network matrix maps its input density operator to the
+Bell output. -/
 theorem graphBell_logical_output :
     networkLogicalMatrix (List.ofFn graphBellWord)*graphBellInput*
       (networkLogicalMatrix (List.ofFn graphBellWord))ᴴ=graphBellOutput := by
@@ -176,6 +223,9 @@ theorem graphBell_logical_output :
   rw [conjBranch_outerProduct]
   exact congrArg outerProduct hs
 
+/-- The five-vertex Bell graph has valid input and output density operators, produces the Bell
+output after forgetting outcomes, and has branches of weight one quarter with explicit
+messages and feedback costs. See [RaussendorfBriegel2000]. -/
 theorem preentangled_graph_five_vertex_bell_consumer :
     IsDensityOperator graphBellInput ∧ IsDensityOperator graphBellOutput ∧
     networkLegal (List.ofFn graphBellWord) ∧

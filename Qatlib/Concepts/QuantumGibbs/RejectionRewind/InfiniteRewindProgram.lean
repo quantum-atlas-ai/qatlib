@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
 import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
 import Mathlib.Analysis.Matrix.Order
+
+/-!
+# Finite rewind instruments and failure tails
+
+The maps `rewindFailureMap`, `rewindSuccessRoundMap`, and `rewindStoppedMap` describe pending,
+successful, and stopped branches of projective rejection rewinding. Their recurrences give a
+completely positive finite instrument whose stopped and pending branches preserve total trace.
+
+The pure-state failure estimate extends to positive semidefinite inputs by decomposition into
+outer products, yielding the normalized mixed-state bound `rewindMixedTail`. These estimates
+concern rejection rewinding in quantum Metropolis sampling [TemmeEtAl2011].
+
+## Main statements
+
+* `rewindFiniteInstrument`: For Hermitian projections, the finite stopped and pending rewind
+  maps are completely positive, preserve total trace, and satisfy the stopping recurrence. See
+  [Temme et al., 2011, Eq. (7)][TemmeEtAl2011].
+* `rewind_psd_tail`: For Hermitian projections, the pending trace of a positive semidefinite
+  input is at most `1 / (2 * (n + 1))` times its input trace.
+* `rewindMixedTail`: For Hermitian projections and a positive semidefinite input of trace one,
+  the pending trace is at most `1 / (2 * (n + 1))`. This extends the rejection estimate of
+  [TemmeEtAl2011] to mixed inputs.
+
+## References
+
+* [Temme et al., 2011][TemmeEtAl2011]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -25,17 +53,23 @@ namespace Qatlib.Concepts.QuantumGibbs.RejectionRewind
 open Matrix
 open scoped BigOperators ComplexOrder MatrixOrder
 
+/-- The pending-branch map obtained by summing conjugations over all rejection words of length
+`n`, after the initial failed projection. -/
 def rewindFailureMap {D : ℕ} (P Q : Operator D) (n : ℕ) :
     Operator D →ₗ[ℂ] Operator D :=
   ∑ s : Fin n → Bool,
     conjBranch (rejectWord P Q n s * (1 - P) * (1 - Q) * P)
 
+/-- The map summing branches that remain pending through `n` rejection rounds and then return to
+the range of `P`. -/
 def rewindSuccessRoundMap {D : ℕ} (P Q : Operator D) (n : ℕ) :
     Operator D →ₗ[ℂ] Operator D :=
   ∑ s : Fin n → Bool, ∑ b : Bool,
     conjBranch (P * (if b then Q else 1 - Q) * (1 - P) *
       rejectWord P Q n s * (1 - P) * (1 - Q) * P)
 
+/-- The sum of the three initial stopping branches and the successful rewind branches with round
+indices less than `n`. -/
 def rewindStoppedMap {D : ℕ} (P Q : Operator D) (n : ℕ) :
     Operator D →ₗ[ℂ] Operator D :=
   conjBranch (1 - P) + conjBranch (Q * P) + conjBranch (P * (1 - Q) * P) +
@@ -43,6 +77,7 @@ def rewindStoppedMap {D : ℕ} (P Q : Operator D) (n : ℕ) :
 
 set_option maxHeartbeats 500000
 
+/-- Each successful-round rewind map is completely positive. -/
 theorem rewindSuccessRoundMap_cp (D : ℕ) (P Q : Operator D) (n : ℕ) :
     CompletelyPositive (rewindSuccessRoundMap P Q n) := by
   unfold rewindSuccessRoundMap
@@ -52,6 +87,7 @@ theorem rewindSuccessRoundMap_cp (D : ℕ) (P Q : Operator D) (n : ℕ) :
   intro b _
   exact completelyPositive_conjBranch _
 
+/-- The pending rewind map is completely positive for every finite number of rounds. -/
 theorem rewindFailureMap_cp (D : ℕ) (P Q : Operator D) (n : ℕ) :
     CompletelyPositive (rewindFailureMap P Q n) := by
   unfold rewindFailureMap
@@ -59,6 +95,7 @@ theorem rewindFailureMap_cp (D : ℕ) (P Q : Operator D) (n : ℕ) :
   intro s _
   exact completelyPositive_conjBranch _
 
+/-- The stopped rewind map is completely positive for every finite cutoff. -/
 theorem rewindStoppedMap_cp (D : ℕ) (P Q : Operator D) (n : ℕ) :
     CompletelyPositive (rewindStoppedMap P Q n) := by
   induction n with
@@ -72,10 +109,14 @@ theorem rewindStoppedMap_cp (D : ℕ) (P Q : Operator D) (n : ℕ) :
     rw [he]
     exact ih.add (rewindSuccessRoundMap_cp D P Q n)
 
+/-- Increasing the stopping cutoff from `n` to `n + 1` adds exactly `rewindSuccessRoundMap P Q
+n`. -/
 theorem rewindStoppedMap_succ (D : ℕ) (P Q : Operator D) (n : ℕ) :
     rewindStoppedMap P Q (n+1) = rewindStoppedMap P Q n + rewindSuccessRoundMap P Q n := by
   simp only [rewindStoppedMap,Finset.sum_range_succ,add_assoc]
 
+/-- For a Hermitian projection `P`, the two conjugation branches associated with `P` and `1 - P`
+preserve total trace. -/
 theorem rewind_projective_trace (D : ℕ) (P : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (X : Operator D) :
     Matrix.trace (conjBranch P X + conjBranch (1-P) X)=Matrix.trace X := by
@@ -87,6 +128,8 @@ theorem rewind_projective_trace (D : ℕ) (P : Operator D)
     hNP,← Matrix.trace_add,← Matrix.add_mul]
   simp
 
+/-- The equivalence splitting a Boolean word of length `n + 1` into its first bit and its
+remaining `n` bits. -/
 def rewindWordSplit (n : ℕ) : (Fin (n+1) → Bool) ≃ Bool × (Fin n → Bool) where
   toFun s := (s 0,fun j => s j.succ)
   invFun p := Fin.cons p.1 p.2
@@ -97,6 +140,8 @@ def rewindWordSplit (n : ℕ) : (Fin (n+1) → Bool) ≃ Bool × (Fin n → Bool
     rcases p with ⟨b,s⟩
     rfl
 
+/-- A sum over Boolean words of length `n + 1` splits into a sum over the first bit and the
+remaining word. -/
 theorem rewind_word_sum_succ {A : Type*} [AddCommMonoid A] (n : ℕ)
     (f : (Fin (n+1) → Bool) → A) :
     (∑ s, f s)=∑ b : Bool, ∑ s : Fin n → Bool, f (Fin.cons b s) := by
@@ -107,10 +152,14 @@ theorem rewind_word_sum_succ {A : Type*} [AddCommMonoid A] (n : ℕ)
       exact congrArg f ((rewindWordSplit n).left_inv s).symm
     _ = _ := Fintype.sum_prod_type _
 
+/-- The rejection operator for a word with first bit `b` is `rejectRound P Q b` times the
+operator for its remaining word. -/
 theorem rewind_word_cons (D n : ℕ) (P Q : Operator D) (b : Bool) (s : Fin n → Bool) :
     rejectWord P Q (n+1) (Fin.cons b s)=rejectRound P Q b*rejectWord P Q n s := by
   simp only [rejectWord,Fin.foldr_succ,Fin.cons_zero,Fin.cons_succ]
 
+/-- One additional pending round is the sum of the two rejection-round conjugations composed
+with the previous pending map. -/
 theorem rewindFailureMap_succ (D n : ℕ) (P Q : Operator D) :
     rewindFailureMap P Q (n+1)=
       ∑ b : Bool, (conjBranch (rejectRound P Q b)).comp (rewindFailureMap P Q n) := by
@@ -128,6 +177,8 @@ theorem rewindFailureMap_succ (D n : ℕ) (P Q : Operator D) :
   rw [he,← conjBranch_comp]
   rfl
 
+/-- The successful-round map factors as the pending map followed by the sum of the two
+successful conjugation branches. -/
 theorem rewindSuccessRoundMap_comp (D n : ℕ) (P Q : Operator D) :
     rewindSuccessRoundMap P Q n = ∑ b : Bool,
       (conjBranch (P*(if b then Q else 1-Q)*(1-P))).comp (rewindFailureMap P Q n) := by
@@ -145,10 +196,13 @@ theorem rewindSuccessRoundMap_comp (D n : ℕ) (P Q : Operator D) :
   rw [he,← conjBranch_comp]
   rfl
 
+/-- At cutoff zero, the pending map is conjugation by `(1 - P) * (1 - Q) * P`. -/
 theorem rewindFailureMap_zero (D : ℕ) (P Q : Operator D) :
     rewindFailureMap P Q 0=conjBranch ((1-P)*(1-Q)*P) := by
   simp [rewindFailureMap,rejectWord]
 
+/-- For idempotent `P`, left multiplication by `1 - P` fixes every pending-branch Kraus
+operator. -/
 theorem rewind_pending_kraus_support (D n : ℕ) (P Q : Operator D) (hPi : P*P=P)
     (s : Fin n → Bool) :
     (1-P)*(rejectWord P Q n s*(1-P)*(1-Q)*P)=rejectWord P Q n s*(1-P)*(1-Q)*P := by
@@ -164,6 +218,7 @@ theorem rewind_pending_kraus_support (D n : ℕ) (P Q : Operator D) (hPi : P*P=P
     rw [hw]
     simp only [← Matrix.mul_assoc,hr]
 
+/-- For idempotent `P`, conjugation by `1 - P` fixes the output of the pending rewind map. -/
 theorem rewind_pending_support (D n : ℕ) (P Q : Operator D) (hPi : P*P=P) (X : Operator D) :
     conjBranch (1-P) (rewindFailureMap P Q n X)=rewindFailureMap P Q n X := by
   have he : (conjBranch (1-P)).comp (rewindFailureMap P Q n)=rewindFailureMap P Q n := by
@@ -174,11 +229,14 @@ theorem rewind_pending_support (D n : ℕ) (P Q : Operator D) (hPi : P*P=P) (X :
     rw [Module.End.mul_eq_comp,conjBranch_comp,rewind_pending_kraus_support D n P Q hPi s]
   exact congrArg (fun T : Operator D →ₗ[ℂ] Operator D => T X) he
 
+/-- Conjugation by `M * N` equals conjugation by `N` followed by conjugation by `M`. -/
 theorem rewind_conj_mul_apply (D : ℕ) (M N X : Operator D) :
     conjBranch (M*N) X=conjBranch M (conjBranch N X) := by
   rw [← conjBranch_comp]
   rfl
 
+/-- For Hermitian projections `P` and `Q`, the trace of the pending branch splits into the
+current successful trace and the next pending trace. -/
 theorem rewind_round_trace (D n : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) :
@@ -199,6 +257,8 @@ theorem rewind_round_trace (D n : ℕ) (P Q : Operator D)
   simpa only [Bool.false_eq_true,ite_false,ite_true,Fintype.sum_bool,← Matrix.trace_add,add_comm] using
     rewind_projective_trace D Q hQs hQi (rewindFailureMap P Q n X)
 
+/-- For Hermitian projections `P` and `Q`, the initial stopped and pending maps together
+preserve the trace of every input. -/
 theorem rewind_initial_trace (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) :
@@ -212,6 +272,8 @@ theorem rewind_initial_trace (D : ℕ) (P Q : Operator D)
     LinearMap.add_apply,Matrix.trace_add,rewind_conj_mul_apply]
   linear_combination hP+hQ+hR
 
+/-- For Hermitian projections `P` and `Q`, the sum of the stopped and pending maps is trace
+preserving at every cutoff. -/
 theorem rewind_finite_trace (D : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (n : ℕ) : TracePreserving (rewindStoppedMap P Q n+rewindFailureMap P Q n) := by
@@ -224,6 +286,9 @@ theorem rewind_finite_trace (D : ℕ) (P Q : Operator D)
     have hr := rewind_round_trace D n P Q hPs hPi hQs hQi X
     linear_combination ih+hr
 
+/-- For Hermitian projections, the finite stopped and pending rewind maps are completely
+positive, preserve total trace, and satisfy the stopping recurrence. See [Temme et al.,
+2011, Eq. (7)][TemmeEtAl2011]. -/
 theorem rewindFiniteInstrument :
     ∀ (D : ℕ) (P Q : Operator D),
       P.IsHermitian → P*P=P → Q.IsHermitian → Q*Q=Q → ∀ n : ℕ,
@@ -234,6 +299,8 @@ theorem rewindFiniteInstrument :
   exact ⟨rewindStoppedMap_cp D P Q n,rewindFailureMap_cp D P Q n,
     rewind_finite_trace D P Q hPs hPi hQs hQi n,rewindStoppedMap_succ D P Q n⟩
 
+/-- The real trace of the pending map on `outerProduct ψ` equals `rejectFailProb P Q (P *ᵥ ψ)
+n`. -/
 theorem rewind_pure_failure_trace (D n : ℕ) (P Q : Operator D) (ψ : QState (Fin D)) :
     (Matrix.trace (rewindFailureMap P Q n (outerProduct ψ))).re =
       rejectFailProb P Q (P*ᵥψ) n := by
@@ -244,6 +311,8 @@ theorem rewind_pure_failure_trace (D n : ℕ) (P Q : Operator D) (ψ : QState (F
   intro s _
   rw [← Matrix.mulVec_mulVec,← Matrix.mulVec_mulVec,← Matrix.mulVec_mulVec]
 
+/-- For Hermitian projections, the pending trace of a pure input is at most `1 / (2 * (n + 1))`
+times its input trace. -/
 theorem rewind_pure_tail (D n : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (ψ : QState (Fin D)) :
@@ -284,6 +353,8 @@ theorem rewind_pure_tail (D n : ℕ) (P Q : Operator D)
       rw [← Finset.mul_sum,hz]
     _ ≤ _ := mul_le_mul_of_nonneg_left hcontract (by positivity)
 
+/-- Every positive semidefinite operator is a sum of `D` outer products of vectors in dimension
+`D`. -/
 theorem rewind_psd_columns (D : ℕ) (X : Operator D) (hX : X.PosSemidef) :
     ∃ ψ : Fin D → QState (Fin D), X=∑ j, outerProduct (ψ j) := by
   let B : Operator D := CFC.sqrt X
@@ -296,6 +367,8 @@ theorem rewind_psd_columns (D : ℕ) (X : Operator D) (hX : X.PosSemidef) :
   ext i k
   simp [Matrix.mul_apply,outerProduct,Matrix.conjTranspose_apply,Matrix.sum_apply]
 
+/-- For Hermitian projections, the pending trace of a positive semidefinite input is at most `1
+/ (2 * (n + 1))` times its input trace. -/
 theorem rewind_psd_tail (D n : ℕ) (P Q : Operator D)
     (hPs : P.IsHermitian) (hPi : P*P=P) (hQs : Q.IsHermitian) (hQi : Q*Q=Q)
     (X : Operator D) (hX : X.PosSemidef) :
@@ -306,6 +379,9 @@ theorem rewind_psd_tail (D n : ℕ) (P Q : Operator D)
   rw [Finset.mul_sum]
   exact Finset.sum_le_sum fun j _ => rewind_pure_tail D n P Q hPs hPi hQs hQi (ψ j)
 
+/-- For Hermitian projections and a positive semidefinite input of trace one, the pending trace
+is at most `1 / (2 * (n + 1))`. This extends the rejection estimate of [TemmeEtAl2011] to
+mixed inputs. -/
 theorem rewindMixedTail :
     ∀ (D : ℕ) (P Q : Operator D),
       P.IsHermitian → P*P=P → Q.IsHermitian → Q*Q=Q →

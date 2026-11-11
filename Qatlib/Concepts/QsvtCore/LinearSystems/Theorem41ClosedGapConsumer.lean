@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41OriginalPseudoinverseGily
+
+/-!
+# Pseudoinverse bounds on a closed singular-value gap
+
+`theorem41WindowedPolynomial_closedGapError` turns scalar reciprocal approximation on `[δ, 1]`
+into a global operator-norm bound for the adjoint odd singular transform. The zero singular
+values are handled by the singular-transform construction.
+
+`theorem41OriginalPseudoinverse_closedGapConsumer` retains the polynomial, phase list, encoding,
+and counts of the formalized Theorem 41 construction [GilyenSuLowWiebe2019], and supplies an
+approximate block encoding of the scaled Moore–Penrose pseudoinverse.
+
+## Main statements
+
+* `theorem41WindowedPolynomial_closedGapError`: bounds the global scaled-pseudoinverse error by
+  ε.
+* `theorem41OriginalPseudoinverse_closedGapConsumer`: packages the construction with its global
+  error bound and adjoint block encoding.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,6 +60,9 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend Qatlib.Concepts.PhaseGeometry
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Matrix.Norms.L2Operator
 
+/-- For a contraction whose nonzero singular values lie in [δ, 1], an ε-accurate polynomial
+approximation to (δ/2)/x on that interval yields an adjoint odd singular transform within ε
+of `(δ/2 : ℂ) • matrixPseudoinverse A`. -/
 theorem theorem41WindowedPolynomial_closedGapError
     {I O : Type} [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
     (A : Matrix O I ℂ) (Pw : Polynomial ℝ) (ε δ : ℝ)
@@ -60,6 +87,11 @@ theorem theorem41WindowedPolynomial_closedGapError
   rw [he, Complex.norm_real, Real.norm_eq_abs]
   exact happrox _ hx
 
+/-- Constructs a windowed reciprocal polynomial and QSVT phase list with the stated length,
+parameter bounds, exact transform encoding, and compilation counts. Under the singular-value
+gap, it also provides the sector error bound, a global error bound ε, and an adjoint block
+encoding of the scaled pseudoinverse, following [Gilyén et al., Theorem
+41][GilyenSuLowWiebe2019]. -/
 theorem theorem41OriginalPseudoinverse_closedGapConsumer
     (H I O : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype O] [DecidableEq O] (A : Matrix O I ℂ) (U : Matrix H H ℂ)

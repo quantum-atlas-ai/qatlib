@@ -20,6 +20,25 @@ import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.TightAASuccessBound
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.AmplificationProductEventBounds
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.FourierWindow
 import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAmplificationRefutations
+
+/-!
+# Unitarity of the Householder reflection
+
+This module proves that the Householder matrix formed from a unit vector is unitary. The result
+supports the unitary state transformations used in the surrounding variable-time amplification
+development.
+
+The variable-time amplification setting is described in [Ambainis2012].
+
+## Main statements
+
+* `householder_mem_unitary`: unitarity of `1 - 2 • pureDensity a` for a unit vector.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -58,6 +77,8 @@ open Qatlib.Papers.VarTimeAmpAmp10.StopModel
 open Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open scoped Classical BigOperators ENNReal Matrix.Norms.L2Operator
 
+/-- For a state with inner product one with itself, the Householder matrix `1 - 2 • pureDensity
+a` is unitary. -/
 private theorem householder_mem_unitary {κ : Type} [Fintype κ] [DecidableEq κ] (a : QState κ)
     (ha : Qatlib.Foundations.PureStateMath.Inner a a = 1) : (1 - (2 : ℂ) • pureDensity a) ∈ Matrix.unitaryGroup κ ℂ := by
   have hs : star (1 - (2 : ℂ) • pureDensity a) = 1 - (2 : ℂ) • pureDensity a :=

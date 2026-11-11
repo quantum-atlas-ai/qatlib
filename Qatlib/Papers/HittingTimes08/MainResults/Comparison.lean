@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.HittingTimes08.MainResults.Detect
+
+/-!
+# Comparisons of spectral hitting laws
+
+This module compares a finite hitting law with `sqLaw`, which squares its values without
+changing its masses. It proves exact square-root relations for quantiles and conditional mean
+and projection estimates used in the hitting-time comparisons of [MagniezEtAl2008].
+
+## Main statements
+
+* `quantile_sq`: identifies the quantile of the squared law.
+* `theorem_3_15_first`: bounds the mean using a supplied second-moment comparison.
+* `theorem_3_14`: bounds the mean by a quantile when a maximal atom carries mass at least one
+  half.
+
+## References
+
+* [Magniez et al., 2008][MagniezEtAl2008]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,12 +39,14 @@ namespace HittingLaw
 
 variable {J : Type*} [Fintype J]
 
+/-- The hitting law obtained by squaring each positive value and retaining the original masses. -/
 def sqLaw (L : HittingLaw J) : HittingLaw J where
   val j := L.val j ^ 2
   mass := L.mass
   val_pos j := pow_pos (L.val_pos j) 2
   mass_nonneg := L.mass_nonneg
 
+/-- For `y ≥ 0`, the tail of the squared law at `y` equals the original tail at `sqrt y`. -/
 theorem tail_sqLaw (L : HittingLaw J) {y : ℝ} (hy : 0 ≤ y) :
     L.sqLaw.tail y = L.tail (Real.sqrt y) := by
   unfold tail
@@ -33,6 +55,8 @@ theorem tail_sqLaw (L : HittingLaw J) {y : ℝ} (hy : 0 ≤ y) :
   simp only [Finset.mem_filter, Finset.mem_univ, true_and]
   simpa only [sqLaw] using (Real.sqrt_lt hy (L.val_pos j).le).symm
 
+/-- For `ε ≥ 0`, the `ε`-quantile of the squared law is the square of the original quantile, as
+used in Theorem 3.15 of [MagniezEtAl2008]. -/
 theorem quantile_sq (L : HittingLaw J) {ε : ℝ} (hε : 0 ≤ ε) :
     L.sqLaw.quantile ε = L.quantile ε ^ 2 := by
   set a : ℝ := L.quantile ε with ha
@@ -59,6 +83,7 @@ theorem quantile_sq (L : HittingLaw J) {ε : ℝ} (hε : 0 ≤ ε) :
       calc a ^ 2 ≤ (Real.sqrt y) ^ 2 := pow_le_pow_left₀ ha0 ha_le 2
         _ = y := Real.sq_sqrt hy.1
 
+/-- The square of the weighted mean is at most the total mass times the second moment. -/
 theorem mean_sq_le (L : HittingLaw J) :
     L.mean ^ 2 ≤ L.totalMass * L.sqLaw.mean := by
   have hCS := Finset.sum_mul_sq_le_sq_mul_sq (Finset.univ : Finset J)
@@ -79,6 +104,8 @@ theorem mean_sq_le (L : HittingLaw J) :
     rw [mul_pow, Real.sq_sqrt (L.mass_nonneg j)]
   simpa [h1, h2, h3] using hCS
 
+/-- If the total mass is at most one and `2 * L.sqLaw.mean ≤ HT`, then `L.mean ≤ sqrt (HT / 2)`,
+the mean comparison underlying Theorem 3.15 of [MagniezEtAl2008]. -/
 theorem theorem_3_15_first (L : HittingLaw J) (HT : ℝ)
     (hTot : L.totalMass ≤ 1) (hbridge : 2 * L.sqLaw.mean ≤ HT) :
     L.mean ≤ Real.sqrt (HT / 2) := by
@@ -94,6 +121,8 @@ theorem theorem_3_15_first (L : HittingLaw J) (HT : ℝ)
   rw [Real.le_sqrt (x := L.mean) (y := HT / 2) hm0 (by linarith)]
   exact hbound
 
+/-- For `ε ≥ 0`, the original quantile is the square root of the squared-law quantile, as in
+[Magniez et al., Theorem 3.15][MagniezEtAl2008]. -/
 theorem theorem_3_15_second (L : HittingLaw J) {ε : ℝ} (hε : 0 ≤ ε) :
     L.quantile ε = Real.sqrt (L.sqLaw.quantile ε) := by
   rw [quantile_sq L hε, Real.sqrt_sq (L.quantile_nonneg ε)]
@@ -104,6 +133,9 @@ namespace PhaseSpectrum
 
 variable {J : Type*} [Fintype J]
 
+/-- If a maximal positive value `v1` carries mass at least one half, then its law has quantile
+`v1` for `0 < ε < 1 / 2`. This is the spectral-law conclusion of Corollary 3.13 in
+[MagniezEtAl2008]. -/
 theorem corollary_3_13 (S : PhaseSpectrum J) (v1 ε : ℝ) (j0 : J)
     (hval : S.law.val j0 = v1) (hv1 : 0 < v1)
     (hmax : ∀ j, S.law.val j ≤ v1)
@@ -134,6 +166,8 @@ theorem corollary_3_13 (S : PhaseSpectrum J) (v1 ε : ℝ) (j0 : J)
         exact hmass.trans (Finset.single_le_sum (fun i _ => S.law.mass_nonneg i) hmem)
       linarith [hy.2]
 
+/-- For a law of total mass one with a maximal value carrying mass at least one half, the mean
+is at most the `ε`-quantile for `0 < ε < 1 / 2`, as in Theorem 3.14 of [MagniezEtAl2008]. -/
 theorem theorem_3_14 (S : PhaseSpectrum J) (v1 ε : ℝ) (j0 : J)
     (hval : S.law.val j0 = v1) (hv1 : 0 < v1)
     (hmax : ∀ j, S.law.val j ≤ v1)
@@ -153,6 +187,8 @@ theorem theorem_3_14 (S : PhaseSpectrum J) (v1 ε : ℝ) (j0 : J)
 
 end PhaseSpectrum
 
+/-- Two real functions on a finite nonempty type with equal sums of squares have some index
+where the first square is at most the second. -/
 theorem lemma_3_12_exists {Z : Type*} [Fintype Z] [Nonempty Z]
     (a0 a1 : Z → ℝ) (hsum : ∑ z, a0 z ^ 2 = ∑ z, a1 z ^ 2) :
     ∃ z, a0 z ^ 2 ≤ a1 z ^ 2 := by
@@ -164,6 +200,8 @@ theorem lemma_3_12_exists {Z : Type*} [Fintype Z] [Nonempty Z]
       exact ⟨z, Finset.mem_univ z, h z⟩)
   linarith
 
+/-- For positive `a` and `c`, the ratio `2 * a * c / sqrt (8 * a ^ 2 * c ^ 2)` is at least `1 /
+sqrt 2`. -/
 theorem lemma_3_12_projection {a c : ℝ} (ha : 0 < a) (hc : 0 < c) :
     1 / Real.sqrt 2 ≤ 2 * a * c / Real.sqrt (8 * a ^ 2 * c ^ 2) := by
   have hac : 0 < a * c := mul_pos ha hc
@@ -183,6 +221,9 @@ theorem lemma_3_12_projection {a c : ℝ} (ha : 0 < a) (hc : 0 < c) :
   rw [hs]
   exact hsimp.ge
 
+/-- On a finite nonempty index type, under the equal-square-sum and positivity hypotheses, some
+index satisfies the stated projection-ratio lower bound `1 / sqrt 2`. This is the scalar
+estimate associated with Lemma 3.12 in [MagniezEtAl2008]. -/
 theorem lemma_3_12 {Z : Type*} [Fintype Z] [Nonempty Z]
     (a0 a1 cotv : Z → ℝ) (hsum : ∑ z, a0 z ^ 2 = ∑ z, a1 z ^ 2)
     (hpos : ∀ z, 0 < a0 z) (hcot : ∀ z, 0 < cotv z) :

@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.SearchStopping.PaidRestart.RestartSearchDefs
+
+/-!
+# Statement of expected paid restart costs
+
+Defines `ActualRestartExpectedReceipt`, which relates the success probability of one Grover
+attempt to the total paid stopping time and expected Grover iterations. Positive success
+probability gives almost-sure termination and a cost-to-success ratio; zero success probability
+gives nontermination and infinite paid time when the price is positive. For the quantum-search
+analysis, see [BoyerEtAl1998].
+
+## Main statements
+
+* `ActualRestartExpectedReceipt`: The proposition that positive-price restarts never terminate
+  when the success probability is zero, while positive success probability gives almost-sure
+  termination, expected paid time `price / p`, and expected Grover iterations `j / p`.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution
 
@@ -21,6 +42,9 @@ open Qatlib.Concepts.SearchStopping.KnownCount Matrix
 open Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
 open scoped Classical BigOperators ENNReal
 
+/-- The proposition that positive-price restarts never terminate when the success probability is
+zero, while positive success probability gives almost-sure termination, expected paid time
+`price / p`, and expected Grover iterations `j / p`. -/
 def ActualRestartExpectedReceipt : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I], 0 < Fintype.card I →
     ∀ (T' : Matrix I I ℂ) (v : QState I), T' ∈ Matrix.unitaryGroup I ℂ →

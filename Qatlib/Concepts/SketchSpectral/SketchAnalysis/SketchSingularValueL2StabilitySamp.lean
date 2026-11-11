@@ -8,6 +8,29 @@ import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchSingularValueL2Stabil
 import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
 import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusRecordTools
 import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+
+/-!
+# Euclidean stability of sampled squared singular values
+
+This module proves a two-stage probabilistic bound on the Euclidean error of squared singular
+values. Under row and conditional column energy domination, the sample-scale budget yields a
+joint sampling law with failure probability at most `δ`, as used in the sketch framework of
+[ChiaEtAl2022].
+
+The deterministic estimate `sketchSingularValueL2Stability_deterministic` bounds the error by
+the sum of the two Frobenius Gram errors, and the sampling theorem combines the corresponding
+concentration events.
+
+## Main statements
+
+* `sketchSingularValueL2Stability_deterministic`: an additive bound from two fixed Gram errors.
+* `sketchSingularValueL2Stability`: the conditional two-stage probability bound.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -29,6 +52,7 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The Euclidean norm of a finite pointwise sum is at most the sum of the two Euclidean norms. -/
 private theorem l2_minkowski (s : Finset ℕ) (f g : ℕ → ℝ) :
     Real.sqrt (∑ i ∈ s, (f i + g i)^2) ≤
       Real.sqrt (∑ i ∈ s, (f i)^2) + Real.sqrt (∑ i ∈ s, (g i)^2) := by
@@ -47,6 +71,7 @@ private theorem l2_minkowski (s : Finset ℕ) (f g : ℕ → ℝ) :
   rw [he]
   nlinarith [Real.sum_mul_le_sqrt_mul_sqrt s f g, Real.sq_sqrt hf, Real.sq_sqrt hg]
 
+/-- A singular value vanishes when its index is at least the number of rows. -/
 private theorem singular_zero_of_row_card {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq I] (A : Matrix O I ℂ) (i : ℕ) (hi : Fintype.card O ≤ i) :
     matrixSingularValues A i = 0 := by
@@ -58,6 +83,8 @@ private theorem singular_zero_of_row_card {O I : Type} [Fintype O] [Fintype I]
   have hp := (matrixSingularValues_pos_iff_lt_finrank_range A).mp hpos
   omega
 
+/-- For a nonnegative sequence vanishing from index `m` onward, every initial partial sum is at
+most the sum of its first `m` terms. -/
 private theorem sum_range_zero_tail (f : ℕ → ℝ) (m n : ℕ)
     (hf : ∀ i, 0 ≤ f i) (ht : ∀ i, m ≤ i → f i = 0) :
     ∑ i ∈ Finset.range n, f i ≤ ∑ i ∈ Finset.range m, f i := by
@@ -71,6 +98,8 @@ private theorem sum_range_zero_tail (f : ℕ → ℝ) (m n : ℕ)
     intro i _ hi
     exact ht i (by simpa only [Finset.mem_range, not_lt] using! hi)
 
+/-- If the two Gram differences have Frobenius bounds `η₁` and `η₂`, the Euclidean error of the
+squared singular values over the source dimension range is at most η₁ + η₂. -/
 theorem sketchSingularValueL2Stability_deterministic
     (K C RS CT : Type) [Fintype K] [DecidableEq K] [Fintype C] [DecidableEq C]
     [Fintype RS] [DecidableEq RS] [Fintype CT] [DecidableEq CT]
@@ -122,6 +151,7 @@ theorem sketchSingularValueL2Stability_deterministic
       (Real.sqrt_le_sqrt hf).trans_eq (Real.sqrt_sq hη₂)
     linarith)
 
+/-- The row product mass of a matrix with itself equals its total squared energy. -/
 private theorem rowProductMass_self {K C : Type} [Fintype K] [Fintype C]
     (A : Matrix K C ℂ) : sketchRowProductMass A A = sketchSquared A := by
   unfold sketchRowProductMass sketchSquared
@@ -129,6 +159,8 @@ private theorem rowProductMass_self {K C : Type} [Fintype K] [Fintype C]
   intro k _
   exact Real.mul_self_sqrt (sketchRowSquared_nonneg A k)
 
+/-- Under row energy domination, the probability that the Frobenius Gram error reaches the
+stated oversampling threshold is at most `δ`. -/
 private theorem oversampling_gram_tail {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (p : FinDist K) (r : ℕ) (A : Matrix K C ℂ)
     (φ δ : ℝ) (hr : 0 < r) (hφ : 1 ≤ φ) (hA : 0 < sketchSquared A)
@@ -148,6 +180,9 @@ private theorem oversampling_gram_tail {K C : Type} [Fintype K] [DecidableEq K]
     ← spectralFrobenius_eq_sampling_norm] at ht
   exact ht
 
+/-- Under the domination and sample-scale assumptions in `SketchSingularValueL2Stability`, a
+joint two-stage sampling law gives failure probability at most `δ` for the Euclidean
+squared-singular-value error bound. See [ChiaEtAl2022]. -/
 theorem sketchSingularValueL2Stability : SketchSingularValueL2Stability := by
   intro K C _ _ _ _ A r c ε δ φ₁ φ₂ qs condQ
     hr hc hφ₁ hφ₂ _hε hδ hδ1 hA hqs hcond hbudget

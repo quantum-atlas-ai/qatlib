@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPreimage16.ConditionalCost.Defs
+
+/-!
+# Conditional attack-cost comparisons with Grover query counts
+
+This module compares the resource expressions for SHA-256 and SHA3-256 preimage attacks with the
+baseline `groverQueryCount = 2 ^ 128` [AmyEtAl2017]. Under the respective lower bounds on cycle
+count, `sha256_attack_vs_query_analysis` and `sha3_256_attack_vs_query_analysis` prove a ratio
+of at least 275 billion.
+
+## Main statements
+
+* `sha256_attack_vs_query_analysis`: If the cycle count is at least `2 ^ 153.8`, the modeled
+  SHA-256 total cost divided by the baseline Grover query count is at least 275 billion. This is
+  a conditional comparison for the estimates of [AmyEtAl2017].
+* `sha3_256_attack_vs_query_analysis`: If the cycle count is at least `2 ^ 146.5`, the modeled
+  SHA3-256 total cost divided by the baseline Grover query count is at least 275 billion. This
+  is a conditional comparison for the estimates of [AmyEtAl2017].
+
+## References
+
+* [Amy et al., 2017][AmyEtAl2017]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,11 +37,14 @@ namespace Qatlib.Papers.QPreimage16.ConditionalCost
 
 open Qatlib.Foundations.ResourceBounds.LogBudgets
 
+/-- The baseline real-valued Grover query count `2 ^ 128`. -/
 noncomputable def groverQueryCount : ℝ := (2 : ℝ) ^ (128 : ℝ)
 
+/-- The baseline Grover query count is strictly positive. -/
 theorem groverQueryCount_pos : 0 < groverQueryCount :=
   Real.rpow_pos_of_pos (by norm_num) _
 
+/-- The quantity `6002 * 2 ^ 25.8` is at least 275 billion. -/
 lemma sixK_two_pow_25_8 : (275000000000 : ℝ) ≤ 6002 * (2 : ℝ) ^ (25.8 : ℝ) := by
   have hsplit : (2 : ℝ) ^ (25.8 : ℝ) = (2 : ℝ) ^ (25 : ℝ) * (2 : ℝ) ^ (0.8 : ℝ) := by
     rw [← Real.rpow_add (by norm_num : (0 : ℝ) < 2)]
@@ -49,6 +75,7 @@ lemma sixK_two_pow_25_8 : (275000000000 : ℝ) ≤ 6002 * (2 : ℝ) ^ (25.8 : �
   have h2 : (275000000000 : ℝ) ≤ (6002 : ℝ) * 33554432 * (3 / 2) := by norm_num
   linarith [h1, h2]
 
+/-- The quantity `1061600 * 2 ^ 18.5` is at least 275 billion. -/
 lemma tenK_two_pow_18_5 : (275000000000 : ℝ) ≤ 1061600 * (2 : ℝ) ^ (18.5 : ℝ) := by
   have hsplit : (2 : ℝ) ^ (18.5 : ℝ) = (2 : ℝ) ^ (18 : ℝ) * (2 : ℝ) ^ (0.5 : ℝ) := by
     rw [← Real.rpow_add (by norm_num : (0 : ℝ) < 2)]
@@ -68,6 +95,9 @@ lemma tenK_two_pow_18_5 : (275000000000 : ℝ) ≤ 1061600 * (2 : ℝ) ^ (18.5 :
     exact mul_le_mul_of_nonneg_left hhalf (by norm_num : (0 : ℝ) ≤ 262144)
   linarith [hb, hm]
 
+/-- If the cycle count is at least `2 ^ 153.8`, the modeled SHA-256 total cost divided by the
+baseline Grover query count is at least 275 billion. This is a conditional comparison for
+the estimates of [AmyEtAl2017]. -/
 theorem sha256_attack_vs_query_analysis (σ : ℝ)
     (hσ : (2 : ℝ) ^ (153.8 : ℝ) ≤ σ) :
     (275000000000 : ℝ) ≤ totalCost 2402 1 3600 σ / groverQueryCount := by
@@ -90,6 +120,9 @@ theorem sha256_attack_vs_query_analysis (σ : ℝ)
     _ = 6002 * (2 : ℝ) ^ (153.8 : ℝ) / groverQueryCount := heq.symm
     _ ≤ 6002 * σ / groverQueryCount := hmono
 
+/-- If the cycle count is at least `2 ^ 146.5`, the modeled SHA3-256 total cost divided by the
+baseline Grover query count is at least 275 billion. This is a conditional comparison for
+the estimates of [AmyEtAl2017]. -/
 theorem sha3_256_attack_vs_query_analysis (σ : ℝ)
     (hσ : (2 : ℝ) ^ (146.5 : ℝ) ≤ σ) :
     (275000000000 : ℝ) ≤ totalCost 3200 294 3600 σ / groverQueryCount := by

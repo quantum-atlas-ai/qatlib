@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
 import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
+
+/-!
+# Finite Fourier implementation of the inverse nonlinear transform
+
+This module implements `inverseNLFFTFiniteSU2` using explicit coefficient prefixes, conjugate
+reversals, and `finiteFFTPolynomialMul`. It connects finite polynomial arithmetic to inverse
+SU(2) nonlinear Fourier transforms; see [AlexisEtAl2026] for nonlinear Fourier background.
+
+The output has the prescribed parameter length and polynomial degree bounds. Under
+`LayerStripExact`, it agrees with sequential stripping, with an explicit bound of order `n *
+(log n)^2` on the operation counter.
+
+## Main statements
+
+* `inverseNLFFTFiniteSU2_degree_bounds`: Both output polynomials have natural degree at most
+  `n-1`.
+* `inverseNLFFTFiniteSU2_gammas`: Finite Fourier arithmetic preserves the exact sequential
+  stripping output.
+* `inverseNLFFTFiniteSU2_operations`: The finite implementation satisfies the stated operation
+  bound.
+
+## References
+
+* [Alexis et al., 2026][AlexisEtAl2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +42,8 @@ namespace Qatlib.Concepts.NativeNumerics.NlfftPipeline
 open Polynomial
 set_option maxHeartbeats 1000000
 
+/-- The inverse SU(2) nonlinear Fourier transform implemented by finite coefficient arrays and
+radix-two Fourier polynomial multiplication, with an accumulated operation count. -/
 def inverseNLFFTFiniteSU2 (A B : Polynomial ℂ) : ℕ → InverseNLFFTRunSU2
   | 0 => { gammas := [], eta := 1, xi := 0, operations := 0 }
   | 1 =>
@@ -61,6 +89,8 @@ def inverseNLFFTFiniteSU2 (A B : Polynomial ℂ) : ℕ → InverseNLFFTRunSU2
 
 set_option backward.isDefEq.respectTransparency false
 
+/-- For positive `n`, a polynomial of degree less than `n` also has natural degree less than
+`n`. -/
 private theorem natDegree_lt_of_degree_lt {p : Polynomial ℂ} {n : ℕ} (hn : 0 < n)
     (h : p.degree < (n : WithBot ℕ)) : p.natDegree < n := by
   rcases eq_or_ne p 0 with rfl | hp
@@ -68,6 +98,7 @@ private theorem natDegree_lt_of_degree_lt {p : Polynomial ℂ} {n : ℕ} (hn : 0
     exact hn
   · exact (Polynomial.natDegree_lt_iff_degree_lt hp).mpr h
 
+/-- A polynomial assembled from `n` coefficients has natural degree at most `n-1`. -/
 private theorem finiteCoefficientPolynomial_natDegree_le (n : ℕ) (f : ℕ → ℂ) :
     (finiteCoefficientPolynomial n f).natDegree ≤ n - 1 := by
   by_cases hn : n = 0
@@ -78,6 +109,7 @@ private theorem finiteCoefficientPolynomial_natDegree_le (n : ℕ) (f : ℕ → 
       (finiteCoefficientPolynomial_degree_lt n f)
     omega
 
+/-- Every coefficient at index at least `n` vanishes after reduction modulo `X^n`. -/
 private theorem coeff_mod_X_pow_zero (p : Polynomial ℂ) (n i : ℕ) (hi : n ≤ i) :
     (p % X ^ n).coeff i = 0 := by
   have hd : (p % X ^ n).degree < (n : WithBot ℕ) := by
@@ -87,6 +119,8 @@ private theorem coeff_mod_X_pow_zero (p : Polynomial ℂ) (n i : ℕ) (hi : n �
   rw [Polynomial.degree_lt_iff_coeff_zero] at hd
   exact hd i hi
 
+/-- Taking a prefix of length `m ≤ N` after a prefix of length `N` equals reduction of the
+original polynomial modulo `X^m`. -/
 private theorem prefix_prefix (m N : ℕ) (hmN : m ≤ N) (p : Polynomial ℂ) :
     finiteCoefficientPrefix m (finiteCoefficientPrefix N p) = p % X ^ m := by
   have hmod : (p % X ^ N) % X ^ m = p % X ^ m := by
@@ -97,6 +131,7 @@ private theorem prefix_prefix (m N : ℕ) (hmN : m ≤ N) (p : Polynomial ℂ) :
     · rw [coeff_mod_X_pow_zero _ _ _ (by omega), coeff_mod_X_pow_zero _ _ _ (by omega)]
   rw [finiteCoefficientPrefix_eq_mod N p, finiteCoefficientPrefix_eq_mod, hmod]
 
+/-- A polynomial with natural degree less than `n` is unchanged by reduction modulo `X^n`. -/
 private theorem mod_X_pow_self (n : ℕ) (p : Polynomial ℂ) (h : p.natDegree < n) :
     p % X ^ n = p := by
   ext i
@@ -104,6 +139,7 @@ private theorem mod_X_pow_self (n : ℕ) (p : Polynomial ℂ) (h : p.natDegree <
   · rw [coeff_mod_X_pow _ _ _ hi]
   · rw [coeff_mod_X_pow_zero _ _ _ (by omega), Polynomial.coeff_eq_zero_of_natDegree_lt (by omega)]
 
+/-- The finite inverse transform returns exactly `n` parameters. -/
 theorem inverseNLFFTFiniteSU2_gammas_length (A B : Polynomial ℂ) (n : ℕ) :
     (inverseNLFFTFiniteSU2 A B n).gammas.length = n := by
   induction n using Nat.strong_induction_on generalizing A B with
@@ -123,6 +159,7 @@ theorem inverseNLFFTFiniteSU2_gammas_length (A B : Polynomial ℂ) (n : ℕ) :
         rw [List.length_append, ih _ (by omega), ih _ (by omega)]
         omega
 
+/-- Both polynomials returned by the finite inverse transform have natural degree at most `n-1`. -/
 theorem inverseNLFFTFiniteSU2_degree_bounds (A B : Polynomial ℂ) (n : ℕ) :
     (inverseNLFFTFiniteSU2 A B n).eta.natDegree ≤ n - 1 ∧
     (inverseNLFFTFiniteSU2 A B n).xi.natDegree ≤ n - 1 := by
@@ -142,6 +179,8 @@ theorem inverseNLFFTFiniteSU2_degree_bounds (A B : Polynomial ℂ) (n : ℕ) :
       exact ⟨finiteCoefficientPolynomial_natDegree_le _ _,
         finiteCoefficientPolynomial_natDegree_le _ _⟩
 
+/-- Under `LayerStripExact A B n`, the finite inverse transform returns the sequential stripping
+parameters and their nonlinear Fourier polynomial pair. -/
 theorem inverseNLFFTFiniteSU2_gammas (A B : Polynomial ℂ) (n : ℕ)
     (hex : LayerStripExact A B n) :
     (inverseNLFFTFiniteSU2 A B n).gammas = (layerStripSU2 A B n).gammas
@@ -370,6 +409,8 @@ theorem inverseNLFFTFiniteSU2_gammas (A B : Polynomial ℂ) (n : ℕ)
                 omega)),
             Nat.sub_add_cancel hm1]
 
+/-- For positive `x`, the base-two ceiling logarithm is at most the base-two floor logarithm
+plus one. -/
 private theorem clog_two_le_succ_log (x : ℕ) (_hx : 1 ≤ x) :
     Nat.clog 2 x ≤ Nat.log 2 x + 1 := by
   by_contra h
@@ -379,6 +420,7 @@ private theorem clog_two_le_succ_log (x : ℕ) (_hx : 1 ≤ x) :
   have h2 := Nat.lt_pow_succ_log_self (b := 2) (by decide) x
   omega
 
+/-- For positive `x`, the least power of two at least `x` is at most `2*x`. -/
 private theorem two_pow_clog_two_mul (x : ℕ) (hx : 1 ≤ x) :
     2 ^ Nat.clog 2 x ≤ 2 * x := by
   have hb2 : (1:ℕ) ≤ 2 := by decide
@@ -387,6 +429,8 @@ private theorem two_pow_clog_two_mul (x : ℕ) (hx : 1 ≤ x) :
     _ = 2 * 2 ^ Nat.log 2 x := by rw [pow_succ']
     _ ≤ 2 * x := Nat.mul_le_mul_left _ (Nat.pow_log_le_self 2 (by omega))
 
+/-- For `N ≥ 2`, the ceiling logarithm of its upper half-size plus one is at most the ceiling
+logarithm of `N`. -/
 private theorem clog_two_ceil_half_le (m N : ℕ) (hN : 2 ≤ N) (hm : m = (N + 1) / 2) :
     Nat.clog 2 m + 1 ≤ Nat.clog 2 N := by
   have hc : N ≤ 2 ^ Nat.clog 2 N := Nat.le_pow_clog (b := 2) (by decide) N
@@ -406,6 +450,8 @@ private theorem clog_two_ceil_half_le (m N : ℕ) (hN : 2 ≤ N) (hm : m = (N + 
     omega
   omega
 
+/-- For `N ≥ 2`, the ceiling logarithm of its lower half-size plus one is at most the ceiling
+logarithm of `N`. -/
 private theorem clog_two_floor_half_le (m N : ℕ) (hN : 2 ≤ N) (hm : m = N / 2) :
     Nat.clog 2 m + 1 ≤ Nat.clog 2 N := by
   have hc : N ≤ 2 ^ Nat.clog 2 N := Nat.le_pow_clog (b := 2) (by decide) N
@@ -425,6 +471,8 @@ private theorem clog_two_floor_half_le (m N : ℕ) (hN : 2 ≤ N) (hm : m = N / 
     omega
   omega
 
+/-- For positive `n`, the finite inverse transform uses at most `2048 * n * (Nat.clog 2 n +
+5)^2` counted operations. -/
 theorem inverseNLFFTFiniteSU2_operations (A B : Polynomial ℂ) (n : ℕ) (hn : 1 ≤ n) :
     (inverseNLFFTFiniteSU2 A B n).operations ≤ 2048 * n * (Nat.clog 2 n + 5) ^ 2 := by
   have hmain : ∀ N : ℕ, 1 ≤ N → (inverseNLFFTFiniteSU2 A B N).operations

@@ -9,6 +9,28 @@ import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionGeometry
 import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+
+/-!
+# Alphabet witness geometry
+
+Develops the alphabet vectors, isometric frames, and orthogonal projections used to convert a
+filtered Gram witness into reflection geometry. The construction supplies the geometric
+ingredients for the state conversion algorithm of [LeeEtAl2011].
+
+The main result extracts bounded witnesses from `sourceRectValue` and proves their
+orthogonality, projection identities, and quantitative distance and norm bounds.
+
+## Main statements
+
+* `sourceMu_sourceNu_pairing`: computes the alphabet vector pairing.
+* `sourceGeometry_of_witness`: derives projection and norm properties from a witness.
+* `alphabetWitnessGeometry`: proves the witness geometry specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,12 +47,16 @@ namespace Qatlib.Concepts.GramQueryCore.LowerBoundTools
 open Matrix
 open scoped Classical BigOperators ComplexOrder
 
+/-- A Hermitian matrix can be moved from the second argument of the pure state inner product to
+the first. -/
 theorem source_hermitian_inner_mulVec {I : Type} [Fintype I] [DecidableEq I]
     (P : Matrix I I ℂ) (hP : Pᴴ=P) (v w : QState I) :
     Qatlib.Foundations.PureStateMath.Inner v (P *ᵥ w) = Qatlib.Foundations.PureStateMath.Inner (P *ᵥ v) w := by
   change star v ⬝ᵥ (P *ᵥ w) = star (P *ᵥ v) ⬝ᵥ w
   rw [Matrix.star_mulVec,Matrix.dotProduct_mulVec,hP]
 
+/-- There exists an orthogonal projector onto the vectors orthogonal to every forbidden vector,
+and it annihilates each forbidden vector. -/
 theorem source_forbidden_complement_projection
     (I X : Type) [Fintype I] [DecidableEq I] (forbidden : X → QState I) :
     ∃ P : Matrix I I ℂ, IsOrthogonalProjector P ∧
@@ -58,6 +84,8 @@ theorem source_forbidden_complement_projection
   · intro hψ
     exact hS (.inr ⟨ψ,hψ⟩)
 
+/-- An orthogonal projector whose fixed vectors are precisely those orthogonal to a family
+annihilates every vector in that family. -/
 theorem source_complement_annihilates
     {I X : Type} [Fintype I] [DecidableEq I] (forbidden : X → QState I)
     (P : Matrix I I ℂ) (hP : IsOrthogonalProjector P)
@@ -72,6 +100,8 @@ theorem source_complement_annihilates
     exact horth
   exact dotProduct_star_self_eq_zero.mp hzero
 
+/-- The chosen complement matrix is an orthogonal projector whose fixed space is orthogonal to
+all forbidden vectors, and it annihilates those vectors. -/
 theorem sourceComplement_public {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q m : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -92,6 +122,8 @@ theorem sourceComplement_public {X H : Type} [Fintype X] [DecidableEq X]
   have hchoose := Classical.choose_spec hp
   exact ⟨hchoose.1,hchoose.2,source_complement_annihilates _ _ hchoose.1 hchoose.2⟩
 
+/-- For positive `q`, records the square, nonnegativity, upper bound, and complementary square
+root identities of `sourceAlpha q`. -/
 theorem sourceAlpha_parameters (q : ℕ) (hq : 0 < q) :
     (sourceAlpha q)^2 = 1/2-Real.sqrt (q : ℝ)/(q+1) ∧
     0 ≤ sourceAlpha q ∧ (sourceAlpha q)^2 ≤ 1/2 ∧
@@ -123,6 +155,8 @@ theorem sourceAlpha_parameters (q : ℕ) (hq : 0 < q) :
     nlinarith only [hr2]
   nlinarith only [hsquares,hab0,hrhs0]
 
+/-- A sum over `Fin (q+1)` with one exceptional value `b` and all other values `c` equals `b +
+q*c`. -/
 private theorem source_sum_one_exception {K : Type} [CommRing K]
     (q : ℕ) (a : Fin (q+1)) (b c : K) :
     (∑ i : Fin (q+1), if i=a then b else c) = b+(q : K)*c := by
@@ -135,6 +169,7 @@ private theorem source_sum_one_exception {K : Type} [CommRing K]
     _ = ((q+1 : ℕ) : K)*c+(b-c) := by simp [Finset.sum_add_distrib]
     _ = _ := by push_cast; ring
 
+/-- For positive `q`, each alphabet vector `sourceMu q a` is normalized. -/
 theorem sourceMu_normalized (q : ℕ) (hq : 0 < q) (a : Fin (q+1)) :
     Normalized (sourceMu q a) := by
   obtain ⟨ha2,_,haq,hb2,_⟩ := sourceAlpha_parameters q hq
@@ -151,6 +186,7 @@ theorem sourceMu_normalized (q : ℕ) (hq : 0 < q) (a : Fin (q+1)) :
   apply (normalized_iff_norm_toEuclidean_fromVec _).mpr
   nlinarith [norm_nonneg (toEuclidean_fromVec (sourceMu q a))]
 
+/-- For positive `q`, each alphabet vector `sourceNu q a` is normalized. -/
 theorem sourceNu_normalized (q : ℕ) (hq : 0 < q) (a : Fin (q+1)) :
     Normalized (sourceNu q a) := by
   obtain ⟨ha2,_,haq,hb2,_⟩ := sourceAlpha_parameters q hq
@@ -167,6 +203,8 @@ theorem sourceNu_normalized (q : ℕ) (hq : 0 < q) (a : Fin (q+1)) :
   apply (normalized_iff_norm_toEuclidean_fromVec _).mpr
   nlinarith [norm_nonneg (toEuclidean_fromVec (sourceNu q a))]
 
+/-- Evaluates a sum of products of two functions, each constant except at one specified alphabet
+index. -/
 private theorem source_sum_pair_exceptions {K : Type} [CommRing K]
     (q : ℕ) (a b : Fin (q+1)) (A B C D : K) :
     (∑ i : Fin (q+1), (if i=a then A else B)*(if i=b then C else D)) =
@@ -185,6 +223,8 @@ private theorem source_sum_pair_exceptions {K : Type} [CommRing K]
       simp [Finset.sum_add_distrib,Finset.sum_mul]
     _ = _ := by rw [source_sum_one_exception]
 
+/-- For positive `q`, the pairing of `sourceMu q a` and `sourceNu q b` is zero when `a = b` and
+`(q+1)/(2*q)` otherwise. -/
 theorem sourceMu_sourceNu_pairing (q : ℕ) (hq : 0 < q) (a b : Fin (q+1)) :
     (∑ k, star (sourceMu q a k)*sourceNu q b k) =
       if a=b then 0 else ((q+1)/(2*q) : ℂ) := by
@@ -242,6 +282,8 @@ theorem sourceMu_sourceNu_pairing (q : ℕ) (hq : 0 < q) (a b : Fin (q+1)) :
     simpa only [Complex.ofReal_sum,Complex.ofReal_mul,Complex.star_def,Complex.conj_ofReal,Complex.ofReal_div,
       Complex.ofReal_add,Complex.ofReal_natCast,Complex.ofReal_one,Complex.ofReal_ofNat] using! hcast
 
+/-- The frame placing the input-dependent `sourceMu` vector in each query and witness sector,
+with zero state-sector entries. -/
 def sourceMuFrame {X H : Type} {n q m : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     Matrix (SourceGeometry n q m H) (Fin n × Fin m) ℂ := fun p jk =>
@@ -249,6 +291,7 @@ def sourceMuFrame {X H : Type} {n q m : ℕ}
   | .inl _ => 0
   | .inr (j,a,k) => if j=jk.1 ∧ k=jk.2 then sourceMu q (input x j) a else 0
 
+/-- For positive alphabet parameter `q`, the input-dependent alphabet frame is an isometry. -/
 theorem sourceMuFrame_isometry {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (x : X) (hq : 0 < q) :
     (sourceMuFrame (m := m) (H := H) input x)ᴴ*sourceMuFrame (m := m) (H := H) input x=1 := by
@@ -269,6 +312,7 @@ theorem sourceMuFrame_isometry {X H : Type} [Fintype H] [DecidableEq H]
   · simp [sourceMuFrame,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_sum_type,
       Fintype.sum_prod_type,ite_and,mul_ite,hij,Ne.symm hij]
 
+/-- The keep matrix is the identity minus the product of the alphabet frame with its adjoint. -/
 theorem sourceKeep_frame {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (x : X) :
     sourceKeep (m := m) (H := H) input x =
@@ -297,6 +341,7 @@ theorem sourceKeep_frame {X H : Type} [Fintype H] [DecidableEq H]
         Matrix.conjTranspose_apply,Fintype.sum_prod_type,ite_and,apply_ite star,
         ite_mul,hjl]
 
+/-- For positive `q`, the input-dependent keep matrix is an orthogonal projector. -/
 theorem sourceKeep_isOrthogonalProjector {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (x : X) (hq : 0 < q) :
     IsOrthogonalProjector (sourceKeep (m := m) (H := H) input x) := by
@@ -314,6 +359,8 @@ theorem sourceKeep_isOrthogonalProjector {X H : Type} [Fintype H] [DecidableEq H
   · change (1-M*Mᴴ)ᴴ=1-M*Mᴴ
     simp [Matrix.conjTranspose_sub,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose]
 
+/-- The adjoint alphabet frame contracts each query and witness sector against its
+input-dependent `sourceMu` vector. -/
 theorem sourceMuFrame_adjoint_action {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (ψ : QState (SourceGeometry n q m H)) (j : Fin n) (k : Fin m) :
@@ -322,17 +369,22 @@ theorem sourceMuFrame_adjoint_action {X H : Type} [Fintype H] [DecidableEq H]
   simp [sourceMuFrame,Matrix.mulVec,dotProduct,Matrix.conjTranspose_apply,Fintype.sum_sum_type,
     Fintype.sum_prod_type,ite_and,apply_ite (starRingEnd ℂ),ite_mul]
 
+/-- The alphabet frame has zero amplitude in the state sector. -/
 theorem sourceMuFrame_inl_action {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (φ : QState (Fin n × Fin m)) (h : Bool × H) :
     ((sourceMuFrame (H := H) input x) *ᵥ φ) (.inl h)=0 := by simp [sourceMuFrame,Matrix.mulVec]
 
+/-- The alphabet frame multiplies a query and witness amplitude by the corresponding
+input-dependent `sourceMu` amplitude. -/
 theorem sourceMuFrame_inr_action {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (φ : QState (Fin n × Fin m)) (j : Fin n) (a : Fin (q+1)) (k : Fin m) :
     ((sourceMuFrame (H := H) input x) *ᵥ φ) (.inr (j,a,k))=sourceMu q (input x j) a*φ (j,k) := by
   simp [sourceMuFrame,Matrix.mulVec,dotProduct,Fintype.sum_prod_type,ite_and,ite_mul]
 
+/-- The keep matrix fixes the state sector and subtracts the `sourceMu` component in each query
+and witness sector. -/
 theorem sourceKeep_action {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (x : X)
     (ψ : QState (SourceGeometry n q m H)) (p : SourceGeometry n q m H) :
@@ -347,6 +399,7 @@ theorem sourceKeep_action {X H : Type} [Fintype H] [DecidableEq H]
     rcases z with ⟨j,a,k⟩
     rw [sourceMuFrame_inr_action,sourceMuFrame_adjoint_action]
 
+/-- For positive `q`, the keep projector fixes the constructed fixed vector. -/
 theorem sourceKeep_fixed {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
     (v : X → Fin n → QState (Fin m)) (W ε : ℝ) (x : X) (hq : 0 < q) :
@@ -372,6 +425,8 @@ theorem sourceKeep_fixed {X H : Type} [Fintype H] [DecidableEq H]
         _ = 0 := by rw [hp,mul_zero]
     rw [hz,mul_zero,sub_zero]
 
+/-- For positive `q`, applying the keep matrix to the forbidden vector gives `ε / Real.sqrt W`
+times the minus state. -/
 theorem sourceKeep_forbidden {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
     (u : X → Fin n → QState (Fin m)) (W ε : ℝ) (x : X) (hq : 0 < q) :
@@ -400,6 +455,8 @@ theorem sourceKeep_forbidden {X H : Type} [Fintype H] [DecidableEq H]
     rw [hsum]
     ring
 
+/-- The plus and minus vectors constructed from two normalized states both have squared
+Euclidean norm one. -/
 theorem sourcePlusMinus_norm {H : Type} [Fintype H] [DecidableEq H] {n q m : ℕ}
     (ρ σ : QState H) (hρ : Normalized ρ) (hσ : Normalized σ) :
     ‖toEuclidean_fromVec (sourcePlus (n := n) (q := q) (m := m) ρ σ)‖^2=1 ∧
@@ -416,6 +473,8 @@ theorem sourcePlusMinus_norm {H : Type} [Fintype H] [DecidableEq H] {n q m : ℕ
       norm_inv,Complex.norm_real,Real.norm_eq_abs,mul_pow,inv_pow,sq_abs,
       Real.sq_sqrt (show (0 : ℝ) ≤ 2 by norm_num),← Finset.mul_sum,hρsum,hσsum] <;> norm_num
 
+/-- The inner product of a minus vector with a plus vector is one half of the difference of the
+corresponding input and output inner products. -/
 theorem sourceMinusPlus_inner {H : Type} [Fintype H] [DecidableEq H] {n q m : ℕ}
     (ρ σ ρ' σ' : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (sourceMinus (n := n) (q := q) (m := m) ρ σ) (sourcePlus ρ' σ') =
@@ -451,6 +510,8 @@ theorem sourceMinusPlus_inner {H : Type} [Fintype H] [DecidableEq H] {n q m : �
       (1/2 : ℂ)*Qatlib.Foundations.PureStateMath.Inner ρ ρ' = _
   ring
 
+/-- A filtered Gram factorization with positive `q` and `W` makes every forbidden vector
+orthogonal to every fixed vector. -/
 theorem sourceForbiddenFixed_inner_zero {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
     (u v : X → Fin n → QState (Fin m)) (W ε : ℝ) (hq : 0 < q) (hW : 0 < W)
@@ -526,12 +587,16 @@ theorem sourceForbiddenFixed_inner_zero {X H : Type} [Fintype H] [DecidableEq H]
   rw [Fintype.sum_sum_type,hleft,hright,← hEq y x,neg_mul,hcβ]
   ring
 
+/-- The sum of squared norms of a scaled product of amplitudes factors into the scalar's squared
+norm and the two squared norm sums. -/
 private theorem source_sum_norm_tensor {A B : Type} [Fintype A] [Fintype B]
     (c : ℂ) (f : QState A) (g : QState B) :
     (∑ a, ∑ b, ‖c*f a*g b‖^2) = ‖c‖^2*(∑ a, ‖f a‖^2)*(∑ b, ‖g b‖^2) := by
   simp only [norm_mul,mul_pow,← Finset.mul_sum]
   rw [← Finset.sum_mul,← Finset.mul_sum]
 
+/-- For positive `q`, the squared distance from the fixed vector to the plus state is the
+witness squared norm sum times the squared norm of `ε/(2*Real.sqrt W)*(2*q/(q+1))`. -/
 theorem sourceFixed_distance_norm {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
     (v : X → Fin n → QState (Fin m)) (W ε : ℝ) (x : X) (hq : 0 < q) :
@@ -550,6 +615,8 @@ theorem sourceFixed_distance_norm {X H : Type} [Fintype H] [DecidableEq H]
   rw [Finset.mul_sum]
   simp only [zero_pow (by decide : 2 ≠ 0),Finset.sum_const_zero,zero_add]
 
+/-- For positive `q` and `W`, a second-witness squared norm budget of at most `W` bounds the
+fixed vector's squared distance from the plus state by `ε^2`. -/
 theorem sourceFixed_distance_le {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
     (v : X → Fin n → QState (Fin m)) (W ε : ℝ) (x : X) (hq : 0 < q) (hW : 0 < W)
@@ -578,6 +645,8 @@ theorem sourceFixed_distance_le {X H : Type} [Fintype H] [DecidableEq H]
     nlinarith [sq_nonneg ε]
   exact le_trans (mul_le_mul_of_nonneg_left hv (sq_nonneg ‖c‖)) hc
 
+/-- For positive `q`, `W`, and `ε` and normalized input and output states, the scaled forbidden
+vector has squared norm `1 + (W/ε^2) * ∑ j, ‖toEuclidean_fromVec (u x j)‖^2`. -/
 theorem sourceForbidden_scaled_norm {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
     (u : X → Fin n → QState (Fin m)) (W ε : ℝ) (x : X) (hq : 0 < q)
@@ -623,6 +692,8 @@ theorem sourceForbidden_scaled_norm {X H : Type} [Fintype H] [DecidableEq H]
     rw [← Finset.mul_sum,hs]
   rw [hwork]
 
+/-- Under normalization and positive parameters, a first-witness squared norm budget of at most
+`W` bounds the scaled forbidden vector's squared norm by `W^2/ε^2 + 1`. -/
 theorem sourceForbidden_scaled_norm_le {X H : Type} [Fintype H] [DecidableEq H]
     {n q m : ℕ} (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
     (u : X → Fin n → QState (Fin m)) (W ε : ℝ) (x : X) (hq : 0 < q)
@@ -636,6 +707,9 @@ theorem sourceForbidden_scaled_norm_le {X H : Type} [Fintype H] [DecidableEq H]
     _ ≤ 1+(W/ε^2)*W := add_le_add le_rfl hmul
     _ = _ := by ring
 
+/-- A filtered Gram factorization with normalized states, positive parameters, and witness
+budgets bounded by `W` yields the complement and keep projection identities and the required
+distance and norm estimates. -/
 theorem sourceGeometry_of_witness {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] {n q m : ℕ}
     (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -667,6 +741,8 @@ theorem sourceGeometry_of_witness {X H : Type} [Fintype X] [DecidableEq X]
   exact (hcriterion _).mpr
       (fun y => sourceForbiddenFixed_inner_zero input ρ σ u v W ε hq hW hEq y x)
 
+/-- Proves the alphabet witness geometry specification used in the state conversion construction
+of [Lee et al., Theorem 4.1][LeeEtAl2011]. -/
 theorem alphabetWitnessGeometry : AlphabetWitnessGeometry := by
   intro X H _ _ _ _ n q input ρ σ W ε hnorm hq hW hε hvalue
   obtain ⟨m,u,v,hEq,hu,hv⟩ :=

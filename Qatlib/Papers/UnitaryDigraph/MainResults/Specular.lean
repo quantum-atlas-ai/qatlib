@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
 import Qatlib.Papers.UnitaryDigraph.MainResults.Complete
+
+/-!
+# Unitary realizations of specular digraphs
+
+This module constructs unitary realizations for finite specular digraphs with incoming and
+outgoing strong quadrangularity and nonempty neighborhoods. The theorem `theorem1` gives this
+formulation of Theorem 1 of [Severini2003]; auxiliary results express distinct neighborhood
+blocks as disjoint sets.
+
+## Main statements
+
+* `theorem1`: Realize a specular digraph under the stated quadrangularity and nonemptiness
+  hypotheses.
+* `specular_outNbrs_disjoint`: Unequal outgoing neighborhoods at distinct vertices are disjoint.
+
+## References
+
+* [Severini, 2003][Severini2003]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +36,8 @@ namespace Qatlib.Papers.UnitaryDigraph.MainResults.Specular
 
 open Qatlib.Papers.UnitaryDigraph.MainResults.Defs
 
+/-- In a specular digraph, unequal outgoing neighborhoods of distinct vertices are disjoint
+[Severini2003]. -/
 theorem specular_outNbrs_disjoint {V : Type} {D : Defs.Digraph V} (hs : Specular D)
     {i j : V} (hij : i ≠ j) (hne : D.outNbrs i ≠ D.outNbrs j) :
     Disjoint (D.outNbrs i) (D.outNbrs j) := by
@@ -23,6 +45,8 @@ theorem specular_outNbrs_disjoint {V : Type} {D : Defs.Digraph V} (hs : Specular
   intro x hi hj
   exact hne (hs.1 i j hij ⟨x, hi, hj⟩)
 
+/-- In a specular digraph, unequal incoming neighborhoods of distinct vertices are disjoint
+[Severini2003]. -/
 theorem specular_inNbrs_disjoint {V : Type} {D : Defs.Digraph V} (hs : Specular D)
     {i j : V} (hij : i ≠ j) (hne : D.inNbrs i ≠ D.inNbrs j) :
     Disjoint (D.inNbrs i) (D.inNbrs j) := by
@@ -45,6 +69,7 @@ open Matrix
 
 variable {V : Type} [Fintype V] [DecidableEq V]
 
+/-- A set with at least two elements contains a member distinct from any specified member. -/
 theorem exists_mem_ne_of_two_le_ncard {W : Type*} {S : Set W} (h2 : 2 ≤ S.ncard) {i : W}
     (_hi : i ∈ S) : ∃ j ∈ S, j ≠ i := by
   by_contra h
@@ -56,6 +81,8 @@ theorem exists_mem_ne_of_two_le_ncard {W : Type*} {S : Set W} (h2 : 2 ≤ S.ncar
   rw [Set.ncard_singleton] at hle
   omega
 
+/-- A finite specular digraph is unitary if it is both incoming and outgoing strongly
+quadrangular and every incoming and outgoing neighborhood is nonempty [Severini2003]. -/
 theorem theorem1 (D : Defs.Digraph V) (hspec : Specular D)
     (houtSQ : OutStronglyQuadrangular D) (hinSQ : InStronglyQuadrangular D)
     (hout : ∀ v, (D.outNbrs v).Nonempty) (hin : ∀ v, (D.inNbrs v).Nonempty) :

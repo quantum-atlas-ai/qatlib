@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ParityBalance
 import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryInterfaces
+
+/-!
+# Polynomial degree and projector parity balance
+
+The function `projectorAcceptance` is the squared norm of a fixed matrix applied to the final
+circuit state. Its Boolean-cube degree is at most twice the query count; cancellation against
+parity yields balance, positive-bias lower bounds, and half-value rigidity. These results
+support the parity analysis of [FarhiEtAl1998].
+
+## Main statements
+
+* `projectorAcceptance_degree`: The Boolean-cube degree of `projectorAcceptance` is at most
+  twice the circuit's query count.
+* `projector_positive_bias_query_bound`: Uniform separation of even- and odd-parity acceptance
+  from one half by a positive bias implies `n ≤ 2 * QueryCount C`.
+
+## References
+
+* [Farhi et al., 1998][FarhiEtAl1998]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +40,8 @@ open Qatlib.Concepts.QueryWordCore.QueryMachinery
 open Qatlib.Concepts.QueryComplexity.DegreeMethod
 open Qatlib.Concepts.ProbabilityCore.DistributionAA
 
+/-- A Boolean monomial supported on a proper subset of the input coordinates has zero sum
+against the parity sign. -/
 theorem subset_monomial_signed_sum {n : ℕ} (S : Finset (Fin n)) (hS : S ≠ Finset.univ) :
     ∑ f : Fin n → Bool, boolSign f * (∏ i ∈ S, if f i then (1 : ℝ) else 0) = 0 := by
   classical
@@ -40,6 +63,7 @@ theorem subset_monomial_signed_sum {n : ℕ} (S : Finset (Fin n)) (hS : S ≠ Fi
         (if b then (-1 : ℝ) else 1) * (if i ∈ S then if b then 1 else 0 else 1))).symm
     _ = 0 := Finset.prod_eq_zero (Finset.mem_univ j) (by simp [hj, Fintype.univ_bool])
 
+/-- A real function of Boolean-cube degree at most `d < n` has zero sum against the parity sign. -/
 theorem cube_degree_signed_sum {n d : ℕ} (a : (Fin n → Bool) → ℝ)
     (ha : CubeDegreeLE d a) (hd : d < n) :
     ∑ f : Fin n → Bool, boolSign f * a f = 0 := by
@@ -64,6 +88,7 @@ theorem cube_degree_signed_sum {n d : ℕ} (a : (Fin n → Bool) → ℝ)
       _ = 0 := by rw [hz, mul_zero]
   · simp [hc S (by omega)]
 
+/-- The squared norm obtained by applying `P` to the final state of the source-oracle circuit. -/
 def projectorAcceptance {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (ψ : QState (PolynomialWorkspace (Fin n) W))
@@ -71,6 +96,8 @@ def projectorAcceptance {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (f : Fin n → Bool) : ℝ :=
   MeasureProb (ApplyGate P (Run (TensorGate (BitOracleOn f) 1) C ψ)) Finset.univ
 
+/-- The Boolean-cube degree of `projectorAcceptance` is at most twice the circuit's query count.
+See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem projectorAcceptance_degree {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (ψ : QState (PolynomialWorkspace (Fin n) W))
@@ -81,6 +108,8 @@ theorem projectorAcceptance_degree {n : ℕ} {W : Type} [Fintype W] [DecidableEq
   simpa only [queryCount_append, queryCount_gate, queryCount_nil, Nat.add_zero,
     run_append, Run, projectorAcceptance] using! h
 
+/-- If `2 * QueryCount C < n`, acceptance for any fixed matrix has zero sum against the parity
+sign. See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem projector_signed_sum {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (ψ : QState (PolynomialWorkspace (Fin n) W))
@@ -89,6 +118,8 @@ theorem projector_signed_sum {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     ∑ f : Fin n → Bool, boolSign f * projectorAcceptance C ψ P f = 0 :=
   cube_degree_signed_sum _ (projectorAcceptance_degree C ψ P) hk
 
+/-- If `2 * QueryCount C < n`, acceptance for any fixed matrix has equal sums over even- and
+odd-parity inputs. See [Farhi et al., 1998][FarhiEtAl1998]. -/
 theorem projector_acceptance_balance {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (ψ : QState (PolynomialWorkspace (Fin n) W))
@@ -98,6 +129,7 @@ theorem projector_acceptance_balance {n : ℕ} {W : Type} [Fintype W] [Decidable
       ∑ f ∈ Finset.univ.filter (fun f => parityOddB f = true), projectorAcceptance C ψ P f :=
   sum_balance_of_signed_sum_zero _ (projector_signed_sum C ψ P hk)
 
+/-- If `2 * QueryCount C < n`, centered acceptance has zero sum against the parity sign. -/
 theorem projector_centered_sum {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (ψ : QState (PolynomialWorkspace (Fin n) W))
@@ -118,6 +150,8 @@ theorem projector_centered_sum {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     ring
   exact hz
 
+/-- Below the parity query threshold, acceptance cannot separate even and odd inputs uniformly
+from one half by a positive `ε`. -/
 theorem projector_no_positive_bias {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (ψ : QState (PolynomialWorkspace (Fin n) W))
@@ -142,6 +176,8 @@ theorem projector_no_positive_bias {n : ℕ} {W : Type} [Fintype W] [DecidableEq
     (fun f _ => hp f) ⟨fun _ => false, Finset.mem_univ _⟩
   linarith
 
+/-- Uniform separation of even- and odd-parity acceptance from one half by a positive bias
+implies `n ≤ 2 * QueryCount C`. -/
 theorem projector_positive_bias_query_bound {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (ψ : QState (PolynomialWorkspace (Fin n) W))
@@ -153,6 +189,8 @@ theorem projector_positive_bias_query_bound {n : ℕ} {W : Type} [Fintype W] [De
   by_contra h
   exact projector_no_positive_bias C ψ P (by omega) ε hε hplus hminus
 
+/-- Below the parity query threshold, acceptance at least one half on even inputs and at most
+one half on odd inputs is identically one half. -/
 theorem projector_half_rigidity {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     (C : Circuit (PolynomialWorkspace (Fin n) W))
     (ψ : QState (PolynomialWorkspace (Fin n) W))

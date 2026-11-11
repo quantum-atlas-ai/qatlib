@@ -7,6 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
 import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
 import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQDrift
+
+/-!
+# Diamond-norm stabilization and qDRIFT consumers
+
+This module applies input-dimension stabilization of the diamond norm to concrete operator maps
+and channel-error bounds, in the quantum information framework of [Watrous2018]. It computes the
+diamond norm of transposition and exhibits a maximally entangled input attaining it in positive
+dimension.
+
+The qDRIFT results combine stabilized trace-norm bounds for arbitrary ancillary inputs with
+finite diamond distance and sampling-resource ledgers, using the randomized simulation setting
+of [Campbell2019].
+
+## Main statements
+
+* `diamond_transpose_entangled_witness`: computes the diamond norm of transposition and an
+  attaining input.
+* `diamond_stabilized_channel_error_consumer`: characterizes a distance bound using an
+  input-sized ancilla.
+* `fair_qdrift_stabilized_raw_and_ledgers`: combines stabilized error estimates with circuit and
+  sampling resources.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -30,19 +58,25 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 
+/-- Matrix transposition as a complex-linear map on `D`-dimensional operators. -/
 def transposeMap (D : ℕ) : Operator D →ₗ[ℂ] Operator D where
   toFun := Matrix.transpose
   map_add' _ _ := rfl
   map_smul' _ _ := rfl
 
+/-- The bipartite vector with diagonal amplitudes `1 / sqrt D` and zero off-diagonal amplitudes. -/
 noncomputable def maximallyEntangled (D : ℕ) : QState (Fin D × Fin D) :=
   fun p => if p.1 = p.2 then (Real.sqrt (D : ℝ) : ℂ)⁻¹ else 0
 
+/-- Tensoring transposition with an ancillary identity swaps the system row and column indices
+while retaining the ancillary indices. -/
 theorem diamond_tensorLeft_transpose_apply {D r : ℕ}
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
     (a b : Fin D × Fin r) :
     tensorLeft (transposeMap D) X a b = X (b.1,a.2) (a.1,b.2) := rfl
 
+/-- The partial transpose of a rank-one operator formed from two unit bipartite vectors has
+trace norm at most `D`. -/
 theorem diamond_transpose_unit_rank_one_bound (D : ℕ)
     (u v : QState (Fin D × Fin D))
     (hu : ∑ i, star (u i) * u i = 1) (hv : ∑ i, star (v i) * v i = 1) :
@@ -115,6 +149,8 @@ theorem diamond_transpose_unit_rank_one_bound (D : ℕ)
       exact norm_inner_le_norm _ _
     _ = (D : ℝ) := by rw [hxn,hyn]; ring
 
+/-- In positive dimension, the maximally entangled vector is normalized and the partial
+transpose of its outer product has trace norm `D`. -/
 theorem diamond_transpose_maximally_entangled (D : ℕ) (hD : 0 < D) :
     Normalized (maximallyEntangled D) ∧
     Matrix.traceNorm (tensorLeft (transposeMap D) (outerProduct (maximallyEntangled D))) = (D : ℝ) := by
@@ -152,6 +188,8 @@ theorem diamond_transpose_maximally_entangled (D : ℕ) (hD : 0 < D) :
   have hDr : (D:ℝ) ≠ 0 := by exact_mod_cast ne_of_gt hD
   field_simp
 
+/-- Partial transposition with an input-sized ancilla increases trace norm by at most a factor
+of `D`. -/
 theorem diamond_transpose_input_bound (D : ℕ)
     (X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ) :
     Matrix.traceNorm (tensorLeft (transposeMap D) X) ≤ (D:ℝ) * Matrix.traceNorm X := by
@@ -177,6 +215,9 @@ theorem diamond_transpose_input_bound (D : ℕ)
       mul_le_mul_of_nonneg_left (hP i) (hs i)
     _ = (D:ℝ) * Matrix.traceNorm X := by rw [htrace]; simp [Finset.sum_mul, mul_comm]
 
+/-- The finite diamond norm of transposition is `D`; in positive dimension, the normalized
+maximally entangled vector gives an outer product whose partial transpose has trace norm
+`D`. -/
 theorem diamond_transpose_entangled_witness : ∀ D : ℕ,
     finiteDiamondNorm (transposeMap D) = ENNReal.ofReal (D:ℝ) ∧
     (0 < D → Normalized (maximallyEntangled D) ∧
@@ -202,6 +243,9 @@ theorem diamond_transpose_entangled_witness : ∀ D : ℕ,
       subst D
       simp
 
+/-- For nonnegative `δ`, finite diamond distance at most `δ / 2` is equivalent to a trace-norm
+bound with factor `δ` using an input-sized ancilla. A uniform bound over all ancillary
+dimensions also implies that distance bound. -/
 theorem diamond_stabilized_channel_error_consumer : ∀ (D E : ℕ)
     (T S : Operator D →ₗ[ℂ] Operator E) (δ : ℝ), 0 ≤ δ →
     (finiteDiamondDistance T S ≤ ENNReal.ofReal (δ/2) ↔
@@ -240,6 +284,9 @@ theorem diamond_stabilized_channel_error_consumer : ∀ (D E : ℕ)
   · intro h
     exact hhalf.mpr ((finiteDiamondNorm_le_iff_uniform D E (T-S) δ hδ).mpr h)
 
+/-- Two input-sized ancillary trace-norm bounds with nonnegative factors `δ` and `ε` give finite
+diamond distance at most `(δ + ε) / 2` between the endpoints and a uniform ancillary bound
+with factor `δ + ε`. -/
 theorem diamond_stabilized_channel_error_chain {D E : ℕ}
     (T S U : Operator D →ₗ[ℂ] Operator E) (δ ε : ℝ) (hδ : 0 ≤ δ) (hε : 0 ≤ ε)
     (hTS : ∀ X : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ,
@@ -257,6 +304,10 @@ theorem diamond_stabilized_channel_error_chain {D E : ℕ}
   exact ⟨(diamond_stabilized_channel_error_consumer D E T U (δ+ε) (add_nonneg hδ hε)).1.mpr hfixed,
     diamond_uniform_bound_of_input_bound (T-U) (δ+ε) hfixed⟩
 
+/-- Positive weight mass, a valid time bound, and Hermitian contraction terms give input-sized
+and arbitrary-ancilla trace-norm error factor `(1/2)^s` and finite diamond distance at most
+`(1/2)^s / 2` at the computed budgets. Every sampled circuit is unitary with zero oracle
+queries, `n` gates, and the stated bit and comparison bounds. -/
 theorem fair_qdrift_stabilized_raw_and_ledgers : ∀ (L D T s : ℕ)
     (w : Fin L → ℕ) (j0 : Fin L) (K : Fin L → Operator D) (t : ℝ),
     0 < weightTotal w → |t| ≤ T → (∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) →
@@ -288,6 +339,8 @@ theorem fair_qdrift_stabilized_raw_and_ledgers : ∀ (L D T s : ℕ)
     (by positivity)).1.mp hb.1
   exact ⟨hfixed, diamond_uniform_bound_of_input_bound _ _ hfixed, hb.1, hb.2⟩
 
+/-- Zero total weight gives zero finite diamond distance from the target evolution and zero
+trace-norm error for every ancillary dimension and input operator. -/
 theorem fair_qdrift_zero_mass_stabilized {L D : ℕ} (w : Fin L → ℕ) (j0 : Fin L)
     (n R : ℕ) (K : Fin L → Operator D) (t : ℝ) (hW : weightTotal w = 0) :
     finiteDiamondDistance (fairQdriftActualMap w j0 n R K t)

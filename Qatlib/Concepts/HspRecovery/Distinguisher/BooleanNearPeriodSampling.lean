@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanRecoveryProbability
 import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
 import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+
+/-!
+# Boolean Fourier sampling for near periods
+
+Defines `NearPeriodPromise`, which bounds the number of inputs where translation by a Boolean
+vector changes the function value. Decomposes oracle label branches into periodic and
+exceptional parts, then uses Fourier orthogonality and Parseval's identity to bound the
+probability of a nonorthogonal sample.
+
+If at most `q` of the `2 ^ n` inputs violate periodicity, one sample is nonorthogonal with
+probability at most `q / 2 ^ n`, and all `m` fresh samples are orthogonal with probability at
+least `(1 - q / 2 ^ n) ^ m` when `q ≤ 2 ^ n`. This extends the orthogonality mechanism of Simon
+sampling [Simon1997].
+
+## Main statements
+
+* `booleanSample_dot_ne_zero_event_le`: bounds one-sample nonorthogonality.
+* `hiddenSubgroupFreshSamples_allDot_ge_of_nearPeriod`: bounds the probability that all fresh
+  samples are orthogonal.
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -28,22 +53,28 @@ namespace Qatlib.Concepts.HspRecovery.Distinguisher
 open Qatlib
 open scoped Classical ComplexConjugate ENNReal
 
+/-- The promise that at most `q` inputs have different function values before and after
+translation by `s`. -/
 def NearPeriodPromise {n : ℕ} {R : Type} (f : BooleanVec n → R)
     (s : BooleanVec n) (q : ℕ) : Prop :=
   Nat.card {x : BooleanVec n | f x ≠ f (x + s)} ≤ q
 
 variable {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R] [DecidableEq R]
 
+/-- Every Boolean vector added to itself is zero. -/
 private lemma booleanVec_add_self (s : BooleanVec n) : s + s = 0 := by
   funext i
   exact zmod2_add_self (s i)
 
+/-- The sum of Born probabilities is preserved by the finite additive Fourier transform. -/
 private lemma born_parseval {G : Type*} [AddCommGroup G] [Fintype G] [DecidableEq G]
     (ψ : QState G) : ∑ χ, BornProb (Qatlib.Concepts.WalshMoment.Forrelation.fourier ψ) χ = ∑ x, BornProb ψ x := by
   have h := inner_fourier ψ ψ
   simp only [inner_self, ← Complex.ofReal_sum] at h
   exact_mod_cast h
 
+/-- If a state is invariant under translation by `s`, its Fourier amplitude vanishes at every
+character taking value `-1` on `s`. -/
 private lemma fourier_periodic_zero (ψ : QState (BooleanVec n)) (s : BooleanVec n)
     (hp : ∀ x, ψ (x + s) = ψ x) (χ : AddChar (BooleanVec n) ℂ) (hχ : χ s = -1) :
     Qatlib.Concepts.WalshMoment.Forrelation.fourier ψ χ = 0 := by
@@ -60,14 +91,19 @@ private lemma fourier_periodic_zero (ψ : QState (BooleanVec n)) (s : BooleanVec
   change fourierScale (BooleanVec n) * a = 0
   rw [ha, mul_zero]
 
+/-- The oracle label branch restricted to inputs where translation by `s` changes the function
+value. -/
 private def badLabelBranch (f : BooleanVec n → R) (s : BooleanVec n) (z : R) :
     QState (BooleanVec n) := fun x =>
   if f x = f (x + s) then 0 else addOracleLabelBranch f (Uniform (BooleanVec n)) z x
 
+/-- The oracle label branch restricted to inputs where translation by `s` preserves the function
+value. -/
 private def goodLabelBranch (f : BooleanVec n → R) (s : BooleanVec n) (z : R) :
     QState (BooleanVec n) := fun x =>
   if f x = f (x + s) then addOracleLabelBranch f (Uniform (BooleanVec n)) z x else 0
 
+/-- The good oracle label branch is invariant under translation by `s`. -/
 private lemma goodLabelBranch_periodic (f : BooleanVec n → R) (s : BooleanVec n) (z : R) :
     ∀ x, goodLabelBranch f s z (x + s) = goodLabelBranch f s z x := by
   intro x
@@ -78,12 +114,15 @@ private lemma goodLabelBranch_periodic (f : BooleanVec n → R) (s : BooleanVec 
   · simp [hf, addOracleLabelBranch_apply, Uniform]
   · simp [hf, Ne.symm hf]
 
+/-- Every element of `ZMod 2` equals zero or one. -/
 private lemma zmod_two_eq_zero_or_one (z : ZMod 2) : z = 0 ∨ z = 1 := by
   have hz : z.val ≤ 1 := Nat.le_of_lt_succ (by simpa using z.val_lt)
   rcases Nat.le_one_iff_eq_zero_or_eq_one.mp hz with hz | hz
   · exact Or.inl ((ZMod.val_eq_zero z).1 hz)
   · exact Or.inr ((ZMod.val_eq_one (by norm_num) z).1 hz)
 
+/-- A Boolean character whose decoded vector has nonzero dot product with `s` takes the value
+`-1` on `s`. -/
 private lemma character_neg_of_dot_ne (s : BooleanVec n) (χ : AddChar (BooleanVec n) ℂ)
     (h : booleanDot s ((booleanCharacterEquiv n).symm χ) ≠ 0) : χ s = -1 := by
   have hd : booleanDot ((booleanCharacterEquiv n).symm χ) s = 1 := by
@@ -92,6 +131,8 @@ private lemma character_neg_of_dot_ne (s : BooleanVec n) (χ : AddChar (BooleanV
   conv_lhs => rw [← (booleanCharacterEquiv n).apply_symm_apply χ]
   rw [booleanCharacterEquiv_apply, booleanCharacter_apply, hd, zmod2_stdAddChar_one]
 
+/-- At a character nonorthogonal to `s`, the Fourier amplitude of the full oracle label branch
+equals that of its bad part. -/
 private lemma fourier_bad_branch (f : BooleanVec n → R) (s : BooleanVec n) (z : R)
     (χ : AddChar (BooleanVec n) ℂ)
     (hχ : booleanDot s ((booleanCharacterEquiv n).symm χ) ≠ 0) :
@@ -110,6 +151,8 @@ private lemma fourier_bad_branch (f : BooleanVec n → R) (s : BooleanVec n) (z 
     (goodLabelBranch_periodic f s z) χ (character_neg_of_dot_ne s χ hχ)
   simp [hz]
 
+/-- The total Born mass of all bad label branches is the proportion of inputs where translation
+by `s` changes `f`. -/
 private lemma bad_branch_energy (f : BooleanVec n → R) (s : BooleanVec n) :
     (∑ z : R, ∑ x : BooleanVec n, BornProb (badLabelBranch f s z) x) =
       (Nat.card {x : BooleanVec n | f x ≠ f (x + s)} : ℝ) /
@@ -136,6 +179,8 @@ private lemma bad_branch_energy (f : BooleanVec n → R) (s : BooleanVec n) :
   rw [Finset.sum_comm, Finset.sum_congr rfl (fun x _ => hrow x), ← Finset.sum_filter,
     Finset.sum_const, nsmul_eq_mul, ← hc, div_eq_mul_inv]
 
+/-- The probability of a Fourier character whose decoded vector is nonorthogonal to `s` is at
+most the proportion of inputs violating translation invariance. -/
 private lemma sampleDist_nonorthogonal_le (f : BooleanVec n → R) (s : BooleanVec n) :
     (∑ χ ∈ Finset.univ.filter (fun χ : AddChar (BooleanVec n) ℂ =>
       booleanDot s ((booleanCharacterEquiv n).symm χ) ≠ 0),
@@ -170,12 +215,16 @@ private lemma sampleDist_nonorthogonal_le (f : BooleanVec n → R) (s : BooleanV
       exact Finset.sum_congr rfl fun z _ => born_parseval (badLabelBranch f s z)
     _ = _ := bad_branch_energy f s
 
+/-- For a finite probability mass function, an event probability is the sum of the masses of its
+satisfying elements. -/
 private theorem finite_pmf_event_sum {A : Type*} [Fintype A] (p : PMF A)
     (P : A → Prop) : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p P = ∑ a ∈ Finset.univ.filter P, p a := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   rw [tsum_fintype]
   simp only [mul_ite, mul_one, mul_zero, ← Finset.sum_filter]
 
+/-- The Boolean hidden subgroup sample law assigns an event the `ENNReal.ofReal` conversion of
+the corresponding sum of finite-distribution probabilities. -/
 private lemma sample_event_ofReal (f : BooleanVec n → R)
     (P : AddChar (BooleanVec n) ℂ → Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (hiddenSubgroupSampleLaw f (booleanCharacterEquiv n).toEquiv) P =
@@ -186,6 +235,8 @@ private lemma sample_event_ofReal (f : BooleanVec n → R)
   exact (ENNReal.ofReal_sum_of_nonneg (fun χ _ =>
     (hiddenSubgroupSampleDist f (booleanCharacterEquiv n).toEquiv).nonneg χ)).symm
 
+/-- Under `NearPeriodPromise f s q`, the probability that one decoded Fourier sample has nonzero
+dot product with `s` is at most `q / 2 ^ n`. -/
 theorem booleanSample_dot_ne_zero_event_le (f : BooleanVec n → R)
     (s : BooleanVec n) (q : ℕ) (hq : NearPeriodPromise f s q) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (hiddenSubgroupSampleLaw f (booleanCharacterEquiv n).toEquiv)
@@ -208,6 +259,8 @@ theorem booleanSample_dot_ne_zero_event_le (f : BooleanVec n → R)
   · intro χ _
     rfl
 
+/-- If at most `q ≤ 2 ^ n` inputs violate periodicity by `s`, the probability that all `m` fresh
+decoded samples are orthogonal to `s` is at least `(1 - q / 2 ^ n) ^ m`. -/
 theorem hiddenSubgroupFreshSamples_allDot_ge_of_nearPeriod (f : BooleanVec n → R)
     (s : BooleanVec n) (q : ℕ) (hqn : q ≤ 2 ^ n) (hq : NearPeriodPromise f s q) (m : ℕ) :
     ENNReal.ofReal ((1 - (q : ℝ) / 2 ^ n) ^ m) ≤

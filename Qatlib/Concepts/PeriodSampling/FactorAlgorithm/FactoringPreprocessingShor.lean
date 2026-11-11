@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingStat
 import Mathlib.Data.Nat.Factorization.PrimePow
+
+/-!
+# Soundness of factoring preprocessing
+
+Proves the properties of the perfect-power search and uses them to establish
+`factoringPreprocessing`. Returned factors are proper nontrivial divisors, while the residue
+branch leaves an odd input that is prime or has at least two distinct prime factors, as needed
+in the framework of [Shor1997].
+
+## Main statements
+
+* `factoringPreprocessing`: Establishes factor soundness and the residue-branch conditions.
+
+## References
+
+* [Shor, 1997][Shor1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +32,7 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.PeriodSampling.FactorAlgorithm
 open scoped Classical
 
+/-- Any base returned by `shorPerfectPowerDivisor` is a proper nontrivial divisor of `N`. -/
 private theorem perfectPower_sound (N d : ℕ)
     (h : shorPerfectPowerDivisor N = some d) : 1 < d ∧ d < N ∧ d ∣ N := by
   have hd : d ∈ ((Finset.range N).filter fun m =>
@@ -26,6 +45,8 @@ private theorem perfectPower_sound (N d : ℕ)
   rw [← hpow]
   exact dvd_pow_self d (by omega)
 
+/-- If the perfect-power search returns `none`, no base in the stated range and exponent in `[2,
+N]` represent `N` as a perfect power. -/
 private theorem perfectPower_none (N : ℕ) (h : shorPerfectPowerDivisor N = none) :
     ¬ ∃ m < N, 2 ≤ m ∧ ∃ e ∈ Finset.Icc 2 N, m ^ e = N := by
   intro ⟨m, hm, hm2, e, he, hpow⟩
@@ -39,6 +60,8 @@ private theorem perfectPower_none (N : ℕ) (h : shorPerfectPowerDivisor N = non
   rw [hempty] at hmem
   exact Finset.notMem_empty m hmem
 
+/-- Establishes soundness of factoring preprocessing and the stated oddness and prime-factor
+conditions for its residue branch in the framework of [Shor1997]. -/
 theorem factoringPreprocessing : FactoringPreprocessing := by
   constructor
   · intro N d hN h

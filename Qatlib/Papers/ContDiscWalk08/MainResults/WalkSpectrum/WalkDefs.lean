@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.TwoLevelLower
 import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+
+/-!
+# Swap embeddings and walk operators
+
+The structure `WalkSetup` packages a Hermitian Hamiltonian, a positive normalization, and an
+isometric embedding whose swap compression recovers the normalized Hamiltonian. The definitions
+`vertexReflection`, `walkOperator`, and the two rotations provide the finite matrix walk
+construction of [Childs2010].
+
+## Main statements
+
+* `walkOperator_mem_unitary`: the walk operator is unitary.
+* `walkOperator_mulVec_T` and `walkOperator_mulVec_swap`: action on the two lifted directions.
+
+## References
+
+* [Childs, 2010][Childs2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,20 +39,25 @@ namespace Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+/-- The swap matrix equals its conjugate transpose. -/
 theorem swap_conjTranspose :
     (SwapGate : Matrix (I × I) (I × I) ℂ)ᴴ = SwapGate := by
   rw [SwapGate]
   exact permMatrix_conjTranspose Prod.swap_swap
 
+/-- The square of the swap matrix is the identity. -/
 theorem swap_mul_self :
     SwapGate * SwapGate = (1 : Matrix (I × I) (I × I) ℂ) := by
   rw [SwapGate]
   exact permMatrix_mul_self Prod.swap_swap
 
+/-- The swap matrix is unitary. -/
 theorem swap_mem_unitary :
     (SwapGate : Matrix (I × I) (I × I) ℂ) ∈ Matrix.unitaryGroup (I × I) ℂ :=
   swapGate_unitary
 
+/-- Packages a Hermitian Hamiltonian, a positive normalization constant, and an isometric
+embedding whose swap compression equals the normalized Hamiltonian. -/
 structure WalkSetup (I : Type*) [Fintype I] [DecidableEq I] where
 
   H : Matrix I I ℂ
@@ -50,18 +74,23 @@ structure WalkSetup (I : Type*) [Fintype I] [DecidableEq I] where
 
   gram : Tᴴ * SwapGate * T = (((absNorm)⁻¹ : ℝ) : ℂ) • H
 
+/-- Defines the reflection `2 * (D.T * D.Tᴴ) - 1` associated with the isometric embedding. -/
 def vertexReflection (D : WalkSetup I) : Matrix (I × I) (I × I) ℂ :=
   (2 : ℂ) • (D.T * D.Tᴴ) - 1
 
+/-- Defines the walk operator as `i` times the product of the swap and the vertex reflection. -/
 def walkOperator (D : WalkSetup I) : Matrix (I × I) (I × I) ℂ :=
   Complex.I • (SwapGate * vertexReflection D)
 
+/-- Defines the normalized swap rotation `(1 + iS) / √2`. -/
 def plusRotation : Matrix (I × I) (I × I) ℂ :=
   (((Real.sqrt 2)⁻¹ : ℝ) : ℂ) • ((1 : Matrix (I × I) (I × I) ℂ) + Complex.I • SwapGate)
 
+/-- Defines the normalized swap rotation `(1 - iS) / √2`. -/
 def minusRotation : Matrix (I × I) (I × I) ℂ :=
   (((Real.sqrt 2)⁻¹ : ℝ) : ℂ) • ((1 : Matrix (I × I) (I × I) ℂ) - Complex.I • SwapGate)
 
+/-- The vertex reflection fixes the embedding matrix `D.T`. -/
 theorem vertexReflection_mul_T (D : WalkSetup I) :
     vertexReflection D * D.T = D.T := by
   unfold vertexReflection
@@ -69,6 +98,7 @@ theorem vertexReflection_mul_T (D : WalkSetup I) :
     D.isometry, Matrix.mul_one]
   module
 
+/-- The vertex reflection equals its conjugate transpose. -/
 theorem vertexReflection_conjTranspose (D : WalkSetup I) :
     (vertexReflection D)ᴴ = vertexReflection D := by
   unfold vertexReflection
@@ -76,6 +106,7 @@ theorem vertexReflection_conjTranspose (D : WalkSetup I) :
     Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose]
   simp
 
+/-- The vertex reflection squares to the identity. -/
 theorem vertexReflection_mul_self (D : WalkSetup I) :
     vertexReflection D * vertexReflection D = 1 := by
   unfold vertexReflection
@@ -85,6 +116,7 @@ theorem vertexReflection_mul_self (D : WalkSetup I) :
     Matrix.smul_mul, Matrix.mul_smul, smul_smul, hP]
   module
 
+/-- The walk operator associated with `D` is unitary. -/
 theorem walkOperator_mem_unitary (D : WalkSetup I) :
     walkOperator D ∈ Matrix.unitaryGroup (I × I) ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
@@ -107,6 +139,7 @@ theorem walkOperator_mem_unitary (D : WalkSetup I) :
     _ = vertexReflection D * vertexReflection D := by rw [Matrix.one_mul]
     _ = 1 := vertexReflection_mul_self D
 
+/-- The walk maps an embedded state to `i` times its swapped embedding. -/
 theorem walkOperator_mulVec_T (D : WalkSetup I) (v : QState I) :
     walkOperator D *ᵥ (D.T *ᵥ v) = Complex.I • (SwapGate *ᵥ (D.T *ᵥ v)) := by
   unfold walkOperator
@@ -118,12 +151,17 @@ theorem walkOperator_mulVec_T (D : WalkSetup I) (v : QState I) :
     rw [Matrix.mulVec_mulVec, vertexReflection_mul_T]
   rw [hfix]
 
+/-- A vector satisfying the normalized Hamiltonian eigenvector equation also satisfies the same
+equation for the compressed swap. -/
 theorem gram_mulVec (D : WalkSetup I) (lam : ℝ) (v : QState I)
     (heig : ((((D.absNorm)⁻¹ : ℝ) : ℂ) • D.H) *ᵥ v = (lam : ℂ) • v) :
     (D.Tᴴ * SwapGate * D.T) *ᵥ v = (lam : ℂ) • v := by
   rw [D.gram]
   exact heig
 
+/-- For a vector satisfying the normalized Hamiltonian eigenvector equation, the walk maps its
+swapped embedding to `2 * i * lam` times that swapped embedding minus `i` times its
+embedding. -/
 theorem walkOperator_mulVec_swap (D : WalkSetup I) (lam : ℝ) (v : QState I)
     (heig : ((((D.absNorm)⁻¹ : ℝ) : ℂ) • D.H) *ᵥ v = (lam : ℂ) • v) :
     walkOperator D *ᵥ (SwapGate *ᵥ (D.T *ᵥ v))

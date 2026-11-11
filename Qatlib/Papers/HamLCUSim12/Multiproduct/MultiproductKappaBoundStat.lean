@@ -6,11 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductAnalyticInputs
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductNodes
+
+/-!
+# Multiproduct mass-ratio bound statement
+
+The proposition `MultiproductKappaBound` specifies an explicit comparison between positive and
+negative coefficient masses. It uses a multiplicative inequality to express the lower mass-ratio
+scale supplied by the coefficient estimate, with the analytic and node-separation assumptions
+stated explicitly. See [ChildsWiebe2012] for the multiproduct and linear-combination simulation
+framework.
+
+## Main statements
+
+* `MultiproductKappaBound`: The proposition that, under the stated analytic and separation
+  hypotheses, the negative coefficient mass multiplied by 2^(−1/2) k^(−5/2) exp(−2k(1 + log η /
+  2 − γ)) is bounded by the positive mass.
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators
 
+/-- The proposition that, under the stated analytic and separation hypotheses, the negative
+coefficient mass multiplied by 2^(−1/2) k^(−5/2) exp(−2k(1 + log η / 2 − γ)) is bounded by
+the positive mass. -/
 def MultiproductKappaBound : Prop :=
   ∀ k : ℕ, 1 ≤ k → ∀ γ η : ℝ, 0 < γ → 1 / 4 < η →
     EtaMaxProperty η → FactorialLowerBound →

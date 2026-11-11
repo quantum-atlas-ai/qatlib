@@ -8,22 +8,46 @@ import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.Real.Pi.Bounds
 
+/-!
+# Logarithmic resource budgets
+
+This module defines the real base-two logarithm `log2` and translates an exponential resource
+bound into an additive logarithmic budget. The elementary inequalities support resource
+estimates in the quantum computation framework of [NielsenChuang2010].
+
+## Main statements
+
+* `log2_two_rpow`: base-two exponentiation is inverted by `log2`.
+* `log2_mono`: `log2` is monotone on positive inputs.
+* `exponential_budget_iff`: convert a mixed polynomial-exponential bound into an additive
+  budget.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 namespace Qatlib.Foundations.ResourceBounds.LogBudgets
 set_option autoImplicit false
 noncomputable section
 
+/-- The real logarithm to base two, defined using `Real.logb`. -/
 def log2 (x : ℝ) : ℝ := Real.logb 2 x
 
+/-- The base-two logarithm of `2 ^ a` is `a` for every real exponent. -/
 theorem log2_two_rpow (a : ℝ) : log2 ((2 : ℝ) ^ a) = a := by
   unfold log2 Real.logb
   rw [Real.log_rpow (by norm_num : (0 : ℝ) < 2), mul_div_assoc,
       div_self (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne', mul_one]
 
+/-- The base-two logarithm is monotone between positive real arguments. -/
 theorem log2_mono {x y : ℝ} (hx : 0 < x) (hxy : x ≤ y) : log2 x ≤ log2 y := by
   unfold log2 Real.logb
   exact div_le_div_of_nonneg_right (Real.log_le_log hx hxy)
     (Real.log_pos (by norm_num : (1 : ℝ) < 2)).le
 
+/-- For positive natural `k`, the bound `k ^ v * 2 ^ (k / 2) ≤ 2 ^ C` is equivalent to `k / 2 +
+v * log2 k ≤ C`. -/
 theorem exponential_budget_iff (k : ℕ) (hk : 0 < k) (v C : ℝ) :
     ((k : ℝ) ^ v * (2 : ℝ) ^ ((k : ℝ) / 2) ≤ (2 : ℝ) ^ C) ↔
       (k : ℝ) / 2 + v * log2 (k : ℝ) ≤ C := by

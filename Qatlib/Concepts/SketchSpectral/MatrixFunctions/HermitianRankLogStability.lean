@@ -10,6 +10,35 @@ import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
 import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
 import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 import Mathlib.NumberTheory.Harmonic.Bounds
+
+/-!
+# Logarithmic rank bounds for Hermitian matrix functions
+
+This module proves operator norm perturbation and quasicommutator estimates for Hermitian
+functional calculus under a scalar Lipschitz condition on the union of two spectra. The factor
+`hermitianRankLogWeight` depends logarithmically on rank; finite-dimensional spectral calculus
+and singular value estimates provide the background [Bhatia1997].
+
+The estimates support the matrix-function stability analysis of [ChiaEtAl2022]. The proof
+constructs low-rank approximations to weighted divided difference matrices, bounds their
+residuals in Frobenius norm, and derives a logarithmic Schur multiplier estimate from reciprocal
+singular value decay.
+
+## Main statements
+
+* `hermitianFunction_operator_rank_quasicommutator`: a universal quasicommutator bound with a
+  logarithmic left-rank factor.
+* `hermitianFunction_operator_min_rank_stability`: an operator perturbation bound using the
+  smaller rank.
+* `ddMat_hadamard_vecMulVec_sv_bound`: reciprocal singular value decay for weighted divided
+  differences.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -29,8 +58,11 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The logarithmic rank weight 1 + log(1 + n). -/
 def hermitianRankLogWeight (n : ℕ) : ℝ := 1 + Real.log (1 + (n : ℝ))
 
+/-- The function `f` satisfies the scalar Lipschitz bound with constant `L` on the union of the
+spectra of `A` and `B`. -/
 def hermitianPairScalarLipschitz {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix I I ℂ) (hA : A.IsHermitian)
     (B : Matrix J J ℂ) (hB : B.IsHermitian) (f : ℝ → ℂ) (L : ℝ) : Prop :=
@@ -38,12 +70,14 @@ def hermitianPairScalarLipschitz {I J : Type} [Fintype I] [DecidableEq I]
     ∀ y ∈ Set.range (orderedHermitianValues hA) ∪ Set.range (orderedHermitianValues hB),
       ‖f x - f y‖ ≤ L * |x - y|
 
+/-- The logarithmic rank weight is at least one. -/
 theorem hermitianRankLogWeight_ge_one (n : ℕ) : 1 ≤ hermitianRankLogWeight n := by
   have h :=
       Real.log_nonneg (show (1 : ℝ) ≤ 1+(n : ℝ) by exact le_add_of_nonneg_right (Nat.cast_nonneg n))
   unfold hermitianRankLogWeight
   linarith
 
+/-- The logarithmic rank weight is monotone in the rank parameter. -/
 theorem hermitianRankLogWeight_mono : Monotone hermitianRankLogWeight := by
   intro m n hmn
   unfold hermitianRankLogWeight
@@ -52,6 +86,8 @@ theorem hermitianRankLogWeight_mono : Monotone hermitianRankLogWeight := by
     Real.log_le_log (by positivity) (by linarith)
   linarith
 
+/-- The spectral Lipschitz condition bounds the difference of function values at any eigenvalue
+of `A` and any eigenvalue of `B`. -/
 theorem hermitianPairScalarLipschitz_cross {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] {A : Matrix I I ℂ} {hA : A.IsHermitian}
     {B : Matrix J J ℂ} {hB : B.IsHermitian} {f : ℝ → ℂ} {L : ℝ}
@@ -61,6 +97,7 @@ theorem hermitianPairScalarLipschitz_cross {I J : Type} [Fintype I] [DecidableEq
       L*|orderedHermitianValues hA i-orderedHermitianValues hB j| :=
   hf _ (Or.inl ⟨i,rfl⟩) _ (Or.inr ⟨j,rfl⟩)
 
+/-- The spectral Lipschitz condition is invariant under exchanging the two Hermitian matrices. -/
 theorem hermitianPairScalarLipschitz_swap {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] {A : Matrix I I ℂ} {hA : A.IsHermitian}
     {B : Matrix J J ℂ} {hB : B.IsHermitian} {f : ℝ → ℂ} {L : ℝ}
@@ -68,6 +105,8 @@ theorem hermitianPairScalarLipschitz_swap {I J : Type} [Fintype I] [DecidableEq 
     hermitianPairScalarLipschitz B hB A hA f L := by
   simpa only [hermitianPairScalarLipschitz, Set.union_comm] using hf
 
+/-- In the ordered eigenbases of `A` and `B`, each entry of f(A)S - Sf(B) is the corresponding
+entry of `S` multiplied by the difference of function values. -/
 theorem hermitianFunction_quasicommutator_coordinates {I J : Type}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (B : Matrix J J ℂ) (hB : B.IsHermitian)
@@ -103,6 +142,8 @@ theorem hermitianFunction_quasicommutator_coordinates {I J : Type}
   rw [he, Matrix.sub_apply, Matrix.diagonal_mul, Matrix.mul_diagonal]
   ring
 
+/-- In the ordered eigenbases, each entry of AS - SB is the corresponding entry of `S`
+multiplied by the eigenvalue difference. -/
 theorem hermitian_quasicommutator_coordinates {I J : Type}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (B : Matrix J J ℂ) (hB : B.IsHermitian)
@@ -116,6 +157,8 @@ theorem hermitian_quasicommutator_coordinates {I J : Type}
   have hb : hermitianFunction B hB (fun x => (x : ℂ)) = B := (orderedHermitian_diagonal hB).symm
   simpa only [ha,hb,Complex.ofReal_sub] using h
 
+/-- Passing to the ordered eigenbases of the two Hermitian matrices preserves the operator norm
+of a rectangular matrix. -/
 theorem hermitian_pair_coordinates_norm {I J : Type}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (B : Matrix J J ℂ) (hB : B.IsHermitian)
@@ -145,6 +188,8 @@ theorem hermitian_pair_coordinates_norm {I J : Type}
     ‖S‖ = ‖U*(Uᴴ*S*V)*Vᴴ‖ := congrArg norm he.symm
     _ ≤ ‖Uᴴ*S*V‖ := hbound U (Uᴴ*S*V) Vᴴ hu hvc
 
+/-- The diagonal matrix of ordered eigenvalues of a Hermitian matrix has the same rank as the
+original matrix. -/
 theorem orderedHermitian_diagonal_rank {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) :
     (diagonal (fun i => (orderedHermitianValues hA i : ℂ))).rank = A.rank := by
@@ -163,12 +208,14 @@ theorem orderedHermitian_diagonal_rank {I : Type} [Fintype I] [DecidableEq I]
   · rw [ha]
     exact (Matrix.rank_mul_le_left _ _).trans (Matrix.rank_mul_le_right _ _)
 
+/-- The number of nonzero ordered eigenvalues, counted with multiplicity, equals the rank. -/
 theorem orderedHermitian_nonzero_card {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) :
     Fintype.card {i // orderedHermitianValues hA i ≠ 0} = A.rank := by
   have h := orderedHermitian_diagonal_rank A hA
   simpa only [Matrix.rank_diagonal, ne_eq, Complex.ofReal_eq_zero] using h
 
+/-- Every ordered eigenvalue of a Hermitian matrix of rank zero is zero. -/
 theorem orderedHermitianValues_eq_zero_of_rank_zero {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (hr : A.rank = 0)
     (i : Fin (Fintype.card I)) : orderedHermitianValues hA i = 0 := by
@@ -178,6 +225,7 @@ theorem orderedHermitianValues_eq_zero_of_rank_zero {I : Type} [Fintype I] [Deci
   by_contra hn
   exact hi.false ⟨i, hn⟩
 
+/-- Functional calculus on a Hermitian matrix of rank zero gives `f 0` times the identity. -/
 theorem hermitianFunction_of_rank_zero {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (hr : A.rank = 0) (f : ℝ → ℂ) :
     hermitianFunction A hA f = f 0 • (1 : Matrix I I ℂ) := by
@@ -188,6 +236,7 @@ theorem hermitianFunction_of_rank_zero {I : Type} [Fintype I] [DecidableEq I]
   rw [hv]
   exact spectralDiagonal_const _ _
 
+/-- The number of distinct eigenvalues of a Hermitian matrix is at most its rank plus one. -/
 theorem orderedHermitian_spectrum_card_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) :
     (Finset.univ.image (orderedHermitianValues hA)).card ≤ A.rank+1 := by
@@ -210,6 +259,8 @@ theorem orderedHermitian_spectrum_card_le {I : Type} [Fintype I] [DecidableEq I]
     _ ≤ t.card+1 := Nat.add_le_add_right (Finset.card_image_le) 1
     _ = _ := by rw [ht]
 
+/-- One plus the logarithm of the number of distinct eigenvalues is bounded by the logarithmic
+rank weight. -/
 theorem orderedHermitian_log_spectrum_card_le {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) :
     1+Real.log ((Finset.univ.image (orderedHermitianValues hA)).card : ℝ) ≤
@@ -227,6 +278,8 @@ theorem orderedHermitian_log_spectrum_card_le {I : Type} [Fintype I] [DecidableE
     unfold hermitianRankLogWeight
     linarith
 
+/-- The divided difference between eigenvalues of the two matrices has norm at most `L`, with
+value zero at coincident eigenvalues. -/
 theorem hermitianPairScalarLipschitz_divided_difference_norm_le {I J : Type}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     {A : Matrix I I ℂ} {hA : A.IsHermitian} {B : Matrix J J ℂ} {hB : B.IsHermitian}
@@ -242,6 +295,8 @@ theorem hermitianPairScalarLipschitz_divided_difference_norm_le {I J : Type}
     apply (div_le_iff₀ (abs_pos.mpr (sub_ne_zero.mpr he))).mpr
     exact hermitianPairScalarLipschitz_cross hf i j
 
+/-- Each spectral coordinate of f(A)S - Sf(B) is the divided difference times the corresponding
+coordinate of AS - SB. -/
 theorem hermitianFunction_quasicommutator_divided_difference {I J : Type}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (B : Matrix J J ℂ) (hB : B.IsHermitian)
@@ -263,6 +318,8 @@ theorem hermitianFunction_quasicommutator_divided_difference {I J : Type}
     simp only [if_neg he]
     field_simp
 
+/-- A uniform quasicommutator bound depending on the left rank implies a functional calculus
+perturbation bound depending on the smaller rank. -/
 theorem hermitianFunction_min_rank_stability_of_quasicommutator_bound (c₀ : ℝ)
     (hq : ∀ (I : Type) [Fintype I] [DecidableEq I]
       (A : Matrix I I ℂ) (hA : A.IsHermitian) (B : Matrix I I ℂ) (hB : B.IsHermitian)
@@ -284,6 +341,8 @@ theorem hermitianFunction_min_rank_stability_of_quasicommutator_bound (c₀ : �
     simpa only [Nat.min_eq_right hr', Matrix.mul_one, Matrix.one_mul, norm_sub_rev] using
       hq I B hB A hA 1 f L hL (hermitianPairScalarLipschitz_swap hf)
 
+/-- If `A` has rank zero, the spectral Lipschitz condition bounds the operator norm of f(A) -
+f(B) by L times the norm of A - B. -/
 theorem hermitianFunction_operator_stability_rank_zero {I : Type}
     [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ)
     (hA : A.IsHermitian) (hB : B.IsHermitian) (hr : A.rank = 0)
@@ -308,6 +367,8 @@ theorem hermitianFunction_operator_stability_rank_zero {I : Type}
   rw [hzero] at hc
   exact hc.trans (mul_le_mul_of_nonneg_left hab hL)
 
+/-- When the smaller rank is zero, the functional calculus perturbation bound holds with the
+logarithmic weight of that rank. -/
 theorem hermitianFunction_operator_stability_min_rank_zero {I : Type}
     [Fintype I] [DecidableEq I] (A B : Matrix I I ℂ)
     (hA : A.IsHermitian) (hB : B.IsHermitian) (hr : min A.rank B.rank = 0)
@@ -333,14 +394,19 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 variable {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
+/-- The matrix of divided differences of `f` on two real eigenvalue families, taking value zero
+when the arguments coincide. -/
 def ddMat {I J : Type} (eigL : I → ℝ) (eigR : J → ℝ) (f : ℝ → ℂ) : Matrix I J ℂ :=
   Matrix.of fun i j => if eigL i = eigR j then 0
     else (f (eigL i) - f (eigR j)) / ((eigL i - eigR j : ℝ) : ℂ)
 
+/-- The scalar Lipschitz condition for `f` on the union of the ranges of two real eigenvalue
+families. -/
 def lipUnion {I J : Type} (eigL : I → ℝ) (eigR : J → ℝ) (f : ℝ → ℂ) (L : ℝ) : Prop :=
   ∀ x ∈ Set.range eigL ∪ Set.range eigR, ∀ y ∈ Set.range eigL ∪ Set.range eigR,
     ‖f x - f y‖ ≤ L * |x - y|
 
+/-- Exchanging the two arguments leaves a divided difference unchanged. -/
 theorem ddMat_apply_swap {I J : Type} (eigL : I → ℝ) (eigR : J → ℝ) (f : ℝ → ℂ)
     (i : I) (j : J) :
     ddMat eigL eigR f i j = ddMat eigR eigL f j i := by
@@ -357,17 +423,22 @@ theorem ddMat_apply_swap {I J : Type} (eigL : I → ℝ) (eigR : J → ℝ) (f :
     field_simp
     ring
 
+/-- Transposing the divided difference matrix exchanges its two eigenvalue families. -/
 theorem ddMat_transpose {I J : Type} [DecidableEq I] (eigL : I → ℝ) (eigR : J → ℝ) (f : ℝ → ℂ) :
     (ddMat eigL eigR f)ᵀ = ddMat eigR eigL f := by
   ext i j
   simp only [Matrix.transpose_apply]
   exact ddMat_apply_swap eigL eigR f j i
 
+/-- The Lipschitz condition on the union of the ranges is invariant under exchanging the
+families. -/
 theorem lipUnion_swap {I J : Type} (eigL : I → ℝ) (eigR : J → ℝ) (f : ℝ → ℂ) (L : ℝ)
     (h : lipUnion eigL eigR f L) : lipUnion eigR eigL f L := by
   simpa only [lipUnion, Set.union_comm] using h
 omit [Fintype O] [DecidableEq O] in
 
+/-- The dimension of the range of the Euclidean linear map associated with a matrix equals its
+matrix rank. -/
 theorem finrank_range_toEuclideanLin_eq_rank (A : Matrix O I ℂ) :
     Module.finrank ℂ A.toEuclideanLin.range = A.rank := by
   have hcomp : (A.toEuclideanLin : EuclideanSpace ℂ I →ₗ[ℂ] EuclideanSpace ℂ O) =
@@ -382,6 +453,8 @@ theorem finrank_range_toEuclideanLin_eq_rank (A : Matrix O I ℂ) :
     LinearMap.range_comp_of_range_eq_top _ (WithLp.linearEquiv 2 ℂ (I → ℂ)).range,
     LinearEquiv.finrank_map_eq]
 
+/-- A matrix whose rows factor through selected eigenvalue labels has rank at most the number of
+selected distinct labels. -/
 theorem rank_of_row_factor_restrict {I J V : Type} [Fintype I] [Fintype J] [DecidableEq I]
     [DecidableEq J] [DecidableEq V] (eigL : I → V) (P : V → Prop) [DecidablePred P]
     (R : V → J → ℂ) (u : I → ℂ) :
@@ -412,6 +485,8 @@ theorem rank_of_row_factor_restrict {I J V : Type} [Fintype I] [Fintype J] [Deci
   exact (Matrix.rank_mul_le_left _ _).trans
     ((Matrix.rank_le_card_width _).trans_eq (Fintype.card_coe F))
 
+/-- A matrix whose columns factor through selected eigenvalue labels has rank at most the number
+of selected distinct labels. -/
 theorem rank_of_col_factor_restrict {I J V : Type} [Fintype I] [Fintype J] [DecidableEq I]
     [DecidableEq J] [DecidableEq V] (eigR : J → V) (P : V → Prop) [DecidablePred P]
     (R : V → I → ℂ) (w : J → ℂ) :
@@ -426,6 +501,7 @@ theorem rank_of_col_factor_restrict {I J V : Type} [Fintype I] [Fintype J] [Deci
     hT]
   exact rank_of_row_factor_restrict eigR P R w
 
+/-- The sum of the first `n` reciprocal positive integers is at most 1 + log n. -/
 theorem sum_range_one_div_le_one_add_log (n : ℕ) :
     ∑ q ∈ Finset.range n, (1 : ℝ)/((q : ℝ)+1) ≤ 1 + Real.log n := by
   have hsum : ∀ m : ℕ,
@@ -440,11 +516,14 @@ theorem sum_range_one_div_le_one_add_log (n : ℕ) :
   rw [hsum n]
   exact harmonic_le_one_add_log n
 
+/-- The sum of the squared singular values equals the squared spectral Frobenius norm. -/
 theorem sum_sq_matrixSingularValues_eq_spectralFrobenius_sq {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (X : Matrix O I ℂ) :
     ∑ i : Fin (Fintype.card I), (matrixSingularValues X i)^2 = spectralFrobenius X ^ 2 :=
   (spectralFrobenius_sq_singular X).symm
 
+/-- The square of singular value `q`, multiplied by q + 1, is at most the squared spectral
+Frobenius norm. -/
 theorem matrixSingularValues_sq_mul_le_spectralFrobenius_sq {O I : Type} [Fintype O] [Fintype I]
     [DecidableEq O] [DecidableEq I] (X : Matrix O I ℂ) (q : ℕ) :
     ((q+1 : ℕ) : ℝ) * (matrixSingularValues X q)^2 ≤ spectralFrobenius X ^ 2 := by
@@ -481,9 +560,12 @@ theorem matrixSingularValues_sq_mul_le_spectralFrobenius_sq {O I : Type} [Fintyp
       _ ≤ ∑ i ∈ Finset.range (Fintype.card I), (matrixSingularValues X i)^2 := h3
       _ = spectralFrobenius X ^ 2 := h4
 
+/-- The trace norm of a finite matrix, defined as the sum of its singular values. -/
 noncomputable def matrixTraceNorm {O I : Type} [Fintype O] [Fintype I] (X : Matrix O I ℂ) : ℝ :=
   ∑ q : Fin (Fintype.card I), matrixSingularValues X q
 
+/-- A nonnegative bound on all matrix coefficients between unit Euclidean vectors bounds the
+matrix operator norm. -/
 theorem l2_opNorm_le_of_inner_le {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (M : Matrix I J ℂ) {C : ℝ} (hC : 0 ≤ C)
     (h : ∀ (u : EuclideanSpace ℂ I) (v : EuclideanSpace ℂ J), ‖u‖ = 1 → ‖v‖ = 1 →
@@ -520,6 +602,8 @@ theorem l2_opNorm_le_of_inner_le {I J : Type} [Fintype I] [DecidableEq I] [Finty
       rw [mul_assoc, inv_mul_cancel₀ hnv, mul_one] at hvv
       exact hvv
 
+/-- A matrix coefficient of a Hadamard product is expressed as a trace pairing with an outer
+product. -/
 theorem inner_toEuclideanLin_hadamard_eq_trace {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (D K : Matrix I J ℂ) (u : I → ℂ) (v : J → ℂ) :
     inner ℂ (toEuclidean_fromVec u) ((D ⊙ K).toEuclideanLin (toEuclidean_fromVec v)) =
@@ -541,6 +625,8 @@ theorem inner_toEuclideanLin_hadamard_eq_trace {I J : Type} [Fintype I] [Decidab
   rw [starRingEnd_apply]
   ring
 
+/-- The trace pairing of a matrix with an outer product equals the associated Euclidean inner
+product. -/
 private theorem trace_mul_vecMulVec_eq_inner {I J : Type} [Fintype I] [Fintype J] [DecidableEq J]
     (K : Matrix I J ℂ) (a : EuclideanSpace ℂ J) (b : EuclideanSpace ℂ I) :
     Matrix.trace (K * Matrix.vecMulVec a (star b)) = inner ℂ b (K.toEuclideanLin a) := by
@@ -558,6 +644,8 @@ private theorem trace_mul_vecMulVec_eq_inner {I J : Type} [Fintype I] [Fintype J
   rw [starRingEnd_apply]
   ring
 
+/-- The absolute value of a trace pairing is bounded by the operator norm of the first matrix
+times the trace norm of the second. -/
 theorem norm_trace_mul_le_traceNorm {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (K : Matrix I J ℂ) (X : Matrix J I ℂ) :
     ‖Matrix.trace (K * X)‖ ≤ ‖K‖ * matrixTraceNorm X := by
@@ -604,6 +692,8 @@ theorem norm_trace_mul_le_traceNorm {I J : Type} [Fintype I] [DecidableEq I]
           Finset.mul_sum]
         exact Finset.sum_congr rfl fun q _ => mul_comm _ _
 
+/-- The singular value of a sum at index a + b is bounded by the sum of the singular values at
+indices `a` and `b`. -/
 theorem matrixSingularValues_add_le (X Y : Matrix O I ℂ) (a b : ℕ) :
     matrixSingularValues (X + Y) (a + b) ≤
       matrixSingularValues X a + matrixSingularValues Y b := by
@@ -694,6 +784,8 @@ theorem matrixSingularValues_add_le (X Y : Matrix O I ℂ) (a b : ℕ) :
   · rw [matrixSingularValues_of_card_le _ (Nat.le_of_not_lt hab)]
     exact add_nonneg (matrixSingularValues_nonneg _ _) (matrixSingularValues_nonneg _ _)
 
+/-- A uniform reciprocal singular value bound for divided differences applied to outer products
+implies a logarithmic operator norm bound for the corresponding Schur multiplier. -/
 theorem schurBound_of_weakSchatten {c₁ : ℝ} (hc₁ : 0 < c₁)
     (H1 : ∀ (J I : Type) [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
       (μ : J → ℝ) (ν : I → ℝ) (f : ℝ → ℂ) (L : ℝ), 0 ≤ L → lipUnion μ ν f L →
@@ -793,65 +885,91 @@ open scoped Classical BigOperators
 variable {J I : Type} [Fintype J] [Fintype I]
   (a : J → ℂ) (μ : J → ℝ) (b : I → ℂ) (ν : I → ℝ) (m : ℕ)
 
+/-- The sum of the squared magnitudes of the left coefficients over the eigenvalue fiber at `t`. -/
 def fibα (t : ℝ) : ℝ := ∑ j ∈ Finset.univ.filter (fun j => μ j = t), ‖a j‖ ^ 2
 
+/-- The sum of the squared magnitudes of the right coefficients over the eigenvalue fiber at
+`t`. -/
 def fibβ (t : ℝ) : ℝ := ∑ i ∈ Finset.univ.filter (fun i => ν i = t), ‖b i‖ ^ 2
 
+/-- The combined fiber mass obtained by normalizing the left and right squared coefficient
+masses. -/
 def γmass (t : ℝ) : ℝ :=
   fibα a μ t / (∑ j, ‖a j‖ ^ 2) + fibβ b ν t / (∑ i, ‖b i‖ ^ 2)
 
+/-- The eigenvalues whose left and right fiber masses are each below one `m`th of the
+corresponding total mass. -/
 def lightSet : Finset ℝ :=
   (Finset.univ.image μ ∪ Finset.univ.image ν).filter
     (fun t => fibα a μ t < (∑ j, ‖a j‖ ^ 2) / m ∧ fibβ b ν t < (∑ i, ‖b i‖ ^ 2) / m)
 
+/-- The combined mass of light eigenvalues strictly below `t`. -/
 def Γcum (t : ℝ) : ℝ := ∑ s ∈ (lightSet a μ b ν m).filter (· < t), γmass a μ b ν s
 
+/-- The natural number group index obtained by taking the floor of m / 2 times the cumulative
+light mass. -/
 def grp (t : ℝ) : ℕ := ⌊(m : ℝ) / 2 * Γcum a μ b ν m t⌋₊
 
+/-- The light eigenvalues assigned to group `k`. -/
 def groupVals (k : ℕ) : Finset ℝ := (lightSet a μ b ν m).filter (fun t => grp a μ b ν m t = k)
 
+/-- The minimum eigenvalue in group `k`, or zero if the group is empty. -/
 def glo (k : ℕ) : ℝ :=
     if h : (groupVals a μ b ν m k).Nonempty then (groupVals a μ b ν m k).min' h else 0
 
+/-- The maximum eigenvalue in group `k`, or zero if the group is empty. -/
 def ghi (k : ℕ) : ℝ :=
     if h : (groupVals a μ b ν m k).Nonempty then (groupVals a μ b ν m k).max' h else 0
 
+/-- The difference between the upper and lower endpoints of group `k`. -/
 def glen (k : ℕ) : ℝ := ghi a μ b ν m k - glo a μ b ν m k
 
+/-- The midpoint of the interval spanned by group `k`. -/
 def gctr (k : ℕ) : ℝ := (glo a μ b ν m k + ghi a μ b ν m k) / 2
 
+/-- Half the length of the interval spanned by group `k`. -/
 def gρ (k : ℕ) : ℝ := glen a μ b ν m k / 2
 
 section basics
 
 variable (hm : 0 < m)
 
+/-- Every left fiber mass is nonnegative. -/
 theorem fibα_nonneg (t : ℝ) : 0 ≤ fibα a μ t :=
   Finset.sum_nonneg fun _j _ => sq_nonneg _
 
+/-- Every right fiber mass is nonnegative. -/
 theorem fibβ_nonneg (t : ℝ) : 0 ≤ fibβ b ν t :=
   Finset.sum_nonneg fun _i _ => sq_nonneg _
 
+/-- A finite sum of squared complex magnitudes is nonnegative. -/
 private theorem normSqSum_nonneg {α : Type*} [Fintype α] (c : α → ℂ) :
     0 ≤ ∑ j, ‖c j‖ ^ 2 :=
   Finset.sum_nonneg fun _j _ => sq_nonneg _
 
+/-- The combined normalized fiber mass is nonnegative. -/
 private theorem γmass_nonneg_of (t : ℝ) : 0 ≤ γmass a μ b ν t :=
   add_nonneg (div_nonneg (fibα_nonneg a μ t) (normSqSum_nonneg a))
     (div_nonneg (fibβ_nonneg b ν t) (normSqSum_nonneg b))
 
+/-- The combined fiber mass is nonnegative when both total coefficient masses are positive. -/
 theorem γmass_nonneg (_hA : 0 < ∑ j, ‖a j‖ ^ 2) (_hB : 0 < ∑ i, ‖b i‖ ^ 2) (t : ℝ) :
     0 ≤ γmass a μ b ν t :=
   γmass_nonneg_of a μ b ν t
 
+/-- Summing the left fiber masses over distinct left eigenvalues recovers the total squared
+coefficient mass. -/
 theorem sum_fibα_image : ∑ t ∈ Finset.univ.image μ, fibα a μ t = ∑ j, ‖a j‖ ^ 2 :=
   Finset.sum_fiberwise_of_maps_to
     (fun j _ => Finset.mem_image_of_mem μ (Finset.mem_univ j)) (fun j => ‖a j‖ ^ 2)
 
+/-- Summing the right fiber masses over distinct right eigenvalues recovers the total squared
+coefficient mass. -/
 theorem sum_fibβ_image : ∑ t ∈ Finset.univ.image ν, fibβ b ν t = ∑ i, ‖b i‖ ^ 2 :=
   Finset.sum_fiberwise_of_maps_to
     (fun i _ => Finset.mem_image_of_mem ν (Finset.mem_univ i)) (fun i => ‖b i‖ ^ 2)
 
+/-- The left fiber mass vanishes outside the range of the left eigenvalue family. -/
 private theorem fibα_eq_zero_of_not_mem_image {s : ℝ} (hs : s ∉ Finset.univ.image μ) :
     fibα a μ s = 0 := by
   unfold fibα
@@ -861,6 +979,7 @@ private theorem fibα_eq_zero_of_not_mem_image {s : ℝ} (hs : s ∉ Finset.univ
   rw [← hj.2] at hs
   exact absurd (Finset.mem_image_of_mem μ (Finset.mem_univ j)) hs
 
+/-- The right fiber mass vanishes outside the range of the right eigenvalue family. -/
 private theorem fibβ_eq_zero_of_not_mem_image {s : ℝ} (hs : s ∉ Finset.univ.image ν) :
     fibβ b ν s = 0 := by
   unfold fibβ
@@ -870,6 +989,7 @@ private theorem fibβ_eq_zero_of_not_mem_image {s : ℝ} (hs : s ∉ Finset.univ
   rw [← hi.2] at hs
   exact absurd (Finset.mem_image_of_mem ν (Finset.mem_univ i)) hs
 
+/-- With positive total masses, the combined mass at a light eigenvalue is less than 2 / m. -/
 theorem γmass_lt_of_mem_lightSet
     (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2)
     {t : ℝ} (ht : t ∈ lightSet a μ b ν m) : γmass a μ b ν t < 2 / m := by
@@ -889,6 +1009,7 @@ theorem γmass_lt_of_mem_lightSet
   show fibα a μ t / (∑ j, ‖a j‖ ^ 2) + fibβ b ν t / (∑ i, ‖b i‖ ^ 2) < 2 / (m : ℝ)
   linarith
 
+/-- The cumulative light mass is at most two when both total coefficient masses are positive. -/
 theorem Γcum_le_two (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2) (t : ℝ) :
     Γcum a μ b ν m t ≤ 2 := by
   have hα1 : ∑ s ∈ lightSet a μ b ν m, fibα a μ s / (∑ j, ‖a j‖ ^ 2) ≤ 1 := by
@@ -939,6 +1060,7 @@ theorem Γcum_le_two (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ 
     _ ≤ 1 + 1 := add_le_add hα1 hβ1
     _ = 2 := one_add_one_eq_two
 
+/-- The group index is monotone in the eigenvalue. -/
 theorem grp_mono : Monotone (grp a μ b ν m) := by
   intro t₁ t₂ ht
   have hΓ : Γcum a μ b ν m t₁ ≤ Γcum a μ b ν m t₂ := by
@@ -952,6 +1074,7 @@ theorem grp_mono : Monotone (grp a μ b ν m) := by
       exact γmass_nonneg_of a μ b ν s
   exact Nat.floor_mono (mul_le_mul_of_nonneg_left hΓ (div_nonneg (Nat.cast_nonneg m) two_pos.le))
 
+/-- The group index of a light eigenvalue is at most `m` under the positive mass assumptions. -/
 theorem grp_le_m (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2)
     {t : ℝ} (_ht : t ∈ lightSet a μ b ν m) : grp a μ b ν m t ≤ m := by
   have h2 : Γcum a μ b ν m t ≤ 2 := Γcum_le_two a μ b ν m hA hB t
@@ -964,6 +1087,8 @@ theorem grp_le_m (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2)
   rw [Nat.floor_natCast] at hfl
   exact hfl
 
+/-- The combined mass of each group is at most 4 / m under the positive parameter and mass
+assumptions. -/
 theorem group_mass_le (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2) (k : ℕ) :
     ∑ s ∈ groupVals a μ b ν m k, γmass a μ b ν s ≤ 4 / m := by
   rcases Finset.eq_empty_or_nonempty (groupVals a μ b ν m k) with hG | hG
@@ -1083,6 +1208,7 @@ theorem group_mass_le (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖
     rw [le_div_iff₀ hmpos, hsumG]
     linarith
 
+/-- The left fiber mass of each group is at most 4 / m times the total left coefficient mass. -/
 theorem group_fibα_le (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2) (k : ℕ) :
     ∑ s ∈ groupVals a μ b ν m k, fibα a μ s ≤ 4 / m * (∑ j, ‖a j‖ ^ 2) := by
   have h1 : ∑ s ∈ groupVals a μ b ν m k, fibα a μ s / (∑ j, ‖a j‖ ^ 2) ≤ 4 / (m : ℝ) := by
@@ -1092,6 +1218,7 @@ theorem group_fibα_le (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i�
   rw [← Finset.sum_div, div_le_iff₀ hA] at h1
   exact h1
 
+/-- The right fiber mass of each group is at most 4 / m times the total right coefficient mass. -/
 theorem group_fibβ_le (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2) (k : ℕ) :
     ∑ s ∈ groupVals a μ b ν m k, fibβ b ν s ≤ 4 / m * (∑ i, ‖b i‖ ^ 2) := by
   have h1 : ∑ s ∈ groupVals a μ b ν m k, fibβ b ν s / (∑ i, ‖b i‖ ^ 2) ≤ 4 / (m : ℝ) := by
@@ -1105,21 +1232,25 @@ end basics
 
 section intervals
 
+/-- The lower endpoint of a nonempty group belongs to that group. -/
 theorem glo_mem {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
     glo a μ b ν m k ∈ groupVals a μ b ν m k := by
   simp only [glo, dif_pos hk]
   exact Finset.min'_mem _ _
 
+/-- The upper endpoint of a nonempty group belongs to that group. -/
 theorem ghi_mem {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
     ghi a μ b ν m k ∈ groupVals a μ b ν m k := by
   simp only [ghi, dif_pos hk]
   exact Finset.max'_mem _ _
 
+/-- The lower endpoint of a nonempty group does not exceed its upper endpoint. -/
 theorem glo_le_ghi {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
     glo a μ b ν m k ≤ ghi a μ b ν m k := by
   simp only [glo, ghi, dif_pos hk]
   exact Finset.min'_le _ _ (Finset.max'_mem _ _)
 
+/-- The radius of a nonempty group is nonnegative. -/
 theorem gρ_nonneg {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
     0 ≤ gρ a μ b ν m k := by
   have hle : glo a μ b ν m k ≤ ghi a μ b ν m k := glo_le_ghi a μ b ν m hk
@@ -1127,12 +1258,14 @@ theorem gρ_nonneg {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
   rw [hρ]
   exact div_nonneg (sub_nonneg.mpr hle) (by norm_num)
 
+/-- Each eigenvalue in a nonempty group lies between its lower and upper endpoints. -/
 theorem mem_bounds_of_grp_eq {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) {t : ℝ}
     (ht : t ∈ groupVals a μ b ν m k) :
     glo a μ b ν m k ≤ t ∧ t ≤ ghi a μ b ν m k := by
   simp only [glo, ghi, dif_pos hk]
   exact ⟨Finset.min'_le _ _ ht, Finset.le_max' _ _ ht⟩
 
+/-- The distance of a group member from the group midpoint is at most the group radius. -/
 theorem abs_sub_ctr_le {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) {t : ℝ}
     (ht : t ∈ groupVals a μ b ν m k) : |t - gctr a μ b ν m k| ≤ gρ a μ b ν m k := by
   obtain ⟨hlo, hhi⟩ := mem_bounds_of_grp_eq a μ b ν m hk ht
@@ -1141,6 +1274,7 @@ theorem abs_sub_ctr_le {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) {t : 
   rw [hρ, hctr, abs_le]
   constructor <;> linarith
 
+/-- A light eigenvalue in a different group is at least the group radius away from the midpoint. -/
 theorem ge_ρ_of_grp_ne {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) {t : ℝ}
     (ht : t ∈ lightSet a μ b ν m) (htk : grp a μ b ν m t ≠ k) :
     gρ a μ b ν m k ≤ |t - gctr a μ b ν m k| := by
@@ -1173,6 +1307,8 @@ theorem ge_ρ_of_grp_ne {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) {t :
   · rw [abs_of_pos (show 0 < t - (glo a μ b ν m k + ghi a μ b ν m k) / 2 by linarith)]
     linarith
 
+/-- The upper endpoint of an earlier nonempty group is strictly below the lower endpoint of a
+later nonempty group. -/
 theorem hi_lt_lo_of_lt {k₁ k₂ : ℕ} (hk₁ : (groupVals a μ b ν m k₁).Nonempty)
     (hk₂ : (groupVals a μ b ν m k₂).Nonempty) (h : k₁ < k₂) :
     ghi a μ b ν m k₁ < glo a μ b ν m k₂ := by
@@ -1192,6 +1328,8 @@ section covering
 
 variable (hm : 0 < m) (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2)
 
+/-- The total length of finitely many ordered, nonoverlapping intervals is at most the span of
+their extreme endpoints, with value zero for an empty index set. -/
 theorem sum_sub_le_of_pairwise_ordered {S : Finset ℕ} {lo' hi' : ℕ → ℝ}
     (hord : ∀ x ∈ S, ∀ y ∈ S, x < y → hi' x ≤ lo' y)
     (hnonneg : ∀ x ∈ S, lo' x ≤ hi' x) :
@@ -1242,6 +1380,8 @@ theorem sum_sub_le_of_pairwise_ordered {S : Finset ℕ} {lo' hi' : ℕ → ℝ}
         simp
       rw [hm1]
 
+/-- The number of groups at least as long as a fixed positive-radius group and meeting the
+radius-`R` neighborhood of its center is at most R / radius + 2. -/
 theorem card_groups_meeting_le (k : ℕ) (_hk : (groupVals a μ b ν m k).Nonempty)
     (hρ : 0 < gρ a μ b ν m k) (R : ℝ) (hR : 0 ≤ R) :
     ((((lightSet a μ b ν m).image (grp a μ b ν m)).filter (fun k' =>
@@ -1328,6 +1468,8 @@ theorem card_groups_meeting_le (k : ℕ) (_hk : (groupVals a μ b ν m k).Nonemp
     have h6 : (0:ℝ) ≤ R / gρ a μ b ν m k := div_nonneg hR hρ.le
     linarith
 
+/-- For a nonempty group of positive radius, the weighted inverse-square decay sum over other
+groups of at least its length is at most 80 / (3m) times the total left mass. -/
 theorem decay_sum_le (k : ℕ) (hk : (groupVals a μ b ν m k).Nonempty)
     (hρ : 0 < gρ a μ b ν m k) :
     ∑ t ∈ (lightSet a μ b ν m).filter
@@ -1620,6 +1762,7 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 variable {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I]
 
+/-- The rank of a sum of two matrices is at most the sum of their ranks. -/
 theorem rank_add_le' {m' n : Type} [Fintype m'] [Fintype n] [DecidableEq n]
     (A B : Matrix m' n ℂ) : (A + B).rank ≤ A.rank + B.rank := by
   have hle : Module.finrank ℂ ↥(A.mulVecLin + B.mulVecLin).range ≤
@@ -1636,6 +1779,7 @@ theorem rank_add_le' {m' n : Type} [Fintype m'] [Fintype n] [DecidableEq n]
     _ ≤ _ := hle
     _ ≤ _ := hsum
 
+/-- The rank of a finite matrix sum is at most the sum of the ranks. -/
 theorem rank_sum_le {m' n : Type} [Fintype m'] [Fintype n] [DecidableEq n]
     {S : Finset ℕ} (M : ℕ → Matrix m' n ℂ) :
     (∑ k ∈ S, M k).rank ≤ ∑ k ∈ S, (M k).rank := by
@@ -1647,6 +1791,7 @@ theorem rank_sum_le {m' n : Type} [Fintype m'] [Fintype n] [DecidableEq n]
 
 omit [DecidableEq O] in
 
+/-- Matrix singular values decrease as the index increases. -/
 theorem matrixSingularValues_anti {X : Matrix O I ℂ} {q q' : ℕ} (h : q ≤ q') :
     matrixSingularValues X q' ≤ matrixSingularValues X q := by
   simp only [matrixSingularValues_apply]
@@ -1654,6 +1799,7 @@ theorem matrixSingularValues_anti {X : Matrix O I ℂ} {q q' : ℕ} (h : q ≤ q
 
 omit [DecidableEq O] in
 
+/-- A singular value vanishes when its index is at least the matrix rank. -/
 theorem matrixSingularValues_eq_zero_of_rank_le {X : Matrix O I ℂ} {q : ℕ}
     (hq : X.rank ≤ q) : matrixSingularValues X q = 0 := by
   rcases eq_or_lt_of_le (matrixSingularValues_nonneg X q) with h0 | hpos
@@ -1662,6 +1808,8 @@ theorem matrixSingularValues_eq_zero_of_rank_le {X : Matrix O I ℂ} {q : ℕ}
       finrank_range_toEuclideanLin_eq_rank] at hpos
     omega
 
+/-- The Lipschitz condition bounds every divided difference entry in norm by the nonnegative
+constant `L`. -/
 theorem ddMat_entry_norm_le {J I : Type} [Fintype J] [Fintype I] {μ : J → ℝ} {ν : I → ℝ}
     {f : ℝ → ℂ} {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) (j : J) (i : I) :
     ‖ddMat μ ν f j i‖ ≤ L := by
@@ -1679,6 +1827,8 @@ theorem ddMat_entry_norm_le {J I : Type} [Fintype J] [Fintype I] {μ : J → ℝ
     exact hf (μ j) (Set.mem_union_left _ (Set.mem_range_self j))
       (ν i) (Set.mem_union_right _ (Set.mem_range_self i))
 
+/-- If nonnegative weights have total mass at most `W`, at most `m` distinct labels can carry
+fiber mass at least W / m, assuming `m` and `W` are positive. -/
 theorem card_filter_image_le_of_mass' {I V : Type} [Fintype I] [DecidableEq V] (eigL : I → V)
     (w : I → ℝ) (hw : ∀ i, 0 ≤ w i) {m : ℕ} (hm : 0 < m) {W : ℝ} (hW : 0 < W)
     (hsum : ∑ i, w i ≤ W) :
@@ -1728,53 +1878,75 @@ section decomposition
 variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
   (μ : J → ℝ) (ν : I → ℝ) (f : ℝ → ℂ) (a : J → ℂ) (b : I → ℂ) (m : ℕ)
 
+/-- The scalar divided difference of `f`, set to zero when its two arguments coincide. -/
 def ddVal (x y : ℝ) : ℂ := if x = y then 0 else (f x - f y) / ((x - y : ℝ) : ℂ)
 
 omit [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I] in
 
+/-- An entry of the divided difference matrix equals `ddVal` at the corresponding eigenvalues. -/
 theorem ddMat_apply_eq_ddVal (j : J) (i : I) :
     ddMat μ ν f j i = ddVal f (μ j) (ν i) := rfl
 
+/-- The part of the weighted divided difference matrix supported on rows whose eigenvalues are
+not light. -/
 def Hrows : Matrix J I ℂ :=
   Matrix.of fun j i => if μ j ∈ lightSet a μ b ν m then 0
     else ddVal f (μ j) (ν i) * a j * b i
 
+/-- The part of the weighted divided difference matrix supported on light rows and columns whose
+eigenvalues are not light. -/
 def Hcols : Matrix J I ℂ :=
   Matrix.of fun j i => if μ j ∈ lightSet a μ b ν m ∧ ν i ∉ lightSet a μ b ν m
     then ddVal f (μ j) (ν i) * a j * b i else 0
 
+/-- The light eigenvalues in other groups whose lengths are at least the length of group `k`. -/
 def farJset (k : ℕ) : Finset ℝ :=
   (lightSet a μ b ν m).filter (fun t =>
     grp a μ b ν m t ≠ k ∧ glen a μ b ν m k ≤ glen a μ b ν m (grp a μ b ν m t))
 
+/-- The light eigenvalues in other groups whose lengths strictly exceed the length of group `k`. -/
 def farIset (k : ℕ) : Finset ℝ :=
   (lightSet a μ b ν m).filter (fun t =>
     grp a μ b ν m t ≠ k ∧ glen a μ b ν m k < glen a μ b ν m (grp a μ b ν m t))
 
+/-- The outer product forming the left function-value contribution for far rows paired with
+columns in group `k`. -/
 def P1 (k : ℕ) : Matrix J I ℂ := Matrix.vecMulVec
   (fun j => if μ j ∈ farJset μ ν a b m k then f (μ j) * a j / ((μ j - gctr a μ b ν m k : ℝ) : ℂ) else 0)
   (fun i => if ν i ∈ groupVals a μ b ν m k then b i else 0)
 
+/-- The outer product forming the negative right function-value contribution for far rows paired
+with columns in group `k`. -/
 def P2 (k : ℕ) : Matrix J I ℂ := Matrix.vecMulVec
   (fun j => if μ j ∈ farJset μ ν a b m k then a j / ((μ j - gctr a μ b ν m k : ℝ) : ℂ) else 0)
   (fun i => if ν i ∈ groupVals a μ b ν m k then -(f (ν i) * b i) else 0)
 
+/-- The outer product forming the negative left function-value contribution for rows in group
+`k` paired with far columns. -/
 def Q1 (k : ℕ) : Matrix J I ℂ := Matrix.vecMulVec
   (fun j => if μ j ∈ groupVals a μ b ν m k then -(f (μ j) * a j) else 0)
   (fun i => if ν i ∈ farIset μ ν a b m k then b i / ((ν i - gctr a μ b ν m k : ℝ) : ℂ) else 0)
 
+/-- The outer product forming the right function-value contribution for rows in group `k` paired
+with far columns. -/
 def Q2 (k : ℕ) : Matrix J I ℂ := Matrix.vecMulVec
   (fun j => if μ j ∈ groupVals a μ b ν m k then a j else 0)
   (fun i => if ν i ∈ farIset μ ν a b m k then
     f (ν i) * b i / ((ν i - gctr a μ b ν m k : ℝ) : ℂ) else 0)
 
+/-- The finite set of group indices represented among the light eigenvalues. -/
 def groupIdx : Finset ℕ := (lightSet a μ b ν m).image (grp a μ b ν m)
 
+/-- The sum over represented groups of the four outer products approximating interactions
+between different light groups. -/
 def Lfar : Matrix J I ℂ := ∑ k ∈ groupIdx μ ν a b m, (P1 μ ν f a b m k + P2 μ ν f a b m k +
   Q1 μ ν f a b m k + Q2 μ ν f a b m k)
 
+/-- The approximation obtained by adding the heavy-row, heavy-column, and far-group
+contributions. -/
 def Hmat : Matrix J I ℂ := Hrows μ ν f a b m + Hcols μ ν f a b m + Lfar μ ν f a b m
 
+/-- The residual after subtracting `Hmat` from the weighted divided difference matrix. -/
 def Rmat : Matrix J I ℂ := (ddMat μ ν f ⊙ Matrix.vecMulVec a b) - Hmat μ ν f a b m
 
 end decomposition
@@ -1798,6 +1970,8 @@ include hm hA hB
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Under positive parameter and total mass assumptions, at most 2m distinct left eigenvalues
+lie outside the light set. -/
 theorem card_heavy_rows_le :
     ((Finset.univ.image μ).filter (fun t => t ∉ lightSet a μ b ν m)).card ≤ 2 * m := by
   have hβm : (0 : ℝ) < (∑ i, ‖b i‖ ^ 2) / m := div_pos hB (by exact_mod_cast hm)
@@ -1845,6 +2019,8 @@ theorem card_heavy_rows_le :
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Under positive parameter and total mass assumptions, at most 2m distinct right eigenvalues
+lie outside the light set. -/
 theorem card_heavy_cols_le :
     ((Finset.univ.image ν).filter (fun t => t ∉ lightSet a μ b ν m)).card ≤ 2 * m := by
   have hαm : (0 : ℝ) < (∑ j, ‖a j‖ ^ 2) / m := div_pos hA (by exact_mod_cast hm)
@@ -1888,6 +2064,8 @@ theorem card_heavy_cols_le :
             card_filter_image_le_of_mass' ν (fun i => ‖b i‖ ^ 2) (fun i => sq_nonneg _) hm hB le_rfl)
     _ = 2 * m := (two_mul m).symm
 
+/-- The heavy-row contribution has rank at most 2m under the positive parameter and mass
+assumptions. -/
 theorem Hrows_rank_le : (Hrows μ ν f a b m).rank ≤ 2 * m := by
   have hrewrite : Hrows μ ν f a b m = Matrix.of fun j i =>
       (if μ j ∉ lightSet a μ b ν m then a j else 0) * (ddVal f (μ j) (ν i) * b i) := by
@@ -1900,6 +2078,8 @@ theorem Hrows_rank_le : (Hrows μ ν f a b m).rank ≤ 2 * m := by
   exact (rank_of_row_factor_restrict μ (fun t => t ∉ lightSet a μ b ν m)
     (fun t i => ddVal f t (ν i) * b i) a).trans (card_heavy_rows_le (μ := μ) (ν := ν) a b m hm hA hB)
 
+/-- The heavy-column contribution has rank at most 2m under the positive parameter and mass
+assumptions. -/
 theorem Hcols_rank_le : (Hcols μ ν f a b m).rank ≤ 2 * m := by
   have hrewrite : Hcols μ ν f a b m = Matrix.of fun j i =>
       (if μ j ∈ lightSet a μ b ν m then ddVal f (μ j) (ν i) * a j else 0) *
@@ -1918,6 +2098,8 @@ theorem Hcols_rank_le : (Hcols μ ν f a b m).rank ≤ 2 * m := by
 
 omit [DecidableEq J] hm in
 
+/-- The far-group approximation has rank at most 4(m + 1) under the positive parameter and mass
+assumptions. -/
 theorem Lfar_rank_le : (Lfar μ ν f a b m).rank ≤ 4 * (m + 1) := by
   rw [Lfar]
   refine (rank_sum_le _).trans ?_
@@ -1947,6 +2129,8 @@ theorem Lfar_rank_le : (Lfar μ ν f a b m).rank ≤ 4 * (m + 1) := by
           exact Nat.lt_succ_iff.mpr (grp_le_m a μ b ν m hA hB ht)
         exact (Finset.card_le_card hsub).trans_eq (Finset.card_range _)
 
+/-- The approximation `Hmat` has rank at most 8m + 4 under the positive parameter and mass
+assumptions. -/
 theorem Hmat_rank_le : (Hmat μ ν f a b m).rank ≤ 8 * m + 4 := by
   rw [Hmat]
   have h1 := Hrows_rank_le (μ := μ) (ν := ν) (f := f) a b m hm hA hB
@@ -1974,6 +2158,8 @@ variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Exchanging the left and right eigenvalue and coefficient families leaves the light set
+unchanged. -/
 theorem lightSet_symm : lightSet b ν a μ m = lightSet a μ b ν m := by
   ext t
   simp only [lightSet, Finset.mem_filter, Finset.mem_union, fibα, fibβ]
@@ -1981,36 +2167,44 @@ theorem lightSet_symm : lightSet b ν a μ m = lightSet a μ b ν m := by
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Exchanging the left and right families leaves the combined fiber mass unchanged. -/
 theorem γmass_symm (t : ℝ) : γmass b ν a μ t = γmass a μ b ν t := by
   simp only [γmass, fibα, fibβ, add_comm]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Exchanging the left and right families leaves each group index unchanged. -/
 theorem grp_symm (t : ℝ) : grp b ν a μ m t = grp a μ b ν m t := by
   simp only [grp, Γcum, lightSet_symm a b m, γmass_symm a b]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Exchanging the left and right families leaves each group unchanged. -/
 theorem groupVals_symm (k : ℕ) : groupVals b ν a μ m k = groupVals a μ b ν m k := by
   simp only [groupVals, lightSet_symm a b m, grp_symm a b m]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Exchanging the left and right families leaves each group length unchanged. -/
 theorem glen_symm (k : ℕ) : glen b ν a μ m k = glen a μ b ν m k := by
   simp only [glen, glo, ghi, groupVals_symm a b m]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Exchanging the left and right families leaves each group midpoint unchanged. -/
 theorem gctr_symm (k : ℕ) : gctr b ν a μ m k = gctr a μ b ν m k := by
   simp only [gctr, glo, ghi, groupVals_symm a b m]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Exchanging the left and right families leaves each group radius unchanged. -/
 theorem gρ_symm (k : ℕ) : gρ b ν a μ m k = gρ a μ b ν m k := by
   simp only [gρ, glen_symm a b m]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- An eigenvalue assigned to another group lies strictly outside the interval spanned by a
+nonempty group. -/
 theorem lt_lo_or_gt_hi_of_grp_ne {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) {t : ℝ}
     (_ht : t ∈ lightSet a μ b ν m) (htk : grp a μ b ν m t ≠ k) :
     t < glo a μ b ν m k ∨ ghi a μ b ν m k < t := by
@@ -2026,6 +2220,8 @@ theorem lt_lo_or_gt_hi_of_grp_ne {k : ℕ} (hk : (groupVals a μ b ν m k).Nonem
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- A sum supported on the unique group containing `x` reduces to the contribution at its group
+index when the light-set and predicate conditions hold. -/
 private theorem sum_group_piece (x : ℝ) (P : ℕ → Prop) [DecidablePred P]
     (w : ℕ → ℂ) :
     ∑ k ∈ groupIdx μ ν a b m, (if x ∈ groupVals a μ b ν m k ∧ P k then w k else 0) =
@@ -2043,6 +2239,8 @@ private theorem sum_group_piece (x : ℝ) (P : ℕ → Prop) [DecidablePred P]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Each entry of the far-group approximation is the sum of its two conditional contributions
+with denominators measured from the relevant group midpoint. -/
 theorem Lfar_apply (j : J) (i : I) :
     Lfar μ ν f a b m j i =
       (if μ j ∈ farJset μ ν a b m (grp a μ b ν m (ν i)) ∧ ν i ∈ lightSet a μ b ν m then
@@ -2075,6 +2273,7 @@ theorem Lfar_apply (j : J) (i : I) :
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- The residual vanishes on every row whose eigenvalue is not light. -/
 theorem Rmat_eq_zero_of_not_light_row {j : J} (hj : μ j ∉ lightSet a μ b ν m) (i : I) :
     Rmat μ ν f a b m j i = 0 := by
   have hn : ∀ k, μ j ∉ farJset μ ν a b m k := by
@@ -2087,6 +2286,8 @@ theorem Rmat_eq_zero_of_not_light_row {j : J} (hj : μ j ∉ lightSet a μ b ν 
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- The residual vanishes when its row eigenvalue is light and its column eigenvalue is not
+light. -/
 theorem Rmat_eq_zero_of_not_light_col {j : J} (hj : μ j ∈ lightSet a μ b ν m) {i : I}
     (hi : ν i ∉ lightSet a μ b ν m) : Rmat μ ν f a b m j i = 0 := by
   have hn : ∀ k, ν i ∉ farIset μ ν a b m k := by
@@ -2099,6 +2300,8 @@ theorem Rmat_eq_zero_of_not_light_col {j : J} (hj : μ j ∈ lightSet a μ b ν 
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- Within a single light group, the squared magnitude of a residual entry is at most L² times
+the product of the squared coefficient magnitudes. -/
 theorem Rmat_diag_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j : J} {i : I}
     (hj : μ j ∈ lightSet a μ b ν m) (hi : ν i ∈ lightSet a μ b ν m)
     (h : grp a μ b ν m (μ j) = grp a μ b ν m (ν i)) :
@@ -2117,6 +2320,8 @@ theorem Rmat_diag_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j : 
     (pow_le_pow_left₀ (norm_nonneg _) (ddMat_entry_norm_le hL hf j i) 2)
     (mul_nonneg (sq_nonneg _) (sq_nonneg _))
 
+/-- Replacing a divided-difference denominator by the distance to a center gives a squared
+residual bounded by the stated truncated inverse-square decay factor. -/
 private theorem dd_residual_normSq_le {x y c ρ L : ℝ} {f : ℝ → ℂ} (a b : ℂ)
     (hxy : x ≠ y) (hxc : x ≠ c) (_hL : 0 ≤ L)
     (hf : ‖f x - f y‖ ≤ L * |x - y|)
@@ -2153,6 +2358,8 @@ private theorem dd_residual_normSq_le {x y c ρ L : ℝ} {f : ℝ → ℂ} (a b 
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- A light eigenvalue belonging to a different group cannot equal the midpoint of a nonempty
+group. -/
 private theorem ne_ctr_of_grp_ne {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) {t : ℝ}
     (ht : t ∈ lightSet a μ b ν m) (htk : grp a μ b ν m t ≠ k) :
     t ≠ gctr a μ b ν m k := by
@@ -2167,6 +2374,8 @@ private theorem ne_ctr_of_grp_ne {k : ℕ} (hk : (groupVals a μ b ν m k).Nonem
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- For different light groups with the column group no longer than the row group, the squared
+residual entry satisfies the inverse-square decay bound centered at the column group. -/
 theorem Rmat_caseJ_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j : J} {i : I}
     (hj : μ j ∈ lightSet a μ b ν m) (hi : ν i ∈ lightSet a μ b ν m)
     (h : grp a μ b ν m (μ j) ≠ grp a μ b ν m (ν i))
@@ -2200,6 +2409,8 @@ theorem Rmat_caseJ_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j :
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- For different light groups with the row group shorter than the column group, the squared
+residual entry satisfies the inverse-square decay bound centered at the row group. -/
 theorem Rmat_caseI_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j : J} {i : I}
     (hj : μ j ∈ lightSet a μ b ν m) (hi : ν i ∈ lightSet a μ b ν m)
     (h : grp a μ b ν m (μ j) ≠ grp a μ b ν m (ν i))
@@ -2235,6 +2446,8 @@ theorem Rmat_caseI_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j :
 
 omit [DecidableEq J] in
 
+/-- A weighted sum over rows with eigenvalues in `F` can be regrouped by distinct eigenvalues
+using the left fiber masses. -/
 theorem sum_rows_weighted (F : Finset ℝ) (g : ℝ → ℝ) :
     ∑ j ∈ Finset.univ.filter (fun j => μ j ∈ F), ‖a j‖ ^ 2 * g (μ j) =
       ∑ t ∈ (Finset.univ.image μ).filter (· ∈ F), fibα a μ t * g t := by
@@ -2262,6 +2475,8 @@ theorem sum_rows_weighted (F : Finset ℝ) (g : ℝ → ℝ) :
 
 omit [DecidableEq I] in
 
+/-- A weighted sum over columns with eigenvalues in `F` can be regrouped by distinct eigenvalues
+using the right fiber masses. -/
 theorem sum_cols_weighted (F : Finset ℝ) (g : ℝ → ℝ) :
     ∑ i ∈ Finset.univ.filter (fun i => ν i ∈ F), ‖b i‖ ^ 2 * g (ν i) =
       ∑ t ∈ (Finset.univ.image ν).filter (· ∈ F), fibβ b ν t * g t := by
@@ -2269,6 +2484,8 @@ theorem sum_cols_weighted (F : Finset ℝ) (g : ℝ → ℝ) :
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- The right fiber mass over `farIset`, weighted by the truncated inverse-square decay factor,
+is at most 80 / (3m) times the total right mass. -/
 theorem decay_sum_le_β (_hm : 0 < m) (_hA : 0 < ∑ j, ‖a j‖ ^ 2) (_hB : 0 < ∑ i, ‖b i‖ ^ 2)
     (k : ℕ) (hk : (groupVals a μ b ν m k).Nonempty) (hρ : 0 < gρ a μ b ν m k) :
     ∑ t ∈ farIset μ ν a b m k,
@@ -2302,6 +2519,8 @@ variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
 omit [DecidableEq J] in
 
+/-- A bound on a nonnegative weighted sum of left fiber masses also bounds the corresponding
+conditional sum over rows. -/
 private theorem weighted_rows_le (F : Finset ℝ) (g : ℝ → ℝ) (hg : ∀ t ∈ F, 0 ≤ g t)
     {C : ℝ} (h : ∑ t ∈ F, fibα a μ t * g t ≤ C) :
     (∑ j, if μ j ∈ F then ‖a j‖ ^ 2 * g (μ j) else 0) ≤ C := by
@@ -2313,6 +2532,8 @@ private theorem weighted_rows_le (F : Finset ℝ) (g : ℝ → ℝ) (hg : ∀ t 
 
 omit [DecidableEq I] in
 
+/-- A bound on a nonnegative weighted sum of right fiber masses also bounds the corresponding
+conditional sum over columns. -/
 private theorem weighted_cols_le (F : Finset ℝ) (g : ℝ → ℝ) (hg : ∀ t ∈ F, 0 ≤ g t)
     {C : ℝ} (h : ∑ t ∈ F, fibβ b ν t * g t ≤ C) :
     (∑ i, if ν i ∈ F then ‖b i‖ ^ 2 * g (ν i) else 0) ≤ C :=
@@ -2320,6 +2541,8 @@ private theorem weighted_cols_le (F : Finset ℝ) (g : ℝ → ℝ) (hg : ∀ t 
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- The squared Frobenius norm of the weighted divided difference matrix is at most L² times the
+product of the total coefficient masses. -/
 theorem frobT_sq_le (hL : 0 ≤ L) (hf : lipUnion μ ν f L) :
     spectralFrobenius (ddMat μ ν f ⊙ Matrix.vecMulVec a b) ^ 2 ≤
       L ^ 2 * (∑ j, ‖a j‖ ^ 2) * (∑ i, ‖b i‖ ^ 2) := by
@@ -2341,6 +2564,8 @@ theorem frobT_sq_le (hL : 0 ≤ L) (hf : lipUnion μ ν f L) :
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- For positive `m` and total masses, the squared Frobenius norm of the residual is at most 172
+/ (3m) times L² and the product of those masses. -/
 theorem frobR_sq_le (hL : 0 ≤ L) (hf : lipUnion μ ν f L) (m : ℕ) (hm : 0 < m)
     (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2) :
     spectralFrobenius (Rmat μ ν f a b m) ^ 2 ≤
@@ -2456,6 +2681,8 @@ theorem frobR_sq_le (hL : 0 ≤ L) (hf : lipUnion μ ν f L) (m : ℕ) (hm : 0 <
       add_le_add (add_le_add hN hFJ) hFI
     _ = (172 / 3) * L ^ 2 * (∑ j, ‖a j‖ ^ 2) * (∑ i, ‖b i‖ ^ 2) / m := by ring
 
+/-- The singular value of the weighted divided difference matrix at index 9m + 4 is at most
+sqrt(172 / 3) times the Lipschitz constant and the coefficient norm product, divided by `m`. -/
 theorem sv_bound_main (hL : 0 ≤ L) (hf : lipUnion μ ν f L) (m : ℕ) (hm : 0 < m)
     (hA : 0 < ∑ j, ‖a j‖ ^ 2) (hB : 0 < ∑ i, ‖b i‖ ^ 2) :
     matrixSingularValues (ddMat μ ν f ⊙ Matrix.vecMulVec a b) (9 * m + 4) ≤
@@ -2507,12 +2734,16 @@ variable {J I : Type} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
 omit [DecidableEq J] [DecidableEq I] in
 
+/-- The expression giving the reciprocal singular value bound with constant 144 is nonnegative
+when `L` is nonnegative. -/
 theorem h1_rhs_nonneg (hL : 0 ≤ L) (a : J → ℂ) (b : I → ℂ) (q : ℕ) :
     0 ≤ 144 * L * (Real.sqrt (∑ j, ‖a j‖ ^ 2) * Real.sqrt (∑ i, ‖b i‖ ^ 2)) / ((q : ℝ) + 1) := by
   have hq : (0 : ℝ) < (q : ℝ) + 1 := by positivity
   exact div_nonneg (mul_nonneg (mul_nonneg (by norm_num) hL)
     (mul_nonneg (Real.sqrt_nonneg _) (Real.sqrt_nonneg _))) hq.le
 
+/-- The singular value at index `q` of a divided difference matrix weighted by an outer product
+is at most 144L times the coefficient norm product divided by q + 1. -/
 theorem ddMat_hadamard_vecMulVec_sv_bound (hL : 0 ≤ L) (hf : lipUnion μ ν f L)
     (a : J → ℂ) (b : I → ℂ) (q : ℕ) :
     matrixSingularValues (ddMat μ ν f ⊙ Matrix.vecMulVec a b) q ≤
@@ -2652,6 +2883,8 @@ open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open Qatlib.Concepts.SketchSpectral.MatrixFunctions.RankLogStability.Analysis
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- The Hermitian spectral Lipschitz condition implies `lipUnion` for the ordered eigenvalue
+families. -/
 theorem lipUnion_of_hermitianPairScalarLipschitz {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] {A : Matrix I I ℂ} {hA : A.IsHermitian}
     {B : Matrix J J ℂ} {hB : B.IsHermitian} {f : ℝ → ℂ} {L : ℝ}
@@ -2659,6 +2892,8 @@ theorem lipUnion_of_hermitianPairScalarLipschitz {I J : Type} [Fintype I] [Decid
     lipUnion (orderedHermitianValues hA) (orderedHermitianValues hB) f L :=
   hf
 
+/-- In the ordered eigenbases, the functional calculus quasicommutator is the Hadamard product
+of the divided difference matrix and the original quasicommutator. -/
 theorem coordinates_quasicommutator_eq_ddMat_hadamard {I J : Type}
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (A : Matrix I I ℂ) (hA : A.IsHermitian) (B : Matrix J J ℂ) (hB : B.IsHermitian)
@@ -2673,6 +2908,8 @@ theorem coordinates_quasicommutator_eq_ddMat_hadamard {I J : Type}
   simp only [Matrix.hadamard_apply, ddMat, Matrix.of_apply]
   exact hermitianFunction_quasicommutator_divided_difference A hA B hB S f i j
 
+/-- A logarithmic Schur multiplier bound yields a universal positive constant for a
+quasicommutator estimate weighted by the left matrix rank. -/
 theorem clause1_of_schurBound {c : ℝ} (hc : 0 < c)
     (H2 : ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
       (eigL : I → ℝ) (eigR : J → ℝ) (f : ℝ → ℂ) (L : ℝ), 0 ≤ L →
@@ -2722,6 +2959,8 @@ theorem clause1_of_schurBound {c : ℝ} (hc : 0 < c)
               mul_le_mul_of_nonneg_left hlog h0
           _ = c * hermitianRankLogWeight A.rank * L * ‖A*S-S*B‖ := by ring
 
+/-- A universal rectangular quasicommutator estimate yields an operator perturbation estimate
+weighted by the smaller of the two ranks. -/
 theorem clause2_of_clause1_square
     (hg1 : ∃ c₀ : ℝ, 0 < c₀ ∧
       ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
@@ -2747,6 +2986,9 @@ open Matrix Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
+/-- There is a universal positive constant bounding the functional calculus quasicommutator by
+the original quasicommutator norm times the spectral Lipschitz constant and the logarithmic
+left-rank weight. See [ChiaEtAl2022]. -/
 theorem hermitianFunction_operator_rank_quasicommutator :
     ∃ c₀ : ℝ, 0 < c₀ ∧
       ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
@@ -2760,6 +3002,9 @@ theorem hermitianFunction_operator_rank_quasicommutator :
       (fun J I _ _ _ _ μ ν f L hL hf a b q =>
         RankLogStability.Decomposition.ddMat_hadamard_vecMulVec_sv_bound hL hf a b q))
 
+/-- There is a universal positive constant bounding the operator norm of f(A) - f(B) by the norm
+of A - B times the spectral Lipschitz constant and the logarithmic weight of the smaller
+rank. See [ChiaEtAl2022]. -/
 theorem hermitianFunction_operator_min_rank_stability :
     ∃ c₀ : ℝ, 0 < c₀ ∧
       ∀ (I : Type) [Fintype I] [DecidableEq I]

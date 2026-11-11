@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.ProjectorCS
 import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
+
+/-!
+# Spectral and displacement bounds for detection
+
+The module connects the unmarked row-frame Gram matrix to `unmarkedPrincipal` and bounds its
+operator norm using the symmetric-chain gap. It also exposes threshold-mass and average
+squared-displacement estimates for the corrected marked walk. See [Szegedy2004] for the
+mathematical background.
+
+## Main statements
+
+* `source_lemma_two_principal_gram`: the frame identity and norm gap.
+* `source_lemma_three_threshold_mass`: threshold bounds for two walk formulations.
+* `source_lemma_three_busy_difference`: average squared displacement.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +47,9 @@ open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
 namespace Qatlib.Concepts.WalkSearch.Detection.Bounds
 
+/-- Under the stated gap assumptions, the unmarked row frame is an isometry, its swapped Gram
+matrix is `unmarkedPrincipal P S`, and the principal matrix has norm at most `1 - δ *
+markedFraction S`. See [Szegedy2004]. -/
 theorem source_lemma_two_principal_gram
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ)
@@ -37,6 +60,8 @@ theorem source_lemma_two_principal_gram
     ‖unmarkedPrincipal P S‖ ≤ 1 - δ * markedFraction S :=
   unmarked_principal_gram_and_gap I P S δ hδ hδ1 hgap
 
+/-- Under the stated gap and marked-fraction assumptions, the unmarked principal matrix has
+operator norm at most `1 - δ * ε / 2`. See [Szegedy2004]. -/
 theorem source_lemma_two_spectral_radius
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ ε : ℝ)
@@ -48,6 +73,9 @@ theorem source_lemma_two_spectral_radius
   have hle : δ * ε ≤ δ * markedFraction S := mul_le_mul_of_nonneg_left hεp hδ.le
   linarith
 
+/-- Under the stated gap assumptions and positive marked fraction, `lemma3Length` is positive,
+is at least `1000 / sqrt (δ * markedFraction S)`, and gives threshold mass at least `1 / 6`
+for both the corrected and absorbing walk formulations. See [Szegedy2004]. -/
 theorem source_lemma_three_threshold_mass
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ)
@@ -76,6 +104,9 @@ theorem source_lemma_three_threshold_mass
   exact ⟨hLpos, hb.2.1, hmass,
     by rw [lemma3_absorbing_threshold_mass_eq P S (lemma3Length δ (markedFraction S))]; exact hmass⟩
 
+/-- Under the stated gap and positivity assumptions, the unmarked initial state's squared norm
+is `1 - markedFraction S`, and its average squared displacement over powers 1 through `L` is
+at least the displayed gap-dependent bound. See [Szegedy2004]. -/
 theorem source_lemma_three_busy_difference
     (I : Type) [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ) (L : ℕ)

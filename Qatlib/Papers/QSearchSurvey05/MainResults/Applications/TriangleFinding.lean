@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem4Quan
+
+/-!
+# Triangle finding with explicit subroutine costs
+
+This module assembles the triangle finding statement associated with Theorem 4.4 of
+[Ambainis2005]. Given the collision, noisy search, and safe Grover interfaces,
+`theorem44_triangle_finding` supplies integer scale parameters, validates returned triangles,
+and bounds failure counts and execution costs.
+
+## Main statements
+
+* `theorem44_triangle_finding`: Combines triangle validity, the conditional seed failure
+  estimate, and an explicit n^(13/10) logarithmic cost bound.
+
+## References
+
+* [Ambainis, 2005][Ambainis2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -16,6 +35,10 @@ open Qatlib.Concepts.WalkSearch.WalkAlgorithms
 
 namespace Qatlib.Papers.QSearchSurvey05.MainResults
 
+/-- For a finite simple graph and the supplied collision and search subroutines, constructs
+integer scales satisfying the stated rounding bounds and certifies triangle validity, the
+conditional seed failure bound, and an explicit cost bound proportional to n^(13/10) times a
+cubic logarithmic factor. See [Ambainis2005]. -/
 theorem theorem44_triangle_finding
     (n : ℕ) (hn : 0 < n)
     (adj : Fin n → Fin n → Bool)

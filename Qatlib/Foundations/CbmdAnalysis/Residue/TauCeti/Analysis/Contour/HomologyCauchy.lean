@@ -13,6 +13,25 @@ import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Cauchy.I
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Dixon.FunctionDiff
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Dixon.Liouville
+
+/-!
+# Cauchy's theorem for null-homologous curves
+
+This module derives the winding-number Cauchy integral formula and the vanishing contour
+integral theorem from the Dixon function. Its final `homologyCauchyTheorem` applies to closed
+piecewise C¹ curves null-homologous in an open holomorphic domain, supplying a foundation for
+the residue calculus supporting [WangEtAl2026].
+
+## Main statements
+
+* `dixonH2_eq_windingNumber_mul_f_of_nullHomologous`: the winding-number integral formula.
+* `homologyCauchyTheorem`: Cauchy's theorem for piecewise C¹ curves.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -25,6 +44,8 @@ open scoped Real Interval
 
 namespace TauCeti.Contour
 
+/-- For a holomorphic function and a closed null-homologous curve, the Cauchy integral component
+equals `2πi` times the winding number and function value at any avoided point in the domain. -/
 theorem dixonH2_eq_windingNumber_mul_f_of_nullHomologous {f : ℂ → ℂ} {U : Set ℂ}
     {γ : ℝ → ℂ} {a b : ℝ} {P : Set ℝ} {w : ℂ} (hU : IsOpen U)
     (hf : DifferentiableOn ℂ f U) (hγ_cont : ContinuousOn γ (uIcc a b))
@@ -38,6 +59,9 @@ theorem dixonH2_eq_windingNumber_mul_f_of_nullHomologous {f : ℂ → ℂ} {U : 
     (cauchy_integrand_intervalIntegrable hf.continuousOn hγ_cont hγU hderiv_int hoff)
     (intervalIntegrable_inv_sub_mul_deriv hγ_cont hoff hderiv_int)
 
+/-- The contour integral of a holomorphic function vanishes along a closed null-homologous curve
+with integrable derivative and countably many possible differentiability exceptions, given
+an avoided point in the domain. -/
 theorem homologyCauchyTheorem_of_point_off_curve {f : ℂ → ℂ} {U : Set ℂ} {γ : ℝ → ℂ}
     {a b : ℝ} {P : Set ℝ} {w₀ : ℂ} (hU : IsOpen U) (hf : DifferentiableOn ℂ f U)
     (hγ_cont : ContinuousOn γ (uIcc a b)) (hγU : ∀ t ∈ uIcc a b, γ t ∈ U)
@@ -56,6 +80,8 @@ theorem homologyCauchyTheorem_of_point_off_curve {f : ℂ → ℂ} {U : Set ℂ}
     (dixonFunction_eq_zero hU hg hγ_cont hγU hderiv_int hclosed hP hγ_diff h_null w₀)
     h_int (intervalIntegrable_inv_sub_mul_deriv hγ_cont hw₀off hderiv_int)
 
+/-- The integral of a holomorphic function along a closed piecewise C¹ curve null-homologous in
+its open domain is zero. -/
 theorem homologyCauchyTheorem {f : ℂ → ℂ} {Ω : Set ℂ} (hΩ : IsOpen Ω) (γ : ℝ → ℂ) (a b : ℝ)
     (hγ_pc1 : IsPiecewiseC1On γ a b) (hγ : ∀ t ∈ uIcc a b, γ t ∈ Ω) (hclosed : γ a = γ b)
     (hf : DifferentiableOn ℂ f Ω) (hnull : IsNullHomologous γ a b Ω) :

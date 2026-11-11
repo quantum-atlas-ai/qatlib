@@ -10,6 +10,25 @@ import Mathlib.Algebra.Order.BigOperators.Ring.Finset
 import Mathlib.Tactic.IntervalCases
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
+
+/-!
+# Energy bounds for local register operators
+
+This module decomposes energy and state mass into fibers of a register partition. Entrywise
+bounds on a local matrix yield lower bounds for the energy of `partitionLift`, including the
+uniform constant 32 for operators supported on at most five qubits. For background, see
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `energy_tensor_one`: energy decomposes over complementary-register fibers.
+* `partitionLift_five_qubit_energy_lower`: a five-qubit local energy lower bound.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TensorRegisters.RegisterModel
@@ -25,6 +44,8 @@ open scoped Classical BigOperators Kronecker
 set_option autoImplicit false
 noncomputable section
 
+/-- The energy is the sum of the real parts of `star (ψ i) * H i j * ψ j` over both matrix
+indices. -/
 theorem energy_entries {I : Type} [Fintype I]
     (H : Matrix I I ℂ) (ψ : QState I) :
     energy H ψ = ∑ i, ∑ j,
@@ -32,6 +53,8 @@ theorem energy_entries {I : Type} [Fintype I]
   simp only [energy, inner_apply, Matrix.mulVec, dotProduct,
     Finset.mul_sum, Complex.re_sum, mul_assoc]
 
+/-- If every entry of `H` has norm at most one, its energy is at least minus the index
+cardinality times the state mass. -/
 theorem entryBound_energy_lower {I : Type} [Fintype I]
     (H : Matrix I I ℂ) (hH : ∀ i j, ‖H i j‖ ≤ 1)
     (ψ : QState I) :
@@ -69,11 +92,13 @@ theorem entryBound_energy_lower {I : Type} [Fintype I]
       linarith
     _ ≤ energy H ψ := hsum
 
+/-- Reindexing a state along an equivalence preserves its mass. -/
 theorem mass_reindex {I J : Type} [Fintype I] [Fintype J]
     (e : I ≃ J) (ψ : QState I) :
     mass (fun j : J => ψ (e.symm j)) = mass ψ := by
   exact e.symm.sum_comp (fun i : I => ‖ψ i‖^2)
 
+/-- Simultaneously reindexing a matrix and its state preserves energy. -/
 theorem energy_reindex {I J : Type} [Fintype I] [Fintype J]
     (e : I ≃ J) (H : Matrix I I ℂ) (ψ : QState I) :
     energy (Matrix.reindex e e H) (fun j : J => ψ (e.symm j)) =
@@ -95,6 +120,8 @@ theorem energy_reindex {I J : Type} [Fintype I] [Fintype J]
       e.symm.sum_comp (fun i : I => ∑ k : I,
         ((starRingEnd ℂ) (ψ i) * H i k * ψ k).re)
 
+/-- The matrix `M ⊗ₖ 1` acts on each fixed complementary-register fiber by multiplication with
+`M`. -/
 theorem kronecker_one_mulVec_apply {A B : Type}
     [Fintype A] [Fintype B] [DecidableEq B]
     (M : Matrix A A ℂ) (ψ : QState (A × B)) (a : A) (b : B) :
@@ -103,6 +130,8 @@ theorem kronecker_one_mulVec_apply {A B : Type}
   simp [Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
     Matrix.one_apply, mul_ite, ite_mul]
 
+/-- The energy of `M ⊗ₖ 1` is the sum of the energies of the state fibers over the second
+register. -/
 theorem energy_tensor_one {A B : Type}
     [Fintype A] [Fintype B] [DecidableEq B]
     (M : Matrix A A ℂ) (ψ : QState (A × B)) :
@@ -112,12 +141,15 @@ theorem energy_tensor_one {A B : Type}
     Fintype.sum_prod_type, kronecker_one_mulVec_apply]
   exact Finset.sum_comm
 
+/-- Summing the masses of the fibers over the second register gives the mass of the joint state. -/
 theorem mass_fibers {A B : Type} [Fintype A] [Fintype B]
     (ψ : QState (A × B)) :
     (∑ b : B, mass (fun a : A => ψ (a,b))) = mass ψ := by
   simp only [mass, Fintype.sum_prod_type]
   exact Finset.sum_comm
 
+/-- The energy of a partition-lifted matrix is the sum of local energies over the
+complementary-register fibers. -/
 theorem partitionLift_energy_fibers {S A B : Type}
     [Fintype S] [Fintype A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) (M : Matrix A A ℂ) (ψ : QState S) :
@@ -135,6 +167,7 @@ theorem partitionLift_energy_fibers {S A B : Type}
     _ = ∑ b : B, energy M (fun a : A => ψ (e.symm (a,b))) :=
       energy_tensor_one M (fun p : A × B => ψ (e.symm p))
 
+/-- The masses of the fibers defined by a register partition sum to the original state mass. -/
 theorem partition_mass_fibers {S A B : Type}
     [Fintype S] [Fintype A] [Fintype B]
     (e : S ≃ A × B) (ψ : QState S) :
@@ -145,6 +178,8 @@ theorem partition_mass_fibers {S A B : Type}
       mass_fibers (fun p : A × B => ψ (e.symm p))
     _ = mass ψ := mass_reindex e ψ
 
+/-- A local matrix with entries of norm at most one has lifted energy at least minus its local
+dimension times the state mass. -/
 theorem partitionLift_energy_lower {S A B : Type}
     [Fintype S] [Fintype A] [Fintype B] [DecidableEq B]
     (e : S ≃ A × B) (M : Matrix A A ℂ)
@@ -160,6 +195,8 @@ theorem partitionLift_energy_lower {S A B : Type}
       Finset.sum_le_sum fun b _ =>
         entryBound_energy_lower M hM (fun a : A => ψ (e.symm (a,b)))
 
+/-- A matrix on at most five qubits with entries of norm at most one has lifted energy at least
+`-32 * mass ψ`. -/
 theorem partitionLift_five_qubit_energy_lower {S B : Type}
     [Fintype S] [Fintype B] [DecidableEq B]
     (k : ℕ) (hk : k ≤ 5) (e : S ≃ Reg k × B)

@@ -6,6 +6,31 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
 import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstruction
+
+/-!
+# Execution refinements of spectral specifications
+
+This module defines the additional requirements for paid row access, unmarked source spectral
+transport, phase search schedules, and tunable band classification. The `coreSpectral`
+propositions combine these requirements with the corresponding walk spectral bundles.
+
+It also defines sine envelope filtered states and their target and leakage parts, selective
+branch stability requirements, uniform phase estimation words, and the Fibonacci and Euclidean
+step functions used in continued fraction bounds. The quantum walk spectral framework is
+developed in [Szegedy2004].
+
+## Main statements
+
+* `Clause6BusySpectrumTransport`: Paid access and unmarked source spectral requirements.
+* `Clause33CoherentFilterResidual`: Coherent sine envelope filtering and resource bounds.
+* `coreSpectralClause39Prop`: Phase estimation, uniform sequence, and continued fraction
+  requirements.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -64,6 +89,8 @@ open Qatlib.Concepts.HspRecovery.KitaevReadout
 open Matrix
 open scoped Classical BigOperators ComplexOrder Matrix.Norms.L2Operator
 
+/-- The requirement that paid walk access supplies an injective vertex encoding and legal finite
+setup, update, and check words. -/
 def Clause6RowAccessResidual : Prop :=
   ∀ {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (a w : ℕ) (enc : I → Reg a)
@@ -75,20 +102,27 @@ def Clause6RowAccessResidual : Prop :=
       finiteWordLegal w updateWord = true ∧
       finiteWordLegal w checkWord = true
 
+/-- The type of vertices outside the marked set `S`. -/
 abbrev busySpace {I : Type} [DecidableEq I] (S : Finset I) : Type := Unmarked I S
 
+/-- The unmarked principal transition matrix acting on `busySpace S`. -/
 noncomputable def busyAction {I : Type} [Fintype I] [DecidableEq I]
     (P : I → I → ℝ) (S : Finset I) : Matrix (busySpace S) (busySpace S) ℂ :=
   unmarkedPrincipal P S
 
+/-- The coordinate vector of the chosen orthonormal eigenbasis element of a finite Hermitian
+matrix. -/
 noncomputable def hermitianEigenfamily {n : Type} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) (j : n) : n → ℂ :=
   hA.eigenvectorBasis j |>.ofLp
 
+/-- The real eigenvalue associated with an index in the chosen eigenbasis of a Hermitian matrix. -/
 noncomputable def hermitianEigenvalue {n : Type} [Fintype n] [DecidableEq n]
     {A : Matrix n n ℂ} (hA : A.IsHermitian) (j : n) : ℝ :=
   hA.eigenvalues j
 
+/-- The paid access requirement combining injective encoding and word legality with setup,
+update, check, and workspace bounds. -/
 def Clause6PaidAccessClauses : Prop :=
   ∀ {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (a w : ℕ) (enc : I → Reg a)
@@ -102,6 +136,9 @@ def Clause6PaidAccessClauses : Prop :=
     (∀ (eps : ℝ), 0 < eps → setupWord.length ≤ C (Nat.ceil ((1 / eps) ^ 2) + 1)) ∧
     updateWord.length ≤ 2 * a + 2 ∧ checkWord.length ≤ 2 * a + 2 ∧ w ≤ 2 * a + 2
 
+/-- The requirement combining encoded row amplitudes, unmarked frame isometry and discriminant
+identities, spectral norm and eigenfamily bounds, exclusion of nonzero +1 source
+eigenvectors, and reversible embedded fixed states. -/
 def Clause6BusySpectrumContent : Prop :=
   ∀ {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
     (P : I → I → ℝ) (S : Finset I) (δ : ℝ),
@@ -123,13 +160,17 @@ def Clause6BusySpectrumContent : Prop :=
     (∀ (π : I → ℝ) (_hπ : (∀ x, 0 ≤ π x) ∧ ∑ x, π x = 1) (_hrev : IsReversible P π),
       SzegedyWalk P *ᵥ SzegedyEmbedState P π = SzegedyEmbedState P π)
 
+/-- The conjunction of paid walk access clauses and unmarked source spectral content. -/
 def Clause6BusySpectrumTransport : Prop :=
   Clause6PaidAccessClauses ∧ Clause6BusySpectrumContent
 
+/-- The requirement that the phase search ledger is `(2 * k * t * (M - 1), t, 1)` for `M ≥ 2`. -/
 def Clause32ScheduleResidual : Prop :=
   ∀ (M k t : ℕ) (hM : 2 ≤ M),
     phaseSearchLedger M k t = (2 * k * t * (M - 1), t, 1)
 
+/-- The phase band classifier requirement with the stated separation margins, together with the
+boundary inclusion condition. -/
 def TunableQueryClassifierResidual : Prop :=
   ∀ (J : Type) [Fintype J] [DecidableEq J] (M : ℕ) (bands : List (ℚ × ℚ))
     (phi : J → ℝ) (eta : ℝ), 2 ≤ M → 0 < eta → eta ≤ 1/16 →
@@ -142,10 +183,12 @@ def TunableQueryClassifierResidual : Prop :=
       ¬ (phi j ≤ (b.1:ℝ)-2*eta ∨ (b.2:ℝ)+2*eta ≤ phi j) →
       bandContains bands (phi j))
 
+/-- Concatenates `n` copies of an adjoint instruction word, with the empty word at `n = 0`. -/
 def repeatWord {H : Type*} (w : List (AdjointStep H)) : ℕ → List (AdjointStep H)
   | 0 => []
   | n + 1 => w ++ repeatWord w n
 
+/-- The oracle query count of concatenated adjoint words is the sum of their query counts. -/
 theorem adjointQueryCount_append {H : Type*} (a b : List (AdjointStep H)) :
     adjointQueryCount (a ++ b) = adjointQueryCount a + adjointQueryCount b := by
   induction a with
@@ -156,6 +199,7 @@ theorem adjointQueryCount_append {H : Type*} (a b : List (AdjointStep H)) :
     | forward => simp only [List.cons_append, adjointQueryCount]; omega
     | backward => simp only [List.cons_append, adjointQueryCount]; omega
 
+/-- The gate count of concatenated adjoint words is the sum of their gate counts. -/
 theorem adjointGateCount_append {H : Type*} (a b : List (AdjointStep H)) :
     adjointGateCount (a ++ b) = adjointGateCount a + adjointGateCount b := by
   induction a with
@@ -166,51 +210,68 @@ theorem adjointGateCount_append {H : Type*} (a b : List (AdjointStep H)) :
     | forward => simp only [List.cons_append, adjointGateCount]; omega
     | backward => simp only [List.cons_append, adjointGateCount]; omega
 
+/-- The `k`th power of the sine envelope kernel amplitude at the zero label. -/
 noncomputable def clause33Pass (M k : ℕ) (hM : 0 < M) (φ : ℝ) : ℂ :=
   (sinEnvelopeKernel M φ (⟨0, hM⟩ : Fin M)) ^ k
 
+/-- The coefficient `c j` multiplied by the repeated sine envelope zero-label amplitude at phase
+`φ j`. -/
 noncomputable def clause33Coeff {J : Type} (M k : ℕ) (hM : 0 < M)
     (c : J → ℂ) (φ : J → ℝ) (j : J) : ℂ :=
   c j * clause33Pass M k hM (φ j)
 
+/-- The filtered coefficient on indices in `T`, extended by zero outside `T`. -/
 noncomputable def clause33TargetCoeff {J : Type} (M k : ℕ) (hM : 0 < M)
     (c : J → ℂ) (φ : J → ℝ) (T : Finset J) (j : J) : ℂ :=
   if j ∈ T then clause33Coeff M k hM c φ j else 0
 
+/-- The filtered coefficient on indices outside `T`, extended by zero on `T`. -/
 noncomputable def clause33LeakCoeff {J : Type} (M k : ℕ) (hM : 0 < M)
     (c : J → ℂ) (φ : J → ℝ) (T : Finset J) (j : J) : ℂ :=
   if j ∈ T then 0 else clause33Coeff M k hM c φ j
 
+/-- The state obtained by multiplying each coefficient by its repeated sine envelope zero-label
+amplitude. -/
 noncomputable def clause33FilteredState {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (M k : ℕ) (hM : 0 < M)
     (v : J → QState I) (c : J → ℂ) (φ : J → ℝ) : QState I :=
   ∑ j, clause33Coeff M k hM c φ j • v j
 
+/-- The part of the sine envelope filtered state supported on spectral indices in `T`. -/
 noncomputable def clause33TargetPart {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (M k : ℕ) (hM : 0 < M)
     (v : J → QState I) (c : J → ℂ) (φ : J → ℝ) (T : Finset J) : QState I :=
   ∑ j, clause33TargetCoeff M k hM c φ T j • v j
 
+/-- The part of the sine envelope filtered state supported outside the target spectral set `T`. -/
 noncomputable def clause33Leakage {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (M k : ℕ) (hM : 0 < M)
     (v : J → QState I) (c : J → ℂ) (φ : J → ℝ) (T : Finset J) : QState I :=
   ∑ j, clause33LeakCoeff M k hM c φ T j • v j
 
+/-- The target part of the filtered state minus its leakage part. -/
 noncomputable def clause33ReflectedState {I J : Type} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (M k : ℕ) (hM : 0 < M)
     (v : J → QState I) (c : J → ℂ) (φ : J → ℝ) (T : Finset J) : QState I :=
   clause33TargetPart M k hM v c φ T - clause33Leakage M k hM v c φ T
 
+/-- The sine envelope contraction factor `sqrt 10 / (M^2 * η^2)`. -/
 noncomputable def clause33Contraction (M : ℕ) (η : ℝ) : ℝ := Real.sqrt 10 / ((M : ℝ)^2 * η^2)
 
+/-- The adjoint instruction word consisting of `k` copies of the sine envelope forward word. -/
 noncomputable def clause33ForwardWord {I : Type} [Fintype I] [DecidableEq I]
     (M k : ℕ) (hM : 2 ≤ M) : List (AdjointStep (Fin M × (Bool × I))) :=
   repeatWord (sinEnvelopeForwardWord (I := I) M hM) k
 
+/-- The repeated sine envelope forward word with forward and backward query instructions
+exchanged. -/
 noncomputable def clause33InverseWord {I : Type} [Fintype I] [DecidableEq I]
     (M k : ℕ) (hM : 2 ≤ M) : List (AdjointStep (Fin M × (Bool × I))) :=
   (clause33ForwardWord (I := I) M k hM).map swapQueries
 
+/-- The coherent sine envelope filter requirement, including spectral action, off-target
+contraction, leakage and reflection bounds, common target amplitude, and forward and
+query-swapped word resource counts. -/
 def Clause33CoherentFilterResidual : Prop :=
   ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)
@@ -247,6 +308,8 @@ def Clause33CoherentFilterResidual : Prop :=
     adjointQueryCount (clause33InverseWord (I := I) M k hM) = k * (M - 1) ∧
     adjointGateCount (clause33InverseWord (I := I) M k hM) = k * (2 * (M - 1) + 2)
 
+/-- The Euclidean norm of a complex scalar multiple of a state is the scalar norm times the
+state norm. -/
 theorem clause33_norm_smul {I : Type} [Fintype I] (a : ℂ) (x : QState I) :
     ‖toEuclidean_fromVec (a • x)‖ = ‖a‖ * ‖toEuclidean_fromVec x‖ := by
   have hs : ‖toEuclidean_fromVec (a • x)‖ ^ 2
@@ -271,29 +334,43 @@ theorem clause33_norm_smul {I : Type} [Fintype I] (a : ℂ) (x : QState I) :
   rw [Real.sqrt_sq (norm_nonneg _), Real.sqrt_sq (by positivity)] at h2
   exact le_antisymm h1 h2
 
+/-- A common scalar factor can be taken outside a finite sum of states. -/
 theorem clause33_smul_sum {I : Type} [Fintype I] (a : ℂ) (w : I → QState I) :
     (∑ j, a • w j) = a • (∑ j, w j) :=
   (Finset.smul_sum (s := Finset.univ) (f := w)).symm
 
+/-- Summing states conditionally supported on a finite set equals the sum restricted to that
+set. -/
 theorem clause33_ite_sum {I : Type} [Fintype I] (S : Finset I) (f : I → QState I) :
     (∑ j, if j ∈ S then f j else 0) = ∑ j ∈ S, f j := by
   rw [Finset.sum_ite_mem Finset.univ S f, Finset.univ_inter]
 
+/-- The basic walk spectral bundle together with row access legality and unmarked source
+spectral transport. -/
 def coreSpectralClause6Prop : Prop :=
   WalkSpectralClause6Prop ∧ Clause6RowAccessResidual ∧ Clause6BusySpectrumTransport
 
+/-- The amplification bundle together with the phase search schedule identity. -/
 def coreSpectralClause32Prop : Prop := WalkSpectralClause32Prop ∧ Clause32ScheduleResidual
 
+/-- The sine envelope spectral bundle together with the coherent filtering requirement. -/
 def coreSpectralClause33Prop : Prop := WalkSpectralClause33Prop ∧ Clause33CoherentFilterResidual
 
+/-- The tunable phase band filtering bundle together with the strengthened classifier
+requirement. -/
 def coreSpectralTunableQueryProp : Prop :=
     WalkSpectralTunableQueryProp ∧ TunableQueryClassifierResidual
 
+/-- The optimized tunable spectral filtering proposition. -/
 def coreSpectralOptimizedTunableProp : Prop := WalkSpectralOptimizedTunableProp
 
+/-- The complement of the selected outcome set in the finite outcome space. -/
 def clause36FailureSet {O : Type} [Fintype O] [DecidableEq O] (S : Finset O) : Finset O :=
   Finset.univ \ S
 
+/-- The selective instrument stability requirement for equal-trace positive inputs, including a
+positive perturbed success branch, normalized branch error, and failure branch trace norm
+and probability bounds with a reference system. -/
 def Clause36DiamondStabilityResidual : Prop :=
   ∀ (O : Type) [Fintype O] [DecidableEq O] (D E R : ℕ) (J : Instrument O D E)
     (S : Finset O) (ρ τ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) (p ε : ℝ),
@@ -308,8 +385,12 @@ def Clause36DiamondStabilityResidual : Prop :=
     |(Matrix.trace (tensorLeft (selectiveMap J (clause36FailureSet S)) ρ)).re
         - (Matrix.trace (tensorLeft (selectiveMap J (clause36FailureSet S)) τ)).re| ≤ ε / 2
 
+/-- The selective instrument spectral bundle together with the additional success and failure
+branch stability requirement. -/
 def coreSpectralClause36Prop : Prop := WalkSpectralClause36Prop ∧ Clause36DiamondStabilityResidual
 
+/-- The homogeneous diagonal phase filter requirement bounding filtered mass and approximation
+error by target and complementary coefficient masses. -/
 def Clause37OperatorFilterResidual : Prop :=
   ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ) (φ : J → ℝ)
@@ -340,12 +421,16 @@ def Clause37OperatorFilterResidual : Prop :=
           spectralTargetState v c T)‖
       ≤ 2 * (1 / (2 * (M : ℝ) * η)) ^ k * ‖toEuclidean_fromVec (∑ j, c j • v j)‖
 
+/-- The degenerate phase detection bundle together with homogeneous operator filter estimates. -/
 def coreSpectralClause37Prop : Prop := WalkSpectralClause37Prop ∧ Clause37OperatorFilterResidual
 
+/-- The adjoint instruction word formed by repeating the compiled counted phase circuit `2 * s`
+times. -/
 noncomputable def clause39UniformWord {I : Type} [Fintype I] [DecidableEq I]
     (M s : ℕ) : List (AdjointStep (Fin M × (Bool × I))) :=
   repeatWord (phaseCompileCircuit (countedPhaseCircuit (I := I) M)) (2 * s)
 
+/-- Repeating a word `n` times multiplies its length by `n`. -/
 theorem clause39_repeat_length {H : Type} (w : List (AdjointStep H)) (n : ℕ) :
     (repeatWord w n).length = n * w.length := by
   induction n with
@@ -356,6 +441,7 @@ theorem clause39_repeat_length {H : Type} (w : List (AdjointStep H)) (n : ℕ) :
     rw [hrw, List.length_append, ih]
     ring
 
+/-- Repeating an adjoint word `n` times multiplies its query count by `n`. -/
 theorem clause39_repeat_queryCount {H : Type} (w : List (AdjointStep H)) (n : ℕ) :
     adjointQueryCount (repeatWord w n) = n * adjointQueryCount w := by
   induction n with
@@ -366,6 +452,7 @@ theorem clause39_repeat_queryCount {H : Type} (w : List (AdjointStep H)) (n : �
     rw [hrw, adjointQueryCount_append, ih]
     ring
 
+/-- Repeating an adjoint word `n` times multiplies its gate count by `n`. -/
 theorem clause39_repeat_gateCount {H : Type} (w : List (AdjointStep H)) (n : ℕ) :
     adjointGateCount (repeatWord w n) = n * adjointGateCount w := by
   induction n with
@@ -376,6 +463,8 @@ theorem clause39_repeat_gateCount {H : Type} (w : List (AdjointStep H)) (n : ℕ
     rw [hrw, adjointGateCount_append, ih]
     ring
 
+/-- The uniform phase sequence requirement combining exact length and resource counts, the
+reciprocal resolution identity, and the eigenphase decoding failure bound. -/
 def Clause39UniformSequenceResidual : Prop :=
   ∀ (M s l : ℕ) (ε δ : ℝ) (I : Type) [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (ψ : QState I) (φ : ℝ),
@@ -391,11 +480,13 @@ def Clause39UniformSequenceResidual : Prop :=
     (eigenphaseSampleLaw φ s).probEvent (L := 1)
         (fun ω => ¬ ∃ m : ℤ, |eigenphaseDecode s (ω 0) - φ + m| ≤ δ) ≤ ε
 
+/-- The Fibonacci sequence with initial values zero and one. -/
 def fib : ℕ → ℕ
   | 0 => 0
   | 1 => 1
   | n + 2 => fib (n + 1) + fib n
 
+/-- The number of Euclidean remainder steps, terminating when the second argument is zero. -/
 def cfSteps : ℕ → ℕ → ℕ
   | a, 0 => 0
   | a, b + 1 => 1 + cfSteps (b + 1) (a % (b + 1))
@@ -405,10 +496,14 @@ decreasing_by
   have h : a % (b + 1) < b + 1 := Nat.mod_lt a (by omega)
   omega
 
+/-- The requirement that bounded positive denominators yield both the Fibonacci estimate and the
+bound `cfSteps p q ≤ 2 * l + 5`. -/
 def Clause39ContinuedFractionResidual : Prop :=
   ∀ (p q l : ℕ) (_h1 : 1 ≤ q) (_h2 : q ≤ 2 ^ (l + 2)),
     fib (cfSteps p q + 1) ≤ q ∧ cfSteps p q ≤ 2 * l + 5
 
+/-- The phase estimation bundle together with uniform sequence accounting and continued fraction
+step bounds. -/
 def coreSpectralClause39Prop : Prop :=
   WalkSpectralClause39Prop ∧ Clause39UniformSequenceResidual ∧ Clause39ContinuedFractionResidual
 

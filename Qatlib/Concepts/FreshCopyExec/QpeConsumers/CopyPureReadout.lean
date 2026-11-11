@@ -8,6 +8,34 @@ import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
 import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
 import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+/-!
+# Exact Readout for a Rank One Copy State
+
+This module specializes the fresh copy phase estimation implementation to the two dimensional
+density operator `copyPureDensity`, the projector onto the zero basis state. On matrices with
+this fixed data factor, each controlled copy step acts exactly as the control phase gate
+`copyPureControlPhase`, so a positive number of steps reproduces the ideal query exactly.
+
+The concrete four label circuit therefore has exact actual readout, refining the general
+approximation guarantee for density matrix exponentiation in [LloydMohseniRebentrost2014]. The
+phase label interpretation uses the phase estimation setting of [NielsenChuang2010].
+
+## Main statements
+
+* `controlledCopyRawMap_pure_data` identifies one raw step with conjugation on the control
+  factor.
+* `copyPureProgram_exact` proves exact actual and ideal execution for circuits whose gates
+  preserve the embedded matrix family.
+* `copy_qpe_rank_one_actual_readout_consumer` gives label two mass one and the resource tuple
+  `(3 * n, 3 * n, 3 * n, 0)` for every positive `n`.
+
+## References
+
+* [Lloyd et al., 2014][LloydMohseniRebentrost2014], Quantum principal component analysis.
+* [Nielsen and Chuang, 2010][NielsenChuang2010], Quantum Computation and Quantum Information.
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -61,15 +89,21 @@ section CopyPureReadout
 open scoped Classical ComplexOrder Matrix.Norms.L2Operator
 set_option maxHeartbeats 2000000
 
+/-- Defines the two dimensional pure density matrix given by the outer product of the zero basis
+state. -/
 private noncomputable def copyPureDensity : Operator 2 :=
     outerProduct (Qatlib.Foundations.PureStateMath.Ket 0)
 
+/-- The projector onto the zero basis state is a density operator. -/
 private theorem copyPureDensity_density : IsDensityOperator copyPureDensity :=
   outerProduct_density (normalized_ket (0 : Fin 2))
 
+/-- The pure data density matrix `copyPureDensity` is idempotent. -/
 private theorem copyPureDensity_sq : copyPureDensity * copyPureDensity = copyPureDensity :=
   (isOrthogonalProjector_outerProduct (normalized_ket (0 : Fin 2))).1
 
+/-- A partial swap using `copyPureDensity` as both the fresh copy state and the input leaves
+this density matrix unchanged for every real angle. -/
 private theorem copyPureDensity_fixed (θ : ℝ) :
     partialSwapOutput copyPureDensity θ copyPureDensity = copyPureDensity := by
   rw [partial_swap_actual_output_formula, copyPureDensity_density.2, one_smul,
@@ -78,9 +112,12 @@ private theorem copyPureDensity_fixed (θ : ℝ) :
     exact_mod_cast Real.cos_sq_add_sin_sq θ
   rw [ht, one_smul]
 
+/-- Defines a diagonal Boolean control gate with phase one on false and `exp (-I * theta)` on
+true. -/
 private noncomputable def copyPureControlPhase (θ : ℝ) : Matrix Bool Bool ℂ :=
   Matrix.diagonal (fun b => if b then Complex.exp (-Complex.I * (θ : ℂ)) else 1)
 
+/-- Expresses `exp (-I * theta)` as `cos theta - I * sin theta` for a real angle. -/
 private theorem copyPurePhase_exp (θ : ℝ) :
     Complex.exp (-Complex.I * (θ : ℂ)) = (Real.cos θ : ℂ) - Complex.I * (Real.sin θ : ℂ) := by
   have h := Complex.exp_mul_I (((-θ : ℝ) : ℂ))
@@ -90,6 +127,8 @@ private theorem copyPurePhase_exp (θ : ℝ) :
   rw [he, Complex.ofReal_neg, h]
   ring
 
+/-- Expresses the complex conjugate of `exp (-I * theta)` as `cos theta + I * sin theta` for a
+real angle. -/
 private theorem copyPurePhase_exp_star (θ : ℝ) :
     star (Complex.exp (-Complex.I * (θ : ℂ))) =
       (Real.cos θ : ℂ) + Complex.I * (Real.sin θ : ℂ) := by
@@ -97,6 +136,9 @@ private theorem copyPurePhase_exp_star (θ : ℝ) :
   simp only [star_sub, star_mul, RCLike.star_def, Complex.conj_ofReal, Complex.conj_I]
   ring
 
+/-- On an arbitrary control matrix tensored with `copyPureDensity`, one raw controlled copy step
+conjugates the control matrix by `copyPureControlPhase` and leaves the data factor
+unchanged. -/
 theorem controlledCopyRawMap_pure_data (θ : ℝ) (B : Matrix Bool Bool ℂ) :
     controlledCopyRawMap copyPureDensity θ (TensorGate B copyPureDensity) =
       TensorGate (MatrixMap.conj (copyPureControlPhase θ) B) copyPureDensity := by
@@ -159,18 +201,26 @@ theorem controlledCopyRawMap_pure_data (θ : ℝ) (B : Matrix Bool Bool ℂ) :
       star (Complex.exp (-Complex.I * (θ : ℂ))) = B true true from by
       rw [mul_comm (Complex.exp _) (B true true), mul_assoc, he, mul_one]]
 
+/-- Embeds a matrix on the phase and control registers by tensoring it with `copyPureDensity`
+and reassociating the registers into phase, control, and data coordinates. -/
 private noncomputable def copyPureEmbed (M : ℕ) (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) :
     Matrix (Fin M × (Bool × Fin 2)) (Fin M × (Bool × Fin 2)) ℂ :=
   relabelGate (Equiv.prodAssoc (Fin M) Bool (Fin 2)) (TensorGate A copyPureDensity)
 
+/-- An entry of `copyPureEmbed M A` is the corresponding phase and control entry of `A`
+multiplied by the data entry of `copyPureDensity`. -/
 private theorem copyPureEmbed_apply (M : ℕ) (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ)
     (a c : Fin M) (b d : Bool) (i j : Fin 2) :
     copyPureEmbed M A (a,(b,i)) (c,(d,j)) = A (a,b) (c,d) * copyPureDensity i j := rfl
 
+/-- Relabels the pure data embedding into a phase register paired with the finite four
+dimensional control and data register. -/
 private noncomputable def copyPureFinEmbed (M : ℕ) (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) :
     Matrix (Fin M × Fin 4) (Fin M × Fin 4) ℂ :=
   relabelGate (copyQPERegisterEquiv 2 M) (copyPureEmbed M A)
 
+/-- Each fixed pair of phase register indices in conjugation by identity tensored with a control
+matrix is obtained by conjugating the corresponding control block alone. -/
 private theorem copyPureSpectatorConj (M : ℕ) (P : Matrix Bool Bool ℂ)
     (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) (a c : Fin M) :
     (MatrixMap.conj (TensorGate (1 : Operator M) P) A).submatrix
@@ -181,6 +231,9 @@ private theorem copyPureSpectatorConj (M : ℕ) (P : Matrix Bool Bool ℂ)
     Matrix.one_apply, Matrix.submatrix_apply, Fintype.sum_prod_type, apply_ite,
     mul_ite, ite_mul, Finset.sum_mul, Finset.mul_sum]
 
+/-- On the embedded pure data matrix family in finite coordinates, the amplified controlled copy
+channel acts exactly as conjugation by the control phase gate with identity on the phase
+register. -/
 private theorem copyPureStep_fin (M : ℕ) (θ : ℝ)
     (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) :
     ChannelAmplification (controlledCopyChannelMap copyPureDensity θ) M (copyPureFinEmbed M A) =
@@ -202,6 +255,8 @@ private theorem copyPureStep_fin (M : ℕ) (θ : ℝ)
   have hc := copyPureSpectatorConj M (copyPureControlPhase θ) A a c
   exact congrArg (fun T : Matrix Bool Bool ℂ => T b d * copyPureDensity i j) hc.symm
 
+/-- The `n`th power of the pure data control phase gate at angle `theta` equals the gate at
+angle `n * theta`. -/
 private theorem copyPureControlPhase_pow (θ : ℝ) (n : ℕ) :
     (copyPureControlPhase θ) ^ n = copyPureControlPhase ((n : ℝ) * θ) := by
   rw [copyPureControlPhase, Matrix.diagonal_pow, copyPureControlPhase]
@@ -215,12 +270,17 @@ private theorem copyPureControlPhase_pow (θ : ℝ) (n : ℕ) :
     push_cast
     ring
 
+/-- Taking a natural power of identity on the phase register tensored with a control matrix
+equals tensoring that identity with the same power of the control matrix. -/
 private theorem copyPureSpectator_pow (M : ℕ) (P : Matrix Bool Bool ℂ) (n : ℕ) :
     (TensorGate (1 : Operator M) P) ^ n = TensorGate (1 : Operator M) (P ^ n) := by
   induction n with
   | zero => simp [tensorGate_one]
   | succ n ih => rw [pow_succ, ih, tensorGate_mul, Matrix.one_mul, pow_succ]
 
+/-- On embedded pure data matrices in finite coordinates, `n` amplified controlled copy steps
+equal conjugation of the phase and control matrix by the `n`th power of the spectator
+control phase gate. -/
 private theorem copyPureRun_fin (M : ℕ) (θ : ℝ) (n : ℕ)
     (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) :
     ChannelAmplification (copyMapPower (controlledCopyChannelMap copyPureDensity θ) n) M
@@ -244,6 +304,9 @@ private theorem copyPureRun_fin (M : ℕ) (θ : ℝ) (n : ℕ)
     simp only [conjMap_apply, pow_succ', Matrix.conjTranspose_mul]
     noncomm_ring
 
+/-- For positive `n`, the actual time pi copy query on the pure data matrix family equals
+conjugation of its phase and control matrix by the time pi control phase gate, followed by
+the pure data embedding. -/
 private theorem copyPureQuery_actual (M n : ℕ) (hn : 0 < n)
     (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) :
     copyQPEQuery 2 M n copyPureDensity (copyPureEmbed M A) =
@@ -257,6 +320,8 @@ private theorem copyPureQuery_actual (M n : ℕ) (hn : 0 < n)
   rw [copyPureRun_fin, copyPureSpectator_pow, copyPureControlPhase_pow, nat_mul_div_self hn Real.pi]
   exact relabelGate_relabelGate (copyQPERegisterEquiv 2 M) _
 
+/-- Hamiltonian evolution under `copyPureDensity` is diagonal, applying `exp (-I * theta)` to
+the zero data basis state and phase one to the other basis state. -/
 private theorem copyPureEvolution_data (θ : ℝ) :
     hamiltonianEvolution copyPureDensity θ =
       Matrix.diagonal (fun i : Fin 2 => if i = 0 then Complex.exp (-Complex.I * (θ : ℂ)) else 1) := by
@@ -276,6 +341,8 @@ private theorem copyPureEvolution_data (θ : ℝ) :
   rw [Pi.coe_exp]
   by_cases hi : i = 0 <;> simp [hi, ← Complex.exp_eq_exp_ℂ]
 
+/-- Ideal controlled evolution on a control matrix tensored with `copyPureDensity` conjugates
+only the control factor by `copyPureControlPhase`. -/
 private theorem copyPureIdeal_raw (θ : ℝ) (B : Matrix Bool Bool ℂ) :
     MatrixMap.conj (controlOracle (hamiltonianEvolution copyPureDensity θ))
       (TensorGate B copyPureDensity) =
@@ -288,6 +355,8 @@ private theorem copyPureIdeal_raw (θ : ℝ) (B : Matrix Bool Bool ℂ) :
       Matrix.diagonal_apply, tensorGate_apply, Fintype.sum_prod_type, Fin.sum_univ_two,
       RCLike.star_def] <;> ring
 
+/-- For any finite auxiliary index type, each fixed phase block of conjugation by identity
+tensored with an auxiliary matrix equals conjugation of that block by the auxiliary matrix. -/
 private theorem copyPureFullSpectatorConj {J : Type*} [Fintype J] [DecidableEq J]
     (M : ℕ) (P : Matrix J J ℂ) (A : Matrix (Fin M × J) (Fin M × J) ℂ) (a c : Fin M) :
     (MatrixMap.conj (TensorGate (1 : Operator M) P) A).submatrix
@@ -298,6 +367,8 @@ private theorem copyPureFullSpectatorConj {J : Type*} [Fintype J] [DecidableEq J
     Matrix.one_apply, Matrix.submatrix_apply, Fintype.sum_prod_type, apply_ite,
     mul_ite, ite_mul, Finset.sum_mul, Finset.mul_sum]
 
+/-- The ideal time pi query on the pure data embedding acts exactly as conjugation of its phase
+and control matrix by the time pi control phase gate. -/
 private theorem copyPureQuery_ideal (M : ℕ)
     (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) :
     MatrixMap.conj (TensorGate (1 : Operator M)
@@ -317,6 +388,8 @@ private theorem copyPureQuery_ideal (M : ℕ)
   have hs := copyPureSpectatorConj M (copyPureControlPhase Real.pi) A a c
   exact hx.trans (congrArg (fun T : Matrix Bool Bool ℂ => T b d * copyPureDensity i j) hs.symm)
 
+/-- Relabeling a matrix conjugation equals conjugation of the relabeled input by the relabeled
+gate. -/
 private theorem copyPureConj_relabel {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (U X : Matrix I I ℂ) :
     relabelGate e (MatrixMap.conj U X) =
@@ -326,6 +399,8 @@ private theorem copyPureConj_relabel {I J : Type*} [Fintype I] [DecidableEq I]
   change f (U * X * Uᴴ) = f U * f X * (f U)ᴴ
   rw [map_mul, map_mul, hs]
 
+/-- A gate acting only on the phase and control registers, tensored with identity on the data
+register and reassociated, preserves the family of pure data embedded matrices. -/
 private theorem copyPure_gate_closed (M : ℕ) (U : Matrix (Fin M × Bool) (Fin M × Bool) ℂ)
     (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) :
     ∃ B, MatrixMap.conj
@@ -338,12 +413,16 @@ private theorem copyPure_gate_closed (M : ℕ) (U : Matrix (Fin M × Bool) (Fin 
     tensorGate_mul, tensorGate_mul, Matrix.one_mul, Matrix.mul_one]
   rfl
 
+/-- Rewrites a gate on the phase register with identity on control and data as the reassociated
+tensor product of a phase and control gate with identity on data. -/
 private theorem copyPurePhaseGate_lift (M : ℕ) (G : Operator M) :
     TensorGate G (1 : Matrix (Bool × Fin 2) (Bool × Fin 2) ℂ) =
       relabelGate (Equiv.prodAssoc (Fin M) Bool (Fin 2))
         (TensorGate (TensorGate G (1 : Matrix Bool Bool ℂ)) (1 : Operator 2)) := by
   rw [relabelGate_prodAssoc, tensorGate_one]
 
+/-- Rewrites the phase threshold flip permutation as a phase and control permutation tensored
+with identity on the data register, after reassociation. -/
 private theorem copyPureThreshold_lift (M k : ℕ) :
     permMatrix (phaseThresholdFlip (I := Fin 2) M k) =
       relabelGate (Equiv.prodAssoc (Fin M) Bool (Fin 2))
@@ -355,10 +434,14 @@ private theorem copyPureThreshold_lift (M k : ℕ) :
   simp only [Prod.mk.injEq, ite_and, ite_mul]
   split_ifs <;> simp_all
 
+/-- States that every gate step of a circuit maps every pure data embedded matrix to another
+matrix in the same embedded family under conjugation. -/
 private def copyPureClosed (M : ℕ) (C : Circuit (Fin M × (Bool × Fin 2))) : Prop :=
   ∀ U, Step.gate U ∈ C → ∀ A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ,
     ∃ B, MatrixMap.conj U (copyPureEmbed M A) = copyPureEmbed M B
 
+/-- Every gate in the counted phase estimation circuit with four phase labels preserves the pure
+data embedded matrix family. -/
 private theorem copyPureCounted4_closed : copyPureClosed 4 (countedPhaseCircuit 4) := by
   intro U hU A
   have hne (W : Matrix (Fin 4 × (Bool × Fin 2)) (Fin 4 × (Bool × Fin 2)) ℂ) :
@@ -372,6 +455,8 @@ private theorem copyPureCounted4_closed : copyPureClosed 4 (countedPhaseCircuit 
     | (rw [copyPurePhaseGate_lift]; exact copyPure_gate_closed 4 _ A)
     | (rw [copyPureThreshold_lift]; exact copyPure_gate_closed 4 _ A)
 
+/-- For positive `n`, actual and ideal copy programs agree on all pure data embedded matrices
+whenever each circuit gate preserves that matrix family. -/
 private theorem copyPureProgram_exact (M n : ℕ) (hn : 0 < n)
     (C : Circuit (Fin M × (Bool × Fin 2))) (hC : copyPureClosed M C)
     (A : Matrix (Fin M × Bool) (Fin M × Bool) ℂ) :
@@ -391,6 +476,8 @@ private theorem copyPureProgram_exact (M n : ℕ) (hn : 0 < n)
         copyPureQuery_ideal M]
       exact ih ht _
 
+/-- For every positive step count, the actual and ideal copy phase estimation outputs agree
+exactly for `copyPureDensity` and four phase labels. -/
 private theorem copyPureOutput_exact (n : ℕ) (hn : 0 < n) :
     copyQPEOutput 2 4 n copyPureDensity = copyQPEIdealOutput 2 4 copyPureDensity := by
   let A :=
@@ -403,6 +490,10 @@ private theorem copyPureOutput_exact (n : ℕ) (hn : 0 < n) :
   rw [copyQPEOutput, copyQPEIdealOutput, he]
   exact copyPureProgram_exact 4 n hn _ copyPureCounted4_closed A
 
+/-- For the two dimensional projector onto the zero basis state and any positive `n`, actual
+copy phase estimation with four labels assigns mass one to label two. This concrete density
+matrix exponentiation example in the setting of [LloydMohseniRebentrost2014] has resource
+tuple exactly `(3 * n, 3 * n, 3 * n, 0)`. -/
 theorem copy_qpe_rank_one_actual_readout_consumer (n : ℕ) (hn : 0 < n) :
     let ρ : Operator 2 := outerProduct (Qatlib.Foundations.PureStateMath.Ket 0)
     copyQPELabelMass 2 4 (copyQPEOutput 2 4 n ρ) (2 : Fin 4) = 1 ∧

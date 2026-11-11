@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.JonesPolyShor07.MainResults.Density.Proposition2
+
+/-!
+# Density up to phase in the three-strand SS sector
+
+The module proves that `SSBasis 3` is a subsingleton. Applying the general subsingleton result
+for `PhaseDenseOn` yields `proposition3_base` for the generator matrices `rhoSS 3`. See
+[ShorJordan2008].
+
+## Main statements
+
+* `subsingleton_ssBasis_three`: Any two elements of `SSBasis 3` are equal.
+* `proposition3_base`: The three-strand SS generator matrices are dense up to phase in the sense
+  of `PhaseDenseOn`.
+
+## References
+
+* [Shor and Jordan, 2008][ShorJordan2008]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -14,6 +33,7 @@ namespace Qatlib.Papers.JonesPolyShor07.MainResults.Density
 
 open Definitions
 
+/-- Any two elements of `SSBasis 3` are equal; see [ShorJordan2008]. -/
 theorem subsingleton_ssBasis_three : Subsingleton (SSBasis 3) := by
   constructor
   intro s t
@@ -49,6 +69,8 @@ theorem subsingleton_ssBasis_three : Subsingleton (SSBasis 3) := by
     fin_cases i <;> simp [h0, h1, h2, h3]
   exact Subtype.ext (hs.trans ht.symm)
 
+/-- The three-strand SS generator matrices are dense up to phase in the sense of `PhaseDenseOn`;
+see [ShorJordan2008]. -/
 theorem proposition3_base : PhaseDenseOn (SSBasis 3) (Set.range (rhoSS 3)) := by
   haveI := subsingleton_ssBasis_three
   exact phaseDenseOn_of_subsingleton _

@@ -15,6 +15,26 @@ import Mathlib.Tactic.GCongr
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Positivity
+
+/-!
+# Exponential stability from spectral negativity
+
+This module proves exponential decay of the exponential of an element of a complex Banach
+algebra whose spectrum lies in the open left half-plane. The argument uses geometric bounds on
+powers and a sufficiently small Euler step, in the spectral framework of [ReedSimon1980I].
+
+## Main statements
+
+* `geometric_norm_powers`: bounds powers when the spectral radius is less than one.
+* `exists_small_euler_step`: places a positive Euler step inside the spectral unit disk.
+* `exponential_stability_of_negative_spectrum`: obtains a uniform exponential decay bound for
+  nonnegative times.
+
+## References
+
+* [Reed and Simon, 1980][ReedSimon1980I]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -29,6 +49,8 @@ variable {B : Type*} [NormedRing B] [NormedAlgebra ℂ B]
 
 omit [Nontrivial B] in
 
+/-- If the spectral radius of `b` is less than one, its powers satisfy `‖b ^ n‖ ≤ C * q ^ n` for
+some `0 < q < 1` and `1 ≤ C`. -/
 theorem geometric_norm_powers (b : B)
     (hb : spectralRadius ℂ b < 1) :
     ∃ q : ℝ, 0 < q ∧ q < 1 ∧ ∃ C : ℝ, 1 ≤ C ∧
@@ -63,6 +85,8 @@ theorem geometric_norm_powers (b : B)
   · intro n
     simpa only [abs_of_nonneg (norm_nonneg (b ^ n))] using hC n
 
+/-- If every spectral value of `a` has negative real part, some positive Euler step `1 + (h : ℂ)
+• a` has spectral radius less than one. -/
 theorem exists_small_euler_step (a : B)
     (hneg : ∀ z ∈ spectrum ℂ a, z.re < 0) :
     ∃ h : ℝ, 0 < h ∧ spectralRadius ℂ (1 + (h : ℂ) • a) < 1 := by
@@ -112,6 +136,8 @@ theorem exists_small_euler_step (a : B)
 
 omit [NormOneClass B] [Nontrivial B] in
 
+/-- A geometric bound `‖b ^ n‖ ≤ C * q ^ n` implies `‖exp ((s : ℂ) • b)‖ ≤ C * Real.exp (q * s)`
+for nonnegative `s`. -/
 theorem norm_exp_smul_le_of_geometric (b : B) (q C : ℝ)
     (hp : ∀ n : ℕ, ‖b ^ n‖ ≤ C * q ^ n)
     (s : ℝ) (hs : 0 ≤ s) :
@@ -135,6 +161,8 @@ theorem norm_exp_smul_le_of_geometric (b : B) (q C : ℝ)
       rw [mul_pow]
       ring
 
+/-- If the spectrum of `a` lies in the open left half-plane, there exist `1 ≤ C` and `0 < μ`
+such that `‖exp ((t : ℂ) • a)‖ ≤ C * Real.exp (-μ * t)` for all nonnegative `t`. -/
 theorem exponential_stability_of_negative_spectrum (a : B)
     (hneg : ∀ z ∈ spectrum ℂ a, z.re < 0) :
     ∃ C μ : ℝ, 1 ≤ C ∧ 0 < μ ∧

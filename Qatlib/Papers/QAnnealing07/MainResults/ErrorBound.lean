@@ -9,6 +9,25 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
+/-!
+# Final annealing error estimates
+
+This module verifies the temperature substitution and numerical error budget used in the
+final-measurement analysis of [SommaBoixoBarnum2007]. The theorem `eq19_error_le_eps` combines
+the thermal term with an assumed phase-estimation error budget, while `eqA19_error_bound`
+simplifies the classical norm estimate.
+
+## Main statements
+
+* `first_term_eq_eps_sq_half`: the thermal term equals `ε² / 2`.
+* `eq19_error_le_eps`: the combined scalar error is at most `ε`.
+* `eqA19_error_bound`: the classical norm-factor simplification.
+
+## References
+
+* [Somma et al., 2007][SommaBoixoBarnum2007]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,6 +35,8 @@ open scoped Classical BigOperators
 
 namespace Qatlib.Papers.QAnnealing07.MainResults.ErrorBound
 
+/-- With the specified logarithmic final inverse temperature and positive parameters, the
+thermal term `d * exp (-(βf * γ))` equals `ε ^ 2 / 2` [SommaBoixoBarnum2007]. -/
 theorem first_term_eq_eps_sq_half
     (d ε γ βf : ℝ) (hd : 0 < d) (hε : 0 < ε) (hγ : 0 < γ)
     (hβ : βf = Real.log (2 * d / ε ^ 2) / γ) :
@@ -27,6 +48,8 @@ theorem first_term_eq_eps_sq_half
   rw [hβγ, Real.exp_neg, Real.exp_log harg]
   field_simp
 
+/-- For `0 < ε ≤ 1`, the specified final temperature and error budget `τ' * Q * ν ^ 2 ≤ ε / 2`
+make the combined error expression at most `ε` [SommaBoixoBarnum2007]. -/
 theorem eq19_error_le_eps
     (d ε γ βf τ' Q ν : ℝ) (hd : 0 < d) (hε0 : 0 < ε) (hε1 : ε ≤ 1)
     (hγ : 0 < γ) (hβ : βf = Real.log (2 * d / ε ^ 2) / γ)
@@ -38,6 +61,8 @@ theorem eq19_error_le_eps
     nlinarith
   linarith
 
+/-- If `P` satisfies the given exponential bound with a nonnegative norm factor whose square is
+at most two, then `P ≤ sqrt (2d) * exp (-(βf * γ / 2))` [SommaBoixoBarnum2007]. -/
 theorem eqA19_error_bound
     (d βf γ P hnorm : ℝ)
     (hA4 : P ≤ Real.sqrt d * Real.exp (-(βf * γ / 2)) * hnorm)

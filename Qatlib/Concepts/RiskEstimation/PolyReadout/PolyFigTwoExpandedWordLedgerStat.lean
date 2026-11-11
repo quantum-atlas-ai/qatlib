@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedDefs
+
+/-!
+# Specification of expanded polynomial resource counts
+
+This module states `PolyFigTwoExpandedWordLedger`, recording the rotation-word length bound and
+exact counted amplitude-estimation costs for expanded payoff preparation.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `PolyFigTwoExpandedWordLedger`: The proposition that the expanded angle word has length at
+  most `31 * (d + 1) * n ^ (d + 1)`, for `d = fp.natDegree * (2 * u + 1)` and `n ≥ 1`, together
+  with the stated exact access, query, and gate counts for `2 * r + 1` repetitions.
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,6 +38,9 @@ noncomputable section
 namespace Qatlib.Concepts.RiskEstimation.PolyReadout
 open Matrix
 
+/-- The proposition that the expanded angle word has length at most `31 * (d + 1) * n ^ (d +
+1)`, for `d = fp.natDegree * (2 * u + 1)` and `n ≥ 1`, together with the stated exact
+access, query, and gate counts for `2 * r + 1` repetitions. -/
 def PolyFigTwoExpandedWordLedger : Prop :=
   ∀ (n u : ℕ) (hn : 1 ≤ n) (A : Matrix (Reg n) (Reg n) ℂ) (j : Reg n) (c : ℝ)
     (fp : Polynomial ℝ) (M r : ℕ), A ∈ Matrix.unitaryGroup (Reg n) ℂ → (hM : 2 ≤ M) →

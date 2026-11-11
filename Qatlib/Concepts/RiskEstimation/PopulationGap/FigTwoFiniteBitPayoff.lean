@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.FigTwoFiniteBitPayoff
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedReadoutQuan
 import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedWordLedgerQuan
+
+/-!
+# Polynomial payoff readout with finite-bit error allowance
+
+This module proves `polyFigTwoFiniteBitPayoff` by combining expanded polynomial payoff readout
+with the rotation-word bound. Its readout guarantee includes the additional nonnegative
+angle-precision allowance specified by `FigTwoFiniteBitPayoff`.
+
+The quantum risk-analysis setting is described in [WoernerEgger2019].
+
+## Main statements
+
+* `polyFigTwoFiniteBitPayoff`: The expanded Figure 2 payoff satisfies the specified readout
+  bound with an added angle-precision allowance and the polynomial rotation-word length bound;
+  see [WoernerEgger2019].
+
+## References
+
+* [Woerner and Egger, 2019][WoernerEgger2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,9 @@ namespace Qatlib.Concepts.RiskEstimation.PopulationGap
 open Matrix
 open scoped Classical BigOperators ENNReal
 
+/-- The expanded Figure 2 payoff satisfies the specified readout bound with an added
+angle-precision allowance and the polynomial rotation-word length bound; see
+[WoernerEgger2019]. -/
 theorem polyFigTwoFiniteBitPayoff : FigTwoFiniteBitPayoff := by
   intro n A j u c fp M r bits angleBits hA hM hf hc hc1
   refine ⟨?_, ?_⟩

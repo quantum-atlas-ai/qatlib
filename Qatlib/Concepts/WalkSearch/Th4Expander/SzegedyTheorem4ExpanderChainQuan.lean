@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.WalkSearch.TwoLevelLower
+
+/-!
+# Regular-graph transition and frame support
+
+This module proves `SzegedyTheorem4ExpanderChain` for the kernel `expanderStep`. Positive
+regular degree gives row normalization, adjacency symmetry gives kernel symmetry, and nonzero
+frame amplitudes occur only on adjacent pairs with the specified first vertex.
+
+These properties supply the classical kernel and preparation support used in the walk-search
+construction [Szegedy2004].
+
+## Main statements
+
+* `szegedyTheorem4ExpanderChain`: transition, symmetry, and support properties.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.WalkSearch.TwoLevelLower
@@ -17,6 +37,8 @@ namespace Qatlib.Concepts.WalkSearch.Th4Expander
 open Matrix
 open scoped BigOperators
 
+/-- Establish that a symmetric regular adjacency relation with positive size and degree gives a
+symmetric transition matrix whose Szegedy frame has the required edge support [Szegedy2004]. -/
 theorem szegedyTheorem4ExpanderChain : SzegedyTheorem4ExpanderChain := by
   classical
   intro n d adj _ hd hsym hreg

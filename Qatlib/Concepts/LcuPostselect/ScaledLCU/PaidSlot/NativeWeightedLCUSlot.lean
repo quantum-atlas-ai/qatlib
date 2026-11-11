@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+
+/-!
+# Explicit weighted LCU query slots
+
+`weightedLCUSlotBody` adds coefficient phases to a selection word, and `weightedLCUSlotWord`
+substitutes that body into coefficient preparation and unpreparation. This makes the LCU
+construction of [GilyenSuLowWiebe2019] an explicit word in the existing oracle.
+
+`weightedLCUSlot_encoding_cost` combines approximate block encodings with coefficient-weighted
+normalization and error while tracking forward and adjoint execution costs.
+
+## Main statements
+
+* `weightedLCUSlot_encoding_cost`: certify the approximate encoding, well-formedness, exact
+  costs, and adjoint semantics.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,14 +39,20 @@ open scoped BigOperators Matrix.Norms.L2Operator
 variable {J H I : Type} [Fintype J] [DecidableEq J]
   [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
+/-- Prefixes a selection word by the fixed diagonal coefficient-phase gate. -/
 def weightedLCUSlotBody (d : J → ℂ) (W : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (J × H))) :
     List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (J × H)) :=
   .gate (Qatlib.Concepts.BlockEncoding.LCU.select (Qatlib.Concepts.BlockEncoding.EncodingCore.phaseAbsorbed d (fun _ => (1 : Matrix H H ℂ)))) :: W
 
+/-- Substitutes the phase-weighted selection body into the coefficient prepare-select-unprepare
+adjoint word. -/
 def weightedLCUSlotWord (d : J → ℂ) (j₀ : J)
     (W : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (J × H))) : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (J × H)) :=
   Qatlib.Concepts.QsvtCore.QueryLowerBound.substituteAdjointCircuit (Qatlib.Concepts.LcuPostselect.ScaledLCU.PaidWeightedLCUSlot.weightedLCUSlotBody d W) (Qatlib.Concepts.LcuPostselect.ScaledLCU.scaledLCUAdjointWord d j₀)
 
+/-- A well-formed word implementing `select U` yields a weighted approximate block encoding with
+coefficient-weighted normalization and error, the same query count, and three additional
+fixed gates, together with adjoint evaluation and query-count identities. -/
 theorem weightedLCUSlot_encoding_cost (j₀ : J) (A : J → Matrix I I ℂ)
     (U : J → Matrix H H ℂ) (F : Matrix H I ℂ) (c : J → ℂ) (α ε : J → ℝ)
     (O : Matrix (J × H) (J × H) ℂ) (W : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (J × H)))

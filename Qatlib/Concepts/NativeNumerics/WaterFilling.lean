@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
 import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
 import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
+
+/-!
+# Numerical coherent water filling
+
+This module defines rational water-filled amplitudes `waterFill`, attenuation ratios
+`waterGamma`, and ideal and numerical coherent preparations. The construction is related to the
+water-filling optimization in quantum rejection sampling [OzolsRoettelerRoland2013].
+
+For nonnegative amplitudes and scale, the attenuation ratios lie in `[0,1]`. At fixed squared
+mass, the water-filled amplitudes maximize the stated target overlap; the numerical preparation
+is unitary and approximates both the ideal gate and its success-flag probability with explicit
+precision bounds.
+
+## Main statements
+
+* `coherent_waterfill_fixed_mass_variational_optimum`: Water filling maximizes the target
+  overlap among capped amplitudes with the same squared mass.
+* `coherent_waterfill_actual_numeric_gate_and_error`: Numerical preparation is unitary and
+  within `32 / 2^k` of the ideal gate.
+* `coherent_waterfill_same_unknown_state_flag_mass`: The numerical success mass differs from
+  `waterMass` by at most `64 / 2^k`.
+
+## References
+
+* [Ozols, Roetteler, and Roland, 2013][OzolsRoettelerRoland2013]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -33,39 +60,55 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.HhlAlgorithms.Postselection.SignalProcessing
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- The water-filled amplitude at `i`, given by `min (pi i) (lam * sigma i)`. -/
 def waterFill {m : ℕ} (pi sigma : Fin m  → ℚ) (lam : ℚ) (i : Fin m) : ℚ := min (pi i) (lam*sigma i)
 
+/-- The attenuation ratio of the water-filled amplitude to the source amplitude, defined as zero
+when the source amplitude vanishes. -/
 def waterGamma {m : ℕ} (pi sigma : Fin m  → ℚ) (lam : ℚ) (i : Fin m) : ℚ :=
   if pi i=0 then 0 else waterFill pi sigma lam i/pi i
 
+/-- The sum of squared real water-filled amplitudes. -/
 noncomputable def waterMass {m : ℕ} (pi sigma : Fin m  → ℚ) (lam : ℚ) : ℝ :=
   ∑ i : Fin m,(waterFill pi sigma lam i:ℝ)^2
 
+/-- The coherent source state with label amplitude `pi i` and associated state `xi i`. -/
 noncomputable def waterSource {m D : ℕ} (pi : Fin m  → ℚ) (xi : Fin m  → QState (Fin D)) : QState (Fin m ×Fin D) :=
   fun p => (pi p.1:ℂ)*xi p.1 p.2
 
+/-- The flagged target vector with amplitude `sigma i` multiplying `xi i` in the `true` flag
+branch and zero in the other branch. -/
 noncomputable def waterTarget {m D : ℕ} (sigma : Fin m  → ℚ) (xi : Fin m  → QState (Fin D)) :
     QState ((Fin m ×Fin D) ×Bool) :=
   fun p => if p.2 then (sigma p.1.1:ℂ)*xi p.1.1 p.1.2 else 0
 
+/-- The ideal coherent preparation obtained by applying `A` and then a payoff rotation with
+payoff `waterGamma²`. -/
 noncomputable def waterIdealPrepare {m D : ℕ} (pi sigma : Fin m  → ℚ) (lam : ℚ)
     (A : Matrix (Fin m ×Fin D) (Fin m ×Fin D) ℂ) :
     Matrix ((Fin m ×Fin D) ×Bool) ((Fin m ×Fin D) ×Bool) ℂ :=
   payoffRotation (fun p => (waterGamma pi sigma lam p.1:ℝ)^2) *
     TensorGate A (1 : Matrix Bool Bool ℂ)
 
+/-- The numerical coherent preparation obtained by applying `A` and then the precision-`k`
+rational payoff rotation with payoff `waterGamma²`. -/
 noncomputable def waterNumericPrepare {m D : ℕ} (pi sigma : Fin m  → ℚ) (lam : ℚ) (k : ℕ)
     (A : Matrix (Fin m ×Fin D) (Fin m ×Fin D) ℂ) :
     Matrix ((Fin m ×Fin D) ×Bool) ((Fin m ×Fin D) ×Bool) ℂ :=
   rationalPayoffRotation (fun p => waterGamma pi sigma lam p.1^2) k *
     TensorGate A (1 : Matrix Bool Bool ℂ)
 
+/-- The success event consisting of states whose water-filling flag is `true`. -/
 def waterEvent (m D : ℕ) : Finset ((Fin m ×Fin D) ×Bool) := Finset.univ.filter (fun p => p.2=true)
 
+/-- The rational scale `1 / (1 + sum c)` computed from the finite coefficient table. -/
 def waterSafeScale {m : ℕ} (c : Fin m  → ℚ) : ℚ := 1/(1+(List.ofFn c).sum)
 
 set_option maxHeartbeats 2000000
 
+/-- For nonnegative source and target amplitudes and scale, water filling respects the source
+caps, its attenuation ratios lie in `[0,1]`, and zero source amplitudes give zero filled
+amplitudes. -/
 theorem coherent_waterfill_computed_support_and_range
     (m : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (h : ∀ i, 0 ≤ pi i ∧ 0 ≤ sigma i) (hlam : 0 ≤ lam) :
@@ -88,6 +131,10 @@ theorem coherent_waterfill_computed_support_and_range
   · simp [hzero i hi]
   · field_simp
 
+/-- For positive scale and nonnegative source and target amplitudes, water filling maximizes
+target overlap among nonnegative source-capped amplitudes with the same squared mass. This
+is the fixed-mass optimization underlying the construction associated with
+[OzolsRoettelerRoland2013, Theorem 1][OzolsRoettelerRoland2013]. -/
 theorem coherent_waterfill_fixed_mass_variational_optimum
     (m : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ) (w : Fin m → ℝ)
     (h : ∀ i, 0 ≤ pi i ∧ 0 ≤ sigma i) (hlam : 0 < lam)
@@ -114,6 +161,7 @@ theorem coherent_waterfill_fixed_mass_variational_optimum
   rw [hmass, sub_self] at hh
   nlinarith
 
+/-- For nonnegative amplitudes and scale, every squared attenuation ratio lies in `[0,1]`. -/
 private theorem water_payoff_bounds (m : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (h : ∀ i, 0 ≤ pi i ∧ 0 ≤ sigma i) (hlam : 0 ≤ lam) :
     ∀ i, 0 ≤ waterGamma pi sigma lam i^2 ∧ waterGamma pi sigma lam i^2 ≤ 1 := by
@@ -121,6 +169,8 @@ private theorem water_payoff_bounds (m : ℕ) (pi sigma : Fin m → ℚ) (lam : 
   have hg := (coherent_waterfill_computed_support_and_range m pi sigma lam h hlam).1 i
   exact ⟨sq_nonneg _, by nlinarith [hg.2.2.1, hg.2.2.2.1]⟩
 
+/-- The ideal water-filling preparation is unitary when `A` is unitary and the amplitudes and
+scale are nonnegative. -/
 theorem waterIdealPrepare_unitary (m D : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ)
     (h : ∀ i, 0 ≤ pi i ∧ 0 ≤ sigma i) (hlam : 0 ≤ lam) (hA : A ∈ Matrix.unitaryGroup _ ℂ) :
@@ -132,6 +182,9 @@ theorem waterIdealPrepare_unitary (m D : ℕ) (pi sigma : Fin m → ℚ) (lam : 
     exact ⟨by exact_mod_cast hh.1, by exact_mod_cast hh.2⟩
   · exact tensorGate_unitary hA (by simp)
 
+/-- Under the nonnegativity and unitarity assumptions, the numerical water-filling preparation
+is unitary and within `32 / 2^k` of the ideal gate. This supplies a numerical preparation
+bound for the rejection-sampling setting of [OzolsRoettelerRoland2013]. -/
 theorem coherent_waterfill_actual_numeric_gate_and_error
     (m D k : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ)
@@ -153,6 +206,9 @@ theorem coherent_waterfill_actual_numeric_gate_and_error
   exact (norm_mul_le _ _).trans
       ((mul_le_mul_of_nonneg_left (l2_norm_unitary_le_one hT) (norm_nonneg _)).trans (by simpa using! herr))
 
+/-- If `A` prepares the specified coherent source and amplitudes and scale are nonnegative,
+collapsing the ideal output onto the success flag gives the target vector with water-filled
+amplitudes. -/
 theorem water_ideal_collapse (m D : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (xi : Fin m → QState (Fin D)) (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D)
     (h : ∀ i, 0 ≤ pi i ∧ 0 ≤ sigma i) (hlam : 0 ≤ lam) (hsource : A *ᵥ Ket j = waterSource pi xi) :
@@ -180,6 +236,8 @@ theorem water_ideal_collapse (m D : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
       _ = ((pi i : ℂ)*(waterGamma pi sigma lam i : ℂ))*xi i d := by ring
       _ = _ := by rw [hmul]
 
+/-- If every `xi i` is normalized, the squared norm of the flagged target vector is the sum of
+the squared amplitudes. -/
 theorem water_target_normSq (m D : ℕ) (c : Fin m → ℚ) (xi : Fin m → QState (Fin D))
     (hxi : ∀ i, Normalized (xi i)) :
     ∑ p, Complex.normSq (waterTarget c xi p) = ∑ i, (c i : ℝ)^2 := by
@@ -191,6 +249,8 @@ theorem water_target_normSq (m D : ℕ) (c : Fin m → ℚ) (xi : Fin m → QSta
     _ = ∑ i, ((c i : ℝ)*(c i : ℝ))*(∑ d, Complex.normSq (xi i d)) := by simp_rw [← Finset.mul_sum]
     _ = _ := by simp only [hxisq, mul_one]; apply Finset.sum_congr rfl; intro i _; ring
 
+/-- If `A` prepares the coherent source with normalized component states and amplitudes and
+scale are nonnegative, the ideal success-flag probability is exactly `waterMass`. -/
 theorem water_ideal_mass (m D : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (xi : Fin m → QState (Fin D)) (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D)
     (h : ∀ i, 0 ≤ pi i ∧ 0 ≤ sigma i) (hlam : 0 ≤ lam) (hxi : ∀ i, Normalized (xi i))
@@ -199,6 +259,8 @@ theorem water_ideal_mass (m D : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
   rw [← sum_normSq_collapse, water_ideal_collapse m D pi sigma lam xi A j h hlam hsource]
   simpa only [← Complex.sq_norm] using! water_target_normSq m D (waterFill pi sigma lam) xi hxi
 
+/-- For unitary `A` and nonnegative amplitudes and scale, the numerical and ideal prepared
+basis-input states differ by at most `32 / 2^k` in Euclidean norm. -/
 theorem water_prepared_state_error (m D k : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D)
     (h : ∀ i, 0 ≤ pi i ∧ 0 ≤ sigma i) (hlam : 0 ≤ lam) (hA : A ∈ Matrix.unitaryGroup _ ℂ) :
@@ -213,6 +275,10 @@ theorem water_prepared_state_error (m D k : ℕ) (pi sigma : Fin m → ℚ) (lam
   simpa only [ApplyGate, hk, mul_one] using!
       hn.trans (mul_le_mul_of_nonneg_right hh (norm_nonneg _))
 
+/-- For a unitary source preparation with normalized component states and nonnegative amplitudes
+and scale, the ideal success mass equals `waterMass` and the numerical success mass differs
+by at most `64 / 2^k`. This controls the flag probability in the rejection-sampling setting
+of [OzolsRoettelerRoland2013]. -/
 theorem coherent_waterfill_same_unknown_state_flag_mass
     (m D k : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
     (xi : Fin m → QState (Fin D)) (A : Matrix (Fin m × Fin D) (Fin m × Fin D) ℂ) (j : Fin m × Fin D)

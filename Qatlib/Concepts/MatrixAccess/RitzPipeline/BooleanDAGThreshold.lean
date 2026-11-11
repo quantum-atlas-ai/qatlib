@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGThresholdData
 import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGCoarseBranch
+
+/-!
+# Threshold-word encoding and circuit correctness
+
+`boolean_word_threshold_offset_value` proves that the offset graph adds `32*2^b` to the signed
+coarse value. `boolean_word_threshold_value` identifies the selected width `b+6` bit-vector with
+the absolute value of that shifted integer modulo `2^(b+6)`.
+
+The module also proves low-word truncation, the zero-wire property, polynomial resource bounds,
+and reversible basis-state and coherent semantics. The circuit background is described in
+[NielsenChuang2010].
+
+## Main statements
+
+* `boolean_word_low_value`: truncation of a little-endian word is reduction modulo a power of
+  two.
+* `boolean_word_threshold_offset_value`, `boolean_word_threshold_value`: integer and bit-vector
+  interpretations.
+* `boolean_word_threshold_resources`: circuit resource bounds.
+* `boolean_word_threshold_basis`, `boolean_word_threshold_coherent`: circuit action.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -20,6 +46,7 @@ open scoped Classical BigOperators
 set_option autoImplicit false
 attribute [local irreducible] booleanWordCoarseProgram booleanWordSignedAddProgram
 
+/-- Restricting a little-endian word to its low `m` bits gives its unsigned value modulo `2^m`. -/
 theorem boolean_word_low_value (W m : ℕ) (hm : m ≤ W) (a : Reg W) :
     booleanWordLSBValue m (booleanWordLow W m hm a) = booleanWordLSBValue W a % 2^m := by
   obtain ⟨k,rfl⟩ := Nat.exists_eq_add_of_le hm
@@ -39,6 +66,8 @@ theorem boolean_word_low_value (W m : ℕ) (hm : m ≤ W) (a : Reg W) :
   change low = _
   simp only [hs,Nat.add_mod,Nat.mul_mod_right,Nat.add_zero,Nat.mod_eq_of_lt hlt]
 
+/-- Applying a Boolean-valued map to signed-pair sources gives the corresponding packed
+signed-addition input. -/
 private theorem th_pair_map {α : Type*} (w : ℕ) (a b : Fin (w+1) → α) (f : α → Bool) :
     (fun j => f (booleanSignedPairSelect w a b j)) =
       booleanWordSignedAddInput w (fun j => f (a j.castSucc)) (fun j => f (b j.castSucc))
@@ -56,39 +85,55 @@ private theorem th_pair_map {α : Type*} (w : ℕ) (a b : Fin (w+1) → α) (f :
       · simp [booleanSignedPairSelect,booleanWordAdderInput,ht]
       · simp [booleanSignedPairSelect,booleanWordAdderInput,ht,t.isLt]
 
+/-- The input width of the coarse-value graph used by the threshold construction. -/
 private abbrev thM (n w : ℕ) := booleanWordCoarseInputWidth n w
+/-- The bilinear quotient width determining the intermediate threshold word sizes. -/
 private abbrev thV (w b d : ℕ) := booleanWordBilinearQuotientWidth w b d
+/-- The coarse-value program used as the initial threshold graph. -/
 private abbrev thP (n w b d : ℕ) := booleanWordCoarseProgram n w b d
+/-- Append a true constant to the coarse-value graph for constructing the positive offset word. -/
 private abbrev thG (n w b d : ℕ) := (thP n w b d).graph.snoc (.constant true)
+/-- Select the coarse-value output wires after appending the true constant. -/
 private abbrev thOld (n w b d : ℕ) : Fin (thV w b d+3) → Fin (thM n w+((thP n w b d).nodes+1)) :=
   fun j => Fin.castSucc ((thP n w b d).output j)
+/-- Select the original distinguished zero wire after appending the true constant. -/
 private abbrev thZero (n w b d : ℕ) : Fin (thM n w+((thP n w b d).nodes+1)) :=
   Fin.castSucc (thP n w b d).zero
+/-- Select the newly appended true constant wire. -/
 private abbrev thOne (n w b d : ℕ) : Fin (thM n w+((thP n w b d).nodes+1)) :=
   ⟨thM n w+(thP n w b d).nodes,by omega⟩
+/-- Select the true wire at position `b+5` and the zero wire at all other positions of the
+signed offset word. -/
 private abbrev thOffset (n w b d : ℕ) : Fin (thV w b d+3) → Fin (thM n w+((thP n w b d).nodes+1)) :=
   fun j => if j.val=b+5 then thOne n w b d else thZero n w b d
 
+/-- The transported coarse-value output wires retain their evaluated result bits after the true
+constant is appended. -/
 private theorem th_old (n w b d : ℕ) (x : Reg (thM n w)) (j : Fin (thV w b d+3)) :
     booleanDAGValue (thG n w b d) x (thOld n w b d j) = booleanWordCoarseResult n w b d x j := by
   simp only [thOld,booleanDAGValue,Fin.lastCases_castSucc]
   rfl
 
+/-- The transported distinguished zero wire evaluates to false. -/
 private theorem th_zero (n w b d : ℕ) (x : Reg (thM n w)) :
     booleanDAGValue (thG n w b d) x (thZero n w b d) = false := by
   simp only [thZero,booleanDAGValue,Fin.lastCases_castSucc]
   exact boolean_word_coarse_zero n w b d x
 
+/-- The appended constant wire evaluates to true. -/
 private theorem th_one (n w b d : ℕ) (x : Reg (thM n w)) :
     booleanDAGValue (thG n w b d) x (thOne n w b d) = true := by
   change Fin.lastCases true (booleanDAGValue (thP n w b d).graph x)
     (Fin.last (thM n w+(thP n w b d).nodes)) = true
   exact Fin.lastCases_last
 
+/-- The offset source at position `j` evaluates to true exactly when `j.val = b+5`. -/
 private theorem th_offset (n w b d : ℕ) (x : Reg (thM n w)) (j : Fin (thV w b d+3)) :
     booleanDAGValue (thG n w b d) x (thOffset n w b d j) = decide (j.val=b+5) := by
   by_cases hj : j.val=b+5 <;> simp only [thOffset,hj,ite_true,ite_false,th_one,th_zero,decide_true,decide_false]
 
+/-- The offset result is the signed sum of the coarse result and a positive word with its sole
+true magnitude bit at position `b+5`. -/
 private theorem th_result (n w b d : ℕ) (x : Reg (thM n w)) :
     booleanWordThresholdOffsetResult n w b d x =
       booleanWordSignedAddResult (thV w b d+2)
@@ -117,6 +162,7 @@ private theorem th_result (n w b d : ℕ) (x : Reg (thM n w)) :
   rw [hr,hi]
   rfl
 
+/-- The unsigned value of the offset magnitude word is `2^(b+5)`. -/
 private theorem th_offset_lsb (w b d : ℕ) :
     booleanWordLSBValue (thV w b d+2) (fun j => decide (j.val=b+5)) = 2^(b+5) := by
   rw [boolean_word_lsb_value]
@@ -128,6 +174,7 @@ private theorem th_offset_lsb (w b d : ℕ) :
     simp only [hn,decide_false,Bool.false_eq_true,ite_false,zero_mul]
   · simp
 
+/-- The decoded threshold-offset output equals the coarse integer value plus `32*2^b`. -/
 theorem boolean_word_threshold_offset_value (n w b d : ℕ)
     (x : Reg (booleanWordCoarseInputWidth n w)) :
     booleanWordThresholdOffsetValue n w b d x = booleanWordCoarseValue n w b d x + 32*(2:ℤ)^b := by
@@ -140,10 +187,14 @@ theorem boolean_word_threshold_offset_value (n w b d : ℕ)
   norm_num
   ring
 
+/-- The natural absolute value of a decoded sign-magnitude integer is the unsigned value of its
+magnitude word. -/
 private theorem th_magnitude_natAbs (W : ℕ) (a : Reg W) (s : Bool) :
     (booleanWordSignedValue W a s).natAbs = booleanWordLSBValue W a := by
   cases s <;> simp [booleanWordSignedValue]
 
+/-- The threshold output bit-vector has value equal to the natural absolute value of the coarse
+value plus `32*2^b`, reduced modulo `2^(b+6)`. -/
 theorem boolean_word_threshold_value (n w b d : ℕ)
     (x : Reg (booleanWordCoarseInputWidth n w)) :
     (bitVecEquiv (b+6) (booleanWordThresholdResult n w b d x)).val =
@@ -165,6 +216,7 @@ theorem boolean_word_threshold_value (n w b d : ℕ)
     (th_magnitude_natAbs (V+3) a (booleanWordThresholdOffsetResult n w b d x (Fin.last (V+3)))).symm
   rw [ha,boolean_word_threshold_offset_value]
 
+/-- The threshold program's distinguished zero wire evaluates to false. -/
 theorem boolean_word_threshold_zero (n w b d : ℕ) (x : Reg (booleanWordCoarseInputWidth n w)) :
     let p := booleanWordThresholdProgram n w b d
     booleanDAGValue p.graph x p.zero = false := by
@@ -187,6 +239,9 @@ theorem boolean_word_threshold_zero (n w b d : ℕ) (x : Reg (booleanWordCoarseI
   rw [hz,hi]
   exact (boolean_word_signed_add_magnitude _ _ _ _ _).1
 
+/-- The threshold circuit is legal and satisfies the stated polynomial bounds on its node, step,
+and total wire counts in terms of the bilinear quotient width and input parameters. It uses
+zero oracle queries, and its compiled gate count equals its reflection-step count. -/
 theorem boolean_word_threshold_resources (n w b d : ℕ) :
     let V := booleanWordBilinearQuotientWidth w b d
     let p := booleanWordThresholdProgram n w b d
@@ -214,6 +269,8 @@ theorem boolean_word_threshold_resources (n w b d : ℕ) :
       40*V^2+68*V+242*w^2+916*w+8*n+b+775
     omega
 
+/-- On a basis state with initialized workspace, the compiled threshold circuit XORs its width
+`b+6` result into the target and restores the workspace. -/
 theorem boolean_word_threshold_basis (n w b d : ℕ) (x : Reg (booleanWordCoarseInputWidth n w))
     (y : Reg (b+6)) :
     let M := booleanWordCoarseInputWidth n w
@@ -224,6 +281,8 @@ theorem boolean_word_threshold_basis (n w b d : ℕ) (x : Reg (booleanWordCoarse
       Ket (booleanDAGInput M p.nodes (b+6) x (fun j => y j ^^ booleanWordThresholdResult n w b d x j)) :=
   boolean_dag_basis _ _ _ _
 
+/-- On an arbitrary embedded state, the compiled threshold circuit coherently XORs each
+threshold result into its target and restores the workspace. -/
 theorem boolean_word_threshold_coherent (n w b d : ℕ)
     (ψ : QState (Reg (booleanWordCoarseInputWidth n w) × Reg (b+6))) :
     let M := booleanWordCoarseInputWidth n w

@@ -7,6 +7,20 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleStat
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Concepts.WalkSearch.TwoLevelLower
+
+/-!
+# Unitary extension of the Szegedy isometry
+
+`szegedyTheorem4WalkOracle` proves that a finite transition matrix has a unitary
+state-preparation extension on two registers with a fixed basis state in the second register.
+The proof extends the orthonormal columns of `SzegedyIsometry` to a full orthonormal basis,
+supplying the walk-oracle construction used in [Szegedy2004].
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Foundations.PureStateMath
@@ -20,6 +34,8 @@ open scoped BigOperators
 
 set_option maxHeartbeats 800000 in
 
+/-- Every finite transition matrix has a unitary extension of `SzegedyIsometry` on inputs with
+the second register fixed to a chosen basis state; see [Szegedy2004]. -/
 theorem szegedyTheorem4WalkOracle : SzegedyTheorem4WalkOracle := by
   classical
   intro I _ _ P j hP

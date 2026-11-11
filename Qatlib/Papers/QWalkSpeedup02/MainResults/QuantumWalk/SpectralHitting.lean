@@ -11,6 +11,33 @@ import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Algebra.Order.Chebyshev
 import Mathlib.Tactic
 
+/-!
+# Spectral estimates for time-averaged hitting
+
+This module models a finite spectral expansion with normalized real entrance and exit amplitudes
+of equal squared magnitude, following Lemma 1 of [ChildsEtAl2003]. It defines the transition
+amplitude, exit probability, and average over a time interval, then separates the integrated
+spectral sum into diagonal and off-diagonal terms.
+
+`SpectralWalk.lemma1_hitting_probability` bounds the time-averaged exit probability below by `(1
+- ε)/(2*n)` when there are at most `2*n` spectral terms, the energy separation is at least a
+positive `ΔE`, and the averaging time is at least `4*n/(ε*ΔE)`.
+
+## Main statements
+
+* `SpectralWalk`: normalized entrance and exit spectral data with distinct energies.
+* `SpectralWalk.integral_exitProbability`: the integrated spectral expansion of the exit
+  probability.
+* `SpectralWalk.abs_offDiagonal_le`: the energy-gap bound for the integrated off-diagonal
+  contribution.
+* `SpectralWalk.lemma1_hitting_probability`: the lower bound for sufficiently long time
+  averaging.
+
+## References
+
+* [Childs et al., 2003][ChildsEtAl2003]
+-/
+
 set_option autoImplicit false
 
 noncomputable section
@@ -21,13 +48,18 @@ open MeasureTheory
 
 namespace Qatlib.Papers.QWalkSpeedup02.MainResults.QuantumWalk.SpectralHitting
 
+/-- The complex dynamical phase `exp(-I * E * t)` for real energy `E` and time `t`. -/
 def eigenPhase (E t : ℝ) : ℂ :=
   Complex.exp ((-(E * t)) * Complex.I)
 
+/-- The integrated phase kernel, equal to `τ` at zero frequency and to `(exp(I*θ*τ)-1)/(I*θ)`
+otherwise. -/
 def phaseKernel (θ τ : ℝ) : ℂ :=
   if θ = 0 then (τ : ℂ) else
     (Complex.exp ((θ * τ) * Complex.I) - 1) / (Complex.I * θ)
 
+/-- Finite real spectral data with normalized entrance and exit amplitudes, equal squared
+amplitudes at each energy, and pairwise distinct energies. -/
 structure SpectralWalk (n N : ℕ) where
 
   energy : Fin N → ℝ
@@ -48,30 +80,44 @@ namespace SpectralWalk
 
 variable {n N : ℕ} (S : SpectralWalk n N)
 
+/-- The product of the exit and entrance amplitudes at spectral index `i`. -/
 def coefficient (i : Fin N) : ℝ := S.exitAmp i * S.entranceAmp i
 
+/-- The transition amplitude obtained by summing each entrance-exit coefficient multiplied by
+its dynamical phase. -/
 def transitionAmplitude (t : ℝ) : ℂ :=
   ∑ i, (S.coefficient i : ℂ) * eigenPhase (S.energy i) t
 
+/-- The squared norm of the transition amplitude at time `t`. -/
 def exitProbability (t : ℝ) : ℝ := ‖S.transitionAmplitude t‖ ^ 2
 
+/-- The integral of the exit probability from zero to `τ`, multiplied by `1/τ`. -/
 def timeAveragedExitProbability (τ : ℝ) : ℝ :=
   (1 / τ) * ∫ t in (0)..τ, S.exitProbability t
 
+/-- The sum of the squared spectral coefficients, giving the diagonal contribution per unit
+averaging time. -/
 def diagonal : ℝ := ∑ i, S.coefficient i ^ 2
 
+/-- The integrated spectral sum over unequal indices, using the real phase kernel at each energy
+difference. -/
 def offDiagonalSum (τ : ℝ) : ℝ :=
   ∑ i, ∑ j, if i = j then 0 else
     (S.coefficient i * S.coefficient j) *
       (phaseKernel (S.energy i - S.energy j) τ).re
 
+/-- The full double spectral sum of coefficient products multiplied by real phase kernels at
+energy differences. -/
 def rawSpectralSum (τ : ℝ) : ℝ :=
   ∑ i, ∑ j, (S.coefficient i * S.coefficient j) *
     (phaseKernel (S.energy i - S.energy j) τ).re
 
+/-- A complex number multiplied by its conjugate equals its squared norm, cast to the complex
+numbers. -/
 lemma star_mul_self (z : ℂ) : star z * z = (Complex.normSq z : ℂ) := by
   simpa using (Complex.normSq_eq_conj_mul_self (z := z)).symm
 
+/-- Conjugating the dynamical phase reverses the sign of its imaginary exponent. -/
 lemma star_eigenPhase (E t : ℝ) :
     star (eigenPhase E t) = Complex.exp ((E * t) * Complex.I) := by
   unfold eigenPhase
@@ -80,6 +126,8 @@ lemma star_eigenPhase (E t : ℝ) :
   simp only [map_mul, map_neg, Complex.conj_ofReal, Complex.conj_I]
   ring
 
+/-- The product of a conjugated weighted phase and a second weighted phase equals the product of
+the real weights times the phase at their energy difference. -/
 lemma star_mul_eigenPhase_pair (a b E F t : ℝ) :
     star ((a : ℂ) * eigenPhase E t) * ((b : ℂ) * eigenPhase F t)
       = ((a * b : ℝ) : ℂ) * Complex.exp (((E - F) * t) * Complex.I) := by
@@ -100,6 +148,8 @@ lemma star_mul_eigenPhase_pair (a b E F t : ℝ) :
   congr 2
   ring
 
+/-- At nonzero frequency `θ`, the norm of the phase kernel is at most `2/|θ|` for every real
+`τ`. -/
 lemma phaseKernel_norm_le (θ τ : ℝ) (hθ : θ ≠ 0) :
     ‖phaseKernel θ τ‖ ≤ 2 / |θ| := by
   unfold phaseKernel
@@ -118,6 +168,8 @@ lemma phaseKernel_norm_le (θ τ : ℝ) (hθ : θ ≠ 0) :
   rw [hden]
   exact div_le_div_of_nonneg_right hnum (abs_nonneg θ)
 
+/-- The interval integral of `exp(I*θ*t)` from zero to `τ` equals `phaseKernel θ τ`, including
+at zero frequency. -/
 lemma integral_exp_pos (θ τ : ℝ) :
     (∫ t in (0)..τ, Complex.exp ((θ * t) * Complex.I)) = phaseKernel θ τ := by
   by_cases hθ : θ = 0
@@ -144,6 +196,8 @@ lemma integral_exp_pos (θ τ : ℝ) :
     rw [hcτ]
     ring_nf
 
+/-- The interval integral of the real part of `exp(I*θ*t)` equals the real part of `phaseKernel
+θ τ`. -/
 lemma integral_exp_re (θ τ : ℝ) :
     (∫ t in (0)..τ, (Complex.exp ((θ * t) * Complex.I)).re) =
       (phaseKernel θ τ).re := by
@@ -153,6 +207,8 @@ lemma integral_exp_re (θ τ : ℝ) :
   rw [integral_exp_pos] at h
   simpa using h
 
+/-- Expands the squared norm of a finite weighted phase sum as the double sum of the real parts
+of its conjugate products. -/
 lemma normSq_transitionAmplitude {N : ℕ} (c E : Fin N → ℝ) (t : ℝ) :
     ‖∑ i, (c i : ℂ) * eigenPhase (E i) t‖ ^ 2
       = ∑ i, ∑ j,
@@ -167,6 +223,8 @@ lemma normSq_transitionAmplitude {N : ℕ} (c E : Fin N → ℝ) (t : ℝ) :
   intro i _
   rw [Complex.re_sum]
 
+/-- Expands the exit probability into coefficient products multiplied by the real phases of
+energy differences. -/
 lemma exitProbability_eq_double_sum (S : SpectralWalk n N) (t : ℝ) :
     S.exitProbability t
       = ∑ i, ∑ j, (S.coefficient i * S.coefficient j) *
@@ -180,6 +238,8 @@ lemma exitProbability_eq_double_sum (S : SpectralWalk n N) (t : ℝ) :
   rw [star_mul_eigenPhase_pair]
   simp [Complex.mul_re]
 
+/-- The interval integral of the exit probability from zero to `τ` equals the full integrated
+spectral sum `rawSpectralSum τ`. -/
 lemma integral_exitProbability (S : SpectralWalk n N) (τ : ℝ) :
     (∫ t in (0)..τ, S.exitProbability t) = S.rawSpectralSum τ := by
   have hcont : ∀ (i j : Fin N), Continuous fun t : ℝ =>
@@ -222,6 +282,7 @@ lemma integral_exitProbability (S : SpectralWalk n N) (τ : ℝ) :
   · intro i _
     exact Continuous.intervalIntegrable (by fun_prop) 0 τ
 
+/-- Normalized entrance amplitudes force the number of spectral indices `N` to be positive. -/
 lemma card_pos (S : SpectralWalk n N) : 0 < N := by
   by_contra h
   have h0 : N = 0 := Nat.eq_zero_of_not_pos h
@@ -229,10 +290,12 @@ lemma card_pos (S : SpectralWalk n N) : 0 < N := by
   have h1 := S.entrance_norm
   simp at h1
 
+/-- A spectral walk with `N ≤ 2*n` has positive `n`. -/
 lemma n_pos (S : SpectralWalk n N) (hN : N ≤ 2 * n) : 0 < n := by
   have hNpos : 0 < N := S.card_pos
   omega
 
+/-- If `N ≤ 2*n`, the diagonal spectral contribution is at least `1/(2*n)`. -/
 lemma diagonal_lower (S : SpectralWalk n N) (hN : N ≤ 2 * n) :
     (1 : ℝ) / (2 * (n : ℝ)) ≤ S.diagonal := by
   have hNpos : 0 < N := S.card_pos
@@ -255,6 +318,7 @@ lemma diagonal_lower (S : SpectralWalk n N) (hN : N ≤ 2 * n) :
         one_div_le_one_div_of_le (by exact_mod_cast hNpos) hNle
     _ ≤ ∑ i, (S.entranceAmp i ^ 2) ^ 2 := hD
 
+/-- The sum of the absolute entrance-exit spectral coefficients is at most one. -/
 lemma abs_coefficient_sum_le_one (S : SpectralWalk n N) :
     (∑ i, |S.coefficient i|) ≤ 1 := by
   have hle : ∀ i, |S.coefficient i| ≤
@@ -276,6 +340,8 @@ lemma abs_coefficient_sum_le_one (S : SpectralWalk n N) :
         rw [← Finset.sum_div, Finset.sum_add_distrib, S.entrance_norm, S.exit_norm]
         norm_num
 
+/-- If distinct energies are separated by at least a positive `ΔE`, the absolute integrated
+off-diagonal contribution is at most `2/ΔE` for every real `τ`. -/
 lemma abs_offDiagonal_le (S : SpectralWalk n N) {ΔE : ℝ} (hΔE : 0 < ΔE)
     (hgap : ∀ i j : Fin N, i ≠ j → ΔE ≤ |S.energy i - S.energy j|) (τ : ℝ) :
     |S.offDiagonalSum τ| ≤ 2 / ΔE := by
@@ -361,6 +427,7 @@ lemma abs_offDiagonal_le (S : SpectralWalk n N) {ΔE : ℝ} (hΔE : 0 < ΔE)
               ≤ (2 / ΔE) * 1 := mul_le_mul_of_nonneg_left hSS hd
             _ = 2 / ΔE := by ring
 
+/-- Splits a row sum into its diagonal entry and the sum with that entry replaced by zero. -/
 lemma sum_split_diag {N : ℕ} (f : Fin N → Fin N → ℝ) (i : Fin N) :
     (∑ j, f i j) = f i i + ∑ j, (if i = j then 0 else f i j) := by
   have hdiag : f i i = ∑ j, if i = j then f i j else 0 := by
@@ -371,12 +438,16 @@ lemma sum_split_diag {N : ℕ} (f : Fin N → Fin N → ℝ) (i : Fin N) :
   intro j _
   by_cases h : i = j <;> simp [h]
 
+/-- Splits a double finite sum into the sum of its diagonal entries and its off-diagonal
+contribution. -/
 lemma sum_diag_off {N : ℕ} (f : Fin N → Fin N → ℝ) :
     (∑ i, ∑ j, f i j) = (∑ i, f i i) +
       ∑ i, ∑ j, if i = j then 0 else f i j := by
   simp_rw [sum_split_diag f]
   rw [Finset.sum_add_distrib]
 
+/-- The integrated spectral sum equals `τ` times the diagonal contribution plus the off-diagonal
+sum. -/
 lemma rawSpectralSum_diag_off (S : SpectralWalk n N) (τ : ℝ) :
     S.rawSpectralSum τ = τ * S.diagonal + S.offDiagonalSum τ := by
   unfold rawSpectralSum diagonal offDiagonalSum
@@ -388,6 +459,9 @@ lemma rawSpectralSum_diag_off (S : SpectralWalk n N) (τ : ℝ) :
     simp only [phaseKernel, sub_self, if_true, Complex.ofReal_re]
     ring
 
+/-- With at most `2*n` spectral indices and energy separation at least a positive `ΔE`, every
+averaging time `τ ≥ 4*n/(ε*ΔE)` for `ε > 0` gives average exit probability at least
+`(1-ε)/(2*n)`. See [Childs et al., Lemma 1][ChildsEtAl2003]. -/
 theorem lemma1_hitting_probability (S : SpectralWalk n N) (hN : N ≤ 2 * n)
     {ε ΔE τ : ℝ} (hε : 0 < ε) (hΔE : 0 < ΔE)
     (hgap : ∀ i j : Fin N, i ≠ j → ΔE ≤ |S.energy i - S.energy j|)

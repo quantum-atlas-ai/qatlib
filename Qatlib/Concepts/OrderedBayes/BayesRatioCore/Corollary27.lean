@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ClassicalInfoLowerBound
 import Mathlib.Tactic.NormNum
+
+/-!
+# Obstruction to a pointwise ordered search lower bound
+
+This module proves `corollary2_7_obstruction`, the negation of `Corollary2_7Contract`, in the
+ordered search setting of [BenOrHassidim2007]. A deterministic three-cell query tree has perfect
+identification on comparison oracles but uses one query on the constant-false oracle,
+contradicting the contract's universally quantified expected-query bound.
+
+## Main statements
+
+* `corollary2_7_obstruction`: the specified conjunction of query lower bounds cannot hold.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,6 +33,8 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib
 
+/-- The formal proposition `Corollary2_7Contract` is false, as witnessed by a three-cell query
+tree evaluated on the constant-false oracle. -/
 theorem corollary2_7_obstruction : ¬ Corollary2_7Contract := by
   intro h
   have hs : ∀ j : Fin 3, ENNReal.ofReal (1 - (0 : ℝ)) ≤

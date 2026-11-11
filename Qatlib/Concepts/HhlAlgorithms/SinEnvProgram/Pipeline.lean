@@ -12,6 +12,27 @@ import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Foundations.PureStateMath.MixedState
 import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
 import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+
+/-!
+# Sine-envelope HHL pipeline guarantees
+
+`source_A1_word_legality_and_counts` records well-formedness, unitary evaluation, and exact
+query and fixed-gate counts for the assembled sine-envelope HHL word.
+`source_A1_aa_success_and_four_kappa_repetitions` gives the corrected filter-event success
+guarantee with amplification depth at most `4 * κ`, corresponding to the pipeline in Appendix
+A.1 of [HarrowHassidimLloyd2009].
+
+## Main statements
+
+* `source_A1_word_legality_and_counts`: `2 * (M - 1)` queries and `4 * (M - 1) + 6` fixed gates.
+* `source_A1_aa_success_and_four_kappa_repetitions`: a unitary preparation and success
+  probability at least `1 / 4` within depth `4 * κ`.
+
+## References
+
+* [Harrow et al., 2009, Appendix A.1][HarrowHassidimLloyd2009]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,6 +56,9 @@ open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram
 open Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
 open scoped Real
 
+/-- The sine-envelope HHL word is well formed, evaluates to a unitary, and uses `2 * (M - 1)`
+queries and `4 * (M - 1) + 6` fixed gates under the stated unitary assumptions. See [Harrow
+et al., Appendix A.1][HarrowHassidimLloyd2009]. -/
 theorem source_A1_word_legality_and_counts (D M : ℕ) (hM : 2 ≤ M) (d : ℝ)
     (hd : 0 < d) (B U : Operator D)
     (hB : B ∈ Matrix.unitaryGroup (Fin D) ℂ)
@@ -46,6 +70,10 @@ theorem source_A1_word_legality_and_counts (D M : ℕ) (hM : 2 ≤ M) (d : ℝ)
       adjointGateCount (sinEnvelopeHHLWord M hM d B) = 4*(M-1)+6 :=
   sin_envelope_word_legality_and_counts D M hM d hd B U hB hU
 
+/-- Under the spectral and grid assumptions with `d = 1 / (2 * κ)` and `κ ≥ 4`, the HHL
+preparation is unitary and some amplification depth at most `4 * κ` achieves success
+probability at least `1 / 4` on the corrected well-conditioned event. See [Harrow et al.,
+Appendix A.1][HarrowHassidimLloyd2009]. -/
 theorem source_A1_aa_success_and_four_kappa_repetitions
     {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : Fin D → ℝ) (V B : Operator D) (j : Fin D)
     (κ η d : ℝ) (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ)

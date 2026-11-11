@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
+/-!
+# Fourier characters on the Boolean hypercube
+
+This module fixes the hypercube characters `chi`, uniform and parity mass functions, and total
+variation expressions used in [MooreRussell2001]. It proves orthogonality, Fourier synthesis,
+and a lower bound on total variation from a nonempty Fourier coefficient.
+
+## Main statements
+
+* `sum_chi_mul`: proves character orthogonality.
+* `fourierCoeff_synthesis`: recovers coefficients from their Fourier synthesis.
+* `abs_fourierCoeff_le_two_tv`: bounds a nonempty Fourier coefficient by twice the distance from
+  uniform.
+
+## References
+
+* [Moore and Russell, 2001][MooreRussell2001]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -16,24 +35,34 @@ open Qatlib.Concepts.ShadowModels.BooleanCubeFourier
 
 namespace Qatlib.Papers.HypercubeWalk01.MainResults
 
+/-- The Boolean hypercube of dimension `n`, represented by functions `Fin n → Bool`. -/
 abbrev Cube (n : ℕ) := Fin n → Bool
 
+/-- The real cube character indexed by `S`, with each selected true coordinate contributing `1`
+and each selected false coordinate contributing `-1`. -/
 def chi {n : ℕ} (S : Finset (Fin n)) (x : Cube n) : ℝ := cubeChar S x
 
+/-- The uniform mass `1 / 2 ^ n` at a vertex of the `n`-dimensional cube. -/
 noncomputable def uniformMass (n : ℕ) : ℝ := ((2 : ℝ) ^ n)⁻¹
 
+/-- The mass function equal to `1 / 2 ^ (n - 1)` at vertices of even true-coordinate weight and
+zero at odd weight. -/
 noncomputable def parityUniformMass (n : ℕ) (x : Cube n) : ℝ :=
   if (∑ i, if x i then (1 : ℕ) else 0) % 2 = 0 then ((2 : ℝ) ^ (n - 1))⁻¹ else 0
 
+/-- Half the sum of absolute differences between `P` and the uniform mass function. -/
 noncomputable def tvDist {n : ℕ} (P : Cube n → ℝ) : ℝ :=
   (1 / 2) * ∑ x, |P x - uniformMass n|
 
+/-- Half the sum of absolute differences between `P` and the even-parity mass function. -/
 noncomputable def tvDistParity {n : ℕ} (P : Cube n → ℝ) : ℝ :=
   (1 / 2) * ∑ x, |P x - parityUniformMass n x|
 
+/-- The unnormalized Fourier coefficient `∑ x, P x * chi S x`. -/
 noncomputable def fourierCoeff {n : ℕ} (P : Cube n → ℝ) (S : Finset (Fin n)) : ℝ :=
   ∑ x, P x * chi S x
 
+/-- The absolute value of every cube character is at most one. -/
 lemma chi_abs_le_one {n : ℕ} (S : Finset (Fin n)) (x : Cube n) : |chi S x| ≤ 1 := by
   have hfac : ∀ i ∈ S, |(if x i then (1 : ℝ) else -1)| = 1 := by
     intro i _
@@ -41,11 +70,15 @@ lemma chi_abs_le_one {n : ℕ} (S : Finset (Fin n)) (x : Cube n) : |chi S x| ≤
   simp only [chi, cubeChar]
   rw [Finset.abs_prod, Finset.prod_congr rfl hfac, Finset.prod_const_one]
 
+/-- The product of the characters indexed by `S` and `T` is the character indexed by their
+symmetric difference. -/
 lemma chi_mul {n : ℕ} (S T : Finset (Fin n)) (x : Cube n) :
     chi S x * chi T x = chi (S ∆ T) x := by
   simp only [chi]
   exact cubeChar_mul S T x
 
+/-- Updating coordinate `i` factors the character into its updated coordinate sign and the
+character indexed by `S.erase i`. -/
 lemma chi_update {n : ℕ} (S : Finset (Fin n)) (i : Fin n) (b : Bool) (x : Cube n) :
     chi S (Function.update x i b) =
       (if i ∈ S then (if b then (1 : ℝ) else -1) else 1) * chi (S.erase i) x := by
@@ -72,6 +105,7 @@ lemma chi_update {n : ℕ} (S : Finset (Fin n)) (i : Fin n) (b : Bool) (x : Cube
       simp [hji]
     rw [hleft, herase, if_neg hi, one_mul]
 
+/-- Flipping a coordinate belonging to `S` negates the character `chi S`. -/
 lemma chi_flip {n : ℕ} (S : Finset (Fin n)) (i : Fin n) (hi : i ∈ S) (x : Cube n) :
     chi S (Function.update x i (!x i)) = - chi S x := by
   have hx : chi S x
@@ -84,6 +118,7 @@ lemma chi_flip {n : ℕ} (S : Finset (Fin n)) (i : Fin n) (hi : i ∈ S) (x : Cu
   rw [hsign]
   ring
 
+/-- The sum of a character indexed by a nonempty subset over the whole cube is zero. -/
 theorem sum_chi_eq_zero {n : ℕ} {S : Finset (Fin n)} (hS : S.Nonempty) :
     ∑ x : Cube n, chi S x = 0 := by
   classical
@@ -106,6 +141,7 @@ theorem sum_chi_eq_zero {n : ℕ} {S : Finset (Fin n)} (hS : S.Nonempty) :
       simp
     · simp [hji]
 
+/-- A nonempty Fourier coefficient is unchanged when the uniform mass is subtracted from `P`. -/
 theorem fourierCoeff_eq_centered {n : ℕ} {P : Cube n → ℝ} {S : Finset (Fin n)}
     (hS : S.Nonempty) :
     fourierCoeff P S = ∑ x, (P x - uniformMass n) * chi S x := by
@@ -119,6 +155,7 @@ theorem fourierCoeff_eq_centered {n : ℕ} {P : Cube n → ℝ} {S : Finset (Fin
   rw [hsplit, ← Finset.mul_sum, hzero, mul_zero, sub_zero]
   rfl
 
+/-- The absolute value of every nonempty Fourier coefficient is at most twice `tvDist P`. -/
 theorem abs_fourierCoeff_le_two_tv {n : ℕ} (P : Cube n → ℝ) {S : Finset (Fin n)}
     (hS : S.Nonempty) :
     |fourierCoeff P S| ≤ 2 * tvDist P := by
@@ -139,6 +176,7 @@ theorem abs_fourierCoeff_le_two_tv {n : ℕ} (P : Cube n → ℝ) {S : Finset (F
   rw [htv]
   exact hstep
 
+/-- The sum of `chi S x * chi T x` over the cube is `2 ^ n` when `S = T` and zero otherwise. -/
 theorem sum_chi_mul {n : ℕ} (S T : Finset (Fin n)) :
     (∑ x : Cube n, chi S x * chi T x) = if S = T then (2 : ℝ) ^ n else 0 := by
   classical
@@ -155,6 +193,8 @@ theorem sum_chi_mul {n : ℕ} (S T : Finset (Fin n)) :
       Finset.symmDiff_nonempty.mpr hST
     rw [if_neg hST, sum_chi_eq_zero hnonempty]
 
+/-- Fourier synthesis with the factor `uniformMass n` recovers each supplied coefficient
+exactly. -/
 theorem fourierCoeff_synthesis {n : ℕ} (c : Finset (Fin n) → ℝ) (T : Finset (Fin n)) :
     fourierCoeff (fun x => uniformMass n * ∑ S, c S * chi S x) T = c T := by
   classical

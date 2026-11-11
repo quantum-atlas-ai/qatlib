@@ -11,6 +11,28 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Analysis.Complex.Exponential
+
+/-!
+# Linear optics distributions and complexity models
+
+This module defines beam splitter interferometers, bosonic occupation weights, finite coin
+samplers, and rational encodings. It proves unitarity of the beam splitter and interferometer
+matrices and bounds dyadic rounding error.
+
+`LoPaccHypothesis` formulates a Gaussian permanent anticoncentration hypothesis, providing a
+setting related to [KoehlerLeung2026].
+
+## Main statements
+
+* `loBeamSplitter_mem_unitaryGroup`: unitarity of a beam splitter.
+* `loFockDist_eq_of_extendCols`: invariance under unitary completion of the occupied columns.
+* `loRoundToDyadicEntry_err`: entrywise dyadic approximation bound.
+
+## References
+
+* [Koehler and Leung, 2026][KoehlerLeung2026]
+-/
+
 open Qatlib.Concepts.BosonFock.BosonOperators
 open Qatlib
 
@@ -22,14 +44,17 @@ open Qatlib
 
 open scoped BigOperators Nat ComplexConjugate
 
+/-- Half the sum of the absolute pointwise differences of two real functions on a finite type. -/
 noncomputable def loTvDist {ι : Type} [Fintype ι] (p q : ι → ℝ) : ℝ := (∑ i, |p i - q i|) / 2
 
+/-- The finite total variation expression `loTvDist` is nonnegative. -/
 theorem loTvDist_nonneg {ι : Type} [Fintype ι] (p q : ι → ℝ) : 0 ≤ loTvDist p q := by
   unfold loTvDist
   apply div_nonneg
   · exact Finset.sum_nonneg (fun i _ => abs_nonneg _)
   · norm_num
 
+/-- The finite total variation expression satisfies the triangle inequality. -/
 theorem loTvDist_triangle {ι : Type} [Fintype ι] (p q r : ι → ℝ) :
     loTvDist p r ≤ loTvDist p q + loTvDist q r := by
   have h : ∀ i, |p i - r i| ≤ |p i - q i| + |q i - r i| := by
@@ -45,6 +70,7 @@ theorem loTvDist_triangle {ι : Type} [Fintype ι] (p q r : ι → ℝ) :
   unfold loTvDist
   linarith
 
+/-- Each pointwise absolute difference is at most twice `loTvDist`. -/
 theorem loTvDist_apply_le {ι : Type} [Fintype ι] (p q : ι → ℝ) (i₀ : ι) :
     |p i₀ - q i₀| ≤ 2 * loTvDist p q := by
   have h1 : |p i₀ - q i₀| ≤ ∑ i, |p i - q i| :=
@@ -53,6 +79,8 @@ theorem loTvDist_apply_le {ι : Type} [Fintype ι] (p q : ι → ℝ) (i₀ : ι
   unfold loTvDist
   linarith
 
+/-- The matrix of a beam splitter on modes `i` and `j` with angle `θ` and phase `ph`, extended
+by the identity on other modes. -/
 noncomputable def loBeamSplitter (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
     Matrix (Fin m) (Fin m) ℂ :=
   if i = j then 1 else Matrix.of fun a b =>
@@ -62,6 +90,7 @@ noncomputable def loBeamSplitter (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
     else if a = j ∧ b = j then Complex.ofReal (Real.cos θ)
     else if a = b then 1 else 0
 
+/-- Conjugating the exponential of the imaginary phase negates the phase. -/
 private theorem loConjExpIP (ph : ℝ) :
     conj (Complex.exp (ph * Complex.I)) = Complex.exp (-(ph * Complex.I)) := by
   rw [← Complex.exp_conj]
@@ -69,6 +98,8 @@ private theorem loConjExpIP (ph : ℝ) :
   simp only [map_mul, Complex.conj_ofReal, Complex.conj_I]
   ring
 
+/-- Conjugating the exponential of the negative imaginary phase yields the positive phase
+exponential. -/
 private theorem loConjExpIM (ph : ℝ) :
     conj (Complex.exp (-(ph * Complex.I))) = Complex.exp (ph * Complex.I) := by
   rw [← Complex.exp_conj]
@@ -76,17 +107,22 @@ private theorem loConjExpIM (ph : ℝ) :
   simp only [map_neg, map_mul, Complex.conj_ofReal, Complex.conj_I]
   ring
 
+/-- For distinct beam splitter modes, the diagonal entry at `i` is `cos θ`. -/
 private theorem loBS_val_ii {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) :
     loBeamSplitter m i j θ ph i i = Complex.ofReal (Real.cos θ) := by
   unfold loBeamSplitter
   rw [if_neg hij, Matrix.of_apply, if_pos ⟨rfl, rfl⟩]
 
+/-- For distinct beam splitter modes, the entry from column `j` to row `i` is `-exp (ph * I) *
+sin θ`. -/
 private theorem loBS_val_ij {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) :
     loBeamSplitter m i j θ ph i j = -(Complex.exp (ph * Complex.I)
       * Complex.ofReal (Real.sin θ)) := by
   unfold loBeamSplitter
   rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hij h.2.symm), if_pos ⟨rfl, rfl⟩]
 
+/-- For distinct beam splitter modes, the entry from column `i` to row `j` is `exp (-ph * I) *
+sin θ`. -/
 private theorem loBS_val_ji {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) :
     loBeamSplitter m i j θ ph j i = Complex.exp (-(ph * Complex.I))
       * Complex.ofReal (Real.sin θ) := by
@@ -94,24 +130,29 @@ private theorem loBS_val_ji {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j
   rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hij h.1.symm),
     if_neg (fun h => hij h.1.symm), if_pos ⟨rfl, rfl⟩]
 
+/-- For distinct beam splitter modes, the diagonal entry at `j` is `cos θ`. -/
 private theorem loBS_val_jj {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) :
     loBeamSplitter m i j θ ph j j = Complex.ofReal (Real.cos θ) := by
   unfold loBeamSplitter
   rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hij h.1.symm),
     if_neg (fun h => hij h.1.symm), if_neg (fun h => hij h.2.symm), if_pos ⟨rfl, rfl⟩]
 
+/-- A row outside the two distinct beam splitter modes agrees with the corresponding identity
+row. -/
 private theorem loBS_val_off {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) (k c : Fin m)
     (hki : k ≠ i) (hkj : k ≠ j) : loBeamSplitter m i j θ ph k c = if k = c then 1 else 0 := by
   unfold loBeamSplitter
   rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hki h.1), if_neg (fun h => hki h.1),
     if_neg (fun h => hkj h.1), if_neg (fun h => hkj h.1)]
 
+/-- An off diagonal entry in a column outside the two distinct beam splitter modes is zero. -/
 private theorem loBS_zero_col {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) (k c : Fin m)
     (hci : c ≠ i) (hcj : c ≠ j) (hkc : k ≠ c) : loBeamSplitter m i j θ ph k c = 0 := by
   unfold loBeamSplitter
   rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hci h.2), if_neg (fun h => hcj h.2),
     if_neg (fun h => hci h.2), if_neg (fun h => hcj h.2), if_neg hkc]
 
+/-- Every beam splitter matrix belongs to the matrix unitary group. -/
 theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
     loBeamSplitter m i j θ ph ∈ Matrix.unitaryGroup (Fin m) ℂ := by
   by_cases hij : i = j
@@ -297,12 +338,15 @@ theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
                   simp
               rw [Finset.sum_eq_zero hzero, Matrix.one_apply_ne hab]
 
+/-- A finite list of beam splitter mode pairs, angles, and phases. -/
 def loInterferometer (m : ℕ) : Type := List (Fin m × Fin m × ℝ × ℝ)
 
+/-- Multiply the beam splitter matrices in execution order, starting from the identity. -/
 noncomputable def loInterferometerMatrix (m : ℕ) (G : loInterferometer m) :
     Matrix (Fin m) (Fin m) ℂ :=
   G.foldl (fun acc g => loBeamSplitter m g.1 g.2.1 g.2.2.1 g.2.2.2 * acc) 1
 
+/-- The matrix of every finite interferometer is unitary. -/
 theorem loInterferometerMatrix_mem_unitaryGroup (m : ℕ) (G : loInterferometer m) :
     loInterferometerMatrix m G ∈ Matrix.unitaryGroup (Fin m) ℂ := by
   unfold loInterferometerMatrix
@@ -317,14 +361,17 @@ theorem loInterferometerMatrix_mem_unitaryGroup (m : ℕ) (G : loInterferometer 
           (loBeamSplitter_mem_unitaryGroup m g.1 g.2.1 g.2.2.1 g.2.2.2) hinit)
   exact h 1 (Submonoid.one_mem _)
 
+/-- Bosonic occupation weights obtained from the first `n` columns of an `m` by `m` matrix. -/
 noncomputable def loFockDist (m n : ℕ) (hnm : n ≤ m) (U : Matrix (Fin m) (Fin m) ℂ) :
     FockOccupation m n → ℝ :=
   fun S => bosonWeight (U.submatrix id (Fin.castLE hnm)) S
 
+/-- Bosonic occupation weights associated with an `m` by `n` complex matrix. -/
 noncomputable def loIsometryDist (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℂ) :
     FockOccupation m n → ℝ :=
   bosonWeight A
 
+/-- A unitary matrix whose first `n` columns equal the specified rectangular matrix `A`. -/
 structure LoCompletedUnitary (m n : ℕ) (hnm : n ≤ m) (A : Matrix (Fin m) (Fin n) ℂ) :
     Type where
 
@@ -334,6 +381,7 @@ structure LoCompletedUnitary (m n : ℕ) (hnm : n ≤ m) (A : Matrix (Fin m) (Fi
 
   extendCols : ∀ (i : Fin m) (j : Fin n), U i (Fin.castLE hnm j) = A i j
 
+/-- A unitary completion yields the same occupation weights as its prescribed first `n` columns. -/
 theorem loFockDist_eq_of_extendCols {m n : ℕ} {hnm : n ≤ m} {A : Matrix (Fin m) (Fin n) ℂ}
     (W : LoCompletedUnitary m n hnm A) (S : FockOccupation m n) :
     loFockDist m n hnm W.U S = loIsometryDist m n A S := by
@@ -343,25 +391,32 @@ theorem loFockDist_eq_of_extendCols {m n : ℕ} {hnm : n ≤ m} {A : Matrix (Fin
   simp only [loFockDist, loIsometryDist]
   rw [h]
 
+/-- The occupation weights associated with the matrix of an interferometer. -/
 noncomputable def loPhysicalDist (m n : ℕ) (hnm : n ≤ m) (G : loInterferometer m) :
     FockOccupation m n → ℝ :=
   loFockDist m n hnm (loInterferometerMatrix m G)
 
+/-- The physical occupation weights are the Fock weights of the interferometer matrix. -/
 theorem loPhysicalDist_eq_loFockDist (m n : ℕ) (hnm : n ≤ m) (G : loInterferometer m)
     (S : FockOccupation m n) :
     loPhysicalDist m n hnm G S = loFockDist m n hnm (loInterferometerMatrix m G) S := rfl
 
+/-- The maximum of the binary size measures of the absolute numerator and denominator of a
+rational number. -/
 def ratBitSize (q : ℚ) : ℕ := max (Nat.log2 q.num.natAbs + 1) (Nat.log2 q.den + 1)
 
+/-- A rational matrix with every entry satisfying the specified `ratBitSize` bound. -/
 structure LoDyadicEncoding (m n b : ℕ) : Type where
 
   mat : Matrix (Fin m) (Fin n) ℚ
 
   width : ∀ i j, ratBitSize (mat i j) ≤ b
 
+/-- Round a real number downward to a rational multiple of `2⁻ᵇ`. -/
 noncomputable def loRoundToDyadicEntry (b : ℕ) (x : ℝ) : ℚ :=
   ((Int.floor (((2 : ℕ) ^ b : ℝ) * x) : ℤ) : ℚ) / ((2 : ℕ) ^ b : ℚ)
 
+/-- Rounding to denominator `2 ^ b` has absolute error at most `1 / 2 ^ b`. -/
 theorem loRoundToDyadicEntry_err (b : ℕ) (x : ℝ) :
     |x - (loRoundToDyadicEntry b x : ℝ)| ≤ 1 / (((2 : ℕ) ^ b : ℝ)) := by
   have hp : (0 : ℝ) < ((2 : ℕ) ^ b : ℝ) := by positivity
@@ -383,19 +438,25 @@ theorem loRoundToDyadicEntry_err (b : ℕ) (x : ℝ) :
   rw [hdiv, abs_div, abs_of_pos hp, div_le_iff₀ hp, div_mul_cancel₀ _ (ne_of_gt hp)]
   exact abs_le.2 ⟨by linarith, by linarith⟩
 
+/-- Apply dyadic rounding with precision `b` to every entry of a real matrix. -/
 noncomputable def loRoundToDyadic (m n b : ℕ) (A : Matrix (Fin m) (Fin n) ℝ) :
     Matrix (Fin m) (Fin n) ℚ :=
   Matrix.of fun i j => loRoundToDyadicEntry b (A i j)
 
+/-- Map every entry of a rational matrix into the complex numbers. -/
 noncomputable def loOfRat (m n : ℕ) (A : Matrix (Fin m) (Fin n) ℚ) : Matrix (Fin m) (Fin n) ℂ :=
   A.map (algebraMap ℚ ℂ)
 
+/-- The standard complex Gaussian density `π⁻¹ * exp (-‖z‖²)`. -/
 noncomputable def loGaussianDensity (z : ℂ) : ℝ :=
   Real.pi⁻¹ * Real.exp (-(Complex.normSq z))
 
+/-- The product of standard complex Gaussian densities over the entries of a square matrix. -/
 noncomputable def loGaussianMatDensity (n : ℕ) (X : Fin n → Fin n → ℂ) : ℝ :=
   ∏ i, ∏ j, loGaussianDensity (X i j)
 
+/-- A uniform power bound on the Gaussian probability that the squared permanent is at most `δ *
+n!`, for `0 < δ ≤ 1`. -/
 def LoPaccHypothesis : Prop :=
   ∃ (c₁ c₂ : ℝ), 0 < c₁ ∧ 0 < c₂ ∧
     ∀ (n : ℕ) (δ : ℝ), 0 < δ → δ ≤ 1 →
@@ -405,15 +466,21 @@ def LoPaccHypothesis : Prop :=
             then (1 : ℝ) else 0) * loGaussianMatDensity n X
         ∂MeasureTheory.volume) ≤ c₂ * δ ^ c₁
 
+/-- A finite coin sampler specified by a coin count and a map from coin strings to Fock
+occupations. -/
 structure LoSampler (m n : ℕ) : Type where
 
   L : ℕ
 
   O : (Fin L → Bool) → FockOccupation m n
 
+/-- The occupation probability obtained by uniformly counting the coin strings producing that
+occupation. -/
 noncomputable def loSamplerDist {m n : ℕ} (Sam : LoSampler m n) (S : FockOccupation m n) : ℝ :=
   (∑ r : (Fin Sam.L → Bool), if Sam.O r = S then (1 : ℝ) else 0) / ((2 : ℕ) ^ Sam.L : ℝ)
 
+/-- Estimator data consisting of a coin count, a query length parameter, and a rational output
+function depending on an oracle and the coins. -/
 structure LoFbppEstimator (m n : ℕ) : Type where
 
   q : ℕ

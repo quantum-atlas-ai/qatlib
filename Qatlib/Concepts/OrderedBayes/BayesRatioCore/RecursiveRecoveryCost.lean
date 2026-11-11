@@ -8,6 +8,30 @@ import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
 import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
+
+/-!
+# A zero-fuel obstruction to recursive recovery
+
+This module checks `RecursiveRecoveryCostContract`, a local formal contract for recursive
+Bayesian ordered search motivated by [BenOrHassidim2007]. The contract requires the stated
+recovery probability for every fuel value, including zero, when execution starts from an active
+uniform posterior.
+
+`recursiveRecoveryCost_obstruction` instantiates valid parameters with sixteen ranks,
+reliability `3 / 4`, threshold `1 / 10`, and error tolerance `1 / 2`. At zero fuel the execution
+is still active, so the required positive probability of a correctly halted result is
+impossible.
+
+## Main statements
+
+* `recursiveRecoveryCost_obstruction`: the universally quantified local recovery-cost contract
+  is false.
+
+## References
+
+* [Ben-Or and Hassidim, 2007][BenOrHassidim2007]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +41,9 @@ open Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
 namespace Qatlib.Concepts.OrderedBayes.BayesRatioCore
 open Qatlib
 
+/-- The local recursive recovery-cost contract is false. Its positive success requirement at
+zero fuel contradicts execution starting in an active state for a valid sixteen-rank
+instance. -/
 theorem recursiveRecoveryCost_obstruction : ¬ RecursiveRecoveryCostContract := by
   intro h
   have hlog2 : Real.log 2 ≠ 0 := (Real.log_pos (by norm_num : (1 : ℝ) < 2)).ne'

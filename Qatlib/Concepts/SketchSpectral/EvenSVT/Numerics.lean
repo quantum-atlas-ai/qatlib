@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SketchSpectral.EvenSVT.NumericsDefs
 import Qatlib.Concepts.SketchSpectral.EvenSVT.RationalMachineBridge
+
+/-!
+# Numerical bounds and cost identities for even SVT
+
+The module verifies row and column tail budgets, normalized frame identities, and spectral
+bounds for the numerical constructions in `NumericsDefs`. It also proves fixed-point value
+identities and explicit access, RAM-operation, bit-time, and workspace formulas for the
+sampling-based matrix arithmetic of [ChiaEtAl2022].
+
+## Main statements
+
+* `rowTailBudget`: The row budget bounds the Lipschitz-weighted row tail scale, including its
+  rank logarithm factor, by `ε / 2`.
+* `frameOperator_eq_gram`: The weighted frame operator equals the Gram matrix `Ccᴴ * Cc`.
+* `clause8_endpoint`: Combines the two half-error tail budgets, the frame Gram identity, the
+  Rayleigh bound, and the exact two-stage runtime formula.
+* `clause9_endpoint`: Combines the explicit repeated-sketch read, multiplication, RAM,
+  workspace, and bit-time formulas with the RAM-to-bit-time bound.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -34,15 +58,18 @@ open scoped Classical BigOperators Matrix.Norms.Frobenius Matrix.Norms.L2Operato
 
 noncomputable section
 
+/-- The rank logarithm factor `1 + log (1 + r)` is at least one. -/
 theorem rankLogFactor_ge_one (r : ℕ) : 1 ≤ rankLogFactor r := by
   unfold rankLogFactor
   have h := Real.log_nonneg (show (1 : ℝ) ≤ 1 + (r : ℝ) by
     exact le_add_of_nonneg_right (Nat.cast_nonneg r))
   linarith
 
+/-- The rank logarithm factor is strictly positive. -/
 theorem rankLogFactor_pos (r : ℕ) : 0 < rankLogFactor r :=
   lt_of_lt_of_le zero_lt_one (rankLogFactor_ge_one r)
 
+/-- The rank logarithm factor is monotone in its natural-number argument. -/
 theorem rankLogFactor_mono : Monotone rankLogFactor := by
   intro m n hmn
   unfold rankLogFactor
@@ -51,6 +78,7 @@ theorem rankLogFactor_mono : Monotone rankLogFactor := by
     Real.log_le_log (by positivity) (by linarith)
   linarith
 
+/-- For `0 < δ < 1`, the concentration logarithm `log (2 / (δ / 3))` is positive. -/
 theorem log_two_over_delta_third_pos {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < 1) :
     0 < Real.log (2 / (δ / 3)) := by
   have h : 1 < 2 / (δ / 3) := by
@@ -62,12 +90,16 @@ theorem log_two_over_delta_third_pos {δ : ℝ} (hδ : 0 < δ) (hδ1 : δ < 1) :
     exact (lt_div_iff₀ hδ).2 (by linarith)
   exact Real.log_pos h
 
+/-- A bound on the radicand by the square of nonnegative `s` bounds the corresponding tail
+square root by `s`. -/
 theorem tailRoot_le {φ δ n s : ℝ} (hs : 0 ≤ s)
     (h : 8 * φ ^ 2 * Real.log (2 / (δ / 3)) / n ≤ s ^ 2) :
     Real.sqrt (8 * φ ^ 2 * Real.log (2 / (δ / 3)) / n) ≤ s := by
   rw [Real.sqrt_le_iff]
   exact ⟨hs, h⟩
 
+/-- For positive `ε`, the required row-sample inequality is equivalent to the
+denominator-cleared row budget. -/
 theorem requiredRowSamples_le_iff {L ε φ δ E : ℝ} {rank r : ℕ} (hε : 0 < ε) :
     requiredRowSamples L ε φ δ E rank ≤ (r : ℝ) ↔ rowBudgetMul L ε φ δ E rank r := by
   unfold requiredRowSamples rowBudgetMul
@@ -80,6 +112,8 @@ theorem requiredRowSamples_le_iff {L ε φ δ E : ℝ} {rank r : ℕ} (hε : 0 <
     rw [mul_comm (r : ℝ) (ε ^ 2)]
     exact h
 
+/-- For positive `ε`, the required column-sample inequality is equivalent to the
+denominator-cleared column budget. -/
 theorem requiredColSamples_le_iff {M Lbar ε φ δ E : ℝ} {rank c : ℕ} (hε : 0 < ε) :
     requiredColSamples M Lbar ε φ δ E rank ≤ (c : ℝ) ↔ colBudgetMul M Lbar ε φ δ E rank c := by
   unfold requiredColSamples colBudgetMul
@@ -92,6 +126,8 @@ theorem requiredColSamples_le_iff {M Lbar ε φ δ E : ℝ} {rank c : ℕ} (hε 
     rw [mul_comm (c : ℝ) (ε ^ 2)]
     exact h
 
+/-- The row budget bounds the Lipschitz-weighted row tail scale, including its rank logarithm
+factor, by `ε / 2`. -/
 theorem rowTailBudget {L ε φ δ E : ℝ} {rank r : ℕ}
     (hL : 0 < L) (hε : 0 < ε) (hφ : 1 ≤ φ) (hδ : 0 < δ) (hδ1 : δ < 1)
     (hE : 0 ≤ E) (hr : 0 < r)
@@ -163,6 +199,8 @@ theorem rowTailBudget {L ε φ δ E : ℝ} {rank r : ℕ}
     unfold rowTailScale
     linarith
 
+/-- The column budget bounds the norm- and Lipschitz-weighted column tail scale, including its
+rank logarithm factor, by `ε / 2`. -/
 theorem colTailBudget {M Lbar ε φ δ E : ℝ} {rank c : ℕ}
     (hM : 0 < M) (hLbar : 0 < Lbar) (hε : 0 < ε) (hφ : 1 ≤ φ)
     (hδ : 0 < δ) (hδ1 : δ < 1) (hE : 0 ≤ E) (hc : 0 < c)
@@ -238,6 +276,8 @@ theorem colTailBudget {M Lbar ε φ δ E : ℝ} {rank c : ℕ}
     unfold colTailScale
     linarith
 
+/-- When the column oversampling factor is at most twice the row factor, its tail scale is at
+most four times the row tail scale at the same sample count. -/
 theorem colTailScale_le_four_mul_row {φrow φcol δ E : ℝ} {c : ℕ}
     (hrow : 0 ≤ φrow) (hcol0 : 0 ≤ φcol) (hcol : φcol ≤ 2 * φrow) (hc : 0 < c)
     (hlog : 0 ≤ Real.log (2 / (δ / 3))) (hE : 0 ≤ E) :
@@ -275,6 +315,7 @@ theorem colTailScale_le_four_mul_row {φrow φcol δ E : ℝ} {c : ℕ}
   unfold colTailScale rowTailScale
   nlinarith
 
+/-- A frame row has zero weight exactly when every entry of that row is zero. -/
 theorem frameWeight_eq_zero_iff {C R : Type} [Fintype C] [Fintype R]
     (Cc : Matrix C R ℂ) (i : C) :
     frameWeight Cc i = 0 ↔ ∀ j, Cc i j = 0 := by
@@ -290,6 +331,8 @@ theorem frameWeight_eq_zero_iff {C R : Type} [Fintype C] [Fintype R]
   · intro h
     simp [frameWeight, h]
 
+/-- For a nonzero row weight, multiplying the normalized row outer product by its weight
+recovers the original row outer product. -/
 theorem frame_row_scale {C R : Type} [Fintype C] [Fintype R]
     (Cc : Matrix C R ℂ) (i : C) (hw : frameWeight Cc i ≠ 0) (k l : R) :
     (frameWeight Cc i : ℂ) * (star (frameUnit Cc i k) * frameUnit Cc i l)
@@ -317,6 +360,8 @@ theorem frame_row_scale {C R : Type} [Fintype C] [Fintype R]
     _ = 1 * (star (Cc i k) * Cc i l) := by rw [hwr]
     _ = star (Cc i k) * Cc i l := by ring
 
+/-- The weighted normalized row outer product recovers the original row outer product, including
+zero rows. -/
 theorem frame_row_outer {C R : Type} [Fintype C] [Fintype R]
     (Cc : Matrix C R ℂ) (i : C) (k l : R) :
     (frameWeight Cc i : ℂ) * (frameProjection (frameUnit Cc i)) k l
@@ -327,6 +372,7 @@ theorem frame_row_outer {C R : Type} [Fintype C] [Fintype R]
   · simp only [frameProjection]
     exact frame_row_scale Cc i hw k l
 
+/-- The weighted frame operator equals the Gram matrix `Ccᴴ * Cc`. -/
 theorem frameOperator_eq_gram {C R : Type} [Fintype C] [Fintype R]
     (Cc : Matrix C R ℂ) : frameOperator Cc = Ccᴴ * Cc := by
   ext k l
@@ -335,6 +381,7 @@ theorem frameOperator_eq_gram {C R : Type} [Fintype C] [Fintype R]
   intro i hi
   exact frame_row_outer Cc i k l
 
+/-- A normalized frame row of nonzero weight has squared Euclidean norm one. -/
 theorem frameUnit_norm_one {C R : Type} [Fintype C] [Fintype R]
     (Cc : Matrix C R ℂ) (i : C) (hw : frameWeight Cc i ≠ 0) :
     ∑ j, Complex.normSq (frameUnit Cc i j) = 1 := by
@@ -356,16 +403,19 @@ theorem frameUnit_norm_one {C R : Type} [Fintype C] [Fintype R]
   rw [hmain, hsum', hr]
   exact div_self (ne_of_gt hwpos)
 
+/-- A normalized frame row of zero weight has every entry zero. -/
 theorem frameUnit_zero_of_zero_row {C R : Type} [Fintype C] [Fintype R]
     (Cc : Matrix C R ℂ) (i : C) (h : frameWeight Cc i = 0) (j : R) :
     frameUnit Cc i j = 0 := by
   simp [frameUnit, h]
 
+/-- The real quadratic form `numericalEigenvalue H v` is at most `‖H‖ * ‖v‖²`. -/
 theorem numericalEigenvalue_le_norm {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (v : EuclideanSpace ℂ I) :
     numericalEigenvalue H v ≤ ‖H‖ * ‖v‖ ^ 2 :=
   spectral_rayleigh_norm_bound H v
 
+/-- The Rayleigh quotient of a nonzero vector is at most the operator norm of `H`. -/
 theorem numericalRayleigh_le_norm {I : Type} [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (v : EuclideanSpace ℂ I) (hv : v ≠ 0) :
     numericalRayleigh H v ≤ ‖H‖ := by
@@ -380,6 +430,8 @@ theorem numericalRayleigh_le_norm {I : Type} [Fintype I] [DecidableEq I]
   unfold numericalRayleigh
   exact h2
 
+/-- For Hermitian `H`, its real quadratic form is the sum of eigenvalues weighted by squared
+coordinates in the ordered eigenbasis. -/
 theorem numericalEigenvalue_eq_spectral {I : Type} [Fintype I] [DecidableEq I]
     {H : Matrix I I ℂ} (hH : H.IsHermitian) (v : EuclideanSpace ℂ I) :
     numericalEigenvalue H v
@@ -387,6 +439,8 @@ theorem numericalEigenvalue_eq_spectral {I : Type} [Fintype I] [DecidableEq I]
   unfold numericalEigenvalue numericalSpectrum
   exact orderedHermitian_rayleigh hH v
 
+/-- Corresponding numerical eigenvalues of Hermitian matrices differ by at most their Frobenius
+distance. -/
 theorem numericalSpectrum_perturbation {I : Type} [Fintype I] [DecidableEq I]
     {A B : Matrix I I ℂ} (hA : A.IsHermitian) (hB : B.IsHermitian)
     (i : Fin (Fintype.card I)) :
@@ -411,20 +465,26 @@ theorem numericalSpectrum_perturbation {I : Type} [Fintype I] [DecidableEq I]
   rw [abs_of_nonneg hsq] at h1
   exact h1
 
+/-- The two-stage access ledger records `r + c` sampler reads. -/
 theorem sqTwoStageLedger_samplerReads (r c : ℕ) :
     (sqTwoStageLedger r c).samplerReads = r + c := rfl
 
+/-- The two-stage access ledger records `r + c` probability reads. -/
 theorem sqTwoStageLedger_probReads (r c : ℕ) :
     (sqTwoStageLedger r c).probReads = r + c := rfl
 
+/-- The two-stage access ledger records `2 * r * c` point reads. -/
 theorem sqTwoStageLedger_pointReads (r c : ℕ) :
     (sqTwoStageLedger r c).pointReads = 2 * r * c := rfl
 
+/-- The total cost of the two-stage access ledger is `4 * r * c + 2 * (r + c)`. -/
 theorem sqTwoStageLedger_runtime (r c : ℕ) :
     (sqTwoStageLedger r c).runtime = 4 * r * c + 2 * (r + c) := by
   simp [SqAccessLedger.runtime, sqTwoStageLedger]
   ring
 
+/-- The sampler and probability counters of the two actual compact builders agree with the
+two-stage ledger. -/
 theorem sqTwoStageLedger_matches_frozen {K C : Type} [Fintype K] [DecidableEq K]
     [Fintype C] [DecidableEq C] (r c : ℕ) (qs : FinDist K)
     (condQ : (Fin r → K) → FinDist C) (v : Fin r → K) (w : Fin c → C) :
@@ -435,6 +495,7 @@ theorem sqTwoStageLedger_matches_frozen {K C : Type} [Fintype K] [DecidableEq K]
   rw [compactSketchBuild_eq, compactSketchBuild_eq]
   simp [sqTwoStageLedger]
 
+/-- The absolute fixed-point rounding error multiplied by `2^p` is at most one. -/
 theorem abs_sub_fixedRound_mul (p : ℕ) (x : ℝ) :
     |x - fixedRound p x| * pow2 p ≤ 1 := by
   have hpow : 0 < pow2 p := by
@@ -458,6 +519,8 @@ theorem abs_sub_fixedRound_mul (p : ℕ) (x : ℝ) :
     _ = |x * pow2 p - (Int.floor (x * pow2 p) : ℝ)| := by rw [hmain]
     _ ≤ 1 := habs
 
+/-- Multiplying a fixed-point rounded value by `2^p` gives the integer floor used in its
+construction. -/
 theorem fixedRound_mul_pow2 (p : ℕ) (x : ℝ) :
     fixedRound p x * pow2 p = (Int.floor (x * pow2 p) : ℝ) := by
   unfold fixedRound
@@ -466,6 +529,7 @@ theorem fixedRound_mul_pow2 (p : ℕ) (x : ℝ) :
     positivity
   field_simp
 
+/-- Fixed-point word addition represents the sum of the represented real values. -/
 theorem SqWord.add_value {p : ℕ} (a b : SqWord p) :
     (SqWord.add a b).value = a.value + b.value := by
   unfold SqWord.add SqWord.value
@@ -473,6 +537,8 @@ theorem SqWord.add_value {p : ℕ} (a b : SqWord p) :
   have hne : (2 : ℝ) ^ p ≠ 0 := by positivity
   field_simp
 
+/-- Fixed-point word multiplication represents the product of the represented real values at
+doubled precision. -/
 theorem SqWord.mul_value {p : ℕ} (a b : SqWord p) :
     (SqWord.mul a b).value = a.value * b.value := by
   unfold SqWord.mul SqWord.value
@@ -486,6 +552,7 @@ theorem SqWord.mul_value {p : ℕ} (a b : SqWord p) :
   field_simp
   rw [hpp]
 
+/-- Rescaling a fixed-point word to a greater precision preserves its represented value. -/
 theorem SqWord.rescaleTo_value {p t : ℕ} (a : SqWord p) (h : p ≤ t) :
     (SqWord.rescaleTo a h).value = a.value := by
   unfold SqWord.rescaleTo SqWord.value
@@ -498,12 +565,15 @@ theorem SqWord.rescaleTo_value {p t : ℕ} (a : SqWord p) (h : p ≤ t) :
   field_simp
   rw [mul_assoc, hpow]
 
+/-- The defined addition bit cost is bounded by the sum of operand mantissa widths plus one. -/
 theorem SqWord.addBitCost_le {p : ℕ} (a b : SqWord p) :
     SqWord.addBitCost a b
       ≤ intBitWidth a.mantissa + intBitWidth b.mantissa + 1 := by
   unfold SqWord.addBitCost
   exact le_refl _
 
+/-- The defined multiplication bit cost is bounded by the square of the sum of operand mantissa
+widths. -/
 theorem SqWord.mulBitCost_le {p : ℕ} (a b : SqWord p) :
     SqWord.mulBitCost a b
       ≤ (intBitWidth a.mantissa + intBitWidth b.mantissa) ^ 2 := by
@@ -511,41 +581,51 @@ theorem SqWord.mulBitCost_le {p : ℕ} (a b : SqWord p) :
   nlinarith [Nat.zero_le (intBitWidth a.mantissa),
     Nat.zero_le (intBitWidth b.mantissa)]
 
+/-- The repeated sketch arithmetic ledger records `q * n * r` reads. -/
 theorem sketchArithmeticLedger_reads (n r c q : ℕ) :
     (sketchArithmeticLedger n r c q).reads = q * n * r := rfl
 
+/-- The repeated sketch arithmetic ledger records `q * 2 * n * r` multiplications. -/
 theorem sketchArithmeticLedger_multiplies (n r c q : ℕ) :
     (sketchArithmeticLedger n r c q).multiplies = q * 2 * n * r := rfl
 
+/-- The repeated sketch arithmetic ledger records `q * r` cache builds. -/
 theorem sketchArithmeticLedger_cacheBuilds (n r c q : ℕ) :
     (sketchArithmeticLedger n r c q).cacheBuilds = q * r := rfl
 
+/-- The repeated sketch arithmetic ledger records `q * c` row scalings. -/
 theorem sketchArithmeticLedger_rowScales (n r c q : ℕ) :
     (sketchArithmeticLedger n r c q).rowScales = q * c := rfl
 
+/-- The repeated sketch arithmetic ledger records `q * c` row additions. -/
 theorem sketchArithmeticLedger_rowAdds (n r c q : ℕ) :
     (sketchArithmeticLedger n r c q).rowAdds = q * c := rfl
 
+/-- The sketch arithmetic ledger records `q` repetitions. -/
 theorem sketchArithmeticLedger_repeats (n r c q : ℕ) :
     (sketchArithmeticLedger n r c q).repeats = q := rfl
 
+/-- The bit time of the repeated sketch ledger is `q` times the bit time of one repetition. -/
 theorem SqBitLedger.bitTime_repeats (n r c q : ℕ) (w : ℕ) :
     (sketchArithmeticLedger n r c q).bitTime w
       = q * (sketchArithmeticLedger n r c 1).bitTime w := by
   unfold SqBitLedger.bitTime sketchArithmeticLedger
   ring
 
+/-- The sketch ledger's RAM-operation count is `q * (n * r + 2 * n * r + r + c + c)`. -/
 theorem SqBitLedger.ramOps_sketch (n r c q : ℕ) :
     (sketchArithmeticLedger n r c q).ramOps
       = q * (n * r + 2 * n * r + r + c + c) := by
   unfold SqBitLedger.ramOps sketchArithmeticLedger
   ring
 
+/-- The sketch ledger's workspace count is `q * r` words. -/
 theorem SqBitLedger.workspaceWords_sketch (n r c q : ℕ) :
     (sketchArithmeticLedger n r c q).workspaceWords = q * r := by
   unfold SqBitLedger.workspaceWords sketchArithmeticLedger
   rfl
 
+/-- For word width at least one, the ledger's bit time is at least its RAM-operation count. -/
 theorem SqBitLedger.bitTime_ge_ramOps (l : SqBitLedger) (w : ℕ) (hw : 1 ≤ w) :
     l.ramOps ≤ l.bitTime w := by
   have hww : w ≤ w * w := by nlinarith
@@ -568,6 +648,8 @@ theorem SqBitLedger.bitTime_ge_ramOps (l : SqBitLedger) (w : ℕ) (hw : 1 ≤ w)
   unfold SqBitLedger.ramOps SqBitLedger.bitTime
   exact Nat.add_le_add (Nat.add_le_add (Nat.add_le_add (Nat.add_le_add h1 h2) h3) h4) h5
 
+/-- For word width at least two and a positive read or multiplication count, bit time is
+strictly greater than the RAM-operation count. -/
 theorem SqBitLedger.bitTime_gt_ramOps (l : SqBitLedger) (w : ℕ) (hw : 2 ≤ w)
     (hpos : 0 < l.reads + l.multiplies) :
     l.ramOps < l.bitTime w := by
@@ -635,11 +717,14 @@ theorem SqBitLedger.bitTime_gt_ramOps (l : SqBitLedger) (w : ℕ) (hw : 2 ≤ w)
       exact hchain
     omega
 
+/-- A positive cache-build count gives a positive workspace-word count. -/
 theorem SqBitLedger.workspaceWords_pos {l : SqBitLedger} (h : 0 < l.cacheBuilds) :
     0 < l.workspaceWords := by
   unfold SqBitLedger.workspaceWords
   exact h
 
+/-- Combines the two half-error tail budgets, the frame Gram identity, the Rayleigh bound, and
+the exact two-stage runtime formula. -/
 theorem clause8_endpoint {L M Lbar ε φ δ E : ℝ} {rank r c : ℕ}
     {C R : Type} [Fintype C] [Fintype R]
     {I : Type} [Fintype I] [DecidableEq I]
@@ -658,6 +743,8 @@ theorem clause8_endpoint {L M Lbar ε φ δ E : ℝ} {rank r c : ℕ}
     sqTwoStageLedger_runtime r c⟩
   exact colTailBudget hM hLbar hε hφ hδ hδ1 hE hc hcol
 
+/-- Combines the explicit repeated-sketch read, multiplication, RAM, workspace, and bit-time
+formulas with the RAM-to-bit-time bound. -/
 theorem clause9_endpoint (n r c q : ℕ) (w : ℕ) (hw : 1 ≤ w) :
     (sketchArithmeticLedger n r c q).reads = q * n * r ∧
       (sketchArithmeticLedger n r c q).multiplies = q * 2 * n * r ∧

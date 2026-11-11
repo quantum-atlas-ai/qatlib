@@ -7,6 +7,28 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
 import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem2QuadraticSpeedupQuan
+
+/-!
+# Amplitude-amplification iteration budgets
+
+The rounded amplification count is bounded in terms of the inverse square root of the marked
+probability. `amplification_budget_pow2` rewrites this bound for exponential probabilities, and
+`amplification_half_success_budget` pairs it with the amplification success guarantee. The
+mathematical context is [KaplanEtAl2015].
+
+## Main statements
+
+* `amplification_budget_pow2`: For marked scale `2^(-h)`, the inverse-square-root budget equals
+  `(π/4) * 2^(h/2) + 1`.
+* `amplification_half_success_budget`: For positive marked probability `a = sin² θ` with `0 < θ
+  ≤ π/2`, there is an iteration count at most `π/(4√a) + 1` whose success probability is at
+  least `max (1-a) a`.
+
+## References
+
+* [Kaplan et al., 2015][KaplanEtAl2015]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,6 +39,7 @@ namespace Qatlib.Papers.QCryptanal15.MainResults.Complexity
 
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore.AmplitudeAmplificationCore
 
+/-- For `0 < θ ≤ π/2` and `a = sin² θ`, the rounded iteration count is at most `π/(4√a) + 1`. -/
 theorem amplification_iterations_le_inv_sqrt {a θ : ℝ}
     (hθ0 : 0 < θ) (hθπ : θ ≤ Real.pi / 2)
     (hsin : Real.sin θ ^ 2 = a) :
@@ -38,6 +61,7 @@ theorem amplification_iterations_le_inv_sqrt {a θ : ℝ}
       (mul_pos (by norm_num) hsinpos) hden
   linarith
 
+/-- For marked scale `2^(-h)`, the inverse-square-root budget equals `(π/4) * 2^(h/2) + 1`. -/
 theorem amplification_budget_pow2 (h : ℝ) :
     Real.pi / (4 * Real.sqrt (pow2 (-h))) + 1 = Real.pi / 4 * pow2 (h / 2) + 1 := by
   have hsqrt : Real.sqrt (pow2 (-h)) = pow2 (-(h / 2)) := by
@@ -48,6 +72,8 @@ theorem amplification_budget_pow2 (h : ℝ) :
   have hpos : pow2 (h / 2) ≠ 0 := pow2_ne_zero (h / 2)
   field_simp
 
+/-- For positive marked probability `a = sin² θ` with `0 < θ ≤ π/2`, there is an iteration count
+at most `π/(4√a) + 1` whose success probability is at least `max (1-a) a`. -/
 theorem amplification_half_success_budget
     (E : Type*) [NormedAddCommGroup E] [InnerProductSpace ℂ E] [CompleteSpace E]
     (S : Set ℤ) (hzero : (0 : ℤ) ∈ S) (basis : HilbertBasis S ℂ E)

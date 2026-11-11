@@ -7,6 +7,25 @@ Authors: Chris Birkbeck, Qatlib Contributors
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
 import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Dixon.Def
+
+/-!
+# Cauchy formulas from the Dixon function
+
+This module extracts Cauchy integral identities from the vanishing of `dixonFunction`. It
+identifies `dixonH2` with a winding-number multiple of the function value and derives a
+zero-integral criterion, forming part of the contour calculus supporting [WangEtAl2026].
+
+## Main statements
+
+* `dixonH2_eq_windingNumber_mul_f_of_dixonFunction_eq_zero`: the winding-number Cauchy formula.
+* `intervalIntegral_deriv_smul_eq_zero_of_dixonFunction_eq_zero`: a vanishing contour integral
+  criterion.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Foundations.CbmdAnalysis.Residue
@@ -19,6 +38,8 @@ open scoped Real Interval
 
 namespace TauCeti.Contour
 
+/-- If the Dixon function vanishes at `w`, its Cauchy integral component equals `2πi *
+windingNumber γ a b w * f w`, under the stated integrability and avoidance assumptions. -/
 theorem dixonH2_eq_windingNumber_mul_f_of_dixonFunction_eq_zero {f : ℂ → ℂ} {U : Set ℂ} {γ : ℝ → ℂ}
     {a b : ℝ} {w : ℂ} (h_cont : ContinuousOn γ (uIcc a b)) (hw : w ∈ U)
     (hoff : ∀ t ∈ uIcc a b, γ t ≠ w) (h_zero_at : dixonFunction f U γ a b w = 0)
@@ -30,6 +51,8 @@ theorem dixonH2_eq_windingNumber_mul_f_of_dixonFunction_eq_zero {f : ℂ → ℂ
   rw [h_zero_at] at h_identity
   exact sub_eq_zero.mp h_identity.symm
 
+/-- The contour integral of `f` vanishes when the Dixon function for `(z - w₀) * f z` vanishes
+at an avoided point `w₀` and the relevant integrands are integrable. -/
 theorem intervalIntegral_deriv_smul_eq_zero_of_dixonFunction_eq_zero {f : ℂ → ℂ} {U : Set ℂ}
     {γ : ℝ → ℂ} {a b : ℝ} (h_cont : ContinuousOn γ (uIcc a b)) (w₀ : ℂ) (hw₀_in_U : w₀ ∈ U)
     (hw₀_off : ∀ t ∈ uIcc a b, γ t ≠ w₀)

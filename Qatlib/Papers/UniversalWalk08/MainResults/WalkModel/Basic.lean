@@ -12,6 +12,25 @@ import Mathlib.Tactic.Ring
 import Mathlib.Tactic.Push
 import Mathlib.Tactic.NormNum
 
+/-!
+# Finite continuous-time quantum walks
+
+This module defines finite continuous-time walks by the matrix exponential `walkPropagator A t =
+exp(-itA)`, together with transition amplitudes and probabilities. It supplies adjacency and
+degree predicates for [Childs2009] and proves the propagator composition law, unitarity for
+Hermitian generators, and probability normalization.
+
+## Main statements
+
+* `walkPropagator_mul`: Propagators compose by adding times.
+* `walkPropagator_unitary`: Hermitian matrices generate unitary evolution.
+* `sum_walkProbability_eq_one`: Transition probabilities from a fixed source sum to one.
+
+## References
+
+* [Childs, 2009][Childs2009]
+-/
+
 namespace Qatlib.Papers.UniversalWalk08.MainResults.WalkDefsCore
 
 open Matrix
@@ -21,26 +40,34 @@ set_option autoImplicit false
 
 variable {V : Type*} [Fintype V] [DecidableEq V]
 
+/-- The predicate that all entries of `A` are zero or one and `A` equals its conjugate
+transpose. -/
 def IsZeroOneHermitianAdjacency (A : Matrix V V ℂ) : Prop :=
   (∀ i j, A i j = 0 ∨ A i j = 1) ∧ Aᴴ = A
 
+/-- The predicate that every row sum of the real parts of `A` is at most `d`. -/
 def MaxDegreeLe (A : Matrix V V ℂ) (d : ℕ) : Prop :=
   ∀ i, ∑ j, (A i j).re ≤ (d : ℝ)
 
+/-- The finite continuous-time walk propagator `exp(-itA)`. -/
 noncomputable def walkPropagator (A : Matrix V V ℂ) (t : ℝ) : Matrix V V ℂ :=
   NormedSpace.exp ((-(Complex.I * (t : ℂ))) • A)
 
+/-- The propagator entry giving the transition amplitude from `src` to `dest` at time `t`. -/
 noncomputable def walkAmplitude (A : Matrix V V ℂ) (t : ℝ) (dest src : V) : ℂ :=
   walkPropagator A t dest src
 
+/-- The squared modulus of the transition amplitude from `src` to `dest` at time `t`. -/
 noncomputable def walkProbability (A : Matrix V V ℂ) (t : ℝ) (dest src : V) : ℝ :=
   Complex.normSq (walkAmplitude A t dest src)
 
+/-- The walk propagator at time zero is the identity matrix. -/
 @[simp]
 theorem walkPropagator_zero (A : Matrix V V ℂ) : walkPropagator A 0 = 1 := by
   unfold walkPropagator
   simp
 
+/-- Propagators for the same matrix multiply by adding their time parameters. -/
 theorem walkPropagator_mul (A : Matrix V V ℂ) (s t : ℝ) :
     walkPropagator A s * walkPropagator A t = walkPropagator A (s + t) := by
   unfold walkPropagator
@@ -59,6 +86,8 @@ theorem walkPropagator_mul (A : Matrix V V ℂ) (s t : ℝ) :
           push_cast
           ring
 
+/-- For a Hermitian generator, the conjugate transpose of the propagator is the propagator at
+the negative time. -/
 theorem walkPropagator_conjTranspose {A : Matrix V V ℂ} (hA : Aᴴ = A) (t : ℝ) :
     (walkPropagator A t)ᴴ = walkPropagator A (-t) := by
   unfold walkPropagator
@@ -71,6 +100,7 @@ theorem walkPropagator_conjTranspose {A : Matrix V V ℂ} (hA : Aᴴ = A) (t : �
   rw [Complex.star_def, map_neg, map_mul, Complex.conj_ofReal, Complex.conj_I]
   ring
 
+/-- A Hermitian generator produces a propagator satisfying both unitary identities [Childs2009]. -/
 theorem walkPropagator_unitary {A : Matrix V V ℂ} (hA : Aᴴ = A) (t : ℝ) :
     (walkPropagator A t)ᴴ * walkPropagator A t = 1 ∧
       walkPropagator A t * (walkPropagator A t)ᴴ = 1 := by
@@ -83,15 +113,20 @@ theorem walkPropagator_unitary {A : Matrix V V ℂ} (hA : Aᴴ = A) (t : ℝ) :
 
 omit [Fintype V] [DecidableEq V] in
 
+/-- A matrix satisfying `IsZeroOneHermitianAdjacency` is Hermitian. -/
 theorem hermitian_of_isZeroOneHermitianAdjacency {A : Matrix V V ℂ}
     (h : IsZeroOneHermitianAdjacency A) : Aᴴ = A := h.2
 
+/-- A zero-one Hermitian adjacency matrix generates a propagator satisfying both unitary
+identities. -/
 theorem walkPropagator_unitary_of_adjacency {A : Matrix V V ℂ}
     (h : IsZeroOneHermitianAdjacency A) (t : ℝ) :
     (walkPropagator A t)ᴴ * walkPropagator A t = 1 ∧
       walkPropagator A t * (walkPropagator A t)ᴴ = 1 :=
   walkPropagator_unitary (hermitian_of_isZeroOneHermitianAdjacency h) t
 
+/-- For a Hermitian generator, the walk probabilities from a fixed source sum to one over all
+destinations [Childs2009]. -/
 theorem sum_walkProbability_eq_one {A : Matrix V V ℂ} (hA : Aᴴ = A) (t : ℝ)
     (src : V) :
     ∑ dest, walkProbability A t dest src = 1 := by

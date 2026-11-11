@@ -9,6 +9,30 @@ import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
 import Qatlib.Foundations.QueryWordCore.Circuit
 import Qatlib.Foundations.PureStateMath.Qubit
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+/-!
+# Quantum estimation of bounded payoffs
+
+`payoffPreparation` encodes a payoff in the success probability of an ancillary qubit. The
+module identifies this probability with the payoff mean, proves accuracy and sorted median
+bounds for the resulting amplitude estimation law, and counts accesses in the repeated circuit.
+See [Montanaro2015] for background.
+
+## Main statements
+
+* `payoff_actual_rotation_and_mean`: The payoff preparation is unitary and its ancillary true
+  probability equals the Born weighted mean of `f`. See [Montanaro2015].
+* `quantum_mean_actual_ae_accuracy`: The payoff mean estimate has error at most `2 * π * sqrt (μ
+  * (1 - μ)) / M + π^2 / M^2` with probability at least `8 / π^2`. See [Montanaro2015].
+* `quantum_mean_sorted_median_amplification`: The sorted median of `2 * r + 1` fresh payoff
+  estimates exceeds the amplitude estimation error bound with probability at most `2^(2 * r + 1)
+  * (1 - 8 / π^2)^(r + 1)`. See [Montanaro2015].
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,6 +54,8 @@ set_option linter.unusedVariables false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The block diagonal ancillary rotation with coefficients `sqrt (f i)` and `sqrt (1 - f i)`
+for each input index. -/
 noncomputable def payoffRotation {I : Type} [Fintype I] [DecidableEq I] (f : I → ℝ) :
     Matrix (I × Bool) (I × Bool) ℂ :=
   Matrix.of fun p q =>
@@ -41,6 +67,8 @@ noncomputable def payoffRotation {I : Type} [Fintype I] [DecidableEq I] (f : I �
       | true, true => ((Real.sqrt (1 - f p.1) : ℂ))
     else 0
 
+/-- The entries of `payoffRotation` are the stated two by two rotation coefficients on each
+index block and zero between distinct blocks. -/
 theorem payoffRotation_apply (f : I → ℝ) (i k : I) (b c : Bool) :
     payoffRotation f (i, b) (k, c) =
       if i = k then
@@ -52,11 +80,14 @@ theorem payoffRotation_apply (f : I → ℝ) (i k : I) (b c : Bool) :
     cases b <;> cases c <;> simp [payoffRotation, Matrix.of_apply]
   · simp [payoffRotation, Matrix.of_apply, h]
 
+/-- For nonnegative `x`, multiplying its real square root by itself in `ℂ` gives the complex
+embedding of `x`. -/
 private theorem sqrt_real_sq (x : ℝ) (hx : 0 ≤ x) :
     ((Real.sqrt x : ℂ) * (Real.sqrt x : ℂ)) = ((x : ℂ)) := by
   rw [show ((Real.sqrt x : ℂ) * (Real.sqrt x : ℂ)) = (((Real.sqrt x)^2 : ℝ) : ℂ) from by
     push_cast; ring, Real.sq_sqrt hx]
 
+/-- The payoff rotation is unitary when every payoff lies in `[0, 1]`. -/
 theorem payoffRotation_mem_unitaryGroup {I : Type} [Fintype I] [DecidableEq I] (f : I → ℝ)
     (hf : ∀ i, f i ∈ Set.Icc (0:ℝ) 1) :
     payoffRotation f ∈ Matrix.unitaryGroup (I × Bool) ℂ := by
@@ -99,16 +130,21 @@ theorem payoffRotation_mem_unitaryGroup {I : Type} [Fintype I] [DecidableEq I] (
     · intro hcon
       exact absurd (Finset.mem_univ i) hcon
 
+/-- The preparation matrix obtained by applying `A` to the input register and then rotating the
+ancillary qubit according to `f`. -/
 noncomputable def payoffPreparation {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (f : I → ℝ) : Matrix (I × Bool) (I × Bool) ℂ :=
   payoffRotation f * TensorGate A 1
 
+/-- Payoff preparation is unitary when `A` is unitary and `f` takes values in `[0, 1]`. -/
 theorem payoffPreparation_mem_unitaryGroup (A : Matrix I I ℂ) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, f i ∈ Set.Icc (0:ℝ) 1) :
     payoffPreparation A f ∈ Matrix.unitaryGroup (I × Bool) ℂ :=
   (Matrix.unitaryGroup (I × Bool) ℂ).mul_mem (payoffRotation_mem_unitaryGroup f hf)
     (tensorGate_unitary hA (Submonoid.one_mem _))
 
+/-- A payoff preparation matrix entry factors into an entry of `A` and an ancillary rotation
+entry. -/
 theorem payoffPreparation_entry (A : Matrix I I ℂ) (f : I → ℝ) (i i' : I) (b b' : Bool) :
     payoffPreparation A f (i, b) (i', b') = A i i' * payoffRotation f (i, b) (i, b') := by
   simp only [payoffPreparation, Matrix.mul_apply, payoffRotation_apply, TensorGate,
@@ -121,6 +157,8 @@ theorem payoffPreparation_entry (A : Matrix I I ℂ) (f : I → ℝ) (i i' : I) 
   · intro hcon
     exact absurd (Finset.mem_univ i) hcon
 
+/-- Applying payoff preparation to `Ket (j, false)` gives the stated product of preparation and
+rotation amplitudes. -/
 theorem payoffPreparation_mulVec_ket (A : Matrix I I ℂ) (f : I → ℝ) (j : I) :
     payoffPreparation A f *ᵥ Ket (j, false) =
       fun p => A p.1 j * payoffRotation f (p.1, p.2) (p.1, false) := by
@@ -134,6 +172,8 @@ theorem payoffPreparation_mulVec_ket (A : Matrix I I ℂ) (f : I → ℝ) (j : I
   · intro hcon
     exact absurd (Finset.mem_univ (j, false)) hcon
 
+/-- The payoff preparation is unitary and its ancillary true probability equals the Born
+weighted mean of `f`. See [Montanaro2015]. -/
 theorem payoff_actual_rotation_and_mean (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, f i ∈ Set.Icc (0:ℝ) 1) :
     payoffPreparation A f ∈ Matrix.unitaryGroup (I×Bool) ℂ ∧
@@ -169,6 +209,7 @@ theorem payoff_actual_rotation_and_mean (A : Matrix I I ℂ) (j : I) (f : I → 
     exact hterm i
   exact ⟨payoffPreparation_mem_unitaryGroup A f hA hf, hmain⟩
 
+/-- The amplitude estimation outcome law for the ancillary true event of the payoff preparation. -/
 noncomputable def meanLaw {I : Type} [Fintype I] [DecidableEq I] (M : ℕ)
     (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, f i ∈ Set.Icc (0:ℝ) 1) (hM : 2≤M) :
@@ -177,6 +218,8 @@ noncomputable def meanLaw {I : Type} [Fintype I] [DecidableEq I] (M : ℕ)
     (Finset.univ.filter (fun p : I × Bool => p.2 = true))
     (payoffPreparation_mem_unitaryGroup A f hA hf) hM
 
+/-- `meanLaw` is the amplitude estimation law of `payoffPreparation` with the ancillary true
+outcomes marked. -/
 theorem meanLaw_eq (M : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, f i ∈ Set.Icc (0:ℝ) 1) (hM : 2≤M) :
     meanLaw M A j f hA hf hM =
@@ -184,9 +227,12 @@ theorem meanLaw_eq (M : ℕ) (A : Matrix I I ℂ) (j : I) (f : I → ℝ)
         (Finset.univ.filter (fun p : I × Bool => p.2 = true))
         (payoffPreparation_mem_unitaryGroup A f hA hf) hM := rfl
 
+/-- The sorted median of the `2 * r + 1` amplitude estimates in a sample record. -/
 noncomputable def meanMedian (r M : ℕ) (ω : Fin (2*r+1) → Fin M) : ℝ :=
   sortedBlockMedian r (fun n => aeEstimate M (ω n))
 
+/-- The payoff mean estimate has error at most `2 * π * sqrt (μ * (1 - μ)) / M + π^2 / M^2` with
+probability at least `8 / π^2`. See [Montanaro2015]. -/
 theorem quantum_mean_actual_ae_accuracy (M : ℕ) (hM : 2≤M) (A : Matrix I I ℂ) (j : I)
     (f : I → ℝ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (hf : ∀ i, f i ∈ Set.Icc (0:ℝ) 1) :
     let μ:=∑ i, BornProb (ApplyGate A (Ket j)) i*f i;
@@ -202,6 +248,9 @@ theorem quantum_mean_actual_ae_accuracy (M : ℕ) (hM : 2≤M) (A : Matrix I I �
 
 set_option maxHeartbeats 2000000 in
 
+/-- The sorted median of `2 * r + 1` fresh payoff estimates exceeds the amplitude estimation
+error bound with probability at most `2^(2 * r + 1) * (1 - 8 / π^2)^(r + 1)`. See
+[Montanaro2015]. -/
 theorem quantum_mean_sorted_median_amplification (M r : ℕ) (hM : 2≤M) (A : Matrix I I ℂ)
     (j : I) (f : I → ℝ) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (hf : ∀ i, f i ∈ Set.Icc (0:ℝ) 1) :
@@ -320,6 +369,8 @@ theorem quantum_mean_sorted_median_amplification (M r : ℕ) (hM : 2≤M) (A : M
         refine mul_le_mul_of_nonneg_right ?_ (pow_nonneg hp_nonneg _)
         exact_mod_cast hcards
 
+/-- Repeating the counted payoff estimation circuit `2 * r + 1` times uses `(2 * r + 1) * (M -
+1)` queries and `(2 * r + 1) * (5 * (M - 1) + 3)` gates. See [Montanaro2015]. -/
 theorem quantum_mean_repeated_actual_accesses (M r : ℕ) (hM : 2≤M) (A : Matrix I I ℂ)
     (j : I) (f : I → ℝ) :
     let C:=countedAECircuit M (payoffPreparation A f) (j,false);

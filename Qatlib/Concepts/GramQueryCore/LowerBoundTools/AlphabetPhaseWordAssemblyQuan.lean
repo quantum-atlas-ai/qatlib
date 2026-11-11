@@ -8,6 +8,28 @@ import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblySt
 import Qatlib.Concepts.GramQueryCore.ModelSemantics.AlphabetWordSemanticsQuan
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetWitnessGeometryQuan
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.PhaseDetectionQuan
+
+/-!
+# Assembly of alphabet oracle walk words
+
+Constructs an isometric encoding of the witness walk into an alphabet query space. A controlled
+product of the keep and complement reflections is realized by a legal source word containing
+exactly two oracle calls, following the state conversion construction of [LeeEtAl2011].
+
+Adjoint words, frame extensions, and permutation identities support substitution of this walk
+implementation into arbitrary legal words with at most twice their original query count.
+
+## Main statements
+
+* `sourceAlphabetWalkMacro`: realizes the controlled walk with two alphabet queries.
+* `sourceWordCompile`: substitutes an implementation through an isometric frame.
+* `alphabetPhaseWordAssembly`: proves the alphabet word assembly specification.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.PhaseGeometry.Phase
@@ -34,6 +56,8 @@ open Matrix Qatlib.Concepts.QueryWordCore.AdjointCircuits Qatlib.Concepts.PhaseG
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 open scoped Classical BigOperators
 
+/-- A unitary on the domain of an isometric frame extends to a unitary on its ambient space,
+intertwining through the frame. -/
 theorem sourceExtendFrameUnitary {S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (F : Matrix S T ℂ) (hF : Fᴴ*F=1)
     (U : Matrix T T ℂ) (hU : U ∈ Matrix.unitaryGroup T ℂ) :
@@ -43,22 +67,27 @@ theorem sourceExtendFrameUnitary {S T : Type} [Fintype S] [DecidableEq S]
   simp only [Matrix.conjTranspose_mul,Matrix.mul_assoc]
   rw [← Matrix.mul_assoc Fᴴ F,hF,Matrix.one_mul,hu]
 
+/-- Takes the adjoint of a gate letter and reverses the direction of an oracle letter. -/
 def sourceAdjointLetter {S : Type} : Matrix S S ℂ ⊕ Bool → Matrix S S ℂ ⊕ Bool
   | .inl U => .inl Uᴴ
   | .inr b => .inr (!b)
 
+/-- The adjoint source word, obtained by reversing its letters and taking each letter's adjoint. -/
 def sourceAdjointWord {S : Type} (C : SourceWord S) : SourceWord S :=
   C.reverse.map sourceAdjointLetter
 
+/-- The matrix of `C ++ D` is the matrix of `D` multiplied by the matrix of `C`. -/
 theorem sourceWordMatrix_append {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (C D : SourceWord S) :
     sourceWordMatrix O (C++D)=sourceWordMatrix O D*sourceWordMatrix O C := by
   simp [sourceWordMatrix,List.map_append,List.reverse_append,List.prod_append]
 
+/-- Concatenating source words adds their oracle call counts. -/
 theorem sourceWordCalls_append {S : Type} (C D : SourceWord S) :
     sourceWordCalls (C++D)=sourceWordCalls C+sourceWordCalls D := by
   simp [sourceWordCalls]
 
+/-- The concatenation of two legal source words is legal. -/
 theorem sourceWordLegal_append {S : Type} [Fintype S] [DecidableEq S]
     (C D : SourceWord S) (hC : sourceWordLegal C) (hD : sourceWordLegal D) :
     sourceWordLegal (C++D) := by
@@ -67,6 +96,7 @@ theorem sourceWordLegal_append {S : Type} [Fintype S] [DecidableEq S]
   · exact hC s hs
   · exact hD s hs
 
+/-- Taking the adjoint word preserves the oracle call count. -/
 theorem sourceAdjointWord_calls {S : Type} (C : SourceWord S) :
     sourceWordCalls (sourceAdjointWord C)=sourceWordCalls C := by
   unfold sourceWordCalls sourceAdjointWord
@@ -78,6 +108,7 @@ theorem sourceAdjointWord_calls {S : Type} (C : SourceWord S) :
       cases s <;> simp [sourceAdjointLetter]
     _ = _ := List.countP_reverse
 
+/-- Evaluation of the adjoint word gives the conjugate transpose of the original word's matrix. -/
 theorem sourceAdjointWord_matrix {S : Type} [Fintype S] [DecidableEq S]
     (O : Matrix S S ℂ) (C : SourceWord S) :
     sourceWordMatrix O (sourceAdjointWord C)=(sourceWordMatrix O C)ᴴ := by
@@ -92,6 +123,7 @@ theorem sourceAdjointWord_matrix {S : Type} [Fintype S] [DecidableEq S]
     | inl U => simp [sourceAdjointLetter]
     | inr b => cases b <;> simp [sourceAdjointLetter]
 
+/-- Taking the adjoint of a legal source word preserves legality. -/
 theorem sourceAdjointWord_legal {S : Type} [Fintype S] [DecidableEq S]
     (C : SourceWord S) (hC : sourceWordLegal C) : sourceWordLegal (sourceAdjointWord C) := by
   intro s hs
@@ -101,6 +133,8 @@ theorem sourceAdjointWord_legal {S : Type} [Fintype S] [DecidableEq S]
   | inl U => simpa only [sourceAdjointLetter,Matrix.star_eq_conjTranspose] using! Unitary.star_mem hh
   | inr b => trivial
 
+/-- An intertwining relation between unitary matrices through a frame also holds for their
+adjoints. -/
 theorem sourceFrame_adjoint {S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (F : Matrix S T ℂ) (A : Matrix S S ℂ) (U : Matrix T T ℂ)
     (hA : A ∈ Matrix.unitaryGroup S ℂ) (hU : U ∈ Matrix.unitaryGroup T ℂ)
@@ -113,6 +147,8 @@ theorem sourceFrame_adjoint {S T : Type} [Fintype S] [DecidableEq S]
     _ = Aᴴ*((A*F)*Uᴴ) := by rw [h]
     _ = F*Uᴴ := by simp [← Matrix.mul_assoc,hAA]
 
+/-- Adding a Boolean control and a clock register of size `2^b` to a unitary matrix preserves
+unitarity. -/
 theorem sourceControlledU_unitary {H : Type} [Fintype H] [DecidableEq H]
     (b : ℕ) [DecidableEq ((Bool × H) × Fin (2^b))]
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
@@ -127,6 +163,8 @@ theorem sourceControlledU_unitary {H : Type} [Fintype H] [DecidableEq H]
   exact (relabelGate_mem_unitaryGroup _ _).mpr
     (tensorGate_unitary (Matrix.unitaryGroup _ ℂ).one_mem (controlOracle_unitary hU))
 
+/-- The walk basis permutation that adds the input symbol to each query sector's alphabet
+register and fixes the other registers. -/
 def sourceWalkShift {X H : Type} {n q m b : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     ((Bool × SourceGeometry n q m H) × Fin (2^b)) ≃
@@ -140,12 +178,16 @@ def sourceWalkShift {X H : Type} {n q m b : ℕ}
   left_inv p := by rcases p with ⟨⟨c,t⟩,z⟩; cases t <;> simp
   right_inv p := by rcases p with ⟨⟨c,t⟩,z⟩; cases t <;> simp
 
+/-- The auxiliary labels for the walk encoding, consisting of a state or witness label together
+with a clock value. -/
 abbrev SourceWalkAux (H : Type) (m b : ℕ) := ((Bool × H) ⊕ Fin m) × Fin (2^b)
 
+/-- Encodes walk auxiliary labels into a finite register with one additional position. -/
 def sourceWalkAuxCode (H : Type) [Fintype H] (m b : ℕ) :
     SourceWalkAux H m b → Fin (Fintype.card (SourceWalkAux H m b)+1) :=
   fun t => ((Fintype.equivFin (SourceWalkAux H m b)) t).castSucc
 
+/-- The finite encoding `sourceWalkAuxCode` is injective. -/
 theorem sourceWalkAuxCode_injective (H : Type) [Fintype H] (m b : ℕ) :
     Function.Injective (sourceWalkAuxCode H m b) := by
   intro t z h
@@ -153,6 +195,8 @@ theorem sourceWalkAuxCode_injective (H : Type) [Fintype H] (m b : ℕ) :
   have hv := congrArg (fun i : Fin (Fintype.card (SourceWalkAux H m b)+1) => i.val) h
   exact Fin.ext hv
 
+/-- Encodes walk basis labels into the padded alphabet source space using a chosen payload basis
+element. -/
 def sourceWalkBasisCode {H : Type} [Fintype H] (n q m b : ℕ) (h0 : H) :
     ((Bool × SourceGeometry n q m H) × Fin (2^b)) →
     SourceSpace n q H (Fintype.card (SourceWalkAux H m b)+1) := fun p =>
@@ -160,10 +204,12 @@ def sourceWalkBasisCode {H : Type} [Fintype H] (n q m b : ℕ) (h0 : H) :
   | .inl t => ((⟨n,by omega⟩,0),((p.1.1,h0),sourceWalkAuxCode H m b (.inl t,p.2)))
   | .inr (j,a,k) => ((j.castSucc,a),((p.1.1,h0),sourceWalkAuxCode H m b (.inr k,p.2)))
 
+/-- The alphabet vector centered at `s` is the translate of the vector centered at zero. -/
 theorem sourceMu_translate (q : ℕ) (a s : Fin (q+1)) :
     sourceMu q s a=sourceMu q 0 (a-s) := by
   simp [sourceMu,sub_eq_zero]
 
+/-- The walk basis encoding into the alphabet source space is injective. -/
 theorem sourceWalkBasisCode_injective {H : Type} [Fintype H]
     (n q m b : ℕ) (h0 : H) : Function.Injective (sourceWalkBasisCode n q m b h0) := by
   intro p t he
@@ -207,9 +253,11 @@ theorem sourceWalkBasisCode_injective {H : Type} [Fintype H]
       subst c; subst j; subst a; subst k; subst z
       rfl
 
+/-- The matrix whose column at `t` is the standard basis vector indexed by `e t`. -/
 def sourceBasisFrame {S T : Type} [DecidableEq S] (e : T → S) : Matrix S T ℂ :=
   fun s t => if s=e t then 1 else 0
 
+/-- The standard basis frame associated with an injective map is an isometry. -/
 theorem sourceBasisFrame_isometry {S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (e : T → S) (he : Function.Injective e) :
     (sourceBasisFrame e)ᴴ*sourceBasisFrame e=1 := by
@@ -221,6 +269,7 @@ theorem sourceBasisFrame_isometry {S T : Type} [Fintype S] [DecidableEq S]
     simp [hs]
   · simp
 
+/-- A basis frame intertwines permutations that agree along its defining basis map. -/
 theorem sourceBasisFrame_permutation {S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (e : T → S) (σ : S → S) (τ : T ≃ T)
     (h : ∀ t, σ (e t)=e (τ t)) :
@@ -242,6 +291,7 @@ theorem sourceBasisFrame_permutation {S T : Type} [Fintype S] [DecidableEq S]
     · simp
   rw [hl,hr,h]
 
+/-- The alphabet oracle acts on the encoded walk frame as the walk shift permutation. -/
 theorem sourceWalkFrame_oracle {X H : Type} [Fintype H] [DecidableEq H] {n q m b : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) (h0 : H) :
     sourceAlphabetOracle input x*sourceBasisFrame (sourceWalkBasisCode n q m b h0)=
@@ -255,6 +305,7 @@ theorem sourceWalkFrame_oracle {X H : Type} [Fintype H] [DecidableEq H] {n q m b
     rcases t with ⟨j,a,k⟩
     simp [sourceWalkBasisCode,sourceWalkShift,sourcePaddedSymbol,j.isLt]
 
+/-- Conjugation by a permutation matrix is the corresponding relabeling of a gate. -/
 theorem sourcePermutation_conjugate {T : Type} [Fintype T] [DecidableEq T]
     (e : T ≃ T) (U : Matrix T T ℂ) :
     permMatrix e*U*(permMatrix e)ᴴ=relabelGate e U := by
@@ -273,6 +324,8 @@ theorem sourcePermutation_conjugate {T : Type} [Fintype T] [DecidableEq T]
     simp [he]
   · simp
 
+/-- The geometry permutation that adds the input symbol in each query sector and fixes the state
+sector. -/
 def sourceGeometryShift {X H : Type} {n q m : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     SourceGeometry n q m H ≃ SourceGeometry n q m H where
@@ -285,6 +338,8 @@ def sourceGeometryShift {X H : Type} {n q m : ℕ}
   left_inv p := by cases p <;> simp
   right_inv p := by cases p <;> simp
 
+/-- Relabeling the zero-input keep matrix by the input-dependent geometry shift gives the keep
+matrix for that input. -/
 theorem sourceKeep_translation {X H : Type} [Fintype H] [DecidableEq H] {n q m : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     relabelGate (sourceGeometryShift (H:=H) (m:=m) input x)
@@ -303,6 +358,8 @@ theorem sourceKeep_translation {X H : Type} [Fintype H] [DecidableEq H] {n q m :
         simp [relabelGate,sourceGeometryShift,sourceKeep,← sourceMu_translate]
       · simp [relabelGate,sourceGeometryShift,sourceKeep,hj]
 
+/-- Relabeling the state register commutes with forming the controlled matrix and its clock
+extension. -/
 theorem sourceControlledU_relabel {H : Type} [Fintype H] [DecidableEq H]
     (e : H ≃ H) (r : ℕ) (U : Matrix H H ℂ) :
     relabelGate ((Equiv.prodCongr (Equiv.prodCongr (Equiv.refl Bool) e) (Equiv.refl (Fin r))))
@@ -310,12 +367,15 @@ theorem sourceControlledU_relabel {H : Type} [Fintype H] [DecidableEq H]
   ext p t
   simp [relabelGate,sourceControlledU]
 
+/-- Relabeling a reflection matrix gives the reflection about the relabeled matrix. -/
 theorem sourceReflection_relabel {H : Type} [Fintype H] [DecidableEq H]
     (e : H ≃ H) (P : Matrix H H ℂ) :
     relabelGate e (ReflectionAbout P)=ReflectionAbout (relabelGate e P) := by
   ext i j
   simp [relabelGate,ReflectionAbout,Matrix.one_apply,e.symm.injective.eq_iff]
 
+/-- Conjugating the controlled zero-input keep reflection by the walk shift gives the controlled
+keep reflection for the input. -/
 theorem sourceWalkKeep_conjugate {X H : Type} [Fintype H] [DecidableEq H] {n q m b : ℕ}
     (input : X → Fin n → Fin (q+1)) (x : X) :
     permMatrix (sourceWalkShift (H:=H) (m:=m) (b:=b) input x) *
@@ -328,6 +388,7 @@ theorem sourceWalkKeep_conjugate {X H : Type} [Fintype H] [DecidableEq H] {n q m
     (sourceGeometryShift input x)) (Equiv.refl (Fin (2^b))))) _=_
   rw [sourceControlledU_relabel,sourceReflection_relabel,sourceKeep_translation]
 
+/-- The controlled clock extension preserves matrix multiplication. -/
 theorem sourceControlledU_mul {H : Type} [Fintype H] [DecidableEq H]
     (r : ℕ) (U V : Matrix H H ℂ) :
     sourceControlledU r (U*V)=sourceControlledU r U*sourceControlledU r V := by
@@ -346,6 +407,8 @@ theorem sourceControlledU_mul {H : Type} [Fintype H] [DecidableEq H]
   cases c <;> cases d <;> simp
       [Qatlib.Concepts.BlockEncoding.LCU.select,Matrix.mul_apply,Fintype.sum_prod_type,Matrix.one_apply]
 
+/-- An isometric implementation using at most two queries per oracle call compiles any legal
+source word with at most twice its call count and preserves the action through the frame. -/
 theorem sourceWordCompile {X S T : Type} [Fintype S] [DecidableEq S]
     [Fintype T] [DecidableEq T] (F : Matrix S T ℂ) (hF : Fᴴ*F=1)
     (O : X → Matrix S S ℂ) (U : X → Matrix T T ℂ)
@@ -407,6 +470,8 @@ theorem sourceWordCompile {X S T : Type} [Fintype S] [DecidableEq S]
         sourceWordMatrix_append (U x) [s] C
       rw [he]
 
+/-- The controlled product of the keep and complement reflections has a legal alphabet oracle
+implementation with exactly two calls through an isometric frame. -/
 theorem sourceAlphabetWalkMacro {X H : Type} [Fintype X] [DecidableEq X]
     [Fintype H] [DecidableEq H] [Nonempty H]
     (n q m b : ℕ) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)
@@ -469,6 +534,8 @@ theorem sourceAlphabetWalkMacro {X H : Type} [Fintype X] [DecidableEq X]
       _ = F*(sourceControlledU (2^b) (ReflectionAbout (sourceKeep input x))*L0) := by
         rw [sourceWalkKeep_conjugate]
 
+/-- Proves the alphabet phase word assembly specification, supplying the walk compilation used
+in [Lee et al., Theorem 4.1][LeeEtAl2011]. -/
 theorem alphabetPhaseWordAssembly : AlphabetPhaseWordAssembly := by
   intro X H _ _ _ _ _ n q m b input ρ σ u W ε hq C hC
   obtain ⟨r,hr,F,Q,hF,hQ,hcalls,hact⟩ := sourceAlphabetWalkMacro n q m b input ρ σ u W ε hq

@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.AdiabBounds06.MainResults.Defs
+
+/-!
+# Spectral-band data and twiddle identities
+
+`BandData` packages orthogonal spectral projections, reduced resolvents, and a positive gap
+bound. Its `BandData.twiddle` operation is defined by a finite resolvent sum and satisfies the
+block and commutator identities used in the adiabatic analysis of [JansenRuskaiSeiler2007].
+
+## Main statements
+
+* `BandData.twiddle`: the finite sum defining the twiddle operation.
+* `BandData.commutator_H_twiddle`: the identity `[H, twiddle X] = P * X - X * P`.
+* `BandData.twiddle_adiSandwich`: the two off-diagonal blocks of the adiabatic commutator.
+
+## References
+
+* [Jansen et al., 2007][JansenRuskaiSeiler2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -18,10 +37,13 @@ namespace Qatlib.Papers.AdiabBounds06.MainResults
 
 variable {n : ℕ}
 
+/-- The corrected Hamiltonian `H + (i/τ)[Pdot, P]` for fixed matrices and real parameter `τ`. -/
 def HτAconst (τ : ℝ) (H P Pdot : Matrix (Fin n) (Fin n) ℂ) :
     Matrix (Fin n) (Fin n) ℂ :=
   H + (Complex.I / (τ : ℂ)) • (Pdot * P - P * Pdot)
 
+/-- Spectral-band data consisting of orthogonal projections summing to `P`, associated real
+eigenvalues, complementary reduced resolvents, and a positive gap controlling their norms. -/
 structure BandData (H : Matrix (Fin n) (Fin n) ℂ) where
   m : ℕ
   lam : Fin m → ℝ
@@ -46,14 +68,18 @@ namespace BandData
 
 variable {H : Matrix (Fin n) (Fin n) ℂ}
 
+/-- The negative sum of `Pj * X * Rhat + Rhat * X * Pj` over the spectral-band components. -/
 def twiddle (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     Matrix (Fin n) (Fin n) ℂ :=
   -∑ j, (D.Pj j * X * D.Rhat j + D.Rhat j * X * D.Pj j)
 
+/-- The twiddle operation is the negative finite sum of its two reduced-resolvent terms for each
+band component. See [JansenRuskaiSeiler2007]. -/
 theorem twiddle_eq_sum_resolvents (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     D.twiddle X
       = -∑ j, (D.Pj j * X * D.Rhat j + D.Rhat j * X * D.Pj j) := rfl
 
+/-- Left multiplication by the total band projection fixes each component projection. -/
 theorem P_mul_Pj (D : BandData H) (j : Fin D.m) : D.P * D.Pj j = D.Pj j := by
   rw [← D.Pj_sum, Finset.sum_mul, Finset.sum_eq_single j]
   · exact (D.Pj_proj j).1
@@ -62,6 +88,7 @@ theorem P_mul_Pj (D : BandData H) (j : Fin D.m) : D.P * D.Pj j = D.Pj j := by
   · intro hj
     exact absurd (Finset.mem_univ j) hj
 
+/-- Right multiplication by the total band projection fixes each component projection. -/
 theorem Pj_mul_P (D : BandData H) (j : Fin D.m) : D.Pj j * D.P = D.Pj j := by
   rw [← D.Pj_sum, Finset.mul_sum, Finset.sum_eq_single j]
   · exact (D.Pj_proj j).1
@@ -70,22 +97,27 @@ theorem Pj_mul_P (D : BandData H) (j : Fin D.m) : D.Pj j * D.P = D.Pj j := by
   · intro hj
     exact absurd (Finset.mem_univ j) hj
 
+/-- The complementary band projection annihilates each component projection on the left. -/
 theorem one_sub_mul_Pj (D : BandData H) (j : Fin D.m) :
     (1 - D.P) * D.Pj j = 0 := by
   rw [sub_mul, one_mul, D.P_mul_Pj j, sub_self]
 
+/-- Each component projection annihilates the complementary band projection on the right. -/
 theorem Pj_mul_one_sub (D : BandData H) (j : Fin D.m) :
     D.Pj j * (1 - D.P) = 0 := by
   rw [mul_sub, mul_one, D.Pj_mul_P j, sub_self]
 
+/-- The total band projection annihilates each reduced resolvent on the left. -/
 theorem P_mul_Rhat (D : BandData H) (j : Fin D.m) : D.P * D.Rhat j = 0 := by
   rw [← D.Rhat_left j, ← mul_assoc,
     show D.P * (1 - D.P) = 0 from (mul_orthCompl D.P_proj).1, zero_mul]
 
+/-- Each reduced resolvent annihilates the total band projection on the right. -/
 theorem Rhat_mul_P (D : BandData H) (j : Fin D.m) : D.Rhat j * D.P = 0 := by
   rw [← D.Rhat_right j, mul_assoc,
     show (1 - D.P) * D.P = 0 from (mul_orthCompl D.P_proj).2, mul_zero]
 
+/-- The Hamiltonian commutes with each reduced resolvent. -/
 theorem H_Rhat_comm (D : BandData H) (j : Fin D.m) : H * D.Rhat j = D.Rhat j * H := by
   set R := D.Rhat j with hR
   set K : Matrix (Fin n) (Fin n) ℂ := (D.lam j : ℂ) • (1 : Matrix (Fin n) (Fin n) ℂ) with hK
@@ -104,6 +136,8 @@ theorem H_Rhat_comm (D : BandData H) (j : Fin D.m) : H * D.Rhat j = D.Rhat j * H
   have hRK : R * K = (D.lam j : ℂ) • R := by rw [hK, Matrix.mul_smul, mul_one]
   rw [h1, h2, hKR, hRK]
 
+/-- Left multiplication of a reduced resolvent by the Hamiltonian equals its eigenvalue multiple
+plus the complementary band projection. -/
 theorem H_mul_Rhat (D : BandData H) (j : Fin D.m) :
     H * D.Rhat j = (D.lam j : ℂ) • D.Rhat j + (1 - D.P) := by
   have h := D.Rhat_res j
@@ -113,6 +147,8 @@ theorem H_mul_Rhat (D : BandData H) (j : Fin D.m) :
     _ = (1 - D.P) + (D.lam j : ℂ) • D.Rhat j := by rw [h]
     _ = (D.lam j : ℂ) • D.Rhat j + (1 - D.P) := by abel
 
+/-- Right multiplication of a reduced resolvent by the Hamiltonian equals its eigenvalue
+multiple plus the complementary band projection. -/
 theorem Rhat_mul_H (D : BandData H) (j : Fin D.m) :
     D.Rhat j * H = (D.lam j : ℂ) • D.Rhat j + (1 - D.P) := by
   have h := D.Rhat_res' j
@@ -122,15 +158,20 @@ theorem Rhat_mul_H (D : BandData H) (j : Fin D.m) :
     _ = (1 - D.P) + (D.lam j : ℂ) • D.Rhat j := by rw [h]
     _ = (D.lam j : ℂ) • D.Rhat j + (1 - D.P) := by abel
 
+/-- Left multiplication by the total band projection fixes a product beginning with a component
+projection. -/
 theorem P_mul_Pj_mul (D : BandData H) (j : Fin D.m) (X Y : Matrix (Fin n) (Fin n) ℂ) :
     D.P * (D.Pj j * X * Y) = D.Pj j * X * Y := by
   rw [← mul_assoc D.P (D.Pj j * X) Y, ← mul_assoc D.P (D.Pj j) X, D.P_mul_Pj j]
 
+/-- Left multiplication by the total band projection annihilates a product beginning with a
+reduced resolvent. -/
 theorem P_mul_Rhat_mul (D : BandData H) (j : Fin D.m) (X Y : Matrix (Fin n) (Fin n) ℂ) :
     D.P * (D.Rhat j * X * Y) = 0 := by
   rw [← mul_assoc D.P (D.Rhat j * X) Y, ← mul_assoc D.P (D.Rhat j) X, D.P_mul_Rhat j]
   simp
 
+/-- The diagonal block `P * twiddle X * P` vanishes. See [JansenRuskaiSeiler2007]. -/
 theorem P_twiddle_P (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     D.P * D.twiddle X * D.P = 0 := by
   have hA : ∀ j : Fin D.m, D.P * (D.Pj j * X * D.Rhat j) * D.P = 0 := by
@@ -151,12 +192,15 @@ theorem P_twiddle_P (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     exact Finset.sum_eq_zero (fun j _ => hterm j)
   rw [hsum, neg_zero]
 
+/-- The complementary band projection annihilates a product beginning with a component
+projection. -/
 theorem Q_mul_Pj_mul (D : BandData H) (j : Fin D.m) (X Y : Matrix (Fin n) (Fin n) ℂ) :
     (1 - D.P) * (D.Pj j * X * Y) = 0 := by
   rw [← mul_assoc (1 - D.P) (D.Pj j * X) Y, ← mul_assoc (1 - D.P) (D.Pj j) X,
     D.one_sub_mul_Pj j]
   simp
 
+/-- The diagonal block `(1 - P) * twiddle X * (1 - P)` vanishes. See [JansenRuskaiSeiler2007]. -/
 theorem Q_twiddle_Q (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     (1 - D.P) * D.twiddle X * (1 - D.P) = 0 := by
   have hA : ∀ j : Fin D.m, (1 - D.P) * (D.Pj j * X * D.Rhat j) * (1 - D.P) = 0 := by
@@ -181,6 +225,7 @@ theorem Q_twiddle_Q (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     exact Finset.sum_eq_zero (fun j _ => hterm j)
   rw [hsum, neg_zero]
 
+/-- Left multiplication of `twiddle X` by `P` retains only the terms `-Pj * X * Rhat`. -/
 theorem P_mul_twiddle (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     D.P * D.twiddle X = -∑ j, D.Pj j * X * D.Rhat j := by
   rw [D.twiddle_eq_sum_resolvents X, mul_neg, Finset.mul_sum]
@@ -189,6 +234,7 @@ theorem P_mul_twiddle (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
   intro j _
   rw [mul_add, D.P_mul_Pj_mul j X (D.Rhat j), D.P_mul_Rhat_mul j X (D.Pj j), add_zero]
 
+/-- Right multiplication of `twiddle X` by `P` retains only the terms `-Rhat * X * Pj`. -/
 theorem twiddle_mul_P (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     D.twiddle X * D.P = -∑ j, D.Rhat j * X * D.Pj j := by
   rw [D.twiddle_eq_sum_resolvents X, neg_mul, Finset.sum_mul]
@@ -202,6 +248,8 @@ theorem twiddle_mul_P (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     rw [mul_assoc, D.Pj_mul_P j]
   rw [h1, h2, zero_add]
 
+/-- The block `P * twiddle X * (1 - P)` equals the negative sum of `Pj * X * Rhat`. See
+[JansenRuskaiSeiler2007]. -/
 theorem P_twiddle_Q (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     D.P * D.twiddle X * (1 - D.P) = -∑ j, D.Pj j * X * D.Rhat j := by
   rw [D.P_mul_twiddle, neg_mul, Finset.sum_mul]
@@ -210,6 +258,8 @@ theorem P_twiddle_Q (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
   intro j _
   rw [mul_assoc, D.Rhat_right j]
 
+/-- The block `(1 - P) * twiddle X * P` equals the negative sum of `Rhat * X * Pj`. See
+[JansenRuskaiSeiler2007]. -/
 theorem Q_twiddle_P (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     (1 - D.P) * D.twiddle X * D.P = -∑ j, D.Rhat j * X * D.Pj j := by
   rw [mul_assoc, D.twiddle_mul_P, mul_neg, Finset.mul_sum]
@@ -219,6 +269,7 @@ theorem Q_twiddle_P (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
   rw [← mul_assoc (1 - D.P) (D.Rhat j * X) (D.Pj j), ← mul_assoc (1 - D.P) (D.Rhat j) X,
     D.Rhat_left j]
 
+/-- The commutator of `H` with `Pj * X * Rhat` equals `-Pj * X * (1 - P)`. -/
 theorem commutator_H_PjXR (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) (j : Fin D.m) :
     H * (D.Pj j * X * D.Rhat j) - (D.Pj j * X * D.Rhat j) * H
       = -(D.Pj j * X * (1 - D.P)) := by
@@ -235,6 +286,7 @@ theorem commutator_H_PjXR (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) (j :
   rw [hl, hr]
   abel
 
+/-- The commutator of `H` with `Rhat * X * Pj` equals `(1 - P) * X * Pj`. -/
 theorem commutator_H_RXP (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) (j : Fin D.m) :
     H * (D.Rhat j * X * D.Pj j) - (D.Rhat j * X * D.Pj j) * H
       = (1 - D.P) * X * D.Pj j := by
@@ -255,6 +307,7 @@ theorem commutator_H_RXP (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) (j : 
   rw [hl, hr]
   abel
 
+/-- The commutator of `H` with `twiddle X` equals `P * X - X * P`. See [JansenRuskaiSeiler2007]. -/
 theorem commutator_H_twiddle (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     commutator H (D.twiddle X) = D.P * X - X * D.P := by
   set S : Matrix (Fin n) (Fin n) ℂ :=
@@ -293,6 +346,7 @@ theorem commutator_H_twiddle (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
   rw [hsplit, hsumA, hsumB]
   noncomm_ring
 
+/-- The `P` to complementary block of `[H, twiddle X]` equals `P * X * (1 - P)`. -/
 theorem P_commutator_H_twiddle_Q (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     D.P * commutator H (D.twiddle X) * (1 - D.P) = D.P * X * (1 - D.P) := by
   rw [commutator_H_twiddle]
@@ -304,6 +358,7 @@ theorem P_commutator_H_twiddle_Q (D : BandData H) (X : Matrix (Fin n) (Fin n) �
     _ = D.P * X * (1 - D.P) - D.P * X * 0 := by rw [hPP, hPQ]
     _ = D.P * X * (1 - D.P) := by rw [mul_zero, sub_zero]
 
+/-- The complementary to `P` block of `[H, twiddle X]` equals `-(1 - P) * X * P`. -/
 theorem Q_commutator_H_twiddle_P (D : BandData H) (X : Matrix (Fin n) (Fin n) ℂ) :
     (1 - D.P) * commutator H (D.twiddle X) * D.P = -((1 - D.P) * X * D.P) := by
   rw [commutator_H_twiddle]
@@ -315,6 +370,7 @@ theorem Q_commutator_H_twiddle_P (D : BandData H) (X : Matrix (Fin n) (Fin n) �
     _ = 0 - (1 - D.P) * X * D.P := by simp [hQP, hPP]
     _ = -((1 - D.P) * X * D.P) := by rw [zero_sub]
 
+/-- For an idempotent `P`, both diagonal blocks of the commutator `Pdot * P - P * Pdot` vanish. -/
 theorem Pdot_diag_blocks (P Pdot : Matrix (Fin n) (Fin n) ℂ) (hPP : P * P = P) :
     P * (Pdot * P - P * Pdot) * P = 0 ∧
       (1 - P) * (Pdot * P - P * Pdot) * (1 - P) = 0 := by
@@ -341,6 +397,8 @@ theorem Pdot_diag_blocks (P Pdot : Matrix (Fin n) (Fin n) ℂ) (hPP : P * P = P)
           noncomm_ring
       _ = 0 := by rw [h3, h4, sub_self]
 
+/-- If both diagonal blocks of `A` and `Z` vanish relative to `P`, then `P * (A * Z - Z * A) *
+(1 - P)` vanishes. -/
 theorem offdiag_comm_sandwich (P A Z : Matrix (Fin n) (Fin n) ℂ)
     (hAPA : P * A * P = 0) (hQAQ : (1 - P) * A * (1 - P) = 0)
     (hPZP : P * Z * P = 0) (hQZQ : (1 - P) * Z * (1 - P) = 0) :
@@ -372,6 +430,9 @@ theorem offdiag_comm_sandwich (P A Z : Matrix (Fin n) (Fin n) ℂ)
       = P * (A * Z) * (1 - P) - P * (Z * A) * (1 - P) := by noncomm_ring
     _ = 0 := by rw [hAZ, hZA, sub_self]
 
+/-- Under the stated nonzero parameter, off-diagonal derivative, and commutation hypotheses, the
+two off-diagonal blocks of `[HτAconst, twiddle X]` equal `P * X * (1 - P)` and `-(1 - P) * X
+* P`. See [JansenRuskaiSeiler2007]. -/
 theorem twiddle_adiSandwich (D : BandData H) (τ : ℝ) (_hτ : τ ≠ 0)
     (Pdot : Matrix (Fin n) (Fin n) ℂ) (X : Matrix (Fin n) (Fin n) ℂ)
     (_hPdot_off : Pdot = Pdot * D.P + D.P * Pdot)

@@ -6,6 +6,32 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
 import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+
+/-!
+# Variance certification from a rational pilot
+
+The fold `pilotMoments` computes empirical first and second moments using rational arithmetic. A
+padded empirical variance `pilotVarianceUpper` and rational square-root bracket determine the
+scale `pilotScale` and the dyadic accuracy parameter `pilotPrecision`.
+
+Accurate pilot moments certify a scale above the true standard deviation; finite Born sampling
+bounds control failure of this certificate. These estimates support adaptive variance scaling
+for quantum Monte Carlo mean estimation as in [Montanaro2015].
+
+## Main statements
+
+* `unknown_variance_pilot_good_moments_certificate`: accurate moments certify a sufficient scale
+  with an upper bound.
+* `unknown_variance_pilot_computed_precision_and_worst_path`: the computed precision meets its
+  error target and a uniform cap.
+* `unknown_variance_pilot_actual_born_certificate_failure`: certificate failure has probability
+  at most 2/(Nν²).
+
+## References
+
+* [Montanaro, 2015][Montanaro2015]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
@@ -27,22 +53,32 @@ open Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 set_option warningAsError false
 
+/-- The rational empirical mean and second moment of `N` observations, together with a count
+accumulated by the same fold. -/
 def pilotMoments {I : Type} (N : ℕ) (f : I  → ℚ) (omega : Fin N  → I) : ℚ ×ℚ ×ℕ :=
   let z :=
       (List.finRange N).foldl (fun z i => (z.1+f (omega i),z.2.1+(f (omega i))^2,z.2.2+1)) (0,0,0)
   (z.1/N,z.2.1/N,z.2.2)
 
+/-- The empirical second moment minus the squared empirical mean, clipped below at zero and then
+padded by `3 * nu`. -/
 def pilotVarianceUpper {I : Type} (N : ℕ) (f : I  → ℚ) (nu : ℚ) (omega : Fin N  → I) : ℚ :=
   max 0 ((pilotMoments N f omega).2.1-(pilotMoments N f omega).1^2)+3*nu
 
+/-- Twice the upper rational square-root bracket endpoint for one quarter of the padded
+empirical variance. -/
 def pilotScale {I : Type} (N h : ℕ) (f : I  → ℚ) (nu : ℚ) (omega : Fin N  → I) : ℚ :=
   2*(rationalSqrtBracket (pilotVarianceUpper N f nu omega/4) h).2.1
 
+/-- The maximum of four and the base-two ceiling logarithm of one plus the nonnegative integer
+ceiling of eight times the pilot scale divided by `eps`. -/
 def pilotPrecision {I : Type} (N h : ℕ) (f : I  → ℚ) (nu eps : ℚ) (omega : Fin N  → I) : ℕ :=
   max 4 (Nat.clog 2 ((⌈8*pilotScale N h f nu omega/eps⌉ : ℤ).toNat+1))
 
 set_option maxHeartbeats 2000000
 
+/-- The moment-accumulation fold adds the payoff sum, squared-payoff sum, and list length to its
+three initial accumulators. -/
 private theorem pilot_fold {J : Type} (l : List J) (g : J → ℚ) (a b : ℚ) (n : ℕ) :
     l.foldl (fun z i => (z.1 + g i, z.2.1 + (g i)^2, z.2.2 + 1)) (a,b,n) =
       (a + (l.map g).sum, b + (l.map (fun i => (g i)^2)).sum, n + l.length) := by
@@ -56,6 +92,8 @@ private theorem pilot_fold {J : Type} (l : List J) (g : J → ℚ) (a b : ℚ) (
       · (try dsimp only); ring
       · (try dsimp only); omega
 
+/-- The pilot fold returns the sample mean, sample second moment, and the exact observation
+count `N`. -/
 theorem pilotMoments_eq {I : Type} (N : ℕ) (f : I → ℚ) (omega : Fin N → I) :
     pilotMoments N f omega =
       ((∑ i, f (omega i))/N, (∑ i, (f (omega i))^2)/N, N) := by
@@ -63,6 +101,8 @@ theorem pilotMoments_eq {I : Type} (N : ℕ) (f : I → ℚ) (omega : Fin N → 
   rw [pilot_fold]
   simp [← List.ofFn_eq_map, List.sum_ofFn]
 
+/-- For a nonempty record and payoffs bounded in absolute value by one, the empirical mean has
+absolute value at most one and the empirical second moment lies in [0, 1]. -/
 private theorem pilot_moment_bounds {I : Type} (N : ℕ) (f : I → ℚ) (omega : Fin N → I)
     (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1) :
     |(pilotMoments N f omega).1| ≤ 1 ∧ 0 ≤ (pilotMoments N f omega).2.1 ∧
@@ -82,6 +122,9 @@ private theorem pilot_moment_bounds {I : Type} (N : ℕ) (f : I → ℚ) (omega 
         have ha := abs_le.mp (hf (omega i)); nlinarith
       _ = _ := by simp
 
+/-- Under the bounded-payoff and pilot-margin hypotheses, the fold counts `N` samples, the
+variance proxy lies in [0, 4], and the positive scale is at most two and approximates the
+proxy square root from above within 2/2^h. -/
 theorem unknown_variance_pilot_native_moments_and_scale
     (I : Type) (N h : ℕ) (f : I → ℚ) (nu : ℚ) (omega : Fin N → I)
     (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4) :
@@ -133,6 +176,8 @@ theorem unknown_variance_pilot_native_moments_and_scale
   · rw [hwidth]; nlinarith [Real.sq_sqrt hur,
       Real.sqrt_nonneg (pilotVarianceUpper N f nu omega : ℝ)]
 
+/-- A payoff bounded in absolute value by one has mean with absolute value at most one, second
+moment at most one, and variance in [0, 1]. -/
 private theorem pilot_expect_bounds {I : Type} [Fintype I] [DecidableEq I]
     (p : FinDist I) (f : I → ℝ) (hf : ∀ i, |f i| ≤ 1) :
     |p.expect f| ≤ 1 ∧ p.expect (fun i => f i ^ 2) ≤ 1 ∧ 0 ≤ p.variance f ∧ p.variance f ≤ 1 := by
@@ -152,6 +197,8 @@ private theorem pilot_expect_bounds {I : Type} [Fintype I] [DecidableEq I]
   change (∑ i, p.prob i * f i^2) ≤ 1 at hs
   exact ⟨hm, hs, hv, by nlinarith [sq_nonneg (p.expect f)]⟩
 
+/-- If both pilot moments approximate the true moments within `nu`, the squared pilot scale
+bounds the true variance and the scale is at most sqrt(variance + 6nu) + 2/2^h. -/
 theorem unknown_variance_pilot_good_moments_certificate
     (I : Type) [Fintype I] [DecidableEq I] (p : FinDist I) (N h : ℕ) (f : I → ℚ)
     (nu : ℚ) (omega : Fin N → I) (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1)
@@ -200,6 +247,8 @@ theorem unknown_variance_pilot_good_moments_certificate
   have hU0 : (0 : ℝ) ≤ pilotVarianceUpper N f nu omega := by exact_mod_cast hg.2.2.1
   nlinarith [Real.sq_sqrt hU0, Real.sqrt_nonneg (pilotVarianceUpper N f nu omega : ℝ)]
 
+/-- The selected precision is at least four, makes eight times the pilot scale times
+2^(-precision) at most `eps`, and satisfies the stated uniform logarithmic cap. -/
 theorem unknown_variance_pilot_computed_precision_and_worst_path
     (I : Type) (N h : ℕ) (f : I → ℚ) (nu eps : ℚ) (omega : Fin N → I)
     (hN : 0 < N) (hf : ∀ i, |f i| ≤ 1) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4) (heps : 0 < eps) :
@@ -237,6 +286,8 @@ theorem unknown_variance_pilot_computed_precision_and_worst_path
     apply (div_le_div_iff_of_pos_right heps).mpr
     linarith
 
+/-- The real coercions of the rational pilot moments equal the finite-record averages of the
+real payoff and its square. -/
 theorem pilotMoments_cast_avg {I : Type} [Fintype I] [DecidableEq I]
     (N : ℕ) (f : I → ℚ) (omega : Fin N → I) :
     ((pilotMoments N f omega).1 : ℝ) = Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg (fun i => (f i : ℝ)) omega ∧
@@ -244,6 +295,8 @@ theorem pilotMoments_cast_avg {I : Type} [Fintype I] [DecidableEq I]
   rw [pilotMoments_eq]
   simp [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.avg]
 
+/-- For independent Born pilot observations under the bounded-payoff and margin hypotheses, the
+probability that the squared selected scale is below the true variance is at most 2/(N·nu²). -/
 theorem unknown_variance_pilot_actual_born_certificate_failure
     (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (j : I) (N h : ℕ)
     (f : I → ℚ) (nu : ℚ) (hA : A ∈ Matrix.unitaryGroup I ℂ)

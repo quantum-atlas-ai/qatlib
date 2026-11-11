@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
 import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
 import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+/-!
+# Coherent multiband phase filters
+
+Defines phase-estimation filters for unions of rational intervals and their coherent
+sign-reflection circuits. A geometric separation condition produces `bandClassificationGap`;
+eigenstate misclassification estimates then bound the accepted branch and coherent reflection
+errors using phase estimation as in [NielsenChuang2010].
+
+## Main statements
+
+* `multiband_actual_full_uncomputed_branch_error`: For a normalized orthonormal eigenstate
+  superposition satisfying the classification gap, the uncomputed accepted branch differs from
+  the embedded target spectral state by at most `1 / (2 * Real.sqrt M * eta)`.
+* `multiband_actual_coherent_reflection_error`: For a normalized orthonormal eigenstate
+  superposition satisfying the classification gap, the coherent reflection differs from the
+  embedded ideal target-sign reflection by at most `1 / (Real.sqrt M * eta)`.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing
@@ -36,43 +59,64 @@ open Qatlib.Concepts.QueryWordCore.AdjointCircuits
 open Qatlib.Concepts.CoherentSim.CoherentOAA.SignalProcessing Qatlib.Concepts.PhaseGeometry.Phase
 open Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing
 
+/-- Membership in the union of the closed real intervals specified by the rational endpoint
+pairs in `bands`. -/
 def bandContains (bands : List (ℚ × ℚ)) (x : ℝ) : Prop :=
   ∃ b ∈ bands,(b.1:ℝ) ≤ x ∧ x ≤ (b.2:ℝ)
 
+/-- The finite set of phase-estimation labels whose signed decoded values lie in one of the
+specified bands. -/
 noncomputable def bandLabels (M : ℕ) (bands : List (ℚ × ℚ)) : Finset (Fin M) :=
   Finset.univ.filter (fun y => bandContains bands (uniformHHLDecode M y))
 
+/-- The matrix evaluation of the compiled counted phase-estimation circuit with controlled
+access to `U`. -/
 noncomputable def bandQPEMatrix {I : Type} [Fintype I] [DecidableEq I] (U : Matrix I I ℂ) (M : ℕ) :
     Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ :=
   evaluate (TensorGate (1 : Operator M) (controlOracle U)) (phaseCompileCircuit (countedPhaseCircuit M))
 
+/-- The event consisting of labels in `S` with the auxiliary Boolean flag equal to `false`. -/
 def bandEvent {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (S : Finset (Fin M)) :
     Finset (Fin M × (Bool × I)) := Finset.univ.filter (fun p => p.1∈S ∧ p.2.1=false)
 
+/-- Embeds `psi` with the phase register initialized to zero and the auxiliary flag embedded by
+`phaseFlagEmbed`. -/
 noncomputable def bandEmbed {I : Type} (M : ℕ) (hM : 0 < M) (psi : QState I) : QState (Fin M × (Bool × I)) :=
   phaseFlagEmbed M (TensorState (Ket (⟨0,hM⟩ : Fin M)) psi)
 
+/-- The unnormalized state obtained by phase estimation, projection onto `bandEvent M S`, and
+application of the adjoint phase-estimation matrix. -/
 noncomputable def bandAccepted {I : Type} [Fintype I] [DecidableEq I] (U : Matrix I I ℂ) (M : ℕ)
     (hM : 0 < M) (S : Finset (Fin M)) (psi : QState I) : QState (Fin M × (Bool × I)) :=
   (bandQPEMatrix U M)ᴴ *ᵥ Collapse (bandQPEMatrix U M *ᵥ bandEmbed M hM psi) (bandEvent M S)
 
+/-- The diagonal matrix assigning sign `1` to phase labels in `S` and sign `-1` to all other
+phase labels. -/
 noncomputable def bandSign {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (S : Finset (Fin M)) :
     Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ :=
   Matrix.diagonal (fun p => if p.1∈S then 1 else -1)
 
+/-- The adjoint-circuit word combining the compiled phase-estimation circuit and its adjoint
+with the diagonal band-sign gate. -/
 noncomputable def bandReflectionWord {I : Type} [Fintype I] [DecidableEq I] (M : ℕ) (S : Finset (Fin M)) :
     List (AdjointStep (Fin M × (Bool × I))) :=
   adjointCircuit (phaseCompileCircuit (countedPhaseCircuit M)) ++ [.gate (bandSign M S)] ++
     phaseCompileCircuit (countedPhaseCircuit M)
 
+/-- The state produced by evaluating `bandReflectionWord` with controlled access to `U` on the
+embedded input. -/
 noncomputable def bandReflected {I : Type} [Fintype I] [DecidableEq I] (U : Matrix I I ℂ) (M : ℕ)
     (hM : 0 < M) (S : Finset (Fin M)) (psi : QState I) : QState (Fin M × (Bool × I)) :=
   evaluate (TensorGate (1 : Operator M) (controlOracle U)) (bandReflectionWord M S) *ᵥ bandEmbed M hM psi
 
+/-- The condition that every phase-grid label within circular distance `eta` of `phi j` has
+membership in `S` exactly when `j` belongs to the target set `T`. -/
 def bandClassificationGap {J : Type} [Fintype J] [DecidableEq J] (M : ℕ) (S : Finset (Fin M))
     (phi : J  →  ℝ) (T : Finset J) (eta : ℝ) : Prop :=
   ∀ j y, phaseDistance (phi j) ((y.val:ℝ)/M) ≤ eta  →  (y∈S ↔ j∈T)
 
+/-- If `|lam| ≤ 1 / 4` and a grid phase is within circular distance `w ≤ 1 / 16` of `lam`, its
+signed decoded value differs from `lam` by at most `w`. -/
 theorem bandDecode_good (M : ℕ) (y : Fin M) (lam w : ℝ) (hM : 2 ≤ M)
     (hlam' : |lam| ≤ 1/4) (hw : w ≤ 1/16)
     (hgood : phaseDistance lam ((y.val:ℝ)/M) ≤ w) : |uniformHHLDecode M y-lam| ≤ w := by
@@ -116,6 +160,8 @@ theorem bandDecode_good (M : ℕ) (y : Fin M) (lam w : ℝ) (hM : 2 ≤ M)
     rw [he, abs_neg]
     exact hg
 
+/-- The stated signed-phase bounds and `2 * eta` separation from every band endpoint imply
+`bandClassificationGap` for the decoded band labels and the phases lying in the bands. -/
 theorem multiband_signed_classifier_from_geometric_margin :
     ∀ (J : Type) [Fintype J] [DecidableEq J] (M : ℕ) (bands : List (ℚ × ℚ))
       (phi : J → ℝ) (eta : ℝ), 2 ≤ M → 0 < eta → eta ≤ 1/16 →
@@ -137,6 +183,8 @@ theorem multiband_signed_classifier_from_geometric_margin :
     · exact ⟨b,hb,by linarith [hi.1],by linarith [hi.2]⟩
     · rcases ho with ho | ho <;> exfalso <;> linarith
 
+/-- Under `bandClassificationGap` with `M ≥ 2` and `0 < eta ≤ 1 / 2`, the total phase-estimation
+kernel weight on misclassified labels is at most `1 / (4 * M * eta ^ 2)` for each phase. -/
 theorem multiband_actual_eigenstate_misclassification :
     ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
       (_U : Matrix I I ℂ) (M : ℕ) (S : Finset (Fin M)) (phi : J → ℝ) (T : Finset J) (eta : ℝ),
@@ -153,22 +201,27 @@ theorem multiband_actual_eigenstate_misclassification :
   by_contra h
   exact hbad (hgap j y (le_of_not_gt h))
 
+/-- Adding the auxiliary flag with `phaseFlagEmbed` preserves the Euclidean norm. -/
 theorem bandScratch_norm {I : Type} [Fintype I] (M : ℕ) (a : QState (Fin M × I)) :
     ‖toEuclidean_fromVec (phaseFlagEmbed M a)‖=‖toEuclidean_fromVec a‖ := by
   have hs : ‖toEuclidean_fromVec (phaseFlagEmbed M a)‖^2=‖toEuclidean_fromVec a‖^2 := by
     simp [norm_toEuclidean_fromVec_sq, Fintype.sum_prod_type, phaseFlagEmbed]
   nlinarith [norm_nonneg (toEuclidean_fromVec (phaseFlagEmbed M a)), norm_nonneg (toEuclidean_fromVec a)]
 
+/-- The zero-phase-register and flag embedding `bandEmbed` preserves the Euclidean norm. -/
 theorem bandEmbed_norm {I : Type} [Fintype I] (M : ℕ) (hM : 0 < M) (psi : QState I) :
     ‖toEuclidean_fromVec (bandEmbed M hM psi)‖=‖toEuclidean_fromVec psi‖ := by
   rw [bandEmbed, bandScratch_norm, tensorState_l2_norm, norm_toEuclidean_fromVec_ket, one_mul]
 
+/-- For a unitary `U` and positive phase-register size, the compiled band phase-estimation
+matrix is unitary. -/
 theorem bandQPEMatrix_unitary {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (hU : U ∈ Matrix.unitaryGroup I ℂ) :
     bandQPEMatrix U M ∈ Matrix.unitaryGroup _ ℂ := by
   apply (phaseCompileCircuit_wellFormed (counted_offgrid_qpe_clean_flag M hM U (0 : QState I)).2.2.2).evaluate_unitary
   exact tensorGate_unitary (Submonoid.one_mem _) (controlOracle_unitary hU)
 
+/-- Applying `bandQPEMatrix` to the embedded input gives the flagged phase-estimation output. -/
 theorem bandQPE_output {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (psi : QState I) :
     bandQPEMatrix U M *ᵥ bandEmbed M hM psi = phaseFlagEmbed M (qpeOutput M U psi) := by
@@ -181,6 +234,8 @@ theorem bandQPE_output {I : Type} [Fintype I] [DecidableEq I]
   rw [phaseCompileCircuit_evaluate, (counted_offgrid_qpe_clean_flag M hM U psi).1]
   rfl
 
+/-- On a superposition of eigenvectors of `U`, the compiled phase-estimation output has the
+stated expansion in the kernels `qpeKernel M (phi j)`. -/
 theorem bandQPE_packet {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (v : J → QState I) (c : J → ℂ) (phi : J → ℝ)
     (he : ∀ j, U*ᵥ v j=Complex.exp (2*Real.pi*Complex.I*(phi j:ℂ)) • v j) :
@@ -192,6 +247,8 @@ theorem bandQPE_packet {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [Dec
   funext ⟨y,i⟩
   simp [TensorState, Pi.smul_apply, mul_assoc]
 
+/-- Expands the difference between the accepted phase-estimation branch and the phase-estimated
+target state into eigenvector coefficients supported on classification discrepancies. -/
 theorem bandMasked_error_packet {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (S : Finset (Fin M))
     (v : J → QState I) (c : J → ℂ) (phi : J → ℝ) (T : Finset J)
@@ -208,6 +265,8 @@ theorem bandMasked_error_packet {I J : Type} [Fintype I] [DecidableEq I] [Fintyp
   cases b <;> simp [collapse_apply, bandEvent, phaseFlagEmbed, Pi.sub_apply,
     Finset.sum_sub_distrib, sub_mul, ite_mul, mul_assoc]
 
+/-- For an orthonormal eigenvector family, the squared masked-branch error equals the sum of
+coefficient masses times their phase-estimation misclassification weights. -/
 theorem bandMasked_norm_sq {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (S : Finset (Fin M))
     (v : J → QState I) (c : J → ℂ) (phi : J → ℝ) (T : Finset J)
@@ -236,6 +295,9 @@ theorem bandMasked_norm_sq {I J : Type} [Fintype I] [DecidableEq I] [Fintype J] 
   by_cases hs : y∈S <;> by_cases ht : j∈T <;>
     simp [d, hs, ht, mul_pow]
 
+/-- For a normalized orthonormal eigenstate superposition satisfying the classification gap, the
+uncomputed accepted branch differs from the embedded target spectral state by at most `1 /
+(2 * Real.sqrt M * eta)`. -/
 theorem multiband_actual_full_uncomputed_branch_error :
     ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
       (U : Matrix I I ℂ) (M : ℕ) (hM : 2 ≤ M) (S : Finset (Fin M)) (v : J → QState I)
@@ -282,16 +344,20 @@ theorem multiband_actual_full_uncomputed_branch_error :
     _ ≤ 1*‖toEuclidean_fromVec err‖ := mul_le_mul_of_nonneg_right hQt (norm_nonneg _)
     _ ≤ _ := by simpa only [one_mul] using! hE
 
+/-- The band embedding preserves subtraction. -/
 theorem bandEmbed_sub {I : Type} (M : ℕ) (hM : 0 < M) (x y : QState I) :
     bandEmbed M hM (x-y)=bandEmbed M hM x-bandEmbed M hM y := by
   funext ⟨a,b,i⟩
   cases b <;> simp [bandEmbed, phaseFlagEmbed, TensorState, mul_sub]
 
+/-- The band embedding commutes with complex scalar multiplication. -/
 theorem bandEmbed_smul {I : Type} (M : ℕ) (hM : 0 < M) (c : ℂ) (x : QState I) :
     bandEmbed M hM (c • x)=c • bandEmbed M hM x := by
   funext ⟨a,b,i⟩
   cases b <;> simp [bandEmbed, phaseFlagEmbed, TensorState, mul_comm, mul_assoc]
 
+/-- For unitary `U`, the coherent band-reflection output is twice the accepted uncomputed branch
+minus the embedded input. -/
 theorem bandReflected_eq_branch {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (M : ℕ) (hM : 0 < M) (S : Finset (Fin M)) (psi : QState I)
     (hU : U∈Matrix.unitaryGroup I ℂ) :
@@ -320,6 +386,9 @@ theorem bandReflected_eq_branch {I : Type} [Fintype I] [DecidableEq I]
     Matrix.mulVec_sub, Matrix.mulVec_smul, hclean]
   rfl
 
+/-- For a normalized orthonormal eigenstate superposition satisfying the classification gap, the
+coherent reflection differs from the embedded ideal target-sign reflection by at most `1 /
+(Real.sqrt M * eta)`. -/
 theorem multiband_actual_coherent_reflection_error :
     ∀ (I J : Type) [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
       (U : Matrix I I ℂ) (M : ℕ) (hM : 2 ≤ M) (S : Finset (Fin M)) (v : J → QState I)

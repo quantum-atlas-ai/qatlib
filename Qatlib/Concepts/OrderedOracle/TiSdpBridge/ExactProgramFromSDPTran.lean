@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.OrderedOracle.TiSdpBridge.ExactProgramFromSDPStat
+
+/-!
+# Extracting exact Laurent witnesses from SDP matrices
+
+This module proves `ExactProgramFromSDP` by taking real parts of generalized traces of feasible
+matrices. `ti_final_psd_matrix` identifies the final matrix as the first-coordinate projector,
+and `genTrace_first_projector` determines its Laurent coefficients. The resulting conversion
+belongs to the ordered-search semidefinite programming framework of [ChildsLandahlParrilo2007].
+
+## Main statements
+
+* `ti_final_psd_matrix`: a positive semidefinite trace-one matrix with first diagonal real part
+  at least one is the first-coordinate projector.
+* `genTrace_first_projector`: the projector has only its zeroth generalized trace nonzero.
+* `exactProgramFromSDP`: zero-error SDP feasibility yields an exact translation-invariant
+  Laurent program.
+
+## References
+
+* [Childs, Landahl, and Parrilo, 2007][ChildsLandahlParrilo2007]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -14,6 +36,8 @@ open scoped BigOperators ComplexOrder
 open Qatlib.Concepts.OrderedOracle.TiSdpBridge
 namespace Qatlib.Concepts.OrderedOracle.TiSdpBridge
 
+/-- A positive semidefinite matrix of trace one whose first diagonal entry has real part at
+least one equals the projector onto the first coordinate. -/
 theorem ti_final_psd_matrix {n : ℕ} [NeZero n] (A : Matrix (Fin n) (Fin n) ℂ)
     (hA : A.PosSemidef) (htr : A.trace = 1) (hfin : 1 ≤ (A 0 0).re) :
     ∀ i j, A i j = if i = 0 ∧ j = 0 then 1 else 0 := by
@@ -49,6 +73,8 @@ theorem ti_final_psd_matrix {n : ℕ} [NeZero n] (A : Matrix (Fin n) (Fin n) ℂ
   · have hc := posSemidef_column_zero_of_diag_zero A hA j (hd j hj) i
     simpa [hj] using hc
 
+/-- The generalized trace of the first-coordinate projector is one at offset zero and zero at
+every other integer offset. -/
 theorem genTrace_first_projector {n : ℕ} [NeZero n] (j : ℤ) :
     genTrace (Matrix.of (fun i i' : Fin n => if i = 0 ∧ i' = 0 then (1 : ℂ) else 0)) j =
       if j = 0 then 1 else 0 := by
@@ -66,6 +92,8 @@ theorem genTrace_first_projector {n : ℕ} [NeZero n] (j : ℤ) :
     simp [Matrix.of_apply, hb]
   · simp
 
+/-- Constructs an exact translation-invariant Laurent-program witness from zero-error SDP
+feasibility using real parts of matrix generalized traces. -/
 theorem exactProgramFromSDP : ExactProgramFromSDP := by
   intro n k _ h
   classical

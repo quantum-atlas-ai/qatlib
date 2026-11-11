@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentationCorrectedStat
 import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2Definitions
+
+/-!
+# Statement of amplified log-two segmentation
+
+`Ln2SegmentationCorrected` specifies a total trace-norm tolerance for repeated amplified
+reset-and-discard Taylor steps. Its segment count and factorial-tail budget follow the log-two
+segmentation strategy of [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `Ln2SegmentationCorrected`: The proposition specifying the amplified segmented simulation
+  guarantee.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +34,9 @@ namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 open Matrix
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
+/-- The proposition that repeated corrected reset-and-discard steps approximate Hamiltonian
+conjugation within `ε` on density operators, using the stated log-two segment count,
+encoding scale, and tail budget. -/
 def Ln2SegmentationCorrected : Prop :=
   ∀ (I : Type*) [Fintype I] [DecidableEq I]
     (H : Matrix I I ℂ) (t ε Λ : ℝ) (K : ℕ)

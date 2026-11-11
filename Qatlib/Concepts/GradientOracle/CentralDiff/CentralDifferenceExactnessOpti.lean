@@ -7,8 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
 import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceAlgebra
 
+/-!
+# Polynomial exactness of central differences
+
+The module proves the oddness and finite support of `centralDiffCoeff`, then evaluates its
+moments using alternating binomial sums. `centralDifferenceExactness` states that all monomial
+moments through degree `2 * m` vanish except the degree-one moment, which equals one. See
+[GilyenArunachalamWiebe2019] for background.
+
+## Main statements
+
+* `centralDifferenceExactness`: For positive order `m`, central-difference moments through
+  degree `2 * m` equal one in degree one and zero in every other degree.
+
+## References
+
+* [Gilyen, Arunachalam, and Wiebe, 2019][GilyenArunachalamWiebe2019]
+-/
+
 namespace Qatlib.Concepts.GradientOracle.CentralDiff
 
+/-- The central-difference coefficients are odd functions of the integer index. -/
 theorem centralDiffCoeff_neg (m : ℕ) (ℓ : ℤ) :
     centralDiffCoeff m (-ℓ) = -centralDiffCoeff m ℓ := by
   by_cases hℓ : ℓ = 0
@@ -17,10 +36,13 @@ theorem centralDiffCoeff_neg (m : ℕ) (ℓ : ℤ) :
       Int.natAbs_neg, Int.cast_neg]
     ring
 
+/-- A central-difference coefficient vanishes when the absolute index exceeds the order. -/
 theorem centralDiffCoeff_outside (m : ℕ) (ℓ : ℤ) (hℓ : m < ℓ.natAbs) :
     centralDiffCoeff m ℓ = 0 := by
   simp [centralDiffCoeff, Nat.choose_eq_zero_of_lt hℓ]
 
+/-- Every even monomial moment of the central-difference coefficients over the symmetric index
+range vanishes. -/
 theorem centralDiffCoeff_even_moment (m k : ℕ) :
     (∑ ℓ ∈ Finset.Ico (-(m : ℤ)) ((m : ℤ) + 1),
       centralDiffCoeff m ℓ * (ℓ : ℝ) ^ (2 * k)) = 0 := by
@@ -49,16 +71,21 @@ theorem centralDiffCoeff_even_moment (m k : ℕ) :
     Finset.sum_neg_distrib] at hs
   linarith
 
+/-- For order one and degrees at most two, the coefficient moment is one in degree one and zero
+otherwise. -/
 theorem centralDifferenceExactness_one (j : ℕ) (hj : j ≤ 2) :
     (∑ ℓ ∈ Finset.Ico (-1 : ℤ) 2, centralDiffCoeff 1 ℓ * (ℓ : ℝ) ^ j) =
       if j = 1 then 1 else 0 := by
   have hs : Finset.Ico (-1 : ℤ) 2 = {-1, 0, 1} := by decide
   interval_cases j <;> norm_num [hs, centralDiffCoeff]
 
+/-- The square of any natural power of negative one equals one. -/
 private theorem centralDiff_neg_one_self (n : ℕ) : (-1 : ℝ)^n*(-1 : ℝ)^n=1 := by
   rw [← mul_pow]
   norm_num
 
+/-- Multiplying a positive-index coefficient by its index gives the stated normalized
+alternating binomial weight. -/
 theorem centralDiff_positive_weight (m l : ℕ) (hl : 0<l) (hlm : l≤m) :
     centralDiffCoeff m (l : ℤ)*(l : ℝ)=
       (-(-1 : ℝ)^m/(Nat.choose (2*m) m : ℝ))*(-1 : ℝ)^(m+l)*(Nat.choose (2*m) (m+l) : ℝ) := by
@@ -78,6 +105,8 @@ theorem centralDiff_positive_weight (m l : ℕ) (hl : 0<l) (hlm : l≤m) :
   field_simp
   nlinarith [centralDiff_neg_one_self m]
 
+/-- After shifting the index by `m`, a coefficient times its index equals a normalized
+alternating binomial weight with a unit correction at the center. -/
 theorem centralDiff_binomial_weight (m r : ℕ) (hr : r≤2*m) :
     centralDiffCoeff m ((r : ℤ)-(m : ℤ))*((r : ℝ)-(m : ℝ))=
       (-(-1 : ℝ)^m/(Nat.choose (2*m) m : ℝ))*(-1 : ℝ)^r*(Nat.choose (2*m) r : ℝ)+
@@ -118,6 +147,8 @@ theorem centralDiff_binomial_weight (m r : ℕ) (hr : r≤2*m) :
       rw [hn,one_mul] at hs
       rw [hs]
 
+/-- Reindex a sum over the integers from `-m` through `m` as a natural-index sum over `2 * m +
+1` terms. -/
 theorem centralDiff_sum_reindex (m : ℕ) (F : ℤ → ℝ) :
     (∑ l ∈ Finset.Ico (-(m : ℤ)) ((m : ℤ)+1),F l)=
       ∑ r ∈ Finset.range (2*m+1),F ((r : ℤ)-(m : ℤ)) := by
@@ -140,6 +171,8 @@ theorem centralDiff_sum_reindex (m : ℕ) (F : ℤ → ℝ) :
     congr 1
     omega
 
+/-- For positive order `m`, central-difference moments through degree `2 * m` equal one in
+degree one and zero in every other degree. -/
 theorem centralDifferenceExactness : CentralDifferenceExactness := by
   intro m hm j hj
   by_cases hj0 : j=0

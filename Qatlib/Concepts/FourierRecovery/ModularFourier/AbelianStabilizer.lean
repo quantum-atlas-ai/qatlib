@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.StabilizerAlg.NearUniformGen.AbelianStabilizerDefs
+
+/-!
+# Abelian stabilizer record laws and bisection
+
+This module develops record kernels for Abelian stabilizer measurements in the setting of
+[Kitaev1995]. It proves marginal and uniform mixture identities, normalization of independent
+record laws, and subgroup generation bounds under explicit near uniformity and error budgets.
+
+It also identifies the controlled powers blocks and verifies dyadic bisection bookkeeping.
+`AspBisectionOracleCorrect` states the oracle condition needed for the interval containment
+results.
+
+## Main statements
+
+* `asp_uniform_mixture_identity`: uniform branches average their conditional record laws.
+* `asp_uniform_branch_generation`: the stated accuracy and subgroup size hypotheses bound
+  generation failure by `1 / 3`.
+* `aspBisection_contains`: a correct oracle preserves the target phase in the final interval.
+
+## References
+
+* [Kitaev, 1995][Kitaev1995]
+-/
+
 set_option warningAsError false
 open Qatlib.Concepts.HspRecovery.AbelianSampling
 open Qatlib.Foundations.PureStateMath
@@ -25,10 +49,13 @@ open Qatlib
 open Matrix
 open scoped BigOperators Classical
 
+/-- The marginal probability of a record is the sum of its joint probabilities over branches. -/
 theorem asp_composite_probability_formula {Ω G : Type*} [Fintype Ω] [DecidableEq Ω]
     [Fintype G] [DecidableEq G] (k : AspRecordKernel Ω G) (y : G) :
     k.marginal.prob y = ∑ V, k.joint V y := rfl
 
+/-- The marginal probability of a finite set is the branch weighted sum of its conditional
+probabilities. -/
 theorem asp_composite_probability_formula_set {Ω G : Type*} [Fintype Ω] [DecidableEq Ω]
     [Fintype G] [DecidableEq G] (k : AspRecordKernel Ω G) (S : Finset G) :
     (∑ y ∈ S, k.marginal.prob y)
@@ -43,6 +70,7 @@ theorem asp_composite_probability_formula_set {Ω G : Type*} [Fintype Ω] [Decid
         refine Finset.sum_congr rfl fun V _ => ?_
         rw [Finset.mul_sum]
 
+/-- Summing the joint law over the branch coordinate gives the record marginal. -/
 theorem asp_joint_law_marginal {Ω G : Type*} [Fintype Ω] [DecidableEq Ω] [Fintype G]
     [DecidableEq G] (k : AspRecordKernel Ω G) (y : G) :
     (∑ V : Ω, (k.jointLaw).prob (V, y)) = k.marginal.prob y := by
@@ -50,6 +78,8 @@ theorem asp_joint_law_marginal {Ω G : Type*} [Fintype Ω] [DecidableEq Ω] [Fin
   simp only [AspRecordKernel.joint]
   rfl
 
+/-- Uniform branch probabilities express the marginal as the arithmetic mean of the conditional
+laws. -/
 theorem asp_uniform_mixture_identity {Ω G : Type*} [Fintype Ω] [Nonempty Ω]
     [DecidableEq Ω] [Fintype G] [DecidableEq G] (k : AspRecordKernel Ω G)
     (hbr : ∀ V, k.branchLaw.prob V = (Fintype.card Ω : ℝ)⁻¹) (y : G) :
@@ -62,12 +92,15 @@ theorem asp_uniform_mixture_identity {Ω G : Type*} [Fintype Ω] [Nonempty Ω]
     _ = (Fintype.card Ω : ℝ)⁻¹ * ∑ V, (k.conditional V).prob y := by
         rw [Finset.mul_sum]
 
+/-- Builds a record kernel with the orbit character branch law and the specified conditional
+record distributions. -/
 noncomputable def aspOrbitRecordKernel {G : Type*} [Fintype G] [DecidableEq G]
     (E : Type) [AddCommGroup E] [Fintype E] [DecidableEq E]
     (cond : AddChar E ℂ → FinDist G) : AspRecordKernel (AddChar E ℂ) G where
   branchLaw := aspOrbitBranchLaw E
   conditional := cond
 
+/-- The orbit record marginal is the uniform average of its character conditioned laws. -/
 theorem asp_orbit_uniform_mixture_identity {G : Type*} [Fintype G] [DecidableEq G]
     (E : Type) [AddCommGroup E] [Fintype E] [DecidableEq E]
     (cond : AddChar E ℂ → FinDist G) (g : G) :
@@ -78,6 +111,8 @@ theorem asp_orbit_uniform_mixture_identity {G : Type*} [Fintype G] [DecidableEq 
   change (aspOrbitBranchLaw E).prob χ = (Fintype.card (AddChar E ℂ) : ℝ)⁻¹
   rw [aspOrbitBranchLaw_uniform, ← aspCharacterGroup_card E]
 
+/-- The orbit record marginal is the sum of its character conditioned probabilities divided by
+the order of the group. -/
 theorem asp_orbit_uniform_mixture_identity_q {G : Type*} [Fintype G] [DecidableEq G]
     (E : Type) [AddCommGroup E] [Fintype E] [DecidableEq E]
     (cond : AddChar E ℂ → FinDist G) (g : G) :
@@ -85,15 +120,19 @@ theorem asp_orbit_uniform_mixture_identity_q {G : Type*} [Fintype G] [DecidableE
       = (Fintype.card E : ℝ)⁻¹ * ∑ χ : AddChar E ℂ, (cond χ).prob g := by
   rw [asp_orbit_uniform_mixture_identity, ← aspCharacterGroup_card E]
 
+/-- The product record law has total probability one. -/
 theorem asp_product_record_law_is_distribution {G : Type*} [Fintype G] [DecidableEq G]
     (μ : FinDist G) (l : ℕ) :
     (∑ ω : Fin l → G, (aspProductRecordLaw μ l).prob ω) = 1 :=
   (aspProductRecordLaw μ l).sum_one
 
+/-- The probability of a product record equals its independent sample probability `μ.probOf`. -/
 theorem asp_product_record_mass_eq {G : Type*} [Fintype G] [DecidableEq G]
     (μ : FinDist G) (l : ℕ) (ω : Fin l → G) :
     (aspProductRecordLaw μ l).prob ω = μ.probOf ω := rfl
 
+/-- Summing the product record law over an event equals `FinDist.probEvent` for independent
+samples. -/
 theorem asp_product_record_event_eq {G : Type*} [Fintype G] [DecidableEq G]
     (μ : FinDist G) (l : ℕ) (E : (Fin l → G) → Prop) [DecidablePred E] :
     (∑ ω ∈ Finset.univ.filter E, (aspProductRecordLaw μ l).prob ω)
@@ -101,6 +140,8 @@ theorem asp_product_record_event_eq {G : Type*} [Fintype G] [DecidableEq G]
   unfold FinDist.probEvent aspProductRecordLaw
   rfl
 
+/-- A uniform mixture of conditionals that identify their subgroup labels with error at most `δ`
+differs from the uniform subgroup mass by at most `δ` on every subgroup subset. -/
 theorem asp_marginal_near_uniform {G : Type} [AddCommGroup G] [Fintype G]
     [DecidableEq G] (H : AddSubgroup G) (k : AspRecordKernel (↥H) G) (δ : ℝ)
     (hδ : 0 ≤ δ)
@@ -112,6 +153,8 @@ theorem asp_marginal_near_uniform {G : Type} [AddCommGroup G] [Fintype G]
   intro L
   exact compositeMeasurementNearUniformSubgoal G H k.marginal k.conditional δ hδ hmix hacc L
 
+/-- Uniform branches and conditional accuracy at least `1 - δ` imply a `δ` bound on each
+subgroup subset's deviation from uniform mass. -/
 theorem asp_uniform_branch_near_uniform {G : Type} [AddCommGroup G] [Fintype G]
     [DecidableEq G] (H : AddSubgroup G) (k : AspRecordKernel (↥H) G) (δ : ℝ)
     (hδ : 0 ≤ δ)
@@ -122,6 +165,8 @@ theorem asp_uniform_branch_near_uniform {G : Type} [AddCommGroup G] [Fintype G]
   asp_marginal_near_uniform H k δ hδ
     (fun g => asp_uniform_mixture_identity k hbr g) hacc
 
+/-- For a subgroup of order at most `2^n` with positive `n`, the stated near uniformity budget
+bounds the probability that `n + 4` records fail to generate it by `1 / 3`. -/
 theorem asp_constructed_generation {G : Type} [AddCommGroup G] [Fintype G]
     [DecidableEq G] (n : ℕ) (hn : 0 < n) (H : AddSubgroup G)
     (hcard : Fintype.card ↥H ≤ 2 ^ n) (k : AspRecordKernel (↥H) G) (δ : ℝ) (_hδ : 0 ≤ δ)
@@ -134,6 +179,8 @@ theorem asp_constructed_generation {G : Type} [AddCommGroup G] [Fintype G]
   intro L
   exact le_trans (hnear L) (by linarith)
 
+/-- Uniform branches with conditional error at most `1 / (6 * (n + 4))` yield subgroup
+generation failure probability at most `1 / 3`, under the stated size bound. -/
 theorem asp_uniform_branch_generation {G : Type} [AddCommGroup G] [Fintype G]
     [DecidableEq G] (n : ℕ) (hn : 0 < n) (H : AddSubgroup G)
     (hcard : Fintype.card ↥H ≤ 2 ^ n) (k : AspRecordKernel (↥H) G)
@@ -146,6 +193,8 @@ theorem asp_uniform_branch_generation {G : Type} [AddCommGroup G] [Fintype G]
   asp_constructed_generation n hn H hcard k δ hδ
     (asp_uniform_branch_near_uniform H k δ hδ hbr hacc) hbudget
 
+/-- The bounded error conditional law returns its subgroup label with probability at least `1 -
+ε` for `0 ≤ ε ≤ 1`. -/
 theorem asp_bounded_error_accuracy {G : Type*} [AddCommGroup G] [Fintype G]
     [DecidableEq G] [Nonempty G] (H : AddSubgroup G) (ε : ℝ) (hε : 0 ≤ ε)
     (hε1 : ε ≤ 1) (h' : ↥H) :
@@ -162,6 +211,8 @@ theorem asp_bounded_error_accuracy {G : Type*} [AddCommGroup G] [Fintype G]
   have hmul : (0 : ℝ) ≤ ε * (aspUniformLaw G).prob (h' : G) := mul_nonneg hε hunif
   linarith
 
+/-- The bounded error kernel with uniform subgroup branches differs from uniform subgroup mass
+by at most `ε` on each subgroup subset. -/
 theorem asp_bounded_error_near_uniform {G : Type} [AddCommGroup G] [Fintype G]
     [DecidableEq G] [Nonempty G] (H : AddSubgroup G) (ε : ℝ) (hε : 0 ≤ ε)
     (hε1 : ε ≤ 1) :
@@ -177,6 +228,8 @@ theorem asp_bounded_error_near_uniform {G : Type} [AddCommGroup G] [Fintype G]
   · intro h'
     exact asp_bounded_error_accuracy H ε hε hε1 h'
 
+/-- Under the stated subgroup size and error budgets, the bounded error kernel fails to generate
+the subgroup from `n + 4` records with probability at most `1 / 3`. -/
 theorem asp_bounded_error_generation {G : Type} [AddCommGroup G] [Fintype G]
     [DecidableEq G] [Nonempty G] (n : ℕ) (hn : 0 < n) (H : AddSubgroup G)
     (hcard : Fintype.card ↥H ≤ 2 ^ n) (ε : ℝ) (hε : 0 ≤ ε) (hε1 : ε ≤ 1)
@@ -192,14 +245,18 @@ theorem asp_bounded_error_generation {G : Type} [AddCommGroup G] [Fintype G]
   · intro h'
     exact asp_bounded_error_accuracy H ε hε hε1 h'
 
+/-- The controlled powers gate is the block diagonal matrix with blocks `U^x` for `0 ≤ x < 2^l`,
+as used in [Kitaev1995]. -/
 theorem asp_gate_is_paper_U_pow {I : Type} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℂ) (l : ℕ) :
     ControlledPowers U (2 ^ l) = BlockDiag (fun x : Fin (2 ^ l) => U ^ (x.val : ℕ)) := rfl
 
+/-- An exponent indexed by `Fin (2^l)` is at most `2^l - 1`. -/
 theorem asp_gate_exponent_range (l : ℕ) (x : Fin (2 ^ l)) : x.val ≤ 2 ^ l - 1 := by
   have h : x.val < 2 ^ l := x.isLt
   omega
 
+/-- Every localisation power `2^j` with `j < l` is at most `2^l - 1`. -/
 theorem asp_gate_provides_localisation_powers (l : ℕ) (j : ℕ) (hj : j < l) :
     2 ^ j ≤ 2 ^ l - 1 := by
   have h : 2 ^ j ≤ 2 ^ (l - 1) :=
@@ -208,9 +265,11 @@ theorem asp_gate_provides_localisation_powers (l : ℕ) (j : ℕ) (hj : j < l) :
     Nat.pow_lt_pow_right (a := 2) (by omega) (m := l - 1) (n := l) (by omega)
   omega
 
+/-- Each localisation exponent `2^j` with `j < l` indexes a block below `2^l`. -/
 theorem asp_gate_localisation_block (l : ℕ) (j : ℕ) (hj : j < l) : (2 ^ j : ℕ) < 2 ^ l := by
   exact Nat.pow_lt_pow_right (a := 2) (by omega) (m := j) (n := l) hj
 
+/-- The bisection state after `k` steps has level `k`. -/
 theorem aspBisectionStateAt_level (o : ℕ → Bool) (k : ℕ) :
     (aspBisectionStateAt o k).level = k := by
   induction k with
@@ -221,6 +280,7 @@ theorem aspBisectionStateAt_level (o : ℕ → Bool) (k : ℕ) :
           = (aspBisectionStateAt o k).level + 1 := rfl
       rw [hstep, ih]
 
+/-- The bisection state after `k` steps has query count `k`. -/
 theorem aspBisectionStateAt_queries (o : ℕ → Bool) (k : ℕ) :
     (aspBisectionStateAt o k).queries = k := by
   induction k with
@@ -231,6 +291,7 @@ theorem aspBisectionStateAt_queries (o : ℕ → Bool) (k : ℕ) :
           = (aspBisectionStateAt o k).queries + 1 := rfl
       rw [hstep, ih]
 
+/-- A bisection step halves the interval width. -/
 theorem AspBisectionState.step_width (s : AspBisectionState) (b : Bool) :
     (s.step b).width = s.width / 2 := by
   have hpow : (2 : ℝ) ^ (s.level + 1) = 2 ^ s.level * 2 := pow_succ _ _
@@ -240,6 +301,8 @@ theorem AspBisectionState.step_width (s : AspBisectionState) (b : Bool) :
   rw [hpow]
   field_simp
 
+/-- A true bisection answer moves the lower endpoint to the midpoint, while a false answer
+preserves it. -/
 theorem AspBisectionState.step_lower (s : AspBisectionState) (b : Bool) :
     (s.step b).lower = (if b = true then s.mid else s.lower) := by
   have hpow : (2 : ℝ) ^ (s.level + 1) = 2 ^ s.level * 2 := pow_succ _ _
@@ -262,6 +325,7 @@ theorem AspBisectionState.step_lower (s : AspBisectionState) (b : Bool) :
       push_cast
       ring
 
+/-- The interval width after `k` bisection steps is `1 / 2^k`. -/
 theorem aspBisectionStateAt_width (o : ℕ → Bool) (k : ℕ) :
     (aspBisectionStateAt o k).width = 1 / 2 ^ k := by
   induction k with
@@ -274,23 +338,30 @@ theorem aspBisectionStateAt_width (o : ℕ → Bool) (k : ℕ) :
       rw [pow_succ]
       field_simp
 
+/-- The bisection run at precision parameter `l` has query count `l + 2`. -/
 theorem aspBisectionRun_queries (l : ℕ) (o : ℕ → Bool) :
     (aspBisectionRun l o).queries = l + 2 := by
   rw [aspBisectionRun, aspBisectionStateAt_queries]
 
+/-- The bisection run at precision parameter `l` reaches level `l + 2`. -/
 theorem aspBisectionRun_level (l : ℕ) (o : ℕ → Bool) :
     (aspBisectionRun l o).level = l + 2 := by
   rw [aspBisectionRun, aspBisectionStateAt_level]
 
+/-- The final interval of the bisection run has width `1 / 2^(l + 2)`. -/
 theorem aspBisectionRun_width (l : ℕ) (o : ℕ → Bool) :
     (aspBisectionRun l o).width = 1 / 2 ^ (l + 2) := by
   rw [aspBisectionRun, aspBisectionStateAt_width]
 
+/-- States that, for the first `n` steps, the oracle returns true exactly when the phase lies in
+the upper half of the current interval. -/
 def AspBisectionOracleCorrect (o : ℕ → Bool) (φ : ℝ) (n : ℕ) : Prop :=
   ∀ k : ℕ, k < n →
     (o k = true ↔ ((aspBisectionStateAt o k).mid ≤ φ ∧
       φ < (aspBisectionStateAt o k).lower + (aspBisectionStateAt o k).width))
 
+/-- For a phase in `[0, 1)`, a correct oracle keeps the phase in the half open bisection
+interval through every step at most `n`. -/
 theorem aspBisectionStateAt_contains (o : ℕ → Bool) (φ : ℝ) (n : ℕ)
     (horacle : AspBisectionOracleCorrect o φ n) (hφ : 0 ≤ φ ∧ φ < 1) :
     ∀ k : ℕ, k ≤ n →
@@ -340,6 +411,7 @@ theorem aspBisectionStateAt_contains (o : ℕ → Bool) (φ : ℝ) (n : ℕ)
             simp [AspBisectionState.mid]
           linarith
 
+/-- A correct oracle keeps a phase in `[0, 1)` inside the final interval of the bisection run. -/
 theorem aspBisection_contains (l : ℕ) (o : ℕ → Bool) (φ : ℝ) (hφ : 0 ≤ φ ∧ φ < 1)
     (horacle : AspBisectionOracleCorrect o φ (l + 2)) :
     (aspBisectionRun l o).lower ≤ φ ∧

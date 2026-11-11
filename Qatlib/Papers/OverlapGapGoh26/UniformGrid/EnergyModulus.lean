@@ -6,6 +6,26 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OverlapGapGoh26.UniformGrid.AmpStability
 import Qatlib.Papers.OverlapGapGoh26.UniformGrid.AdaptiveEnergy
+
+/-!
+# Hölder continuity of AMP energy paths
+
+Tensor-energy perturbation estimates combine with AMP stability to bound the interpolation
+modulus of `energyPath`. The explicit one-half Hölder constant `energyHolder` has polynomial
+growth in system size for fixed tensor order and time horizon, supporting the uniform-grid
+analysis of [GohMuller2026].
+
+## Main statements
+
+* `actual_energy_holder`: energy paths have an explicit one-half Hölder bound on bounded
+  tensors.
+* `energyHolder_polynomial`: the Hölder constant is bounded by a polynomial in `N`.
+
+## References
+
+* [Goh and Müller, 2026][GohMuller2026]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -20,6 +40,9 @@ open Qatlib.Papers.OverlapGapGoh26.UniformGrid.Stability
 
 namespace Qatlib.Papers.OverlapGapGoh26.UniformGrid.Modulus
 
+/-- For unit-bounded configurations and tensor perturbations at most `δ`, with the second tensor
+bounded by two, the energy difference is at most `N^q * (δ + 2 * q * η)` when the
+configurations differ coordinatewise by at most `η`. -/
 theorem energy_difference {q N : ℕ} (hN : 0<N) (A B : Tensor q N) (u v : Fin N → ℝ)
     (δ η : ℝ) (hδ : 0≤δ)
     (hA : ∀ k,|A k-B k|≤δ) (hB : ∀ k,|B k|≤2)
@@ -28,6 +51,8 @@ theorem energy_difference {q N : ℕ} (hN : 0<N) (A B : Tensor q N) (u v : Fin N
   interaction_difference (fun _ => A) (fun _ => B) u v δ η hδ
     (fun _ => hA) (fun _ => hB) hu hv huv ⟨0,hN⟩
 
+/-- For positive `N`, the stated tensor and schedule bounds give an AMP energy-density
+difference at most `N^r * δ * (1 + 2 * (r + 1) * (stabilityBase r T N)^T)`. -/
 theorem actual_energy_density_difference {r N T : ℕ} (hN : 0<N) (M : ℝ)
     (seed : Fin N → ℝ) (s : ℕ → ℝ) (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1)
     (A B : Tensor (r+1) N) (δ : ℝ) (hδ : 0≤δ)
@@ -51,6 +76,8 @@ theorem actual_energy_density_difference {r N T : ℕ} (hN : 0<N) (M : ℝ)
   push_cast
   ring
 
+/-- The square-root function satisfies `|sqrt x − sqrt y| ≤ sqrt |x − y|` for nonnegative `x`
+and `y`. -/
 theorem sqrt_holder (x y : ℝ) (hx : 0≤x) (hy : 0≤y) :
     |Real.sqrt x-Real.sqrt y|≤Real.sqrt |x-y| := by
   have hsx := Real.sq_sqrt hx
@@ -67,6 +94,8 @@ theorem sqrt_holder (x y : ℝ) (hx : 0≤x) (hy : 0≤y) :
     have hs := Real.sqrt_le_sqrt hyx
     nlinarith [mul_nonneg hny (sub_nonneg.mpr hs)]
 
+/-- Interpolation between tensors with entries bounded by one has entries bounded in absolute
+value by two for parameters in `[0, 1]`. -/
 theorem interpolated_entry_bound {q N : ℕ} (A B : Tensor q N)
     (hA : ∀ k,|A k|≤1) (hB : ∀ k,|B k|≤1)
     (τ : ℝ) (hτ : τ∈Set.Icc (0:ℝ) 1) (k : Fin q → Fin N) :
@@ -81,6 +110,8 @@ theorem interpolated_entry_bound {q N : ℕ} (A B : Tensor q N)
       (mul_le_mul (by simpa only [abs_of_nonneg (Real.sqrt_nonneg _)] using h2) (hB k) (abs_nonneg _) (by norm_num))
     _ = _ := by norm_num
 
+/-- Interpolation between tensors with entries bounded by one changes each entry by at most `2 *
+sqrt |τ − σ|` for parameters in `[0, 1]`. -/
 theorem interpolated_entry_difference {q N : ℕ} (A B : Tensor q N)
     (hA : ∀ k,|A k|≤1) (hB : ∀ k,|B k|≤1)
     (τ σ : ℝ) (hτ : τ∈Set.Icc (0:ℝ) 1) (hσ : σ∈Set.Icc (0:ℝ) 1)
@@ -101,14 +132,19 @@ theorem interpolated_entry_difference {q N : ℕ} (A B : Tensor q N)
       (mul_le_mul h2 (hB k) (abs_nonneg _) (Real.sqrt_nonneg _))
     _ = _ := by ring
 
+/-- The explicit one-half Hölder constant `2 * N^r * (1 + 2 * (r + 1) * (stabilityBase r T
+N)^T)` for AMP energy paths. -/
 def energyHolder (r T N : ℕ) : ℝ :=
   2*(N:ℝ)^r*(1+2*(r+1:ℝ)*(stabilityBase r T N)^T)
 
+/-- The AMP energy Hölder constant is nonnegative. -/
 theorem energyHolder_nonneg (r T N : ℕ) : 0≤energyHolder r T N := by
   unfold energyHolder
   have h := stabilityBase_ge_one r T N
   positivity
 
+/-- For positive `N`, schedules in `[0, 1]`, and sampled tensor entries bounded by one, the
+energy-path difference is at most `energyHolder r T N * sqrt |τ − σ|` on `[0, 1]`. -/
 theorem actual_energy_holder {r N T : ℕ} (hN : 0<N) (M : ℝ)
     (s : ℕ → ℝ) (hs : ∀ j≤T,s j∈Set.Icc (0:ℝ) 1) (w : Sample r N)
     (hA : ∀ k,|w.1.1 k|≤1) (hB : ∀ k,|w.1.2 k|≤1)
@@ -120,12 +156,17 @@ theorem actual_energy_holder {r N T : ℕ} (hN : 0<N) (M : ℝ)
     (interpolated_entry_bound w.1.1 w.1.2 hA hB σ hσ)
   exact he.trans_eq (by unfold energyHolder; ring)
 
+/-- The coefficient `2 * (1 + 2 * (r + 1)) * (4 * r * T + 3)^T` used in the polynomial Hölder
+bound. -/
 def holderCoefficient (r T : ℕ) : ℝ :=
   2*(1+2*(r+1:ℝ))*(4*(r:ℝ)*(T:ℝ)+3)^T
 
+/-- The polynomial Hölder coefficient is positive. -/
 theorem holderCoefficient_pos (r T : ℕ) : 0<holderCoefficient r T := by
     unfold holderCoefficient; positivity
 
+/-- For positive `N`, the energy Hölder constant is at most `holderCoefficient r T * N^(r * (T +
+1))`. -/
 theorem energyHolder_polynomial {r N T : ℕ} (hN : 0<N) :
     energyHolder r T N≤holderCoefficient r T*(N:ℝ)^(r*(T+1)) := by
   have hn : (1:ℝ)≤N := by exact_mod_cast hN

@@ -9,6 +9,27 @@ import QuantumInfo.ClassicalInfo.Entropy
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Tactic
 
+/-!
+# Entropy cancellation and failure mass
+
+This module defines the mass of outcomes with failure count exactly `T` and the mean failure
+count for a finite distribution. It combines a first-moment inequality with assumed entropy
+bounds to derive the scalar failure estimate in Equation (5) of [SattathArad2015].
+
+The entropy quantities enter as hypotheses; `eq5_failure_bound` performs their cancellation when
+the slack `k - log(g * r * exp 1)` is positive.
+
+## Main statements
+
+* `failProb_mul_le_weight`: Bounds the mass at failure count `T` by the first moment.
+* `kappa_mul_weight_le`: Cancels the assumed entropy inequalities.
+* `eq5_failure_bound`: Obtains the explicit reciprocal-threshold failure bound.
+
+## References
+
+* [Sattath and Arad, 2015][SattathArad2015]
+-/
+
 open scoped BigOperators
 
 noncomputable section
@@ -17,12 +38,16 @@ namespace Qatlib.Papers.CommutingLLL13.MainResults.EntropyChain
 
 variable {O : Type} [Fintype O]
 
+/-- The total probability mass of outcomes whose failure count `f` is exactly `T`. -/
 noncomputable def failProb (p : ProbDistribution O) (f : O → ℕ) (T : ℕ) : ℝ :=
   ∑ s ∈ Finset.univ.filter (fun s => f s = T), (p s : ℝ)
 
+/-- The probability-weighted mean of the natural-valued failure count `f`. -/
 noncomputable def failWeight (p : ProbDistribution O) (f : O → ℕ) : ℝ :=
   ∑ s, (p s : ℝ) * (f s : ℝ)
 
+/-- The product of `T` and the probability mass at failure count exactly `T` is at most the mean
+failure count. This is the first-moment estimate used in [SattathArad2015]. -/
 theorem failProb_mul_le_weight (p : ProbDistribution O) (f : O → ℕ) (T : ℕ) :
     (T : ℝ) * failProb p f T ≤ failWeight p f := by
   unfold failProb failWeight
@@ -41,6 +66,8 @@ theorem failProb_mul_le_weight (p : ProbDistribution O) (f : O → ℕ) (T : ℕ
   rw [← heq]
   exact hsubset
 
+/-- For positive `r` and `g`, the three assumed entropy inequalities imply `(k - log(g * r * exp
+1)) * Q ≤ logT + m`. -/
 theorem kappa_mul_weight_le
     (n N m : ℕ) (k r g logT H Ssum Q : ℝ)
     (hr : 0 < r) (hg : 0 < g)
@@ -62,6 +89,9 @@ theorem kappa_mul_weight_le
   rw [hbox] at h1
   linarith
 
+/-- For positive `T`, `r`, `g`, and slack `k - log(g * r * exp 1)`, the assumed entropy
+inequalities bound the mass at failure count `T` by `(log T + m) / (T * slack)`. This is the
+conditional scalar form of [Sattath and Arad, Equation (5)][SattathArad2015]. -/
 theorem eq5_failure_bound
     (p : ProbDistribution O) (f : O → ℕ) (T : ℕ) (hT : 0 < T)
     (n N m : ℕ) (k r g : ℝ) (hr : 0 < r) (hg : 0 < g)

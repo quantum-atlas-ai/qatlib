@@ -7,11 +7,34 @@ Authors: Qatlib Contributors
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffClosedFormHami
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductLogEstimates
 import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoeffBoundStat
+
+/-!
+# Multiproduct coefficient estimates from analytic inputs
+
+This module proves `multiproductCoeffBound` using the scalar maximum property and factorial
+lower bound. The auxiliary results `multiproduct_exp_node_gt` and `multiproduct_coefficient_log`
+establish terminal-node separation and a logarithmic estimate for the first k coefficients. See
+[ChildsWiebe2012] for the multiproduct and linear-combination simulation framework.
+
+## Main statements
+
+* `multiproductCoeffBound`: Establishes the first-k multiproduct coefficient bound from
+  `EtaMaxProperty`, `FactorialLowerBound`, and the terminal-node separation hypothesis.
+* `multiproduct_coefficient_log`: Under terminal-node separation and q < k, the coefficient has
+  positive absolute value, and its logarithm plus the two factorial logarithms is bounded by 2
+  log 2 + (2k + 2) log(q + 1) − 2γ(k + 1).
+
+## References
+
+* [Childs and Wiebe, 2012][ChildsWiebe2012]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 namespace Qatlib.Papers.HamLCUSim12.Multiproduct
 open scoped BigOperators Classical
 
+/-- For k ≥ 1, the inequality 2k² ≤ exp(2γ(k + 1)) implies k < exp(γ(k + 1)). -/
 theorem multiproduct_exp_node_gt (k : ℕ) (hk : 1 ≤ k) (γ : ℝ)
     (hc : 2*(k : ℝ)^2 ≤ Real.exp (2*γ*((k+1 : ℕ) : ℝ))) :
     (k : ℝ) < Real.exp (γ*((k+1 : ℕ) : ℝ)) := by
@@ -24,6 +47,9 @@ theorem multiproduct_exp_node_gt (k : ℕ) (hk : 1 ≤ k) (γ : ℝ)
   have hN := Real.exp_pos (γ*((k+1 : ℕ) : ℝ))
   nlinarith [sq_pos_of_pos hkR]
 
+/-- Under terminal-node separation and q < k, the coefficient has positive absolute value, and
+its logarithm plus the two factorial logarithms is bounded by 2 log 2 + (2k + 2) log(q + 1)
+− 2γ(k + 1). -/
 theorem multiproduct_coefficient_log (k : ℕ) (hk : 1 ≤ k) (γ : ℝ)
     (hc : 2*(k : ℝ)^2 ≤ Real.exp (2*γ*((k+1 : ℕ) : ℝ)))
     (q : Fin (k+1)) (hq : q.val < k) :
@@ -85,6 +111,8 @@ theorem multiproduct_coefficient_log (k : ℕ) (hk : 1 ≤ k) (γ : ℝ)
     push_cast at hlog ⊢
     nlinarith
 
+/-- Establishes the first-k multiproduct coefficient bound from `EtaMaxProperty`,
+`FactorialLowerBound`, and the terminal-node separation hypothesis. See [ChildsWiebe2012]. -/
 theorem multiproductCoeffBound : MultiproductCoeffBound := by
   intro k hk γ η hγ hη hE hF hc q hq
   let K : ℝ := k

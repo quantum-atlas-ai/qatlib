@@ -8,6 +8,27 @@ import Qatlib.Concepts.WalkSearch.Primitives.VertexSamplingQuan
 import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+/-!
+# Finite majority concentration
+
+`uniformFiniteLaw` equips a nonempty finite type with its uniform distribution. The module
+translates indicator expectations and independent-sample event probabilities into cardinality
+ratios, then bounds the probability that at least half of the rounds satisfy a predicate of
+frequency at most `1 / 5`.
+
+These finite concentration estimates support repetition and error reduction in search algorithms
+[BoyerEtAl1998].
+
+## Main statements
+
+* `finite_bad_round_majority`: the bound `2 * exp (-9 * K / 50)` for a bad majority.
+
+## References
+
+* [Boyer et al., 1998][BoyerEtAl1998]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
@@ -19,6 +40,8 @@ noncomputable section
 namespace Qatlib.Concepts.WalkSearch.Primitives
 open scoped Classical BigOperators
 
+/-- The uniform probability distribution on a nonempty finite type, assigning mass `1 /
+Fintype.card X` to every element. -/
 def uniformFiniteLaw (X : Type) [Fintype X] [Nonempty X] : FinDist X where
   prob _ := 1/(Fintype.card X:ℝ)
   nonneg _ := by positivity
@@ -27,6 +50,8 @@ def uniformFiniteLaw (X : Type) [Fintype X] [Nonempty X] : FinDist X where
     have hp : (0:ℝ)<Fintype.card X := by exact_mod_cast (Fintype.card_pos : 0<Fintype.card X)
     field_simp
 
+/-- The expectation of a predicate indicator under the uniform law equals the fraction of
+elements satisfying the predicate. -/
 theorem uniformFiniteLaw_indicator_mean {X : Type} [Fintype X] [Nonempty X]
     (P : X→Prop) [DecidablePred P] :
     (uniformFiniteLaw X).expect (fun x=>if P x then 1 else 0) =
@@ -35,6 +60,8 @@ theorem uniformFiniteLaw_indicator_mean {X : Type} [Fintype X] [Nonempty X]
     Finset.sum_const,nsmul_eq_mul]
   ring
 
+/-- Under independent uniform sampling, an event on `K` samples has probability equal to its
+cardinality divided by the sample-space cardinality. -/
 theorem uniformFiniteLaw_event_card {X : Type} [Fintype X] [Nonempty X] (K : ℕ)
     (P : (Fin K→X)→Prop) [DecidablePred P] :
     (∑ ω∈Finset.univ.filter P,(independentSampleLaw (fun _ : Fin K=>uniformFiniteLaw X)).prob ω) =
@@ -43,10 +70,14 @@ theorem uniformFiniteLaw_event_card {X : Type} [Fintype X] [Nonempty X] (K : ℕ
     Fintype.card_fin,one_div,Finset.sum_const,nsmul_eq_mul,Fintype.card_fun,Nat.cast_pow]
   ring
 
+/-- The sum of the real-valued predicate indicators equals the number of rounds satisfying the
+predicate. -/
 theorem sum_round_indicators {X : Type} (K : ℕ) (P : X→Prop) [DecidablePred P] (ω : Fin K→X) :
     (∑ i : Fin K,if P (ω i) then (1:ℝ) else 0)=((Finset.univ.filter (fun i=>P (ω i))).card:ℝ) := by
   simp only [← Finset.sum_filter,Finset.sum_const,nsmul_eq_mul,mul_one]
 
+/-- If a predicate holds on at most one fifth of a finite space, the fraction of `K`-sample
+tapes with at least half bad rounds is at most `2 * Real.exp (-9 * K / 50)`. -/
 theorem finite_bad_round_majority {X : Type} [Fintype X] [DecidableEq X] [Nonempty X]
     (K : ℕ) (hK : 0<K) (P : X→Prop) [DecidablePred P]
     (hP : ((Finset.univ.filter P).card:ℝ)/(Fintype.card X:ℝ)≤1/5) :

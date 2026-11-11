@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.LowEnergyProd24.RetainedBound.Duhamel
+
+/-!
+# Projected defect and retained kernel bounds
+
+This module inserts complementary energy projectors between the defect and the product word. The
+resulting bounds separate a compressed defect from a defect norm multiplied by leakage,
+providing the pointwise estimates for the retained-error integral in [HejaziZiniArrazola2024].
+
+## Main statements
+
+* `actual_projected_defect_bound`: Splits the projected defect-product norm into retained and
+  leakage contributions.
+* `actual_retained_kernel_bound`: Applies the same estimate to the Duhamel kernel.
+
+## References
+
+* [Hejazi et al., 2024][HejaziZiniArrazola2024]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +37,8 @@ open Qatlib.Papers.LowEnergyProd24.ProductError
 open Qatlib.Foundations.MatrixGeometry.SpectralCutoff
 variable {N R M k d : ℕ} {J : ℝ}
 
+/-- The defect-product word between cutoffs `Λ` and `Δ` is bounded by the defect compressed at
+`Λ` plus the defect norm times product-word leakage above `Λ`. -/
 theorem actual_projected_defect_bound (h : Hamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (t Δ Λ : ℝ) :
     ‖low h.total h.total_hermitian Λ*defect h stages t*approximate h stages t*low h.total h.total_hermitian Δ‖ ≤
@@ -56,6 +77,8 @@ theorem actual_projected_defect_bound (h : Hamiltonian N R M k d J)
   exact (norm_add_le _ _).trans (add_le_add hfirst
     ((norm_mul_le _ _).trans (mul_le_mul_of_nonneg_right hmixed (norm_nonneg _))))
 
+/-- The projected Duhamel kernel is bounded by the compressed defect norm plus the defect norm
+times leakage, with exact evolution contributing no additional norm factor. -/
 theorem actual_retained_kernel_bound (h : Hamiltonian N R M k d J)
     (stages : List (ℝ × Fin M)) (t s Δ Λ : ℝ) :
     ‖low h.total h.total_hermitian Λ*(evolve h.total (t-s)*defect h stages s*approximate h stages s)*low h.total h.total_hermitian Δ‖ ≤

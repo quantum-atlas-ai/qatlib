@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.GraphIsom13.GiCost
 import Mathlib.Data.Fintype.Pi
+
+/-!
+# A cost function for induced subgraph isomorphism
+
+This module extends the graph-isomorphism cost construction of [GaitanClark2014] to induced
+subgraphs. The product penalty `sgiCost3` searches over vertex embeddings, and the total
+`sgiCost` has a zero exactly when `ContainsInduced` holds.
+
+## Main statements
+
+* `sgi_cop_zero_iff`: zero cost characterizes an induced copy of the target graph.
+* `sgi_cop_witness`: permutation and embedding data extracted from a zero-cost string.
+
+## References
+
+* [Gaitan and Clark, 2014][GaitanClark2014]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,37 +37,49 @@ namespace Qatlib.Papers.GraphIsom13.InducedCop
 
 open Qatlib.Papers.GraphIsom13.GiCost
 
+/-- An injective choice of `n` vertices from an `N`-vertex set. -/
 abbrev Choice (N n : ℕ) := Fin n ↪ Fin N
 
+/-- The submatrix selected by `α` from the adjacency matrix conjugated by `sigmaMat s`. -/
 def subgraphMatrix {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (s : IntStr N) (α : Fin n ↪ Fin N) : Matrix (Fin n) (Fin n) ℤ :=
   (sigmaMat s * G.adjMatrix ℤ * (sigmaMat s)ᵀ).submatrix α α
 
+/-- The selected subgraph matrix entry is the corresponding entry of the conjugated adjacency
+matrix [GaitanClark2014]. -/
 theorem subgraphMatrix_apply {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (s : IntStr N) (α : Fin n ↪ Fin N) (i j : Fin n) :
     subgraphMatrix G s α i j
       = (sigmaMat s * G.adjMatrix ℤ * (sigmaMat s)ᵀ) (α i) (α j) :=
   Matrix.submatrix_apply ..
 
+/-- The product over vertex embeddings of the entrywise adjacency discrepancy sums for the
+selected submatrices. -/
 def sgiCost3 {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (H : SimpleGraph (Fin n)) [DecidableRel H.Adj] (s : IntStr N) : ℕ :=
   ∏ α : Fin n ↪ Fin N,
     ∑ i : Fin n, ∑ j : Fin n,
       Int.natAbs (subgraphMatrix G s α i j - H.adjMatrix ℤ i j)
 
+/-- The sum of the out-of-range and collision penalties and the induced-subgraph discrepancy
+product. -/
 def sgiCost {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (H : SimpleGraph (Fin n)) [DecidableRel H.Adj] (s : IntStr N) : ℕ :=
   cost1 s + cost2 s + sgiCost3 G H s
 
+/-- There is an injective vertex map from `H` into `G` preserving and reflecting adjacency. -/
 def ContainsInduced {N n : ℕ} (G : SimpleGraph (Fin N))
     (H : SimpleGraph (Fin n)) : Prop :=
   ∃ β : Fin n ↪ Fin N, ∀ i j, G.Adj (β i) (β j) ↔ H.Adj i j
 
+/-- An integer adjacency-matrix entry is zero if and only if its vertices are not adjacent. -/
 theorem adjMatrix_eq_zero_iff {m : ℕ} (G : SimpleGraph (Fin m)) [DecidableRel G.Adj]
     (i j : Fin m) : G.adjMatrix ℤ i j = 0 ↔ ¬ G.Adj i j := by
   rw [SimpleGraph.adjMatrix_apply]
   split <;> simp_all
 
+/-- Two integer adjacency-matrix entries are equal if and only if their adjacency propositions
+are equivalent. -/
 theorem adjMatrix_entry_eq_iff {m n : ℕ} (G : SimpleGraph (Fin m)) [DecidableRel G.Adj]
     (H : SimpleGraph (Fin n)) [DecidableRel H.Adj] (i k : Fin m) (a b : Fin n) :
     G.adjMatrix ℤ i k = H.adjMatrix ℤ a b ↔ (G.Adj i k ↔ H.Adj a b) := by
@@ -62,6 +92,8 @@ theorem adjMatrix_entry_eq_iff {m n : ℕ} (G : SimpleGraph (Fin m)) [DecidableR
     · have hg' : ¬ H.Adj a b := fun hh => hg (h.mpr hh)
       rw [(adjMatrix_eq_zero_iff G i k).mpr hg, (adjMatrix_eq_zero_iff H a b).mpr hg']
 
+/-- The induced-subgraph discrepancy product is zero exactly when some selected submatrix equals
+the adjacency matrix of `H`. -/
 theorem sgiCost3_eq_zero_iff {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (H : SimpleGraph (Fin n)) [DecidableRel H.Adj] (s : IntStr N) :
     sgiCost3 G H s = 0 ↔ ∃ α : Fin n ↪ Fin N,
@@ -87,6 +119,8 @@ theorem sgiCost3_eq_zero_iff {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel
     rw [show subgraphMatrix G s α i j - H.adjMatrix ℤ i j = 0 by rw [hα]; simp]
     simp
 
+/-- A zero-cost string exists if and only if `G` contains an induced copy of `H`
+[GaitanClark2014]. -/
 theorem sgi_cop_zero_iff {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (H : SimpleGraph (Fin n)) [DecidableRel H.Adj] :
     (∃ s : IntStr N, sgiCost G H s = 0) ↔ ContainsInduced G H := by
@@ -149,6 +183,8 @@ theorem sgi_cop_zero_iff {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.A
     unfold sgiCost
     rw [hc1, hc2, hc3]
 
+/-- A zero-cost string yields a permutation and a vertex embedding identifying a selected
+conjugated submatrix with `H` and preserving and reflecting adjacency. -/
 theorem sgi_cop_witness {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (H : SimpleGraph (Fin n)) [DecidableRel H.Adj] (s : IntStr N)
     (hs : sgiCost G H s = 0) :
@@ -171,6 +207,8 @@ theorem sgi_cop_witness {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Ad
     transpose_permMatrix_conj_apply] at h
   exact (adjMatrix_entry_eq_iff G H _ _ i j).mp h
 
+/-- Every string has strictly positive induced-subgraph cost if and only if `G` contains no
+induced copy of `H`. -/
 theorem sgi_cop_positive_iff {N n : ℕ} (G : SimpleGraph (Fin N)) [DecidableRel G.Adj]
     (H : SimpleGraph (Fin n)) [DecidableRel H.Adj] :
     (∀ s : IntStr N, 0 < sgiCost G H s) ↔ ¬ ContainsInduced G H := by

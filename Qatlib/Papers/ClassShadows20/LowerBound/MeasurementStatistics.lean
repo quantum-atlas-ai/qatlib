@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatisticsDefs
 import Qatlib.Concepts.ShadowModels.SampleBudget.QuadraticShadowSourceParametersHuan
 import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
+
+/-!
+# Measurement statistics resource guarantees
+
+`thresholdGoal` collects exact value and resource identities for counted quadratic shadow
+medians and risk readout medians. It accounts for records, gates, setting choices, comparisons,
+bit time, and peak space, and includes the imported quadratic-shadow source-parameter and finite
+readout-median propositions.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `thresholdGoal`: combines counted median specifications, statistics ledgers, and the two
+  source and readout propositions.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -38,6 +59,10 @@ open Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018
 open scoped Classical
 set_option warningAsError false
 
+/-- Collects correctness and resource bounds for counted quadratic-shadow and risk medians,
+order statistics, and measurement ledgers, including quadratic comparison bounds and
+peak-space accounting. It also establishes `QuadraticShadowSourceParametersSubgoal` and
+`ReadoutMedianFiniteSubgoal`. -/
 theorem thresholdGoal :
 
   (∀ (n m r : ℕ) (O : Matrix (Fin (2 ^ n) × Fin (2 ^ n)) (Fin (2 ^ n) × Fin (2 ^ n)) ℂ)

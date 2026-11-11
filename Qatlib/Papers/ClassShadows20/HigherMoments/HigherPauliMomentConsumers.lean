@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.UStatBackend.OrderedHigherUStatistic
 import Qatlib.Papers.ClassShadows20.HigherMoments.HigherPauliShadows
+
+/-!
+# Higher Pauli moment estimators
+
+The module applies the ordered higher U-statistic to tensor Pauli snapshots and reconstructs the
+real trace of each state power. It proves unbiasedness and an explicit deviation bound for the
+rational estimator, and specializes the computation to order four with exact tuple and
+local-record counts.
+
+These constructions support the treatment in [HuangKuengPreskill2020].
+
+## Main statements
+
+* `higher_pauli_fresh_order_moment_and_tail`: gives the state-moment expectation and deviation
+  bound.
+* `higher_pauli_order_four_native_and_resources`: identifies the fourth-order rational evaluator
+  and its counts.
+
+## References
+
+* [Huang et al., 2020][HuangKuengPreskill2020]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +45,8 @@ namespace Qatlib.Papers.ClassShadows20.HigherMoments
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder ENNReal
 
+/-- A fold multiplying tensor Pauli snapshots equals the initial operator times their ordered
+list product. -/
 private theorem higher_snapshot_fold_prod (n : ℕ) (xs : List (Fin n→Fin 3×Bool))
     (A : Operator (2^n)) :
     xs.foldl (fun U x=>U*tensorPauliSnapshot n x) A=
@@ -30,6 +55,7 @@ private theorem higher_snapshot_fold_prod (n : ℕ) (xs : List (Fin n→Fin 3×B
   | nil => simp
   | cons x xs ih => simp only [List.foldl_cons,ih,List.map_cons,List.prod_cons,Matrix.mul_assoc]
 
+/-- The independent order-`r` mean of the higher shadow kernel equals the real trace of `rho^r`. -/
 theorem higherShadowKernel_mean (n r : ℕ) (rho : Operator (2^n)) (hrho : IsDensityOperator rho) :
     higherUMean (tensorPauliLaw n rho hrho) r (higherShadowKernel n)=(Matrix.trace (rho^r)).re := by
   let p := tensorPauliLaw n rho hrho
@@ -59,6 +85,9 @@ theorem higherShadowKernel_mean (n r : ℕ) (rho : Operator (2^n)) (hrho : IsDen
   simpa only [higherUMean,higherShadowKernel,higher_snapshot_fold_prod,Matrix.one_mul,
     Complex.re_sum,Complex.mul_re,Complex.ofReal_re,Complex.ofReal_im,mul_zero,zero_mul,sub_zero,p] using hr
 
+/-- For `m > 0`, `r ≤ m`, and positive `eps`, the rational higher shadow estimator is unbiased
+for the real trace of `rho^r`. Its deviation probability is at most `4 * r² * (2^n *
+2^(n*r))² / (m * eps²)` [HuangKuengPreskill2020]. -/
 theorem higher_pauli_fresh_order_moment_and_tail :
     ∀ (n m r : ℕ) (rho : Operator (2^n)) (hrho : IsDensityOperator rho) (eps : ℝ),
     0 < m → r ≤ m → 0<eps →
@@ -88,6 +117,9 @@ theorem higher_pauli_fresh_order_moment_and_tail :
       ((2:ℝ)^n*(2:ℝ)^(n*r)) eps hm hr (by positivity) heps hb).2
     simpa only [hc,hmean] using ht
 
+/-- The fourth-order rational evaluator agrees with the real evaluator and counts
+`m.descFactorial 4` ordered tuples. The tuple list has that length, and the sum of `m`
+local-record sizes is `n * m`. -/
 theorem higher_pauli_order_four_native_and_resources :
     ∀ (n m : ℕ) (omega : Fin m→Fin n→Fin 3×Bool),
     let z := higherUCountedQ m 4 (higherShadowKernelQ n) omega;

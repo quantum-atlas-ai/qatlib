@@ -54,11 +54,29 @@ import Qatlib.Papers.CertQuery09.MainResults.Source.NandCertificate
 import Qatlib.Papers.CertQuery09.MainResults.Source.CostRecurrence
 import Qatlib.Papers.CertQuery09.MainResults.Source.QueryLowerSum
 
+/-!
+# Quadratic-depth upper bounds for certification costs
+
+This module simplifies the explicit recurrence estimates for `QueryCostModel` by bounding `log d
+/ sqrt d` uniformly. It proves the quadratic-depth expected-cost envelopes corresponding to the
+upper-bound analysis in [AmbainisEtAl2009].
+
+## Main statements
+
+* `log_le_two_sqrt`: bounds the logarithm of a positive natural number.
+* `theorem1_upper_bound`: gives a common positive constant for both expected-cost sequences.
+
+## References
+
+* [Ambainis et al., 2009][AmbainisEtAl2009]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
 namespace Qatlib.Papers.CertQuery09.MainResults.Source
 
+/-- For a natural number `d ≥ 1`, `Real.log d ≤ 2 * Real.sqrt d`. -/
 theorem log_le_two_sqrt (d : ℕ) (hd : 1 ≤ d) :
     Real.log (d : ℝ) ≤ 2 * Real.sqrt (d : ℝ) := by
   have hlog := Real.log_le_rpow_div (x := (d : ℝ)) (ε := (1 : ℝ) / 2)
@@ -69,6 +87,10 @@ theorem log_le_two_sqrt (d : ℕ) (hd : 1 ≤ d) :
   have h2 : Real.sqrt (d : ℝ) / ((1 : ℝ) / 2) = 2 * Real.sqrt (d : ℝ) := by ring
   linarith
 
+/-- For `d ≥ 2`, every `QueryCostModel` possesses a positive constant bounding `E0 k` by `C * k²
+* sqrt (d ^ (k + 1))` and `E1 k` by `C * k² * sqrt (d ^ k)` for all `k ≥ 1`. These are the
+recurrence-model upper bounds corresponding to [Ambainis et al., Theorem
+1][AmbainisEtAl2009]. -/
 theorem theorem1_upper_bound (d : ℕ) (hd : 2 ≤ d) (a b c₁ : ℝ)
     (M : QueryCostModel d a b c₁) :
     ∃ C : ℝ, 0 < C ∧ ∀ k : ℕ, 1 ≤ k →

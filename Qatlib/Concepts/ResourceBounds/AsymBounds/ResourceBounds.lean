@@ -12,6 +12,34 @@ import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportImplBoun
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.CountedParityAlgorithm
+
+/-!
+# Distributional resource bounds for query programs
+
+This module connects measured query programs to output laws and resource budgets. `meteredRun`
+and `executionLaw` attach the ledger to the same execution that produces the measured output.
+`Implements` combines a budget bound, output error measured as twice total variation distance,
+and a success-probability requirement; exact and approximate transport laws preserve these
+guarantees.
+
+The concrete examples establish a uniform square-root query upper bound for singleton search
+[Grover1996] and the polynomial-method parity lower bound [BealsEtAl2001]. An exact one-query
+program for two-input parity witnesses a matching upper bound in that case.
+
+## Main statements
+
+* `executionLaw_eq`: the joint law pairs each output with the deterministic ledger.
+* `implements_transport`, `implements_approximate`: transport of implementation guarantees.
+* `Search.search_uniform_family`: one square-root bound constant for all eligible sizes.
+* `Parity.parity_universal_lower`: at least `⌈card I / 2⌉` queries for parity.
+* `Parity.fin2_upper_lower_consumer`: matching one-query bounds for two-input parity.
+
+## References
+
+* [Grover, 1996][Grover1996]
+* [Beals et al., 2001][BealsEtAl2001]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.ChannelTheory.Stinespring
 open Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs
@@ -38,14 +66,18 @@ noncomputable section
 
 variable {J Out X : Type} [Fintype J] [DecidableEq J] [Fintype Out] [DecidableEq Out]
 
+/-- A unitary query algorithm together with a deterministic readout map from basis labels to
+outputs. -/
 structure MeasuredProgram (J Out : Type) [Fintype J] [DecidableEq J] where
   algorithm : QueryAlgorithm J
   readout : J→Out
 
+/-- An input-indexed family of unitary oracle matrices. -/
 structure OracleAccess (X J : Type) [Fintype J] [DecidableEq J] where
   oracle : X→Matrix J J ℂ
   unitary : ∀ x, oracle x ∈ Matrix.unitaryGroup J ℂ
 
+/-- Runs a query circuit while accumulating macro-gate and oracle-step resource charges. -/
 def meteredRun (oracle : Matrix J J ℂ) : Circuit J→QState J→QState J×ResourceCost
   | [],ψ => (ψ,0)
   | .gate U::C,ψ =>
@@ -57,16 +89,21 @@ def meteredRun (oracle : Matrix J J ℂ) : Circuit J→QState J→QState J×Reso
 
 omit [DecidableEq J] [Fintype Out] [DecidableEq Out] in
 
+/-- The metered run returns the ordinary circuit output and the resource cost derived using zero
+macro-step profiles. -/
 theorem meteredRun_projection (oracle : Matrix J J ℂ) (C : Circuit J) (ψ : QState J) :
     meteredRun oracle C ψ=(Run oracle C ψ,derive (fun _ => StepProfile.zero) C) := by
   induction C generalizing ψ with
   | nil => rfl
   | cons s C ih => cases s <;> simp [meteredRun,Run,derive,ih]
 
+/-- The output probability mass function obtained by Born measurement of the program's final
+state and application of its readout map. -/
 def runLaw (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) : PMF Out :=
   (bornDistribution (Run (A.oracle x) P.algorithm.circuit P.algorithm.start)
     (P.algorithm.normalized_output (A.unitary x))).map P.readout
 
+/-- Converts a probability mass function on a finite type to a real-valued finite distribution. -/
 def realLaw {Y : Type} [Fintype Y] (p : PMF Y) : FinDist Y where
   prob y := (p y).toReal
   nonneg y := ENNReal.toReal_nonneg
@@ -75,17 +112,22 @@ def realLaw {Y : Type} [Fintype Y] (p : PMF Y) : FinDist Y where
     rw [tsum_fintype,ENNReal.toReal_sum (fun y _ => p.apply_ne_top y),ENNReal.toReal_one] at h
     exact h
 
+/-- The probability of an event in a finite distribution, expressed as the expectation of its
+indicator. -/
 def eventProb {Y : Type} [Fintype Y] (p : FinDist Y) (E : Y→Prop) : ℝ :=
   p.expect (fun y => if E y then 1 else 0)
 
+/-- Twice the total variation distance between two finite output distributions. -/
 def outputError {Y : Type} [Fintype Y] [DecidableEq Y] (p q : FinDist Y) : ℝ := 2*tvDist p q
 
+/-- The probability of every event in a finite distribution is nonnegative. -/
 theorem eventProb_nonneg {Y : Type} [Fintype Y] (p : FinDist Y) (E : Y→Prop) :
     0≤eventProb p E := by
   unfold eventProb FinDist.expect
   exact Finset.sum_nonneg
       (fun y _ => mul_nonneg (p.nonneg y) (by (try dsimp only); split_ifs <;> norm_num))
 
+/-- The probability of every event in a finite distribution is at most one. -/
 theorem eventProb_le_one {Y : Type} [Fintype Y] (p : FinDist Y) (E : Y→Prop) :
     eventProb p E≤1 := by
   rw [← p.sum_one]
@@ -97,15 +139,18 @@ theorem eventProb_le_one {Y : Type} [Fintype Y] (p : FinDist Y) (E : Y→Prop) :
   · simp [he]
   · simpa [he] using! p.nonneg y
 
+/-- The event that is true at every output has probability one. -/
 theorem eventProb_true {Y : Type} [Fintype Y] (p : FinDist Y) :
     eventProb p (fun _ => True)=1 := by
   simpa [eventProb,FinDist.expect] using! p.sum_one
 
+/-- The absolute difference of event probabilities is bounded by `outputError`. -/
 theorem eventProb_difference {Y : Type} [Fintype Y] [DecidableEq Y]
     (p q : FinDist Y) (E : Y→Prop) : |eventProb p E-eventProb q E|≤outputError p q :=
   Qatlib.Concepts.MonteCarloMean.FinDistBounds.expect_sub_tvDist p q _ (fun _ => by split_ifs <;> norm_num)
     (fun _ => by split_ifs <;> norm_num)
 
+/-- The output-distribution error satisfies the triangle inequality. -/
 theorem outputError_triangle {Y : Type} [Fintype Y] [DecidableEq Y]
     (p q r : FinDist Y) : outputError p r≤outputError p q+outputError q r := by
   simp only [outputError,Qatlib.Concepts.MonteCarloMean.FinDistBounds.tvDist]
@@ -114,11 +159,14 @@ theorem outputError_triangle {Y : Type} [Fintype Y] [DecidableEq Y]
   rw [Finset.sum_add_distrib] at h
   nlinarith
 
+/-- The output-distribution error of a distribution with itself is zero. -/
 theorem outputError_self {Y : Type} [Fintype Y] [DecidableEq Y] (p : FinDist Y) :
     outputError p p=0 := by simp [outputError,Qatlib.Concepts.MonteCarloMean.FinDistBounds.tvDist]
 
+/-- The finite distribution concentrated at a single output value. -/
 def pointMass {Y : Type} [Fintype Y] (v : Y) : FinDist Y := realLaw (PMF.pure v)
 
+/-- The probability at `y` under `pointMass v` is one if `y = v` and zero otherwise. -/
 theorem pointMass_prob {Y : Type} [Fintype Y] [DecidableEq Y] (v y : Y) :
     (pointMass v).prob y=if y=v then 1 else 0 := by
   by_cases he : y=v
@@ -126,10 +174,12 @@ theorem pointMass_prob {Y : Type} [Fintype Y] [DecidableEq Y] (v y : Y) :
     simp [pointMass,realLaw,PMF.pure_apply]
   · simp [pointMass,realLaw,PMF.pure_apply,he]
 
+/-- The probability of the singleton event at `v` equals the distribution's probability at `v`. -/
 theorem eventProb_point {Y : Type} [Fintype Y] [DecidableEq Y] (p : FinDist Y) (v : Y) :
     eventProb p (fun y => y=v)=p.prob v := by
   simp [eventProb,FinDist.expect,mul_ite]
 
+/-- The output error from the point mass at `v` is `2 * (1 - p.prob v)`. -/
 theorem outputError_pointMass {Y : Type} [Fintype Y] [DecidableEq Y] (p : FinDist Y) (v : Y) :
     outputError p (pointMass v)=2*(1-p.prob v) := by
   have hp : p.prob v≤1 := by
@@ -151,6 +201,8 @@ theorem outputError_pointMass {Y : Type} [Fintype Y] [DecidableEq Y] (p : FinDis
 
 omit [Fintype Out] in
 
+/-- The probability of an output equals the Born probability of the basis labels read out as
+that output. -/
 theorem runLaw_point (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) (y : Out) :
     runLaw P A x y = ENNReal.ofReal (MeasureProb
       (Run (A.oracle x) P.algorithm.circuit P.algorithm.start)
@@ -163,6 +215,7 @@ theorem runLaw_point (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) 
   intro j _
   by_cases he : y=P.readout j <;> simp [he,eq_comm]
 
+/-- An output event has the Born probability of its preimage under the readout map. -/
 theorem runLaw_event (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) (E : Out→Prop) :
     eventProb (realLaw (runLaw P A x)) E = MeasureProb
       (Run (A.oracle x) P.algorithm.circuit P.algorithm.start)
@@ -179,15 +232,19 @@ theorem runLaw_event (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) 
   simp only [ite_mul,zero_mul]
   simp
 
+/-- Natural-number bounds on query count, macro-gate count, and circuit depth. -/
 structure Budget where
   queries : ℕ
   macroGates : ℕ
   depth : ℕ
   deriving DecidableEq, Repr
 
+/-- The resource cost derived from a measured program's circuit using zero macro-step profiles. -/
 def ledger (P : MeasuredProgram J Out) : ResourceCost :=
   derive (fun _ => StepProfile.zero) P.algorithm.circuit
 
+/-- The joint law of the readout and resource cost obtained from the same metered circuit
+execution. -/
 def executionLaw (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) : PMF (Out×ResourceCost) :=
   let executed := meteredRun (A.oracle x) P.algorithm.circuit P.algorithm.start
   let hnorm : Normalized executed.1 := by
@@ -198,12 +255,15 @@ def executionLaw (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) : PM
 
 omit [Fintype Out] [DecidableEq Out] in
 
+/-- The joint execution law pairs each output of `runLaw` with the program's deterministic
+ledger. -/
 theorem executionLaw_eq (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) :
     executionLaw P A x=(runLaw P A x).map (fun y => (y,ledger P)) := by
   simp only [executionLaw,meteredRun_projection,runLaw,PMF.map_comp,Function.comp_def,ledger]
 
 omit [Fintype Out] [DecidableEq Out] in
 
+/-- The output marginal of the joint execution law equals `runLaw`. -/
 theorem executionLaw_output (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X) :
     (executionLaw P A x).map Prod.fst=runLaw P A x := by
   rw [executionLaw_eq,PMF.map_comp]
@@ -211,22 +271,29 @@ theorem executionLaw_output (P : MeasuredProgram J Out) (A : OracleAccess X J) (
 
 omit [Fintype Out] [DecidableEq Out] in
 
+/-- Every pair in the support of the joint execution law has cost equal to the program's ledger. -/
 theorem executionLaw_cost (P : MeasuredProgram J Out) (A : OracleAccess X J) (x : X)
     (z : Out×ResourceCost) (hz : z∈(executionLaw P A x).support) : z.2=ledger P := by
   rw [executionLaw_eq,PMF.mem_support_map_iff] at hz
   obtain ⟨y,_,hy⟩ := hz
   exact (congrArg Prod.snd hy).symm
 
+/-- Requires the program's query, macro-gate, and depth ledger components to be bounded by the
+supplied budget. -/
 def Within (P : MeasuredProgram J Out) (B : Budget) : Prop :=
   (ledger P).queries≤B.queries ∧ (ledger P).macroGates≤B.macroGates ∧ (ledger P).depth≤B.depth
 
 omit [Fintype Out] [DecidableEq Out] in
 
+/-- Being within budget is equivalent to bounds on the circuit's query count, gate count, and
+size. -/
 theorem within_iff (P : MeasuredProgram J Out) (B : Budget) : Within P B ↔
     QueryCount P.algorithm.circuit≤B.queries ∧ GateCount P.algorithm.circuit≤B.macroGates ∧
       Size P.algorithm.circuit≤B.depth := by
   simp only [Within,ledger,derive_queries,derive_macroGates,derive_depth]
 
+/-- A distributional task with legal inputs, target laws, success events, and input-dependent
+error and failure tolerances. -/
 structure DistributionTask (X Out : Type) [Fintype Out] where
   legal : X→Prop
   target : X→FinDist Out
@@ -234,17 +301,23 @@ structure DistributionTask (X Out : Type) [Fintype Out] where
   error : X→ℝ
   failure : X→ℝ
 
+/-- Requires the program to meet its resource budget and, on legal inputs, the task's
+distribution-error and success-probability bounds. -/
 def Implements (P : MeasuredProgram J Out) (A : OracleAccess X J)
     (T : DistributionTask X Out) (B : Budget) : Prop :=
   Within P B ∧ ∀ x, T.legal x →
     outputError (realLaw (runLaw P A x)) (T.target x)≤T.error x ∧
       1-T.failure x≤eventProb (realLaw (runLaw P A x)) (T.good x)
 
+/-- An implementation certificate bounds the circuit's exact query count, gate count, and size
+by the budget. -/
 theorem implements_exact_counts (P : MeasuredProgram J Out) (A : OracleAccess X J)
     (T : DistributionTask X Out) (B : Budget) (h : Implements P A T B) :
     QueryCount P.algorithm.circuit≤B.queries ∧ GateCount P.algorithm.circuit≤B.macroGates ∧
       Size P.algorithm.circuit≤B.depth := (within_iff P B).mp h.1
 
+/-- Transfers implementation to a program with the same output laws and no larger query,
+macro-gate, or depth costs. -/
 theorem implements_transport {K : Type} [Fintype K] [DecidableEq K]
     (P : MeasuredProgram J Out) (Q : MeasuredProgram K Out)
     (A : OracleAccess X J) (A' : OracleAccess X K) (T : DistributionTask X Out) (B : Budget)
@@ -258,9 +331,13 @@ theorem implements_transport {K : Type} [Fintype K] [DecidableEq K]
   rw [hlaw]
   exact h.2 x hx
 
+/-- Increases both the distribution-error and failure tolerances of a task by the
+input-dependent amount `δ`. -/
 def relax (T : DistributionTask X Out) (δ : X→ℝ) : DistributionTask X Out :=
   { T with error := fun x => T.error x+δ x, failure := fun x => T.failure x+δ x }
 
+/-- A program within its new budget implements the relaxed task if its output law is within `δ`
+of an existing implementation on legal inputs. -/
 theorem implements_approximate {K : Type} [Fintype K] [DecidableEq K]
     (P : MeasuredProgram J Out) (Q : MeasuredProgram K Out)
     (A : OracleAccess X J) (A' : OracleAccess X K) (T : DistributionTask X Out)
@@ -281,14 +358,20 @@ theorem implements_approximate {K : Type} [Fintype K] [DecidableEq K]
     change 1-(T.failure x+δ x)≤eventProb (realLaw (runLaw Q A' x)) (T.good x)
     linarith [hp.2]
 
+/-- Requires every measured program implementing the task under some budget to use at least
+`bound` queries. -/
 def QueryLower (A : OracleAccess X J) (T : DistributionTask X Out) (bound : ℕ) : Prop :=
   ∀ P : MeasuredProgram J Out, (∃ B, Implements P A T B) → bound≤(ledger P).queries
 
+/-- A universal query lower bound is also a lower bound on the query budget of any
+implementation. -/
 theorem budget_lower (A : OracleAccess X J) (T : DistributionTask X Out) (bound : ℕ)
     (h : QueryLower A T bound) (P : MeasuredProgram J Out) (B : Budget)
     (hp : Implements P A T B) : bound≤B.queries :=
   (h P ⟨B,hp⟩).trans hp.1.1
 
+/-- Transfers a query lower bound through a program refinement preserving output laws and not
+increasing query counts. -/
 theorem queryLower_exact_transport {K : Type} [Fintype K] [DecidableEq K]
     (A : OracleAccess X J) (A' : OracleAccess X K) (T : DistributionTask X Out) (bound : ℕ)
     (h : QueryLower A T bound)
@@ -308,6 +391,7 @@ theorem queryLower_exact_transport {K : Type} [Fintype K] [DecidableEq K]
     exact hB.2 x hx
   exact (h R ⟨BR,hr⟩).trans (hquery Q)
 
+/-- The probabilities of two disjoint events sum to at most one. -/
 theorem eventProb_disjoint {Y : Type} [Fintype Y] (p : FinDist Y) (E F : Y→Prop)
     (h : ∀ y, ¬(E y ∧ F y)) : eventProb p E+eventProb p F≤1 := by
   unfold eventProb FinDist.expect
@@ -322,10 +406,13 @@ theorem eventProb_disjoint {Y : Type} [Fintype Y] (p : FinDist Y) (E F : Y→Pro
   · simp [he,hf]
   · simpa [he,hf] using! p.nonneg y
 
+/-- Requires two legal inputs with disjoint success events whose failure tolerances sum to less
+than one. -/
 def Distinguishing (T : DistributionTask X Out) : Prop :=
   ∃ a b, T.legal a ∧ T.legal b ∧ (∀ y, ¬(T.good a y ∧ T.good b y)) ∧
     T.failure a+T.failure b<1
 
+/-- A program with an input-independent output law cannot implement a distinguishing task. -/
 theorem constant_law_not_implements (P : MeasuredProgram J Out) (A : OracleAccess X J)
     (T : DistributionTask X Out) (B : Budget) (p : PMF Out)
     (hconst : ∀ x, runLaw P A x=p) (hnt : Distinguishing T) : ¬Implements P A T B := by
@@ -339,6 +426,7 @@ theorem constant_law_not_implements (P : MeasuredProgram J Out) (A : OracleAcces
 
 omit [Fintype Out] [DecidableEq Out] in
 
+/-- A program using no oracle queries has the same output law on any two inputs. -/
 theorem zero_query_law (P : MeasuredProgram J Out) (A : OracleAccess X J)
     (hq : QueryCount P.algorithm.circuit=0) (a b : X) : runLaw P A a=runLaw P A b := by
   unfold runLaw
@@ -348,6 +436,7 @@ theorem zero_query_law (P : MeasuredProgram J Out) (A : OracleAccess X J)
   simp only [bornDistribution_apply,
     run_eq_of_queryCount_eq_zero (A.oracle a) (A.oracle b) P.algorithm.circuit hq P.algorithm.start]
 
+/-- A zero-query program cannot implement a distinguishing task. -/
 theorem zero_query_not_implements (P : MeasuredProgram J Out) (A : OracleAccess X J)
     (T : DistributionTask X Out) (B : Budget) (hq : QueryCount P.algorithm.circuit=0)
     (hnt : Distinguishing T) : ¬Implements P A T B := by
@@ -357,21 +446,27 @@ theorem zero_query_not_implements (P : MeasuredProgram J Out) (A : OracleAccess 
 
 omit [Fintype Out] [DecidableEq Out] in
 
+/-- A constant readout map makes the output law the corresponding point mass. -/
 theorem constant_readout_law (P : MeasuredProgram J Out) (A : OracleAccess X J)
     (v : Out) (h : ∀ j, P.readout j=v) (x : X) : runLaw P A x=PMF.pure v := by
   have he : P.readout=Function.const J v := funext h
   unfold runLaw
   rw [he,PMF.map_const]
 
+/-- A program with constant readout cannot implement a distinguishing task. -/
 theorem constant_readout_not_implements (P : MeasuredProgram J Out) (A : OracleAccess X J)
     (T : DistributionTask X Out) (B : Budget) (v : Out) (h : ∀ j, P.readout j=v)
     (hnt : Distinguishing T) : ¬Implements P A T B :=
   constant_law_not_implements P A T B (PMF.pure v) (constant_readout_law P A v h) hnt
 
+/-- The measured program with an empty circuit, a supplied normalized state, and a supplied
+readout map. -/
 def idleProgram (ψ : QState J) (hψ : Normalized ψ) (readout : J→Out) : MeasuredProgram J Out where
   algorithm := ⟨[],ψ,by simp [IsUnitaryCircuit],hψ⟩
   readout := readout
 
+/-- The task with the supplied state's readout law as its target, all outputs successful, and
+zero error and failure tolerances. -/
 def idleTask (ψ : QState J) (hψ : Normalized ψ) (readout : J→Out) : DistributionTask X Out where
   legal _ := True
   target _ := realLaw ((bornDistribution ψ hψ).map readout)
@@ -379,6 +474,8 @@ def idleTask (ψ : QState J) (hψ : Normalized ψ) (readout : J→Out) : Distrib
   error _ := 0
   failure _ := 0
 
+/-- The empty-circuit program exactly implements its idle task with a zero query, gate, and
+depth budget. -/
 theorem idle_implements (ψ : QState J) (hψ : Normalized ψ) (readout : J→Out)
     (A : OracleAccess X J) :
     Implements (idleProgram ψ hψ readout) A (idleTask ψ hψ readout) ⟨0,0,0⟩ := by
@@ -391,6 +488,8 @@ namespace Search
 
 variable {W : Type} [Fintype W] [DecidableEq W]
 
+/-- The workspace Grover program for singleton search, initialized at the zero query register
+and workspace basis label `w`, with the query register as readout. -/
 def searchProgram (n : ℕ) (w : W) (hn : 2 ≤ n) :
     MeasuredProgram ((Reg n × Bool) × W) (Reg n) where
   algorithm :=
@@ -401,10 +500,13 @@ def searchProgram (n : ℕ) (w : W) (hn : 2 ≤ n) :
       normalized := normalized_ket _ }
   readout := fun j => j.1.1
 
+/-- The unitary workspace bit-oracle family marking equality with the singleton search input. -/
 def searchAccess (n : ℕ) : OracleAccess (Reg n) ((Reg n × Bool) × W) where
   oracle x := workspaceBitOracle (W := W) (fun y : Reg n => decide (y = x))
   unitary _ := workspaceBitOracle_unitary _
 
+/-- The singleton search task with target concentrated at the marked register, output error at
+most `2 / card (Reg n)`, and failure at most `1 / card (Reg n)`. -/
 def searchTask (n : ℕ) : DistributionTask (Reg n) (Reg n) where
   legal _ := True
   target x := pointMass x
@@ -412,11 +514,15 @@ def searchTask (n : ℕ) : DistributionTask (Reg n) (Reg n) where
   error _ := 2 / (Fintype.card (Reg n) : ℝ)
   failure _ := 1 / (Fintype.card (Reg n) : ℝ)
 
+/-- The exact singleton-search budget with `t` queries, `3 * t + 3` macro gates, and depth `4 *
+t + 3`, where `t = singletonSearchIterations n`. -/
 def searchNativeBudget (n : ℕ) : Budget where
   queries := singletonSearchIterations n
   macroGates := 3 * singletonSearchIterations n + 3
   depth := 4 * singletonSearchIterations n + 3
 
+/-- The singleton-search circuit uses `t` queries, `3 * t + 3` gates, and size `4 * t + 3`,
+where `t = singletonSearchIterations n`. -/
 theorem search_counts (n : ℕ) (w : W) (hn : 2 ≤ n) :
     QueryCount (searchProgram n w hn).algorithm.circuit = singletonSearchIterations n ∧
     GateCount (searchProgram n w hn).algorithm.circuit =
@@ -435,12 +541,15 @@ theorem search_counts (n : ℕ) (w : W) (hn : 2 ≤ n) :
   rw [size_eq_gateCount_add_queryCount, hg, hq]
   omega
 
+/-- The singleton-search program lies within its native budget when `2 ≤ n`. -/
 theorem search_within (n : ℕ) (w : W) (hn : 2 ≤ n) :
     Within (searchProgram n w hn) (searchNativeBudget n) := by
   apply (within_iff _ _).2
   rcases search_counts n w hn with ⟨hq, hg, hd⟩
   exact ⟨hq.le, hg.le, hd.le⟩
 
+/-- For `2 ≤ n`, the singleton-search program returns the marked register with probability at
+least `1 - 1 / card (Reg n)`. -/
 theorem search_success (n : ℕ) (w : W) (hn : 2 ≤ n) (x : Reg n) :
     1 - 1 / (Fintype.card (Reg n) : ℝ) ≤
       eventProb (realLaw (runLaw (searchProgram n w hn) (searchAccess (W := W) n) x))
@@ -449,6 +558,8 @@ theorem search_success (n : ℕ) (w : W) (hn : 2 ≤ n) (x : Reg n) :
   simpa only [searchProgram,searchAccess,workspaceQueryFiber] using!
     (workspace_singleton_search_actual_upper (W := W) n w x hn).1
 
+/-- For `2 ≤ n`, the workspace Grover program implements the singleton search task within its
+native budget; see [Grover1996]. -/
 theorem search_implements (n : ℕ) (w : W) (hn : 2 ≤ n) :
     Implements (searchProgram n w hn) (searchAccess (W := W) n)
       (searchTask n) (searchNativeBudget n) := by
@@ -468,12 +579,16 @@ theorem search_implements (n : ℕ) (w : W) (hn : 2 ≤ n) :
   convert! mul_le_mul_of_nonneg_left hq (by norm_num : (0:ℝ)≤2) using 1
   ring
 
+/-- For `2 ≤ n`, the search program's query count is at most `π / 4` times the square root of
+the search-space cardinality. -/
 theorem search_uniform_sqrt (n : ℕ) (w : W) (hn : 2 ≤ n) :
     ((ledger (searchProgram n w hn)).queries : ℝ) ≤
       Real.pi * Real.sqrt (Fintype.card (Reg n) : ℝ) / 4 := by
   simpa only [ledger, derive_queries, searchProgram] using!
     (workspace_singleton_search_actual_upper (W := W) n w (ZeroStr n) hn).2.1
 
+/-- Combines singleton-search implementation within the native budget with its `π / 4`
+square-root query bound. -/
 theorem actual_search_implementation_and_bound (n : ℕ) (w : W) (hn : 2 ≤ n) :
     Implements (searchProgram n w hn) (searchAccess (W := W) n)
         (searchTask n) (searchNativeBudget n) ∧
@@ -481,6 +596,8 @@ theorem actual_search_implementation_and_bound (n : ℕ) (w : W) (hn : 2 ≤ n) 
         Real.pi * Real.sqrt (Fintype.card (Reg n) : ℝ) / 4 :=
   ⟨search_implements n w hn, search_uniform_sqrt n w hn⟩
 
+/-- For a fixed workspace basis label, one positive constant bounds the query counts of all
+singleton-search implementations with `2 ≤ n` by the square root of the search-space size. -/
 theorem search_uniform_family (w : W) :
     ∃ c : ℝ, 0<c ∧ ∀ (n : ℕ) (hn : 2≤n),
       Implements (searchProgram n w hn) (searchAccess (W:=W) n) (searchTask n) (searchNativeBudget n) ∧
@@ -491,6 +608,7 @@ theorem search_uniform_family (w : W) :
   convert! search_uniform_sqrt n w hn using 1
   ring
 
+/-- The singleton search task is distinguishing when `2 ≤ n`. -/
 theorem search_distinguishing (n : ℕ) (hn : 2≤n) : Distinguishing (searchTask n) := by
   let a : Reg n := fun _ => false
   let b : Reg n := fun _ => true
@@ -510,6 +628,7 @@ theorem search_distinguishing (n : ℕ) (hn : 2≤n) : Distinguishing (searchTas
   · change 1/(Fintype.card (Reg n) : ℝ)+1/(Fintype.card (Reg n) : ℝ)<1
     linarith
 
+/-- The singleton-search program uses at least one query when `2 ≤ n`. -/
 theorem search_nonzero_query (n : ℕ) (w : W) (hn : 2≤n) :
     1≤(ledger (searchProgram n w hn)).queries := by
   by_contra hq
@@ -525,14 +644,19 @@ namespace Parity
 
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The Boolean value recording whether a finite Boolean function has an odd number of true
+entries. -/
 def parityBit (f : I→Bool) : Bool :=
   decide ((Finset.univ.filter (fun i => f i=true)).card % 2=1)
 
+/-- The standard workspace bit-oracle family for Boolean functions on `I`. -/
 def standardBitAccess (I W : Type) [Fintype I] [DecidableEq I]
     [Fintype W] [DecidableEq W] : OracleAccess (I→Bool) ((I×Bool)×W) where
   oracle f := workspaceBitOracle (W:=W) f
   unitary f := workspaceBitOracle_unitary f
 
+/-- The parity task with point-mass target, output-error tolerance `2 / 3`, and failure
+tolerance `1 / 3`. -/
 def parityTask (I : Type) [Fintype I] [DecidableEq I] : DistributionTask (I→Bool) Bool where
   legal _ := True
   target f := pointMass (parityBit f)
@@ -540,9 +664,12 @@ def parityTask (I : Type) [Fintype I] [DecidableEq I] : DistributionTask (I→Bo
   error _ := 2/3
   failure _ := 1/3
 
+/-- The probabilities of false and true under a Boolean finite distribution sum to one. -/
 theorem bool_mass (p : FinDist Bool) : p.prob false+p.prob true=1 := by
   simpa only [Fintype.sum_bool,_root_.add_comm] using! p.sum_one
 
+/-- A measured program computing parity with success probability at least `2 / 3` on every input
+satisfies `card I ≤ 2 * queries`, as in the polynomial method [BealsEtAl2001]. -/
 theorem parity_lower_from_success
     (P : MeasuredProgram ((I×Bool)×W) Bool)
     (hsuccess : ∀ f:I→Bool,
@@ -585,6 +712,7 @@ theorem parity_lower_from_success
       constructor <;> linarith [p.nonneg false,p.nonneg true]
   simpa only [ledger,derive_queries] using! hquery
 
+/-- Any implementation of the parity task uses at least `⌈card I / 2⌉` queries. -/
 theorem parity_lower_of_implements
     (P : MeasuredProgram ((I×Bool)×W) Bool) (B : Budget)
     (h : Implements P (standardBitAccess I W) (parityTask I) B) :
@@ -592,25 +720,34 @@ theorem parity_lower_of_implements
   have hl := parity_lower_from_success P (fun f => (h.2 f trivial).2)
   omega
 
+/-- Any budget for an implementation of the parity task allows at least `⌈card I / 2⌉` queries. -/
 theorem parity_budget_lower
     (P : MeasuredProgram ((I×Bool)×W) Bool) (B : Budget)
     (h : Implements P (standardBitAccess I W) (parityTask I) B) :
     (Fintype.card I+1)/2 ≤ B.queries :=
   (parity_lower_of_implements P B h).trans h.1.1
 
+/-- Establishes the universal parity query lower bound `⌈card I / 2⌉` in the standard bit-oracle
+model [BealsEtAl2001]. -/
 theorem parity_universal_lower :
     QueryLower (standardBitAccess I W) (parityTask I) ((Fintype.card I+1)/2) := by
   intro P hp
   obtain ⟨B,h⟩ := hp
   exact parity_lower_of_implements P B h
 
+/-- On `Fin 2`, the all-false function has even parity and the indicator of index zero has odd
+parity. -/
 theorem parity_fin2_nonconstant :
     parityBit (fun _ : Fin 2 => false)=false ∧
       parityBit (fun i : Fin 2 => decide (i=0))=true := by
   decide
 
+/-- The polynomial-method workspace for the two-input parity circuit with auxiliary register
+`Reg 2 × Bool`. -/
 abbrev TwoSpace := PolynomialWorkspace (Fin 2) (Reg 2×Bool)
 
+/-- The measured two-input parity program using `countedParityCircuit 2` and reading its
+designated Boolean output. -/
 def parityTwo : MeasuredProgram TwoSpace Bool where
   algorithm := {
     circuit := countedParityCircuit 2
@@ -620,9 +757,13 @@ def parityTwo : MeasuredProgram TwoSpace Bool where
   }
   readout j := j.2.2
 
+/-- The budget allowing one query and the exact gate count and size of the two-input counted
+parity circuit. -/
 def parityTwoBudget : Budget :=
   ⟨1,GateCount (countedParityCircuit 2),Size (countedParityCircuit 2)⟩
 
+/-- The two-input parity program outputs true with probability one exactly for odd parity, and
+with probability zero otherwise. -/
 theorem parityTwo_true_prob (f : Fin 2→Bool) :
     (realLaw (runLaw parityTwo (standardBitAccess (Fin 2) (Reg 2×Bool)) f)).prob true =
       if (Finset.univ.filter (fun i => f i=true)).card % 2=1 then 1 else 0 := by
@@ -633,6 +774,7 @@ theorem parityTwo_true_prob (f : Fin 2→Bool) :
   simpa only [parityTwo,standardBitAccess,workspaceBitOracle,countedParityAccept] using!
     countedParity_measureProb (by decide : 0<2) f
 
+/-- The two-input parity program outputs the correct parity bit with probability one. -/
 theorem parityTwo_correct_point (f : Fin 2→Bool) :
     (realLaw (runLaw parityTwo (standardBitAccess (Fin 2) (Reg 2×Bool)) f)).prob
       (parityBit f)=1 := by
@@ -645,6 +787,7 @@ theorem parityTwo_correct_point (f : Fin 2→Bool) :
     have hf : p.prob false=1 := by linarith
     simpa only [parityBit,hodd,decide_false] using! hf
 
+/-- The two-input parity program implements its parity task within `parityTwoBudget`. -/
 theorem parityTwo_implements :
     Implements parityTwo (standardBitAccess (Fin 2) (Reg 2×Bool))
       (parityTask (Fin 2)) parityTwoBudget := by
@@ -664,9 +807,12 @@ theorem parityTwo_implements :
       rw [eventProb_point,hgood]
       norm_num
 
+/-- The ledger of the two-input parity program records exactly one query. -/
 theorem parityTwo_exact_query : (ledger parityTwo).queries=1 := by
   simp [ledger,derive_queries,parityTwo,queryCount_countedParityCircuit]
 
+/-- The two-input parity program outputs true with probability zero on the all-false function
+and one on the indicator of index zero. -/
 theorem parityTwo_actual_nonconstant :
     (realLaw (runLaw parityTwo (standardBitAccess (Fin 2) (Reg 2×Bool))
       (fun _ : Fin 2 => false))).prob true=0 ∧
@@ -678,6 +824,8 @@ theorem parityTwo_actual_nonconstant :
   · simpa only [h0,if_false] using! parityTwo_true_prob (fun _ : Fin 2 => false)
   · simpa only [h1,if_true] using! parityTwo_true_prob (fun i : Fin 2 => decide (i=0))
 
+/-- Combines the one-query two-input parity implementation with a one-query lower bound for
+every implementation in the same workspace. -/
 theorem fin2_upper_lower_consumer :
     Implements parityTwo (standardBitAccess (Fin 2) (Reg 2×Bool))
       (parityTask (Fin 2)) parityTwoBudget ∧
@@ -693,6 +841,9 @@ theorem fin2_upper_lower_consumer :
 
 end Parity
 
+/-- Combines a uniform square-root search implementation bound, the universal parity query lower
+bound, and a nonconstant exact one-query implementation of two-input parity; see
+[Grover1996] and [BealsEtAl2001]. -/
 theorem frontier1 :
     (∀ (W : Type) [Fintype W] [DecidableEq W] (w : W),
       ∃ c : ℝ, 0<c ∧ ∀ (n : ℕ) (hn : 2≤n),

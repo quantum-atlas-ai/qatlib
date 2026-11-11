@@ -5,6 +5,30 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
+
+/-!
+# Locality of native propagation coefficients
+
+This module proves that gate and clock propagation coefficients are determined by their
+designated sites and vanish when the outside registers differ. The predicates `AgreeOutside` and
+`controlled` express the entrywise locality condition and its relation to `partitionLift`.
+
+Masking and filling preserve the relevant clock guards and gate coefficients, yielding the local
+propagation representation used in the circuit-to-Hamiltonian framework of
+[KitaevShenVyalyi2002].
+
+## Main statements
+
+* `controlled_eq_partitionLift`: A controlled local entry rule is the lift of its local table.
+* `rawCoeff_strong`: Gate coefficients satisfy the local entry formula on `gateSites`.
+* `propagationCoeff_strong`: Propagation coefficients satisfy the local entry formula on
+  `propSites`.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TensorRegisters.RegisterModel
@@ -17,13 +41,18 @@ open Qatlib.Concepts.TensorRegisters.RegisterModel
 open scoped Classical
 set_option autoImplicit false
 
+/-- Requires two Boolean registers to agree at every site outside `A`. -/
 def AgreeOutside {N : ℕ} (A : Finset (Fin N)) (x y : Reg N) : Prop :=
   ∀j : Fin N,j∉A → x j=y j
 
+/-- Uses the entry rule `f` when the registers agree outside `A`, and the default value `z`
+otherwise. -/
 noncomputable def controlled {N : ℕ} {T : Type} (z : T) (A : Finset (Fin N))
     (f : Reg N→Reg N→T) (x y : Reg N) : T :=
   if AgreeOutside A x y then f x y else z
 
+/-- For registers agreeing outside `S`, agreement outside `A` is equivalent before and after
+masking and filling `S`. -/
 theorem active_fill_iff {N : ℕ} (A S : Finset (Fin N)) (x y : Reg N)
     (hout : outside S x=outside S y) :
     AgreeOutside A x y ↔
@@ -41,6 +70,8 @@ theorem active_fill_iff {N : ℕ} (A S : Finset (Fin N)) (x y : Reg N)
       exact he
     · exact (outside_eq_iff S x y).mp hout j hjS
 
+/-- A controlled entry rule invariant under masking to a support containing `A` is recovered
+from its local entries when outside registers agree, and equals the default value otherwise. -/
 theorem controlled_entries {N : ℕ} {T : Type} (z : T)
     (A S : Finset (Fin N)) (hAS : A⊆S)
     (f : Reg N→Reg N→T)
@@ -67,6 +98,8 @@ theorem controlled_entries {N : ℕ} {T : Type} (z : T)
     simpa only [controlled] using
       (if_neg ha : (if AgreeOutside A x y then f x y else z)=z)
 
+/-- A complex controlled entry rule invariant under masking to a support containing `A` equals
+the partition lift of its local table. -/
 theorem controlled_eq_partitionLift {N : ℕ}
     (A S : Finset (Fin N)) (hAS : A⊆S)
     (f : Reg N→Reg N→ℂ)
@@ -78,6 +111,8 @@ theorem controlled_eq_partitionLift {N : ℕ}
   intro x y
   exact controlled_entries 0 A S hAS f hf x y
 
+/-- A flattened clock site belongs to the propagation support exactly when its clock index
+belongs to `clockSites`. -/
 theorem castAdd_mem_propSites {m : ℕ} (n : ℕ) (i c : Fin m) (g : FiniteGateCode) :
     c.castAdd n∈propSites n i g ↔ c∈clockSites i := by
   simp only [propSites,Finset.mem_union,Finset.mem_image]
@@ -92,6 +127,8 @@ theorem castAdd_mem_propSites {m : ℕ} (n : ℕ) (i c : Fin m) (g : FiniteGateC
   · intro hc
     exact Or.inl ⟨c,hc,rfl⟩
 
+/-- A flattened work site belongs to the propagation support exactly when its work index belongs
+to `gateSites`. -/
 theorem natAdd_mem_propSites {m : ℕ} (n : ℕ) (i : Fin m) (w : Fin n)
     (g : FiniteGateCode) :
     w.natAdd m∈propSites n i g ↔ w∈gateSites n g := by
@@ -110,6 +147,8 @@ theorem natAdd_mem_propSites {m : ℕ} (n : ℕ) (i : Fin m) (w : Fin n)
   · intro hw
     exact Or.inr ⟨w,hw,rfl⟩
 
+/-- Agreement outside the flattened propagation support is equivalent to agreement outside the
+clock support and outside the gate support in the two components. -/
 theorem prop_outside_iff {m : ℕ} (n : ℕ) (i : Fin m) (g : FiniteGateCode)
     (x y : Reg (m+n)) :
     outside (propSites n i g) x=outside (propSites n i g) y ↔
@@ -132,6 +171,8 @@ theorem prop_outside_iff {m : ℕ} (n : ℕ) (i : Fin m) (g : FiniteGateCode)
     · intro w hws
       exact hw w (by simpa only [natAdd_mem_propSites] using hws)
 
+/-- Masking and filling the flattened propagation support has the same clock component as
+masking and filling `clockSites`. -/
 theorem prop_fill_clock {m : ℕ} (n : ℕ) (i : Fin m) (g : FiniteGateCode)
     (x : Reg (m+n)) :
     (flattenEquiv m n (fill (propSites n i g) (mask (propSites n i g) x))).1=
@@ -144,6 +185,8 @@ theorem prop_fill_clock {m : ℕ} (n : ℕ) (i : Fin m) (g : FiniteGateCode)
     rfl
   · rw [fill_off _ _ _ (by simpa only [castAdd_mem_propSites] using hc),fill_off _ _ _ hc]
 
+/-- Masking and filling the flattened propagation support has the same work component as masking
+and filling `gateSites`. -/
 theorem prop_fill_work {m : ℕ} (n : ℕ) (i : Fin m) (g : FiniteGateCode)
     (x : Reg (m+n)) :
     (flattenEquiv m n (fill (propSites n i g) (mask (propSites n i g) x))).2=
@@ -156,6 +199,8 @@ theorem prop_fill_work {m : ℕ} (n : ℕ) (i : Fin m) (g : FiniteGateCode)
     rfl
   · rw [fill_off _ _ _ (by simpa only [natAdd_mem_propSites] using hw),fill_off _ _ _ hw]
 
+/-- For registers agreeing outside `S`, equality is equivalent to equality after masking and
+filling `S`. -/
 theorem eq_fill_iff {N : ℕ} (S : Finset (Fin N)) (x y : Reg N)
     (hout : outside S x=outside S y) :
     x=y ↔ fill S (mask S x)=fill S (mask S y) := by
@@ -170,12 +215,15 @@ theorem eq_fill_iff {N : ℕ} (S : Finset (Fin N)) (x y : Reg N)
 
 open Qatlib.Concepts.UniformBqp.FiniteGateWord Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Concepts.GateVocabulary.FiniteGateDescription
 
+/-- Boolean values are equal when their equalities to true are equivalent. -/
 private theorem bool_eq_of_true_iff (a b : Bool) (h : a=true ↔ b=true) : a=b := by
   cases a <;> cases b <;> simp_all
 
+/-- A Boolean value that is not true is false. -/
 private theorem bool_false_of_not_true (a : Bool) (h : ¬a=true) : a=false := by
   cases a <;> simp_all
 
+/-- Agreement outside the empty support is equivalent to equality of the registers. -/
 theorem outside_empty_iff {n : ℕ} (x y : Reg n) :
     Qatlib.Concepts.TensorRegisters.RegisterModel.outside (∅ : Finset (Fin n)) x=Qatlib.Concepts.TensorRegisters.RegisterModel.outside ∅ y ↔ x=y := by
   rw [Qatlib.Concepts.TensorRegisters.RegisterModel.outside_eq_iff]
@@ -186,6 +234,8 @@ theorem outside_empty_iff {n : ℕ} (x y : Reg n) :
   · intro h j _
     exact congrFun h j
 
+/-- Identity entry tags satisfy the local entry formula on the empty support, vanishing when
+outside registers differ. -/
 theorem identityTag_strong {n : ℕ} (x y : Reg n) :
     identityTag x y =
       if Qatlib.Concepts.TensorRegisters.RegisterModel.outside (∅ : Finset (Fin n)) x=Qatlib.Concepts.TensorRegisters.RegisterModel.outside ∅ y then
@@ -205,6 +255,8 @@ theorem identityTag_strong {n : ℕ} (x y : Reg n) :
       exact ho ((outside_empty_iff x y).mpr ((regEq_true_iff _ _).mp h)))
     simp [identityTag,ho,hr]
 
+/-- A valid one-wire entry tag is determined by the masked wire when outside registers agree,
+and is zero otherwise. -/
 theorem oneWireTag_strong {n : ℕ} (w : Fin n) (cell : Bool→Bool→Tag)
     (x y : Reg n) :
     oneWireTag n w.val cell x y =
@@ -234,6 +286,8 @@ theorem oneWireTag_strong {n : ℕ} (w : Fin n) (cell : Bool→Bool→Tag)
       bool_false_of_not_true _ (fun ht => h (ho.mp ht))
     simp [oneWireTag,w.isLt,h,hr]
 
+/-- For distinct control and target wires, equality to the controlled-NOT update is equivalent
+to agreement elsewhere together with the control and target bit equations. -/
 theorem cnot_update_eq_iff {n : ℕ} (c t : Fin n) (hct : c≠t)
     (x y : Reg n) :
     x=Function.update y t (y t ^^ y c) ↔
@@ -257,6 +311,8 @@ theorem cnot_update_eq_iff {n : ℕ} (c t : Fin n) (hct : c≠t)
         simpa [Function.update,hct] using hc
       · simpa [Function.update,hjt] using hout j hjc hjt
 
+/-- The controlled-NOT register test is equivalent to agreement outside its two wires and the
+corresponding control and target bit equations. -/
 theorem cnot_regEq_iff {n : ℕ} (c t : Fin n) (hct : c≠t)
     (x y : Reg n) :
     regEq x (Function.update y t (y t ^^ y c))=true ↔
@@ -273,6 +329,8 @@ theorem cnot_regEq_iff {n : ℕ} (c t : Fin n) (hct : c≠t)
       exact h j hh.1 hh.2
   rw [regEq_true_iff,cnot_update_eq_iff c t hct,← ho]
 
+/-- For distinct control and target wires, the controlled-NOT entry tag satisfies the local
+entry formula on those two wires. -/
 theorem cnotTag_strong {n : ℕ} (c t : Fin n) (hct : c≠t) (x y : Reg n) :
     (if regEq x (Function.update y t (y t ^^ y c)) then oneTag else zeroTag) =
       if Qatlib.Concepts.TensorRegisters.RegisterModel.outside ({c,t} : Finset (Fin n)) x=Qatlib.Concepts.TensorRegisters.RegisterModel.outside {c,t} y then
@@ -310,6 +368,8 @@ theorem cnotTag_strong {n : ℕ} (c t : Fin n) (hct : c≠t) (x y : Reg n) :
       bool_false_of_not_true _ (fun h => ho ((cnot_regEq_iff c t hct x y).mp h).1)
     simp [ho,hr]
 
+/-- A finite gate's entry tag is determined by its masked gate support when outside registers
+agree, and is zero otherwise. -/
 theorem rawTag_strong (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
     rawTag n g x y =
       if Qatlib.Concepts.TensorRegisters.RegisterModel.outside (gateSites n g) x=Qatlib.Concepts.TensorRegisters.RegisterModel.outside (gateSites n g) y then
@@ -361,6 +421,8 @@ theorem rawTag_strong (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
       rw [hs]
       simpa only [rawTag,dif_neg hw] using identityTag_strong x y
 
+/-- A finite gate's integer coefficient pair is determined by its masked gate support when
+outside registers agree, and is zero otherwise. -/
 theorem rawCoeff_strong (n b : ℕ) (g : FiniteGateCode) (x y : Reg n) :
     rawCoeff n b g x y =
       if Qatlib.Concepts.TensorRegisters.RegisterModel.outside (gateSites n g) x=Qatlib.Concepts.TensorRegisters.RegisterModel.outside (gateSites n g) y then
@@ -373,9 +435,12 @@ theorem rawCoeff_strong (n b : ℕ) (g : FiniteGateCode) (x y : Reg n) :
   · rw [if_neg ho] at ht ⊢
     simp [rawCoeff,ht,zeroTag,atomNumerator]
 
+/-- The central clock index belongs to its clock support. -/
 theorem clock_center_mem {m : ℕ} (i : Fin m) : i∈clockSites i := by
   simp [clockSites]
 
+/-- Masking and filling `clockSites i` preserves the left clock bit read by `nativeBit` at
+`i.val`. -/
 theorem nativeBit_left_fill {m : ℕ} (i : Fin m) (c : Clock m) :
     nativeBit (Qatlib.Concepts.TensorRegisters.RegisterModel.fill (clockSites i) (Qatlib.Concepts.TensorRegisters.RegisterModel.mask (clockSites i) c)) i.val=
       nativeBit c i.val := by
@@ -387,6 +452,8 @@ theorem nativeBit_left_fill {m : ℕ} (i : Fin m) (c : Clock m) :
     apply Qatlib.Concepts.TensorRegisters.RegisterModel.fill_mask_on
     simp [clockSites,hp]
 
+/-- Masking and filling `clockSites i` preserves the right clock bit read by `nativeBit` at
+`i.val + 2`. -/
 theorem nativeBit_right_fill {m : ℕ} (i : Fin m) (c : Clock m) :
     nativeBit (Qatlib.Concepts.TensorRegisters.RegisterModel.fill (clockSites i) (Qatlib.Concepts.TensorRegisters.RegisterModel.mask (clockSites i) c)) (i.val+2)=
       nativeBit c (i.val+2) := by
@@ -403,6 +470,8 @@ theorem nativeBit_right_fill {m : ℕ} (i : Fin m) (c : Clock m) :
     simp [clockSites,hr]
   · simp [nativeBit,hm]
 
+/-- Masking and filling `clockSites i` preserves all three bit values used by the transition
+guards. -/
 theorem guard_values_fill {m : ℕ} (i : Fin m) (c : Clock m) :
     nativeBit (Qatlib.Concepts.TensorRegisters.RegisterModel.fill (clockSites i) (Qatlib.Concepts.TensorRegisters.RegisterModel.mask (clockSites i) c)) i.val=
         nativeBit c i.val ∧
@@ -411,12 +480,16 @@ theorem guard_values_fill {m : ℕ} (i : Fin m) (c : Clock m) :
         nativeBit c (i.val+2) :=
   ⟨nativeBit_left_fill i c,Qatlib.Concepts.TensorRegisters.RegisterModel.fill_mask_on _ _ i (clock_center_mem i),nativeBit_right_fill i c⟩
 
+/-- Masking and filling the clock support preserves both the pre-transition and post-transition
+Boolean guards. -/
 theorem pre_post_fill {m : ℕ} (i : Fin m) (c : Clock m) :
     preBool i (Qatlib.Concepts.TensorRegisters.RegisterModel.fill (clockSites i) (Qatlib.Concepts.TensorRegisters.RegisterModel.mask (clockSites i) c))=preBool i c ∧
       postBool i (Qatlib.Concepts.TensorRegisters.RegisterModel.fill (clockSites i) (Qatlib.Concepts.TensorRegisters.RegisterModel.mask (clockSites i) c))=postBool i c := by
   obtain ⟨hl,hc,hr⟩ := guard_values_fill i c
   constructor <;> simp only [preBool,postBool,hl,hc,hr]
 
+/-- For registers agreeing outside `K`, the test of agreement away from one site is preserved by
+masking and filling `K`. -/
 theorem outsideEq_fill {n : ℕ} (K : Finset (Fin n)) (i : Fin n) (r c : Reg n)
     (ho : Qatlib.Concepts.TensorRegisters.RegisterModel.outside K r=Qatlib.Concepts.TensorRegisters.RegisterModel.outside K c) :
     outsideEq i r c=outsideEq i (Qatlib.Concepts.TensorRegisters.RegisterModel.fill K (Qatlib.Concepts.TensorRegisters.RegisterModel.mask K r)) (Qatlib.Concepts.TensorRegisters.RegisterModel.fill K (Qatlib.Concepts.TensorRegisters.RegisterModel.mask K c)) := by
@@ -435,6 +508,8 @@ theorem outsideEq_fill {n : ℕ} (K : Finset (Fin n)) (i : Fin n) (r c : Reg n)
       exact he
     · exact (Qatlib.Concepts.TensorRegisters.RegisterModel.outside_eq_iff K r c).mp ho j hjK
 
+/-- The clock-hop test is determined by the masked clock support when outside registers agree,
+and is false otherwise. -/
 theorem hopBool_strong {m : ℕ} (i : Fin m) (r c : Clock m) :
     hopBool i r c =
       if Qatlib.Concepts.TensorRegisters.RegisterModel.outside (clockSites i) r=Qatlib.Concepts.TensorRegisters.RegisterModel.outside (clockSites i) c then
@@ -457,15 +532,19 @@ theorem hopBool_strong {m : ℕ} (i : Fin m) (r c : Clock m) :
       exact hh.2.2 j hji)
     simp [ho,hz]
 
+/-- Boolean values are equal if being true is equivalent for the two values. -/
 private theorem prop_bool_eq_of_true_iff (a b : Bool) (h : a=true ↔ b=true) : a=b := by
   cases a <;> cases b <;> simp_all
 
+/-- A Boolean value unequal to true equals false. -/
 private theorem prop_bool_false_of_not_true (a : Bool) (h : ¬a=true) : a=false := by
   cases a <;> simp_all
 
+/-- Tests equality separately on the clock and work components of a register pair. -/
 def regEqPairBool {m n : ℕ} (p q : Clock m×Reg n) : Bool :=
   regEq p.1 q.1 && regEq p.2 q.2
 
+/-- The componentwise Boolean equality test is true exactly when the clock-work pairs are equal. -/
 theorem regEqPairBool_true_iff {m n : ℕ} (p q : Clock m×Reg n) :
     regEqPairBool p q=true ↔ p=q := by
   rw [regEqPairBool,Bool.and_eq_true,regEq_true_iff,regEq_true_iff]
@@ -475,6 +554,8 @@ theorem regEqPairBool_true_iff {m n : ℕ} (p q : Clock m×Reg n) :
   · rintro rfl
     exact ⟨rfl,rfl⟩
 
+/-- For registers agreeing outside the propagation support, masking and filling that support
+preserves the componentwise equality test. -/
 theorem regEqPairBool_fill {m : ℕ} (n : ℕ) (i : Fin m) (g : FiniteGateCode)
     (x y : Reg (m+n))
     (ho : outside (propSites n i g) x=outside (propSites n i g) y) :
@@ -486,6 +567,8 @@ theorem regEqPairBool_fill {m : ℕ} (n : ℕ) (i : Fin m) (g : FiniteGateCode)
   simp only [regEqPairBool_true_iff,(flattenEquiv m n).injective.eq_iff]
   exact eq_fill_iff (propSites n i g) x y ho
 
+/-- Propagation coefficient pairs are preserved by masking and filling their support when the
+outside registers agree. -/
 theorem propagationCoeff_fill {m : ℕ} (n b : ℕ) (i : Fin m) (g : FiniteGateCode)
     (x y : Reg (m+n))
     (ho : outside (propSites n i g) x=outside (propSites n i g) y) :
@@ -545,6 +628,8 @@ theorem propagationCoeff_fill {m : ℕ} (n b : ℕ) (i : Fin m) (g : FiniteGateC
     propagationCoeff n b i g (flattenEquiv m n X) (flattenEquiv m n Y)
   simp only [propagationCoeff,hdiag,hpost,hpre,hhop,hhopRev,hraw,hrawRev]
 
+/-- The forward hopping coefficient pair vanishes when the registers differ outside the
+propagation support. -/
 theorem forwardCoeff_zero_of_outside_ne {m : ℕ} (n b : ℕ) (i : Fin m)
     (g : FiniteGateCode) (x y : Reg (m+n))
     (ho : outside (propSites n i g) x≠outside (propSites n i g) y) :
@@ -565,6 +650,8 @@ theorem forwardCoeff_zero_of_outside_ne {m : ℕ} (n b : ℕ) (i : Fin m)
         hopBool_strong i (flattenEquiv m n x).1 (flattenEquiv m n y).1
     simp [hh]
 
+/-- The propagation coefficient pair vanishes when the registers differ outside the propagation
+support. -/
 theorem propagationCoeff_zero_of_outside_ne {m : ℕ} (n b : ℕ) (i : Fin m)
     (g : FiniteGateCode) (x y : Reg (m+n))
     (ho : outside (propSites n i g) x≠outside (propSites n i g) y) :
@@ -583,6 +670,8 @@ theorem propagationCoeff_zero_of_outside_ne {m : ℕ} (n b : ℕ) (i : Fin m)
   have hr := forwardCoeff_zero_of_outside_ne n b i g y x (fun he => ho he.symm)
   simp [propagationCoeff,hd,hf,hr]
 
+/-- The propagation coefficient pair is recovered from the masked local registers when outside
+registers agree, and is zero otherwise. -/
 theorem propagationCoeff_strong {m : ℕ} (n b : ℕ) (i : Fin m) (g : FiniteGateCode)
     (x y : Reg (m+n)) :
     propagationCoeff n b i g (flattenEquiv m n x) (flattenEquiv m n y)=

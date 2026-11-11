@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingStat
+
+/-!
+# The QTM window Φ3 compilation contract
+
+This module states `QtmCellPhi3Compilation`, the contract for exact simulation of repeated
+finite QTM window rounds by unitary Φ3 circuits. The contract records no oracle queries, a
+concrete gate-list bound, and equality for every encoded state, in the circuit-simulation
+setting of [Yao1993].
+
+## Main statements
+
+* `QtmCellPhi3Compilation`: The quantified encoding, circuit-cost, and state-simulation
+  requirements.
+
+## References
+
+* [Yao, 1993][Yao1993]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +38,9 @@ open Qatlib.Concepts.UniformBqp.Phi3Compile
 namespace Qatlib.Concepts.QtmSimulation.Phi3Compilation
 open Matrix
 
+/-- The proposition that every injectively encoded finite QTM window with unitary local update
+has a zero-query unitary Φ3 simulation of `k` rounds. The gate-list length obeys the
+displayed padding budget, and evaluation agrees on every encoded input state. -/
 def QtmCellPhi3Compilation : Prop :=
   ∀ (Q : Type) [Fintype Q] [DecidableEq Q] (A : Type) [Fintype A] [DecidableEq A]
     (b t k : ℕ) (e : CellState Q A → Reg b)

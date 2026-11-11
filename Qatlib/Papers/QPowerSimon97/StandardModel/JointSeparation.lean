@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
 import Qatlib.Papers.QPowerSimon97.StandardModel.Theorem34Separation
 import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionOracle
+
+/-!
+# Joint quantum and classical bounds for Simon oracles
+
+This module expresses quantum success and failure for Simon's labeled oracle distribution and
+bounds average failure using `simonQuantumFailBound` [Simon1997]. It combines the amplified
+quantum estimates with the classical query-tree bound to obtain `simonJointSeparation` on a
+common oracle draw.
+
+## Main statements
+
+* `simonQuantumFail_le`: For positive width and at least two samples, expected quantum failure
+  is bounded above by `simonQuantumFailBound`.
+* `simonQuantumGuessMass_lower`: For positive width and at least two samples, quantum guessing
+  mass is at least one minus `simonQuantumFailBound`.
+* `simonJointSeparation`: For `n ≥ 64`, every randomized query tree with query budget at most `2
+  ^ ((n : ℝ) / 4)` has strictly smaller success than the specified quantum procedure on some
+  supported oracle draw. This gives a common-draw separation in the setting of [Simon1997].
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,20 +55,27 @@ namespace Qatlib.Papers.QPowerSimon97.StandardDefs
 open Qatlib
 open scoped Classical BigOperators ENNReal
 
+/-- The success probability of the amplified quantum decision procedure on a labeled oracle
+draw. -/
 noncomputable def simonQuantumSuccess (n k r : ℕ)
     (ob : Bool × (BooleanVec n → BooleanVec n)) : ℝ≥0∞ :=
   if ob.1 then (simonAmplifiedReject ob.2 (n + k) r) true
   else 1 - (simonAmplifiedReject ob.2 (n + k) r) true
 
+/-- The failure probability of the amplified quantum decision procedure on a labeled oracle
+draw. -/
 noncomputable def simonQuantumFail (n k r : ℕ)
     (ob : Bool × (BooleanVec n → BooleanVec n)) : ℝ≥0∞ :=
   if ob.1 then 1 - (simonAmplifiedReject ob.2 (n + k) r) true
   else (simonAmplifiedReject ob.2 (n + k) r) true
 
+/-- The quantum guessing mass equals the expected pointwise success over Simon's oracle
+construction. -/
 theorem simonQuantumGuessMass_eq_success (n k r : ℕ) :
     simonQuantumGuessMass (n := n) k r =
       expectation (simonOracleConstruction n) (simonQuantumSuccess n k r) := rfl
 
+/-- Pointwise quantum success and failure probabilities sum to one. -/
 lemma simonQuantumSuccess_add_fail (n k r : ℕ)
     (ob : Bool × (BooleanVec n → BooleanVec n)) :
     simonQuantumSuccess n k r ob + simonQuantumFail n k r ob = 1 := by
@@ -58,6 +89,7 @@ lemma simonQuantumSuccess_add_fail (n k r : ℕ)
     rw [add_comm]
     exact tsub_add_cancel_of_le hle
 
+/-- The quantum guessing mass equals one minus the expected quantum failure probability. -/
 theorem simonQuantumGuessMass_eq_one_sub_fail (n k r : ℕ) :
     simonQuantumGuessMass (n := n) k r =
       1 - expectation (simonOracleConstruction n) (simonQuantumFail n k r) := by
@@ -83,6 +115,7 @@ theorem simonQuantumGuessMass_eq_one_sub_fail (n k r : ℕ) :
   rw [simonQuantumGuessMass_eq_success]
   exact ENNReal.eq_sub_of_add_eq hne hsum
 
+/-- The true and false masses of the amplified rejection law sum to one. -/
 lemma simonReject_total {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
     [DecidableEq R] (f : BooleanVec n → R) (m r : ℕ) :
     (simonAmplifiedReject f m r) true + (simonAmplifiedReject f m r) false = 1 := by
@@ -97,6 +130,8 @@ lemma simonReject_total {n : ℕ} {R : Type} [AddCommGroup R] [Fintype R]
   rw [heq] at hpart
   exact hpart
 
+/-- Expected quantum failure decomposes into an average over masks of the equally weighted
+two-to-one and permutation failure terms. -/
 theorem simonQuantumFail_decomp (n k r : ℕ) :
     expectation (simonOracleConstruction n) (simonQuantumFail n k r) =
       expectation (PMF.uniformOfFintype' (BooleanVec n)) (fun s =>
@@ -120,6 +155,8 @@ theorem simonQuantumFail_decomp (n k r : ℕ) :
     (fun f => (simonAmplifiedReject f (n + k) r) true) = _
   rw [expectation_map]
 
+/-- A pointwise inequality on the nonzero-mass support of a probability law yields the
+corresponding expectation inequality. -/
 private lemma expectation_le_of_support {α : Type*} {p : PMF α} {f g : α → ℝ≥0∞}
     (h : ∀ a, p a ≠ 0 → f a ≤ g a) : expectation p f ≤ expectation p g := by
   show ∑' a, p a * f a ≤ ∑' a, p a * g a
@@ -128,6 +165,8 @@ private lemma expectation_le_of_support {α : Type*} {p : PMF α} {f g : α → 
   · simp [hp]
   · exact mul_le_mul_right (h a hp) _
 
+/-- For positive width, a nonzero mask, and at least two samples, the expected false-negative
+mass under the Simon oracle law is at most `(3 / 4) ^ r`. -/
 lemma simonFail_twoToOne_le (n k r : ℕ) (hn : 1 ≤ n) (h2 : 2 ≤ n + k)
     (s : BooleanVec n) (hs : s ≠ 0) :
     expectation (simonTwoToOneDist s)
@@ -160,6 +199,8 @@ lemma simonFail_twoToOne_le (n k r : ℕ) (hn : 1 ≤ n) (h2 : 2 ≤ n + k)
   rw [heq]
   exact hle
 
+/-- With at least two samples, the expected true-output mass under a uniformly random
+permutation is at most `r * (1 / 2) ^ k`. -/
 lemma simonFail_perm_le (n k r : ℕ) (h2 : 2 ≤ n + k) :
     expectation (PMF.uniformOfFintype' (Equiv.Perm (BooleanVec n)))
       (fun (π : Equiv.Perm (BooleanVec n)) =>
@@ -170,6 +211,7 @@ lemma simonFail_perm_le (n k r : ℕ) (h2 : 2 ≤ n + k) :
   exact (simonNegligibleErrorAmplification n (BooleanVec n)
     (π : BooleanVec n → BooleanVec n) k r h2).1 π.injective
 
+/-- A uniformly random Boolean vector is zero with probability the reciprocal of `2 ^ n`. -/
 lemma expectation_uniform_zero_indicator (n : ℕ) :
     expectation (PMF.uniformOfFintype' (BooleanVec n))
       (fun s => if s = (0 : BooleanVec n) then (1 : ℝ≥0∞) else 0) =
@@ -186,11 +228,15 @@ lemma expectation_uniform_zero_indicator (n : ℕ) :
   · intro h0
     exact absurd (Finset.mem_univ (0 : BooleanVec n)) h0
 
+/-- The half-weighted sum of the two-to-one amplification error, the permutation false-rejection
+bound, and the zero-mask probability. -/
 noncomputable def simonQuantumFailBound (n k r : ℕ) : ℝ≥0∞ :=
   (1 / 2 : ℝ≥0∞) *
     (ENNReal.ofReal ((3 / 4 : ℝ) ^ r) +
       ENNReal.ofReal ((r : ℝ) * (1 / 2 : ℝ) ^ k) + (2 ^ n : ℝ≥0∞)⁻¹)
 
+/-- For positive width and at least two samples, expected quantum failure is bounded above by
+`simonQuantumFailBound`. -/
 theorem simonQuantumFail_le (n k r : ℕ) (hn : 1 ≤ n) (h2 : 2 ≤ n + k) :
     expectation (simonOracleConstruction n) (simonQuantumFail n k r) ≤
       simonQuantumFailBound n k r := by
@@ -266,11 +312,14 @@ theorem simonQuantumFail_le (n k r : ℕ) (hn : 1 ≤ n) (h2 : 2 ≤ n + k) :
   rw [expectation_const_mul, expectation_add, expectation_const,
     expectation_uniform_zero_indicator]
 
+/-- For positive width and at least two samples, quantum guessing mass is at least one minus
+`simonQuantumFailBound`. -/
 theorem simonQuantumGuessMass_lower (n k r : ℕ) (hn : 1 ≤ n) (h2 : 2 ≤ n + k) :
     1 - simonQuantumFailBound n k r ≤ simonQuantumGuessMass (n := n) k r := by
   rw [simonQuantumGuessMass_eq_one_sub_fail]
   exact tsub_le_tsub_left (simonQuantumFail_le n k r hn h2) 1
 
+/-- For `n ≥ 64`, the permutation error expression `n * (1 / 2) ^ (2 * n)` is at most `1 / 8`. -/
 lemma simonPaperFalseReject_le_eighth (n : ℕ) (hn : 64 ≤ n) :
     (n : ℝ) * (1 / 2 : ℝ) ^ (2 * n) ≤ 1 / 8 := by
   have hn1 : 1 ≤ n := by omega
@@ -282,6 +331,7 @@ lemma simonPaperFalseReject_le_eighth (n : ℕ) (hn : 64 ≤ n) :
   have hval : (1 / 2 : ℝ) ^ 3 = 1 / 8 := by norm_num
   linarith
 
+/-- For `n ≥ 64`, the quantum failure bound with parameters `2 * n` and `n` is at most `3 / 16`. -/
 theorem simonQuantumFailBound_le (n : ℕ) (hn : 64 ≤ n) :
     simonQuantumFailBound n (2 * n) n ≤ ENNReal.ofReal (3 / 16) := by
   unfold simonQuantumFailBound
@@ -327,6 +377,9 @@ theorem simonQuantumFailBound_le (n : ℕ) (hn : 64 ≤ n) :
         rw [← hhalf, ← ENNReal.ofReal_mul (by norm_num : (0 : ℝ) ≤ 1 / 2)]
         norm_num
 
+/-- For `n ≥ 64`, every randomized query tree with query budget at most `2 ^ ((n : ℝ) / 4)` has
+strictly smaller success than the specified quantum procedure on some supported oracle draw.
+This gives a common-draw separation in the setting of [Simon1997]. -/
 theorem simonJointSeparation (n : ℕ) (hn : 64 ≤ n) (q : ℕ)
     (hq : (q : ℝ) ≤ (2 : ℝ) ^ ((n : ℝ) / 4)) (P : PMF (SimonQueryTree n))
     (hP : SimonQueryTree.bounded P q) :

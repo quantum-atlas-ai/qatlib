@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ExactSimon97.MainResults.BasisGenerators
+
+/-!
+# Canonical exponents for prime-field discrete logarithms
+
+The map `dlogReduction` encodes two exponents in the unit group of a prime field. For a
+generator of that group, the module proves existence and uniqueness of an exponent in `Fin (p -
+1)` and the existence of a function selecting these canonical exponents. The development follows
+[BrassardHoyer1997].
+
+## Main statements
+
+* `theorem12_exponent_bound`: represents each unit by an exponent less than `p - 1`.
+* `theorem12_exponent_unique`: proves uniqueness in that exponent range.
+* `canonical_logarithm_exists`: selects a canonical exponent for every unit.
+
+## References
+
+* [Brassard and Hoyer, 1997][BrassardHoyer1997]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,10 +36,13 @@ open scoped BigOperators
 
 namespace Qatlib.Papers.ExactSimon97.MainResults
 
+/-- The two-exponent map `(x, y) ↦ ζ ^ x.val * a ^ y.val` from `ZMod (p - 1) × ZMod (p - 1)` to
+the unit group. -/
 def dlogReduction {p : ℕ} (ζ a : (ZMod p)ˣ)
     (g : ZMod (p - 1) × ZMod (p - 1)) : (ZMod p)ˣ :=
   ζ ^ g.1.val * a ^ g.2.val
 
+/-- If `ζ` generates the unit group of `ZMod p`, every unit is a nonnegative power of `ζ`. -/
 theorem dlog_exponent_exists {p : ℕ} (_hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) (a : (ZMod p)ˣ) :
     ∃ r : ℕ, ζ ^ r = a := by
@@ -32,6 +55,7 @@ theorem dlog_exponent_exists {p : ℕ} (_hp : p.Prime) (ζ : (ZMod p)ˣ)
     exact Subgroup.mem_top a
   exact (Submonoid.mem_powers_iff a ζ).mp hmem
 
+/-- For prime `p`, a generator of the unit group of `ZMod p` has order `p - 1`. -/
 theorem orderOf_generator {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) : orderOf ζ = p - 1 := by
   classical
@@ -43,6 +67,8 @@ theorem orderOf_generator {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     rw [hζ]
     exact Subgroup.mem_top x), hcard]
 
+/-- For prime `p`, every unit is a power of the given generator with exponent in `Fin (p - 1)`.
+See [BrassardHoyer1997]. -/
 theorem theorem12_exponent_bound {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) (a : (ZMod p)ˣ) :
     ∃ r : Fin (p - 1), ζ ^ (r : ℕ) = a := by
@@ -57,6 +83,8 @@ theorem theorem12_exponent_bound {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     rw [← hord, pow_mod_orderOf]
     exact hn
 
+/-- For prime `p`, two exponents in `Fin (p - 1)` giving the same power of a unit-group
+generator are equal. See [BrassardHoyer1997]. -/
 theorem theorem12_exponent_unique {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) (r s : Fin (p - 1))
     (h : ζ ^ (r : ℕ) = ζ ^ (s : ℕ)) : r = s := by
@@ -72,6 +100,8 @@ theorem theorem12_exponent_unique {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
   rw [← Nat.mod_eq_of_lt r.isLt, ← Nat.mod_eq_of_lt s.isLt]
   exact hmod
 
+/-- For prime `p` and a unit-group generator `ζ`, there exists a function assigning to every
+unit an exponent in `Fin (p - 1)` whose power of `ζ` is that unit. See [BrassardHoyer1997]. -/
 theorem canonical_logarithm_exists {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) :
     ∃ dlog : (ZMod p)ˣ → Fin (p - 1), ∀ a, ζ ^ (dlog a : ℕ) = a := by

@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockPurifier
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalInitialization
 import Qatlib.Concepts.OperatorAccess.EncodedAccess
+
+/-!
+# Coordinates for the binary clock simulator frame
+
+`placement` rearranges the simulator and purification registers into a clock, an environment
+with work registers, and a system. The work state `eta` describes the initialized simulator
+frame explicitly.
+
+`augmented` attaches this normalized work state to a purification and preserves its reduced
+density matrix, using the tensor-state viewpoint of [NielsenChuang2010].
+
+## Main statements
+
+* `relabel_frame`: the relabeled initial frame factors through `eta`.
+* `augmented_density`: adding the work state preserves the system density matrix.
+
+## References
+
+* [Nielsen and Chuang, 2010][NielsenChuang2010]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -56,10 +77,14 @@ open Qatlib.Foundations.InstrumentCore.Measurement
 open MeasureTheory
 open scoped Classical BigOperators Kronecker
 
+/-- The simulator work register consisting of five Boolean registers and an `a`-qubit encoding
+register. -/
 abbrev Work (a : ℕ) := Bool × (Bool × (Bool × (Bool × (Bool × Reg a))))
 
 variable {I E : Type} [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
 
+/-- Rearrange simulator and purification coordinates into clock, environment with work
+registers, and system coordinates. -/
 def placement (q a : ℕ) :
     (BinaryClockSingleCU.New q (Reg a × I) × E) ≃ (Reg q × ((E × Work a) × I)) where
   toFun x :=
@@ -79,22 +104,28 @@ def placement (q a : ℕ) :
     rcases w with ⟨t,e,u,b,c,anc⟩
     rfl
 
+/-- The work state with amplitude `i/2` when its first three flags and encoding ancillas are
+zero, independent of the remaining two flags. -/
 noncomputable def eta (a : ℕ) : QState (Work a) := fun w =>
   if w.1 = false ∧ w.2.1 = false ∧ w.2.2.1 = false ∧
       w.2.2.2.2.2 = ZeroStr a then Complex.I / 2 else 0
 
+/-- The product of the two real-part frame amplitudes is `i/2` for every pair of Boolean labels. -/
 theorem average_phase (b c : Bool) :
     realPartAmplitude b * realPartAmplitude c = Complex.I / 2 := by
   apply Complex.ext <;> norm_num [realPartAmplitude, Complex.mul_re, Complex.mul_im]
 
+/-- The coordinate formula for `eta` selects three false flags and the zero encoding register. -/
 theorem eta_entry (a : ℕ) (t e u b c : Bool) (anc : Reg a) :
     eta a (t,(e,(u,(b,(c,anc))))) =
       if t = false ∧ e = false ∧ u = false ∧ anc = ZeroStr a then Complex.I / 2 else 0 := rfl
 
+/-- The squared complex norm of `i/2` is `1/4`. -/
 private theorem phase_norm_sq : ‖(Complex.I / 2 : ℂ)‖^2 = (1 : ℝ)/4 := by
   rw [norm_div, Complex.norm_I]
   norm_num
 
+/-- The work state `eta a` is normalized. -/
 theorem eta_normalized (a : ℕ) : Normalized (eta a) := by
   norm_num [Normalized, eta, Fintype.sum_prod_type, apply_ite]
 
@@ -106,11 +137,15 @@ noncomputable local instance executionDecidableEq (q a : ℕ) :
     DecidableEq (BinaryClockSingleCU.New q (Reg a × I)) :=
   BinaryClockSingleCU.newDecidableEq q (Reg a × I)
 
+/-- Multiplying a matrix by a basis-fiber embedding selects the matching fiber and gives zero on
+other fibers. -/
 private theorem fiber_mul_entry {X Y Z : Type} [Fintype X] [DecidableEq X]
     [Fintype Y] [DecidableEq Y] (b : X) (F : Matrix Y Z ℂ) (x : X × Y) (j : Z) :
     (encodingFiber (I := Y) b * F : Matrix (X × Y) Z ℂ) x j = if x.1 = b then F x.2 j else 0 := by
   simp [Matrix.mul_apply, encodingFiber, ite_and, ite_mul]
 
+/-- The initial frame has amplitude `i/2` exactly when its fixed flags and ancillas vanish and
+its clock and system labels match. -/
 theorem frame_entry (q a : ℕ) (t e u b c : Bool) (z z' : Reg q)
     (anc : Reg a) (i j : I) :
     BinaryClockSingleCU.initialFrame q (encodingFiber (I := I) (ZeroStr a))
@@ -129,6 +164,8 @@ theorem frame_entry (q a : ℕ) (t e u b c : Bool) (z z' : Reg q)
   by_cases hi : i = j <;> by_cases hz : z = z' <;>
     simp [encodingFiber, average_phase, ite_and, hi, hz]
 
+/-- Applying the purified initial frame multiplies each logical amplitude by the corresponding
+work-state amplitude. -/
 theorem frame_apply (q a : ℕ) (Ψ : QState ((Reg q × I) × E))
     (t e u b c : Bool) (z : Reg q) (anc : Reg a) (i : I) (r : E) :
     (BinaryClockPurifier.initialFrame q (encodingFiber (I := I) (ZeroStr a)) *ᵥ Ψ)
@@ -138,6 +175,8 @@ theorem frame_apply (q a : ℕ) (Ψ : QState ((Reg q × I) × E))
     Matrix.mulVec, dotProduct, Fintype.sum_prod_type,
     frame_entry, eta, Matrix.one_apply, mul_ite, ite_mul, ite_and]
 
+/-- Relabeling the initialized frame by `placement` separates its work-state amplitude from its
+logical amplitude. -/
 theorem relabel_frame (q a : ℕ) (Ψ : QState ((Reg q × I) × E)) :
     relabelState (placement (I := I) (E := E) q a)
       (BinaryClockPurifier.initialFrame q (encodingFiber (I := I) (ZeroStr a)) *ᵥ Ψ) =
@@ -147,9 +186,11 @@ theorem relabel_frame (q a : ℕ) (Ψ : QState ((Reg q × I) × E)) :
   rcases w with ⟨t,e,u,b,c,anc⟩
   exact frame_apply q a Ψ t e u b c z anc i r
 
+/-- Attach the work state `eta a` to the environment of a purification. -/
 noncomputable def augmented (a : ℕ) (ψ : QState (E × I)) : QState ((E × Work a) × I) :=
   fun x => eta a x.1.2 * ψ (x.1.1,x.2)
 
+/-- Augmenting a normalized purification by `eta a` preserves normalization. -/
 theorem augmented_normalized (a : ℕ) (ψ : QState (E × I)) (hψ : Normalized ψ) :
     Normalized (augmented a ψ) := by
   let e : (Work a × (E × I)) ≃ ((E × Work a) × I) :=
@@ -161,6 +202,7 @@ theorem augmented_normalized (a : ℕ) (ψ : QState (E × I)) (hψ : Normalized 
 
 omit [Fintype I] [DecidableEq I] [DecidableEq E] in
 
+/-- Augmenting a purification by the work state preserves its reduced system density matrix. -/
 theorem augmented_density (a : ℕ) (ψ : QState (E × I)) :
     purifiedDensity (augmented a ψ) = purifiedDensity ψ := by
   have he : (∑ w : Work a, eta a w * star (eta a w)) = 1 := by

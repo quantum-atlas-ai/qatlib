@@ -6,6 +6,28 @@ Authors: Qatlib Contributors
 
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+
+/-!
+# Robust ratio-estimation budgets
+
+Three measurable good events with the specified failure budgets imply relative ratio accuracy
+with probability at least three quarters. The theorem `lemma6_walk_cost` combines assumed
+state-preparation and reflection costs into a total walk-call bound. These estimates form part
+of the partition-function scheme in [WocjanEtAl2009a].
+
+## Main statements
+
+* `lemma6_robust_ratio_estimation`: If three measurable events have probabilities at least `15 /
+  16`, `15 / 16`, and `7 / 8`, and their intersection guarantees relative accuracy, then the
+  relative-accuracy event has probability at least three quarters.
+* `lemma6_walk_cost`: Under the stated nonnegative reflection-use budgets, the combined
+  state-preparation and reflection cost is at most the sum of their prescribed bounds.
+
+## References
+
+* [Wocjan et al., 2009][WocjanEtAl2009a]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,6 +38,9 @@ open scoped ENNReal NNReal Topology BigOperators
 
 namespace Qatlib.Papers.PartitionFunc08.MainResults.RobustRatioEstimation
 
+/-- If three measurable events have probabilities at least `15 / 16`, `15 / 16`, and `7 / 8`,
+and their intersection guarantees relative accuracy, then the relative-accuracy event has
+probability at least three quarters. See [Wocjan et al., 2009][WocjanEtAl2009a]. -/
 theorem lemma6_robust_ratio_estimation
     {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω) [IsProbabilityMeasure μ]
     {α εpe : ℝ} (Q : Ω → ℝ)
@@ -49,6 +74,9 @@ theorem lemma6_robust_ratio_estimation
   have hBge : 3 / 4 ≤ μ.real ((E1 ∩ E2) ∩ E3) := by linarith
   exact hBge.trans (measureReal_mono hsub)
 
+/-- Under the stated nonnegative reflection-use budgets, the combined state-preparation and
+reflection cost is at most the sum of their prescribed bounds. See [Wocjan et al.,
+2009][WocjanEtAl2009a]. -/
 theorem lemma6_walk_cost
     {ℓ : ℕ} {δ εpe εS εR : ℝ} (hδ : 0 < δ) (hεpe : 0 < εpe)
     (hεR : 0 < εR)

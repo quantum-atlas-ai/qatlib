@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamSuccessMass
 import Mathlib.Analysis.Real.Pi.Irrational
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+
+/-!
+# Cyclic verification and density readout
+
+This module bounds retry costs and exhibits a wrapping progression that the interval-based
+verifier cannot accept. It defines `aqCyclicVerify` for modular test positions and
+`aqPublicDensityReadout` for rounded amplitude estimation, with correctness and resource bounds
+supporting amplified transforms [Cornwell2014] and amplitude estimation [BrassardEtAl2002].
+
+## Main statements
+
+* `aqCyclicVerify`: A verifier that checks three progression positions modulo N when q > 0, M ≥
+  2, and Mq ≤ N, returning acceptance and the number of oracle calls.
+* `aqPublicDensityCounting_actual`: Amplitude estimation at precision 32N recovers the marked
+  cardinality with probability at least 8/π² and uses exactly 32N−1 queries and 5(32N−1)+3
+  gates; see [BrassardEtAl2002].
+
+## References
+
+* [Cornwell, 2014][Cornwell2014]
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +45,7 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 set_option autoImplicit false
 namespace Qatlib.Concepts.AmpTransform.FullLayerCF
 
+/-- The retry procedure uses at most k+3 queries per input sample. -/
 theorem aqRetry_cost_cap {N : ℕ} (h : Fin N → Bool) (s M B k : ℕ) (xs : List (Fin N)) :
     (aqRetry h s M B k xs).2 ≤ xs.length * (k + 3) := by
   have hc (y : Fin N) : (aqAttempt h s M B y).2.1 ≤ 3 := by
@@ -42,6 +66,8 @@ theorem aqRetry_cost_cap {N : ℕ} (h : Fin N → Bool) (s M B k : ℕ) (xs : Li
       (try dsimp only)
       nlinarith
 
+/-- For start 127 and length 2 in `Fin 128`, the interval-based retry procedure always returns
+no candidate. -/
 theorem wrapping_progression_retry_none (h : Fin 128 → Bool) (B k : ℕ)
     (xs : List (Fin 128)) : (aqRetry h 127 2 B k xs).1 = none := by
   have hv (q : ℕ) : (aqVerify h 127 2 q).1 = false := by
@@ -58,6 +84,8 @@ theorem wrapping_progression_retry_none (h : Fin 128 → Bool) (B k : ℕ)
 
 open scoped Classical BigOperators
 
+/-- A verifier that checks three progression positions modulo N when q > 0, M ≥ 2, and Mq ≤ N,
+returning acceptance and the number of oracle calls. -/
 def aqCyclicVerify (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M q : ℕ) : Bool × ℕ :=
   if 0 < q ∧ 2 ≤ M ∧ M * q ≤ N then
     ([⟨s % N, Nat.mod_lt _ hN⟩, ⟨(s + q) % N, Nat.mod_lt _ hN⟩,
@@ -65,11 +93,14 @@ def aqCyclicVerify (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M q : ℕ) : B
       (fun a x => (a.1 && h x, a.2 + 1)) (true, 0)
   else (false, 0)
 
+/-- The cyclic verifier uses at most three oracle queries. -/
 theorem aqCyclicVerify_cost (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M q : ℕ) :
     (aqCyclicVerify N hN h s M q).2 ≤ 3 := by
   unfold aqCyclicVerify
   split <;> simp
 
+/-- The cyclic verifier accepts the true modular progression and uses exactly three queries
+under the stated marking and size assumptions. -/
 theorem aqCyclicVerify_true (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M P : ℕ)
     (hM : 2 ≤ M) (hP : 0 < P) (hMP : M * P ≤ N) (G : Finset (Fin N))
     (hmark : ∀ x, h x = decide (x ∈ ((Finset.range M).image (fun r : ℕ =>
@@ -86,9 +117,13 @@ theorem aqCyclicVerify_true (N : ℕ) (hN : 0 < N) (h : Fin N → Bool) (s M P :
   simp only [one_mul] at h1
   simp [aqCyclicVerify, hP, hM, hMP, hz, h1, hlast]
 
+/-- The nearest-integer readout ⌊N · `aeEstimate (32 * N) z` + 1/2⌋ for the marked-set
+cardinality. -/
 noncomputable def aqPublicDensityReadout (N : ℕ) (z : Fin (32 * N)) : ℕ :=
   Nat.floor ((N : ℝ) * aeEstimate (32 * N) z + 1 / 2)
 
+/-- Amplitude estimation at precision 32N recovers the marked cardinality with probability at
+least 8/π² and uses exactly 32N−1 queries and 5(32N−1)+3 gates; see [BrassardEtAl2002]. -/
 theorem aqPublicDensityCounting_actual (N : ℕ) (hN : 0 < N) (C : Finset (Fin N)) :
     8 / Real.pi ^ 2 ≤
       ∑ z ∈ Finset.univ.filter (fun z : Fin (32 * N) => aqPublicDensityReadout N z = C.card),

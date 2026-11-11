@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator.WalkOperatorDefinitions
+
+/-!
+# Action of the projected connectivity walk
+
+The formulas for `walkF`, `walkX`, and `walkP` show that the projected operator `walkQ` acts on
+diagonal lifts exactly as `walkM` acts on vertex vectors. This correspondence extends to powers
+and gives formulas for diagonal and off-diagonal entries.
+
+The vertex-space walk also preserves support within each connected component, so its iterates
+vanish outside the source component. The mathematical setting is described in [Watrous1998].
+
+## Main statements
+
+* `walkQ_mulVec_diagLift`: intertwine `walkQ` and `walkM` through `diagLift`.
+* `walkQ_pow_apply_diag` and `walkQ_pow_apply_offdiag`: entries starting from a diagonal state.
+* `walkM_pow_apply_eq_zero`: preserve component support under iteration.
+
+## References
+
+* [Watrous, 1998][Watrous1998]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator
@@ -17,6 +39,8 @@ noncomputable section
 
 variable {V : Type*} [Fintype V] [DecidableEq V]
 
+/-- A vertex in the neighbor set of `v` is reachable from `v`, with reachability stated from the
+neighbor to `v`. -/
 theorem reachable_of_mem_neighborFinset {G : SimpleGraph V} [DecidableRel G.Adj]
     {v w : V} (h : w ∈ G.neighborFinset v) : G.Reachable w v := by
   rcases mem_closedNbhd.mp (closedNbhd_comm.mp (Finset.mem_insert_of_mem h)) with h' | h'
@@ -24,6 +48,8 @@ theorem reachable_of_mem_neighborFinset {G : SimpleGraph V} [DecidableRel G.Adj]
     exact SimpleGraph.Reachable.rfl
   · exact h'.reachable
 
+/-- The projection `walkP` retains coordinates on diagonal pairs and sets all other coordinates
+to zero. -/
 theorem walkP_mulVec_apply (y : V × V → ℝ) (p : V × V) :
     (walkP *ᵥ y) p = if p.1 = p.2 then y p else 0 := by
   simp only [Matrix.mulVec, dotProduct, walkP, Matrix.of_apply]
@@ -45,6 +71,7 @@ theorem walkP_mulVec_apply (y : V × V → ℝ) (p : V × V) :
     have h' : ¬ (p = q ∧ p.1 = p.2) := fun hc => h hc.2
     simp [h']
 
+/-- The projection `walkP` fixes every diagonal lift. -/
 theorem walkP_mulVec_diagLift (x : V → ℝ) :
     walkP *ᵥ diagLift x = diagLift x := by
   funext p
@@ -53,6 +80,7 @@ theorem walkP_mulVec_diagLift (x : V → ℝ) :
   · rw [if_pos hp, diagLift_apply, if_pos hp]
   · rw [if_neg hp, diagLift_apply, if_neg hp]
 
+/-- The swap matrix `walkX` exchanges the two coordinates of each pair when acting on a vector. -/
 theorem walkX_mulVec_apply (y : V × V → ℝ) (p : V × V) :
     (walkX *ᵥ y) p = y (p.2, p.1) := by
   simp only [Matrix.mulVec, dotProduct, walkX, Matrix.of_apply]
@@ -69,6 +97,9 @@ theorem walkX_mulVec_apply (y : V × V → ℝ) (p : V × V) :
   simp only [hterm]
   simp
 
+/-- On a closed neighborhood, `walkF` subtracts `2 / (d + 1)` times the sum over that
+neighborhood from each coordinate in its row block, and it leaves coordinates outside the
+neighborhood unchanged. -/
 theorem walkF_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (x : V × V → ℝ) (p : V × V) :
     (walkF G d *ᵥ x) p =
@@ -127,6 +158,8 @@ theorem walkF_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
   · intro h
     exact absurd (Finset.mem_univ p.1) h
 
+/-- Applying `walkF` to a diagonal lift gives the stated closed-neighborhood formula with
+coefficient `(if u = v then 1 else 0) - 2 / (d + 1)`. -/
 theorem walkF_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (x : V → ℝ) (u v : V) :
     (walkF G d *ᵥ diagLift x) (u, v) =
@@ -149,6 +182,8 @@ theorem walkF_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     have huv : ¬ (u = v) := fun h => hv (h ▸ self_mem_closedNbhd G u)
     simp [diagLift_apply, huv]
 
+/-- Applying `walkF` and then the swap to a diagonal lift gives the stated formula supported on
+the swapped closed-neighborhood pairs. -/
 theorem walkX_walkF_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (x : V → ℝ) (p : V × V) :
     (walkX *ᵥ (walkF G d *ᵥ diagLift x)) p =
@@ -157,10 +192,14 @@ theorem walkX_walkF_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d :
       else 0) := by
   rw [walkX_mulVec_apply, walkF_diagLift_apply]
 
+/-- The expression `(1 - c) * x - c * ((1 - c) * x - c * s)` equals `(1 - c) ^ 2 * x + c ^ 2 *
+s`. -/
 theorem walkA_identity (c x s : ℝ) :
     (1 - c) * x - c * ((1 - c) * x - c * s) = (1 - c) ^ 2 * x + c ^ 2 * s := by
   ring
 
+/-- The diagonal coordinate after applying `walkF`, the swap, and `walkF` to `diagLift x` is
+`walkA d * x u + walkB d * ∑ w ∈ G.neighborFinset u, x w`. -/
 theorem walkF_X_F_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (x : V → ℝ) (u : V) :
     (walkF G d *ᵥ (walkX *ᵥ (walkF G d *ᵥ diagLift x))) (u, u) =
@@ -209,6 +248,7 @@ theorem walkF_X_F_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
   rw [hhead, walkA, walkB]
   exact walkA_identity (2 / (d + 1)) (x u) (∑ w ∈ G.neighborFinset u, x w)
 
+/-- The adjacency matrix applied to `x` sums `x` over the neighbors of the selected vertex. -/
 theorem adjMatrix_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj]
     (x : V → ℝ) (u : V) :
     (adjMatrix G *ᵥ x) u = ∑ w ∈ G.neighborFinset u, x w := by
@@ -218,6 +258,8 @@ theorem adjMatrix_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj]
   intro w _
   by_cases hw : G.Adj u w <;> simp [hw]
 
+/-- The walk matrix applied to `x` combines `walkA d * x u` with `walkB d` times the neighbor
+sum. -/
 theorem walkM_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (x : V → ℝ) (u : V) :
     (walkM G d *ᵥ x) u = walkA d * x u + walkB d * ∑ w ∈ G.neighborFinset u, x w := by
@@ -228,6 +270,8 @@ theorem walkM_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
   simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
   rw [adjMatrix_mulVec_apply]
 
+/-- The projected pair-space walk on `diagLift x` equals the diagonal lift of the vertex-space
+walk on `x`. -/
 theorem walkQ_mulVec_diagLift (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (x : V → ℝ) :
     walkQ G d *ᵥ diagLift x = diagLift (walkM G d *ᵥ x) := by
@@ -244,6 +288,8 @@ theorem walkQ_mulVec_diagLift (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     rw [hp', walkF_X_F_diagLift_apply, walkM_mulVec_apply]
   · rw [if_neg hp, diagLift_apply, if_neg hp]
 
+/-- Every power of the projected walk intertwines with the corresponding power of the
+vertex-space walk through `diagLift`. -/
 theorem walkQ_pow_mulVec_diagLift (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (k : ℕ) : ∀ x : V → ℝ,
     (walkQ G d ^ k) *ᵥ diagLift x = diagLift ((walkM G d ^ k) *ᵥ x) := by
@@ -256,6 +302,8 @@ theorem walkQ_pow_mulVec_diagLift (G : SimpleGraph V) [DecidableRel G.Adj] (d : 
     rw [pow_succ', ← Matrix.mulVec_mulVec, ih, walkQ_mulVec_diagLift]
     rw [Matrix.mulVec_mulVec, ← pow_succ']
 
+/-- The entry of `walkQ ^ k` from `(s, s)` to `(v, v)` equals the `v` coordinate of `walkM ^ k`
+applied to `basisVec s`. -/
 theorem walkQ_pow_apply_diag (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (k : ℕ) (s v : V) :
     (walkQ G d ^ k) (v, v) (s, s) = ((walkM G d ^ k) *ᵥ basisVec s) v := by
@@ -270,6 +318,7 @@ theorem walkQ_pow_apply_diag (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
   rw [h1, h2] at h
   exact h
 
+/-- Every entry of `walkQ ^ k` from a diagonal state to an off-diagonal pair is zero. -/
 theorem walkQ_pow_apply_offdiag (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (k : ℕ) (s : V) {p : V × V} (hp : p.1 ≠ p.2) :
     (walkQ G d ^ k) p (s, s) = 0 := by
@@ -283,6 +332,7 @@ theorem walkQ_pow_apply_offdiag (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
   rw [h1, h2] at h
   exact h
 
+/-- The walk matrix preserves the property that a vector vanishes outside the component of `s`. -/
 theorem walkM_mulVec_support (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) (s : V)
     {x : V → ℝ} (hx : ∀ v, ¬ G.Reachable s v → x v = 0) :
     ∀ v, ¬ G.Reachable s v → (walkM G d *ᵥ x) v = 0 := by
@@ -298,6 +348,7 @@ theorem walkM_mulVec_support (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ) 
   rw [hav, hb]
   ring
 
+/-- Every power of the walk matrix preserves vanishing outside the component of `s`. -/
 theorem walkM_pow_apply_eq_zero (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
     (s : V) {x : V → ℝ} (hx : ∀ v, ¬ G.Reachable s v → x v = 0) (k : ℕ) :
     ∀ v, ¬ G.Reachable s v → ((walkM G d ^ k) *ᵥ x) v = 0 := by

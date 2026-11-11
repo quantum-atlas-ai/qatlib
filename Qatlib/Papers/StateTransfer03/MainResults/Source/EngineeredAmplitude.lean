@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.StateTransfer03.MainResults.Source.EngineeredChain
+
+/-!
+# Spectral amplitudes of engineered chains
+
+`engineeredEigenvalue` and `engineeredWeight` specify an equally spaced spectrum with
+alternating binomial weights. Their generating polynomial gives the closed form
+`engineeredSpectralAmplitude_closed` and unit transfer amplitude at time `π / lam`. See
+[ChristandlEtAl2004].
+
+## Main statements
+
+* `engineeredWeight_sum_pow`: the weight generating polynomial is a scaled power of `1 - z`.
+* `engineeredSpectralAmplitude_closed`: the amplitude is `(-i sin (lam * t / 2)) ^ (N - 1)`.
+* `engineered_perfect_transfer`: the amplitude has norm one at `π / lam` for nonzero `lam`.
+
+## References
+
+* [Christandl et al., 2004][ChristandlEtAl2004]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Papers.StateTransfer03.MainResults.Source
@@ -18,21 +38,27 @@ set_option linter.unusedVariables false
 
 noncomputable section
 
+/-- The engineered energy at index `k`, equal to `lam * (N - 1) / 2 - lam * k` over the reals. -/
 def engineeredEigenvalue (N : ℕ) (lam : ℝ) (k : Fin N) : ℝ :=
   lam * (((N : ℝ) - 1) / 2) - lam * (k.val : ℝ)
 
+/-- The complex endpoint weight `(-1) ^ k * choose (N - 1) k / 2 ^ (N - 1)` for the engineered
+spectrum. -/
 def engineeredWeight (N : ℕ) (k : Fin N) : ℂ :=
   (((-1 : ℝ) ^ k.val * (Nat.choose (N - 1) k.val : ℝ) / 2 ^ (N - 1) : ℝ) : ℂ)
 
+/-- The spectral transfer amplitude formed from the engineered energies and endpoint weights. -/
 def engineeredSpectralAmplitude (N : ℕ) (lam t : ℝ) : ℂ :=
   spectralAmplitude (engineeredEigenvalue N lam) (engineeredWeight N) t
 
+/-- Euler's formula for a purely imaginary exponential with real argument. -/
 theorem exp_I_mul (θ : ℝ) :
     Complex.exp (Complex.I * (θ : ℂ)) =
       (Real.cos θ : ℂ) + (Real.sin θ : ℂ) * Complex.I := by
   rw [mul_comm Complex.I (θ : ℂ)]
   simpa [Complex.ofReal_cos, Complex.ofReal_sin] using Complex.exp_mul_I (θ : ℂ)
 
+/-- The difference `1 - exp (iθ)` equals `exp (iθ / 2) * (-2i sin (θ / 2))`. -/
 theorem one_sub_exp_mul_I (θ : ℝ) :
     1 - Complex.exp (Complex.I * (θ : ℂ)) =
       Complex.exp (Complex.I * ((θ / 2 : ℝ) : ℂ)) *
@@ -51,6 +77,8 @@ theorem one_sub_exp_mul_I (θ : ℝ) :
   rw [show Complex.I ^ 2 = -1 from by rw [pow_two, Complex.I_mul_I]]
   ring
 
+/-- For positive `N`, the generating polynomial of the engineered weights is `(1 - z) ^ (N - 1)
+/ 2 ^ (N - 1)`. See [ChristandlEtAl2004]. -/
 theorem engineeredWeight_sum_pow (N : ℕ) (hN : 0 < N) (z : ℂ) :
     (∑ k : Fin N, engineeredWeight N k * z ^ k.val) =
       (1 - z) ^ (N - 1) / (2 : ℂ) ^ (N - 1) := by
@@ -83,6 +111,8 @@ theorem engineeredWeight_sum_pow (N : ℕ) (hN : 0 < N) (z : ℂ) :
     _ = (1 - z) ^ (N - 1) / (2 : ℂ) ^ (N - 1) := by
         rw [show (1 : ℂ) + -z = 1 - z by ring, one_div, inv_mul_eq_div]
 
+/-- For positive `N`, the engineered spectral amplitude equals `(-i sin (lam * t / 2)) ^ (N -
+1)`. See [ChristandlEtAl2004]. -/
 theorem engineeredSpectralAmplitude_closed (N : ℕ) (hN : 0 < N) (lam t : ℝ) :
     engineeredSpectralAmplitude N lam t =
       (-(Complex.I) * (Real.sin (lam * t / 2) : ℂ)) ^ (N - 1) := by
@@ -139,6 +169,8 @@ theorem engineeredSpectralAmplitude_closed (N : ℕ) (hN : 0 < N) (lam t : ℝ) 
   have h2 : ((2 : ℂ) ^ (N - 1)) ≠ 0 := pow_ne_zero _ (by norm_num : (2 : ℂ) ≠ 0)
   rw [mul_div_cancel_left₀ _ h2]
 
+/-- For positive `N` and nonzero `lam`, the engineered spectral amplitude has norm one at time
+`π / lam`. See [ChristandlEtAl2004]. -/
 theorem engineered_perfect_transfer (N : ℕ) (hN : 0 < N) (lam : ℝ) (hlam : lam ≠ 0) :
     ‖engineeredSpectralAmplitude N lam (Real.pi / lam)‖ = 1 := by
   rw [engineeredSpectralAmplitude_closed N hN]
@@ -147,6 +179,8 @@ theorem engineered_perfect_transfer (N : ℕ) (hN : 0 < N) (lam : ℝ) (hlam : l
   rw [hsin, Real.sin_pi_div_two]
   simp
 
+/-- For positive `N`, the norms of the engineered endpoint weights sum to one. See
+[ChristandlEtAl2004]. -/
 theorem engineeredWeight_abs_sum (N : ℕ) (hN : 0 < N) :
     (∑ k : Fin N, ‖engineeredWeight N k‖) = 1 := by
   have hterm : ∀ k : Fin N, ‖engineeredWeight N k‖ =

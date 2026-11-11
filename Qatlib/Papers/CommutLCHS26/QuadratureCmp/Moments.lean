@@ -10,6 +10,27 @@ import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Analysis.SpecialFunctions.Gaussian.PoissonSummation
 import Mathlib.Topology.ContinuousMap.ZeroAtInfty
+
+/-!
+# Finite quadrature coefficient moments
+
+This module bounds finite symmetric mesh moments of the kernel coefficients in
+[AftabAnTrivisa2026]. The majorant `cappedDensity` separates Gaussian decay from polynomial
+weights, and `kernelScale` records the coefficient prefactor.
+
+The resulting estimates distinguish moment orders below, at, and above the threshold `n`, with
+constant, logarithmic, and power growth in the Gaussian scale.
+
+## Main statements
+
+* `moment_three_regimes`: a uniform finite-moment bound in the three regimes.
+* `finite_rule_moments`: the bound for cutoff quadrature coefficients.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -21,6 +42,9 @@ open scoped BigOperators
 open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 
+/-- For a nonnegative even integrable function decreasing on the positive half-line, a finite
+symmetric mesh sum is bounded by the central sample plus twice the positive-half-line
+integral. -/
 theorem finite_even_mass (f : ℝ → ℝ) (hf : AntitoneOn f (Ici 0))
     (hn : ∀ x, 0 ≤ f x) (heven : ∀ x, f (-x) = f x) (hi : Integrable f)
     (N : ℕ) {h : ℝ} (hh : 0 < h) :
@@ -43,6 +67,8 @@ theorem finite_even_mass (f : ℝ → ℝ) (hf : AntitoneOn f (Ici 0))
   simp only [Int.cast_zero, mul_zero]
   nlinarith
 
+/-- For positive `b`, the coefficient denominator is bounded below by `(min 1 b)ⁿ * (max 1
+|x|)^(n + 1)`. -/
 theorem denominator_lower (n : ℕ) {b x : ℝ} (hb : 0 < b) :
     (min 1 b) ^ n * (max 1 |x|) ^ (n + 1) ≤
       Real.sqrt (1 + x ^ 2) * Real.sqrt (b ^ 2 + x ^ 2) ^ n := by
@@ -68,16 +94,21 @@ theorem denominator_lower (n : ℕ) {b x : ℝ} (hb : 0 < b) :
   convert! h using 1
   ring
 
+/-- The capped power density `(max 1 |x|)^β` multiplied by the Gaussian `exp (-x² / (4c²))`. -/
 def cappedDensity (β c x : ℝ) : ℝ :=
   (max 1 |x|) ^ β * Real.exp (-x ^ 2 / (4 * c ^ 2))
 
+/-- The capped Gaussian density is nonnegative. -/
 theorem cappedDensity_nonneg (β c x : ℝ) : 0 ≤ cappedDensity β c x := by
   unfold cappedDensity
   positivity
 
+/-- The capped Gaussian density is even. -/
 theorem cappedDensity_even (β c x : ℝ) : cappedDensity β c (-x) = cappedDensity β c x := by
   simp only [cappedDensity, abs_neg, neg_sq]
 
+/-- For nonpositive exponent, the capped Gaussian density is decreasing on the nonnegative
+half-line. -/
 theorem cappedDensity_antitone {β c : ℝ} (hβ : β ≤ 0) :
     AntitoneOn (cappedDensity β c) (Ici 0) := by
   intro x hx y hy hxy
@@ -91,6 +122,7 @@ theorem cappedDensity_antitone {β c : ℝ} (hβ : β ≤ 0) :
     exact div_le_div_of_nonneg_right (neg_le_neg ((sq_le_sq₀ hx hy).mpr hxy)) (by positivity)
   exact mul_le_mul hp he (Real.exp_pos _).le (by positivity)
 
+/-- For positive `c` and nonpositive exponent, the capped Gaussian density is integrable. -/
 theorem cappedDensity_integrable {β c : ℝ} (hβ : β ≤ 0) (hc : 0 < c) :
     Integrable (cappedDensity β c) := by
   have hp : Continuous (fun x : ℝ => (max 1 |x|) ^ β) :=
@@ -102,6 +134,8 @@ theorem cappedDensity_integrable {β c : ℝ} (hβ : β ≤ 0) (hc : 0 < c) :
   exact mul_le_of_le_one_left (Real.exp_pos _).le
     (Real.rpow_le_one_of_one_le_of_nonpos (le_max_left _ _) hβ)
 
+/-- For `β < -1` and positive `c`, the positive-half-line density integral is at most `1 - 1 /
+(β + 1)`. -/
 theorem cappedDensity_subcritical {β c : ℝ} (hβ : β < -1) (hc : 0 < c) :
     (∫ x in Ioi 0, cappedDensity β c x) ≤ 1 - 1 / (β + 1) := by
   have hi := cappedDensity_integrable (by linarith : β ≤ 0) hc
@@ -135,9 +169,12 @@ theorem cappedDensity_subcritical {β c : ℝ} (hβ : β < -1) (hc : 0 < c) :
     _ ≤ 1 + -1 / (β + 1) := add_le_add hn ht
     _ = _ := by ring
 
+/-- The real-axis kernel prefactor `(b + 1)ⁿ / (2π) * exp (d - 1 / (4c²))`. -/
 def kernelScale (n : ℕ) (b c d : ℝ) : ℝ :=
   (b + 1) ^ n / (2 * Real.pi) * Real.exp (d - 1 / (4 * c ^ 2))
 
+/-- For positive `b` and nonnegative moment order, the weighted coefficient norm is bounded by
+`kernelScale / (min 1 b)ⁿ` times the corresponding capped density. -/
 theorem weighted_norm_majorant (n : ℕ) (b c d ν x : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) :
     ‖coefficient n b c d (x : ℂ)‖ * |x| ^ ν ≤
       (kernelScale n b c d / (min 1 b) ^ n) *
@@ -165,10 +202,14 @@ theorem weighted_norm_majorant (n : ℕ) (b c d ν x : ℝ) (hb : 0 < b) (hν : 
       rw [Real.rpow_sub_natCast hX.ne']
       field_simp
 
+/-- The finite symmetric mesh sum of coefficient norms weighted by the absolute node value to
+the power `ν`, multiplied by the mesh step. -/
 def moment (n : ℕ) (b c d ν h : ℝ) (N : ℕ) : ℝ :=
   h * ∑ q ∈ Finset.Icc (-(N : ℤ)) N,
     ‖coefficient n b c d ((h * (q : ℝ) : ℝ) : ℂ)‖ * |h * (q : ℝ)| ^ ν
 
+/-- For a nonnegative mesh step, `moment` equals the weighted sum of the norms of the complex
+quadrature coefficients. -/
 theorem moment_eq_weights (n : ℕ) (b c d ν h : ℝ) (N : ℕ) (hh : 0 ≤ h) :
     moment n b c d ν h N = ∑ q ∈ Finset.Icc (-(N : ℤ)) N,
       ‖(h : ℂ) * coefficient n b c d ((h * (q : ℝ) : ℝ) : ℂ)‖ * |h * (q : ℝ)| ^ ν := by
@@ -178,6 +219,8 @@ theorem moment_eq_weights (n : ℕ) (b c d ν h : ℝ) (N : ℕ) (hh : 0 ≤ h) 
   intro q _
   ring
 
+/-- For moment order at most `n + 1` and mesh step in `(0, 1]`, the finite moment is bounded by
+the kernel prefactor times one plus twice the corresponding density integral. -/
 theorem moment_le_capped (n : ℕ) (b c d ν h : ℝ) (N : ℕ) (hb : 0 < b) (hc : 0 < c)
     (hν : 0 ≤ ν) (hνn : ν ≤ (n + 1 : ℕ)) (hh : 0 < h) (hh1 : h ≤ 1) :
     moment n b c d ν h N ≤ (kernelScale n b c d / (min 1 b) ^ n) *
@@ -203,6 +246,8 @@ theorem moment_le_capped (n : ℕ) (b c d ν h : ℝ) (N : ℕ) (hb : 0 < b) (hc
     _ ≤ C * (1 + 2 * ∫ x in Ioi 0, cappedDensity β c x) :=
       mul_le_mul_of_nonneg_left (by linarith [hm]) hC
 
+/-- For `0 ≤ ν < n` and mesh step in `(0, 1]`, the finite moment is at most `kernelScale` times
+`(3 - 2 / (ν - n)) / (min 1 b)ⁿ`. -/
 theorem moment_subcritical (n : ℕ) (b c d ν h : ℝ) (N : ℕ) (hb : 0 < b) (hc : 0 < c)
     (hν : 0 ≤ ν) (hνn : ν < n) (hh : 0 < h) (hh1 : h ≤ 1) :
     moment n b c d ν h N ≤ kernelScale n b c d *
@@ -217,6 +262,7 @@ theorem moment_subcritical (n : ℕ) (b c d ν h : ℝ) (N : ℕ) (hb : 0 < b) (
       hm.trans (mul_le_mul_of_nonneg_left (by linarith) hC)
     _ = _ := by push_cast; ring
 
+/-- For nonpositive exponent, the capped Gaussian density is at most one. -/
 theorem cappedDensity_le_one {β c : ℝ} (hβ : β ≤ 0) (x : ℝ) :
     cappedDensity β c x ≤ 1 := by
   apply mul_le_one₀ (Real.rpow_le_one_of_one_le_of_nonpos (le_max_left _ _) hβ)
@@ -224,6 +270,7 @@ theorem cappedDensity_le_one {β c : ℝ} (hβ : β ≤ 0) (x : ℝ) :
   exact Real.exp_le_one_iff.mpr (div_nonpos_of_nonpos_of_nonneg (by nlinarith [sq_nonneg x])
     (by positivity))
 
+/-- For positive `c`, the critical density integral is at most `1 + log (1 + c) + 2 sqrt π`. -/
 theorem cappedDensity_critical {c : ℝ} (hc : 0 < c) :
     (∫ x in Ioi 0, cappedDensity (-1) c x) ≤
       1 + Real.log (1 + c) + 2 * Real.sqrt Real.pi := by
@@ -286,6 +333,8 @@ theorem cappedDensity_critical {c : ℝ} (hc : 0 < c) :
     Real.log_le_log hL (max_le (by linarith) (by linarith))
   linarith
 
+/-- For mesh step in `(0, 1]`, the moment of order `n` is bounded by `kernelScale * ((3 + 4 sqrt
+π) / (min 1 b)ⁿ) * (1 + log (1 + c))`. -/
 theorem moment_critical (n : ℕ) (b c d h : ℝ) (N : ℕ) (hb : 0 < b) (hc : 0 < c)
     (hh : 0 < h) (hh1 : h ≤ 1) :
     moment n b c d n h N ≤ kernelScale n b c d *
@@ -308,6 +357,8 @@ theorem moment_critical (n : ℕ) (b c d h : ℝ) (N : ℕ) (hb : 0 < b) (hc : 0
       hm.trans (mul_le_mul_of_nonneg_left (hI.trans hs) hC)
     _ = _ := by ring
 
+/-- A positive power times `exp (-3u² / 16)` has a uniform positive upper bound on the real
+line. -/
 theorem positive_power_peak {β : ℝ} (hβ : 0 < β) :
     ∃ K : ℝ, 0 < K ∧ ∀ u : ℝ, |u| ^ β * Real.exp (-(3 / 16 : ℝ) * u ^ 2) ≤ K := by
   let f : ZeroAtInftyContinuousMap ℝ ℝ :=
@@ -318,9 +369,12 @@ theorem positive_power_peak {β : ℝ} (hβ : 0 < β) :
   refine ⟨max 1 K, lt_of_lt_of_le (by norm_num) (le_max_left _ _), fun u => ?_⟩
   exact (hK (Set.mem_range_self u)).trans (le_max_right _ _)
 
+/-- The positive-half-line integral of `x^β * exp (-x² / 4)`. -/
 def gaussianMoment (β : ℝ) : ℝ :=
   ∫ x in Ioi 0, x ^ β * Real.exp (-x ^ 2 / 4)
 
+/-- Scaling a positive-half-line Gaussian moment by positive `c` multiplies its integral by
+`c^(β + 1)`. -/
 theorem gaussianMoment_scale (β : ℝ) {c : ℝ} (hc : 0 < c) :
     (∫ x in Ioi 0, x ^ β * Real.exp (-x ^ 2 / (4 * c ^ 2))) =
       c ^ (β + 1) * gaussianMoment β := by
@@ -344,6 +398,8 @@ theorem gaussianMoment_scale (β : ℝ) {c : ℝ} (hc : 0 < c) :
     _ = c * (c ^ β * gaussianMoment β) := by rw [hs]; field_simp
     _ = _ := by rw [Real.rpow_add hc, Real.rpow_one]; ring
 
+/-- For `-1 < β ≤ 0` and positive `c`, the capped density integral is at most `c^(β + 1) *
+|gaussianMoment β|`. -/
 theorem cappedDensity_supercritical {β c : ℝ} (hβ : -1 < β) (hβ0 : β ≤ 0) (hc : 0 < c) :
     (∫ x in Ioi 0, cappedDensity β c x) ≤ c ^ (β + 1) * |gaussianMoment β| := by
   have hi := cappedDensity_integrable hβ0 hc
@@ -363,6 +419,8 @@ theorem cappedDensity_supercritical {β c : ℝ} (hβ : -1 < β) (hβ0 : β ≤ 
     _ = c ^ (β + 1) * gaussianMoment β := gaussianMoment_scale β hc
     _ ≤ _ := mul_le_mul_of_nonneg_left (le_abs_self _) (Real.rpow_nonneg hc.le _)
 
+/-- A uniform bound on the weighted narrower Gaussian gives a majorant for the capped density by
+`(1 + K c^β)` times the zero-exponent density at scale `2c`. -/
 theorem cappedDensity_positive_majorant {β K : ℝ}
     (hK : ∀ u : ℝ, |u| ^ β * Real.exp (-(3 / 16 : ℝ) * u ^ 2) ≤ K)
     {c : ℝ} (hc : 0 < c) (x : ℝ) :
@@ -403,6 +461,8 @@ theorem cappedDensity_positive_majorant {β K : ℝ}
         (K * c ^ β) * Real.exp (-x ^ 2 / (4 * (2 * c) ^ 2)) := add_le_add hg hw
     _ = _ := by ring
 
+/-- For positive `c` and mesh step in `(0, 1]`, the finite symmetric Gaussian mesh mass is at
+most `1 + 4c sqrt π`. -/
 theorem gaussian_finite_mass {c h : ℝ} (hc : 0 < c) (hh : 0 < h) (hh1 : h ≤ 1) (N : ℕ) :
     h * (∑ q ∈ Finset.Icc (-(N : ℤ)) N, cappedDensity 0 c (h * (q : ℝ))) ≤
       1 + 4 * c * Real.sqrt Real.pi := by
@@ -418,6 +478,8 @@ theorem gaussian_finite_mass {c h : ℝ} (hc : 0 < c) (hh : 0 < h) (hh1 : h ≤ 
         (ae_of_all _ (fun x => (Real.exp_pos _).le))
   linarith
 
+/-- For positive `β` and `c` and nonnegative `K`, the displayed product is bounded by `(1 + K)
+(1 + 8 sqrt π) (1 + c^(β + 1))`. -/
 theorem positive_power_growth {β K c : ℝ} (hβ : 0 < β) (hK : 0 ≤ K) (hc : 0 < c) :
     (1 + K * c ^ β) * (1 + 8 * c * Real.sqrt Real.pi) ≤
       ((1 + K) * (1 + 8 * Real.sqrt Real.pi)) * (1 + c ^ (β + 1)) := by
@@ -450,6 +512,8 @@ theorem positive_power_growth {β K c : ℝ} (hβ : 0 < β) (hK : 0 ≤ K) (hc :
       · exact mul_le_mul_of_nonneg_left (by linarith) (by positivity)
     _ = _ := by ring
 
+/-- For `β > -1`, finite symmetric capped-density mesh sums are bounded by a fixed positive
+constant times `1 + c^(β + 1)` uniformly in the cutoff and mesh step in `(0, 1]`. -/
 theorem capped_finite_supercritical {β : ℝ} (hβ : -1 < β) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ h : ℝ, 0 < h → h ≤ 1 → ∀ N : ℕ,
       h * (∑ q ∈ Finset.Icc (-(N : ℤ)) N, cappedDensity β c (h * (q : ℝ))) ≤
@@ -483,9 +547,14 @@ theorem capped_finite_supercritical {β : ℝ} (hβ : -1 < β) :
         ring
       _ ≤ _ := positive_power_growth hβp hK.le hc
 
+/-- The piecewise growth factor equal to one below `ν = n`, `1 + log (1 + c)` at equality, and
+`1 + c^(ν - n)` above equality. -/
 def momentGrowth (n : ℕ) (ν c : ℝ) : ℝ :=
   if ν < n then 1 else if ν = n then 1 + Real.log (1 + c) else 1 + c ^ (ν - n)
 
+/-- For positive `b` and nonnegative moment order, every finite mesh moment is bounded by
+`kernelScale` times a fixed positive constant and `momentGrowth`, uniformly over mesh steps
+in `(0, 1]`. -/
 theorem moment_three_regimes (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ d h : ℝ, 0 < h → h ≤ 1 → ∀ N : ℕ,
       moment n b c d ν h N ≤ kernelScale n b c d * C * momentGrowth n ν c := by
@@ -528,6 +597,9 @@ theorem moment_three_regimes (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν
           rw [hex]
           ring
 
+/-- The finite quadrature rule's weighted coefficient moments satisfy the three-regime
+`kernelScale * C * momentGrowth` bound uniformly in the cutoff radius and mesh step in `(0,
+1]`; see [AftabAnTrivisa2026]. -/
 theorem finite_rule_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν) :
     ∃ C : ℝ, 0 < C ∧ ∀ c : ℝ, 0 < c → ∀ d h : ℝ, 0 < h → h ≤ 1 → ∀ R : ℝ,
       (∑ q ∈ Finset.Icc (-(cutoff R h : ℤ)) (cutoff R h : ℤ),
@@ -538,6 +610,8 @@ theorem finite_rule_moments (n : ℕ) (b ν : ℝ) (hb : 0 < b) (hν : 0 ≤ ν)
   rw [← moment_eq_weights n b c d ν h (cutoff R h) hh.le]
   exact hm c hc d h hh hh1 _
 
+/-- The zeroth finite moment equals the sum of the quadrature coefficient norms for a
+nonnegative mesh step. -/
 theorem moment_zero_eq_norm_mass (n : ℕ) (b c d h : ℝ) (N : ℕ) (hh : 0 ≤ h) :
     moment n b c d 0 h N = ∑ q ∈ Finset.Icc (-(N : ℤ)) N,
       ‖(h : ℂ) * coefficient n b c d ((h * (q : ℝ) : ℝ) : ℂ)‖ := by

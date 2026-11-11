@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 import Mathlib.Analysis.Fourier.RiemannLebesgueLemma
+
+/-!
+# A strict gap between operator and lattice tails
+
+This module compares the actual operator truncation error with the scalar lattice-tail bound in
+the quadrature analysis of [AftabAnTrivisa2026]. For zero Hamiltonian and identity dissipative
+matrix, the operator tail becomes a Fourier transform of the truncated scalar coefficient.
+
+Fourier decay and nonvanishing of the coefficient yield a positive time at which the
+one-dimensional operator truncation error is strictly smaller than the lattice tail at unit step
+and cutoff.
+
+## Main statements
+
+* `tail_identity_fourier`: Represents the identity-dissipation tail as a scalar Fourier
+  transform times the identity.
+* `exists_operator_tail_lt_latticeTail`: Constructs a strict inequality between the operator
+  error and its lattice-tail bound.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -17,6 +41,7 @@ open scoped Topology FourierTransform
 open Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
 open Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
 
+/-- For positive `b`, the scalar coefficient is nonzero at every real argument. -/
 theorem coefficient_ne_zero (n : ℕ) (b c d x : ℝ) (hb : 0 < b) :
     coefficient n b c d (x : ℂ) ≠ 0 := by
   unfold coefficient
@@ -29,6 +54,9 @@ theorem coefficient_ne_zero (n : ℕ) (b c d x : ℝ) (hb : 0 < b) :
   · exact mul_ne_zero (lower_ne_zero (ρ := 0) (by norm_num) (by simp))
       (upper_pow_ne_zero n (ρ := 0) (Or.inr hb) (by simp))
 
+/-- For positive `b`, there is a positive time at which the Fourier transform of the coefficient
+restricted to `|x| > R`, evaluated at `T / (2 * π)`, has norm less than the coefficient norm
+at `2`. -/
 theorem exists_small_fourier_tail (n : ℕ) (b c d R : ℝ) (hb : 0 < b) :
     ∃ T : ℝ, 0 < T ∧
       ‖𝓕 (({x : ℝ | R < |x|}).indicator (fun x : ℝ => coefficient n b c d (x : ℂ)))
@@ -49,6 +77,8 @@ theorem exists_small_fourier_tail (n : ℕ) (b c d R : ℝ) (hb : 0 < b) :
 open scoped Matrix.Norms.L2Operator ComplexOrder
 variable {ι : Type} [Fintype ι] [DecidableEq ι]
 
+/-- For zero Hamiltonian and identity dissipative matrix, the propagator is `exp(-T * I * z)`
+times the identity. -/
 theorem propagator_identity (T : ℝ) (z : ℂ) :
     propagator (0 : Matrix ι ι ℂ) 1 T z =
       Complex.exp ((-T : ℂ) * I * z) • (1 : Matrix ι ι ℂ) := by
@@ -57,6 +87,9 @@ theorem propagator_identity (T : ℝ) (z : ℂ) :
   simpa only [Algebra.algebraMap_eq_smul_one, Complex.exp_eq_exp_ℂ, mul_assoc] using!
     (NormedSpace.algebraMap_exp_comm (𝕂 := ℂ) (𝔸 := Matrix ι ι ℂ) ((-T : ℂ) * I * z)).symm
 
+/-- For zero Hamiltonian and identity dissipative matrix, the tail integral at time `2 * π * w`
+equals the Fourier transform of the truncated coefficient at `w`, multiplied by the
+identity. -/
 theorem tail_identity_fourier (n : ℕ) (b c d R w : ℝ) :
     (∫ x in {x : ℝ | R < |x|},
       integrand n b c d (2 * Real.pi * w) (0 : Matrix ι ι ℂ) 1 (x : ℂ)) =
@@ -77,6 +110,9 @@ theorem tail_identity_fourier (n : ℕ) (b c d R w : ℝ) :
     ring
   · simp only [Set.indicator_apply, mem_setOf_eq, if_neg hx, smul_zero, zero_smul]
 
+/-- For positive `b` and `c`, there is a positive time when the one-dimensional operator
+truncation error at radius `1` is strictly less than the scalar lattice tail at step `1` and
+cutoff `1`. -/
 theorem exists_operator_tail_lt_latticeTail (n : ℕ) (b c d : ℝ) (hb : 0 < b) (hc : 0 < c) :
     ∃ T : ℝ, 0 < T ∧
       operatorTruncationError n b c d T (0 : Matrix (Fin 1) (Fin 1) ℂ) 1 1 <

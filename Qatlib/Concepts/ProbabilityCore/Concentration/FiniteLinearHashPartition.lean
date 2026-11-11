@@ -6,10 +6,33 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHash
 import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashPartition
+
+/-!
+# Partition deviation for finite linear hashes
+
+The module applies exact matrix hash collision probabilities to complex weighted partition
+deviation. An injective encoding into a finite vector space lets the general partition estimate
+specialize to uniformly sampled finite field matrices.
+
+The random linear map provides a finite field counterpart to sampling and sketching
+constructions such as those in [ChiaEtAl2022].
+
+## Main statements
+
+* `finite_linear_hash_partition_deviation_bound`: an average deviation bound involving the side
+  information cardinality and squared complex weights.
+
+## References
+
+* [Chia et al., 2022][ChiaEtAl2022]
+-/
+
 set_option warningAsError false
 
 namespace Qatlib.Concepts.ProbabilityCore.Concentration
 
+/-- For an injective finite field encoding, the average partition deviation of matrix hashes is
+at most the square root of `|T| * (|J → K| - 1) * ∑ x, Complex.normSq (p x)`. -/
 theorem finite_linear_hash_partition_deviation_bound
     (K I J X T : Type) [Field K] [Fintype K] [DecidableEq K]
     [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]

@@ -6,6 +6,35 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.MatrixWeights.SdpAlgorithm.MatrixMultiplicativeWeightsConsumers
 
+/-!
+# Stopping and certificates for matrix multiplicative weights
+
+`mmwSdpStopRounds` chooses a finite horizon at which the averaged regret slack is strictly below
+the target tolerance. `MmwSdpExactSelection` and `MmwSdpPersistentViolation` express the
+selection and violation conditions, while `mmwSdpDualWeights` records empirical frequencies of
+the selected constraints.
+
+These definitions support approximate feasibility and separating certificates from one
+constraint history, in the SDP setting of [BrandaoSvore2017].
+
+## Main statements
+
+- `mmwSdpStopRounds_spec` proves positivity of the horizon and the strict tolerance bound.
+* `mmwSdpDualWeights_spec` proves that the empirical weights form a probability distribution and
+  reproduce history averages.
+* `mmwSdpCompletionBranch` produces an approximately feasible averaged density operator from a
+  feasible comparator.
+* `mmwSdpLargerBranch` turns persistent violation into a weighted separation bound and
+  infeasibility.
+* `mmwSdpSameHistoryPrimalDualGap` bounds averaged constraint residuals against an arbitrary
+  density comparator on the same history.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017], *Quantum Speed-Ups for Solving Semidefinite
+  Programs*.
+-/
+
 set_option autoImplicit false
 set_option maxRecDepth 4096
 set_option backward.isDefEq.respectTransparency false
@@ -21,22 +50,32 @@ open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- Sets the stopping horizon to the natural ceiling of `log D / (eta*(epsilon-eta))` plus one. -/
 def mmwSdpStopRounds (η ε : ℝ) (D : ℕ) : ℕ := Nat.ceil (Real.log D/(η*(ε-η))) + 1
 
+/-- Requires the selected constraint to maximize the residual at every round against the Gibbs
+state generated from that same selection history. -/
 def MmwSdpExactSelection (D m : ℕ) (C : Fin m → Operator D) (b : Fin m → ℝ)
     (a : ℕ → Fin m) (η : ℝ) : Prop :=
   ∀ (t : ℕ) (i : Fin m),
     (Matrix.trace (C i * mmwState D (fun s => C (a s)) η t)).re - b i ≤
       (Matrix.trace (C (a t) * mmwState D (fun s => C (a s)) η t)).re - b (a t)
 
+/-- Requires the selected constraint residual to be at least `epsilon` at every round before the
+given horizon. -/
 def MmwSdpPersistentViolation (D m : ℕ) (C : Fin m → Operator D) (b : Fin m → ℝ)
     (a : ℕ → Fin m) (η ε : ℝ) (T : ℕ) : Prop :=
   ∀ t ∈ Finset.range T,
     ε ≤ (Matrix.trace (C (a t) * mmwState D (fun s => C (a s)) η t)).re - b (a t)
 
+/-- Assigns each constraint its selection frequency in the first `T` rounds, dividing its
+occurrence count by `T`. -/
 def mmwSdpDualWeights (m : ℕ) (a : ℕ → Fin m) (T : ℕ) : Fin m → ℝ :=
   fun i => (∑ t ∈ Finset.range T, if a t = i then (1:ℝ) else 0)/(T:ℝ)
 
+/-- For `0 < eta < epsilon`, the chosen horizon is positive and makes `eta + log D / (eta*T)`
+strictly smaller than `epsilon`. This calibrates the finite-round tolerance in the matrix
+multiplicative weights SDP setting [BrandaoSvore2017]. -/
 theorem mmwSdpStopRounds_spec (η ε : ℝ) (D : ℕ) (hη : 0 < η) (hηε : η < ε) :
     0 < mmwSdpStopRounds η ε D ∧
       η+Real.log D/(η*(mmwSdpStopRounds η ε D : ℝ)) < ε := by
@@ -52,6 +91,8 @@ theorem mmwSdpStopRounds_spec (η ε : ℝ) (D : ℕ) (hη : 0 < η) (hηε : η
     nlinarith
   exact ⟨hT, by linarith⟩
 
+/-- For a function into a real module, weighting its values by empirical selection frequencies
+equals the reciprocal-horizon-scaled sum along the selected history. -/
 private theorem mmw_dual_module_history {E : Type} [AddCommGroup E] [Module ℝ E]
     (m : ℕ) (a : ℕ → Fin m) (T : ℕ) (f : Fin m → E) :
     (∑ i, mmwSdpDualWeights m a T i • f i) = (T : ℝ)⁻¹ • ∑ t ∈ Finset.range T, f (a t) := by
@@ -69,6 +110,8 @@ private theorem mmw_dual_module_history {E : Type} [AddCommGroup E] [Module ℝ 
   intro t _
   simp
 
+/-- For a positive horizon, the empirical dual weights are nonnegative and sum to one, and their
+pairing with any real-valued function equals its history average [BrandaoSvore2017]. -/
 theorem mmwSdpDualWeights_spec (m : ℕ) (a : ℕ → Fin m) (T : ℕ) (hT : 0 < T) :
     (∀ i, 0 ≤ mmwSdpDualWeights m a T i) ∧ (∑ i, mmwSdpDualWeights m a T i)=1 ∧
     ∀ f : Fin m → ℝ,
@@ -87,11 +130,15 @@ theorem mmwSdpDualWeights_spec (m : ℕ) (a : ℕ → Fin m) (T : ℕ) (hT : 0 <
     simpa only [mul_one, Finset.sum_const, Finset.card_range, nsmul_eq_mul,
       mul_one, div_self hTr] using! h
 
+/-- The constraint combination formed with empirical dual weights equals the selected constraint
+sum scaled by the reciprocal horizon [BrandaoSvore2017]. -/
 theorem mmwSdpDualWeights_smul_history (D m : ℕ) (C : Fin m → Operator D)
     (a : ℕ → Fin m) (T : ℕ) :
     (∑ i, mmwSdpDualWeights m a T i • C i) = (T : ℝ)⁻¹ • ∑ t ∈ Finset.range T, C (a t) :=
   mmw_dual_module_history m a T C
 
+/-- For bounded Hermitian losses, a positive horizon, and `0 < eta <= 1`, the average Gibbs loss
+is at most the average loss of any density comparator plus `eta + log D / (eta*T)`. -/
 private theorem mmw_regret_average (D T : ℕ) (M : ℕ → Operator D) (η : ℝ) (σ : Operator D)
     (hD : 0<D) (hT : 0<T) (hη : 0<η) (hη1 : η≤1)
     (hM : ∀ t, (M t).IsHermitian ∧ ‖M t‖≤1) (hσ : IsDensityOperator σ) :
@@ -102,6 +149,9 @@ private theorem mmw_regret_average (D T : ℕ) (M : ℕ → Operator D) (η : �
   have hdiv := div_le_div_of_nonneg_right hr (mul_pos hη hTr).le
   convert! hdiv using 1 <;> field_simp
 
+/-- With exact residual selection, a feasible density comparator, and bounded Hermitian
+constraints, the stopping-horizon average is a density operator satisfying every constraint
+up to `epsilon`, under the stated learning-rate conditions [BrandaoSvore2017]. -/
 theorem mmwSdpCompletionBranch :
   ∀ (D m : ℕ) (C : Fin m → Operator D) (b : Fin m → ℝ) (a : ℕ → Fin m) (η ε : ℝ)
     (σ : Operator D),
@@ -122,6 +172,10 @@ theorem mmwSdpCompletionBranch :
   have hi := h.2 i
   linarith
 
+/-- Under the stated bounded-loss and learning-rate hypotheses, persistent selected residuals of
+at least `epsilon` through the stopping horizon yield an empirical weighted separation bound
+against every density operator. The strictly positive margin implies that each density
+operator violates at least one original constraint [BrandaoSvore2017]. -/
 theorem mmwSdpLargerBranch :
   ∀ (D m : ℕ) (C : Fin m → Operator D) (b : Fin m → ℝ) (a : ℕ → Fin m) (η ε : ℝ),
     0 < D → 0 < η → η ≤ 1 → η < ε →
@@ -164,6 +218,10 @@ theorem mmwSdpLargerBranch :
   have hslack := (mmwSdpStopRounds_spec η ε D hη hηε).2
   linarith
 
+/-- Under exact selection and bounded Hermitian constraints, every constraint residual of the
+averaged iterate is bounded by the selected-history average residual of any density
+comparator plus `eta + log D / (eta*T)`, for positive dimension and horizon and `0 < eta <=
+1` [BrandaoSvore2017]. -/
 theorem mmwSdpSameHistoryPrimalDualGap :
   ∀ (D m : ℕ) (C : Fin m → Operator D) (b : Fin m → ℝ) (a : ℕ → Fin m) (η : ℝ) (T : ℕ)
     (σ : Operator D),

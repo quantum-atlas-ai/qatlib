@@ -8,6 +8,28 @@ import Mathlib.Analysis.Matrix.Normed
 import Mathlib.Analysis.SpecificLimits.Normed
 import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
 import Mathlib.Topology.Algebra.Module.FiniteDimension
+
+/-!
+# Killed-chain hitting-time formulas
+
+This module defines `expectedHittingTime` as the sum of the scalar tails `s · A^t 1` and
+computes it when `‖A‖ < 1`. The resulting inverse-matrix and spectral formulas supply the
+algebraic hitting-time identities in Corollary 7 of [Itakura2005].
+
+For a uniform initial vector, an orthonormal eigenvector expansion gives a finite sum with
+weights `ν i ^ 2` and denominators `1 - lam i`.
+
+## Main statements
+
+* `corollary7a_hitting_time`: Expresses the tail series using `(1 - A)⁻¹`.
+* `corollary7b_spectral_hitting_time`: Expresses uniform-start hitting time using spectral
+  weights.
+
+## References
+
+* [Itakura, 2005][Itakura2005]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,6 +43,7 @@ namespace Qatlib.Papers.CommuteTest05.MainResults.Corollary7
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+/-- The real linear functional sending a matrix `M` to `s · (M *ᵥ 1)`. -/
 def tailFunctional (s : ι → ℝ) : Matrix ι ι ℝ →ₗ[ℝ] ℝ where
   toFun M := s ⬝ᵥ (M *ᵥ fun _ => 1)
   map_add' M N := by
@@ -29,9 +52,12 @@ def tailFunctional (s : ι → ℝ) : Matrix ι ι ℝ →ₗ[ℝ] ℝ where
     simp only [smul_mulVec, dotProduct_smul, smul_eq_mul,
       RingHom.id_apply]
 
+/-- The series `∑' t, s · (A ^ t *ᵥ 1)` representing a hitting-time tail sum. -/
 def expectedHittingTime (s : ι → ℝ) (A : Matrix ι ι ℝ) : ℝ :=
   ∑' t : ℕ, s ⬝ᵥ ((A ^ t) *ᵥ fun _ => 1)
 
+/-- For `‖A‖ < 1`, the tail-sum definition of `expectedHittingTime s A` equals `s · ((1 - A)⁻¹
+*ᵥ 1)`. This is the fundamental-matrix formula of [Itakura, Corollary 7][Itakura2005]. -/
 theorem corollary7a_hitting_time
     (A : Matrix ι ι ℝ) (s : ι → ℝ) (hA : ‖A‖ < 1) :
     expectedHittingTime s A =
@@ -47,6 +73,9 @@ theorem corollary7a_hitting_time
       Matrix.nonsing_inv_eq_ringInverse] using! hmap
   simpa only [expectedHittingTime, tailFunctional] using hmap'.tsum_eq
 
+/-- For `‖A‖ < 1`, an orthonormal eigenvector expansion of the normalized constant vector gives
+uniform-start `expectedHittingTime` equal to `∑ i, ν i ^ 2 / (1 - lam i)`. See [Itakura,
+Corollary 7][Itakura2005]. -/
 theorem corollary7b_spectral_hitting_time
     (A : Matrix ι ι ℝ) (hA : ‖A‖ < 1) (lam ν : ι → ℝ) (v : ι → ι → ℝ)
     (heig : ∀ i, A *ᵥ v i = lam i • v i)

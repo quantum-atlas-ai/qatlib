@@ -7,6 +7,33 @@ Authors: Qatlib Contributors
 import Qatlib.Foundations.PureStateMath.Tensor
 import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
 import Mathlib.Tactic.SimpRw
+
+/-!
+# Hidden environments for observed circuits
+
+`liftObservedEnvironment` extends an observed circuit to a product register, with its explicit
+gates and measurements acting on the first component. `environmentTrace` transforms the
+environment part of each branch, and `sliceEnvironmentTrace` extracts a fixed environment
+coordinate. These tensor constructions use the composite system formalism of [Watrous2018].
+
+`hiddenTableOracle` selects an oracle block according to the environment coordinate. The
+execution lemmas relate lifted circuits to environment transformations and to individual blocks
+without changing the recorded branch metadata.
+
+## Main statements
+
+* `liftObservedEnvironment_wellFormed` preserves circuit well-formedness.
+* `observed_environment_intertwining` lifts an oracle intertwining relation to complete branch
+  lists.
+* `observed_hiddenTable_slices` identifies each environment slice with execution under its
+  selected oracle.
+* `hiddenTableOracle_unitary` proves unitarity when every oracle block is unitary.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -25,6 +52,8 @@ open Matrix
 
 variable {I : Type u} {E : Type v}
 
+/-- Extends an observed circuit to a product register by tensoring explicit gates and projectors
+with the environment identity and reading measurement labels from the system coordinate. -/
 noncomputable def liftObservedEnvironment
     [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E] :
     ObservedCircuit I → ObservedCircuit (I × E)
@@ -44,10 +73,14 @@ noncomputable def liftObservedEnvironment
 
 variable [Fintype I] [DecidableEq I] [Fintype E] [DecidableEq E]
 
+/-- Applies `W` to the environment component of a branch state while retaining all classical
+trace fields. -/
 noncomputable def environmentTrace (W : Matrix E E ℂ)
     (t : BranchTrace (I × E)) : BranchTrace (I × E) :=
   { t with state := ApplyGate (TensorGate (1 : Matrix I I ℂ) W) t.state }
 
+/-- Restricts a branch state to the fixed environment coordinate `a`, retaining acceptance,
+resource counts, and outcomes. -/
 def sliceEnvironmentTrace (a : E) (t : BranchTrace (I × E)) : BranchTrace I where
   state := fun i => t.state (i, a)
   accepted := t.accepted
@@ -56,10 +89,14 @@ def sliceEnvironmentTrace (a : E) (t : BranchTrace (I × E)) : BranchTrace I whe
   measurements := t.measurements
   outcomes := t.outcomes
 
+/-- The block diagonal oracle on a product register whose block at environment coordinate `a` is
+`O a`. -/
 def hiddenTableOracle (O : E → Matrix I I ℂ) :
     Matrix (I × E) (I × E) ℂ :=
   fun x y => if x.2 = y.2 then O x.2 x.1 y.1 else 0
 
+/-- Tensoring an orthogonal projector with the environment identity preserves the orthogonal
+projector property. -/
 private theorem observedEnvironment_projector_lift (Q : Matrix I I ℂ)
     (hQ : IsOrthogonalProjector Q) :
     IsOrthogonalProjector (TensorGate Q (1 : Matrix E E ℂ)) := by
@@ -76,6 +113,7 @@ private theorem observedEnvironment_projector_lift (Q : Matrix I I ℂ)
       TensorGate Q (1 : Matrix E E ℂ)
     rw [tensorGate_conjTranspose, hstar, Matrix.conjTranspose_one]
 
+/-- Lifting an observed circuit to an additional environment preserves its well-formedness. -/
 theorem liftObservedEnvironment_wellFormed (P : ObservedCircuit I)
     (hP : observedWellFormed P) :
     observedWellFormed (liftObservedEnvironment (E := E) P) := by
@@ -93,6 +131,8 @@ theorem liftObservedEnvironment_wellFormed (P : ObservedCircuit I)
       exact ⟨observedEnvironment_projector_lift Q hP.1,
         ihFalse hP.2.1, ihTrue hP.2.2⟩
 
+/-- Tensoring the complementary system projector with the environment identity equals the
+complement of the lifted matrix. -/
 private theorem observedEnvironment_complement (Q : Matrix I I ℂ) :
     TensorGate (1 - Q) (1 : Matrix E E ℂ) =
       1 - TensorGate Q (1 : Matrix E E ℂ) := by
@@ -106,6 +146,8 @@ private theorem observedEnvironment_complement (Q : Matrix I I ℂ) :
     simp only [tensorGate_apply, Matrix.sub_apply, sub_mul]
   simpa only [tensorGate_one] using h
 
+/-- Selecting a binary measurement branch commutes with tensoring its system matrix with the
+environment identity. -/
 private theorem observedEnvironment_selector (Q : Matrix I I ℂ)
     (outcome : Bool) :
     (if outcome then TensorGate Q (1 : Matrix E E ℂ)
@@ -115,6 +157,8 @@ private theorem observedEnvironment_selector (Q : Matrix I I ℂ)
   | false => exact (observedEnvironment_complement Q).symm
   | true => rfl
 
+/-- A gate on the system component commutes with an arbitrary matrix acting on the environment
+component. -/
 private theorem observedEnvironment_gate_commute (G : Matrix I I ℂ)
     (W : Matrix E E ℂ) (psi : QState (I × E)) :
     ApplyGate (TensorGate G (1 : Matrix E E ℂ))
@@ -123,6 +167,8 @@ private theorem observedEnvironment_gate_commute (G : Matrix I I ℂ)
         (ApplyGate (TensorGate G (1 : Matrix E E ℂ)) psi) := by
   simp_rw [← applyGate_mul, tensorGate_mul, Matrix.mul_one, Matrix.one_mul]
 
+/-- The projector for a label depending only on the system coordinate is the corresponding
+system projector tensored with the environment identity. -/
 private theorem observedEnvironment_label_projector {n : ℕ}
     (label : I → Fin n) (o : Fin n) :
     Projector (Finset.univ.filter (fun x : I × E => label x.1 = o)) =
@@ -136,6 +182,7 @@ private theorem observedEnvironment_label_projector {n : ℕ}
     simp [Projector, tensorGate_apply, Matrix.diagonal_apply,
       Matrix.one_apply, Prod.mk.injEq, hij, hab]
 
+/-- Collapsing on a system label commutes with applying a matrix to the environment component. -/
 private theorem observedEnvironment_collapse_commute {n : ℕ}
     (label : I → Fin n) (o : Fin n) (W : Matrix E E ℂ)
     (psi : QState (I × E)) :
@@ -148,6 +195,8 @@ private theorem observedEnvironment_collapse_commute {n : ℕ}
     observedEnvironment_gate_commute
       (Projector (Finset.univ.filter (fun i : I => label i = o))) W psi
 
+/-- A branch of a lifted binary projective measurement commutes with a matrix acting on the
+environment component. -/
 private theorem observedEnvironment_project_commute (Q : Matrix I I ℂ)
     (W : Matrix E E ℂ) (outcome : Bool) (psi : QState (I × E)) :
     ProjectiveBranch (TensorGate Q (1 : Matrix E E ℂ)) outcome
@@ -157,6 +206,9 @@ private theorem observedEnvironment_project_commute (Q : Matrix I I ℂ)
   simpa only [ProjectiveBranch, observedEnvironment_selector] using
     observedEnvironment_gate_commute (if outcome then Q else 1 - Q) W psi
 
+/-- An oracle intertwining relation through the environment matrix extends to the complete
+observed execution. The resulting branch list is obtained by applying `environmentTrace W`
+to each trace of the second execution. -/
 theorem observed_environment_intertwining (W : Matrix E E ℂ)
     (A B : Matrix (I × E) (I × E) ℂ)
     (hAB : A * TensorGate (1 : Matrix I I ℂ) W =
@@ -227,6 +279,8 @@ theorem observed_environment_intertwining (W : Matrix E E ℂ)
             (ihTrue
               (ProjectiveBranch (TensorGate Q (1 : Matrix E E ℂ)) true psi)))
 
+/-- Taking a fixed environment slice after a lifted system gate agrees with applying the
+original gate to that slice. -/
 private theorem observedEnvironment_gate_slice (G : Matrix I I ℂ)
     (psi : QState (I × E)) (a : E) :
     (fun i => ApplyGate (TensorGate G (1 : Matrix E E ℂ)) psi (i, a)) =
@@ -238,6 +292,8 @@ private theorem observedEnvironment_gate_slice (G : Matrix I I ℂ)
   intro j _
   simp [mul_ite, ite_mul]
 
+/-- The slice at environment coordinate `a` of a hidden table oracle application is the
+application of `O a` to the corresponding input slice. -/
 private theorem observedEnvironment_oracle_slice (O : E → Matrix I I ℂ)
     (psi : QState (I × E)) (a : E) :
     (fun i => ApplyGate (hiddenTableOracle O) psi (i, a)) =
@@ -249,6 +305,8 @@ private theorem observedEnvironment_oracle_slice (O : E → Matrix I I ℂ)
   intro j _
   simp [ite_mul]
 
+/-- Taking an environment slice commutes with collapse onto an outcome determined by the system
+label. -/
 private theorem observedEnvironment_collapse_slice {n : ℕ}
     (label : I → Fin n) (o : Fin n) (psi : QState (I × E)) (a : E) :
     (fun i => Collapse psi
@@ -258,6 +316,8 @@ private theorem observedEnvironment_collapse_slice {n : ℕ}
   funext i
   simp only [collapse_apply, Finset.mem_filter, Finset.mem_univ, true_and]
 
+/-- An environment slice of a lifted binary measurement branch equals the original measurement
+branch applied to that slice. -/
 private theorem observedEnvironment_project_slice (Q : Matrix I I ℂ)
     (outcome : Bool) (psi : QState (I × E)) (a : E) :
     (fun i =>
@@ -266,6 +326,8 @@ private theorem observedEnvironment_project_slice (Q : Matrix I I ℂ)
   simpa only [ProjectiveBranch, observedEnvironment_selector] using
     observedEnvironment_gate_slice (if outcome then Q else 1 - Q) psi a
 
+/-- Slicing every trace of a lifted execution under a hidden table oracle gives exactly the
+traces under the selected oracle block on the sliced input state. -/
 theorem observed_hiddenTable_slices (O : E → Matrix I I ℂ)
     (P : ObservedCircuit I) (psi : QState (I × E)) (a : E) :
     (observedTraces (hiddenTableOracle O)
@@ -317,6 +379,7 @@ theorem observed_hiddenTable_slices (O : E → Matrix I I ℂ)
       rw [observedEnvironment_project_slice] at h
       simpa only [List.map_map, Function.comp_def, sliceEnvironmentTrace] using h
 
+/-- A hidden table oracle is unitary whenever each of its oracle blocks is unitary. -/
 theorem hiddenTableOracle_unitary (O : E → Matrix I I ℂ)
     (hO : ∀ a, O a ∈ Matrix.unitaryGroup I ℂ) :
     hiddenTableOracle O ∈ Matrix.unitaryGroup (I × E) ℂ := by

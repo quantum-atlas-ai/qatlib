@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportStat
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
 import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+
+/-!
+# Transport past stopped stages
+
+This module proves `Clause4StoppedStageTransport_answer`. A unitary fixing a stopped projector
+has a block decomposition with identity on the stopped subspace; later legal stages commute with
+earlier potentials. Consequently suffix evolution preserves the earlier potential norm and plain
+potential amplitudes decrease along the clock.
+
+Stopped-subspace transport supports the clock model for variable-time amplification
+[Ambainis2012]. For controlled unitaries and stopped-stage transport, see [LowSu2026].
+
+## Main statements
+
+* `Clause4StoppedStageTransport_answer`: Proves stopped-subspace identities, potential
+  transport, and amplitude monotonicity.
+
+## References
+
+* [Ambainis, 2012][Ambainis2012]
+* [Low and Su, 2026][LowSu2026]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,6 +50,8 @@ namespace Qatlib.Concepts.QlsReadoutSpec.Amplification
 open Matrix Qatlib.Concepts.QlsReadoutSpec.Amplification
 open scoped Classical BigOperators ComplexOrder
 
+/-- The product of the conjugate of a complex scalar with itself equals the complex cast of its
+squared norm. -/
 private theorem star_mul_self_coe (z : ℂ) :
     star z * z = (((‖z‖ ^ 2 : ℝ) : ℂ)) := by
   rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self]
@@ -34,11 +59,14 @@ private theorem star_mul_self_coe (z : ℂ) :
     (Complex.norm_mul_self_eq_normSq z).symm.trans (pow_two ‖z‖).symm
   rw [h]
 
+/-- The squared vector norm is the sum of squared coordinate norms. -/
 private theorem normVec_sq {H : Type} [Fintype H] (v : H → ℂ) :
     normVec v ^ 2 = ∑ i, ‖v i‖ ^ 2 := by
   show ‖toEuclidean_fromVec v‖ ^ 2 = _
   exact norm_toEuclidean_fromVec_sq v
 
+/-- The conjugate dot product of a vector with itself equals the complex cast of its squared
+norm. -/
 private theorem star_dotProduct_self {H : Type} [Fintype H] (u : H → ℂ) :
     star u ⬝ᵥ u = (((normVec u) ^ 2 : ℝ) : ℂ) := by
   have hpt : ∀ i : H, star (u i) * (u i) = (((‖u i‖ ^ 2 : ℝ) : ℂ)) := fun i =>
@@ -47,6 +75,7 @@ private theorem star_dotProduct_self {H : Type} [Fintype H] (u : H → ℂ) :
   simp only [Pi.star_apply]
   rw [Finset.sum_congr rfl fun i _ => hpt i, ← Complex.ofReal_sum, normVec_sq]
 
+/-- Applying a unitary matrix preserves `normVec`. -/
 private theorem normVec_unitary_mulVec {H : Type} [Fintype H] [DecidableEq H]
     {U : Matrix H H ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ) (v : H → ℂ) :
     normVec (U *ᵥ v) = normVec v := by
@@ -61,15 +90,20 @@ private theorem normVec_unitary_mulVec {H : Type} [Fintype H] [DecidableEq H]
   exact le_antisymm (le_of_sq_le_sq h2.le (norm_nonneg _))
     (le_of_sq_le_sq h2.ge (norm_nonneg _))
 
+/-- The forward call to oracle slot `i`, controlled on all values of the one-dimensional clock. -/
 private def callStep {H : Type} (i : ℕ) : Qatlib.Concepts.QlsReadoutSpec.Amplification.Step H 1 :=
     .call i Finset.univ false
 
+/-- The word of forward oracle calls corresponding to a list of slot indices. -/
 private def callWord {H : Type} (is : List ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 1 := is.map callStep
 
+/-- The empty word is interpreted as the identity matrix. -/
 private theorem wordMatrix_nil' {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) : wordMatrix U ([] : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 1) = 1 := rfl
 
+/-- Prepending an oracle call to a word multiplies its matrix interpretation on the right by the
+fully controlled oracle matrix. -/
 private theorem wordMatrix_cons_call {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (i : ℕ) (C : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 1) :
     wordMatrix U (callStep i :: C) = wordMatrix U C * controlled (U i) Finset.univ := by
@@ -78,6 +112,8 @@ private theorem wordMatrix_cons_call {H : Type} [Fintype H] [DecidableEq H]
     List.prod_nil, mul_one]
   rfl
 
+/-- A fully controlled oracle applied to a clean state equals the clean embedding of the
+oracle-applied data state. -/
 private theorem controlled_univ_clean {H : Type} [Fintype H] [DecidableEq H]
     (U : Matrix H H ℂ) (ψ : QState H) (hr : 0 < 1) :
     controlled U Finset.univ *ᵥ clean 1 hr ψ = clean 1 hr (U *ᵥ ψ) := by
@@ -104,6 +140,7 @@ private theorem controlled_univ_clean {H : Type} [Fintype H] [DecidableEq H]
   show (∑ h' : H, U h h' * ψ h') = (U *ᵥ ψ) h
   rfl
 
+/-- A call word acts on clean states by the reverse matrix product of the listed oracles. -/
 private theorem wordMatrix_callWord_clean {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (is : List ℕ) (hr : 0 < 1) :
     ∀ ψ : QState H, wordMatrix U (callWord (H := H) is) *ᵥ clean 1 hr ψ
@@ -126,6 +163,8 @@ private theorem wordMatrix_callWord_clean {H : Type} [Fintype H] [DecidableEq H]
     rw [List.map_cons, List.reverse_cons, List.prod_append, List.prod_cons,
       List.prod_nil, mul_one]
 
+/-- The clock state of a call word is the reverse product of its oracle matrices applied to the
+input. -/
 private theorem clockState_callWord {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (is : List ℕ) (ψ : QState H) :
     clockState U (callWord (H := H) is) ψ = (is.map U).reverse.prod *ᵥ ψ := by
@@ -139,6 +178,7 @@ private theorem clockState_callWord {H : Type} [Fintype H] [DecidableEq H]
       = (wordMatrix U (callWord is) *ᵥ clean 1 (by omega) ψ) (h, 0) := rfl
   rw [key, hrun, hclean]
 
+/-- A reverse product of unitary oracle matrices is unitary. -/
 private theorem callWord_prod_unitary {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (is : List ℕ)
     (hU : ∀ i ∈ is, U i ∈ Matrix.unitaryGroup H ℂ) :
@@ -149,6 +189,8 @@ private theorem callWord_prod_unitary {H : Type} [Fintype H] [DecidableEq H]
   obtain ⟨i, hi, rfl⟩ := hm
   exact hU i hi
 
+/-- A matrix commuting with every oracle in a call list also commutes with their reverse
+product. -/
 private theorem comm_callWord_prod {H : Type} [Fintype H] [DecidableEq H]
     (pot : Matrix H H ℂ) (U : ℕ → Matrix H H ℂ) (is : List ℕ)
     (hc : ∀ i ∈ is, pot * U i = U i * pot) :
@@ -165,6 +207,8 @@ private theorem comm_callWord_prod {H : Type} [Fintype H] [DecidableEq H]
       List.prod_nil, mul_one]
     rw [← mul_assoc, ih', mul_assoc, hci, ← mul_assoc]
 
+/-- An initial natural-number range splits into a shorter prefix and its shifted suffix when `j
+≤ k`. -/
 private theorem range_split (j k : ℕ) (hjk : j ≤ k) :
     List.range (k + 1) = List.range (j + 1) ++ (List.range (k - j)).map (fun i => j + i + 1) := by
   have hk : k + 1 = (j + 1) + (k - j) := by omega
@@ -172,6 +216,8 @@ private theorem range_split (j k : ℕ) (hjk : j ≤ k) :
   congr 1
   exact List.map_congr_left fun i _ => by omega
 
+/-- For `j ≤ k`, the plain prefix through `k` is the prefix through `j` followed by the suffix
+word. -/
 private theorem plainPrefix_eq_append {H : Type} (j k : ℕ) (hjk : j ≤ k) :
     plainPrefix (H := H) k = plainPrefix j ++ suffixWord j k := by
   show (List.range (k + 1)).map _ = (List.range (j + 1)).map _ ++ (List.range (k - j)).map _
@@ -179,15 +225,20 @@ private theorem plainPrefix_eq_append {H : Type} (j k : ℕ) (hjk : j ≤ k) :
   simp only [List.map_map]
   rfl
 
+/-- The suffix word is the call word for the consecutive indices from `j + 1` through `k`. -/
 private theorem suffixWord_eq_callWord {H : Type} (j k : ℕ) :
     suffixWord (H := H) j k = callWord ((List.range (k - j)).map (fun i => j + i + 1)) := by
   unfold suffixWord callWord callStep
   rw [List.map_map]
   rfl
 
+/-- The plain prefix through `j` is the call word for the natural-number range of length `j +
+1`. -/
 private theorem plainPrefix_eq_callWord {H : Type} (j : ℕ) :
     plainPrefix (H := H) j = callWord (List.range (j + 1)) := rfl
 
+/-- For `j ≤ k`, the plain clock state through `k` is the suffix evolution of the plain clock
+state through `j`. -/
 private theorem clockState_plainPrefix_suffix {H : Type} [Fintype H] [DecidableEq H]
     (U : ℕ → Matrix H H ℂ) (j k : ℕ) (hjk : j ≤ k) (ω : QState H) :
     clockState U (plainPrefix (H := H) k) ω
@@ -207,11 +258,16 @@ private theorem clockState_plainPrefix_suffix {H : Type} [Fintype H] [DecidableE
   rw [show suffixState U j k = clockState U (suffixWord j k) from rfl,
     suffixWord_eq_callWord, clockState_callWord]
 
+/-- The extended clock evaluated at a finite clock index equals the original clock projector
+there. -/
 private theorem extendClock_eq {H : Type} (m : ℕ) (P : Fin (m + 1) → Matrix H H ℂ)
     (j : Fin (m + 1)) : extendClock m P j.val = P j := by
   unfold extendClock
   rw [dif_pos (Nat.le_of_lt_succ j.isLt)]
 
+/-- Establishes the stopped-projector identities, preservation of earlier potential norms by
+suffixes, and monotonicity of plain amplitudes stated in `Clause4StoppedStageTransport`. See
+[Low and Su, Lemma 13 and Proposition 14][LowSu2026]. -/
 theorem Clause4StoppedStageTransport_answer : Clause4StoppedStageTransport := by
   refine ⟨?_, ?_⟩
   · intro H _ _ P U hP hU

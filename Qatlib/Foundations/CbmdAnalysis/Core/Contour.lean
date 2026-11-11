@@ -8,6 +8,24 @@ import Mathlib.Analysis.Complex.CauchyIntegral
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Ring
 
+/-!
+# Circle integrals with two simple poles
+
+This module evaluates vector-valued circle integrals with two distinct simple poles inside a
+disk. The special choice of poles zero and `I` gives a normalized difference of numerator
+values, providing a basic linear-regulator instance of the contour decomposition in
+[WangEtAl2026].
+
+## Main statements
+
+* `circleIntegral_two_simple_poles`: evaluates the integral through the difference `F a - F b`.
+* `cbmd_linear_regulator_circle`: the normalized linear-regulator integral equals `F I - F 0`.
+
+## References
+
+* [Wang et al., 2026][WangEtAl2026]
+-/
+
 namespace Qatlib.Foundations.CbmdAnalysis.Core
 
 set_option autoImplicit false
@@ -21,6 +39,9 @@ open scoped ComplexConjugate
 
 variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℂ E] [CompleteSpace E]
 
+/-- For a numerator complex differentiable on a disk and continuous on its closure, and distinct
+interior poles `a` and `b`, the circle integral of `F z / ((z - a) * (z - b))` equals `(2πI
+/ (a - b)) • (F a - F b)`. -/
 theorem circleIntegral_two_simple_poles {F : ℂ → E} {c a b : ℂ} {R : ℝ}
     (hF : DiffContOnCl ℂ F (ball c R))
     (ha : a ∈ ball c R) (hb : b ∈ ball c R) (hab : a ≠ b) :
@@ -55,6 +76,9 @@ theorem circleIntegral_two_simple_poles {F : ℂ → E} {c a b : ℂ} {R : ℝ}
   congr 1
   ring
 
+/-- If zero and `I` lie inside the disk and the numerator is complex differentiable there and
+continuous on its closure, the normalized circle integral with scalar kernel `I / ((z - I) *
+z)` equals `F I - F 0`. -/
 theorem cbmd_linear_regulator_circle {F : ℂ → E} {c : ℂ} {R : ℝ}
     (hF : DiffContOnCl ℂ F (ball c R))
     (hi : I ∈ ball c R) (hzero : (0 : ℂ) ∈ ball c R) :

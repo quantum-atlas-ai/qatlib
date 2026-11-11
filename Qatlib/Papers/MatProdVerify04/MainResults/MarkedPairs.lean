@@ -13,6 +13,24 @@ import Mathlib.Data.Finset.BooleanAlgebra
 import Mathlib.Data.Nat.Choose.Bounds
 import Mathlib.Data.Nat.Factorial.BigOperators
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+/-!
+# Uniform marked subsets and windows
+
+`uniformOn`, `uniformSubset`, and `uniformWindow` describe uniform sampling from finite sets and
+rectangular windows. Exact counts for avoiding a fixed set lead to `fixed_window_hit` and the
+averaged marked window estimate `lemma8_average`. The paper context is [BuhrmanSpalek2006].
+
+## Main statements
+
+* `uniformSubset_avoid_mass`: exact avoidance probability as a binomial ratio.
+* `lemma8_average`: average lower bound for a uniform error set of fixed size.
+
+## References
+
+* [Buhrman and Špalek, 2006][BuhrmanSpalek2006]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -24,6 +42,7 @@ open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.ProbabilityCore.Concentration
 set_option warningAsError false
 
+/-- The uniform distribution on the nonempty finite set `S`, with zero mass outside `S`. -/
 def uniformOn {α : Type*} [Fintype α] [DecidableEq α] (S : Finset α)
     (hS : S.Nonempty) : FinDist α where
   prob a := if a ∈ S then ((S.card : ℝ))⁻¹ else 0
@@ -45,6 +64,8 @@ def uniformOn {α : Type*} [Fintype α] [DecidableEq α] (S : Finset α)
     rw [hsum, Finset.sum_const, nsmul_eq_mul]
     exact mul_inv_cancel₀ hcard.ne'
 
+/-- The mass of an event under `uniformOn S hS` is the fraction of elements of `S` satisfying
+it. -/
 theorem uniformOn_eventMass {α : Type*} [Fintype α] [DecidableEq α]
     (S : Finset α) (hS : S.Nonempty) (E : α → Prop) [DecidablePred E] :
     eventMass (uniformOn S hS) E = ((S.filter E).card : ℝ) / (S.card : ℝ) := by
@@ -66,17 +87,21 @@ theorem uniformOn_eventMass {α : Type*} [Fintype α] [DecidableEq α]
     simp [and_comm]
   rw [hfilter, Finset.sum_const, nsmul_eq_mul, div_eq_mul_inv]
 
+/-- An element outside `S` has zero probability under the uniform distribution on `S`. -/
 theorem uniformOn_prob_notMem {α : Type*} [Fintype α] [DecidableEq α]
     (S : Finset α) (hS : S.Nonempty) {a : α} (ha : a ∉ S) :
     (uniformOn S hS).prob a = 0 := by
   simp only [uniformOn]
   rw [if_neg ha]
 
+/-- The uniform distribution on all `t`-element subsets of the finite type `V`. -/
 def uniformSubset {V : Type*} [Fintype V] [DecidableEq V] (t : ℕ)
     (ht : t ≤ Fintype.card V) : FinDist (Finset V) :=
   uniformOn ((Finset.univ : Finset V).powersetCard t)
     (Finset.powersetCard_nonempty.mpr (by simpa using! ht))
 
+/-- The uniform distribution on pairs consisting of an `r`-element row subset and an `s`-element
+column subset. -/
 def uniformWindow {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [Fintype Col] [DecidableEq Col] (r s : ℕ)
     (hr : r ≤ Fintype.card Row) (hs : s ≤ Fintype.card Col) :
@@ -86,9 +111,13 @@ def uniformWindow {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     ((Finset.powersetCard_nonempty.mpr (by simpa using! hr)).product
       (Finset.powersetCard_nonempty.mpr (by simpa using! hs)))
 
+/-- The set of positions in the rectangular window determined by a row subset and a column
+subset. -/
 def windowCells {Row Col : Type*} (RS : Finset Row × Finset Col) : Finset (Row × Col) :=
   RS.1 ×ˢ RS.2
 
+/-- The `t`-element subsets disjoint from `B` are precisely the `t`-element subsets of its
+complement. -/
 theorem powersetCard_filter_disjoint {V : Type*} [Fintype V] [DecidableEq V]
     (B : Finset V) (t : ℕ) :
     ((Finset.univ : Finset V).powersetCard t).filter (fun W => Disjoint W B)
@@ -110,6 +139,7 @@ theorem powersetCard_filter_disjoint {V : Type*} [Fintype V] [DecidableEq V]
     rw [Finset.mem_sdiff] at hmem
     exact hmem.2 hxB
 
+/-- There are `choose (Fintype.card V - B.card) t` subsets of size `t` disjoint from `B`. -/
 theorem card_powersetCard_filter_disjoint {V : Type*} [Fintype V] [DecidableEq V]
     (B : Finset V) (t : ℕ) :
     (((Finset.univ : Finset V).powersetCard t).filter (fun W => Disjoint W B)).card
@@ -120,6 +150,8 @@ theorem card_powersetCard_filter_disjoint {V : Type*} [Fintype V] [DecidableEq V
   rw [Finset.card_sdiff]
   simp
 
+/-- The probability that a uniform `t`-element subset avoids `B` is the ratio `choose
+(Fintype.card V - B.card) t / choose (Fintype.card V) t`. See [BuhrmanSpalek2006]. -/
 theorem uniformSubset_avoid_mass {V : Type*} [Fintype V] [DecidableEq V]
     (t : ℕ) (ht : t ≤ Fintype.card V) (B : Finset V) :
     eventMass (uniformSubset (V := V) t ht) (fun W => Disjoint W B)
@@ -130,6 +162,8 @@ theorem uniformSubset_avoid_mass {V : Type*} [Fintype V] [DecidableEq V]
     card_powersetCard_filter_disjoint B t, Finset.card_powersetCard,
     Finset.card_univ]
 
+/-- For positive `N` and `m ≤ N`, bounds the binomial avoidance ratio by `(1 - m / N) ^ t`. See
+[BuhrmanSpalek2006]. -/
 theorem choose_ratio_le_pow (N m t : ℕ) (hN : 0 < N) (hm : m ≤ N) :
     ((N - m).choose t : ℝ) / (N.choose t : ℝ) ≤ (1 - (m : ℝ) / N) ^ t := by
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast hN
@@ -215,6 +249,8 @@ theorem choose_ratio_le_pow (N m t : ℕ) (hN : 0 < N) (hm : m ≤ N) :
           congr 1
           field_simp
 
+/-- If `t * B.card ≤ Fintype.card V` in a nonempty universe, a uniform `t`-element subset meets
+`B` with probability at least `t * B.card / (2 * Fintype.card V)`. See [BuhrmanSpalek2006]. -/
 theorem fixed_window_hit {V : Type*} [Fintype V] [DecidableEq V]
     (t : ℕ) (ht : t ≤ Fintype.card V) (B : Finset V) (hB : B.card ≤ Fintype.card V)
     (hN : 0 < Fintype.card V)
@@ -241,6 +277,9 @@ theorem fixed_window_hit {V : Type*} [Fintype V] [DecidableEq V]
   rw [hrewrite]
   linarith [hratio, hgeo]
 
+/-- When `t * r * s` is at most the number of matrix positions, the expected mass of windows
+meeting a uniform `t`-element error set is at least `t * r * s` divided by twice the number
+of positions. See [BuhrmanSpalek2006]. -/
 theorem lemma8_average {Row Col : Type*} [Fintype Row] [DecidableEq Row]
     [Fintype Col] [DecidableEq Col] (r s t : ℕ)
     (hr : r ≤ Fintype.card Row) (hs : s ≤ Fintype.card Col)

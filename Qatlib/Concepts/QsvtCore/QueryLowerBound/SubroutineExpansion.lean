@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QueryWordCore.AdjointCircuits
+
+/-!
+# Expansion of adjoint oracle subroutines
+
+This module expands oracle calls into an adjoint circuit body and repeats circuit words. The
+syntax, evaluation, well-formedness, and exact cost identities make subroutine accounting
+explicit for quantum query constructions such as those in [GilyenSuLowWiebe2019].
+
+## Main statements
+
+* `substitute_adjoint_syntax_laws`: Substitution respects concatenation and circuit adjoints.
+* `substitute_adjoint_evaluate_cost`: Evaluation and exact costs after substituting a body.
+* `repeat_adjoint_word_semantics_cost`: Matrix powers and linear costs for repeated words.
+
+## References
+
+* [Gilyén et al., 2019][GilyenSuLowWiebe2019]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -21,6 +40,8 @@ open Matrix
 
 variable {H : Type}
 
+/-- Replace forward oracle calls by `body` and backward calls by its adjoint, retaining fixed
+gates. -/
 noncomputable def substituteAdjointCircuit [Fintype H] [DecidableEq H]
     (body cs : List (AdjointStep H)) : List (AdjointStep H) :=
   cs.flatMap fun
@@ -28,9 +49,11 @@ noncomputable def substituteAdjointCircuit [Fintype H] [DecidableEq H]
     | .forward => body
     | .backward => Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit body
 
+/-- Concatenate `n` copies of the adjoint circuit word `cs`. -/
 def repeatAdjointWord (cs : List (AdjointStep H)) (n : ℕ) : List (AdjointStep H) :=
   (List.replicate n cs).flatten
 
+/-- Substitution expands the head instruction and appends the substituted tail. -/
 theorem substituteAdjointCircuit_cons [Fintype H] [DecidableEq H]
     (body : List (AdjointStep H)) (c : AdjointStep H) (cs : List (AdjointStep H)) :
     substituteAdjointCircuit body (c :: cs) =
@@ -40,6 +63,8 @@ theorem substituteAdjointCircuit_cons [Fintype H] [DecidableEq H]
         | .backward => Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit body) ++ substituteAdjointCircuit body cs :=
   rfl
 
+/-- Substitution distributes over word concatenation and commutes with taking the circuit
+adjoint. -/
 theorem substitute_adjoint_syntax_laws [Fintype H] [DecidableEq H]
     (body cs ds : List (AdjointStep H)) :
     substituteAdjointCircuit body (cs ++ ds) =
@@ -68,6 +93,9 @@ theorem substitute_adjoint_syntax_laws [Fintype H] [DecidableEq H]
           congr 1
           exact List.flatMap_append.symm
 
+/-- Substitution evaluates as an oracle call to the evaluated body, multiplies query counts, and
+adds the body's gate costs once per outer query. It preserves well-formedness when the body
+and outer word are well formed. -/
 theorem substitute_adjoint_evaluate_cost [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (body cs : List (AdjointStep H)) :
     evaluate O (substituteAdjointCircuit body cs) = evaluate (evaluate O body) cs ∧
@@ -104,6 +132,8 @@ theorem substitute_adjoint_evaluate_cost [Fintype H] [DecidableEq H]
     | forward => exact hbody _ hmem
     | backward => exact hbody.adjointCircuit _ hmem
 
+/-- Repeating a word evaluates to the corresponding matrix power and multiplies query and gate
+counts by `n`. Repetition preserves well-formedness. -/
 theorem repeat_adjoint_word_semantics_cost [Fintype H] [DecidableEq H]
     (O : Matrix H H ℂ) (cs : List (AdjointStep H)) (n : ℕ) :
     evaluate O (repeatAdjointWord cs n) = (evaluate O cs) ^ n ∧

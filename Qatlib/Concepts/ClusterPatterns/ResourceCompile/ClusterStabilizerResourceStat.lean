@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.ClusterPatterns.ClusterCompile.IsingClusterPulseCompilationStat
+
+/-!
+# Cluster stabilizer resource specification
+
+`ClusterStabilizerResource` packages normalization, stabilizer eigenvalues, and frame-word
+transport for a finite ordered graph. It distinguishes the incoming-parity eigenvalues of
+`sourceResource` from the positive stabilizer eigenvalues of `czResource`, following the
+graph-resource setting of [RaussendorfBriegel2000].
+
+## Main statements
+
+* `ClusterStabilizerResource`: the source and CZ resource properties and their frame-word
+  relation.
+
+## References
+
+* [Raussendorf and Briegel, 2000][RaussendorfBriegel2000]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -15,6 +34,8 @@ open Qatlib.Concepts.MbqcFlow.FlowDecision Qatlib.Foundations.PureStateMath
 namespace Qatlib.Concepts.ClusterPatterns.ResourceCompile
 open Qatlib
 
+/-- The proposition that ordered graph source and CZ resources are normalized, have the
+specified stabilizer eigenvalues, and are related by execution of the frame word. -/
 def ClusterStabilizerResource : Prop :=
   ∀ (n : ℕ) (edges : Finset (Fin n × Fin n)),
     (∀ e ∈ edges, e.1 < e.2) →

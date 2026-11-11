@@ -6,6 +6,30 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
 import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+
+/-!
+# Unbounded Boolean instrument loops
+
+This module defines the continuation, first-halting, and partial halting maps of a Boolean
+instrument loop. Their traces partition halted and pending mass, and their entrywise sums yield
+a completely positive, trace non-increasing terminal map.
+
+The stopping law `loopStoppingLaw` includes an explicit never-halting outcome. Its finite-time
+masses are first-halting traces, and its nontermination mass is the limit of pending mass. The
+instrument and completely positive map framework is described in [Watrous2018].
+
+## Main statements
+
+* `instrument_loop_finite_complete_positivity`: proves positivity properties of finite maps.
+* `instrument_loop_terminal_cp_map_actual_limit`: constructs the terminal map as a limit.
+* `instrument_loop_stopping_law_and_never_mass`: identifies the stopping and nontermination
+  masses.
+
+## References
+
+* [Watrous, 2018][Watrous2018]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -23,6 +47,7 @@ set_option linter.unusedSectionVars false
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 
+/-- A sequence of finite complex matrices converges exactly when each matrix entry converges. -/
 theorem tendsto_matrix_iff_entrywise {m n : Type} [Fintype m] [Fintype n]
     {f : ℕ → Matrix m n ℂ} {g : Matrix m n ℂ} :
     Filter.Tendsto f Filter.atTop (nhds g) ↔
@@ -36,6 +61,8 @@ theorem tendsto_matrix_iff_entrywise {m n : Type} [Fintype m] [Fintype n]
       tendsto_pi_nhds.2 fun i => tendsto_pi_nhds.2 fun j => h i j
     exact key
 
+/-- The traces of a convergent sequence of finite complex square matrices converge to the trace
+of the limit. -/
 theorem tendsto_matrix_trace {m : Type} [Fintype m]
     {f : ℕ → Matrix m m ℂ} {g : Matrix m m ℂ}
     (h : Filter.Tendsto f Filter.atTop (nhds g)) :
@@ -44,6 +71,8 @@ theorem tendsto_matrix_trace {m : Type} [Fintype m]
     (tendsto_matrix_iff_entrywise).mp h
   exact tendsto_finsetSum _ fun i _ => he i i
 
+/-- A finite sum of complex series with specified sums has sum equal to the finite sum of those
+sums. -/
 theorem hasSum_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℕ → ℂ) (g : ι → ℂ)
     (h : ∀ p ∈ s, HasSum (f p) (g p)) :
     HasSum (fun k => ∑ p ∈ s, f p k) (∑ p ∈ s, g p) := by
@@ -55,6 +84,7 @@ theorem hasSum_finset_sum {ι : Type} (s : Finset ι) (f : ι → ℕ → ℂ) (
       exact (h p (Finset.mem_insert_self p s)).add
         (ih fun q hq => h q (Finset.mem_insert_of_mem hq))
 
+/-- A nonnegative complex number equals the embedding of its real part. -/
 private theorem complex_eq_ofReal_of_nonneg {z : ℂ} (hz : 0 ≤ z) : z = ((z.re : ℂ)) := by
   obtain ⟨hre, him⟩ := RCLike.nonneg_iff.mp hz
   refine Complex.ext ?_ ?_
@@ -62,18 +92,24 @@ private theorem complex_eq_ofReal_of_nonneg {z : ℂ} (hz : 0 ≤ z) : z = ((z.r
   · rw [Complex.ofReal_im]
     exact him
 
+/-- The real part of the product of two embedded real numbers is their real product. -/
 private theorem re_ofReal_mul (t B : ℝ) : ((((t : ℝ) : ℂ)) * ((B : ℂ))).re = t * B := by
   rw [Complex.mul_re, Complex.ofReal_re, Complex.ofReal_re, Complex.ofReal_im,
     Complex.ofReal_im]
   ring
 
+/-- Taking the real part of the displayed difference of embedded real products gives `a - t *
+B`. -/
 private theorem re_ofReal_sub_mul (a t B : ℝ) :
     ((((a : ℝ) : ℂ)) - ((t : ℝ) : ℂ) * ((B : ℂ))).re = a - t * B := by
   rw [Complex.sub_re, Complex.ofReal_re, re_ofReal_mul]
 
+/-- A nonnegative complex number has nonnegative real part. -/
 theorem complex_re_nonneg_of_le {z : ℂ} (hz : 0 ≤ z) : 0 ≤ z.re :=
   (RCLike.nonneg_iff.mp hz).1
 
+/-- In a positive semidefinite `2 × 2` matrix, the squared norm of the off-diagonal entry is at
+most the product of the real diagonal entries. -/
 private theorem posSemidef_two_abs_sq_le {S : Matrix (Fin 2) (Fin 2) ℂ} (hS : S.PosSemidef) :
     Complex.normSq (S 0 1) ≤ (S 0 0).re * (S 1 1).re := by
   classical
@@ -184,6 +220,8 @@ private theorem posSemidef_two_abs_sq_le {S : Matrix (Fin 2) (Fin 2) ℂ} (hS : 
     rw [han, Complex.sub_re, Complex.ofReal_re, hrediv] at hre
     exact (div_le_iff₀ hDpos).mp (by linarith : Complex.normSq (S 0 1) / d ≤ (S 0 0).re)
 
+/-- The squared norm of an entry of a positive semidefinite matrix is at most the product of its
+two real diagonal entries. -/
 theorem posSemidef_abs_sq_le {m : Type} [Fintype m] {N : Matrix m m ℂ}
     (hN : N.PosSemidef) (i j : m) :
     Complex.normSq (N i j) ≤ (N i i).re * (N j j).re := by
@@ -197,6 +235,8 @@ theorem posSemidef_abs_sq_le {m : Type} [Fintype m] {N : Matrix m m ℂ}
   have core := posSemidef_two_abs_sq_le hS
   rwa [hb, ha, hd] at core
 
+/-- The norm of any entry of a positive semidefinite operator is at most the real part of its
+trace. -/
 private theorem posSemidef_abs_entry_le_trace {D : ℕ} {N : Operator D}
     (hN : N.PosSemidef) (i j : Fin D) :
     ‖N i j‖ ≤ (Matrix.trace N).re := by
@@ -228,6 +268,8 @@ private theorem posSemidef_abs_entry_le_trace {D : ℕ} {N : Operator D}
 
 set_option maxHeartbeats 800000 in
 
+/-- The entrywise sum of a series of positive semidefinite matrices is positive semidefinite
+when every entry series is summable. -/
 theorem posSemidef_of_tsum_entries {m : Type} [Fintype m] {F : ℕ → Matrix m m ℂ}
     (hF : ∀ k, (F k).PosSemidef) (hs : ∀ i j, Summable fun k => F k i j) :
     (Matrix.of fun i j => ∑' k, F k i j).PosSemidef := by
@@ -297,30 +339,40 @@ theorem posSemidef_of_tsum_entries {m : Type} [Fintype m] {F : ℕ → Matrix m 
         ((RCLike.nonneg_iff.mp (hnonneg n)).2).symm
     exact RCLike.nonneg_iff.mpr ⟨hre, him⟩
 
+/-- The linear map for `n` consecutive false outcomes of a Boolean instrument, starting from the
+identity at `n = 0`. -/
 noncomputable def loopContinueMap {D : ℕ} (I : Instrument Bool D D) : ℕ → (Operator D →ₗ[ℂ] Operator D)
   | 0 => LinearMap.id
   | n + 1 => (I.branch false).comp (loopContinueMap I n)
 
+/-- The linear map for `n` consecutive false outcomes followed by a true outcome. -/
 noncomputable def loopHaltAt {D : ℕ} (I : Instrument Bool D D) (n : ℕ) : Operator D →ₗ[ℂ] Operator D :=
   (I.branch true).comp (loopContinueMap I n)
 
+/-- The sum of the first `n` first-halting maps, representing halting within those attempts. -/
 noncomputable def loopPartialMap {D : ℕ} (I : Instrument Bool D D) (n : ℕ) : Operator D →ₗ[ℂ] Operator D :=
   ∑ k ∈ Finset.range n, loopHaltAt I k
 
+/-- The zero-step continuation map is the identity. -/
 @[simp] theorem loopContinueMap_zero_apply {D : ℕ} (I : Instrument Bool D D) (X : Operator D) :
     loopContinueMap I 0 X = X := rfl
 
+/-- The continuation map at `n + 1` applies the false branch to the continuation map at `n`. -/
 @[simp] theorem loopContinueMap_succ_apply {D : ℕ} (I : Instrument Bool D D) (n : ℕ)
     (X : Operator D) :
     loopContinueMap I (n + 1) X = I.branch false (loopContinueMap I n X) := rfl
 
+/-- The first-halting map after `n` continuations applies the true branch to `loopContinueMap I
+n`. -/
 @[simp] theorem loopHaltAt_apply {D : ℕ} (I : Instrument Bool D D) (n : ℕ) (X : Operator D) :
     loopHaltAt I n X = I.branch true (loopContinueMap I n X) := rfl
 
+/-- The partial halting map equals the sum of the first `n` first-halting outputs. -/
 theorem loopPartialMap_apply {D : ℕ} (I : Instrument Bool D D) (n : ℕ) (X : Operator D) :
     loopPartialMap I n X = ∑ k ∈ Finset.range n, loopHaltAt I k X := by
   rw [loopPartialMap, LinearMap.sum_apply]
 
+/-- The finite continuation map preserves positive semidefiniteness. -/
 theorem loopContinueMap_posSemidef {D : ℕ} (I : Instrument Bool D D) (n : ℕ)
     {X : Operator D} (hX : X.PosSemidef) :
     (loopContinueMap I n X).PosSemidef := by
@@ -328,11 +380,13 @@ theorem loopContinueMap_posSemidef {D : ℕ} (I : Instrument Bool D D) (n : ℕ)
   | zero => simpa using hX
   | succ n ih => exact (I.cp false).positive (ih hX)
 
+/-- Each first-halting map preserves positive semidefiniteness. -/
 theorem loopHaltAt_posSemidef {D : ℕ} (I : Instrument Bool D D) (n : ℕ)
     {X : Operator D} (hX : X.PosSemidef) :
     (loopHaltAt I n X).PosSemidef :=
   (I.cp true).positive (loopContinueMap_posSemidef I n hX)
 
+/-- The partial halting map preserves positive semidefiniteness. -/
 theorem loopPartialMap_posSemidef {D : ℕ} (I : Instrument Bool D D) (n : ℕ)
     {X : Operator D} (hX : X.PosSemidef) :
     (loopPartialMap I n X).PosSemidef := by
@@ -347,6 +401,8 @@ theorem loopPartialMap_posSemidef {D : ℕ} (I : Instrument Bool D D) (n : ℕ)
       rw [hps]
       exact ih.add (loopHaltAt_posSemidef I n hX)
 
+/-- The traces of the true and false branch outputs of a Boolean instrument sum to the input
+trace. -/
 private theorem bool_branch_trace {D : ℕ} (I : Instrument Bool D D) (Y : Operator D) :
     Matrix.trace (I.branch true Y) + Matrix.trace (I.branch false Y) = Matrix.trace Y := by
   have hsumbool : (∑ o : Bool, I.branch o Y) = I.branch false Y + I.branch true Y := by
@@ -357,6 +413,8 @@ private theorem bool_branch_trace {D : ℕ} (I : Instrument Bool D D) (Y : Opera
     _ = Matrix.trace (∑ o : Bool, I.branch o Y) := by rw [← hsumbool]
     _ = Matrix.trace Y := I.total Y
 
+/-- The traces of the partial halting output and the remaining continuation output sum to the
+input trace. -/
 theorem loop_trace_partition {D : ℕ} (I : Instrument Bool D D) (n : ℕ) (X : Operator D) :
     Matrix.trace (loopPartialMap I n X) + Matrix.trace (loopContinueMap I n X)
       = Matrix.trace X := by
@@ -371,6 +429,8 @@ theorem loop_trace_partition {D : ℕ} (I : Instrument Bool D D) (n : ℕ) (X : 
         bool_branch_trace]
       exact ih X
 
+/-- Collects the continuation recursion, first-halting and partial-sum formulas, and the trace
+partition between halted and pending outputs. -/
 theorem instrument_loop_actual_first_halt_and_pending_maps :
     ∀ (D : ℕ) (I : Instrument Bool D D) (n : ℕ) (X : Operator D),
       loopContinueMap I 0 X = X ∧
@@ -381,6 +441,7 @@ theorem instrument_loop_actual_first_halt_and_pending_maps :
   intro D I n X
   exact ⟨rfl, rfl, rfl, loopPartialMap_apply I n X, loop_trace_partition I n X⟩
 
+/-- The zero linear map on operators is completely positive. -/
 private theorem completelyPositive_zero {D : ℕ} :
     CompletelyPositive (0 : Operator D →ₗ[ℂ] Operator D) := by
   intro r A hA
@@ -390,6 +451,7 @@ private theorem completelyPositive_zero {D : ℕ} :
   rw [hz]
   exact Matrix.PosSemidef.zero
 
+/-- The identity linear map on operators is completely positive. -/
 private theorem completelyPositive_id {D : ℕ} :
     CompletelyPositive (LinearMap.id : Operator D →ₗ[ℂ] Operator D) := by
   intro r A hA
@@ -399,16 +461,19 @@ private theorem completelyPositive_id {D : ℕ} :
   rw [hid]
   exact hA
 
+/-- Every finite continuation map is completely positive. -/
 theorem loopContinueMap_completelyPositive {D : ℕ} (I : Instrument Bool D D) (n : ℕ) :
     CompletelyPositive (loopContinueMap I n) := by
   induction n with
   | zero => exact completelyPositive_id
   | succ n ih => exact (I.cp false).comp ih
 
+/-- Every first-halting map is completely positive. -/
 theorem loopHaltAt_completelyPositive {D : ℕ} (I : Instrument Bool D D) (n : ℕ) :
     CompletelyPositive (loopHaltAt I n) :=
   (I.cp true).comp (loopContinueMap_completelyPositive I n)
 
+/-- Every partial halting map is completely positive. -/
 theorem loopPartialMap_completelyPositive {D : ℕ} (I : Instrument Bool D D) (n : ℕ) :
     CompletelyPositive (loopPartialMap I n) := by
   induction n with
@@ -424,6 +489,8 @@ theorem loopPartialMap_completelyPositive {D : ℕ} (I : Instrument Bool D D) (n
       rw [hps]
       exact ih.add (loopHaltAt_completelyPositive I n)
 
+/-- The continuation, first-halting, and partial halting maps are completely positive, and the
+partial halting map is trace non-increasing. -/
 theorem instrument_loop_finite_complete_positivity :
     ∀ (D : ℕ) (I : Instrument Bool D D) (n : ℕ),
       CompletelyPositive (loopContinueMap I n) ∧ CompletelyPositive (loopHaltAt I n) ∧
@@ -440,14 +507,19 @@ theorem instrument_loop_finite_complete_positivity :
     rw [← Complex.add_re, hpart]
   linarith
 
+/-- The coordinate vector equal to one at `i` and zero elsewhere. -/
 private def unitVector {D : ℕ} (i : Fin D) : Fin D → ℂ := Pi.single i 1
 
+/-- The outer product of `u` with its conjugate, yielding a positive semidefinite
+rank-at-most-one operator. -/
 private noncomputable def psdUnitVec {D : ℕ} (u : Fin D → ℂ) : Operator D := vecMulVec u (star u)
 
+/-- The operator `psdUnitVec u` is positive semidefinite. -/
 private theorem psdUnitVec_posSemidef {D : ℕ} (u : Fin D → ℂ) :
     (psdUnitVec u).PosSemidef :=
   Matrix.posSemidef_vecMulVec_self_star u
 
+/-- The `a` coordinate of `unitVector p` is one if `p = a` and zero otherwise. -/
 private theorem unitVector_apply {D : ℕ} (p a : Fin D) :
     unitVector p a = if p = a then (1 : ℂ) else 0 := by
   by_cases h : p = a
@@ -456,12 +528,15 @@ private theorem unitVector_apply {D : ℕ} (p a : Fin D) :
   · have h' : a ≠ p := fun he => h he.symm
     simp [unitVector, Pi.single_apply, h, h']
 
+/-- The `(a, b)` entry of `psdUnitVec u` is `u a` times the conjugate of `u b`. -/
 private theorem psdUnitVec_apply {D : ℕ} (u : Fin D → ℂ) (a b : Fin D) :
     psdUnitVec u a b = u a * (starRingEnd ℂ) (u b) := rfl
 
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 800000 in
 
+/-- Each matrix unit is a complex linear combination of four positive semidefinite outer
+products of coordinate vectors and their sums. -/
 private theorem matrixUnit_eq_pieces {D : ℕ} (p q : Fin D) :
     (Matrix.single p q (1 : ℂ) : Operator D) =
       (1 / 2 : ℂ) • psdUnitVec (unitVector p + unitVector q)
@@ -487,6 +562,7 @@ private theorem matrixUnit_eq_pieces {D : ℕ} (p q : Fin D) :
       refine Complex.ext ?_ ?_ <;> norm_num [Complex.add_re, Complex.mul_re,
         Complex.sub_re, Complex.add_im, Complex.mul_im, Complex.sub_im]
 
+/-- Every operator is the sum of matrix units scaled by its corresponding entries. -/
 private theorem eq_sum_matrixUnit {D : ℕ} (X : Operator D) :
     X = ∑ p : Fin D, ∑ q : Fin D,
       ((X p q : ℂ) • (Matrix.single p q (1 : ℂ) : Operator D)) := by
@@ -504,6 +580,7 @@ private theorem eq_sum_matrixUnit {D : ℕ} (X : Operator D) :
     (fun hb => absurd (Finset.mem_univ b) hb)]
   simp
 
+/-- A finite sum of summable complex sequences is summable. -/
 private theorem summable_finset_sum' {ι : Type} (s : Finset ι) (f : ι → ℕ → ℂ)
     (h : ∀ p ∈ s, Summable (f p)) : Summable fun k => ∑ p ∈ s, f p k := by
   classical
@@ -514,6 +591,8 @@ private theorem summable_finset_sum' {ι : Type} (s : Finset ι) (f : ι → ℕ
       exact (h p (Finset.mem_insert_self p s)).add
         (ih fun q hq => h q (Finset.mem_insert_of_mem hq))
 
+/-- Each entry of the first-halting outputs is summable over halting times for a positive
+semidefinite input. -/
 private theorem halt_entry_summable_psd {D : ℕ} (I : Instrument Bool D D)
     {P : Operator D} (hP : P.PosSemidef) (i j : Fin D) :
     Summable fun k => loopHaltAt I k P i j := by
@@ -536,6 +615,7 @@ private theorem halt_entry_summable_psd {D : ℕ} (I : Instrument Bool D D)
     linarith
   exact Summable.of_norm (hseries.of_nonneg_of_le (fun k => norm_nonneg _) hbound)
 
+/-- Each entry of the first-halting outputs is summable for a scalar multiple of `psdUnitVec u`. -/
 private theorem halt_entry_summable_unit {D : ℕ} (I : Instrument Bool D D) (c : ℂ)
     (u : Fin D → ℂ) (i j : Fin D) :
     Summable fun k => loopHaltAt I k (c • psdUnitVec u) i j := by
@@ -547,6 +627,7 @@ private theorem halt_entry_summable_unit {D : ℕ} (I : Instrument Bool D D) (c 
   rw [hEq]
   exact ((halt_entry_summable_psd I (psdUnitVec_posSemidef u) i j).hasSum.mul_left c).summable
 
+/-- Each entry of the first-halting outputs is summable for a scalar multiple of a matrix unit. -/
 private theorem halt_entry_summable_single {D : ℕ} (I : Instrument Bool D D) (c : ℂ)
     (p q : Fin D) (i j : Fin D) :
     Summable fun k => loopHaltAt I k
@@ -597,6 +678,7 @@ private theorem halt_entry_summable_single {D : ℕ} (I : Instrument Bool D D) (
     ((halt_entry_summable_psd I (psdUnitVec_posSemidef _) i j).hasSum.mul_left _).summable
   exact ((((h1.add h2).sub h3).sub h4).hasSum.mul_left c).summable
 
+/-- For every operator, each entry of its first-halting outputs is summable over halting times. -/
 theorem loopHaltAt_entry_summable {D : ℕ} (I : Instrument Bool D D) (X : Operator D)
     (i j : Fin D) : Summable fun k => loopHaltAt I k X i j := by
   have hsplit : (fun k => loopHaltAt I k X i j)
@@ -609,6 +691,8 @@ theorem loopHaltAt_entry_summable {D : ℕ} (I : Instrument Bool D D) (X : Opera
   refine summable_finset_sum' _ _ fun p _ =>
     summable_finset_sum' _ _ fun q _ => halt_entry_summable_single I _ p q i j
 
+/-- The complex-linear terminal map obtained by summing the first-halting maps entrywise over
+all continuation counts. -/
 noncomputable def loopTerminalMap {D : ℕ} (I : Instrument Bool D D) :
     Operator D →ₗ[ℂ] Operator D where
   toFun X := fun i j => ∑' k, loopHaltAt I k X i j
@@ -627,16 +711,20 @@ noncomputable def loopTerminalMap {D : ℕ} (I : Instrument Bool D D) :
     have hcomb := (hx.mul_left c).tsum_eq
     simpa [map_smul, Matrix.smul_apply, smul_eq_mul] using hcomb
 
+/-- Each entry of the terminal output equals the infinite sum of the corresponding first-halting
+output entries. -/
 theorem loopTerminalMap_apply {D : ℕ} (I : Instrument Bool D D) (X : Operator D)
     (i j : Fin D) :
     loopTerminalMap I X i j = ∑' k, loopHaltAt I k X i j := rfl
 
+/-- The terminal map preserves positive semidefiniteness. -/
 theorem loopTerminalMap_posSemidef {D : ℕ} (I : Instrument Bool D D)
     {X : Operator D} (hX : X.PosSemidef) :
     (loopTerminalMap I X).PosSemidef :=
   posSemidef_of_tsum_entries (fun k => loopHaltAt_posSemidef I k hX)
     (fun i j => loopHaltAt_entry_summable I X i j)
 
+/-- The partial halting outputs converge to the terminal output on every operator. -/
 theorem loopTerminalMap_tendsto {D : ℕ} (I : Instrument Bool D D) (X : Operator D) :
     Filter.Tendsto (fun n => loopPartialMap I n X) Filter.atTop
       (nhds (loopTerminalMap I X)) := by
@@ -649,6 +737,7 @@ theorem loopTerminalMap_tendsto {D : ℕ} (I : Instrument Bool D D) (X : Operato
   rw [hEq]
   exact (loopHaltAt_entry_summable I X i j).hasSum.tendsto_sum_nat
 
+/-- The terminal map of a Boolean instrument loop is completely positive. -/
 theorem loopTerminalMap_completelyPositive {D : ℕ} (I : Instrument Bool D D) :
     CompletelyPositive (loopTerminalMap I) := by
   intro r A hA
@@ -667,6 +756,8 @@ theorem loopTerminalMap_completelyPositive {D : ℕ} (I : Instrument Bool D D) :
   rw [hEq]
   exact hcore
 
+/-- The terminal map is completely positive and trace non-increasing, and is the limit of the
+partial halting maps on every operator. -/
 theorem instrument_loop_terminal_cp_map_actual_limit :
     ∀ (D : ℕ) (I : Instrument Bool D D),
       CompletelyPositive (loopTerminalMap I) ∧ TraceNonIncreasing (loopTerminalMap I) ∧
@@ -692,14 +783,19 @@ theorem instrument_loop_terminal_cp_map_actual_limit :
       (x := Matrix.trace (loopTerminalMap I A))).comp ht)
   exact le_of_tendsto hlim (Filter.Eventually.of_forall hbound)
 
+/-- The nonnegative extended-real pending mass given by the real trace of the continuation
+output. -/
 noncomputable def loopPending {D : ℕ} (I : Instrument Bool D D) (ρ : Operator D)
     (n : ℕ) : ℝ≥0∞ :=
   ENNReal.ofReal (Matrix.trace (loopContinueMap I n ρ)).re
 
+/-- The infimum over all finite continuation counts of `loopPending`. -/
 noncomputable def loopNeverMass {D : ℕ} (I : Instrument Bool D D) (ρ : Operator D) :
     ℝ≥0∞ :=
   ⨅ n, loopPending I ρ n
 
+/-- For a positive semidefinite input, pending mass is non-increasing with the continuation
+count. -/
 theorem loopPending_antitone {D : ℕ} (I : Instrument Bool D D) {ρ : Operator D}
     (hρ : ρ.PosSemidef) : Antitone (loopPending I ρ) := by
   refine antitone_nat_of_succ_le fun k => ?_
@@ -721,11 +817,14 @@ theorem loopPending_antitone {D : ℕ} (I : Instrument Bool D D) {ρ : Operator 
     linarith
   exact ENNReal.ofReal_le_ofReal hre
 
+/-- For a positive semidefinite input, the finite pending masses converge to `loopNeverMass`. -/
 theorem loopPending_tendsto {D : ℕ} (I : Instrument Bool D D) {ρ : Operator D}
     (hρ : ρ.PosSemidef) :
     Filter.Tendsto (loopPending I ρ) Filter.atTop (nhds (loopNeverMass I ρ)) :=
   tendsto_atTop_iInf (loopPending_antitone I hρ)
 
+/-- Summing an extended-nonnegative-real function over `Option ℕ` splits into its value at
+`none` and its sum over `some n`. -/
 private theorem tsum_option_ennreal (a : ℝ≥0∞) (f : ℕ → ℝ≥0∞) :
     ∑' o : Option ℕ, o.elim a f = a + ∑' n, f n := by
   classical
@@ -762,6 +861,8 @@ private theorem tsum_option_ennreal (a : ℝ≥0∞) (f : ℕ → ℝ≥0∞) :
   rw [le_antisymm h2 h1, hsplit]
   ring
 
+/-- On a density operator, the sum of the first-halting masses equals the nonnegative
+extended-real trace of the terminal output. -/
 private theorem tsum_haltMass_eq_terminal {D : ℕ} (I : Instrument Bool D D)
     {ρ : Operator D} (hρ : IsDensityOperator ρ) :
     ∑' k, ENNReal.ofReal (Matrix.trace (loopHaltAt I k ρ)).re
@@ -803,6 +904,7 @@ private theorem tsum_haltMass_eq_terminal {D : ℕ} (I : Instrument Bool D D)
     tendsto_nhds_unique (hsum.hasSum.tendsto_sum_nat) hlim
   rw [← ENNReal.ofReal_tsum_of_nonneg hnonneg hsum, hval]
 
+/-- On a density operator, terminal halting mass and never-halting mass sum to one. -/
 private theorem terminal_plus_never {D : ℕ} (I : Instrument Bool D D)
     {ρ : Operator D} (hρ : IsDensityOperator ρ) :
     ENNReal.ofReal (Matrix.trace (loopTerminalMap I ρ)).re + loopNeverMass I ρ = 1 := by
@@ -834,6 +936,8 @@ private theorem terminal_plus_never {D : ℕ} (I : Instrument Bool D D)
   rw [funext hsum] at hab
   exact tendsto_nhds_unique hab tendsto_const_nhds
 
+/-- Inserting a zero term at the start of an extended-nonnegative-real series leaves its sum
+unchanged. -/
 private theorem tsum_match_succ {g : ℕ → ℝ≥0∞} :
     ∑' n, (match n with | 0 => (0 : ℝ≥0∞) | n + 1 => g n) = ∑' n, g n := by
   have hpart : ∀ n : ℕ, ∑ k ∈ Finset.range (n + 1),
@@ -859,6 +963,8 @@ private theorem tsum_match_succ {g : ℕ → ℝ≥0∞} :
     exact le_iSup
       (fun i => ∑ k ∈ Finset.range i, (match k with | 0 => (0 : ℝ≥0∞) | m + 1 => g m)) (n + 1)
 
+/-- The stopping-time probability mass function, assigning never-halting mass to `none`, zero to
+`some 0`, and first-halting mass after `n` continuations to `some (n + 1)`. -/
 noncomputable def loopStoppingLaw {D : ℕ} (I : Instrument Bool D D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) : PMF (Option ℕ) :=
   ⟨fun o => o.elim (loopNeverMass I ρ) fun n =>
@@ -875,6 +981,8 @@ noncomputable def loopStoppingLaw {D : ℕ} (I : Instrument Bool D D) (ρ : Oper
         exact (add_comm _ _).trans (terminal_plus_never I hρ)
       exact (Summable.hasSum_iff ENNReal.summable).mpr hts⟩
 
+/-- Collects the pending-mass formula and limit, the stopping-law masses at finite times and
+nontermination, and the identity that terminal plus never-halting mass is one. -/
 theorem instrument_loop_stopping_law_and_never_mass :
     ∀ (D : ℕ) (I : Instrument Bool D D) (ρ : Operator D) (hρ : IsDensityOperator ρ),
       (∀ n, loopPending I ρ n = ENNReal.ofReal (Matrix.trace (loopContinueMap I n ρ)).re) ∧

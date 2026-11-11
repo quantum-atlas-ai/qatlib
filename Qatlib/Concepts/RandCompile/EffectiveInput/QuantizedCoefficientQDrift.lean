@@ -7,6 +7,31 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.TrotterFormula.LieStrang.HermitianEvolutionStability
 import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
 import Mathlib.Algebra.Order.Floor.Ring
+
+/-!
+# qDRIFT with signed dyadic coefficient quantization
+
+This module rounds rational Hamiltonian coefficients to signed dyadic digits, samples their
+magnitudes, and absorbs their signs into the Hamiltonian terms. It combines coefficient-rounding
+error with the analytic and capped-sampling errors of qDRIFT [Campbell2019].
+
+The results identify the quantized generator and its time scaling, bound its distance from a
+real-coefficient target, and give trace-norm error bounds for arbitrary ancillary inputs
+together with sampled-path resource counts.
+
+## Main statements
+
+* `dyadic_signed_generator`: identifies the weighted signed-term generator.
+* `quantized_qdrift_actual_reference_error`: combines analytic, sampling, and coefficient
+  errors.
+* `quantized_qdrift_computed_budget`: specializes the error bound to computed step and fuel
+  budgets.
+
+## References
+
+* [Campbell, 2019][Campbell2019]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -26,21 +51,28 @@ set_option autoImplicit false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 2000000
 
+/-- The signed precision-`b` dyadic digit obtained by taking the floor of `2^b * a + 1/2`. -/
 def dyadicCoefficient (b : ℕ) (a : ℚ) : ℤ := ⌊(2 : ℚ)^b*a+1/2⌋
 
+/-- The natural magnitude of each signed dyadic coefficient digit. -/
 def dyadicWeights {L : ℕ} (b : ℕ) (a : Fin L → ℚ) (j : Fin L) : ℕ :=
   (dyadicCoefficient b (a j)).natAbs
 
+/-- The Hamiltonian terms with the signs of the rounded dyadic coefficients absorbed into them. -/
 def dyadicSignedTerms {L D : ℕ} (b : ℕ) (a : Fin L → ℚ)
     (K : Fin L → Operator D) (j : Fin L) : Operator D :=
   if dyadicCoefficient b (a j) < 0 then -K j else K j
 
+/-- The fair-bit qDRIFT reference output for dyadic coefficient magnitudes and signed terms,
+with time divided by `2^b`. -/
 noncomputable def quantizedQdriftOutput {L D : ℕ} (b : ℕ) (a : Fin L → ℚ)
     (j0 : Fin L) (n R : ℕ) (K : Fin L → Operator D) (t : ℝ) (r : ℕ)
     (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ) :=
   fairQdriftReferenceOutput (dyadicWeights b a) j0 n R
     (dyadicSignedTerms b a K) (t/(2 : ℝ)^b) r X
 
+/-- Decoding the rounded dyadic digit approximates a rational coefficient with absolute error at
+most `1 / 2^(b + 1)`. -/
 theorem dyadicCoefficient_error (b : ℕ) (a : ℚ) :
     |(dyadicCoefficient b a : ℝ)/(2 : ℝ)^b-(a : ℝ)| ≤ 1/(2 : ℝ)^(b+1) := by
   have hlo := Int.floor_le ((2 : ℚ)^b*a+1/2)
@@ -65,6 +97,8 @@ theorem dyadicCoefficient_error (b : ℕ) (a : ℚ) :
   rw [he, abs_div, abs_of_pos hp, pow_succ]
   exact (div_le_div_of_nonneg_right hb hp.le).trans_eq (by ring)
 
+/-- The magnitude-weighted signed-term generator, divided by `2^b`, equals the generator formed
+directly from decoded signed dyadic coefficients. -/
 theorem dyadic_signed_generator {L D : ℕ} (b : ℕ) (a : Fin L → ℚ)
     (K : Fin L → Operator D) :
     (((2 : ℂ)^b)⁻¹) • (∑ j, (dyadicWeights b a j : ℂ) • dyadicSignedTerms b a K j) =
@@ -90,6 +124,8 @@ theorem dyadic_signed_generator {L D : ℕ} (b : ℕ) (a : Fin L → ℚ)
   congr 1
   ring
 
+/-- Each rounded coefficient has error at most `1 / 2^(b + 1)`, and the scaled
+magnitude-weighted signed generator equals the decoded dyadic coefficient sum. -/
 theorem dyadic_actual_signed_rounding_and_generator (L D b : ℕ) (a : Fin L → ℚ)
     (K : Fin L → Operator D) (_hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) :
     (∀ j, |(dyadicCoefficient b (a j) : ℝ)/(2 : ℝ)^b-(a j : ℝ)| ≤ 1/(2 : ℝ)^(b+1)) ∧
@@ -97,6 +133,8 @@ theorem dyadic_actual_signed_rounding_and_generator (L D b : ℕ) (a : Fin L →
         ∑ j, ((dyadicCoefficient b (a j) : ℂ)/(2 : ℂ)^b) • K j :=
   ⟨fun j => dyadicCoefficient_error b (a j), dyadic_signed_generator b a K⟩
 
+/-- Absorbing the rounded coefficient signs into Hermitian contraction terms preserves
+Hermiticity and the norm bound of one. -/
 theorem dyadicSignedTerms_contract {L D : ℕ} (b : ℕ) (a : Fin L → ℚ)
     (K : Fin L → Operator D) (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1) :
     ∀ j, (dyadicSignedTerms b a K j).IsHermitian ∧ ‖dyadicSignedTerms b a K j‖ ≤ 1 := by
@@ -106,6 +144,9 @@ theorem dyadicSignedTerms_contract {L D : ℕ} (b : ℕ) (a : Fin L → ℚ)
   · exact ⟨(hK j).1.neg, by simpa using (hK j).2⟩
   · exact hK j
 
+/-- If the rational coefficients approximate the real target coefficients with summed absolute
+error at most `δ`, the target and quantized generators differ in operator norm by at most `δ
++ L / 2^(b + 1)`. -/
 theorem dyadic_target_generator_error (L D b : ℕ) (a : Fin L → ℚ)
     (h : Fin L → ℝ) (K : Fin L → Operator D) (δ : ℝ)
     (hK : ∀ j, (K j).IsHermitian ∧ ‖K j‖ ≤ 1)
@@ -134,6 +175,7 @@ theorem dyadic_target_generator_error (L D b : ℕ) (a : Fin L → ℚ)
       simp [Finset.sum_add_distrib, div_eq_mul_inv]
     _ ≤ _ := add_le_add_left ha _
 
+/-- A real linear combination of Hermitian terms is Hermitian. -/
 theorem quantized_real_generator_hermitian {L D : ℕ} (c : Fin L → ℝ)
     (K : Fin L → Operator D) (hK : ∀ j, (K j).IsHermitian) :
     (∑ j, (c j : ℂ) • K j).IsHermitian := by
@@ -143,6 +185,8 @@ theorem quantized_real_generator_hermitian {L D : ℕ} (c : Fin L → ℝ)
   intro j _
   exact ((hK j).smul (by simp [IsSelfAdjoint])).eq
 
+/-- Scaling a Hamiltonian by a real scalar is equivalent to multiplying its evolution time by
+that scalar. -/
 theorem quantized_evolution_scale {D : ℕ} (H : Operator D) (t c : ℝ) :
     HamiltonianEvolution ((c : ℂ) • H) t = HamiltonianEvolution H (t*c) := by
   unfold HamiltonianEvolution
@@ -151,6 +195,8 @@ theorem quantized_evolution_scale {D : ℕ} (H : Operator D) (t c : ℝ) :
   push_cast
   ring
 
+/-- Evolving the magnitude-weighted signed generator for time `t / 2^b` equals evolving the
+decoded dyadic generator for time `t`. -/
 theorem dyadic_generator_evolution {L D : ℕ} (b : ℕ) (a : Fin L → ℚ)
     (K : Fin L → Operator D) (t : ℝ) :
     HamiltonianEvolution (∑ j, (dyadicWeights b a j : ℂ) • dyadicSignedTerms b a K j)
@@ -160,6 +206,10 @@ theorem dyadic_generator_evolution {L D : ℕ} (b : ℕ) (a : Fin L → ℚ)
   have hc : (((2 : ℂ)^b)⁻¹) = (((2 : ℝ)^b)⁻¹ : ℝ) := by push_cast; rfl
   rw [hc, quantized_evolution_scale, div_eq_mul_inv]
 
+/-- For positive step count and quantized mass, Hermitian contraction terms, and coefficient
+error at most `δ`, the ancillary output trace-norm error is bounded by the sum of analytic
+qDRIFT, capped-sampling, and coefficient-quantization terms, multiplied by the input trace
+norm. -/
 theorem quantized_qdrift_actual_reference_error (L D b n R r : ℕ)
     (a : Fin L → ℚ) (h : Fin L → ℝ) (j0 : Fin L) (K : Fin L → Operator D)
     (t δ : ℝ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)
@@ -207,6 +257,8 @@ theorem quantized_qdrift_actual_reference_error (L D b n R r : ℕ)
     dsimp [quantizedQdriftOutput] at *
     ring)
 
+/-- Zero quantized weight mass gives an empty sampled circuit. Positive mass gives `n` gates and
+the stated fair-bit and comparison bounds. -/
 theorem quantized_qdrift_zero_and_path_ledger (L D b n R : ℕ) (a : Fin L → ℚ)
     (j0 : Fin L) (K : Fin L → Operator D) (t : ℝ)
     (ω : Fin n → Fin R → Reg (Nat.clog 2 (weightTotal (dyadicWeights b a)))) :
@@ -235,6 +287,9 @@ theorem quantized_qdrift_zero_and_path_ledger (L D b n R : ℕ) (a : Fin L → �
     · simp only [fairQdriftCircuit, if_neg (ne_of_gt hw)]
       exact (mixture_path_circuit_semantics_cost _ n _ (0 : QState (Fin D))).2.2.1
 
+/-- With positive quantized mass and Hermitian contraction terms, every sampled circuit is
+unitary, uses zero oracle queries and `n` gates, and satisfies the stated fair-bit and
+comparison bounds. -/
 theorem quantized_qdrift_actual_path_counts (L D b n R : ℕ) (a : Fin L → ℚ)
     (j0 : Fin L) (K : Fin L → Operator D) (t : ℝ)
     (ω : Fin n → Fin R → Reg (Nat.clog 2 (weightTotal (dyadicWeights b a))))
@@ -251,6 +306,9 @@ theorem quantized_qdrift_actual_path_counts (L D b n R : ℕ) (a : Fin L → ℚ
     (dyadicWeights b a) j0 (dyadicSignedTerms b a K) (t/(2 : ℝ)^b) ω hW
     (fun j => (dyadicSignedTerms_contract b a K hK j).1)
 
+/-- With the computed step and fuel budgets, the step count is positive and the ancillary output
+trace-norm error is at most `((1/2)^s + 2 * |t| * (δ + L / 2^(b + 1)))` times the input
+trace norm, under the stated mass, time, term, and coefficient assumptions. -/
 theorem quantized_qdrift_computed_budget (L D b T s r : ℕ)
     (a : Fin L → ℚ) (h : Fin L → ℝ) (j0 : Fin L) (K : Fin L → Operator D)
     (t δ : ℝ) (X : Matrix (Fin D × Fin r) (Fin D × Fin r) ℂ)

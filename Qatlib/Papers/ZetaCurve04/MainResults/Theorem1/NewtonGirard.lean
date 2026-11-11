@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.ZetaCurve04.MainResults.Defs
+
+/-!
+# Newton relations for numerator coefficients
+
+The rational recurrence `NewtonRelation` determines a coefficient sequence uniquely, and finite
+versions exist to any prescribed degree. Agreement of the input power sums forces agreement of
+the resulting coefficients, including the scaled recurrence used for the lower half of a zeta
+numerator.
+
+This development forms part of the formalization of [Kedlaya2006].
+
+## Main statements
+
+* `newtonRelation_unique`: Two coefficient sequences satisfying the same Newton relation are
+  equal.
+* `theorem1_lower_half`: Equal input sequences through degree `g` determine equal lower-half
+  coefficients under the stated normalized, scaled Newton recurrences.
+
+## References
+
+* [Kedlaya, 2006][Kedlaya2006]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -15,10 +38,13 @@ open Finset
 
 namespace Qatlib.Papers.ZetaCurve04.MainResults.Theorem1
 
+/-- The rational sequence `a` starts at one and satisfies `sum (a i * p (n - i)) + n * a n = 0`
+for every positive `n`, with the sum over `i < n`. -/
 def NewtonRelation (p a : ℕ → ℚ) : Prop :=
   a 0 = 1 ∧ ∀ n : ℕ, 1 ≤ n →
     (∑ i ∈ Finset.range n, a i * p (n - i)) + (n : ℚ) * a n = 0
 
+/-- Two coefficient sequences satisfying the same Newton relation are equal. -/
 theorem newtonRelation_unique {p a b : ℕ → ℚ}
     (ha : NewtonRelation p a) (hb : NewtonRelation p b) : a = b := by
   funext n
@@ -43,6 +69,8 @@ theorem newtonRelation_unique {p a b : ℕ → ℚ}
         exact ne_of_gt hpos
       exact mul_left_cancel₀ hn0 hkey
 
+/-- For any rational input sequence and cutoff `N`, there exists a coefficient sequence starting
+at one and satisfying the Newton recurrence through degree `N`. -/
 theorem newtonRelation_exists_finite (p : ℕ → ℚ) :
     ∀ N : ℕ, ∃ a : ℕ → ℚ, a 0 = 1 ∧
       ∀ n : ℕ, 1 ≤ n → n ≤ N →
@@ -93,6 +121,8 @@ theorem newtonRelation_exists_finite (p : ℕ → ℚ) :
           push_cast
           ring
 
+/-- Agreement of two input sequences through positive degree `N` forces agreement of their
+normalized Newton-recursive coefficient sequences through degree `N`. -/
 theorem newtonRelation_agree {p q a b : ℕ → ℚ} {N : ℕ}
     (hpq : ∀ k, 1 ≤ k → k ≤ N → p k = q k)
     (ha0 : a 0 = 1)
@@ -130,6 +160,8 @@ theorem newtonRelation_agree {p q a b : ℕ → ℚ} {N : ℕ}
         exact ne_of_gt hpos'
       exact mul_left_cancel₀ hn0 hkey
 
+/-- Equal input sequences through degree `N` determine equal coefficients through degree `N`
+under the stated Newton recurrences scaled by `k * q ^ k`. See [Kedlaya2006]. -/
 theorem theorem1_power_sum_determines
     (q : ℚ) (s t a b : ℕ → ℚ) (N : ℕ)
     (hs : ∀ k, 1 ≤ k → k ≤ N → s k = t k)
@@ -172,6 +204,8 @@ theorem theorem1_power_sum_determines
     rw [hsum] at h
     exact h
 
+/-- Equal input sequences through degree `g` determine equal lower-half coefficients under the
+stated normalized, scaled Newton recurrences. See [Kedlaya2006]. -/
 theorem theorem1_lower_half
     (q : ℚ) (s t a b : ℕ → ℚ) (g : ℕ)
     (hs : ∀ k, 1 ≤ k → k ≤ g → s k = t k)

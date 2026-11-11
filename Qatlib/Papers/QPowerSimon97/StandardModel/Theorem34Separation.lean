@@ -5,6 +5,34 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QPowerSimon97.StandardModel.SimonRetry
+
+/-!
+# Paper-schedule bounds for Simon's separation
+
+This module specializes the Simon amplification analysis to `3 * n` samples per block and `n`
+repetitions [Simon1997]. It proves exact polynomial resource counts, two-sided error bounds with
+a near-period tolerance, and a classical guessing bound for a real-valued query budget.
+
+For `n ≥ 64`, `simonTheorem34Separation` compares the distributional classical guessing mass
+with the amplified true-output probability of any function possessing a nonzero exact period.
+
+## Main statements
+
+* `simonPaperScheduleLedger`: At the paper schedule, the exact ledger has `3 * n²` queries and
+  measurements, `6 * n³` local gates, and `3 * n³` record-conversion steps.
+* `simonThirdToleranceAmplification`: For positive width, the paper schedule has the stated
+  two-sided error bounds when the number of period violations is at most `2ⁿ / (3 * n)`, and its
+  query ledger is `3 * n²`.
+* `simonTheorem34Separation`: For `n ≥ 64` and the stated classical query budget, classical
+  oracle guessing mass is strictly smaller than the amplified true-output probability for any
+  function with a nonzero exact period. This is the finite-parameter separation used for [Simon,
+  Theorem 3.4][Simon1997].
+
+## References
+
+* [Simon, 1997][Simon1997]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,6 +56,8 @@ open Qatlib
 open Qatlib.Papers.QPowerSimon97.StandardDefs
 open scoped Classical BigOperators ENNReal
 
+/-- At the paper schedule, the exact ledger has `3 * n²` queries and measurements, `6 * n³`
+local gates, and `3 * n³` record-conversion steps. -/
 theorem simonPaperScheduleLedger (n : ℕ) :
     (simonExactLedger n (2 * n) n).oracleQueries = 3 * n ^ 2 ∧
     (simonExactLedger n (2 * n) n).measurements = 3 * n ^ 2 ∧
@@ -35,6 +65,9 @@ theorem simonPaperScheduleLedger (n : ℕ) :
     (simonExactLedger n (2 * n) n).recordConversion = 3 * n ^ 3 := by
   refine ⟨?_, ?_, ?_, ?_⟩ <;> simp [simonExactLedger] <;> ring
 
+/-- With at least two samples, the paper schedule bounds false rejection for injective functions
+by `n * (1 / 2) ^ (2 * n)` and false acceptance under the stated near-period condition by
+`(3 / 4) ^ n`. -/
 theorem simonPaperScheduleTwoSided (n : ℕ) (hn : 2 ≤ n + 2 * n) (R : Type)
     [AddCommGroup R] [Fintype R] [DecidableEq R] (f : BooleanVec n → R) :
     (Function.Injective f →
@@ -47,6 +80,8 @@ theorem simonPaperScheduleTwoSided (n : ℕ) (hn : 2 ≤ n + 2 * n) (R : Type)
   have h := simonAmplifiedError_spec n (2 * n) n f hn
   simpa [simonAmplifiedError] using! h
 
+/-- For positive width, the paper schedule has the stated two-sided error bounds when the number
+of period violations is at most `2ⁿ / (3 * n)`, and its query ledger is `3 * n²`. -/
 theorem simonThirdToleranceAmplification (n : ℕ) (hn : 1 ≤ n) (R : Type)
     [AddCommGroup R] [Fintype R] [DecidableEq R] (f : BooleanVec n → R) :
     (Function.Injective f →
@@ -70,12 +105,16 @@ theorem simonThirdToleranceAmplification (n : ℕ) (hn : 1 ≤ n) (R : Type)
     nlinarith
   exact_mod_cast hn'
 
+/-- For positive width and query budget at most `2 ^ ((n : ℝ) / 4)`, the classical oracle
+guessing mass is at most `1 / 2 + 2 ^ (-(n : ℝ) / 2)`. This is the real-budget form of
+[Simon, Theorem 3.3][Simon1997]. -/
 theorem simonTheorem33RealBudget (n : ℕ) (hn : 1 ≤ n) (q : ℕ)
     (hq : (q : ℝ) ≤ (2 : ℝ) ^ ((n : ℝ) / 4)) (P : PMF (SimonQueryTree n))
     (hP : SimonQueryTree.bounded P q) :
     simonOracleGuessMass P ≤ ENNReal.ofReal (1 / 2 + (2 : ℝ) ^ (-(n : ℝ) / 2)) :=
   simonClassicalRandomOracleBound_realBudget n hn q P hP hq
 
+/-- For `n ≥ 64`, the classical excess term `2 ^ (-(n : ℝ) / 2)` is at most `1 / 8`. -/
 lemma simonExponentHalf_le (n : ℕ) (hn : 64 ≤ n) :
     (2 : ℝ) ^ (-(n : ℝ) / 2) ≤ 1 / 8 := by
   have hn' : (64 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
@@ -87,6 +126,7 @@ lemma simonExponentHalf_le (n : ℕ) (hn : 64 ≤ n) :
     norm_num [Real.rpow_natCast]
   linarith
 
+/-- For `n ≥ 64`, `(3 / 4) ^ n` is at most `1 / 8`. -/
 lemma simonThreeQuarters_pow_le (n : ℕ) (hn : 64 ≤ n) :
     (3 / 4 : ℝ) ^ n ≤ 1 / 8 := by
   have hmono : (3 / 4 : ℝ) ^ n ≤ (3 / 4 : ℝ) ^ 10 :=
@@ -94,6 +134,8 @@ lemma simonThreeQuarters_pow_le (n : ℕ) (hn : 64 ≤ n) :
   have h10 : (3 / 4 : ℝ) ^ 10 ≤ 1 / 8 := by norm_num
   linarith
 
+/-- For `n ≥ 64`, the sum of the classical guessing bound and the paper-schedule periodic-oracle
+error bound is strictly below one. -/
 theorem simonSeparationGap (n : ℕ) (hn : 64 ≤ n) :
     ENNReal.ofReal (1 / 2 + (2 : ℝ) ^ (-(n : ℝ) / 2)) +
       ENNReal.ofReal ((3 / 4 : ℝ) ^ n) < 1 := by
@@ -108,6 +150,10 @@ theorem simonSeparationGap (n : ℕ) (hn : 64 ≤ n) :
   rw [← ENNReal.ofReal_one, ← ENNReal.ofReal_add hx0 hy0]
   exact (ENNReal.ofReal_lt_ofReal_iff (by norm_num : (0 : ℝ) < 1)).mpr hsum
 
+/-- For `n ≥ 64` and the stated classical query budget, classical oracle guessing mass is
+strictly smaller than the amplified true-output probability for any function with a nonzero
+exact period. This is the finite-parameter separation used for [Simon, Theorem
+3.4][Simon1997]. -/
 theorem simonTheorem34Separation (n : ℕ) (hn : 64 ≤ n) (q : ℕ)
     (hq : (q : ℝ) ≤ (2 : ℝ) ^ ((n : ℝ) / 4)) (P : PMF (SimonQueryTree n))
     (hP : SimonQueryTree.bounded P q) (R : Type) [AddCommGroup R] [Fintype R]

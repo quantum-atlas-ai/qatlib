@@ -7,6 +7,32 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
 import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorNormGibbs
+
+/-!
+# Executed words and application access counts
+
+This module relates segmented product words to their lengths, label visits, and tariffs, and
+records matched-order and family-word properties of recursive Suzuki words [Suzuki1990]. These
+counts support commutator-scaled simulation estimates in the setting of [ChildsEtAl2021Trotter].
+
+It also provides positive segment choices, access and cost-ledger witnesses, and
+variation-of-constants identities for forced LCHS evolution. Explicit examples show that the
+stated output checks allow success mass above one and a forced solution that vanishes.
+
+## Main statements
+
+* `segmentWord_length`: counts the executed segmented word.
+* `recursive_suzuki_matched_order`: gives the matched order of a recursive Suzuki word.
+* `lchs_forced_hasDerivAt`: gives the differential equation of the forced solution.
+* `clause60_successMass_not_bounded`: exhibits output checks with success mass above one.
+* `segmentLabelTariff_eq`: computes the segmented label tariff.
+
+## References
+
+* [Suzuki, 1990][Suzuki1990]
+* [Childs et al., 2021][ChildsEtAl2021Trotter]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
 
@@ -28,20 +54,26 @@ open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 namespace Qatlib.Concepts.TrotterFormula.GeneralOrder
 open scoped ComplexOrder
 
+/-- A word with `r` segments has length `r * xs.length`. -/
 theorem segmentWord_length {I : Type} [Fintype I] (xs : List (Matrix I I ℂ))
     (t : ℝ) (r : ℕ) : (segmentWord xs t r).length = r * xs.length := by
   simp [segmentWord]
 
+/-- The number of visits to a family label is `r` times the number of positions carrying that
+label. -/
 theorem segmentLabelVisits_eq {I : Type} [Fintype I] {m : ℕ} (xs : List (Matrix I I ℂ))
     (lab : Fin xs.length → Fin m) (r : ℕ) (j : Fin m) :
     segmentLabelVisits xs lab r j =
       r * ((List.finRange xs.length).filter (fun i => lab i = j)).length := rfl
 
+/-- Summing a function over the finite-range list equals its finite-type sum. -/
 theorem list_sum_map_finRange {α : Type} [AddCommMonoid α] {n : ℕ} (f : Fin n → α) :
     ((List.finRange n).map f).sum = ∑ i : Fin n, f i := by
   rw [← List.ofFn_id, List.map_ofFn, List.sum_ofFn]
   simp
 
+/-- The sum of label prices weighted by fiber cardinalities equals the sum of the prices over
+all labelled positions. -/
 theorem sum_price_mul_fiber_card {n m : ℕ} (price : Fin m → ℕ) (lab : Fin n → Fin m) :
     (∑ j : Fin m, price j * ((Finset.univ.filter (fun i : Fin n => lab i = j)).card : ℕ)) =
       ∑ i : Fin n, price (lab i) := by
@@ -63,11 +95,15 @@ theorem sum_price_mul_fiber_card {n m : ℕ} (price : Fin m → ℕ) (lab : Fin 
   exact Finset.sum_fiberwise_of_maps_to (fun (i : Fin n) (_ : i ∈ Finset.univ) =>
     Finset.mem_univ (lab i)) (fun i => price (lab i))
 
+/-- The recursive Suzuki word at level `k` matches the sum generator through order `2 * (k +
+1)`. -/
 theorem recursive_suzuki_matched_order {D : ℕ} (hs : List (Operator D)) (k : ℕ) :
     IsMatchedOrder (recursiveSuzukiGenerators hs k) hs.sum (2 * (k + 1)) := by
   intro n hn
   exact recursive_suzuki_all_even_order_coefficients (Fin D) hs k n hn
 
+/-- Every recursive Suzuki word possesses a representation as a scaled word over a finite
+operator family. -/
 theorem recursive_suzuki_family_word {D : ℕ} (hs : List (Operator D)) (k : ℕ) :
     ∃ (m : ℕ) (H : Fin m → Operator D)
       (lab : Fin (recursiveSuzukiGenerators hs k).length → Fin m)
@@ -78,6 +114,7 @@ theorem recursive_suzuki_family_word {D : ℕ} (hs : List (Operator D)) (k : ℕ
   intro i
   simp [one_smul]
 
+/-- The selected TFIM segment count is a power of two. -/
 theorem tfimSegmentChoice_eq_two_pow {D : ℕ} (A B : Operator D) (t ε : ℝ) :
     ∃ k : ℕ, tfimSegmentChoice A B t ε = 2 ^ k :=
   ⟨Nat.clog 2 (max 1 (Nat.ceil
@@ -85,11 +122,14 @@ theorem tfimSegmentChoice_eq_two_pow {D : ℕ} (A B : Operator D) (t ε : ℝ) :
         (max (Real.sqrt (t ^ 3 * ‖pfComm A (pfComm A B)‖ / ε))
           (Real.sqrt (2 * t ^ 3 * ‖pfComm B (pfComm B A)‖ / (3 * ε))))))), rfl⟩
 
+/-- The selected TFIM segment count is positive. -/
 theorem tfimSegmentChoice_pos {D : ℕ} (A B : Operator D) (t ε : ℝ) :
     0 < tfimSegmentChoice A B t ε := by
   unfold tfimSegmentChoice nextPow2
   exact pow_pos two_pos _
 
+/-- For positive tolerance, an FPRAS cost ledger and a soft factor at least one satisfy the
+runtime assumption with a positive sample count. -/
 theorem fpras_cost_ledger_witness (n r : ℕ) (ε : ℝ) (hε : 0 < ε) :
     ∃ (ledger : FprasCostLedger) (soft : ℝ),
       1 ≤ soft ∧ fprasRuntimeAssumption n r ε soft ledger.runtime ∧ 0 < ledger.samples := by
@@ -100,11 +140,14 @@ theorem fpras_cost_ledger_witness (n r : ℕ) (ε : ℝ) (hε : 0 < ε) :
   have hprod : 0 ≤ (n : ℝ) ^ 17 * (r : ℝ) ^ 14 * ε ^ (-(2 : ℝ)) := by positivity
   simpa using! hprod
 
+/-- The selected midpoint segment count is positive. -/
 theorem midpointSegments_pos (L commMass T ε : ℝ) :
     0 < midpointSegments L commMass T ε := by
   unfold midpointSegments
   exact lt_of_lt_of_le zero_lt_one (le_max_left 1 _)
 
+/-- Midpoint nodes possess a time-evaluation access record with `N` node queries and `N`
+exponential macros. -/
 theorem midpoint_timeEvalAccess_exists (T : ℝ) (N : ℕ) :
     ∃ access : TimeEvalAccess,
       access.nodes = midpointNodes T N ∧
@@ -112,6 +155,8 @@ theorem midpoint_timeEvalAccess_exists (T : ℝ) (N : ℕ) :
       access.exponentialMacros = N :=
   ⟨⟨midpointNodes T N, N, N⟩, rfl, rfl, rfl⟩
 
+/-- For continuous generator and forcing, the forced solution factors into ordered evolution
+times the initial state plus transported forcing. -/
 theorem lchs_forced_factor {I : Type} [Fintype I] [DecidableEq I]
     (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I) (hA : Continuous A) (hb : Continuous b)
     (s : ℝ) (v : QState I) (t : ℝ) :
@@ -133,6 +178,7 @@ theorem lchs_forced_factor {I : Type} [Fintype I] [DecidableEq I]
   rw [intervalIntegral.integral_congr (fun u _ => he u), L.intervalIntegral_comp_comm hi]
   rfl
 
+/-- The LCHS forced generator is continuous when both coefficient fields are continuous. -/
 theorem lchsForcedGenerator_continuous {D : ℕ}
     (Lfield Hfield : ℝ → Matrix (Fin D) (Fin D) ℂ)
     (hL : Continuous Lfield) (hH : Continuous Hfield) :
@@ -140,6 +186,8 @@ theorem lchsForcedGenerator_continuous {D : ℕ}
   unfold lchsForcedGenerator
   fun_prop
 
+/-- The forced LCHS solution satisfies the ordered variation-of-constants factorization from
+time zero. -/
 theorem lchs_forced_duhamel {D : ℕ}
     (Lfield Hfield : ℝ → Matrix (Fin D) (Fin D) ℂ)
     (b : ℝ → QState (Fin D)) (T : ℝ) (v : QState (Fin D))
@@ -151,6 +199,8 @@ theorem lchs_forced_duhamel {D : ℕ}
   lchs_forced_factor (lchsForcedGenerator Lfield Hfield) b
     (lchsForcedGenerator_continuous Lfield Hfield hL hH) hb 0 v T
 
+/-- The forced LCHS solution has derivative equal to minus the generator applied to the solution
+plus the forcing. -/
 theorem lchs_forced_hasDerivAt {D : ℕ}
     (Lfield Hfield : ℝ → Matrix (Fin D) (Fin D) ℂ)
     (b : ℝ → QState (Fin D)) (T : ℝ) (v : QState (Fin D))
@@ -161,6 +211,7 @@ theorem lchs_forced_hasDerivAt {D : ℕ}
   orderedForcedSolution_hasDerivAt (lchsForcedGenerator Lfield Hfield) b
     (lchsForcedGenerator_continuous Lfield Hfield hL hH) hb 0 v T
 
+/-- A positive success-mass lower bound and a real trace imply that the output trace is nonzero. -/
 theorem lchs_output_trace_ne_zero {D : ℕ} (Mout : Operator D) (pSucc s : ℝ)
     (hp : 0 < pSucc) (hps : pSucc ≤ s) (hs : s = (Matrix.trace Mout).re)
     (him : (Matrix.trace Mout).im = 0) : Matrix.trace Mout ≠ 0 := by
@@ -170,20 +221,27 @@ theorem lchs_output_trace_ne_zero {D : ℕ} (Mout : Operator D) (pSucc s : ℝ)
   rw [hreal]
   exact_mod_cast ne_of_gt hre
 
+/-- Normalizing a positive semidefinite output with nonzero trace yields a density operator. -/
 theorem lchs_output_density {D : ℕ} (Mout : Operator D) (hM : Mout.PosSemidef)
     (hne : Matrix.trace Mout ≠ 0) : IsDensityOperator (normalizedDensity Mout) :=
   normalizedDensity_isDensity Mout hM hne
 
+/-- The exponential-access count equals the amplification rounds times the sum of homogeneous
+and source labels. -/
 theorem lchs_exponentialAccesses_eq (Λ : LchsAccessLedger) :
     Λ.exponentialAccesses =
       Λ.amplificationRounds * (Λ.homogeneousLabels + Λ.sourceLabels) := rfl
 
+/-- An LCHS access ledger determines a time-evaluation record with the stated node-query and
+exponential-macro counts. -/
 theorem lchs_timeEvalAccess_exists (Λ : LchsAccessLedger) :
     ∃ access : TimeEvalAccess,
       access.nodeQueries = Λ.sourceLabels * Λ.amplificationRounds ∧
       access.exponentialMacros = Λ.exponentialAccesses :=
   ⟨⟨[], Λ.sourceLabels * Λ.amplificationRounds, Λ.exponentialAccesses⟩, rfl, rfl⟩
 
+/-- There is positive semidefinite output data satisfying the stated positive success-mass
+conditions whose success mass exceeds one. -/
 theorem clause60_successMass_not_bounded :
     ∃ (D : ℕ) (Mout : Matrix (Fin D) (Fin D) ℂ) (chk : LchsOutputCheck) (pSucc : ℝ),
       0 < pSucc ∧
@@ -200,6 +258,8 @@ theorem clause60_successMass_not_bounded :
     rw [h]
     exact Matrix.PosSemidef.natCast 2
 
+/-- Continuous LCHS coefficient and forcing fields can produce a zero forced solution at a
+positive time, so the stated hypotheses do not imply positive output norm. -/
 theorem clause60_forcedSolution_can_vanish :
     ∃ (D : ℕ) (Lfield Hfield : ℝ → Matrix (Fin D) (Fin D) ℂ)
         (b : ℝ → QState (Fin D)) (T : ℝ) (v : QState (Fin D)),
@@ -223,6 +283,8 @@ set_option warningAsError false
 variable {I : Type} [Fintype I] [DecidableEq I]
 variable {I : Type} [Fintype I]
 
+/-- The length of a filtered finite-range list equals the cardinality of the corresponding
+filtered finite set. -/
 theorem length_filter_finRange {n : ℕ} (q : Fin n → Prop) [DecidablePred q] :
     ((List.finRange n).filter (fun i => q i)).length =
       (Finset.univ.filter (fun i => q i)).card := by
@@ -238,6 +300,8 @@ theorem length_filter_finRange {n : ℕ} (q : Fin n → Prop) [DecidablePred q] 
     simp
   rw [← hcard, hset]
 
+/-- The total segmented label tariff equals `r` times the sum of the prices of the original word
+positions. -/
 theorem segmentLabelTariff_eq {m : ℕ} (xs : List (Matrix I I ℂ))
     (lab : Fin xs.length → Fin m) (t : ℝ) (r : ℕ) (price : Fin m → ℕ) :
     segmentLabelTariff xs lab t r price =

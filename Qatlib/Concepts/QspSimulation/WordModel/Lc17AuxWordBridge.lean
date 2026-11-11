@@ -6,6 +6,25 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeStat
 import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+
+/-!
+# Telescoping phase rotations in QSP words
+
+This module factors axis rotations into phase rotations around a signal step and telescopes
+their products. `lcWordTilde` isolates the alternating signal-phase product used in the bridge
+to `lcQspTilde`. Background and related constructions are discussed in [LowChuang2017].
+
+## Main statements
+
+* `lcAxisRotation_factor`: factors an axis rotation using endpoint phases.
+* `lcWordTilde_eq_lcQspTilde`: identifies the alternating product with the QSP convention.
+* `lcFold_telescope`: rewrites a nonempty product using phase half-differences.
+
+## References
+
+* [Low and Chuang, 2017][LowChuang2017]
+-/
+
 open Qatlib.Concepts.PhaseGeometry.Phase
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -24,6 +43,7 @@ open Matrix
 
 namespace Qatlib.Concepts.QspSimulation.WordModel
 
+/-- Multiplying phase rotations adds their real angles. -/
 theorem lcPhaseRotation_mul (α β : ℝ) :
     Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation α * Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation β =
       Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (α + β) := by
@@ -37,17 +57,23 @@ theorem lcPhaseRotation_mul (α β : ℝ) :
   all_goals congr 1
   all_goals ring
 
+/-- The ordered product of factors consisting of the matrix `S` followed by a phase rotation at
+each angle in `qs`. -/
 noncomputable def lcWordTilde (S : Matrix (Fin 2) (Fin 2) ℂ) (qs : List ℝ) :
     Matrix (Fin 2) (Fin 2) ℂ :=
   (qs.map (fun q => S * Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation q)).prod
 
+/-- The alternating word with an empty phase list is the identity. -/
 theorem lcWordTilde_nil (S : Matrix (Fin 2) (Fin 2) ℂ) : lcWordTilde S [] = 1 := rfl
 
+/-- The alternating word for `q :: qs` factors as `S * PhaseRotation q` times the word for `qs`. -/
 theorem lcWordTilde_cons (S : Matrix (Fin 2) (Fin 2) ℂ) (q : ℝ) (qs : List ℝ) :
     lcWordTilde S (q :: qs) =
       (S * Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation q) * lcWordTilde S qs := by
   simp [lcWordTilde]
 
+/-- When `S` is the conjugate transpose of `SignalMatrix x`, the alternating product
+`lcWordTilde S qs` equals `lcQspTilde qs x`. -/
 theorem lcWordTilde_eq_lcQspTilde {S : Matrix (Fin 2) (Fin 2) ℂ} {x : ℝ}
     (hS : S = (Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.SignalMatrix x).conjTranspose) (qs : List ℝ) :
     lcWordTilde S qs = lcQspTilde qs x := by
@@ -70,6 +96,8 @@ theorem lcWordTilde_eq_lcQspTilde {S : Matrix (Fin 2) (Fin 2) ℂ} {x : ℝ}
           Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation q)).foldl (· * ·) 1) := h2
     _ = lcQspTilde qs x := rfl
 
+/-- An axis rotation factors as a phase rotation by −φ/2, the signal step, and a phase rotation
+by φ/2. -/
 theorem lcAxisRotation_factor (φ θ : ℝ) :
     lcAxisRotation φ θ =
       Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(φ/2)) * (lcSignalStep θ *
@@ -95,6 +123,8 @@ theorem lcAxisRotation_factor (φ θ : ℝ) :
       rw [← Complex.exp_add, add_neg_cancel, Complex.exp_zero]
     linear_combination -(1 : ℂ) * Complex.cos (↑θ/2) * hz
 
+/-- Combines adjacent endpoint phase rotations into a rotation by `(a - c)/2` inside a product
+of two conjugated signal factors. -/
 private theorem lcTeleStep (S X : Matrix (Fin 2) (Fin 2) ℂ) (a c : ℝ) :
     (Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(a/2)) * (S * Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (a/2))) *
         (Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(c/2)) * X) =
@@ -128,6 +158,8 @@ private theorem lcTeleStep (S X : Matrix (Fin 2) (Fin 2) ℂ) (a c : ℝ) :
               (S * Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation ((a - c)/2)) * X from
               (Matrix.mul_assoc _ _ _).symm]
 
+/-- A nonempty product of phase-conjugated copies of `S` telescopes into endpoint phase
+rotations and `lcWordTilde` evaluated at the consecutive half-differences. -/
 theorem lcFold_telescope (S : Matrix (Fin 2) (Fin 2) ℂ) :
     ∀ (rest : List ℝ) (a z : ℝ), (a :: rest).getLast (List.cons_ne_nil a rest) = z →
       ((a :: rest).map (fun φ =>

@@ -11,6 +11,29 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 import Mathlib.Tactic.FieldSimp
 import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
+
+/-!
+# Counterexamples to frozen matrix optimization clauses
+
+This module defines several universally quantified clauses for matrix optimization and proves
+their negations by explicit counterexamples. The clauses concern mixture sampling, payoff
+widths, sparsification, Step 2, and combined resource guarantees, in the SDP algorithm setting
+of [BrandaoSvore2017]. These results concern the locally defined frozen propositions; corrected
+statements are provided in `MatrixOptimizationAlgorithms`.
+
+## Main statements
+
+* `not_walkGoal_mixture`: failure of the frozen mixture clause with an arbitrary target vector.
+* `not_clause14_frozen`: failure of the frozen payoff and certificate clause.
+* `not_walkGoal_sparsify`: failure of the frozen sparsification clause.
+* `not_clause13_frozen` and `not_clause16_frozen`: counterexamples to the remaining combined
+  clauses.
+
+## References
+
+* [Brandao and Svore, 2017][BrandaoSvore2017]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.RationalScan.Step2Scan
@@ -26,6 +49,8 @@ open Qatlib.Foundations.PureStateMath
 namespace Qatlib.Concepts.RationalScan.Step2Scan
 noncomputable section
 
+/-- The universal claim that the specified certificate mixture realizes any prescribed vector
+`p`, together with a positive sampling ledger. -/
 def mixtureClauseFrozen : Prop :=
   ∀ (m T : ℕ) (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (δ α R : ℝ) (p : Fin m → ℝ),
     0 < m → 0 < T → 0 < α → 0 < R → 0 < δ →
@@ -39,6 +64,7 @@ def mixtureClauseFrozen : Prop :=
 end
 noncomputable section
 
+/-- The universally quantified proposition `mixtureClauseFrozen` is false. -/
 theorem not_walkGoal_mixture : ¬ mixtureClauseFrozen := by
   intro h
   let y : ℕ → Fin 1 → ℝ := fun _ _ => 1
@@ -54,6 +80,8 @@ theorem not_walkGoal_mixture : ¬ mixtureClauseFrozen := by
 end
 noncomputable section
 
+/-- The universal combined claim of bisection output correctness, lifted rescaling, runtime
+bounds, and failure control under the stated instance and access assumptions. -/
 def Clause16Frozen : Prop :=
   ∀ (D m K : ℕ) (Aext : Fin (m + 1) → Operator D) (A : Fin m → Operator D)
     (Cv : Operator D) (b : Fin m → ℝ) (j₀ : Fin m)
@@ -85,6 +113,7 @@ def Clause16Frozen : Prop :=
 end
 noncomputable section
 
+/-- The combined universally quantified proposition `Clause16Frozen` is false. -/
 theorem not_clause16_frozen : ¬ Clause16Frozen := by
   intro h
   let A : Fin 1 → Operator 1 := fun _ => 1
@@ -146,6 +175,8 @@ theorem not_clause16_frozen : ¬ Clause16Frozen := by
 end
 noncomputable section
 
+/-- The universal width and certificate claim requiring payoff bounds at every natural-numbered
+round from assumptions restricted to rounds below `T`. -/
 def Clause14Frozen : Prop :=
   ∀ (D m T : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (y : ℕ → Fin m → ℝ) (j₀ : Fin m) (α R δ ε : ℝ),
@@ -170,6 +201,7 @@ def Clause14Frozen : Prop :=
 end
 noncomputable section
 
+/-- The universally quantified payoff and certificate proposition `Clause14Frozen` is false. -/
 theorem not_clause14_frozen : ¬ Clause14Frozen := by
   intro h
   let y : ℕ → Fin 1 → ℝ := fun t _ => if t = 0 then 0 else 100
@@ -213,6 +245,8 @@ theorem not_clause14_frozen : ¬ Clause14Frozen := by
 end
 noncomputable section
 
+/-- The universal claim that the sampled payoff deviation obeys the specified matrix tail bound
+and that its sample budget implies the source failure bound. -/
 def sparsifyClauseFrozen : Prop :=
   ∀ (D m Q Ndim Mdim : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (q : Fin m → ℝ)
     (y : ℕ → Fin m → ℝ) (t : ℕ) (α mass T R δ ξ : ℝ),
@@ -232,6 +266,7 @@ def sparsifyClauseFrozen : Prop :=
 end
 noncomputable section
 
+/-- The universally quantified sparsification proposition `sparsifyClauseFrozen` is false. -/
 theorem not_walkGoal_sparsify : ¬ sparsifyClauseFrozen := by
   intro h
   let A : Fin 2 → Operator 1 := fun i => (if i = 0 then (10:ℝ) else (-10:ℝ)) • (1 : Operator 1)
@@ -333,6 +368,8 @@ theorem not_walkGoal_sparsify : ¬ sparsifyClauseFrozen := by
 end
 noncomputable section
 
+/-- The universal Step 2 claim combining a loop failure bound, accepted-candidate width and
+separation guarantees, resource ledgers, and a no-output separator conclusion. -/
 def Clause13Frozen : Prop :=
   ∀ (D m γ Nmax M L : ℕ) (A : Fin m → Operator D) (Cv : Operator D) (b : Fin m → ℝ)
     (ρ : Operator D) (j₀ : Fin m) (α R κ ν ξ : ℝ) (loop : Step2Loop m γ Nmax M),
@@ -369,6 +406,7 @@ def Clause13Frozen : Prop :=
 end
 noncomputable section
 
+/-- The universally quantified Step 2 proposition `Clause13Frozen` is false. -/
 theorem not_clause13_frozen : ¬ Clause13Frozen := by
   intro h
   let A : Fin 2 → Operator 1 := fun _ => 1

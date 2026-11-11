@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Quan
+
+/-!
+# Terminal accuracy and Taylor-block norm estimates
+
+This module converts coordinatewise estimates into Euclidean norm bounds and derives
+consequences of the terminal accuracy condition. Theorems `taylorV2_error_of_accuracy` and
+`taylorV2_terminal_direction` control time-block error and the normalized terminal direction;
+positive-order block estimates support the final mass bound. See [BerryEtAl2017ODE] for the
+paper's setting.
+
+## Main statements
+
+* `taylor_stateVector_norm_mono`: Coordinatewise norm domination implies domination of the
+  associated Euclidean state norms.
+* `taylorV2_mass_arithmetic`: The stated total-mass and final-block lower bounds imply `X / sqrt
+  (p + 77*m*g²) ≤ Y`.
+
+## References
+
+* [Berry et al., 2017][BerryEtAl2017ODE]
+-/
+
 open Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +44,7 @@ variable {N : Type} [Fintype N] [DecidableEq N]
 
 omit [DecidableEq N] in
 
+/-- Coordinatewise norm domination implies domination of the associated Euclidean state norms. -/
 theorem taylor_stateVector_norm_mono (u v : QState N) (h : ∀ n, ‖u n‖ ≤ ‖v n‖) :
     ‖stateVector u‖ ≤ ‖stateVector v‖ := by
   have hs : ‖stateVector u‖ ^ 2 ≤ ‖stateVector v‖ ^ 2 := by
@@ -31,6 +54,7 @@ theorem taylor_stateVector_norm_mono (u v : QState N) (h : ∀ n, ‖u n‖ ≤ 
 
 omit [DecidableEq N] in
 
+/-- Replacing every coordinate by its nonnegative real norm preserves the Euclidean state norm. -/
 theorem taylor_stateVector_norm_abs (u : QState N) :
     ‖stateVector (fun n => (‖u n‖ : ℂ))‖ = ‖stateVector u‖ := by
   have hs : ‖stateVector (fun n => (‖u n‖ : ℂ))‖ ^ 2 = ‖stateVector u‖ ^ 2 := by
@@ -40,6 +64,8 @@ theorem taylor_stateVector_norm_abs (u : QState N) :
 
 omit [DecidableEq N] in
 
+/-- A coordinatewise bound `‖u n‖ ≤ ‖v n‖ + t*‖w n‖`, with `t ≥ 0`, implies the corresponding
+bound on Euclidean state norms. -/
 theorem taylor_stateVector_norm_affine (u v w : QState N) (t : ℝ) (ht : 0 ≤ t)
     (h : ∀ n, ‖u n‖ ≤ ‖v n‖ + t * ‖w n‖) :
     ‖stateVector u‖ ≤ ‖stateVector v‖ + t * ‖stateVector w‖ := by
@@ -60,6 +86,8 @@ theorem taylor_stateVector_norm_affine (u v w : QState N) (t : ℝ) (ht : 0 ≤ 
         exact htri
     _ = ‖stateVector v‖ + t * ‖stateVector w‖ := by rw [hv, hw]
 
+/-- For a stable diagonalizable generator and nonnegative time, the reference solution norm is
+at most `‖V‖ * ‖V⁻¹‖` times the sum of the initial norm and time times the forcing norm. -/
 theorem taylorODESolution_norm_le_diagonalizable (A V D : Matrix N N ℂ)
     (hA : A = V * D * V⁻¹) (hV1 : V * V⁻¹ = 1) (hV2 : V⁻¹ * V = 1)
     (hd : ∀ i j : N, i ≠ j → D i j = 0) (hre : ∀ n, (D n n).re ≤ 0)
@@ -87,6 +115,7 @@ theorem taylorODESolution_norm_le_diagonalizable (A V D : Matrix N N ℂ)
         · exact stateVector_mulVec_norm_le _ _
     _ = _ := by ring
 
+/-- The stated terminal accuracy condition and nonzero final solution imply `70*m ≤ (k+1)!`. -/
 theorem taylorV2_factorial_of_accuracy (m k : ℕ) (A V D : Matrix N N ℂ)
     (h : ℝ) (x_in b : QState N) (hh : 0 < h)
     (hA : A = V * D * V⁻¹) (hV1 : V * V⁻¹ = 1) (hV2 : V⁻¹ * V = 1)
@@ -103,6 +132,8 @@ theorem taylorV2_factorial_of_accuracy (m k : ℕ) (A V D : Matrix N N ℂ)
     nlinarith
   exact_mod_cast hreal
 
+/-- Under the stated terminal accuracy and stability assumptions, the time-block error at `j ≤
+m` is at most `j/(25*m)` times the final exact-solution norm. -/
 theorem taylorV2_error_of_accuracy (m k p : ℕ) (A V D : Matrix N N ℂ)
     (h : ℝ) (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hm : 0 < m) (hk : 5 ≤ k) (hp : 0 < p) (hh : 0 < h)
@@ -131,6 +162,8 @@ theorem taylorV2_error_of_accuracy (m k p : ℕ) (A V D : Matrix N N ℂ)
     ring
   · field_simp
 
+/-- Under the stated terminal accuracy and stability assumptions, the normalized terminal time
+block is within `1 / 12` of the normalized final exact solution. -/
 theorem taylorV2_terminal_direction (m k p : ℕ) (A V D : Matrix N N ℂ)
     (h : ℝ) (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hm : 0 < m) (hk : 5 ≤ k) (hp : 0 < p) (hh : 0 < h)
@@ -162,6 +195,8 @@ theorem taylorV2_terminal_direction (m k p : ℕ) (A V D : Matrix N N ℂ)
     _ = 2 / 25 := by dsimp [q]; field_simp
     _ ≤ 1 / 12 := by norm_num
 
+/-- Every positive-order Taylor block is the factorial-scaled power `M^(i-1)` applied to the
+first-order block. -/
 theorem taylorV2_positiveBlockClosed (m k p : ℕ) (M : Matrix N N ℂ)
     (h : ℝ) (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hx : taylorStepMatrixV2 m k p M *ᵥ x = taylorRHS m k p h x_in b)
@@ -194,6 +229,8 @@ theorem taylorV2_positiveBlockClosed (m k p : ℕ) (M : Matrix N N ℂ)
     rw [hstep, hpow, smul_smul, Nat.factorial_succ, Nat.cast_mul, mul_inv]
     simp only [Nat.add_sub_cancel]
 
+/-- For `‖M‖ ≤ 1`, the norm of the positive-order block `i` is at most `1/i!` times the
+first-order block norm. -/
 theorem taylorV2_positiveBlock_norm_le (m k p : ℕ) (M : Matrix N N ℂ)
     (h : ℝ) (x_in b : QState N) (x : QState (Fin (m * (k + 1) + p + 1) × N))
     (hx : taylorStepMatrixV2 m k p M *ᵥ x = taylorRHS m k p h x_in b)
@@ -220,6 +257,7 @@ theorem taylorV2_positiveBlock_norm_le (m k p : ℕ) (M : Matrix N N ℂ)
   exact (stateVector_mulVec_norm_le _ _).trans
     (mul_le_of_le_one_left (norm_nonneg _) hpow)
 
+/-- The stated total-mass and final-block lower bounds imply `X / sqrt (p + 77*m*g²) ≤ Y`. -/
 theorem taylorV2_mass_arithmetic (m p : ℕ) (g q X Y : ℝ)
     (hm : 0 < m) (hg : 1 ≤ g) (hq : 0 < q) (hX : 0 ≤ X) (hY : 0 ≤ Y)
     (hfinal : (24 / 25 : ℝ) * q ≤ Y)

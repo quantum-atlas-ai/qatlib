@@ -7,6 +7,24 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Volterra and oracle logarithm specification
+
+`VolterraAndOracleLogSemantics` packages existence, uniqueness, and unitarity of integrable
+Hermitian evolution together with norm bounds and time-one identities for matrix and
+alphabet-oracle logarithms. The logarithmic spectral representation is related to the matrix
+analysis background in [Bhatia1997].
+
+## Main statements
+
+* `VolterraAndOracleLogSemantics`: the joint analytic and oracle-logarithm specification.
+
+## References
+
+* [Bhatia, 1997][Bhatia1997]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -17,6 +35,9 @@ namespace Qatlib.Concepts.GramQueryCore.ModelSemantics
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- The conjunction of unique unitary Volterra evolution for integrable Hermitian kernels,
+bounded Hermitian unitary logarithms, and the corresponding alphabet-oracle logarithm
+identities. -/
 def VolterraAndOracleLogSemantics : Prop :=
   (∀ (H : Type) [Fintype H] [DecidableEq H] (K : ℝ → Matrix H H ℂ) (T : ℝ),
       0 ≤ T → (∀ i j, IntervalIntegrable (fun t => K t i j) MeasureTheory.volume 0 T) →

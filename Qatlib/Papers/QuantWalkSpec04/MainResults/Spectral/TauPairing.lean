@@ -7,6 +7,29 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyLemma10PairingQuan
 import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
 import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+
+/-!
+# Pairings and norms of walk eigenvectors
+
+This module records inner product identities for the two isometric embeddings and their
+discriminant eigenspaces. These identities give the squared norm `1 - lam ^ 2` of the
+transformed walk vector `bipartiteTauLinear` for normalized discriminant eigenvectors. See
+[Szegedy2004].
+
+## Main statements
+
+* `szegedyLemma10_pairing`: The isometries preserve inner products, their cross pairing is given
+  by `Aᴴ * B`, and discriminant eigenvectors with `0 < lam < 1` have equal component pairings
+  and a cross pairing scaled by `lam`.
+* `szegedyTheorem5_eigenvector_norm`: For a normalized discriminant eigenvector with `0 ≤ lam <
+  1`, either transformed walk vector has squared norm `1 - lam ^ 2`; an isometric image of a
+  normalized source vector has squared norm one.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -22,6 +45,9 @@ open Qatlib.Concepts.WalkSearch.TauEmbedding
 
 namespace Qatlib.Papers.QuantWalkSpec04.MainResults.Spectral
 
+/-- The isometries preserve inner products, their cross pairing is given by `Aᴴ * B`, and
+discriminant eigenvectors with `0 < lam < 1` have equal component pairings and a cross
+pairing scaled by `lam`. -/
 theorem szegedyLemma10_pairing
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)
@@ -50,6 +76,9 @@ theorem szegedyLemma10_pairing
   · intro lam hl hu u v hdu hdv
     exact szegedyLemma10Pairing H I J A B lam hA hB hl hu u v hdu hdv
 
+/-- For a normalized discriminant eigenvector with `0 ≤ lam < 1`, either transformed walk vector
+has squared norm `1 - lam ^ 2`; an isometric image of a normalized source vector has squared
+norm one. -/
 theorem szegedyTheorem5_eigenvector_norm
     {H I J : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (A : Matrix H I ℂ) (B : Matrix H J ℂ)

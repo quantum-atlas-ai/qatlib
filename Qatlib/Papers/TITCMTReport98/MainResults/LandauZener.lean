@@ -8,6 +8,27 @@ import Qatlib.Papers.TITCMTReport98.MainResults.Defs
 import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Order.Filter.AtTopBot.Field
+
+/-!
+# Conditional limit for the Landau-Zener complement
+
+This module studies the displayed Landau-Zener complement defined for the schedule formulas of
+[KadowakiNishimori1998]. It records the complement identity and its upper bound by one.
+
+The convergence theorem assumes the specified inverse-square asymptotic equivalent for the
+squared amplitude and deduces that the displayed complement tends to one.
+
+## Main statements
+
+* `landauZener_displayed_complement_le_one`: bounds the complement above by one.
+* `landauZener_formula_tendsto_one_of_asymptotic`: derives the limit from the stated asymptotic
+  hypothesis.
+
+## References
+
+* [Kadowaki and Nishimori, 1998][KadowakiNishimori1998]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,15 +39,21 @@ namespace Qatlib.Papers.TITCMTReport98.MainResults
 open Filter
 open scoped Topology
 
+/-- The displayed Landau-Zener complement equals one minus the squared norm of its displayed
+amplitude. -/
 theorem landauZener_displayed_complement_eq (h c : ℝ) :
     landauZenerDisplayedComplement h c = 1 - ‖landauZenerDisplayedAmplitude h c‖ ^ 2 := rfl
 
+/-- The displayed Landau-Zener complement is at most one. -/
 theorem landauZener_displayed_complement_le_one (h c : ℝ) :
     landauZenerDisplayedComplement h c ≤ 1 := by
   unfold landauZenerDisplayedComplement
   have : (0 : ℝ) ≤ ‖landauZenerDisplayedAmplitude h c‖ ^ 2 := sq_nonneg _
   linarith
 
+/-- If the squared displayed amplitude at `c = h ^ 2 / x` is asymptotically equivalent to `9 /
+(16 * x ^ 2)`, then the corresponding complement tends to one as `x` tends to infinity
+[KadowakiNishimori1998]. -/
 theorem landauZener_formula_tendsto_one_of_asymptotic (h : ℝ)
     (ha : Asymptotics.IsEquivalent atTop
       (fun x : ℝ => ‖landauZenerDisplayedAmplitude h (h ^ 2 / x)‖ ^ 2)

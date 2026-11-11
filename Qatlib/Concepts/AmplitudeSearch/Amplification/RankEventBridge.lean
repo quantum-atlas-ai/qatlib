@@ -5,6 +5,28 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+
+/-!
+# Rank events for search call laws
+
+The experiment `skipExperiment` models the decreasing rank process with threshold skips, and
+`RankedCallLaw.rankTrace` extracts one-based ranks from concrete call traces. Expectation and
+event-mass identities connect these concrete runs to finite rank experiments, while
+`skipProbability_le` bounds visits by the distinct-rank process used in minimum finding
+[DurrHoyer1996].
+
+## Main statements
+
+* `RankedCallLaw.rankTrace_expectation`: identifies nonnegative rank observables under the
+  concrete run law.
+* `RankedCallLaw.initialRankTrace_expectation`: includes the uniformly chosen initial rank.
+* `skipProbability_le`: bounds rank visits in the process with threshold skips.
+
+## References
+
+* [Dürr and Høyer, 1996][DurrHoyer1996]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -16,6 +38,8 @@ set_option autoImplicit false
 
 namespace Qatlib.Concepts.AmplitudeSearch.Amplification
 
+/-- The finite rank experiment that samples a rank below the current threshold and continues
+from `skip.next` of that rank. It returns the empty trace at threshold zero or above `N`. -/
 def skipExperiment {N : ℕ} (skip : RankSkip N) : ℕ → Experiment (List ℕ)
   | 0 => .pure []
   | t + 1 => if ht : t + 1 ≤ N then
@@ -28,6 +52,7 @@ decreasing_by
   simp only [Fin.val_castLE] at h
   omega
 
+/-- For a threshold at most `N`, the distinct-rank skip rule recovers `rankExperiment`. -/
 theorem skipExperiment_distinct (N t : ℕ) (htN : t ≤ N) :
     skipExperiment (RankSkip.distinct N) t = rankExperiment t := by
   induction t using Nat.strong_induction_on with
@@ -41,6 +66,8 @@ theorem skipExperiment_distinct (N t : ℕ) (htN : t ≤ N) :
       simp only [RankSkip.distinct, Fin.val_castLE]
       exact congrArg (Experiment.map (List.cons (k.val + 1))) (ih k.val k.isLt (by omega))
 
+/-- A sum over `Fin N` restricted to indices below `t` equals the corresponding sum over `Fin
+t`, when `t ≤ N`. -/
 private theorem sum_lower_values {N t : ℕ} (htN : t ≤ N) (V : Fin N → ℝ) :
     (∑ i : Fin N, if i.val < t then V i else 0) = ∑ k : Fin t, V (k.castLE htN) := by
   rw [← Finset.sum_filter]
@@ -58,9 +85,12 @@ namespace RankedCallLaw
 
 variable {N : ℕ} {Ω : Type}
 
+/-- The list of one-based output ranks extracted from a list of call outcomes. -/
 def rankTrace (law : RankedCallLaw N Ω) (xs : List Ω) : List ℕ :=
   xs.map (fun x => (law.outputRank x).val + 1)
 
+/-- For `t < N`, the weighted sum of any nonnegative observable of the concrete rank trace
+equals its expectation under `skipExperiment skip t`. -/
 theorem rankTrace_expectation (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (t : ℕ) (htN : t < N) (F : List ℕ → ℝ) (hF : ∀ xs, 0 ≤ F xs) :
     HasSum (fun xs => law.runMass skip t xs * F (law.rankTrace xs))
@@ -106,9 +136,12 @@ theorem rankTrace_expectation (law : RankedCallLaw N Ω) (skip : RankSkip N)
       rw [skipExperiment, dif_pos htN.le, Experiment.expectReal]
       simpa only [Experiment.expectReal_map, V, Fin.val_castLE, Nat.cast_add, Nat.cast_one] using! h
 
+/-- The total run mass of call traces whose one-based rank trace contains `r`. -/
 noncomputable def hitMass (law : RankedCallLaw N Ω) (skip : RankSkip N) (t r : ℕ) : ℝ :=
   ∑' xs : List Ω, if r ∈ law.rankTrace xs then law.runMass skip t xs else 0
 
+/-- For `t < N`, the mass of concrete runs visiting rank `r` sums to its visit probability in
+the finite experiment with threshold skips. -/
 theorem hitMass_eq_tree (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (t r : ℕ) (htN : t < N) :
     HasSum (fun xs => if r ∈ law.rankTrace xs then law.runMass skip t xs else 0)
@@ -122,9 +155,12 @@ theorem hitMass_eq_tree (law : RankedCallLaw N Ω) (skip : RankSkip N)
   dsimp [f]
   split_ifs <;> norm_num
 
+/-- The one-based initial rank prepended to the one-based output ranks of the subsequent calls. -/
 def initialRankTrace (law : RankedCallLaw N Ω) (x : Fin N × List Ω) : List ℕ :=
   (x.1.val + 1) :: law.rankTrace x.2
 
+/-- For `N > 0`, the initial run law and `skipExperiment skip N` give the same expectation for
+every nonnegative rank-trace observable. -/
 theorem initialRankTrace_expectation (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (hN : 0 < N) (F : List ℕ → ℝ) (hF : ∀ xs, 0 ≤ F xs) :
     HasSum (fun x : Fin N × List Ω => law.initialMass skip x * F (law.initialRankTrace x))
@@ -154,9 +190,12 @@ theorem initialRankTrace_expectation (law : RankedCallLaw N Ω) (skip : RankSkip
     simp only [V, Experiment.expectReal_map, Fin.castLE_refl, Nat.cast_succ]
   rwa [heq] at h
 
+/-- The total initial run mass of rank traces that visit `r`, including the initial rank. -/
 noncomputable def initialHitMass (law : RankedCallLaw N Ω) (skip : RankSkip N) (r : ℕ) : ℝ :=
   ∑' x : Fin N × List Ω, if r ∈ law.initialRankTrace x then law.initialMass skip x else 0
 
+/-- For `N > 0`, the initial mass of runs visiting `r` sums to its visit probability in
+`skipExperiment skip N`. -/
 theorem initialHitMass_eq_tree (law : RankedCallLaw N Ω) (skip : RankSkip N)
     (hN : 0 < N) (r : ℕ) :
     HasSum (fun x : Fin N × List Ω => if r ∈ law.initialRankTrace x then law.initialMass skip x else 0)
@@ -172,6 +211,8 @@ theorem initialHitMass_eq_tree (law : RankedCallLaw N Ω) (skip : RankSkip N)
 
 end RankedCallLaw
 
+/-- The probability of visiting a fixed rank in `rankExperiment` is monotone in the initial rank
+bound. -/
 theorem hitProbability_monotone (r : ℕ) : Monotone (fun t => hitProbability t r) := by
   intro a b hab
   change hitProbability a r ≤ hitProbability b r
@@ -184,6 +225,8 @@ theorem hitProbability_monotone (r : ℕ) : Monotone (fun t => hitProbability t 
   · rw [hitProbability_outside a r (Or.inr (by omega))]
     exact Experiment.probability_nonneg _ _
 
+/-- For a threshold at most `N`, the visit probability under any rank skip rule is bounded by
+the visit probability in `rankExperiment`. -/
 theorem skipProbability_le {N : ℕ} (skip : RankSkip N) (t r : ℕ) (htN : t ≤ N) :
     (skipExperiment skip t).probability (fun trace => r ∈ trace) ≤ hitProbability t r := by
   induction t using Nat.strong_induction_on with

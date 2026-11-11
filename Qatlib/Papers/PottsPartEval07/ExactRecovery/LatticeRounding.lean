@@ -77,12 +77,32 @@ import Mathlib.Tactic.Positivity.Core
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 
+/-!
+# Lattice rounding for exact weight recovery
+
+This module bounds the effect of phase errors on finite sums of complex exponentials and on the
+scaled Gauss-sum expression used for code weights. The lattice separation lemmas show that an
+estimate within half the lattice spacing uniquely determines the exact weight [GeraciLidar2008].
+
+## Main statements
+
+* `gauss_weight_error_bound`: Uniform phase errors give an explicit bound on the scaled sum
+  error.
+* `weight_recovery`: A weight estimate within half the spacing determines its integer lattice
+  index uniquely.
+
+## References
+
+* [Geraci and Lidar, 2008][GeraciLidar2008]
+-/
+
 set_option autoImplicit false
 
 namespace Qatlib.Papers.PottsPartEval07.ExactRecovery
 
 open scoped BigOperators
 
+/-- Two distinct integer multiples of a positive spacing `L` are separated by at least `L`. -/
 theorem lattice_separation {L : ℝ} (hL : 0 < L) {a b : ℤ} (hab : a ≠ b) :
     L ≤ |(a : ℝ) * L - (b : ℝ) * L| := by
   have h1 : (1 : ℝ) ≤ |(a : ℝ) - (b : ℝ)| := by
@@ -95,6 +115,8 @@ theorem lattice_separation {L : ℝ} (hL : 0 < L) {a b : ℤ} (hab : a ≠ b) :
   calc L = 1 * L := by ring
     _ ≤ |(a : ℝ) - (b : ℝ)| * L := by gcongr
 
+/-- An estimate cannot be strictly within `L / 2` of two distinct points of the lattice `L * ℤ`
+[GeraciLidar2008]. -/
 theorem nearest_lattice_unique {L : ℝ} (hL : 0 < L) {e : ℝ} {a b : ℤ}
     (ha : |e - (a : ℝ) * L| < L / 2) (hb : |e - (b : ℝ) * L| < L / 2) : a = b := by
   by_contra hab
@@ -110,6 +132,7 @@ theorem nearest_lattice_unique {L : ℝ} (hL : 0 < L) {e : ℝ} {a b : ℤ}
     linarith
   linarith
 
+/-- The distance between the complex phases with angles `x` and `y` is at most `|x - y|`. -/
 theorem complex_exp_lipschitz (x y : ℝ) :
     ‖Complex.exp ((x : ℂ) * Complex.I) - Complex.exp ((y : ℂ) * Complex.I)‖ ≤ |x - y| := by
   have h := Real.norm_exp_I_mul_ofReal_sub_one_le (x := x - y)
@@ -129,6 +152,8 @@ theorem complex_exp_lipschitz (x y : ℝ) :
   rw [hy, one_mul]
   simpa [mul_comm] using h
 
+/-- A sum of `d` phase differences with coefficients of norm at most one has norm at most `d *
+ε` when each angle error is at most `ε`. -/
 theorem phase_sum_bound {d : ℕ} (γ γ' : Fin d → ℝ) (c : Fin d → ℂ)
     (hc : ∀ a, ‖c a‖ ≤ 1) (ε : ℝ) (hε : ∀ a, |γ a - γ' a| ≤ ε) :
     ‖∑ a, c a * (Complex.exp (((γ a : ℝ) : ℂ) * Complex.I)
@@ -148,6 +173,8 @@ theorem phase_sum_bound {d : ℕ} (γ γ' : Fin d → ℝ) (c : Fin d → ℂ)
     _ = (d : ℝ) * ε := by
         rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul, one_mul]
 
+/-- The scaled Gauss-phase sum has error at most `(q - 1) / (q * N) * (d * ε)` under the stated
+coefficient and phase-error bounds [GeraciLidar2008]. -/
 theorem gauss_weight_error_bound
     {d q N : ℕ} (hq : 1 ≤ q) (hN : 0 < N)
     (γ γ' : Fin d → ℝ) (c : Fin d → ℂ) (hc : ∀ a, ‖c a‖ ≤ 1)
@@ -165,6 +192,8 @@ theorem gauss_weight_error_bound
   rw [norm_mul, Complex.norm_real, Real.norm_of_nonneg hden]
   exact mul_le_mul_of_nonneg_left (phase_sum_bound γ γ' c hc ε hε) hden
 
+/-- If `w = m * L` and `w'` is strictly within `L / 2` of `w`, every integer `m'` with `|w' - m'
+* L| < L / 2` equals `m` [GeraciLidar2008]. -/
 theorem weight_recovery {L : ℝ} (hL : 0 < L) {w w' : ℝ} {m : ℤ}
     (hw : w = (m : ℝ) * L) (hw' : |w' - w| < L / 2) :
     ∀ (m' : ℤ), |w' - (m' : ℝ) * L| < L / 2 → m' = m := by

@@ -6,6 +6,24 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
 import Qatlib.Papers.OrderedInsert99.MainResults.PolynomialEquivalence
+
+/-!
+# Laurent sequence conditions for ordered insertion
+
+Defines finite-window Laurent evaluation and the conditions `QSeqExists` from the
+invariant-insertion formulation of [FarhiEtAl1999]. These impose coefficient support, conjugate
+symmetry, nonnegative real evaluations on the unit circle, alternating-root matching, and
+prescribed endpoints.
+
+## Main statements
+
+* `qseq_zero_queries`: characterizes zero-query Laurent sequences for positive `N`.
+
+## References
+
+* [Farhi et al., 1999][FarhiEtAl1999]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -16,12 +34,17 @@ namespace Qatlib.Papers.OrderedInsert99.MainResults
 
 open scoped BigOperators
 
+/-- Evaluates Laurent coefficients over the integer window from `−N + 1` to `N − 1`. -/
 noncomputable def laurentEvalWindow (N : ℕ) (q : ℤ → ℂ) (z : ℂ) : ℂ :=
   ∑ r ∈ Finset.Icc (-(N : ℤ) + 1) ((N : ℤ) - 1), q r * z ^ r
 
+/-- The initial Laurent coefficient `(N − |r|) / N`, using truncated natural-number subtraction. -/
 def Q0Coeff (N : ℕ) (r : ℤ) : ℂ :=
   (((N - r.natAbs : ℕ) : ℝ) / (N : ℝ) : ℂ)
 
+/-- Existence of a Laurent-coefficient sequence with finite support, conjugate symmetry,
+nonnegative real unit-circle evaluations, alternating-root matching, and the prescribed
+endpoints. -/
 def QSeqExists (N k : ℕ) : Prop :=
   ∃ Q : ℕ → ℤ → ℂ,
     (∀ ℓ, ℓ ≤ k → ∀ r : ℤ,
@@ -34,6 +57,8 @@ def QSeqExists (N k : ℕ) : Prop :=
     (∀ r : ℤ, Q 0 r = Q0Coeff N r) ∧
     (∀ r : ℤ, Q k r = if r = 0 then 1 else 0)
 
+/-- For positive `N`, the zero-query Laurent-sequence conditions hold exactly when `N = 1`
+[FarhiEtAl1999]. -/
 theorem qseq_zero_queries (N : ℕ) (hN : 0 < N) :
     QSeqExists N 0 ↔ N = 1 := by
   constructor

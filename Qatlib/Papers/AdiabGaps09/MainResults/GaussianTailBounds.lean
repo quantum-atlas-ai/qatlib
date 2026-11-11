@@ -10,6 +10,25 @@ import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Order.Filter.AtTopBot.Ring
+
+/-!
+# Bounds for an unnormalized Gaussian tail
+
+This module defines the weight `gaussWeight x = exp(-x²)` and its upper-tail integral
+`upperTail`. It proves integrability, positivity, monotonicity, and explicit exponential upper
+and lower estimates used as analytic tools in the probabilistic context of [FarhiEtAl2011].
+
+## Main statements
+
+* `upperTail_pos` and `upperTail_antitone`: positivity and monotonicity of the tail.
+* `upperTail_ge_exp`: the lower bound `exp(-(a + 1)²)` for nonnegative `a`.
+* `upperTail_le_exp_div`: the upper bound `exp(-a²) / (2a)` for positive `a`.
+
+## References
+
+* [Farhi et al., 2011][FarhiEtAl2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -21,12 +40,16 @@ open scoped Topology
 
 namespace Qatlib.Papers.AdiabGaps09.MainResults.GaussianTail
 
+/-- The unnormalized Gaussian weight `exp(-x²)`. -/
 def gaussWeight (x : ℝ) : ℝ := Real.exp (-(x ^ 2))
 
+/-- The Gaussian weight `gaussWeight x` is strictly positive for every real `x`. -/
 theorem gaussWeight_pos (x : ℝ) : 0 < gaussWeight x := Real.exp_pos _
 
+/-- The Gaussian weight is nonzero at every real argument. -/
 theorem gaussWeight_ne_zero (x : ℝ) : gaussWeight x ≠ 0 := (gaussWeight_pos x).ne'
 
+/-- The Gaussian weight `exp(-x²)` is Lebesgue integrable on the real line. -/
 theorem integrable_gaussWeight : Integrable gaussWeight := by
   have h : Integrable (fun x : ℝ => x ^ (0 : ℝ) * Real.exp (-(1 : ℝ) * x ^ 2)) :=
     integrable_rpow_mul_exp_neg_mul_sq (b := 1) zero_lt_one (s := 0) (by norm_num)
@@ -34,14 +57,18 @@ theorem integrable_gaussWeight : Integrable gaussWeight := by
   filter_upwards with x
   simp [gaussWeight]
 
+/-- The integral of `exp(-x²)` over the open ray `(a, ∞)`. -/
 def upperTail (a : ℝ) : ℝ := ∫ x in Ioi a, gaussWeight x
 
+/-- The Gaussian weight is integrable over every open upper ray. -/
 theorem integrableOn_upperTail (a : ℝ) : IntegrableOn gaussWeight (Ioi a) :=
   integrable_gaussWeight.integrableOn
 
+/-- The Gaussian weight is nonnegative almost everywhere with respect to Lebesgue measure. -/
 theorem ae_nonneg_gaussWeight : ∀ᵐ x ∂(volume : Measure ℝ), 0 ≤ gaussWeight x :=
   Filter.Eventually.of_forall (fun x => (gaussWeight_pos x).le)
 
+/-- The upper-tail integral of the Gaussian weight is strictly positive at every real threshold. -/
 theorem upperTail_pos (a : ℝ) : 0 < upperTail a := by
   unfold upperTail
   rw [setIntegral_pos_iff_support_of_nonneg_ae]
@@ -53,12 +80,15 @@ theorem upperTail_pos (a : ℝ) : 0 < upperTail a := by
   · exact ae_nonneg_gaussWeight.filter_mono (ae_mono Measure.restrict_le_self)
   · exact integrableOn_upperTail a
 
+/-- Increasing the lower threshold decreases the Gaussian upper-tail integral. -/
 theorem upperTail_antitone {a b : ℝ} (hab : a ≤ b) : upperTail b ≤ upperTail a := by
   unfold upperTail
   refine setIntegral_mono_set (integrableOn_upperTail a)
     (ae_nonneg_gaussWeight.filter_mono (ae_mono Measure.restrict_le_self)) ?_
   exact Filter.Eventually.of_forall (fun x hx => lt_of_le_of_lt hab hx)
 
+/-- For nonnegative `a`, the Gaussian upper-tail integral is at least `exp(-(a + 1)²)`. See
+[FarhiEtAl2011]. -/
 theorem upperTail_ge_exp (a : ℝ) (ha : 0 ≤ a) :
     Real.exp (-((a + 1) ^ 2)) ≤ upperTail a := by
   have hfin : (volume : Measure ℝ) (Ioc a (a + 1)) ≠ ⊤ := by
@@ -91,6 +121,8 @@ theorem upperTail_ge_exp (a : ℝ) (ha : 0 ≤ a) :
   rw [hval] at hmono
   exact hmono.trans hsub
 
+/-- For positive `a`, the Gaussian upper-tail integral is at most `exp(-a²) / (2 * a)`. See
+[FarhiEtAl2011]. -/
 theorem upperTail_le_exp_div (a : ℝ) (ha : 0 < a) :
     upperTail a ≤ Real.exp (-(a ^ 2)) / (2 * a) := by
   have hmajint : Integrable (fun x : ℝ => (x / a) * gaussWeight x) := by

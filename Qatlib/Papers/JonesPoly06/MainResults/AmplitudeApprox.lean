@@ -10,6 +10,27 @@ import Mathlib.Analysis.Normed.Operator.Basic
 import Mathlib.Analysis.Normed.Ring.Basic
 import Mathlib.Tactic
 
+/-!
+# Stability of squared transition amplitudes
+
+This module bounds changes in squared transition amplitudes when norm-preserving operators are
+approximated in operator norm. It also proves telescoping estimates for products and powers of
+contractions, yielding `compiled_amplitude_bound` for equal-length operator lists. See
+[WocjanYard2006].
+
+## Main statements
+
+* `SourceLemma72`: If norm-preserving operators U and U' differ by at most ε in operator norm,
+  with ε ≤ 1, their squared transition amplitudes between unit vectors differ by at most ε.
+* `compiled_amplitude_bound`: For equal-length lists of norm-preserving operators, a total
+  pairwise operator-norm error at most ε ≤ 1 bounds the difference of squared transition
+  amplitudes between unit vectors by ε.
+
+## References
+
+* [Wocjan and Yard, 2006][WocjanYard2006]
+-/
+
 set_option autoImplicit false
 noncomputable section
 
@@ -21,10 +42,12 @@ section InnerProduct
 
 variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E]
 
+/-- Exchanging the arguments of a complex inner product preserves its norm. -/
 theorem norm_inner_comm (x y : E) : ‖inner ℂ x y‖ = ‖inner ℂ y x‖ := by
   conv_lhs => rw [← inner_conj_symm x y]
   rw [Complex.norm_conj]
 
+/-- Two orthogonal unit vectors form an orthonormal family indexed by `Fin 2`. -/
 theorem orthonormal_pair (v e : E) (hv : ‖v‖ = 1) (he : ‖e‖ = 1)
     (hve : inner ℂ v e = 0) : Orthonormal ℂ ![v, e] := by
   rw [orthonormal_iff_ite]
@@ -32,6 +55,8 @@ theorem orthonormal_pair (v e : E) (hv : ‖v‖ = 1) (he : ‖e‖ = 1)
   have hve' : inner ℂ e v = 0 := by rw [← inner_conj_symm e v, hve, map_zero]
   fin_cases i <;> fin_cases j <;> simp [hv, he, hve, hve']
 
+/-- For unit vectors u and v and a vector φ of norm at most one, the difference ‖⟪φ, u⟫‖² − ‖⟪φ,
+v⟫‖² is at most ‖u − v‖. -/
 theorem inner_sq_diff_le (φ u v : E) (hu : ‖u‖ = 1) (hv : ‖v‖ = 1)
     (hφ : ‖φ‖ ≤ 1) :
     ‖inner ℂ φ u‖ ^ 2 - ‖inner ℂ φ v‖ ^ 2 ≤ ‖u - v‖ := by
@@ -128,6 +153,9 @@ theorem inner_sq_diff_le (φ u v : E) (hu : ‖u‖ = 1) (hv : ‖v‖ = 1)
       _ ≤ ‖w‖ := key
       _ ≤ ‖u - v‖ := hsle
 
+/-- If norm-preserving operators U and U' differ by at most ε in operator norm, with ε ≤ 1,
+their squared transition amplitudes between unit vectors differ by at most ε; see
+[WocjanYard2006]. -/
 theorem SourceLemma72 (U U' : E →L[ℂ] E)
     (hU : ∀ x, ‖U x‖ = ‖x‖) (hU' : ∀ x, ‖U' x‖ = ‖x‖)
     (φ ψ : E) (hφ : ‖φ‖ = 1) (hψ : ‖ψ‖ = 1)
@@ -153,6 +181,7 @@ section ProdNorm
 
 variable {A : Type*} [SeminormedRing A] [NormOneClass A]
 
+/-- The product of a list of elements of norm at most one also has norm at most one. -/
 theorem list_prod_le_one : ∀ (l : List A), (∀ a ∈ l, ‖a‖ ≤ 1) → ‖l.prod‖ ≤ 1
   | [], _ => by simp
   | a :: l, h => by
@@ -164,6 +193,8 @@ theorem list_prod_le_one : ∀ (l : List A), (∀ a ∈ l, ‖a‖ ≤ 1) → �
               (norm_nonneg _) (by norm_num)
         _ = 1 := by norm_num
 
+/-- For equal-length lists of contractions, the norm of the difference of their products is at
+most the sum of the pairwise norm differences; see [WocjanYard2006]. -/
 theorem list_prod_sub_prod_le : ∀ (l₁ l₂ : List A), l₁.length = l₂.length →
     (∀ a ∈ l₁, ‖a‖ ≤ 1) → (∀ a ∈ l₂, ‖a‖ ≤ 1) →
     ‖l₁.prod - l₂.prod‖ ≤ (l₁.zipWith (fun a b => ‖a - b‖) l₂).sum
@@ -190,6 +221,8 @@ theorem list_prod_sub_prod_le : ∀ (l₁ l₂ : List A), l₁.length = l₂.len
             · exact mul_le_mul_of_nonneg_left hb2 (norm_nonneg _)
         _ = ‖a - b‖ + (l₁.zipWith (fun a b => ‖a - b‖) l₂).sum := by ring
 
+/-- The difference of the e-th powers of two contractions has norm at most e times the norm of
+their difference; see [WocjanYard2006]. -/
 theorem pow_sub_pow_le (W V : A) (hW : ‖W‖ ≤ 1) (hV : ‖V‖ ≤ 1)
     (e : ℕ) : ‖W ^ e - V ^ e‖ ≤ (e : ℝ) * ‖W - V‖ := by
   induction e with
@@ -223,6 +256,7 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [Nontrivia
 
 omit [Nontrivial E] in
 
+/-- The product of a list of norm-preserving continuous complex linear maps is norm-preserving. -/
 theorem list_prod_isometry : ∀ (l : List (E →L[ℂ] E)),
     (∀ W ∈ l, ∀ x, ‖W x‖ = ‖x‖) → ∀ x, ‖l.prod x‖ = ‖x‖
   | [], _ => by intro x; simp
@@ -233,12 +267,16 @@ theorem list_prod_isometry : ∀ (l : List (E →L[ℂ] E)),
 
 omit [Nontrivial E] in
 
+/-- A norm-preserving continuous complex linear map has operator norm at most one. -/
 theorem opNorm_le_one_of_isometry (W : E →L[ℂ] E) (h : ∀ x, ‖W x‖ = ‖x‖) :
     ‖W‖ ≤ 1 := by
   refine ContinuousLinearMap.opNorm_le_bound _ (by norm_num) ?_
   intro x
   rw [h x, one_mul]
 
+/-- For equal-length lists of norm-preserving operators, a total pairwise operator-norm error at
+most ε ≤ 1 bounds the difference of squared transition amplitudes between unit vectors by ε;
+see [WocjanYard2006]. -/
 theorem compiled_amplitude_bound (L L' : List (E →L[ℂ] E))
     (hlen : L.length = L'.length)
     (hU : ∀ W ∈ L, ∀ x, ‖W x‖ = ‖x‖)

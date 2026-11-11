@@ -5,6 +5,24 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.ProjectorCS
+
+/-!
+# Classical absorbing mass decay statement
+
+`SzegedyClassicalAbsorbingMassDecay` specifies geometric decay of the mass remaining outside a
+marked set. It quantifies over real-valued laws initialized uniformly and satisfying the marked
+absorbing recurrence, with a symmetric-chain gap and a lower bound on the marked fraction. See
+[Szegedy2004] for the mathematical background.
+
+## Main statements
+
+* `SzegedyClassicalAbsorbingMassDecay`: the absorbing-law decay proposition.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.WalkSearch.ProjectorCS
@@ -12,6 +30,9 @@ open Matrix
 
 namespace Qatlib.Concepts.WalkSearch.ClassicalStop
 
+/-- The proposition that a uniformly initialized law following the marked absorbing recurrence
+has unmarked mass at most `(1 - δ * ε / 2) ^ K`, under the stated gap and marked-fraction
+conditions. -/
 def SzegedyClassicalAbsorbingMassDecay : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] [Nonempty I] (P : I→I→ℝ) (S : Finset I)
       (δ ε : ℝ) (K : ℕ),

@@ -8,6 +8,27 @@ import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
 import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
 import Qatlib.Concepts.WalkSearch.ProjectorCS
 import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverDefs
+
+/-!
+# Expander detection probability contract
+
+`SzegedyTheorem4ExpanderGrover` specifies a quantitative detection guarantee for `expanderStep`.
+Under a positive symmetric-chain gap at most one, a nonempty marked set, and unitary frame
+preparation, it requires average detection probability at least `1 / 32` over
+`expanderSearchLength n δ` times.
+
+The same contract bounds the three detection-program counts and the search horizon, recording
+explicit constants for the walk-detection framework [Szegedy2004].
+
+## Main statements
+
+* `SzegedyTheorem4ExpanderGrover`: probability, program-count, and horizon requirements.
+
+## References
+
+* [Szegedy, 2004][Szegedy2004]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,6 +40,9 @@ open Matrix
 
 namespace Qatlib.Concepts.WalkSearch.Th4Expander
 
+/-- The contract requiring average detection probability at least `1 / 32` under the positive
+chain-gap and unitary-preparation hypotheses, together with explicit detection-program
+counts and a `1000 * sqrt (n / δ) + 1` search-length bound [Szegedy2004]. -/
 def SzegedyTheorem4ExpanderGrover : Prop :=
   ∀ (n d : ℕ) (adj : Fin n → Fin n → Bool) (f : Fin n → Bool) (δ : ℝ)
       (j : Fin n) (U : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ),

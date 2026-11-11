@@ -7,6 +7,26 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Stat
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Defs
 
+/-!
+# Tolerant amplification specification
+
+Defines `Lemma2`, the tolerant MNRS amplification contract [MagniezNayakRolandSantha2011]. It
+combines a lower bound on any nonzero initial marked mass with an ideal stopping window,
+homogeneous reflection errors in a fixed invariant subspace, and a bound on the total cost of
+all attempted levels.
+
+## Main statements
+
+* `Lemma2`: The tolerant amplification specification: nonzero initial marked mass gives success
+  at least `1 / 12 - 3 * γ`, and the total recursive cost satisfies the stated geometric bound
+  under the invariant-subspace and scheduled-error hypotheses [Magniez et al., Lemma
+  2][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 open scoped Real
 
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
@@ -17,6 +37,10 @@ variable {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDim
 
 end Tolerant
 
+/-- The tolerant amplification specification: nonzero initial marked mass gives success at least
+`1 / 12 - 3 * γ`, and the total recursive cost satisfies the stated geometric bound under
+the invariant-subspace and scheduled-error hypotheses [Magniez et al., Lemma
+2][MagniezNayakRolandSantha2011]. -/
 def Lemma2 : Prop :=
   ∀ (W : Type*) [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDimensional ℂ W]
     (Mr : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W),

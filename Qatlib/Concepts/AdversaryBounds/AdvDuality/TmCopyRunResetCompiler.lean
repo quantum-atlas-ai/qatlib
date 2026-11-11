@@ -7,6 +7,36 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajority
 import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
 import Mathlib.Computability.Partrec
+
+/-!
+# Copy–run–reset compilation of coin-tape machines
+
+This module constructs `tmCopyRunResetCompile`, a finite-table compiler for Boolean coin-tape
+machines. Its four-track alphabet `CellCore` retains input, stores work symbols, marks home, and
+records visited cells. The dispatch machine copies the input, simulates the source on the work
+track, returns home, and erases the work and visitation tracks while preserving the source
+result bit. Classical machine encodings and effective simulation provide the background; see
+[KitaevShenVyalyi2002].
+
+The simulation lemmas track absolute head offsets and marked intervals. They give exact phase
+costs and a uniform bound `tmCopyRunResetCoinBudget n m = 6 * n + 15 * m + 16` for reads,
+transitions, and the stated workspace envelope on executions built from fully consumed halting
+source words. The numeric compiler is primitive recursive.
+
+## Main statements
+
+* `phaseCopyRunReset`: correctness and tape invariants of the separate phases.
+* `tmCopyRunResetCompile_run`: correctness of the encoded compiled execution.
+* `tmCopyRunResetCompile_coinBudget_bound`: a bound on reads and transitions.
+* `tmCopyRunResetCompile_workspace_bound`: confinement of busy cells along every execution
+  prefix.
+* `primrec_tmCopyRunResetCompile`: primitive recursiveness of the compiler.
+
+## References
+
+* [Kitaev, Shen, and Vyalyi, 2002][KitaevShenVyalyi2002]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 
@@ -19,29 +49,42 @@ namespace Qatlib.Concepts.AdversaryBounds.AdvDuality.TmCopyRunResetCompiler
 
 open Qatlib.Concepts.ClassicalTape.TapeBoundary
 
+/-- The four tape tracks recording input, work symbols, the home marker, and visitation marks. -/
 abbrev CellCore := Option Bool × Option Bool × Bool × Option Bool
 
 instance : Inhabited CellCore := ⟨(none, none, false, none)⟩
 
+/-- Write the work symbol `b` into the current cell and mark it as visited, preserving its input
+and home marker. -/
 def markCell (T : Turing.Tape CellCore) (b : Option Bool) : CellCore :=
   (T.head.1, b, T.head.2.2.1, some true)
 
+/-- Project a phase cell onto its input, work, and home-marker tracks. -/
 def phaseMarker (s : CellCore) : MarkerCell := (s.1, s.2.1, s.2.2.1)
 
+/-- The blank-preserving projection from phase cells to marker cells. -/
 def phaseMarkerMap : Turing.PointedMap CellCore MarkerCell := ⟨phaseMarker, rfl⟩
 
+/-- Project the tape of a phase configuration onto the marker tracks, preserving its control
+state. -/
 def phaseMarkerCfg {Λ : Type} [Inhabited Λ] (cfg : Turing.TM0.Cfg CellCore Λ) :
     Turing.TM0.Cfg MarkerCell Λ := ⟨cfg.q, cfg.Tape.map phaseMarkerMap⟩
 
+/-- Embed a marker cell into the phase alphabet with an empty visitation track. -/
 def phaseEmbed (s : MarkerCell) : CellCore := (s.1, s.2.1, s.2.2, none)
 
+/-- The blank-preserving embedding of marker cells into phase cells. -/
 def phaseEmbedMap : Turing.PointedMap MarkerCell CellCore := ⟨phaseEmbed, rfl⟩
 
+/-- Embed a marker configuration into the phase alphabet, preserving its control state. -/
 def phaseEmbedCfg {Λ : Type} [Inhabited Λ] (cfg : Turing.TM0.Cfg MarkerCell Λ) :
     Turing.TM0.Cfg CellCore Λ := ⟨cfg.q, cfg.Tape.map phaseEmbedMap⟩
 
+/-- Projecting an embedded marker cell recovers the original cell. -/
 theorem phaseMarker_phaseEmbed (s : MarkerCell) : phaseMarker (phaseEmbed s) = s := rfl
 
+/-- Lift a coin-indexed marker machine to phase cells while preserving visitation marks on
+writes. -/
 def liftMarkerTable {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine MarkerCell Λ) (c : Bool) :
     Turing.TM0.Machine CellCore Λ := fun q s =>
@@ -50,6 +93,7 @@ def liftMarkerTable {Λ : Type} [Inhabited Λ]
     | .move d => (p.1, Turing.TM0.Stmt.move d)
     | .write b => (p.1, Turing.TM0.Stmt.write (b.1, b.2.1, b.2.2, s.2.2.2))
 
+/-- One step of the lifted marker machine commutes with embedding configurations. -/
 theorem liftMarker_step {Λ : Type} [Inhabited Λ] (M : Turing.TM0.Machine MarkerCell Λ)
     (c : Bool) (cfg : Turing.TM0.Cfg MarkerCell Λ) :
     Turing.TM0.step (liftMarkerTable (fun _ => M) c) (phaseEmbedCfg cfg) =
@@ -69,6 +113,7 @@ theorem liftMarker_step {Λ : Type} [Inhabited Λ] (M : Turing.TM0.Machine Marke
       simp only [Option.map_some, TM0StmtApply, phaseEmbedCfg, Turing.Tape.map_write,
         phaseEmbedMap, phaseEmbed]
 
+/-- Running the lifted marker machine for `t` steps commutes with embedding configurations. -/
 theorem liftMarker_runFrom {Λ : Type} [Inhabited Λ] (M : Turing.TM0.Machine MarkerCell Λ)
     (t : ℕ) (cfg : Turing.TM0.Cfg MarkerCell Λ) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (liftMarkerTable (fun _ => M) false) t (phaseEmbedCfg cfg) =
@@ -85,17 +130,23 @@ theorem liftMarker_runFrom {Λ : Type} [Inhabited Λ] (M : Turing.TM0.Machine Ma
       simp only [Option.bind_some, Option.map_some]
       exact ih next
 
+/-- The blank-preserving projection onto the work track of a phase cell. -/
 def phaseWorkMap : Turing.PointedMap CellCore (Option Bool) := ⟨fun s => s.2.1, rfl⟩
 
+/-- Project a phase configuration onto its work tape, preserving its control state. -/
 def phaseWorkCfg {Λ : Type} [Inhabited Λ] (cfg : Turing.TM0.Cfg CellCore Λ) :
     Turing.TM0.Cfg (Option Bool) Λ := ⟨cfg.q, cfg.Tape.map phaseWorkMap⟩
 
+/-- Encode a Boolean input on the input track with blank work and visitation tracks and no home
+markers. -/
 def phaseInput (input : List Bool) : List CellCore :=
   input.map fun b => (some b, none, false, none)
 
+/-- The tape obtained by embedding the marker-copy output in the phase alphabet. -/
 def phaseCopyResult (input : List Bool) : Turing.Tape CellCore :=
   (markerCopyResult input).map phaseEmbedMap
 
+/-- Initializing the phase input agrees with embedding the initialized marker input. -/
 theorem phaseCopy_init (input : List Bool) :
     Turing.TM0.init (phaseInput input) =
       phaseEmbedCfg ((Turing.TM0.init (markerInput input) :
@@ -106,6 +157,8 @@ theorem phaseCopy_init (input : List Bool) :
   simp [Turing.TM0.init, phaseInput, phaseEmbedCfg, phaseEmbedMap, markerInput,
     Turing.Tape.map_mk₁, Function.comp_def, hmap]
 
+/-- The lifted copy machine reaches `phaseCopyResult input` and halts after `3 * input.length +
+3` steps. -/
 theorem phaseCopy_run (input : List Bool) :
     Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom (liftMarkerTable (fun _ => markerCopyTable) false)
         (3 * input.length + 3) (Turing.TM0.init (phaseInput input)) =
@@ -126,6 +179,8 @@ theorem phaseCopy_run (input : List Bool) :
   rw [hcfg]
   simpa using! hs
 
+/-- With enough coins, the lifted copy machine returns `true` with exactly `3 * input.length +
+3` reads and transitions. -/
 theorem phaseCopy_coin_run (input : List Bool) (coins : List Bool)
     (hlen : 3 * input.length + 3 ≤ coins.length) :
     coinTapeRun (fun _ => liftMarkerTable (fun _ => markerCopyTable) false) markerCopyAccept
@@ -137,16 +192,21 @@ theorem phaseCopy_coin_run (input : List Bool) (coins : List Bool)
     ⟨4, phaseCopyResult input⟩ coins (phaseCopy_run input).1 (phaseCopy_run input).2 hlen
   simpa [coinTapeRun, coinTapeTransitionCount, markerCopyAccept] using! h
 
+/-- A source control label paired with the Boolean recording the side of the home position. -/
 abbrev MarkRunLabel (Λ : Type*) := Λ × Bool
 
+/-- A pending marked-run label carrying an optional tape movement. -/
 abbrev MarkPendingLabel (Λ : Type*) := (Λ × Bool) × Option Turing.Dir
 
+/-- Control states for the live, pending, and final stages of the marked simulation. -/
 abbrev MarkRunControl (Λ : Type*) :=
   Sum (MarkRunLabel Λ) (Sum (MarkPendingLabel Λ) (MarkRunLabel Λ))
 
 instance {Λ : Type} [Inhabited Λ] : Inhabited (MarkRunControl Λ) :=
   ⟨Sum.inl (default, false)⟩
 
+/-- Simulate source transitions on the work track, marking visited cells and staging movements
+through pending states. -/
 def markRunTable {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool) :
     Turing.TM0.Machine CellCore (MarkRunControl Λ) :=
@@ -166,11 +226,13 @@ def markRunTable {Λ : Type} [Inhabited Λ]
       | some d => some (.inl pp.1, Turing.TM0.Stmt.move d)
     | .inr (.inr _) => none
 
+/-- Read the source acceptance bit from any stage of a marked-run control state. -/
 def markRunAccept {Λ : Type} (a : Λ → Bool) : MarkRunControl Λ → Bool
   | .inl p => a p.1
   | .inr (.inl pp) => a pp.1.1
   | .inr (.inr p) => a p.1
 
+/-- A live marked-run state always has a transition. -/
 theorem markRun_live_ne_none {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool) (p : MarkRunLabel Λ)
     (s : CellCore) : markRunTable M c (Sum.inl p) s ≠ none := by
@@ -181,6 +243,7 @@ theorem markRun_live_ne_none {Λ : Type} [Inhabited Λ]
     obtain ⟨q', stmt⟩ := p'
     cases stmt <;> simp
 
+/-- A pending marked-run state always has a transition. -/
 theorem markRun_pending_ne_none {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool)
     (pp : MarkPendingLabel Λ) (s : CellCore) :
@@ -188,6 +251,7 @@ theorem markRun_pending_ne_none {Λ : Type} [Inhabited Λ]
   simp only [markRunTable]
   cases pp.2 <;> simp
 
+/-- Halting of the marked-run transition table is independent of the supplied coin bit. -/
 theorem markRun_commonHalt {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) :
     ∀ q s, (markRunTable M false q s = none) ↔ (markRunTable M true q s = none) := by
@@ -203,34 +267,45 @@ theorem markRun_commonHalt {Λ : Type} [Inhabited Λ]
     · intro h; exact absurd h (markRun_pending_ne_none M true pp s)
   | .inr (.inr _) => simp [markRunTable]
 
+/-- The home track marks exactly the cell whose absolute position is zero when the head offset
+is `off`. -/
 def PhaseHomeAt (T : Turing.Tape CellCore) (off : ℤ) : Prop :=
   ∀ i : ℤ, (T.nth i).2.2.1 = decide (i + off = 0)
 
+/-- Every nonblank work cell is marked as visited or lies within the original input interval of
+length `n`. -/
 def PhaseWorkMarked (T : Turing.Tape CellCore) (off : ℤ) (n : ℕ) : Prop :=
   ∀ i : ℤ, (T.nth i).2.1 ≠ none →
     ((T.nth i).2.2.2 ≠ none ∨ (0 ≤ i + off ∧ i + off < (n : ℤ)))
 
+/-- The current input track equals the initial input track after accounting for the head offset. -/
 def PhaseInputSame (initial current : Turing.Tape CellCore) (off : ℤ) : Prop :=
   ∀ i : ℤ, (current.nth i).1 = (initial.nth (i + off)).1
 
+/-- The visitation marks occupy exactly the closed absolute interval from `lo` to `hi`. -/
 def PhaseMarkAbs (T : Turing.Tape CellCore) (off lo hi : ℤ) : Prop :=
   ∀ i : ℤ, (T.nth i).2.2.2 ≠ none ↔ (lo ≤ i + off ∧ i + off ≤ hi)
 
+/-- Under `PhaseHomeAt`, the current cell has its home marker precisely when the head offset is
+zero. -/
 theorem phaseHomeAt_head (T : Turing.Tape CellCore) (off : ℤ) (h : PhaseHomeAt T off) :
     T.head.2.2.1 = decide (off = 0) := by simpa using! h 0
 
+/-- Moving left preserves the home-marker invariant with the head offset decreased by one. -/
 theorem phaseHomeAt_move_left (T : Turing.Tape CellCore) (off : ℤ) (h : PhaseHomeAt T off) :
     PhaseHomeAt (T.move .left) (off - 1) := by
   intro i
   rw [Turing.Tape.move_left_nth, h]
   rw [show i - 1 + off = i + (off - 1) by omega]
 
+/-- Moving right preserves the home-marker invariant with the head offset increased by one. -/
 theorem phaseHomeAt_move_right (T : Turing.Tape CellCore) (off : ℤ) (h : PhaseHomeAt T off) :
     PhaseHomeAt (T.move .right) (off + 1) := by
   intro i
   rw [Turing.Tape.move_right_nth, h]
   rw [show i + 1 + off = i + (off + 1) by omega]
 
+/-- A marked work write preserves the home marker, input track, and marked-work invariant. -/
 theorem phaseWrite_invariants (T : Turing.Tape CellCore) (off : ℤ) (n : ℕ)
     (b : Option Bool) (initial : Turing.Tape CellCore)
     (hhome : PhaseHomeAt T off) (hinp : PhaseInputSame initial T off)
@@ -266,6 +341,8 @@ theorem phaseWrite_invariants (T : Turing.Tape CellCore) (off : ℤ) (n : ℕ)
         · exact Or.inl (by simp)
       · next _ => exact hwork i
 
+/-- Extending an integer interval to include a point at distance at most one preserves the
+stated endpoint bounds and contains no other new points. -/
 theorem int_min_max_facts (lo hi off : ℤ) (hslack : lo - 1 ≤ off ∧ off ≤ hi + 1) :
     min lo off ≤ lo ∧ hi ≤ max hi off ∧ max hi off ≤ hi + 1 ∧ lo - 1 ≤ min lo off ∧
       ∀ x : ℤ, min lo off ≤ x → x ≤ max hi off → x ≠ off → lo ≤ x ∧ x ≤ hi := by
@@ -291,6 +368,8 @@ theorem int_min_max_facts (lo hi off : ℤ) (hslack : lo - 1 ≤ off ∧ off ≤
       · rw [min_eq_left hle2] at hx1; omega
       · rw [min_eq_right hge2] at hx1; omega
 
+/-- A marked write extends the marked interval to include the current offset when it is at most
+one cell beyond either endpoint. -/
 theorem phaseMarkAbs_write (T : Turing.Tape CellCore) (b : Option Bool) (off lo hi : ℤ)
     (h : PhaseMarkAbs T off lo hi) (hs : lo - 1 ≤ off ∧ off ≤ hi + 1) :
     PhaseMarkAbs (T.write (markCell T b)) off (min lo off) (max hi off) := by
@@ -309,6 +388,7 @@ theorem phaseMarkAbs_write (T : Turing.Tape CellCore) (b : Option Bool) (off lo 
     · intro hm
       exact (h i).mpr ⟨by omega, by omega⟩
 
+/-- Moving left preserves the absolute marked interval and decreases the head offset by one. -/
 theorem phaseMarkAbs_move_left (T : Turing.Tape CellCore) (off lo hi : ℤ)
     (h : PhaseMarkAbs T off lo hi) : PhaseMarkAbs (T.move .left) (off - 1) lo hi := by
   intro i
@@ -321,6 +401,7 @@ theorem phaseMarkAbs_move_left (T : Turing.Tape CellCore) (off lo hi : ℤ)
     obtain ⟨h1, h2⟩ := hm
     exact (h _).mpr ⟨by omega, by omega⟩
 
+/-- Moving right preserves the absolute marked interval and increases the head offset by one. -/
 theorem phaseMarkAbs_move_right (T : Turing.Tape CellCore) (off lo hi : ℤ)
     (h : PhaseMarkAbs T off lo hi) : PhaseMarkAbs (T.move .right) (off + 1) lo hi := by
   intro i
@@ -333,6 +414,7 @@ theorem phaseMarkAbs_move_right (T : Turing.Tape CellCore) (off lo hi : ℤ)
     obtain ⟨h1, h2⟩ := hm
     exact (h _).mpr ⟨by omega, by omega⟩
 
+/-- Moving left preserves the input-track invariant with the head offset decreased by one. -/
 theorem phaseInputSame_move_left (initial T : Turing.Tape CellCore) (off : ℤ)
     (h : PhaseInputSame initial T off) : PhaseInputSame initial (T.move .left) (off - 1) := by
   intro i
@@ -341,6 +423,7 @@ theorem phaseInputSame_move_left (initial T : Turing.Tape CellCore) (off : ℤ)
   rw [show i - 1 + off = i + (off - 1) by omega] at hi
   exact hi
 
+/-- Moving right preserves the input-track invariant with the head offset increased by one. -/
 theorem phaseInputSame_move_right (initial T : Turing.Tape CellCore) (off : ℤ)
     (h : PhaseInputSame initial T off) : PhaseInputSame initial (T.move .right) (off + 1) := by
   intro i
@@ -349,6 +432,7 @@ theorem phaseInputSame_move_right (initial T : Turing.Tape CellCore) (off : ℤ)
   rw [show i + 1 + off = i + (off + 1) by omega] at hi
   exact hi
 
+/-- Moving left preserves the marked-work invariant with the head offset decreased by one. -/
 theorem phaseWorkMarked_move_left (T : Turing.Tape CellCore) (off : ℤ) (n : ℕ)
     (h : PhaseWorkMarked T off n) : PhaseWorkMarked (T.move .left) (off - 1) n := by
   intro i hm
@@ -357,6 +441,7 @@ theorem phaseWorkMarked_move_left (T : Turing.Tape CellCore) (off : ℤ) (n : �
   · exact Or.inl hm2
   · exact Or.inr ⟨by omega, by omega⟩
 
+/-- Moving right preserves the marked-work invariant with the head offset increased by one. -/
 theorem phaseWorkMarked_move_right (T : Turing.Tape CellCore) (off : ℤ) (n : ℕ)
     (h : PhaseWorkMarked T off n) : PhaseWorkMarked (T.move .right) (off + 1) n := by
   intro i hm
@@ -365,20 +450,26 @@ theorem phaseWorkMarked_move_right (T : Turing.Tape CellCore) (off : ℤ) (n : �
   · exact Or.inl hm2
   · exact Or.inr ⟨by omega, by omega⟩
 
+/-- Writing the current cell leaves every tape cell at a nonzero relative index unchanged. -/
 theorem phaseWriteNth_of_ne (T : Turing.Tape CellCore) (c : CellCore) (i : ℤ)
     (h0 : i ≠ 0) : (T.write c).nth i = T.nth i := by
   rw [Turing.Tape.write_nth, if_neg h0]
 
+/-- The cell at relative index zero after a write is the written symbol. -/
 theorem phaseWriteNth_zero (T : Turing.Tape CellCore) (c : CellCore) :
     (T.write c).nth 0 = c := by
   rw [Turing.Tape.write_nth, if_pos rfl]
 
+/-- Every unmarked cell retains its initial work symbol at the corresponding absolute position. -/
 def PhaseUnmarkedWork (initial T : Turing.Tape CellCore) (off : ℤ) : Prop :=
   ∀ i : ℤ, (T.nth i).2.2.2 = none → (T.nth i).2.1 = (initial.nth (i + off)).2.1
 
+/-- Every marked absolute position on the first tape remains marked on the second tape. -/
 def PhaseMarkGrows (T T' : Turing.Tape CellCore) (off off' : ℤ) : Prop :=
   ∀ i : ℤ, (T.nth (i - off)).2.2.2 ≠ none → (T'.nth (i - off')).2.2.2 ≠ none
 
+/-- Marking and writing the current work cell preserves the initial contents of all unmarked
+work cells. -/
 theorem phaseUnmarkedWork_write_markCell (T initial : Turing.Tape CellCore)
     (b : Option Bool) (off : ℤ)
     (h : PhaseUnmarkedWork initial T off) :
@@ -392,6 +483,7 @@ theorem phaseUnmarkedWork_write_markCell (T initial : Turing.Tape CellCore)
     rw [phaseWriteNth_of_ne _ (markCell T b) i h0] at hi
     exact h i hi
 
+/-- Rewriting the current head symbol preserves the unmarked-work invariant. -/
 theorem phaseUnmarkedWork_write_self (T initial : Turing.Tape CellCore) (off : ℤ)
     (h : PhaseUnmarkedWork initial T off) :
     PhaseUnmarkedWork initial (T.write T.head) off := by
@@ -405,6 +497,7 @@ theorem phaseUnmarkedWork_write_self (T initial : Turing.Tape CellCore) (off : �
     rw [phaseWriteNth_of_ne _ T.head i h0] at hi
     exact h i hi
 
+/-- Moving left preserves the unmarked-work invariant after decreasing the head offset by one. -/
 theorem phaseUnmarkedWork_move_left (initial T : Turing.Tape CellCore) (off : ℤ)
     (h : PhaseUnmarkedWork initial T off) :
     PhaseUnmarkedWork initial (T.move .left) (off - 1) := by
@@ -414,6 +507,7 @@ theorem phaseUnmarkedWork_move_left (initial T : Turing.Tape CellCore) (off : �
   rw [show i - 1 + off = i + (off - 1) by omega] at h2
   exact h2
 
+/-- Moving right preserves the unmarked-work invariant after increasing the head offset by one. -/
 theorem phaseUnmarkedWork_move_right (initial T : Turing.Tape CellCore) (off : ℤ)
     (h : PhaseUnmarkedWork initial T off) :
     PhaseUnmarkedWork initial (T.move .right) (off + 1) := by
@@ -423,6 +517,7 @@ theorem phaseUnmarkedWork_move_right (initial T : Turing.Tape CellCore) (off : �
   rw [show i + 1 + off = i + (off + 1) by omega] at h2
   exact h2
 
+/-- A marked work write preserves every existing visitation mark. -/
 theorem phaseMarkGrows_write_markCell (T : Turing.Tape CellCore) (b : Option Bool) (off : ℤ) :
     PhaseMarkGrows T (T.write (markCell T b)) off off := by
   intro i hi
@@ -432,6 +527,7 @@ theorem phaseMarkGrows_write_markCell (T : Turing.Tape CellCore) (b : Option Boo
   · rw [phaseWriteNth_of_ne _ (markCell T b) _ h0]
     exact hi
 
+/-- Rewriting the current head symbol preserves every visitation mark. -/
 theorem phaseMarkGrows_write_self (T : Turing.Tape CellCore) (off : ℤ) :
     PhaseMarkGrows T (T.write T.head) off off := by
   intro i hi
@@ -442,6 +538,7 @@ theorem phaseMarkGrows_write_self (T : Turing.Tape CellCore) (off : ℤ) :
   · rw [phaseWriteNth_of_ne _ T.head _ h0]
     exact hi
 
+/-- Moving left preserves visitation marks at their absolute positions. -/
 theorem phaseMarkGrows_move_left (T : Turing.Tape CellCore) (off : ℤ) :
     PhaseMarkGrows T (T.move .left) off (off - 1) := by
   intro i hi
@@ -449,6 +546,7 @@ theorem phaseMarkGrows_move_left (T : Turing.Tape CellCore) (off : ℤ) :
   rw [Turing.Tape.move_left_nth, h1]
   exact hi
 
+/-- Moving right preserves visitation marks at their absolute positions. -/
 theorem phaseMarkGrows_move_right (T : Turing.Tape CellCore) (off : ℤ) :
     PhaseMarkGrows T (T.move .right) off (off + 1) := by
   intro i hi
@@ -456,15 +554,21 @@ theorem phaseMarkGrows_move_right (T : Turing.Tape CellCore) (off : ℤ) :
   rw [Turing.Tape.move_right_nth, h1]
   exact hi
 
+/-- Preservation of visitation marks is transitive across three tapes with their respective head
+offsets. -/
 theorem phaseMarkGrows_trans {T₁ T₂ T₃ : Turing.Tape CellCore} {o₁ o₂ o₃ : ℤ}
     (h12 : PhaseMarkGrows T₁ T₂ o₁ o₂) (h23 : PhaseMarkGrows T₂ T₃ o₂ o₃) :
     PhaseMarkGrows T₁ T₃ o₁ o₃ := fun _ hi => h23 _ (h12 _ hi)
 
+/-- Interleave source coins with filler coins, returning the remaining source suffix unchanged
+if the fillers run out. -/
 def pairCoins : List Bool → List Bool → List Bool
   | [], _ => []
   | c :: cs, f :: fs => c :: f :: pairCoins cs fs
   | c :: cs, [] => c :: cs
 
+/-- At a live configuration, consuming a coin and taking a successful step adds one read and one
+transition to the remaining configuration run. -/
 theorem coinConfigRunAux_cons_live {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     {M : Bool → Turing.TM0.Machine Γ Λ} {c : Bool} {cs : List Bool}
     {cfg : Turing.TM0.Cfg Γ Λ} {q' : Λ} {T' : Turing.Tape Γ}
@@ -477,6 +581,8 @@ theorem coinConfigRunAux_cons_live {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inh
   simp only [coinConfigRunAux, hchf, hstep]
   rw [if_neg (by simp)]
 
+/-- At a live configuration, consuming a coin and taking a successful step preserves the
+remaining acceptance result and adds one read. -/
 theorem coinTapeRunAux_cons_live {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     {M : Bool → Turing.TM0.Machine Γ Λ} {accept : Λ → Bool} {c : Bool} {cs : List Bool}
     {cfg : Turing.TM0.Cfg Γ Λ} {q' : Λ} {T' : Turing.Tape Γ}
@@ -487,6 +593,7 @@ theorem coinTapeRunAux_cons_live {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhab
   simp only [coinTapeRunAux, hchf, hstep]
   rw [if_neg (by simp)]
 
+/-- A live marked-run configuration does not satisfy the coin-halting predicate. -/
 theorem markRun_coinHalt_live {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ)
     (p : MarkRunLabel Λ) (T : Turing.Tape CellCore) :
@@ -494,6 +601,7 @@ theorem markRun_coinHalt_live {Λ : Type} [Inhabited Λ]
   simp only [coinHalt, markRunTable]
   split <;> split <;> simp
 
+/-- A pending marked-run configuration does not satisfy the coin-halting predicate. -/
 theorem markRun_coinHalt_pending {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ)
     (pp : MarkPendingLabel Λ) (T : Turing.Tape CellCore) :
@@ -501,12 +609,15 @@ theorem markRun_coinHalt_pending {Λ : Type} [Inhabited Λ]
   simp only [coinHalt, markRunTable]
   split <;> simp
 
+/-- A final marked-run configuration satisfies the coin-halting predicate. -/
 theorem markRun_coinHalt_final {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ)
     (p : MarkRunLabel Λ) (T : Turing.Tape CellCore) :
     coinHalt (markRunTable M) ⟨Sum.inr (Sum.inr p), T⟩ = true := by
   simp [coinHalt, markRunTable]
 
+/-- When the source table halts, the marked simulator marks the current cell and enters its
+final state. -/
 theorem markRun_step_none {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool) (p : MarkRunLabel Λ)
     (T : Turing.Tape CellCore) (h : M c p.1 T.head.2.1 = none) :
@@ -514,6 +625,7 @@ theorem markRun_step_none {Λ : Type} [Inhabited Λ]
       some ⟨Sum.inr (Sum.inr p), T.write (markCell T T.head.2.1)⟩ := by
   simp [TM0_step_apply, markRunTable, h, TM0StmtApply, markCell]
 
+/-- A source write becomes a marked work write followed by a pending state with no movement. -/
 theorem markRun_step_write {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool) (p : MarkRunLabel Λ)
     (T : Turing.Tape CellCore) (q' : Λ) (b : Option Bool)
@@ -522,6 +634,8 @@ theorem markRun_step_write {Λ : Type} [Inhabited Λ]
       some ⟨Sum.inr (Sum.inl ((q', p.2), none)), T.write (markCell T b)⟩ := by
   simp [TM0_step_apply, markRunTable, h, TM0StmtApply, markCell]
 
+/-- A source movement first marks the current cell and records the movement and updated side in
+a pending state. -/
 theorem markRun_step_move {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool) (p : MarkRunLabel Λ)
     (T : Turing.Tape CellCore) (q' : Λ) (d : Turing.Dir)
@@ -531,6 +645,7 @@ theorem markRun_step_move {Λ : Type} [Inhabited Λ]
         T.write (markCell T T.head.2.1)⟩ := by
   simp [TM0_step_apply, markRunTable, h, TM0StmtApply, markCell]
 
+/-- A pending state without a movement rewrites the head symbol and returns to a live state. -/
 theorem markRun_step_pending_write {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool)
     (pp : MarkPendingLabel Λ) (T : Turing.Tape CellCore) (h : pp.2 = none) :
@@ -538,6 +653,7 @@ theorem markRun_step_pending_write {Λ : Type} [Inhabited Λ]
       some ⟨Sum.inl pp.1, T.write T.head⟩ := by
   simp [TM0_step_apply, markRunTable, h, TM0StmtApply]
 
+/-- A pending movement moves the tape in the stored direction and returns to a live state. -/
 theorem markRun_step_pending_move {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (c : Bool)
     (pp : MarkPendingLabel Λ) (T : Turing.Tape CellCore) (d : Turing.Dir)
@@ -546,11 +662,17 @@ theorem markRun_step_pending_move {Λ : Type} [Inhabited Λ]
       some ⟨Sum.inl pp.1, T.move d⟩ := by
   simp [TM0_step_apply, markRunTable, h, TM0StmtApply]
 
+/-- Projecting a marked work write onto the work track gives the corresponding write on the
+projected tape. -/
 theorem markCell_workMap (T : Turing.Tape CellCore) (b : Option Bool) :
     (T.write (markCell T b)).map phaseWorkMap = (T.map phaseWorkMap).write b := by
   rw [Turing.Tape.map_write]
   simp [phaseWorkMap, markCell]
 
+/-- A source run consuming all of `w` is simulated with interleaved fillers in exactly `2 *
+w.length + 1` reads and transitions, preserving its final work tape and acceptance bit. The
+resulting tape satisfies the stated input, home, mark-growth, interval, and displacement
+bounds. -/
 theorem markRun_coin_run {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -906,17 +1028,22 @@ theorem markRun_coin_run {Λ : Type} [Inhabited Λ]
               simp only [Prod.map, id_eq]
               rw [h2]
 
+/-- The lifted homing machine halts when the current cell carries the home marker. -/
 theorem liftMarkerHome_step_home (q : HomeState) (T : Turing.Tape CellCore)
     (h : T.head.2.2.1 = true) :
     Turing.TM0.step (liftMarkerTable (fun _ => markerHomeTable) false) ⟨q, T⟩ = none := by
   simp [TM0_step_apply, markerHomeTable, liftMarkerTable, phaseMarker, h, TM0StmtApply]
 
+/-- Away from the home marker, the lifted homing machine moves in `homeDirection left` without
+changing its state. -/
 theorem liftMarkerHome_step_away (left bit : Bool) (T : Turing.Tape CellCore)
     (h : T.head.2.2.1 = false) :
     Turing.TM0.step (liftMarkerTable (fun _ => markerHomeTable) false) ⟨(left, bit), T⟩ =
       some ⟨(left, bit), T.move (homeDirection left)⟩ := by
   simp [TM0_step_apply, markerHomeTable, liftMarkerTable, phaseMarker, h, TM0StmtApply]
 
+/-- From offset `homeDistance left n`, the lifted homing machine reaches home and halts after
+`n` steps, changing only the tape's relative indexing. -/
 theorem liftMarkerHome_run (left bit : Bool) (n : ℕ) (T : Turing.Tape CellCore)
     (h : PhaseHomeAt T (homeDistance left n)) :
     ∃ final : Turing.Tape CellCore,
@@ -966,6 +1093,8 @@ theorem liftMarkerHome_run (left bit : Bool) (n : ℕ) (T : Turing.Tape CellCore
         congr 1
         omega
 
+/-- With at least `n` coins, the lifted homing machine returns `bit` after exactly `n` reads and
+transitions and recenters the tape at home. -/
 theorem liftMarkerHome_coin_run (left bit : Bool) (n : ℕ) (T : Turing.Tape CellCore)
     (h : PhaseHomeAt T (homeDistance left n)) (coins : List Bool) (hlen : n ≤ coins.length) :
     ∃ final : Turing.Tape CellCore, PhaseHomeAt final 0 ∧
@@ -979,6 +1108,8 @@ theorem liftMarkerHome_coin_run (left bit : Bool) (n : ℕ) (T : Turing.Tape Cel
     markerHomeAccept n ⟨(left, bit), T⟩ ⟨(left, bit), final⟩ coins hr halt hlen
   exact ⟨final, hh, data, hc⟩
 
+/-- Recentering a tape at home preserves its absolute marked interval, input track, and
+marked-work invariant. -/
 theorem phaseShift_invariants (T final : Turing.Tape CellCore) (off lo hi : ℤ) (n : ℕ)
     (initial : Turing.Tape CellCore)
     (hdata : ∀ i : ℤ, final.nth i = T.nth (i - off))
@@ -1006,17 +1137,24 @@ theorem phaseShift_invariants (T final : Turing.Tape CellCore) (off lo hi : ℤ)
       · exact Or.inl hm2
       · exact Or.inr ⟨by omega, by omega⟩
 
+/-- The six control phases used to erase work and visitation tracks on both sides of home. -/
 inductive SweepPhase : Type
   | rightErase | backHomeL | leftErase | backHomeR | stepRight | stepLeft
 
+/-- A sweep phase paired with the Boolean result preserved during reset. -/
 abbrev SweepState := SweepPhase × Bool
 
 instance : Inhabited SweepState := ⟨.rightErase, false⟩
 
+/-- Test whether a phase cell has a nonblank work symbol or a visitation mark. -/
 def phaseBusy (s : CellCore) : Bool := s.2.1.isSome || s.2.2.2.isSome
 
+/-- Clear the work and visitation tracks of a phase cell while preserving its input and home
+marker. -/
 def eraseCellP (s : CellCore) : CellCore := (s.1, none, s.2.2.1, none)
 
+/-- The deterministic transition table that erases busy cells on both sides and returns the head
+home. -/
 def sweepResetTable : Turing.TM0.Machine CellCore SweepState := fun q s =>
   match q.1 with
   | .rightErase =>
@@ -1032,8 +1170,10 @@ def sweepResetTable : Turing.TM0.Machine CellCore SweepState := fun q s =>
   | .stepLeft => some ((.leftErase, q.2), .move .left)
   | .backHomeR => if s.2.2.1 then none else some ((.backHomeR, q.2), .move .right)
 
+/-- Extract the result bit stored in a sweep state. -/
 def sweepResetAccept (q : SweepState) : Bool := q.2
 
+/-- Halting of the constant sweep-reset machine is independent of the coin bit. -/
 theorem sweepReset_commonHalt :
     ∀ q s, ((fun _ => sweepResetTable) false q s = none) ↔
       ((fun _ => sweepResetTable) true q s = none) := by
@@ -1041,6 +1181,7 @@ theorem sweepReset_commonHalt :
   obtain ⟨p, b⟩ := q
   cases p <;> exact Iff.rfl
 
+/-- A sweep configuration is live unless it is in the final return phase at the home marker. -/
 theorem sweep_coinHalt_live (q : SweepState) (T : Turing.Tape CellCore)
     (h : ¬ (q.1 = .backHomeR ∧ T.head.2.2.1 = true)) :
     coinHalt (fun _ => sweepResetTable) ⟨q, T⟩ = false := by
@@ -1065,63 +1206,74 @@ theorem sweep_coinHalt_live (q : SweepState) (T : Turing.Tape CellCore)
       | false => simp [coinHalt, sweepResetTable, hb]
       | true => exact absurd ⟨rfl, hb⟩ h
 
+/-- The rightward erase phase clears a busy head cell and enters the right-step phase. -/
 theorem sweep_step_erase_right (b : Bool) (T : Turing.Tape CellCore)
     (h : phaseBusy T.head = true) :
     Turing.TM0.step sweepResetTable ⟨(.rightErase, b), T⟩ =
       some ⟨(.stepRight, b), T.write (eraseCellP T.head)⟩ := by
   simp [TM0_step_apply, sweepResetTable, h, TM0StmtApply]
 
+/-- The right-step phase moves right and resumes rightward erasure. -/
 theorem sweep_step_stepRight (b : Bool) (T : Turing.Tape CellCore) :
     Turing.TM0.step sweepResetTable ⟨(.stepRight, b), T⟩ =
       some ⟨(.rightErase, b), T.move .right⟩ := by
   simp [TM0_step_apply, sweepResetTable, TM0StmtApply]
 
+/-- At a clean cell, the rightward erase phase moves left and begins returning home. -/
 theorem sweep_step_virgin_right (b : Bool) (T : Turing.Tape CellCore)
     (h : phaseBusy T.head = false) :
     Turing.TM0.step sweepResetTable ⟨(.rightErase, b), T⟩ =
       some ⟨(.backHomeL, b), T.move .left⟩ := by
   simp [TM0_step_apply, sweepResetTable, h, TM0StmtApply]
 
+/-- At home, the leftward return phase moves left and starts leftward erasure. -/
 theorem sweep_step_backHomeL_home (b : Bool) (T : Turing.Tape CellCore)
     (h : T.head.2.2.1 = true) :
     Turing.TM0.step sweepResetTable ⟨(.backHomeL, b), T⟩ =
       some ⟨(.leftErase, b), T.move .left⟩ := by
   simp [TM0_step_apply, sweepResetTable, h, TM0StmtApply]
 
+/-- Away from home, the leftward return phase continues moving left. -/
 theorem sweep_step_backHomeL_away (b : Bool) (T : Turing.Tape CellCore)
     (h : T.head.2.2.1 = false) :
     Turing.TM0.step sweepResetTable ⟨(.backHomeL, b), T⟩ =
       some ⟨(.backHomeL, b), T.move .left⟩ := by
   simp [TM0_step_apply, sweepResetTable, h, TM0StmtApply]
 
+/-- The leftward erase phase clears a busy head cell and enters the left-step phase. -/
 theorem sweep_step_erase_left (b : Bool) (T : Turing.Tape CellCore)
     (h : phaseBusy T.head = true) :
     Turing.TM0.step sweepResetTable ⟨(.leftErase, b), T⟩ =
       some ⟨(.stepLeft, b), T.write (eraseCellP T.head)⟩ := by
   simp [TM0_step_apply, sweepResetTable, h, TM0StmtApply]
 
+/-- The left-step phase moves left and resumes leftward erasure. -/
 theorem sweep_step_stepLeft (b : Bool) (T : Turing.Tape CellCore) :
     Turing.TM0.step sweepResetTable ⟨(.stepLeft, b), T⟩ =
       some ⟨(.leftErase, b), T.move .left⟩ := by
   simp [TM0_step_apply, sweepResetTable, TM0StmtApply]
 
+/-- At a clean cell, the leftward erase phase moves right and begins the final return home. -/
 theorem sweep_step_virgin_left (b : Bool) (T : Turing.Tape CellCore)
     (h : phaseBusy T.head = false) :
     Turing.TM0.step sweepResetTable ⟨(.leftErase, b), T⟩ =
       some ⟨(.backHomeR, b), T.move .right⟩ := by
   simp [TM0_step_apply, sweepResetTable, h, TM0StmtApply]
 
+/-- The final rightward return phase halts at the home marker. -/
 theorem sweep_step_backHomeR_home (b : Bool) (T : Turing.Tape CellCore)
     (h : T.head.2.2.1 = true) :
     Turing.TM0.step sweepResetTable ⟨(.backHomeR, b), T⟩ = none := by
   simp [TM0_step_apply, sweepResetTable, h]
 
+/-- Away from home, the final rightward return phase continues moving right. -/
 theorem sweep_step_backHomeR_away (b : Bool) (T : Turing.Tape CellCore)
     (h : T.head.2.2.1 = false) :
     Turing.TM0.step sweepResetTable ⟨(.backHomeR, b), T⟩ =
       some ⟨(.backHomeR, b), T.move .right⟩ := by
   simp [TM0_step_apply, sweepResetTable, h, TM0StmtApply]
 
+/-- Erasing the head's work and visitation tracks preserves the home-marker invariant. -/
 theorem phaseEraseWrite_home (T : Turing.Tape CellCore) (off : ℤ)
     (h : PhaseHomeAt T off) : PhaseHomeAt (T.write (eraseCellP T.head)) off := by
   intro i
@@ -1132,6 +1284,7 @@ theorem phaseEraseWrite_home (T : Turing.Tape CellCore) (off : ℤ)
     simpa [eraseCellP] using! h 0
   · next _ => exact h i
 
+/-- Erasing the head's work and visitation tracks preserves the input-track invariant. -/
 theorem phaseEraseWrite_input (T : Turing.Tape CellCore) (initial : Turing.Tape CellCore)
     (off : ℤ) (h : PhaseInputSame initial T off) :
     PhaseInputSame initial (T.write (eraseCellP T.head)) off := by
@@ -1143,11 +1296,13 @@ theorem phaseEraseWrite_input (T : Turing.Tape CellCore) (initial : Turing.Tape 
     simpa [eraseCellP] using! h 0
   · next _ => exact h i
 
+/-- Erasing the head's work and visitation tracks makes the head cell clean. -/
 theorem phaseEraseWrite_head_busy (T : Turing.Tape CellCore) :
     phaseBusy ((T.write (eraseCellP T.head)).head) = false := by
   show phaseBusy (eraseCellP T.head) = false
   simp [phaseBusy, eraseCellP]
 
+/-- Erasing the head leaves every cell at a nonzero relative index unchanged. -/
 theorem phaseEraseWrite_nth_of_ne (T : Turing.Tape CellCore) (i : ℤ) (h0 : i ≠ 0) :
     (T.write (eraseCellP T.head)).nth i = T.nth i := by
   rw [Turing.Tape.write_nth]
@@ -1155,16 +1310,21 @@ theorem phaseEraseWrite_nth_of_ne (T : Turing.Tape CellCore) (i : ℤ) (h0 : i �
   · next h => exact absurd h h0
   · next => rfl
 
+/-- The busy predicate on the tape head equals its value at relative index zero. -/
 theorem phaseBusy_head (T : Turing.Tape CellCore) : phaseBusy T.head = phaseBusy (T.nth 0) := rfl
 
+/-- After moving right, the busy predicate at index `i` equals its former value at index `i +
+1`. -/
 theorem phaseBusy_move_right (T : Turing.Tape CellCore) (i : ℤ) :
     phaseBusy ((T.move .right).nth i) = phaseBusy (T.nth (i + 1)) := by
   rw [Turing.Tape.move_right_nth]
 
+/-- After moving left, the busy predicate at index `i` equals its former value at index `i - 1`. -/
 theorem phaseBusy_move_left (T : Turing.Tape CellCore) (i : ℤ) :
     phaseBusy ((T.move .left).nth i) = phaseBusy (T.nth (i - 1)) := by
   rw [Turing.Tape.move_left_nth]
 
+/-- Moving a tape right and then left returns the original tape. -/
 theorem tape_move_right_left (T : Turing.Tape CellCore) :
     (T.move .right).move .left = T := by
   apply Qatlib.Concepts.ClassicalTape.TapeCompilation.tape_ext
@@ -1173,6 +1333,7 @@ theorem tape_move_right_left (T : Turing.Tape CellCore) :
   have h2 : i - 1 + 1 = i := by omega
   rw [h2]
 
+/-- Moving a tape left and then right returns the original tape. -/
 theorem tape_move_left_right (T : Turing.Tape CellCore) :
     (T.move .left).move .right = T := by
   apply Qatlib.Concepts.ClassicalTape.TapeCompilation.tape_ext
@@ -1181,6 +1342,9 @@ theorem tape_move_left_right (T : Turing.Tape CellCore) :
   have h2 : i + 1 - 1 = i := by omega
   rw [h2]
 
+/-- Under the stated busy-interval and cleanliness hypotheses, the right sweep clears all
+nonnegative absolute positions in `2 * k + 3` steps and enters the leftward return phase,
+preserving the input and home marker. -/
 theorem sweepRight_erase (b : Bool) (k : ℕ) (T : Turing.Tape CellCore) (off : ℤ)
     (initial : Turing.Tape CellCore) (hoff : 0 ≤ off)
     (hhome : PhaseHomeAt T off) (hinp : PhaseInputSame initial T off)
@@ -1295,6 +1459,8 @@ theorem sweepRight_erase (b : Bool) (k : ℕ) (T : Turing.Tape CellCore) (off : 
         have hargs : i + (k : ℤ) + 1 = i + ((k + 1 : ℕ) : ℤ) := by rw [hk]; omega
         rw [hbelow' i (by omega), hshift (i + (k : ℤ)) (by omega), hargs]
 
+/-- The leftward return from offset `k` takes `k + 1` steps to enter leftward erasure at offset
+`-1`, preserving the tape contents up to reindexing. -/
 theorem sweepBackHomeL_return (b : Bool) (k : ℕ) (T : Turing.Tape CellCore)
     (initial : Turing.Tape CellCore)
     (hhome : PhaseHomeAt T (k : ℤ)) (hinp : PhaseInputSame initial T (k : ℤ)) :
@@ -1344,6 +1510,9 @@ theorem sweepBackHomeL_return (b : Bool) (k : ℕ) (T : Turing.Tape CellCore)
         have hk : ((k : ℕ) + 1 : ℤ) = (k : ℤ) + 1 := by omega
         omega
 
+/-- Under the stated busy-interval and cleanliness hypotheses, the left sweep clears every busy
+cell in `2 * k + 3` steps and enters the rightward return phase, preserving the input and
+home marker. -/
 theorem sweepLeft_erase (b : Bool) (k : ℕ) (T : Turing.Tape CellCore) (off : ℤ)
     (initial : Turing.Tape CellCore)
     (hhome : PhaseHomeAt T off) (hinp : PhaseInputSame initial T off)
@@ -1449,6 +1618,8 @@ theorem sweepLeft_erase (b : Bool) (k : ℕ) (T : Turing.Tape CellCore) (off : �
       · rw [show off - ((k + 1 : ℕ) : ℤ) = off - 1 - (k : ℤ) by push_cast; ring]
         exact hinp'
 
+/-- From offset `-k`, the final rightward return reaches home and halts after `k` steps,
+preserving tape contents up to reindexing. -/
 theorem sweepBackHomeR_return (b : Bool) (k : ℕ) (T : Turing.Tape CellCore)
     (initial : Turing.Tape CellCore)
     (hhome : PhaseHomeAt T (-(k : ℤ))) (hinp : PhaseInputSame initial T (-(k : ℤ))) :
@@ -1500,6 +1671,8 @@ theorem sweepBackHomeR_return (b : Bool) (k : ℕ) (T : Turing.Tape CellCore)
         push_cast
         ring
 
+/-- A sweep reset of the busy interval `[L, R]` containing home halts at home after `3 * R.toNat
++ 3 * (-L).toNat + 5` steps, preserving input and clearing every busy cell. -/
 theorem sweepReset_run (bit : Bool) (T initial : Turing.Tape CellCore) (L R : ℤ)
     (hhome : PhaseHomeAt T 0) (hinp : PhaseInputSame initial T 0)
     (hregion : ∀ i : ℤ, phaseBusy (T.nth i) = true ↔ L ≤ i ∧ i ≤ R)
@@ -1615,6 +1788,9 @@ theorem sweepReset_run (bit : Bool) (T initial : Turing.Tape CellCore) (L R : �
       rw [hdata₄ i]
       exact hclean₃ _
 
+/-- With enough coins, resetting the busy interval `[L, R]` returns the stored bit with exactly
+`3 * R.toNat + 3 * (-L).toNat + 5` reads and transitions, leaving a clean tape at home with
+unchanged input. -/
 theorem sweepReset_coin_run (bit : Bool) (T initial : Turing.Tape CellCore) (L R : ℤ)
     (coins : List Bool)
     (hhome : PhaseHomeAt T 0) (hinp : PhaseInputSame initial T 0)
@@ -1637,6 +1813,7 @@ theorem sweepReset_coin_run (bit : Bool) (T initial : Turing.Tape CellCore) (L R
     coins hrun hhalt hlen
   exact ⟨T', hhome', hinp', hclean, hc⟩
 
+/-- Recentering a tape at home preserves the initial contents of its unmarked work cells. -/
 theorem phaseUnmarkedWork_shift (initial T final : Turing.Tape CellCore) (off : ℤ)
     (hdata : ∀ i : ℤ, final.nth i = T.nth (i - off))
     (h : PhaseUnmarkedWork initial T off) :
@@ -1647,6 +1824,7 @@ theorem phaseUnmarkedWork_shift (initial T final : Turing.Tape CellCore) (off : 
     exact hi
   rw [hdata i, h (i - off) hi', show i - off + off = i + 0 by omega]
 
+/-- The homing distance computed from a side bit consistent with `off` equals `off`. -/
 theorem side_homeDistance (sf : Bool) (off : ℤ) (hside : SideAt sf off) :
     homeDistance sf (if sf then (-off).toNat else off.toNat) = off := by
   cases sf with
@@ -1663,6 +1841,8 @@ theorem side_homeDistance (sf : Bool) (off : ℤ) (hside : SideAt sf off) :
       have hoff : (((-off).toNat : ℕ) : ℤ) = -off := Int.toNat_of_nonneg (by omega)
       simp [homeDistance, hoff]
 
+/-- Under the mark, work, and initial-content invariants, busy cells occupy exactly the absolute
+interval from `lo` to `max hi (n - 1)` when the marked interval contains home. -/
 theorem phaseBusy_region (T initial : Turing.Tape CellCore) (off lo hi : ℤ) (n : ℕ)
     (hmark : PhaseMarkAbs T off lo hi) (hwork : PhaseWorkMarked T off n)
     (hucopy : PhaseUnmarkedWork initial T off)
@@ -1707,6 +1887,9 @@ theorem phaseBusy_region (T initial : Turing.Tape CellCore) (off lo hi : ℤ) (n
         | some b => simp
       simp [phaseBusy, hmsome]
 
+/-- A tape satisfying the phase invariants can first return home and then clear all work and
+visitation tracks in the stated numbers of steps, preserving input and the stored result
+bit. -/
 theorem phaseHomeSweepReset (Tf initial : Turing.Tape CellCore)
     (off' lo' hi' : ℤ) (sf bit : Bool) (n : ℕ)
     (hhome : PhaseHomeAt Tf off') (hside : SideAt sf off')
@@ -1753,6 +1936,8 @@ theorem phaseHomeSweepReset (Tf initial : Turing.Tape CellCore)
   exact ⟨Th, T'', ⟨hrunH, hhaltH, hhomeH, hinpH, hmarkH, hworkH, hucopyH⟩,
     hrunS, hhaltS, hhomeS, hinpS, hcleanS⟩
 
+/-- The nonnegative cells of a tape built by `Turing.Tape.mk₁` are given by default-valued list
+indexing. -/
 theorem phaseTape_mk₁_nth (l : List CellCore) (a : ℕ) :
     (Turing.Tape.mk₁ l).nth (a : ℤ) = l.getI a := by
   rw [← Turing.Tape.right₀_nth (Turing.Tape.mk₁ l) a]
@@ -1760,6 +1945,7 @@ theorem phaseTape_mk₁_nth (l : List CellCore) (a : ℕ) :
       = l.getI a
   rw [Turing.Tape.mk'_right₀, Turing.ListBlank.nth_mk]
 
+/-- Every negative cell of a tape built by `Turing.Tape.mk₁` contains the default phase symbol. -/
 theorem phaseTape_mk₁_nth_neg (l : List CellCore) (a : ℕ) :
     (Turing.Tape.mk₁ l).nth (-(a : ℤ) - 1) = default := by
   have hi : (-(a : ℤ) - 1) = -((a + 1 : ℕ) : ℤ) := by push_cast; ring
@@ -1768,6 +1954,8 @@ theorem phaseTape_mk₁_nth_neg (l : List CellCore) (a : ℕ) :
   rw [Turing.ListBlank.nth_mk]
   simp
 
+/-- Indexing the tape with duplicated input and work tracks gives the corresponding encoded
+input bit, or the default cell beyond the list. -/
 theorem phaseCopyList_nth (input : List Bool) (a : ℕ) :
     (Turing.Tape.mk₁ (input.map fun b => (some b, some b, false, none))).nth (a : ℤ) =
       Option.getD (input[a]?.map fun b => (some b, some b, false, none))
@@ -1788,6 +1976,9 @@ theorem phaseCopyList_nth (input : List Bool) (a : ℕ) :
           rw [phaseTape_mk₁_nth, List.getI_cons_succ, ← phaseTape_mk₁_nth, ih a']
           simp
 
+/-- The copied tape has a home marker exactly at zero, no visitation marks, and identical input
+and work tracks containing the input at nonnegative positions and blanks at negative
+positions. -/
 theorem phaseCopyResult_nth (input : List Bool) (i : ℤ) :
     ((phaseCopyResult input).nth i).2.2.1 = decide (i = 0) ∧
     ((phaseCopyResult input).nth i).2.2.2 = none ∧
@@ -1840,28 +2031,33 @@ theorem phaseCopyResult_nth (input : List Bool) (i : ℤ) :
     refine ⟨by simp [hne, hdefcell], rfl, fun h => absurd h (by omega),
       fun _ => ⟨by rw [hdefcell], by rw [hdefcell]⟩⟩
 
+/-- The copied tape satisfies the home-marker invariant at offset zero. -/
 theorem phaseCopyResult_home (input : List Bool) :
     PhaseHomeAt (phaseCopyResult input) 0 := by
   intro i
   rw [show i + (0:ℤ) = i by omega]
   exact (phaseCopyResult_nth input i).1
 
+/-- The copied tape agrees with its own input track at offset zero. -/
 theorem phaseCopyResult_input (input : List Bool) :
     PhaseInputSame (phaseCopyResult input) (phaseCopyResult input) 0 := by
   intro i
   rw [show i + (0:ℤ) = i by omega]
 
+/-- The copied tape satisfies the unmarked-work invariant relative to itself at offset zero. -/
 theorem phaseCopyResult_ucopy (input : List Bool) :
     PhaseUnmarkedWork (phaseCopyResult input) (phaseCopyResult input) 0 := by
   intro i _
   rw [show i + (0:ℤ) = i by omega]
 
+/-- The copied tape has an empty marked interval, represented by the endpoints `1` and `0`. -/
 theorem phaseCopyResult_mark (input : List Bool) :
     PhaseMarkAbs (phaseCopyResult input) 0 1 0 := by
   intro i
   exact ⟨fun h => absurd (phaseCopyResult_nth input i).2.1 h,
     fun h => absurd h (by omega)⟩
 
+/-- The copied tape satisfies the marked-work invariant for the input length. -/
 theorem phaseCopyResult_work (input : List Bool) :
     PhaseWorkMarked (phaseCopyResult input) 0 input.length := by
   intro i hw
@@ -1875,6 +2071,7 @@ theorem phaseCopyResult_work (input : List Bool) :
   have htoNat : ((i.toNat : ℕ) : ℤ) = i := Int.toNat_of_nonneg hi0
   exact Or.inr ⟨by omega, by omega⟩
 
+/-- Every cell within the copied input interval has a nonblank work symbol. -/
 theorem phaseCopyResult_filled (input : List Bool) (a : ℤ) (h1 : 0 ≤ a)
     (h2 : a < (input.length : ℤ)) :
     ((phaseCopyResult input).nth a).2.1 ≠ none := by
@@ -1884,6 +2081,9 @@ theorem phaseCopyResult_filled (input : List Bool) (a : ℤ) (h1 : 0 ≤ a)
   have htoNat : ((a.toNat : ℕ) : ℤ) = a := Int.toNat_of_nonneg h1
   omega
 
+/-- A source run that halts after consuming `w` has corresponding copy, marked-run, homing, and
+reset phases with the stated costs and interval bounds. The final tape is clean at home,
+retains the input track, and carries the source acceptance bit in the reset state. -/
 theorem phaseCopyRunReset {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -1954,6 +2154,8 @@ theorem phaseCopyRunReset {Λ : Type} [Inhabited Λ]
   · omega
   · omega
 
+/-- One Turing-machine step commutes with relabeling control states when the transition tables
+agree at the current cell. -/
 theorem TM0_step_relabel {Γ : Type*} [Inhabited Γ] {Λ₁ Λ₂ : Type*} [Inhabited Λ₁] [Inhabited Λ₂]
     {M : Bool → Turing.TM0.Machine Γ Λ₁} {M' : Bool → Turing.TM0.Machine Γ Λ₂}
     {f : Λ₁ → Λ₂} (c : Bool) (q : Λ₁) (T : Turing.Tape Γ)
@@ -1965,6 +2167,8 @@ theorem TM0_step_relabel {Γ : Type*} [Inhabited Γ] {Λ₁ Λ₂ : Type*} [Inha
   | none => rfl
   | some p => rw [Option.map_some, Option.map_some]; rfl
 
+/-- For a machine with coin-independent halting, a stopped configuration run consuming the
+entire coin list yields the same final configuration under `coinStepsAux`. -/
 theorem coinStepsAux_of_aux {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ)
     (hcommon : ∀ q s, (M false q s = none) ↔ (M true q s = none)) :
@@ -2006,6 +2210,8 @@ theorem coinStepsAux_of_aux {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited 
           rw [coinStepsAux, hs, Option.bind_some]
           exact ih next final h1 hreads
 
+/-- For a constant transition table, executing a coin list with `coinStepsAux` equals running
+the deterministic machine for the list length. -/
 theorem coinStepsAux_const {Γ : Type} {Λ : Type} [Inhabited Γ] [Inhabited Λ]
     (N : Turing.TM0.Machine Γ Λ) :
     ∀ (l : List Bool) (cfg : Turing.TM0.Cfg Γ Λ),
@@ -2019,6 +2225,8 @@ theorem coinStepsAux_const {Γ : Type} {Λ : Type} [Inhabited Γ] [Inhabited Λ]
         Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_add, Qatlib.Concepts.ClassicalTape.TapeCompilation.runFrom_one]
       simp only [ih]
 
+/-- Successful finite coin-step execution is preserved by a control-state relabeling that agrees
+on every live source transition. -/
 theorem coinStepsAux_sim {Γ : Type*} [Inhabited Γ] {Λ₁ Λ₂ : Type*} [Inhabited Λ₁] [Inhabited Λ₂]
     (M : Bool → Turing.TM0.Machine Γ Λ₁) (M' : Bool → Turing.TM0.Machine Γ Λ₂)
     (f : Λ₁ → Λ₂)
@@ -2049,6 +2257,7 @@ theorem coinStepsAux_sim {Γ : Type*} [Inhabited Γ] {Λ₁ Λ₂ : Type*} [Inha
         Option.map_some, Option.bind_some]
       exact ih next final hrest
 
+/-- Interleaving a coin list with at least as many filler coins doubles its length. -/
 theorem pairCoins_length (w fs : List Bool) (h : w.length ≤ fs.length) :
     (pairCoins w fs).length = 2 * w.length := by
   induction w generalizing fs with
@@ -2061,12 +2270,15 @@ theorem pairCoins_length (w fs : List Bool) (h : w.length ≤ fs.length) :
           simp only [pairCoins, List.length_cons, ih fs' (by omega)]
           omega
 
+/-- Control states for the copy, marked execution, homing, and reset phases of the compiler. -/
 abbrev ControlCore (Λ : Type*) :=
   Sum (Fin 5) (Sum (MarkRunControl Λ) (Sum HomeState SweepState))
 
 instance {Λ : Type} [Inhabited Λ] : Inhabited (ControlCore Λ) :=
   ⟨Sum.inl default⟩
 
+/-- Dispatch transitions among copying, marked source execution, homing, and reset, passing the
+source acceptance bit to the final phases. -/
 def phaseDispatchTable {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) : Turing.TM0.Machine CellCore (ControlCore Λ) :=
@@ -2086,18 +2298,23 @@ def phaseDispatchTable {Λ : Type} [Inhabited Λ]
     | .inr (.inr (.inr ss)) =>
         (sweepResetTable ss s).map fun p' => (.inr (.inr (.inr p'.1)), p'.2)
 
+/-- Extract the stored result bit in reset states and return `false` in all earlier phases. -/
 def phaseDispatchAccept {Λ : Type*} : ControlCore Λ → Bool
   | .inr (.inr (.inr ss)) => ss.2
   | _ => false
 
+/-- The lifted copy table is independent of the supplied coin bit. -/
 theorem liftMarkerCopy_const (c : Bool) (q : Fin 5) (s : CellCore) :
     liftMarkerTable (fun _ => markerCopyTable) c q s =
       liftMarkerTable (fun _ => markerCopyTable) false q s := rfl
 
+/-- The lifted homing table is independent of the supplied coin bit. -/
 theorem liftMarkerHome_const (c : Bool) (q : HomeState) (s : CellCore) :
     liftMarkerTable (fun _ => markerHomeTable) c q s =
       liftMarkerTable (fun _ => markerHomeTable) false q s := rfl
 
+/-- On a live copy state, the dispatch table agrees with the lifted copy table after embedding
+its control labels. -/
 theorem phaseDispatch_copy_live {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (q : Fin 5) (s : CellCore)
@@ -2110,6 +2327,8 @@ theorem phaseDispatch_copy_live {Λ : Type} [Inhabited Λ]
   | none => exact absurd htab h
   | some p => rfl
 
+/-- At the completed copy tape, dispatch leaves copy state `4` and enters live source state `q₀`
+without changing the head symbol. -/
 theorem phaseDispatch_copy_switch {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (input : List Bool) :
@@ -2122,6 +2341,8 @@ theorem phaseDispatch_copy_switch {Λ : Type} [Inhabited Λ]
     exact (TM0_step_eq_none _ _).mp (phaseCopy_run input).2
   simp only [phaseDispatchTable, hnone]
 
+/-- On a live marked-run transition, dispatch agrees with the marked-run table after embedding
+its control labels. -/
 theorem phaseDispatch_mark_live {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (p : MarkRunControl Λ) (s : CellCore)
@@ -2135,6 +2356,8 @@ theorem phaseDispatch_mark_live {Λ : Type} [Inhabited Λ]
       | inl pp' => simp only [phaseDispatchTable]
       | inr p' => simp [markRunTable] at h
 
+/-- Dispatch moves from a final marked-run state to homing, retaining the side bit and storing
+the source acceptance bit without changing the tape. -/
 theorem phaseDispatch_mark_switch {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (qf : Λ) (sf : Bool) (T : Turing.Tape CellCore) :
@@ -2143,6 +2366,8 @@ theorem phaseDispatch_mark_switch {Λ : Type} [Inhabited Λ]
       some ⟨Sum.inr (Sum.inr (Sum.inl (sf, a qf))), T⟩ := by
   simp [TM0_step_apply, phaseDispatchTable, TM0StmtApply, Turing.Tape.write_self]
 
+/-- On a live homing transition, dispatch agrees with the lifted homing table after embedding
+its control labels. -/
 theorem phaseDispatch_home_live {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (hb : HomeState) (s : CellCore)
@@ -2155,6 +2380,8 @@ theorem phaseDispatch_home_live {Λ : Type} [Inhabited Λ]
   | none => exact absurd htab h
   | some p => rfl
 
+/-- At the home marker, dispatch switches from homing to rightward reset erasure without
+changing the tape or stored bit. -/
 theorem phaseDispatch_home_switch {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (side bit : Bool) (T : Turing.Tape CellCore)
@@ -2167,6 +2394,8 @@ theorem phaseDispatch_home_switch {Λ : Type} [Inhabited Λ]
     exact (TM0_step_eq_none _ _).mp (liftMarkerHome_step_home (side, bit) T h)
   simp [TM0_step_apply, phaseDispatchTable, hnone, TM0StmtApply, Turing.Tape.write_self]
 
+/-- In reset states, dispatch agrees with the sweep-reset table after embedding its control
+labels. -/
 theorem phaseDispatch_reset {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (ss : SweepState) (s : CellCore) :
@@ -2175,6 +2404,7 @@ theorem phaseDispatch_reset {Λ : Type} [Inhabited Λ]
         fun p' => (Sum.inr (Sum.inr (Sum.inr p'.1)), p'.2) := by
   simp only [phaseDispatchTable]
 
+/-- Halting of the phase-dispatch machine is independent of the supplied coin bit. -/
 theorem phaseDispatch_commonHalt {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ) :
     ∀ (q : ControlCore Λ) (s : CellCore),
@@ -2205,6 +2435,9 @@ theorem phaseDispatch_commonHalt {Λ : Type} [Inhabited Λ]
           | inr ss =>
               simp only [phaseDispatchTable, Option.map_eq_none_iff]
 
+/-- Dispatch executes a complete copy–run–home–reset sequence for a fully consumed, halting
+source coin word. It returns the source acceptance bit with the stated equal read and
+transition counts, final cleanliness, and intermediate workspace bounds. -/
 theorem phaseDispatchRunReset {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool)
     (hc : ∀ q s, (M false q s = none) ↔ (M true q s = none))
@@ -2388,22 +2621,32 @@ theorem phaseDispatchRunReset {Λ : Type} [Inhabited Λ]
     haux]
   simp [phaseDispatchAccept]
 
+/-- A natural-number list encoding the finite control and transition data of a phase machine. -/
 abbrev CodeCore := List ℕ
 
+/-- Read the encoded control bound from the first entry, defaulting to zero for an empty code. -/
 def phase1ControlSize (p : CodeCore) : ℕ := p.getD 0 0
 
+/-- Encode the input, work, home, and visitation tracks of a phase cell by a mixed-radix natural
+number. -/
 def phase1CellIndex (s : CellCore) : ℕ :=
   18 * symbolIndex s.1 + 6 * symbolIndex s.2.1 + 3 * s.2.2.1.toNat + symbolIndex s.2.2.2
 
+/-- Extract the input-track digit of an encoded phase cell by division by `18`. -/
 def phase1InDigit (n : ℕ) : ℕ := n / 18
+/-- Extract the ternary work-track digit of an encoded phase cell. -/
 def phase1WorkDigit (n : ℕ) : ℕ := n / 6 % 3
+/-- Extract the binary home-marker digit of an encoded phase cell. -/
 def phase1HomeDigit (n : ℕ) : ℕ := n / 3 % 2
+/-- Extract the ternary visitation-track digit of an encoded phase cell. -/
 def phase1MarkDigit (n : ℕ) : ℕ := n % 3
 
+/-- Decode the four mixed-radix digits of a natural number into a phase cell. -/
 def phase1DecodeCell (n : ℕ) : CellCore :=
   (decodeSymbol (phase1InDigit n), decodeSymbol (phase1WorkDigit n),
     1 ≤ phase1HomeDigit n, decodeSymbol (phase1MarkDigit n))
 
+/-- Every encoded phase cell has index less than `54`. -/
 theorem phase1CellIndex_lt (s : CellCore) : phase1CellIndex s < 54 := by
   obtain ⟨a, b, hb, m⟩ := s
   have h1 := symbolIndex_lt a
@@ -2411,6 +2654,7 @@ theorem phase1CellIndex_lt (s : CellCore) : phase1CellIndex s < 54 := by
   have h3 := symbolIndex_lt m
   cases hb <;> simp only [phase1CellIndex, Bool.toNat_false, Bool.toNat_true] <;> omega
 
+/-- The digit projections of an encoded phase cell recover the indices of its four tracks. -/
 theorem phase1Digits (s : CellCore) :
     phase1InDigit (phase1CellIndex s) = symbolIndex s.1 ∧
       phase1WorkDigit (phase1CellIndex s) = symbolIndex s.2.1 ∧
@@ -2424,6 +2668,7 @@ theorem phase1Digits (s : CellCore) :
     simp only [phase1InDigit, phase1WorkDigit, phase1HomeDigit, phase1MarkDigit, phase1CellIndex,
       Bool.toNat_false, Bool.toNat_true] <;> omega
 
+/-- Decoding the index of a phase cell recovers the original cell. -/
 theorem phase1DecodeCell_index (s : CellCore) :
     phase1DecodeCell (phase1CellIndex s) = s := by
   obtain ⟨a, b, hb, m⟩ := s
@@ -2431,15 +2676,19 @@ theorem phase1DecodeCell_index (s : CellCore) :
   simp only [phase1DecodeCell, h1, h2, h4]
   cases hb <;> simp [h3, decodeSymbol_symbolIndex, Bool.toNat_false, Bool.toNat_true]
 
+/-- Encode a phase-tape action by `0` for moving left, `1` for moving right, and `2` plus the
+cell index for writing. -/
 def phase1ActionIndex : Turing.TM0.Stmt CellCore → ℕ
   | .move .left => 0
   | .move .right => 1
   | .write s => 2 + phase1CellIndex s
 
+/-- Decode an action residue modulo `56` into a movement or phase-cell write. -/
 def phase1DecodeAction (n : ℕ) : Turing.TM0.Stmt CellCore :=
   if n % 56 = 0 then .move .left else
     if n % 56 = 1 then .move .right else .write (phase1DecodeCell (n % 56 - 2))
 
+/-- Every encoded phase-tape action has index less than `56`. -/
 theorem phase1ActionIndex_lt (stmt : Turing.TM0.Stmt CellCore) :
     phase1ActionIndex stmt < 56 := by
   cases stmt with
@@ -2449,6 +2698,7 @@ theorem phase1ActionIndex_lt (stmt : Turing.TM0.Stmt CellCore) :
       have := phase1CellIndex_lt s
       omega
 
+/-- Decoding an encoded phase-tape action recovers that action. -/
 theorem phase1DecodeAction_index (stmt : Turing.TM0.Stmt CellCore) :
     phase1DecodeAction (phase1ActionIndex stmt) = stmt := by
   cases stmt with
@@ -2463,17 +2713,22 @@ theorem phase1DecodeAction_index (stmt : Turing.TM0.Stmt CellCore) :
       rw [phase1DecodeAction, phase1ActionIndex, h1, if_neg h2, if_neg h3,
         Nat.add_sub_cancel_left, phase1DecodeCell_index]
 
+/-- Encode an optional transition using zero for halting and a base-`56` control-and-action code
+for a live transition. -/
 def phase1EncodeTransition (K : ℕ) :
     Option (Fin (K + 1) × Turing.TM0.Stmt CellCore) → ℕ
   | none => 0
   | some (q, stmt) => 56 * q.val + phase1ActionIndex stmt + 1
 
+/-- Decode a natural-number transition code into an optional bounded control label and
+phase-tape action. -/
 def phase1DecodeTransition (K n : ℕ) :
     Option (Fin (K + 1) × Turing.TM0.Stmt CellCore) :=
   match n with
   | 0 => none
   | n + 1 => some (⟨n / 56 % (K + 1), Nat.mod_lt _ (by omega)⟩, phase1DecodeAction n)
 
+/-- Adding a multiple of `56` to an encoded action does not change its decoded action. -/
 theorem phase1DecodeAction_mul56 (k : ℕ) (stmt : Turing.TM0.Stmt CellCore) :
     phase1DecodeAction (56 * k + phase1ActionIndex stmt) = stmt := by
   cases stmt with
@@ -2494,6 +2749,7 @@ theorem phase1DecodeAction_mul56 (k : ℕ) (stmt : Turing.TM0.Stmt CellCore) :
       rw [phase1ActionIndex, phase1DecodeAction, h1, if_neg h2, if_neg h3,
         Nat.add_sub_cancel_left, phase1DecodeCell_index]
 
+/-- Decoding an encoded optional phase transition recovers the original transition. -/
 theorem phase1DecodeTransition_encode {K : ℕ}
     (p : Option (Fin (K + 1) × Turing.TM0.Stmt CellCore)) :
     phase1DecodeTransition K (phase1EncodeTransition K p) = p := by
@@ -2510,17 +2766,22 @@ theorem phase1DecodeTransition_encode {K : ℕ}
       have h1 : (56 * q.val + phase1ActionIndex stmt) / 56 = q.val := by omega
       simp only [h1, phase1DecodeAction_mul56, Nat.mod_eq_of_lt hq]
 
+/-- Flatten a coin bit, control label, and phase-cell index into a transition-row index. -/
 def phase1RowIndex (K : ℕ) (c : Bool) (l sIdx : ℕ) : ℕ :=
   (c.toNat * (K + 1) + l) * 54 + sIdx
 
+/-- A row indexed by a valid control label and phase-cell index is less than `108 * (K + 1)`. -/
 theorem phase1RowIndex_lt {K : ℕ} (c : Bool) (l : ℕ) (hl : l < K + 1) (sIdx : ℕ)
     (hs : sIdx < 54) : phase1RowIndex K c l sIdx < 108 * (K + 1) := by
   cases c <;>
     simp only [phase1RowIndex, Bool.toNat_false, Bool.toNat_true] <;> omega
 
+/-- Adding a multiple of a natural-number modulus leaves the remainder unchanged. -/
 theorem add_mul_mod_self' (m b c : ℕ) : (m * b + c) % b = c % b := by
   rw [Nat.add_comm, Nat.add_mul_mod_self_right]
 
+/-- Arithmetic projections of a flattened row index recover its control label, coin bit, and
+phase-cell index. -/
 theorem phase1RowIndex_coordinates {K : ℕ} (c : Bool) (l : Fin (K + 1)) (s : CellCore) :
     phase1RowIndex K c l.val (phase1CellIndex s) / 54 % (K + 1) = l.val ∧
       decide (K + 1 ≤ phase1RowIndex K c l.val (phase1CellIndex s) / 54) = c ∧
@@ -2547,22 +2808,31 @@ theorem phase1RowIndex_coordinates {K : ℕ} (c : Bool) (l : Fin (K + 1)) (s : C
       simp only [phase1RowIndex, Bool.toNat_false, Bool.toNat_true, Nat.zero_mul, Nat.zero_add,
         Nat.one_mul] <;> omega
 
+/-- Assign indices `0` through `5` to the six sweep phases. -/
 def sweepIdx : SweepPhase → ℕ
   | .rightErase => 0 | .backHomeL => 1 | .leftErase => 2
   | .backHomeR => 3 | .stepRight => 4 | .stepLeft => 5
 
+/-- The compiled control bound `10 * Q + 30` for a source control bound `Q`. -/
 def phase1Bound (Q : ℕ) : ℕ := 10 * Q + 30
 
+/-- The base label `5` of live marked-run states. -/
 def phase1LiveBase (_Q : ℕ) : ℕ := 5
 
+/-- The base label of pending marked-run states after the live-state block. -/
 def phase1PendingBase (Q : ℕ) : ℕ := 5 + 2 * (Q + 1)
 
+/-- The base label of final marked-run states after the pending-state block. -/
 def phase1MarkHaltBase (Q : ℕ) : ℕ := 5 + 8 * (Q + 1)
 
+/-- The base label of homing states after the marked-run state blocks. -/
 def phase1HomeBase (Q : ℕ) : ℕ := 5 + 10 * (Q + 1)
 
+/-- The base label of sweep-reset states after the four homing states. -/
 def phase1ResetBase (Q : ℕ) : ℕ := 5 + 10 * (Q + 1) + 4
 
+/-- Encode structured phase-control states as natural-number labels in consecutive
+phase-specific blocks. -/
 def phase1ControlLabel (Q : ℕ) : ControlCore (Fin (Q + 1)) → ℕ
   | .inl q => q.val
   | .inr (.inl (.inl (q, b))) => phase1LiveBase Q + 2 * q.val + b.toNat
@@ -2576,6 +2846,7 @@ def phase1ControlLabel (Q : ℕ) : ControlCore (Fin (Q + 1)) → ℕ
   | .inr (.inr (.inl (left, bit))) => phase1HomeBase Q + 2 * left.toNat + bit.toNat
   | .inr (.inr (.inr (p, b))) => phase1ResetBase Q + 2 * sweepIdx p + b.toNat
 
+/-- Every encoded phase-control label lies below `phase1Bound Q + 1`. -/
 theorem phase1ControlLabel_lt (Q : ℕ) (p : ControlCore (Fin (Q + 1))) :
     phase1ControlLabel Q p < phase1Bound Q + 1 := by
   have hb : ∀ b : Bool, b.toNat ≤ 1 := by intro b; cases b <;> simp
@@ -2612,15 +2883,22 @@ theorem phase1ControlLabel_lt (Q : ℕ) (p : ControlCore (Fin (Q + 1))) :
     simp only [phase1ControlLabel, phase1Bound, phase1ResetBase]
     omega
 
+/-- Package an encoded phase-control label as a finite index bounded by the compiled control
+size. -/
 def phase1ControlFin (Q : ℕ) (p : ControlCore (Fin (Q + 1))) :
     Fin (phase1Bound Q + 1) := ⟨phase1ControlLabel Q p, phase1ControlLabel_lt Q p⟩
 
+/-- The initial copy state is encoded by control label zero. -/
 theorem phase1ControlLabel_inl_zero (Q : ℕ) :
     phase1ControlLabel Q (Sum.inl (default : Fin 5)) = 0 := rfl
 
+/-- Look up a source transition's natural-number code using its coin, control, and symbol
+coordinates, defaulting to zero. -/
 def phase1SourceNat (code : Code) (c q aIdx : ℕ) : ℕ :=
   code.getD (1 + (controlSize code + 1) + (c * (controlSize code + 1) + q) * 3 + aIdx) 0
 
+/-- A decoded source-table lookup equals decoding the corresponding natural-number transition
+entry. -/
 theorem table_eq_sourceNat (code : Code) (c : Bool) (q : ℕ) (hq : q < controlSize code + 1)
     (a : Option Bool) :
     table code c ⟨q, hq⟩ a
@@ -2631,6 +2909,7 @@ theorem table_eq_sourceNat (code : Code) (c : Bool) (q : ℕ) (hq : q < controlS
         + (c.toNat * (controlSize code + 1) + q) * 3 + symbolIndex a := by omega
   simp only [table, rowIndex, phase1SourceNat, hidx]
 
+/-- Compute the encoded copy-phase transition from a numeric control label and phase-cell index. -/
 def phase1CopyRowNat (l sIdx : ℕ) : ℕ :=
   if l = 0 then 56 * 1 + (2 + 18 * (sIdx / 18) + 6 * (sIdx / 6 % 3) + 3 + sIdx % 3) + 1
   else if l = 1 then
@@ -2641,6 +2920,8 @@ def phase1CopyRowNat (l sIdx : ℕ) : ℕ :=
     if sIdx / 3 % 2 = 1 then 56 * 4 + (2 + sIdx) + 1 else 56 * 3 + 0 + 1
   else 56 * 5 + (2 + sIdx) + 1
 
+/-- Compute the encoded live marked-run transition using the source code and numeric coin,
+label, and cell coordinates. -/
 def phase1MarkLiveRowNat (code : Code) (c l sIdx : ℕ) : ℕ :=
   let Q := controlSize code
   let q := (l - 5) / 2
@@ -2663,6 +2944,7 @@ def phase1MarkLiveRowNat (code : Code) (c l sIdx : ℕ) : ℕ :=
       56 * (5 + 2 * (Q + 1) + 3 * (2 * q' + bD))
         + (2 + 18 * (sIdx / 18) + 6 * (act - 2) + 3 * (sIdx / 3 % 2) + 2) + 1
 
+/-- Compute the encoded pending-state transition, completing its stored write or movement. -/
 def phase1PendingRowNat (Q : ℕ) (l sIdx : ℕ) : ℕ :=
   let q := (l - (5 + 2 * (Q + 1))) / 6
   let bD := (l - (5 + 2 * (Q + 1))) / 3 % 2
@@ -2671,6 +2953,8 @@ def phase1PendingRowNat (Q : ℕ) (l sIdx : ℕ) : ℕ :=
   else if dIdx = 1 then 56 * (5 + 2 * q + bD) + 0 + 1
   else 56 * (5 + 2 * q + bD) + 1 + 1
 
+/-- Compute the encoded transition from a final marked-run state to homing with the source
+result bit latched. -/
 def phase1MarkHaltRowNat (code : Code) (l sIdx : ℕ) : ℕ :=
   let Q := controlSize code
   let q := (l - (5 + 8 * (Q + 1))) / 2
@@ -2678,6 +2962,8 @@ def phase1MarkHaltRowNat (code : Code) (l sIdx : ℕ) : ℕ :=
   let latch := if code.getD (1 + q) 0 % 2 = 1 then 1 else 0
   56 * (5 + 10 * (Q + 1) + 2 * sfD + latch) + (2 + sIdx) + 1
 
+/-- Compute the encoded homing transition, moving toward home or switching to reset at the home
+marker. -/
 def phase1HomeRowNat (Q : ℕ) (l sIdx : ℕ) : ℕ :=
   let left := (l - (5 + 10 * (Q + 1))) / 2
   let bit := (l - (5 + 10 * (Q + 1))) % 2
@@ -2685,6 +2971,7 @@ def phase1HomeRowNat (Q : ℕ) (l sIdx : ℕ) : ℕ :=
   else if left = 1 then 56 * l + 1 + 1
   else 56 * l + 0 + 1
 
+/-- Compute the encoded sweep-reset transition from the sweep phase and cell digits. -/
 def phase1ResetRowNat (Q : ℕ) (l sIdx : ℕ) : ℕ :=
   let p := (l - (5 + 10 * (Q + 1) + 4)) / 2
   let bD := (l - (5 + 10 * (Q + 1) + 4)) % 2
@@ -2705,11 +2992,15 @@ def phase1ResetRowNat (Q : ℕ) (l sIdx : ℕ) : ℕ :=
   else if p = 4 then 56 * (5 + 10 * (Q + 1) + 4 + 0 + bD) + 1 + 1
   else 56 * (5 + 10 * (Q + 1) + 4 + 2 * 2 + bD) + 0 + 1
 
+/-- Read the stored result bit from a numeric reset label, returning `false` before the reset
+block. -/
 def phase1ReadoutNat (code : Code) (l : ℕ) : Bool :=
   if 5 + 10 * (controlSize code + 1) + 4 ≤ l then
     decide ((l - (5 + 10 * (controlSize code + 1) + 4)) % 2 = 1)
   else false
 
+/-- Compute a compiled transition row by recovering its coin, control, and cell coordinates and
+selecting the appropriate phase rule. -/
 def phase1RowNat (code : Code) (i : ℕ) : ℕ :=
   let K := phase1Bound (controlSize code)
   let sIdx := i % 54
@@ -2722,6 +3013,7 @@ def phase1RowNat (code : Code) (i : ℕ) : ℕ :=
   else if l < 5 + 10 * (controlSize code + 1) + 4 then phase1HomeRowNat (controlSize code) l sIdx
   else phase1ResetRowNat (controlSize code) l sIdx
 
+/-- Decode a phase machine's transition-table entry at the given coin, bounded label, and cell. -/
 def phase1Table (p : CodeCore) (c : Bool) (q : Fin (phase1ControlSize p + 1))
     (s : CellCore) :
     Option (Fin (phase1ControlSize p + 1) × Turing.TM0.Stmt CellCore) :=
@@ -2729,9 +3021,12 @@ def phase1Table (p : CodeCore) (c : Bool) (q : Fin (phase1ControlSize p + 1))
     (p.getD (1 + (phase1ControlSize p + 1)
       + phase1RowIndex (phase1ControlSize p) c q.val (phase1CellIndex s)) 0)
 
+/-- Decode a phase machine's Boolean readout from the parity of its stored control-label entry. -/
 def phase1Readout (p : CodeCore) (q : Fin (phase1ControlSize p + 1)) : Bool :=
   p.getD (1 + q.val) 0 % 2 == 1
 
+/-- Compile a source code into a finite table implementing copying, marked execution, homing,
+and reset. -/
 def tmCopyRunResetCompile (code : Code) : CodeCore :=
   phase1Bound (controlSize code)
     :: ((List.range (phase1Bound (controlSize code) + 1)).map
@@ -2739,14 +3034,17 @@ def tmCopyRunResetCompile (code : Code) : CodeCore :=
         ++ (List.range (108 * (phase1Bound (controlSize code) + 1))).map
           (fun i => phase1RowNat code i))
 
+/-- The compiled code has control bound `phase1Bound (controlSize code)`. -/
 theorem phase1ControlSize_compile (code : Code) :
     phase1ControlSize (tmCopyRunResetCompile code) = phase1Bound (controlSize code) := rfl
 
+/-- Indexing a mapped initial range within bounds returns the mapped function at that index. -/
 theorem phase1MapRangeGetD (f : ℕ → ℕ) {m i : ℕ} (hi : i < m) :
     (List.map f (List.range m)).getD i 0 = f i := by
   rw [List.getD_eq_getElem _ _ (by simp; omega)]
   simp
 
+/-- Looking up an in-range transition row in the compiled code returns `phase1RowNat code i`. -/
 theorem tmCopyRunResetCompile_row (code : Code) (i : ℕ)
     (hi : i < 108 * (phase1Bound (controlSize code) + 1)) :
     (tmCopyRunResetCompile code).getD (1 + (phase1Bound (controlSize code) + 1) + i) 0
@@ -2758,6 +3056,8 @@ theorem tmCopyRunResetCompile_row (code : Code) (i : ℕ)
   simp only [List.length_map, List.length_range, Nat.add_sub_cancel_left]
   exact phase1MapRangeGetD _ hi
 
+/-- A compiled transition-table lookup is obtained by decoding the corresponding generated
+numeric row. -/
 theorem phase1Table_compile_lookup (code : Code) (c : Bool)
     (l : Fin (phase1Bound (controlSize code) + 1)) (s : CellCore) :
     phase1Table (tmCopyRunResetCompile code) c l s =
@@ -2769,6 +3069,8 @@ theorem phase1Table_compile_lookup (code : Code) (c : Bool)
   simp only [phase1Table, phase1ControlSize_compile]
   rw [tmCopyRunResetCompile_row code _ hrow]
 
+/-- Updating the work symbol and setting the visitation mark has the stated mixed-radix
+cell-index formula. -/
 theorem phase1CellIndex_write (a w : Option Bool) (hb : Bool) (m b : Option Bool) :
     phase1CellIndex (a, b, hb, some true)
       = 18 * (phase1CellIndex (a, w, hb, m) / 18) + 6 * symbolIndex b
@@ -2781,6 +3083,7 @@ theorem phase1CellIndex_write (a w : Option Bool) (hb : Bool) (m b : Option Bool
   simp only [phase1CellIndex, h5]
   cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
 
+/-- Copying the input track into the work track has the stated mixed-radix cell-index formula. -/
 theorem phase1CellIndex_fill (a w : Option Bool) (hb : Bool) (m : Option Bool) :
     phase1CellIndex (a, a, hb, m)
       = 18 * (phase1CellIndex (a, w, hb, m) / 18) + 6 * (phase1CellIndex (a, w, hb, m) / 18)
@@ -2792,6 +3095,7 @@ theorem phase1CellIndex_fill (a w : Option Bool) (hb : Bool) (m : Option Bool) :
   simp only [phase1CellIndex]
   cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
 
+/-- Clearing the work and visitation tracks has the stated mixed-radix cell-index formula. -/
 theorem phase1CellIndex_erase (a w : Option Bool) (hb : Bool) (m : Option Bool) :
     phase1CellIndex (a, none, hb, none)
       = 18 * (phase1CellIndex (a, w, hb, m) / 18)
@@ -2803,12 +3107,15 @@ theorem phase1CellIndex_erase (a w : Option Bool) (hb : Bool) (m : Option Bool) 
   simp only [phase1CellIndex, h6]
   cases hb <;> simp only [Bool.toNat_false, Bool.toNat_true] <;> omega
 
+/-- A phase cell is busy exactly when its encoded work digit or visitation digit is nonzero. -/
 theorem phaseBusy_digits (a w : Option Bool) (hb : Bool) (m : Option Bool) :
     phaseBusy (a, w, hb, m) = true ↔
       phase1CellIndex (a, w, hb, m) / 6 % 3 ≠ 0 ∨ phase1CellIndex (a, w, hb, m) % 3 ≠ 0 := by
   rcases a with _ | _ | _ <;> rcases w with _ | _ | _ <;> rcases m with _ | _ | _ <;>
     cases hb <;> simp [phaseBusy, phase1CellIndex, symbolIndex]
 
+/-- Evaluating the compiled row generator at flattened valid coordinates selects the
+corresponding phase-specific row formula. -/
 theorem phase1RowNat_rowIndex (code : Code) (c : Bool) (l : ℕ)
     (hl : l < phase1Bound (controlSize code) + 1) (sIdx : ℕ) (hs : sIdx < 54) :
     phase1RowNat code (phase1RowIndex (phase1Bound (controlSize code)) c l sIdx)
@@ -2837,6 +3144,7 @@ theorem phase1RowNat_rowIndex (code : Code) (c : Bool) (l : ℕ)
       simp only [Bool.toNat_true, Nat.one_mul, Nat.add_mod, Nat.mod_self, Nat.zero_add,
         Nat.mod_eq_of_lt hl, if_pos hp]
 
+/-- Setting the home marker has the stated mixed-radix cell-index formula. -/
 theorem phase1CellIndex_homeSet (a w : Option Bool) (hb : Bool) (m : Option Bool) :
     phase1CellIndex (a, w, true, m)
       = 18 * (phase1CellIndex (a, w, hb, m) / 18)
@@ -2850,6 +3158,8 @@ theorem phase1CellIndex_homeSet (a w : Option Bool) (hb : Bool) (m : Option Bool
 
 set_option linter.unusedSimpArgs false in
 
+/-- The compiled transition table agrees with the structured phase-dispatch table after encoding
+its control labels. -/
 theorem phase1Table_compile (code : Code) (c : Bool)
     (p : ControlCore (Fin (controlSize code + 1))) (s : CellCore) :
     phase1Table (tmCopyRunResetCompile code) c
@@ -3652,13 +3962,17 @@ theorem phase1Table_compile (code : Code) (c : Bool)
       rw [henc, phase1DecodeTransition_encode]
       rfl
 
+/-- Embed a structured phase configuration into the compiled finite control space, preserving
+its tape. -/
 def phase1EmbedCfg (Q : ℕ) (cfg : Turing.TM0.Cfg CellCore (ControlCore (Fin (Q + 1)))) :
     Turing.TM0.Cfg CellCore (Fin (phase1Bound Q + 1)) :=
   ⟨phase1ControlFin Q cfg.q, cfg.Tape⟩
 
+/-- The control state of an embedded configuration is its encoded finite control label. -/
 theorem phase1EmbedCfg_q (Q : ℕ) (cfg : Turing.TM0.Cfg CellCore (ControlCore (Fin (Q + 1)))) :
     (phase1EmbedCfg Q cfg).q = phase1ControlFin Q cfg.q := rfl
 
+/-- One compiled-machine step commutes with embedding a structured phase-dispatch configuration. -/
 theorem tmCompile_step (code : Code) (c : Bool)
     (cfg : Turing.TM0.Cfg CellCore (ControlCore (Fin (controlSize code + 1)))) :
     Turing.TM0.step (phase1Table (tmCopyRunResetCompile code) c)
@@ -3669,6 +3983,8 @@ theorem tmCompile_step (code : Code) (c : Bool)
   simp only [phase1EmbedCfg, TM0_step_apply, phase1Table_compile code c]
   cases phaseDispatchTable (table code) (readout code) default c q T.head <;> rfl
 
+/-- Embedding a phase-dispatch configuration preserves the coin-halting predicate in the
+compiled machine. -/
 theorem tmCompile_coinHalt (code : Code)
     (cfg : Turing.TM0.Cfg CellCore (ControlCore (Fin (controlSize code + 1)))) :
     coinHalt (phase1Table (tmCopyRunResetCompile code))
@@ -3680,6 +3996,8 @@ theorem tmCompile_coinHalt (code : Code)
   cases phaseDispatchTable (table code) (readout code) default false q T.head <;>
     cases phaseDispatchTable (table code) (readout code) default true q T.head <;> rfl
 
+/-- The numeric readout at an encoded structured control label equals its phase-dispatch
+acceptance bit. -/
 theorem phase1ReadoutNat_accept (code : Code) (p : ControlCore (Fin (controlSize code + 1))) :
     phase1ReadoutNat code (phase1ControlLabel (controlSize code) p) = phaseDispatchAccept p := by
   have hb : ∀ b : Bool, b.toNat ≤ 1 := by intro b; cases b <;> simp
@@ -3725,6 +4043,8 @@ theorem phase1ReadoutNat_accept (code : Code) (p : ControlCore (Fin (controlSize
     simp only [hsub, hmod]
     cases b <;> rfl
 
+/-- The compiled code's readout agrees with the phase-dispatch acceptance bit on encoded control
+labels. -/
 theorem tmCompile_readout (code : Code)
     (p : ControlCore (Fin (controlSize code + 1))) :
     phase1Readout (tmCopyRunResetCompile code) (phase1ControlFin (controlSize code) p)
@@ -3740,6 +4060,8 @@ theorem tmCompile_readout (code : Code)
     phase1MapRangeGetD _ hlt, hl]
   cases phaseDispatchAccept p <;> rfl
 
+/-- Compiled and structured configuration runs have equal read and transition counts, and their
+stopped configurations correspond under embedding. -/
 theorem tmCompile_coinConfigRunAux (code : Code) (coins : List Bool)
     (cfg : Turing.TM0.Cfg CellCore (ControlCore (Fin (controlSize code + 1)))) :
     (coinConfigRunAux (phase1Table (tmCopyRunResetCompile code)) coins
@@ -3779,6 +4101,8 @@ theorem tmCompile_coinConfigRunAux (code : Code) (coins : List Bool)
             rw [h1, h2, h3]
             exact ⟨rfl, rfl, rfl⟩
 
+/-- Compiled and structured phase-dispatch runs return the same acceptance result and read count
+on every coin list. -/
 theorem tmCompile_coinTapeRunAux (code : Code) (coins : List Bool)
     (cfg : Turing.TM0.Cfg CellCore (ControlCore (Fin (controlSize code + 1)))) :
     coinTapeRunAux (phase1Table (tmCopyRunResetCompile code))
@@ -3807,6 +4131,10 @@ theorem tmCompile_coinTapeRunAux (code : Code) (coins : List Bool)
             simp only [Option.map_some]
             rw [ih next]
 
+/-- For a source code with common halting, a fully consumed halting source word yields a
+compiled copy–run–reset execution with the same acceptance bit. The statement supplies exact
+read and transition counts, a clean final tape at home, and bounds on the marked execution
+interval. -/
 theorem tmCopyRunResetCompile_run (code : Code) (hc : commonHalt code)
     (input : List Bool) (w fs : List Bool)
     (final : Turing.TM0.Cfg (Option Bool) (Fin (controlSize code + 1)))
@@ -3870,8 +4198,13 @@ theorem tmCopyRunResetCompile_run (code : Code) (hc : commonHalt code)
     ⟨Sum.inl default, Turing.Tape.mk₁ (phaseInput input)⟩
   exact ⟨hr3, hr1, hr2, hts.trans hc2⟩
 
+/-- The coin and transition budget `6 * n + 15 * m + 16` for copying an input of length `n` and
+simulating a source word of length `m`. -/
 def tmCopyRunResetCoinBudget (n m : ℕ) : ℕ := 6 * n + 15 * m + 16
 
+/-- The compiled execution associated with a fully consumed halting source word uses at most
+`tmCopyRunResetCoinBudget input.length w.length` reads and transitions, with the stated
+bounds on the marked interval. -/
 theorem tmCopyRunResetCompile_coinBudget_bound (code : Code) (hc : commonHalt code)
     (input : List Bool) (w fs : List Bool)
     (final : Turing.TM0.Cfg (Option Bool) (Fin (controlSize code + 1)))
@@ -3917,6 +4250,8 @@ theorem tmCopyRunResetCompile_coinBudget_bound (code : Code) (hc : commonHalt co
   · rw [hreads, hbud]; omega
   · rw [htrans, hbud]; omega
 
+/-- Follow a finite coin prefix, keeping the current configuration once halting or an
+unavailable transition is encountered. -/
 def coinPrefixCfg {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) :
     List Bool → Turing.TM0.Cfg Γ Λ → Turing.TM0.Cfg Γ Λ
@@ -3927,6 +4262,8 @@ def coinPrefixCfg {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     | none => cfg
     | some next => coinPrefixCfg M cs next
 
+/-- Following any coin prefix from a coin-halting configuration leaves that configuration
+unchanged. -/
 theorem coinPrefixCfg_halted {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) {cfg : Turing.TM0.Cfg Γ Λ}
     (h : coinHalt M cfg = true) (l : List Bool) : coinPrefixCfg M l cfg = cfg := by
@@ -3934,6 +4271,8 @@ theorem coinPrefixCfg_halted {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited
   | nil => rfl
   | cons c cs => simp only [coinPrefixCfg, h, if_true]
 
+/-- For a machine with coin-independent halting, following concatenated prefixes equals
+following them successively. -/
 theorem coinPrefixCfg_append {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ)
     (hM : ∀ (q : Λ) (s : Γ), (M false q s = none) ↔ (M true q s = none)) :
@@ -3966,6 +4305,7 @@ theorem coinPrefixCfg_append {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited
       | none => exact absurd hs hstep
       | some next => exact ih bs next
 
+/-- A successful `coinStepsAux` trace determines the same configuration under prefix execution. -/
 theorem coinPrefixCfg_of_trace {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) :
     ∀ (l : List Bool) (cfg final : Turing.TM0.Cfg Γ Λ),
@@ -3987,16 +4327,20 @@ theorem coinPrefixCfg_of_trace {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabit
     simp only [coinPrefixCfg, hch, Bool.false_eq_true, ↓reduceIte, hs]
     exact ih next hrest
 
+/-- A configuration run with no coins performs zero reads. -/
 theorem coinConfigRunAux_nil_reads {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     (coinConfigRunAux M [] cfg).reads = 0 := by
   simp only [coinConfigRunAux]; split <;> rfl
 
+/-- A configuration run with no coins performs zero transitions. -/
 theorem coinConfigRunAux_nil_transitions {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) :
     (coinConfigRunAux M [] cfg).transitions = 0 := by
   simp only [coinConfigRunAux]; split <;> rfl
 
+/-- A successful step from a live configuration consumes the first coin and adds one read and
+transition to the remaining run. -/
 theorem coinConfigRunAux_cons_some {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     {M : Bool → Turing.TM0.Machine Γ Λ} {c : Bool} {cs : List Bool}
     {cfg next : Turing.TM0.Cfg Γ Λ}
@@ -4008,6 +4352,7 @@ theorem coinConfigRunAux_cons_some {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inh
   simp only [coinConfigRunAux, hchf, hstep]
   rw [if_neg (by simp)]
 
+/-- A configuration run reads at most the number of coins supplied. -/
 theorem coinConfigRunAux_reads_le {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ) :
     ∀ (l : List Bool) (cfg : Turing.TM0.Cfg Γ Λ),
@@ -4031,6 +4376,8 @@ theorem coinConfigRunAux_reads_le {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inha
           show (coinConfigRunAux M cs next).reads + 1 ≤ cs.length + 1
           omega
 
+/-- For coin-independent halting, a run on concatenated coin lists continues from the prefix
+configuration, with additive read and transition counts. -/
 theorem coinConfigRunAux_app {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine Γ Λ)
     (hM : ∀ (q : Λ) (s : Γ), (M false q s = none) ↔ (M true q s = none)) :
@@ -4120,10 +4467,13 @@ theorem coinConfigRunAux_app {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited
             rw [h3]
             omega
 
+/-- The tape has the prescribed home marker, its head lies in `[Wlo, Whi]`, and every busy cell
+lies in that absolute interval. -/
 def EnvCore (T : Turing.Tape CellCore) (off Wlo Whi : ℤ) : Prop :=
   PhaseHomeAt T off ∧ Wlo ≤ off ∧ off ≤ Whi ∧
     ∀ i : ℤ, phaseBusy (T.nth i) = true → Wlo ≤ i + off ∧ i + off ≤ Whi
 
+/-- The initialized phase-input tape has no home markers. -/
 theorem phaseInputTape_home (input : List Bool) (i : ℤ) :
     ((Turing.Tape.mk₁ (phaseInput input)).nth i).2.2.1 = false := by
   by_cases hi : 0 ≤ i
@@ -4142,6 +4492,7 @@ theorem phaseInputTape_home (input : List Bool) (i : ℤ) :
     rw [phaseTape_mk₁_nth_neg]
     rfl
 
+/-- An initialized input-track cell is nonblank exactly at positions in the input interval. -/
 theorem phaseInputTape_window (input : List Bool) (p : ℤ) :
     ((Turing.Tape.mk₁ (phaseInput input)).nth p).1.isSome = true ↔
       (0 ≤ p ∧ p < (input.length : ℤ)) := by
@@ -4170,6 +4521,7 @@ theorem phaseInputTape_window (input : List Bool) (p : ℤ) :
     rw [hdef]
     refine ⟨fun h => absurd h (by simp), fun hcon => absurd hcon.1 (by omega)⟩
 
+/-- Writing a symbol with the same home-marker bit preserves the home-marker invariant. -/
 theorem phaseHomeAt_write_head (T : Turing.Tape CellCore) (s : CellCore) (off : ℤ)
     (h : PhaseHomeAt T off) (hs : s.2.2.1 = T.head.2.2.1) :
     PhaseHomeAt (T.write s) off := by
@@ -4182,6 +4534,7 @@ theorem phaseHomeAt_write_head (T : Turing.Tape CellCore) (s : CellCore) (off : 
   · rw [if_neg hi]
     exact h i
 
+/-- Writing a symbol with the same input-track entry preserves the input-track invariant. -/
 theorem phaseInputSame_write_head (initial T : Turing.Tape CellCore) (s : CellCore)
     (off : ℤ) (h : PhaseInputSame initial T off) (hs : s.1 = T.head.1) :
     PhaseInputSame initial (T.write s) off := by
@@ -4194,6 +4547,8 @@ theorem phaseInputSame_write_head (initial T : Turing.Tape CellCore) (s : CellCo
   · rw [if_neg hi]
     exact h i
 
+/-- A write preserves a busy-cell envelope if every old busy cell and any new busy head cell lie
+within that envelope. -/
 theorem phaseEnvBusy_write (T : Turing.Tape CellCore) (s : CellCore) (off Wlo Whi : ℤ)
     (h : ∀ i : ℤ, phaseBusy (T.nth i) = true → Wlo ≤ i + off ∧ i + off ≤ Whi)
     (h0 : phaseBusy s = true → Wlo ≤ 0 + off ∧ 0 + off ≤ Whi) :
@@ -4207,6 +4562,7 @@ theorem phaseEnvBusy_write (T : Turing.Tape CellCore) (s : CellCore) (off Wlo Wh
   · rw [if_neg h0i] at hi
     exact h i hi
 
+/-- Moving right preserves a busy-cell envelope after increasing the head offset by one. -/
 theorem phaseEnvBusy_move_right (T : Turing.Tape CellCore) (off Wlo Whi : ℤ)
     (h : ∀ i : ℤ, phaseBusy (T.nth i) = true → Wlo ≤ i + off ∧ i + off ≤ Whi) :
     ∀ i : ℤ, phaseBusy ((T.move .right).nth i) = true → Wlo ≤ i + (off + 1) ∧ i + (off + 1) ≤ Whi := by
@@ -4215,6 +4571,7 @@ theorem phaseEnvBusy_move_right (T : Turing.Tape CellCore) (off Wlo Whi : ℤ)
   obtain ⟨h1, h2⟩ := h (i + 1) hi
   exact ⟨by omega, by omega⟩
 
+/-- Moving left preserves a busy-cell envelope after decreasing the head offset by one. -/
 theorem phaseEnvBusy_move_left (T : Turing.Tape CellCore) (off Wlo Whi : ℤ)
     (h : ∀ i : ℤ, phaseBusy (T.nth i) = true → Wlo ≤ i + off ∧ i + off ≤ Whi) :
     ∀ i : ℤ, phaseBusy ((T.move .left).nth i) = true → Wlo ≤ i + (off - 1) ∧ i + (off - 1) ≤ Whi := by
@@ -4223,6 +4580,7 @@ theorem phaseEnvBusy_move_left (T : Turing.Tape CellCore) (off Wlo Whi : ℤ)
   obtain ⟨h1, h2⟩ := h (i - 1) hi
   exact ⟨by omega, by omega⟩
 
+/-- Every cell of the initialized phase-input tape is clean according to `phaseBusy`. -/
 theorem phaseInputTape_busy (input : List Bool) (i : ℤ) :
     phaseBusy ((Turing.Tape.mk₁ (phaseInput input)).nth i) = false := by
   by_cases hi : 0 ≤ i
@@ -4241,6 +4599,8 @@ theorem phaseInputTape_busy (input : List Bool) (i : ℤ) :
     rw [phaseTape_mk₁_nth_neg]
     rfl
 
+/-- Every copy-phase configuration of the dispatch machine is live for the coin-halting
+predicate. -/
 theorem dispatchCopy_coinHalt {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (_c : Bool) (q : Fin 5) (T : Turing.Tape CellCore) :
@@ -4251,6 +4611,7 @@ theorem dispatchCopy_coinHalt {Λ : Type} [Inhabited Λ]
     cases liftMarkerTable (fun _ => markerCopyTable) c' q T.head <;> simp
   simp [coinHalt, hsome]
 
+/-- Copy state `0` sets the home marker and advances to copy state `1`. -/
 theorem dispatchCopy_step_zero {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (T : Turing.Tape CellCore) :
@@ -4259,6 +4620,8 @@ theorem dispatchCopy_step_zero {Λ : Type} [Inhabited Λ]
   simp [TM0_step_apply, phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
     TM0StmtApply]
 
+/-- At a nonblank input symbol, copy state `1` copies the input entry into the work track and
+advances to state `2`. -/
 theorem dispatchCopy_step_one_some {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (T : Turing.Tape CellCore) (h : T.head.1.isSome = true) :
@@ -4267,6 +4630,7 @@ theorem dispatchCopy_step_one_some {Λ : Type} [Inhabited Λ]
   simp [TM0_step_apply, phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
     fillCell, TM0StmtApply, h]
 
+/-- At a blank input symbol, copy state `1` enters state `3` without changing the tape. -/
 theorem dispatchCopy_step_one_none {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (T : Turing.Tape CellCore) (h : T.head.1.isSome = false) :
@@ -4279,6 +4643,7 @@ theorem dispatchCopy_step_one_none {Λ : Type} [Inhabited Λ]
   rw [hstep]
   rfl
 
+/-- Copy state `2` moves right and returns to state `1`. -/
 theorem dispatchCopy_step_two {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (T : Turing.Tape CellCore) :
@@ -4286,6 +4651,7 @@ theorem dispatchCopy_step_two {Λ : Type} [Inhabited Λ]
       some ⟨Sum.inl 1, T.move .right⟩ := by
   simp [TM0_step_apply, phaseDispatchTable, liftMarkerTable, markerCopyTable, TM0StmtApply]
 
+/-- At home, copy state `3` enters state `4` without changing the tape. -/
 theorem dispatchCopy_step_three_home {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (T : Turing.Tape CellCore) (h : T.head.2.2.1 = true) :
@@ -4299,6 +4665,7 @@ theorem dispatchCopy_step_three_home {Λ : Type} [Inhabited Λ]
   have hcell : (T.head.1, T.head.2.1, true, T.head.2.2.2) = T.head := by rw [← h]
   rw [hcell, Turing.Tape.write_self]
 
+/-- Away from home, copy state `3` continues moving left. -/
 theorem dispatchCopy_step_three_away {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (c : Bool) (T : Turing.Tape CellCore) (h : T.head.2.2.1 = false) :
@@ -4307,6 +4674,8 @@ theorem dispatchCopy_step_three_away {Λ : Type} [Inhabited Λ]
   simp [TM0_step_apply, phaseDispatchTable, liftMarkerTable, markerCopyTable, phaseMarker,
     TM0StmtApply, h]
 
+/-- Prefix execution after a successful live step continues with the remaining coins from the
+successor configuration. -/
 theorem coinPrefixCfg_cons_some {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     {M : Bool → Turing.TM0.Machine Γ Λ} {c : Bool} {cs : List Bool}
     {cfg next : Turing.TM0.Cfg Γ Λ}
@@ -4314,6 +4683,7 @@ theorem coinPrefixCfg_cons_some {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabi
     coinPrefixCfg M (c :: cs) cfg = coinPrefixCfg M cs next := by
   simp only [coinPrefixCfg, hch, Bool.false_eq_true, ↓reduceIte, hstep]
 
+/-- The initialized phase-input tape has blank work and visitation tracks at every position. -/
 theorem phaseInputTape_work (input : List Bool) (i : ℤ) :
     ((Turing.Tape.mk₁ (phaseInput input)).nth i).2.1 = none ∧
       ((Turing.Tape.mk₁ (phaseInput input)).nth i).2.2.2 = none := by
@@ -4333,6 +4703,8 @@ theorem phaseInputTape_work (input : List Bool) (i : ℤ) :
     rw [phaseTape_mk₁_nth_neg]
     exact ⟨rfl, rfl⟩
 
+/-- The copy-phase invariant records the control phase, elapsed-step equations, input and
+home-marker preservation, and confinement of busy cells to the input interval. -/
 structure CopyPhaseInv {Λ : Type} [Inhabited Λ] (input : List Bool)
     (cfg : Turing.TM0.Cfg CellCore (ControlCore Λ)) (k off : ℤ) : Prop where
   inl : ∃ q : Fin 5, cfg.q = Sum.inl q
@@ -4346,6 +4718,8 @@ structure CopyPhaseInv {Λ : Type} [Inhabited Λ] (input : List Bool)
   q3 : cfg.q = Sum.inl 3 → k = 2 + 2 * (input.length : ℤ) + ((input.length : ℤ) - off)
   q4 : cfg.q = Sum.inl 4 → k = 3 * (input.length : ℤ) + 3
 
+/-- A coin prefix that stays within the copy-phase time bound preserves `CopyPhaseInv` and
+increments its elapsed-step parameter by the prefix length. -/
 theorem dispatchCopyPrefix {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (input : List Bool) :
@@ -4622,6 +4996,9 @@ theorem dispatchCopyPrefix {Λ : Type} [Inhabited Λ]
       push_cast at hlen
       omega
 
+/-- During any prefix of the copy phase, busy cells remain in the input interval. After a
+nonempty prefix, the home and input invariants hold and the head offset lies between zero
+and the input length. -/
 theorem dispatchCopyPrefixEnv {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine (Option Bool) Λ) (a : Λ → Bool) (q₀ : Λ)
     (input : List Bool) (cs : List Bool) (hle : cs.length ≤ 3 * input.length + 3) :
@@ -4672,6 +5049,8 @@ theorem dispatchCopyPrefixEnv {Λ : Type} [Inhabited Λ]
         omega
   exact hinv.anchors hq0
 
+/-- The tape component of a successful Turing-machine step is either a head write or a single
+tape movement. -/
 theorem tm0_step_tape_cases {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited Λ]
     (M : Turing.TM0.Machine Γ Λ) {cfg next : Turing.TM0.Cfg Γ Λ}
     (h : Turing.TM0.step M cfg = some next) :
@@ -4690,6 +5069,8 @@ theorem tm0_step_tape_cases {Γ : Type*} [Inhabited Γ] {Λ : Type*} [Inhabited 
       injection h2 with _ hT
       exact Or.inl ⟨s, hT.symm⟩
 
+/-- Executing a coin prefix enlarges an initial envelope for the head and busy cells by at most
+the prefix length on each side. -/
 theorem coinPrefixEnvelope {Λ : Type*} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine CellCore Λ) :
     ∀ (cs : List Bool) (cfg : Turing.TM0.Cfg CellCore Λ) (off Wlo Whi k : ℤ),
@@ -4792,6 +5173,8 @@ theorem coinPrefixEnvelope {Λ : Type*} [Inhabited Λ]
                     obtain ⟨hb1, hb2⟩ := hbusy'' i hi
                     omega
 
+/-- From a clean phase-input tape, prefix execution confines the head and all busy cells to
+absolute offsets between minus and plus the prefix length. -/
 theorem coinPrefixWorkspace {Λ : Type} [Inhabited Λ]
     (M : Bool → Turing.TM0.Machine CellCore (ControlCore Λ))
     (input : List Bool) (cs : List Bool) :
@@ -4809,6 +5192,8 @@ theorem coinPrefixWorkspace {Λ : Type} [Inhabited Λ]
         simp at hi)
   refine ⟨cfg, off, hp, by simpa using! h1, by simpa using! h2, by simpa using! hbusy⟩
 
+/-- A prefix of `bs ++ cs` whose length is at least that of `bs` equals `bs` followed by its own
+suffix after `bs`. -/
 theorem list_prefix_extend {α : Type*} {as bs cs : List α}
     (h : as <+: bs ++ cs) (hle : bs.length ≤ as.length) :
     as = bs ++ as.drop bs.length := by
@@ -4824,10 +5209,14 @@ theorem list_prefix_extend {α : Type*} {as bs cs : List α}
         (List.take_append_drop bs.length as).symm
     _ = bs ++ as.drop bs.length := by rw [h1]
 
+/-- Embedding the initial structured copy configuration gives the initialized compiled
+configuration on the same tape list. -/
 theorem phase1EmbedCfg_init (Q : ℕ) (l : List CellCore) :
     phase1EmbedCfg Q ⟨Sum.inl default, Turing.Tape.mk₁ l⟩ = Turing.TM0.init l := by
   rfl
 
+/-- Prefix execution in the compiled machine commutes with embedding structured phase-dispatch
+configurations. -/
 theorem tmCompile_coinPrefixCfg (code : Code) :
     ∀ (cs : List Bool)
       (cfg : Turing.TM0.Cfg CellCore (ControlCore (Fin (controlSize code + 1)))),
@@ -4860,6 +5249,9 @@ theorem tmCompile_coinPrefixCfg (code : Code) :
             simp only [Option.map_some]
             exact ih next
 
+/-- For every prefix of a compiled execution associated with a fully consumed halting source
+word, a head offset and all busy absolute positions lie between minus and plus
+`tmCopyRunResetCoinBudget input.length w.length`. -/
 theorem tmCopyRunResetCompile_workspace_bound (code : Code) (hc : commonHalt code)
     (input : List Bool) (w fs : List Bool)
     (final : Turing.TM0.Cfg (Option Bool) (Fin (controlSize code + 1)))
@@ -4956,10 +5348,12 @@ theorem tmCopyRunResetCompile_workspace_bound (code : Code) (hc : commonHalt cod
     rw [hcleanS i] at hi
     exact absurd hi (by simp)
 
+/-- The compiled control bound is a primitive recursive function of the source code. -/
 theorem primrec_phase1Bound : Primrec (fun code : Code => phase1Bound (controlSize code)) :=
   Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 10) primrec_controlSize)
     (Primrec.const 30)
 
+/-- The numeric readout is primitive recursive jointly in the source code and control label. -/
 theorem primrec_phase1ReadoutNat :
     Primrec₂ (fun (code : Code) (l : ℕ) => phase1ReadoutNat code l) := by
   change Primrec (fun p : Code × ℕ => phase1ReadoutNat p.1 p.2)
@@ -4975,6 +5369,7 @@ theorem primrec_phase1ReadoutNat :
     (Primrec.eq.comp (Primrec.nat_mod.comp hsub (Primrec.const 2)) (Primrec.const 1)).decide
   exact Primrec.ite (Primrec.nat_le.comp ht Primrec.snd) hbody (Primrec.const false)
 
+/-- The numeric copy-phase row generator is primitive recursive in its label and cell index. -/
 theorem primrec_phase1CopyRowNat : Primrec (fun p : ℕ × ℕ => phase1CopyRowNat p.1 p.2) := by
   have hl : Primrec (fun p : ℕ × ℕ => p.1) := Primrec.fst
   have hd18 : Primrec (fun p : ℕ × ℕ => p.2 / 18) :=
@@ -5027,6 +5422,8 @@ theorem primrec_phase1CopyRowNat : Primrec (fun p : ℕ × ℕ => phase1CopyRowN
       (Primrec.ite (Primrec.eq.comp hl (Primrec.const 2)) (Primrec.const 58)
         (Primrec.ite (Primrec.eq.comp hl (Primrec.const 3)) hr3 hr4)))
 
+/-- The numeric pending-state row generator is primitive recursive in its control bound, label,
+and cell index. -/
 theorem primrec_phase1PendingRowNat :
     Primrec (fun p : ℕ × ℕ × ℕ => phase1PendingRowNat p.1 p.2.1 p.2.2) := by
   have hQ : Primrec (fun p : ℕ × ℕ × ℕ => p.1) := Primrec.fst
@@ -5067,6 +5464,8 @@ theorem primrec_phase1PendingRowNat :
   exact Primrec.ite (Primrec.eq.comp hdIdx (Primrec.const 0)) hb0
     (Primrec.ite (Primrec.eq.comp hdIdx (Primrec.const 1)) hb1 hb2)
 
+/-- The numeric final marked-run row generator is primitive recursive in its source code, label,
+and cell index. -/
 theorem primrec_phase1MarkHaltRowNat :
     Primrec (fun p : (Code × ℕ) × ℕ => phase1MarkHaltRowNat p.1.1 p.1.2 p.2) := by
   have hcode : Primrec (fun p : (Code × ℕ) × ℕ => p.1.1) := Primrec.fst.comp Primrec.fst
@@ -5107,6 +5506,8 @@ theorem primrec_phase1MarkHaltRowNat :
     (Primrec.nat_mul.comp (Primrec.const 56) hL)
     (Primrec.nat_add.comp (Primrec.const 2) hs)) (Primrec.const 1)
 
+/-- The numeric homing row generator is primitive recursive in its control bound, label, and
+cell index. -/
 theorem primrec_phase1HomeRowNat :
     Primrec (fun p : ℕ × ℕ × ℕ => phase1HomeRowNat p.1 p.2.1 p.2.2) := by
   have hQ : Primrec (fun p : ℕ × ℕ × ℕ => p.1) := Primrec.fst
@@ -5143,6 +5544,8 @@ theorem primrec_phase1HomeRowNat :
   exact Primrec.ite (Primrec.eq.comp hm32 (Primrec.const 1)) hbt
     (Primrec.ite (Primrec.eq.comp hleft (Primrec.const 1)) hbl hbr)
 
+/-- The numeric reset row generator is primitive recursive in its control bound, label, and cell
+index. -/
 theorem primrec_phase1ResetRowNat :
     Primrec (fun p : ℕ × ℕ × ℕ => phase1ResetRowNat p.1 p.2.1 p.2.2) := by
   have hQ : Primrec (fun p : ℕ × ℕ × ℕ => p.1) := Primrec.fst
@@ -5237,6 +5640,8 @@ theorem primrec_phase1ResetRowNat :
           (Primrec.ite (Primrec.eq.comp hm32 (Primrec.const 1)) (Primrec.const 0) hb2f)
           (Primrec.ite (Primrec.eq.comp hph (Primrec.const 4)) hb4 hb1t))))
 
+/-- The numeric live marked-run row generator is primitive recursive in its source code, coin
+coordinate, label, and cell index. -/
 theorem primrec_phase1MarkLiveRowNat :
     Primrec (fun p : (Code × ℕ) × ℕ × ℕ => phase1MarkLiveRowNat p.1.1 p.1.2 p.2.1 p.2.2) := by
   have hcode : Primrec (fun p : (Code × ℕ) × ℕ × ℕ => p.1.1) := Primrec.fst.comp Primrec.fst
@@ -5376,6 +5781,8 @@ theorem primrec_phase1MarkLiveRowNat :
     (Primrec.ite (Primrec.nat_le.comp hact (Primrec.const 1))
       (Primrec.ite (Primrec.eq.comp hact (Primrec.const 0)) hbA0 hbA1) hbA2)
 
+/-- The complete numeric row generator is primitive recursive jointly in the source code and row
+index. -/
 theorem primrec_phase1RowNat : Primrec₂ (fun (code : Code) (i : ℕ) => phase1RowNat code i) := by
   change Primrec (fun p : Code × ℕ => phase1RowNat p.1 p.2)
   have hcode : Primrec (fun p : Code × ℕ => p.1) := Primrec.fst
@@ -5417,6 +5824,7 @@ theorem primrec_phase1RowNat : Primrec₂ (fun (code : Code) (i : ℕ) => phase1
         (Primrec.ite (Primrec.nat_lt.comp hl hb10) hmark
           (Primrec.ite (Primrec.nat_lt.comp hl hb104) hhome hreset))))
 
+/-- The copy–run–reset compiler is primitive recursive on source codes. -/
 theorem primrec_tmCopyRunResetCompile : Primrec tmCopyRunResetCompile := by
   have hb : Primrec (fun code : Code => phase1Bound (controlSize code)) := primrec_phase1Bound
   have ho : Primrec₂ (fun (code : Code) (l : ℕ) => phase1ReadoutNat code l) :=
@@ -5436,11 +5844,15 @@ theorem primrec_tmCopyRunResetCompile : Primrec tmCopyRunResetCompile := by
       (Primrec.list_range.comp (Primrec.nat_mul.comp (Primrec.const 108) hq)) hr
   exact Primrec.list_cons.comp hb (Primrec.list_append.comp ha ht)
 
+/-- The copy–run–reset compiler is computable on source codes. -/
 theorem computable_tmCopyRunResetCompile : Computable tmCopyRunResetCompile :=
   primrec_tmCopyRunResetCompile.to_comp
 
+/-- The first compilation frontier, defined by the copy–run–reset compiler. -/
 def frontier1 (code : Code) : CodeCore := tmCopyRunResetCompile code
 
+/-- The first compilation frontier is computable jointly in the source code and an unused
+natural-number parameter. -/
 theorem computable₂_frontier1 :
     Computable₂ (fun (code : Code) (_ : ℕ) => frontier1 code) :=
   (primrec_tmCopyRunResetCompile.comp₂ Primrec₂.left).to_comp

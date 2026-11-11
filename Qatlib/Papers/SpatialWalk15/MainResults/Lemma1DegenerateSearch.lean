@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.WalkSearch.RankOneSpectralSearch
+
+/-!
+# Exact search for two rank-one projectors
+
+This module treats the degenerate case of the search lemma in [ChakrabortyEtAl2016]. For
+normalized states with positive real overlap, their sum and difference are eigenvectors of the
+sum of their rank-one projectors, giving unit transition-amplitude norm at time `Real.pi / (2 *
+ε)`.
+
+## Main statements
+
+* `degenerate_search_mulVec_add` and `degenerate_search_mulVec_sub`: the two eigenvector
+  identities.
+* `degenerate_search_exact_amplitude`: exact unit amplitude at the specified time.
+* `lemma1_degenerate_calibrated_search`: the calibrated search conclusion at gap parameter zero.
+
+## References
+
+* [Chakraborty et al., 2016][ChakrabortyEtAl2016]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -19,17 +40,21 @@ namespace Qatlib.Papers.SpatialWalk15.MainResults.Lemma1DegenerateSearch
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The complex exponential at `-i * Real.pi / 2` is `-i`. -/
 theorem exp_neg_half_pi_mul_I : Complex.exp ((-(Real.pi / 2) : ℝ) * Complex.I) = -Complex.I := by
   rw [Complex.exp_ofReal_mul_I, Real.cos_neg, Real.sin_neg, Real.cos_pi_div_two,
     Real.sin_pi_div_two]
   push_cast
   ring
 
+/-- The complex exponential at `i * Real.pi / 2` is `i`. -/
 theorem exp_half_pi_mul_I : Complex.exp ((Real.pi / 2 : ℝ) * Complex.I) = Complex.I := by
   rw [Complex.exp_ofReal_mul_I, Real.cos_pi_div_two, Real.sin_pi_div_two]
   push_cast
   ring
 
+/-- For positive `ε`, the phase exponent at energy `1 + ε` and time `Real.pi / (2 * ε)` splits
+into the common phase exponent and `-i * Real.pi / 2`. -/
 theorem resonant_phase_add (ε : ℝ) (hε0 : 0 < ε) :
     ((-Complex.I*((Real.pi / (2 * ε) : ℝ) : ℂ))*((1+ε : ℝ) : ℂ))
       = (-Complex.I*((Real.pi / (2 * ε) : ℝ) : ℂ)) + (-(Complex.I*((Real.pi / 2 : ℝ) : ℂ))) := by
@@ -42,6 +67,8 @@ theorem resonant_phase_add (ε : ℝ) (hε0 : 0 < ε) :
     _ = -Complex.I * (↑Real.pi / (2 * ↑ε)) + -(Complex.I * (↑Real.pi / 2)) := by
         rw [hae]; ring
 
+/-- For positive `ε`, the phase exponent at energy `1 - ε` and time `Real.pi / (2 * ε)` splits
+into the common phase exponent and `i * Real.pi / 2`. -/
 theorem resonant_phase_sub (ε : ℝ) (hε0 : 0 < ε) :
     ((-Complex.I*((Real.pi / (2 * ε) : ℝ) : ℂ))*((1-ε : ℝ) : ℂ))
       = (-Complex.I*((Real.pi / (2 * ε) : ℝ) : ℂ)) + (Complex.I*((Real.pi / 2 : ℝ) : ℂ)) := by
@@ -55,6 +82,8 @@ theorem resonant_phase_sub (ε : ℝ) (hε0 : 0 < ε) :
 
 omit [DecidableEq I] in
 
+/-- For normalized states with real overlap `ε`, the sum of their rank-one projectors maps `s +
+w` to `(1 + ε)` times `s + w`. -/
 theorem degenerate_search_mulVec_add (s w : QState I) (ε : ℝ)
     (hs : Normalized s) (hw : Normalized w) (hε : Inner w s = (ε : ℂ)) :
     (rankOneProjector s + rankOneProjector w) *ᵥ (s + w) = ((1 + ε : ℝ) : ℂ) • (s + w) := by
@@ -71,6 +100,8 @@ theorem degenerate_search_mulVec_add (s w : QState I) (ε : ℝ)
 
 omit [DecidableEq I] in
 
+/-- For normalized states with real overlap `ε`, the sum of their rank-one projectors maps `s -
+w` to `(1 - ε)` times `s - w`. -/
 theorem degenerate_search_mulVec_sub (s w : QState I) (ε : ℝ)
     (hs : Normalized s) (hw : Normalized w) (hε : Inner w s = (ε : ℂ)) :
     (rankOneProjector s + rankOneProjector w) *ᵥ (s - w) = ((1 - ε : ℝ) : ℂ) • (s - w) := by
@@ -85,6 +116,8 @@ theorem degenerate_search_mulVec_sub (s w : QState I) (ε : ℝ)
   simp
   ring
 
+/-- For normalized states with positive real overlap `ε`, evolution by the sum of their rank-one
+projectors gives transition-amplitude norm one at time `Real.pi / (2 * ε)`. -/
 theorem degenerate_search_exact_amplitude (s w : QState I) (ε : ℝ)
     (hs : Normalized s) (hw : Normalized w) (hε : Inner w s = (ε : ℂ))
     (hε0 : 0 < ε) :
@@ -146,6 +179,10 @@ theorem degenerate_search_exact_amplitude (s w : QState I) (ε : ℝ)
   rw [show -Complex.I*(t : ℂ) = ((-t : ℝ) : ℂ) * Complex.I by push_cast; ring]
   exact Complex.norm_exp_ofReal_mul_I _
 
+/-- For normalized states with positive real overlap `ε`, there exist an allowed calibration and
+a time with absolute value at most `4 / (ε * Real.sqrt (spectralGapParam 0))` attaining
+squared amplitude at least `spectralGapParam 0`. This is the degenerate case of the search
+conclusion in [ChakrabortyEtAl2016]. -/
 theorem lemma1_degenerate_calibrated_search (s w : QState I) (ε : ℝ)
     (hs : Normalized s) (hw : Normalized w) (hε : Inner w s = (ε : ℂ))
     (hε0 : 0 < ε) :

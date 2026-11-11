@@ -5,6 +5,29 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationStat
+
+/-!
+# Specification of training-set discrimination
+
+This module defines `TrainingSetFiniteDiscrimination`, a proposition for two nonempty normalized
+training families and their uniform density mixtures. Given a unitary spectral decomposition of
+the mixture difference with a positive gap away from zero, the proposition bounds timed
+two-species discrimination success below by the Helstrom value minus the sign-error budget.
+
+The specification includes the density properties of both mixtures and the four resource counts
+of the QPE procedure. It isolates the finite-copy training-set guarantee motivated by
+[LloydMohseniRebentrost2014].
+
+## Main statements
+
+* `TrainingSetFiniteDiscrimination`: the training-mixture density, success, and resource
+  specification.
+
+## References
+
+* [Lloyd, Mohseni, and Rebentrost, 2014][LloydMohseniRebentrost2014]
+-/
+
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
@@ -20,6 +43,9 @@ namespace Qatlib.Concepts.CopyEvolution.Discriminate
 open Matrix
 open scoped ComplexOrder BigOperators
 
+/-- The proposition asserting that two nonempty normalized training sets define density mixtures
+whose finite-copy discrimination success is within the sign-error budget of the Helstrom
+value, under a spectral gap. It also fixes the QPE resource tuple. -/
 def TrainingSetFiniteDiscrimination : Prop :=
   ∀ (d m₁ m₂ M n : ℕ) (γ : ℝ) (φ : Fin m₁ → QState (Fin d))
     (ψ : Fin m₂ → QState (Fin d)) (V : Operator d) (x : Fin d → ℝ),

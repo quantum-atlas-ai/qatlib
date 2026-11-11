@@ -12,6 +12,25 @@ import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Theorem4QuadraticSpeedupWithKno
 import Mathlib.Analysis.Normed.Lp.PiLp
 import Mathlib.Data.Complex.Basic
 import Mathlib.Analysis.InnerProductSpace.l2Space
+
+/-!
+# Contracts for exact promise search
+
+This module defines the Fourier-prepared promise-search run `BHMTTh16.promiseRun` and its marked
+mass `BHMTTh16.promiseGoodMass`, in the setting of [BrassardEtAl2002]. The unrestricted
+specification `Theorem16Spec.expected` omits a bound on the promised cardinality; the
+corresponding bounded specification is supplied separately.
+
+## Main statements
+
+* `BHMTTh16.promiseRun`: the exact-amplification program applied to a Fourier-prepared input.
+* `Theorem16Spec.expected`: the unrestricted promise-search contract.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification
@@ -19,15 +38,21 @@ open Qatlib.Concepts.SpectralFilter.PhaseReadout
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh16
 
+/-- The canonical coordinate Hilbert basis of the finite complex Euclidean space. -/
 noncomputable def finEB (N : ℕ) : HilbertBasis (Fin N) ℂ (EuclideanSpace ℂ (Fin N)) :=
   (EuclideanSpace.basisFun (Fin N) ℂ).toHilbertBasis
 
+/-- The Boolean predicate on integer labels obtained from membership in the finite marked set
+`S`. -/
 def markLabels (N : ℕ) (S : Finset (Fin N)) : ℤ → Bool :=
   fun z => decide (z ∈ (S.image fun i : Fin N => (i.val : ℤ)))
 
+/-- The number of instructions with label five in an exact-amplification program. -/
 def marksCount (prog : List (Fin 6)) : ℕ :=
   (prog.filter fun k => decide (k.val = 5)).length
 
+/-- Runs the exact-amplification program using Fourier preparation, the coordinate marked
+projection, and mixing parameter `r`. -/
 noncomputable def promiseRun {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (r : ℝ) (prog : List (Fin 6)) :
     EuclideanSpace ℂ (Fin N) × EuclideanSpace ℂ (Fin N) :=
@@ -37,6 +62,8 @@ noncomputable def promiseRun {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (markLabels N S)
   Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.run A (finEB N ⟨0, hN⟩) P r prog
 
+/-- The sum of the squared norms of the marked projections of the two components returned by
+`promiseRun`. -/
 noncomputable def promiseGoodMass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (r : ℝ) (prog : List (Fin 6)) : ℝ :=
   let P := Qatlib.Concepts.AmplitudeCore.AmplifyCore.ExactAmplification.goodProjection (finEB N) (fun i : Fin N => (i.val : ℤ))
@@ -47,6 +74,8 @@ noncomputable def promiseGoodMass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
 end Qatlib.Concepts.AEMeanReadout.LocalAEBackend.BHMTTh16
 
 namespace Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem16Spec
+/-- Specifies exact promise search with inverse-square-root cost bounds for every positive
+promised cardinality, without requiring that cardinality to be at most `N`. -/
 def expected : Prop :=
   ∃ (design : ℝ → ℝ × List (Fin 6)) (c C C₂ : ℝ),
     0 < c ∧ 0 < C ∧ 0 < C₂ ∧

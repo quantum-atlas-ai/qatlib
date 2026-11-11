@@ -18,6 +18,26 @@ import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Defs
 
+/-!
+# Approximate amplification specification
+
+Defines `Lemma1`, the invariant-subspace formulation of approximate recursive amplitude
+amplification from [MagniezNayakRolandSantha2011]. It specifies the homogeneous reflection-error
+schedule, the first ideal-angle stopping window, and the resulting marked projection and
+recursive cost bounds.
+
+## Main statements
+
+* `Lemma1`: The approximate recursive amplitude-amplification specification: at the first
+  ideal-angle window, homogeneous reflection-error bounds yield marked projection norm at least
+  `1 / Real.sqrt 2 - γ` and the stated geometric cost bound [Magniez et al., Lemma
+  1][MagniezNayakRolandSantha2011].
+
+## References
+
+* [Magniez et al., 2011][MagniezNayakRolandSantha2011]
+-/
+
 open scoped Real
 
 namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
@@ -28,6 +48,10 @@ variable {W : Type*} [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDim
 
 end Schedule
 
+/-- The approximate recursive amplitude-amplification specification: at the first ideal-angle
+window, homogeneous reflection-error bounds yield marked projection norm at least `1 /
+Real.sqrt 2 - γ` and the stated geometric cost bound [Magniez et al., Lemma
+1][MagniezNayakRolandSantha2011]. -/
 def Lemma1 : Prop :=
   ∀ (W : Type*) [NormedAddCommGroup W] [InnerProductSpace ℂ W] [FiniteDimensional ℂ W]
     (Mr : Submodule ℂ W) (unmarkRefl : W ≃ₗᵢ[ℂ] W),

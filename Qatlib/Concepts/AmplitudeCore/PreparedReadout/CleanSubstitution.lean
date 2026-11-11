@@ -7,6 +7,30 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
 import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
 import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+
+/-!
+# Coherent substitution on a clean ancillary fiber
+
+`instructions` replaces each oracle use in a lifted circuit by a body circuit acting on a
+Boolean ancillary register. The intertwining theorems show that the substitution implements the
+original circuit on the clean fiber, including inverse execution, and the resource theorems give
+exact query and gate counts. See [BrassardEtAl2002] for background.
+
+## Main statements
+
+* `intertwining`: A well formed unitary body implementing `O` on the clean fiber makes the
+  substituted circuit intertwine the original circuit on that fiber.
+* `coherent`: On every state embedded in the clean fiber, the substituted circuit has the same
+  action as embedding the output of the original circuit.
+* `resources`: Substitution of well formed circuits is well formed, multiplies their query
+  counts, and adds the outer known gate count to the body gate count times the outer query
+  count.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 set_option backward.isDefEq.respectTransparency false
 
@@ -19,17 +43,22 @@ open scoped Classical BigOperators
 
 variable {H : Type} [Fintype H] [DecidableEq H]
 
+/-- Matrix multiplication for compatible rectangular complex matrices, using the finite
+intermediate index type. -/
 private noncomputable abbrev matmul {X Y Z : Type*} [Fintype Y]
     (A : Matrix X Y ℂ) (B : Matrix Y Z ℂ) : Matrix X Z ℂ :=
   @HMul.hMul (Matrix X Y ℂ) (Matrix Y Z ℂ) (Matrix X Z ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
 
+/-- The embedding into the ancillary fiber labeled `false`. -/
 noncomputable def frame : Matrix (Bool × H) H ℂ :=
     Qatlib.Concepts.BlockEncoding.EncodingCore.encodingFiber false
 
+/-- The clean fiber embedding is an isometry. -/
 theorem frame_isometry : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (H := H)) :=
   Qatlib.Concepts.BlockEncoding.EncodingCore.encodingFiber_isIsometry false
 
+/-- The parallel oracle intertwines the clean fiber embedding with its original matrix action. -/
 theorem parallel_frame (V : Matrix H H ℂ) :
     matmul (Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle (J := Bool) V) Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame = matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame V := by
   ext ⟨b,i⟩ j
@@ -37,26 +66,34 @@ theorem parallel_frame (V : Matrix H H ℂ) :
     simp [matmul, Matrix.mul_apply, Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle, Qatlib.Concepts.BlockEncoding.LCU.select, Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame, Qatlib.Concepts.BlockEncoding.EncodingCore.encodingFiber,
       Fintype.sum_prod_type]
 
+/-- Lifts the known gates of an adjoint oracle word to act in parallel on the Boolean ancillary
+register. -/
 noncomputable def liftWord (cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H)) :
     List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Bool × H)) :=
   Qatlib.Concepts.SpectralFilter.PhaseReadout.phaseLiftWord (Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle (J := Bool)) cs
 
+/-- Substitutes `body` for the oracle calls in the lifted word `cs`, using its adjoint for
+inverse calls. -/
 noncomputable def instructions (body : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Bool × H)))
     (cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H)) : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Bool × H)) :=
   Qatlib.Concepts.QsvtCore.QueryLowerBound.substituteAdjointCircuit body (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.liftWord cs)
 
 omit [Fintype H] [DecidableEq H] in
 
+/-- Lifting an adjoint word preserves both query count and known gate count. -/
 theorem liftWord_counts (cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H)) :
     Qatlib.Concepts.CoherentSim.CoherentOAA.adjointQueryCount (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.liftWord cs) = Qatlib.Concepts.CoherentSim.CoherentOAA.adjointQueryCount cs ∧
       Qatlib.Concepts.CoherentSim.CoherentOAA.adjointGateCount (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.liftWord cs) = Qatlib.Concepts.CoherentSim.CoherentOAA.adjointGateCount cs :=
   Qatlib.Concepts.SpectralFilter.PhaseReadout.phaseLiftWord_counts _ cs
 
+/-- Lifting a well formed adjoint circuit gives a well formed lifted circuit. -/
 theorem liftWord_wellFormed {cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H)}
     (hcs : Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit cs) : Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.liftWord cs) :=
   Qatlib.Concepts.SpectralFilter.PhaseReadout.phaseLiftWord_wellFormed (Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle (J := Bool))
     (fun _ h => Qatlib.Concepts.CopyEvolution.Discriminate.parallelOracle_unitary h) hcs
 
+/-- For unitary `B` and `O`, intertwining on the clean fiber also intertwines their conjugate
+transposes. -/
 theorem adjoint_clean (B : Matrix (Bool × H) (Bool × H) ℂ)
     (O : Matrix H H ℂ) (hB : B ∈ Matrix.unitaryGroup (Bool × H) ℂ)
     (hO : O ∈ Matrix.unitaryGroup H ℂ)
@@ -76,6 +113,8 @@ theorem adjoint_clean (B : Matrix (Bool × H) (Bool × H) ℂ)
       simp only [matmul, Matrix.mul_assoc]
     _ = matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame Oᴴ := by simp only [hBB, matmul, Matrix.one_mul]
 
+/-- If both forward and adjoint oracle actions intertwine the clean fiber, evaluation of any
+lifted word intertwines evaluation of the original word. -/
 theorem lifted_intertwining (B : Matrix (Bool × H) (Bool × H) ℂ)
     (O : Matrix H H ℂ)
     (hf : matmul B Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame = matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame O)
@@ -110,6 +149,8 @@ theorem lifted_intertwining (B : Matrix (Bool × H) (Bool × H) ℂ)
       _ = matmul (matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (Qatlib.Concepts.CoherentSim.CoherentOAA.instructionMatrix O c)) (Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate O cs) := by rw [hs]
       _ = matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (Qatlib.Concepts.CoherentSim.CoherentOAA.instructionMatrix O c * Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate O cs) := Matrix.mul_assoc _ _ _
 
+/-- A well formed unitary body implementing `O` on the clean fiber makes the substituted circuit
+intertwine the original circuit on that fiber. -/
 theorem intertwining (W : Matrix (Bool × H) (Bool × H) ℂ) (O : Matrix H H ℂ)
     (body : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Bool × H))) (cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H))
     (hW : W ∈ Matrix.unitaryGroup (Bool × H) ℂ)
@@ -126,6 +167,8 @@ theorem intertwining (W : Matrix (Bool × H) (Bool × H) ℂ) (O : Matrix H H �
   exact Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.lifted_intertwining
       (Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate W body) O hf hb cs
 
+/-- On every state embedded in the clean fiber, the substituted circuit has the same action as
+embedding the output of the original circuit. -/
 theorem coherent (W : Matrix (Bool × H) (Bool × H) ℂ) (O : Matrix H H ℂ)
     (body : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Bool × H))) (cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H))
     (hW : W ∈ Matrix.unitaryGroup (Bool × H) ℂ)
@@ -140,6 +183,8 @@ theorem coherent (W : Matrix (Bool × H) (Bool × H) ℂ) (O : Matrix H H ℂ)
       rw [Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.intertwining W O body cs hW hO hbody hf]
     _ = _ := (Matrix.mulVec_mulVec psi Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate O cs)).symm
 
+/-- Substitution of well formed circuits is well formed, multiplies their query counts, and adds
+the outer known gate count to the body gate count times the outer query count. -/
 theorem resources (W : Matrix (Bool × H) (Bool × H) ℂ)
     (body : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Bool × H))) (cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H))
     (hbody : Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit body) (hcs : Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit cs) :
@@ -156,6 +201,8 @@ theorem resources (W : Matrix (Bool × H) (Bool × H) ℂ)
   · simpa only [Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.instructions, (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.liftWord_counts cs).1, (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.liftWord_counts cs).2,
       Nat.mul_comm] using he.2.2.1
 
+/-- Under the unitary and well formedness hypotheses, the inverse substituted circuit
+intertwines the inverse original circuit on the clean fiber. -/
 theorem inverse_intertwining
     (W : Matrix (Bool × H) (Bool × H) ℂ) (O : Matrix H H ℂ)
     (body : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Bool × H))) (cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H))
@@ -170,6 +217,8 @@ theorem inverse_intertwining
   exact Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.adjoint_clean _ _ ((Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.resources W body cs hbody hcs).1.evaluate_unitary hW)
     (hcs.evaluate_unitary hO) (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.intertwining W O body cs hW hO hbody hf)
 
+/-- The inverse substituted circuit is well formed and has the same query product and gate count
+formula as the forward substituted circuit. -/
 theorem inverse_resources (W : Matrix (Bool × H) (Bool × H) ℂ)
     (body : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep (Bool × H))) (cs : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H))
     (hbody : Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit body) (hcs : Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit cs) :

@@ -6,6 +6,27 @@ Authors: Qatlib Contributors
 
 import Qatlib.Papers.CommutLCHS26.MainResults.PerturbationDyson
 import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+
+/-!
+# Mixed Dyson terms
+
+This module constructs Dyson integrals with independently varying perturbation arguments for the
+perturbative analysis surrounding [AftabAnTrivisa2026]. The recursive `iterate` is multilinear,
+and `mixedMap` packages the resulting terms as continuous real multilinear maps.
+
+Factorial norm bounds control these maps, and constant perturbation tuples recover
+`PerturbationDyson.term`.
+
+## Main statements
+
+* `mixedMap_norm`: a factorial bound in the perturbation norms.
+* `mixedMap_constant`: identification with ordinary perturbative Dyson terms.
+
+## References
+
+* [Aftab et al., 2026][AftabAnTrivisa2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
@@ -22,10 +43,14 @@ set_option warningAsError false
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/-- The ordered iterated integral of a tuple of perturbations conjugated by the exponential of
+`A`, with the empty tuple giving the identity. -/
 def iterate (A : Matrix I I ℂ) : (n : ℕ) → (Fin n → Matrix I I ℂ) → ℝ → Matrix I I ℂ
   | 0, _, _ => 1
   | n + 1, B, t => ∫ u in 0..t, pfConjExp A (B 0) (-u) * iterate A n (Fin.tail B) u
 
+/-- Exponential conjugation of a fixed matrix is continuous as a function of the negated time
+parameter. -/
 theorem conjugation_continuous (A B : Matrix I I ℂ) :
     Continuous (fun u : ℝ => pfConjExp A B (-u)) := by
   have h : Continuous (fun u : ℝ => -PerturbationDyson.interaction A B u) := by
@@ -33,6 +58,7 @@ theorem conjugation_continuous (A B : Matrix I I ℂ) :
     fun_prop
   simpa only [PerturbationDyson.interaction, neg_neg] using! h
 
+/-- The mixed ordered integral is continuous in its terminal time. -/
 theorem iterate_continuous (A : Matrix I I ℂ) (n : ℕ) (B : Fin n → Matrix I I ℂ) :
     Continuous (iterate A n B) := by
   induction n with
@@ -41,14 +67,17 @@ theorem iterate_continuous (A : Matrix I I ℂ) (n : ℕ) (B : Fin n → Matrix 
     exact (intervalIntegral.differentiable_integral_of_continuous
       ((conjugation_continuous A (B 0)).mul (ih (Fin.tail B)))).continuous
 
+/-- Exponential conjugation distributes over addition of matrices. -/
 theorem conjugation_add (A X Y : Matrix I I ℂ) (u : ℝ) :
     pfConjExp A (X + Y) u = pfConjExp A X u + pfConjExp A Y u := by
   simp only [pfConjExp, mul_add, add_mul]
 
+/-- Exponential conjugation commutes with real scalar multiplication. -/
 theorem conjugation_smul (A X : Matrix I I ℂ) (c u : ℝ) :
     pfConjExp A (c • X) u = c • pfConjExp A X u := by
   simp only [pfConjExp, Matrix.mul_smul, Matrix.smul_mul]
 
+/-- The mixed ordered integral is additive in each perturbation argument. -/
 theorem iterate_update_add (A : Matrix I I ℂ) (n : ℕ) (B : Fin n → Matrix I I ℂ)
     (i : Fin n) (X Y : Matrix I I ℂ) (t : ℝ) :
     iterate A n (Function.update B i (X + Y)) t =
@@ -72,6 +101,8 @@ theorem iterate_update_add (A : Matrix I I ℂ) (n : ℕ) (B : Fin n → Matrix 
         (((conjugation_continuous A (B 0)).mul
           (iterate_continuous A n (Function.update (Fin.tail B) i Y))).intervalIntegrable _ _)
 
+/-- The mixed ordered integral commutes with real scalar multiplication in each perturbation
+argument. -/
 theorem iterate_update_smul (A : Matrix I I ℂ) (n : ℕ) (B : Fin n → Matrix I I ℂ)
     (i : Fin n) (c : ℝ) (X : Matrix I I ℂ) (t : ℝ) :
     iterate A n (Function.update B i (c • X)) t = c • iterate A n (Function.update B i X) t := by
@@ -88,6 +119,7 @@ theorem iterate_update_smul (A : Matrix I I ℂ) (n : ℕ) (B : Fin n → Matrix
       simp_rw [ih, Matrix.mul_smul]
       exact intervalIntegral.integral_smul c _
 
+/-- The mixed ordered integral packaged as a multilinear map over the real numbers. -/
 def iterateMultilinear (A : Matrix I I ℂ) (n : ℕ) (t : ℝ) :
     MultilinearMap ℝ (fun _ : Fin n => Matrix I I ℂ) (Matrix I I ℂ) where
   toFun B := iterate A n B t
@@ -100,6 +132,8 @@ def iterateMultilinear (A : Matrix I I ℂ) (n : ℕ) (t : ℝ) :
     cases Subsingleton.elim dec (instDecidableEqFin n)
     exact iterate_update_smul A n B i c X t
 
+/-- A constant tuple of perturbations yields the ordered Dyson term for
+`PerturbationDyson.interaction`. -/
 theorem iterate_constant (A B : Matrix I I ℂ) (n : ℕ) (t : ℝ) :
     iterate A n (fun _ => B) t = orderedDysonTerm (PerturbationDyson.interaction A B) 0 n t := by
   induction n generalizing t with
@@ -112,6 +146,8 @@ theorem iterate_constant (A B : Matrix I I ℂ) (n : ℕ) (t : ℝ) :
       pfConjExp A B (-u) * orderedDysonTerm (PerturbationDyson.interaction A B) 0 n u
     rw [ih]
 
+/-- For skew-Hermitian `A`, the mixed ordered integral is bounded by the product of perturbation
+norms times `|t|ⁿ / n!`. -/
 theorem iterate_norm (A : Matrix I I ℂ) (hA : Aᴴ = -A)
     (n : ℕ) (B : Fin n → Matrix I I ℂ) (t : ℝ) :
     ‖iterate A n B t‖ ≤ (∏ i, ‖B i‖) * |t| ^ n / (n.factorial : ℝ) := by
@@ -150,11 +186,15 @@ theorem iterate_norm (A : Matrix I I ℂ) (hA : Aᴴ = -A)
         simp only [Fin.tail]
         ring
 
+/-- The mixed ordered integral multiplied on the left by `exp (t • A)`, packaged as a real
+multilinear map. -/
 def mixedMultilinear (A : Matrix I I ℂ) (n : ℕ) (t : ℝ) :
     MultilinearMap ℝ (fun _ : Fin n => Matrix I I ℂ) (Matrix I I ℂ) :=
   (ContinuousLinearMap.mul ℝ (Matrix I I ℂ) (NormedSpace.exp (t • A))).toLinearMap.compMultilinearMap
     (iterateMultilinear A n t)
 
+/-- For skew-Hermitian `A`, the mixed Dyson multilinear map satisfies the factorial bound `|t|ⁿ
+/ n!` times the product of argument norms. -/
 theorem mixed_norm (A : Matrix I I ℂ) (hA : Aᴴ = -A)
     (n : ℕ) (B : Fin n → Matrix I I ℂ) (t : ℝ) :
     ‖mixedMultilinear A n t B‖ ≤ |t| ^ n / (n.factorial : ℝ) * ∏ i, ‖B i‖ := by
@@ -166,21 +206,27 @@ theorem mixed_norm (A : Matrix I I ℂ) (hA : Aᴴ = -A)
         (iterate_norm A hA n B t) (norm_nonneg _) (by norm_num)
     _ = _ := by ring
 
+/-- The mixed Dyson term packaged as a continuous real multilinear map for skew-Hermitian `A`. -/
 def mixedMap (A : Matrix I I ℂ) (hA : Aᴴ = -A) (n : ℕ) (t : ℝ) :
     ContinuousMultilinearMap ℝ (fun _ : Fin n => Matrix I I ℂ) (Matrix I I ℂ) :=
   (mixedMultilinear A n t).mkContinuous (|t| ^ n / (n.factorial : ℝ))
     (fun B => mixed_norm A hA n B t)
 
+/-- The mixed Dyson map with no perturbation arguments equals `exp (t • A)`. -/
 theorem mixedMap_zero (A : Matrix I I ℂ) (hA : Aᴴ = -A) (t : ℝ)
     (B : Fin 0 → Matrix I I ℂ) : mixedMap A hA 0 t B = NormedSpace.exp (t • A) := by
   change NormedSpace.exp (t • A) * 1 = _
   exact mul_one _
 
+/-- The continuous mixed Dyson map is bounded by `|t|ⁿ / n!` times the product of perturbation
+norms. -/
 theorem mixedMap_norm (A : Matrix I I ℂ) (hA : Aᴴ = -A)
     (n : ℕ) (t : ℝ) (B : Fin n → Matrix I I ℂ) :
     ‖mixedMap A hA n t B‖ ≤ |t| ^ n / (n.factorial : ℝ) * ∏ i, ‖B i‖ :=
   mixed_norm A hA n B t
 
+/-- The mixed Dyson map satisfies the recursive Duhamel integral formula, inserting the first
+perturbation and integrating the remaining arguments. -/
 theorem mixedMap_succ (A : Matrix I I ℂ) (hA : Aᴴ = -A) (n : ℕ)
     (t : ℝ) (B : Fin (n + 1) → Matrix I I ℂ) :
     mixedMap A hA (n + 1) t B =
@@ -212,6 +258,8 @@ theorem mixedMap_succ (A : Matrix I I ℂ) (hA : Aᴴ = -A) (n : ℕ)
   simp only [pfConjExp, neg_neg]
   noncomm_ring
 
+/-- Evaluating the mixed Dyson map on a constant tuple gives the corresponding
+`PerturbationDyson.term`. -/
 theorem mixedMap_constant (A B : Matrix I I ℂ) (hA : Aᴴ = -A) (n : ℕ) (t : ℝ) :
     mixedMap A hA n t (fun _ => B) = PerturbationDyson.term A B n t := by
   change NormedSpace.exp (t • A) * iterate A n (fun _ => B) t = _

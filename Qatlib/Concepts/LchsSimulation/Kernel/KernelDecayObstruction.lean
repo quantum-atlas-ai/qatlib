@@ -6,6 +6,29 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
 import Mathlib.Analysis.Complex.PhragmenLindelof
+
+/-!
+# Obstruction to exponential boundary decay
+
+A lower-half-plane Phragmen-Lindelof estimate controls holomorphic functions with sublinear
+exponential growth. The theorem `kernel_decay_obstruction_of_exponential_bound` uses it to show
+that a bounded analytic kernel with exponential real-axis decay vanishes on the closed lower
+half-plane. See [AnChildsLin2026] for the mathematical setting.
+
+## Main statements
+
+* `phragmen_lindelof_lower_half_plane_power`: A function holomorphic on the open lower
+  half-plane and continuous on its closure, with the stated sublinear exponential growth and
+  real-axis norm bound `C`, has norm at most `C` throughout the closed half-plane.
+* `kernel_decay_obstruction_of_exponential_bound`: A function analytic on the open lower
+  half-plane, continuous and bounded on its closure, and exponentially decaying on the real axis
+  vanishes on the closed lower half-plane.
+
+## References
+
+* [An, Childs, and Lin, 2026][AnChildsLin2026]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 
@@ -15,6 +38,8 @@ open Filter Set Asymptotics Complex Bornology
 open scoped Topology
 set_option warningAsError false
 
+/-- For `ρ < 1` and positive `ε`, the bound `B * x^ρ ≤ ε * x / 2` holds for all sufficiently
+large real `x`. -/
 private theorem sublinear_power_small (ρ B ε : ℝ) (hρ : ρ < 1) (hε : 0 < ε) :
     ∀ᶠ x : ℝ in atTop, B * x ^ ρ ≤ ε * x / 2 := by
   have ht : Tendsto (fun x : ℝ => B * x ^ (-(1 - ρ))) atTop (𝓝 0) := by
@@ -31,6 +56,9 @@ private theorem sublinear_power_small (ρ B ε : ℝ) (hρ : ρ < 1) (hε : 0 < 
   rw [he]
   nlinarith
 
+/-- A function holomorphic on the open lower half-plane and continuous on its closure, with the
+stated sublinear exponential growth and real-axis norm bound `C`, has norm at most `C`
+throughout the closed half-plane. -/
 theorem phragmen_lindelof_lower_half_plane_power :
     ∀ (g : ℂ → ℂ) (ρ γ C : ℝ),
       0 < ρ → ρ < γ → γ < 1 → 0 ≤ C →
@@ -99,6 +127,8 @@ theorem phragmen_lindelof_lower_half_plane_power :
   filter_upwards [self_mem_nhdsWithin] with ε hε
   exact hGe ε hε
 
+/-- For positive `ρ`, the real part of `(Complex.I * k)^ρ` is `|k|^ρ * Real.cos (ρ * Real.pi /
+2)`. -/
 private theorem imaginary_cpow_real_part (k ρ : ℝ) (hρ : 0 < ρ) :
     ((Complex.I * (k : ℂ)) ^ (ρ : ℂ)).re =
       |k| ^ ρ * Real.cos (ρ * Real.pi / 2) := by
@@ -115,6 +145,8 @@ private theorem imaginary_cpow_real_part (k ρ : ℝ) (hρ : 0 < ρ) :
     congr 2
     ring
 
+/-- A function analytic on the open lower half-plane, continuous and bounded on its closure, and
+exponentially decaying on the real axis vanishes on the closed lower half-plane. -/
 theorem kernel_decay_obstruction_of_exponential_bound (f : ℂ → ℂ)
     (ha : AnalyticOnNhd ℂ f {z : ℂ | z.im < 0})
     (hc : ContinuousOn f {z : ℂ | z.im ≤ 0})

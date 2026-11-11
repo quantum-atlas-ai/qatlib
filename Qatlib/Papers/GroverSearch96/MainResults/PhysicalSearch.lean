@@ -8,6 +8,35 @@ import Qatlib.Concepts.SearchStopping.KnownCount.ObservedSearchLowerBoundAfas
 import Qatlib.Concepts.SearchStopping.KnownCount.ObservedDecisionLowerBoundAfas
 import Mathlib.Tactic
 import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchConsumers
+
+/-!
+# Physical query bounds for singleton search
+
+This module gives lower bounds for well formed observed circuits with workspace bit oracles,
+covering both decoded singleton search and the decision problem of distinguishing a singleton
+oracle from the null oracle.
+
+`physical_matching_search` compares a successful unitary search circuit with the workspace
+Grover circuit on the same oracle model. `physical_search_constant_factor` turns the bounds into
+an explicit query count comparison. See [Grover1996].
+
+## Main statements
+
+* `physical_search_sqrt_lower`: For `n ≥ 2`, a well formed observed circuit with normalized
+  input that finds every singleton target with probability at least `2/3` has query depth at
+  least `sqrt n / 8`.
+* `physical_decision_sqrt_lower`: A well formed observed circuit with normalized input, null
+  acceptance at most `1/3`, and singleton acceptance at least `2/3` has query depth at least
+  `sqrt n / 12`.
+* `physical_search_constant_factor`: For `n ≥ 3`, the workspace Grover circuit uses at most
+  `2*π` times the queries of any normalized unitary singleton search circuit succeeding with
+  probability at least `2/3` for every target.
+
+## References
+
+* [Grover, 1996][Grover1996]
+-/
+
 set_option warningAsError false
 set_option autoImplicit false
 noncomputable section
@@ -20,6 +49,9 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.QueryWordCore.QueryMachinery
 namespace Qatlib.Papers.GroverSearch96.MainResults
 
+/-- For `n ≥ 2`, a well formed observed circuit with normalized input that finds every singleton
+target with probability at least `2/3` has query depth at least `sqrt n / 8`. See
+[Grover1996]. -/
 theorem physical_search_sqrt_lower (n : ℕ) (W : Type)
     [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W))
@@ -36,6 +68,9 @@ theorem physical_search_sqrt_lower (n : ℕ) (W : Type)
   have hl := (sq_le_sq₀ (Real.sqrt_nonneg (n:ℝ)) (by positivity)).mp hsq
   linarith
 
+/-- A well formed observed circuit with normalized input, null acceptance at most `1/3`, and
+singleton acceptance at least `2/3` has query depth at least `sqrt n / 12`. See
+[Grover1996]. -/
 theorem physical_decision_sqrt_lower (n : ℕ) (W : Type)
     [Fintype W] [DecidableEq W] [Nonempty W]
     (P : ObservedCircuit ((Fin n × Bool) × W))
@@ -52,6 +87,10 @@ theorem physical_decision_sqrt_lower (n : ℕ) (W : Type)
   have hl := (sq_le_sq₀ (Real.sqrt_nonneg (n:ℝ)) (by positivity)).mp hsq
   linarith
 
+/-- For `n ≥ 3`, any normalized unitary singleton search circuit succeeding with probability at
+least `2/3` uses at least `sqrt (card (Reg n)) / 8` queries, while the workspace Grover
+circuit succeeds with that probability using at most `(π/4) * sqrt (card (Reg n))` queries.
+See [Grover1996]. -/
 theorem physical_matching_search {W : Type} [Fintype W] [DecidableEq W]
     (n : ℕ) (w : W) (C : Circuit ((Reg n × Bool) × W))
     (ψ : QState ((Reg n × Bool) × W))
@@ -75,6 +114,9 @@ theorem physical_matching_search {W : Type} [Fintype W] [DecidableEq W]
   have hroot := Real.sqrt_nonneg (Fintype.card (Reg n) : ℝ)
   nlinarith
 
+/-- For `n ≥ 3`, the workspace Grover circuit uses at most `2*π` times the queries of any
+normalized unitary singleton search circuit succeeding with probability at least `2/3` for
+every target. See [Grover1996]. -/
 theorem physical_search_constant_factor {W : Type} [Fintype W] [DecidableEq W]
     (n : ℕ) (w : W) (C : Circuit ((Reg n × Bool) × W))
     (ψ : QState ((Reg n × Bool) × W))

@@ -8,6 +8,28 @@ import Mathlib.Algebra.Star.Unitary
 import Mathlib.Tactic.NoncommRing
 import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
 import Mathlib.LinearAlgebra.Matrix.DotProduct
+
+/-!
+# Algebra of oblivious amplitude amplification
+
+`ObliviousAmplitudeAmplification` defines a reflection-based amplification product in a star
+ring. The module proves its unitarity and projected cubic identities, then specializes them to
+scaled block encodings as used in [BerryEtAl2015Taylor].
+
+## Main statements
+
+* `projected_obliviousAmplitudeAmplification`: The cubic formula for the compressed
+  amplification product.
+* `projected_obliviousAmplitudeAmplification_blockEncoding`: The scaled block-encoding
+  specialization.
+* `unitary_preserves_projector_of_compressed_isometry`: Exact range preservation from a
+  compressed-isometry condition.
+
+## References
+
+* [Berry et al., 2015][BerryEtAl2015Taylor]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 open Qatlib.Concepts.BlockEncoding.StateBlockEncoding
@@ -16,9 +38,11 @@ namespace Qatlib.Concepts.CoherentSim.ResetDiscard
 
 variable {R : Type*} [Ring R] [StarRing R]
 
+/-- The reflection product `-(w * (1 - 2 * p) * star w * (1 - 2 * p) * w)`. -/
 def ObliviousAmplitudeAmplification (p w : R) : R :=
   -(w * (1 - 2 * p) * star w * (1 - 2 * p) * w)
 
+/-- Oblivious amplification of a unitary about a star projection is unitary. -/
 theorem obliviousAmplitudeAmplification_mem_unitary (p w : R)
     (hp : IsStarProjection p) (hw : w ∈ unitary R) :
     ObliviousAmplitudeAmplification p w ∈ unitary R := by
@@ -32,6 +56,8 @@ theorem obliviousAmplitudeAmplification_mem_unitary (p w : R)
   rw [ObliviousAmplitudeAmplification, Unitary.mem_iff]
   simpa only [star_neg, neg_mul_neg] using (Unitary.mem_iff.mp hproduct)
 
+/-- Compression of the amplification product by an idempotent equals the stated linear term
+minus the expanded cubic term. -/
 theorem projected_obliviousAmplitudeAmplification_of_idempotent (p w : R)
     (hp : IsIdempotentElem p) (hw : w ∈ unitary R) :
     p * ObliviousAmplitudeAmplification p w * p =
@@ -58,6 +84,8 @@ theorem projected_obliviousAmplitudeAmplification_of_idempotent (p w : R)
         4 * (p * w * p * star w * p * w * p) := by noncomm_ring
     _ = _ := by rw [h₁, h₂, h₃]; noncomm_ring
 
+/-- Compression by a star projection gives the cubic expression `3 * (p * w * p) - 4 * ((p * w *
+p) * star (p * w * p) * (p * w * p))`. -/
 theorem projected_obliviousAmplitudeAmplification (p w : R)
     (hp : IsStarProjection p) (hw : w ∈ unitary R) :
     p * ObliviousAmplitudeAmplification p w * p =
@@ -74,6 +102,7 @@ variable {J I : Type*} [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I]
 
 omit [DecidableEq I] in
 
+/-- Fiber embedding commutes with complex scalar multiplication. -/
 private theorem oaa_embed_smul (j₀ : J) (c : ℂ) (A : Matrix I I ℂ) :
     FiberEmbed j₀ (c • A) = c • FiberEmbed j₀ A := by
   ext ⟨a, i⟩ ⟨b, j⟩
@@ -81,15 +110,19 @@ private theorem oaa_embed_smul (j₀ : J) (c : ℂ) (A : Matrix I I ℂ) :
 
 omit [DecidableEq I] in
 
+/-- Fiber embedding commutes with subtraction. -/
 private theorem oaa_embed_sub (j₀ : J) (A B : Matrix I I ℂ) :
     FiberEmbed j₀ (A - B) = FiberEmbed j₀ A - FiberEmbed j₀ B := by
   ext ⟨a, i⟩ ⟨b, j⟩
   by_cases h : a = j₀ ∧ b = j₀ <;> simp [fiberEmbed_apply, h]
 
+/-- Left multiplication by a natural-number scalar matrix equals complex scalar multiplication. -/
 private theorem oaa_nat_matrix_mul (n : ℕ) (A : Matrix I I ℂ) :
     (n : Matrix I I ℂ) * A = (n : ℂ) • A := by
   rw [Nat.cast_smul_eq_nsmul, nsmul_eq_mul]
 
+/-- The projected amplification of a scale-`s` block encoding is the fiber embedding of `(3 / s)
+• U - (4 / s³) • (U * Uᴴ * U)`. -/
 theorem projected_obliviousAmplitudeAmplification_blockEncoding
     (W : Matrix (J × I) (J × I) ℂ) (j₀ : J) (U : Matrix I I ℂ) (s : ℝ)
     (hW : IsBlockEncoding W j₀ U s) :
@@ -121,6 +154,8 @@ theorem projected_obliviousAmplitudeAmplification_blockEncoding
   rw [hpoly] at h
   exact h
 
+/-- If the compression of a unitary is isometric on a projection range, the unitary maps that
+range into itself. -/
 theorem unitary_preserves_projector_of_compressed_isometry
     (P U : Matrix I I ℂ) (hP : IsStarProjection P)
     (hU : U ∈ Matrix.unitaryGroup I ℂ)

@@ -76,6 +76,29 @@ import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.Ring.Common
 import Mathlib.Tactic.Ring.RingNF
 
+/-!
+# Two-dimensional amplitude amplification
+
+This module models marked and advice reflections on `AmpPair` and proves the rotation and
+iteration laws for `groverStep`. Finite trigonometric sums give the average success formula and
+a lower bound of one quarter when the iteration range is sufficiently large.
+
+The source paper is [Montanaro2011].
+
+## Main statements
+
+* `groverStep_iterate`: After k Grover steps, the initial pair (sin θ, cos θ) becomes (sin((2k +
+  1)θ), cos((2k + 1)θ)).
+* `average_amp_success`: For positive m and nonzero sin θ cos θ, the average of sin²((2r + 1)θ)
+  over r < m equals 1/2 − sin(4mθ)/(8m sin θ cos θ).
+* `average_amp_success_ge_quarter`: For positive m and sin θ cos θ, the average amplification
+  success is at least 1/4 when 2m sin θ cos θ ≥ 1.
+
+## References
+
+* [Montanaro, 2011][Montanaro2011]
+-/
+
 open scoped BigOperators
 
 noncomputable section
@@ -84,18 +107,23 @@ open Finset Real
 
 namespace Qatlib.Papers.QSearchAdvice09.MainResults
 
+/-- A pair of real amplitudes for the marked and complementary directions. -/
 abbrev AmpPair : Type := ℝ × ℝ
 
+/-- The reflection that negates the marked amplitude and fixes the complementary amplitude. -/
 def reflMarked (v : AmpPair) : AmpPair := (-v.1, v.2)
 
+/-- The reflection v ↦ v − 2⟨v, (sin θ, cos θ)⟩(sin θ, cos θ). -/
 def reflAdvice (θ : ℝ) (v : AmpPair) : AmpPair :=
   (v.1 - 2 * (v.1 * sin θ + v.2 * cos θ) * sin θ,
     v.2 - 2 * (v.1 * sin θ + v.2 * cos θ) * cos θ)
 
+/-- The negative of the advice reflection applied after the marked reflection. -/
 def groverStep (θ : ℝ) (v : AmpPair) : AmpPair :=
   let w := reflAdvice θ (reflMarked v)
   (-w.1, -w.2)
 
+/-- The Grover step has coordinates (cos(2θ)a + sin(2θ)b, −sin(2θ)a + cos(2θ)b). -/
 theorem groverStep_apply (θ a b : ℝ) :
     groverStep θ (a, b) =
       (cos (2 * θ) * a + sin (2 * θ) * b, -sin (2 * θ) * a + cos (2 * θ) * b) := by
@@ -111,17 +139,21 @@ theorem groverStep_apply (θ a b : ℝ) :
       linear_combination b * (Real.sin_sq_add_cos_sq θ)
     nlinarith [key]
 
+/-- The Grover step preserves the sum of squares of the two amplitudes. -/
 theorem groverStep_norm (θ a b : ℝ) :
     (groverStep θ (a, b)).1 ^ 2 + (groverStep θ (a, b)).2 ^ 2 = a ^ 2 + b ^ 2 := by
   rw [groverStep_apply]
   have h : sin (2 * θ) ^ 2 + cos (2 * θ) ^ 2 = 1 := Real.sin_sq_add_cos_sq (2 * θ)
   nlinarith [h]
 
+/-- The Grover step sends (sin φ, cos φ) to (sin(φ + 2θ), cos(φ + 2θ)). -/
 theorem groverStep_sincos (θ φ : ℝ) :
     groverStep θ (sin φ, cos φ) = (sin (φ + 2 * θ), cos (φ + 2 * θ)) := by
   rw [groverStep_apply, Real.sin_add, Real.cos_add]
   ring
 
+/-- After k Grover steps, the initial pair (sin θ, cos θ) becomes (sin((2k + 1)θ), cos((2k +
+1)θ)). -/
 theorem groverStep_iterate (θ : ℝ) (k : ℕ) :
     (groverStep θ)^[k] (sin θ, cos θ) =
       (sin ((2 * (k : ℝ) + 1) * θ), cos ((2 * (k : ℝ) + 1) * θ)) := by
@@ -135,17 +167,21 @@ theorem groverStep_iterate (θ : ℝ) (k : ℕ) :
     · push_cast
       ring
 
+/-- The squared marked amplitude after k Grover steps is sin²((2k + 1)θ). -/
 theorem ampAmplify_success (θ : ℝ) (k : ℕ) :
     ((groverStep θ)^[k] (sin θ, cos θ)).1 ^ 2 =
       sin ((2 * (k : ℝ) + 1) * θ) ^ 2 := by
   rw [groverStep_iterate]
 
+/-- With θ = arcsin(√p) for nonnegative p, the squared marked amplitude after k steps is
+sin²((2k + 1)arcsin(√p)). -/
 theorem ampAmplify_success_sqrt (p : ℝ) (hp : 0 ≤ p) (k : ℕ) :
     ((groverStep (arcsin (sqrt p)))^[k]
         (sin (arcsin (sqrt p)), cos (arcsin (sqrt p)))).1 ^ 2 =
       sin ((2 * (k : ℝ) + 1) * arcsin (sqrt p)) ^ 2 := by
   rw [groverStep_iterate]
 
+/-- Twice sin(2θ) times the sum of cos((4r + 2)θ) over r < m equals sin(4mθ). -/
 theorem two_sin_two_mul_sum_cos (θ : ℝ) (m : ℕ) :
     2 * sin (2 * θ) * (∑ r ∈ range m, cos ((4 * (r : ℝ) + 2) * θ)) =
       sin (4 * (m : ℝ) * θ) := by
@@ -164,6 +200,8 @@ theorem two_sin_two_mul_sum_cos (θ : ℝ) (m : ℕ) :
     push_cast
     ring_nf
 
+/-- The sum of sin²((2r + 1)θ) over r < m equals m/2 minus half the corresponding sum of cos((4r
++ 2)θ). -/
 theorem sum_sin_sq_eq (θ : ℝ) (m : ℕ) :
     ∑ r ∈ range m, sin ((2 * (r : ℝ) + 1) * θ) ^ 2 =
       (m : ℝ) / 2 - (1 / 2) * ∑ r ∈ range m, cos ((4 * (r : ℝ) + 2) * θ) := by
@@ -183,6 +221,8 @@ theorem sum_sin_sq_eq (θ : ℝ) (m : ℕ) :
         simp only [nsmul_eq_mul]
         ring
 
+/-- For positive m and nonzero sin θ cos θ, the average of sin²((2r + 1)θ) over r < m equals 1/2
+− sin(4mθ)/(8m sin θ cos θ) [Montanaro2011]. -/
 theorem average_amp_success (θ : ℝ) (m : ℕ) (hm : 0 < m) (h : sin θ * cos θ ≠ 0) :
     (1 / (m : ℝ)) * (∑ r ∈ range m, sin ((2 * (r : ℝ) + 1) * θ) ^ 2) =
       1 / 2 - sin (4 * (m : ℝ) * θ) / (8 * (m : ℝ) * sin θ * cos θ) := by
@@ -200,6 +240,8 @@ theorem average_amp_success (θ : ℝ) (m : ℕ) (hm : 0 < m) (h : sin θ * cos 
   field_simp
   ring
 
+/-- For positive m and sin θ cos θ, the average amplification success is at least 1/4 when 2m
+sin θ cos θ ≥ 1 [Montanaro2011]. -/
 theorem average_amp_success_ge_quarter (θ : ℝ) (m : ℕ) (hm : 0 < m)
     (hpos : 0 < sin θ * cos θ) (h : 1 ≤ 2 * (m : ℝ) * (sin θ * cos θ)) :
     1 / 4 ≤ (1 / (m : ℝ)) * (∑ r ∈ range m, sin ((2 * (r : ℝ) + 1) * θ) ^ 2) := by

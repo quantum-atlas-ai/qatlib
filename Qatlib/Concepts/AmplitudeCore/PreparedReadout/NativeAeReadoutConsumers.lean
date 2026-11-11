@@ -5,6 +5,25 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+
+/-!
+# Counting outputs from native amplitude estimates
+
+This module supplies consumers of `nativeAEDecode`: exact decoding of label zero and a rational
+counting output obtained by multiplying the decoded amplitude by a natural number. The
+probability estimate is inherited from the amplitude estimation law of [BrassardEtAl2002].
+
+## Main statements
+
+* `nativeAEDecode_zero_label`: phase label zero decodes exactly to zero.
+* `native_ae_counting_relative_output_consumer`: scaling the decoder scales its certified error
+  and preserves the success probability.
+
+## References
+
+* [Brassard et al., 2002][BrassardEtAl2002]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -18,6 +37,7 @@ namespace Qatlib.Concepts.AmplitudeCore.PreparedReadout
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/-- A phase label whose natural value is zero is decoded exactly as zero. -/
 theorem nativeAEDecode_zero_label (M k : ℕ) (z : Fin M) (hz : z.val = 0) :
     nativeAEDecode M k z = 0 := by
   have hreceipt := congrArg Prod.fst (nativeAESin_value_and_terms 0 k)
@@ -25,6 +45,9 @@ theorem nativeAEDecode_zero_label (M k : ℕ) (z : Fin M) (hz : z.val = 0) :
   have hs : nativeAESin 0 k = 0 := hreceipt.symm
   simp [nativeAEDecode, hz, hs]
 
+/-- Scaling the rational decoder by `N` scales the BHMT and decoding error bounds by `N`, with
+success probability at least `8/π²`. A zero label still decodes to zero when the amplitude
+is zero [BrassardEtAl2002]. -/
 theorem native_ae_counting_relative_output_consumer :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (M k N : ℕ) (hM : 2 ≤ M)
       (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ),

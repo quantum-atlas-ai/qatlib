@@ -7,6 +7,27 @@ Authors: Qatlib Contributors
 import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
 import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
 import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+
+/-!
+# Spectral mass specification for conversion witnesses
+
+`WitnessSpectralMasses` states the spectral bounds required for a filtered state-conversion
+witness. Under the factorization and mass hypotheses, the plus state has zero-phase mass at
+least 1 - ε², while the minus state has phase-window mass at most Θ²(W²/ε² + 1)/4.
+
+The specification uses the two-reflection geometry of [Reichardt2011] in the conversion setting
+of [LeeEtAl2011].
+
+## Main statements
+
+* `WitnessSpectralMasses`: packages the two spectral estimates for principal-branch eigenphases.
+
+## References
+
+* [Lee et al., 2011][LeeEtAl2011]
+* [Reichardt, 2011][Reichardt2011]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 set_option warningAsError false
 set_option autoImplicit false
@@ -23,6 +44,9 @@ namespace Qatlib.Concepts.ConversionCore.WitnessCompile
 open Matrix
 open scoped Classical BigOperators Matrix.Norms.L2Operator ENNReal ComplexOrder
 
+/-- Specifies zero-phase mass at least `1 - ε²` for the witness plus state and phase-window mass
+at most `Θ²(W²/ε² + 1)/4` for the minus state under the stated factorization and spectral
+hypotheses. -/
 def WitnessSpectralMasses : Prop :=
   ∀ (X H : Type) [Fintype X] [DecidableEq X] [Fintype H] [DecidableEq H]
     (n q m : ℕ) (input : X → Fin n → Fin (q+1)) (ρ σ : X → QState H)

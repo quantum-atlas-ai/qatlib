@@ -8,6 +8,28 @@ import Qatlib.Papers.ElemDistinct00.MainResults.BothOrderedClaw.Basic
 import Mathlib.Data.Real.Sqrt
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+/-!
+# Unfolding ordered claw cost recurrences
+
+This module defines the stopping depth of iteration of a size reduction map `r` and telescopes a
+cost recurrence with square root ratios. It bounds the cost by the base cost times `sqrt N` and
+an exponential in the stopping depth. A supplied comparison of that depth with `logStar` gives
+the bound `logStarBound`.
+
+The mathematical setting follows [BuhrmanEtAl2005].
+
+## Main statements
+
+* `telescope`: the cost recurrence unfolded through an arbitrary valid depth.
+* `recursion_bound`: the bound at the least stopping depth.
+* `recursion_bound_logStar`: a bound using a supplied iterated logarithm depth estimate.
+
+## References
+
+* [Buhrman et al., 2005][BuhrmanEtAl2005]
+-/
+
 set_option warningAsError false
 
 set_option autoImplicit false
@@ -17,23 +39,31 @@ open scoped Classical
 
 namespace Qatlib.Papers.ElemDistinct00.MainResults.BothOrderedClaw
 
+/-- The expression `sqrt N * c^(logStar N)` for ordered claw recurrence bounds. -/
 def logStarBound (c : ℝ) (N : ℕ) : ℝ :=
   Real.sqrt (N : ℝ) * c ^ logStar N
 
+/-- For nonnegative `a` and positive `b`, the product `sqrt (a / b) * sqrt b` equals `sqrt a`. -/
 theorem sqrt_div_mul_sqrt {a b : ℝ} (ha : 0 ≤ a) (hb : 0 < b) :
     Real.sqrt (a / b) * Real.sqrt b = Real.sqrt a := by
   rw [← Real.sqrt_mul (div_nonneg ha hb.le)]
   congr 1
   field_simp
 
+/-- For nonnegative `a` and positive `b` and `c`, the product `sqrt (a / b) * sqrt (b / c)`
+equals `sqrt (a / c)`. -/
 theorem sqrt_div_mul_sqrt_div {a b c : ℝ} (ha : 0 ≤ a) (hb : 0 < b) (hc : 0 < c) :
     Real.sqrt (a / b) * Real.sqrt (b / c) = Real.sqrt (a / c) := by
   rw [← Real.sqrt_mul (div_nonneg ha hb.le)]
   congr 1
   field_simp
 
+/-- The result of applying the size reduction map `r` exactly `k` times to `N`. -/
 def iterR (r : ℕ → ℕ) (k N : ℕ) : ℕ := (r^[k]) N
 
+/-- If `r` maps every number greater than one to a positive smaller number, iteration from any
+`N` eventually reaches a value at most one. See [Buhrman et al., 2005, Theorem
+7][BuhrmanEtAl2005]. -/
 theorem exists_iterR_le_one (r : ℕ → ℕ) (hr : ∀ N, 1 < N → 1 ≤ r N)
     (hrlt : ∀ N, 1 < N → r N < N) :
     ∀ N, ∃ k, iterR r k N ≤ 1 := by
@@ -49,20 +79,27 @@ theorem exists_iterR_le_one (r : ℕ → ℕ) (hr : ∀ N, 1 < N → 1 ≤ r N)
       exact hk
     · exact ⟨0, by rw [← hN1]; simp [iterR]⟩
 
+/-- The least number of iterations of a positive decreasing size reduction map needed to reach a
+value at most one. -/
 def depth (r : ℕ → ℕ) (hr : ∀ N, 1 < N → 1 ≤ r N)
     (hrlt : ∀ N, 1 < N → r N < N) (N : ℕ) : ℕ :=
   Nat.find (exists_iterR_le_one r hr hrlt N)
 
+/-- Iteration at the stopping depth reaches a value at most one. -/
 theorem depth_spec (r : ℕ → ℕ) (hr : ∀ N, 1 < N → 1 ≤ r N)
     (hrlt : ∀ N, 1 < N → r N < N) (N : ℕ) :
     iterR r (depth r hr hrlt N) N ≤ 1 :=
   Nat.find_spec (exists_iterR_le_one r hr hrlt N)
 
+/-- Any iteration count that reaches a value at most one is at least the stopping depth. -/
 theorem depth_min (r : ℕ → ℕ) (hr : ∀ N, 1 < N → 1 ≤ r N)
     (hrlt : ∀ N, 1 < N → r N < N) {N k : ℕ} (h : iterR r k N ≤ 1) :
     depth r hr hrlt N ≤ k :=
   Nat.find_min' (exists_iterR_le_one r hr hrlt N) h
 
+/-- Under the stated positivity and recurrence hypotheses, unfolding `d` steps bounds `T N` by
+`a^d * sqrt (N / iterR r d N) * T (iterR r d N)` while the preceding sizes exceed one. See
+[Buhrman et al., 2005, Theorem 7][BuhrmanEtAl2005]. -/
 theorem telescope (r : ℕ → ℕ) (T : ℕ → ℝ) (a : ℝ) (ha : 0 ≤ a)
     (hr : ∀ N, 1 < N → 1 ≤ r N)
     (hrpos : ∀ N, 1 < N → 0 < r N)
@@ -126,6 +163,9 @@ theorem telescope (r : ℕ → ℕ) (T : ℕ → ℝ) (a : ℝ) (ha : 0 ≤ a)
                 * T (iterR r d (r N)) := by ring
           rw [hgroup, hfrac]
 
+/-- For a nonnegative cost satisfying the stated recurrence and base bound, the cost at positive
+`N` is at most `a^(depth r hr hrlt N) * sqrt N * b`. See [Buhrman et al., 2005, Theorem
+7][BuhrmanEtAl2005]. -/
 theorem recursion_bound (r : ℕ → ℕ) (T : ℕ → ℝ) (a b : ℝ)
     (ha : 0 ≤ a) (hb : 0 ≤ b) (hT : ∀ N, 0 ≤ T N)
     (hr : ∀ N, 1 < N → 1 ≤ r N) (hrpos : ∀ N, 1 < N → 0 < r N)
@@ -166,6 +206,9 @@ theorem recursion_bound (r : ℕ → ℕ) (T : ℕ → ℝ) (a b : ℝ)
         apply mul_le_mul_of_nonneg_right _ hb
         exact mul_le_mul_of_nonneg_left hsqrt_le (pow_nonneg ha d)
 
+/-- If `1 ≤ a ≤ c` and the stopping depth is at most `logStar N`, the stated recurrence and base
+bound imply `T N ≤ logStarBound c N * b`. See [Buhrman et al., 2005, Theorem
+7][BuhrmanEtAl2005]. -/
 theorem recursion_bound_logStar (r : ℕ → ℕ) (T : ℕ → ℝ) (a b c : ℝ)
     (ha1 : 1 ≤ a) (hb : 0 ≤ b) (hT : ∀ N, 0 ≤ T N)
     (hr : ∀ N, 1 < N → 1 ≤ r N) (hrpos : ∀ N, 1 < N → 0 < r N)

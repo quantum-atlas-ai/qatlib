@@ -5,6 +5,26 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSConsumers
+
+/-!
+# A backward-time obstruction to hybrid observables
+
+`HybridObservableRepresentationV1` formulates a double-Cauchy observable identity without a time
+restriction. The theorem `hybridObservableRepresentation_counterexample` refutes it using
+one-dimensional backward evolution, whose growth exceeds the unitary integral bound. See
+[AnLiuLin2023] for the mathematical setting.
+
+## Main statements
+
+* `hybridObservableRepresentation_counterexample`: The unrestricted-time statement
+  `HybridObservableRepresentationV1` is false, as shown by a one-dimensional backward-time
+  example.
+
+## References
+
+* [An, Liu, and Lin, 2023][AnLiuLin2023]
+-/
+
 set_option backward.isDefEq.respectTransparency false
 
 open Qatlib.Foundations.PureStateMath
@@ -20,6 +40,8 @@ open Matrix MeasureTheory
 open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 set_option warningAsError false
 
+/-- The unrestricted-time double-Cauchy representation of an evolved observable quadratic form
+for continuous positive semidefinite `L` and Hermitian `H`. -/
 def HybridObservableRepresentationV1 : Prop :=
   ∀ (I : Type) [Fintype I] [DecidableEq I] (L H : ℝ → Matrix I I ℂ) (O : Matrix I I ℂ)
     (u₀ : QState I) (t : ℝ),
@@ -32,11 +54,14 @@ def HybridObservableRepresentationV1 : Prop :=
         ((1/(Real.pi*(1+k^2)) * 1/(Real.pi*(1+k'^2)) : ℝ) : ℂ) •
           Qatlib.Foundations.PureStateMath.Inner (V k *ᵥ u₀) (O *ᵥ (V k' *ᵥ u₀))
 
+/-- The real Cauchy density `1 / (Real.pi * (1 + k^2))` is integrable on the real line. -/
 private theorem cauchy_weight_integrable :
     Integrable (fun k : ℝ => 1 / (Real.pi * (1 + k ^ 2))) := by
   simpa [div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
     integrable_inv_one_add_sq.const_mul Real.pi⁻¹
 
+/-- For a one-dimensional unitary family, the norm of the double-Cauchy integral of the evolved
+basis-state inner products is at most one. -/
 private theorem unitary_double_cauchy_inner_norm_le (V : ℝ → Matrix (Fin 1) (Fin 1) ℂ)
     (hV : ∀ k, V k ∈ unitaryGroup (Fin 1) ℂ) :
     ‖∫ k : ℝ, ∫ k' : ℝ,
@@ -71,6 +96,8 @@ private theorem unitary_double_cauchy_inner_norm_le (V : ℝ → Matrix (Fin 1) 
       (Filter.Eventually.of_forall hi)
     _ = 1 := static_lchs_cauchy_density_integral
 
+/-- The scalar identity generator evolved from time zero to time `-1` is the diagonal matrix
+with entry `Complex.exp 1`. -/
 private theorem backwards_scalar_evolution :
     orderedEvolution (fun _ : ℝ => (1 : Matrix (Fin 1) (Fin 1) ℂ)) 0 (-1) =
       Matrix.diagonal (fun _ : Fin 1 => Complex.exp 1) := by
@@ -88,6 +115,8 @@ private theorem backwards_scalar_evolution :
   funext i
   rw [Pi.coe_exp, ← Complex.exp_eq_exp_ℂ]
 
+/-- The unrestricted-time statement `HybridObservableRepresentationV1` is false, as shown by a
+one-dimensional backward-time example. -/
 theorem hybridObservableRepresentation_counterexample : ¬ HybridObservableRepresentationV1 := by
   intro h
   let V := fun k : ℝ => orderedEvolution

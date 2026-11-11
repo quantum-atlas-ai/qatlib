@@ -5,6 +5,27 @@ Authors: Qatlib Contributors
 -/
 
 import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundStat
+
+/-!
+# Initial-state preparation query lower bound
+
+This module converts accurate preparation of the Grover linear-system solution into successful
+marked-item search. The corrected phase-oracle implementation and the search lower bound yield a
+quadratic relation between instance size and circuit query count. Related mathematical
+background is given in [BennettEtAl1997].
+
+## Main statements
+
+* `grover_solver_success`: Accurate solution preparation gives marked-item success probability
+  at least 2/3.
+* `initialStatePreparationLowerBoundSubgoalCorrected`: Proof of the corrected preparation
+  lower-bound assertion.
+
+## References
+
+* [Bennett et al., 1997][BennettEtAl1997]
+-/
+
 set_option warningAsError false
 
 open Qatlib.Concepts.QueryComplexity.AdversarySearch
@@ -23,17 +44,23 @@ open Matrix
 open scoped Classical Matrix.Norms.L2Operator
 variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
+/-- The measurement event selecting the marked data index and all ancillary and workspace
+values. -/
 def groverMarkedFiber (x : I) : Finset ((I×Bool)×W) :=
   Finset.univ.filter (fun p => p.1.1=x)
 
 omit [DecidableEq W] in
 
+/-- The marked measurement event is the Cartesian product of the marked singleton with the full
+ancillary and workspace sets. -/
 private theorem groverMarkedFiber_product (x : I) :
     groverMarkedFiber (W := W) x = ({x} ×ˢ (Finset.univ : Finset Bool)) ×ˢ Finset.univ := by
   ext p
   rcases p with ⟨⟨i,b⟩,w⟩
   cases b <;> simp [groverMarkedFiber]
 
+/-- The solver starting state is normalized when its ancillary factors are normalized and the
+data index type is nonempty. -/
 theorem solverStart_normalized [Nonempty I] (ν : QState Bool) (ω : QState W)
     (hν : Normalized ν) (hω : Normalized ω) : Normalized (solverStart (I := I) ν ω) := by
   have hu : Normalized (uniformQState (I := I)) := by
@@ -42,6 +69,8 @@ theorem solverStart_normalized [Nonempty I] (ν : QState Bool) (ω : QState W)
   change Normalized (TensorState (TensorState (uniformQState (I := I)) ν) ω)
   exact normalized_tensorState (normalized_tensorState hu hν) hω
 
+/-- The solution target is normalized for normalized ancillary factors and index cardinality at
+least four. -/
 theorem solutionTarget_normalized (ν : QState Bool) (ω : QState W) (x : I)
     (hν : Normalized ν) (hω : Normalized ω) (hcard : 4≤Fintype.card I) :
     Normalized (solutionTarget ν ω x) := by
@@ -54,6 +83,8 @@ theorem solutionTarget_normalized (ν : QState Bool) (ω : QState W) (x : I)
     (fun i => NormedSpace.normalize (stateVector (groverInverse (I := I)*ᵥbState x)) i) ν) ω)
   exact normalized_tensorState (normalized_tensorState hn hν) hω
 
+/-- The marked-event probability of the solution target equals the squared magnitude of its
+normalized marked solution coordinate. -/
 theorem solutionTarget_marked_probability (ν : QState Bool) (ω : QState W) (x : I)
     (hν : Normalized ν) (hω : Normalized ω) :
     MeasureProb (solutionTarget ν ω x) (groverMarkedFiber x) =
@@ -65,6 +96,7 @@ theorem solutionTarget_marked_probability (ν : QState Bool) (ω : QState W) (x 
   rw [measureProb_tensorState_left hω,measureProb_tensorState_left hν]
   simp [MeasureProb,BornProb]
 
+/-- Phase compilation preserves the probability of measuring the marked data index. -/
 theorem phaseCompile_marked_probability (C : Circuit ((I×Bool)×W))
     (ψ : QState ((I×Bool)×W)) (x : I) :
     MeasureProb (Run (workspaceBitOracle (W := Bool×W) (fun i => decide (i=x)))
@@ -80,6 +112,8 @@ theorem phaseCompile_marked_probability (C : Circuit ((I×Bool)×W))
     rfl
   rw [← he,measureProb_relabelState,measureProb_tensorState_left normalized_minus]
 
+/-- A unitary corrected-oracle run within error `ε ≤ 1 / 100` of the solution target finds the
+marked index with probability at least `2 / 3` when the index cardinality is at least 150. -/
 theorem grover_solver_success (ν : QState Bool) (ω : QState W) (ε : ℝ)
     (C : Circuit ((I×Bool)×W)) (hcard : 150≤Fintype.card I) (hε : ε≤1/100)
     (hC : IsUnitaryCircuit C) (hν : Normalized ν) (hω : Normalized ω) (x : I)
@@ -100,6 +134,8 @@ theorem grover_solver_success (ν : QState Bool) (ω : QState W) (ε : ℝ)
   have hh := (abs_le.mp (hb.trans (mul_le_mul_of_nonneg_left he (by norm_num)))).1
   linarith
 
+/-- Every unitary circuit meeting the corrected preparation accuracy hypotheses has index
+cardinality at most 64 times its squared query count. -/
 theorem initialStatePreparationLowerBoundSubgoalCorrected : InitialStatePreparationLowerBoundSubgoalCorrected := by
   intro I W _ _ _ _ ν ω ε C hcard hε hC hν hω hclose
   letI : Nonempty I := Fintype.card_pos_iff.mp (by omega)
