@@ -1,8 +1,6 @@
 <div align="center">
 
-<!-- Logo placeholder: <img src="./docs/qatlib-logo.svg" alt="Qatlib" width="640" /> -->
-
-# Qatlib
+<img src="./.github/assets/qatlib-wordmark.svg" alt="Qatlib" width="560" />
 
 **基于 Lean 4 的量子计算与量子信息形式化数学库**
 

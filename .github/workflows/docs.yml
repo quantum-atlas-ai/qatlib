@@ -19,7 +19,7 @@ jobs:
       cancel-in-progress: true
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.repository == 'quantum-atlas-ai/qatlib' &&
+      (vars.QATLIB_SKIP_DOCS != 'true' &&
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_branch == 'main' &&
        (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
@@ -35,14 +35,21 @@ jobs:
         with:
           ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
+          ssh-key: ${{ secrets.GH_CHECKOUT_DEPLOY_KEY }}
 
       - name: Install elan
         run: |
           set -o pipefail
+          if command -v lean >/dev/null 2>&1 && command -v lake >/dev/null 2>&1; then
+            lean --version
+            lake --version
+            exit 0
+          fi
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
       - name: Free runner disk space and configure swap
+        if: runner.environment == 'github-hosted'
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           if [ ! -f /ci-swapfile ]; then
@@ -59,25 +66,32 @@ jobs:
         run: |
           set -euo pipefail
           lake exe get_cache --no-qatlib
-          TC="$(tr '/:' '--' < lean-toolchain | tr -d '[:space:]')"
-          SCOPE="qatlib-main/$TC/qatlib"
+          TC_DIR="$(sed -e 's|/|--|g' -e 's|:|---|g' < lean-toolchain | tr -d '[:space:]')"
+          TC_LEGACY="$(sed -e 's|/|-|g' -e 's|:|-|g' < lean-toolchain | tr -d '[:space:]')"
+          REPO_SLUG="quantum-atlas-ai/qatlib"
+          LEGACY_SCOPE="qatlib-main/$TC_LEGACY/qatlib"
           INPUT_TREE="$(git rev-parse HEAD:Qatlib HEAD:Qatlib.lean HEAD:lakefile.toml HEAD:lean-toolchain HEAD:lake-manifest.json | sha256sum | cut -d' ' -f1)"
-          CDN_BASE="https://lake-cache.quantum-atlas.ai/revisions/$SCOPE"
           CANDIDATE="$RUNNER_TEMP/qatlib-docs-outputs.jsonl"
           FOUND="false"
-          for attempt in $(seq 1 30); do
-            if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$CDN_BASE/$TARGET_SHA.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then
-              echo "Resolved Qatlib R2 manifest by revision ($TARGET_SHA) on attempt $attempt."
-              FOUND="true"
-              break
+          CACHE_MODE="repo"
+          for MODE in repo scope; do
+            if [ "$MODE" = "repo" ]; then
+              BASE="https://lake-cache.quantum-atlas.ai/revisions/$REPO_SLUG/tc/$TC_DIR"
+            else
+              BASE="https://lake-cache.quantum-atlas.ai/revisions/$LEGACY_SCOPE"
+              CACHE_MODE="scope"
             fi
-            if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$CDN_BASE/inputs/$INPUT_TREE.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then
-              echo "Resolved Qatlib R2 manifest by input-tree ($INPUT_TREE) on attempt $attempt."
-              FOUND="true"
-              break
-            fi
-            echo "Waiting for Cache workflow to finish publishing Qatlib R2 manifest (attempt $attempt/30)..."
-            sleep 10
+            for attempt in $(seq 1 30); do
+              if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$BASE/$TARGET_SHA.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then FOUND="true"; break; fi
+              if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$BASE/inputs/$INPUT_TREE.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then FOUND="true"; break; fi
+              for ANC in $(git rev-list --max-count=25 HEAD~1 2>/dev/null || true); do
+                if curl --connect-timeout 10 --max-time 30 -fsSL -H "User-Agent: LakeCache/4.35.0" "$BASE/$ANC.jsonl" -o "$CANDIDATE" 2>/dev/null && [ -s "$CANDIDATE" ]; then FOUND="true"; break; fi
+              done
+              [ "$FOUND" = "true" ] && break
+              echo "Waiting for Cache workflow to finish publishing Qatlib R2 manifest (mode=$MODE attempt $attempt/30)..."
+              sleep 10
+            done
+            [ "$FOUND" = "true" ] && break
           done
           if [ "$FOUND" != "true" ]; then
             echo "Error: Prebuilt Qatlib R2 manifest not found for $TARGET_SHA (input_tree=$INPUT_TREE)." >&2
@@ -86,8 +100,11 @@ jobs:
           TMP_CURL="$(mktemp -d "$RUNNER_TEMP/curlrc.XXXXXX")"
           trap 'rm -rf "$TMP_CURL"' EXIT
           printf 'connect-timeout = 15\nspeed-time = 20\nspeed-limit = 1024\nretry = 3\nretry-delay = 1\n' > "$TMP_CURL/.curlrc"
-          LAKE_CONFIG="${{ github.workspace }}/lake-cache.toml" CURL_HOME="$TMP_CURL" \
-            lake cache get "$CANDIDATE" --package=Qatlib --scope="$SCOPE"
+          if [ "$CACHE_MODE" = "repo" ]; then
+            LAKE_CONFIG="${{ github.workspace }}/lake-cache.toml" CURL_HOME="$TMP_CURL" lake cache get "$CANDIDATE" --package=Qatlib --repo="$REPO_SLUG"
+          else
+            LAKE_CONFIG="${{ github.workspace }}/lake-cache.toml" CURL_HOME="$TMP_CURL" lake cache get "$CANDIDATE" --package=Qatlib --scope="$LEGACY_SCOPE"
+          fi
 
       - name: Verify prebuilt Qatlib cache is complete (never compile Qatlib in Docs)
         run: |
@@ -192,12 +209,25 @@ jobs:
                   c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
           PY
 
+      - name: Assemble Qatlib documentation portal and API reference
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/site-venv"
+          "$RUNNER_TEMP/site-venv/bin/pip" install --quiet markdown-it-py
+          "$RUNNER_TEMP/site-venv/bin/python" scripts/build_site.py \
+            --repo-root . \
+            --docgen-dir docbuild/.lake/build/doc \
+            --move-docgen \
+            --out-dir _site \
+            --check
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docbuild/.lake/build/doc
+          path: _site
 
   deploy:
     name: Deploy to GitHub Pages
+    if: vars.QATLIB_SKIP_PAGES != 'true'
     needs: build-docs
     runs-on: ubuntu-latest
     concurrency:

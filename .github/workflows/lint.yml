@@ -17,15 +17,21 @@ permissions:
 jobs:
   lint:
     name: Style & Import Linter
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.QATLIB_LIGHT_RUNNERS || '["ubuntu-latest"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ssh-key: ${{ secrets.GH_CHECKOUT_DEPLOY_KEY }}
 
       - name: Install elan
         run: |
           set -o pipefail
+          if command -v lean >/dev/null 2>&1 && command -v lake >/dev/null 2>&1; then
+            lean --version
+            lake --version
+            exit 0
+          fi
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
           ~/.elan/bin/lean --version
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"

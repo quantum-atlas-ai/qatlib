@@ -11,8 +11,9 @@ import Lean
 Runs fast, read-only static checks across the repository (~1 second):
 1. **Source & Style Check**:
    - Standard Apache-2.0 copyright header on all `.lean` files.
-   - Allowed top-level directories under `Qatlib/` (`Foundations`, `Concepts`, `Papers`)
-     and strict `UpperCamelCase` on all directory and `.lean` file names.
+   - Allowed top-level directories under `Qatlib/` (`Foundations`, `Concepts`, `Papers`),
+     strict `UpperCamelCase` on all directory and `.lean` file names, and zero
+     case-insensitive file or directory path collisions (`ERR_CASE`).
    - Unix `\n` line endings, no trailing whitespace, no `" ;"` before semicolons.
    - No forbidden debug options (`set_option pp.*`, `profiler.*`, `trace.*`).
 2. **Module Tree & Import Check**:
@@ -45,6 +46,30 @@ partial def collectLeanFiles (dir : FilePath) : IO (Array FilePath) := do
     else if p.extension == some "lean" then
       acc := acc.push p
   return acc
+
+/-- Recursively detect case-insensitive file or directory collisions across the repository. -/
+partial def collectCaseCollisions (dir : FilePath) : IO (Array String) := do
+  let mut errs : Array String := #[]
+  if !(← dir.pathExists) then
+    return errs
+  let entries ← dir.readDir
+  let sorted := entries.qsort (fun a b => a.fileName < b.fileName)
+  let mut seenLower : Std.HashMap String String := {}
+  for entry in sorted do
+    let name := entry.fileName
+    if name == ".git" || name == ".lake" || name == "_site" || name == "__pycache__" then
+      continue
+    let lower := name.toLower
+    let childPath : FilePath := if dir == FilePath.mk "." then FilePath.mk name else dir / name
+    let relCurr := childPath.toString
+    if let some prev := seenLower[lower]? then
+      let relPrev := if dir == FilePath.mk "." then prev else (dir / prev).toString
+      errs := errs.push s!"{relCurr}:1: ERR_CASE: Case-insensitive path collision with '{relPrev}'"
+    else
+      seenLower := seenLower.insert lower name
+    if ← childPath.isDir then
+      errs := errs ++ (← collectCaseCollisions childPath)
+  return errs
 
 /-- Check whether `s` matches `^[A-Z][A-Za-z0-9]*$`. -/
 def isUpperCamelCase (s : String) : Bool :=
@@ -99,7 +124,7 @@ def runStaticChecks : IO UInt32 := do
   IO.println "=== Running Static Source, Style & Import Linter ==="
   let qatlibFiles ← collectLeanFiles "Qatlib"
   let allFiles := #[FilePath.mk "Qatlib.lean"] ++ qatlibFiles
-  let mut errors : Array String := #[]
+  let mut errors ← collectCaseCollisions "."
 
   let mut moduleSet : Std.HashSet String := {}
   let mut expectedRootImports : Array String := #[]
@@ -109,7 +134,16 @@ def runStaticChecks : IO UInt32 := do
     expectedRootImports := expectedRootImports.push s!"import {modName}"
 
   let rootLines ← IO.FS.lines "Qatlib.lean"
-  let rootImports := (← extractHeaderImports rootLines).map (fun (_, m) => s!"import {m}")
+  let rootHeaderImports ← extractHeaderImports rootLines
+  let mut seenRootLower : Std.HashMap String String := {}
+  for (lineNo, modName) in rootHeaderImports do
+    let lowerMod := modName.toLower
+    if let some prevMod := seenRootLower[lowerMod]? then
+      if prevMod != modName then
+        errors := errors.push s!"Qatlib.lean:{lineNo}: ERR_CASE: Case-insensitive module collision '{modName}' vs '{prevMod}'"
+    else
+      seenRootLower := seenRootLower.insert lowerMod modName
+  let rootImports := rootHeaderImports.map (fun (_, m) => s!"import {m}")
   -- Aggregate generation sorts module names, not directory-entry names. A file
   -- `Foo.lean` and a directory `Foo/` must follow that same module-name order.
   expectedRootImports := expectedRootImports.qsort (· < ·)

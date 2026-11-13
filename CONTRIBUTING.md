@@ -25,7 +25,7 @@ lake build Qatlib.Foundations.ChannelTheory.ChoiKraus
 
 ## 代码与证明规范
 
-- **定位合适层级（单向依赖 `Foundations → Concepts → Papers`）**：
+- **定位合适层级（单向依赖 `Foundations ← Concepts ← Papers`）**：
   - 通用线性代数、算子范数、CPTP 量子信道、测量与执行模型放入 `Qatlib/Foundations/`（不依赖 `Concepts` 或 `Papers`）；
   - 跨论文复用的算法原语（如块编码、QSVT/QSP、振幅放大、量子游走、对手下界等）放入 `Qatlib/Concepts/`（不依赖 `Papers`）；
   - 具体学术论文的定理与复杂度界放入 `Qatlib/Papers/`。

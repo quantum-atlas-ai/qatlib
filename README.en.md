@@ -1,8 +1,6 @@
 <div align="center">
 
-<!-- Logo placeholder: <img src="./docs/qatlib-logo.svg" alt="Qatlib" width="640" /> -->
-
-# Qatlib
+<img src="./.github/assets/qatlib-wordmark.svg" alt="Qatlib" width="560" />
 
 **The Lean Library for Formalized Quantum Computing and Quantum Information**
 
@@ -105,7 +103,7 @@ See [`docs/architecture.en.md`](./docs/architecture.en.md) for a detailed module
 
 - **[Getting Started & Cache Guide (`docs/getting-started.en.md`)](./docs/getting-started.en.md)**: Toolchain setup (`elan` and VS Code), three-tier cache architecture (`lake-cache.toml`), targeted imports, and incremental builds.
 - **[Library Architecture & Module Overview (`docs/architecture.en.md`)](./docs/architecture.en.md)**: The `Foundations / Concepts / Papers` directory layout and module naming conventions.
-- **[Scripts, Linter & Test Reference (`scripts/README.md`)](./scripts/README.md)**: Details on `lake exe get_cache`, the static style/import linter `lake lint`, and the kernel-level zero-`sorryAx` / standard-axiom verifier `lake test`.
+- **[Scripts, Linter & Test Reference (`scripts/README.en.md`)](./scripts/README.en.md)**: Details on `lake exe get_cache`, the static style/import linter `lake lint`, and the kernel-level zero-`sorryAx` / standard-axiom verifier `lake test`.
 - **API Reference (`doc-gen4`)**: Following `mathlib4` and `Physlib`, API documentation is built using Lean 4's official [`doc-gen4`](https://github.com/leanprover/doc-gen4) (configured in [`.github/workflows/docs.yml`](./.github/workflows/docs.yml)).
 
 ## <a id="contributing"></a>Contributing

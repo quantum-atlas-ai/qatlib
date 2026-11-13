@@ -22,7 +22,7 @@ jobs:
       github.event.workflow_run.head_branch == 'main' &&
       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
       github.event.workflow_run.head_repository.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.QATLIB_LIGHT_RUNNERS || '["ubuntu-latest"]') }}
     timeout-minutes: 30
     env:
       TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -47,6 +47,7 @@ jobs:
         with:
           ref: ${{ env.TARGET_SHA }}
           fetch-depth: 1
+          ssh-key: ${{ secrets.GH_CHECKOUT_DEPLOY_KEY }}
 
       - name: Download delta cache bundle from Build workflow
         if: steps.upload_gate.outputs.has_key == 'true'
@@ -80,6 +81,10 @@ jobs:
         if: steps.upload_gate.outputs.has_key == 'true' && steps.meta.outputs.has_delta == 'true'
         run: |
           set -o pipefail
+          if command -v lake >/dev/null 2>&1; then
+            lake --version
+            exit 0
+          fi
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
           ~/.elan/bin/lake --version
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
@@ -94,13 +99,16 @@ jobs:
           KEY="$(printf %s "$LAKE_CACHE_KEY_RAW" | sed -e 's/[[:space:]]*$//')"
           echo "::add-mask::$KEY"
           export LAKE_CACHE_KEY="$KEY"
-          S3_BASE="https://423d114d4989f5bc042102b9554f3eef.r2.cloudflarestorage.com/qatlib-cache/revisions/$CACHE_SCOPE"
+          TC_RAW="$(tr -d '[:space:]' < lean-toolchain)"
+          TC_DIR="$(printf %s "$TC_RAW" | sed -e 's|/|--|g' -e 's|:|---|g')"
+          REPO_SLUG="quantum-atlas-ai/qatlib"
+          S3_BASE="https://423d114d4989f5bc042102b9554f3eef.r2.cloudflarestorage.com/qatlib-cache/revisions/$REPO_SLUG/tc/$TC_DIR"
           if [ "${{ steps.meta.outputs.has_delta }}" = "true" ]; then
-            lake cache put-staged cache-staging --scope="$CACHE_SCOPE" --rev="$TARGET_SHA"
+            lake cache put-staged cache-staging --repo="$REPO_SLUG" --toolchain="$TC_RAW" --rev="delta-$TARGET_SHA-${{ github.run_id }}"
           fi
-          curl -fsS -X PUT -T cache-staging/full-outputs.jsonl \
-            -H "Content-Type: application/vnd.reservoir.outputs+json-lines" \
-            --aws-sigv4 "aws:amz:auto:s3" --user "$KEY" "$S3_BASE/$TARGET_SHA.jsonl"
-          curl -fsS -X PUT -T cache-staging/full-outputs.jsonl \
+          curl -fsS --retry 3 --retry-delay 1 -X PUT -T cache-staging/full-outputs.jsonl \
             -H "Content-Type: application/vnd.reservoir.outputs+json-lines" \
             --aws-sigv4 "aws:amz:auto:s3" --user "$KEY" "$S3_BASE/inputs/$INPUT_TREE.jsonl"
+          curl -fsS --retry 3 --retry-delay 1 -X PUT -T cache-staging/full-outputs.jsonl \
+            -H "Content-Type: application/vnd.reservoir.outputs+json-lines" \
+            --aws-sigv4 "aws:amz:auto:s3" --user "$KEY" "$S3_BASE/$TARGET_SHA.jsonl"

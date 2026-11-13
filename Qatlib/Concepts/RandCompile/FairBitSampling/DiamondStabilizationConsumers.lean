@@ -6,7 +6,7 @@ Authors: Qatlib Contributors
 
 import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
 import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQDrift
+import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
 
 /-!
 # Diamond-norm stabilization and qDRIFT consumers

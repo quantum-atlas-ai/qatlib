@@ -25,7 +25,7 @@ lake build Qatlib.Foundations.ChannelTheory.ChoiKraus
 
 ## Coding & Formalization Conventions
 
-- **Module placement (one-way dependency `Foundations → Concepts → Papers`)**:
+- **Module placement (one-way dependency `Foundations ← Concepts ← Papers`)**:
   - General operator analysis, quantum channels, measurements, and execution semantics belong in `Qatlib/Foundations/` (must not import `Concepts` or `Papers`).
   - Reusable algorithmic primitives and lower-bound techniques (block-encoding, QSVT/QSP, amplitude amplification, quantum walks, adversary bounds) belong in `Qatlib/Concepts/` (must not import `Papers`).
   - Formalizations of specific research papers belong in `Qatlib/Papers/`.
